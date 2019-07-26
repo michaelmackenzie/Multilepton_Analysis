@@ -2,7 +2,7 @@
 Analysis work using the MultileptonAnalyzer
 
 ## Directories
-### rootScripts/
+### rootScripts
 Contains root scripts to process the MultileptonAnalyzer ntuples
 MultileptonHistMaker.cc makes books of histograms when running over the ntuple
 process_multilepton.C processes a list of ntuples through MultileptonHistMaker
@@ -27,4 +27,24 @@ Used to train MVAs to separate backgrounds from signal
 CWoLa training uses variables not correlated with the dilepton mass to separate two mass ranges,
 hopefully only succeeding when there is a resonance in one of the masses
 
+## Examples
+
+in ROOT:
+.L MultileptonHistMaker.cc++g //recompile in debug mode
+TTree* tree = <Get MultileptonAnalyzer Tree>;
+MultileptonHistMaker* selec = new MultileptonHistMaker();
+tree->Process(selec,"");
+TFile* out = new TFile("<file name>", "<internal name>", "RECREATE");
+out->Write();
+  
+.L MultileptonNTupleMaker.cc++g //recompile in debug mode
+TTree* tree = <Get MultileptonAnalyzer Tree>;
+MultileptonNTupleMaker* selec = new MultileptonNTupleMaker();
+tree->Process(selec,"");
+TFile* out = new TFile("<file name>", "<internal name>", "RECREATE");
+out->Write();
+  
+.L train_tmva.C
+train_tmva("<make_background.C out file>", {<list of process IDs to ignore>}");
+ 
 
