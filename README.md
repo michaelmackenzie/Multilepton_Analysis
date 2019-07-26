@@ -31,15 +31,15 @@ hopefully only succeeding when there is a resonance in one of the masses
 
 in ROOT:
 .L MultileptonHistMaker.cc++g //recompile in debug mode
-TTree* tree = [Get MultileptonAnalyzer Tree];
-MultileptonHistMaker* selec = new MultileptonHistMaker();
-tree->Process(selec,"");
-TFile* out = new TFile("[file name]", "[internal name]", "RECREATE");
+TTree* tree = [Get MultileptonAnalyzer Tree]
+MultileptonHistMaker* selec = new MultileptonHistMaker()
+tree->Process(selec,"")
+TFile* out = new TFile("[file name]", "[internal name]", "RECREATE")
 out->Write();
   
 .L MultileptonNTupleMaker.cc++g //recompile in debug mode
 
-TTree* tree = [Get MultileptonAnalyzer Tree];
+TTree* tree = [Get MultileptonAnalyzer Tree]
 MultileptonNTupleMaker* selec = new MultileptonNTupleMaker()
 tree->Process(selec,"")
 TFile* out = new TFile("[file name]", "[internal name]", "RECREATE")
