@@ -30,22 +30,39 @@ hopefully only succeeding when there is a resonance in one of the masses
 ## Examples
 
 in ROOT:
+### HistMaker
+
 .L MultileptonHistMaker.cc++g //recompile in debug mode
+
 TTree* tree = [Get MultileptonAnalyzer Tree]
+
 MultileptonHistMaker* selec = new MultileptonHistMaker()
+
 tree->Process(selec,"")
+
 TFile* out = new TFile("[file name]", "[internal name]", "RECREATE")
-out->Write();
+
+out->Write()
   
+
+## NTupleMaker
+
 .L MultileptonNTupleMaker.cc++g //recompile in debug mode
 
 TTree* tree = [Get MultileptonAnalyzer Tree]
+
 MultileptonNTupleMaker* selec = new MultileptonNTupleMaker()
+
 tree->Process(selec,"")
+
 TFile* out = new TFile("[file name]", "[internal name]", "RECREATE")
+
 out->Write()
   
+## Train MVA
+
 .L train_tmva.C
+
 train_tmva("[make_background.C out file]", {[list of process IDs to ignore]}")
  
 
