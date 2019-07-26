@@ -134,6 +134,7 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
   Use["BDT"]             = 1; // uses Adaptive Boost
   Use["BDTG"]            = 0; // uses Gradient Boost
   Use["BDTB"]            = 0; // uses Bagging
+  Use["BDTRT"]           = 1; // uses randomized trees (Random Forest Technique)
   Use["BDTD"]            = 0; // decorrelation + Adaptive Boost
   Use["BDTF"]            = 0; // allow usage of fisher discriminant for node splitting 
   // 
@@ -198,7 +199,9 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
   factory->AddVariable("met","MET","GeV",'F');
   // if(!dirname.Contains("_0")) factory->AddVariable("jetsDelR","#DeltaR_{jj}","",'D');
   // if(!dirname.Contains("_0")) factory->AddVariable("jetsDelPhi","#Delta#phi_{jj}","",'D');
-  if(!dirname.Contains("_0")) factory->AddVariable("jetsLepDelR","#DeltaR_{jj+ll}","",'D');
+  if(!dirname.Contains("_0")) factory->AddVariable("jet1eta","#eta_{j1}","",'D');
+  if(!dirname.Contains("_0")) factory->AddVariable("jet2eta","#eta_{j2}","",'D');
+  // if(!dirname.Contains("_0")) factory->AddVariable("jetsLepDelR","#DeltaR_{jj+ll}","",'D');
   if(!dirname.Contains("_0")) factory->AddVariable("jetsLepDelPhi","#Delta#phi_{jj+ll}","",'D');
   // factory->AddVariable("jetLepDelR","#DeltaR_{j+ll}","",'D');
   // factory->AddVariable("jetLepDelPhi","#Delta#phi_{j+ll}","",'D');
@@ -452,7 +455,7 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
     if(outfilename.Contains("d_3") || outfilename.Contains("l_3"))
       network = "10,5,3";
     else
-      network = "7,5,5,2";//:LearningRate=1e-2";
+      network = "12,5,5";//:LearningRate=1e-2";
     factory->BookMethod( TMVA::Types::kMLP, "MLP_MM",
 			 Form("!H:!V:VarTransform=N:HiddenLayers=%s",
 			      network.Data()));
@@ -484,6 +487,10 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
   if (Use["BDT"])  // Adaptive Boost
     factory->BookMethod( TMVA::Types::kBDT, "BDT",
 	"!H:!V:NTrees=850:nEventsMin=150:MaxDepth=3:BoostType=AdaBoost:AdaBoostBeta=0.5:SeparationType=GiniIndex:nCuts=20:PruneMethod=NoPruning" );
+  if (Use["BDTRT"])  // Adaptive Boost Random Trees
+    factory->BookMethod( TMVA::Types::kBDT, "BDTRT",
+	"!H:!V:NTrees=850:nEventsMin=150:MaxDepth=3:BoostType=AdaBoost:AdaBoostBeta=0.5:SeparationType=GiniIndex:nCuts=20:PruneMethod=NoPruning:UseRandomisedTrees=True" );
+
 
 
   if (Use["BDTB"]) // Bagging
