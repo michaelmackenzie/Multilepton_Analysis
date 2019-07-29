@@ -71,7 +71,7 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
 
 
   // Flag to use true category ID to determine which variables are useful in seeing the signal
-  int useMCTruth = 1;
+  int useMCTruth = 0;
   int signalCategory = 15;
 
   //---------------------------------------------------------------
@@ -311,7 +311,10 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
   TString options = "nTrain_Signal=";
   options += ((Int_t) nSig*nFraction);
   options += ":nTrain_Background=";
-  options += ((Int_t) nBkg*nFraction);
+  if(useMCTruth)
+    options += ((Int_t) nBkg*nFraction/10.);
+  else
+    options += ((Int_t) nBkg*nFraction);
   options += ":nTest_Signal=0:nTest_Background=0:SplitMode=Random:!V:SplitSeed=89281";
   factory->PrepareTrainingAndTestTree(signal_cuts, bkg_cuts, options.Data() );
 
@@ -455,7 +458,7 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
     if(outfilename.Contains("d_3") || outfilename.Contains("l_3"))
       network = "10,5,3";
     else
-      network = "12,5,5";//:LearningRate=1e-2";
+      network = "16,10";//:LearningRate=1e-2";
     factory->BookMethod( TMVA::Types::kMLP, "MLP_MM",
 			 Form("!H:!V:VarTransform=N:HiddenLayers=%s",
 			      network.Data()));
@@ -487,18 +490,19 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
   if (Use["BDT"])  // Adaptive Boost
     factory->BookMethod( TMVA::Types::kBDT, "BDT",
 	"!H:!V:NTrees=850:nEventsMin=150:MaxDepth=3:BoostType=AdaBoost:AdaBoostBeta=0.5:SeparationType=GiniIndex:nCuts=20:PruneMethod=NoPruning" );
-  if (Use["BDTRT"])  // Adaptive Boost Random Trees
+
+  if (Use["BDTRT"])  // Bagging Boost Random Trees
     factory->BookMethod( TMVA::Types::kBDT, "BDTRT",
-	"!H:!V:NTrees=850:nEventsMin=150:MaxDepth=3:BoostType=AdaBoost:AdaBoostBeta=0.5:SeparationType=GiniIndex:nCuts=20:PruneMethod=NoPruning:UseRandomisedTrees=True" );
+	"!H:!V:NTrees=850:MinNodeSize=1%:MaxDepth=7:nCuts=30:UseNVars=4:UseRandomisedTrees=True:BoostType=Bagging" );
 
 
 
   if (Use["BDTB"]) // Bagging
     factory->BookMethod( TMVA::Types::kBDT, "BDTB",
-	"!H:!V:NTrees=400:BoostType=Bagging:SeparationType=GiniIndex:nCuts=20:PruneMethod=NoPruning" );
+	"!H:!V:NTrees=1000:MinNodeSize=1%:BoostType=Bagging:MaxDepth=4:SeparationType=GiniIndex:nCuts=50:PruneMethod=NoPruning" );
 
-  if (Use["BDTD"]) // Decorrelation + Adaptive Boost
-    factory->BookMethod( TMVA::Types::kBDT, "BDTD",
+  if (Use["BDTD"]) // Decorrelation + Adaptive Boost 
+   factory->BookMethod( TMVA::Types::kBDT, "BDTD",
 	"!H:!V:NTrees=400:nEventsMin=400:MaxDepth=3:BoostType=AdaBoost:SeparationType=GiniIndex:nCuts=20:PruneMethod=NoPruning:VarTransform=Decorrelate" );
 
   if (Use["BDTF"])  // Allow Using Fisher discriminant in node splitting for (strong) linearly correlated variables

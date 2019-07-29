@@ -1,4 +1,4 @@
-int MVA_ = 0; //0 for NN, 1 for BDT
+int MVA_ = 0; //0 for NN, 1 for BDT, 2 for BDTRT
 
 int plot_tmva_tree(const char* file = "../CWoLa_training_background_3.root", double mva_cut = 0.,
 		   int category = -1) {
@@ -24,6 +24,8 @@ int plot_tmva_tree(const char* file = "../CWoLa_training_background_3.root", dou
     mva_var = "MLP_MM";
   else if(MVA_ == 1)
     mva_var = "BDT";
+  else if(MVA_ == 2)
+    mva_var = "BDTRT";
   else {
     printf("MVA_ value doesn't correspond to known MVA\n");
     return 3;
@@ -142,6 +144,8 @@ int stack_tmva_tree(const char* file = "../CWoLa_training_background_3.root", do
     mva_var = "MLP_MM";
   else if(MVA_ == 1)
     mva_var = "BDT";
+  else if(MVA_ == 2)
+    mva_var = "BDTRT";
   else {
     printf("MVA_ value doesn't correspond to known MVA\n");
     return 3;
@@ -295,6 +299,8 @@ int plot_roc(const char* file = "../CWoLa_training_background_3.root", int categ
   if(MVA_ == 0)
     mva_var = "MLP_MM";
   else if(MVA_ == 1)
+    mva_var = "BDT";
+  else if(MVA_ == 2)
     mva_var = "BDT";
   else {
     printf("MVA_ value doesn't correspond to known MVA\n");
