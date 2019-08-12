@@ -25,7 +25,8 @@ class MultileptonNTupleMaker : public TSelector {
 
   TTreeReader     fReader;  //!the tree reader
   TTree          *fChain = 0;   //!pointer to the analyzed TTree or TChain
-
+  TString         fEnd = ""; //allowing one to add something to the output file name
+  
   // Readers to access the data (delete the ones you do not need).
   UInt_t runNumber;
   ULong64_t eventNumber;
@@ -235,7 +236,7 @@ class MultileptonNTupleMaker : public TSelector {
   virtual void    FillEventTree(EventNT_t* tree);
 
 
-  TRandom* _rng = new TRandom(90);
+  TRandom* _rng = new TRandom(90); // for b-tagging
   TStopwatch* timer = new TStopwatch();
   //Tree:
   const static Int_t fn = 100; //max histogram sets
@@ -266,7 +267,7 @@ void MultileptonNTupleMaker::Init(TTree *tree)
   // (once per file to be processed).
 
   if(fChain == 0 && tree != 0) {
-    fOut = new TFile(Form("%s.tree",tree->GetName()),"RECREATE","MultileptonNTupleMaker output tree file");
+    fOut = new TFile(Form("%s%s.tree",tree->GetName(),fEnd.Data()),"RECREATE","MultileptonNTupleMaker output tree file");
     fTopDir = fOut->mkdir("Data");
     fTopDir->cd();
 
@@ -279,10 +280,11 @@ void MultileptonNTupleMaker::Init(TTree *tree)
     fEventSets[1] = 1; // Lepton Sys Mass < 70 GeV/c^2
     //1b1f = mass requirement + NFwdJets > 0 + nJets == 1
     //1b1c = mass requirement + NFwdJets == 0 + nJets >= 2
-    fEventSets[2] = 1; // 1b1c
-    fEventSets[3] = 1; // 1b1f
-    fEventSets[4] = 1; // 1b1f || 1b1c
-    fEventSets[5] = 1; // (1b1f || 1b1c) && Lepton Pt / M > 2.
+    fEventSets[2] = 1; // loose 1b1c
+    fEventSets[3] = 1; // loose 1b1f
+    fEventSets[4] = 1; // loose 1b1f || 1b1c
+    fEventSets[5] = 1; // loose 1b1c + btag
+    fEventSets[6] = 1; // loose 1b1f + btag
     BookTrees();
 
   }

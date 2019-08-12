@@ -65,10 +65,14 @@
       //-----------------------------------------------------------------------------
       // report the process ID which simplifies debugging
       //-----------------------------------------------------------------------------
-      printf(" process ID: %i\n",gSystem->GetPid());
+      printf("process ID: %i\n",gSystem->GetPid());
       TAuthenticate::SetGlobalUser(gSystem->Getenv("USER"));
       gInterpreter->ProcessLine(".! ps | grep root");
-      gSystem->Load("MultileptonHistMaker_cc.so");
+      printf("Loading AsciiPlotter and MultileptonHistMakers\n");
+      TString cmssw = gSystem->Getenv("CMSSW_BASE");
+      gSystem->Load((cmssw + "/src/BLT/BLTAnalysis/AsciiPlotter/AsciiPlotter_cc.so").Data());
+      gSystem->Load((cmssw + "/src/BLT/BLTAnalysis/rootScripts/MultileptonHistMaker_cc.so").Data());
+      gSystem->Load((cmssw + "/src/BLT/BLTAnalysis/rootScripts/MultileptonNTupleMaker_cc.so").Data());
     }
   }
 //-----------------------------------------------------------------------------

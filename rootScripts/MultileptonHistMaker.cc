@@ -471,11 +471,15 @@ Bool_t MultileptonHistMaker::Process(Long64_t entry)
   TLorentzVector lepSys = (*leptonOneP4) + (*leptonTwoP4);
   Double_t lepM = lepSys.M();
   bool massTest = (12. < lepM && 70. > lepM);
+  bool chargeTest = leptonOneQ*leptonTwoQ < 0; //check if oppositely signed
+  
   bool b1f = (massTest && nFwdJets > 0 && nBJets == 1 && nJets == 0);
+  b1f = b1f && chargeTest;
   b1f = b1f && jetP4->Pt() > 30. && abs(jetP4->Eta()) > 2.4;
   TLorentzVector jetSys = (*jetP4) + (*bjetP4);
   double jslDelPhi = abs(jetSys.DeltaPhi(lepSys));
   bool b1c = massTest && nFwdJets == 0 && met < 40. && jslDelPhi > 2.5 && nBJets > 0;
+  b1c = b1c && chargeTest;
   b1c = b1c && jetP4->Pt() > 30. && abs(jetP4->Eta()) < 2.4 && (nJets + nBJets) == 2;
   if(fEventSets[1] && massTest)     FillEventHistogram(fEventHist[1]);
   if(fEventSets[2] && b1c)          FillEventHistogram(fEventHist[2]);

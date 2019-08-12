@@ -4,7 +4,6 @@
 *.so
 *.d
 *.pcm
-*.root
 *.hist
 *_hist
 *.tree
@@ -12,10 +11,12 @@
 *.xml
 *Weights*
 tmva_training/plots/*
+tmva_training/*.root
 bin
 src
 interface
 ML_Project
+AsciiPlotter
 plugins
 python
 scripts/*.py

@@ -53,13 +53,14 @@ void MultileptonNTupleMaker::SlaveBegin(TTree * /*tree*/)
 }
 
 //Taken from bin/ParticleSelector.cc
-bool MultileptonNTupleMaker::BTagModifier(int i = 1) 
+bool MultileptonNTupleMaker::BTagModifier(int i) 
 {
     bool  isBTagged = false;
     float jetPt     = (i == 1) ? jet1P4->Pt() : jet2P4->Pt(); 
     float bTag      = (i == 1) ? jet1Tag : jet2Tag;      
     int   jetFlavor = (i == 1) ? jet1Flavor : jet2Flavor;   
-    if(i == 1 && abs(jet1P4->Eta()) > 2.4) return false; //if it's a forward jet, assume not a b
+    if(i == 1 && abs(jet1P4->Eta()) > 2.4) return false; //if it's a forward jet, can't tag
+    else if(i == 2 && abs(jet2P4->Eta()) > 2.4) return false; //if it's a forward jet, can't tag
     TString tagName = "MVAT";
 
     // Get b tag efficiency and mistag scale factor
@@ -476,9 +477,18 @@ Bool_t MultileptonNTupleMaker::Process(Long64_t entry)
   if(fEventSets[2] && b1c)          FillEventTree(fEventNT[2]);
   if(fEventSets[3] && b1f)          FillEventTree(fEventNT[3]);
   if(fEventSets[4] && (b1c || b1f)) FillEventTree(fEventNT[4]);
-  // if(fEventSets[5] && (b1c || b1f) && lepSys.Pt()/lepSys.M() > 2.) FillEventTree(fEventNT[5]);
-  // if(fEventSets[6] && (b1c)&& lepSys.Pt()/lepSys.M() > 2.) FillEventTree(fEventNT[6]);
-  // if(fEventSets[7] && (b1f) && lepSys.Pt()/lepSys.M() > 2.) FillEventTree(fEventNT[7]);
+
+  b1c = b1c && (jet1tagged || jet2tagged); // one jet is b-tagged
+  b1f = b1f && (jet1tagged || jet2tagged); // one jet is b-tagged
+
+  if(fEventSets[5] && b1c)          FillEventTree(fEventNT[5]);
+  if(fEventSets[6] && b1f)          FillEventTree(fEventNT[6]);
+
+  b1c = b1c && nJets == 2; //2 jets, including bjet
+  if(fEventSets[7] && b1c)          FillEventTree(fEventNT[7]);
+
+    b1c = b1c && met < 40.;
+  if(fEventSets[7] && b1c)          FillEventTree(fEventNT[7]);
 
   return kTRUE;
 }
@@ -496,8 +506,8 @@ void MultileptonNTupleMaker::Terminate()
   // The Terminate() function is the last function to be called during
   // a query. It always runs on the client, it can be used to present
   // the results graphically or save the results to file.
-  printf("Writing output file into %s.tree\n",fChain->GetName());
-  fOut->Write();//Form("%s_OutFile.root",fChain->GetName()));
+  printf("Writing output file into %s%s.tree\n",fChain->GetName(),fEnd.Data());
+  fOut->Write();
   delete fOut;
   // timer->Stop();
   Double_t cpuTime = timer->CpuTime();
