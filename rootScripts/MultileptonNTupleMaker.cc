@@ -467,7 +467,7 @@ Bool_t MultileptonNTupleMaker::Process(Long64_t entry)
   Double_t lepM = lepSys.M();
   bool chargeTest = leptonOneQ*leptonTwoQ < 0; //opposite signed
   bool massTest = (lepM < 70.);
-  bool b1f = (massTest && nFwdJets > 0 && nJets == 1 && chargeTest);
+  bool b1f = (massTest && nFwdJets > 0 && (nJets+nBJets) == 1 && chargeTest);
   b1f = b1f && ((jet1P4->Pt() > 30. && abs(jet1P4->Eta()) > 2.4) ||
 		(jet2P4->Pt() > 30. && abs(jet2P4->Eta()) > 2.4));
   bool b1c = massTest && nFwdJets == 0 && nJets > 1 && chargeTest;
@@ -478,17 +478,30 @@ Bool_t MultileptonNTupleMaker::Process(Long64_t entry)
   if(fEventSets[3] && b1f)          FillEventTree(fEventNT[3]);
   if(fEventSets[4] && (b1c || b1f)) FillEventTree(fEventNT[4]);
 
-  b1c = b1c && (jet1tagged || jet2tagged); // one jet is b-tagged
-  b1f = b1f && (jet1tagged || jet2tagged); // one jet is b-tagged
+
+  //adding in analysis cuts 1 step at a time
+  b1c = b1c && (jet1tagged || jet2tagged); // at least one jet is b-tagged
+  b1f = b1f && (jet1tagged || jet2tagged); // at least one jet is b-tagged
 
   if(fEventSets[5] && b1c)          FillEventTree(fEventNT[5]);
   if(fEventSets[6] && b1f)          FillEventTree(fEventNT[6]);
 
-  b1c = b1c && nJets == 2; //2 jets, including bjet
+  //exactly 1 is b-tagged
+  if(fEventSets[11] && b1c && (!jet1tagged || !jet2tagged)) FillEventTree(fEventNT[11]);
+
+  b1c = b1c && (nBJets + nJets) == 2; //2 jets, including bjet
   if(fEventSets[7] && b1c)          FillEventTree(fEventNT[7]);
 
-    b1c = b1c && met < 40.;
-  if(fEventSets[7] && b1c)          FillEventTree(fEventNT[7]);
+  b1c = b1c && met < 40.;
+  if(fEventSets[8] && b1c)          FillEventTree(fEventNT[8]);
+
+  TLorentzVector jetSys = *jet1P4 + *jet2P4;
+  double jslDelPhi = abs(jetSys.DeltaPhi(lepSys));
+  b1c = b1c && jslDelPhi > 2.5;
+  if(fEventSets[9] && b1c)          FillEventTree(fEventNT[9]);
+
+  b1c = b1c && (lepSys.Pt()/lepSys.M()) > 2.;
+  if(fEventSets[10] && b1c)          FillEventTree(fEventNT[10]);
 
   return kTRUE;
 }

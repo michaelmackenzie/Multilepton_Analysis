@@ -1,56 +1,53 @@
 
 #include "MultileptonHistMaker.cc++g"
-Int_t process_multilepton() {
-  //  gSystem->Load("MultileptonHistMaker_cc.so");
-
-  int doPtStudyFiles = 0;
+Int_t process_multilepton(int doOrig = 0, int doPtStudyFiles = 0) {
 
   const char* gridPath[] = {
-    // //selection with lower trailing pt and no required btag
-    // "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190620_122923/", //ttbar
-    // "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190304_151029/", //zjets M > 50
-    // "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190304_151029/", //zjets 10 < M < 50
-    // "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190620_122923/", //single t
-    // "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190620_122923/", //single tbar
-    // "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190620_122923/", //zjets M > 50
-    // "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190620_122923/", //zjets 10 < M < 50
-    // "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190620_122923/", //z1jets M > 50
-    // "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190620_122923/", //z1jets 10 < M < 50
-    // "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190620_122923/", //z2jets M > 50
-    // "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190620_122923/", //z2jets 10 < M < 50
-    // "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190620_122923/", //z3jets M > 50
-    // "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190620_122923/", //z3jets 10 < M < 50
-    // "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190620_122923/", //z4jets M > 50
-    // "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190620_122923/", //z4jets 10 < M < 50
-    // "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190307_101513/", //2016B_v2 Data
-    // "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190307_163959/", //signal samples
-    // "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190307_163959/", 
-    // "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190307_163959/", 
-    // "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190307_163959/", 
-    // "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190307_163959/"}; 
-
-  //From original selection
-  "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190304_151029/", //ttbar
+    //selection with lower trailing pt and no required btag
+    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190812_092228/", //ttbar
     "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190304_151029/", //zjets M > 50
     "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190304_151029/", //zjets 10 < M < 50
-    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190306_083442/", //single t
-    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190306_083442/", //single tbar
-    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190313_122403/", //zjets M > 50
-    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190313_122403/", //zjets 10 < M < 50
-    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190313_122403/", //z1jets M > 50
-    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190313_122403/", //z1jets 10 < M < 50
-    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190313_122403/", //z2jets M > 50
-    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190313_122403/", //z2jets 10 < M < 50
-    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190313_122403/", //z3jets M > 50
-    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190313_122403/", //z3jets 10 < M < 50
-    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190313_122403/", //z4jets M > 50
-    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190313_122403/", //z4jets 10 < M < 50
-    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190307_101513/", //2016B_v2 Data
-    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190307_163959/", //signal samples
-    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190307_163959/", 
-    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190307_163959/", 
-    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190307_163959/", 
-    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190307_163959/"}; 
+    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190812_092228/", //single t
+    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190812_092228/", //single tbar
+    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190620_122923/", //zjets M > 50
+    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190812_092228/", //zjets 10 < M < 50
+    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190812_092228/", //z1jets M > 50
+    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190812_092228/", //z1jets 10 < M < 50
+    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190812_092228/", //z2jets M > 50
+    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190812_092228/", //z2jets 10 < M < 50
+    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190812_092228/", //z3jets M > 50
+    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190812_092228/", //z3jets 10 < M < 50
+    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190812_092228/", //z4jets M > 50
+    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190812_092228/", //z4jets 10 < M < 50
+    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190812_092228/", //2016B_v2 Data
+    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190812_092228/", //signal samples
+    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190812_092228/", 
+    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190812_092228/", 
+    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190812_092228/", 
+    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190812_092228/"}; 
+
+  //From original selection
+  // "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190304_151029/", //ttbar
+  //   "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190304_151029/", //zjets M > 50
+  //   "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190304_151029/", //zjets 10 < M < 50
+  //   "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190306_083442/", //single t
+  //   "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190306_083442/", //single tbar
+  //   "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190313_122403/", //zjets M > 50
+  //   "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190313_122403/", //zjets 10 < M < 50
+  //   "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190313_122403/", //z1jets M > 50
+  //   "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190313_122403/", //z1jets 10 < M < 50
+  //   "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190313_122403/", //z2jets M > 50
+  //   "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190313_122403/", //z2jets 10 < M < 50
+  //   "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190313_122403/", //z3jets M > 50
+  //   "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190313_122403/", //z3jets 10 < M < 50
+  //   "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190313_122403/", //z4jets M > 50
+  //   "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190313_122403/", //z4jets 10 < M < 50
+  //   "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190307_101513/", //2016B_v2 Data
+  //   "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190307_163959/", //signal samples
+  //   "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190307_163959/", 
+  //   "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190307_163959/", 
+  //   "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190307_163959/", 
+  //   "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190307_163959/"}; 
 
   const char* gridPathPtStudy[] = {
     "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190318_185111/", //ttbar
@@ -119,8 +116,8 @@ Int_t process_multilepton() {
 			   0, //DY AMC
 			   1, //t_tw
 			   1, //tbar_tw
-			   1, //DY MadGraph
-			   1, //DY MadGraph
+			   0, //DY MadGraph
+			   0, //DY MadGraph
 			   1, //DY 1 Jet MadGraph
 			   1, //DY 1 Jet MadGraph
 			   1, //DY 2 Jet MadGraph

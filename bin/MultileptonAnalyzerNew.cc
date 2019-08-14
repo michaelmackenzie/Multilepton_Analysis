@@ -149,6 +149,10 @@ Bool_t MultileptonAnalyzerNew::Process(Long64_t entry)
        To match the original selector:
        do Trigger Pt = 1, Trailing Pt = 25, Leading Pt = 25, Veto Pt = 20, Iso Pt = 10,
        Min Mass = 12, Max Mass = 110, B Tag = 1, 2 Leptons = 0, No Overlap = 0
+
+       (08/12/19) Current selector:
+       do Trigger Pt = 1, Trailing Pt = 10, Leading Pt = 25, Veto Pt = 10, Iso Pt = 10,
+       Min Mass = 10, Max Mass = 70, B Tag = 0, 2 Leptons = 1, No Overlap = 1
      **/
     Int_t doTriggerPt = 1; // 0 to ignore triggers and pt requirements for the muons
     Double_t minTrailingPt = 10.; //lower bound on the trailing muon's pt

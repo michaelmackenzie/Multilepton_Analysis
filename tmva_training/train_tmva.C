@@ -40,12 +40,15 @@ int train_tmva(const char* tree_name = "background_0.tree", vector<int> ignore =
   tmvaName +=   ((TObjString *)(tx->At(0)))->String();
   int n = ignore.size();
   if(n > 0) {
+    tmvaName += "_mva_no_";
     if(n > 1)
       printf("Ignoring categories: ");
     else
       printf("Ignoring category: ");
     for(int i = 0; i < n; ++i) {
       printf("%i%s",ignore[i], (i < n-1) ? ", " : "\n");
+      tmvaName += ignore[i];
+      if( i < n-1) tmvaName += "_";
     }
   }
   printf("Beginning Training %s\n",tmvaName.Data());

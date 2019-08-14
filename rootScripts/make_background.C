@@ -1,3 +1,78 @@
+Int_t pre_process(int eventFolder, const char* name, Double_t xsec, Double_t lum, int category) {
+
+  
+  const char* file = Form("tree_%s.tree",name);
+
+  if(gSystem->AccessPathName(file)) {
+    printf("File %s not found, continuing\n",file);
+    return 1;
+  }
+  TFile* f = new TFile(Form("%s",file), "UPDATE");
+  printf("Using file %s\n",file);
+  TFile* fD = (TFile*) f->Get("Data");
+  TFile* fE = (TFile*) fD->Get(Form("event_%i",eventFolder));
+  if(!fE) {
+    printf("Event folder not found in %s, continuing\n", file);
+    return 2;
+  }
+  TTree* tree = (TTree*) fE->Get(Form("event_tree_%i",eventFolder));
+
+  if(tree == 0) {
+    printf("Tree in %s not found, continuing\n",file);
+    return 3;
+  }
+  TH1F* events = (TH1F*) f->Get(Form("TotalEvents_%s",name));
+  if(events == 0) {
+    printf("Events Histogram in %s not found, continuing\n",file);
+    return 4;
+  }
+  Long64_t n = tree->GetEntriesFast();
+  printf("The tree contains %lld entries\n", n);
+  if(n == 0) {
+    return 5;
+  }
+  bool writeTree = false;
+  if(!(tree->GetBranch("eventCategory"))) {
+    printf("Adding event category branch\n");
+    writeTree = true;
+    TBranch* br = tree->Branch("eventCategory", &category, "eventCategory/I");
+    for(Long64_t j = 0; j < n; ++j) {
+      tree->GetEntry(j);
+      br->Fill();
+    }
+  }
+
+  //if already has the branch, no need to fill it
+  if(tree->GetBranch("fullEventWeight")) {
+    if(writeTree) {
+      printf("Writing back updated tree\n");
+      tree->Write();
+      f->Write();
+      f->Close();
+    }
+    return 0;
+  }
+  printf("Adding Full Weight Branch to %s tree\n", name);
+  Float_t fullEventWeight = 0.;
+  Float_t eventWeight     = 0.;
+  Double_t xsecF          = 1./(events->GetBinContent(1) - 2*events->GetBinContent(11))*xsec*lum;
+  TBranch* br = tree->Branch("fullEventWeight", &fullEventWeight, "fullEventWeight/F");
+  tree->SetBranchAddress("eventWeight",&eventWeight);
+
+  for(Long64_t j = 0; j < n; ++j) {
+    if(j%25000 == 0) printf("Processing event %lld\n", j);
+    tree->GetEntry(j);
+    fullEventWeight = eventWeight*xsecF;
+    br->Fill();
+  }
+  delete events;
+  printf("Writing back updated tree\n");
+  tree->Write();
+  f->Write();
+  f->Close();
+
+  return 0;
+}
 
 Int_t make_background(int eventFolder = 3, int ptStudy = 0, int includeSignal = 1) {
 
@@ -20,38 +95,6 @@ Int_t make_background(int eventFolder = 3, int ptStudy = 0, int includeSignal = 
 			 "z4jets_m-50"            ,
 			 "z4jets_m-10to50"        };
   
-  const char* files[] = {Form("tree_%s.tree",names[0]),
-			 Form("tree_%s.tree",names[1]),
-			 Form("tree_%s.tree",names[2]),
-			 Form("tree_%s.tree",names[3]),
-			 Form("tree_%s.tree",names[4]),
-			 Form("tree_%s.tree",names[5]),
-			 Form("tree_%s.tree",names[6]),
-			 Form("tree_%s.tree",names[7]),
-			 Form("tree_%s.tree",names[8]),
-			 Form("tree_%s.tree",names[9]),
-			 Form("tree_%s.tree",names[10]),
-			 Form("tree_%s.tree",names[11]),
-			 Form("tree_%s.tree",names[12]),
-			 Form("tree_%s.tree",names[13]),
-			 Form("tree_%s.tree",names[14])};
-
-  const char* filesPtStudy[] = {Form("tree_%s.ptstudy_tree",names[0]),
-				Form("tree_%s.ptstudy_tree",names[1]),
-				Form("tree_%s.ptstudy_tree",names[2]),
-				Form("tree_%s.ptstudy_tree",names[3]),
-				Form("tree_%s.ptstudy_tree",names[4]),
-				Form("tree_%s.ptstudy_tree",names[5]),
-				Form("tree_%s.ptstudy_tree",names[6]),
-				Form("tree_%s.ptstudy_tree",names[7]),
-				Form("tree_%s.ptstudy_tree",names[8]),
-				Form("tree_%s.ptstudy_tree",names[9]),
-				Form("tree_%s.ptstudy_tree",names[10]),
-				Form("tree_%s.ptstudy_tree",names[11]),
-				Form("tree_%s.ptstudy_tree",names[12]),
-				Form("tree_%s.ptstudy_tree",names[13]),
-				Form("tree_%s.ptstudy_tree",names[14])};
-
   const Double_t xsec[] = {
 			   35.6,
 			   35.6,
@@ -69,21 +112,21 @@ Int_t make_background(int eventFolder = 3, int ptStudy = 0, int includeSignal = 
 			   60.2,
 			   36.4}; //taken from CMS AN-16-458
 
-  const int doProcess[] = {1, //t_tw
-			   1, //tbar_tw
-			   1, //ttbar
-			   0, //DY AMC
-			   0, //DY AMC
-			   0, //DY MadGraph
-			   0, //DY MadGraph
-			   1, //DY 1 Jet MadGraph
-			   1, //DY 1 Jet MadGraph
-			   1, //DY 2 Jet MadGraph
-			   1, //DY 2 Jet MadGraph
-			   1, //DY 3 Jet MadGraph
-			   1, //DY 3 Jet MadGraph
-			   1, //DY 4 Jet MadGraph
-			   1  //DY 4 Jet MadGraph
+  int doProcess[] = {1, //t_tw
+		     1, //tbar_tw
+		     1, //ttbar
+		     0, //DY AMC
+		     0, //DY AMC
+		     0, //DY MadGraph
+		     0, //DY MadGraph
+		     1, //DY 1 Jet MadGraph
+		     1, //DY 1 Jet MadGraph
+		     1, //DY 2 Jet MadGraph
+		     1, //DY 2 Jet MadGraph
+		     1, //DY 3 Jet MadGraph
+		     1, //DY 3 Jet MadGraph
+		     1, //DY 4 Jet MadGraph
+		     1  //DY 4 Jet MadGraph
   };
 
   const char* sNames[] = { //Signal
@@ -93,201 +136,52 @@ Int_t make_background(int eventFolder = 3, int ptStudy = 0, int includeSignal = 
     			 "fcnc_mx30"                  ,
     			 "fcnc_mx60"                  };
 
-  const char* sFiles[] = {Form("tree_%s.tree",sNames[0]),
-			  Form("tree_%s.tree",sNames[1]),
-			  Form("tree_%s.tree",sNames[2]),
-			  Form("tree_%s.tree",sNames[3]),
-			  Form("tree_%s.tree",sNames[4])};
+  const double sXsec[] = {0.017*1.75*10., //Using a mentioned cross section from AN2016_090_v8
+			  0.017*1.75*10., //Multiplied by 1.75 as suggested by AN2016_458_v3
+			  0.017*1.75*10., //Added a factor of 10 to see it
+			  0.017*1.75*10.,
+			  0.017*1.75*10.};
 
-  const char* sFilesPtStudy[] = {Form("tree_%s.ptstudy_tree",sNames[0]),
-				 Form("tree_%s.ptstudy_tree",sNames[1]),
-				 Form("tree_%s.ptstudy_tree",sNames[2]),
-				 Form("tree_%s.ptstudy_tree",sNames[3]),
-				 Form("tree_%s.ptstudy_tree",sNames[4])};
-
-  const double sXsec[] = {0.017*1.75*10, //Using a mentioned cross section from AN2016_090_v8
-			  0.017*1.75*10, //Multiplied by 1.75 as suggested by AN2016_458_v3
-			  0.017*1.75*10, //Added a factor of 10 to see it
-			  0.017*1.75*10,
-			  0.017*1.75*10};
-
-  const int sDoProcess[] = {1, //b2bx_t
-			   1, //bb2bbdimu
-			   0, //fcnc_mx10
-			   0, //fcnc_mx30
-			   0  //fcnc_mx60
+  int sDoProcess[] = {1, //b2bx_t
+		      1, //bb2bbdimu
+		      0, //fcnc_mx10
+		      0, //fcnc_mx30
+		      0  //fcnc_mx60
   };
   Double_t lum = 5.3e3;
-  TFile* fEList[100];
-  TFile* fDList[100];
-  TFile* fList[100];
-  TTree* tList[100]; //to keep trees in memory
 
-  for(int i = 0; i < sizeof(files)/sizeof(*files); ++i) {
+  printf("Checking background trees\n");
+  for(int i = 0; i < sizeof(names)/sizeof(*names); ++i) {
     if(!doProcess[i]) continue;
-    if(i >= sizeof(filesPtStudy)/sizeof(*filesPtStudy)
-       && doPtStudyFiles > 0) break;
-    const char* c = (doPtStudyFiles == 0) ? files[i] : filesPtStudy[i];
-    TFile* f = new TFile(Form("%s",c), "UPDATE");
-    if(f == 0) {
-      printf("File %s not found, continuing\n",c);
-      continue;
-    }
-    printf("using %s\n",c);
-    TFile* fD = (TFile*) f->Get("Data");
-    TFile* fE = (TFile*) fD->Get(Form("event_%i",eventFolder));
-    if(!fE) {
-      printf("Event folder not found in %s, continuing\n", c);
-      continue;
-    }
-    TTree* tree = (TTree*) fE->Get(Form("event_tree_%i",eventFolder));
-
-    TH1F* events = (TH1F*) f->Get(Form("TotalEvents_%s",names[i]));
-    if(events == 0) {
-      printf("Events Histogram in %s not found, continuing\n",c);
-      continue;
-    }
-    if(tree == 0) {
-      printf("Tree in %s not found, continuing\n",c);
-      continue;
-    }
-    //    tree->SetName(Form("%s_%i",names[i],eventFolder));
-    bool writeTree = false;
-    if(!(tree->GetBranch("eventCategory"))) {
-      printf("Adding event category branch\n");
-      writeTree = true;
-      Int_t category = i; //label each file by the number in the list
-      TBranch* br = tree->Branch("eventCategory", &category, "eventCategory/I");
-      Long64_t n = tree->GetEntriesFast();
-      for(Long64_t j = 0; j < n; ++j) {
-	tree->GetEntry(j);
-	br->Fill();
-      }
-    }
-
-    //if already has the branch, no need to fill it
-    if(tree->GetBranch("fullEventWeight")) {
-      if(writeTree) {
-	printf("Writing back updated tree\n");
-	tree->Write();
-	f->Write();
-	f->Close();
-      }
-      continue;
-    }
-    printf("Adding Full Weight Branch to %s tree\n", names[i]);
-    Long64_t n = tree->GetEntriesFast();
-    Float_t fullEventWeight = 0.;
-    Float_t eventWeight     = 0.;
-    Double_t xsecF          = 1./(events->GetBinContent(1) - 2*events->GetBinContent(11))*xsec[i]*lum;
-    TBranch* br = tree->Branch("fullEventWeight", &fullEventWeight, "fullEventWeight/F");
-    tree->SetBranchAddress("eventWeight",&eventWeight);
-
-    for(Long64_t j = 0; j < n; ++j) {
-      if(j%25000 == 0) printf("Processing event %lld\n", j);
-      tree->GetEntry(j);
-      fullEventWeight = eventWeight*xsecF;
-      br->Fill();
-    }
-    delete events;
-    printf("Writing back updated tree\n");
-    tree->Write();
-    f->Write();
-    f->Close();
+    doProcess[i] = (pre_process(eventFolder, names[i], xsec[i], lum, i) != 0 ? 0 : 1);
   }
-
-  for(int i = 0; i < sizeof(sFiles)/sizeof(*sFiles); ++i) {
+  printf("Now checking signal trees\n");
+  for(int i = 0; i < sizeof(sNames)/sizeof(*sNames); ++i) {
     if(includeSignal == 0) break;
     if(!sDoProcess[i]) continue;
-    if(i >= sizeof(sFilesPtStudy)/sizeof(*sFilesPtStudy)
-       && doPtStudyFiles > 0) break;
-    const char* c = (doPtStudyFiles == 0) ? sFiles[i] : sFilesPtStudy[i];
-    TFile* f = new TFile(Form("%s",c), "UPDATE");
-    if(f == 0) {
-      printf("File %s not found, continuing\n",c);
-      continue;
-    }
-    printf("using %s\n",c);
-    TFile* fD = (TFile*) f->Get("Data");
-    TFile* fE = (TFile*) fD->Get(Form("event_%i",eventFolder));
-    if(!fE) {
-      printf("Event folder not found in %s, continuing\n", c);
-      continue;
-    }
-    TTree* tree = (TTree*) fE->Get(Form("event_tree_%i",eventFolder));
-
-    TH1F* events = (TH1F*) f->Get(Form("TotalEvents_%s",sNames[i]));
-    if(events == 0) {
-      printf("Events Histogram in %s not found, continuing\n",c);
-      continue;
-    }
-    if(tree == 0) {
-      printf("Tree in %s not found, continuing\n",c);
-      continue;
-    }
-
-    //adding event category
-    bool writeTree = false;
-    if(!(tree->GetBranch("eventCategory"))) {
-      printf("Adding event category branch\n");
-      writeTree = true;
-      Int_t category = sizeof(files)/sizeof(*files) + i; //label each file by the number in the list
-      TBranch* br = tree->Branch("eventCategory", &category, "eventCategory/I");
-      Long64_t n = tree->GetEntriesFast();
-      for(Long64_t j = 0; j < n; ++j) {
-	tree->GetEntry(j);
-	br->Fill();
-      }
-    }
-
-    //if already has the branch, no need to fill it
-    if(tree->GetBranch("fullEventWeight")) {
-      if(writeTree) {
-	printf("Writing back updated tree\n");
-	tree->Write();
-	f->Write();
-	f->Close();
-      }
-      continue;
-    }
-    
-    printf("Adding Full Weight Branch to %s tree\n", sNames[i]);
-    Long64_t n = tree->GetEntriesFast();
-    Float_t fullEventWeight = 0.;
-    Float_t eventWeight     = 0.;
-    Double_t xsecF          = 1./(events->GetBinContent(1) - 2*events->GetBinContent(11))*sXsec[i]*lum;
-    TBranch* br = tree->Branch("fullEventWeight", &fullEventWeight, "fullEventWeight/F");
-    tree->SetBranchAddress("eventWeight",&eventWeight);
-
-    for(Long64_t j = 0; j < n; ++j) {
-      if(j%25000 == 0) printf("Processing event %lld\n", j);
-      tree->GetEntry(j);
-      fullEventWeight = eventWeight*xsecF;
-      br->Fill();
-    }
-    delete events;
-    printf("Writing back updated tree\n");
-    tree->Write();
-    f->Write();
-    f->Close();
+    sDoProcess[i] = (pre_process(eventFolder, sNames[i], sXsec[i], lum, i+sizeof(names)/sizeof(*names)) != 0 ? 0 : 1);
   }
 
-
+  TFile* fEList[30];
+  TFile* fDList[30];
+  TFile* fList[30];
+  TTree* tList[30]; //to keep trees in memory
   TList* list = new TList;
-  for(int i = 0; i < sizeof(files)/sizeof(*files); ++i) {
+
+  for(int i = 0; i < sizeof(names)/sizeof(*names); ++i) {
     fEList[i] = 0;
+    fDList[i] = 0;
     fList[i] = 0;
     tList[i] = 0;
     if(!doProcess[i]) continue;
-    if(i >= sizeof(filesPtStudy)/sizeof(*filesPtStudy)
-       && doPtStudyFiles > 0) break;
-    const char* c = (doPtStudyFiles == 0) ? files[i] : filesPtStudy[i];
-    fList[i] = new TFile(Form("%s",c), "READ");
-    if(fList[i] == 0) {
+    const char* c = Form("tree_%s.tree",names[i]);
+    TString strName = c; //c somehow gets written over on file reads?
+    if(gSystem->AccessPathName(strName.Data())) {
       printf("File %s not found, continuing\n",c);
       continue;
     }
-    printf("Getting trees for merging, using %s\n",c);
+    fList[i] = new TFile(Form("%s",c), "READ");
+    printf("Getting tree %i for merging, using %s\n",i,strName.Data());
     fDList[i] = (TFile*) fList[i]->Get("Data");
     fEList[i] = (TFile*) fDList[i]->Get(Form("event_%i",eventFolder));
     if(!fEList[i]) {
@@ -297,22 +191,23 @@ Int_t make_background(int eventFolder = 3, int ptStudy = 0, int includeSignal = 
     tList[i] = (TTree*) fEList[i]->Get(Form("event_tree_%i",eventFolder));
     list->Add(tList[i]);
   }
-  for(int i = 0; i < sizeof(sFiles)/sizeof(*sFiles); ++i) {
+  
+  printf("Now getting signal trees\n");
+  for(int i = 0; i < sizeof(sNames)/sizeof(*sNames); ++i) {
     if(includeSignal == 0) break;
-    int offset = sizeof(files)/sizeof(*files) + i;
+    int offset = sizeof(names)/sizeof(*names) + i;
     fEList[offset] = 0;
     fList[offset] = 0;
     tList[offset] = 0;
     if(!sDoProcess[i]) continue;
-    if(i >= sizeof(sFilesPtStudy)/sizeof(*sFilesPtStudy)
-       && doPtStudyFiles > 0) break;
-    const char* c = (doPtStudyFiles == 0) ? sFiles[i] : sFilesPtStudy[i];
-    fList[offset] = new TFile(Form("%s",c), "READ");
-    if(fList[offset] == 0) {
+    const char* c = Form("tree_%s.tree",sNames[i]);
+    TString strName = c;
+    if(gSystem->AccessPathName(c)) {
       printf("File %s not found, continuing\n",c);
       continue;
     }
-    printf("Getting trees for merging, using %s\n",c);
+    fList[offset] = new TFile(Form("%s",c), "READ");
+    printf("Getting tree %i for merging, using %s\n",i,strName.Data());
     fDList[offset] = (TFile*) fList[offset]->Get("Data");
     fEList[offset] = (TFile*) fDList[offset]->Get(Form("event_%i",eventFolder));
     if(!fEList[offset]) {

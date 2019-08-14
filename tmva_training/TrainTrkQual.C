@@ -48,9 +48,8 @@
 #include "TMVA/Tools.h"
 #endif
 
-//-----------------------------------------------------------------------------
-// TrainingMode = 0:chi2  1:log(fcons)
-//-----------------------------------------------------------------------------
+int useMCTruth_ = 0; //train on MC signal vs background or mass band
+
 int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual", int isData = 0,
 		 vector<int> ignore = {16}) {
 
@@ -71,8 +70,13 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
 
 
   // Flag to use true category ID to determine which variables are useful in seeing the signal
-  int useMCTruth = 0;
   int signalCategory = 15;
+
+  //flag to apply the old 1b1c/1b1f cuts
+  //  1 = old cut set
+  //  2 = pt/M included
+  // -1 = only add bjet requirement
+  int useOldCuts = 0; 
 
   //---------------------------------------------------------------
   // This loads the library
@@ -120,7 +124,7 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
   //
   // --- Neural Networks (all are feed-forward Multilayer Perceptrons)
   Use["MLP"]             = 0; // Recommended ANN
-  Use["MLP_MM"]          = 1; // ANN with altered settings
+  Use["MLP_MM"]          = 0; // ANN with altered settings
   Use["MLPBFGS"]         = 0; // Recommended ANN with optional training method
   Use["MLPBNN"]          = 0; // Recommended ANN with BFGS training method and bayesian regulator
   Use["CFMlpANN"]        = 0; // Depreciated ANN from ALEPH
@@ -131,10 +135,10 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
   Use["SVM"]             = 0;
   // 
   // --- Boosted Decision Trees
-  Use["BDT"]             = 1; // uses Adaptive Boost
+  Use["BDT"]             = 0; // uses Adaptive Boost
   Use["BDTG"]            = 0; // uses Gradient Boost
   Use["BDTB"]            = 0; // uses Bagging
-  Use["BDTRT"]           = 1; // uses randomized trees (Random Forest Technique)
+  Use["BDTRT"]           = 1; // uses randomized trees (Random Forest Technique) with Bagging
   Use["BDTD"]            = 0; // decorrelation + Adaptive Boost
   Use["BDTF"]            = 0; // allow usage of fisher discriminant for node splitting 
   // 
@@ -151,6 +155,9 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
 
   // Create a ROOT output file where TMVA will store ntuples, histograms, etc.
   TString outfilename(tname);
+  gSystem->Exec(Form("mkdir %s%s", outfilename.Data(),(useMCTruth_ ? "_truth":"")));
+  gSystem->cd(outfilename.Data());
+  
   outfilename += ".root";
   TFile* outputFile = TFile::Open( outfilename, "RECREATE" );
 
@@ -195,42 +202,48 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
   // Define the input variables that shall be used for the MVA training
   // note that you may also use variable expressions, such as: "3*var1/var2*abs(var3)"
   // [all types of expressions that can also be parsed by TTree::Draw( "expression" )]
-
+  bool isb1bc = dirname.Contains("d_2") || dirname.Contains("l_2");
+  isb1bc |= dirname.Contains("d_11") || dirname.Contains("l_11"); //similar selection
+  bool isb1bf = dirname.Contains("d_3") || dirname.Contains("l_3");
+  
   factory->AddVariable("met","MET","GeV",'F');
-  // if(!dirname.Contains("_0")) factory->AddVariable("jetsDelR","#DeltaR_{jj}","",'D');
-  // if(!dirname.Contains("_0")) factory->AddVariable("jetsDelPhi","#Delta#phi_{jj}","",'D');
-  if(!dirname.Contains("_0")) factory->AddVariable("jet1eta","#eta_{j1}","",'D');
-  if(!dirname.Contains("_0")) factory->AddVariable("jet2eta","#eta_{j2}","",'D');
-  // if(!dirname.Contains("_0")) factory->AddVariable("jetsLepDelR","#DeltaR_{jj+ll}","",'D');
-  if(!dirname.Contains("_0")) factory->AddVariable("jetsLepDelPhi","#Delta#phi_{jj+ll}","",'D');
-  // factory->AddVariable("jetLepDelR","#DeltaR_{j+ll}","",'D');
-  // factory->AddVariable("jetLepDelPhi","#Delta#phi_{j+ll}","",'D');
-  factory->AddVariable("bjetLepDelR","#DeltaR_{b+ll}","",'D');
-  factory->AddVariable("bjetLepDelPhi","#Delta#phi_{b+ll}","",'D');
-  //  factory->AddVariable("jetbLepDelR","#DeltaR_{j+bll}","",'D');
-  factory->AddVariable("jetbLepDelPhi","#Delta#phi_{j+bll}","",'D');
-  // if(!dirname.Contains("_0")) factory->AddVariable("jetsPt","Pt_{jj}","GeV",'D'); //important?
-  // if(!dirname.Contains("_0")) factory->AddVariable("jetsEta","#eta_{jj}","",'D'); //important?
-  factory->AddVariable("bjetLepPt","Pt_{bll}","",'D');
-  factory->AddVariable("jetLepPt" ,"Pt_{jll}","",'D'); 
-  factory->AddVariable("lepPt", "Pt_{ll}", "GeV", 'D'); // Biases BDT?
-  if(!dirname.Contains("_0")) factory->AddVariable("sysPt","Pt_{jjll}","GeV",'D'); //important?
-  // if(!dirname.Contains("_0")) factory->AddVariable("sysEta","#eta_{jjll}","",'D'); //important?
-  //  factory->AddVariable("jet2tag","Tag_{j2}","",'F');
-  if(!dirname.Contains("d_3") && !dirname.Contains("l_3")) 
-    factory->AddVariable("jet1tagged", "Tagged_{j1}", "", 'O'); //not defined in forward
-  factory->AddVariable("jet2tagged", "Tagged_{j2}", "", 'O');
-  // if(!dirname.Contains("_2")) factory->AddVariable("jet1puid","ID_{j1}","",'F');
-  // if(!dirname.Contains("_2")) factory->AddVariable("jet2puid","ID_{j2}","",'F');
-  // factory->AddVariable("jet1d0","D0_{j1}","",'F');
-  // factory->AddVariable("jet2d0","D0_{j2}","",'F');
-  if(!dirname.Contains("_0")) factory->AddVariable("jet1pt","Pt_{j1}","",'D'); //somewhat important
-  //  if(!dirname.Contains("_0")) factory->AddVariable("jet2pt","Pt_{j2}","",'D'); //somewhat important
-  // if(!dirname.Contains("_0")) factory->AddVariable("lep1reliso","Iso/Pt_{l1}","",'D');
-  if(!dirname.Contains("_0")) factory->AddVariable("lep2reliso","Iso/Pt_{l2}","",'D');
-  if(!dirname.Contains("_3")) factory->AddVariable("nJets", "nJets", "", 'i');
+  // factory->AddVariable("jetsDelR","#DeltaR_{jj}","",'D');// more correlated for background training
+  // factory->AddVariable("jetsDelPhi","#Delta#phi_{jj}","",'D'); // correlated for truth and background training
+  // factory->AddVariable("jet1eta","#eta_{j1}","",'D'); // more correlated for background training
+  // factory->AddVariable("jet2eta","#eta_{j2}","",'D'); // more correlated for background training
+  factory->AddVariable("jetsLepDelR","#DeltaR_{jj+ll}","",'D');
+  // factory->AddVariable("jetsLepDelPhi","#Delta#phi_{jj+ll}","",'D'); // 5% correlation with mass
+  factory->AddVariable("jetLepDelR","#DeltaR_{j+ll}","",'D');
+  factory->AddVariable("jetLepDelPhi","#Delta#phi_{j+ll}","",'D'); // somewhat correlated with background training, more correlated for truth
+  // factory->AddVariable("bjetLepDelR","#DeltaR_{b+ll}","",'D'); // more correlated for background training
+  // factory->AddVariable("bjetLepDelPhi","#Delta#phi_{b+ll}","",'D'); // more correlated for background training
+  factory->AddVariable("jetbLepDelR","#DeltaR_{j+bll}","",'D'); // somewhat correlated with background training, more correlated for truth
+  // factory->AddVariable("jetbLepDelPhi","#Delta#phi_{j+bll}","",'D'); // correlated for truth and background training 
+  factory->AddVariable("jetsPt","Pt_{jj}","GeV",'D'); //important?
+  // factory->AddVariable("jetsEta","#eta_{jj}","",'D'); // more correlated for background training
+  // factory->AddVariable("bjetLepPt","Pt_{bll}","",'D'); // more correlated for background training
+  // factory->AddVariable("jetLepPt" ,"Pt_{jll}","",'D'); // more correlated for background training
+  // factory->AddVariable("lepPt", "Pt_{ll}", "GeV", 'D'); // Biases background 3
+  factory->AddVariable("sysPt","Pt_{jjll}","GeV",'D'); 
+  // factory->AddVariable("sysEta","#eta_{jjll}","",'D'); // more correlated for background training
+   // factory->AddVariable("jet2tag","Tag_{j2}","",'F');
+  if(!isb1bf)
+    factory->AddVariable("jet1tagged", "Tagged_{j1}", "", 'O');  // somewhat correlated with background training, more correlated for truth
+  if(!useOldCuts || isb1bc)
+    factory->AddVariable("jet2tagged", "Tagged_{j2}", "", 'O');  // somewhat correlated with background training, more correlated for truth
+  // factory->AddVariable("jet1puid","ID_{j1}","",'F'); //somewhat correlated for background and truth training
+  // factory->AddVariable("jet2puid","ID_{j2}","",'F'); //somewhat correlated for background and truth training
+  // factory->AddVariable("jet1d0","D0_{j1}","",'F');// correlates with mass
+  // factory->AddVariable("jet2d0","D0_{j2}","",'F'); //not correlated for either training
+  // factory->AddVariable("jet1pt","Pt_{j1}","",'D'); // more correlated for background training
+  // factory->AddVariable("jet2pt","Pt_{j2}","",'D'); // more correlated for background training
+  // factory->AddVariable("lep1reliso","Iso/Pt_{l1}","",'D');// correlates with mass
+  // factory->AddVariable("lep2reliso","Iso/Pt_{l2}","",'D'); // correlates with mass
+  // if(!isb1bf) factory->AddVariable("nJets", "nJets", "", 'i');
   //  if(!dirname.Contains("_2")) factory->AddVariable("nFwdJets", "nFwdJets", "", 'i');
-  if(!dirname.Contains("_3")) factory->AddVariable("nBJets", "nBJets", "", 'i');
+  // if(!isb1bf) factory->AddVariable("nBJets", "nBJets", "", 'i');
+  // factory->AddVariable("jetsM","M_{jj}","GeV",'D'); // more correlated for background training
+  // factory->AddVariable("sysM","M_{jjll}","GeV",'D'); // more correlated for background training
 
   //  factory->AddVariable("nElectrons", "nElectrons", "", 'i');
 
@@ -238,8 +251,6 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
   factory->AddSpectator("lepPtOverM","Pt/M","",'D');
   factory->AddSpectator("bjetLepM", "M_{b+ll}", "GeV", 'D'); 
   factory->AddSpectator("bjetLepPtOverM := bjetLepPt/bjetLepM","b+ll Pt/M","",'D');
-  factory->AddSpectator("jetsM","M_{jj}","GeV",'D');
-  factory->AddSpectator("sysM","M_{jjll}","GeV",'D');
   factory->AddSpectator("lepDelR","#DeltaR_{ll}","",'D');
   factory->AddSpectator("lepDelPhi","#Delta#phi_{ll}","",'D');
   factory->AddSpectator("fullEventWeight", "fullEventWeight", "", 'D'); 
@@ -287,17 +298,36 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
   //  nm = tname;
   sig_cut = "lepM>25&&lepM<32";
   bkg_cut = "lepM<70&&(lepM<25||lepM>32)&&lepM>10";
+  if(useMCTruth_) {
+    sig_cut = Form("lepM>10&&lepM<70&&(eventCategory == %i)", signalCategory);
+    bkg_cut = Form("lepM>10&&lepM<70&&(eventCategory != %i)", signalCategory);
+    printf("\033[31m--- Warning! Using MC truth to identify signal!\033[0m\n");
+  }
 
   for(int i = 0; i < ignore.size(); ++i) {
     sig_cut += Form("&&(eventCategory != %i)", ignore[i]);
     bkg_cut += Form("&&(eventCategory != %i)", ignore[i]);
   }
-  if(useMCTruth) {
-    sig_cut += Form("&&(eventCategory == %i)", signalCategory);
-    bkg_cut += Form("&&(eventCategory != %i)", signalCategory);
-    printf("\033[31m--- Warning! Using MC truth to identify signal!\033[0m\n");
-    
+
+  if(useOldCuts > 0) { // Add the missing cuts previously applied to the selection
+    if(isb1bc) {
+      sig_cut += "&&(met<40)&&(jetsLepDelPhi>2.5)&&(nBJets+nJets==2)&&(jet1tagged || jet2tagged)";
+      bkg_cut += "&&(met<40)&&(jetsLepDelPhi>2.5)&&(nBJets+nJets==2)&&(jet1tagged || jet2tagged)";
+    }
+    else if(isb1bf) {
+      sig_cut += "&&(jet1tagged || jet2tagged)";
+      bkg_cut += "&&(jet1tagged || jet2tagged)";
+    }
+
+    if(useOldCuts > 1) { //use pt/M cut
+      sig_cut += "&&(lepPtOverM > 2)";
+      bkg_cut += "&&(lepPtOverM > 2)";
+    }
+  } else if(useOldCuts == -1) { // only require btag as an additional
+      sig_cut += "&&(jet1tagged || jet2tagged)";
+      bkg_cut += "&&(jet1tagged || jet2tagged)";
   }
+  
   printf("\033[32m--- Using signal identification cut %s\033[0m\n", sig_cut.Data());
   printf("\033[32m--- Using background identification cut %s\033[0m\n", bkg_cut.Data());
   TCut signal_cuts(sig_cut);
@@ -311,8 +341,8 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
   TString options = "nTrain_Signal=";
   options += ((Int_t) nSig*nFraction);
   options += ":nTrain_Background=";
-  if(useMCTruth)
-    options += ((Int_t) nBkg*nFraction/10.);
+  if(useMCTruth_)
+    options += ((Int_t) nBkg*nFraction/2.);
   else
     options += ((Int_t) nBkg*nFraction);
   options += ":nTest_Signal=0:nTest_Background=0:SplitMode=Random:!V:SplitSeed=89281";
@@ -330,7 +360,9 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
   // Cut optimisation
   if (Use["Cuts"])
     factory->BookMethod( TMVA::Types::kCuts, "Cuts",
-    	"!H:!V:FitMethod=MC:EffSel:SampleSize=200000:VarProp=FSmart" );
+    	"" );
+    // factory->BookMethod( TMVA::Types::kCuts, "Cuts",
+    // 	"!H:!V:FitMethod=MC:EffSel:SampleSize=200000:VarProp=FSmart" );
 
   if (Use["CutsD"])
     factory->BookMethod( TMVA::Types::kCuts, "CutsD",
@@ -455,10 +487,10 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
 
   if (Use["MLP_MM"]) {
     TString network;
-    if(outfilename.Contains("d_3") || outfilename.Contains("l_3"))
-      network = "10,5,3";
-    else
-      network = "16,10";//:LearningRate=1e-2";
+    // if(outfilename.Contains("d_3") || outfilename.Contains("l_3"))
+    //   network = "10,5,3";
+    // else
+    network = "12,5,2";//:LearningRate=1e-2";
     factory->BookMethod( TMVA::Types::kMLP, "MLP_MM",
 			 Form("!H:!V:VarTransform=N:HiddenLayers=%s",
 			      network.Data()));
@@ -493,7 +525,7 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
 
   if (Use["BDTRT"])  // Bagging Boost Random Trees
     factory->BookMethod( TMVA::Types::kBDT, "BDTRT",
-	"!H:!V:NTrees=850:MinNodeSize=1%:MaxDepth=7:nCuts=30:UseNVars=4:UseRandomisedTrees=True:BoostType=Bagging" );
+	"!H:!V:NTrees=300:MinNodeSize=3%:MaxDepth=2:nCuts=400:UseNVars=5:UseRandomisedTrees=True:BoostType=Bagging" );
 
 
 

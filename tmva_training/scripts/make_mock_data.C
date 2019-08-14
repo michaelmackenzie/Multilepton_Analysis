@@ -11,10 +11,12 @@ int make_mock_data(const char* file =  "../background_signal_2.tree",
   TString fin_name = file;
   if(fin_name.Contains("signal"))
     fout_name += "signal_";
-  if(fin_name.Contains("2"))
+  if(fin_name.Contains("_2"))
     fout_name += "2_";
-  if(fin_name.Contains("3"))
+  else if(fin_name.Contains("_3"))
     fout_name += "3_";
+  else if(fin_name.Contains("_11"))
+    fout_name += "11_";
   if(category_ignore >= 0)
     fout_name += Form("noCat_%i_", category_ignore);
   

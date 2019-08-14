@@ -5,27 +5,27 @@ Int_t process_multileptonNT(int doOrig = 0, int doPtStudyFiles = 0) {
 
   const char* gridPath[] = {
     //selection with lower trailing pt and no required btag
-    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190620_122923/", //ttbar
+    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190812_092228/", //ttbar
     "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190304_151029/", //zjets M > 50
     "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190304_151029/", //zjets 10 < M < 50
-    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190810_140803/", //single t
-    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190810_140803/", //single tbar
+    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190812_092228/", //single t
+    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190812_092228/", //single tbar
     "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190620_122923/", //zjets M > 50
     "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190620_122923/", //zjets 10 < M < 50
-    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190810_140803/", //z1jets M > 50
-    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190810_140803/", //z1jets 10 < M < 50
-    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190810_140803/", //z2jets M > 50
-    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190810_140803/", //z2jets 10 < M < 50
-    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190810_140803/", //z3jets M > 50
-    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190810_140803/", //z3jets 10 < M < 50
-    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190810_140803/", //z4jets M > 50
-    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190810_140803/", //z4jets 10 < M < 50
-    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190810_140803/", //2016B_v2 Data
-    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190810_140803/", //signal samples
-    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190810_140803/", 
-    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190810_140803/", 
-    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190810_140803/", 
-    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190810_140803/"}; 
+    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190812_092228/", //z1jets M > 50
+    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190812_092228/", //z1jets 10 < M < 50
+    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190812_092228/", //z2jets M > 50
+    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190812_092228/", //z2jets 10 < M < 50
+    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190812_092228/", //z3jets M > 50
+    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190812_092228/", //z3jets 10 < M < 50
+    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190812_092228/", //z4jets M > 50
+    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190812_092228/", //z4jets 10 < M < 50
+    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190812_092228/", //2016B_v2 Data
+    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190812_092228/", //signal samples
+    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190812_092228/", 
+    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190812_092228/", 
+    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190812_092228/", 
+    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190812_092228/"}; 
 
   //From original selection
   const char* gridPathOrig[] = {
