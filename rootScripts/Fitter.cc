@@ -173,7 +173,7 @@ TF1* Fitter::Get_signal_function() {
   TF1* fBW = new TF1("fSignal","[Norm]/sqrt(2.*3.14159265)/[Sigma]*exp(-0.5*(x-[Mode])*(x-[Mode])/[Sigma]/[Sigma])");
   fBW->SetParameters(28.9,50.,1.8);
   fBW->SetParLimits(0,fitMin_+2.,fitMax_-2.); // Mode
-  fBW->SetParLimits(1,.01,1e3); // Norm
+  fBW->SetParLimits(1,0.,1e4); // Norm
   fBW->SetParLimits(2,.1,10.); // Sigma
   fBW->SetRange(fitMin_,fitMax_);
   return fBW;

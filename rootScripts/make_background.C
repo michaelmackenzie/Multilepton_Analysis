@@ -1,9 +1,10 @@
 Double_t signal_scale_ = 10.; //scale factor to increase the signal size by
+Int_t doOrig_ = 0;
 
 Int_t pre_process(int eventFolder, const char* name, Double_t xsec, Double_t lum, int category) {
 
   
-  const char* file = Form("tree_%s.tree",name);
+  const char* file = Form("tree_%s%s.tree",name,(doOrig_==0)?"":"_orig");
 
   if(gSystem->AccessPathName(file)) {
     printf("File %s not found, continuing\n",file);
@@ -77,9 +78,9 @@ Int_t pre_process(int eventFolder, const char* name, Double_t xsec, Double_t lum
   return 0;
 }
 
-Int_t make_background(int eventFolder = 3, int ptStudy = 0, int includeSignal = 1) {
+Int_t make_background(int eventFolder = 3, int doOrig = 0, int includeSignal = 1) {
 
-  int doPtStudyFiles = ptStudy;
+  doOrig_=doOrig;
 
   const char* names[] = {
     			 "t_tw"                   ,
@@ -177,7 +178,7 @@ Int_t make_background(int eventFolder = 3, int ptStudy = 0, int includeSignal = 
     fList[i] = 0;
     tList[i] = 0;
     if(!doProcess[i]) continue;
-    const char* c = Form("tree_%s.tree",names[i]);
+    const char* c = Form("tree_%s%s.tree",names[i],(doOrig_==0)?"":"_orig");
     TString strName = c; //c somehow gets written over on file reads?
     if(gSystem->AccessPathName(strName.Data())) {
       printf("File %s not found, continuing\n",c);
@@ -203,7 +204,7 @@ Int_t make_background(int eventFolder = 3, int ptStudy = 0, int includeSignal = 
     fList[offset] = 0;
     tList[offset] = 0;
     if(!sDoProcess[i]) continue;
-    const char* c = Form("tree_%s.tree",sNames[i]);
+    const char* c = Form("tree_%s%s.tree",sNames[i],(doOrig_==0)?"":"_orig");
     TString strName = c;
     if(gSystem->AccessPathName(c)) {
       printf("File %s not found, continuing\n",c);
@@ -220,7 +221,7 @@ Int_t make_background(int eventFolder = 3, int ptStudy = 0, int includeSignal = 
     tList[offset] = (TTree*) fEList[offset]->Get(Form("event_tree_%i",eventFolder));
     list->Add(tList[offset]);
   }
-  TFile* out = new TFile(Form("background%s_%i.tree", (includeSignal > 0 ? "_signal":""), eventFolder),"RECREATE");
+  TFile* out = new TFile(Form("background%s%s_%i.tree", (includeSignal > 0 ? "_signal":""), (doOrig_==0)?"":"_orig", eventFolder),"RECREATE");
   TTree* t = 0;
   printf("Merging trees\n");
   t = TTree::MergeTrees(list);

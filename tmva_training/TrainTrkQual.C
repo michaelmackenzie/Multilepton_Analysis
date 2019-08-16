@@ -346,7 +346,7 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
   TCut bkg_cuts(bkg_cut);
   
   
-  Double_t nFraction = (isData) ? 0.7 : 0.1;//0.2;
+  Double_t nFraction = (isData) ? 0.5 : 0.1;//0.2;
   Long64_t nSig = signal->CopyTree(signal_cuts)->GetEntriesFast();
   Long64_t nBkg = background->CopyTree(bkg_cuts)->GetEntriesFast();
   if(isData == 0 && nSig*nFraction < 5000) nFraction = min(1.,5000./nSig);
@@ -357,7 +357,10 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
     options += ((Int_t) nBkg*nFraction/2.);
   else
     options += ((Int_t) nBkg*nFraction);
+
+  // Int_t numFolds = 4;
   options += ":nTest_Signal=0:nTest_Background=0:SplitMode=Random:!V:SplitSeed=89281";
+  // options += numFolds;
   factory->PrepareTrainingAndTestTree(signal_cuts, bkg_cuts, options.Data() );
 
 
@@ -535,10 +538,13 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
     factory->BookMethod( TMVA::Types::kBDT, "BDT",
 	"!H:!V:NTrees=850:nEventsMin=150:MaxDepth=3:BoostType=AdaBoost:AdaBoostBeta=0.5:SeparationType=GiniIndex:nCuts=20:PruneMethod=NoPruning" );
 
-  if (Use["BDTRT"])  // Bagging Boost Random Trees
-    factory->BookMethod( TMVA::Types::kBDT, "BDTRT",
-	"!H:!V:NTrees=300:MinNodeSize=3%:MaxDepth=2:nCuts=400:UseNVars=5:UseRandomisedTrees=True:BoostType=Bagging" );
-
+  if (Use["BDTRT"]) {  // Bagging Boost Random Trees
+    TString bdtSetup = "!H:!V";
+    bdtSetup += ":NTrees=200:MinNodeSize=3%:MaxDepth=2:nCuts=1600:UseNVars=6:UseRandomisedTrees=True";
+    bdtSetup += ":BoostType=Bagging:BaggedSampleFraction=0.95";
+    // bdtSetup += ":PruneMethod=ExpectedError:PruneStrength=0.2";
+    factory->BookMethod( TMVA::Types::kBDT, "BDTRT",bdtSetup.Data());
+  }
 
 
   if (Use["BDTB"]) // Bagging

@@ -1,3 +1,4 @@
+TFile*  f_   = 0; //to close open files at the end
 int     MVA_ = 2; //0 for NN, 1 for BDT, 2 for BDTRT
 TString var_ = "lepM"; //which variable to plot
 double  xMin_ = 10.; //plotting domain
@@ -8,12 +9,13 @@ double  fitMax_ = 70.;
 Fitter* fitter_ = 0; //object to make TF1s to fit with
 int     fitset_ = -1; //set of fit parameters to use in fitter, -1 to on the fly determine it
 double  sigmaRange_ = 100.; //sigmas to allow on parameter fit range
-int     plot_train_ = 0; //whether or not to show training data in fit
+int     inc_train_ = 1; //whether or not to include training data in fit
 int     print_ = 0; //print canvases
 int     setSilent_ = 0; //sets to batch mode for canvas printing
 int     ignoreSignal_ = 0; //whether or not to ignore signals
 vector<int> signals_ = {15,16,17,18,19}; //signal IDs
 int     scan_steps_ = 41; //number of points to take when scanning mva score
+int     make_clean_ = 0; //delete all files in the canvas directory
 
 THStack* get_tmva_stack(const char* file, double mva_cut = -1., int doTrain = 0)  {
 
@@ -22,6 +24,7 @@ THStack* get_tmva_stack(const char* file, double mva_cut = -1., int doTrain = 0)
     printf("File not found\n");
     return NULL;
   }
+  f_ = f;
   
   TString fname = file;
   
@@ -78,8 +81,10 @@ THStack* get_tmva_stack(const char* file, double mva_cut = -1., int doTrain = 0)
     			 kBlue-1  ,
     			 kBlue-1  };
   TH1F* h[100];
+  TH1F* hTrain[100];
   for(int i = 0; i < 100; ++i) {
     h[i] = 0;
+    hTrain[i] = 0;
   }
 
   TString mva_var;
@@ -94,21 +99,10 @@ THStack* get_tmva_stack(const char* file, double mva_cut = -1., int doTrain = 0)
     return NULL;
   }
   
-  double scaleTrain = 1.;
-  if(doTrain > 0) {
-    test_tree-> Draw(Form("%s>>htest_-1" , var_.Data()));
-    train_tree->Draw(Form("%s>>htrain_-1", var_.Data()));
-    TH1F* htraintmp = (TH1F*) gDirectory->Get("htrain_-1");
-    TH1F* htesttmp  = (TH1F*) gDirectory->Get("htest_-1");
-    scaleTrain = htesttmp->Integral()/htraintmp->Integral();
-    delete htraintmp;
-    delete htesttmp;
-  }
-  
+
   int zjetindex = -1;
   int tindex = -1;
   double integral = 0.;
-  if(doTrain > 0 && scaleTrain > 0.) printf("Scaling training histograms by %.3f\n", scaleTrain);
   for(int i = 0; i <  sizeof(names)/sizeof(*names); ++i) {
     bool skip = false;
     if(ignoreSignal_ > 0) {
@@ -117,8 +111,8 @@ THStack* get_tmva_stack(const char* file, double mva_cut = -1., int doTrain = 0)
       }
     }
     if(skip) continue;
-    if(doTrain == 0) h[i] = new TH1F(Form("htest_%i",i),   Form("Test %s" , names[i]), bins_, xMin_, xMax_);
-    else h[i] = new TH1F(Form("htrain_%i",i), Form("Train %s", names[i]), bins_, xMin_, xMax_);
+    h[i] = new TH1F(Form("htest_%i",i),   Form("Test %s" , names[i]), bins_, xMin_, xMax_);
+    if(doTrain > 0) hTrain[i] = new TH1F(Form("htrain_%i",i),   Form("Train %s" , names[i]), bins_, xMin_, xMax_);
     TString cut;
     if(fname.Contains("mock"))
       cut = Form("genWeight*((%s>=%.5f)",mva_var.Data(),mva_cut);
@@ -127,10 +121,12 @@ THStack* get_tmva_stack(const char* file, double mva_cut = -1., int doTrain = 0)
 
     cut += Form("&&(eventCategory == %i))",i);
     
-    if(doTrain == 0) test_tree-> Draw(Form("%s>>htest_%i" , var_.Data(), i), cut.Data());
-    else             train_tree->Draw(Form("%s>>htrain_%i", var_.Data(), i), cut.Data());
+    test_tree-> Draw(Form("%s>>htest_%i" , var_.Data(), i), cut.Data());
+    if(doTrain > 0) {
+      train_tree->Draw(Form("%s>>htrain_%i", var_.Data(), i), cut.Data());
+    }
     TString name = names[i];
-    if(doTrain > 0 && scaleTrain > 0.) h[i]->Scale(scaleTrain);
+    if(doTrain > 0) h[i]->Add(hTrain[i]);
     if(name.Contains("Z+Jets")) {
       if(zjetindex > -1) {
 	h[zjetindex]->Add(h[i]);
@@ -141,23 +137,16 @@ THStack* get_tmva_stack(const char* file, double mva_cut = -1., int doTrain = 0)
 	h[tindex]->Add(h[i]);
       } else tindex = i;
     }
-    if(doTrain == 0) {
-      h[i]->SetLineColor(colors[i]);
-      h[i]->SetFillColor(colors[i]);
-      h[i]->SetFillStyle(3001);
-    } else {
-      h[i]->SetMarkerColor(colors[i]-5);
-      h[i]->SetMarkerStyle(20);
-      h[i]->SetLineColor(colors[i]-5);
-    }
+    h[i]->SetLineColor(colors[i]);
+    h[i]->SetFillColor(colors[i]);
+    h[i]->SetFillStyle(3001);
     integral += h[i]->Integral();
   }
   THStack* hstack;
 
   if(integral <= 0) return NULL;
   
-  if(doTrain == 0) hstack  = new THStack("teststack" , "Testing Stack");
-  else             hstack = new THStack("trainstack", "Training Stack");
+  hstack  = new THStack("hstack" , "Data Stack");
   for(int i = 0; i <  sizeof(names)/sizeof(*names); ++i) {
     bool skip = false;
     if(ignoreSignal_ > 0) {
@@ -174,19 +163,21 @@ THStack* get_tmva_stack(const char* file, double mva_cut = -1., int doTrain = 0)
       continue;
     h[i] ->SetTitle(Form("%s #scale[0.5]{#int} = %.2e", h[i] ->GetTitle() , h[i]->Integral()));
     
-    if(h[i]->GetEntries() > 0) hstack->Add(h[i]);
+    if(h[i]->GetEntries() > 0.) hstack->Add(h[i]);
+    
   }
   
   TObject* o = (gDirectory->Get("c1"));
   if(o) delete o;
-  delete f;
+  //  delete f; //Deleting removes histograms from the stack!
   return hstack;
 }
 
 
 
 
-int fit_tmva_tree(const char* file = "../CWoLa_training_background_3.root", double mva_cut = 0.,
+
+double fit_tmva_tree(const char* file = "../CWoLa_training_background_3.root", double mva_cut = 0.,
 		  int category = -1) {
 
   if(setSilent_) gROOT->SetBatch(kTRUE); //doesn't draw canvases, so faster to make plots
@@ -196,12 +187,14 @@ int fit_tmva_tree(const char* file = "../CWoLa_training_background_3.root", doub
   if(fitter_ == 0) {
     fitter_ = new Fitter();
   }
-  THStack* hstack = get_tmva_stack(file, mva_cut, 0);
+  
+  THStack* hstack = get_tmva_stack(file, mva_cut, inc_train_);
 
   if(!hstack) {
     printf("NULL stack returned, exiting\n");
-    return 1;
+    return -999.;
   }
+  if(!setSilent_) printf("Retrieved data stack\n");
   TCanvas* c = new TCanvas("c_mass","Mass Canvas", 900, 500);
   TF1* f;
   TF1* f2;
@@ -222,7 +215,7 @@ int fit_tmva_tree(const char* file = "../CWoLa_training_background_3.root", doub
   f2 = fitter_->Get_signal_function();
   if(!f || !f2) {
     printf("Failed to get the fit functions, exiting\n");
-    return 2;
+    return -999.;
   }
   TF1* fBkgd_s = (TF1*) f->Clone(Form("fBkgd_s%i",fitset));
   fBkgd_s->SetName(Form("fBkgd_s%i",fitset));
@@ -247,6 +240,7 @@ int fit_tmva_tree(const char* file = "../CWoLa_training_background_3.root", doub
     fSB->SetParLimits(j+sigpars,low,high);
   }
 
+
   TH1F* h = (TH1F*) hstack->GetStack()->Last()->Clone("h");
   TH1F* h2 = (TH1F*) hstack->GetStack()->Last()->Clone("h2");
   Int_t bins = h->GetNbinsX();
@@ -267,6 +261,7 @@ int fit_tmva_tree(const char* file = "../CWoLa_training_background_3.root", doub
   double c2 = res->Chi2();
   int dof2 = res->Ndf();
   double prob2 = ROOT::Math::chisquared_cdf_c(c2,dof2);
+
 
   gStyle->SetOptStat(0);
   gStyle->SetOptFit(0);
@@ -323,6 +318,12 @@ int fit_tmva_tree(const char* file = "../CWoLa_training_background_3.root", doub
       fnm += "_scale";
       if(fname.Contains("0500"))
 	fnm += "_0500";
+      else if(fname.Contains("0400"))
+	fnm += "_0400";
+      else if(fname.Contains("0300"))
+	fnm += "_0300";
+      else if(fname.Contains("0200"))
+	fnm += "_0200";
       else if(fname.Contains("0100"))
 	fnm += "_0100";
       else
@@ -335,11 +336,17 @@ int fit_tmva_tree(const char* file = "../CWoLa_training_background_3.root", doub
     if(abs(gifnum) < 1000) leadZeros+="0";
     if(abs(gifnum) < 100)  leadZeros+="0";
     if(abs(gifnum) < 10)   leadZeros+="0";
-    c->Print(Form("figures/%s_fit_%s_%s_%s%i.png", fnm.Data(), var_.Data(), mva_var.Data(), leadZeros.Data(),gifnum));
+    fnm += Form("_fit_%s_%s", var_.Data(), mva_var.Data());
+    gSystem->Exec(Form("[ ! -d figures/%s ] && mkdir figures/%s", fnm.Data(), fnm.Data()));
+    c->Print(Form("figures/%s/%s_%s%i.png", fnm.Data(), fnm.Data(),leadZeros.Data(),gifnum));
   }
   TObject* o = (gDirectory->Get("c1"));
   delete o;
-  return 0;
+  if(f_) {
+    delete f_;
+    f_ = 0;
+  }
+  return (c1-c2);
 }
 
 int scan_fits(const char* file = "../CWoLa_training_background_3.root", int category = -1) {
@@ -356,7 +363,74 @@ int scan_fits(const char* file = "../CWoLa_training_background_3.root", int cate
 
   double step_size = (mva_max-mva_min)/(scan_steps_-1); // -1 so end value is taken
 
-  for(int i = 0; i <= scan_steps_; ++i)
-    fit_tmva_tree(file, i*step_size + mva_min, category);
+  //store chi squared difference vs score for TGraph
+  double mva_vals[scan_steps_+1];
+  double chi_diff[scan_steps_+1];
+  TString fnm = "bkg_";
+  
+  if(make_clean_ || print_) {
+    TString fname = file;
+    if(fname.Contains("signal_2"))
+      fnm+="2";
+    else if(fname.Contains("signal_3"))
+      fnm+="3";
+    else if(fname.Contains("signal_6"))
+      fnm+="6";
+    else if(fname.Contains("signal_11"))
+      fnm+="11";
+    else
+      fnm +="X";
+    if(fname.Contains("noCat_15") || fname.Contains("no_15"))
+      fnm += "_noCat_15";
+    if(fname.Contains("truth"))
+      fnm += "_truth";
+    if(fname.Contains("scale")) {
+      fnm += "_scale";
+      if(fname.Contains("0500"))
+	fnm += "_0500";
+      else if(fname.Contains("0400"))
+	fnm += "_0400";
+      else if(fname.Contains("0300"))
+	fnm += "_0300";
+      else if(fname.Contains("0200"))
+	fnm += "_0200";
+      else if(fname.Contains("0100"))
+	fnm += "_0100";
+      else
+	fnm += "_XXX";
+    }
+    if(ignoreSignal_)
+      fnm += "_nosignal";
+    TString mva_var;
+    if(MVA_ == 0)
+      mva_var = "MLP_MM";
+    // else if(MVA_ == 1) //not currently using standard BDT
+    //   mva_var = "BDT";
+    else if(MVA_ == 2)
+      mva_var = "BDTRT";
+
+    fnm += Form("_fit_%s_%s", var_.Data(), mva_var.Data());
+    if(print_) gSystem->Exec(Form("[ -d figures/%s ] && rm figures/%s/ -r", fnm.Data(), fnm.Data()));
+  }
+
+  
+  for(int i = 0; i <= scan_steps_; ++i) {
+    double chi = fit_tmva_tree(file, i*step_size + mva_min, category);
+    mva_vals[i] = i*step_size + mva_min;
+    chi_diff[i] = (chi > -10.) ? chi : 0.; //-999 corresponds to failed fit
+  }
+  TGraph* g_score = new TGraph(scan_steps_+1, mva_vals, chi_diff);
+  g_score->SetName("gScoreVsChi");
+  g_score->SetTitle("MVA Score vs #Delta#chi^{2}; MVA Score; #Delta#chi^{2}");
+  TCanvas* c = new TCanvas("c_score", "MVA Score Canvas", 800,500);
+  g_score->Draw("APL");
+  g_score->SetLineColor(kBlue);
+  g_score->SetMarkerColor(kBlue);
+  g_score->SetMarkerStyle(20);
+  g_score->SetLineWidth(2);
+  c->SetGrid();
+  if(print_) {
+    c->Print(Form("figures/%s_score_graph.png", fnm.Data()));
+  }
   return 0;
 }

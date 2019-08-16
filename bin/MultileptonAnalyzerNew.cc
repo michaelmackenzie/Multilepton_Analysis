@@ -155,15 +155,15 @@ Bool_t MultileptonAnalyzerNew::Process(Long64_t entry)
        Min Mass = 10, Max Mass = 70, B Tag = 0, 2 Leptons = 1, No Overlap = 1
      **/
     Int_t doTriggerPt = 1; // 0 to ignore triggers and pt requirements for the muons
-    Double_t minTrailingPt = 10.; //lower bound on the trailing muon's pt
+    Double_t minTrailingPt = 25.; //lower bound on the trailing muon's pt
     Double_t minLeadingPt  = 25.; //lower bound on the leading muon's pt
-    Double_t minVetoPt     = 10.; //lower bound on the pt of muons used to veto jets
+    Double_t minVetoPt     = 20.; //lower bound on the pt of muons used to veto jets
     Double_t minIsoMuonSubPt = 10.; //lower bound on adding to muon collection, affects iso of the rest
     Double_t minLeptonMass = 10.; //lower bound of the dimuon mass requirement
     Double_t maxLeptonMass = 70.; //upper bound of the dimuon mass requirement
-    Int_t requireBTag = 0; //whether or not to require a b-tagged jet
-    Int_t require2Leptons = 1; //whether or not to require exactly 2 good muons, independent of sign
-    Int_t requireNoOverlapCategories = 1; //whether or not to require either forward selection or central, not both
+    Int_t requireBTag = 1; //whether or not to require a b-tagged jet
+    Int_t require2Leptons = 0; //whether or not to require exactly 2 good muons, independent of sign
+    Int_t requireNoOverlapCategories = 0; //whether or not to require either forward selection or central, not both
 
     bool printAll = false; // print all accepted events
     bool debugPrint = false; //print debug information
