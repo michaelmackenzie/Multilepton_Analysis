@@ -35,9 +35,9 @@ int train_tmva(const char* tree_name = "background_0.tree", vector<int> ignore =
     f->ls("");
     return 1;
   }
-  
+
   tmvaName = "CWoLa_training_";
-  tmvaName +=   ((TObjString *)(tx->At(0)))->String();
+  for(int i = 0; i < tx->GetLast(); ++i) tmvaName +=   ((TObjString *)(tx->At(i)))->String();
   int n = ignore.size();
   if(n > 0) {
     tmvaName += "_mva_no_";

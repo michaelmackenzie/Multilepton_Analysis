@@ -1,3 +1,6 @@
+double scale_signal_ = 1.;
+vector<int> signals_ = {15,16,17,18,19};
+
 int make_mock_data(const char* file =  "../background_signal_2.tree",
 		   double lum = 5.3e3, int category_ignore = 16,
 		   double lum_init = 5.3e3, int seed = 90) {
@@ -15,10 +18,14 @@ int make_mock_data(const char* file =  "../background_signal_2.tree",
     fout_name += "2_";
   else if(fin_name.Contains("_3"))
     fout_name += "3_";
+  else if(fin_name.Contains("_6"))
+    fout_name += "6_";
   else if(fin_name.Contains("_11"))
     fout_name += "11_";
   if(category_ignore >= 0)
     fout_name += Form("noCat_%i_", category_ignore);
+  if(scale_signal_ != 1.)
+    fout_name += Form("scale_%.3f_",scale_signal_);
   
   fout_name += Form("%.0finvpb_mock_data.tree", lum);
 
@@ -40,7 +47,11 @@ int make_mock_data(const char* file =  "../background_signal_2.tree",
   TString ignore = "";
   if(category_ignore >= 0)
     ignore += Form("*(eventCategory != %i)", category_ignore);
-  
+  if(scale_signal_ != 1.) { //if rescaling signal, need that in the normalization
+    for(int i = 0; i < signals_.size(); ++i) { 
+      ignore += Form("*((eventCategory != %i) + %.4f*(eventCategory == %i))", signals_[i], scale_signal_, signals_[i]);
+    }
+  }
   //maximum weight in tree, for getting random weights
   double max_event_weight = max(tree->GetMaximum("fullEventWeight"),abs(tree->GetMinimum("fullEventWeight")));
   int num = tree->GetEntries();
@@ -86,7 +97,15 @@ int make_mock_data(const char* file =  "../background_signal_2.tree",
     tree->GetEntry(index);
     if(ignore != "" && category == category_ignore)
       continue;
-
+    //if scaling signal cross section, check category against known signals
+    if(scale_signal_ != 1. && scale_signal_ != 0.) {
+      for(int i = 0; i < signals_.size(); ++i) {
+	if(signals_[i] == category) {
+	  wt /= scale_signal_; //scale cross section if found, or equivalently 1/scale wt
+	  i = signals_.size(); //break this loop
+	}
+      }
+    }
     if(abs(evt_wt) > wt) { //if accepted, add to output tree
       tree_out->Fill();
       if(evt_wt > 0.)

@@ -60,7 +60,7 @@ bool MultileptonNTupleMaker::BTagModifier(int i)
     float bTag      = (i == 1) ? jet1Tag : jet2Tag;      
     int   jetFlavor = (i == 1) ? jet1Flavor : jet2Flavor;   
     if(i == 1 && abs(jet1P4->Eta()) > 2.4) return false; //if it's a forward jet, can't tag
-    else if(i == 2 && abs(jet2P4->Eta()) > 2.4) return false; //if it's a forward jet, can't tag
+    else if(abs(jet2P4->Eta()) > 2.4) return false; //if it's a forward jet, can't tag
     TString tagName = "MVAT";
 
     // Get b tag efficiency and mistag scale factor
@@ -502,6 +502,8 @@ Bool_t MultileptonNTupleMaker::Process(Long64_t entry)
 
   b1c = b1c && (lepSys.Pt()/lepSys.M()) > 2.;
   if(fEventSets[10] && b1c)          FillEventTree(fEventNT[10]);
+
+  if(fEventSets[12] && b1c && (!jet1tagged || !jet2tagged)) FillEventTree(fEventNT[12]);
 
   return kTRUE;
 }

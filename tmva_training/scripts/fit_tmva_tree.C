@@ -6,12 +6,14 @@ int     bins_ = 30; //number of histogram bins
 double  fitMin_ = 12.; //fitting domain
 double  fitMax_ = 70.;
 Fitter* fitter_ = 0; //object to make TF1s to fit with
-int     fitset_ = 111; //set of fit parameters to use in fitter
-double  sigmaRange_ = 2.5; //sigmas to allow on parameter fit range
+int     fitset_ = -1; //set of fit parameters to use in fitter, -1 to on the fly determine it
+double  sigmaRange_ = 100.; //sigmas to allow on parameter fit range
 int     plot_train_ = 0; //whether or not to show training data in fit
 int     print_ = 0; //print canvases
 int     setSilent_ = 0; //sets to batch mode for canvas printing
-
+int     ignoreSignal_ = 0; //whether or not to ignore signals
+vector<int> signals_ = {15,16,17,18,19}; //signal IDs
+int     scan_steps_ = 41; //number of points to take when scanning mva score
 
 THStack* get_tmva_stack(const char* file, double mva_cut = -1., int doTrain = 0)  {
 
@@ -108,6 +110,13 @@ THStack* get_tmva_stack(const char* file, double mva_cut = -1., int doTrain = 0)
   double integral = 0.;
   if(doTrain > 0 && scaleTrain > 0.) printf("Scaling training histograms by %.3f\n", scaleTrain);
   for(int i = 0; i <  sizeof(names)/sizeof(*names); ++i) {
+    bool skip = false;
+    if(ignoreSignal_ > 0) {
+      for(int j = 0; j < signals_.size(); ++j) {
+	if(i == signals_[j]) skip = true;
+      }
+    }
+    if(skip) continue;
     if(doTrain == 0) h[i] = new TH1F(Form("htest_%i",i),   Form("Test %s" , names[i]), bins_, xMin_, xMax_);
     else h[i] = new TH1F(Form("htrain_%i",i), Form("Train %s", names[i]), bins_, xMin_, xMax_);
     TString cut;
@@ -150,6 +159,14 @@ THStack* get_tmva_stack(const char* file, double mva_cut = -1., int doTrain = 0)
   if(doTrain == 0) hstack  = new THStack("teststack" , "Testing Stack");
   else             hstack = new THStack("trainstack", "Training Stack");
   for(int i = 0; i <  sizeof(names)/sizeof(*names); ++i) {
+    bool skip = false;
+    if(ignoreSignal_ > 0) {
+      for(int j = 0; j < signals_.size(); ++j) {
+	if(i == signals_[j]) skip = true;
+      }
+    }
+    if(skip) continue;
+
     TString name = names[i];
     if(name.Contains("Z+Jets") && i != zjetindex)
       continue;
@@ -162,6 +179,7 @@ THStack* get_tmva_stack(const char* file, double mva_cut = -1., int doTrain = 0)
   
   TObject* o = (gDirectory->Get("c1"));
   if(o) delete o;
+  delete f;
   return hstack;
 }
 
@@ -187,17 +205,29 @@ int fit_tmva_tree(const char* file = "../CWoLa_training_background_3.root", doub
   TCanvas* c = new TCanvas("c_mass","Mass Canvas", 900, 500);
   TF1* f;
   TF1* f2;
-  int order = fitter_->Get_order(fitset_);
-  f = fitter_->Get_fit_background_function(fitset_, sigmaRange_);
+  TString fname = file;
+  int fitset = fitset_;
+  if(fitset < 0) {
+    if(fname.Contains("_11_"))      fitset = 111; //set 2 + exactly 1 b tag      
+    else if(fname.Contains("_2_"))  fitset = 102; // > 1 central jets
+    else if(fname.Contains("_3_"))  fitset = 103; // 1 central jet + fwd jets
+    else if(fname.Contains("_6_"))  fitset = 106; //set 3 + btag
+    else {
+      printf("fitset not determined well, using 111\n");
+      fitset = 111;
+    }
+  }
+  int order = fitter_->Get_order(fitset);
+  f = fitter_->Get_fit_background_function(fitset, sigmaRange_);
   f2 = fitter_->Get_signal_function();
   if(!f || !f2) {
     printf("Failed to get the fit functions, exiting\n");
     return 2;
   }
-  TF1* fBkgd_s = (TF1*) f->Clone(Form("fBkgd_s%i",fitset_));
-  fBkgd_s->SetName(Form("fBkgd_s%i",fitset_));
+  TF1* fBkgd_s = (TF1*) f->Clone(Form("fBkgd_s%i",fitset));
+  fBkgd_s->SetName(Form("fBkgd_s%i",fitset));
   f2->SetName("fSignal");
-  TF1* fSB = new TF1("fSignalBkgd",Form("fSignal + fBkgd_s%i",fitset_));
+  TF1* fSB = new TF1("fSignalBkgd",Form("fSignal + fBkgd_s%i",fitset));
   Double_t low;
   Double_t high;
   int sigpars = 3;
@@ -275,17 +305,31 @@ int fit_tmva_tree(const char* file = "../CWoLa_training_background_3.root", doub
 
   if(print_) {
     TString fnm = "bkg_";
-    TString fname = file;
     if(fname.Contains("signal_2"))
       fnm+="2";
     else if(fname.Contains("signal_3"))
       fnm+="3";
+    else if(fname.Contains("signal_6"))
+      fnm+="6";
     else if(fname.Contains("signal_11"))
       fnm+="11";
     else
       fnm +="X";
     if(fname.Contains("noCat_15") || fname.Contains("no_15"))
       fnm += "_noCat_15";
+    if(fname.Contains("truth"))
+      fnm += "_truth";
+    if(fname.Contains("scale")) {
+      fnm += "_scale";
+      if(fname.Contains("0500"))
+	fnm += "_0500";
+      else if(fname.Contains("0100"))
+	fnm += "_0100";
+      else
+	fnm += "_XXX";
+    }
+    if(ignoreSignal_)
+      fnm += "_nosignal";
     TString leadZeros = "0"; //for gif writing
     int gifnum = (mva_cut+1)*1000.;
     if(abs(gifnum) < 1000) leadZeros+="0";
@@ -298,106 +342,21 @@ int fit_tmva_tree(const char* file = "../CWoLa_training_background_3.root", doub
   return 0;
 }
 
-// TCanvas* fit_stack(TString hist, TString setType, Int_t set, Int_t signal = 0) {
-//   //signal = 1 = include signal
-//   TCanvas* c = new TCanvas(Form("fit_%ssignal_%s_%i",(signal == 0) ? "no_" : "", hist.Data(),set),
-// 			   Form("fit_%ssignal_%s_%i",(signal == 0) ? "no_" : "", hist.Data(),set), 1000, 700);
+int scan_fits(const char* file = "../CWoLa_training_background_3.root", int category = -1) {
 
-//   THStack* hstack = get_stack(hist,setType,set);
-//   vector<TH1F*> sH = get_signal(hist,setType,set);
+  double mva_min = -1.;
+  double mva_max =  1.;
+  if(MVA_ == 0)
+    mva_min = 0.;
 
-//   TString xtitle;
-//   TString ytitle;
-//   TString title;
-//   get_titles(hist,setType,&xtitle,&ytitle,&title);
-//   TF1* f;
-//   TF1* f2;
-//   int order = fitter_->Get_order(set);
-//   f = fitter_->Get_background_function(order);
-//   f2 = fitter_->Get_signal_function();
-//   TF1* fBkgd_s = (TF1*) f->Clone(Form("fBkgd_s%i",set));
-//   fBkgd_s->SetName(Form("fBkgd_s%i",set));
-//   f2->SetName("fSignal");
-//   TF1* fSB = new TF1("fSignalBkgd",Form("fSignal + fBkgd_s%i",set));
-//   Double_t low;
-//   Double_t high;
-//   for(int j = 0; j <= 2; ++j) {
-//     f2->GetParLimits(j,low,high);
-//     fSB->SetParLimits(j,low,high);
-//     fSB->SetParameter(j,f2->GetParameter(j));
-//   }
-//   for(int j = 1; j <= order; ++j) {
-//     f->GetParLimits(j,low,high);
-//     fSB->SetParLimits(j+3,low,high);
-//   }
+  if(!setSilent_)
+    printf("Warning! Non-silent fits may take longer\n");
+  if(!print_)
+    printf("Warning! Not printing resulting canvases\n");
 
-//   TH1F* h = (TH1F*) hstack->GetStack()->Last()->Clone("h");
-//   TH1F* h2 = (TH1F*) hstack->GetStack()->Last()->Clone("h2");
-//   Int_t bins = h->GetNbinsX();
-//   // if(scaleErrors_ == 1) {
-//   //   for(int i = 1; i <= bins; ++i) {
-//   //     double binc = h->GetBinContent(i);
-//   //     if(binc <= 0) continue;
-//   //     double bine = sqrt(binc);
-//   //     h->SetBinError(i, bine);
-//   //     h2->SetBinError(i, bine);
-//   //   }
-//   // }
-//   if(signal == 1) {
-//     for(int i = 0; i < 10; ++i) {
-//       if(sH[i] == NULL) break;
-//       h->Add(sH[i]);
-//       h2->Add(sH[i]);
-//     }
-//   }
-//   double hmin = h->GetXaxis()->GetXmin();
-//   double hmax = h->GetXaxis()->GetXmax();
-//   hmax = min(hmax,fitter_->fitMax_);
-//   hmin = max(hmin,fitter_->fitMin_);
-//   f->SetRange(hmin,hmax);
-//   fSB->SetRange(hmin,hmax);
-//   TFitResultPtr res = h->Fit(f,"R S");
-//   double c1 = res->Chi2();
-//   int dof1 = res->Ndf();
-//   double prob1 = ROOT::Math::chisquared_cdf_c(c1,dof1);
-//   res = h2->Fit(fSB,"R S");
-//   double c2 = res->Chi2();
-//   int dof2 = res->Ndf();
-//   double prob2 = ROOT::Math::chisquared_cdf_c(c2,dof2);
-  
-//   if(signal == 1) {
-//     for(int i = 0; i < 10; ++i) {
-//       if(sH[i] == NULL) break;
-//       hstack->Add(sH[i]);
-//     }
+  double step_size = (mva_max-mva_min)/(scan_steps_-1); // -1 so end value is taken
 
-//   }
-//   //  hstack->Draw("");
-//   h->Draw();
-//   double m = hstack->GetMaximum();
-
-//   f->Draw("same");
-//   fSB->Draw("same");
-//   f->SetTitle("Background Only");
-//   fSB->SetTitle("Signal + Background");
-//   fSB->SetLineColor(kMagenta);
-//   h->SetTitle (Form("#scale[0.5]{#int} Mock Data = %.2e",h->Integral()));
-//   c->BuildLegend();
-//   h->GetXaxis()->SetTitle(xtitle.Data());
-//   h->GetYaxis()->SetTitle(ytitle.Data());
-//   if(xMin < xMax) {
-//     if(hmin < xMin && xMin < hmax) hmin = xMin;
-//     if(hmax > xMax && hmin < xMax) hmax = xMax;
-//   }
-//   h->GetXaxis()->SetRangeUser(hmin,hmax);    
-//   h->GetYaxis()->SetRangeUser(1.e-1,m*1.5);    
-//   h->SetTitle (title.Data());
-//   h->SetMinimum(1.e-1);
-//   h->SetMaximum(1.5*m);
-//   printf("Chi^2 / DoF for each are %.4f / %i p = %.4e (Background Only) and %.4f / %i p = %.4e (Signal + Bkgd), p2/p1 = %.4e\n",
-// 	 c1, dof1, prob1, c2, dof2, prob2, prob2/prob1);
-//   c->SetGrid();
-//   return c;
-
-// }
-
+  for(int i = 0; i <= scan_steps_; ++i)
+    fit_tmva_tree(file, i*step_size + mva_min, category);
+  return 0;
+}

@@ -285,11 +285,12 @@ void MultileptonNTupleMaker::Init(TTree *tree)
     fEventSets[4] = 1; // loose 1b1f || 1b1c
     fEventSets[5] = 1; // loose 1b1c + btag
     fEventSets[6] = 1; // loose 1b1f + btag
-    fEventSets[7] = 0; // loose 1b1c + btag + exactly 2 jets
-    fEventSets[8] = 0; // loose 1b1c + btag + exactly 2 jets + met cut
-    fEventSets[9] = 0; // loose 1b1c + btag + exactly 2 jets + met cut + jslDelPhi cut
-    fEventSets[10] = 0; // loose 1b1c + btag + exactly 2 jets + met cut + jslDelPhi cut + pt/M > 2
+    fEventSets[7] = 1; // loose 1b1c + btag + exactly 2 jets
+    fEventSets[8] = 1; // loose 1b1c + btag + exactly 2 jets + met cut
+    fEventSets[9] = 1; // loose 1b1c + btag + exactly 2 jets + met cut + jslDelPhi cut
+    fEventSets[10] = 1; // 1b1c + btag + exactly 2 jets + met cut + jslDelPhi cut + pt/M > 2
     fEventSets[11] = 1; // loose 1b1c + btag + exactly 2 jets + exactly 1 btag
+    fEventSets[12] = 1; // 1b1c + btag + exactly 2 jets + met cut + jslDelPhi cut + pt/M > 2 + exactly 1 btag
 
     BookTrees();
 

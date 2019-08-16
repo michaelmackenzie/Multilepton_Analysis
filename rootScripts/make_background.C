@@ -1,3 +1,5 @@
+Double_t signal_scale_ = 10.; //scale factor to increase the signal size by
+
 Int_t pre_process(int eventFolder, const char* name, Double_t xsec, Double_t lum, int category) {
 
   
@@ -18,6 +20,7 @@ Int_t pre_process(int eventFolder, const char* name, Double_t xsec, Double_t lum
   TTree* tree = (TTree*) fE->Get(Form("event_tree_%i",eventFolder));
 
   if(tree == 0) {
+    fE->ls();
     printf("Tree in %s not found, continuing\n",file);
     return 3;
   }
@@ -41,7 +44,7 @@ Int_t pre_process(int eventFolder, const char* name, Double_t xsec, Double_t lum
       br->Fill();
     }
   }
-
+  
   //if already has the branch, no need to fill it
   if(tree->GetBranch("fullEventWeight")) {
     if(writeTree) {
@@ -136,11 +139,11 @@ Int_t make_background(int eventFolder = 3, int ptStudy = 0, int includeSignal = 
     			 "fcnc_mx30"                  ,
     			 "fcnc_mx60"                  };
 
-  const double sXsec[] = {0.017*1.75*10., //Using a mentioned cross section from AN2016_090_v8
-			  0.017*1.75*10., //Multiplied by 1.75 as suggested by AN2016_458_v3
-			  0.017*1.75*10., //Added a factor of 10 to see it
-			  0.017*1.75*10.,
-			  0.017*1.75*10.};
+  const double sXsec[] = {0.017*1.75*signal_scale_, //Using a mentioned cross section from AN2016_090_v8
+			  0.017*1.75*signal_scale_, //Multiplied by 1.75 as suggested by AN2016_458_v3
+			  0.017*1.75*signal_scale_, //Multiplying factor to make visible
+			  0.017*1.75*signal_scale_,
+			  0.017*1.75*signal_scale_};
 
   int sDoProcess[] = {1, //b2bx_t
 		      1, //bb2bbdimu

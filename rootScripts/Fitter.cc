@@ -28,6 +28,9 @@ public:
   Int_t set11Order_ = 2;
   Int_t set12Order_ = 2;
   Int_t set111Order_ = 3; //set 11 in tmva tree fits
+  Int_t set102Order_ = 4; //set 2  in tmva tree fits
+  Int_t set103Order_ = 4; //set 3  in tmva tree fits
+  Int_t set106Order_ = 3; //set 6  in tmva tree fits
   Double_t fitMin_ = 12.;
   Double_t fitMax_ = 70.;
 };
@@ -40,6 +43,9 @@ Int_t Fitter::Get_order(Int_t set) {
   if(set == 11) return set11Order_;
   if(set == 12) return set12Order_;
   if(set == 111) return set111Order_;
+  if(set == 102) return set102Order_;
+  if(set == 103) return set103Order_;
+  if(set == 106) return set106Order_;
   return -1;
 }
 
@@ -76,9 +82,15 @@ void Fitter::Get_fit_values(Int_t set, Double_t* coeffs, Double_t* errors) {
   Double_t coeff12[] = {1.9169e1,1.1108e-1,3.0578e-2};
   Double_t coeff12Err[] = {1.e3,1.38e-2,1.72e-2};
 
-  //set 11 tmva tree fits
+  //set 100 + set tmva tree fits
   Double_t coeff111[] = {5.61005e+02, 2.15280e-01,-7.71547e-02, -6.52856e-02};
   Double_t coeff111Err[] = {1.e3,8.98070e-03, 1.20303e-02, 1.43565e-02};
+  Double_t coeff102[] = {7.44585e+03, -6.54640e-02, 1.56222e-01, -8.68367e-02, 7.07079e-02};
+  Double_t coeff102Err[] = {1.e4, 7.07079e-02, 3.35549e-03, 4.07028e-03, 4.79137e-03};
+  Double_t coeff103[] = {2.98185e+03, -1.04483e-01, 1.87648e-01, -8.84354e-02,  9.00702e-02};
+  Double_t coeff103Err[] = {1.e4, 4.30835e-03, 5.39498e-03, 6.46380e-03, 7.60702e-03};
+  Double_t coeff106[] = {2.10387e+02, 1.79814e-01, -1.22680e-02, 1.43777e-02};
+  Double_t coeff106Err[] = {1.e4, 1.52679e-02, 2.03617e-02, 2.38027e-02};
 
   for(int i = 0; i <= order; ++i) {
     if(set == 5) {
@@ -108,6 +120,18 @@ void Fitter::Get_fit_values(Int_t set, Double_t* coeffs, Double_t* errors) {
     else if(set == 111) {
       coeffs[i] = coeff111[i];
       errors[i] = coeff111Err[i];
+    }
+    else if(set == 102) {
+      coeffs[i] = coeff102[i];
+      errors[i] = coeff102Err[i];
+    }
+    else if(set == 103) {
+      coeffs[i] = coeff103[i];
+      errors[i] = coeff103Err[i];
+    }
+    else if(set == 106) {
+      coeffs[i] = coeff106[i];
+      errors[i] = coeff106Err[i];
     }
   }
 }

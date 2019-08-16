@@ -155,7 +155,8 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
 
   // Create a ROOT output file where TMVA will store ntuples, histograms, etc.
   TString outfilename(tname);
-  gSystem->Exec(Form("mkdir %s%s", outfilename.Data(),(useMCTruth_ ? "_truth":"")));
+  outfilename += useMCTruth_ ? "_truth" : "";
+  gSystem->Exec(Form("mkdir %s", outfilename.Data()));
   gSystem->cd(outfilename.Data());
   
   outfilename += ".root";
@@ -205,32 +206,43 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
   bool isb1bc = dirname.Contains("d_2") || dirname.Contains("l_2");
   isb1bc |= dirname.Contains("d_11") || dirname.Contains("l_11"); //similar selection
   bool isb1bf = dirname.Contains("d_3") || dirname.Contains("l_3");
+  bool isb1bfb= dirname.Contains("d_6") || dirname.Contains("l_6"); //similar selection
+  isb1bf |= isb1bfb;
   
   factory->AddVariable("met","MET","GeV",'F');
   // factory->AddVariable("jetsDelR","#DeltaR_{jj}","",'D');// more correlated for background training
-  // factory->AddVariable("jetsDelPhi","#Delta#phi_{jj}","",'D'); // correlated for truth and background training
-  // factory->AddVariable("jet1eta","#eta_{j1}","",'D'); // more correlated for background training
-  // factory->AddVariable("jet2eta","#eta_{j2}","",'D'); // more correlated for background training
+  //  if(!isb1bfb) //biased set 6 background?
+  factory->AddVariable("jetsDelPhi","#Delta#phi_{jj}","",'D'); // added back in
+  // factory->AddVariable("jet1eta","#eta_{j1}","",'D'); // not useful
+  // factory->AddVariable("jet2eta","#eta_{j2}","",'D'); // not useful
+  // if(!isb1bfb) //biased set 6 background?
   factory->AddVariable("jetsLepDelR","#DeltaR_{jj+ll}","",'D');
-  // factory->AddVariable("jetsLepDelPhi","#Delta#phi_{jj+ll}","",'D'); // 5% correlation with mass
-  factory->AddVariable("jetLepDelR","#DeltaR_{j+ll}","",'D');
-  factory->AddVariable("jetLepDelPhi","#Delta#phi_{j+ll}","",'D'); // somewhat correlated with background training, more correlated for truth
-  // factory->AddVariable("bjetLepDelR","#DeltaR_{b+ll}","",'D'); // more correlated for background training
+  factory->AddVariable("jetsLepDelPhi","#Delta#phi_{jj+ll}","",'D'); // 5% correlation with mass
+  if(!isb1bfb) //biased set 6 background?
+    factory->AddVariable("jetLepDelR","#DeltaR_{j+ll}","",'D');
+  // if(!isb1bfb) //biased set 6 background?
+  factory->AddVariable("jetLepDelPhi","#Delta#phi_{j+ll}","",'D'); 
+  factory->AddVariable("bjetLepDelR","#DeltaR_{b+ll}","",'D'); // only correlated for background training?
   // factory->AddVariable("bjetLepDelPhi","#Delta#phi_{b+ll}","",'D'); // more correlated for background training
-  factory->AddVariable("jetbLepDelR","#DeltaR_{j+bll}","",'D'); // somewhat correlated with background training, more correlated for truth
-  // factory->AddVariable("jetbLepDelPhi","#Delta#phi_{j+bll}","",'D'); // correlated for truth and background training 
-  factory->AddVariable("jetsPt","Pt_{jj}","GeV",'D'); //important?
-  // factory->AddVariable("jetsEta","#eta_{jj}","",'D'); // more correlated for background training
+  if(!isb1bfb) //biased set 6 background?
+    factory->AddVariable("jetbLepDelR","#DeltaR_{j+bll}","",'D'); // equally correlated for both respones in both
+  if(!isb1bfb) //biased set 6 background?
+    factory->AddVariable("jetbLepDelPhi","#Delta#phi_{j+bll}","",'D'); // added back, somewhat correlated for each?
+  // factory->AddVariable("jetsPt","Pt_{jj}","GeV",'D'); // not useful
+  // factory->AddVariable("jetsEta","#eta_{jj}","",'D'); // not useful
   // factory->AddVariable("bjetLepPt","Pt_{bll}","",'D'); // more correlated for background training
   // factory->AddVariable("jetLepPt" ,"Pt_{jll}","",'D'); // more correlated for background training
   // factory->AddVariable("lepPt", "Pt_{ll}", "GeV", 'D'); // Biases background 3
-  factory->AddVariable("sysPt","Pt_{jjll}","GeV",'D'); 
+  // if(!isb1bf) //possibly biased background
+  //   factory->AddVariable("sysPt","Pt_{jjll}","GeV",'D'); 
   // factory->AddVariable("sysEta","#eta_{jjll}","",'D'); // more correlated for background training
-   // factory->AddVariable("jet2tag","Tag_{j2}","",'F');
   if(!isb1bf)
-    factory->AddVariable("jet1tagged", "Tagged_{j1}", "", 'O');  // somewhat correlated with background training, more correlated for truth
-  if(!useOldCuts || isb1bc)
-    factory->AddVariable("jet2tagged", "Tagged_{j2}", "", 'O');  // somewhat correlated with background training, more correlated for truth
+    factory->AddVariable("jet1tag","Tag_{j1}","",'F'); 
+  factory->AddVariable("jet2tag","Tag_{j2}","",'F'); 
+  // if(!isb1bf)
+  //   factory->AddVariable("jet1tagged", "Tagged_{j1}", "", 'O');  // somewhat correlated with background training, more correlated for truth
+  // if((!useOldCuts&&!isb1bfb) || isb1bc)
+  //   factory->AddVariable("jet2tagged", "Tagged_{j2}", "", 'O');  // somewhat correlated with background training, more correlated for truth
   // factory->AddVariable("jet1puid","ID_{j1}","",'F'); //somewhat correlated for background and truth training
   // factory->AddVariable("jet2puid","ID_{j2}","",'F'); //somewhat correlated for background and truth training
   // factory->AddVariable("jet1d0","D0_{j1}","",'F');// correlates with mass
