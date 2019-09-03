@@ -29,27 +29,27 @@ Int_t process_multileptonNT(int doOrig = 0, int doPtStudyFiles = 0) {
 
   //From original selection
   const char* gridPathOrig[] = {
-    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190808_154812/", //ttbar
+    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190816_110742/", //ttbar
     "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190809_090013/", //zjets M > 50 //not here
     "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190809_090013/", //zjets 10 < M < 50 //not here
-    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190809_090013/", //single t
-    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190809_090013/", //single tbar
+    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190816_110742/", //single t
+    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190816_110742/", //single tbar
     "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190809_090013/", //zjets M > 50
     "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190809_090013/", //zjets 10 < M < 50
-    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190809_090013/", //z1jets M > 50
-    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190809_090013/", //z1jets 10 < M < 50
-    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190809_090013/", //z2jets M > 50
-    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190809_090013/", //z2jets 10 < M < 50
-    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190809_090013/", //z3jets M > 50
-    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190809_090013/", //z3jets 10 < M < 50
-    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190809_090013/", //z4jets M > 50
-    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190809_090013/", //z4jets 10 < M < 50
-    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190809_090013/", //2016B_v2 Data
-    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190809_160705/", //signal samples
-    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190809_160705/", 
-    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190809_160705/", 
-    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190809_160705/", 
-    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190809_160705/"}; 
+    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190816_110742/", //z1jets M > 50
+    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190816_110742/", //z1jets 10 < M < 50
+    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190816_110742/", //z2jets M > 50
+    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190816_110742/", //z2jets 10 < M < 50
+    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190816_110742/", //z3jets M > 50
+    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190816_110742/", //z3jets 10 < M < 50
+    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190816_110742/", //z4jets M > 50
+    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190816_110742/", //z4jets 10 < M < 50
+    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190816_110742/", //2016B_v2 Data
+    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190816_110742/", //signal samples
+    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190816_110742/", 
+    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190816_110742/", 
+    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190816_110742/", 
+    "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190816_110742/"}; 
 
   // Original files used
     // "/eos/uscms/store/user/mmackenz/batch_output/mumu_2016_20190304_151029/", //ttbar

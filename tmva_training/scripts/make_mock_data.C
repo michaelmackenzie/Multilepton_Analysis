@@ -2,8 +2,8 @@ double scale_signal_ = 1.;
 vector<int> signals_ = {15,16,17,18,19};
 
 int make_mock_data(const char* file =  "../background_signal_2.tree",
-		   double lum = 5.3e3, int category_ignore = 16,
-		   double lum_init = 5.3e3, int seed = 90) {
+		   double lum = 5.3e3, int seed = 90,
+		   int category_ignore = 16, double lum_init = 5.3e3) {
 
 
   TStopwatch* timer = new TStopwatch();

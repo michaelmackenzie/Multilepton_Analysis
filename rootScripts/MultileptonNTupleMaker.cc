@@ -470,7 +470,7 @@ Bool_t MultileptonNTupleMaker::Process(Long64_t entry)
   bool b1f = (massTest && nFwdJets > 0 && (nJets+nBJets) == 1 && chargeTest);
   b1f = b1f && ((jet1P4->Pt() > 30. && abs(jet1P4->Eta()) > 2.4) ||
 		(jet2P4->Pt() > 30. && abs(jet2P4->Eta()) > 2.4));
-  bool b1c = massTest && nFwdJets == 0 && nJets > 1 && chargeTest;
+  bool b1c = massTest && nFwdJets == 0 && (nBJets+nJets) > 1 && chargeTest;
   b1c = b1c && jet1P4->Pt() > 30. && abs(jet1P4->Eta()) < 2.4;
   b1c = b1c && jet2P4->Pt() > 30. && abs(jet2P4->Eta()) < 2.4;
   if(fEventSets[1] && massTest)     FillEventTree(fEventNT[1]);
