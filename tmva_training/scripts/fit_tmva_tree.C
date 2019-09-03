@@ -16,15 +16,29 @@ int     ignoreSignal_ = 0; //whether or not to ignore signals
 vector<int> signals_ = {15,16,17,18,19}; //signal IDs
 int     scan_steps_ = 41; //number of points to take when scanning mva score
 int     make_clean_ = 0; //delete all files in the canvas directory
+int     new_training_ = 1; //new root trainings have different file structure
 
 THStack* get_tmva_stack(const char* file, double mva_cut = -1., int doTrain = 0)  {
 
-  TFile* f = new TFile(file,"READ");
+  TString path = "../";
+  path += file;
+  path += "/";
+  path += file;
+  path += ".root";
+  TFile* f = new TFile(path.Data(),"READ");
   if(!f) {
     printf("File not found\n");
     return NULL;
   }
   f_ = f;
+  TString foldername = "tmva_";
+  foldername += file;
+  if(new_training_) f = (TFile*) f->Get(foldername.Data());
+
+  if(!f)  {
+    printf("Folder in file not found\n");
+    return NULL;
+  }
   
   TString fname = file;
   
@@ -177,7 +191,7 @@ THStack* get_tmva_stack(const char* file, double mva_cut = -1., int doTrain = 0)
 
 
 
-double fit_tmva_tree(const char* file = "../CWoLa_training_background_3.root", double mva_cut = 0.,
+double fit_tmva_tree(const char* file = "CWoLa_training_background_3", double mva_cut = 0.,
 		  int category = -1) {
 
   if(setSilent_) gROOT->SetBatch(kTRUE); //doesn't draw canvases, so faster to make plots
@@ -349,7 +363,7 @@ double fit_tmva_tree(const char* file = "../CWoLa_training_background_3.root", d
   return (c1-c2);
 }
 
-int scan_fits(const char* file = "../CWoLa_training_background_3.root", int category = -1) {
+int scan_fits(const char* file = "CWoLa_training_background_3.root", int category = -1) {
 
   double mva_min = -1.;
   double mva_max =  1.;
