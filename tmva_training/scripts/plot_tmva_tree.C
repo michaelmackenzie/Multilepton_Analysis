@@ -101,8 +101,14 @@ int plot_tmva_tree(const char* file = "CWoLa_training_background_3", double mva_
       fnm+="2";
     else if(fname.Contains("signal_3"))
       fnm+="3";
+    else if(fname.Contains("signal_6"))
+      fnm+="6";
     else if(fname.Contains("signal_11"))
       fnm+="11";
+    else if(fname.Contains("signal_12"))
+      fnm+="12";
+    else if(fname.Contains("signal_13"))
+      fnm+="13";
     else
       fnm +="X";
     if(fname.Contains("noCat_15") || fname.Contains("no_15"))
@@ -312,8 +318,14 @@ int stack_tmva_tree(const char* file = "../CWoLa_training_background_3.root", do
       fnm+="2";
     else if(fname.Contains("signal_3"))
       fnm+="3";
+    else if(fname.Contains("signal_6"))
+      fnm+="6";
     else if(fname.Contains("signal_11"))
       fnm+="11";
+    else if(fname.Contains("signal_12"))
+      fnm+="12";
+    else if(fname.Contains("signal_13"))
+      fnm+="13";
     else
       fnm +="X";
     if(fname.Contains("noCat_15") || fname.Contains("no_15"))
@@ -474,8 +486,14 @@ int plot_roc(const char* file = "../CWoLa_training_background_3.root", int categ
       fnm+="2";
     else if(fname.Contains("signal_3"))
       fnm+="3";
+    else if(fname.Contains("signal_6"))
+      fnm+="6";
     else if(fname.Contains("signal_11"))
       fnm+="11";
+    else if(fname.Contains("signal_12"))
+      fnm+="12";
+    else if(fname.Contains("signal_13"))
+      fnm+="13";
     else
       fnm +="X";
     if(fname.Contains("noCat_15") || fname.Contains("no_15"))
@@ -578,8 +596,14 @@ int plot_2D_tmva_tree(const char* file = "../CWoLa_training_background_3.root", 
       fnm+="2";
     else if(fname.Contains("signal_3"))
       fnm+="3";
+    else if(fname.Contains("signal_6"))
+      fnm+="6";
     else if(fname.Contains("signal_11"))
       fnm+="11";
+    else if(fname.Contains("signal_12"))
+      fnm+="12";
+    else if(fname.Contains("signal_13"))
+      fnm+="13";
     else
       fnm +="X";
     if(fname.Contains("noCat_15") || fname.Contains("no_15"))
@@ -737,10 +761,15 @@ int plot_all_correlations_tmva_tree(const char* file = "CWoLa_training_backgroun
 	cut = "genWeight"; //don't weight data/mock data
       else
 	cut = "fullEventWeight";
-    
-      TString cutS = cut + Form("*(eventCategory == %i)",category);
-      TString cutB = cut + Form("*(eventCategory != %i)",category);
-
+      TString cutS;
+      TString cutB;
+      if(category > -1) {
+	cutS = cut + Form("*(eventCategory == %i)",category);
+	cutB = cut + Form("*(eventCategory != %i)",category);
+      } else {
+	cutS = cut + "*(lepM > 26 && lepM < 31)";
+	cutB = cut + "*(lepM < 26 || lepM > 31)";
+      }
       TString vary = (branches->At(bry))->GetName();
 
       test_tree-> Draw(Form("%s:%s>>htest" , varx.Data(), vary.Data()), cutB.Data());
@@ -771,7 +800,7 @@ int plot_all_correlations_tmva_tree(const char* file = "CWoLa_training_backgroun
   }
   if(!setSilent_) gROOT->SetBatch(kFALSE);
 
-  TCanvas* c1 = new TCanvas("corrsS", "Correlations (signal)", 750,900);
+  TCanvas* c1 = new TCanvas("corrsS", "Correlations (signal)", 900,900);
   corrMatS->Draw("text colz");
   c1->Update();
   
@@ -780,7 +809,7 @@ int plot_all_correlations_tmva_tree(const char* file = "CWoLa_training_backgroun
   TPaletteAxis* paletteAxis = (TPaletteAxis*)corrMatS->GetListOfFunctions()->FindObject( "palette" );
   paletteAxis->SetLabelSize( 0.03 );
   paletteAxis->SetX1NDC( paletteAxis->GetX1NDC() + 0.02 );
-  TCanvas* c2 = new TCanvas("corrsB", "Correlations (background)", 750,900);
+  TCanvas* c2 = new TCanvas("corrsB", "Correlations (background)", 900,900);
   corrMatB->Draw("text colz");
   c2->Update();
 
@@ -796,7 +825,50 @@ int plot_all_correlations_tmva_tree(const char* file = "CWoLa_training_backgroun
   c1->Update();
   c2->Modified();
   c2->Update();
+
+  if(print_) {
+    TString fnm = "figures/CorrelationMatrix_";
+    if(fname.Contains("signal_2"))
+      fnm+="2";
+    else if(fname.Contains("signal_3"))
+      fnm+="3";
+    else if(fname.Contains("signal_6"))
+      fnm+="6";
+    else if(fname.Contains("signal_11"))
+      fnm+="11";
+    else if(fname.Contains("signal_12"))
+      fnm+="12";
+    else if(fname.Contains("signal_13"))
+      fnm+="13";
+    else
+      fnm +="X";
+    if(fname.Contains("noCat_15") || fname.Contains("no_15"))
+      fnm += "_noCat_15";
+    if(fname.Contains("truth"))
+      fnm += "_truth";
+    if(fname.Contains("scale")) {
+      fnm += "_scale";
+      if(fname.Contains("0500"))
+	fnm += "_0500";
+      else if(fname.Contains("0400"))
+	fnm += "_0400";
+      else if(fname.Contains("0300"))
+	fnm += "_0300";
+      else if(fname.Contains("0200"))
+	fnm += "_0200";
+      else if(fname.Contains("0100"))
+	fnm += "_0100";
+      else
+	fnm += "_XXX";
+    }
+    if(category > -1) {
+      c1->Print((fnm+"_Signal.png").Data());
+      c2->Print((fnm+"_Background.png").Data());
+    } else {
+      c1->Print((fnm+"_SignalWindow.png").Data());
+      c2->Print((fnm+"_BackgroundWindow.png").Data());
+    }
+  }
   
   return 0;
 }
-

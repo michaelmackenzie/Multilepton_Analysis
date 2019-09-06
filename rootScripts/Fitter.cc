@@ -31,6 +31,7 @@ public:
   Int_t set102Order_ = 4; //set 2  in tmva tree fits
   Int_t set103Order_ = 4; //set 3  in tmva tree fits
   Int_t set106Order_ = 3; //set 6  in tmva tree fits
+  Int_t set113Order_ = 5; //set 13 in tmva tree fits
   Double_t fitMin_ = 12.;
   Double_t fitMax_ = 70.;
 };
@@ -46,6 +47,7 @@ Int_t Fitter::Get_order(Int_t set) {
   if(set == 102) return set102Order_;
   if(set == 103) return set103Order_;
   if(set == 106) return set106Order_;
+  if(set == 113) return set113Order_;
   return -1;
 }
 
@@ -91,6 +93,8 @@ void Fitter::Get_fit_values(Int_t set, Double_t* coeffs, Double_t* errors) {
   Double_t coeff103Err[] = {1.e4, 4.30835e-03, 5.39498e-03, 6.46380e-03, 7.60702e-03};
   Double_t coeff106[] = {2.10387e+02, 1.79814e-01, -1.22680e-02, 1.43777e-02};
   Double_t coeff106Err[] = {1.e4, 1.52679e-02, 2.03617e-02, 2.38027e-02};
+  Double_t coeff113[] = {1.53702e+03, -5.90429e-01, 8.21394e-02, 1.44719e-01, -1.11216e-01, 4.22580e-02};
+  Double_t coeff113Err[] = {1.e3, 4.51421e-03, 7.44619e-03, 8.97758e-03, 1.02478e-02, 9.37706e-03};
 
   for(int i = 0; i <= order; ++i) {
     if(set == 5) {
@@ -120,6 +124,10 @@ void Fitter::Get_fit_values(Int_t set, Double_t* coeffs, Double_t* errors) {
     else if(set == 111) {
       coeffs[i] = coeff111[i];
       errors[i] = coeff111Err[i];
+    }
+    else if(set == 113) {
+      coeffs[i] = coeff113[i];
+      errors[i] = coeff113Err[i];
     }
     else if(set == 102) {
       coeffs[i] = coeff102[i];
@@ -171,9 +179,9 @@ TF1* Fitter::Get_background_function(Int_t order = 2) {
 TF1* Fitter::Get_signal_function() {
   //assume gaussian for now
   TF1* fBW = new TF1("fSignal","[Norm]/sqrt(2.*3.14159265)/[Sigma]*exp(-0.5*(x-[Mode])*(x-[Mode])/[Sigma]/[Sigma])");
-  fBW->SetParameters(28.9,50.,1.8);
+  fBW->SetParameters(28.9,5.,1.8);
   fBW->SetParLimits(0,fitMin_+2.,fitMax_-2.); // Mode
-  fBW->SetParLimits(1,0.,1e4); // Norm
+  fBW->SetParLimits(1,0.,5e4); // Norm
   fBW->SetParLimits(2,.1,10.); // Sigma
   fBW->SetRange(fitMin_,fitMax_);
   return fBW;

@@ -488,6 +488,7 @@ Bool_t MultileptonNTupleMaker::Process(Long64_t entry)
 
   //exactly 1 is b-tagged
   if(fEventSets[11] && b1c && (!jet1tagged || !jet2tagged)) FillEventTree(fEventNT[11]);
+  if(fEventSets[13] && b1c && (!jet1tagged || !jet2tagged)&& (lepSys.Pt()/lepSys.M()) > 2.) FillEventTree(fEventNT[13]);
 
   b1c = b1c && (nBJets + nJets) == 2; //2 jets, including bjet
   if(fEventSets[7] && b1c)          FillEventTree(fEventNT[7]);

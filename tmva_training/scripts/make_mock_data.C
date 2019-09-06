@@ -22,6 +22,10 @@ int make_mock_data(const char* file =  "../background_signal_2.tree",
     fout_name += "6_";
   else if(fin_name.Contains("_11"))
     fout_name += "11_";
+  else if(fin_name.Contains("_12"))
+    fout_name += "12_";
+  else if(fin_name.Contains("_13"))
+    fout_name += "13_";
   if(category_ignore >= 0)
     fout_name += Form("noCat_%i_", category_ignore);
   if(scale_signal_ != 1.)
@@ -55,7 +59,7 @@ int make_mock_data(const char* file =  "../background_signal_2.tree",
   //maximum weight in tree, for getting random weights
   double max_event_weight = max(tree->GetMaximum("fullEventWeight"),abs(tree->GetMinimum("fullEventWeight")));
   int num = tree->GetEntries();
-  TRandom* rnd = new TRandom(90);
+  TRandom* rnd = new TRandom(seed);
   
   tree->Draw("fullEventWeight>>hfullEventWeight",Form("fullEventWeight%s",ignore.Data()));
   TH1F* hfullEventWeight = (TH1F*) gDirectory->Get("hfullEventWeight");

@@ -55,3 +55,17 @@ int train_tmva(const char* tree_name = "background_0.tree", vector<int> ignore =
   // return 0;
   return TrainTrkQualNew(signal, background, tmvaName.Data(), isData, ignore);
 }
+
+int train_tmva_set(const char* fileStart = "background_0", const char* fileEnd = ".tree", vector<int> ignore = {16}) {
+
+  TString sets[] = {"", "_scale_0.500", "_scale_0.400", "_scale_0.300", "_scale_0.200", "_scale_0.100"};
+
+  TString fnm = fileStart;
+  gROOT->SetBatch(kTRUE);
+  for(int i = 0; i < 6; ++i) {
+    train_tmva((fnm+sets[i]+fileEnd).Data(), ignore);
+    gSystem->cd("..");
+  }
+  gROOT->SetBatch(kFALSE);
+  return 0;
+}

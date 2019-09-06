@@ -51,6 +51,8 @@
 
 int useMCTruth_ = 0; //train on MC signal vs background or mass band
 
+int kfolds_ = 8; //fold number for k-fold validation
+
 
 // Training script that uses a newer ROOT build
 int TrainTrkQualNew(TTree* signal, TTree* background, const char* tname = "TrkQual", int isData = 0,
@@ -81,8 +83,6 @@ int TrainTrkQualNew(TTree* signal, TTree* background, const char* tname = "TrkQu
   // -1 = only add bjet requirement
   int useOldCuts = 0; 
 
-  //fold number for k-fold validation
-  int kfolds = 3;
   //---------------------------------------------------------------
   // This loads the library
   TMVA::Tools::Instance();
@@ -209,57 +209,57 @@ int TrainTrkQualNew(TTree* signal, TTree* background, const char* tname = "TrkQu
   // Define the input variables that shall be used for the MVA training
   // note that you may also use variable expressions, such as: "3*var1/var2*abs(var3)"
   // [all types of expressions that can also be parsed by TTree::Draw( "expression" )]
-  bool isb1bc = dirname.Contains("d_2") || dirname.Contains("l_2");
-  isb1bc |= dirname.Contains("d_11") || dirname.Contains("l_11"); //similar selection
-  bool isb1bf = dirname.Contains("d_3") || dirname.Contains("l_3");
-  bool isb1bfb= dirname.Contains("d_6") || dirname.Contains("l_6"); //similar selection
-  isb1bf |= isb1bfb;
+  bool is1b1c = dirname.Contains("d_2") || dirname.Contains("l_2");
+  is1b1c |= dirname.Contains("d_11") || dirname.Contains("l_11"); //similar selection
+  bool is1b1f = dirname.Contains("d_3") || dirname.Contains("l_3");
+  bool is1b1fb= dirname.Contains("d_6") || dirname.Contains("l_6"); //similar selection
+  is1b1f |= is1b1fb;
   
   dataloader->AddVariable("met","MET","GeV",'F');
-  // dataloader->AddVariable("jetsDelR","#DeltaR_{jj}","",'D');// more correlated for background training
-  //  if(!isb1bfb) //biased set 6 background?
+  dataloader->AddVariable("jetsDelR","#DeltaR_{jj}","",'D');// more correlated for background training
+  //  if(!is1b1fb) //biased set 6 background?
   dataloader->AddVariable("jetsDelPhi","#Delta#phi_{jj}","",'D'); // added back in
   // dataloader->AddVariable("jet1eta","#eta_{j1}","",'D'); // not useful
   // dataloader->AddVariable("jet2eta","#eta_{j2}","",'D'); // not useful
-  // if(!isb1bfb) //biased set 6 background?
-  dataloader->AddVariable("jetsLepDelR","#DeltaR_{jj+ll}","",'D');
-  dataloader->AddVariable("jetsLepDelPhi","#Delta#phi_{jj+ll}","",'D'); // 5% correlation with mass
-  if(!isb1bfb) //biased set 6 background?
-    dataloader->AddVariable("jetLepDelR","#DeltaR_{j+ll}","",'D');
-  // if(!isb1bfb) //biased set 6 background?
-  dataloader->AddVariable("jetLepDelPhi","#Delta#phi_{j+ll}","",'D'); 
-  dataloader->AddVariable("bjetLepDelR","#DeltaR_{b+ll}","",'D'); // only correlated for background training?
-  // dataloader->AddVariable("bjetLepDelPhi","#Delta#phi_{b+ll}","",'D'); // more correlated for background training
-  if(!isb1bfb) //biased set 6 background?
-    dataloader->AddVariable("jetbLepDelR","#DeltaR_{j+bll}","",'D'); // equally correlated for both respones in both
-  if(!isb1bfb) //biased set 6 background?
-    dataloader->AddVariable("jetbLepDelPhi","#Delta#phi_{j+bll}","",'D'); // added back, somewhat correlated for each?
+  // if(!is1b1fb) //biased set 6 background?
+  // dataloader->AddVariable("jetsLepDelR","#DeltaR_{jj+ll}","",'D');
+  // dataloader->AddVariable("jetsLepDelPhi","#Delta#phi_{jj+ll}","",'D'); // 5% correlation with mass, biases set 11 background
+  // if(!is1b1fb) //biased set 6 background?
+  //   dataloader->AddVariable("jetLepDelR","#DeltaR_{j+ll}","",'D');
+  // if(!is1b1fb) //biased set 6 background?
+  // dataloader->AddVariable("jetLepDelPhi","#Delta#phi_{j+ll}","",'D'); 
+  // dataloader->AddVariable("bjetLepDelR","#DeltaR_{b+ll}","",'D'); // only correlated for background training?
+  dataloader->AddVariable("bjetLepDelPhi","#Delta#phi_{b+ll}","",'D'); // more correlated for background training
+  // if(!is1b1fb) //biased set 6 background?
+  dataloader->AddVariable("jetbLepDelR","#DeltaR_{j+bll}","",'D'); // equally correlated for both respones in both
+  // if(!is1b1fb) //biased set 6 background?
+  // dataloader->AddVariable("jetbLepDelPhi","#Delta#phi_{j+bll}","",'D'); // added back, somewhat correlated for each?
   // dataloader->AddVariable("jetsPt","Pt_{jj}","GeV",'D'); // not useful
   // dataloader->AddVariable("jetsEta","#eta_{jj}","",'D'); // not useful
   // dataloader->AddVariable("bjetLepPt","Pt_{bll}","",'D'); // more correlated for background training
   // dataloader->AddVariable("jetLepPt" ,"Pt_{jll}","",'D'); // more correlated for background training
   // dataloader->AddVariable("lepPt", "Pt_{ll}", "GeV", 'D'); // Biases background 3
-  // if(!isb1bf) //possibly biased background
-  //   dataloader->AddVariable("sysPt","Pt_{jjll}","GeV",'D'); 
+  // if(!is1b1f) //possibly biased background
+  // dataloader->AddVariable("sysPt","Pt_{jjll}","GeV",'D'); 
   // dataloader->AddVariable("sysEta","#eta_{jjll}","",'D'); // more correlated for background training
-  if(!isb1bf)
+  if(!is1b1f)
     dataloader->AddVariable("jet1tag","Tag_{j1}","",'F'); 
-  dataloader->AddVariable("jet2tag","Tag_{j2}","",'F'); 
-  // if(!isb1bf)
+  // dataloader->AddVariable("jet2tag","Tag_{j2}","",'F'); 
+  // if(!is1b1f)
   //   dataloader->AddVariable("jet1tagged", "Tagged_{j1}", "", 'O');  // somewhat correlated with background training, more correlated for truth
-  // if((!useOldCuts&&!isb1bfb) || isb1bc)
+  // if((!useOldCuts&&!is1b1fb) || is1b1c)
   //   dataloader->AddVariable("jet2tagged", "Tagged_{j2}", "", 'O');  // somewhat correlated with background training, more correlated for truth
   // dataloader->AddVariable("jet1puid","ID_{j1}","",'F'); //somewhat correlated for background and truth training
   // dataloader->AddVariable("jet2puid","ID_{j2}","",'F'); //somewhat correlated for background and truth training
-  // dataloader->AddVariable("jet1d0","D0_{j1}","",'F');// correlates with mass
+  dataloader->AddVariable("jet1d0","D0_{j1}","",'F');// correlates with mass
   // dataloader->AddVariable("jet2d0","D0_{j2}","",'F'); //not correlated for either training
   // dataloader->AddVariable("jet1pt","Pt_{j1}","",'D'); // more correlated for background training
   // dataloader->AddVariable("jet2pt","Pt_{j2}","",'D'); // more correlated for background training
   // dataloader->AddVariable("lep1reliso","Iso/Pt_{l1}","",'D');// correlates with mass
   // dataloader->AddVariable("lep2reliso","Iso/Pt_{l2}","",'D'); // correlates with mass
-  // if(!isb1bf) dataloader->AddVariable("nJets", "nJets", "", 'i');
+  if(!is1b1f) dataloader->AddVariable("nJets", "nJets", "", 'i');
   //  if(!dirname.Contains("_2")) dataloader->AddVariable("nFwdJets", "nFwdJets", "", 'i');
-  // if(!isb1bf) dataloader->AddVariable("nBJets", "nBJets", "", 'i');
+  // if(!is1b1f) dataloader->AddVariable("nBJets", "nBJets", "", 'i');
   // dataloader->AddVariable("jetsM","M_{jj}","GeV",'D'); // more correlated for background training
   // dataloader->AddVariable("sysM","M_{jjll}","GeV",'D'); // more correlated for background training
 
@@ -314,8 +314,8 @@ int TrainTrkQualNew(TTree* signal, TTree* background, const char* tname = "TrkQu
 // signal is defined as the momentum resolution core,
   TString sig_cut, bkg_cut;
   //  nm = tname;
-  sig_cut = "lepM>25&&lepM<32";
-  bkg_cut = "lepM<70&&(lepM<25||lepM>32)&&lepM>10";
+  sig_cut = "lepM>27&&lepM<32";
+  bkg_cut = "lepM<70&&(lepM<27||lepM>32)&&lepM>10";
   if(useMCTruth_) {
     sig_cut = Form("lepM>10&&lepM<70&&(eventCategory == %i)", signalCategory);
     bkg_cut = Form("lepM>10&&lepM<70&&(eventCategory != %i)", signalCategory);
@@ -328,11 +328,11 @@ int TrainTrkQualNew(TTree* signal, TTree* background, const char* tname = "TrkQu
   }
 
   if(useOldCuts > 0) { // Add the missing cuts previously applied to the selection
-    if(isb1bc) {
+    if(is1b1c) {
       sig_cut += "&&(met<40)&&(jetsLepDelPhi>2.5)&&(nBJets+nJets==2)&&(jet1tagged || jet2tagged)";
       bkg_cut += "&&(met<40)&&(jetsLepDelPhi>2.5)&&(nBJets+nJets==2)&&(jet1tagged || jet2tagged)";
     }
-    else if(isb1bf) {
+    else if(is1b1f) {
       sig_cut += "&&(jet1tagged || jet2tagged)";
       bkg_cut += "&&(jet1tagged || jet2tagged)";
     }
@@ -356,16 +356,16 @@ int TrainTrkQualNew(TTree* signal, TTree* background, const char* tname = "TrkQu
   Long64_t nSig = signal->CopyTree(signal_cuts)->GetEntriesFast();
   Long64_t nBkg = background->CopyTree(bkg_cuts)->GetEntriesFast();
   if(isData == 0 && nSig*nFraction < 5000) nFraction = min(1.,5000./nSig);
-  TString options = "nTrain_Signal=";
-  options += ((Int_t) nSig*nFraction);
-  options += ":nTrain_Background=";
-  if(useMCTruth_)
-    options += ((Int_t) nBkg*nFraction/2.);
-  else
-    options += ((Int_t) nBkg*nFraction);
+  TString options = "nTrain_Signal=0";
+  // options += ((Int_t) nSig*nFraction);
+  options += ":nTrain_Background=0";
+  // if(useMCTruth_)
+  //   options += ((Int_t) nBkg*nFraction/2.);
+  // else
+  //   options += ((Int_t) nBkg*nFraction);
 
   // Int_t numFolds = 4;
-  options += ":nTest_Signal=0:nTest_Background=0:SplitMode=Random:!V:SplitSeed=89281";
+  options += ":nTest_Signal=1:nTest_Background=1:SplitMode=Random:!V:SplitSeed=89281";
   // options += numFolds;
   dataloader->PrepareTrainingAndTestTree(signal_cuts, bkg_cuts, options.Data() );
 
@@ -591,7 +591,7 @@ int TrainTrkQualNew(TTree* signal, TTree* background, const char* tname = "TrkQu
 
 //  cv.PrintHelpMessage();
 //  cv.EvaluateAllVariables();
-  cv.SetNumFolds(kfolds);
+  cv.SetNumFolds(kfolds_);
   cv.SetVerbose(kTRUE);
  
   // Train MVAs using the set of training events
