@@ -88,7 +88,7 @@ train_tmva("[make_background.C out file]", {[list of process IDs to ignore]}")
 
 #### Newer version of ROOT (6.16/00)
 
-##### Trains MVA specified in TrainTrkQual.C, default use is Random Forrest BDT using K-Fold validation
+##### Trains MVA specified in TrainTrkQualNew.C, default use is Random Forrest BDT using K-Fold validation
 
 .L train_tmva_new.C
 
