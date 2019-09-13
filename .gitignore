@@ -25,6 +25,7 @@ plugins
 python
 scripts/*.py
 scripts/*.sh
+scripts/batch/*
 test
 data
 BuildFile.xml

@@ -51,7 +51,7 @@
 
 int useMCTruth_ = 0; //train on MC signal vs background or mass band
 
-int kfolds_ = 8; //fold number for k-fold validation
+int kfolds_ = 3; //fold number for k-fold validation
 
 
 // Training script that uses a newer ROOT build
@@ -356,6 +356,8 @@ int TrainTrkQualNew(TTree* signal, TTree* background, const char* tname = "TrkQu
   Long64_t nSig = signal->CopyTree(signal_cuts)->GetEntriesFast();
   Long64_t nBkg = background->CopyTree(bkg_cuts)->GetEntriesFast();
   if(isData == 0 && nSig*nFraction < 5000) nFraction = min(1.,5000./nSig);
+
+  //Train set to 0 with kFold validation
   TString options = "nTrain_Signal=0";
   // options += ((Int_t) nSig*nFraction);
   options += ":nTrain_Background=0";
@@ -364,12 +366,10 @@ int TrainTrkQualNew(TTree* signal, TTree* background, const char* tname = "TrkQu
   // else
   //   options += ((Int_t) nBkg*nFraction);
 
-  // Int_t numFolds = 4;
+  // nTest set to 1 since kfold only uses the training sets for testing
   options += ":nTest_Signal=1:nTest_Background=1:SplitMode=Random:!V:SplitSeed=89281";
   // options += numFolds;
   dataloader->PrepareTrainingAndTestTree(signal_cuts, bkg_cuts, options.Data() );
-
-
 
   // ---- Book MVA methods
   //

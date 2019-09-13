@@ -68,9 +68,10 @@
       printf("process ID: %i\n",gSystem->GetPid());
       TAuthenticate::SetGlobalUser(gSystem->Getenv("USER"));
       gInterpreter->ProcessLine(".! ps | grep root");
-      printf("Loading AsciiPlotter, Multilepton_X_Makers, and Fitter\n");
+      printf("Loading AsciiPlotter, Multilepton_X_Makers, ZTauTau_X_Makers, and Fitter\n");
       TString cmssw = gSystem->Getenv("CMSSW_BASE");
       gSystem->Load((cmssw + "/src/BLT/BLTAnalysis/AsciiPlotter/AsciiPlotter_cc.so").Data());
+      gSystem->Load((cmssw + "/src/BLT/BLTAnalysis/rootScripts/ZTauTauHistMaker_cc.so").Data());
       gSystem->Load((cmssw + "/src/BLT/BLTAnalysis/rootScripts/MultileptonHistMaker_cc.so").Data());
       gSystem->Load((cmssw + "/src/BLT/BLTAnalysis/rootScripts/MultileptonNTupleMaker_cc.so").Data());
       gSystem->Load((cmssw + "/src/BLT/BLTAnalysis/rootScripts/Fitter_cc.so").Data());
