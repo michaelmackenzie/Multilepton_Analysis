@@ -34,13 +34,20 @@ Int_t process_ztautau() {
     "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20190909_153240/", //HZG W-
     "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20190909_153240/", //HZG W+
     "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20190909_153240/", //HZG zh
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20190910_144942/", //Data 2016 B
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20190910_144942/", //Data 2016 C
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20190910_144942/", //Data 2016 D
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20190910_144942/", //Data 2016 E
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20190910_144942/", //Data 2016 F
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20190910_144942/", //Data 2016 G
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20190910_144942/"  //Data 2016 H
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20190914_122110/", //Muon Data 2016 B
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20190914_122110/", //Muon Data 2016 C
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20190914_122110/", //Muon Data 2016 D
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20190914_122110/", //Muon Data 2016 E
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20190914_122110/", //Muon Data 2016 F
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20190914_122110/", //Muon Data 2016 G
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20190914_122110/", //Muon Data 2016 H
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20190914_122110/", //Electron Data 2016 B
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20190914_122110/", //Electron Data 2016 C
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20190914_122110/", //Electron Data 2016 D
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20190914_122110/", //Electron Data 2016 E
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20190914_122110/", //Electron Data 2016 F
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20190914_122110/", //Electron Data 2016 G
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20190914_122110/"  //Electron Data 2016 H
     
   };
   
@@ -81,7 +88,14 @@ Int_t process_ztautau() {
 			 "output_muon_2016E.root"                  , 
 			 "output_muon_2016F.root"                  , 
 			 "output_muon_2016G.root"                  , 
-			 "output_muon_2016H_v2.root"
+			 "output_muon_2016H_v2.root"               ,
+			 "output_electron_2016B_v2.root"               , 
+			 "output_electron_2016C.root"                  , 
+			 "output_electron_2016D.root"                  , 
+			 "output_electron_2016E.root"                  , 
+			 "output_electron_2016F.root"                  , 
+			 "output_electron_2016G.root"                  , 
+			 "output_electron_2016H_v2.root"
 
   };
   const int doProcess[] = {1, //ttbar
@@ -115,13 +129,20 @@ Int_t process_ztautau() {
 			   1, //HZG W-
 			   1, //HZG W+
 			   1, //HZG zh
-			   1, //Data 2016 B
-			   1, //Data 2016 C
-			   1, //Data 2016 D
-			   1, //Data 2016 E
-			   1, //Data 2016 F
-			   1, //Data 2016 G
-			   1  //Data 2016 H
+			   1, //Muon Data 2016 B
+			   1, //Muon Data 2016 C
+			   1, //Muon Data 2016 D
+			   1, //Muon Data 2016 E
+			   1, //Muon Data 2016 F
+			   1, //Muon Data 2016 G
+			   1, //Muon Data 2016 H
+			   1, //Electron Data 2016 B
+			   1, //Electron Data 2016 C
+			   1, //Electron Data 2016 D
+			   1, //Electron Data 2016 E
+			   1, //Electron Data 2016 F
+			   1, //Electron Data 2016 G
+			   1  //Electron Data 2016 H
   };
   
   for(int i = 0; i < sizeof(files)/sizeof(*files); ++i) {

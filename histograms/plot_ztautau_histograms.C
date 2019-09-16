@@ -29,81 +29,161 @@ Int_t plotData_ = 1;
 Int_t rebinH_ = 1;
 Int_t data_over_mc_ = 1;
 Int_t debug_ = 0;
+Int_t include_qcd_ = 1;
+Int_t qcd_offset_ = 100; //set number offset to get same sign selection
+Int_t plot_title_ = 0; //Plot the title on the canvas
 
+void draw_cms_label() {
+  TText *cmslabel = new TText();
+  cmslabel-> SetNDC();
+  cmslabel -> SetTextFont(1);
+  cmslabel -> SetTextColor(1);
+  cmslabel -> SetTextSize(.08);
+  cmslabel -> SetTextAlign(22);
+  cmslabel -> SetTextAngle(0);
+  cmslabel -> DrawText(0.27, 0.9, "CMS Preliminary");
+}
+
+void draw_luminosity() {
+  TLatex label;
+  label.SetNDC();
+  label.SetTextFont(72);
+  // label.SetTextColor(1);
+  label.SetTextSize(.04);
+  label.SetTextAlign(13);
+  label.SetTextAngle(0);
+  label.DrawLatex(0.7, 0.98, Form("L=%.1f/fb #sqrt{#it{s}} = %.0f TeV",lum_/1e3,rootS_));
+}
 void get_titles(TString hist, TString setType, TString* xtitle, TString* ytitle, TString* title) {
   if(hist == "lepdelrvsphi") {
     *xtitle = Form("#DeltaR / %.1f",0.1*rebinH_);
     *ytitle = Form("#Delta#phi / %.1f",0.1*rebinH_);
-    *title  = Form("#DeltaR vs #Delta#phi Between Leptons %.1f fb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
+    *title  = Form("#DeltaR vs #Delta#phi Between Leptons %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
   else if(hist == "sysm" && setType == "event") {
-    *xtitle = "Mass (GeV/c^{2})";
-    *ytitle = Form("Events / %.0f GeV/c^{2}",5.*rebinH_);
-    *title  = Form("Mass of the Jet System + Lepton System %.1f fb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
+    *xtitle = "M_{ll#gamma} (GeV/c^{2})";
+    *ytitle = Form("Events / %.0f GeV/c^{2}",1.*rebinH_);
+    *title  = Form("Mass of the Photon + Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
   else if(hist == "met") {
     *xtitle = "Missing Transverse Energy (GeV)";
     *ytitle = Form("Events / %.0f GeV",2.*rebinH_);
-    *title  = Form("Missing Transverse Energy %.1f fb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
+    *title  = Form("Missing Transverse Energy %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
   else if(hist == "lepptoverm") {
     *xtitle = "Pt / M_{#mu#mu}";
     *ytitle = Form("Events / %.1f GeV/c^{2}",0.2*rebinH_);
-    *title  = Form("Pt Over Mass of the Lepton System %.1f fb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
+    *title  = Form("Pt Over Mass of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
   else if(hist == "lepm") {
-    *xtitle = "M_{#mu#mu} (GeV/c^{2})";
-    *ytitle = Form("Events / %.0f GeV/c^{2}",5.*rebinH_);
-    *title  = Form("Mass of the Lepton System %.1f fb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
+    *xtitle = "M_{ll} (GeV/c^{2})";
+    *ytitle = Form("Events / %.0f GeV/c^{2}",1.*rebinH_);
+    *title  = Form("Mass of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
   else if(hist == "leppt") {
     *xtitle = "Pt (GeV/c)";
-    *ytitle = Form("Events / %.0f GeV/c",5.*rebinH_);
-    *title  = Form("Pt of the Lepton System %.1f fb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
+    *ytitle = Form("Events / %.0f GeV/c",2.*rebinH_);
+    *title  = Form("Pt of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
+  }
+  else if(hist == "pt" && setType == "photon") {
+    *xtitle = "Pt_{#gamma} (GeV/c)";
+    *ytitle = Form("Events / %.0f GeV/c",2.*rebinH_);
+    *title  = Form("Pt of the Photon");
   }
   else if(hist == "onept") {
     *xtitle = "Pt (GeV/c)";
     *ytitle = Form("Events / %.0f GeV/c",1.*rebinH_);
-    *title  = Form("Pt of the Leading Lepton %.1f fb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
+    *title  = Form("Pt of the Leading Lepton %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
   else if(hist == "twopt") {
     *xtitle = "Pt (GeV/c)";
     *ytitle = Form("Events / %.0f GeV/c",1.*rebinH_);
-    *title  = Form("Pt of the Trailing Lepton %.1f fb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
+    *title  = Form("Pt of the Trailing Lepton %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
   else if(hist == "oneiso") {
     *xtitle = "Lepton Isolation";
     *ytitle = Form("Events / %.2f",.05*rebinH_);
-    *title  = Form("Isolation of the Leading Lepton %.1f fb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
+    *title  = Form("Isolation of the Leading Lepton %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
   else if(hist == "twoiso") {
     *xtitle = "Lepton Isolation";
     *ytitle = Form("Events / %.2f",.05*rebinH_);
-    *title  = Form("Isolation of the Trailing Lepton %.1f fb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
+    *title  = Form("Isolation of the Trailing Lepton %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
   else if(hist == "lepdeltar") {
     *xtitle = "#Delta R";
     *ytitle = Form("Events / %.1f",0.1*rebinH_);
-    *title  = Form("#Delta R of the Lepton System %.1f fb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
+    *title  = Form("#Delta R of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
   else if(hist == "lepeta") {
     *xtitle = "#eta";
     *ytitle = Form("Events / %.1f",0.1*rebinH_);
-    *title  = Form("#eta of the Lepton System %.1f fb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
+    *title  = Form("#eta of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
   else if(hist == "lepptoverm") {
     *xtitle = "Pt / Mass";
     *ytitle = Form("Events / %.2f",0.25*rebinH_);
-    *title  = Form("Pt / Mass of the Lepton System %.1f fb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
+    *title  = Form("Pt / Mass of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
 }
 
+TH1F* get_data(TString hist, TString setType, Int_t set) {
+  TH1F* d = 0;
+  for(int i = 0; i < sizeof(dData_)/sizeof(*dData_); ++i) {
+    if(!dData_[i]) break;
+    TFile* f = (TFile*) dData_[i]->Get(Form("%s_%i",setType.Data(),set));
+    if(!f) return NULL;
+    TH1F* tmp = (TH1F*) f->Get(hist.Data());
+    if(!tmp) return NULL;
+    if(!d) d = tmp;
+    else d->Add(tmp);
+  }
+  if(!d) return NULL;
+  d->SetLineWidth(2);
+  d->SetMarkerStyle(20);
+  d->SetTitle(Form("#scale[0.5]{#int} Data = %.2e",  d->Integral()));
+  d->SetName("hData");
+  if(rebinH_ > 0) d->Rebin(rebinH_);
+
+  return d;
+}
+
+TH1F* get_qcd(TString hist, TString setType, Int_t set) {
+  Int_t set_qcd = set + qcd_offset_;
+
+  TH1F* hData = get_data(hist, setType, set_qcd);
+  if(!hData) return hData;
+  hData->SetName(Form("qcd_%s",hist.Data()));      
+  TH1F* hMC = 0;
+  for(int i = 0; i < nFiles_; ++i) {
+    if(process_[i] == 0) continue;
+    TFile* f = (TFile*) data_[i]->Get(Form("%s_%i",setType.Data(),set_qcd));
+    if(!f) return NULL;
+    TH1F* htmp = (TH1F*) f->Get(hist.Data())->Clone("tmp");
+    if(!htmp) return NULL;
+    htmp->Scale(scale_[i]);
+    if(rebinH_ > 0) htmp->Rebin(rebinH_);
+    if(hMC) hMC->Add(htmp);
+    else hMC = (TH1F*) htmp->Clone("qcd_tmp");
+    delete htmp;
+  }
+  if(hMC) hData->Add(hMC, -1.);
+  for(int i = 0; i < hData->GetNbinsX(); ++i) {
+    if(hData->GetBinContent(i+1) < 0.)
+      hData->SetBinContent(i+1,0.);
+  }
+  hData->SetTitle(Form("#scale[0.5]{#int} QCD = %.2e",  hData->Integral()));
+  hData->SetLineColorAlpha(kAzure+2, 0.5);
+  hData->SetFillColorAlpha(kAzure+2, 0.5);
+  return hData;
+}
 THStack* get_stack(TString hist, TString setType, Int_t set) {
 
   TH1F* h[nFiles_];
+  TH1F* hQCD = (include_qcd_) ? get_qcd(hist,setType,set) : NULL;
   for(int i = 0; i < nFiles_; ++i) h[i] = 0;
 
-  Int_t color[] = { kYellow+1,kYellow+3,kBlue+1, kRed+1, kRed+3, kViolet-2, kGreen-2, kOrange-9};
+  Int_t color[] = { kYellow+1,kSpring,kBlue+1, kRed+1, kRed+3, kViolet-2, kGreen-2, kOrange-9};
   Int_t fill[]  = {1001,3005,1001,1001,3005,1001,1001,1001};
   THStack* hstack = new THStack(Form("%s",hist.Data()),Form("%s",hist.Data()));
 
@@ -122,9 +202,10 @@ THStack* get_stack(TString hist, TString setType, Int_t set) {
     bool isZJet = (names_[i].Contains("z") && names_[i].Contains("jets"));
     bool isWJet = (names_[i].Contains("w") && names_[i].Contains("jets"));
     bool isDiboson = (names_[i].Contains("ww") || names_[i].Contains("wz") || names_[i].Contains("zz"));
-    bool isT = (names_[i].Contains("t_tw") || names_[i].Contains("tbar_tw"));
+    bool isTop = (names_[i].Contains("t_tw") || names_[i].Contains("tbar_tw"));
+    isTop = isTop | names_[i].Containt("ttbar");
     bool isHiggs = (names_[i].Contains("hzg"));
-    if(isZJet+isDiboson+isT+isHiggs > 1)
+    if(isZJet+isDiboson+isTop+isHiggs > 1)
       printf("WARNING! In get_stack: identified %s as several processes\n", names_[i].Data());
     
     TFile* f = (TFile*) data_[i]->Get(Form("%s_%i",setType.Data(),set));
@@ -152,7 +233,7 @@ THStack* get_stack(TString hist, TString setType, Int_t set) {
 	h[i_diboson]->Add(h[i]);
 	index = i_diboson;
       }
-    } else if(isT) {
+    } else if(isTop) {
       if(i_t < 0) i_t = i;
       else {
 	h[i_t]->Add(h[i]);
@@ -177,11 +258,11 @@ THStack* get_stack(TString hist, TString setType, Int_t set) {
     if(isHiggs) name = "Higgs";
     if(isZJet) name = "ZJets";
     if(isWJet) name = "WJets";
-    if(isT) name = "T";
+    if(isTop) name = "Top";
     if(isDiboson) name = "Diboson";
     h[index]->SetName(Form("%s_%s",name.Data(),hist.Data()));    
     h[index]->SetTitle(Form("#scale[0.5]{#int} %s = %.2e", name.Data(), h[index]->Integral()));
-    if(!(isHiggs || isZJet || isWJet || isT || isDiboson))
+    if(!(isHiggs || isZJet || isWJet || isTop || isDiboson))
       hstack->Add(h[index]);
   }
   if(i_zjet > 0) hstack->Add(h[i_zjet]);
@@ -189,29 +270,8 @@ THStack* get_stack(TString hist, TString setType, Int_t set) {
   if(i_diboson > 0) hstack->Add(h[i_diboson]);
   if(i_t > 0) hstack->Add(h[i_t]);
   if(i_higgs > 0) hstack->Add(h[i_higgs]);
-
+  if(hQCD) hstack->Add(hQCD);
   return hstack;
-}
-
-TH1F* get_data(TString hist, TString setType, Int_t set) {
-  TH1F* d = 0;
-  for(int i = 0; i < sizeof(dData_)/sizeof(*dData_); ++i) {
-    if(!dData_[i]) break;
-    TFile* f = (TFile*) dData_[i]->Get(Form("%s_%i",setType.Data(),set));
-    if(!f) return NULL;
-    TH1F* tmp = (TH1F*) f->Get(hist.Data());
-    if(!tmp) return NULL;
-    if(!d) d = tmp;
-    else d->Add(tmp);
-  }
-  if(!d) return NULL;
-  d->SetLineWidth(2);
-  d->SetMarkerStyle(20);
-  d->SetTitle("Data");
-  d->SetName("Data");
-  if(rebinH_ > 0) d->Rebin(rebinH_);
-
-  return d;
 }
 
 TCanvas* plot_hist(TString hist, TString setType, Int_t set) {
@@ -241,16 +301,17 @@ TCanvas* plot_hist(TString hist, TString setType, Int_t set) {
     bool isZJet = (names_[i].Contains("z") && names_[i].Contains("jets"));
     bool isWJet = (names_[i].Contains("w") && names_[i].Contains("jets"));
     bool isDiboson = (names_[i].Contains("ww") || names_[i].Contains("wz") || names_[i].Contains("zz"));
-    bool isT = (names_[i].Contains("t_tw") || names_[i].Contains("tbar_tw"));
+    bool isTop = (names_[i].Contains("t_tw") || names_[i].Contains("tbar_tw"));
+    isTop = isTop | names_[i].Containt("ttbar");
     bool isHiggs = (names_[i].Contains("hzg"));
-    if(isZJet+isDiboson+isT+isHiggs > 1)
+    if(isZJet+isDiboson+isTop+isHiggs > 1)
       printf("WARNING! In plot_hist: identified %s as several processes\n", names_[i].Data());
 
     if(debug_ > 1) {
       if(isZJet) printf("Found ZJets data %s\n", names_[i].Data());
       if(isWJet) printf("Found WJets data %s\n", names_[i].Data());
       if(isDiboson) printf("Found Diboson data %s\n", names_[i].Data());
-      if(isT) printf("Found single Top data %s\n", names_[i].Data());
+      if(isTop) printf("Found single Top data %s\n", names_[i].Data());
       if(isHiggs) printf("Found Higgs data %s\n", names_[i].Data());
     }
     
@@ -263,7 +324,7 @@ TCanvas* plot_hist(TString hist, TString setType, Int_t set) {
     if(rebinH_ > 0) h[i]->Rebin(rebinH_);
 
     if(debug_ > 1) {
-      if((isHiggs || isZJet || isWJet || isT || isDiboson))
+      if((isHiggs || isZJet || isWJet || isTop || isDiboson))
 	printf("%s contributes %.1f to the integral\n", names_[i].Data(), h[i]->Integral());
     }
     
@@ -285,7 +346,7 @@ TCanvas* plot_hist(TString hist, TString setType, Int_t set) {
 	h[i_diboson]->Add(h[i]);
 	index = i_diboson;
       }
-    } else if(isT) {
+    } else if(isTop) {
       if(i_t < 0) i_t = i;
       else {
 	h[i_t]->Add(h[i]);
@@ -311,11 +372,11 @@ TCanvas* plot_hist(TString hist, TString setType, Int_t set) {
     if(isHiggs) name = "Higgs";
     if(isZJet) name = "ZJets";
     if(isWJet) name = "WJets";
-    if(isT) name = "T";
+    if(isTop) name = "Top";
     if(isDiboson) name = "Diboson";
     h[index]->SetName(Form("%s_%s",name.Data(),hist.Data()));    
     h[index]->SetTitle(Form("#scale[0.5]{#int} %s = %.2e", name.Data(), h[index]->Integral()));
-    if(!(isHiggs || isZJet || isWJet || isT || isDiboson))
+    if(!(isHiggs || isZJet || isWJet || isTop || isDiboson))
       h[index]->Draw((first == 0) ? "hist same" : "hist");
     ind = (first == 1) ? i:ind;
     first = 0;
@@ -336,9 +397,12 @@ TCanvas* plot_hist(TString hist, TString setType, Int_t set) {
   hAxis->SetAxisRange(1e-1,m*1.2,"Y");    
   if(xMin < xMax) hAxis->SetAxisRange(xMin,xMax,"X");    
   c->BuildLegend();
+  draw_luminosity();
+  draw_cms_label();
   hAxis->SetXTitle(xtitle.Data());
   hAxis->SetYTitle(ytitle.Data());
-  hAxis->SetTitle (title.Data());
+  if(plot_title_) hAxis->SetTitle (title.Data());
+  else hAxis->SetTitle ("");
   c->SetGrid();
   return c;
 
@@ -368,6 +432,7 @@ TCanvas* plot_stack(TString hist, TString setType, Int_t set) {
   get_titles(hist,setType,&xtitle,&ytitle,&title);
   
   hstack->Draw("hist noclear");
+
   if(plotData_ && d) d->Draw("E same");
   
   m = max(hstack->GetMaximum(), (d) ? d->GetMaximum() : 0);
@@ -401,12 +466,16 @@ TCanvas* plot_stack(TString hist, TString setType, Int_t set) {
   }
   pad1->BuildLegend();
   pad1->SetGrid();
+  draw_luminosity();
+  draw_cms_label();
   if(plotData_) hDataMC->GetXaxis()->SetTitle(xtitle.Data());
   hstack->GetYaxis()->SetTitle(ytitle.Data());
   if(plotData_ && xMin < xMax) hDataMC->GetXaxis()->SetRangeUser(xMin,xMax);    
   if(xMin < xMax) hstack->GetXaxis()->SetRangeUser(xMin,xMax);    
   hstack->GetYaxis()->SetRangeUser(1.e-1,m*1.5);    
-  hstack->SetTitle (title.Data());
+  if(plot_title_) hstack->SetTitle (title.Data());
+  else hstack->SetTitle("");
+
   hstack->SetMinimum(1.e-1);
   hstack->SetMaximum(1.2*m);
   hstack->GetYaxis()->SetTitleSize(0.045);
@@ -429,6 +498,7 @@ TCanvas* plot_stack(TString hist, TString setType, Int_t set) {
     double mn = hDataMC->GetMinimum();
     mn = max(0.2*mn,1e-2);
     m = 1.2*m;
+    m = min(m, 5.0);
     hDataMC->GetYaxis()->SetRangeUser(mn,m);    
     //  hDataMC->GetXaxis()->SetLabelOffset(0.5);
   
@@ -526,38 +596,39 @@ Int_t init_files() {
   names_[29] = "hzg_wplus"               ;
   names_[30] = "hzg_zh"                  ;
 
-     
-  xsec_[0]  =    831.76;               //"ttbar_inclusive"         
-  xsec_[1]  =    5765.4;	       //"zjets_m-50_amcatnlo"     
-  xsec_[2]  =    18610.;	       //"zjets_m-10to50_amcatnlo" 
-  xsec_[3]  =    35.85;	               //"t_tw"                    
-  xsec_[4]  =    35.85;	               //"tbar_tw"                 
-  xsec_[5]  =    6803.2;	       //"zjets_m-50"              
-  xsec_[6]  =    21959.8;	       //"zjets_m-10to50"          
-  xsec_[7]  =    1198.9;	       //"z1jets_m-50"             
-  xsec_[8]  =    855.5;		       //"z1jets_m-10to50"         
-  xsec_[9]  =    390.6;		       //"z2jets_m-50"             
-  xsec_[10] =    466.1;		       //"z2jets_m-10to50"         
-  xsec_[11] =    113.3;		       //"z3jets_m-50"             
-  xsec_[12] =    114.5;		       //"z3jets_m-10to50"         
-  xsec_[13] =    60.2;		       //"z4jets_m-50"             
-  xsec_[14] =    36.4;		       //"z4jets_m-10to50"         
-  xsec_[15] =    9493.;		       //"w1jets"                  
-  xsec_[16] =    3120.;		       //"w2jets"                  
-  xsec_[17] =    942.3;		       //"w3jets"                  
-  xsec_[18] =    524.1;		       //"w4jets"                  
-  xsec_[19] =    12.178;	       //"ww"                      
-  xsec_[20] =    5.595;		       //"wz_2l2q"                 
-  xsec_[21] =    4.42965;	       //"wz_3lnu"                 
-  xsec_[22] =    0.564;		       //"zz_2l2nu"                
-  xsec_[23] =    3.22;		       //"zz_2l2q"                 
-  xsec_[24] =    1.212;		       //"zz_4l"
+  //Taken from https://twiki.cern.ch/twiki/bin/viewauth/CMS/SummaryTable1G25ns     
+  xsec_[0]  =  831.76;                 //"ttbar_inclusive"         
+  xsec_[1]  =  6225.42; //6803.2;   //6225.42  ; //5765.4;    //"zjets_m-50_amcatnlo"     
+  xsec_[2]  =  18610. ; //21959.8; //18610.  ;         //"zjets_m-10to50_amcatnlo" 
+  xsec_[3]  =  35.85;	               //"t_tw"                    
+  xsec_[4]  =  35.85;	               //"tbar_tw"                 
+  xsec_[5]  =  6803.2;	               //"zjets_m-50"              
+  xsec_[6]  =  21959.8;	               //"zjets_m-10to50"          
+  xsec_[7]  =  1198.9;	               //"z1jets_m-50"             
+  xsec_[8]  =  855.5;		       //"z1jets_m-10to50"         
+  xsec_[9]  =  390.6;		       //"z2jets_m-50"             
+  xsec_[10] =  466.1;		       //"z2jets_m-10to50"         
+  xsec_[11] =  113.3;		       //"z3jets_m-50"             
+  xsec_[12] =  114.5;		       //"z3jets_m-10to50"         
+  xsec_[13] =  60.2;		       //"z4jets_m-50"             
+  xsec_[14] =  36.4;		       //"z4jets_m-10to50"         
+  xsec_[15] =  9493.;		       //"w1jets"                  
+  xsec_[16] =  3120.;		       //"w2jets"                  
+  xsec_[17] =  942.3;		       //"w3jets"                  
+  xsec_[18] =  524.1;		       //"w4jets"                  
+  xsec_[19] =  12.178;	               //"ww"                      
+  xsec_[20] =  5.595;		       //"wz_2l2q"                 
+  xsec_[21] =  4.42965;	               //"wz_3lnu"                 
+  xsec_[22] =  0.564;		       //"zz_2l2nu"                
+  xsec_[23] =  3.22;		       //"zz_2l2q"                 
+  xsec_[24] =  1.212;		       //"zz_4l"
   //Higgs branching ratios: https://twiki.cern.ch/twiki/bin/view/LHCPhysics/CERNYellowReportPageBR2014
   //Higgs production xsecs: https://twiki.cern.ch/twiki/bin/view/LHCPhysics/CERNYellowReportPageAt1314TeV2014
   //Z decay to leptons fraction: http://pdg.lbl.gov/2012/listings/rpp2012-list-z-boson.pdf
-  xsec_[25] =    1.54e-3* 3.3658/100.*43.92;		       //"hzg_gluglu"              
+  // --> Br(Z->ll) * Br(h->Zg) * xsec(X -> h)
+  xsec_[25] =    1.54e-3* 3.3658/100.*43.92;	       //"hzg_gluglu"              
   xsec_[26] =    1.54e-3* 3.3658/100.*0.5085;	       //"hzg_tth"                 
-  xsec_[27] =    1.54e-3* 3.3658/100.*3.748;		       //"hzg_vbf"                 
+  xsec_[27] =    1.54e-3* 3.3658/100.*3.748;	       //"hzg_vbf"                 
   xsec_[28] =    1.54e-3* 3.3658/100.*1.380/2.;	       //"hzg_wminus"              
   xsec_[29] =    1.54e-3* 3.3658/100.*1.380/2.;	       //"hzg_wplus"               
   xsec_[30] =    1.54e-3* 3.3658/100.*0.8696;	       //"hzg_zh"                  
@@ -606,14 +677,35 @@ Int_t init_files() {
   }
 
   const char* dNames[] = {
-  			 "muon_2016B"                 };
+    "muon_2016B",
+    "muon_2016C",
+    "muon_2016D",
+    "muon_2016E",
+    "muon_2016F",
+    "muon_2016G",
+    "muon_2016H",
+    "electron_2016B",
+    "electron_2016C",
+    "electron_2016D",
+    "electron_2016E",
+    "electron_2016F",
+    "electron_2016G",
+    "electron_2016H"
+  };
   
   // const char* dFiles[] = {Form("tree_%s.hist",dNames[0])};
   vector<TString> dFiles;
   for(int i = 0; i < sizeof(dNames)/sizeof(*dNames); ++i)
     dFiles.push_back(Form("ztautau/ztautau_%s_bltTree_%s.hist",selection_.Data(),dNames[i]));
 
-  const Double_t dLum[] = {5.3e3
+  const Double_t dLum[] = {
+    5.75e3  ,
+    2.573e3  ,
+    4.242e3  ,
+    4.025e3  ,
+    3.105e3  ,
+    7.576e3  ,
+    8.651e3  
                           };//, (36.4e3-5.3e3)}; //taken from CMS AN-16-458
 
   lum_    = accumulate(begin(dLum), end(dLum), 0, plus<double>());; //pb^-1
@@ -649,7 +741,8 @@ Int_t init_files() {
   for(int i = 0; i < nFiles_; ++i) {
     if(process_[i]) {
       evts[i] = (TH1F*)  f[i]->Get(Form("TotalEvents_%s",names_[i].Data()));
-      scale_[i]  = 1./(evts[i]->GetBinContent(1)-2*evts[i]->GetBinContent(11))*xsec_[i]*lum_;
+      scale_[i]  = 1./(evts[i]->GetBinContent(1)-2*evts[i]->GetBinContent(10))*xsec_[i]*lum_;
+      printf("%s: bin 1, bin 11: %.0f, %.0f\n", names_[i].Data(), evts[i]->GetBinContent(1), evts[i]->GetBinContent(10));
     }
   }
 

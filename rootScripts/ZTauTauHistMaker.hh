@@ -104,6 +104,19 @@ public :
     TH1F* hNJets;
     TH1F* hNFwdJets;
     TH1F* hNBJets;
+    TH1F* hMcEra;
+    TH1F* hTriggerLeptonStatus;
+    TH1F* hPuWeight;
+    TH1F* hTopPtWeight;
+    TH1F* hTauDecayMode;
+    TH1F* hTauMVA;
+    TH1F* hTauGenFlavor;
+    TH1F* hTauGenFlavorHad;
+    TH1F* hTauVetoedJetPt;
+    TH1F* hTauVetoedJetPtUnc;
+    TH1F* hHtSum;
+    TH1F* hHt;
+    TH1F* hHtPhi;
     
     TH1F* hLepPt;
     TH1F* hLepP;
@@ -121,19 +134,13 @@ public :
     TH1F* hSysPt;
     TH1F* hSysEta;
 
-    TH1F* hMcEra;
-    TH1F* hTriggerLeptonStatus;
-    TH1F* hPuWeight;
-    TH1F* hTopPtWeight;
-    TH1F* hTauDecayMode;
-    TH1F* hTauMVA;
-    TH1F* hTauGenFlavor;
-    TH1F* hTauGenFlavorHad;
-    TH1F* hTauVetoedJetPt;
-    TH1F* hTauVetoedJetPtUnc;
-    TH1F* hHtSum;
-    TH1F* hHt;
-    TH1F* hHtPhi;
+    //Transverse Masses
+    TH1F* hMTMu;
+    TH1F* hMTE;
+    TH1F* hMTTau;
+
+    //mass difference between m_gll and m_ll (with a weight)
+    TH1F* hMDiff;
 
   };
 
@@ -211,8 +218,8 @@ public :
   //Define relevant fields
   TStopwatch* timer = new TStopwatch();
   //Histograms:
-  const static Int_t fn = 100; //max histogram sets
-
+  const static Int_t fn = 200; //max histogram sets
+  const static Int_t fQcdOffset = 100; //histogram set + offset = set with same sign selection
   Int_t fEventSets[fn];  //indicates which sets to create
   Int_t fPhotonSets[fn]; //indicates which sets to create
   Int_t fLepSets[fn];    //indicates which sets to create
@@ -263,7 +270,71 @@ void ZTauTauHistMaker::Init(TTree *tree)
     fEventSets [2] = 1; // events with 1 photon
     fLepSets   [2] = 1; // events with 1 photon
     fPhotonSets[2] = 1; // events with 1 photon
+    fEventSets [3] = 1; // events with opposite signs and >= 1 photon
+    fLepSets   [3] = 1; // events with opposite signs and >= 1 photon
+    fPhotonSets[3] = 1; // events with opposite signs and >= 1 photon
+    fEventSets [3+fQcdOffset] = 1; // events with same signs and >= 1 photon
+    fLepSets   [3+fQcdOffset] = 1; // events with same signs and >= 1 photon
+    fPhotonSets[3+fQcdOffset] = 1; // events with same signs and >= 1 photon
+    fEventSets [4] = 1; // events with opposite signs and 1 photon
+    fLepSets   [4] = 1; // events with opposite signs and 1 photon
+    fPhotonSets[4] = 1; // events with opposite signs and 1 photon
+    fEventSets [4+fQcdOffset] = 1; // events with same signs and 1 photon
+    fLepSets   [4+fQcdOffset] = 1; // events with same signs and 1 photon
+    fPhotonSets[4+fQcdOffset] = 1; // events with same signs and 1 photon
 
+    fEventSets [5] = 1; // events with opposite signs and 1 tau and 1 muon
+    fLepSets   [5] = 1; // events with opposite signs and 1 tau and 1 muon
+    fPhotonSets[5] = 1; // events with opposite signs and 1 tau and 1 muon
+    fEventSets [5+fQcdOffset] = 1; // events with same signs and 1 tau and 1 muon
+    fLepSets   [5+fQcdOffset] = 1; // events with same signs and 1 tau and 1 muon
+    fPhotonSets[5+fQcdOffset] = 1; // events with same signs and 1 tau and 1 muon
+    fEventSets [15] = 1; // events with opposite signs and 1 tau and 1 electron
+    fLepSets   [15] = 1; // events with opposite signs and 1 tau and 1 electron
+    fPhotonSets[15] = 1; // events with opposite signs and 1 tau and 1 electron
+    fEventSets [15+fQcdOffset] = 1; // events with same signs and 1 tau and 1 electron
+    fLepSets   [15+fQcdOffset] = 1; // events with same signs and 1 tau and 1 electron
+    fPhotonSets[15+fQcdOffset] = 1; // events with same signs and 1 tau and 1 electron
+    
+
+    fEventSets [8] = 1; // events with opposite signs and passing Mu+Tau cuts with no photon check
+    fLepSets   [8] = 1; // events with opposite signs and passing Mu+Tau cuts with no photon check
+    fPhotonSets[8] = 1; // events with opposite signs and passing Mu+Tau cuts with no photon check
+    fEventSets [8+fQcdOffset] = 1; // events with same signs and passing Mu+Tau cuts with no photon check
+    fLepSets   [8+fQcdOffset] = 1; // events with same signs and passing Mu+Tau cuts with no photon check
+    fPhotonSets[8+fQcdOffset] = 1; // events with same signs and passing Mu+Tau cuts with no photon check
+    fEventSets [9] = 1; // events with opposite signs and passing Mu+Tau cuts
+    fLepSets   [9] = 1; // events with opposite signs and passing Mu+Tau cuts
+    fPhotonSets[9] = 1; // events with opposite signs and passing Mu+Tau cuts
+    fEventSets [9+fQcdOffset] = 1; // events with same signs and passing Mu+Tau cuts
+    fLepSets   [9+fQcdOffset] = 1; // events with same signs and passing Mu+Tau cuts
+    fPhotonSets[9+fQcdOffset] = 1; // events with same signs and passing Mu+Tau cuts
+    fEventSets [10] = 1; // events with opposite signs and passing Mu+Tau cuts including updated ones
+    fLepSets   [10] = 1; // events with opposite signs and passing Mu+Tau cuts including updated ones
+    fPhotonSets[10] = 1; // events with opposite signs and passing Mu+Tau cuts including updated ones
+    fEventSets [10+fQcdOffset] = 1; // events with same signs and passing Mu+Tau cuts including updated ones
+    fLepSets   [10+fQcdOffset] = 1; // events with same signs and passing Mu+Tau cuts including updated ones
+    fPhotonSets[10+fQcdOffset] = 1; // events with same signs and passing Mu+Tau cuts including updated ones
+
+    fEventSets [18] = 1; // events with opposite signs and passing E+Tau cuts with no photon check
+    fLepSets   [18] = 1; // events with opposite signs and passing E+Tau cuts with no photon check
+    fPhotonSets[18] = 1; // events with opposite signs and passing E+Tau cuts with no photon check
+    fEventSets [18+fQcdOffset] = 1; // events with same signs and passing E+Tau cuts with no photon check
+    fLepSets   [18+fQcdOffset] = 1; // events with same signs and passing E+Tau cuts with no photon check
+    fPhotonSets[18+fQcdOffset] = 1; // events with same signs and passing E+Tau cuts with no photon check
+    fEventSets [19] = 1; // events with opposite signs and passing E+Tau cuts
+    fLepSets   [19] = 1; // events with opposite signs and passing E+Tau cuts
+    fPhotonSets[19] = 1; // events with opposite signs and passing E+Tau cuts
+    fEventSets [19+fQcdOffset] = 1; // events with same signs and passing E+Tau cuts
+    fLepSets   [19+fQcdOffset] = 1; // events with same signs and passing E+Tau cuts
+    fPhotonSets[19+fQcdOffset] = 1; // events with same signs and passing E+Tau cuts
+    fEventSets [20] = 1; // events with opposite signs and passing E+Tau cuts including updated ones
+    fLepSets   [20] = 1; // events with opposite signs and passing E+Tau cuts including updated ones
+    fPhotonSets[20] = 1; // events with opposite signs and passing E+Tau cuts including updated ones
+    fEventSets [20+fQcdOffset] = 1; // events with same signs and passing E+Tau cuts including updated ones
+    fLepSets   [20+fQcdOffset] = 1; // events with same signs and passing E+Tau cuts including updated ones
+    fPhotonSets[20+fQcdOffset] = 1; // events with same signs and passing E+Tau cuts including updated ones
+    
     BookHistograms();
 
   }
