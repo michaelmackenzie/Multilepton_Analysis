@@ -129,9 +129,9 @@ void ZTauTauHistMaker::BookEventHistograms() {
       fEventHist[i]->hMDiff         = new TH1F("mdiff"         , Form("%s: 0.85M_gll - M_ll" ,dirname)  , 100, -50.,   50.);     
 
       fEventHist[i]->hBisectorPhi   = new TH1F("bisectorphi"   , Form("%s: Bisector Phi"    ,dirname)  , 100,  -4.,     4.);      
-      fEventHist[i]->hPXiVis        = new TH1F("pxivis"        , Form("%s: PXiVis     "     ,dirname)  , 500,   0.,   500.);      
+      fEventHist[i]->hPXiVis        = new TH1F("pxivis"        , Form("%s: PXiVis     "     ,dirname)  ,1000,   0.,  1000.);      
       fEventHist[i]->hPXiInv        = new TH1F("pxiinv"        , Form("%s: PXiInv     "     ,dirname)  ,1000,-500.,   500.);     
-      fEventHist[i]->hPXiDiff       = new TH1F("pxidiff"       , Form("%s: PXiVis - PXiInv" ,dirname)  ,1000,-500.,   500.);     
+      fEventHist[i]->hPXiDiff       = new TH1F("pxidiff"       , Form("%s: PXiVis - PXiInv" ,dirname)  ,2000,-500.,  1500.);     
       
     }
   }

@@ -22,9 +22,10 @@ TRandom* rnd_;
 
 Double_t xMin = 1e6;
 Double_t xMax = -1e6;
-Double_t yMin = 1e6; //for 2D plots
-Double_t yMax = -1e6; //for 2D plots
+Double_t yMin = 1e6; 
+Double_t yMax = -1e6;
 Int_t logZ_ = 0;
+Int_t logY_ = 0;
 Int_t plotData_ = 1;
 Int_t rebinH_ = 1;
 Int_t data_over_mc_ = 1;
@@ -193,6 +194,7 @@ THStack* get_stack(TString hist, TString setType, Int_t set) {
   Int_t i_diboson = -1;
   Int_t i_t = -1;
   Int_t i_higgs = -1;
+  Int_t i_htautau = -1;
 
   Int_t i_color = -1; //index for the color array
   
@@ -205,7 +207,8 @@ THStack* get_stack(TString hist, TString setType, Int_t set) {
     bool isTop = (names_[i].Contains("t_tw") || names_[i].Contains("tbar_tw"));
     isTop = isTop | names_[i].Contains("ttbar");
     bool isHiggs = (names_[i].Contains("hzg"));
-    if(isZJet+isDiboson+isTop+isHiggs > 1)
+    bool isHTauTau = (names_[i].Contains("htautau"));
+    if(isZJet+isDiboson+isTop+isHiggs+isHTauTau > 1)
       printf("WARNING! In get_stack: identified %s as several processes\n", names_[i].Data());
     
     TFile* f = (TFile*) data_[i]->Get(Form("%s_%i",setType.Data(),set));
@@ -245,7 +248,14 @@ THStack* get_stack(TString hist, TString setType, Int_t set) {
 	h[i_higgs]->Add(h[i]);
 	index = i_higgs;
       }
+    } else if(isHTauTau) {
+      if(i_htautau < 0) i_htautau = i;
+      else {
+	h[i_htautau]->Add(h[i]);
+	index = i_htautau;
+      }
     }
+    
     //new set so new color
     if(index == i)
       ++i_color;
@@ -255,14 +265,15 @@ THStack* get_stack(TString hist, TString setType, Int_t set) {
     h[index]->SetLineWidth(2);
     h[index]->SetMarkerStyle(20);
     TString name = names_[index];
-    if(isHiggs) name = "Higgs";
+    if(isHTauTau) name = "H->#tau#tau";
+    if(isHiggs) name = "H->Z#gamma";
     if(isZJet) name = "ZJets";
     if(isWJet) name = "WJets";
     if(isTop) name = "Top";
     if(isDiboson) name = "Diboson";
     h[index]->SetName(Form("%s_%s",name.Data(),hist.Data()));    
     h[index]->SetTitle(Form("#scale[0.5]{#int} %s = %.2e", name.Data(), h[index]->Integral()));
-    if(!(isHiggs || isZJet || isWJet || isTop || isDiboson))
+    if(!(isHiggs || isZJet || isWJet || isTop || isDiboson || isHTauTau))
       hstack->Add(h[index]);
   }
   if(i_zjet >= 0) hstack->Add(h[i_zjet]);
@@ -270,6 +281,7 @@ THStack* get_stack(TString hist, TString setType, Int_t set) {
   if(i_diboson >= 0) hstack->Add(h[i_diboson]);
   if(i_t >= 0) hstack->Add(h[i_t]);
   if(i_higgs >= 0) hstack->Add(h[i_higgs]);
+  if(i_htautau >= 0) hstack->Add(h[i_htautau]);
   if(hQCD) hstack->Add(hQCD);
   return hstack;
 }
@@ -289,6 +301,7 @@ TCanvas* plot_hist(TString hist, TString setType, Int_t set) {
   Int_t i_diboson = -1;
   Int_t i_t = -1;
   Int_t i_higgs = -1;
+  Int_t i_htautau = -1;
 
   Int_t i_color = -1; //index for the color array
 
@@ -304,7 +317,8 @@ TCanvas* plot_hist(TString hist, TString setType, Int_t set) {
     bool isTop = (names_[i].Contains("t_tw") || names_[i].Contains("tbar_tw"));
     isTop = isTop | names_[i].Contains("ttbar");
     bool isHiggs = (names_[i].Contains("hzg"));
-    if(isZJet+isDiboson+isTop+isHiggs > 1)
+    bool isHTauTau = (names_[i].Contains("htautau"));
+    if(isZJet+isDiboson+isTop+isHiggs+isHTauTau > 1)
       printf("WARNING! In plot_hist: identified %s as several processes\n", names_[i].Data());
 
     if(debug_ > 1) {
@@ -313,6 +327,7 @@ TCanvas* plot_hist(TString hist, TString setType, Int_t set) {
       if(isDiboson) printf("Found Diboson data %s\n", names_[i].Data());
       if(isTop) printf("Found single Top data %s\n", names_[i].Data());
       if(isHiggs) printf("Found Higgs data %s\n", names_[i].Data());
+      if(isHTauTau) printf("Found Higgs Tau Tau data %s\n", names_[i].Data());
     }
     
     TFile* f = (TFile*) data_[i]->Get(Form("%s_%i",setType.Data(),set));
@@ -324,7 +339,7 @@ TCanvas* plot_hist(TString hist, TString setType, Int_t set) {
     if(rebinH_ > 0) h[i]->Rebin(rebinH_);
 
     if(debug_ > 1) {
-      if((isHiggs || isZJet || isWJet || isTop || isDiboson))
+      if((isHiggs || isZJet || isWJet || isTop || isDiboson || isHTauTau))
 	printf("%s contributes %.1f to the integral\n", names_[i].Data(), h[i]->Integral());
     }
     
@@ -358,6 +373,12 @@ TCanvas* plot_hist(TString hist, TString setType, Int_t set) {
 	h[i_higgs]->Add(h[i]);
 	index = i_higgs;
       }
+    } else if(isHTauTau) {
+      if(i_htautau < 0) i_htautau = i;
+      else {
+	h[i_htautau]->Add(h[i]);
+	index = i_htautau;
+      }
     }
     //new set so new color
     if(index == i)
@@ -369,14 +390,15 @@ TCanvas* plot_hist(TString hist, TString setType, Int_t set) {
     h[index]->SetLineWidth(2);
     h[index]->SetMarkerStyle(20);
     TString name = names_[index];
-    if(isHiggs) name = "Higgs";
+    if(isHTauTau) name = "H->#tau#tau";
+    if(isHiggs) name = "H->Z#gamma";
     if(isZJet) name = "ZJets";
     if(isWJet) name = "WJets";
     if(isTop) name = "Top";
     if(isDiboson) name = "Diboson";
     h[index]->SetName(Form("%s_%s",name.Data(),hist.Data()));    
     h[index]->SetTitle(Form("#scale[0.5]{#int} %s = %.2e", name.Data(), h[index]->Integral()));
-    if(!(isHiggs || isZJet || isWJet || isTop || isDiboson))
+    if(!(isHiggs || isZJet || isWJet || isTop || isDiboson || isHTauTau))
       h[index]->Draw((first == 0) ? "hist same" : "hist");
     ind = (first == 1) ? i:ind;
     first = 0;
@@ -387,6 +409,7 @@ TCanvas* plot_hist(TString hist, TString setType, Int_t set) {
   if(i_diboson >= 0) {h[i_diboson]->Draw(first == 0 ? "hist same" : "hist"); ind = (first == 1) ? i_diboson:ind; first = 0;}
   if(i_t >= 0) {h[i_t]->Draw(first == 0 ? "hist same" : "hist"); ind = (first == 1) ? i_t:ind; first = 0;}
   if(i_higgs >= 0) {h[i_higgs]->Draw(first == 0 ? "hist same" : "hist"); ind = (first == 1) ? i_higgs:ind; first = 0;}
+  if(i_htautau >= 0) {h[i_htautau]->Draw(first == 0 ? "hist same" : "hist"); ind = (first == 1) ? i_htautau:ind; first = 0;}
 
   TString xtitle;
   TString ytitle;
@@ -399,7 +422,8 @@ TCanvas* plot_hist(TString hist, TString setType, Int_t set) {
   c->SetLeftMargin(0.087);
   c->BuildLegend();
   TH1F* hAxis = h[ind];
-  hAxis->SetAxisRange(1e-1,m*1.2,"Y");    
+  if(yMin <= yMax)hAxis->SetAxisRange(yMin,yMax,"Y");
+  else            hAxis->SetAxisRange(1e-1,m*1.2,"Y");    
   if(xMin < xMax) hAxis->SetAxisRange(xMin,xMax,"X");    
   draw_luminosity();
   draw_cms_label();
@@ -407,6 +431,7 @@ TCanvas* plot_hist(TString hist, TString setType, Int_t set) {
   hAxis->SetYTitle(ytitle.Data());
   if(plot_title_) hAxis->SetTitle (title.Data());
   else hAxis->SetTitle ("");
+  if(logY_) c->SetLogy();
   return c;
 
 }
@@ -473,14 +498,22 @@ TCanvas* plot_stack(TString hist, TString setType, Int_t set) {
   draw_cms_label();
   if(plotData_) hDataMC->GetXaxis()->SetTitle(xtitle.Data());
   hstack->GetYaxis()->SetTitle(ytitle.Data());
+  if(plotData_ && yMin >= yMax)hDataMC->GetYaxis()->SetRangeUser(yMin,yMax);
+  else if(plotData_)           hDataMC->GetYaxis()->SetRangeUser(1e-1,m*1.2);    
   if(plotData_ && xMin < xMax) hDataMC->GetXaxis()->SetRangeUser(xMin,xMax);    
   if(xMin < xMax) hstack->GetXaxis()->SetRangeUser(xMin,xMax);    
-  hstack->GetYaxis()->SetRangeUser(1.e-1,m*1.5);    
+  if(yMin < yMax) hstack->GetYaxis()->SetRangeUser(yMin,yMax);    
+  else            hstack->GetYaxis()->SetRangeUser(1.e-1,m*1.5);    
   if(plot_title_) hstack->SetTitle (title.Data());
   else hstack->SetTitle("");
 
-  hstack->SetMinimum(1.e-1);
-  hstack->SetMaximum(1.2*m);
+  if(yMin < yMax) {
+    hstack->SetMinimum(yMin);
+    hstack->SetMaximum(yMax);
+  } else {
+    hstack->SetMinimum(1.e-1);
+    hstack->SetMaximum(1.2*m);
+  }
   hstack->GetYaxis()->SetTitleSize(0.045);
   hstack->GetYaxis()->SetTitleOffset(0.7);
   c->SetGrid();
@@ -508,6 +541,7 @@ TCanvas* plot_stack(TString hist, TString setType, Int_t set) {
     hDataMC->SetMarkerStyle(20);
     //  hDataMC->SetName("hDataMC");
   }
+  if(logY_) pad1->SetLogy();
   return c;
 
 }
