@@ -52,9 +52,11 @@ void ZTauTauHistMaker::SlaveBegin(TTree * /*tree*/)
 }
 
 void ZTauTauHistMaker::FillAllHistograms(Int_t index) {
-  if(fEventSets [index]) FillEventHistogram( fEventHist [index]);
-  if(fPhotonSets[index]) FillPhotonHistogram(fPhotonHist[index]);
-  if(fLepSets   [index]) FillLepHistogram(   fLepHist   [index]);
+  if(fEventSets [index]) {
+    FillEventHistogram( fEventHist [index]);
+    FillPhotonHistogram(fPhotonHist[index]);
+    FillLepHistogram(   fLepHist   [index]);
+  }
 }
 
 void ZTauTauHistMaker::BookHistograms() {
@@ -126,13 +128,18 @@ void ZTauTauHistMaker::BookEventHistograms() {
 
       fEventHist[i]->hMDiff         = new TH1F("mdiff"         , Form("%s: 0.85M_gll - M_ll" ,dirname)  , 100, -50.,   50.);     
 
+      fEventHist[i]->hBisectorPhi   = new TH1F("bisectorphi"   , Form("%s: Bisector Phi"    ,dirname)  , 100,  -4.,     4.);      
+      fEventHist[i]->hPXiVis        = new TH1F("pxivis"        , Form("%s: PXiVis     "     ,dirname)  , 500,   0.,   500.);      
+      fEventHist[i]->hPXiInv        = new TH1F("pxiinv"        , Form("%s: PXiInv     "     ,dirname)  ,1000,-500.,   500.);     
+      fEventHist[i]->hPXiDiff       = new TH1F("pxidiff"       , Form("%s: PXiVis - PXiInv" ,dirname)  ,1000,-500.,   500.);     
+      
     }
   }
 }
 
 void ZTauTauHistMaker::BookPhotonHistograms() {
   for(int i = 0; i < fn; i++) {
-    if(fPhotonSets[i] > 0) {
+    if(fEventSets[i] > 0) {
       char* dirname        = new char[20];
       sprintf(dirname,"photon_%i",i);
       fDirectories[1*fn + i] = fTopDir->mkdir(dirname);
@@ -155,7 +162,7 @@ void ZTauTauHistMaker::BookPhotonHistograms() {
 
 void ZTauTauHistMaker::BookLepHistograms() {
   for(int i = 0; i < fn; i++) {
-    if(fLepSets[i] > 0) {
+    if(fEventSets[i] > 0) {
       char* dirname        = new char[20];
       sprintf(dirname,"lep_%i",i);
       fDirectories[2*fn + i] = fTopDir->mkdir(dirname);
@@ -267,16 +274,28 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
   double mTMu = (muon != 0) ? 2.*met*muon->Pt() : 0.;
   mTMu = (muon != 0) ? sqrt(mTMu*(1.-cos(muon->Phi() - metPhi))) : 0.;
   double mTE = (electron != 0) ? 2.*met*electron->Pt() : 0.;
-  mTE  = (electron != 0) ? sqrt(mTMu*(1.-cos(electron->Phi() - metPhi))) : 0.;
+  mTE  = (electron != 0) ? sqrt(mTE*(1.-cos(electron->Phi() - metPhi))) : 0.;
   double mTTau = (tau != 0) ? 2.*met*tau->Pt() : 0.;
-  mTTau  = (tau != 0) ? sqrt(mTMu*(1.-cos(tau->Phi() - metPhi))) : 0.;
+  mTTau  = (tau != 0) ? sqrt(mTTau*(1.-cos(tau->Phi() - metPhi))) : 0.;
 
   Hist->hMTMu          ->Fill(mTMu       ,eventWeight*genWeight);
   Hist->hMTE           ->Fill(mTE        ,eventWeight*genWeight);
   Hist->hMTTau         ->Fill(mTTau      ,eventWeight*genWeight);
 
   Hist->hMDiff         ->Fill(0.85*sys.M() - lepSys.M(),eventWeight*genWeight);
-  
+
+  TVector3 lp1 = leptonOneP4->Vect();
+  TVector3 lp2 = leptonTwoP4->Vect();
+  TVector3 bisector = (lp1.Mag()*lp2 + lp2.Mag()*lp1);
+  bisector.SetMag(1.);
+  double pxi_vis = (lp1+lp2)*bisector;
+  TVector3 missing(met*cos(metPhi), met*sin(metPhi), 0.);
+  double pxi_inv = missing*bisector;
+  Hist->hBisectorPhi->Fill(bisector.Phi() ,eventWeight*genWeight);
+  Hist->hPXiVis     ->Fill(pxi_vis        ,eventWeight*genWeight);
+  Hist->hPXiInv     ->Fill(pxi_inv        ,eventWeight*genWeight);
+  Hist->hPXiDiff    ->Fill(pxi_vis-pxi_inv,eventWeight*genWeight);
+
 }
 
 void ZTauTauHistMaker::FillPhotonHistogram(PhotonHist_t* Hist) {
@@ -350,15 +369,23 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   fChain->GetEntry(entry);
   if(entry%50000 == 0) printf("Processing event: %12lld\n", entry);
   bool chargeTest = leptonOneFlavor*leptonTwoFlavor < 0;
-  if(chargeTest) FillAllHistograms(0);
-  else           FillAllHistograms(fQcdOffset);
-  if(nPhotons > 0 ) FillAllHistograms(1);
-  if(nPhotons == 1) FillAllHistograms(2);
+  FillAllHistograms(0);
 
-  if(nPhotons > 0  && chargeTest) FillAllHistograms(3);
-  else if(nPhotons > 0)           FillAllHistograms(3 + fQcdOffset);
-  if(nPhotons == 1 && chargeTest) FillAllHistograms(4);
-  else if(nPhotons == 1)          FillAllHistograms(4 + fQcdOffset);
+  TVector3 lp1 = leptonOneP4->Vect();
+  TVector3 lp2 = leptonTwoP4->Vect();
+  TVector3 bisector = (lp1.Mag()*lp2 + lp2.Mag()*lp1);
+  bisector.SetMag(1.);
+  double pxi_vis = (lp1+lp2)*bisector;
+  TVector3 missing(met*cos(metPhi), met*sin(metPhi), 0.);
+  double pxi_inv = missing*bisector;
+  
+  if(chargeTest) FillAllHistograms(1);
+  else           FillAllHistograms(1 + fQcdOffset);
+
+  if(nPhotons > 0  && chargeTest) FillAllHistograms(2);
+  else if(nPhotons > 0)           FillAllHistograms(2 + fQcdOffset);
+  if(nPhotons == 1 && chargeTest) FillAllHistograms(3);
+  else if(nPhotons == 1)          FillAllHistograms(3 + fQcdOffset);
 
   bool mutau = nTaus == 1  && nMuons == 1;
   bool etau  = nTaus == 1  && nElectrons == 1;
@@ -366,8 +393,10 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   
   if(mutau && chargeTest) FillAllHistograms(5);
   else if(mutau)          FillAllHistograms(5 + fQcdOffset);
-  if(mutau && chargeTest) FillAllHistograms(15);
-  else if(mutau)          FillAllHistograms(15 + fQcdOffset);
+  if(etau  && chargeTest) FillAllHistograms(15);
+  else if(etau)           FillAllHistograms(15 + fQcdOffset);
+  if(emu   && chargeTest) FillAllHistograms(25);
+  else if(emu)            FillAllHistograms(25 + fQcdOffset);
   
   TLorentzVector* tau = 0;
   TLorentzVector* muon = 0;
@@ -383,15 +412,27 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   emu   = emu   && (muon != 0) && (electron != 0);
 
   mutau = mutau && muon->Pt() > 25. && tau->Pt() > 20.;
+
+  etau  = etau  && electron->Pt() > 30. && tau->Pt() > 20.;
+
+  if(mutau && chargeTest) FillAllHistograms(6);
+  else if(mutau)          FillAllHistograms(6 + fQcdOffset);
+  if(etau  && chargeTest) FillAllHistograms(16);
+  else if(etau)           FillAllHistograms(16 + fQcdOffset);
+  
   mutau = mutau && abs(muon->Eta()) < 2.4;
   mutau = mutau && abs(tau->Eta()) < 2.3;
   mutau = mutau && abs(tau->DeltaR(*muon)) > 0.3;
 
-  etau  = etau  && electron->Pt() > 30. && tau->Pt() > 20.;
   etau  = etau  && abs(electron->Eta()) < 2.5;
   etau  = etau  && abs(tau->Eta()) < 2.3;
   etau  = etau  && abs(tau->DeltaR(*electron)) > 0.3;
 
+  if(mutau && chargeTest) FillAllHistograms(7);
+  else if(mutau)          FillAllHistograms(7 + fQcdOffset);
+  if(etau  && chargeTest) FillAllHistograms(17);
+  else if(etau)           FillAllHistograms(17 + fQcdOffset);
+  
   double mll = (*leptonOneP4+*leptonTwoP4).M();
   double mgll = (*photonP4 + (*leptonOneP4+*leptonTwoP4)).M();
   mutau = mutau && mll < 100. && mll > 40.;
@@ -400,35 +441,36 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   double mTMu = (muon != 0) ? 2.*met*muon->Pt() : 0.;
   mTMu = (muon != 0) ? sqrt(mTMu*(1.-cos(muon->Phi() - metPhi))) : 0.;
   double mTE = (electron != 0) ? 2.*met*electron->Pt() : 0.;
-  mTE  = (electron != 0) ? sqrt(mTMu*(1.-cos(electron->Phi() - metPhi))) : 0.;
+  mTE  = (electron != 0) ? sqrt(mTE*(1.-cos(electron->Phi() - metPhi))) : 0.;
   mutau = mutau && mTMu < 60.;
   etau  = etau  && mTE  < 60.;
 
   //mutau cuts in first slides
   if(mutau && chargeTest) FillAllHistograms(8);
   else if(mutau)          FillAllHistograms(8 + fQcdOffset);
+  if(etau && chargeTest) FillAllHistograms(18);
+  else if(etau)          FillAllHistograms(18 + fQcdOffset);
+
   //add required photon
   mutau = mutau && nPhotons > 0;
   mutau = mutau && (abs(photonP4->Eta()) < 1.4432 || (abs(photonP4->Eta()) > 1.566 && abs(photonP4->Eta()) < 2.5));
   mutau = mutau && photonP4->Pt() > 10.;
-  mutau = mutau && photonP4->DeltaR(*muon) > 0.3;
-  mutau = mutau && photonP4->DeltaR(*tau) > 0.3;
-  
+  mutau = mutau && photonP4->DeltaR(*muon) > 0.5;
+  mutau = mutau && photonP4->DeltaR(*tau) > 0.5;
   if(mutau && chargeTest) FillAllHistograms(9);
   else if(mutau)          FillAllHistograms(9 + fQcdOffset);
 
-  //etau cuts in first slides
-  if(etau && chargeTest) FillAllHistograms(18);
-  else if(etau)          FillAllHistograms(18 + fQcdOffset);
   //add required photon
   etau = etau && nPhotons > 0;
+  etau = etau && (abs(photonP4->Eta()) < 1.4432 || (abs(photonP4->Eta()) > 1.566 && abs(photonP4->Eta()) < 2.5));
+  etau = etau && photonP4->Pt() > 10.;
+  etau = etau && photonP4->DeltaR(*electron) > 0.5;
+  etau = etau && photonP4->DeltaR(*tau) > 0.5;
   if(etau && chargeTest) FillAllHistograms(19);
   else if(etau)          FillAllHistograms(19 + fQcdOffset);
   
   //extra cuts added
   mutau = mutau && 10. < (0.85*mgll - mll) && 25. > (0.85*mgll - mll);
-  mutau = mutau && photonP4->DeltaR(*muon) > 0.5;
-  mutau = mutau && photonP4->DeltaR(*tau) > 0.5;
   mutau = mutau && photonP4->Pt() > 18.;
   if(mutau && chargeTest) FillAllHistograms(10);
   else if(mutau)          FillAllHistograms(10 + fQcdOffset);
@@ -436,8 +478,6 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   double zmass = 91.1876;
   double mge = (electron) ? (*photonP4 + *electron).M() : 0.;
   etau = etau && 10. < (0.85*mgll - mll) && 25. > (0.85*mgll - mll);
-  etau = etau && photonP4->DeltaR(*electron) > 0.5;
-  etau = etau && photonP4->DeltaR(*tau) > 0.5;
   etau = etau && photonP4->Pt() > 18.;
   etau = etau && abs(mge-zmass) > 10.;
   if(etau && chargeTest) FillAllHistograms(20);
