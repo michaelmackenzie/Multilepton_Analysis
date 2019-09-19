@@ -1,26 +1,35 @@
 # Multilepton_Analysis
-Analysis work using the MultileptonAnalyzer
+Analysis work using the MultileptonAnalyzer as well as the ZTauTauAnalyzer
 
 ## Directories
 ### rootScripts
-Contains root scripts to process the MultileptonAnalyzer ntuples
-MultileptonHistMaker.cc makes books of histograms when running over the ntuple
+Contains root scripts to process the analyzer ntuples
+MultileptonHistMaker.cc makes books of histograms when running over the multilepton ntuple
 process_multilepton.C processes a list of ntuples through MultileptonHistMaker
 
-MultileptonNTupleMaker.cc makes books of trees when running over the ntuples
+MultileptonNTupleMaker.cc makes books of trees when running over the multilepton ntuples
 process_multileptonNT.C processes a list of ntuples through MultileptonNTupleMaker
 
 make_background.C adds the trees for the various processes from a given book in
 MultileptonNTupleMaker's output trees, using the cross section and generation values
 
+ZTauTauHistMaker.cc makes books of histograms when running over the ztautau ntuple
+process_ztautau.C processes a list of ntuples through ZTauTauHistMaker
+
 find_cuts.C loops over output from MultileptonHistMaker and identifies a rectangular
 cut that has the greatest increase in signal/background for a fixed efficiency drop
 in the signal
 
+Fitter.cc is used to get legendre polynomials for background fits, made to match up
+with Multilepton studies
+
+DataPlotter.cc holds datasets to be added together with their cross sections and plotted
+against data.
+
 ### histograms
 Used to plot the histograms from a given book in MultileptonHistMaker's output
 adding together the processes with their cross section and generation values, primarily
-using plot_histograms.C
+using plot_histograms.C, plot_ztautau_histograms.C, and dataplotter_ztautau.C
 
 ### tmva_training
 Used to train MVAs to separate backgrounds from signal
@@ -48,7 +57,7 @@ Script to fit a signal + background vs background only hypothesis to a CWoLa tra
 
 in ROOT:
 ### HistMaker
-
+```
 .L MultileptonHistMaker.cc++g //recompile in debug mode
 
 TTree* tree = [Get MultileptonAnalyzer Tree]
@@ -60,10 +69,10 @@ tree->Process(selec,"")
 TFile* out = new TFile("[file name]", "[internal name]", "RECREATE")
 
 out->Write()
-  
+```
 
 ### NTupleMaker
-
+```
 .L MultileptonNTupleMaker.cc++g //recompile in debug mode
 
 TTree* tree = [Get MultileptonAnalyzer Tree]
@@ -75,24 +84,25 @@ tree->Process(selec,"")
 TFile* out = new TFile("[file name]", "[internal name]", "RECREATE")
 
 out->Write()
-  
+  ```
 ### Train MVA
 
 #### Default version of ROOT (6.06/01 or 6.12/07)
 
 ##### Trains MVA specified in TrainTrkQual.C, default use is Random Forrest BDT
-
+```
 .L train_tmva.C
 
 train_tmva("[make_background.C out file]", {[list of process IDs to ignore]}")
-
+```
 #### Newer version of ROOT (6.16/00)
 
 ##### Trains MVA specified in TrainTrkQualNew.C, default use is Random Forrest BDT using K-Fold validation
-
+```
 .L train_tmva_new.C
 
 train_tmva("[make_background.C out file]", {[list of process IDs to ignore]}")
+```
 
 
  
