@@ -121,19 +121,21 @@ TH1F* DataPlotter::get_qcd(TString hist, TString setType, Int_t set) {
   
   hData->SetTitle(Form("#scale[0.5]{#int} QCD = %.2e",  hData->Integral()));
   hData->SetLineColor(kAzure+2);
-  hData->SetFillColor(kAzure+2);
+  hData->SetFillColorAlpha(kAzure+2,fill_alpha_);
   return hData;
 }
 
 THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set) {
-
+  //make stacks less transparent
+  double fill_alpha = fill_alpha_;
+  fill_alpha_ = 0.9;
   vector<TH1F*> h;
   TH1F* hQCD = (include_qcd_) ? get_qcd(hist,setType,set) : NULL;
 
   Int_t color[] = {kRed+1, kYellow+1,kSpring-1,kBlue+1 , kRed+3, kViolet-2, kGreen-2, kOrange-9};
   Int_t fill[]  = {1001,3005,1001,1001,3005,1001,1001,1001};
   THStack* hstack = new THStack(Form("%s",hist.Data()),Form("%s",hist.Data()));
-
+  
   //for combining histograms of the same process
   map<TString, int> indexes;
   
@@ -164,14 +166,18 @@ THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set) {
       colors.insert({labels_[i], n_colors});
       n_colors++;
     }
-    if(index != (int) i) h[index]->Add(h[i]);
-    
-    h[index]->SetFillColor(color[i_color]);
-    h[index]->SetLineColor(color[i_color]);
-    h[index]->SetLineWidth(2);
-    h[index]->SetMarkerStyle(20);
     TString name = labels_[index];
-    h[index]->SetName(Form("%s_%s",name.Data(),hist.Data()));    
+    if(index != (int) i)  {
+      h[index]->Add(h[i]);
+      delete h[i];
+    } else {
+    
+      h[index]->SetFillColorAlpha(color[i_color],fill_alpha_);
+      h[index]->SetLineColor(color[i_color]);
+      h[index]->SetLineWidth(2);
+      h[index]->SetMarkerStyle(20);
+      h[index]->SetName(Form("s_%s_%s",name.Data(),hist.Data()));    
+    }
     h[index]->SetTitle(Form("#scale[0.5]{#int} %s = %.2e", name.Data(), h[index]->Integral()));
   }
   auto it = indexes.begin();
@@ -180,7 +186,7 @@ THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set) {
     it++;
   }
   if(hQCD) hstack->Add(hQCD);
-
+  fill_alpha_ = fill_alpha;
   return hstack;
 }
 
@@ -283,7 +289,7 @@ THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set) {
 //       ++i_color;
     
 //     // h[index]->SetFillStyle(fill [i_color]); 
-//     // h[index]->SetFillColorAlpha(color[i_color],0.3);
+//     // h[index]->SetFillColorAlpha(color[i_color],fill_alpha_);
 //     h[index]->SetLineColor(color[i_color]);
 //     h[index]->SetMarkerColor(color[i_color]);
 //     // h[index]->SetLineWidth(2);
@@ -338,29 +344,40 @@ THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set) {
 
 TCanvas* DataPlotter::plot_hist(TString hist, TString setType, Int_t set) {
 
-  vector<TH1F*> h;
+  vector<TH1F*> h; //list of histograms
+  //check if QCD is defined for this set
   TH1F* hQCD = (include_qcd_) ? get_qcd(hist,setType,set) : NULL;
 
+  //array of colors and fills for each label
   Int_t color[] = {kRed+1, kYellow+1,kYellow+3,kBlue+1, kRed+3, kViolet-2, kGreen-2, kOrange-9};
   Int_t fill[]  = {1001,3005,1001,1001,3005,1001,1001,1001};
-  TCanvas* c = new TCanvas(Form("h_%s_%i",hist.Data(),set),Form("s_%s_%i",hist.Data(),set), 1000, 700);
+
+  TCanvas* c = new TCanvas(Form("h_%s_%i",hist.Data(),set),Form("h_%s_%i",hist.Data(),set), 1000, 700);
+
+  //maximum y value of histograms, for plotting
   double m = 0.;
-  //for combining histograms of the same process
+
   //for combining histograms of the same process
   map<TString, int> indexes;
   
-  map<TString, int> colors; //index for the color array
-  int n_colors = 0;
+  map<TString, int> colors; //map label to index for the color array
+  int n_colors = 0; //number of colors used so far
 
   for(UInt_t i = 0; i < data_.size(); ++i) {
+    //push null to not mess up indexing
     if(isData_[i]) {h.push_back(NULL);continue;}
 
+    //get histogram book
     TFile* f = (TFile*) data_[i]->Get(Form("%s_%i",setType.Data(),set));
     if(!f) {printf("No folder %s, returning NULL\n",Form("%s_%i",setType.Data(),set));return NULL;}
-    h.push_back((TH1F*) f->Get(hist.Data()));
+    //get histogram
+    h.push_back((TH1F*) ((TH1F*) f->Get(hist.Data()))->Clone("htmp"));
     if(!h[i]) {printf("No hist %s, returning NULL\n",hist.Data());return NULL;}
+    //scale to cross section and luminosity
     h[i]->Scale(scale_[i]);
     if(rebinH_ > 0) h[i]->Rebin(rebinH_);
+
+    //if the first, add to map, else get first of this label
     int index = i;
     int i_color = n_colors;
     if(indexes.count(labels_[i])) {
@@ -371,18 +388,25 @@ TCanvas* DataPlotter::plot_hist(TString hist, TString setType, Int_t set) {
       colors.insert({labels_[i], n_colors});
       n_colors++;
     }
-    if(index != (int)i) h[index]->Add(h[i]);
-    
-    h[index]->SetFillStyle(fill [i_color]); 
-    h[index]->SetFillColorAlpha(color[i_color],0.3);
-    h[index]->SetLineColor(color[i_color]);
-    h[index]->SetLineWidth(2);
-    h[index]->SetMarkerStyle(20);
+    //if not first, add this to first histogram of this label
     TString name = labels_[index];
-    h[index]->SetName(Form("%s_%s",name.Data(),hist.Data()));    
+    if(index != (int)i) {
+      h[index]->Add(h[i]);
+      delete h[i];
+    } else {
+      //set plotting info
+      h[index]->SetFillStyle(fill [i_color]); 
+      h[index]->SetFillColorAlpha(color[i_color],fill_alpha_);
+      h[index]->SetLineColor(color[i_color]);
+      h[index]->SetLineWidth(2);
+      h[index]->SetMarkerStyle(20);
+      h[index]->SetName(Form("h_%s_%s",name.Data(),hist.Data()));    
+    }
+    //FIXME should just be the integral plotted
     h[index]->SetTitle(Form("#scale[0.5]{#int} %s = %.2e", name.Data(), h[index]->Integral()));
     m = max(m,h[index]->GetMaximum());
   }
+  //plot each histogram, remember which is first for axis setting
   bool first = true;
   int ind = 0;
   auto it = indexes.begin();
@@ -396,9 +420,11 @@ TCanvas* DataPlotter::plot_hist(TString hist, TString setType, Int_t set) {
     first = false;
     it++;
   }
+  //plot QCD
   if(h.size() == 0 && hQCD) hQCD->Draw("hist");
   else if(hQCD) hQCD->Draw("hist same");
-  
+
+  //get axis titles
   TString xtitle;
   TString ytitle;
   TString title;
@@ -415,46 +441,56 @@ TCanvas* DataPlotter::plot_hist(TString hist, TString setType, Int_t set) {
   if(yMin_ <= yMax_)hAxis->SetAxisRange(yMin_,yMax_,"Y");
   else            hAxis->SetAxisRange(1e-1,m*1.2,"Y");    
   if(xMin_ < xMax_) hAxis->SetAxisRange(xMin_,xMax_,"X");    
+  //draw text on plots
   draw_luminosity();
   draw_cms_label();
   hAxis->SetXTitle(xtitle.Data());
   hAxis->SetYTitle(ytitle.Data());
   if(plot_title_) hAxis->SetTitle (title.Data());
-  else hAxis->SetTitle ("");
+  else hAxis->SetTitle (""); //no title, overwrite current with empty string
   if(logY_) c->SetLogy();
   return c;
 
 }
 
 TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
-  TCanvas* c = new TCanvas(Form("s_%s_%i",hist.Data(),set),Form("h_%s_%i",hist.Data(),set), 1000, 700);
-  TPad* pad1 = new TPad("pad1","pad1",0.0,0.30,1,1); //xL yL xH xH, (0,0) = bottom left
-  TPad* pad2 = new TPad("pad2","pad2",0.0,0.02,1,0.30);
+  TCanvas* c = new TCanvas(Form("s_%s_%i",hist.Data(),set),Form("s_%s_%i",hist.Data(),set), 1000, 700);
+  //split the top into main stack and bottom into Data/MC if plotting data
+  TPad *pad1, *pad2;
+  if(plot_data_) {
+    pad1 = new TPad("pad1","pad1",0.0,0.30,1,1); //xL yL xH xH, (0,0) = bottom left
+    pad2 = new TPad("pad2","pad2",0.0,0.02,1,0.30);
 
-  pad1->SetTopMargin(0.06);
-  pad2->SetTopMargin(0.0);
-  pad1->SetBottomMargin(0.0);
-  if(plot_data_ == 0) pad1->SetBottomMargin(0.04); //make x-axis visible
-  pad2->SetBottomMargin(0.22);
-  pad1->Draw();
-  pad2->Draw();
-  pad1->cd();
+    pad1->SetTopMargin(0.06);
+    pad2->SetTopMargin(0.0);
+    pad1->SetBottomMargin(0.0);
+    pad2->SetBottomMargin(0.22);
+    pad1->Draw();
+    pad2->Draw();
+    pad1->cd();
+  }
+  //store maximum of stack/Data
   double m = 0.;
 
+  //get stack and data histogram
   THStack* hstack = get_stack(hist,setType,set);
   TH1F* d = get_data(hist, setType, set);
 
+  //get axis titles
   TString xtitle;
   TString ytitle;
   TString title;
   get_titles(hist,setType,&xtitle,&ytitle,&title);
-  
+
+  //draw stack, preserving style set for each histogram
   hstack->Draw("hist noclear");
 
+  //draw the data with error bars
   if(plot_data_ && d) d->Draw("E same");
   
-  m = max(hstack->GetMaximum(), (d) ? d->GetMaximum() : 0);
+  m = max(hstack->GetMaximum(), (d) ? d->GetMaximum() : 0.);
 
+  //Make a Data/MC histogram
   TH1F* hDataMC = (plot_data_) ? (TH1F*) d->Clone("hDataMC") : 0;
   if(hDataMC) {
     hDataMC->Clear();
@@ -470,30 +506,32 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
       double err = sqrt(mcErr*mcErr + dataErr*dataErr);
       double errRatio = (dataVal/mcVal)*(dataVal/mcVal)*(dataErr*dataErr/(dataVal*dataVal) + mcErr*mcErr/mcVal/mcVal);
       errRatio = sqrt(errRatio);
-      double z = (dataVal-mcVal)/err;
       double ratio = dataVal/mcVal;
-      if(data_over_mc_ == 0) {
-	hDataMC->SetBinContent(i,z);
-	hDataMC->SetBinError(i,1.);
-      } else {
-	hDataMC->SetBinContent(i,ratio);
-	hDataMC->SetBinError(i,errRatio);
-      }
+      hDataMC->SetBinContent(i,ratio);
+      hDataMC->SetBinError(i,errRatio); 
     }
-    
   }
-  pad1->BuildLegend();
-  pad1->SetGrid();
+  //if not plotting data, never split so use the original canvas
+  if(plot_data_) {
+    pad1->BuildLegend();
+    pad1->SetGrid();
+  } else {
+    c->BuildLegend();
+    c->SetGrid();
+  }
+  //draw text
   draw_luminosity();
   draw_cms_label();
-  if(plot_data_) hDataMC->GetXaxis()->SetTitle(xtitle.Data());
+  
+  if(plot_data_ && hDataMC) hDataMC->GetXaxis()->SetTitle(xtitle.Data());
+  else hstack->GetXaxis()->SetTitle(xtitle.Data());
   hstack->GetYaxis()->SetTitle(ytitle.Data());
-  if(plot_data_ && yMin_ >= yMax_)hDataMC->GetYaxis()->SetRangeUser(yMin_,yMax_);
-  else if(plot_data_)           hDataMC->GetYaxis()->SetRangeUser(1e-1,m*1.2);    
+
+  if(yMin_ < yMax_) hstack->GetYaxis()->SetRangeUser(yMin_,yMax_);    
+  else              hstack->GetYaxis()->SetRangeUser(1.e-1,m*1.2);    
   if(plot_data_ && xMin_ < xMax_) hDataMC->GetXaxis()->SetRangeUser(xMin_,xMax_);    
   if(xMin_ < xMax_) hstack->GetXaxis()->SetRangeUser(xMin_,xMax_);    
-  if(yMin_ < yMax_) hstack->GetYaxis()->SetRangeUser(yMin_,yMax_);    
-  else            hstack->GetYaxis()->SetRangeUser(1.e-1,m*1.5);    
+
   if(plot_title_) hstack->SetTitle (title.Data());
   else hstack->SetTitle("");
 
@@ -504,17 +542,21 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
     hstack->SetMinimum(1.e-1);
     hstack->SetMaximum(1.2*m);
   }
+  //Set Y-axis title size and offset
   hstack->GetYaxis()->SetTitleSize(0.045);
   hstack->GetYaxis()->SetTitleOffset(0.7);
-  if(logY_) pad1->SetLogy();
+  if(logY_) {
+    if(plot_data_)pad1->SetLogy();
+    else          c->SetLogy();
+  }
   c->SetGrid();
   if(plot_data_) {
     pad2->cd();
     pad2->SetGrid();
     c->SetGrid();
-    hDataMC->Draw("P");
+    hDataMC->Draw("E");
 
-    hDataMC->GetYaxis()->SetTitle((data_over_mc_ == 0) ? "(Data - MC)/#sigma" : "Data/MC");
+    hDataMC->GetYaxis()->SetTitle("Data/MC");
     hDataMC->GetXaxis()->SetTitleSize(0.11);
     hDataMC->GetXaxis()->SetTitleOffset(0.8);
     hDataMC->GetXaxis()->SetLabelSize(0.08);
@@ -527,6 +569,8 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
     m = 1.2*m;
     m = min(m, 5.0);
     hDataMC->GetYaxis()->SetRangeUser(mn,m);    
+    hDataMC->SetMinimum(mn);
+    hDataMC->SetMaximum(m);
     //  hDataMC->GetXaxis()->SetLabelOffset(0.5);
   
     hDataMC->SetMarkerStyle(20);

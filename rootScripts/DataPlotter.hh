@@ -45,7 +45,8 @@ public :
   Int_t include_qcd_ = 1;
   Int_t qcd_offset_ = 100; //set number offset to get same sign selection
   Int_t plot_title_ = 0; //Plot the title on the canvas
-
+  Double_t fill_alpha_ = 0.3; //alpha to use for hist plotting
+  
   void draw_cms_label() {
     TText *cmslabel = new TText();
     cmslabel-> SetNDC();
@@ -79,8 +80,14 @@ public :
 
 
   virtual TCanvas* plot_hist(TString hist, TString setType, Int_t set);
+  virtual TCanvas* plot_hist(TString hist, TString setType, Int_t set, Double_t xmin, Double_t xmax) {
+    xMin_ = xmin; xMax_=xmax; return plot_hist(hist, setType, set);
+  }
 
   virtual TCanvas* plot_stack(TString hist, TString setType, Int_t set);
+  virtual TCanvas* plot_stack(TString hist, TString setType, Int_t set, Double_t xmin, Double_t xmax) {
+    xMin_ = xmin; xMax_=xmax; return plot_stack(hist, setType, set);
+  }
 
   virtual Int_t print_stack(TString hist, TString setType, Int_t set);
 
