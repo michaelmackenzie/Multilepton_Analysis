@@ -4,16 +4,21 @@ Analysis work using the MultileptonAnalyzer as well as the ZTauTauAnalyzer
 ## Directories
 ### rootScripts
 Contains root scripts to process the analyzer ntuples
+
 MultileptonHistMaker.cc makes books of histograms when running over the multilepton ntuple
+
 process_multilepton.C processes a list of ntuples through MultileptonHistMaker
 
 MultileptonNTupleMaker.cc makes books of trees when running over the multilepton ntuples
+
 process_multileptonNT.C processes a list of ntuples through MultileptonNTupleMaker
 
 make_background.C adds the trees for the various processes from a given book in
+
 MultileptonNTupleMaker's output trees, using the cross section and generation values
 
 ZTauTauHistMaker.cc makes books of histograms when running over the ztautau ntuple
+
 process_ztautau.C processes a list of ntuples through ZTauTauHistMaker
 
 find_cuts.C loops over output from MultileptonHistMaker and identifies a rectangular
@@ -56,35 +61,40 @@ Script to fit a signal + background vs background only hypothesis to a CWoLa tra
 ## Examples
 
 in ROOT:
-### HistMaker
+### MultileptonHistMaker
 ```
 .L MultileptonHistMaker.cc++g //recompile in debug mode
-
 TTree* tree = [Get MultileptonAnalyzer Tree]
-
 MultileptonHistMaker* selec = new MultileptonHistMaker()
-
 tree->Process(selec,"")
-
-TFile* out = new TFile("[file name]", "[internal name]", "RECREATE")
-
-out->Write()
 ```
 
-### NTupleMaker
+### MultileptonNTupleMaker
 ```
 .L MultileptonNTupleMaker.cc++g //recompile in debug mode
-
 TTree* tree = [Get MultileptonAnalyzer Tree]
-
 MultileptonNTupleMaker* selec = new MultileptonNTupleMaker()
-
 tree->Process(selec,"")
-
-TFile* out = new TFile("[file name]", "[internal name]", "RECREATE")
-
-out->Write()
   ```
+  
+### ZTauTauHistMaker
+```
+.L ZTauTauHistMaker.cc++g //recompile in debug mode
+TTree* tree = [Get ZTauTau Tree for selection S]
+ZTauTauMaker* selec = new ZTauTauHistMaker()
+selec->fFolderName = "[selection name, S]"
+tree->Process(selec,"")
+```
+
+### DataPlotter
+```
+.L DataPlotter.cc++g //recompile in debug mode
+DataPlotter* d = new DataPlotter()
+d->add_dataset("[file path]", "[dataset name when generated e.g. zjets_m-50]", "[Label e.g. Z+Jets]", [0 if MC 1 if Data], [xsec in pb^-1])
+TCanvas* c = d->plot_stack("[histogram name e.g. lepm]", "[histogram folder e.g. event]", [histogram set number])
+c = d->plot_hist("[histogram name e.g. lepm]", "[histogram folder e.g. event]", [histogram set number])
+```
+
 ### Train MVA
 
 #### Default version of ROOT (6.06/01 or 6.12/07)
@@ -92,15 +102,14 @@ out->Write()
 ##### Trains MVA specified in TrainTrkQual.C, default use is Random Forrest BDT
 ```
 .L train_tmva.C
-
 train_tmva("[make_background.C out file]", {[list of process IDs to ignore]}")
 ```
+
 #### Newer version of ROOT (6.16/00)
 
 ##### Trains MVA specified in TrainTrkQualNew.C, default use is Random Forrest BDT using K-Fold validation
 ```
 .L train_tmva_new.C
-
 train_tmva("[make_background.C out file]", {[list of process IDs to ignore]}")
 ```
 
