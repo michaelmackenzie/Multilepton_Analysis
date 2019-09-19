@@ -145,8 +145,12 @@ public :
     TH1F* hBisectorPhi;
     TH1F* hPXiVis;
     TH1F* hPXiInv;
+    TH1F* hPXiVisOverInv;
+    TH2F* hPXiInvVsVis;
     TH1F* hPXiDiff;
+    TH1F* hPXiDiff2;//difference with coeffecients and offset
 
+    TH1F* hPtSum; //scalar sum of lepton Pt and Met
   };
 
   struct LepHist_t {
@@ -262,7 +266,7 @@ void ZTauTauHistMaker::Init(TTree *tree)
     }
 
     //Event Sets
-    //currently sets 5-10 are mutau, 15-20 are etau, and 25-30 are emu
+    //currently sets 5-14 are mutau, 15-24 are etau, and 25-34 are emu
     fEventSets [0] = 1; // all events
 
     fEventSets [1] = 1; // all opposite signed events
@@ -285,6 +289,9 @@ void ZTauTauHistMaker::Init(TTree *tree)
     fEventSets [6+fQcdOffset] = 1; // events with same signs and passing Mu+Tau Pt cuts with no photon check
     fEventSets [7] = 1; // events with opposite signs and passing Mu+Tau Pt + angle cuts with no photon check
     fEventSets [7+fQcdOffset] = 1; // events with same signs and passing Mu+Tau Pt + angle cuts with no photon check
+
+    fEventSets [11] = 1; // events with opposite signs and passing Mu+Tau Pt + angle cuts and vis/inv cut with no photon check
+    fEventSets [11+fQcdOffset] = 1; // events with same signs and passing Mu+Tau Pt + angle cuts and vis/inv cut with no photon check
     
     fEventSets [8] = 1; // events with opposite signs and passing Mu+Tau cuts with no photon check
     fEventSets [8+fQcdOffset] = 1; // events with same signs and passing Mu+Tau cuts with no photon check
@@ -297,6 +304,10 @@ void ZTauTauHistMaker::Init(TTree *tree)
     fEventSets [16+fQcdOffset] = 1; // events with same signs and passing E+Tau Pt cuts with no photon check
     fEventSets [17] = 1; // events with opposite signs and passing E+Tau Pt + angle cuts with no photon check
     fEventSets [17+fQcdOffset] = 1; // events with same signs and passing E+Tau Pt + angle cuts with no photon check
+
+    fEventSets [21] = 1; // events with opposite signs and passing E+Tau Pt + angle cuts and vis/inv cut with no photon check
+    fEventSets [21+fQcdOffset] = 1; // events with same signs and passing E+Tau Pt + angle cuts and vis/inv cut with no photon check
+
     fEventSets [18] = 1; // events with opposite signs and passing E+Tau cuts with no photon check
     fEventSets [18+fQcdOffset] = 1; // events with same signs and passing E+Tau cuts with no photon check
     fEventSets [19] = 1; // events with opposite signs and passing E+Tau cuts

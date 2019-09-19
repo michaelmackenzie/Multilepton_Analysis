@@ -286,6 +286,158 @@ THStack* get_stack(TString hist, TString setType, Int_t set) {
   return hstack;
 }
 
+TCanvas* plot_2Dhist(TString hist, TString setType, Int_t set) {
+
+  TH2F* h[nFiles_];
+  for(int i = 0; i < nFiles_; ++i) h[i] = 0;
+
+  Int_t color[] = {kRed+1, kYellow+1,kGreen-5,kBlue+1, kRed+3, kViolet-2, kGreen-2, kOrange-9};
+  Int_t fill[]  = {1001,3005,1001,1001,3005,1001,1001,1001};
+  TCanvas* c = new TCanvas(Form("h2D_%s_%i",hist.Data(),set),Form("h2D_%s_%i",hist.Data(),set), 1000, 700);
+  double m = 0.;
+  //for combining histograms of the same process
+  Int_t i_zjet = -1;
+  Int_t i_wjet = -1;
+  Int_t i_diboson = -1;
+  Int_t i_t = -1;
+  Int_t i_higgs = -1;
+  Int_t i_htautau = -1;
+
+  Int_t i_color = -1; //index for the color array
+
+  Int_t first = 1;
+  Int_t ind = -1; // index of first histogram to set titles and axis ranges
+  for(int i = 0; i < nFiles_; ++i) {
+    if(process_[i] == 0) continue;
+
+    bool isZJet = (names_[i].Contains("z") && names_[i].Contains("jets"));
+    bool isWJet = (names_[i].Contains("w") && names_[i].Contains("jets"));
+    bool isDiboson = (names_[i].Contains("ww") || names_[i].Contains("wz") || names_[i].Contains("zz"));
+    bool isTop = (names_[i].Contains("t_tw") || names_[i].Contains("tbar_tw"));
+    isTop = isTop | names_[i].Contains("ttbar");
+    bool isHiggs = (names_[i].Contains("hzg"));
+    bool isHTauTau = (names_[i].Contains("htautau"));
+    if(isZJet+isDiboson+isTop+isHiggs+isHTauTau > 1)
+      printf("WARNING! In plot_hist: identified %s as several processes\n", names_[i].Data());
+
+    if(debug_ > 1) {
+      if(isZJet) printf("Found ZJets data %s\n", names_[i].Data());
+      if(isWJet) printf("Found WJets data %s\n", names_[i].Data());
+      if(isDiboson) printf("Found Diboson data %s\n", names_[i].Data());
+      if(isTop) printf("Found single Top data %s\n", names_[i].Data());
+      if(isHiggs) printf("Found Higgs data %s\n", names_[i].Data());
+      if(isHTauTau) printf("Found Higgs Tau Tau data %s\n", names_[i].Data());
+    }
+    
+    TFile* f = (TFile*) data_[i]->Get(Form("%s_%i",setType.Data(),set));
+    if(!f) {printf("No folder %s, returning NULL\n",Form("%s_%i",setType.Data(),set));return NULL;}
+    h[i] = (TH2F*) f->Get(hist.Data());
+    if(!h[i]) {printf("No hist %s, returning NULL\n",hist.Data());return NULL;}
+    h[i]->Scale(scale_[i]);
+    if(rebinH_ > 1) h[i]->RebinX(rebinH_);
+    if(rebinH_ > 1) h[i]->RebinY(rebinH_);
+    int index = i;
+
+    if(debug_ > 1) {
+      if((isHiggs || isZJet || isWJet || isTop || isDiboson || isHTauTau))
+	printf("%s contributes %.1f to the integral\n", names_[i].Data(), h[i]->Integral());
+    }
+    
+    if(isZJet) {
+      if(i_zjet < 0) i_zjet = i;
+      else {
+	h[i_zjet]->Add(h[i]);
+	index = i_zjet;
+      }
+    } else if(isWJet) {
+      if(i_wjet < 0) i_wjet = i;
+      else {
+	h[i_wjet]->Add(h[i]);
+	index = i_wjet;
+      }
+    } else if(isDiboson) {
+      if(i_diboson < 0) i_diboson = i;
+      else {
+	h[i_diboson]->Add(h[i]);
+	index = i_diboson;
+      }
+    } else if(isTop) {
+      if(i_t < 0) i_t = i;
+      else {
+	h[i_t]->Add(h[i]);
+	index = i_t;
+      }
+    } else if(isHiggs) {
+      if(i_higgs < 0) i_higgs = i;
+      else {
+	h[i_higgs]->Add(h[i]);
+	index = i_higgs;
+      }
+    } else if(isHTauTau) {
+      if(i_htautau < 0) i_htautau = i;
+      else {
+	h[i_htautau]->Add(h[i]);
+	index = i_htautau;
+      }
+    }
+    //new set so new color
+    if(index == i)
+      ++i_color;
+    
+    // h[index]->SetFillStyle(fill [i_color]); 
+    // h[index]->SetFillColorAlpha(color[i_color],0.3);
+    h[index]->SetLineColor(color[i_color]);
+    h[index]->SetMarkerColor(color[i_color]);
+    // h[index]->SetLineWidth(2);
+    // h[index]->SetMarkerStyle(20);
+    TString name = names_[index];
+    if(isHTauTau) name = "H->#tau#tau";
+    if(isHiggs) name = "H->Z#gamma";
+    if(isZJet) name = "ZJets";
+    if(isWJet) name = "WJets";
+    if(isTop) name = "Top";
+    if(isDiboson) name = "Diboson";
+    h[index]->SetName(Form("%s_%s",name.Data(),hist.Data()));    
+    h[index]->SetTitle(Form("#scale[0.5]{#int} %s = %.2e", name.Data(), h[index]->Integral()));
+    if(!(isHiggs || isZJet || isWJet || isTop || isDiboson || isHTauTau))
+      h[index]->Draw((first == 0) ? "same" : "");
+    ind = (first == 1) ? i:ind;
+    first = 0;
+    m = max(m,h[index]->GetMaximum());
+  }
+  if(i_zjet >= 0) {h[i_zjet]->Draw(first == 0 ? "same" : ""); ind = (first == 1) ? i_zjet:ind; first = 0;}
+  if(i_wjet >= 0) {h[i_wjet]->Draw(first == 0 ? "same" : ""); ind = (first == 1) ? i_wjet:ind; first = 0;}
+  if(i_diboson >= 0) {h[i_diboson]->Draw(first == 0 ? "same" : ""); ind = (first == 1) ? i_diboson:ind; first = 0;}
+  if(i_t >= 0) {h[i_t]->Draw(first == 0 ? "same" : ""); ind = (first == 1) ? i_t:ind; first = 0;}
+  if(i_higgs >= 0) {h[i_higgs]->Draw(first == 0 ? "same" : ""); ind = (first == 1) ? i_higgs:ind; first = 0;}
+  if(i_htautau >= 0) {h[i_htautau]->Draw(first == 0 ? "same" : ""); ind = (first == 1) ? i_htautau:ind; first = 0;}
+
+  TString xtitle;
+  TString ytitle;
+  TString title;
+  get_titles(hist,setType,&xtitle,&ytitle,&title);
+
+  c->SetGrid();
+  c->SetTopMargin(0.06);
+  c->SetRightMargin(0.05);
+  c->SetLeftMargin(0.087);
+  c->BuildLegend();
+  TH2F* hAxis = h[ind];
+  if(yMin <= yMax)hAxis->SetAxisRange(yMin,yMax,"Y");
+  // else            hAxis->SetAxisRange(1e-1,m*1.2,"Y");    
+  if(xMin < xMax) hAxis->SetAxisRange(xMin,xMax,"X");    
+  draw_luminosity();
+  draw_cms_label();
+  hAxis->SetXTitle(xtitle.Data());
+  hAxis->SetYTitle(ytitle.Data());
+  if(plot_title_) hAxis->SetTitle (title.Data());
+  else hAxis->SetTitle ("");
+  if(logY_) c->SetLogy();
+  if(logZ_) c->SetLogz();
+  return c;
+
+}
+
 TCanvas* plot_hist(TString hist, TString setType, Int_t set) {
 
   TH1F* h[nFiles_];
@@ -632,6 +784,7 @@ Int_t init_files() {
   names_[28] = "hzg_wminus"              ;
   names_[29] = "hzg_wplus"               ;
   names_[30] = "hzg_zh"                  ;
+  names_[31] = "htautau_gluglu"          ;
 
   //Taken from https://twiki.cern.ch/twiki/bin/viewauth/CMS/SummaryTable1G25ns     
   xsec_[0]  =  6225.42; //6803.2;   //6225.42  ; //5765.4;    //"zjets_m-50_amcatnlo"     
@@ -669,6 +822,7 @@ Int_t init_files() {
   xsec_[28] =    3.*3.3658/100.*1.54e-3* 1.380/2.;	       //"hzg_wminus"              
   xsec_[29] =    3.*3.3658/100.*1.54e-3* 1.380/2.;	       //"hzg_wplus"               
   xsec_[30] =    3.*3.3658/100.*1.54e-3* 0.8696;	       //"hzg_zh"                  
+  xsec_[31] =                   6.32e-2* 43.92;	       //"htautau_gluglu"                  
 
   for(int i = 0; i < sizeof(process_)/sizeof(*process_); ++i)
     process_[i]=0;
@@ -704,6 +858,7 @@ Int_t init_files() {
   process_[28] = 0; //"hzg_wminus"              
   process_[29] = 0; //"hzg_wplus"               
   process_[30] = 1; //"hzg_zh"                  
+  process_[31] = 1; //"htautau_gluglu"                  
 
   vector<char*> files;
   for(int i = 0; i < nFiles_; ++i) {

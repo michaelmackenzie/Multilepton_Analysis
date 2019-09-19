@@ -129,9 +129,14 @@ void ZTauTauHistMaker::BookEventHistograms() {
       fEventHist[i]->hMDiff         = new TH1F("mdiff"         , Form("%s: 0.85M_gll - M_ll" ,dirname)  , 100, -50.,   50.);     
 
       fEventHist[i]->hBisectorPhi   = new TH1F("bisectorphi"   , Form("%s: Bisector Phi"    ,dirname)  , 100,  -4.,     4.);      
-      fEventHist[i]->hPXiVis        = new TH1F("pxivis"        , Form("%s: PXiVis     "     ,dirname)  ,1000,   0.,  1000.);      
+      fEventHist[i]->hPXiVis        = new TH1F("pxivis"        , Form("%s: PXiVis     "     ,dirname)  ,1000,  -100.,  900.);      
       fEventHist[i]->hPXiInv        = new TH1F("pxiinv"        , Form("%s: PXiInv     "     ,dirname)  ,1000,-500.,   500.);     
+      fEventHist[i]->hPXiVisOverInv = new TH1F("pxivisoverinv" , Form("%s: PXiVisOverInv"   ,dirname)  ,1000, -10.,    10.);     
+      fEventHist[i]->hPXiInvVsVis   = new TH2F("pxiinvvsvis"   , Form("%s: PXiInv vs PXiVis",dirname)  , 800, -100., 700., 1000,-500.,   500.);     
       fEventHist[i]->hPXiDiff       = new TH1F("pxidiff"       , Form("%s: PXiVis - PXiInv" ,dirname)  ,2000,-500.,  1500.);     
+      fEventHist[i]->hPXiDiff2      = new TH1F("pxidiff2"      , Form("%s: a*PXiVis + b - PXiInv" ,dirname)  ,2000,-500.,  1500.);     
+
+      fEventHist[i]->hPtSum         = new TH1F("ptsum"         , Form("%s: Scalar Pt sum" ,dirname)    ,1000,  0.,  1000.);     
       
     }
   }
@@ -286,16 +291,24 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
 
   TVector3 lp1 = leptonOneP4->Vect();
   TVector3 lp2 = leptonTwoP4->Vect();
+  lp1.SetZ(0.);
+  lp2.SetZ(0.);
   TVector3 bisector = (lp1.Mag()*lp2 + lp2.Mag()*lp1);
   bisector.SetMag(1.);
   double pxi_vis = (lp1+lp2)*bisector;
   TVector3 missing(met*cos(metPhi), met*sin(metPhi), 0.);
   double pxi_inv = missing*bisector;
-  Hist->hBisectorPhi->Fill(bisector.Phi() ,eventWeight*genWeight);
-  Hist->hPXiVis     ->Fill(pxi_vis        ,eventWeight*genWeight);
-  Hist->hPXiInv     ->Fill(pxi_inv        ,eventWeight*genWeight);
-  Hist->hPXiDiff    ->Fill(pxi_vis-pxi_inv,eventWeight*genWeight);
+  Hist->hBisectorPhi->Fill(bisector.Phi()  ,eventWeight*genWeight);
+  Hist->hPXiVis     ->Fill(pxi_vis         ,eventWeight*genWeight);
+  Hist->hPXiInv     ->Fill(pxi_inv         ,eventWeight*genWeight);
+  Hist->hPXiVisOverInv->Fill((pxi_inv != 0.) ? pxi_vis/pxi_inv : 1.e6 ,eventWeight*genWeight);
+  Hist->hPXiInvVsVis->Fill(pxi_vis, pxi_inv,eventWeight*genWeight);
+  Hist->hPXiDiff    ->Fill(pxi_vis-pxi_inv ,eventWeight*genWeight);
+  double coeff = 0.6;
+  double offset = -10.;
+  Hist->hPXiDiff2   ->Fill(coeff*pxi_vis+offset-pxi_inv ,eventWeight*genWeight);
 
+  Hist->hPtSum      ->Fill(leptonOneP4->Pt()+leptonTwoP4->Pt()+met ,eventWeight*genWeight);
 }
 
 void ZTauTauHistMaker::FillPhotonHistogram(PhotonHist_t* Hist) {
@@ -373,6 +386,8 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
 
   TVector3 lp1 = leptonOneP4->Vect();
   TVector3 lp2 = leptonTwoP4->Vect();
+  lp1.SetZ(0.);
+  lp2.SetZ(0.);
   TVector3 bisector = (lp1.Mag()*lp2 + lp2.Mag()*lp1);
   bisector.SetMag(1.);
   double pxi_vis = (lp1+lp2)*bisector;
@@ -407,12 +422,12 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   else if(abs(leptonTwoFlavor) == 13) muon = leptonTwoP4;
   if(abs(leptonOneFlavor) == 11)      electron = leptonOneP4;
   else if(abs(leptonTwoFlavor) == 11) electron = leptonTwoP4;
+
   mutau = mutau && (tau != 0) && (muon != 0);
   etau  = etau  && (tau != 0) && (electron != 0);
   emu   = emu   && (muon != 0) && (electron != 0);
 
   mutau = mutau && muon->Pt() > 25. && tau->Pt() > 20.;
-
   etau  = etau  && electron->Pt() > 30. && tau->Pt() > 20.;
 
   if(mutau && chargeTest) FillAllHistograms(6);
@@ -432,7 +447,14 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   else if(mutau)          FillAllHistograms(7 + fQcdOffset);
   if(etau  && chargeTest) FillAllHistograms(17);
   else if(etau)           FillAllHistograms(17 + fQcdOffset);
-  
+
+  //adding visible/invisible pT cuts
+  double visOverInv = (pxi_inv != 0.) ? pxi_vis/pxi_inv : -1e6;
+  if(mutau && visOverInv > -0.5 && chargeTest) FillAllHistograms(11);
+  else if(mutau && visOverInv > -0.5)          FillAllHistograms(11 + fQcdOffset);
+  if(etau && visOverInv > -0.5 && chargeTest)  FillAllHistograms(21);
+  else if(etau && visOverInv > -0.5)           FillAllHistograms(21 + fQcdOffset);
+
   double mll = (*leptonOneP4+*leptonTwoP4).M();
   double mgll = (*photonP4 + (*leptonOneP4+*leptonTwoP4)).M();
   mutau = mutau && mll < 100. && mll > 40.;
