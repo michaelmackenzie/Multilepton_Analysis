@@ -190,157 +190,180 @@ THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set) {
   return hstack;
 }
 
-// TCanvas* DataPlotter::plot_2Dhist(TString hist, TString setType, Int_t set) {
+TCanvas* DataPlotter::plot_single_2Dhist(TString hist, TString setType, Int_t set, TString label) {
 
-//   TH2F* h[nFiles_];
-//   for(int i = 0; i < nFiles_; ++i) h[i] = 0;
+  TH2F* h = 0; //histogram
 
-//   Int_t color[] = {kRed+1, kYellow+1,kGreen-5,kBlue+1, kRed+3, kViolet-2, kGreen-2, kOrange-9};
-//   Int_t fill[]  = {1001,3005,1001,1001,3005,1001,1001,1001};
-//   TCanvas* c = new TCanvas(Form("h2D_%s_%i",hist.Data(),set),Form("h2D_%s_%i",hist.Data(),set), 1000, 700);
-//   double m = 0.;
-//   //for combining histograms of the same process
-//   Int_t i_zjet = -1;
-//   Int_t i_wjet = -1;
-//   Int_t i_diboson = -1;
-//   Int_t i_t = -1;
-//   Int_t i_higgs = -1;
-//   Int_t i_htautau = -1;
+  Int_t color = kRed+1;
 
-//   Int_t i_color = -1; //index for the color array
+  TCanvas* c = new TCanvas(Form("h2d_%s_%i",hist.Data(),set),Form("h2D_%s_%i",hist.Data(),set), 1000, 700);
 
-//   Int_t first = 1;
-//   Int_t ind = -1; // index of first histogram to set titles and axis ranges
-//   for(int i = 0; i < nFiles_; ++i) {
-//     if(process_[i] == 0) continue;
+  //maximum z value of histograms, for plotting
+  //  double m = 0.;
 
-//     bool isZJet = (names_[i].Contains("z") && names_[i].Contains("jets"));
-//     bool isWJet = (names_[i].Contains("w") && names_[i].Contains("jets"));
-//     bool isDiboson = (names_[i].Contains("ww") || names_[i].Contains("wz") || names_[i].Contains("zz"));
-//     bool isTop = (names_[i].Contains("t_tw") || names_[i].Contains("tbar_tw"));
-//     isTop = isTop | names_[i].Contains("ttbar");
-//     bool isHiggs = (names_[i].Contains("hzg"));
-//     bool isHTauTau = (names_[i].Contains("htautau"));
-//     if(isZJet+isDiboson+isTop+isHiggs+isHTauTau > 1)
-//       printf("WARNING! In plot_hist: identified %s as several processes\n", names_[i].Data());
 
-//     if(debug_ > 1) {
-//       if(isZJet) printf("Found ZJets data %s\n", names_[i].Data());
-//       if(isWJet) printf("Found WJets data %s\n", names_[i].Data());
-//       if(isDiboson) printf("Found Diboson data %s\n", names_[i].Data());
-//       if(isTop) printf("Found single Top data %s\n", names_[i].Data());
-//       if(isHiggs) printf("Found Higgs data %s\n", names_[i].Data());
-//       if(isHTauTau) printf("Found Higgs Tau Tau data %s\n", names_[i].Data());
-//     }
+  for(UInt_t i = 0; i < data_.size(); ++i) {
+    if(label != labels_[i]) continue;
     
-//     TFile* f = (TFile*) data_[i]->Get(Form("%s_%i",setType.Data(),set));
-//     if(!f) {printf("No folder %s, returning NULL\n",Form("%s_%i",setType.Data(),set));return NULL;}
-//     h[i] = (TH2F*) f->Get(hist.Data());
-//     if(!h[i]) {printf("No hist %s, returning NULL\n",hist.Data());return NULL;}
-//     h[i]->Scale(scale_[i]);
-//     if(rebinH_ > 1) h[i]->RebinX(rebinH_);
-//     if(rebinH_ > 1) h[i]->RebinY(rebinH_);
-//     int index = i;
-
-//     if(debug_ > 1) {
-//       if((isHiggs || isZJet || isWJet || isTop || isDiboson || isHTauTau))
-// 	printf("%s contributes %.1f to the integral\n", names_[i].Data(), h[i]->Integral());
-//     }
+    //get histogram book
+    TFile* f = (TFile*) data_[i]->Get(Form("%s_%i",setType.Data(),set));
+    if(!f) {printf("No folder %s, returning NULL\n",Form("%s_%i",setType.Data(),set));return NULL;}
+    //get histogram
+    TH2F* htmp = ((TH2F*) ((TH2F*) f->Get(hist.Data()))->Clone("htmp"));
+    if(!htmp) {printf("No hist %s, returning NULL\n",hist.Data());return NULL;}
+    //scale to cross section and luminosity
+    htmp->Scale(scale_[i]);
+    if(h) {
+      h->Add(htmp);
+      delete htmp;
+    }
+    else h = htmp;
     
-//     if(isZJet) {
-//       if(i_zjet < 0) i_zjet = i;
-//       else {
-// 	h[i_zjet]->Add(h[i]);
-// 	index = i_zjet;
-//       }
-//     } else if(isWJet) {
-//       if(i_wjet < 0) i_wjet = i;
-//       else {
-// 	h[i_wjet]->Add(h[i]);
-// 	index = i_wjet;
-//       }
-//     } else if(isDiboson) {
-//       if(i_diboson < 0) i_diboson = i;
-//       else {
-// 	h[i_diboson]->Add(h[i]);
-// 	index = i_diboson;
-//       }
-//     } else if(isTop) {
-//       if(i_t < 0) i_t = i;
-//       else {
-// 	h[i_t]->Add(h[i]);
-// 	index = i_t;
-//       }
-//     } else if(isHiggs) {
-//       if(i_higgs < 0) i_higgs = i;
-//       else {
-// 	h[i_higgs]->Add(h[i]);
-// 	index = i_higgs;
-//       }
-//     } else if(isHTauTau) {
-//       if(i_htautau < 0) i_htautau = i;
-//       else {
-// 	h[i_htautau]->Add(h[i]);
-// 	index = i_htautau;
-//       }
-//     }
-//     //new set so new color
-//     if(index == i)
-//       ++i_color;
-    
-//     // h[index]->SetFillStyle(fill [i_color]); 
-//     // h[index]->SetFillColorAlpha(color[i_color],fill_alpha_);
-//     h[index]->SetLineColor(color[i_color]);
-//     h[index]->SetMarkerColor(color[i_color]);
-//     // h[index]->SetLineWidth(2);
-//     // h[index]->SetMarkerStyle(20);
-//     TString name = names_[index];
-//     if(isHTauTau) name = "H->#tau#tau";
-//     if(isHiggs) name = "H->Z#gamma";
-//     if(isZJet) name = "ZJets";
-//     if(isWJet) name = "WJets";
-//     if(isTop) name = "Top";
-//     if(isDiboson) name = "Diboson";
-//     h[index]->SetName(Form("%s_%s",name.Data(),hist.Data()));    
-//     h[index]->SetTitle(Form("#scale[0.5]{#int} %s = %.2e", name.Data(), h[index]->Integral()));
-//     if(!(isHiggs || isZJet || isWJet || isTop || isDiboson || isHTauTau))
-//       h[index]->Draw((first == 0) ? "same" : "");
-//     ind = (first == 1) ? i:ind;
-//     first = 0;
-//     m = max(m,h[index]->GetMaximum());
-//   }
-//   if(i_zjet >= 0) {h[i_zjet]->Draw(first == 0 ? "same" : ""); ind = (first == 1) ? i_zjet:ind; first = 0;}
-//   if(i_wjet >= 0) {h[i_wjet]->Draw(first == 0 ? "same" : ""); ind = (first == 1) ? i_wjet:ind; first = 0;}
-//   if(i_diboson >= 0) {h[i_diboson]->Draw(first == 0 ? "same" : ""); ind = (first == 1) ? i_diboson:ind; first = 0;}
-//   if(i_t >= 0) {h[i_t]->Draw(first == 0 ? "same" : ""); ind = (first == 1) ? i_t:ind; first = 0;}
-//   if(i_higgs >= 0) {h[i_higgs]->Draw(first == 0 ? "same" : ""); ind = (first == 1) ? i_higgs:ind; first = 0;}
-//   if(i_htautau >= 0) {h[i_htautau]->Draw(first == 0 ? "same" : ""); ind = (first == 1) ? i_htautau:ind; first = 0;}
+  }
+  //FIXME should just be the integral plotted
+  h->SetTitle(Form("#scale[0.5]{#int} %s = %.2e", label.Data(), h->Integral()));
+  h->SetLineColor(color);
+  h->SetMarkerColor(color);
+  h->SetName(Form("h2D_%s_%s",label.Data(),hist.Data()));    
+  h->Draw();
 
-//   TString xtitle;
-//   TString ytitle;
-//   TString title;
-//   get_titles(hist,setType,&xtitle,&ytitle,&title);
+  //get axis titles
+  TString xtitle;
+  TString ytitle;
+  TString title;
+  get_titles(hist,setType,&xtitle,&ytitle,&title);
 
-//   c->SetGrid();
-//   c->SetTopMargin(0.06);
-//   c->SetRightMargin(0.05);
-//   c->SetLeftMargin(0.087);
-//   c->BuildLegend();
-//   TH2F* hAxis = h[ind];
-//   if(yMin <= yMax)hAxis->SetAxisRange(yMin,yMax,"Y");
-//   // else            hAxis->SetAxisRange(1e-1,m*1.2,"Y");    
-//   if(xMin < xMax) hAxis->SetAxisRange(xMin,xMax,"X");    
-//   draw_luminosity();
-//   draw_cms_label();
-//   hAxis->SetXTitle(xtitle.Data());
-//   hAxis->SetYTitle(ytitle.Data());
-//   if(plot_title_) hAxis->SetTitle (title.Data());
-//   else hAxis->SetTitle ("");
-//   if(logY_) c->SetLogy();
-//   if(logZ_) c->SetLogz();
-//   return c;
+  c->SetGrid();
+  c->SetTopMargin(0.06);
+  c->SetRightMargin(0.05);
+  c->SetLeftMargin(0.087);
+  c->BuildLegend();
+  
+  if(yMin_ <= yMax_)h->GetYaxis()->SetRange(yMin_,yMax_);
+  if(xMin_ <= xMax_)h->GetXaxis()->SetRange(xMin_,xMax_);
+  //draw text on plots
+  draw_luminosity();
+  draw_cms_label();
+  h->SetXTitle(xtitle.Data());
+  h->SetYTitle(ytitle.Data());
+  if(plot_title_) h->SetTitle (title.Data());
+  else h->SetTitle (""); //no title, overwrite current with empty string
+  if(logY_) c->SetLogy();
+  if(logZ_) c->SetLogz();
+  return c;
 
-// }
+}
+
+TCanvas* DataPlotter::plot_2Dhist(TString hist, TString setType, Int_t set) {
+
+  vector<TH2F*> h; //list of histograms
+  //check if QCD is defined for this set
+  //  TH2F* hQCD = (include_qcd_) ? get_qcd(hist,setType,set) : NULL;
+
+  //array of colors and fills for each label
+  Int_t color[] = {kRed+1, kYellow+1,kYellow+3,kBlue+1, kRed+3, kViolet-2, kGreen-2, kOrange-9};
+  //  Int_t fill[]  = {1001,3005,1001,1001,3005,1001,1001,1001};
+
+  TCanvas* c = new TCanvas(Form("h2d_%s_%i",hist.Data(),set),Form("h2D_%s_%i",hist.Data(),set), 1000, 700);
+
+  //maximum z value of histograms, for plotting
+  //  double m = 0.;
+
+  //for combining histograms of the same process
+  map<TString, int> indexes;
+  
+  map<TString, int> colors; //map label to index for the color array
+  int n_colors = 0; //number of colors used so far
+
+  for(UInt_t i = 0; i < data_.size(); ++i) {
+    //push null to not mess up indexing
+    if(isData_[i]) {h.push_back(NULL);continue;}
+
+    //get histogram book
+    TFile* f = (TFile*) data_[i]->Get(Form("%s_%i",setType.Data(),set));
+    if(!f) {printf("No folder %s, returning NULL\n",Form("%s_%i",setType.Data(),set));return NULL;}
+    //get histogram
+    h.push_back((TH2F*) ((TH2F*) f->Get(hist.Data()))->Clone("htmp"));
+    if(!h[i]) {printf("No hist %s, returning NULL\n",hist.Data());return NULL;}
+    //scale to cross section and luminosity
+    h[i]->Scale(scale_[i]);
+
+    //if the first, add to map, else get first of this label
+    int index = i;
+    int i_color = n_colors;
+    if(indexes.count(labels_[i])) {
+      index = indexes[labels_[i]];
+      i_color = colors[labels_[i]];
+    } else {
+      indexes.insert({labels_[i], i});
+      colors.insert({labels_[i], n_colors});
+      n_colors++;
+    }
+    //if not first, add this to first histogram of this label
+    TString name = labels_[index];
+    if(index != (int)i) {
+      h[index]->Add(h[i]);
+      delete h[i];
+    } else {
+      //set plotting info
+      //      h[index]->SetFillStyle(fill [i_color]); 
+      //      h[index]->SetFillColorAlpha(color[i_color],fill_alpha_);
+      h[index]->SetLineColor(color[i_color]);
+      h[index]->SetMarkerColor(color[i_color]);
+      //      h[index]->SetLineWidth(2);
+      //      h[index]->SetMarkerStyle(20);
+      h[index]->SetName(Form("h2D_%s_%s",name.Data(),hist.Data()));    
+    }
+    //FIXME should just be the integral plotted
+    h[index]->SetTitle(Form("#scale[0.5]{#int} %s = %.2e", name.Data(), h[index]->Integral()));
+    //    m = max(m,h[index]->GetMaximum());
+  }
+  //plot each histogram, remember which is first for axis setting
+  bool first = true;
+  int ind = 0;
+  auto it = indexes.begin();
+  while(it != indexes.end()) {
+    if(first) {
+      h[it->second]->Draw("");
+      ind = it->second;
+    }
+    else
+      h[it->second]->Draw("same");
+    first = false;
+    it++;
+  }
+  //plot QCD
+  //  if(h.size() == 0 && hQCD) hQCD->Draw("hist");
+  //  else if(hQCD) hQCD->Draw("hist same");
+
+  //get axis titles
+  TString xtitle;
+  TString ytitle;
+  TString title;
+  get_titles(hist,setType,&xtitle,&ytitle,&title);
+
+  c->SetGrid();
+  c->SetTopMargin(0.06);
+  c->SetRightMargin(0.05);
+  c->SetLeftMargin(0.087);
+  c->BuildLegend();
+  TH2F* hAxis = (h.size() > 0) ? h[ind] : 0;
+  if(!hAxis) return NULL;
+  
+  if(yMin_ <= yMax_)hAxis->GetYaxis()->SetRange(yMin_,yMax_);
+  if(xMin_ <= xMax_)hAxis->GetXaxis()->SetRange(xMin_,xMax_);
+  //draw text on plots
+  draw_luminosity();
+  draw_cms_label();
+  hAxis->SetXTitle(xtitle.Data());
+  hAxis->SetYTitle(ytitle.Data());
+  if(plot_title_) hAxis->SetTitle (title.Data());
+  else hAxis->SetTitle (""); //no title, overwrite current with empty string
+  if(logY_) c->SetLogy();
+  if(logZ_) c->SetLogz();
+  return c;
+
+}
 
 TCanvas* DataPlotter::plot_hist(TString hist, TString setType, Int_t set) {
 

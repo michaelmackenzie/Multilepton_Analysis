@@ -76,7 +76,9 @@ public :
 
   virtual THStack* get_stack(TString hist, TString setType, Int_t set);
 
-  // virtual TCanvas* plot_2Dhist(TString hist, TString setType, Int_t set);
+  virtual TCanvas* plot_single_2Dhist(TString hist, TString setType, Int_t set, TString label);
+  
+  virtual TCanvas* plot_2Dhist(TString hist, TString setType, Int_t set);
 
 
   virtual TCanvas* plot_hist(TString hist, TString setType, Int_t set);
