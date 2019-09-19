@@ -34,6 +34,7 @@ Int_t process_ztautau() {
     "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20190909_153240/", //HZG W-
     "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20190909_153240/", //HZG W+
     "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20190909_153240/", //HZG zh
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20190919_134910/", //HTauTau gluglu
     "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20190914_122110/", //Muon Data 2016 B
     "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20190914_122110/", //Muon Data 2016 C
     "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20190914_122110/", //Muon Data 2016 D
@@ -82,6 +83,7 @@ Int_t process_ztautau() {
 			 "output_hzg_wminus.root"                  ,
 			 "output_hzg_wplus.root"                   ,
 			 "output_hzg_zh.root"                      ,
+			 "output_htautau_gluglu.root"              ,
 			 "output_muon_2016B_v2.root"               , 
 			 "output_muon_2016C.root"                  , 
 			 "output_muon_2016D.root"                  , 
@@ -129,6 +131,7 @@ Int_t process_ztautau() {
 			   1, //HZG W-
 			   1, //HZG W+
 			   1, //HZG zh
+			   1, //HTauTau gluglu
 			   1, //Muon Data 2016 B
 			   1, //Muon Data 2016 C
 			   1, //Muon Data 2016 D
