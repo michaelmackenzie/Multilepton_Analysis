@@ -46,6 +46,7 @@ public :
   Int_t qcd_offset_ = 100; //set number offset to get same sign selection
   Int_t plot_title_ = 0; //Plot the title on the canvas
   Double_t fill_alpha_ = 0.3; //alpha to use for hist plotting
+  Int_t normalize_2ds_ = 1; //normalzie 2D histograms when plotting
   
   void draw_cms_label() {
     TText *cmslabel = new TText();
@@ -68,33 +69,63 @@ public :
     label.SetTextAngle(0);
     label.DrawLatex(0.7, 0.98, Form("L=%.1f/fb #sqrt{#it{s}} = %.0f TeV",lum_/1e3,rootS_));
   }
+
+  void reset_axes() {xMin_=-1.e6; xMax_=1.e6; yMax_=-1.e6; yMin_=-1.e6;}
+  
   virtual void get_titles(TString hist, TString setType, TString* xtitle, TString* ytitle, TString* title);
 
   virtual TH1F* get_data(TString hist, TString setType, Int_t set);
+  virtual TH2F* get_data_2D(TString hist, TString setType, Int_t set);
 
   virtual TH1F* get_qcd(TString hist, TString setType, Int_t set);
 
   virtual THStack* get_stack(TString hist, TString setType, Int_t set);
 
   virtual TCanvas* plot_single_2Dhist(TString hist, TString setType, Int_t set, TString label);
+  TCanvas* plot_single_2Dhist(TString hist, TString setType, Int_t set, TString label, 
+			      Double_t xmin, Double_t xmax, Double_t ymin, Double_t ymax) {
+    xMin_ = xmin; xMax_=xmax; yMin_ = ymin; yMax_=ymax; return plot_single_2Dhist(hist, setType, set, label);
+  }
   
   virtual TCanvas* plot_2Dhist(TString hist, TString setType, Int_t set);
+  TCanvas* plot_2Dhist(TString hist, TString setType, Int_t set,
+		       Double_t xmin, Double_t xmax, Double_t ymin, Double_t ymax) {
+    xMin_ = xmin; xMax_=xmax; yMin_ = ymin; yMax_=ymax; return plot_2Dhist(hist, setType, set);
+  }
 
 
   virtual TCanvas* plot_hist(TString hist, TString setType, Int_t set);
-  virtual TCanvas* plot_hist(TString hist, TString setType, Int_t set, Double_t xmin, Double_t xmax) {
+  TCanvas* plot_hist(TString hist, TString setType, Int_t set, Double_t xmin, Double_t xmax) {
     xMin_ = xmin; xMax_=xmax; return plot_hist(hist, setType, set);
   }
 
   virtual TCanvas* plot_stack(TString hist, TString setType, Int_t set);
-  virtual TCanvas* plot_stack(TString hist, TString setType, Int_t set, Double_t xmin, Double_t xmax) {
+  TCanvas* plot_stack(TString hist, TString setType, Int_t set, Double_t xmin, Double_t xmax) {
     xMin_ = xmin; xMax_=xmax; return plot_stack(hist, setType, set);
   }
 
   virtual Int_t print_stack(TString hist, TString setType, Int_t set);
+  Int_t print_stack(TString hist, TString setType, Int_t set, Double_t xmin, Double_t xmax) {
+    xMin_ = xmin; xMax_=xmax; return print_stack(hist, setType, set);
+  }
 
   virtual Int_t print_hist(TString hist, TString setType, Int_t set);
+  Int_t print_hist(TString hist, TString setType, Int_t set, Double_t xmin, Double_t xmax) {
+    xMin_ = xmin; xMax_=xmax; return print_hist(hist, setType, set);
+  }
 
+  virtual Int_t print_2Dhist(TString hist, TString setType, Int_t set);
+  Int_t print_2Dhist(TString hist, TString setType, Int_t set,
+		       Double_t xmin, Double_t xmax, Double_t ymin, Double_t ymax) {
+    xMin_ = xmin; xMax_=xmax; yMin_ = ymin; yMax_=ymax; return print_2Dhist(hist, setType, set);
+  }
+
+  virtual Int_t print_single_2Dhist(TString hist, TString setType, Int_t set, TString label);
+  Int_t print_single_2Dhist(TString hist, TString setType, Int_t set, TString label, 
+			      Double_t xmin, Double_t xmax, Double_t ymin, Double_t ymax) {
+    xMin_ = xmin; xMax_=xmax; yMin_ = ymin; yMax_=ymax; return print_single_2Dhist(hist, setType, set, label);
+  }
+  
   virtual Int_t print_stacks(vector<TString> hists, vector<TString> setTypes, Int_t sets[],
 		     vector<Double_t> xMaxs, vector<Double_t> xMins, vector<Int_t> rebins);
 

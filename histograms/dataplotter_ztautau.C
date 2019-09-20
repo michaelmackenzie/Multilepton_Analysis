@@ -6,7 +6,7 @@ TString selection_ = "mutau";
 Int_t init_dataplotter() {
 
   dataplotter_ = new DataPlotter();
-
+  dataplotter_->selection_ = selection_;
   //dataset names
   TString names[50];
   TString labels[50];

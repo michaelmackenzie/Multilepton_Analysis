@@ -71,6 +71,26 @@ void DataPlotter::get_titles(TString hist, TString setType, TString* xtitle, TSt
     *ytitle = Form("Events / %.2f",0.25*rebinH_);
     *title  = Form("Pt / Mass of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
+  else if(hist == "pxivis") {
+    *xtitle = "#vec{P}_{T}^{vis}#bullet#hat{#zeta}";
+    *ytitle = Form("Events / %.2f GeV/c",1.*rebinH_);
+    *title  = Form("Visible P_{T} projected onto the lepton bisector");
+  }
+  else if(hist == "pxiinv") {
+    *xtitle = "#vec{P}_{T}^{inv}#bullet#hat{#zeta}";
+    *ytitle = Form("Events / %.2f GeV/c",1.*rebinH_);
+    *title  = Form("Invisible P_{T} projected onto the lepton bisector");
+  }
+  else if(hist == "pxivisoverinv") {
+    *xtitle = "#vec{P}_{T}^{vis}#bullet#hat{#zeta} / #vec{P}_{T}^{inv}#bullet#hat{#zeta} ";
+    *ytitle = Form("Events / %.2f ",.1*rebinH_);
+    *title  = Form("Visible P_{T} / invisible P_{T} projected onto the lepton bisector");
+  }
+  else if(hist == "pxiinvvsvis") {
+    *xtitle = "#vec{P}_{T}^{vis}#bullet#hat{#zeta}";
+    *ytitle = Form("#vec{P}_{T}^{inv}#bullet#hat{#zeta} ");
+    *title  = Form("Invisible P_{T} vs visible P_{T} projected onto the lepton bisector");
+  }
 }
 
 TH1F* DataPlotter::get_data(TString hist, TString setType, Int_t set) {
@@ -90,6 +110,30 @@ TH1F* DataPlotter::get_data(TString hist, TString setType, Int_t set) {
   d->SetTitle(Form("#scale[0.5]{#int} Data = %.2e",  d->Integral()));
   d->SetName("hData");
   if(rebinH_ > 0) d->Rebin(rebinH_);
+
+  return d;
+}
+
+TH2F* DataPlotter::get_data_2D(TString hist, TString setType, Int_t set) {
+  TH2F* d = 0;
+  for(UInt_t i = 0; i < data_.size(); ++i) {
+    if(!isData_[i]) continue;
+    TFile* f = (TFile*) data_[i]->Get(Form("%s_%i",setType.Data(),set));
+    if(!f) return NULL;
+    TH2F* tmp = (TH2F*) f->Get(hist.Data());
+    if(!tmp) return NULL;
+    if(!d) d = tmp;
+    else d->Add(tmp);
+  }
+  if(!d) return NULL;
+  d->SetLineWidth(2);
+  d->SetMarkerStyle(20);
+  d->SetTitle(Form("#scale[0.5]{#int} Data = %.2e",  d->Integral()));
+  d->SetName("hData");
+  if(rebinH_ > 0) {
+    d->RebinX(rebinH_);
+    d->RebinY(rebinH_);
+  }
 
   return d;
 }
@@ -213,6 +257,10 @@ TCanvas* DataPlotter::plot_single_2Dhist(TString hist, TString setType, Int_t se
     if(!htmp) {printf("No hist %s, returning NULL\n",hist.Data());return NULL;}
     //scale to cross section and luminosity
     htmp->Scale(scale_[i]);
+    if(rebinH_ > 1) {
+      htmp->RebinX(rebinH_);
+      htmp->RebinY(rebinH_);
+    }
     if(h) {
       h->Add(htmp);
       delete htmp;
@@ -220,12 +268,30 @@ TCanvas* DataPlotter::plot_single_2Dhist(TString hist, TString setType, Int_t se
     else h = htmp;
     
   }
+  if(normalize_2ds_&&h->Integral() > 0.) {
+    h->Scale(1./h->Integral());
+    h->GetZaxis()->SetRangeUser(1.e-5,10.);
+  }
+  TH2F* data;
+  if(plot_data_) {
+    data = get_data_2D(hist, setType, set);
+    gStyle->SetPalette(kGreyScale);
+    if(normalize_2ds_ && data->Integral() > 0.) {
+      data->Scale(1./data->Integral());
+      data->GetZaxis()->SetRangeUser(1.e-5,10.);
+    }
+    data->Draw("col");
+  }
+  
+  TH2F* hAxis = (plot_data_ && data) ? data : h;
   //FIXME should just be the integral plotted
   h->SetTitle(Form("#scale[0.5]{#int} %s = %.2e", label.Data(), h->Integral()));
   h->SetLineColor(color);
   h->SetMarkerColor(color);
+  h->SetMarkerStyle(6);
   h->SetName(Form("h2D_%s_%s",label.Data(),hist.Data()));    
-  h->Draw();
+  if(plot_data_) h->Draw("same");
+  else           h->Draw();
 
   //get axis titles
   TString xtitle;
@@ -237,17 +303,16 @@ TCanvas* DataPlotter::plot_single_2Dhist(TString hist, TString setType, Int_t se
   c->SetTopMargin(0.06);
   c->SetRightMargin(0.05);
   c->SetLeftMargin(0.087);
-  c->BuildLegend();
-  
-  if(yMin_ <= yMax_)h->GetYaxis()->SetRange(yMin_,yMax_);
-  if(xMin_ <= xMax_)h->GetXaxis()->SetRange(xMin_,xMax_);
+  if(normalize_2ds_ == 0) c->BuildLegend();
+  if(yMin_ <= yMax_)hAxis->GetYaxis()->SetRangeUser(yMin_,yMax_);
+  if(xMin_ <= xMax_)hAxis->GetXaxis()->SetRangeUser(xMin_,xMax_);
   //draw text on plots
   draw_luminosity();
   draw_cms_label();
-  h->SetXTitle(xtitle.Data());
-  h->SetYTitle(ytitle.Data());
-  if(plot_title_) h->SetTitle (title.Data());
-  else h->SetTitle (""); //no title, overwrite current with empty string
+  hAxis->SetXTitle(xtitle.Data());
+  hAxis->SetYTitle(ytitle.Data());
+  if(plot_title_) hAxis->SetTitle (title.Data());
+  else            hAxis->SetTitle (""); //no title, overwrite current with empty string
   if(logY_) c->SetLogy();
   if(logZ_) c->SetLogz();
   return c;
@@ -288,6 +353,10 @@ TCanvas* DataPlotter::plot_2Dhist(TString hist, TString setType, Int_t set) {
     //scale to cross section and luminosity
     h[i]->Scale(scale_[i]);
 
+    if(rebinH_ > 1) {
+      h[i]->RebinX(rebinH_);
+      h[i]->RebinY(rebinH_);
+    }
     //if the first, add to map, else get first of this label
     int index = i;
     int i_color = n_colors;
@@ -323,6 +392,7 @@ TCanvas* DataPlotter::plot_2Dhist(TString hist, TString setType, Int_t set) {
   int ind = 0;
   auto it = indexes.begin();
   while(it != indexes.end()) {
+    if(normalize_2ds_ && h[it->second]->Integral() > 0.) h[it->second]->Scale(1./h[it->second]->Integral());
     if(first) {
       h[it->second]->Draw("");
       ind = it->second;
@@ -350,8 +420,8 @@ TCanvas* DataPlotter::plot_2Dhist(TString hist, TString setType, Int_t set) {
   TH2F* hAxis = (h.size() > 0) ? h[ind] : 0;
   if(!hAxis) return NULL;
   
-  if(yMin_ <= yMax_)hAxis->GetYaxis()->SetRange(yMin_,yMax_);
-  if(xMin_ <= xMax_)hAxis->GetXaxis()->SetRange(xMin_,xMax_);
+  if(yMin_ <= yMax_)hAxis->GetYaxis()->SetRangeUser(yMin_,yMax_);
+  if(xMin_ <= xMax_)hAxis->GetXaxis()->SetRangeUser(xMin_,xMax_);
   //draw text on plots
   draw_luminosity();
   draw_cms_label();
@@ -607,7 +677,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
 Int_t DataPlotter::print_stack(TString hist, TString setType, Int_t set) {
   TCanvas* c = plot_stack(hist,setType,set);
   if(!c) return -1;
-  c->Print(Form("figures/ztautau/stack_%s%s_%s_set_%i.png",hist.Data(),
+  c->Print(Form("figures/ztautau/stack_%s_%s%s_%s_set_%i.png",selection_.Data(),hist.Data(),
 		((plot_data_) ? "_data":""),"dataOverMC",set));
   delete c;
   return 0;
@@ -617,7 +687,27 @@ Int_t DataPlotter::print_hist(TString hist, TString setType, Int_t set) {
   TCanvas* c = plot_hist(hist,setType,set);
   cout << "plotted hist" << endl;
   if(!c) return -1;
-  c->Print(Form("figures/ztautau/hist_%s%s_%s_set_%i.png",hist.Data(),
+  c->Print(Form("figures/ztautau/hist_%s_%s%s_%s_set_%i.png",selection_.Data(),hist.Data(),
+		((plot_data_) ? "_data":""),"dataOverMC",set));
+  delete c;
+  return 0;
+}
+
+Int_t DataPlotter::print_2Dhist(TString hist, TString setType, Int_t set) {
+  TCanvas* c = plot_2Dhist(hist,setType,set);
+  cout << "plotted 2D hist" << endl;
+  if(!c) return -1;
+  c->Print(Form("figures/ztautau/hist2D_%s_%s%s_%s_set_%i.png",selection_.Data(),hist.Data(),
+		((plot_data_) ? "_data":""),"dataOverMC",set));
+  delete c;
+  return 0;
+}
+
+Int_t DataPlotter::print_single_2Dhist(TString hist, TString setType, Int_t set, TString label) {
+  TCanvas* c = plot_single_2Dhist(hist,setType,set,label);
+  cout << "plotted 2D hist " << label.Data() << endl;
+  if(!c) return -1;
+  c->Print(Form("figures/ztautau/hist2D_%s_%s_%s%s_%s_set_%i.png",selection_.Data(),label.Data(),hist.Data(),
 		((plot_data_) ? "_data":""),"dataOverMC",set));
   delete c;
   return 0;
