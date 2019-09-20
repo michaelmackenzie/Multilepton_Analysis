@@ -36,7 +36,7 @@ public :
   Double_t xMax_ = -1e6;
   Double_t yMin_ =  1e6;
   Double_t yMax_ = -1e6;
-  Int_t logZ_ = 0;
+  Int_t logZ_ = 1;
   Int_t logY_ = 0;
   Int_t plot_data_ = 1;
   Int_t rebinH_ = 1;
@@ -70,7 +70,7 @@ public :
     label.DrawLatex(0.7, 0.98, Form("L=%.1f/fb #sqrt{#it{s}} = %.0f TeV",lum_/1e3,rootS_));
   }
 
-  void reset_axes() {xMin_=-1.e6; xMax_=1.e6; yMax_=-1.e6; yMin_=-1.e6;}
+  void reset_axes() {xMin_=1.e6; xMax_=-1.e6; yMax_=-1.e6; yMin_=1.e6;}
   
   virtual void get_titles(TString hist, TString setType, TString* xtitle, TString* ytitle, TString* title);
 

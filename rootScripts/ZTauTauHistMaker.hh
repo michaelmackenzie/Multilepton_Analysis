@@ -39,6 +39,11 @@
 #include "TH2.h"
 #include "TString.h"
 
+// Headers for ditau vertex mass
+// #include "TauAnalysis/ClassicSVfit/interface/ClassicSVfit.h"
+// #include "TauAnalysis/ClassicSVfit/interface/MeasuredTauLepton.h"
+// #include "TauAnalysis/ClassicSVfit/interface/svFitHistogramAdapter.h"
+
 #include <iostream>
 
 
@@ -290,8 +295,10 @@ void ZTauTauHistMaker::Init(TTree *tree)
     fEventSets [7] = 1; // events with opposite signs and passing Mu+Tau Pt + angle cuts with no photon check
     fEventSets [7+fQcdOffset] = 1; // events with same signs and passing Mu+Tau Pt + angle cuts with no photon check
 
-    fEventSets [11] = 1; // events with opposite signs and passing Mu+Tau Pt + angle cuts and vis/inv cut with no photon check
-    fEventSets [11+fQcdOffset] = 1; // events with same signs and passing Mu+Tau Pt + angle cuts and vis/inv cut with no photon check
+    fEventSets [11] = 1; // events with opposite signs and passing Mu+Tau Pt + angle cuts and vis/inv > -0.5 with no photon check
+    fEventSets [11+fQcdOffset] = 1; // events with same signs and passing Mu+Tau Pt + angle cuts and vis/inv > -0.5 with no photon check
+    fEventSets [12] = 1; // events with opposite signs and passing Mu+Tau Pt + angle cuts and vis/inv > 0 with no photon check
+    fEventSets [12+fQcdOffset] = 1; // events with same signs and passing Mu+Tau Pt + angle cuts and vis/inv > 0 with no photon check
     
     fEventSets [8] = 1; // events with opposite signs and passing Mu+Tau cuts with no photon check
     fEventSets [8+fQcdOffset] = 1; // events with same signs and passing Mu+Tau cuts with no photon check
@@ -305,8 +312,10 @@ void ZTauTauHistMaker::Init(TTree *tree)
     fEventSets [17] = 1; // events with opposite signs and passing E+Tau Pt + angle cuts with no photon check
     fEventSets [17+fQcdOffset] = 1; // events with same signs and passing E+Tau Pt + angle cuts with no photon check
 
-    fEventSets [21] = 1; // events with opposite signs and passing E+Tau Pt + angle cuts and vis/inv cut with no photon check
-    fEventSets [21+fQcdOffset] = 1; // events with same signs and passing E+Tau Pt + angle cuts and vis/inv cut with no photon check
+    fEventSets [21] = 1; // events with opposite signs and passing E+Tau Pt + angle cuts and vis/inv > -0.5 with no photon check
+    fEventSets [21+fQcdOffset] = 1; // events with same signs and passing E+Tau Pt + angle cuts and vis/inv > -0.5 with no photon check
+    fEventSets [22] = 1; // events with opposite signs and passing E+Tau Pt + angle cuts and vis/inv > 0 with no photon check
+    fEventSets [22+fQcdOffset] = 1; // events with same signs and passing E+Tau Pt + angle cuts and vis/inv > 0 with no photon check
 
     fEventSets [18] = 1; // events with opposite signs and passing E+Tau cuts with no photon check
     fEventSets [18+fQcdOffset] = 1; // events with same signs and passing E+Tau cuts with no photon check

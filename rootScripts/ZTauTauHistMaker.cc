@@ -305,8 +305,8 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
   Hist->hPXiInvVsVis->Fill(pxi_vis, pxi_inv,eventWeight*genWeight);
   Hist->hPXiDiff    ->Fill(pxi_vis-pxi_inv ,eventWeight*genWeight);
   double coeff = 0.6;
-  double offset = -10.;
-  Hist->hPXiDiff2   ->Fill(coeff*pxi_vis+offset-pxi_inv ,eventWeight*genWeight);
+  double offset = -40.;
+  Hist->hPXiDiff2   ->Fill(pxi_inv - (coeff*pxi_vis+offset) ,eventWeight*genWeight);
 
   Hist->hPtSum      ->Fill(leptonOneP4->Pt()+leptonTwoP4->Pt()+met ,eventWeight*genWeight);
 }
@@ -449,12 +449,21 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   else if(etau)           FillAllHistograms(17 + fQcdOffset);
 
   //adding visible/invisible pT cuts
-  double visOverInv = (pxi_inv != 0.) ? pxi_vis/pxi_inv : -1e6;
-  if(mutau && visOverInv > -0.5 && chargeTest) FillAllHistograms(11);
-  else if(mutau && visOverInv > -0.5)          FillAllHistograms(11 + fQcdOffset);
-  if(etau && visOverInv > -0.5 && chargeTest)  FillAllHistograms(21);
-  else if(etau && visOverInv > -0.5)           FillAllHistograms(21 + fQcdOffset);
+  double offset = -40.;
+  double coeff = 0.6;
+  double visShift = coeff*pxi_vis + offset;
+  if(mutau && pxi_inv > visShift && chargeTest) FillAllHistograms(11);
+  else if(mutau && pxi_inv > visShift)          FillAllHistograms(11 + fQcdOffset);
+  if(etau && pxi_inv > visShift && chargeTest)  FillAllHistograms(21);
+  else if(etau && pxi_inv > visShift)           FillAllHistograms(21 + fQcdOffset);
 
+  offset = -20.;
+  visShift = coeff*pxi_vis + offset;
+  if(mutau && pxi_inv > visShift && chargeTest) FillAllHistograms(12);
+  else if(mutau && pxi_inv > visShift)          FillAllHistograms(12 + fQcdOffset);
+  if(etau && pxi_inv > visShift && chargeTest)  FillAllHistograms(22);
+  else if(etau && pxi_inv > visShift)           FillAllHistograms(22 + fQcdOffset);
+  
   double mll = (*leptonOneP4+*leptonTwoP4).M();
   double mgll = (*photonP4 + (*leptonOneP4+*leptonTwoP4)).M();
   mutau = mutau && mll < 100. && mll > 40.;

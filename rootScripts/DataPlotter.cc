@@ -17,7 +17,7 @@ void DataPlotter::get_titles(TString hist, TString setType, TString* xtitle, TSt
     *title  = Form("Missing Transverse Energy %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
   else if(hist == "lepptoverm") {
-    *xtitle = "Pt / M_{#mu#mu}";
+    *xtitle = "Pt / M_{ll}";
     *ytitle = Form("Events / %.1f GeV/c^{2}",0.2*rebinH_);
     *title  = Form("Pt Over Mass of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
@@ -66,24 +66,29 @@ void DataPlotter::get_titles(TString hist, TString setType, TString* xtitle, TSt
     *ytitle = Form("Events / %.1f",0.1*rebinH_);
     *title  = Form("#eta of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
-  else if(hist == "lepptoverm") {
-    *xtitle = "Pt / Mass";
-    *ytitle = Form("Events / %.2f",0.25*rebinH_);
-    *title  = Form("Pt / Mass of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
-  }
   else if(hist == "pxivis") {
     *xtitle = "#vec{P}_{T}^{vis}#bullet#hat{#zeta}";
-    *ytitle = Form("Events / %.2f GeV/c",1.*rebinH_);
+    *ytitle = Form("");
     *title  = Form("Visible P_{T} projected onto the lepton bisector");
   }
   else if(hist == "pxiinv") {
     *xtitle = "#vec{P}_{T}^{inv}#bullet#hat{#zeta}";
-    *ytitle = Form("Events / %.2f GeV/c",1.*rebinH_);
+    *ytitle = Form("");
     *title  = Form("Invisible P_{T} projected onto the lepton bisector");
+  }
+  else if(hist == "pxidiff") {
+    *xtitle = "#vec{P}_{T}^{vis}#bullet#hat{#zeta} - #vec{P}_{T}^{inv}#bullet#hat{#zeta}";
+    *ytitle = Form("");
+    *title  = Form("Visible - invisible P_{T} projected onto the lepton bisector");
+  }
+  else if(hist == "pxidif2") {
+    *xtitle = "#vec{P}_{T}^{inv}#bullet#hat{#zeta} - f(#vec{P}_{T}^{vis}#bullet#hat{#zeta})";
+    *ytitle = Form("");
+    *title  = Form("Invisible - f(visible) P_{T} projected onto the lepton bisector");
   }
   else if(hist == "pxivisoverinv") {
     *xtitle = "#vec{P}_{T}^{vis}#bullet#hat{#zeta} / #vec{P}_{T}^{inv}#bullet#hat{#zeta} ";
-    *ytitle = Form("Events / %.2f ",.1*rebinH_);
+    *ytitle = Form("");
     *title  = Form("Visible P_{T} / invisible P_{T} projected onto the lepton bisector");
   }
   else if(hist == "pxiinvvsvis") {
