@@ -104,6 +104,12 @@ void ZTauTauHistMaker::BookEventHistograms() {
       fEventHist[i]->hHtSum		     = new TH1F("htSum"		      , Form("%s: HtSum"	       ,dirname) , 200,   0,800);
       fEventHist[i]->hHt		     = new TH1F("ht"		      , Form("%s: Ht"		       ,dirname) , 200,   0,800);
       fEventHist[i]->hHtPhi                  = new TH1F("htPhi"               , Form("%s: HtPhi"               ,dirname) , 100,  -4,  4);
+      fEventHist[i]->hCovMet00               = new TH1F("covmet00"            , Form("%s: CovMet00"            ,dirname) , 1000,    0.,1000.);
+      fEventHist[i]->hCovMet01		     = new TH1F("covmet01"	      , Form("%s: CovMet01"            ,dirname) , 1000,-1000.,1000.);
+      fEventHist[i]->hCovMet11		     = new TH1F("covmet11"	      , Form("%s: CovMet11"            ,dirname) , 1000,    0.,1000.);
+      fEventHist[i]->hMassSVFit		     = new TH1F("masssvfit"	      , Form("%s: MassSVFit"           ,dirname) , 1000,    0., 200.);
+      fEventHist[i]->hMassErrSVFit	     = new TH1F("masserrsvfit"        , Form("%s: MassErrSVFit"        ,dirname) , 1000,    0., 100.);
+      fEventHist[i]->hSVFitStatus            = new TH1F("svfitstatus"         , Form("%s: SVFitStatus"         ,dirname) ,   10,    0.,  10.);
 
 							       
       fEventHist[i]->hLepPt         = new TH1F("leppt"         , Form("%s: Lepton Pt"      ,dirname)  , 200,   0, 400);
@@ -240,7 +246,16 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
   Hist->hHt		     ->Fill(ht		       , genWeight*eventWeight)   ;
   Hist->hHtPhi               ->Fill(htPhi              , genWeight*eventWeight)   ;
 
+  Hist->hCovMet00            ->Fill(covMet00           , genWeight*eventWeight)   ;
+  Hist->hCovMet01	     ->Fill(covMet01           , genWeight*eventWeight)   ; 
+  Hist->hCovMet11	     ->Fill(covMet11           , genWeight*eventWeight)   ; 
+  Hist->hMassSVFit	     ->Fill(massSVFit          , genWeight*eventWeight)   ; 
+  Hist->hMassErrSVFit        ->Fill(massErrSVFit       , genWeight*eventWeight)   ;
+  Hist->hSVFitStatus         ->Fill(svFitStatus        , genWeight*eventWeight)   ;
 
+
+
+  
   TLorentzVector lepSys = (*leptonOneP4) + (*leptonTwoP4);
   TLorentzVector sys    = (*photonP4) + lepSys;
   

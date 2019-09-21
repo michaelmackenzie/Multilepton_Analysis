@@ -88,6 +88,12 @@ public :
   Float_t htPhi                  ;
   Float_t met                    ;
   Float_t metPhi                 ;
+  Float_t covMet00               ;
+  Float_t covMet01               ;
+  Float_t covMet11               ;
+  Float_t massSVFit              ;
+  Float_t massErrSVFit           ;
+  Int_t   svFitStatus            ;
 
 
   struct EventHist_t {
@@ -122,6 +128,12 @@ public :
     TH1F* hHtSum;
     TH1F* hHt;
     TH1F* hHtPhi;
+    TH1F* hCovMet00;
+    TH1F* hCovMet01;
+    TH1F* hCovMet11;
+    TH1F* hMassSVFit;
+    TH1F* hMassErrSVFit;
+    TH1F* hSVFitStatus;
     
     TH1F* hLepPt;
     TH1F* hLepP;
@@ -368,6 +380,12 @@ void ZTauTauHistMaker::Init(TTree *tree)
   fChain->SetBranchAddress("htPhi"               , &htPhi              );
   fChain->SetBranchAddress("met"                 , &met                );
   fChain->SetBranchAddress("metPhi"              , &metPhi             );
+  fChain->SetBranchAddress("covMet00"            , &covMet00           );
+  fChain->SetBranchAddress("covMet01"            , &covMet01           );
+  fChain->SetBranchAddress("covMet11"            , &covMet11           );
+  fChain->SetBranchAddress("massSVFit"           , &massSVFit          );
+  fChain->SetBranchAddress("massErrSVFit"        , &massErrSVFit       );
+  fChain->SetBranchAddress("svFitStatus"         , &svFitStatus        );
 
   printf("Total number of entries is %lld\n",fChain->GetEntriesFast());
 }

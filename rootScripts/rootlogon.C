@@ -76,6 +76,10 @@
       gSystem->Load((cmssw + "/src/BLT/BLTAnalysis/rootScripts/MultileptonNTupleMaker_cc.so").Data());
       gSystem->Load((cmssw + "/src/BLT/BLTAnalysis/rootScripts/Fitter_cc.so").Data());
       gSystem->Load((cmssw + "/src/BLT/BLTAnalysis/rootScripts/DataPlotter_cc.so").Data());
+
+      cout << "Loading SVFit libraries" << endl;
+      gSystem->Load("libTauAnalysisClassicSVfit.so");
+      gSystem->Load("libTauAnalysisSVfitTF.so");
     }
   }
 //-----------------------------------------------------------------------------
