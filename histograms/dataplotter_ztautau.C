@@ -8,40 +8,41 @@ Int_t init_dataplotter() {
   dataplotter_ = new DataPlotter();
   dataplotter_->selection_ = selection_;
   //dataset names
-  TString names[50];
+  TString names [50];
   TString labels[50];
-  names[0]  = "zjets_m-50_amcatnlo"     ;labels[0]  = "Z+Jets"                  ;
-  names[1]  = "zjets_m-10to50_amcatnlo" ;labels[1]  = "Z+Jets"                  ;
-  names[2]  = "ttbar_inclusive"         ;labels[2]  = "Top"                     ;
-  names[3]  = "t_tw"                    ;labels[3]  = "Top"                     ;
-  names[4]  = "tbar_tw"                 ;labels[4]  = "Top"                     ;
-  names[5]  = "zjets_m-50"              ;labels[5]  = "Z+Jets"                  ;
-  names[6]  = "zjets_m-10to50"          ;labels[6]  = "Z+Jets"                  ;
-  names[7]  = "z1jets_m-50"             ;labels[7]  = "Z+Jets"                  ;
-  names[8]  = "z1jets_m-10to50"         ;labels[8]  = "Z+Jets"                  ;
-  names[9]  = "z2jets_m-50"             ;labels[9]  = "Z+Jets"                  ;
-  names[10] = "z2jets_m-10to50"         ;labels[10] = "Z+Jets"                  ;
-  names[11] = "z3jets_m-50"             ;labels[11] = "Z+Jets"                  ;
-  names[12] = "z3jets_m-10to50"         ;labels[12] = "Z+Jets"                  ;
-  names[13] = "z4jets_m-50"             ;labels[13] = "Z+Jets"                  ;
-  names[14] = "z4jets_m-10to50"         ;labels[14] = "Z+Jets"                  ;
-  names[15] = "w1jets"                  ;labels[15] = "W+Jets"                  ;
-  names[16] = "w2jets"                  ;labels[16] = "W+Jets"                  ;
-  names[17] = "w3jets"                  ;labels[17] = "W+Jets"                  ;
-  names[18] = "w4jets"                  ;labels[18] = "W+Jets"                  ;
-  names[19] = "ww"                      ;labels[19] = "Diboson"                 ;
-  names[20] = "wz_2l2q"                 ;labels[20] = "Diboson"                 ;
-  names[21] = "wz_3lnu"                 ;labels[21] = "Diboson"                 ;
-  names[22] = "zz_2l2nu"                ;labels[22] = "Diboson"                 ;
-  names[23] = "zz_2l2q"                 ;labels[23] = "Diboson"                 ;
-  names[24] = "zz_4l"                   ;labels[24] = "Diboson"                 ;
-  names[25] = "hzg_gluglu"              ;labels[25] = "H->Zg"                   ;
-  names[26] = "hzg_tth"                 ;labels[26] = "H->Zg"                   ;
-  names[27] = "hzg_vbf"                 ;labels[27] = "H->Zg"                   ;
-  names[28] = "hzg_wminus"              ;labels[28] = "H->Zg"                   ;
-  names[29] = "hzg_wplus"               ;labels[29] = "H->Zg"                   ;
-  names[30] = "hzg_zh"                  ;labels[30] = "H->Zg"                   ;
-  names[31] = "htautau_gluglu"          ;labels[31] = "H->tau tau"              ;
+  bool    signal[50];
+  names[0]  = "zjets_m-50_amcatnlo"     ;labels[0]  = "Z+Jets"                  ; signal[0]  = false              ;
+  names[1]  = "zjets_m-10to50_amcatnlo" ;labels[1]  = "Z+Jets"                  ; signal[1]  = false              ;
+  names[2]  = "ttbar_inclusive"         ;labels[2]  = "Top"                     ; signal[2]  = false              ;
+  names[3]  = "t_tw"                    ;labels[3]  = "Top"                     ; signal[3]  = false              ;
+  names[4]  = "tbar_tw"                 ;labels[4]  = "Top"                     ; signal[4]  = false              ;
+  names[5]  = "zjets_m-50"              ;labels[5]  = "Z+Jets"                  ; signal[5]  = false              ;
+  names[6]  = "zjets_m-10to50"          ;labels[6]  = "Z+Jets"                  ; signal[6]  = false              ;
+  names[7]  = "z1jets_m-50"             ;labels[7]  = "Z+Jets"                  ; signal[7]  = false              ;
+  names[8]  = "z1jets_m-10to50"         ;labels[8]  = "Z+Jets"                  ; signal[8]  = false              ;
+  names[9]  = "z2jets_m-50"             ;labels[9]  = "Z+Jets"                  ; signal[9]  = false              ;
+  names[10] = "z2jets_m-10to50"         ;labels[10] = "Z+Jets"                  ; signal[10] = false              ;
+  names[11] = "z3jets_m-50"             ;labels[11] = "Z+Jets"                  ; signal[11] = false              ;
+  names[12] = "z3jets_m-10to50"         ;labels[12] = "Z+Jets"                  ; signal[12] = false              ;
+  names[13] = "z4jets_m-50"             ;labels[13] = "Z+Jets"                  ; signal[13] = false              ;
+  names[14] = "z4jets_m-10to50"         ;labels[14] = "Z+Jets"                  ; signal[14] = false              ;
+  names[15] = "w1jets"                  ;labels[15] = "W+Jets"                  ; signal[15] = false              ;
+  names[16] = "w2jets"                  ;labels[16] = "W+Jets"                  ; signal[16] = false              ;
+  names[17] = "w3jets"                  ;labels[17] = "W+Jets"                  ; signal[17] = false              ;
+  names[18] = "w4jets"                  ;labels[18] = "W+Jets"                  ; signal[18] = false              ;
+  names[19] = "ww"                      ;labels[19] = "Diboson"                 ; signal[19] = false              ;
+  names[20] = "wz_2l2q"                 ;labels[20] = "Diboson"                 ; signal[20] = false              ;
+  names[21] = "wz_3lnu"                 ;labels[21] = "Diboson"                 ; signal[21] = false              ;
+  names[22] = "zz_2l2nu"                ;labels[22] = "Diboson"                 ; signal[22] = false              ;
+  names[23] = "zz_2l2q"                 ;labels[23] = "Diboson"                 ; signal[23] = false              ;
+  names[24] = "zz_4l"                   ;labels[24] = "Diboson"                 ; signal[24] = false              ;
+  names[25] = "hzg_gluglu"              ;labels[25] = "H->Zg"                   ; signal[25] = false              ;
+  names[26] = "hzg_tth"                 ;labels[26] = "H->Zg"                   ; signal[26] = false              ;
+  names[27] = "hzg_vbf"                 ;labels[27] = "H->Zg"                   ; signal[27] = false              ;
+  names[28] = "hzg_wminus"              ;labels[28] = "H->Zg"                   ; signal[28] = false              ;
+  names[29] = "hzg_wplus"               ;labels[29] = "H->Zg"                   ; signal[29] = false              ;
+  names[30] = "hzg_zh"                  ;labels[30] = "H->Zg"                   ; signal[30] = false              ;
+  names[31] = "htautau_gluglu"          ;labels[31] = "H->tau tau"              ; signal[31] = true               ;
 
   Double_t xsec[50];
   //Taken from https://twiki.cern.ch/twiki/bin/viewauth/CMS/SummaryTable1G25ns     
@@ -60,10 +61,10 @@ Int_t init_dataplotter() {
   xsec[12] =  114.5;		       //"z3jets_m-10to50"         
   xsec[13] =  60.2;		       //"z4jets_m-50"             
   xsec[14] =  36.4;		       //"z4jets_m-10to50"         
-  xsec[15] =  9493.;		       //"w1jets"                  
-  xsec[16] =  3120.;		       //"w2jets"                  
-  xsec[17] =  942.3;		       //"w3jets"                  
-  xsec[18] =  524.1;		       //"w4jets"                  
+  xsec[15] =  11486.53; //9493.;		       //"w1jets"                  
+  xsec[16] =  3775.2; //3120.;		       //"w2jets"                  
+  xsec[17] =  1139.82; //942.3;		       //"w3jets"                  
+  xsec[18] =  655.82; //524.1;		       //"w4jets"                  
   xsec[19] =  12.178;	               //"ww"                      
   xsec[20] =  5.595;		       //"wz_2l2q"                 
   xsec[21] =  4.42965;	               //"wz_3lnu"                 
@@ -112,12 +113,12 @@ Int_t init_dataplotter() {
   process[22] = 1; //"zz_2l2nu"                
   process[23] = 1; //"zz_2l2q"                 
   process[24] = 1; //"zz_4l"                   
-  process[25] = 1; //"hzg_gluglu"              
-  process[26] = 1; //"hzg_tth"                 
-  process[27] = 1; //"hzg_vbf"                 
+  process[25] = 0; //"hzg_gluglu"              
+  process[26] = 0; //"hzg_tth"                 
+  process[27] = 0; //"hzg_vbf"                 
   process[28] = 0; //"hzg_wminus"              
   process[29] = 0; //"hzg_wplus"               
-  process[30] = 1; //"hzg_zh"                  
+  process[30] = 0; //"hzg_zh"                  
   process[31] = 1; //"htautau_gluglu"                  
 
   vector<TString> files;
@@ -176,10 +177,10 @@ Int_t init_dataplotter() {
   dataplotter_->set_luminosity(lum);
 
   for(int i = 0; i < files.size(); ++i)
-    if(files[i] != "") dataplotter_->add_dataset(files[i], names[i], labels[i], 0, xsec[i]);
+    if(files[i] != "") dataplotter_->add_dataset(files[i], names[i], labels[i], false, xsec[i], signal[i]);
 
   for(int i = 0; i < dFiles.size(); ++i)
-    if(dFiles[i] != "") dataplotter_->add_dataset(dFiles[i], dNames[i], "Data", 1, xsec[i]);
+    if(dFiles[i] != "") dataplotter_->add_dataset(dFiles[i], dNames[i], "Data", true, 1., false);
 
   return dataplotter_->init_files();
 }

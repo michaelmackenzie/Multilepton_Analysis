@@ -13,6 +13,7 @@
 #include "TText.h"
 #include "TLatex.h"
 #include "TStyle.h"
+#include "TLine.h"
 
 class DataPlotter : public TObject {
 public :
@@ -26,6 +27,7 @@ public :
   vector<TString> fileNames_;
   vector<TFile*> data_;  //background data files
   vector<bool> isData_; //flag to check if is data
+  vector<bool> isSignal_; //flag to check if is signal file
 
   Double_t lum_; //luminosity
   Double_t rootS_ = 13.; //sqrt(S)
@@ -47,6 +49,8 @@ public :
   Int_t plot_title_ = 0; //Plot the title on the canvas
   Double_t fill_alpha_ = 0.3; //alpha to use for hist plotting
   Int_t normalize_2ds_ = 1; //normalzie 2D histograms when plotting
+  Double_t signal_scale_ = 1.; //increase the size of the signal if needed
+  Int_t stack_signal_ = 0; //put signal into the stack
   
   void draw_cms_label() {
     TText *cmslabel = new TText();
@@ -73,6 +77,9 @@ public :
   void reset_axes() {xMin_=1.e6; xMax_=-1.e6; yMax_=-1.e6; yMin_=1.e6;}
   
   virtual void get_titles(TString hist, TString setType, TString* xtitle, TString* ytitle, TString* title);
+
+  virtual TH1F* get_signal(TString hist, TString setType, Int_t set);
+  virtual TH2F* get_signal_2D(TString hist, TString setType, Int_t set);
 
   virtual TH1F* get_data(TString hist, TString setType, Int_t set);
   virtual TH2F* get_data_2D(TString hist, TString setType, Int_t set);
@@ -136,7 +143,7 @@ public :
   virtual Int_t init_files();
 
   //Add file to be read and plotted
-  virtual Int_t add_dataset(TString filepath, TString name, TString label, bool isData, double xsec);
+  virtual Int_t add_dataset(TString filepath, TString name, TString label, bool isData, double xsec, bool isSignal);
 
   void set_luminosity(double lum) { lum_ = lum;}
 

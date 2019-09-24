@@ -96,6 +96,72 @@ void DataPlotter::get_titles(TString hist, TString setType, TString* xtitle, TSt
     *ytitle = Form("#vec{P}_{T}^{inv}#bullet#hat{#zeta} ");
     *title  = Form("Invisible P_{T} vs visible P_{T} projected onto the lepton bisector");
   }
+  else if(hist == "masssvfit") {
+    *xtitle = "M_{#tau#tau} (GeV/c^{2})";
+    *ytitle = "";
+    *title  = Form("SVFit di-tau mass");
+  }
+  else if(hist == "masserrsvfit") {
+    *xtitle = "M_{#tau#tau} Predicted Error (GeV/c^{2})";
+    *ytitle = "";
+    *title  = Form("SVFit di-tau mass error");
+  }
+}
+
+TH1F* DataPlotter::get_signal(TString hist, TString setType, Int_t set) {
+  TH1F* h = 0;
+  for(UInt_t i = 0; i < data_.size(); ++i) {
+    if(isData_[i]) continue;
+    if(!isSignal_[i]) continue;
+    TFile* f = (TFile*) data_[i]->Get(Form("%s_%i",setType.Data(),set));
+    if(!f) return NULL;
+    TH1F* tmp = (TH1F*) f->Get(hist.Data());
+    if(!tmp) return NULL;
+    tmp->Scale(scale_[i]);
+
+    if(!h) h = tmp;
+    else h->Add(tmp);
+    
+    h->SetTitle(Form("#scale[0.5]{#int} %s%s = %.2e", labels_[i].Data(),
+		     (signal_scale_ == 1.) ? "" : Form(" (x%.1f)",signal_scale_), h->Integral()));
+  }
+  if(!h) return NULL;
+  h->SetLineWidth(2);
+  h->SetLineColor(kAzure-2);
+  h->SetFillColor(kAzure-2);
+  h->SetFillStyle(3001);
+  h->SetName("hSignal");
+  if(rebinH_ > 0) h->Rebin(rebinH_);
+  h->Scale(signal_scale_);
+  
+  return h;
+}
+
+TH2F* DataPlotter::get_signal_2D(TString hist, TString setType, Int_t set) {
+  TH2F* h = 0;
+  for(UInt_t i = 0; i < data_.size(); ++i) {
+    if(isData_[i]) continue;
+    if(!isSignal_[i]) continue;
+    TFile* f = (TFile*) data_[i]->Get(Form("%s_%i",setType.Data(),set));
+    if(!f) return NULL;
+    TH2F* tmp = (TH2F*) f->Get(hist.Data());
+    if(!tmp) return NULL;
+    if(!h) h = tmp;
+    else h->Add(tmp);
+    h->SetTitle(Form("#scale[0.5]{#int} %s = %.2e", labels_[i].Data(), h->Integral()));
+  }
+  if(!h) return NULL;
+  h->SetLineWidth(2);
+  h->SetLineColor(kAzure-2);
+  h->SetFillColor(kAzure-2);
+  h->SetFillStyle(3001);
+  h->SetName("hSignal");
+  if(rebinH_ > 0) {
+    h->RebinX(rebinH_);
+    h->RebinY(rebinH_);
+  }
+
+  return h;
 }
 
 TH1F* DataPlotter::get_data(TString hist, TString setType, Int_t set) {
@@ -169,8 +235,8 @@ TH1F* DataPlotter::get_qcd(TString hist, TString setType, Int_t set) {
   }
   
   hData->SetTitle(Form("#scale[0.5]{#int} QCD = %.2e",  hData->Integral()));
-  hData->SetLineColor(kAzure+2);
-  hData->SetFillColorAlpha(kAzure+2,fill_alpha_);
+  hData->SetLineColor(kOrange+6);
+  hData->SetFillColorAlpha(kOrange+6,fill_alpha_);
   return hData;
 }
 
@@ -181,7 +247,7 @@ THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set) {
   vector<TH1F*> h;
   TH1F* hQCD = (include_qcd_) ? get_qcd(hist,setType,set) : NULL;
 
-  Int_t color[] = {kRed+1, kYellow+1,kSpring-1,kBlue+1 , kRed+3, kViolet-2, kGreen-2, kOrange-9};
+  Int_t color[] = {kRed+1, kYellow+1,kSpring-1 , kViolet-2, kGreen-2, kRed+3,kOrange-9,kBlue+1};
   Int_t fill[]  = {1001,3005,1001,1001,3005,1001,1001,1001};
   THStack* hstack = new THStack(Form("%s",hist.Data()),Form("%s",hist.Data()));
   
@@ -198,6 +264,7 @@ THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set) {
 	     i, names_[i].Data(), labels_[i].Data(), scale_[i]);
 
     if(isData_[i]) {h.push_back(NULL);continue;}
+    if(isSignal_[i]) {h.push_back(NULL);continue;}
     
     TFile* f = (TFile*) data_[i]->Get(Form("%s_%i",setType.Data(),set));
     if(!f) return NULL;
@@ -573,15 +640,17 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
   //get stack and data histogram
   THStack* hstack = get_stack(hist,setType,set);
   TH1F* d = get_data(hist, setType, set);
-
+  TH1F* hsignal = get_signal(hist,setType,set);
+  
   //get axis titles
   TString xtitle;
   TString ytitle;
   TString title;
   get_titles(hist,setType,&xtitle,&ytitle,&title);
-
+  if(stack_signal_) hstack->Add(hsignal);
   //draw stack, preserving style set for each histogram
   hstack->Draw("hist noclear");
+  if(!stack_signal_) hsignal->Draw("hist same");
 
   //draw the data with error bars
   if(plot_data_ && d) d->Draw("E same");
@@ -653,7 +722,11 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
     pad2->SetGrid();
     c->SetGrid();
     hDataMC->Draw("E");
-
+    TLine* line = new TLine(hDataMC->GetBinCenter(1)-hDataMC->GetBinWidth(1)/2., 1.,
+			    hDataMC->GetBinCenter(hDataMC->GetNbinsX())+hDataMC->GetBinWidth(1)/2., 1.);
+    line->SetLineColor(kRed);
+    line->Draw("same");
+    
     hDataMC->GetYaxis()->SetTitle("Data/MC");
     hDataMC->GetXaxis()->SetTitleSize(0.11);
     hDataMC->GetXaxis()->SetTitleOffset(0.8);
@@ -780,7 +853,7 @@ Int_t DataPlotter::init_files() {
   return 0;
 }
 
-Int_t DataPlotter::add_dataset(TString filepath, TString name, TString label, bool isData, double xsec) {
+Int_t DataPlotter::add_dataset(TString filepath, TString name, TString label, bool isData, double xsec, bool isSignal) {
   fileNames_.push_back(filepath);
   names_.push_back(name);
   labels_.push_back(label);
@@ -789,5 +862,7 @@ Int_t DataPlotter::add_dataset(TString filepath, TString name, TString label, bo
     xsec_.push_back(xsec);
   else
     xsec_.push_back(1.);
+  isSignal_.push_back(isSignal);
+  
   return 0;
 }
