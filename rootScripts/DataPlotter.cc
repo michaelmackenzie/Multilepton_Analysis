@@ -66,35 +66,95 @@ void DataPlotter::get_titles(TString hist, TString setType, TString* xtitle, TSt
     *ytitle = Form("Events / %.1f",0.1*rebinH_);
     *title  = Form("#eta of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
-  else if(hist == "pxivis") {
+  else if(hist == "pxivis0") {
     *xtitle = "#vec{P}_{T}^{vis}#bullet#hat{#zeta}";
     *ytitle = Form("");
     *title  = Form("Visible P_{T} projected onto the lepton bisector");
   }
-  else if(hist == "pxiinv") {
+  else if(hist == "pxiinv0") {
     *xtitle = "#vec{P}_{T}^{inv}#bullet#hat{#zeta}";
     *ytitle = Form("");
     *title  = Form("Invisible P_{T} projected onto the lepton bisector");
   }
-  else if(hist == "pxidiff") {
+  else if(hist == "pxidiff0") {
     *xtitle = "#vec{P}_{T}^{vis}#bullet#hat{#zeta} - #vec{P}_{T}^{inv}#bullet#hat{#zeta}";
     *ytitle = Form("");
     *title  = Form("Visible - invisible P_{T} projected onto the lepton bisector");
   }
-  else if(hist == "pxidif2") {
+  else if(hist == "pxidiff20") {
     *xtitle = "#vec{P}_{T}^{inv}#bullet#hat{#zeta} - f(#vec{P}_{T}^{vis}#bullet#hat{#zeta})";
     *ytitle = Form("");
     *title  = Form("Invisible - f(visible) P_{T} projected onto the lepton bisector");
   }
-  else if(hist == "pxivisoverinv") {
+  else if(hist == "pxivisoverinv0") {
     *xtitle = "#vec{P}_{T}^{vis}#bullet#hat{#zeta} / #vec{P}_{T}^{inv}#bullet#hat{#zeta} ";
     *ytitle = Form("");
     *title  = Form("Visible P_{T} / invisible P_{T} projected onto the lepton bisector");
   }
-  else if(hist == "pxiinvvsvis") {
+  else if(hist == "pxiinvvsvis0") {
     *xtitle = "#vec{P}_{T}^{vis}#bullet#hat{#zeta}";
     *ytitle = Form("#vec{P}_{T}^{inv}#bullet#hat{#zeta} ");
     *title  = Form("Invisible P_{T} vs visible P_{T} projected onto the lepton bisector");
+  }
+  else if(hist == "pxivis1") {
+    *xtitle = "#vec{P}_{T}^{vis}#bullet#hat{#zeta}";
+    *ytitle = Form("");
+    *title  = Form("Visible P_{T} projected onto the lepton, lepton+#gamma bisector");
+  }
+  else if(hist == "pxiinv1") {
+    *xtitle = "#vec{P}_{T}^{inv}#bullet#hat{#zeta}";
+    *ytitle = Form("");
+    *title  = Form("Invisible P_{T} projected onto the lepton, lepton+#gamma bisector");
+  }
+  else if(hist == "pxidiff1") {
+    *xtitle = "#vec{P}_{T}^{vis}#bullet#hat{#zeta} - #vec{P}_{T}^{inv}#bullet#hat{#zeta}";
+    *ytitle = Form("");
+    *title  = Form("Visible - invisible P_{T} projected onto the lepton, lepton+#gamma bisector");
+  }
+  else if(hist == "pxidiff21") {
+    *xtitle = "#vec{P}_{T}^{inv}#bullet#hat{#zeta} - f(#vec{P}_{T}^{vis}#bullet#hat{#zeta})";
+    *ytitle = Form("");
+    *title  = Form("Invisible - f(visible) P_{T} projected onto the lepton, lepton+#gamma bisector");
+  }
+  else if(hist == "pxivisoverinv1") {
+    *xtitle = "#vec{P}_{T}^{vis}#bullet#hat{#zeta} / #vec{P}_{T}^{inv}#bullet#hat{#zeta} ";
+    *ytitle = Form("");
+    *title  = Form("Visible P_{T} / invisible P_{T} projected onto the lepton, lepton+#gamma bisector");
+  }
+  else if(hist == "pxiinvvsvis1") {
+    *xtitle = "#vec{P}_{T}^{vis}#bullet#hat{#zeta}";
+    *ytitle = Form("#vec{P}_{T}^{inv}#bullet#hat{#zeta} ");
+    *title  = Form("Invisible P_{T} vs visible P_{T} projected onto the lepton, lepton+#gamma bisector");
+  }
+  else if(hist == "pxivis2") {
+    *xtitle = "#vec{P}_{T}^{vis}#bullet#hat{#zeta}";
+    *ytitle = Form("");
+    *title  = Form("Visible P_{T} projected onto the di-lepton, #gamma bisector");
+  }
+  else if(hist == "pxiinv2") {
+    *xtitle = "#vec{P}_{T}^{inv}#bullet#hat{#zeta}";
+    *ytitle = Form("");
+    *title  = Form("Invisible P_{T} projected onto the di-lepton, #gamma bisector");
+  }
+  else if(hist == "pxidiff2") {
+    *xtitle = "#vec{P}_{T}^{vis}#bullet#hat{#zeta} - #vec{P}_{T}^{inv}#bullet#hat{#zeta}";
+    *ytitle = Form("");
+    *title  = Form("Visible - invisible P_{T} projected onto the di-lepton, #gamma bisector");
+  }
+  else if(hist == "pxidiff22") {
+    *xtitle = "#vec{P}_{T}^{inv}#bullet#hat{#zeta} - f(#vec{P}_{T}^{vis}#bullet#hat{#zeta})";
+    *ytitle = Form("");
+    *title  = Form("Invisible - f(visible) P_{T} projected onto the di-lepton, #gamma bisector");
+  }
+  else if(hist == "pxivisoverinv2") {
+    *xtitle = "#vec{P}_{T}^{vis}#bullet#hat{#zeta} / #vec{P}_{T}^{inv}#bullet#hat{#zeta} ";
+    *ytitle = Form("");
+    *title  = Form("Visible P_{T} / invisible P_{T} projected onto the di-lepton, #gamma bisector");
+  }
+  else if(hist == "pxiinvvsvis2") {
+    *xtitle = "#vec{P}_{T}^{vis}#bullet#hat{#zeta}";
+    *ytitle = Form("#vec{P}_{T}^{inv}#bullet#hat{#zeta} ");
+    *title  = Form("Invisible P_{T} vs visible P_{T} projected onto the di-lepton, #gamma bisector");
   }
   else if(hist == "masssvfit") {
     *xtitle = "M_{#tau#tau} (GeV/c^{2})";
@@ -108,33 +168,65 @@ void DataPlotter::get_titles(TString hist, TString setType, TString* xtitle, TSt
   }
 }
 
-TH1F* DataPlotter::get_signal(TString hist, TString setType, Int_t set) {
-  TH1F* h = 0;
+vector<TH1F*> DataPlotter::get_signal(TString hist, TString setType, Int_t set) {
+  vector<TH1F*> h;
+  Int_t color[] = {kAzure-2, kGreen+3,kSpring-1 , kViolet-2, kGreen-2, kRed+3,kOrange-9,kBlue+1};
+  Int_t fill[]  = {3001,3002,3002,3003,3005,3006,3003,3003};
+  
+  //for combining histograms of the same process
+  map<TString, unsigned int> indexes;
+  
+  map<TString, int> colors; //index for the color array
+  unsigned int n_colors = 0;
+  
   for(UInt_t i = 0; i < data_.size(); ++i) {
+    h.push_back(NULL);
     if(isData_[i]) continue;
     if(!isSignal_[i]) continue;
     TFile* f = (TFile*) data_[i]->Get(Form("%s_%i",setType.Data(),set));
-    if(!f) return NULL;
+    if(!f) continue;
     TH1F* tmp = (TH1F*) f->Get(hist.Data());
-    if(!tmp) return NULL;
+    if(!tmp) continue;
     tmp->Scale(scale_[i]);
 
-    if(!h) h = tmp;
-    else h->Add(tmp);
+    h[i] = tmp;
+    if(rebinH_ > 1) h[i]->Rebin(rebinH_);
+    unsigned int index = i;
+    unsigned int i_color = n_colors;
+    if(indexes.count(labels_[i])) {
+      index = indexes[labels_[i]];
+      i_color = colors[labels_[i]];
+    } else {
+      indexes.insert({labels_[i], i});
+      colors.insert({labels_[i], n_colors});
+      n_colors++;
+    }
+    TString name = labels_[index];
+    if(index !=  i)  {
+      h[index]->Add(h[i]);
+      delete h[i];
+    } else {
     
-    h->SetTitle(Form("#scale[0.5]{#int} %s%s = %.2e", labels_[i].Data(),
-		     (signal_scale_ == 1.) ? "" : Form(" (x%.1f)",signal_scale_), h->Integral()));
+      h[index]->SetFillStyle(fill [i_color]);
+      h[index]->SetFillColor(color[i_color]);
+      h[index]->SetLineColor(color[i_color]);
+      h[index]->SetLineWidth(2);
+      h[index]->SetName(Form("h_%s_%s",name.Data(),hist.Data()));
+      
+    }
+    h[index]->SetTitle(Form("#scale[0.5]{#int} %s%s = %.2e", name.Data(),
+			    (signal_scale_ == 1.) ? "" : Form(" (x%.1f)",signal_scale_), h[index]->Integral()));
   }
-  if(!h) return NULL;
-  h->SetLineWidth(2);
-  h->SetLineColor(kAzure-2);
-  h->SetFillColor(kAzure-2);
-  h->SetFillStyle(3001);
-  h->SetName("hSignal");
-  if(rebinH_ > 0) h->Rebin(rebinH_);
-  h->Scale(signal_scale_);
+  //scale return only meaningful histograms
+  vector<TH1F*> hsignals;
+  for(unsigned int i = 0; i < h.size(); ++i) {
+    if(h[i] && indexes[labels_[i]] == i && h[i]->Integral() > 0.) {
+      h[i]->Scale(signal_scale_);
+      hsignals.push_back(h[i]);
+    }
+  }
   
-  return h;
+  return hsignals;
 }
 
 TH2F* DataPlotter::get_signal_2D(TString hist, TString setType, Int_t set) {
@@ -143,9 +235,9 @@ TH2F* DataPlotter::get_signal_2D(TString hist, TString setType, Int_t set) {
     if(isData_[i]) continue;
     if(!isSignal_[i]) continue;
     TFile* f = (TFile*) data_[i]->Get(Form("%s_%i",setType.Data(),set));
-    if(!f) return NULL;
+    if(!f) continue;
     TH2F* tmp = (TH2F*) f->Get(hist.Data());
-    if(!tmp) return NULL;
+    if(!tmp) continue;
     if(!h) h = tmp;
     else h->Add(tmp);
     h->SetTitle(Form("#scale[0.5]{#int} %s = %.2e", labels_[i].Data(), h->Integral()));
@@ -169,9 +261,9 @@ TH1F* DataPlotter::get_data(TString hist, TString setType, Int_t set) {
   for(UInt_t i = 0; i < data_.size(); ++i) {
     if(!isData_[i]) continue;
     TFile* f = (TFile*) data_[i]->Get(Form("%s_%i",setType.Data(),set));
-    if(!f) return NULL;
+    if(!f) continue;
     TH1F* tmp = (TH1F*) f->Get(hist.Data());
-    if(!tmp) return NULL;
+    if(!tmp) continue;
     if(!d) d = tmp;
     else d->Add(tmp);
   }
@@ -190,9 +282,9 @@ TH2F* DataPlotter::get_data_2D(TString hist, TString setType, Int_t set) {
   for(UInt_t i = 0; i < data_.size(); ++i) {
     if(!isData_[i]) continue;
     TFile* f = (TFile*) data_[i]->Get(Form("%s_%i",setType.Data(),set));
-    if(!f) return NULL;
+    if(!f) continue;
     TH2F* tmp = (TH2F*) f->Get(hist.Data());
-    if(!tmp) return NULL;
+    if(!tmp) continue;
     if(!d) d = tmp;
     else d->Add(tmp);
   }
@@ -219,9 +311,10 @@ TH1F* DataPlotter::get_qcd(TString hist, TString setType, Int_t set) {
   for(UInt_t i = 0; i < data_.size(); ++i) {
     if(isData_[i]) continue;
     TFile* f = (TFile*) data_[i]->Get(Form("%s_%i",setType.Data(),set_qcd));
-    if(!f) return NULL;
-    TH1F* htmp = (TH1F*) f->Get(hist.Data())->Clone("tmp");
-    if(!htmp) return NULL;
+    if(!f) continue;
+    TH1F* htmp = (TH1F*) f->Get(hist.Data());
+    if(!htmp) continue;
+    htmp = (TH1F*) htmp->Clone("tmp");
     htmp->Scale(scale_[i]);
     if(rebinH_ > 0) htmp->Rebin(rebinH_);
     if(hMC) hMC->Add(htmp);
@@ -267,9 +360,10 @@ THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set) {
     if(isSignal_[i]) {h.push_back(NULL);continue;}
     
     TFile* f = (TFile*) data_[i]->Get(Form("%s_%i",setType.Data(),set));
-    if(!f) return NULL;
-    h.push_back((TH1F*) f->Get(hist.Data())->Clone("tmp"));
-    if(!h[i]) return NULL;
+    if(!f) continue;
+    h.push_back((TH1F*) f->Get(hist.Data()));
+    if(!h[i]) continue;
+    h[i] = (TH1F*) h[i]->Clone("tmp");
     h[i]->Scale(scale_[i]);
     if(rebinH_ > 0) h[i]->Rebin(rebinH_);
     int index = i;
@@ -323,10 +417,11 @@ TCanvas* DataPlotter::plot_single_2Dhist(TString hist, TString setType, Int_t se
     
     //get histogram book
     TFile* f = (TFile*) data_[i]->Get(Form("%s_%i",setType.Data(),set));
-    if(!f) {printf("No folder %s, returning NULL\n",Form("%s_%i",setType.Data(),set));return NULL;}
+    if(!f) {printf("No folder %s, continuing\n",Form("%s_%i",setType.Data(),set));continue;}
     //get histogram
-    TH2F* htmp = ((TH2F*) ((TH2F*) f->Get(hist.Data()))->Clone("htmp"));
-    if(!htmp) {printf("No hist %s, returning NULL\n",hist.Data());return NULL;}
+    TH2F* htmp = ((TH2F*) f->Get(hist.Data()));
+    if(!htmp) {printf("No hist %s in %s, continuing\n",hist.Data(), fileNames_[i].Data());continue;}
+    htmp = (TH2F*) htmp->Clone("tmp");
     //scale to cross section and luminosity
     htmp->Scale(scale_[i]);
     if(rebinH_ > 1) {
@@ -418,10 +513,11 @@ TCanvas* DataPlotter::plot_2Dhist(TString hist, TString setType, Int_t set) {
 
     //get histogram book
     TFile* f = (TFile*) data_[i]->Get(Form("%s_%i",setType.Data(),set));
-    if(!f) {printf("No folder %s, returning NULL\n",Form("%s_%i",setType.Data(),set));return NULL;}
+    if(!f) {printf("No folder %s, continuing\n",Form("%s_%i",setType.Data(),set));continue;}
     //get histogram
-    h.push_back((TH2F*) ((TH2F*) f->Get(hist.Data()))->Clone("htmp"));
-    if(!h[i]) {printf("No hist %s, returning NULL\n",hist.Data());return NULL;}
+    TH2F* htmp = ((TH2F*) f->Get(hist.Data()));
+    if(!htmp) {printf("No hist %s in %s, continuing\n",hist.Data(), fileNames_[i].Data());continue;}
+    h.push_back((TH2F*) htmp->Clone("tmp"));
     //scale to cross section and luminosity
     h[i]->Scale(scale_[i]);
 
@@ -534,12 +630,14 @@ TCanvas* DataPlotter::plot_hist(TString hist, TString setType, Int_t set) {
 
     //get histogram book
     TFile* f = (TFile*) data_[i]->Get(Form("%s_%i",setType.Data(),set));
-    if(!f) {printf("No folder %s, returning NULL\n",Form("%s_%i",setType.Data(),set));return NULL;}
+    if(!f) {printf("No folder %s, continuing\n",Form("%s_%i",setType.Data(),set));continue;}
     //get histogram
-    h.push_back((TH1F*) ((TH1F*) f->Get(hist.Data()))->Clone("htmp"));
-    if(!h[i]) {printf("No hist %s, returning NULL\n",hist.Data());return NULL;}
+    h.push_back((TH1F*) (f->Get(hist.Data())));
+    if(!h[i]) {printf("No hist %s in %s, continuing\n",hist.Data(), fileNames_[i].Data());continue;}
+    h[i] = (TH1F*) h[i]->Clone("htmp");
     //scale to cross section and luminosity
     h[i]->Scale(scale_[i]);
+    if(isSignal_[i] && signal_scale_ > 1.) h[i]->Scale(signal_scale_);
     if(rebinH_ > 0) h[i]->Rebin(rebinH_);
 
     //if the first, add to map, else get first of this label
@@ -568,7 +666,12 @@ TCanvas* DataPlotter::plot_hist(TString hist, TString setType, Int_t set) {
       h[index]->SetName(Form("h_%s_%s",name.Data(),hist.Data()));    
     }
     //FIXME should just be the integral plotted
-    h[index]->SetTitle(Form("#scale[0.5]{#int} %s = %.2e", name.Data(), h[index]->Integral()));
+    if(isSignal_[index])
+      h[index]->SetTitle(Form("#scale[0.5]{#int} %s%s = %.2e", name.Data(),
+			      (signal_scale_ == 1.) ? "" : Form(" (x%.1f)",signal_scale_),
+			      h[index]->Integral()));
+    else
+      h[index]->SetTitle(Form("#scale[0.5]{#int} %s = %.2e", name.Data(), h[index]->Integral()));
     m = max(m,h[index]->GetMaximum());
   }
   //plot each histogram, remember which is first for axis setting
@@ -640,17 +743,26 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
   //get stack and data histogram
   THStack* hstack = get_stack(hist,setType,set);
   TH1F* d = get_data(hist, setType, set);
-  TH1F* hsignal = get_signal(hist,setType,set);
+  vector<TH1F*> hsignal = get_signal(hist,setType,set);
   
   //get axis titles
   TString xtitle;
   TString ytitle;
   TString title;
   get_titles(hist,setType,&xtitle,&ytitle,&title);
-  if(stack_signal_) hstack->Add(hsignal);
+  if(stack_signal_) {
+    for(unsigned int i = 0; i < hsignal.size(); ++i) {
+      if(hsignal[i]) hstack->Add(hsignal[i]);
+    }
+  }
   //draw stack, preserving style set for each histogram
   hstack->Draw("hist noclear");
-  if(!stack_signal_) hsignal->Draw("hist same");
+  if(!stack_signal_) {
+    for(unsigned int i = 0; i < hsignal.size(); ++i) {
+      if(hsignal[i] && hsignal[i]->GetEntries() > 0)
+	hsignal[i]->Draw("hist same");
+    }
+  }
 
   //draw the data with error bars
   if(plot_data_ && d) d->Draw("E same");
@@ -752,43 +864,39 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
 }
 
 
-Int_t DataPlotter::print_stack(TString hist, TString setType, Int_t set) {
+TCanvas* DataPlotter::print_stack(TString hist, TString setType, Int_t set) {
   TCanvas* c = plot_stack(hist,setType,set);
-  if(!c) return -1;
+  if(!c) return c;
   c->Print(Form("figures/ztautau/stack_%s_%s%s_%s_set_%i.png",selection_.Data(),hist.Data(),
 		((plot_data_) ? "_data":""),"dataOverMC",set));
-  delete c;
-  return 0;
+  return c;
 }
 
-Int_t DataPlotter::print_hist(TString hist, TString setType, Int_t set) {
+TCanvas* DataPlotter::print_hist(TString hist, TString setType, Int_t set) {
   TCanvas* c = plot_hist(hist,setType,set);
   cout << "plotted hist" << endl;
-  if(!c) return -1;
+  if(!c) return c;
   c->Print(Form("figures/ztautau/hist_%s_%s%s_%s_set_%i.png",selection_.Data(),hist.Data(),
 		((plot_data_) ? "_data":""),"dataOverMC",set));
-  delete c;
-  return 0;
+  return c;
 }
 
-Int_t DataPlotter::print_2Dhist(TString hist, TString setType, Int_t set) {
+TCanvas* DataPlotter::print_2Dhist(TString hist, TString setType, Int_t set) {
   TCanvas* c = plot_2Dhist(hist,setType,set);
   cout << "plotted 2D hist" << endl;
-  if(!c) return -1;
+  if(!c) return c;
   c->Print(Form("figures/ztautau/hist2D_%s_%s%s_%s_set_%i.png",selection_.Data(),hist.Data(),
 		((plot_data_) ? "_data":""),"dataOverMC",set));
-  delete c;
-  return 0;
+  return c;
 }
 
-Int_t DataPlotter::print_single_2Dhist(TString hist, TString setType, Int_t set, TString label) {
+TCanvas* DataPlotter::print_single_2Dhist(TString hist, TString setType, Int_t set, TString label) {
   TCanvas* c = plot_single_2Dhist(hist,setType,set,label);
   cout << "plotted 2D hist " << label.Data() << endl;
-  if(!c) return -1;
+  if(!c) return c;
   c->Print(Form("figures/ztautau/hist2D_%s_%s_%s%s_%s_set_%i.png",selection_.Data(),label.Data(),hist.Data(),
 		((plot_data_) ? "_data":""),"dataOverMC",set));
-  delete c;
-  return 0;
+  return c;
 }
 
 Int_t DataPlotter::print_stacks(vector<TString> hists, vector<TString> setTypes, Int_t sets[],
@@ -800,8 +908,9 @@ Int_t DataPlotter::print_stacks(vector<TString> hists, vector<TString> setTypes,
     xMax_ = xMaxs[i];
     xMin_ = xMins[i];
     rebinH_ = rebins[i];
-    Int_t status = print_stack(hist,setType,set);
-    std::printf("Printing Data/MC stack %s %s set %i has status %i\n",setType.Data(),hist.Data(),set,status);
+    TCanvas* c = print_stack(hist,setType,set);
+    Int_t status = (c) ? 0 : 1;
+    printf("Printing Data/MC stack %s %s set %i has status %i\n",setType.Data(),hist.Data(),set,status);
   }
   
   return 0;
@@ -816,7 +925,8 @@ Int_t DataPlotter::print_hists(vector<TString> hists, vector<TString> setTypes, 
     xMax_ = xMaxs[i];
     xMin_ = xMins[i];
     rebinH_ = rebins[i];
-    Int_t status = print_hist(hist,setType,set);
+    TCanvas* c = print_hist(hist,setType,set);
+    Int_t status = (c) ? 0 : 1;
     printf("Printing Data/MC hist %s %s set %i has status %i\n",setType.Data(),hist.Data(),set,status);
   }
   

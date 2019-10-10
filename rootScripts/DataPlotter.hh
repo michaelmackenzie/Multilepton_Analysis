@@ -78,7 +78,7 @@ public :
   
   virtual void get_titles(TString hist, TString setType, TString* xtitle, TString* ytitle, TString* title);
 
-  virtual TH1F* get_signal(TString hist, TString setType, Int_t set);
+  virtual vector<TH1F*> get_signal(TString hist, TString setType, Int_t set);
   virtual TH2F* get_signal_2D(TString hist, TString setType, Int_t set);
 
   virtual TH1F* get_data(TString hist, TString setType, Int_t set);
@@ -111,26 +111,26 @@ public :
     xMin_ = xmin; xMax_=xmax; return plot_stack(hist, setType, set);
   }
 
-  virtual Int_t print_stack(TString hist, TString setType, Int_t set);
-  Int_t print_stack(TString hist, TString setType, Int_t set, Double_t xmin, Double_t xmax) {
-    xMin_ = xmin; xMax_=xmax; return print_stack(hist, setType, set);
+  virtual TCanvas* print_stack(TString hist, TString setType, Int_t set);
+  TCanvas* print_stack(TString hist, TString setType, Int_t set, Double_t xmin, Double_t xmax) {
+    xMin_ = xmin; xMax_=xmax; auto c = print_stack(hist, setType, set); reset_axes(); return c;
   }
 
-  virtual Int_t print_hist(TString hist, TString setType, Int_t set);
-  Int_t print_hist(TString hist, TString setType, Int_t set, Double_t xmin, Double_t xmax) {
-    xMin_ = xmin; xMax_=xmax; return print_hist(hist, setType, set);
+  virtual TCanvas* print_hist(TString hist, TString setType, Int_t set);
+  TCanvas* print_hist(TString hist, TString setType, Int_t set, Double_t xmin, Double_t xmax) {
+    xMin_ = xmin; xMax_=xmax; auto c = print_hist(hist, setType, set); reset_axes(); return c;
   }
 
-  virtual Int_t print_2Dhist(TString hist, TString setType, Int_t set);
-  Int_t print_2Dhist(TString hist, TString setType, Int_t set,
+  virtual TCanvas* print_2Dhist(TString hist, TString setType, Int_t set);
+  TCanvas* print_2Dhist(TString hist, TString setType, Int_t set,
 		       Double_t xmin, Double_t xmax, Double_t ymin, Double_t ymax) {
-    xMin_ = xmin; xMax_=xmax; yMin_ = ymin; yMax_=ymax; return print_2Dhist(hist, setType, set);
+    xMin_ = xmin; xMax_=xmax; yMin_ = ymin; yMax_=ymax; auto c = print_2Dhist(hist, setType, set); reset_axes(); return c;
   }
 
-  virtual Int_t print_single_2Dhist(TString hist, TString setType, Int_t set, TString label);
-  Int_t print_single_2Dhist(TString hist, TString setType, Int_t set, TString label, 
+  virtual TCanvas* print_single_2Dhist(TString hist, TString setType, Int_t set, TString label);
+  TCanvas* print_single_2Dhist(TString hist, TString setType, Int_t set, TString label, 
 			      Double_t xmin, Double_t xmax, Double_t ymin, Double_t ymax) {
-    xMin_ = xmin; xMax_=xmax; yMin_ = ymin; yMax_=ymax; return print_single_2Dhist(hist, setType, set, label);
+    xMin_ = xmin; xMax_=xmax; yMin_ = ymin; yMax_=ymax; auto c = print_single_2Dhist(hist, setType, set, label); reset_axes(); return c;
   }
   
   virtual Int_t print_stacks(vector<TString> hists, vector<TString> setTypes, Int_t sets[],
