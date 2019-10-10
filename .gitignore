@@ -19,6 +19,10 @@ tmva_training/scripts/CWoLa_*
 bin
 src
 interface
+
+Pythia
+CLFV_ZDecays_Pythia
+ExRootAnalysis
 ML_Project
 AsciiPlotter
 plugins

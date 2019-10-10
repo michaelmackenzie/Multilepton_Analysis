@@ -124,25 +124,53 @@ void ZTauTauHistMaker::BookEventHistograms() {
       fEventHist[i]->hLepDelRVsPhi  = new TH2F("lepdelrvsphi"  , Form("%s: LepDelRVsPhi"   ,dirname)  ,  40,  0,   4, 100,  0,   5);     
       fEventHist[i]->hLepPtOverM    = new TH1F("lepptoverm"    , Form("%s: Lepton Pt / M"  ,dirname)  , 100,   0,  20);
 
+      fEventHist[i]->hLepSVPt       = new TH1F("lepsvpt"       , Form("%s: Lepton SVFit Pt"      ,dirname)  , 200,   0, 400);
+      fEventHist[i]->hLepSVP        = new TH1F("lepsvp"        , Form("%s: Lepton SVFit P"       ,dirname)  , 200,   0, 400);
+      fEventHist[i]->hLepSVE        = new TH1F("lepsve"        , Form("%s: Lepton SVFit E"       ,dirname)  , 200,   0, 400);
+      fEventHist[i]->hLepSVM        = new TH1F("lepsvm"        , Form("%s: Lepton SVFit M"       ,dirname)  , 400,   0, 400);
+      fEventHist[i]->hLepSVEta      = new TH1F("lepsveta"      , Form("%s: Lepton SVFit Eta"     ,dirname)  , 200, -10,  10);
+      fEventHist[i]->hLepSVPhi      = new TH1F("lepsvphi"      , Form("%s: Lepton SVFit Phi"     ,dirname)  ,  80,  -4,   4);
+      fEventHist[i]->hLepSVDeltaPhi = new TH1F("lepsvdeltaphi" , Form("%s: Lepton SVFit DeltaPhi",dirname)  ,  40,   0,   4);
+      fEventHist[i]->hLepSVDeltaEta = new TH1F("lepsvdeltaeta" , Form("%s: Lepton SVFit DeltaEta",dirname)  , 100,   0,   5);
+      fEventHist[i]->hLepSVDeltaR   = new TH1F("lepsvdeltar"   , Form("%s: Lepton SVFit DeltaR"  ,dirname)  , 100,   0,   5);
+      fEventHist[i]->hLepSVDelRVsPhi= new TH2F("lepsvdelrvsphi", Form("%s: LepSVDelRVsPhi"       ,dirname)  ,  40,  0,   4, 100,  0,   5);     
+      fEventHist[i]->hLepSVPtOverM  = new TH1F("lepsvptoverm"  , Form("%s: Lepton SVFit Pt / M"  ,dirname)  , 100,   0,  20);
+      
       fEventHist[i]->hSysM          = new TH1F("sysm"          , Form("%s: SysM"          ,dirname)  ,1000,  0, 1e3);     
       fEventHist[i]->hSysPt         = new TH1F("syspt"         , Form("%s: SysPt"         ,dirname)  , 200,  0, 400);     
       fEventHist[i]->hSysEta        = new TH1F("syseta"        , Form("%s: SysEta"        ,dirname)  , 100, -5,   5);     
 
-      fEventHist[i]->hMTMu          = new TH1F("mtmu"          , Form("%s: MT_Mu"         ,dirname)  , 100, 0.,   100.);     
-      fEventHist[i]->hMTE           = new TH1F("mte"           , Form("%s: MT_E"          ,dirname)  , 100, 0.,   100.);     
-      fEventHist[i]->hMTTau         = new TH1F("mttau"         , Form("%s: MT_Tau"        ,dirname)  , 100, 0.,   100.);     
+      fEventHist[i]->hSysSVM        = new TH1F("syssvm"        , Form("%s: SVFit SysM"            ,dirname)  ,1000,  0, 1e3);     
+      fEventHist[i]->hSysSVPt       = new TH1F("syssvpt"       , Form("%s: SVFit SysPt"           ,dirname)  , 200,  0, 400);     
+      fEventHist[i]->hSysSVEta      = new TH1F("syssveta"      , Form("%s: SVFit SysEta"          ,dirname)  , 100, -5,   5);     
+      
+      fEventHist[i]->hMTMu          = new TH1F("mtmu"          , Form("%s: MT_Mu"         ,dirname)  , 200, 0.,   200.);     
+      fEventHist[i]->hMTE           = new TH1F("mte"           , Form("%s: MT_E"          ,dirname)  , 200, 0.,   200.);     
+      fEventHist[i]->hMTTau         = new TH1F("mttau"         , Form("%s: MT_Tau"        ,dirname)  , 200, 0.,   200.);     
 
       fEventHist[i]->hMDiff         = new TH1F("mdiff"         , Form("%s: 0.85M_gll - M_ll" ,dirname)  , 100, -50.,   50.);     
 
-      fEventHist[i]->hBisectorPhi   = new TH1F("bisectorphi"   , Form("%s: Bisector Phi"    ,dirname)  , 100,  -4.,     4.);      
-      fEventHist[i]->hPXiVis        = new TH1F("pxivis"        , Form("%s: PXiVis     "     ,dirname)  ,1000,  -100.,  900.);      
-      fEventHist[i]->hPXiInv        = new TH1F("pxiinv"        , Form("%s: PXiInv     "     ,dirname)  ,1000,-500.,   500.);     
-      fEventHist[i]->hPXiVisOverInv = new TH1F("pxivisoverinv" , Form("%s: PXiVisOverInv"   ,dirname)  ,1000, -10.,    10.);     
-      fEventHist[i]->hPXiInvVsVis   = new TH2F("pxiinvvsvis"   , Form("%s: PXiInv vs PXiVis",dirname)  , 800, -100., 700., 1000,-500.,   500.);     
-      fEventHist[i]->hPXiDiff       = new TH1F("pxidiff"       , Form("%s: PXiVis - PXiInv" ,dirname)  ,2000,-500.,  1500.);     
-      fEventHist[i]->hPXiDiff2      = new TH1F("pxidiff2"      , Form("%s: a*PXiVis + b - PXiInv" ,dirname)  ,2000,-500.,  1500.);     
+      fEventHist[i]->hPXiVis[0]        = new TH1F("pxivis0"        , Form("%s: PXiVis     "     ,dirname)  ,1000,  -100.,  900.);      
+      fEventHist[i]->hPXiInv[0]        = new TH1F("pxiinv0"        , Form("%s: PXiInv     "     ,dirname)  ,1000,-500.,   500.);     
+      fEventHist[i]->hPXiVisOverInv[0] = new TH1F("pxivisoverinv0" , Form("%s: PXiVisOverInv"   ,dirname)  ,1000, -10.,    10.);     
+      fEventHist[i]->hPXiInvVsVis[0]   = new TH2F("pxiinvvsvis0"   , Form("%s: PXiInv vs PXiVis",dirname)  , 800, -100., 700., 1000,-500.,   500.);     
+      fEventHist[i]->hPXiDiff[0]       = new TH1F("pxidiff0"       , Form("%s: PXiVis - PXiInv" ,dirname)  ,2000,-500.,  1500.);     
+      fEventHist[i]->hPXiDiff2[0]      = new TH1F("pxidiff20"      , Form("%s: a*PXiVis + b - PXiInv" ,dirname)  ,2000,-500.,  1500.);     
+      fEventHist[i]->hPXiVis[1]        = new TH1F("pxivis1"        , Form("%s: PXiVis     "     ,dirname)  ,1000,  -100.,  900.);      
+      fEventHist[i]->hPXiInv[1]        = new TH1F("pxiinv1"        , Form("%s: PXiInv     "     ,dirname)  ,1000,-500.,   500.);     
+      fEventHist[i]->hPXiVisOverInv[1] = new TH1F("pxivisoverinv1" , Form("%s: PXiVisOverInv"   ,dirname)  ,1000, -10.,    10.);     
+      fEventHist[i]->hPXiInvVsVis[1]   = new TH2F("pxiinvvsvis1"   , Form("%s: PXiInv vs PXiVis",dirname)  , 800, -100., 700., 1000,-500.,   500.);     
+      fEventHist[i]->hPXiDiff[1]       = new TH1F("pxidiff1"       , Form("%s: PXiVis - PXiInv" ,dirname)  ,2000,-500.,  1500.);     
+      fEventHist[i]->hPXiDiff2[1]      = new TH1F("pxidiff21"      , Form("%s: a*PXiVis + b - PXiInv" ,dirname)  ,2000,-500.,  1500.);     
+      fEventHist[i]->hPXiVis[2]        = new TH1F("pxivis2"        , Form("%s: PXiVis     "     ,dirname)  ,1000,  -100.,  900.);      
+      fEventHist[i]->hPXiInv[2]        = new TH1F("pxiinv2"        , Form("%s: PXiInv     "     ,dirname)  ,1000,-500.,   500.);     
+      fEventHist[i]->hPXiVisOverInv[2] = new TH1F("pxivisoverinv2" , Form("%s: PXiVisOverInv"   ,dirname)  ,1000, -10.,    10.);     
+      fEventHist[i]->hPXiInvVsVis[2]   = new TH2F("pxiinvvsvis2"   , Form("%s: PXiInv vs PXiVis",dirname)  , 800, -100., 700., 1000,-500.,   500.);     
+      fEventHist[i]->hPXiDiff[2]       = new TH1F("pxidiff2"       , Form("%s: PXiVis - PXiInv" ,dirname)  ,2000,-500.,  1500.);     
+      fEventHist[i]->hPXiDiff2[2]      = new TH1F("pxidiff22"      , Form("%s: a*PXiVis + b - PXiInv" ,dirname)  ,2000,-500.,  1500.);     
 
-      fEventHist[i]->hPtSum         = new TH1F("ptsum"         , Form("%s: Scalar Pt sum" ,dirname)    ,1000,  0.,  1000.);     
+      fEventHist[i]->hPtSum[0]         = new TH1F("ptsum0"         , Form("%s: Scalar Pt sum" ,dirname)    ,1000,  0.,  1000.);     
+      fEventHist[i]->hPtSum[1]         = new TH1F("ptsum1"         , Form("%s: Scalar Pt sum" ,dirname)    ,1000,  0.,  1000.);     
       
     }
   }
@@ -193,6 +221,15 @@ void ZTauTauHistMaker::BookLepHistograms() {
       fLepHist[i]->hOneFlavor    = new TH1F("oneflavor"  , Form("%s: Flavor"  ,dirname)  ,  20,   0,  20);
       fLepHist[i]->hOneQ         = new TH1F("oneq"       , Form("%s: Q"       ,dirname)  ,   5,  -2,   2);
       fLepHist[i]->hOneTrigger   = new TH1F("onetrigger" , Form("%s: Trigger" ,dirname)  ,  10,   0,  10);
+      fLepHist[i]->hOneSVPt      = new TH1F("onesvpt"    , Form("%s: SV Pt"   ,dirname)  , 200,   0, 200);
+      fLepHist[i]->hOneSVP       = new TH1F("onesvp"     , Form("%s: SV P"    ,dirname)  , 200,   0, 1e3);
+      fLepHist[i]->hOneSVE       = new TH1F("onesve"     , Form("%s: SV E"    ,dirname)  , 200,   0, 1e3);
+      fLepHist[i]->hOneSVM       = new TH1F("onesvm"     , Form("%s: SV M"    ,dirname)  , 200,   0, 1e1);
+      fLepHist[i]->hOneSVEta     = new TH1F("onesveta"   , Form("%s: SV Eta"  ,dirname)  , 200, -10., 10.);
+      fLepHist[i]->hOneSVDeltaPt = new TH1F("onesvdeltapt"    , Form("%s: SV Delta Pt"   ,dirname)  , 200,-100, 100);
+      fLepHist[i]->hOneSVDeltaP  = new TH1F("onesvdeltap"     , Form("%s: SV Delta P"    ,dirname)  , 200,-500, 500);
+      fLepHist[i]->hOneSVDeltaE  = new TH1F("onesvdeltae"     , Form("%s: SV Delta E"    ,dirname)  , 200,-500, 500);
+      fLepHist[i]->hOneSVDeltaEta= new TH1F("onesvdeltaeta"   , Form("%s: SV Delta Eta"  ,dirname)  , 200, -10., 10.);
       fLepHist[i]->hTwoPx        = new TH1F("twopx"      , Form("%s: Px"      ,dirname)  , 200,-1e3, 1e3);
       fLepHist[i]->hTwoPy        = new TH1F("twopy"      , Form("%s: Py"      ,dirname)  , 200,-1e3, 1e3);
       fLepHist[i]->hTwoPz        = new TH1F("twopz"      , Form("%s: Pz"      ,dirname)  , 200,-1e3, 1e3);
@@ -207,6 +244,15 @@ void ZTauTauHistMaker::BookLepHistograms() {
       fLepHist[i]->hTwoFlavor    = new TH1F("twoflavor"  , Form("%s: Flavor"  ,dirname)  ,  20,   0,  20);
       fLepHist[i]->hTwoQ         = new TH1F("twoq"       , Form("%s: Q"       ,dirname)  ,   5,  -2,   2);
       fLepHist[i]->hTwoTrigger   = new TH1F("twotrigger" , Form("%s: Trigger" ,dirname)  ,  10,   0,  10);
+      fLepHist[i]->hTwoSVPt      = new TH1F("twosvpt"    , Form("%s: SV Pt"   ,dirname)  , 200,   0, 200);
+      fLepHist[i]->hTwoSVP       = new TH1F("twosvp"     , Form("%s: SV P"    ,dirname)  , 200,   0, 1e3);
+      fLepHist[i]->hTwoSVE       = new TH1F("twosve"     , Form("%s: SV E"    ,dirname)  , 200,   0, 1e3);
+      fLepHist[i]->hTwoSVM       = new TH1F("twosvm"     , Form("%s: SV M"    ,dirname)  , 200,   0, 1e1);
+      fLepHist[i]->hTwoSVEta     = new TH1F("twosveta"   , Form("%s: SV Eta"  ,dirname)  , 200, -10., 10.);
+      fLepHist[i]->hTwoSVDeltaPt      = new TH1F("twosvdeltapt"    , Form("%s: SV Delta Pt"   ,dirname)  , 200,-100, 100);
+      fLepHist[i]->hTwoSVDeltaP       = new TH1F("twosvdeltap"     , Form("%s: SV Delta P"    ,dirname)  , 200,-500, 500);
+      fLepHist[i]->hTwoSVDeltaE       = new TH1F("twosvdeltae"     , Form("%s: SV Delta E"    ,dirname)  , 200,-500, 500);
+      fLepHist[i]->hTwoSVDeltaEta     = new TH1F("twosvdeltaeta"   , Form("%s: SV Delta Eta"  ,dirname)  , 200, -10., 10.);
 
     }
   }
@@ -258,11 +304,22 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
   
   TLorentzVector lepSys = (*leptonOneP4) + (*leptonTwoP4);
   TLorentzVector sys    = (*photonP4) + lepSys;
+  TLorentzVector svLepSys = (leptonOneSVP4 && leptonTwoSVP4) ? (*leptonOneSVP4) + (*leptonTwoSVP4) : TLorentzVector(0.,0.,0.,0.);
+  TLorentzVector svSys    = (leptonOneSVP4 && leptonTwoSVP4) ? (*photonP4) + svLepSys              : TLorentzVector(0.,0.,0.,0.);
   
   float lepDelR   = leptonOneP4->DeltaR(*leptonTwoP4);
   float lepDelPhi = abs(leptonOneP4->DeltaPhi(*leptonTwoP4));
   float lepDelEta = abs(leptonOneP4->Eta() - leptonTwoP4->Eta());
-  
+
+  float lepSVDelR   = -1.; leptonOneSVP4->DeltaR(*leptonTwoSVP4)           ;
+  float lepSVDelPhi = -1.; abs(leptonOneSVP4->DeltaPhi(*leptonTwoSVP4))    ;
+  float lepSVDelEta = -1.; abs(leptonOneSVP4->Eta() - leptonTwoSVP4->Eta());
+  if(leptonOneSVP4 && leptonTwoSVP4
+     && leptonOneSVP4->Pt() > 0. && leptonTwoSVP4->Pt() > 0.) {
+    lepSVDelR   = leptonOneSVP4->DeltaR(*leptonTwoSVP4)           ;
+    lepSVDelPhi = abs(leptonOneSVP4->DeltaPhi(*leptonTwoSVP4))    ;
+    lepSVDelEta = abs(leptonOneSVP4->Eta() - leptonTwoSVP4->Eta());
+  }
   Hist->hLepPt        ->Fill(lepSys.Pt()            ,eventWeight*genWeight);
   Hist->hLepP         ->Fill(lepSys.P()             ,eventWeight*genWeight);
   Hist->hLepE         ->Fill(lepSys.E()             ,eventWeight*genWeight);
@@ -276,11 +333,28 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
   Hist->hLepDelRVsPhi ->Fill(lepDelR , lepDelPhi    ,eventWeight*genWeight);
   Hist->hLepPtOverM   ->Fill(lepSys.Pt()/lepSys.M() ,eventWeight*genWeight);
 
+  Hist->hLepSVPt        ->Fill(lepSys.Pt()            ,eventWeight*genWeight);
+  Hist->hLepSVP         ->Fill(lepSys.P()             ,eventWeight*genWeight);
+  Hist->hLepSVE         ->Fill(lepSys.E()             ,eventWeight*genWeight);
+  Hist->hLepSVM         ->Fill(lepSys.M()             ,eventWeight*genWeight);
+  Hist->hLepSVEta       ->Fill(lepSys.Eta()           ,eventWeight*genWeight);
+  Hist->hLepSVPhi       ->Fill(lepSys.Phi()           ,eventWeight*genWeight);
+
+  Hist->hLepSVDeltaPhi  ->Fill(lepSVDelPhi              ,eventWeight*genWeight);
+  Hist->hLepSVDeltaEta  ->Fill(lepSVDelEta              ,eventWeight*genWeight);
+  Hist->hLepSVDeltaR    ->Fill(lepSVDelR                ,eventWeight*genWeight);
+  Hist->hLepSVDelRVsPhi ->Fill(lepSVDelR , lepSVDelPhi  ,eventWeight*genWeight);
+  Hist->hLepSVPtOverM   ->Fill(svLepSys.Pt()/lepSys.M() ,eventWeight*genWeight);
+  
   		                
   Hist->hSysM          ->Fill(sys.M()      ,eventWeight*genWeight);
   Hist->hSysPt         ->Fill(sys.Pt()     ,eventWeight*genWeight);
   Hist->hSysEta        ->Fill(sys.Eta()    ,eventWeight*genWeight);
 
+  Hist->hSysSVM          ->Fill(svSys.M()      ,eventWeight*genWeight);
+  Hist->hSysSVPt         ->Fill(svSys.Pt()     ,eventWeight*genWeight);
+  Hist->hSysSVEta        ->Fill(svSys.Eta()    ,eventWeight*genWeight);
+  
   TLorentzVector* tau = 0;
   TLorentzVector* muon = 0;
   TLorentzVector* electron = 0;
@@ -306,24 +380,58 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
 
   TVector3 lp1 = leptonOneP4->Vect();
   TVector3 lp2 = leptonTwoP4->Vect();
+  TVector3 pp  = photonP4->Vect();
+  TVector3 missing(met*cos(metPhi), met*sin(metPhi), 0.);
   lp1.SetZ(0.);
   lp2.SetZ(0.);
-  TVector3 bisector = (lp1.Mag()*lp2 + lp2.Mag()*lp1);
-  bisector.SetMag(1.);
-  double pxi_vis = (lp1+lp2)*bisector;
-  TVector3 missing(met*cos(metPhi), met*sin(metPhi), 0.);
-  double pxi_inv = missing*bisector;
-  Hist->hBisectorPhi->Fill(bisector.Phi()  ,eventWeight*genWeight);
-  Hist->hPXiVis     ->Fill(pxi_vis         ,eventWeight*genWeight);
-  Hist->hPXiInv     ->Fill(pxi_inv         ,eventWeight*genWeight);
-  Hist->hPXiVisOverInv->Fill((pxi_inv != 0.) ? pxi_vis/pxi_inv : 1.e6 ,eventWeight*genWeight);
-  Hist->hPXiInvVsVis->Fill(pxi_vis, pxi_inv,eventWeight*genWeight);
-  Hist->hPXiDiff    ->Fill(pxi_vis-pxi_inv ,eventWeight*genWeight);
+  pp.SetZ(0.);
+  TVector3 bisector0 = (lp1.Mag()*lp2 + lp2.Mag()*lp1); //divides leptons
+  if(bisector0.Mag() > 0.) bisector0.SetMag(1.);
+  //combine photon with nearest lepton
+  TVector3 lpp = (leptonOneP4->DeltaR(*photonP4) > leptonTwoP4->DeltaR(*photonP4)) ? lp2 : lp1; 
+  TVector3 bisector1 = (lpp+pp).Mag()*(lp1+lp2-lpp) + (lpp+pp)*((lp1+lp2-lpp).Mag()); //divides lepton + photon and lepton
+  if(bisector1.Mag() > 0.) bisector1.SetMag(1.);
+  //combine leptons together
+  TVector3 bisector2 = (pp.Mag())*(lp1+lp2) + (lp1+lp2).Mag()*pp; //divides leptons and photon
+  if(bisector2.Mag() > 0.) bisector2.SetMag(1.);
+
+  //project onto the bisectors
+  //ignore photon
+  double pxi_vis0 = (lp1+lp2)*bisector0;
+  double pxi_inv0 = missing*bisector0;
+  //add photon in
+  double pxi_vis1 = (lp1+lp2+pp)*bisector1;
+  double pxi_inv1 = missing*bisector1;
+  double pxi_vis2 = (lp1+lp2+pp)*bisector2;
+  double pxi_inv2 = missing*bisector2;
+
+  Hist->hPXiVis[0]     ->Fill(pxi_vis0         ,eventWeight*genWeight);
+  Hist->hPXiInv[0]     ->Fill(pxi_inv0         ,eventWeight*genWeight);
+  Hist->hPXiVisOverInv[0]->Fill((pxi_inv0 != 0.) ? pxi_vis0/pxi_inv0 : 1.e6 ,eventWeight*genWeight);
+  Hist->hPXiInvVsVis[0]->Fill(pxi_vis0, pxi_inv0,eventWeight*genWeight);
+  Hist->hPXiDiff[0]    ->Fill(pxi_vis0-pxi_inv0 ,eventWeight*genWeight);
+
+  if(nPhotons > 0) {
+    Hist->hPXiVis[1]     ->Fill(pxi_vis1         ,eventWeight*genWeight);
+    Hist->hPXiInv[1]     ->Fill(pxi_inv1         ,eventWeight*genWeight);
+    Hist->hPXiVisOverInv[1]->Fill((pxi_inv1 != 0.) ? pxi_vis1/pxi_inv1 : 1.e6 ,eventWeight*genWeight);
+    Hist->hPXiInvVsVis[1]->Fill(pxi_vis1, pxi_inv1,eventWeight*genWeight);
+    Hist->hPXiDiff[1]    ->Fill(pxi_vis1-pxi_inv1 ,eventWeight*genWeight);
+    Hist->hPXiVis[2]     ->Fill(pxi_vis2         ,eventWeight*genWeight);
+    Hist->hPXiInv[2]     ->Fill(pxi_inv2         ,eventWeight*genWeight);
+    Hist->hPXiVisOverInv[2]->Fill((pxi_inv2 != 0.) ? pxi_vis2/pxi_inv2 : 1.e6 ,eventWeight*genWeight);
+    Hist->hPXiInvVsVis[2]->Fill(pxi_vis2, pxi_inv2,eventWeight*genWeight);
+    Hist->hPXiDiff[2]    ->Fill(pxi_vis2-pxi_inv2 ,eventWeight*genWeight);
+  }
+  
   double coeff = 0.6;
   double offset = -40.;
-  Hist->hPXiDiff2   ->Fill(pxi_inv - (coeff*pxi_vis+offset) ,eventWeight*genWeight);
+  Hist->hPXiDiff2[0]   ->Fill(pxi_inv0 - (coeff*pxi_vis0+offset) ,eventWeight*genWeight);
+  Hist->hPXiDiff2[1]   ->Fill(pxi_inv1 - (coeff*pxi_vis1+offset) ,eventWeight*genWeight);
+  Hist->hPXiDiff2[2]   ->Fill(pxi_inv2 - (coeff*pxi_vis2+offset) ,eventWeight*genWeight);
 
-  Hist->hPtSum      ->Fill(leptonOneP4->Pt()+leptonTwoP4->Pt()+met ,eventWeight*genWeight);
+  Hist->hPtSum[0]      ->Fill(leptonOneP4->Pt()+leptonTwoP4->Pt()+met ,eventWeight*genWeight);
+  Hist->hPtSum[1]      ->Fill(leptonOneP4->Pt()+leptonTwoP4->Pt()+photonP4->Pt()+met ,eventWeight*genWeight);
 }
 
 void ZTauTauHistMaker::FillPhotonHistogram(PhotonHist_t* Hist) {
@@ -356,7 +464,23 @@ void ZTauTauHistMaker::FillLepHistogram(LepHist_t* Hist) {
   Hist->hOneFlavor    ->Fill(fabs(leptonOneFlavor)        ,eventWeight*genWeight);
   Hist->hOneQ         ->Fill(leptonOneFlavor < 0 ? -1 : 1 ,eventWeight*genWeight);
   // Hist->hOneTrigger   ->Fill(leptonOneTrigger       ,eventWeight*genWeight);
-  
+  if(leptonOneSVP4) {
+    Hist->hOneSVPt       ->Fill(leptonOneSVP4->Pt()    ,eventWeight*genWeight);
+    Hist->hOneSVP        ->Fill(leptonOneSVP4->P()     ,eventWeight*genWeight);
+    Hist->hOneSVE        ->Fill(leptonOneSVP4->E()     ,eventWeight*genWeight);
+    Hist->hOneSVM        ->Fill(leptonOneSVP4->M()     ,eventWeight*genWeight);
+    if(leptonOneSVP4->Pt() > 0.)
+      Hist->hOneSVEta      ->Fill(leptonOneSVP4->Eta()   ,eventWeight*genWeight);
+    else
+      Hist->hOneSVEta      ->Fill(1.e6   ,eventWeight*genWeight);
+    Hist->hOneSVDeltaPt  ->Fill(leptonOneSVP4->Pt()  -  leptonOneP4->Pt()  ,eventWeight*genWeight);
+    Hist->hOneSVDeltaP   ->Fill(leptonOneSVP4->P()   -  leptonOneP4->P()   ,eventWeight*genWeight);
+    Hist->hOneSVDeltaE   ->Fill(leptonOneSVP4->E()   -  leptonOneP4->E()   ,eventWeight*genWeight);
+    if(leptonOneSVP4->Pt() > 0.)
+      Hist->hOneSVDeltaEta ->Fill(leptonOneSVP4->Eta() -  leptonOneP4->Eta() ,eventWeight*genWeight);
+    else
+      Hist->hOneSVDeltaEta ->Fill(1.e6 ,eventWeight*genWeight);
+  }  
   Hist->hTwoPx        ->Fill(leptonTwoP4->Px()      ,eventWeight*genWeight);
   Hist->hTwoPy        ->Fill(leptonTwoP4->Py()      ,eventWeight*genWeight);
   Hist->hTwoPz        ->Fill(leptonTwoP4->Pz()      ,eventWeight*genWeight);
@@ -372,7 +496,24 @@ void ZTauTauHistMaker::FillLepHistogram(LepHist_t* Hist) {
   Hist->hTwoFlavor    ->Fill(fabs(leptonTwoFlavor)        ,eventWeight*genWeight);
   Hist->hTwoQ         ->Fill(leptonTwoFlavor < 0 ? -1 : 1 ,eventWeight*genWeight);
   // Hist->hTwoTrigger   ->Fill(leptonTwoTrigger       ,eventWeight*genWeight);
+  if(leptonTwoSVP4) {
+    Hist->hTwoSVPt      ->Fill(leptonTwoSVP4->Pt()    ,eventWeight*genWeight);
+    Hist->hTwoSVP       ->Fill(leptonTwoSVP4->P()     ,eventWeight*genWeight);
+    Hist->hTwoSVE       ->Fill(leptonTwoSVP4->E()     ,eventWeight*genWeight);
+    Hist->hTwoSVM       ->Fill(leptonTwoSVP4->M()     ,eventWeight*genWeight);
+    if(leptonTwoSVP4->Pt() > 0.)
+      Hist->hTwoSVEta      ->Fill(leptonTwoSVP4->Eta()   ,eventWeight*genWeight);
+    else
+      Hist->hTwoSVEta      ->Fill(1.e6   ,eventWeight*genWeight);
+    Hist->hTwoSVDeltaPt  ->Fill(leptonTwoSVP4->Pt()  -  leptonTwoP4->Pt()  ,eventWeight*genWeight);
+    Hist->hTwoSVDeltaP   ->Fill(leptonTwoSVP4->P()   -  leptonTwoP4->P()   ,eventWeight*genWeight);
+    Hist->hTwoSVDeltaE   ->Fill(leptonTwoSVP4->E()   -  leptonTwoP4->E()   ,eventWeight*genWeight);
+    if(leptonTwoSVP4->Pt() > 0.)    
+      Hist->hTwoSVDeltaEta ->Fill(leptonTwoSVP4->Eta() -  leptonTwoP4->Eta() ,eventWeight*genWeight);
+    else
+      Hist->hTwoSVDeltaEta ->Fill(1.e6 ,eventWeight*genWeight);
 
+  }
 }
 
 
@@ -423,10 +564,10 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   
   if(mutau && chargeTest) FillAllHistograms(5);
   else if(mutau)          FillAllHistograms(5 + fQcdOffset);
-  if(etau  && chargeTest) FillAllHistograms(15);
-  else if(etau)           FillAllHistograms(15 + fQcdOffset);
-  if(emu   && chargeTest) FillAllHistograms(25);
-  else if(emu)            FillAllHistograms(25 + fQcdOffset);
+  if(etau  && chargeTest) FillAllHistograms(25);
+  else if(etau)           FillAllHistograms(25 + fQcdOffset);
+  if(emu   && chargeTest) FillAllHistograms(45);
+  else if(emu)            FillAllHistograms(45 + fQcdOffset);
   
   TLorentzVector* tau = 0;
   TLorentzVector* muon = 0;
@@ -447,8 +588,8 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
 
   if(mutau && chargeTest) FillAllHistograms(6);
   else if(mutau)          FillAllHistograms(6 + fQcdOffset);
-  if(etau  && chargeTest) FillAllHistograms(16);
-  else if(etau)           FillAllHistograms(16 + fQcdOffset);
+  if(etau  && chargeTest) FillAllHistograms(26);
+  else if(etau)           FillAllHistograms(26 + fQcdOffset);
   
   mutau = mutau && abs(muon->Eta()) < 2.4;
   mutau = mutau && abs(tau->Eta()) < 2.3;
@@ -460,30 +601,53 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
 
   if(mutau && chargeTest) FillAllHistograms(7);
   else if(mutau)          FillAllHistograms(7 + fQcdOffset);
-  if(etau  && chargeTest) FillAllHistograms(17);
-  else if(etau)           FillAllHistograms(17 + fQcdOffset);
+  if(etau  && chargeTest) FillAllHistograms(27);
+  else if(etau)           FillAllHistograms(27 + fQcdOffset);
 
   //adding visible/invisible pT cuts
-  double offset = -40.;
+  double offset = -38.;
   double coeff = 0.6;
   double visShift = coeff*pxi_vis + offset;
   if(mutau && pxi_inv > visShift && chargeTest) FillAllHistograms(11);
   else if(mutau && pxi_inv > visShift)          FillAllHistograms(11 + fQcdOffset);
-  if(etau && pxi_inv > visShift && chargeTest)  FillAllHistograms(21);
-  else if(etau && pxi_inv > visShift)           FillAllHistograms(21 + fQcdOffset);
+  if(etau && pxi_inv > visShift && chargeTest)  FillAllHistograms(31);
+  else if(etau && pxi_inv > visShift)           FillAllHistograms(31 + fQcdOffset);
 
   offset = -20.;
   visShift = coeff*pxi_vis + offset;
   if(mutau && pxi_inv > visShift && chargeTest) FillAllHistograms(12);
   else if(mutau && pxi_inv > visShift)          FillAllHistograms(12 + fQcdOffset);
-  if(etau && pxi_inv > visShift && chargeTest)  FillAllHistograms(22);
-  else if(etau && pxi_inv > visShift)           FillAllHistograms(22 + fQcdOffset);
+  if(etau && pxi_inv > visShift && chargeTest)  FillAllHistograms(32);
+  else if(etau && pxi_inv > visShift)           FillAllHistograms(32 + fQcdOffset);
   
   double mll = (*leptonOneP4+*leptonTwoP4).M();
   double mgll = (*photonP4 + (*leptonOneP4+*leptonTwoP4)).M();
   mutau = mutau && mll < 100. && mll > 40.;
   etau  = etau  && mll < 100. && mll > 40.;
 
+  offset = -35.;
+  visShift = coeff*pxi_vis + offset;
+  if(mutau && pxi_inv > visShift && chargeTest) FillAllHistograms(13);
+  else if(mutau && pxi_inv > visShift)          FillAllHistograms(13 + fQcdOffset);
+  if(etau && pxi_inv > visShift && chargeTest)  FillAllHistograms(33);
+  else if(etau && pxi_inv > visShift)           FillAllHistograms(33 + fQcdOffset);
+
+  offset = -30.;
+  visShift = coeff*pxi_vis + offset;
+  if(mutau && pxi_inv > visShift && chargeTest) FillAllHistograms(14);
+  else if(mutau && pxi_inv > visShift)          FillAllHistograms(14 + fQcdOffset);
+  if(etau && pxi_inv > visShift && chargeTest)  FillAllHistograms(34);
+  else if(etau && pxi_inv > visShift)           FillAllHistograms(34 + fQcdOffset);
+
+  //different coefficient for Z+g
+  offset = -35.;
+  coeff  = 0.3;
+  visShift = coeff*pxi_vis + offset;
+  if(mutau && pxi_inv > visShift && chargeTest) FillAllHistograms(15);
+  else if(mutau && pxi_inv > visShift)          FillAllHistograms(15 + fQcdOffset);
+  if(etau && pxi_inv > visShift && chargeTest)  FillAllHistograms(35);
+  else if(etau && pxi_inv > visShift)           FillAllHistograms(35 + fQcdOffset);
+  
   double mTMu = (muon != 0) ? 2.*met*muon->Pt() : 0.;
   mTMu = (muon != 0) ? sqrt(mTMu*(1.-cos(muon->Phi() - metPhi))) : 0.;
   double mTE = (electron != 0) ? 2.*met*electron->Pt() : 0.;
@@ -494,12 +658,12 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   //mutau cuts in first slides
   if(mutau && chargeTest) FillAllHistograms(8);
   else if(mutau)          FillAllHistograms(8 + fQcdOffset);
-  if(etau && chargeTest) FillAllHistograms(18);
-  else if(etau)          FillAllHistograms(18 + fQcdOffset);
+  if(etau && chargeTest) FillAllHistograms(28);
+  else if(etau)          FillAllHistograms(28 + fQcdOffset);
 
   //add required photon
   mutau = mutau && nPhotons > 0;
-  mutau = mutau && (abs(photonP4->Eta()) < 1.4432 || (abs(photonP4->Eta()) > 1.566 && abs(photonP4->Eta()) < 2.5));
+  mutau = mutau && (abs(photonP4->Eta()) < 1.4442 || (abs(photonP4->Eta()) > 1.566 && abs(photonP4->Eta()) < 2.5));
   mutau = mutau && photonP4->Pt() > 10.;
   mutau = mutau && photonP4->DeltaR(*muon) > 0.5;
   mutau = mutau && photonP4->DeltaR(*tau) > 0.5;
@@ -508,12 +672,12 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
 
   //add required photon
   etau = etau && nPhotons > 0;
-  etau = etau && (abs(photonP4->Eta()) < 1.4432 || (abs(photonP4->Eta()) > 1.566 && abs(photonP4->Eta()) < 2.5));
+  etau = etau && (abs(photonP4->Eta()) < 1.4442 || (abs(photonP4->Eta()) > 1.566 && abs(photonP4->Eta()) < 2.5));
   etau = etau && photonP4->Pt() > 10.;
   etau = etau && photonP4->DeltaR(*electron) > 0.5;
   etau = etau && photonP4->DeltaR(*tau) > 0.5;
-  if(etau && chargeTest) FillAllHistograms(19);
-  else if(etau)          FillAllHistograms(19 + fQcdOffset);
+  if(etau && chargeTest) FillAllHistograms(29);
+  else if(etau)          FillAllHistograms(29 + fQcdOffset);
   
   //extra cuts added
   mutau = mutau && 10. < (0.85*mgll - mll) && 25. > (0.85*mgll - mll);
@@ -526,8 +690,8 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   etau = etau && 10. < (0.85*mgll - mll) && 25. > (0.85*mgll - mll);
   etau = etau && photonP4->Pt() > 18.;
   etau = etau && abs(mge-zmass) > 10.;
-  if(etau && chargeTest) FillAllHistograms(20);
-  else if(etau)          FillAllHistograms(20 + fQcdOffset);
+  if(etau && chargeTest) FillAllHistograms(30);
+  else if(etau)          FillAllHistograms(30 + fQcdOffset);
 
   return kTRUE;
 }
