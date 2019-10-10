@@ -36,12 +36,12 @@ Int_t init_dataplotter() {
   names[22] = "zz_2l2nu"                ;labels[22] = "Diboson"                 ; signal[22] = false              ;
   names[23] = "zz_2l2q"                 ;labels[23] = "Diboson"                 ; signal[23] = false              ;
   names[24] = "zz_4l"                   ;labels[24] = "Diboson"                 ; signal[24] = false              ;
-  names[25] = "hzg_gluglu"              ;labels[25] = "H->Zg"                   ; signal[25] = false              ;
-  names[26] = "hzg_tth"                 ;labels[26] = "H->Zg"                   ; signal[26] = false              ;
-  names[27] = "hzg_vbf"                 ;labels[27] = "H->Zg"                   ; signal[27] = false              ;
-  names[28] = "hzg_wminus"              ;labels[28] = "H->Zg"                   ; signal[28] = false              ;
-  names[29] = "hzg_wplus"               ;labels[29] = "H->Zg"                   ; signal[29] = false              ;
-  names[30] = "hzg_zh"                  ;labels[30] = "H->Zg"                   ; signal[30] = false              ;
+  names[25] = "hzg_gluglu"              ;labels[25] = "H->Zg"                   ; signal[25] = true              ;
+  names[26] = "hzg_tth"                 ;labels[26] = "H->Zg"                   ; signal[26] = true              ;
+  names[27] = "hzg_vbf"                 ;labels[27] = "H->Zg"                   ; signal[27] = true              ;
+  names[28] = "hzg_wminus"              ;labels[28] = "H->Zg"                   ; signal[28] = true              ;
+  names[29] = "hzg_wplus"               ;labels[29] = "H->Zg"                   ; signal[29] = true              ;
+  names[30] = "hzg_zh"                  ;labels[30] = "H->Zg"                   ; signal[30] = true              ;
   names[31] = "htautau_gluglu"          ;labels[31] = "H->tau tau"              ; signal[31] = true               ;
 
   Double_t xsec[50];
@@ -113,12 +113,12 @@ Int_t init_dataplotter() {
   process[22] = 1; //"zz_2l2nu"                
   process[23] = 1; //"zz_2l2q"                 
   process[24] = 1; //"zz_4l"                   
-  process[25] = 0; //"hzg_gluglu"              
-  process[26] = 0; //"hzg_tth"                 
-  process[27] = 0; //"hzg_vbf"                 
-  process[28] = 0; //"hzg_wminus"              
-  process[29] = 0; //"hzg_wplus"               
-  process[30] = 0; //"hzg_zh"                  
+  process[25] = 1; //"hzg_gluglu"              
+  process[26] = 1; //"hzg_tth"                 
+  process[27] = 1; //"hzg_vbf"                 
+  process[28] = 1; //"hzg_wminus"              
+  process[29] = 1; //"hzg_wplus"               
+  process[30] = 1; //"hzg_zh"                  
   process[31] = 1; //"htautau_gluglu"                  
 
   vector<TString> files;
