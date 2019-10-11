@@ -51,7 +51,7 @@ public :
   Int_t normalize_2ds_ = 1; //normalzie 2D histograms when plotting
   Double_t signal_scale_ = 1.; //increase the size of the signal if needed
   Int_t stack_signal_ = 0; //put signal into the stack
-  
+  Int_t plot_y_title_ = 0; //plot y title on 1D histograms
   void draw_cms_label() {
     TText *cmslabel = new TText();
     cmslabel-> SetNDC();
@@ -91,24 +91,26 @@ public :
   virtual TCanvas* plot_single_2Dhist(TString hist, TString setType, Int_t set, TString label);
   TCanvas* plot_single_2Dhist(TString hist, TString setType, Int_t set, TString label, 
 			      Double_t xmin, Double_t xmax, Double_t ymin, Double_t ymax) {
-    xMin_ = xmin; xMax_=xmax; yMin_ = ymin; yMax_=ymax; return plot_single_2Dhist(hist, setType, set, label);
+    xMin_ = xmin; xMax_=xmax; yMin_ = ymin; yMax_=ymax; auto c =  plot_single_2Dhist(hist, setType, set, label);
+    reset_axes(); return c;
   }
   
   virtual TCanvas* plot_2Dhist(TString hist, TString setType, Int_t set);
   TCanvas* plot_2Dhist(TString hist, TString setType, Int_t set,
 		       Double_t xmin, Double_t xmax, Double_t ymin, Double_t ymax) {
-    xMin_ = xmin; xMax_=xmax; yMin_ = ymin; yMax_=ymax; return plot_2Dhist(hist, setType, set);
+    xMin_ = xmin; xMax_=xmax; yMin_ = ymin; yMax_=ymax; auto c = plot_2Dhist(hist, setType, set);
+    reset_axes(); return c;
   }
 
 
   virtual TCanvas* plot_hist(TString hist, TString setType, Int_t set);
   TCanvas* plot_hist(TString hist, TString setType, Int_t set, Double_t xmin, Double_t xmax) {
-    xMin_ = xmin; xMax_=xmax; return plot_hist(hist, setType, set);
+    xMin_ = xmin; xMax_=xmax; auto c = plot_hist(hist, setType, set); reset_axes(); return c;
   }
 
   virtual TCanvas* plot_stack(TString hist, TString setType, Int_t set);
   TCanvas* plot_stack(TString hist, TString setType, Int_t set, Double_t xmin, Double_t xmax) {
-    xMin_ = xmin; xMax_=xmax; return plot_stack(hist, setType, set);
+    xMin_ = xmin; xMax_=xmax; auto c = plot_stack(hist, setType, set); reset_axes(); return c;
   }
 
   virtual TCanvas* print_stack(TString hist, TString setType, Int_t set);

@@ -46,6 +46,36 @@ void DataPlotter::get_titles(TString hist, TString setType, TString* xtitle, TSt
     *ytitle = Form("Events / %.0f GeV/c",1.*rebinH_);
     *title  = Form("Pt of the Trailing Lepton %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
+  else if(hist == "onesvpt") {
+    *xtitle = "SVFit Pt (GeV/c)";
+    *ytitle = Form("Events / %.0f GeV/c",1.*rebinH_);
+    *title  = Form("SVFit Pt of the Leading Lepton %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
+  }
+  else if(hist == "twosvpt") {
+    *xtitle = "SVFit Pt (GeV/c)";
+    *ytitle = Form("Events / %.0f GeV/c",1.*rebinH_);
+    *title  = Form("SVFit Pt of the Trailing Lepton %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
+  }
+  else if(hist == "onem") {
+    *xtitle = "M (GeV/c^{2})";
+    *ytitle = Form("Events / %.0f GeV/c",1.*rebinH_);
+    *title  = Form("Mass of the Leading Lepton %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
+  }
+  else if(hist == "twom") {
+    *xtitle = "M (GeV/c^{2})";
+    *ytitle = Form("Events / %.0f GeV/c",1.*rebinH_);
+    *title  = Form("Mass of the Trailing Lepton %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
+  }
+  else if(hist == "onesvm") {
+    *xtitle = "SVFit M (GeV/c^{2})";
+    *ytitle = Form("Events / %.0f GeV/c",1.*rebinH_);
+    *title  = Form("SVFit Mass of the Leading Lepton %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
+  }
+  else if(hist == "twosvm") {
+    *xtitle = "SVFit M (GeV/c^{2})";
+    *ytitle = Form("Events / %.0f GeV/c",1.*rebinH_);
+    *title  = Form("SVFit Mass of the Trailing Lepton %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
+  }
   else if(hist == "oneiso") {
     *xtitle = "Lepton Isolation";
     *ytitle = Form("Events / %.2f",.05*rebinH_);
@@ -713,7 +743,7 @@ TCanvas* DataPlotter::plot_hist(TString hist, TString setType, Int_t set) {
   draw_luminosity();
   draw_cms_label();
   hAxis->SetXTitle(xtitle.Data());
-  hAxis->SetYTitle(ytitle.Data());
+  if(plot_y_title_) hAxis->SetYTitle(ytitle.Data());
   if(plot_title_) hAxis->SetTitle (title.Data());
   else hAxis->SetTitle (""); //no title, overwrite current with empty string
   if(logY_) c->SetLogy();
@@ -804,7 +834,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
   
   if(plot_data_ && hDataMC) hDataMC->GetXaxis()->SetTitle(xtitle.Data());
   else hstack->GetXaxis()->SetTitle(xtitle.Data());
-  hstack->GetYaxis()->SetTitle(ytitle.Data());
+  if(plot_y_title_) hstack->GetYaxis()->SetTitle(ytitle.Data());
 
   if(yMin_ < yMax_) hstack->GetYaxis()->SetRangeUser(yMin_,yMax_);    
   else              hstack->GetYaxis()->SetRangeUser(1.e-1,m*1.2);    

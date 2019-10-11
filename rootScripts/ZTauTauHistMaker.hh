@@ -356,6 +356,11 @@ void ZTauTauHistMaker::Init(TTree *tree)
     //different coefficient for Z+g
     fEventSets [15] = 1; // events with opposite signs and passing Mu+Tau Pt + angle cuts and vis/inv > 0 with no photon check
     fEventSets [15+fQcdOffset] = 1; // events with same signs and passing Mu+Tau Pt + angle cuts and vis/inv > 0 with no photon check
+    //Adding mt cut
+    fEventSets [16] = 1; // events with opposite signs and passing Mu+Tau Pt + angle cuts and vis/inv > 0 mtMu < 80 with no photon check
+    fEventSets [16+fQcdOffset] = 1; // events with same signs and passing Mu+Tau Pt + angle cuts and vis/inv > 0 mtMu < 80 with no photon check
+    fEventSets [17] = 1; // events with opposite signs and passing Mu+Tau Pt + angle cuts and vis/inv > 0 mtMu < 80 with no photon check
+    fEventSets [17+fQcdOffset] = 1; // events with same signs and passing Mu+Tau Pt + angle cuts and vis/inv > 0 mtMu < 80 with no photon check
     
     fEventSets [8] = 1; // events with opposite signs and passing Mu+Tau cuts with no photon check
     fEventSets [8+fQcdOffset] = 1; // events with same signs and passing Mu+Tau cuts with no photon check
@@ -382,6 +387,11 @@ void ZTauTauHistMaker::Init(TTree *tree)
     //different coefficient for Z+g
     fEventSets [35] = 1; // events with opposite signs and passing E+Tau Pt + angle cuts and vis/inv > 0 with no photon check
     fEventSets [35+fQcdOffset] = 1; // events with same signs and passing E+Tau Pt + angle cuts and vis/inv > 0 with no photon check
+    //Adding mt cut
+    fEventSets [36] = 1; // events with opposite signs and passing E+Tau Pt + angle cuts and vis/inv > 0 mtE < 80 with no photon check
+    fEventSets [36+fQcdOffset] = 1; // events with same signs and passing E+Tau Pt + angle cuts and vis/inv > 0 mtE < 80 with no photon check
+    fEventSets [37] = 1; // events with opposite signs and passing E+Tau Pt + angle cuts and vis/inv > 0 mtE < 80 with no photon check
+    fEventSets [37+fQcdOffset] = 1; // events with same signs and passing E+Tau Pt + angle cuts and vis/inv > 0 mtE < 80 with no photon check
 
     fEventSets [28] = 1; // events with opposite signs and passing E+Tau cuts with no photon check
     fEventSets [28+fQcdOffset] = 1; // events with same signs and passing E+Tau cuts with no photon check
