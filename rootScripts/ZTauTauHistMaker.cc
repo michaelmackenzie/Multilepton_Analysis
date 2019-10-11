@@ -88,6 +88,9 @@ void ZTauTauHistMaker::BookEventHistograms() {
       fEventHist[i]->hNPhotons               = new TH1F("nphotons"            , Form("%s: NPhotons"            ,dirname)  ,  10,  0,  10); 
       fEventHist[i]->hNGenTausHad            = new TH1F("ngentaushad"         , Form("%s: NGenTausHad"         ,dirname)  ,  10,  0,  10); 
       fEventHist[i]->hNGenTausLep            = new TH1F("ngentauslep"         , Form("%s: NGenTausLep"         ,dirname)  ,  10,  0,  10); 
+      fEventHist[i]->hNGenTaus               = new TH1F("ngentaus"            , Form("%s: NGenTaus"            ,dirname)  ,  10,  0,  10); 
+      fEventHist[i]->hNGenElectrons          = new TH1F("ngenelectrons"       , Form("%s: NGenElectrons"       ,dirname)  ,  10,  0,  10); 
+      fEventHist[i]->hNGenMuons              = new TH1F("ngenmuons"           , Form("%s: NGenMuons"           ,dirname)  ,  10,  0,  10); 
       fEventHist[i]->hNJets                  = new TH1F("njets"               , Form("%s: NJets"               ,dirname)  ,  50,  0,  50); 
       fEventHist[i]->hNFwdJets               = new TH1F("nfwdjets"            , Form("%s: NFwdJets"            ,dirname)  ,  50,  0,  50); 
       fEventHist[i]->hNBJets                 = new TH1F("nbjets"              , Form("%s: NBJets"              ,dirname)  ,  50,  0,  50);
@@ -275,6 +278,9 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
   Hist->hNPhotons            ->Fill(nPhotons           , genWeight*eventWeight)      ;
   Hist->hNGenTausHad         ->Fill(nGenTausHad        , genWeight*eventWeight)      ;
   Hist->hNGenTausLep         ->Fill(nGenTausLep        , genWeight*eventWeight)      ;
+  Hist->hNGenTaus            ->Fill(nGenTausLep+nGenTausHad, genWeight*eventWeight)      ;
+  Hist->hNGenElectrons       ->Fill(nGenElectrons      , genWeight*eventWeight)      ;
+  Hist->hNGenMuons           ->Fill(nGenMuons          , genWeight*eventWeight)      ;
   Hist->hNJets               ->Fill(nJets              , genWeight*eventWeight)      ;
   // Hist->hNFwdJets            ->Fill(nFwdJets           , genWeight*eventWeight)      ;
   Hist->hNBJets              ->Fill(nBJets             , genWeight*eventWeight)      ;
@@ -337,7 +343,7 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
   Hist->hLepSVP       ->Fill(svLepSys.P()             ,eventWeight*genWeight);
   Hist->hLepSVE       ->Fill(svLepSys.E()             ,eventWeight*genWeight);
   Hist->hLepSVM       ->Fill(svLepSys.M()             ,eventWeight*genWeight);
-  Hist->hLepSVEta     ->Fill(svLepSys.Eta()           ,eventWeight*genWeight);
+  Hist->hLepSVEta     ->Fill((svLepSys.Pt() > 0.) ? svLepSys.Eta()  : -1e6,eventWeight*genWeight);
   Hist->hLepSVPhi     ->Fill(svLepSys.Phi()           ,eventWeight*genWeight);
 
   Hist->hLepSVDeltaPhi ->Fill(lepSVDelPhi              ,eventWeight*genWeight);
@@ -353,7 +359,7 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
 
   Hist->hSysSVM          ->Fill(svSys.M()      ,eventWeight*genWeight);
   Hist->hSysSVPt         ->Fill(svSys.Pt()     ,eventWeight*genWeight);
-  Hist->hSysSVEta        ->Fill(svSys.Eta()    ,eventWeight*genWeight);
+  Hist->hSysSVEta        ->Fill((svSys.Pt() > 0.) ? svSys.Eta() : -1.e6,eventWeight*genWeight);
   
   TLorentzVector* tau = 0;
   TLorentzVector* muon = 0;
@@ -441,7 +447,7 @@ void ZTauTauHistMaker::FillPhotonHistogram(PhotonHist_t* Hist) {
   Hist->hPt  ->Fill(photonP4->Pt() , eventWeight*genWeight );
   Hist->hP   ->Fill(photonP4->P()  , eventWeight*genWeight );
   Hist->hE   ->Fill(photonP4->E()  , eventWeight*genWeight );
-  Hist->hEta ->Fill(photonP4->Eta(), eventWeight*genWeight );
+  Hist->hEta ->Fill((photonP4->Pt() > 0.) ? photonP4->Eta() : -1.e6, eventWeight*genWeight );
   Hist->hPhi ->Fill(photonP4->Phi(), eventWeight*genWeight );
   // Hist->hIso       ;
   // Hist->hRelIso    ;
@@ -537,6 +543,16 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
 
   fChain->GetEntry(entry);
   if(entry%50000 == 0) printf("Processing event: %12lld\n", entry);
+  //DY Splitting
+  if(fDYType > 0) {
+    if(fDYType > 2 && nGenTausHad+nGenTausLep == 2) return kTRUE;
+    else if(fDYType == 1 && nGenTausHad+nGenTausLep == 0) return kTRUE;
+    else if(nGenTausHad+nGenTausLep != 0 && nGenTausHad+nGenTausLep != 2) {
+      printf("Unexpected number of taus, %i found. Continuing\n",
+	     nGenTausHad+nGenTausLep);
+      return kTRUE;
+    }
+  }
   bool chargeTest = leptonOneFlavor*leptonTwoFlavor < 0;
   FillAllHistograms(0);
 

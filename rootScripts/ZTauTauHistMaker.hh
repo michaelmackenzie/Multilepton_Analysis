@@ -83,6 +83,8 @@ public :
   UInt_t nBJets                    ;
   UInt_t nGenTausHad               ;
   UInt_t nGenTausLep               ;
+  UInt_t nGenElectrons             ;
+  UInt_t nGenMuons                 ;
   Float_t htSum                    ;
   Float_t ht                       ;
   Float_t htPhi                    ;
@@ -114,6 +116,9 @@ public :
     TH1F* hNPhotons;
     TH1F* hNGenTausHad;
     TH1F* hNGenTausLep;
+    TH1F* hNGenTaus;
+    TH1F* hNGenElectrons;
+    TH1F* hNGenMuons;
     TH1F* hNJets;
     TH1F* hNFwdJets;
     TH1F* hNBJets;
@@ -292,7 +297,8 @@ public :
   LepHist_t*    fLepHist[fn];
 
   TString fFolderName = ""; //name of the folder the tree is from
-  
+
+  Int_t         fDYType = -1; //for splitting Z->ll into 1: tau tau and 2: e/mu e/mu
   ClassDef(ZTauTauHistMaker,0);
 
 };
@@ -309,7 +315,8 @@ void ZTauTauHistMaker::Init(TTree *tree)
   // Init() will be called many times when running on PROOF
   // (once per file to be processed).
   if(fChain == 0 && tree != 0) {
-    fOut = new TFile(Form("ztautau%s_%s.hist",(fFolderName == "") ? "" : ("_"+fFolderName).Data(),tree->GetName()),
+    fOut = new TFile(Form("ztautau%s%s_%s.hist",(fFolderName == "") ? "" : ("_"+fFolderName).Data(),
+			  (fDYType > 0) ? Form("_%i",fDYType) : "",tree->GetName()),
 		     "RECREATE","ZTauTauHistMaker output histogram file");
     fTopDir = fOut->mkdir("Data");
     fTopDir->cd();
@@ -439,6 +446,8 @@ void ZTauTauHistMaker::Init(TTree *tree)
   fChain->SetBranchAddress("nBJets"              , &nBJets               );
   fChain->SetBranchAddress("nGenTausHad"         , &nGenTausHad          );
   fChain->SetBranchAddress("nGenTausLep"         , &nGenTausLep          );
+  fChain->SetBranchAddress("nGenElectrons"       , &nGenElectrons        );
+  fChain->SetBranchAddress("nGenMuons"           , &nGenMuons            );
   fChain->SetBranchAddress("htSum"               , &htSum                );
   fChain->SetBranchAddress("ht"                  , &ht                   );
   fChain->SetBranchAddress("htPhi"               , &htPhi                );
