@@ -224,6 +224,14 @@ void ZTauTauHistMaker::BookLepHistograms() {
       fLepHist[i]->hOneFlavor    = new TH1F("oneflavor"  , Form("%s: Flavor"  ,dirname)  ,  20,   0,  20);
       fLepHist[i]->hOneQ         = new TH1F("oneq"       , Form("%s: Q"       ,dirname)  ,   5,  -2,   2);
       fLepHist[i]->hOneTrigger   = new TH1F("onetrigger" , Form("%s: Trigger" ,dirname)  ,  10,   0,  10);
+      //Gen Info
+      fLepHist[i]->hOneGenPt     = new TH1F("onegenpt"   , Form("%s: Gen Pt"   ,dirname)  , 200,   0, 200);
+      fLepHist[i]->hOneGenE      = new TH1F("onegene"    , Form("%s: Gen E"    ,dirname)  , 200,   0, 1e3);
+      fLepHist[i]->hOneGenEta    = new TH1F("onegeneta"  , Form("%s: Gen Eta"  ,dirname)  , 200, -10,  10);
+      fLepHist[i]->hOneDeltaPt   = new TH1F("onedeltapt" , Form("%s: Gen Delta Pt"   ,dirname)  , 200,-100, 100);
+      fLepHist[i]->hOneDeltaE    = new TH1F("onedeltae"  , Form("%s: Gen Delta E"    ,dirname)  , 200,-500, 500);
+      fLepHist[i]->hOneDeltaEta  = new TH1F("onedeltaeta", Form("%s: Gen Delta Eta"  ,dirname)  , 200, -10., 10.);
+      //SVFit Info
       fLepHist[i]->hOneSVPt      = new TH1F("onesvpt"    , Form("%s: SV Pt"   ,dirname)  , 200,   0, 200);
       fLepHist[i]->hOneSVP       = new TH1F("onesvp"     , Form("%s: SV P"    ,dirname)  , 200,   0, 1e3);
       fLepHist[i]->hOneSVE       = new TH1F("onesve"     , Form("%s: SV E"    ,dirname)  , 200,   0, 1e3);
@@ -247,6 +255,14 @@ void ZTauTauHistMaker::BookLepHistograms() {
       fLepHist[i]->hTwoFlavor    = new TH1F("twoflavor"  , Form("%s: Flavor"  ,dirname)  ,  20,   0,  20);
       fLepHist[i]->hTwoQ         = new TH1F("twoq"       , Form("%s: Q"       ,dirname)  ,   5,  -2,   2);
       fLepHist[i]->hTwoTrigger   = new TH1F("twotrigger" , Form("%s: Trigger" ,dirname)  ,  10,   0,  10);
+      //Gen Info
+      fLepHist[i]->hTwoGenPt     = new TH1F("twogenpt"   , Form("%s: Gen Pt"   ,dirname)  , 200,   0, 200);
+      fLepHist[i]->hTwoGenE      = new TH1F("twogene"    , Form("%s: Gen E"    ,dirname)  , 200,   0, 1e3);
+      fLepHist[i]->hTwoGenEta    = new TH1F("twogeneta"  , Form("%s: Gen Eta"  ,dirname)  , 200, -10,  10);
+      fLepHist[i]->hTwoDeltaPt   = new TH1F("twodeltapt" , Form("%s: Gen Delta Pt"   ,dirname)  , 200,-100, 100);
+      fLepHist[i]->hTwoDeltaE    = new TH1F("twodeltae"  , Form("%s: Gen Delta E"    ,dirname)  , 200,-500, 500);
+      fLepHist[i]->hTwoDeltaEta  = new TH1F("twodeltaeta", Form("%s: Gen Delta Eta"  ,dirname)  , 200, -10., 10.);
+      //SVFit Info
       fLepHist[i]->hTwoSVPt      = new TH1F("twosvpt"    , Form("%s: SV Pt"   ,dirname)  , 200,   0, 200);
       fLepHist[i]->hTwoSVP       = new TH1F("twosvp"     , Form("%s: SV P"    ,dirname)  , 200,   0, 1e3);
       fLepHist[i]->hTwoSVE       = new TH1F("twosve"     , Form("%s: SV E"    ,dirname)  , 200,   0, 1e3);
@@ -470,6 +486,16 @@ void ZTauTauHistMaker::FillLepHistogram(LepHist_t* Hist) {
   Hist->hOneFlavor    ->Fill(fabs(leptonOneFlavor)        ,eventWeight*genWeight);
   Hist->hOneQ         ->Fill(leptonOneFlavor < 0 ? -1 : 1 ,eventWeight*genWeight);
   // Hist->hOneTrigger   ->Fill(leptonOneTrigger       ,eventWeight*genWeight);
+
+  if(genLeptonOneP4) {
+    Hist->hOneGenPt       ->Fill(genLeptonOneP4->Pt()    ,eventWeight*genWeight);
+    Hist->hOneGenE        ->Fill(genLeptonOneP4->E()     ,eventWeight*genWeight);
+    Hist->hOneGenEta      ->Fill(genLeptonOneP4->Eta()   ,eventWeight*genWeight);
+    Hist->hOneDeltaPt     ->Fill(leptonOneP4->Pt()  - genLeptonOneP4->Pt()    ,eventWeight*genWeight);
+    Hist->hOneDeltaE      ->Fill(leptonOneP4->E()   - genLeptonOneP4->E()     ,eventWeight*genWeight);
+    Hist->hOneDeltaEta    ->Fill(leptonOneP4->Eta() - genLeptonOneP4->Eta()   ,eventWeight*genWeight);
+  }
+  
   if(leptonOneSVP4) {
     Hist->hOneSVPt       ->Fill(leptonOneSVP4->Pt()    ,eventWeight*genWeight);
     Hist->hOneSVP        ->Fill(leptonOneSVP4->P()     ,eventWeight*genWeight);
@@ -478,7 +504,7 @@ void ZTauTauHistMaker::FillLepHistogram(LepHist_t* Hist) {
     if(leptonOneSVP4->Pt() > 0.)
       Hist->hOneSVEta      ->Fill(leptonOneSVP4->Eta()   ,eventWeight*genWeight);
     else
-      Hist->hOneSVEta      ->Fill(1.e6   ,eventWeight*genWeight);
+      Hist->hOneSVEta      ->Fill(-1.e6   ,eventWeight*genWeight);
     Hist->hOneSVDeltaPt  ->Fill(leptonOneSVP4->Pt()  -  leptonOneP4->Pt()  ,eventWeight*genWeight);
     Hist->hOneSVDeltaP   ->Fill(leptonOneSVP4->P()   -  leptonOneP4->P()   ,eventWeight*genWeight);
     Hist->hOneSVDeltaE   ->Fill(leptonOneSVP4->E()   -  leptonOneP4->E()   ,eventWeight*genWeight);
@@ -502,6 +528,16 @@ void ZTauTauHistMaker::FillLepHistogram(LepHist_t* Hist) {
   Hist->hTwoFlavor    ->Fill(fabs(leptonTwoFlavor)        ,eventWeight*genWeight);
   Hist->hTwoQ         ->Fill(leptonTwoFlavor < 0 ? -1 : 1 ,eventWeight*genWeight);
   // Hist->hTwoTrigger   ->Fill(leptonTwoTrigger       ,eventWeight*genWeight);
+
+  if(genLeptonTwoP4) {
+    Hist->hTwoGenPt       ->Fill(genLeptonTwoP4->Pt()    ,eventWeight*genWeight);
+    Hist->hTwoGenE        ->Fill(genLeptonTwoP4->E()     ,eventWeight*genWeight);
+    Hist->hTwoGenEta      ->Fill(genLeptonTwoP4->Eta()   ,eventWeight*genWeight);
+    Hist->hTwoDeltaPt     ->Fill(leptonTwoP4->Pt()  - genLeptonTwoP4->Pt()    ,eventWeight*genWeight);
+    Hist->hTwoDeltaE      ->Fill(leptonTwoP4->E()   - genLeptonTwoP4->E()     ,eventWeight*genWeight);
+    Hist->hTwoDeltaEta    ->Fill(leptonTwoP4->Eta() - genLeptonTwoP4->Eta()   ,eventWeight*genWeight);
+  }
+
   if(leptonTwoSVP4) {
     Hist->hTwoSVPt      ->Fill(leptonTwoSVP4->Pt()    ,eventWeight*genWeight);
     Hist->hTwoSVP       ->Fill(leptonTwoSVP4->P()     ,eventWeight*genWeight);
@@ -510,14 +546,14 @@ void ZTauTauHistMaker::FillLepHistogram(LepHist_t* Hist) {
     if(leptonTwoSVP4->Pt() > 0.)
       Hist->hTwoSVEta      ->Fill(leptonTwoSVP4->Eta()   ,eventWeight*genWeight);
     else
-      Hist->hTwoSVEta      ->Fill(1.e6   ,eventWeight*genWeight);
+      Hist->hTwoSVEta      ->Fill(-1.e6   ,eventWeight*genWeight);
     Hist->hTwoSVDeltaPt  ->Fill(leptonTwoSVP4->Pt()  -  leptonTwoP4->Pt()  ,eventWeight*genWeight);
     Hist->hTwoSVDeltaP   ->Fill(leptonTwoSVP4->P()   -  leptonTwoP4->P()   ,eventWeight*genWeight);
     Hist->hTwoSVDeltaE   ->Fill(leptonTwoSVP4->E()   -  leptonTwoP4->E()   ,eventWeight*genWeight);
     if(leptonTwoSVP4->Pt() > 0.)    
       Hist->hTwoSVDeltaEta ->Fill(leptonTwoSVP4->Eta() -  leptonTwoP4->Eta() ,eventWeight*genWeight);
     else
-      Hist->hTwoSVDeltaEta ->Fill(1.e6 ,eventWeight*genWeight);
+      Hist->hTwoSVDeltaEta ->Fill(-1.e6 ,eventWeight*genWeight);
 
   }
 }
@@ -545,13 +581,13 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   if(entry%50000 == 0) printf("Processing event: %12lld\n", entry);
   //DY Splitting
   if(fDYType > 0) {
-    if(fDYType > 2 && nGenTausHad+nGenTausLep == 2) return kTRUE;
-    else if(fDYType == 1 && nGenTausHad+nGenTausLep == 0) return kTRUE;
-    else if(nGenTausHad+nGenTausLep != 0 && nGenTausHad+nGenTausLep != 2) {
-      printf("Unexpected number of taus, %i found. Continuing\n",
-	     nGenTausHad+nGenTausLep);
-      return kTRUE;
-    }
+    if(fDYType > 1 && nGenTausHad+nGenTausLep >= 2) return kTRUE; // gen counting currently odd, so ask at least 2
+    else if(fDYType == 1 && nGenTausHad+nGenTausLep < 2) return kTRUE; 
+    // else if(nGenTausHad+nGenTausLep != 0 && nGenTausHad+nGenTausLep != 2) {
+    //   printf("Unexpected number of taus, %i found. Continuing\n",
+    // 	     nGenTausHad+nGenTausLep);
+    //   return kTRUE;
+    // }
   }
   bool chargeTest = leptonOneFlavor*leptonTwoFlavor < 0;
   FillAllHistograms(0);

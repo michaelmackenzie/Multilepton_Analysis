@@ -53,51 +53,53 @@ public :
   TTree          *fChain = 0;   //!pointer to the analyzed TTree or TChain
 
   // Readers to access the data (delete the ones you do not need).
-  UInt_t runNumber                 ;
-  ULong64_t eventNumber            ;
-  UInt_t lumiSection               ;
-  UInt_t nPV                       ;
-  Float_t nPU                      ;
-  UInt_t mcEra                     ;
-  UInt_t triggerLeptonStatus       ;
-  Float_t eventWeight              ;
-  Float_t genWeight                ;
-  Float_t puWeight                 ;
-  Float_t topPtWeight              ;
-  Int_t tauDecayMode               ;
-  Float_t tauMVA                   ;
-  Int_t tauGenFlavor               ;
-  Int_t tauGenFlavorHad            ;
-  Float_t tauVetoedJetPt           ;
-  Float_t tauVetoedJetPtUnc        ;
-  TLorentzVector* leptonOneP4 = 0  ;
-  TLorentzVector* leptonTwoP4 = 0  ;
-  Int_t leptonOneFlavor            ;
-  Int_t leptonTwoFlavor            ;
-  TLorentzVector* photonP4 = 0     ;
-  UInt_t nMuons                    ;
-  UInt_t nElectrons                ;
-  UInt_t nTaus                     ;
-  UInt_t nPhotons                  ;
-  UInt_t nJets                     ;
-  UInt_t nBJets                    ;
-  UInt_t nGenTausHad               ;
-  UInt_t nGenTausLep               ;
-  UInt_t nGenElectrons             ;
-  UInt_t nGenMuons                 ;
-  Float_t htSum                    ;
-  Float_t ht                       ;
-  Float_t htPhi                    ;
-  Float_t met                      ;
-  Float_t metPhi                   ;
-  Float_t covMet00                 ;
-  Float_t covMet01                 ;
-  Float_t covMet11                 ;
-  Float_t massSVFit                ;
-  Float_t massErrSVFit             ;
-  Int_t   svFitStatus              ;
-  TLorentzVector* leptonOneSVP4 = 0;
-  TLorentzVector* leptonTwoSVP4 = 0;
+  UInt_t runNumber                   ;
+  ULong64_t eventNumber              ;
+  UInt_t lumiSection                 ;
+  UInt_t nPV                         ;
+  Float_t nPU                        ;
+  UInt_t mcEra                       ;
+  UInt_t triggerLeptonStatus         ;
+  Float_t eventWeight                ;
+  Float_t genWeight                  ;
+  Float_t puWeight                   ;
+  Float_t topPtWeight                ;
+  Int_t tauDecayMode                 ;
+  Float_t tauMVA                     ;
+  Int_t tauGenFlavor                 ;
+  Int_t tauGenFlavorHad              ;
+  Float_t tauVetoedJetPt             ;
+  Float_t tauVetoedJetPtUnc          ;
+  TLorentzVector* leptonOneP4 = 0    ;
+  TLorentzVector* leptonTwoP4 = 0    ;
+  Int_t leptonOneFlavor              ;
+  Int_t leptonTwoFlavor              ;
+  TLorentzVector* genLeptonOneP4 = 0 ;
+  TLorentzVector* genLeptonTwoP4 = 0 ;
+  TLorentzVector* photonP4 = 0       ;
+  UInt_t nMuons                      ;
+  UInt_t nElectrons                  ;
+  UInt_t nTaus                       ;
+  UInt_t nPhotons                    ;
+  UInt_t nJets                       ;
+  UInt_t nBJets                      ;
+  UInt_t nGenTausHad                 ;
+  UInt_t nGenTausLep                 ;
+  UInt_t nGenElectrons               ;
+  UInt_t nGenMuons                   ;
+  Float_t htSum                      ;
+  Float_t ht                         ;
+  Float_t htPhi                      ;
+  Float_t met                        ;
+  Float_t metPhi                     ;
+  Float_t covMet00                   ;
+  Float_t covMet01                   ;
+  Float_t covMet11                   ;
+  Float_t massSVFit                  ;
+  Float_t massErrSVFit               ;
+  Int_t   svFitStatus                ;
+  TLorentzVector* leptonOneSVP4 = 0  ;
+  TLorentzVector* leptonTwoSVP4 = 0  ;
 
 
   struct EventHist_t {
@@ -208,6 +210,14 @@ public :
     TH1F* hOneFlavor;
     TH1F* hOneQ;
     TH1F* hOneTrigger;
+    //Gen Info
+    TH1F* hOneGenPt;
+    TH1F* hOneGenE;
+    TH1F* hOneGenEta;
+    TH1F* hOneDeltaPt;
+    TH1F* hOneDeltaE;
+    TH1F* hOneDeltaEta;
+    //SVFit Info
     TH1F* hOneSVPt;
     TH1F* hOneSVP;
     TH1F* hOneSVE;
@@ -217,6 +227,7 @@ public :
     TH1F* hOneSVDeltaP;
     TH1F* hOneSVDeltaE;
     TH1F* hOneSVDeltaEta;
+
     TH1F* hTwoPx;
     TH1F* hTwoPy;
     TH1F* hTwoPz;
@@ -231,6 +242,14 @@ public :
     TH1F* hTwoFlavor;
     TH1F* hTwoQ;
     TH1F* hTwoTrigger;
+    //Gen Info
+    TH1F* hTwoGenPt;
+    TH1F* hTwoGenE;
+    TH1F* hTwoGenEta;
+    TH1F* hTwoDeltaPt;
+    TH1F* hTwoDeltaE;
+    TH1F* hTwoDeltaEta;
+    //SVFit Info
     TH1F* hTwoSVPt;
     TH1F* hTwoSVP;
     TH1F* hTwoSVE;
@@ -437,6 +456,8 @@ void ZTauTauHistMaker::Init(TTree *tree)
   fChain->SetBranchAddress("leptonTwoP4" 	 , &leptonTwoP4          );
   fChain->SetBranchAddress("leptonOneFlavor"     , &leptonOneFlavor      );
   fChain->SetBranchAddress("leptonTwoFlavor"     , &leptonTwoFlavor      );
+  fChain->SetBranchAddress("genLeptonOneP4" 	 , &genLeptonOneP4       );
+  fChain->SetBranchAddress("genLeptonTwoP4" 	 , &genLeptonTwoP4       );
   fChain->SetBranchAddress("photonP4"  	         , &photonP4             );
   fChain->SetBranchAddress("nMuons"              , &nMuons               );
   fChain->SetBranchAddress("nElectrons"          , &nElectrons           );
