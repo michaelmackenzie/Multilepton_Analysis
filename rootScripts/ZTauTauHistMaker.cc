@@ -337,7 +337,7 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
   float lepSVDelPhi = -1.;
   float lepSVDelEta = -1.;
   if(leptonOneSVP4 && leptonTwoSVP4
-     && leptonOneSVP4->Pt() > 0. && leptonTwoSVP4->Pt() > 0.) {
+     && leptonOneSVP4->Pt() > 1.e-5 && leptonTwoSVP4->Pt() > 1.e-5) {
     lepSVDelR   = leptonOneSVP4->DeltaR(*leptonTwoSVP4)           ;
     lepSVDelPhi = abs(leptonOneSVP4->DeltaPhi(*leptonTwoSVP4))    ;
     lepSVDelEta = abs(leptonOneSVP4->Eta() - leptonTwoSVP4->Eta());
@@ -359,7 +359,7 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
   Hist->hLepSVP       ->Fill(svLepSys.P()             ,eventWeight*genWeight);
   Hist->hLepSVE       ->Fill(svLepSys.E()             ,eventWeight*genWeight);
   Hist->hLepSVM       ->Fill(svLepSys.M()             ,eventWeight*genWeight);
-  Hist->hLepSVEta     ->Fill((svLepSys.Pt() > 0.) ? svLepSys.Eta()  : -1e6,eventWeight*genWeight);
+  Hist->hLepSVEta     ->Fill(((svLepSys.Pt() > 1.e-5) ? svLepSys.Eta()  : -1e6),eventWeight*genWeight);
   Hist->hLepSVPhi     ->Fill(svLepSys.Phi()           ,eventWeight*genWeight);
 
   Hist->hLepSVDeltaPhi ->Fill(lepSVDelPhi              ,eventWeight*genWeight);
@@ -375,7 +375,7 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
 
   Hist->hSysSVM          ->Fill(svSys.M()      ,eventWeight*genWeight);
   Hist->hSysSVPt         ->Fill(svSys.Pt()     ,eventWeight*genWeight);
-  Hist->hSysSVEta        ->Fill((svSys.Pt() > 0.) ? svSys.Eta() : -1.e6,eventWeight*genWeight);
+  Hist->hSysSVEta        ->Fill(((svSys.Pt() > 1.e-5) ? svSys.Eta() : -1.e6),eventWeight*genWeight);
   
   TLorentzVector* tau = 0;
   TLorentzVector* muon = 0;
@@ -501,14 +501,14 @@ void ZTauTauHistMaker::FillLepHistogram(LepHist_t* Hist) {
     Hist->hOneSVP        ->Fill(leptonOneSVP4->P()     ,eventWeight*genWeight);
     Hist->hOneSVE        ->Fill(leptonOneSVP4->E()     ,eventWeight*genWeight);
     Hist->hOneSVM        ->Fill(leptonOneSVP4->M()     ,eventWeight*genWeight);
-    if(leptonOneSVP4->Pt() > 0.)
+    if(leptonOneSVP4->Pt() > 1.e-5)
       Hist->hOneSVEta      ->Fill(leptonOneSVP4->Eta()   ,eventWeight*genWeight);
     else
       Hist->hOneSVEta      ->Fill(-1.e6   ,eventWeight*genWeight);
     Hist->hOneSVDeltaPt  ->Fill(leptonOneSVP4->Pt()  -  leptonOneP4->Pt()  ,eventWeight*genWeight);
     Hist->hOneSVDeltaP   ->Fill(leptonOneSVP4->P()   -  leptonOneP4->P()   ,eventWeight*genWeight);
     Hist->hOneSVDeltaE   ->Fill(leptonOneSVP4->E()   -  leptonOneP4->E()   ,eventWeight*genWeight);
-    if(leptonOneSVP4->Pt() > 0.)
+    if(leptonOneSVP4->Pt() > 1.e-5)
       Hist->hOneSVDeltaEta ->Fill(leptonOneSVP4->Eta() -  leptonOneP4->Eta() ,eventWeight*genWeight);
     else
       Hist->hOneSVDeltaEta ->Fill(1.e6 ,eventWeight*genWeight);
@@ -543,14 +543,14 @@ void ZTauTauHistMaker::FillLepHistogram(LepHist_t* Hist) {
     Hist->hTwoSVP       ->Fill(leptonTwoSVP4->P()     ,eventWeight*genWeight);
     Hist->hTwoSVE       ->Fill(leptonTwoSVP4->E()     ,eventWeight*genWeight);
     Hist->hTwoSVM       ->Fill(leptonTwoSVP4->M()     ,eventWeight*genWeight);
-    if(leptonTwoSVP4->Pt() > 0.)
+    if(leptonTwoSVP4->Pt() > 1.e-5)
       Hist->hTwoSVEta      ->Fill(leptonTwoSVP4->Eta()   ,eventWeight*genWeight);
     else
       Hist->hTwoSVEta      ->Fill(-1.e6   ,eventWeight*genWeight);
     Hist->hTwoSVDeltaPt  ->Fill(leptonTwoSVP4->Pt()  -  leptonTwoP4->Pt()  ,eventWeight*genWeight);
     Hist->hTwoSVDeltaP   ->Fill(leptonTwoSVP4->P()   -  leptonTwoP4->P()   ,eventWeight*genWeight);
     Hist->hTwoSVDeltaE   ->Fill(leptonTwoSVP4->E()   -  leptonTwoP4->E()   ,eventWeight*genWeight);
-    if(leptonTwoSVP4->Pt() > 0.)    
+    if(leptonTwoSVP4->Pt() > 1.e-5)    
       Hist->hTwoSVDeltaEta ->Fill(leptonTwoSVP4->Eta() -  leptonTwoP4->Eta() ,eventWeight*genWeight);
     else
       Hist->hTwoSVDeltaEta ->Fill(-1.e6 ,eventWeight*genWeight);
