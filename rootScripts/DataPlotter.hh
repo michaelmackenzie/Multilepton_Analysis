@@ -52,6 +52,8 @@ public :
   Double_t signal_scale_ = 1.; //increase the size of the signal if needed
   Int_t stack_signal_ = 0; //put signal into the stack
   Int_t plot_y_title_ = 0; //plot y title on 1D histograms
+  Double_t qcd_scale_ = 1.; //scale factor for SS --> OS selection
+  
   void draw_cms_label() {
     TText *cmslabel = new TText();
     cmslabel-> SetNDC();

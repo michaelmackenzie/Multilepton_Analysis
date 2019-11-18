@@ -200,7 +200,7 @@ void DataPlotter::get_titles(TString hist, TString setType, TString* xtitle, TSt
 
 vector<TH1F*> DataPlotter::get_signal(TString hist, TString setType, Int_t set) {
   vector<TH1F*> h;
-  Int_t color[] = {kAzure-2, kGreen+3,kSpring-1 , kViolet-2, kGreen-2, kRed+3,kOrange-9,kBlue+1};
+  Int_t color[] = {kAzure-2, kGreen+3, kViolet-2, kGreen-2, kRed+3,kOrange-9,kBlue+1};
   Int_t fill[]  = {3001,3002,3002,3003,3005,3006,3003,3003};
   
   //for combining histograms of the same process
@@ -240,7 +240,7 @@ vector<TH1F*> DataPlotter::get_signal(TString hist, TString setType, Int_t set) 
       h[index]->SetFillStyle(fill [i_color]);
       h[index]->SetFillColor(color[i_color]);
       h[index]->SetLineColor(color[i_color]);
-      h[index]->SetLineWidth(2);
+      h[index]->SetLineWidth(3);
       h[index]->SetName(Form("h_%s_%s",name.Data(),hist.Data()));
       
     }
@@ -357,6 +357,8 @@ TH1F* DataPlotter::get_qcd(TString hist, TString setType, Int_t set) {
       hData->SetBinContent(i+1,0.);
   }
   
+  hData->Scale(qcd_scale_);
+  
   hData->SetTitle(Form("#scale[0.5]{#int} QCD = %.2e",  hData->Integral()));
   hData->SetLineColor(kOrange+6);
   hData->SetFillColorAlpha(kOrange+6,fill_alpha_);
@@ -370,8 +372,8 @@ THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set) {
   vector<TH1F*> h;
   TH1F* hQCD = (include_qcd_) ? get_qcd(hist,setType,set) : NULL;
 
-  Int_t color[] = {kRed+1, kYellow+1,kSpring-1 , kViolet-2, kGreen-2, kRed+3,kOrange-9,kBlue+1};
-  Int_t fill[]  = {1001,3005,1001,1001,3005,1001,1001,1001};
+  Int_t color[] = {kRed+1, kRed-2, kYellow+1,kSpring-1 , kViolet-2, kGreen-2, kRed+3,kOrange-9,kBlue+1};
+  Int_t fill[]  = {1001,3001,3005,1001,1001,3005,1001,1001,1001};
   THStack* hstack = new THStack(Form("%s",hist.Data()),Form("%s",hist.Data()));
   
   //for combining histograms of the same process
@@ -755,7 +757,17 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
   TCanvas* c = new TCanvas(Form("s_%s_%i",hist.Data(),set),Form("s_%s_%i",hist.Data(),set), 1000, 700);
   //split the top into main stack and bottom into Data/MC if plotting data
   TPad *pad1, *pad2;
-  if(plot_data_) {
+
+  //get stack and data histogram
+  THStack* hstack = get_stack(hist,setType,set);
+  if(!hstack) {
+    printf("Null stack returned!\n");
+    return c;
+  }
+  TH1F* d = get_data(hist, setType, set);
+  vector<TH1F*> hsignal = get_signal(hist,setType,set);
+
+  if(plot_data_ && d) {
     pad1 = new TPad("pad1","pad1",0.0,0.30,1,1); //xL yL xH xH, (0,0) = bottom left
     pad2 = new TPad("pad2","pad2",0.0,0.02,1,0.30);
 
@@ -765,15 +777,14 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
     pad2->SetBottomMargin(0.22);
     pad1->Draw();
     pad2->Draw();
-    pad1->cd();
+  } else {
+    pad1 = new TPad("pad1","pad1",0.0,0.0,1,1); //xL yL xH xH, (0,0) = bottom left
+    pad1->Draw();
   }
+  pad1->cd();
   //store maximum of stack/Data
   double m = 0.;
 
-  //get stack and data histogram
-  THStack* hstack = get_stack(hist,setType,set);
-  TH1F* d = get_data(hist, setType, set);
-  vector<TH1F*> hsignal = get_signal(hist,setType,set);
   
   //get axis titles
   TString xtitle;
@@ -800,7 +811,10 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
   m = max(hstack->GetMaximum(), (d) ? d->GetMaximum() : 0.);
 
   //Make a Data/MC histogram
-  TH1F* hDataMC = (plot_data_) ? (TH1F*) d->Clone("hDataMC") : 0;
+  if(plot_data_ && !d) {
+    printf("Warning! Data histogram is Null! Skipping Data/MC plot\n");
+  }
+  TH1F* hDataMC = (plot_data_ && d) ? (TH1F*) d->Clone("hDataMC") : 0;
   if(hDataMC) {
     hDataMC->Clear();
     for(int i = 1; i <= hDataMC->GetNbinsX(); ++i) {
@@ -838,7 +852,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
 
   if(yMin_ < yMax_) hstack->GetYaxis()->SetRangeUser(yMin_,yMax_);    
   else              hstack->GetYaxis()->SetRangeUser(1.e-1,m*1.2);    
-  if(plot_data_ && xMin_ < xMax_) hDataMC->GetXaxis()->SetRangeUser(xMin_,xMax_);    
+  if(plot_data_ && xMin_ < xMax_ && hDataMC) hDataMC->GetXaxis()->SetRangeUser(xMin_,xMax_);    
   if(xMin_ < xMax_) hstack->GetXaxis()->SetRangeUser(xMin_,xMax_);    
 
   if(plot_title_) hstack->SetTitle (title.Data());
@@ -859,7 +873,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
     else          c->SetLogy();
   }
   c->SetGrid();
-  if(plot_data_) {
+  if(plot_data_ && hDataMC) {
     pad2->cd();
     pad2->SetGrid();
     c->SetGrid();
