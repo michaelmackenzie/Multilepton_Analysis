@@ -200,7 +200,7 @@ void DataPlotter::get_titles(TString hist, TString setType, TString* xtitle, TSt
 
 vector<TH1F*> DataPlotter::get_signal(TString hist, TString setType, Int_t set) {
   vector<TH1F*> h;
-  Int_t color[] = {kAzure-2, kGreen+3, kViolet-2, kGreen-2, kRed+3,kOrange-9,kBlue+1};
+  Int_t color[] = {kAzure-2, kGreen+3, kViolet-2, kOrange+10, kYellow+3,kOrange-9,kBlue+1};
   Int_t fill[]  = {3001,3002,3002,3003,3005,3006,3003,3003};
   
   //for combining histograms of the same process
@@ -213,9 +213,7 @@ vector<TH1F*> DataPlotter::get_signal(TString hist, TString setType, Int_t set) 
     h.push_back(NULL);
     if(isData_[i]) continue;
     if(!isSignal_[i]) continue;
-    TFile* f = (TFile*) data_[i]->Get(Form("%s_%i",setType.Data(),set));
-    if(!f) continue;
-    TH1F* tmp = (TH1F*) f->Get(hist.Data());
+    TH1F* tmp = (TH1F*) data_[i]->Get(Form("%s_%i/%s", setType.Data(), set, hist.Data()));
     if(!tmp) continue;
     tmp->Scale(scale_[i]);
 
@@ -264,9 +262,7 @@ TH2F* DataPlotter::get_signal_2D(TString hist, TString setType, Int_t set) {
   for(UInt_t i = 0; i < data_.size(); ++i) {
     if(isData_[i]) continue;
     if(!isSignal_[i]) continue;
-    TFile* f = (TFile*) data_[i]->Get(Form("%s_%i",setType.Data(),set));
-    if(!f) continue;
-    TH2F* tmp = (TH2F*) f->Get(hist.Data());
+    TH2F* tmp = (TH2F*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set, hist.Data()));
     if(!tmp) continue;
     if(!h) h = tmp;
     else h->Add(tmp);
@@ -290,9 +286,7 @@ TH1F* DataPlotter::get_data(TString hist, TString setType, Int_t set) {
   TH1F* d = 0;
   for(UInt_t i = 0; i < data_.size(); ++i) {
     if(!isData_[i]) continue;
-    TFile* f = (TFile*) data_[i]->Get(Form("%s_%i",setType.Data(),set));
-    if(!f) continue;
-    TH1F* tmp = (TH1F*) f->Get(hist.Data());
+    TH1F* tmp = (TH1F*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set, hist.Data()));
     if(!tmp) continue;
     if(!d) d = tmp;
     else d->Add(tmp);
@@ -311,9 +305,7 @@ TH2F* DataPlotter::get_data_2D(TString hist, TString setType, Int_t set) {
   TH2F* d = 0;
   for(UInt_t i = 0; i < data_.size(); ++i) {
     if(!isData_[i]) continue;
-    TFile* f = (TFile*) data_[i]->Get(Form("%s_%i",setType.Data(),set));
-    if(!f) continue;
-    TH2F* tmp = (TH2F*) f->Get(hist.Data());
+    TH2F* tmp = (TH2F*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set, hist.Data()));
     if(!tmp) continue;
     if(!d) d = tmp;
     else d->Add(tmp);
@@ -340,9 +332,7 @@ TH1F* DataPlotter::get_qcd(TString hist, TString setType, Int_t set) {
   TH1F* hMC = 0;
   for(UInt_t i = 0; i < data_.size(); ++i) {
     if(isData_[i]) continue;
-    TFile* f = (TFile*) data_[i]->Get(Form("%s_%i",setType.Data(),set_qcd));
-    if(!f) continue;
-    TH1F* htmp = (TH1F*) f->Get(hist.Data());
+    TH1F* htmp = (TH1F*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set_qcd, hist.Data()));
     if(!htmp) continue;
     htmp = (TH1F*) htmp->Clone("tmp");
     htmp->Scale(scale_[i]);
@@ -391,9 +381,7 @@ THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set) {
     if(isData_[i]) {h.push_back(NULL);continue;}
     if(isSignal_[i]) {h.push_back(NULL);continue;}
     
-    TFile* f = (TFile*) data_[i]->Get(Form("%s_%i",setType.Data(),set));
-    if(!f) continue;
-    h.push_back((TH1F*) f->Get(hist.Data()));
+    h.push_back((TH1F*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set, hist.Data())));
     if(!h[i]) continue;
     h[i] = (TH1F*) h[i]->Clone("tmp");
     h[i]->Scale(scale_[i]);
@@ -447,11 +435,8 @@ TCanvas* DataPlotter::plot_single_2Dhist(TString hist, TString setType, Int_t se
   for(UInt_t i = 0; i < data_.size(); ++i) {
     if(label != labels_[i]) continue;
     
-    //get histogram book
-    TFile* f = (TFile*) data_[i]->Get(Form("%s_%i",setType.Data(),set));
-    if(!f) {printf("No folder %s, continuing\n",Form("%s_%i",setType.Data(),set));continue;}
     //get histogram
-    TH2F* htmp = ((TH2F*) f->Get(hist.Data()));
+    TH2F* htmp = (TH2F*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set, hist.Data()));
     if(!htmp) {printf("No hist %s in %s, continuing\n",hist.Data(), fileNames_[i].Data());continue;}
     htmp = (TH2F*) htmp->Clone("tmp");
     //scale to cross section and luminosity
@@ -543,11 +528,8 @@ TCanvas* DataPlotter::plot_2Dhist(TString hist, TString setType, Int_t set) {
     //push null to not mess up indexing
     if(isData_[i]) {h.push_back(NULL);continue;}
 
-    //get histogram book
-    TFile* f = (TFile*) data_[i]->Get(Form("%s_%i",setType.Data(),set));
-    if(!f) {printf("No folder %s, continuing\n",Form("%s_%i",setType.Data(),set));continue;}
     //get histogram
-    TH2F* htmp = ((TH2F*) f->Get(hist.Data()));
+    TH2F* htmp = (TH2F*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set, hist.Data()));
     if(!htmp) {printf("No hist %s in %s, continuing\n",hist.Data(), fileNames_[i].Data());continue;}
     h.push_back((TH2F*) htmp->Clone("tmp"));
     //scale to cross section and luminosity
@@ -617,6 +599,17 @@ TCanvas* DataPlotter::plot_2Dhist(TString hist, TString setType, Int_t set) {
   c->SetRightMargin(0.05);
   c->SetLeftMargin(0.087);
   c->BuildLegend();
+  auto o = c->GetPrimitive("TPave");
+  if(o) {
+    auto tl = (TLegend*) o;
+    tl->SetTextSize(0.04);
+    tl->SetX1NDC(0.65);
+    tl->SetX2NDC(0.9);
+    tl->SetY2NDC(0.45);
+    tl->SetY1NDC(0.9);
+    tl->SetEntrySeparation(2.);
+  }
+
   TH2F* hAxis = (h.size() > 0) ? h[ind] : 0;
   if(!hAxis) return NULL;
   
@@ -660,11 +653,8 @@ TCanvas* DataPlotter::plot_hist(TString hist, TString setType, Int_t set) {
     //push null to not mess up indexing
     if(isData_[i]) {h.push_back(NULL);continue;}
 
-    //get histogram book
-    TFile* f = (TFile*) data_[i]->Get(Form("%s_%i",setType.Data(),set));
-    if(!f) {printf("No folder %s, continuing\n",Form("%s_%i",setType.Data(),set));continue;}
     //get histogram
-    h.push_back((TH1F*) (f->Get(hist.Data())));
+    h.push_back((TH1F*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set, hist.Data())));
     if(!h[i]) {printf("No hist %s in %s, continuing\n",hist.Data(), fileNames_[i].Data());continue;}
     h[i] = (TH1F*) h[i]->Clone("htmp");
     //scale to cross section and luminosity
@@ -735,6 +725,17 @@ TCanvas* DataPlotter::plot_hist(TString hist, TString setType, Int_t set) {
   c->SetRightMargin(0.05);
   c->SetLeftMargin(0.087);
   c->BuildLegend();
+  auto o = c->GetPrimitive("TPave");
+  if(o) {
+    auto tl = (TLegend*) o;
+    tl->SetTextSize(0.04);
+    tl->SetX1NDC(0.65);
+    tl->SetX2NDC(0.9);
+    tl->SetY2NDC(0.45);
+    tl->SetY1NDC(0.9);
+    tl->SetEntrySeparation(2.);
+  }
+
   TH1F* hAxis = (h.size() > 0) ? h[ind] : hQCD;
   if(!hAxis) return NULL;
   
@@ -838,9 +839,33 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
   if(plot_data_) {
     pad1->BuildLegend();
     pad1->SetGrid();
+    pad1->Update();
+    auto o = pad1->GetPrimitive("TPave");
+    if(o) {
+      auto tl = (TLegend*) o;
+      tl->SetTextSize(0.04);
+      tl->SetY2NDC(0.45);
+      tl->SetY1NDC(0.9);
+      tl->SetX1NDC(0.6);
+      tl->SetX2NDC(0.9);
+      tl->SetEntrySeparation(2.);
+      pad1->Update();
+    }
+
   } else {
     c->BuildLegend();
     c->SetGrid();
+    c->Update();
+    auto o = c->GetPrimitive("TPave");
+    if(o) {
+      auto tl = (TLegend*) o;
+      tl->SetTextSize(0.04);
+      tl->SetX1NDC(0.6);
+      tl->SetX2NDC(0.9);
+      tl->SetY2NDC(0.45);
+      tl->SetY1NDC(0.9);
+      tl->SetEntrySeparation(2.);
+    }
   }
   //draw text
   draw_luminosity();
@@ -911,7 +936,8 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
 TCanvas* DataPlotter::print_stack(TString hist, TString setType, Int_t set) {
   TCanvas* c = plot_stack(hist,setType,set);
   if(!c) return c;
-  c->Print(Form("figures/ztautau/stack_%s_%s%s_%s_set_%i.png",selection_.Data(),hist.Data(),
+  c->Print(Form("figures/%s/stack_%s_%s%s%s_%s_set_%i.png",folder_.Data(),selection_.Data(),hist.Data(),
+		(logY_ ? "_log":""),
 		((plot_data_) ? "_data":""),"dataOverMC",set));
   return c;
 }
@@ -920,7 +946,8 @@ TCanvas* DataPlotter::print_hist(TString hist, TString setType, Int_t set) {
   TCanvas* c = plot_hist(hist,setType,set);
   cout << "plotted hist" << endl;
   if(!c) return c;
-  c->Print(Form("figures/ztautau/hist_%s_%s%s_%s_set_%i.png",selection_.Data(),hist.Data(),
+  c->Print(Form("figures/%s/hist_%s_%s%s%s_%s_set_%i.png",folder_.Data(),selection_.Data(),hist.Data(),
+		(logY_ ? "_log":""),
 		((plot_data_) ? "_data":""),"dataOverMC",set));
   return c;
 }
@@ -929,7 +956,7 @@ TCanvas* DataPlotter::print_2Dhist(TString hist, TString setType, Int_t set) {
   TCanvas* c = plot_2Dhist(hist,setType,set);
   cout << "plotted 2D hist" << endl;
   if(!c) return c;
-  c->Print(Form("figures/ztautau/hist2D_%s_%s%s_%s_set_%i.png",selection_.Data(),hist.Data(),
+  c->Print(Form("figures/%s/hist2D_%s_%s%s_%s_set_%i.png",folder_.Data(),selection_.Data(),hist.Data(),
 		((plot_data_) ? "_data":""),"dataOverMC",set));
   return c;
 }
@@ -938,7 +965,7 @@ TCanvas* DataPlotter::print_single_2Dhist(TString hist, TString setType, Int_t s
   TCanvas* c = plot_single_2Dhist(hist,setType,set,label);
   cout << "plotted 2D hist " << label.Data() << endl;
   if(!c) return c;
-  c->Print(Form("figures/ztautau/hist2D_%s_%s_%s%s_%s_set_%i.png",selection_.Data(),label.Data(),hist.Data(),
+  c->Print(Form("figures/%s/hist2D_%s_%s_%s%s_%s_set_%i.png",folder_.Data(),selection_.Data(),label.Data(),hist.Data(),
 		((plot_data_) ? "_data":""),"dataOverMC",set));
   return c;
 }

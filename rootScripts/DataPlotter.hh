@@ -14,6 +14,8 @@
 #include "TLatex.h"
 #include "TStyle.h"
 #include "TLine.h"
+#include "TObject.h"
+#include "TLegend.h"
 
 class DataPlotter : public TObject {
 public :
@@ -53,7 +55,7 @@ public :
   Int_t stack_signal_ = 0; //put signal into the stack
   Int_t plot_y_title_ = 0; //plot y title on 1D histograms
   Double_t qcd_scale_ = 1.; //scale factor for SS --> OS selection
-  
+  TString folder_ = "ztautau"; //figures folder for printing
   void draw_cms_label() {
     TText *cmslabel = new TText();
     cmslabel-> SetNDC();
