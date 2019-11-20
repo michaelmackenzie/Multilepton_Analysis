@@ -29,15 +29,17 @@ Fitter.cc is used to get legendre polynomials for background fits, made to match
 with Multilepton studies
 
 DataPlotter.cc holds datasets to be added together with their cross sections and plotted
-against data.
+against data. Plots 1D histograms and stacks as well as 2D histograms
 
 ### histograms
 Used to plot the histograms from a given book in MultileptonHistMaker's output
 adding together the processes with their cross section and generation values, primarily
-using plot_histograms.C, plot_ztautau_histograms.C, and dataplotter_ztautau.C
+using plot_histograms.C, plot_ztautau_histograms.C, and dataplotter_ztautau.C. The last of
+these uses the DataPlotter data handler to plot, storing the object as a field of the script
 
 ### tmva_training
 Used to train MVAs to separate backgrounds from signal
+
 CWoLa training uses variables not correlated with the dilepton mass to separate two mass ranges,
 hopefully only succeeding when there is a resonance in one of the masses
 
@@ -90,8 +92,10 @@ tree->Process(selec,"")
 ```
 .L DataPlotter.cc++g //recompile in debug mode
 DataPlotter* d = new DataPlotter()
-d->add_dataset("[file path]", "[dataset name when generated e.g. zjets_m-50]", "[Label e.g. Z+Jets]", [0 if MC 1 if Data], [xsec in pb^-1])
+d->add_dataset("[file path]", "[dataset name when generated e.g. zjets_m-50]", "[Label e.g. Z+Jets]", [0 if MC 1 if Data], [xsec in pb^-1], [true if signal false if background])
 TCanvas* c = d->plot_stack("[histogram name e.g. lepm]", "[histogram folder e.g. event]", [histogram set number])
+c = d->plot_hist("[histogram name e.g. lepm]", "[histogram folder e.g. event]", [histogram set number])
+TCanvas* c = d->print_stack("[histogram name e.g. lepm]", "[histogram folder e.g. event]", [histogram set number])
 c = d->plot_hist("[histogram name e.g. lepm]", "[histogram folder e.g. event]", [histogram set number])
 ```
 
