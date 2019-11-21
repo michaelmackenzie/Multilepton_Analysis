@@ -56,7 +56,8 @@ void ZTauTauHistMaker::FillAllHistograms(Int_t index) {
     FillEventHistogram( fEventHist [index]);
     FillPhotonHistogram(fPhotonHist[index]);
     FillLepHistogram(   fLepHist   [index]);
-  }
+  } else
+    printf("WARNING! Attempted to fill un-initialized histogram set %i!\n", index);
 }
 
 void ZTauTauHistMaker::BookHistograms() {
@@ -591,12 +592,8 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   if(fDYType > 0) {
     if(fDYType > 1 && nGenTausHad+nGenTausLep >= 2) return kTRUE; // gen counting currently odd, so ask at least 2
     else if(fDYType == 1 && nGenTausHad+nGenTausLep < 2) return kTRUE; 
-    // else if(nGenTausHad+nGenTausLep != 0 && nGenTausHad+nGenTausLep != 2) {
-    //   printf("Unexpected number of taus, %i found. Continuing\n",
-    // 	     nGenTausHad+nGenTausLep);
-    //   return kTRUE;
-    // }
   }
+
   bool chargeTest = leptonOneFlavor*leptonTwoFlavor < 0;
   FillAllHistograms(0);
 
@@ -618,10 +615,21 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   if(nPhotons == 1 && chargeTest) FillAllHistograms(3);
   else if(nPhotons == 1)          FillAllHistograms(3 + fQcdOffset);
 
+
+  //////////////////////////////////////////////////////////////
+  //
+  // Object cuts + selection section
+  //
+  //////////////////////////////////////////////////////////////
+
+
   bool mutau = nTaus == 1  && nMuons == 1;
   bool etau  = nTaus == 1  && nElectrons == 1;
   bool emu   = nMuons == 1 && nElectrons == 1;
-  
+
+  ////////////////////////////////////////////////////////////
+  // Set 5 + selection offset: object number selection
+  ////////////////////////////////////////////////////////////
   if(mutau && chargeTest) FillAllHistograms(5);
   else if(mutau)          FillAllHistograms(5 + fQcdOffset);
   if(etau  && chargeTest) FillAllHistograms(25);
@@ -646,6 +654,9 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   mutau = mutau && muon->Pt() > 25. && tau->Pt() > 20.;
   etau  = etau  && electron->Pt() > 30. && tau->Pt() > 20.;
 
+  ////////////////////////////////////////////////////////////
+  // Set 6 + selection offset: object pT cuts
+  ////////////////////////////////////////////////////////////
   if(mutau && chargeTest) FillAllHistograms(6);
   else if(mutau)          FillAllHistograms(6 + fQcdOffset);
   if(etau  && chargeTest) FillAllHistograms(26);
@@ -659,22 +670,42 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   etau  = etau  && abs(tau->Eta()) < 2.3;
   etau  = etau  && abs(tau->DeltaR(*electron)) > 0.3;
 
+  ////////////////////////////////////////////////////////////
+  // Set 7 + selection offset: object eta cuts
+  ////////////////////////////////////////////////////////////
   if(mutau && chargeTest) FillAllHistograms(7);
   else if(mutau)          FillAllHistograms(7 + fQcdOffset);
   if(etau  && chargeTest) FillAllHistograms(27);
   else if(etau)           FillAllHistograms(27 + fQcdOffset);
 
+  //////////////////////////////////////////////////////////////
+  //
+  // Analysis cut section
+  //
+  //////////////////////////////////////////////////////////////
+  
   //adding visible/invisible pT cuts
-  double offset = -38.;
-  double coeff = 0.6;
+  double offset = -35.;
+  double coeff = 0.5;
   double visShift = coeff*pxi_vis + offset;
-  if(mutau && pxi_inv > visShift && chargeTest) FillAllHistograms(11);
-  else if(mutau && pxi_inv > visShift)          FillAllHistograms(11 + fQcdOffset);
-  if(etau && pxi_inv > visShift && chargeTest)  FillAllHistograms(31);
-  else if(etau && pxi_inv > visShift)           FillAllHistograms(31 + fQcdOffset);
+
+  mutau &= visShift < pxi_inv;
+  etau  &= visShift < pxi_inv;
+  emu   &= visShift < pxi_inv;
+
+  ///////////////////////////////////////////////////////////////
+  // Set 11 + selection offset: visible*0.5 - 35 GeV < invisible
+  ///////////////////////////////////////////////////////////////
+  if(mutau && chargeTest) FillAllHistograms(11);
+  else if(mutau)          FillAllHistograms(11 + fQcdOffset);
+  if(etau && chargeTest)  FillAllHistograms(31);
+  else if(etau)           FillAllHistograms(31 + fQcdOffset);
 
   offset = -20.;
   visShift = coeff*pxi_vis + offset;
+  ///////////////////////////////////////////////////////////////
+  // Set 12 + selection offset: visible*0.5 - 20 GeV < invisible
+  ///////////////////////////////////////////////////////////////
   if(mutau && pxi_inv > visShift && chargeTest) FillAllHistograms(12);
   else if(mutau && pxi_inv > visShift)          FillAllHistograms(12 + fQcdOffset);
   if(etau && pxi_inv > visShift && chargeTest)  FillAllHistograms(32);
@@ -682,93 +713,133 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   
   double mll = (*leptonOneP4+*leptonTwoP4).M();
   double mgll = (*photonP4 + (*leptonOneP4+*leptonTwoP4)).M();
-  mutau = mutau && mll < 100. && mll > 40.;
-  etau  = etau  && mll < 100. && mll > 40.;
+  mutau = mutau && mll < 100. && mll > 50.;
+  etau  = etau  && mll < 100. && mll > 50.;
 
-  offset = -35.;
-  visShift = coeff*pxi_vis + offset;
-  if(mutau && pxi_inv > visShift && chargeTest) FillAllHistograms(13);
-  else if(mutau && pxi_inv > visShift)          FillAllHistograms(13 + fQcdOffset);
-  if(etau && pxi_inv > visShift && chargeTest)  FillAllHistograms(33);
-  else if(etau && pxi_inv > visShift)           FillAllHistograms(33 + fQcdOffset);
+  ////////////////////////////////////////////////////////////////////////////
+  // Set 13 + selection offset: 50 GeV < mll < 100 GeV
+  ////////////////////////////////////////////////////////////////////////////
+  if(mutau && chargeTest) FillAllHistograms(13);
+  else if(mutau)          FillAllHistograms(13 + fQcdOffset);
+  if(etau && chargeTest)  FillAllHistograms(33);
+  else if(etau)           FillAllHistograms(33 + fQcdOffset);
 
-  offset = -30.;
+  offset = -20.;
   visShift = coeff*pxi_vis + offset;
+  ////////////////////////////////////////////////////////////////////////////
+  // Set 14 + selection offset: visible*0.5 - 20 GeV < invisible + mll window
+  ////////////////////////////////////////////////////////////////////////////
   if(mutau && pxi_inv > visShift && chargeTest) FillAllHistograms(14);
   else if(mutau && pxi_inv > visShift)          FillAllHistograms(14 + fQcdOffset);
   if(etau && pxi_inv > visShift && chargeTest)  FillAllHistograms(34);
   else if(etau && pxi_inv > visShift)           FillAllHistograms(34 + fQcdOffset);
 
-  //different coefficient for Z+g
-  offset = -35.;
-  coeff  = 0.3;
-  visShift = coeff*pxi_vis + offset;
-  if(mutau && pxi_inv > visShift && chargeTest) FillAllHistograms(15);
-  else if(mutau && pxi_inv > visShift)          FillAllHistograms(15 + fQcdOffset);
-  if(etau && pxi_inv > visShift && chargeTest)  FillAllHistograms(35);
-  else if(etau && pxi_inv > visShift)           FillAllHistograms(35 + fQcdOffset);
   
+  double mTTau = (tau != 0) ? 2.*met*tau->Pt() : 0.;
+  mTTau = (tau != 0) ? sqrt(mTTau*(1.-cos(tau->Phi() - metPhi))) : 0.;
   double mTMu = (muon != 0) ? 2.*met*muon->Pt() : 0.;
   mTMu = (muon != 0) ? sqrt(mTMu*(1.-cos(muon->Phi() - metPhi))) : 0.;
   double mTE = (electron != 0) ? 2.*met*electron->Pt() : 0.;
   mTE  = (electron != 0) ? sqrt(mTE*(1.-cos(electron->Phi() - metPhi))) : 0.;
 
-  offset = -35.;
-  coeff  = 0.3;
-  visShift = coeff*pxi_vis + offset;
-  if(mutau && pxi_inv > visShift && mTMu < 80. && chargeTest) FillAllHistograms(16);
-  else if(mutau && pxi_inv > visShift && mTMu < 80.)          FillAllHistograms(16 + fQcdOffset);
-  if(etau && pxi_inv > visShift && mTE < 80. && chargeTest)  FillAllHistograms(36);
-  else if(etau && pxi_inv > visShift && mTE < 80.)           FillAllHistograms(36 + fQcdOffset);
+  mutau &= mTMu  < 80.;
+  etau  &= mTE   < 80.;
+  // emu   &= mTMu  < 80.;
 
-  offset = -30.;
-  coeff  = 0.3;
-  visShift = coeff*pxi_vis + offset;
-  if(mutau && pxi_inv > visShift && mTMu < 80. && chargeTest) FillAllHistograms(17);
-  else if(mutau && pxi_inv > visShift && mTMu < 80.)          FillAllHistograms(17 + fQcdOffset);
-  if(etau && pxi_inv > visShift && mTE < 80. && chargeTest)  FillAllHistograms(37);
-  else if(etau && pxi_inv > visShift && mTE < 80.)           FillAllHistograms(37 + fQcdOffset);
+  ////////////////////////////////////////////////////////////////////////////
+  // Set 15 + selection offset: mT_lep < 80 GeV
+  ////////////////////////////////////////////////////////////////////////////
+  if(mutau && chargeTest) FillAllHistograms(15);
+  else if(mutau)          FillAllHistograms(15 + fQcdOffset);
+  if(etau && chargeTest)  FillAllHistograms(35);
+  else if(etau)           FillAllHistograms(35 + fQcdOffset);
 
-  mutau = mutau && mTMu < 60.;
-  etau  = etau  && mTE  < 60.;
+  // mutau &= mTTau < 80.;
+  // etau  &= mTTau < 80.;
+  // // emu   &= mTE   < 80.;
 
-  //mutau cuts in first slides
-  if(mutau && chargeTest) FillAllHistograms(8);
-  else if(mutau)          FillAllHistograms(8 + fQcdOffset);
-  if(etau && chargeTest) FillAllHistograms(28);
-  else if(etau)          FillAllHistograms(28 + fQcdOffset);
+  // ////////////////////////////////////////////////////////////////////////////
+  // // Set 16 + selection offset: mT_tau < 80 GeV
+  // ////////////////////////////////////////////////////////////////////////////
+  // if(mutau && chargeTest) FillAllHistograms(16);
+  // else if(mutau)          FillAllHistograms(16 + fQcdOffset);
+  // if(etau && chargeTest)  FillAllHistograms(36);
+  // else if(etau)           FillAllHistograms(36 + fQcdOffset);
+
+  mutau &= nBJets == 0;
+  etau  &= nBJets == 0;
+  emu   &= nBJets == 0;
+  ////////////////////////////////////////////////////////////////////////////
+  // Set 17 + selection offset: nBJets = 0
+  ////////////////////////////////////////////////////////////////////////////
+  if(mutau && chargeTest) FillAllHistograms(17);
+  else if(mutau)          FillAllHistograms(17 + fQcdOffset);
+  if(etau && chargeTest)  FillAllHistograms(37);
+  else if(etau)           FillAllHistograms(37 + fQcdOffset);
+
+  ////////////////////////////////////////////////////////////////////////////
+  // Set 18-20 + selection offset: Jet categories 0, 1, >1
+  ////////////////////////////////////////////////////////////////////////////
+  if(mutau && nJets == 0 && chargeTest) FillAllHistograms(18);
+  else if(mutau && nJets == 0)          FillAllHistograms(18 + fQcdOffset);
+  if(etau && nJets == 0 && chargeTest)  FillAllHistograms(38);
+  else if(etau && nJets == 0)           FillAllHistograms(38 + fQcdOffset);
+  if(mutau && nJets == 1 && chargeTest) FillAllHistograms(19);
+  else if(mutau && nJets == 1)          FillAllHistograms(19 + fQcdOffset);
+  if(etau && nJets == 1 && chargeTest)  FillAllHistograms(39);
+  else if(etau && nJets == 1)           FillAllHistograms(39 + fQcdOffset);
+  if(mutau && nJets > 1  && chargeTest) FillAllHistograms(20);
+  else if(mutau && nJets > 1 )          FillAllHistograms(20 + fQcdOffset);
+  if(etau && nJets > 1  && chargeTest)  FillAllHistograms(40);
+  else if(etau && nJets > 1 )           FillAllHistograms(40 + fQcdOffset);
+
 
   //add required photon
-  mutau = mutau && nPhotons > 0;
-  mutau = mutau && (abs(photonP4->Eta()) < 1.4442 || (abs(photonP4->Eta()) > 1.566 && abs(photonP4->Eta()) < 2.5));
-  mutau = mutau && photonP4->Pt() > 10.;
-  mutau = mutau && photonP4->DeltaR(*muon) > 0.5;
-  mutau = mutau && photonP4->DeltaR(*tau) > 0.5;
-  if(mutau && chargeTest) FillAllHistograms(9);
-  else if(mutau)          FillAllHistograms(9 + fQcdOffset);
+  ////////////////////////////////////////////////////////////////////////////
+  // Set 21-23 + selection offset: Photon categories 0, 1, > 1
+  ////////////////////////////////////////////////////////////////////////////
+  if(mutau && nPhotons == 0 && chargeTest) FillAllHistograms(21);
+  else if(mutau && nPhotons == 0)          FillAllHistograms(21 + fQcdOffset);
+  if(etau && nPhotons == 0 && chargeTest)  FillAllHistograms(41);
+  else if(etau && nPhotons == 0)           FillAllHistograms(41 + fQcdOffset);
+  if(mutau && nPhotons == 1 && chargeTest) FillAllHistograms(22);
+  else if(mutau && nPhotons == 1)          FillAllHistograms(22 + fQcdOffset);
+  if(etau && nPhotons == 1 && chargeTest)  FillAllHistograms(42);
+  else if(etau && nPhotons == 1)           FillAllHistograms(42 + fQcdOffset);
+  if(mutau && nPhotons > 1  && chargeTest) FillAllHistograms(23);
+  else if(mutau && nPhotons > 1 )          FillAllHistograms(23 + fQcdOffset);
+  if(etau && nPhotons > 1  && chargeTest)  FillAllHistograms(43);
+  else if(etau && nPhotons > 1 )           FillAllHistograms(43 + fQcdOffset);
 
-  //add required photon
-  etau = etau && nPhotons > 0;
-  etau = etau && (abs(photonP4->Eta()) < 1.4442 || (abs(photonP4->Eta()) > 1.566 && abs(photonP4->Eta()) < 2.5));
-  etau = etau && photonP4->Pt() > 10.;
-  etau = etau && photonP4->DeltaR(*electron) > 0.5;
-  etau = etau && photonP4->DeltaR(*tau) > 0.5;
-  if(etau && chargeTest) FillAllHistograms(29);
-  else if(etau)          FillAllHistograms(29 + fQcdOffset);
+  // mutau = mutau && nPhotons > 0;
+  // mutau = mutau && (abs(photonP4->Eta()) < 1.4442 || (abs(photonP4->Eta()) > 1.566 && abs(photonP4->Eta()) < 2.5));
+  // mutau = mutau && photonP4->Pt() > 10.;
+  // mutau = mutau && photonP4->DeltaR(*muon) > 0.5;
+  // mutau = mutau && photonP4->DeltaR(*tau) > 0.5;
+  // etau = etau && nPhotons > 0;
+  // etau = etau && (abs(photonP4->Eta()) < 1.4442 || (abs(photonP4->Eta()) > 1.566 && abs(photonP4->Eta()) < 2.5));
+  // etau = etau && photonP4->Pt() > 10.;
+  // etau = etau && photonP4->DeltaR(*electron) > 0.5;
+  // etau = etau && photonP4->DeltaR(*tau) > 0.5;
+  // if(mutau && chargeTest) FillAllHistograms(21);
+  // else if(mutau)          FillAllHistograms(21 + fQcdOffset);
+  // if(etau && chargeTest)  FillAllHistograms(41);
+  // else if(etau)           FillAllHistograms(41 + fQcdOffset);
+
   
-  //extra cuts added
-  mutau = mutau && 10. < (0.85*mgll - mll) && 25. > (0.85*mgll - mll);
-  mutau = mutau && photonP4->Pt() > 18.;
-  if(mutau && chargeTest) FillAllHistograms(10);
-  else if(mutau)          FillAllHistograms(10 + fQcdOffset);
+  // //extra cuts added
+  // mutau = mutau && 10. < (0.85*mgll - mll) && 25. > (0.85*mgll - mll);
+  // mutau = mutau && photonP4->Pt() > 18.;
+  // if(mutau && chargeTest) FillAllHistograms(10);
+  // else if(mutau)          FillAllHistograms(10 + fQcdOffset);
 
-  double zmass = 91.1876;
-  double mge = (electron) ? (*photonP4 + *electron).M() : 0.;
-  etau = etau && 10. < (0.85*mgll - mll) && 25. > (0.85*mgll - mll);
-  etau = etau && photonP4->Pt() > 18.;
-  etau = etau && abs(mge-zmass) > 10.;
-  if(etau && chargeTest) FillAllHistograms(30);
-  else if(etau)          FillAllHistograms(30 + fQcdOffset);
+  // double zmass = 91.1876;
+  // double mge = (electron) ? (*photonP4 + *electron).M() : 0.;
+  // etau = etau && 10. < (0.85*mgll - mll) && 25. > (0.85*mgll - mll);
+  // etau = etau && photonP4->Pt() > 18.;
+  // etau = etau && abs(mge-zmass) > 10.;
+  // if(etau && chargeTest) FillAllHistograms(30);
+  // else if(etau)          FillAllHistograms(30 + fQcdOffset);
 
   return kTRUE;
 }

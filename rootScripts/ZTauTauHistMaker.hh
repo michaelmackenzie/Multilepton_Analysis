@@ -370,62 +370,76 @@ void ZTauTauHistMaker::Init(TTree *tree)
     fEventSets [7] = 1; // events with opposite signs and passing Mu+Tau Pt + angle cuts with no photon check
     fEventSets [7+fQcdOffset] = 1; // events with same signs and passing Mu+Tau Pt + angle cuts with no photon check
 
-    fEventSets [11] = 1; // events with opposite signs and passing Mu+Tau Pt + angle cuts and vis/inv > -0.5 with no photon check
-    fEventSets [11+fQcdOffset] = 1; // events with same signs and passing Mu+Tau Pt + angle cuts and vis/inv > -0.5 with no photon check
-    fEventSets [12] = 1; // events with opposite signs and passing Mu+Tau Pt + angle cuts and vis/inv > 0 with no photon check
-    fEventSets [12+fQcdOffset] = 1; // events with same signs and passing Mu+Tau Pt + angle cuts and vis/inv > 0 with no photon check
+    fEventSets [11] = 1; // events with opposite signs and inv > 0.5*vis - 35
+    fEventSets [11+fQcdOffset] = 1; // events with same signs and inv > 0.5*vis - 35
+    fEventSets [12] = 1; // events with opposite signs and inv > 0.5*vis - 20
+    fEventSets [12+fQcdOffset] = 1; // events with same signs and inv > 0.5*vis - 20
 
-    //same as 11/12 but with 40 < mll < 100
-    fEventSets [13] = 1; // events with opposite signs and passing Mu+Tau Pt + angle cuts and vis/inv > -0.5 with no photon check
-    fEventSets [13+fQcdOffset] = 1; // events with same signs and passing Mu+Tau Pt + angle cuts and vis/inv > -0.5 with no photon check
-    fEventSets [14] = 1; // events with opposite signs and passing Mu+Tau Pt + angle cuts and vis/inv > 0 with no photon check
-    fEventSets [14+fQcdOffset] = 1; // events with same signs and passing Mu+Tau Pt + angle cuts and vis/inv > 0 with no photon check
-    //different coefficient for Z+g
-    fEventSets [15] = 1; // events with opposite signs and passing Mu+Tau Pt + angle cuts and vis/inv > 0 with no photon check
-    fEventSets [15+fQcdOffset] = 1; // events with same signs and passing Mu+Tau Pt + angle cuts and vis/inv > 0 with no photon check
-    //Adding mt cut
-    fEventSets [16] = 1; // events with opposite signs and passing Mu+Tau Pt + angle cuts and vis/inv > 0 mtMu < 80 with no photon check
-    fEventSets [16+fQcdOffset] = 1; // events with same signs and passing Mu+Tau Pt + angle cuts and vis/inv > 0 mtMu < 80 with no photon check
-    fEventSets [17] = 1; // events with opposite signs and passing Mu+Tau Pt + angle cuts and vis/inv > 0 mtMu < 80 with no photon check
-    fEventSets [17+fQcdOffset] = 1; // events with same signs and passing Mu+Tau Pt + angle cuts and vis/inv > 0 mtMu < 80 with no photon check
-    
-    fEventSets [8] = 1; // events with opposite signs and passing Mu+Tau cuts with no photon check
-    fEventSets [8+fQcdOffset] = 1; // events with same signs and passing Mu+Tau cuts with no photon check
-    fEventSets [9] = 1; // events with opposite signs and passing Mu+Tau cuts
-    fEventSets [9+fQcdOffset] = 1; // events with same signs and passing Mu+Tau cuts
-    fEventSets [10] = 1; // events with opposite signs and passing Mu+Tau cuts including updated ones
-    fEventSets [10+fQcdOffset] = 1; // events with same signs and passing Mu+Tau cuts including updated ones
+    fEventSets [13] = 1; // events with opposite signs and 50 < mll < 100
+    fEventSets [13+fQcdOffset] = 1; // events with same signs and 50 < mll < 100
+
+    fEventSets [14] = 1; // events with opposite signs and inv > 0.5*vis - 20
+    fEventSets [14+fQcdOffset] = 1; // events with same signs and inv > 0.5*vis - 20
+
+    fEventSets [15] = 1; // events with opposite signs and mT_lep < 80
+    fEventSets [15+fQcdOffset] = 1; // events with same signs and mT_lep < 80
+    fEventSets [16] = 1; // events with opposite signs and mT_tau < 80
+    fEventSets [16+fQcdOffset] = 1; // events with same signs and mT_tau < 80
+
+    fEventSets [17] = 1; // events with opposite signs and nBJets = 0
+    fEventSets [17+fQcdOffset] = 1; // events with same signs and nBJets = 0
+
+    fEventSets [18] = 1; // events with opposite signs and nJets = 0
+    fEventSets [18+fQcdOffset] = 1; // events with same signs and nJets = 0
+    fEventSets [19] = 1; // events with opposite signs and nJets = 1
+    fEventSets [19+fQcdOffset] = 1; // events with same signs and nJets = 1
+    fEventSets [20] = 1; // events with opposite signs and nJets > 1
+    fEventSets [20+fQcdOffset] = 1; // events with same signs and nJets > 1
+
+    fEventSets [21] = 1; // events with opposite signs and nPhotons = 0
+    fEventSets [21+fQcdOffset] = 1; // events with same signs and nPhotons = 0
+    fEventSets [22] = 1; // events with opposite signs and nPhotons = 1
+    fEventSets [22+fQcdOffset] = 1; // events with same signs and nPhotons = 1
+    fEventSets [23] = 1; // events with opposite signs and nPhotons > 1
+    fEventSets [23+fQcdOffset] = 1; // events with same signs and nPhotons > 1
 
     fEventSets [26] = 1; // events with opposite signs and passing E+Tau Pt cuts with no photon check
     fEventSets [26+fQcdOffset] = 1; // events with same signs and passing E+Tau Pt cuts with no photon check
     fEventSets [27] = 1; // events with opposite signs and passing E+Tau Pt + angle cuts with no photon check
     fEventSets [27+fQcdOffset] = 1; // events with same signs and passing E+Tau Pt + angle cuts with no photon check
 
-    fEventSets [31] = 1; // events with opposite signs and passing E+Tau Pt + angle cuts and vis/inv > -0.5 with no photon check
-    fEventSets [31+fQcdOffset] = 1; // events with same signs and passing E+Tau Pt + angle cuts and vis/inv > -0.5 with no photon check
-    fEventSets [32] = 1; // events with opposite signs and passing E+Tau Pt + angle cuts and vis/inv > 0 with no photon check
-    fEventSets [32+fQcdOffset] = 1; // events with same signs and passing E+Tau Pt + angle cuts and vis/inv > 0 with no photon check
+    fEventSets [31] = 1; // events with opposite signs and inv > 0.5*vis - 35
+    fEventSets [31+fQcdOffset] = 1; // events with same signs and inv > 0.5*vis - 35
+    fEventSets [32] = 1; // events with opposite signs and inv > 0.5*vis - 20
+    fEventSets [32+fQcdOffset] = 1; // events with same signs and inv > 0.5*vis - 20
 
-    //same as 21/22 but with 40 < mll < 100
-    fEventSets [33] = 1; // events with opposite signs and passing E+Tau Pt + angle cuts and vis/inv > -0.5 with no photon check
-    fEventSets [33+fQcdOffset] = 1; // events with same signs and passing E+Tau Pt + angle cuts and vis/inv > -0.5 with no photon check
-    fEventSets [34] = 1; // events with opposite signs and passing E+Tau Pt + angle cuts and vis/inv > 0 with no photon check
-    fEventSets [34+fQcdOffset] = 1; // events with same signs and passing E+Tau Pt + angle cuts and vis/inv > 0 with no photon check
-    //different coefficient for Z+g
-    fEventSets [35] = 1; // events with opposite signs and passing E+Tau Pt + angle cuts and vis/inv > 0 with no photon check
-    fEventSets [35+fQcdOffset] = 1; // events with same signs and passing E+Tau Pt + angle cuts and vis/inv > 0 with no photon check
-    //Adding mt cut
-    fEventSets [36] = 1; // events with opposite signs and passing E+Tau Pt + angle cuts and vis/inv > 0 mtE < 80 with no photon check
-    fEventSets [36+fQcdOffset] = 1; // events with same signs and passing E+Tau Pt + angle cuts and vis/inv > 0 mtE < 80 with no photon check
-    fEventSets [37] = 1; // events with opposite signs and passing E+Tau Pt + angle cuts and vis/inv > 0 mtE < 80 with no photon check
-    fEventSets [37+fQcdOffset] = 1; // events with same signs and passing E+Tau Pt + angle cuts and vis/inv > 0 mtE < 80 with no photon check
+    fEventSets [33] = 1; // events with opposite signs and 50 < mll < 100
+    fEventSets [33+fQcdOffset] = 1; // events with same signs and 50 < mll < 100
 
-    fEventSets [28] = 1; // events with opposite signs and passing E+Tau cuts with no photon check
-    fEventSets [28+fQcdOffset] = 1; // events with same signs and passing E+Tau cuts with no photon check
-    fEventSets [29] = 1; // events with opposite signs and passing E+Tau cuts
-    fEventSets [29+fQcdOffset] = 1; // events with same signs and passing E+Tau cuts
-    fEventSets [30] = 1; // events with opposite signs and passing E+Tau cuts including updated ones
-    fEventSets [30+fQcdOffset] = 1; // events with same signs and passing E+Tau cuts including updated ones
+    fEventSets [34] = 1; // events with opposite signs and inv > 0.5*vis - 20
+    fEventSets [34+fQcdOffset] = 1; // events with same signs and inv > 0.5*vis - 20
+
+    fEventSets [35] = 1; // events with opposite signs and mT_lep < 80
+    fEventSets [35+fQcdOffset] = 1; // events with same signs and mT_lep < 80
+    fEventSets [36] = 1; // events with opposite signs and mT_tau < 80
+    fEventSets [36+fQcdOffset] = 1; // events with same signs and mT_tau < 80
+
+    fEventSets [37] = 1; // events with opposite signs and nBJets = 0
+    fEventSets [37+fQcdOffset] = 1; // events with same signs and nBJets = 0
+
+    fEventSets [38] = 1; // events with opposite signs and nJets = 0
+    fEventSets [38+fQcdOffset] = 1; // events with same signs and nJets = 0
+    fEventSets [39] = 1; // events with opposite signs and nJets = 1
+    fEventSets [39+fQcdOffset] = 1; // events with same signs and nJets = 1
+    fEventSets [40] = 1; // events with opposite signs and nJets > 1
+    fEventSets [40+fQcdOffset] = 1; // events with same signs and nJets > 1
+
+    fEventSets [41] = 1; // events with opposite signs and nPhotons = 0
+    fEventSets [41+fQcdOffset] = 1; // events with same signs and nPhotons = 0
+    fEventSets [42] = 1; // events with opposite signs and nPhotons = 1
+    fEventSets [42+fQcdOffset] = 1; // events with same signs and nPhotons = 1
+    fEventSets [43] = 1; // events with opposite signs and nPhotons > 1
+    fEventSets [43+fQcdOffset] = 1; // events with same signs and nPhotons > 1
     
     BookHistograms();
 
