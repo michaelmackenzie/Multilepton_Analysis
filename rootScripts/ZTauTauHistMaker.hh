@@ -193,6 +193,7 @@ public :
     TH1F* hPXiDiff2[3];//difference with coeffecients and offset
 
     TH1F* hPtSum[2]; //scalar sum of lepton Pt and Met, and photon for one
+    TH1F* hPt1Sum[4]; //scalar sum of 1 lepton Pt and Met, both leptons, then both minus met
   };
 
   struct LepHist_t {

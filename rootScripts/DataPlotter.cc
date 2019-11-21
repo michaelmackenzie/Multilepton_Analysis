@@ -936,7 +936,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
 TCanvas* DataPlotter::print_stack(TString hist, TString setType, Int_t set) {
   TCanvas* c = plot_stack(hist,setType,set);
   if(!c) return c;
-  c->Print(Form("figures/%s/stack_%s_%s%s%s_%s_set_%i.png",folder_.Data(),selection_.Data(),hist.Data(),
+  c->Print(Form("figures/%s/%s/stack_%s%s%s_%s_set_%i.png",folder_.Data(),selection_.Data(),hist.Data(),
 		(logY_ ? "_log":""),
 		((plot_data_) ? "_data":""),"dataOverMC",set));
   return c;
@@ -946,7 +946,7 @@ TCanvas* DataPlotter::print_hist(TString hist, TString setType, Int_t set) {
   TCanvas* c = plot_hist(hist,setType,set);
   cout << "plotted hist" << endl;
   if(!c) return c;
-  c->Print(Form("figures/%s/hist_%s_%s%s%s_%s_set_%i.png",folder_.Data(),selection_.Data(),hist.Data(),
+  c->Print(Form("figures/%s/%s/hist_%s%s%s_%s_set_%i.png",folder_.Data(),selection_.Data(),hist.Data(),
 		(logY_ ? "_log":""),
 		((plot_data_) ? "_data":""),"dataOverMC",set));
   return c;
@@ -956,7 +956,7 @@ TCanvas* DataPlotter::print_2Dhist(TString hist, TString setType, Int_t set) {
   TCanvas* c = plot_2Dhist(hist,setType,set);
   cout << "plotted 2D hist" << endl;
   if(!c) return c;
-  c->Print(Form("figures/%s/hist2D_%s_%s%s_%s_set_%i.png",folder_.Data(),selection_.Data(),hist.Data(),
+  c->Print(Form("figures/%s/%s/hist2D_%s%s_%s_set_%i.png",folder_.Data(),selection_.Data(),hist.Data(),
 		((plot_data_) ? "_data":""),"dataOverMC",set));
   return c;
 }
@@ -965,7 +965,7 @@ TCanvas* DataPlotter::print_single_2Dhist(TString hist, TString setType, Int_t s
   TCanvas* c = plot_single_2Dhist(hist,setType,set,label);
   cout << "plotted 2D hist " << label.Data() << endl;
   if(!c) return c;
-  c->Print(Form("figures/%s/hist2D_%s_%s_%s%s_%s_set_%i.png",folder_.Data(),selection_.Data(),label.Data(),hist.Data(),
+  c->Print(Form("figures/%s/%s/hist2D_%s_%s%s_%s_set_%i.png",folder_.Data(),selection_.Data(),label.Data(),hist.Data(),
 		((plot_data_) ? "_data":""),"dataOverMC",set));
   return c;
 }

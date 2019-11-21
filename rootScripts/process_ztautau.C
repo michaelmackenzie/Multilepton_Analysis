@@ -154,7 +154,7 @@ Int_t process_ztautau() {
 			   1, //Electron Data 2016 E
 			   1, //Electron Data 2016 F
 			   1, //Electron Data 2016 G
-			   0  //Electron Data 2016 H
+			   1  //Electron Data 2016 H
   };
 
   for(int i = 0; i < sizeof(files)/sizeof(*files); ++i) {

@@ -56,6 +56,13 @@ public :
   Int_t plot_y_title_ = 0; //plot y title on 1D histograms
   Double_t qcd_scale_ = 1.; //scale factor for SS --> OS selection
   TString folder_ = "ztautau"; //figures folder for printing
+
+  ~DataPlotter() {
+    for(auto d : data_) {
+      if(d) delete d;
+    }
+  }
+  
   void draw_cms_label() {
     TText *cmslabel = new TText();
     cmslabel-> SetNDC();
