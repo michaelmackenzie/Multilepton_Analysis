@@ -17,62 +17,97 @@ void DataPlotter::get_titles(TString hist, TString setType, TString* xtitle, TSt
     *title  = Form("Missing Transverse Energy %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
   else if(hist == "lepptoverm") {
-    *xtitle = "Pt / M_{ll}";
+    *xtitle = "pT_{ll} / M_{ll}";
     *ytitle = Form("Events / %.1f GeV/c^{2}",0.2*rebinH_);
-    *title  = Form("Pt Over Mass of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
+    *title  = Form("pT Over Mass of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
   else if(hist == "lepm") {
     *xtitle = "M_{ll} (GeV/c^{2})";
     *ytitle = Form("Events / %.0f GeV/c^{2}",1.*rebinH_);
     *title  = Form("Mass of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
+  else if(hist == "lepe") {
+    *xtitle = "E_{ll} (GeV)";
+    *ytitle = Form("Events / %.0f GeV",1.*rebinH_);
+    *title  = Form("Energy of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
+  }
+  else if(hist == "lepp") {
+    *xtitle = "P_{ll} (GeV)";
+    *ytitle = Form("Events / %.0f GeV",1.*rebinH_);
+    *title  = Form("Momentum of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
+  }
   else if(hist == "leppt") {
-    *xtitle = "Pt (GeV/c)";
+    *xtitle = "pT_{ll} (GeV/c)";
     *ytitle = Form("Events / %.0f GeV/c",2.*rebinH_);
-    *title  = Form("Pt of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
+    *title  = Form("pT of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
+  }
+  else if(hist == "lepsvptoverm") {
+    *xtitle = "SVfit pT / M_{ll}";
+    *ytitle = Form("Events / %.1f GeV/c^{2}",0.2*rebinH_);
+    *title  = Form("SVfit pT Over Mass of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
+  }
+  else if(hist == "lepsvm") {
+    *xtitle = "SVfit M_{ll} (GeV/c^{2})";
+    *ytitle = Form("Events / %.0f GeV/c^{2}",1.*rebinH_);
+    *title  = Form("SVfit Mass of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
+  }
+  else if(hist == "lepsve") {
+    *xtitle = "SVfit E_{ll} (GeV)";
+    *ytitle = Form("Events / %.0f GeV",1.*rebinH_);
+    *title  = Form("SVfit Energy of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
+  }
+  else if(hist == "lepsvp") {
+    *xtitle = "SVfit P_{ll} (GeV)";
+    *ytitle = Form("Events / %.0f GeV",1.*rebinH_);
+    *title  = Form("SVfit Momentum of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
+  }
+  else if(hist == "lepsvpt") {
+    *xtitle = "SVfit pT (GeV/c)";
+    *ytitle = Form("Events / %.0f GeV/c",2.*rebinH_);
+    *title  = Form("SVfit pT of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
   else if(hist == "pt" && setType == "photon") {
-    *xtitle = "Pt_{#gamma} (GeV/c)";
+    *xtitle = "pT_{#gamma} (GeV/c)";
     *ytitle = Form("Events / %.0f GeV/c",2.*rebinH_);
-    *title  = Form("Pt of the Photon");
+    *title  = Form("pT of the Photon");
   }
   else if(hist == "onept") {
-    *xtitle = "Pt (GeV/c)";
+    *xtitle = "pT_{l} (GeV/c)";
     *ytitle = Form("Events / %.0f GeV/c",1.*rebinH_);
-    *title  = Form("Pt of the Leading Lepton %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
+    *title  = Form("pT of the Leading Lepton %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
   else if(hist == "twopt") {
-    *xtitle = "Pt (GeV/c)";
+    *xtitle = "pT_{#tau} (GeV/c)";
     *ytitle = Form("Events / %.0f GeV/c",1.*rebinH_);
-    *title  = Form("Pt of the Trailing Lepton %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
+    *title  = Form("pT of the Trailing Lepton %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
   else if(hist == "onesvpt") {
-    *xtitle = "SVFit Pt (GeV/c)";
+    *xtitle = "SVFit pT_{l} (GeV/c)";
     *ytitle = Form("Events / %.0f GeV/c",1.*rebinH_);
-    *title  = Form("SVFit Pt of the Leading Lepton %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
+    *title  = Form("SVFit pT of the Leading Lepton %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
   else if(hist == "twosvpt") {
-    *xtitle = "SVFit Pt (GeV/c)";
+    *xtitle = "SVFit pT_{#tau} (GeV/c)";
     *ytitle = Form("Events / %.0f GeV/c",1.*rebinH_);
-    *title  = Form("SVFit Pt of the Trailing Lepton %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
+    *title  = Form("SVFit pT of the Trailing Lepton %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
   else if(hist == "onem") {
-    *xtitle = "M (GeV/c^{2})";
+    *xtitle = "M_{l} (GeV/c^{2})";
     *ytitle = Form("Events / %.0f GeV/c",1.*rebinH_);
     *title  = Form("Mass of the Leading Lepton %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
   else if(hist == "twom") {
-    *xtitle = "M (GeV/c^{2})";
+    *xtitle = "M_{#tau} (GeV/c^{2})";
     *ytitle = Form("Events / %.0f GeV/c",1.*rebinH_);
     *title  = Form("Mass of the Trailing Lepton %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
   else if(hist == "onesvm") {
-    *xtitle = "SVFit M (GeV/c^{2})";
+    *xtitle = "SVFit M_{l} (GeV/c^{2})";
     *ytitle = Form("Events / %.0f GeV/c",1.*rebinH_);
     *title  = Form("SVFit Mass of the Leading Lepton %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
   else if(hist == "twosvm") {
-    *xtitle = "SVFit M (GeV/c^{2})";
+    *xtitle = "SVFit M_{#tau} (GeV/c^{2})";
     *ytitle = Form("Events / %.0f GeV/c",1.*rebinH_);
     *title  = Form("SVFit Mass of the Trailing Lepton %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
@@ -82,19 +117,44 @@ void DataPlotter::get_titles(TString hist, TString setType, TString* xtitle, TSt
     *title  = Form("Isolation of the Leading Lepton %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
   else if(hist == "twoiso") {
-    *xtitle = "Lepton Isolation";
+    *xtitle = "#tau Isolation";
     *ytitle = Form("Events / %.2f",.05*rebinH_);
     *title  = Form("Isolation of the Trailing Lepton %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
   else if(hist == "lepdeltar") {
-    *xtitle = "#Delta R";
+    *xtitle = "#DeltaR_{ll}";
     *ytitle = Form("Events / %.1f",0.1*rebinH_);
     *title  = Form("#Delta R of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
+  else if(hist == "lepdeltaeta") {
+    *xtitle = "#Delta#eta_{ll}";
+    *ytitle = Form("Events / %.1f",0.1*rebinH_);
+    *title  = Form("#Delta#eta of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
+  }
+  else if(hist == "lepdeltaphi") {
+    *xtitle = "#Delta#phi_{ll}";
+    *ytitle = Form("Events / %.1f",0.1*rebinH_);
+    *title  = Form("#Delta#phi of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
+  }
   else if(hist == "lepeta") {
-    *xtitle = "#eta";
+    *xtitle = "#eta_{ll}";
     *ytitle = Form("Events / %.1f",0.1*rebinH_);
     *title  = Form("#eta of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
+  }
+  else if(hist == "lepphi") {
+    *xtitle = "#phi_{ll}";
+    *ytitle = Form("Events / %.1f",0.1*rebinH_);
+    *title  = Form("#phi of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
+  }
+  else if(hist == "lepsveta") {
+    *xtitle = "SVfit #eta_{ll}";
+    *ytitle = Form("Events / %.1f",0.1*rebinH_);
+    *title  = Form("SVfit #eta of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
+  }
+  else if(hist == "lepsvphi") {
+    *xtitle = "SVfit #phi_{ll}";
+    *ytitle = Form("Events / %.1f",0.1*rebinH_);
+    *title  = Form("SVfit #phi of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
   else if(hist == "pxivis0") {
     *xtitle = "#vec{P}_{T}^{vis}#bullet#hat{#zeta}";
@@ -196,12 +256,82 @@ void DataPlotter::get_titles(TString hist, TString setType, TString* xtitle, TSt
     *ytitle = "";
     *title  = Form("SVFit di-tau mass error");
   }
+  else if(hist == "njets") {
+    *xtitle = "Number of Jets";
+    *ytitle = "";
+    *title  = Form("Number of Jets");
+  }
+  else if(hist == "nbjets") {
+    *xtitle = "Number of b-Jets";
+    *ytitle = "";
+    *title  = Form("Number of b-Jets");
+  }
+  else if(hist == "nfwdjets") {
+    *xtitle = "Number of Forward Jets";
+    *ytitle = "";
+    *title  = Form("Number of Forward Jets");
+  }
+  else if(hist == "nphotons") {
+    *xtitle = "Number of Photons";
+    *ytitle = "";
+    *title  = Form("Number of Photons");
+  }
+  else if(hist == "mtmu") {
+    *xtitle = "MT(MET,#mu)";
+    *ytitle = "";
+    *title  = Form("MT(MET,#mu)");
+  }
+  else if(hist == "mte") {
+    *xtitle = "MT(MET,e)";
+    *ytitle = "";
+    *title  = Form("MT(MET,e)");
+  }
+  else if(hist == "mttau") {
+    *xtitle = "MT(MET,#tau)";
+    *ytitle = "";
+    *title  = Form("MT(MET,#tau)");
+  }
+  else if(hist == "ptsum0") {
+    *xtitle = "pT_{l} + pT_{#tau} + MET";
+    *ytitle = "";
+    *title  = Form("pT_{l} + pT_{#tau} + MET");
+  }
+  else if(hist == "ptsum1") {
+    *xtitle = "pT_{l} + pT_{#tau} + pT_{#gamma} + MET";
+    *ytitle = "";
+    *title  = Form("pT_{l} + pT_{#tau} + pT_{#gamma} + MET");
+  }
+  else if(hist == "pt1sum0") {
+    *xtitle = "pT_{l} + MET";
+    *ytitle = "";
+    *title  = Form("pT_{l} + MET");
+  }
+  else if(hist == "pt1sum1") {
+    *xtitle = "pT_{#tau} + MET";
+    *ytitle = "";
+    *title  = Form("pT_{#tau} + MET");
+  }
+  else if(hist == "pt1sum2") {
+    *xtitle = "pT_{#tau} + pT_{l}";
+    *ytitle = "";
+    *title  = Form("pT_{#tau} + pT_{l}");
+  }
+  else if(hist == "pt1sum3") {
+    *xtitle = "pT_{#tau} + pT_{l} - MET";
+    *ytitle = "";
+    *title  = Form("pT_{#tau} + pT_{l} - MET");
+  }
+  else if(hist == "ht") {
+    *xtitle = "pT_{#tau} + pT_{l} - MET";
+    *ytitle = "";
+    *title  = Form("pT_{#tau} + pT_{l} - MET");
+  }
 }
 
 vector<TH1F*> DataPlotter::get_signal(TString hist, TString setType, Int_t set) {
   vector<TH1F*> h;
-  Int_t color[] = {kAzure-2, kGreen+3, kViolet-2, kOrange+10, kYellow+3,kOrange-9,kBlue+1};
-  Int_t fill[]  = {3001,3002,3002,3003,3005,3006,3003,3003};
+  Int_t color[] = {kGreen+3, kAzure-2, kOrange+10, kViolet-2, kYellow+3,kOrange-9,kBlue+1};
+  Int_t fill[]  = {3002,3001,3003,3003,3005,3006,3003,3003};
   
   //for combining histograms of the same process
   map<TString, unsigned int> indexes;
@@ -903,8 +1033,8 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
     pad2->SetGrid();
     c->SetGrid();
     hDataMC->Draw("E");
-    TLine* line = new TLine(hDataMC->GetBinCenter(1)-hDataMC->GetBinWidth(1)/2., 1.,
-			    hDataMC->GetBinCenter(hDataMC->GetNbinsX())+hDataMC->GetBinWidth(1)/2., 1.);
+    TLine* line = new TLine((xMax_ < xMin_) ? hDataMC->GetBinCenter(1)-hDataMC->GetBinWidth(1)/2. : xMin_, 1.,
+			    (xMax_ < xMin_) ? hDataMC->GetBinCenter(hDataMC->GetNbinsX())+hDataMC->GetBinWidth(1)/2. : xMax_, 1.);
     line->SetLineColor(kRed);
     line->Draw("same");
     
