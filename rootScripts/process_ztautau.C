@@ -157,6 +157,8 @@ Int_t process_ztautau() {
 			   1  //Electron Data 2016 H
   };
 
+  bool writeTrees = true;
+  
   for(int i = 0; i < sizeof(files)/sizeof(*files); ++i) {
     if(!doProcess[i]) continue;
     const char* c = files[i];
@@ -220,6 +222,8 @@ Int_t process_ztautau() {
 	TString cString = c;
 	selec->fFolderName = fChannel->GetName();
 	if(isDY) selec->fDYType = loop;
+	selec->fWriteTrees = writeTrees;
+	selec->fXsec = 1./events->GetBinContent(1);
 	tree->Process(selec,"");
 	TFile* out = new TFile(Form("ztautau_%s%s_%s.hist",fChannel->GetName(),
 				    (isDY) ? Form("_%i",loop) : "", tree->GetName()),"UPDATE");

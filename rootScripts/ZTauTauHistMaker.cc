@@ -338,7 +338,7 @@ void ZTauTauHistMaker::InitializeTreeVariables() {
   fTreeVars.lepdeltaeta = abs(leptonOneP4->Eta() - leptonTwoP4->Eta());
   fTreeVars.met = met;
   fTreeVars.mtone = sqrt(2.*met*leptonOneP4->Pt()*(1.-cos(leptonOneP4->Phi() - metPhi)));
-  fTreeVars.mtone = sqrt(2.*met*leptonTwoP4->Pt()*(1.-cos(leptonTwoP4->Phi() - metPhi)));
+  fTreeVars.mttwo = sqrt(2.*met*leptonTwoP4->Pt()*(1.-cos(leptonTwoP4->Phi() - metPhi)));
 
   //momentum projections onto bisector
   TVector3 lp1 = leptonOneP4->Vect();
