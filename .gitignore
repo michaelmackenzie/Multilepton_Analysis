@@ -19,6 +19,8 @@ tmva_training/scripts/CWoLa_*
 bin
 src
 interface
+scripts/*.root
+*.log
 
 Pythia
 CLFV_ZDecays_Pythia
