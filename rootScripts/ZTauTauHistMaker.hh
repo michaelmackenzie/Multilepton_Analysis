@@ -276,6 +276,37 @@ public :
     TH1F* hTrigger;
   };
 
+  //Tree Variables
+  struct Tree_t {
+    //lepton variables
+    double leponept;
+    double leponem;
+    double leponeeta;
+    double leptwopt;
+    double leptwom;
+    double leptwoeta;
+    //di-lepton variables
+    double lepp;
+    double leppt;
+    double lepm;
+    double lepeta;
+    double lepdeltaeta;
+    double lepdeltar;
+    double lepdeltaphi;
+    //MET variables
+    double met;
+    double mtone;
+    double mttwo;
+    double pxivis;
+    double pxiinv;
+    int    njets;
+    int    nbjets;
+    int    nphotons;
+    double eventweight;
+    double fulleventweight; //includes cross-section and number gen
+    
+  };
+  
   ZTauTauHistMaker(TTree * /*tree*/ =0) { }
   virtual ~ZTauTauHistMaker() { }
   virtual Int_t   Version() const { return 2; }
@@ -297,9 +328,11 @@ public :
   virtual void    BookEventHistograms();
   virtual void    BookPhotonHistograms();
   virtual void    BookLepHistograms();
+  virtual void    BookTrees();
   virtual void    FillEventHistogram(EventHist_t* Hist);
   virtual void    FillPhotonHistogram(PhotonHist_t* Hist);
   virtual void    FillLepHistogram(LepHist_t* Hist);
+  virtual void    InitializeTreeVariables();
 
 
   //Define relevant fields
@@ -308,17 +341,23 @@ public :
   const static Int_t fn = 200; //max histogram sets
   const static Int_t fQcdOffset = 100; //histogram set + offset = set with same sign selection
   Int_t fEventSets[fn];  //indicates which sets to create
+  Int_t fTreeSets[fn];   //indicates which trees to create
 
   TFile*        fOut;
   TDirectory*   fTopDir;
-  TDirectory*   fDirectories[3*fn];
+  TDirectory*   fDirectories[4*fn]; // 0 - fn events, fn - 2fn photon, 2fn - 3fn lep, 3fn - 4fn trees
   EventHist_t*  fEventHist[fn];
   PhotonHist_t* fPhotonHist[fn];
   LepHist_t*    fLepHist[fn];
+  TTree*        fTrees[fn];
 
-  TString fFolderName = ""; //name of the folder the tree is from
+  TString       fFolderName = ""; //name of the folder the tree is from
 
   Int_t         fDYType = -1; //for splitting Z->ll into 1: tau tau and 2: e/mu e/mu
+  Int_t         fWriteTrees = 0; //write out ttrees for the events
+  Double_t      fXsec = 0.; //cross-section for full event weight with trees
+  Tree_t        fTreeVars; //for filling the ttrees
+  
   ClassDef(ZTauTauHistMaker,0);
 
 };
@@ -343,6 +382,9 @@ void ZTauTauHistMaker::Init(TTree *tree)
 
     for(int i = 0; i < fn; ++i) {
       fEventSets[i]  = 0;
+    }
+    for(int i = 0; i < fn; ++i) {
+      fTreeSets[i]  = 0;
     }
 
     //Event Sets
@@ -369,7 +411,8 @@ void ZTauTauHistMaker::Init(TTree *tree)
     fEventSets [6+fQcdOffset] = 1; // events with same signs and passing Mu+Tau Pt cuts with no photon check
     fEventSets [7] = 1; // events with opposite signs and passing Mu+Tau Pt + angle cuts with no photon check
     fEventSets [7+fQcdOffset] = 1; // events with same signs and passing Mu+Tau Pt + angle cuts with no photon check
-
+    fTreeSets  [7] = 1;
+    
     fEventSets [11] = 1; // events with opposite signs and inv > 0.5*vis - 35
     fEventSets [11+fQcdOffset] = 1; // events with same signs and inv > 0.5*vis - 35
     fEventSets [12] = 1; // events with opposite signs and inv > 0.5*vis - 20
@@ -388,6 +431,7 @@ void ZTauTauHistMaker::Init(TTree *tree)
 
     fEventSets [17] = 1; // events with opposite signs and nBJets = 0
     fEventSets [17+fQcdOffset] = 1; // events with same signs and nBJets = 0
+    fTreeSets  [17] = 1;
 
     fEventSets [18] = 1; // events with opposite signs and nJets = 0
     fEventSets [18+fQcdOffset] = 1; // events with same signs and nJets = 0
@@ -407,6 +451,7 @@ void ZTauTauHistMaker::Init(TTree *tree)
     fEventSets [26+fQcdOffset] = 1; // events with same signs and passing E+Tau Pt cuts with no photon check
     fEventSets [27] = 1; // events with opposite signs and passing E+Tau Pt + angle cuts with no photon check
     fEventSets [27+fQcdOffset] = 1; // events with same signs and passing E+Tau Pt + angle cuts with no photon check
+    fTreeSets  [27] = 1;
 
     fEventSets [31] = 1; // events with opposite signs and inv > 0.5*vis - 35
     fEventSets [31+fQcdOffset] = 1; // events with same signs and inv > 0.5*vis - 35
@@ -426,6 +471,7 @@ void ZTauTauHistMaker::Init(TTree *tree)
 
     fEventSets [37] = 1; // events with opposite signs and nBJets = 0
     fEventSets [37+fQcdOffset] = 1; // events with same signs and nBJets = 0
+    fTreeSets  [37] = 1;
 
     fEventSets [38] = 1; // events with opposite signs and nJets = 0
     fEventSets [38+fQcdOffset] = 1; // events with same signs and nJets = 0

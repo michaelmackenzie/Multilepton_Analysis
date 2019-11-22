@@ -58,12 +58,15 @@ void ZTauTauHistMaker::FillAllHistograms(Int_t index) {
     FillLepHistogram(   fLepHist   [index]);
   } else
     printf("WARNING! Attempted to fill un-initialized histogram set %i!\n", index);
+  if(fWriteTrees && fTreeSets[index])
+    fTrees[index]->Fill();
 }
 
 void ZTauTauHistMaker::BookHistograms() {
   BookEventHistograms();
   BookPhotonHistograms();
   BookLepHistograms();
+  if(fWriteTrees) BookTrees();
 }
 
 void ZTauTauHistMaker::BookEventHistograms() {
@@ -282,6 +285,80 @@ void ZTauTauHistMaker::BookLepHistograms() {
   }
 }
 
+void ZTauTauHistMaker::BookTrees() {
+  for(int i = 0; i < fn; ++i) {
+    if(fTreeSets[i] != 0) {
+      char* dirname        = new char[20];
+      sprintf(dirname,"tree_%i",i);
+      fDirectories[3*fn + i] = fTopDir->mkdir(dirname);
+      fDirectories[3*fn + i]->cd();
+      fTrees[i] = new TTree(Form("tree_%i",i),Form("ZTauTauHistMaker TTree %i",i));
+      fTrees[i]->Branch("leponept",        &fTreeVars.leponept       );   
+      fTrees[i]->Branch("leponem",         &fTreeVars.leponem	   );   
+      fTrees[i]->Branch("leponeeta",       &fTreeVars.leponeeta      );  
+      fTrees[i]->Branch("leptwopt",        &fTreeVars.leptwopt       );  
+      fTrees[i]->Branch("leptwom",         &fTreeVars.leptwom	   );   
+      fTrees[i]->Branch("leptwoeta",       &fTreeVars.leptwoeta      );  
+      fTrees[i]->Branch("lepp",            &fTreeVars.lepp	   );   
+      fTrees[i]->Branch("leppt",           &fTreeVars.leppt	   );   
+      fTrees[i]->Branch("lepm",            &fTreeVars.lepm	   );   
+      fTrees[i]->Branch("lepeta",          &fTreeVars.lepeta	   );   
+      fTrees[i]->Branch("lepdeltaeta",     &fTreeVars.lepdeltaeta    );  
+      fTrees[i]->Branch("lepdeltar",       &fTreeVars.lepdeltar      );  
+      fTrees[i]->Branch("lepdeltaphi",     &fTreeVars.lepdeltaphi    );  
+      fTrees[i]->Branch("met",             &fTreeVars.met	           );
+      fTrees[i]->Branch("mtone",           &fTreeVars.mtone	   );   
+      fTrees[i]->Branch("mttwo",           &fTreeVars.mttwo	   );   
+      fTrees[i]->Branch("pxivis",          &fTreeVars.pxivis	   );   
+      fTrees[i]->Branch("pxiinv",          &fTreeVars.pxiinv	   );   
+      fTrees[i]->Branch("njets",           &fTreeVars.njets	   );   
+      fTrees[i]->Branch("nbjets",          &fTreeVars.nbjets	   );   
+      fTrees[i]->Branch("nphotons",        &fTreeVars.nphotons       );  
+      fTrees[i]->Branch("eventweight",     &fTreeVars.eventweight    );  
+      fTrees[i]->Branch("fulleventweight", &fTreeVars.fulleventweight);
+    }
+  }
+}
+
+void ZTauTauHistMaker::InitializeTreeVariables() {
+
+  fTreeVars.leponept  = leptonOneP4->Pt();
+  fTreeVars.leponem   = leptonOneP4->M();
+  fTreeVars.leponeeta = leptonOneP4->Eta();
+  fTreeVars.leptwopt  = leptonTwoP4->Pt();
+  fTreeVars.leptwom   = leptonTwoP4->M();
+  fTreeVars.leptwoeta = leptonTwoP4->Eta();
+  TLorentzVector lep = *leptonOneP4 + *leptonTwoP4;
+  fTreeVars.lepp   = lep.Pt();
+  fTreeVars.leppt  = lep.Pt();
+  fTreeVars.lepm   = lep.M();
+  fTreeVars.lepeta = lep.Eta();
+  fTreeVars.lepdeltar   = leptonOneP4->DeltaR(*leptonTwoP4);
+  fTreeVars.lepdeltaphi = abs(leptonOneP4->DeltaPhi(*leptonTwoP4));
+  fTreeVars.lepdeltaeta = abs(leptonOneP4->Eta() - leptonTwoP4->Eta());
+  fTreeVars.met = met;
+  fTreeVars.mtone = sqrt(2.*met*leptonOneP4->Pt()*(1.-cos(leptonOneP4->Phi() - metPhi)));
+  fTreeVars.mtone = sqrt(2.*met*leptonTwoP4->Pt()*(1.-cos(leptonTwoP4->Phi() - metPhi)));
+
+  //momentum projections onto bisector
+  TVector3 lp1 = leptonOneP4->Vect();
+  TVector3 lp2 = leptonTwoP4->Vect();
+  TVector3 missing(met*cos(metPhi), met*sin(metPhi), 0.);
+  lp1.SetZ(0.);
+  lp2.SetZ(0.);
+  TVector3 bisector = (lp1.Mag()*lp2 + lp2.Mag()*lp1); //divides leptons
+  if(bisector.Mag() > 0.) bisector.SetMag(1.);
+  //project onto the bisectors
+  fTreeVars.pxivis = (lp1+lp2)*bisector;
+  fTreeVars.pxiinv = missing*bisector;
+
+  fTreeVars.njets    = nJets;
+  fTreeVars.nbjets   = nBJets;
+  fTreeVars.nphotons = nPhotons;
+  fTreeVars.eventweight = genWeight*eventWeight;
+  fTreeVars.fulleventweight = genWeight*eventWeight*fXsec;
+
+}
 
 void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
   Hist->hLumiSection         ->Fill(lumiSection        , genWeight*eventWeight)      ;
@@ -594,6 +671,8 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
     else if(fDYType == 1 && nGenTausHad+nGenTausLep < 2) return kTRUE; 
   }
 
+  if(fWriteTrees) InitializeTreeVariables();
+  
   bool chargeTest = leptonOneFlavor*leptonTwoFlavor < 0;
   FillAllHistograms(0);
 
