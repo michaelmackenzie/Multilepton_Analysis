@@ -316,6 +316,7 @@ void ZTauTauHistMaker::BookTrees() {
       fTrees[i]->Branch("nphotons",        &fTreeVars.nphotons       );  
       fTrees[i]->Branch("eventweight",     &fTreeVars.eventweight    );  
       fTrees[i]->Branch("fulleventweight", &fTreeVars.fulleventweight);
+      fTrees[i]->Branch("eventcategory",   &fTreeVars.eventcategory);
     }
   }
 }
@@ -357,6 +358,7 @@ void ZTauTauHistMaker::InitializeTreeVariables() {
   fTreeVars.nphotons = nPhotons;
   fTreeVars.eventweight = genWeight*eventWeight;
   fTreeVars.fulleventweight = genWeight*eventWeight*fXsec;
+  fTreeVars.eventcategory = fEventCategory;
 
 }
 

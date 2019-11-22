@@ -158,8 +158,9 @@ Int_t process_ztautau() {
   };
 
   bool writeTrees = true;
-  
+  Int_t category = 0;
   for(int i = 0; i < sizeof(files)/sizeof(*files); ++i) {
+    ++category;
     if(!doProcess[i]) continue;
     const char* c = files[i];
     TFile* f = new TFile(Form("%s%s",gridPath[i],c));
@@ -222,6 +223,7 @@ Int_t process_ztautau() {
 	TString cString = c;
 	selec->fFolderName = fChannel->GetName();
 	if(isDY) selec->fDYType = loop;
+	selec->fEventCategory = category;
 	selec->fWriteTrees = writeTrees;
 	selec->fXsec = 1./events->GetBinContent(1);
 	tree->Process(selec,"");

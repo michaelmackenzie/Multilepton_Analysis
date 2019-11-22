@@ -304,7 +304,7 @@ public :
     int    nphotons;
     double eventweight;
     double fulleventweight; //includes cross-section and number gen
-    
+    int eventcategory; //for identifying the process in mva trainings
   };
   
   ZTauTauHistMaker(TTree * /*tree*/ =0) { }
@@ -357,6 +357,7 @@ public :
   Int_t         fWriteTrees = 0; //write out ttrees for the events
   Double_t      fXsec = 0.; //cross-section for full event weight with trees
   Tree_t        fTreeVars; //for filling the ttrees
+  Int_t         fEventCategory; //for identifying the process in mva trainings
   
   ClassDef(ZTauTauHistMaker,0);
 
