@@ -738,6 +738,7 @@ TCanvas* DataPlotter::plot_2Dhist(TString hist, TString setType, Int_t set) {
     tl->SetY2NDC(0.45);
     tl->SetY1NDC(0.9);
     tl->SetEntrySeparation(2.);
+    c->Update();
   }
 
   TH2F* hAxis = (h.size() > 0) ? h[ind] : 0;
@@ -855,16 +856,6 @@ TCanvas* DataPlotter::plot_hist(TString hist, TString setType, Int_t set) {
   c->SetRightMargin(0.05);
   c->SetLeftMargin(0.087);
   c->BuildLegend();
-  auto o = c->GetPrimitive("TPave");
-  if(o) {
-    auto tl = (TLegend*) o;
-    tl->SetTextSize(0.04);
-    tl->SetX1NDC(0.65);
-    tl->SetX2NDC(0.9);
-    tl->SetY2NDC(0.45);
-    tl->SetY1NDC(0.9);
-    tl->SetEntrySeparation(2.);
-  }
 
   TH1F* hAxis = (h.size() > 0) ? h[ind] : hQCD;
   if(!hAxis) return NULL;
@@ -880,6 +871,23 @@ TCanvas* DataPlotter::plot_hist(TString hist, TString setType, Int_t set) {
   if(plot_title_) hAxis->SetTitle (title.Data());
   else hAxis->SetTitle (""); //no title, overwrite current with empty string
   if(logY_) c->SetLogy();
+  auto o = c->GetPrimitive("TPave");
+  if(o) {
+    c->Modified();
+    c->Update();
+    auto tl = (TLegend*) o;
+    tl->SetTextSize(0.04);
+    tl->SetX1NDC(0.6);
+    tl->SetX2NDC(0.95);
+    tl->SetY2NDC(0.54);
+    tl->SetY1NDC(0.94);
+    tl->SetEntrySeparation(2.);
+    c->Modified();
+    c->Update();
+  } else {
+    printf("Warning! Legend not found\n");
+  }
+
   return c;
 
 }
@@ -965,37 +973,19 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
       hDataMC->SetBinError(i,errRatio); 
     }
   }
-  //if not plotting data, never split so use the original canvas
-  if(plot_data_) {
-    pad1->BuildLegend();
-    pad1->SetGrid();
+  pad1->BuildLegend();
+  pad1->SetGrid();
+  pad1->Update();
+  auto o = pad1->GetPrimitive("TPave");
+  if(o) {
+    auto tl = (TLegend*) o;
+    tl->SetTextSize(0.04);
+    tl->SetY2NDC(0.45);
+    tl->SetY1NDC(0.9);
+    tl->SetX1NDC(0.6);
+    tl->SetX2NDC(0.9);
+    tl->SetEntrySeparation(2.);
     pad1->Update();
-    auto o = pad1->GetPrimitive("TPave");
-    if(o) {
-      auto tl = (TLegend*) o;
-      tl->SetTextSize(0.04);
-      tl->SetY2NDC(0.45);
-      tl->SetY1NDC(0.9);
-      tl->SetX1NDC(0.6);
-      tl->SetX2NDC(0.9);
-      tl->SetEntrySeparation(2.);
-      pad1->Update();
-    }
-
-  } else {
-    c->BuildLegend();
-    c->SetGrid();
-    c->Update();
-    auto o = c->GetPrimitive("TPave");
-    if(o) {
-      auto tl = (TLegend*) o;
-      tl->SetTextSize(0.04);
-      tl->SetX1NDC(0.6);
-      tl->SetX2NDC(0.9);
-      tl->SetY2NDC(0.45);
-      tl->SetY1NDC(0.9);
-      tl->SetEntrySeparation(2.);
-    }
   }
   //draw text
   draw_luminosity();
