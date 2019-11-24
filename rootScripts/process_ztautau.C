@@ -156,7 +156,50 @@ Int_t process_ztautau() {
 			   1, //Electron Data 2016 G
 			   1  //Electron Data 2016 H
   };
-
+  
+  Double_t xsec[100];
+  for(int i = 0; i < sizeof(xsec)/sizeof(*xsec); ++i)
+    xsec[i] = 1.;
+  
+  //Taken from https://twiki.cern.ch/twiki/bin/viewauth/CMS/SummaryTable1G25ns     
+  xsec[0]  =  831.76;                 //"ttbar_inclusive"         
+  xsec[1]  =  6225.42; //6803.2;   //6225.42  ; //5765.4;    //"zjets_m-50_amcatnlo"     
+  xsec[2]  =  18610. ; //21959.8; //18610.  ;         //"zjets_m-10to50_amcatnlo" 
+  xsec[3]  =  35.85;	               //"t_tw"                    
+  xsec[4]  =  35.85;	               //"tbar_tw"                 
+  xsec[5]  =  6225.42; //6803.2;   //6225.42  ; //5765.4;    //"zjets_m-50_amcatnlo"     
+  xsec[6]  =  18610. ; //21959.8; //18610.  ;         //"zjets_m-10to50_amcatnlo" 
+  xsec[9]  =  1198.9;	               //"z1jets_m-50"             
+  xsec[10] =  855.5;		       //"z1jets_m-10to50"         
+  xsec[11] =  390.6;		       //"z2jets_m-50"             
+  xsec[12] =  466.1;		       //"z2jets_m-10to50"         
+  xsec[13] =  113.3;		       //"z3jets_m-50"             
+  xsec[14] =  114.5;		       //"z3jets_m-10to50"         
+  xsec[15] =  60.2;		       //"z4jets_m-50"             
+  xsec[16] =  36.4;		       //"z4jets_m-10to50"         
+  xsec[17] =  11486.53; //9493.;		       //"w1jets"                  
+  xsec[18] =  3775.2; //3120.;		       //"w2jets"                  
+  xsec[19] =  1139.82; //942.3;		       //"w3jets"                  
+  xsec[20] =  655.82; //524.1;		       //"w4jets"                  
+  xsec[21] =  12.178;	               //"ww"                      
+  xsec[22] =  5.595;		       //"wz_2l2q"                 
+  xsec[23] =  4.42965;	               //"wz_3lnu"                 
+  xsec[24] =  0.564;		       //"zz_2l2nu"                
+  xsec[25] =  3.22;		       //"zz_2l2q"                 
+  xsec[26] =  1.212;		       //"zz_4l"
+  //Higgs branching ratios: https://twiki.cern.ch/twiki/bin/view/LHCPhysics/CERNYellowReportPageBR2014
+  //Higgs production xsecs: https://twiki.cern.ch/twiki/bin/view/LHCPhysics/CERNYellowReportPageAt1314TeV2014
+  //Z decay to leptons fraction: http://pdg.lbl.gov/2012/listings/rpp2012-list-z-boson.pdf
+  // --> Br(Z->ll) * Br(h->Zg) * xsec(X -> h)
+  xsec[27] =    3.*3.3658/100.*1.54e-3* 43.92;	       //"hzg_gluglu"              
+  xsec[28] =    3.*3.3658/100.*1.54e-3* 0.5085;	       //"hzg_tth"                 
+  xsec[29] =    3.*3.3658/100.*1.54e-3* 3.748;	       //"hzg_vbf"                 
+  xsec[30] =    3.*3.3658/100.*1.54e-3* 1.380/2.;	       //"hzg_wminus"              
+  xsec[31] =    3.*3.3658/100.*1.54e-3* 1.380/2.;	       //"hzg_wplus"               
+  xsec[32] =    3.*3.3658/100.*1.54e-3* 0.8696;	       //"hzg_zh"                  
+  xsec[33] =                   6.32e-2* 43.92;	       //"htautau_gluglu"                  
+  xsec[34] =    ((6225.42+18610.)/(3.*3.3658e-2))*9.8e-6*100./2000.; //zetau z->ll / br(ll) * br(etau, CL=95) *N(accepted)/N(Gen) http://pdg.lbl.gov/2018/listings/rpp2018-list-z-boson.pdf
+  xsec[35] =    ((6225.42+18610.)/(3.*3.3658e-2))*1.2e-5*135./2000.; //zmutau z->ll/ br(ll) * br(mutau, CL=95)*N(accepted)/N(Gen) http://pdg.lbl.gov/2018/listings/rpp2018-list-z-boson.pdf
   bool writeTrees = true;
   Int_t category = 0;
   for(int i = 0; i < sizeof(files)/sizeof(*files); ++i) {
@@ -225,7 +268,7 @@ Int_t process_ztautau() {
 	if(isDY) selec->fDYType = loop;
 	selec->fEventCategory = category;
 	selec->fWriteTrees = writeTrees;
-	selec->fXsec = 1./events->GetBinContent(1);
+	selec->fXsec = xsec[i]/events->GetBinContent(1);
 	tree->Process(selec,"");
 	TFile* out = new TFile(Form("ztautau_%s%s_%s.hist",fChannel->GetName(),
 				    (isDY) ? Form("_%i",loop) : "", tree->GetName()),"UPDATE");
