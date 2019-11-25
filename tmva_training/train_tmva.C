@@ -7,7 +7,7 @@
 // TrainingMode : "chi2d" or "logfcons"
 // BkgWeight    : 0,1,2,3,4  (+100 if use  Z)
 //-----------------------------------------------------------------------------
-int train_tmva(const char* tree_name = "background_0.tree", vector<int> ignore = {16}) {
+int train_tmva(const char* tree_name = "background_ztautau_mutau_7.tree", vector<int> signals = {34,35}, vector<int> ignore = {}) {
 
   TFile *f;
 
@@ -36,7 +36,16 @@ int train_tmva(const char* tree_name = "background_0.tree", vector<int> ignore =
     return 1;
   }
 
-  tmvaName = "CWoLa_training_";
+  tmvaName = "training_";
+  // if(x.Contains("mutau"))
+  //   tmvaName += "mutau_";
+  // else if(x.Contains("etau"))
+  //   tmvaName += "etau_";
+  // else if(x.Contains("emu"))
+  //   tmvaName += "emu_";
+  // else
+  //   tmvaName += "XXX_";
+  
   for(int i = 0; i < tx->GetLast(); ++i) tmvaName +=   ((TObjString *)(tx->At(i)))->String();
   int n = ignore.size();
   if(n > 0) {
@@ -53,5 +62,5 @@ int train_tmva(const char* tree_name = "background_0.tree", vector<int> ignore =
   }
   printf("Beginning Training %s\n",tmvaName.Data());
   // return 0;
-  return TrainTrkQual(signal, background, tmvaName.Data(), isData, ignore);
+  return TrainTrkQual(signal, background, tmvaName.Data(), signals, ignore);
 }

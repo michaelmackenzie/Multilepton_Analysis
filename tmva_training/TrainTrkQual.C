@@ -51,7 +51,7 @@
 //Train MVA to separate the given signal from the given background
 int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual",
 		 vector<int> signals = {0},
-		 vector<int> ignore = {16}) {
+		 vector<int> ignore = {}) {
 
   // The explicit loading of the shared libTMVA is done in TMVAlogon.C, defined in .rootrc
   // if you use your private .rootrc, or run from a different directory, please copy the
@@ -114,7 +114,7 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
   Use["FDA_MCMT"]        = 0;
   //
   // --- Neural Networks (all are feed-forward Multilayer Perceptrons)
-  Use["MLP"]             = 1; // Recommended ANN
+  Use["MLP"]             = 0; // Recommended ANN
   Use["MLP_MM"]          = 1; // ANN with altered settings
   Use["MLPBFGS"]         = 0; // Recommended ANN with optional training method
   Use["MLPBNN"]          = 0; // Recommended ANN with BFGS training method and bayesian regulator
@@ -169,7 +169,6 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
       "!V:!Silent:Color:DrawProgressBar:Transformations=I:AnalysisType=Classification" );
 
 
-
   //data loader to handle the variables, spectators, signal trees, and background trees
   TString outFolder;
   outFolder = "tmva_";
@@ -177,8 +176,8 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
   //  TMVA::DataLoader* dataloader = new TMVA::DataLoader(outFolder);
 
 
-  factory->SetBackgroundWeightExpression("fullEventWeight");
-  factory->SetSignalWeightExpression("fullEventWeight");
+  factory->SetBackgroundWeightExpression("fulleventweight");
+  factory->SetSignalWeightExpression("fulleventweight");
 
   // If you wish to modify default settings
   // (please check "src/Config.h" to see all available global options)
@@ -187,30 +186,37 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
   TString dirname(tname);
   dirname += "_Weights";
   (TMVA::gConfig().GetIONames()).fWeightFileDir = dirname.Data();
+  cout << "--- Set weight directory " << dirname.Data() << endl;
 
   // Define the input variables that shall be used for the MVA training
   // note that you may also use variable expressions, such as: "3*var1/var2*abs(var3)"
   // [all types of expressions that can also be parsed by TTree::Draw( "expression" )]
   
-  factory->AddVariable("met","MET","GeV",'F');
-  factory->AddVariable("lepPt", "Pt_{ll}", "GeV", 'D');
-  factory->AddVariable("lepM" , "M_{ll}" , "GeV", 'D'); 
-  factory->AddVariable("lepEta","#eta_{ll}","",'D');
-  factory->AddVariable("lepDeltaEta","#Delta#eta_{ll}","",'D');
+  factory->AddVariable("leppt", "Pt_{ll}", "GeV", 'D');
+  factory->AddVariable("lepm" , "M_{ll}" , "GeV", 'D'); 
+  factory->AddVariable("lepeta","#eta_{ll}","",'D');
+  factory->AddVariable("mtone","MT(MET,l1)","",'D');
+  factory->AddVariable("mttwo","MT(MET,l2)","",'D');
+  factory->AddVariable("leponept","pT_{l1}","",'D');
+  factory->AddVariable("leptwopt","pT_{l2}","",'D');
+  factory->AddVariable("pxivis","p^{vis}_{#xi}","",'D');
+  factory->AddVariable("pxiinv","p^{inv}_{#xi}","",'D');
+
   // factory->AddVariable("lep1reliso","Iso/Pt_{l1}","",'D');
   // factory->AddVariable("lep2reliso","Iso/Pt_{l2}","",'D');
-  factory->AddVariable("nJets", "nJets", "", 'i');
+  factory->AddVariable("njets", "nJets", "", 'i');
   //  if(!dirname.Contains("_2")) factory->AddVariable("nFwdJets", "nFwdJets", "", 'i');
   // factory->AddVariable("nBJets", "nBJets", "", 'i');
 
   // factory->AddSpectator("lepM", "M_{ll}", "GeV", 'D'); 
-  factory->AddSpectator("lepPtOverM","Pt/M","",'D');
-  factory->AddSpectator("lepDelR","#DeltaR_{ll}","",'D');
-  factory->AddSpectator("lepDelPhi","#Delta#phi_{ll}","",'D');
-  factory->AddSpectator("fullEventWeight", "fullEventWeight", "", 'D'); 
-  factory->AddSpectator("eventWeight", "eventWeight", "", 'F'); 
-  factory->AddSpectator("genWeight", "eventWeight", "", 'F'); 
-  factory->AddSpectator("eventCategory", "eventCategory", "", 'I'); 
+  // factory->AddSpectator("lepptoverm := leppt / lepm","Pt/M","",'D');
+  factory->AddSpectator("met","MET","GeV",'F');
+  factory->AddSpectator("lepdeltar","#DeltaR_{ll}","",'D');
+  factory->AddSpectator("lepdeltaphi","#Delta#phi_{ll}","",'D');
+  factory->AddSpectator("lepdeltaeta","#Delta#eta_{ll}","",'D');
+  factory->AddSpectator("fulleventweight", "fullEventWeight", "", 'D'); 
+  factory->AddSpectator("eventweight", "eventWeight", "", 'F'); 
+  factory->AddSpectator("eventcategory", "eventCategory", "", 'I'); 
 
 
   // You can add so-called "Spectator variables", which are not used in the MVA training,
@@ -252,24 +258,35 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
   //  nm = tname;
   for(int i = 0; i < ignore.size(); ++i) {
     if(i > 0) {
-      sig_cut += Form("&&(eventCategory != %i)", ignore[i]);
-      bkg_cut += Form("&&(eventCategory != %i)", ignore[i]);
+      sig_cut += Form("&&(eventcategory != %i)", ignore[i]);
+      bkg_cut += Form("&&(eventcategory != %i)", ignore[i]);
     } else {
-      sig_cut += Form("(eventCategory != %i)", ignore[i]);
-      bkg_cut += Form("(eventCategory != %i)", ignore[i]);
+      sig_cut = Form("(eventcategory != %i)", ignore[i]);
+      bkg_cut = Form("(eventcategory != %i)", ignore[i]);
 
     }
+  }
+  if(ignore.size() > 0 && signals.size() > 0) {
+    sig_cut += "&&(";
+    bkg_cut += "&&(";
+  } else if(signals.size() > 0) {
+    sig_cut = "(";
+    bkg_cut = "(";
   }
   for(int i = 0; i < signals.size(); ++i) {
     if(i > 0 || ignore.size() > 0) {
-      sig_cut += Form("&&(eventCategory == %i)", ignore[i]);
-      bkg_cut += Form("&&(eventCategory != %i)", ignore[i]);
+      sig_cut += Form("||(eventcategory == %i)", signals[i]);
+      bkg_cut += Form("&&(eventcategory != %i)", signals[i]);
     } else {
-      sig_cut += Form("(eventCategory == %i)", ignore[i]);
-      bkg_cut += Form("(eventCategory != %i)", ignore[i]);
-
+      sig_cut += Form("(eventcategory == %i)", signals[i]);
+      bkg_cut += Form("(eventcategory != %i)", signals[i]);
     }
   }
+  if(signals.size() > 0) {
+    sig_cut += ")";
+    bkg_cut += ")";
+  }
+  
   // sig_cut += "lepM>25&&lepM<32";
   // bkg_cut += "lepM<70&&(lepM<25||lepM>32)&&lepM>10";
 
@@ -280,17 +297,19 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
   TCut bkg_cuts(bkg_cut);
   
   
-  Double_t nFraction =  0.1;//0.2;
+  Double_t nSigFrac =  0.7;//0.2;
+  Double_t nBkgFrac =  0.1;//0.2;
   Long64_t nSig = signal->CopyTree(signal_cuts)->GetEntriesFast();
   Long64_t nBkg = background->CopyTree(bkg_cuts)->GetEntriesFast();
-  if(nSig*nFraction < 5000) nFraction = min(0.7,5000./nSig);
   TString options = "nTrain_Signal=";
-  options += ((Int_t) nSig*nFraction);
+  options += ((Int_t) nSig*nSigFrac);
   options += ":nTrain_Background=";
-  options += ((Int_t) nBkg*nFraction);
+  options += ((Int_t) nBkg*nBkgFrac);
 
   options += ":nTest_Signal=0:nTest_Background=0:SplitMode=Random:!V:SplitSeed=89281";
   factory->PrepareTrainingAndTestTree(signal_cuts, bkg_cuts, options.Data() );
+  printf("\033[32m--- Using signal fraction %.2f\033[0m\n", nSigFrac);
+  printf("\033[32m--- Using background fraction %.2f\033[0m\n", nBkgFrac);
 
 
 
@@ -431,9 +450,6 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
 
   if (Use["MLP_MM"]) {
     TString network;
-    // if(outfilename.Contains("d_3") || outfilename.Contains("l_3"))
-    //   network = "10,5,3";
-    // else
     network = "12,5,2";//:LearningRate=1e-2";
     factory->BookMethod( TMVA::Types::kMLP, "MLP_MM",
 			 Form("!H:!V:VarTransform=N:HiddenLayers=%s",
