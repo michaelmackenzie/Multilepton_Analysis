@@ -1,14 +1,14 @@
 int MVA_ = 2; //0 for NN, 1 for BDT, 2 for BDTRT
-TString var_ = "lepM"; //which variable to plot
-double xMin_ = 10.; //plotting domain
-double xMax_ = 70.;
-int    bins_ = 30; //number of histogram bins
+TString var_ = "leponept"; //which variable to plot
+double xMin_ = 20.; //plotting domain
+double xMax_ = 150.;
+int    bins_ = 100; //number of histogram bins
 double yMin_ = 0.; //plotting domain for 2D
 double yMax_ = 100.;
 int    binsy_ = 100; //number of histogram bins
 int    print_ = 0; //print canvases
 int    setSilent_ = 0; //sets to batch mode for canvas printing
-int    new_training_ = 1; //new root trainings have different file structure
+int    new_training_ = 0; //new root trainings have different file structure
 
 int plot_tmva_tree(const char* file = "CWoLa_training_background_3", double mva_cut = 0.,
 		   int category = -1) {
@@ -62,9 +62,9 @@ int plot_tmva_tree(const char* file = "CWoLa_training_background_3", double mva_
   
   TString cut;
   if(fname.Contains("mock"))
-    cut = Form("genWeight*((%s>=%.5f)",mva_var.Data(),mva_cut); //don't weight data/mock data
+    cut = Form("genweight*((%s>=%.5f)",mva_var.Data(),mva_cut); //don't weight data/mock data
   else
-    cut = Form("fullEventWeight*((%s>=%.5f)",mva_var.Data(),mva_cut);
+    cut = Form("fulleventweight*((%s>=%.5f)",mva_var.Data(),mva_cut);
     
   if(category > -1) cut += Form("&&(eventCategory == %i)",category);
   cut += ")";
@@ -155,51 +155,65 @@ int stack_tmva_tree(const char* file = "../CWoLa_training_background_3.root", do
     return 2;
   }
 
-  const char* names[] = {
-    			 "T"        ,  // 0
-                         "T"        ,  // 1
-			 "TTbar"    ,  // 2
-			 "Z+Jets"   ,  // 3
-			 "Z+Jets"   ,  // 4
-			 "Z+Jets"   ,  // 5
-			 "Z+Jets"   ,  // 6
-			 "Z+Jets"   ,  // 7
-			 "Z+Jets"   ,  // 8
-			 "Z+Jets"   ,  // 9
-			 "Z+Jets"   ,  // 10
-			 "Z+Jets"   ,  // 11
-			 "Z+Jets"   ,  // 12
-			 "Z+Jets"   ,  // 13
-			 "Z+Jets"   ,  // 14
-			 //Signal      // 
-      			 "B-->bX"   ,  // 15
-    			 "BB2bbXX"  ,  // 16
-    			 "fcnc_mx10",  // 17
-    			 "fcnc_mx30",  // 18
-    			 "fcnc_mx60"}; // 19
-
-  const int colors[] = {
-    			 kYellow+1  ,
-                         kYellow+1  ,
-			 kYellow+3  ,
-			 kBlue+1  ,
-			 kRed+1  ,
-			 kRed+1  , //inclusive?
-			 kRed+1  , //inclusive?
-			 kRed+1  ,
-			 kRed+1  ,
-			 kRed+1  ,
-			 kRed+1  ,
-			 kRed+1  ,
-			 kRed+1  ,
-			 kRed+1  ,
-			 kRed+1  ,
-			 //signal
-      			 kGreen+2  ,
-    			 kGreen+4  ,
-    			 kBlue-1  ,
-    			 kBlue-1  ,
-    			 kBlue-1  };
+  const char* names[] = {"Top"
+			 , "Z+Jets"
+			 , "Z+Jets"
+			 , "Top"
+			 , "Top"
+			 , "Z+Jets"
+			 , "Z+Jets"
+			 , "Z+Jets"
+			 , "Z+Jets"
+			 , "Z+Jets"
+			 , "Z+Jets"
+			 , "Z+Jets"
+			 , "Z+Jets"
+			 , "Z+Jets"
+			 , "Z+Jets"
+			 , "W+Jets"
+			 , "W+Jets"
+			 , "W+Jets"
+			 , "W+Jets"
+			 , "DiBoson"
+			 , "DiBoson"
+			 , "DiBoson"
+			 , "DiBoson"
+			 , "DiBoson"
+			 , "DiBoson"
+			 , "HZG"
+			 , "HZG"
+			 , "HZG"
+			 , "HZG"
+			 , "HZG"
+			 , "HZG"
+			 , "HTauTau"
+			 , "ZETau"
+			 , "ZMuTau"
+			 , "ZMuTau"
+			 , "Data"
+			 , "Data"
+			 , "Data"
+			 , "Data"
+			 , "Data"
+			 , "Data"
+			 , "Data"
+			 , "Data"
+			 , "Data"
+			 , "Data"
+			 , "Data"
+			 , "Data"
+			 , "Data"
+			 , "Data"
+  };
+  std::map<std::string, int> colors;
+  colors["Z+Jets"] = kRed+1;
+  colors["W+Jets"] = kGreen+2;
+  colors["Top"]    = kYellow+1;
+  colors["DiBoson"]= kViolet;
+  colors["ZMuTau"] = kGreen+9;
+  colors["ZETau"]  = kAzure-2;
+  colors["HZG"]    = kBlue-2;
+  colors["Data"]   = kBlack;
   TH1F* htest[100];
   TH1F* htrain[100];
   for(int i = 0; i < 100; ++i) {
@@ -210,62 +224,73 @@ int stack_tmva_tree(const char* file = "../CWoLa_training_background_3.root", do
   TString mva_var;
   if(MVA_ == 0)
     mva_var = "MLP_MM";
-  // else if(MVA_ == 1) //not currently using standard BDT
-  //   mva_var = "BDT";
+  else if(MVA_ == 1) //not currently using standard BDT
+    mva_var = "BDT";
   else if(MVA_ == 2)
     mva_var = "BDTRT";
   else {
     printf("MVA_ value doesn't correspond to known MVA\n");
     return 3;
   }
-  double scaleTrain = 1.;
+  double scaleBkgTrain = 1.;
+  double scaleSigTrain = 1.;
   if(plot_train > 0) {
-    test_tree-> Draw(Form("%s>>htest_-1" , var_.Data()));
-    train_tree->Draw(Form("%s>>htrain_-1", var_.Data()));
+    test_tree-> Draw(Form("%s>>htest_-1" , var_.Data()),"(classID==0)");
+    train_tree->Draw(Form("%s>>htrain_-1", var_.Data()),"(classID==0)");
     TH1F* htraintmp = (TH1F*) gDirectory->Get("htrain_-1");
     TH1F* htesttmp  = (TH1F*) gDirectory->Get("htest_-1");
-    scaleTrain = htesttmp->Integral()/htraintmp->Integral();
+    scaleBkgTrain = htesttmp->Integral()/htraintmp->Integral();
+    test_tree-> Draw(Form("%s>>htest_-1" , var_.Data()),"(classID==1)");
+    train_tree->Draw(Form("%s>>htrain_-1", var_.Data()),"(classID==1)");
+    scaleSigTrain = htesttmp->Integral()/htraintmp->Integral();
+    printf("Scaling background by %.2f and signal by %.2f for training trees\n", scaleBkgTrain, scaleSigTrain);
     delete htraintmp;
     delete htesttmp;
   }
   
   int zjetindex = -1;
   int tindex = -1;
-  if(plot_train > 0 && scaleTrain > 0.) printf("Scaling training histograms by %.3f\n", scaleTrain);
+  TH1F* hSigTest;
   for(int i = 0; i <  sizeof(names)/sizeof(*names); ++i) {
     htest[i] = new TH1F(Form("htest_%i",i),   Form("Test %s" , names[i]), bins_, xMin_, xMax_);
     if(plot_train > 0) htrain[i] = new TH1F(Form("htrain_%i",i), Form("Train %s", names[i]), bins_, xMin_, xMax_);
     TString cut;
     if(fname.Contains("mock"))
-      cut = Form("genWeight*((%s>=%.5f)",mva_var.Data(),mva_cut);
+      cut = Form("genweight*((%s>=%.5f)",mva_var.Data(),mva_cut);
     else
-      cut = Form("fullEventWeight*((%s>=%.5f)",mva_var.Data(),mva_cut);
+      cut = Form("fulleventweight*((%s>=%.5f)",mva_var.Data(),mva_cut);
 
-    cut += Form("&&(eventCategory == %i))",i);
+    cut += Form("&&(eventcategory == %i))",i);
     
-    test_tree-> Draw(Form("%s>>htest_%i" , var_.Data(), i), cut.Data());
+    test_tree->Draw(Form("%s>>htest_%i" , var_.Data(), i), cut.Data());
+    hSigTest = new TH1F("hSigTest", "hSigTest", 2, 0., 2.);
+    test_tree->Draw("classID>>hSigTest",Form("(eventcategory==%i)",i));
+    bool isSig = hSigTest->GetMean() > 0.5;
+    delete hSigTest;
     if(plot_train > 0) train_tree->Draw(Form("%s>>htrain_%i", var_.Data(), i), cut.Data());
     TString name = names[i];
-    if(plot_train > 0 && scaleTrain > 0.) htrain[i]->Scale(scaleTrain);
+    printf("%i: %s, isSig = %d, test integral = %.3e train integral before = %.3e ", i, name.Data(), isSig,
+	   htest[i]->Integral(), htrain[i]->Integral());
+    if(plot_train > 0 && scaleBkgTrain > 0.) htrain[i]->Scale(((isSig) ? scaleSigTrain : scaleBkgTrain));
+    printf("after = %.3e\n", htrain[i]->Integral());
     if(name.Contains("Z+Jets")) {
       if(zjetindex > -1) {
 	htest[zjetindex]->Add(htest[i]);
       	if(plot_train > 0) htrain[zjetindex]->Add(htrain[i]);
       } else zjetindex = i;
     }
-    if(name == "T") {
+    if(name == "Top") {
       if(tindex > -1) {
 	htest[tindex]->Add(htest[i]);
       	if(plot_train > 0) htrain[tindex]->Add(htrain[i]);
       } else tindex = i;
     }
-    htest[i]->SetLineColor(colors[i]);
-    htest[i]->SetFillColor(colors[i]);
+    htest[i]->SetLineColor(colors[name.Data()]);
+    htest[i]->SetFillColor(colors[name.Data()]);
     htest[i]->SetFillStyle(3001);
-    if(plot_train > 0) htrain[i]->SetMarkerColor(colors[i]-5);
+    if(plot_train > 0) htrain[i]->SetMarkerColor(colors[name.Data()]-1);
     if(plot_train > 0) htrain[i]->SetMarkerStyle(20);
-    if(plot_train > 0) htrain[i]->SetLineColor(colors[i]-5);
-    //    htrain[i]->SetFillColor(colors[i]-5);
+    if(plot_train > 0) htrain[i]->SetLineColor(colors[name.Data()]-1);
   }
   TObject* o = (gDirectory->Get("c1"));
   if(o) delete o;
@@ -276,7 +301,7 @@ int stack_tmva_tree(const char* file = "../CWoLa_training_background_3.root", do
     TString name = names[i];
     if(name.Contains("Z+Jets") && i != zjetindex)
       continue;
-    if(name == "T" && i != tindex)
+    if(name == "Top" && i != tindex)
       continue;
     htest[i] ->SetTitle(Form("%s #scale[0.5]{#int} = %.2e", htest[i] ->GetTitle() , htest[i]->Integral()));
     if(plot_train > 0)
@@ -287,7 +312,6 @@ int stack_tmva_tree(const char* file = "../CWoLa_training_background_3.root", do
   }
   
   TCanvas* c = new TCanvas("c_stack","Stack Canvas", 1200, 800);
-  //  htest->Scale(htrain->Integral()/htest->Integral());
   if(plot_train > 0 && hstacktrain->GetNhists() > 0) {
     hstacktrain->Draw("E noclear");
     if(hstacktest->GetNhists() > 0)
