@@ -15,6 +15,7 @@ tmva_training/*.root
 tmva_training/scripts/figures/*.png
 tmva_training/scripts/figures/*/*.png
 tmva_training/CWoLa_*
+tmva_training/training_*
 tmva_training/scripts/CWoLa_*
 bin
 src
