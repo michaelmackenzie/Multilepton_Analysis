@@ -1,3 +1,10 @@
+
+#include <map>
+#include <string>
+
+
+
+
 int MVA_ = 2; //0 for NN, 1 for BDT, 2 for BDTRT
 TString var_ = "leponept"; //which variable to plot
 double xMin_ = 20.; //plotting domain
@@ -214,6 +221,9 @@ int stack_tmva_tree(const char* file = "../CWoLa_training_background_3.root", do
   colors["ZETau"]  = kAzure-2;
   colors["HZG"]    = kBlue-2;
   colors["Data"]   = kBlack;
+  std::map<std::string, int> indexes;
+  for(int i = 0; i <  sizeof(names)/sizeof(*names); ++i) 
+    indexes[names[i]] = -1;
   TH1F* htest[100];
   TH1F* htrain[100];
   for(int i = 0; i < 100; ++i) {
@@ -248,8 +258,6 @@ int stack_tmva_tree(const char* file = "../CWoLa_training_background_3.root", do
     delete htesttmp;
   }
   
-  int zjetindex = -1;
-  int tindex = -1;
   TH1F* hSigTest;
   for(int i = 0; i <  sizeof(names)/sizeof(*names); ++i) {
     htest[i] = new TH1F(Form("htest_%i",i),   Form("Test %s" , names[i]), bins_, xMin_, xMax_);
@@ -273,24 +281,18 @@ int stack_tmva_tree(const char* file = "../CWoLa_training_background_3.root", do
 	   htest[i]->Integral(), htrain[i]->Integral());
     if(plot_train > 0 && scaleBkgTrain > 0.) htrain[i]->Scale(((isSig) ? scaleSigTrain : scaleBkgTrain));
     printf("after = %.3e\n", htrain[i]->Integral());
-    if(name.Contains("Z+Jets")) {
-      if(zjetindex > -1) {
-	htest[zjetindex]->Add(htest[i]);
-      	if(plot_train > 0) htrain[zjetindex]->Add(htrain[i]);
-      } else zjetindex = i;
-    }
-    if(name == "Top") {
-      if(tindex > -1) {
-	htest[tindex]->Add(htest[i]);
-      	if(plot_train > 0) htrain[tindex]->Add(htrain[i]);
-      } else tindex = i;
-    }
-    htest[i]->SetLineColor(colors[name.Data()]);
-    htest[i]->SetFillColor(colors[name.Data()]);
+    int index = indexes[name.Data()];
+    if(index > -1) {
+      htest[index]->Add(htest[i]);
+      if(plot_train > 0) htrain[index]->Add(htrain[i]);
+    } else
+      indexes[name.Data()] = i;
+    htest[i]->SetLineColor(colors[names[i]]);
+    htest[i]->SetFillColor(colors[names[i]]);
     htest[i]->SetFillStyle(3001);
-    if(plot_train > 0) htrain[i]->SetMarkerColor(colors[name.Data()]-1);
+    if(plot_train > 0) htrain[i]->SetMarkerColor(colors[names[i]]-1);
     if(plot_train > 0) htrain[i]->SetMarkerStyle(20);
-    if(plot_train > 0) htrain[i]->SetLineColor(colors[name.Data()]-1);
+    if(plot_train > 0) htrain[i]->SetLineColor(colors[names[i]]-1);
   }
   TObject* o = (gDirectory->Get("c1"));
   if(o) delete o;
@@ -298,10 +300,7 @@ int stack_tmva_tree(const char* file = "../CWoLa_training_background_3.root", do
   THStack* hstacktest  = new THStack("teststack" , "Testing Stack");
   THStack* hstacktrain = new THStack("trainstack", "Training Stack");
   for(int i = 0; i <  sizeof(names)/sizeof(*names); ++i) {
-    TString name = names[i];
-    if(name.Contains("Z+Jets") && i != zjetindex)
-      continue;
-    if(name == "Top" && i != tindex)
+    if(indexes[names[i]] != i)
       continue;
     htest[i] ->SetTitle(Form("%s #scale[0.5]{#int} = %.2e", htest[i] ->GetTitle() , htest[i]->Integral()));
     if(plot_train > 0)
