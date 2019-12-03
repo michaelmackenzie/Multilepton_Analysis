@@ -16,6 +16,7 @@ int    binsy_ = 100; //number of histogram bins
 int    print_ = 0; //print canvases
 int    setSilent_ = 0; //sets to batch mode for canvas printing
 int    new_training_ = 0; //new root trainings have different file structure
+double lum_ = 1.; //luminosity to scale by
 
 int plot_tmva_tree(const char* file = "CWoLa_training_background_3", double mva_cut = 0.,
 		   int category = -1) {
@@ -98,8 +99,8 @@ int plot_tmva_tree(const char* file = "CWoLa_training_background_3", double mva_
   c->Update();
   
   htrain->SetMaximum(1.2*max(htest->GetMaximum(),htrain->GetMaximum()));
-  htrain->SetTitle(Form("M_{l l} for %s >= %.5f",mva_var.Data(),mva_cut));
-  htrain->SetXTitle("M_{l l} (GeV)");
+  htrain->SetTitle(Form("%s for %s >= %.5f",var_.Data(),mva_var.Data(),mva_cut));
+  htrain->SetXTitle(Form("%s",var_.Data()));
   htrain->SetYTitle("Entries / 1 GeV");
 
   if(print_) {
@@ -277,10 +278,14 @@ int stack_tmva_tree(const char* file = "../CWoLa_training_background_3.root", do
     delete hSigTest;
     if(plot_train > 0) train_tree->Draw(Form("%s>>htrain_%i", var_.Data(), i), cut.Data());
     TString name = names[i];
-    printf("%i: %s, isSig = %d, test integral = %.3e train integral before = %.3e ", i, name.Data(), isSig,
-	   htest[i]->Integral(), htrain[i]->Integral());
+    // printf("%i: %s, isSig = %d, test integral = %.3e train integral before = %.3e ", i, name.Data(), isSig,
+    // 	   htest[i]->Integral(), htrain[i]->Integral());
     if(plot_train > 0 && scaleBkgTrain > 0.) htrain[i]->Scale(((isSig) ? scaleSigTrain : scaleBkgTrain));
-    printf("after = %.3e\n", htrain[i]->Integral());
+    // printf("after = %.3e\n", htrain[i]->Integral());
+    if(lum_ != 1.) {
+      htest[i]->Scale(lum_);
+      if(plot_train > 0) htrain[i]->Scale(lum_);
+    }
     int index = indexes[name.Data()];
     if(index > -1) {
       htest[index]->Add(htest[i]);
@@ -327,12 +332,12 @@ int stack_tmva_tree(const char* file = "../CWoLa_training_background_3.root", do
   if(plot_train > 0 && hstacktrain->GetNhists() > 0) {
     if(hstacktest->GetNhists() > 0)
       hstacktrain->SetMaximum(1.2*max(hstacktest->GetMaximum(),hstacktrain->GetMaximum()));
-    hstacktrain->SetTitle(Form("M_{l l} for %s >= %.5f",mva_var.Data(),mva_cut));
-    hstacktrain->GetXaxis()->SetTitle("M_{l l} (GeV)");
+    hstacktrain->SetTitle(Form("%s for %s >= %.5f",var_.Data(),mva_var.Data(),mva_cut));
+    hstacktrain->GetXaxis()->SetTitle(Form("%s",var_.Data()));
     hstacktrain->GetYaxis()->SetTitle(Form("Entries / %.1f GeV",hstacktrain->GetXaxis()->GetBinWidth(1)));
   } else  if(hstacktest->GetNhists() > 0) {
-    hstacktest->SetTitle(Form("M_{l l} for %s >= %.5f",mva_var.Data(),mva_cut));
-    hstacktest->GetXaxis()->SetTitle("M_{l l} (GeV)");
+    hstacktest->SetTitle(Form("%s for %s >= %.5f",var_.Data(),mva_var.Data(),mva_cut));
+    hstacktest->GetXaxis()->SetTitle(Form("%s",var_.Data()));
     hstacktest->GetYaxis()->SetTitle(Form("Entries / %.1f GeV",hstacktest->GetXaxis()->GetBinWidth(1)));
   }
   if(print_) {

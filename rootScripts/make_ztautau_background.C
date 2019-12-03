@@ -7,6 +7,17 @@ Int_t make_background(int set = 7, TString selection = "mutau", TString base = "
 			 , "ttbar_inclusive"        
 			 , "zjets_m-50_amcatnlo"         
 			 , "zjets_m-10to50_amcatnlo"     
+			 , "w1jets"   
+			 , "w2jets"   
+			 , "w3jets"   
+			 , "w4jets"   
+			 , "ww"            
+			 , "wz_2l2q"  
+			 , "wz_3lnu"  
+			 , "zz_2l2nu" 
+			 , "zz_2q2q"  
+			 , "zz_4l"    
+			 , "htautau_gluglu"
 			 , "zmutau"                 
 			 , "zetau"                 
   };
@@ -16,6 +27,17 @@ Int_t make_background(int set = 7, TString selection = "mutau", TString base = "
 		     , 1 //ttbar
 		     , 1 //DY AMC
 		     , 1 //DY AMC
+		     , 1 //W1Jets
+		     , 1 //W2Jets
+		     , 1 //W3Jets
+		     , 1 //W4Jets
+		     , 1 //WW
+		     , 1 //WZ
+		     , 1 //WZ
+		     , 1 //ZZ
+		     , 1 //ZZ
+		     , 1 //ZZ
+		     , 1 //htautau
 		     , ((selection == "mutau") ? 1 : 0) //zmutau
 		     , ((selection == "etau")  ? 1 : 0) //zetau
   };

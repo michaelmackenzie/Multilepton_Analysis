@@ -298,7 +298,7 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
   
   
   Double_t nSigFrac =  0.7;//0.2;
-  Double_t nBkgFrac =  0.1;//0.2;
+  Double_t nBkgFrac =  0.2;//0.2;
   Long64_t nSig = signal->CopyTree(signal_cuts)->GetEntriesFast();
   Long64_t nBkg = background->CopyTree(bkg_cuts)->GetEntriesFast();
   TString options = "nTrain_Signal=";
@@ -485,7 +485,7 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
 
   if (Use["BDTRT"]) {  // Bagging Boost Random Trees
     TString bdtSetup = "!H:!V";
-    bdtSetup += ":NTrees=200:MinNodeSize=3%:MaxDepth=2:nCuts=1600:UseNVars=6:UseRandomisedTrees=True";
+    bdtSetup += ":NTrees=1000:MinNodeSize=2.5%:MaxDepth=3:nCuts=200:UseNVars=6:UseRandomisedTrees=True";
     bdtSetup += ":BoostType=Bagging:BaggedSampleFraction=0.95";
     // bdtSetup += ":PruneMethod=ExpectedError:PruneStrength=0.2";
     factory->BookMethod( TMVA::Types::kBDT, "BDTRT",bdtSetup.Data());
