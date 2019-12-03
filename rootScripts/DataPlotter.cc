@@ -326,6 +326,11 @@ void DataPlotter::get_titles(TString hist, TString setType, TString* xtitle, TSt
     *ytitle = "";
     *title  = Form("pT_{#tau} + pT_{l} - MET");
   }
+  else if(hist.Contains("mva")) {
+    *xtitle = "MVA score";
+    *ytitle = "";
+    *title  = "MVA Score";
+  }
 }
 
 vector<TH1F*> DataPlotter::get_signal(TString hist, TString setType, Int_t set) {
