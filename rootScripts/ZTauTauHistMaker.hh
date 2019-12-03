@@ -31,6 +31,7 @@
 #include <TTreeReader.h>
 #include <TTreeReaderValue.h>
 #include <TTreeReaderArray.h>
+#include <TSystem.h>
 
 // Headers needed by this particular selector
 #include "TLorentzVector.h"
@@ -38,6 +39,10 @@
 #include "TH1.h"
 #include "TH2.h"
 #include "TString.h"
+
+// TMVA includes
+#include "TMVA/Tools.h"
+#include "TMVA/Reader.h"
 
 // Headers for ditau vertex mass
 // #include "TauAnalysis/ClassicSVfit/interface/ClassicSVfit.h"
@@ -194,6 +199,8 @@ public :
 
     TH1F* hPtSum[2]; //scalar sum of lepton Pt and Met, and photon for one
     TH1F* hPt1Sum[4]; //scalar sum of 1 lepton Pt and Met, both leptons, then both minus met
+    //MVA values
+    TH1F* hMVA[10];
   };
 
   struct LepHist_t {
@@ -279,32 +286,32 @@ public :
   //Tree Variables
   struct Tree_t {
     //lepton variables
-    double leponept;
-    double leponem;
-    double leponeeta;
-    double leptwopt;
-    double leptwom;
-    double leptwoeta;
+    float leponept;
+    float leponem;
+    float leponeeta;
+    float leptwopt;
+    float leptwom;
+    float leptwoeta;
     //di-lepton variables
-    double lepp;
-    double leppt;
-    double lepm;
-    double lepeta;
-    double lepdeltaeta;
-    double lepdeltar;
-    double lepdeltaphi;
+    float lepp;
+    float leppt;
+    float lepm;
+    float lepeta;
+    float lepdeltaeta;
+    float lepdeltar;
+    float lepdeltaphi;
     //MET variables
-    double met;
-    double mtone;
-    double mttwo;
-    double pxivis;
-    double pxiinv;
-    int    njets;
-    int    nbjets;
-    int    nphotons;
-    double eventweight;
-    double fulleventweight; //includes cross-section and number gen
-    int eventcategory; //for identifying the process in mva trainings
+    float met;
+    float mtone;
+    float mttwo;
+    float pxivis;
+    float pxiinv;
+    float  njets;
+    float  nbjets;
+    float  nphotons;
+    float eventweight;
+    float fulleventweight; //includes cross-section and number gen
+    float eventcategory; //for identifying the process in mva trainings
   };
   
   ZTauTauHistMaker(TTree * /*tree*/ =0) { }
@@ -337,6 +344,12 @@ public :
 
   //Define relevant fields
   TStopwatch* timer = new TStopwatch();
+  TMVA::Reader* mva; //read and apply mva weight files
+  vector<TString> fMvaNames = {
+    //"mutau_MLP_MM_7" ,"mutau_BDT_7" ,"mutau_BDTRT_7",
+    "mutau_MLP_MM_17","mutau_BDT_17"};//,"mutau_BDTRT_17"};
+  double fMvaOutputs[20];
+  
   //Histograms:
   const static Int_t fn = 200; //max histogram sets
   const static Int_t fQcdOffset = 100; //histogram set + offset = set with same sign selection
@@ -356,7 +369,7 @@ public :
   Int_t         fDYType = -1; //for splitting Z->ll into 1: tau tau and 2: e/mu e/mu
   Int_t         fWriteTrees = 0; //write out ttrees for the events
   Double_t      fXsec = 0.; //cross-section for full event weight with trees
-  Tree_t        fTreeVars; //for filling the ttrees
+  Tree_t        fTreeVars; //for filling the ttrees/mva evaluation
   Int_t         fEventCategory; //for identifying the process in mva trainings
   
   ClassDef(ZTauTauHistMaker,0);
@@ -375,6 +388,35 @@ void ZTauTauHistMaker::Init(TTree *tree)
   // Init() will be called many times when running on PROOF
   // (once per file to be processed).
   if(fChain == 0 && tree != 0) {
+    TMVA::Tools::Instance(); //load the library
+    mva = new TMVA::Reader("!Color:!Silent");
+    mva->AddVariable("leppt"           ,&fTreeVars.leppt          );
+    mva->AddVariable("lepm"            ,&fTreeVars.lepm           ); 
+    mva->AddVariable("lepeta"          ,&fTreeVars.lepeta         );
+    mva->AddVariable("mtone"           ,&fTreeVars.mtone          );
+    mva->AddVariable("mttwo"           ,&fTreeVars.mttwo          );
+    mva->AddVariable("leponept"        ,&fTreeVars.leponept       );
+    mva->AddVariable("leptwopt"        ,&fTreeVars.leptwopt       );
+    mva->AddVariable("pxivis"          ,&fTreeVars.pxivis         );
+    mva->AddVariable("pxiinv"          ,&fTreeVars.pxiinv         );
+    mva->AddVariable("njets"           ,&fTreeVars.njets          );
+    mva->AddSpectator("met"            ,&fTreeVars.met            );
+    mva->AddSpectator("lepdeltar"      ,&fTreeVars.lepdeltar      );
+    mva->AddSpectator("lepdeltaphi"    ,&fTreeVars.lepdeltaphi    );
+    mva->AddSpectator("lepdeltaeta"    ,&fTreeVars.lepdeltaeta    );
+    mva->AddSpectator("fulleventweight",&fTreeVars.fulleventweight);
+    mva->AddSpectator("eventweight"    ,&fTreeVars.eventweight    );
+    mva->AddSpectator("eventcategory"  ,&fTreeVars.eventcategory  );
+
+    //Initialize MVAs
+    for(auto name : fMvaNames) {
+      const char* f = Form("weights/%s.weights.xml",name.Data());
+      if(!gSystem->AccessPathName(f))
+	mva->BookMVA(name.Data(),f);
+      else
+	printf("Init: Warning! Weights file %s not found\n",f);
+    }
+    
     fOut = new TFile(Form("ztautau%s%s_%s.hist",(fFolderName == "") ? "" : ("_"+fFolderName).Data(),
 			  (fDYType > 0) ? Form("_%i",fDYType) : "",tree->GetName()),
 		     "RECREATE","ZTauTauHistMaker output histogram file");

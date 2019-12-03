@@ -182,6 +182,8 @@ void ZTauTauHistMaker::BookEventHistograms() {
       fEventHist[i]->hPt1Sum[1]        = new TH1F("pt1sum1"        , Form("%s: Scalar Pt sum Lepton 2 + MET"     ,dirname)    ,1000,  0.,  1000.);     
       fEventHist[i]->hPt1Sum[2]        = new TH1F("pt1sum2"        , Form("%s: Scalar Pt sum Lepton 1 + 2"       ,dirname)    ,1000,  0.,  1000.);     
       fEventHist[i]->hPt1Sum[3]        = new TH1F("pt1sum3"        , Form("%s: Scalar Pt sum Lepton 1 + 2 - MET" ,dirname)    ,1000,  0.,  1000.);     
+      for(unsigned j = 0; j < fMvaNames.size(); ++j) 
+	fEventHist[i]->hMVA[j]        = new TH1F(Form("mva%i",j)   , Form("%s: %s MVA" ,dirname, fMvaNames[j].Data()) ,200, -1.,  1.);     
       
     }
   }
@@ -359,6 +361,9 @@ void ZTauTauHistMaker::InitializeTreeVariables() {
   fTreeVars.eventweight = genWeight*eventWeight;
   fTreeVars.fulleventweight = genWeight*eventWeight*fXsec;
   fTreeVars.eventcategory = fEventCategory;
+
+  for(unsigned i = 0; i < fMvaNames.size(); ++i)
+    fMvaOutputs[i] = mva->EvaluateMVA(fMvaNames[i].Data());
 
 }
 
@@ -542,6 +547,10 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
   Hist->hPt1Sum[1]     ->Fill(leptonTwoP4->Pt()+met ,eventWeight*genWeight);
   Hist->hPt1Sum[2]     ->Fill(leptonTwoP4->Pt()+leptonTwoP4->Pt() ,eventWeight*genWeight);
   Hist->hPt1Sum[3]     ->Fill(leptonTwoP4->Pt()+leptonTwoP4->Pt()-met ,eventWeight*genWeight);
+
+  //MVA outputs
+  for(unsigned i = 0; i < fMvaNames.size(); ++i) 
+    Hist->hMVA[i]->Fill(fMvaOutputs[i], eventWeight*genWeight);
 }
 
 void ZTauTauHistMaker::FillPhotonHistogram(PhotonHist_t* Hist) {
@@ -673,7 +682,7 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
     else if(fDYType == 1 && nGenTausHad+nGenTausLep < 2) return kTRUE; 
   }
 
-  if(fWriteTrees) InitializeTreeVariables();
+  InitializeTreeVariables();
   
   bool chargeTest = leptonOneFlavor*leptonTwoFlavor < 0;
   FillAllHistograms(0);
