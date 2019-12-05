@@ -7,6 +7,7 @@ Int_t init_dataplotter() {
 
   dataplotter_ = new DataPlotter();
   dataplotter_->selection_ = selection_;
+  dataplotter_->folder_ = "clfv_zdecays";
   if(selection_ == "mutau")
     dataplotter_->qcd_scale_ = 1.059;
   else if(selection_ == "etau")
@@ -138,8 +139,8 @@ Int_t init_dataplotter() {
   process[31] = 0; //"hzg_wplus"               
   process[32] = 0; //"hzg_zh"                  
   process[33] = 1; //"htautau_gluglu"                  
-  process[34] = 1; //"zetau"
-  process[35] = 1; //"zmutau"
+  process[34] = (selection_ == "etau" ) ? 1 : 0; //"zetau"
+  process[35] = (selection_ == "mutau") ? 1 : 0; //"zmutau"
 
   vector<TString> files;
   for(int i = 0; i < sizeof(process)/sizeof(*process); ++i) {

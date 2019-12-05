@@ -837,6 +837,7 @@ TCanvas* DataPlotter::plot_hist(TString hist, TString setType, Int_t set) {
   int ind = 0;
   auto it = indexes.begin();
   while(it != indexes.end()) {
+    if(h[it->second]->GetEntries() == 0) continue;
     if(first) {
       h[it->second]->Draw("hist");
       ind = it->second;
