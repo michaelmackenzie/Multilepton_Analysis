@@ -81,6 +81,7 @@ void ZTauTauHistMaker::BookEventHistograms() {
       fEventHist[i]->hTriggerStatus          = new TH1F("triggerStatus"       , Form("%s: TriggerStatus"       ,dirname)  ,   3, -1.5, 1.5);
       fEventHist[i]->hEventWeight            = new TH1F("eventweight"         , Form("%s: EventWeight"         ,dirname)  , 100,   -5,   5);     
       fEventHist[i]->hGenWeight              = new TH1F("genweight"           , Form("%s: GenWeight"           ,dirname)  ,   5, -2.5, 2.5);     
+      fEventHist[i]->hGenTauFlavorWeight     = new TH1F("gentauflavorweight"  , Form("%s: GenTauFlavorWeight"  ,dirname)  ,  40,    0,   2);     
       fEventHist[i]->hNPV                    = new TH1F("npv"                 , Form("%s: NPV"                 ,dirname)  , 200,  0, 200); 
       fEventHist[i]->hNPU                    = new TH1F("npu"                 , Form("%s: NPU"                 ,dirname)  , 100,  0, 100); 
       fEventHist[i]->hNPartons               = new TH1F("npartons"            , Form("%s: NPartons"            ,dirname)  ,  10,  0,  10); 
@@ -183,7 +184,7 @@ void ZTauTauHistMaker::BookEventHistograms() {
       fEventHist[i]->hPt1Sum[2]        = new TH1F("pt1sum2"        , Form("%s: Scalar Pt sum Lepton 1 + 2"       ,dirname)    ,1000,  0.,  1000.);     
       fEventHist[i]->hPt1Sum[3]        = new TH1F("pt1sum3"        , Form("%s: Scalar Pt sum Lepton 1 + 2 - MET" ,dirname)    ,1000,  0.,  1000.);     
       for(unsigned j = 0; j < fMvaNames.size(); ++j) 
-	fEventHist[i]->hMVA[j]        = new TH1F(Form("mva%i",j)   , Form("%s: %s MVA" ,dirname, fMvaNames[j].Data()) ,200, -1.,  1.);     
+	fEventHist[i]->hMVA[j]        = new TH1F(Form("mva%i",j)   , Form("%s: %s MVA" ,dirname, fMvaNames[j].Data()) ,300, -1.,  2.); //beyond 1 for space for legend
       
     }
   }
@@ -360,6 +361,8 @@ void ZTauTauHistMaker::InitializeTreeVariables() {
   fTreeVars.nphotons = nPhotons;
   fTreeVars.eventweight = genWeight*eventWeight;
   fTreeVars.fulleventweight = genWeight*eventWeight*fXsec;
+  if(fUseTauFakeSF && !(nPU == 0 && eventWeight == 1.)) fTreeVars.fulleventweight *= genTauFlavorWeight;
+  
   fTreeVars.eventcategory = fEventCategory;
 
   for(unsigned i = 0; i < fMvaNames.size(); ++i)
@@ -372,6 +375,7 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
   // Hist->hTriggerStatus       ->Fill(triggerStatus      , genWeight*eventWeight)      ;
   Hist->hEventWeight         ->Fill(eventWeight        );
   Hist->hGenWeight           ->Fill(genWeight          );
+  Hist->hGenTauFlavorWeight  ->Fill(genTauFlavorWeight );
   Hist->hNPV                 ->Fill(nPV                , genWeight*eventWeight)      ;
   Hist->hNPU                 ->Fill(nPU                , genWeight*eventWeight)      ;
   // Hist->hNPartons            ->Fill(nPartons           , genWeight*eventWeight)      ;
@@ -683,6 +687,8 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   }
 
   InitializeTreeVariables();
+  //tau scale factor, temporary fix due to data having uninitialized weight value
+  if(fUseTauFakeSF && !(nPU == 0 && eventWeight == 1.)) eventWeight *= genTauFlavorWeight;
   
   bool chargeTest = leptonOneFlavor*leptonTwoFlavor < 0;
   FillAllHistograms(0);
@@ -773,6 +779,15 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   // Analysis cut section
   //
   //////////////////////////////////////////////////////////////
+
+
+  ////////////////////////////////////////////////////////////////////////////
+  // Set 8 : BDT Cut
+  ////////////////////////////////////////////////////////////////////////////
+  if(mutau && chargeTest && fMvaOutputs[1] > fMvaCuts[1]) FillAllHistograms(8);
+  else if(mutau && fMvaOutputs[1] > fMvaCuts[1])          FillAllHistograms(8 + fQcdOffset);
+  if(etau && chargeTest && fMvaOutputs[1] > fMvaCuts[1])  FillAllHistograms(28);
+  else if(etau && fMvaOutputs[1] > fMvaCuts[1])           FillAllHistograms(28 + fQcdOffset);
   
   //adding visible/invisible pT cuts
   double offset = -35.;
@@ -900,6 +915,14 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   else if(mutau && nPhotons > 1 )          FillAllHistograms(23 + fQcdOffset);
   if(etau && nPhotons > 1  && chargeTest)  FillAllHistograms(43);
   else if(etau && nPhotons > 1 )           FillAllHistograms(43 + fQcdOffset);
+
+  ////////////////////////////////////////////////////////////////////////////
+  // Set 24 : BDT Cut
+  ////////////////////////////////////////////////////////////////////////////
+  if(mutau && chargeTest && fMvaOutputs[1] > fMvaCuts[1]) FillAllHistograms(24);
+  else if(mutau && fMvaOutputs[1] > fMvaCuts[1])          FillAllHistograms(24 + fQcdOffset);
+  if(etau && chargeTest && fMvaOutputs[1] > fMvaCuts[1])  FillAllHistograms(44);
+  else if(etau && fMvaOutputs[1] > fMvaCuts[1])           FillAllHistograms(44 + fQcdOffset);
 
   // mutau = mutau && nPhotons > 0;
   // mutau = mutau && (abs(photonP4->Eta()) < 1.4442 || (abs(photonP4->Eta()) > 1.566 && abs(photonP4->Eta()) < 2.5));

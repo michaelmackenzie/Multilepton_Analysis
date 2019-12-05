@@ -69,6 +69,7 @@ public :
   Float_t genWeight                  ;
   Float_t puWeight                   ;
   Float_t topPtWeight                ;
+  Float_t genTauFlavorWeight         ;
   Int_t tauDecayMode                 ;
   Float_t tauMVA                     ;
   Int_t tauGenFlavor                 ;
@@ -112,6 +113,7 @@ public :
     TH1F* hTriggerStatus;
     TH1F* hEventWeight;
     TH1F* hGenWeight;
+    TH1F* hGenTauFlavorWeight;
     TH1F* hNPV;
     TH1F* hNPU;
     TH1F* hNPartons;
@@ -345,9 +347,12 @@ public :
   //Define relevant fields
   TStopwatch* timer = new TStopwatch();
   TMVA::Reader* mva; //read and apply mva weight files
-  vector<TString> fMvaNames = {
-    //"mutau_MLP_MM_7" ,"mutau_BDT_7" ,"mutau_BDTRT_7",
-    "mutau_MLP_MM_17","mutau_BDT_17"};//,"mutau_BDTRT_17"};
+  vector<TString> fMvaNames = { //mva names for getting weights
+    "mutau_MLP_MM_17","mutau_BDT_17",
+    "etau_MLP_MM_17","etau_BDT_17"};
+  vector<double> fMvaCuts = { //mva score cut values
+    0.4, -0.1,
+    0.4, -0.1};
   double fMvaOutputs[20];
   
   //Histograms:
@@ -371,6 +376,8 @@ public :
   Double_t      fXsec = 0.; //cross-section for full event weight with trees
   Tree_t        fTreeVars; //for filling the ttrees/mva evaluation
   Int_t         fEventCategory; //for identifying the process in mva trainings
+
+  bool          fUseTauFakeSF = false; //add in fake tau scale factor weight to event weights
   
   ClassDef(ZTauTauHistMaker,0);
 
@@ -455,6 +462,10 @@ void ZTauTauHistMaker::Init(TTree *tree)
     fEventSets [7] = 1; // events with opposite signs and passing Mu+Tau Pt + angle cuts with no photon check
     fEventSets [7+fQcdOffset] = 1; // events with same signs and passing Mu+Tau Pt + angle cuts with no photon check
     fTreeSets  [7] = 1;
+
+    fEventSets [8] = 1; // events with opposite signs and BDT > -0.2
+    fEventSets [8+fQcdOffset] = 1; // events with same signs and BDT > -0.2
+    fTreeSets  [8] = 1;
     
     fEventSets [11] = 1; // events with opposite signs and inv > 0.5*vis - 35
     fEventSets [11+fQcdOffset] = 1; // events with same signs and inv > 0.5*vis - 35
@@ -490,11 +501,19 @@ void ZTauTauHistMaker::Init(TTree *tree)
     fEventSets [23] = 1; // events with opposite signs and nPhotons > 1
     fEventSets [23+fQcdOffset] = 1; // events with same signs and nPhotons > 1
 
+    fEventSets [24] = 1; // events with opposite signs and BDT > -0.2
+    fEventSets [24+fQcdOffset] = 1; // events with same signs and BDT > -0.2
+    fTreeSets  [24] = 1;
+    
     fEventSets [26] = 1; // events with opposite signs and passing E+Tau Pt cuts with no photon check
     fEventSets [26+fQcdOffset] = 1; // events with same signs and passing E+Tau Pt cuts with no photon check
     fEventSets [27] = 1; // events with opposite signs and passing E+Tau Pt + angle cuts with no photon check
     fEventSets [27+fQcdOffset] = 1; // events with same signs and passing E+Tau Pt + angle cuts with no photon check
     fTreeSets  [27] = 1;
+
+    fEventSets [28] = 1; // events with opposite signs and BDT > -0.2
+    fEventSets [28+fQcdOffset] = 1; // events with same signs and BDT > -0.2
+    fTreeSets  [28] = 1;
 
     fEventSets [31] = 1; // events with opposite signs and inv > 0.5*vis - 35
     fEventSets [31+fQcdOffset] = 1; // events with same signs and inv > 0.5*vis - 35
@@ -530,6 +549,10 @@ void ZTauTauHistMaker::Init(TTree *tree)
     fEventSets [43] = 1; // events with opposite signs and nPhotons > 1
     fEventSets [43+fQcdOffset] = 1; // events with same signs and nPhotons > 1
     
+    fEventSets [44] = 1; // events with opposite signs and BDT > -0.2
+    fEventSets [44+fQcdOffset] = 1; // events with same signs and BDT > -0.2
+    fTreeSets  [44] = 1;
+
     BookHistograms();
 
   }
@@ -550,6 +573,7 @@ void ZTauTauHistMaker::Init(TTree *tree)
   fChain->SetBranchAddress("genWeight"           , &genWeight            );
   fChain->SetBranchAddress("puWeight"            , &puWeight             );
   fChain->SetBranchAddress("topPtWeight"         , &topPtWeight          );
+  fChain->SetBranchAddress("genTauFlavorWeight"  , &genTauFlavorWeight   );
   fChain->SetBranchAddress("tauDecayMode"        , &tauDecayMode         );
   fChain->SetBranchAddress("tauMVA"              , &tauMVA               );
   fChain->SetBranchAddress("tauGenFlavor"        , &tauGenFlavor         );
