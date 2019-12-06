@@ -348,11 +348,16 @@ public :
   TStopwatch* timer = new TStopwatch();
   TMVA::Reader* mva; //read and apply mva weight files
   vector<TString> fMvaNames = { //mva names for getting weights
-    "mutau_MLP_MM_17","mutau_BDT_17",
-    "etau_MLP_MM_17","etau_BDT_17"};
+    "mutau_MLP_MM_7","mutau_BDT_7",
+    "mutau_DY_MLP_MM_7","mutau_WJets_MLP_MM_7",
+    "etau_MLP_MM_27"//,"etau_BDT_27",
+    //    "etau_DY_MLP_27","etau_WJets_MLP_27"
+  };
   vector<double> fMvaCuts = { //mva score cut values
-    0.4, -0.1,
-    0.4, -0.1};
+    0.3, -0.1,
+    0.7, 0.8,
+    0.25
+  };
   double fMvaOutputs[20];
   
   //Histograms:
@@ -397,9 +402,7 @@ void ZTauTauHistMaker::Init(TTree *tree)
   if(fChain == 0 && tree != 0) {
     TMVA::Tools::Instance(); //load the library
     mva = new TMVA::Reader("!Color:!Silent");
-    mva->AddVariable("leppt"           ,&fTreeVars.leppt          );
     mva->AddVariable("lepm"            ,&fTreeVars.lepm           ); 
-    mva->AddVariable("lepeta"          ,&fTreeVars.lepeta         );
     mva->AddVariable("mtone"           ,&fTreeVars.mtone          );
     mva->AddVariable("mttwo"           ,&fTreeVars.mttwo          );
     mva->AddVariable("leponept"        ,&fTreeVars.leponept       );
@@ -407,10 +410,13 @@ void ZTauTauHistMaker::Init(TTree *tree)
     mva->AddVariable("pxivis"          ,&fTreeVars.pxivis         );
     mva->AddVariable("pxiinv"          ,&fTreeVars.pxiinv         );
     mva->AddVariable("njets"           ,&fTreeVars.njets          );
+    mva->AddVariable("lepdeltaeta"     ,&fTreeVars.lepdeltaeta    );
+    mva->AddVariable("lepdeltaphi"     ,&fTreeVars.lepdeltaphi    );
+    
+    mva->AddSpectator("leppt"          ,&fTreeVars.leppt          );
     mva->AddSpectator("met"            ,&fTreeVars.met            );
+    // mva->AddSpectator("lepeta"         ,&fTreeVars.lepeta         );
     mva->AddSpectator("lepdeltar"      ,&fTreeVars.lepdeltar      );
-    mva->AddSpectator("lepdeltaphi"    ,&fTreeVars.lepdeltaphi    );
-    mva->AddSpectator("lepdeltaeta"    ,&fTreeVars.lepdeltaeta    );
     mva->AddSpectator("fulleventweight",&fTreeVars.fulleventweight);
     mva->AddSpectator("eventweight"    ,&fTreeVars.eventweight    );
     mva->AddSpectator("eventcategory"  ,&fTreeVars.eventcategory  );
@@ -463,9 +469,14 @@ void ZTauTauHistMaker::Init(TTree *tree)
     fEventSets [7+fQcdOffset] = 1; // events with same signs and passing Mu+Tau Pt + angle cuts with no photon check
     fTreeSets  [7] = 1;
 
-    fEventSets [8] = 1; // events with opposite signs and BDT > -0.2
-    fEventSets [8+fQcdOffset] = 1; // events with same signs and BDT > -0.2
+    // Sets 8-10 MVA cuts applied
+    fEventSets [8] = 1; // events with opposite signs
+    fEventSets [8+fQcdOffset] = 1; // events with same signs 
     fTreeSets  [8] = 1;
+    fEventSets [9] = 1; // events with opposite signs 
+    fEventSets [9+fQcdOffset] = 1; // events with same signs 
+    fEventSets [10] = 1; // events with opposite signs 
+    fEventSets [10+fQcdOffset] = 1; // events with same signs 
     
     fEventSets [11] = 1; // events with opposite signs and inv > 0.5*vis - 35
     fEventSets [11+fQcdOffset] = 1; // events with same signs and inv > 0.5*vis - 35
@@ -511,9 +522,14 @@ void ZTauTauHistMaker::Init(TTree *tree)
     fEventSets [27+fQcdOffset] = 1; // events with same signs and passing E+Tau Pt + angle cuts with no photon check
     fTreeSets  [27] = 1;
 
-    fEventSets [28] = 1; // events with opposite signs and BDT > -0.2
-    fEventSets [28+fQcdOffset] = 1; // events with same signs and BDT > -0.2
+    // Sets 8-10 MVA cuts applied
+    fEventSets [28] = 1; // events with opposite signs
+    fEventSets [28+fQcdOffset] = 1; // events with same signs 
     fTreeSets  [28] = 1;
+    fEventSets [29] = 1; // events with opposite signs 
+    fEventSets [29+fQcdOffset] = 1; // events with same signs 
+    fEventSets [30] = 1; // events with opposite signs 
+    fEventSets [30+fQcdOffset] = 1; // events with same signs 
 
     fEventSets [31] = 1; // events with opposite signs and inv > 0.5*vis - 35
     fEventSets [31+fQcdOffset] = 1; // events with same signs and inv > 0.5*vis - 35

@@ -333,7 +333,7 @@ void ZTauTauHistMaker::InitializeTreeVariables() {
   fTreeVars.leptwom   = leptonTwoP4->M();
   fTreeVars.leptwoeta = leptonTwoP4->Eta();
   TLorentzVector lep = *leptonOneP4 + *leptonTwoP4;
-  fTreeVars.lepp   = lep.Pt();
+  fTreeVars.lepp   = lep.P();
   fTreeVars.leppt  = lep.Pt();
   fTreeVars.lepm   = lep.M();
   fTreeVars.lepeta = lep.Eta();
@@ -781,16 +781,41 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   //////////////////////////////////////////////////////////////
 
 
+  mutau &= nBJets == 0;
+  etau  &= nBJets == 0;
+  emu   &= nBJets == 0;
+
   ////////////////////////////////////////////////////////////////////////////
-  // Set 8 : BDT Cut
+  // Set 8 + selection offset: nBJets = 0
   ////////////////////////////////////////////////////////////////////////////
-  if(mutau && chargeTest && fMvaOutputs[1] > fMvaCuts[1]) FillAllHistograms(8);
-  else if(mutau && fMvaOutputs[1] > fMvaCuts[1])          FillAllHistograms(8 + fQcdOffset);
-  if(etau && chargeTest && fMvaOutputs[1] > fMvaCuts[1])  FillAllHistograms(28);
-  else if(etau && fMvaOutputs[1] > fMvaCuts[1])           FillAllHistograms(28 + fQcdOffset);
+  if(mutau && chargeTest) FillAllHistograms(8);
+  else if(mutau)          FillAllHistograms(8 + fQcdOffset);
+  if(etau && chargeTest)  FillAllHistograms(8);
+  else if(etau)           FillAllHistograms(8 + fQcdOffset);
+
+  ////////////////////////////////////////////////////////////////////////////
+  // Set 8-10 : BDT Cut
+  ////////////////////////////////////////////////////////////////////////////
+  if(mutau && chargeTest && fMvaOutputs[1] > fMvaCuts[1]) FillAllHistograms(9);
+  else if(mutau && fMvaOutputs[1] > fMvaCuts[1])          FillAllHistograms(9 + fQcdOffset);
+  if(etau && chargeTest && fMvaOutputs[1] > fMvaCuts[1])  FillAllHistograms(29);
+  else if(etau && fMvaOutputs[1] > fMvaCuts[1])           FillAllHistograms(29 + fQcdOffset);
+  if(mutau && chargeTest && fMvaOutputs[2] > fMvaCuts[2]) FillAllHistograms(10);
+  else if(mutau && fMvaOutputs[2] > fMvaCuts[2])          FillAllHistograms(10 + fQcdOffset);
+  if(etau && chargeTest && fMvaOutputs[2] > fMvaCuts[2])  FillAllHistograms(30);
+  else if(etau && fMvaOutputs[2] > fMvaCuts[2])           FillAllHistograms(30 + fQcdOffset);
+  if(mutau && chargeTest && fMvaOutputs[3] > fMvaCuts[3]) FillAllHistograms(11);
+  else if(mutau && fMvaOutputs[3] > fMvaCuts[3])          FillAllHistograms(11 + fQcdOffset);
+  if(etau && chargeTest && fMvaOutputs[3] > fMvaCuts[3])  FillAllHistograms(31);
+  else if(etau && fMvaOutputs[3] > fMvaCuts[3])           FillAllHistograms(31 + fQcdOffset);
+
+  if(mutau && chargeTest && fMvaOutputs[2] > fMvaCuts[2] && fMvaOutputs[3] > fMvaCuts[3]) FillAllHistograms(12);
+  else if(mutau && fMvaOutputs[2] > fMvaCuts[2] && fMvaOutputs[3] > fMvaCuts[3])          FillAllHistograms(12 + fQcdOffset);
+  if(etau && chargeTest && fMvaOutputs[2] > fMvaCuts[2] && fMvaOutputs[3] > fMvaCuts[3])  FillAllHistograms(32);
+  else if(etau && fMvaOutputs[2] > fMvaCuts[2] && fMvaOutputs[3] > fMvaCuts[3])           FillAllHistograms(32 + fQcdOffset);
   
   //adding visible/invisible pT cuts
-  double offset = -35.;
+  double offset = -50.;
   double coeff = 0.5;
   double visShift = coeff*pxi_vis + offset;
 
@@ -799,46 +824,25 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   emu   &= visShift < pxi_inv;
 
   ///////////////////////////////////////////////////////////////
-  // Set 11 + selection offset: visible*0.5 - 35 GeV < invisible
+  // Set 13 + selection offset: visible*0.5 - 50 GeV < invisible
   ///////////////////////////////////////////////////////////////
-  if(mutau && chargeTest) FillAllHistograms(11);
-  else if(mutau)          FillAllHistograms(11 + fQcdOffset);
-  if(etau && chargeTest)  FillAllHistograms(31);
-  else if(etau)           FillAllHistograms(31 + fQcdOffset);
-
-  offset = -20.;
-  visShift = coeff*pxi_vis + offset;
-  ///////////////////////////////////////////////////////////////
-  // Set 12 + selection offset: visible*0.5 - 20 GeV < invisible
-  ///////////////////////////////////////////////////////////////
-  if(mutau && pxi_inv > visShift && chargeTest) FillAllHistograms(12);
-  else if(mutau && pxi_inv > visShift)          FillAllHistograms(12 + fQcdOffset);
-  if(etau && pxi_inv > visShift && chargeTest)  FillAllHistograms(32);
-  else if(etau && pxi_inv > visShift)           FillAllHistograms(32 + fQcdOffset);
+  if(mutau && pxi_inv > visShift && chargeTest) FillAllHistograms(13);
+  else if(mutau && pxi_inv > visShift)          FillAllHistograms(13 + fQcdOffset);
+  if(etau && pxi_inv > visShift && chargeTest)  FillAllHistograms(33);
+  else if(etau && pxi_inv > visShift)           FillAllHistograms(33 + fQcdOffset);
   
   double mll = (*leptonOneP4+*leptonTwoP4).M();
   double mgll = (*photonP4 + (*leptonOneP4+*leptonTwoP4)).M();
-  mutau = mutau && mll < 100. && mll > 50.;
-  etau  = etau  && mll < 100. && mll > 50.;
+  mutau = mutau && mll < 105. && mll > 45.;
+  etau  = etau  && mll < 105. && mll > 45.;
 
   ////////////////////////////////////////////////////////////////////////////
-  // Set 13 + selection offset: 50 GeV < mll < 100 GeV
+  // Set 14 + selection offset: 45 GeV < mll < 105 GeV
   ////////////////////////////////////////////////////////////////////////////
-  if(mutau && chargeTest) FillAllHistograms(13);
-  else if(mutau)          FillAllHistograms(13 + fQcdOffset);
-  if(etau && chargeTest)  FillAllHistograms(33);
-  else if(etau)           FillAllHistograms(33 + fQcdOffset);
-
-  offset = -20.;
-  visShift = coeff*pxi_vis + offset;
-  ////////////////////////////////////////////////////////////////////////////
-  // Set 14 + selection offset: visible*0.5 - 20 GeV < invisible + mll window
-  ////////////////////////////////////////////////////////////////////////////
-  if(mutau && pxi_inv > visShift && chargeTest) FillAllHistograms(14);
-  else if(mutau && pxi_inv > visShift)          FillAllHistograms(14 + fQcdOffset);
-  if(etau && pxi_inv > visShift && chargeTest)  FillAllHistograms(34);
-  else if(etau && pxi_inv > visShift)           FillAllHistograms(34 + fQcdOffset);
-
+  if(mutau && chargeTest) FillAllHistograms(14);
+  else if(mutau)          FillAllHistograms(14 + fQcdOffset);
+  if(etau && chargeTest)  FillAllHistograms(34);
+  else if(etau)           FillAllHistograms(34 + fQcdOffset);
   
   double mTTau = (tau != 0) ? 2.*met*tau->Pt() : 0.;
   mTTau = (tau != 0) ? sqrt(mTTau*(1.-cos(tau->Phi() - metPhi))) : 0.;
@@ -847,40 +851,18 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   double mTE = (electron != 0) ? 2.*met*electron->Pt() : 0.;
   mTE  = (electron != 0) ? sqrt(mTE*(1.-cos(electron->Phi() - metPhi))) : 0.;
 
-  mutau &= mTMu  < 80.;
-  etau  &= mTE   < 80.;
+  mutau &= mTMu  < 100.;
+  etau  &= mTE   < 100.;
   // emu   &= mTMu  < 80.;
 
   ////////////////////////////////////////////////////////////////////////////
-  // Set 15 + selection offset: mT_lep < 80 GeV
+  // Set 15 + selection offset: mT_lep < 100 GeV
   ////////////////////////////////////////////////////////////////////////////
   if(mutau && chargeTest) FillAllHistograms(15);
   else if(mutau)          FillAllHistograms(15 + fQcdOffset);
   if(etau && chargeTest)  FillAllHistograms(35);
   else if(etau)           FillAllHistograms(35 + fQcdOffset);
 
-  // mutau &= mTTau < 80.;
-  // etau  &= mTTau < 80.;
-  // // emu   &= mTE   < 80.;
-
-  // ////////////////////////////////////////////////////////////////////////////
-  // // Set 16 + selection offset: mT_tau < 80 GeV
-  // ////////////////////////////////////////////////////////////////////////////
-  // if(mutau && chargeTest) FillAllHistograms(16);
-  // else if(mutau)          FillAllHistograms(16 + fQcdOffset);
-  // if(etau && chargeTest)  FillAllHistograms(36);
-  // else if(etau)           FillAllHistograms(36 + fQcdOffset);
-
-  mutau &= nBJets == 0;
-  etau  &= nBJets == 0;
-  emu   &= nBJets == 0;
-  ////////////////////////////////////////////////////////////////////////////
-  // Set 17 + selection offset: nBJets = 0
-  ////////////////////////////////////////////////////////////////////////////
-  if(mutau && chargeTest) FillAllHistograms(17);
-  else if(mutau)          FillAllHistograms(17 + fQcdOffset);
-  if(etau && chargeTest)  FillAllHistograms(37);
-  else if(etau)           FillAllHistograms(37 + fQcdOffset);
 
   ////////////////////////////////////////////////////////////////////////////
   // Set 18-20 + selection offset: Jet categories 0, 1, >1
