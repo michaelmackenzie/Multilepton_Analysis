@@ -140,7 +140,7 @@ Int_t process_ztautau() {
 			   1, //HTauTau gluglu
 			   1, //ZETau
 			   1, //ZMuTau
-			   1, //ZMuTau NoFilter
+			   0, //ZMuTau NoFilter
 			   1, //Muon Data 2016 B
 			   1, //Muon Data 2016 C
 			   1, //Muon Data 2016 D
@@ -200,6 +200,10 @@ Int_t process_ztautau() {
   xsec[33] =                   6.32e-2* 43.92;	       //"htautau_gluglu"                  
   xsec[34] =    ((6225.42+18610.)/(3.*3.3658e-2))*9.8e-6*100./2000.; //zetau z->ll / br(ll) * br(etau, CL=95) *N(accepted)/N(Gen) http://pdg.lbl.gov/2018/listings/rpp2018-list-z-boson.pdf
   xsec[35] =    ((6225.42+18610.)/(3.*3.3658e-2))*1.2e-5*135./2000.; //zmutau z->ll/ br(ll) * br(mutau, CL=95)*N(accepted)/N(Gen) http://pdg.lbl.gov/2018/listings/rpp2018-list-z-boson.pdf
+
+  TStopwatch* timer = new TStopwatch();
+
+  bool useTauFakeSF = true;
   bool writeTrees = true;
   Int_t category = 0;
   for(int i = 0; i < sizeof(files)/sizeof(*files); ++i) {
@@ -268,6 +272,7 @@ Int_t process_ztautau() {
 	if(isDY) selec->fDYType = loop;
 	selec->fEventCategory = category;
 	selec->fWriteTrees = writeTrees;
+	selec->fUseTauFakeSF = useTauFakeSF;
 	selec->fXsec = xsec[i]/events->GetBinContent(1);
 	tree->Process(selec,"");
 	TFile* out = new TFile(Form("ztautau_%s%s_%s.hist",fChannel->GetName(),
@@ -285,5 +290,10 @@ Int_t process_ztautau() {
     delete events;
     delete f;
   }
+  Double_t cpuTime = timer->CpuTime();
+  Double_t realTime = timer->RealTime();
+  printf("Processing time: %7.2fs CPU time %7.2fs Wall time\n",cpuTime,realTime);
+  if(realTime > 600. ) printf("Processing time: %7.2fmin CPU time %7.2fmin Wall time\n",cpuTime/60.,realTime/60.);
+
   return 0;
 }
