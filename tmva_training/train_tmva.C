@@ -7,7 +7,7 @@
 // TrainingMode : "chi2d" or "logfcons"
 // BkgWeight    : 0,1,2,3,4  (+100 if use  Z)
 //-----------------------------------------------------------------------------
-int train_tmva(const char* tree_name = "background_ztautau_mutau_7.tree", vector<int> signals = {34,35}, vector<int> ignore = {}) {
+int train_tmva(const char* tree_name = "background_ztautau_mutau_7.tree", vector<int> signals = {33,34}, vector<int> ignore = {}) {
 
   TFile *f;
 

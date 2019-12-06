@@ -48,6 +48,7 @@
 #include "TMVA/Tools.h"
 #endif
 
+Int_t DYvsW_ = -1; //switch between -1: all backgrounds 0: DY 1: W+Jets
 //Train MVA to separate the given signal from the given background
 int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual",
 		 vector<int> signals = {0},
@@ -129,7 +130,7 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
   Use["BDT"]             = 1; // uses Adaptive Boost
   Use["BDTG"]            = 0; // uses Gradient Boost
   Use["BDTB"]            = 0; // uses Bagging
-  Use["BDTRT"]           = 1; // uses randomized trees (Random Forest Technique) with Bagging
+  Use["BDTRT"]           = 0; // uses randomized trees (Random Forest Technique) with Bagging
   Use["BDTD"]            = 0; // decorrelation + Adaptive Boost
   Use["BDTF"]            = 0; // allow usage of fisher discriminant for node splitting 
   // 
@@ -192,31 +193,35 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
   // note that you may also use variable expressions, such as: "3*var1/var2*abs(var3)"
   // [all types of expressions that can also be parsed by TTree::Draw( "expression" )]
   
-  factory->AddVariable("leppt", "Pt_{ll}", "GeV", 'D');
-  factory->AddVariable("lepm" , "M_{ll}" , "GeV", 'D'); 
-  factory->AddVariable("lepeta","#eta_{ll}","",'D');
-  factory->AddVariable("mtone","MT(MET,l1)","",'D');
-  factory->AddVariable("mttwo","MT(MET,l2)","",'D');
-  factory->AddVariable("leponept","pT_{l1}","",'D');
-  factory->AddVariable("leptwopt","pT_{l2}","",'D');
-  factory->AddVariable("pxivis","p^{vis}_{#xi}","",'D');
-  factory->AddVariable("pxiinv","p^{inv}_{#xi}","",'D');
-
+  factory->AddVariable("lepm" , "M_{ll}" , "GeV", 'F');   
+  factory->AddVariable("mtone","MT(MET,l1)","",'F');
+  factory->AddVariable("mttwo","MT(MET,l2)","",'F');
+  factory->AddVariable("leponept","pT_{l1}","",'F');
+  factory->AddVariable("leptwopt","pT_{l2}","",'F');
+  factory->AddVariable("pxivis","p^{vis}_{#xi}","",'F');
+  factory->AddVariable("pxiinv","p^{inv}_{#xi}","",'F');
+  factory->AddVariable("njets", "nJets", "", 'F');
+  factory->AddVariable("lepdeltaeta","#Delta#eta_{ll}","",'F');
+  factory->AddVariable("lepdeltaphi","#Delta#phi_{ll}","",'F');
   // factory->AddVariable("lep1reliso","Iso/Pt_{l1}","",'D');
   // factory->AddVariable("lep2reliso","Iso/Pt_{l2}","",'D');
-  factory->AddVariable("njets", "nJets", "", 'i');
-  //  if(!dirname.Contains("_2")) factory->AddVariable("nFwdJets", "nFwdJets", "", 'i');
   // factory->AddVariable("nBJets", "nBJets", "", 'i');
+
+  // Process specific variables
+  // if(DYvsW_ == 0) {
+  //   factory->AddSpectator("lepdeltaeta","#Delta#eta_{ll}","",'F');
+  //   factory->AddSpectator("lepdeltaphi","#Delta#phi_{ll}","",'F');
+  // } else {
+  // }
 
   // factory->AddSpectator("lepM", "M_{ll}", "GeV", 'D'); 
   // factory->AddSpectator("lepptoverm := leppt / lepm","Pt/M","",'D');
+  factory->AddSpectator("leppt", "Pt_{ll}", "GeV", 'F');
   factory->AddSpectator("met","MET","GeV",'F');
-  factory->AddSpectator("lepdeltar","#DeltaR_{ll}","",'D');
-  factory->AddSpectator("lepdeltaphi","#Delta#phi_{ll}","",'D');
-  factory->AddSpectator("lepdeltaeta","#Delta#eta_{ll}","",'D');
-  factory->AddSpectator("fulleventweight", "fullEventWeight", "", 'D'); 
+  factory->AddSpectator("lepdeltar","#DeltaR_{ll}","",'F');
+  factory->AddSpectator("fulleventweight", "fullEventWeight", "", 'F'); 
   factory->AddSpectator("eventweight", "eventWeight", "", 'F'); 
-  factory->AddSpectator("eventcategory", "eventCategory", "", 'I'); 
+  factory->AddSpectator("eventcategory", "eventCategory", "", 'F'); 
 
 
   // You can add so-called "Spectator variables", which are not used in the MVA training,
@@ -258,11 +263,11 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
   //  nm = tname;
   for(int i = 0; i < ignore.size(); ++i) {
     if(i > 0) {
-      sig_cut += Form("&&(eventcategory != %i)", ignore[i]);
-      bkg_cut += Form("&&(eventcategory != %i)", ignore[i]);
+      sig_cut += Form("&&(eventcategory != %i.)", ignore[i]);
+      bkg_cut += Form("&&(eventcategory != %i.)", ignore[i]);
     } else {
-      sig_cut = Form("(eventcategory != %i)", ignore[i]);
-      bkg_cut = Form("(eventcategory != %i)", ignore[i]);
+      sig_cut = Form("(eventcategory != %i.)", ignore[i]);
+      bkg_cut = Form("(eventcategory != %i.)", ignore[i]);
 
     }
   }
@@ -275,11 +280,11 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
   }
   for(int i = 0; i < signals.size(); ++i) {
     if(i > 0 || ignore.size() > 0) {
-      sig_cut += Form("||(eventcategory == %i)", signals[i]);
-      bkg_cut += Form("&&(eventcategory != %i)", signals[i]);
+      sig_cut += Form("||(eventcategory == %i.)", signals[i]);
+      bkg_cut += Form("&&(eventcategory != %i.)", signals[i]);
     } else {
-      sig_cut += Form("(eventcategory == %i)", signals[i]);
-      bkg_cut += Form("(eventcategory != %i)", signals[i]);
+      sig_cut += Form("(eventcategory == %i.)", signals[i]);
+      bkg_cut += Form("(eventcategory != %i.)", signals[i]);
     }
   }
   if(signals.size() > 0) {
@@ -298,7 +303,7 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
   
   
   Double_t nSigFrac =  0.7;//0.2;
-  Double_t nBkgFrac =  0.2;//0.2;
+  Double_t nBkgFrac =  0.25;//0.2;
   Long64_t nSig = signal->CopyTree(signal_cuts)->GetEntriesFast();
   Long64_t nBkg = background->CopyTree(bkg_cuts)->GetEntriesFast();
   TString options = "nTrain_Signal=";
@@ -450,7 +455,7 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
 
   if (Use["MLP_MM"]) {
     TString network;
-    network = "12,5,2";//:LearningRate=1e-2";
+    network = "10,10,5";//:LearningRate=1e-2";
     factory->BookMethod( TMVA::Types::kMLP, "MLP_MM",
 			 Form("!H:!V:VarTransform=N:HiddenLayers=%s",
 			      network.Data()));
@@ -485,8 +490,8 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
 
   if (Use["BDTRT"]) {  // Bagging Boost Random Trees
     TString bdtSetup = "!H:!V";
-    bdtSetup += ":NTrees=1000:MinNodeSize=2.5%:MaxDepth=3:nCuts=200:UseNVars=6:UseRandomisedTrees=True";
-    bdtSetup += ":BoostType=Bagging:BaggedSampleFraction=0.95";
+    bdtSetup += ":NTrees=1000:MinNodeSize=1%:MaxDepth=5:nCuts=400:UseNVars=5:UseRandomisedTrees=True";
+    bdtSetup += ":BoostType=Bagging:BaggedSampleFraction=0.6";
     // bdtSetup += ":PruneMethod=ExpectedError:PruneStrength=0.2";
     factory->BookMethod( TMVA::Types::kBDT, "BDTRT",bdtSetup.Data());
   }
