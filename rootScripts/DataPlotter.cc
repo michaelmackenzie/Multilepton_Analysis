@@ -795,7 +795,6 @@ TCanvas* DataPlotter::plot_hist(TString hist, TString setType, Int_t set) {
     h[i] = (TH1F*) h[i]->Clone("htmp");
     //scale to cross section and luminosity
     h[i]->Scale(scale_[i]);
-    if(isSignal_[i] && signal_scale_ > 1.) h[i]->Scale(signal_scale_);
     if(rebinH_ > 0) h[i]->Rebin(rebinH_);
 
     //if the first, add to map, else get first of this label
@@ -830,6 +829,7 @@ TCanvas* DataPlotter::plot_hist(TString hist, TString setType, Int_t set) {
 			      h[index]->Integral()));
     else
       h[index]->SetTitle(Form("#scale[0.5]{#int} %s = %.2e", name.Data(), h[index]->Integral()));
+    if(isSignal_[i] && signal_scale_ > 1.) h[i]->Scale(signal_scale_);
     m = max(m,h[index]->GetMaximum());
   }
   //plot each histogram, remember which is first for axis setting
