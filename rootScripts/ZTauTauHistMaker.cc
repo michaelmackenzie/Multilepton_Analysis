@@ -790,8 +790,8 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   ////////////////////////////////////////////////////////////////////////////
   if(mutau && chargeTest) FillAllHistograms(8);
   else if(mutau)          FillAllHistograms(8 + fQcdOffset);
-  if(etau && chargeTest)  FillAllHistograms(8);
-  else if(etau)           FillAllHistograms(8 + fQcdOffset);
+  if(etau && chargeTest)  FillAllHistograms(28);
+  else if(etau)           FillAllHistograms(28 + fQcdOffset);
 
   ////////////////////////////////////////////////////////////////////////////
   // Set 8-10 : BDT Cut
