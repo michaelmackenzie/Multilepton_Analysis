@@ -146,10 +146,10 @@ public :
     xMin_ = xmin; xMax_=xmax; yMin_ = ymin; yMax_=ymax; auto c = print_single_2Dhist(hist, setType, set, label); reset_axes(); return c;
   }
   
-  virtual Int_t print_stacks(vector<TString> hists, vector<TString> setTypes, Int_t sets[],
+  virtual Int_t print_stacks(vector<TString> hists, vector<TString> setTypes, vector<Int_t>sets,
 		     vector<Double_t> xMaxs, vector<Double_t> xMins, vector<Int_t> rebins);
 
-  virtual Int_t print_hists(vector<TString> hists, vector<TString> setTypes, Int_t sets[],
+  virtual Int_t print_hists(vector<TString> hists, vector<TString> setTypes, vector<Int_t> sets,
 		    vector<Double_t> xMaxs, vector<Double_t> xMins, vector<Int_t> rebins);
 
   //Load files

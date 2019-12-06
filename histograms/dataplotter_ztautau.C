@@ -3,6 +3,49 @@
 DataPlotter* dataplotter_;
 TString selection_ = "mutau";
 
+
+Int_t print_standard_plots(vector<int> sets, bool stacks = true) {
+  vector<TString> hnames;
+  vector<TString> htypes;
+  vector<int>     rebins;
+  vector<double>  xmins;
+  vector<double>  xmaxs;
+  
+  hnames.push_back("onept");       htypes.push_back("lep");   rebins.push_back(1); xmins.push_back(15.);  xmaxs.push_back(150.);
+  hnames.push_back("twopt");       htypes.push_back("lep");   rebins.push_back(1); xmins.push_back(15.);  xmaxs.push_back(150.);
+  hnames.push_back("lepm");        htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(150.);
+  hnames.push_back("leppt");       htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(150.);
+  hnames.push_back("lepeta");      htypes.push_back("event"); rebins.push_back(1); xmins.push_back(-5.);  xmaxs.push_back(5.);
+  hnames.push_back("lepdeltaeta"); htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(5.);
+  hnames.push_back("lepdeltaphi"); htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(3.5);
+  hnames.push_back("lepdeltar");   htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(5.);
+  hnames.push_back("pxivis0");     htypes.push_back("event"); rebins.push_back(5); xmins.push_back(0.);   xmaxs.push_back(100.);
+  hnames.push_back("pxiinv0");     htypes.push_back("event"); rebins.push_back(5); xmins.push_back(-100.);xmaxs.push_back(100.);
+  hnames.push_back("met");         htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(150.);
+  if(selection_=="mutau") {
+    hnames.push_back("mtmu");      htypes.push_back("event"); rebins.push_back(2); xmins.push_back(0.);   xmaxs.push_back(150.);
+  } else {
+    hnames.push_back("mte");       htypes.push_back("event"); rebins.push_back(2); xmins.push_back(0.);   xmaxs.push_back(150.);
+  }
+  hnames.push_back("mttau");       htypes.push_back("event"); rebins.push_back(2); xmins.push_back(0.);   xmaxs.push_back(150.);
+  hnames.push_back("njets");       htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(10.);
+  hnames.push_back("nbjets");      htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(10.);
+  hnames.push_back("nphotons");    htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(5.);
+  hnames.push_back("mva0");        htypes.push_back("event"); rebins.push_back(2); xmins.push_back(0.);   xmaxs.push_back(1.7);
+  hnames.push_back("mva1");        htypes.push_back("event"); rebins.push_back(2); xmins.push_back(-1.);  xmaxs.push_back(1.);
+  hnames.push_back("mva2");        htypes.push_back("event"); rebins.push_back(2); xmins.push_back(0.);   xmaxs.push_back(1.7);
+  hnames.push_back("mva3");        htypes.push_back("event"); rebins.push_back(2); xmins.push_back(0.);   xmaxs.push_back(1.7);
+
+
+  int prev = dataplotter_->logY_;
+  int status = (stacks) ? dataplotter_->print_stacks(hnames, htypes, sets, xmaxs, xmins, rebins) : dataplotter_->print_hists(hnames, htypes, sets, xmaxs, xmins, rebins);
+  if(status) return status;
+  dataplotter_->logY_ = !prev;
+  status = (stacks) ? dataplotter_->print_stacks(hnames, htypes, sets, xmaxs, xmins, rebins) : dataplotter_->print_hists(hnames, htypes, sets, xmaxs, xmins, rebins);
+  dataplotter_->logY_ = prev;
+  return status;
+}
+
 Int_t init_dataplotter() {
 
   dataplotter_ = new DataPlotter();

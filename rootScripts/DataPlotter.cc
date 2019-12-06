@@ -945,15 +945,17 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
   hstack->Draw("hist noclear");
   if(!stack_signal_) {
     for(unsigned int i = 0; i < hsignal.size(); ++i) {
-      if(hsignal[i] && hsignal[i]->GetEntries() > 0)
+      if(hsignal[i] && hsignal[i]->GetEntries() > 0) {
 	hsignal[i]->Draw("hist same");
+	m = max(m, hsignal[i]->GetMaximum());
+      }
     }
   }
 
   //draw the data with error bars
   if(plot_data_ && d) d->Draw("E same");
-  
-  m = max(hstack->GetMaximum(), (d) ? d->GetMaximum() : 0.);
+
+  m = max(max(m,hstack->GetMaximum()), (d) ? d->GetMaximum() : 0.);
 
   //Make a Data/MC histogram
   if(plot_data_ && !d) {
@@ -962,14 +964,15 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
   TH1F* hDataMC = (plot_data_ && d) ? (TH1F*) d->Clone("hDataMC") : 0;
   if(hDataMC) {
     hDataMC->Clear();
+    TH1F* hlast = (TH1F*) hstack->GetStack()->Last();
     for(int i = 1; i <= hDataMC->GetNbinsX(); ++i) {
       double dataVal = 0;
       double dataErr = 0;
       dataVal = d->GetBinContent(i);
       dataErr= d->GetBinError(i);
       dataErr = sqrt(dataVal);
-      double mcVal = ((TH1F*) hstack->GetStack()->Last())->GetBinContent(i);
-      double mcErr = ((TH1F*) hstack->GetHistogram())->GetBinError(i);
+      double mcVal = hlast->GetBinContent(i);
+      double mcErr = hlast->GetBinError(i);
       if(dataVal == 0 || mcVal == 0) {hDataMC->SetBinContent(i,-1); continue;}
       double err = sqrt(mcErr*mcErr + dataErr*dataErr);
       double errRatio = (dataVal/mcVal)*(dataVal/mcVal)*(dataErr*dataErr/(dataVal*dataVal) + mcErr*mcErr/mcVal/mcVal);
@@ -1096,35 +1099,69 @@ TCanvas* DataPlotter::print_single_2Dhist(TString hist, TString setType, Int_t s
   return c;
 }
 
-Int_t DataPlotter::print_stacks(vector<TString> hists, vector<TString> setTypes, Int_t sets[],
+Int_t DataPlotter::print_stacks(vector<TString> hists, vector<TString> setTypes, vector<Int_t> sets,
 		   vector<Double_t> xMaxs, vector<Double_t> xMins, vector<Int_t> rebins) {
-  for(UInt_t i = 0; i < hists.size(); ++i) {
-    Int_t set = sets[i];
-    TString hist(hists[i]);
-    TString setType(setTypes[i]);
-    xMax_ = xMaxs[i];
-    xMin_ = xMins[i];
-    rebinH_ = rebins[i];
-    TCanvas* c = print_stack(hist,setType,set);
-    Int_t status = (c) ? 0 : 1;
-    printf("Printing Data/MC stack %s %s set %i has status %i\n",setType.Data(),hist.Data(),set,status);
+  if(hists.size() != setTypes.size()) {
+    printf("hist size != hist type size!\n");
+    return 1;
+  } 
+  if(hists.size() != xMaxs.size()) {
+    printf("hist size != xMaxs size!\n");
+    return 2;
+  } 
+  if(hists.size() != xMins.size()) {
+    printf("hist size != xMins size!\n");
+    return 3;
+  } 
+  if(hists.size() != rebins.size()) {
+    printf("hist size != rebins size!\n");
+    return 4;
   }
   
+  for(Int_t set : sets) {
+    for(UInt_t i = 0; i < hists.size(); ++i) {
+      TString hist(hists[i]);
+      TString setType(setTypes[i]);
+      xMax_ = xMaxs[i];
+      xMin_ = xMins[i];
+      rebinH_ = rebins[i];
+      TCanvas* c = print_stack(hist,setType,set);
+      Int_t status = (c) ? 0 : 1;
+      printf("Printing Data/MC stack %s %s set %i has status %i\n",setType.Data(),hist.Data(),set,status);
+    }
+  }
   return 0;
 }
 
-Int_t DataPlotter::print_hists(vector<TString> hists, vector<TString> setTypes, Int_t sets[],
+Int_t DataPlotter::print_hists(vector<TString> hists, vector<TString> setTypes, vector<Int_t> sets,
 		   vector<Double_t> xMaxs, vector<Double_t> xMins, vector<Int_t> rebins) {
-  for(UInt_t i = 0; i < hists.size(); ++i) {
-    Int_t set = sets[i];
-    TString hist(hists[i]);
-    TString setType(setTypes[i]);
-    xMax_ = xMaxs[i];
-    xMin_ = xMins[i];
-    rebinH_ = rebins[i];
-    TCanvas* c = print_hist(hist,setType,set);
-    Int_t status = (c) ? 0 : 1;
-    printf("Printing Data/MC hist %s %s set %i has status %i\n",setType.Data(),hist.Data(),set,status);
+  if(hists.size() != setTypes.size()) {
+    printf("hist size != hist type size!\n");
+    return 1;
+  } 
+  if(hists.size() != xMaxs.size()) {
+    printf("hist size != xMaxs size!\n");
+    return 2;
+  } 
+  if(hists.size() != xMins.size()) {
+    printf("hist size != xMins size!\n");
+    return 3;
+  } 
+  if(hists.size() != rebins.size()) {
+    printf("hist size != rebins size!\n");
+    return 4;
+  }
+  for(Int_t set : sets) {
+    for(UInt_t i = 0; i < hists.size(); ++i) {
+      TString hist(hists[i]);
+      TString setType(setTypes[i]);
+      xMax_ = xMaxs[i];
+      xMin_ = xMins[i];
+      rebinH_ = rebins[i];
+      TCanvas* c = print_hist(hist,setType,set);
+      Int_t status = (c) ? 0 : 1;
+      printf("Printing Data/MC hist %s %s set %i has status %i\n",setType.Data(),hist.Data(),set,status);
+    }
   }
   
   return 0;
