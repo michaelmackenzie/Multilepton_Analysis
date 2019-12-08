@@ -1094,6 +1094,8 @@ TCanvas* DataPlotter::print_single_2Dhist(TString hist, TString setType, Int_t s
   TCanvas* c = plot_single_2Dhist(hist,setType,set,label);
   cout << "plotted 2D hist " << label.Data() << endl;
   if(!c) return c;
+  label.ReplaceAll("#",""); //for ease of use in bash
+  label.ReplaceAll(" ", "");
   c->Print(Form("figures/%s/%s/hist2D_%s_%s%s_%s_set_%i.png",folder_.Data(),selection_.Data(),label.Data(),hist.Data(),
 		((plot_data_) ? "_data":""),"dataOverMC",set));
   return c;
@@ -1191,7 +1193,7 @@ Int_t DataPlotter::init_files() {
 
   gStyle->SetTitleW(0.8f);
   gStyle->SetOptStat(0);
-  gStyle->SetCanvasPreferGL(kTRUE);
+  if(useOpenGL_) gStyle->SetCanvasPreferGL(kTRUE);
   rnd_ = new TRandom(seed_);
 
   return 0;

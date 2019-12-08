@@ -56,7 +56,8 @@ public :
   Int_t plot_y_title_ = 0; //plot y title on 1D histograms
   Double_t qcd_scale_ = 1.; //scale factor for SS --> OS selection
   TString folder_ = "ztautau"; //figures folder for printing
-
+  Int_t useOpenGL_ = 1; //Use open GL with plotting
+  
   ~DataPlotter() {
     for(auto d : data_) {
       if(d) delete d;
