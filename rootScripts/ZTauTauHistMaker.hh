@@ -348,15 +348,15 @@ public :
   TStopwatch* timer = new TStopwatch();
   TMVA::Reader* mva; //read and apply mva weight files
   vector<TString> fMvaNames = { //mva names for getting weights
-    "mutau_MLP_MM_7","mutau_BDT_7",
-    "mutau_DY_MLP_MM_7","mutau_WJets_MLP_MM_7",
-    "etau_MLP_MM_27"//,"etau_BDT_27",
+    "mutau_MLP_MM_8","mutau_BDT_8",
+    "mutau_DY_MLP_MM_8","mutau_WJets_MLP_MM_8",
+    "etau_MLP_MM_28"//,"etau_BDT_27",
     //    "etau_DY_MLP_27","etau_WJets_MLP_27"
   };
   vector<double> fMvaCuts = { //mva score cut values
-    0.3, -0.1,
+    0.75, 0.05,               //scores are to cut ~30% of the signal currently
     0.7, 0.8,
-    0.25
+    0.7 
   };
   double fMvaOutputs[20];
   
