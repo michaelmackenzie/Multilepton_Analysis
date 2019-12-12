@@ -322,21 +322,91 @@ void DataPlotter::get_titles(TString hist, TString setType, TString* xtitle, TSt
     *title  = Form("pT_{#tau} + pT_{l} - MET");
   }
   else if(hist == "ht") {
-    *xtitle = "pT_{#tau} + pT_{l} - MET";
+    *xtitle = "pT of #Sigma #vec{P}_{Jet})";
     *ytitle = "";
-    *title  = Form("pT_{#tau} + pT_{l} - MET");
+    *title  = Form("Jet vector pT sum");
+  }
+  else if(hist == "htphi") {
+    *xtitle = "#phi of #Sigma #vec{P}_{Jet})";
+    *ytitle = "";
+    *title  = Form("Jet vector sum #phi");
+  }
+  else if(hist == "htsum") {
+    *xtitle = " #Sigma (pT of #vec{P}_{Jet})";
+    *ytitle = "";
+    *title  = Form("Jet scalar pT sum");
   }
   else if(hist.Contains("mva")) {
     *xtitle = "MVA score";
     *ytitle = "";
     *title  = "MVA Score";
   }
+  else if(hist == "metdeltaphi") {
+    *xtitle = "#Delta#phi(MET,ll)";
+    *ytitle = "";
+    *title  = "#Delta#phi between MET and di-lepton";
+  }
+  else if(hist == "htdeltaphi") {
+    *xtitle = "#Delta#phi(#SigmaJets,ll)";
+    *ytitle = "";
+    *title  = "#Delta#phi between Jet sum and di-lepton";
+  }
+  else if(hist == "leponedeltaphi") {
+    *xtitle = "#Delta#phi(l_{1},ll)";
+    *ytitle = "";
+    *title  = "#Delta#phi between lepton 1 and di-lepton";
+  }
+  else if(hist == "leptwodeltaphi") {
+    *xtitle = "#Delta#phi(l_{2},ll)";
+    *ytitle = "";
+    *title  = "#Delta#phi between lepton 2 and di-lepton";
+  }
+  else if(hist == "onemetdeltaphi") {
+    *xtitle = "#Delta#phi(l_{1},MET)";
+    *ytitle = "";
+    *title  = "#Delta#phi between MET and lepton 1";
+  }
+  else if(hist == "twometdeltaphi") {
+    *xtitle = "#Delta#phi(l_{2},MET)";
+    *ytitle = "";
+    *title  = "#Delta#phi between MET and lepton 2";
+  }
+  else if(hist == "oneiso") {
+    *xtitle = "l_{1} Iso";
+    *ytitle = "";
+    *title  = "l_{1} Iso";
+  }
+  else if(hist == "onereliso") {
+    *xtitle = "l_{1} Iso/pT";
+    *ytitle = "";
+    *title  = "l_{1} Iso/pT";
+  }
+  else if(hist == "twoiso") {
+    *xtitle = "l_{2} Iso";
+    *ytitle = "";
+    *title  = "l_{2} Iso";
+  }
+  else if(hist == "tworeliso") {
+    *xtitle = "l_{2} Iso/pT";
+    *ytitle = "";
+    *title  = "l_{2} Iso/pT";
+  }
+  else if(hist == "oned0") {
+    *xtitle = "l_{1} D0";
+    *ytitle = "";
+    *title  = "l_{1} D0";
+  }
+  else if(hist == "twod0") {
+    *xtitle = "l_{2} D0";
+    *ytitle = "";
+    *title  = "l_{2} D0";
+  }
 }
 
 vector<TH1F*> DataPlotter::get_signal(TString hist, TString setType, Int_t set) {
   vector<TH1F*> h;
-  Int_t color[] = {kGreen+3, kAzure-2, kOrange+10, kViolet-2, kYellow+3,kOrange-9,kBlue+1};
-  Int_t fill[]  = {3002,3001,3003,3003,3005,3006,3003,3003};
+  Int_t color[] = {kGreen+4, kBlue, kOrange+10, kViolet-2, kYellow+3,kOrange-9,kBlue+1};
+  Int_t fill[]  = {0,          0,          0,         0,        0,         0,       0};//3002,3001,3003,3003,3005,3006,3003,3003};
   
   //for combining histograms of the same process
   map<TString, unsigned int> indexes;
@@ -378,7 +448,8 @@ vector<TH1F*> DataPlotter::get_signal(TString hist, TString setType, Int_t set) 
       
     }
     h[index]->SetTitle(Form("#scale[0.5]{#int} %s%s = %.2e", name.Data(),
-			    (signal_scale_ == 1.) ? "" : Form(" (x%.1f)",signal_scale_), h[index]->Integral()));
+			    (signal_scale_ == 1.) ? "" : Form(" (x%.1f)",signal_scale_), h[index]->Integral()
+			    +h[index]->GetBinContent(0)+h[index]->GetBinContent(h[index]->GetNbinsX()+1)));
   }
   //scale return only meaningful histograms
   vector<TH1F*> hsignals;
@@ -401,7 +472,8 @@ TH2F* DataPlotter::get_signal_2D(TString hist, TString setType, Int_t set) {
     if(!tmp) continue;
     if(!h) h = tmp;
     else h->Add(tmp);
-    h->SetTitle(Form("#scale[0.5]{#int} %s = %.2e", labels_[i].Data(), h->Integral()));
+    h->SetTitle(Form("#scale[0.5]{#int} %s = %.2e", labels_[i].Data(), h->Integral()
+		     +h->GetBinContent(0)+h->GetBinContent(h->GetNbinsX()+1)));
   }
   if(!h) return NULL;
   h->SetLineWidth(2);
@@ -429,7 +501,8 @@ TH1F* DataPlotter::get_data(TString hist, TString setType, Int_t set) {
   if(!d) return NULL;
   d->SetLineWidth(2);
   d->SetMarkerStyle(20);
-  d->SetTitle(Form("#scale[0.5]{#int} Data = %.2e",  d->Integral()));
+  d->SetTitle(Form("#scale[0.5]{#int} Data = %.2e",  d->Integral()
+		   +d->GetBinContent(0)+d->GetBinContent(d->GetNbinsX()+1))); //add underflow/overflow
   d->SetName("hData");
   if(rebinH_ > 0) d->Rebin(rebinH_);
 
@@ -448,7 +521,8 @@ TH2F* DataPlotter::get_data_2D(TString hist, TString setType, Int_t set) {
   if(!d) return NULL;
   d->SetLineWidth(2);
   d->SetMarkerStyle(20);
-  d->SetTitle(Form("#scale[0.5]{#int} Data = %.2e",  d->Integral()));
+  d->SetTitle(Form("#scale[0.5]{#int} Data = %.2e",  d->Integral()
+		   +d->GetBinContent(0)+d->GetBinContent(d->GetNbinsX()+1))); //add underflow/overflow
   d->SetName("hData");
   if(rebinH_ > 0) {
     d->RebinX(rebinH_);
@@ -484,7 +558,8 @@ TH1F* DataPlotter::get_qcd(TString hist, TString setType, Int_t set) {
   
   hData->Scale(qcd_scale_);
   
-  hData->SetTitle(Form("#scale[0.5]{#int} QCD = %.2e",  hData->Integral()));
+  hData->SetTitle(Form("#scale[0.5]{#int} QCD = %.2e",  hData->Integral()
+		       +hData->GetBinContent(0)+hData->GetBinContent(hData->GetNbinsX()+1))); //add underflow/overflow
   hData->SetLineColor(kOrange+6);
   hData->SetFillColorAlpha(kOrange+6,fill_alpha_);
   return hData;
@@ -498,7 +573,7 @@ THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set) {
   TH1F* hQCD = (include_qcd_) ? get_qcd(hist,setType,set) : NULL;
 
   Int_t color[] = {kRed+1, kRed-2, kYellow+1,kSpring-1 , kViolet-2, kGreen-2, kRed+3,kOrange-9,kBlue+1};
-  Int_t fill[]  = {1001,3001,3005,1001,1001,3005,1001,1001,1001};
+  Int_t fill[]  = {1001,1001,3005,3001,3001,3005,3001,3001,3001};
   THStack* hstack = new THStack(Form("%s",hist.Data()),Form("%s",hist.Data()));
   
   //for combining histograms of the same process
@@ -543,7 +618,8 @@ THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set) {
       h[index]->SetMarkerStyle(20);
       h[index]->SetName(Form("s_%s_%s",name.Data(),hist.Data()));    
     }
-    h[index]->SetTitle(Form("#scale[0.5]{#int} %s = %.2e", name.Data(), h[index]->Integral()));
+    h[index]->SetTitle(Form("#scale[0.5]{#int} %s = %.2e", name.Data(), h[index]->Integral()
+			    +h[index]->GetBinContent(0)+h[index]->GetBinContent(h[index]->GetNbinsX()+1))); //add underflow/overflow
   }
   auto it = indexes.begin();
   while(it != indexes.end()) {
@@ -562,9 +638,6 @@ TCanvas* DataPlotter::plot_single_2Dhist(TString hist, TString setType, Int_t se
   Int_t color = kRed+1;
 
   TCanvas* c = new TCanvas(Form("h2d_%s_%i",hist.Data(),set),Form("h2D_%s_%i",hist.Data(),set), 1000, 700);
-
-  //maximum z value of histograms, for plotting
-  //  double m = 0.;
 
 
   for(UInt_t i = 0; i < data_.size(); ++i) {
@@ -594,23 +667,28 @@ TCanvas* DataPlotter::plot_single_2Dhist(TString hist, TString setType, Int_t se
   TH2F* data;
   if(plot_data_) {
     data = get_data_2D(hist, setType, set);
-    gStyle->SetPalette(kGreyScale);
-    if(normalize_2ds_ && data->Integral() > 0.) {
-      data->Scale(1./data->Integral());
-      data->GetZaxis()->SetRangeUser(1.e-5,10.);
+    if(!data) {
+      printf("Warning! Data not found!\n");
+    } else {
+      gStyle->SetPalette(kGreyScale);
+      if(normalize_2ds_ && data->Integral() > 0.) {
+	data->Scale(1./data->Integral());
+	data->GetZaxis()->SetRangeUser(1.e-5,10.);
+      }
+      data->Draw("col");
     }
-    data->Draw("col");
   }
   
   TH2F* hAxis = (plot_data_ && data) ? data : h;
   //FIXME should just be the integral plotted
-  h->SetTitle(Form("#scale[0.5]{#int} %s = %.2e", label.Data(), h->Integral()));
+  h->SetTitle(Form("#scale[0.5]{#int} %s = %.2e", label.Data(), h->Integral()
+		   +h->GetBinContent(0)+h->GetBinContent(h->GetNbinsX()+1))); //add underflow/overflow
   h->SetLineColor(color);
   h->SetMarkerColor(color);
   h->SetMarkerStyle(6);
   h->SetName(Form("h2D_%s_%s",label.Data(),hist.Data()));    
-  if(plot_data_) h->Draw("same");
-  else           h->Draw();
+  if(plot_data_ && data) h->Draw("same");
+  else                   h->Draw();
 
   //get axis titles
   TString xtitle;
@@ -701,7 +779,8 @@ TCanvas* DataPlotter::plot_2Dhist(TString hist, TString setType, Int_t set) {
       h[index]->SetName(Form("h2D_%s_%s",name.Data(),hist.Data()));    
     }
     //FIXME should just be the integral plotted
-    h[index]->SetTitle(Form("#scale[0.5]{#int} %s = %.2e", name.Data(), h[index]->Integral()));
+    h[index]->SetTitle(Form("#scale[0.5]{#int} %s = %.2e", name.Data(), h[index]->Integral()
+			    +h[index]->GetBinContent(0)+h[index]->GetBinContent(h[index]->GetNbinsX()+1))); //add underflow/overflow
     //    m = max(m,h[index]->GetMaximum());
   }
   //plot each histogram, remember which is first for axis setting
@@ -771,8 +850,10 @@ TCanvas* DataPlotter::plot_hist(TString hist, TString setType, Int_t set) {
   TH1F* hQCD = (include_qcd_) ? get_qcd(hist,setType,set) : NULL;
 
   //array of colors and fills for each label
-  Int_t color[] = {kRed+1, kYellow+1,kYellow+3,kBlue+1, kRed+3, kViolet-2, kGreen-2, kOrange-9};
-  Int_t fill[]  = {1001,3005,1001,1001,3005,1001,1001,1001};
+  Int_t bkg_color[] = {kRed+1, kRed-2, kYellow+1,kSpring-1 , kViolet-2, kGreen-2, kRed+3,kOrange-9,kBlue+1};
+  Int_t bkg_fill[]  = {1001,3005,1001,1001,3005,1001,1001,1001};
+  Int_t sig_color[] = {kGreen+4, kBlue, kOrange+10, kViolet-2, kYellow+3,kOrange-9,kBlue+1};
+  Int_t sig_fill[]  = {0,          0,          0,         0,        0,         0,       0};//3002,3001,3003,3003,3005,3006,3003,3003};
 
   TCanvas* c = new TCanvas(Form("h_%s_%i",hist.Data(),set),Form("h_%s_%i",hist.Data(),set), 1000, 700);
 
@@ -783,7 +864,8 @@ TCanvas* DataPlotter::plot_hist(TString hist, TString setType, Int_t set) {
   map<TString, int> indexes;
   
   map<TString, int> colors; //map label to index for the color array
-  int n_colors = 0; //number of colors used so far
+  int n_bkg_colors = 0; //number of bkg colors used so far
+  int n_sig_colors = 0; //number of sig colors used so far
 
   for(UInt_t i = 0; i < data_.size(); ++i) {
     //push null to not mess up indexing
@@ -799,14 +881,17 @@ TCanvas* DataPlotter::plot_hist(TString hist, TString setType, Int_t set) {
 
     //if the first, add to map, else get first of this label
     int index = i;
-    int i_color = n_colors;
+    int i_color = (isSignal_[i]) ? n_sig_colors : n_bkg_colors;
     if(indexes.count(labels_[i])) {
       index = indexes[labels_[i]];
       i_color = colors[labels_[i]];
     } else {
       indexes.insert({labels_[i], i});
-      colors.insert({labels_[i], n_colors});
-      n_colors++;
+      colors.insert({labels_[i], (isSignal_[i] ? n_sig_colors : n_bkg_colors)});
+      if(isSignal_[i])
+	n_sig_colors++;
+      else
+	n_bkg_colors++;
     }
     //if not first, add this to first histogram of this label
     TString name = labels_[index];
@@ -815,10 +900,17 @@ TCanvas* DataPlotter::plot_hist(TString hist, TString setType, Int_t set) {
       delete h[i];
     } else {
       //set plotting info
-      h[index]->SetFillStyle(fill [i_color]); 
-      h[index]->SetFillColorAlpha(color[i_color],fill_alpha_);
-      h[index]->SetLineColor(color[i_color]);
-      h[index]->SetLineWidth(2);
+      if(isSignal_[i]) {
+	h[index]->SetFillStyle(sig_fill[i_color]); 
+	h[index]->SetFillColorAlpha(sig_color[i_color],fill_alpha_);
+	h[index]->SetLineColor(sig_color[i_color]);
+	h[index]->SetLineWidth(4);
+      } else {
+	h[index]->SetFillStyle(bkg_fill[i_color]); 
+	h[index]->SetFillColorAlpha(bkg_color[i_color],fill_alpha_);
+	h[index]->SetLineColor(bkg_color[i_color]);
+	h[index]->SetLineWidth(3);
+      }
       h[index]->SetMarkerStyle(20);
       h[index]->SetName(Form("h_%s_%s",name.Data(),hist.Data()));    
     }
@@ -826,9 +918,11 @@ TCanvas* DataPlotter::plot_hist(TString hist, TString setType, Int_t set) {
     if(isSignal_[index])
       h[index]->SetTitle(Form("#scale[0.5]{#int} %s%s = %.2e", name.Data(),
 			      (signal_scale_ == 1.) ? "" : Form(" (x%.1f)",signal_scale_),
-			      h[index]->Integral()));
+			      h[index]->Integral()
+			      +h[index]->GetBinContent(0)+h[index]->GetBinContent(h[index]->GetNbinsX()+1))); //add underflow/overflow
     else
-      h[index]->SetTitle(Form("#scale[0.5]{#int} %s = %.2e", name.Data(), h[index]->Integral()));
+      h[index]->SetTitle(Form("#scale[0.5]{#int} %s = %.2e", name.Data(), h[index]->Integral()
+			      +h[index]->GetBinContent(0)+h[index]->GetBinContent(h[index]->GetNbinsX()+1))); //add underflow/overflow
     if(isSignal_[i] && signal_scale_ > 1.) h[i]->Scale(signal_scale_);
     m = max(m,h[index]->GetMaximum());
   }
@@ -850,6 +944,7 @@ TCanvas* DataPlotter::plot_hist(TString hist, TString setType, Int_t set) {
   //plot QCD
   if(h.size() == 0 && hQCD) hQCD->Draw("hist");
   else if(hQCD) hQCD->Draw("hist same");
+  if(hQCD) m = max(m,hQCD->GetMaximum());
 
   //get axis titles
   TString xtitle;
@@ -962,10 +1057,16 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
     printf("Warning! Data histogram is Null! Skipping Data/MC plot\n");
   }
   TH1F* hDataMC = (plot_data_ && d) ? (TH1F*) d->Clone("hDataMC") : 0;
+  TGraphErrors* hDataMCErr = 0;
   if(hDataMC) {
     hDataMC->Clear();
     TH1F* hlast = (TH1F*) hstack->GetStack()->Last();
-    for(int i = 1; i <= hDataMC->GetNbinsX(); ++i) {
+    int nb = hDataMC->GetNbinsX();
+    double x[nb];
+    double y[nb];
+    double xerr[nb];
+    double yerr[nb];
+    for(int i = 1; i <= nb; ++i) {
       double dataVal = 0;
       double dataErr = 0;
       dataVal = d->GetBinContent(i);
@@ -973,14 +1074,21 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
       dataErr = sqrt(dataVal);
       double mcVal = hlast->GetBinContent(i);
       double mcErr = hlast->GetBinError(i);
+      x[i-1] = hDataMC->GetBinCenter(i);
+      y[i-1] = 1.;
+      xerr[i-1] = 0.;
+      yerr[i-1] = (mcVal > 0.) ? mcErr/mcVal : 0.;
       if(dataVal == 0 || mcVal == 0) {hDataMC->SetBinContent(i,-1); continue;}
       double err = sqrt(mcErr*mcErr + dataErr*dataErr);
-      double errRatio = (dataVal/mcVal)*(dataVal/mcVal)*(dataErr*dataErr/(dataVal*dataVal) + mcErr*mcErr/mcVal/mcVal);
+      double errRatio = (dataVal/mcVal)*(dataVal/mcVal)*(dataErr*dataErr/(dataVal*dataVal));
       errRatio = sqrt(errRatio);
       double ratio = dataVal/mcVal;
       hDataMC->SetBinContent(i,ratio);
       hDataMC->SetBinError(i,errRatio); 
     }
+    hDataMCErr = new TGraphErrors(nb, x, y, xerr, yerr);
+    hDataMCErr->SetFillStyle(3001);
+    hDataMCErr->SetFillColor(kGray+1);
   }
   pad1->BuildLegend();
   pad1->SetGrid();
@@ -1017,7 +1125,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
     hstack->SetMaximum(yMax_);
   } else {
     hstack->SetMinimum(1.e-1);
-    hstack->SetMaximum(1.2*m);
+    hstack->SetMaximum((logY_>0 ? 2.*m : 1.2*m));
   }
   //Set Y-axis title size and offset
   hstack->GetYaxis()->SetTitleSize(0.045);
@@ -1056,6 +1164,8 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
   
     hDataMC->SetMarkerStyle(20);
     //  hDataMC->SetName("hDataMC");
+    if(hDataMCErr)
+      hDataMCErr->Draw("3");
   }
   return c;
 
@@ -1130,6 +1240,7 @@ Int_t DataPlotter::print_stacks(vector<TString> hists, vector<TString> setTypes,
       TCanvas* c = print_stack(hist,setType,set);
       Int_t status = (c) ? 0 : 1;
       printf("Printing Data/MC stack %s %s set %i has status %i\n",setType.Data(),hist.Data(),set,status);
+      delete c;
     }
   }
   return 0;
@@ -1163,6 +1274,7 @@ Int_t DataPlotter::print_hists(vector<TString> hists, vector<TString> setTypes, 
       TCanvas* c = print_hist(hist,setType,set);
       Int_t status = (c) ? 0 : 1;
       printf("Printing Data/MC hist %s %s set %i has status %i\n",setType.Data(),hist.Data(),set,status);
+      delete c;
     }
   }
   

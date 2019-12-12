@@ -8,6 +8,8 @@
 #include "TH2.h"
 #include "TF1.h"
 #include "THStack.h"
+#include "TGraph.h"
+#include "TGraphErrors.h"
 #include "TCanvas.h"
 #include "TRandom.h"
 #include "TText.h"
@@ -49,7 +51,7 @@ public :
   Int_t include_qcd_ = 1;
   Int_t qcd_offset_ = 100; //set number offset to get same sign selection
   Int_t plot_title_ = 0; //Plot the title on the canvas
-  Double_t fill_alpha_ = 0.3; //alpha to use for hist plotting
+  Double_t fill_alpha_ = 0.2; //alpha to use for hist plotting
   Int_t normalize_2ds_ = 1; //normalzie 2D histograms when plotting
   Double_t signal_scale_ = 1.; //increase the size of the signal if needed
   Int_t stack_signal_ = 0; //put signal into the stack
@@ -66,8 +68,8 @@ public :
   
   void draw_cms_label() {
     TText *cmslabel = new TText();
-    cmslabel-> SetNDC();
-    cmslabel -> SetTextFont(1);
+    cmslabel -> SetNDC();
+    cmslabel -> SetTextFont(72);
     cmslabel -> SetTextColor(1);
     cmslabel -> SetTextSize(.08);
     cmslabel -> SetTextAlign(22);
