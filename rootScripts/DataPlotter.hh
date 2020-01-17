@@ -59,7 +59,8 @@ public :
   Double_t qcd_scale_ = 1.; //scale factor for SS --> OS selection
   TString folder_ = "ztautau"; //figures folder for printing
   Int_t useOpenGL_ = 1; //Use open GL with plotting
-  
+  bool doStatsLegend_ = true; //Give each backgrounds contribution in the legend
+
   ~DataPlotter() {
     for(auto d : data_) {
       if(d) delete d;
@@ -86,6 +87,29 @@ public :
     label.SetTextAlign(13);
     label.SetTextAngle(0);
     label.DrawLatex(0.7, 0.98, Form("L=%.1f/fb #sqrt{#it{s}} = %.0f TeV",lum_/1e3,rootS_));
+  }
+
+  void draw_data(int ndata, double nmc, map<TString, double> nsig) {
+    TLatex label;
+    label.SetNDC();
+    label.SetTextFont(72);
+    // label.SetTextColor(1);
+    label.SetTextSize(.04);
+    label.SetTextAlign(13);
+    label.SetTextAngle(0);
+    label.DrawLatex(0.75, 0.44, Form("%10s = %10i", "n_{Data}", ndata));
+    double x = 0.44;
+    if(nmc > 0.) {
+      x -= 0.04;
+      label.DrawLatex(0.75, x, Form("%9s = %10.1f", "n_{MC}", nmc));
+    }
+    auto it = nsig.begin();
+    while(it != nsig.end()) {
+      x -= 0.04;
+      label.DrawLatex(0.75, x, Form("%10s = %10.1f", Form("n_{%s}", it->first.Data()), it->second));
+      it++;
+    }
+    
   }
 
   void reset_axes() {xMin_=1.e6; xMax_=-1.e6; yMax_=-1.e6; yMin_=1.e6;}

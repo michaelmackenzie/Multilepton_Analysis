@@ -444,12 +444,13 @@ vector<TH1F*> DataPlotter::get_signal(TString hist, TString setType, Int_t set) 
       h[index]->SetFillColor(color[i_color]);
       h[index]->SetLineColor(color[i_color]);
       h[index]->SetLineWidth(3);
-      h[index]->SetName(Form("h_%s_%s",name.Data(),hist.Data()));
+      h[index]->SetName(Form("%s",name.Data()));
       
     }
-    h[index]->SetTitle(Form("#scale[0.5]{#int} %s%s = %.2e", name.Data(),
-			    (signal_scale_ == 1.) ? "" : Form(" (x%.1f)",signal_scale_), h[index]->Integral()
-			    +h[index]->GetBinContent(0)+h[index]->GetBinContent(h[index]->GetNbinsX()+1)));
+    const char* stats = (doStatsLegend_) ? Form(" #scale[0.8]{(%.2e)}", h[index]->Integral()
+						+h[index]->GetBinContent(0)+h[index]->GetBinContent(h[index]->GetNbinsX()+1)) : "";
+    h[index]->SetTitle(Form("%s%s%s", name.Data(),
+			    (signal_scale_ == 1.) ? "" : Form(" (x%.1f)",signal_scale_), stats));
   }
   //scale return only meaningful histograms
   vector<TH1F*> hsignals;
@@ -472,8 +473,10 @@ TH2F* DataPlotter::get_signal_2D(TString hist, TString setType, Int_t set) {
     if(!tmp) continue;
     if(!h) h = tmp;
     else h->Add(tmp);
-    h->SetTitle(Form("#scale[0.5]{#int} %s = %.2e", labels_[i].Data(), h->Integral()
-		     +h->GetBinContent(0)+h->GetBinContent(h->GetNbinsX()+1)));
+    const char* stats = (doStatsLegend_) ? Form(" #scale[0.8]{(%.2e)}", h->Integral()
+						+h->GetBinContent(0)+h->GetBinContent(h->GetNbinsX()+1)) : "";
+
+    h->SetTitle(Form("%s%s", labels_[i].Data(), stats));
   }
   if(!h) return NULL;
   h->SetLineWidth(2);
@@ -501,8 +504,9 @@ TH1F* DataPlotter::get_data(TString hist, TString setType, Int_t set) {
   if(!d) return NULL;
   d->SetLineWidth(2);
   d->SetMarkerStyle(20);
-  d->SetTitle(Form("#scale[0.5]{#int} Data = %.2e",  d->Integral()
-		   +d->GetBinContent(0)+d->GetBinContent(d->GetNbinsX()+1))); //add underflow/overflow
+  const char* stats = (doStatsLegend_) ? Form(" #scale[0.8]{(%.2e)}", d->Integral()
+					      +d->GetBinContent(0)+d->GetBinContent(d->GetNbinsX()+1)) : "";
+  d->SetTitle(Form("Data%s",stats));
   d->SetName("hData");
   if(rebinH_ > 0) d->Rebin(rebinH_);
 
@@ -521,8 +525,9 @@ TH2F* DataPlotter::get_data_2D(TString hist, TString setType, Int_t set) {
   if(!d) return NULL;
   d->SetLineWidth(2);
   d->SetMarkerStyle(20);
-  d->SetTitle(Form("#scale[0.5]{#int} Data = %.2e",  d->Integral()
-		   +d->GetBinContent(0)+d->GetBinContent(d->GetNbinsX()+1))); //add underflow/overflow
+  const char* stats = (doStatsLegend_) ? Form(" #scale[0.8]{(%.2e)}", d->Integral()
+					      +d->GetBinContent(0)+d->GetBinContent(d->GetNbinsX()+1)) : "";
+  d->SetTitle(Form("Data%s",stats)); 
   d->SetName("hData");
   if(rebinH_ > 0) {
     d->RebinX(rebinH_);
@@ -558,8 +563,9 @@ TH1F* DataPlotter::get_qcd(TString hist, TString setType, Int_t set) {
   
   hData->Scale(qcd_scale_);
   
-  hData->SetTitle(Form("#scale[0.5]{#int} QCD = %.2e",  hData->Integral()
-		       +hData->GetBinContent(0)+hData->GetBinContent(hData->GetNbinsX()+1))); //add underflow/overflow
+  const char* stats = (doStatsLegend_) ? Form(" #scale[0.8]{(%.2e)}", hData->Integral()
+					      +hData->GetBinContent(0)+hData->GetBinContent(hData->GetNbinsX()+1)) : "";
+  hData->SetTitle(Form("QCD%s",stats));
   hData->SetLineColor(kOrange+6);
   hData->SetFillColorAlpha(kOrange+6,fill_alpha_);
   return hData;
@@ -618,8 +624,9 @@ THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set) {
       h[index]->SetMarkerStyle(20);
       h[index]->SetName(Form("s_%s_%s",name.Data(),hist.Data()));    
     }
-    h[index]->SetTitle(Form("#scale[0.5]{#int} %s = %.2e", name.Data(), h[index]->Integral()
-			    +h[index]->GetBinContent(0)+h[index]->GetBinContent(h[index]->GetNbinsX()+1))); //add underflow/overflow
+    const char* stats = (doStatsLegend_) ? Form(" #scale[0.8]{(%.2e)}", h[index]->Integral()
+						+h[index]->GetBinContent(0)+h[index]->GetBinContent(h[index]->GetNbinsX()+1)) : "";
+    h[index]->SetTitle(Form("%s%s", name.Data(), stats));
   }
   auto it = indexes.begin();
   while(it != indexes.end()) {
@@ -638,7 +645,6 @@ TCanvas* DataPlotter::plot_single_2Dhist(TString hist, TString setType, Int_t se
   Int_t color = kRed+1;
 
   TCanvas* c = new TCanvas(Form("h2d_%s_%i",hist.Data(),set),Form("h2D_%s_%i",hist.Data(),set), 1000, 700);
-
 
   for(UInt_t i = 0; i < data_.size(); ++i) {
     if(label != labels_[i]) continue;
@@ -660,10 +666,9 @@ TCanvas* DataPlotter::plot_single_2Dhist(TString hist, TString setType, Int_t se
     else h = htmp;
     
   }
-  if(normalize_2ds_&&h->Integral() > 0.) {
-    h->Scale(1./h->Integral());
-    h->GetZaxis()->SetRangeUser(1.e-5,10.);
-  }
+
+  const char* stats = (doStatsLegend_) ? Form(" #scale[0.8]{(%.2e)}", h->Integral()
+					      +h->GetBinContent(0)+h->GetBinContent(h->GetNbinsX()+1)) : "";
   TH2F* data;
   if(plot_data_) {
     data = get_data_2D(hist, setType, set);
@@ -671,18 +676,29 @@ TCanvas* DataPlotter::plot_single_2Dhist(TString hist, TString setType, Int_t se
       printf("Warning! Data not found!\n");
     } else {
       gStyle->SetPalette(kGreyScale);
-      if(normalize_2ds_ && data->Integral() > 0.) {
-	data->Scale(1./data->Integral());
-	data->GetZaxis()->SetRangeUser(1.e-5,10.);
+      if(normalize_2ds_ && data->Integral() > 0. && logZ_) {
+      	data->Scale(1./data->Integral());
       }
       data->Draw("col");
     }
+    if(normalize_2ds_&&h->Integral() > 0.) {
+      if(logZ_) {
+	h->Scale(1./h->Integral());
+	data->GetZaxis()->SetRangeUser(1.e-5, 10.);
+	h->GetZaxis()->SetRangeUser(1.e-5, 10.);
+      } else {
+	Double_t mx      = h->GetMaximum();
+	Double_t data_mx = data->GetMaximum();
+	h->Scale(data_mx/mx/10.); // set to have the same maximum
+	h->GetZaxis()->SetRangeUser(2.e0,1.1*data_mx);
+	data->GetZaxis()->SetRangeUser(2.e0,1.1*data_mx);
+      }
+    }
   }
+
   
   TH2F* hAxis = (plot_data_ && data) ? data : h;
-  //FIXME should just be the integral plotted
-  h->SetTitle(Form("#scale[0.5]{#int} %s = %.2e", label.Data(), h->Integral()
-		   +h->GetBinContent(0)+h->GetBinContent(h->GetNbinsX()+1))); //add underflow/overflow
+  h->SetTitle(Form("%s%s", label.Data(),stats));
   h->SetLineColor(color);
   h->SetMarkerColor(color);
   h->SetMarkerStyle(6);
@@ -700,7 +716,7 @@ TCanvas* DataPlotter::plot_single_2Dhist(TString hist, TString setType, Int_t se
   c->SetTopMargin(0.06);
   c->SetRightMargin(0.05);
   c->SetLeftMargin(0.087);
-  if(normalize_2ds_ == 0) c->BuildLegend();
+  if(normalize_2ds_ == 0) c->BuildLegend(); //0.6, 0.9, 0.9, 0.45, "", "L");
   if(yMin_ <= yMax_)hAxis->GetYaxis()->SetRangeUser(yMin_,yMax_);
   if(xMin_ <= xMax_)hAxis->GetXaxis()->SetRangeUser(xMin_,xMax_);
   //draw text on plots
@@ -770,18 +786,13 @@ TCanvas* DataPlotter::plot_2Dhist(TString hist, TString setType, Int_t set) {
       delete h[i];
     } else {
       //set plotting info
-      //      h[index]->SetFillStyle(fill [i_color]); 
-      //      h[index]->SetFillColorAlpha(color[i_color],fill_alpha_);
       h[index]->SetLineColor(color[i_color]);
       h[index]->SetMarkerColor(color[i_color]);
-      //      h[index]->SetLineWidth(2);
-      //      h[index]->SetMarkerStyle(20);
       h[index]->SetName(Form("h2D_%s_%s",name.Data(),hist.Data()));    
     }
-    //FIXME should just be the integral plotted
-    h[index]->SetTitle(Form("#scale[0.5]{#int} %s = %.2e", name.Data(), h[index]->Integral()
-			    +h[index]->GetBinContent(0)+h[index]->GetBinContent(h[index]->GetNbinsX()+1))); //add underflow/overflow
-    //    m = max(m,h[index]->GetMaximum());
+    const char* stats = (doStatsLegend_) ? Form(" #scale[0.8]{(%.2e)}", h[index]->Integral()
+						+h[index]->GetBinContent(0)+h[index]->GetBinContent(h[index]->GetNbinsX()+1)) : "";
+    h[index]->SetTitle(Form("%s%s", name.Data(), stats));
   }
   //plot each histogram, remember which is first for axis setting
   bool first = true;
@@ -812,12 +823,13 @@ TCanvas* DataPlotter::plot_2Dhist(TString hist, TString setType, Int_t set) {
   c->SetTopMargin(0.06);
   c->SetRightMargin(0.05);
   c->SetLeftMargin(0.087);
-  c->BuildLegend();
+  c->BuildLegend();//0.6, 0.9, 0.9, 0.45, "", "L");
   auto o = c->GetPrimitive("TPave");
   if(o) {
     auto tl = (TLegend*) o;
+    tl->SetDrawOption("L");
     tl->SetTextSize(0.04);
-    tl->SetX1NDC(0.65);
+    tl->SetX1NDC(((doStatsLegend_) ? 0.65 : 0.8));
     tl->SetX2NDC(0.9);
     tl->SetY2NDC(0.45);
     tl->SetY1NDC(0.9);
@@ -914,15 +926,14 @@ TCanvas* DataPlotter::plot_hist(TString hist, TString setType, Int_t set) {
       h[index]->SetMarkerStyle(20);
       h[index]->SetName(Form("h_%s_%s",name.Data(),hist.Data()));    
     }
-    //FIXME should just be the integral plotted
+    const char* stats = (doStatsLegend_) ? Form(" #scale[0.8]{(%.2e)}", h[index]->Integral()
+						+h[index]->GetBinContent(0)+h[index]->GetBinContent(h[index]->GetNbinsX()+1)) : "";
     if(isSignal_[index])
-      h[index]->SetTitle(Form("#scale[0.5]{#int} %s%s = %.2e", name.Data(),
+      h[index]->SetTitle(Form("%s%s%s", name.Data(),
 			      (signal_scale_ == 1.) ? "" : Form(" (x%.1f)",signal_scale_),
-			      h[index]->Integral()
-			      +h[index]->GetBinContent(0)+h[index]->GetBinContent(h[index]->GetNbinsX()+1))); //add underflow/overflow
+			      stats));
     else
-      h[index]->SetTitle(Form("#scale[0.5]{#int} %s = %.2e", name.Data(), h[index]->Integral()
-			      +h[index]->GetBinContent(0)+h[index]->GetBinContent(h[index]->GetNbinsX()+1))); //add underflow/overflow
+      h[index]->SetTitle(Form("%s%s", name.Data(),stats));
     if(isSignal_[i] && signal_scale_ > 1.) h[i]->Scale(signal_scale_);
     m = max(m,h[index]->GetMaximum());
   }
@@ -956,7 +967,7 @@ TCanvas* DataPlotter::plot_hist(TString hist, TString setType, Int_t set) {
   c->SetTopMargin(0.06);
   c->SetRightMargin(0.05);
   c->SetLeftMargin(0.087);
-  c->BuildLegend();
+  c->BuildLegend();//0.6, 0.9, 0.9, 0.45, "", "L");
 
   TH1F* hAxis = (h.size() > 0) ? h[ind] : hQCD;
   if(!hAxis) return NULL;
@@ -977,8 +988,9 @@ TCanvas* DataPlotter::plot_hist(TString hist, TString setType, Int_t set) {
     c->Modified();
     c->Update();
     auto tl = (TLegend*) o;
+    tl->SetDrawOption("L");
     tl->SetTextSize(0.04);
-    tl->SetX1NDC(0.6);
+    tl->SetX1NDC(((doStatsLegend_) ? 0.6 : 0.75));
     tl->SetX2NDC(0.95);
     tl->SetY2NDC(0.54);
     tl->SetY1NDC(0.94);
@@ -1008,12 +1020,11 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
   vector<TH1F*> hsignal = get_signal(hist,setType,set);
 
   if(plot_data_ && d) {
-    pad1 = new TPad("pad1","pad1",0.0,0.30,1,1); //xL yL xH xH, (0,0) = bottom left
-    pad2 = new TPad("pad2","pad2",0.0,0.02,1,0.30);
-
+    pad1 = new TPad("pad1","pad1",0.0,0.3,1,1); //xL yL xH xH, (0,0) = bottom left
+    pad2 = new TPad("pad2","pad2",0.0,0.02,1,0.3);
     pad1->SetTopMargin(0.06);
-    pad2->SetTopMargin(0.0);
-    pad1->SetBottomMargin(0.0);
+    pad2->SetTopMargin(0.03);
+    pad1->SetBottomMargin(0.05);
     pad2->SetBottomMargin(0.22);
     pad1->Draw();
     pad2->Draw();
@@ -1058,10 +1069,18 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
   }
   TH1F* hDataMC = (plot_data_ && d) ? (TH1F*) d->Clone("hDataMC") : 0;
   TGraphErrors* hDataMCErr = 0;
+  double nmc = 0.;
+  int ndata = 0;
+  int nb = (d) ? d->GetNbinsX() : -1;
   if(hDataMC) {
     hDataMC->Clear();
     TH1F* hlast = (TH1F*) hstack->GetStack()->Last();
-    int nb = hDataMC->GetNbinsX();
+    nmc = hlast->Integral();
+    nmc += hlast->GetBinContent(0);
+    nmc += hlast->GetBinContent(nb+1);
+    ndata = d->Integral();
+    ndata += d->GetBinContent(0);
+    ndata += d->GetBinContent(nb+1);
     double x[nb];
     double y[nb];
     double xerr[nb];
@@ -1090,16 +1109,25 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
     hDataMCErr->SetFillStyle(3001);
     hDataMCErr->SetFillColor(kGray+1);
   }
-  pad1->BuildLegend();
+  pad1->BuildLegend();//0.6, 0.9, 0.9, 0.45, "", "L");
   pad1->SetGrid();
   pad1->Update();
+  if(ndata > 0) {
+    map<TString, double> nsig;
+    for(unsigned i = 0; i < hsignal.size(); ++i) {
+      if(!doStatsLegend_ && hsignal[i]->GetEntries() > 0)
+	nsig[hsignal[i]->GetName()] = (hsignal[i]->Integral() + hsignal[i]->GetBinContent(0)+hsignal[i]->GetBinContent(nb+1))/signal_scale_;
+    }
+    draw_data(ndata,nmc,nsig);
+  }
   auto o = pad1->GetPrimitive("TPave");
   if(o) {
     auto tl = (TLegend*) o;
+    tl->SetDrawOption("L");
     tl->SetTextSize(0.04);
     tl->SetY2NDC(0.45);
     tl->SetY1NDC(0.9);
-    tl->SetX1NDC(0.6);
+    tl->SetX1NDC(((doStatsLegend_) ? 0.6 : 0.75));
     tl->SetX2NDC(0.9);
     tl->SetEntrySeparation(2.);
     pad1->Update();
@@ -1206,7 +1234,8 @@ TCanvas* DataPlotter::print_single_2Dhist(TString hist, TString setType, Int_t s
   if(!c) return c;
   label.ReplaceAll("#",""); //for ease of use in bash
   label.ReplaceAll(" ", "");
-  c->Print(Form("figures/%s/%s/hist2D_%s_%s%s_%s_set_%i.png",folder_.Data(),selection_.Data(),label.Data(),hist.Data(),
+  c->Print(Form("figures/%s/%s/hist2D_%s_%s%s%s_%s_set_%i.png",folder_.Data(),selection_.Data(),label.Data(),hist.Data(),
+		(logZ_ ? "_log":""),
 		((plot_data_) ? "_data":""),"dataOverMC",set));
   return c;
 }
