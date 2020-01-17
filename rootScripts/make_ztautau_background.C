@@ -1,4 +1,11 @@
 
+bool doHiggsDecays = false; //Z or H0 CLFV decay sets
+bool doDY_ = true;
+bool doWJets_ = true;
+bool doTop_ = true;
+bool doHiggs_ = true;
+bool doDiboson_ = true;
+
 Int_t make_background(int set = 7, TString selection = "mutau", TString base = "../histograms/ztautau/") {
 
 
@@ -20,26 +27,34 @@ Int_t make_background(int set = 7, TString selection = "mutau", TString base = "
 			 , "htautau_gluglu"
 			 , "zmutau"                 
 			 , "zetau"                 
+			 , "zemu"                 
+			 , "hmutau"                 
+			 , "hetau"                 
+			 , "hemu"                 
   };
   
-  int doProcess[] = {1 //t_tw
-		     , 1 //tbar_tw
-		     , 1 //ttbar
-		     , 1 //DY AMC
-		     , 1 //DY AMC
-		     , 1 //W1Jets
-		     , 1 //W2Jets
-		     , 1 //W3Jets
-		     , 1 //W4Jets
-		     , 1 //WW
-		     , 1 //WZ
-		     , 1 //WZ
-		     , 1 //ZZ
-		     , 1 //ZZ
-		     , 1 //ZZ
-		     , 1 //htautau
-		     , ((selection == "mutau") ? 1 : 0) //zmutau
-		     , ((selection == "etau")  ? 1 : 0) //zetau
+  int doProcess[] = {  doTop_ //t_tw
+		     , doTop_ //tbar_tw
+		     , doTop_ //ttbar
+		     , doDY_ //DY AMC
+		     , doDY_ //DY AMC
+		     , doWJets_ //W1Jets
+		     , doWJets_ //W2Jets
+		     , doWJets_ //W3Jets
+		     , doWJets_ //W4Jets
+		     , doDiboson_ //WW
+		     , doDiboson_ //WZ
+		     , doDiboson_ //WZ
+		     , doDiboson_ //ZZ
+		     , doDiboson_ //ZZ
+		     , doDiboson_ //ZZ
+		     , doHiggs_ //htautau
+		     , (!doHiggsDecays && (selection == "mutau")) //zmutau
+		     , (!doHiggsDecays && (selection == "etau") ) //zetau
+		     , (!doHiggsDecays && (selection == "emu")  ) //zetau
+		     , (doHiggsDecays  && (selection == "mutau")) //hmutau
+		     , (doHiggsDecays  && (selection == "etau") ) //hetau
+		     , (doHiggsDecays  && (selection == "emu")  ) //hetau
   };
 
   TFile* fDList[30];
@@ -81,7 +96,25 @@ Int_t make_background(int set = 7, TString selection = "mutau", TString base = "
     printf("No trees found to merge, exiting\n");
     return 1;
   }
-  TFile* out = new TFile(Form("background_ztautau_%s_%i.tree", selection.Data(),set),"RECREATE");
+  TString type = ""; //which type of process is trained
+  if     ( doDY_ && !doWJets_ && !doDiboson_ && !doTop_ && !doHiggs_)
+    type = "DY_";
+  else if(!doDY_ &&  doWJets_ && !doDiboson_ && !doTop_ && !doHiggs_)
+    type = "WJets_";
+  else if(!doDY_ && !doWJets_ &&  doDiboson_ && !doTop_ && !doHiggs_)
+    type = "DiBoson_";
+  else if(!doDY_ && !doWJets_ && !doDiboson_ &&  doTop_ && !doHiggs_)
+    type = "Top_";
+  else if(!doDY_ && !doWJets_ &&  doDiboson_ &&  doTop_ &&  doHiggs_)
+    type = "DB_Top_H_";
+  else if( doDY_ &&  doWJets_ &&  doDiboson_ &&  doTop_ &&  doHiggs_)
+    type = "";
+  else
+    printf("Unknown process combination! No name flag added\n");
+  
+  TFile* out = new TFile(Form("background_ztautau_%s%s_%i.tree",
+			      type.Data(),
+			      selection.Data(),set),"RECREATE");
   TTree* t = 0;
   printf("Merging trees\n");
   for(int i = 0; i < list->GetSize(); ++i)

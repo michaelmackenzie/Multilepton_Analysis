@@ -3,55 +3,58 @@
 Int_t process_ztautau() {
 
   const char* gridPath[] = {
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20191118_140159/", //ttbar
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20191118_140159/", //DY AMC
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20191118_140159/", //DY AMC
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20191118_140159/", //t_tw
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20191118_140159/", //tbar_tw
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20191118_140159/", //DY MadGraph
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20191118_140159/", //DY MadGraph
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20191118_140159/", //DY 1 Jet MadGraph
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20191118_140159/", //DY 1 Jet MadGraph
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20191118_140159/", //DY 2 Jet MadGraph
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20191118_140159/", //DY 2 Jet MadGraph
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20191118_140159/", //DY 3 Jet MadGraph
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20191118_140159/", //DY 3 Jet MadGraph
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20191118_140159/", //DY 4 Jet MadGraph
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20191118_140159/", //DY 4 Jet MadGraph
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20191118_140159/", //W 1 Jet
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20191118_140159/", //W 2 Jet
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20191118_140159/", //W 3 Jet
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20191118_140159/", //W 4 Jet
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20191118_140159/", //WW
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20191118_140159/", //WZ Jets to 2L2Q
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20191118_140159/", //WZ Jets to 3LNu
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20191118_140159/", //ZZ Jets to 2L2Nu
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20191118_140159/", //ZZ Jets to 2L2Q
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20191118_140159/", //ZZ Jets to 4L
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20191004_110436/", //HZG gluglu
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20191004_110436/", //HZG tth
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20191004_110436/", //HZG vbf
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20191004_110436/", //HZG W-
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20191004_110436/", //HZG W+
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20191004_110436/", //HZG zh
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20191118_140407/", //HTauTau gluglu
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20191118_140407/", //ZETau
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20191118_140407/", //ZMuTau
-    "/eos/uscms/store/user/mmackenz/private_mc/2016/BaconAna_Output/"                , //ZMuTau NoFilter
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20191118_140159/", //Muon Data 2016 B
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20191118_140159/", //Muon Data 2016 C
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20191118_140159/", //Muon Data 2016 D
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20191118_140159/", //Muon Data 2016 E
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20191118_140159/", //Muon Data 2016 F
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20191118_140159/", //Muon Data 2016 G
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20191118_140159/", //Muon Data 2016 H
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20191118_140159/", //Electron Data 2016 B
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20191118_140159/", //Electron Data 2016 C
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20191118_140159/", //Electron Data 2016 D
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20191118_140159/", //Electron Data 2016 E
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20191118_140159/", //Electron Data 2016 F
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20191118_140159/", //Electron Data 2016 G
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20191004_110436/"  //Electron Data 2016 H
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //ttbar
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //DY AMC
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //DY AMC
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //t_tw
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //tbar_tw
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //DY MadGraph
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //DY MadGraph
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //DY 1 Jet MadGraph
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //DY 1 Jet MadGraph
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //DY 2 Jet MadGraph
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //DY 2 Jet MadGraph
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //DY 3 Jet MadGraph
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //DY 3 Jet MadGraph
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //DY 4 Jet MadGraph
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //DY 4 Jet MadGraph
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //W 1 Jet
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //W 2 Jet
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //W 3 Jet
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //W 4 Jet
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200115_133448/", //WW
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //WZ Jets to 2L2Q
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //WZ Jets to 3LNu
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //ZZ Jets to 2L2Nu
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //ZZ Jets to 2L2Q
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //ZZ Jets to 4L
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //HZG gluglu
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //HZG tth
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //HZG vbf
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //HZG W-
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //HZG W+
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //HZG zh
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //HTauTau gluglu
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //ZETau
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //ZMuTau
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //ZEMu
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200115_133448/", //HETau
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200115_133448/", //HMuTau
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200115_133448/", //HEMu
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //Muon Data 2016 B
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //Muon Data 2016 C
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //Muon Data 2016 D
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //Muon Data 2016 E
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //Muon Data 2016 F
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //Muon Data 2016 G
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //Muon Data 2016 H
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //Electron Data 2016 B
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //Electron Data 2016 C
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //Electron Data 2016 D
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //Electron Data 2016 E
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //Electron Data 2016 F
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //Electron Data 2016 G
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/"  //Electron Data 2016 H
     
   };
   
@@ -89,7 +92,10 @@ Int_t process_ztautau() {
 			 "output_htautau_gluglu.root"              ,
 			 "output_zetau.root"                       ,
 			 "output_zmutau.root"                      ,
-			 "output_zmutau_nofilter.root"             ,
+			 "output_zemu.root"                        ,
+			 "output_hetau.root"                       ,
+			 "output_hmutau.root"                      ,
+			 "output_hemu.root"                        ,
 			 "output_muon_2016B_v2.root"               , 
 			 "output_muon_2016C.root"                  , 
 			 "output_muon_2016D.root"                  , 
@@ -111,16 +117,16 @@ Int_t process_ztautau() {
 			   1, //DY AMC
 			   1, //t_tw
 			   1, //tbar_tw
-			   0, //DY MadGraph
-			   0, //DY MadGraph
-			   0, //DY 1 Jet MadGraph
-			   0, //DY 1 Jet MadGraph
-			   0, //DY 2 Jet MadGraph
-			   0, //DY 2 Jet MadGraph
-			   0, //DY 3 Jet MadGraph
-			   0, //DY 3 Jet MadGraph
-			   0, //DY 4 Jet MadGraph
-			   0, //DY 4 Jet MadGraph
+			   1, //DY MadGraph
+			   1, //DY MadGraph
+			   1, //DY 1 Jet MadGraph
+			   1, //DY 1 Jet MadGraph
+			   1, //DY 2 Jet MadGraph
+			   1, //DY 2 Jet MadGraph
+			   1, //DY 3 Jet MadGraph
+			   1, //DY 3 Jet MadGraph
+			   1, //DY 4 Jet MadGraph
+			   1, //DY 4 Jet MadGraph
 			   1, //W 1 Jet
 			   1, //W 2 Jet
 			   1, //W 3 Jet
@@ -140,7 +146,10 @@ Int_t process_ztautau() {
 			   1, //HTauTau gluglu
 			   1, //ZETau
 			   1, //ZMuTau
-			   0, //ZMuTau NoFilter
+			   1, //ZEMu
+			   1, //HETau
+			   1, //HMuTau
+			   1, //HEMu
 			   1, //Muon Data 2016 B
 			   1, //Muon Data 2016 C
 			   1, //Muon Data 2016 D
@@ -159,7 +168,7 @@ Int_t process_ztautau() {
   
   Double_t xsec[100];
   for(int i = 0; i < sizeof(xsec)/sizeof(*xsec); ++i)
-    xsec[i] = 1.;
+    xsec[i] = 1.; //no scaling if not given
   
   //Taken from https://twiki.cern.ch/twiki/bin/viewauth/CMS/SummaryTable1G25ns     
   xsec[0]  =  831.76;                 //"ttbar_inclusive"         
@@ -198,12 +207,16 @@ Int_t process_ztautau() {
   xsec[31] =    3.*3.3658/100.*1.54e-3* 1.380/2.;	       //"hzg_wplus"               
   xsec[32] =    3.*3.3658/100.*1.54e-3* 0.8696;	       //"hzg_zh"                  
   xsec[33] =                   6.32e-2* 43.92;	       //"htautau_gluglu"                  
-  xsec[34] =    ((6225.42+18610.)/(3.*3.3658e-2))*9.8e-6*100./2000.; //zetau z->ll / br(ll) * br(etau, CL=95) *N(accepted)/N(Gen) http://pdg.lbl.gov/2018/listings/rpp2018-list-z-boson.pdf
-  xsec[35] =    ((6225.42+18610.)/(3.*3.3658e-2))*1.2e-5*135./2000.; //zmutau z->ll/ br(ll) * br(mutau, CL=95)*N(accepted)/N(Gen) http://pdg.lbl.gov/2018/listings/rpp2018-list-z-boson.pdf
+  xsec[34] =    ((6225.42+18610.)/(3.*3.3658e-2))*9.8e-6*11031./2.e5; //zetau  z->ll / br(ll) * br(etau, CL=95) *N(accepted)/N(Gen) http://pdg.lbl.gov/2018/listings/rpp2018-list-z-boson.pdf
+  xsec[35] =    ((6225.42+18610.)/(3.*3.3658e-2))*1.2e-5*11316./2.e5; //zmutau z->ll / br(ll) * br(mutau, CL=95)*N(accepted)/N(Gen) http://pdg.lbl.gov/2018/listings/rpp2018-list-z-boson.pdf
+  xsec[36] =    ((6225.42+18610.)/(3.*3.3658e-2))*7.3e-7*31033./2.e5; //zemu   z->ll / br(ll) * br(emu, CL=95)  *N(accepted)/N(Gen) http://pdg.lbl.gov/2018/listings/rpp2018-list-z-boson.pdf
+  xsec[37] = (43.92+3.748+0.5085+1.380+0.8696)*6.1e-3*41619./(98.*1e3); //hetau  xsec(higgs,glu+vbf)*br(etau, CL=95) *N(accepted)/N(Gen) http://pdg.lbl.gov/2019/listings/rpp2019-list-higgs-boson.pdf
+  xsec[38] = (43.92+3.748+0.5085+1.380+0.8696)*2.5e-3*41647./(98.*1e3); //hmutau xsec(higgs,glu+vbf)*br(mutau, CL=95)*N(accepted)/N(Gen) http://pdg.lbl.gov/2019/listings/rpp2019-list-higgs-boson.pdf
+  xsec[39] = (43.92+3.748+0.5085+1.380+0.8696)*3.5e-4*34429./(88.*500); //hemu   xsec(higgs,glu+vbf)*br(emu, CL=95)  *N(accepted)/N(Gen) http://pdg.lbl.gov/2019/listings/rpp2019-list-higgs-boson.pdf
 
   TStopwatch* timer = new TStopwatch();
 
-  bool useTauFakeSF = true;
+  Int_t useTauFakeSF = 2;
   bool writeTrees = true;
   Int_t category = 0;
   for(int i = 0; i < sizeof(files)/sizeof(*files); ++i) {
@@ -224,6 +237,9 @@ Int_t process_ztautau() {
     //for splitting DY lepton decays
     TString cString = c;
     bool isDY = (cString.Contains("DY"));
+    //for avoiding double counting data events
+    bool isElectronData = cString.Contains("output_electron_");
+    bool isMuonData = cString.Contains("output_muon_");
     
     //get events histograms first
     while((key = (TKey*)nextkey())) {
@@ -270,8 +286,12 @@ Int_t process_ztautau() {
 	TString cString = c;
 	selec->fFolderName = fChannel->GetName();
 	if(isDY) selec->fDYType = loop;
+	//skip electron data events with both triggers for e+mu channel
+	selec->fIsData = 2*isMuonData + isElectronData; 
+	selec->fSkipDoubleTrigger = (isElectronData && (selec->fFolderName == "emu"));
+	
 	selec->fEventCategory = category;
-	selec->fWriteTrees = writeTrees;
+	selec->fWriteTrees = selec->fIsData == 0 && writeTrees; //don't write trees for data
 	selec->fUseTauFakeSF = useTauFakeSF;
 	selec->fXsec = xsec[i]/events->GetBinContent(1);
 	tree->Process(selec,"");

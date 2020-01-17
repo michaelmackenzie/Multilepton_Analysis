@@ -80,6 +80,10 @@ public :
   TLorentzVector* leptonTwoP4 = 0    ;
   Int_t leptonOneFlavor              ;
   Int_t leptonTwoFlavor              ;
+  Float_t leptonOneD0                ;
+  Float_t leptonTwoD0		     ;
+  Float_t leptonOneIso		     ;
+  Float_t leptonTwoIso               ; 
   TLorentzVector* genLeptonOneP4 = 0 ;
   TLorentzVector* genLeptonTwoP4 = 0 ;
   TLorentzVector* photonP4 = 0       ;
@@ -96,8 +100,38 @@ public :
   Float_t htSum                      ;
   Float_t ht                         ;
   Float_t htPhi                      ;
+  //Different met definitions
+  Float_t pfMET                      ;
+  Float_t pfMETphi                   ;
+  Float_t pfMETCov00                 ;
+  Float_t pfMETCov01                 ;
+  Float_t pfMETCov11                 ;
+  Float_t pfMETC                     ;
+  Float_t pfMETCphi                  ;
+  Float_t pfMETCCov00                ;
+  Float_t pfMETCCov01                ;
+  Float_t pfMETCCov11                ;
+  Float_t puppMET                    ;
+  Float_t puppMETphi                 ;
+  Float_t puppMETCov00               ;
+  Float_t puppMETCov01               ;
+  Float_t puppMETCov11               ;
+  Float_t puppMETC                   ;
+  Float_t puppMETCphi                ;
+  Float_t puppMETCCov00              ;
+  Float_t puppMETCCov01              ;
+  Float_t puppMETCCov11              ;
+  Float_t alpacaMET                  ;
+  Float_t alpacaMETphi               ;
+  Float_t pcpMET                     ;
+  Float_t pcpMETphi                  ;
+  Float_t trkMET                     ;
+  Float_t trkMETphi                  ;
+  //used in original SVFit algorithm
   Float_t met                        ;
   Float_t metPhi                     ;
+  Float_t metCorr                    ;
+  Float_t metCorrPhi                 ;
   Float_t covMet00                   ;
   Float_t covMet01                   ;
   Float_t covMet11                   ;
@@ -117,8 +151,6 @@ public :
     TH1F* hNPV;
     TH1F* hNPU;
     TH1F* hNPartons;
-    TH1F* hMet;
-    TH1F* hMetPhi;
     TH1F* hNMuons;
     TH1F* hNElectrons;
     TH1F* hNTaus;
@@ -144,12 +176,30 @@ public :
     TH1F* hHtSum;
     TH1F* hHt;
     TH1F* hHtPhi;
+    TH1F* hPFMet;
+    TH1F* hPFMetPhi;
+    TH1F* hPFCovMet00;
+    TH1F* hPFCovMet01;
+    TH1F* hPFCovMet11;
+    TH1F* hPuppMet;
+    TH1F* hPuppMetPhi;
+    TH1F* hPuppCovMet00;
+    TH1F* hPuppCovMet01;
+    TH1F* hPuppCovMet11;
+    TH1F* hTrkMet;
+    TH1F* hTrkMetPhi;
+
+    TH1F* hMet;
+    TH1F* hMetPhi;
+    TH1F* hMetCorr;
+    TH1F* hMetCorrPhi;
     TH1F* hCovMet00;
     TH1F* hCovMet01;
     TH1F* hCovMet11;
     TH1F* hMassSVFit;
     TH1F* hMassErrSVFit;
     TH1F* hSVFitStatus;
+    TH2F* hMetVsPt;
     
     TH1F* hLepPt;
     TH1F* hLepP;
@@ -162,6 +212,10 @@ public :
     TH1F* hLepDeltaR;
     TH2F* hLepDelRVsPhi;
     TH1F* hLepPtOverM;
+    TH1F* hHtDeltaPhi;
+    TH1F* hMetDeltaPhi;
+    TH1F* hLepOneDeltaPhi;
+    TH1F* hLepTwoDeltaPhi;
 
     TH1F* hLepSVPt;
     TH1F* hLepSVP;
@@ -215,6 +269,7 @@ public :
     TH1F* hOneM;
     TH1F* hOneEta;
     TH1F* hOnePhi;
+    TH1F* hOneD0;
     TH1F* hOneIso;
     TH1F* hOneRelIso;
     TH1F* hOneFlavor;
@@ -227,6 +282,7 @@ public :
     TH1F* hOneDeltaPt;
     TH1F* hOneDeltaE;
     TH1F* hOneDeltaEta;
+    TH1F* hOneMetDeltaPhi;
     //SVFit Info
     TH1F* hOneSVPt;
     TH1F* hOneSVP;
@@ -247,6 +303,7 @@ public :
     TH1F* hTwoM;
     TH1F* hTwoEta;
     TH1F* hTwoPhi;
+    TH1F* hTwoD0;
     TH1F* hTwoIso;
     TH1F* hTwoRelIso;
     TH1F* hTwoFlavor;
@@ -259,6 +316,8 @@ public :
     TH1F* hTwoDeltaPt;
     TH1F* hTwoDeltaE;
     TH1F* hTwoDeltaEta;
+    TH1F* hTwoMetDeltaPhi;
+
     //SVFit Info
     TH1F* hTwoSVPt;
     TH1F* hTwoSVP;
@@ -291,9 +350,13 @@ public :
     float leponept;
     float leponem;
     float leponeeta;
+    float leponed0;
+    float leponeiso;
     float leptwopt;
     float leptwom;
     float leptwoeta;
+    float leptwod0;
+    float leptwoiso;
     //di-lepton variables
     float lepp;
     float leppt;
@@ -302,6 +365,15 @@ public :
     float lepdeltaeta;
     float lepdeltar;
     float lepdeltaphi;
+
+    //extra angles
+    float htdeltaphi;    
+    float metdeltaphi;
+    float leponedeltaphi;
+    float leptwodeltaphi;
+    float onemetdeltaphi;
+    float twometdeltaphi;
+
     //MET variables
     float met;
     float mtone;
@@ -342,21 +414,22 @@ public :
   virtual void    FillPhotonHistogram(PhotonHist_t* Hist);
   virtual void    FillLepHistogram(LepHist_t* Hist);
   virtual void    InitializeTreeVariables();
+  virtual float   GetTauFakeSF(int genFlavor);
 
 
+  Long64_t fentry; //for tracking entry in functions
   //Define relevant fields
   TStopwatch* timer = new TStopwatch();
   TMVA::Reader* mva; //read and apply mva weight files
   vector<TString> fMvaNames = { //mva names for getting weights
     "mutau_MLP_MM_8","mutau_BDT_8",
     "mutau_DY_MLP_MM_8","mutau_WJets_MLP_MM_8",
-    "etau_MLP_MM_28"//,"etau_BDT_27",
-    //    "etau_DY_MLP_27","etau_WJets_MLP_27"
+    "etau_BDT_28", "emu_BDT_48"
   };
   vector<double> fMvaCuts = { //mva score cut values
-    0.75, 0.05,               //scores are to cut ~30% of the signal currently
-    0.7, 0.8,
-    0.7 
+    0.8603, 0.1175,  //scores optimize significance with given branching ratios
+    0.7, 0.6,//scores are to cut ~30% of the signal currently
+    0.1069, 0.2536 //scores optimize significance with given branching ratios
   };
   double fMvaOutputs[20];
   
@@ -382,7 +455,9 @@ public :
   Tree_t        fTreeVars; //for filling the ttrees/mva evaluation
   Int_t         fEventCategory; //for identifying the process in mva trainings
 
-  bool          fUseTauFakeSF = false; //add in fake tau scale factor weight to event weights
+  Int_t         fUseTauFakeSF = 0; //add in fake tau scale factor weight to event weights (2 to use ones defined here)
+  Int_t         fIsData = 0; //0 if MC, 1 if electron data, 2 if muon data
+  bool          fSkipDoubleTrigger = false; //skip events with both triggers (to avoid double counting), only count this lepton status events
   
   ClassDef(ZTauTauHistMaker,0);
 
@@ -402,6 +477,7 @@ void ZTauTauHistMaker::Init(TTree *tree)
   if(fChain == 0 && tree != 0) {
     TMVA::Tools::Instance(); //load the library
     mva = new TMVA::Reader("!Color:!Silent");
+
     mva->AddVariable("lepm"            ,&fTreeVars.lepm           ); 
     mva->AddVariable("mtone"           ,&fTreeVars.mtone          );
     mva->AddVariable("mttwo"           ,&fTreeVars.mttwo          );
@@ -412,10 +488,18 @@ void ZTauTauHistMaker::Init(TTree *tree)
     mva->AddVariable("njets"           ,&fTreeVars.njets          );
     mva->AddVariable("lepdeltaeta"     ,&fTreeVars.lepdeltaeta    );
     mva->AddVariable("lepdeltaphi"     ,&fTreeVars.lepdeltaphi    );
+    mva->AddVariable("leponedeltaphi"  ,&fTreeVars.leponedeltaphi );
+    mva->AddVariable("leptwodeltaphi"  ,&fTreeVars.leptwodeltaphi );
     
+    mva->AddSpectator("leponed0"       ,&fTreeVars.leponed0       );
+    mva->AddSpectator("leptwod0"       ,&fTreeVars.leptwod0       );
+    mva->AddSpectator("htdeltaphi"     ,&fTreeVars.htdeltaphi     );
+    mva->AddSpectator("leponeiso"      ,&fTreeVars.leponeiso      );
+    mva->AddSpectator("onemetdeltaphi" ,&fTreeVars.onemetdeltaphi );
+    mva->AddSpectator("twometdeltaphi" ,&fTreeVars.twometdeltaphi );
+    mva->AddSpectator("metdeltaphi"    ,&fTreeVars.metdeltaphi    );
     mva->AddSpectator("leppt"          ,&fTreeVars.leppt          );
     mva->AddSpectator("met"            ,&fTreeVars.met            );
-    // mva->AddSpectator("lepeta"         ,&fTreeVars.lepeta         );
     mva->AddSpectator("lepdeltar"      ,&fTreeVars.lepdeltar      );
     mva->AddSpectator("fulleventweight",&fTreeVars.fulleventweight);
     mva->AddSpectator("eventweight"    ,&fTreeVars.eventweight    );
@@ -458,21 +542,18 @@ void ZTauTauHistMaker::Init(TTree *tree)
     fEventSets [5] = 1; // events with opposite signs and 1 tau and 1 muon
     fEventSets [5+fQcdOffset] = 1; // events with same signs and 1 tau and 1 muon
     fEventSets [25] = 1; // events with opposite signs and 1 tau and 1 electron
-    fEventSets [25+fQcdOffset] = 1; // events with same signs and 1 tau and 1 electron
-    fEventSets [45] = 1; // events with opposite signs and 1 muon and 1 electron
-    fEventSets [45+fQcdOffset] = 1; // events with same signs and 1 muon and 1 electron
-    
+    fEventSets [25+fQcdOffset] = 1; // events with same signs and 1 tau and 1 electron    
 
     fEventSets [6] = 1; // events with opposite signs and passing Mu+Tau Pt cuts with no photon check
     fEventSets [6+fQcdOffset] = 1; // events with same signs and passing Mu+Tau Pt cuts with no photon check
     fEventSets [7] = 1; // events with opposite signs and passing Mu+Tau Pt + angle cuts with no photon check
     fEventSets [7+fQcdOffset] = 1; // events with same signs and passing Mu+Tau Pt + angle cuts with no photon check
-    fTreeSets  [7] = 1;
+    fTreeSets  [7] = 0;
 
     // Sets 8-10 MVA cuts applied
     fEventSets [8] = 1; // events with opposite signs
     fEventSets [8+fQcdOffset] = 1; // events with same signs 
-    fTreeSets  [8] = 1;
+    fTreeSets  [8] = 0;
     fEventSets [9] = 1; // events with opposite signs 
     fEventSets [9+fQcdOffset] = 1; // events with same signs 
     fEventSets [10] = 1; // events with opposite signs 
@@ -496,7 +577,7 @@ void ZTauTauHistMaker::Init(TTree *tree)
 
     fEventSets [17] = 1; // events with opposite signs and nBJets = 0
     fEventSets [17+fQcdOffset] = 1; // events with same signs and nBJets = 0
-    fTreeSets  [17] = 1;
+    fTreeSets  [17] = 0;
 
     fEventSets [18] = 1; // events with opposite signs and nJets = 0
     fEventSets [18+fQcdOffset] = 1; // events with same signs and nJets = 0
@@ -514,18 +595,18 @@ void ZTauTauHistMaker::Init(TTree *tree)
 
     fEventSets [24] = 1; // events with opposite signs and BDT > -0.2
     fEventSets [24+fQcdOffset] = 1; // events with same signs and BDT > -0.2
-    fTreeSets  [24] = 1;
+    fTreeSets  [24] = 0;
     
     fEventSets [26] = 1; // events with opposite signs and passing E+Tau Pt cuts with no photon check
     fEventSets [26+fQcdOffset] = 1; // events with same signs and passing E+Tau Pt cuts with no photon check
     fEventSets [27] = 1; // events with opposite signs and passing E+Tau Pt + angle cuts with no photon check
     fEventSets [27+fQcdOffset] = 1; // events with same signs and passing E+Tau Pt + angle cuts with no photon check
-    fTreeSets  [27] = 1;
+    fTreeSets  [27] = 0;
 
     // Sets 8-10 MVA cuts applied
     fEventSets [28] = 1; // events with opposite signs
     fEventSets [28+fQcdOffset] = 1; // events with same signs 
-    fTreeSets  [28] = 1;
+    fTreeSets  [28] = 0;
     fEventSets [29] = 1; // events with opposite signs 
     fEventSets [29+fQcdOffset] = 1; // events with same signs 
     fEventSets [30] = 1; // events with opposite signs 
@@ -549,7 +630,7 @@ void ZTauTauHistMaker::Init(TTree *tree)
 
     fEventSets [37] = 1; // events with opposite signs and nBJets = 0
     fEventSets [37+fQcdOffset] = 1; // events with same signs and nBJets = 0
-    fTreeSets  [37] = 1;
+    fTreeSets  [37] = 0;
 
     fEventSets [38] = 1; // events with opposite signs and nJets = 0
     fEventSets [38+fQcdOffset] = 1; // events with same signs and nJets = 0
@@ -567,8 +648,34 @@ void ZTauTauHistMaker::Init(TTree *tree)
     
     fEventSets [44] = 1; // events with opposite signs and BDT > -0.2
     fEventSets [44+fQcdOffset] = 1; // events with same signs and BDT > -0.2
-    fTreeSets  [44] = 1;
+    fTreeSets  [44] = 0;
 
+
+    // E+Mu Books
+    fEventSets [45] = 1; // events with opposite signs and 1 muon and 1 electron
+    fEventSets [45+fQcdOffset] = 1; // events with same signs and 1 muon and 1 electron
+    fEventSets [46] = 1; // events with opposite signs
+    fEventSets [46+fQcdOffset] = 1; // events with same signs
+    fEventSets [47] = 1; // events with opposite signs
+    fEventSets [47+fQcdOffset] = 1; // events with same
+    fEventSets [48] = 1; // events with opposite signs + no bjets
+    fEventSets [48+fQcdOffset] = 1; // events with same
+    fEventSets [49] = 1; // events with opposite signs + BDT cut
+    fEventSets [49+fQcdOffset] = 1; // events with same
+    fTreeSets  [48] = 1;
+    fEventSets [53] = 1; // events with opposite signs + met cut
+    fEventSets [53+fQcdOffset] = 1; // events with same
+    fEventSets [55] = 1; // events with opposite signs + mt_e/mt_mu cuts
+    fEventSets [55+fQcdOffset] = 1; // events with same
+    fEventSets [56] = 1; // events with opposite signs + mass window
+    fEventSets [56+fQcdOffset] = 1; // events with same
+    fEventSets [58] = 1; // events with opposite signs + 0-jet
+    fEventSets [58+fQcdOffset] = 1; // events with same
+    fEventSets [59] = 1; // events with opposite signs + 1-jet
+    fEventSets [59+fQcdOffset] = 1; // events with same
+    fEventSets [60] = 1; // events with opposite signs + >1-jet
+    fEventSets [60+fQcdOffset] = 1; // events with same
+    
     BookHistograms();
 
   }
@@ -600,6 +707,10 @@ void ZTauTauHistMaker::Init(TTree *tree)
   fChain->SetBranchAddress("leptonTwoP4" 	 , &leptonTwoP4          );
   fChain->SetBranchAddress("leptonOneFlavor"     , &leptonOneFlavor      );
   fChain->SetBranchAddress("leptonTwoFlavor"     , &leptonTwoFlavor      );
+  fChain->SetBranchAddress("leptonOneD0"         , &leptonOneD0          );
+  fChain->SetBranchAddress("leptonTwoD0"         , &leptonTwoD0          );
+  fChain->SetBranchAddress("leptonOneIso"        , &leptonOneIso         );
+  fChain->SetBranchAddress("leptonTwoIso"        , &leptonTwoIso         );
   fChain->SetBranchAddress("genLeptonOneP4" 	 , &genLeptonOneP4       );
   fChain->SetBranchAddress("genLeptonTwoP4" 	 , &genLeptonTwoP4       );
   fChain->SetBranchAddress("photonP4"  	         , &photonP4             );
@@ -616,8 +727,36 @@ void ZTauTauHistMaker::Init(TTree *tree)
   fChain->SetBranchAddress("htSum"               , &htSum                );
   fChain->SetBranchAddress("ht"                  , &ht                   );
   fChain->SetBranchAddress("htPhi"               , &htPhi                );
+  // fChain->SetBranchAddress("pfMET"               , &pfMET                );
+  // fChain->SetBranchAddress("pfMETphi"            , &pfMETphi             );
+  // fChain->SetBranchAddress("pfMETCov00"          , &pfMETCov00           );
+  // fChain->SetBranchAddress("pfMETCov01"          , &pfMETCov01           );
+  // fChain->SetBranchAddress("pfMETCov11"          , &pfMETCov11           );
+  fChain->SetBranchAddress("pfMETC"              , &pfMETC               );
+  fChain->SetBranchAddress("pfMETCphi"           , &pfMETCphi            );
+  fChain->SetBranchAddress("pfMETCCov00"         , &pfMETCCov00          );
+  fChain->SetBranchAddress("pfMETCCov01"         , &pfMETCCov01          );
+  fChain->SetBranchAddress("pfMETCCov11"         , &pfMETCCov11          );
+  // fChain->SetBranchAddress("puppMET"             , &puppMET              );
+  // fChain->SetBranchAddress("puppMETphi"          , &puppMETphi           );
+  // fChain->SetBranchAddress("puppMETCov00"        , &puppMETCov00         );
+  // fChain->SetBranchAddress("puppMETCov01"        , &puppMETCov01         );
+  // fChain->SetBranchAddress("puppMETCov11"        , &puppMETCov11         );
+  fChain->SetBranchAddress("puppMETC"            , &puppMETC             );
+  fChain->SetBranchAddress("puppMETCphi"         , &puppMETCphi          );
+  fChain->SetBranchAddress("puppMETCCov00"       , &puppMETCCov00        );
+  fChain->SetBranchAddress("puppMETCCov01"       , &puppMETCCov01        );
+  fChain->SetBranchAddress("puppMETCCov11"       , &puppMETCCov11        );
+  // fChain->SetBranchAddress("alpacaMET"           , &alpacaMET            );
+  // fChain->SetBranchAddress("alpacaMETphi"        , &alpacaMETphi         );
+  // fChain->SetBranchAddress("pcpMET"              , &pcpMET               );
+  // fChain->SetBranchAddress("pcpMETphi"           , &pcpMETphi            );
+  fChain->SetBranchAddress("trkMET"              , &trkMET               );
+  fChain->SetBranchAddress("trkMETphi"           , &trkMETphi            );
   fChain->SetBranchAddress("met"                 , &met                  );
   fChain->SetBranchAddress("metPhi"              , &metPhi               );
+  fChain->SetBranchAddress("metCorr"             , &metCorr              );
+  fChain->SetBranchAddress("metCorrPhi"          , &metCorrPhi           );
   fChain->SetBranchAddress("covMet00"            , &covMet00             );
   fChain->SetBranchAddress("covMet01"            , &covMet01             );
   fChain->SetBranchAddress("covMet11"            , &covMet11             );

@@ -3,6 +3,7 @@
 DataPlotter* dataplotter_;
 TString selection_ = "mutau";
 Int_t useOpenGL_ = 1;
+bool  doStatsLegend_ = false;
 
 Int_t print_standard_plots(vector<int> sets, bool stacks = true) {
   vector<TString> hnames;
@@ -11,39 +12,79 @@ Int_t print_standard_plots(vector<int> sets, bool stacks = true) {
   vector<double>  xmins;
   vector<double>  xmaxs;
   
-  hnames.push_back("onept");       htypes.push_back("lep");   rebins.push_back(1); xmins.push_back(15.);  xmaxs.push_back(150.);
-  hnames.push_back("twopt");       htypes.push_back("lep");   rebins.push_back(1); xmins.push_back(15.);  xmaxs.push_back(150.);
-  hnames.push_back("lepm");        htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(150.);
-  hnames.push_back("leppt");       htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(150.);
-  hnames.push_back("lepeta");      htypes.push_back("event"); rebins.push_back(1); xmins.push_back(-5.);  xmaxs.push_back(5.);
-  hnames.push_back("lepdeltaeta"); htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(5.);
-  hnames.push_back("lepdeltaphi"); htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(3.5);
-  hnames.push_back("lepdeltar");   htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(5.);
-  hnames.push_back("pxivis0");     htypes.push_back("event"); rebins.push_back(5); xmins.push_back(0.);   xmaxs.push_back(100.);
-  hnames.push_back("pxiinv0");     htypes.push_back("event"); rebins.push_back(5); xmins.push_back(-100.);xmaxs.push_back(100.);
-  hnames.push_back("met");         htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(150.);
-  if(selection_=="mutau") {
-    hnames.push_back("mtmu");      htypes.push_back("event"); rebins.push_back(4); xmins.push_back(0.);   xmaxs.push_back(150.);
-  } else {
-    hnames.push_back("mte");       htypes.push_back("event"); rebins.push_back(4); xmins.push_back(0.);   xmaxs.push_back(150.);
+  hnames.push_back("onept");          htypes.push_back("lep");   rebins.push_back(1); xmins.push_back(15.);  xmaxs.push_back(150.);
+  hnames.push_back("twopt");          htypes.push_back("lep");   rebins.push_back(1); xmins.push_back(15.);  xmaxs.push_back(150.);
+  hnames.push_back("lepm");           htypes.push_back("event"); rebins.push_back(2); xmins.push_back(0.);   xmaxs.push_back(200.);
+  hnames.push_back("leppt");          htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(150.);
+  hnames.push_back("lepptoverm");     htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(10.);
+  hnames.push_back("lepeta");         htypes.push_back("event"); rebins.push_back(1); xmins.push_back(-5.);  xmaxs.push_back(5.);
+  hnames.push_back("lepdeltaeta");    htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(5.);
+  hnames.push_back("lepdeltaphi");    htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(3.5);
+  hnames.push_back("lepdeltar");      htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(5.);
+  hnames.push_back("pxivis0");        htypes.push_back("event"); rebins.push_back(5); xmins.push_back(0.);   xmaxs.push_back(100.);
+  hnames.push_back("pxiinv0");        htypes.push_back("event"); rebins.push_back(5); xmins.push_back(-100.);xmaxs.push_back(100.);
+  hnames.push_back("met");            htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(150.);
+  if(selection_=="mutau" || selection_ == "emu") {
+    hnames.push_back("mtmu");         htypes.push_back("event"); rebins.push_back(4); xmins.push_back(0.);   xmaxs.push_back(150.);
   }
-  hnames.push_back("mttau");       htypes.push_back("event"); rebins.push_back(2); xmins.push_back(0.);   xmaxs.push_back(150.);
-  hnames.push_back("njets");       htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(10.);
-  hnames.push_back("nbjets");      htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(10.);
-  hnames.push_back("nphotons");    htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(5.);
-  hnames.push_back("mva0");        htypes.push_back("event"); rebins.push_back(5); xmins.push_back(0.);   xmaxs.push_back(1.7);
-  hnames.push_back("mva1");        htypes.push_back("event"); rebins.push_back(5); xmins.push_back(-1.);  xmaxs.push_back(1.);
-  hnames.push_back("mva2");        htypes.push_back("event"); rebins.push_back(5); xmins.push_back(0.);   xmaxs.push_back(1.7);
-  hnames.push_back("mva3");        htypes.push_back("event"); rebins.push_back(5); xmins.push_back(0.);   xmaxs.push_back(1.7);
-  hnames.push_back("mva4");        htypes.push_back("event"); rebins.push_back(5); xmins.push_back(0.);   xmaxs.push_back(1.7);
+  if(selection_=="etau" || selection_ == "emu") {
+    hnames.push_back("mte");          htypes.push_back("event"); rebins.push_back(4); xmins.push_back(0.);   xmaxs.push_back(150.);
+  }
+  if(selection_=="mutau" || selection_ == "etau") {
+    hnames.push_back("mttau");        htypes.push_back("event"); rebins.push_back(4); xmins.push_back(0.);   xmaxs.push_back(150.);
+  }
+  hnames.push_back("onesvpt");        htypes.push_back("lep");   rebins.push_back(1); xmins.push_back(15.);  xmaxs.push_back(150.);
+  hnames.push_back("twosvpt");        htypes.push_back("lep");   rebins.push_back(1); xmins.push_back(15.);  xmaxs.push_back(150.);
+  hnames.push_back("onesvdeltapt");   htypes.push_back("lep");   rebins.push_back(1); xmins.push_back(15.);  xmaxs.push_back(150.);
+  hnames.push_back("twosvdeltapt");   htypes.push_back("lep");   rebins.push_back(1); xmins.push_back(15.);  xmaxs.push_back(150.);
+  
+  hnames.push_back("njets");          htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(10.);
+  hnames.push_back("nbjets");         htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(10.);
+  hnames.push_back("nphotons");       htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(5.);
+  hnames.push_back("mva0");           htypes.push_back("event"); rebins.push_back(5); xmins.push_back(0.);   xmaxs.push_back(1.7);
+  hnames.push_back("mva1");           htypes.push_back("event"); rebins.push_back(5); xmins.push_back(-1.);  xmaxs.push_back(1.);
+  hnames.push_back("mva2");           htypes.push_back("event"); rebins.push_back(5); xmins.push_back(0.);   xmaxs.push_back(1.7);
+  hnames.push_back("mva3");           htypes.push_back("event"); rebins.push_back(5); xmins.push_back(0.);   xmaxs.push_back(1.7);
+  hnames.push_back("mva4");           htypes.push_back("event"); rebins.push_back(5); xmins.push_back(-1.);   xmaxs.push_back(1.);
+  hnames.push_back("mva5");           htypes.push_back("event"); rebins.push_back(5); xmins.push_back(-1.);   xmaxs.push_back(1.2);
 
+  hnames.push_back("htsum");          htypes.push_back("event"); rebins.push_back(5); xmins.push_back(0.);   xmaxs.push_back(800.);
+  hnames.push_back("ht");             htypes.push_back("event"); rebins.push_back(5); xmins.push_back(0.);   xmaxs.push_back(800.);
+  hnames.push_back("htdeltaphi");     htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(3.5);
+  hnames.push_back("metdeltaphi");    htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(3.5);
+  hnames.push_back("leponedeltaphi"); htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(3.5);
+  hnames.push_back("leptwodeltaphi"); htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(3.5);
+  hnames.push_back("onemetdeltaphi"); htypes.push_back("lep");   rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(3.5);
+  hnames.push_back("twometdeltaphi"); htypes.push_back("lep");   rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(3.5);
 
+  hnames.push_back("oned0");          htypes.push_back("lep");  rebins.push_back(1); xmins.push_back(-0.2);  xmaxs.push_back(0.2);
+  hnames.push_back("oneiso");         htypes.push_back("lep");  rebins.push_back(1); xmins.push_back(0.);    xmaxs.push_back(10.);
+  hnames.push_back("onereliso");      htypes.push_back("lep");  rebins.push_back(1); xmins.push_back(0.);    xmaxs.push_back(0.15);
+  hnames.push_back("twod0");          htypes.push_back("lep");  rebins.push_back(1); xmins.push_back(-0.2);  xmaxs.push_back(0.2);
+  if(selection_ == "emu") {
+    hnames.push_back("twoiso");       htypes.push_back("lep");  rebins.push_back(1); xmins.push_back(0.);    xmaxs.push_back(10.);
+    hnames.push_back("tworeliso");    htypes.push_back("lep");  rebins.push_back(1); xmins.push_back(0.);    xmaxs.push_back(0.15);
+  }
+  TString label = "->#mu#tau";
+  if(selection_ == "emu")
+    label = "->e#mu";
+  else if(selection_ == "etau")
+    label = "->e#tau";
+
+  //2D histograms
+  for(int logz = 0; logz < 2; ++logz) { //print log and not log z axis plots
+    dataplotter_->logZ_ = logz;
+    for(int s : sets) {
+      dataplotter_->print_single_2Dhist("pxiinvvsvis0", "event", s, ("Z"+label), 0, 100, -100, 100);
+      dataplotter_->print_single_2Dhist("pxiinvvsvis0", "event", s, ("H"+label), 0, 100, -100, 100);
+      dataplotter_->print_single_2Dhist("metvspt"     , "event", s, ("Z"+label), 0, 150,    0, 150);
+      dataplotter_->print_single_2Dhist("metvspt"     , "event", s, ("H"+label), 0, 150,    0, 150);
+    }
+  }
   int prev = dataplotter_->logY_;
   int status = (stacks) ? dataplotter_->print_stacks(hnames, htypes, sets, xmaxs, xmins, rebins) : dataplotter_->print_hists(hnames, htypes, sets, xmaxs, xmins, rebins);
+
   if(status) return status;
-  //2D histograms
-  for(int s : sets)
-    dataplotter_->print_single_2Dhist("pxiinvvsvis0", "event", s, ((selection_ == "mutau") ? "Z->#mu#tau" : "Z->e#tau"), -100, 100, -100, 100);
   dataplotter_->logY_ = !prev;
   status = (stacks) ? dataplotter_->print_stacks(hnames, htypes, sets, xmaxs, xmins, rebins) : dataplotter_->print_hists(hnames, htypes, sets, xmaxs, xmins, rebins);
   dataplotter_->logY_ = prev;
@@ -59,7 +100,10 @@ Int_t init_dataplotter() {
     dataplotter_->qcd_scale_ = 1.059;
   else if(selection_ == "etau")
     dataplotter_->qcd_scale_ = 1.157;
-    
+  dataplotter_->doStatsLegend_ = doStatsLegend_;
+  dataplotter_->signal_scale_ = 250.;
+  dataplotter_->useOpenGL_ = (gROOT->IsBatch()) ? 0 : useOpenGL_;
+
   //dataset names
   TString names [50]; //for event histogram
   TString fnames[50]; //for getting file (usually the same)
@@ -103,6 +147,10 @@ Int_t init_dataplotter() {
   names[33] = "htautau_gluglu"          ;fnames[33] = "bltTree_htautau_gluglu"            ;labels[33] = "H->#tau#tau"   ; signal[33] = true   ; isDY[33] = false  ;
   names[34] = "zetau"                   ;fnames[34] = "bltTree_zetau"                     ;labels[34] = "Z->e#tau"      ; signal[34] = true   ; isDY[34] = false  ;
   names[35] = "zmutau"                  ;fnames[35] = "bltTree_zmutau"                    ;labels[35] = "Z->#mu#tau"    ; signal[35] = true   ; isDY[35] = false  ;
+  names[36] = "zemu"                    ;fnames[36] = "bltTree_zemu"                      ;labels[36] = "Z->e#mu"       ; signal[36] = true   ; isDY[36] = false  ;
+  names[37] = "hetau"                   ;fnames[37] = "bltTree_hetau"                     ;labels[37] = "H->e#tau"      ; signal[37] = true   ; isDY[37] = false  ;
+  names[38] = "hmutau"                  ;fnames[38] = "bltTree_hmutau"                    ;labels[38] = "H->#mu#tau"    ; signal[38] = true   ; isDY[38] = false  ;
+  names[39] = "hemu"                    ;fnames[39] = "bltTree_hemu"                      ;labels[39] = "H->e#mu"       ; signal[39] = true   ; isDY[39] = false  ;
 
   Double_t xsec[50];
   //Taken from https://twiki.cern.ch/twiki/bin/viewauth/CMS/SummaryTable1G25ns     
@@ -144,8 +192,12 @@ Int_t init_dataplotter() {
   xsec[31] =    3.*3.3658/100.*1.54e-3* 1.380/2.;	       //"hzg_wplus"               
   xsec[32] =    3.*3.3658/100.*1.54e-3* 0.8696;	       //"hzg_zh"                  
   xsec[33] =                   6.32e-2* 43.92;	       //"htautau_gluglu"                  
-  xsec[34] =    ((6225.42+18610.)/(3.*3.3658e-2))*9.8e-6*100./2000.; //zetau z->ll / br(ll) * br(etau, CL=95) *N(accepted)/N(Gen) http://pdg.lbl.gov/2018/listings/rpp2018-list-z-boson.pdf
-  xsec[35] =    ((6225.42+18610.)/(3.*3.3658e-2))*1.2e-5*135./2000.; //zmutau z->ll/ br(ll) * br(mutau, CL=95)*N(accepted)/N(Gen) http://pdg.lbl.gov/2018/listings/rpp2018-list-z-boson.pdf
+  xsec[34] =    ((6225.42+18610.)/(3.*3.3658e-2))*9.8e-6*11031./2.e5; //zetau z->ll / br(ll) * br(etau, CL=95) *N(accepted)/N(Gen) http://pdg.lbl.gov/2018/listings/rpp2018-list-z-boson.pdf
+  xsec[35] =    ((6225.42+18610.)/(3.*3.3658e-2))*1.2e-5*11316./2.e5; //zmutau z->ll/ br(ll) * br(mutau, CL=95)*N(accepted)/N(Gen) http://pdg.lbl.gov/2018/listings/rpp2018-list-z-boson.pdf
+  xsec[36] =    ((6225.42+18610.)/(3.*3.3658e-2))*7.3e-7*31033./2.e5; //zmutau z->ll/ br(ll) * br(emu, CL=95)*N(accepted)/N(Gen) http://pdg.lbl.gov/2018/listings/rpp2018-list-z-boson.pdf
+  xsec[37] = (43.92+3.748+0.5085+1.380+0.8696)*6.1e-3*41619./(98.*1e3); //hetau  xsec(higgs,glu+vbf)*br(etau, CL=95) *N(accepted)/N(Gen) http://pdg.lbl.gov/2019/listings/rpp2019-list-higgs-boson.pdf
+  xsec[38] = (43.92+3.748+0.5085+1.380+0.8696)*2.5e-3*41647./(98.*1e3); //hmutau xsec(higgs,glu+vbf)*br(mutau, CL=95)*N(accepted)/N(Gen) http://pdg.lbl.gov/2019/listings/rpp2019-list-higgs-boson.pdf
+  xsec[39] = (43.92+3.748+0.5085+1.380+0.8696)*3.5e-4*34429./(88.*500); //hemu   xsec(higgs,glu+vbf)*br(emu, CL=95)  *N(accepted)/N(Gen) http://pdg.lbl.gov/2019/listings/rpp2019-list-higgs-boson.pdf
 
   int process[50];
   for(int i = 0; i < sizeof(process)/sizeof(*process); ++i)
@@ -188,6 +240,10 @@ Int_t init_dataplotter() {
   process[33] = 1; //"htautau_gluglu"                  
   process[34] = (selection_ == "etau" ) ? 1 : 0; //"zetau"
   process[35] = (selection_ == "mutau") ? 1 : 0; //"zmutau"
+  process[36] = (selection_ == "emu"  ) ? 1 : 0; //"zemu"
+  process[37] = (selection_ == "etau" ) ? 1 : 0; //"hetau"
+  process[38] = (selection_ == "mutau") ? 1 : 0; //"hmutau"
+  process[39] = (selection_ == "emu"  ) ? 1 : 0; //"hemu"
 
   vector<TString> files;
   for(int i = 0; i < sizeof(process)/sizeof(*process); ++i) {
@@ -227,6 +283,11 @@ Int_t init_dataplotter() {
     } else if(selection_ == "mutau") {
       dNames.push_back(dNamesMu[i]);
       dFiles.push_back(Form("ztautau/ztautau_%s_bltTree_%s.hist",selection_.Data(),dNamesMu[i]));
+    } else if(selection_ == "emu") {
+      dNames.push_back(dNamesMu[i]);
+      dFiles.push_back(Form("ztautau/ztautau_%s_bltTree_%s.hist",selection_.Data(),dNamesMu[i]));
+      dNames.push_back(dNamesE[i]);
+      dFiles.push_back(Form("ztautau/ztautau_%s_bltTree_%s.hist",selection_.Data(),dNamesE[i]));
     }
     
   }
@@ -251,6 +312,5 @@ Int_t init_dataplotter() {
   for(int i = 0; i < dFiles.size(); ++i)
     if(dFiles[i] != "") dataplotter_->add_dataset(dFiles[i], dNames[i], "Data", true, 1., false);
 
-  dataplotter_->useOpenGL_ = useOpenGL_;
   return dataplotter_->init_files();
 }
