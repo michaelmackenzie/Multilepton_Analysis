@@ -5,7 +5,7 @@ TString selection_ = "mutau";
 Int_t useOpenGL_ = 1;
 bool  doStatsLegend_ = false;
 
-Int_t print_standard_plots(vector<int> sets, bool stacks = true) {
+Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {}, bool stacks = true) {
   vector<TString> hnames;
   vector<TString> htypes;
   vector<int>     rebins;
@@ -32,6 +32,7 @@ Int_t print_standard_plots(vector<int> sets, bool stacks = true) {
   }
   if(selection_=="mutau" || selection_ == "etau") {
     hnames.push_back("mttau");        htypes.push_back("event"); rebins.push_back(4); xmins.push_back(0.);   xmaxs.push_back(150.);
+    hnames.push_back("twom");         htypes.push_back("lep");   rebins.push_back(5); xmins.push_back(0.);   xmaxs.push_back(10.);
   }
   hnames.push_back("onesvpt");        htypes.push_back("lep");   rebins.push_back(1); xmins.push_back(15.);  xmaxs.push_back(150.);
   hnames.push_back("twosvpt");        htypes.push_back("lep");   rebins.push_back(1); xmins.push_back(15.);  xmaxs.push_back(150.);
@@ -41,13 +42,29 @@ Int_t print_standard_plots(vector<int> sets, bool stacks = true) {
   hnames.push_back("njets");          htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(10.);
   hnames.push_back("nbjets");         htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(10.);
   hnames.push_back("nphotons");       htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(5.);
-  hnames.push_back("mva0");           htypes.push_back("event"); rebins.push_back(5); xmins.push_back(0.);   xmaxs.push_back(1.7);
-  hnames.push_back("mva1");           htypes.push_back("event"); rebins.push_back(5); xmins.push_back(-1.);  xmaxs.push_back(1.);
-  hnames.push_back("mva2");           htypes.push_back("event"); rebins.push_back(5); xmins.push_back(0.);   xmaxs.push_back(1.7);
-  hnames.push_back("mva3");           htypes.push_back("event"); rebins.push_back(5); xmins.push_back(0.);   xmaxs.push_back(1.7);
-  hnames.push_back("mva4");           htypes.push_back("event"); rebins.push_back(5); xmins.push_back(-1.);   xmaxs.push_back(1.);
-  hnames.push_back("mva5");           htypes.push_back("event"); rebins.push_back(5); xmins.push_back(-1.);   xmaxs.push_back(1.2);
-
+  if(selection_ == "mutau") {
+    hnames.push_back("mva0");         htypes.push_back("event"); rebins.push_back(5); xmins.push_back(-1.);  xmaxs.push_back(1.2);
+    hnames.push_back("mva1");         htypes.push_back("event"); rebins.push_back(5); xmins.push_back(-1.);  xmaxs.push_back(1.2);
+    hnames.push_back("prob0");        htypes.push_back("event"); rebins.push_back(5); xmins.push_back(-1.);  xmaxs.push_back(1.2);
+    hnames.push_back("prob1");        htypes.push_back("event"); rebins.push_back(5); xmins.push_back(-1.);  xmaxs.push_back(1.2);
+    hnames.push_back("cdf0");         htypes.push_back("event"); rebins.push_back(5); xmins.push_back(0.);   xmaxs.push_back(1.5);
+    hnames.push_back("cdf1");         htypes.push_back("event"); rebins.push_back(5); xmins.push_back(0.);   xmaxs.push_back(1.5);
+  } else if(selection_ == "etau") {
+    hnames.push_back("mva2");         htypes.push_back("event"); rebins.push_back(5); xmins.push_back(-1.);  xmaxs.push_back(1.2);
+    hnames.push_back("mva3");         htypes.push_back("event"); rebins.push_back(5); xmins.push_back(-1.);  xmaxs.push_back(1.2);
+    hnames.push_back("prob2");        htypes.push_back("event"); rebins.push_back(5); xmins.push_back(-1.);  xmaxs.push_back(1.2);
+    hnames.push_back("prob3");        htypes.push_back("event"); rebins.push_back(5); xmins.push_back(-1.);  xmaxs.push_back(1.2);
+    hnames.push_back("cdf2");         htypes.push_back("event"); rebins.push_back(5); xmins.push_back(0.);   xmaxs.push_back(1.5);
+    hnames.push_back("cdf3");         htypes.push_back("event"); rebins.push_back(5); xmins.push_back(0.);   xmaxs.push_back(1.5);
+  } else if(selection_ == "emu") {
+    hnames.push_back("mva4");         htypes.push_back("event"); rebins.push_back(5); xmins.push_back(-1.);  xmaxs.push_back(1.2);
+    hnames.push_back("mva5");         htypes.push_back("event"); rebins.push_back(5); xmins.push_back(-1.);  xmaxs.push_back(1.2);
+    hnames.push_back("prob4");        htypes.push_back("event"); rebins.push_back(5); xmins.push_back(0.);   xmaxs.push_back(1.2);
+    hnames.push_back("prob5");        htypes.push_back("event"); rebins.push_back(5); xmins.push_back(0.);   xmaxs.push_back(1.2);
+    hnames.push_back("cdf4");         htypes.push_back("event"); rebins.push_back(5); xmins.push_back(0.);   xmaxs.push_back(1.5);
+    hnames.push_back("cdf5");         htypes.push_back("event"); rebins.push_back(5); xmins.push_back(0.);   xmaxs.push_back(1.5);
+  }
+  
   hnames.push_back("htsum");          htypes.push_back("event"); rebins.push_back(5); xmins.push_back(0.);   xmaxs.push_back(800.);
   hnames.push_back("ht");             htypes.push_back("event"); rebins.push_back(5); xmins.push_back(0.);   xmaxs.push_back(800.);
   hnames.push_back("htdeltaphi");     htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(3.5);
@@ -57,13 +74,13 @@ Int_t print_standard_plots(vector<int> sets, bool stacks = true) {
   hnames.push_back("onemetdeltaphi"); htypes.push_back("lep");   rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(3.5);
   hnames.push_back("twometdeltaphi"); htypes.push_back("lep");   rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(3.5);
 
-  hnames.push_back("oned0");          htypes.push_back("lep");  rebins.push_back(1); xmins.push_back(-0.2);  xmaxs.push_back(0.2);
-  hnames.push_back("oneiso");         htypes.push_back("lep");  rebins.push_back(1); xmins.push_back(0.);    xmaxs.push_back(10.);
-  hnames.push_back("onereliso");      htypes.push_back("lep");  rebins.push_back(1); xmins.push_back(0.);    xmaxs.push_back(0.15);
-  hnames.push_back("twod0");          htypes.push_back("lep");  rebins.push_back(1); xmins.push_back(-0.2);  xmaxs.push_back(0.2);
+  hnames.push_back("oned0");          htypes.push_back("lep");   rebins.push_back(5); xmins.push_back(-0.2); xmaxs.push_back(0.2);
+  hnames.push_back("oneiso");         htypes.push_back("lep");   rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(10.);
+  hnames.push_back("onereliso");      htypes.push_back("lep");   rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(0.15);
+  hnames.push_back("twod0");          htypes.push_back("lep");   rebins.push_back(5); xmins.push_back(-0.2); xmaxs.push_back(0.2);
   if(selection_ == "emu") {
-    hnames.push_back("twoiso");       htypes.push_back("lep");  rebins.push_back(1); xmins.push_back(0.);    xmaxs.push_back(10.);
-    hnames.push_back("tworeliso");    htypes.push_back("lep");  rebins.push_back(1); xmins.push_back(0.);    xmaxs.push_back(0.15);
+    hnames.push_back("twoiso");       htypes.push_back("lep");   rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(10.);
+    hnames.push_back("tworeliso");    htypes.push_back("lep");   rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(0.15);
   }
   TString label = "->#mu#tau";
   if(selection_ == "emu")
@@ -75,18 +92,24 @@ Int_t print_standard_plots(vector<int> sets, bool stacks = true) {
   for(int logz = 0; logz < 2; ++logz) { //print log and not log z axis plots
     dataplotter_->logZ_ = logz;
     for(int s : sets) {
-      dataplotter_->print_single_2Dhist("pxiinvvsvis0", "event", s, ("Z"+label), 0, 100, -100, 100);
-      dataplotter_->print_single_2Dhist("pxiinvvsvis0", "event", s, ("H"+label), 0, 100, -100, 100);
-      dataplotter_->print_single_2Dhist("metvspt"     , "event", s, ("Z"+label), 0, 150,    0, 150);
-      dataplotter_->print_single_2Dhist("metvspt"     , "event", s, ("H"+label), 0, 150,    0, 150);
+      auto c = dataplotter_->print_single_2Dhist("pxiinvvsvis0", "event", s, ("Z"+label), 0, 100, -100, 100);
+      delete c;
+      c = dataplotter_->print_single_2Dhist("pxiinvvsvis0", "event", s, ("H"+label), 0, 100, -100, 100);
+      delete c;
+      c = dataplotter_->print_single_2Dhist("metvspt"     , "event", s, ("Z"+label), 0, 150,    0, 150);
+      delete c;
+      c = dataplotter_->print_single_2Dhist("metvspt"     , "event", s, ("H"+label), 0, 150,    0, 150);
+      delete c;
     }
   }
   int prev = dataplotter_->logY_;
-  int status = (stacks) ? dataplotter_->print_stacks(hnames, htypes, sets, xmaxs, xmins, rebins) : dataplotter_->print_hists(hnames, htypes, sets, xmaxs, xmins, rebins);
+  int status = (stacks) ? dataplotter_->print_stacks(hnames, htypes, sets, xmaxs, xmins, rebins, signal_scales) :
+    dataplotter_->print_hists(hnames, htypes, sets, xmaxs, xmins, rebins, signal_scales);
 
   if(status) return status;
   dataplotter_->logY_ = !prev;
-  status = (stacks) ? dataplotter_->print_stacks(hnames, htypes, sets, xmaxs, xmins, rebins) : dataplotter_->print_hists(hnames, htypes, sets, xmaxs, xmins, rebins);
+  status = (stacks) ? dataplotter_->print_stacks(hnames, htypes, sets, xmaxs, xmins, rebins, signal_scales) :
+    dataplotter_->print_hists(hnames, htypes, sets, xmaxs, xmins, rebins, signal_scales);
   dataplotter_->logY_ = prev;
   return status;
 }

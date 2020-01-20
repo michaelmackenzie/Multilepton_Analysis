@@ -86,10 +86,20 @@ void DataPlotter::get_titles(TString hist, TString setType, TString* xtitle, TSt
     *ytitle = Form("Events / %.0f GeV/c",1.*rebinH_);
     *title  = Form("SVFit pT of the Leading Lepton %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
+  else if(hist == "onesvdeltapt") {
+    *xtitle = "SVFit pT_{l1} - pT_{l1} (GeV/c)";
+    *ytitle = Form("Events / %.0f GeV/c",1.*rebinH_);
+    *title  = Form("SVFit pT Change of the Leading Lepton %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
+  }
   else if(hist == "twosvpt") {
-    *xtitle = "SVFit pT_{#tau} (GeV/c)";
+    *xtitle = "SVFit pT_{l2} (GeV/c)";
     *ytitle = Form("Events / %.0f GeV/c",1.*rebinH_);
     *title  = Form("SVFit pT of the Trailing Lepton %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
+  }
+  else if(hist == "twosvdeltapt") {
+    *xtitle = "SVFit pT_{l2} - pT_{l2} (GeV/c)";
+    *ytitle = Form("Events / %.0f GeV/c",1.*rebinH_);
+    *title  = Form("SVFit pT Change of the Trailing Lepton %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
   else if(hist == "onem") {
     *xtitle = "M_{l} (GeV/c^{2})";
@@ -401,6 +411,12 @@ void DataPlotter::get_titles(TString hist, TString setType, TString* xtitle, TSt
     *ytitle = "";
     *title  = "l_{2} D0";
   }
+  else if(hist == "metvspt") {
+    *xtitle = "pT_{ll}";
+    *ytitle = "MET";
+    *title  = "MET vs di-lepton pT";
+  }
+
 }
 
 vector<TH1F*> DataPlotter::get_signal(TString hist, TString setType, Int_t set) {
@@ -420,6 +436,7 @@ vector<TH1F*> DataPlotter::get_signal(TString hist, TString setType, Int_t set) 
     if(!isSignal_[i]) continue;
     TH1F* tmp = (TH1F*) data_[i]->Get(Form("%s_%i/%s", setType.Data(), set, hist.Data()));
     if(!tmp) continue;
+    tmp->SetBit(kCanDelete);
     tmp->Scale(scale_[i]);
 
     h[i] = tmp;
@@ -498,6 +515,7 @@ TH1F* DataPlotter::get_data(TString hist, TString setType, Int_t set) {
     if(!isData_[i]) continue;
     TH1F* tmp = (TH1F*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set, hist.Data()));
     if(!tmp) continue;
+    tmp->SetBit(kCanDelete);
     if(!d) d = tmp;
     else d->Add(tmp);
   }
@@ -549,6 +567,7 @@ TH1F* DataPlotter::get_qcd(TString hist, TString setType, Int_t set) {
     TH1F* htmp = (TH1F*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set_qcd, hist.Data()));
     if(!htmp) continue;
     htmp = (TH1F*) htmp->Clone("tmp");
+    htmp->SetBit(kCanDelete);
     htmp->Scale(scale_[i]);
     if(rebinH_ > 0) htmp->Rebin(rebinH_);
     if(hMC) hMC->Add(htmp);
@@ -560,7 +579,7 @@ TH1F* DataPlotter::get_qcd(TString hist, TString setType, Int_t set) {
     if(hData->GetBinContent(i+1) < 0.)
       hData->SetBinContent(i+1,0.);
   }
-  
+  hData->SetBit(kCanDelete);
   hData->Scale(qcd_scale_);
   
   const char* stats = (doStatsLegend_) ? Form(" #scale[0.8]{(%.2e)}", hData->Integral()
@@ -577,7 +596,7 @@ THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set) {
   fill_alpha_ = 0.9;
   vector<TH1F*> h;
   TH1F* hQCD = (include_qcd_) ? get_qcd(hist,setType,set) : NULL;
-
+  hQCD->SetBit(kCanDelete);
   Int_t color[] = {kRed+1, kRed-2, kYellow+1,kSpring-1 , kViolet-2, kGreen-2, kRed+3,kOrange-9,kBlue+1};
   Int_t fill[]  = {1001,1001,3005,3001,3001,3005,3001,3001,3001};
   THStack* hstack = new THStack(Form("%s",hist.Data()),Form("%s",hist.Data()));
@@ -635,6 +654,7 @@ THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set) {
   }
   if(hQCD) hstack->Add(hQCD);
   fill_alpha_ = fill_alpha;
+  hstack->SetBit(kCanDelete);
   return hstack;
 }
 
@@ -644,7 +664,7 @@ TCanvas* DataPlotter::plot_single_2Dhist(TString hist, TString setType, Int_t se
 
   Int_t color = kRed+1;
 
-  TCanvas* c = new TCanvas(Form("h2d_%s_%i",hist.Data(),set),Form("h2D_%s_%i",hist.Data(),set), 1000, 700);
+  TCanvas* c = new TCanvas(Form("h2d_%s_%i",hist.Data(),set),Form("h2D_%s_%i",hist.Data(),set), canvas_x_, canvas_y_);
 
   for(UInt_t i = 0; i < data_.size(); ++i) {
     if(label != labels_[i]) continue;
@@ -666,7 +686,7 @@ TCanvas* DataPlotter::plot_single_2Dhist(TString hist, TString setType, Int_t se
     else h = htmp;
     
   }
-
+  h->SetBit(kCanDelete);
   const char* stats = (doStatsLegend_) ? Form(" #scale[0.8]{(%.2e)}", h->Integral()
 					      +h->GetBinContent(0)+h->GetBinContent(h->GetNbinsX()+1)) : "";
   TH2F* data;
@@ -696,7 +716,7 @@ TCanvas* DataPlotter::plot_single_2Dhist(TString hist, TString setType, Int_t se
     }
   }
 
-  
+  if(data) data->SetBit(kCanDelete);
   TH2F* hAxis = (plot_data_ && data) ? data : h;
   h->SetTitle(Form("%s%s", label.Data(),stats));
   h->SetLineColor(color);
@@ -742,7 +762,7 @@ TCanvas* DataPlotter::plot_2Dhist(TString hist, TString setType, Int_t set) {
   Int_t color[] = {kRed+1, kYellow+1,kYellow+3,kBlue+1, kRed+3, kViolet-2, kGreen-2, kOrange-9};
   //  Int_t fill[]  = {1001,3005,1001,1001,3005,1001,1001,1001};
 
-  TCanvas* c = new TCanvas(Form("h2d_%s_%i",hist.Data(),set),Form("h2D_%s_%i",hist.Data(),set), 1000, 700);
+  TCanvas* c = new TCanvas(Form("h2d_%s_%i",hist.Data(),set),Form("h2D_%s_%i",hist.Data(),set), canvas_x_, canvas_y_);
 
   //maximum z value of histograms, for plotting
   //  double m = 0.;
@@ -828,12 +848,12 @@ TCanvas* DataPlotter::plot_2Dhist(TString hist, TString setType, Int_t set) {
   if(o) {
     auto tl = (TLegend*) o;
     tl->SetDrawOption("L");
-    tl->SetTextSize(0.04);
-    tl->SetX1NDC(((doStatsLegend_) ? 0.65 : 0.8));
-    tl->SetX2NDC(0.9);
-    tl->SetY2NDC(0.45);
-    tl->SetY1NDC(0.9);
-    tl->SetEntrySeparation(2.);
+    tl->SetTextSize(legend_txt_);
+    tl->SetY2NDC(legend_y2_);
+    tl->SetY1NDC(legend_y1_);
+    tl->SetX1NDC(((doStatsLegend_) ? legend_x1_stats_ : legend_x1_));
+    tl->SetX2NDC(legend_x2_);
+    tl->SetEntrySeparation(legend_sep_);
     c->Update();
   }
 
@@ -860,14 +880,14 @@ TCanvas* DataPlotter::plot_hist(TString hist, TString setType, Int_t set) {
   vector<TH1F*> h; //list of histograms
   //check if QCD is defined for this set
   TH1F* hQCD = (include_qcd_) ? get_qcd(hist,setType,set) : NULL;
-
+  if(hQCD) hQCD->SetBit(kCanDelete);
   //array of colors and fills for each label
   Int_t bkg_color[] = {kRed+1, kRed-2, kYellow+1,kSpring-1 , kViolet-2, kGreen-2, kRed+3,kOrange-9,kBlue+1};
   Int_t bkg_fill[]  = {1001,3005,1001,1001,3005,1001,1001,1001};
   Int_t sig_color[] = {kGreen+4, kBlue, kOrange+10, kViolet-2, kYellow+3,kOrange-9,kBlue+1};
   Int_t sig_fill[]  = {0,          0,          0,         0,        0,         0,       0};//3002,3001,3003,3003,3005,3006,3003,3003};
 
-  TCanvas* c = new TCanvas(Form("h_%s_%i",hist.Data(),set),Form("h_%s_%i",hist.Data(),set), 1000, 700);
+  TCanvas* c = new TCanvas(Form("h_%s_%i",hist.Data(),set),Form("h_%s_%i",hist.Data(),set), canvas_x_, canvas_y_);
 
   //maximum y value of histograms, for plotting
   double m = 0.;
@@ -989,12 +1009,12 @@ TCanvas* DataPlotter::plot_hist(TString hist, TString setType, Int_t set) {
     c->Update();
     auto tl = (TLegend*) o;
     tl->SetDrawOption("L");
-    tl->SetTextSize(0.04);
-    tl->SetX1NDC(((doStatsLegend_) ? 0.6 : 0.75));
-    tl->SetX2NDC(0.95);
-    tl->SetY2NDC(0.54);
-    tl->SetY1NDC(0.94);
-    tl->SetEntrySeparation(2.);
+    tl->SetTextSize(legend_txt_);
+    tl->SetY2NDC(legend_y2_);
+    tl->SetY1NDC(legend_y1_);
+    tl->SetX1NDC(((doStatsLegend_) ? legend_x1_stats_ : legend_x1_));
+    tl->SetX2NDC(legend_x2_);
+    tl->SetEntrySeparation(legend_sep_);
     c->Modified();
     c->Update();
   } else {
@@ -1006,7 +1026,7 @@ TCanvas* DataPlotter::plot_hist(TString hist, TString setType, Int_t set) {
 }
 
 TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
-  TCanvas* c = new TCanvas(Form("s_%s_%i",hist.Data(),set),Form("s_%s_%i",hist.Data(),set), 1000, 700);
+  TCanvas* c = new TCanvas(Form("s_%s_%i",hist.Data(),set),Form("s_%s_%i",hist.Data(),set), canvas_x_, canvas_y_);
   //split the top into main stack and bottom into Data/MC if plotting data
   TPad *pad1, *pad2;
 
@@ -1016,16 +1036,17 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
     printf("Null stack returned!\n");
     return c;
   }
+  hstack->SetBit(kCanDelete);
   TH1F* d = get_data(hist, setType, set);
   vector<TH1F*> hsignal = get_signal(hist,setType,set);
 
   if(plot_data_ && d) {
-    pad1 = new TPad("pad1","pad1",0.0,0.3,1,1); //xL yL xH xH, (0,0) = bottom left
-    pad2 = new TPad("pad2","pad2",0.0,0.02,1,0.3);
-    pad1->SetTopMargin(0.06);
-    pad2->SetTopMargin(0.03);
-    pad1->SetBottomMargin(0.05);
-    pad2->SetBottomMargin(0.22);
+    pad1 = new TPad("pad1","pad1",upper_pad_x1_, upper_pad_y1_, upper_pad_x2_, upper_pad_y2_); //xL yL xH xH, (0,0) = bottom left
+    pad2 = new TPad("pad2","pad2",lower_pad_x1_, lower_pad_y1_, lower_pad_x2_, lower_pad_y2_);
+    pad1->SetTopMargin(upper_pad_topmargin_);
+    pad2->SetTopMargin(lower_pad_topmargin_);
+    pad1->SetBottomMargin(upper_pad_botmargin_);
+    pad2->SetBottomMargin(lower_pad_botmargin_);
     pad1->Draw();
     pad2->Draw();
   } else {
@@ -1073,6 +1094,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
   int ndata = 0;
   int nb = (d) ? d->GetNbinsX() : -1;
   if(hDataMC) {
+    hDataMC->SetBit(kCanDelete);
     hDataMC->Clear();
     TH1F* hlast = (TH1F*) hstack->GetStack()->Last();
     nmc = hlast->Integral();
@@ -1124,12 +1146,12 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
   if(o) {
     auto tl = (TLegend*) o;
     tl->SetDrawOption("L");
-    tl->SetTextSize(0.04);
-    tl->SetY2NDC(0.45);
-    tl->SetY1NDC(0.9);
-    tl->SetX1NDC(((doStatsLegend_) ? 0.6 : 0.75));
-    tl->SetX2NDC(0.9);
-    tl->SetEntrySeparation(2.);
+    tl->SetTextSize(legend_txt_);
+    tl->SetY2NDC(legend_y2_);
+    tl->SetY1NDC(legend_y1_);
+    tl->SetX1NDC(((doStatsLegend_) ? legend_x1_stats_ : legend_x1_));
+    tl->SetX2NDC(legend_x2_);
+    tl->SetEntrySeparation(legend_sep_);
     pad1->Update();
   }
   //draw text
@@ -1240,8 +1262,9 @@ TCanvas* DataPlotter::print_single_2Dhist(TString hist, TString setType, Int_t s
   return c;
 }
 
-Int_t DataPlotter::print_stacks(vector<TString> hists, vector<TString> setTypes, vector<Int_t> sets,
-		   vector<Double_t> xMaxs, vector<Double_t> xMins, vector<Int_t> rebins) {
+Int_t DataPlotter::print_stacks(vector<TString> hists, vector<TString> setTypes, vector<Int_t> sets
+				, vector<Double_t> xMaxs, vector<Double_t> xMins, vector<Int_t> rebins
+				, vector<Double_t> signal_scales = {}) {
   if(hists.size() != setTypes.size()) {
     printf("hist size != hist type size!\n");
     return 1;
@@ -1258,8 +1281,13 @@ Int_t DataPlotter::print_stacks(vector<TString> hists, vector<TString> setTypes,
     printf("hist size != rebins size!\n");
     return 4;
   }
+  if(signal_scales.size() > 0 && signal_scales.size() != sets.size()) {
+    printf("signal scales size != sets size!\n");
+    return 5;
+  }
   
   for(Int_t set : sets) {
+    if(signal_scales.size() > 0) signal_scale_ = signal_scales[set];
     for(UInt_t i = 0; i < hists.size(); ++i) {
       TString hist(hists[i]);
       TString setType(setTypes[i]);
@@ -1275,8 +1303,9 @@ Int_t DataPlotter::print_stacks(vector<TString> hists, vector<TString> setTypes,
   return 0;
 }
 
-Int_t DataPlotter::print_hists(vector<TString> hists, vector<TString> setTypes, vector<Int_t> sets,
-		   vector<Double_t> xMaxs, vector<Double_t> xMins, vector<Int_t> rebins) {
+Int_t DataPlotter::print_hists(vector<TString> hists, vector<TString> setTypes, vector<Int_t> sets
+			       , vector<Double_t> xMaxs, vector<Double_t> xMins, vector<Int_t> rebins
+			       , vector<Double_t> signal_scales = {}) {
   if(hists.size() != setTypes.size()) {
     printf("hist size != hist type size!\n");
     return 1;
@@ -1293,7 +1322,13 @@ Int_t DataPlotter::print_hists(vector<TString> hists, vector<TString> setTypes, 
     printf("hist size != rebins size!\n");
     return 4;
   }
+  if(signal_scales.size() > 0 && signal_scales.size() != sets.size()) {
+    printf("signal scales size != sets size!\n");
+    return 5;
+  }
+  
   for(Int_t set : sets) {
+    if(signal_scales.size() > 0) signal_scale_ = signal_scales[set];
     for(UInt_t i = 0; i < hists.size(); ++i) {
       TString hist(hists[i]);
       TString setType(setTypes[i]);

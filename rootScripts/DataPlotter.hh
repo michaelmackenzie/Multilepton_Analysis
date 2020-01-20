@@ -61,6 +61,32 @@ public :
   Int_t useOpenGL_ = 1; //Use open GL with plotting
   bool doStatsLegend_ = true; //Give each backgrounds contribution in the legend
 
+  //Various canvas drawing numbers
+  Int_t canvas_x_ = 1000; //canvas dimensions
+  Int_t canvas_y_ = 800;
+  Double_t upper_pad_x1_ = 0.0; //upper pad fractional dimensions
+  Double_t upper_pad_y1_ = 0.3;
+  Double_t upper_pad_x2_ = 1.0;
+  Double_t upper_pad_y2_ = 1.0;
+  Double_t lower_pad_x1_ = 0.0; //lower pad fractional dimensions
+  Double_t lower_pad_y1_ = 0.02;
+  Double_t lower_pad_x2_ = 1.0;
+  Double_t lower_pad_y2_ = 0.3;
+  Double_t upper_pad_topmargin_ = 0.06; //pad margins
+  Double_t upper_pad_botmargin_ = 0.05;
+  Double_t lower_pad_topmargin_ = 0.03;
+  Double_t lower_pad_botmargin_ = 0.22;
+  Double_t legend_txt_ = 0.04; //Legend parameters
+  Double_t legend_x1_stats_ = 0.6; //if stats in legend
+  Double_t legend_x1_ = 0.7; //if no stats in legend
+  Double_t legend_x2_ = 0.9; 
+  Double_t legend_y1_ = 0.9;
+  Double_t legend_y2_ = 0.5; 
+  // Double_t legend_y2_split_ = 0.45; 
+  Double_t legend_sep_ = 2.;
+  Double_t data_txt_x_ = 0.48;
+  Double_t data_txt_y_ = 0.72;
+  
   ~DataPlotter() {
     for(auto d : data_) {
       if(d) delete d;
@@ -94,19 +120,19 @@ public :
     label.SetNDC();
     label.SetTextFont(72);
     // label.SetTextColor(1);
-    label.SetTextSize(.04);
+    label.SetTextSize(legend_txt_);
     label.SetTextAlign(13);
     label.SetTextAngle(0);
-    label.DrawLatex(0.75, 0.44, Form("%10s = %10i", "n_{Data}", ndata));
-    double x = 0.44;
+    label.DrawLatex(data_txt_y_, data_txt_x_, Form("%10s = %10i", "n_{Data}", ndata));
+    double x = data_txt_x_;
     if(nmc > 0.) {
       x -= 0.04;
-      label.DrawLatex(0.75, x, Form("%9s = %10.1f", "n_{MC}", nmc));
+      label.DrawLatex(data_txt_y_, x, Form("%9s = %10.1f", "n_{MC}", nmc));
     }
     auto it = nsig.begin();
     while(it != nsig.end()) {
       x -= 0.04;
-      label.DrawLatex(0.75, x, Form("%10s = %10.1f", Form("n_{%s}", it->first.Data()), it->second));
+      label.DrawLatex(data_txt_y_, x, Form("%10s = %10.1f", Form("n_{%s}", it->first.Data()), it->second));
       it++;
     }
     
@@ -174,10 +200,10 @@ public :
   }
   
   virtual Int_t print_stacks(vector<TString> hists, vector<TString> setTypes, vector<Int_t>sets,
-		     vector<Double_t> xMaxs, vector<Double_t> xMins, vector<Int_t> rebins);
+			     vector<Double_t> xMaxs, vector<Double_t> xMins, vector<Int_t> rebins, vector<Double_t> signal_scales);
 
   virtual Int_t print_hists(vector<TString> hists, vector<TString> setTypes, vector<Int_t> sets,
-		    vector<Double_t> xMaxs, vector<Double_t> xMins, vector<Int_t> rebins);
+		    vector<Double_t> xMaxs, vector<Double_t> xMins, vector<Int_t> rebins, vector<Double_t> signal_scales);
 
   //Load files
   virtual Int_t init_files();
