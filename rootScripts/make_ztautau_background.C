@@ -1,5 +1,5 @@
 
-bool doHiggsDecays = false; //Z or H0 CLFV decay sets
+bool doHiggsDecays_ = false; //Z or H0 CLFV decay sets
 bool doDY_ = true;
 bool doWJets_ = true;
 bool doTop_ = true;
@@ -49,12 +49,12 @@ Int_t make_background(int set = 7, TString selection = "mutau", TString base = "
 		     , doDiboson_ //ZZ
 		     , doDiboson_ //ZZ
 		     , doHiggs_ //htautau
-		     , (!doHiggsDecays && (selection == "mutau")) //zmutau
-		     , (!doHiggsDecays && (selection == "etau") ) //zetau
-		     , (!doHiggsDecays && (selection == "emu")  ) //zetau
-		     , (doHiggsDecays  && (selection == "mutau")) //hmutau
-		     , (doHiggsDecays  && (selection == "etau") ) //hetau
-		     , (doHiggsDecays  && (selection == "emu")  ) //hetau
+		     , (!doHiggsDecays_ && (selection == "mutau")) //zmutau
+		     , (!doHiggsDecays_ && (selection == "etau") ) //zetau
+		     , (!doHiggsDecays_ && (selection == "emu")  ) //zetau
+		     , (doHiggsDecays_  && (selection == "mutau")) //hmutau
+		     , (doHiggsDecays_  && (selection == "etau") ) //hetau
+		     , (doHiggsDecays_  && (selection == "emu")  ) //hetau
   };
 
   TFile* fDList[30];
@@ -84,7 +84,7 @@ Int_t make_background(int set = 7, TString selection = "mutau", TString base = "
     printf("Getting tree %i for merging, using %s\n",filecount,c);
     tList[filecount] = (TTree*) fList[filecount]->Get(Form("Data/tree_%i/tree_%i", set, set));
     if(!tList[filecount]) {
-      printf("tree not found, continuing");
+      printf("tree not found, continuing\n");
       continue;
     }
     cout << "Tree " << filecount << ": " << tList[filecount]
@@ -111,7 +111,7 @@ Int_t make_background(int set = 7, TString selection = "mutau", TString base = "
     type = "";
   else
     printf("Unknown process combination! No name flag added\n");
-  
+  type += (doHiggsDecays_) ? "higgs_" : "Z0_";
   TFile* out = new TFile(Form("background_ztautau_%s%s_%i.tree",
 			      type.Data(),
 			      selection.Data(),set),"RECREATE");

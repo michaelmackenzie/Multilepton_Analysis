@@ -1,13 +1,9 @@
-// use 
+// Script to call the TMVA training script, TrainTrkQual
+
 #include "TrainTrkQual.C"
 
 
-//-----------------------------------------------------------------------------
-// Algorithm    : "trkpatrec" or "calpatrec"
-// TrainingMode : "chi2d" or "logfcons"
-// BkgWeight    : 0,1,2,3,4  (+100 if use  Z)
-//-----------------------------------------------------------------------------
-int train_tmva(const char* tree_name = "background_ztautau_mutau_7.tree", vector<int> signals = {33,34}, vector<int> ignore = {}) {
+int train_tmva(const char* tree_name = "background_ztautau_mutau_7.tree", vector<int> signals = {33,34,35, 36, 37, 38, 39}, vector<int> ignore = {}) {
 
   TFile *f;
 
@@ -37,14 +33,6 @@ int train_tmva(const char* tree_name = "background_ztautau_mutau_7.tree", vector
   }
 
   tmvaName = "training_";
-  // if(x.Contains("mutau"))
-  //   tmvaName += "mutau_";
-  // else if(x.Contains("etau"))
-  //   tmvaName += "etau_";
-  // else if(x.Contains("emu"))
-  //   tmvaName += "emu_";
-  // else
-  //   tmvaName += "XXX_";
   
   for(int i = 0; i < tx->GetLast(); ++i) tmvaName +=   ((TObjString *)(tx->At(i)))->String();
   int n = ignore.size();
@@ -61,6 +49,5 @@ int train_tmva(const char* tree_name = "background_ztautau_mutau_7.tree", vector
     }
   }
   printf("Beginning Training %s\n",tmvaName.Data());
-  // return 0;
   return TrainTrkQual(signal, background, tmvaName.Data(), signals, ignore);
 }
