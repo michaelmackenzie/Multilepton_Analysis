@@ -200,10 +200,12 @@ public :
   }
   
   virtual Int_t print_stacks(vector<TString> hists, vector<TString> setTypes, vector<Int_t>sets,
-			     vector<Double_t> xMaxs, vector<Double_t> xMins, vector<Int_t> rebins, vector<Double_t> signal_scales);
+			     vector<Double_t> xMaxs, vector<Double_t> xMins, vector<Int_t> rebins
+			     , vector<Double_t> signal_scales, vector<Int_t> base_rebins);
 
   virtual Int_t print_hists(vector<TString> hists, vector<TString> setTypes, vector<Int_t> sets,
-		    vector<Double_t> xMaxs, vector<Double_t> xMins, vector<Int_t> rebins, vector<Double_t> signal_scales);
+		    vector<Double_t> xMaxs, vector<Double_t> xMins, vector<Int_t> rebins
+			    , vector<Double_t> signal_scales, vector<Int_t> base_rebins);
 
   //Load files
   virtual Int_t init_files();

@@ -351,6 +351,16 @@ void DataPlotter::get_titles(TString hist, TString setType, TString* xtitle, TSt
     *ytitle = "";
     *title  = "MVA Score";
   }
+  else if(hist.Contains("prob")) {
+    *xtitle = "MVA score probability";
+    *ytitle = "";
+    *title  = "MVA Score Probability";
+  }
+  else if(hist.Contains("cdf")) {
+    *xtitle = "MVA score CDF";
+    *ytitle = "";
+    *title  = "MVA Score CDF";
+  }
   else if(hist == "metdeltaphi") {
     *xtitle = "#Delta#phi(MET,ll)";
     *ytitle = "";
@@ -1204,9 +1214,9 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
     hDataMC->GetYaxis()->SetLabelSize(0.08);
     m = hDataMC->GetMaximum();
     double mn = hDataMC->GetMinimum();
-    mn = max(0.2*mn,1e-2);
+    mn = max(0.2*mn,5e-1);
     m = 1.2*m;
-    m = min(m, 5.0);
+    m = min(m, 2.0);
     hDataMC->GetYaxis()->SetRangeUser(mn,m);    
     hDataMC->SetMinimum(mn);
     hDataMC->SetMaximum(m);
@@ -1264,7 +1274,7 @@ TCanvas* DataPlotter::print_single_2Dhist(TString hist, TString setType, Int_t s
 
 Int_t DataPlotter::print_stacks(vector<TString> hists, vector<TString> setTypes, vector<Int_t> sets
 				, vector<Double_t> xMaxs, vector<Double_t> xMins, vector<Int_t> rebins
-				, vector<Double_t> signal_scales = {}) {
+				, vector<Double_t> signal_scales = {}, vector<Int_t> base_rebins = {}) {
   if(hists.size() != setTypes.size()) {
     printf("hist size != hist type size!\n");
     return 1;
@@ -1285,27 +1295,33 @@ Int_t DataPlotter::print_stacks(vector<TString> hists, vector<TString> setTypes,
     printf("signal scales size != sets size!\n");
     return 5;
   }
-  
+  if(base_rebins.size() > 0 && base_rebins.size() != sets.size()) {
+    printf("base rebins size != sets size!\n");
+    return 6;
+  }
+  Int_t set_index = 0;
+  Int_t base_rebin = 1;
   for(Int_t set : sets) {
-    if(signal_scales.size() > 0) signal_scale_ = signal_scales[set];
+    if(signal_scales.size() > 0) signal_scale_ = signal_scales[set_index];
     for(UInt_t i = 0; i < hists.size(); ++i) {
       TString hist(hists[i]);
       TString setType(setTypes[i]);
       xMax_ = xMaxs[i];
       xMin_ = xMins[i];
-      rebinH_ = rebins[i];
+      rebinH_ = rebins[i]*base_rebin;
       TCanvas* c = print_stack(hist,setType,set);
       Int_t status = (c) ? 0 : 1;
       printf("Printing Data/MC stack %s %s set %i has status %i\n",setType.Data(),hist.Data(),set,status);
       delete c;
     }
+    ++set_index;
   }
   return 0;
 }
 
 Int_t DataPlotter::print_hists(vector<TString> hists, vector<TString> setTypes, vector<Int_t> sets
 			       , vector<Double_t> xMaxs, vector<Double_t> xMins, vector<Int_t> rebins
-			       , vector<Double_t> signal_scales = {}) {
+			       , vector<Double_t> signal_scales = {}, vector<Int_t> base_rebins = {}) {
   if(hists.size() != setTypes.size()) {
     printf("hist size != hist type size!\n");
     return 1;
@@ -1326,20 +1342,27 @@ Int_t DataPlotter::print_hists(vector<TString> hists, vector<TString> setTypes, 
     printf("signal scales size != sets size!\n");
     return 5;
   }
-  
+  if(base_rebins.size() > 0 && base_rebins.size() != sets.size()) {
+    printf("base rebins size != sets size!\n");
+    return 6;
+  }
+  Int_t set_index = 0;
+  Int_t base_rebin = 1;
   for(Int_t set : sets) {
-    if(signal_scales.size() > 0) signal_scale_ = signal_scales[set];
+    if(signal_scales.size() > 0) signal_scale_ = signal_scales[set_index];
+    if(base_rebins.size() > 0) base_rebin = base_rebins[set_index];
     for(UInt_t i = 0; i < hists.size(); ++i) {
       TString hist(hists[i]);
       TString setType(setTypes[i]);
       xMax_ = xMaxs[i];
       xMin_ = xMins[i];
-      rebinH_ = rebins[i];
+      rebinH_ = rebins[i]*base_rebin;
       TCanvas* c = print_hist(hist,setType,set);
       Int_t status = (c) ? 0 : 1;
       printf("Printing Data/MC hist %s %s set %i has status %i\n",setType.Data(),hist.Data(),set,status);
       delete c;
     }
+    ++set_index;
   }
   
   return 0;

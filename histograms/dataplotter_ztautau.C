@@ -5,25 +5,26 @@ TString selection_ = "mutau";
 Int_t useOpenGL_ = 1;
 bool  doStatsLegend_ = false;
 
-Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {}, bool stacks = true) {
+Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
+			   vector<int> base_rebins = {}, bool stacks = true) {
   vector<TString> hnames;
   vector<TString> htypes;
   vector<int>     rebins;
   vector<double>  xmins;
   vector<double>  xmaxs;
   
-  hnames.push_back("onept");          htypes.push_back("lep");   rebins.push_back(1); xmins.push_back(15.);  xmaxs.push_back(150.);
-  hnames.push_back("twopt");          htypes.push_back("lep");   rebins.push_back(1); xmins.push_back(15.);  xmaxs.push_back(150.);
+  hnames.push_back("onept");          htypes.push_back("lep");   rebins.push_back(2); xmins.push_back(15.);  xmaxs.push_back(150.);
+  hnames.push_back("twopt");          htypes.push_back("lep");   rebins.push_back(2); xmins.push_back(15.);  xmaxs.push_back(150.);
   hnames.push_back("lepm");           htypes.push_back("event"); rebins.push_back(2); xmins.push_back(0.);   xmaxs.push_back(200.);
-  hnames.push_back("leppt");          htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(150.);
-  hnames.push_back("lepptoverm");     htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(10.);
+  hnames.push_back("leppt");          htypes.push_back("event"); rebins.push_back(2); xmins.push_back(0.);   xmaxs.push_back(150.);
+  hnames.push_back("lepptoverm");     htypes.push_back("event"); rebins.push_back(2); xmins.push_back(0.);   xmaxs.push_back(10.);
   hnames.push_back("lepeta");         htypes.push_back("event"); rebins.push_back(1); xmins.push_back(-5.);  xmaxs.push_back(5.);
   hnames.push_back("lepdeltaeta");    htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(5.);
   hnames.push_back("lepdeltaphi");    htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(3.5);
   hnames.push_back("lepdeltar");      htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(5.);
   hnames.push_back("pxivis0");        htypes.push_back("event"); rebins.push_back(5); xmins.push_back(0.);   xmaxs.push_back(100.);
   hnames.push_back("pxiinv0");        htypes.push_back("event"); rebins.push_back(5); xmins.push_back(-100.);xmaxs.push_back(100.);
-  hnames.push_back("met");            htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(150.);
+  hnames.push_back("met");            htypes.push_back("event"); rebins.push_back(2); xmins.push_back(0.);   xmaxs.push_back(150.);
   if(selection_=="mutau" || selection_ == "emu") {
     hnames.push_back("mtmu");         htypes.push_back("event"); rebins.push_back(4); xmins.push_back(0.);   xmaxs.push_back(150.);
   }
@@ -38,6 +39,9 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {}, 
   hnames.push_back("twosvpt");        htypes.push_back("lep");   rebins.push_back(1); xmins.push_back(15.);  xmaxs.push_back(150.);
   hnames.push_back("onesvdeltapt");   htypes.push_back("lep");   rebins.push_back(1); xmins.push_back(15.);  xmaxs.push_back(150.);
   hnames.push_back("twosvdeltapt");   htypes.push_back("lep");   rebins.push_back(1); xmins.push_back(15.);  xmaxs.push_back(150.);
+  hnames.push_back("lepsvm");         htypes.push_back("event"); rebins.push_back(2); xmins.push_back(0.);   xmaxs.push_back(300.);
+  hnames.push_back("lepsvpt");        htypes.push_back("event"); rebins.push_back(2); xmins.push_back(0.);   xmaxs.push_back(150.);
+  hnames.push_back("lepsvptoverm");   htypes.push_back("event"); rebins.push_back(2); xmins.push_back(0.);   xmaxs.push_back(10.);
   
   hnames.push_back("njets");          htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(10.);
   hnames.push_back("nbjets");         htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(10.);
@@ -103,13 +107,13 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {}, 
     }
   }
   int prev = dataplotter_->logY_;
-  int status = (stacks) ? dataplotter_->print_stacks(hnames, htypes, sets, xmaxs, xmins, rebins, signal_scales) :
-    dataplotter_->print_hists(hnames, htypes, sets, xmaxs, xmins, rebins, signal_scales);
+  int status = (stacks) ? dataplotter_->print_stacks(hnames, htypes, sets, xmaxs, xmins, rebins, signal_scales, base_rebins) :
+    dataplotter_->print_hists(hnames, htypes, sets, xmaxs, xmins, rebins, signal_scales, base_rebins);
 
   if(status) return status;
   dataplotter_->logY_ = !prev;
-  status = (stacks) ? dataplotter_->print_stacks(hnames, htypes, sets, xmaxs, xmins, rebins, signal_scales) :
-    dataplotter_->print_hists(hnames, htypes, sets, xmaxs, xmins, rebins, signal_scales);
+  status = (stacks) ? dataplotter_->print_stacks(hnames, htypes, sets, xmaxs, xmins, rebins, signal_scales, base_rebins) :
+    dataplotter_->print_hists(hnames, htypes, sets, xmaxs, xmins, rebins, signal_scales, base_rebins);
   dataplotter_->logY_ = prev;
   return status;
 }

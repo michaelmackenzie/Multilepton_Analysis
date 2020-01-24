@@ -3,58 +3,58 @@
 Int_t process_ztautau() {
 
   const char* gridPath[] = {
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //ttbar
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //DY AMC
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //DY AMC
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //t_tw
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //tbar_tw
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //DY MadGraph
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //DY MadGraph
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //DY 1 Jet MadGraph
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //DY 1 Jet MadGraph
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //DY 2 Jet MadGraph
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //DY 2 Jet MadGraph
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //DY 3 Jet MadGraph
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //DY 3 Jet MadGraph
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //DY 4 Jet MadGraph
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //DY 4 Jet MadGraph
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //W 1 Jet
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //W 2 Jet
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //W 3 Jet
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //W 4 Jet
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200115_133448/", //WW
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //WZ Jets to 2L2Q
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //WZ Jets to 3LNu
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //ZZ Jets to 2L2Nu
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //ZZ Jets to 2L2Q
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //ZZ Jets to 4L
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //HZG gluglu
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //HZG tth
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //HZG vbf
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //HZG W-
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //HZG W+
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //HZG zh
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //HTauTau gluglu
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //ZETau
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //ZMuTau
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //ZEMu
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200115_133448/", //HETau
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200115_133448/", //HMuTau
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200115_133448/", //HEMu
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //Muon Data 2016 B
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //Muon Data 2016 C
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //Muon Data 2016 D
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //Muon Data 2016 E
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //Muon Data 2016 F
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //Muon Data 2016 G
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //Muon Data 2016 H
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //Electron Data 2016 B
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //Electron Data 2016 C
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //Electron Data 2016 D
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //Electron Data 2016 E
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //Electron Data 2016 F
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/", //Electron Data 2016 G
-    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200113_165959/"  //Electron Data 2016 H
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200123_165559/", //ttbar
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200123_165559/", //DY AMC
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200123_165559/", //DY AMC
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200123_165559/", //t_tw
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200123_165559/", //tbar_tw
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200123_165559/", //DY MadGraph
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200123_165559/", //DY MadGraph
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200123_165559/", //DY 1 Jet MadGraph
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200123_165559/", //DY 1 Jet MadGraph
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200123_165559/", //DY 2 Jet MadGraph
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200123_165559/", //DY 2 Jet MadGraph
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200123_165559/", //DY 3 Jet MadGraph
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200123_165559/", //DY 3 Jet MadGraph
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200123_165559/", //DY 4 Jet MadGraph
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200123_165559/", //DY 4 Jet MadGraph
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200123_165559/", //W 1 Jet
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200123_165559/", //W 2 Jet
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200123_165559/", //W 3 Jet
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200123_165559/", //W 4 Jet
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200123_165559/", //WW
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200123_165559/", //WZ Jets to 2L2Q
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200123_165559/", //WZ Jets to 3LNu
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200123_165559/", //ZZ Jets to 2L2Nu
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200123_165559/", //ZZ Jets to 2L2Q
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200123_165559/", //ZZ Jets to 4L
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200123_165559/", //HZG gluglu
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200123_165559/", //HZG tth
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200123_165559/", //HZG vbf
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200123_165559/", //HZG W-
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200123_165559/", //HZG W+
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200123_165559/", //HZG zh
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200123_165559/", //HTauTau gluglu
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200123_165559/", //ZETau
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200123_165559/", //ZMuTau
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200123_165559/", //ZEMu
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200123_165559/", //HETau
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200123_165559/", //HMuTau
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200123_165559/", //HEMu
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200123_165559/", //Muon Data 2016 B
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200123_165559/", //Muon Data 2016 C
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200123_165559/", //Muon Data 2016 D
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200123_165559/", //Muon Data 2016 E
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200123_165559/", //Muon Data 2016 F
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200123_165559/", //Muon Data 2016 G
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200123_165559/", //Muon Data 2016 H
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200123_165559/", //Electron Data 2016 B
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200123_165559/", //Electron Data 2016 C
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200123_165559/", //Electron Data 2016 D
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200123_165559/", //Electron Data 2016 E
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200123_165559/", //Electron Data 2016 F
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200123_165559/", //Electron Data 2016 G
+    "/eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20200123_165559/"  //Electron Data 2016 H
     
   };
   
