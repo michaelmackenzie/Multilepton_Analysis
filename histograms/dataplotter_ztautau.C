@@ -44,6 +44,7 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
   hnames.push_back("lepsvptoverm");   htypes.push_back("event"); rebins.push_back(2); xmins.push_back(0.);   xmaxs.push_back(10.);
   
   hnames.push_back("njets");          htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(10.);
+  hnames.push_back("nfwdjets");       htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(10.);
   hnames.push_back("nbjets");         htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(10.);
   hnames.push_back("nphotons");       htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(5.);
   if(selection_ == "mutau") {

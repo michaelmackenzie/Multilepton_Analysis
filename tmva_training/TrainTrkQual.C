@@ -202,13 +202,13 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
   factory->AddVariable("pxivis","p^{vis}_{#xi}","",'F');
   factory->AddVariable("pxiinv","p^{inv}_{#xi}","",'F');
   factory->AddVariable("njets", "nJets", "", 'F');
-  factory->AddVariable("lepdeltaeta","#Delta#eta_{ll}","",'F');
+  factory->AddSpectator("lepdeltaeta","#Delta#eta_{ll}","",'F');
+  factory->AddSpectator("lepdeltaphi","#Delta#phi_{ll}","",'F');
   factory->AddVariable("metdeltaphi","#Delta#phi_{MET,ll}","",'F');
 
   factory->AddSpectator("onemetdeltaphi","#Delta#phi_{MET,l1}","",'F');  
-  factory->AddSpectator("lepdeltaphi","#Delta#phi_{ll}","",'F');
-  factory->AddSpectator("leponedeltaphi","#Delta#phi_{l1,ll}","",'F');
-  factory->AddSpectator("leptwodeltaphi","#Delta#phi_{l2,ll}","",'F');
+  factory->AddVariable("leponedeltaphi","#Delta#phi_{l1,ll}","",'F');
+  factory->AddVariable("leptwodeltaphi","#Delta#phi_{l2,ll}","",'F');
   factory->AddSpectator("leponed0","D0_{l1}","",'F');
   factory->AddSpectator("leptwod0","D0_{l2}","",'F');
   factory->AddSpectator("htdeltaphi","#Delta#phi_{MET,ll}","",'F');
@@ -300,7 +300,7 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
   
   
   Double_t nSigFrac =  0.7;//0.2;
-  Double_t nBkgFrac =  0.3;//0.2;
+  Double_t nBkgFrac =  0.7;//0.2;
   Long64_t nSig = signal->CopyTree(signal_cuts)->GetEntriesFast();
   Long64_t nBkg = background->CopyTree(bkg_cuts)->GetEntriesFast();
   TString options = "nTrain_Signal=";
@@ -482,12 +482,12 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
 	"!H:!V:NTrees=1000:BoostType=Grad:Shrinkage=0.10:UseBaggedGrad:GradBaggingFraction=0.5:nCuts=20:NNodesMax=5" );
 
   if (Use["BDT"])  // Adaptive Boost
-    factory->BookMethod( TMVA::Types::kBDT, "BDT",
+    factory->BookMethod( TMVA::Types::kBDT,"BDT",
 	"!H:!V:NTrees=850:nEventsMin=150:MaxDepth=3:BoostType=AdaBoost:AdaBoostBeta=0.5:SeparationType=GiniIndex:nCuts=20:PruneMethod=NoPruning:CreateMVAPdfs=True" );
 
   if (Use["BDTRT"]) {  // Bagging Boost Random Trees
     TString bdtSetup = "!H:!V";
-    bdtSetup += ":NTrees=1000:MinNodeSize=1%:MaxDepth=5:nCuts=100:UseNVars=4:UseRandomisedTrees=True";
+    bdtSetup += ":NTrees=1000:MinNodeSize=1%:MaxDepth=5:nCuts=100:UseNVars=5:UseRandomisedTrees=True";
     bdtSetup += ":BoostType=Bagging:BaggedSampleFraction=0.6:CreateMVAPdfs=True";
     // bdtSetup += ":PruneMethod=ExpectedError:PruneStrength=0.2";
     factory->BookMethod( TMVA::Types::kBDT, "BDTRT",bdtSetup.Data());

@@ -475,7 +475,7 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
   Hist->hNGenElectrons       ->Fill(nGenElectrons      , genWeight*eventWeight)      ;
   Hist->hNGenMuons           ->Fill(nGenMuons          , genWeight*eventWeight)      ;
   Hist->hNJets               ->Fill(nJets              , genWeight*eventWeight)      ;
-  // Hist->hNFwdJets            ->Fill(nFwdJets           , genWeight*eventWeight)      ;
+  Hist->hNFwdJets            ->Fill(nFwdJets           , genWeight*eventWeight)      ;
   Hist->hNBJets              ->Fill(nBJets             , genWeight*eventWeight)      ;
   Hist->hMcEra               ->Fill(mcEra              , genWeight*eventWeight)   ;
   Hist->hTriggerLeptonStatus ->Fill(triggerLeptonStatus, genWeight*eventWeight)   ;
@@ -837,7 +837,9 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
 
 
   InitializeTreeVariables(mutau+2*etau+5*emu);
+  //use locally computed weight
   if(fUseTauFakeSF > 1) genTauFlavorWeight = GetTauFakeSF(tauGenFlavor);
+  //apply fake tau SF
   if(fUseTauFakeSF) eventWeight *= genTauFlavorWeight;
 
   bool chargeTest = leptonOneFlavor*leptonTwoFlavor < 0;

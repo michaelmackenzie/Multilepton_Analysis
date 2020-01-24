@@ -216,8 +216,10 @@ Int_t process_ztautau() {
 
   TStopwatch* timer = new TStopwatch();
 
-  Int_t useTauFakeSF = 2;
+  Int_t useTauFakeSF = 1;
   bool writeTrees = true;
+  cout << "--- Fake Tau SF mode: " << useTauFakeSF
+       << ", Write Trees mode: " << writeTrees << endl;
   Int_t category = 0;
   for(int i = 0; i < sizeof(files)/sizeof(*files); ++i) {
     ++category;

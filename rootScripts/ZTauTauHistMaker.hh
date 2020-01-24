@@ -92,6 +92,7 @@ public :
   UInt_t nTaus                       ;
   UInt_t nPhotons                    ;
   UInt_t nJets                       ;
+  UInt_t nFwdJets                    ;
   UInt_t nBJets                      ;
   UInt_t nGenTausHad                 ;
   UInt_t nGenTausLep                 ;
@@ -744,6 +745,7 @@ void ZTauTauHistMaker::Init(TTree *tree)
   fChain->SetBranchAddress("nTaus"               , &nTaus                );
   fChain->SetBranchAddress("nPhotons"            , &nPhotons             );
   fChain->SetBranchAddress("nJets"               , &nJets                );
+  fChain->SetBranchAddress("nFwdJets"            , &nFwdJets             );
   fChain->SetBranchAddress("nBJets"              , &nBJets               );
   fChain->SetBranchAddress("nGenTausHad"         , &nGenTausHad          );
   fChain->SetBranchAddress("nGenTausLep"         , &nGenTausLep          );
