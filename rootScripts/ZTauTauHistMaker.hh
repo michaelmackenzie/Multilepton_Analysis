@@ -431,9 +431,9 @@ public :
     "emu_BDT_48.higgs","emu_BDT_48.Z0"
   };
   vector<double> fMvaCuts = { //mva score cut values
-    0.1331, 0.1304,  //scores optimize significance with given branching ratios
-    0.13, 0.0962,//scores are to cut ~30% of the signal currently
-    0.2807, 0.27 //scores optimize significance with given branching ratios
+    0.3260, 0.1336,  //scores optimize significance with given branching ratios
+    0.1576, 0.1393,//scores are to cut ~30% of the signal currently
+    0.2932, 0.3655 //scores optimize significance with given branching ratios
   };
   //fitting MVA probability to an exponential near P(x) = 1
   vector<double> fMvaProbSlope = {
@@ -501,14 +501,14 @@ void ZTauTauHistMaker::Init(TTree *tree)
     mva->AddVariable("pxivis"          ,&fTreeVars.pxivis         );
     mva->AddVariable("pxiinv"          ,&fTreeVars.pxiinv         );
     mva->AddVariable("njets"           ,&fTreeVars.njets          );
-    mva->AddVariable("lepdeltaeta"     ,&fTreeVars.lepdeltaeta    );
+    mva->AddSpectator("lepdeltaeta"     ,&fTreeVars.lepdeltaeta    );
+    mva->AddSpectator("lepdeltaphi"     ,&fTreeVars.lepdeltaphi    );
     mva->AddVariable("metdeltaphi"     ,&fTreeVars.metdeltaphi    );
 
     //Spectators from mva training also required!
     mva->AddSpectator("onemetdeltaphi" ,&fTreeVars.onemetdeltaphi );
-    mva->AddSpectator("lepdeltaphi"     ,&fTreeVars.lepdeltaphi    );
-    mva->AddSpectator("leponedeltaphi"  ,&fTreeVars.leponedeltaphi );
-    mva->AddSpectator("leptwodeltaphi"  ,&fTreeVars.leptwodeltaphi );
+    mva->AddVariable("leponedeltaphi"  ,&fTreeVars.leponedeltaphi );
+    mva->AddVariable("leptwodeltaphi"  ,&fTreeVars.leptwodeltaphi );
     mva->AddSpectator("leponed0"       ,&fTreeVars.leponed0       );
     mva->AddSpectator("leptwod0"       ,&fTreeVars.leptwod0       );
     mva->AddSpectator("htdeltaphi"     ,&fTreeVars.htdeltaphi     );
