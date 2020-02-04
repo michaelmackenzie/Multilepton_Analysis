@@ -130,6 +130,7 @@ void ZTauTauHistMaker::BookEventHistograms() {
       fEventHist[i]->hCovMet01		     = new TH1F("covmet01"	      , Form("%s: CovMet01"            ,dirname) , 1000,-1000.,1000.);
       fEventHist[i]->hCovMet11		     = new TH1F("covmet11"	      , Form("%s: CovMet11"            ,dirname) , 1000,    0.,1000.);
       fEventHist[i]->hMetVsPt                = new TH2F("metvspt"             , Form("%s: MetVsPt"             ,dirname) ,200,0,400, 200,0,400); 
+      fEventHist[i]->hMetVsM                 = new TH2F("metvsm"              , Form("%s: MetVsM"              ,dirname) ,200,0,400, 200,0,400); 
       fEventHist[i]->hMassSVFit		     = new TH1F("masssvfit"	      , Form("%s: MassSVFit"           ,dirname) , 1000,    0., 200.);
       fEventHist[i]->hMassErrSVFit	     = new TH1F("masserrsvfit"        , Form("%s: MassErrSVFit"        ,dirname) , 1000,    0., 100.);
       fEventHist[i]->hSVFitStatus            = new TH1F("svfitstatus"         , Form("%s: SVFitStatus"         ,dirname) ,   10,    0.,  10.);
@@ -160,6 +161,8 @@ void ZTauTauHistMaker::BookEventHistograms() {
       fEventHist[i]->hLepSVDeltaPhi = new TH1F("lepsvdeltaphi" , Form("%s: Lepton SVFit DeltaPhi",dirname)  ,  40,   0,   4);
       fEventHist[i]->hLepSVDeltaEta = new TH1F("lepsvdeltaeta" , Form("%s: Lepton SVFit DeltaEta",dirname)  , 100,   0,   5);
       fEventHist[i]->hLepSVDeltaR   = new TH1F("lepsvdeltar"   , Form("%s: Lepton SVFit DeltaR"  ,dirname)  , 100,   0,   5);
+      fEventHist[i]->hLepSVDeltaM   = new TH1F("lepsvdeltam"   , Form("%s: Lepton SVFit DeltaM"  ,dirname)  , 200, -10,  90);
+      fEventHist[i]->hLepSVDeltaPt  = new TH1F("lepsvdeltapt"  , Form("%s: Lepton SVFit DeltaPt" ,dirname)  , 200, -10,  90);
       fEventHist[i]->hLepSVDelRVsPhi= new TH2F("lepsvdelrvsphi", Form("%s: LepSVDelRVsPhi"       ,dirname)  ,  40,  0,   4, 100,  0,   5);     
       fEventHist[i]->hLepSVPtOverM  = new TH1F("lepsvptoverm"  , Form("%s: Lepton SVFit Pt / M"  ,dirname)  , 100,   0,  10);
       
@@ -196,6 +199,9 @@ void ZTauTauHistMaker::BookEventHistograms() {
       fEventHist[i]->hPXiDiff[2]       = new TH1F("pxidiff2"       , Form("%s: PXiVis - PXiInv" ,dirname)  ,2000,-500.,  1500.);     
       fEventHist[i]->hPXiDiff2[2]      = new TH1F("pxidiff22"      , Form("%s: a*PXiVis + b - PXiInv" ,dirname)  ,2000,-500.,  1500.);     
 
+      fEventHist[i]->hPTauVisFrac      = new TH1F("ptauvisfrac"    , Form("%s: visible tau pT fraction " ,dirname)  ,300,0.,  1.5);     
+      fEventHist[i]->hLepMEstimate     = new TH1F("lepmestimate"   , Form("%s: Estimate di-lepton mass"  ,dirname)  ,200,0.,  800.);     
+
       fEventHist[i]->hPtSum[0]         = new TH1F("ptsum0"         , Form("%s: Scalar Pt sum"                    ,dirname)    ,1000,  0.,  1000.);     
       fEventHist[i]->hPtSum[1]         = new TH1F("ptsum1"         , Form("%s: Scalar Pt sum"                    ,dirname)    ,1000,  0.,  1000.);     
       fEventHist[i]->hPt1Sum[0]        = new TH1F("pt1sum0"        , Form("%s: Scalar Pt sum Lepton 1 + MET"     ,dirname)    ,1000,  0.,  1000.);     
@@ -203,7 +209,8 @@ void ZTauTauHistMaker::BookEventHistograms() {
       fEventHist[i]->hPt1Sum[2]        = new TH1F("pt1sum2"        , Form("%s: Scalar Pt sum Lepton 1 + 2"       ,dirname)    ,1000,  0.,  1000.);     
       fEventHist[i]->hPt1Sum[3]        = new TH1F("pt1sum3"        , Form("%s: Scalar Pt sum Lepton 1 + 2 - MET" ,dirname)    ,1000,  0.,  1000.);     
       for(unsigned j = 0; j < fMvaNames.size(); ++j)  {
-	fEventHist[i]->hMVA[j]        = new TH1F(Form("mva%i",j)   , Form("%s: %s MVA" ,dirname, fMvaNames[j].Data()) ,300, -1.,  2.); //beyond 1 for space for legend
+	//high mva score binning to improve cdf making
+	fEventHist[i]->hMVA[j]        = new TH1F(Form("mva%i",j)   , Form("%s: %s MVA" ,dirname, fMvaNames[j].Data()) ,10000, -1.,  2.); //beyond 1 for space for legend
 	fEventHist[i]->hProb[j]       = new TH1F(Form("prob%i",j)   , Form("%s: %s MVA" ,dirname, fMvaNames[j].Data()) ,300, -1.,  2.); //beyond 1 for space for legend
 	fEventHist[i]->hRarity[j]     = new TH1F(Form("rarity%i",j)   , Form("%s: %s MVA" ,dirname, fMvaNames[j].Data()) ,300, -1.,  2.); //beyond 1 for space for legend
 	fEventHist[i]->hCdf[j]        = new TH1F(Form("cdf%i",j)    , Form("%s: %s MVA" ,dirname, fMvaNames[j].Data()) ,300, -1.,  2.); //beyond 1 for space for legend
@@ -310,6 +317,8 @@ void ZTauTauHistMaker::BookLepHistograms() {
       fLepHist[i]->hTwoSVDeltaE       = new TH1F("twosvdeltae"     , Form("%s: SV Delta E"    ,dirname)  , 200,-500, 500);
       fLepHist[i]->hTwoSVDeltaEta     = new TH1F("twosvdeltaeta"   , Form("%s: SV Delta Eta"  ,dirname)  , 200, -10., 10.);
 
+      //2D distributions
+      fLepHist[i]->hTwoPtVsOnePt      = new TH2F("twoptvsonept", Form("%s: Two pT vs One pT", dirname), 200, 0, 200, 200, 0, 200);
     }
   }
 }
@@ -345,11 +354,14 @@ void ZTauTauHistMaker::BookTrees() {
       fTrees[i]->Branch("leptwodeltaphi",  &fTreeVars.leptwodeltaphi );  
       fTrees[i]->Branch("onemetdeltaphi",  &fTreeVars.onemetdeltaphi );  
       fTrees[i]->Branch("twometdeltaphi",  &fTreeVars.twometdeltaphi );  
+      fTrees[i]->Branch("lepmestimate",    &fTreeVars.mestimate	     );   
       fTrees[i]->Branch("met",             &fTreeVars.met            );
       fTrees[i]->Branch("mtone",           &fTreeVars.mtone	     );   
       fTrees[i]->Branch("mttwo",           &fTreeVars.mttwo	     );   
       fTrees[i]->Branch("pxivis",          &fTreeVars.pxivis	     );   
       fTrees[i]->Branch("pxiinv",          &fTreeVars.pxiinv	     );   
+      fTrees[i]->Branch("ht",              &fTreeVars.ht	     );   
+      fTrees[i]->Branch("htsum",           &fTreeVars.htsum	     );   
       fTrees[i]->Branch("njets",           &fTreeVars.njets	     );   
       fTrees[i]->Branch("nbjets",          &fTreeVars.nbjets	     );   
       fTrees[i]->Branch("nphotons",        &fTreeVars.nphotons       );  
@@ -415,10 +427,17 @@ void ZTauTauHistMaker::InitializeTreeVariables(Int_t selection) {
   lp2.SetZ(0.);
   TVector3 bisector = (lp1.Mag()*lp2 + lp2.Mag()*lp1); //divides leptons
   if(bisector.Mag() > 0.) bisector.SetMag(1.);
+  
   //project onto the bisectors
   fTreeVars.pxivis = (lp1+lp2)*bisector;
   fTreeVars.pxiinv = missing*bisector;
-
+  double pnuest = max(0.,lp2*missing/lp2.Mag()); //inv pT along tau = tau pt unit vector dot missing
+  fTreeVars.ptauvisfrac = lp2.Mag() / (lp2.Mag() + pnuest);
+  fTreeVars.mestimate = fTreeVars.lepm/sqrt(fTreeVars.ptauvisfrac);
+  
+  //event variables
+  fTreeVars.ht       = ht;
+  fTreeVars.htsum    = htSum;
   fTreeVars.njets    = nJets;
   fTreeVars.nbjets   = nBJets;
   fTreeVars.nphotons = nPhotons;
@@ -437,7 +456,7 @@ void ZTauTauHistMaker::InitializeTreeVariables(Int_t selection) {
     if(fMvaOutputs[i] < -100.)
       cout << "Error value returned for MVA " << fMvaNames[i].Data()
 	   << " evaluation, Entry = " << fentry << endl;
-    fMvaProb[i] = (fMvaNames[i].Contains(selecName.Data())) ? mva->GetProba(fMvaNames[i].Data()) : -1.;
+    fMvaProb[i] = -1; //(fMvaNames[i].Contains(selecName.Data())) ? mva->GetProba(fMvaNames[i].Data()) : -1.;
     // probability ~e^(m*x) from 0-1 --> CDF = ~1/m*(e^(m*x)-1)
     // N/m*(e^(m)-1) = 1 --> N = m/(e^m-1)
     fMvaCdf[i] = (fMvaProb[i] > -1.) ? (exp(fMvaProb[i]*fMvaProbSlope[i])-1.)/(exp(fMvaProbSlope[i])-1.) : -1.;
@@ -452,6 +471,18 @@ float ZTauTauHistMaker::GetTauFakeSF(int genFlavor) {
   case 15 : weight = 0.95; break;
   case 11 : weight = genTauFlavorWeight; break;
   case 13 : weight = genTauFlavorWeight; break;
+  }
+  //jets are given weight 1
+  return weight;
+}
+
+float ZTauTauHistMaker::ReweightMET(int selection, double met) {
+  float weight = 1.;
+  
+  switch(abs(selection)) {
+  case 0 : weight = (1.1 - 0.2/150.*met); break; // mu+tau
+  case 1 : weight = 1.; break; // e+tau
+  case 2 : weight = 1.; break; // e+mu
   }
   return weight;
 }
@@ -512,6 +543,7 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
   Hist->hCovMet11	     ->Fill(covMet11           , genWeight*eventWeight)   ; 
   TLorentzVector lepSys = (*leptonOneP4) + (*leptonTwoP4);
   Hist->hMetVsPt             ->Fill(lepSys.Pt(), met   , genWeight*eventWeight)   ; 
+  Hist->hMetVsM              ->Fill(lepSys.M(), met    , genWeight*eventWeight)   ; 
   Hist->hMassSVFit	     ->Fill(massSVFit          , genWeight*eventWeight)   ; 
   Hist->hMassErrSVFit        ->Fill(massErrSVFit       , genWeight*eventWeight)   ;
   Hist->hSVFitStatus         ->Fill(svFitStatus        , genWeight*eventWeight)   ;
@@ -540,11 +572,15 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
   float lepSVDelR   = -1.;
   float lepSVDelPhi = -1.;
   float lepSVDelEta = -1.;
+  float lepSVDelM   = -20.;
+  float lepSVDelPt  = -20.;
   if(leptonOneSVP4 && leptonTwoSVP4
      && leptonOneSVP4->Pt() > 1.e-5 && leptonTwoSVP4->Pt() > 1.e-5) {
     lepSVDelR   = leptonOneSVP4->DeltaR(*leptonTwoSVP4)           ;
     lepSVDelPhi = abs(leptonOneSVP4->DeltaPhi(*leptonTwoSVP4))    ;
     lepSVDelEta = abs(leptonOneSVP4->Eta() - leptonTwoSVP4->Eta());
+    lepSVDelM = svLepSys.M() - lepSys.M();
+    lepSVDelPt = svLepSys.Pt() - lepSys.Pt();
   }
   Hist->hLepPt        ->Fill(lepSys.Pt()            ,eventWeight*genWeight);
   Hist->hLepP         ->Fill(lepSys.P()             ,eventWeight*genWeight);
@@ -573,6 +609,8 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
   Hist->hLepSVDeltaPhi ->Fill(lepSVDelPhi              ,eventWeight*genWeight);
   Hist->hLepSVDeltaEta ->Fill(lepSVDelEta              ,eventWeight*genWeight);
   Hist->hLepSVDeltaR   ->Fill(lepSVDelR                ,eventWeight*genWeight);
+  Hist->hLepSVDeltaM   ->Fill(lepSVDelM                ,eventWeight*genWeight);
+  Hist->hLepSVDeltaPt  ->Fill(lepSVDelPt               ,eventWeight*genWeight);
   Hist->hLepSVDelRVsPhi->Fill(lepSVDelR , lepSVDelPhi  ,eventWeight*genWeight);
   Hist->hLepSVPtOverM  ->Fill(svLepSys.Pt()/svLepSys.M() ,eventWeight*genWeight);
   
@@ -642,6 +680,9 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
   Hist->hPXiVisOverInv[0]->Fill((pxi_inv0 != 0.) ? pxi_vis0/pxi_inv0 : 1.e6 ,eventWeight*genWeight);
   Hist->hPXiInvVsVis[0]->Fill(pxi_vis0, pxi_inv0,eventWeight*genWeight);
   Hist->hPXiDiff[0]    ->Fill(pxi_vis0-pxi_inv0 ,eventWeight*genWeight);
+
+  Hist->hPTauVisFrac   ->Fill(fTreeVars.ptauvisfrac, eventWeight*genWeight);
+  Hist->hLepMEstimate  ->Fill(fTreeVars.mestimate  , eventWeight*genWeight);
 
   if(nPhotons > 0) {
     Hist->hPXiVis[1]     ->Fill(pxi_vis1         ,eventWeight*genWeight);
@@ -789,6 +830,7 @@ void ZTauTauHistMaker::FillLepHistogram(LepHist_t* Hist) {
       Hist->hTwoSVDeltaEta ->Fill(-1.e6 ,eventWeight*genWeight);
 
   }
+  Hist->hTwoPtVsOnePt->Fill(leptonOneP4->Pt(), leptonTwoP4->Pt(), eventWeight*genWeight);
 }
 
 
@@ -837,10 +879,17 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
 
 
   InitializeTreeVariables(mutau+2*etau+5*emu);
-  //use locally computed weight
-  if(fUseTauFakeSF > 1) genTauFlavorWeight = GetTauFakeSF(tauGenFlavor);
+  //FIXME temporary fix to hadronic tau ID if is not data
+  if((mutau || etau)&&fIsData==0) {
+    eventWeight *= 1./0.95; //remove overall tau ID weight that didn't include if gen tau or not in the total event weight
+    if(abs(tauGenFlavor) == 15 && fUseTauFakeSF == 1) genTauFlavorWeight *= 0.95; //apply to real taus to original weights
+  }
+  
+  //use locally computed weight 
+  if(fUseTauFakeSF > 1 && fIsData == 0) genTauFlavorWeight = GetTauFakeSF(tauGenFlavor);
+  
   //apply fake tau SF
-  if(fUseTauFakeSF) eventWeight *= genTauFlavorWeight;
+  if(fUseTauFakeSF && fIsData == 0) eventWeight *= genTauFlavorWeight;
 
   bool chargeTest = leptonOneFlavor*leptonTwoFlavor < 0;
   // FillAllHistograms(0);

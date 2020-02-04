@@ -201,6 +201,7 @@ public :
     TH1F* hMassErrSVFit;
     TH1F* hSVFitStatus;
     TH2F* hMetVsPt;
+    TH2F* hMetVsM;
     
     TH1F* hLepPt;
     TH1F* hLepP;
@@ -227,6 +228,8 @@ public :
     TH1F* hLepSVDeltaPhi;
     TH1F* hLepSVDeltaEta;
     TH1F* hLepSVDeltaR;
+    TH1F* hLepSVDeltaM;
+    TH1F* hLepSVDeltaPt;
     TH2F* hLepSVDelRVsPhi;
     TH1F* hLepSVPtOverM;
     
@@ -253,7 +256,11 @@ public :
     TH2F* hPXiInvVsVis[3];
     TH1F* hPXiDiff[3];
     TH1F* hPXiDiff2[3];//difference with coeffecients and offset
-
+    
+    //For assuming MET along tau is tau neutrino, only makes sense for e/mu + tau
+    TH1F* hPTauVisFrac;
+    TH1F* hLepMEstimate;
+    
     TH1F* hPtSum[2]; //scalar sum of lepton Pt and Met, and photon for one
     TH1F* hPt1Sum[4]; //scalar sum of 1 lepton Pt and Met, both leptons, then both minus met
     //MVA values
@@ -332,6 +339,9 @@ public :
     TH1F* hTwoSVDeltaP;
     TH1F* hTwoSVDeltaE;
     TH1F* hTwoSVDeltaEta;
+
+    //2D distribution
+    TH2F* hTwoPtVsOnePt;
   };
 
   struct PhotonHist_t {
@@ -384,9 +394,15 @@ public :
     float mttwo;
     float pxivis;
     float pxiinv;
-    float  njets;
-    float  nbjets;
-    float  nphotons;
+    float ptauvisfrac;
+    float mestimate;
+    
+    //Event variables
+    float ht;
+    float htsum;
+    float njets;
+    float nbjets;
+    float nphotons;
     float eventweight;
     float fulleventweight; //includes cross-section and number gen
     float eventcategory; //for identifying the process in mva trainings
@@ -419,6 +435,7 @@ public :
   virtual void    FillLepHistogram(LepHist_t* Hist);
   virtual void    InitializeTreeVariables(Int_t selection);
   virtual float   GetTauFakeSF(int genFlavor);
+  virtual float   ReweightMET(int selection, double met);
 
 
   Long64_t fentry; //for tracking entry in functions
@@ -426,14 +443,14 @@ public :
   TStopwatch* timer = new TStopwatch();
   TMVA::Reader* mva; //read and apply mva weight files
   vector<TString> fMvaNames = { //mva names for getting weights
-    "mutau_BDT_8.higgs","mutau_BDT_8.Z0",
-    "etau_BDT_28.higgs","etau_BDT_28.Z0",
+    "mutau_BDTRT_8.higgs","mutau_BDTRT_8.Z0",
+    "etau_BDTRT_28.higgs","etau_BDTRT_28.Z0",
     "emu_BDT_48.higgs","emu_BDT_48.Z0"
   };
   vector<double> fMvaCuts = { //mva score cut values
-    0.3260, 0.1336,  //scores optimize significance with given branching ratios
-    0.1576, 0.1393,//scores are to cut ~30% of the signal currently
-    0.2932, 0.3655 //scores optimize significance with given branching ratios
+    0.9702, 0.9642,  //scores optimize significance with given branching ratios
+    0.8561, 0.9881,
+    0.2345, 0.3329 
   };
   //fitting MVA probability to an exponential near P(x) = 1
   vector<double> fMvaProbSlope = {
@@ -471,6 +488,7 @@ public :
   Int_t         fUseTauFakeSF = 0; //add in fake tau scale factor weight to event weights (2 to use ones defined here)
   Int_t         fIsData = 0; //0 if MC, 1 if electron data, 2 if muon data
   bool          fSkipDoubleTrigger = false; //skip events with both triggers (to avoid double counting), only count this lepton status events
+  Int_t         fMETWeights = 0; //re-weight events based on the MET
   
   ClassDef(ZTauTauHistMaker,0);
 
@@ -498,12 +516,12 @@ void ZTauTauHistMaker::Init(TTree *tree)
     mva->AddVariable("leponept"        ,&fTreeVars.leponept       );
     mva->AddVariable("leptwopt"        ,&fTreeVars.leptwopt       );
     mva->AddVariable("leppt"           ,&fTreeVars.leppt          );
-    mva->AddVariable("pxivis"          ,&fTreeVars.pxivis         );
-    mva->AddVariable("pxiinv"          ,&fTreeVars.pxiinv         );
-    mva->AddVariable("njets"           ,&fTreeVars.njets          );
+    mva->AddSpectator("pxivis"          ,&fTreeVars.pxivis         );
+    mva->AddSpectator("pxiinv"          ,&fTreeVars.pxiinv         );
+    mva->AddSpectator("njets"           ,&fTreeVars.njets          );
     mva->AddSpectator("lepdeltaeta"     ,&fTreeVars.lepdeltaeta    );
     mva->AddSpectator("lepdeltaphi"     ,&fTreeVars.lepdeltaphi    );
-    mva->AddVariable("metdeltaphi"     ,&fTreeVars.metdeltaphi    );
+    mva->AddSpectator("metdeltaphi"     ,&fTreeVars.metdeltaphi    );
 
     //Spectators from mva training also required!
     mva->AddSpectator("onemetdeltaphi" ,&fTreeVars.onemetdeltaphi );
