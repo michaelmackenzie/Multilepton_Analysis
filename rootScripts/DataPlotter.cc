@@ -332,12 +332,12 @@ void DataPlotter::get_titles(TString hist, TString setType, TString* xtitle, TSt
     *title  = Form("pT_{#tau} + pT_{l} - MET");
   }
   else if(hist == "ht") {
-    *xtitle = "pT of #Sigma #vec{P}_{Jet})";
+    *xtitle = "pT of (#Sigma #vec{P}_{Jet})";
     *ytitle = "";
     *title  = Form("Jet vector pT sum");
   }
   else if(hist == "htphi") {
-    *xtitle = "#phi of #Sigma #vec{P}_{Jet})";
+    *xtitle = "#phi of (#Sigma #vec{P}_{Jet})";
     *ytitle = "";
     *title  = Form("Jet vector sum #phi");
   }
@@ -426,12 +426,17 @@ void DataPlotter::get_titles(TString hist, TString setType, TString* xtitle, TSt
     *ytitle = "MET";
     *title  = "MET vs di-lepton pT";
   }
+  else if(hist == "twoptvsonept") {
+    *xtitle = "pT_{l1}";
+    *ytitle = "pT_{l1}";
+    *title  = "Lepton 2 pT vs Lepton 1 pT";
+  }
 
 }
 
 vector<TH1F*> DataPlotter::get_signal(TString hist, TString setType, Int_t set) {
   vector<TH1F*> h;
-  Int_t color[] = {kGreen+4, kBlue, kOrange+10, kViolet-2, kYellow+3,kOrange-9,kBlue+1};
+  Int_t color[] = {kBlue, kOrange+10, kGreen+4, kViolet-2, kYellow+3,kOrange-9,kBlue+1};
   Int_t fill[]  = {0,          0,          0,         0,        0,         0,       0};//3002,3001,3003,3003,3005,3006,3003,3003};
   
   //for combining histograms of the same process
@@ -465,15 +470,15 @@ vector<TH1F*> DataPlotter::get_signal(TString hist, TString setType, Int_t set) 
     if(index !=  i)  {
       h[index]->Add(h[i]);
       delete h[i];
-    } else {
-    
+    } else {    
       h[index]->SetFillStyle(fill [i_color]);
       h[index]->SetFillColor(color[i_color]);
       h[index]->SetLineColor(color[i_color]);
+      h[index]->SetMarkerColor(color[i_color]);
       h[index]->SetLineWidth(3);
       h[index]->SetName(Form("%s",name.Data()));
-      
     }
+    
     const char* stats = (doStatsLegend_) ? Form(" #scale[0.8]{(%.2e)}", h[index]->Integral()
 						+h[index]->GetBinContent(0)+h[index]->GetBinContent(h[index]->GetNbinsX()+1)) : "";
     h[index]->SetTitle(Form("%s%s%s", name.Data(),
@@ -606,11 +611,10 @@ THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set) {
   fill_alpha_ = 0.9;
   vector<TH1F*> h;
   TH1F* hQCD = (include_qcd_) ? get_qcd(hist,setType,set) : NULL;
-  hQCD->SetBit(kCanDelete);
-  Int_t color[] = {kRed+1, kRed-2, kYellow+1,kSpring-1 , kViolet-2, kGreen-2, kRed+3,kOrange-9,kBlue+1};
+  if(hQCD) hQCD->SetBit(kCanDelete);
+  Int_t color[] = {kRed+1, kRed-2, kYellow+1,kSpring-1 , kViolet-2, kCyan+1, kRed+3,kOrange-9,kBlue+1};
   Int_t fill[]  = {1001,1001,3005,3001,3001,3005,3001,3001,3001};
   THStack* hstack = new THStack(Form("%s",hist.Data()),Form("%s",hist.Data()));
-  
   //for combining histograms of the same process
   map<TString, int> indexes;
   
@@ -699,7 +703,7 @@ TCanvas* DataPlotter::plot_single_2Dhist(TString hist, TString setType, Int_t se
   h->SetBit(kCanDelete);
   const char* stats = (doStatsLegend_) ? Form(" #scale[0.8]{(%.2e)}", h->Integral()
 					      +h->GetBinContent(0)+h->GetBinContent(h->GetNbinsX()+1)) : "";
-  TH2F* data;
+  TH2F* data = 0;
   if(plot_data_) {
     data = get_data_2D(hist, setType, set);
     if(!data) {
@@ -724,17 +728,26 @@ TCanvas* DataPlotter::plot_single_2Dhist(TString hist, TString setType, Int_t se
 	data->GetZaxis()->SetRangeUser(2.e0,1.1*data_mx);
       }
     }
+  } else {
+    gStyle->SetPalette(kRainBow);
+    Double_t mx      = h->GetMaximum();
+    if(logZ_)
+      h->GetZaxis()->SetRangeUser(1.e-4*mx, 2.*mx);
+    else 
+      h->GetZaxis()->SetRangeUser(1.e-2,1.2*mx);
   }
 
   if(data) data->SetBit(kCanDelete);
   TH2F* hAxis = (plot_data_ && data) ? data : h;
   h->SetTitle(Form("%s%s", label.Data(),stats));
-  h->SetLineColor(color);
-  h->SetMarkerColor(color);
-  h->SetMarkerStyle(6);
+  if(plot_data_) {
+    h->SetLineColor(color);
+    h->SetMarkerColor(color);
+    h->SetMarkerStyle(6);
+  }
   h->SetName(Form("h2D_%s_%s",label.Data(),hist.Data()));    
   if(plot_data_ && data) h->Draw("same");
-  else                   h->Draw();
+  else                   h->Draw("colz");
 
   //get axis titles
   TString xtitle;
@@ -744,8 +757,8 @@ TCanvas* DataPlotter::plot_single_2Dhist(TString hist, TString setType, Int_t se
 
   c->SetGrid();
   c->SetTopMargin(0.06);
-  c->SetRightMargin(0.05);
-  c->SetLeftMargin(0.087);
+  c->SetRightMargin(0.05 - (plot_data_-1)*0.08);
+  c->SetLeftMargin(0.09);
   if(normalize_2ds_ == 0) c->BuildLegend(); //0.6, 0.9, 0.9, 0.45, "", "L");
   if(yMin_ <= yMax_)hAxis->GetYaxis()->SetRangeUser(yMin_,yMax_);
   if(xMin_ <= xMax_)hAxis->GetXaxis()->SetRangeUser(xMin_,xMax_);
@@ -1036,19 +1049,19 @@ TCanvas* DataPlotter::plot_hist(TString hist, TString setType, Int_t set) {
 }
 
 TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
-  TCanvas* c = new TCanvas(Form("s_%s_%i",hist.Data(),set),Form("s_%s_%i",hist.Data(),set), canvas_x_, canvas_y_);
-  //split the top into main stack and bottom into Data/MC if plotting data
-  TPad *pad1, *pad2;
-
   //get stack and data histogram
   THStack* hstack = get_stack(hist,setType,set);
-  if(!hstack) {
-    printf("Null stack returned!\n");
-    return c;
+  if(!hstack || hstack->GetNhists() <= 0) {
+    printf("Null or empty stack!\n");
+    return NULL;
   }
   hstack->SetBit(kCanDelete);
   TH1F* d = get_data(hist, setType, set);
   vector<TH1F*> hsignal = get_signal(hist,setType,set);
+  TCanvas* c = new TCanvas(Form("s_%s_%i",hist.Data(),set),Form("s_%s_%i",hist.Data(),set), canvas_x_, canvas_y_);
+  //split the top into main stack and bottom into Data/MC if plotting data
+  TPad *pad1, *pad2;
+
 
   if(plot_data_ && d) {
     pad1 = new TPad("pad1","pad1",upper_pad_x1_, upper_pad_y1_, upper_pad_x2_, upper_pad_y2_); //xL yL xH xH, (0,0) = bottom left
@@ -1231,6 +1244,240 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
 
 }
 
+TCanvas* DataPlotter::plot_cdf(TString hist, TString setType, Int_t set, TString label) {
+
+  TH1F* hCDF = 0;
+  for(UInt_t i = 0; i < data_.size(); ++i) {
+    if(labels_[i] == label) {
+      TH1F* tmp = (TH1F*) data_[i]->Get(Form("%s_%i/%s", setType.Data(), set, hist.Data()));
+      if(!tmp) continue;
+      tmp = (TH1F*) tmp->Clone("tmp");
+      tmp->SetBit(kCanDelete);
+      tmp->Scale(scale_[i]);
+      
+      if(hCDF) {
+	hCDF->Add(tmp);
+	delete tmp;
+      }
+      else {
+	hCDF = tmp;
+	hCDF->SetName("hCDF");
+      }
+    }
+  }
+  if(!hCDF) {
+    printf("Histogram for CDF making with label %s not found!\n", label.Data());
+    return NULL;
+  }
+  
+  //Build CDF (CDF(x) = integral(pdf(x')dx', -infinity, x))
+  TH1F* tmp = (TH1F*) hCDF->Clone("tmp");
+  tmp->Scale(1./tmp->Integral()/tmp->GetBinWidth(1));
+  const int nbins = tmp->GetNbinsX();
+  for(Int_t bin = 1; bin <= nbins; ++bin)
+    hCDF->SetBinContent(bin, tmp->Integral(0, bin)*tmp->GetBinWidth(1));
+  hCDF->Scale(1./hCDF->GetMaximum());
+
+  int rebinH = rebinH_;
+  rebinH_ = 1;
+  //With cdf made, now loop through histograms and generate transforms of each
+  THStack* hstack = get_stack(hist, setType, set);
+  TList* hists = hstack->GetHists();
+  THStack* hcdfstack = new THStack(Form("%s_%i_cdf",hist.Data(),set),Form("%s_cdf",hist.Data()));
+  vector<TH1F*> htransforms;
+  int ntransbins = 50;
+  double xtransmin = 0.;
+  double xtransmax = 1.2;
+  for(TObject* hist : *hists) {
+    TH1F* htmp = (TH1F*) hist;
+    TH1F* htrans = new TH1F(Form("%s_trans_%i", htmp->GetName(),set), htmp->GetTitle(),
+			    ntransbins, xtransmin, xtransmax);
+    for(Int_t bin = 1; bin <= htmp->GetNbinsX(); ++bin) {
+      Double_t y = hCDF->GetBinContent(bin);
+      htrans->Fill(y, htmp->GetBinContent(bin));
+    }
+    htrans->SetLineColor(htmp->GetLineColor());
+    htrans->SetFillColorAlpha(htmp->GetFillColor(),fill_alpha_);
+    htrans->SetFillStyle(htmp->GetFillStyle());
+    htrans->SetLineWidth(htmp->GetLineWidth());
+    htrans->SetMarkerStyle(htmp->GetMarkerStyle());
+    hcdfstack->Add(htrans);
+  }
+  
+  TH1F* d = get_data(hist, setType, set);
+  TH1F* data_cdf = new TH1F("data_cdf", d->GetTitle(),
+			    ntransbins, xtransmin, xtransmax);
+  for(Int_t bin = 1; bin <= d->GetNbinsX(); ++bin) {
+    Double_t y = hCDF->GetBinContent(bin);
+    data_cdf->Fill(y, d->GetBinContent(bin));
+    data_cdf->SetBinError(data_cdf->FindBin(y), sqrt(data_cdf->GetBinContent(data_cdf->FindBin(y))));
+  }
+  
+  data_cdf->SetLineColor(d->GetLineColor());
+  data_cdf->SetFillColor(d->GetFillColor());
+  data_cdf->SetFillStyle(d->GetFillStyle());
+  data_cdf->SetLineWidth(d->GetLineWidth());
+  data_cdf->SetMarkerStyle(d->GetMarkerStyle());
+  
+
+
+  TCanvas* c = new TCanvas(Form("cdf_%s_%s_%i",hist.Data(),label.Data(),set),Form("cdf_%s_%s_%i",hist.Data(),label.Data(),set), canvas_x_, canvas_y_);
+  TPad *pad1, *pad2;
+
+
+  if(plot_data_) {
+    pad1 = new TPad("pad1","pad1",upper_pad_x1_, upper_pad_y1_, upper_pad_x2_, upper_pad_y2_); //xL yL xH xH, (0,0) = bottom left
+    pad2 = new TPad("pad2","pad2",lower_pad_x1_, lower_pad_y1_, lower_pad_x2_, lower_pad_y2_);
+    pad1->SetTopMargin(upper_pad_topmargin_);
+    pad2->SetTopMargin(lower_pad_topmargin_);
+    pad1->SetBottomMargin(upper_pad_botmargin_);
+    pad2->SetBottomMargin(lower_pad_botmargin_);
+    pad1->Draw();
+    pad2->Draw();
+  } else {
+    pad1 = new TPad("pad1","pad1",0.0,0.0,1,1); //xL yL xH xH, (0,0) = bottom left
+    pad1->Draw();
+  }
+  pad1->cd();
+
+  hcdfstack->Draw("hist noclear");
+  vector<TH1F*> hsignal = get_signal(hist,setType,set);
+  vector<TH1F*> hsignalcdf;
+  for(TH1F* signal : hsignal) {
+    TH1F* htrans = new TH1F(Form("%s_trans", signal->GetName()), signal->GetTitle(),
+			    ntransbins, xtransmin, xtransmax);
+    for(Int_t bin = 1; bin <= signal->GetNbinsX(); ++bin) {
+      Double_t y = hCDF->GetBinContent(bin);
+      htrans->Fill(y, signal->GetBinContent(bin));
+    }
+    htrans->SetLineColor(signal->GetLineColor());
+    htrans->SetFillColorAlpha(signal->GetFillColor(),fill_alpha_);
+    htrans->SetFillStyle(signal->GetFillStyle());
+    htrans->SetLineWidth(signal->GetLineWidth());
+    htrans->SetMarkerStyle(signal->GetMarkerStyle());
+    htrans->Draw("hist same");
+    hsignalcdf.push_back(htrans);
+  }
+  data_cdf->Draw("same");
+
+  TH1F* hDataMC = (plot_data_) ? (TH1F*) data_cdf->Clone("hDataMC") : 0;
+  // TGraphErrors* hDataMCErr = 0;
+  double nmc = 0.;
+  int ndata = 0;
+  int nb = (data_cdf) ? data_cdf->GetNbinsX() : -1;
+  if(hDataMC) {
+    hDataMC->SetBit(kCanDelete);
+    hDataMC->Clear();
+    TH1F* hlast = (TH1F*) hcdfstack->GetStack()->Last();
+    nmc = hlast->Integral();
+    nmc += hlast->GetBinContent(0);
+    nmc += hlast->GetBinContent(nb+1);
+    ndata = data_cdf->Integral();
+    ndata += data_cdf->GetBinContent(0);
+    ndata += data_cdf->GetBinContent(nb+1);
+    for(int i = 1; i <= nb; ++i) {
+      double dataVal = 0;
+      double dataErr = 0;
+      dataVal = data_cdf->GetBinContent(i);
+      dataErr = data_cdf->GetBinError(i);
+      dataErr = sqrt(dataVal);
+      double mcVal = hlast->GetBinContent(i);
+      if(dataVal == 0 || mcVal == 0) {hDataMC->SetBinContent(i,-1); continue;}
+      double ratio = dataVal/mcVal;
+      double errRatio = (ratio)*(ratio)*(dataErr*dataErr/(dataVal*dataVal));
+      errRatio = sqrt(errRatio);
+      hDataMC->SetBinContent(i,ratio);
+      hDataMC->SetBinError(i,errRatio); 
+    }
+  }
+  
+  pad1->BuildLegend();//0.6, 0.9, 0.9, 0.45, "", "L");
+  pad1->SetGrid();
+  pad1->Update();
+  auto o = pad1->GetPrimitive("TPave");
+  if(o) {
+    auto tl = (TLegend*) o;
+    tl->SetDrawOption("L");
+    tl->SetTextSize(legend_txt_);
+    tl->SetY2NDC(legend_y2_);
+    tl->SetY1NDC(legend_y1_);
+    tl->SetX1NDC(((doStatsLegend_) ? legend_x1_stats_ : legend_x1_));
+    tl->SetX2NDC(legend_x2_);
+    tl->SetEntrySeparation(legend_sep_);
+    pad1->Update();
+  }
+  //get axis titles
+  TString xtitle;
+  TString ytitle;
+  TString title;
+  get_titles(hist,setType,&xtitle,&ytitle,&title);
+
+  //draw text
+  draw_luminosity();
+  draw_cms_label();
+  
+  if(plot_data_ && hDataMC) hDataMC->GetXaxis()->SetTitle(xtitle.Data());
+  else hcdfstack->GetXaxis()->SetTitle(xtitle.Data());
+  if(plot_y_title_) hcdfstack->GetYaxis()->SetTitle(ytitle.Data());
+  double m = max(max(m,hcdfstack->GetMaximum()), (data_cdf) ? data_cdf->GetMaximum() : 0.);
+
+  if(yMin_ < yMax_) hcdfstack->GetYaxis()->SetRangeUser(yMin_,yMax_);    
+  else              hcdfstack->GetYaxis()->SetRangeUser(1.e-1,m*1.2);    
+  if(plot_data_ && xMin_ < xMax_ && hDataMC) hDataMC->GetXaxis()->SetRangeUser(xMin_,xMax_);    
+  if(xMin_ < xMax_) hcdfstack->GetXaxis()->SetRangeUser(xMin_,xMax_);    
+
+  if(plot_title_) hcdfstack->SetTitle (title.Data());
+  else hcdfstack->SetTitle("");
+
+  if(yMin_ < yMax_) {
+    hcdfstack->SetMinimum(yMin_);
+    hcdfstack->SetMaximum(yMax_);
+  }
+  else {
+    hcdfstack->SetMinimum(1.e-1);
+    hcdfstack->SetMaximum((logY_>0 ? 2.*m : 1.2*m));
+  }
+  //Set Y-axis title size and offset
+  hcdfstack->GetYaxis()->SetTitleSize(0.045);
+  hcdfstack->GetYaxis()->SetTitleOffset(0.7);
+  if(logY_) {
+    if(plot_data_)pad1->SetLogy();
+    else          c->SetLogy();
+  }
+  c->SetGrid();
+  if(plot_data_ && hDataMC) {
+    pad2->cd();
+    pad2->SetGrid();
+    c->SetGrid();
+    hDataMC->Draw("E");
+    TLine* line = new TLine((xMax_ < xMin_) ? hDataMC->GetBinCenter(1)-hDataMC->GetBinWidth(1)/2. : xMin_, 1.,
+			    (xMax_ < xMin_) ? hDataMC->GetBinCenter(hDataMC->GetNbinsX())+hDataMC->GetBinWidth(1)/2. : xMax_, 1.);
+    line->SetLineColor(kRed);
+    line->Draw("same");
+    
+    hDataMC->GetYaxis()->SetTitle("Data/MC");
+    hDataMC->GetXaxis()->SetTitleSize(0.11);
+    hDataMC->GetXaxis()->SetTitleOffset(0.8);
+    hDataMC->GetXaxis()->SetLabelSize(0.08);
+    hDataMC->GetYaxis()->SetTitleSize(0.1);
+    hDataMC->GetYaxis()->SetTitleOffset(0.3);
+    hDataMC->GetYaxis()->SetLabelSize(0.08);
+    double m = hDataMC->GetMaximum();
+    double mn = hDataMC->GetMinimum();
+    mn = max(0.2*mn,5e-1);
+    m = 1.2*m;
+    m = min(m, 2.0);
+    hDataMC->GetYaxis()->SetRangeUser(mn,m);    
+    hDataMC->SetMinimum(mn);
+    hDataMC->SetMaximum(m);
+    //  hDataMC->GetXaxis()->SetLabelOffset(0.5);
+  
+    hDataMC->SetMarkerStyle(20);
+  }
+
+  rebinH_ = rebinH;
+  return c;
+}
 
 TCanvas* DataPlotter::print_stack(TString hist, TString setType, Int_t set) {
   TCanvas* c = plot_stack(hist,setType,set);
@@ -1266,8 +1513,21 @@ TCanvas* DataPlotter::print_single_2Dhist(TString hist, TString setType, Int_t s
   if(!c) return c;
   label.ReplaceAll("#",""); //for ease of use in bash
   label.ReplaceAll(" ", "");
+  label.ReplaceAll("/", "");
   c->Print(Form("figures/%s/%s/hist2D_%s_%s%s%s_%s_set_%i.png",folder_.Data(),selection_.Data(),label.Data(),hist.Data(),
 		(logZ_ ? "_log":""),
+		((plot_data_) ? "_data":""),"dataOverMC",set));
+  return c;
+}
+
+TCanvas* DataPlotter::print_cdf(TString hist, TString setType, Int_t set, TString label) {
+  TCanvas* c = plot_cdf(hist,setType,set,label);
+  if(!c) return c;
+  label.ReplaceAll("#",""); //for ease of use in bash
+  label.ReplaceAll(" ", "");
+  label.ReplaceAll("/", "");
+  c->Print(Form("figures/%s/%s/cdf_%s_%s%s%s_%s_set_%i.png",folder_.Data(),selection_.Data(),label.Data(),hist.Data(),
+		(logY_ ? "_log":""),
 		((plot_data_) ? "_data":""),"dataOverMC",set));
   return c;
 }

@@ -51,7 +51,7 @@ public :
   Int_t include_qcd_ = 1;
   Int_t qcd_offset_ = 100; //set number offset to get same sign selection
   Int_t plot_title_ = 0; //Plot the title on the canvas
-  Double_t fill_alpha_ = 0.2; //alpha to use for hist plotting
+  Double_t fill_alpha_ = 0.9; //alpha to use for hist plotting
   Int_t normalize_2ds_ = 1; //normalzie 2D histograms when plotting
   Double_t signal_scale_ = 1.; //increase the size of the signal if needed
   Int_t stack_signal_ = 0; //put signal into the stack
@@ -177,6 +177,8 @@ public :
     xMin_ = xmin; xMax_=xmax; auto c = plot_stack(hist, setType, set); reset_axes(); return c;
   }
 
+  virtual TCanvas* plot_cdf(TString hist, TString setType, Int_t set, TString label);
+
   virtual TCanvas* print_stack(TString hist, TString setType, Int_t set);
   TCanvas* print_stack(TString hist, TString setType, Int_t set, Double_t xmin, Double_t xmax) {
     xMin_ = xmin; xMax_=xmax; auto c = print_stack(hist, setType, set); reset_axes(); return c;
@@ -197,6 +199,11 @@ public :
   TCanvas* print_single_2Dhist(TString hist, TString setType, Int_t set, TString label, 
 			      Double_t xmin, Double_t xmax, Double_t ymin, Double_t ymax) {
     xMin_ = xmin; xMax_=xmax; yMin_ = ymin; yMax_=ymax; auto c = print_single_2Dhist(hist, setType, set, label); reset_axes(); return c;
+  }
+  
+  virtual TCanvas* print_cdf(TString hist, TString setType, Int_t set, TString label);
+  TCanvas* print_cdf(TString hist, TString setType, Int_t set, TString label, Double_t xmin, Double_t xmax) {
+    xMin_ = xmin; xMax_=xmax; auto c = print_cdf(hist, setType, set, label); reset_axes(); return c;
   }
   
   virtual Int_t print_stacks(vector<TString> hists, vector<TString> setTypes, vector<Int_t>sets,
