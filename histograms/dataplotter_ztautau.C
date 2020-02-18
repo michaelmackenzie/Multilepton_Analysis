@@ -137,9 +137,9 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
 	delete c;
 	c = dataplotter_->print_cdf("mva1", "event", s, ("Z"+label), 0., 1.5);
 	delete c;
-	c = dataplotter_->print_significance("mva0", "event", s, ("H"+label));
+	c = dataplotter_->print_significance("mva0", "event", s, ("H"+label), -1., 1.);
 	delete c;
-	c = dataplotter_->print_significance("mva1", "event", s, ("Z"+label), true, 0.71);
+	c = dataplotter_->print_significance("mva1", "event", s, ("Z"+label), -1., 1.3, true, 0.71);
 	delete c;
       }
       else if(selection_=="etau") {
@@ -147,9 +147,9 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
 	delete c;
 	c = dataplotter_->print_cdf("mva3", "event", s, ("Z"+label), 0., 1.7);
 	delete c;
-	c = dataplotter_->print_significance("mva2", "event", s, ("H"+label));
+	c = dataplotter_->print_significance("mva2", "event", s, ("H"+label), -1., 1.);
 	delete c;
-	c = dataplotter_->print_significance("mva3", "event", s, ("Z"+label));
+	c = dataplotter_->print_significance("mva3", "event", s, ("Z"+label), -1., 1.);
 	delete c;
       }
       else if(selection_=="emu") {
@@ -157,9 +157,9 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
 	delete c;
 	c = dataplotter_->print_cdf("mva5", "event", s, ("Z"+label), 0., 1.7);
 	delete c;
-	c = dataplotter_->print_significance("mva4", "event", s, ("H"+label));
+	c = dataplotter_->print_significance("mva4", "event", s, ("H"+label), -1., 1.);
 	delete c;
-	c = dataplotter_->print_significance("mva5", "event", s, ("Z"+label), true, 0.44);
+	c = dataplotter_->print_significance("mva5", "event", s, ("Z"+label), -1., 1., true, 0.44);
 	delete c;
       }
     }
