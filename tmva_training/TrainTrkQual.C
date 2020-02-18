@@ -48,7 +48,8 @@
 #include "TMVA/Tools.h"
 #endif
 
-Int_t DYvsW_ = -1; //switch between -1: all backgrounds 0: DY 1: W+Jets
+TString selection_ = "zmutau";
+
 //Train MVA to separate the given signal from the given background
 int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual",
 		 vector<int> signals = {0},
@@ -116,7 +117,7 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
   //
   // --- Neural Networks (all are feed-forward Multilayer Perceptrons)
   Use["MLP"]             = 0; // Recommended ANN
-  Use["MLP_MM"]          = 0; // ANN with altered settings
+  Use["MLP_MM"]          = 1; // ANN with altered settings
   Use["MLPBFGS"]         = 0; // Recommended ANN with optional training method
   Use["MLPBNN"]          = 0; // Recommended ANN with BFGS training method and bayesian regulator
   Use["CFMlpANN"]        = 0; // Depreciated ANN from ALEPH
@@ -199,19 +200,33 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
   factory->AddVariable("leponept","pT_{l1}","",'F');
   factory->AddVariable("leptwopt","pT_{l2}","",'F');
   factory->AddVariable("leppt", "Pt_{ll}", "GeV", 'F');
-  factory->AddVariable("pxivis","p^{vis}_{#xi}","",'F');
-  factory->AddVariable("pxiinv","p^{inv}_{#xi}","",'F');
+  factory->AddSpectator("pxivis","p^{vis}_{#xi}","",'F');
+  factory->AddSpectator("pxiinv","p^{inv}_{#xi}","",'F');
   factory->AddVariable("njets", "nJets", "", 'F');
   factory->AddSpectator("lepdeltaeta","#Delta#eta_{ll}","",'F');
-  factory->AddSpectator("lepdeltaphi","#Delta#phi_{ll}","",'F');
-  factory->AddVariable("metdeltaphi","#Delta#phi_{MET,ll}","",'F');
-
-  factory->AddSpectator("onemetdeltaphi","#Delta#phi_{MET,l1}","",'F');  
+  factory->AddSpectator("metdeltaphi","#Delta#phi_{MET,ll}","",'F');
+  //tau specific
+  if(selection_.Contains("tau")) {
+    factory->AddVariable("lepmestimate" , "M_{ll}^{Coll}" , "GeV", 'F');   
+    factory->AddVariable("onemetdeltaphi","#Delta#phi_{MET,l1}","",'F');  
+  } else {
+    factory->AddSpectator("lepmestimate" , "M_{ll}^{Coll}" , "GeV", 'F');   
+    factory->AddSpectator("onemetdeltaphi","#Delta#phi_{MET,l1}","",'F');  
+  }
   factory->AddVariable("leponedeltaphi","#Delta#phi_{l1,ll}","",'F');
   factory->AddVariable("leptwodeltaphi","#Delta#phi_{l2,ll}","",'F');
   factory->AddSpectator("leponed0","D0_{l1}","",'F');
   factory->AddSpectator("leptwod0","D0_{l2}","",'F');
   factory->AddSpectator("htdeltaphi","#Delta#phi_{MET,ll}","",'F');
+  //higgs specific
+  if(selection_.Contains("h")) {
+    factory->AddVariable("ht","pT(#Sigma #vec{P}_{Jet})","",'F');
+    // factory->AddVariable("ptoverm := leppt/lepm","pT_{ll}/M_{ll}","",'F');
+  } else {
+    factory->AddSpectator("ht","pT(#Sigma #vec{P}_{Jet})","",'F');
+  }
+  factory->AddSpectator("lepdeltaphi","#Delta#phi_{ll}","",'F');
+  factory->AddSpectator("htsum","#Sigma pT_{Jet}","",'F');
   factory->AddSpectator("leponeiso","Iso_{l1}","",'F');
   factory->AddSpectator("twometdeltaphi","#Delta#phi_{MET,l2}","",'F');
   factory->AddSpectator("met","MET","GeV",'F');
@@ -452,9 +467,9 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
 
   if (Use["MLP_MM"]) {
     TString network;
-    network = "10,5,3";//:LearningRate=1e-2";
+    network = "10,5,5";//:LearningRate=1e-2";
     factory->BookMethod( TMVA::Types::kMLP, "MLP_MM",
-			 Form("!H:!V:VarTransform=N:HiddenLayers=%s:CreateMVAPdfs=True",//:BPMode=batch:BatchSize=3e4:SamplingEpoch=1:TestRate=5:TrainingMethod=BFGS:!UseRegulator
+			 Form("!H:!V:VarTransform=N:HiddenLayers=%s:CreateMVAPdfs=False",//:BPMode=batch:BatchSize=3e4:SamplingEpoch=1:TestRate=5:TrainingMethod=BFGS:!UseRegulator
 			      network.Data()));
 			 //:LearningRate=1e-2:EstimatorType=MSE:NeuronType=sigmoid" );
   }
@@ -483,12 +498,12 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
 
   if (Use["BDT"])  // Adaptive Boost
     factory->BookMethod( TMVA::Types::kBDT,"BDT",
-	"!H:!V:NTrees=850:nEventsMin=150:MaxDepth=3:BoostType=AdaBoost:AdaBoostBeta=0.5:SeparationType=GiniIndex:nCuts=20:PruneMethod=NoPruning:CreateMVAPdfs=True" );
+	"!H:!V:NTrees=850:nEventsMin=150:MaxDepth=3:BoostType=AdaBoost:AdaBoostBeta=0.5:SeparationType=GiniIndex:nCuts=20:PruneMethod=NoPruning:CreateMVAPdfs=False" );
 
   if (Use["BDTRT"]) {  // Bagging Boost Random Trees
     TString bdtSetup = "!H:!V";
     bdtSetup += ":NTrees=1000:MinNodeSize=1%:MaxDepth=5:nCuts=100:UseNVars=5:UseRandomisedTrees=True";
-    bdtSetup += ":BoostType=Bagging:BaggedSampleFraction=0.6:CreateMVAPdfs=True";
+    bdtSetup += ":BoostType=Bagging:BaggedSampleFraction=0.6:CreateMVAPdfs=False";
     // bdtSetup += ":PruneMethod=ExpectedError:PruneStrength=0.2";
     factory->BookMethod( TMVA::Types::kBDT, "BDTRT",bdtSetup.Data());
   }

@@ -18,6 +18,7 @@
 #include "TLine.h"
 #include "TObject.h"
 #include "TLegend.h"
+#include "TGaxis.h"
 
 class DataPlotter : public TObject {
 public :
@@ -62,8 +63,13 @@ public :
   bool doStatsLegend_ = true; //Give each backgrounds contribution in the legend
 
   //Various canvas drawing numbers
-  Int_t canvas_x_ = 1000; //canvas dimensions
+  Int_t canvas_x_ = 900; //canvas dimensions
   Int_t canvas_y_ = 800;
+  Double_t axis_font_size_ = 0.2; //axis title values
+  Double_t y_title_offset_ = 0.18;
+  Double_t x_title_offset_ = 0.6;
+  Double_t x_label_size_ = 0.1;
+  Double_t y_label_size_ = 0.1;
   Double_t upper_pad_x1_ = 0.0; //upper pad fractional dimensions
   Double_t upper_pad_y1_ = 0.3;
   Double_t upper_pad_x2_ = 1.0;
@@ -75,17 +81,28 @@ public :
   Double_t upper_pad_topmargin_ = 0.06; //pad margins
   Double_t upper_pad_botmargin_ = 0.05;
   Double_t lower_pad_topmargin_ = 0.03;
-  Double_t lower_pad_botmargin_ = 0.22;
-  Double_t legend_txt_ = 0.04; //Legend parameters
+  Double_t lower_pad_botmargin_ = 0.27;
+  Double_t legend_txt_ = 0.06; //Legend parameters
   Double_t legend_x1_stats_ = 0.6; //if stats in legend
-  Double_t legend_x1_ = 0.7; //if no stats in legend
+  Double_t legend_x1_ = 0.62; //if no stats in legend
   Double_t legend_x2_ = 0.9; 
-  Double_t legend_y1_ = 0.9;
-  Double_t legend_y2_ = 0.5; 
+  Double_t legend_y1_ = 0.93;
+  Double_t legend_y2_ = 0.43; 
   // Double_t legend_y2_split_ = 0.45; 
   Double_t legend_sep_ = 2.;
-  Double_t data_txt_x_ = 0.48;
-  Double_t data_txt_y_ = 0.72;
+  //luminosity drawing
+  Double_t lum_txt_x_ = 0.67;
+  Double_t lum_txt_y_ = 0.98;
+  //CMS prelim drawing
+  Double_t cms_txt_x_ = 0.28;
+  Double_t cms_txt_y_ = 0.9;
+  
+  //data yield drawing
+  Double_t data_txt_x_ = 0.42;
+  Double_t data_txt_y_ = 0.63;
+  
+  //significance drawing
+  Double_t sig_plot_range_ = 3.;
   
   ~DataPlotter() {
     for(auto d : data_) {
@@ -93,7 +110,7 @@ public :
     }
   }
   
-  void draw_cms_label() {
+  void draw_cms_label(bool single = false) {
     TText *cmslabel = new TText();
     cmslabel -> SetNDC();
     cmslabel -> SetTextFont(72);
@@ -101,7 +118,7 @@ public :
     cmslabel -> SetTextSize(.08);
     cmslabel -> SetTextAlign(22);
     cmslabel -> SetTextAngle(0);
-    cmslabel -> DrawText(0.27, 0.9, "CMS Preliminary");
+    cmslabel -> DrawText((single) ? 0.35 : cms_txt_x_, (single) ? 0.92 : cms_txt_y_, "CMS Preliminary");
   }
 
   void draw_luminosity() {
@@ -112,7 +129,7 @@ public :
     label.SetTextSize(.04);
     label.SetTextAlign(13);
     label.SetTextAngle(0);
-    label.DrawLatex(0.7, 0.98, Form("L=%.1f/fb #sqrt{#it{s}} = %.0f TeV",lum_/1e3,rootS_));
+    label.DrawLatex(lum_txt_x_, lum_txt_y_, Form("L=%.1f/fb #sqrt{#it{s}} = %.0f TeV",lum_/1e3,rootS_));
   }
 
   void draw_data(int ndata, double nmc, map<TString, double> nsig) {
@@ -126,12 +143,12 @@ public :
     label.DrawLatex(data_txt_y_, data_txt_x_, Form("%10s = %10i", "n_{Data}", ndata));
     double x = data_txt_x_;
     if(nmc > 0.) {
-      x -= 0.04;
+      x -= 0.045;
       label.DrawLatex(data_txt_y_, x, Form("%9s = %10.1f", "n_{MC}", nmc));
     }
     auto it = nsig.begin();
     while(it != nsig.end()) {
-      x -= 0.04;
+      x -= 0.045;
       label.DrawLatex(data_txt_y_, x, Form("%10s = %10.1f", Form("n_{%s}", it->first.Data()), it->second));
       it++;
     }
@@ -178,6 +195,15 @@ public :
   }
 
   virtual TCanvas* plot_cdf(TString hist, TString setType, Int_t set, TString label);
+  TCanvas* plot_cdf(TString hist, TString setType, Int_t set, TString label, Double_t xmin, Double_t xmax) {
+    xMin_ = xmin; xMax_=xmax; auto c = plot_cdf(hist, setType, set, label); reset_axes(); return c;
+  }
+
+
+  virtual TCanvas* plot_significance(TString hist, TString setType, Int_t set, TString label, bool dir, Double_t line_val);
+  TCanvas* plot_significance(TString hist, TString setType, Int_t set, TString label, Double_t xmin, Double_t xmax, bool dir=true, Double_t line_val=-1.) {
+    xMin_ = xmin; xMax_=xmax; auto c = plot_significance(hist, setType, set, label, dir, line_val); reset_axes(); return c;
+  }
 
   virtual TCanvas* print_stack(TString hist, TString setType, Int_t set);
   TCanvas* print_stack(TString hist, TString setType, Int_t set, Double_t xmin, Double_t xmax) {
@@ -205,7 +231,12 @@ public :
   TCanvas* print_cdf(TString hist, TString setType, Int_t set, TString label, Double_t xmin, Double_t xmax) {
     xMin_ = xmin; xMax_=xmax; auto c = print_cdf(hist, setType, set, label); reset_axes(); return c;
   }
-  
+
+  virtual TCanvas* print_significance(TString hist, TString setType, Int_t set, TString label, bool dir, Double_t line_val);
+  TCanvas* print_significance(TString hist, TString setType, Int_t set, TString label, Double_t xmin, Double_t xmax, bool dir=true, Double_t line_val=-1.) {
+    xMin_ = xmin; xMax_=xmax; auto c = print_significance(hist, setType, set, label, dir, line_val); reset_axes(); return c;
+  }
+
   virtual Int_t print_stacks(vector<TString> hists, vector<TString> setTypes, vector<Int_t>sets,
 			     vector<Double_t> xMaxs, vector<Double_t> xMins, vector<Int_t> rebins
 			     , vector<Double_t> signal_scales, vector<Int_t> base_rebins);

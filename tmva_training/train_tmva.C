@@ -48,6 +48,27 @@ int train_tmva(const char* tree_name = "background_ztautau_mutau_7.tree", vector
       if( i < n-1) tmvaName += "_";
     }
   }
-  printf("Beginning Training %s\n",tmvaName.Data());
+  TString selection = "";
+  if(tmvaName.Contains("Z0"))
+    selection += "z";
+  else if(tmvaName.Contains("higgs"))
+    selection += "h";
+  else {
+    printf("Unknown selection! Defaulting to Z0!\n");
+    selection += "z";
+  }
+  
+  if(tmvaName.Contains("mutau"))
+    selection += "mutau";
+  else if(tmvaName.Contains("etau"))
+    selection += "etau";
+  else if(tmvaName.Contains("emu"))
+    selection += "emu";
+  else {
+    printf("Unknown selection! Default to mutau!\n");
+    selection += "mutau";
+  }
+  selection_ = selection;
+  printf("Beginning Training %s with selection %s\n",tmvaName.Data(), selection.Data());
   return TrainTrkQual(signal, background, tmvaName.Data(), signals, ignore);
 }

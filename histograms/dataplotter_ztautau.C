@@ -58,7 +58,7 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
   hnames.push_back("nphotons");       htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(5.);
   if(selection_ == "mutau") {
     hnames.push_back("mva0");         htypes.push_back("event"); rebins.push_back(200); xmins.push_back(-1.);  xmaxs.push_back(1.7);
-    hnames.push_back("mva1");         htypes.push_back("event"); rebins.push_back(200); xmins.push_back(-1.);  xmaxs.push_back(1.7);
+    hnames.push_back("mva1");         htypes.push_back("event"); rebins.push_back(200); xmins.push_back(-1.);  xmaxs.push_back(1.9);
     hnames.push_back("prob0");        htypes.push_back("event"); rebins.push_back(5); xmins.push_back(-1.);  xmaxs.push_back(1.2);
     hnames.push_back("prob1");        htypes.push_back("event"); rebins.push_back(5); xmins.push_back(-1.);  xmaxs.push_back(1.2);
     hnames.push_back("cdf0");         htypes.push_back("event"); rebins.push_back(5); xmins.push_back(0.);   xmaxs.push_back(1.5);
@@ -88,10 +88,10 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
   hnames.push_back("onemetdeltaphi"); htypes.push_back("lep");   rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(3.5);
   hnames.push_back("twometdeltaphi"); htypes.push_back("lep");   rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(3.5);
 
-  hnames.push_back("oned0");          htypes.push_back("lep");   rebins.push_back(2); xmins.push_back(-0.1); xmaxs.push_back(0.1);
+  hnames.push_back("oned0");          htypes.push_back("lep");   rebins.push_back(2); xmins.push_back(-0.05); xmaxs.push_back(0.05);
   hnames.push_back("oneiso");         htypes.push_back("lep");   rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(10.);
   hnames.push_back("onereliso");      htypes.push_back("lep");   rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(0.15);
-  hnames.push_back("twod0");          htypes.push_back("lep");   rebins.push_back(2); xmins.push_back(-0.1); xmaxs.push_back(0.1);
+  hnames.push_back("twod0");          htypes.push_back("lep");   rebins.push_back(2); xmins.push_back(-0.05); xmaxs.push_back(0.05);
   if(selection_ == "emu") {
     hnames.push_back("twoiso");       htypes.push_back("lep");   rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(10.);
     hnames.push_back("tworeliso");    htypes.push_back("lep");   rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(0.15);
@@ -137,17 +137,29 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
 	delete c;
 	c = dataplotter_->print_cdf("mva1", "event", s, ("Z"+label), 0., 1.5);
 	delete c;
+	c = dataplotter_->print_significance("mva0", "event", s, ("H"+label));
+	delete c;
+	c = dataplotter_->print_significance("mva1", "event", s, ("Z"+label), true, 0.71);
+	delete c;
       }
       else if(selection_=="etau") {
-	auto c = dataplotter_->print_cdf("mva2", "event", s, ("H"+label), 0., 1.5);
+	auto c = dataplotter_->print_cdf("mva2", "event", s, ("H"+label), 0., 1.7);
 	delete c;
-	c = dataplotter_->print_cdf("mva3", "event", s, ("Z"+label), 0., 1.5);
+	c = dataplotter_->print_cdf("mva3", "event", s, ("Z"+label), 0., 1.7);
+	delete c;
+	c = dataplotter_->print_significance("mva2", "event", s, ("H"+label));
+	delete c;
+	c = dataplotter_->print_significance("mva3", "event", s, ("Z"+label));
 	delete c;
       }
       else if(selection_=="emu") {
-	auto c = dataplotter_->print_cdf("mva4", "event", s, ("H"+label), 0., 1.5);
+	auto c = dataplotter_->print_cdf("mva4", "event", s, ("H"+label), 0., 1.7);
 	delete c;
-	c = dataplotter_->print_cdf("mva5", "event", s, ("Z"+label), 0., 1.5);
+	c = dataplotter_->print_cdf("mva5", "event", s, ("Z"+label), 0., 1.7);
+	delete c;
+	c = dataplotter_->print_significance("mva4", "event", s, ("H"+label));
+	delete c;
+	c = dataplotter_->print_significance("mva5", "event", s, ("Z"+label), true, 0.44);
 	delete c;
       }
     }
