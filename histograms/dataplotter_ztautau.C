@@ -59,24 +59,12 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
   if(selection_ == "mutau") {
     hnames.push_back("mva0");         htypes.push_back("event"); rebins.push_back(200); xmins.push_back(-1.);  xmaxs.push_back(1.7);
     hnames.push_back("mva1");         htypes.push_back("event"); rebins.push_back(200); xmins.push_back(-1.);  xmaxs.push_back(1.9);
-    hnames.push_back("prob0");        htypes.push_back("event"); rebins.push_back(5); xmins.push_back(-1.);  xmaxs.push_back(1.2);
-    hnames.push_back("prob1");        htypes.push_back("event"); rebins.push_back(5); xmins.push_back(-1.);  xmaxs.push_back(1.2);
-    hnames.push_back("cdf0");         htypes.push_back("event"); rebins.push_back(5); xmins.push_back(0.);   xmaxs.push_back(1.5);
-    hnames.push_back("cdf1");         htypes.push_back("event"); rebins.push_back(5); xmins.push_back(0.);   xmaxs.push_back(1.5);
   } else if(selection_ == "etau") {
     hnames.push_back("mva2");         htypes.push_back("event"); rebins.push_back(200); xmins.push_back(-1.);  xmaxs.push_back(1.7);
     hnames.push_back("mva3");         htypes.push_back("event"); rebins.push_back(200); xmins.push_back(-1.);  xmaxs.push_back(1.7);
-    hnames.push_back("prob2");        htypes.push_back("event"); rebins.push_back(5); xmins.push_back(-1.);  xmaxs.push_back(1.2);
-    hnames.push_back("prob3");        htypes.push_back("event"); rebins.push_back(5); xmins.push_back(-1.);  xmaxs.push_back(1.2);
-    hnames.push_back("cdf2");         htypes.push_back("event"); rebins.push_back(5); xmins.push_back(0.);   xmaxs.push_back(1.5);
-    hnames.push_back("cdf3");         htypes.push_back("event"); rebins.push_back(5); xmins.push_back(0.);   xmaxs.push_back(1.5);
   } else if(selection_ == "emu") {
     hnames.push_back("mva4");         htypes.push_back("event"); rebins.push_back(200); xmins.push_back(-1.);  xmaxs.push_back(1.7);
     hnames.push_back("mva5");         htypes.push_back("event"); rebins.push_back(200); xmins.push_back(-1.);  xmaxs.push_back(1.7);
-    hnames.push_back("prob4");        htypes.push_back("event"); rebins.push_back(5); xmins.push_back(0.);   xmaxs.push_back(1.2);
-    hnames.push_back("prob5");        htypes.push_back("event"); rebins.push_back(5); xmins.push_back(0.);   xmaxs.push_back(1.2);
-    hnames.push_back("cdf4");         htypes.push_back("event"); rebins.push_back(5); xmins.push_back(0.);   xmaxs.push_back(1.5);
-    hnames.push_back("cdf5");         htypes.push_back("event"); rebins.push_back(5); xmins.push_back(0.);   xmaxs.push_back(1.5);
   }
   
   hnames.push_back("htsum");          htypes.push_back("event"); rebins.push_back(5); xmins.push_back(0.);   xmaxs.push_back(800.);
@@ -108,22 +96,22 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
     for(int logz = 0; logz < 2; ++logz) { //print log and not log z axis plots
       dataplotter_->logZ_ = logz;
       for(int s : sets) {
-	auto c = dataplotter_->print_single_2Dhist("pxiinvvsvis0", "event", s, ("Z"+label), 0, 100, -100, 100);
-	delete c;
-	c = dataplotter_->print_single_2Dhist("pxiinvvsvis0", "event", s, ("H"+label), 0, 100, -100, 100);
-	delete c;
-	c = dataplotter_->print_single_2Dhist("metvspt"     , "event", s, ("Z"+label), 0, 150,    0, 150);
-	delete c;
-	c = dataplotter_->print_single_2Dhist("metvspt"     , "event", s, ("H"+label), 0, 150,    0, 150);
-	delete c;
-	c = dataplotter_->print_single_2Dhist("twoptvsonept", "lep"  , s, ("Z->ee/#mu#mu"), 0, 150,    0, 150);
-	delete c;
-	c = dataplotter_->print_single_2Dhist("twoptvsonept", "lep"  , s, ("Z->#tau#tau"), 0, 150,    0, 150);
-	delete c;
-	c = dataplotter_->print_single_2Dhist("twoptvsonept", "lep"  , s, ("Z"+label), 0, 150,    0, 150);
-	delete c;
-	c = dataplotter_->print_single_2Dhist("twoptvsonept", "lep"  , s, ("H"+label), 0, 150,    0, 150);
-	delete c;
+  	auto c = dataplotter_->print_single_2Dhist("pxiinvvsvis0", "event", s, ("Z"+label), 0, 100, -100, 100);
+  	delete c;
+  	c = dataplotter_->print_single_2Dhist("pxiinvvsvis0", "event", s, ("H"+label), 0, 100, -100, 100);
+  	delete c;
+  	c = dataplotter_->print_single_2Dhist("metvspt"     , "event", s, ("Z"+label), 0, 150,    0, 150);
+  	delete c;
+  	c = dataplotter_->print_single_2Dhist("metvspt"     , "event", s, ("H"+label), 0, 150,    0, 150);
+  	delete c;
+  	c = dataplotter_->print_single_2Dhist("twoptvsonept", "lep"  , s, ("Z->ee/#mu#mu"), 0, 150,    0, 150);
+  	delete c;
+  	c = dataplotter_->print_single_2Dhist("twoptvsonept", "lep"  , s, ("Z->#tau#tau"), 0, 150,    0, 150);
+  	delete c;
+  	c = dataplotter_->print_single_2Dhist("twoptvsonept", "lep"  , s, ("Z"+label), 0, 150,    0, 150);
+  	delete c;
+  	c = dataplotter_->print_single_2Dhist("twoptvsonept", "lep"  , s, ("H"+label), 0, 150,    0, 150);
+  	delete c;
       }
     }
   }
@@ -133,9 +121,9 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
     dataplotter_->logY_ = logy;
     for(int s : sets) {
       if(selection_=="mutau") {
-	auto c = dataplotter_->print_cdf("mva0", "event", s, ("H"+label), 0., 1.5);
+	auto c = dataplotter_->print_cdf("mva0", "event", s, ("H"+label), 0., 1.7);
 	delete c;
-	c = dataplotter_->print_cdf("mva1", "event", s, ("Z"+label), 0., 1.5);
+	c = dataplotter_->print_cdf("mva1", "event", s, ("Z"+label), 0., 1.7);
 	delete c;
 	c = dataplotter_->print_significance("mva0", "event", s, ("H"+label), -1., 1.);
 	delete c;
@@ -164,6 +152,7 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
       }
     }
   }
+  
   dataplotter_->logY_ = 0;
   int status = (stacks) ? dataplotter_->print_stacks(hnames, htypes, sets, xmaxs, xmins, rebins, signal_scales, base_rebins) :
     dataplotter_->print_hists(hnames, htypes, sets, xmaxs, xmins, rebins, signal_scales, base_rebins);
@@ -267,22 +256,22 @@ Int_t init_dataplotter() {
   xsec[25] =  3.22;		       //"zz_2l2q"                 
   xsec[26] =  1.212;		       //"zz_4l"
   //Higgs branching ratios: https://twiki.cern.ch/twiki/bin/view/LHCPhysics/CERNYellowReportPageBR2014
-  //Higgs production xsecs: https://twiki.cern.ch/twiki/bin/view/LHCPhysics/CERNYellowReportPageAt1314TeV2014
+  //Higgs production xsecs: https://twiki.cern.ch/twiki/bin/view/LHCPhysics/CERNHLHE2019
   //Z decay to leptons fraction: http://pdg.lbl.gov/2012/listings/rpp2012-list-z-boson.pdf
   // --> Br(Z->ll) * Br(h->Zg) * xsec(X -> h)
-  xsec[27] =    3.*3.3658/100.*1.54e-3* 43.92;	       //"hzg_gluglu"              
-  xsec[28] =    3.*3.3658/100.*1.54e-3* 0.5085;	       //"hzg_tth"                 
-  xsec[29] =    3.*3.3658/100.*1.54e-3* 3.748;	       //"hzg_vbf"                 
-  xsec[30] =    3.*3.3658/100.*1.54e-3* 1.380/2.;	       //"hzg_wminus"              
-  xsec[31] =    3.*3.3658/100.*1.54e-3* 1.380/2.;	       //"hzg_wplus"               
-  xsec[32] =    3.*3.3658/100.*1.54e-3* 0.8696;	       //"hzg_zh"                  
-  xsec[33] =                   6.32e-2* 43.92;	       //"htautau_gluglu"                  
-  xsec[34] =    ((6225.42+18610.)/(3.*3.3658e-2))*9.8e-6*11031./2.e5; //zetau z->ll / br(ll) * br(etau, CL=95) *N(accepted)/N(Gen) http://pdg.lbl.gov/2018/listings/rpp2018-list-z-boson.pdf
-  xsec[35] =    ((6225.42+18610.)/(3.*3.3658e-2))*1.2e-5*11316./2.e5; //zmutau z->ll/ br(ll) * br(mutau, CL=95)*N(accepted)/N(Gen) http://pdg.lbl.gov/2018/listings/rpp2018-list-z-boson.pdf
-  xsec[36] =    ((6225.42+18610.)/(3.*3.3658e-2))*7.3e-7*31033./2.e5; //zmutau z->ll/ br(ll) * br(emu, CL=95)*N(accepted)/N(Gen) http://pdg.lbl.gov/2018/listings/rpp2018-list-z-boson.pdf
-  xsec[37] = (43.92+3.748+0.5085+1.380+0.8696)*6.1e-3*41619./(98.*1e3); //hetau  xsec(higgs,glu+vbf)*br(etau, CL=95) *N(accepted)/N(Gen) http://pdg.lbl.gov/2019/listings/rpp2019-list-higgs-boson.pdf
-  xsec[38] = (43.92+3.748+0.5085+1.380+0.8696)*2.5e-3*41647./(98.*1e3); //hmutau xsec(higgs,glu+vbf)*br(mutau, CL=95)*N(accepted)/N(Gen) http://pdg.lbl.gov/2019/listings/rpp2019-list-higgs-boson.pdf
-  xsec[39] = (43.92+3.748+0.5085+1.380+0.8696)*3.5e-4*34429./(88.*500); //hemu   xsec(higgs,glu+vbf)*br(emu, CL=95)  *N(accepted)/N(Gen) http://pdg.lbl.gov/2019/listings/rpp2019-list-higgs-boson.pdf
+  xsec[27] =    3.*3.3658/100.*1.54e-3* 48.61;	       //"hzg_gluglu"              
+  xsec[28] =    3.*3.3658/100.*1.54e-3* 0.5071;	       //"hzg_tth"                 
+  xsec[29] =    3.*3.3658/100.*1.54e-3* 3.766;	       //"hzg_vbf"                 
+  xsec[30] =    3.*3.3658/100.*1.54e-3* 1.358/2.;	       //"hzg_wminus"              
+  xsec[31] =    3.*3.3658/100.*1.54e-3* 1.358/2.;	       //"hzg_wplus"               
+  xsec[32] =    3.*3.3658/100.*1.54e-3* 0.880;	       //"hzg_zh"                  
+  xsec[33] =                   6.32e-2* 48.61;	       //"htautau_gluglu"                  
+  xsec[34] =    ((6225.42+18610.)/(3.*3.3658e-2))*9.8e-6*65406./(2.e3*594); //zetau  z->ll / br(ll) * br(etau, CL=95) *N(accepted)/N(Gen) http://pdg.lbl.gov/2018/listings/rpp2018-list-z-boson.pdf
+  xsec[35] =    ((6225.42+18610.)/(3.*3.3658e-2))*1.2e-5*66676./(2.e3*599); //zmutau z->ll / br(ll) * br(mutau, CL=95)*N(accepted)/N(Gen) http://pdg.lbl.gov/2018/listings/rpp2018-list-z-boson.pdf
+  xsec[36] =    ((6225.42+18610.)/(3.*3.3658e-2))*7.3e-7*186670./(2.e3*596); //zemu   z->ll / br(ll) * br(emu, CL=95)  *N(accepted)/N(Gen) http://pdg.lbl.gov/2018/listings/rpp2018-list-z-boson.pdf
+  xsec[37] = (48.61+3.766+0.5071+1.358+0.880)*6.1e-3*41619./(98.*1e3); //hetau  xsec(higgs,glu+vbf)*br(etau, CL=95) *N(accepted)/N(Gen) http://pdg.lbl.gov/2019/listings/rpp2019-list-higgs-boson.pdf
+  xsec[38] = (48.61+3.766+0.5071+1.358+0.880)*2.5e-3*41647./(98.*1e3); //hmutau xsec(higgs,glu+vbf)*br(mutau, CL=95)*N(accepted)/N(Gen) http://pdg.lbl.gov/2019/listings/rpp2019-list-higgs-boson.pdf
+  xsec[39] = (48.61+3.766+0.5071+1.358+0.880)*3.5e-4*34429./(88.*500); //hemu   xsec(higgs,glu+vbf)*br(emu, CL=95)  *N(accepted)/N(Gen) http://pdg.lbl.gov/2019/listings/rpp2019-list-higgs-boson.pdf
 
   int process[50];
   for(int i = 0; i < sizeof(process)/sizeof(*process); ++i)

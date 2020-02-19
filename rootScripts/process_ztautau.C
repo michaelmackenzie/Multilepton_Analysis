@@ -197,22 +197,22 @@ Int_t process_ztautau() {
   xsec[25] =  3.22;		       //"zz_2l2q"                 
   xsec[26] =  1.212;		       //"zz_4l"
   //Higgs branching ratios: https://twiki.cern.ch/twiki/bin/view/LHCPhysics/CERNYellowReportPageBR2014
-  //Higgs production xsecs: https://twiki.cern.ch/twiki/bin/view/LHCPhysics/CERNYellowReportPageAt1314TeV2014
+  //Higgs production xsecs: https://twiki.cern.ch/twiki/bin/view/LHCPhysics/CERNHLHE2019
   //Z decay to leptons fraction: http://pdg.lbl.gov/2012/listings/rpp2012-list-z-boson.pdf
   // --> Br(Z->ll) * Br(h->Zg) * xsec(X -> h)
-  xsec[27] =    3.*3.3658/100.*1.54e-3* 43.92;	       //"hzg_gluglu"              
-  xsec[28] =    3.*3.3658/100.*1.54e-3* 0.5085;	       //"hzg_tth"                 
-  xsec[29] =    3.*3.3658/100.*1.54e-3* 3.748;	       //"hzg_vbf"                 
-  xsec[30] =    3.*3.3658/100.*1.54e-3* 1.380/2.;	       //"hzg_wminus"              
-  xsec[31] =    3.*3.3658/100.*1.54e-3* 1.380/2.;	       //"hzg_wplus"               
-  xsec[32] =    3.*3.3658/100.*1.54e-3* 0.8696;	       //"hzg_zh"                  
+  xsec[27] =    3.*3.3658/100.*1.54e-3* 48.61;	       //"hzg_gluglu"              
+  xsec[28] =    3.*3.3658/100.*1.54e-3* 0.5071;	       //"hzg_tth"                 
+  xsec[29] =    3.*3.3658/100.*1.54e-3* 3.766;	       //"hzg_vbf"                 
+  xsec[30] =    3.*3.3658/100.*1.54e-3* 1.358/2.;	       //"hzg_wminus"              
+  xsec[31] =    3.*3.3658/100.*1.54e-3* 1.358/2.;	       //"hzg_wplus"               
+  xsec[32] =    3.*3.3658/100.*1.54e-3* 0.880;	       //"hzg_zh"                  
   xsec[33] =                   6.32e-2* 43.92;	       //"htautau_gluglu"                  
   xsec[34] =    ((6225.42+18610.)/(3.*3.3658e-2))*9.8e-6*65406./(2.e3*594); //zetau  z->ll / br(ll) * br(etau, CL=95) *N(accepted)/N(Gen) http://pdg.lbl.gov/2018/listings/rpp2018-list-z-boson.pdf
   xsec[35] =    ((6225.42+18610.)/(3.*3.3658e-2))*1.2e-5*66676./(2.e3*599); //zmutau z->ll / br(ll) * br(mutau, CL=95)*N(accepted)/N(Gen) http://pdg.lbl.gov/2018/listings/rpp2018-list-z-boson.pdf
   xsec[36] =    ((6225.42+18610.)/(3.*3.3658e-2))*7.3e-7*186670./(2.e3*596); //zemu   z->ll / br(ll) * br(emu, CL=95)  *N(accepted)/N(Gen) http://pdg.lbl.gov/2018/listings/rpp2018-list-z-boson.pdf
-  xsec[37] = (43.92+3.748+0.5085+1.380+0.8696)*6.1e-3*41619./(98.*1e3); //hetau  xsec(higgs,glu+vbf)*br(etau, CL=95) *N(accepted)/N(Gen) http://pdg.lbl.gov/2019/listings/rpp2019-list-higgs-boson.pdf
-  xsec[38] = (43.92+3.748+0.5085+1.380+0.8696)*2.5e-3*41647./(98.*1e3); //hmutau xsec(higgs,glu+vbf)*br(mutau, CL=95)*N(accepted)/N(Gen) http://pdg.lbl.gov/2019/listings/rpp2019-list-higgs-boson.pdf
-  xsec[39] = (43.92+3.748+0.5085+1.380+0.8696)*3.5e-4*34429./(575.*500); //hemu   xsec(higgs,glu+vbf)*br(emu, CL=95)  *N(accepted)/N(Gen) http://pdg.lbl.gov/2019/listings/rpp2019-list-higgs-boson.pdf
+  xsec[37] = (48.61+3.766+0.5071+1.358+0.880)*6.1e-3*41619./(98.*1e3); //hetau  xsec(higgs,glu+vbf)*br(etau, CL=95) *N(accepted)/N(Gen) http://pdg.lbl.gov/2019/listings/rpp2019-list-higgs-boson.pdf
+  xsec[38] = (48.61+3.766+0.5071+1.358+0.880)*2.5e-3*41647./(98.*1e3); //hmutau xsec(higgs,glu+vbf)*br(mutau, CL=95)*N(accepted)/N(Gen) http://pdg.lbl.gov/2019/listings/rpp2019-list-higgs-boson.pdf
+  xsec[39] = (48.61+3.766+0.5071+1.358+0.880)*3.5e-4*34429./(88.*500); //hemu   xsec(higgs,glu+vbf)*br(emu, CL=95)  *N(accepted)/N(Gen) http://pdg.lbl.gov/2019/listings/rpp2019-list-higgs-boson.pdf
 
   TStopwatch* timer = new TStopwatch();
 
