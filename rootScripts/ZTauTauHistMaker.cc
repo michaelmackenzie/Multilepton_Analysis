@@ -38,6 +38,23 @@ void ZTauTauHistMaker::Begin(TTree * /*tree*/)
   printf("ZTauTauHistMaker::Begin\n");
   timer->Start();
   fChain = 0;
+  for(int i = 0; i < kIds; ++i) fEventId[i] = 0;
+
+  fEventId[20] = new TEventID(); //zemu
+  // cutstring: lepm>88.245574860124123&&lepm<95.218728460130563&&mtone<86.510608060784762&&mttwo<76.769443816768444
+  // &&leppt<23.865836528857464
+  // limit gain: 2.33436 sig_eff: 0.392917 bkg_rej: 0.996505
+  fEventId[20]->fMinLepm = 88.24557;     fEventId[20]->fMaxLepm = 95.21873;
+  fEventId[20]->fMaxMtone = 86.51061;    fEventId[20]->fMaxMttwo = 76.76944;
+  fEventId[20]->fMaxLeppt = 23.86584;
+  fEventId[50] = new TEventID(); //hemu
+  // cutstring lepm>121.98691899130384&&lepm<127.1750722802732&&mtone<88.949126707707563&&mttwo<80.913400356866262
+  // &&leponept>35.854765333337127&&leptwopt>30.543996519263601
+  // limit gain: 2.5026 sig_eff: 0.448063 bkg_rej: 0.996876
+  fEventId[50]->fMinLepm = 121.98692;    fEventId[50]->fMaxLepm = 127.17507;
+  fEventId[50]->fMaxMtone = 88.94913;    fEventId[50]->fMaxMttwo = 80.91340;
+  fEventId[50]->fMinLeponept = 35.85477; fEventId[50]->fMinLeptwopt = 30.54400;
+  
 }
 
 void ZTauTauHistMaker::SlaveBegin(TTree * /*tree*/)
@@ -1082,10 +1099,10 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   double mll = (*leptonOneP4+*leptonTwoP4).M();
   double mgll = (*photonP4 + (*leptonOneP4+*leptonTwoP4)).M();
   //Z0 window
-  if(mutau && chargeTest && mll < 95. && mll > 60.) FillAllHistograms(11);
+  if(mutau && chargeTest && mll < 95. && mll > 60.)  FillAllHistograms(11);
   else if(mutau && mll < 105. && mll > 60.)          FillAllHistograms(11 + fQcdOffset);
-  if(etau && chargeTest && mll < 95. && mll > 60.)  FillAllHistograms(31);
-  else if(etau && mll < 95. && mll > 60.)           FillAllHistograms(31 + fQcdOffset);
+  if(etau && chargeTest && mll < 95. && mll > 60.)   FillAllHistograms(31);
+  else if(etau && mll < 95. && mll > 60.)            FillAllHistograms(31 + fQcdOffset);
   if(emu && chargeTest && mll < 100. && mll > 80.)   FillAllHistograms(51);
   else if(emu && mll < 100. && mll > 80.)            FillAllHistograms(51 + fQcdOffset);
   //higgs window
@@ -1095,6 +1112,26 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   else if(etau && mll < 130. && mll > 75.)           FillAllHistograms(32 + fQcdOffset);
   if(emu && chargeTest && mll < 130. && mll > 115.)  FillAllHistograms(52);
   else if(emu && mll < 130. && mll > 115.)           FillAllHistograms(52 + fQcdOffset);
+
+
+  ////////////////////////////////////////////////////////////////////////////
+  // Set 15-17 + selection offset: Box cuts
+  ////////////////////////////////////////////////////////////////////////////
+  //z ids
+  if(mutau && chargeTest && fEventId[0] && fEventId[0]->IDWord(fTreeVars) == 0)   FillAllHistograms(15);
+  else if(mutau && fEventId[0] && fEventId[0]->IDWord(fTreeVars) == 0)            FillAllHistograms(15 + fQcdOffset);
+  if(etau && chargeTest && fEventId[10] && fEventId[10]->IDWord(fTreeVars) == 0)  FillAllHistograms(35);
+  else if(etau && fEventId[10] && fEventId[10]->IDWord(fTreeVars) == 0)           FillAllHistograms(35 + fQcdOffset);
+  if(emu && chargeTest && fEventId[20] && fEventId[20]->IDWord(fTreeVars) == 0)   FillAllHistograms(55);
+  else if(emu && fEventId[20] && fEventId[20]->IDWord(fTreeVars) == 0)            FillAllHistograms(55 + fQcdOffset);
+  //higgs ids
+  if(mutau && chargeTest && fEventId[30] && fEventId[30]->IDWord(fTreeVars) == 0) FillAllHistograms(16);
+  else if(mutau && fEventId[30] && fEventId[30]->IDWord(fTreeVars) == 0)          FillAllHistograms(16 + fQcdOffset);
+  if(etau && chargeTest && fEventId[40] && fEventId[40]->IDWord(fTreeVars) == 0)  FillAllHistograms(36);
+  else if(etau && fEventId[40] && fEventId[40]->IDWord(fTreeVars) == 0)           FillAllHistograms(36 + fQcdOffset);
+  if(emu && chargeTest && fEventId[50] && fEventId[50]->IDWord(fTreeVars) == 0)   FillAllHistograms(56);
+  else if(emu && fEventId[50] && fEventId[50]->IDWord(fTreeVars) == 0)            FillAllHistograms(56 + fQcdOffset);
+
 
   ////////////////////////////////////////////////////////////////////////////
   // Set 18-20 + selection offset: Jet categories 0, 1, >1

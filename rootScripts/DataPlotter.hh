@@ -19,6 +19,7 @@
 #include "TObject.h"
 #include "TLegend.h"
 #include "TGaxis.h"
+#include "Math/ProbFuncMathCore.h"
 
 class DataPlotter : public TObject {
 public :
@@ -118,7 +119,7 @@ public :
     cmslabel -> SetTextSize(.08);
     cmslabel -> SetTextAlign(22);
     cmslabel -> SetTextAngle(0);
-    cmslabel -> DrawText((single) ? 0.35 : cms_txt_x_, (single) ? 0.92 : cms_txt_y_, "CMS Preliminary");
+    cmslabel -> DrawText((single) ? 0.37 : cms_txt_x_, (single) ? 0.92 : cms_txt_y_, "CMS Preliminary");
   }
 
   void draw_luminosity() {

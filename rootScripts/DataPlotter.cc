@@ -723,7 +723,7 @@ TCanvas* DataPlotter::plot_single_2Dhist(TString hist, TString setType, Int_t se
     }
     if(normalize_2ds_&&h->Integral() > 0.) {
       if(logZ_) {
-	h->Scale(2.*data->GetMaximum()/h->GetMaximum());
+	// h->Scale(2.*data->GetMaximum()/h->GetMaximum());
 	data->GetZaxis()->SetRangeUser(1.e-5, 1.5);
 	// h->GetZaxis()->SetRangeUser(1.e-6, 0.1);
       } else {
@@ -731,7 +731,7 @@ TCanvas* DataPlotter::plot_single_2Dhist(TString hist, TString setType, Int_t se
 	Double_t data_mx = data->GetMaximum();
 	h->GetZaxis()->SetRangeUser(1.e-3*data_mx,data_mx*1.e2);
 	data->GetZaxis()->SetRangeUser(1.e-3*data_mx,1.1*data_mx);
-	h->Scale(20.*data_mx/mx); // set to have the same maximum
+	// h->Scale(20.*data_mx/mx); // set to have the same maximum
       }
     }
   } else {
@@ -748,11 +748,13 @@ TCanvas* DataPlotter::plot_single_2Dhist(TString hist, TString setType, Int_t se
   h->SetTitle(Form("%s%s", label.Data(),stats));
   if(plot_data_) {
     h->SetLineColor(color);
-    h->SetMarkerColor(color);
+    h->SetMarkerColorAlpha(color,0.5);
     h->SetMarkerStyle(6);
+    h->SetContour(10);
+    // h->RebinX(2); h->RebinY(2);
   }
   h->SetName(Form("h2D_%s_%s",label.Data(),hist.Data()));    
-  if(plot_data_ && data) h->Draw("same");
+  if(plot_data_ && data) h->Draw("same cont3");
   else                   h->Draw("colz");
 
   //get axis titles
@@ -770,11 +772,13 @@ TCanvas* DataPlotter::plot_single_2Dhist(TString hist, TString setType, Int_t se
   if(xMin_ <= xMax_)hAxis->GetXaxis()->SetRangeUser(xMin_,xMax_);
   //draw text on plots
   draw_luminosity();
-  draw_cms_label();
+  draw_cms_label(true);
   hAxis->SetXTitle(xtitle.Data());
   hAxis->SetYTitle(ytitle.Data());
-  hAxis->GetXaxis()->SetTitleSize(axis_font_size_);
-  hAxis->GetYaxis()->SetTitleSize(axis_font_size_);
+  hAxis->GetXaxis()->SetTitleSize(0.05);
+  hAxis->GetYaxis()->SetTitleSize(0.05);
+  hAxis->GetXaxis()->SetTitleOffset(0.8);
+  hAxis->GetYaxis()->SetTitleOffset(0.8);
   if(plot_title_) hAxis->SetTitle (title.Data());
   else            hAxis->SetTitle (""); //no title, overwrite current with empty string
   if(logY_) c->SetLogy();
@@ -1498,7 +1502,8 @@ TCanvas* DataPlotter::plot_cdf(TString hist, TString setType, Int_t set, TString
   return c;
 }
 
-TCanvas* DataPlotter::plot_significance(TString hist, TString setType, Int_t set, TString label, bool dir = true, Double_t line_val = -1.) {
+TCanvas* DataPlotter::plot_significance(TString hist, TString setType, Int_t set, TString label,
+					bool dir = true, Double_t line_val = -1.) {
 
   TH1F* hSignal = 0;
   auto o = gDirectory->Get("hSignal");
@@ -1538,7 +1543,8 @@ TCanvas* DataPlotter::plot_significance(TString hist, TString setType, Int_t set
 
   UInt_t nbins = hSignal->GetNbinsX();
   double clsig = 1.644853627; // 95% CL value
-
+  bool doExactLimit = true;
+  
   double xs[nbins]; //for significance graph
   double sigs[nbins];
   
@@ -1550,11 +1556,29 @@ TCanvas* DataPlotter::plot_significance(TString hist, TString setType, Int_t set
     hEfficiency->SetBinContent(bin, sigval);
     if(bkgval <= 0. || sigval <= 0.) continue;
     double significance = sigval/sqrt(bkgval)/clsig; //not really significance but ratio of signal to background fluctuation
+    if(doExactLimit) { //get 95% CL by finding signal scale so poisson prob n < n_bkg for mu = n_bkg + n_sig = 0.05
+      double p = 0.05; //confidence limit goal
+      double tolerance = 0.001; //precision to achieve for goal confidence level
+      double scale = 1./significance; //scale signal until achieve tolerance
+      double val = -1.; //running probability value
+      int max_attempts = 10;
+      int attempts = 0;
+      while(abs(val - p) > tolerance && attempts < max_attempts) { //guess scale factors until close to limit goal
+	++attempts;
+	val = ROOT::Math::poisson_cdf((int) (bkgval), bkgval + sigval*scale); //confidence limit at this value	
+	if(abs(val-p) > tolerance) //only update if still not succeeding
+	  scale *= (val/p < 4.) ? (1.-p)/(1.-val) : sqrt(bkgval)*clsig/sigval; //if far, start with the approximation scale
+      }
+      significance = 1./scale;
+      if(significance > 10. || abs(val - p) > 5.*tolerance) significance = -1.;
+
+    }
     sigs[bin-1] = significance;
   }
   
   TCanvas* c = new TCanvas("sig", "sig", canvas_x_, canvas_y_);
   c->SetTopMargin(0.055);
+  // c->SetRightMargin(0.12);
   //get axis titles
   TString xtitle;
   TString ytitle;
@@ -1566,12 +1590,15 @@ TCanvas* DataPlotter::plot_significance(TString hist, TString setType, Int_t set
   gSignificance->SetTitle(Form("; %s Cut Value; Limit gain factor",
 			       xtitle.Data()));
   gSignificance->SetLineColor(kBlue);
+  // gSignificance->SetFillColor(0);
   gSignificance->SetLineWidth(3);
   gSignificance->Draw("APL");
   TAxis* yaxis = gSignificance->GetYaxis();
   yaxis->SetRangeUser(0., sig_plot_range_);
   yaxis->SetLabelColor(kBlue);
   yaxis->SetTitleColor(kBlue);
+  yaxis->SetTitleSize(0.04);
+  gSignificance->GetXaxis()->SetTitleSize(0.04);
   TLine* line;
   TLine* second_line = 0;
   if(xMax_ > xMin_) {
@@ -1609,7 +1636,17 @@ TCanvas* DataPlotter::plot_significance(TString hist, TString setType, Int_t set
   axis->SetTitle(Form("n_{%s}",label.Data()));
   axis->SetLabelColor(kGreen+2);
   axis->SetTitleColor(kGreen+2);
+  axis->SetTitleSize(0.05);
+  axis->SetTitleOffset(-0.7);
   axis->Draw();
+  TLegend* leg = new TLegend(0.6, (line_val > 0.) ? 0.55 : 0.6, 0.89, 0.8);
+  leg->AddEntry(gSignificance, "Limit Gain", "L");
+  leg->AddEntry(hEfficiency, "N(Signal)", "L");
+  leg->AddEntry(line, "Current Limit", "L");
+  if(second_line) leg->AddEntry(second_line, "Previous Limit", "L");
+  leg->SetFillStyle(0);
+  leg->SetBorderSize(0);
+  leg->Draw();
   rebinH_ = rebinH;
   if(logY_) c->SetLogy();
   c->SetGrid();

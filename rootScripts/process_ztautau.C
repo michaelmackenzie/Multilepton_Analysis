@@ -172,47 +172,47 @@ Int_t process_ztautau() {
   
   //Taken from https://twiki.cern.ch/twiki/bin/viewauth/CMS/SummaryTable1G25ns     
   xsec[0]  =  831.76;                 //"ttbar_inclusive"         
-  xsec[1]  =  6225.42; //6803.2;   //6225.42  ; //5765.4;    //"zjets_m-50_amcatnlo"     
-  xsec[2]  =  18610. ; //21959.8; //18610.  ;         //"zjets_m-10to50_amcatnlo" 
-  xsec[3]  =  35.85;	               //"t_tw"                    
-  xsec[4]  =  35.85;	               //"tbar_tw"                 
-  xsec[5]  =  6225.42; //6803.2;   //6225.42  ; //5765.4;    //"zjets_m-50_amcatnlo"     
-  xsec[6]  =  18610. ; //21959.8; //18610.  ;         //"zjets_m-10to50_amcatnlo" 
-  xsec[9]  =  1198.9;	               //"z1jets_m-50"             
-  xsec[10] =  855.5;		       //"z1jets_m-10to50"         
-  xsec[11] =  390.6;		       //"z2jets_m-50"             
-  xsec[12] =  466.1;		       //"z2jets_m-10to50"         
-  xsec[13] =  113.3;		       //"z3jets_m-50"             
-  xsec[14] =  114.5;		       //"z3jets_m-10to50"         
-  xsec[15] =  60.2;		       //"z4jets_m-50"             
-  xsec[16] =  36.4;		       //"z4jets_m-10to50"         
-  xsec[17] =  11486.53; //9493.;		       //"w1jets"                  
-  xsec[18] =  3775.2; //3120.;		       //"w2jets"                  
-  xsec[19] =  1139.82; //942.3;		       //"w3jets"                  
-  xsec[20] =  655.82; //524.1;		       //"w4jets"                  
-  xsec[21] =  12.178;	               //"ww"                      
-  xsec[22] =  5.595;		       //"wz_2l2q"                 
-  xsec[23] =  4.42965;	               //"wz_3lnu"                 
-  xsec[24] =  0.564;		       //"zz_2l2nu"                
-  xsec[25] =  3.22;		       //"zz_2l2q"                 
-  xsec[26] =  1.212;		       //"zz_4l"
+  xsec[1]  =  6225.42;                //"zjets_m-50_amcatnlo"     
+  xsec[2]  =  18610. ;                //"zjets_m-10to50_amcatnlo" 
+  xsec[3]  =  35.85;	              //"t_tw"                    
+  xsec[4]  =  35.85;	              //"tbar_tw"                 
+  xsec[5]  =  6225.42;                //"zjets_m-50_amcatnlo"     
+  xsec[6]  =  18610. ;                //"zjets_m-10to50_amcatnlo" 
+  xsec[7]  =  1198.9;	               //"z1jets_m-50"             
+  xsec[8] =  855.5;		       //"z1jets_m-10to50"         
+  xsec[9] =  390.6;		       //"z2jets_m-50"             
+  xsec[10] =  466.1;		       //"z2jets_m-10to50"         
+  xsec[11] =  113.3;		       //"z3jets_m-50"             
+  xsec[12] =  114.5;		       //"z3jets_m-10to50"         
+  xsec[13] =  60.2;		       //"z4jets_m-50"             
+  xsec[14] =  36.4;		       //"z4jets_m-10to50"         
+  xsec[15] =  11486.53;		       //"w1jets"                  
+  xsec[16] =  3775.2; 		       //"w2jets"                  
+  xsec[17] =  1139.82; 		       //"w3jets"                  
+  xsec[18] =  655.82; 		       //"w4jets"                  
+  xsec[19] =  12.178;	               //"ww"                      
+  xsec[20] =  5.595;		       //"wz_2l2q"                 
+  xsec[21] =  4.42965;	               //"wz_3lnu"                 
+  xsec[22] =  0.564;		       //"zz_2l2nu"                
+  xsec[23] =  3.22;		       //"zz_2l2q"                 
+  xsec[24] =  1.212;		       //"zz_4l"
   //Higgs branching ratios: https://twiki.cern.ch/twiki/bin/view/LHCPhysics/CERNYellowReportPageBR2014
   //Higgs production xsecs: https://twiki.cern.ch/twiki/bin/view/LHCPhysics/CERNHLHE2019
   //Z decay to leptons fraction: http://pdg.lbl.gov/2012/listings/rpp2012-list-z-boson.pdf
   // --> Br(Z->ll) * Br(h->Zg) * xsec(X -> h)
-  xsec[27] =    3.*3.3658/100.*1.54e-3* 48.61;	       //"hzg_gluglu"              
-  xsec[28] =    3.*3.3658/100.*1.54e-3* 0.5071;	       //"hzg_tth"                 
-  xsec[29] =    3.*3.3658/100.*1.54e-3* 3.766;	       //"hzg_vbf"                 
-  xsec[30] =    3.*3.3658/100.*1.54e-3* 1.358/2.;	       //"hzg_wminus"              
-  xsec[31] =    3.*3.3658/100.*1.54e-3* 1.358/2.;	       //"hzg_wplus"               
-  xsec[32] =    3.*3.3658/100.*1.54e-3* 0.880;	       //"hzg_zh"                  
-  xsec[33] =                   6.32e-2* 43.92;	       //"htautau_gluglu"                  
-  xsec[34] =    ((6225.42+18610.)/(3.*3.3658e-2))*9.8e-6*65406./(2.e3*594); //zetau  z->ll / br(ll) * br(etau, CL=95) *N(accepted)/N(Gen) http://pdg.lbl.gov/2018/listings/rpp2018-list-z-boson.pdf
-  xsec[35] =    ((6225.42+18610.)/(3.*3.3658e-2))*1.2e-5*66676./(2.e3*599); //zmutau z->ll / br(ll) * br(mutau, CL=95)*N(accepted)/N(Gen) http://pdg.lbl.gov/2018/listings/rpp2018-list-z-boson.pdf
-  xsec[36] =    ((6225.42+18610.)/(3.*3.3658e-2))*7.3e-7*186670./(2.e3*596); //zemu   z->ll / br(ll) * br(emu, CL=95)  *N(accepted)/N(Gen) http://pdg.lbl.gov/2018/listings/rpp2018-list-z-boson.pdf
-  xsec[37] = (48.61+3.766+0.5071+1.358+0.880)*6.1e-3*41619./(98.*1e3); //hetau  xsec(higgs,glu+vbf)*br(etau, CL=95) *N(accepted)/N(Gen) http://pdg.lbl.gov/2019/listings/rpp2019-list-higgs-boson.pdf
-  xsec[38] = (48.61+3.766+0.5071+1.358+0.880)*2.5e-3*41647./(98.*1e3); //hmutau xsec(higgs,glu+vbf)*br(mutau, CL=95)*N(accepted)/N(Gen) http://pdg.lbl.gov/2019/listings/rpp2019-list-higgs-boson.pdf
-  xsec[39] = (48.61+3.766+0.5071+1.358+0.880)*3.5e-4*34429./(88.*500); //hemu   xsec(higgs,glu+vbf)*br(emu, CL=95)  *N(accepted)/N(Gen) http://pdg.lbl.gov/2019/listings/rpp2019-list-higgs-boson.pdf
+  xsec[25] =    3.*3.3658/100.*1.54e-3* 48.61;	       //"hzg_gluglu"              
+  xsec[26] =    3.*3.3658/100.*1.54e-3* 0.5071;	       //"hzg_tth"                 
+  xsec[27] =    3.*3.3658/100.*1.54e-3* 3.766;	       //"hzg_vbf"                 
+  xsec[28] =    3.*3.3658/100.*1.54e-3* 1.358/2.;	       //"hzg_wminus"              
+  xsec[29] =    3.*3.3658/100.*1.54e-3* 1.358/2.;	       //"hzg_wplus"               
+  xsec[30] =    3.*3.3658/100.*1.54e-3* 0.880;	       //"hzg_zh"                  
+  xsec[31] =                   6.32e-2* 43.92;	       //"htautau_gluglu"                  
+  xsec[32] =    ((6225.42+18610.)/(3.*3.3658e-2))*9.8e-6*65406./(2.e3*594); //zetau  z->ll / br(ll) * br(etau, CL=95) *N(accepted)/N(Gen) http://pdg.lbl.gov/2018/listings/rpp2018-list-z-boson.pdf
+  xsec[33] =    ((6225.42+18610.)/(3.*3.3658e-2))*1.2e-5*66676./(2.e3*599); //zmutau z->ll / br(ll) * br(mutau, CL=95)*N(accepted)/N(Gen) http://pdg.lbl.gov/2018/listings/rpp2018-list-z-boson.pdf
+  xsec[34] =    ((6225.42+18610.)/(3.*3.3658e-2))*7.3e-7*186670./(2.e3*596); //zemu   z->ll / br(ll) * br(emu, CL=95)  *N(accepted)/N(Gen) http://pdg.lbl.gov/2018/listings/rpp2018-list-z-boson.pdf
+  xsec[35] = (48.61+3.766+0.5071+1.358+0.880)*6.1e-3*41619./(98.*1e3); //hetau  xsec(higgs,glu+vbf)*br(etau, CL=95) *N(accepted)/N(Gen) http://pdg.lbl.gov/2019/listings/rpp2019-list-higgs-boson.pdf
+  xsec[36] = (48.61+3.766+0.5071+1.358+0.880)*2.5e-3*41647./(98.*1e3); //hmutau xsec(higgs,glu+vbf)*br(mutau, CL=95)*N(accepted)/N(Gen) http://pdg.lbl.gov/2019/listings/rpp2019-list-higgs-boson.pdf
+  xsec[37] = (48.61+3.766+0.5071+1.358+0.880)*3.5e-4*34429./(88.*500); //hemu   xsec(higgs,glu+vbf)*br(emu, CL=95)  *N(accepted)/N(Gen) http://pdg.lbl.gov/2019/listings/rpp2019-list-higgs-boson.pdf
 
   TStopwatch* timer = new TStopwatch();
 
@@ -222,7 +222,10 @@ Int_t process_ztautau() {
        << ", Write Trees mode: " << writeTrees << endl;
   Int_t category = 0;
   for(int i = 0; i < sizeof(files)/sizeof(*files); ++i) {
-    ++category;
+    ++category; // could have just used i + 1?
+    cout << "Loop " << i << ", category " << category
+	 << ", file " << files[i] << ", xsec " << xsec[i]
+	 << ", doProcess " << doProcess[i] << endl;
     if(!doProcess[i]) continue;
     const char* c = files[i];
     TFile* f = TFile::Open(Form("%s%s",gridPath[i],c));
@@ -295,7 +298,7 @@ Int_t process_ztautau() {
 	selec->fEventCategory = category;
 	selec->fWriteTrees = selec->fIsData == 0 && writeTrees; //don't write trees for data
 	selec->fUseTauFakeSF = useTauFakeSF;
-	selec->fXsec = xsec[i]/events->GetBinContent(1);
+	selec->fXsec = xsec[i]/(events->GetBinContent(1) - 2.*events->GetBinContent(10));
 	tree->Process(selec,"");
 	TFile* out = new TFile(Form("ztautau_%s%s_%s.hist",fChannel->GetName(),
 				    (isDY) ? Form("_%i",loop) : "", tree->GetName()),"UPDATE");

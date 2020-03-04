@@ -1,12 +1,50 @@
 
 
-DataPlotter* dataplotter_;
+DataPlotter* dataplotter_ = 0;
 TString selection_ = "mutau";
 Int_t useOpenGL_ = 1;
 bool  doStatsLegend_ = false;
 TString hist_dir_ = "ztautau";
 TString folder_ = "clfv_zdecays";
 
+Int_t print_statistics(TString hist, TString type, int set) {
+  if(!dataplotter_) return -1;
+  
+  TCanvas* c = dataplotter_->plot_stack(hist, type, set);
+  if(!c) return 1;
+  TList* list = c->GetListOfPrimitives();
+  if(!list) return 2;
+  double total = 0.;
+  double variance = 0.;
+  for(auto o : *list) {
+    try {
+      auto pad = (TPad*) o;
+      if(!pad) continue;
+      TList* pad_list = pad->GetListOfPrimitives();
+      for(auto h : *pad_list) {
+	cout << h->GetName() << ": " << h->GetTitle() << ": " << h->InheritsFrom("THStack") << endl;
+	if(h->InheritsFrom("THStack")) {
+	  THStack* hstack = (THStack*) h;
+	  TList* hist_list = hstack->GetHists();
+	  for(auto hl : *hist_list) {
+	    TH1F* hist = (TH1F*) hl;
+	    double error = 0.;
+	    double integral = hist->IntegralAndError(0,hist->GetNbinsX()+1,error);
+	    cout << "--> " << hist->GetTitle() << ": " << integral
+		 <<  " +- " << error << endl;
+	    total += integral;
+	    variance += error*error;
+	  }
+	}
+      }
+    } catch(exception e) {
+    }
+  }
+  cout << "Total = " << total << " +- " << sqrt(variance)
+       << " (" << sqrt(variance)/total*100. << "%)" <<  endl;
+
+  return 0;
+}
 Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
 			   vector<int> base_rebins = {}, bool stacks = true) {
   vector<TString> hnames;
@@ -57,14 +95,14 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
   hnames.push_back("nbjets");         htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(10.);
   hnames.push_back("nphotons");       htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(5.);
   if(selection_ == "mutau") {
-    hnames.push_back("mva0");         htypes.push_back("event"); rebins.push_back(200); xmins.push_back(-1.);  xmaxs.push_back(1.7);
-    hnames.push_back("mva1");         htypes.push_back("event"); rebins.push_back(200); xmins.push_back(-1.);  xmaxs.push_back(1.9);
+    hnames.push_back("mva0");         htypes.push_back("event"); rebins.push_back(200); xmins.push_back(-1.);  xmaxs.push_back(1.);
+    hnames.push_back("mva1");         htypes.push_back("event"); rebins.push_back(200); xmins.push_back(-1.);  xmaxs.push_back(2.0);
   } else if(selection_ == "etau") {
-    hnames.push_back("mva2");         htypes.push_back("event"); rebins.push_back(200); xmins.push_back(-1.);  xmaxs.push_back(1.7);
-    hnames.push_back("mva3");         htypes.push_back("event"); rebins.push_back(200); xmins.push_back(-1.);  xmaxs.push_back(1.7);
+    hnames.push_back("mva2");         htypes.push_back("event"); rebins.push_back(200); xmins.push_back(-1.);  xmaxs.push_back(1.);
+    hnames.push_back("mva3");         htypes.push_back("event"); rebins.push_back(200); xmins.push_back(-1.);  xmaxs.push_back(1.);
   } else if(selection_ == "emu") {
-    hnames.push_back("mva4");         htypes.push_back("event"); rebins.push_back(200); xmins.push_back(-1.);  xmaxs.push_back(1.7);
-    hnames.push_back("mva5");         htypes.push_back("event"); rebins.push_back(200); xmins.push_back(-1.);  xmaxs.push_back(1.7);
+    hnames.push_back("mva4");         htypes.push_back("event"); rebins.push_back(200); xmins.push_back(-1.);  xmaxs.push_back(1.);
+    hnames.push_back("mva5");         htypes.push_back("event"); rebins.push_back(200); xmins.push_back(-1.);  xmaxs.push_back(1.);
   }
   
   hnames.push_back("htsum");          htypes.push_back("event"); rebins.push_back(5); xmins.push_back(0.);   xmaxs.push_back(800.);
@@ -96,9 +134,12 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
     for(int logz = 0; logz < 2; ++logz) { //print log and not log z axis plots
       dataplotter_->logZ_ = logz;
       for(int s : sets) {
-  	auto c = dataplotter_->print_single_2Dhist("pxiinvvsvis0", "event", s, ("Z"+label), 0, 100, -100, 100);
+	if(data) dataplotter_->rebinH_ = 4;
+	else 	 dataplotter_->rebinH_ = 2;
+
+  	auto c = dataplotter_->print_single_2Dhist("pxiinvvsvis0", "event", s, ("Z"+label), 0, 80, -80, 60);
   	delete c;
-  	c = dataplotter_->print_single_2Dhist("pxiinvvsvis0", "event", s, ("H"+label), 0, 100, -100, 100);
+  	c = dataplotter_->print_single_2Dhist("pxiinvvsvis0", "event", s, ("H"+label), 0, 80, -80, 60);
   	delete c;
   	c = dataplotter_->print_single_2Dhist("metvspt"     , "event", s, ("Z"+label), 0, 150,    0, 150);
   	delete c;
@@ -152,6 +193,7 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
       }
     }
   }
+  return 0;
   
   dataplotter_->logY_ = 0;
   int status = (stacks) ? dataplotter_->print_stacks(hnames, htypes, sets, xmaxs, xmins, rebins, signal_scales, base_rebins) :
@@ -167,6 +209,7 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
 
 Int_t init_dataplotter() {
 
+  bool leptonic_tau = (selection_.Contains("_")); //mutau_l, etau_l
   dataplotter_ = new DataPlotter();
   dataplotter_->selection_ = selection_;
   dataplotter_->folder_ = folder_;
@@ -174,6 +217,9 @@ Int_t init_dataplotter() {
     dataplotter_->qcd_scale_ = 1.059;
   else if(selection_ == "etau")
     dataplotter_->qcd_scale_ = 1.157;
+  else
+    dataplotter_->qcd_scale_ = 1.;
+  
   dataplotter_->doStatsLegend_ = doStatsLegend_;
   dataplotter_->signal_scale_ = 250.;
   dataplotter_->useOpenGL_ = (gROOT->IsBatch()) ? 0 : useOpenGL_;
@@ -312,17 +358,18 @@ Int_t init_dataplotter() {
   process[31] = 0; //"hzg_wplus"               
   process[32] = 0; //"hzg_zh"                  
   process[33] = 1; //"htautau_gluglu"                  
-  process[34] = (selection_ == "etau" ) ? 1 : 0; //"zetau"
-  process[35] = (selection_ == "mutau") ? 1 : 0; //"zmutau"
+  process[34] = (selection_.Contains("etau" )) ? 1 : 0; //"zetau"
+  process[35] = (selection_.Contains("mutau")) ? 1 : 0; //"zmutau"
   process[36] = (selection_ == "emu"  ) ? 1 : 0; //"zemu"
-  process[37] = (selection_ == "etau" ) ? 1 : 0; //"hetau"
-  process[38] = (selection_ == "mutau") ? 1 : 0; //"hmutau"
+  process[37] = (selection_.Contains("etau" )) ? 1 : 0; //"hetau"
+  process[38] = (selection_.Contains("mutau")) ? 1 : 0; //"hmutau"
   process[39] = (selection_ == "emu"  ) ? 1 : 0; //"hemu"
 
   vector<TString> files;
+  TString selection_dir = (leptonic_tau) ? "emu" : selection_;
   for(int i = 0; i < sizeof(process)/sizeof(*process); ++i) {
     if(process[i]) {
-      files.push_back(Form("%s/ztautau_%s_%s.hist",hist_dir_.Data(),selection_.Data(),fnames[i].Data()));
+      files.push_back(Form("%s/ztautau_%s_%s.hist",hist_dir_.Data(),selection_dir.Data(),fnames[i].Data()));
     } else
       files.push_back(Form(""));
   }
@@ -357,11 +404,11 @@ Int_t init_dataplotter() {
     } else if(selection_ == "mutau") {
       dNames.push_back(dNamesMu[i]);
       dFiles.push_back(Form("%s/ztautau_%s_bltTree_%s.hist",hist_dir_.Data(),selection_.Data(),dNamesMu[i]));
-    } else if(selection_ == "emu") {
+    } else if(selection_ == "emu" || leptonic_tau) {
       dNames.push_back(dNamesMu[i]);
-      dFiles.push_back(Form("%s/ztautau_%s_bltTree_%s.hist",hist_dir_.Data(),selection_.Data(),dNamesMu[i]));
+      dFiles.push_back(Form("%s/ztautau_%s_bltTree_%s.hist",hist_dir_.Data(),selection_dir.Data(),dNamesMu[i]));
       dNames.push_back(dNamesE[i]);
-      dFiles.push_back(Form("%s/ztautau_%s_bltTree_%s.hist",hist_dir_.Data(),selection_.Data(),dNamesE[i]));
+      dFiles.push_back(Form("%s/ztautau_%s_bltTree_%s.hist",hist_dir_.Data(),selection_dir.Data(),dNamesE[i]));
     }
     
   }

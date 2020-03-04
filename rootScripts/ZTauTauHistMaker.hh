@@ -417,6 +417,99 @@ public :
     float fulleventweight; //includes cross-section and number gen
     float eventcategory; //for identifying the process in mva trainings
   };
+
+  //define object to apply box cuts 
+  class TEventID {
+    enum {
+      kLepm           = 0x1 <<0,
+      kLepmestimate   = 0x1 <<1,
+      kLeppt          = 0x1 <<2,
+      kMtone          = 0x1 <<3,
+      kMttwo          = 0x1 <<4,
+      kLeponept       = 0x1 <<5,
+      kLeptwopt       = 0x1 <<6,
+      kOnemetdeltaphi = 0x1 <<7,
+      kTwometdeltaphi = 0x1 <<8,
+      kLeponedeltaphi = 0x1 <<9,
+      kLeptwodeltaphi = 0x1 <<10,
+      kHt             = 0x1 <<11
+    };
+  public:
+    Float_t fMinLepm          ;
+    Float_t fMinLepmestimate  ;
+    Float_t fMinLeppt         ;
+    Float_t fMinMtone         ;
+    Float_t fMinMttwo         ;
+    Float_t fMinLeponept      ;
+    Float_t fMinLeptwopt      ;
+    Float_t fMinOnemetdeltaphi;
+    Float_t fMinTwometdeltaphi;
+    Float_t fMinLeponedeltaphi;
+    Float_t fMinLeptwodeltaphi;
+    Float_t fMinHt            ;
+
+    Float_t fMaxLepm          ;
+    Float_t fMaxLepmestimate  ;
+    Float_t fMaxLeppt         ;
+    Float_t fMaxMtone         ;
+    Float_t fMaxMttwo         ;
+    Float_t fMaxLeponept      ;
+    Float_t fMaxLeptwopt      ;
+    Float_t fMaxOnemetdeltaphi;
+    Float_t fMaxTwometdeltaphi;
+    Float_t fMaxLeponedeltaphi;
+    Float_t fMaxLeptwodeltaphi;
+    Float_t fMaxHt            ;
+
+    Int_t fUseMask;
+    
+    TEventID() {
+      fUseMask  = 0xffffffff; //id mask to select which cuts to use
+
+      fMinLepm           = -1.e9;
+      fMinLepmestimate   = -1.e9;
+      fMinLeppt          = -1.e9;
+      fMinMtone          = -1.e9;
+      fMinMttwo          = -1.e9;
+      fMinLeponept       = -1.e9;
+      fMinLeptwopt       = -1.e9;
+      fMinOnemetdeltaphi = -1.e9;
+      fMinTwometdeltaphi = -1.e9;
+      fMinLeponedeltaphi = -1.e9;
+      fMinLeptwodeltaphi = -1.e9;
+      fMinHt             = -1.e9;
+
+      fMaxLepm           =  1.e9;
+      fMaxLepmestimate   =  1.e9;
+      fMaxLeppt          =  1.e9;
+      fMaxMtone          =  1.e9;
+      fMaxMttwo          =  1.e9;
+      fMaxLeponept       =  1.e9;
+      fMaxLeptwopt       =  1.e9;
+      fMaxOnemetdeltaphi =  1.e9;
+      fMaxTwometdeltaphi =  1.e9;
+      fMaxLeponedeltaphi =  1.e9;
+      fMaxLeptwodeltaphi =  1.e9;
+      fMaxHt             =  1.e9;
+    }
+
+    Int_t IDWord (Tree_t variables) {
+      Int_t id_word(0);
+      if(variables.lepm           < fMinLepm           || variables.lepm            > fMaxLepm           ) id_word |= kLepm           ;
+      if(variables.mestimate      < fMinLepmestimate   || variables.mestimate       > fMaxLepmestimate   ) id_word |= kLepmestimate   ;
+      if(variables.leppt          < fMinLeppt          || variables.leppt           > fMaxLeppt          ) id_word |= kLeppt          ;
+      if(variables.mtone          < fMinMtone          || variables.mtone           > fMaxMtone          ) id_word |= kMtone          ;
+      if(variables.mttwo          < fMinMttwo          || variables.mttwo           > fMaxMttwo          ) id_word |= kMttwo          ;
+      if(variables.leponept       < fMinLeponept       || variables.leponept        > fMaxLeponept       ) id_word |= kLeponept       ;
+      if(variables.leptwopt       < fMinLeptwopt       || variables.leptwopt        > fMaxLeptwopt       ) id_word |= kLeptwopt       ;
+      if(variables.onemetdeltaphi < fMinOnemetdeltaphi || variables.onemetdeltaphi  > fMaxOnemetdeltaphi ) id_word |= kOnemetdeltaphi ;
+      if(variables.twometdeltaphi < fMinTwometdeltaphi || variables.twometdeltaphi  > fMaxTwometdeltaphi ) id_word |= kTwometdeltaphi ;
+      if(variables.leponedeltaphi < fMinLeponedeltaphi || variables.leponedeltaphi  > fMaxLeponedeltaphi ) id_word |= kLeponedeltaphi ;
+      if(variables.leptwodeltaphi < fMinLeptwodeltaphi || variables.leptwodeltaphi  > fMaxLeptwodeltaphi ) id_word |= kLeptwodeltaphi ;
+      if(variables.ht             < fMinHt             || variables.ht              > fMaxHt             ) id_word |= kHt             ;
+      return (id_word & fUseMask);
+    }
+  };
   
   ZTauTauHistMaker(TTree * /*tree*/ =0) { }
   virtual ~ZTauTauHistMaker() { }
@@ -475,6 +568,7 @@ public :
   
   //Histograms:
   const static Int_t fn = 200; //max histogram sets
+  const static Int_t kIds = 60; //max histogram sets
   const static Int_t fQcdOffset = 100; //histogram set + offset = set with same sign selection
   Int_t fEventSets[fn];  //indicates which sets to create
   Int_t fTreeSets[fn];   //indicates which trees to create
@@ -487,6 +581,8 @@ public :
   LepHist_t*    fLepHist[fn];
   TTree*        fTrees[fn];
 
+  TEventID*     fEventId[kIds]; //for applying box cuts, 0-9 zmutau, 10-19 zetau, 20-29 zemu, higgs + 30 to z sets
+  
   TString       fFolderName = ""; //name of the folder the tree is from
 
   Int_t         fDYType = -1; //for splitting Z->ll into 1: tau tau and 2: e/mu e/mu
@@ -640,14 +736,10 @@ void ZTauTauHistMaker::Init(TTree *tree)
     fEventSets [14] = 1; // events with opposite signs and w+jets set
     fEventSets [14+fQcdOffset] = 1; // events with same signs and w+jets set
 
-    // fEventSets [15] = 1; // events with opposite signs and mT_lep < 100
-    // fEventSets [15+fQcdOffset] = 1; // events with same signs and mT_lep < 100
-    // fEventSets [16] = 1; // events with opposite signs and mT_tau < 100
-    // fEventSets [16+fQcdOffset] = 1; // events with same signs and mT_tau < 100
-
-    // fEventSets [17] = 1; // events with opposite signs and nBJets = 0
-    // fEventSets [17+fQcdOffset] = 1; // events with same signs and nBJets = 0
-    // fTreeSets  [17] = 0;
+    fEventSets [15] = 1; // events with opposite signs and z box cuts
+    fEventSets [15+fQcdOffset] = 1; // events with same signs and z box cuts
+    fEventSets [16] = 1; // events with opposite signs and higgs box cuts
+    fEventSets [16+fQcdOffset] = 1; // events with same signs and higgs box cuts
 
     fEventSets [18] = 1; // events with opposite signs and nJets = 0
     fEventSets [18+fQcdOffset] = 1; // events with same signs and nJets = 0
@@ -689,14 +781,10 @@ void ZTauTauHistMaker::Init(TTree *tree)
     fEventSets [34] = 1; // events with opposite signs and inv > 0.5*vis - 20
     fEventSets [34+fQcdOffset] = 1; // events with same signs and inv > 0.5*vis - 20
 
-    // fEventSets [35] = 1; // events with opposite signs and mT_lep < 80
-    // fEventSets [35+fQcdOffset] = 1; // events with same signs and mT_lep < 80
-    // fEventSets [36] = 1; // events with opposite signs and mT_tau < 80
-    // fEventSets [36+fQcdOffset] = 1; // events with same signs and mT_tau < 80
-
-    // fEventSets [37] = 1; // events with opposite signs and nBJets = 0
-    // fEventSets [37+fQcdOffset] = 1; // events with same signs and nBJets = 0
-    // fTreeSets  [37] = 0;
+    fEventSets [35] = 1; // events with opposite signs and z box cuts
+    fEventSets [35+fQcdOffset] = 1; // events with same signs and z box cuts
+    fEventSets [36] = 1; // events with opposite signs and higgs box cuts
+    fEventSets [36+fQcdOffset] = 1; // events with same signs and higgs box cuts
 
     fEventSets [38] = 1; // events with opposite signs and nJets = 0
     fEventSets [38+fQcdOffset] = 1; // events with same signs and nJets = 0
@@ -740,10 +828,11 @@ void ZTauTauHistMaker::Init(TTree *tree)
     fEventSets [54] = 1; // events with opposite signs and w region
     fEventSets [54+fQcdOffset] = 1; // events with same
 
-    // fEventSets [55] = 1; // events with opposite signs + mt_e/mt_mu cuts
-    // fEventSets [55+fQcdOffset] = 1; // events with same
-    // fEventSets [56] = 1; // events with opposite signs + mass window
-    // fEventSets [56+fQcdOffset] = 1; // events with same
+    fEventSets [55] = 1; // events with opposite signs and z box cuts
+    fEventSets [55+fQcdOffset] = 1; // events with same signs and z box cuts
+    fEventSets [56] = 1; // events with opposite signs and higgs box cuts
+    fEventSets [56+fQcdOffset] = 1; // events with same signs and higgs box cuts
+
     fEventSets [58] = 1; // events with opposite signs + 0-jet
     fEventSets [58+fQcdOffset] = 1; // events with same
     fEventSets [59] = 1; // events with opposite signs + 1-jet
