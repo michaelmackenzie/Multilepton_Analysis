@@ -28,6 +28,7 @@ CLFV_ZDecays_Pythia
 ExRootAnalysis
 ML_Project
 AsciiPlotter
+CutsetTraining
 plugins
 python
 scripts/*.py
