@@ -107,7 +107,7 @@ public :
   
   ~DataPlotter() {
     for(auto d : data_) {
-      if(d) delete d;
+      if(d->TestBit(TObject::kNotDeleted)) {d->Close();}
     }
   }
   
@@ -201,9 +201,10 @@ public :
   }
 
 
-  virtual TCanvas* plot_significance(TString hist, TString setType, Int_t set, TString label, bool dir, Double_t line_val);
-  TCanvas* plot_significance(TString hist, TString setType, Int_t set, TString label, Double_t xmin, Double_t xmax, bool dir=true, Double_t line_val=-1.) {
-    xMin_ = xmin; xMax_=xmax; auto c = plot_significance(hist, setType, set, label, dir, line_val); reset_axes(); return c;
+  virtual TCanvas* plot_significance(TString hist, TString setType, Int_t set, TString label, bool dir, Double_t line_val, bool doVsEff);
+  TCanvas* plot_significance(TString hist, TString setType, Int_t set, TString label, Double_t xmin, Double_t xmax,
+			     bool dir=true, Double_t line_val=-1., bool doVsEff = false) {
+    xMin_ = xmin; xMax_=xmax; auto c = plot_significance(hist, setType, set, label, dir, line_val, doVsEff); reset_axes(); return c;
   }
 
   virtual TCanvas* print_stack(TString hist, TString setType, Int_t set);
@@ -233,9 +234,10 @@ public :
     xMin_ = xmin; xMax_=xmax; auto c = print_cdf(hist, setType, set, label); reset_axes(); return c;
   }
 
-  virtual TCanvas* print_significance(TString hist, TString setType, Int_t set, TString label, bool dir, Double_t line_val);
-  TCanvas* print_significance(TString hist, TString setType, Int_t set, TString label, Double_t xmin, Double_t xmax, bool dir=true, Double_t line_val=-1.) {
-    xMin_ = xmin; xMax_=xmax; auto c = print_significance(hist, setType, set, label, dir, line_val); reset_axes(); return c;
+  virtual TCanvas* print_significance(TString hist, TString setType, Int_t set, TString label, bool dir, Double_t line_val, bool doVsEff);
+  TCanvas* print_significance(TString hist, TString setType, Int_t set, TString label, Double_t xmin, Double_t xmax,
+			      bool dir=true, Double_t line_val=-1., bool doVsEff = false) {
+    xMin_ = xmin; xMax_=xmax; auto c = print_significance(hist, setType, set, label, dir, line_val, doVsEff); reset_axes(); return c;
   }
 
   virtual Int_t print_stacks(vector<TString> hists, vector<TString> setTypes, vector<Int_t>sets,

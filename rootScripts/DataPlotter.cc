@@ -456,7 +456,7 @@ vector<TH1F*> DataPlotter::get_signal(TString hist, TString setType, Int_t set) 
     if(!isSignal_[i]) continue;
     TH1F* tmp = (TH1F*) data_[i]->Get(Form("%s_%i/%s", setType.Data(), set, hist.Data()));
     if(!tmp) continue;
-    tmp->SetBit(kCanDelete);
+    // tmp->SetBit(kCanDelete);
     tmp->Scale(scale_[i]);
 
     h[i] = tmp;
@@ -476,6 +476,8 @@ vector<TH1F*> DataPlotter::get_signal(TString hist, TString setType, Int_t set) 
       h[index]->Add(h[i]);
       delete h[i];
     } else {    
+      auto o = gDirectory->Get(name.Data());
+      if(o) delete o;
       h[index]->SetFillStyle(fill [i_color]);
       h[index]->SetFillColor(color[i_color]);
       h[index]->SetLineColor(color[i_color]);
@@ -502,6 +504,10 @@ vector<TH1F*> DataPlotter::get_signal(TString hist, TString setType, Int_t set) 
 }
 
 TH2F* DataPlotter::get_signal_2D(TString hist, TString setType, Int_t set) {
+  {
+    auto o = gDirectory->Get("hSignal");
+    if(o) delete o;
+  }
   TH2F* h = 0;
   for(UInt_t i = 0; i < data_.size(); ++i) {
     if(isData_[i]) continue;
@@ -520,6 +526,7 @@ TH2F* DataPlotter::get_signal_2D(TString hist, TString setType, Int_t set) {
   h->SetLineColor(kAzure-2);
   h->SetFillColor(kAzure-2);
   h->SetFillStyle(3001);
+
   h->SetName("hSignal");
   if(rebinH_ > 0) {
     h->RebinX(rebinH_);
@@ -530,12 +537,16 @@ TH2F* DataPlotter::get_signal_2D(TString hist, TString setType, Int_t set) {
 }
 
 TH1F* DataPlotter::get_data(TString hist, TString setType, Int_t set) {
+  {
+    auto o = gDirectory->Get("hData");
+    if(o) delete o;
+  }
   TH1F* d = 0;
   for(UInt_t i = 0; i < data_.size(); ++i) {
     if(!isData_[i]) continue;
     TH1F* tmp = (TH1F*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set, hist.Data()));
     if(!tmp) continue;
-    tmp->SetBit(kCanDelete);
+    // tmp->SetBit(kCanDelete);
     if(!d) d = tmp;
     else d->Add(tmp);
   }
@@ -552,6 +563,10 @@ TH1F* DataPlotter::get_data(TString hist, TString setType, Int_t set) {
 }
 
 TH2F* DataPlotter::get_data_2D(TString hist, TString setType, Int_t set) {
+  {
+    auto o = gDirectory->Get("hData");
+    if(o) delete o;
+  }
   TH2F* d = 0;
   for(UInt_t i = 0; i < data_.size(); ++i) {
     if(!isData_[i]) continue;
@@ -576,6 +591,11 @@ TH2F* DataPlotter::get_data_2D(TString hist, TString setType, Int_t set) {
 }
 
 TH1F* DataPlotter::get_qcd(TString hist, TString setType, Int_t set) {
+  {
+    auto o = gDirectory->Get(Form("qcd_%s", hist.Data()));
+    if(o) delete o;
+  }
+  
   Int_t set_qcd = set + qcd_offset_;
 
   TH1F* hData = get_data(hist, setType, set_qcd);
@@ -587,7 +607,7 @@ TH1F* DataPlotter::get_qcd(TString hist, TString setType, Int_t set) {
     TH1F* htmp = (TH1F*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set_qcd, hist.Data()));
     if(!htmp) continue;
     htmp = (TH1F*) htmp->Clone("tmp");
-    htmp->SetBit(kCanDelete);
+    // htmp->SetBit(kCanDelete);
     htmp->Scale(scale_[i]);
     if(rebinH_ > 0) htmp->Rebin(rebinH_);
     if(hMC) hMC->Add(htmp);
@@ -599,7 +619,7 @@ TH1F* DataPlotter::get_qcd(TString hist, TString setType, Int_t set) {
     if(hData->GetBinContent(i+1) < 0.)
       hData->SetBinContent(i+1,0.);
   }
-  hData->SetBit(kCanDelete);
+  // hData->SetBit(kCanDelete);
   hData->Scale(qcd_scale_);
   
   const char* stats = (doStatsLegend_) ? Form(" #scale[0.8]{(%.2e)}", hData->Integral()
@@ -616,9 +636,15 @@ THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set) {
   fill_alpha_ = 0.9;
   vector<TH1F*> h;
   TH1F* hQCD = (include_qcd_) ? get_qcd(hist,setType,set) : NULL;
-  if(hQCD) hQCD->SetBit(kCanDelete);
+  // if(hQCD) hQCD->SetBit(kCanDelete);
   Int_t color[] = {kRed+1, kRed-2, kYellow+1,kSpring-1 , kViolet-2, kCyan+1, kRed+3,kOrange-9,kBlue+1};
   Int_t fill[]  = {1001,1001,3005,3001,3001,3005,3001,3001,3001};
+
+  {
+    auto o = gDirectory->Get(Form("%s",hist.Data()));
+    if(o) delete o;
+  }
+  
   THStack* hstack = new THStack(Form("%s",hist.Data()),Form("%s",hist.Data()));
   //for combining histograms of the same process
   map<TString, int> indexes;
@@ -637,6 +663,8 @@ THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set) {
     
     h.push_back((TH1F*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set, hist.Data())));
     if(!h[i]) continue;
+    auto o = gDirectory->Get("tmp");
+    if(o) delete o;
     h[i] = (TH1F*) h[i]->Clone("tmp");
     h[i]->Scale(scale_[i]);
     if(rebinH_ > 0) h[i]->Rebin(rebinH_);
@@ -655,7 +683,9 @@ THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set) {
       h[index]->Add(h[i]);
       delete h[i];
     } else {
-    
+      while(auto o = gDirectory->Get(Form("s_%s_%s",name.Data(),hist.Data()))) {
+	if(o) delete o;
+      }
       h[index]->SetFillColorAlpha(color[i_color],fill_alpha_);
       h[index]->SetLineColor(color[i_color]);
       h[index]->SetLineWidth(2);
@@ -673,7 +703,7 @@ THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set) {
   }
   if(hQCD) hstack->Add(hQCD);
   fill_alpha_ = fill_alpha;
-  hstack->SetBit(kCanDelete);
+  // hstack->SetBit(kCanDelete);
   return hstack;
 }
 
@@ -683,6 +713,11 @@ TCanvas* DataPlotter::plot_single_2Dhist(TString hist, TString setType, Int_t se
 
   Int_t color = kBlack;
 
+  {
+    auto o = gDirectory->Get(Form("h2d_%s_%i",hist.Data(),set));
+    if(o) delete o;
+  }
+  
   TCanvas* c = new TCanvas(Form("h2d_%s_%i",hist.Data(),set),Form("h2D_%s_%i",hist.Data(),set), canvas_x_, canvas_y_);
 
   for(UInt_t i = 0; i < data_.size(); ++i) {
@@ -705,7 +740,7 @@ TCanvas* DataPlotter::plot_single_2Dhist(TString hist, TString setType, Int_t se
     else h = htmp;
     
   }
-  h->SetBit(kCanDelete);
+  // h->SetBit(kCanDelete);
   const char* stats = (doStatsLegend_) ? Form(" #scale[0.8]{(%.2e)}", h->Integral()
 					      +h->GetBinContent(0)+h->GetBinContent(h->GetNbinsX()+1)) : "";
   TH2F* data = 0;
@@ -743,7 +778,7 @@ TCanvas* DataPlotter::plot_single_2Dhist(TString hist, TString setType, Int_t se
       h->GetZaxis()->SetRangeUser(1.e-2,1.2*mx);
   }
 
-  if(data) data->SetBit(kCanDelete);
+  // if(data) data->SetBit(kCanDelete);
   TH2F* hAxis = (plot_data_ && data) ? data : h;
   h->SetTitle(Form("%s%s", label.Data(),stats));
   if(plot_data_) {
@@ -797,6 +832,11 @@ TCanvas* DataPlotter::plot_2Dhist(TString hist, TString setType, Int_t set) {
   Int_t color[] = {kRed+1, kYellow+1,kYellow+3,kBlue+1, kRed+3, kViolet-2, kGreen-2, kOrange-9};
   //  Int_t fill[]  = {1001,3005,1001,1001,3005,1001,1001,1001};
 
+  {
+    auto o = gDirectory->Get(Form("h2d_%s_%i",hist.Data(),set));
+    if(o) delete o;
+  }
+  
   TCanvas* c = new TCanvas(Form("h2d_%s_%i",hist.Data(),set),Form("h2D_%s_%i",hist.Data(),set), canvas_x_, canvas_y_);
 
   //maximum z value of histograms, for plotting
@@ -917,13 +957,17 @@ TCanvas* DataPlotter::plot_hist(TString hist, TString setType, Int_t set) {
   vector<TH1F*> h; //list of histograms
   //check if QCD is defined for this set
   TH1F* hQCD = (include_qcd_) ? get_qcd(hist,setType,set) : NULL;
-  if(hQCD) hQCD->SetBit(kCanDelete);
+  // if(hQCD) hQCD->SetBit(kCanDelete);
   //array of colors and fills for each label
   Int_t bkg_color[] = {kRed+1, kRed-2, kYellow+1,kSpring-1 , kViolet-2, kGreen-2, kRed+3,kOrange-9,kBlue+1};
   Int_t bkg_fill[]  = {1001,3005,1001,1001,3005,1001,1001,1001};
   Int_t sig_color[] = {kGreen+4, kBlue, kOrange+10, kViolet-2, kYellow+3,kOrange-9,kBlue+1};
   Int_t sig_fill[]  = {0,          0,          0,         0,        0,         0,       0};//3002,3001,3003,3003,3005,3006,3003,3003};
 
+  {
+    auto o = gDirectory->Get(Form("h_%s_%i",hist.Data(),set));
+    if(o) delete o;
+  }
   TCanvas* c = new TCanvas(Form("h_%s_%i",hist.Data(),set),Form("h_%s_%i",hist.Data(),set), canvas_x_, canvas_y_);
 
   //maximum y value of histograms, for plotting
@@ -969,6 +1013,10 @@ TCanvas* DataPlotter::plot_hist(TString hist, TString setType, Int_t set) {
       delete h[i];
     } else {
       //set plotting info
+      {
+        auto o = gDirectory->Get(Form("h_%s_%s",name.Data(),hist.Data()));
+	if(o) delete o;
+      }
       if(isSignal_[i]) {
 	h[index]->SetFillStyle(sig_fill[i_color]); 
 	h[index]->SetFillColorAlpha(sig_color[i_color],fill_alpha_);
@@ -1071,9 +1119,13 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
     printf("Null or empty stack!\n");
     return NULL;
   }
-  hstack->SetBit(kCanDelete);
+  // hstack->SetBit(kCanDelete);
   TH1F* d = get_data(hist, setType, set);
   vector<TH1F*> hsignal = get_signal(hist,setType,set);
+  {
+    auto o = gDirectory->Get(Form("s_%s_%i",hist.Data(),set));
+    if(o) delete o;
+  }
   TCanvas* c = new TCanvas(Form("s_%s_%i",hist.Data(),set),Form("s_%s_%i",hist.Data(),set), canvas_x_, canvas_y_);
   //split the top into main stack and bottom into Data/MC if plotting data
   TPad *pad1, *pad2;
@@ -1133,7 +1185,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
   int ndata = 0;
   int nb = (d) ? d->GetNbinsX() : -1;
   if(hDataMC) {
-    hDataMC->SetBit(kCanDelete);
+    // hDataMC->SetBit(kCanDelete);
     hDataMC->Clear();
     TH1F* hlast = (TH1F*) hstack->GetStack()->Last();
     nmc = hlast->Integral();
@@ -1269,7 +1321,7 @@ TCanvas* DataPlotter::plot_cdf(TString hist, TString setType, Int_t set, TString
       TH1F* tmp = (TH1F*) data_[i]->Get(Form("%s_%i/%s", setType.Data(), set, hist.Data()));
       if(!tmp) continue;
       tmp = (TH1F*) tmp->Clone("tmp");
-      tmp->SetBit(kCanDelete);
+      // tmp->SetBit(kCanDelete);
       tmp->Scale(scale_[i]);
       
       if(hCDF) {
@@ -1294,13 +1346,17 @@ TCanvas* DataPlotter::plot_cdf(TString hist, TString setType, Int_t set, TString
   for(Int_t bin = 1; bin <= nbins; ++bin)
     hCDF->SetBinContent(bin, tmp->Integral(0, bin)*tmp->GetBinWidth(1));
   hCDF->Scale(1./hCDF->GetMaximum());
-  tmp->SetBit(kCanDelete);
+  // tmp->SetBit(kCanDelete);
 
   int rebinH = rebinH_;
   rebinH_ = 1;
   //With cdf made, now loop through histograms and generate transforms of each
   THStack* hstack = get_stack(hist, setType, set);
   TList* hists = hstack->GetHists();
+  {
+    auto o = gDirectory->Get(Form("%s_%i_cdf",hist.Data(),set));
+    if(o) delete o;
+  }
   THStack* hcdfstack = new THStack(Form("%s_%i_cdf",hist.Data(),set),Form("%s_cdf",hist.Data()));
   vector<TH1F*> htransforms;
   int ntransbins = 50;
@@ -1308,9 +1364,12 @@ TCanvas* DataPlotter::plot_cdf(TString hist, TString setType, Int_t set, TString
   double xtransmax = 1.7;
   for(TObject* hist : *hists) {
     TH1F* htmp = (TH1F*) hist;
+    while(auto o = gDirectory->Get(Form("%s_trans_%i", htmp->GetName(),set))) {
+      if(o) delete o;
+    }
     TH1F* htrans = new TH1F(Form("%s_trans_%i", htmp->GetName(),set), htmp->GetTitle(),
 			    ntransbins, xtransmin, xtransmax);
-    htrans->SetBit(kCanDelete);
+    // htrans->SetBit(kCanDelete);
     
     for(Int_t bin = 1; bin <= htmp->GetNbinsX(); ++bin) {
       Double_t y = hCDF->GetBinContent(bin);
@@ -1322,13 +1381,16 @@ TCanvas* DataPlotter::plot_cdf(TString hist, TString setType, Int_t set, TString
     htrans->SetLineWidth(htmp->GetLineWidth());
     htrans->SetMarkerStyle(htmp->GetMarkerStyle());
     hcdfstack->Add(htrans);
-    delete htmp;
   }
-
+  
+  {
+    auto o = gDirectory->Get("data_cdf");
+    if(o) delete o;
+  }
   TH1F* d = get_data(hist, setType, set);
   TH1F* data_cdf = new TH1F("data_cdf", d->GetTitle(),
 			    ntransbins, xtransmin, xtransmax);
-  data_cdf->SetBit(kCanDelete);
+  // data_cdf->SetBit(kCanDelete);
   for(Int_t bin = 1; bin <= d->GetNbinsX(); ++bin) {
     Double_t y = hCDF->GetBinContent(bin);
     data_cdf->Fill(y, d->GetBinContent(bin));
@@ -1366,9 +1428,11 @@ TCanvas* DataPlotter::plot_cdf(TString hist, TString setType, Int_t set, TString
   vector<TH1F*> hsignal = get_signal(hist,setType,set);
   vector<TH1F*> hsignalcdf;
   for(TH1F* signal : hsignal) {
+    auto o = gDirectory->Get(Form("%s_trans", signal->GetName()));
+    if(o) delete o;
     TH1F* htrans = new TH1F(Form("%s_trans", signal->GetName()), signal->GetTitle(),
 			    ntransbins, xtransmin, xtransmax);
-    htrans->SetBit(kCanDelete);
+    // htrans->SetBit(kCanDelete);
 
     for(Int_t bin = 1; bin <= signal->GetNbinsX(); ++bin) {
       Double_t y = hCDF->GetBinContent(bin);
@@ -1390,7 +1454,7 @@ TCanvas* DataPlotter::plot_cdf(TString hist, TString setType, Int_t set, TString
   int ndata = 0;
   int nb = (data_cdf) ? data_cdf->GetNbinsX() : -1;
   if(hDataMC) {
-    hDataMC->SetBit(kCanDelete);
+    // hDataMC->SetBit(kCanDelete);
     hDataMC->Clear();
     TH1F* hlast = (TH1F*) hcdfstack->GetStack()->Last();
     nmc = hlast->Integral();
@@ -1503,17 +1567,21 @@ TCanvas* DataPlotter::plot_cdf(TString hist, TString setType, Int_t set, TString
 }
 
 TCanvas* DataPlotter::plot_significance(TString hist, TString setType, Int_t set, TString label,
-					bool dir = true, Double_t line_val = -1.) {
+					bool dir = true, Double_t line_val = -1., bool doVsEff = false) {
 
   TH1F* hSignal = 0;
-  auto o = gDirectory->Get("hSignal");
-  if(o) delete o;
+  {
+    auto o = gDirectory->Get("hSignal");
+    if(o) delete o;
+  }
   for(UInt_t i = 0; i < data_.size(); ++i) {
     if(labels_[i] == label) {
       TH1F* tmp = (TH1F*) data_[i]->Get(Form("%s_%i/%s", setType.Data(), set, hist.Data()));
       if(!tmp) continue;
+      auto o = gDirectory->Get("tmp");
+      if(o) delete o;
       tmp = (TH1F*) tmp->Clone("tmp");
-      tmp->SetBit(kCanDelete);
+      // tmp->SetBit(kCanDelete);
       tmp->Scale(scale_[i]);
       
       if(hSignal) {
@@ -1547,12 +1615,16 @@ TCanvas* DataPlotter::plot_significance(TString hist, TString setType, Int_t set
   
   double xs[nbins]; //for significance graph
   double sigs[nbins];
+  double init_sig = -1.;
   
   for(UInt_t bin = 1; bin <= nbins; ++bin) {
     xs[bin-1] = (dir) ? hSignal->GetBinLowEdge(bin) : hSignal->GetBinLowEdge(bin) + hSignal->GetBinWidth(bin);
     sigs[bin-1] = 0.;
     double bkgval = (dir) ? hlast->Integral(bin, nbins) : hlast->Integral(1, bin);
     double sigval = (dir) ? hSignal->Integral(bin, nbins) : hSignal->Integral(1, bin);
+    if(init_sig < 0. && sigval > 0.) init_sig = sigval;
+    //plot vs signal efficiency instead
+    if(doVsEff) xs[bin-1] = sigval/init_sig;
     hEfficiency->SetBinContent(bin, sigval);
     if(bkgval <= 0. || sigval <= 0.) continue;
     double significance = sigval/sqrt(bkgval)/clsig; //not really significance but ratio of signal to background fluctuation
@@ -1587,8 +1659,8 @@ TCanvas* DataPlotter::plot_significance(TString hist, TString setType, Int_t set
 
   TGraph* gSignificance = new TGraph(nbins, xs, sigs);
   gSignificance->SetName(Form("gsig_%s_%i", label.Data(),set));
-  gSignificance->SetTitle(Form("; %s Cut Value; Limit gain factor",
-			       xtitle.Data()));
+  gSignificance->SetTitle(Form("; %s; Limit gain factor",
+			       (doVsEff) ? "Efficiency" : (xtitle+" Cut Value").Data()));
   gSignificance->SetLineColor(kBlue);
   // gSignificance->SetFillColor(0);
   gSignificance->SetLineWidth(3);
@@ -1622,26 +1694,27 @@ TCanvas* DataPlotter::plot_significance(TString hist, TString setType, Int_t set
   draw_cms_label(true);
   c->Update();
 
-  double rightmax = 1.2*hEfficiency->GetMaximum();
-  double scale = gPad->GetUymax()/rightmax;
-  hEfficiency->SetLineColor(kGreen+2);
-  hEfficiency->SetMarkerColor(kGreen+2);
-  hEfficiency->SetMarkerStyle(6);
+  if(!doVsEff) {
+    double rightmax = 1.2*hEfficiency->GetMaximum();
+    double scale = gPad->GetUymax()/rightmax;
+    hEfficiency->SetLineColor(kGreen+2);
+    hEfficiency->SetMarkerColor(kGreen+2);
+    hEfficiency->SetMarkerStyle(6);
   
-  
-  hEfficiency->Scale(scale);
-  hEfficiency->Draw("P same");
-  TGaxis* axis = new TGaxis(gPad->GetUxmax(), gPad->GetUymin(),
-			    gPad->GetUxmax(), gPad->GetUymax(), 0, rightmax, 510, "+L");
-  axis->SetTitle(Form("n_{%s}",label.Data()));
-  axis->SetLabelColor(kGreen+2);
-  axis->SetTitleColor(kGreen+2);
-  axis->SetTitleSize(0.05);
-  axis->SetTitleOffset(-0.7);
-  axis->Draw();
+    hEfficiency->Scale(scale);
+    hEfficiency->Draw("P same");
+    TGaxis* axis = new TGaxis(gPad->GetUxmax(), gPad->GetUymin(),
+			      gPad->GetUxmax(), gPad->GetUymax(), 0, rightmax, 510, "+L");
+    axis->SetTitle(Form("n_{%s}",label.Data()));
+    axis->SetLabelColor(kGreen+2);
+    axis->SetTitleColor(kGreen+2);
+    axis->SetTitleSize(0.05);
+    axis->SetTitleOffset(-0.7);
+    axis->Draw();
+  }
   TLegend* leg = new TLegend(0.6, (line_val > 0.) ? 0.55 : 0.6, 0.89, 0.8);
   leg->AddEntry(gSignificance, "Limit Gain", "L");
-  leg->AddEntry(hEfficiency, "N(Signal)", "L");
+  if(!doVsEff) leg->AddEntry(hEfficiency, "N(Signal)", "L");
   leg->AddEntry(line, "Current Limit", "L");
   if(second_line) leg->AddEntry(second_line, "Previous Limit", "L");
   leg->SetFillStyle(0);
@@ -1705,13 +1778,14 @@ TCanvas* DataPlotter::print_cdf(TString hist, TString setType, Int_t set, TStrin
   return c;
 }
 
-TCanvas* DataPlotter::print_significance(TString hist, TString setType, Int_t set, TString label, bool dir=true, Double_t line_val = -1.) {
-  TCanvas* c = plot_significance(hist,setType,set,label, dir, line_val);
+TCanvas* DataPlotter::print_significance(TString hist, TString setType, Int_t set, TString label,
+					 bool dir=true, Double_t line_val = -1., bool doVsEff = false) {
+  TCanvas* c = plot_significance(hist,setType,set,label, dir, line_val, doVsEff);
   if(!c) return c;
   label.ReplaceAll("#",""); //for ease of use in bash
   label.ReplaceAll(" ", "");
   label.ReplaceAll("/", "");
-  c->Print(Form("figures/%s/%s/sig_%s_%s%s_set_%i.png",folder_.Data(),selection_.Data(),label.Data(),hist.Data(),
+  c->Print(Form("figures/%s/%s/sig_%s%s_%s%s_set_%i.png",folder_.Data(),selection_.Data(),(doVsEff) ? "vsEff_" : "", label.Data(),hist.Data(),
 		(logY_ ? "_log":""),set));
   return c;
 }

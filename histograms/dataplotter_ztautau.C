@@ -7,6 +7,32 @@ bool  doStatsLegend_ = false;
 TString hist_dir_ = "ztautau";
 TString folder_ = "clfv_zdecays";
 
+Int_t print_significance_canvases(vector<TString> hists, vector<TString> types, vector<TString> labels, vector<int> sets) {
+  TCanvas* c = 0;
+  if(!dataplotter_) return -2;
+  
+  if(hists.size() != types.size() || labels.size() != hists.size())
+    return -1;
+  int n = hists.size();
+  for(int set : sets) {
+    for(int i = 0; i < n; ++i) {
+      TString filename = Form("sig_vsEff_%s_%s_set_%i.root", labels[i].Data(), hists[i].Data(), set);
+      filename.ReplaceAll("#",""); //for ease of use in bash
+      filename.ReplaceAll(" ", "");
+      filename.ReplaceAll("/", "");
+
+      c = dataplotter_->plot_significance(hists[i], types[i], set, labels[i], 0., 1., true, -1., true);
+      TFile* f = new TFile(Form("canvases/%s/%s/%s", folder_.Data(), selection_.Data(), filename.Data()), "RECREATE");
+      printf("Printing canvas canvases/%s/%s/%s\n" , folder_.Data(), selection_.Data(), filename.Data());
+      c->Write();
+      f->Write();
+      delete c;
+      delete f;
+    }
+  }
+  return 0;
+}
+
 Int_t print_statistics(TString hist, TString type, int set) {
   if(!dataplotter_) return -1;
   
@@ -47,6 +73,7 @@ Int_t print_statistics(TString hist, TString type, int set) {
 }
 Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
 			   vector<int> base_rebins = {}, bool stacks = true) {
+  if(!dataplotter_) return -1;
   vector<TString> hnames;
   vector<TString> htypes;
   vector<int>     rebins;
@@ -134,8 +161,8 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
     for(int logz = 0; logz < 2; ++logz) { //print log and not log z axis plots
       dataplotter_->logZ_ = logz;
       for(int s : sets) {
-	if(data) dataplotter_->rebinH_ = 4;
-	else 	 dataplotter_->rebinH_ = 2;
+  	if(data) dataplotter_->rebinH_ = 4;
+  	else 	 dataplotter_->rebinH_ = 2;
 
   	auto c = dataplotter_->print_single_2Dhist("pxiinvvsvis0", "event", s, ("Z"+label), 0, 80, -80, 60);
   	delete c;
@@ -157,7 +184,22 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
     }
   }
   
-  //print cdf transform plots
+  //print cdf transform and significance vs bdt score plots
+  vector<TString> sighists;
+  vector<TString> sigtypes;
+  vector<TString> siglabels;
+  if(selection_ == "mutau") {
+    sighists.push_back("mva0"); sigtypes.push_back("event"); siglabels.push_back("H"+label);
+    sighists.push_back("mva1"); sigtypes.push_back("event"); siglabels.push_back("Z"+label);
+  } else if(selection_ == "etau") {
+    sighists.push_back("mva2"); sigtypes.push_back("event"); siglabels.push_back("H"+label);
+    sighists.push_back("mva3"); sigtypes.push_back("event"); siglabels.push_back("Z"+label);
+  } else if(selection_ == "emu") {
+    sighists.push_back("mva4"); sigtypes.push_back("event"); siglabels.push_back("H"+label);
+    sighists.push_back("mva5"); sigtypes.push_back("event"); siglabels.push_back("Z"+label);
+  }
+  print_significance_canvases(sighists, sigtypes, siglabels, sets);
+  
   for(int logy = 0; logy < 2; ++logy) { //print log and not log axis
     dataplotter_->logY_ = logy;
     for(int s : sets) {
@@ -170,6 +212,10 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
 	delete c;
 	c = dataplotter_->print_significance("mva1", "event", s, ("Z"+label), -1., 1.3, true, 0.71);
 	delete c;
+	c = dataplotter_->print_significance("mva0", "event", s, ("H"+label), 0., 1., true, -1., true); //significance vs efficiency
+	delete c;
+	c = dataplotter_->print_significance("mva1", "event", s, ("Z"+label), 0., 1., true, 0.71, true); //significance vs efficiency
+	delete c;
       }
       else if(selection_=="etau") {
 	auto c = dataplotter_->print_cdf("mva2", "event", s, ("H"+label), 0., 1.7);
@@ -180,6 +226,10 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
 	delete c;
 	c = dataplotter_->print_significance("mva3", "event", s, ("Z"+label), -1., 1.);
 	delete c;
+	c = dataplotter_->print_significance("mva2", "event", s, ("H"+label), 0., 1., true, -1., true);
+	delete c;
+	c = dataplotter_->print_significance("mva3", "event", s, ("Z"+label), 0., 1., true, -1., true);
+	delete c;
       }
       else if(selection_=="emu") {
 	auto c = dataplotter_->print_cdf("mva4", "event", s, ("H"+label), 0., 1.7);
@@ -189,6 +239,10 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
 	c = dataplotter_->print_significance("mva4", "event", s, ("H"+label), -1., 1.);
 	delete c;
 	c = dataplotter_->print_significance("mva5", "event", s, ("Z"+label), -1., 1., true, 0.44);
+	delete c;
+	c = dataplotter_->print_significance("mva4", "event", s, ("H"+label), 0., 1., true, -1., true);
+	delete c;
+	c = dataplotter_->print_significance("mva5", "event", s, ("Z"+label), 0., 1., true, 0.44, true);
 	delete c;
       }
     }
