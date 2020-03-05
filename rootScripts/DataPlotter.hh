@@ -49,11 +49,13 @@ public :
   Int_t plot_data_ = 1;
   Int_t rebinH_ = 1;
   Int_t data_over_mc_ = 1;
+  Int_t stack_uncertainty_ = 1; //whether or not to add gray shading for uncertainty
   Int_t debug_ = 0;
   Int_t include_qcd_ = 1;
   Int_t qcd_offset_ = 100; //set number offset to get same sign selection
   Int_t plot_title_ = 0; //Plot the title on the canvas
   Double_t fill_alpha_ = 0.9; //alpha to use for hist plotting
+  Int_t normalize_1ds_ = 0; //normalzie 1D histograms when plotting
   Int_t normalize_2ds_ = 1; //normalzie 2D histograms when plotting
   Double_t signal_scale_ = 1.; //increase the size of the signal if needed
   Int_t stack_signal_ = 0; //put signal into the stack
@@ -168,6 +170,7 @@ public :
 
   virtual TH1F* get_qcd(TString hist, TString setType, Int_t set);
 
+  virtual TH1F* get_stack_uncertainty(THStack* hstack, TString hname);
   virtual THStack* get_stack(TString hist, TString setType, Int_t set);
 
   virtual TCanvas* plot_single_2Dhist(TString hist, TString setType, Int_t set, TString label);

@@ -247,8 +247,7 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
       }
     }
   }
-  return 0;
-  
+
   dataplotter_->logY_ = 0;
   int status = (stacks) ? dataplotter_->print_stacks(hnames, htypes, sets, xmaxs, xmins, rebins, signal_scales, base_rebins) :
     dataplotter_->print_hists(hnames, htypes, sets, xmaxs, xmins, rebins, signal_scales, base_rebins);
@@ -496,13 +495,13 @@ Int_t print_standard_selections() {
   Int_t status = 0;
   selection_ = "mutau";
   status += init_dataplotter();
-  status += print_standard_plots({7,8,9,10,11,12}, {250., 250., 50., 50., 250., 250.});
+  status += print_standard_plots({7,8,9,10,13,14}, {250., 250., 50., 50., 250., 250.});
   selection_ = "etau";
   status += init_dataplotter();
-  status += print_standard_plots({27,28,29,30,31,32}, {250., 250., 50., 50., 250., 250.});
+  status += print_standard_plots({27,28,29,30,33,34}, {250., 250., 50., 50., 250., 250.});
   selection_ = "emu";
   status += init_dataplotter();
-  status += print_standard_plots({47,48,49,50,51,52}, {250., 250., 5., 5., 50., 20.}, {1,1,2,2,1,1});
+  status += print_standard_plots({47,48,49,50,53,54,55,56}, {250., 250., 5., 5., 250., 250., 5., 5.}, {1,1,2,2,1,1,2,2});
 
   Double_t cpuTime = timer->CpuTime();
   Double_t realTime = timer->RealTime();

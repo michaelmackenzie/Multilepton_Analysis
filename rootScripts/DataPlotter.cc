@@ -475,15 +475,16 @@ vector<TH1F*> DataPlotter::get_signal(TString hist, TString setType, Int_t set) 
     if(index !=  i)  {
       h[index]->Add(h[i]);
       delete h[i];
-    } else {    
-      auto o = gDirectory->Get(name.Data());
+    } else {
+      TString hname = name; //Form("%s_%s_%i", name.Data(), hist.Data(), set);
+      auto o = gDirectory->Get(hname.Data());
       if(o) delete o;
       h[index]->SetFillStyle(fill [i_color]);
       h[index]->SetFillColor(color[i_color]);
       h[index]->SetLineColor(color[i_color]);
       h[index]->SetMarkerColor(color[i_color]);
       h[index]->SetLineWidth(3);
-      h[index]->SetName(Form("%s",name.Data()));
+      h[index]->SetName(Form("%s",hname.Data()));
     }
     
     const char* stats = (doStatsLegend_) ? Form(" #scale[0.8]{(%.2e)}", h[index]->Integral()
@@ -537,8 +538,9 @@ TH2F* DataPlotter::get_signal_2D(TString hist, TString setType, Int_t set) {
 }
 
 TH1F* DataPlotter::get_data(TString hist, TString setType, Int_t set) {
+  TString hname = Form("hData_%s_%i", hist.Data(), set);
   {
-    auto o = gDirectory->Get("hData");
+    auto o = gDirectory->Get(hname.Data());
     if(o) delete o;
   }
   TH1F* d = 0;
@@ -556,7 +558,7 @@ TH1F* DataPlotter::get_data(TString hist, TString setType, Int_t set) {
   const char* stats = (doStatsLegend_) ? Form(" #scale[0.8]{(%.2e)}", d->Integral()
 					      +d->GetBinContent(0)+d->GetBinContent(d->GetNbinsX()+1)) : "";
   d->SetTitle(Form("Data%s",stats));
-  d->SetName("hData");
+  d->SetName(hname.Data());
   if(rebinH_ > 0) d->Rebin(rebinH_);
 
   return d;
@@ -592,7 +594,7 @@ TH2F* DataPlotter::get_data_2D(TString hist, TString setType, Int_t set) {
 
 TH1F* DataPlotter::get_qcd(TString hist, TString setType, Int_t set) {
   {
-    auto o = gDirectory->Get(Form("qcd_%s", hist.Data()));
+    auto o = gDirectory->Get(Form("qcd_%s_%i", hist.Data(), set));
     if(o) delete o;
   }
   
@@ -600,7 +602,7 @@ TH1F* DataPlotter::get_qcd(TString hist, TString setType, Int_t set) {
 
   TH1F* hData = get_data(hist, setType, set_qcd);
   if(!hData) return hData;
-  hData->SetName(Form("qcd_%s",hist.Data()));      
+  hData->SetName(Form("qcd_%s_%i",hist.Data(),set));      
   TH1F* hMC = 0;
   for(UInt_t i = 0; i < data_.size(); ++i) {
     if(isData_[i]) continue;
@@ -628,6 +630,29 @@ TH1F* DataPlotter::get_qcd(TString hist, TString setType, Int_t set) {
   hData->SetLineColor(kOrange+6);
   hData->SetFillColorAlpha(kOrange+6,fill_alpha_);
   return hData;
+}
+
+TH1F* DataPlotter::get_stack_uncertainty(THStack* hstack, TString hname) {
+  if(!hstack || hstack->GetNhists() == 0)
+    return NULL;
+  TList* hlist = hstack->GetHists();
+  TH1F* hlast = (TH1F*) hlist->Last();
+  //clone last histogram to match the setup
+  TH1F* huncertainty = (TH1F*) hlast->Clone(hname.Data());
+  huncertainty->Clear(); huncertainty->Reset();
+  huncertainty->SetTitle("Bkg. #pm#sigma(Stat.)");
+  huncertainty->SetFillColor(kGray+1);
+  huncertainty->SetLineColor(kGray+1);
+  huncertainty->SetFillStyle(3001);
+  huncertainty->SetMarkerSize(0.); //so no marker
+  Int_t nbins = hlast->GetNbinsX();
+
+  for(TObject* o : *hlist) {
+    if(o->InheritsFrom(TH1F::Class())) {
+      huncertainty->Add((TH1F*) o);
+    }
+  }
+  return huncertainty;
 }
 
 THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set) {
@@ -683,14 +708,14 @@ THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set) {
       h[index]->Add(h[i]);
       delete h[i];
     } else {
-      while(auto o = gDirectory->Get(Form("s_%s_%s",name.Data(),hist.Data()))) {
+      while(auto o = gDirectory->Get(Form("s_%s_%s_%i",name.Data(),hist.Data(),set))) {
 	if(o) delete o;
       }
       h[index]->SetFillColorAlpha(color[i_color],fill_alpha_);
       h[index]->SetLineColor(color[i_color]);
       h[index]->SetLineWidth(2);
       h[index]->SetMarkerStyle(20);
-      h[index]->SetName(Form("s_%s_%s",name.Data(),hist.Data()));    
+      h[index]->SetName(Form("s_%s_%s_%i",name.Data(),hist.Data(),set));    
     }
     const char* stats = (doStatsLegend_) ? Form(" #scale[0.8]{(%.2e)}", h[index]->Integral()
 						+h[index]->GetBinContent(0)+h[index]->GetBinContent(h[index]->GetNbinsX()+1)) : "";
@@ -788,7 +813,7 @@ TCanvas* DataPlotter::plot_single_2Dhist(TString hist, TString setType, Int_t se
     h->SetContour(10);
     // h->RebinX(2); h->RebinY(2);
   }
-  h->SetName(Form("h2D_%s_%s",label.Data(),hist.Data()));    
+  h->SetName(Form("h2D_%s_%s_%i",label.Data(),hist.Data(),set));    
   if(plot_data_ && data) h->Draw("same cont3");
   else                   h->Draw("colz");
 
@@ -883,7 +908,7 @@ TCanvas* DataPlotter::plot_2Dhist(TString hist, TString setType, Int_t set) {
       //set plotting info
       h[index]->SetLineColor(color[i_color]);
       h[index]->SetMarkerColor(color[i_color]);
-      h[index]->SetName(Form("h2D_%s_%s",name.Data(),hist.Data()));    
+      h[index]->SetName(Form("h2D_%s_%s_%i",name.Data(),hist.Data(),set));    
     }
     const char* stats = (doStatsLegend_) ? Form(" #scale[0.8]{(%.2e)}", h[index]->Integral()
 						+h[index]->GetBinContent(0)+h[index]->GetBinContent(h[index]->GetNbinsX()+1)) : "";
@@ -957,13 +982,20 @@ TCanvas* DataPlotter::plot_hist(TString hist, TString setType, Int_t set) {
   vector<TH1F*> h; //list of histograms
   //check if QCD is defined for this set
   TH1F* hQCD = (include_qcd_) ? get_qcd(hist,setType,set) : NULL;
+  if(hQCD) hQCD->SetFillStyle(0);
   // if(hQCD) hQCD->SetBit(kCanDelete);
   //array of colors and fills for each label
   Int_t bkg_color[] = {kRed+1, kRed-2, kYellow+1,kSpring-1 , kViolet-2, kGreen-2, kRed+3,kOrange-9,kBlue+1};
-  Int_t bkg_fill[]  = {1001,3005,1001,1001,3005,1001,1001,1001};
-  Int_t sig_color[] = {kGreen+4, kBlue, kOrange+10, kViolet-2, kYellow+3,kOrange-9,kBlue+1};
+  Int_t bkg_fill[]  = {     0,      0,         0,         0,         0,        0,      0,        0,      0};//1001,3005,1001,1001,3005,1001,1001,1001};
+  Int_t sig_color[] = {kBlue, kOrange+10, kGreen+4, kViolet-2, kYellow+3,kOrange-9,kBlue+1};
   Int_t sig_fill[]  = {0,          0,          0,         0,        0,         0,       0};//3002,3001,3003,3003,3005,3006,3003,3003};
-
+  TLegend* leg = new TLegend(legend_x1_, legend_y1_, legend_x2_, legend_y2_);
+  if(hQCD) leg->AddEntry(hQCD, hQCD->GetTitle(), "L");
+  // leg->SetDrawOption("L");
+  leg->SetBorderSize(0);
+  leg->SetTextSize(legend_txt_);
+  leg->SetX1NDC(((doStatsLegend_) ? legend_x1_stats_ : legend_x1_));
+  // leg->SetEntrySeparation(legend_sep_);
   {
     auto o = gDirectory->Get(Form("h_%s_%i",hist.Data(),set));
     if(o) delete o;
@@ -1014,33 +1046,35 @@ TCanvas* DataPlotter::plot_hist(TString hist, TString setType, Int_t set) {
     } else {
       //set plotting info
       {
-        auto o = gDirectory->Get(Form("h_%s_%s",name.Data(),hist.Data()));
+        auto o = gDirectory->Get(Form("h_%s_%s_%i",name.Data(),hist.Data(),set));
 	if(o) delete o;
       }
       if(isSignal_[i]) {
 	h[index]->SetFillStyle(sig_fill[i_color]); 
+	h[index]->SetFillColor(sig_color[i_color]);
 	h[index]->SetFillColorAlpha(sig_color[i_color],fill_alpha_);
 	h[index]->SetLineColor(sig_color[i_color]);
 	h[index]->SetLineWidth(4);
       } else {
 	h[index]->SetFillStyle(bkg_fill[i_color]); 
+	h[index]->SetFillColor(bkg_color[i_color]);
 	h[index]->SetFillColorAlpha(bkg_color[i_color],fill_alpha_);
 	h[index]->SetLineColor(bkg_color[i_color]);
 	h[index]->SetLineWidth(3);
       }
       h[index]->SetMarkerStyle(20);
-      h[index]->SetName(Form("h_%s_%s",name.Data(),hist.Data()));    
+      h[index]->SetName(Form("h_%s_%s_%i",name.Data(),hist.Data(),set));    
     }
     const char* stats = (doStatsLegend_) ? Form(" #scale[0.8]{(%.2e)}", h[index]->Integral()
 						+h[index]->GetBinContent(0)+h[index]->GetBinContent(h[index]->GetNbinsX()+1)) : "";
     if(isSignal_[index])
       h[index]->SetTitle(Form("%s%s%s", name.Data(),
-			      (signal_scale_ == 1.) ? "" : Form(" (x%.1f)",signal_scale_),
+			      (signal_scale_ == 1. || normalize_1ds_) ? "" : Form(" (x%.1f)",signal_scale_),
 			      stats));
     else
       h[index]->SetTitle(Form("%s%s", name.Data(),stats));
     if(isSignal_[i] && signal_scale_ > 1.) h[i]->Scale(signal_scale_);
-    m = max(m,h[index]->GetMaximum());
+    if((int) i == index) leg->AddEntry(h[index], h[index]->GetTitle(), "L");
   }
   //plot each histogram, remember which is first for axis setting
   bool first = true;
@@ -1049,19 +1083,25 @@ TCanvas* DataPlotter::plot_hist(TString hist, TString setType, Int_t set) {
   while(it != indexes.end()) {
     if(h[it->second]->GetEntries() == 0) continue;
     if(first) {
+      if(normalize_1ds_) h[it->second]->Scale(1./h[it->second]->Integral());
+      m = max(m,h[it->second]->GetMaximum());
       h[it->second]->Draw("hist");
       ind = it->second;
+      first = false;
     }
-    else
+    else {
+      if(normalize_1ds_) h[it->second]->Scale(1./h[it->second]->Integral());
+      m = max(m,h[it->second]->GetMaximum());
       h[it->second]->Draw("same hist");
-    first = false;
+    }
     it++;
   }
   //plot QCD
+  if(hQCD && normalize_1ds_) hQCD->Scale(1./hQCD->Integral());
   if(h.size() == 0 && hQCD) hQCD->Draw("hist");
   else if(hQCD) hQCD->Draw("hist same");
   if(hQCD) m = max(m,hQCD->GetMaximum());
-
+  
   //get axis titles
   TString xtitle;
   TString ytitle;
@@ -1072,13 +1112,13 @@ TCanvas* DataPlotter::plot_hist(TString hist, TString setType, Int_t set) {
   c->SetTopMargin(0.06);
   c->SetRightMargin(0.05);
   c->SetLeftMargin(0.087);
-  c->BuildLegend();//0.6, 0.9, 0.9, 0.45, "", "L");
+  // c->BuildLegend();//0.6, 0.9, 0.9, 0.45, "", "L");
 
   TH1F* hAxis = (h.size() > 0) ? h[ind] : hQCD;
   if(!hAxis) return NULL;
   
   if(yMin_ <= yMax_)hAxis->SetAxisRange(yMin_,yMax_,"Y");
-  else            hAxis->SetAxisRange(1e-1,m*1.2,"Y");    
+  else              hAxis->SetAxisRange((normalize_1ds_) ? m*1.e-4 : 1.e-1, m*1.2,"Y");    
   if(xMin_ < xMax_) hAxis->SetAxisRange(xMin_,xMax_,"X");    
   //draw text on plots
   draw_luminosity();
@@ -1090,24 +1130,24 @@ TCanvas* DataPlotter::plot_hist(TString hist, TString setType, Int_t set) {
   if(plot_title_) hAxis->SetTitle (title.Data());
   else hAxis->SetTitle (""); //no title, overwrite current with empty string
   if(logY_) c->SetLogy();
-  auto o = c->GetPrimitive("TPave");
-  if(o) {
-    c->Modified();
-    c->Update();
-    auto tl = (TLegend*) o;
-    tl->SetDrawOption("L");
-    tl->SetTextSize(legend_txt_);
-    tl->SetY2NDC(legend_y2_);
-    tl->SetY1NDC(legend_y1_);
-    tl->SetX1NDC(((doStatsLegend_) ? legend_x1_stats_ : legend_x1_));
-    tl->SetX2NDC(legend_x2_);
-    tl->SetEntrySeparation(legend_sep_);
-    c->Modified();
-    c->Update();
-  } else {
-    printf("Warning! Legend not found\n");
-  }
-
+  // auto o = c->GetPrimitive("TPave");
+  // if(o) {
+  //   c->Modified();
+  //   c->Update();
+  //   auto tl = (TLegend*) o;
+  //   tl->SetDrawOption("L");
+  //   tl->SetTextSize(legend_txt_);
+  //   tl->SetY2NDC(legend_y2_);
+  //   tl->SetY1NDC(legend_y1_);
+  //   tl->SetX1NDC(((doStatsLegend_) ? legend_x1_stats_ : legend_x1_));
+  //   tl->SetX2NDC(legend_x2_);
+  //   tl->SetEntrySeparation(legend_sep_);
+  //   c->Modified();
+  //   c->Update();
+  // } else {
+  //   printf("Warning! Legend not found\n");
+  // }
+  leg->Draw();
   return c;
 
 }
@@ -1175,6 +1215,10 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
 
   m = max(max(m,hstack->GetMaximum()), (d) ? d->GetMaximum() : 0.);
 
+  TH1F* huncertainty = get_stack_uncertainty(hstack,Form("uncertainty_%s_%i", hist.Data(), set));
+  if(stack_uncertainty_) 
+    huncertainty->Draw("E2 SAME");
+
   //Make a Data/MC histogram
   if(plot_data_ && !d) {
     printf("Warning! Data histogram is Null! Skipping Data/MC plot\n");
@@ -1187,10 +1231,9 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
   if(hDataMC) {
     // hDataMC->SetBit(kCanDelete);
     hDataMC->Clear();
-    TH1F* hlast = (TH1F*) hstack->GetStack()->Last();
-    nmc = hlast->Integral();
-    nmc += hlast->GetBinContent(0);
-    nmc += hlast->GetBinContent(nb+1);
+    nmc = huncertainty->Integral();
+    nmc += huncertainty->GetBinContent(0);
+    nmc += huncertainty->GetBinContent(nb+1);
     ndata = d->Integral();
     ndata += d->GetBinContent(0);
     ndata += d->GetBinContent(nb+1);
@@ -1204,8 +1247,8 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
       dataVal = d->GetBinContent(i);
       dataErr= d->GetBinError(i);
       dataErr = sqrt(dataVal);
-      double mcVal = hlast->GetBinContent(i);
-      double mcErr = hlast->GetBinError(i);
+      double mcVal = huncertainty->GetBinContent(i);
+      double mcErr = huncertainty->GetBinError(i);
       x[i-1] = hDataMC->GetBinCenter(i);
       y[i-1] = 1.;
       xerr[i-1] = 0.;
@@ -1456,7 +1499,7 @@ TCanvas* DataPlotter::plot_cdf(TString hist, TString setType, Int_t set, TString
   if(hDataMC) {
     // hDataMC->SetBit(kCanDelete);
     hDataMC->Clear();
-    TH1F* hlast = (TH1F*) hcdfstack->GetStack()->Last();
+    TH1F* hlast = get_stack_uncertainty(hcdfstack,Form("uncertainty_cdf_%i", set));
     nmc = hlast->Integral();
     nmc += hlast->GetBinContent(0);
     nmc += hlast->GetBinContent(nb+1);
@@ -1695,7 +1738,8 @@ TCanvas* DataPlotter::plot_significance(TString hist, TString setType, Int_t set
   c->Update();
 
   if(!doVsEff) {
-    double rightmax = 1.2*hEfficiency->GetMaximum();
+    //scale to put on same plot
+    double rightmax = 1.2*hEfficiency->GetMaximum(); //maximum of second axis
     double scale = gPad->GetUymax()/rightmax;
     hEfficiency->SetLineColor(kGreen+2);
     hEfficiency->SetMarkerColor(kGreen+2);
@@ -1703,6 +1747,8 @@ TCanvas* DataPlotter::plot_significance(TString hist, TString setType, Int_t set
   
     hEfficiency->Scale(scale);
     hEfficiency->Draw("P same");
+
+    //make second axis on right side of plot
     TGaxis* axis = new TGaxis(gPad->GetUxmax(), gPad->GetUymin(),
 			      gPad->GetUxmax(), gPad->GetUymax(), 0, rightmax, 510, "+L");
     axis->SetTitle(Form("n_{%s}",label.Data()));
