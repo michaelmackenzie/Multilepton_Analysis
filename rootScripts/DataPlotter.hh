@@ -4,6 +4,7 @@
 
 #include "TString.h"
 #include "TFile.h"
+#include "TKey.h"
 #include "TH1.h"
 #include "TH2.h"
 #include "TF1.h"
@@ -66,6 +67,8 @@ public :
   bool doStatsLegend_ = true; //Give each backgrounds contribution in the legend
 
   //Various canvas drawing numbers
+  Int_t background_colors_[10] = {kRed-7, kRed-3, kYellow-7,kGreen-7 , kViolet+6, kCyan-7, kRed+3,kOrange-9,kBlue+1};
+  Int_t signal_colors_[10] = {kBlue, kOrange+10, kGreen+4, kViolet-2, kYellow+3,kOrange-9,kBlue+1};
   Int_t canvas_x_ = 900; //canvas dimensions
   Int_t canvas_y_ = 800;
   Double_t axis_font_size_ = 0.2; //axis title values

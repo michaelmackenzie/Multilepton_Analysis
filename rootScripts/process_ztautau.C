@@ -3,11 +3,11 @@
 Int_t process_ztautau() {
 
   const char* gridPath[] = {
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200214_102545/", //ttbar
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200211_134900/", //DY AMC
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200211_134900/", //DY AMC
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200214_102545/", //t_tw
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200214_102545/", //tbar_tw
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_093718/", //ttbar
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_093718/", //DY AMC
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_093718/", //DY AMC
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_093718/", //t_tw
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_093718/", //tbar_tw
     "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200129_163419/", //DY MadGraph
     "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200129_163419/", //DY MadGraph
     "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200129_163419/", //DY 1 Jet MadGraph
@@ -18,36 +18,39 @@ Int_t process_ztautau() {
     "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200129_163419/", //DY 3 Jet MadGraph
     "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200129_163419/", //DY 4 Jet MadGraph
     "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200214_102545/", //DY 4 Jet MadGraph
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200214_102545/", //W 1 Jet
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200214_102545/", //W 2 Jet
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200214_102545/", //W 3 Jet
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200214_102545/", //W 4 Jet
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200214_102545/", //WW
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200214_102545/", //WZ Jets to 2L2Q
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200214_102545/", //WZ Jets to 3LNu
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200214_102545/", //ZZ Jets to 2L2Nu
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200214_102545/", //ZZ Jets to 2L2Q
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200214_102545/", //ZZ Jets to 4L
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_093718/", //W 1 Jet
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_093718/", //W 2 Jet
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_093718/", //W 3 Jet
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_093718/", //W 4 Jet
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_163253/", //WJets amcnlo
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200311_111042/", //WJets amcnlo (ext 1)
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200313_082931/", //WJets amcnlo (ext 2)
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_093718/", //WW
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_093718/", //WZ Jets to 2L2Q
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_093718/", //WZ Jets to 3LNu
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_093718/", //ZZ Jets to 2L2Nu
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_093718/", //ZZ Jets to 2L2Q
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_093718/", //ZZ Jets to 4L
     "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200129_163419/", //HZG gluglu
     "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200129_163419/", //HZG tth
     "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200129_163419/", //HZG vbf
     "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200129_163419/", //HZG W-
     "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200129_163419/", //HZG W+
     "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200129_163419/", //HZG zh
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200129_163419/", //HTauTau gluglu
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200212_152457/", //ZETau
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200212_163325/", //ZMuTau
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200212_100026/", //ZEMu
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200214_102545/", //HETau
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200214_102545/", //HMuTau
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200214_102545/", //HEMu
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200129_163419/", //Muon Data 2016 B
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200129_163419/", //Muon Data 2016 C
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200129_163419/", //Muon Data 2016 D
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200129_163419/", //Muon Data 2016 E
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200129_163419/", //Muon Data 2016 F
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200129_163419/", //Muon Data 2016 G
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200129_163419/", //Muon Data 2016 H
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_093718/", //HTauTau gluglu
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_093718/", //ZETau
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_093718/", //ZMuTau
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_093718/", //ZEMu
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_093718/", //HETau
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_093718/", //HMuTau
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_093718/", //HEMu
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200307_121853/", //Muon Data 2016 B
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200307_121853/", //Muon Data 2016 C
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200307_121853/", //Muon Data 2016 D
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200307_121853/", //Muon Data 2016 E
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200307_121853/", //Muon Data 2016 F
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200307_121853/", //Muon Data 2016 G
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200307_121853/", //Muon Data 2016 H
     "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200129_163419/", //Electron Data 2016 B
     "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200129_163419/", //Electron Data 2016 C
     "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200129_163419/", //Electron Data 2016 D
@@ -77,6 +80,9 @@ Int_t process_ztautau() {
 			 "output_W2JetsToLNu.root"                 ,
 			 "output_W3JetsToLNu.root"                 ,
 			 "output_W4JetsToLNu.root"                 ,
+			 "output_WJetsToLNu.root"                  ,
+			 "output_WJetsToLNu_ext1.root"             ,
+			 "output_WJetsToLNu_ext2.root"             ,
 			 "output_WW.root"                          ,
 			 "output_WZJetsTo2L2Q.root"                ,
 			 "output_WZJetsTo3LNu.root"                ,
@@ -117,8 +123,8 @@ Int_t process_ztautau() {
 			   1, //DY AMC
 			   1, //t_tw
 			   1, //tbar_tw
-			   0, //DY MadGraph
-			   0, //DY MadGraph
+			   0, //DY inclusive M > 50 MadGraph
+			   0, //DY inclusive 10 < M < 50 MadGraph
 			   0, //DY 1 Jet MadGraph
 			   0, //DY 1 Jet MadGraph
 			   0, //DY 2 Jet MadGraph
@@ -127,10 +133,13 @@ Int_t process_ztautau() {
 			   0, //DY 3 Jet MadGraph
 			   0, //DY 4 Jet MadGraph
 			   0, //DY 4 Jet MadGraph
-			   1, //W 1 Jet
-			   1, //W 2 Jet
-			   1, //W 3 Jet
-			   1, //W 4 Jet
+			   1, //W 1 Jet MadGraph
+			   1, //W 2 Jet MadGraph
+			   1, //W 3 Jet MadGraph
+			   1, //W 4 Jet MadGraph
+			   1, //WJets amcnlo
+			   1, //WJets amcnlo ext 1
+			   1, //WJets amcnlo ext 2
 			   1, //WW
 			   1, //WZ Jets to 2L2Q
 			   1, //WZ Jets to 3LNu
@@ -190,36 +199,44 @@ Int_t process_ztautau() {
   xsec[16] =  3775.2; 		       //"w2jets"                  
   xsec[17] =  1139.82; 		       //"w3jets"                  
   xsec[18] =  655.82; 		       //"w4jets"                  
-  xsec[19] =  12.178;	               //"ww"                      
-  xsec[20] =  5.595;		       //"wz_2l2q"                 
-  xsec[21] =  4.42965;	               //"wz_3lnu"                 
-  xsec[22] =  0.564;		       //"zz_2l2nu"                
-  xsec[23] =  3.22;		       //"zz_2l2q"                 
-  xsec[24] =  1.212;		       //"zz_4l"
+  xsec[19] =  61526.7; 		       //"wjets"    https://twiki.cern.ch/twiki/bin/viewauth/CMS/SummaryTable1G25ns#W_jets    
+  xsec[20] =  61526.7; 		       //"wjets"    https://twiki.cern.ch/twiki/bin/viewauth/CMS/SummaryTable1G25ns#W_jets    
+  xsec[21] =  61526.7; 		       //"wjets"    https://twiki.cern.ch/twiki/bin/viewauth/CMS/SummaryTable1G25ns#W_jets    
+  xsec[22] =  12.178;	               //"ww"                      
+  xsec[23] =  5.595;		       //"wz_2l2q"                 
+  xsec[24] =  4.42965;	               //"wz_3lnu"                 
+  xsec[25] =  0.564;		       //"zz_2l2nu"                
+  xsec[26] =  3.22;		       //"zz_2l2q"                 
+  xsec[27] =  1.212;		       //"zz_4l"
   //Higgs branching ratios: https://twiki.cern.ch/twiki/bin/view/LHCPhysics/CERNYellowReportPageBR2014
   //Higgs production xsecs: https://twiki.cern.ch/twiki/bin/view/LHCPhysics/CERNHLHE2019
   //Z decay to leptons fraction: http://pdg.lbl.gov/2012/listings/rpp2012-list-z-boson.pdf
   // --> Br(Z->ll) * Br(h->Zg) * xsec(X -> h)
-  xsec[25] =    3.*3.3658/100.*1.54e-3* 48.61;	       //"hzg_gluglu"              
-  xsec[26] =    3.*3.3658/100.*1.54e-3* 0.5071;	       //"hzg_tth"                 
-  xsec[27] =    3.*3.3658/100.*1.54e-3* 3.766;	       //"hzg_vbf"                 
-  xsec[28] =    3.*3.3658/100.*1.54e-3* 1.358/2.;	       //"hzg_wminus"              
-  xsec[29] =    3.*3.3658/100.*1.54e-3* 1.358/2.;	       //"hzg_wplus"               
-  xsec[30] =    3.*3.3658/100.*1.54e-3* 0.880;	       //"hzg_zh"                  
-  xsec[31] =                   6.32e-2* 43.92;	       //"htautau_gluglu"                  
-  xsec[32] =    ((6225.42+18610.)/(3.*3.3658e-2))*9.8e-6*65406./(2.e3*594); //zetau  z->ll / br(ll) * br(etau, CL=95) *N(accepted)/N(Gen) http://pdg.lbl.gov/2018/listings/rpp2018-list-z-boson.pdf
-  xsec[33] =    ((6225.42+18610.)/(3.*3.3658e-2))*1.2e-5*66676./(2.e3*599); //zmutau z->ll / br(ll) * br(mutau, CL=95)*N(accepted)/N(Gen) http://pdg.lbl.gov/2018/listings/rpp2018-list-z-boson.pdf
-  xsec[34] =    ((6225.42+18610.)/(3.*3.3658e-2))*7.3e-7*186670./(2.e3*596); //zemu   z->ll / br(ll) * br(emu, CL=95)  *N(accepted)/N(Gen) http://pdg.lbl.gov/2018/listings/rpp2018-list-z-boson.pdf
-  xsec[35] = (48.61+3.766+0.5071+1.358+0.880)*6.1e-3*41619./(98.*1e3); //hetau  xsec(higgs,glu+vbf)*br(etau, CL=95) *N(accepted)/N(Gen) http://pdg.lbl.gov/2019/listings/rpp2019-list-higgs-boson.pdf
-  xsec[36] = (48.61+3.766+0.5071+1.358+0.880)*2.5e-3*41647./(98.*1e3); //hmutau xsec(higgs,glu+vbf)*br(mutau, CL=95)*N(accepted)/N(Gen) http://pdg.lbl.gov/2019/listings/rpp2019-list-higgs-boson.pdf
-  xsec[37] = (48.61+3.766+0.5071+1.358+0.880)*3.5e-4*34429./(88.*500); //hemu   xsec(higgs,glu+vbf)*br(emu, CL=95)  *N(accepted)/N(Gen) http://pdg.lbl.gov/2019/listings/rpp2019-list-higgs-boson.pdf
+  xsec[28] =    3.*3.3658/100.*1.54e-3* 48.61;	       //"hzg_gluglu"              
+  xsec[29] =    3.*3.3658/100.*1.54e-3* 0.5071;	       //"hzg_tth"                 
+  xsec[30] =    3.*3.3658/100.*1.54e-3* 3.766;	       //"hzg_vbf"                 
+  xsec[31] =    3.*3.3658/100.*1.54e-3* 1.358/2.;	       //"hzg_wminus"              
+  xsec[32] =    3.*3.3658/100.*1.54e-3* 1.358/2.;	       //"hzg_wplus"               
+  xsec[33] =    3.*3.3658/100.*1.54e-3* 0.880;	       //"hzg_zh"                  
+  xsec[34] =                   6.32e-2* 43.92;	       //"htautau_gluglu"                  
+  xsec[35] =    ((6225.42+18610.)/(3.*3.3658e-2))*9.8e-6*161497./(2.e3*498); //zetau  z->ll / br(ll) * br(etau, CL=95) *N(accepted)/N(Gen) http://pdg.lbl.gov/2018/listings/rpp2018-list-z-boson.pdf
+  xsec[36] =    ((6225.42+18610.)/(3.*3.3658e-2))*1.2e-5*152959./(2.e3*497); //zmutau z->ll / br(ll) * br(mutau, CL=95)*N(accepted)/N(Gen) http://pdg.lbl.gov/2018/listings/rpp2018-list-z-boson.pdf
+  xsec[37] =    ((6225.42+18610.)/(3.*3.3658e-2))*7.3e-7*186670./(2.e3*596); //zemu   z->ll / br(ll) * br(emu, CL=95)  *N(accepted)/N(Gen) http://pdg.lbl.gov/2018/listings/rpp2018-list-z-boson.pdf
+  xsec[38] = (48.61+3.766+0.5071+1.358+0.880)*6.1e-3*418794./(487.*1e3); //hetau  xsec(higgs,glu+vbf)*br(etau, CL=95) *N(accepted)/N(Gen) http://pdg.lbl.gov/2019/listings/rpp2019-list-higgs-boson.pdf
+  xsec[39] = (48.61+3.766+0.5071+1.358+0.880)*2.5e-3*388243./(453.*1e3); //hmutau xsec(higgs,glu+vbf)*br(mutau, CL=95)*N(accepted)/N(Gen) http://pdg.lbl.gov/2019/listings/rpp2019-list-higgs-boson.pdf
+  xsec[40] = (48.61+3.766+0.5071+1.358+0.880)*3.5e-4*34429./(88.*500); //hemu   xsec(higgs,glu+vbf)*br(emu, CL=95)  *N(accepted)/N(Gen) http://pdg.lbl.gov/2019/listings/rpp2019-list-higgs-boson.pdf
 
   TStopwatch* timer = new TStopwatch();
 
   Int_t useTauFakeSF = 1; //1 = use given scale factors, 2 = override them with local ones
   bool writeTrees = true;
+  TString onlyChannel = "";
   cout << "--- Fake Tau SF mode: " << useTauFakeSF
        << ", Write Trees mode: " << writeTrees << endl;
+
+  if(onlyChannel != "")
+    cout << "--- WARNING! Only processing " << onlyChannel.Data() << " channel!\n";
+  
   Int_t category = 0;
   for(int i = 0; i < sizeof(files)/sizeof(*files); ++i) {
     ++category; // could have just used i + 1?
@@ -266,6 +283,11 @@ Int_t process_ztautau() {
 	continue;
       }
       printf("Found file %s\n",fChannel->GetName());
+      if(onlyChannel != "") {
+	if(onlyChannel != fChannel->GetName()) { cout << "Continuing!\n"; continue;}
+	else cout << "Found correct channel --> processing!\n";
+      }
+      
       TTree* tree = 0;
       TH1F* eventsChannel = 0;
       TKey* key2 = 0;

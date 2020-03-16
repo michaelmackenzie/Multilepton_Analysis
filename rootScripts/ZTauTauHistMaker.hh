@@ -87,6 +87,8 @@ public :
   TLorentzVector* genLeptonOneP4 = 0 ;
   TLorentzVector* genLeptonTwoP4 = 0 ;
   TLorentzVector* photonP4 = 0       ;
+  TLorentzVector* jetP4 = 0          ;
+  TLorentzVector* tauP4 = 0          ;
   UInt_t nMuons                      ;
   UInt_t nElectrons                  ;
   UInt_t nTaus                       ;
@@ -184,6 +186,14 @@ public :
     TH1F* hHtSum;
     TH1F* hHt;
     TH1F* hHtPhi;
+    TH1F* hJetPt;
+    TH1F* hJetM;
+    TH1F* hJetEta;
+    TH1F* hJetPhi;    
+    TH1F* hTauPt;
+    TH1F* hTauM;
+    TH1F* hTauEta;
+    TH1F* hTauPhi;    
     TH1F* hPFMet;
     TH1F* hPFMetPhi;
     TH1F* hPFCovMet00;
@@ -249,9 +259,8 @@ public :
     TH1F* hSysSVEta;
     
     //Transverse Masses
-    TH1F* hMTMu;
-    TH1F* hMTE;
-    TH1F* hMTTau;
+    TH1F* hMTOne;
+    TH1F* hMTTwo;
 
     //mass difference between m_gll and m_ll (with a weight)
     TH1F* hMDiff;
@@ -268,6 +277,7 @@ public :
     //For assuming MET along tau is tau neutrino, only makes sense for e/mu + tau
     TH1F* hPTauVisFrac;
     TH1F* hLepMEstimate;
+    TH1F* hLepMEstimateTwo;
     
     TH1F* hPtSum[2]; //scalar sum of lepton Pt and Met, and photon for one
     TH1F* hPt1Sum[4]; //scalar sum of 1 lepton Pt and Met, both leptons, then both minus met
@@ -406,6 +416,7 @@ public :
     float pxiinv;
     float ptauvisfrac;
     float mestimate;
+    float mestimatetwo;
     
     //Event variables
     float ht;
@@ -695,23 +706,22 @@ void ZTauTauHistMaker::Init(TTree *tree)
 
     //Event Sets
     //currently sets 5-24 are mutau, 25-44 are etau, and 45-64 are emu
-    fEventSets [0] = 1; // all events
+    fEventSets [0] = 0; // all events
 
-    fEventSets [1] = 1; // all opposite signed events
-    fEventSets [1+fQcdOffset] = 1; // all same signed events
+    fEventSets [1] = 0; // all opposite signed events
+    fEventSets [1+fQcdOffset] = 0; // all same signed events
 
-    fEventSets [2] = 1; // events with opposite signs and >= 1 photon
-    fEventSets [2+fQcdOffset] = 1; // events with same signs and >= 1 photon
-    fEventSets [3] = 1; // events with opposite signs and 1 photon
-    fEventSets [3+fQcdOffset] = 1; // events with same signs and 1 photon
+    fEventSets [2] = 0; // events with opposite signs and >= 1 photon
+    fEventSets [2+fQcdOffset] = 0; // events with same signs and >= 1 photon
+    fEventSets [3] = 0; // events with opposite signs and 1 photon
+    fEventSets [3+fQcdOffset] = 0; // events with same signs and 1 photon
 
     fEventSets [5] = 1; // events with opposite signs and 1 tau and 1 muon
     fEventSets [5+fQcdOffset] = 1; // events with same signs and 1 tau and 1 muon
-    fEventSets [25] = 1; // events with opposite signs and 1 tau and 1 electron
-    fEventSets [25+fQcdOffset] = 1; // events with same signs and 1 tau and 1 electron    
 
     fEventSets [6] = 1; // events with opposite signs and passing Mu+Tau Pt cuts with no photon check
     fEventSets [6+fQcdOffset] = 1; // events with same signs and passing Mu+Tau Pt cuts with no photon check
+
     fEventSets [7] = 1; // events with opposite signs and passing Mu+Tau Pt + angle cuts with no photon check
     fEventSets [7+fQcdOffset] = 1; // events with same signs and passing Mu+Tau Pt + angle cuts with no photon check
     fTreeSets  [7] = 0;
@@ -735,11 +745,13 @@ void ZTauTauHistMaker::Init(TTree *tree)
     fEventSets [13+fQcdOffset] = 1; // events with same signs and top set
     fEventSets [14] = 1; // events with opposite signs and w+jets set
     fEventSets [14+fQcdOffset] = 1; // events with same signs and w+jets set
+    fEventSets [15] = 1; // events with opposite signs and z+jets set
+    fEventSets [15+fQcdOffset] = 1; // events with same signs and z+jets set
 
-    fEventSets [15] = 1; // events with opposite signs and z box cuts
-    fEventSets [15+fQcdOffset] = 1; // events with same signs and z box cuts
-    fEventSets [16] = 1; // events with opposite signs and higgs box cuts
-    fEventSets [16+fQcdOffset] = 1; // events with same signs and higgs box cuts
+    fEventSets [16] = 1; // events with opposite signs and z box cuts
+    fEventSets [16+fQcdOffset] = 1; // events with same signs and z box cuts
+    fEventSets [17] = 1; // events with opposite signs and higgs box cuts
+    fEventSets [17+fQcdOffset] = 1; // events with same signs and higgs box cuts
 
     fEventSets [18] = 1; // events with opposite signs and nJets = 0
     fEventSets [18+fQcdOffset] = 1; // events with same signs and nJets = 0
@@ -753,7 +765,15 @@ void ZTauTauHistMaker::Init(TTree *tree)
     fEventSets [22] = 1; // events with opposite signs and nPhotons > 0
     fEventSets [22+fQcdOffset] = 1; // events with same signs and nPhotons > 0
 
-    
+    fEventSets [23] = 1; // events with opposite signs and misID jet -> taus
+    fEventSets [23+fQcdOffset] = 1; // events with same signs and misID jet -> taus
+    fEventSets [24] = 1; // events with opposite signs and misID e/mu -> taus
+    fEventSets [24+fQcdOffset] = 1; // events with same signs and misID e/mu -> taus
+
+
+    //E+Tau
+    fEventSets [25] = 1; // events with opposite signs and 1 tau and 1 electron
+    fEventSets [25+fQcdOffset] = 1; // events with same signs and 1 tau and 1 electron    
     fEventSets [26] = 1; // events with opposite signs and passing E+Tau Pt cuts with no photon check
     fEventSets [26+fQcdOffset] = 1; // events with same signs and passing E+Tau Pt cuts with no photon check
     fEventSets [27] = 1; // events with opposite signs and passing E+Tau Pt + angle cuts with no photon check
@@ -773,18 +793,18 @@ void ZTauTauHistMaker::Init(TTree *tree)
     fEventSets [31+fQcdOffset] = 1; // events with same signs and mass window
     fEventSets [32] = 1; // events with opposite signs and mass window
     fEventSets [32+fQcdOffset] = 1; // events with same signs and mass window
-    // fEventSets [32] = 1; // events with opposite signs and inv > 0.5*vis - 20
-    // fEventSets [32+fQcdOffset] = 1; // events with same signs and inv > 0.5*vis - 20
 
-    fEventSets [33] = 1; // events with opposite signs and 50 < mll < 100
-    fEventSets [33+fQcdOffset] = 1; // events with same signs and 50 < mll < 100
-    fEventSets [34] = 1; // events with opposite signs and inv > 0.5*vis - 20
-    fEventSets [34+fQcdOffset] = 1; // events with same signs and inv > 0.5*vis - 20
+    fEventSets [33] = 1; // events with opposite signs and top set
+    fEventSets [33+fQcdOffset] = 1; // events with same signs and top set
+    fEventSets [34] = 1; // events with opposite signs and w+jets set
+    fEventSets [34+fQcdOffset] = 1; // events with same signs and w+jets set
+    fEventSets [35] = 1; // events with opposite signs and z+jets set
+    fEventSets [35+fQcdOffset] = 1; // events with same signs and z+jets set
 
-    fEventSets [35] = 1; // events with opposite signs and z box cuts
-    fEventSets [35+fQcdOffset] = 1; // events with same signs and z box cuts
-    fEventSets [36] = 1; // events with opposite signs and higgs box cuts
-    fEventSets [36+fQcdOffset] = 1; // events with same signs and higgs box cuts
+    fEventSets [36] = 1; // events with opposite signs and z box cuts
+    fEventSets [36+fQcdOffset] = 1; // events with same signs and z box cuts
+    fEventSets [37] = 1; // events with opposite signs and higgs box cuts
+    fEventSets [37+fQcdOffset] = 1; // events with same signs and higgs box cuts
 
     fEventSets [38] = 1; // events with opposite signs and nJets = 0
     fEventSets [38+fQcdOffset] = 1; // events with same signs and nJets = 0
@@ -798,9 +818,10 @@ void ZTauTauHistMaker::Init(TTree *tree)
     fEventSets [42] = 1; // events with opposite signs and nPhotons > 0
     fEventSets [42+fQcdOffset] = 1; // events with same signs and nPhotons > 0
     
-    fEventSets [44] = 1; // events with opposite signs and BDT > -0.2
-    fEventSets [44+fQcdOffset] = 1; // events with same signs and BDT > -0.2
-    fTreeSets  [44] = 0;
+    fEventSets [43] = 1; // events with opposite signs and misID jet -> taus
+    fEventSets [43+fQcdOffset] = 1; // events with same signs and misID jet -> taus
+    fEventSets [44] = 1; // events with opposite signs and misID e/mu -> taus
+    fEventSets [44+fQcdOffset] = 1; // events with same signs and misID e/mu -> taus
 
 
     // E+Mu Books
@@ -823,15 +844,17 @@ void ZTauTauHistMaker::Init(TTree *tree)
     fEventSets [52+fQcdOffset] = 1; // events with same signs and mass window
 
     //background regions
-    fEventSets [53] = 1; // events with opposite signs and top region
-    fEventSets [53+fQcdOffset] = 1; // events with same
-    fEventSets [54] = 1; // events with opposite signs and w region
-    fEventSets [54+fQcdOffset] = 1; // events with same
+    fEventSets [53] = 1; // events with opposite signs and top set
+    fEventSets [53+fQcdOffset] = 1; // events with same signs and top set
+    fEventSets [54] = 1; // events with opposite signs and w+jets set
+    fEventSets [54+fQcdOffset] = 1; // events with same signs and w+jets set
+    fEventSets [55] = 1; // events with opposite signs and z+jets set
+    fEventSets [55+fQcdOffset] = 1; // events with same signs and z+jets set
 
-    fEventSets [55] = 1; // events with opposite signs and z box cuts
-    fEventSets [55+fQcdOffset] = 1; // events with same signs and z box cuts
-    fEventSets [56] = 1; // events with opposite signs and higgs box cuts
-    fEventSets [56+fQcdOffset] = 1; // events with same signs and higgs box cuts
+    fEventSets [56] = 1; // events with opposite signs and z box cuts
+    fEventSets [56+fQcdOffset] = 1; // events with same signs and z box cuts
+    fEventSets [57] = 1; // events with opposite signs and higgs box cuts
+    fEventSets [57+fQcdOffset] = 1; // events with same signs and higgs box cuts
 
     fEventSets [58] = 1; // events with opposite signs + 0-jet
     fEventSets [58+fQcdOffset] = 1; // events with same
@@ -845,6 +868,22 @@ void ZTauTauHistMaker::Init(TTree *tree)
     fEventSets [62] = 1; // events with opposite signs and nPhotons > 0
     fEventSets [62+fQcdOffset] = 1; // events with same signs and nPhotons > 0
 
+
+    //Mu+Mu sets
+    fEventSets [67] = 1; // events with opposite signs
+    fEventSets [67+fQcdOffset] = 1; // events with same signs
+    fEventSets [68] = 1; // events with opposite signs and no bjets
+    fEventSets [68+fQcdOffset] = 1; // events with same signs
+
+    fEventSets [78] = 1; // events with opposite signs + 0-jet
+    fEventSets [78+fQcdOffset] = 1; // events with same
+    fEventSets [79] = 1; // events with opposite signs + 1-jet
+    fEventSets [79+fQcdOffset] = 1; // events with same
+    fEventSets [80] = 1; // events with opposite signs + >1-jet
+    fEventSets [80+fQcdOffset] = 1; // events with same
+
+
+    //initialize all the histograms
     BookHistograms();
 
   }
@@ -883,6 +922,8 @@ void ZTauTauHistMaker::Init(TTree *tree)
   fChain->SetBranchAddress("genLeptonOneP4" 	 , &genLeptonOneP4       );
   fChain->SetBranchAddress("genLeptonTwoP4" 	 , &genLeptonTwoP4       );
   fChain->SetBranchAddress("photonP4"  	         , &photonP4             );
+  fChain->SetBranchAddress("jetP4"  	         , &jetP4                );
+  fChain->SetBranchAddress("tauP4"  	         , &tauP4                );
   fChain->SetBranchAddress("nMuons"              , &nMuons               );
   fChain->SetBranchAddress("nElectrons"          , &nElectrons           );
   fChain->SetBranchAddress("nTaus"               , &nTaus                );

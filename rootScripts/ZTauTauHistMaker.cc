@@ -127,6 +127,15 @@ void ZTauTauHistMaker::BookEventHistograms() {
       fEventHist[i]->hHtSum		     = new TH1F("htsum"		      , Form("%s: HtSum"	       ,dirname) , 200,   0,800);
       fEventHist[i]->hHt		     = new TH1F("ht"		      , Form("%s: Ht"		       ,dirname) , 200,   0,800);
       fEventHist[i]->hHtPhi                  = new TH1F("htphi"               , Form("%s: HtPhi"               ,dirname) , 100,  -4,  4);
+      fEventHist[i]->hJetPt                  = new TH1F("jetpt"               , Form("%s: JetPt"               ,dirname)  , 300,   0, 300);
+      fEventHist[i]->hJetM                   = new TH1F("jetm"                , Form("%s: JetM"                ,dirname)  , 150,   0, 300);
+      fEventHist[i]->hJetEta                 = new TH1F("jeteta"              , Form("%s: JetEta"              ,dirname)  , 200, -10,  10);
+      fEventHist[i]->hJetPhi                 = new TH1F("jetphi"              , Form("%s: JetPhi"              ,dirname)  , 100,  -4,  4);
+      fEventHist[i]->hTauPt                  = new TH1F("taupt"               , Form("%s: TauPt"               ,dirname)  , 300,   0, 300);
+      fEventHist[i]->hTauM                   = new TH1F("taum"                , Form("%s: TauM"                ,dirname)  , 100,   0, 4.);
+      fEventHist[i]->hTauEta                 = new TH1F("taueta"              , Form("%s: TauEta"              ,dirname)  , 200, -10,  10);
+      fEventHist[i]->hTauPhi                 = new TH1F("tauphi"              , Form("%s: TauPhi"              ,dirname)  , 100,  -4,  4);
+
       fEventHist[i]->hPFMet                  = new TH1F("pfmet"               , Form("%s: PF Met"              ,dirname)  , 200,  0, 400); 
       fEventHist[i]->hPFMetPhi               = new TH1F("pfmetphi"            , Form("%s: PF MetPhi"           ,dirname)  ,  80, -4,   4); 
       fEventHist[i]->hPFCovMet00             = new TH1F("pfcovmet00"          , Form("%s: PF CovMet00"         ,dirname) , 1000,    0.,1000.);
@@ -191,9 +200,8 @@ void ZTauTauHistMaker::BookEventHistograms() {
       fEventHist[i]->hSysSVPt       = new TH1F("syssvpt"       , Form("%s: SVFit SysPt"           ,dirname)  , 200,  0, 400);     
       fEventHist[i]->hSysSVEta      = new TH1F("syssveta"      , Form("%s: SVFit SysEta"          ,dirname)  , 100, -5,   5);     
       
-      fEventHist[i]->hMTMu          = new TH1F("mtmu"          , Form("%s: MT_Mu"         ,dirname)  , 200, 0.,   200.);     
-      fEventHist[i]->hMTE           = new TH1F("mte"           , Form("%s: MT_E"          ,dirname)  , 200, 0.,   200.);     
-      fEventHist[i]->hMTTau         = new TH1F("mttau"         , Form("%s: MT_Tau"        ,dirname)  , 200, 0.,   200.);     
+      fEventHist[i]->hMTOne         = new TH1F("mtone"         , Form("%s: MTOne"         ,dirname)  , 200, 0.,   200.);     
+      fEventHist[i]->hMTTwo         = new TH1F("mttwo"         , Form("%s: MTTwo"         ,dirname)  , 200, 0.,   200.);     
 
       fEventHist[i]->hMDiff         = new TH1F("mdiff"         , Form("%s: 0.85M_gll - M_ll" ,dirname)  , 100, -50.,   50.);     
 
@@ -221,6 +229,7 @@ void ZTauTauHistMaker::BookEventHistograms() {
 
       fEventHist[i]->hPTauVisFrac      = new TH1F("ptauvisfrac"    , Form("%s: visible tau pT fraction " ,dirname)  ,300,0.,  1.5);     
       fEventHist[i]->hLepMEstimate     = new TH1F("lepmestimate"   , Form("%s: Estimate di-lepton mass"  ,dirname)  ,200,0.,  800.);     
+      fEventHist[i]->hLepMEstimateTwo  = new TH1F("lepmestimatetwo", Form("%s: Estimate di-lepton mass"  ,dirname)  ,200,0.,  800.);     
 
       fEventHist[i]->hPtSum[0]         = new TH1F("ptsum0"         , Form("%s: Scalar Pt sum"                    ,dirname)    ,1000,  0.,  1000.);     
       fEventHist[i]->hPtSum[1]         = new TH1F("ptsum1"         , Form("%s: Scalar Pt sum"                    ,dirname)    ,1000,  0.,  1000.);     
@@ -377,6 +386,7 @@ void ZTauTauHistMaker::BookTrees() {
       fTrees[i]->Branch("onemetdeltaphi",  &fTreeVars.onemetdeltaphi );  
       fTrees[i]->Branch("twometdeltaphi",  &fTreeVars.twometdeltaphi );  
       fTrees[i]->Branch("lepmestimate",    &fTreeVars.mestimate	     );   
+      fTrees[i]->Branch("lepmestimatetwo", &fTreeVars.mestimatetwo   );   
       fTrees[i]->Branch("met",             &fTreeVars.met            );
       fTrees[i]->Branch("mtone",           &fTreeVars.mtone	     );   
       fTrees[i]->Branch("mttwo",           &fTreeVars.mttwo	     );   
@@ -453,9 +463,11 @@ void ZTauTauHistMaker::InitializeTreeVariables(Int_t selection) {
   //project onto the bisectors
   fTreeVars.pxivis = (lp1+lp2)*bisector;
   fTreeVars.pxiinv = missing*bisector;
-  double pnuest = max(0.,lp2*missing/lp2.Mag()); //inv pT along tau = tau pt unit vector dot missing
-  fTreeVars.ptauvisfrac = lp2.Mag() / (lp2.Mag() + pnuest);
-  fTreeVars.mestimate = fTreeVars.lepm/sqrt(fTreeVars.ptauvisfrac);
+  double pnuest    = max(0.,lp2*missing/lp2.Mag()); //inv pT along tau = tau pt unit vector dot missing
+  double pnuesttwo = max(0.,lp1*missing/lp1.Mag()); //inv pT along other lepton (for emu case with tau decay)
+  fTreeVars.ptauvisfrac  = lp2.Mag() / (lp2.Mag() + pnuest);
+  fTreeVars.mestimate    = fTreeVars.lepm/sqrt(fTreeVars.ptauvisfrac);
+  fTreeVars.mestimatetwo = fTreeVars.lepm/sqrt(lp1.Mag() / (lp1.Mag() + pnuesttwo));
   
   //event variables
   fTreeVars.ht       = ht;
@@ -475,7 +487,7 @@ void ZTauTauHistMaker::InitializeTreeVariables(Int_t selection) {
   else                    selecName = "unknown";
   for(unsigned i = 0; i < fMvaNames.size(); ++i) {
     fMvaOutputs[i] = (fMvaNames[i].Contains(selecName.Data())) ? mva[i]->EvaluateMVA(fMvaNames[i].Data()) : -2.;
-    if(fMvaOutputs[i] < -100.)
+    if(fMvaOutputs[i] < -100.) 
       cout << "Error value returned for MVA " << fMvaNames[i].Data()
 	   << " evaluation, Entry = " << fentry << endl;
     fMvaProb[i] = -1; //(fMvaNames[i].Contains(selecName.Data())) ? mva->GetProba(fMvaNames[i].Data()) : -1.;
@@ -544,6 +556,20 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
   Hist->hHt		     ->Fill(ht		       , genWeight*eventWeight)   ;
   Hist->hHtPhi               ->Fill(htPhi              , genWeight*eventWeight)   ;
 
+  if(jetP4 && jetP4->Pt() > 0.) { //if 0 then no jet stored
+    Hist->hJetPt               ->Fill(jetP4->Pt()        , genWeight*eventWeight)   ;
+    Hist->hJetM                ->Fill(jetP4->M()         , genWeight*eventWeight)   ;
+    Hist->hJetEta              ->Fill(jetP4->Eta()       , genWeight*eventWeight)   ;
+    Hist->hJetPhi              ->Fill(jetP4->Phi()       , genWeight*eventWeight)   ;
+  }
+
+  if(tauP4 && tauP4->Pt() > 0.) { //if 0 then no tau stored
+    Hist->hTauPt               ->Fill(tauP4->Pt()        , genWeight*eventWeight)   ;
+    Hist->hTauM                ->Fill(tauP4->M()         , genWeight*eventWeight)   ;
+    Hist->hTauEta              ->Fill(tauP4->Eta()       , genWeight*eventWeight)   ;
+    Hist->hTauPhi              ->Fill(tauP4->Phi()       , genWeight*eventWeight)   ;
+  }
+  
   Hist->hPFMet               ->Fill(pfMETC                , genWeight*eventWeight)      ;
   Hist->hPFMetPhi            ->Fill(pfMETCphi             , genWeight*eventWeight)      ;
   Hist->hPFCovMet00          ->Fill(pfMETCCov00           , genWeight*eventWeight)   ;
@@ -645,26 +671,9 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
   Hist->hSysSVPt         ->Fill(svSys.Pt()     ,eventWeight*genWeight);
   Hist->hSysSVEta        ->Fill(((svSys.Pt() > 1.e-5) ? svSys.Eta() : -1.e6),eventWeight*genWeight);
   
-  TLorentzVector* tau = 0;
-  TLorentzVector* muon = 0;
-  TLorentzVector* electron = 0;
-  if(abs(leptonOneFlavor) == 15)      tau = leptonOneP4;
-  else if(abs(leptonTwoFlavor) == 15) tau = leptonTwoP4;
-  if(abs(leptonOneFlavor) == 13)      muon = leptonOneP4;
-  else if(abs(leptonTwoFlavor) == 13) muon = leptonTwoP4;
-  if(abs(leptonOneFlavor) == 11)      electron = leptonOneP4;
-  else if(abs(leptonTwoFlavor) == 11) electron = leptonTwoP4;
 
-  double mTMu = (muon != 0) ? 2.*met*muon->Pt() : 0.;
-  mTMu = (muon != 0) ? sqrt(mTMu*(1.-cos(muon->Phi() - metPhi))) : 0.;
-  double mTE = (electron != 0) ? 2.*met*electron->Pt() : 0.;
-  mTE  = (electron != 0) ? sqrt(mTE*(1.-cos(electron->Phi() - metPhi))) : 0.;
-  double mTTau = (tau != 0) ? 2.*met*tau->Pt() : 0.;
-  mTTau  = (tau != 0) ? sqrt(mTTau*(1.-cos(tau->Phi() - metPhi))) : 0.;
-
-  Hist->hMTMu          ->Fill(mTMu       ,eventWeight*genWeight);
-  Hist->hMTE           ->Fill(mTE        ,eventWeight*genWeight);
-  Hist->hMTTau         ->Fill(mTTau      ,eventWeight*genWeight);
+  Hist->hMTOne         ->Fill(fTreeVars.mtone  ,eventWeight*genWeight);
+  Hist->hMTTwo         ->Fill(fTreeVars.mttwo  ,eventWeight*genWeight);
 
   Hist->hMDiff         ->Fill(0.85*sys.M() - lepSys.M(),eventWeight*genWeight);
 
@@ -704,8 +713,9 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
   Hist->hPXiInvVsVis[0]->Fill(pxi_vis0, pxi_inv0,eventWeight*genWeight);
   Hist->hPXiDiff[0]    ->Fill(pxi_vis0-pxi_inv0 ,eventWeight*genWeight);
 
-  Hist->hPTauVisFrac   ->Fill(fTreeVars.ptauvisfrac, eventWeight*genWeight);
-  Hist->hLepMEstimate  ->Fill(fTreeVars.mestimate  , eventWeight*genWeight);
+  Hist->hPTauVisFrac    ->Fill(fTreeVars.ptauvisfrac , eventWeight*genWeight);
+  Hist->hLepMEstimate   ->Fill(fTreeVars.mestimate   , eventWeight*genWeight);
+  Hist->hLepMEstimateTwo->Fill(fTreeVars.mestimatetwo, eventWeight*genWeight);
 
   if(nPhotons > 0) {
     Hist->hPXiVis[1]     ->Fill(pxi_vis1         ,eventWeight*genWeight);
@@ -918,9 +928,11 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   bool mutau = nTaus == 1  && nMuons == 1 && nElectrons == 0;
   bool etau  = nTaus == 1  && nMuons == 0 && nElectrons == 1;
   bool emu   = nTaus == 0  && nMuons == 1 && nElectrons == 1;
+  bool mumu  = nMuons == 2 && nElectrons == 0; //no tau requirement
 
+  InitializeTreeVariables(mutau+2*etau+5*emu+9*mumu);
+  mumu &= fTreeVars.lepm > 15.; //DY MC not defined below 10 GeV/c^2
 
-  InitializeTreeVariables(mutau+2*etau+5*emu);
   //FIXME temporary fix to hadronic tau ID if is not data
   // if((mutau || etau)&&fIsData==0) {
   //   eventWeight *= 1./0.95; //remove overall tau ID weight that didn't include if gen tau or not in the total event weight
@@ -941,7 +953,7 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   lp1.SetZ(0.);
   lp2.SetZ(0.);
   TVector3 bisector = (lp1.Mag()*lp2 + lp2.Mag()*lp1);
-  bisector.SetMag(1.);
+  if(bisector.Mag() > 0.) bisector.SetMag(1.);
   double pxi_vis = (lp1+lp2)*bisector;
   double pxi_inv = missing*bisector;
   
@@ -1019,8 +1031,10 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   else if(mutau)          FillAllHistograms(7 + fQcdOffset);
   if(etau  && chargeTest) FillAllHistograms(27);
   else if(etau)           FillAllHistograms(27 + fQcdOffset);
-  if(emu  && chargeTest) FillAllHistograms(47);
-  else if(emu)           FillAllHistograms(47 + fQcdOffset);
+  if(emu  && chargeTest)  FillAllHistograms(47);
+  else if(emu)            FillAllHistograms(47 + fQcdOffset);
+  if(mumu  && chargeTest) FillAllHistograms(67);
+  else if(mumu)           FillAllHistograms(67 + fQcdOffset);
 
   //////////////////////////////////////////////////////////////
   //
@@ -1043,6 +1057,7 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   mutau &= nBJets == 0;
   etau  &= nBJets == 0;
   emu   &= nBJets == 0;
+  mumu  &= nBJets == 0;
 
   //transverse masses with MET
   double mTTau = (tau != 0) ? 2.*met*tau->Pt() : 0.;
@@ -1053,11 +1068,11 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   mTE  = (electron != 0) ? sqrt(mTE*(1.-cos(electron->Phi() - metPhi))) : 0.;
 
   ////////////////////////////////////////////////////////////////////////////
-  // Set 14 + selection offset: MT(e/mu) > 60, MT(tau) > 50 (Top backgrounds)
+  // Set 14 + selection offset: MT(e/mu) > 60, MT(tau) > 50 (W/Top backgrounds)
   ////////////////////////////////////////////////////////////////////////////  
-  bool wregion = ((etau && mTE > 60. && mTTau > 50.)
-		  || (mutau && mTMu > 60. && mTTau > 50.)
-		  || (emu && mTE > 60. && mTMu > 60.));
+  bool wregion = ((etau && mTE > 80. && mTTau > 50.)
+		  || (mutau && mTMu > 80. && mTTau > 50.)
+		  || (emu && mTE > 80. && mTMu > 80.));
   
   if(mutau && wregion && chargeTest) FillAllHistograms(14);
   else if(mutau && wregion)          FillAllHistograms(14 + fQcdOffset);
@@ -1065,7 +1080,21 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   else if(etau && wregion)           FillAllHistograms(34 + fQcdOffset);
   if(emu && wregion && chargeTest)   FillAllHistograms(54);
   else if(emu && wregion)            FillAllHistograms(54 + fQcdOffset);
+
+  ////////////////////////////////////////////////////////////////////////////
+  // Set 15 + selection offset: Z backgrounds
+  ////////////////////////////////////////////////////////////////////////////  
+  bool zregion = ((etau && mTE < 20. && fTreeVars.lepm > 40. && fTreeVars.lepm < 100.)
+		  || (mutau && mTMu < 20. && fTreeVars.lepm > 40. && fTreeVars.lepm < 100.)
+		  || (emu && mTE < 30. && mTMu < 50. && fTreeVars.lepm > 40. && fTreeVars.lepm < 80.));
   
+  if(mutau && zregion && chargeTest) FillAllHistograms(15);
+  else if(mutau && zregion)          FillAllHistograms(15 + fQcdOffset);
+  if(etau && zregion && chargeTest)  FillAllHistograms(35);
+  else if(etau && zregion)           FillAllHistograms(35 + fQcdOffset);
+  if(emu && zregion && chargeTest)   FillAllHistograms(55);
+  else if(emu && zregion)            FillAllHistograms(55 + fQcdOffset);
+
   ////////////////////////////////////////////////////////////////////////////
   // Set 8 + selection offset: nBJets = 0
   ////////////////////////////////////////////////////////////////////////////
@@ -1075,6 +1104,8 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   else if(etau)           FillAllHistograms(28 + fQcdOffset);
   if(emu && chargeTest)   FillAllHistograms(48);
   else if(emu)            FillAllHistograms(48 + fQcdOffset);
+  if(mumu && chargeTest)  FillAllHistograms(68);
+  else if(mumu)           FillAllHistograms(68 + fQcdOffset);
 
   
   ////////////////////////////////////////////////////////////////////////////
@@ -1115,22 +1146,22 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
 
 
   ////////////////////////////////////////////////////////////////////////////
-  // Set 15-17 + selection offset: Box cuts
+  // Set 16-17 + selection offset: Box cuts
   ////////////////////////////////////////////////////////////////////////////
   //z ids
-  if(mutau && chargeTest && fEventId[0] && fEventId[0]->IDWord(fTreeVars) == 0)   FillAllHistograms(15);
-  else if(mutau && fEventId[0] && fEventId[0]->IDWord(fTreeVars) == 0)            FillAllHistograms(15 + fQcdOffset);
-  if(etau && chargeTest && fEventId[10] && fEventId[10]->IDWord(fTreeVars) == 0)  FillAllHistograms(35);
-  else if(etau && fEventId[10] && fEventId[10]->IDWord(fTreeVars) == 0)           FillAllHistograms(35 + fQcdOffset);
-  if(emu && chargeTest && fEventId[20] && fEventId[20]->IDWord(fTreeVars) == 0)   FillAllHistograms(55);
-  else if(emu && fEventId[20] && fEventId[20]->IDWord(fTreeVars) == 0)            FillAllHistograms(55 + fQcdOffset);
+  if(mutau && chargeTest && fEventId[0] && fEventId[0]->IDWord(fTreeVars) == 0)   FillAllHistograms(16);
+  else if(mutau && fEventId[0] && fEventId[0]->IDWord(fTreeVars) == 0)            FillAllHistograms(16 + fQcdOffset);
+  if(etau && chargeTest && fEventId[10] && fEventId[10]->IDWord(fTreeVars) == 0)  FillAllHistograms(36);
+  else if(etau && fEventId[10] && fEventId[10]->IDWord(fTreeVars) == 0)           FillAllHistograms(36 + fQcdOffset);
+  if(emu && chargeTest && fEventId[20] && fEventId[20]->IDWord(fTreeVars) == 0)   FillAllHistograms(56);
+  else if(emu && fEventId[20] && fEventId[20]->IDWord(fTreeVars) == 0)            FillAllHistograms(56 + fQcdOffset);
   //higgs ids
-  if(mutau && chargeTest && fEventId[30] && fEventId[30]->IDWord(fTreeVars) == 0) FillAllHistograms(16);
-  else if(mutau && fEventId[30] && fEventId[30]->IDWord(fTreeVars) == 0)          FillAllHistograms(16 + fQcdOffset);
-  if(etau && chargeTest && fEventId[40] && fEventId[40]->IDWord(fTreeVars) == 0)  FillAllHistograms(36);
-  else if(etau && fEventId[40] && fEventId[40]->IDWord(fTreeVars) == 0)           FillAllHistograms(36 + fQcdOffset);
-  if(emu && chargeTest && fEventId[50] && fEventId[50]->IDWord(fTreeVars) == 0)   FillAllHistograms(56);
-  else if(emu && fEventId[50] && fEventId[50]->IDWord(fTreeVars) == 0)            FillAllHistograms(56 + fQcdOffset);
+  if(mutau && chargeTest && fEventId[30] && fEventId[30]->IDWord(fTreeVars) == 0) FillAllHistograms(17);
+  else if(mutau && fEventId[30] && fEventId[30]->IDWord(fTreeVars) == 0)          FillAllHistograms(17 + fQcdOffset);
+  if(etau && chargeTest && fEventId[40] && fEventId[40]->IDWord(fTreeVars) == 0)  FillAllHistograms(37);
+  else if(etau && fEventId[40] && fEventId[40]->IDWord(fTreeVars) == 0)           FillAllHistograms(37 + fQcdOffset);
+  if(emu && chargeTest && fEventId[50] && fEventId[50]->IDWord(fTreeVars) == 0)   FillAllHistograms(57);
+  else if(emu && fEventId[50] && fEventId[50]->IDWord(fTreeVars) == 0)            FillAllHistograms(57 + fQcdOffset);
 
 
   ////////////////////////////////////////////////////////////////////////////
@@ -1139,26 +1170,33 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   if(mutau && nJets == 0 && chargeTest) FillAllHistograms(18);
   else if(mutau && nJets == 0)          FillAllHistograms(18 + fQcdOffset);
   if(etau && nJets == 0 && chargeTest)  FillAllHistograms(38);
-  else if(emu && nJets == 0)            FillAllHistograms(58 + fQcdOffset);
-  if(emu && nJets == 0 && chargeTest)   FillAllHistograms(58);
   else if(etau && nJets == 0)           FillAllHistograms(38 + fQcdOffset);
+  if(emu && nJets == 0 && chargeTest)   FillAllHistograms(58);
+  else if(emu && nJets == 0)            FillAllHistograms(58 + fQcdOffset);
+  if(mumu && nJets == 0 && chargeTest)  FillAllHistograms(78);
+  else if(mumu && nJets == 0)           FillAllHistograms(78 + fQcdOffset);
+
   if(mutau && nJets == 1 && chargeTest) FillAllHistograms(19);
   else if(mutau && nJets == 1)          FillAllHistograms(19 + fQcdOffset);
   if(etau && nJets == 1 && chargeTest)  FillAllHistograms(39);
   else if(etau && nJets == 1)           FillAllHistograms(39 + fQcdOffset);
   if(emu && nJets == 1 && chargeTest)   FillAllHistograms(59);
   else if(emu && nJets == 1)            FillAllHistograms(59 + fQcdOffset);
+  if(mumu && nJets == 1 && chargeTest)  FillAllHistograms(79);
+  else if(mumu && nJets == 1)           FillAllHistograms(79 + fQcdOffset);
+
   if(mutau && nJets > 1  && chargeTest) FillAllHistograms(20);
   else if(mutau && nJets > 1 )          FillAllHistograms(20 + fQcdOffset);
   if(etau && nJets > 1  && chargeTest)  FillAllHistograms(40);
   else if(etau && nJets > 1 )           FillAllHistograms(40 + fQcdOffset);
   if(emu && nJets > 1  && chargeTest)   FillAllHistograms(60);
   else if(emu && nJets > 1 )            FillAllHistograms(60 + fQcdOffset);
+  if(mumu && nJets > 1 && chargeTest)   FillAllHistograms(80);
+  else if(mumu && nJets > 1)            FillAllHistograms(80 + fQcdOffset);
+  
 
-
-  //add required photon
   ////////////////////////////////////////////////////////////////////////////
-  // Set 21-23 + selection offset: Photon categories 0, 1, > 1
+  // Set 21-22 + selection offset: Photon categories 0, >1
   ////////////////////////////////////////////////////////////////////////////
   if(mutau && nPhotons == 0 && chargeTest) FillAllHistograms(21);
   else if(mutau && nPhotons == 0)          FillAllHistograms(21 + fQcdOffset);
@@ -1173,6 +1211,24 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   if(emu && nPhotons >= 1 && chargeTest)   FillAllHistograms(62);
   else if(emu && nPhotons >= 1)            FillAllHistograms(62 + fQcdOffset);
 
+  ////////////////////////////////////////////////////////////////////////////
+  // Set 23-24 + selection offset: Mis ID categories jets, mu/e --> tau
+  ////////////////////////////////////////////////////////////////////////////
+  //jets
+  if(mutau && tauGenFlavor < 7 && chargeTest) FillAllHistograms(23); 
+  else if(mutau && tauGenFlavor < 7)          FillAllHistograms(23 + fQcdOffset); //not necessarily for QCD, but maybe a control region
+  if(etau && tauGenFlavor < 7 && chargeTest)  FillAllHistograms(43);
+  else if(etau && tauGenFlavor < 7)           FillAllHistograms(43 + fQcdOffset);
+  //leptons
+  if(mutau && abs(tauGenFlavor - 12) == 1 && chargeTest) FillAllHistograms(24); 
+  else if(mutau && abs(tauGenFlavor - 12) == 1)          FillAllHistograms(24 + fQcdOffset); 
+  if(etau && abs(tauGenFlavor - 12) == 1 && chargeTest)  FillAllHistograms(44);
+  else if(etau && abs(tauGenFlavor - 12) == 1)           FillAllHistograms(44 + fQcdOffset);
+  // else if(etau && tauGenFlavor)           FillAllHistograms(43 + fQcdOffset);
+  // if(emu && nPhotons == 0 && chargeTest)   FillAllHistograms(61);
+  // else if(emu && nPhotons == 0)            FillAllHistograms(61 + fQcdOffset);
+  
+  
   //adding visible/invisible pT cuts
   double offset = -50.;
   double coeff = 0.5;

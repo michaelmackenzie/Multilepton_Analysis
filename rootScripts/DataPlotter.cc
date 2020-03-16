@@ -441,8 +441,6 @@ void DataPlotter::get_titles(TString hist, TString setType, TString* xtitle, TSt
 
 vector<TH1F*> DataPlotter::get_signal(TString hist, TString setType, Int_t set) {
   vector<TH1F*> h;
-  Int_t color[] = {kBlue, kOrange+10, kGreen+4, kViolet-2, kYellow+3,kOrange-9,kBlue+1};
-  Int_t fill[]  = {0,          0,          0,         0,        0,         0,       0};//3002,3001,3003,3003,3005,3006,3003,3003};
   
   //for combining histograms of the same process
   map<TString, unsigned int> indexes;
@@ -479,10 +477,10 @@ vector<TH1F*> DataPlotter::get_signal(TString hist, TString setType, Int_t set) 
       TString hname = name; //Form("%s_%s_%i", name.Data(), hist.Data(), set);
       auto o = gDirectory->Get(hname.Data());
       if(o) delete o;
-      h[index]->SetFillStyle(fill [i_color]);
-      h[index]->SetFillColor(color[i_color]);
-      h[index]->SetLineColor(color[i_color]);
-      h[index]->SetMarkerColor(color[i_color]);
+      h[index]->SetFillStyle(0);
+      h[index]->SetFillColor(signal_colors_[i_color]);
+      h[index]->SetLineColor(signal_colors_[i_color]);
+      h[index]->SetMarkerColor(signal_colors_[i_color]);
       h[index]->SetLineWidth(3);
       h[index]->SetName(Form("%s",hname.Data()));
     }
@@ -627,7 +625,7 @@ TH1F* DataPlotter::get_qcd(TString hist, TString setType, Int_t set) {
   const char* stats = (doStatsLegend_) ? Form(" #scale[0.8]{(%.2e)}", hData->Integral()
 					      +hData->GetBinContent(0)+hData->GetBinContent(hData->GetNbinsX()+1)) : "";
   hData->SetTitle(Form("QCD%s",stats));
-  hData->SetLineColor(kOrange+6);
+  hData->SetLineColorAlpha(kOrange+6,fill_alpha_);
   hData->SetFillColorAlpha(kOrange+6,fill_alpha_);
   return hData;
 }
@@ -656,14 +654,8 @@ TH1F* DataPlotter::get_stack_uncertainty(THStack* hstack, TString hname) {
 }
 
 THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set) {
-  //make stacks less transparent
-  double fill_alpha = fill_alpha_;
-  fill_alpha_ = 0.9;
   vector<TH1F*> h;
   TH1F* hQCD = (include_qcd_) ? get_qcd(hist,setType,set) : NULL;
-  // if(hQCD) hQCD->SetBit(kCanDelete);
-  Int_t color[] = {kRed+1, kRed-2, kYellow+1,kSpring-1 , kViolet-2, kCyan+1, kRed+3,kOrange-9,kBlue+1};
-  Int_t fill[]  = {1001,1001,3005,3001,3001,3005,3001,3001,3001};
 
   {
     auto o = gDirectory->Get(Form("%s",hist.Data()));
@@ -711,8 +703,8 @@ THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set) {
       while(auto o = gDirectory->Get(Form("s_%s_%s_%i",name.Data(),hist.Data(),set))) {
 	if(o) delete o;
       }
-      h[index]->SetFillColorAlpha(color[i_color],fill_alpha_);
-      h[index]->SetLineColor(color[i_color]);
+      h[index]->SetFillColorAlpha(background_colors_[i_color],fill_alpha_);
+      h[index]->SetLineColorAlpha(background_colors_[i_color],fill_alpha_);
       h[index]->SetLineWidth(2);
       h[index]->SetMarkerStyle(20);
       h[index]->SetName(Form("s_%s_%s_%i",name.Data(),hist.Data(),set));    
@@ -727,7 +719,6 @@ THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set) {
     it++;
   }
   if(hQCD) hstack->Add(hQCD);
-  fill_alpha_ = fill_alpha;
   // hstack->SetBit(kCanDelete);
   return hstack;
 }
@@ -1231,6 +1222,8 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
   if(hDataMC) {
     // hDataMC->SetBit(kCanDelete);
     hDataMC->Clear();
+    hDataMC->SetName("hDataMC");
+    hDataMC->SetTitle("");
     nmc = huncertainty->Integral();
     nmc += huncertainty->GetBinContent(0);
     nmc += huncertainty->GetBinContent(nb+1);
@@ -1948,9 +1941,22 @@ Int_t DataPlotter::init_files() {
   for(int i = 0; i < nFiles; ++i) {
     if(isData_[i]) scale_.push_back(1.);
     else {
-      TH1F* evts = (TH1F*)  f[i]->Get(Form("TotalEvents_%s",names_[i].Data()));
-      scale_.push_back(1./(evts->GetBinContent(1)-2*evts->GetBinContent(10))*xsec_[i]*lum_);
-      if(debug_ > 0) printf("%s: bin 1, bin 11: %.0f, %.0f\n", names_[i].Data(), evts->GetBinContent(1), evts->GetBinContent(10));
+      // loop through the directory and add events from each event histogram (in case of hadd combined dataset)
+      double nevents = 0.;
+      TKey* key = 0;
+      TIter nextkey(f[i]->GetListOfKeys());
+      TH1F* events = 0;
+      while((key = (TKey*)nextkey())) {
+	TObject* obj = key->ReadObj();
+	if(obj->InheritsFrom(TH1::Class())) {
+	  events = (TH1F*) obj;
+	  nevents += events->GetBinContent(1);
+	  nevents -= 2.*events->GetBinContent(10);
+	  if(debug_ > 0) printf("%s %s: bin 1, bin 11: %.0f, %.0f\n", names_[i].Data(), events->GetName(),
+				events->GetBinContent(1), events->GetBinContent(10));
+	}
+      }
+      scale_.push_back(1./(nevents)*xsec_[i]*lum_);
     }
   }
 
