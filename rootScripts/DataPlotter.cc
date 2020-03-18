@@ -31,6 +31,11 @@ void DataPlotter::get_titles(TString hist, TString setType, TString* xtitle, TSt
     *ytitle = Form("Events / %.0f GeV/c^{2}",1.*rebinH_);
     *title  = Form("Mass Estimate of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
+  else if(hist == "lepmestimatetwo") {
+    *xtitle = "M_{ll}^{Col} (GeV/c^{2})";
+    *ytitle = Form("Events / %.0f GeV/c^{2}",1.*rebinH_);
+    *title  = Form("Mass Estimate of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
+  }
   else if(hist == "lepe") {
     *xtitle = "E_{ll} (GeV)";
     *ytitle = Form("Events / %.0f GeV",1.*rebinH_);

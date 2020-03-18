@@ -43,6 +43,7 @@ TCanvas* compare_dataMC() {
   hlast_2->SetFillStyle(0);
   hlast_2->SetLineColor(kMagenta);
   hlast_2->SetLineWidth(2);
+  hlast_2->SetMarkerSize(0);
   hlast_2->SetName("canvas_2_stack");
   hlast_2->SetTitle(Form("%s Stack", title2_.Data()));
   
@@ -54,15 +55,20 @@ TCanvas* compare_dataMC() {
     return NULL;
   }
 
-  auto o = pad1_1->GetPrimitive("TPave");
-  if(o) {
-    TLegend* leg = (TLegend*) o;
-    leg->AddEntry(hlast_2);
-    leg->Draw();
-  }
+  // auto o = pad1_1->GetPrimitive("TPave");
+  // if(o) {
+  //   TLegend* leg = (TLegend*) o;
+  //   leg->AddEntry(hlast_2);
+  //   leg->Draw();
+  // }
   c->Draw();
   pad1_1->cd();
   hlast_2->Draw("hist same");
+  TLegend* leg = new TLegend(0.3, 0.9, 0.6, 0.7);
+  leg->SetBorderSize(0);
+  leg->SetFillStyle(0);
+  leg->AddEntry(hlast_2, hlast_2->GetTitle(), "L");
+  leg->Draw("same");
 
   TPad* pad2_2 = (TPad*) c2_->GetPrimitive("pad2");
   if(!pad2_2) {
@@ -237,6 +243,17 @@ TCanvas* compare_mc(TString label, bool normalize = false, double xmin = 1., dou
 
 
 Int_t initialize_canvases(const char* fileonename, const char* filetwoname) {
+  //clean up last runs if existing
+  if(f1_)
+    delete f1_;
+  if(f2_)
+    delete f2_;
+
+  if(c1_)
+    delete c1_;
+  if(c2_)
+    delete c2_;
+  
   //get files, check they exist
   f1_ = TFile::Open(fileonename, "READ");
   f2_ = TFile::Open(filetwoname, "READ");
@@ -281,4 +298,29 @@ Int_t initialize_canvases(const char* fileonename, const char* filetwoname) {
 
   gStyle->SetOptStat(0);
   return 0;
+}
+
+Int_t print_standard_comparisons() {
+  Int_t status = 0;
+  status += initialize_canvases("canvases/clfv_zdecays/mutau/wjetbinned_twopt_8.root", "canvases/clfv_zdecays/mutau/wjetamcnlo_twopt_8.root");
+  compare_mc("W+Jets",false, 15, 60);
+  compare_mc("W+Jets",true , 15, 60);
+  compare_dataMC();
+  status += initialize_canvases("canvases/clfv_zdecays/mutau/wjetbinned_onept_8.root", "canvases/clfv_zdecays/mutau/wjetamcnlo_onept_8.root");
+  compare_mc("W+Jets",false, 20, 100);
+  compare_mc("W+Jets",true , 20, 100);
+  compare_dataMC();
+  status += initialize_canvases("canvases/clfv_zdecays/mutau/wjetbinned_leppt_8.root", "canvases/clfv_zdecays/mutau/wjetamcnlo_leppt_8.root");
+  compare_mc("W+Jets",false, 0, 100);
+  compare_mc("W+Jets",true , 0, 100);
+  compare_dataMC();
+  status += initialize_canvases("canvases/clfv_zdecays/mutau/wjetbinned_lepm_8.root" , "canvases/clfv_zdecays/mutau/wjetamcnlo_lepm_8.root");
+  compare_mc("W+Jets",false, 10, 200);
+  compare_mc("W+Jets",true , 10, 200);
+  compare_dataMC();
+  status += initialize_canvases("canvases/clfv_zdecays/mutau/wjetbinned_njets_log_8.root" , "canvases/clfv_zdecays/mutau/wjetamcnlo_njets_log_8.root");
+  compare_mc("W+Jets",false, 0, 10);
+  compare_mc("W+Jets",true , 0, 10);
+  compare_dataMC();
+  return status;
 }

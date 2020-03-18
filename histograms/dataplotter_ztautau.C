@@ -81,8 +81,9 @@ TCanvas* print_canvas(TString hist, TString type, int set, bool stacks = true, T
   TCanvas* c = (stacks) ? dataplotter_->plot_stack(hist, type, set) : dataplotter_->plot_hist(hist, type, set);
   if(!c) 
     return c;
-  TFile* f = TFile::Open(Form("canvases/%s/%s/%s%s_%i.root", folder_.Data(), selection_.Data(),\
-			      (name == "") ? "" : Form("%s_", name.Data()), hist.Data(), set), "RECREATE");
+  TFile* f = TFile::Open(Form("canvases/%s/%s/%s%s%s_%i.root", folder_.Data(), selection_.Data(),\
+			      (name == "") ? "" : Form("%s_", name.Data()), hist.Data(),
+			      (dataplotter_->logY_ ? "_log" : ""), set), "RECREATE");
   if(!f) {
     cout << "Failed to create file!\n";
     return NULL;
@@ -294,6 +295,41 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
   return status;
 }
 
+Int_t print_standard_canvases(vector<int> sets, vector<double> signal_scales = {},
+			      vector<int> base_rebins = {}, bool stacks = true, TString name = "") {
+  if(!dataplotter_) return -1;
+  vector<TString> hnames;
+  vector<TString> htypes;
+  vector<int>     rebins;
+  vector<double>  xmins;
+  vector<double>  xmaxs;
+  
+  hnames.push_back("onept");          htypes.push_back("lep");   rebins.push_back(2); xmins.push_back(15.);  xmaxs.push_back(150.);
+  hnames.push_back("twopt");          htypes.push_back("lep");   rebins.push_back(2); xmins.push_back(15.);  xmaxs.push_back(150.);
+  hnames.push_back("lepm");           htypes.push_back("event"); rebins.push_back(2); xmins.push_back(0.);   xmaxs.push_back(200.);
+  hnames.push_back("leppt");          htypes.push_back("event"); rebins.push_back(2); xmins.push_back(0.);   xmaxs.push_back(150.);
+  hnames.push_back("lepmestimate");   htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(300.);
+  hnames.push_back("met");            htypes.push_back("event"); rebins.push_back(2); xmins.push_back(0.);   xmaxs.push_back(150.);
+  hnames.push_back("mtone");          htypes.push_back("event"); rebins.push_back(4); xmins.push_back(0.);   xmaxs.push_back(150.);
+  hnames.push_back("mttwo");          htypes.push_back("event"); rebins.push_back(4); xmins.push_back(0.);   xmaxs.push_back(150.);
+  hnames.push_back("njets");          htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(10.);
+  int status = 0;
+  for(int set : sets) {
+    for(unsigned index = 0; index < hnames.size(); ++index) {
+      dataplotter_->rebinH_ = rebins[index];
+      dataplotter_->logY_ = 0;
+      auto c = print_canvas(hnames[index], htypes[index], set, xmins[index], xmaxs[index], stacks, name);
+      status += !c;
+      dataplotter_->logY_ = 1;
+      c = print_canvas(hnames[index], htypes[index], set, xmins[index], xmaxs[index], stacks, name);
+      status += !c;
+    }
+  }
+  dataplotter_->rebinH_ = 1;
+  dataplotter_->logY_ = 0;
+  return status;
+}
+
 Int_t init_dataplotter() {
 
   bool leptonic_tau = (selection_.Contains("_")); //mutau_l, etau_l
@@ -422,7 +458,7 @@ Int_t init_dataplotter() {
     ++nWJetSamples;
   if(process[23]) //amcnlo sample ext2
     ++nWJetSamples;
-  if(nWJetSamples == 0) nJetSamples = 1; // avoid divide by 0
+  if(nWJetSamples == 0) nWJetSamples = 1; // avoid divide by 0
   
   Double_t xsec[50];
   //Taken from https://twiki.cern.ch/twiki/bin/viewauth/CMS/SummaryTable1G25ns     
@@ -569,6 +605,35 @@ Int_t print_standard_selections() {
   selection_ = "mumu";
   status += init_dataplotter();
   status += print_standard_plots({67,68, 80}, {1., 1., 1.});
+
+  Double_t cpuTime = timer->CpuTime();
+  Double_t realTime = timer->RealTime();
+  printf("Processing time: %7.2fs CPU time %7.2fs Wall time\n",cpuTime,realTime);
+  if(realTime > 600. ) printf("Processing time: %7.2fmin CPU time %7.2fmin Wall time\n",cpuTime/60.,realTime/60.);
+  return status;
+}
+
+Int_t print_standard_canvas_selections(TString name = "") {
+  TStopwatch* timer = new TStopwatch();  
+  Int_t status = 0;
+  selection_ = "mutau";
+  status += init_dataplotter();
+  status += print_standard_canvases({7,8,9,10,13,14}, {250., 250., 50., 50., 250., 250.}, {1,1,1,1,1,1}, true, name);
+  selection_ = "etau";
+  status += init_dataplotter();
+  status += print_standard_canvases({27,28,29,30,33,34}, {250., 250., 50., 50., 250., 250.}, {1,1,1,1,1,1}, true, name);
+  selection_ = "emu";
+  status += init_dataplotter();
+  status += print_standard_canvases({47,48,49,50,53,54,55,56}, {250., 250., 5., 5., 250., 250., 5., 5.}, {1,1,2,2,1,1,2,2}, true, name);
+  selection_ = "mutau_e";
+  status += init_dataplotter();
+  status += print_standard_canvases({47,48}, {250., 250.}, {1, 1}, true, name);
+  selection_ = "etau_mu";
+  status += init_dataplotter();
+  status += print_standard_canvases({47,48}, {250., 250.}, {1, 1}, true, name);
+  selection_ = "mumu";
+  status += init_dataplotter();
+  status += print_standard_canvases({67,68, 80}, {1., 1., 1.}, {1, 1, 1}, true, name);
 
   Double_t cpuTime = timer->CpuTime();
   Double_t realTime = timer->RealTime();
