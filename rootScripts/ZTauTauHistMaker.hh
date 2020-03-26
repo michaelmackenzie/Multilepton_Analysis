@@ -8,21 +8,6 @@
 #ifndef ZTauTauHistMaker_hh
 #define ZTauTauHistMaker_hh
 
-// // Analysis tools
-// #include "BLT/BLTAnalysis/interface/BLTSelector.hh"
-// #include "BLT/BLTAnalysis/interface/BLTHelper.hh"
-// #include "BLT/BLTAnalysis/interface/Parameters.hh"
-// #include "BLT/BLTAnalysis/interface/Cuts.hh"
-// #include "BLT/BLTAnalysis/interface/TriggerSelector.hh"
-// #include "BLT/BLTAnalysis/interface/ParticleSelector.hh"
-// #include "BLT/BLTAnalysis/interface/WeightUtils.h"
-// #include "BLT/BLTAnalysis/interface/ElectronCorrector.h"
-
-// #include "BLT/BLTAnalysis/interface/RoccoR.h"
-
-// // BaconAna class definitions (might need to add more)
-// #include "BaconAna/Utils/interface/TTrigger.hh"
-// #include "BaconAna/DataFormats/interface/TLHEWeight.hh"
 
 #include <TROOT.h>
 #include <TChain.h>
@@ -44,11 +29,6 @@
 #include "TMVA/Tools.h"
 #include "TMVA/Reader.h"
 
-// Headers for ditau vertex mass
-// #include "TauAnalysis/ClassicSVfit/interface/ClassicSVfit.h"
-// #include "TauAnalysis/ClassicSVfit/interface/MeasuredTauLepton.h"
-// #include "TauAnalysis/ClassicSVfit/interface/svFitHistogramAdapter.h"
-
 #include <iostream>
 
 
@@ -63,12 +43,14 @@ public :
   UInt_t lumiSection                 ;
   UInt_t nPV                         ;
   Float_t nPU                        ;
+  UInt_t nPartons                    ;
   UInt_t mcEra                       ;
   UInt_t triggerLeptonStatus         ;
   Float_t eventWeight                ;
   Float_t genWeight                  ;
   Float_t puWeight                   ;
   Float_t topPtWeight                ;
+  Float_t zPtWeight                  ;
   Float_t genTauFlavorWeight         ;
   Int_t tauDecayMode                 ;
   Float_t tauMVA                     ;
@@ -177,6 +159,7 @@ public :
     TH1F* hTriggerLeptonStatus;
     TH1F* hPuWeight;
     TH1F* hTopPtWeight;
+    TH1F* hZPtWeight;
     TH1F* hTauDecayMode;
     TH1F* hTauMVA;
     TH1F* hTauGenFlavor;
@@ -219,7 +202,10 @@ public :
     TH1F* hSVFitStatus;
     TH2F* hMetVsPt;
     TH2F* hMetVsM;
-    
+    TH2F* hMetVsHtSum; //MET ~ sqrt(htsum)
+    TH1F* hMetOverSqrtHtSum; //MET ~ sqrt(htsum)
+
+    //di-lepton histograms
     TH1F* hLepPt;
     TH1F* hLepP;
     TH1F* hLepE;
@@ -236,6 +222,14 @@ public :
     TH1F* hLepOneDeltaPhi;
     TH1F* hLepTwoDeltaPhi;
 
+    //angles between leptons and jets
+    TH1F* hLepOneJetDeltaR;
+    TH1F* hLepOneJetDeltaPhi;
+    TH1F* hLepOneJetDeltaEta;
+    TH1F* hLepTwoJetDeltaR;
+    TH1F* hLepTwoJetDeltaPhi;
+    TH1F* hLepTwoJetDeltaEta;
+    
     TH1F* hLepSVPt;
     TH1F* hLepSVP;
     TH1F* hLepSVE;
@@ -289,8 +283,6 @@ public :
   };
 
   struct LepHist_t {
-    TH1F* hOnePx;
-    TH1F* hOnePy;
     TH1F* hOnePz;
     TH1F* hOnePt;
     TH1F* hOneP;
@@ -323,8 +315,6 @@ public :
     TH1F* hOneSVDeltaE;
     TH1F* hOneSVDeltaEta;
 
-    TH1F* hTwoPx;
-    TH1F* hTwoPy;
     TH1F* hTwoPz;
     TH1F* hTwoPt;
     TH1F* hTwoP;
@@ -365,17 +355,14 @@ public :
   };
 
   struct PhotonHist_t {
-    TH1F* hPx;
-    TH1F* hPy;
     TH1F* hPz;
     TH1F* hPt;
     TH1F* hP;
-    TH1F* hE;
     TH1F* hEta;
     TH1F* hPhi;
-    TH1F* hIso;
-    TH1F* hRelIso;
-    TH1F* hTrigger;
+    // TH1F* hIso;
+    // TH1F* hRelIso;
+    // TH1F* hTrigger;
   };
 
   //Tree Variables
@@ -549,7 +536,7 @@ public :
   virtual void    FillLepHistogram(LepHist_t* Hist);
   virtual void    InitializeTreeVariables(Int_t selection);
   virtual float   GetTauFakeSF(int genFlavor);
-  virtual float   ReweightMET(int selection, double met);
+  virtual float   CorrectMET(int selection, float met);
 
 
   Long64_t fentry; //for tracking entry in functions
@@ -606,6 +593,7 @@ public :
   Int_t         fIsData = 0; //0 if MC, 1 if electron data, 2 if muon data
   bool          fSkipDoubleTrigger = false; //skip events with both triggers (to avoid double counting), only count this lepton status events
   Int_t         fMETWeights = 0; //re-weight events based on the MET
+  Int_t         fRemoveZPtWeights = 0;
   
   ClassDef(ZTauTauHistMaker,0);
 
@@ -874,6 +862,8 @@ void ZTauTauHistMaker::Init(TTree *tree)
     fEventSets [67+fQcdOffset] = 1; // events with same signs
     fEventSets [68] = 1; // events with opposite signs and no bjets
     fEventSets [68+fQcdOffset] = 1; // events with same signs
+    fEventSets [69] = 1; // events with opposite signs and no jets, no taus, no photons (mostly pure Z->mu + mu)
+    fEventSets [69+fQcdOffset] = 1; // events with same signs
 
     fEventSets [78] = 1; // events with opposite signs + 0-jet
     fEventSets [78+fQcdOffset] = 1; // events with same
@@ -898,12 +888,14 @@ void ZTauTauHistMaker::Init(TTree *tree)
   fChain->SetBranchAddress("lumiSection"         , &lumiSection          );
   fChain->SetBranchAddress("nPV"                 , &nPV                  );
   fChain->SetBranchAddress("nPU"                 , &nPU                  );
+  fChain->SetBranchAddress("nPartons"            , &nPartons             );
   fChain->SetBranchAddress("mcEra"               , &mcEra                );
   fChain->SetBranchAddress("triggerLeptonStatus" , &triggerLeptonStatus  );
   fChain->SetBranchAddress("eventWeight"         , &eventWeight          );
   fChain->SetBranchAddress("genWeight"           , &genWeight            );
   fChain->SetBranchAddress("puWeight"            , &puWeight             );
   fChain->SetBranchAddress("topPtWeight"         , &topPtWeight          );
+  fChain->SetBranchAddress("zPtWeight"           , &zPtWeight            );
   fChain->SetBranchAddress("genTauFlavorWeight"  , &genTauFlavorWeight   );
   fChain->SetBranchAddress("tauDecayMode"        , &tauDecayMode         );
   fChain->SetBranchAddress("tauMVA"              , &tauMVA               );
@@ -956,11 +948,11 @@ void ZTauTauHistMaker::Init(TTree *tree)
   // fChain->SetBranchAddress("puppMETCov00"        , &puppMETCov00         );
   // fChain->SetBranchAddress("puppMETCov01"        , &puppMETCov01         );
   // fChain->SetBranchAddress("puppMETCov11"        , &puppMETCov11         );
-  fChain->SetBranchAddress("puppMETC"            , &puppMETC             );
-  fChain->SetBranchAddress("puppMETCphi"         , &puppMETCphi          );
-  fChain->SetBranchAddress("puppMETCCov00"       , &puppMETCCov00        );
-  fChain->SetBranchAddress("puppMETCCov01"       , &puppMETCCov01        );
-  fChain->SetBranchAddress("puppMETCCov11"       , &puppMETCCov11        );
+  // fChain->SetBranchAddress("puppMETC"            , &puppMETC             );
+  // fChain->SetBranchAddress("puppMETCphi"         , &puppMETCphi          );
+  // fChain->SetBranchAddress("puppMETCCov00"       , &puppMETCCov00        );
+  // fChain->SetBranchAddress("puppMETCCov01"       , &puppMETCCov01        );
+  // fChain->SetBranchAddress("puppMETCCov11"       , &puppMETCCov11        );
   // fChain->SetBranchAddress("alpacaMET"           , &alpacaMET            );
   // fChain->SetBranchAddress("alpacaMETphi"        , &alpacaMETphi         );
   // fChain->SetBranchAddress("pcpMET"              , &pcpMET               );

@@ -322,5 +322,27 @@ Int_t print_standard_comparisons() {
   compare_mc("W+Jets",false, 0, 10);
   compare_mc("W+Jets",true , 0, 10);
   compare_dataMC();
+
+  //high MT region
+  status += initialize_canvases("canvases/clfv_zdecays/mutau/wjetbinned_twopt_14.root", "canvases/clfv_zdecays/mutau/wjetamcnlo_twopt_14.root");
+  compare_mc("W+Jets",false, 15, 60);
+  compare_mc("W+Jets",true , 15, 60);
+  compare_dataMC();
+  status += initialize_canvases("canvases/clfv_zdecays/mutau/wjetbinned_onept_14.root", "canvases/clfv_zdecays/mutau/wjetamcnlo_onept_14.root");
+  compare_mc("W+Jets",false, 20, 100);
+  compare_mc("W+Jets",true , 20, 100);
+  compare_dataMC();
+  status += initialize_canvases("canvases/clfv_zdecays/mutau/wjetbinned_leppt_14.root", "canvases/clfv_zdecays/mutau/wjetamcnlo_leppt_14.root");
+  compare_mc("W+Jets",false, 0, 100);
+  compare_mc("W+Jets",true , 0, 100);
+  compare_dataMC();
+  status += initialize_canvases("canvases/clfv_zdecays/mutau/wjetbinned_lepm_14.root" , "canvases/clfv_zdecays/mutau/wjetamcnlo_lepm_14.root");
+  compare_mc("W+Jets",false, 10, 200);
+  compare_mc("W+Jets",true , 10, 200);
+  compare_dataMC();
+  status += initialize_canvases("canvases/clfv_zdecays/mutau/wjetbinned_njets_log_14.root" , "canvases/clfv_zdecays/mutau/wjetamcnlo_njets_log_14.root");
+  compare_mc("W+Jets",false, 0, 10);
+  compare_mc("W+Jets",true , 0, 10);
+  compare_dataMC();
   return status;
 }

@@ -1,11 +1,11 @@
 
-#include "ZTauTauHistMaker.cc++g"
+#include "ZTauTauHistMaker.cc+g"
 Int_t process_ztautau() {
 
   const char* gridPath[] = {
     "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_093718/", //ttbar
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_093718/", //DY AMC
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_093718/", //DY AMC
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200319_165629/", //DY AMC
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200319_165629/", //DY AMC
     "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_093718/", //t_tw
     "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_093718/", //tbar_tw
     "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200129_163419/", //DY MadGraph
@@ -18,13 +18,13 @@ Int_t process_ztautau() {
     "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200129_163419/", //DY 3 Jet MadGraph
     "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200129_163419/", //DY 4 Jet MadGraph
     "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200214_102545/", //DY 4 Jet MadGraph
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_093718/", //W 1 Jet
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_093718/", //W 2 Jet
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_093718/", //W 3 Jet
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_093718/", //W 4 Jet
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_163253/", //WJets amcnlo
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200311_111042/", //WJets amcnlo (ext 1)
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200313_082931/", //WJets amcnlo (ext 2)
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200325_160240/", //W 1 Jet
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200325_160240/", //W 2 Jet
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200325_160240/", //W 3 Jet
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200325_160240/", //W 4 Jet
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200325_160240/", //WJets amcnlo
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200325_160240/", //WJets amcnlo (ext 1)
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200325_160240/", //WJets amcnlo (ext 2)
     "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_093718/", //WW
     "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_093718/", //WZ Jets to 2L2Q
     "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_093718/", //WZ Jets to 3LNu
@@ -118,11 +118,11 @@ Int_t process_ztautau() {
 			 "output_electron_2016H_v2.root"
 
   };
-  const int doProcess[] = {1, //ttbar
-			   1, //DY AMC
-			   1, //DY AMC
-			   1, //t_tw
-			   1, //tbar_tw
+  const int doProcess[] = {0, //ttbar
+			   0, //DY AMC
+			   0, //DY AMC
+			   0, //t_tw
+			   0, //tbar_tw
 			   0, //DY inclusive M > 50 MadGraph
 			   0, //DY inclusive 10 < M < 50 MadGraph
 			   0, //DY 1 Jet MadGraph
@@ -140,39 +140,39 @@ Int_t process_ztautau() {
 			   1, //WJets amcnlo
 			   1, //WJets amcnlo ext 1
 			   1, //WJets amcnlo ext 2
-			   1, //WW
-			   1, //WZ Jets to 2L2Q
-			   1, //WZ Jets to 3LNu
-			   1, //ZZ Jets to 2L2Nu
-			   1, //ZZ Jets to 2L2Q
-			   1, //ZZ Jets to 4L
+			   0, //WW
+			   0, //WZ Jets to 2L2Q
+			   0, //WZ Jets to 3LNu
+			   0, //ZZ Jets to 2L2Nu
+			   0, //ZZ Jets to 2L2Q
+			   0, //ZZ Jets to 4L
 			   0, //HZG gluglu
 			   0, //HZG tth
 			   0, //HZG vbf
 			   0, //HZG W-
 			   0, //HZG W+
 			   0, //HZG zh
-			   1, //HTauTau gluglu
-			   1, //ZETau
-			   1, //ZMuTau
-			   1, //ZEMu
-			   1, //HETau
-			   1, //HMuTau
-			   1, //HEMu
-			   1, //Muon Data 2016 B
-			   1, //Muon Data 2016 C
-			   1, //Muon Data 2016 D
-			   1, //Muon Data 2016 E
-			   1, //Muon Data 2016 F
-			   1, //Muon Data 2016 G
-			   1, //Muon Data 2016 H
-			   1, //Electron Data 2016 B
-			   1, //Electron Data 2016 C
-			   1, //Electron Data 2016 D
-			   1, //Electron Data 2016 E
-			   1, //Electron Data 2016 F
-			   1, //Electron Data 2016 G
-			   1  //Electron Data 2016 H
+			   0, //HTauTau gluglu
+			   0, //ZETau
+			   0, //ZMuTau
+			   0, //ZEMu
+			   0, //HETau
+			   0, //HMuTau
+			   0, //HEMu
+			   0, //Muon Data 2016 B
+			   0, //Muon Data 2016 C
+			   0, //Muon Data 2016 D
+			   0, //Muon Data 2016 E
+			   0, //Muon Data 2016 F
+			   0, //Muon Data 2016 G
+			   0, //Muon Data 2016 H
+			   0, //Electron Data 2016 B
+			   0, //Electron Data 2016 C
+			   0, //Electron Data 2016 D
+			   0, //Electron Data 2016 E
+			   0, //Electron Data 2016 F
+			   0, //Electron Data 2016 G
+			   0  //Electron Data 2016 H
   };
   
   Double_t xsec[100];
@@ -231,8 +231,10 @@ Int_t process_ztautau() {
   Int_t useTauFakeSF = 1; //1 = use given scale factors, 2 = override them with local ones
   bool writeTrees = true;
   TString onlyChannel = "";
+  bool removeZPtWeights = true;
   cout << "--- Fake Tau SF mode: " << useTauFakeSF
-       << ", Write Trees mode: " << writeTrees << endl;
+       << ", Write Trees mode: " << writeTrees
+       << ", Remove z pt weights: " << removeZPtWeights << endl;
 
   if(onlyChannel != "")
     cout << "--- WARNING! Only processing " << onlyChannel.Data() << " channel!\n";
@@ -321,6 +323,7 @@ Int_t process_ztautau() {
 	selec->fWriteTrees = selec->fIsData == 0 && writeTrees; //don't write trees for data
 	selec->fUseTauFakeSF = useTauFakeSF;
 	selec->fXsec = xsec[i]/(events->GetBinContent(1) - 2.*events->GetBinContent(10));
+	selec->fRemoveZPtWeights = removeZPtWeights;
 	tree->Process(selec,"");
 	TFile* out = new TFile(Form("ztautau_%s%s_%s.hist",fChannel->GetName(),
 				    (isDY) ? Form("_%i",loop) : "", tree->GetName()),"UPDATE");

@@ -218,20 +218,20 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
   } //end 2D loop
   
   //print cdf transform and significance vs bdt score plots
-  vector<TString> sighists;
-  vector<TString> sigtypes;
-  vector<TString> siglabels;
-  if(selection_ == "mutau") {
-    sighists.push_back("mva0"); sigtypes.push_back("event"); siglabels.push_back("H"+label);
-    sighists.push_back("mva1"); sigtypes.push_back("event"); siglabels.push_back("Z"+label);
-  } else if(selection_ == "etau") {
-    sighists.push_back("mva2"); sigtypes.push_back("event"); siglabels.push_back("H"+label);
-    sighists.push_back("mva3"); sigtypes.push_back("event"); siglabels.push_back("Z"+label);
-  } else if(selection_ == "emu") {
-    sighists.push_back("mva4"); sigtypes.push_back("event"); siglabels.push_back("H"+label);
-    sighists.push_back("mva5"); sigtypes.push_back("event"); siglabels.push_back("Z"+label);
-  }
-  print_significance_canvases(sighists, sigtypes, siglabels, sets);
+  // vector<TString> sighists;
+  // vector<TString> sigtypes;
+  // vector<TString> siglabels;
+  // if(selection_ == "mutau") {
+  //   sighists.push_back("mva0"); sigtypes.push_back("event"); siglabels.push_back("H"+label);
+  //   sighists.push_back("mva1"); sigtypes.push_back("event"); siglabels.push_back("Z"+label);
+  // } else if(selection_ == "etau") {
+  //   sighists.push_back("mva2"); sigtypes.push_back("event"); siglabels.push_back("H"+label);
+  //   sighists.push_back("mva3"); sigtypes.push_back("event"); siglabels.push_back("Z"+label);
+  // } else if(selection_ == "emu") {
+  //   sighists.push_back("mva4"); sigtypes.push_back("event"); siglabels.push_back("H"+label);
+  //   sighists.push_back("mva5"); sigtypes.push_back("event"); siglabels.push_back("Z"+label);
+  // }
+  // print_significance_canvases(sighists, sigtypes, siglabels, sets);
   
   if(label != "") {
     for(int logy = 0; logy < 2; ++logy) { //print log and not log axis
@@ -421,14 +421,14 @@ Int_t init_dataplotter() {
   process[14] = 0; //"z3jets_m-10to50"         
   process[15] = 0; //"z4jets_m-50"             
   process[16] = 0; //"z4jets_m-10to50"         
-  process[17] = 0; //"w1jets"                  
-  process[18] = 0; //"w2jets"                  
-  process[19] = 0; //"w3jets"                  
-  process[20] = 0; //"w4jets"                  
+  process[17] = 1; //"w1jets"                  
+  process[18] = 1; //"w2jets"                  
+  process[19] = 1; //"w3jets"                  
+  process[20] = 1; //"w4jets"                  
   process[21] = 0; //"wjets"                  
   process[22] = 0; //"wjets_ext1"                  
   process[23] = 0; //"wjets_ext2"                  
-  process[24] = 1; //"wjets_total"                  
+  process[24] = 0; //"wjets_total"                  
   process[25] = 1; //"ww"                      
   process[26] = 1; //"wz_2l2q"                 
   process[27] = 1; //"wz_3lnu"                 
@@ -584,24 +584,26 @@ Int_t init_dataplotter() {
 }
 
 
-Int_t print_standard_selections() {
+Int_t print_standard_selections(TString histDir = "", TString figureDir = "") {
+  if(histDir != "") hist_dir_ = histDir;
+  if(figureDir != "") folder_ = figureDir;
   TStopwatch* timer = new TStopwatch();  
   Int_t status = 0;
   selection_ = "mutau";
   status += init_dataplotter();
   status += print_standard_plots({7,8,9,10,13,14}, {250., 250., 50., 50., 250., 250.});
-  selection_ = "etau";
-  status += init_dataplotter();
-  status += print_standard_plots({27,28,29,30,33,34}, {250., 250., 50., 50., 250., 250.});
-  selection_ = "emu";
-  status += init_dataplotter();
-  status += print_standard_plots({47,48,49,50,53,54,55,56}, {250., 250., 5., 5., 250., 250., 5., 5.}, {1,1,2,2,1,1,2,2});
-  selection_ = "mutau_e";
-  status += init_dataplotter();
-  status += print_standard_plots({47,48}, {250., 250.});
-  selection_ = "etau_mu";
-  status += init_dataplotter();
-  status += print_standard_plots({47,48}, {250., 250.});
+  // selection_ = "etau";
+  // status += init_dataplotter();
+  // status += print_standard_plots({27,28,29,30,33,34}, {250., 250., 50., 50., 250., 250.});
+  // selection_ = "emu";
+  // status += init_dataplotter();
+  // status += print_standard_plots({47,48,49,50,53,54,55,56}, {250., 250., 5., 5., 250., 250., 5., 5.}, {1,1,2,2,1,1,2,2});
+  // selection_ = "mutau_e";
+  // status += init_dataplotter();
+  // status += print_standard_plots({47,48}, {250., 250.});
+  // selection_ = "etau_mu";
+  // status += init_dataplotter();
+  // status += print_standard_plots({47,48}, {250., 250.});
   selection_ = "mumu";
   status += init_dataplotter();
   status += print_standard_plots({67,68, 80}, {1., 1., 1.});
@@ -613,7 +615,9 @@ Int_t print_standard_selections() {
   return status;
 }
 
-Int_t print_standard_canvas_selections(TString name = "") {
+Int_t print_standard_canvas_selections(TString name = "", TString histDir = "", TString figureDir = "") {
+  if(histDir != "") hist_dir = histDir;
+  if(figureDir != "") folder_ = figureDir;
   TStopwatch* timer = new TStopwatch();  
   Int_t status = 0;
   selection_ = "mutau";
