@@ -537,6 +537,7 @@ public :
   virtual void    InitializeTreeVariables(Int_t selection);
   virtual float   GetTauFakeSF(int genFlavor);
   virtual float   CorrectMET(int selection, float met);
+  virtual float   GetZPtWeight(float pt);
 
 
   Long64_t fentry; //for tracking entry in functions
@@ -593,7 +594,7 @@ public :
   Int_t         fIsData = 0; //0 if MC, 1 if electron data, 2 if muon data
   bool          fSkipDoubleTrigger = false; //skip events with both triggers (to avoid double counting), only count this lepton status events
   Int_t         fMETWeights = 0; //re-weight events based on the MET
-  Int_t         fRemoveZPtWeights = 0;
+  Int_t         fRemoveZPtWeights = 0; // 0 use given weights, 1 remove z pT weight, 2 remove and re-evaluate weights locally
   
   ClassDef(ZTauTauHistMaker,0);
 

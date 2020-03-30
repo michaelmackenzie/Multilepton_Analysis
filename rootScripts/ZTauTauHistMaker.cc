@@ -525,6 +525,21 @@ float ZTauTauHistMaker::CorrectMET(int selection, float met) {
   return corrected;
 }
 
+// re-weight the AMC@NLO DY Z pT
+float ZTauTauHistMaker::GetZPtWeight(float pt) {
+  float weight = 1.;
+  if(pt >= 140.)
+    weight = 0.891188;
+  else {
+    weight = (0.876979 + pt*(4.11598e-3 - pt*2.35520e-5));
+    weight *= 1.10211*(0.958512-0.131835*erf((pt-14.1972)/10.1525));
+  }
+  if(weight < 0.) {
+    printf("Warning! Z pT weight < 0: weight = %.3e, pt = %.2f\n", weight, pt);
+  }
+  return weight;
+}
+
 void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
   Hist->hLumiSection         ->Fill(lumiSection        , genWeight*eventWeight)      ;
   // Hist->hTriggerStatus       ->Fill(triggerStatus      , genWeight*eventWeight)      ;
@@ -663,7 +678,7 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
   Hist->hLepOneDeltaPhi->Fill(lepOneDelPhi               ,eventWeight*genWeight);
   Hist->hLepTwoDeltaPhi->Fill(lepTwoDelPhi               ,eventWeight*genWeight);
 
-  if(jetP4 && jetPr->Pt() > 0.) { //only fill if there's at least one jet
+  if(jetP4 && jetP4->Pt() > 0.) { //only fill if there's at least one jet
     Hist->hLepOneJetDeltaR  ->Fill(lepOneJetDeltaR                 ,eventWeight*genWeight);
     Hist->hLepOneJetDeltaPhi->Fill(lepOneJetDeltaPhi               ,eventWeight*genWeight);
     Hist->hLepOneJetDeltaEta->Fill(lepOneJetDeltaEta               ,eventWeight*genWeight);
@@ -948,7 +963,11 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   bool emu   = nTaus == 0  && nMuons == 1 && nElectrons == 1;
   bool mumu  = nMuons == 2 && nElectrons == 0; //no tau requirement
 
-  if(fRemoveZPtWeights && zPtWeight > 0.) eventWeight /= zPtWeight;
+  // DY z pT weights
+  if(fRemoveZPtWeights > 0 && zPtWeight > 0.) eventWeight /= zPtWeight;
+  //only re-weight the DY sample
+  if(fRemoveZPtWeights > 1 && fDYType > 0) {zPtWeight = GetZPtWeight((*leptonOneP4+*leptonTwoP4).Pt()); eventWeight *= zPtWeight;}
+
   InitializeTreeVariables(mutau+2*etau+5*emu+9*mumu);
   mumu &= fTreeVars.lepm > 15.; //DY MC not defined below 10 GeV/c^2
 

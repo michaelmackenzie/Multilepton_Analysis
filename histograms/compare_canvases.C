@@ -209,7 +209,7 @@ TCanvas* compare_mc(TString label, bool normalize = false, double xmin = 1., dou
   h2->SetFillStyle(0);
   h2->SetLineWidth(2);
   if(normalize) h2->Scale(1./h2->Integral());
-  h2->Draw("same");
+  h2->Draw("E same");
   h2->SetTitle(title2_.Data());
   h1->SetAxisRange((normalize) ? h1->GetMaximum()/1e4 : 1.e-1, 1.1*max(h1->GetMaximum(), h2->GetMaximum()), "Y");
   c->BuildLegend();

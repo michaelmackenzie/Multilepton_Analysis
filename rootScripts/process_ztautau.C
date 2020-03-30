@@ -4,8 +4,8 @@ Int_t process_ztautau() {
 
   const char* gridPath[] = {
     "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_093718/", //ttbar
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200319_165629/", //DY AMC
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200319_165629/", //DY AMC
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200329_111610/", //DY AMC
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200329_111610/", //DY AMC
     "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_093718/", //t_tw
     "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_093718/", //tbar_tw
     "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200129_163419/", //DY MadGraph
@@ -119,8 +119,8 @@ Int_t process_ztautau() {
 
   };
   const int doProcess[] = {0, //ttbar
-			   0, //DY AMC
-			   0, //DY AMC
+			   1, //DY AMC
+			   1, //DY AMC
 			   0, //t_tw
 			   0, //tbar_tw
 			   0, //DY inclusive M > 50 MadGraph
@@ -133,13 +133,13 @@ Int_t process_ztautau() {
 			   0, //DY 3 Jet MadGraph
 			   0, //DY 4 Jet MadGraph
 			   0, //DY 4 Jet MadGraph
-			   1, //W 1 Jet MadGraph
-			   1, //W 2 Jet MadGraph
-			   1, //W 3 Jet MadGraph
-			   1, //W 4 Jet MadGraph
-			   1, //WJets amcnlo
-			   1, //WJets amcnlo ext 1
-			   1, //WJets amcnlo ext 2
+			   0, //W 1 Jet MadGraph
+			   0, //W 2 Jet MadGraph
+			   0, //W 3 Jet MadGraph
+			   0, //W 4 Jet MadGraph
+			   0, //WJets amcnlo
+			   0, //WJets amcnlo ext 1
+			   0, //WJets amcnlo ext 2
 			   0, //WW
 			   0, //WZ Jets to 2L2Q
 			   0, //WZ Jets to 3LNu
@@ -231,7 +231,7 @@ Int_t process_ztautau() {
   Int_t useTauFakeSF = 1; //1 = use given scale factors, 2 = override them with local ones
   bool writeTrees = true;
   TString onlyChannel = "";
-  bool removeZPtWeights = true;
+  Int_t removeZPtWeights = 0;
   cout << "--- Fake Tau SF mode: " << useTauFakeSF
        << ", Write Trees mode: " << writeTrees
        << ", Remove z pt weights: " << removeZPtWeights << endl;
