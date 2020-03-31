@@ -54,6 +54,8 @@ void ZTauTauHistMaker::Begin(TTree * /*tree*/)
   fEventId[50]->fMinLepm = 121.98692;    fEventId[50]->fMaxLepm = 127.17507;
   fEventId[50]->fMaxMtone = 88.94913;    fEventId[50]->fMaxMttwo = 80.91340;
   fEventId[50]->fMinLeponept = 35.85477; fEventId[50]->fMinLeptwopt = 30.54400;
+
+  fRnd = new TRandom(fRndSeed);
   
 }
 
@@ -484,6 +486,8 @@ void ZTauTauHistMaker::InitializeTreeVariables(Int_t selection) {
   if(fUseTauFakeSF) fTreeVars.eventweight *= genTauFlavorWeight;
   
   fTreeVars.eventcategory = fEventCategory;
+  if(fFractionMVA > 0.) fTreeVars.train = (fRnd->Uniform() < fFractionMVA) ? 1. : -1.; //whether or not it is in the training sample
+  
   TString selecName = "";
   if(selection == 1)      selecName = "mutau";
   else if(selection == 2) selecName = "etau";
@@ -491,6 +495,9 @@ void ZTauTauHistMaker::InitializeTreeVariables(Int_t selection) {
   else                    selecName = "unknown";
   for(unsigned i = 0; i < fMvaNames.size(); ++i) {
     fMvaOutputs[i] = (fMvaNames[i].Contains(selecName.Data())) ? mva[i]->EvaluateMVA(fMvaNames[i].Data()) : -2.;
+    if(fMvaOutputs[i] < -1. && selecName == "emu" && (fMvaNames[i].Contains("_e") || fMvaNames[i].Contains("_mu"))) //leptonic tau decay mvas
+      fMvaOutputs[i] = mva[i]->EvaluateMVA(fMvaNames[i].Data());
+      
     if(fMvaOutputs[i] < -100.) 
       cout << "Error value returned for MVA " << fMvaNames[i].Data()
 	   << " evaluation, Entry = " << fentry << endl;
@@ -969,6 +976,10 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   if(fRemoveZPtWeights > 1 && fDYType > 0) {zPtWeight = GetZPtWeight((*leptonOneP4+*leptonTwoP4).Pt()); eventWeight *= zPtWeight;}
 
   InitializeTreeVariables(mutau+2*etau+5*emu+9*mumu);
+  //if splitting testing/training samples
+  if(fFractionMVA > 0.)
+    eventWeight *= (fTreeVars.train > 0.) ? 0. : 1./(1.-fFractionMVA); //if training, ignore, else rescale to account for training sample removed
+  
   mumu &= fTreeVars.lepm > 15.; //DY MC not defined below 10 GeV/c^2
 
   //FIXME temporary fix to hadronic tau ID if is not data

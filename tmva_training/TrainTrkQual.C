@@ -117,7 +117,7 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
   //
   // --- Neural Networks (all are feed-forward Multilayer Perceptrons)
   Use["MLP"]             = 0; // Recommended ANN
-  Use["MLP_MM"]          = 1; // ANN with altered settings
+  Use["MLP_MM"]          = 0; // ANN with altered settings
   Use["MLPBFGS"]         = 0; // Recommended ANN with optional training method
   Use["MLPBNN"]          = 0; // Recommended ANN with BFGS training method and bayesian regulator
   Use["CFMlpANN"]        = 0; // Depreciated ANN from ALEPH
@@ -209,9 +209,11 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
   if(selection_.Contains("tau")) {
     factory->AddVariable("lepmestimate" , "M_{ll}^{Coll}" , "GeV", 'F');   
     factory->AddVariable("onemetdeltaphi","#Delta#phi_{MET,l1}","",'F');  
+    factory->AddVariable("twometdeltaphi","#Delta#phi_{MET,l2}","",'F');  
   } else {
     factory->AddSpectator("lepmestimate" , "M_{ll}^{Coll}" , "GeV", 'F');   
     factory->AddSpectator("onemetdeltaphi","#Delta#phi_{MET,l1}","",'F');  
+    factory->AddSpectator("twometdeltaphi","#Delta#phi_{MET,l2}","",'F');  
   }
   factory->AddVariable("leponedeltaphi","#Delta#phi_{l1,ll}","",'F');
   factory->AddVariable("leptwodeltaphi","#Delta#phi_{l2,ll}","",'F');
@@ -228,7 +230,6 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
   factory->AddSpectator("lepdeltaphi","#Delta#phi_{ll}","",'F');
   factory->AddSpectator("htsum","#Sigma pT_{Jet}","",'F');
   factory->AddSpectator("leponeiso","Iso_{l1}","",'F');
-  factory->AddSpectator("twometdeltaphi","#Delta#phi_{MET,l2}","",'F');
   factory->AddSpectator("met","MET","GeV",'F');
   factory->AddSpectator("lepdeltar","#DeltaR_{ll}","",'F');
   factory->AddSpectator("fulleventweight", "fullEventWeight", "", 'F'); 

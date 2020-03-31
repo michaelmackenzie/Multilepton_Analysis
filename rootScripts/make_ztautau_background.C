@@ -34,27 +34,27 @@ Int_t make_background(int set = 7, TString selection = "mutau", TString base = "
   };
   
   int doProcess[] = {  doTop_ //t_tw
-		     , doTop_ //tbar_tw
-		     , doTop_ //ttbar
-		     , doDY_ //DY AMC
-		     , doDY_ //DY AMC
-		     , doWJets_ //W1Jets
-		     , doWJets_ //W2Jets
-		     , doWJets_ //W3Jets
-		     , doWJets_ //W4Jets
-		     , doDiboson_ //WW
-		     , doDiboson_ //WZ
-		     , doDiboson_ //WZ
-		     , doDiboson_ //ZZ
-		     , doDiboson_ //ZZ
-		     , doDiboson_ //ZZ
-		     , doHiggs_ //htautau
-		     , (!doHiggsDecays_ && (selection == "mutau")) //zmutau
-		     , (!doHiggsDecays_ && (selection == "etau") ) //zetau
-		     , (!doHiggsDecays_ && (selection == "emu")  ) //zetau
-		     , (doHiggsDecays_  && (selection == "mutau")) //hmutau
-		     , (doHiggsDecays_  && (selection == "etau") ) //hetau
-		     , (doHiggsDecays_  && (selection == "emu")  ) //hetau
+		       , doTop_ //tbar_tw
+		       , doTop_ //ttbar
+		       , doDY_ //DY AMC
+		       , doDY_ //DY AMC
+		       , doWJets_ //W1Jets
+		       , doWJets_ //W2Jets
+		       , doWJets_ //W3Jets
+		       , doWJets_ //W4Jets
+		       , doDiboson_ //WW
+		       , doDiboson_ //WZ
+		       , doDiboson_ //WZ
+		       , doDiboson_ //ZZ
+		       , doDiboson_ //ZZ
+		       , doDiboson_ //ZZ
+		       , doHiggs_ //htautau
+		       , (!doHiggsDecays_ && (selection.Contains("mutau"))) //zmutau
+		       , (!doHiggsDecays_ && (selection.Contains("etau") )) //zetau
+		       , (!doHiggsDecays_ && (selection == "emu")  ) //zetau
+		       , (doHiggsDecays_  && (selection.Contains("mutau"))) //hmutau
+		       , (doHiggsDecays_  && (selection.Contains("etau") )) //hetau
+		       , (doHiggsDecays_  && (selection == "emu")  ) //hetau
   };
 
   TFile* fDList[30];
@@ -63,6 +63,9 @@ Int_t make_background(int set = 7, TString selection = "mutau", TString base = "
   TList* list = new TList;
   Int_t dycount = 0;
   Int_t filecount = 0;
+  TString fileSelec = selection; //use different selection for files since tau_e/mu decays --> emu channel
+  if(selection.Contains("_")) //is a leptonic tau channel
+    fileSelec = "emu";
   for(int i = 0; i < sizeof(names)/sizeof(*names); ++i) {
     fDList[filecount] = 0;
     fList[filecount] = 0;
@@ -70,7 +73,7 @@ Int_t make_background(int set = 7, TString selection = "mutau", TString base = "
     if(!doProcess[i]) continue;
     TString sname = names[i];
     bool isDY = sname.Contains("zjets");
-    const char* c = Form("%sztautau_%s_%sbltTree_%s.hist",base.Data(),selection.Data(),
+    const char* c = Form("%sztautau_%s_%sbltTree_%s.hist",base.Data(),fileSelec.Data(),
 			 (isDY) ? Form("%i_",dycount+1) : "", names[i]);
     if(isDY) {
       if(dycount == 0) --i;

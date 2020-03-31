@@ -159,6 +159,12 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
   } else if(selection_ == "emu") {
     hnames.push_back("mva4");         htypes.push_back("event"); rebins.push_back(200); xmins.push_back(-1.);  xmaxs.push_back(1.);
     hnames.push_back("mva5");         htypes.push_back("event"); rebins.push_back(200); xmins.push_back(-1.);  xmaxs.push_back(1.);
+  } else if(selection_ == "mutau_e") {
+    hnames.push_back("mva6");         htypes.push_back("event"); rebins.push_back(200); xmins.push_back(-1.);  xmaxs.push_back(1.);
+    hnames.push_back("mva7");         htypes.push_back("event"); rebins.push_back(200); xmins.push_back(-1.);  xmaxs.push_back(1.);
+  } else if(selection_ == "etau_mu") {
+    hnames.push_back("mva8");         htypes.push_back("event"); rebins.push_back(200); xmins.push_back(-1.);  xmaxs.push_back(1.);
+    hnames.push_back("mva9");         htypes.push_back("event"); rebins.push_back(200); xmins.push_back(-1.);  xmaxs.push_back(1.);
   }
   
   hnames.push_back("htsum");          htypes.push_back("event"); rebins.push_back(5); xmins.push_back(0.);   xmaxs.push_back(800.);
@@ -277,6 +283,34 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
 	  c = dataplotter_->print_significance("mva4", "event", s, ("H"+label), 0., 1., true, -1., true);
 	  delete c;
 	  c = dataplotter_->print_significance("mva5", "event", s, ("Z"+label), 0., 1., true, 0.44, true);
+	  delete c;
+	}
+	else if(selection_=="mutau_e") {
+	  auto c = dataplotter_->print_cdf("mva6", "event", s, ("H"+label), 0., 1.7);
+	  delete c;
+	  c = dataplotter_->print_cdf("mva7", "event", s, ("Z"+label), 0., 1.7);
+	  delete c;
+	  c = dataplotter_->print_significance("mva6", "event", s, ("H"+label), -1., 1.);
+	  delete c;
+	  c = dataplotter_->print_significance("mva7", "event", s, ("Z"+label), -1., 1.);
+	  delete c;
+	  c = dataplotter_->print_significance("mva6", "event", s, ("H"+label), 0., 1., true, -1., true);
+	  delete c;
+	  c = dataplotter_->print_significance("mva7", "event", s, ("Z"+label), 0., 1., true, -1., true);
+	  delete c;
+	}
+	else if(selection_=="etau_mu") {
+	  auto c = dataplotter_->print_cdf("mva8", "event", s, ("H"+label), 0., 1.7);
+	  delete c;
+	  c = dataplotter_->print_cdf("mva9", "event", s, ("Z"+label), 0., 1.7);
+	  delete c;
+	  c = dataplotter_->print_significance("mva8", "event", s, ("H"+label), -1., 1.);
+	  delete c;
+	  c = dataplotter_->print_significance("mva9", "event", s, ("Z"+label), -1., 1.);
+	  delete c;
+	  c = dataplotter_->print_significance("mva8", "event", s, ("H"+label), 0., 1., true, -1., true);
+	  delete c;
+	  c = dataplotter_->print_significance("mva9", "event", s, ("Z"+label), 0., 1., true, -1., true);
 	  delete c;
 	}
       }
@@ -589,24 +623,24 @@ Int_t print_standard_selections(TString histDir = "", TString figureDir = "") {
   if(figureDir != "") folder_ = figureDir;
   TStopwatch* timer = new TStopwatch();  
   Int_t status = 0;
-  selection_ = "mutau";
-  status += init_dataplotter();
-  status += print_standard_plots({7,8,9,10,13,14}, {250., 250., 50., 50., 250., 250.});
-  selection_ = "etau";
-  status += init_dataplotter();
-  status += print_standard_plots({27,28,29,30,33,34}, {250., 250., 50., 50., 250., 250.});
-  selection_ = "emu";
-  status += init_dataplotter();
-  status += print_standard_plots({47,48,49,50,53,54,55,56}, {250., 250., 5., 5., 250., 250., 5., 5.}, {1,1,2,2,1,1,2,2});
+  // selection_ = "mutau";
+  // status += init_dataplotter();
+  // status += print_standard_plots({7,8,9,10,13,14}, {250., 250., 50., 50., 250., 250.});
+  // selection_ = "etau";
+  // status += init_dataplotter();
+  // status += print_standard_plots({27,28,29,30,33,34}, {250., 250., 50., 50., 250., 250.});
+  // selection_ = "emu";
+  // status += init_dataplotter();
+  // status += print_standard_plots({47,48,49,50,53,54,55,56}, {250., 250., 5., 5., 250., 250., 5., 5.}, {1,1,2,2,1,1,2,2});
   selection_ = "mutau_e";
   status += init_dataplotter();
   status += print_standard_plots({47,48}, {250., 250.});
   selection_ = "etau_mu";
   status += init_dataplotter();
   status += print_standard_plots({47,48}, {250., 250.});
-  selection_ = "mumu";
-  status += init_dataplotter();
-  status += print_standard_plots({67,68, 80}, {1., 1., 1.});
+  // selection_ = "mumu";
+  // status += init_dataplotter();
+  // status += print_standard_plots({67,68, 80}, {1., 1., 1.});
 
   Double_t cpuTime = timer->CpuTime();
   Double_t realTime = timer->RealTime();

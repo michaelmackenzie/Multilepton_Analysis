@@ -3,7 +3,7 @@
 #include "TrainTrkQual.C"
 
 
-int train_tmva(const char* tree_name = "background_ztautau_mutau_7.tree", vector<int> signals = {33,34,35, 36, 37, 38, 39}, vector<int> ignore = {}) {
+int train_tmva(const char* tree_name = "background_ztautau_mutau_7.tree", vector<int> signals = {36,37,38, 39, 40, 41, 42}, vector<int> ignore = {}) {
 
   TFile *f;
 
@@ -58,11 +58,15 @@ int train_tmva(const char* tree_name = "background_ztautau_mutau_7.tree", vector
     selection += "z";
   }
   
-  if(tmvaName.Contains("mutau"))
+  if(tmvaName.Contains("mutau")) {
     selection += "mutau";
-  else if(tmvaName.Contains("etau"))
+    if(tmvaName.Contains("_e_"))
+      selection += "_e";
+  } else if(tmvaName.Contains("etau")) {
     selection += "etau";
-  else if(tmvaName.Contains("emu"))
+    if(tmvaName.Contains("_mu_"))
+      selection += "_mu";
+  } else if(tmvaName.Contains("emu"))
     selection += "emu";
   else {
     printf("Unknown selection! Default to mutau!\n");

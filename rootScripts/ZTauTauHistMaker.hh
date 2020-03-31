@@ -24,6 +24,7 @@
 #include "TH1.h"
 #include "TH2.h"
 #include "TString.h"
+#include "TRandom.h" //for splitting testing/training samples
 
 // TMVA includes
 #include "TMVA/Tools.h"
@@ -414,6 +415,9 @@ public :
     float eventweight;
     float fulleventweight; //includes cross-section and number gen
     float eventcategory; //for identifying the process in mva trainings
+
+    //identify to use in training
+    float train; //  < 0 --> testing, > 0 --> training sample
   };
 
   //define object to apply box cuts 
@@ -547,18 +551,24 @@ public :
   vector<TString> fMvaNames = { //mva names for getting weights
     "mutau_BDT_8.higgs","mutau_BDTRT_8.Z0",
     "etau_BDT_28.higgs","etau_BDT_28.Z0",
-    "emu_BDT_48.higgs","emu_BDT_48.Z0"
+    "emu_BDT_48.higgs","emu_BDT_48.Z0",
+    "mutau_e_BDT_48.higgs","mutau_e_BDT_48.Z0",
+    "etau_mu_BDT_48.higgs","etau_mu_BDT_48.Z0"
   };
   vector<double> fMvaCuts = { //mva score cut values
     0.1428, 0.9341,  //scores optimize significance with given branching ratios
     0.1834, 0.1222,
-    0.2215, 0.2991 
+    0.2215, 0.2991,
+    -1., -1.,
+    -1., -1.
   };
   //fitting MVA probability to an exponential near P(x) = 1
   vector<double> fMvaProbSlope = {
     1.22001e1, 1.76087e1,
     8.15277e0, 3.36172e1,
-    5.15861e1, 3.57671e1
+    5.15861e1, 3.57671e1,
+    -1.,-1.,
+    -1.,-1.
   };
   double fMvaOutputs[kMaxMVAs];
   double fMvaProb[kMaxMVAs];
@@ -595,6 +605,9 @@ public :
   bool          fSkipDoubleTrigger = false; //skip events with both triggers (to avoid double counting), only count this lepton status events
   Int_t         fMETWeights = 0; //re-weight events based on the MET
   Int_t         fRemoveZPtWeights = 0; // 0 use given weights, 1 remove z pT weight, 2 remove and re-evaluate weights locally
+  float         fFractionMVA = 0.; //fraction of events used to train. Ignore these events in histogram filling, reweight the rest to compensate
+  TRandom*      fRnd = 0; //for splitting MVA testing/training
+  Int_t         fRndSeed = 90; //random number generator seed
   
   ClassDef(ZTauTauHistMaker,0);
 
@@ -630,6 +643,10 @@ void ZTauTauHistMaker::Init(TTree *tree)
 		fMvaNames[mva_i].Data());
 	selection += "mutau"; //just to default to something
       }
+      //add for leptonic tau channels FIXME: Put as part of original check
+      if(fMvaNames[mva_i].Contains("mutau_e")) selection += "_e";
+      else if(fMvaNames[mva_i].Contains("etau_mu")) selection += "_mu";
+
       //Order must match the mva training!
       mva[mva_i]->AddVariable("lepm"            ,&fTreeVars.lepm           ); 
       mva[mva_i]->AddVariable("mtone"           ,&fTreeVars.mtone          );
@@ -647,6 +664,7 @@ void ZTauTauHistMaker::Init(TTree *tree)
       if(selection.Contains("tau")) {
 	mva[mva_i]->AddVariable("lepmestimate"   ,&fTreeVars.mestimate     ); 
 	mva[mva_i]->AddVariable("onemetdeltaphi" ,&fTreeVars.onemetdeltaphi);
+	if(selection.Contains("_")) mva[mva_i]->AddVariable("twometdeltaphi" ,&fTreeVars.twometdeltaphi);
       } else {
 	mva[mva_i]->AddSpectator("lepmestimate"  ,&fTreeVars.mestimate     ); 
 	mva[mva_i]->AddSpectator("onemetdeltaphi",&fTreeVars.onemetdeltaphi);
@@ -667,7 +685,7 @@ void ZTauTauHistMaker::Init(TTree *tree)
       mva[mva_i]->AddSpectator("lepdeltaphi"    ,&fTreeVars.lepdeltaphi    );
       mva[mva_i]->AddSpectator("htsum"          ,&fTreeVars.htsum          ); 
       mva[mva_i]->AddSpectator("leponeiso"      ,&fTreeVars.leponeiso      );
-      mva[mva_i]->AddSpectator("twometdeltaphi" ,&fTreeVars.twometdeltaphi );
+      if(!selection.Contains("_")) mva[mva_i]->AddSpectator("twometdeltaphi" ,&fTreeVars.twometdeltaphi );
       mva[mva_i]->AddSpectator("met"            ,&fTreeVars.met            );
       mva[mva_i]->AddSpectator("lepdeltar"      ,&fTreeVars.lepdeltar      );
       mva[mva_i]->AddSpectator("fulleventweight",&fTreeVars.fulleventweight);
