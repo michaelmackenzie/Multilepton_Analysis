@@ -48,7 +48,8 @@
 #include "TMVA/Tools.h"
 #endif
 
-TString selection_ = "zmutau";
+TString selection_ = "zmutau"; 
+Int_t split_trees_ = 0; //split training/testing using tree defined samples
 
 //Train MVA to separate the given signal from the given background
 int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual",
@@ -244,9 +245,23 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
   Double_t signalWeight     = 1.0;
   Double_t backgroundWeight = 1.0;
 
-  factory->AddSignalTree    ( signal, signalWeight);
-  factory->AddBackgroundTree( background, backgroundWeight );
-
+  if(split_trees_) {
+    TTree* signal_train = signal->CopyTree("train>0.");
+    signal_train->SetName("signal_train");
+    TTree* signal_test  = signal->CopyTree("train<0.");
+    signal_test->SetName("signal_test");
+    TTree* bkgd_train = background->CopyTree("train>0.");
+    bkgd_train->SetName("bkgd_train");
+    TTree* bkgd_test  = background->CopyTree("train<0.");
+    bkgd_test->SetName("bkgd_test");
+    factory->AddSignalTree    ( signal_train, signalWeight,     "Training" );
+    factory->AddSignalTree    ( signal_test,  signalWeight,     "Test" );
+    factory->AddBackgroundTree( bkgd_train,   backgroundWeight, "Training" );
+    factory->AddBackgroundTree( bkgd_test,    backgroundWeight, "Test" );
+  } else {
+    factory->AddSignalTree    ( signal, signalWeight);
+    factory->AddBackgroundTree( background, backgroundWeight );
+  }
   // global event weights per tree (see below for setting event-wise weights)
 
   // You can add an arbitrary number of signal or background trees
@@ -316,15 +331,21 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
   
   
   Double_t nSigFrac =  0.7;//0.2;
-  Double_t nBkgFrac =  0.7;//0.2;
+  Double_t nBkgFrac =  0.3;//0.2;
   Long64_t nSig = signal->CopyTree(signal_cuts)->GetEntriesFast();
   Long64_t nBkg = background->CopyTree(bkg_cuts)->GetEntriesFast();
-  TString options = "nTrain_Signal=";
-  options += ((Int_t) nSig*nSigFrac);
-  options += ":nTrain_Background=";
-  options += ((Int_t) nBkg*nBkgFrac);
-
-  options += ":nTest_Signal=0:nTest_Background=0:SplitMode=Random:!V:SplitSeed=89281";
+  TString options = "";
+  if(!split_trees_) {
+    options +=  "nTrain_Signal=";
+    options += ((Int_t) nSig*nSigFrac);
+    options += ":nTrain_Background=";
+    options += ((Int_t) nBkg*nBkgFrac);
+  }
+  
+  if(split_trees_)
+    options += "nTrain_Signal=0:nTrain_Background=0:nTest_Signal=0:nTest_Background=0";
+  else
+    options += ":nTest_Signal=0:nTest_Background=0:SplitMode=Random:!V:SplitSeed=89281";
   factory->PrepareTrainingAndTestTree(signal_cuts, bkg_cuts, options.Data() );
   printf("\033[32m--- Using signal fraction %.2f\033[0m\n", nSigFrac);
   printf("\033[32m--- Using background fraction %.2f\033[0m\n", nBkgFrac);

@@ -5,6 +5,7 @@ bool doWJets_ = true;
 bool doTop_ = true;
 bool doHiggs_ = true;
 bool doDiboson_ = true;
+bool debug_ = false;
 
 Int_t make_background(int set = 7, TString selection = "mutau", TString base = "../histograms/ztautau/") {
 
@@ -90,6 +91,8 @@ Int_t make_background(int set = 7, TString selection = "mutau", TString base = "
       printf("tree not found, continuing\n");
       continue;
     }
+    if(debug_) tList[filecount]->Print();
+    
     cout << "Tree " << filecount << ": " << tList[filecount]
 	 << " Entries: " << tList[filecount]->GetEntriesFast() << endl;
     list->Add(tList[filecount]);
@@ -137,4 +140,15 @@ Int_t make_background(int set = 7, TString selection = "mutau", TString base = "
   out->Close();
 
   return 0;
+}
+
+
+Int_t make_all_backrounds(TString base = "../histograms/ztautau/") {
+  Int_t status = 0;
+  status += make_background(8,  "mutau"  , base);
+  status += make_background(28, "etau"   , base);
+  status += make_background(48, "emu"    , base);
+  status += make_background(48, "mutau_e", base);
+  status += make_background(48, "etau_mu", base);
+  return status;
 }

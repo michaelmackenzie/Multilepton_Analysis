@@ -118,11 +118,11 @@ Int_t process_ztautau() {
 			 "output_electron_2016H_v2.root"
 
   };
-  const int doProcess[] = {0, //ttbar
+  const int doProcess[] = {1, //ttbar
 			   1, //DY AMC
 			   1, //DY AMC
-			   0, //t_tw
-			   0, //tbar_tw
+			   1, //t_tw
+			   1, //tbar_tw
 			   0, //DY inclusive M > 50 MadGraph
 			   0, //DY inclusive 10 < M < 50 MadGraph
 			   0, //DY 1 Jet MadGraph
@@ -159,20 +159,20 @@ Int_t process_ztautau() {
 			   1, //HETau
 			   1, //HMuTau
 			   1, //HEMu
-			   0, //Muon Data 2016 B
-			   0, //Muon Data 2016 C
-			   0, //Muon Data 2016 D
-			   0, //Muon Data 2016 E
-			   0, //Muon Data 2016 F
-			   0, //Muon Data 2016 G
-			   0, //Muon Data 2016 H
-			   0, //Electron Data 2016 B
-			   0, //Electron Data 2016 C
-			   0, //Electron Data 2016 D
-			   0, //Electron Data 2016 E
-			   0, //Electron Data 2016 F
-			   0, //Electron Data 2016 G
-			   0  //Electron Data 2016 H
+			   1, //Muon Data 2016 B
+			   1, //Muon Data 2016 C
+			   1, //Muon Data 2016 D
+			   1, //Muon Data 2016 E
+			   1, //Muon Data 2016 F
+			   1, //Muon Data 2016 G
+			   1, //Muon Data 2016 H
+			   1, //Electron Data 2016 B
+			   1, //Electron Data 2016 C
+			   1, //Electron Data 2016 D
+			   1, //Electron Data 2016 E
+			   1, //Electron Data 2016 F
+			   1, //Electron Data 2016 G
+			   1  //Electron Data 2016 H
   };
   
   Double_t xsec[100];
@@ -303,9 +303,11 @@ Int_t process_ztautau() {
 	else cout << "Found correct channel --> processing!\n";
       }
       if(skipChannels.size() > 0) {
+	bool skip = false;
 	for(TString channel : skipChannels) {
-	  if(channel == fChannel->GetName()) {cout << "Skipping channel!\n"; continue;}
+	  if(channel == fChannel->GetName()) {cout << "Skipping channel!\n"; skip=true;}
 	}
+	if(skip) continue;
       }
       TTree* tree = 0;
       TH1F* eventsChannel = 0;
