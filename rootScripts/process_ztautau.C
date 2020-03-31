@@ -133,32 +133,32 @@ Int_t process_ztautau() {
 			   0, //DY 3 Jet MadGraph
 			   0, //DY 4 Jet MadGraph
 			   0, //DY 4 Jet MadGraph
-			   0, //W 1 Jet MadGraph
-			   0, //W 2 Jet MadGraph
-			   0, //W 3 Jet MadGraph
-			   0, //W 4 Jet MadGraph
-			   0, //WJets amcnlo
-			   0, //WJets amcnlo ext 1
-			   0, //WJets amcnlo ext 2
-			   0, //WW
-			   0, //WZ Jets to 2L2Q
-			   0, //WZ Jets to 3LNu
-			   0, //ZZ Jets to 2L2Nu
-			   0, //ZZ Jets to 2L2Q
-			   0, //ZZ Jets to 4L
+			   1, //W 1 Jet MadGraph
+			   1, //W 2 Jet MadGraph
+			   1, //W 3 Jet MadGraph
+			   1, //W 4 Jet MadGraph
+			   1, //WJets amcnlo
+			   1, //WJets amcnlo ext 1
+			   1, //WJets amcnlo ext 2
+			   1, //WW
+			   1, //WZ Jets to 2L2Q
+			   1, //WZ Jets to 3LNu
+			   1, //ZZ Jets to 2L2Nu
+			   1, //ZZ Jets to 2L2Q
+			   1, //ZZ Jets to 4L
 			   0, //HZG gluglu
 			   0, //HZG tth
 			   0, //HZG vbf
 			   0, //HZG W-
 			   0, //HZG W+
 			   0, //HZG zh
-			   0, //HTauTau gluglu
-			   0, //ZETau
-			   0, //ZMuTau
-			   0, //ZEMu
-			   0, //HETau
-			   0, //HMuTau
-			   0, //HEMu
+			   1, //HTauTau gluglu
+			   1, //ZETau
+			   1, //ZMuTau
+			   1, //ZEMu
+			   1, //HETau
+			   1, //HMuTau
+			   1, //HEMu
 			   0, //Muon Data 2016 B
 			   0, //Muon Data 2016 C
 			   0, //Muon Data 2016 D
@@ -231,11 +231,23 @@ Int_t process_ztautau() {
   Int_t useTauFakeSF = 1; //1 = use given scale factors, 2 = override them with local ones
   bool writeTrees = true;
   TString onlyChannel = "";
-  Int_t removeZPtWeights = 0;
+  vector<TString> skipChannels = {"mumu", "ee", "all"};
+  
+  Int_t removeZPtWeights = 1;
+  float signalTrainFraction = 0.7;
+  float backgroundTrainFraction = 0.3;
   cout << "--- Fake Tau SF mode: " << useTauFakeSF
        << ", Write Trees mode: " << writeTrees
-       << ", Remove z pt weights: " << removeZPtWeights << endl;
-
+       << ", Remove z pt weights: " << removeZPtWeights
+       << ", training fractions: signal = " << signalTrainFraction
+       << ", background = " << backgroundTrainFraction
+       << endl;
+  if(skipChannels.size() > 0) {
+    cout << "--- Skipping channels: ";
+    for(TString channel : skipChannels)
+      cout << channel.Data() << ", ";
+    cout << endl;
+  }
   if(onlyChannel != "")
     cout << "--- WARNING! Only processing " << onlyChannel.Data() << " channel!\n";
   
@@ -261,6 +273,7 @@ Int_t process_ztautau() {
     //for splitting DY lepton decays
     TString cString = c;
     bool isDY = (cString.Contains("DY"));
+    bool isSignal = cString.Contains("mutau") || cString.Contains("etau") || cString.Contains("emu");
     //for avoiding double counting data events
     bool isElectronData = cString.Contains("output_electron_");
     bool isMuonData = cString.Contains("output_muon_");
@@ -289,7 +302,11 @@ Int_t process_ztautau() {
 	if(onlyChannel != fChannel->GetName()) { cout << "Continuing!\n"; continue;}
 	else cout << "Found correct channel --> processing!\n";
       }
-      
+      if(skipChannels.size() > 0) {
+	for(TString channel : skipChannels) {
+	  if(channel == fChannel->GetName()) {cout << "Skipping channel!\n"; continue;}
+	}
+      }
       TTree* tree = 0;
       TH1F* eventsChannel = 0;
       TKey* key2 = 0;
@@ -317,13 +334,15 @@ Int_t process_ztautau() {
 	if(isDY) selec->fDYType = loop;
 	//skip electron data events with both triggers for e+mu channel
 	selec->fIsData = 2*isMuonData + isElectronData; 
-	selec->fSkipDoubleTrigger = (isElectronData && (selec->fFolderName == "emu"));
-	
+	selec->fSkipDoubleTrigger = (isElectronData && (selec->fFolderName == "emu"));	
 	selec->fEventCategory = category;
 	selec->fWriteTrees = selec->fIsData == 0 && writeTrees; //don't write trees for data
 	selec->fUseTauFakeSF = useTauFakeSF;
 	selec->fXsec = xsec[i]/(events->GetBinContent(1) - 2.*events->GetBinContent(10));
 	selec->fRemoveZPtWeights = removeZPtWeights;
+	selec->fFractionMVA = (isSignal) ? signalTrainFraction : backgroundTrainFraction;
+	if(isMuonData || isElectronData) selec->fFractionMVA = 0.; //don't split off data
+	
 	tree->Process(selec,"");
 	TFile* out = new TFile(Form("ztautau_%s%s_%s.hist",fChannel->GetName(),
 				    (isDY) ? Form("_%i",loop) : "", tree->GetName()),"UPDATE");

@@ -146,6 +146,7 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
   // hnames.push_back("lepsvdeltapt");   htypes.push_back("event"); rebins.push_back(2); xmins.push_back(-10.); xmaxs.push_back(90.);
   // hnames.push_back("lepsvptoverm");   htypes.push_back("event"); rebins.push_back(2); xmins.push_back(0.);   xmaxs.push_back(10.);
   
+  hnames.push_back("jetpt");          htypes.push_back("event"); rebins.push_back(5); xmins.push_back(25.);  xmaxs.push_back(250.);
   hnames.push_back("njets");          htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(10.);
   hnames.push_back("nfwdjets");       htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(10.);
   hnames.push_back("nbjets");         htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(10.);
@@ -175,6 +176,12 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
   hnames.push_back("leptwodeltaphi"); htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(3.5);
   hnames.push_back("onemetdeltaphi"); htypes.push_back("lep");   rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(3.5);
   hnames.push_back("twometdeltaphi"); htypes.push_back("lep");   rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(3.5);
+  hnames.push_back("leponejetdeltaphi"); htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(3.5);
+  hnames.push_back("leptwojetdeltaphi"); htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(3.5);
+  hnames.push_back("leponejetdeltaeta"); htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(6.);
+  hnames.push_back("leptwojetdeltaeta"); htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(6.);
+  hnames.push_back("leponejetdeltar");   htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(6.);
+  hnames.push_back("leptwojetdeltar");   htypes.push_back("event"); rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(6.);
 
   hnames.push_back("oned0");          htypes.push_back("lep");   rebins.push_back(2); xmins.push_back(-0.05); xmaxs.push_back(0.05);
   hnames.push_back("oneiso");         htypes.push_back("lep");   rebins.push_back(1); xmins.push_back(0.);   xmaxs.push_back(10.);

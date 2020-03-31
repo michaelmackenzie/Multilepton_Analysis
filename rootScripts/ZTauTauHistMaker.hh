@@ -549,18 +549,18 @@ public :
   TStopwatch* timer = new TStopwatch();
   TMVA::Reader* mva[kMaxMVAs]; //read and apply mva weight files
   vector<TString> fMvaNames = { //mva names for getting weights
-    "mutau_BDT_8.higgs","mutau_BDTRT_8.Z0",
+    "mutau_BDT_8.higgs","mutau_BDT_8.Z0",
     "etau_BDT_28.higgs","etau_BDT_28.Z0",
     "emu_BDT_48.higgs","emu_BDT_48.Z0",
     "mutau_e_BDT_48.higgs","mutau_e_BDT_48.Z0",
     "etau_mu_BDT_48.higgs","etau_mu_BDT_48.Z0"
   };
   vector<double> fMvaCuts = { //mva score cut values
-    0.1428, 0.9341,  //scores optimize significance with given branching ratios
+    0.1428, 0.1,  //scores optimize significance with given branching ratios
     0.1834, 0.1222,
     0.2215, 0.2991,
-    -1., -1.,
-    -1., -1.
+    0.2, 0.115, //done by eye on limit gain vs MVA score plot
+    0.17, 0.10
   };
   //fitting MVA probability to an exponential near P(x) = 1
   vector<double> fMvaProbSlope = {
@@ -647,6 +647,7 @@ void ZTauTauHistMaker::Init(TTree *tree)
       if(fMvaNames[mva_i].Contains("mutau_e")) selection += "_e";
       else if(fMvaNames[mva_i].Contains("etau_mu")) selection += "_mu";
 
+      printf("Using selection %s\n", selection.Data());
       //Order must match the mva training!
       mva[mva_i]->AddVariable("lepm"            ,&fTreeVars.lepm           ); 
       mva[mva_i]->AddVariable("mtone"           ,&fTreeVars.mtone          );
@@ -664,10 +665,11 @@ void ZTauTauHistMaker::Init(TTree *tree)
       if(selection.Contains("tau")) {
 	mva[mva_i]->AddVariable("lepmestimate"   ,&fTreeVars.mestimate     ); 
 	mva[mva_i]->AddVariable("onemetdeltaphi" ,&fTreeVars.onemetdeltaphi);
-	if(selection.Contains("_")) mva[mva_i]->AddVariable("twometdeltaphi" ,&fTreeVars.twometdeltaphi);
+	mva[mva_i]->AddVariable("twometdeltaphi" ,&fTreeVars.twometdeltaphi);
       } else {
 	mva[mva_i]->AddSpectator("lepmestimate"  ,&fTreeVars.mestimate     ); 
 	mva[mva_i]->AddSpectator("onemetdeltaphi",&fTreeVars.onemetdeltaphi);
+	// mva[mva_i]->AddSpectator("twometdeltaphi" ,&fTreeVars.twometdeltaphi); //FIXME: re-run emu channels to have this here
       }
       
       //Spectators from mva training also required!
@@ -685,7 +687,7 @@ void ZTauTauHistMaker::Init(TTree *tree)
       mva[mva_i]->AddSpectator("lepdeltaphi"    ,&fTreeVars.lepdeltaphi    );
       mva[mva_i]->AddSpectator("htsum"          ,&fTreeVars.htsum          ); 
       mva[mva_i]->AddSpectator("leponeiso"      ,&fTreeVars.leponeiso      );
-      if(!selection.Contains("_")) mva[mva_i]->AddSpectator("twometdeltaphi" ,&fTreeVars.twometdeltaphi );
+      if(!selection.Contains("tau")) mva[mva_i]->AddSpectator("twometdeltaphi" ,&fTreeVars.twometdeltaphi );
       mva[mva_i]->AddSpectator("met"            ,&fTreeVars.met            );
       mva[mva_i]->AddSpectator("lepdeltar"      ,&fTreeVars.lepdeltar      );
       mva[mva_i]->AddSpectator("fulleventweight",&fTreeVars.fulleventweight);

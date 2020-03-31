@@ -405,6 +405,7 @@ void ZTauTauHistMaker::BookTrees() {
       fTrees[i]->Branch("eventweight",     &fTreeVars.eventweight    );  
       fTrees[i]->Branch("fulleventweight", &fTreeVars.fulleventweight);
       fTrees[i]->Branch("eventcategory",   &fTreeVars.eventcategory  );
+      fTrees[i]->Branch("train",           &fTreeVars.train          );
     }
   }
 }
