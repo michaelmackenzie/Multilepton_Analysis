@@ -76,3 +76,36 @@ int train_tmva(const char* tree_name = "background_ztautau_mutau_7.tree", vector
   printf("Beginning Training %s with selection %s\n",tmvaName.Data(), selection.Data());
   return TrainTrkQual(signal, background, tmvaName.Data(), signals, ignore);
 }
+
+Int_t train_all_tmvas(Int_t split_trees) {
+  split_trees_ = split_trees;
+  gROOT->SetBatch(kTRUE);
+  TStopwatch* timer = new TStopwatch();  
+  Int_t status = 0;
+  status += train_tmva("background_ztautau_Z0_mutau_8.tree");
+  gSystem->cd("..");
+  status += train_tmva("background_ztautau_Z0_etau_28.tree");
+  gSystem->cd("..");
+  status += train_tmva("background_ztautau_Z0_emu_48.tree");
+  gSystem->cd("..");
+  status += train_tmva("background_ztautau_Z0_mutau_e_48.tree");
+  gSystem->cd("..");
+  status += train_tmva("background_ztautau_Z0_etau_mu_48.tree");
+  gSystem->cd("..");
+  status += train_tmva("background_ztautau_higgs_mutau_8.tree");
+  gSystem->cd("..");
+  status += train_tmva("background_ztautau_higgs_etau_28.tree");
+  gSystem->cd("..");
+  status += train_tmva("background_ztautau_higgs_emu_48.tree");
+  gSystem->cd("..");
+  status += train_tmva("background_ztautau_higgs_mutau_e_48.tree");
+  gSystem->cd("..");
+  status += train_tmva("background_ztautau_higgs_etau_mu_48.tree");
+  gSystem->cd("..");
+
+  Double_t cpuTime = timer->CpuTime();
+  Double_t realTime = timer->RealTime();
+  printf("Processing time: %7.2fs CPU time %7.2fs Wall time\n",cpuTime,realTime);
+  if(realTime > 600. ) printf("Processing time: %7.2fmin CPU time %7.2fmin Wall time\n",cpuTime/60.,realTime/60.);
+  return status;
+}

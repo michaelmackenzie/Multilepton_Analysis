@@ -132,7 +132,7 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
   Use["BDT"]             = 1; // uses Adaptive Boost
   Use["BDTG"]            = 0; // uses Gradient Boost
   Use["BDTB"]            = 0; // uses Bagging
-  Use["BDTRT"]           = 1; // uses randomized trees (Random Forest Technique) with Bagging
+  Use["BDTRT"]           = 0; // uses randomized trees (Random Forest Technique) with Bagging
   Use["BDTD"]            = 0; // decorrelation + Adaptive Boost
   Use["BDTF"]            = 0; // allow usage of fisher discriminant for node splitting 
   // 

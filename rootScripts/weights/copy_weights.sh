@@ -5,9 +5,15 @@ do
     echo $f;
     a="";
     set=-1;
-    if [[ $f == *"mutau"* ]]; then
+    if [[ $f == *"mutau_e"* ]]; then
+	a="mutau_e_";
+	set=48;
+    elif [[ $f == *"mutau"* ]]; then
 	a="mutau_";
 	set=8;
+    elif [[ $f == *"etau_mu"* ]]; then
+	a="etau_mu_";
+	set=48;
     elif [[ $f == *"etau"* ]]; then
 	a="etau_";
 	set=28;

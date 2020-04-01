@@ -143,7 +143,7 @@ Int_t make_background(int set = 7, TString selection = "mutau", TString base = "
 }
 
 
-Int_t make_all_backrounds(TString base = "../histograms/ztautau/") {
+Int_t make_all_backgrounds(TString base = "../histograms/ztautau/") {
   Int_t status = 0;
   status += make_background(8,  "mutau"  , base);
   status += make_background(28, "etau"   , base);

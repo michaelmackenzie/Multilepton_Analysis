@@ -556,11 +556,11 @@ public :
     "etau_mu_BDT_48.higgs","etau_mu_BDT_48.Z0"
   };
   vector<double> fMvaCuts = { //mva score cut values
-    0.1428, 0.1,  //scores optimize significance with given branching ratios
-    0.1834, 0.1222,
-    0.2215, 0.2991,
-    0.2, 0.115, //done by eye on limit gain vs MVA score plot
-    0.17, 0.10
+    0.18, 0.08,  //scores optimize the gained 95% CL
+    0.159, 0.053,//all are done by eye on limit gain vs MVA score plot
+    0.24, 0.267,
+    0.15, 0.078, 
+    0.13, 0.066
   };
   //fitting MVA probability to an exponential near P(x) = 1
   vector<double> fMvaProbSlope = {
@@ -669,7 +669,7 @@ void ZTauTauHistMaker::Init(TTree *tree)
       } else {
 	mva[mva_i]->AddSpectator("lepmestimate"  ,&fTreeVars.mestimate     ); 
 	mva[mva_i]->AddSpectator("onemetdeltaphi",&fTreeVars.onemetdeltaphi);
-	// mva[mva_i]->AddSpectator("twometdeltaphi" ,&fTreeVars.twometdeltaphi); //FIXME: re-run emu channels to have this here
+	mva[mva_i]->AddSpectator("twometdeltaphi" ,&fTreeVars.twometdeltaphi); 
       }
       
       //Spectators from mva training also required!
@@ -687,7 +687,6 @@ void ZTauTauHistMaker::Init(TTree *tree)
       mva[mva_i]->AddSpectator("lepdeltaphi"    ,&fTreeVars.lepdeltaphi    );
       mva[mva_i]->AddSpectator("htsum"          ,&fTreeVars.htsum          ); 
       mva[mva_i]->AddSpectator("leponeiso"      ,&fTreeVars.leponeiso      );
-      if(!selection.Contains("tau")) mva[mva_i]->AddSpectator("twometdeltaphi" ,&fTreeVars.twometdeltaphi );
       mva[mva_i]->AddSpectator("met"            ,&fTreeVars.met            );
       mva[mva_i]->AddSpectator("lepdeltar"      ,&fTreeVars.lepdeltar      );
       mva[mva_i]->AddSpectator("fulleventweight",&fTreeVars.fulleventweight);
@@ -893,6 +892,17 @@ void ZTauTauHistMaker::Init(TTree *tree)
     fEventSets [80] = 1; // events with opposite signs + >1-jet
     fEventSets [80+fQcdOffset] = 1; // events with same
 
+    //Leptonic tau channels
+    //mu+tau_e
+    fEventSets [89] = 1; // events with opposite signs + BDT cut
+    fEventSets [89+fQcdOffset] = 1; // events with same
+    fEventSets [90] = 1; // events with opposite signs + BDT cut
+    fEventSets [90+fQcdOffset] = 1; // events with same
+    //e+tau_mu
+    fEventSets [91] = 1; // events with opposite signs + BDT cut
+    fEventSets [91+fQcdOffset] = 1; // events with same
+    fEventSets [92] = 1; // events with opposite signs + BDT cut
+    fEventSets [92+fQcdOffset] = 1; // events with same
 
     //initialize all the histograms
     BookHistograms();
