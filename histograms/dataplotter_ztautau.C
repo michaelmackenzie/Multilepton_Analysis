@@ -112,11 +112,13 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
   vector<double>  xmins;
   vector<double>  xmaxs;
   vector<DataPlotter::PlottingCard_t> plottingcards;
-  plottingcards.push_back(DataPlotter::PlottingCard_t("onept", "lep", 2, 15., 150.));
-  
+  // plotting card constructor:                       hist,             type,  rebin,xmin,xmax,blindmin,blindmax
   plottingcards.push_back(DataPlotter::PlottingCard_t("onept",          "lep",   2, 15.,  150. ));
   plottingcards.push_back(DataPlotter::PlottingCard_t("twopt",          "lep",   2, 15.,  150. ));
-  plottingcards.push_back(DataPlotter::PlottingCard_t("lepm",           "event", 2, 0.,   200. ));
+  if(selection_ == "emu")
+    plottingcards.push_back(DataPlotter::PlottingCard_t("lepm",           "event", 2, 0.,   200., 85., 130. ));
+  else
+    plottingcards.push_back(DataPlotter::PlottingCard_t("lepm",           "event", 2, 0.,   200. ));
   plottingcards.push_back(DataPlotter::PlottingCard_t("leppt",          "event", 2, 0.,   150. ));
   plottingcards.push_back(DataPlotter::PlottingCard_t("lepptoverm",     "event", 2, 0.,   5.   ));
   plottingcards.push_back(DataPlotter::PlottingCard_t("lepeta",         "event", 1, -5.,  5.   ));
@@ -126,8 +128,13 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
   plottingcards.push_back(DataPlotter::PlottingCard_t("pxivis0",        "event", 5, 0.,   100. ));
   plottingcards.push_back(DataPlotter::PlottingCard_t("pxiinv0",        "event", 5, -100.,100. ));
   plottingcards.push_back(DataPlotter::PlottingCard_t("ptauvisfrac",    "event", 5, 0.,   1.4  ));
-  plottingcards.push_back(DataPlotter::PlottingCard_t("lepmestimate",   "event", 1, 0.,   300. ));
-  plottingcards.push_back(DataPlotter::PlottingCard_t("lepmestimatetwo","event", 1, 0.,   300. ));
+  if(selection_ == "emu") {
+    plottingcards.push_back(DataPlotter::PlottingCard_t("lepmestimate",   "event", 1, 0.,   300. ));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("lepmestimatetwo","event", 1, 0.,   300. ));
+  } else {
+    plottingcards.push_back(DataPlotter::PlottingCard_t("lepmestimate",   "event", 1, 0.,   300., 80., 150. ));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("lepmestimatetwo","event", 1, 0.,   300., 80., 150. ));
+  }
   plottingcards.push_back(DataPlotter::PlottingCard_t("met",            "event", 2, 0.,   150. ));
   plottingcards.push_back(DataPlotter::PlottingCard_t("covmet00",       "event", 10,100., 1000.));
   plottingcards.push_back(DataPlotter::PlottingCard_t("covmet11",       "event", 10,100., 1000.));
@@ -154,20 +161,20 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
   plottingcards.push_back(DataPlotter::PlottingCard_t("nbjets",         "event", 1, 0.,   10. ));
   plottingcards.push_back(DataPlotter::PlottingCard_t("nphotons",       "event", 1, 0.,   5.  ));
   if(selection_ == "mutau") {
-    plottingcards.push_back(DataPlotter::PlottingCard_t("mva0",       "event", 200, -1.,   1.  ));
-    plottingcards.push_back(DataPlotter::PlottingCard_t("mva1",       "event", 200, -1.,   1.  ));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("mva0",       "event", 200, -1.,   1. , 0.1, 1. ));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("mva1",       "event", 200, -1.,   1. , 0.1, 1. ));
   } else if(selection_ == "etau") {
-    plottingcards.push_back(DataPlotter::PlottingCard_t("mva2",       "event", 200, -1.,   1.  ));
-    plottingcards.push_back(DataPlotter::PlottingCard_t("mva3",       "event", 200, -1.,   1.  ));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("mva2",       "event", 200, -1.,   1. , 0.1, 1. ));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("mva3",       "event", 200, -1.,   1. , 0.1, 1. ));
   } else if(selection_ == "emu") {
-    plottingcards.push_back(DataPlotter::PlottingCard_t("mva4",       "event", 200, -1.,   1.  ));
-    plottingcards.push_back(DataPlotter::PlottingCard_t("mva5",       "event", 200, -1.,   1.  ));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("mva4",       "event", 200, -1.,   1. , 0.1, 1. ));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("mva5",       "event", 200, -1.,   1. , 0.1, 1. ));
   } else if(selection_ == "mutau_e") {
-    plottingcards.push_back(DataPlotter::PlottingCard_t("mva6",       "event", 200, -1.,   1.  ));
-    plottingcards.push_back(DataPlotter::PlottingCard_t("mva7",       "event", 200, -1.,   1.  ));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("mva6",       "event", 200, -1.,   1. , 0.1, 1. ));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("mva7",       "event", 200, -1.,   1. , 0.1, 1. ));
   } else if(selection_ == "etau_mu") {
-    plottingcards.push_back(DataPlotter::PlottingCard_t("mva8",       "event", 200, -1.,   1.  ));
-    plottingcards.push_back(DataPlotter::PlottingCard_t("mva9",       "event", 200, -1.,   1.  ));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("mva8",       "event", 200, -1.,   1. , 0.1, 1. ));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("mva9",       "event", 200, -1.,   1. , 0.1, 1. ));
   }
   
   plottingcards.push_back(DataPlotter::PlottingCard_t("htsum",             "event", 5, 0.,   800.));
@@ -231,21 +238,6 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
     }
   } //end 2D loop
   
-  //print cdf transform and significance vs bdt score plots
-  // vector<TString> sighists;
-  // vector<TString> sigtypes;
-  // vector<TString> siglabels;
-  // if(selection_ == "mutau") {
-  //   sighists.push_back("mva0"); sigtypes.push_back("event"); siglabels.push_back("H"+label);
-  //   sighists.push_back("mva1"); sigtypes.push_back("event"); siglabels.push_back("Z"+label);
-  // } else if(selection_ == "etau") {
-  //   sighists.push_back("mva2"); sigtypes.push_back("event"); siglabels.push_back("H"+label);
-  //   sighists.push_back("mva3"); sigtypes.push_back("event"); siglabels.push_back("Z"+label);
-  // } else if(selection_ == "emu") {
-  //   sighists.push_back("mva4"); sigtypes.push_back("event"); siglabels.push_back("H"+label);
-  //   sighists.push_back("mva5"); sigtypes.push_back("event"); siglabels.push_back("Z"+label);
-  // }
-  // print_significance_canvases(sighists, sigtypes, siglabels, sets);
   
   if(label != "") {
     for(int logy = 0; logy < 2; ++logy) { //print log and not log axis

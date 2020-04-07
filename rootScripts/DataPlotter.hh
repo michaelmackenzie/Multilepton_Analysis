@@ -65,10 +65,19 @@ public :
 		   Double_t xmin, Double_t xmax) : PlottingCard_t(hist,type,set,rebin,xmin,xmax) {
       label_ = label;
     }
+    PlottingCard_t(TString hist, TString type, Int_t rebin, Double_t xmin, Double_t xmax,
+		   Double_t blindmin, Double_t blindmax) : PlottingCard_t(hist,type,rebin,xmin,xmax) {
+      blindmin_ = blindmin;
+      blindmax_ = blindmax;
+    }
     PlottingCard_t(TString hist, TString type, Int_t set, Int_t rebin, Double_t xmin, Double_t xmax,
 		   Double_t blindmin, Double_t blindmax) : PlottingCard_t(hist,type,set,rebin,xmin,xmax) {
       blindmin_ = blindmin;
       blindmax_ = blindmax;
+    }
+    PlottingCard_t(TString hist, TString type, TString label, Int_t rebin, Double_t xmin, Double_t xmax,
+		   Double_t blindmin, Double_t blindmax) : PlottingCard_t(hist,type,rebin,xmin,xmax,blindmin,blindmax) {
+      label_ = label;
     }
     PlottingCard_t(TString hist, TString type, Int_t set, TString label, Int_t rebin, Double_t xmin, Double_t xmax,
 		   Double_t blindmin, Double_t blindmax) : PlottingCard_t(hist,type,set,rebin,xmin,xmax,blindmin,blindmax) {
@@ -92,18 +101,22 @@ public :
   Int_t seed_ = 90; //random number generator seed
   TRandom* rnd_;
 
-  Double_t xMin_ =  1e6;
+  Double_t xMin_ =  1e6; //plotting ranges
   Double_t xMax_ = -1e6;
   Double_t yMin_ =  1e6;
   Double_t yMax_ = -1e6;
-  Int_t logZ_ = 1;
+  Double_t blindxmin_ = 1e6; //for blinding along x axis
+  Double_t blindxmax_ = -1e6;
+  Double_t blindymin_ = 1e6; //for blinding along y axis
+  Double_t blindymax_ = -1e6;
+  Int_t logZ_ = 1; //log plot settings
   Int_t logY_ = 0;
-  Int_t plot_data_ = 1;
-  Int_t rebinH_ = 1;
-  Int_t data_over_mc_ = 1;
+  Int_t plot_data_ = 1; //only MC or include data
+  Int_t rebinH_ = 1; //rebinning of histograms
+  Int_t data_over_mc_ = 1; //do data/MC or data-MC
   Int_t stack_uncertainty_ = 1; //whether or not to add gray shading for uncertainty
-  Int_t debug_ = 0;
-  Int_t include_qcd_ = 1;
+  Int_t debug_ = 0; //for debugging
+  Int_t include_qcd_ = 1; //use the same sign selection to get the QCD
   Int_t qcd_offset_ = 100; //set number offset to get same sign selection
   Int_t plot_title_ = 0; //Plot the title on the canvas
   Double_t fill_alpha_ = 0.9; //alpha to use for hist plotting
@@ -262,6 +275,8 @@ public :
   }
   TCanvas* plot_hist(PlottingCard_t card) {
     rebinH_ = card.rebin_;
+    blindxmin_ = card.blindmin_;
+    blindxmax_ = card.blindmax_;
     return plot_hist(card.hist_, card.type_, card.set_, card.xmin_, card.xmax_);
   }
 
@@ -271,6 +286,8 @@ public :
   }
   TCanvas* plot_stack(PlottingCard_t card) {
     rebinH_ = card.rebin_;
+    blindxmin_ = card.blindmin_;
+    blindxmax_ = card.blindmax_;
     return plot_stack(card.hist_, card.type_, card.set_, card.xmin_, card.xmax_);
   }
 
@@ -300,6 +317,8 @@ public :
   }
   TCanvas* print_stack(PlottingCard_t card) {
     rebinH_ = card.rebin_;
+    blindxmin_ = card.blindmin_;
+    blindxmax_ = card.blindmax_;
     return print_stack(card.hist_, card.type_, card.set_, card.xmin_, card.xmax_);
   }
 
@@ -309,6 +328,8 @@ public :
   }
   TCanvas* print_hist(PlottingCard_t card) {
     rebinH_ = card.rebin_;
+    blindxmin_ = card.blindmin_;
+    blindxmax_ = card.blindmax_;
     return print_hist(card.hist_, card.type_, card.set_, card.xmin_, card.xmax_);
   }
 
@@ -359,7 +380,9 @@ public :
       for(PlottingCard_t card : cards) {
 	if(base_rebins.size() == sets.size()) card.rebin_ *= base_rebins[index];
 	card.set_ = sets[index];
-	status += (print_stack(card)) ? 0 : 1;
+	auto c = print_stack(card);
+	status += (c) ? 0 : 1;
+	delete c;
       }
     }
     return status;
@@ -376,7 +399,9 @@ public :
       for(PlottingCard_t card : cards) {
 	if(base_rebins.size() == sets.size()) card.rebin_ *= base_rebins[index];
 	card.set_ = sets[index];
-	status += (print_hist(card)) ? 0 : 1;
+	auto c = print_hist(card);
+	status += (c) ? 0 : 1;
+	delete c;
       }
     }
     return status;

@@ -1206,14 +1206,59 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
     }
   }
 
+  TH1F* huncertainty = get_stack_uncertainty(hstack,Form("uncertainty_%s_%i", hist.Data(), set));
+  if(stack_uncertainty_) 
+    huncertainty->Draw("E2 SAME");
+
+  int ndata = 0.;
+  double nmc = 0.;
+  map<TString, double> nsig;
+  if(d && plot_data_) {
+    for(unsigned i = 0; i < hsignal.size(); ++i) {
+      if(!doStatsLegend_ && hsignal[i]->GetEntries() > 0)
+	nsig[hsignal[i]->GetName()] = (hsignal[i]->Integral() + hsignal[i]->GetBinContent(0)+hsignal[i]->GetBinContent(hsignal[i]->GetNbinsX()+1))/signal_scale_;
+    }
+    ndata = d->Integral() + d->GetBinContent(0)+d->GetBinContent(d->GetNbinsX()+1);
+    nmc = huncertainty->Integral() + huncertainty->GetBinContent(0)+huncertainty->GetBinContent(huncertainty->GetNbinsX()+1);
+  }
+
+  //blind if needed
+  if(blindxmin_ < blindxmax_ && d && plot_data_) {
+    unsigned nbins = d->GetNbinsX();
+    for(unsigned bin = 1; bin <= nbins; ++bin) {
+      double binlow = d->GetBinLowEdge(bin);
+      double binhigh = binlow + d->GetBinWidth(bin);
+      if((binlow >= blindxmin_ && binlow < blindxmax_) || //within the blinding region, or at least part of it
+	 (binhigh > blindxmin_ && binhigh <= blindxmax_))
+	d->SetBinContent(bin, 0.);
+    }
+  }
+  
   //draw the data with error bars
   if(plot_data_ && d) d->Draw("E same");
 
   m = max(max(m,hstack->GetMaximum()), (d) ? d->GetMaximum() : 0.);
 
-  TH1F* huncertainty = get_stack_uncertainty(hstack,Form("uncertainty_%s_%i", hist.Data(), set));
-  if(stack_uncertainty_) 
-    huncertainty->Draw("E2 SAME");
+  pad1->BuildLegend();//0.6, 0.9, 0.9, 0.45, "", "L");
+  pad1->SetGrid();
+  pad1->Update();
+  //draw text
+  draw_data(ndata,nmc,nsig);
+  draw_luminosity();
+  draw_cms_label();
+
+  auto o = pad1->GetPrimitive("TPave");
+  if(o) {
+    auto tl = (TLegend*) o;
+    tl->SetDrawOption("L");
+    tl->SetTextSize(legend_txt_);
+    tl->SetY2NDC(legend_y2_);
+    tl->SetY1NDC(legend_y1_);
+    tl->SetX1NDC(((doStatsLegend_) ? legend_x1_stats_ : legend_x1_));
+    tl->SetX2NDC(legend_x2_);
+    tl->SetEntrySeparation(legend_sep_);
+    pad1->Update();
+  }
 
   //Make a Data/MC histogram
   if(plot_data_ && !d) {
@@ -1221,8 +1266,6 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
   }
   TH1F* hDataMC = (plot_data_ && d) ? (TH1F*) d->Clone("hDataMC") : 0;
   TGraphErrors* hDataMCErr = 0;
-  double nmc = 0.;
-  int ndata = 0;
   int nb = (d) ? d->GetNbinsX() : -1;
   if(hDataMC) {
     // hDataMC->SetBit(kCanDelete);
@@ -1263,32 +1306,6 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
     hDataMCErr->SetFillStyle(3001);
     hDataMCErr->SetFillColor(kGray+1);
   }
-  pad1->BuildLegend();//0.6, 0.9, 0.9, 0.45, "", "L");
-  pad1->SetGrid();
-  pad1->Update();
-  if(ndata > 0) {
-    map<TString, double> nsig;
-    for(unsigned i = 0; i < hsignal.size(); ++i) {
-      if(!doStatsLegend_ && hsignal[i]->GetEntries() > 0)
-	nsig[hsignal[i]->GetName()] = (hsignal[i]->Integral() + hsignal[i]->GetBinContent(0)+hsignal[i]->GetBinContent(nb+1))/signal_scale_;
-    }
-    draw_data(ndata,nmc,nsig);
-  }
-  auto o = pad1->GetPrimitive("TPave");
-  if(o) {
-    auto tl = (TLegend*) o;
-    tl->SetDrawOption("L");
-    tl->SetTextSize(legend_txt_);
-    tl->SetY2NDC(legend_y2_);
-    tl->SetY1NDC(legend_y1_);
-    tl->SetX1NDC(((doStatsLegend_) ? legend_x1_stats_ : legend_x1_));
-    tl->SetX2NDC(legend_x2_);
-    tl->SetEntrySeparation(legend_sep_);
-    pad1->Update();
-  }
-  //draw text
-  draw_luminosity();
-  draw_cms_label();
   
   if(plot_data_ && hDataMC) {
     hDataMC->GetXaxis()->SetTitle(xtitle.Data());
