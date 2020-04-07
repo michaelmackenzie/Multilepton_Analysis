@@ -219,12 +219,12 @@ Int_t process_ztautau() {
   xsec[32] =    3.*3.3658/100.*1.54e-3* 1.358/2.;	       //"hzg_wplus"               
   xsec[33] =    3.*3.3658/100.*1.54e-3* 0.880;	       //"hzg_zh"                  
   xsec[34] =                   6.32e-2* 43.92;	       //"htautau_gluglu"                  
-  xsec[35] =    ((6225.42+18610.)/(3.*3.3658e-2))*9.8e-6*161497./(2.e3*498); //zetau  z->ll / br(ll) * br(etau, CL=95) *N(accepted)/N(Gen) http://pdg.lbl.gov/2018/listings/rpp2018-list-z-boson.pdf
-  xsec[36] =    ((6225.42+18610.)/(3.*3.3658e-2))*1.2e-5*152959./(2.e3*497); //zmutau z->ll / br(ll) * br(mutau, CL=95)*N(accepted)/N(Gen) http://pdg.lbl.gov/2018/listings/rpp2018-list-z-boson.pdf
-  xsec[37] =    ((6225.42+18610.)/(3.*3.3658e-2))*7.3e-7*186670./(2.e3*596); //zemu   z->ll / br(ll) * br(emu, CL=95)  *N(accepted)/N(Gen) http://pdg.lbl.gov/2018/listings/rpp2018-list-z-boson.pdf
-  xsec[38] = (48.61+3.766+0.5071+1.358+0.880)*6.1e-3*418794./(487.*1e3); //hetau  xsec(higgs,glu+vbf)*br(etau, CL=95) *N(accepted)/N(Gen) http://pdg.lbl.gov/2019/listings/rpp2019-list-higgs-boson.pdf
-  xsec[39] = (48.61+3.766+0.5071+1.358+0.880)*2.5e-3*388243./(453.*1e3); //hmutau xsec(higgs,glu+vbf)*br(mutau, CL=95)*N(accepted)/N(Gen) http://pdg.lbl.gov/2019/listings/rpp2019-list-higgs-boson.pdf
-  xsec[40] = (48.61+3.766+0.5071+1.358+0.880)*3.5e-4*34429./(88.*500); //hemu   xsec(higgs,glu+vbf)*br(emu, CL=95)  *N(accepted)/N(Gen) http://pdg.lbl.gov/2019/listings/rpp2019-list-higgs-boson.pdf
+  xsec[35] = ((6225.42+18610.)/(3.*3.3658e-2))*9.8e-6*161497./(2.e3*498); //zetau  z->ll / br(ll) * br(etau, CL=95) *N(accepted)/N(Gen) http://pdg.lbl.gov/2018/listings/rpp2018-list-z-boson.pdf
+  xsec[36] = ((6225.42+18610.)/(3.*3.3658e-2))*1.2e-5*152959./(2.e3*497); //zmutau z->ll / br(ll) * br(mutau, CL=95)*N(accepted)/N(Gen) http://pdg.lbl.gov/2018/listings/rpp2018-list-z-boson.pdf
+  xsec[37] = ((6225.42+18610.)/(3.*3.3658e-2))*7.3e-7*186670./(2.e3*596); //zemu   z->ll / br(ll) * br(emu, CL=95)  *N(accepted)/N(Gen) http://pdg.lbl.gov/2018/listings/rpp2018-list-z-boson.pdf
+  xsec[38] = (48.61+3.766+0.5071+1.358+0.880)*6.1e-3*418794./(487.*1e3);  //hetau  xsec(higgs,glu+vbf)*br(etau, CL=95) *N(accepted)/N(Gen) http://pdg.lbl.gov/2019/listings/rpp2019-list-higgs-boson.pdf
+  xsec[39] = (48.61+3.766+0.5071+1.358+0.880)*2.5e-3*388243./(453.*1e3);  //hmutau xsec(higgs,glu+vbf)*br(mutau, CL=95)*N(accepted)/N(Gen) http://pdg.lbl.gov/2019/listings/rpp2019-list-higgs-boson.pdf
+  xsec[40] = (48.61+3.766+0.5071+1.358+0.880)*3.5e-4*34429./(88.*500);    //hemu   xsec(higgs,glu+vbf)*br(emu, CL=95)  *N(accepted)/N(Gen) http://pdg.lbl.gov/2019/listings/rpp2019-list-higgs-boson.pdf
 
   TStopwatch* timer = new TStopwatch();
 
@@ -298,27 +298,38 @@ Int_t process_ztautau() {
 	continue;
       }
       printf("Found file %s\n",fChannel->GetName());
+      TString currentChannel = fChannel->GetName();
+      //check if only suppose to do 1 channel, and if this is that channel
       if(onlyChannel != "") {
-	if(onlyChannel != fChannel->GetName()) { cout << "Continuing!\n"; continue;}
+	if(onlyChannel != currentChannel) { cout << "Continuing!\n"; continue;}
 	else cout << "Found correct channel --> processing!\n";
       }
+      //check if this channel is part of the skip list
       if(skipChannels.size() > 0) {
 	bool skip = false;
 	for(TString channel : skipChannels) {
-	  if(channel == fChannel->GetName()) {cout << "Skipping channel!\n"; skip=true;}
+	  if(channel == currentChannel) {cout << "Skipping channel!\n"; skip=true;}
 	}
 	if(skip) continue;
+      }
+      //skip if data on a channel without that trigger used
+      if(isElectronData && (currentChannel == "mutau" || currentChannel == "mumu")) {
+	cout << "Electron data on muon only channel, continuing!\n"; continue;
+      }
+      if(isMuonData && (currentChannel == "etau" || currentChannel == "ee")) {
+	cout << "Muon data on electron only channel, continuing!\n"; continue;
       }
       TTree* tree = 0;
       TH1F* eventsChannel = 0;
       TKey* key2 = 0;
       TIter nextkey2(fChannel->GetListOfKeys());
+      //get events tree and events counting histogram
       while((key2 = (TKey*)nextkey2())) {
 	TObject* obj2 = key2->ReadObj(); 
 	if(obj2->IsA()->InheritsFrom(TH1::Class())) eventsChannel = (TH1F*)obj2;
 	if(obj2->IsA()->InheritsFrom(TTree::Class())) tree = (TTree*)obj2;
       }
-    
+      //check that these are found
       if(tree == 0) {
 	printf("Tree in %s%s/%s not found, continuing\n",gridPath[i],c,fChannel->GetName());
 	continue;
@@ -327,32 +338,36 @@ Int_t process_ztautau() {
 	printf("Events Channel Histogram in %s%s/%s not found, continuing\n",gridPath[i],c,fChannel->GetName());
 	continue;
       }
-      // isDY = false;
+      // if Drell-Yan, loop through it twice, doing tautau then ee/mumu
       int nloops = (isDY) ? 2 : 1;
       for(int loop = 1; loop <= nloops; ++loop) {
-	ZTauTauHistMaker* selec = new ZTauTauHistMaker();
+	ZTauTauHistMaker* selec = new ZTauTauHistMaker(); //selector
 	TString cString = c;
 	selec->fFolderName = fChannel->GetName();
-	if(isDY) selec->fDYType = loop;
-	//skip electron data events with both triggers for e+mu channel
+	if(isDY) selec->fDYType = loop; //if Drell-Yan, tell the selector which loop we're on
+	//skip electron data events with both triggers for e+mu channel, to not double count
 	selec->fIsData = 2*isMuonData + isElectronData; 
 	selec->fSkipDoubleTrigger = (isElectronData && (selec->fFolderName == "emu"));	
+	//store a label for this dataset
 	selec->fEventCategory = category;
 	selec->fWriteTrees = selec->fIsData == 0 && writeTrees; //don't write trees for data
-	selec->fUseTauFakeSF = useTauFakeSF;
-	selec->fXsec = xsec[i]/(events->GetBinContent(1) - 2.*events->GetBinContent(10));
-	selec->fRemoveZPtWeights = removeZPtWeights;
-	selec->fFractionMVA = (isSignal) ? signalTrainFraction : backgroundTrainFraction;
-	if(isMuonData || isElectronData) selec->fFractionMVA = 0.; //don't split off data
+	selec->fUseTauFakeSF = useTauFakeSF; //whether or not to use fake tau weights from analyzer/locally re-defined
+	selec->fXsec = xsec[i]/(events->GetBinContent(1) - 2.*events->GetBinContent(10)); //for writing trees with correct normalization
+	selec->fRemoveZPtWeights = removeZPtWeights; //whether or not to re-weight Z pT
+	selec->fFractionMVA = (isSignal) ? signalTrainFraction : backgroundTrainFraction; //fraction of events to use for MVA training
+	if(isMuonData || isElectronData) selec->fFractionMVA = 0.; //don't split off data for training
 	
-	tree->Process(selec,"");
-	TFile* out = new TFile(Form("ztautau_%s%s_%s.hist",fChannel->GetName(),
+	tree->Process(selec,""); //run the selector over the tree
+
+	//open back up the file
+	TFile* out = new TFile(Form("ztautau_%s%s_%s.hist",fChannel->GetName(), 
 				    (isDY) ? Form("_%i",loop) : "", tree->GetName()),"UPDATE");
 	if(out == 0) {
 	  printf("Unable to find output hist file ztautau_%s%s_%s.hist, continuing\n",fChannel->GetName(),
 		 (isDY) ? Form("_%i",loop) : "", tree->GetName());
 	  continue;
 	}
+	//add the events histogram to the output
 	events->Write();
 	out->Write();
 	delete out;
@@ -361,6 +376,7 @@ Int_t process_ztautau() {
     delete events;
     delete f;
   }
+  //report the time spent histogramming
   Double_t cpuTime = timer->CpuTime();
   Double_t realTime = timer->RealTime();
   printf("Processing time: %7.2fs CPU time %7.2fs Wall time\n",cpuTime,realTime);

@@ -183,11 +183,6 @@ public :
     TH1F* hPFCovMet00;
     TH1F* hPFCovMet01;
     TH1F* hPFCovMet11;
-    TH1F* hPuppMet;
-    TH1F* hPuppMetPhi;
-    TH1F* hPuppCovMet00;
-    TH1F* hPuppCovMet01;
-    TH1F* hPuppCovMet11;
     TH1F* hTrkMet;
     TH1F* hTrkMetPhi;
 
@@ -198,28 +193,31 @@ public :
     TH1F* hCovMet00;
     TH1F* hCovMet01;
     TH1F* hCovMet11;
-    TH1F* hMassSVFit;
-    TH1F* hMassErrSVFit;
-    TH1F* hSVFitStatus;
     TH2F* hMetVsPt;
     TH2F* hMetVsM;
     TH2F* hMetVsHtSum; //MET ~ sqrt(htsum)
     TH1F* hMetOverSqrtHtSum; //MET ~ sqrt(htsum)
+    
+    TH1F* hMassSVFit;
+    TH1F* hMassErrSVFit;
+    TH1F* hSVFitStatus;
 
     //di-lepton histograms
     TH1F* hLepPt;
     TH1F* hLepP;
-    TH1F* hLepE;
     TH1F* hLepM;
     TH1F* hLepEta;
     TH1F* hLepPhi;
+    
     TH1F* hLepDeltaPhi;
     TH1F* hLepDeltaEta;
     TH1F* hLepDeltaR;
     TH2F* hLepDelRVsPhi;
+    
     TH1F* hLepPtOverM;
     TH1F* hHtDeltaPhi;
     TH1F* hMetDeltaPhi;
+    TH1F* hJetDeltaPhi;
     TH1F* hLepOneDeltaPhi;
     TH1F* hLepTwoDeltaPhi;
 
@@ -232,33 +230,23 @@ public :
     TH1F* hLepTwoJetDeltaEta;
     
     TH1F* hLepSVPt;
-    TH1F* hLepSVP;
-    TH1F* hLepSVE;
     TH1F* hLepSVM;
     TH1F* hLepSVEta;
     TH1F* hLepSVPhi;
+    
     TH1F* hLepSVDeltaPhi;
     TH1F* hLepSVDeltaEta;
-    TH1F* hLepSVDeltaR;
     TH1F* hLepSVDeltaM;
     TH1F* hLepSVDeltaPt;
-    TH2F* hLepSVDelRVsPhi;
     TH1F* hLepSVPtOverM;
     
     TH1F* hSysM;
     TH1F* hSysPt;
     TH1F* hSysEta;
-
-    TH1F* hSysSVM;
-    TH1F* hSysSVPt;
-    TH1F* hSysSVEta;
     
     //Transverse Masses
     TH1F* hMTOne;
     TH1F* hMTTwo;
-
-    //mass difference between m_gll and m_ll (with a weight)
-    TH1F* hMDiff;
 
     //three sets for combining photon with a lepton or leptons vs photon
     TH1F* hPXiVis[3];
@@ -278,16 +266,12 @@ public :
     TH1F* hPt1Sum[4]; //scalar sum of 1 lepton Pt and Met, both leptons, then both minus met
     //MVA values
     TH1F* hMVA[kMaxMVAs];
-    TH1F* hProb[kMaxMVAs];
-    TH1F* hRarity[kMaxMVAs];
-    TH1F* hCdf[kMaxMVAs];
   };
 
   struct LepHist_t {
     TH1F* hOnePz;
     TH1F* hOnePt;
     TH1F* hOneP;
-    TH1F* hOneE;
     TH1F* hOneM;
     TH1F* hOneEta;
     TH1F* hOnePhi;
@@ -307,8 +291,6 @@ public :
     TH1F* hOneMetDeltaPhi;
     //SVFit Info
     TH1F* hOneSVPt;
-    TH1F* hOneSVP;
-    TH1F* hOneSVE;
     TH1F* hOneSVM;    
     TH1F* hOneSVEta;
     TH1F* hOneSVDeltaPt;
@@ -319,7 +301,6 @@ public :
     TH1F* hTwoPz;
     TH1F* hTwoPt;
     TH1F* hTwoP;
-    TH1F* hTwoE;
     TH1F* hTwoM;
     TH1F* hTwoEta;
     TH1F* hTwoPhi;
@@ -340,8 +321,6 @@ public :
 
     //SVFit Info
     TH1F* hTwoSVPt;
-    TH1F* hTwoSVP;
-    TH1F* hTwoSVE;
     TH1F* hTwoSVM;    
     TH1F* hTwoSVEta;
     TH1F* hTwoSVDeltaPt;
