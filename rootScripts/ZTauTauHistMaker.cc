@@ -478,18 +478,16 @@ void ZTauTauHistMaker::InitializeTreeVariables(Int_t selection) {
   else if(selection == 5) selecName = "emu";
   else                    selecName = "unknown";
   for(unsigned i = 0; i < fMvaNames.size(); ++i) {
-    fMvaOutputs[i] = (fMvaNames[i].Contains(selecName.Data())) ? mva[i]->EvaluateMVA(fMvaNames[i].Data()) : -2.;
-    if(fMvaOutputs[i] < -1. && selecName == "emu" && (fMvaNames[i].Contains("_e") || fMvaNames[i].Contains("_mu"))) //leptonic tau decay mvas
+    if((fMvaNames[i].Contains(selecName.Data()) || //is this selection
+	(selecName == "emu" && (fMvaNames[i].Contains("_e") || fMvaNames[i].Contains("_mu")))) && //or leptonic tau category
+       (fIsJetBinnedMVAs[i] < 0 || fIsJetBinnedMVAs[i] == min((int) nJets,2))) //and either not jet binned or right number of jets
       fMvaOutputs[i] = mva[i]->EvaluateMVA(fMvaNames[i].Data());
-      
+    else
+      fMvaOutputs[i] = -2.;
+    
     if(fMvaOutputs[i] < -100.) 
       cout << "Error value returned for MVA " << fMvaNames[i].Data()
 	   << " evaluation, Entry = " << fentry << endl;
-    fMvaProb[i] = -1; //(fMvaNames[i].Contains(selecName.Data())) ? mva->GetProba(fMvaNames[i].Data()) : -1.;
-    // probability ~e^(m*x) from 0-1 --> CDF = ~1/m*(e^(m*x)-1)
-    // N/m*(e^(m)-1) = 1 --> N = m/(e^m-1)
-    fMvaCdf[i] = (fMvaProb[i] > -1.) ? (exp(fMvaProb[i]*fMvaProbSlope[i])-1.)/(exp(fMvaProbSlope[i])-1.) : -1.;
-    fMvaRarity[i] = -1.; //mva->GetRarity(fMvaNames[i].Data());
   }
 
 }

@@ -1,15 +1,17 @@
 
-bool doHiggsDecays_ = false; //Z or H0 CLFV decay sets
-bool doDY_ = true;
-bool doWJets_ = true;
-bool doTop_ = true;
-bool doHiggs_ = true;
-bool doDiboson_ = true;
-bool debug_ = false;
+bool  doHiggsDecays_ = false; //Z or H0 CLFV decay sets
+bool  doDY_ = true;
+bool  doWJets_ = true;
+bool  doTop_ = true;
+bool  doHiggs_ = true;
+bool  doDiboson_ = true;
+bool  debug_ = false;
+Int_t verbose_ = 0;
 
 Int_t make_background(int set = 7, TString selection = "mutau", TString base = "../histograms/ztautau/") {
 
-
+  cout << "Beginning to make tree for selection " << selection.Data() << " with set " << set << endl;
+  
   const char* names[] = {"t_tw"                   
                          , "tbar_tw"                
 			 , "ttbar_inclusive"        
@@ -85,16 +87,17 @@ Int_t make_background(int set = 7, TString selection = "mutau", TString base = "
       continue;
     }
     fList[filecount] = new TFile(Form("%s",c), "READ");
-    printf("Getting tree %i for merging, using %s\n",filecount,c);
+    if(verbose_)
+      printf("Getting tree %i for merging, using %s\n",filecount,c);
     tList[filecount] = (TTree*) fList[filecount]->Get(Form("Data/tree_%i/tree_%i", set, set));
     if(!tList[filecount]) {
       printf("tree not found, continuing\n");
       continue;
     }
     if(debug_) tList[filecount]->Print();
-    
-    cout << "Tree " << filecount << ": " << tList[filecount]
-	 << " Entries: " << tList[filecount]->GetEntriesFast() << endl;
+    if(verbose_ > 1)
+      cout << "Tree " << filecount << ": " << tList[filecount]
+	   << " Entries: " << tList[filecount]->GetEntriesFast() << endl;
     list->Add(tList[filecount]);
     filecount++;
   }
@@ -123,9 +126,11 @@ Int_t make_background(int set = 7, TString selection = "mutau", TString base = "
 			      selection.Data(),set),"RECREATE");
   TTree* t = 0;
   printf("Merging trees\n");
-  for(int i = 0; i < list->GetSize(); ++i)
-    cout << "Tree " << i << ": " << list->At(i)
-	 << " Entries " << tList[i]->GetEntriesFast() << endl;
+  if(verbose_ > 1) {
+    for(int i = 0; i < list->GetSize(); ++i)
+      cout << "Tree " << i << ": " << list->At(i)
+	   << " Entries " << tList[i]->GetEntriesFast() << endl;
+  }
   t = TTree::MergeTrees(list);
   t->SetName("background_tree");
   for(int i = 0; i < list->GetSize(); ++i)
@@ -145,10 +150,29 @@ Int_t make_background(int set = 7, TString selection = "mutau", TString base = "
 
 Int_t make_all_backgrounds(TString base = "../histograms/ztautau/") {
   Int_t status = 0;
+  //no b-tag sets
   status += make_background(8,  "mutau"  , base);
   status += make_background(28, "etau"   , base);
   status += make_background(48, "emu"    , base);
   status += make_background(48, "mutau_e", base);
   status += make_background(48, "etau_mu", base);
+  //no jet sets
+  status += make_background(18,  "mutau" , base);
+  status += make_background(38, "etau"   , base);
+  status += make_background(58, "emu"    , base);
+  status += make_background(58, "mutau_e", base);
+  status += make_background(58, "etau_mu", base);
+  //1 jet sets
+  status += make_background(19,  "mutau" , base);
+  status += make_background(39, "etau"   , base);
+  status += make_background(59, "emu"    , base);
+  status += make_background(59, "mutau_e", base);
+  status += make_background(59, "etau_mu", base);
+  //> 1 jet sets
+  status += make_background(20,  "mutau" , base);
+  status += make_background(40, "etau"   , base);
+  status += make_background(60, "emu"    , base);
+  status += make_background(60, "mutau_e", base);
+  status += make_background(60, "etau_mu", base);
   return status;
 }

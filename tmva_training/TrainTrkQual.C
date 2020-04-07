@@ -50,6 +50,8 @@
 
 TString selection_ = "zmutau"; 
 Int_t split_trees_ = 0; //split training/testing using tree defined samples
+Int_t use_njets_ = 1; //whether or not to train using njets, don't use if jet binned categories
+Int_t use_ht_ = 1; //whether or not to train using hT, don't use if 0 jet bin category
 
 //Train MVA to separate the given signal from the given background
 int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual",
@@ -203,7 +205,10 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
   factory->AddVariable("leppt", "Pt_{ll}", "GeV", 'F');
   factory->AddSpectator("pxivis","p^{vis}_{#xi}","",'F');
   factory->AddSpectator("pxiinv","p^{inv}_{#xi}","",'F');
-  factory->AddVariable("njets", "nJets", "", 'F');
+  if(use_njets_)
+    factory->AddVariable("njets", "nJets", "", 'F');
+  else
+    factory->AddSpectator("njets", "nJets", "", 'F');
   factory->AddSpectator("lepdeltaeta","#Delta#eta_{ll}","",'F');
   factory->AddSpectator("metdeltaphi","#Delta#phi_{MET,ll}","",'F');
   //tau specific
@@ -222,7 +227,7 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
   factory->AddSpectator("leptwod0","D0_{l2}","",'F');
   factory->AddSpectator("htdeltaphi","#Delta#phi_{MET,ll}","",'F');
   //higgs specific
-  if(selection_.Contains("h")) {
+  if(selection_.Contains("h") && use_ht_) {
     factory->AddVariable("ht","pT(#Sigma #vec{P}_{Jet})","",'F');
     // factory->AddVariable("ptoverm := leppt/lepm","pT_{ll}/M_{ll}","",'F');
   } else {

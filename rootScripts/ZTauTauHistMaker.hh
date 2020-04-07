@@ -130,7 +130,7 @@ public :
   TLorentzVector* leptonOneSVP4 = 0  ;
   TLorentzVector* leptonTwoSVP4 = 0  ;
 
-  enum {kMaxMVAs = 20};
+  enum {kMaxMVAs = 40};
 
   struct EventHist_t {
     TH1F* hLumiSection;
@@ -528,31 +528,51 @@ public :
   TStopwatch* timer = new TStopwatch();
   TMVA::Reader* mva[kMaxMVAs]; //read and apply mva weight files
   vector<TString> fMvaNames = { //mva names for getting weights
-    "mutau_BDT_8.higgs","mutau_BDT_8.Z0",
+    "mutau_BDT_8.higgs","mutau_BDT_8.Z0", //total mvas
     "etau_BDT_28.higgs","etau_BDT_28.Z0",
     "emu_BDT_48.higgs","emu_BDT_48.Z0",
     "mutau_e_BDT_48.higgs","mutau_e_BDT_48.Z0",
-    "etau_mu_BDT_48.higgs","etau_mu_BDT_48.Z0"
+    "etau_mu_BDT_48.higgs","etau_mu_BDT_48.Z0", 
+    "mutau_BDT_18.higgs","mutau_BDT_18.Z0", // 0 jets
+    "etau_BDT_38.higgs","etau_BDT_38.Z0",
+    "emu_BDT_58.higgs","emu_BDT_58.Z0",
+    "mutau_e_BDT_58.higgs","mutau_e_BDT_58.Z0",
+    "etau_mu_BDT_58.higgs","etau_mu_BDT_58.Z0", 
+    "mutau_BDT_19.higgs","mutau_BDT_19.Z0", // 1 jet
+    "etau_BDT_39.higgs","etau_BDT_39.Z0",
+    "emu_BDT_59.higgs","emu_BDT_59.Z0",
+    "mutau_e_BDT_59.higgs","mutau_e_BDT_59.Z0",
+    "etau_mu_BDT_59.higgs","etau_mu_BDT_59.Z0", 
+    "mutau_BDT_20.higgs","mutau_BDT_20.Z0",  // >1 jet
+    "etau_BDT_40.higgs","etau_BDT_40.Z0",
+    "emu_BDT_60.higgs","emu_BDT_60.Z0",
+    "mutau_e_BDT_60.higgs","mutau_e_BDT_60.Z0",
+    "etau_mu_BDT_60.higgs","etau_mu_BDT_60.Z0"
   };
   vector<double> fMvaCuts = { //mva score cut values
     0.18, 0.08,  //scores optimize the gained 95% CL
     0.159, 0.053,//all are done by eye on limit gain vs MVA score plot
     0.24, 0.267,
     0.15, 0.078, 
-    0.13, 0.066
+    0.13, 0.066,
+    0.1, 0.,1,
+    0.1, 0.,1,
+    0.1, 0.,1,
+    0.1, 0.,1,
+    0.1, 0.,1,
+    0.1, 0.,1,
+    0.1, 0.,1,
+    0.1, 0.,1,
+    0.1, 0.,1,
+    0.1, 0.,1,
+    0.1, 0.,1,
+    0.1, 0.,1,
+    0.1, 0.,1,
+    0.1, 0.,1,
+    0.1, 0.,1
   };
-  //fitting MVA probability to an exponential near P(x) = 1
-  vector<double> fMvaProbSlope = {
-    1.22001e1, 1.76087e1,
-    8.15277e0, 3.36172e1,
-    5.15861e1, 3.57671e1,
-    -1.,-1.,
-    -1.,-1.
-  };
+  Int_t  fIsJetBinnedMVAs[kMaxMVAs]; //storing number of jets for MVA, < 0 if not binned
   double fMvaOutputs[kMaxMVAs];
-  double fMvaProb[kMaxMVAs];
-  double fMvaRarity[kMaxMVAs];
-  double fMvaCdf[kMaxMVAs];
   
   //Histograms:
   const static Int_t fn = 200; //max histogram sets
@@ -626,6 +646,22 @@ void ZTauTauHistMaker::Init(TTree *tree)
       if(fMvaNames[mva_i].Contains("mutau_e")) selection += "_e";
       else if(fMvaNames[mva_i].Contains("etau_mu")) selection += "_mu";
 
+      Int_t isJetBinned = -1; // -1 is not binned, 0 = 0 jets, 1 = 1 jet, 2 = >1 jets
+      if(fMvaNames[mva_i].Contains("_18") || //0 jet
+	 fMvaNames[mva_i].Contains("_38") ||
+	 fMvaNames[mva_i].Contains("_58"))
+	isJetBinned = 0;
+      else if(fMvaNames[mva_i].Contains("_19") || //1 jet
+	      fMvaNames[mva_i].Contains("_39") ||
+	      fMvaNames[mva_i].Contains("_59"))
+	isJetBinned = 1;
+      else if(fMvaNames[mva_i].Contains("_20") || //>1 jet
+	      fMvaNames[mva_i].Contains("_40") ||
+	      fMvaNames[mva_i].Contains("_60"))
+	isJetBinned = 2;
+
+      fIsJetBinnedMVAs[mva_i] = isJetBinned; //store for checking when filling
+      
       printf("Using selection %s\n", selection.Data());
       //Order must match the mva training!
       mva[mva_i]->AddVariable("lepm"            ,&fTreeVars.lepm           ); 
@@ -636,7 +672,10 @@ void ZTauTauHistMaker::Init(TTree *tree)
       mva[mva_i]->AddVariable("leppt"           ,&fTreeVars.leppt          );
       mva[mva_i]->AddSpectator("pxivis"          ,&fTreeVars.pxivis         );
       mva[mva_i]->AddSpectator("pxiinv"          ,&fTreeVars.pxiinv         );
-      mva[mva_i]->AddVariable("njets"           ,&fTreeVars.njets          );
+      if(isJetBinned < 0)
+	mva[mva_i]->AddVariable("njets"           ,&fTreeVars.njets          );
+      else
+	mva[mva_i]->AddSpectator("njets"           ,&fTreeVars.njets          );
       mva[mva_i]->AddSpectator("lepdeltaeta"     ,&fTreeVars.lepdeltaeta    );
       mva[mva_i]->AddSpectator("metdeltaphi"     ,&fTreeVars.metdeltaphi    );
 
@@ -658,7 +697,7 @@ void ZTauTauHistMaker::Init(TTree *tree)
       mva[mva_i]->AddSpectator("leptwod0"       ,&fTreeVars.leptwod0       );
       mva[mva_i]->AddSpectator("htdeltaphi"     ,&fTreeVars.htdeltaphi     );
       //boson specific
-      if(selection.Contains("h")) {
+      if(selection.Contains("h") && isJetBinned != 0) {
 	mva[mva_i]->AddVariable("ht"            ,&fTreeVars.ht             ); 
       } else {
 	mva[mva_i]->AddSpectator("ht"           ,&fTreeVars.ht             ); 
@@ -742,10 +781,13 @@ void ZTauTauHistMaker::Init(TTree *tree)
 
     fEventSets [18] = 1; // events with opposite signs and nJets = 0
     fEventSets [18+fQcdOffset] = 1; // events with same signs and nJets = 0
+    fTreeSets  [18] = 1;
     fEventSets [19] = 1; // events with opposite signs and nJets = 1
     fEventSets [19+fQcdOffset] = 1; // events with same signs and nJets = 1
+    fTreeSets  [19] = 1;
     fEventSets [20] = 1; // events with opposite signs and nJets > 1
     fEventSets [20+fQcdOffset] = 1; // events with same signs and nJets > 1
+    fTreeSets  [20] = 1;
 
     fEventSets [21] = 1; // events with opposite signs and nPhotons = 0
     fEventSets [21+fQcdOffset] = 1; // events with same signs and nPhotons = 0
@@ -795,10 +837,13 @@ void ZTauTauHistMaker::Init(TTree *tree)
 
     fEventSets [38] = 1; // events with opposite signs and nJets = 0
     fEventSets [38+fQcdOffset] = 1; // events with same signs and nJets = 0
+    fTreeSets  [38] = 1;
     fEventSets [39] = 1; // events with opposite signs and nJets = 1
     fEventSets [39+fQcdOffset] = 1; // events with same signs and nJets = 1
+    fTreeSets  [39] = 1;
     fEventSets [40] = 1; // events with opposite signs and nJets > 1
     fEventSets [40+fQcdOffset] = 1; // events with same signs and nJets > 1
+    fTreeSets  [40] = 1;
 
     fEventSets [41] = 1; // events with opposite signs and nPhotons = 0
     fEventSets [41+fQcdOffset] = 1; // events with same signs and nPhotons = 0
@@ -845,10 +890,13 @@ void ZTauTauHistMaker::Init(TTree *tree)
 
     fEventSets [58] = 1; // events with opposite signs + 0-jet
     fEventSets [58+fQcdOffset] = 1; // events with same
+    fTreeSets  [58] = 1;
     fEventSets [59] = 1; // events with opposite signs + 1-jet
     fEventSets [59+fQcdOffset] = 1; // events with same
+    fTreeSets  [59] = 1;
     fEventSets [60] = 1; // events with opposite signs + >1-jet
     fEventSets [60+fQcdOffset] = 1; // events with same
+    fTreeSets  [60] = 1;
     
     fEventSets [61] = 1; // events with opposite signs and nPhotons = 0
     fEventSets [61+fQcdOffset] = 1; // events with same signs and nPhotons = 0
