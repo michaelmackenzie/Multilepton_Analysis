@@ -25,6 +25,57 @@
 class DataPlotter : public TObject {
 public :
 
+  //plotting information
+  struct PlottingCard_t {
+    TString  hist_;
+    TString  type_;
+    TString  label_;
+    Int_t    set_;
+    Double_t xmin_;
+    Double_t xmax_;
+    Double_t ymin_;
+    Double_t ymax_;
+    Int_t    rebin_;
+    Double_t blindmin_;
+    Double_t blindmax_;
+
+    PlottingCard_t() : hist_(""), type_(""), label_(""), set_(-1),
+		       xmin_(1.), xmax_(-1.), ymin_(1.), ymax_(-1.), rebin_(1),
+		       blindmin_(1.), blindmax_(-1.) {}
+
+    PlottingCard_t(TString hist, TString type) : PlottingCard_t() {
+      hist_ = hist;
+      type_ = type;
+    }
+    PlottingCard_t(TString hist, TString type, Int_t set) : PlottingCard_t(hist,type) {
+      set_  = set;
+    }
+    PlottingCard_t(TString hist, TString type, Int_t set, TString label) : PlottingCard_t(hist, type, set) {
+      label_ = label;
+    }
+    PlottingCard_t(TString hist, TString type, Int_t rebin, Double_t xmin, Double_t xmax) : PlottingCard_t(hist,type) {
+      rebin_ = rebin;
+      xmin_  = xmin;
+      xmax_  = xmax;
+    }
+    PlottingCard_t(TString hist, TString type, Int_t set, Int_t rebin, Double_t xmin, Double_t xmax) : PlottingCard_t(hist,type,rebin,xmin,xmax) {
+      set_ = set;
+    }
+    PlottingCard_t(TString hist, TString type, Int_t set, TString label, Int_t rebin,
+		   Double_t xmin, Double_t xmax) : PlottingCard_t(hist,type,set,rebin,xmin,xmax) {
+      label_ = label;
+    }
+    PlottingCard_t(TString hist, TString type, Int_t set, Int_t rebin, Double_t xmin, Double_t xmax,
+		   Double_t blindmin, Double_t blindmax) : PlottingCard_t(hist,type,set,rebin,xmin,xmax) {
+      blindmin_ = blindmin;
+      blindmax_ = blindmax;
+    }
+    PlottingCard_t(TString hist, TString type, Int_t set, TString label, Int_t rebin, Double_t xmin, Double_t xmax,
+		   Double_t blindmin, Double_t blindmax) : PlottingCard_t(hist,type,set,rebin,xmin,xmax,blindmin,blindmax) {
+      label_ = label;
+    }
+  };
+  
   TString selection_ = "mutau"; //selection category
   vector<Double_t> scale_; //scales for datasets
   vector<Int_t>    process_; //indicates which backgrounds to use
@@ -65,7 +116,8 @@ public :
   TString folder_ = "ztautau"; //figures folder for printing
   Int_t useOpenGL_ = 1; //Use open GL with plotting
   bool doStatsLegend_ = true; //Give each backgrounds contribution in the legend
-
+  bool useCLs_ = true; //whether to use CLs or CLs+b when calculating limits/limit gains
+  
   //Various canvas drawing numbers
   Int_t background_colors_[10] = {kRed-7, kRed-3, kYellow-7,kGreen-7 , kViolet+6, kCyan-7, kRed+3,kOrange-9,kBlue+1};
   Int_t signal_colors_[10] = {kBlue, kOrange+10, kGreen+4, kViolet-2, kYellow+3,kOrange-9,kBlue+1};
@@ -102,13 +154,17 @@ public :
   //CMS prelim drawing
   Double_t cms_txt_x_ = 0.28;
   Double_t cms_txt_y_ = 0.9;
+  Double_t cms_txt_x_single_ = 0.29; //text location without data/mc split pad
+  Double_t cms_txt_y_single_ = 0.92;
+  Double_t cms_txt_size_ = 0.08;
+  Double_t cms_txt_size_single_ = 0.06; //text size without data/mc split pad
   
   //data yield drawing
   Double_t data_txt_x_ = 0.42;
   Double_t data_txt_y_ = 0.63;
   
   //significance drawing
-  Double_t sig_plot_range_ = 3.;
+  Double_t sig_plot_range_ = 3.5;
   
   ~DataPlotter() {
     for(auto d : data_) {
@@ -121,10 +177,11 @@ public :
     cmslabel -> SetNDC();
     cmslabel -> SetTextFont(72);
     cmslabel -> SetTextColor(1);
-    cmslabel -> SetTextSize(.08);
+    cmslabel -> SetTextSize((single) ? cms_txt_size_single_ : cms_txt_size_);
     cmslabel -> SetTextAlign(22);
     cmslabel -> SetTextAngle(0);
-    cmslabel -> DrawText((single) ? 0.37 : cms_txt_x_, (single) ? 0.92 : cms_txt_y_, "CMS Preliminary");
+    cmslabel -> DrawText((single) ? cms_txt_x_single_ : cms_txt_x_,
+			 (single) ? cms_txt_y_single_ : cms_txt_y_, "CMS Preliminary");
   }
 
   void draw_luminosity() {
@@ -182,6 +239,10 @@ public :
     xMin_ = xmin; xMax_=xmax; yMin_ = ymin; yMax_=ymax; auto c =  plot_single_2Dhist(hist, setType, set, label);
     reset_axes(); return c;
   }
+  TCanvas* plot_single_2Dhist(PlottingCard_t card) {
+    rebinH_ = card.rebin_;
+    return plot_single_2Dhist(card.hist_, card.type_, card.set_, card.label_, card.xmin_, card.xmax_, card.ymin_, card.ymax_);
+  }
   
   virtual TCanvas* plot_2Dhist(TString hist, TString setType, Int_t set);
   TCanvas* plot_2Dhist(TString hist, TString setType, Int_t set,
@@ -189,38 +250,66 @@ public :
     xMin_ = xmin; xMax_=xmax; yMin_ = ymin; yMax_=ymax; auto c = plot_2Dhist(hist, setType, set);
     reset_axes(); return c;
   }
+  TCanvas* plot_2Dhist(PlottingCard_t card) {
+    rebinH_ = card.rebin_;
+    return plot_2Dhist(card.hist_, card.type_, card.set_, card.xmin_, card.xmax_, card.ymin_, card.ymax_);
+  }
 
 
   virtual TCanvas* plot_hist(TString hist, TString setType, Int_t set);
   TCanvas* plot_hist(TString hist, TString setType, Int_t set, Double_t xmin, Double_t xmax) {
     xMin_ = xmin; xMax_=xmax; auto c = plot_hist(hist, setType, set); reset_axes(); return c;
   }
+  TCanvas* plot_hist(PlottingCard_t card) {
+    rebinH_ = card.rebin_;
+    return plot_hist(card.hist_, card.type_, card.set_, card.xmin_, card.xmax_);
+  }
 
   virtual TCanvas* plot_stack(TString hist, TString setType, Int_t set);
   TCanvas* plot_stack(TString hist, TString setType, Int_t set, Double_t xmin, Double_t xmax) {
     xMin_ = xmin; xMax_=xmax; auto c = plot_stack(hist, setType, set); reset_axes(); return c;
+  }
+  TCanvas* plot_stack(PlottingCard_t card) {
+    rebinH_ = card.rebin_;
+    return plot_stack(card.hist_, card.type_, card.set_, card.xmin_, card.xmax_);
   }
 
   virtual TCanvas* plot_cdf(TString hist, TString setType, Int_t set, TString label);
   TCanvas* plot_cdf(TString hist, TString setType, Int_t set, TString label, Double_t xmin, Double_t xmax) {
     xMin_ = xmin; xMax_=xmax; auto c = plot_cdf(hist, setType, set, label); reset_axes(); return c;
   }
+  TCanvas* plot_cdf(PlottingCard_t card) {
+    rebinH_ = card.rebin_;
+    return plot_cdf(card.hist_, card.type_, card.set_, card.label_, card.xmin_, card.xmax_);
+  }
 
 
-  virtual TCanvas* plot_significance(TString hist, TString setType, Int_t set, TString label, bool dir, Double_t line_val, bool doVsEff);
+  virtual TCanvas* plot_significance(TString hist, TString setType, Int_t set, TString label, bool dir,
+				     Double_t line_val, bool doVsEff, TString label1, TString label2);
+
   TCanvas* plot_significance(TString hist, TString setType, Int_t set, TString label, Double_t xmin, Double_t xmax,
-			     bool dir=true, Double_t line_val=-1., bool doVsEff = false) {
-    xMin_ = xmin; xMax_=xmax; auto c = plot_significance(hist, setType, set, label, dir, line_val, doVsEff); reset_axes(); return c;
+			     bool dir=true, Double_t line_val=-1., bool doVsEff = false, TString label1 = "", TString label2 = "") {
+    xMin_ = xmin; xMax_=xmax;
+    auto c = plot_significance(hist, setType, set, label, dir, line_val, doVsEff, label1, label2);
+    reset_axes(); return c;
   }
 
   virtual TCanvas* print_stack(TString hist, TString setType, Int_t set);
   TCanvas* print_stack(TString hist, TString setType, Int_t set, Double_t xmin, Double_t xmax) {
     xMin_ = xmin; xMax_=xmax; auto c = print_stack(hist, setType, set); reset_axes(); return c;
   }
+  TCanvas* print_stack(PlottingCard_t card) {
+    rebinH_ = card.rebin_;
+    return print_stack(card.hist_, card.type_, card.set_, card.xmin_, card.xmax_);
+  }
 
   virtual TCanvas* print_hist(TString hist, TString setType, Int_t set);
   TCanvas* print_hist(TString hist, TString setType, Int_t set, Double_t xmin, Double_t xmax) {
     xMin_ = xmin; xMax_=xmax; auto c = print_hist(hist, setType, set); reset_axes(); return c;
+  }
+  TCanvas* print_hist(PlottingCard_t card) {
+    rebinH_ = card.rebin_;
+    return print_hist(card.hist_, card.type_, card.set_, card.xmin_, card.xmax_);
   }
 
   virtual TCanvas* print_2Dhist(TString hist, TString setType, Int_t set);
@@ -228,31 +317,70 @@ public :
 		       Double_t xmin, Double_t xmax, Double_t ymin, Double_t ymax) {
     xMin_ = xmin; xMax_=xmax; yMin_ = ymin; yMax_=ymax; auto c = print_2Dhist(hist, setType, set); reset_axes(); return c;
   }
+  TCanvas* print_2Dhist(PlottingCard_t card) {
+    rebinH_ = card.rebin_;
+    return print_2Dhist(card.hist_, card.type_, card.set_, card.xmin_, card.xmax_, card.ymin_, card.ymax_);
+  }
 
   virtual TCanvas* print_single_2Dhist(TString hist, TString setType, Int_t set, TString label);
   TCanvas* print_single_2Dhist(TString hist, TString setType, Int_t set, TString label, 
 			      Double_t xmin, Double_t xmax, Double_t ymin, Double_t ymax) {
     xMin_ = xmin; xMax_=xmax; yMin_ = ymin; yMax_=ymax; auto c = print_single_2Dhist(hist, setType, set, label); reset_axes(); return c;
   }
+  TCanvas* print_single_2Dhist(PlottingCard_t card) {
+    rebinH_ = card.rebin_;
+    return print_single_2Dhist(card.hist_, card.type_, card.set_, card.label_, card.xmin_, card.xmax_, card.ymin_, card.ymax_);
+  }
   
   virtual TCanvas* print_cdf(TString hist, TString setType, Int_t set, TString label);
   TCanvas* print_cdf(TString hist, TString setType, Int_t set, TString label, Double_t xmin, Double_t xmax) {
     xMin_ = xmin; xMax_=xmax; auto c = print_cdf(hist, setType, set, label); reset_axes(); return c;
   }
+  TCanvas* print_cdf(PlottingCard_t card) {
+    rebinH_ = card.rebin_;
+    return print_cdf(card.hist_, card.type_, card.set_, card.label_, card.xmin_, card.xmax_);
+  }
 
-  virtual TCanvas* print_significance(TString hist, TString setType, Int_t set, TString label, bool dir, Double_t line_val, bool doVsEff);
+  virtual TCanvas* print_significance(TString hist, TString setType, Int_t set, TString label, bool dir,
+				      Double_t line_val, bool doVsEff, TString label1, TString label2);
   TCanvas* print_significance(TString hist, TString setType, Int_t set, TString label, Double_t xmin, Double_t xmax,
-			      bool dir=true, Double_t line_val=-1., bool doVsEff = false) {
-    xMin_ = xmin; xMax_=xmax; auto c = print_significance(hist, setType, set, label, dir, line_val, doVsEff); reset_axes(); return c;
+			      bool dir=true, Double_t line_val=-1., bool doVsEff = false, TString label1 = "", TString label2 = "") {
+    xMin_ = xmin; xMax_=xmax; auto c = print_significance(hist, setType, set, label, dir, line_val, doVsEff, label1, label2); reset_axes(); return c;
   }
 
   virtual Int_t print_stacks(vector<TString> hists, vector<TString> setTypes, vector<Int_t>sets,
 			     vector<Double_t> xMaxs, vector<Double_t> xMins, vector<Int_t> rebins
 			     , vector<Double_t> signal_scales, vector<Int_t> base_rebins);
 
+  Int_t print_stacks(vector<PlottingCard_t> cards, vector<Int_t> sets, vector<Double_t> signal_scales, vector<Int_t> base_rebins) {
+    Int_t status = 0;
+    for(unsigned index = 0; index < sets.size(); ++index) {
+      if(signal_scales.size() == sets.size()) signal_scale_ = signal_scales[index];
+      for(PlottingCard_t card : cards) {
+	if(base_rebins.size() == sets.size()) card.rebin_ *= base_rebins[index];
+	card.set_ = sets[index];
+	status += (print_stack(card)) ? 0 : 1;
+      }
+    }
+    return status;
+  }
+  
   virtual Int_t print_hists(vector<TString> hists, vector<TString> setTypes, vector<Int_t> sets,
-		    vector<Double_t> xMaxs, vector<Double_t> xMins, vector<Int_t> rebins
+			    vector<Double_t> xMaxs, vector<Double_t> xMins, vector<Int_t> rebins
 			    , vector<Double_t> signal_scales, vector<Int_t> base_rebins);
+
+  Int_t print_hists(vector<PlottingCard_t> cards, vector<Int_t> sets, vector<Double_t> signal_scales, vector<Int_t> base_rebins) {
+    Int_t status = 0;
+    for(unsigned index = 0; index < sets.size(); ++index) {
+      if(signal_scales.size() == sets.size()) signal_scale_ = signal_scales[index];
+      for(PlottingCard_t card : cards) {
+	if(base_rebins.size() == sets.size()) card.rebin_ *= base_rebins[index];
+	card.set_ = sets[index];
+	status += (print_hist(card)) ? 0 : 1;
+      }
+    }
+    return status;
+  }
 
   //Load files
   virtual Int_t init_files();

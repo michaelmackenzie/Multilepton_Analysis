@@ -1299,7 +1299,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
   hstack->GetYaxis()->SetTitleSize(axis_font_size_);
 
   if(yMin_ < yMax_) hstack->GetYaxis()->SetRangeUser(yMin_,yMax_);    
-  else              hstack->GetYaxis()->SetRangeUser(1.e-1,m*1.2);    
+  else              hstack->GetYaxis()->SetRangeUser(1.e-1,(logY_) ? m*20. : m*1.2);    
   if(plot_data_ && xMin_ < xMax_ && hDataMC) hDataMC->GetXaxis()->SetRangeUser(xMin_,xMax_);    
   if(xMin_ < xMax_) hstack->GetXaxis()->SetRangeUser(xMin_,xMax_);    
 
@@ -1608,7 +1608,8 @@ TCanvas* DataPlotter::plot_cdf(TString hist, TString setType, Int_t set, TString
 }
 
 TCanvas* DataPlotter::plot_significance(TString hist, TString setType, Int_t set, TString label,
-					bool dir = true, Double_t line_val = -1., bool doVsEff = false) {
+					bool dir = true, Double_t line_val = -1., bool doVsEff = false,
+					TString label1 = "", TString label2 = "") {
 
   TH1F* hSignal = 0;
   {
@@ -1679,6 +1680,7 @@ TCanvas* DataPlotter::plot_significance(TString hist, TString setType, Int_t set
       while(abs(val - p) > tolerance && attempts < max_attempts) { //guess scale factors until close to limit goal
 	++attempts;
 	val = ROOT::Math::poisson_cdf((int) (bkgval), bkgval + sigval*scale); //confidence limit at this value	
+	if(useCLs_) val /= ROOT::Math::poisson_cdf((int) bkgval, bkgval); //CLs = P(sig + bkg) / P(bkg)
 	if(abs(val-p) > tolerance) //only update if still not succeeding
 	  scale *= (val/p < 4.) ? (1.-p)/(1.-val) : sqrt(bkgval)*clsig/sigval; //if far, start with the approximation scale
       }
@@ -1756,11 +1758,11 @@ TCanvas* DataPlotter::plot_significance(TString hist, TString setType, Int_t set
     axis->SetTitleOffset(-0.7);
     axis->Draw();
   }
-  TLegend* leg = new TLegend(0.6, (line_val > 0.) ? 0.55 : 0.6, 0.89, 0.8);
+  TLegend* leg = new TLegend(0.55, (line_val > 0.) ? 0.55 : 0.6, 0.89, 0.8);
   leg->AddEntry(gSignificance, "Limit Gain", "L");
   if(!doVsEff) leg->AddEntry(hEfficiency, "N(Signal)", "L");
-  leg->AddEntry(line, "Current Limit", "L");
-  if(second_line) leg->AddEntry(second_line, "Previous Limit", "L");
+  leg->AddEntry(line, (label1 == "") ? "Current Limit" : label1.Data(), "L");
+  if(second_line) leg->AddEntry(second_line, (label2 == "") ? "Previous Limit" : label2.Data(), "L");
   leg->SetFillStyle(0);
   leg->SetBorderSize(0);
   leg->Draw();
@@ -1823,8 +1825,9 @@ TCanvas* DataPlotter::print_cdf(TString hist, TString setType, Int_t set, TStrin
 }
 
 TCanvas* DataPlotter::print_significance(TString hist, TString setType, Int_t set, TString label,
-					 bool dir=true, Double_t line_val = -1., bool doVsEff = false) {
-  TCanvas* c = plot_significance(hist,setType,set,label, dir, line_val, doVsEff);
+					 bool dir=true, Double_t line_val = -1., bool doVsEff = false,
+					 TString label1 = "", TString label2 = "") {
+  TCanvas* c = plot_significance(hist,setType,set,label, dir, line_val, doVsEff, label1, label2);
   if(!c) return c;
   label.ReplaceAll("#",""); //for ease of use in bash
   label.ReplaceAll(" ", "");
