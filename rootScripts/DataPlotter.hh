@@ -382,7 +382,7 @@ public :
 	card.set_ = sets[index];
 	auto c = print_stack(card);
 	status += (c) ? 0 : 1;
-	delete c;
+	Empty_Canvas(c);
       }
     }
     return status;
@@ -401,10 +401,36 @@ public :
 	card.set_ = sets[index];
 	auto c = print_hist(card);
 	status += (c) ? 0 : 1;
-	delete c;
+	Empty_Canvas(c);
       }
     }
     return status;
+  }
+
+  //forcefully delete all objects in a canvas
+  static Int_t Empty_Canvas(TCanvas* c) {
+    TList* list = c->GetListOfPrimitives();
+    if(!list) return 1;
+    for(auto o : *list) {
+      if(o->InheritsFrom("TPad")) {
+	auto pad = (TPad*) o;
+	if(!pad) continue;
+	TList* pad_list = pad->GetListOfPrimitives();
+	for(auto h : *pad_list) {
+	  if(h->InheritsFrom("THStack")) {
+	    THStack* hstack = (THStack*) h;
+	    TList* hist_list = hstack->GetHists();
+	    for(auto hl : *hist_list) {
+	      delete hl;
+	    }
+	  }
+	  delete h;
+	}
+      }
+      delete o;
+    }
+    delete c;
+    return 0;
   }
 
   //Load files
@@ -416,7 +442,7 @@ public :
   void set_luminosity(double lum) { lum_ = lum;}
 
   void set_selection(TString selec) { selection_ = selec;}
-  
+
   ClassDef(DataPlotter,0);
 };
 #endif 

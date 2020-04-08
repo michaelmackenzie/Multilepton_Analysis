@@ -619,7 +619,7 @@ TH1F* DataPlotter::get_qcd(TString hist, TString setType, Int_t set) {
     else hMC = (TH1F*) htmp->Clone("qcd_tmp");
     delete htmp;
   }
-  if(hMC) hData->Add(hMC, -1.);
+  if(hMC) {hData->Add(hMC, -1.); delete hMC;}
   for(int i = 0; i < hData->GetNbinsX(); ++i) {
     if(hData->GetBinContent(i+1) < 0.)
       hData->SetBinContent(i+1,0.);
@@ -1462,7 +1462,6 @@ TCanvas* DataPlotter::plot_cdf(TString hist, TString setType, Int_t set, TString
   data_cdf->SetMarkerStyle(d->GetMarkerStyle());
   delete d;
 
-
   TCanvas* c = new TCanvas(Form("cdf_%s_%s_%i",hist.Data(),label.Data(),set),Form("cdf_%s_%s_%i",hist.Data(),label.Data(),set), canvas_x_, canvas_y_);
   TPad *pad1, *pad2;
 
@@ -1505,6 +1504,7 @@ TCanvas* DataPlotter::plot_cdf(TString hist, TString setType, Int_t set, TString
     hsignalcdf.push_back(htrans);
   }
   data_cdf->Draw("same");
+  delete hCDF; //done with the CDF
 
   TH1F* hDataMC = (plot_data_) ? (TH1F*) data_cdf->Clone("hDataMC") : 0;
   // TGraphErrors* hDataMCErr = 0;
@@ -1894,7 +1894,7 @@ Int_t DataPlotter::print_stacks(vector<TString> hists, vector<TString> setTypes,
       TCanvas* c = print_stack(hist,setType,set);
       Int_t status = (c) ? 0 : 1;
       printf("Printing Data/MC stack %s %s set %i has status %i\n",setType.Data(),hist.Data(),set,status);
-      delete c;
+      Empty_Canvas(c);
     }
     ++set_index;
   }
@@ -1942,7 +1942,7 @@ Int_t DataPlotter::print_hists(vector<TString> hists, vector<TString> setTypes, 
       TCanvas* c = print_hist(hist,setType,set);
       Int_t status = (c) ? 0 : 1;
       printf("Printing Data/MC hist %s %s set %i has status %i\n",setType.Data(),hist.Data(),set,status);
-      delete c;
+      Empty_Canvas(c);
     }
     ++set_index;
   }
