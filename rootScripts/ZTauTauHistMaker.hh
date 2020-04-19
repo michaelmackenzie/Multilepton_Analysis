@@ -79,6 +79,8 @@ public :
   UInt_t nJets                       ;
   UInt_t nFwdJets                    ;
   UInt_t nBJets                      ;
+  UInt_t nBJetsM                     ;
+  UInt_t nBJetsL                     ;
   UInt_t nGenTausHad                 ;
   UInt_t nGenTausLep                 ;
   UInt_t nGenElectrons               ;
@@ -130,7 +132,7 @@ public :
   TLorentzVector* leptonOneSVP4 = 0  ;
   TLorentzVector* leptonTwoSVP4 = 0  ;
 
-  enum {kMaxMVAs = 40};
+  enum {kMaxMVAs = 80};
 
   struct EventHist_t {
     TH1F* hLumiSection;
@@ -156,6 +158,8 @@ public :
     TH1F* hNJets;
     TH1F* hNFwdJets;
     TH1F* hNBJets;
+    TH1F* hNBJetsM;
+    TH1F* hNBJetsL;
     TH1F* hMcEra;
     TH1F* hTriggerLeptonStatus;
     TH1F* hPuWeight;
@@ -390,6 +394,8 @@ public :
     float htsum;
     float njets;
     float nbjets;
+    float nbjetsm;
+    float nbjetsl;
     float nphotons;
     float eventweight;
     float fulleventweight; //includes cross-section and number gen
@@ -528,22 +534,22 @@ public :
   TStopwatch* timer = new TStopwatch();
   TMVA::Reader* mva[kMaxMVAs]; //read and apply mva weight files
   vector<TString> fMvaNames = { //mva names for getting weights
-    "mutau_BDT_8.higgs","mutau_BDT_8.Z0", //total mvas
+    "mutau_BDT_8.higgs","mutau_BDT_8.Z0", //0 - 9: total mvas
     "etau_BDT_28.higgs","etau_BDT_28.Z0",
     "emu_BDT_48.higgs","emu_BDT_48.Z0",
     "mutau_e_BDT_48.higgs","mutau_e_BDT_48.Z0",
     "etau_mu_BDT_48.higgs","etau_mu_BDT_48.Z0", 
-    "mutau_BDT_18.higgs","mutau_BDT_18.Z0", // 0 jets
+    "mutau_BDT_18.higgs","mutau_BDT_18.Z0", //10 - 19: 0 jets
     "etau_BDT_38.higgs","etau_BDT_38.Z0",
     "emu_BDT_58.higgs","emu_BDT_58.Z0",
     "mutau_e_BDT_58.higgs","mutau_e_BDT_58.Z0",
     "etau_mu_BDT_58.higgs","etau_mu_BDT_58.Z0", 
-    "mutau_BDT_19.higgs","mutau_BDT_19.Z0", // 1 jet
+    "mutau_BDT_19.higgs","mutau_BDT_19.Z0", // 20 - 29: 1 jet
     "etau_BDT_39.higgs","etau_BDT_39.Z0",
     "emu_BDT_59.higgs","emu_BDT_59.Z0",
     "mutau_e_BDT_59.higgs","mutau_e_BDT_59.Z0",
     "etau_mu_BDT_59.higgs","etau_mu_BDT_59.Z0", 
-    "mutau_BDT_20.higgs","mutau_BDT_20.Z0",  // >1 jet
+    "mutau_BDT_20.higgs","mutau_BDT_20.Z0",  // 30 - 39: >1 jet
     "etau_BDT_40.higgs","etau_BDT_40.Z0",
     "emu_BDT_60.higgs","emu_BDT_60.Z0",
     "mutau_e_BDT_60.higgs","mutau_e_BDT_60.Z0",
@@ -555,21 +561,21 @@ public :
     0.24, 0.267,
     0.15, 0.078, 
     0.13, 0.066,
-    0.1, 0.,1,
-    0.1, 0.,1,
-    0.1, 0.,1,
-    0.1, 0.,1,
-    0.1, 0.,1,
-    0.1, 0.,1,
-    0.1, 0.,1,
-    0.1, 0.,1,
-    0.1, 0.,1,
-    0.1, 0.,1,
-    0.1, 0.,1,
-    0.1, 0.,1,
-    0.1, 0.,1,
-    0.1, 0.,1,
-    0.1, 0.,1
+    0.13, 0.08, //0jet
+    0.15, 0.05,
+    0.1, 0.1,
+    0.1, 0.035, //mutau_e
+    0.12, 0.05, //etau_mu
+    0.18, 0.05, //1jet
+    0.13, 0.03,
+    0.1, 0.1,
+    0.09, 0.03, //mutau_e
+    0.08, 0.04, //etau_mu
+    0.13, 0.04, //>1jet
+    0.1325, 0.03,
+    0.17, 0.11,
+    0.08, 0.035, //mutau_e
+    0.08, 0.03  //etau_mu
   };
   Int_t  fIsJetBinnedMVAs[kMaxMVAs]; //storing number of jets for MVA, < 0 if not binned
   double fMvaOutputs[kMaxMVAs];
@@ -903,6 +909,9 @@ void ZTauTauHistMaker::Init(TTree *tree)
     fEventSets [62] = 1; // events with opposite signs and nPhotons > 0
     fEventSets [62+fQcdOffset] = 1; // events with same signs and nPhotons > 0
 
+    fEventSets [63] = 1; // events with opposite signs and passing Mario's cuts
+    fEventSets [63+fQcdOffset] = 1; // events with same signs and passing Mario's cuts
+
 
     //Mu+Mu sets
     fEventSets [67] = 1; // events with opposite signs
@@ -981,6 +990,8 @@ void ZTauTauHistMaker::Init(TTree *tree)
   fChain->SetBranchAddress("nJets"               , &nJets                );
   fChain->SetBranchAddress("nFwdJets"            , &nFwdJets             );
   fChain->SetBranchAddress("nBJets"              , &nBJets               );
+  fChain->SetBranchAddress("nBJetsM"             , &nBJetsM              );
+  fChain->SetBranchAddress("nBJetsL"             , &nBJetsL              );
   fChain->SetBranchAddress("nGenTausHad"         , &nGenTausHad          );
   fChain->SetBranchAddress("nGenTausLep"         , &nGenTausLep          );
   fChain->SetBranchAddress("nGenElectrons"       , &nGenElectrons        );

@@ -3,61 +3,61 @@
 Int_t process_ztautau() {
 
   const char* gridPath[] = {
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_093718/", //ttbar
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200329_111610/", //DY AMC
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200329_111610/", //DY AMC
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_093718/", //t_tw
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_093718/", //tbar_tw
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200129_163419/", //DY MadGraph
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200129_163419/", //DY MadGraph
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200129_163419/", //DY 1 Jet MadGraph
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200129_163419/", //DY 1 Jet MadGraph
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200129_163419/", //DY 2 Jet MadGraph
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200129_163419/", //DY 2 Jet MadGraph
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200129_163419/", //DY 3 Jet MadGraph
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200129_163419/", //DY 3 Jet MadGraph
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200129_163419/", //DY 4 Jet MadGraph
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200214_102545/", //DY 4 Jet MadGraph
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200325_160240/", //W 1 Jet
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200325_160240/", //W 2 Jet
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200325_160240/", //W 3 Jet
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200325_160240/", //W 4 Jet
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200325_160240/", //WJets amcnlo
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200325_160240/", //WJets amcnlo (ext 1)
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200325_160240/", //WJets amcnlo (ext 2)
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_093718/", //WW
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_093718/", //WZ Jets to 2L2Q
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_093718/", //WZ Jets to 3LNu
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_093718/", //ZZ Jets to 2L2Nu
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_093718/", //ZZ Jets to 2L2Q
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_093718/", //ZZ Jets to 4L
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200129_163419/", //HZG gluglu
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200129_163419/", //HZG tth
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200129_163419/", //HZG vbf
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200129_163419/", //HZG W-
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200129_163419/", //HZG W+
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200129_163419/", //HZG zh
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_093718/", //HTauTau gluglu
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_093718/", //ZETau
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_093718/", //ZMuTau
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_093718/", //ZEMu
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_093718/", //HETau
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_093718/", //HMuTau
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200310_093718/", //HEMu
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200307_121853/", //Muon Data 2016 B
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200307_121853/", //Muon Data 2016 C
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200307_121853/", //Muon Data 2016 D
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200307_121853/", //Muon Data 2016 E
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200307_121853/", //Muon Data 2016 F
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200307_121853/", //Muon Data 2016 G
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200307_121853/", //Muon Data 2016 H
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200129_163419/", //Electron Data 2016 B
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200129_163419/", //Electron Data 2016 C
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200129_163419/", //Electron Data 2016 D
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200129_163419/", //Electron Data 2016 E
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200129_163419/", //Electron Data 2016 F
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200129_163419/", //Electron Data 2016 G
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200129_163419/"  //Electron Data 2016 H
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //ttbar
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //DY AMC
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //DY AMC
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //t_tw
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //tbar_tw
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //DY MadGraph
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //DY MadGraph
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //DY 1 Jet MadGraph
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //DY 1 Jet MadGraph
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //DY 2 Jet MadGraph
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //DY 2 Jet MadGraph
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //DY 3 Jet MadGraph
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //DY 3 Jet MadGraph
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //DY 4 Jet MadGraph
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //DY 4 Jet MadGraph
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //W 1 Jet
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //W 2 Jet
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //W 3 Jet
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //W 4 Jet
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //WJets amcnlo
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //WJets amcnlo (ext 1)
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //WJets amcnlo (ext 2)
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //WW
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //WZ Jets to 2L2Q
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //WZ Jets to 3LNu
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //ZZ Jets to 2L2Nu
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //ZZ Jets to 2L2Q
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //ZZ Jets to 4L
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //HZG gluglu
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //HZG tth
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //HZG vbf
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //HZG W-
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //HZG W+
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //HZG zh
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //HTauTau gluglu
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //ZETau
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //ZMuTau
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //ZEMu
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //HETau
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //HMuTau
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //HEMu
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //Muon Data 2016 B
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //Muon Data 2016 C
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //Muon Data 2016 D
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //Muon Data 2016 E
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //Muon Data 2016 F
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //Muon Data 2016 G
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //Muon Data 2016 H
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_150829/", //Electron Data 2016 B
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_150829/", //Electron Data 2016 C
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_150829/", //Electron Data 2016 D
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_150829/", //Electron Data 2016 E
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_150829/", //Electron Data 2016 F
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_150829/", //Electron Data 2016 G
+    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_150829/"  //Electron Data 2016 H
     
   };
   
@@ -137,9 +137,9 @@ Int_t process_ztautau() {
 			   1, //W 2 Jet MadGraph
 			   1, //W 3 Jet MadGraph
 			   1, //W 4 Jet MadGraph
-			   1, //WJets amcnlo
-			   1, //WJets amcnlo ext 1
-			   1, //WJets amcnlo ext 2
+			   0, //WJets amcnlo
+			   0, //WJets amcnlo ext 1
+			   0, //WJets amcnlo ext 2
 			   1, //WW
 			   1, //WZ Jets to 2L2Q
 			   1, //WZ Jets to 3LNu
@@ -231,7 +231,7 @@ Int_t process_ztautau() {
   Int_t useTauFakeSF = 1; //1 = use given scale factors, 2 = override them with local ones
   bool writeTrees = true;
   TString onlyChannel = "";
-  vector<TString> skipChannels = {"mumu", "ee", "all"};
+  vector<TString> skipChannels = {"mumu", "ee", "all", "jets"};
   
   Int_t removeZPtWeights = 1;
   float signalTrainFraction = 0.7;

@@ -116,6 +116,8 @@ void ZTauTauHistMaker::BookEventHistograms() {
       fEventHist[i]->hNJets                  = new TH1F("njets"               , Form("%s: NJets"               ,dirname)  ,  50,  0,  50); 
       fEventHist[i]->hNFwdJets               = new TH1F("nfwdjets"            , Form("%s: NFwdJets"            ,dirname)  ,  50,  0,  50); 
       fEventHist[i]->hNBJets                 = new TH1F("nbjets"              , Form("%s: NBJets"              ,dirname)  ,  50,  0,  50);
+      fEventHist[i]->hNBJetsM                = new TH1F("nbjetsm"             , Form("%s: NBJetsM"             ,dirname)  ,  50,  0,  50);
+      fEventHist[i]->hNBJetsL                = new TH1F("nbjetsl"             , Form("%s: NBJetsL"             ,dirname)  ,  50,  0,  50);
       fEventHist[i]->hMcEra                  = new TH1F("mcera"               , Form("%s: McEra"               ,dirname) ,   5,   0,  5);
       fEventHist[i]->hTriggerLeptonStatus    = new TH1F("triggerleptonstatus" , Form("%s: TriggerLeptonStatus" ,dirname) ,   5,   0,  5);
       fEventHist[i]->hPuWeight		     = new TH1F("puweight"	      , Form("%s: PuWeight"	       ,dirname) , 200,   0,  2);
@@ -384,6 +386,8 @@ void ZTauTauHistMaker::BookTrees() {
       fTrees[i]->Branch("htsum",           &fTreeVars.htsum	     );   
       fTrees[i]->Branch("njets",           &fTreeVars.njets	     );   
       fTrees[i]->Branch("nbjets",          &fTreeVars.nbjets	     );   
+      fTrees[i]->Branch("nbjetsm",         &fTreeVars.nbjetsm	     );   
+      fTrees[i]->Branch("nbjetsl",         &fTreeVars.nbjetsl	     );   
       fTrees[i]->Branch("nphotons",        &fTreeVars.nphotons       );  
       fTrees[i]->Branch("eventweight",     &fTreeVars.eventweight    );  
       fTrees[i]->Branch("fulleventweight", &fTreeVars.fulleventweight);
@@ -463,6 +467,8 @@ void ZTauTauHistMaker::InitializeTreeVariables(Int_t selection) {
   fTreeVars.htsum    = htSum;
   fTreeVars.njets    = nJets;
   fTreeVars.nbjets   = nBJets;
+  fTreeVars.nbjetsm  = nBJetsM;
+  fTreeVars.nbjetsl  = nBJetsL;
   fTreeVars.nphotons = nPhotons;
   fTreeVars.eventweight = genWeight*eventWeight;
   fTreeVars.fulleventweight = genWeight*eventWeight*fXsec;
@@ -550,6 +556,8 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
   Hist->hNJets               ->Fill(nJets              , genWeight*eventWeight)      ;
   Hist->hNFwdJets            ->Fill(nFwdJets           , genWeight*eventWeight)      ;
   Hist->hNBJets              ->Fill(nBJets             , genWeight*eventWeight)      ;
+  Hist->hNBJetsM             ->Fill(nBJetsM             , genWeight*eventWeight)      ;
+  Hist->hNBJetsL             ->Fill(nBJetsL             , genWeight*eventWeight)      ;
   Hist->hMcEra               ->Fill(mcEra              , genWeight*eventWeight)   ;
   Hist->hTriggerLeptonStatus ->Fill(triggerLeptonStatus, genWeight*eventWeight)   ;
   Hist->hPuWeight	     ->Fill(puWeight	       , genWeight*eventWeight)   ;
@@ -1132,8 +1140,6 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   else if(etau && fMvaOutputs[3] > fMvaCuts[3])           FillAllHistograms(29 + fQcdOffset);
   if(emu && chargeTest && fMvaOutputs[5] > fMvaCuts[5])   FillAllHistograms(49);
   else if(emu && fMvaOutputs[5] > fMvaCuts[5])            FillAllHistograms(49 + fQcdOffset);
-  if(emu && chargeTest && fMvaOutputs[5] > fMvaCuts[5])   FillAllHistograms(49);
-  else if(emu && fMvaOutputs[5] > fMvaCuts[5])            FillAllHistograms(49 + fQcdOffset);
   if(emu && chargeTest && fMvaOutputs[7] > fMvaCuts[7])   FillAllHistograms(89); //mutau_e
   else if(emu && fMvaOutputs[7] > fMvaCuts[7])            FillAllHistograms(89 + fQcdOffset);
   if(emu && chargeTest && fMvaOutputs[9] > fMvaCuts[9])   FillAllHistograms(91); //etau_mu
@@ -1236,7 +1242,7 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   else if(emu && nPhotons >= 1)            FillAllHistograms(62 + fQcdOffset);
 
   ////////////////////////////////////////////////////////////////////////////
-  // Set 23-24 + selection offset: Mis ID categories jets, mu/e --> tau
+  // Set 23-24 JetMisID (tau) 23 Mario's cut (emu)
   ////////////////////////////////////////////////////////////////////////////
   //jets
   if(mutau && tauGenFlavor < 7 && chargeTest) FillAllHistograms(23); 
@@ -1248,6 +1254,23 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   else if(mutau && abs(tauGenFlavor - 12) == 1)          FillAllHistograms(24 + fQcdOffset); 
   if(etau && abs(tauGenFlavor - 12) == 1 && chargeTest)  FillAllHistograms(44);
   else if(etau && abs(tauGenFlavor - 12) == 1)           FillAllHistograms(44 + fQcdOffset);
+
+  bool marioID = nElectrons == 1 && nMuons == 1; //e+mu
+  marioID &= ((electron->Pt() > 30. && muon->Pt() > 10.) ||
+	      (electron->Pt() > 15. && muon->Pt() > 25.)); //selection thresholds
+  marioID &= abs(electron->Eta()) < 2.5; //angular acceptances
+  marioID &= abs(muon->Eta()) < 2.4;
+  marioID &= abs(muon->DeltaR(*electron)) > 0.3;
+
+  marioID &= nBJetsM == 0; //medium ID
+  marioID &= jetP4->Pt() < 78.; //highest pT jet cut
+  marioID &= met < 28.; //MET cut (he used PUPPI, this is PF)
+  marioID &= (electron->Pt() > 35. || muon->Pt() > 25.); //higher electron pT threshold
+  marioID &= fTreeVars.lepm > 75. && fTreeVars.lepm < 110.; //mass window
+  
+  if(emu && marioID && chargeTest)  FillAllHistograms(63);
+  else if(emu && marioID)           FillAllHistograms(63 + fQcdOffset);
+
   // else if(etau && tauGenFlavor)           FillAllHistograms(43 + fQcdOffset);
   // if(emu && nPhotons == 0 && chargeTest)   FillAllHistograms(61);
   // else if(emu && nPhotons == 0)            FillAllHistograms(61 + fQcdOffset);

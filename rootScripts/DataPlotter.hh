@@ -119,11 +119,12 @@ public :
   Int_t include_qcd_ = 1; //use the same sign selection to get the QCD
   Int_t qcd_offset_ = 100; //set number offset to get same sign selection
   Int_t plot_title_ = 0; //Plot the title on the canvas
-  Double_t fill_alpha_ = 0.9; //alpha to use for hist plotting
+  Double_t fill_alpha_ = 1.; //alpha to use for hist plotting
   Int_t normalize_1ds_ = 0; //normalzie 1D histograms when plotting
   Int_t normalize_2ds_ = 1; //normalzie 2D histograms when plotting
   Double_t signal_scale_ = 1.; //increase the size of the signal if needed
   Int_t stack_signal_ = 0; //put signal into the stack
+  Int_t stack_as_hist_ = 0; //plot the stack as a total background histogram
   Int_t plot_y_title_ = 0; //plot y title on 1D histograms
   Double_t qcd_scale_ = 1.; //scale factor for SS --> OS selection
   TString folder_ = "ztautau"; //figures folder for printing
@@ -133,7 +134,8 @@ public :
   
   //Various canvas drawing numbers
   Int_t background_colors_[10] = {kRed-7, kRed-3, kYellow-7,kGreen-7 , kViolet+6, kCyan-7, kRed+3,kOrange-9,kBlue+1};
-  Int_t signal_colors_[10] = {kBlue, kOrange+10, kGreen+4, kViolet-2, kYellow+3,kOrange-9,kBlue+1};
+  Int_t signal_colors_[10] = {kBlue, kOrange+10, kGreen+4, kViolet-2, kYellow-7,kCyan+1,kBlue+1};
+  Int_t total_background_color_ = kRed-7; //for all backgrounds combined drawing
   Int_t canvas_x_ = 900; //canvas dimensions
   Int_t canvas_y_ = 800;
   Double_t axis_font_size_ = 0.2; //axis title values
@@ -173,6 +175,7 @@ public :
   Double_t cms_txt_size_single_ = 0.06; //text size without data/mc split pad
   
   //data yield drawing
+  bool     draw_statistics_ = true;
   Double_t data_txt_x_ = 0.42;
   Double_t data_txt_y_ = 0.63;
   
@@ -181,7 +184,7 @@ public :
   
   ~DataPlotter() {
     for(auto d : data_) {
-      if(d->TestBit(TObject::kNotDeleted)) {d->Close();}
+      if(d->TestBit(TObject::kNotDeleted)) {delete d;}
     }
   }
   
@@ -297,6 +300,8 @@ public :
   }
   TCanvas* plot_cdf(PlottingCard_t card) {
     rebinH_ = card.rebin_;
+    blindxmin_ = card.blindmin_;
+    blindxmax_ = card.blindmax_;
     return plot_cdf(card.hist_, card.type_, card.set_, card.label_, card.xmin_, card.xmax_);
   }
 

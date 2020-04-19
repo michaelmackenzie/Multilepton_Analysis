@@ -630,8 +630,13 @@ TH1F* DataPlotter::get_qcd(TString hist, TString setType, Int_t set) {
   const char* stats = (doStatsLegend_) ? Form(" #scale[0.8]{(%.2e)}", hData->Integral()
 					      +hData->GetBinContent(0)+hData->GetBinContent(hData->GetNbinsX()+1)) : "";
   hData->SetTitle(Form("QCD%s",stats));
-  hData->SetLineColorAlpha(kOrange+6,fill_alpha_);
-  hData->SetFillColorAlpha(kOrange+6,fill_alpha_);
+  if(fill_alpha_ < 1.) {
+    hData->SetLineColorAlpha(kOrange+6,fill_alpha_);
+    hData->SetFillColorAlpha(kOrange+6,fill_alpha_);
+  } else {
+    hData->SetLineColor(kOrange+6);
+    hData->SetFillColor(kOrange+6);
+  }
   return hData;
 }
 
@@ -708,8 +713,13 @@ THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set) {
       while(auto o = gDirectory->Get(Form("s_%s_%s_%i",name.Data(),hist.Data(),set))) {
 	if(o) delete o;
       }
-      h[index]->SetFillColorAlpha(background_colors_[i_color],fill_alpha_);
-      h[index]->SetLineColorAlpha(background_colors_[i_color],fill_alpha_);
+      if(fill_alpha_ < 1.) {
+	h[index]->SetFillColorAlpha(background_colors_[i_color],fill_alpha_);
+	h[index]->SetLineColorAlpha(background_colors_[i_color],fill_alpha_);
+      } else {
+	h[index]->SetFillColor(background_colors_[i_color]);
+	h[index]->SetLineColor(background_colors_[i_color]);
+      }
       h[index]->SetLineWidth(2);
       h[index]->SetMarkerStyle(20);
       h[index]->SetName(Form("s_%s_%s_%i",name.Data(),hist.Data(),set));    
@@ -804,7 +814,10 @@ TCanvas* DataPlotter::plot_single_2Dhist(TString hist, TString setType, Int_t se
   h->SetTitle(Form("%s%s", label.Data(),stats));
   if(plot_data_) {
     h->SetLineColor(color);
-    h->SetMarkerColorAlpha(color,0.5);
+    if(fill_alpha_ < 1.)
+      h->SetMarkerColorAlpha(color,0.5);
+    else 
+      h->SetMarkerColor(color);
     h->SetMarkerStyle(6);
     h->SetContour(10);
     // h->RebinX(2); h->RebinY(2);
@@ -1048,13 +1061,18 @@ TCanvas* DataPlotter::plot_hist(TString hist, TString setType, Int_t set) {
       if(isSignal_[i]) {
 	h[index]->SetFillStyle(sig_fill[i_color]); 
 	h[index]->SetFillColor(sig_color[i_color]);
-	h[index]->SetFillColorAlpha(sig_color[i_color],fill_alpha_);
+	if(fill_alpha_ < 1.)
+	  h[index]->SetFillColorAlpha(sig_color[i_color],fill_alpha_);
+	else
+	  h[index]->SetFillColor(sig_color[i_color]);
 	h[index]->SetLineColor(sig_color[i_color]);
 	h[index]->SetLineWidth(4);
       } else {
 	h[index]->SetFillStyle(bkg_fill[i_color]); 
-	h[index]->SetFillColor(bkg_color[i_color]);
-	h[index]->SetFillColorAlpha(bkg_color[i_color],fill_alpha_);
+	if(fill_alpha_ < 1.)
+	  h[index]->SetFillColorAlpha(bkg_color[i_color],fill_alpha_);
+	else
+	  h[index]->SetFillColor(bkg_color[i_color]);
 	h[index]->SetLineColor(bkg_color[i_color]);
 	h[index]->SetLineWidth(3);
       }
@@ -1195,8 +1213,18 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
       if(hsignal[i]) hstack->Add(hsignal[i]);
     }
   }
-  //draw stack, preserving style set for each histogram
-  hstack->Draw("hist noclear");
+  TH1F* hstack_hist = 0;
+  if(stack_as_hist_) {
+    hstack_hist = (TH1F*) hstack->GetStack()->Last()->Clone("hBackground");
+    hstack_hist->SetFillStyle(3002);
+    hstack_hist->SetFillColor(total_background_color_);
+    hstack_hist->SetLineColor(total_background_color_);
+    hstack_hist->SetTitle("Background");
+    hstack_hist->Draw("hist");
+  } else
+    //draw stack, preserving style set for each histogram
+    hstack->Draw("hist noclear");
+
   if(!stack_signal_) {
     for(unsigned int i = 0; i < hsignal.size(); ++i) {
       if(hsignal[i] && hsignal[i]->GetEntries() > 0) {
@@ -1243,7 +1271,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
   pad1->SetGrid();
   pad1->Update();
   //draw text
-  draw_data(ndata,nmc,nsig);
+  if(draw_statistics_) draw_data(ndata,nmc,nsig);
   draw_luminosity();
   draw_cms_label();
 
@@ -1310,26 +1338,49 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
   if(plot_data_ && hDataMC) {
     hDataMC->GetXaxis()->SetTitle(xtitle.Data());
   }    
-  else hstack->GetXaxis()->SetTitle(xtitle.Data());
-  if(plot_y_title_) hstack->GetYaxis()->SetTitle(ytitle.Data());
-  hstack->GetXaxis()->SetTitleSize(axis_font_size_);
-  hstack->GetYaxis()->SetTitleSize(axis_font_size_);
+  else if(hstack_hist)
+    hstack_hist->GetXaxis()->SetTitle(xtitle.Data());
+  else
+    hstack->GetXaxis()->SetTitle(xtitle.Data());
+  if(plot_y_title_ && hstack_hist)
+    hstack_hist->GetYaxis()->SetTitle(ytitle.Data());
+  else if(plot_y_title_)
+    hstack->GetYaxis()->SetTitle(ytitle.Data());
 
-  if(yMin_ < yMax_) hstack->GetYaxis()->SetRangeUser(yMin_,yMax_);    
-  else              hstack->GetYaxis()->SetRangeUser(1.e-1,(logY_) ? m*20. : m*1.2);    
-  if(plot_data_ && xMin_ < xMax_ && hDataMC) hDataMC->GetXaxis()->SetRangeUser(xMin_,xMax_);    
-  if(xMin_ < xMax_) hstack->GetXaxis()->SetRangeUser(xMin_,xMax_);    
-
-  if(plot_title_) hstack->SetTitle (title.Data());
-  else hstack->SetTitle("");
-
-  if(yMin_ < yMax_) {
-    hstack->SetMinimum(yMin_);
-    hstack->SetMaximum(yMax_);
+  if(hstack_hist) {
+    hstack_hist->GetXaxis()->SetTitleSize(axis_font_size_);
+    hstack_hist->GetYaxis()->SetTitleSize(axis_font_size_);
+    if(yMin_ < yMax_) hstack_hist->GetYaxis()->SetRangeUser(yMin_,yMax_);    
+    else              hstack_hist->GetYaxis()->SetRangeUser(1.e-1,(logY_) ? m*20. : m*1.2);    
+    if(xMin_ < xMax_) hstack_hist->GetXaxis()->SetRangeUser(xMin_,xMax_);    
+    if(plot_title_) hstack_hist->SetTitle (title.Data());
+    else hstack_hist->SetTitle("");
+    if(yMin_ < yMax_) {
+      hstack_hist->SetMinimum(yMin_);
+      hstack_hist->SetMaximum(yMax_);
+    } else {
+      hstack_hist->SetMinimum(1.e-1);
+      hstack_hist->SetMaximum((logY_>0 ? 2.*m : 1.2*m));
+    }
   } else {
-    hstack->SetMinimum(1.e-1);
-    hstack->SetMaximum((logY_>0 ? 2.*m : 1.2*m));
+    hstack->GetXaxis()->SetTitleSize(axis_font_size_);
+    hstack->GetYaxis()->SetTitleSize(axis_font_size_);
+    if(yMin_ < yMax_) hstack->GetYaxis()->SetRangeUser(yMin_,yMax_);    
+    else              hstack->GetYaxis()->SetRangeUser(1.e-1,(logY_) ? m*20. : m*1.2);    
+    if(xMin_ < xMax_) hstack->GetXaxis()->SetRangeUser(xMin_,xMax_);    
+    if(plot_title_) hstack->SetTitle (title.Data());
+    else hstack->SetTitle("");
+    if(yMin_ < yMax_) {
+      hstack->SetMinimum(yMin_);
+      hstack->SetMaximum(yMax_);
+    } else {
+      hstack->SetMinimum(1.e-1);
+      hstack->SetMaximum((logY_>0 ? 2.*m : 1.2*m));
+    }
   }
+  
+  if(plot_data_ && xMin_ < xMax_ && hDataMC) hDataMC->GetXaxis()->SetRangeUser(xMin_,xMax_);    
+
   if(logY_) {
     if(plot_data_)pad1->SetLogy();
     else          c->SetLogy();
@@ -1367,6 +1418,14 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
     if(hDataMCErr)
       hDataMCErr->Draw("3");
   }
+
+  if(stack_as_hist_) {
+    for(auto o : *hstack->GetHists()) { //clear out the un-needed histograms
+      delete o;
+    }
+    delete hstack;
+  }
+
   return c;
 
 }
@@ -1434,7 +1493,10 @@ TCanvas* DataPlotter::plot_cdf(TString hist, TString setType, Int_t set, TString
       htrans->Fill(y, htmp->GetBinContent(bin));
     }
     htrans->SetLineColor(htmp->GetLineColor());
-    htrans->SetFillColorAlpha(htmp->GetFillColor(),fill_alpha_);
+    if(fill_alpha_ < 1.)
+      htrans->SetFillColorAlpha(htmp->GetFillColor(),fill_alpha_);
+    else
+      htrans->SetFillColor(htmp->GetFillColor());
     htrans->SetFillStyle(htmp->GetFillStyle());
     htrans->SetLineWidth(htmp->GetLineWidth());
     htrans->SetMarkerStyle(htmp->GetMarkerStyle());
@@ -1451,6 +1513,7 @@ TCanvas* DataPlotter::plot_cdf(TString hist, TString setType, Int_t set, TString
   // data_cdf->SetBit(kCanDelete);
   for(Int_t bin = 1; bin <= d->GetNbinsX(); ++bin) {
     Double_t y = hCDF->GetBinContent(bin);
+    if(y >= blindxmin_ && y < blindxmax_) continue; //blinding data
     data_cdf->Fill(y, d->GetBinContent(bin));
     data_cdf->SetBinError(data_cdf->FindBin(y), sqrt(data_cdf->GetBinContent(data_cdf->FindBin(y))));
   }
@@ -1496,7 +1559,10 @@ TCanvas* DataPlotter::plot_cdf(TString hist, TString setType, Int_t set, TString
       htrans->Fill(y, signal->GetBinContent(bin));
     }
     htrans->SetLineColor(signal->GetLineColor());
-    htrans->SetFillColorAlpha(signal->GetFillColor(),fill_alpha_);
+    if(fill_alpha_ < 1.)
+      htrans->SetFillColorAlpha(signal->GetFillColor(),fill_alpha_);
+    else
+      htrans->SetFillColor(signal->GetFillColor());
     htrans->SetFillStyle(signal->GetFillStyle());
     htrans->SetLineWidth(signal->GetLineWidth());
     htrans->SetMarkerStyle(signal->GetMarkerStyle());
@@ -1562,8 +1628,8 @@ TCanvas* DataPlotter::plot_cdf(TString hist, TString setType, Int_t set, TString
   draw_luminosity();
   draw_cms_label();
   
-  if(plot_data_ && hDataMC) hDataMC->GetXaxis()->SetTitle(xtitle.Data());
-  else hcdfstack->GetXaxis()->SetTitle(xtitle.Data());
+  if(plot_data_ && hDataMC) hDataMC->GetXaxis()->SetTitle(Form("%s CDF", xtitle.Data()));
+  else hcdfstack->GetXaxis()->SetTitle(Form("%s CDF", xtitle.Data()));
   if(plot_y_title_) hcdfstack->GetYaxis()->SetTitle(ytitle.Data());
   hcdfstack->GetXaxis()->SetTitleSize(axis_font_size_);
   hcdfstack->GetYaxis()->SetTitleSize(axis_font_size_);
@@ -1602,11 +1668,11 @@ TCanvas* DataPlotter::plot_cdf(TString hist, TString setType, Int_t set, TString
     
     hDataMC->GetYaxis()->SetTitle("Data/MC");
     hDataMC->GetXaxis()->SetTitleSize(axis_font_size_);
-    hDataMC->GetXaxis()->SetTitleOffset(0.8);
-    hDataMC->GetXaxis()->SetLabelSize(0.08);
+    hDataMC->GetXaxis()->SetTitleOffset(x_title_offset_);
+    hDataMC->GetXaxis()->SetLabelSize(x_label_size_);
     hDataMC->GetYaxis()->SetTitleSize(axis_font_size_);
-    hDataMC->GetYaxis()->SetTitleOffset(0.3);
-    hDataMC->GetYaxis()->SetLabelSize(0.08);
+    hDataMC->GetYaxis()->SetTitleOffset(y_title_offset_);
+    hDataMC->GetYaxis()->SetLabelSize(y_label_size_);
     double m = hDataMC->GetMaximum();
     double mn = hDataMC->GetMinimum();
     mn = max(0.2*mn,5e-1);
@@ -1666,8 +1732,13 @@ TCanvas* DataPlotter::plot_significance(TString hist, TString setType, Int_t set
   TH1F* hEfficiency = (TH1F*) hSignal->Clone("hEfficiency");
   hEfficiency->Clear(); hEfficiency->Reset();
   THStack* hstack = get_stack(hist, setType, set);
-  TH1F* hlast = (TH1F*) hstack->GetStack()->Last();
+  TH1F* hlast = (TH1F*) hstack->GetStack()->Last()->Clone("hlast");
 
+  //clean up memory
+  for(auto htmp : *hstack->GetHists())
+    delete htmp;
+  delete hstack;
+  
   UInt_t nbins = hSignal->GetNbinsX();
   double clsig = 1.644853627; // 95% CL value
   bool doExactLimit = true;
@@ -1707,6 +1778,10 @@ TCanvas* DataPlotter::plot_significance(TString hist, TString setType, Int_t set
     }
     sigs[bin-1] = significance;
   }
+
+  //clean up memory
+  delete hlast;
+  delete hSignal;
   
   TCanvas* c = new TCanvas("sig", "sig", canvas_x_, canvas_y_);
   c->SetTopMargin(0.055);
@@ -1791,9 +1866,9 @@ TCanvas* DataPlotter::plot_significance(TString hist, TString setType, Int_t set
 TCanvas* DataPlotter::print_stack(TString hist, TString setType, Int_t set) {
   TCanvas* c = plot_stack(hist,setType,set);
   if(!c) return c;
-  c->Print(Form("figures/%s/%s/stack_%s%s%s_%s_set_%i.png",folder_.Data(),selection_.Data(),hist.Data(),
+  c->Print(Form("figures/%s/%s/stack_%s%s%s%s_%s_set_%i.png",folder_.Data(),selection_.Data(),hist.Data(),
 		(logY_ ? "_log":""),
-		((plot_data_) ? "_data":""),"dataOverMC",set));
+		((plot_data_) ? "_data":""), (stack_as_hist_ ? "_totbkg" : ""), "dataOverMC",set));
   return c;
 }
 
@@ -1891,6 +1966,7 @@ Int_t DataPlotter::print_stacks(vector<TString> hists, vector<TString> setTypes,
       xMax_ = xMaxs[i];
       xMin_ = xMins[i];
       rebinH_ = rebins[i]*base_rebin;
+      if(rebinH_ == 0) rebinH_ = 1;
       TCanvas* c = print_stack(hist,setType,set);
       Int_t status = (c) ? 0 : 1;
       printf("Printing Data/MC stack %s %s set %i has status %i\n",setType.Data(),hist.Data(),set,status);
