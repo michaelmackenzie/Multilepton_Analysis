@@ -16,6 +16,16 @@ void DataPlotter::get_titles(TString hist, TString setType, TString* xtitle, TSt
     *ytitle = Form("Events / %.0f GeV",2.*rebinH_);
     *title  = Form("Missing Transverse Energy %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
+  else if(hist == "pfmet") {
+    *xtitle = "PF Missing Transverse Energy (GeV)";
+    *ytitle = Form("Events / %.0f GeV",2.*rebinH_);
+    *title  = Form("Missing Transverse Energy %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
+  }
+  else if(hist == "puppmet") {
+    *xtitle = "PUPPI Missing Transverse Energy (GeV)";
+    *ytitle = Form("Events / %.0f GeV",2.*rebinH_);
+    *title  = Form("Missing Transverse Energy %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
+  }
   else if(hist == "lepptoverm") {
     *xtitle = "pT_{ll} / M_{ll}";
     *ytitle = Form("Events / %.1f GeV/c^{2}",0.2*rebinH_);
@@ -277,14 +287,104 @@ void DataPlotter::get_titles(TString hist, TString setType, TString* xtitle, TSt
     *title  = Form("SVFit di-tau mass error");
   }
   else if(hist == "njets") {
-    *xtitle = "Number of Jets";
+    *xtitle = "Number of Jets (pT > 30)";
+    *ytitle = "";
+    *title  = Form("Number of Jets");
+  }
+  else if(hist == "njets25tot") {
+    *xtitle = "Number of Jets (25 < pT)";
+    *ytitle = "";
+    *title  = Form("Number of Jets");
+  }
+  else if(hist == "njets25") {
+    *xtitle = "Number of Jets (25 < pT < 30)";
+    *ytitle = "";
+    *title  = Form("Number of Jets");
+  }
+  else if(hist == "njets20") {
+    *xtitle = "Number of Jets (20 < pT < 25)";
+    *ytitle = "";
+    *title  = Form("Number of Jets");
+  }
+  else if(hist == "njetstot") {
+    *xtitle = "Number of Jets (20 < pT)";
     *ytitle = "";
     *title  = Form("Number of Jets");
   }
   else if(hist == "nbjets") {
-    *xtitle = "Number of b-Jets";
+    *xtitle = "Number of tight ID b-Jets (pT > 30)";
     *ytitle = "";
-    *title  = Form("Number of b-Jets");
+    *title  = Form("Number of tight ID b-Jets");
+  }
+  else if(hist == "nbjetsm") {
+    *xtitle = "Number of medium ID b-Jets (pT > 30)";
+    *ytitle = "";
+    *title  = Form("Number of medium ID b-Jets");
+  }
+  else if(hist == "nbjetsl") {
+    *xtitle = "Number of loose ID b-Jets (pT > 30)";
+    *ytitle = "";
+    *title  = Form("Number of loose ID b-Jets");
+  }
+  else if(hist == "nbjets25") {
+    *xtitle = "Number of tight ID b-Jets (25 < pT < 30)";
+    *ytitle = "";
+    *title  = Form("Number of tight ID b-Jets");
+  }
+  else if(hist == "nbjets25m") {
+    *xtitle = "Number of medium ID b-Jets (25 < pT < 30)";
+    *ytitle = "";
+    *title  = Form("Number of medium ID b-Jets");
+  }
+  else if(hist == "nbjets25l") {
+    *xtitle = "Number of loose ID b-Jets (25 < pT < 30)";
+    *ytitle = "";
+    *title  = Form("Number of loose ID b-Jets");
+  }
+  else if(hist == "nbjetstot25") {
+    *xtitle = "Number of tight ID b-Jets (25 < pT)";
+    *ytitle = "";
+    *title  = Form("Number of tight ID b-Jets");
+  }
+  else if(hist == "nbjetstot25m") {
+    *xtitle = "Number of medium ID b-Jets (25 < pT)";
+    *ytitle = "";
+    *title  = Form("Number of medium ID b-Jets");
+  }
+  else if(hist == "nbjetstot25l") {
+    *xtitle = "Number of loose ID b-Jets (25 < pT)";
+    *ytitle = "";
+    *title  = Form("Number of loose ID b-Jets");
+  }
+  else if(hist == "nbjets20") {
+    *xtitle = "Number of tight ID b-Jets (20 < pT < 25)";
+    *ytitle = "";
+    *title  = Form("Number of tight ID b-Jets");
+  }
+  else if(hist == "nbjets20m") {
+    *xtitle = "Number of medium ID b-Jets (20 < pT < 25)";
+    *ytitle = "";
+    *title  = Form("Number of medium ID b-Jets");
+  }
+  else if(hist == "nbjets20l") {
+    *xtitle = "Number of loose ID b-Jets (20 < pT < 25)";
+    *ytitle = "";
+    *title  = Form("Number of loose ID b-Jets");
+  }
+  else if(hist == "nbjetstot") {
+    *xtitle = "Number of tight ID b-Jets (20 < pT)";
+    *ytitle = "";
+    *title  = Form("Number of tight ID b-Jets");
+  }
+  else if(hist == "nbjetstotm") {
+    *xtitle = "Number of medium ID b-Jets (20 < pT)";
+    *ytitle = "";
+    *title  = Form("Number of medium ID b-Jets");
+  }
+  else if(hist == "nbjetstotl") {
+    *xtitle = "Number of loose ID b-Jets (20 < pT)";
+    *ytitle = "";
+    *title  = Form("Number of loose ID b-Jets");
   }
   else if(hist == "nfwdjets") {
     *xtitle = "Number of Forward Jets";
@@ -1251,13 +1351,12 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
   }
 
   //blind if needed
-  if(blindxmin_ < blindxmax_ && d && plot_data_) {
+  if(blindxmin_.size() > 0 && d && plot_data_) {
     unsigned nbins = d->GetNbinsX();
     for(unsigned bin = 1; bin <= nbins; ++bin) {
       double binlow = d->GetBinLowEdge(bin);
       double binhigh = binlow + d->GetBinWidth(bin);
-      if((binlow >= blindxmin_ && binlow < blindxmax_) || //within the blinding region, or at least part of it
-	 (binhigh > blindxmin_ && binhigh <= blindxmax_))
+      if(isBlind(binlow, binhigh))
 	d->SetBinContent(bin, 0.);
     }
   }
@@ -1513,7 +1612,7 @@ TCanvas* DataPlotter::plot_cdf(TString hist, TString setType, Int_t set, TString
   // data_cdf->SetBit(kCanDelete);
   for(Int_t bin = 1; bin <= d->GetNbinsX(); ++bin) {
     Double_t y = hCDF->GetBinContent(bin);
-    if(y >= blindxmin_ && y < blindxmax_) continue; //blinding data
+    if(isBlind(y)) continue; //blinding data
     data_cdf->Fill(y, d->GetBinContent(bin));
     data_cdf->SetBinError(data_cdf->FindBin(y), sqrt(data_cdf->GetBinContent(data_cdf->FindBin(y))));
   }

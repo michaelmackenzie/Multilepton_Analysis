@@ -221,19 +221,25 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
     factory->AddSpectator("onemetdeltaphi","#Delta#phi_{MET,l1}","",'F');  
     factory->AddSpectator("twometdeltaphi","#Delta#phi_{MET,l2}","",'F');  
   }
-  factory->AddVariable("leponedeltaphi","#Delta#phi_{l1,ll}","",'F');
-  factory->AddVariable("leptwodeltaphi","#Delta#phi_{l2,ll}","",'F');
+  factory->AddSpectator("leponedeltaphi","#Delta#phi_{l1,ll}","",'F');
+  factory->AddSpectator("leptwodeltaphi","#Delta#phi_{l2,ll}","",'F');
   factory->AddSpectator("leponed0","D0_{l1}","",'F');
   factory->AddSpectator("leptwod0","D0_{l2}","",'F');
-  factory->AddSpectator("htdeltaphi","#Delta#phi_{MET,ll}","",'F');
-  //higgs specific
-  if(selection_.Contains("h") && use_ht_) {
+
+  if(use_ht_) {
+    factory->AddVariable("htdeltaphi","#Delta#phi_{hT,ll}","",'F');
     factory->AddVariable("ht","pT(#Sigma #vec{P}_{Jet})","",'F');
-    // factory->AddVariable("ptoverm := leppt/lepm","pT_{ll}/M_{ll}","",'F');
   } else {
+    factory->AddSpectator("htdeltaphi","#Delta#phi_{hT,ll}","",'F');
     factory->AddSpectator("ht","pT(#Sigma #vec{P}_{Jet})","",'F');
   }
-  factory->AddSpectator("lepdeltaphi","#Delta#phi_{ll}","",'F');
+  //higgs specific
+  if(selection_.Contains("h") && use_ht_) {
+    // factory->AddVariable("ptoverm := leppt/lepm","pT_{ll}/M_{ll}","",'F');
+  } else {
+    // factory->AddSpectator("ht","pT(#Sigma #vec{P}_{Jet})","",'F');
+  }
+  factory->AddVariable("lepdeltaphi","#Delta#phi_{ll}","",'F');
   factory->AddSpectator("htsum","#Sigma pT_{Jet}","",'F');
   factory->AddSpectator("leponeiso","Iso_{l1}","",'F');
   factory->AddSpectator("met","MET","GeV",'F');

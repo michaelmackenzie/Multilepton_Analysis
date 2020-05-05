@@ -36,12 +36,11 @@ public :
     Double_t ymin_;
     Double_t ymax_;
     Int_t    rebin_;
-    Double_t blindmin_;
-    Double_t blindmax_;
+    vector<Double_t> blindmin_;
+    vector<Double_t> blindmax_;
 
     PlottingCard_t() : hist_(""), type_(""), label_(""), set_(-1),
-		       xmin_(1.), xmax_(-1.), ymin_(1.), ymax_(-1.), rebin_(1),
-		       blindmin_(1.), blindmax_(-1.) {}
+		       xmin_(1.), xmax_(-1.), ymin_(1.), ymax_(-1.), rebin_(1) {}
 
     PlottingCard_t(TString hist, TString type) : PlottingCard_t() {
       hist_ = hist;
@@ -65,13 +64,25 @@ public :
 		   Double_t xmin, Double_t xmax) : PlottingCard_t(hist,type,set,rebin,xmin,xmax) {
       label_ = label;
     }
+    //only 1 blinding range
     PlottingCard_t(TString hist, TString type, Int_t rebin, Double_t xmin, Double_t xmax,
 		   Double_t blindmin, Double_t blindmax) : PlottingCard_t(hist,type,rebin,xmin,xmax) {
+      blindmin_.push_back(blindmin);
+      blindmax_.push_back(blindmax);
+    }
+    PlottingCard_t(TString hist, TString type, Int_t set, Int_t rebin, Double_t xmin, Double_t xmax,
+		   Double_t blindmin, Double_t blindmax) : PlottingCard_t(hist,type,set,rebin,xmin,xmax) {
+      blindmin_.push_back(blindmin);
+      blindmax_.push_back(blindmax);
+    }
+    //multiple blinding ranges
+    PlottingCard_t(TString hist, TString type, Int_t rebin, Double_t xmin, Double_t xmax,
+		   vector<Double_t> blindmin, vector<Double_t> blindmax) : PlottingCard_t(hist,type,rebin,xmin,xmax) {
       blindmin_ = blindmin;
       blindmax_ = blindmax;
     }
     PlottingCard_t(TString hist, TString type, Int_t set, Int_t rebin, Double_t xmin, Double_t xmax,
-		   Double_t blindmin, Double_t blindmax) : PlottingCard_t(hist,type,set,rebin,xmin,xmax) {
+		   vector<Double_t> blindmin, vector<Double_t> blindmax) : PlottingCard_t(hist,type,set,rebin,xmin,xmax) {
       blindmin_ = blindmin;
       blindmax_ = blindmax;
     }
@@ -105,10 +116,10 @@ public :
   Double_t xMax_ = -1e6;
   Double_t yMin_ =  1e6;
   Double_t yMax_ = -1e6;
-  Double_t blindxmin_ = 1e6; //for blinding along x axis
-  Double_t blindxmax_ = -1e6;
-  Double_t blindymin_ = 1e6; //for blinding along y axis
-  Double_t blindymax_ = -1e6;
+  vector<Double_t> blindxmin_; //for blinding along x axis
+  vector<Double_t> blindxmax_;
+  vector<Double_t> blindymin_; //for blinding along y axis
+  vector<Double_t> blindymax_;
   Int_t logZ_ = 1; //log plot settings
   Int_t logY_ = 0;
   Int_t plot_data_ = 1; //only MC or include data
@@ -235,6 +246,23 @@ public :
   }
 
   void reset_axes() {xMin_=1.e6; xMax_=-1.e6; yMax_=-1.e6; yMin_=1.e6;}
+
+  //asks if anywhere in the given range is blinded (for histogram binning)
+  bool isBlind(Double_t xmin, Double_t xmax) {
+    bool blind = false;
+    if(xmax < xmin) return blind;
+    for(unsigned index = 0; index < blindxmin_.size(); ++index) {
+      if(xmin >= blindxmin_[index] && xmax < blindxmax_[index]) {
+	blind = true;
+	break;
+      }
+    }
+    return blind;
+  }
+  //asks if a value is blinded
+  bool isBlind(Double_t value) {
+    return isBlind(value,value);
+  }
   
   virtual void get_titles(TString hist, TString setType, TString* xtitle, TString* ytitle, TString* title);
 
