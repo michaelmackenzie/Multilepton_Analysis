@@ -2,6 +2,31 @@
 Analysis work using the MultileptonAnalyzer as well as the ZTauTauAnalyzer.
 See the NWU BLT Analyzers for more information on the creation and format of these trees.
 
+## Overview of the analysis tools/strategies
+This assumes ntuples have been created using a BLT based analyzer for Monte Carlo and data samples.
+Currently, this workflow assumes all samples are for 2016.
+
+The first step in the workflow is creating sparse trees and sets of histograms for specific analysis selections.
+This is done using a *HistMaker* type object. This object is a TSelector that processes each event in the given trees.
+Along with the histograms, the HistMaker will store the event count histogram that is used for normalization of 
+Monte Carlo samples. The histograms are created with ranges and binnings such that they should only need to be created
+once, and all future plots can be made using these generated histograms.
+
+The next step is typically creating plots using these histograms, where the contribution from each distinct process
+is of interest. This involves applying normalization and cross-section scales to each individual histogram.
+One is also often interested in combing different samples together into a single contribution (such as all top
+related backgrounds). This is done using the *DataPlotter* object, which takes in a *DataCard* that gives
+the sample histogram file, the normalization, the plotting label, and a few flags such as whether or not the sample
+is real data.
+This object then will create plots based on the histogram set (which usually differ by different physics selections),
+optionally printing them to disk.
+
+One can also use sparse trees created by the HistMaker to train MVAs to separate events of interest from backgrounds.
+This is done using the ROOT TMVA package, where the trainings take place in scripts named *TrkQual*. The results
+of these trainings can then be passed to the HistMaker to apply to events or passed to a script to add branches with
+the evaluation of these MVAs. The DataPlotter can then make approximate CDF and significicance plots for the MVA 
+score distributions.
+
 ## Directories
 ### rootScripts
 Contains ROOT scripts to process the analyzer produced ntuples
