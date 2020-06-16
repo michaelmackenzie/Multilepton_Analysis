@@ -3,61 +3,61 @@
 Int_t process_ztautau() {
 
   const char* gridPath[] = {
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //ttbar
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //DY AMC
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //DY AMC
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //t_tw
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //tbar_tw
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //DY MadGraph
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //DY MadGraph
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //DY 1 Jet MadGraph
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //DY 1 Jet MadGraph
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //DY 2 Jet MadGraph
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //DY 2 Jet MadGraph
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //DY 3 Jet MadGraph
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //DY 3 Jet MadGraph
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //DY 4 Jet MadGraph
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //DY 4 Jet MadGraph
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //W 1 Jet
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //W 2 Jet
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //W 3 Jet
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //W 4 Jet
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //WJets amcnlo
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //WJets amcnlo (ext 1)
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //WJets amcnlo (ext 2)
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //WW
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //WZ Jets to 2L2Q
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //WZ Jets to 3LNu
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //ZZ Jets to 2L2Nu
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //ZZ Jets to 2L2Q
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //ZZ Jets to 4L
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //HZG gluglu
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //HZG tth
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //HZG vbf
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //HZG W-
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //HZG W+
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //HZG zh
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //HTauTau gluglu
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //ZETau
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //ZMuTau
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //ZEMu
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //HETau
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //HMuTau
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //HEMu
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //Muon Data 2016 B
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //Muon Data 2016 C
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //Muon Data 2016 D
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //Muon Data 2016 E
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //Muon Data 2016 F
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //Muon Data 2016 G
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_121740/", //Muon Data 2016 H
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_150829/", //Electron Data 2016 B
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_150829/", //Electron Data 2016 C
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_150829/", //Electron Data 2016 D
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_150829/", //Electron Data 2016 E
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_150829/", //Electron Data 2016 F
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_150829/", //Electron Data 2016 G
-    "root://cmseos.fnal.gov//store/user/mmackenz/batch_output/single_lepton_2016_20200417_150829/"  //Electron Data 2016 H
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //ttbar
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //DY AMC
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //DY AMC
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //t_tw
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //tbar_tw
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //DY MadGraph
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //DY MadGraph
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //DY 1 Jet MadGraph
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //DY 1 Jet MadGraph
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //DY 2 Jet MadGraph
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //DY 2 Jet MadGraph
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //DY 3 Jet MadGraph
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //DY 3 Jet MadGraph
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //DY 4 Jet MadGraph
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //DY 4 Jet MadGraph
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //W 1 Jet
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //W 2 Jet
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //W 3 Jet
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //W 4 Jet
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //WJets amcnlo
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //WJets amcnlo (ext 1)
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //WJets amcnlo (ext 2)
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //WW
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //WZ Jets to 2L2Q
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //WZ Jets to 3LNu
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //ZZ Jets to 2L2Nu
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //ZZ Jets to 2L2Q
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //ZZ Jets to 4L
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //HZG gluglu
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //HZG tth
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //HZG vbf
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //HZG W-
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //HZG W+
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //HZG zh
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //HTauTau gluglu
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //ZETau
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //ZMuTau
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //ZEMu
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //HETau
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //HMuTau
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //HEMu
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //Muon Data 2016 B
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //Muon Data 2016 C
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //Muon Data 2016 D
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //Muon Data 2016 E
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //Muon Data 2016 F
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //Muon Data 2016 G
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //Muon Data 2016 H
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //Electron Data 2016 B
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //Electron Data 2016 C
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //Electron Data 2016 D
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //Electron Data 2016 E
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //Electron Data 2016 F
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //Electron Data 2016 G
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/"  //Electron Data 2016 H
     
   };
   
@@ -109,12 +109,12 @@ Int_t process_ztautau() {
 			 "output_muon_2016F.root"                  , 
 			 "output_muon_2016G.root"                  , 
 			 "output_muon_2016H_v2.root"               ,
-			 "output_electron_2016B_v2.root"               , 
-			 "output_electron_2016C.root"                  , 
-			 "output_electron_2016D.root"                  , 
-			 "output_electron_2016E.root"                  , 
-			 "output_electron_2016F.root"                  , 
-			 "output_electron_2016G.root"                  , 
+			 "output_electron_2016B_v2.root"           , 
+			 "output_electron_2016C.root"              , 
+			 "output_electron_2016D.root"              , 
+			 "output_electron_2016E.root"              , 
+			 "output_electron_2016F.root"              , 
+			 "output_electron_2016G.root"              , 
 			 "output_electron_2016H_v2.root"
 
   };
@@ -159,20 +159,20 @@ Int_t process_ztautau() {
 			   1, //HETau
 			   1, //HMuTau
 			   1, //HEMu
-			   1, //Muon Data 2016 B
-			   1, //Muon Data 2016 C
-			   1, //Muon Data 2016 D
-			   1, //Muon Data 2016 E
-			   1, //Muon Data 2016 F
-			   1, //Muon Data 2016 G
-			   1, //Muon Data 2016 H
-			   1, //Electron Data 2016 B
-			   1, //Electron Data 2016 C
-			   1, //Electron Data 2016 D
-			   1, //Electron Data 2016 E
-			   1, //Electron Data 2016 F
-			   1, //Electron Data 2016 G
-			   1  //Electron Data 2016 H
+			   1, //Muon Data 2016B
+			   1, //Muon Data 2016C
+			   1, //Muon Data 2016D
+			   1, //Muon Data 2016E
+			   1, //Muon Data 2016F
+			   1, //Muon Data 2016G
+			   1, //Muon Data 2016H
+			   1, //Electron Data 2016B
+			   1, //Electron Data 2016C
+			   1, //Electron Data 2016D
+			   1, //Electron Data 2016E
+			   1, //Electron Data 2016F
+			   1, //Electron Data 2016G
+			   1  //Electron Data 2016H
   };
   
   Double_t xsec[100];
@@ -232,7 +232,7 @@ Int_t process_ztautau() {
   bool writeTrees = true;
   TString onlyChannel = "";
   vector<TString> skipChannels = {"mumu", "ee", "all", "jets"};
-  
+  bool reProcessMVAs = false;
   Int_t removeZPtWeights = 1;
   float signalTrainFraction = 0.7;
   float backgroundTrainFraction = 0.3;
@@ -327,7 +327,12 @@ Int_t process_ztautau() {
       while((key2 = (TKey*)nextkey2())) {
 	TObject* obj2 = key2->ReadObj(); 
 	if(obj2->IsA()->InheritsFrom(TH1::Class())) eventsChannel = (TH1F*)obj2;
-	if(obj2->IsA()->InheritsFrom(TTree::Class())) tree = (TTree*)obj2;
+	if(obj2->IsA()->InheritsFrom(TTree::Class())) {
+	  auto tmptree = (TTree*)obj2;
+	  //take the latest tree iteration from the file in case of copies
+	  if(tree) tree = (tmptree->GetEntriesFast() > tree->GetEntriesFast()) ? tmptree : tree;
+	  else tree = tmptree;
+	}
       }
       //check that these are found
       if(tree == 0) {
@@ -356,6 +361,7 @@ Int_t process_ztautau() {
 	selec->fRemoveZPtWeights = removeZPtWeights; //whether or not to re-weight Z pT
 	selec->fFractionMVA = (isSignal) ? signalTrainFraction : backgroundTrainFraction; //fraction of events to use for MVA training
 	if(isMuonData || isElectronData) selec->fFractionMVA = 0.; //don't split off data for training
+	selec->fReprocessMVAs = reProcessMVAs; //whether to evaluate the MVAs or use defined ones from the trees
 	
 	tree->Process(selec,""); //run the selector over the tree
 
