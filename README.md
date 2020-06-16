@@ -1,33 +1,36 @@
 # Multilepton_Analysis
-Analysis work using the MultileptonAnalyzer as well as the ZTauTauAnalyzer
+Analysis work using the MultileptonAnalyzer as well as the ZTauTauAnalyzer.
+See the NWU BLT Analyzers for more information on the creation and format of these trees.
 
 ## Directories
 ### rootScripts
-Contains root scripts to process the analyzer ntuples
+Contains ROOT scripts to process the analyzer produced ntuples
 
-MultileptonHistMaker.cc makes books of histograms when running over the multilepton ntuple
+Descriptions:
 
-process_multilepton.C processes a list of ntuples through the MultileptonHistMaker
+- MultileptonHistMaker.cc makes books of histograms when running over the multilepton ntuple
 
-MultileptonNTupleMaker.cc makes books of trees when running over the multilepton ntuples
+- process_multilepton.C processes a list of ntuples through the MultileptonHistMaker
 
-process_multileptonNT.C processes a list of ntuples through the MultileptonNTupleMaker
+- MultileptonNTupleMaker.cc makes books of trees when running over the multilepton ntuples
 
-make_background.C adds the trees for the various processes from a given book output in the
+- process_multileptonNT.C processes a list of ntuples through the MultileptonNTupleMaker
+
+- make_background.C adds the trees for the various processes from a given book output in the
 MultileptonNTupleMaker's output trees, using the cross section and generation values
 
-ZTauTauHistMaker.cc makes books of histograms when running over the ztautau ntuples
+- ZTauTauHistMaker.cc makes books of histograms when running over the ztautau ntuples
 
-process_ztautau.C processes a list of ntuples through the ZTauTauHistMaker
+- process_ztautau.C processes a list of ntuples through the ZTauTauHistMaker
 
-find_cuts.C loops over output from MultileptonHistMaker and identifies a rectangular
+- find_cuts.C loops over output from MultileptonHistMaker and identifies a rectangular
 cut that has the greatest increase in signal/background for a fixed efficiency drop
 in the signal
 
-Fitter.cc is used to get legendre polynomials for background fits, made to match up
+- Fitter.cc is used to get legendre polynomials for background fits, made to match up
 with Multilepton studies
 
-DataPlotter.cc holds datasets to be added together with their cross sections and plotted
+- DataPlotter.cc holds datasets to be added together with their cross sections and plotted
 against data. Plots 1D histograms and stacks as well as 2D histograms
 
 ### histograms
