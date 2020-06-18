@@ -91,6 +91,21 @@ Script to fit a signal + background vs background only hypothesis to a CWoLa tra
 
 ## Examples
 
+Examples in examples directory:
+
+`root.exe process_ntuples.C` runs the ZTauTauHistMaker over a few example MC samples
+
+`root.exe plot_histograms.C` loads a DataPlotter with the resulting histograms
+
+In ROOT:
+```c++
+  .x process_ntuples.C; //create histogram files
+  .L plot_histograms.C;
+  plot_histograms("[name of histogram]", [set number], "[set type]", [xmin], [xmax], [rebin number]); //returns a canvas
+```
+
+General examples:
+
 in ROOT:
 ### MultileptonHistMaker
 ```c++
