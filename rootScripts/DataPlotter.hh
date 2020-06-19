@@ -95,8 +95,35 @@ public :
       label_ = label;
     }
   };
+
+  //data information
+  struct DataCard_t {
+    TString filename_;
+    TString name_;
+    TString label_;
+    double xsec_;
+    bool isdata_;
+    bool issignal_;
+    Int_t color_;
+    
+    DataCard_t() : filename_(""), name_(""), label_(""), xsec_(1.), isdata_(false), issignal_(false), color_(-1) {}
+
+    DataCard_t(TString filename, TString name, TString label, bool isdata, double xsec, bool issignal) : DataCard_t() {
+      filename_ = filename;
+      name_ = name;
+      label_ = label;
+      xsec_ = xsec;
+      isdata_ = isdata;
+      issignal_ = issignal;
+    }
+    DataCard_t(TString filename, TString name, TString label, bool isdata, double xsec, bool issignal, int color) :
+      DataCard_t(filename,name,label,isdata,xsec,issignal) {
+      color_ = color;
+    }
+  };
   
   TString selection_ = "mutau"; //selection category
+  Int_t verbose_ = 0;
   vector<Double_t> scale_; //scales for datasets
   vector<Int_t>    process_; //indicates which backgrounds to use
   vector<TString> names_; //to get event histograms
@@ -415,6 +442,7 @@ public :
 	card.set_ = sets[index];
 	auto c = print_stack(card);
 	status += (c) ? 0 : 1;
+	printf("Printing Data/MC stack %s %s set %i has status %i\n",card.type_.Data(),card.hist_.Data(),card.set_,status);
 	Empty_Canvas(c);
       }
     }
@@ -442,27 +470,29 @@ public :
 
   //forcefully delete all objects in a canvas
   static Int_t Empty_Canvas(TCanvas* c) {
+    if(!c) return 0;
     TList* list = c->GetListOfPrimitives();
     if(!list) return 1;
     for(auto o : *list) {
       if(o->InheritsFrom("TPad")) {
-	auto pad = (TPad*) o;
-	if(!pad) continue;
-	TList* pad_list = pad->GetListOfPrimitives();
-	for(auto h : *pad_list) {
-	  if(h->InheritsFrom("THStack")) {
-	    THStack* hstack = (THStack*) h;
-	    TList* hist_list = hstack->GetHists();
-	    for(auto hl : *hist_list) {
-	      delete hl;
-	    }
-	  }
-	  delete h;
-	}
+    	auto pad = (TPad*) o;
+    	if(!pad) continue;
+    	TList* pad_list = pad->GetListOfPrimitives();
+    	for(auto h : *pad_list) {
+    	  if(h->InheritsFrom("THStack")) {
+    	    THStack* hstack = (THStack*) h;
+    	    TList* hist_list = hstack->GetHists();
+    	    for(auto hl : *hist_list) {
+    	      delete hl;
+    	    }
+    	  }
+    	  // if(h->InheritsFrom("TH1"))
+	  //   delete h;
+    	}
       }
       delete o;
     }
-    delete c;
+    if(c) delete c;
     return 0;
   }
 
@@ -471,6 +501,23 @@ public :
 
   //Add file to be read and plotted
   virtual Int_t add_dataset(TString filepath, TString name, TString label, bool isData, double xsec, bool isSignal);
+  Int_t add_dataset(DataCard_t card) {
+    if(card.color_ > 0 && !card.isdata_) {
+      //set color
+      unsigned entrynumber = 0;
+      std::map<TString, bool> foundLabels; //record which labels have been found, as unique is what matters
+      for(unsigned index = 0; index < labels_.size(); ++index) {
+	if(labels_[index] == card.label_) break; //if found the label, save this entry number and exit
+	if(isSignal_[index] == card.issignal_ && !foundLabels[labels_[index]]) {
+	  foundLabels[labels_[index]] = true; //label has appeared (only count unique labels)
+	  ++entrynumber; //if is signal matches, increment
+	}
+      }
+      if(card.issignal_) signal_colors_    [entrynumber] = card.color_;
+      else               background_colors_[entrynumber] = card.color_;
+    }
+    return add_dataset(card.filename_, card.name_, card.label_, card.isdata_, card.xsec_, card.issignal_);
+  }
 
   void set_luminosity(double lum) { lum_ = lum;}
 

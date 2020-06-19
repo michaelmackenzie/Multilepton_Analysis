@@ -10,6 +10,7 @@
 *_tree
 *.xml
 *Weights*
+*.png
 tmva_training/plots/*
 tmva_training/*.root
 tmva_training/scripts/figures/*.png

@@ -100,7 +100,13 @@ void ZTauTauHistMaker::BookEventHistograms() {
       fEventHist[i]->hTriggerStatus          = new TH1F("triggerStatus"       , Form("%s: TriggerStatus"       ,dirname)  ,   3, -1.5, 1.5);
       fEventHist[i]->hEventWeight            = new TH1F("eventweight"         , Form("%s: EventWeight"         ,dirname)  , 100,   -5,   5);     
       fEventHist[i]->hGenWeight              = new TH1F("genweight"           , Form("%s: GenWeight"           ,dirname)  ,   5, -2.5, 2.5);     
+      fEventHist[i]->hPUWeight               = new TH1F("puweight"            , Form("%s: PUWeight"            ,dirname)  , 100,    0,   5);     
+      fEventHist[i]->hLepOneWeight           = new TH1F("leponeweight"        , Form("%s: LepOneWeight"        ,dirname)  , 100,    0,   5);     
+      fEventHist[i]->hLepTwoWeight           = new TH1F("leptwoweight"        , Form("%s: LepTwoWeight"        ,dirname)  , 100,    0,   5);     
       fEventHist[i]->hGenTauFlavorWeight     = new TH1F("gentauflavorweight"  , Form("%s: GenTauFlavorWeight"  ,dirname)  ,  40,    0,   2);     
+      fEventHist[i]->hTopPtWeight	     = new TH1F("topptweight"	      , Form("%s: TopPtWeight"	       ,dirname) , 200,   0,  2);
+      fEventHist[i]->hZPtWeight	             = new TH1F("zptweight"	      , Form("%s: ZPtWeight"	       ,dirname) , 200,   0,  2);
+      fEventHist[i]->hTriggerLeptonStatus    = new TH1F("triggerleptonstatus" , Form("%s: TriggerLeptonStatus" ,dirname) ,   5,   0,  5);
       fEventHist[i]->hNPV                    = new TH1F("npv"                 , Form("%s: NPV"                 ,dirname)  , 200,  0, 200); 
       fEventHist[i]->hNPU                    = new TH1F("npu"                 , Form("%s: NPU"                 ,dirname)  , 100,  0, 100); 
       fEventHist[i]->hNPartons               = new TH1F("npartons"            , Form("%s: NPartons"            ,dirname)  ,  10,  0,  10); 
@@ -136,10 +142,6 @@ void ZTauTauHistMaker::BookEventHistograms() {
       fEventHist[i]->hNBJetsTotM             = new TH1F("nbjetstotm"          , Form("%s: NBJetsTotM"          ,dirname)  ,  20,  0,  20);
       fEventHist[i]->hNBJetsTotL             = new TH1F("nbjetstotl"          , Form("%s: NBJetsTotL"          ,dirname)  ,  20,  0,  20);
       fEventHist[i]->hMcEra                  = new TH1F("mcera"               , Form("%s: McEra"               ,dirname) ,   5,   0,  5);
-      fEventHist[i]->hTriggerLeptonStatus    = new TH1F("triggerleptonstatus" , Form("%s: TriggerLeptonStatus" ,dirname) ,   5,   0,  5);
-      fEventHist[i]->hPuWeight		     = new TH1F("puweight"	      , Form("%s: PuWeight"	       ,dirname) , 200,   0,  2);
-      fEventHist[i]->hTopPtWeight	     = new TH1F("topptweight"	      , Form("%s: TopPtWeight"	       ,dirname) , 200,   0,  2);
-      fEventHist[i]->hZPtWeight	             = new TH1F("zptweight"	      , Form("%s: ZPtWeight"	       ,dirname) , 200,   0,  2);
       fEventHist[i]->hTauDecayMode	     = new TH1F("taudecaymode"	      , Form("%s: TauDecayMode"	       ,dirname) ,  11,   0, 11);
       fEventHist[i]->hTauMVA		     = new TH1F("taumva"              , Form("%s: TauMVA"              ,dirname) , 100,   0,  1);
       fEventHist[i]->hTauGenFlavor	     = new TH1F("taugenflavor"	      , Form("%s: TauGenFlavor"	       ,dirname) ,  50,   0, 50);
@@ -566,7 +568,13 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
   // Hist->hTriggerStatus       ->Fill(triggerStatus      , genWeight*eventWeight)      ;
   Hist->hEventWeight         ->Fill(eventWeight        );
   Hist->hGenWeight           ->Fill(genWeight          );
+  Hist->hPUWeight            ->Fill(puWeight);
+  if(lepOneWeight > 0.) Hist->hLepOneWeight->Fill(lepOneWeight, genWeight*eventWeight/lepOneWeight);
+  if(lepTwoWeight > 0.) Hist->hLepTwoWeight->Fill(lepTwoWeight, genWeight*eventWeight/lepTwoWeight);
   Hist->hGenTauFlavorWeight  ->Fill(genTauFlavorWeight );
+  Hist->hTopPtWeight	     ->Fill(topPtWeight	       , genWeight*eventWeight)   ;
+  Hist->hZPtWeight	     ->Fill(zPtWeight	       , genWeight*eventWeight)   ;
+  Hist->hTriggerLeptonStatus ->Fill(triggerLeptonStatus, genWeight*eventWeight)   ;
   Hist->hNPV                 ->Fill(nPV                , genWeight*eventWeight)      ;
   Hist->hNPU                 ->Fill(nPU                , genWeight*eventWeight)      ;
   Hist->hNPartons            ->Fill(nPartons           , genWeight*eventWeight)      ;
@@ -602,10 +610,6 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
   Hist->hNBJetsTotM          ->Fill(nBJetsTotM         , genWeight*eventWeight)      ;
   Hist->hNBJetsTotL          ->Fill(nBJetsTotL         , genWeight*eventWeight)      ;
   Hist->hMcEra               ->Fill(mcEra              , genWeight*eventWeight)   ;
-  Hist->hTriggerLeptonStatus ->Fill(triggerLeptonStatus, genWeight*eventWeight)   ;
-  Hist->hPuWeight	     ->Fill(puWeight	       , genWeight*eventWeight)   ;
-  Hist->hTopPtWeight	     ->Fill(topPtWeight	       , genWeight*eventWeight)   ;
-  Hist->hZPtWeight	     ->Fill(zPtWeight	       , genWeight*eventWeight)   ;
   Hist->hTauDecayMode	     ->Fill(tauDecayMode       , genWeight*eventWeight)   ;
   Hist->hTauMVA		     ->Fill(tauMVA	       , genWeight*eventWeight)   ;
   Hist->hTauGenFlavor	     ->Fill(tauGenFlavor       , genWeight*eventWeight)   ;
@@ -946,7 +950,7 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   // Use fStatus to set the return value of TTree::Process().
   //
   // The return value is currently not used.
-
+  
   fChain->GetEntry(entry);
   if(entry%50000 == 0) printf("Processing event: %12lld\n", entry);
   //DY Splitting
@@ -1330,10 +1334,10 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   marioID = marioID && abs(muon->Eta()) < 2.4;
   marioID = marioID && abs(muon->DeltaR(*electron)) > 0.3;
 
-  marioID &= (nBJetsM+nBJets25M) == 0; //medium ID
+  marioID &= (!fHasDeepBTag) ? (nBJetsM+nBJets25M) == 0 : nBJetsDeepM == 0; //medium ID
   marioID &= (nJets == 0) || jetP4->Pt() < 78.; //highest pT jet cut
   marioID &= puppMETC < 28.; //MET cut (he used PUPPI, unclear if same correction)
-  marioID = marioID && (electron->Pt() > 32. && muon->Pt() > 28.); //higher electron and muon pT threshold
+  marioID = marioID && (electron->Pt() > 33. && muon->Pt() > 25.); //higher electron and muon pT threshold
   marioID &= fTreeVars.lepm > 75. && fTreeVars.lepm < 110.; //mass window
   
   if(emu && marioID && chargeTest)  FillAllHistograms(63);

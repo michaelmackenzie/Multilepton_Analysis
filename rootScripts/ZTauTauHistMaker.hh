@@ -47,12 +47,14 @@ public :
   UInt_t nPartons                    ;
   UInt_t mcEra                       ;
   UInt_t triggerLeptonStatus         ;
-  Float_t eventWeight                ;
-  Float_t genWeight                  ;
-  Float_t puWeight                   ;
-  Float_t topPtWeight                ;
-  Float_t zPtWeight                  ;
-  Float_t genTauFlavorWeight         ;
+  Float_t eventWeight = 1.           ;
+  Float_t genWeight = 1.             ;
+  Float_t puWeight = 1.              ;
+  Float_t lepOneWeight = 1.          ;
+  Float_t lepTwoWeight = 1.          ;
+  Float_t topPtWeight = 1.           ;
+  Float_t zPtWeight = 1.             ;
+  Float_t genTauFlavorWeight = 1.    ;
   Int_t tauDecayMode                 ;
   Float_t tauMVA                     ;
   Int_t tauGenFlavor                 ;
@@ -83,7 +85,8 @@ public :
   UInt_t nJets25Tot                  ;
   UInt_t nJetsTot                    ;
   UInt_t nFwdJets                    ;
-  UInt_t nBJetsUse                   ; //which to count
+  UInt_t nBJetsDeepM                 ;
+  UInt_t nBJetsUse                   ; 
   UInt_t nBJets                      ;
   UInt_t nBJetsM                     ;
   UInt_t nBJetsL                     ;
@@ -157,6 +160,9 @@ public :
     TH1F* hTriggerStatus;
     TH1F* hEventWeight;
     TH1F* hGenWeight;
+    TH1F* hPUWeight;
+    TH1F* hLepOneWeight;
+    TH1F* hLepTwoWeight;
     TH1F* hGenTauFlavorWeight;
     TH1F* hNPV;
     TH1F* hNPU;
@@ -653,6 +659,7 @@ public :
   Int_t         fBJetCounting = 1; // 0: pT > 30 1: pT > 25 2: pT > 20
   Int_t         fBJetTightness = 1; // 0: tight 1: medium 2: loose
   Int_t         fMETType = 1; // 0: PF corrected 1: PUPPI Corrected
+  bool          fHasDeepBTag = false; //whether or not it has the deep neural net btag
   
   ClassDef(ZTauTauHistMaker,0);
 
@@ -984,7 +991,8 @@ void ZTauTauHistMaker::Init(TTree *tree)
 
     //initialize all the histograms
     BookHistograms();
-
+    //check if branch exists
+    fHasDeepBTag = tree->GetBranch("nBJetsDeepM");
   }
 
   if(tree != 0) fChain = tree;
@@ -1003,6 +1011,8 @@ void ZTauTauHistMaker::Init(TTree *tree)
   fChain->SetBranchAddress("eventWeight"         , &eventWeight          );
   fChain->SetBranchAddress("genWeight"           , &genWeight            );
   fChain->SetBranchAddress("puWeight"            , &puWeight             );
+  fChain->SetBranchAddress("lepOneWeight"        , &lepOneWeight         );
+  fChain->SetBranchAddress("lepTwoWeight"        , &lepTwoWeight         );
   fChain->SetBranchAddress("topPtWeight"         , &topPtWeight          );
   fChain->SetBranchAddress("zPtWeight"           , &zPtWeight            );
   fChain->SetBranchAddress("genTauFlavorWeight"  , &genTauFlavorWeight   );
@@ -1034,6 +1044,7 @@ void ZTauTauHistMaker::Init(TTree *tree)
   fChain->SetBranchAddress("nJets25"             , &nJets25              );
   fChain->SetBranchAddress("nJets20"             , &nJets20              );
   fChain->SetBranchAddress("nFwdJets"            , &nFwdJets             );
+  fChain->SetBranchAddress("nBJetsDeepM"         , &nBJetsDeepM          );
   fChain->SetBranchAddress("nBJets"              , &nBJets               );
   fChain->SetBranchAddress("nBJetsM"             , &nBJetsM              );
   fChain->SetBranchAddress("nBJetsL"             , &nBJetsL              );
