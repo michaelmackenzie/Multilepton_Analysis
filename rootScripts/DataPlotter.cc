@@ -775,7 +775,7 @@ THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set) {
   THStack* hstack = new THStack(Form("%s",hist.Data()),Form("%s",hist.Data()));
   //for combining histograms of the same process
   map<TString, int> indexes;
-  
+  vector<TString> labels; //use to preserve order of entries
   map<TString, int> colors; //index for the color array
   int n_colors = 0;
   if(debug_) 
@@ -804,6 +804,7 @@ THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set) {
       indexes.insert({labels_[i], i});
       colors.insert({labels_[i], n_colors});
       n_colors++;
+      labels.push_back(labels_[i]);
     }
     TString name = labels_[index];
     if(index != (int) i)  {
@@ -828,10 +829,8 @@ THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set) {
 						+h[index]->GetBinContent(0)+h[index]->GetBinContent(h[index]->GetNbinsX()+1)) : "";
     h[index]->SetTitle(Form("%s%s", name.Data(), stats));
   }
-  auto it = indexes.begin();
-  while(it != indexes.end()) {
-    hstack->Add(h[it->second]);
-    it++;
+  for(unsigned index = 0; index < labels.size(); ++index) {
+    hstack->Add(h[indexes[labels[index]]]);
   }
   if(hQCD) hstack->Add(hQCD);
   // hstack->SetBit(kCanDelete);
@@ -2128,17 +2127,24 @@ Int_t DataPlotter::print_hists(vector<TString> hists, vector<TString> setTypes, 
 
 Int_t DataPlotter::init_files() {
 
-  Int_t nFiles = fileNames_.size();
+  UInt_t nFiles = fileNames_.size();
   vector<TFile*> f;
-  for(int i = 0; i < nFiles; ++i) {
-    f.push_back(new TFile(fileNames_[i].Data(),"READ"));
+  for(UInt_t i = 0; i < nFiles; ++i) {
+    if(verbose_ > 0) 
+      std::cout << "Initializing dataset, filepath = " << fileNames_[i].Data()
+		<< " name = " << names_[i].Data()
+		<< " label = " << labels_[i].Data()
+		<< " isData = " << isData_[i]
+		<< " xsec = " << xsec_[i]
+		<< " isSignal = " << isSignal_[i] << std::endl;
+    f.push_back(TFile::Open(fileNames_[i].Data(),"READ"));
     if(f[i]) data_.push_back((TFile*) f[i]->Get("Data"));
     else {
       printf("File %s not found! Exiting\n", fileNames_[i].Data());
       return 1;
     }
   }
-  for(int i = 0; i < nFiles; ++i) {
+  for(UInt_t i = 0; i < nFiles; ++i) {
     if(isData_[i]) scale_.push_back(1.);
     else {
       // loop through the directory and add events from each event histogram (in case of hadd combined dataset)
@@ -2178,6 +2184,14 @@ Int_t DataPlotter::add_dataset(TString filepath, TString name, TString label, bo
   else
     xsec_.push_back(1.);
   isSignal_.push_back(isSignal);
+  if(verbose_ > 0) 
+    std::cout << "Added dataset, filepath = " << filepath.Data()
+	      << " name = " << name.Data()
+	      << " label = " << label.Data()
+	      << " isData = " << isData
+	      << " xsec = " << xsec
+	      << " isSignal = " << isSignal << std::endl;
+    
   
   return 0;
 }

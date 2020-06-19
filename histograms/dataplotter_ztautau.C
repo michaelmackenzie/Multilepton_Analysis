@@ -1,7 +1,9 @@
 // Script to plot and print distributions using a DataPlotter object for ZTauTauHistMaker histograms
 
 DataPlotter* dataplotter_ = 0;
-TString selection_ = "mutau"; //current options: mutau, etau, emu, mutau_e, etau_mu, mumu
+TString selection_ = "emu"; //current options: mutau, etau, emu, mutau_e, etau_mu, mumu
+bool useNanoAods_ = true; //use BLT based or NANO AOD based histograms
+Int_t verbose_ = 0; //verbosity level
 Int_t useOpenGL_ = 0;
 bool  doStatsLegend_ = false;
 TString hist_dir_ = "ztautau";
@@ -10,6 +12,8 @@ bool doAllEMu_ = false; //plot all emu signals (including leptonic decays) on se
 bool printCDFs_ = false; //print cdf transform of MVAs
 bool printLimitVsEff_ = false; //print limit gain vs signal efficiency from MVA cut
 bool printMVATotBkg_ = false; //print MVA distributions as total background vs signal
+bool print2Ds_ = false;
+bool printSignificances_ = false;
 
 Int_t print_significance_canvases(vector<TString> hists, vector<TString> types, vector<TString> labels, vector<int> sets) {
   TCanvas* c = 0;
@@ -135,14 +139,25 @@ TCanvas* print_canvas(TString hist, TString type, int set, double xmin, double x
   dataplotter_->reset_axes();
   return c;
 }
+
+Int_t print_test(vector<int> sets, vector<double> signal_scales = {},
+		 vector<int> base_rebins = {}) {
+
+  cout << "Printing test\n";
+  if(!dataplotter_) return 1;
+  vector<DataPlotter::PlottingCard_t> plottingcards;
+  // plotting card constructor:                       hist, type, rebin, xmin, xmax, blindmin, blindmax
+  plottingcards.push_back(DataPlotter::PlottingCard_t("onept",          "lep",   2, 15.,  150. ));
+  plottingcards.push_back(DataPlotter::PlottingCard_t("twopt",          "lep",   2, 15.,  150. ));
+  dataplotter_->logY_ = 0;
+  int status = 0;
+  status = dataplotter_->print_stacks(plottingcards, sets, signal_scales, base_rebins);
+  return status;
+}
+
 Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
 			   vector<int> base_rebins = {}, bool stacks = true) {
   if(!dataplotter_) return -1;
-  vector<TString> hnames;
-  vector<TString> htypes;
-  vector<int>     rebins;
-  vector<double>  xmins;
-  vector<double>  xmaxs;
   vector<DataPlotter::PlottingCard_t> plottingcards;
   vector<DataPlotter::PlottingCard_t> mvaplottingcards; //to plot once normally and once with just total background
 
@@ -310,35 +325,37 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
     label = "->#mu#tau";
 
   //2D histograms
-  if(label != "") {
-    for(int data = 0; data < 2; ++data) { //with/without data
-      dataplotter_->plot_data_ = data;
-      for(int logz = 0; logz < 2; ++logz) { //print log and not log z axis plots
-	dataplotter_->logZ_ = logz;
-	for(int s : sets) {
-	  if(data) dataplotter_->rebinH_ = 4;
-	  else 	 dataplotter_->rebinH_ = 2;
+  if(print2Ds_) {
+    if(label != "") {
+      for(int data = 0; data < 2; ++data) { //with/without data
+	dataplotter_->plot_data_ = data;
+	for(int logz = 0; logz < 2; ++logz) { //print log and not log z axis plots
+	  dataplotter_->logZ_ = logz;
+	  for(int s : sets) {
+	    if(data) dataplotter_->rebinH_ = 4;
+	    else 	 dataplotter_->rebinH_ = 2;
 
-	  auto c = dataplotter_->print_single_2Dhist("pxiinvvsvis0", "event", s, ("Z"+label), 0, 80, -80, 60);
-	  DataPlotter::Empty_Canvas(c);
-	  c = dataplotter_->print_single_2Dhist("pxiinvvsvis0", "event", s, ("H"+label), 0, 80, -80, 60);
-	  DataPlotter::Empty_Canvas(c);
-	  c = dataplotter_->print_single_2Dhist("metvspt"     , "event", s, ("Z"+label), 0, 150,    0, 150);
-	  DataPlotter::Empty_Canvas(c);
-	  c = dataplotter_->print_single_2Dhist("metvspt"     , "event", s, ("H"+label), 0, 150,    0, 150);
-	  DataPlotter::Empty_Canvas(c);
-	  c = dataplotter_->print_single_2Dhist("twoptvsonept", "lep"  , s, ("Z->ee/#mu#mu"), 0, 150,    0, 150);
-	  DataPlotter::Empty_Canvas(c);
-	  c = dataplotter_->print_single_2Dhist("twoptvsonept", "lep"  , s, ("Z->#tau#tau"), 0, 150,    0, 150);
-	  DataPlotter::Empty_Canvas(c);
-	  c = dataplotter_->print_single_2Dhist("twoptvsonept", "lep"  , s, ("Z"+label), 0, 150,    0, 150);
-	  DataPlotter::Empty_Canvas(c);
-	  c = dataplotter_->print_single_2Dhist("twoptvsonept", "lep"  , s, ("H"+label), 0, 150,    0, 150);
-	  DataPlotter::Empty_Canvas(c);
+	    auto c = dataplotter_->print_single_2Dhist("pxiinvvsvis0", "event", s, ("Z"+label), 0, 80, -80, 60);
+	    DataPlotter::Empty_Canvas(c);
+	    c = dataplotter_->print_single_2Dhist("pxiinvvsvis0", "event", s, ("H"+label), 0, 80, -80, 60);
+	    DataPlotter::Empty_Canvas(c);
+	    c = dataplotter_->print_single_2Dhist("metvspt"     , "event", s, ("Z"+label), 0, 150,    0, 150);
+	    DataPlotter::Empty_Canvas(c);
+	    c = dataplotter_->print_single_2Dhist("metvspt"     , "event", s, ("H"+label), 0, 150,    0, 150);
+	    DataPlotter::Empty_Canvas(c);
+	    c = dataplotter_->print_single_2Dhist("twoptvsonept", "lep"  , s, ("Z->ee/#mu#mu"), 0, 150,    0, 150);
+	    DataPlotter::Empty_Canvas(c);
+	    c = dataplotter_->print_single_2Dhist("twoptvsonept", "lep"  , s, ("Z->#tau#tau"), 0, 150,    0, 150);
+	    DataPlotter::Empty_Canvas(c);
+	    c = dataplotter_->print_single_2Dhist("twoptvsonept", "lep"  , s, ("Z"+label), 0, 150,    0, 150);
+	    DataPlotter::Empty_Canvas(c);
+	    c = dataplotter_->print_single_2Dhist("twoptvsonept", "lep"  , s, ("H"+label), 0, 150,    0, 150);
+	    DataPlotter::Empty_Canvas(c);
+	  }
 	}
       }
-    }
-  } //end 2D loop
+    } //end 2D loop
+  }
   
   vector<DataPlotter::PlottingCard_t> cdfplottingcards;
   if(label != "") {
@@ -372,134 +389,136 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
     }
   }
   
-  if(label != "") {
-    for(int logy = 0; logy < 2; ++logy) { //print log and not log y axis
-      dataplotter_->logY_ = logy;
-      for(int s : sets) {
-	if(selection_=="mutau") {
-	  auto c = dataplotter_->print_significance("mva0", "event", s, ("H"+label), -1., 1., true, -1., false, "CMS #sqrt{s}=13 TeV Limit (2.5e-3)");
-	  DataPlotter::Empty_Canvas(c);
-	  c = dataplotter_->print_significance("mva1", "event", s, ("Z"+label), -1., 1.3, true, -0.71, false, "LEP Limit (1.2e-5)");
-	  DataPlotter::Empty_Canvas(c);
-	  c = dataplotter_->print_significance("mva10","event", s, ("H"+label), -1., 1., true, -1., false, "CMS #sqrt{s}=13 TeV Limit (2.5e-3)");
-	  DataPlotter::Empty_Canvas(c);
-	  c = dataplotter_->print_significance("mva11","event", s, ("Z"+label), -1., 1.3, true, -0.71, false, "LEP Limit (1.2e-5)");
-	  DataPlotter::Empty_Canvas(c);
-	  c = dataplotter_->print_significance("mva20","event", s, ("H"+label), -1., 1., true, -1., false, "CMS #sqrt{s}=13 TeV Limit (2.5e-3)");
-	  DataPlotter::Empty_Canvas(c);
-	  c = dataplotter_->print_significance("mva21","event", s, ("Z"+label), -1., 1.3, true, -0.71, false, "LEP Limit (1.2e-5)");
-	  DataPlotter::Empty_Canvas(c);
-	  c = dataplotter_->print_significance("mva30","event", s, ("H"+label), -1., 1., true, -1., false, "CMS #sqrt{s}=13 TeV Limit (2.5e-3)");
-	  DataPlotter::Empty_Canvas(c);
-	  c = dataplotter_->print_significance("mva31","event", s, ("Z"+label), -1., 1.3, true, -0.71, false, "LEP Limit (1.2e-5)");
-	  DataPlotter::Empty_Canvas(c);
-	  if(printLimitVsEff_) {
-	    c = dataplotter_->print_significance("mva0", "event", s, ("H"+label), 0., 1., true, -1., true, "CMS #sqrt{s}=13 TeV Limit (2.5e-3)"); //significance vs efficiency
+  if(printSignificances_) {
+    if(label != "") {
+      for(int logy = 0; logy < 2; ++logy) { //print log and not log y axis
+	dataplotter_->logY_ = logy;
+	for(int s : sets) {
+	  if(selection_=="mutau") {
+	    auto c = dataplotter_->print_significance("mva0", "event", s, ("H"+label), -1., 1., true, -1., false, "CMS #sqrt{s}=13 TeV Limit (2.5e-3)");
 	    DataPlotter::Empty_Canvas(c);
-	    c = dataplotter_->print_significance("mva1", "event", s, ("Z"+label), 0., 1., true, -0.71, true, "LEP Limit (1.2e-5)"); //significance vs efficiency
+	    c = dataplotter_->print_significance("mva1", "event", s, ("Z"+label), -1., 1.3, true, -0.71, false, "LEP Limit (1.2e-5)");
 	    DataPlotter::Empty_Canvas(c);
+	    c = dataplotter_->print_significance("mva10","event", s, ("H"+label), -1., 1., true, -1., false, "CMS #sqrt{s}=13 TeV Limit (2.5e-3)");
+	    DataPlotter::Empty_Canvas(c);
+	    c = dataplotter_->print_significance("mva11","event", s, ("Z"+label), -1., 1.3, true, -0.71, false, "LEP Limit (1.2e-5)");
+	    DataPlotter::Empty_Canvas(c);
+	    c = dataplotter_->print_significance("mva20","event", s, ("H"+label), -1., 1., true, -1., false, "CMS #sqrt{s}=13 TeV Limit (2.5e-3)");
+	    DataPlotter::Empty_Canvas(c);
+	    c = dataplotter_->print_significance("mva21","event", s, ("Z"+label), -1., 1.3, true, -0.71, false, "LEP Limit (1.2e-5)");
+	    DataPlotter::Empty_Canvas(c);
+	    c = dataplotter_->print_significance("mva30","event", s, ("H"+label), -1., 1., true, -1., false, "CMS #sqrt{s}=13 TeV Limit (2.5e-3)");
+	    DataPlotter::Empty_Canvas(c);
+	    c = dataplotter_->print_significance("mva31","event", s, ("Z"+label), -1., 1.3, true, -0.71, false, "LEP Limit (1.2e-5)");
+	    DataPlotter::Empty_Canvas(c);
+	    if(printLimitVsEff_) {
+	      c = dataplotter_->print_significance("mva0", "event", s, ("H"+label), 0., 1., true, -1., true, "CMS #sqrt{s}=13 TeV Limit (2.5e-3)"); //significance vs efficiency
+	      DataPlotter::Empty_Canvas(c);
+	      c = dataplotter_->print_significance("mva1", "event", s, ("Z"+label), 0., 1., true, -0.71, true, "LEP Limit (1.2e-5)"); //significance vs efficiency
+	      DataPlotter::Empty_Canvas(c);
+	    }
 	  }
-	}
-	else if(selection_=="etau") {
-	  auto c = dataplotter_->print_significance("mva2", "event", s, ("H"+label), -1., 1.,true, -1., false, "CMS #sqrt{s}=13 TeV Limit (6.1e-3)");
-	  DataPlotter::Empty_Canvas(c);									
-	  c = dataplotter_->print_significance("mva3", "event", s, ("Z"+label), -1., 1.,true, -1., false, "LEP Limit (9.8e-6)");
-	  DataPlotter::Empty_Canvas(c);
-	  c = dataplotter_->print_significance("mva12","event", s, ("H"+label), -1., 1., true, -1., false, "CMS #sqrt{s}=13 TeV Limit (2.5e-3)");
-	  DataPlotter::Empty_Canvas(c);
-	  c = dataplotter_->print_significance("mva13","event", s, ("Z"+label), -1., 1.3, true, -0.71, false, "LEP Limit (1.2e-5)");
-	  DataPlotter::Empty_Canvas(c);
-	  c = dataplotter_->print_significance("mva22","event", s, ("H"+label), -1., 1., true, -1., false, "CMS #sqrt{s}=13 TeV Limit (2.5e-3)");
-	  DataPlotter::Empty_Canvas(c);
-	  c = dataplotter_->print_significance("mva23","event", s, ("Z"+label), -1., 1.3, true, -0.71, false, "LEP Limit (1.2e-5)");
-	  DataPlotter::Empty_Canvas(c);
-	  c = dataplotter_->print_significance("mva32","event", s, ("H"+label), -1., 1., true, -1., false, "CMS #sqrt{s}=13 TeV Limit (2.5e-3)");
-	  DataPlotter::Empty_Canvas(c);
-	  c = dataplotter_->print_significance("mva33","event", s, ("Z"+label), -1., 1.3, true, -0.71, false, "LEP Limit (1.2e-5)");
-	  DataPlotter::Empty_Canvas(c);
-	  if(printLimitVsEff_) {
-	    c = dataplotter_->print_significance("mva2", "event", s, ("H"+label), 0., 1., true, -1., true, "CMS #sqrt{s}=13 TeV Limit (6.1e-3)");
+	  else if(selection_=="etau") {
+	    auto c = dataplotter_->print_significance("mva2", "event", s, ("H"+label), -1., 1.,true, -1., false, "CMS #sqrt{s}=13 TeV Limit (6.1e-3)");
+	    DataPlotter::Empty_Canvas(c);									
+	    c = dataplotter_->print_significance("mva3", "event", s, ("Z"+label), -1., 1.,true, -1., false, "LEP Limit (9.8e-6)");
 	    DataPlotter::Empty_Canvas(c);
-	    c = dataplotter_->print_significance("mva3", "event", s, ("Z"+label), 0., 1., true, -1., true, "LEP Limit (9.8e-6)");
+	    c = dataplotter_->print_significance("mva12","event", s, ("H"+label), -1., 1., true, -1., false, "CMS #sqrt{s}=13 TeV Limit (2.5e-3)");
 	    DataPlotter::Empty_Canvas(c);
+	    c = dataplotter_->print_significance("mva13","event", s, ("Z"+label), -1., 1.3, true, -0.71, false, "LEP Limit (1.2e-5)");
+	    DataPlotter::Empty_Canvas(c);
+	    c = dataplotter_->print_significance("mva22","event", s, ("H"+label), -1., 1., true, -1., false, "CMS #sqrt{s}=13 TeV Limit (2.5e-3)");
+	    DataPlotter::Empty_Canvas(c);
+	    c = dataplotter_->print_significance("mva23","event", s, ("Z"+label), -1., 1.3, true, -0.71, false, "LEP Limit (1.2e-5)");
+	    DataPlotter::Empty_Canvas(c);
+	    c = dataplotter_->print_significance("mva32","event", s, ("H"+label), -1., 1., true, -1., false, "CMS #sqrt{s}=13 TeV Limit (2.5e-3)");
+	    DataPlotter::Empty_Canvas(c);
+	    c = dataplotter_->print_significance("mva33","event", s, ("Z"+label), -1., 1.3, true, -0.71, false, "LEP Limit (1.2e-5)");
+	    DataPlotter::Empty_Canvas(c);
+	    if(printLimitVsEff_) {
+	      c = dataplotter_->print_significance("mva2", "event", s, ("H"+label), 0., 1., true, -1., true, "CMS #sqrt{s}=13 TeV Limit (6.1e-3)");
+	      DataPlotter::Empty_Canvas(c);
+	      c = dataplotter_->print_significance("mva3", "event", s, ("Z"+label), 0., 1., true, -1., true, "LEP Limit (9.8e-6)");
+	      DataPlotter::Empty_Canvas(c);
+	    }
 	  }
-	}
-	else if(selection_=="emu") {
-	  auto c = dataplotter_->print_significance("mva4", "event", s, ("H"+label), -1., 1., true, -1. , false, "CMS #sqrt{s}=8 TeV Limit (1.1e-4)");
-	  DataPlotter::Empty_Canvas(c);
-	  c = dataplotter_->print_significance("mva5", "event", s, ("Z"+label), -1., 1., true, -.44, false, "CMS #sqrt{s}=8 TeV Limit (7.3e-7)");
-	  DataPlotter::Empty_Canvas(c);
-	  c = dataplotter_->print_significance("mva14","event", s, ("H"+label), -1., 1., true, -1., false, "CMS #sqrt{s}=13 TeV Limit (2.5e-3)");
-	  DataPlotter::Empty_Canvas(c);
-	  c = dataplotter_->print_significance("mva15","event", s, ("Z"+label), -1., 1.3, true, -0.71, false, "LEP Limit (1.2e-5)");
-	  DataPlotter::Empty_Canvas(c);
-	  c = dataplotter_->print_significance("mva24","event", s, ("H"+label), -1., 1., true, -1., false, "CMS #sqrt{s}=13 TeV Limit (2.5e-3)");
-	  DataPlotter::Empty_Canvas(c);
-	  c = dataplotter_->print_significance("mva25","event", s, ("Z"+label), -1., 1.3, true, -0.71, false, "LEP Limit (1.2e-5)");
-	  DataPlotter::Empty_Canvas(c);
-	  c = dataplotter_->print_significance("mva34","event", s, ("H"+label), -1., 1., true, -1., false, "CMS #sqrt{s}=13 TeV Limit (2.5e-3)");
-	  DataPlotter::Empty_Canvas(c);
-	  c = dataplotter_->print_significance("mva35","event", s, ("Z"+label), -1., 1.3, true, -0.71, false, "LEP Limit (1.2e-5)");
-	  DataPlotter::Empty_Canvas(c);
-	  if(printLimitVsEff_) {
-	    c = dataplotter_->print_significance("mva4", "event", s, ("H"+label), 0., 1., true, -1. , true, "CMS #sqrt{s}=8 TeV Limit (1.1e-4)");
+	  else if(selection_=="emu") {
+	    auto c = dataplotter_->print_significance("mva4", "event", s, ("H"+label), -1., 1., true, -1. , false, "CMS #sqrt{s}=8 TeV Limit (1.1e-4)");
 	    DataPlotter::Empty_Canvas(c);
-	    c = dataplotter_->print_significance("mva5", "event", s, ("Z"+label), 0., 1., true, -.44, true, "CMS #sqrt{s}=8 TeV Limit (7.3e-7)");
+	    c = dataplotter_->print_significance("mva5", "event", s, ("Z"+label), -1., 1., true, -.44, false, "CMS #sqrt{s}=8 TeV Limit (7.3e-7)");
 	    DataPlotter::Empty_Canvas(c);
+	    c = dataplotter_->print_significance("mva14","event", s, ("H"+label), -1., 1., true, -1., false, "CMS #sqrt{s}=13 TeV Limit (2.5e-3)");
+	    DataPlotter::Empty_Canvas(c);
+	    c = dataplotter_->print_significance("mva15","event", s, ("Z"+label), -1., 1.3, true, -0.71, false, "LEP Limit (1.2e-5)");
+	    DataPlotter::Empty_Canvas(c);
+	    c = dataplotter_->print_significance("mva24","event", s, ("H"+label), -1., 1., true, -1., false, "CMS #sqrt{s}=13 TeV Limit (2.5e-3)");
+	    DataPlotter::Empty_Canvas(c);
+	    c = dataplotter_->print_significance("mva25","event", s, ("Z"+label), -1., 1.3, true, -0.71, false, "LEP Limit (1.2e-5)");
+	    DataPlotter::Empty_Canvas(c);
+	    c = dataplotter_->print_significance("mva34","event", s, ("H"+label), -1., 1., true, -1., false, "CMS #sqrt{s}=13 TeV Limit (2.5e-3)");
+	    DataPlotter::Empty_Canvas(c);
+	    c = dataplotter_->print_significance("mva35","event", s, ("Z"+label), -1., 1.3, true, -0.71, false, "LEP Limit (1.2e-5)");
+	    DataPlotter::Empty_Canvas(c);
+	    if(printLimitVsEff_) {
+	      c = dataplotter_->print_significance("mva4", "event", s, ("H"+label), 0., 1., true, -1. , true, "CMS #sqrt{s}=8 TeV Limit (1.1e-4)");
+	      DataPlotter::Empty_Canvas(c);
+	      c = dataplotter_->print_significance("mva5", "event", s, ("Z"+label), 0., 1., true, -.44, true, "CMS #sqrt{s}=8 TeV Limit (7.3e-7)");
+	      DataPlotter::Empty_Canvas(c);
+	    }
 	  }
-	}
-	else if(selection_=="mutau_e") {
-	  auto c = dataplotter_->print_significance("mva6", "event", s, ("H"+label), -1., 1., true, -1., false, "CMS #sqrt{s}=13 TeV Limit (2.5e-3)");
-	  DataPlotter::Empty_Canvas(c);
-	  c = dataplotter_->print_significance("mva7", "event", s, ("Z"+label), -1., 1.3, true, -0.71, false, "LEP Limit (1.2e-5)");
-	  DataPlotter::Empty_Canvas(c);
-	  c = dataplotter_->print_significance("mva16","event", s, ("H"+label), -1., 1., true, -1., false, "CMS #sqrt{s}=13 TeV Limit (2.5e-3)");
-	  DataPlotter::Empty_Canvas(c);
-	  c = dataplotter_->print_significance("mva17","event", s, ("Z"+label), -1., 1.3, true, -0.71, false, "LEP Limit (1.2e-5)");
-	  DataPlotter::Empty_Canvas(c);
-	  c = dataplotter_->print_significance("mva26","event", s, ("H"+label), -1., 1., true, -1., false, "CMS #sqrt{s}=13 TeV Limit (2.5e-3)");
-	  DataPlotter::Empty_Canvas(c);
-	  c = dataplotter_->print_significance("mva27","event", s, ("Z"+label), -1., 1.3, true, -0.71, false, "LEP Limit (1.2e-5)");
-	  DataPlotter::Empty_Canvas(c);
-	  c = dataplotter_->print_significance("mva36","event", s, ("H"+label), -1., 1., true, -1., false, "CMS #sqrt{s}=13 TeV Limit (2.5e-3)");
-	  DataPlotter::Empty_Canvas(c);
-	  c = dataplotter_->print_significance("mva37","event", s, ("Z"+label), -1., 1.3, true, -0.71, false, "LEP Limit (1.2e-5)");
-	  DataPlotter::Empty_Canvas(c);
-	  if(printLimitVsEff_) {	  
-	    c = dataplotter_->print_significance("mva6", "event", s, ("H"+label), 0., 1., true, -1., true, "CMS #sqrt{s}=13 TeV Limit (2.5e-3)"); //significance vs efficiency
+	  else if(selection_=="mutau_e") {
+	    auto c = dataplotter_->print_significance("mva6", "event", s, ("H"+label), -1., 1., true, -1., false, "CMS #sqrt{s}=13 TeV Limit (2.5e-3)");
 	    DataPlotter::Empty_Canvas(c);
-	    c = dataplotter_->print_significance("mva7", "event", s, ("Z"+label), 0., 1., true, -0.71, true, "LEP Limit (1.2e-5)"); //significance vs efficiency
+	    c = dataplotter_->print_significance("mva7", "event", s, ("Z"+label), -1., 1.3, true, -0.71, false, "LEP Limit (1.2e-5)");
 	    DataPlotter::Empty_Canvas(c);
+	    c = dataplotter_->print_significance("mva16","event", s, ("H"+label), -1., 1., true, -1., false, "CMS #sqrt{s}=13 TeV Limit (2.5e-3)");
+	    DataPlotter::Empty_Canvas(c);
+	    c = dataplotter_->print_significance("mva17","event", s, ("Z"+label), -1., 1.3, true, -0.71, false, "LEP Limit (1.2e-5)");
+	    DataPlotter::Empty_Canvas(c);
+	    c = dataplotter_->print_significance("mva26","event", s, ("H"+label), -1., 1., true, -1., false, "CMS #sqrt{s}=13 TeV Limit (2.5e-3)");
+	    DataPlotter::Empty_Canvas(c);
+	    c = dataplotter_->print_significance("mva27","event", s, ("Z"+label), -1., 1.3, true, -0.71, false, "LEP Limit (1.2e-5)");
+	    DataPlotter::Empty_Canvas(c);
+	    c = dataplotter_->print_significance("mva36","event", s, ("H"+label), -1., 1., true, -1., false, "CMS #sqrt{s}=13 TeV Limit (2.5e-3)");
+	    DataPlotter::Empty_Canvas(c);
+	    c = dataplotter_->print_significance("mva37","event", s, ("Z"+label), -1., 1.3, true, -0.71, false, "LEP Limit (1.2e-5)");
+	    DataPlotter::Empty_Canvas(c);
+	    if(printLimitVsEff_) {	  
+	      c = dataplotter_->print_significance("mva6", "event", s, ("H"+label), 0., 1., true, -1., true, "CMS #sqrt{s}=13 TeV Limit (2.5e-3)"); //significance vs efficiency
+	      DataPlotter::Empty_Canvas(c);
+	      c = dataplotter_->print_significance("mva7", "event", s, ("Z"+label), 0., 1., true, -0.71, true, "LEP Limit (1.2e-5)"); //significance vs efficiency
+	      DataPlotter::Empty_Canvas(c);
+	    }
 	  }
-	}
-	else if(selection_=="etau_mu") {
-	  auto c = dataplotter_->print_significance("mva8", "event", s, ("H"+label), -1., 1.,true, -1., false, "CMS #sqrt{s}=13 TeV Limit (6.1e-3)");
-	  DataPlotter::Empty_Canvas(c);									
-	  c = dataplotter_->print_significance("mva9", "event", s, ("Z"+label), -1., 1.,true, -1., false, "LEP Limit (9.8e-6)");
-	  DataPlotter::Empty_Canvas(c);
-	  c = dataplotter_->print_significance("mva18","event", s, ("H"+label), -1., 1., true, -1., false, "CMS #sqrt{s}=13 TeV Limit (2.5e-3)");
-	  DataPlotter::Empty_Canvas(c);
-	  c = dataplotter_->print_significance("mva19","event", s, ("Z"+label), -1., 1.3, true, -0.71, false, "LEP Limit (1.2e-5)");
-	  DataPlotter::Empty_Canvas(c);
-	  c = dataplotter_->print_significance("mva28","event", s, ("H"+label), -1., 1., true, -1., false, "CMS #sqrt{s}=13 TeV Limit (2.5e-3)");
-	  DataPlotter::Empty_Canvas(c);
-	  c = dataplotter_->print_significance("mva29","event", s, ("Z"+label), -1., 1.3, true, -0.71, false, "LEP Limit (1.2e-5)");
-	  DataPlotter::Empty_Canvas(c);
-	  c = dataplotter_->print_significance("mva38","event", s, ("H"+label), -1., 1., true, -1., false, "CMS #sqrt{s}=13 TeV Limit (2.5e-3)");
-	  DataPlotter::Empty_Canvas(c);
-	  c = dataplotter_->print_significance("mva39","event", s, ("Z"+label), -1., 1.3, true, -0.71, false, "LEP Limit (1.2e-5)");
-	  DataPlotter::Empty_Canvas(c);
-	  if(printLimitVsEff_) {
-	    c = dataplotter_->print_significance("mva8", "event", s, ("H"+label), 0., 1., true, -1., true, "CMS #sqrt{s}=13 TeV Limit (6.1e-3)");
+	  else if(selection_=="etau_mu") {
+	    auto c = dataplotter_->print_significance("mva8", "event", s, ("H"+label), -1., 1.,true, -1., false, "CMS #sqrt{s}=13 TeV Limit (6.1e-3)");
+	    DataPlotter::Empty_Canvas(c);									
+	    c = dataplotter_->print_significance("mva9", "event", s, ("Z"+label), -1., 1.,true, -1., false, "LEP Limit (9.8e-6)");
 	    DataPlotter::Empty_Canvas(c);
-	    c = dataplotter_->print_significance("mva9", "event", s, ("Z"+label), 0., 1., true, -1., true, "LEP Limit (9.8e-6)");
+	    c = dataplotter_->print_significance("mva18","event", s, ("H"+label), -1., 1., true, -1., false, "CMS #sqrt{s}=13 TeV Limit (2.5e-3)");
 	    DataPlotter::Empty_Canvas(c);
+	    c = dataplotter_->print_significance("mva19","event", s, ("Z"+label), -1., 1.3, true, -0.71, false, "LEP Limit (1.2e-5)");
+	    DataPlotter::Empty_Canvas(c);
+	    c = dataplotter_->print_significance("mva28","event", s, ("H"+label), -1., 1., true, -1., false, "CMS #sqrt{s}=13 TeV Limit (2.5e-3)");
+	    DataPlotter::Empty_Canvas(c);
+	    c = dataplotter_->print_significance("mva29","event", s, ("Z"+label), -1., 1.3, true, -0.71, false, "LEP Limit (1.2e-5)");
+	    DataPlotter::Empty_Canvas(c);
+	    c = dataplotter_->print_significance("mva38","event", s, ("H"+label), -1., 1., true, -1., false, "CMS #sqrt{s}=13 TeV Limit (2.5e-3)");
+	    DataPlotter::Empty_Canvas(c);
+	    c = dataplotter_->print_significance("mva39","event", s, ("Z"+label), -1., 1.3, true, -0.71, false, "LEP Limit (1.2e-5)");
+	    DataPlotter::Empty_Canvas(c);
+	    if(printLimitVsEff_) {
+	      c = dataplotter_->print_significance("mva8", "event", s, ("H"+label), 0., 1., true, -1., true, "CMS #sqrt{s}=13 TeV Limit (6.1e-3)");
+	      DataPlotter::Empty_Canvas(c);
+	      c = dataplotter_->print_significance("mva9", "event", s, ("Z"+label), 0., 1., true, -1., true, "LEP Limit (9.8e-6)");
+	      DataPlotter::Empty_Canvas(c);
+	    }
 	  }
 	}
       }
-    }
-  } //end significance loop
-
+    } //end significance loop
+  }
+  
   //not log plots
 
   dataplotter_->logY_ = 0;
@@ -585,6 +604,7 @@ Int_t init_dataplotter() {
   dataplotter_ = new DataPlotter();
   dataplotter_->selection_ = selection_;
   dataplotter_->folder_ = folder_;
+  if(useNanoAods_) dataplotter_->include_qcd_ = 0;
   if(selection_ == "mutau")
     dataplotter_->qcd_scale_ = 1.059;
   else if(selection_ == "etau")
@@ -593,7 +613,10 @@ Int_t init_dataplotter() {
     dataplotter_->qcd_scale_ = 1.;
   
   dataplotter_->doStatsLegend_ = doStatsLegend_;
-  dataplotter_->signal_scale_ = 250.;
+  if(selection_ == "emu" && useNanoAods_)
+    dataplotter_->signal_scale_ = 25.;
+  else
+    dataplotter_->signal_scale_ = 250.;
   dataplotter_->useOpenGL_ = (gROOT->IsBatch()) ? 0 : useOpenGL_;
 
   //dataset names
@@ -761,9 +784,31 @@ Int_t init_dataplotter() {
   xsec[43] = (48.61+3.766+0.5071+1.358+0.880)*3.5e-4*34429./(88.*500); //hemu   xsec(higgs,glu+vbf)*br(emu, CL=95)  *N(accepted)/N(Gen) http://pdg.lbl.gov/2019/listings/rpp2019-list-higgs-boson.pdf
 
 
-  vector<TString> files;
+  ///////////////////////////////////
+  // Defining NANO AOD based files //
+  ///////////////////////////////////
+
+  std::vector<DataPlotter::DataCard_t> nano_cards;
+  //card constructor: filepath, name, label, isData, xsec, isSignal, color
+  nano_cards.push_back(DataPlotter::DataCard_t("clfv_DY50"               , "DY50"               , "Drell-Yan", false, 6225.42              , false, kRed-3));
+  nano_cards.push_back(DataPlotter::DataCard_t("clfv_SingleAntiToptW"    , "SingleAntiToptW"    , "SingleTop", false, 34.91                , false, kCyan-7));
+  nano_cards.push_back(DataPlotter::DataCard_t("clfv_SingleToptW"        , "SingleToptW"        , "SingleTop", false, 34.91                , false, kCyan-7));
+  nano_cards.push_back(DataPlotter::DataCard_t("clfv_WW"                 , "WW"	                , "WW"       , false, 12.178               , false, kViolet+6));
+  nano_cards.push_back(DataPlotter::DataCard_t("clfv_WZ"                 , "WZ"                 , "WZ"       , false, 27.6                 , false, kViolet+4));
+  nano_cards.push_back(DataPlotter::DataCard_t("clfv_Wlnu"               , "Wlnu"               , "W+Jets"   , false, 52850.0              , false, kGreen-7));
+  nano_cards.push_back(DataPlotter::DataCard_t("clfv_ttbarToSemiLeptonic", "ttbarToSemiLeptonic", "t#bar{t}" , false, 365.34               , false, kYellow-7));
+  nano_cards.push_back(DataPlotter::DataCard_t("clfv_ttbarlnu"           , "ttbarlnu"           , "t#bar{t}" , false, 88.29                , false, kYellow-7));
+  nano_cards.push_back(DataPlotter::DataCard_t("clfv_Signal"             , "Signal"             , "Z->e#mu"  , false, 2075.14/0.0337*7.3e-7, true , kBlue));  
+  nano_cards.push_back(DataPlotter::DataCard_t("clfv_SingleMu"           , "SingleMu"           , "Data"     , true , 1.                   , false));  
+  nano_cards.push_back(DataPlotter::DataCard_t("clfv_SingleEle"          , "SingleEle"          , "Data"     , true , 1.                   , false));  
+
   TString selection_dir = (leptonic_tau) ? "emu" : selection_;
-  for(int i = 0; i < sizeof(process)/sizeof(*process); ++i) {
+  for(unsigned index = 0; index < nano_cards.size(); ++index)
+    nano_cards[index].filename_ = Form("%s/ztautau_%s_%s.hist", hist_dir_.Data(), selection_dir.Data(),
+				       (nano_cards[index].filename_).Data());
+  vector<TString> files;
+  unsigned nfiles = sizeof(process)/sizeof(*process);
+  for(int i = 0; i < nfiles; ++i) {
     if(process[i]) {
       files.push_back(Form("%s/ztautau_%s_%s.hist",hist_dir_.Data(),selection_dir.Data(),fnames[i].Data()));
     } else
@@ -793,7 +838,8 @@ Int_t init_dataplotter() {
   // const char* dFiles[] = {Form("tree_%s.hist",dNames[0])};
   vector<TString> dFiles;
   vector<TString> dNames;
-  for(int i = 0; i < sizeof(dNamesMu)/sizeof(*dNamesMu); ++i) {
+  unsigned ndata = sizeof(dNamesMu)/sizeof(*dNamesMu);
+  for(unsigned i = 0; i < ndata; ++i) {
     if(selection_ == "etau" ) {
       dNames.push_back(dNamesE[i]);
       dFiles.push_back(Form("%s/ztautau_%s_bltTree_%s.hist",hist_dir_.Data(),selection_.Data(),dNamesE[i]));
@@ -802,9 +848,9 @@ Int_t init_dataplotter() {
       dFiles.push_back(Form("%s/ztautau_%s_bltTree_%s.hist",hist_dir_.Data(),selection_.Data(),dNamesMu[i]));
     } else if(selection_ == "emu" || leptonic_tau) {
       dNames.push_back(dNamesMu[i]);
-      dFiles.push_back(Form("%s/ztautau_%s_bltTree_%s.hist",hist_dir_.Data(),selection_dir.Data(),dNamesMu[i]));
+      dFiles.push_back(Form("%s/ztautau_%s_bltTree_%s.hist",hist_dir_.Data(),selection_.Data(),dNamesMu[i]));
       dNames.push_back(dNamesE[i]);
-      dFiles.push_back(Form("%s/ztautau_%s_bltTree_%s.hist",hist_dir_.Data(),selection_dir.Data(),dNamesE[i]));
+      dFiles.push_back(Form("%s/ztautau_%s_bltTree_%s.hist",hist_dir_.Data(),selection_.Data(),dNamesE[i]));
     }
     
   }
@@ -821,13 +867,20 @@ Int_t init_dataplotter() {
 
   double lum    = accumulate(begin(dLum), end(dLum), 0, plus<double>());; //pb^-1
   dataplotter_->set_luminosity(lum);
-
-  for(int i = 0; i < files.size(); ++i) {
-    if(files[i] != "") dataplotter_->add_dataset(files[i], names[i], labels[i], false, xsec[i], signal[i]);
+  dataplotter_->verbose_ = verbose_;
+  if(useNanoAods_) {
+    for(auto card : nano_cards)
+      dataplotter_->add_dataset(card);
+  } else {
+    for(int i = 0; i < files.size(); ++i) {
+      if(files[i] != "") {
+	dataplotter_->add_dataset(files[i], names[i], labels[i], false, xsec[i], signal[i]);
+      }
+    }
+    
+    for(int i = 0; i < dFiles.size(); ++i)
+      if(dFiles[i] != "") dataplotter_->add_dataset(dFiles[i], dNames[i], "Data", true, 1., false);
   }
-  
-  for(int i = 0; i < dFiles.size(); ++i)
-    if(dFiles[i] != "") dataplotter_->add_dataset(dFiles[i], dNames[i], "Data", true, 1., false);
 
   return dataplotter_->init_files();
 }
@@ -884,8 +937,8 @@ Int_t print_emu_cutsets() {
   plottingcards.push_back(DataPlotter::PlottingCard_t("lepm", "event", 1, 75.,   110., {84, 118}, {98, 132.} ));
   plottingcards.push_back(DataPlotter::PlottingCard_t("met" , "event", 1, 0., 45.));
   plottingcards.push_back(DataPlotter::PlottingCard_t("puppmet" , "event", 1, 0., 45.));
-  vector<Int_t> sets = {63};
-  vector<Double_t> scales = {25.};
+  vector<Int_t> sets = {47,63};
+  vector<Double_t> scales = {25.,6.8};
   vector<Int_t> rebins = {1};
   dataplotter_->logY_ = 1;
   status += dataplotter_->print_stacks(plottingcards, sets, scales, rebins);
