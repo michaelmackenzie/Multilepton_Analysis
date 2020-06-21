@@ -24,6 +24,11 @@ scripts/*.root
 *.log
 histograms/canvases/*/*/*.root
 
+#ignore images by default
+*.png
+*.gif
+*.jpg
+
 Pythia
 CLFV_ZDecays_Pythia
 ExRootAnalysis
