@@ -14,12 +14,18 @@ int initialize_data(TString selection = "emu") {
   dataplotter_->doStatsLegend_ = 0;
   dataplotter_->include_qcd_ = 0;
   dataplotter_->draw_statistics_ = false;
+  //for simplicity
+  typedef DataPlotter::DataCard_t datacard;
+  std::vector<datacard> cards;
+  //card constructor: filename, tree name, dataset label, isData, xsec, isSignal, color
+  cards.push_back(datacard(("ztautau_"+selection+"_bltTree_zemu.hist"          ).Data(), "bltTree_zemu"          , "Z->e#mu"    , false, 0.028, true , kBlue));
+  cards.push_back(datacard(("ztautau_"+selection+"_bltTree_hemu.hist"          ).Data(), "bltTree_hemu"          , "H->e#mu"    , false, 0.015, true , kOrange));
+  cards.push_back(datacard(("ztautau_"+selection+"_bltTree_htautau_gluglu.hist").Data(), "bltTree_htautau_gluglu", "H->#tau#tau", false, 3.07 , false, kViolet-3));
+  cards.push_back(datacard(("ztautau_"+selection+"_bltTree_t_tw.hist"          ).Data(), "bltTree_t_tw"          , "Top"        , false, 35.85, false, kYellow-7));
+  cards.push_back(datacard(("ztautau_"+selection+"_bltTree_tbar_tw.hist"       ).Data(), "bltTree_tbar_tw"       , "Top"        , false, 35.85, false, kYellow-7));
   int status = 0;
-  status += dataplotter_->add_dataset(Form("ztautau_%s_bltTree_zemu.hist"          , selection.Data()), "bltTree_zemu", "Z->e#mu"    , false, 0.028, true);
-  status += dataplotter_->add_dataset(Form("ztautau_%s_bltTree_hemu.hist"          , selection.Data()), "bltTree_hemu", "H->e#mu"    , false, 0.015, true);
-  status += dataplotter_->add_dataset(Form("ztautau_%s_bltTree_htautau_gluglu.hist", selection.Data()), "bltTree_zemu", "H->#tau#tau", false, 3.07 , false);
-  status += dataplotter_->add_dataset(Form("ztautau_%s_bltTree_t_tw.hist"          , selection.Data()), "bltTree_zemu", "Top"        , false, 35.85, false);
-  status += dataplotter_->add_dataset(Form("ztautau_%s_bltTree_tbar_tw.hist"       , selection.Data()), "bltTree_zemu", "Top"        , false, 35.85, false);
+  for(datacard card : cards)
+    status += dataplotter_->add_dataset(card);
   dataplotter_->init_files();
   return status;
 }
