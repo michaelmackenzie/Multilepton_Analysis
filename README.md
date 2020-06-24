@@ -33,24 +33,9 @@ Contains ROOT scripts to process the analyzer produced ntuples
 
 Descriptions:
 
-- MultileptonHistMaker.cc makes books of histograms when running over the multilepton ntuple
-
-- process_multilepton.C processes a list of ntuples through the MultileptonHistMaker
-
-- MultileptonNTupleMaker.cc makes books of trees when running over the multilepton ntuples
-
-- process_multileptonNT.C processes a list of ntuples through the MultileptonNTupleMaker
-
-- make_background.C adds the trees for the various processes from a given book output in the
-MultileptonNTupleMaker's output trees, using the cross section and generation values
-
 - ZTauTauHistMaker.cc makes books of histograms when running over the ztautau ntuples
 
 - process_ztautau.C processes a list of ntuples through the ZTauTauHistMaker
-
-- find_cuts.C loops over output from MultileptonHistMaker and identifies a rectangular
-cut that has the greatest increase in signal/background for a fixed efficiency drop
-in the signal
 
 - Fitter.cc is used to get legendre polynomials for background fits, made to match up
 with Multilepton studies
@@ -100,28 +85,13 @@ Examples in examples directory:
 In ROOT:
 ```c++
   .x process_ntuples.C; //create histogram files
-  .L plot_histograms.C;
+  .L plot_histograms.C; //plot the histograms using a DataPlotter (dataplotter_ in this namespace)
   plot_histograms("[name of histogram]", [set number], "[set type]", [xmin], [xmax], [rebin number]); //returns a canvas
 ```
 
 General examples:
 
 in ROOT:
-### MultileptonHistMaker
-```c++
-.L MultileptonHistMaker.cc++g; //recompile in debug mode
-TTree* tree = [Get MultileptonAnalyzer Tree];
-MultileptonHistMaker* selec = new MultileptonHistMaker();
-tree->Process(selec,"");
-```
-
-### MultileptonNTupleMaker
-```c++
-.L MultileptonNTupleMaker.cc++g; //recompile in debug mode
-TTree* tree = [Get MultileptonAnalyzer Tree];
-MultileptonNTupleMaker* selec = new MultileptonNTupleMaker();
-tree->Process(selec,"");
-  ```
   
 ### ZTauTauHistMaker
 ```c++
