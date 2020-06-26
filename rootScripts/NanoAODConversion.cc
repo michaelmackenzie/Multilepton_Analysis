@@ -247,7 +247,7 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
     if(!fIsData) lepTwoWeight = particleCorrections->MuonWeight(muonPt[1], muonEta[1], trigger, fYear);
   } else if(selection == kEE) {
     leptonTwoP4->SetPtEtaPhiM(electronPt[1], electronEta[1], electronPhi[1], electronMass[1]);
-    leptonTwoFlavor = 13;
+    leptonTwoFlavor = 11;
     if(!fIsData) lepTwoWeight = particleCorrections->ElectronWeight(electronPt[1], electronEta[1], fYear);
   }
   if(!fIsData)
