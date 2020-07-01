@@ -12,8 +12,7 @@
   gInterpreter->AddIncludePath("./include");
   // gInterpreter->AddIncludePath(gSystem->Getenv("CLHEP_INC"));
   gInterpreter->AddIncludePath(Form("%s/include",gSystem->Getenv("ROOTSYS")));
-
-
+  TString osversion = gSystem->Getenv("OSVERSION");
 //-----------------------------------------------------------------------------
 // load in ROOT physics vectors and event generator libraries
 //-----------------------------------------------------------------------------
@@ -68,27 +67,28 @@
       printf("process ID: %i\n",gSystem->GetPid());
       TAuthenticate::SetGlobalUser(gSystem->Getenv("USER"));
       gInterpreter->ProcessLine(".! ps | grep root");
-      printf("Loading AsciiPlotter, Multilepton_X_Makers, ZTauTau_X_Makers, Fitter, DataPlotter, and CutsetTrainer\n");
+      printf("Loading AsciiPlotter, ZTauTau_X_Makers, Fitter, DataPlotter, and CutsetTrainer\n");
       TString cmssw = gSystem->Getenv("CMSSW_BASE");
-      gSystem->Load((cmssw + "/src/BLT/BLTAnalysis/AsciiPlotter/AsciiPlotter_cc.so").Data());
-      gSystem->Load((cmssw + "/src/BLT/BLTAnalysis/rootScripts/ZTauTauHistMaker_cc.so").Data());
-      gSystem->Load((cmssw + "/src/BLT/BLTAnalysis/rootScripts/MultileptonHistMaker_cc.so").Data());
-      gSystem->Load((cmssw + "/src/BLT/BLTAnalysis/rootScripts/MultileptonNTupleMaker_cc.so").Data());
-      gSystem->Load((cmssw + "/src/BLT/BLTAnalysis/rootScripts/Fitter_cc.so").Data());
-      gSystem->Load((cmssw + "/src/BLT/BLTAnalysis/rootScripts/DataPlotter_cc.so").Data());
-      gSystem->Load((cmssw + "/src/BLT/BLTAnalysis/CutsetTraining/CutsetTrainer_cc.so").Data());
+      TString path = (osversion == "") ? "/src/BLT/BLTAnalysis/" : gSystem->Getenv("PWD");
+      if(osversion != "") path += "/../";
+      // gSystem->Load((cmssw + path + "AsciiPlotter/AsciiPlotter_cc.so").Data());
+      gSystem->Load((cmssw + path + "rootScripts/ZTauTauHistMaker_cc.so").Data());
+     // gSystem->Load((cmssw + path + "rootScripts/Fitter_cc.so").Data());
+      gSystem->Load((cmssw + path + "rootScripts/DataPlotter_cc.so").Data());
+     // gSystem->Load((cmssw + path + "CutsetTraining/CutsetTrainer_cc.so").Data());
 
-      cout << "Loading SVFit libraries" << endl;
-      gSystem->Load("libTauAnalysisClassicSVfit.so");
-      gSystem->Load("libTauAnalysisSVfitTF.so");
+      // cout << "Loading SVFit libraries" << endl;
+     // gSystem->Load("libTauAnalysisClassicSVfit.so");
+     // gSystem->Load("libTauAnalysisSVfitTF.so");
     }
   }
 //-----------------------------------------------------------------------------
 //  databases
 //-----------------------------------------------------------------------------
-      cout << "Loading Bacon data formats." << endl;
-      gSystem->Load("libBaconAnaDataFormats.so");
+  if(osversion == "") { //only load if on LPC
+    cout << "Loading Bacon data formats." << endl;
+    gSystem->Load("libBaconAnaDataFormats.so"); 
+  }
 }
-
 
 

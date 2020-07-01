@@ -2,73 +2,10 @@
 #include "ZTauTauHistMaker.cc+g"
 Int_t process_ztautau() {
 
-  const char* gridPath[] = {
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //ttbar
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //DY AMC
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //DY AMC
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //t_tw
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //tbar_tw
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //DY MadGraph
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //DY MadGraph
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //DY 1 Jet MadGraph
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //DY 1 Jet MadGraph
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //DY 2 Jet MadGraph
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //DY 2 Jet MadGraph
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //DY 3 Jet MadGraph
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //DY 3 Jet MadGraph
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //DY 4 Jet MadGraph
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //DY 4 Jet MadGraph
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //W 1 Jet
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //W 2 Jet
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //W 3 Jet
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //W 4 Jet
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //WJets amcnlo
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //WJets amcnlo (ext 1)
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //WJets amcnlo (ext 2)
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //WW
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //WZ Jets to 2L2Q
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //WZ Jets to 3LNu
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //ZZ Jets to 2L2Nu
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //ZZ Jets to 2L2Q
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //ZZ Jets to 4L
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //HZG gluglu
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //HZG tth
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //HZG vbf
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //HZG W-
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //HZG W+
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //HZG zh
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //HTauTau gluglu
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //ZETau
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //ZMuTau
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //ZEMu
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //HETau
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //HMuTau
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //HEMu
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //qcd ht   50 to  100
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //qcd ht  100 to  200
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //qcd ht  200 to  300
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //qcd ht  300 to  500
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //qcd ht  500 to  700
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //qcd ht  700 to 1000
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //qcd ht 1000 to 1500
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //qcd ht 1500 to 2000
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //qcd ht 2000 to inf 
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //Muon Data 2016 B
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //Muon Data 2016 C
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //Muon Data 2016 D
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //Muon Data 2016 E
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //Muon Data 2016 F
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //Muon Data 2016 G
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //Muon Data 2016 H
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //Electron Data 2016 B
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //Electron Data 2016 C
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //Electron Data 2016 D
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //Electron Data 2016 E
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //Electron Data 2016 F
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //Electron Data 2016 G
-    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/"  //Electron Data 2016 H
-    
-  };
+  TString osversion = gSystem->Getenv("OSVERSION");
+  TString gridPath = (osversion == "") ? "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/"
+    : "/mnt/data/mmackenz/ztautau_trees/";
+
   
   const char* files[] = {"output_ttbar_inclusive.root"             ,
 			 "output_DYJetsToLL_M-50_amcatnlo.root"    ,
@@ -286,12 +223,12 @@ Int_t process_ztautau() {
 	 << ", doProcess " << doProcess[i] << endl;
     if(!doProcess[i]) continue;
     const char* c = files[i];
-    TFile* f = TFile::Open(Form("%s%s",gridPath[i],c));
+    TFile* f = TFile::Open((gridPath+c).Data(),"READ");
     if(f == 0) {
-      printf("File %s%s not found, continuing\n",gridPath[i],c);
+      printf("File %s not found, continuing\n",(gridPath + c).Data());
       continue;
     }
-    printf("using %s%s\n",gridPath[i],c);
+    printf("using %s\n",(gridPath+c).Data());
     TDirectoryFile* fChannel = 0;
     TH1F* events = 0;
     TKey* key = 0;
@@ -311,7 +248,7 @@ Int_t process_ztautau() {
       if(obj->IsA()->InheritsFrom(TH1::Class())) events = (TH1F*)obj;
     }
     if(events == 0) {
-      printf("Events Histogram in %s%s not found, continuing\n",gridPath[i],c);
+      printf("Events Histogram in %s not found, continuing\n",(gridPath+c).Data());
       continue;
     }
     
@@ -363,11 +300,11 @@ Int_t process_ztautau() {
       }
       //check that these are found
       if(tree == 0) {
-	printf("Tree in %s%s/%s not found, continuing\n",gridPath[i],c,fChannel->GetName());
+	printf("Tree in %s/%s not found, continuing\n",(gridPath+c).Data(),fChannel->GetName());
 	continue;
       }
       if(eventsChannel == 0) {
-	printf("Events Channel Histogram in %s%s/%s not found, continuing\n",gridPath[i],c,fChannel->GetName());
+	printf("Events Channel Histogram in %s/%s not found, continuing\n",(gridPath+c).Data(),fChannel->GetName());
 	continue;
       }
       // if Drell-Yan, loop through it twice, doing tautau then ee/mumu
