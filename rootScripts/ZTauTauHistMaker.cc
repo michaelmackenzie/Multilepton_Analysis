@@ -223,6 +223,7 @@ void ZTauTauHistMaker::BookEventHistograms() {
       fEventHist[i]->hSysM          = new TH1F("sysm"          , Form("%s: SysM"          ,dirname)  ,1000,  0, 1e3);     
       fEventHist[i]->hSysPt         = new TH1F("syspt"         , Form("%s: SysPt"         ,dirname)  , 200,  0, 400);     
       fEventHist[i]->hSysEta        = new TH1F("syseta"        , Form("%s: SysEta"        ,dirname)  , 100, -5,   5);     
+      fEventHist[i]->hSysMvsLepM    = new TH2F("sysmvslepm"    , Form("%s: SysMvsLepM"    ,dirname)  , 200, 0., 200., 200, 0., 200.);     
 
       fEventHist[i]->hMTOne         = new TH1F("mtone"         , Form("%s: MTOne"         ,dirname)  , 200, 0.,   200.);     
       fEventHist[i]->hMTTwo         = new TH1F("mttwo"         , Form("%s: MTTwo"         ,dirname)  , 200, 0.,   200.);     
@@ -263,6 +264,38 @@ void ZTauTauHistMaker::BookEventHistograms() {
 	//high mva score binning to improve cdf making
 	fEventHist[i]->hMVA[j]        = new TH1F(Form("mva%i",j)   , Form("%s: %s MVA" ,dirname, fMvaNames[j].Data()) ,10000, -1.,  2.); //beyond 1 for space for legend
       }      
+      if(fFolderName == "llg_study") {
+	//llg study histograms
+	TH1F* hObjMasses[14]; //jets, jets+gamma, jet1/2 + gamma, jets + l1/2, jet1/2 + l1/2, jets+l1+l2, jets + gamma + l1/2, jets + gamma + l1 + l2
+	//masses
+	fEventHist[i]->hObjMasses[0 ]     = new TH1F("objmasses0"       , Form("%s: ObjMasses0        ", dirname), 300, 0., 600.);
+	fEventHist[i]->hObjMasses[1 ]     = new TH1F("objmasses1"       , Form("%s: ObjMasses1        ", dirname), 300, 0., 600.);
+	fEventHist[i]->hObjMasses[2 ]     = new TH1F("objmasses2"       , Form("%s: ObjMasses2        ", dirname), 300, 0., 600.);
+	fEventHist[i]->hObjMasses[3 ]     = new TH1F("objmasses3"       , Form("%s: ObjMasses3        ", dirname), 300, 0., 600.);
+	fEventHist[i]->hObjMasses[4 ]     = new TH1F("objmasses4"       , Form("%s: ObjMasses4        ", dirname), 300, 0., 600.);
+	fEventHist[i]->hObjMasses[5 ]     = new TH1F("objmasses5"       , Form("%s: ObjMasses5        ", dirname), 300, 0., 600.);
+	fEventHist[i]->hObjMasses[6 ]     = new TH1F("objmasses6"       , Form("%s: ObjMasses6        ", dirname), 300, 0., 600.);
+	fEventHist[i]->hObjMasses[7 ]     = new TH1F("objmasses7"       , Form("%s: ObjMasses7        ", dirname), 300, 0., 600.);
+	fEventHist[i]->hObjMasses[8 ]     = new TH1F("objmasses8"       , Form("%s: ObjMasses8        ", dirname), 300, 0., 600.);
+	fEventHist[i]->hObjMasses[9 ]     = new TH1F("objmasses9"       , Form("%s: ObjMasses9        ", dirname), 300, 0., 600.);
+	fEventHist[i]->hObjMasses[10]     = new TH1F("objmasses10"      , Form("%s: ObjMasses10       ", dirname), 300, 0., 600.);
+	fEventHist[i]->hObjMasses[11]     = new TH1F("objmasses11"      , Form("%s: ObjMasses11       ", dirname), 300, 0., 600.);
+	fEventHist[i]->hObjMasses[12]     = new TH1F("objmasses12"      , Form("%s: ObjMasses12       ", dirname), 300, 0., 600.);
+	fEventHist[i]->hObjMasses[13]     = new TH1F("objmasses13"      , Form("%s: ObjMasses13       ", dirname), 300, 0., 600.);
+	fEventHist[i]->hJetTwoM           = new TH1F("jettwom"           , Form("%s: JetTwoM           ", dirname), 100, 0., 100.);
+	fEventHist[i]->hJetTwoPt          = new TH1F("jettwopt"          , Form("%s: JetTwoPt          ", dirname), 300, 0., 300.);
+	fEventHist[i]->hJetTwoEta         = new TH1F("jettwoeta"         , Form("%s: JetTwoEta         ", dirname), 200,-10., 10.);
+	fEventHist[i]->hJetsDeltaR        = new TH1F("jetsdeltar"        , Form("%s: JetsDeltaR        ", dirname), 120, 0.,  12.);
+	fEventHist[i]->hJetsDeltaEta      = new TH1F("jetsdeltaeta"      , Form("%s: JetsDeltaEta      ", dirname), 120, 0.,  12.);
+	fEventHist[i]->hJetsDeltaPhi      = new TH1F("jetsdeltaphi"      , Form("%s: JetsDeltaPhi      ", dirname),  40, 0.,   4.);
+	fEventHist[i]->hJetsPt            = new TH1F("jetspt"            , Form("%s: JetsPt            ", dirname), 200, 0., 400.);
+	fEventHist[i]->hJetsEta           = new TH1F("jetseta"           , Form("%s: JetsEta           ", dirname), 200,-10., 10.);
+	fEventHist[i]->hJetsGammaDeltaR   = new TH1F("jetsgammadeltar"   , Form("%s: JetsGammaDeltaR   ", dirname), 120, 0.,  12.);
+	fEventHist[i]->hJetsGammaDeltaEta = new TH1F("jetsgammadeltaeta" , Form("%s: JetsGammaDeltaEta ", dirname), 120, 0.,  12.);
+	fEventHist[i]->hJetsGammaDeltaPhi = new TH1F("jetsgammadeltaphi" , Form("%s: JetsGammaDeltaPhi ", dirname),  40, 0.,   4.);
+	fEventHist[i]->hJetsGammaPt       = new TH1F("jetsgammapt"       , Form("%s: JetsGammaPt       ", dirname), 200, 0., 400.);
+	fEventHist[i]->hJetsGammaEta      = new TH1F("jetsgammaeta"      , Form("%s: JetsGammaEta      ", dirname), 200,-10., 10.);
+      }
     }
   }
 }
@@ -280,6 +313,7 @@ void ZTauTauHistMaker::BookPhotonHistograms() {
       fPhotonHist[i]->hP         = new TH1F("p"       , Form("%s: P"       ,dirname)  , 500,   0, 1e3);
       fPhotonHist[i]->hEta       = new TH1F("eta"     , Form("%s: Eta"     ,dirname)  , 200, -10,  10);
       fPhotonHist[i]->hPhi       = new TH1F("phi"     , Form("%s: Phi"     ,dirname)  ,  80,  -4,   4);
+      fPhotonHist[i]->hMVA       = new TH1F("mva"     , Form("%s: MVA"     ,dirname)  , 200,  -1,   1);
       // fPhotonHist[i]->hIso       = new TH1F("iso"     , Form("%s: Iso"     ,dirname)  , 200,   0,  10);
       // fPhotonHist[i]->hRelIso    = new TH1F("reliso"  , Form("%s: Iso / Pt",dirname)  , 200,   0,   1);
       // fPhotonHist[i]->hTrigger   = new TH1F("trigger" , Form("%s: Trigger" ,dirname)  ,  10,   0,  10);
@@ -415,7 +449,7 @@ void ZTauTauHistMaker::BookTrees() {
   }
 }
 
-//selections: 1 = mutau, 2 = etau, 5 = emu
+//selections: 1 = mutau, 2 = etau, 5 = emu, 9 = mumu, 18 = llg_study
 void ZTauTauHistMaker::InitializeTreeVariables(Int_t selection) {
   nJets25Tot = nJets + nJets25;
   nBJets25Tot = nBJets + nBJets25;
@@ -616,11 +650,11 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
   Hist->hHt		     ->Fill(ht		       , genWeight*eventWeight)   ;
   Hist->hHtPhi               ->Fill(htPhi              , genWeight*eventWeight)   ;
 
-  if(jetP4 && jetP4->Pt() > 0.) { //if 0 then no jet stored
-    Hist->hJetPt               ->Fill(jetP4->Pt()        , genWeight*eventWeight)   ;
-    Hist->hJetM                ->Fill(jetP4->M()         , genWeight*eventWeight)   ;
-    Hist->hJetEta              ->Fill(jetP4->Eta()       , genWeight*eventWeight)   ;
-    Hist->hJetPhi              ->Fill(jetP4->Phi()       , genWeight*eventWeight)   ;
+  if(jetOneP4 && jetOneP4->Pt() > 0.) { //if 0 then no jet stored
+    Hist->hJetPt               ->Fill(jetOneP4->Pt()        , genWeight*eventWeight)   ;
+    Hist->hJetM                ->Fill(jetOneP4->M()         , genWeight*eventWeight)   ;
+    Hist->hJetEta              ->Fill(jetOneP4->Eta()       , genWeight*eventWeight)   ;
+    Hist->hJetPhi              ->Fill(jetOneP4->Phi()       , genWeight*eventWeight)   ;
   }
 
   if(tauP4 && tauP4->Pt() > 0.) { //if 0 then no tau stored
@@ -666,7 +700,7 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
   float lepDelPhi = abs(leptonOneP4->DeltaPhi(*leptonTwoP4));
   float lepDelEta = abs(leptonOneP4->Eta() - leptonTwoP4->Eta());
   float htDelPhi  = abs(lepSys.Phi() - htPhi);
-  float jetDelPhi = (jetP4 && jetP4->Pt() > 0.) ? abs(lepSys.DeltaPhi(*jetP4)) : -1.;
+  float jetDelPhi = (jetOneP4 && jetOneP4->Pt() > 0.) ? abs(lepSys.DeltaPhi(*jetOneP4)) : -1.;
   if(htDelPhi > M_PI)
     htDelPhi = abs(2.*M_PI - htDelPhi);
   float metDelPhi  = abs(lepSys.Phi() - metPhi);
@@ -680,12 +714,12 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
     lepTwoDelPhi = abs(2.*M_PI - lepTwoDelPhi);
 
   //angles between leptons and leading jet
-  float lepOneJetDeltaR   = (jetP4 && jetP4->Pt() > 0.) ? leptonOneP4->DeltaR(*jetP4)            : -1.;
-  float lepOneJetDeltaPhi = (jetP4 && jetP4->Pt() > 0.) ? abs(leptonOneP4->DeltaPhi(*jetP4))     : -1.;
-  float lepOneJetDeltaEta = (jetP4 && jetP4->Pt() > 0.) ? abs(leptonOneP4->Eta() - jetP4->Eta()) : -1.;
-  float lepTwoJetDeltaR   = (jetP4 && jetP4->Pt() > 0.) ? leptonTwoP4->DeltaR(*jetP4)            : -1.;
-  float lepTwoJetDeltaPhi = (jetP4 && jetP4->Pt() > 0.) ? abs(leptonTwoP4->DeltaPhi(*jetP4))     : -1.;
-  float lepTwoJetDeltaEta = (jetP4 && jetP4->Pt() > 0.) ? abs(leptonTwoP4->Eta() - jetP4->Eta()) : -1.;
+  float lepOneJetDeltaR   = (jetOneP4 && jetOneP4->Pt() > 0.) ? leptonOneP4->DeltaR(*jetOneP4)            : -1.;
+  float lepOneJetDeltaPhi = (jetOneP4 && jetOneP4->Pt() > 0.) ? abs(leptonOneP4->DeltaPhi(*jetOneP4))     : -1.;
+  float lepOneJetDeltaEta = (jetOneP4 && jetOneP4->Pt() > 0.) ? abs(leptonOneP4->Eta() - jetOneP4->Eta()) : -1.;
+  float lepTwoJetDeltaR   = (jetOneP4 && jetOneP4->Pt() > 0.) ? leptonTwoP4->DeltaR(*jetOneP4)            : -1.;
+  float lepTwoJetDeltaPhi = (jetOneP4 && jetOneP4->Pt() > 0.) ? abs(leptonTwoP4->DeltaPhi(*jetOneP4))     : -1.;
+  float lepTwoJetDeltaEta = (jetOneP4 && jetOneP4->Pt() > 0.) ? abs(leptonTwoP4->Eta() - jetOneP4->Eta()) : -1.;
 
   float lepSVDelR   = -1.;
   float lepSVDelPhi = -1.;
@@ -718,7 +752,7 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
   Hist->hLepOneDeltaPhi->Fill(lepOneDelPhi          ,eventWeight*genWeight);
   Hist->hLepTwoDeltaPhi->Fill(lepTwoDelPhi          ,eventWeight*genWeight);
 
-  if(jetP4 && jetP4->Pt() > 0.) { //only fill if there's at least one jet
+  if(jetOneP4 && jetOneP4->Pt() > 0.) { //only fill if there's at least one jet
     Hist->hLepOneJetDeltaR  ->Fill(lepOneJetDeltaR  ,eventWeight*genWeight);
     Hist->hLepOneJetDeltaPhi->Fill(lepOneJetDeltaPhi,eventWeight*genWeight);
     Hist->hLepOneJetDeltaEta->Fill(lepOneJetDeltaEta,eventWeight*genWeight);
@@ -742,7 +776,8 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
   Hist->hSysM          ->Fill(sys.M()      ,eventWeight*genWeight);
   Hist->hSysPt         ->Fill(sys.Pt()     ,eventWeight*genWeight);
   Hist->hSysEta        ->Fill(sys.Eta()    ,eventWeight*genWeight);  
-
+  Hist->hSysMvsLepM    ->Fill(lepSys.M(), sys.M(), eventWeight*genWeight);
+  
   Hist->hMTOne         ->Fill(fTreeVars.mtone  ,eventWeight*genWeight);
   Hist->hMTTwo         ->Fill(fTreeVars.mttwo  ,eventWeight*genWeight);
 
@@ -822,6 +857,41 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
   for(unsigned i = 0; i < fMvaNames.size(); ++i) {
     Hist->hMVA[i]   ->Fill(fMvaOutputs[i], eventWeight*genWeight);
   }
+  if(fFolderName != "llg_study") return;
+  TLorentzVector jets = *jetOneP4 + *jetTwoP4, jet1g = *jetOneP4 + *photonP4, jet2g = *jetTwoP4 + *photonP4;
+  TLorentzVector jetsg = jets + *photonP4, jet1l1 = *jetOneP4 + *leptonOneP4, jet1l2 = *jetOneP4 + *leptonTwoP4;
+  TLorentzVector jet2l1 = *jetTwoP4 + *leptonOneP4, jet2l2 = *jetTwoP4 + *leptonTwoP4;
+  TLorentzVector jetsl1 = jets + *leptonOneP4, jetsl2 = jets + *leptonTwoP4;
+  TLorentzVector jetsl1g = jetsl1 + *photonP4, jetsl2g = jetsl2 + *photonP4;
+  TLorentzVector jetsllg = jetsl1g + *leptonTwoP4;
+  
+  Hist->hObjMasses[0 ]     ->Fill(jets.M() ,eventWeight*genWeight);
+  Hist->hObjMasses[1 ]     ->Fill(jet1g.M() ,eventWeight*genWeight);
+  Hist->hObjMasses[2 ]     ->Fill(jet2g.M() ,eventWeight*genWeight);
+  Hist->hObjMasses[3 ]     ->Fill(jetsg.M() ,eventWeight*genWeight);
+  Hist->hObjMasses[4 ]     ->Fill(jet1l1.M() ,eventWeight*genWeight);
+  Hist->hObjMasses[5 ]     ->Fill(jet2l1.M() ,eventWeight*genWeight);
+  Hist->hObjMasses[6 ]     ->Fill(jet1l2.M() ,eventWeight*genWeight);
+  Hist->hObjMasses[7 ]     ->Fill(jet2l2.M() ,eventWeight*genWeight);
+  Hist->hObjMasses[8 ]     ->Fill(jetsl1.M() ,eventWeight*genWeight);
+  Hist->hObjMasses[9 ]     ->Fill(jetsl2.M() ,eventWeight*genWeight);
+  Hist->hObjMasses[10]     ->Fill(jetsl1g.M() ,eventWeight*genWeight);
+  Hist->hObjMasses[11]     ->Fill(jetsl2g.M() ,eventWeight*genWeight);
+  Hist->hObjMasses[12]     ->Fill(jetsllg.M() ,eventWeight*genWeight);
+  // Hist->hObjMasses[13]     ->Fill( ,eventWeight*genWeight);
+  Hist->hJetTwoM           ->Fill(jetTwoP4->M(),eventWeight*genWeight);
+  Hist->hJetTwoPt          ->Fill(jetTwoP4->Pt(),eventWeight*genWeight);
+  Hist->hJetTwoEta         ->Fill(jetTwoP4->Eta(),eventWeight*genWeight);
+  Hist->hJetsDeltaR        ->Fill(jetTwoP4->DeltaR(*jetOneP4),eventWeight*genWeight);
+  Hist->hJetsDeltaEta      ->Fill(abs(jetTwoP4->Eta()-jetOneP4->Eta()),eventWeight*genWeight);
+  Hist->hJetsDeltaPhi      ->Fill(abs(jetTwoP4->DeltaPhi(*jetOneP4)),eventWeight*genWeight);
+  Hist->hJetsPt            ->Fill(jets.Pt() ,eventWeight*genWeight);
+  Hist->hJetsEta           ->Fill(jets.Eta() ,eventWeight*genWeight);
+  Hist->hJetsGammaDeltaR   ->Fill(jets.DeltaR(*photonP4) ,eventWeight*genWeight);
+  Hist->hJetsGammaDeltaEta ->Fill(abs(jets.Eta() - photonP4->Eta()) ,eventWeight*genWeight);
+  Hist->hJetsGammaDeltaPhi ->Fill(abs(jets.DeltaPhi(*photonP4)) ,eventWeight*genWeight);
+  Hist->hJetsGammaPt       ->Fill(jetsg.Pt() ,eventWeight*genWeight);
+  Hist->hJetsGammaEta      ->Fill(jetsg.Eta() ,eventWeight*genWeight);
 }
 
 void ZTauTauHistMaker::FillPhotonHistogram(PhotonHist_t* Hist) {
@@ -830,6 +900,7 @@ void ZTauTauHistMaker::FillPhotonHistogram(PhotonHist_t* Hist) {
   Hist->hP   ->Fill(photonP4->P()  , eventWeight*genWeight );
   Hist->hEta ->Fill((photonP4->Pt() > 0.) ? photonP4->Eta() : -1.e6, eventWeight*genWeight );
   Hist->hPhi ->Fill(photonP4->Phi(), eventWeight*genWeight );
+  Hist->hMVA ->Fill(photonMVA, eventWeight*genWeight );
   // Hist->hIso       ;
   // Hist->hRelIso    ;
   // Hist->hTrigger   ;
@@ -949,6 +1020,7 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
 
   fChain->GetEntry(entry);
   if(entry%50000 == 0) printf("Processing event: %12lld\n", entry);
+
   //DY Splitting
   if(fDYType > 0) {
     // 1 = tau, 2 = muon or electron channel
@@ -985,18 +1057,37 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
     metPhi = missingPUPPI.Phi();
   }
 
+
+  // DY z pT weights
+  if(fRemoveZPtWeights > 0 && zPtWeight > 0.) eventWeight /= zPtWeight;
+  //only re-weight the DY sample
+  if(fRemoveZPtWeights > 1 && fDYType > 0) {
+    zPtWeight = (leptonTwoP4->E() > 0.1) ? GetZPtWeight((*leptonOneP4+*leptonTwoP4).Pt()) : GetZPtWeight(zPt);
+    eventWeight *= zPtWeight;
+  }
+
+  //very different setup, process separately
+  if(fFolderName == "llg_study") {
+    ProcessLLGStudy();
+    // return kTRUE;
+  }
+  
   //selections
   bool mutau = nTaus == 1  && nMuons == 1 && nElectrons == 0;
   bool etau  = nTaus == 1  && nMuons == 0 && nElectrons == 1;
   bool emu   = nTaus == 0  && nMuons == 1 && nElectrons == 1;
   bool mumu  = nMuons == 2; //no other requirement
+  bool llg_study = (nElectrons + nMuons > 0) && nJets > 1 && nPhotons > 0 && (nElectrons + nMuons < 3);
+  double l2pt_prev = leptonTwoP4->Pt();
+  if(fFolderName == "llg_study" && llg_study && (nMuons + nElectrons == 1) && nTaus > 0) {
+    *leptonTwoP4 = *tauP4;
+    leptonTwoFlavor = tauFlavor;
+  }
+  if(!(mutau || etau || emu || mumu || llg_study))
+    return kTRUE;
 
-  // DY z pT weights
-  if(fRemoveZPtWeights > 0 && zPtWeight > 0.) eventWeight /= zPtWeight;
-  //only re-weight the DY sample
-  if(fRemoveZPtWeights > 1 && fDYType > 0) {zPtWeight = GetZPtWeight((*leptonOneP4+*leptonTwoP4).Pt()); eventWeight *= zPtWeight;}
+  InitializeTreeVariables(mutau+2*etau+5*emu+9*mumu+18*llg_study);
 
-  InitializeTreeVariables(mutau+2*etau+5*emu+9*mumu);
   //if splitting testing/training samples
   if(fFractionMVA > 0.)
     eventWeight *= (fTreeVars.train > 0.) ? 0. : 1./(1.-fFractionMVA); //if training, ignore, else rescale to account for training sample removed
@@ -1016,7 +1107,6 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   if(fUseTauFakeSF && fIsData == 0) eventWeight *= genTauFlavorWeight;
 
   bool chargeTest = leptonOneFlavor*leptonTwoFlavor < 0;
-  // FillAllHistograms(0);
 
   TVector3 lp1 = leptonOneP4->Vect();
   TVector3 lp2 = leptonTwoP4->Vect();
@@ -1052,6 +1142,22 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   else if(etau)           FillAllHistograms(25 + fQcdOffset);
   if(emu   && chargeTest) FillAllHistograms(45);
   else if(emu)            FillAllHistograms(45 + fQcdOffset);
+
+  // llg study sets
+  if(llg_study)                                       FillAllHistograms(95);
+  if(llg_study && nMuons == 2 && chargeTest)          FillAllHistograms(96);
+  else if(llg_study && nMuons == 2)                   FillAllHistograms(96 + fQcdOffset);
+  if(llg_study && nElectrons == 2 && chargeTest)      FillAllHistograms(97);
+  else if(llg_study && nElectrons == 2)               FillAllHistograms(97 + fQcdOffset);
+  if(llg_study && nMuons == 1 && nElectrons == 0)     FillAllHistograms(98);
+  if(llg_study && nElectrons == 1 && nMuons== 0)      FillAllHistograms(99);
+  if(llg_study && nElectrons == 1 && nMuons == 1 && chargeTest)      FillAllHistograms(100);
+  else if(llg_study && nElectrons == 1 && nMuons == 1) FillAllHistograms(100+fQcdOffset);
+  //tau llg sets
+  if(llg_study && nElectrons == 1 && nMuons == 0 && nTaus == 1 && chargeTest) FillAllHistograms(101);
+  else if(llg_study && nElectrons == 1 && nMuons == 0 && nTaus == 1)          FillAllHistograms(101+fQcdOffset);
+  if(llg_study && nElectrons == 0 && nMuons == 1 && nTaus == 1 && chargeTest) FillAllHistograms(102);
+  else if(llg_study && nElectrons == 0 && nMuons == 1 && nTaus == 1)          FillAllHistograms(102+fQcdOffset);
   
   TLorentzVector* tau = 0;
   TLorentzVector* muon = 0;
@@ -1331,7 +1437,7 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   marioID = marioID && abs(muon->DeltaR(*electron)) > 0.3;
 
   marioID &= (nBJetsM+nBJets25M) == 0; //medium ID
-  marioID &= (nJets == 0) || jetP4->Pt() < 78.; //highest pT jet cut
+  marioID &= (nJets == 0) || jetOneP4->Pt() < 78.; //highest pT jet cut
   marioID &= puppMETC < 28.; //MET cut (he used PUPPI, unclear if same correction)
   marioID = marioID && (electron->Pt() > 32. && muon->Pt() > 28.); //higher electron and muon pT threshold
   marioID &= fTreeVars.lepm > 75. && fTreeVars.lepm < 110.; //mass window
@@ -1343,9 +1449,11 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   // if(emu && nPhotons == 0 && chargeTest)   FillAllHistograms(61);
   // else if(emu && nPhotons == 0)            FillAllHistograms(61 + fQcdOffset);
   
-  
-  
   return kTRUE;
+}
+
+void ZTauTauHistMaker::ProcessLLGStudy() {
+
 }
 
 void ZTauTauHistMaker::SlaveTerminate()

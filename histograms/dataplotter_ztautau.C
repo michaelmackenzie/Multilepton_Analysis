@@ -2,7 +2,7 @@
 
 DataPlotter* dataplotter_ = 0;
 TString selection_ = "emu"; //current options: mutau, etau, emu, mutau_e, etau_mu, mumu
-bool useNanoAods_ = true; //use BLT based or NANO AOD based histograms
+bool useNanoAods_ = false; //use BLT based or NANO AOD based histograms
 Int_t verbose_ = 0; //verbosity level
 Int_t useOpenGL_ = 0;
 bool  doStatsLegend_ = false;
@@ -164,7 +164,7 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
   // plotting card constructor:                       hist, type, rebin, xmin, xmax, blindmin, blindmax
   plottingcards.push_back(DataPlotter::PlottingCard_t("onept",          "lep",   2, 15.,  150. ));
   plottingcards.push_back(DataPlotter::PlottingCard_t("twopt",          "lep",   2, 15.,  150. ));
-  if(selection_ == "emu" || selection_.Contains("_")) { //emu dataset
+  if(selection_ == "emu" || selection_.Contains("tau_")) { //emu dataset
     plottingcards.push_back(DataPlotter::PlottingCard_t("lepm",         "event", 2, 0.,   200., {84, 118}, {98, 132.} ));
   } else //etau or mutau
     plottingcards.push_back(DataPlotter::PlottingCard_t("lepm",         "event", 2, 0.,   200. ));
@@ -177,7 +177,7 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
   plottingcards.push_back(DataPlotter::PlottingCard_t("pxivis0",        "event", 5, 0.,   100. ));
   plottingcards.push_back(DataPlotter::PlottingCard_t("pxiinv0",        "event", 5, -100.,100. ));
   plottingcards.push_back(DataPlotter::PlottingCard_t("ptauvisfrac",    "event", 5, 0.,   1.4  ));
-  if(selection_ == "emu") {
+  if(selection_ == "emu" || selection_ == "llg_study") {
     plottingcards.push_back(DataPlotter::PlottingCard_t("lepmestimate",   "event", 1, 0.,   300. ));
     plottingcards.push_back(DataPlotter::PlottingCard_t("lepmestimatetwo","event", 1, 0.,   300. ));
   } else {
@@ -191,7 +191,7 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
   plottingcards.push_back(DataPlotter::PlottingCard_t("covmet01",       "event", 1, -100.,100. ));
   plottingcards.push_back(DataPlotter::PlottingCard_t("mtone",          "event", 4, 0.,   150. ));
   plottingcards.push_back(DataPlotter::PlottingCard_t("mttwo",          "event", 4, 0.,   150. ));
-  if(selection_ == "mutau" || selection_ == "etau") {
+  if(selection_ == "mutau" || selection_ == "etau" || selection_ == "llg_study") {
     plottingcards.push_back(DataPlotter::PlottingCard_t("twom",          "lep", 5, 0.,   10. ));
   }
   //ignore SVfit results for now, not very helpful
@@ -205,7 +205,9 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
   // hnames.push_back("lepsvdeltapt");   htypes.push_back("event"); rebins.push_back(2); xmins.push_back(-10.); xmaxs.push_back(90.);
   // hnames.push_back("lepsvptoverm");   htypes.push_back("event"); rebins.push_back(2); xmins.push_back(0.);   xmaxs.push_back(10.);
   
-  plottingcards.push_back(DataPlotter::PlottingCard_t("jetpt",          "event", 5, 20.,  250.));
+  plottingcards.push_back(DataPlotter::PlottingCard_t("jetpt",          "event", 2, 20.,  250.));
+  plottingcards.push_back(DataPlotter::PlottingCard_t("jeteta",         "event", 5, -6.,  6.));
+  plottingcards.push_back(DataPlotter::PlottingCard_t("jetm",           "event", 2,  0.,  50.));
 
   plottingcards.push_back(DataPlotter::PlottingCard_t("njets",          "event", 0, 0.,   10. ));
   plottingcards.push_back(DataPlotter::PlottingCard_t("njets25",        "event", 0, 0.,   10. ));
@@ -248,7 +250,7 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
     mvaplottingcards.push_back(DataPlotter::PlottingCard_t("mva23",      "event", 200, -1.,   1. , 0.01, 1. ));
     mvaplottingcards.push_back(DataPlotter::PlottingCard_t("mva32",      "event", 200, -1.,   1. , 0.01, 1. ));
     mvaplottingcards.push_back(DataPlotter::PlottingCard_t("mva33",      "event", 200, -1.,   1. , 0.01, 1. ));
-  } else if(selection_ == "emu" || selection_.Contains("_")) { //print all MVAs for emu dataset categories
+  } else if(selection_ == "emu" || selection_.Contains("tau_")) { //print all MVAs for emu dataset categories
     mvaplottingcards.push_back(DataPlotter::PlottingCard_t("mva4",       "event", 200, -1.,   1. , 0.01, 1. ));
     mvaplottingcards.push_back(DataPlotter::PlottingCard_t("mva5",       "event", 200, -1.,   1. , 0.01, 1. ));
     mvaplottingcards.push_back(DataPlotter::PlottingCard_t("mva14",      "event", 200, -1.,   1. , 0.01, 1. ));
@@ -274,25 +276,6 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
     mvaplottingcards.push_back(DataPlotter::PlottingCard_t("mva38",      "event", 200, -1.,   1. , 0.01, 1. ));
     mvaplottingcards.push_back(DataPlotter::PlottingCard_t("mva39",      "event", 200, -1.,   1. , 0.01, 1. ));
   }
-  //   else if(selection_ == "mutau_e") {
-  //   mvaplottingcards.push_back(DataPlotter::PlottingCard_t("mva6",       "event", 200, -1.,   1. , 0., 1. ));
-  //   mvaplottingcards.push_back(DataPlotter::PlottingCard_t("mva7",       "event", 200, -1.,   1. , 0., 1. ));
-  //   mvaplottingcards.push_back(DataPlotter::PlottingCard_t("mva16",      "event", 200, -1.,   1. , 0., 1. ));
-  //   mvaplottingcards.push_back(DataPlotter::PlottingCard_t("mva17",      "event", 200, -1.,   1. , 0., 1. ));
-  //   mvaplottingcards.push_back(DataPlotter::PlottingCard_t("mva26",      "event", 200, -1.,   1. , 0., 1. ));
-  //   mvaplottingcards.push_back(DataPlotter::PlottingCard_t("mva27",      "event", 200, -1.,   1. , 0., 1. ));
-  //   mvaplottingcards.push_back(DataPlotter::PlottingCard_t("mva36",      "event", 200, -1.,   1. , 0., 1. ));
-  //   mvaplottingcards.push_back(DataPlotter::PlottingCard_t("mva37",      "event", 200, -1.,   1. , 0., 1. ));
-  // } else if(selection_ == "etau_mu") {
-  //   mvaplottingcards.push_back(DataPlotter::PlottingCard_t("mva8",       "event", 200, -1.,   1. , 0., 1. ));
-  //   mvaplottingcards.push_back(DataPlotter::PlottingCard_t("mva9",       "event", 200, -1.,   1. , 0., 1. ));
-  //   mvaplottingcards.push_back(DataPlotter::PlottingCard_t("mva18",      "event", 200, -1.,   1. , 0., 1. ));
-  //   mvaplottingcards.push_back(DataPlotter::PlottingCard_t("mva19",      "event", 200, -1.,   1. , 0., 1. ));
-  //   mvaplottingcards.push_back(DataPlotter::PlottingCard_t("mva28",      "event", 200, -1.,   1. , 0., 1. ));
-  //   mvaplottingcards.push_back(DataPlotter::PlottingCard_t("mva29",      "event", 200, -1.,   1. , 0., 1. ));
-  //   mvaplottingcards.push_back(DataPlotter::PlottingCard_t("mva38",      "event", 200, -1.,   1. , 0., 1. ));
-  //   mvaplottingcards.push_back(DataPlotter::PlottingCard_t("mva39",      "event", 200, -1.,   1. , 0., 1. ));
-  // }
     
   plottingcards.push_back(DataPlotter::PlottingCard_t("htsum",             "event", 5, 0.,   800.));
   plottingcards.push_back(DataPlotter::PlottingCard_t("ht",                "event", 5, 0.,   800.));
@@ -312,10 +295,46 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
   plottingcards.push_back(DataPlotter::PlottingCard_t("oneiso",            "lep",   1, 0.,   10. ));
   plottingcards.push_back(DataPlotter::PlottingCard_t("onereliso",         "lep",   1, 0.,   0.15));
   plottingcards.push_back(DataPlotter::PlottingCard_t("twod0",             "lep",   2, -0.05,0.05));
-  if(selection_ == "emu" || selection_.Contains("_") /*leptonic tau decay*/) {
+  if(selection_ == "emu" || selection_.Contains("tau_") /*leptonic tau decay*/ || selection_ == "llg_study") {
     plottingcards.push_back(DataPlotter::PlottingCard_t("twoiso",       "lep", 1, 0.,   10.  ));
     plottingcards.push_back(DataPlotter::PlottingCard_t("tworeliso",    "lep", 1, 0.,   0.15 ));
   }
+
+  if(selection_ == "llg_study") {
+    double lower[13] = { 0.,0.,0.,0.
+			,0.,0.,0.,0.
+			,0.,0.,0.,0.,0.};
+    double upper[13] = { 400.,400.,400.,600.
+			,400.,400.,400.,400.
+			,600.,600.,600.,600.,600.};
+    for(int i = 0; i < 13; ++i) {
+      TString objmass = "objmasses";
+      objmass += i;
+      plottingcards.push_back(DataPlotter::PlottingCard_t(objmass.Data(), "event", 2, lower[i],  upper[i]));
+    }
+    plottingcards.push_back(DataPlotter::PlottingCard_t("jettwopt",       "event", 2, 20.,  250.));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("jettwoeta",      "event", 5, -6.,    6.));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("jettwom",        "event", 2,  0.,   50.));
+
+    plottingcards.push_back(DataPlotter::PlottingCard_t("jetspt",         "event", 2,  0.,  300.));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("jetseta",        "event", 2, -6.,    6.));
+    // jets mass = objmass0
+    // plottingcards.push_back(DataPlotter::PlottingCard_t("jetsm",          "event", 2,  0.,  100.));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("jetsdeltar",     "event", 2,  0.,    6.));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("jetsdeltaeta",   "event", 2,  0.,    6.));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("jetsdeltaphi",   "event", 1,  0.,    4.));
+
+    plottingcards.push_back(DataPlotter::PlottingCard_t("jetsgammapt",         "event", 2, 20.,  500.));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("jetsgammaeta",        "event", 2, -6.,    6.));
+    // jets+gamma mass = objmass3
+    // plottingcards.push_back(DataPlotter::PlottingCard_t("jetsgammam",          "event", 2,  0.,  100.));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("jetsgammadeltar",     "event", 2,  0.,    6.));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("jetsgammadeltaeta",   "event", 2,  0.,    6.));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("jetsgammadeltaphi",   "event", 1,  0.,    4.)); 
+  }
+
+
+  
   TString label = "";
   if(selection_ == "emu")
     label = "->e#mu";
@@ -599,7 +618,7 @@ Int_t print_standard_canvases(vector<int> sets, vector<double> signal_scales = {
 
 Int_t init_dataplotter() {
 
-  bool leptonic_tau = (selection_.Contains("_")); //mutau_l, etau_l
+  bool leptonic_tau = (selection_.Contains("tau_")); //mutau_l, etau_l
   if(dataplotter_) delete dataplotter_;
   dataplotter_ = new DataPlotter();
   dataplotter_->selection_ = selection_;
@@ -620,11 +639,20 @@ Int_t init_dataplotter() {
   dataplotter_->useOpenGL_ = (gROOT->IsBatch()) ? 0 : useOpenGL_;
 
   //dataset names
-  TString names [50]; //for event histogram
-  TString fnames[50]; //for getting file (usually the same)
-  TString labels[50]; //for combining categories
-  bool    signal[50]; //for drawing separately
-  bool    isDY  [50]; 
+  TString names [100]; //for event histogram
+  TString fnames[100]; //for getting file (usually the same)
+  TString labels[100]; //for combining categories
+  bool    signal[100]; //for drawing separately
+  bool    isDY  [100];
+
+  // 27990000        qcd xsec
+  //  1712000   
+  //   347700   
+  //    32100   
+  //     6831   
+  //     1207   
+  //      119.9 
+  //       25.24
   
   names[0]  = "zjets_m-50_amcatnlo"     ;fnames[0]  = "1_bltTree_zjets_m-50_amcatnlo"     ;labels[0]  = "Z->#tau#tau"   ; signal[0]  = false  ; isDY[0]  = true   ;
   names[1]  = "zjets_m-50_amcatnlo"     ;fnames[1]  = "2_bltTree_zjets_m-50_amcatnlo"     ;labels[1]  = "Z->ee/#mu#mu"  ; signal[1]  = false  ; isDY[1]  = true   ;
@@ -657,12 +685,12 @@ Int_t init_dataplotter() {
   names[28] = "zz_2l2nu"                ;fnames[28] = "bltTree_zz_2l2nu"                  ;labels[28] = "Diboson"       ; signal[28] = false  ; isDY[28] = false  ;
   names[29] = "zz_2l2q"                 ;fnames[29] = "bltTree_zz_2l2q"                   ;labels[29] = "Diboson"       ; signal[29] = false  ; isDY[29] = false  ;
   names[30] = "zz_4l"                   ;fnames[30] = "bltTree_zz_4l"                     ;labels[30] = "Diboson"       ; signal[30] = false  ; isDY[30] = false  ;
-  names[31] = "hzg_gluglu"              ;fnames[31] = "bltTree_hzg_gluglu"                ;labels[31] = "H->Zg"         ; signal[31] = false  ; isDY[31] = false  ;
-  names[32] = "hzg_tth"                 ;fnames[32] = "bltTree_hzg_tth"                   ;labels[32] = "H->Zg"         ; signal[32] = false  ; isDY[32] = false  ;
-  names[33] = "hzg_vbf"                 ;fnames[33] = "bltTree_hzg_vbf"                   ;labels[33] = "H->Zg"         ; signal[33] = false  ; isDY[33] = false  ;
-  names[34] = "hzg_wminus"              ;fnames[34] = "bltTree_hzg_wminus"                ;labels[34] = "H->Zg"         ; signal[34] = false  ; isDY[34] = false  ;
-  names[35] = "hzg_wplus"               ;fnames[35] = "bltTree_hzg_wplus"                 ;labels[35] = "H->Zg"         ; signal[35] = false  ; isDY[35] = false  ;
-  names[36] = "hzg_zh"                  ;fnames[36] = "bltTree_hzg_zh"                    ;labels[36] = "H->Zg"         ; signal[36] = false  ; isDY[36] = false  ;
+  names[31] = "hzg_gluglu"              ;fnames[31] = "bltTree_hzg_gluglu"                ;labels[31] = "H(gg)->Zg"     ; signal[31] = true   ; isDY[31] = false  ;
+  names[32] = "hzg_tth"                 ;fnames[32] = "bltTree_hzg_tth"                   ;labels[32] = "H(Rest)->Zg"   ; signal[32] = true   ; isDY[32] = false  ;
+  names[33] = "hzg_vbf"                 ;fnames[33] = "bltTree_hzg_vbf"                   ;labels[33] = "H(VBF)->Zg"    ; signal[33] = true   ; isDY[33] = false  ;
+  names[34] = "hzg_wminus"              ;fnames[34] = "bltTree_hzg_wminus"                ;labels[34] = "H(Rest)->Zg"   ; signal[34] = true   ; isDY[34] = false  ;
+  names[35] = "hzg_wplus"               ;fnames[35] = "bltTree_hzg_wplus"                 ;labels[35] = "H(Rest)->Zg"   ; signal[35] = true   ; isDY[35] = false  ;
+  names[36] = "hzg_zh"                  ;fnames[36] = "bltTree_hzg_zh"                    ;labels[36] = "H(Rest)->Zg"   ; signal[36] = true   ; isDY[36] = false  ;
   names[37] = "htautau_gluglu"          ;fnames[37] = "bltTree_htautau_gluglu"            ;labels[37] = "H->#tau#tau"   ; signal[37] = false  ; isDY[37] = false  ;
   names[38] = "zetau"                   ;fnames[38] = "bltTree_zetau"                     ;labels[38] = "Z->e#tau"      ; signal[38] = true   ; isDY[38] = false  ;
   names[39] = "zmutau"                  ;fnames[39] = "bltTree_zmutau"                    ;labels[39] = "Z->#mu#tau"    ; signal[39] = true   ; isDY[39] = false  ;
@@ -670,8 +698,17 @@ Int_t init_dataplotter() {
   names[41] = "hetau"                   ;fnames[41] = "bltTree_hetau"                     ;labels[41] = "H->e#tau"      ; signal[41] = true   ; isDY[41] = false  ;
   names[42] = "hmutau"                  ;fnames[42] = "bltTree_hmutau"                    ;labels[42] = "H->#mu#tau"    ; signal[42] = true   ; isDY[42] = false  ;
   names[43] = "hemu"                    ;fnames[43] = "bltTree_hemu"                      ;labels[43] = "H->e#mu"       ; signal[43] = true   ; isDY[43] = false  ;
+  names[44] = "qcd_ht50to100"           ;fnames[44]  = "bltTree_qcd_ht50to100"            ;labels[44]  = "QCD"          ; signal[44]  = false ; isDY[44]  = false ;
+  names[44] = "qcd_ht100to200"          ;fnames[45]  = "bltTree_qcd_ht100to200"           ;labels[45]  = "QCD"          ; signal[45]  = false ; isDY[45]  = false ;
+  names[44] = "qcd_ht200to300"          ;fnames[46]  = "bltTree_qcd_ht200to300"           ;labels[46]  = "QCD"          ; signal[46]  = false ; isDY[46]  = false ;
+  names[44] = "qcd_ht300to500"          ;fnames[47]  = "bltTree_qcd_ht300to500"           ;labels[47]  = "QCD"          ; signal[47]  = false ; isDY[47]  = false ;
+  names[44] = "qcd_ht500to700"          ;fnames[48]  = "bltTree_qcd_ht500to700"           ;labels[48]  = "QCD"          ; signal[48]  = false ; isDY[48]  = false ;
+  names[44] = "qcd_ht700to1000"         ;fnames[49]  = "bltTree_qcd_ht700to1000"          ;labels[49]  = "QCD"          ; signal[49]  = false ; isDY[49]  = false ;
+  names[44] = "qcd_ht1000to1500"        ;fnames[50]  = "bltTree_qcd_ht1000to1500"         ;labels[50]  = "QCD"          ; signal[50]  = false ; isDY[50]  = false ;
+  names[44] = "qcd_ht1500to2000"        ;fnames[51]  = "bltTree_qcd_ht1500to2000"         ;labels[51]  = "QCD"          ; signal[51]  = false ; isDY[51]  = false ;
+  names[44] = "qcd_ht2000toinf"         ;fnames[52]  = "bltTree_qcd_ht2000toinf"          ;labels[52]  = "QCD"          ; signal[52]  = false ; isDY[52]  = false ;
 
-  int process[50];
+  int process[100];
   for(int i = 0; i < sizeof(process)/sizeof(*process); ++i)
     process[i]=0;
 
@@ -707,12 +744,12 @@ Int_t init_dataplotter() {
   process[28] = 1; //"zz_2l2nu"                
   process[29] = 1; //"zz_2l2q"                 
   process[30] = 1; //"zz_4l"                   
-  process[31] = 0; //"hzg_gluglu"              
-  process[32] = 0; //"hzg_tth"                 
-  process[33] = 0; //"hzg_vbf"                 
-  process[34] = 0; //"hzg_wminus"              
-  process[35] = 0; //"hzg_wplus"               
-  process[36] = 0; //"hzg_zh"                  
+  process[31] = (selection_ == "llg_study") ? 1 :0; //"hzg_gluglu"              
+  process[32] = (selection_ == "llg_study") ? 1 :0; //"hzg_tth"                 
+  process[33] = (selection_ == "llg_study") ? 1 :0; //"hzg_vbf"                 
+  process[34] = (selection_ == "llg_study") ? 1 :0; //"hzg_wminus"              
+  process[35] = (selection_ == "llg_study") ? 1 :0; //"hzg_wplus"               
+  process[36] = (selection_ == "llg_study") ? 1 :0; //"hzg_zh"                  
   process[37] = 1; //"htautau_gluglu"                  
   process[38] = (selection_.Contains("etau" ) || (doAllEMu_ && selection_ == "emu")) ? 1 : 0; //"zetau"
   process[39] = (selection_.Contains("mutau") || (doAllEMu_ && selection_ == "emu")) ? 1 : 0; //"zmutau"
@@ -720,6 +757,15 @@ Int_t init_dataplotter() {
   process[41] = (selection_.Contains("etau" ) || (doAllEMu_ && selection_ == "emu")) ? 1 : 0; //"hetau"
   process[42] = (selection_.Contains("mutau") || (doAllEMu_ && selection_ == "emu")) ? 1 : 0; //"hmutau"
   process[43] = (selection_ == "emu") ? 1 : 0; //"hemu"
+  process[44] = 0; // (selection_ == "llg_study") ? 1 : 0;
+  process[45] = 0; // (selection_ == "llg_study") ? 1 : 0;
+  process[46] = 0; // (selection_ == "llg_study") ? 1 : 0;
+  process[47] = 0; // (selection_ == "llg_study") ? 1 : 0;
+  process[48] = 0; // (selection_ == "llg_study") ? 1 : 0;
+  process[49] = 0; // (selection_ == "llg_study") ? 1 : 0;
+  process[50] = 0; // (selection_ == "llg_study") ? 1 : 0;
+  process[51] = 0; // (selection_ == "llg_study") ? 1 : 0;
+  process[52] = 0; // (selection_ == "llg_study") ? 1 : 0;
 
   int nWJetSamples = 0; //if averaging W+Jets samples
   if(process[17] || process[18] || process[19] || process[20]) //madgraph jet binned samples
@@ -732,7 +778,7 @@ Int_t init_dataplotter() {
     ++nWJetSamples;
   if(nWJetSamples == 0) nWJetSamples = 1; // avoid divide by 0
   
-  Double_t xsec[50];
+  Double_t xsec[100];
   //Taken from https://twiki.cern.ch/twiki/bin/viewauth/CMS/SummaryTable1G25ns     
   xsec[0]  =  6225.42; //6803.2;   //6225.42  ; //5765.4;    //"zjets_m-50_amcatnlo"     
   xsec[1]  =  6225.42; //6803.2;   //6225.42  ; //5765.4;    //"zjets_m-50_amcatnlo"     
@@ -772,8 +818,8 @@ Int_t init_dataplotter() {
   xsec[31] =    3.*3.3658/100.*1.54e-3* 48.61;	       //"hzg_gluglu"              
   xsec[32] =    3.*3.3658/100.*1.54e-3* 0.5071;	       //"hzg_tth"                 
   xsec[33] =    3.*3.3658/100.*1.54e-3* 3.766;	       //"hzg_vbf"                 
-  xsec[34] =    3.*3.3658/100.*1.54e-3* 1.358/2.;	       //"hzg_wminus"              
-  xsec[35] =    3.*3.3658/100.*1.54e-3* 1.358/2.;	       //"hzg_wplus"               
+  xsec[34] =    3.*3.3658/100.*1.54e-3* 0.527;	       //"hzg_wminus"              
+  xsec[35] =    3.*3.3658/100.*1.54e-3* 0.831;	       //"hzg_wplus"               
   xsec[36] =    3.*3.3658/100.*1.54e-3* 0.880;	       //"hzg_zh"                  
   xsec[37] =                   6.32e-2* 48.61;	       //"htautau_gluglu"                  
   xsec[38] =    ((6225.42+18610.)/(3.*3.3658e-2))*9.8e-6*161497./(2.e3*498); //zetau  z->ll / br(ll) * br(etau, CL=95) *N(accepted)/N(Gen) http://pdg.lbl.gov/2018/listings/rpp2018-list-z-boson.pdf
@@ -782,7 +828,15 @@ Int_t init_dataplotter() {
   xsec[41] = (48.61+3.766+0.5071+1.358+0.880)*6.1e-3*418794./(487.*1e3); //hetau  xsec(higgs,glu+vbf)*br(etau, CL=95) *N(accepted)/N(Gen) http://pdg.lbl.gov/2019/listings/rpp2019-list-higgs-boson.pdf
   xsec[42] = (48.61+3.766+0.5071+1.358+0.880)*2.5e-3*388243./(453.*1e3); //hmutau xsec(higgs,glu+vbf)*br(mutau, CL=95)*N(accepted)/N(Gen) http://pdg.lbl.gov/2019/listings/rpp2019-list-higgs-boson.pdf
   xsec[43] = (48.61+3.766+0.5071+1.358+0.880)*3.5e-4*34429./(88.*500); //hemu   xsec(higgs,glu+vbf)*br(emu, CL=95)  *N(accepted)/N(Gen) http://pdg.lbl.gov/2019/listings/rpp2019-list-higgs-boson.pdf
-
+  xsec[44] = 246300000.0; //qcd ht binned
+  xsec[45] = 27990000   ;
+  xsec[46] =  1712000   ;
+  xsec[47] =   347700   ;
+  xsec[48] =    32100   ;
+  xsec[49] =     6831   ;
+  xsec[50] =     1207   ;
+  xsec[51] =      119.9 ;
+  xsec[52] =       25.24;
 
   ///////////////////////////////////
   // Defining NANO AOD based files //
@@ -840,13 +894,13 @@ Int_t init_dataplotter() {
   vector<TString> dNames;
   unsigned ndata = sizeof(dNamesMu)/sizeof(*dNamesMu);
   for(unsigned i = 0; i < ndata; ++i) {
-    if(selection_ == "etau" ) {
+    if(selection_ == "etau" || selection_ == "ee") {
       dNames.push_back(dNamesE[i]);
       dFiles.push_back(Form("%s/ztautau_%s_bltTree_%s.hist",hist_dir_.Data(),selection_.Data(),dNamesE[i]));
     } else if(selection_ == "mutau" || selection_ == "mumu") {
       dNames.push_back(dNamesMu[i]);
       dFiles.push_back(Form("%s/ztautau_%s_bltTree_%s.hist",hist_dir_.Data(),selection_.Data(),dNamesMu[i]));
-    } else if(selection_ == "emu" || leptonic_tau) {
+    } else { //just add all e and mu data otherwise
       dNames.push_back(dNamesMu[i]);
       dFiles.push_back(Form("%s/ztautau_%s_bltTree_%s.hist",hist_dir_.Data(),selection_.Data(),dNamesMu[i]));
       dNames.push_back(dNamesE[i]);
@@ -1016,5 +1070,15 @@ Int_t print_standard_canvas_selections(TString name = "", TString histDir = "", 
   Double_t realTime = timer->RealTime();
   printf("Processing time: %7.2fs CPU time %7.2fs Wall time\n",cpuTime,realTime);
   if(realTime > 600. ) printf("Processing time: %7.2fmin CPU time %7.2fmin Wall time\n",cpuTime/60.,realTime/60.);
+  return status;
+}
+
+int print_standard_llg_study_sets() {
+  selection_ = "llg_study";
+  folder_ = "llg_study";
+  init_dataplotter();
+  int status = print_standard_plots({  95,  96,  97,100,101,102},
+				    {1.e4,2.e3,2.e3,2e3,5e3,5e3},
+				    {   1,   2,   2,  5,  5,  5});
   return status;
 }

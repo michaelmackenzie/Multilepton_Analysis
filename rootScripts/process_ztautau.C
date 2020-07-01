@@ -44,6 +44,15 @@ Int_t process_ztautau() {
     "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //HETau
     "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //HMuTau
     "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //HEMu
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //qcd ht   50 to  100
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //qcd ht  100 to  200
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //qcd ht  200 to  300
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //qcd ht  300 to  500
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //qcd ht  500 to  700
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //qcd ht  700 to 1000
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //qcd ht 1000 to 1500
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //qcd ht 1500 to 2000
+    "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //qcd ht 2000 to inf 
     "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //Muon Data 2016 B
     "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //Muon Data 2016 C
     "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/", //Muon Data 2016 D
@@ -102,6 +111,15 @@ Int_t process_ztautau() {
 			 "output_hetau.root"                       ,
 			 "output_hmutau.root"                      ,
 			 "output_hemu.root"                        ,
+			 "output_qcd_ht50to100.root"               ,
+			 "output_qcd_ht100to200.root"              ,
+			 "output_qcd_ht200to300.root"              ,
+			 "output_qcd_ht300to500.root"              ,
+			 "output_qcd_ht500to700.root"              ,
+			 "output_qcd_ht700to1000.root"             ,
+			 "output_qcd_ht1000to1500.root"            ,
+			 "output_qcd_ht1500to2000.root"            ,
+			 "output_qcd_ht2000toinf.root"             ,
 			 "output_muon_2016B_v2.root"               , 
 			 "output_muon_2016C.root"                  , 
 			 "output_muon_2016D.root"                  , 
@@ -146,12 +164,12 @@ Int_t process_ztautau() {
 			   1, //ZZ Jets to 2L2Nu
 			   1, //ZZ Jets to 2L2Q
 			   1, //ZZ Jets to 4L
-			   0, //HZG gluglu
-			   0, //HZG tth
-			   0, //HZG vbf
-			   0, //HZG W-
-			   0, //HZG W+
-			   0, //HZG zh
+			   1, //HZG gluglu
+			   1, //HZG tth
+			   1, //HZG vbf
+			   1, //HZG W-
+			   1, //HZG W+
+			   1, //HZG zh
 			   1, //HTauTau gluglu
 			   1, //ZETau
 			   1, //ZMuTau
@@ -159,6 +177,15 @@ Int_t process_ztautau() {
 			   1, //HETau
 			   1, //HMuTau
 			   1, //HEMu
+			   1, //qcd ht   50 to  100
+			   1, //qcd ht  100 to  200
+			   1, //qcd ht  200 to  300
+			   1, //qcd ht  300 to  500
+			   1, //qcd ht  500 to  700
+			   1, //qcd ht  700 to 1000
+			   1, //qcd ht 1000 to 1500
+			   1, //qcd ht 1500 to 2000
+			   1, //qcd ht 2000 to inf
 			   1, //Muon Data 2016B
 			   1, //Muon Data 2016C
 			   1, //Muon Data 2016D
@@ -215,8 +242,8 @@ Int_t process_ztautau() {
   xsec[28] =    3.*3.3658/100.*1.54e-3* 48.61;	       //"hzg_gluglu"              
   xsec[29] =    3.*3.3658/100.*1.54e-3* 0.5071;	       //"hzg_tth"                 
   xsec[30] =    3.*3.3658/100.*1.54e-3* 3.766;	       //"hzg_vbf"                 
-  xsec[31] =    3.*3.3658/100.*1.54e-3* 1.358/2.;	       //"hzg_wminus"              
-  xsec[32] =    3.*3.3658/100.*1.54e-3* 1.358/2.;	       //"hzg_wplus"               
+  xsec[31] =    3.*3.3658/100.*1.54e-3* 0.527;         //"hzg_wminus"              
+  xsec[32] =    3.*3.3658/100.*1.54e-3* 0.831;         //"hzg_wplus"               
   xsec[33] =    3.*3.3658/100.*1.54e-3* 0.880;	       //"hzg_zh"                  
   xsec[34] =                   6.32e-2* 43.92;	       //"htautau_gluglu"                  
   xsec[35] = ((6225.42+18610.)/(3.*3.3658e-2))*9.8e-6*161497./(2.e3*498); //zetau  z->ll / br(ll) * br(etau, CL=95) *N(accepted)/N(Gen) http://pdg.lbl.gov/2018/listings/rpp2018-list-z-boson.pdf
@@ -230,10 +257,10 @@ Int_t process_ztautau() {
 
   Int_t useTauFakeSF = 1; //1 = use given scale factors, 2 = override them with local ones
   bool writeTrees = true;
-  TString onlyChannel = "";
+  TString onlyChannel = "llg_study";
   vector<TString> skipChannels = {"mumu", "ee", "all", "jets"};
   bool reProcessMVAs = false;
-  Int_t removeZPtWeights = 1;
+  Int_t removeZPtWeights = 0;
   float signalTrainFraction = 0.7;
   float backgroundTrainFraction = 0.3;
   cout << "--- Fake Tau SF mode: " << useTauFakeSF
@@ -352,7 +379,7 @@ Int_t process_ztautau() {
 	if(isDY) selec->fDYType = loop; //if Drell-Yan, tell the selector which loop we're on
 	//skip electron data events with both triggers for e+mu channel, to not double count
 	selec->fIsData = 2*isMuonData + isElectronData; 
-	selec->fSkipDoubleTrigger = (isElectronData && (selec->fFolderName == "emu"));	
+	selec->fSkipDoubleTrigger = (isElectronData && (selec->fFolderName == "emu" || selec->fFolderName == "llg_study"));	
 	//store a label for this dataset
 	selec->fEventCategory = category;
 	selec->fWriteTrees = selec->fIsData == 0 && writeTrees; //don't write trees for data

@@ -155,7 +155,7 @@ public :
   Int_t stack_uncertainty_ = 1; //whether or not to add gray shading for uncertainty
   Int_t debug_ = 0; //for debugging
   Int_t include_qcd_ = 1; //use the same sign selection to get the QCD
-  Int_t qcd_offset_ = 100; //set number offset to get same sign selection
+  Int_t qcd_offset_ = 200; //set number offset to get same sign selection
   Int_t plot_title_ = 0; //Plot the title on the canvas
   Double_t fill_alpha_ = 1.; //alpha to use for hist plotting
   Int_t normalize_1ds_ = 0; //normalzie 1D histograms when plotting

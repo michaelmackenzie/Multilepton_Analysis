@@ -52,6 +52,7 @@ public :
   Float_t puWeight                   ;
   Float_t topPtWeight                ;
   Float_t zPtWeight                  ;
+  Float_t zPt                        ;
   Float_t genTauFlavorWeight         ;
   Int_t tauDecayMode                 ;
   Float_t tauMVA                     ;
@@ -70,8 +71,11 @@ public :
   TLorentzVector* genLeptonOneP4 = 0 ;
   TLorentzVector* genLeptonTwoP4 = 0 ;
   TLorentzVector* photonP4 = 0       ;
-  TLorentzVector* jetP4 = 0          ;
+  Float_t         photonMVA          ;
+  TLorentzVector* jetOneP4 = 0       ;
+  TLorentzVector* jetTwoP4 = 0       ;
   TLorentzVector* tauP4 = 0          ;
+  Int_t  tauFlavor                   ;
   UInt_t nMuons                      ;
   UInt_t nElectrons                  ;
   UInt_t nLowPtElectrons             ;
@@ -283,6 +287,7 @@ public :
     TH1F* hSysM;
     TH1F* hSysPt;
     TH1F* hSysEta;
+    TH2F* hSysMvsLepM;
     
     //Transverse Masses
     TH1F* hMTOne;
@@ -306,6 +311,22 @@ public :
     TH1F* hPt1Sum[4]; //scalar sum of 1 lepton Pt and Met, both leptons, then both minus met
     //MVA values
     TH1F* hMVA[kMaxMVAs];
+
+    //llg study histograms
+    TH1F* hObjMasses[14]; //jets, jets+gamma, jet1/2 + gamma, jets + l1/2, jet1/2 + l1/2, jets+l1+l2, jets + gamma + l1/2, jets + gamma + l1 + l2
+    TH1F* hJetTwoM;
+    TH1F* hJetTwoPt;
+    TH1F* hJetTwoEta;
+    TH1F* hJetsDeltaR;
+    TH1F* hJetsDeltaEta;
+    TH1F* hJetsDeltaPhi;
+    TH1F* hJetsPt;
+    TH1F* hJetsEta;
+    TH1F* hJetsGammaDeltaR;
+    TH1F* hJetsGammaDeltaEta;
+    TH1F* hJetsGammaDeltaPhi;
+    TH1F* hJetsGammaPt;
+    TH1F* hJetsGammaEta;
   };
 
   struct LepHist_t {
@@ -380,6 +401,7 @@ public :
     TH1F* hP;
     TH1F* hEta;
     TH1F* hPhi;
+    TH1F* hMVA;
     // TH1F* hIso;
     // TH1F* hRelIso;
     // TH1F* hTrigger;
@@ -564,6 +586,8 @@ public :
   virtual float   CorrectMET(int selection, float met);
   virtual float   GetZPtWeight(float pt);
 
+  virtual void    ProcessLLGStudy();
+
 
   Long64_t fentry; //for tracking entry in functions
   //Define relevant fields
@@ -617,9 +641,9 @@ public :
   float fMvaOutputs[kMaxMVAs];
   
   //Histograms:
-  const static Int_t fn = 200; //max histogram sets
-  const static Int_t kIds = 60; //max histogram sets
-  const static Int_t fQcdOffset = 100; //histogram set + offset = set with same sign selection
+  const static Int_t fn = 400; //max histogram sets
+  const static Int_t kIds = 60; //max box cut ID sets
+  const static Int_t fQcdOffset = 200; //histogram set + offset = set with same sign selection
   Int_t fEventSets[fn];  //indicates which sets to create
   Int_t fTreeSets[fn];   //indicates which trees to create
 
@@ -982,6 +1006,22 @@ void ZTauTauHistMaker::Init(TTree *tree)
     fEventSets [92] = 1; // events with opposite signs + BDT cut
     fEventSets [92+fQcdOffset] = 1; // events with same
 
+    //llg study histograms
+    // selection: > 1 jet, > 0 photons, 1 or 2 electrons/muons
+    fEventSets [95] = 1; // all events 
+    fEventSets [96] = 1; // events with 2 muons, opposite sign
+    fEventSets [96 + fQcdOffset] = 1; 
+    fEventSets [97] = 1; // events with 2 electrons, opposite sign
+    fEventSets [97 + fQcdOffset] = 1; 
+    fEventSets [98] = 1; // events with 1 muon 0 electrons
+    fEventSets [99] = 1; // events with 1 electron 0 muons
+    fEventSets [100] = 1; // events with 1 electron 1 muon and opposite sign
+    fEventSets [100 + fQcdOffset] = 1; 
+    fEventSets [101] = 1; // events with 1 electron 1 tau and opposite sign
+    fEventSets [101 + fQcdOffset] = 1; 
+    fEventSets [102] = 1; // events with 1 electron 1 tau and opposite sign
+    fEventSets [102 + fQcdOffset] = 1; 
+
     //initialize all the histograms
     BookHistograms();
 
@@ -1005,6 +1045,7 @@ void ZTauTauHistMaker::Init(TTree *tree)
   fChain->SetBranchAddress("puWeight"            , &puWeight             );
   fChain->SetBranchAddress("topPtWeight"         , &topPtWeight          );
   fChain->SetBranchAddress("zPtWeight"           , &zPtWeight            );
+  fChain->SetBranchAddress("zPt"                 , &zPt                  );
   fChain->SetBranchAddress("genTauFlavorWeight"  , &genTauFlavorWeight   );
   fChain->SetBranchAddress("tauDecayMode"        , &tauDecayMode         );
   fChain->SetBranchAddress("tauMVA"              , &tauMVA               );
@@ -1023,8 +1064,12 @@ void ZTauTauHistMaker::Init(TTree *tree)
   fChain->SetBranchAddress("genLeptonOneP4" 	 , &genLeptonOneP4       );
   fChain->SetBranchAddress("genLeptonTwoP4" 	 , &genLeptonTwoP4       );
   fChain->SetBranchAddress("photonP4"  	         , &photonP4             );
-  fChain->SetBranchAddress("jetP4"  	         , &jetP4                );
+  fChain->SetBranchAddress("photonMVA"  	 , &photonMVA            );
+  fChain->SetBranchAddress("jetP4"  	         , &jetOneP4             );
+  if(fFolderName == "llg_study")
+    fChain->SetBranchAddress("jetTwoP4"  	 , &jetTwoP4             );
   fChain->SetBranchAddress("tauP4"  	         , &tauP4                );
+  fChain->SetBranchAddress("tauFlavor"  	 , &tauFlavor            );
   fChain->SetBranchAddress("nMuons"              , &nMuons               );
   fChain->SetBranchAddress("nElectrons"          , &nElectrons           );
   fChain->SetBranchAddress("nLowPtElectrons"     , &nLowPtElectrons      );
