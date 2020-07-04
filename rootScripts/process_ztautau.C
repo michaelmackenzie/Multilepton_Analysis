@@ -2,8 +2,8 @@
 #include "ZTauTauHistMaker.cc+g"
 Int_t process_ztautau() {
 
-  TString osversion = gSystem->Getenv("OSVERSION");
-  TString gridPath = (osversion == "") ? "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/"
+  TString hostname = gSystem->Getenv("HOSTNAME");
+  TString gridPath = (hostname.Contains("cmslpc")) ? "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/"
     : "/mnt/data/mmackenz/ztautau_trees/";
 
   
