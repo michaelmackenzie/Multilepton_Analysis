@@ -190,12 +190,64 @@ Int_t process_ztautau() {
   xsec[39] = (48.61+3.766+0.5071+1.358+0.880)*2.5e-3*388243./(453.*1e3);  //hmutau xsec(higgs,glu+vbf)*br(mutau, CL=95)*N(accepted)/N(Gen) http://pdg.lbl.gov/2019/listings/rpp2019-list-higgs-boson.pdf
   xsec[40] = (48.61+3.766+0.5071+1.358+0.880)*3.5e-4*34429./(88.*500);    //hemu   xsec(higgs,glu+vbf)*br(emu, CL=95)  *N(accepted)/N(Gen) http://pdg.lbl.gov/2019/listings/rpp2019-list-higgs-boson.pdf
 
+  /******************************/
+  /* Define NANO AOD processing */
+  /******************************/
+
+  TString nanoaod_path = gridPath;
+  nanoaod_path.ReplaceAll("ztautau_trees", "ztautau_nanoaod_trees"); //use the same path, but replace the search directory
+  
+  const char* nanoaods[] = { "clfv_ttbarToSemiLeptonic.tree"
+			    ,"clfv_ttbarlnu.tree"
+			    ,"clfv_DY50.tree"
+			    ,"clfv_SingleAntiToptW.tree"
+			    ,"clfv_SingleToptW.tree"
+			    ,"clfv_Wlnu.tree"
+			    ,"clfv_WW.tree"
+			    ,"clfv_WZ.tree"
+			    ,"clfv_Signal.tree"
+			    ,"clfv_SingleMu.tree"
+			    ,"clfv_SingleEle.tree"
+  };
+
+  bool nanoaod_process[50];
+  for(unsigned i = 0; i < sizeof(nanoaod_process)/sizeof(*nanoaod_process); ++i)
+    nanoaod_process[i] = false;
+
+  nanoaod_process[0] = true;    // "ttbarToSemiLeptonic"    
+  nanoaod_process[1] = true;	// "ttbarlnu"		     
+  nanoaod_process[2] = true;	// "DY50"		     
+  nanoaod_process[3] = true;	// "SingleAntiToptW"	     
+  nanoaod_process[4] = true;	// "SingleToptW"	     
+  nanoaod_process[5] = true;	// "Wlnu"		     
+  nanoaod_process[6] = true;	// "WW"		     
+  nanoaod_process[7] = true;	// "WZ"		     
+  nanoaod_process[8] = true;	// "Signal"                
+  nanoaod_process[9] = true;    // "SingleMu"
+  nanoaod_process[10] = true;   // "SingleEle"
+
+  double nanoaod_xsec[50];
+  for(unsigned i = 0; i < sizeof(nanoaod_xsec)/sizeof(*nanoaod_xsec); ++i)
+    nanoaod_xsec[i] = 0.;
+  
+  nanoaod_xsec[0] = 365.34;                     // "ttbarToSemiLeptonic"   
+  nanoaod_xsec[1] = 88.29;			// "ttbarlnu"		   
+  nanoaod_xsec[2] = 6225.42;			// "DY50"		   
+  nanoaod_xsec[3] = 34.91;			// "SingleAntiToptW"	   
+  nanoaod_xsec[4] = 34.91;			// "SingleToptW"	   
+  nanoaod_xsec[5] = 52850.0;			// "Wlnu"		   
+  nanoaod_xsec[6] = 12.178;			// "WW"		     	   
+  nanoaod_xsec[7] = 27.6;			// "WZ"		     	   
+  nanoaod_xsec[8] = 2075.14/0.0337*7.3e-7;	// "Signal"
+  
   TStopwatch* timer = new TStopwatch();
 
+  Int_t useNanoAods = -1; // 1 = use, 0 = don't use, -1 = only use
   Int_t useTauFakeSF = 1; //1 = use given scale factors, 2 = override them with local ones
   bool writeTrees = true;
-  TString onlyChannel = "llg_study";
-  vector<TString> skipChannels = {"mumu", "ee", "all", "jets"};
+  TString onlyChannel = "emu";
+  vector<TString> skipChannels = {"mumu", "ee", "all", "jets", "llg_study"};
+
   bool reProcessMVAs = false;
   Int_t removeZPtWeights = 0;
   float signalTrainFraction = 0.7;
@@ -205,7 +257,7 @@ Int_t process_ztautau() {
        << ", Remove z pt weights: " << removeZPtWeights
        << ", training fractions: signal = " << signalTrainFraction
        << ", background = " << backgroundTrainFraction
-       << endl;
+       << endl << "--- Use NanoAOD = " << useNanoAods << endl;
   if(skipChannels.size() > 0) {
     cout << "--- Skipping channels: ";
     for(TString channel : skipChannels)
@@ -214,68 +266,77 @@ Int_t process_ztautau() {
   }
   if(onlyChannel != "")
     cout << "--- WARNING! Only processing " << onlyChannel.Data() << " channel!\n";
-  
-  Int_t category = 0;
-  for(int i = 0; i < sizeof(files)/sizeof(*files); ++i) {
-    ++category; // could have just used i + 1?
-    cout << "Loop " << i << ", category " << category
-	 << ", file " << files[i] << ", xsec " << xsec[i]
-	 << ", doProcess " << doProcess[i] << endl;
-    if(!doProcess[i]) continue;
-    const char* c = files[i];
-    TFile* f = TFile::Open((gridPath+c).Data(),"READ");
-    if(f == 0) {
-      printf("File %s not found, continuing\n",(gridPath + c).Data());
-      continue;
-    }
-    printf("using %s\n",(gridPath+c).Data());
-    TDirectoryFile* fChannel = 0;
-    TH1F* events = 0;
-    TKey* key = 0;
-    TIter nextkey(f->GetListOfKeys());
 
-    //for splitting DY lepton decays
-    TString cString = c;
-    bool isDY = (cString.Contains("DY"));
-    bool isSignal = cString.Contains("mutau") || cString.Contains("etau") || cString.Contains("emu");
-    //for avoiding double counting data events
-    bool isElectronData = cString.Contains("output_electron_");
-    bool isMuonData = cString.Contains("output_muon_");
-    
-    //get events histograms first
-    while((key = (TKey*)nextkey())) {
-      TObject* obj = key->ReadObj();
-      if(obj->IsA()->InheritsFrom(TH1::Class())) events = (TH1F*)obj;
-    }
-    if(events == 0) {
-      printf("Events Histogram in %s not found, continuing\n",(gridPath+c).Data());
-      continue;
-    }
-    
-
-    TIter nextkeyT(f->GetListOfKeys());
-    nextkeyT.Reset();
-    while((key = (TKey*)nextkeyT())) {
-      TObject* obj = key->ReadObj();
-      if(obj->IsA()->InheritsFrom(TDirectoryFile::Class())) fChannel = (TDirectoryFile*)obj;
-      else {
+  //loop over data formats, 0 = bltTrees from ZTauTauAnalyzer, 1 = trees from converting Nano AODS
+  for(int dataform = 0; dataform < 2; ++dataform) {
+    if(useNanoAods < 0 && dataform == 0) continue;
+    if(useNanoAods == 0 && dataform != 0) break;
+    Int_t category = 0;
+    bool isnano = (dataform == 1);
+    unsigned nfiles = (!isnano) ? sizeof(files)/sizeof(*files) :
+      sizeof(nanoaods)/sizeof(*nanoaods);
+    for(unsigned i = 0; i < nfiles; ++i) {
+      ++category; // could have just used i + 1?
+      cout << "Loop " << i << ", category " << category
+	   << ", file " << ((!isnano) ? files[i] : nanoaods[i])
+	   << ", xsec " << ((!isnano) ? xsec[i] : nanoaod_xsec[i])
+	   << ", doProcess " << ((!isnano) ? doProcess[i] : nanoaod_process[i]) << endl;
+      if((isnano && !nanoaod_process[i]) || (!isnano && !doProcess[i])) continue;
+      const char* c = (!isnano) ? files[i] : nanoaods[i];
+      TString filepath = (!isnano) ? gridPath + c : nanoaod_path + c;
+      TFile* f = TFile::Open((filepath).Data(),"READ");
+      if(f == 0) {
+	printf("File %s not found, continuing\n",(filepath).Data());
 	continue;
       }
-      printf("Found file %s\n",fChannel->GetName());
-      TString currentChannel = fChannel->GetName();
-      //check if only suppose to do 1 channel, and if this is that channel
-      if(onlyChannel != "") {
-	if(onlyChannel != currentChannel) { cout << "Continuing!\n"; continue;}
-	else cout << "Found correct channel --> processing!\n";
+      printf("using %s\n",(filepath).Data());
+      TDirectoryFile* fChannel = 0;
+      TH1F* events = 0;
+      TKey* key = 0;
+      TIter nextkey(f->GetListOfKeys());
+
+    //for splitting DY lepton decays
+      TString cString = c;
+      bool isDY = !isnano && (cString.Contains("DY"));
+      bool isSignal = cString.Contains("mutau") || cString.Contains("etau") || cString.Contains("emu") || cString.Contains("Signal");
+    //for avoiding double counting data events
+      bool isElectronData = cString.Contains("output_electron_") || cString.Contains("SingleEle");
+      bool isMuonData = cString.Contains("output_muon_") || cString.Contains("SingleMu");
+    
+      //get events histograms first
+      while((key = (TKey*)nextkey())) {
+	TObject* obj = key->ReadObj();
+	if(obj->IsA()->InheritsFrom(TH1::Class())) events = (TH1F*)obj;
       }
-      //check if this channel is part of the skip list
-      if(skipChannels.size() > 0) {
-	bool skip = false;
-	for(TString channel : skipChannels) {
-	  if(channel == currentChannel) {cout << "Skipping channel!\n"; skip=true;}
+      if(events == 0) {
+	printf("Events Histogram in %s not found, continuing\n",(gridPath+c).Data());
+	continue;
+      }
+    
+
+      TIter nextkeyT(f->GetListOfKeys());
+      nextkeyT.Reset();
+      while((key = (TKey*)nextkeyT())) {
+	TObject* obj = key->ReadObj();
+	if(obj->IsA()->InheritsFrom(TDirectoryFile::Class())) fChannel = (TDirectoryFile*)obj;
+	else {
+	  continue;
 	}
-	if(skip) continue;
-      }
+	printf("Found file %s\n",fChannel->GetName());
+	TString currentChannel = fChannel->GetName();
+	//check if only suppose to do 1 channel, and if this is that channel
+	if(onlyChannel != "") {
+	  if(onlyChannel != currentChannel) { cout << "Continuing!\n"; continue;}
+	  else cout << "Found correct channel --> processing!\n";
+	}
+	//check if this channel is part of the skip list
+	if(skipChannels.size() > 0) {
+	  bool skip = false;
+	  for(TString channel : skipChannels) {
+	    if(channel == currentChannel) {cout << "Skipping channel!\n"; skip=true;}
+	  }
+	  if(skip) continue;
+	}
       //skip if data on a channel without that trigger used
       if(isElectronData && (currentChannel == "mutau" || currentChannel == "mumu")) {
 	cout << "Electron data on muon only channel, continuing!\n"; continue;
@@ -304,8 +365,7 @@ Int_t process_ztautau() {
 	continue;
       }
       if(eventsChannel == 0) {
-	printf("Events Channel Histogram in %s/%s not found, continuing\n",(gridPath+c).Data(),fChannel->GetName());
-	continue;
+	printf("Events Channel Histogram in %s/%s not found, continuing processing without it\n",(gridPath+c).Data(),fChannel->GetName());
       }
       // if Drell-Yan, loop through it twice, doing tautau then ee/mumu
       int nloops = (isDY) ? 2 : 1;
@@ -328,7 +388,7 @@ Int_t process_ztautau() {
 	selec->fReprocessMVAs = reProcessMVAs; //whether to evaluate the MVAs or use defined ones from the trees
 	
 	tree->Process(selec,""); //run the selector over the tree
-
+	
 	//open back up the file
 	TFile* out = new TFile(Form("ztautau_%s%s_%s.hist",fChannel->GetName(), 
 				    (isDY) ? Form("_%i",loop) : "", tree->GetName()),"UPDATE");
@@ -342,10 +402,11 @@ Int_t process_ztautau() {
 	out->Write();
 	delete out;
       }
-    }
-    delete events;
-    delete f;
-  }
+      }
+      delete events;
+      delete f;
+    } //end file loop
+  } //end data format loop
   //report the time spent histogramming
   Double_t cpuTime = timer->CpuTime();
   Double_t realTime = timer->RealTime();

@@ -959,6 +959,18 @@ Int_t init_dataplotter() {
   return dataplotter_->init_files();
 }
 
+Int_t nanoaod_init(TString histDir = "nanoaods", TString figureDir = "nanoaods") {
+  hist_dir_ = histDir;
+  folder_ = figureDir;
+  useNanoAods_ = true;
+  selection_ = "emu";
+  Int_t status = init_dataplotter();
+  if(!status) {
+    dataplotter_->signal_scale_ = 6.8;
+  }
+  return status;
+}
+
 Int_t print_emu_dataset_plots(TString histDir = "", TString figureDir = "") {
   if(histDir != "") hist_dir_ = histDir;
   if(figureDir != "") folder_ = figureDir;
@@ -1104,3 +1116,4 @@ int print_standard_llg_study_sets() {
 				    {   2,   2,   2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2});
   return status;
 }
+
