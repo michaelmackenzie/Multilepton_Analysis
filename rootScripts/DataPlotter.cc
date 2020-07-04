@@ -1964,7 +1964,7 @@ TCanvas* DataPlotter::plot_significance(TString hist, TString setType, Int_t set
 TCanvas* DataPlotter::print_stack(TString hist, TString setType, Int_t set) {
   TCanvas* c = plot_stack(hist,setType,set);
   if(!c) return c;
-  c->Print(Form("figures/%s/%s/stack_%s%s%s%s_%s_set_%i.png",folder_.Data(),selection_.Data(),hist.Data(),
+  c->Print(Form("figures/%s/%s/stack_%s%s%s%s_%s_set_%i.png",folder_.Data(),selection_.Data(),(setType+"_"+hist).Data(),
 		(logY_ ? "_log":""),
 		((plot_data_) ? "_data":""), (stack_as_hist_ ? "_totbkg" : ""), "dataOverMC",set));
   return c;
@@ -1974,7 +1974,7 @@ TCanvas* DataPlotter::print_hist(TString hist, TString setType, Int_t set) {
   TCanvas* c = plot_hist(hist,setType,set);
   cout << "plotted hist" << endl;
   if(!c) return c;
-  c->Print(Form("figures/%s/%s/hist_%s%s%s_%s_set_%i.png",folder_.Data(),selection_.Data(),hist.Data(),
+  c->Print(Form("figures/%s/%s/hist_%s%s%s_%s_set_%i.png",folder_.Data(),selection_.Data(),(setType+"_"+hist).Data(),
 		(logY_ ? "_log":""),
 		((plot_data_) ? "_data":""),"dataOverMC",set));
   return c;
@@ -1984,7 +1984,7 @@ TCanvas* DataPlotter::print_2Dhist(TString hist, TString setType, Int_t set) {
   TCanvas* c = plot_2Dhist(hist,setType,set);
   cout << "plotted 2D hist" << endl;
   if(!c) return c;
-  c->Print(Form("figures/%s/%s/hist2D_%s%s_%s_set_%i.png",folder_.Data(),selection_.Data(),hist.Data(),
+  c->Print(Form("figures/%s/%s/hist2D_%s%s_%s_set_%i.png",folder_.Data(),selection_.Data(),(setType+"_"+hist).Data(),
 		((plot_data_) ? "_data":""),"dataOverMC",set));
   return c;
 }
@@ -1996,7 +1996,7 @@ TCanvas* DataPlotter::print_single_2Dhist(TString hist, TString setType, Int_t s
   label.ReplaceAll("#",""); //for ease of use in bash
   label.ReplaceAll(" ", "");
   label.ReplaceAll("/", "");
-  c->Print(Form("figures/%s/%s/hist2D_%s_%s%s%s_%s_set_%i.png",folder_.Data(),selection_.Data(),label.Data(),hist.Data(),
+  c->Print(Form("figures/%s/%s/hist2D_%s_%s%s%s_%s_set_%i.png",folder_.Data(),selection_.Data(),label.Data(),(setType+"_"+hist).Data(),
 		(logZ_ ? "_log":""),
 		((plot_data_) ? "_data":""),"dataOverMC",set));
   return c;
@@ -2008,7 +2008,7 @@ TCanvas* DataPlotter::print_cdf(TString hist, TString setType, Int_t set, TStrin
   label.ReplaceAll("#",""); //for ease of use in bash
   label.ReplaceAll(" ", "");
   label.ReplaceAll("/", "");
-  c->Print(Form("figures/%s/%s/cdf_%s_%s%s%s_%s_set_%i.png",folder_.Data(),selection_.Data(),label.Data(),hist.Data(),
+  c->Print(Form("figures/%s/%s/cdf_%s_%s%s%s_%s_set_%i.png",folder_.Data(),selection_.Data(),label.Data(),(setType+"_"+hist).Data(),
 		(logY_ ? "_log":""),
 		((plot_data_) ? "_data":""),"dataOverMC",set));
   return c;
@@ -2022,7 +2022,8 @@ TCanvas* DataPlotter::print_significance(TString hist, TString setType, Int_t se
   label.ReplaceAll("#",""); //for ease of use in bash
   label.ReplaceAll(" ", "");
   label.ReplaceAll("/", "");
-  c->Print(Form("figures/%s/%s/sig_%s%s_%s%s_set_%i.png",folder_.Data(),selection_.Data(),(doVsEff) ? "vsEff_" : "", label.Data(),hist.Data(),
+  c->Print(Form("figures/%s/%s/sig_%s%s_%s%s_set_%i.png",folder_.Data(),selection_.Data(),(doVsEff) ? "vsEff_" : "", label.Data(),
+		(setType+"_"+hist).Data(),
 		(logY_ ? "_log":""),set));
   return c;
 }

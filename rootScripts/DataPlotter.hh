@@ -214,6 +214,7 @@ public :
   
   //data yield drawing
   bool     draw_statistics_ = true;
+  Int_t    signal_digits_ = 1;
   Double_t data_txt_x_ = 0.42;
   Double_t data_txt_y_ = 0.63;
   
@@ -266,7 +267,10 @@ public :
     auto it = nsig.begin();
     while(it != nsig.end()) {
       x -= 0.045;
-      label.DrawLatex(data_txt_y_, x, Form("%10s = %10.1f", Form("n_{%s}", it->first.Data()), it->second));
+      TString label_string = "%10s = %10.";
+      label_string += signal_digits_;
+      label_string += "f";
+      label.DrawLatex(data_txt_y_, x, Form(label_string.Data(), Form("n_{%s}", it->first.Data()), it->second));
       it++;
     }
     
