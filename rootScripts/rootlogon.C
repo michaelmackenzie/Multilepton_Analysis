@@ -12,7 +12,7 @@
   gInterpreter->AddIncludePath("./include");
   // gInterpreter->AddIncludePath(gSystem->Getenv("CLHEP_INC"));
   gInterpreter->AddIncludePath(Form("%s/include",gSystem->Getenv("ROOTSYS")));
-  TString osversion = gSystem->Getenv("OSVERSION");
+  TString hostname = gSystem->Getenv("HOSTNAME");
 //-----------------------------------------------------------------------------
 // load in ROOT physics vectors and event generator libraries
 //-----------------------------------------------------------------------------
@@ -69,8 +69,8 @@
       gInterpreter->ProcessLine(".! ps | grep root");
       printf("Loading AsciiPlotter, ZTauTau_X_Makers, Fitter, DataPlotter, and CutsetTrainer\n");
       TString cmssw = gSystem->Getenv("CMSSW_BASE");
-      TString path = (osversion == "") ? "/src/BLT/BLTAnalysis/" : gSystem->Getenv("PWD");
-      if(osversion != "") path += "/../";
+      TString path = (hostname.Contains("cmslpc")) ? "/src/BLT/BLTAnalysis/" : gSystem->Getenv("PWD");
+      if(!hostname.Contains("cmslpc")) path += "/../";
       // gSystem->Load((cmssw + path + "AsciiPlotter/AsciiPlotter_cc.so").Data());
       gSystem->Load((cmssw + path + "rootScripts/ZTauTauHistMaker_cc.so").Data());
      // gSystem->Load((cmssw + path + "rootScripts/Fitter_cc.so").Data());
@@ -85,7 +85,7 @@
 //-----------------------------------------------------------------------------
 //  databases
 //-----------------------------------------------------------------------------
-  if(osversion == "") { //only load if on LPC
+  if(hostname.Contains("cmslpc") && !TString(gSystem->Getenv("PWD")).Contains("ZEMuAnalysis/")) { //only load if on LPC and not in nano AOD area
     cout << "Loading Bacon data formats." << endl;
     gSystem->Load("libBaconAnaDataFormats.so"); 
   }

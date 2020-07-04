@@ -29,6 +29,11 @@ histograms/canvases/*/*/*.root
 *.gif
 *.jpg
 
+#ignore compressed files by default
+*.tar
+*.zip
+*.bz
+
 Pythia
 CLFV_ZDecays_Pythia
 ExRootAnalysis
