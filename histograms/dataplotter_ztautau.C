@@ -14,6 +14,7 @@ bool printLimitVsEff_ = false; //print limit gain vs signal efficiency from MVA 
 bool printMVATotBkg_ = false; //print MVA distributions as total background vs signal
 bool print2Ds_ = false;
 bool printSignificances_ = false;
+bool printMVAPlots_ = true;
 
 Int_t print_significance_canvases(vector<TString> hists, vector<TString> types, vector<TString> labels, vector<int> sets) {
   TCanvas* c = 0;
@@ -206,8 +207,10 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
   // hnames.push_back("lepsvptoverm");   htypes.push_back("event"); rebins.push_back(2); xmins.push_back(0.);   xmaxs.push_back(10.);
   
   plottingcards.push_back(DataPlotter::PlottingCard_t("jetpt",          "event", 2, 20.,  250.));
-  plottingcards.push_back(DataPlotter::PlottingCard_t("jeteta",         "event", 5, -6.,  6.));
+  plottingcards.push_back(DataPlotter::PlottingCard_t("jeteta",         "event", 2, -3.,  3.));
   plottingcards.push_back(DataPlotter::PlottingCard_t("jetm",           "event", 2,  0.,  50.));
+  plottingcards.push_back(DataPlotter::PlottingCard_t("jetbmva",        "event", 2, -1.,  1.));
+  plottingcards.push_back(DataPlotter::PlottingCard_t("jetbtag",        "event", 0,  0.,  2.));
 
   plottingcards.push_back(DataPlotter::PlottingCard_t("njets",          "event", 0, 0.,   10. ));
   plottingcards.push_back(DataPlotter::PlottingCard_t("njets25",        "event", 0, 0.,   10. ));
@@ -307,14 +310,19 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
     double upper[13] = { 400.,400.,400.,600.
 			,400.,400.,400.,400.
 			,600.,600.,600.,600.,600.};
+    int rebins[13] =   {2, 2, 2, 5
+			,2, 2, 2, 2
+			,2 ,2 ,2 ,5 ,2};
     for(int i = 0; i < 13; ++i) {
       TString objmass = "objmasses";
       objmass += i;
       plottingcards.push_back(DataPlotter::PlottingCard_t(objmass.Data(), "event", 2, lower[i],  upper[i]));
     }
     plottingcards.push_back(DataPlotter::PlottingCard_t("jettwopt",       "event", 2, 20.,  250.));
-    plottingcards.push_back(DataPlotter::PlottingCard_t("jettwoeta",      "event", 5, -6.,    6.));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("jettwoeta",      "event", 2, -3.,    3.));
     plottingcards.push_back(DataPlotter::PlottingCard_t("jettwom",        "event", 2,  0.,   50.));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("jettwobmva",     "event", 2, -1.,  1.));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("jettwobtag",     "event", 0,  0.,  2.));
 
     plottingcards.push_back(DataPlotter::PlottingCard_t("jetspt",         "event", 2,  0.,  300.));
     plottingcards.push_back(DataPlotter::PlottingCard_t("jetseta",        "event", 2, -6.,    6.));
@@ -331,6 +339,13 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
     plottingcards.push_back(DataPlotter::PlottingCard_t("jetsgammadeltar",     "event", 2,  0.,    6.));
     plottingcards.push_back(DataPlotter::PlottingCard_t("jetsgammadeltaeta",   "event", 2,  0.,    6.));
     plottingcards.push_back(DataPlotter::PlottingCard_t("jetsgammadeltaphi",   "event", 1,  0.,    4.)); 
+    //photon parameters
+    plottingcards.push_back(DataPlotter::PlottingCard_t("pt",  "photon", 1,  5. ,  100.)); 
+    plottingcards.push_back(DataPlotter::PlottingCard_t("eta", "photon", 1, -2.5,  2.5)); 
+    plottingcards.push_back(DataPlotter::PlottingCard_t("p",   "photon", 1,  5. ,  100.)); 
+    plottingcards.push_back(DataPlotter::PlottingCard_t("mva", "photon", 2,  0.1 , 1.)); 
+    plottingcards.push_back(DataPlotter::PlottingCard_t("sysm","event",  2, 20., 250., {120.}, {130.} ));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("ntaus","event", 0, 0, 5));
   }
 
 
@@ -547,8 +562,10 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
     dataplotter_->print_hists(plottingcards, sets, signal_scales, base_rebins);
   if(status) return status;
   //mva plots
-  status = dataplotter_->print_stacks(mvaplottingcards, sets, signal_scales, base_rebins);
-  if(status) return status;
+  if(printMVAPlots_) {
+    status = dataplotter_->print_stacks(mvaplottingcards, sets, signal_scales, base_rebins);
+    if(status) return status;
+  }
   //mva plots as tot bkg vs signal
   if(printMVATotBkg_) {
     dataplotter_->stack_as_hist_ = 1;
@@ -565,7 +582,10 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
   status = (stacks) ? dataplotter_->print_stacks(plottingcards, sets, signal_scales, base_rebins) :
     dataplotter_->print_hists(plottingcards, sets, signal_scales, base_rebins);
   //mva plots
-  status = dataplotter_->print_stacks(mvaplottingcards, sets, signal_scales, base_rebins);
+  if(printMVAPlots_) {
+    status = dataplotter_->print_stacks(mvaplottingcards, sets, signal_scales, base_rebins);
+    if(status) return status;
+  }
   if(status) return status;
   //mva plots as tot bkg vs signal
   if(printMVATotBkg_) {
@@ -815,13 +835,13 @@ Int_t init_dataplotter() {
   //Higgs production xsecs: https://twiki.cern.ch/twiki/bin/view/LHCPhysics/CERNHLHE2019
   //Z decay to leptons fraction: http://pdg.lbl.gov/2012/listings/rpp2012-list-z-boson.pdf
   // --> Br(Z->ll) * Br(h->Zg) * xsec(X -> h)
-  xsec[31] =    3.*3.3658/100.*1.54e-3* 48.61;	       //"hzg_gluglu"              
+  xsec[31] =    3.*3.3658/100.*1.54e-3* 48.58;	       //"hzg_gluglu"              
   xsec[32] =    3.*3.3658/100.*1.54e-3* 0.5071;	       //"hzg_tth"                 
-  xsec[33] =    3.*3.3658/100.*1.54e-3* 3.766;	       //"hzg_vbf"                 
-  xsec[34] =    3.*3.3658/100.*1.54e-3* 0.527;	       //"hzg_wminus"              
-  xsec[35] =    3.*3.3658/100.*1.54e-3* 0.831;	       //"hzg_wplus"               
-  xsec[36] =    3.*3.3658/100.*1.54e-3* 0.880;	       //"hzg_zh"                  
-  xsec[37] =                   6.32e-2* 48.61;	       //"htautau_gluglu"                  
+  xsec[33] =    3.*3.3658/100.*1.54e-3* 3.782;	       //"hzg_vbf"                 
+  xsec[34] =    3.*3.3658/100.*1.54e-3* 1.373/2.;      //"hzg_wminus"              
+  xsec[35] =    3.*3.3658/100.*1.54e-3* 1.373/2.;      //"hzg_wplus"               
+  xsec[36] =    3.*3.3658/100.*1.54e-3* 0.8839;	       //"hzg_zh"                  
+  xsec[37] =                   6.32e-2* 48.58;	       //"htautau_gluglu"                  
   xsec[38] =    ((6225.42+18610.)/(3.*3.3658e-2))*9.8e-6*161497./(2.e3*498); //zetau  z->ll / br(ll) * br(etau, CL=95) *N(accepted)/N(Gen) http://pdg.lbl.gov/2018/listings/rpp2018-list-z-boson.pdf
   xsec[39] =    ((6225.42+18610.)/(3.*3.3658e-2))*1.2e-5*152959./(2.e3*497); //zmutau z->ll / br(ll) * br(mutau, CL=95)*N(accepted)/N(Gen) http://pdg.lbl.gov/2018/listings/rpp2018-list-z-boson.pdf
   xsec[40] =    ((6225.42+18610.)/(3.*3.3658e-2))*7.3e-7*186670./(2.e3*596); //zemu   z->ll / br(ll) * br(emu, CL=95)  *N(accepted)/N(Gen) http://pdg.lbl.gov/2018/listings/rpp2018-list-z-boson.pdf
@@ -1077,8 +1097,10 @@ int print_standard_llg_study_sets() {
   selection_ = "llg_study";
   folder_ = "llg_study";
   init_dataplotter();
-  int status = print_standard_plots({  95,  96,  97,100,101,102},
-				    {1.e4,2.e3,2.e3,2e3,5e3,5e3},
-				    {   1,   2,   2,  5,  5,  5});
+  dataplotter_->signal_digits_ = 3;
+  printMVAPlots_ = false;
+  int status = print_standard_plots({  95,  96,  97,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114},
+				    {2.e3,2.e3,2.e3,5e3,5e3,5e3,5e3,5e3,5e3,5e3,5e3,5e3,5e3,5e3,5e3,5e3,5e3,5e3},
+				    {   2,   2,   2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2,  2});
   return status;
 }

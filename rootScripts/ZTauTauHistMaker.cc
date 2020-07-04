@@ -101,6 +101,7 @@ void ZTauTauHistMaker::BookEventHistograms() {
       fEventHist[i]->hEventWeight            = new TH1F("eventweight"         , Form("%s: EventWeight"         ,dirname)  , 100,   -5,   5);     
       fEventHist[i]->hGenWeight              = new TH1F("genweight"           , Form("%s: GenWeight"           ,dirname)  ,   5, -2.5, 2.5);     
       fEventHist[i]->hGenTauFlavorWeight     = new TH1F("gentauflavorweight"  , Form("%s: GenTauFlavorWeight"  ,dirname)  ,  40,    0,   2);     
+      fEventHist[i]->hPhotonIDWeight         = new TH1F("photonidweight"      , Form("%s: PhotonIDWeight"      ,dirname)  ,  40,    0,   2);     
       fEventHist[i]->hNPV                    = new TH1F("npv"                 , Form("%s: NPV"                 ,dirname)  , 200,  0, 200); 
       fEventHist[i]->hNPU                    = new TH1F("npu"                 , Form("%s: NPU"                 ,dirname)  , 100,  0, 100); 
       fEventHist[i]->hNPartons               = new TH1F("npartons"            , Form("%s: NPartons"            ,dirname)  ,  10,  0,  10); 
@@ -153,6 +154,8 @@ void ZTauTauHistMaker::BookEventHistograms() {
       fEventHist[i]->hJetM                   = new TH1F("jetm"                , Form("%s: JetM"                ,dirname)  , 150,   0, 300);
       fEventHist[i]->hJetEta                 = new TH1F("jeteta"              , Form("%s: JetEta"              ,dirname)  , 200, -10,  10);
       fEventHist[i]->hJetPhi                 = new TH1F("jetphi"              , Form("%s: JetPhi"              ,dirname)  , 100,  -4,  4);
+      fEventHist[i]->hJetBMVA                = new TH1F("jetbmva"             , Form("%s: JetBMVA"             ,dirname)  , 300, -1.,  2.);
+      fEventHist[i]->hJetBTag                = new TH1F("jetbtag"             , Form("%s: JetBTag"             ,dirname)  ,   2,   0,   2);
       fEventHist[i]->hTauPt                  = new TH1F("taupt"               , Form("%s: TauPt"               ,dirname)  , 300,   0, 300);
       fEventHist[i]->hTauM                   = new TH1F("taum"                , Form("%s: TauM"                ,dirname)  , 100,   0, 4.);
       fEventHist[i]->hTauEta                 = new TH1F("taueta"              , Form("%s: TauEta"              ,dirname)  , 200, -10,  10);
@@ -268,23 +271,25 @@ void ZTauTauHistMaker::BookEventHistograms() {
 	//llg study histograms
 	TH1F* hObjMasses[14]; //jets, jets+gamma, jet1/2 + gamma, jets + l1/2, jet1/2 + l1/2, jets+l1+l2, jets + gamma + l1/2, jets + gamma + l1 + l2
 	//masses
-	fEventHist[i]->hObjMasses[0 ]     = new TH1F("objmasses0"       , Form("%s: ObjMasses0        ", dirname), 300, 0., 600.);
-	fEventHist[i]->hObjMasses[1 ]     = new TH1F("objmasses1"       , Form("%s: ObjMasses1        ", dirname), 300, 0., 600.);
-	fEventHist[i]->hObjMasses[2 ]     = new TH1F("objmasses2"       , Form("%s: ObjMasses2        ", dirname), 300, 0., 600.);
-	fEventHist[i]->hObjMasses[3 ]     = new TH1F("objmasses3"       , Form("%s: ObjMasses3        ", dirname), 300, 0., 600.);
-	fEventHist[i]->hObjMasses[4 ]     = new TH1F("objmasses4"       , Form("%s: ObjMasses4        ", dirname), 300, 0., 600.);
-	fEventHist[i]->hObjMasses[5 ]     = new TH1F("objmasses5"       , Form("%s: ObjMasses5        ", dirname), 300, 0., 600.);
-	fEventHist[i]->hObjMasses[6 ]     = new TH1F("objmasses6"       , Form("%s: ObjMasses6        ", dirname), 300, 0., 600.);
-	fEventHist[i]->hObjMasses[7 ]     = new TH1F("objmasses7"       , Form("%s: ObjMasses7        ", dirname), 300, 0., 600.);
-	fEventHist[i]->hObjMasses[8 ]     = new TH1F("objmasses8"       , Form("%s: ObjMasses8        ", dirname), 300, 0., 600.);
-	fEventHist[i]->hObjMasses[9 ]     = new TH1F("objmasses9"       , Form("%s: ObjMasses9        ", dirname), 300, 0., 600.);
-	fEventHist[i]->hObjMasses[10]     = new TH1F("objmasses10"      , Form("%s: ObjMasses10       ", dirname), 300, 0., 600.);
-	fEventHist[i]->hObjMasses[11]     = new TH1F("objmasses11"      , Form("%s: ObjMasses11       ", dirname), 300, 0., 600.);
-	fEventHist[i]->hObjMasses[12]     = new TH1F("objmasses12"      , Form("%s: ObjMasses12       ", dirname), 300, 0., 600.);
-	fEventHist[i]->hObjMasses[13]     = new TH1F("objmasses13"      , Form("%s: ObjMasses13       ", dirname), 300, 0., 600.);
+	fEventHist[i]->hObjMasses[0 ]     = new TH1F("objmasses0"        , Form("%s: ObjMasses0        ", dirname), 300, 0., 600.);
+	fEventHist[i]->hObjMasses[1 ]     = new TH1F("objmasses1"        , Form("%s: ObjMasses1        ", dirname), 300, 0., 600.);
+	fEventHist[i]->hObjMasses[2 ]     = new TH1F("objmasses2"        , Form("%s: ObjMasses2        ", dirname), 300, 0., 600.);
+	fEventHist[i]->hObjMasses[3 ]     = new TH1F("objmasses3"        , Form("%s: ObjMasses3        ", dirname), 300, 0., 600.);
+	fEventHist[i]->hObjMasses[4 ]     = new TH1F("objmasses4"        , Form("%s: ObjMasses4        ", dirname), 300, 0., 600.);
+	fEventHist[i]->hObjMasses[5 ]     = new TH1F("objmasses5"        , Form("%s: ObjMasses5        ", dirname), 300, 0., 600.);
+	fEventHist[i]->hObjMasses[6 ]     = new TH1F("objmasses6"        , Form("%s: ObjMasses6        ", dirname), 300, 0., 600.);
+	fEventHist[i]->hObjMasses[7 ]     = new TH1F("objmasses7"        , Form("%s: ObjMasses7        ", dirname), 300, 0., 600.);
+	fEventHist[i]->hObjMasses[8 ]     = new TH1F("objmasses8"        , Form("%s: ObjMasses8        ", dirname), 300, 0., 600.);
+	fEventHist[i]->hObjMasses[9 ]     = new TH1F("objmasses9"        , Form("%s: ObjMasses9        ", dirname), 300, 0., 600.);
+	fEventHist[i]->hObjMasses[10]     = new TH1F("objmasses10"       , Form("%s: ObjMasses10       ", dirname), 300, 0., 600.);
+	fEventHist[i]->hObjMasses[11]     = new TH1F("objmasses11"       , Form("%s: ObjMasses11       ", dirname), 300, 0., 600.);
+	fEventHist[i]->hObjMasses[12]     = new TH1F("objmasses12"       , Form("%s: ObjMasses12       ", dirname), 300, 0., 600.);
+	fEventHist[i]->hObjMasses[13]     = new TH1F("objmasses13"       , Form("%s: ObjMasses13       ", dirname), 300, 0., 600.);
 	fEventHist[i]->hJetTwoM           = new TH1F("jettwom"           , Form("%s: JetTwoM           ", dirname), 100, 0., 100.);
 	fEventHist[i]->hJetTwoPt          = new TH1F("jettwopt"          , Form("%s: JetTwoPt          ", dirname), 300, 0., 300.);
 	fEventHist[i]->hJetTwoEta         = new TH1F("jettwoeta"         , Form("%s: JetTwoEta         ", dirname), 200,-10., 10.);
+	fEventHist[i]->hJetTwoBMVA        = new TH1F("jettwobmva"        , Form("%s: JetTwoBMVA"        ,dirname) , 300, -1.,  2.);
+	fEventHist[i]->hJetTwoBTag        = new TH1F("jettwobtag"        , Form("%s: JetTwoBTag"        ,dirname) ,   2,   0,   2);
 	fEventHist[i]->hJetsDeltaR        = new TH1F("jetsdeltar"        , Form("%s: JetsDeltaR        ", dirname), 120, 0.,  12.);
 	fEventHist[i]->hJetsDeltaEta      = new TH1F("jetsdeltaeta"      , Form("%s: JetsDeltaEta      ", dirname), 120, 0.,  12.);
 	fEventHist[i]->hJetsDeltaPhi      = new TH1F("jetsdeltaphi"      , Form("%s: JetsDeltaPhi      ", dirname),  40, 0.,   4.);
@@ -313,7 +318,7 @@ void ZTauTauHistMaker::BookPhotonHistograms() {
       fPhotonHist[i]->hP         = new TH1F("p"       , Form("%s: P"       ,dirname)  , 500,   0, 1e3);
       fPhotonHist[i]->hEta       = new TH1F("eta"     , Form("%s: Eta"     ,dirname)  , 200, -10,  10);
       fPhotonHist[i]->hPhi       = new TH1F("phi"     , Form("%s: Phi"     ,dirname)  ,  80,  -4,   4);
-      fPhotonHist[i]->hMVA       = new TH1F("mva"     , Form("%s: MVA"     ,dirname)  , 200,  -1,   1);
+      fPhotonHist[i]->hMVA       = new TH1F("mva"     , Form("%s: MVA"     ,dirname)  , 300,  -1,   2);
       // fPhotonHist[i]->hIso       = new TH1F("iso"     , Form("%s: Iso"     ,dirname)  , 200,   0,  10);
       // fPhotonHist[i]->hRelIso    = new TH1F("reliso"  , Form("%s: Iso / Pt",dirname)  , 200,   0,   1);
       // fPhotonHist[i]->hTrigger   = new TH1F("trigger" , Form("%s: Trigger" ,dirname)  ,  10,   0,  10);
@@ -601,6 +606,7 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
   Hist->hEventWeight         ->Fill(eventWeight        );
   Hist->hGenWeight           ->Fill(genWeight          );
   Hist->hGenTauFlavorWeight  ->Fill(genTauFlavorWeight );
+  Hist->hPhotonIDWeight      ->Fill(photonIDWeight );
   Hist->hNPV                 ->Fill(nPV                , genWeight*eventWeight)      ;
   Hist->hNPU                 ->Fill(nPU                , genWeight*eventWeight)      ;
   Hist->hNPartons            ->Fill(nPartons           , genWeight*eventWeight)      ;
@@ -655,6 +661,8 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
     Hist->hJetM                ->Fill(jetOneP4->M()         , genWeight*eventWeight)   ;
     Hist->hJetEta              ->Fill(jetOneP4->Eta()       , genWeight*eventWeight)   ;
     Hist->hJetPhi              ->Fill(jetOneP4->Phi()       , genWeight*eventWeight)   ;
+    Hist->hJetBTag             ->Fill(jetOneBTag            , genWeight*eventWeight)   ;
+    Hist->hJetBMVA             ->Fill(jetOneBMVA            , genWeight*eventWeight)   ;
   }
 
   if(tauP4 && tauP4->Pt() > 0.) { //if 0 then no tau stored
@@ -882,6 +890,8 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
   Hist->hJetTwoM           ->Fill(jetTwoP4->M(),eventWeight*genWeight);
   Hist->hJetTwoPt          ->Fill(jetTwoP4->Pt(),eventWeight*genWeight);
   Hist->hJetTwoEta         ->Fill(jetTwoP4->Eta(),eventWeight*genWeight);
+  Hist->hJetTwoBTag        ->Fill(jetTwoBTag, genWeight*eventWeight)   ;
+  Hist->hJetTwoBMVA        ->Fill(jetTwoBMVA, genWeight*eventWeight)   ;
   Hist->hJetsDeltaR        ->Fill(jetTwoP4->DeltaR(*jetOneP4),eventWeight*genWeight);
   Hist->hJetsDeltaEta      ->Fill(abs(jetTwoP4->Eta()-jetOneP4->Eta()),eventWeight*genWeight);
   Hist->hJetsDeltaPhi      ->Fill(abs(jetTwoP4->DeltaPhi(*jetOneP4)),eventWeight*genWeight);
@@ -1143,7 +1153,9 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   if(emu   && chargeTest) FillAllHistograms(45);
   else if(emu)            FillAllHistograms(45 + fQcdOffset);
 
+  ////////////////////////////////////////////////////////////
   // llg study sets
+  ////////////////////////////////////////////////////////////
   if(llg_study)                                       FillAllHistograms(95);
   if(llg_study && nMuons == 2 && chargeTest)          FillAllHistograms(96);
   else if(llg_study && nMuons == 2)                   FillAllHistograms(96 + fQcdOffset);
@@ -1151,13 +1163,45 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   else if(llg_study && nElectrons == 2)               FillAllHistograms(97 + fQcdOffset);
   if(llg_study && nMuons == 1 && nElectrons == 0)     FillAllHistograms(98);
   if(llg_study && nElectrons == 1 && nMuons== 0)      FillAllHistograms(99);
+  //tau llg sets
   if(llg_study && nElectrons == 1 && nMuons == 1 && chargeTest)      FillAllHistograms(100);
   else if(llg_study && nElectrons == 1 && nMuons == 1) FillAllHistograms(100+fQcdOffset);
-  //tau llg sets
   if(llg_study && nElectrons == 1 && nMuons == 0 && nTaus == 1 && chargeTest) FillAllHistograms(101);
   else if(llg_study && nElectrons == 1 && nMuons == 0 && nTaus == 1)          FillAllHistograms(101+fQcdOffset);
   if(llg_study && nElectrons == 0 && nMuons == 1 && nTaus == 1 && chargeTest) FillAllHistograms(102);
   else if(llg_study && nElectrons == 0 && nMuons == 1 && nTaus == 1)          FillAllHistograms(102+fQcdOffset);
+  //ask for no forward jets
+  llg_study &= nFwdJets == 0;
+  if(llg_study && nElectrons == 1 && nMuons == 1 && chargeTest)               FillAllHistograms(103);
+  else if(llg_study && nElectrons == 1 && nMuons == 1)                        FillAllHistograms(103+fQcdOffset);
+  if(llg_study && nElectrons == 1 && nMuons == 0 && nTaus == 1 && chargeTest) FillAllHistograms(104);
+  else if(llg_study && nElectrons == 1 && nMuons == 0 && nTaus == 1)          FillAllHistograms(104+fQcdOffset);
+  if(llg_study && nElectrons == 0 && nMuons == 1 && nTaus == 1 && chargeTest) FillAllHistograms(105);
+  else if(llg_study && nElectrons == 0 && nMuons == 1 && nTaus == 1)          FillAllHistograms(105+fQcdOffset);
+  //ask for no b-jets
+  llg_study &= nBJets == 0;
+  if(llg_study && nElectrons == 1 && nMuons == 1 && chargeTest)               FillAllHistograms(106);
+  else if(llg_study && nElectrons == 1 && nMuons == 1)                        FillAllHistograms(106+fQcdOffset);
+  if(llg_study && nElectrons == 1 && nMuons == 0 && nTaus == 1 && chargeTest) FillAllHistograms(107);
+  else if(llg_study && nElectrons == 1 && nMuons == 0 && nTaus == 1)          FillAllHistograms(107+fQcdOffset);
+  if(llg_study && nElectrons == 0 && nMuons == 1 && nTaus == 1 && chargeTest) FillAllHistograms(108);
+  else if(llg_study && nElectrons == 0 && nMuons == 1 && nTaus == 1)          FillAllHistograms(108+fQcdOffset);
+  //ask for no medium b-jets
+  llg_study &= nBJetsM == 0;
+  if(llg_study && nElectrons == 1 && nMuons == 1 && chargeTest)               FillAllHistograms(109);
+  else if(llg_study && nElectrons == 1 && nMuons == 1)                        FillAllHistograms(109+fQcdOffset);
+  if(llg_study && nElectrons == 1 && nMuons == 0 && nTaus == 1 && chargeTest) FillAllHistograms(110);
+  else if(llg_study && nElectrons == 1 && nMuons == 0 && nTaus == 1)          FillAllHistograms(110+fQcdOffset);
+  if(llg_study && nElectrons == 0 && nMuons == 1 && nTaus == 1 && chargeTest) FillAllHistograms(111);
+  else if(llg_study && nElectrons == 0 && nMuons == 1 && nTaus == 1)          FillAllHistograms(111+fQcdOffset);
+  //ask for no loose b-jets
+  llg_study &= nBJetsL == 0;
+  if(llg_study && nElectrons == 1 && nMuons == 1 && chargeTest)               FillAllHistograms(112);
+  else if(llg_study && nElectrons == 1 && nMuons == 1)                        FillAllHistograms(112+fQcdOffset);
+  if(llg_study && nElectrons == 1 && nMuons == 0 && nTaus == 1 && chargeTest) FillAllHistograms(113);
+  else if(llg_study && nElectrons == 1 && nMuons == 0 && nTaus == 1)          FillAllHistograms(113+fQcdOffset);
+  if(llg_study && nElectrons == 0 && nMuons == 1 && nTaus == 1 && chargeTest) FillAllHistograms(114);
+  else if(llg_study && nElectrons == 0 && nMuons == 1 && nTaus == 1)          FillAllHistograms(114+fQcdOffset);
   
   TLorentzVector* tau = 0;
   TLorentzVector* muon = 0;

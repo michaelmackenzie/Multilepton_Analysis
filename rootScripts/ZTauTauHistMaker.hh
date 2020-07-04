@@ -72,8 +72,13 @@ public :
   TLorentzVector* genLeptonTwoP4 = 0 ;
   TLorentzVector* photonP4 = 0       ;
   Float_t         photonMVA          ;
+  Float_t         photonIDWeight     ;
   TLorentzVector* jetOneP4 = 0       ;
   TLorentzVector* jetTwoP4 = 0       ;
+  Bool_t jetOneBTag                  ;
+  Float_t jetOneBMVA                 ;
+  Bool_t jetTwoBTag                  ;
+  Float_t jetTwoBMVA                 ;
   TLorentzVector* tauP4 = 0          ;
   Int_t  tauFlavor                   ;
   UInt_t nMuons                      ;
@@ -162,6 +167,7 @@ public :
     TH1F* hEventWeight;
     TH1F* hGenWeight;
     TH1F* hGenTauFlavorWeight;
+    TH1F* hPhotonIDWeight;
     TH1F* hNPV;
     TH1F* hNPU;
     TH1F* hNPartons;
@@ -217,6 +223,8 @@ public :
     TH1F* hJetM;
     TH1F* hJetEta;
     TH1F* hJetPhi;    
+    TH1F* hJetBTag;    
+    TH1F* hJetBMVA;    
     TH1F* hTauPt;
     TH1F* hTauM;
     TH1F* hTauEta;
@@ -317,6 +325,8 @@ public :
     TH1F* hJetTwoM;
     TH1F* hJetTwoPt;
     TH1F* hJetTwoEta;
+    TH1F* hJetTwoBTag;    
+    TH1F* hJetTwoBMVA;    
     TH1F* hJetsDeltaR;
     TH1F* hJetsDeltaEta;
     TH1F* hJetsDeltaPhi;
@@ -1021,6 +1031,30 @@ void ZTauTauHistMaker::Init(TTree *tree)
     fEventSets [101 + fQcdOffset] = 1; 
     fEventSets [102] = 1; // events with 1 electron 1 tau and opposite sign
     fEventSets [102 + fQcdOffset] = 1; 
+    fEventSets [103] = 1; // events with 1 electron 1 muon and opposite sign + no forward jets
+    fEventSets [103 + fQcdOffset] = 1;
+    fEventSets [104] = 1; // events with 1 electron 1 tau and opposite sign  + no forward jets
+    fEventSets [104 + fQcdOffset] = 1;
+    fEventSets [105] = 1; // events with 1 electron 1 tau and opposite sign  + no forward jets
+    fEventSets [105 + fQcdOffset] = 1; 
+    fEventSets [106] = 1; // events with 1 electron 1 muon and opposite sign + no forward jets or bjets
+    fEventSets [106 + fQcdOffset] = 1;							       
+    fEventSets [107] = 1; // events with 1 electron 1 tau and opposite sign  + no forward jets or bjets
+    fEventSets [107 + fQcdOffset] = 1;							       
+    fEventSets [108] = 1; // events with 1 electron 1 tau and opposite sign  + no forward jets or bjets
+    fEventSets [108 + fQcdOffset] = 1; 
+    fEventSets [109] = 1; // events with 1 electron 1 muon and opposite sign + no forward jets or medium bjets
+    fEventSets [109 + fQcdOffset] = 1;							       
+    fEventSets [110] = 1; // events with 1 electron 1 tau and opposite sign  + no forward jets or medium bjets
+    fEventSets [110 + fQcdOffset] = 1;							       
+    fEventSets [111] = 1; // events with 1 electron 1 tau and opposite sign  + no forward jets or medium bjets
+    fEventSets [111 + fQcdOffset] = 1; 
+    fEventSets [112] = 1; // events with 1 electron 1 muon and opposite sign + no forward jets or loose bjets
+    fEventSets [112 + fQcdOffset] = 1;							       
+    fEventSets [113] = 1; // events with 1 electron 1 tau and opposite sign  + no forward jets or loose bjets
+    fEventSets [113 + fQcdOffset] = 1;							       
+    fEventSets [114] = 1; // events with 1 electron 1 tau and opposite sign  + no forward jets or loose bjets
+    fEventSets [114 + fQcdOffset] = 1; 
 
     //initialize all the histograms
     BookHistograms();
@@ -1065,9 +1099,15 @@ void ZTauTauHistMaker::Init(TTree *tree)
   fChain->SetBranchAddress("genLeptonTwoP4" 	 , &genLeptonTwoP4       );
   fChain->SetBranchAddress("photonP4"  	         , &photonP4             );
   fChain->SetBranchAddress("photonMVA"  	 , &photonMVA            );
+  fChain->SetBranchAddress("photonIDWeight"      , &photonIDWeight       );
   fChain->SetBranchAddress("jetP4"  	         , &jetOneP4             );
-  if(fFolderName == "llg_study")
+  fChain->SetBranchAddress("jetBTag"             , &jetOneBTag           ); 
+  fChain->SetBranchAddress("jetBMVA"             , &jetOneBMVA           ); 
+  if(fFolderName == "llg_study") {
     fChain->SetBranchAddress("jetTwoP4"  	 , &jetTwoP4             );
+    fChain->SetBranchAddress("jetTwoBTag"  	 , &jetTwoBTag           );
+    fChain->SetBranchAddress("jetTwoBMVA"  	 , &jetTwoBMVA           );
+  }
   fChain->SetBranchAddress("tauP4"  	         , &tauP4                );
   fChain->SetBranchAddress("tauFlavor"  	 , &tauFlavor            );
   fChain->SetBranchAddress("nMuons"              , &nMuons               );
