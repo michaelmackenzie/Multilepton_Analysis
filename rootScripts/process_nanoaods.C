@@ -11,7 +11,7 @@ Int_t process_nanoaods() {
   timer->Start();
   
   const char* samples[] = {
-     "MC/backgrounds/ZEMuAnalysis_DY50_2016.root"
+    "MC/backgrounds/ZEMuAnalysis_DY50_2016.root"
     ,"MC/backgrounds/ZEMuAnalysis_SingleToptW_2016.root"
     ,"MC/backgrounds/ZEMuAnalysis_SingleAntiToptW_2016.root"
     ,"MC/backgrounds/ZEMuAnalysis_WW_2016.root"
@@ -22,6 +22,17 @@ Int_t process_nanoaods() {
     ,"MC/signals/ZEMuAnalysis_Signal_2016.root"
     ,"dataprocess/ZEMuAnalysis_SingleEle_2016.root"
     ,"dataprocess/ZEMuAnalysis_SingleMu_2016.root"                 
+    ,"MC/backgrounds/ZEMuAnalysis_DY50_2018.root"
+    ,"MC/backgrounds/ZEMuAnalysis_SingleToptW_2018.root"
+    ,"MC/backgrounds/ZEMuAnalysis_SingleAntiToptW_2018.root"
+    ,"MC/backgrounds/ZEMuAnalysis_WW_2018.root"
+    ,"MC/backgrounds/ZEMuAnalysis_WZ_2018.root"
+    ,"MC/backgrounds/ZEMuAnalysis_Wlnu_2018.root"
+    ,"MC/backgrounds/ZEMuAnalysis_ttbarToSemiLeptonic_2018.root"
+    ,"MC/backgrounds/ZEMuAnalysis_ttbarlnu_2018.root"
+    ,"MC/signals/ZEMuAnalysis_Signal_2018.root"
+    ,"dataprocess/ZEMuAnalysis_SingleEle_2018.root"
+    ,"dataprocess/ZEMuAnalysis_SingleMu_2018.root"                 
   };
   const bool doProcess[] = {
     true,    //ZEMuAnalysis_DY50_2016.root"		      
@@ -34,7 +45,18 @@ Int_t process_nanoaods() {
     true,    //ZEMuAnalysis_ttbarlnu_2016.root"		      
     true,    //ZEMuAnalysis_Signal_2016.root"		      
     true,    //ZEMuAnalysis_SingleEle_2016.root"		      
-    true     //ZEMuAnalysis_SingleMu_2016.root"                 
+    true,     //ZEMuAnalysis_SingleMu_2016.root"                 
+    true,    //ZEMuAnalysis_DY50_2018.root"		      
+    true,    //ZEMuAnalysis_SingleToptW_2018.root"	      
+    true,    //ZEMuAnalysis_SingleAntiToptW_2018.root"	      
+    true,    //ZEMuAnalysis_WW_2018.root"			      
+    true,    //ZEMuAnalysis_WZ_2018.root"			      
+    true,    //ZEMuAnalysis_Wlnu_2018.root"		      
+    true,    //ZEMuAnalysis_ttbarToSemiLeptonic_2018.root"      
+    true,    //ZEMuAnalysis_ttbarlnu_2018.root"		      
+    true,    //ZEMuAnalysis_Signal_2018.root"		      
+    true,    //ZEMuAnalysis_SingleEle_2018.root"		      
+    true     //ZEMuAnalysis_SingleMu_2018.root"                 
   };
 
   std::map<TString, double> frac_table_2016;
@@ -121,9 +143,9 @@ Int_t process_nanoaods() {
       } catch(exception e) {
 	events = 0.;
       }
-      if(year == 0)      frac_neg = frac_table_2016[name];
-      else if(year == 1) frac_neg = frac_table_2017[name];
-      else if(year == 2) frac_neg = frac_table_2018[name];
+      if(year == ParticleCorrections::k2016)      frac_neg = frac_table_2016[name];
+      else if(year == ParticleCorrections::k2017) frac_neg = frac_table_2017[name];
+      else if(year == ParticleCorrections::k2018) frac_neg = frac_table_2018[name];
       cout << "Found " << events << " events for the file with "
 	   << frac_neg << " fraction negative events" << endl;
     }

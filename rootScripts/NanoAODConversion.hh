@@ -309,7 +309,7 @@ void NanoAODConversion::Init(TTree *tree)
   //initialize output here so it can steal the tree name for file naming
   if(fChain == 0 && tree != 0) {
     //name the tree and the file similarly
-    TString name = Form("clfv_%s",fFolderName.Data());
+    TString name = Form("clfv_%i_%s",fYear+(2016-ParticleCorrections::k2016),fFolderName.Data());
     fOut = new TFile((name+".tree").Data(), "RECREATE","NanoAODConversion output tree file");
     TH1F* h = new TH1F(("Events_"+name).Data(), "Event counting", 10, 1, 11);
     h->Fill(1, fEventCount);

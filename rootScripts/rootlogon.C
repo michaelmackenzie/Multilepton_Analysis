@@ -85,7 +85,7 @@
 //-----------------------------------------------------------------------------
 //  databases
 //-----------------------------------------------------------------------------
-  if(hostname.Contains("cmslpc") && !TString(gSystem->Getenv("PWD")).Contains("ZEMuAnalysis/")) { //only load if on LPC and not in nano AOD area
+  if(hostname.Contains("cmslpc") && TString(gSystem->Getenv("PWD")).Contains("BLTAnalysis/")) { //only load if on LPC and not in nano AOD area
     cout << "Loading Bacon data formats." << endl;
     gSystem->Load("libBaconAnaDataFormats.so"); 
   }

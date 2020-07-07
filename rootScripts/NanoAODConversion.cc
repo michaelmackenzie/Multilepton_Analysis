@@ -81,14 +81,14 @@ void NanoAODConversion::InitializeInBranchStructure(TTree* tree) {
   tree->SetBranchAddress("Photon_eta"             , &photonEta                      ) ;
   tree->SetBranchAddress("Photon_phi"             , &photonPhi                      ) ;
   tree->SetBranchAddress("Photon_mass"            , &photonMass                     ) ;
-  tree->SetBranchAddress("HLT_IsoMu24"           , &HLT_IsoMu24                    ) ;
-  tree->SetBranchAddress("HLT_IsoMu27"           , &HLT_IsoMu27                    ) ;
-  tree->SetBranchAddress("HLT_Mu50"              , &HLT_Mu50                       ) ;
-  tree->SetBranchAddress("HLT_Ele27_WPTight_Gsf" , &HLT_Ele27_WPTight_GsF          ) ;
-  tree->SetBranchAddress("HLT_Ele32_WPTight_Gsf" , &HLT_Ele32_WPTight_GsF          ) ;
-  tree->SetBranchAddress("PuppiMET_pt"           , &puppMET          ) ;
-  tree->SetBranchAddress("PuppiMET_phi"          , &puppMETphi       ) ;
-  tree->SetBranchAddress("PV_npvsGood"           , &nGoodPV       ) ;
+  tree->SetBranchAddress("HLT_IsoMu24"            , &HLT_IsoMu24                    ) ;
+  tree->SetBranchAddress("HLT_IsoMu27"            , &HLT_IsoMu27                    ) ;
+  tree->SetBranchAddress("HLT_Mu50"               , &HLT_Mu50                       ) ;
+  tree->SetBranchAddress("HLT_Ele27_WPTight_Gsf"  , &HLT_Ele27_WPTight_GsF          ) ;
+  tree->SetBranchAddress("HLT_Ele32_WPTight_Gsf"  , &HLT_Ele32_WPTight_GsF          ) ;
+  tree->SetBranchAddress("PuppiMET_pt"            , &puppMET                        ) ;
+  tree->SetBranchAddress("PuppiMET_phi"           , &puppMETphi                     ) ;
+  tree->SetBranchAddress("PV_npvsGood"            , &nGoodPV                        ) ;
 
 }
 
@@ -130,11 +130,11 @@ void NanoAODConversion::InitializeOutBranchStructure(TTree* tree) {
   tree->Branch("leptonTwoD0"         , &leptonTwoD0          );
   tree->Branch("leptonOneIso"        , &leptonOneIso         );
   tree->Branch("leptonTwoIso"        , &leptonTwoIso         );
-  tree->Branch("genLeptonOneP4" 	 , &genLeptonOneP4       );
-  tree->Branch("genLeptonTwoP4" 	 , &genLeptonTwoP4       );
-  tree->Branch("photonP4"  	         , &photonP4             );
-  tree->Branch("jetP4"  	         , &jetP4                );
-  tree->Branch("tauP4"  	         , &tauP4                );
+  tree->Branch("genLeptonOneP4"      , &genLeptonOneP4       );
+  tree->Branch("genLeptonTwoP4"      , &genLeptonTwoP4       );
+  tree->Branch("photonP4"            , &photonP4             );
+  tree->Branch("jetP4"               , &jetP4                );
+  tree->Branch("tauP4"               , &tauP4                );
   tree->Branch("nMuons"              , &nMuons               );
   tree->Branch("nElectrons"          , &nElectrons           );
   tree->Branch("nTaus"               , &nTaus                );
@@ -205,7 +205,7 @@ void NanoAODConversion::InitializeOutBranchStructure(TTree* tree) {
 }
 
 void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
-  genWeight = genWeight/abs(genWeight);
+  genWeight = (genWeight == 0.) ? 0. : genWeight/abs(genWeight);
 
   //use PUPPI MET by default
   met = puppMET;
@@ -214,6 +214,7 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
   puppMETC    = puppMET   ;
   puppMETCphi = puppMETphi;
   //store muon and electron trigger (1 = electron, 2 = muon, 3 = both)
+  //muon trigger is Mu50 for all years and IsoMu24 for 2016, 2018 and IsoMu27 for 2017
   triggerLeptonStatus = (2*((fYear != ParticleCorrections::k2017 && HLT_IsoMu24)
 			    || HLT_Mu50 || (fYear == ParticleCorrections::k2017 && HLT_IsoMu27))
 			 + (HLT_Ele27_WPTight_GsF || HLT_Ele32_WPTight_GsF)); 
@@ -289,6 +290,7 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
   TLorentzVector* jetLoop = new TLorentzVector(); //for checking delta R
   for(unsigned index = 0; index < njets; ++index) {
     float jetpt = jetPt[index];
+    if(jetpt < 20.) continue; //too low of jet pt
     if((jetpt < 50. && jetPUID[index] < jetPUIDFlag) || jetID[index] < jetIDFlag) //bad jet
       continue;
     //check that the jet doesn't overlap the leptons
@@ -388,7 +390,7 @@ Bool_t NanoAODConversion::Process(Long64_t entry)
   // The return value is currently not used.
 
   fChain->GetEntry(entry);
-  if(entry%50000 == 0) printf("Processing event: %12lld\n",  entry);
+  if(entry%50000 == 0) printf("Processing event: %12lld (%5.1f%%)\n", entry, entry*100./fChain->GetEntriesFast());
 
   //selections (all exclusive)
   bool mutau = nTaus == 1  && nMuons == 1 && nElectrons == 0;

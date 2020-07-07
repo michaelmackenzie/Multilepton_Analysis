@@ -20,10 +20,15 @@ double ParticleCorrections::MuonWeight(double pt, double eta, int trigger, int y
     firstSection = rand <= 8.98/59.59;
 
   TH2F* hID = muonIDMap[2*year + !firstSection];
-  double id_scale = hID->GetBinContent(hID->GetXaxis()->FindBin(fabs(eta)), hID->GetYaxis()->FindBin(pt));
+  //axes flip between years for some reason
+  int binx = (year == k2016) ? hID->GetXaxis()->FindBin(fabs(eta)) : hID->GetXaxis()->FindBin(pt);
+  int biny = (year == k2016) ? hID->GetYaxis()->FindBin(pt) : hID->GetYaxis()->FindBin(fabs(eta));
+  double id_scale = hID->GetBinContent(binx, biny);
 
   TH2F* hIso = muonIsoMap[2*year + !firstSection];
-  double iso_scale = hIso->GetBinContent(hIso->GetXaxis()->FindBin(fabs(eta)), hIso->GetYaxis()->FindBin(pt));
+  binx = (year == k2016) ? hIso->GetXaxis()->FindBin(fabs(eta)) : hIso->GetXaxis()->FindBin(pt);
+  biny = (year == k2016) ? hIso->GetYaxis()->FindBin(pt) : hIso->GetYaxis()->FindBin(fabs(eta));
+  double iso_scale = hID->GetBinContent(binx, biny);
 
   if(year == k2016) {
     if(trigger == kLowTrigger && pt < 26.) pt = 26.;
@@ -36,9 +41,19 @@ double ParticleCorrections::MuonWeight(double pt, double eta, int trigger, int y
     else if(trigger == kHighTrigger && pt < 52.) pt = 52.;
   }
   TH2F* hTrigger = (trigger == kLowTrigger) ? muonLowTriggerMap[2*year + !firstSection] : muonHighTriggerMap[2*year + !firstSection] ;
+  //doesn't flip between years
   double trig_scale = hTrigger->GetBinContent(hTrigger->GetXaxis()->FindBin(fabs(eta)), hTrigger->GetYaxis()->FindBin(pt));
 
   double scale_factor = id_scale * iso_scale * trig_scale;
+  if(scale_factor <= 0.)
+    std::cout << "Warning! ParticleCorrections::" << __func__
+	      << " scale factor <= 0, year = " << year
+	      << " id_scale = " << id_scale
+	      << " iso_scale = " << iso_scale
+	      << " trig_scale = " << trig_scale
+	      << " trigger = " << trigger
+	      << " firstSection = " << firstSection << std::endl;
+
   return scale_factor;
 }
 
