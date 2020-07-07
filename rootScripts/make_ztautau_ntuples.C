@@ -49,9 +49,15 @@ namespace {
     float ht;
     float htsum;
     float njets;
-    float nbjets;
+    float nbjets; //pt > 30
     float nbjetsm;
     float nbjetsl;
+    float nbjetstot25; //pt > 25
+    float nbjetstot25m;
+    float nbjetstot25l;
+    float nbjetstot20; //pt > 20
+    float nbjetstot20m;
+    float nbjetstot20l;
     float nphotons;
     float eventweight;
     float fulleventweight; //includes cross-section and number gen
@@ -68,7 +74,7 @@ namespace {
   vector<TString> fMvaNames = { //mva names for getting weights
     "mutau_BDT_8.higgs","mutau_BDT_8.Z0", //0 - 9: total mvas
     "etau_BDT_28.higgs","etau_BDT_28.Z0",
-    "emu_BDT_48.higgs","emu_BDT_48.Z0",
+    "emu_BDT_47.higgs","emu_BDT_47.Z0",
     "mutau_e_BDT_48.higgs","mutau_e_BDT_48.Z0",
     "etau_mu_BDT_48.higgs","etau_mu_BDT_48.Z0", 
     "mutau_BDT_18.higgs","mutau_BDT_18.Z0", //10 - 19: 0 jets
@@ -97,24 +103,25 @@ namespace {
 
   TLorentzVector* leptonOneP4;
   TLorentzVector* leptonTwoP4;
-  TLorentzVector* genLeptonOneP4;
-  TLorentzVector* genLeptonTwoP4;
-  TLorentzVector* leptonOneSVP4;
-  TLorentzVector* leptonTwoSVP4;
-  TLorentzVector* jetP4;
-  TLorentzVector* tauP4;
-  TLorentzVector* photonP4;
   UInt_t nElectrons;
   UInt_t nMuons;
   UInt_t nTaus;
   UInt_t njets;
-  UInt_t nbjets;
-  UInt_t nbjetsm;
-  UInt_t nbjetsl;
-  UInt_t runNumber                   ;
-  ULong64_t eventNumber              ;
-  UInt_t lumiSection                 ;
-  UInt_t triggerLeptonStatus         ;
+  UInt_t nBJets                      ;
+  UInt_t nBJetsM                     ;
+  UInt_t nBJetsL                     ;
+  UInt_t nBJets25                    ;
+  UInt_t nBJets25M                   ;
+  UInt_t nBJets25L                   ;
+  UInt_t nBJets20                    ;
+  UInt_t nBJets20M                   ;
+  UInt_t nBJets20L                   ;
+  UInt_t nBJets25Tot                 ;
+  UInt_t nBJets25TotM                ;
+  UInt_t nBJets25TotL                ;
+  UInt_t nBJetsTot                   ;
+  UInt_t nBJetsTotM                  ;
+  UInt_t nBJetsTotL                  ;
   Long64_t fentry;
   Long64_t fMaxEntries = 0;
   float htPhi;
@@ -174,6 +181,10 @@ Int_t book_mvas() {
       mva[mva_i]->AddVariable("njets"         ,&fTreeVars.njets          );
     else
       mva[mva_i]->AddSpectator("njets"        ,&fTreeVars.njets          );
+
+    if(fMvaNames[mva_i].Contains("_47")) //use btag information
+      mva[mva_i]->AddVariable("nbjetstot20m", &fTreeVars.nbjetstot20m);
+
     mva[mva_i]->AddSpectator("lepdeltaeta"    ,&fTreeVars.lepdeltaeta    );
     mva[mva_i]->AddSpectator("metdeltaphi"    ,&fTreeVars.metdeltaphi    );
 
@@ -220,6 +231,23 @@ Int_t book_mvas() {
 
 //selections: 1 = mutau, 2 = etau, 5 = emu
 Int_t initialize_tree_vars(int selection) {
+  if(nBJets  > nBJetsM) nBJetsM = nBJets;
+  if(nBJetsM > nBJetsL) nBJetsL = nBJetsM;
+  if(nBJets25   > nBJets25M ) nBJets25M = nBJets25;
+  if(nBJets25M  > nBJets25L ) nBJets25L = nBJets25M;
+  if(nBJets20   > nBJets20M ) nBJets20M = nBJets20;
+  if(nBJets20M  > nBJets20L ) nBJets20L = nBJets20M;
+
+  //pt > 25
+  nBJets25Tot = nBJets + nBJets25;
+  nBJets25TotM = nBJetsM + nBJets25M;
+  nBJets25TotL = nBJetsL + nBJets25L;
+
+  //pt > 20
+  nBJetsTot = nBJets + nBJets25 + nBJets20;
+  nBJetsTotM = nBJetsM + nBJets25M + nBJets20M;
+  nBJetsTotL = nBJetsL + nBJets25L + nBJets20L;
+
   //update MET with correction
   TVector3 missing(met*cos(metPhi), met*sin(metPhi), 0.);
   TVector3 missingCorr(metCorr*cos(metCorrPhi), metCorr*sin(metCorrPhi), 0.);
@@ -276,9 +304,15 @@ Int_t initialize_tree_vars(int selection) {
   fTreeVars.mestimatetwo = fTreeVars.lepm/sqrt(lp1.Mag() / (lp1.Mag() + pnuesttwo));
 
   fTreeVars.njets = njets;
-  fTreeVars.nbjets = nbjets;
-  fTreeVars.nbjetsm = nbjetsm;
-  fTreeVars.nbjetsl = nbjetsl;
+  fTreeVars.nbjets = nBJets;
+  fTreeVars.nbjetsm = nBJetsM;
+  fTreeVars.nbjetsl = nBJetsL;
+  fTreeVars.nbjetstot25   = nBJets25Tot;
+  fTreeVars.nbjetstot25m  = nBJets25TotM;
+  fTreeVars.nbjetstot25l  = nBJets25TotL;
+  fTreeVars.nbjetstot20   = nBJetsTot;
+  fTreeVars.nbjetstot20m  = nBJetsTotM;
+  fTreeVars.nbjetstot20l  = nBJetsTotL;
   //don't actually care about these, just for MVA spectators
   fTreeVars.eventweight = 1.;
   fTreeVars.fulleventweight = 1.;
@@ -308,45 +342,44 @@ Int_t initialize_tree_vars(int selection) {
 
 //read only information needed by MVAs, for selections,  or for debugging
 Int_t set_addresses(TTree* fChain) {
-  fChain->SetBranchAddress("runNumber"           , &runNumber            );
-  fChain->SetBranchAddress("evtNumber"           , &eventNumber          );
-  fChain->SetBranchAddress("lumiSection"         , &lumiSection          );
-  fChain->SetBranchAddress("triggerLeptonStatus" , &triggerLeptonStatus  );
-  fChain->SetBranchAddress("leptonOneP4" 	 , &leptonOneP4          );
-  fChain->SetBranchAddress("leptonTwoP4" 	 , &leptonTwoP4          );
-  fChain->SetBranchAddress("genLeptonOneP4" 	 , &genLeptonOneP4          );
-  fChain->SetBranchAddress("genLeptonTwoP4" 	 , &genLeptonTwoP4          );
-  fChain->SetBranchAddress("leptonOneSVP4" 	 , &leptonOneSVP4          );
-  fChain->SetBranchAddress("leptonTwoSVP4" 	 , &leptonTwoSVP4          );
-  // fChain->SetBranchAddress("leptonOneFlavor"     , &fTreeVars.leptonOneFlavor      );
-  // fChain->SetBranchAddress("leptonTwoFlavor"     , &fTreeVars.leptonTwoFlavor      );
-  fChain->SetBranchAddress("tauP4"  	         , &tauP4             );
-  fChain->SetBranchAddress("photonP4"  	         , &photonP4             );
-  fChain->SetBranchAddress("jetP4"  	         , &jetP4                );
-  fChain->SetBranchAddress("nMuons"              , &nMuons               );
-  fChain->SetBranchAddress("nElectrons"          , &nElectrons           );
-  fChain->SetBranchAddress("nTaus"               , &nTaus                );
-  // fChain->SetBranchAddress("nPhotons"            , &fTreeVars.nphotons             );
-  fChain->SetBranchAddress("nJets"               , &njets                );
-  // fChain->SetBranchAddress("nFwdJets"            , &nfwdjets             );
-  fChain->SetBranchAddress("nBJets"              , &nbjets               );
-  fChain->SetBranchAddress("nBJetsM"             , &nbjetsm              );
-  fChain->SetBranchAddress("nBJetsL"             , &nbjetsl              );
-  fChain->SetBranchAddress("puppMETC"            , &met                  );
-  fChain->SetBranchAddress("puppMETCphi"         , &metPhi               );
-  fChain->SetBranchAddress("metCorr"             , &metCorr              );
-  fChain->SetBranchAddress("metCorrPhi"          , &metCorrPhi           );
-  fChain->SetBranchAddress("ht"                  , &fTreeVars.ht         );
-  fChain->SetBranchAddress("htPhi"               , &htPhi );
+  fChain->SetBranchStatus("*", 0); //turn off all branches
+  fChain->SetBranchStatus("leptonOneP4"         , 1); fChain->SetBranchAddress("leptonOneP4"         , &leptonOneP4          );   
+  fChain->SetBranchStatus("leptonTwoP4"         , 1); fChain->SetBranchAddress("leptonTwoP4"         , &leptonTwoP4          );   
+  fChain->SetBranchStatus("nMuons"              , 1); fChain->SetBranchAddress("nMuons"              , &nMuons               );   
+  fChain->SetBranchStatus("nElectrons"          , 1); fChain->SetBranchAddress("nElectrons"          , &nElectrons           );   
+  fChain->SetBranchStatus("nTaus"               , 1); fChain->SetBranchAddress("nTaus"               , &nTaus                );   
+  // fChain->SetBranchStatus("nPhotons"            , 1); fChain->SetBranchAddress("nPhotons"            , &fTreeVars.nphotons   );   
+  fChain->SetBranchStatus("nJets"               , 1); fChain->SetBranchAddress("nJets"               , &njets                );   
+  // fChain->SetBranchStatus("nFwdJets"            , 1); fChain->SetBranchAddress("nFwdJets"            , &nfwdjets             );   
+  fChain->SetBranchStatus("nBJets"              , 1); fChain->SetBranchAddress("nBJets"              , &nBJets               );   
+  fChain->SetBranchStatus("nBJetsM"             , 1); fChain->SetBranchAddress("nBJetsM"             , &nBJetsM              );   
+  fChain->SetBranchStatus("nBJetsL"             , 1); fChain->SetBranchAddress("nBJetsL"             , &nBJetsL              );   
+  fChain->SetBranchStatus("nBJets25"            , 1); fChain->SetBranchAddress("nBJets25"            , &nBJets25             );   
+  fChain->SetBranchStatus("nBJets25M"           , 1); fChain->SetBranchAddress("nBJets25M"           , &nBJets25M            );   
+  fChain->SetBranchStatus("nBJets25L"           , 1); fChain->SetBranchAddress("nBJets25L"           , &nBJets25L            );   
+  fChain->SetBranchStatus("nBJets20"            , 1); fChain->SetBranchAddress("nBJets20"            , &nBJets20             );   
+  fChain->SetBranchStatus("nBJets20M"           , 1); fChain->SetBranchAddress("nBJets20M"           , &nBJets20M            );   
+  fChain->SetBranchStatus("nBJets20L"           , 1); fChain->SetBranchAddress("nBJets20L"           , &nBJets20L            );   
+  fChain->SetBranchStatus("puppMETC"            , 1); fChain->SetBranchAddress("puppMETC"            , &met                  );   
+  fChain->SetBranchStatus("puppMETCphi"         , 1); fChain->SetBranchAddress("puppMETCphi"         , &metPhi               );   
+  fChain->SetBranchStatus("metCorr"             , 1); fChain->SetBranchAddress("metCorr"             , &metCorr              );   
+  fChain->SetBranchStatus("metCorrPhi"          , 1); fChain->SetBranchAddress("metCorrPhi"          , &metCorrPhi           );   
+  fChain->SetBranchStatus("ht"                  , 1); fChain->SetBranchAddress("ht"                  , &fTreeVars.ht         );   
+  fChain->SetBranchStatus("htPhi"               , 1); fChain->SetBranchAddress("htPhi"               , &htPhi                );   
 
   //add new branches for MVA outputs
   for(unsigned mva_i = 0; mva_i < fMvaNames.size(); ++mva_i)  fMvaBranches[mva_i] = 0; //set to 0 initially
   int nfound = 0;
   for(unsigned mva_i = 0; mva_i < fMvaNames.size(); ++mva_i)  {
-    //add branch if doesn't already exist
+    // //add branch if doesn't already exist unless
+    ++nfound;
     if(!fChain->GetBranch(Form("mva%i",mva_i))) {
-      ++nfound;
       fMvaBranches[mva_i] = fChain->Branch(Form("mva%i",mva_i), &(fMvaOutputs[mva_i]));
+    } else {
+      fChain->SetBranchStatus(Form("mva%i", mva_i), 1);
+      fChain->SetBranchAddress(Form("mva%i", mva_i), &(fMvaOutputs[mva_i]));
+      fMvaBranches[mva_i] = fChain->GetBranch(Form("mva%i",mva_i));
+
     }
   }      
   return nfound;
@@ -382,7 +415,9 @@ Int_t make_new_tree(TString path, TString path_in_file, TString tree_name) {
       break;
     }
     fentry = entry;
-    tree->GetEntry(entry);
+    Int_t tree_status = tree->GetEntry(entry);
+    if(debug && entry%10000 == 0)
+      cout << "Status getting entry: " << tree_status << endl;
     int selection = (nElectrons == 0 && nMuons == 1 && nTaus == 1) +
       2*(nElectrons == 1 && nMuons == 0 && nTaus == 1) +
       5*(nElectrons == 1 && nMuons == 1 && nTaus == 0);
@@ -524,7 +559,7 @@ Int_t process_standard_trees() {
 			   "electron_2016G"	        ,  //"electron_2016G"              
 			   "electron_2016H"                //"electron_2016H_v2"		   
   };
-  vector<TString> folders = {"mutau", "etau", "emu"};
+  vector<TString> folders = {"emu"}; //{"mutau", "etau", "emu"};
   status = initialize(); //initialize the MVAs
   if(status) return status;
   

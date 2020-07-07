@@ -319,6 +319,8 @@ public :
     TH1F* hPt1Sum[4]; //scalar sum of 1 lepton Pt and Met, both leptons, then both minus met
     //MVA values
     TH1F* hMVA[kMaxMVAs];
+    TH1F* hMVATrain[kMaxMVAs];
+    TH1F* hMVATest[kMaxMVAs];
 
     //llg study histograms
     TH1F* hObjMasses[14]; //jets, jets+gamma, jet1/2 + gamma, jets + l1/2, jet1/2 + l1/2, jets+l1+l2, jets + gamma + l1/2, jets + gamma + l1 + l2
@@ -461,9 +463,15 @@ public :
     float ht;
     float htsum;
     float njets;
-    float nbjets;
+    float nbjets; //pt > 30
     float nbjetsm;
     float nbjetsl;
+    float nbjetstot25; //pt > 25
+    float nbjetstot25m;
+    float nbjetstot25l;
+    float nbjetstot20; //pt > 20
+    float nbjetstot20m;
+    float nbjetstot20l;
     float nphotons;
     float eventweight;
     float fulleventweight; //includes cross-section and number gen
@@ -687,6 +695,7 @@ public :
   Int_t         fBJetCounting = 1; // 0: pT > 30 1: pT > 25 2: pT > 20
   Int_t         fBJetTightness = 1; // 0: tight 1: medium 2: loose
   Int_t         fMETType = 1; // 0: PF corrected 1: PUPPI Corrected
+  bool          fForceBJetSense = true; //force can't be more strict id bjets than looser id bjets
   
   ClassDef(ZTauTauHistMaker,0);
 
@@ -757,6 +766,10 @@ void ZTauTauHistMaker::Init(TTree *tree)
 	  mva[mva_i]->AddVariable("njets"         ,&fTreeVars.njets          );
 	else
 	  mva[mva_i]->AddSpectator("njets"           ,&fTreeVars.njets          );
+
+	if(fMvaNames[mva_i].Contains("_47"))
+	  mva[mva_i]->AddVariable("nbjetstot20m", &fTreeVars.nbjetstot20m);
+
 	mva[mva_i]->AddSpectator("lepdeltaeta"     ,&fTreeVars.lepdeltaeta    );
 	mva[mva_i]->AddSpectator("metdeltaphi"     ,&fTreeVars.metdeltaphi    );
 
@@ -832,7 +845,7 @@ void ZTauTauHistMaker::Init(TTree *tree)
 
     fEventSets [7] = 1; // events with opposite signs and passing Mu+Tau Pt + angle cuts with no photon check
     fEventSets [7+fQcdOffset] = 1; // events with same signs and passing Mu+Tau Pt + angle cuts with no photon check
-    fTreeSets  [7] = 0;
+    fTreeSets  [7] = 1;
 
     // Sets 8-10 MVA cuts applied
     fEventSets [8] = 1; // events with opposite signs
@@ -889,7 +902,7 @@ void ZTauTauHistMaker::Init(TTree *tree)
     fEventSets [26+fQcdOffset] = 1; // events with same signs and passing E+Tau Pt cuts with no photon check
     fEventSets [27] = 1; // events with opposite signs and passing E+Tau Pt + angle cuts with no photon check
     fEventSets [27+fQcdOffset] = 1; // events with same signs and passing E+Tau Pt + angle cuts with no photon check
-    fTreeSets  [27] = 0;
+    fTreeSets  [27] = 1;
 
     // Sets 8-10 MVA cuts applied
     fEventSets [28] = 1; // events with opposite signs
@@ -945,6 +958,7 @@ void ZTauTauHistMaker::Init(TTree *tree)
     fEventSets [46+fQcdOffset] = 1; // events with same signs
     fEventSets [47] = 1; // events with opposite signs
     fEventSets [47+fQcdOffset] = 1; // events with same
+    fTreeSets  [47] = 1;
     fEventSets [48] = 1; // events with opposite signs + no bjets
     fEventSets [48+fQcdOffset] = 1; // events with same
     fTreeSets  [48] = 1;

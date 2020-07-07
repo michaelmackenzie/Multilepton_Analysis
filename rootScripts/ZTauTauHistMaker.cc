@@ -265,7 +265,9 @@ void ZTauTauHistMaker::BookEventHistograms() {
       fEventHist[i]->hPt1Sum[3]        = new TH1F("pt1sum3"        , Form("%s: Scalar Pt sum Lepton 1 + 2 - MET" ,dirname)    ,1000,  0.,  1000.);     
       for(unsigned j = 0; j < fMvaNames.size(); ++j)  {
 	//high mva score binning to improve cdf making
-	fEventHist[i]->hMVA[j]        = new TH1F(Form("mva%i",j)   , Form("%s: %s MVA" ,dirname, fMvaNames[j].Data()) ,10000, -1.,  2.); //beyond 1 for space for legend
+	fEventHist[i]->hMVA[j]        = new TH1F(Form("mva%i",j)     , Form("%s: %s MVA" ,dirname, fMvaNames[j].Data()) ,10000, -1.,  2.); 
+	fEventHist[i]->hMVATrain[j]   = new TH1F(Form("mvatrain%i",j), Form("%s: %s MVA (train)" ,dirname, fMvaNames[j].Data()) ,300, -1.,  2.); 
+	fEventHist[i]->hMVATest[j]    = new TH1F(Form("mvatest%i",j) , Form("%s: %s MVA (test)" ,dirname, fMvaNames[j].Data())  ,300, -1.,  2.); 
       }      
       if(fFolderName == "llg_study") {
 	//llg study histograms
@@ -444,6 +446,12 @@ void ZTauTauHistMaker::BookTrees() {
       fTrees[i]->Branch("nbjets",          &fTreeVars.nbjets	     );   
       fTrees[i]->Branch("nbjetsm",         &fTreeVars.nbjetsm	     );   
       fTrees[i]->Branch("nbjetsl",         &fTreeVars.nbjetsl	     );   
+      fTrees[i]->Branch("nbjetstot25",     &fTreeVars.nbjetstot25    );   
+      fTrees[i]->Branch("nbjetstot25m",    &fTreeVars.nbjetstot25m   );   
+      fTrees[i]->Branch("nbjetstot25l",    &fTreeVars.nbjetstot25l   );   
+      fTrees[i]->Branch("nbjetstot20",     &fTreeVars.nbjetstot20    );   
+      fTrees[i]->Branch("nbjetstot20m",    &fTreeVars.nbjetstot20m   );   
+      fTrees[i]->Branch("nbjetstot20l",    &fTreeVars.nbjetstot20l   );   
       fTrees[i]->Branch("nphotons",        &fTreeVars.nphotons       );  
       
       fTrees[i]->Branch("eventweight",     &fTreeVars.eventweight    );  
@@ -456,6 +464,15 @@ void ZTauTauHistMaker::BookTrees() {
 
 //selections: 1 = mutau, 2 = etau, 5 = emu, 9 = mumu, 18 = llg_study
 void ZTauTauHistMaker::InitializeTreeVariables(Int_t selection) {
+  //force it to be that nbjets loose >= nbjets medium etc
+  if(fForceBJetSense) {
+    if(nBJets  > nBJetsM) nBJetsM = nBJets;
+    if(nBJetsM > nBJetsL) nBJetsL = nBJetsM;
+    if(nBJets25   > nBJets25M ) nBJets25M = nBJets25;
+    if(nBJets25M  > nBJets25L ) nBJets25L = nBJets25M;
+    if(nBJets20   > nBJets20M ) nBJets20M = nBJets20;
+    if(nBJets20M  > nBJets20L ) nBJets20L = nBJets20M;
+  }
   nJets25Tot = nJets + nJets25;
   nBJets25Tot = nBJets + nBJets25;
   nBJets25TotM = nBJetsM + nBJets25M;
@@ -533,6 +550,12 @@ void ZTauTauHistMaker::InitializeTreeVariables(Int_t selection) {
   fTreeVars.nbjets   = nBJets;
   fTreeVars.nbjetsm  = nBJetsM;
   fTreeVars.nbjetsl  = nBJetsL;
+  fTreeVars.nbjetstot25   = nBJets25Tot;
+  fTreeVars.nbjetstot25m  = nBJets25TotM;
+  fTreeVars.nbjetstot25l  = nBJets25TotL;
+  fTreeVars.nbjetstot20   = nBJetsTot;
+  fTreeVars.nbjetstot20m  = nBJetsTotM;
+  fTreeVars.nbjetstot20l  = nBJetsTotL;
   fTreeVars.nphotons = nPhotons;
   fTreeVars.eventweight = genWeight*eventWeight;
   fTreeVars.fulleventweight = genWeight*eventWeight*fXsec;
@@ -863,7 +886,9 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
 
   //MVA outputs
   for(unsigned i = 0; i < fMvaNames.size(); ++i) {
-    Hist->hMVA[i]   ->Fill(fMvaOutputs[i], eventWeight*genWeight);
+    Hist->hMVA[i]      ->Fill(fMvaOutputs[i], eventWeight*genWeight);
+    if (fTreeVars.train > 0) Hist->hMVATrain[i]->Fill(fMvaOutputs[i], fTreeVars.eventweight*((fFractionMVA > 0.) ? 1./fFractionMVA : 1.));
+    if (fTreeVars.train < 0) Hist->hMVATest[i] ->Fill(fMvaOutputs[i], fTreeVars.eventweight*((fFractionMVA < 1.) ? 1./(1.-fFractionMVA) : 1.));
   }
   if(fFolderName != "llg_study") return;
   TLorentzVector jets = *jetOneP4 + *jetTwoP4, jet1g = *jetOneP4 + *photonP4, jet2g = *jetTwoP4 + *photonP4;

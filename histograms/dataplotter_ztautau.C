@@ -15,6 +15,7 @@ bool printMVATotBkg_ = false; //print MVA distributions as total background vs s
 bool print2Ds_ = false;
 bool printSignificances_ = false;
 bool printMVAPlots_ = true;
+int year_ = 2016;
 
 Int_t print_significance_canvases(vector<TString> hists, vector<TString> types, vector<TString> labels, vector<int> sets) {
   TCanvas* c = 0;
@@ -759,17 +760,17 @@ Int_t init_dataplotter() {
 
   std::vector<dcard> nano_cards;
   //card constructor: filepath, name, label, isData, xsec, isSignal, color
-  nano_cards.push_back(dcard("clfv_DY50"               , "DY50"               , "Drell-Yan", false, 6225.42              , false, kRed-3));
-  nano_cards.push_back(dcard("clfv_SingleAntiToptW"    , "SingleAntiToptW"    , "SingleTop", false, 34.91                , false, kCyan-7));
-  nano_cards.push_back(dcard("clfv_SingleToptW"        , "SingleToptW"        , "SingleTop", false, 34.91                , false, kCyan-7));
-  nano_cards.push_back(dcard("clfv_WW"                 , "WW"	              , "WW"       , false, 12.178               , false, kViolet+6));
-  nano_cards.push_back(dcard("clfv_WZ"                 , "WZ"                 , "WZ"       , false, 27.6                 , false, kViolet+4));
-  nano_cards.push_back(dcard("clfv_Wlnu"               , "Wlnu"               , "W+Jets"   , false, 52850.0              , false, kGreen-7));
-  nano_cards.push_back(dcard("clfv_ttbarToSemiLeptonic", "ttbarToSemiLeptonic", "t#bar{t}" , false, 365.34               , false, kYellow-7));
-  nano_cards.push_back(dcard("clfv_ttbarlnu"           , "ttbarlnu"           , "t#bar{t}" , false, 88.29                , false, kYellow-7));
-  nano_cards.push_back(dcard("clfv_Signal"             , "Signal"             , "Z->e#mu"  , false, 2075.14/0.0337*7.3e-7, true , kBlue));  
-  nano_cards.push_back(dcard("clfv_SingleMu"           , "SingleMu"           , "Data"     , true , 1.                   , false));  
-  nano_cards.push_back(dcard("clfv_SingleEle"          , "SingleEle"          , "Data"     , true , 1.                   , false));  
+  nano_cards.push_back(dcard(Form("clfv_%i_DY50"               ,year_), "DY50"               , "Drell-Yan", false, 6225.42              , false, kRed-3));
+  nano_cards.push_back(dcard(Form("clfv_%i_SingleAntiToptW"    ,year_), "SingleAntiToptW"    , "SingleTop", false, 34.91                , false, kCyan-7));
+  nano_cards.push_back(dcard(Form("clfv_%i_SingleToptW"        ,year_), "SingleToptW"        , "SingleTop", false, 34.91                , false, kCyan-7));
+  nano_cards.push_back(dcard(Form("clfv_%i_WW"                 ,year_), "WW"	              , "WW"       , false, 12.178               , false, kViolet+6));
+  nano_cards.push_back(dcard(Form("clfv_%i_WZ"                 ,year_), "WZ"                 , "WZ"       , false, 27.6                 , false, kViolet+4));
+  nano_cards.push_back(dcard(Form("clfv_%i_Wlnu"               ,year_), "Wlnu"               , "W+Jets"   , false, 52850.0              , false, kGreen-7));
+  nano_cards.push_back(dcard(Form("clfv_%i_ttbarToSemiLeptonic",year_), "ttbarToSemiLeptonic", "t#bar{t}" , false, 365.34               , false, kYellow-7));
+  nano_cards.push_back(dcard(Form("clfv_%i_ttbarlnu"           ,year_), "ttbarlnu"           , "t#bar{t}" , false, 88.29                , false, kYellow-7));
+  nano_cards.push_back(dcard(Form("clfv_%i_Signal"             ,year_), "Signal"             , "Z->e#mu"  , false, 2075.14/0.0337*7.3e-7, true , kBlue));  
+  nano_cards.push_back(dcard(Form("clfv_%i_SingleMu"           ,year_), "SingleMu"           , "Data"     , true , 1.                   , false));  
+  nano_cards.push_back(dcard(Form("clfv_%i_SingleEle"          ,year_), "SingleEle"          , "Data"     , true , 1.                   , false));  
 
   TString selection_dir = (leptonic_tau) ? "emu" : selection_;
   //add full name to file name
@@ -785,19 +786,15 @@ Int_t init_dataplotter() {
 
   
   
-  const Double_t dLum[] = {
-    5.75e3  ,
-    2.573e3  ,
-    4.242e3  ,
-    4.025e3  ,
-    3.105e3  ,
-    7.576e3  ,
-    8.651e3  
-                          };//, (36.4e3-5.3e3)}; //taken from CMS AN-16-458
-
-  double lum    = accumulate(begin(dLum), end(dLum), 0, plus<double>());; //pb^-1
+  double lum = 35.92e3; //pb^-1
+  if(year_ == 2017)
+    lum = 41.48e3;
+  else if(year_ == 2018)
+    lum = 59.74e3;
+  
   dataplotter_->set_luminosity(lum);
   dataplotter_->verbose_ = verbose_;
+
   if(useNanoAods_) {
     for(auto card : nano_cards)
       dataplotter_->add_dataset(card);

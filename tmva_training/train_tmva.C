@@ -3,8 +3,9 @@
 #include "TrainTrkQual.C"
 
 
-int train_tmva(const char* tree_name = "trees/background_ztautau_Z0_mutau_8.tree", vector<int> signals = {36,37,38, 39, 40, 41, 42}, vector<int> ignore = {}) {
-
+int train_tmva(const char* tree_name = "trees/background_ztautau_Z0_mutau_8.tree",
+	       vector<int> signals = {36, 37, 38, 39, 40, 41}, vector<int> ignore = {}, int use_nbjets = 0) {
+  use_nbjets_ = use_nbjets;
   TFile *f;
 
   TString tmvaName;

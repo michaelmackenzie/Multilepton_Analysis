@@ -52,6 +52,7 @@ TString selection_ = "zmutau";
 Int_t split_trees_ = 0; //split training/testing using tree defined samples
 Int_t use_njets_ = 1; //whether or not to train using njets, don't use if jet binned categories
 Int_t use_ht_ = 1; //whether or not to train using hT, don't use if 0 jet bin category
+Int_t use_nbjets_ = 0; //whether or not to train using nbjets, = id+3*ptcut with id = 1,2,3 for tight, medium, loose and pt = 0,1,2 for >30, >25, >20
 
 //Train MVA to separate the given signal from the given background
 int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual",
@@ -209,6 +210,25 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
     factory->AddVariable("njets", "nJets", "", 'F');
   else
     factory->AddSpectator("njets", "nJets", "", 'F');
+  if(use_nbjets_ == 1) 
+    factory->AddVariable("nbjets"      , "nBJets (tight ID pt > 30)" , "", 'F');
+  else if(use_nbjets_ == 2) 
+    factory->AddVariable("nbjetsm"     , "nBJets (medium ID pt > 30)", "", 'F');
+  else if(use_nbjets_ == 3) 
+    factory->AddVariable("nbjetsl"     , "nBJets (loose ID pt > 30)" , "", 'F');
+  else if(use_nbjets_ == 4) 
+    factory->AddVariable("nbjetstot25" , "nBJets (tight ID pt > 25)" , "", 'F');
+  else if(use_nbjets_ == 5) 
+    factory->AddVariable("nbjetstot25m", "nBJets (medium ID pt > 25)", "", 'F');
+  else if(use_nbjets_ == 6) 
+    factory->AddVariable("nbjetstot25l", "nBJets (loose ID pt > 25)" , "", 'F');
+  else if(use_nbjets_ == 7) 
+    factory->AddVariable("nbjetstot20" , "nBJets (tight ID pt > 20)" , "", 'F');
+  else if(use_nbjets_ == 8) 
+    factory->AddVariable("nbjetstot20m", "nBJets (medium ID pt > 20)", "", 'F');
+  else if(use_nbjets_ == 9) 
+    factory->AddVariable("nbjetstot20l", "nBJets (loose ID pt > 20)" , "", 'F');
+
   factory->AddSpectator("lepdeltaeta","#Delta#eta_{ll}","",'F');
   factory->AddSpectator("metdeltaphi","#Delta#phi_{MET,ll}","",'F');
   //tau specific
@@ -341,7 +361,7 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
   TCut bkg_cuts(bkg_cut);
   
   
-  Double_t nSigFrac =  0.7;//0.2;
+  Double_t nSigFrac =  0.7;//0.2; //only use if trees aren't pre-split
   Double_t nBkgFrac =  0.3;//0.2;
   Long64_t nSig = signal->CopyTree(signal_cuts)->GetEntriesFast();
   Long64_t nBkg = background->CopyTree(bkg_cuts)->GetEntriesFast();
