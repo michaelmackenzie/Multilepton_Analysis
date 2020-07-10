@@ -170,8 +170,8 @@ public :
   Float_t jetEta[kMaxParticles]             ;
   Float_t jetPhi[kMaxParticles]             ;
   Float_t jetMass[kMaxParticles]            ;
-  Int_t jetID[kMaxParticles]              ;
-  Int_t jetPUID[kMaxParticles]            ;
+  Int_t   jetID[kMaxParticles]              ;
+  Int_t   jetPUID[kMaxParticles]            ;
   Float_t jetBTagDeepB[kMaxParticles]       ;
   Float_t jetBTagCMVA[kMaxParticles]        ;
   Float_t photonPt[kMaxParticles]           ;
@@ -183,7 +183,8 @@ public :
   bool    HLT_Mu50                          ;
   bool    HLT_Ele27_WPTight_GsF             ;
   bool    HLT_Ele32_WPTight_GsF             ;
-  // Float_t genWeight                         ;
+  bool    HLT_Ele32_WPTight_GsF_L1DoubleEG  ;
+// Float_t genWeight                         ;
   // Float_t piWeight                          ;
   // Float_t PuppiMET                          ;
   // Float_t nPV                               ;
@@ -278,6 +279,7 @@ public :
   TTree*        fOutTrees[kSelections];
   Float_t       fEventCount = 0.;
   Int_t         fYear = ParticleCorrections::k2016; //data taking year
+  Int_t         fMuonIso = ParticleCorrections::kTightMuIso; //which isolation selection to use
   
   TString       fFolderName = ""; //name of the folder the tree is from
 

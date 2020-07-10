@@ -36,7 +36,7 @@ void NanoAODConversion::Begin(TTree * /*tree*/)
 
   printf("NanoAODConversion::Begin\n");
   timer->Start();
-  particleCorrections = new ParticleCorrections();
+  particleCorrections = new ParticleCorrections(fMuonIso);
   fChain = 0;
   
 }
@@ -86,6 +86,7 @@ void NanoAODConversion::InitializeInBranchStructure(TTree* tree) {
   tree->SetBranchAddress("HLT_Mu50"               , &HLT_Mu50                       ) ;
   tree->SetBranchAddress("HLT_Ele27_WPTight_Gsf"  , &HLT_Ele27_WPTight_GsF          ) ;
   tree->SetBranchAddress("HLT_Ele32_WPTight_Gsf"  , &HLT_Ele32_WPTight_GsF          ) ;
+  tree->SetBranchAddress("HLT_Ele32_WPTight_Gsf_L1DoubleEG", &HLT_Ele32_WPTight_GsF_L1DoubleEG) ;
   tree->SetBranchAddress("PuppiMET_pt"            , &puppMET                        ) ;
   tree->SetBranchAddress("PuppiMET_phi"           , &puppMETphi                     ) ;
   tree->SetBranchAddress("PV_npvsGood"            , &nGoodPV                        ) ;
@@ -215,9 +216,14 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
   puppMETCphi = puppMETphi;
   //store muon and electron trigger (1 = electron, 2 = muon, 3 = both)
   //muon trigger is Mu50 for all years and IsoMu24 for 2016, 2018 and IsoMu27 for 2017
-  triggerLeptonStatus = (2*((fYear != ParticleCorrections::k2017 && HLT_IsoMu24)
-			    || HLT_Mu50 || (fYear == ParticleCorrections::k2017 && HLT_IsoMu27))
-			 + (HLT_Ele27_WPTight_GsF || HLT_Ele32_WPTight_GsF)); 
+  bool lowMuonTriggered  = ((fYear == ParticleCorrections::k2016 && HLT_IsoMu24) || 
+			    (fYear == ParticleCorrections::k2017 && HLT_IsoMu27) || 
+			    (fYear == ParticleCorrections::k2018 && HLT_IsoMu24));
+  bool highMuonTriggered = HLT_Mu50;
+  bool electronTriggered = ((fYear == ParticleCorrections::k2016 && HLT_Ele27_WPTight_GsF) ||
+			    (fYear == ParticleCorrections::k2017 && HLT_Ele32_WPTight_GsF_L1DoubleEG) || 
+			    (fYear == ParticleCorrections::k2018 && HLT_Ele32_WPTight_GsF));
+  triggerLeptonStatus = electronTriggered + 2*(lowMuonTriggered || highMuonTriggered);
 
   int trigger = 0; //muon weights use the trigger
   if(selection == kMuTau || selection == kEMu || selection == kMuMu)
@@ -395,7 +401,7 @@ Bool_t NanoAODConversion::Process(Long64_t entry)
   //selections (all exclusive)
   bool mutau = nTaus == 1  && nMuons == 1 && nElectrons == 0;
   bool etau  = nTaus == 1  && nMuons == 0 && nElectrons == 1;
-  bool emu   = nTaus == 0  && nMuons == 1 && nElectrons == 1;
+  bool emu   = /*nTaus == 0  &&*/ nMuons == 1 && nElectrons == 1;
   bool mumu  = nMuons == 2 && nElectrons == 0; //no tau requirement
   bool ee    = nMuons == 0 && nElectrons == 2; //no tau requirement
   if(!mumu && !emu && !etau && !mutau && !ee) {
