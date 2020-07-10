@@ -207,7 +207,7 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
   // hnames.push_back("lepsvdeltapt");   htypes.push_back("event"); rebins.push_back(2); xmins.push_back(-10.); xmaxs.push_back(90.);
   // hnames.push_back("lepsvptoverm");   htypes.push_back("event"); rebins.push_back(2); xmins.push_back(0.);   xmaxs.push_back(10.);
   
-  plottingcards.push_back(DataPlotter::PlottingCard_t("jetpt",          "event", 2, 20.,  250.));
+  plottingcards.push_back(DataPlotter::PlottingCard_t("jetpt",          "event", 2, 15.,  250.));
   plottingcards.push_back(DataPlotter::PlottingCard_t("jeteta",         "event", 2, -3.,  3.));
   plottingcards.push_back(DataPlotter::PlottingCard_t("jetm",           "event", 2,  0.,  50.));
   plottingcards.push_back(DataPlotter::PlottingCard_t("jetbmva",        "event", 2, -1.,  1.));
@@ -255,30 +255,14 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
     mvaplottingcards.push_back(DataPlotter::PlottingCard_t("mva32",      "event", 200, -1.,   1. , 0.01, 1. ));
     mvaplottingcards.push_back(DataPlotter::PlottingCard_t("mva33",      "event", 200, -1.,   1. , 0.01, 1. ));
   } else if(selection_ == "emu" || selection_.Contains("tau_")) { //print all MVAs for emu dataset categories
-    mvaplottingcards.push_back(DataPlotter::PlottingCard_t("mva4",       "event", 200, -1.,   1. , 0.01, 1. ));
-    mvaplottingcards.push_back(DataPlotter::PlottingCard_t("mva5",       "event", 200, -1.,   1. , 0.01, 1. ));
-    mvaplottingcards.push_back(DataPlotter::PlottingCard_t("mva14",      "event", 200, -1.,   1. , 0.01, 1. ));
-    mvaplottingcards.push_back(DataPlotter::PlottingCard_t("mva15",      "event", 200, -1.,   1. , 0.01, 1. ));
-    mvaplottingcards.push_back(DataPlotter::PlottingCard_t("mva24",      "event", 200, -1.,   1. , 0.01, 1. ));
-    mvaplottingcards.push_back(DataPlotter::PlottingCard_t("mva25",      "event", 200, -1.,   1. , 0.01, 1. ));
-    mvaplottingcards.push_back(DataPlotter::PlottingCard_t("mva34",      "event", 200, -1.,   1. , 0.01, 1. ));
-    mvaplottingcards.push_back(DataPlotter::PlottingCard_t("mva35",      "event", 200, -1.,   1. , 0.01, 1. ));
-    mvaplottingcards.push_back(DataPlotter::PlottingCard_t("mva6",       "event", 200, -1.,   1. , 0.01, 1. ));
-    mvaplottingcards.push_back(DataPlotter::PlottingCard_t("mva7",       "event", 200, -1.,   1. , 0.01, 1. ));
-    mvaplottingcards.push_back(DataPlotter::PlottingCard_t("mva16",      "event", 200, -1.,   1. , 0.01, 1. ));
-    mvaplottingcards.push_back(DataPlotter::PlottingCard_t("mva17",      "event", 200, -1.,   1. , 0.01, 1. ));
-    mvaplottingcards.push_back(DataPlotter::PlottingCard_t("mva26",      "event", 200, -1.,   1. , 0.01, 1. ));
-    mvaplottingcards.push_back(DataPlotter::PlottingCard_t("mva27",      "event", 200, -1.,   1. , 0.01, 1. ));
-    mvaplottingcards.push_back(DataPlotter::PlottingCard_t("mva36",      "event", 200, -1.,   1. , 0.01, 1. ));
-    mvaplottingcards.push_back(DataPlotter::PlottingCard_t("mva37",      "event", 200, -1.,   1. , 0.01, 1. ));
-    mvaplottingcards.push_back(DataPlotter::PlottingCard_t("mva8",       "event", 200, -1.,   1. , 0.01, 1. ));
-    mvaplottingcards.push_back(DataPlotter::PlottingCard_t("mva9",       "event", 200, -1.,   1. , 0.01, 1. ));
-    mvaplottingcards.push_back(DataPlotter::PlottingCard_t("mva18",      "event", 200, -1.,   1. , 0.01, 1. ));
-    mvaplottingcards.push_back(DataPlotter::PlottingCard_t("mva19",      "event", 200, -1.,   1. , 0.01, 1. ));
-    mvaplottingcards.push_back(DataPlotter::PlottingCard_t("mva28",      "event", 200, -1.,   1. , 0.01, 1. ));
-    mvaplottingcards.push_back(DataPlotter::PlottingCard_t("mva29",      "event", 200, -1.,   1. , 0.01, 1. ));
-    mvaplottingcards.push_back(DataPlotter::PlottingCard_t("mva38",      "event", 200, -1.,   1. , 0.01, 1. ));
-    mvaplottingcards.push_back(DataPlotter::PlottingCard_t("mva39",      "event", 200, -1.,   1. , 0.01, 1. ));
+    int mvas[] = {4,5,14,15,24,25,34,35,
+		  6,7,16,17,26,27,36,37,
+		  8,9,18,19,28,29,38,39};
+    for(int mva_i = 0; mva_i < sizeof(mvas)/sizeof(*mvas); ++mva_i) {
+      mvaplottingcards.push_back(DataPlotter::PlottingCard_t(Form("mva%i"     ,mva_i), "event", 200, -1.,   1. , 0.01, 1. ));
+      mvaplottingcards.push_back(DataPlotter::PlottingCard_t(Form("mvatest%i" ,mva_i), "event",   2, -1.,   1. , 0.01, 1. ));
+      mvaplottingcards.push_back(DataPlotter::PlottingCard_t(Form("mvatrain%i",mva_i), "event",   2, -1.,   1. , 0.01, 1. ));
+    }
   }
     
   plottingcards.push_back(DataPlotter::PlottingCard_t("htsum",             "event", 5, 0.,   800.));
@@ -763,11 +747,11 @@ Int_t init_dataplotter() {
   nano_cards.push_back(dcard(Form("clfv_%i_DY50"               ,year_), "DY50"               , "Drell-Yan", false, 6225.42              , false, kRed-3));
   nano_cards.push_back(dcard(Form("clfv_%i_SingleAntiToptW"    ,year_), "SingleAntiToptW"    , "SingleTop", false, 34.91                , false, kCyan-7));
   nano_cards.push_back(dcard(Form("clfv_%i_SingleToptW"        ,year_), "SingleToptW"        , "SingleTop", false, 34.91                , false, kCyan-7));
-  nano_cards.push_back(dcard(Form("clfv_%i_WW"                 ,year_), "WW"	              , "WW"       , false, 12.178               , false, kViolet+6));
+  nano_cards.push_back(dcard(Form("clfv_%i_WW"                 ,year_), "WW"	             , "WW"       , false, 12.178               , false, kViolet+6));
   nano_cards.push_back(dcard(Form("clfv_%i_WZ"                 ,year_), "WZ"                 , "WZ"       , false, 27.6                 , false, kViolet+4));
   nano_cards.push_back(dcard(Form("clfv_%i_Wlnu"               ,year_), "Wlnu"               , "W+Jets"   , false, 52850.0              , false, kGreen-7));
   nano_cards.push_back(dcard(Form("clfv_%i_ttbarToSemiLeptonic",year_), "ttbarToSemiLeptonic", "t#bar{t}" , false, 365.34               , false, kYellow-7));
-  nano_cards.push_back(dcard(Form("clfv_%i_ttbarlnu"           ,year_), "ttbarlnu"           , "t#bar{t}" , false, 88.29                , false, kYellow-7));
+  nano_cards.push_back(dcard(Form("clfv_%i_ttbarlnu"           ,year_), "ttbarlnu"           , "t#bar{t}lnu", false, 88.29                , false, kYellow-2));
   nano_cards.push_back(dcard(Form("clfv_%i_Signal"             ,year_), "Signal"             , "Z->e#mu"  , false, 2075.14/0.0337*7.3e-7, true , kBlue));  
   nano_cards.push_back(dcard(Form("clfv_%i_SingleMu"           ,year_), "SingleMu"           , "Data"     , true , 1.                   , false));  
   nano_cards.push_back(dcard(Form("clfv_%i_SingleEle"          ,year_), "SingleEle"          , "Data"     , true , 1.                   , false));  
@@ -808,9 +792,9 @@ Int_t init_dataplotter() {
   }
 
   //make figure directory if it doesn't exist
-  gSystem->Exec(Form("[ ! -d \"figures/%s/%s\" ] && mkdir -p \"figures/%s/%s\"",
-		     folder_.Data(), selection_.Data(), folder_.Data(), selection_.Data())); 
-
+  gSystem->Exec(Form("[ ! -d \"figures/%s/%s/%i\" ] && mkdir -p \"figures/%s/%s/%i\"",
+		     folder_.Data(), selection_.Data(), year_, folder_.Data(), selection_.Data(), year_)); 
+  dataplotter_->year_ = year_;
   return dataplotter_->init_files();
 }
 

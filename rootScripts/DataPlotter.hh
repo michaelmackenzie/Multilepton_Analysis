@@ -123,6 +123,7 @@ public :
   };
   
   TString selection_ = "mutau"; //selection category
+  Int_t year_ = 2016;
   Int_t verbose_ = 0;
   vector<Double_t> scale_; //scales for datasets
   vector<Int_t>    process_; //indicates which backgrounds to use
