@@ -614,7 +614,7 @@ public :
   vector<TString> fMvaNames = { //mva names for getting weights
     "mutau_BDT_8.higgs","mutau_BDT_8.Z0", //0 - 9: total mvas
     "etau_BDT_28.higgs","etau_BDT_28.Z0",
-    "emu_BDT_48.higgs","emu_BDT_48.Z0",
+    "emu_BDT_47.higgs","emu_BDT_47.Z0",
     "mutau_e_BDT_48.higgs","mutau_e_BDT_48.Z0",
     "etau_mu_BDT_48.higgs","etau_mu_BDT_48.Z0", 
     "mutau_BDT_18.higgs","mutau_BDT_18.Z0", //10 - 19: 0 jets
@@ -636,7 +636,7 @@ public :
   vector<double> fMvaCuts = { //mva score cut values
     0.18, 0.08,  //scores optimize the gained 95% CL
     0.159, 0.053,//all are done by eye on limit gain vs MVA score plot
-    0.24, 0.267,
+    0.2, 0.31,
     0.15, 0.078, 
     0.13, 0.066,
     0.13, 0.08, //0jet
@@ -713,8 +713,10 @@ void ZTauTauHistMaker::Init(TTree *tree)
   // Init() will be called many times when running on PROOF
   // (once per file to be processed).
   if(fChain == 0 && tree != 0) {
-    
-    TMVA::Tools::Instance(); //load the library
+
+    tree->SetBranchStatus("*", 1); //ensure all branches are active
+
+    TMVA::Tools::Instance(); //load the TMVA library
     for(int i = 0; i < kMaxMVAs; ++i) mva[i] = 0; //initially 0s
 
     if(fReprocessMVAs) {
@@ -765,7 +767,7 @@ void ZTauTauHistMaker::Init(TTree *tree)
 	if(isJetBinned < 0)
 	  mva[mva_i]->AddVariable("njets"         ,&fTreeVars.njets          );
 	else
-	  mva[mva_i]->AddSpectator("njets"           ,&fTreeVars.njets          );
+	  mva[mva_i]->AddSpectator("njets"        ,&fTreeVars.njets          );
 
 	if(fMvaNames[mva_i].Contains("_47"))
 	  mva[mva_i]->AddVariable("nbjetstot20m", &fTreeVars.nbjetstot20m);
@@ -785,18 +787,19 @@ void ZTauTauHistMaker::Init(TTree *tree)
 	}
       
 	//Spectators from mva training also required!
-	mva[mva_i]->AddVariable("leponedeltaphi"  ,&fTreeVars.leponedeltaphi );
-	mva[mva_i]->AddVariable("leptwodeltaphi"  ,&fTreeVars.leptwodeltaphi );
+	mva[mva_i]->AddSpectator("leponedeltaphi"  ,&fTreeVars.leponedeltaphi );
+	mva[mva_i]->AddSpectator("leptwodeltaphi"  ,&fTreeVars.leptwodeltaphi );
 	mva[mva_i]->AddSpectator("leponed0"       ,&fTreeVars.leponed0       );
 	mva[mva_i]->AddSpectator("leptwod0"       ,&fTreeVars.leptwod0       );
-	mva[mva_i]->AddSpectator("htdeltaphi"     ,&fTreeVars.htdeltaphi     );
-	//boson specific
-	if(selection.Contains("h") && isJetBinned != 0) {
+
+	if(isJetBinned != 0) {
+	  mva[mva_i]->AddVariable("htdeltaphi"    ,&fTreeVars.htdeltaphi     );
 	  mva[mva_i]->AddVariable("ht"            ,&fTreeVars.ht             ); 
 	} else {
+	  mva[mva_i]->AddSpectator("htdeltaphi"   ,&fTreeVars.htdeltaphi     );
 	  mva[mva_i]->AddSpectator("ht"           ,&fTreeVars.ht             ); 
 	}
-	mva[mva_i]->AddSpectator("lepdeltaphi"    ,&fTreeVars.lepdeltaphi    );
+	mva[mva_i]->AddVariable("lepdeltaphi"    ,&fTreeVars.lepdeltaphi    );
 	mva[mva_i]->AddSpectator("htsum"          ,&fTreeVars.htsum          ); 
 	mva[mva_i]->AddSpectator("leponeiso"      ,&fTreeVars.leponeiso      );
 	mva[mva_i]->AddSpectator("met"            ,&fTreeVars.met            );

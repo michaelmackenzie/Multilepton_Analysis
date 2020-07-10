@@ -114,15 +114,15 @@ Int_t process_ztautau() {
 			   1, //HETau
 			   1, //HMuTau
 			   1, //HEMu
-			   1, //qcd ht   50 to  100
-			   1, //qcd ht  100 to  200
-			   1, //qcd ht  200 to  300
-			   1, //qcd ht  300 to  500
-			   1, //qcd ht  500 to  700
-			   1, //qcd ht  700 to 1000
-			   1, //qcd ht 1000 to 1500
-			   1, //qcd ht 1500 to 2000
-			   1, //qcd ht 2000 to inf
+			   0, //qcd ht   50 to  100
+			   0, //qcd ht  100 to  200
+			   0, //qcd ht  200 to  300
+			   0, //qcd ht  300 to  500
+			   0, //qcd ht  500 to  700
+			   0, //qcd ht  700 to 1000
+			   0, //qcd ht 1000 to 1500
+			   0, //qcd ht 1500 to 2000
+			   0, //qcd ht 2000 to inf
 			   1, //Muon Data 2016B
 			   1, //Muon Data 2016C
 			   1, //Muon Data 2016D
@@ -193,7 +193,7 @@ Int_t process_ztautau() {
   /******************************/
   /* Define NANO AOD processing */
   /******************************/
-
+  //"/uscms/home/mmackenz/nobackup/ZEMu/CMSSW_10_2_18/src/StandardModel/CLFVAnalysis/rootScripts/";
   TString nanoaod_path = gridPath;
   nanoaod_path.ReplaceAll("ztautau_trees", "ztautau_nanoaod_trees"); //use the same path, but replace the search directory
   
@@ -208,6 +208,17 @@ Int_t process_ztautau() {
 			    ,"clfv_2016_Signal.tree"
 			    ,"clfv_2016_SingleMu.tree"
 			    ,"clfv_2016_SingleEle.tree"
+			    ,"clfv_2017_ttbarToSemiLeptonic.tree"
+			    ,"clfv_2017_ttbarlnu.tree"
+			    ,"clfv_2017_DY50.tree"
+			    ,"clfv_2017_SingleAntiToptW.tree"
+			    ,"clfv_2017_SingleToptW.tree"
+			    ,"clfv_2017_Wlnu.tree"
+			    ,"clfv_2017_WW.tree"
+			    ,"clfv_2017_WZ.tree"
+			    ,"clfv_2017_Signal.tree"
+			    ,"clfv_2017_SingleMu.tree"
+			    ,"clfv_2017_SingleEle.tree"
 			    ,"clfv_2018_ttbarToSemiLeptonic.tree"
 			    ,"clfv_2018_ttbarlnu.tree"
 			    ,"clfv_2018_DY50.tree"
@@ -236,17 +247,28 @@ Int_t process_ztautau() {
   nanoaod_process[8 ] = true;	// 2016 "Signal"                
   nanoaod_process[9 ] = true;   // 2016 "SingleMu"
   nanoaod_process[10] = true;   // 2016 "SingleEle"
-  nanoaod_process[11] = true;   // 2018 "ttbarToSemiLeptonic"    
-  nanoaod_process[12] = true;	// 2018 "ttbarlnu"		     
-  nanoaod_process[13] = true;	// 2018 "DY50"		     
-  nanoaod_process[14] = true;	// 2018 "SingleAntiToptW"	     
-  nanoaod_process[15] = true;	// 2018 "SingleToptW"	     
-  nanoaod_process[16] = true;	// 2018 "Wlnu"		     
-  nanoaod_process[17] = true;	// 2018 "WW"		     
-  nanoaod_process[18] = true;	// 2018 "WZ"		     
-  nanoaod_process[19] = true;	// 2018 "Signal"                
-  nanoaod_process[20] = true;   // 2018 "SingleMu"
-  nanoaod_process[21] = true;   // 2018 "SingleEle"
+  nanoaod_process[11] = true;   // 2017 "ttbarToSemiLeptonic"    
+  nanoaod_process[12] = true;	// 2017 "ttbarlnu"		     
+  nanoaod_process[13] = true;	// 2017 "DY50"		     
+  nanoaod_process[14] = true;	// 2017 "SingleAntiToptW"	     
+  nanoaod_process[15] = true;	// 2017 "SingleToptW"	     
+  nanoaod_process[16] = true;	// 2017 "Wlnu"		     
+  nanoaod_process[17] = true;	// 2017 "WW"		     
+  nanoaod_process[18] = true;	// 2017 "WZ"		     
+  nanoaod_process[19] = true;	// 2017 "Signal"                
+  nanoaod_process[20] = true;   // 2017 "SingleMu"
+  nanoaod_process[21] = true;   // 2017 "SingleEle"
+  nanoaod_process[22] = true;   // 2018 "ttbarToSemiLeptonic"    
+  nanoaod_process[23] = true;	// 2018 "ttbarlnu"		     
+  nanoaod_process[24] = true;	// 2018 "DY50"		     
+  nanoaod_process[25] = true;	// 2018 "SingleAntiToptW"	     
+  nanoaod_process[26] = true;	// 2018 "SingleToptW"	     
+  nanoaod_process[27] = true;	// 2018 "Wlnu"		     
+  nanoaod_process[28] = true;	// 2018 "WW"		     
+  nanoaod_process[29] = true;	// 2018 "WZ"		     
+  nanoaod_process[30] = true;	// 2018 "Signal"                
+  nanoaod_process[31] = true;   // 2018 "SingleMu"
+  nanoaod_process[32] = true;   // 2018 "SingleEle"
 
   double nanoaod_xsec[50];
   for(unsigned i = 0; i < sizeof(nanoaod_xsec)/sizeof(*nanoaod_xsec); ++i)
@@ -272,9 +294,19 @@ Int_t process_ztautau() {
   nanoaod_xsec[18] = 27.6;			// "WZ"		     	   
   nanoaod_xsec[19] = 2075.14/0.0337*7.3e-7;	// "Signal"
   
+  nanoaod_xsec[22] = 365.34;                    // "ttbarToSemiLeptonic"   
+  nanoaod_xsec[23] = 88.29;			// "ttbarlnu"		   
+  nanoaod_xsec[24] = 6225.42;			// "DY50"		   
+  nanoaod_xsec[25] = 34.91;			// "SingleAntiToptW"	   
+  nanoaod_xsec[26] = 34.91;			// "SingleToptW"	   
+  nanoaod_xsec[27] = 52850.0;			// "Wlnu"		   
+  nanoaod_xsec[28] = 12.178;			// "WW"		     	   
+  nanoaod_xsec[29] = 27.6;			// "WZ"		     	   
+  nanoaod_xsec[30] = 2075.14/0.0337*7.3e-7;	// "Signal"
+  
   TStopwatch* timer = new TStopwatch();
 
-  Int_t useNanoAods = -1; // 1 = use, 0 = don't use, -1 = only use
+  Int_t useNanoAods  = 0; // 1 = use, 0 = don't use, -1 = only use
   Int_t useTauFakeSF = 1; //1 = use given scale factors, 2 = override them with local ones
   bool writeTrees = true;
   TString onlyChannel = "emu";

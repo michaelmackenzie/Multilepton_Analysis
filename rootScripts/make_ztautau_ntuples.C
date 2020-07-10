@@ -375,7 +375,7 @@ Int_t set_addresses(TTree* fChain) {
     ++nfound;
     if(!fChain->GetBranch(Form("mva%i",mva_i))) {
       fMvaBranches[mva_i] = fChain->Branch(Form("mva%i",mva_i), &(fMvaOutputs[mva_i]));
-    } else {
+    } else { //update branch if it exists
       fChain->SetBranchStatus(Form("mva%i", mva_i), 1);
       fChain->SetBranchAddress(Form("mva%i", mva_i), &(fMvaOutputs[mva_i]));
       fMvaBranches[mva_i] = fChain->GetBranch(Form("mva%i",mva_i));
@@ -415,7 +415,7 @@ Int_t make_new_tree(TString path, TString path_in_file, TString tree_name) {
       break;
     }
     fentry = entry;
-    Int_t tree_status = tree->GetEntry(entry);
+    Int_t tree_status = tree->GetEntry(entry, 0);
     if(debug && entry%10000 == 0)
       cout << "Status getting entry: " << tree_status << endl;
     int selection = (nElectrons == 0 && nMuons == 1 && nTaus == 1) +

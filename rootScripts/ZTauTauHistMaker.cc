@@ -137,7 +137,7 @@ void ZTauTauHistMaker::BookEventHistograms() {
       fEventHist[i]->hNBJetsTotM             = new TH1F("nbjetstotm"          , Form("%s: NBJetsTotM"          ,dirname)  ,  20,  0,  20);
       fEventHist[i]->hNBJetsTotL             = new TH1F("nbjetstotl"          , Form("%s: NBJetsTotL"          ,dirname)  ,  20,  0,  20);
       fEventHist[i]->hMcEra                  = new TH1F("mcera"               , Form("%s: McEra"               ,dirname) ,   5,   0,  5);
-      fEventHist[i]->hTriggerLeptonStatus    = new TH1F("triggerleptonstatus" , Form("%s: TriggerLeptonStatus" ,dirname) ,   5,   0,  5);
+      fEventHist[i]->hTriggerLeptonStatus    = new TH1F("triggerleptonstatus" , Form("%s: TriggerLeptonStatus" ,dirname) ,  10,   0, 10);
       fEventHist[i]->hPuWeight		     = new TH1F("puweight"	      , Form("%s: PuWeight"	       ,dirname) , 200,   0,  2);
       fEventHist[i]->hTopPtWeight	     = new TH1F("topptweight"	      , Form("%s: TopPtWeight"	       ,dirname) , 200,   0,  2);
       fEventHist[i]->hZPtWeight	             = new TH1F("zptweight"	      , Form("%s: ZPtWeight"	       ,dirname) , 200,   0,  2);
