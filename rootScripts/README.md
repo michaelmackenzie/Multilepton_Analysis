@@ -42,3 +42,12 @@ Some of the flags include:
  To make a single tree with the relevant processes, use `make_ztautau_background.C`. This will generate a tree that
  can be passed to a TMVA training, where processes are weighted by `fulleventweight` (which includes cross-section)
  and can be differentiated by `eventcategory`.
+ 
+ There are several flags in the background making, which turn on/off processes. The most relevant is `doHiggsDecays_` which is used to 
+ switch between Higgs and Z0 CLFV signals.
+ 
+```
+$> root -l make_ztautau_background.C
+root> doHiggsDecays_ = [true/false]
+root> make_background([selection set number], "[selection]", "[path/to/histogram/files/")
+```
