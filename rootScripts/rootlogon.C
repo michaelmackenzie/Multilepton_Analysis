@@ -71,10 +71,16 @@
       TString cmssw = gSystem->Getenv("CMSSW_BASE");
       TString path = (hostname.Contains("cmslpc")) ? "/src/BLT/BLTAnalysis/" : gSystem->Getenv("PWD");
       if(!hostname.Contains("cmslpc")) path += "/../";
+
+      //add check for NanoAOD working area, no BLT repository
+      if(TString(gSystem->Getenv("PWD")).Contains("CLFVAnalysis")) path = "/src/StandardModel/CLFVAnalysis/";
+      
       // gSystem->Load((cmssw + path + "AsciiPlotter/AsciiPlotter_cc.so").Data());
       gSystem->Load((cmssw + path + "rootScripts/ZTauTauHistMaker_cc.so").Data());
      // gSystem->Load((cmssw + path + "rootScripts/Fitter_cc.so").Data());
       gSystem->Load((cmssw + path + "rootScripts/DataPlotter_cc.so").Data());
+      gSystem->Load((cmssw + path + "rootScripts/ParticleCorrections_cc.so").Data());
+      gSystem->Load((cmssw + path + "rootScripts/NanoAODConversion_cc.so").Data());
      // gSystem->Load((cmssw + path + "CutsetTraining/CutsetTrainer_cc.so").Data());
 
       // cout << "Loading SVFit libraries" << endl;

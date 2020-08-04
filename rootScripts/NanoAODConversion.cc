@@ -52,44 +52,66 @@ void NanoAODConversion::SlaveBegin(TTree * /*tree*/)
 }
 
 void NanoAODConversion::InitializeInBranchStructure(TTree* tree) {
-  tree->SetBranchAddress("genWeight"              , &genWeight                      ) ;
-  tree->SetBranchAddress("puWeight"               , &puWeight                       ) ;
-  tree->SetBranchAddress("nMuon"                  , &nMuons                         ) ;
-  tree->SetBranchAddress("Muon_pt"                , &muonPt                         ) ;
-  tree->SetBranchAddress("Muon_eta"               , &muonEta                        ) ;
-  tree->SetBranchAddress("Muon_phi"               , &muonPhi                        ) ;
-  tree->SetBranchAddress("Muon_mass"              , &muonMass                       ) ;
-  tree->SetBranchAddress("Muon_pfRelIso03_all"    , &muonRelIso                     ) ;
-  tree->SetBranchAddress("nElectron"              , &nElectrons                     ) ;
-  tree->SetBranchAddress("Electron_pt"            , &electronPt                     ) ;
-  tree->SetBranchAddress("Electron_eta"           , &electronEta                    ) ;
-  tree->SetBranchAddress("Electron_phi"           , &electronPhi                    ) ;
-  tree->SetBranchAddress("Electron_mass"          , &electronMass                   ) ;
-  tree->SetBranchAddress("Electron_deltaEtaSC"    , &electronDeltaEtaSC             ) ;
-  tree->SetBranchAddress("Electron_mvaFall17V2Iso_WP80", &electronMVAFall17         ) ;
-  tree->SetBranchAddress("nJet"                   , &nJet                           ) ;
-  tree->SetBranchAddress("Jet_pt"                 , &jetPt                          ) ;
-  tree->SetBranchAddress("Jet_eta"                , &jetEta                         ) ;
-  tree->SetBranchAddress("Jet_phi"                , &jetPhi                         ) ;
-  tree->SetBranchAddress("Jet_mass"               , &jetMass                        ) ;
-  tree->SetBranchAddress("Jet_jetId"              , &jetID                          ) ;
-  tree->SetBranchAddress("Jet_puId"               , &jetPUID                        ) ;
-  tree->SetBranchAddress("Jet_btagDeepB"          , &jetBTagDeepB                   ) ;
-  tree->SetBranchAddress("Jet_btagCMVA"           , &jetBTagCMVA                    ) ;
-  tree->SetBranchAddress("nPhoton"                , &nPhotons                       ) ;
-  tree->SetBranchAddress("Photon_pt"              , &photonPt                       ) ;
-  tree->SetBranchAddress("Photon_eta"             , &photonEta                      ) ;
-  tree->SetBranchAddress("Photon_phi"             , &photonPhi                      ) ;
-  tree->SetBranchAddress("Photon_mass"            , &photonMass                     ) ;
-  tree->SetBranchAddress("HLT_IsoMu24"            , &HLT_IsoMu24                    ) ;
-  tree->SetBranchAddress("HLT_IsoMu27"            , &HLT_IsoMu27                    ) ;
-  tree->SetBranchAddress("HLT_Mu50"               , &HLT_Mu50                       ) ;
-  tree->SetBranchAddress("HLT_Ele27_WPTight_Gsf"  , &HLT_Ele27_WPTight_GsF          ) ;
-  tree->SetBranchAddress("HLT_Ele32_WPTight_Gsf"  , &HLT_Ele32_WPTight_GsF          ) ;
+  tree->SetBranchAddress("genWeight"                       , &genWeight                      ) ;
+  tree->SetBranchAddress("puWeight"                        , &puWeight                       ) ;
+  tree->SetBranchAddress("nMuon"                           , &nMuon                          ) ;
+  tree->SetBranchAddress("Muon_pt"                         , &muonPt                         ) ;
+  tree->SetBranchAddress("Muon_eta"                        , &muonEta                        ) ;
+  tree->SetBranchAddress("Muon_phi"                        , &muonPhi                        ) ;
+  tree->SetBranchAddress("Muon_mass"                       , &muonMass                       ) ;
+  tree->SetBranchAddress("Muon_charge"                     , &muonCharge                     ) ;
+  tree->SetBranchAddress("Muon_pfRelIso03_all"             , &muonRelIso                     ) ;
+  tree->SetBranchAddress("Muon_pfIsoId"                    , &muonIsoId                      ) ;
+  tree->SetBranchAddress("Muon_looseId"                    , &muonLooseId                    ) ;
+  tree->SetBranchAddress("Muon_mediumId"                   , &muonMediumId                   ) ;
+  tree->SetBranchAddress("Muon_tightId"                    , &muonTightId                    ) ;
+  tree->SetBranchAddress("nElectron"                       , &nElectron                      ) ;
+  tree->SetBranchAddress("Electron_pt"                     , &electronPt                     ) ;
+  tree->SetBranchAddress("Electron_eta"                    , &electronEta                    ) ;
+  tree->SetBranchAddress("Electron_phi"                    , &electronPhi                    ) ;
+  tree->SetBranchAddress("Electron_mass"                   , &electronMass                   ) ;
+  tree->SetBranchAddress("Electron_charge"                 , &electronCharge                 ) ;
+  tree->SetBranchAddress("Electron_deltaEtaSC"             , &electronDeltaEtaSC             ) ;
+  tree->SetBranchAddress("Electron_mvaFall17V2Iso"         , &electronMVAFall17              ) ;
+  tree->SetBranchAddress("Electron_mvaFall17V2Iso_WPL"     , &electronWPL                    ) ;
+  tree->SetBranchAddress("Electron_mvaFall17V2Iso_WP80"    , &electronWP80                   ) ;
+  tree->SetBranchAddress("Electron_mvaFall17V2Iso_WP90"    , &electronWP90                   ) ;
+  tree->SetBranchAddress("nTau"                            , &nTau                           ) ;
+  tree->SetBranchAddress("Tau_pt"                          , &tauPt                          ) ;
+  tree->SetBranchAddress("Tau_eta"                         , &tauEta                         ) ;
+  tree->SetBranchAddress("Tau_phi"                         , &tauPhi                         ) ;
+  tree->SetBranchAddress("Tau_mass"                        , &tauMass                        ) ;
+  tree->SetBranchAddress("Tau_charge"                      , &tauCharge                      ) ;
+  tree->SetBranchAddress("Tau_dxy"                         , &taudxy                         ) ;
+  tree->SetBranchAddress("Tau_dz"                          , &taudz                          ) ;
+  tree->SetBranchAddress("Tau_idAntiEle"                   , &tauAntiEle                     ) ;
+  tree->SetBranchAddress("Tau_idAntiEle2018"               , &tauAntiEle2018                 ) ;
+  tree->SetBranchAddress("Tau_idAntiMu"                    , &tauAntiMu                      ) ;
+  tree->SetBranchAddress("Tau_decayMode"                   , &tauDecayMode                   ) ;
+  tree->SetBranchAddress("Tau_idDecayMode"                 , &tauIDDecayMode                 ) ;
+  tree->SetBranchAddress("nJet"                            , &nJet                           ) ;
+  tree->SetBranchAddress("Jet_pt"                          , &jetPt                          ) ;
+  tree->SetBranchAddress("Jet_eta"                         , &jetEta                         ) ;
+  tree->SetBranchAddress("Jet_phi"                         , &jetPhi                         ) ;
+  tree->SetBranchAddress("Jet_mass"                        , &jetMass                        ) ;
+  tree->SetBranchAddress("Jet_jetId"                       , &jetID                          ) ;
+  tree->SetBranchAddress("Jet_puId"                        , &jetPUID                        ) ;
+  tree->SetBranchAddress("Jet_btagDeepB"                   , &jetBTagDeepB                   ) ;
+  tree->SetBranchAddress("Jet_btagCMVA"                    , &jetBTagCMVA                    ) ;
+  tree->SetBranchAddress("nPhoton"                         , &nPhotons                       ) ;
+  tree->SetBranchAddress("Photon_pt"                       , &photonPt                       ) ;
+  tree->SetBranchAddress("Photon_eta"                      , &photonEta                      ) ;
+  tree->SetBranchAddress("Photon_phi"                      , &photonPhi                      ) ;
+  tree->SetBranchAddress("Photon_mass"                     , &photonMass                     ) ;
+  tree->SetBranchAddress("HLT_IsoMu24"                     , &HLT_IsoMu24                    ) ;
+  tree->SetBranchAddress("HLT_IsoMu27"                     , &HLT_IsoMu27                    ) ;
+  tree->SetBranchAddress("HLT_Mu50"                        , &HLT_Mu50                       ) ;
+  tree->SetBranchAddress("HLT_Ele27_WPTight_Gsf"           , &HLT_Ele27_WPTight_GsF          ) ;
+  tree->SetBranchAddress("HLT_Ele32_WPTight_Gsf"           , &HLT_Ele32_WPTight_GsF          ) ;
   tree->SetBranchAddress("HLT_Ele32_WPTight_Gsf_L1DoubleEG", &HLT_Ele32_WPTight_GsF_L1DoubleEG) ;
-  tree->SetBranchAddress("PuppiMET_pt"            , &puppMET                        ) ;
-  tree->SetBranchAddress("PuppiMET_phi"           , &puppMETphi                     ) ;
-  tree->SetBranchAddress("PV_npvsGood"            , &nGoodPV                        ) ;
+  tree->SetBranchAddress("PuppiMET_pt"                     , &puppMET                        ) ;
+  tree->SetBranchAddress("PuppiMET_phi"                    , &puppMETphi                     ) ;
+  tree->SetBranchAddress("PV_npvsGood"                     , &nGoodPV                        ) ;
 
 }
 
@@ -101,86 +123,94 @@ void NanoAODConversion::InitializeOutBranchStructure(TTree* tree) {
   if(!jetP4)         jetP4         = new TLorentzVector();
   if(!photonP4)      photonP4      = new TLorentzVector();
   
-  tree->Branch("runNumber"           , &runNumber            );
-  tree->Branch("evtNumber"           , &eventNumber          );
-  tree->Branch("lumiSection"         , &lumiSection          );
-  tree->Branch("nPV"                 , &nPV                  );
-  tree->Branch("nPU"                 , &nPU                  );
-  tree->Branch("nPartons"            , &nPartons             );
-  tree->Branch("mcEra"               , &mcEra                );
-  tree->Branch("triggerLeptonStatus" , &triggerLeptonStatus  );
-  tree->Branch("eventWeight"         , &eventWeight          );
-  tree->Branch("genWeight"           , &genWeight            );
-  tree->Branch("puWeight"            , &puWeight             );
-  tree->Branch("lepOneWeight"        , &lepOneWeight         );
-  tree->Branch("lepTwoWeight"        , &lepTwoWeight         );
-  tree->Branch("topPtWeight"         , &topPtWeight          );
-  tree->Branch("zPtWeight"           , &zPtWeight            );
-  tree->Branch("genTauFlavorWeight"  , &genTauFlavorWeight   );
-  tree->Branch("tauDecayMode"        , &tauDecayMode         );
-  tree->Branch("tauMVA"              , &tauMVA               );
-  tree->Branch("tauGenFlavor"        , &tauGenFlavor         );
-  tree->Branch("tauGenFlavorHad"     , &tauGenFlavorHad      );
-  tree->Branch("tauVetoedJetPt"      , &tauVetoedJetPt       );
-  tree->Branch("tauVetoedJetPtUnc"   , &tauVetoedJetPtUnc    );
-  tree->Branch("leptonOneP4"         , &leptonOneP4          );
-  tree->Branch("leptonTwoP4"         , &leptonTwoP4          );
-  tree->Branch("leptonOneFlavor"     , &leptonOneFlavor      );
-  tree->Branch("leptonTwoFlavor"     , &leptonTwoFlavor      );
-  tree->Branch("leptonOneD0"         , &leptonOneD0          );
-  tree->Branch("leptonTwoD0"         , &leptonTwoD0          );
-  tree->Branch("leptonOneIso"        , &leptonOneIso         );
-  tree->Branch("leptonTwoIso"        , &leptonTwoIso         );
-  tree->Branch("genLeptonOneP4"      , &genLeptonOneP4       );
-  tree->Branch("genLeptonTwoP4"      , &genLeptonTwoP4       );
-  tree->Branch("photonP4"            , &photonP4             );
-  tree->Branch("jetP4"               , &jetP4                );
-  tree->Branch("tauP4"               , &tauP4                );
-  tree->Branch("nMuons"              , &nMuons               );
-  tree->Branch("nElectrons"          , &nElectrons           );
-  tree->Branch("nTaus"               , &nTaus                );
-  tree->Branch("nPhotons"            , &nPhotons             );
-  tree->Branch("nJets"               , &nJets                );
-  tree->Branch("nJets25"             , &nJets25              );
-  tree->Branch("nJets20"             , &nJets20              );
-  tree->Branch("nFwdJets"            , &nFwdJets             );
-  tree->Branch("nBJetsDeepM"         , &nBJetsDeepM          );
-  tree->Branch("nBJets"              , &nBJets               );
-  tree->Branch("nBJetsM"             , &nBJetsM              );
-  tree->Branch("nBJetsL"             , &nBJetsL              );
-  tree->Branch("nBJets25"            , &nBJets25             );
-  tree->Branch("nBJets25M"           , &nBJets25M            );
-  tree->Branch("nBJets25L"           , &nBJets25L            );
-  tree->Branch("nBJets20"            , &nBJets20             );
-  tree->Branch("nBJets20M"           , &nBJets20M            );
-  tree->Branch("nBJets20L"           , &nBJets20L            );
-  tree->Branch("nGenTausHad"         , &nGenTausHad          );
-  tree->Branch("nGenTausLep"         , &nGenTausLep          );
-  tree->Branch("nGenElectrons"       , &nGenElectrons        );
-  tree->Branch("nGenMuons"           , &nGenMuons            );
-  tree->Branch("nGenPromptTaus"      , &nGenHardTaus         );
-  tree->Branch("nGenPromptElectrons" , &nGenHardElectrons    );
-  tree->Branch("nGenPromptMuons"     , &nGenHardMuons        );
-  tree->Branch("htSum"               , &htSum                );
-  tree->Branch("ht"                  , &ht                   );
-  tree->Branch("htPhi"               , &htPhi                );
+  tree->Branch("runNumber"                     , &runNumber            );
+  tree->Branch("evtNumber"                     , &eventNumber          );
+  tree->Branch("lumiSection"                   , &lumiSection          );
+  tree->Branch("nPV"                           , &nPV                  );
+  tree->Branch("nPU"                           , &nPU                  );
+  tree->Branch("nPartons"                      , &nPartons             );
+  tree->Branch("mcEra"                         , &mcEra                );
+  tree->Branch("triggerLeptonStatus"           , &triggerLeptonStatus  );
+  tree->Branch("eventWeight"                   , &eventWeight          );
+  tree->Branch("genWeight"                     , &genWeight            );
+  tree->Branch("puWeight"                      , &puWeight             );
+  tree->Branch("lepOneWeight"                  , &lepOneWeight         );
+  tree->Branch("lepTwoWeight"                  , &lepTwoWeight         );
+  tree->Branch("topPtWeight"                   , &topPtWeight          );
+  tree->Branch("zPtWeight"                     , &zPtWeight            );
+  tree->Branch("genTauFlavorWeight"            , &genTauFlavorWeight   );
+  tree->Branch("tauDecayMode"                  , &tauDecayModeOut      );
+  tree->Branch("tauMVA"                        , &tauMVA               );
+  tree->Branch("tauGenFlavor"                  , &tauGenFlavor         );
+  tree->Branch("tauGenFlavorHad"               , &tauGenFlavorHad      );
+  tree->Branch("tauVetoedJetPt"                , &tauVetoedJetPt       );
+  tree->Branch("tauVetoedJetPtUnc"             , &tauVetoedJetPtUnc    );
+  tree->Branch("leptonOneP4"                   , &leptonOneP4          );
+  tree->Branch("leptonTwoP4"                   , &leptonTwoP4          );
+  tree->Branch("leptonOneFlavor"               , &leptonOneFlavor      );
+  tree->Branch("leptonTwoFlavor"               , &leptonTwoFlavor      );
+  tree->Branch("leptonOneD0"                   , &leptonOneD0          );
+  tree->Branch("leptonTwoD0"                   , &leptonTwoD0          );
+  tree->Branch("leptonOneIso"                  , &leptonOneIso         );
+  tree->Branch("leptonTwoIso"                  , &leptonTwoIso         );
+  tree->Branch("genLeptonOneP4"                , &genLeptonOneP4       );
+  tree->Branch("genLeptonTwoP4"                , &genLeptonTwoP4       );
+  tree->Branch("photonP4"                      , &photonP4             );
+  tree->Branch("jetP4"                         , &jetP4                );
+  tree->Branch("tauP4"                         , &tauP4                );
+  tree->Branch("taudxy"                        , &taudxyOut            );
+  tree->Branch("taudz"                         , &taudzOut             );
+  tree->Branch("nMuons"                        , &nMuons               );
+  tree->Branch("nMuonsNano"                    , &nMuon                );
+  tree->Branch("slimMuons"                     , &slimMuons, "slimMuons[nMuonsNano]");
+  tree->Branch("nElectrons"                    , &nElectrons           );
+  tree->Branch("nElectronsNano"                , &nElectron            );
+  tree->Branch("slimElectrons"                 , &slimElectrons, "slimElectrons[nMuonsNano]");
+  tree->Branch("nTaus"                         , &nTaus                );
+  tree->Branch("nTausNano"                     , &nTau                 );
+  tree->Branch("slimTaus"                      , &slimTaus, "slimTaus[nMuonsNano]");
+  tree->Branch("nPhotons"                      , &nPhotons             );
+  tree->Branch("nJets"                         , &nJets                );
+  tree->Branch("nJets25"                       , &nJets25              );
+  tree->Branch("nJets20"                       , &nJets20              );
+  tree->Branch("nFwdJets"                      , &nFwdJets             );
+  tree->Branch("nBJetsDeepM"                   , &nBJetsDeepM          );
+  tree->Branch("nBJets"                        , &nBJets               );
+  tree->Branch("nBJetsM"                       , &nBJetsM              );
+  tree->Branch("nBJetsL"                       , &nBJetsL              );
+  tree->Branch("nBJets25"                      , &nBJets25             );
+  tree->Branch("nBJets25M"                     , &nBJets25M            );
+  tree->Branch("nBJets25L"                     , &nBJets25L            );
+  tree->Branch("nBJets20"                      , &nBJets20             );
+  tree->Branch("nBJets20M"                     , &nBJets20M            );
+  tree->Branch("nBJets20L"                     , &nBJets20L            );
+  tree->Branch("nGenTausHad"                   , &nGenTausHad          );
+  tree->Branch("nGenTausLep"                   , &nGenTausLep          );
+  tree->Branch("nGenElectrons"                 , &nGenElectrons        );
+  tree->Branch("nGenMuons"                     , &nGenMuons            );
+  tree->Branch("nGenPromptTaus"                , &nGenHardTaus         );
+  tree->Branch("nGenPromptElectrons"           , &nGenHardElectrons    );
+  tree->Branch("nGenPromptMuons"               , &nGenHardMuons        );
+  tree->Branch("htSum"                         , &htSum                );
+  tree->Branch("ht"                            , &ht                   );
+  tree->Branch("htPhi"                         , &htPhi                );
   // tree->Branch("pfMET"               , &pfMET                );
   // tree->Branch("pfMETphi"            , &pfMETphi             );
   // tree->Branch("pfMETCov00"          , &pfMETCov00           );
   // tree->Branch("pfMETCov01"          , &pfMETCov01           );
   // tree->Branch("pfMETCov11"          , &pfMETCov11           );
-  tree->Branch("pfMETC"              , &pfMETC               );
-  tree->Branch("pfMETCphi"           , &pfMETCphi            );
-  tree->Branch("pfMETCCov00"         , &pfMETCCov00          );
-  tree->Branch("pfMETCCov01"         , &pfMETCCov01          );
-  tree->Branch("pfMETCCov11"         , &pfMETCCov11          );
-  tree->Branch("puppMET"             , &puppMET              );
-  tree->Branch("puppMETphi"          , &puppMETphi           );
-  tree->Branch("puppMETCov00"        , &puppMETCov00         );
-  tree->Branch("puppMETCov01"        , &puppMETCov01         );
-  tree->Branch("puppMETCov11"        , &puppMETCov11         );
-  tree->Branch("puppMETC"            , &puppMETC             );
-  tree->Branch("puppMETCphi"         , &puppMETCphi          );
+  tree->Branch("pfMETC"                        , &pfMETC               );
+  tree->Branch("pfMETCphi"                     , &pfMETCphi            );
+  tree->Branch("pfMETCCov00"                   , &pfMETCCov00          );
+  tree->Branch("pfMETCCov01"                   , &pfMETCCov01          );
+  tree->Branch("pfMETCCov11"                   , &pfMETCCov11          );
+  tree->Branch("puppMET"                       , &puppMET              );
+  tree->Branch("puppMETphi"                    , &puppMETphi           );
+  tree->Branch("puppMETCov00"                  , &puppMETCov00         );
+  tree->Branch("puppMETCov01"                  , &puppMETCov01         );
+  tree->Branch("puppMETCov11"                  , &puppMETCov11         );
+  tree->Branch("puppMETC"                      , &puppMETC             );
+  tree->Branch("puppMETCphi"                   , &puppMETCphi          );
   // tree->Branch("puppMETCCov00"       , &puppMETCCov00        );
   // tree->Branch("puppMETCCov01"       , &puppMETCCov01        );
   // tree->Branch("puppMETCCov11"       , &puppMETCCov11        );
@@ -188,20 +218,20 @@ void NanoAODConversion::InitializeOutBranchStructure(TTree* tree) {
   // tree->Branch("alpacaMETphi"        , &alpacaMETphi         );
   // tree->Branch("pcpMET"              , &pcpMET               );
   // tree->Branch("pcpMETphi"           , &pcpMETphi            );
-  tree->Branch("trkMET"              , &trkMET               );
-  tree->Branch("trkMETphi"           , &trkMETphi            );
-  tree->Branch("met"                 , &met                  );
-  tree->Branch("metPhi"              , &metPhi               );
-  tree->Branch("metCorr"             , &metCorr              );
-  tree->Branch("metCorrPhi"          , &metCorrPhi           );
-  tree->Branch("covMet00"            , &covMet00             );
-  tree->Branch("covMet01"            , &covMet01             );
-  tree->Branch("covMet11"            , &covMet11             );
-  tree->Branch("massSVFit"           , &massSVFit            );
-  tree->Branch("massErrSVFit"        , &massErrSVFit         );
-  tree->Branch("svFitStatus"         , &svFitStatus          );
-  tree->Branch("leptonOneSVP4"       , &leptonOneSVP4        );
-  tree->Branch("leptonTwoSVP4"       , &leptonTwoSVP4        );
+  tree->Branch("trkMET"                        , &trkMET               );
+  tree->Branch("trkMETphi"                     , &trkMETphi            );
+  tree->Branch("met"                           , &met                  );
+  tree->Branch("metPhi"                        , &metPhi               );
+  tree->Branch("metCorr"                       , &metCorr              );
+  tree->Branch("metCorrPhi"                    , &metCorrPhi           );
+  tree->Branch("covMet00"                      , &covMet00             );
+  tree->Branch("covMet01"                      , &covMet01             );
+  tree->Branch("covMet11"                      , &covMet11             );
+  tree->Branch("massSVFit"                     , &massSVFit            );
+  tree->Branch("massErrSVFit"                  , &massErrSVFit         );
+  tree->Branch("svFitStatus"                   , &svFitStatus          );
+  tree->Branch("leptonOneSVP4"                 , &leptonOneSVP4        );
+  tree->Branch("leptonTwoSVP4"                 , &leptonTwoSVP4        );
 
 }
 
@@ -232,30 +262,41 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
 
 	       //store lepton information
   if(selection == kMuTau || selection == kMuMu) {
-    leptonOneP4->SetPtEtaPhiM(muonPt[0], muonEta[0], muonPhi[0], muonMass[0]);
+    leptonOneP4->SetPtEtaPhiM(muonPt[fMuonIndices[0]], muonEta[fMuonIndices[0]], muonPhi[fMuonIndices[0]], muonMass[fMuonIndices[0]]);
     leptonOneFlavor = 13;
-    if(!fIsData) lepOneWeight = particleCorrections->MuonWeight(muonPt[0], muonEta[0], trigger, fYear);
+    if(!fIsData) lepOneWeight = particleCorrections->MuonWeight(muonPt[fMuonIndices[0]], muonEta[fMuonIndices[0]], trigger, fYear);
   } else if(selection == kETau || selection == kEMu || selection == kEE) {
-    leptonOneP4->SetPtEtaPhiM(electronPt[0], electronEta[0], electronPhi[0], electronMass[0]);
+    leptonOneP4->SetPtEtaPhiM(electronPt[fElectronIndices[0]], electronEta[fElectronIndices[0]],
+			      electronPhi[fElectronIndices[0]], electronMass[fElectronIndices[0]]);
     leptonOneFlavor = 11;
-    if(!fIsData) lepOneWeight = particleCorrections->ElectronWeight(electronPt[0], electronEta[0], fYear);
+    if(!fIsData) lepOneWeight = particleCorrections->ElectronWeight(electronPt[fElectronIndices[0]],
+								    electronEta[fElectronIndices[0]], fYear);
   }    
   if(selection == kMuTau || selection == kETau) {
-    leptonTwoP4->SetPtEtaPhiM(tauPt[0], tauEta[0], tauPhi[0], tauMass[0]);
+    leptonTwoP4->SetPtEtaPhiM(tauPt[fTauIndices[0]], tauEta[fTauIndices[0]], tauPhi[fTauIndices[0]], tauMass[fTauIndices[0]]);
     leptonTwoFlavor = 15;
     lepTwoWeight = 1.; //FIXME: Tau weights missing
+    taudxyOut = taudxy[fTauIndices[0]];
+    taudzOut  = taudz[fTauIndices[0]];
   } else if(selection == kEMu) {
-    leptonTwoP4->SetPtEtaPhiM(muonPt[0], muonEta[0], muonPhi[0], muonMass[0]);
+    leptonTwoP4->SetPtEtaPhiM(muonPt[fMuonIndices[0]], muonEta[fMuonIndices[0]], muonPhi[fMuonIndices[0]], muonMass[fMuonIndices[0]]);
     leptonTwoFlavor = 13;
-    if(!fIsData) lepTwoWeight = particleCorrections->MuonWeight(muonPt[0], muonEta[0], trigger, fYear);
+    if(!fIsData) lepTwoWeight = particleCorrections->MuonWeight(muonPt[fMuonIndices[0]], muonEta[fMuonIndices[0]], trigger, fYear);
   } else if(selection == kMuMu) {
-    leptonTwoP4->SetPtEtaPhiM(muonPt[1], muonEta[1], muonPhi[1], muonMass[1]);
+    leptonTwoP4->SetPtEtaPhiM(muonPt[fMuonIndices[1]], muonEta[fMuonIndices[1]], muonPhi[fMuonIndices[1]], muonMass[fMuonIndices[1]]);
     leptonTwoFlavor = 13;
-    if(!fIsData) lepTwoWeight = particleCorrections->MuonWeight(muonPt[1], muonEta[1], trigger, fYear);
+    if(!fIsData) lepTwoWeight = particleCorrections->MuonWeight(muonPt[fMuonIndices[1]], muonEta[fMuonIndices[1]], trigger, fYear);
   } else if(selection == kEE) {
-    leptonTwoP4->SetPtEtaPhiM(electronPt[1], electronEta[1], electronPhi[1], electronMass[1]);
+    leptonTwoP4->SetPtEtaPhiM(electronPt[fElectronIndices[1]], electronEta[fElectronIndices[1]],
+			      electronPhi[fElectronIndices[1]], electronMass[fElectronIndices[1]]);
     leptonTwoFlavor = 11;
-    if(!fIsData) lepTwoWeight = particleCorrections->ElectronWeight(electronPt[1], electronEta[1], fYear);
+    if(!fIsData) lepTwoWeight = particleCorrections->ElectronWeight(electronPt[fElectronIndices[1]],
+								    electronEta[fElectronIndices[1]], fYear);
+  }
+  if(!(selection == kMuTau || selection == kETau) && nTaus > 0) {
+    tauP4->SetPtEtaPhiM(tauPt[fTauIndices[0]], tauEta[fTauIndices[0]], tauPhi[fTauIndices[0]], tauMass[fTauIndices[0]]);
+    taudxyOut = taudxy[fTauIndices[0]];
+    taudzOut  = taudz[fTauIndices[0]];
   }
   if(!fIsData)
     eventWeight = lepOneWeight * lepTwoWeight * puWeight;
@@ -269,11 +310,106 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
   
   //all are opposite signed, so just assign lepton two as opposite for now
   leptonTwoFlavor *= -1;
-  if(nPhotons > 0)
-    photonP4->SetPtEtaPhiM(photonPt[0], photonEta[0], photonPhi[0], photonMass[0]);
+  if(nPhotons > 0) 
+    photonP4->SetPtEtaPhiM(photonPt[0], photonEta[0], photonPhi[0], photonMass[0]); //FIXME: should use an index map + ID
   else
     photonP4->SetPtEtaPhiM(0., 0., 0., 0.);
     
+  //save npv as ngoodpv for now
+  nPV = nGoodPV;
+}
+
+//count and create maps for reconstructed objects
+void NanoAODConversion::CountObjects() {
+  //reset counters
+  nTaus = 0;
+  nElectrons = 0;
+  nMuons = 0;
+  
+  //count muons
+  for(Int_t index = 0; index < min(((int)nMuon),((int)kMaxParticles)); ++index) {
+    if(!fDoCountingSelection ||
+       (muonPt[index] > fMuonPtCount &&
+	muonIsoId[index] >= fMuonIsoCount &&
+	(fMuonIDCount == 0 || (fMuonIDCount == 1 && muonLooseId[index])
+	 || (fMuonIDCount == 2 && muonMediumId[index])
+	 || (fMuonIDCount == 3 && muonTightId[index])))) {
+      fMuonIndices[nMuons] = index;
+      ++nMuons;
+      if(fVerbose > 2) std::cout << "Accepting muon " << index << " with pt = " << muonPt[index]
+				 << " iso = " << ((int) muonIsoId[index]) << " > isoId = " << fMuonIsoCount
+				 << " loose id = " << muonLooseId[index]
+				 << " medium id = " << muonMediumId[index] << " tight id = " << muonTightId[index]
+				 << std::endl;
+    } else if(fVerbose > 3) std::cout << "Rejecting muon " << index << " with pt = " << muonPt[index]
+				      << " iso = " << ((int) muonIsoId[index]) << " loose id = " << muonLooseId[index]
+				      << " medium id = " << muonMediumId[index] << " tight id = " << muonTightId[index]
+				      << std::endl;
+    slimMuons[index].pt       = muonPt[index];
+    slimMuons[index].eta      = muonEta[index];
+    slimMuons[index].phi      = muonPhi[index];
+    slimMuons[index].mass     = muonMass[index];
+    slimMuons[index].pfIsoId  = muonIsoId[index];
+    slimMuons[index].looseId  = muonLooseId[index];
+    slimMuons[index].mediumId = muonMediumId[index];
+    slimMuons[index].tightId  = muonTightId[index];
+  }
+  //count electrons
+  for(Int_t index = 0; index < min(((int)kMaxParticles),((int)nElectron)); ++index) {
+    if(!fDoCountingSelection ||
+       (electronPt[index] > fElectronPtCount &&
+	(fElectronIDCount == 0 || (fElectronIDCount == 1 && electronWPL[index])
+	 || (fElectronIDCount == 2 && electronWP80[index])
+	 || (fElectronIDCount == 3 && electronWP90[index])))) {
+      fElectronIndices[nElectrons] = index;
+      ++nElectrons;
+      if(fVerbose > 2) std::cout << "Accepting electron " << index << " with pt = " << electronPt[index]
+				 << " loose id = " << electronWPL[index]
+				 << " medium id = " << electronWP80[index] << " tight id = " << electronWP90[index]
+				 << std::endl;
+    } else if(fVerbose > 3) std::cout << "Rejecting electron " << index << " with pt = " << electronPt[index]
+				      << " loose id = " << electronWPL[index]
+				      << " medium id = " << electronWP80[index] << " tight id = " << electronWP90[index]
+				      << std::endl;
+    slimElectrons[index].pt         = electronPt[index];
+    slimElectrons[index].eta        = electronEta[index];
+    slimElectrons[index].phi        = electronPhi[index];
+    slimElectrons[index].mass       = electronMass[index];
+    slimElectrons[index].WPL        = electronWPL [index];
+    slimElectrons[index].WP80       = electronWP80[index];
+    slimElectrons[index].WP90       = electronWP90[index];
+    slimElectrons[index].scDeltaEta = electronDeltaEtaSC[index];
+  }
+  //count taus
+  for(Int_t index = 0; index < min(((int)kMaxParticles),((int)nTau)); ++index) {
+    if(!fDoCountingSelection ||
+       (tauPt[index] > fTauPtCount &&
+	(!fTauIDDecayCount || tauIDDecayMode[index]) &&
+	tauAntiEle[index] >= fTauAntiEleCount &&
+	tauAntiMu[index] >= fTauAntiMuCount)) {
+      fTauIndices[nTaus] = index;
+      ++nTaus;
+      if(fVerbose > 2) std::cout << "Accepting tau " << index << " with pt = " << tauPt[index]
+				 << " decay id = " << tauIDDecayMode[index]
+				 << " anti ele id = " << ((int) tauAntiEle[index])
+				 << " anti mu id = " << ((int) tauAntiMu[index])
+				 << std::endl;
+    } else if(fVerbose > 3) std::cout << "Rejecting tau " << index << " with pt = " << tauPt[index]
+				      << " decay id = " << tauIDDecayMode[index]
+				      << " anti ele id = " << ((int) tauAntiEle[index])
+				      << " anti mu id = " << ((int) tauAntiMu[index])
+				      << std::endl;
+    slimTaus[index].pt         = tauPt[index];
+    slimTaus[index].eta        = tauEta[index];
+    slimTaus[index].phi        = tauPhi[index];
+    slimTaus[index].mass       = tauMass[index];
+    slimTaus[index].decayMode  = tauDecayMode[index];
+    slimTaus[index].decayMode  = tauIDDecayMode[index];
+    slimTaus[index].antiEle    = tauAntiEle[index];
+    slimTaus[index].antiEle2018= tauAntiEle2018[index];
+    slimTaus[index].antiMu     = tauAntiMu[index];
+
+  }
   //Jet loop
   unsigned njets = nJet;
   //reset counters
@@ -334,8 +470,11 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
     }
   }
   delete jetLoop;
-  //save npv as ngoodpv for now
-  nPV = nGoodPV;
+  if(fVerbose > 0) std::cout << "nElectrons = " << nElectrons
+			     << " nMuons = " << nMuons
+			     << " nTaus = " << nTaus
+			     << " nJets = " << nJets
+			     << " nBJets = " << nBJets << endl;
 }
 
 float NanoAODConversion::GetTauFakeSF(int genFlavor) {
@@ -379,6 +518,7 @@ float NanoAODConversion::GetZPtWeight(float pt) {
 Bool_t NanoAODConversion::Process(Long64_t entry)
 {
   fentry = entry;
+  if(fVerbose > 0) std::cout << "Event " << entry << std::endl;
   // The Process() function is called for each entry in the tree (or possibly
   // keyed object in the case of PROOF) to be processed. The entry argument
   // specifies which entry in the currently loaded tree is to be processed.
@@ -397,7 +537,7 @@ Bool_t NanoAODConversion::Process(Long64_t entry)
 
   fChain->GetEntry(entry);
   if(entry%50000 == 0) printf("Processing event: %12lld (%5.1f%%)\n", entry, entry*100./fChain->GetEntriesFast());
-
+  CountObjects();
   //selections (all exclusive)
   bool mutau = nTaus == 1  && nMuons == 1 && nElectrons == 0;
   bool etau  = nTaus == 1  && nMuons == 0 && nElectrons == 1;
@@ -410,13 +550,15 @@ Bool_t NanoAODConversion::Process(Long64_t entry)
 	      << " nTaus = " << nTaus << std::endl;
     return kTRUE;
   }
+  //increment selection counts
+  if(emu)        ++fNEMu;
+  else if(etau)  ++fNETau;
+  else if(mutau) ++fNMuTau;
+  else if(mumu)  ++fNMuMu;
+  else if(ee)    ++fNEE;
+
   int selection = mutau*kMuTau + etau*kETau + emu*kEMu + mumu*kMuMu + ee*kEE;
   InitializeTreeVariables(selection);
-  // if(entry%50000 == 0)
-  //   std::cout << "Event selections: mutau = " << mutau
-  // 	      << " etau = " << etau << " emu = " << emu
-  // 	      << " mumu = " << mumu << " ee = " << ee
-  // 	      << std::endl;
     
   fDirs[selection]->cd();  
   fOutTrees[selection]->Fill();
@@ -448,6 +590,7 @@ void NanoAODConversion::Terminate()
   Double_t realTime = timer->RealTime();
   printf("Processing time: %7.2fs CPU time %7.2fs Wall time\n",cpuTime,realTime);
   if(realTime > 600. ) printf("Processing time: %7.2fmin CPU time %7.2fmin Wall time\n",cpuTime/60.,realTime/60.);
-
+  printf("Found %i emu %i etau %i mutau %i mumu %i ee\n",
+	 fNEMu, fNETau, fNMuTau, fNMuMu, fNEE);
 
 }

@@ -3,6 +3,10 @@
 
 //locally defined objects
 #include "ParticleCorrections.hh"
+#include "../dataFormats/SlimElectron_t.hh"
+#include "../dataFormats/SlimMuon_t.hh"
+#include "../dataFormats/SlimTau_t.hh"
+#include "../dataFormats/SlimJet_t.hh"
 
 #include <TROOT.h>
 #include <TChain.h>
@@ -54,7 +58,7 @@ public :
   Float_t topPtWeight = 1.           ;
   Float_t zPtWeight = 1.             ;
   Float_t genTauFlavorWeight = 1.    ;
-  Int_t tauDecayMode = 0             ;
+  Int_t   tauDecayModeOut = 0        ;
   Float_t tauMVA  = 0                ;
   Int_t tauGenFlavor     = 0         ;
   Int_t tauGenFlavorHad  = 0         ;
@@ -73,9 +77,14 @@ public :
   TLorentzVector* photonP4 = 0       ;
   TLorentzVector* jetP4 = 0          ;
   TLorentzVector* tauP4 = 0          ;
+  Float_t taudxyOut = 0.             ;
+  Float_t taudzOut = 0.              ;
   UInt_t nMuons = 0                  ;
+  SlimMuon_t slimMuons[kMaxParticles];
   UInt_t nElectrons = 0              ;
+  SlimElectron_t slimElectrons[kMaxParticles];
   UInt_t nTaus = 0                   ;
+  SlimTau_t slimTaus[kMaxParticles]  ;
   UInt_t nPhotons = 0                ;
   UInt_t nJets     = 0               ;
   UInt_t nJets25   = 0               ;
@@ -151,21 +160,41 @@ public :
   //Input data format (only ones that differ from output)
   Int_t nGoodPV                             ;
   UInt_t nJet                               ;
+  UInt_t nMuon                              ;
+  UInt_t nElectron                          ;
+  UInt_t nTau                               ;
   Float_t muonPt[kMaxParticles]             ;
   Float_t muonEta[kMaxParticles]            ;
   Float_t muonPhi[kMaxParticles]            ;
   Float_t muonMass[kMaxParticles]           ;
+  Int_t   muonCharge[kMaxParticles]         ;
   Float_t muonRelIso[kMaxParticles]         ;
+  UChar_t muonIsoId[kMaxParticles]          ;
+  Bool_t  muonLooseId[kMaxParticles]        ;
+  Bool_t  muonMediumId[kMaxParticles]       ;
+  Bool_t  muonTightId[kMaxParticles]        ;
   Float_t electronPt[kMaxParticles]         ;
   Float_t electronEta[kMaxParticles]        ;
   Float_t electronPhi[kMaxParticles]        ;
   Float_t electronMass[kMaxParticles]       ;
+  Int_t   electronCharge[kMaxParticles]     ;
   Float_t electronDeltaEtaSC[kMaxParticles] ;
   Float_t electronMVAFall17[kMaxParticles]  ;
+  Bool_t electronWPL [kMaxParticles]        ;
+  Bool_t electronWP80[kMaxParticles]        ;
+  Bool_t electronWP90[kMaxParticles]        ;
   Float_t tauPt[kMaxParticles]              ;
   Float_t tauEta[kMaxParticles]             ;
   Float_t tauPhi[kMaxParticles]             ;
   Float_t tauMass[kMaxParticles]            ;
+  Int_t   tauCharge[kMaxParticles]          ;
+  Float_t taudxy[kMaxParticles]             ;            
+  Float_t taudz[kMaxParticles]              ;
+  UChar_t tauAntiEle[kMaxParticles]         ;
+  UChar_t tauAntiEle2018[kMaxParticles]     ;
+  UChar_t tauAntiMu[kMaxParticles]          ;
+  Int_t   tauDecayMode[kMaxParticles]       ;
+  Bool_t  tauIDDecayMode[kMaxParticles]     ;
   Float_t jetPt[kMaxParticles]              ;
   Float_t jetEta[kMaxParticles]             ;
   Float_t jetPhi[kMaxParticles]             ;
@@ -264,6 +293,7 @@ public :
   virtual void    InitializeOutBranchStructure(TTree* tree);
   virtual void    InitializeInBranchStructure(TTree* tree);
   virtual void    InitializeTreeVariables(Int_t selection);
+  virtual void    CountObjects();
   virtual float   GetTauFakeSF(int genFlavor);
   virtual float   CorrectMET(int selection, float met);
   virtual float   GetZPtWeight(float pt);
@@ -291,6 +321,30 @@ public :
   bool          fSkipDoubleTrigger = false; //skip events with both triggers (to avoid double counting), only count this lepton status events
   Int_t         fMETWeights = 0; //re-weight events based on the MET
   Int_t         fRemoveZPtWeights = 0; // 0 use given weights, 1 remove z pT weight, 2 remove and re-evaluate weights locally
+
+  Int_t         fVerbose = 0;
+  
+  //for counting objects
+  Bool_t        fDoCountingSelection = true; //if false just use size of arrays
+  Float_t       fMuonPtCount = 10.;
+  UChar_t       fMuonIsoCount = 4;
+  Int_t         fMuonIDCount = 3; //0 = any, 1 = loose, 2 = medium, 3 = tight
+  UInt_t        fMuonIndices[kMaxParticles];
+  Float_t       fElectronPtCount = 15.;
+  Int_t         fElectronIDCount = 2; //0 = any, 1 = WPL, 2 = WP80, 3 = WP90
+  UInt_t        fElectronIndices[kMaxParticles];
+  Float_t       fTauPtCount = 18.;
+  UChar_t       fTauAntiEleCount = 8;
+  UChar_t       fTauAntiMuCount = 2;
+  Bool_t        fTauIDDecayCount = true;
+  UInt_t        fTauIndices[kMaxParticles];
+
+  //summary variables
+  Int_t         fNEE = 0;
+  Int_t         fNMuMu = 0;
+  Int_t         fNEMu = 0;
+  Int_t         fNETau = 0;
+  Int_t         fNMuTau = 0;
   
   ClassDef(NanoAODConversion,0);
 
