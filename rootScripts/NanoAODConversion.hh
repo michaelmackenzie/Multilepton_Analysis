@@ -80,11 +80,11 @@ public :
   Float_t taudxyOut = 0.             ;
   Float_t taudzOut = 0.              ;
   UInt_t nMuons = 0                  ;
-  SlimMuon_t slimMuons[kMaxParticles];
+  SlimMuons_t slimMuons              ;
   UInt_t nElectrons = 0              ;
-  SlimElectron_t slimElectrons[kMaxParticles];
+  SlimElectrons_t slimElectrons      ;
   UInt_t nTaus = 0                   ;
-  SlimTau_t slimTaus[kMaxParticles]  ;
+  SlimTaus_t slimTaus                ;
   UInt_t nPhotons = 0                ;
   UInt_t nJets     = 0               ;
   UInt_t nJets25   = 0               ;

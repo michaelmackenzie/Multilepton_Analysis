@@ -1,12 +1,24 @@
 #ifndef __SLIMOBJECT__HH
 #define __SLIMOBJECT__HH
-
-class SlimObject_t {
+#include <TObject.h>
+class SlimObject_t : public TObject {
 public:
+  SlimObject_t():
+    pt(0.), eta(0.), phi(0.), mass(0.) {}
   Float_t pt;
   Float_t eta;
   Float_t phi;
   Float_t mass;
+  ClassDef(SlimObject_t, 1)
 };
-
+class SlimObjects_t : public TObject {
+public:
+  SlimObjects_t() : size_(0) {}
+  SlimObjects_t(UInt_t size) {size_=size;}
+  SlimObject_t& operator[](UInt_t index) {return slimObjects[index];}
+  UInt_t size_;
+  const static UInt_t MAXSIZE = 20;
+  SlimObject_t slimObjects[MAXSIZE];
+  ClassDef(SlimObjects_t, 1)
+};
 #endif

@@ -162,13 +162,13 @@ void NanoAODConversion::InitializeOutBranchStructure(TTree* tree) {
   tree->Branch("taudz"                         , &taudzOut             );
   tree->Branch("nMuons"                        , &nMuons               );
   tree->Branch("nMuonsNano"                    , &nMuon                );
-  tree->Branch("slimMuons"                     , &slimMuons, "slimMuons[nMuonsNano]");
+  tree->Branch("slimMuons"                     , &slimMuons);
   tree->Branch("nElectrons"                    , &nElectrons           );
   tree->Branch("nElectronsNano"                , &nElectron            );
-  tree->Branch("slimElectrons"                 , &slimElectrons, "slimElectrons[nMuonsNano]");
+  tree->Branch("slimElectrons"                 , &slimElectrons);
   tree->Branch("nTaus"                         , &nTaus                );
   tree->Branch("nTausNano"                     , &nTau                 );
-  tree->Branch("slimTaus"                      , &slimTaus, "slimTaus[nMuonsNano]");
+  tree->Branch("slimTaus"                      , &slimTaus);
   tree->Branch("nPhotons"                      , &nPhotons             );
   tree->Branch("nJets"                         , &nJets                );
   tree->Branch("nJets25"                       , &nJets25              );

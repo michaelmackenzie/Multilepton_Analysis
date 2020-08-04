@@ -81,6 +81,11 @@
       gSystem->Load((cmssw + path + "rootScripts/DataPlotter_cc.so").Data());
       gSystem->Load((cmssw + path + "rootScripts/ParticleCorrections_cc.so").Data());
       gSystem->Load((cmssw + path + "rootScripts/NanoAODConversion_cc.so").Data());
+      gSystem->Load((cmssw + path + "dataFormats/SlimObject_t_hh.so").Data());
+      gSystem->Load((cmssw + path + "dataFormats/SlimMuon_t_hh.so").Data());
+      gSystem->Load((cmssw + path + "dataFormats/SlimElectron_t_hh.so").Data());
+      gSystem->Load((cmssw + path + "dataFormats/SlimTau_t_hh.so").Data());
+      gSystem->Load((cmssw + path + "dataFormats/SlimJet_t_hh.so").Data());
      // gSystem->Load((cmssw + path + "CutsetTraining/CutsetTrainer_cc.so").Data());
 
       // cout << "Loading SVFit libraries" << endl;
