@@ -72,11 +72,16 @@ public :
   Float_t leptonTwoD0	= 0	     ;
   Float_t leptonOneIso	= 0	     ;
   Float_t leptonTwoIso = 0           ; 
+  UChar_t leptonOneID1 = 0           ;
+  UChar_t leptonTwoID1 = 0           ;
+  UChar_t leptonOneID2 = 0           ;
+  UChar_t leptonTwoID2 = 0           ;
   TLorentzVector* genLeptonOneP4 = 0 ;
   TLorentzVector* genLeptonTwoP4 = 0 ;
   TLorentzVector* photonP4 = 0       ;
   TLorentzVector* jetP4 = 0          ;
   TLorentzVector* tauP4 = 0          ;
+  Int_t tauFlavor                    ;
   Float_t taudxyOut = 0.             ;
   Float_t taudzOut = 0.              ;
   UInt_t nMuons = 0                  ;

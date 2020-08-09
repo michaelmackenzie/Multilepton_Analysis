@@ -4,12 +4,13 @@
 class SlimObject_t : public TObject {
 public:
   SlimObject_t():
-    pt(0.), eta(0.), phi(0.), mass(0.) {}
+    pt(0.), eta(0.), phi(0.), mass(0.), positive(false) {}
   Float_t pt;
   Float_t eta;
   Float_t phi;
   Float_t mass;
-  ClassDef(SlimObject_t, 1)
+  Bool_t  positive;
+  ClassDef(SlimObject_t, 2)
 };
 class SlimObjects_t : public TObject {
 public:

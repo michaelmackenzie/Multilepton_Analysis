@@ -153,11 +153,16 @@ void NanoAODConversion::InitializeOutBranchStructure(TTree* tree) {
   tree->Branch("leptonTwoD0"                   , &leptonTwoD0          );
   tree->Branch("leptonOneIso"                  , &leptonOneIso         );
   tree->Branch("leptonTwoIso"                  , &leptonTwoIso         );
+  tree->Branch("leptonOneID1"                  , &leptonOneID1         );
+  tree->Branch("leptonTwoID1"                  , &leptonTwoID1         );
+  tree->Branch("leptonOneID2"                  , &leptonOneID2         );
+  tree->Branch("leptonTwoID2"                  , &leptonTwoID2         );
   tree->Branch("genLeptonOneP4"                , &genLeptonOneP4       );
   tree->Branch("genLeptonTwoP4"                , &genLeptonTwoP4       );
   tree->Branch("photonP4"                      , &photonP4             );
   tree->Branch("jetP4"                         , &jetP4                );
   tree->Branch("tauP4"                         , &tauP4                );
+  tree->Branch("tauFlavor"                     , &tauFlavor            );
   tree->Branch("taudxy"                        , &taudxyOut            );
   tree->Branch("taudz"                         , &taudzOut             );
   tree->Branch("nMuons"                        , &nMuons               );
@@ -263,33 +268,45 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
 	       //store lepton information
   if(selection == kMuTau || selection == kMuMu) {
     leptonOneP4->SetPtEtaPhiM(muonPt[fMuonIndices[0]], muonEta[fMuonIndices[0]], muonPhi[fMuonIndices[0]], muonMass[fMuonIndices[0]]);
-    leptonOneFlavor = 13;
+    leptonOneFlavor = -13*muonCharge[fMuonIndices[0]];
+    leptonOneID1 = muonIsoId[fMuonIndices[0]];
+    leptonOneID2 = 0;
     if(!fIsData) lepOneWeight = particleCorrections->MuonWeight(muonPt[fMuonIndices[0]], muonEta[fMuonIndices[0]], trigger, fYear);
   } else if(selection == kETau || selection == kEMu || selection == kEE) {
     leptonOneP4->SetPtEtaPhiM(electronPt[fElectronIndices[0]], electronEta[fElectronIndices[0]],
 			      electronPhi[fElectronIndices[0]], electronMass[fElectronIndices[0]]);
-    leptonOneFlavor = 11;
+    leptonOneFlavor = -11*electronCharge[fElectronIndices[0]];
+    leptonOneID1 = 0;
+    leptonOneID2 = 0;
     if(!fIsData) lepOneWeight = particleCorrections->ElectronWeight(electronPt[fElectronIndices[0]],
 								    electronEta[fElectronIndices[0]], fYear);
   }    
   if(selection == kMuTau || selection == kETau) {
     leptonTwoP4->SetPtEtaPhiM(tauPt[fTauIndices[0]], tauEta[fTauIndices[0]], tauPhi[fTauIndices[0]], tauMass[fTauIndices[0]]);
-    leptonTwoFlavor = 15;
+    leptonTwoFlavor = -15*tauCharge[fTauIndices[0]];
     lepTwoWeight = 1.; //FIXME: Tau weights missing
+    leptonTwoID1 = tauAntiEle[fTauIndices[0]];
+    leptonTwoID2 = tauAntiMu[fTauIndices[0]];
     taudxyOut = taudxy[fTauIndices[0]];
     taudzOut  = taudz[fTauIndices[0]];
   } else if(selection == kEMu) {
     leptonTwoP4->SetPtEtaPhiM(muonPt[fMuonIndices[0]], muonEta[fMuonIndices[0]], muonPhi[fMuonIndices[0]], muonMass[fMuonIndices[0]]);
-    leptonTwoFlavor = 13;
+    leptonTwoFlavor = -13*muonCharge[fMuonIndices[0]];
+    leptonTwoID1 = muonIsoId[fMuonIndices[0]];
+    leptonTwoID2 = 0;
     if(!fIsData) lepTwoWeight = particleCorrections->MuonWeight(muonPt[fMuonIndices[0]], muonEta[fMuonIndices[0]], trigger, fYear);
   } else if(selection == kMuMu) {
     leptonTwoP4->SetPtEtaPhiM(muonPt[fMuonIndices[1]], muonEta[fMuonIndices[1]], muonPhi[fMuonIndices[1]], muonMass[fMuonIndices[1]]);
-    leptonTwoFlavor = 13;
+    leptonTwoFlavor = -13*muonCharge[fMuonIndices[1]];
+    leptonTwoID1 = muonIsoId[fMuonIndices[1]];
+    leptonTwoID2 = 0;
     if(!fIsData) lepTwoWeight = particleCorrections->MuonWeight(muonPt[fMuonIndices[1]], muonEta[fMuonIndices[1]], trigger, fYear);
   } else if(selection == kEE) {
     leptonTwoP4->SetPtEtaPhiM(electronPt[fElectronIndices[1]], electronEta[fElectronIndices[1]],
 			      electronPhi[fElectronIndices[1]], electronMass[fElectronIndices[1]]);
-    leptonTwoFlavor = 11;
+    leptonTwoFlavor = -11*electronCharge[fElectronIndices[1]];
+    leptonTwoID1 = 0;
+    leptonTwoID2 = 0;
     if(!fIsData) lepTwoWeight = particleCorrections->ElectronWeight(electronPt[fElectronIndices[1]],
 								    electronEta[fElectronIndices[1]], fYear);
   }
@@ -297,6 +314,7 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
     tauP4->SetPtEtaPhiM(tauPt[fTauIndices[0]], tauEta[fTauIndices[0]], tauPhi[fTauIndices[0]], tauMass[fTauIndices[0]]);
     taudxyOut = taudxy[fTauIndices[0]];
     taudzOut  = taudz[fTauIndices[0]];
+    tauFlavor = -15*tauCharge[fTauIndices[0]];
   }
   if(!fIsData)
     eventWeight = lepOneWeight * lepTwoWeight * puWeight;
@@ -308,8 +326,6 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
     lepTwoWeight = 1.;
   }
   
-  //all are opposite signed, so just assign lepton two as opposite for now
-  leptonTwoFlavor *= -1;
   if(nPhotons > 0) 
     photonP4->SetPtEtaPhiM(photonPt[0], photonEta[0], photonPhi[0], photonMass[0]); //FIXME: should use an index map + ID
   else
@@ -353,6 +369,7 @@ void NanoAODConversion::CountObjects() {
     slimMuons[index].looseId  = muonLooseId[index];
     slimMuons[index].mediumId = muonMediumId[index];
     slimMuons[index].tightId  = muonTightId[index];
+    slimMuons[index].positive = muonCharge[index] > 0;
   }
   //count electrons
   for(Int_t index = 0; index < min(((int)kMaxParticles),((int)nElectron)); ++index) {
@@ -379,6 +396,7 @@ void NanoAODConversion::CountObjects() {
     slimElectrons[index].WP80       = electronWP80[index];
     slimElectrons[index].WP90       = electronWP90[index];
     slimElectrons[index].scDeltaEta = electronDeltaEtaSC[index];
+    slimElectrons[index].positive   = electronCharge[index] > 0;
   }
   //count taus
   for(Int_t index = 0; index < min(((int)kMaxParticles),((int)nTau)); ++index) {
@@ -408,6 +426,7 @@ void NanoAODConversion::CountObjects() {
     slimTaus[index].antiEle    = tauAntiEle[index];
     slimTaus[index].antiEle2018= tauAntiEle2018[index];
     slimTaus[index].antiMu     = tauAntiMu[index];
+    slimTaus[index].positive   = tauCharge[index] > 0;
 
   }
   //Jet loop
