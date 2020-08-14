@@ -1288,7 +1288,10 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
     pad1 = new TPad("pad1","pad1",upper_pad_x1_, upper_pad_y1_, upper_pad_x2_, upper_pad_y2_); //xL yL xH xH, (0,0) = bottom left
     pad2 = new TPad("pad2","pad2",lower_pad_x1_, lower_pad_y1_, lower_pad_x2_, lower_pad_y2_);
     pad1->SetTopMargin(upper_pad_topmargin_);
-    pad2->SetTopMargin(lower_pad_topmargin_);
+    if(data_over_mc_ < 0)
+      pad2->SetTopMargin(lower_pad_sigbkg_topmargin_);
+    else
+      pad2->SetTopMargin(lower_pad_topmargin_);
     pad1->SetBottomMargin(upper_pad_botmargin_);
     pad2->SetBottomMargin(lower_pad_botmargin_);
     pad1->Draw();
@@ -1390,20 +1393,18 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
   if(plot_data_ && !d) {
     printf("Warning! Data histogram is Null! Skipping Data/MC plot\n");
   }
-  TH1F* hDataMC = (plot_data_ && d) ? (TH1F*) d->Clone("hDataMC") : 0;
+  TH1F* hDataMC = 0;
+  if(plot_data_ && d && data_over_mc_ > 0)
+    hDataMC = (TH1F*) d->Clone("hDataMC");
+  else if(data_over_mc_ < 0) //make signal/background histograms instead
+    hDataMC = (TH1F*) hstack->GetStack()->Last()->Clone("hRatio");
   TGraphErrors* hDataMCErr = 0;
-  int nb = (d) ? d->GetNbinsX() : -1;
-  if(hDataMC) {
-    // hDataMC->SetBit(kCanDelete);
+  int nb = (hDataMC) ? hDataMC->GetNbinsX() : -1;
+  std::vector<TH1F*> hSignalsOverMC;
+  if(hDataMC && data_over_mc_ > 0) {
     hDataMC->Clear();
     hDataMC->SetName("hDataMC");
     hDataMC->SetTitle("");
-    nmc = huncertainty->Integral();
-    nmc += huncertainty->GetBinContent(0);
-    nmc += huncertainty->GetBinContent(nb+1);
-    ndata = d->Integral();
-    ndata += d->GetBinContent(0);
-    ndata += d->GetBinContent(nb+1);
     double x[nb];
     double y[nb];
     double xerr[nb];
@@ -1431,11 +1432,18 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
     hDataMCErr = new TGraphErrors(nb, x, y, xerr, yerr);
     hDataMCErr->SetFillStyle(3001);
     hDataMCErr->SetFillColor(kGray+1);
+  } else if(hDataMC && data_over_mc_ < 0) {
+    hDataMC->SetName("hRatio");
+    for(TH1F* h : hsignal)
+      hSignalsOverMC.push_back((TH1F*) h->Clone(Form("%s_over_mc", h->GetName())));
+    for(TH1F* h : hSignalsOverMC)
+      h->Divide(hDataMC);
   }
+
   
-  if(plot_data_ && hDataMC) {
+  if(plot_data_ && hDataMC) 
     hDataMC->GetXaxis()->SetTitle(xtitle.Data());
-  }    
+  
   else if(hstack_hist)
     hstack_hist->GetXaxis()->SetTitle(xtitle.Data());
   else
@@ -1484,7 +1492,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
     else          c->SetLogy();
   }
   c->SetGrid();
-  if(plot_data_ && hDataMC) {
+  if(plot_data_ && hDataMC && data_over_mc_ > 0) {
     pad2->cd();
     pad2->SetGrid();
     c->SetGrid();
@@ -1515,6 +1523,30 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
     //  hDataMC->SetName("hDataMC");
     if(hDataMCErr)
       hDataMCErr->Draw("3");
+  } else if(hDataMC && data_over_mc_ < 0) {
+    pad2->cd();
+    pad2->SetGrid();
+    c->SetGrid();
+    m = 0.;
+    for(unsigned index = 0; index < hSignalsOverMC.size(); ++index) {
+      if(signal_scale_ > 0.) hSignalsOverMC[index]->Scale(1./signal_scale_);
+      if(index == 0) hSignalsOverMC[index]->Draw("hist E1");
+      else           hSignalsOverMC[index]->Draw("hist E1 same");
+      m = max(m, hSignalsOverMC[index]->GetMaximum());
+    }
+    if(hSignalsOverMC.size() > 0) {
+      hSignalsOverMC[0]->GetXaxis()->SetTitle(xtitle.Data());
+      hSignalsOverMC[0]->GetYaxis()->SetTitle("Sig/Bkg");
+      hSignalsOverMC[0]->GetXaxis()->SetTitleSize(axis_font_size_);
+      hSignalsOverMC[0]->GetXaxis()->SetTitleOffset(x_title_offset_);
+      hSignalsOverMC[0]->GetXaxis()->SetLabelSize(x_label_size_);
+      hSignalsOverMC[0]->GetYaxis()->SetTitleSize(axis_font_size_);
+      hSignalsOverMC[0]->GetYaxis()->SetTitleOffset(y_title_offset_);
+      hSignalsOverMC[0]->GetYaxis()->SetLabelSize(y_label_size_);
+      hSignalsOverMC[0]->SetAxisRange(m/1.e3,m*1.3, "Y");
+      hSignalsOverMC[0]->SetTitle("");
+      if(xMin_ < xMax_) hSignalsOverMC[0]->GetXaxis()->SetRangeUser(xMin_,xMax_);    
+    }
   }
 
   if(stack_as_hist_) {
@@ -1967,7 +1999,8 @@ TCanvas* DataPlotter::print_stack(TString hist, TString setType, Int_t set) {
   c->Print(Form("figures/%s/%s/%i/stack_%s%s%s%s_%s_set_%i.png",folder_.Data(),selection_.Data(), year_,
 		(setType+"_"+hist).Data(),
 		(logY_ ? "_log":""),
-		((plot_data_) ? "_data":""), (stack_as_hist_ ? "_totbkg" : ""), "dataOverMC",set));
+		((plot_data_) ? "_data":""), (stack_as_hist_ ? "_totbkg" : ""),
+		((data_over_mc_ < 0) ? "sigOverBkg" : "dataOverMC"),set));
   return c;
 }
 
@@ -2074,7 +2107,7 @@ Int_t DataPlotter::print_stacks(vector<TString> hists, vector<TString> setTypes,
       if(rebinH_ == 0) rebinH_ = 1;
       TCanvas* c = print_stack(hist,setType,set);
       Int_t status = (c) ? 0 : 1;
-      printf("Printing Data/MC stack %s %s set %i has status %i\n",setType.Data(),hist.Data(),set,status);
+      if(verbose_ > 0) printf("Printing Data/MC stack %s %s set %i has status %i\n",setType.Data(),hist.Data(),set,status);
       Empty_Canvas(c);
     }
     ++set_index;

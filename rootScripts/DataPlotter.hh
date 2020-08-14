@@ -152,7 +152,7 @@ public :
   Int_t logY_ = 0;
   Int_t plot_data_ = 1; //only MC or include data
   Int_t rebinH_ = 1; //rebinning of histograms
-  Int_t data_over_mc_ = 1; //do data/MC or data-MC
+  Int_t data_over_mc_ = 1; //do data/MC or data-MC: 0 = none, 1 = data/MC, -1 = signal/bkg, -2 = signal/sqrt(bkg)
   Int_t stack_uncertainty_ = 1; //whether or not to add gray shading for uncertainty
   Int_t debug_ = 0; //for debugging
   Int_t include_qcd_ = 1; //use the same sign selection to get the QCD
@@ -191,7 +191,8 @@ public :
   Double_t lower_pad_x2_ = 1.0;
   Double_t lower_pad_y2_ = 0.3;
   Double_t upper_pad_topmargin_ = 0.06; //pad margins
-  Double_t upper_pad_botmargin_ = 0.05;
+  Double_t upper_pad_botmargin_ = 0.06;
+  Double_t lower_pad_sigbkg_topmargin_ = 0.12;
   Double_t lower_pad_topmargin_ = 0.03;
   Double_t lower_pad_botmargin_ = 0.27;
   Double_t legend_txt_ = 0.06; //Legend parameters
