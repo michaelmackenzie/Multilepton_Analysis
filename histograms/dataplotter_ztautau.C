@@ -14,8 +14,10 @@ bool printLimitVsEff_ = false; //print limit gain vs signal efficiency from MVA 
 bool printMVATotBkg_ = false; //print MVA distributions as total background vs signal
 bool print2Ds_ = false;
 bool printSignificances_ = false;
-bool printMVAPlots_ = true;
+bool printMVAPlots_ = false;
+bool printSlimCounts_ = true;
 int year_ = 2016;
+bool offsetSets_ = true; //offset by selection set from ZTauTauHistMaker
 
 Int_t print_significance_canvases(vector<TString> hists, vector<TString> types, vector<TString> labels, vector<int> sets) {
   TCanvas* c = 0;
@@ -25,6 +27,13 @@ Int_t print_significance_canvases(vector<TString> hists, vector<TString> types, 
     return -1;
   int n = hists.size();
   for(int set : sets) {
+    if(offsetSets_) {
+      if(selection_ == "mutau"  ) set += ZTauTauHistMaker::kMuTau;
+      if(selection_ == "etau"   ) set += ZTauTauHistMaker::kETau;
+      if(selection_ == "emu"    ) set += ZTauTauHistMaker::kEMu;
+      if(selection_ == "mutau_e") set += ZTauTauHistMaker::kMuTauE;
+      if(selection_ == "etau_mu") set += ZTauTauHistMaker::kETauMu;
+    }
     for(int i = 0; i < n; ++i) {
       TString filename = Form("sig_vsEff_%s_%s_set_%i.root", labels[i].Data(), hists[i].Data(), set);
       filename.ReplaceAll("#",""); //for ease of use in bash
@@ -45,6 +54,13 @@ Int_t print_significance_canvases(vector<TString> hists, vector<TString> types, 
 
 Int_t print_statistics(TString hist, TString type, int set, double xmin = 1., double xmax = -1.) {
   if(!dataplotter_) return -1;
+  if(offsetSets_) {
+    if(selection_ == "mutau"  ) set += ZTauTauHistMaker::kMuTau;
+    if(selection_ == "etau"   ) set += ZTauTauHistMaker::kETau;
+    if(selection_ == "emu"    ) set += ZTauTauHistMaker::kEMu;
+    if(selection_ == "mutau_e") set += ZTauTauHistMaker::kMuTauE;
+    if(selection_ == "etau_mu") set += ZTauTauHistMaker::kETauMu;
+  }
   
   TCanvas* c = dataplotter_->plot_stack(hist, type, set);
   if(!c) return 1;
@@ -115,6 +131,13 @@ TCanvas* print_canvas(TString hist, TString type, int set, bool stacks = true, T
     cout << "Dataplotter isn't initialized!\n";
     return NULL;
   }
+  if(offsetSets_) {
+    if(selection_ == "mutau"  ) set += ZTauTauHistMaker::kMuTau;
+    if(selection_ == "etau"   ) set += ZTauTauHistMaker::kETau;
+    if(selection_ == "emu"    ) set += ZTauTauHistMaker::kEMu;
+    if(selection_ == "mutau_e") set += ZTauTauHistMaker::kMuTauE;
+    if(selection_ == "etau_mu") set += ZTauTauHistMaker::kETauMu;
+  }
   
   TCanvas* c = (stacks) ? dataplotter_->plot_stack(hist, type, set) : dataplotter_->plot_hist(hist, type, set);
   if(!c) 
@@ -137,6 +160,13 @@ TCanvas* print_canvas(TString hist, TString type, int set, bool stacks = true, T
 TCanvas* print_canvas(TString hist, TString type, int set, double xmin, double xmax, bool stacks = true, TString name = "") {
   dataplotter_->xMin_ = xmin;
   dataplotter_->xMax_ = xmax;
+  if(offsetSets_) {
+    if(selection_ == "mutau"  ) set += ZTauTauHistMaker::kMuTau;
+    if(selection_ == "etau"   ) set += ZTauTauHistMaker::kETau;
+    if(selection_ == "emu"    ) set += ZTauTauHistMaker::kEMu;
+    if(selection_ == "mutau_e") set += ZTauTauHistMaker::kMuTauE;
+    if(selection_ == "etau_mu") set += ZTauTauHistMaker::kETauMu;
+  }
   auto c = print_canvas(hist, type, set, stacks, name);
   dataplotter_->reset_axes();
   return c;
@@ -153,13 +183,68 @@ Int_t print_test(vector<int> sets, vector<double> signal_scales = {},
   plottingcards.push_back(DataPlotter::PlottingCard_t("twopt",          "lep",   2, 15.,  150. ));
   dataplotter_->logY_ = 0;
   int status = 0;
+  if(offsetSets_) {
+    for(unsigned i = 0; i < sets.size(); ++ i) {
+      if(selection_ == "mutau"  ) sets[i] += ZTauTauHistMaker::kMuTau;
+      if(selection_ == "etau"   ) sets[i] += ZTauTauHistMaker::kETau;
+      if(selection_ == "emu"    ) sets[i] += ZTauTauHistMaker::kEMu;
+      if(selection_ == "mutau_e") sets[i] += ZTauTauHistMaker::kMuTauE;
+      if(selection_ == "etau_mu") sets[i] += ZTauTauHistMaker::kETauMu;
+    }
+  }
   status = dataplotter_->print_stacks(plottingcards, sets, signal_scales, base_rebins);
   return status;
 }
 
+//print the nanoAOD object counting selections for each selection set
+Int_t print_slim_counts(vector<int> sets) {
+  cout << "Printing slim counts\n";
+  if(!dataplotter_) return 1;
+  dataplotter_->data_over_mc_ = -1;
+  if(offsetSets_) {
+    for(unsigned i = 0; i < sets.size(); ++ i) {
+      if(selection_ == "mutau"  ) sets[i] += ZTauTauHistMaker::kMuTau;
+      if(selection_ == "etau"   ) sets[i] += ZTauTauHistMaker::kETau;
+      if(selection_ == "emu"    ) sets[i] += ZTauTauHistMaker::kEMu;
+      if(selection_ == "mutau_e") sets[i] += ZTauTauHistMaker::kMuTauE;
+      if(selection_ == "etau_mu") sets[i] += ZTauTauHistMaker::kETauMu;
+    }
+  }
+  Int_t status = 0;
+  vector<DataPlotter::PlottingCard_t> plottingcards;
+  //muon cards
+  plottingcards.push_back(DataPlotter::PlottingCard_t("nslimmuons"    , "event", 1, 0, 6));
+  for(int i = 0; i < 24; ++i)
+    plottingcards.push_back(DataPlotter::PlottingCard_t(Form("nmuoncounts%i",i)    , "event", 1, 0, 6));
+  //electron cards
+  plottingcards.push_back(DataPlotter::PlottingCard_t("nslimelectrons"    , "event", 1, 0, 6));
+  for(int i = 0; i < 6; ++i)
+    plottingcards.push_back(DataPlotter::PlottingCard_t(Form("nelectroncounts%i",i), "event", 1, 0, 6));
+  //tau cards
+  plottingcards.push_back(DataPlotter::PlottingCard_t("nslimtaus"    , "event", 1, 0, 6));
+  for(int i = 0; i < 18; ++i)
+    plottingcards.push_back(DataPlotter::PlottingCard_t(Form("ntaucounts%i",i)     , "event", 1, 0, 6));
+  //print the cards
+  dataplotter_->logY_ = 1;
+  status = dataplotter_->print_stacks(plottingcards, sets, {}, {});
+  dataplotter_->logY_ = 0;
+  status = dataplotter_->print_stacks(plottingcards, sets, {}, {});
+  return status;
+}
+
+//print many distributions for the selection sets
 Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
 			   vector<int> base_rebins = {}, bool stacks = true) {
   if(!dataplotter_) return -1;
+  if(offsetSets_) {
+    for(unsigned i = 0; i < sets.size(); ++ i) {
+      if(selection_ == "mutau"  ) sets[i] += ZTauTauHistMaker::kMuTau;
+      if(selection_ == "etau"   ) sets[i] += ZTauTauHistMaker::kETau;
+      if(selection_ == "emu"    ) sets[i] += ZTauTauHistMaker::kEMu;
+      if(selection_ == "mutau_e") sets[i] += ZTauTauHistMaker::kMuTauE;
+      if(selection_ == "etau_mu") sets[i] += ZTauTauHistMaker::kETauMu;
+    }
+  }
   vector<DataPlotter::PlottingCard_t> plottingcards;
   vector<DataPlotter::PlottingCard_t> mvaplottingcards; //to plot once normally and once with just total background
 
@@ -283,6 +368,42 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
   plottingcards.push_back(DataPlotter::PlottingCard_t("oneiso",            "lep",   1, 0.,   10. ));
   plottingcards.push_back(DataPlotter::PlottingCard_t("onereliso",         "lep",   1, 0.,   0.15));
   plottingcards.push_back(DataPlotter::PlottingCard_t("twod0",             "lep",   2, -0.05,0.05));
+
+  if(useNanoAods_) {
+    plottingcards.push_back(DataPlotter::PlottingCard_t("oneid1",  "lep",   0, 0,10));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("twoid1",  "lep",   0, 0,50));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("oneid2",  "lep",   0, 0,10));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("twoid2",  "lep",   0, 0,10));
+    
+    
+    plottingcards.push_back(DataPlotter::PlottingCard_t("oneslimeq",  "lep",   0, -2,2));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("twoslimeq",  "lep",   0, -2,2));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("oneslimem",  "lep",   1,  0,200));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("twoslimem",  "lep",   1,  0,200));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("oneslimemss",  "lep",   1,  0,200));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("twoslimemss",  "lep",   1,  0,200));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("oneslimemos",  "lep",   1,  0,200));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("twoslimemos",  "lep",   1,  0,200));
+
+    plottingcards.push_back(DataPlotter::PlottingCard_t("oneslimmuq",  "lep",   0, -2,2));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("twoslimmuq",  "lep",   0, -2,2));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("oneslimmum",  "lep",   1,  0,200));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("twoslimmum",  "lep",   1,  0,200));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("oneslimmumss",  "lep",   1,  0,200));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("twoslimmumss",  "lep",   1,  0,200));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("oneslimmumos",  "lep",   1,  0,200));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("twoslimmumos",  "lep",   1,  0,200));
+
+    plottingcards.push_back(DataPlotter::PlottingCard_t("oneslimtauq",  "lep",   0, -2,2));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("twoslimtauq",  "lep",   0, -2,2));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("oneslimtaum",  "lep",   1,  0,200));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("twoslimtaum",  "lep",   1,  0,200));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("oneslimtaumss",  "lep",   1,  0,200));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("twoslimtaumss",  "lep",   1,  0,200));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("oneslimtaumos",  "lep",   1,  0,200));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("twoslimtaumos",  "lep",   1,  0,200));
+    
+  }
   if(selection_ == "emu" || selection_.Contains("tau_") /*leptonic tau decay*/ || selection_ == "llg_study") {
     plottingcards.push_back(DataPlotter::PlottingCard_t("twoiso",       "lep", 1, 0.,   10.  ));
     plottingcards.push_back(DataPlotter::PlottingCard_t("tworeliso",    "lep", 1, 0.,   0.15 ));
@@ -582,13 +703,25 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
   dataplotter_->stack_as_hist_ = 0;
   dataplotter_->draw_statistics_ = true;
   dataplotter_->logY_ = 0;
-  
+  bool prev = offsetSets_;
+  offsetSets_ = false;
+  if(printSlimCounts_) status += print_slim_counts(sets);
+  offsetSets_ = prev;
   return status;
 }
 
 Int_t print_standard_canvases(vector<int> sets, vector<double> signal_scales = {},
 			      vector<int> base_rebins = {}, bool stacks = true, TString name = "") {
   if(!dataplotter_) return -1;
+  if(offsetSets_) {
+    for(unsigned i = 0; i < sets.size(); ++ i) {
+      if(selection_ == "mutau"  ) sets[i] += ZTauTauHistMaker::kMuTau;
+      if(selection_ == "etau"   ) sets[i] += ZTauTauHistMaker::kETau;
+      if(selection_ == "emu"    ) sets[i] += ZTauTauHistMaker::kEMu;
+      if(selection_ == "mutau_e") sets[i] += ZTauTauHistMaker::kMuTauE;
+      if(selection_ == "etau_mu") sets[i] += ZTauTauHistMaker::kETauMu;
+    }
+  }
   vector<TString> hnames;
   vector<TString> htypes;
   vector<int>     rebins;
@@ -628,7 +761,7 @@ Int_t init_dataplotter() {
   dataplotter_ = new DataPlotter();
   dataplotter_->selection_ = selection_;
   dataplotter_->folder_ = folder_;
-  if(useNanoAods_) dataplotter_->include_qcd_ = 0;
+  // if(useNanoAods_) dataplotter_->include_qcd_ = 0;
   if(selection_ == "mutau")
     dataplotter_->qcd_scale_ = 1.059;
   else if(selection_ == "etau")
@@ -744,17 +877,29 @@ Int_t init_dataplotter() {
 
   std::vector<dcard> nano_cards;
   //card constructor: filepath, name, label, isData, xsec, isSignal, color
-  nano_cards.push_back(dcard(Form("clfv_%i_DY50"               ,year_), "DY50"               , "Drell-Yan", false, 6225.42              , false, kRed-3));
-  nano_cards.push_back(dcard(Form("clfv_%i_SingleAntiToptW"    ,year_), "SingleAntiToptW"    , "SingleTop", false, 34.91                , false, kCyan-7));
-  nano_cards.push_back(dcard(Form("clfv_%i_SingleToptW"        ,year_), "SingleToptW"        , "SingleTop", false, 34.91                , false, kCyan-7));
-  nano_cards.push_back(dcard(Form("clfv_%i_WW"                 ,year_), "WW"	             , "WW"       , false, 12.178               , false, kViolet+6));
-  nano_cards.push_back(dcard(Form("clfv_%i_WZ"                 ,year_), "WZ"                 , "WZ"       , false, 27.6                 , false, kViolet+4));
-  nano_cards.push_back(dcard(Form("clfv_%i_Wlnu"               ,year_), "Wlnu"               , "W+Jets"   , false, 52850.0              , false, kGreen-7));
-  nano_cards.push_back(dcard(Form("clfv_%i_ttbarToSemiLeptonic",year_), "ttbarToSemiLeptonic", "t#bar{t}" , false, 365.34               , false, kYellow-7));
-  nano_cards.push_back(dcard(Form("clfv_%i_ttbarlnu"           ,year_), "ttbarlnu"           , "t#bar{t}lnu", false, 88.29                , false, kYellow-2));
-  nano_cards.push_back(dcard(Form("clfv_%i_Signal"             ,year_), "Signal"             , "Z->e#mu"  , false, 2075.14/0.0337*7.3e-7, true , kBlue));  
-  nano_cards.push_back(dcard(Form("clfv_%i_SingleMu"           ,year_), "SingleMu"           , "Data"     , true , 1.                   , false));  
-  nano_cards.push_back(dcard(Form("clfv_%i_SingleEle"          ,year_), "SingleEle"          , "Data"     , true , 1.                   , false));  
+  nano_cards.push_back(dcard(Form("clfv_%i_DY50"               ,year_), "DY50"               , "Drell-Yan"         , false, 6225.42, false, kRed-3));
+  nano_cards.push_back(dcard(Form("clfv_%i_SingleAntiToptW"    ,year_), "SingleAntiToptW"    , "SingleTop"         , false, 34.91  , false, kCyan-7));
+  nano_cards.push_back(dcard(Form("clfv_%i_SingleToptW"        ,year_), "SingleToptW"        , "SingleTop"         , false, 34.91  , false, kCyan-7));
+  nano_cards.push_back(dcard(Form("clfv_%i_WW"                 ,year_), "WW"	             , "WW"                , false, 12.178 , false, kViolet+6));
+  nano_cards.push_back(dcard(Form("clfv_%i_WZ"                 ,year_), "WZ"                 , "WZ"                , false, 27.6   , false, kViolet+4));
+  nano_cards.push_back(dcard(Form("clfv_%i_Wlnu"               ,year_), "Wlnu"               , "W+Jets"            , false, 52850.0, false, kGreen-7));
+  nano_cards.push_back(dcard(Form("clfv_%i_ttbarToSemiLeptonic",year_), "ttbarToSemiLeptonic", "t#bar{t}(qql#nu)"  , false, 365.34 , false, kYellow-7));
+  nano_cards.push_back(dcard(Form("clfv_%i_ttbarlnu"           ,year_), "ttbarlnu"           , "t#bar{t}(ll#nu#nu)", false, 88.29  , false, kYellow-2));
+  if(year_ == 2016) { //temporary fix
+    if(selection_ == "emu") {
+      nano_cards.push_back(dcard(Form("clfv_%i_ZEMu"             ,year_), "ZEMu"             , "Z->e#mu"   , false, 2075.14/0.0337*7.3e-7, true));  
+      nano_cards.push_back(dcard(Form("clfv_%i_HEMu"             ,year_), "HEMu"             , "H->e#mu"   , false, (48.61+3.766+0.5071+1.358+0.880)*3.5e-4, true));
+    } else if(selection_.Contains("etau")) {
+      nano_cards.push_back(dcard(Form("clfv_%i_ZETau"            ,year_), "ZETau"            , "Z->e#tau"  , false, ((6225.42)/(3.*3.3658e-2))*9.8e-6, true));  
+      nano_cards.push_back(dcard(Form("clfv_%i_HETau"            ,year_), "HETau"            , "H->e#tau"  , false, (48.61+3.766+0.5071+1.358+0.880)*6.1e-3, true));
+    } else if(selection_.Contains("mutau")) {
+      nano_cards.push_back(dcard(Form("clfv_%i_ZMuTau"           ,year_), "ZMuTau"           , "Z->#mu#tau", false, ((6225.42)/(3.*3.3658e-2))*1.2e-5, true));  
+      nano_cards.push_back(dcard(Form("clfv_%i_HMuTau"           ,year_), "HMuTau"           , "H->#mu#tau", false, (48.61+3.766+0.5071+1.358+0.880)*2.5e-3, true));
+    }
+  } else
+    nano_cards.push_back(dcard(Form("clfv_%i_Signal"           ,year_), "Signal"             , "Z->e#mu"  , false, 2075.14/0.0337*7.3e-7, true , kBlue));  
+  if(selection_ != "etau" ) nano_cards.push_back(dcard(Form("clfv_%i_SingleMu"           ,year_), "SingleMu"           , "Data"     , true , 1.                   , false));  
+  if(selection_ != "mutau") nano_cards.push_back(dcard(Form("clfv_%i_SingleEle"          ,year_), "SingleEle"          , "Data"     , true , 1.                   , false));  
 
   TString selection_dir = (leptonic_tau) ? "emu" : selection_;
   //add full name to file name
@@ -798,14 +943,17 @@ Int_t init_dataplotter() {
   return dataplotter_->init_files();
 }
 
-Int_t nanoaod_init(TString histDir = "nanoaods", TString figureDir = "nanoaods") {
+Int_t nanoaod_init(TString selection = "emu", TString histDir = "nanoaods", TString figureDir = "nanoaods") {
   hist_dir_ = histDir;
   folder_ = figureDir;
   useNanoAods_ = true;
-  selection_ = "emu";
+  selection_ = selection;
   Int_t status = init_dataplotter();
   if(!status) {
-    dataplotter_->signal_scale_ = 6.8;
+    if(selection == "emu")
+      dataplotter_->signal_scale_ = 6.8;
+    else
+      dataplotter_->signal_scale_ = 250.;
   }
   return status;
 }
