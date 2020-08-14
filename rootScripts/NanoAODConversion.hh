@@ -76,6 +76,8 @@ public :
   UChar_t leptonTwoID1 = 0           ;
   UChar_t leptonOneID2 = 0           ;
   UChar_t leptonTwoID2 = 0           ;
+  Int_t   leptonOneIndex = 0         ;
+  Int_t   leptonTwoIndex = 0         ;
   TLorentzVector* genLeptonOneP4 = 0 ;
   TLorentzVector* genLeptonTwoP4 = 0 ;
   TLorentzVector* photonP4 = 0       ;
@@ -331,19 +333,27 @@ public :
   
   //for counting objects
   Bool_t        fDoCountingSelection = true; //if false just use size of arrays
-  Float_t       fMuonPtCount = 10.;
-  UChar_t       fMuonIsoCount = 4;
-  Int_t         fMuonIDCount = 3; //0 = any, 1 = loose, 2 = medium, 3 = tight
-  UInt_t        fMuonIndices[kMaxParticles];
-  Float_t       fElectronPtCount = 15.;
-  Int_t         fElectronIDCount = 2; //0 = any, 1 = WPL, 2 = WP80, 3 = WP90
-  UInt_t        fElectronIndices[kMaxParticles];
-  Float_t       fTauPtCount = 18.;
-  UChar_t       fTauAntiEleCount = 8;
-  UChar_t       fTauAntiMuCount = 2;
-  Bool_t        fTauIDDecayCount = true;
-  UInt_t        fTauIndices[kMaxParticles];
-
+  Float_t       fMuonPtCount = 0.;
+  Float_t       fElectronPtCount = 0.;
+  Float_t       fTauPtCount = 0.;
+  //counting by selection
+  std::map<Int_t, UChar_t> fMuonIsoCount;
+  std::map<Int_t, Int_t>   fMuonIDCount; //0 = any, 1 = loose, 2 = medium, 3 = tight
+  std::map<Int_t, Bool_t>  fCountMuons;
+  std::map<Int_t, std::map<UInt_t, UInt_t>> fMuonIndices;
+  std::map<Int_t, UInt_t>  fNMuons;
+  std::map<Int_t, Int_t>   fElectronIDCount; //0 = any, 1 = WPL, 2 = WP80, 3 = WP90
+  std::map<Int_t, Bool_t>  fCountElectrons;
+  std::map<Int_t, std::map<UInt_t, UInt_t>> fElectronIndices;
+  std::map<Int_t, UInt_t>  fNElectrons;
+  std::map<Int_t, UChar_t> fTauAntiEleCount;
+  std::map<Int_t, UChar_t> fTauAntiMuCount;
+  std::map<Int_t, Bool_t>  fTauIDDecayCount;
+  std::map<Int_t, Float_t> fTauDeltaRCount; //distance from light lepton
+  std::map<Int_t, Bool_t>  fCountTaus;
+  std::map<Int_t, std::map<UInt_t, UInt_t>> fTauIndices;
+  std::map<Int_t, UInt_t>  fNTaus;
+  
   //summary variables
   Int_t         fNEE = 0;
   Int_t         fNMuMu = 0;
