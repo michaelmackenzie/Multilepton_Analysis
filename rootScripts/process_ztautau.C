@@ -1,5 +1,18 @@
 
+#include "../dataFormats/SlimObject_t.hh+g"
+#include "../dataFormats/SlimElectron_t.hh+g"
+#include "../dataFormats/SlimMuon_t.hh+g"
+#include "../dataFormats/SlimTau_t.hh+g"
+#include "../dataFormats/SlimJet_t.hh+g"
 #include "ZTauTauHistMaker.cc+g"
+struct datacard_t {
+  bool process_;
+  double xsec_;
+  TString fname_;
+  datacard_t(bool process, double xsec, TString fname) :
+    process_(process), xsec_(xsec), fname_(fname) {}
+};
+  
 Int_t process_ztautau() {
 
   TString hostname = gSystem->Getenv("HOSTNAME");
@@ -57,19 +70,19 @@ Int_t process_ztautau() {
 			 "output_qcd_ht1000to1500.root"            ,
 			 "output_qcd_ht1500to2000.root"            ,
 			 "output_qcd_ht2000toinf.root"             ,
-			 "output_muon_2016B_v2.root"               , 
-			 "output_muon_2016C.root"                  , 
-			 "output_muon_2016D.root"                  , 
-			 "output_muon_2016E.root"                  , 
-			 "output_muon_2016F.root"                  , 
-			 "output_muon_2016G.root"                  , 
+			 "output_muon_2016B_v2.root"               ,
+			 "output_muon_2016C.root"                  ,
+			 "output_muon_2016D.root"                  ,
+			 "output_muon_2016E.root"                  ,
+			 "output_muon_2016F.root"                  ,
+			 "output_muon_2016G.root"                  ,
 			 "output_muon_2016H_v2.root"               ,
-			 "output_electron_2016B_v2.root"           , 
-			 "output_electron_2016C.root"              , 
-			 "output_electron_2016D.root"              , 
-			 "output_electron_2016E.root"              , 
-			 "output_electron_2016F.root"              , 
-			 "output_electron_2016G.root"              , 
+			 "output_electron_2016B_v2.root"           ,
+			 "output_electron_2016C.root"              ,
+			 "output_electron_2016D.root"              ,
+			 "output_electron_2016E.root"              ,
+			 "output_electron_2016F.root"              ,
+			 "output_electron_2016G.root"              ,
 			 "output_electron_2016H_v2.root"
 
   };
@@ -138,40 +151,40 @@ Int_t process_ztautau() {
 			   1, //Electron Data 2016G
 			   1  //Electron Data 2016H
   };
-  
+
   Double_t xsec[100];
   for(int i = 0; i < sizeof(xsec)/sizeof(*xsec); ++i)
     xsec[i] = 1.; //no scaling if not given
-  
+
   //Taken from https://twiki.cern.ch/twiki/bin/viewauth/CMS/SummaryTable1G25ns     
   xsec[0]  =  831.76;                 //"ttbar_inclusive"         
   xsec[1]  =  6225.42;                //"zjets_m-50_amcatnlo"     
   xsec[2]  =  18610. ;                //"zjets_m-10to50_amcatnlo" 
-  xsec[3]  =  35.85;	              //"t_tw"                    
-  xsec[4]  =  35.85;	              //"tbar_tw"                 
+  xsec[3]  =  35.85;                  //"t_tw"                    
+  xsec[4]  =  35.85;                  //"tbar_tw"                 
   xsec[5]  =  6225.42;                //"zjets_m-50_amcatnlo"     
   xsec[6]  =  18610. ;                //"zjets_m-10to50_amcatnlo" 
-  xsec[7]  =  1198.9;	               //"z1jets_m-50"             
-  xsec[8] =  855.5;		       //"z1jets_m-10to50"         
-  xsec[9] =  390.6;		       //"z2jets_m-50"             
-  xsec[10] =  466.1;		       //"z2jets_m-10to50"         
-  xsec[11] =  113.3;		       //"z3jets_m-50"             
-  xsec[12] =  114.5;		       //"z3jets_m-10to50"         
-  xsec[13] =  60.2;		       //"z4jets_m-50"             
-  xsec[14] =  36.4;		       //"z4jets_m-10to50"         
-  xsec[15] =  11486.53;		       //"w1jets"                  
-  xsec[16] =  3775.2; 		       //"w2jets"                  
-  xsec[17] =  1139.82; 		       //"w3jets"                  
-  xsec[18] =  655.82; 		       //"w4jets"                  
-  xsec[19] =  61526.7; 		       //"wjets"    https://twiki.cern.ch/twiki/bin/viewauth/CMS/SummaryTable1G25ns#W_jets    
-  xsec[20] =  61526.7; 		       //"wjets"    https://twiki.cern.ch/twiki/bin/viewauth/CMS/SummaryTable1G25ns#W_jets    
-  xsec[21] =  61526.7; 		       //"wjets"    https://twiki.cern.ch/twiki/bin/viewauth/CMS/SummaryTable1G25ns#W_jets    
-  xsec[22] =  12.178;	               //"ww"                      
-  xsec[23] =  5.595;		       //"wz_2l2q"                 
-  xsec[24] =  4.42965;	               //"wz_3lnu"                 
-  xsec[25] =  0.564;		       //"zz_2l2nu"                
-  xsec[26] =  3.22;		       //"zz_2l2q"                 
-  xsec[27] =  1.212;		       //"zz_4l"
+  xsec[7]  =  1198.9;                 //"z1jets_m-50"             
+  xsec[8] =  855.5;                   //"z1jets_m-10to50"         
+  xsec[9] =  390.6;                   //"z2jets_m-50"             
+  xsec[10] =  466.1;                  //"z2jets_m-10to50"         
+  xsec[11] =  113.3;                  //"z3jets_m-50"             
+  xsec[12] =  114.5;                  //"z3jets_m-10to50"         
+  xsec[13] =  60.2;                   //"z4jets_m-50"             
+  xsec[14] =  36.4;                   //"z4jets_m-10to50"         
+  xsec[15] =  11486.53;               //"w1jets"                  
+  xsec[16] =  3775.2;                 //"w2jets"                  
+  xsec[17] =  1139.82;                //"w3jets"                  
+  xsec[18] =  655.82;                 //"w4jets"                  
+  xsec[19] =  61526.7;                        //"wjets"    https://twiki.cern.ch/twiki/bin/viewauth/CMS/SummaryTable1G25ns#W_jets    
+  xsec[20] =  61526.7;                        //"wjets"    https://twiki.cern.ch/twiki/bin/viewauth/CMS/SummaryTable1G25ns#W_jets    
+  xsec[21] =  61526.7;                        //"wjets"    https://twiki.cern.ch/twiki/bin/viewauth/CMS/SummaryTable1G25ns#W_jets    
+  xsec[22] =  12.178;                 //"ww"                      
+  xsec[23] =  5.595;                  //"wz_2l2q"                 
+  xsec[24] =  4.42965;                //"wz_3lnu"                 
+  xsec[25] =  0.564;                  //"zz_2l2nu"                
+  xsec[26] =  3.22;                   //"zz_2l2q"                 
+  xsec[27] =  1.212;                  //"zz_4l"
   //Higgs branching ratios: https://twiki.cern.ch/twiki/bin/view/LHCPhysics/CERNYellowReportPageBR2014
   //Higgs production xsecs: https://twiki.cern.ch/twiki/bin/view/LHCPhysics/CERNHLHE2019
   //Z decay to leptons fraction: http://pdg.lbl.gov/2012/listings/rpp2012-list-z-boson.pdf
@@ -195,121 +208,55 @@ Int_t process_ztautau() {
   /******************************/
   //"/uscms/home/mmackenz/nobackup/ZEMu/CMSSW_10_2_18/src/StandardModel/CLFVAnalysis/rootScripts/";
   TString nanoaod_path = gridPath;
-  nanoaod_path.ReplaceAll("ztautau_trees", "ztautau_nanoaod_trees"); //use the same path, but replace the search directory
-  
-  const char* nanoaods[] = { "clfv_2016_ttbarToSemiLeptonic.tree"
-			    ,"clfv_2016_ttbarlnu.tree"
-			    ,"clfv_2016_DY50.tree"
-			    ,"clfv_2016_SingleAntiToptW.tree"
-			    ,"clfv_2016_SingleToptW.tree"
-			    ,"clfv_2016_Wlnu.tree"
-			    ,"clfv_2016_WW.tree"
-			    ,"clfv_2016_WZ.tree"
-			    ,"clfv_2016_Signal.tree"
-			    ,"clfv_2016_SingleMu.tree"
-			    ,"clfv_2016_SingleEle.tree"
-			    ,"clfv_2017_ttbarToSemiLeptonic.tree"
-			    ,"clfv_2017_ttbarlnu.tree"
-			    ,"clfv_2017_DY50.tree"
-			    ,"clfv_2017_SingleAntiToptW.tree"
-			    ,"clfv_2017_SingleToptW.tree"
-			    ,"clfv_2017_Wlnu.tree"
-			    ,"clfv_2017_WW.tree"
-			    ,"clfv_2017_WZ.tree"
-			    ,"clfv_2017_Signal.tree"
-			    ,"clfv_2017_SingleMu.tree"
-			    ,"clfv_2017_SingleEle.tree"
-			    ,"clfv_2018_ttbarToSemiLeptonic.tree"
-			    ,"clfv_2018_ttbarlnu.tree"
-			    ,"clfv_2018_DY50.tree"
-			    ,"clfv_2018_SingleAntiToptW.tree"
-			    ,"clfv_2018_SingleToptW.tree"
-			    ,"clfv_2018_Wlnu.tree"
-			    ,"clfv_2018_WW.tree"
-			    ,"clfv_2018_WZ.tree"
-			    ,"clfv_2018_Signal.tree"
-			    ,"clfv_2018_SingleMu.tree"
-			    ,"clfv_2018_SingleEle.tree"
-  };
+  nanoaod_path.ReplaceAll("ztautau_trees", "ztautau_nanoaod_test_trees"); //use the same path, but replace the search directory
 
-  bool nanoaod_process[50];
-  for(unsigned i = 0; i < sizeof(nanoaod_process)/sizeof(*nanoaod_process); ++i)
-    nanoaod_process[i] = false;
+  vector<datacard_t> nanocards;
+  nanocards.push_back(datacard_t(true , 365.34                                  , "clfv_2016_ttbarToSemiLeptonic.tree"));
+  nanocards.push_back(datacard_t(true , 88.29                                   , "clfv_2016_ttbarlnu.tree"           ));
+  nanocards.push_back(datacard_t(true , 6225.42                                 , "clfv_2016_DY50.tree"               ));
+  nanocards.push_back(datacard_t(true , 34.91                                   , "clfv_2016_SingleAntiToptW.tree"    ));
+  nanocards.push_back(datacard_t(true , 34.91                                   , "clfv_2016_SingleToptW.tree"        ));
+  nanocards.push_back(datacard_t(true , 52850.0                                 , "clfv_2016_Wlnu.tree"               ));
+  nanocards.push_back(datacard_t(true , 12.178                                  , "clfv_2016_WW.tree"                 ));
+  nanocards.push_back(datacard_t(true , 27.6                                    , "clfv_2016_WZ.tree"                 ));
+  nanocards.push_back(datacard_t(true , ((6225.42+18610.)/(3.*3.3658e-2))*9.8e-6, "clfv_2016_ZETau.tree"              ));
+  nanocards.push_back(datacard_t(true , ((6225.42+18610.)/(3.*3.3658e-2))*1.2e-5, "clfv_2016_ZMuTau.tree"             ));
+  nanocards.push_back(datacard_t(true , 2075.14/0.0337*7.3e-7                   , "clfv_2016_ZEMu.tree"               ));
+  nanocards.push_back(datacard_t(true , (48.61+3.766+0.5071+1.358+0.880)*6.1e-3 , "clfv_2016_HETau.tree"              ));
+  nanocards.push_back(datacard_t(true , (48.61+3.766+0.5071+1.358+0.880)*2.5e-3 , "clfv_2016_HMuTau.tree"             ));
+  nanocards.push_back(datacard_t(true , (48.61+3.766+0.5071+1.358+0.880)*3.5e-4 , "clfv_2016_HEMu.tree"               ));
+  nanocards.push_back(datacard_t(true , 1.                                      , "clfv_2016_SingleMu.tree"           ));
+  nanocards.push_back(datacard_t(true , 1.                                      , "clfv_2016_SingleEle.tree"          ));
+  nanocards.push_back(datacard_t(false, 365.34                                  , "clfv_2017_ttbarToSemiLeptonic.tree"));
+  nanocards.push_back(datacard_t(false, 88.29                                   , "clfv_2017_ttbarlnu.tree"           ));
+  nanocards.push_back(datacard_t(false, 6225.42                                 , "clfv_2017_DY50.tree"               ));
+  nanocards.push_back(datacard_t(false, 34.91                                   , "clfv_2017_SingleAntiToptW.tree"    ));
+  nanocards.push_back(datacard_t(false, 34.91                                   , "clfv_2017_SingleToptW.tree"        ));
+  nanocards.push_back(datacard_t(false, 52850.0                                 , "clfv_2017_Wlnu.tree"               ));
+  nanocards.push_back(datacard_t(false, 12.178                                  , "clfv_2017_WW.tree"                 ));
+  nanocards.push_back(datacard_t(false, 27.6                                    , "clfv_2017_WZ.tree"                 ));
+  nanocards.push_back(datacard_t(false, 2075.14/0.0337*7.3e-7                   , "clfv_2017_Signal.tree"             ));
+  nanocards.push_back(datacard_t(false, 1.                                      , "clfv_2017_SingleMu.tree"           ));
+  nanocards.push_back(datacard_t(false, 1.                                      , "clfv_2017_SingleEle.tree"          ));
+  nanocards.push_back(datacard_t(false, 365.34                                  , "clfv_2018_ttbarToSemiLeptonic.tree"));
+  nanocards.push_back(datacard_t(false, 88.29                                   , "clfv_2018_ttbarlnu.tree"           ));
+  nanocards.push_back(datacard_t(false, 6225.42                                 , "clfv_2018_DY50.tree"               ));
+  nanocards.push_back(datacard_t(false, 34.91                                   , "clfv_2018_SingleAntiToptW.tree"    ));
+  nanocards.push_back(datacard_t(false, 34.91                                   , "clfv_2018_SingleToptW.tree"        ));
+  nanocards.push_back(datacard_t(false, 52850.0                                 , "clfv_2018_Wlnu.tree"               ));
+  nanocards.push_back(datacard_t(false, 12.178                                  , "clfv_2018_WW.tree"                 ));
+  nanocards.push_back(datacard_t(false, 27.6                                    , "clfv_2018_WZ.tree"                 ));
+  nanocards.push_back(datacard_t(false, 2075.14/0.0337*7.3e-7                   , "clfv_2018_Signal.tree"             ));
+  nanocards.push_back(datacard_t(false, 1.                                      , "clfv_2018_SingleMu.tree"           ));
+  nanocards.push_back(datacard_t(false, 1.                                      , "clfv_2018_SingleEle.tree"          ));
 
-  nanoaod_process[0 ] = true;   // 2016 "ttbarToSemiLeptonic"    
-  nanoaod_process[1 ] = true;	// 2016 "ttbarlnu"		     
-  nanoaod_process[2 ] = true;	// 2016 "DY50"		     
-  nanoaod_process[3 ] = true;	// 2016 "SingleAntiToptW"	     
-  nanoaod_process[4 ] = true;	// 2016 "SingleToptW"	     
-  nanoaod_process[5 ] = true;	// 2016 "Wlnu"		     
-  nanoaod_process[6 ] = true;	// 2016 "WW"		     
-  nanoaod_process[7 ] = true;	// 2016 "WZ"		     
-  nanoaod_process[8 ] = true;	// 2016 "Signal"                
-  nanoaod_process[9 ] = true;   // 2016 "SingleMu"
-  nanoaod_process[10] = true;   // 2016 "SingleEle"
-  nanoaod_process[11] = true;   // 2017 "ttbarToSemiLeptonic"    
-  nanoaod_process[12] = true;	// 2017 "ttbarlnu"		     
-  nanoaod_process[13] = true;	// 2017 "DY50"		     
-  nanoaod_process[14] = true;	// 2017 "SingleAntiToptW"	     
-  nanoaod_process[15] = true;	// 2017 "SingleToptW"	     
-  nanoaod_process[16] = true;	// 2017 "Wlnu"		     
-  nanoaod_process[17] = true;	// 2017 "WW"		     
-  nanoaod_process[18] = true;	// 2017 "WZ"		     
-  nanoaod_process[19] = true;	// 2017 "Signal"                
-  nanoaod_process[20] = true;   // 2017 "SingleMu"
-  nanoaod_process[21] = true;   // 2017 "SingleEle"
-  nanoaod_process[22] = true;   // 2018 "ttbarToSemiLeptonic"    
-  nanoaod_process[23] = true;	// 2018 "ttbarlnu"		     
-  nanoaod_process[24] = true;	// 2018 "DY50"		     
-  nanoaod_process[25] = true;	// 2018 "SingleAntiToptW"	     
-  nanoaod_process[26] = true;	// 2018 "SingleToptW"	     
-  nanoaod_process[27] = true;	// 2018 "Wlnu"		     
-  nanoaod_process[28] = true;	// 2018 "WW"		     
-  nanoaod_process[29] = true;	// 2018 "WZ"		     
-  nanoaod_process[30] = true;	// 2018 "Signal"                
-  nanoaod_process[31] = true;   // 2018 "SingleMu"
-  nanoaod_process[32] = true;   // 2018 "SingleEle"
 
-  double nanoaod_xsec[50];
-  for(unsigned i = 0; i < sizeof(nanoaod_xsec)/sizeof(*nanoaod_xsec); ++i)
-    nanoaod_xsec[i] = 0.;
-  
-  nanoaod_xsec[0] = 365.34;                     // "ttbarToSemiLeptonic"   
-  nanoaod_xsec[1] = 88.29;			// "ttbarlnu"		   
-  nanoaod_xsec[2] = 6225.42;			// "DY50"		   
-  nanoaod_xsec[3] = 34.91;			// "SingleAntiToptW"	   
-  nanoaod_xsec[4] = 34.91;			// "SingleToptW"	   
-  nanoaod_xsec[5] = 52850.0;			// "Wlnu"		   
-  nanoaod_xsec[6] = 12.178;			// "WW"		     	   
-  nanoaod_xsec[7] = 27.6;			// "WZ"		     	   
-  nanoaod_xsec[8] = 2075.14/0.0337*7.3e-7;	// "Signal"
-
-  nanoaod_xsec[11] = 365.34;                    // "ttbarToSemiLeptonic"   
-  nanoaod_xsec[12] = 88.29;			// "ttbarlnu"		   
-  nanoaod_xsec[13] = 6225.42;			// "DY50"		   
-  nanoaod_xsec[14] = 34.91;			// "SingleAntiToptW"	   
-  nanoaod_xsec[15] = 34.91;			// "SingleToptW"	   
-  nanoaod_xsec[16] = 52850.0;			// "Wlnu"		   
-  nanoaod_xsec[17] = 12.178;			// "WW"		     	   
-  nanoaod_xsec[18] = 27.6;			// "WZ"		     	   
-  nanoaod_xsec[19] = 2075.14/0.0337*7.3e-7;	// "Signal"
-  
-  nanoaod_xsec[22] = 365.34;                    // "ttbarToSemiLeptonic"   
-  nanoaod_xsec[23] = 88.29;			// "ttbarlnu"		   
-  nanoaod_xsec[24] = 6225.42;			// "DY50"		   
-  nanoaod_xsec[25] = 34.91;			// "SingleAntiToptW"	   
-  nanoaod_xsec[26] = 34.91;			// "SingleToptW"	   
-  nanoaod_xsec[27] = 52850.0;			// "Wlnu"		   
-  nanoaod_xsec[28] = 12.178;			// "WW"		     	   
-  nanoaod_xsec[29] = 27.6;			// "WZ"		     	   
-  nanoaod_xsec[30] = 2075.14/0.0337*7.3e-7;	// "Signal"
-  
   TStopwatch* timer = new TStopwatch();
 
-  Int_t useNanoAods  = 0; // 1 = use, 0 = don't use, -1 = only use
+  Int_t useNanoAods  = -1; // 1 = use, 0 = don't use, -1 = only use
   Int_t useTauFakeSF = 1; //1 = use given scale factors, 2 = override them with local ones
   bool writeTrees = true;
-  TString onlyChannel = "emu";
+  TString onlyChannel = "";
   vector<TString> skipChannels = {"mumu", "ee", "all", "jets", "llg_study"};
 
   bool reProcessMVAs = false;
@@ -337,16 +284,15 @@ Int_t process_ztautau() {
     if(useNanoAods == 0 && dataform != 0) break;
     Int_t category = 0;
     bool isnano = (dataform == 1);
-    unsigned nfiles = (!isnano) ? sizeof(files)/sizeof(*files) :
-      sizeof(nanoaods)/sizeof(*nanoaods);
+    unsigned nfiles = (!isnano) ? sizeof(files)/sizeof(*files) : nanocards.size();
     for(unsigned i = 0; i < nfiles; ++i) {
       ++category; // could have just used i + 1?
       cout << "Loop " << i << ", category " << category
-	   << ", file " << ((!isnano) ? files[i] : nanoaods[i])
-	   << ", xsec " << ((!isnano) ? xsec[i] : nanoaod_xsec[i])
-	   << ", doProcess " << ((!isnano) ? doProcess[i] : nanoaod_process[i]) << endl;
-      if((isnano && !nanoaod_process[i]) || (!isnano && !doProcess[i])) continue;
-      const char* c = (!isnano) ? files[i] : nanoaods[i];
+	   << ", file " << ((!isnano) ? files[i] : nanocards[i].fname_.Data())
+	   << ", xsec " << ((!isnano) ? xsec[i] : nanocards[i].xsec_)
+	   << ", doProcess " << ((!isnano) ? doProcess[i] : nanocards[i].process_) << endl;
+      if((isnano && !nanocards[i].process_) || (!isnano && !doProcess[i])) continue;
+      const char* c = (!isnano) ? files[i] : nanocards[i].fname_.Data();
       TString filepath = (!isnano) ? gridPath + c : nanoaod_path + c;
       TFile* f = TFile::Open((filepath).Data(),"READ");
       if(f == 0) {
@@ -366,7 +312,7 @@ Int_t process_ztautau() {
     //for avoiding double counting data events
       bool isElectronData = cString.Contains("output_electron_") || cString.Contains("SingleEle");
       bool isMuonData = cString.Contains("output_muon_") || cString.Contains("SingleMu");
-    
+
       //get events histograms first
       while((key = (TKey*)nextkey())) {
 	TObject* obj = key->ReadObj();
@@ -376,7 +322,7 @@ Int_t process_ztautau() {
 	printf("Events Histogram in %s not found, continuing\n",(gridPath+c).Data());
 	continue;
       }
-    
+
 
       TIter nextkeyT(f->GetListOfKeys());
       nextkeyT.Reset();
@@ -414,7 +360,7 @@ Int_t process_ztautau() {
       TIter nextkey2(fChannel->GetListOfKeys());
       //get events tree and events counting histogram
       while((key2 = (TKey*)nextkey2())) {
-	TObject* obj2 = key2->ReadObj(); 
+	TObject* obj2 = key2->ReadObj();
 	if(obj2->IsA()->InheritsFrom(TH1::Class())) eventsChannel = (TH1F*)obj2;
 	if(obj2->IsA()->InheritsFrom(TTree::Class())) {
 	  auto tmptree = (TTree*)obj2;
@@ -439,22 +385,24 @@ Int_t process_ztautau() {
 	selec->fFolderName = fChannel->GetName();
 	if(isDY) selec->fDYType = loop; //if Drell-Yan, tell the selector which loop we're on
 	//skip electron data events with both triggers for e+mu channel, to not double count
-	selec->fIsData = 2*isMuonData + isElectronData; 
+	selec->fIsData = 2*isMuonData + isElectronData;
 	selec->fSkipDoubleTrigger = (isElectronData && (selec->fFolderName == "emu" || selec->fFolderName == "llg_study"));	
 	//store a label for this dataset
 	selec->fEventCategory = category;
 	selec->fWriteTrees = selec->fIsData == 0 && writeTrees; //don't write trees for data
 	selec->fUseTauFakeSF = useTauFakeSF; //whether or not to use fake tau weights from analyzer/locally re-defined
-	selec->fXsec = xsec[i]/(events->GetBinContent(1) - 2.*events->GetBinContent(10)); //for writing trees with correct normalization
+	selec->fXsec = (isnano) ? nanocards[i].xsec_ : xsec[i];
+	selec->fXsec /= (events->GetBinContent(1) - 2.*events->GetBinContent(10)); //for writing trees with correct normalization
 	selec->fRemoveZPtWeights = removeZPtWeights; //whether or not to re-weight Z pT
 	selec->fFractionMVA = (isSignal) ? signalTrainFraction : backgroundTrainFraction; //fraction of events to use for MVA training
 	if(isMuonData || isElectronData) selec->fFractionMVA = 0.; //don't split off data for training
 	selec->fReprocessMVAs = reProcessMVAs; //whether to evaluate the MVAs or use defined ones from the trees
-	
+	selec->fIsNano = isnano;
+
 	tree->Process(selec,""); //run the selector over the tree
-	
+
 	//open back up the file
-	TFile* out = new TFile(Form("ztautau_%s%s_%s.hist",fChannel->GetName(), 
+	TFile* out = new TFile(Form("ztautau_%s%s_%s.hist",fChannel->GetName(),
 				    (isDY) ? Form("_%i",loop) : "", tree->GetName()),"UPDATE");
 	if(out == 0) {
 	  printf("Unable to find output hist file ztautau_%s%s_%s.hist, continuing\n",fChannel->GetName(),
