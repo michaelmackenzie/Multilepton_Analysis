@@ -60,7 +60,6 @@ void NanoAODConversion::Begin(TTree * /*tree*/)
   fCountMuons     [kEMu]   = true;
   fMuonIsoCount   [kEMu]   = 0;
   fMuonIDCount    [kEMu]   = 1;
-  fCountMuons     [kEMu]   = false;
   fCountElectrons [kEMu]   = true;
   fElectronIDCount[kEMu]   = 1;
   fCountTaus      [kEMu]   = false;
@@ -68,19 +67,34 @@ void NanoAODConversion::Begin(TTree * /*tree*/)
   fCountMuons     [kMuMu]  = true;
   fMuonIsoCount   [kMuMu]  = 0;
   fMuonIDCount    [kMuMu]  = 1;
-  fCountMuons     [kMuMu]  = false;
-  fCountElectrons [kMuMu]  = true;
-  fElectronIDCount[kMuMu]  = 1;
+  fCountElectrons [kMuMu]  = false;
   fCountTaus      [kMuMu]  = false;
   //ee
-  fCountMuons     [kEE]    = true;
-  fMuonIsoCount   [kEE]    = 0;
-  fMuonIDCount    [kEE]    = 1;
   fCountMuons     [kEE]    = false;
   fCountElectrons [kEE]    = true;
   fElectronIDCount[kEE]    = 1;
   fCountTaus      [kEE]    = false;
-  
+
+  //initialize selection parameters
+  //initialize object counting parameters for each selection
+  //mutau
+  fMuonIsoSelect   [kMuTau] = 4;
+  fMuonIDSelect    [kMuTau] = 3;
+  fTauAntiEleSelect[kMuTau] = 8;
+  fTauAntiMuSelect [kMuTau] = 2;
+  //etau
+  fElectronIDSelect[kETau]  = 2;
+  fTauAntiEleSelect[kETau]  = 8;
+  fTauAntiMuSelect [kETau]  = 2;
+  //emu
+  fMuonIsoSelect   [kEMu]   = 4;
+  fMuonIDSelect    [kEMu]   = 3;
+  fElectronIDSelect[kEMu]   = 2;
+  //mumu
+  fMuonIsoSelect   [kMuMu]  = 4;
+  fMuonIDSelect    [kMuMu]  = 3;
+  //ee
+  fElectronIDSelect[kEE]    = 2;
 }
 
 void NanoAODConversion::SlaveBegin(TTree * /*tree*/)
@@ -569,6 +583,51 @@ void NanoAODConversion::CountObjects() {
 			     << " nBJets = " << nBJets << endl;
 }
 
+//check that the selected leptons pass their IDs
+bool NanoAODConversion::SelectionID(Int_t selection) {
+  bool passed = true;
+  //check muon
+  if(selection == kMuTau || selection == kMuMu || selection == kEMu) {
+    passed &= muonIsoId[fMuonIndices[selection][0]] > fMuonIsoSelect[selection];
+    passed &=  fMuonIDSelect[selection] == 0 ||
+	      (fMuonIDSelect[selection] == 1 && muonLooseId [fMuonIndices[selection][0]]) ||
+	      (fMuonIDSelect[selection] == 2 && muonMediumId[fMuonIndices[selection][0]]) ||
+	      (fMuonIDSelect[selection] == 3 && muonTightId [fMuonIndices[selection][0]]);
+  }
+  if(selection == kMuMu) {
+    passed &= muonIsoId[fMuonIndices[selection][1]] > fMuonIsoSelect[selection];
+    passed &=  fMuonIDSelect[selection] == 0 ||
+	      (fMuonIDSelect[selection] == 1 && muonLooseId [fMuonIndices[selection][1]]) ||
+	      (fMuonIDSelect[selection] == 2 && muonMediumId[fMuonIndices[selection][1]]) ||
+	      (fMuonIDSelect[selection] == 3 && muonTightId [fMuonIndices[selection][1]]);
+  }
+  if(!passed) return false;
+  //check electron
+  if(selection == kETau || selection == kEMu || selection == kEE) {
+    passed &= fElectronIDSelect[selection] == 0 ||
+             (fElectronIDSelect[selection] == 1 && electronWPL [fElectronIndices[selection][0]]) ||
+             (fElectronIDSelect[selection] == 2 && electronWP80[fElectronIndices[selection][0]]) ||
+             (fElectronIDSelect[selection] == 3 && electronWP90[fElectronIndices[selection][0]]);
+
+  }
+  if(selection == kEE) {
+    passed &= fElectronIDSelect[selection] == 0 ||
+             (fElectronIDSelect[selection] == 1 && electronWPL [fElectronIndices[selection][1]]) ||
+             (fElectronIDSelect[selection] == 2 && electronWP80[fElectronIndices[selection][1]]) ||
+             (fElectronIDSelect[selection] == 3 && electronWP90[fElectronIndices[selection][1]]);
+
+  }
+  if(!passed) return false;
+  //check tau
+  if(selection == kMuTau || selection == kETau) {
+    passed &= tauAntiEle[fTauIndices[selection][0]] >= fTauAntiEleSelect[selection] &&
+      tauAntiMu[fTauIndices[selection][0]] >= fTauAntiMuSelect[selection] &&
+      (!fTauIDDecaySelect[selection] || tauIDDecayMode[fTauIndices[selection][0]]);
+
+  }
+  return passed;
+}
+
 float NanoAODConversion::GetTauFakeSF(int genFlavor) {
   float weight = 1.;
   switch(abs(genFlavor)) {
@@ -631,34 +690,36 @@ Bool_t NanoAODConversion::Process(Long64_t entry)
   if(entry%50000 == 0) printf("Processing event: %12lld (%5.1f%%)\n", entry, entry*100./fChain->GetEntriesFast());
   CountObjects();
   //selections (all exclusive)
-  bool mutau = fNTaus[kMuTau] == 1 && fNMuons[kMuTau] == 1 && fNElectrons[kMuTau] == 0;
-  bool etau  = fNTaus[kETau]  == 1 && fNMuons[kETau]  == 0 && fNElectrons[kETau]  == 1;
-  bool emu   = fNTaus[kEMu]   == 0 && fNMuons[kEMu]   == 1 && fNElectrons[kEMu]   == 1;
-  bool mumu  = fNTaus[kMuMu]  == 0 && fNMuons[kMuMu]  == 2 && fNElectrons[kMuMu]  == 0;
-  bool ee    = fNTaus[kEE]    == 0 && fNMuons[kEE]    == 0 && fNElectrons[kEE]    == 2;
+  bool mutau = fNTaus[kMuTau] == 1 && fNMuons[kMuTau] == 1 && fNElectrons[kMuTau] == 0 && SelectionID(kMuTau);
+  bool etau  = fNTaus[kETau]  == 1 && fNMuons[kETau]  == 0 && fNElectrons[kETau]  == 1 && SelectionID(kETau);
+  bool emu   = fNTaus[kEMu]   == 0 && fNMuons[kEMu]   == 1 && fNElectrons[kEMu]   == 1 && SelectionID(kEMu);
+  bool mumu  = fNTaus[kMuMu]  == 0 && fNMuons[kMuMu]  == 2 && fNElectrons[kMuMu]  == 0 && SelectionID(kMuMu);
+  bool ee    = fNTaus[kEE]    == 0 && fNMuons[kEE]    == 0 && fNElectrons[kEE]    == 2 && SelectionID(kEE);
+
+  //must pass at least one selection
   if(!mumu && !emu && !etau && !mutau && !ee) {
     if(fVerbose > 0) std::cout << "Warning! Event " << entry << " passes no selection!" << std::endl;
     return kTRUE;
   }
-  if(ee+mumu+emu+etau+mutau > 1) {
-    std::cout  << "Warning! Event " << entry << " passes multiple selection!" << std::endl
-	       << "mutau = " << mutau << " etau = " << etau << " emu = " << emu
-	       << " mumu = " << mumu << " ee = " << ee
-	       << endl << "Skipping this event!\n";
-    return kTRUE;
-  }
+
+  
   //increment selection counts
   if(emu)        ++fNEMu;
-  else if(etau)  ++fNETau;
-  else if(mutau) ++fNMuTau;
-  else if(mumu)  ++fNMuMu;
-  else if(ee)    ++fNEE;
+  if(etau)  ++fNETau;
+  if(mutau) ++fNMuTau;
+  if(mumu)  ++fNMuMu;
+  if(ee)    ++fNEE;
 
-  int selection = mutau*kMuTau + etau*kETau + emu*kEMu + mumu*kMuMu + ee*kEE;
-  InitializeTreeVariables(selection);
-    
-  fDirs[selection]->cd();  
-  fOutTrees[selection]->Fill();
+  //loop through selections, in case an event passes multiple
+  for(int selection = kMuTau; selection < kSelections; ++selection) {
+    //check if it passes the selection
+    if(!((selection == kMuTau && mutau) || (selection == kETau && etau) ||
+	 (selection == kEMu && emu) || (selection == kMuMu && mumu) || (selection == kEE && ee)))
+      continue;
+    InitializeTreeVariables(selection);    
+    fDirs[selection]->cd();  
+    fOutTrees[selection]->Fill();
+  }
   return kTRUE;
 }
 

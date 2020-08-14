@@ -301,6 +301,7 @@ public :
   virtual void    InitializeInBranchStructure(TTree* tree);
   virtual void    InitializeTreeVariables(Int_t selection);
   virtual void    CountObjects();
+  virtual bool    SelectionID(Int_t selection);
   virtual float   GetTauFakeSF(int genFlavor);
   virtual float   CorrectMET(int selection, float met);
   virtual float   GetZPtWeight(float pt);
@@ -331,8 +332,15 @@ public :
 
   Int_t         fVerbose = 0;
   
+  //selection requirements
+  std::map<Int_t, UChar_t> fMuonIsoSelect;
+  std::map<Int_t, Int_t>   fMuonIDSelect; //0 = any, 1 = loose, 2 = medium, 3 = tight
+  std::map<Int_t, Int_t>   fElectronIDSelect; //0 = any, 1 = WPL, 2 = WP80, 3 = WP90
+  std::map<Int_t, UChar_t> fTauAntiEleSelect;
+  std::map<Int_t, UChar_t> fTauAntiMuSelect;
+  std::map<Int_t, Bool_t>  fTauIDDecaySelect;
+
   //for counting objects
-  Bool_t        fDoCountingSelection = true; //if false just use size of arrays
   Float_t       fMuonPtCount = 0.;
   Float_t       fElectronPtCount = 0.;
   Float_t       fTauPtCount = 0.;
