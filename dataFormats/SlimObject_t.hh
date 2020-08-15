@@ -18,8 +18,8 @@ public:
   SlimObjects_t(UInt_t size) {size_=size;}
   SlimObject_t& operator[](UInt_t index) {return slimObjects[index];}
   UInt_t size_;
-  const static UInt_t MAXSIZE = 20;
+  const static UInt_t MAXSIZE = 30;
   SlimObject_t slimObjects[MAXSIZE];
-  ClassDef(SlimObjects_t, 1)
+  ClassDef(SlimObjects_t, 2)
 };
 #endif

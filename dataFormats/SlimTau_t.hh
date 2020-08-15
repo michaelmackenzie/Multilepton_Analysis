@@ -21,8 +21,8 @@ public:
   SlimTaus_t(UInt_t size) {size_=size;}
   SlimTau_t& operator[](UInt_t index) {return slimTaus[index];}
   UInt_t size_;
-  const static UInt_t MAXSIZE = 20;
+  const static UInt_t MAXSIZE = 30;
   SlimTau_t slimTaus[MAXSIZE];
-  ClassDef(SlimTaus_t, 1)
+  ClassDef(SlimTaus_t, 2)
 };
 #endif

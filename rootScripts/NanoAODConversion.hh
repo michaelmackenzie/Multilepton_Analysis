@@ -7,6 +7,7 @@
 #include "../dataFormats/SlimMuon_t.hh"
 #include "../dataFormats/SlimTau_t.hh"
 #include "../dataFormats/SlimJet_t.hh"
+#include "../dataFormats/SlimPhoton_t.hh"
 
 #include <TROOT.h>
 #include <TChain.h>
@@ -38,7 +39,7 @@ public :
   TTreeReader     fReader;  //!the tree reader
   TTree          *fChain = 0;   //!pointer to the analyzed TTree or TChain
 
-  enum {kMaxParticles = 20};
+  enum {kMaxParticles = 30};
   enum {kMuTau, kETau, kEMu, kMuMu, kEE, kSelections}; //selections
   
   // Output data format
@@ -92,7 +93,9 @@ public :
   SlimElectrons_t slimElectrons      ;
   UInt_t nTaus = 0                   ;
   SlimTaus_t slimTaus                ;
+  SlimJets_t slimJets                ;
   UInt_t nPhotons = 0                ;
+  SlimPhotons_t slimPhotons          ;
   UInt_t nJets     = 0               ;
   UInt_t nJets25   = 0               ;
   UInt_t nJets20   = 0               ;
@@ -214,6 +217,9 @@ public :
   Float_t photonEta[kMaxParticles]          ;
   Float_t photonPhi[kMaxParticles]          ;
   Float_t photonMass[kMaxParticles]         ;
+  Float_t photonDeltaEta[kMaxParticles]     ;
+  Float_t photonMVAID[kMaxParticles]        ;
+  Float_t photonMVAID17[kMaxParticles]      ;
   bool    HLT_IsoMu24                       ;
   bool    HLT_IsoMu27                       ;
   bool    HLT_Mu50                          ;
@@ -300,6 +306,7 @@ public :
   virtual void    InitializeOutBranchStructure(TTree* tree);
   virtual void    InitializeInBranchStructure(TTree* tree);
   virtual void    InitializeTreeVariables(Int_t selection);
+  virtual void    CountJets();
   virtual void    CountObjects();
   virtual bool    SelectionID(Int_t selection);
   virtual float   GetTauFakeSF(int genFlavor);

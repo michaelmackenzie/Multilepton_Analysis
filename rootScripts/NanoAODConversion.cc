@@ -159,6 +159,9 @@ void NanoAODConversion::InitializeInBranchStructure(TTree* tree) {
   tree->SetBranchAddress("Photon_eta"                      , &photonEta                      ) ;
   tree->SetBranchAddress("Photon_phi"                      , &photonPhi                      ) ;
   tree->SetBranchAddress("Photon_mass"                     , &photonMass                     ) ;
+  tree->SetBranchAddress("Photon_mvaID"                    , &photonMVAID                    ) ;
+  tree->SetBranchAddress("Photon_mvaID17"                  , &photonMVAID17                  ) ;
+  // tree->SetBranchAddress("Photon_deltaEta"                 , &photonDeltaEta                 ) ;
   tree->SetBranchAddress("HLT_IsoMu24"                     , &HLT_IsoMu24                    ) ;
   tree->SetBranchAddress("HLT_IsoMu27"                     , &HLT_IsoMu27                    ) ;
   tree->SetBranchAddress("HLT_Mu50"                        , &HLT_Mu50                       ) ;
@@ -233,6 +236,10 @@ void NanoAODConversion::InitializeOutBranchStructure(TTree* tree) {
   tree->Branch("nTausNano"                     , &nTau                 );
   tree->Branch("slimTaus"                      , &slimTaus);
   tree->Branch("nPhotons"                      , &nPhotons             );
+  tree->Branch("nPhotonsNano"                  , &nPhotons             );
+  tree->Branch("slimPhotons"                   , &slimPhotons          );
+  tree->Branch("nJetsNano"                     , &nJet                 );
+  tree->Branch("slimJets"                      , &slimJets             );
   tree->Branch("nJets"                         , &nJets                );
   tree->Branch("nJets25"                       , &nJets25              );
   tree->Branch("nJets20"                       , &nJets20              );
@@ -381,6 +388,7 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
     if(!fIsData) lepTwoWeight = particleCorrections->ElectronWeight(electronPt[fElectronIndices[selection][1]],
 								    electronEta[fElectronIndices[selection][1]], fYear);
   }
+  CountJets();
   if(!(selection == kMuTau || selection == kETau) && nTaus > 0) {
     tauP4->SetPtEtaPhiM(tauPt[fTauIndices[selection][0]], tauEta[fTauIndices[selection][0]], tauPhi[fTauIndices[selection][0]], tauMass[fTauIndices[selection][0]]);
     taudxyOut = taudxy[fTauIndices[selection][0]];
@@ -404,6 +412,81 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
     
   //save npv as ngoodpv for now
   nPV = nGoodPV;
+}
+
+//count jets separately, due to delta R cut from selection leptons
+void NanoAODConversion::CountJets() {
+  //Jet loop
+  unsigned njets = nJet;
+  //reset counters
+  nJets = 0; nJets25 = 0; nJets20 = 0; //BLT nominally uses jet pt > 30, so save 20-25 and 25-30 separately
+  nBJets = 0; nBJetsL = 0; nBJetsM = 0;
+  nBJets25 = 0; nBJets25L = 0; nBJets25M = 0;
+  nBJets20 = 0; nBJets20L = 0; nBJets20M = 0;
+  nBJetsDeepM = 0;
+  
+  jetP4->SetPtEtaPhiM(0., 0., 0., 0.);
+  float jetptmax = -1.;
+  int jetIDFlag = 7; //2016 values
+  int jetPUIDFlag = 6;
+  if(fYear == ParticleCorrections::k2017) {
+    jetIDFlag = 4; jetPUIDFlag = 6;
+  } else if(fYear == ParticleCorrections::k2018) {
+    jetIDFlag = 4; jetPUIDFlag = 6;
+  }
+
+  TLorentzVector* jetLoop = new TLorentzVector(); //for checking delta R
+  for(int index = 0; index < min((int)njets,(int)kMaxParticles); ++index) {
+    slimJets[index].pt       = jetPt[index];
+    slimJets[index].eta      = jetEta[index];
+    slimJets[index].phi      = jetPhi[index];
+    slimJets[index].mass     = jetMass[index];
+    slimJets[index].ID       = jetID[index];
+    slimJets[index].puID     = jetPUID[index];
+    slimJets[index].bTagCMVA = jetBTagCMVA[index];
+    slimJets[index].bTagDeep = jetBTagDeepB[index];
+    
+    float jetpt = jetPt[index];
+    if(jetpt < 20.) continue; //too low of jet pt
+    if((jetpt < 50. && jetPUID[index] < jetPUIDFlag) || jetID[index] < jetIDFlag) //bad jet
+      continue;
+    //check that the jet doesn't overlap the leptons
+    jetLoop->SetPtEtaPhiM(jetPt[index], jetEta[index], jetPhi[index], jetMass[index]);
+    if(jetLoop->DeltaR(*leptonOneP4) < 0.3 || jetLoop->DeltaR(*leptonTwoP4) < 0.3)
+      continue;
+    //store the hardest jet
+    if(jetptmax < jetpt) {
+      jetptmax = jetpt;
+      jetP4->SetPtEtaPhiM(jetPt[index], jetEta[index], jetPhi[index], jetMass[index]);
+    }
+    if(jetpt > 30.) ++nJets;
+    else if(jetpt > 25) ++nJets25;
+    else if(jetpt > 20) ++nJets20;
+
+    //Deep neural net based ID
+    if(jetpt > 25. && jetBTagDeepB[index] > 0.4184) //only store medium ID for now
+      ++nBJetsDeepM;
+    
+    //MVA based ID
+    if(jetBTagCMVA[index] > -0.5884) {
+      if(jetpt > 30.) ++nBJetsL;
+      else if(jetpt > 25.) ++nBJets25L;
+      else if(jetpt > 20.) ++nBJets20L;
+      if(jetBTagCMVA[index] > 0.4432) {
+	if(jetpt > 30.) ++nBJetsM;
+	else if(jetpt > 25.) ++nBJets25M;
+	else if(jetpt > 20.) ++nBJets20M;
+	if(jetBTagCMVA[index] > 0.8484) {
+	  if(jetpt > 30.) ++nBJets;
+	  else if(jetpt > 25.) ++nBJets25;
+	  else if(jetpt > 20.) ++nBJets20;
+	}
+      }
+    }
+  }
+  delete jetLoop;
+  if(fVerbose > 0) std::cout << " nJets = " << nJets
+			     << " nBJets = " << nBJets << endl;
 }
 
 //count and create maps for reconstructed objects
@@ -514,73 +597,20 @@ void NanoAODConversion::CountObjects() {
     slimTaus[index].antiEle2018= tauAntiEle2018[index];
     slimTaus[index].antiMu     = tauAntiMu[index];
     slimTaus[index].positive   = tauCharge[index] > 0;
-
   }
-  //Jet loop
-  unsigned njets = nJet;
-  //reset counters
-  nJets = 0; nJets25 = 0; nJets20 = 0; //BLT nominally uses jet pt > 30, so save 20-25 and 25-30 separately
-  nBJets = 0; nBJetsL = 0; nBJetsM = 0;
-  nBJets25 = 0; nBJets25L = 0; nBJets25M = 0;
-  nBJets20 = 0; nBJets20L = 0; nBJets20M = 0;
-  nBJetsDeepM = 0;
-  
-  jetP4->SetPtEtaPhiM(0., 0., 0., 0.);
-  float jetptmax = -1.;
-  int jetIDFlag = 7; //2016 values
-  int jetPUIDFlag = 6;
-  if(fYear == ParticleCorrections::k2017) {
-    jetIDFlag = 4; jetPUIDFlag = 6;
-  } else if(fYear == ParticleCorrections::k2018) {
-    jetIDFlag = 4; jetPUIDFlag = 6;
+  //count photons
+  for(Int_t index = 0; index < min((int)kMaxParticles,(int)nPhotons); ++index) {
+    slimPhotons[index].pt    = photonPt[index];
+    slimPhotons[index].eta   = photonEta[index];
+    slimPhotons[index].phi   = photonPhi[index];
+    slimPhotons[index].mass  = photonMass[index];
+    slimPhotons[index].MVA   = photonMVAID[index];
+    slimPhotons[index].MVA17 = photonMVAID17[index];
   }
-
-  TLorentzVector* jetLoop = new TLorentzVector(); //for checking delta R
-  for(unsigned index = 0; index < njets; ++index) {
-    float jetpt = jetPt[index];
-    if(jetpt < 20.) continue; //too low of jet pt
-    if((jetpt < 50. && jetPUID[index] < jetPUIDFlag) || jetID[index] < jetIDFlag) //bad jet
-      continue;
-    //check that the jet doesn't overlap the leptons
-    jetLoop->SetPtEtaPhiM(jetPt[index], jetEta[index], jetPhi[index], jetMass[index]);
-    if(jetLoop->DeltaR(*leptonOneP4) < 0.3 || jetLoop->DeltaR(*leptonTwoP4) < 0.3)
-      continue;
-    //store the hardest jet
-    if(jetptmax < jetpt) {
-      jetptmax = jetpt;
-      jetP4->SetPtEtaPhiM(jetPt[index], jetEta[index], jetPhi[index], jetMass[index]);
-    }
-    if(jetpt > 30.) ++nJets;
-    else if(jetpt > 25) ++nJets25;
-    else if(jetpt > 20) ++nJets20;
-
-    //Deep neural net based ID
-    if(jetpt > 25. && jetBTagDeepB[index] > 0.4184) //only store medium ID for now
-      ++nBJetsDeepM;
-    
-    //MVA based ID
-    if(jetBTagCMVA[index] > -0.5884) {
-      if(jetpt > 30.) ++nBJetsL;
-      else if(jetpt > 25.) ++nBJets25L;
-      else if(jetpt > 20.) ++nBJets20L;
-      if(jetBTagCMVA[index] > 0.4432) {
-	if(jetpt > 30.) ++nBJetsM;
-	else if(jetpt > 25.) ++nBJets25M;
-	else if(jetpt > 20.) ++nBJets20M;
-	if(jetBTagCMVA[index] > 0.8484) {
-	  if(jetpt > 30.) ++nBJets;
-	  else if(jetpt > 25.) ++nBJets25;
-	  else if(jetpt > 20.) ++nBJets20;
-	}
-      }
-    }
-  }
-  delete jetLoop;
   if(fVerbose > 0) std::cout << "nElectrons = " << nElectrons
 			     << " nMuons = " << nMuons
 			     << " nTaus = " << nTaus
-			     << " nJets = " << nJets
-			     << " nBJets = " << nBJets << endl;
+			     << " nPhotons = "  << nPhotons;
 }
 
 //check that the selected leptons pass their IDs

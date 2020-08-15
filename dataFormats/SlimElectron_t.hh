@@ -18,8 +18,8 @@ public:
   SlimElectrons_t(UInt_t size) {size_=size;}
   SlimElectron_t& operator[](UInt_t index) {return slimElectrons[index];}
   UInt_t size_;
-  const static UInt_t MAXSIZE = 20;
+  const static UInt_t MAXSIZE = 30;
   SlimElectron_t slimElectrons[MAXSIZE];
-  ClassDef(SlimElectrons_t, 1)
+  ClassDef(SlimElectrons_t, 2)
 };
 #endif
