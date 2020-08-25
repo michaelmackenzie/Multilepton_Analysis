@@ -87,6 +87,9 @@ public :
   Int_t tauFlavor                    ;
   Float_t taudxyOut = 0.             ;
   Float_t taudzOut = 0.              ;
+  UChar_t tauDeepAntiEle             ;
+  UChar_t tauDeepAntiMu              ;
+  UChar_t tauDeepAntiJet             ;
   UInt_t nMuons = 0                  ;
   SlimMuons_t slimMuons              ;
   UInt_t nElectrons = 0              ;
@@ -205,6 +208,9 @@ public :
   UChar_t tauAntiMu[kMaxParticles]          ;
   Int_t   tauDecayMode[kMaxParticles]       ;
   Bool_t  tauIDDecayMode[kMaxParticles]     ;
+  UChar_t tauDeep2017VsE[kMaxParticles]     ;
+  UChar_t tauDeep2017VsMu[kMaxParticles]    ;
+  UChar_t tauDeep2017VsJet[kMaxParticles]   ;
   Float_t jetPt[kMaxParticles]              ;
   Float_t jetEta[kMaxParticles]             ;
   Float_t jetPhi[kMaxParticles]             ;
@@ -338,6 +344,8 @@ public :
   Int_t         fRemoveZPtWeights = 0; // 0 use given weights, 1 remove z pT weight, 2 remove and re-evaluate weights locally
 
   Int_t         fVerbose = 0;
+
+  Int_t         fSkipMuMuEE = 1; // whether to skip ee/mumu selections for now
   
   //selection requirements
   std::map<Int_t, UChar_t> fMuonIsoSelect;
