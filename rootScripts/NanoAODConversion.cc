@@ -39,16 +39,22 @@ void NanoAODConversion::Begin(TTree * /*tree*/)
   particleCorrections = new ParticleCorrections(fMuonIso);
   fChain = 0;
   //initialize selection parameters
+  fTauUseDeep[kMuTau] = true;
+  fTauUseDeep[kETau]  = true;
   //initialize object counting parameters for each selection
   //mutau
   fMuonIsoSelect   [kMuTau] = 4;
   fMuonIDSelect    [kMuTau] = 3;
   fTauAntiEleSelect[kMuTau] = 8;
   fTauAntiMuSelect [kMuTau] = 2;
+  fTauAntiJetSelect[kMuTau] = 8;
+  fTauIDDecaySelect[kMuTau] = true;
   //etau
   fElectronIDSelect[kETau]  = 2;
   fTauAntiEleSelect[kETau]  = 8;
   fTauAntiMuSelect [kETau]  = 2;
+  fTauAntiJetSelect[kETau]  = 8;
+  fTauIDDecaySelect[kETau]  = true;
   //emu
   fMuonIsoSelect   [kEMu]   = 4;
   fMuonIDSelect    [kEMu]   = 3;
@@ -66,17 +72,21 @@ void NanoAODConversion::Begin(TTree * /*tree*/)
   fMuonIDCount    [kMuTau] = 1;
   fCountElectrons [kMuTau] = false;
   fCountTaus      [kMuTau] = true;
-  fTauAntiEleCount[kMuTau] = 1;
-  fTauAntiMuCount [kMuTau] = 1;
+  fTauAntiEleCount[kMuTau] = 2;
+  fTauAntiMuCount [kMuTau] = 2;
+  fTauAntiJetCount[kMuTau] = 4;
   fTauDeltaRCount [kMuTau] = 0.3;
+  fTauIDDecayCount[kMuTau] = false;
   //etau
   fCountMuons     [kETau]  = false;
   fCountElectrons [kETau]  = true;
   fElectronIDCount[kETau]  = 1;
   fCountTaus      [kETau]  = true;
-  fTauAntiEleCount[kETau]  = 0;
-  fTauAntiMuCount [kETau]  = 1;
+  fTauAntiEleCount[kETau]  = 2;
+  fTauAntiMuCount [kETau]  = 2;
+  fTauAntiJetCount[kETau]  = 4;
   fTauDeltaRCount [kETau]  = 0.3;
+  fTauIDDecayCount[kETau]  = false;
   //emu
   fCountMuons     [kEMu]   = true;
   fMuonIsoCount   [kEMu]   = 0;
@@ -146,6 +156,7 @@ void NanoAODConversion::InitializeInBranchStructure(TTree* tree) {
   tree->SetBranchAddress("Tau_idAntiMu"                    , &tauAntiMu                      ) ;
   tree->SetBranchAddress("Tau_decayMode"                   , &tauDecayMode                   ) ;
   tree->SetBranchAddress("Tau_idDecayMode"                 , &tauIDDecayMode                 ) ;
+  tree->SetBranchAddress("Tau_idDecayModeNewDMs"           , &tauIDDecayModeNew              ) ;
   tree->SetBranchAddress("Tau_idDeepTau2017v2p1VSe"        , &tauDeep2017VsE                 ) ;
   tree->SetBranchAddress("Tau_idDeepTau2017v2p1VSmu"       , &tauDeep2017VsMu                ) ;
   tree->SetBranchAddress("Tau_idDeepTau2017v2p1VSjet"      , &tauDeep2017VsJet               ) ;
@@ -583,10 +594,16 @@ void NanoAODConversion::CountObjects() {
       }
       if(useDeltaR) lv2.SetPtEtaPhiM(tauPt[index], tauEta[index], tauPhi[index], tauMass[index]);
       if(fCountTaus[selection] &&
-	 tauAntiEle[index] >= fTauAntiEleCount[selection] &&
-	 tauAntiMu[index] >= fTauAntiMuCount[selection] &&
-	 (!fTauIDDecayCount[selection] || tauIDDecayMode[index]) &&
-	 (!useDeltaR || lv2.DeltaR(lv1) > fTauDeltaRCount[selection]) &&
+	 ((!fTauUseDeep[selection] &&
+	   tauAntiEle[index] >= fTauAntiEleCount[selection] && //MVA based IDs
+	   tauAntiMu[index] >= fTauAntiMuCount[selection] &&
+	   (!fTauIDDecayCount[selection] || tauIDDecayMode[index])) ||
+	  (fTauUseDeep[selection] &&
+	   tauDeep2017VsE[index] >= fTauAntiEleCount[selection] && //Deep NN based IDs
+	   tauDeep2017VsMu [index] >= fTauAntiMuCount [selection] &&
+	   tauDeep2017VsJet[index] >= fTauAntiJetCount[selection] &&
+	   (!fTauIDDecayCount[selection] || tauIDDecayModeNew[index]))) &&
+	 (!useDeltaR || fabs(lv2.DeltaR(lv1)) > fTauDeltaRCount[selection]) &&
 	 tauPt[index] > fTauPtCount) {
 	fTauIndices[selection][fNTaus[selection]] = index;
 	++fNTaus[selection];
@@ -598,19 +615,20 @@ void NanoAODConversion::CountObjects() {
       }
     } //end selection loop
     //store basic information for all taus
-    slimTaus[index].pt          = tauPt[index];
-    slimTaus[index].eta         = tauEta[index];
-    slimTaus[index].phi         = tauPhi[index];
-    slimTaus[index].mass        = tauMass[index];
-    slimTaus[index].decayMode   = tauDecayMode[index];
-    slimTaus[index].idDecayMode = tauIDDecayMode[index];
-    slimTaus[index].antiEle     = tauAntiEle[index];
-    slimTaus[index].antiEle2018 = tauAntiEle2018[index];
-    slimTaus[index].antiMu      = tauAntiMu[index];
-    slimTaus[index].deepAntiEle = tauDeep2017VsE[index];
-    slimTaus[index].deepAntiMu  = tauDeep2017VsMu[index];
-    slimTaus[index].deepAntiJet = tauDeep2017VsJet[index];
-    slimTaus[index].positive    = tauCharge[index] > 0;
+    slimTaus[index].pt             = tauPt[index];
+    slimTaus[index].eta            = tauEta[index];
+    slimTaus[index].phi            = tauPhi[index];
+    slimTaus[index].mass           = tauMass[index];
+    slimTaus[index].decayMode      = tauDecayMode[index];
+    slimTaus[index].idDecayMode    = tauIDDecayMode[index];
+    slimTaus[index].idDecayModeNew = tauIDDecayModeNew[index];
+    slimTaus[index].antiEle        = tauAntiEle[index];
+    slimTaus[index].antiEle2018    = tauAntiEle2018[index];
+    slimTaus[index].antiMu         = tauAntiMu[index];
+    slimTaus[index].deepAntiEle    = tauDeep2017VsE[index];
+    slimTaus[index].deepAntiMu     = tauDeep2017VsMu[index];
+    slimTaus[index].deepAntiJet    = tauDeep2017VsJet[index];
+    slimTaus[index].positive       = tauCharge[index] > 0;
   }
   //count photons
   for(Int_t index = 0; index < min((int)kMaxParticles,(int)nPhotons); ++index) {
@@ -664,9 +682,15 @@ bool NanoAODConversion::SelectionID(Int_t selection) {
   if(!passed) return false;
   //check tau
   if(selection == kMuTau || selection == kETau) {
-    passed &= tauAntiEle[fTauIndices[selection][0]] >= fTauAntiEleSelect[selection] &&
-      tauAntiMu[fTauIndices[selection][0]] >= fTauAntiMuSelect[selection] &&
-      (!fTauIDDecaySelect[selection] || tauIDDecayMode[fTauIndices[selection][0]]);
+    if(!fTauUseDeep[selection])
+      passed &= tauAntiEle[fTauIndices[selection][0]] >= fTauAntiEleSelect[selection] && //MVA based IDs
+	tauAntiMu[fTauIndices[selection][0]] >= fTauAntiMuSelect[selection] &&
+	(!fTauIDDecaySelect[selection] || tauIDDecayMode[fTauIndices[selection][0]]);
+    else
+      passed &= tauDeep2017VsE[fTauIndices[selection][0]] >= fTauAntiEleCount[selection] && //Deep NN based IDs
+	tauDeep2017VsMu [fTauIndices[selection][0]] >= fTauAntiMuCount [selection] &&
+	tauDeep2017VsJet[fTauIndices[selection][0]] >= fTauAntiJetCount[selection] &&
+	(!fTauIDDecayCount[selection] || tauIDDecayModeNew[fTauIndices[selection][0]]);
 
   }
   return passed;
@@ -755,6 +779,8 @@ Bool_t NanoAODConversion::Process(Long64_t entry)
   if(mutau) ++fNMuTau;
   if(mumu)  ++fNMuMu;
   if(ee)    ++fNEE;
+  if(!(emu || etau || mutau || ee || mumu)) ++fNFailed;
+  
   //loop through selections, in case an event passes multiple (shouldn't happen)
   for(int selection = kMuTau; selection < kSelections; ++selection) {
     if(fSkipMuMuEE > 0 && (selection == kMuMu || selection == kEE)) //check if skipping same flavor sets
@@ -795,7 +821,7 @@ void NanoAODConversion::Terminate()
   Double_t realTime = timer->RealTime();
   printf("Processing time: %7.2fs CPU time %7.2fs Wall time\n",cpuTime,realTime);
   if(realTime > 600. ) printf("Processing time: %7.2fmin CPU time %7.2fmin Wall time\n",cpuTime/60.,realTime/60.);
-  printf("Found %i emu %i etau %i mutau %i mumu %i ee\n",
-	 fNEMu, fNETau, fNMuTau, fNMuMu, fNEE);
+  printf("Found %i emu %i etau %i mutau %i mumu %i ee and %i failed\n",
+	 fNEMu, fNETau, fNMuTau, fNMuMu, fNEE, fNFailed);
 
 }

@@ -208,6 +208,7 @@ public :
   UChar_t tauAntiMu[kMaxParticles]          ;
   Int_t   tauDecayMode[kMaxParticles]       ;
   Bool_t  tauIDDecayMode[kMaxParticles]     ;
+  Bool_t  tauIDDecayModeNew[kMaxParticles]  ;
   UChar_t tauDeep2017VsE[kMaxParticles]     ;
   UChar_t tauDeep2017VsMu[kMaxParticles]    ;
   UChar_t tauDeep2017VsJet[kMaxParticles]   ;
@@ -348,34 +349,38 @@ public :
   Int_t         fSkipMuMuEE = 1; // whether to skip ee/mumu selections for now
   
   //selection requirements
+  std::map<Int_t, UChar_t> fTauUseDeep;
+
   std::map<Int_t, UChar_t> fMuonIsoSelect;
   std::map<Int_t, Int_t>   fMuonIDSelect; //0 = any, 1 = loose, 2 = medium, 3 = tight
   std::map<Int_t, Int_t>   fElectronIDSelect; //0 = any, 1 = WPL, 2 = WP80, 3 = WP90
   std::map<Int_t, UChar_t> fTauAntiEleSelect;
   std::map<Int_t, UChar_t> fTauAntiMuSelect;
   std::map<Int_t, Bool_t>  fTauIDDecaySelect;
+  std::map<Int_t, UChar_t> fTauAntiJetSelect;
 
   //for counting objects
   Float_t       fMuonPtCount = 0.;
   Float_t       fElectronPtCount = 0.;
   Float_t       fTauPtCount = 0.;
   //counting by selection
-  std::map<Int_t, UChar_t> fMuonIsoCount;
-  std::map<Int_t, Int_t>   fMuonIDCount; //0 = any, 1 = loose, 2 = medium, 3 = tight
-  std::map<Int_t, Bool_t>  fCountMuons;
-  std::map<Int_t, std::map<UInt_t, UInt_t>> fMuonIndices;
-  std::map<Int_t, UInt_t>  fNMuons;
-  std::map<Int_t, Int_t>   fElectronIDCount; //0 = any, 1 = WPL, 2 = WP80, 3 = WP90
-  std::map<Int_t, Bool_t>  fCountElectrons;
-  std::map<Int_t, std::map<UInt_t, UInt_t>> fElectronIndices;
-  std::map<Int_t, UInt_t>  fNElectrons;
-  std::map<Int_t, UChar_t> fTauAntiEleCount;
-  std::map<Int_t, UChar_t> fTauAntiMuCount;
-  std::map<Int_t, Bool_t>  fTauIDDecayCount;
-  std::map<Int_t, Float_t> fTauDeltaRCount; //distance from light lepton
-  std::map<Int_t, Bool_t>  fCountTaus;
-  std::map<Int_t, std::map<UInt_t, UInt_t>> fTauIndices;
-  std::map<Int_t, UInt_t>  fNTaus;
+  std::map<UInt_t, UChar_t> fMuonIsoCount;
+  std::map<UInt_t, Int_t>   fMuonIDCount; //0 = any, 1 = loose, 2 = medium, 3 = tight
+  std::map<UInt_t, Bool_t>  fCountMuons;
+  std::map<UInt_t, std::map<UInt_t, UInt_t>> fMuonIndices;
+  std::map<UInt_t, UInt_t>  fNMuons;
+  std::map<UInt_t, Int_t>   fElectronIDCount; //0 = any, 1 = WPL, 2 = WP80, 3 = WP90
+  std::map<UInt_t, Bool_t>  fCountElectrons;
+  std::map<UInt_t, std::map<UInt_t, UInt_t>> fElectronIndices;
+  std::map<UInt_t, UInt_t>  fNElectrons;
+  std::map<UInt_t, UChar_t> fTauAntiEleCount;
+  std::map<UInt_t, UChar_t> fTauAntiMuCount;
+  std::map<UInt_t, UChar_t> fTauAntiJetCount;
+  std::map<UInt_t, Bool_t>  fTauIDDecayCount;
+  std::map<UInt_t, Float_t> fTauDeltaRCount; //distance from light lepton
+  std::map<UInt_t, Bool_t>  fCountTaus;
+  std::map<UInt_t, std::map<UInt_t, UInt_t>> fTauIndices;
+  std::map<UInt_t, UInt_t>  fNTaus;
   
   //summary variables
   Int_t         fNEE = 0;
@@ -383,6 +388,7 @@ public :
   Int_t         fNEMu = 0;
   Int_t         fNETau = 0;
   Int_t         fNMuTau = 0;
+  Int_t         fNFailed = 0;
   
   ClassDef(NanoAODConversion,0);
 
