@@ -8,7 +8,7 @@ public:
   SlimTau_t() : SlimObject_t(),
 		decayMode(0), idDecayMode(false), idDecayModeNew(false),
 		antiEle(0), antiEle2018(0), antiMu(0),
-		deepAntiEle(0), deepAntiMu(0), deepAntiJet(0) {}
+		deepAntiEle(0), deepAntiMu(0), deepAntiJet(0), genID(0) {}
   Int_t decayMode;
   Bool_t idDecayMode;
   Bool_t idDecayModeNew;
@@ -18,7 +18,8 @@ public:
   UChar_t deepAntiEle;
   UChar_t deepAntiMu;
   UChar_t deepAntiJet;
-  ClassDef(SlimTau_t, 3)
+  UChar_t genID;
+  ClassDef(SlimTau_t, 4)
 };
 
 class SlimTaus_t : public TObject {

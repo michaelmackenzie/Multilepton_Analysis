@@ -160,6 +160,7 @@ void NanoAODConversion::InitializeInBranchStructure(TTree* tree) {
   tree->SetBranchAddress("Tau_idDeepTau2017v2p1VSe"        , &tauDeep2017VsE                 ) ;
   tree->SetBranchAddress("Tau_idDeepTau2017v2p1VSmu"       , &tauDeep2017VsMu                ) ;
   tree->SetBranchAddress("Tau_idDeepTau2017v2p1VSjet"      , &tauDeep2017VsJet               ) ;
+  tree->SetBranchAddress("Tau_genPartFlav"                 , &tauGenID                       ) ;
   tree->SetBranchAddress("nJet"                            , &nJet                           ) ;
   tree->SetBranchAddress("Jet_pt"                          , &jetPt                          ) ;
   tree->SetBranchAddress("Jet_eta"                         , &jetEta                         ) ;
@@ -374,7 +375,7 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
     leptonTwoP4->SetPtEtaPhiM(tauPt[fTauIndices[selection][0]], tauEta[fTauIndices[selection][0]],
 			      tauPhi[fTauIndices[selection][0]],tauMass[fTauIndices[selection][0]]);
     leptonTwoFlavor = -15*tauCharge[fTauIndices[selection][0]];
-    lepTwoWeight = 1.; //FIXME: Tau weights missing
+    lepTwoWeight = particleCorrections->TauWeight(leptonTwoP4->Pt(), leptonTwoP4->Eta(), tauGenID[fTauIndices[selection][0]], fYear);
     leptonTwoID1 = tauAntiEle[fTauIndices[selection][0]];
     leptonTwoID2 = tauAntiMu[fTauIndices[selection][0]];
     taudxyOut = taudxy[fTauIndices[selection][0]];
@@ -628,6 +629,7 @@ void NanoAODConversion::CountObjects() {
     slimTaus[index].deepAntiEle    = tauDeep2017VsE[index];
     slimTaus[index].deepAntiMu     = tauDeep2017VsMu[index];
     slimTaus[index].deepAntiJet    = tauDeep2017VsJet[index];
+    slimTaus[index].genID          = tauGenID[index];
     slimTaus[index].positive       = tauCharge[index] > 0;
   }
   //count photons

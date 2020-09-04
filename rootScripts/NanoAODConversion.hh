@@ -212,6 +212,7 @@ public :
   UChar_t tauDeep2017VsE[kMaxParticles]     ;
   UChar_t tauDeep2017VsMu[kMaxParticles]    ;
   UChar_t tauDeep2017VsJet[kMaxParticles]   ;
+  UChar_t tauGenID[kMaxParticles]           ;
   Float_t jetPt[kMaxParticles]              ;
   Float_t jetEta[kMaxParticles]             ;
   Float_t jetPhi[kMaxParticles]             ;

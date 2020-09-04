@@ -89,3 +89,23 @@ double ParticleCorrections::ElectronWeight(double pt, double eta, int year) {
   double scale_factor = id_scale * reco_scale;
   return scale_factor;
 }
+
+double ParticleCorrections::TauWeight(double pt, double eta, int genID, int year, double& up, double& down) {
+  if(year != k2016 && year != k2017 && year != k2018) {
+    std::cout << "Warning! Undefined year in " << __func__ << ", returning -1" << std::endl;
+    return -1.;
+  }
+
+  double scale_factor = 1.;
+  up = 1.; down = 1.;
+  if(genID == 5) { //genuine tau
+    scale_factor *= tauJetIDMap[year]->Eval(pt);
+    up *= tauJetUpIDMap[year]->Eval(pt);
+    down *= tauJetDownIDMap[year]->Eval(pt);
+  } else if(genID == 1) { //genuine electron -> tau
+    scale_factor *= tauEleIDMap[year]->GetBinContent(tauEleIDMap[year]->FindBin(fabs(eta)));
+  } else if(genID == 2) { //genuine muon -> tau
+    scale_factor *= tauMuIDMap[year]->GetBinContent(tauMuIDMap[year]->FindBin(fabs(eta)));
+  }
+  return scale_factor;
+}
