@@ -37,13 +37,16 @@
 #include "../dataFormats/SlimMuon_t.hh"
 #include "../dataFormats/SlimTau_t.hh"
 #include "../dataFormats/SlimJet_t.hh"
-
+#include "../dataFormats/SlimPhoton_t.hh"
+#include "../dataFormats/Tree_t.hh"
+//initialize local MVA weight files
+#include "../utils/TrkQualInit.cc"
 
 class ZTauTauHistMaker : public TSelector {
 public :
   TTreeReader     fReader;  //!the tree reader
   TTree          *fChain = 0;   //!pointer to the analyzed TTree or TChain
-  enum {kMaxParticles = 20, kMaxCounts = 30};
+  enum {kMaxParticles = 20, kMaxCounts = 40};
   enum {kMuTau = 0, kETau = 30, kEMu = 60, kMuTauE = 90, kETauMu = 105, kMuMu = 120};
   enum {kMaxMVAs = 80};
 
@@ -96,6 +99,9 @@ public :
   Float_t jetTwoBMVA                 ;
   TLorentzVector* tauP4 = 0          ;
   Int_t  tauFlavor                   ;
+  UChar_t tauDeepAntiEle             ;
+  UChar_t tauDeepAntiMu              ;
+  UChar_t tauDeepAntiJet             ;
   UInt_t nMuons                      ;
   UInt_t nSlimMuons                  ;
   SlimMuons_t* slimMuons             ;
@@ -110,7 +116,11 @@ public :
   SlimTaus_t* slimTaus               ;
   UInt_t nTauCounts[kMaxCounts]      ;
   UInt_t nPhotons                    ;
+  UInt_t nSlimPhotons                ;
+  SlimPhotons_t* slimPhotons         ;
   UInt_t nJets                       ;
+  UInt_t nSlimJets                   ;
+  SlimJets_t* slimJets               ;
   UInt_t nJets25                     ;
   UInt_t nJets20                     ;
   UInt_t nJets25Tot                  ;
@@ -204,6 +214,8 @@ public :
     TH1F* hNSlimTaus;
     TH1F* hNTauCounts[kMaxCounts];
     TH1F* hNPhotons;
+    TH1F* hNSlimPhotons;
+    TH1F* hNSlimJets;
     TH1F* hNGenTausHad;
     TH1F* hNGenTausLep;
     TH1F* hNGenTaus;
@@ -244,6 +256,9 @@ public :
     TH1F* hTauGenFlavorHad;
     TH1F* hTauVetoedJetPt;
     TH1F* hTauVetoedJetPtUnc;
+    TH1F* hTauDeepAntiEle;
+    TH1F* hTauDeepAntiMu ;
+    TH1F* hTauDeepAntiJet;
     TH1F* hHtSum;
     TH1F* hHt;
     TH1F* hHtPhi;
@@ -477,67 +492,6 @@ public :
     // TH1F* hTrigger;
   };
 
-  //Tree Variables
-  struct Tree_t {
-    //lepton variables
-    float leponept;
-    float leponem;
-    float leponeeta;
-    float leponed0;
-    float leponeiso;
-    float leptwopt;
-    float leptwom;
-    float leptwoeta;
-    float leptwod0;
-    float leptwoiso;
-    //di-lepton variables
-    float lepp;
-    float leppt;
-    float lepm;
-    float lepeta;
-    float lepdeltaeta;
-    float lepdeltar;
-    float lepdeltaphi;
-
-    //extra angles
-    float htdeltaphi;    
-    float metdeltaphi;
-    float leponedeltaphi;
-    float leptwodeltaphi;
-    float onemetdeltaphi;
-    float twometdeltaphi;
-
-    //MET variables
-    float met;
-    float mtone;
-    float mttwo;
-    float pxivis;
-    float pxiinv;
-    float ptauvisfrac;
-    float mestimate;
-    float mestimatetwo;
-    
-    //Event variables
-    float ht;
-    float htsum;
-    float njets;
-    float nbjets; //pt > 30
-    float nbjetsm;
-    float nbjetsl;
-    float nbjetstot25; //pt > 25
-    float nbjetstot25m;
-    float nbjetstot25l;
-    float nbjetstot20; //pt > 20
-    float nbjetstot20m;
-    float nbjetstot20l;
-    float nphotons;
-    float eventweight;
-    float fulleventweight; //includes cross-section and number gen
-    float eventcategory; //for identifying the process in mva trainings
-
-    //identify to use in training
-    float train; //  < 0 --> testing, > 0 --> training sample
-  };
 
   //define object to apply box cuts 
   class TEventID {
@@ -672,50 +626,20 @@ public :
   TMVA::Reader* mva[kMaxMVAs]; //read and apply mva weight files
   vector<TString> fMvaNames = { //mva names for getting weights
     "mutau_BDT_8.higgs","mutau_BDT_8.Z0", //0 - 9: total mvas
-    "etau_BDT_28.higgs","etau_BDT_28.Z0",
-    "emu_BDT_47.higgs","emu_BDT_47.Z0",
-    "mutau_e_BDT_48.higgs","mutau_e_BDT_48.Z0",
-    "etau_mu_BDT_48.higgs","etau_mu_BDT_48.Z0", 
-    "mutau_BDT_18.higgs","mutau_BDT_18.Z0", //10 - 19: 0 jets
     "etau_BDT_38.higgs","etau_BDT_38.Z0",
-    "emu_BDT_58.higgs","emu_BDT_58.Z0",
-    "mutau_e_BDT_58.higgs","mutau_e_BDT_58.Z0",
-    "etau_mu_BDT_58.higgs","etau_mu_BDT_58.Z0", 
-    "mutau_BDT_19.higgs","mutau_BDT_19.Z0", // 20 - 29: 1 jet
-    "etau_BDT_39.higgs","etau_BDT_39.Z0",
-    "emu_BDT_59.higgs","emu_BDT_59.Z0",
-    "mutau_e_BDT_59.higgs","mutau_e_BDT_59.Z0",
-    "etau_mu_BDT_59.higgs","etau_mu_BDT_59.Z0", 
-    "mutau_BDT_20.higgs","mutau_BDT_20.Z0",  // 30 - 39: >1 jet
-    "etau_BDT_40.higgs","etau_BDT_40.Z0",
-    "emu_BDT_60.higgs","emu_BDT_60.Z0",
-    "mutau_e_BDT_60.higgs","mutau_e_BDT_60.Z0",
-    "etau_mu_BDT_60.higgs","etau_mu_BDT_60.Z0"
+    "emu_BDT_68.higgs","emu_BDT_68.Z0",
+    "mutau_e_BDT_68.higgs","mutau_e_BDT_68.Z0",
+    "etau_mu_BDT_68.higgs","etau_mu_BDT_68.Z0"};
+  vector<double> fMvaCuts = {                          //mva score cut values
+			     0.12, 0.04, //mutau       //scores optimize the gained 95% CL
+			     0.06, -0.02,//etau        //all are done by eye on limit gain vs MVA score plot
+			     0.18, 0.16, //emu
+			     0.10, 0.02, //mutau_e
+			     0.08, 0.02  //etau_mu
   };
-  vector<double> fMvaCuts = { //mva score cut values
-    0.18, 0.08,  //scores optimize the gained 95% CL
-    0.159, 0.053,//all are done by eye on limit gain vs MVA score plot
-    0.2, 0.31,
-    0.15, 0.078, 
-    0.13, 0.066,
-    0.13, 0.08, //0jet
-    0.15, 0.05,
-    0.1, 0.1,
-    0.1, 0.035, //mutau_e
-    0.12, 0.05, //etau_mu
-    0.18, 0.05, //1jet
-    0.13, 0.03,
-    0.1, 0.1,
-    0.09, 0.03, //mutau_e
-    0.08, 0.04, //etau_mu
-    0.13, 0.04, //>1jet
-    0.1325, 0.03,
-    0.17, 0.11,
-    0.08, 0.035, //mutau_e
-    0.08, 0.03  //etau_mu
-  };
-  Int_t  fIsJetBinnedMVAs[kMaxMVAs]; //storing number of jets for MVA, < 0 if not binned
-  float fMvaOutputs[kMaxMVAs];
+  Int_t   fIsJetBinnedMVAs[kMaxMVAs]; //storing number of jets for MVA, < 0 if not binned
+  Float_t fMvaOutputs[kMaxMVAs];
+  Int_t   fTrkQualVersion = 3; //for updating which variables are used
   
   //Histograms:
   const static Int_t fn = 400; //max histogram sets
@@ -800,74 +724,24 @@ void ZTauTauHistMaker::Init(TTree *tree)
 
 	Int_t isJetBinned = -1; // -1 is not binned, 0 = 0 jets, 1 = 1 jet, 2 = >1 jets
 	if(fMvaNames[mva_i].Contains("_18") || //0 jet
-	   fMvaNames[mva_i].Contains("_38") ||
-	   fMvaNames[mva_i].Contains("_58"))
+	   fMvaNames[mva_i].Contains("_48") ||
+	   fMvaNames[mva_i].Contains("_78"))
 	  isJetBinned = 0;
 	else if(fMvaNames[mva_i].Contains("_19") || //1 jet
-		fMvaNames[mva_i].Contains("_39") ||
-		fMvaNames[mva_i].Contains("_59"))
+		fMvaNames[mva_i].Contains("_49") ||
+		fMvaNames[mva_i].Contains("_79"))
 	  isJetBinned = 1;
 	else if(fMvaNames[mva_i].Contains("_20") || //>1 jet
-		fMvaNames[mva_i].Contains("_40") ||
-		fMvaNames[mva_i].Contains("_60"))
+		fMvaNames[mva_i].Contains("_50") ||
+		fMvaNames[mva_i].Contains("_80"))
 	  isJetBinned = 2;
 
 	fIsJetBinnedMVAs[mva_i] = isJetBinned; //store for checking when filling
       
 	printf("Using selection %s\n", selection.Data());
-	//Order must match the mva training!
-	mva[mva_i]->AddVariable("lepm"            ,&fTreeVars.lepm           ); 
-	mva[mva_i]->AddVariable("mtone"           ,&fTreeVars.mtone          );
-	mva[mva_i]->AddVariable("mttwo"           ,&fTreeVars.mttwo          );
-	mva[mva_i]->AddVariable("leponept"        ,&fTreeVars.leponept       );
-	mva[mva_i]->AddVariable("leptwopt"        ,&fTreeVars.leptwopt       );
-	mva[mva_i]->AddVariable("leppt"           ,&fTreeVars.leppt          );
-	mva[mva_i]->AddSpectator("pxivis"         ,&fTreeVars.pxivis         );
-	mva[mva_i]->AddSpectator("pxiinv"         ,&fTreeVars.pxiinv         );
-	if(isJetBinned < 0)
-	  mva[mva_i]->AddVariable("njets"         ,&fTreeVars.njets          );
-	else
-	  mva[mva_i]->AddSpectator("njets"        ,&fTreeVars.njets          );
-
-	if(fMvaNames[mva_i].Contains("_47"))
-	  mva[mva_i]->AddVariable("nbjetstot20m", &fTreeVars.nbjetstot20m);
-
-	mva[mva_i]->AddSpectator("lepdeltaeta"     ,&fTreeVars.lepdeltaeta    );
-	mva[mva_i]->AddSpectator("metdeltaphi"     ,&fTreeVars.metdeltaphi    );
-
-	//tau specific
-	if(selection.Contains("tau")) {
-	  mva[mva_i]->AddVariable("lepmestimate"   ,&fTreeVars.mestimate     ); 
-	  mva[mva_i]->AddVariable("onemetdeltaphi" ,&fTreeVars.onemetdeltaphi);
-	  mva[mva_i]->AddVariable("twometdeltaphi" ,&fTreeVars.twometdeltaphi);
-	} else {
-	  mva[mva_i]->AddSpectator("lepmestimate"  ,&fTreeVars.mestimate     ); 
-	  mva[mva_i]->AddSpectator("onemetdeltaphi",&fTreeVars.onemetdeltaphi);
-	  mva[mva_i]->AddSpectator("twometdeltaphi" ,&fTreeVars.twometdeltaphi); 
-	}
-      
-	//Spectators from mva training also required!
-	mva[mva_i]->AddSpectator("leponedeltaphi"  ,&fTreeVars.leponedeltaphi );
-	mva[mva_i]->AddSpectator("leptwodeltaphi"  ,&fTreeVars.leptwodeltaphi );
-	mva[mva_i]->AddSpectator("leponed0"       ,&fTreeVars.leponed0       );
-	mva[mva_i]->AddSpectator("leptwod0"       ,&fTreeVars.leptwod0       );
-
-	if(isJetBinned != 0) {
-	  mva[mva_i]->AddVariable("htdeltaphi"    ,&fTreeVars.htdeltaphi     );
-	  mva[mva_i]->AddVariable("ht"            ,&fTreeVars.ht             ); 
-	} else {
-	  mva[mva_i]->AddSpectator("htdeltaphi"   ,&fTreeVars.htdeltaphi     );
-	  mva[mva_i]->AddSpectator("ht"           ,&fTreeVars.ht             ); 
-	}
-	mva[mva_i]->AddVariable("lepdeltaphi"    ,&fTreeVars.lepdeltaphi    );
-	mva[mva_i]->AddSpectator("htsum"          ,&fTreeVars.htsum          ); 
-	mva[mva_i]->AddSpectator("leponeiso"      ,&fTreeVars.leponeiso      );
-	mva[mva_i]->AddSpectator("met"            ,&fTreeVars.met            );
-	mva[mva_i]->AddSpectator("lepdeltar"      ,&fTreeVars.lepdeltar      );
-	mva[mva_i]->AddSpectator("fulleventweight",&fTreeVars.fulleventweight);
-	mva[mva_i]->AddSpectator("eventweight"    ,&fTreeVars.eventweight    );
-	mva[mva_i]->AddSpectator("eventcategory"  ,&fTreeVars.eventcategory  );
-
+	//use a tool to initialize the MVA variables and spectators
+	TrkQualInit trkQualInit(fTrkQualVersion, isJetBinned);
+	trkQualInit.InitializeVariables(*(mva[mva_i]), selection, fTreeVars);
 	//Initialize MVA weight file
 	const char* f = Form("weights/%s.weights.xml",fMvaNames[mva_i].Data());
 	mva[mva_i]->BookMVA(fMvaNames[mva_i].Data(),f);
@@ -877,6 +751,8 @@ void ZTauTauHistMaker::Init(TTree *tree)
     slimMuons = new SlimMuons_t();
     slimElectrons = new SlimElectrons_t();
     slimTaus = new SlimTaus_t();
+    slimPhotons = new SlimPhotons_t();
+    slimJets = new SlimJets_t();
     
     fOut = new TFile(Form("ztautau%s%s_%s.hist",(fFolderName == "") ? "" : ("_"+fFolderName).Data(),
 			  (fDYType > 0) ? Form("_%i",fDYType) : "",tree->GetName()),
@@ -906,11 +782,10 @@ void ZTauTauHistMaker::Init(TTree *tree)
       fEventSets [kMuTau + 4+fQcdOffset] = 1;
       fEventSets [kMuTau + 5] = 1;
       fEventSets [kMuTau + 5+fQcdOffset] = 1;
+      fTreeSets  [kMuTau + 5] = 1;
       fEventSets [kMuTau + 6] = 1;
       fEventSets [kMuTau + 6+fQcdOffset] = 1;
-
-      // fEventSets [kMuTau + 6] = 1; // events with opposite signs and passing Mu+Tau Pt cuts with no photon check
-      // fEventSets [kMuTau + 6+fQcdOffset] = 1; // events with same signs and passing Mu+Tau Pt cuts with no photon check
+      fTreeSets  [kMuTau + 6] = 1;
 
       fEventSets [kMuTau + 7] = 1; // events with opposite signs and passing Mu+Tau Pt + angle cuts with no photon check
       fEventSets [kMuTau + 7+fQcdOffset] = 1; // events with same signs and passing Mu+Tau Pt + angle cuts with no photon check
@@ -977,8 +852,10 @@ void ZTauTauHistMaker::Init(TTree *tree)
       fEventSets [kETau  + 4+fQcdOffset] = 1;
       fEventSets [kETau  + 5] = 1;
       fEventSets [kETau  + 5+fQcdOffset] = 1;
+      fTreeSets  [kETau + 5] = 1;
       fEventSets [kETau  + 6] = 1;
       fEventSets [kETau  + 6+fQcdOffset] = 1;
+      fTreeSets  [kETau + 6] = 1;
 
       // fEventSets [kETau  + 6] = 1; // events with opposite signs and passing Mu+Tau Pt cuts with no photon check
       // fEventSets [kETau  + 6+fQcdOffset] = 1; // events with same signs and passing Mu+Tau Pt cuts with no photon check
@@ -1048,8 +925,10 @@ void ZTauTauHistMaker::Init(TTree *tree)
       fEventSets [kEMu   + 4+fQcdOffset] = 1;
       fEventSets [kEMu   + 5] = 1;
       fEventSets [kEMu   + 5+fQcdOffset] = 1;
+      fTreeSets  [kEMu + 5] = 1;
       fEventSets [kEMu   + 6] = 1;
       fEventSets [kEMu   + 6+fQcdOffset] = 1;
+      fTreeSets  [kEMu + 6] = 1;
 
       // fEventSets [kEMu   + 6] = 1; // events with opposite signs and passing Mu+Tau Pt cuts with no photon check
       // fEventSets [kEMu   + 6+fQcdOffset] = 1; // events with same signs and passing Mu+Tau Pt cuts with no photon check
@@ -1176,6 +1055,8 @@ void ZTauTauHistMaker::Init(TTree *tree)
   fChain->SetBranchAddress("leptonOneID2"        , &leptonOneID2         );
   fChain->SetBranchAddress("leptonTwoID1"        , &leptonTwoID1         );
   fChain->SetBranchAddress("leptonTwoID2"        , &leptonTwoID2         );
+  fChain->SetBranchAddress("leptonOneIndex"      , &leptonOneIndex       );
+  fChain->SetBranchAddress("leptonTwoIndex"      , &leptonTwoIndex       );
   fChain->SetBranchAddress("genLeptonOneP4" 	 , &genLeptonOneP4       );
   fChain->SetBranchAddress("genLeptonTwoP4" 	 , &genLeptonTwoP4       );
   fChain->SetBranchAddress("photonP4"  	         , &photonP4             );
@@ -1184,6 +1065,10 @@ void ZTauTauHistMaker::Init(TTree *tree)
   fChain->SetBranchAddress("jetP4"  	         , &jetOneP4             );
   fChain->SetBranchAddress("jetBTag"             , &jetOneBTag           ); 
   fChain->SetBranchAddress("jetBMVA"             , &jetOneBMVA           ); 
+  if(fIsNano) {
+    fChain->SetBranchAddress("nJetsNano"  	 , &nSlimJets            );
+    fChain->SetBranchAddress("slimJets"   	 , &slimJets             );
+  }
   if(fFolderName == "llg_study") {
     fChain->SetBranchAddress("jetTwoP4"  	 , &jetTwoP4             );
     fChain->SetBranchAddress("jetTwoBTag"  	 , &jetTwoBTag           );
@@ -1193,6 +1078,9 @@ void ZTauTauHistMaker::Init(TTree *tree)
   fChain->SetBranchAddress("tauFlavor"  	 , &tauFlavor            );
   fChain->SetBranchAddress("nMuons"              , &nMuons               );
   if(fIsNano) {
+    fChain->SetBranchAddress("tauDeepAntiEle"    , &tauDeepAntiEle       );
+    fChain->SetBranchAddress("tauDeepAntiMu"     , &tauDeepAntiMu        );
+    fChain->SetBranchAddress("tauDeepAntiJet"    , &tauDeepAntiJet       );
     fChain->SetBranchAddress("nMuonsNano"        , &nSlimMuons           );
     fChain->SetBranchAddress("slimMuons"         , &slimMuons            );
   }
@@ -1208,6 +1096,10 @@ void ZTauTauHistMaker::Init(TTree *tree)
     fChain->SetBranchAddress("slimTaus"          , &slimTaus             );
   }
   fChain->SetBranchAddress("nPhotons"            , &nPhotons             );
+  if(fIsNano) {
+    fChain->SetBranchAddress("nPhotonsNano"  	 , &nSlimPhotons         );
+    fChain->SetBranchAddress("slimPhotons"  	 , &slimPhotons          );
+  }
   fChain->SetBranchAddress("nJets"               , &nJets                );
   fChain->SetBranchAddress("nJets25"             , &nJets25              );
   fChain->SetBranchAddress("nJets20"             , &nJets20              );
