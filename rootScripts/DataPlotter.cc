@@ -939,7 +939,7 @@ TCanvas* DataPlotter::plot_single_2Dhist(TString hist, TString setType, Int_t se
   if(yMin_ <= yMax_)hAxis->GetYaxis()->SetRangeUser(yMin_,yMax_);
   if(xMin_ <= xMax_)hAxis->GetXaxis()->SetRangeUser(xMin_,xMax_);
   //draw text on plots
-  draw_luminosity();
+  draw_luminosity(true);
   draw_cms_label(true);
   hAxis->SetXTitle(xtitle.Data());
   hAxis->SetYTitle(ytitle.Data());
@@ -1284,7 +1284,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
   TPad *pad1, *pad2;
 
 
-  if(plot_data_ && d) {
+  if((plot_data_ && d) || (plot_data_ == 0 && data_over_mc_ < 0)) {
     pad1 = new TPad("pad1","pad1",upper_pad_x1_, upper_pad_y1_, upper_pad_x2_, upper_pad_y2_); //xL yL xH xH, (0,0) = bottom left
     pad2 = new TPad("pad2","pad2",lower_pad_x1_, lower_pad_y1_, lower_pad_x2_, lower_pad_y2_);
     pad1->SetTopMargin(upper_pad_topmargin_);
@@ -1373,9 +1373,9 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
   pad1->Update();
   //draw text
   if(draw_statistics_) draw_data(ndata,nmc,nsig);
-  draw_luminosity();
-  draw_cms_label();
-
+  draw_luminosity(plot_data_ == 0 && data_over_mc_ >= 0);
+  draw_cms_label(plot_data_ == 0 && data_over_mc_ >= 0);
+  
   auto o = pad1->GetPrimitive("TPave");
   if(o) {
     auto tl = (TLegend*) o;
@@ -1436,8 +1436,11 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
     hDataMC->SetName("hRatio");
     for(TH1F* h : hsignal)
       hSignalsOverMC.push_back((TH1F*) h->Clone(Form("%s_over_mc", h->GetName())));
-    for(TH1F* h : hSignalsOverMC)
+    for(TH1F* h : hSignalsOverMC) {
+      if(data_over_mc_ == -2) //~significance squared = sig*sig / data
+	h->Multiply(h);
       h->Divide(hDataMC);
+    }
   }
 
   
@@ -1529,23 +1532,28 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
     c->SetGrid();
     m = 0.;
     for(unsigned index = 0; index < hSignalsOverMC.size(); ++index) {
-      if(signal_scale_ > 0.) hSignalsOverMC[index]->Scale(1./signal_scale_);
+      if(signal_scale_ > 0.) {
+	hSignalsOverMC[index]->Scale(1./signal_scale_);
+	if(data_over_mc_ == -2) hSignalsOverMC[index]->Scale(1./signal_scale_);
+      }
       if(index == 0) hSignalsOverMC[index]->Draw("hist E1");
       else           hSignalsOverMC[index]->Draw("hist E1 same");
       m = max(m, hSignalsOverMC[index]->GetMaximum());
     }
     if(hSignalsOverMC.size() > 0) {
       hSignalsOverMC[0]->GetXaxis()->SetTitle(xtitle.Data());
-      hSignalsOverMC[0]->GetYaxis()->SetTitle("Sig/Bkg");
+      if(data_over_mc_ == -2) hSignalsOverMC[0]->GetYaxis()->SetTitle("S^{2}/B");
+      else                    hSignalsOverMC[0]->GetYaxis()->SetTitle("S/B");
       hSignalsOverMC[0]->GetXaxis()->SetTitleSize(axis_font_size_);
       hSignalsOverMC[0]->GetXaxis()->SetTitleOffset(x_title_offset_);
       hSignalsOverMC[0]->GetXaxis()->SetLabelSize(x_label_size_);
       hSignalsOverMC[0]->GetYaxis()->SetTitleSize(axis_font_size_);
       hSignalsOverMC[0]->GetYaxis()->SetTitleOffset(y_title_offset_);
       hSignalsOverMC[0]->GetYaxis()->SetLabelSize(y_label_size_);
-      hSignalsOverMC[0]->SetAxisRange(m/1.e3,m*1.3, "Y");
+      hSignalsOverMC[0]->SetAxisRange(m/1.e4,m*5., "Y");
       hSignalsOverMC[0]->SetTitle("");
       if(xMin_ < xMax_) hSignalsOverMC[0]->GetXaxis()->SetRangeUser(xMin_,xMax_);    
+      pad2->SetLogy();
     }
   }
 
@@ -1829,6 +1837,7 @@ TCanvas* DataPlotter::plot_significance(TString hist, TString setType, Int_t set
     auto o = gDirectory->Get("hSignal");
     if(o) delete o;
   }
+  //get the signal histogram
   for(UInt_t i = 0; i < data_.size(); ++i) {
     if(labels_[i] == label) {
       TH1F* tmp = (TH1F*) data_[i]->Get(Form("%s_%i/%s", setType.Data(), set, hist.Data()));
@@ -1859,8 +1868,10 @@ TCanvas* DataPlotter::plot_significance(TString hist, TString setType, Int_t set
   int rebinH = rebinH_;
   rebinH_ = 1;
 
+  //take the signal histogram as a template for x-binnning
   TH1F* hEfficiency = (TH1F*) hSignal->Clone("hEfficiency");
   hEfficiency->Clear(); hEfficiency->Reset();
+  //get the background stack
   THStack* hstack = get_stack(hist, setType, set);
   TH1F* hlast = (TH1F*) hstack->GetStack()->Last()->Clone("hlast");
 
@@ -1868,45 +1879,47 @@ TCanvas* DataPlotter::plot_significance(TString hist, TString setType, Int_t set
   for(auto htmp : *hstack->GetHists())
     delete htmp;
   delete hstack;
-  
+
+  //parameters for limit loop
   UInt_t nbins = hSignal->GetNbinsX();
   double clsig = 1.644853627; // 95% CL value
   bool doExactLimit = true;
   
-  double xs[nbins]; //for significance graph
-  double sigs[nbins];
+  double xs[nbins], xerrs[nbins]; //for significance graph
+  double sigs[nbins], sigsErrUp[nbins], sigsErrDown[nbins];
   double init_sig = -1.;
-  
+
+  double p(0.05), tolerance(0.001), val(-1.);
+  Significances significances(p, tolerance, useCLs_, 10);
   for(UInt_t bin = 1; bin <= nbins; ++bin) {
     xs[bin-1] = (dir) ? hSignal->GetBinLowEdge(bin) : hSignal->GetBinLowEdge(bin) + hSignal->GetBinWidth(bin);
     sigs[bin-1] = 0.;
-    double bkgval = (dir) ? hlast->Integral(bin, nbins) : hlast->Integral(1, bin);
-    double sigval = (dir) ? hSignal->Integral(bin, nbins) : hSignal->Integral(1, bin);
+    xerrs[bin-1] = 0.;
+    double bkgerr(0.), sigerr(0.);
+    double bkgval = (dir) ? hlast->IntegralAndError(bin, nbins, bkgerr) : hlast->IntegralAndError(1, bin, bkgerr);
+    double sigval = (dir) ? hSignal->IntegralAndError(bin, nbins, sigerr) : hSignal->IntegralAndError(1, bin, sigerr);
     if(init_sig < 0. && sigval > 0.) init_sig = sigval;
     //plot vs signal efficiency instead
     if(doVsEff) xs[bin-1] = sigval/init_sig;
     hEfficiency->SetBinContent(bin, sigval);
     if(bkgval <= 0. || sigval <= 0.) continue;
     double significance = sigval/sqrt(bkgval)/clsig; //not really significance but ratio of signal to background fluctuation
-    if(doExactLimit) { //get 95% CL by finding signal scale so poisson prob n < n_bkg for mu = n_bkg + n_sig = 0.05
-      double p = 0.05; //confidence limit goal
-      double tolerance = 0.001; //precision to achieve for goal confidence level
-      double scale = 1./significance; //scale signal until achieve tolerance
-      double val = -1.; //running probability value
-      int max_attempts = 10;
-      int attempts = 0;
-      while(abs(val - p) > tolerance && attempts < max_attempts) { //guess scale factors until close to limit goal
-	++attempts;
-	val = ROOT::Math::poisson_cdf((int) (bkgval), bkgval + sigval*scale); //confidence limit at this value	
-	if(useCLs_) val /= ROOT::Math::poisson_cdf((int) bkgval, bkgval); //CLs = P(sig + bkg) / P(bkg)
-	if(abs(val-p) > tolerance) //only update if still not succeeding
-	  scale *= (val/p < 4.) ? (1.-p)/(1.-val) : sqrt(bkgval)*clsig/sigval; //if far, start with the approximation scale
-      }
-      significance = 1./scale;
-      if(significance > 10. || abs(val - p) > 5.*tolerance) significance = -1.;
-
-    }
+    if(doExactLimit)  //get 95% CL by finding signal scale so poisson prob n < n_bkg for mu = n_bkg + n_sig = 0.05
+      significance = significances.LimitGain(sigval, bkgval, val);
     sigs[bin-1] = significance;
+    //Add MC uncertainty band
+    if(limit_mc_err_range_) {
+      //bkg+1 sigma
+      significance = sigval/sqrt(bkgval+bkgerr)/clsig; //not really significance but ratio of signal to background fluctuation
+      if(doExactLimit)  //get 95% CL by finding signal scale so poisson prob n < n_bkg for mu = n_bkg + n_sig = 0.05
+	significance = significances.LimitGain(sigval, bkgval+bkgerr, val);
+      sigsErrUp[bin-1] = sigs[bin-1]-significance;
+      //bkg-1 sigma
+      significance = sigval/sqrt(max(0.1, bkgval-bkgerr))/clsig; //not really significance but ratio of signal to background fluctuation
+      if(doExactLimit)  //get 95% CL by finding signal scale so poisson prob n < n_bkg for mu = n_bkg + n_sig = 0.05
+	significance = significances.LimitGain(sigval, max(0.1, bkgval-bkgerr), val);
+      sigsErrDown[bin-1] = significance-sigs[bin-1];
+    }
   }
 
   //clean up memory
@@ -1922,14 +1935,25 @@ TCanvas* DataPlotter::plot_significance(TString hist, TString setType, Int_t set
   TString title;
   get_titles(hist,setType,&xtitle,&ytitle,&title);
 
-  TGraph* gSignificance = new TGraph(nbins, xs, sigs);
+  TGraph* gSignificance = (limit_mc_err_range_) ? new TGraphAsymmErrors(nbins, xs, sigs, xerrs, xerrs, sigsErrUp, sigsErrDown) : new TGraph(nbins, xs, sigs);
+  if(verbose_ > 1) {
+    std::cout << "Printing up to 15 significance bins (" << nbins << " total):\n";
+    for(int bin = 1; bin < min(1.*nbins, 1.*16); ++bin)
+      std::cout << "Bin " << bin << ": " << "(x, +xerr, -xerr, y, +yerr, -yerr) = ("
+		<< xs[bin-1] << ", " << xerrs[bin-1] << ", " << xerrs[bin-1] << ", " << sigs[bin-1]
+		<< ", " << sigsErrDown[bin-1] << ", " << sigsErrUp[bin-1] <<")"
+		<< std::endl;
+  }
+  
   gSignificance->SetName(Form("gsig_%s_%i", label.Data(),set));
   gSignificance->SetTitle(Form("; %s; Limit gain factor",
 			       (doVsEff) ? "Efficiency" : (xtitle+" Cut Value").Data()));
   gSignificance->SetLineColor(kBlue);
-  // gSignificance->SetFillColor(0);
+  if(limit_mc_err_range_) gSignificance->SetFillColor(kGreen);
   gSignificance->SetLineWidth(3);
-  gSignificance->Draw("APL");
+  if(limit_mc_err_range_)
+    gSignificance->Draw("APL3");
+  gSignificance->Draw(((limit_mc_err_range_) ? "LX" : "APL"));
   TAxis* yaxis = gSignificance->GetYaxis();
   yaxis->SetRangeUser(0., sig_plot_range_);
   yaxis->SetLabelColor(kBlue);
@@ -1955,7 +1979,7 @@ TCanvas* DataPlotter::plot_significance(TString hist, TString setType, Int_t set
   line->SetLineWidth(4);
   line->Draw("sames");
   //draw text
-  draw_luminosity();
+  draw_luminosity(true);
   draw_cms_label(true);
   c->Update();
 
@@ -2201,6 +2225,10 @@ Int_t DataPlotter::init_files() {
 	  if(debug_ > 0) printf("%s %s: bin 1, bin 11: %.0f, %.0f\n", names_[i].Data(), events->GetName(),
 				events->GetBinContent(1), events->GetBinContent(10));
 	}
+      }
+      if(nevents <= 0.) {
+	std::cout << "Error! No events in the events histogram for " << names_[i].Data() << std::endl;
+	return 1;
       }
       scale_.push_back(1./(nevents)*xsec_[i]*lum_);
     }

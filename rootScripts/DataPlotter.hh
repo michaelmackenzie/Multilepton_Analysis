@@ -11,6 +11,7 @@
 #include "THStack.h"
 #include "TGraph.h"
 #include "TGraphErrors.h"
+#include "TGraphAsymmErrors.h"
 #include "TCanvas.h"
 #include "TRandom.h"
 #include "TText.h"
@@ -20,6 +21,7 @@
 #include "TObject.h"
 #include "TLegend.h"
 #include "TGaxis.h"
+#include "../utils/Significances.hh"
 #include "Math/ProbFuncMathCore.h"
 
 class DataPlotter : public TObject {
@@ -172,8 +174,8 @@ public :
   bool useCLs_ = true; //whether to use CLs or CLs+b when calculating limits/limit gains
   
   //Various canvas drawing numbers
-  Int_t background_colors_[10] = {kRed-7, kRed-3, kYellow-7,kGreen-7 , kViolet+6, kCyan-7, kRed+3,kOrange-9,kBlue+1};
-  Int_t signal_colors_[10] = {kBlue, kOrange+10, kGreen+4, kViolet-2, kYellow-7,kCyan+1,kBlue+1};
+  Int_t background_colors_[10] = {kRed-7, kRed-3    , kYellow-7 , kGreen-7, kViolet+6, kCyan-7  , kRed+3 ,kOrange-9,kBlue+1};
+  Int_t signal_colors_[10] =     {kBlue , kMagenta+2, kOrange+10, kGreen+4, kViolet-2, kYellow-7, kCyan+1,kBlue+1};
   Int_t total_background_color_ = kRed-7; //for all backgrounds combined drawing
   Int_t canvas_x_ = 900; //canvas dimensions
   Int_t canvas_y_ = 800;
@@ -206,6 +208,8 @@ public :
   //luminosity drawing
   Double_t lum_txt_x_ = 0.67;
   Double_t lum_txt_y_ = 0.98;
+  Double_t lum_txt_x_single_ = 0.645;
+  Double_t lum_txt_y_single_ = 0.975;
   //CMS prelim drawing
   Double_t cms_txt_x_ = 0.28;
   Double_t cms_txt_y_ = 0.9;
@@ -222,7 +226,7 @@ public :
   
   //significance drawing
   Double_t sig_plot_range_ = 3.5;
-  
+  Int_t limit_mc_err_range_ = 1; //sigma range to show
   ~DataPlotter() {
     for(auto d : data_) {
       if(d->TestBit(TObject::kNotDeleted)) {delete d;}
@@ -241,15 +245,17 @@ public :
 			 (single) ? cms_txt_y_single_ : cms_txt_y_, "CMS Preliminary");
   }
 
-  void draw_luminosity() {
+  void draw_luminosity(bool single = false) {
     TLatex label;
     label.SetNDC();
     label.SetTextFont(72);
     // label.SetTextColor(1);
-    label.SetTextSize(.04);
+    label.SetTextSize((single) ? 0.03 : .04);
     label.SetTextAlign(13);
     label.SetTextAngle(0);
-    label.DrawLatex(lum_txt_x_, lum_txt_y_, Form("L=%.1f/fb #sqrt{#it{s}} = %.0f TeV",lum_/1e3,rootS_));
+    label.DrawLatex((single) ? lum_txt_x_single_ : lum_txt_x_,
+		    (single) ? lum_txt_y_single_ : lum_txt_y_,
+		    Form("L=%.1f/fb #sqrt{#it{s}} = %.0f TeV",lum_/1e3,rootS_));
   }
 
   void draw_data(int ndata, double nmc, map<TString, double> nsig) {
