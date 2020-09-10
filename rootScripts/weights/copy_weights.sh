@@ -22,7 +22,9 @@ do
     
     # Find the set
     set=-1;
-    if [[ $f == *"_8_"* ]]; then
+    if [[ $f == *"_7_"* ]]; then
+	set=7;
+    elif [[ $f == *"_8_"* ]]; then
 	set=8;
     elif [[ $f == *"_18_"* ]]; then
 	set=18;
@@ -32,6 +34,8 @@ do
 	set=20;
     elif [[ $f == *"_28_"* ]]; then
 	set=28;
+    elif [[ $f == *"_37_"* ]]; then
+	set=37;
     elif [[ $f == *"_38_"* ]]; then
 	set=38;
     elif [[ $f == *"_39_"* ]]; then
@@ -46,6 +50,10 @@ do
 	set=59;
     elif [[ $f == *"_60_"* ]]; then
 	set=60;
+    elif [[ $f == *"_67_"* ]]; then
+	set=67;
+    elif [[ $f == *"_68_"* ]]; then
+	set=68;
     fi
 	
     # Find the MVA name

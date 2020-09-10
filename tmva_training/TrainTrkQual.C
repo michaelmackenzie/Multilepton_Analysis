@@ -48,11 +48,18 @@
 #include "TMVA/Tools.h"
 #endif
 
+// #include "../utils/TrkQualInit.cc"
+
 TString selection_ = "zmutau"; 
 Int_t split_trees_ = 0; //split training/testing using tree defined samples
+Int_t trkqual_version_ = 3; //version of variables used in trkqual training
 Int_t use_njets_ = 1; //whether or not to train using njets, don't use if jet binned categories
 Int_t use_ht_ = 1; //whether or not to train using hT, don't use if 0 jet bin category
 Int_t use_nbjets_ = 0; //whether or not to train using nbjets, = id+3*ptcut with id = 1,2,3 for tight, medium, loose and pt = 0,1,2 for >30, >25, >20
+
+bool dryrun_ = false; //don't actually train
+bool inTrainDir_ = false; //track if we've gone into a training directory
+bool multiTrainings_ = false; //if doing multiple trainings, leave directory at the end of the training
 
 //Train MVA to separate the given signal from the given background
 int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual",
@@ -149,11 +156,16 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
   // --------------------------------------------------------------------------------------------------
 
   // --- Here the preparation phase begins
-
+  //if in a past training directory, leave it
+  if(inTrainDir_) {
+    gSystem->cd("..");
+    inTrainDir_ = false;
+  }
   // Create a ROOT output file where TMVA will store ntuples, histograms, etc.
   TString outfilename(tname);
   gSystem->Exec(Form("mkdir %s", outfilename.Data()));
   gSystem->cd(outfilename.Data());
+  inTrainDir_ = true;
   
   outfilename += ".root";
   TFile* outputFile = TFile::Open( outfilename, "RECREATE" );
@@ -198,77 +210,9 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
   // note that you may also use variable expressions, such as: "3*var1/var2*abs(var3)"
   // [all types of expressions that can also be parsed by TTree::Draw( "expression" )]
   
-  factory->AddVariable("lepm" , "M_{ll}" , "GeV", 'F');   
-  factory->AddVariable("mtone","MT(MET,l1)","",'F');
-  factory->AddVariable("mttwo","MT(MET,l2)","",'F');
-  factory->AddVariable("leponept","pT_{l1}","",'F');
-  factory->AddVariable("leptwopt","pT_{l2}","",'F');
-  factory->AddVariable("leppt", "Pt_{ll}", "GeV", 'F');
-  factory->AddSpectator("pxivis","p^{vis}_{#xi}","",'F');
-  factory->AddSpectator("pxiinv","p^{inv}_{#xi}","",'F');
-  if(use_njets_)
-    factory->AddVariable("njets", "nJets", "", 'F');
-  else
-    factory->AddSpectator("njets", "nJets", "", 'F');
-  if(use_nbjets_ == 1) 
-    factory->AddVariable("nbjets"      , "nBJets (tight ID pt > 30)" , "", 'F');
-  else if(use_nbjets_ == 2) 
-    factory->AddVariable("nbjetsm"     , "nBJets (medium ID pt > 30)", "", 'F');
-  else if(use_nbjets_ == 3) 
-    factory->AddVariable("nbjetsl"     , "nBJets (loose ID pt > 30)" , "", 'F');
-  else if(use_nbjets_ == 4) 
-    factory->AddVariable("nbjetstot25" , "nBJets (tight ID pt > 25)" , "", 'F');
-  else if(use_nbjets_ == 5) 
-    factory->AddVariable("nbjetstot25m", "nBJets (medium ID pt > 25)", "", 'F');
-  else if(use_nbjets_ == 6) 
-    factory->AddVariable("nbjetstot25l", "nBJets (loose ID pt > 25)" , "", 'F');
-  else if(use_nbjets_ == 7) 
-    factory->AddVariable("nbjetstot20" , "nBJets (tight ID pt > 20)" , "", 'F');
-  else if(use_nbjets_ == 8) 
-    factory->AddVariable("nbjetstot20m", "nBJets (medium ID pt > 20)", "", 'F');
-  else if(use_nbjets_ == 9) 
-    factory->AddVariable("nbjetstot20l", "nBJets (loose ID pt > 20)" , "", 'F');
-
-  factory->AddSpectator("lepdeltaeta","#Delta#eta_{ll}","",'F');
-  factory->AddSpectator("metdeltaphi","#Delta#phi_{MET,ll}","",'F');
-  //tau specific
-  if(selection_.Contains("tau")) {
-    factory->AddVariable("lepmestimate" , "M_{ll}^{Coll}" , "GeV", 'F');   
-    factory->AddVariable("onemetdeltaphi","#Delta#phi_{MET,l1}","",'F');  
-    factory->AddVariable("twometdeltaphi","#Delta#phi_{MET,l2}","",'F');  
-  } else {
-    factory->AddSpectator("lepmestimate" , "M_{ll}^{Coll}" , "GeV", 'F');   
-    factory->AddSpectator("onemetdeltaphi","#Delta#phi_{MET,l1}","",'F');  
-    factory->AddSpectator("twometdeltaphi","#Delta#phi_{MET,l2}","",'F');  
-  }
-  factory->AddSpectator("leponedeltaphi","#Delta#phi_{l1,ll}","",'F');
-  factory->AddSpectator("leptwodeltaphi","#Delta#phi_{l2,ll}","",'F');
-  factory->AddSpectator("leponed0","D0_{l1}","",'F');
-  factory->AddSpectator("leptwod0","D0_{l2}","",'F');
-
-  if(use_ht_) {
-    factory->AddVariable("htdeltaphi","#Delta#phi_{hT,ll}","",'F');
-    factory->AddVariable("ht","pT(#Sigma #vec{P}_{Jet})","",'F');
-  } else {
-    factory->AddSpectator("htdeltaphi","#Delta#phi_{hT,ll}","",'F');
-    factory->AddSpectator("ht","pT(#Sigma #vec{P}_{Jet})","",'F');
-  }
-  //higgs specific
-  if(selection_.Contains("h") && use_ht_) {
-    // factory->AddVariable("ptoverm := leppt/lepm","pT_{ll}/M_{ll}","",'F');
-  } else {
-    // factory->AddSpectator("ht","pT(#Sigma #vec{P}_{Jet})","",'F');
-  }
-  factory->AddVariable("lepdeltaphi","#Delta#phi_{ll}","",'F');
-  factory->AddSpectator("htsum","#Sigma pT_{Jet}","",'F');
-  factory->AddSpectator("leponeiso","Iso_{l1}","",'F');
-  factory->AddSpectator("met","MET","GeV",'F');
-  factory->AddSpectator("lepdeltar","#DeltaR_{ll}","",'F');
-  factory->AddSpectator("fulleventweight", "fullEventWeight", "", 'F'); 
-  factory->AddSpectator("eventweight", "eventWeight", "", 'F'); 
-  factory->AddSpectator("eventcategory", "eventCategory", "", 'F'); 
-
-
+  TrkQualInit trkqualinit(trkqual_version_, use_njets_); //version number input
+  trkqualinit.InitializeVariables(*factory,selection_);
+  
   // You can add so-called "Spectator variables", which are not used in the MVA training,
   // but will appear in the final "TestTree" produced by TMVA. This TestTree will contain the
   // input variables, the response values of all trained MVAs, and the spectator variables
@@ -594,31 +538,35 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
 
 //  factory->PrintHelpMessage();
 //  factory->EvaluateAllVariables();
-   factory->SetVerbose();
- 
-  // Train MVAs using the set of training events
-  factory->TrainAllMethods();
+  factory->SetVerbose();
 
-  // ---- Evaluate all MVAs using the set of test events
-  factory->TestAllMethods();
+  if(!dryrun_) {
+    
+    // Train MVAs using the set of training events
+    factory->TrainAllMethods();
 
-  // ----- Evaluate and compare performance of all configured MVAs
-  factory->EvaluateAllMethods();
+    // ---- Evaluate all MVAs using the set of test events
+    factory->TestAllMethods();
 
-  // --------------------------------------------------------------
+    // ----- Evaluate and compare performance of all configured MVAs
+    factory->EvaluateAllMethods();
 
-  // Save the output
-  outputFile->Write();
-  outputFile->Close();
+    // --------------------------------------------------------------
 
-  std::cout << "==> Wrote root file: " << outputFile->GetName() << std::endl;
-  std::cout << "==> TMVAClassification is done!" << std::endl;
+    // Save the output
+    outputFile->Write();
+    outputFile->Close();
 
+    std::cout << "==> Wrote root file: " << outputFile->GetName() << std::endl;
+    std::cout << "==> TMVAClassification is done!" << std::endl;
+  } else
+    cout << "Completed dry run!\n";
+  
   delete factory;
   //  delete dataloader;
 
    // Launch the GUI for the root macros
-  if (!gROOT->IsBatch()) TMVA::TMVAGui( outfilename );
-
+  if (!dryrun_&&!gROOT->IsBatch()) TMVA::TMVAGui( outfilename );
+  if(multiTrainings_) {gSystem->cd(".."); inTrainDir_ = false;}
   return 0;
 }

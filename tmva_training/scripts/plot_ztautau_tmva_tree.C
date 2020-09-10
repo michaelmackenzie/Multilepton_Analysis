@@ -20,7 +20,8 @@ namespace {
   bool   correctForScale_ = true; //scale test sample to match expectations for total dataset (1./(1.-fracTrain))
   int    verbose_ = 1; //verbosity level
   double scale_signal_ = 250.; //scale signal to be visible
-  
+
+  bool doNano_ = true;
   vector<TString> names_ = {"Top"         //ttbar		    
 			    , "Z+Jets"	  //DY AMC		    
 			    , "Z+Jets"	  //DY AMC		    
@@ -76,6 +77,21 @@ namespace {
 			    , "Data"	  //Electron Data 2016 F
 			    , "Data"	  //Electron Data 2016 G
 			    , "Data"	  //Electron Data 2016 H
+  };
+  vector<TString> names_nano_ = {  "t#bar{t}qql#nu" 
+				 , "t#bar{t}l#nul#nu"
+				 , "Z+Jets"	  
+				 , "Single top"	  
+				 , "Single top"	  
+				 , "W+Jets"	  
+				 , "Diboson"	  
+				 , "Diboson"	  
+				 , "Z->e#tau"	  
+				 , "Z->#mu#tau"	  
+				 , "Z->e#mu"	  
+				 , "H->e#tau"	  
+				 , "H->#mu#tau"	  
+				 , "H->e#mu"	  
   };
 }
 
@@ -263,25 +279,41 @@ int stack_tmva_tree(const char* file = "training_background_ztautau_higgs_mutau_
     printf("Retrieved both trees\n");
 
   std::map<TString, int> colors;
-  colors["Z+Jets"] = kRed+1;
-  colors["W+Jets"] = kGreen+2;
-  colors["Top"]    = kYellow+1;
-  colors["DiBoson"]= kViolet;
-  colors["ZMuTau"] = kGreen+9;
-  colors["ZEMu"]   = kGreen+9;
-  colors["ZETau"]  = kAzure-2;
-  colors["HMuTau"] = kGreen+9;
-  colors["HEMu"]   = kGreen+9;
-  colors["HETau"]  = kAzure-2;
-  colors["HZG"]    = kBlue-2;
-  colors["Data"]   = kBlack;
+  if(doNano_) {
+    colors["Z+Jets"] = kRed-7;
+    colors["W+Jets"] = kGreen-7;
+    colors["t#bar{t}qql#nu"] = kYellow-7;
+    colors["t#bar{t}l#nul#nu"] = kMagenta-7;
+    colors["Single top"] = kCyan-7;
+    colors["Diboson"]= kViolet+6;
+    colors["Z->e#tau"] = kBlue;
+    colors["Z->#mu#tau"] = kBlue;
+    colors["Z->e#mu"] = kBlue;
+    colors["H->e#tau"] = kBlue;
+    colors["H->#mu#tau"] = kBlue;
+    colors["H->e#mu"] = kBlue;
+    colors["Data"]   = kBlack;
+  } else {
+    colors["Z+Jets"] = kRed+1;
+    colors["W+Jets"] = kGreen+2;
+    colors["Top"]    = kYellow+1;
+    colors["DiBoson"]= kViolet;
+    colors["ZMuTau"] = kGreen+9;
+    colors["ZEMu"]   = kGreen+9;
+    colors["ZETau"]  = kAzure-2;
+    colors["HMuTau"] = kGreen+9;
+    colors["HEMu"]   = kGreen+9;
+    colors["HETau"]  = kAzure-2;
+    colors["HZG"]    = kBlue-2;
+    colors["Data"]   = kBlack;
+  }
   std::map<TString, int> isSignal;
 
   //initialize a map of histogram titles to index in histogram array to use
   std::map<TString, int> indexes;
-  unsigned ndatasets = names_.size();
+  unsigned ndatasets = (doNano_) ? names_nano_.size() : names_.size();
   for(unsigned index = 0; index < ndatasets ; ++index) 
-    indexes[names_[index]] = -1;
+    indexes[((doNano_) ? names_nano_[index] : names_[index])] = -1;
 
   //arrays of histograms for plotting
   TH1F* htest[ndatasets];
@@ -318,11 +350,11 @@ int stack_tmva_tree(const char* file = "training_background_ztautau_higgs_mutau_
   TH1F* hSigTest;
   for(int index = 0; index <  ndatasets; ++index) {
     if(verbose_ > 1)
-      cout << "Filling histogram " << index << ": name = " << names_[index].Data() << endl;
+      cout << "Filling histogram " << index << ": name = " << ((doNano_) ? names_nano_[index].Data() : names_[index].Data()) << endl;
     int category = index + 1; //current definition of category is offset by 1
     
-    htest[index] = new TH1F(Form("htest_%i",index),   Form("Test %s" , names_[index].Data()), bins_, xMin_, xMax_);
-    if(plot_train > 0) htrain[index] = new TH1F(Form("htrain_%i",index), Form("Train %s", names_[index].Data()), bins_, xMin_, xMax_);
+    htest[index] = new TH1F(Form("htest_%i",index),   Form("Test %s" , ((doNano_) ? names_nano_[index].Data() : names_[index].Data())), bins_, xMin_, xMax_);
+    if(plot_train > 0) htrain[index] = new TH1F(Form("htrain_%i",index), Form("Train %s", ((doNano_) ? names_nano_[index].Data() : names_[index].Data())), bins_, xMin_, xMax_);
     TString cut;
     if(fname.Contains("mock"))
       cut = Form("genweight*((%s>=%.5f)",mva_var.Data(),mva_cut);
@@ -332,20 +364,23 @@ int stack_tmva_tree(const char* file = "training_background_ztautau_higgs_mutau_
     cut += Form("&&(eventcategory == %i))",category);
     
     test_tree->Draw(Form("%s>>htest_%i" , var_.Data(), index), cut.Data());
-
+    if(verbose_ > 1)
+      cout << "Test histogram has " << htest[index]->GetEntries() << " entries\n";
     //check if this is signal by asking if class ID is 0 or 1
     hSigTest = new TH1F("hSigTest", "hSigTest", 2, 0., 2.);
     if(verbose_ > 1)
       cout << "Performing signal test: ";
     test_tree->Draw("classID>>hSigTest",Form("(eventcategory==%i)",category));
     bool isSig = hSigTest->GetMean() > 0.5;
-    isSignal[names_[index]] = isSig;//save signal label
+    isSignal[((doNano_) ? names_nano_[index] : names_[index])] = isSig;//save signal label
     if(verbose_ > 1)
       cout  << isSig << endl;
     delete hSigTest;
     
     if(plot_train > 0) train_tree->Draw(Form("%s>>htrain_%i", var_.Data(), index), cut.Data());
-    TString name = names_[index];
+    if(plot_train > 0 && verbose_ > 1)
+      cout << "Test histogram has " << htest[index]->GetEntries() << " entries\n";
+    TString name = ((doNano_) ? names_nano_[index] : names_[index]);
     if(plot_train > 0) htrain[index]->Scale(((isSig) ? scaleSigTrain : scaleBkgTrain));
 
     if(correctForScale_) {//re-scale test/train sample to each look like entire background expectation
@@ -363,19 +398,19 @@ int stack_tmva_tree(const char* file = "training_background_ztautau_higgs_mutau_
       htest[index]->Scale(lum_);
       if(plot_train > 0) htrain[index]->Scale(lum_);
     }
-    int index_map = indexes[name.Data()];
+    int index_map = indexes[name];
     if(index_map > -1) { //already mapped
       htest[index_map]->Add(htest[index]);
       if(plot_train > 0) htrain[index_map]->Add(htrain[index]);
     } else //map this index
-      indexes[name.Data()] = index;
+      indexes[name] = index;
 
-    htest[index]->SetLineColor(colors[names_[index]]);
-    htest[index]->SetFillColor(colors[names_[index]]);
-    htest[index]->SetFillStyle(3001);
-    if(plot_train > 0) htrain[index]->SetMarkerColor(colors[names_[index]]-1);
+    htest[index]->SetLineColor(colors[((doNano_) ? names_nano_[index] : names_[index])]);
+    htest[index]->SetFillColor(colors[((doNano_) ? names_nano_[index] : names_[index])]);
+    // htest[index]->SetFillStyle(3001);
+    if(plot_train > 0) htrain[index]->SetMarkerColor(colors[((doNano_) ? names_nano_[index] : names_[index])]-1);
     if(plot_train > 0) htrain[index]->SetMarkerStyle(20);
-    if(plot_train > 0) htrain[index]->SetLineColor(colors[names_[index]]-1);
+    if(plot_train > 0) htrain[index]->SetLineColor(colors[((doNano_) ? names_nano_[index] : names_[index])]-1);
   }
   TObject* o = (gDirectory->Get("c1"));
   if(o) delete o;
@@ -383,16 +418,22 @@ int stack_tmva_tree(const char* file = "training_background_ztautau_higgs_mutau_
   THStack* hstacktest  = new THStack("teststack" , "Testing Stack");
   THStack* hstacktrain = new THStack("trainstack", "Training Stack");
   for(unsigned index = 0; index <  ndatasets; ++index) {
-    if(indexes[names_[index]] != index)
+    TString name = (doNano_) ? names_nano_[index] : names_[index];
+    if(verbose_ > 1)
+      cout << "Looking at histogram " << index << ", name = " << name.Data() << endl
+	   << "index map = " << indexes[name] << ", issignal = " << isSignal[name] << endl;
+    if(indexes[name] != index)
       continue;
     htest[index] ->SetTitle(Form("%s #scale[0.5]{#int} = %.2e", htest[index] ->GetTitle() , htest[index]->Integral()));
-    if(isSignal[names_[index]]) htest[index]->Scale(scale_signal_);
+    if(isSignal[name]) htest[index]->Scale(scale_signal_);
     if(plot_train > 0) {
       htrain[index]->SetTitle(Form("%s #scale[0.5]{#int} = %.2e", htrain[index]->GetTitle(), htrain[index]->Integral()));
-      if(isSignal[names_[index]]) htrain[index]->Scale(scale_signal_);
+      if(isSignal[name]) htrain[index]->Scale(scale_signal_);
     }
     if(htest[index]->GetEntries() > 0) hstacktest->Add(htest[index]);
     if(plot_train > 0 && htrain[index]->GetEntries() > 0) hstacktrain->Add(htrain[index]);
+    if(verbose_ > 1)
+      cout << "-> Added the histogram to the stack!\n";
   }
   
   TCanvas* c = new TCanvas("c_stack","Stack Canvas", 1200, 800);
@@ -514,6 +555,8 @@ Int_t plot_limit_gain(const char* file = "training_background_ztautau_higgs_muta
     lims_train[step] = 0.;
   }
   //find the limits
+  double p(0.05), tolerance(0.001);
+  Significances significances(p, tolerance, true, 10); //for calculating limit gain
   for(int step = 0; step <= max_steps; ++step) {
     int bin = step + 1;
     double mva_val = xs[step];
@@ -522,15 +565,31 @@ Int_t plot_limit_gain(const char* file = "training_background_ztautau_higgs_muta
     if(n_sig_test <= 0. || n_bkg_test <= 0.) break;
     if(verbose_>1)
       cout << "Limit step " << step << " nbkg = " << n_bkg_test << " nsig = " << n_sig_test << endl;
-    double limit = get_limit(n_bkg_test, n_sig_test, confidence);
+    double val(-1);
+    double limit =significances.LimitGain(n_sig_test, n_bkg_test, val); //get_limit(n_bkg_test, n_sig_test, confidence);
+    if(limit < 0.) limit = 0.;
     lims_test[step] = limit;
     if(verbose_>1)
       cout << "--limit = " << limit << endl;
   }
+  TCanvas* c = new TCanvas("c_limit", "c_limit", 800, 500);
   TGraph* g = new TGraph(max_steps+1, xs, lims_test);
-  g->SetLineWidth(2);
+  g->SetLineWidth(3);
   g->SetLineColor(kBlue);
   if(!setSilent_) gROOT->SetBatch(kFALSE);
   g->Draw();
+  g->GetYaxis()->SetRangeUser(0., 3.);
+  g->GetXaxis()->SetRangeUser(-1., 1.);
+  g->SetTitle("Limit gain vs MVA score; MVA score; Limit gain");
+  c->SetGrid();
+  TLine* line = new TLine(-1., 1., 1., 1.);
+  line->SetLineColor(kRed);
+  line->SetLineWidth(2);
+  line->Draw();
+  if(print_) {
+    TString fnm = file;
+    fnm.ReplaceAll("training_background_ztautau_", "");    
+    c->Print(Form("figures/%s_limit_%s.png", fnm.Data(), mva_var.Data()));
+  }
   return 0;
 }
