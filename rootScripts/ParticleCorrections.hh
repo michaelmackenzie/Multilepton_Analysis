@@ -9,6 +9,7 @@
 #include "TString.h"
 #include "TH1.h"
 #include "TH2.h"
+#include "TGraphAsymmErrors.h"
 #include "TObject.h"
 #include "TFile.h"
 #include "TRandom3.h"
@@ -170,23 +171,58 @@ public :
       if(!f) continue;
       tauMuIDMap[period] = (TH1F*) f->Get((tauMuIDFileNames[period].second).Data());
     }
+
+    //tau energy scale corrections
+    std::map<int, fpair> tauESLowFileNames;
+    tauESLowFileNames[k2016]    = fpair("TauES_dm_DeepTau2017v2p1VSjet_2016Legacy.root", "tes");
+    for(int period = k2016; period <= k2018; ++period) {
+      if(tauESLowFileNames[period].first == "") continue;
+      TFile* f = TFile::Open((tauScaleFactorPath + tauESLowFileNames[period].first).Data(),"READ");
+      if(!f) continue;
+      tauESLowMap[period] = (TH1F*) f->Get((tauESLowFileNames[period].second).Data());
+    }
+    std::map<int, fpair> tauESHighFileNames;
+    tauESHighFileNames[k2016]    = fpair("TauES_dm_DeepTau2017v2p1VSjet_2016Legacy_ptgt100.root", "tes");
+    for(int period = k2016; period <= k2018; ++period) {
+      if(tauESHighFileNames[period].first == "") continue;
+      TFile* f = TFile::Open((tauScaleFactorPath + tauESHighFileNames[period].first).Data(),"READ");
+      if(!f) continue;
+      tauESHighMap[period] = (TH1F*) f->Get((tauESHighFileNames[period].second).Data());
+    }
+
+    std::map<int, fpair> tauFakeESFileNames;
+    tauFakeESFileNames[k2016]    = fpair("TauFES_eta-dm_DeepTau2017v2p1VSe_2016Legacy.root", "fes");
+    for(int period = k2016; period <= k2018; ++period) {
+      if(tauFakeESFileNames[period].first == "") continue;
+      TFile* f = TFile::Open((tauScaleFactorPath + tauFakeESFileNames[period].first).Data(),"READ");
+      if(!f) continue;
+      tauFakeESMap[period] = (TGraphAsymmErrors*) f->Get((tauFakeESFileNames[period].second).Data());
+    }
     
   }
   virtual ~ParticleCorrections() {}
-  virtual double MuonWeight    (double pt, double eta, int trigger, int era);
+  virtual double MuonWeight    (double pt, double eta, int trigger, int era, float& trig_scale);
   virtual double ElectronWeight(double pt, double eta, int era);
   virtual double TauWeight     (double pt, double eta, int genID, int era, double& up, double& down);
   double TauWeight(double pt, double eta, int genID, int era) {
     double up(1.), down(1.);
     return TauWeight(pt, eta, genID, era, up, down);
   }
-
+  virtual double TauEnergyScale(double pt, double eta, int dm, int genID, int era, double& up, double& down);
+  virtual double BTagWeight(double pt, double eta, int jetFlavor, int year, int WP);
+  
   enum{k2016, k2017, k2018}; //defined years
   enum{kLowTrigger, kHighTrigger}; //defined triggers
-  enum{kLooseMuIso, kMediumMuIso, kTightMuIso, kVTightMuIso}; //define iso scale factor sets
+  enum{kLooseBTag, kMediumBTag, kTightBTag}; //define btag WPs
+
+  //muon isolation levels
+  enum{kVLooseMuIso, kLooseMuIso, kMediumMuIso, kTightMuIso, kVTightMuIso, kVVTightMuIso}; //define iso scale factor sets
+  constexpr static double muonIsoValues[] = {0.4, 0.25, 0.20, 0.15, 0.10, 0.05}; //corresponding values
 
   TString fScaleFactorPath    = "/src/StandardModel/ZEMuAnalysis/test/scale_factors/"; //path from cmssw_base
   TString fTauScaleFactorPath = "/src/TauPOG/TauIDSFs/data/"; //path from cmssw_base
+
+private:
   //muon corrections
   std::map<int, TH2F*> muonIDMap;
   std::map<int, TH2F*> muonIsoMap;
@@ -195,12 +231,16 @@ public :
   //electron corrections
   std::map<int, TH2F*> electronIDMap;
   std::map<int, TH2F*> electronRecoMap;
-  //tau corrections
+  //tau ID corrections
   std::map<int, TF1*> tauJetIDMap;
   std::map<int, TF1*> tauJetUpIDMap;
   std::map<int, TF1*> tauJetDownIDMap;
   std::map<int, TH1F*> tauEleIDMap;
   std::map<int, TH1F*> tauMuIDMap;
+  //tau ES corrections
+  std::map<int, TH1F*> tauESLowMap; // 34 < pT < 170 GeV/c
+  std::map<int, TH1F*> tauESHighMap; // pT > 170 GeV/c
+  std::map<int, TGraphAsymmErrors*> tauFakeESMap;
   //b-jet corrections
   std::map<int, TH2F*> bJetIDMap;
   

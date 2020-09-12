@@ -1,7 +1,7 @@
 #include "ParticleCorrections.hh"
 
 
-double ParticleCorrections::MuonWeight(double pt, double eta, int trigger, int year) {
+double ParticleCorrections::MuonWeight(double pt, double eta, int trigger, int year, float& trig_scale) {
   if(year != k2016 && year != k2017 && year != k2018) {
     std::cout << "Warning! Undefined year in " << __func__ << ", returning -1" << std::endl;
     return -1.;
@@ -31,21 +31,24 @@ double ParticleCorrections::MuonWeight(double pt, double eta, int trigger, int y
   biny = (year != k2016) ? hIso->GetYaxis()->FindBin(fabs(eta)) : hIso->GetYaxis()->FindBin(pt);
   double iso_scale = hIso->GetBinContent(binx, biny);
 
-  if(year == k2016) {
-    if(trigger == kLowTrigger && pt < 26.) pt = 26.;
-    else if(trigger == kHighTrigger && pt < 52.) pt = 52.;
-  } else if (year == k2017) {
-    if(trigger == kLowTrigger && pt < 29.) pt = 29.;
-    else if(trigger == kHighTrigger && pt < 52.) pt = 52.;
-  } else if (year == k2018) {
-    if(trigger == kLowTrigger && pt < 26.) pt = 26.;
-    else if(trigger == kHighTrigger && pt < 52.) pt = 52.;
+  //Trigger weights
+  trig_scale = 1.;
+  if(trigger >= 0) { 
+    if(year == k2016) {
+      if(trigger == kLowTrigger && pt < 26.) pt = 26.;
+      else if(trigger == kHighTrigger && pt < 52.) pt = 52.;
+    } else if (year == k2017) {
+      if(trigger == kLowTrigger && pt < 29.) pt = 29.;
+      else if(trigger == kHighTrigger && pt < 52.) pt = 52.;
+    } else if (year == k2018) {
+      if(trigger == kLowTrigger && pt < 26.) pt = 26.;
+      else if(trigger == kHighTrigger && pt < 52.) pt = 52.;
+    }
+    TH2F* hTrigger = (trigger == kLowTrigger) ? muonLowTriggerMap[2*year + !firstSection] : muonHighTriggerMap[2*year + !firstSection] ;
+    //doesn't flip between years
+    trig_scale = hTrigger->GetBinContent(hTrigger->GetXaxis()->FindBin(fabs(eta)), hTrigger->GetYaxis()->FindBin(pt));
   }
-  TH2F* hTrigger = (trigger == kLowTrigger) ? muonLowTriggerMap[2*year + !firstSection] : muonHighTriggerMap[2*year + !firstSection] ;
-  //doesn't flip between years
-  double trig_scale = hTrigger->GetBinContent(hTrigger->GetXaxis()->FindBin(fabs(eta)), hTrigger->GetYaxis()->FindBin(pt));
-
-  double scale_factor = id_scale * iso_scale * trig_scale;
+  double scale_factor = id_scale * iso_scale;
   if(scale_factor <= 0.)
     std::cout << "Warning! ParticleCorrections::" << __func__
 	      << " scale factor <= 0, year = " << year
@@ -90,6 +93,7 @@ double ParticleCorrections::ElectronWeight(double pt, double eta, int year) {
   return scale_factor;
 }
 
+//correction for the tau ID
 double ParticleCorrections::TauWeight(double pt, double eta, int genID, int year, double& up, double& down) {
   if(year != k2016 && year != k2017 && year != k2018) {
     std::cout << "Warning! Undefined year in " << __func__ << ", returning -1" << std::endl;
@@ -109,3 +113,59 @@ double ParticleCorrections::TauWeight(double pt, double eta, int genID, int year
   }
   return scale_factor;
 }
+
+//correction to the tau TLorentzVector
+double ParticleCorrections::TauEnergyScale(double pt, double eta, int dm, int genID, int year, double& up, double& down) {
+  double scale_factor = 1.;
+  up = 1.; down = 1.;
+  if(dm > 12 || dm < 0) return scale_factor;
+  if(genID == 5) {
+    if(year == k2016) {
+      if(pt < 34.)  return scale_factor;
+      else if(pt < 170.) {
+	scale_factor = tauESLowMap[year]->GetBinContent(tauESLowMap[year]->FindBin(dm));
+      } else {
+	scale_factor = tauESHighMap[year]->GetBinContent(tauESHighMap[year]->FindBin(dm));
+      }
+    }
+  } else if(genID == 1 || genID == 3) { //genuine electron -> fake tau or tau -> e -> fake tau
+    if(dm != 0 && dm != 1) return scale_factor;
+    if(year == k2016) {
+      eta = fabs(eta);
+      int point = 0;
+      if(eta > 2.5)  return scale_factor;
+      else if(eta < 1.5) point += 0; //barrel region
+      else point += 2; //endcap region
+      if(dm == 0) point += 0;
+      else        point += 1;
+      double x, y;
+      tauFakeESMap[year]->GetPoint(point, x, y);
+      scale_factor *= y;
+      up *= y + tauFakeESMap[year]->GetErrorYhigh(point);
+      down *= y - tauFakeESMap[year]->GetErrorYlow(point);            
+    }
+  }
+  return scale_factor;
+}
+
+  double ParticleCorrections::BTagWeight(double pt, double eta, int jetFlavor, int year, int WP) {
+  if(pt < 20.) pt = 20.;
+  if(fabs(eta) > 2.4) return 1.; //can't tag high eta jets
+  
+  double scale_factor(1.), x(pt); //use x here
+  if(jetFlavor == 5) { //true b-jets
+    if(year == k2016) {
+      if(WP == kLooseBTag)       scale_factor = 0.971065*((1.+(0.0100459*x))/(1.+(0.00975219*x)));
+      else if(WP == kMediumBTag) scale_factor = 0.922748*((1.+(0.0241884*x))/(1.+(0.0223119*x)));
+      else if(WP == kTightBTag)  scale_factor = 0.573021*((1.+(0.472221*x))/(1.+(0.27584*x)));
+    }
+  } else {
+    if(year == k2016) {
+      if(WP == kLooseBTag)       scale_factor = 0.971065*((1.+(0.0100459*x))/(1.+(0.00975219*x)));
+      else if(WP == kMediumBTag) scale_factor = 0.922748*((1.+(0.0241884*x))/(1.+(0.0223119*x)));
+      else if(WP == kTightBTag)  scale_factor = 0.573021*((1.+(0.472221*x))/(1.+(0.27584*x)));
+    }
+  }
+  return scale_factor;
+}
+

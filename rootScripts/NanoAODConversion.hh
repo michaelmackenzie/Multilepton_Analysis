@@ -56,11 +56,14 @@ public :
   Float_t puWeight = 1.              ;
   Float_t lepOneWeight = 1.          ;
   Float_t lepTwoWeight = 1.          ;
+  Float_t lepOneTrigWeight = 1.      ;
+  Float_t lepTwoTrigWeight = 1.      ;
   Float_t topPtWeight = 1.           ;
   Float_t zPtWeight = 1.             ;
   Float_t genTauFlavorWeight = 1.    ;
   Int_t   tauDecayModeOut = 0        ;
   Float_t tauMVA  = 0                ;
+  Int_t tauGenIDOut      = 0         ;
   Int_t tauGenFlavor     = 0         ;
   Int_t tauGenFlavorHad  = 0         ;
   Float_t tauVetoedJetPt = 0         ;
@@ -69,6 +72,8 @@ public :
   TLorentzVector* leptonTwoP4 = 0    ;
   Int_t leptonOneFlavor = 0          ;
   Int_t leptonTwoFlavor = 0          ;
+  Int_t leptonOneSkimFlavor = 0      ;
+  Int_t leptonTwoSkimFlavor = 0      ;
   Float_t leptonOneD0   = 0          ;
   Float_t leptonTwoD0	= 0	     ;
   Float_t leptonOneIso	= 0	     ;
@@ -79,6 +84,8 @@ public :
   UChar_t leptonTwoID2 = 0           ;
   Int_t   leptonOneIndex = 0         ;
   Int_t   leptonTwoIndex = 0         ;
+  Int_t   leptonOneSkimIndex = -1    ;
+  Int_t   leptonTwoSkimIndex = -1    ;
   TLorentzVector* genLeptonOneP4 = 0 ;
   TLorentzVector* genLeptonTwoP4 = 0 ;
   TLorentzVector* photonP4 = 0       ;
@@ -320,7 +327,12 @@ public :
   virtual float   GetTauFakeSF(int genFlavor);
   virtual float   CorrectMET(int selection, float met);
   virtual float   GetZPtWeight(float pt);
-
+  int             TauFlavorFromID(int ID) {
+    if(ID == 1 || ID == 3) return 11;
+    if(ID == 2 || ID == 4) return 13;
+    if(ID == 5) return 15;
+    return 26; //unknown
+  }
 
   Long64_t fentry; //for tracking entry in functions
   //Define relevant fields
