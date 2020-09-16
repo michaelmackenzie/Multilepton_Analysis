@@ -5,67 +5,6 @@
 
 namespace {
   //Tree Variables
-  struct Tree_t {
-    //lepton variables
-    float leponept;
-    float leponem;
-    float leponeeta;
-    float leponed0;
-    float leponeiso;
-    float leptwopt;
-    float leptwom;
-    float leptwoeta;
-    float leptwod0;
-    float leptwoiso;
-    //di-lepton variables
-    float lepp;
-    float leppt;
-    float lepm;
-    float lepeta;
-    float lepdeltaeta;
-    float lepdeltar;
-    float lepdeltaphi;
-
-    //extra angles
-    float htdeltaphi;    
-    float metdeltaphi;
-    float leponedeltaphi;
-    float leptwodeltaphi;
-    float onemetdeltaphi;
-    float twometdeltaphi;
-
-    //MET variables
-    float met;
-    float metphi;
-    float mtone;
-    float mttwo;
-    float pxivis;
-    float pxiinv;
-    float ptauvisfrac;
-    float mestimate;
-    float mestimatetwo;
-    
-    //Event variables
-    float ht;
-    float htsum;
-    float njets;
-    float nbjets; //pt > 30
-    float nbjetsm;
-    float nbjetsl;
-    float nbjetstot25; //pt > 25
-    float nbjetstot25m;
-    float nbjetstot25l;
-    float nbjetstot20; //pt > 20
-    float nbjetstot20m;
-    float nbjetstot20l;
-    float nphotons;
-    float eventweight;
-    float fulleventweight; //includes cross-section and number gen
-    float eventcategory; //for identifying the process in mva trainings
-
-    //identify to use in training
-    float train; //  < 0 --> testing, > 0 --> training sample
-  };
   Tree_t fTreeVars;
   enum {kMaxMVAs = 80};
   //Define relevant fields
@@ -73,28 +12,13 @@ namespace {
   TMVA::Reader* mva[kMaxMVAs]; //read and apply mva weight files
   vector<TString> fMvaNames = { //mva names for getting weights
     "mutau_BDT_8.higgs","mutau_BDT_8.Z0", //0 - 9: total mvas
-    "etau_BDT_28.higgs","etau_BDT_28.Z0",
-    "emu_BDT_47.higgs","emu_BDT_47.Z0",
-    "mutau_e_BDT_48.higgs","mutau_e_BDT_48.Z0",
-    "etau_mu_BDT_48.higgs","etau_mu_BDT_48.Z0", 
-    "mutau_BDT_18.higgs","mutau_BDT_18.Z0", //10 - 19: 0 jets
     "etau_BDT_38.higgs","etau_BDT_38.Z0",
-    "emu_BDT_58.higgs","emu_BDT_58.Z0",
-    "mutau_e_BDT_58.higgs","mutau_e_BDT_58.Z0",
-    "etau_mu_BDT_58.higgs","etau_mu_BDT_58.Z0", 
-    "mutau_BDT_19.higgs","mutau_BDT_19.Z0", // 20 - 29: 1 jet
-    "etau_BDT_39.higgs","etau_BDT_39.Z0",
-    "emu_BDT_59.higgs","emu_BDT_59.Z0",
-    "mutau_e_BDT_59.higgs","mutau_e_BDT_59.Z0",
-    "etau_mu_BDT_59.higgs","etau_mu_BDT_59.Z0", 
-    "mutau_BDT_20.higgs","mutau_BDT_20.Z0",  // 30 - 39: >1 jet
-    "etau_BDT_40.higgs","etau_BDT_40.Z0",
-    "emu_BDT_60.higgs","emu_BDT_60.Z0",
-    "mutau_e_BDT_60.higgs","mutau_e_BDT_60.Z0",
-    "etau_mu_BDT_60.higgs","etau_mu_BDT_60.Z0"
-  };
-  Int_t fIsJetBinnedMVAs[kMaxMVAs]; //storing number of jets for MVA, < 0 if not binned
-  float fMvaOutputs[kMaxMVAs]; //store MVA scores
+    "emu_BDT_68.higgs","emu_BDT_68.Z0",
+    "mutau_e_BDT_68.higgs","mutau_e_BDT_68.Z0",
+    "etau_mu_BDT_68.higgs","etau_mu_BDT_68.Z0"};
+  Int_t   fIsJetBinnedMVAs[kMaxMVAs]; //storing number of jets for MVA, < 0 if not binned
+  Float_t fMvaOutputs[kMaxMVAs];
+  Int_t   fTrkQualVersion = TrkQualInit::Default; //for updating which variables are used
   TBranch* fMvaBranches[kMaxMVAs]; //mva branches in the new ttree
   float met; //standalone to not update with the correction in new tree
   float metPhi;
@@ -106,6 +30,9 @@ namespace {
   UInt_t nElectrons;
   UInt_t nMuons;
   UInt_t nTaus;
+  UChar_t tauDeepAntiEle             ;
+  UChar_t tauDeepAntiMu              ;
+  UChar_t tauDeepAntiJet             ;
   UInt_t njets;
   UInt_t nBJets                      ;
   UInt_t nBJetsM                     ;
@@ -127,6 +54,14 @@ namespace {
   float htPhi;
   
   bool debug = false;
+  TH1F* hDebug = 0; //if debugging, make a histograms of scores instead
+
+  struct datacard_t {
+    bool process_;
+    TString fname_;
+    datacard_t(bool process, TString fname) :
+      process_(process), fname_(fname) {}
+  };
 }
 
 Int_t book_mvas() {
@@ -153,73 +88,24 @@ Int_t book_mvas() {
 
     Int_t isJetBinned = -1; // -1 is not binned, 0 = 0 jets, 1 = 1 jet, 2 = >1 jets
     if(fMvaNames[mva_i].Contains("_18") || //0 jet
-       fMvaNames[mva_i].Contains("_38") ||
-       fMvaNames[mva_i].Contains("_58"))
+       fMvaNames[mva_i].Contains("_48") ||
+       fMvaNames[mva_i].Contains("_78"))
       isJetBinned = 0;
     else if(fMvaNames[mva_i].Contains("_19") || //1 jet
-	    fMvaNames[mva_i].Contains("_39") ||
-	    fMvaNames[mva_i].Contains("_59"))
+	    fMvaNames[mva_i].Contains("_49") ||
+	    fMvaNames[mva_i].Contains("_79"))
       isJetBinned = 1;
     else if(fMvaNames[mva_i].Contains("_20") || //>1 jet
-	    fMvaNames[mva_i].Contains("_40") ||
-	    fMvaNames[mva_i].Contains("_60"))
+	    fMvaNames[mva_i].Contains("_50") ||
+	    fMvaNames[mva_i].Contains("_80"))
       isJetBinned = 2;
 
     fIsJetBinnedMVAs[mva_i] = isJetBinned; //store for checking when filling
       
     printf("Using selection %s\n", selection.Data());
-    //Order must match the mva training!
-    mva[mva_i]->AddVariable("lepm"            ,&fTreeVars.lepm           ); 
-    mva[mva_i]->AddVariable("mtone"           ,&fTreeVars.mtone          );
-    mva[mva_i]->AddVariable("mttwo"           ,&fTreeVars.mttwo          );
-    mva[mva_i]->AddVariable("leponept"        ,&fTreeVars.leponept       );
-    mva[mva_i]->AddVariable("leptwopt"        ,&fTreeVars.leptwopt       );
-    mva[mva_i]->AddVariable("leppt"           ,&fTreeVars.leppt          );
-    mva[mva_i]->AddSpectator("pxivis"         ,&fTreeVars.pxivis         );
-    mva[mva_i]->AddSpectator("pxiinv"         ,&fTreeVars.pxiinv         );
-    if(isJetBinned < 0)
-      mva[mva_i]->AddVariable("njets"         ,&fTreeVars.njets          );
-    else
-      mva[mva_i]->AddSpectator("njets"        ,&fTreeVars.njets          );
-
-    if(fMvaNames[mva_i].Contains("_47")) //use btag information
-      mva[mva_i]->AddVariable("nbjetstot20m", &fTreeVars.nbjetstot20m);
-
-    mva[mva_i]->AddSpectator("lepdeltaeta"    ,&fTreeVars.lepdeltaeta    );
-    mva[mva_i]->AddSpectator("metdeltaphi"    ,&fTreeVars.metdeltaphi    );
-
-    //tau specific
-    if(selection.Contains("tau")) {
-      mva[mva_i]->AddVariable("lepmestimate"   ,&fTreeVars.mestimate     ); 
-      mva[mva_i]->AddVariable("onemetdeltaphi" ,&fTreeVars.onemetdeltaphi);
-      mva[mva_i]->AddVariable("twometdeltaphi" ,&fTreeVars.twometdeltaphi);
-    } else {
-      mva[mva_i]->AddSpectator("lepmestimate"  ,&fTreeVars.mestimate     ); 
-      mva[mva_i]->AddSpectator("onemetdeltaphi",&fTreeVars.onemetdeltaphi);
-      mva[mva_i]->AddSpectator("twometdeltaphi",&fTreeVars.twometdeltaphi); 
-    }
-      
-    //Spectators from mva training also required!
-    mva[mva_i]->AddSpectator("leponedeltaphi"  ,&fTreeVars.leponedeltaphi );
-    mva[mva_i]->AddSpectator("leptwodeltaphi"  ,&fTreeVars.leptwodeltaphi );
-    mva[mva_i]->AddSpectator("leponed0"       ,&fTreeVars.leponed0       );
-    mva[mva_i]->AddSpectator("leptwod0"       ,&fTreeVars.leptwod0       );
-    //boson specific
-    if(isJetBinned != 0) {
-      mva[mva_i]->AddVariable("htdeltaphi"     ,&fTreeVars.htdeltaphi     );
-      mva[mva_i]->AddVariable("ht"            ,&fTreeVars.ht             ); 
-    } else {
-      mva[mva_i]->AddSpectator("htdeltaphi"     ,&fTreeVars.htdeltaphi     );
-      mva[mva_i]->AddSpectator("ht"           ,&fTreeVars.ht             ); 
-    }
-    mva[mva_i]->AddVariable("lepdeltaphi"    ,&fTreeVars.lepdeltaphi    );
-    mva[mva_i]->AddSpectator("htsum"          ,&fTreeVars.htsum          ); 
-    mva[mva_i]->AddSpectator("leponeiso"      ,&fTreeVars.leponeiso      );
-    mva[mva_i]->AddSpectator("met"            ,&fTreeVars.met            );
-    mva[mva_i]->AddSpectator("lepdeltar"      ,&fTreeVars.lepdeltar      );
-    mva[mva_i]->AddSpectator("fulleventweight",&fTreeVars.fulleventweight);
-    mva[mva_i]->AddSpectator("eventweight"    ,&fTreeVars.eventweight    );
-    mva[mva_i]->AddSpectator("eventcategory"  ,&fTreeVars.eventcategory  );
+    //use a tool to initialize the MVA variables and spectators
+    TrkQualInit trkQualInit(fTrkQualVersion, isJetBinned);
+    trkQualInit.InitializeVariables(*(mva[mva_i]), selection, fTreeVars);
 
     //Initialize MVA weight file
     const char* f = Form("weights/%s.weights.xml",fMvaNames[mva_i].Data());
@@ -254,10 +140,23 @@ Int_t initialize_tree_vars(int selection) {
   missing = missing + missingCorr;
   //updated MET variables
   fTreeVars.met = missing.Mag();
-  fTreeVars.metphi = missing.Phi();
+  metPhi = missing.Phi();
 
   fTreeVars.leponept  = leptonOneP4->Pt();
   fTreeVars.leptwopt  = leptonTwoP4->Pt();
+  fTreeVars.leponeidone   = 0.;
+  fTreeVars.leponeidtwo   = 0.; 
+  fTreeVars.leponeidthree = 0.;
+  if(selection < 5) {//tau selection
+    fTreeVars.leptwoidone   = tauDeepAntiEle;
+    fTreeVars.leptwoidtwo   = tauDeepAntiMu; 
+    fTreeVars.leptwoidthree = tauDeepAntiJet;
+  } else { //no other ids for now
+    fTreeVars.leptwoidone   = 0.;
+    fTreeVars.leptwoidtwo   = 0.; 
+    fTreeVars.leptwoidthree = 0.;
+  }
+
   TLorentzVector lep = *leptonOneP4 + *leptonTwoP4;
   fTreeVars.leppt  = lep.Pt();
   fTreeVars.lepm   = lep.M();
@@ -270,21 +169,21 @@ Int_t initialize_tree_vars(int selection) {
   fTreeVars.htdeltaphi = abs(lep.Phi() - htPhi);
   if(fTreeVars.htdeltaphi > M_PI)
     fTreeVars.htdeltaphi = abs(2.*M_PI - fTreeVars.htdeltaphi);
-  fTreeVars.metdeltaphi = abs(lep.Phi() - fTreeVars.metphi);
+  fTreeVars.metdeltaphi = abs(lep.Phi() - metPhi);
   if(fTreeVars.metdeltaphi > M_PI)
     fTreeVars.metdeltaphi = abs(2.*M_PI - fTreeVars.metdeltaphi);
   fTreeVars.leponedeltaphi = abs(leptonOneP4->DeltaPhi(lep));
   fTreeVars.leptwodeltaphi = abs(leptonTwoP4->DeltaPhi(lep));
-  fTreeVars.onemetdeltaphi = abs(leptonOneP4->Phi() - fTreeVars.metphi);
+  fTreeVars.onemetdeltaphi = abs(leptonOneP4->Phi() - metPhi);
   if(fTreeVars.onemetdeltaphi > M_PI)
     fTreeVars.onemetdeltaphi = abs(2.*M_PI - fTreeVars.onemetdeltaphi);
-  fTreeVars.twometdeltaphi = abs(leptonTwoP4->Phi() - fTreeVars.metphi);
+  fTreeVars.twometdeltaphi = abs(leptonTwoP4->Phi() - metPhi);
   if(fTreeVars.twometdeltaphi > M_PI)
     fTreeVars.twometdeltaphi = abs(2.*M_PI - fTreeVars.twometdeltaphi);
 
   
-  fTreeVars.mtone = sqrt(2.*fTreeVars.met*fTreeVars.leponept*(1.-cos(leptonOneP4->Phi() - fTreeVars.metphi)));
-  fTreeVars.mttwo = sqrt(2.*fTreeVars.met*fTreeVars.leptwopt*(1.-cos(leptonTwoP4->Phi() - fTreeVars.metphi)));
+  fTreeVars.mtone = sqrt(2.*fTreeVars.met*fTreeVars.leponept*(1.-cos(leptonOneP4->Phi() - metPhi)));
+  fTreeVars.mttwo = sqrt(2.*fTreeVars.met*fTreeVars.leptwopt*(1.-cos(leptonTwoP4->Phi() - metPhi)));
 
   //momentum projections onto bisector
   TVector3 lp1 = leptonOneP4->Vect();
@@ -323,9 +222,10 @@ Int_t initialize_tree_vars(int selection) {
   if(selection == 1)      selecName = "mutau";
   else if(selection == 2) selecName = "etau";
   else if(selection == 5) selecName = "emu";
-  else                    selecName = "unknown";
+  else {                  selecName = "unknown"; cout << "---Warning! Entry " << fentry << " has unknown selection!\n";}
+  
   for(unsigned i = 0; i < fMvaNames.size(); ++i) {
-    if(fMvaBranches[i] && (fMvaNames[i].Contains(selecName.Data()) || //is this selection and filling a branch for it
+    if((fMvaBranches[i] || (debug&&mva[i]))&& (fMvaNames[i].Contains(selecName.Data()) || //is this selection and filling a branch for it
 	(selecName == "emu" && (fMvaNames[i].Contains("_e") || fMvaNames[i].Contains("_mu")))) && //or leptonic tau category
        (fIsJetBinnedMVAs[i] < 0 || fIsJetBinnedMVAs[i] == min((int) fTreeVars.njets,2))) //and either not jet binned or right number of jets
       fMvaOutputs[i] = mva[i]->EvaluateMVA(fMvaNames[i].Data());
@@ -336,6 +236,7 @@ Int_t initialize_tree_vars(int selection) {
     if(fMvaOutputs[i] < -100.) 
       cout << "Error value returned for MVA " << fMvaNames[i].Data()
 	   << " evaluation, Entry = " << fentry << endl;
+    if(debug) hDebug->Fill(fMvaOutputs[i]);
   }
   return 0;
 }
@@ -366,7 +267,14 @@ Int_t set_addresses(TTree* fChain) {
   fChain->SetBranchStatus("metCorrPhi"          , 1); fChain->SetBranchAddress("metCorrPhi"          , &metCorrPhi           );   
   fChain->SetBranchStatus("ht"                  , 1); fChain->SetBranchAddress("ht"                  , &fTreeVars.ht         );   
   fChain->SetBranchStatus("htPhi"               , 1); fChain->SetBranchAddress("htPhi"               , &htPhi                );   
+  fChain->SetBranchStatus("tauDeepAntiEle"      , 1); fChain->SetBranchAddress("tauDeepAntiEle"      , &tauDeepAntiEle       );
+  fChain->SetBranchStatus("tauDeepAntiMu"       , 1); fChain->SetBranchAddress("tauDeepAntiMu"       , &tauDeepAntiMu        );
+  fChain->SetBranchStatus("tauDeepAntiJet"      , 1); fChain->SetBranchAddress("tauDeepAntiJet"      , &tauDeepAntiJet       );
 
+
+
+
+  
   //add new branches for MVA outputs
   for(unsigned mva_i = 0; mva_i < fMvaNames.size(); ++mva_i)  fMvaBranches[mva_i] = 0; //set to 0 initially
   int nfound = 0;
@@ -374,12 +282,13 @@ Int_t set_addresses(TTree* fChain) {
     // //add branch if doesn't already exist unless
     ++nfound;
     if(!fChain->GetBranch(Form("mva%i",mva_i))) {
-      fMvaBranches[mva_i] = fChain->Branch(Form("mva%i",mva_i), &(fMvaOutputs[mva_i]));
+      if(!debug) fMvaBranches[mva_i] = fChain->Branch(Form("mva%i",mva_i), &(fMvaOutputs[mva_i]));
     } else { //update branch if it exists
-      fChain->SetBranchStatus(Form("mva%i", mva_i), 1);
-      fChain->SetBranchAddress(Form("mva%i", mva_i), &(fMvaOutputs[mva_i]));
-      fMvaBranches[mva_i] = fChain->GetBranch(Form("mva%i",mva_i));
-
+      if(!debug) {
+	fChain->SetBranchStatus(Form("mva%i", mva_i), 1);
+	fChain->SetBranchAddress(Form("mva%i", mva_i), &(fMvaOutputs[mva_i]));
+	fMvaBranches[mva_i] = fChain->GetBranch(Form("mva%i",mva_i));
+      }
     }
   }      
   return nfound;
@@ -390,7 +299,7 @@ Int_t make_new_tree(TString path, TString path_in_file, TString tree_name) {
        << " and tree name " << tree_name.Data() << endl;
   
   // get the file and tree we're adding to
-  TFile* file = TFile::Open(path.Data(), "UPDATE");
+  TFile* file = TFile::Open(path.Data(), ((debug) ? "READ" : "UPDATE"));
   if(!file) return 1;
   TDirectory* fdir = (TDirectory*) (path_in_file == "" ? file : file->Get(path_in_file.Data()));
   if(!fdir) return 2;
@@ -403,7 +312,11 @@ Int_t make_new_tree(TString path, TString path_in_file, TString tree_name) {
   //set the relevant addresses and add mva branches
   int status = (set_addresses(tree) == 0) ? 4 : 0;
   if(status) return status;
-  
+
+  if(debug) {
+    hDebug = new TH1F("hDebug", "hDebug", 500, -3., 2.);
+  }
+
   //run through tree and evaluate mvas for each
   Long64_t nentries = tree->GetEntriesFast();
   cout << "Processing " << tree->GetName() << " tree with " << nentries << " entries" << endl;
@@ -411,31 +324,33 @@ Int_t make_new_tree(TString path, TString path_in_file, TString tree_name) {
     if(entry % 50000 == 0)
       cout << "Processing entry " << entry << "..." << endl;
     if(fMaxEntries > 0 && entry >= fMaxEntries) {
-      cout << "Hit maximum entries, " << fMaxEntries << ", exiting\n";
+      cout << "Hit maximum entries, " << fMaxEntries << ", exiting!\n";
       break;
     }
     fentry = entry;
     Int_t tree_status = tree->GetEntry(entry, 0);
     if(debug && entry%10000 == 0)
       cout << "Status getting entry: " << tree_status << endl;
-    int selection = (nElectrons == 0 && nMuons == 1 && nTaus == 1) +
-      2*(nElectrons == 1 && nMuons == 0 && nTaus == 1) +
-      5*(nElectrons == 1 && nMuons == 1 && nTaus == 0);
+    int selection = ((nElectrons == 0 && nMuons == 1 && nTaus == 1) +
+		     2*(nElectrons == 1 && nMuons == 0 && nTaus == 1) +
+		     5*(nElectrons == 1 && nMuons == 1 && nTaus == 0));
+    if(debug && entry%10000 == 0)
+      cout << "Using selection " << selection << endl;
     initialize_tree_vars(selection);
     for(unsigned mva_i = 0; mva_i < fMvaNames.size(); ++mva_i) {
-      if(fMvaBranches[mva_i]) {
-	if(entry%10000 == 0 && debug)
-	  cout << "Filling MVA branch " << mva_i << " with score " << fMvaOutputs[mva_i] << endl;
+      if(!debug&&fMvaBranches[mva_i]) {
 	fMvaBranches[mva_i]->Fill();
       }
     }
   }
-  if(debug) tree->Draw("mva5");
-  fdir->cd();
-  tree->Write();
-  fdir->Write();
-  file->Write();
-  delete file;
+  if(debug) hDebug->Draw();
+  else {
+    fdir->cd();
+    tree->Write();
+    fdir->Write();
+    file->Write();
+    delete file;
+  }
   return 0;
 }
 
@@ -446,7 +361,7 @@ Int_t initialize() {
 
 Int_t process_standard_trees() {
   int status = 0;
-  TString grid_path = "/eos/uscms/store/user/mmackenz/ztautau_trees/";
+  TString grid_path = "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/";
   vector<TString> files = {"ttbar_inclusive"             ,
 			 "DYJetsToLL_M-50_amcatnlo"    ,
 			 "DYJetsToLL_M-10to50_amcatnlo",
@@ -559,7 +474,7 @@ Int_t process_standard_trees() {
 			   "electron_2016G"	        ,  //"electron_2016G"              
 			   "electron_2016H"                //"electron_2016H_v2"		   
   };
-  vector<TString> folders = {"emu"}; //{"mutau", "etau", "emu"};
+  vector<TString> folders = {"mutau", "etau", "emu"};
   status = initialize(); //initialize the MVAs
   if(status) return status;
   
@@ -571,6 +486,59 @@ Int_t process_standard_trees() {
       TString file_name = (grid_path + "output_") + (file + ".root");
       int stat = make_new_tree(file_name, folder, "bltTree_"+name);
       if(stat) cout << "file " << file.Data() << " folder " << folder.Data()
+		    << " returned status " << stat << endl;
+      status += stat;
+    }
+  }
+  //report the time spent histogramming
+  Double_t cpuTime = timer->CpuTime();
+  Double_t realTime = timer->RealTime();
+  printf("Processing time: %7.2fs CPU time %7.2fs Wall time\n",cpuTime,realTime);
+  if(realTime > 600. ) printf("Processing time: %7.2fmin CPU time %7.2fmin Wall time\n",cpuTime/60.,realTime/60.);
+  return status;
+}
+
+Int_t process_standard_nano_trees(int year = 2016) {
+  int status = 0;
+  TString grid_path = "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_nanoaod_test_trees/";
+  TString name = "clfv_";
+  name += year;
+  name += "_";
+  TString ext  = ".tree";
+  vector<datacard_t> cards;
+  cards.push_back(datacard_t(false, name+"ttbarToSemiLeptonic"));
+  cards.push_back(datacard_t(true , name+"ttbarlnu"));
+  cards.push_back(datacard_t(true , name+"DY50"));
+  cards.push_back(datacard_t(true , name+"SingleAntiToptW"));
+  cards.push_back(datacard_t(true , name+"SingleToptW"));
+  cards.push_back(datacard_t(true , name+"Wlnu"));
+  cards.push_back(datacard_t(true , name+"WW"));
+  cards.push_back(datacard_t(true , name+"WZ"));
+  cards.push_back(datacard_t(true , name+"ZETau"));
+  cards.push_back(datacard_t(true , name+"ZMuTau"));
+  cards.push_back(datacard_t(true , name+"ZEMu"));
+  cards.push_back(datacard_t(true , name+"HETau"));
+  cards.push_back(datacard_t(true , name+"HMuTau"));
+  cards.push_back(datacard_t(true , name+"HEMu"));
+  cards.push_back(datacard_t(true , name+"SingleMu"));
+  cards.push_back(datacard_t(true , name+"SingleEle"));
+  cards.push_back(datacard_t(true , name+"ZZ"));
+  cards.push_back(datacard_t(true , name+"WWW"));
+  cards.push_back(datacard_t(true , name+"QCDDoubleEMEnrich30to40"));
+  cards.push_back(datacard_t(true , name+"QCDDoubleEMEnrich30toInf"));
+  cards.push_back(datacard_t(true , name+"QCDDoubleEMEnrich40toInf"));
+  
+  vector<TString> folders = {"mutau", "etau", "emu"};
+  status = initialize(); //initialize the MVAs
+  if(status) return status;
+  
+  TStopwatch* timer = new TStopwatch();
+  for(datacard_t& card : cards) {
+    if(!card.process_) continue;
+    for(auto folder : folders) {
+      TString file_name = grid_path + card.fname_ + ext;
+      int stat = make_new_tree(file_name, folder, card.fname_);
+      if(stat) cout << "file " << card.fname_.Data() << ": folder " << folder.Data()
 		    << " returned status " << stat << endl;
       status += stat;
     }

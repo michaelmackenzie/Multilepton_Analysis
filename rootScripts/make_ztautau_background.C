@@ -67,6 +67,8 @@ Int_t make_background(int set = 7, TString selection = "mutau", TString base = "
 			      "SingleToptW"        ,
 			      "WW"	           ,
 			      "WZ"                 ,
+			      "ZZ"                 ,
+			      "WWW"                ,
 			      "Wlnu"               ,
 			      "ttbarToSemiLeptonic",
 			      "ttbarlnu"           ,
@@ -83,6 +85,8 @@ Int_t make_background(int set = 7, TString selection = "mutau", TString base = "
 			 , doTop_ //t_tw
 			 , doDiboson_ //WW
 			 , doDiboson_ //WZ
+			 , doDiboson_ //ZZ
+			 , doDiboson_ //WWW
 			 , doWJets_ //WJets
 			 , doTop_ //ttbar
 			 , doTop_ //ttbar

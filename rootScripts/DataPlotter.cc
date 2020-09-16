@@ -1419,7 +1419,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
       double mcErr = huncertainty->GetBinError(i);
       x[i-1] = hDataMC->GetBinCenter(i);
       y[i-1] = 1.;
-      xerr[i-1] = 0.;
+      xerr[i-1] = huncertainty->GetBinWidth(i)/2.;
       yerr[i-1] = (mcVal > 0.) ? mcErr/mcVal : 0.;
       if(dataVal == 0 || mcVal == 0) {hDataMC->SetBinContent(i,-1); continue;}
       double err = sqrt(mcErr*mcErr + dataErr*dataErr);
@@ -1525,7 +1525,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
     hDataMC->SetMarkerStyle(20);
     //  hDataMC->SetName("hDataMC");
     if(hDataMCErr)
-      hDataMCErr->Draw("3");
+      hDataMCErr->Draw("E2");
   } else if(hDataMC && data_over_mc_ < 0) {
     pad2->cd();
     pad2->SetGrid();

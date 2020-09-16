@@ -86,6 +86,8 @@ public :
   UChar_t leptonTwoID2               ;
   Int_t   leptonOneIndex             ;
   Int_t   leptonTwoIndex             ;
+  Float_t   leptonOneWeight          ;
+  Float_t   leptonTwoWeight          ;
   TLorentzVector* genLeptonOneP4 = 0 ;
   TLorentzVector* genLeptonTwoP4 = 0 ;
   TLorentzVector* photonP4 = 0       ;
@@ -639,7 +641,7 @@ public :
   };
   Int_t   fIsJetBinnedMVAs[kMaxMVAs]; //storing number of jets for MVA, < 0 if not binned
   Float_t fMvaOutputs[kMaxMVAs];
-  Int_t   fTrkQualVersion = 3; //for updating which variables are used
+  Int_t   fTrkQualVersion = TrkQualInit::Default; //for updating which variables are used
   
   //Histograms:
   const static Int_t fn = 400; //max histogram sets
@@ -768,7 +770,7 @@ void ZTauTauHistMaker::Init(TTree *tree)
     }
 
     //Event Sets
-    //currently sets 5-24 are mutau, 25-44 are etau, and 45-64 are emu
+    //currently sets 0-29 are mutau, 30-59 are etau, and 60-89 are emu
     // fEventSets [0] = 0; // all events
     if(fFolderName == "mutau") {
       fEventSets [kMuTau + 1] = 1; // all opposite signed events
@@ -980,6 +982,20 @@ void ZTauTauHistMaker::Init(TTree *tree)
       fEventSets [kEMu   + 22+fQcdOffset] = 1; // events with same signs and nPhotons > 0
       fEventSets [kEMu   + 23] = 1;  //mario's box cuts
       fEventSets [kEMu   + 23+fQcdOffset] = 1; 
+
+      //investigating MVA peaks
+      fEventSets [kEMu   + 24] = 1;
+      fEventSets [kEMu   + 24+fQcdOffset] = 1; 
+      fEventSets [kEMu   + 25] = 1;
+      fEventSets [kEMu   + 25+fQcdOffset] = 1; 
+      fEventSets [kEMu   + 26] = 1;
+      fEventSets [kEMu   + 26+fQcdOffset] = 1; 
+      fEventSets [kEMu   + 27] = 1;
+      fEventSets [kEMu   + 27+fQcdOffset] = 1; 
+      fEventSets [kEMu   + 28] = 1;
+      fEventSets [kEMu   + 28+fQcdOffset] = 1; 
+      fEventSets [kEMu   + 29] = 1;
+      fEventSets [kEMu   + 29+fQcdOffset] = 1; 
     }
     if(fFolderName == "mumu") {
       //Mu+Mu sets
@@ -1057,6 +1073,8 @@ void ZTauTauHistMaker::Init(TTree *tree)
   fChain->SetBranchAddress("leptonTwoID2"        , &leptonTwoID2         );
   fChain->SetBranchAddress("leptonOneIndex"      , &leptonOneIndex       );
   fChain->SetBranchAddress("leptonTwoIndex"      , &leptonTwoIndex       );
+  fChain->SetBranchAddress("lepOneWeight"        , &leptonOneWeight      );
+  fChain->SetBranchAddress("lepTwoWeight"        , &leptonTwoWeight      );
   fChain->SetBranchAddress("genLeptonOneP4" 	 , &genLeptonOneP4       );
   fChain->SetBranchAddress("genLeptonTwoP4" 	 , &genLeptonTwoP4       );
   fChain->SetBranchAddress("photonP4"  	         , &photonP4             );

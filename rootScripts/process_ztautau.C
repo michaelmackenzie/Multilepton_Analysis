@@ -1,10 +1,19 @@
 
+//Data formats
 #include "../dataFormats/SlimObject_t.hh+g"
 #include "../dataFormats/SlimElectron_t.hh+g"
 #include "../dataFormats/SlimMuon_t.hh+g"
 #include "../dataFormats/SlimTau_t.hh+g"
 #include "../dataFormats/SlimJet_t.hh+g"
+#include "../dataFormats/SlimPhoton_t.hh+g"
+#include "../dataFormats/Tree_t.hh+g"
+
+//Utilities
+#include "../utils/TrkQualInit.cc+g"
+
+//Histogrammer
 #include "ZTauTauHistMaker.cc+g"
+
 struct datacard_t {
   bool process_;
   double xsec_;
@@ -211,44 +220,52 @@ Int_t process_ztautau() {
   nanoaod_path.ReplaceAll("ztautau_trees", "ztautau_nanoaod_test_trees"); //use the same path, but replace the search directory
 
   vector<datacard_t> nanocards;
-  nanocards.push_back(datacard_t(true , 365.34                                  , "clfv_2016_ttbarToSemiLeptonic.tree"));
-  nanocards.push_back(datacard_t(true , 88.29                                   , "clfv_2016_ttbarlnu.tree"           ));
-  nanocards.push_back(datacard_t(true , 6225.42                                 , "clfv_2016_DY50.tree"               ));
-  nanocards.push_back(datacard_t(true , 34.91                                   , "clfv_2016_SingleAntiToptW.tree"    ));
-  nanocards.push_back(datacard_t(true , 34.91                                   , "clfv_2016_SingleToptW.tree"        ));
-  nanocards.push_back(datacard_t(true , 52850.0                                 , "clfv_2016_Wlnu.tree"               ));
-  nanocards.push_back(datacard_t(true , 12.178                                  , "clfv_2016_WW.tree"                 ));
-  nanocards.push_back(datacard_t(true , 27.6                                    , "clfv_2016_WZ.tree"                 ));
-  nanocards.push_back(datacard_t(true , ((6225.42+18610.)/(3.*3.3658e-2))*9.8e-6, "clfv_2016_ZETau.tree"              ));
-  nanocards.push_back(datacard_t(true , ((6225.42+18610.)/(3.*3.3658e-2))*1.2e-5, "clfv_2016_ZMuTau.tree"             ));
-  nanocards.push_back(datacard_t(true , 2075.14/0.0337*7.3e-7                   , "clfv_2016_ZEMu.tree"               ));
-  nanocards.push_back(datacard_t(true , (48.61+3.766+0.5071+1.358+0.880)*6.1e-3 , "clfv_2016_HETau.tree"              ));
-  nanocards.push_back(datacard_t(true , (48.61+3.766+0.5071+1.358+0.880)*2.5e-3 , "clfv_2016_HMuTau.tree"             ));
-  nanocards.push_back(datacard_t(true , (48.61+3.766+0.5071+1.358+0.880)*3.5e-4 , "clfv_2016_HEMu.tree"               ));
-  nanocards.push_back(datacard_t(true , 1.                                      , "clfv_2016_SingleMu.tree"           ));
-  nanocards.push_back(datacard_t(true , 1.                                      , "clfv_2016_SingleEle.tree"          ));
-  nanocards.push_back(datacard_t(false, 365.34                                  , "clfv_2017_ttbarToSemiLeptonic.tree"));
-  nanocards.push_back(datacard_t(false, 88.29                                   , "clfv_2017_ttbarlnu.tree"           ));
-  nanocards.push_back(datacard_t(false, 6225.42                                 , "clfv_2017_DY50.tree"               ));
-  nanocards.push_back(datacard_t(false, 34.91                                   , "clfv_2017_SingleAntiToptW.tree"    ));
-  nanocards.push_back(datacard_t(false, 34.91                                   , "clfv_2017_SingleToptW.tree"        ));
-  nanocards.push_back(datacard_t(false, 52850.0                                 , "clfv_2017_Wlnu.tree"               ));
-  nanocards.push_back(datacard_t(false, 12.178                                  , "clfv_2017_WW.tree"                 ));
-  nanocards.push_back(datacard_t(false, 27.6                                    , "clfv_2017_WZ.tree"                 ));
-  nanocards.push_back(datacard_t(false, 2075.14/0.0337*7.3e-7                   , "clfv_2017_Signal.tree"             ));
-  nanocards.push_back(datacard_t(false, 1.                                      , "clfv_2017_SingleMu.tree"           ));
-  nanocards.push_back(datacard_t(false, 1.                                      , "clfv_2017_SingleEle.tree"          ));
-  nanocards.push_back(datacard_t(false, 365.34                                  , "clfv_2018_ttbarToSemiLeptonic.tree"));
-  nanocards.push_back(datacard_t(false, 88.29                                   , "clfv_2018_ttbarlnu.tree"           ));
-  nanocards.push_back(datacard_t(false, 6225.42                                 , "clfv_2018_DY50.tree"               ));
-  nanocards.push_back(datacard_t(false, 34.91                                   , "clfv_2018_SingleAntiToptW.tree"    ));
-  nanocards.push_back(datacard_t(false, 34.91                                   , "clfv_2018_SingleToptW.tree"        ));
-  nanocards.push_back(datacard_t(false, 52850.0                                 , "clfv_2018_Wlnu.tree"               ));
-  nanocards.push_back(datacard_t(false, 12.178                                  , "clfv_2018_WW.tree"                 ));
-  nanocards.push_back(datacard_t(false, 27.6                                    , "clfv_2018_WZ.tree"                 ));
-  nanocards.push_back(datacard_t(false, 2075.14/0.0337*7.3e-7                   , "clfv_2018_Signal.tree"             ));
-  nanocards.push_back(datacard_t(false, 1.                                      , "clfv_2018_SingleMu.tree"           ));
-  nanocards.push_back(datacard_t(false, 1.                                      , "clfv_2018_SingleEle.tree"          ));
+  //2016
+  nanocards.push_back(datacard_t(true , 365.34                                  , "clfv_2016_ttbarToSemiLeptonic.tree"     )); //1
+  nanocards.push_back(datacard_t(true , 88.29                                   , "clfv_2016_ttbarlnu.tree"                )); //2
+  nanocards.push_back(datacard_t(true , 6225.42                                 , "clfv_2016_DY50.tree"                    )); //3
+  nanocards.push_back(datacard_t(true , 34.91                                   , "clfv_2016_SingleAntiToptW.tree"         )); //4
+  nanocards.push_back(datacard_t(true , 34.91                                   , "clfv_2016_SingleToptW.tree"             )); //5
+  nanocards.push_back(datacard_t(true , 52850.0                                 , "clfv_2016_Wlnu.tree"                    )); //6
+  nanocards.push_back(datacard_t(true , 12.178                                  , "clfv_2016_WW.tree"                      )); //7
+  nanocards.push_back(datacard_t(true , 27.6                                    , "clfv_2016_WZ.tree"                      )); //8
+  nanocards.push_back(datacard_t(true , ((6225.42)/(3.*3.3658e-2))*9.8e-6       , "clfv_2016_ZETau.tree"                   )); //9
+  nanocards.push_back(datacard_t(true , ((6225.42)/(3.*3.3658e-2))*1.2e-5       , "clfv_2016_ZMuTau.tree"                  )); //10
+  nanocards.push_back(datacard_t(true , 2075.14/0.0337*7.3e-7                   , "clfv_2016_ZEMu.tree"                    )); //11
+  nanocards.push_back(datacard_t(true , (48.61+3.766+0.5071+1.358+0.880)*6.1e-3 , "clfv_2016_HETau.tree"                   )); //12
+  nanocards.push_back(datacard_t(true , (48.61+3.766+0.5071+1.358+0.880)*2.5e-3 , "clfv_2016_HMuTau.tree"                  )); //13
+  nanocards.push_back(datacard_t(true , (48.61+3.766+0.5071+1.358+0.880)*3.5e-4 , "clfv_2016_HEMu.tree"                    )); //14
+  nanocards.push_back(datacard_t(true , 1.                                      , "clfv_2016_SingleMu.tree"                )); //15
+  nanocards.push_back(datacard_t(true , 1.                                      , "clfv_2016_SingleEle.tree"               )); //16
+  nanocards.push_back(datacard_t(true , 12.14                                   , "clfv_2016_ZZ.tree"                      )); //17
+  nanocards.push_back(datacard_t(true , 0.2086                                  , "clfv_2016_WWW.tree"                     )); //18
+  nanocards.push_back(datacard_t(true , 22180.                                  , "clfv_2016_QCDDoubleEMEnrich30to40.tree" )); //19
+  nanocards.push_back(datacard_t(true , 247000.                                 , "clfv_2016_QCDDoubleEMEnrich30toInf.tree")); //20
+  nanocards.push_back(datacard_t(true , 113100.                                 , "clfv_2016_QCDDoubleEMEnrich40toInf.tree")); //21
+  //2017
+  nanocards.push_back(datacard_t(false, 365.34                                  , "clfv_2017_ttbarToSemiLeptonic.tree")); //
+  nanocards.push_back(datacard_t(false, 88.29                                   , "clfv_2017_ttbarlnu.tree"           )); //
+  nanocards.push_back(datacard_t(false, 6225.42                                 , "clfv_2017_DY50.tree"               )); //
+  nanocards.push_back(datacard_t(false, 34.91                                   , "clfv_2017_SingleAntiToptW.tree"    )); //
+  nanocards.push_back(datacard_t(false, 34.91                                   , "clfv_2017_SingleToptW.tree"        )); //
+  nanocards.push_back(datacard_t(false, 52850.0                                 , "clfv_2017_Wlnu.tree"               )); //
+  nanocards.push_back(datacard_t(false, 12.178                                  , "clfv_2017_WW.tree"                 )); //
+  nanocards.push_back(datacard_t(false, 27.6                                    , "clfv_2017_WZ.tree"                 )); //
+  nanocards.push_back(datacard_t(false, 2075.14/0.0337*7.3e-7                   , "clfv_2017_Signal.tree"             )); //
+  nanocards.push_back(datacard_t(false, 1.                                      , "clfv_2017_SingleMu.tree"           )); //
+  nanocards.push_back(datacard_t(false, 1.                                      , "clfv_2017_SingleEle.tree"          )); //
+  //2018
+  nanocards.push_back(datacard_t(false, 365.34                                  , "clfv_2018_ttbarToSemiLeptonic.tree")); //
+  nanocards.push_back(datacard_t(false, 88.29                                   , "clfv_2018_ttbarlnu.tree"           )); //
+  nanocards.push_back(datacard_t(false, 6225.42                                 , "clfv_2018_DY50.tree"               )); //
+  nanocards.push_back(datacard_t(false, 34.91                                   , "clfv_2018_SingleAntiToptW.tree"    )); //
+  nanocards.push_back(datacard_t(false, 34.91                                   , "clfv_2018_SingleToptW.tree"        )); //
+  nanocards.push_back(datacard_t(false, 52850.0                                 , "clfv_2018_Wlnu.tree"               )); //
+  nanocards.push_back(datacard_t(false, 12.178                                  , "clfv_2018_WW.tree"                 )); //
+  nanocards.push_back(datacard_t(false, 27.6                                    , "clfv_2018_WZ.tree"                 )); //
+  nanocards.push_back(datacard_t(false, 2075.14/0.0337*7.3e-7                   , "clfv_2018_Signal.tree"             )); //
+  nanocards.push_back(datacard_t(false, 1.                                      , "clfv_2018_SingleMu.tree"           )); //
+  nanocards.push_back(datacard_t(false, 1.                                      , "clfv_2018_SingleEle.tree"          )); //
 
 
   TStopwatch* timer = new TStopwatch();

@@ -152,7 +152,7 @@ void ZTauTauHistMaker::BookEventHistograms() {
       fEventHist[i]->hPuWeight		     = new TH1F("puweight"	      , Form("%s: PuWeight"	       ,dirname) , 200,   0,  2);
       fEventHist[i]->hTopPtWeight	     = new TH1F("topptweight"	      , Form("%s: TopPtWeight"	       ,dirname) , 200,   0,  2);
       fEventHist[i]->hZPtWeight	             = new TH1F("zptweight"	      , Form("%s: ZPtWeight"	       ,dirname) , 200,   0,  2);
-      fEventHist[i]->hTauDecayMode	     = new TH1F("taudecaymode"	      , Form("%s: TauDecayMode"	       ,dirname) ,  11,   0, 11);
+      fEventHist[i]->hTauDecayMode	     = new TH1F("taudecaymode"	      , Form("%s: TauDecayMode"	       ,dirname) ,  15,   0, 15);
       fEventHist[i]->hTauMVA		     = new TH1F("taumva"              , Form("%s: TauMVA"              ,dirname) , 100,   0,  1);
       fEventHist[i]->hTauGenFlavor	     = new TH1F("taugenflavor"	      , Form("%s: TauGenFlavor"	       ,dirname) ,  50,   0, 50);
       fEventHist[i]->hTauGenFlavorHad	     = new TH1F("taugenflavorhad"     , Form("%s: TauGenFlavorHad"     ,dirname) ,  50,   0, 50);
@@ -280,8 +280,8 @@ void ZTauTauHistMaker::BookEventHistograms() {
       for(unsigned j = 0; j < fMvaNames.size(); ++j)  {
 	//high mva score binning to improve cdf making
 	fEventHist[i]->hMVA[j]        = new TH1F(Form("mva%i",j)     , Form("%s: %s MVA" ,dirname, fMvaNames[j].Data()) ,10000, -1.,  2.); 
-	fEventHist[i]->hMVATrain[j]   = new TH1F(Form("mvatrain%i",j), Form("%s: %s MVA (train)" ,dirname, fMvaNames[j].Data()) ,300, -1.,  2.); 
-	fEventHist[i]->hMVATest[j]    = new TH1F(Form("mvatest%i",j) , Form("%s: %s MVA (test)" ,dirname, fMvaNames[j].Data())  ,300, -1.,  2.); 
+	fEventHist[i]->hMVATrain[j]   = new TH1F(Form("mvatrain%i",j), Form("%s: %s MVA (train)" ,dirname, fMvaNames[j].Data()) ,500, -3.,  2.); 
+	fEventHist[i]->hMVATest[j]    = new TH1F(Form("mvatest%i",j) , Form("%s: %s MVA (test)" ,dirname, fMvaNames[j].Data())  ,500, -3.,  2.); 
       }      
       if(fFolderName == "llg_study") {
 	//llg study histograms
@@ -630,7 +630,14 @@ void ZTauTauHistMaker::InitializeTreeVariables(Int_t selection) {
   if(selection == 1)      selecName = "mutau";
   else if(selection == 2) selecName = "etau";
   else if(selection == 5) selecName = "emu";
-  else                    selecName = "unknown";
+  else if(selection == 9) selecName = "mumu";
+  else                    {
+    std::cout << "---Warning! Entry " << fentry
+	      << " has undentified selection " << selection
+	      << " in " << __func__ << "!\n";
+    selecName = "unknown";
+  }
+
   if(fReprocessMVAs) {
     for(unsigned i = 0; i < fMvaNames.size(); ++i) {
       if((fMvaNames[i].Contains(selecName.Data()) || //is this selection
@@ -640,7 +647,7 @@ void ZTauTauHistMaker::InitializeTreeVariables(Int_t selection) {
       else
 	fMvaOutputs[i] = -2.;
       
-      if(fMvaOutputs[i] < -100.) 
+      if(fMvaOutputs[i] < -2.1) 
 	cout << "Error value returned for MVA " << fMvaNames[i].Data()
 	     << " evaluation, Entry = " << fentry << endl;
     }
@@ -1230,7 +1237,7 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
     }
   }
 
-  //skip if it's data and lepton status doesn't match data set ( 1 = electron 2 = muon) unless allowing overlap and it passes both
+  //skip if it's data and lepton status doesn't match data set ( 1 = electron 2 = muon) unless allowing overlap and it passes bothl
   if(fIsData>0 && triggerLeptonStatus != ((UInt_t) fIsData) &&
      (fSkipDoubleTrigger || triggerLeptonStatus != 3)) return kTRUE; //avoid double counting data events and events triggered for the other dataset
   
@@ -1270,14 +1277,13 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   bool emu   = nTaus == 0  && nMuons == 1 && nElectrons == 1;
   bool mumu  = nMuons == 2; //no other requirement
   bool ee    = nElectrons == 2; //no other requirement
-  bool llg_study = (nElectrons + nMuons > 0) && nJets > 1 && nPhotons > 0 && (nElectrons + nMuons < 3);
+  bool llg_study = fFolderName == "llg_study" && (nElectrons + nMuons > 0) && nJets > 1 && nPhotons > 0 && (nElectrons + nMuons < 3);
   if(fFolderName == "llg_study" && llg_study && (nMuons + nElectrons == 1) && nTaus > 0) {
     *leptonTwoP4 = *tauP4;
     leptonTwoFlavor = tauFlavor;
   }
   if(!(mutau || etau || emu || mumu || llg_study))
     return kTRUE;
-
   InitializeTreeVariables(mutau+2*etau+5*emu+9*mumu+18*llg_study);
 
   //if splitting testing/training samples
@@ -1434,12 +1440,12 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   // Set 5 + selection offset: add deep NN IDs              //
   ////////////////////////////////////////////////////////////
 
-  mutau &= tauDeepAntiJet >= 50;
-  mutau &= tauDeepAntiMu  >= 10;
-  mutau &= tauDeepAntiEle >=  1;
-  etau  &= tauDeepAntiJet >= 50;
-  etau  &= tauDeepAntiMu  >= 10;
-  etau  &= tauDeepAntiEle >= 50;
+  mutau &= tauDeepAntiJet >= 50; //63 = tight
+  mutau &= tauDeepAntiMu  >= 10; //15 = tight
+  mutau &= tauDeepAntiEle >= 10; //15 = loose
+  etau  &= tauDeepAntiJet >= 50; //
+  etau  &= tauDeepAntiMu  >= 10; //
+  etau  &= tauDeepAntiEle >= 50; //63 = tight
 
   if(mutau && chargeTest) FillAllHistograms(kMuTau + 5);
   else if(mutau)          FillAllHistograms(kMuTau + 5 + fQcdOffset);
@@ -1562,6 +1568,29 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   if(emu && chargeTest && fMvaOutputs[8] > fMvaCuts[8])   FillAllHistograms(kETauMu+ 10);
   else if(emu && fMvaOutputs[8] > fMvaCuts[8])            FillAllHistograms(kETauMu+ 10 + fQcdOffset);
 
+  // test set for weird MVA peaks
+  double cutval_1(-0.6), cutval_2(-0.3);
+  if(fMvaOutputs[5] < cutval_1 && fMvaOutputs[5] > -1.) { //Z0
+    if(emu && chargeTest)     FillAllHistograms(kEMu   + 24);
+    else if(emu)              FillAllHistograms(kEMu   + 24 + fQcdOffset);
+  } else if(fMvaOutputs[5] < cutval_2 && fMvaOutputs[5] > -1.) {
+    if(emu && chargeTest)     FillAllHistograms(kEMu   + 25);
+    else if(emu)              FillAllHistograms(kEMu   + 25 + fQcdOffset);
+  } else if(fMvaOutputs[5] > -1.){
+    if(emu && chargeTest)     FillAllHistograms(kEMu   + 26);
+    else if(emu)              FillAllHistograms(kEMu   + 26 + fQcdOffset);
+  }
+  cutval_1 = -0.5; cutval_2 = -0.3;
+  if(fMvaOutputs[4] < cutval_1 && fMvaOutputs[4] > -1.) {//higgs
+    if(emu && chargeTest)     FillAllHistograms(kEMu   + 27);
+    else if(emu)              FillAllHistograms(kEMu   + 27 + fQcdOffset);
+  } else if(fMvaOutputs[4] < cutval_2 && fMvaOutputs[4] > -1.) {
+    if(emu && chargeTest)     FillAllHistograms(kEMu   + 28);
+    else if(emu)              FillAllHistograms(kEMu   + 28 + fQcdOffset);
+  } else if(fMvaOutputs[4] > -1.){
+    if(emu && chargeTest)     FillAllHistograms(kEMu   + 29);
+    else if(emu)              FillAllHistograms(kEMu   + 29 + fQcdOffset);
+  }  
   // Mass window sets, before cuts
   // double mgll = (*photonP4 + (*leptonOneP4+*leptonTwoP4)).M();
   //Z0 window
@@ -1782,7 +1811,7 @@ void ZTauTauHistMaker::CountSlimObjects() {
 	    //same as ID criteria for selection tau:
 	    if((*slimTaus)[index].deepAntiJet >= 50 &&
 	       (*slimTaus)[index].deepAntiMu >= 10 &&
-	       (*slimTaus)[index].deepAntiEle >= 1) ++nTauCounts[37];
+	       (*slimTaus)[index].deepAntiEle >= 10) ++nTauCounts[37];
 	  }
 	  if((*slimTaus)[index].deepAntiJet > 1) ++nTauCounts[26];
 	  if((*slimTaus)[index].deepAntiJet > 3) ++nTauCounts[28];
