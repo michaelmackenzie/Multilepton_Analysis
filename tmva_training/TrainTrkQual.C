@@ -52,7 +52,7 @@
 
 TString selection_ = "zmutau"; 
 Int_t split_trees_ = 0; //split training/testing using tree defined samples
-Int_t trkqual_version_ = 3; //version of variables used in trkqual training
+Int_t trkqual_version_ = -1; //version of variables used in trkqual training, < 0 is use default
 Int_t use_njets_ = 1; //whether or not to train using njets, don't use if jet binned categories
 Int_t use_ht_ = 1; //whether or not to train using hT, don't use if 0 jet bin category
 Int_t use_nbjets_ = 0; //whether or not to train using nbjets, = id+3*ptcut with id = 1,2,3 for tight, medium, loose and pt = 0,1,2 for >30, >25, >20
@@ -210,7 +210,7 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
   // note that you may also use variable expressions, such as: "3*var1/var2*abs(var3)"
   // [all types of expressions that can also be parsed by TTree::Draw( "expression" )]
   
-  TrkQualInit trkqualinit(trkqual_version_, use_njets_); //version number input
+  TrkQualInit trkqualinit((trkqual_version_ >= 0) ? trkqual_version_ : TrkQualInit::Default, use_njets_); //version number input
   trkqualinit.InitializeVariables(*factory,selection_);
   
   // You can add so-called "Spectator variables", which are not used in the MVA training,

@@ -13,7 +13,7 @@
 
 class TrkQualInit {
 public:
-  TrkQualInit(int version = 3, int njets = 0) {
+  TrkQualInit(int version = TrkQualInit::Default, int njets = 0) {
     version_ = version;
     njets_ = njets;
   }
@@ -41,14 +41,17 @@ public:
     factory.AddSpectator("metdeltaphi","#Delta#phi_{MET,ll}","",'F');
     //tau specific
     if(selection.Contains("tau")) {
-      factory.AddVariable("lepmestimate" , "M_{ll}^{Coll}" , "GeV", 'F'); 
+      if(version_ < 4 || !selection.Contains("mutau_e"))
+	factory.AddVariable("lepmestimate" , "M_{ll}^{Coll}" , "GeV", 'F'); 
+      else
+	factory.AddVariable("lepmestimatetwo" , "M_{ll}^{Coll}" , "GeV", 'F'); 
       factory.AddVariable("onemetdeltaphi","#Delta#phi_{MET,l1}","",'F');
       factory.AddVariable("twometdeltaphi","#Delta#phi_{MET,l2}","",'F');
       if(version_ == 1 && !selection.Contains("_")) {
 	factory.AddVariable("leptwoidone"  , "#tau anti-electron ID", "", 'F');
 	factory.AddVariable("leptwoidtwo"  , "#tau anti-muon ID"    , "", 'F');
 	factory.AddVariable("leptwoidthree", "#tau anti-jet ID"     , "", 'F');
-      } else if((version_ == 2 || version_ == 3) && !selection.Contains("_")) {
+      } else if((version_ == 2 || version_ == 3 || version_ == 4) && !selection.Contains("_")) {
 	factory.AddSpectator("leptwoidone"  , "#tau anti-electron ID", "", 'F');
 	factory.AddSpectator("leptwoidtwo"  , "#tau anti-muon ID"    , "", 'F');
 	factory.AddVariable("leptwoidthree", "#tau anti-jet ID"     , "", 'F');
@@ -79,7 +82,7 @@ public:
     factory.AddVariable("lepdeltaphi","#Delta#phi_{ll}","",'F');
     factory.AddSpectator("htsum","#Sigma pT_{Jet}","",'F');
     factory.AddSpectator("leponeiso","Iso_{l1}","",'F');
-    if(version_ == 1 || version_ == 2 || version_ == 3) {
+    if(version_ == 1 || version_ == 2 || version_ == 3 || version_ == 4) {
       factory.AddVariable("met","MET","GeV",'F');
     } else {
       factory.AddSpectator("met","MET","GeV",'F');
@@ -115,14 +118,17 @@ public:
     reader.AddSpectator("metdeltaphi", &tree.metdeltaphi);
     //tau specific
     if(selection.Contains("tau")) {
-      reader.AddVariable("lepmestimate" , &tree.mestimate); 
+      if(version_ < 4 || !selection.Contains("mutau_e"))
+	reader.AddVariable("lepmestimate" , &tree.mestimate); 
+      else
+	reader.AddVariable("lepmestimatetwo" , &tree.mestimatetwo); //project onto the electron
       reader.AddVariable("onemetdeltaphi", &tree.onemetdeltaphi);
       reader.AddVariable("twometdeltaphi", &tree.twometdeltaphi);
       if(version_ == 1 && !selection.Contains("_")) {
 	reader.AddVariable("leptwoidone"  , &tree.leptwoidone); 
 	reader.AddVariable("leptwoidtwo"  , &tree.leptwoidtwo); 
 	reader.AddVariable("leptwoidthree", &tree.leptwoidthree); 
-      } else if((version_ == 2 || version_ == 3) && !selection.Contains("_")) {
+      } else if((version_ == 2 || version_ == 3 || version_ == 4) && !selection.Contains("_")) {
 	reader.AddSpectator("leptwoidone"  , &tree.leptwoidone); 
 	reader.AddSpectator("leptwoidtwo"  , &tree.leptwoidtwo); 
 	reader.AddVariable("leptwoidthree", &tree.leptwoidthree); 
@@ -153,7 +159,7 @@ public:
     reader.AddVariable("lepdeltaphi", &tree.lepdeltaphi);
     reader.AddSpectator("htsum", &tree.htsum);
     reader.AddSpectator("leponeiso", &tree.leponeiso);
-    if(version_ == 1 || version_ == 2 || version_ == 3) {
+    if(version_ == 1 || version_ == 2 || version_ == 3 || version_ == 4) {
       reader.AddVariable("met", &tree.met);
     } else {
       reader.AddSpectator("met", &tree.met);
@@ -166,6 +172,8 @@ public:
     return status;
   }
 
+  //default version
+  const static int Default = 4;
   //fields
   int version_;
   int njets_; //flag for jet binned categories
