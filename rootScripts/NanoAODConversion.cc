@@ -365,7 +365,7 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
   nMuons = fNMuons[selection];
   nElectrons = fNElectrons[selection];
   nTaus = fNTaus[selection];
-  lepOneWeight = 1.; lepTwoWeight = 1.;
+  lepOneWeight     = 1.; lepTwoWeight     = 1.;
   lepOneTrigWeight = 1.; lepTwoTrigWeight = 1.;
   //store lepton information
   if(selection == kMuTau || selection == kMuMu) {
@@ -392,7 +392,7 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
 			      tauPhi[fTauIndices[selection][0]],tauMass[fTauIndices[selection][0]]);
     leptonTwoFlavor = -15*tauCharge[fTauIndices[selection][0]];
     tauGenIDOut  = tauGenID[fTauIndices[selection][0]];
-    tauGenFlavor = TauFlavorFromID((int)tauGenIDOut);
+    tauGenFlavor = TauFlavorFromID((int) tauGenIDOut);
     lepTwoWeight = particleCorrections->TauWeight(leptonTwoP4->Pt(), leptonTwoP4->Eta(), tauGenID[fTauIndices[selection][0]], fYear);
     leptonTwoID1 = tauAntiEle[fTauIndices[selection][0]];
     leptonTwoID2 = tauAntiMu[fTauIndices[selection][0]];

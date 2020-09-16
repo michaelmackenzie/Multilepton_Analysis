@@ -1,6 +1,18 @@
 // Script to process NANO AODs to match format of bltTrees
 #include "ParticleCorrections.cc+g"
+#include "../dataFormats/SlimObject_t.hh+g"
+#include "../dataFormats/SlimElectron_t.hh+g"
+#include "../dataFormats/SlimMuon_t.hh+g"
+#include "../dataFormats/SlimTau_t.hh+g"
+#include "../dataFormats/SlimJet_t.hh+g"
+#include "../dataFormats/SlimPhoton_t.hh+g"
 #include "NanoAODConversion.cc+g"
+
+bool debug_ = false;
+TString debugFile_ = "";
+UInt_t debugStart_ = 0;
+UInt_t debugNEvents_ = 0;
+NanoAODConversion* debugSelec_ = 0;
 
 Int_t process_nanoaods() {
 
@@ -11,74 +23,98 @@ Int_t process_nanoaods() {
   timer->Start();
   
   const char* samples[] = {
-    "MC/backgrounds/ZEMuAnalysis_DY50_2016.root"
-    ,"MC/backgrounds/ZEMuAnalysis_SingleToptW_2016.root"
-    ,"MC/backgrounds/ZEMuAnalysis_SingleAntiToptW_2016.root"
-    ,"MC/backgrounds/ZEMuAnalysis_WW_2016.root"
-    ,"MC/backgrounds/ZEMuAnalysis_WZ_2016.root"
-    ,"MC/backgrounds/ZEMuAnalysis_Wlnu_2016.root"
-    ,"MC/backgrounds/ZEMuAnalysis_ttbarToSemiLeptonic_2016.root"
-    ,"MC/backgrounds/ZEMuAnalysis_ttbarlnu_2016.root"
-    ,"MC/signals/ZEMuAnalysis_Signal_2016.root"
-    ,"dataprocess/ZEMuAnalysis_SingleEle_2016.root"
-    ,"dataprocess/ZEMuAnalysis_SingleMu_2016.root"                 
-    ,"MC/backgrounds/ZEMuAnalysis_DY50_2017.root"
-    ,"MC/backgrounds/ZEMuAnalysis_SingleToptW_2017.root"
-    ,"MC/backgrounds/ZEMuAnalysis_SingleAntiToptW_2017.root"
-    ,"MC/backgrounds/ZEMuAnalysis_WW_2017.root"
-    ,"MC/backgrounds/ZEMuAnalysis_WZ_2017.root"
-    ,"MC/backgrounds/ZEMuAnalysis_Wlnu_2017.root"
-    ,"MC/backgrounds/ZEMuAnalysis_ttbarToSemiLeptonic_2017.root"
-    ,"MC/backgrounds/ZEMuAnalysis_ttbarlnu_2017.root"
-    ,"MC/signals/ZEMuAnalysis_Signal_2017.root"
-    ,"dataprocess/ZEMuAnalysis_SingleEle_2017.root"
-    ,"dataprocess/ZEMuAnalysis_SingleMu_2017.root"                 
-    ,"MC/backgrounds/ZEMuAnalysis_DY50_2018.root"
-    ,"MC/backgrounds/ZEMuAnalysis_SingleToptW_2018.root"
-    ,"MC/backgrounds/ZEMuAnalysis_SingleAntiToptW_2018.root"
-    ,"MC/backgrounds/ZEMuAnalysis_WW_2018.root"
-    ,"MC/backgrounds/ZEMuAnalysis_WZ_2018.root"
-    ,"MC/backgrounds/ZEMuAnalysis_Wlnu_2018.root"
-    ,"MC/backgrounds/ZEMuAnalysis_ttbarToSemiLeptonic_2018.root"
-    ,"MC/backgrounds/ZEMuAnalysis_ttbarlnu_2018.root"
-    ,"MC/signals/ZEMuAnalysis_Signal_2018.root"
-    ,"dataprocess/ZEMuAnalysis_SingleEle_2018.root"
-    ,"dataprocess/ZEMuAnalysis_SingleMu_2018.root"                 
+    "MC/backgrounds/LFVAnalysis_DY50_2016.root"
+    ,"MC/backgrounds/LFVAnalysis_SingleToptW_2016.root"
+    ,"MC/backgrounds/LFVAnalysis_SingleAntiToptW_2016.root"
+    ,"MC/backgrounds/LFVAnalysis_WW_2016.root"
+    ,"MC/backgrounds/LFVAnalysis_WZ_2016.root"
+    ,"MC/backgrounds/LFVAnalysis_ZZ_2016.root"
+    ,"MC/backgrounds/LFVAnalysis_WWW_2016.root"
+    ,"MC/backgrounds/LFVAnalysis_Wlnu_2016.root"
+    ,"MC/backgrounds/LFVAnalysis_ttbarToSemiLeptonic_2016.root"
+    ,"MC/backgrounds/LFVAnalysis_ttbarlnu_2016.root"
+    ,"MC/backgrounds/LFVAnalysis_QCDDoubleEMEnrich30to40_2016.root"
+    ,"MC/backgrounds/LFVAnalysis_QCDDoubleEMEnrich30toInf_2016.root"
+    ,"MC/backgrounds/LFVAnalysis_QCDDoubleEMEnrich40toInf_2016.root"
+    ,"MC/signals/LFVAnalysis_ZETau_2016.root"
+    ,"MC/signals/LFVAnalysis_ZMuTau_2016.root"
+    ,"MC/signals/LFVAnalysis_ZEMu_2016.root"
+    ,"MC/signals/LFVAnalysis_HETau_2016.root"
+    ,"MC/signals/LFVAnalysis_HMuTau_2016.root"
+    ,"MC/signals/LFVAnalysis_HEMu_2016.root"
+    ,"dataprocess/LFVAnalysis_SingleEle_2016.root"
+    ,"dataprocess/LFVAnalysis_SingleMu_2016.root"                 
+    ,"MC/backgrounds/LFVAnalysis_DY50_2017.root"
+    ,"MC/backgrounds/LFVAnalysis_SingleToptW_2017.root"
+    ,"MC/backgrounds/LFVAnalysis_SingleAntiToptW_2017.root"
+    ,"MC/backgrounds/LFVAnalysis_WW_2017.root"
+    ,"MC/backgrounds/LFVAnalysis_WZ_2017.root"
+    ,"MC/backgrounds/LFVAnalysis_Wlnu_2017.root"
+    ,"MC/backgrounds/LFVAnalysis_ttbarToSemiLeptonic_2017.root"
+    ,"MC/backgrounds/LFVAnalysis_ttbarlnu_2017.root"
+    ,"MC/signals/LFVAnalysis_ZEMu_2017.root"
+    ,"MC/signals/LFVAnalysis_HEMu_2017.root"
+    ,"dataprocess/LFVAnalysis_SingleEle_2017.root"
+    ,"dataprocess/LFVAnalysis_SingleMu_2017.root"                 
+    ,"MC/backgrounds/LFVAnalysis_DY50_2018.root"
+    ,"MC/backgrounds/LFVAnalysis_SingleToptW_2018.root"
+    ,"MC/backgrounds/LFVAnalysis_SingleAntiToptW_2018.root"
+    ,"MC/backgrounds/LFVAnalysis_WW_2018.root"
+    ,"MC/backgrounds/LFVAnalysis_WZ_2018.root"
+    ,"MC/backgrounds/LFVAnalysis_Wlnu_2018.root"
+    ,"MC/backgrounds/LFVAnalysis_ttbarToSemiLeptonic_2018.root"
+    ,"MC/backgrounds/LFVAnalysis_ttbarlnu_2018.root"
+    ,"MC/signals/LFVAnalysis_ZEMu_2018.root"
+    ,"MC/signals/LFVAnalysis_HEMu_2018.root"
+    ,"dataprocess/LFVAnalysis_SingleEle_2018.root"
+    ,"dataprocess/LFVAnalysis_SingleMu_2018.root"                 
   };
   const bool doProcess[] = {
-    true,    //ZEMuAnalysis_DY50_2016.root"		      
-    true,    //ZEMuAnalysis_SingleToptW_2016.root"	      
-    true,    //ZEMuAnalysis_SingleAntiToptW_2016.root"	      
-    true,    //ZEMuAnalysis_WW_2016.root"			      
-    true,    //ZEMuAnalysis_WZ_2016.root"			      
-    true,    //ZEMuAnalysis_Wlnu_2016.root"		      
-    true,    //ZEMuAnalysis_ttbarToSemiLeptonic_2016.root"      
-    true,    //ZEMuAnalysis_ttbarlnu_2016.root"		      
-    true,    //ZEMuAnalysis_Signal_2016.root"		      
-    true,    //ZEMuAnalysis_SingleEle_2016.root"		      
-    true,     //ZEMuAnalysis_SingleMu_2016.root"                 
-    true,    //ZEMuAnalysis_DY50_2017.root"		      
-    true,    //ZEMuAnalysis_SingleToptW_2017.root"	      
-    true,    //ZEMuAnalysis_SingleAntiToptW_2017.root"	      
-    true,    //ZEMuAnalysis_WW_2017.root"			      
-    true,    //ZEMuAnalysis_WZ_2017.root"			      
-    true,    //ZEMuAnalysis_Wlnu_2017.root"		      
-    true,    //ZEMuAnalysis_ttbarToSemiLeptonic_2017.root"      
-    true,    //ZEMuAnalysis_ttbarlnu_2017.root"		      
-    true,    //ZEMuAnalysis_Signal_2017.root"		      
-    true,    //ZEMuAnalysis_SingleEle_2017.root"		      
-    true,     //ZEMuAnalysis_SingleMu_2017.root"                 
-    true,    //ZEMuAnalysis_DY50_2018.root"		      
-    true,    //ZEMuAnalysis_SingleToptW_2018.root"	      
-    true,    //ZEMuAnalysis_SingleAntiToptW_2018.root"	      
-    true,    //ZEMuAnalysis_WW_2018.root"			      
-    true,    //ZEMuAnalysis_WZ_2018.root"			      
-    true,    //ZEMuAnalysis_Wlnu_2018.root"		      
-    true,    //ZEMuAnalysis_ttbarToSemiLeptonic_2018.root"      
-    true,    //ZEMuAnalysis_ttbarlnu_2018.root"		      
-    true,    //ZEMuAnalysis_Signal_2018.root"		      
-    true,    //ZEMuAnalysis_SingleEle_2018.root"		      
-    true     //ZEMuAnalysis_SingleMu_2018.root"                 
+    true ,    //LFVAnalysis_DY50_2016.root"		      
+    true ,    //LFVAnalysis_SingleToptW_2016.root"	      
+    true ,    //LFVAnalysis_SingleAntiToptW_2016.root"	      
+    true ,    //LFVAnalysis_WW_2016.root"			      
+    true ,    //LFVAnalysis_WZ_2016.root"			      
+    true ,    //LFVAnalysis_ZZ_2016.root"			      
+    true ,    //LFVAnalysis_WWW_2016.root"			      
+    true ,    //LFVAnalysis_Wlnu_2016.root"		      
+    true ,    //LFVAnalysis_ttbarToSemiLeptonic_2016.root"      
+    true ,    //LFVAnalysis_ttbarlnu_2016.root"		      
+    true ,    //LFVAnalysis_QCDDoubleEMEnrich30to40_2016.root" 	      
+    true ,    //LFVAnalysis_QCDDoubleEMEnrich30toInf_2016.root"	      
+    true ,    //LFVAnalysis_QCDDoubleEMEnrich40toInf_2016.root"	      
+    true ,    //LFVAnalysis_ZETau_2016.root"		      
+    true ,    //LFVAnalysis_ZMuTau_2016.root"
+    true ,    //LFVAnalysis_ZEMu_2016.root"
+    true ,    //LFVAnalysis_HETau_2016.root"		      
+    true ,    //LFVAnalysis_HMuTau_2016.root"		      
+    true ,    //LFVAnalysis_HEMu_2016.root"		      
+    true ,    //LFVAnalysis_SingleEle_2016.root"		      
+    true ,    //LFVAnalysis_SingleMu_2016.root"                 
+    false,    //LFVAnalysis_DY50_2017.root"		      
+    false,    //LFVAnalysis_SingleToptW_2017.root"	      
+    false,    //LFVAnalysis_SingleAntiToptW_2017.root"	      
+    false,    //LFVAnalysis_WW_2017.root"			      
+    false,    //LFVAnalysis_WZ_2017.root"			      
+    false,    //LFVAnalysis_Wlnu_2017.root"		      
+    false,    //LFVAnalysis_ttbarToSemiLeptonic_2017.root"      
+    false,    //LFVAnalysis_ttbarlnu_2017.root"		      
+    false,    //LFVAnalysis_ZEMu_2017.root"		      
+    false,    //LFVAnalysis_HEMu_2017.root"		      
+    false,    //LFVAnalysis_SingleEle_2017.root"		      
+    false,     //LFVAnalysis_SingleMu_2017.root"                 
+    false,    //LFVAnalysis_DY50_2018.root"		      
+    false,    //LFVAnalysis_SingleToptW_2018.root"	      
+    false,    //LFVAnalysis_SingleAntiToptW_2018.root"	      
+    false,    //LFVAnalysis_WW_2018.root"			      
+    false,    //LFVAnalysis_WZ_2018.root"			      
+    false,    //LFVAnalysis_Wlnu_2018.root"		      
+    false,    //LFVAnalysis_ttbarToSemiLeptonic_2018.root"      
+    false,    //LFVAnalysis_ttbarlnu_2018.root"		      
+    false,    //LFVAnalysis_ZEMu_2018.root"		      
+    false,    //LFVAnalysis_HEMu_2018.root"		      
+    false,    //LFVAnalysis_SingleEle_2018.root"		      
+    false     //LFVAnalysis_SingleMu_2018.root"                 
   };
 
   std::map<TString, double> frac_table_2016;
@@ -86,11 +122,21 @@ Int_t process_nanoaods() {
   frac_table_2016["ttbarlnu"] = 0.;
   frac_table_2016["SingleToptW"] = 0.003708;
   frac_table_2016["SingleAntiToptW"] = 0.00369;
-  frac_table_2016["DY50"] = 0.1661;
-  frac_table_2016["WW"] = 0.1866;
+  frac_table_2016["DY50"] = 0.;
+  frac_table_2016["WW"] = 0.;
   frac_table_2016["WZ"] = 0.;
+  frac_table_2016["ZZ"] = 0.;
+  frac_table_2016["WWW"] = 0.06054;
   frac_table_2016["Wlnu"] = 0.;
-  frac_table_2016["Signal"] = 0. ;                        
+  frac_table_2016["QCDDoubleEMEnrich30to40"] = 0.;
+  frac_table_2016["QCDDoubleEMEnrich30toInf"] = 0.;
+  frac_table_2016["QCDDoubleEMEnrich40toInf"] = 0.;
+  frac_table_2016["ZETau"] = 0. ;                        
+  frac_table_2016["ZMuTau"] = 0. ;                        
+  frac_table_2016["ZEMu"] = 0. ;                        
+  frac_table_2016["HETau"] = 0. ;                        
+  frac_table_2016["HMuTau"] = 0. ;                        
+  frac_table_2016["HEMu"] = 0. ;                        
 
   std::map<TString, double> frac_table_2017;
   frac_table_2017["ttbarToSemiLeptonic"] = 0.;
@@ -100,7 +146,14 @@ Int_t process_nanoaods() {
   frac_table_2017["DY50"] = 0.1624;
   frac_table_2017["WW"] = 0.;
   frac_table_2017["WZ"] = 0.;
-  frac_table_2017["Signal"] = 0.;
+  frac_table_2017["Wlnu"] = 0.0004079;
+  frac_table_2017["WWW"] = 0.06054;
+  frac_table_2017["QCDDoubleEMEnrich30to40"] = 0.;
+  frac_table_2017["QCDDoubleEMEnrich30toInf"] = 0.;
+  frac_table_2017["QCDDoubleEMEnrich40toInf"] = 0.;
+  frac_table_2017["ZZ"] = 0.;
+  frac_table_2017["ZEMu"] = 0.;
+  frac_table_2017["HEMu"] = 0.;
 
   std::map<TString, double> frac_table_2018;
   frac_table_2018["ttbarToSemiLeptonic"] = 0.;
@@ -113,11 +166,20 @@ Int_t process_nanoaods() {
   frac_table_2018["WW"] = 0.001755;
   frac_table_2018["WZ"] = 0.;
   frac_table_2018["Wlnu"] = 0.0003866;
-  frac_table_2018["Signal"] = 0.;
+  frac_table_2018["WWW"] = 0.06054;
+  frac_table_2018["QCDDoubleEMEnrich30to40"] = 0.;
+  frac_table_2018["QCDDoubleEMEnrich30toInf"] = 0.;
+  frac_table_2018["QCDDoubleEMEnrich40toInf"] = 0.;
+  frac_table_2018["ZZ"] = 0.;
+  frac_table_2018["ZEMu"] = 0.;
+  frac_table_2018["HEMu"] = 0.;
   
   for(unsigned index = 0; index < sizeof(doProcess)/sizeof(*doProcess); ++index) {
-    cout << "File " << samples[index] << ", process = " << doProcess[index] << endl;
+    cout << "**File " << samples[index] << ", process = " << doProcess[index] << endl;
     if(!doProcess[index]) continue;
+    //if debugging, only do requested file
+    if(debug_ && !TString(samples[index]).Contains(debugFile_.Data())) continue;
+
     TFile* f = TFile::Open((path+samples[index]).Data(), "READ");
     if(!f) {
       cout << " File not found! Continuing..." << endl;
@@ -140,7 +202,7 @@ Int_t process_nanoaods() {
     name.ReplaceAll("backgrounds/", "");
     name.ReplaceAll("signals/", "");
     name.ReplaceAll("dataprocess/", "");
-    name.ReplaceAll("ZEMuAnalysis", "");
+    name.ReplaceAll("LFVAnalysis", "");
     name.ReplaceAll("2016", "");
     name.ReplaceAll("2017", "");
     name.ReplaceAll("2018", "");
@@ -152,11 +214,12 @@ Int_t process_nanoaods() {
       TString crab_report;
       TString crab_command = "crab report -d " + crab_path;
       crab_command += "samples_MC_";
-      if(year == ParticleCorrections::k2016)      crab_command += "2016/crab_2016_ZEMuAnalysis_";
-      else if(year == ParticleCorrections::k2017) crab_command += "2017/crab_2017_ZEMuAnalysis_";
-      else if(year == ParticleCorrections::k2018) crab_command += "2018/crab_2018_ZEMuAnalysis_";
+      if(year == ParticleCorrections::k2016)      crab_command += "2016/crab_2016_LFVAnalysis_";
+      else if(year == ParticleCorrections::k2017) crab_command += "2017/crab_2017_LFVAnalysis_";
+      else if(year == ParticleCorrections::k2018) crab_command += "2018/crab_2018_LFVAnalysis_";
       crab_command += name;
       crab_command += " | grep read | awk '{print $NF}'";
+      cout << "Getting normalization, using command:\n" << crab_command.Data() << endl;
       FILE* shell_res = gSystem->OpenPipe(crab_command.Data(), "r");
       crab_report.Gets(shell_res);
       gSystem->ClosePipe(shell_res);
@@ -177,7 +240,14 @@ Int_t process_nanoaods() {
     selec->fYear = year;
     selec->fIsData = isData;
     selec->fSkipDoubleTrigger = false; //pre-skipped
-    t->Process(selec);
+    if(debug_) debugSelec_ = selec;
+    if(!debug_)
+      t->Process(selec);
+    else if(debugNEvents_ == 0)
+      t->Process(selec,"",-1, debugStart_);
+    else
+      t->Process(selec,"",debugNEvents_, debugStart_);
+    if(!debug_) delete selec;
     delete f;
   }
   
@@ -185,6 +255,6 @@ Int_t process_nanoaods() {
   Double_t realTime = timer->RealTime();
   printf("Total processing time: %7.2fs CPU time %7.2fs Wall time\n",cpuTime,realTime);
   if(realTime > 600. ) printf("Total processing time: %7.2fmin CPU time %7.2fmin Wall time\n",cpuTime/60.,realTime/60.);
-
+  
   return 0;
 }
