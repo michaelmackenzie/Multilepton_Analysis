@@ -1,10 +1,12 @@
 # Multilepton_Analysis
 Analysis work using the MultileptonAnalyzer as well as the ZTauTauAnalyzer.
 See the NWU BLT Analyzers for more information on the creation and format of these trees.
+Tools have been added to re-write NANOAOD format Event trees into BLT Analyzer format trees.
 
 ## Overview of the analysis tools/strategies
 This assumes ntuples have been created using a BLT based analyzer for Monte Carlo and data samples.
 Currently, this workflow assumes all samples are for 2016.
+These tools can be configured to use 2016, 2017, and 2018 NANOAOD based samples as well.
 
 The first step in the workflow is creating sparse trees and sets of histograms for specific analysis selections.
 This is done using a *HistMaker* type object. This object is a TSelector that processes each event in the given trees.
@@ -24,30 +26,18 @@ optionally printing them to disk.
 One can also use sparse trees created by the HistMaker to train MVAs to separate events of interest from backgrounds.
 This is done using the ROOT TMVA package, where the trainings take place in scripts named *TrkQual*. The results
 of these trainings can then be passed to the HistMaker to apply to events or passed to a script to add branches with
-the evaluation of these MVAs. The DataPlotter can then make approximate CDF and significicance plots for the MVA 
+the evaluation of these MVAs. The DataPlotter can then make approximate CDF and significicance/limit gain plots for the MVA 
 score distributions.
 
 ## Directories
 ### rootScripts
 Contains ROOT scripts to process the analyzer produced ntuples
-
-Descriptions:
-
-- ZTauTauHistMaker.cc makes books of histograms when running over the ztautau ntuples
-
-- process_ztautau.C processes a list of ntuples through the ZTauTauHistMaker
-
-- Fitter.cc is used to get legendre polynomials for background fits, made to match up
-with Multilepton studies
-
-- DataPlotter.cc holds datasets to be added together with their cross sections and plotted
-against data. Plots 1D histograms and stacks as well as 2D histograms
+See the README in the rootScript directory.
 
 ### histograms
 Used to plot the histograms from a given book in a HistMaker's output
 adding together the processes with their cross section and generation values, primarily
-using plot_histograms.C, plot_ztautau_histograms.C, and dataplotter_ztautau.C. The last of
-these uses the DataPlotter data handler to plot, storing the object as a field of the script
+using dataplotter_ztautau.C. This uses the DataPlotter data handler to plot, storing the object as a field of the script
 
 ### tmva_training
 Used to train MVAs to separate backgrounds from signal
