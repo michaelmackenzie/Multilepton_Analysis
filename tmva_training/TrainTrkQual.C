@@ -54,8 +54,6 @@ TString selection_ = "zmutau";
 Int_t split_trees_ = 0; //split training/testing using tree defined samples
 Int_t trkqual_version_ = -1; //version of variables used in trkqual training, < 0 is use default
 Int_t use_njets_ = 1; //whether or not to train using njets, don't use if jet binned categories
-Int_t use_ht_ = 1; //whether or not to train using hT, don't use if 0 jet bin category
-Int_t use_nbjets_ = 0; //whether or not to train using nbjets, = id+3*ptcut with id = 1,2,3 for tight, medium, loose and pt = 0,1,2 for >30, >25, >20
 
 bool dryrun_ = false; //don't actually train
 bool inTrainDir_ = false; //track if we've gone into a training directory

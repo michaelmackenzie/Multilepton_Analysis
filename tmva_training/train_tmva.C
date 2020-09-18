@@ -2,11 +2,9 @@
 
 #include "TrainTrkQual.C"
 vector<int> nano_signals_ = {9, 10, 11, 12, 13, 14};
-vector<int> signals_ = {36, 37, 38, 39, 40, 41};
 
-int train_tmva(const char* tree_name = "trees/background_ztautau_Z0_mutau_8.tree",
-	       vector<int> signals = signals_, vector<int> ignore = {}, int use_nbjets = 0) {
-  use_nbjets_ = use_nbjets;
+int train_tmva(const char* tree_name = "trees/background_ztautau_Z0_nano_mutau_8.tree",
+	       vector<int> signals = nano_signals_, vector<int> ignore = {}) {
   TFile *f;
 
   TString tmvaName;
@@ -95,68 +93,57 @@ int train_tmva(const char* tree_name = "trees/background_ztautau_Z0_mutau_8.tree
   return TrainTrkQual(signal, background, tmvaName.Data(), signals, ignore);
 }
 
-Int_t train_all_tmvas(Int_t split_trees, bool doJetBinned = false, bool doNano = true) {
+Int_t train_all_tmvas(Int_t split_trees, bool doJetBinned = false) {
   split_trees_ = split_trees;
   gROOT->SetBatch(kTRUE);
   TStopwatch* timer = new TStopwatch();  
   Int_t status = 0;
   multiTrainings_ = true; //so TrainTrkQual changes directory back at the end
-   if(!doJetBinned && !doNano) {
-    status += train_tmva("trees/background_ztautau_Z0_mutau_8.tree");
-    status += train_tmva("trees/background_ztautau_Z0_etau_28.tree");
-    status += train_tmva("trees/background_ztautau_Z0_emu_48.tree");
-    status += train_tmva("trees/background_ztautau_Z0_mutau_e_48.tree");
-    status += train_tmva("trees/background_ztautau_Z0_etau_mu_48.tree");
-    status += train_tmva("trees/background_ztautau_higgs_mutau_8.tree");
-    status += train_tmva("trees/background_ztautau_higgs_etau_28.tree");
-    status += train_tmva("trees/background_ztautau_higgs_emu_48.tree");
-    status += train_tmva("trees/background_ztautau_higgs_mutau_e_48.tree");
-    status += train_tmva("trees/background_ztautau_higgs_etau_mu_48.tree");
-  } else if(!doNano){
+  if(doJetBinned){
     // 0 jets
-    status += train_tmva("trees/background_ztautau_Z0_mutau_18.tree");
-    status += train_tmva("trees/background_ztautau_Z0_etau_38.tree");
-    status += train_tmva("trees/background_ztautau_Z0_emu_58.tree");
-    status += train_tmva("trees/background_ztautau_Z0_mutau_e_58.tree");
-    status += train_tmva("trees/background_ztautau_Z0_etau_mu_58.tree");
-    status += train_tmva("trees/background_ztautau_higgs_mutau_18.tree");
-    status += train_tmva("trees/background_ztautau_higgs_etau_38.tree");
-    status += train_tmva("trees/background_ztautau_higgs_emu_58.tree");
-    status += train_tmva("trees/background_ztautau_higgs_mutau_e_58.tree");
-    status += train_tmva("trees/background_ztautau_higgs_etau_mu_58.tree");
+    status += train_tmva("trees/background_ztautau_Z0_nano_mutau_18.tree");
+    status += train_tmva("trees/background_ztautau_Z0_nano_etau_48.tree");
+    status += train_tmva("trees/background_ztautau_Z0_nano_emu_78.tree");
+    status += train_tmva("trees/background_ztautau_Z0_nano_mutau_e_78.tree");
+    status += train_tmva("trees/background_ztautau_Z0_nano_etau_mu_78.tree");
+    status += train_tmva("trees/background_ztautau_higgs_nano_mutau_18.tree");
+    status += train_tmva("trees/background_ztautau_higgs_nano_etau_48.tree");
+    status += train_tmva("trees/background_ztautau_higgs_nano_emu_78.tree");
+    status += train_tmva("trees/background_ztautau_higgs_nano_mutau_e_78.tree");
+    status += train_tmva("trees/background_ztautau_higgs_nano_etau_mu_78.tree");
     // 1 jet
-    status += train_tmva("trees/background_ztautau_Z0_mutau_19.tree");
-    status += train_tmva("trees/background_ztautau_Z0_etau_39.tree");
-    status += train_tmva("trees/background_ztautau_Z0_emu_59.tree");
-    status += train_tmva("trees/background_ztautau_Z0_mutau_e_59.tree");
-    status += train_tmva("trees/background_ztautau_Z0_etau_mu_59.tree");
-    status += train_tmva("trees/background_ztautau_higgs_mutau_19.tree");
-    status += train_tmva("trees/background_ztautau_higgs_etau_39.tree");
-    status += train_tmva("trees/background_ztautau_higgs_emu_59.tree");
-    status += train_tmva("trees/background_ztautau_higgs_mutau_e_59.tree");
-    status += train_tmva("trees/background_ztautau_higgs_etau_mu_59.tree");
+    status += train_tmva("trees/background_ztautau_Z0_nano_mutau_19.tree");
+    status += train_tmva("trees/background_ztautau_Z0_nano_etau_49.tree");
+    status += train_tmva("trees/background_ztautau_Z0_nano_emu_79.tree");
+    status += train_tmva("trees/background_ztautau_Z0_nano_mutau_e_79.tree");
+    status += train_tmva("trees/background_ztautau_Z0_nano_etau_mu_79.tree");
+    status += train_tmva("trees/background_ztautau_higgs_nano_mutau_19.tree");
+    status += train_tmva("trees/background_ztautau_higgs_nano_etau_49.tree");
+    status += train_tmva("trees/background_ztautau_higgs_nano_emu_79.tree");
+    status += train_tmva("trees/background_ztautau_higgs_nano_mutau_e_79.tree");
+    status += train_tmva("trees/background_ztautau_higgs_nano_etau_mu_79.tree");
     // >1 jets
-    status += train_tmva("trees/background_ztautau_Z0_mutau_20.tree");
-    status += train_tmva("trees/background_ztautau_Z0_etau_40.tree");
-    status += train_tmva("trees/background_ztautau_Z0_emu_60.tree");
-    status += train_tmva("trees/background_ztautau_Z0_mutau_e_60.tree");
-    status += train_tmva("trees/background_ztautau_Z0_etau_mu_60.tree");
-    status += train_tmva("trees/background_ztautau_higgs_mutau_20.tree");
-    status += train_tmva("trees/background_ztautau_higgs_etau_40.tree");
-    status += train_tmva("trees/background_ztautau_higgs_emu_60.tree");
-    status += train_tmva("trees/background_ztautau_higgs_mutau_e_60.tree");
-    status += train_tmva("trees/background_ztautau_higgs_etau_mu_60.tree");
-   } else { //Nano AODs
-    status += train_tmva("trees/background_ztautau_Z0_nano_mutau_8.tree", nano_signals_);
-    status += train_tmva("trees/background_ztautau_Z0_nano_etau_38.tree", nano_signals_);
-    status += train_tmva("trees/background_ztautau_Z0_nano_emu_68.tree", nano_signals_);
-    status += train_tmva("trees/background_ztautau_Z0_nano_mutau_e_68.tree", nano_signals_);
-    status += train_tmva("trees/background_ztautau_Z0_nano_etau_mu_68.tree", nano_signals_);
-    status += train_tmva("trees/background_ztautau_higgs_nano_mutau_8.tree", nano_signals_);
-    status += train_tmva("trees/background_ztautau_higgs_nano_etau_38.tree", nano_signals_);
-    status += train_tmva("trees/background_ztautau_higgs_nano_emu_68.tree", nano_signals_);
-    status += train_tmva("trees/background_ztautau_higgs_nano_mutau_e_68.tree", nano_signals_);
-    status += train_tmva("trees/background_ztautau_higgs_nano_etau_mu_68.tree", nano_signals_);
+    status += train_tmva("trees/background_ztautau_Z0_nano_mutau_20.tree");
+    status += train_tmva("trees/background_ztautau_Z0_nano_etau_50.tree");
+    status += train_tmva("trees/background_ztautau_Z0_nano_emu_80.tree");
+    status += train_tmva("trees/background_ztautau_Z0_nano_mutau_e_80.tree");
+    status += train_tmva("trees/background_ztautau_Z0_nano_etau_mu_80.tree");
+    status += train_tmva("trees/background_ztautau_higgs_nano_mutau_20.tree");
+    status += train_tmva("trees/background_ztautau_higgs_nano_etau_50.tree");
+    status += train_tmva("trees/background_ztautau_higgs_nano_emu_80.tree");
+    status += train_tmva("trees/background_ztautau_higgs_nano_mutau_e_80.tree");
+    status += train_tmva("trees/background_ztautau_higgs_nano_etau_mu_80.tree");
+   } else { //Unbinned in njets
+    status += train_tmva("trees/background_ztautau_Z0_nano_mutau_8.tree");
+    status += train_tmva("trees/background_ztautau_Z0_nano_etau_38.tree");
+    status += train_tmva("trees/background_ztautau_Z0_nano_emu_68.tree");
+    status += train_tmva("trees/background_ztautau_Z0_nano_mutau_e_68.tree");
+    status += train_tmva("trees/background_ztautau_Z0_nano_etau_mu_68.tree");
+    status += train_tmva("trees/background_ztautau_higgs_nano_mutau_8.tree");
+    status += train_tmva("trees/background_ztautau_higgs_nano_etau_38.tree");
+    status += train_tmva("trees/background_ztautau_higgs_nano_emu_68.tree");
+    status += train_tmva("trees/background_ztautau_higgs_nano_mutau_e_68.tree");
+    status += train_tmva("trees/background_ztautau_higgs_nano_etau_mu_68.tree");
   }
   Double_t cpuTime = timer->CpuTime();
   Double_t realTime = timer->RealTime();

@@ -7,61 +7,13 @@ bool  doHiggs_ = true;
 bool  doDiboson_ = true;
 bool  debug_ = false;
 Int_t verbose_ = 1;
-bool  useNanoAODs_ = false;
 int   year_ = 2016;
 
 Int_t make_background(int set = 7, TString selection = "mutau", TString base = "../histograms/ztautau/") {
 
   cout << "Beginning to make tree for selection " << selection.Data() << " with set " << set
-       << ((useNanoAODs_) ? " using nano aod based histograms" : "") << endl;
+       << endl;
   
-  const char* names[] = {  "t_tw"                   
-                         , "tbar_tw"                
-			 , "ttbar_inclusive"        
-			 , "zjets_m-50_amcatnlo"         
-			 , "zjets_m-10to50_amcatnlo"     
-			 , "w1jets"   
-			 , "w2jets"   
-			 , "w3jets"   
-			 , "w4jets"   
-			 , "ww"            
-			 , "wz_2l2q"  
-			 , "wz_3lnu"  
-			 , "zz_2l2nu" 
-			 , "zz_2l2q"  
-			 , "zz_4l"    
-			 , "htautau_gluglu"
-			 , "zmutau"                 
-			 , "zetau"                 
-			 , "zemu"                 
-			 , "hmutau"                 
-			 , "hetau"                 
-			 , "hemu"                 
-  };
-  
-  int doProcess[] = {  doTop_ //t_tw
-		     , doTop_ //tbar_tw
-		     , doTop_ //ttbar
-		     , doDY_ //DY AMC
-		     , doDY_ //DY AMC
-		     , doWJets_ //W1Jets
-		     , doWJets_ //W2Jets
-		     , doWJets_ //W3Jets
-		     , doWJets_ //W4Jets
-		     , doDiboson_ //WW
-		     , doDiboson_ //WZ
-		     , doDiboson_ //WZ
-		     , doDiboson_ //ZZ
-		     , doDiboson_ //ZZ
-		     , doDiboson_ //ZZ
-		     , doHiggs_ //htautau
-		     , (!doHiggsDecays_ && (selection.Contains("mutau"))) //zmutau
-		     , (!doHiggsDecays_ && (selection.Contains("etau") )) //zetau
-		     , (!doHiggsDecays_ && (selection == "emu")  ) //zetau
-		     , (doHiggsDecays_  && (selection.Contains("mutau"))) //hmutau
-		     , (doHiggsDecays_  && (selection.Contains("etau") )) //hetau
-		     , (doHiggsDecays_  && (selection == "emu")  ) //hetau
-  };
   const char* nano_names[] = {"DY50"               ,
 			      "SingleAntiToptW"    ,
 			      "SingleToptW"        ,
@@ -102,25 +54,18 @@ Int_t make_background(int set = 7, TString selection = "mutau", TString base = "
   TFile* fList[30];
   TTree* tList[30]; //to keep trees in memory
   TList* list = new TList;
-  Int_t dycount = 0;
   Int_t filecount = 0;
   TString fileSelec = selection; //use different selection for files since tau_e/mu decays --> emu channel
   if(selection.Contains("_")) //is a leptonic tau channel
     fileSelec = "emu";
-  int nfiles = (useNanoAODs_) ? sizeof(nano_names)/sizeof(*nano_names) : sizeof(names)/sizeof(*names);
+  int nfiles = sizeof(nano_names)/sizeof(*nano_names);
   for(int i = 0; i < nfiles; ++i) {
     fDList[filecount] = 0;
     fList[filecount] = 0;
     tList[filecount] = 0;
-    if((!doProcess[i]&&!useNanoAODs_) || (!doNanoProcess[i]&&useNanoAODs_)) continue;
-    TString sname = names[i];
-    bool isDY = sname.Contains("zjets") || sname.Contains("DY");
-    const char* c = (useNanoAODs_) ? Form("%sztautau_%s_clfv_%i_%s.hist",base.Data(),fileSelec.Data(),year_,nano_names[i])
-      : Form("%sztautau_%s_%sbltTree_%s.hist",base.Data(),fileSelec.Data(), (isDY) ? Form("%i_",dycount+1) : "", names[i]);
-    if(isDY&&!useNanoAODs_) {
-      if(dycount == 0) --i;
-      dycount = (dycount+1)%2;
-    }
+    if(!doNanoProcess[i]) continue;
+    TString sname = nano_names[i];
+    const char* c = Form("%sztautau_%s_clfv_%i_%s.hist",base.Data(),fileSelec.Data(),year_,nano_names[i]);
     if(gSystem->AccessPathName(c)) {
       printf("File %s not found, continuing\n",c);
       continue;
@@ -163,7 +108,7 @@ Int_t make_background(int set = 7, TString selection = "mutau", TString base = "
   else
     printf("Unknown process combination! No name flag added\n");
   type += (doHiggsDecays_) ? "higgs_" : "Z0_";
-  if(useNanoAODs_) type += "nano_";
+  type += "nano_";
   if(verbose_ > 1)
     cout << "Background training type " << type.Data() << endl;
   TFile* out = new TFile(Form("background_ztautau_%s%s_%i.tree",
@@ -193,8 +138,7 @@ Int_t make_background(int set = 7, TString selection = "mutau", TString base = "
 }
 
 
-Int_t make_all_backgrounds(TString base = "../histograms/ztautau/", bool useNanoAODs = false) {
-  useNanoAODs_ = useNanoAODs;
+Int_t make_all_backgrounds(TString base = "../histograms/nanoaods/") {
   Int_t status = 0;
   verbose_ = 0;
   //b-tag sets
@@ -203,23 +147,5 @@ Int_t make_all_backgrounds(TString base = "../histograms/ztautau/", bool useNano
   status += make_background(68, "emu"    , base);
   status += make_background(68, "mutau_e", base);
   status += make_background(68, "etau_mu", base);
-  // //no jet sets
-  // status += make_background(18,  "mutau" , base);
-  // status += make_background(38, "etau"   , base);
-  // status += make_background(58, "emu"    , base);
-  // status += make_background(58, "mutau_e", base);
-  // status += make_background(58, "etau_mu", base);
-  // //1 jet sets
-  // status += make_background(19,  "mutau" , base);
-  // status += make_background(39, "etau"   , base);
-  // status += make_background(59, "emu"    , base);
-  // status += make_background(59, "mutau_e", base);
-  // status += make_background(59, "etau_mu", base);
-  // //> 1 jet sets
-  // status += make_background(20,  "mutau" , base);
-  // status += make_background(40, "etau"   , base);
-  // status += make_background(60, "emu"    , base);
-  // status += make_background(60, "mutau_e", base);
-  // status += make_background(60, "etau_mu", base);
   return status;
 }
