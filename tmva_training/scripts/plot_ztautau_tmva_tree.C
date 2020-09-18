@@ -21,63 +21,6 @@ namespace {
   int    verbose_ = 1; //verbosity level
   double scale_signal_ = 250.; //scale signal to be visible
 
-  bool doNano_ = true;
-  vector<TString> names_ = {"Top"         //ttbar		    
-			    , "Z+Jets"	  //DY AMC		    
-			    , "Z+Jets"	  //DY AMC		    
-			    , "Top"	  //t_tw		    
-			    , "Top"	  //tbar_tw		    
-			    , "Z+Jets"	  //DY inclusive M > 50 
-			    , "Z+Jets"	  //DY inclusive 10 < M 
-			    , "Z+Jets"	  //DY 1 Jet MadGraph   
-			    , "Z+Jets"	  //DY 1 Jet MadGraph   
-			    , "Z+Jets"	  //DY 2 Jet MadGraph   
-			    , "Z+Jets"	  //DY 2 Jet MadGraph   
-			    , "Z+Jets"	  //DY 3 Jet MadGraph   
-			    , "Z+Jets"	  //DY 3 Jet MadGraph   
-			    , "Z+Jets"	  //DY 4 Jet MadGraph   
-			    , "Z+Jets"	  //DY 4 Jet MadGraph   
-			    , "W+Jets"	  //W 1 Jet MadGraph    
-			    , "W+Jets"	  //W 2 Jet MadGraph    
-			    , "W+Jets"	  //W 3 Jet MadGraph    
-			    , "W+Jets"	  //W 4 Jet MadGraph    
-			    , "W+Jets"    //WJets amcnlo	    
-			    , "W+Jets"    //WJets amcnlo ext 1  
-			    , "W+Jets"    //WJets amcnlo ext 2  
-			    , "DiBoson"	  //WW		    
-			    , "DiBoson"	  //WZ Jets to 2L2Q	    
-			    , "DiBoson"	  //WZ Jets to 3LNu	    
-			    , "DiBoson"	  //ZZ Jets to 2L2Nu    
-			    , "DiBoson"	  //ZZ Jets to 2L2Q	    
-			    , "DiBoson"	  //ZZ Jets to 4L	    
-			    , "HZG"	  //HZG gluglu	    
-			    , "HZG"	  //HZG tth		    
-			    , "HZG"	  //HZG vbf		    
-			    , "HZG"	  //HZG W-		    
-			    , "HZG"	  //HZG W+		    
-			    , "HZG"	  //HZG zh		    
-			    , "HTauTau"	  //HTauTau gluglu	    
-			    , "ZETau"	  //ZETau		    
-			    , "ZMuTau"	  //ZMuTau		    
-			    , "ZEMu"	  //ZEMu		    
-			    , "HETau"	  //HETau		    
-			    , "HMuTau"	  //HMuTau		    
-			    , "HEMu"	  //HEMu		    
-			    , "Data"	  //Muon Data 2016 B    
-			    , "Data"	  //Muon Data 2016 C    
-			    , "Data"	  //Muon Data 2016 D    
-			    , "Data"	  //Muon Data 2016 E    
-			    , "Data"	  //Muon Data 2016 F    
-			    , "Data"	  //Muon Data 2016 G    
-			    , "Data"	  //Muon Data 2016 H    
-			    , "Data"	  //Electron Data 2016 B
-			    , "Data"	  //Electron Data 2016 C
-			    , "Data"	  //Electron Data 2016 D
-			    , "Data"	  //Electron Data 2016 E
-			    , "Data"	  //Electron Data 2016 F
-			    , "Data"	  //Electron Data 2016 G
-			    , "Data"	  //Electron Data 2016 H
-  };
   vector<TString> names_nano_ = {  "t#bar{t}qql#nu" 
 				 , "t#bar{t}l#nul#nu"
 				 , "Z+Jets"	  
@@ -279,41 +222,26 @@ int stack_tmva_tree(const char* file = "training_background_ztautau_higgs_mutau_
     printf("Retrieved both trees\n");
 
   std::map<TString, int> colors;
-  if(doNano_) {
-    colors["Z+Jets"] = kRed-7;
-    colors["W+Jets"] = kGreen-7;
-    colors["t#bar{t}qql#nu"] = kYellow-7;
-    colors["t#bar{t}l#nul#nu"] = kMagenta-7;
-    colors["Single top"] = kCyan-7;
-    colors["Diboson"]= kViolet+6;
-    colors["Z->e#tau"] = kBlue;
-    colors["Z->#mu#tau"] = kBlue;
-    colors["Z->e#mu"] = kBlue;
-    colors["H->e#tau"] = kBlue;
-    colors["H->#mu#tau"] = kBlue;
-    colors["H->e#mu"] = kBlue;
-    colors["Data"]   = kBlack;
-  } else {
-    colors["Z+Jets"] = kRed+1;
-    colors["W+Jets"] = kGreen+2;
-    colors["Top"]    = kYellow+1;
-    colors["DiBoson"]= kViolet;
-    colors["ZMuTau"] = kGreen+9;
-    colors["ZEMu"]   = kGreen+9;
-    colors["ZETau"]  = kAzure-2;
-    colors["HMuTau"] = kGreen+9;
-    colors["HEMu"]   = kGreen+9;
-    colors["HETau"]  = kAzure-2;
-    colors["HZG"]    = kBlue-2;
-    colors["Data"]   = kBlack;
-  }
+  colors["Z+Jets"] = kRed-7;
+  colors["W+Jets"] = kGreen-7;
+  colors["t#bar{t}qql#nu"] = kYellow-7;
+  colors["t#bar{t}l#nul#nu"] = kMagenta-7;
+  colors["Single top"] = kCyan-7;
+  colors["Diboson"]= kViolet+6;
+  colors["Z->e#tau"] = kBlue;
+  colors["Z->#mu#tau"] = kBlue;
+  colors["Z->e#mu"] = kBlue;
+  colors["H->e#tau"] = kBlue;
+  colors["H->#mu#tau"] = kBlue;
+  colors["H->e#mu"] = kBlue;
+  colors["Data"]   = kBlack;
   std::map<TString, int> isSignal;
 
   //initialize a map of histogram titles to index in histogram array to use
   std::map<TString, int> indexes;
-  unsigned ndatasets = (doNano_) ? names_nano_.size() : names_.size();
+  unsigned ndatasets = names_nano_.size();
   for(unsigned index = 0; index < ndatasets ; ++index) 
-    indexes[((doNano_) ? names_nano_[index] : names_[index])] = -1;
+    indexes[names_nano_[index]] = -1;
 
   //arrays of histograms for plotting
   TH1F* htest[ndatasets];
@@ -350,11 +278,11 @@ int stack_tmva_tree(const char* file = "training_background_ztautau_higgs_mutau_
   TH1F* hSigTest;
   for(int index = 0; index <  ndatasets; ++index) {
     if(verbose_ > 1)
-      cout << "Filling histogram " << index << ": name = " << ((doNano_) ? names_nano_[index].Data() : names_[index].Data()) << endl;
+      cout << "Filling histogram " << index << ": name = " << names_nano_[index].Data()<< endl;
     int category = index + 1; //current definition of category is offset by 1
     
-    htest[index] = new TH1F(Form("htest_%i",index),   Form("Test %s" , ((doNano_) ? names_nano_[index].Data() : names_[index].Data())), bins_, xMin_, xMax_);
-    if(plot_train > 0) htrain[index] = new TH1F(Form("htrain_%i",index), Form("Train %s", ((doNano_) ? names_nano_[index].Data() : names_[index].Data())), bins_, xMin_, xMax_);
+    htest[index] = new TH1F(Form("htest_%i",index),   Form("Test %s" , names_nano_[index].Data()), bins_, xMin_, xMax_);
+    if(plot_train > 0) htrain[index] = new TH1F(Form("htrain_%i",index), Form("Train %s",  names_nano_[index].Data()), bins_, xMin_, xMax_);
     TString cut;
     if(fname.Contains("mock"))
       cut = Form("genweight*((%s>=%.5f)",mva_var.Data(),mva_cut);
@@ -372,7 +300,7 @@ int stack_tmva_tree(const char* file = "training_background_ztautau_higgs_mutau_
       cout << "Performing signal test: ";
     test_tree->Draw("classID>>hSigTest",Form("(eventcategory==%i)",category));
     bool isSig = hSigTest->GetMean() > 0.5;
-    isSignal[((doNano_) ? names_nano_[index] : names_[index])] = isSig;//save signal label
+    isSignal[names_nano_[index]] = isSig;//save signal label
     if(verbose_ > 1)
       cout  << isSig << endl;
     delete hSigTest;
@@ -380,7 +308,7 @@ int stack_tmva_tree(const char* file = "training_background_ztautau_higgs_mutau_
     if(plot_train > 0) train_tree->Draw(Form("%s>>htrain_%i", var_.Data(), index), cut.Data());
     if(plot_train > 0 && verbose_ > 1)
       cout << "Test histogram has " << htest[index]->GetEntries() << " entries\n";
-    TString name = ((doNano_) ? names_nano_[index] : names_[index]);
+    TString name = names_nano_[index];
     if(plot_train > 0) htrain[index]->Scale(((isSig) ? scaleSigTrain : scaleBkgTrain));
 
     if(correctForScale_) {//re-scale test/train sample to each look like entire background expectation
@@ -405,12 +333,12 @@ int stack_tmva_tree(const char* file = "training_background_ztautau_higgs_mutau_
     } else //map this index
       indexes[name] = index;
 
-    htest[index]->SetLineColor(colors[((doNano_) ? names_nano_[index] : names_[index])]);
-    htest[index]->SetFillColor(colors[((doNano_) ? names_nano_[index] : names_[index])]);
+    htest[index]->SetLineColor(colors[names_nano_[index]]);
+    htest[index]->SetFillColor(colors[names_nano_[index]]);
     // htest[index]->SetFillStyle(3001);
-    if(plot_train > 0) htrain[index]->SetMarkerColor(colors[((doNano_) ? names_nano_[index] : names_[index])]-1);
+    if(plot_train > 0) htrain[index]->SetMarkerColor(colors[names_nano_[index]]-1);
     if(plot_train > 0) htrain[index]->SetMarkerStyle(20);
-    if(plot_train > 0) htrain[index]->SetLineColor(colors[((doNano_) ? names_nano_[index] : names_[index])]-1);
+    if(plot_train > 0) htrain[index]->SetLineColor(colors[ names_nano_[index]]-1);
   }
   TObject* o = (gDirectory->Get("c1"));
   if(o) delete o;
@@ -418,7 +346,7 @@ int stack_tmva_tree(const char* file = "training_background_ztautau_higgs_mutau_
   THStack* hstacktest  = new THStack("teststack" , "Testing Stack");
   THStack* hstacktrain = new THStack("trainstack", "Training Stack");
   for(unsigned index = 0; index <  ndatasets; ++index) {
-    TString name = (doNano_) ? names_nano_[index] : names_[index];
+    TString name = names_nano_[index];
     if(verbose_ > 1)
       cout << "Looking at histogram " << index << ", name = " << name.Data() << endl
 	   << "index map = " << indexes[name] << ", issignal = " << isSignal[name] << endl;

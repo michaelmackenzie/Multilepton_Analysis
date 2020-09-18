@@ -45,8 +45,13 @@ public:
 	factory.AddVariable("lepmestimate" , "M_{ll}^{Coll}" , "GeV", 'F'); 
       else
 	factory.AddVariable("lepmestimatetwo" , "M_{ll}^{Coll}" , "GeV", 'F'); 
-      factory.AddVariable("onemetdeltaphi","#Delta#phi_{MET,l1}","",'F');
-      factory.AddVariable("twometdeltaphi","#Delta#phi_{MET,l2}","",'F');
+      if(version_ < 5) {
+	factory.AddVariable("onemetdeltaphi","#Delta#phi_{MET,l1}","",'F');
+	factory.AddVariable("twometdeltaphi","#Delta#phi_{MET,l2}","",'F');
+      } else if(version_ == 5) {
+	factory.AddSpectator("onemetdeltaphi","#Delta#phi_{MET,l1}","",'F');
+	factory.AddSpectator("twometdeltaphi","#Delta#phi_{MET,l2}","",'F');
+      }
       if(version_ == 1 && !selection.Contains("_")) {
 	factory.AddVariable("leptwoidone"  , "#tau anti-electron ID", "", 'F');
 	factory.AddVariable("leptwoidtwo"  , "#tau anti-muon ID"    , "", 'F');
@@ -55,6 +60,10 @@ public:
 	factory.AddSpectator("leptwoidone"  , "#tau anti-electron ID", "", 'F');
 	factory.AddSpectator("leptwoidtwo"  , "#tau anti-muon ID"    , "", 'F');
 	factory.AddVariable("leptwoidthree", "#tau anti-jet ID"     , "", 'F');
+      } else if(version_ == 5 && !selection.Contains("_")) {
+	factory.AddSpectator("leptwoidone"  , "#tau anti-electron ID", "", 'F');
+	factory.AddSpectator("leptwoidtwo"  , "#tau anti-muon ID"    , "", 'F');
+	factory.AddSpectator("leptwoidthree", "#tau anti-jet ID"     , "", 'F');
       }
     } else {
       factory.AddSpectator("lepmestimate" , "M_{ll}^{Coll}" , "GeV", 'F');   
@@ -73,6 +82,9 @@ public:
       factory.AddSpectator("htdeltaphi","#Delta#phi_{hT,ll}","",'F');
       factory.AddSpectator("ht","pT(#Sigma #vec{P}_{Jet})","",'F');
     }
+    if(version_ == 5)
+      factory.AddVariable("jetpt","pT_{Jet}","",'F');
+    
     //higgs specific
     if(selection.Contains("h")) {
       // factory.AddVariable("ptoverm := leppt/lepm","pT_{ll}/M_{ll}","",'F');
@@ -82,7 +94,7 @@ public:
     factory.AddVariable("lepdeltaphi","#Delta#phi_{ll}","",'F');
     factory.AddSpectator("htsum","#Sigma pT_{Jet}","",'F');
     factory.AddSpectator("leponeiso","Iso_{l1}","",'F');
-    if(version_ == 1 || version_ == 2 || version_ == 3 || version_ == 4) {
+    if(version_ > 0 && version_ < 6) {
       factory.AddVariable("met","MET","GeV",'F');
     } else {
       factory.AddSpectator("met","MET","GeV",'F');
@@ -122,8 +134,13 @@ public:
 	reader.AddVariable("lepmestimate" , &tree.mestimate); 
       else
 	reader.AddVariable("lepmestimatetwo" , &tree.mestimatetwo); //project onto the electron
-      reader.AddVariable("onemetdeltaphi", &tree.onemetdeltaphi);
-      reader.AddVariable("twometdeltaphi", &tree.twometdeltaphi);
+      if(version_ < 5) {
+	reader.AddVariable("onemetdeltaphi", &tree.onemetdeltaphi);
+	reader.AddVariable("twometdeltaphi", &tree.twometdeltaphi);
+      } else if(version_ == 5) {
+	reader.AddSpectator("onemetdeltaphi", &tree.onemetdeltaphi);
+	reader.AddSpectator("twometdeltaphi", &tree.twometdeltaphi);
+      }
       if(version_ == 1 && !selection.Contains("_")) {
 	reader.AddVariable("leptwoidone"  , &tree.leptwoidone); 
 	reader.AddVariable("leptwoidtwo"  , &tree.leptwoidtwo); 
@@ -132,6 +149,10 @@ public:
 	reader.AddSpectator("leptwoidone"  , &tree.leptwoidone); 
 	reader.AddSpectator("leptwoidtwo"  , &tree.leptwoidtwo); 
 	reader.AddVariable("leptwoidthree", &tree.leptwoidthree); 
+      } else if(version_ == 5 && !selection.Contains("_")) {
+	reader.AddSpectator("leptwoidone"  , &tree.leptwoidone); 
+	reader.AddSpectator("leptwoidtwo"  , &tree.leptwoidtwo); 
+	reader.AddSpectator("leptwoidthree", &tree.leptwoidthree); 
       }
     } else {
       reader.AddSpectator("lepmestimate" , &tree.mestimate); 
@@ -150,6 +171,9 @@ public:
       reader.AddSpectator("htdeltaphi", &tree.htdeltaphi);
       reader.AddSpectator("ht", &tree.ht);
     }
+    if(version_ == 5)
+      reader.AddVariable("jetpt",&tree.jetpt);
+
     //higgs specific
     if(selection.Contains("h")) {
       // reader.AddVariable("ptoverm := leppt/lepm","pT_{ll}/M_{ll}","",'F');
@@ -159,7 +183,7 @@ public:
     reader.AddVariable("lepdeltaphi", &tree.lepdeltaphi);
     reader.AddSpectator("htsum", &tree.htsum);
     reader.AddSpectator("leponeiso", &tree.leponeiso);
-    if(version_ == 1 || version_ == 2 || version_ == 3 || version_ == 4) {
+    if(version_ > 0 || version_ < 6) {
       reader.AddVariable("met", &tree.met);
     } else {
       reader.AddSpectator("met", &tree.met);
@@ -173,7 +197,7 @@ public:
   }
 
   //default version
-  const static int Default = 4;
+  const static int Default = 5;
   //fields
   int version_;
   int njets_; //flag for jet binned categories

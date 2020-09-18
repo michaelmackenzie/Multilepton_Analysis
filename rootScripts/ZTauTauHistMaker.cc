@@ -491,6 +491,7 @@ void ZTauTauHistMaker::BookTrees() {
       fTrees[i]->Branch("pxiinv",          &fTreeVars.pxiinv	     );   
       fTrees[i]->Branch("ht",              &fTreeVars.ht	     );   
       fTrees[i]->Branch("htsum",           &fTreeVars.htsum	     );   
+      fTrees[i]->Branch("jetpt",           &fTreeVars.jetpt	     );   
       fTrees[i]->Branch("njets",           &fTreeVars.njets	     );   
       fTrees[i]->Branch("nbjets",          &fTreeVars.nbjets	     );   
       fTrees[i]->Branch("nbjetsm",         &fTreeVars.nbjetsm	     );   
@@ -607,6 +608,7 @@ void ZTauTauHistMaker::InitializeTreeVariables(Int_t selection) {
   //event variables
   fTreeVars.ht       = ht;
   fTreeVars.htsum    = htSum;
+  fTreeVars.jetpt    = jetOneP4->Pt();
   fTreeVars.njets    = nJets;
   fTreeVars.nbjets   = nBJets;
   fTreeVars.nbjetsm  = nBJetsM;
@@ -1414,8 +1416,8 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   //configure bjet counting based on selection
   fBJetCounting = 2; //use pT > 20 GeV/c
   if(emu)       fBJetTightness = 2; //loose b-jets
-  else if(etau) fBJetTightness = 0; //tight b-jets
-  else if(mutau)fBJetTightness = 0; //tight b-jets
+  else if(etau) fBJetTightness = 0; //-1; //no cut on b-jets
+  else if(mutau)fBJetTightness = 0; //-1; //no cut on b-jets
   else if(mumu) fBJetTightness = 2; //loose b-jets
   else if(ee)   fBJetTightness = 2; //loose b-jets
 
@@ -1432,7 +1434,9 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
     if(fBJetTightness == 0) nBJetsUse = nBJets + nBJets25 + nBJets20;
     else if(fBJetTightness == 1) nBJetsUse = nBJetsM + nBJets25M + nBJets20M;
     else if(fBJetTightness == 2) nBJetsUse = nBJetsL + nBJets25L + nBJets20L;
-  } else {
+  } else if(fBJetTightness == -1) //no b-jet cut
+    nBJetsUse = 0;
+  else {
     if(entry % 50000 == 0) printf("Bad bJetUse definition, Count = %i Tight = %i!\n", fBJetCounting, fBJetTightness);
   }
 
@@ -1543,6 +1547,25 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   
   
   ////////////////////////////////////////////////////////////////////////////
+  // Set 24-29 + selection offset: For testing purposes
+  ////////////////////////////////////////////////////////////////////////////
+  bool mutau_test = mutau && tauDeepAntiJet > 100;
+  bool etau_test  = etau  && tauDeepAntiJet > 100;
+
+  if(mutau_test && chargeTest) FillAllHistograms(kMuTau + 24);
+  else if(mutau_test)          FillAllHistograms(kMuTau + 24 + fQcdOffset);
+  if(etau_test && chargeTest)  FillAllHistograms(kETau  + 24);
+  else if(etau_test)           FillAllHistograms(kETau  + 24 + fQcdOffset);
+
+  mutau_test &= tauDeepAntiEle > 50;
+  etau_test  &= tauDeepAntiEle > 100;
+
+  if(mutau_test && chargeTest) FillAllHistograms(kMuTau + 25);
+  else if(mutau_test)          FillAllHistograms(kMuTau + 25 + fQcdOffset);
+  if(etau_test && chargeTest)  FillAllHistograms(kETau  + 25);
+  else if(etau_test)           FillAllHistograms(kETau  + 25 + fQcdOffset);
+  
+  ////////////////////////////////////////////////////////////////////////////
   // Set 9-12 : BDT Cut
   ////////////////////////////////////////////////////////////////////////////
   //Total background Z0 MVAs
@@ -1568,29 +1591,6 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   if(emu && chargeTest && fMvaOutputs[8] > fMvaCuts[8])   FillAllHistograms(kETauMu+ 10);
   else if(emu && fMvaOutputs[8] > fMvaCuts[8])            FillAllHistograms(kETauMu+ 10 + fQcdOffset);
 
-  // test set for weird MVA peaks
-  double cutval_1(-0.6), cutval_2(-0.3);
-  if(fMvaOutputs[5] < cutval_1 && fMvaOutputs[5] > -1.) { //Z0
-    if(emu && chargeTest)     FillAllHistograms(kEMu   + 24);
-    else if(emu)              FillAllHistograms(kEMu   + 24 + fQcdOffset);
-  } else if(fMvaOutputs[5] < cutval_2 && fMvaOutputs[5] > -1.) {
-    if(emu && chargeTest)     FillAllHistograms(kEMu   + 25);
-    else if(emu)              FillAllHistograms(kEMu   + 25 + fQcdOffset);
-  } else if(fMvaOutputs[5] > -1.){
-    if(emu && chargeTest)     FillAllHistograms(kEMu   + 26);
-    else if(emu)              FillAllHistograms(kEMu   + 26 + fQcdOffset);
-  }
-  cutval_1 = -0.5; cutval_2 = -0.3;
-  if(fMvaOutputs[4] < cutval_1 && fMvaOutputs[4] > -1.) {//higgs
-    if(emu && chargeTest)     FillAllHistograms(kEMu   + 27);
-    else if(emu)              FillAllHistograms(kEMu   + 27 + fQcdOffset);
-  } else if(fMvaOutputs[4] < cutval_2 && fMvaOutputs[4] > -1.) {
-    if(emu && chargeTest)     FillAllHistograms(kEMu   + 28);
-    else if(emu)              FillAllHistograms(kEMu   + 28 + fQcdOffset);
-  } else if(fMvaOutputs[4] > -1.){
-    if(emu && chargeTest)     FillAllHistograms(kEMu   + 29);
-    else if(emu)              FillAllHistograms(kEMu   + 29 + fQcdOffset);
-  }  
   // Mass window sets, before cuts
   // double mgll = (*photonP4 + (*leptonOneP4+*leptonTwoP4)).M();
   //Z0 window

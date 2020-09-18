@@ -836,12 +836,15 @@ void ZTauTauHistMaker::Init(TTree *tree)
       fEventSets [kMuTau + 22+fQcdOffset] = 1; // events with same signs and nPhotons > 0
       fEventSets [kMuTau + 23] = 1; 
       fEventSets [kMuTau + 23+fQcdOffset] = 1; 
+
+      //Test sets
       fEventSets [kMuTau + 24] = 1;
       fEventSets [kMuTau + 24+fQcdOffset] = 1;
       fEventSets [kMuTau + 25] = 1;
       fEventSets [kMuTau + 25+fQcdOffset] = 1;
+      
     }
-    if(fFolderName == "etau") {
+    else if(fFolderName == "etau") {
       //E+Tau
       fEventSets [kETau  + 1] = 1; // all opposite signed events
       fEventSets [kETau  + 1+fQcdOffset] = 1; // all same signed events
@@ -909,12 +912,23 @@ void ZTauTauHistMaker::Init(TTree *tree)
       fEventSets [kETau  + 22+fQcdOffset] = 1; // events with same signs and nPhotons > 0
       fEventSets [kETau  + 23] = 1; 
       fEventSets [kETau  + 23+fQcdOffset] = 1; 
+
+      //Test sets
       fEventSets [kETau  + 24] = 1;
-      fEventSets [kETau  + 24+fQcdOffset] = 1;
+      fEventSets [kETau  + 24+fQcdOffset] = 1; 
       fEventSets [kETau  + 25] = 1;
-      fEventSets [kETau  + 25+fQcdOffset] = 1;
+      fEventSets [kETau  + 25+fQcdOffset] = 1; 
+      // fEventSets [kEMu   + 26] = 1;
+      // fEventSets [kEMu   + 26+fQcdOffset] = 1; 
+      // fEventSets [kEMu   + 27] = 1;
+      // fEventSets [kEMu   + 27+fQcdOffset] = 1; 
+      // fEventSets [kEMu   + 28] = 1;
+      // fEventSets [kEMu   + 28+fQcdOffset] = 1; 
+      // fEventSets [kEMu   + 29] = 1;
+      // fEventSets [kEMu   + 29+fQcdOffset] = 1; 
+
     }
-    if(fFolderName == "emu") {
+    else if(fFolderName == "emu") {
       //E+Mu
       fEventSets [kEMu   + 1] = 1; // all opposite signed events
       fEventSets [kEMu   + 1+fQcdOffset] = 1; // all same signed events
@@ -983,21 +997,21 @@ void ZTauTauHistMaker::Init(TTree *tree)
       fEventSets [kEMu   + 23] = 1;  //mario's box cuts
       fEventSets [kEMu   + 23+fQcdOffset] = 1; 
 
-      //investigating MVA peaks
+      //Test sets
       fEventSets [kEMu   + 24] = 1;
       fEventSets [kEMu   + 24+fQcdOffset] = 1; 
       fEventSets [kEMu   + 25] = 1;
       fEventSets [kEMu   + 25+fQcdOffset] = 1; 
-      fEventSets [kEMu   + 26] = 1;
-      fEventSets [kEMu   + 26+fQcdOffset] = 1; 
-      fEventSets [kEMu   + 27] = 1;
-      fEventSets [kEMu   + 27+fQcdOffset] = 1; 
-      fEventSets [kEMu   + 28] = 1;
-      fEventSets [kEMu   + 28+fQcdOffset] = 1; 
-      fEventSets [kEMu   + 29] = 1;
-      fEventSets [kEMu   + 29+fQcdOffset] = 1; 
+      // fEventSets [kEMu   + 26] = 1;
+      // fEventSets [kEMu   + 26+fQcdOffset] = 1; 
+      // fEventSets [kEMu   + 27] = 1;
+      // fEventSets [kEMu   + 27+fQcdOffset] = 1; 
+      // fEventSets [kEMu   + 28] = 1;
+      // fEventSets [kEMu   + 28+fQcdOffset] = 1; 
+      // fEventSets [kEMu   + 29] = 1;
+      // fEventSets [kEMu   + 29+fQcdOffset] = 1; 
     }
-    if(fFolderName == "mumu") {
+    else if(fFolderName == "mumu") {
       //Mu+Mu sets
       fEventSets [kMuMu + 7] = 1; // events with opposite signs
       fEventSets [kMuMu + 7+fQcdOffset] = 1; // events with same signs

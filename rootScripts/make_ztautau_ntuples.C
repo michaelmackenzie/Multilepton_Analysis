@@ -27,6 +27,7 @@ namespace {
 
   TLorentzVector* leptonOneP4;
   TLorentzVector* leptonTwoP4;
+  TLorentzVector* jetP4;
   UInt_t nElectrons;
   UInt_t nMuons;
   UInt_t nTaus;
@@ -202,6 +203,7 @@ Int_t initialize_tree_vars(int selection) {
   fTreeVars.mestimate    = fTreeVars.lepm/sqrt(fTreeVars.ptauvisfrac);
   fTreeVars.mestimatetwo = fTreeVars.lepm/sqrt(lp1.Mag() / (lp1.Mag() + pnuesttwo));
 
+  fTreeVars.jetpt = jetP4->Pt();
   fTreeVars.njets = njets;
   fTreeVars.nbjets = nBJets;
   fTreeVars.nbjetsm = nBJetsM;
@@ -246,6 +248,7 @@ Int_t set_addresses(TTree* fChain) {
   fChain->SetBranchStatus("*", 0); //turn off all branches
   fChain->SetBranchStatus("leptonOneP4"         , 1); fChain->SetBranchAddress("leptonOneP4"         , &leptonOneP4          );   
   fChain->SetBranchStatus("leptonTwoP4"         , 1); fChain->SetBranchAddress("leptonTwoP4"         , &leptonTwoP4          );   
+  fChain->SetBranchStatus("jetP4"               , 1); fChain->SetBranchAddress("jetP4"               , &jetP4                );   
   fChain->SetBranchStatus("nMuons"              , 1); fChain->SetBranchAddress("nMuons"              , &nMuons               );   
   fChain->SetBranchStatus("nElectrons"          , 1); fChain->SetBranchAddress("nElectrons"          , &nElectrons           );   
   fChain->SetBranchStatus("nTaus"               , 1); fChain->SetBranchAddress("nTaus"               , &nTaus                );   
@@ -359,144 +362,6 @@ Int_t initialize() {
   return status;
 }
 
-Int_t process_standard_trees() {
-  int status = 0;
-  TString grid_path = "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_trees/";
-  vector<TString> files = {"ttbar_inclusive"             ,
-			 "DYJetsToLL_M-50_amcatnlo"    ,
-			 "DYJetsToLL_M-10to50_amcatnlo",
-			 "T_tW-channel"                ,
-			 "Tbar_tW-channel"             ,
-			 "DYJetsToLL_M-50"             ,
-			 "DYJetsToLL_M-10to50"         ,
-			 "DY1JetsToLL_M-50"            ,
-			 "DY1JetsToLL_M-10to50"        ,
-			 "DY2JetsToLL_M-50"            ,
-			 "DY2JetsToLL_M-10to50"        ,
-			 "DY3JetsToLL_M-50"            ,
-			 "DY3JetsToLL_M-10to50"        ,
-			 "DY4JetsToLL_M-50"            ,
-			 "DY4JetsToLL_M-10to50"        ,
-			 "W1JetsToLNu"                 ,
-			 "W2JetsToLNu"                 ,
-			 "W3JetsToLNu"                 ,
-			 "W4JetsToLNu"                 ,
-			 "WJetsToLNu"                  ,
-			 "WJetsToLNu_ext1"             ,
-			 "WJetsToLNu_ext2"             ,
-			 "WW"                          ,
-			 "WZJetsTo2L2Q"                ,
-			 "WZJetsTo3LNu"                ,
-			 "ZZJetsTo2L2Nu"               ,
-			 "ZZJetsTo2L2Q"                ,
-			 "ZZJetsTo4L"                  ,
-			 "hzg_gluglu"                  ,
-			 "hzg_tth"                     ,
-			 "hzg_vbf"                     ,
-			 "hzg_wminus"                  ,
-			 "hzg_wplus"                   ,
-			 "hzg_zh"                      ,
-			 "htautau_gluglu"              ,
-			 "zetau"                       ,
-			 "zmutau"                      ,
-			 "zemu"                        ,
-			 "hetau"                       ,
-			 "hmutau"                      ,
-			 "hemu"                        ,
-			 "muon_2016B_v2"               , 
-			 "muon_2016C"                  , 
-			 "muon_2016D"                  , 
-			 "muon_2016E"                  , 
-			 "muon_2016F"                  , 
-			 "muon_2016G"                  , 
-			 "muon_2016H_v2"               ,
-			 "electron_2016B_v2"               , 
-			 "electron_2016C"                  , 
-			 "electron_2016D"                  , 
-			 "electron_2016E"                  , 
-			 "electron_2016F"                  , 
-			 "electron_2016G"                  , 
-			 "electron_2016H_v2"
-  };
-  vector<TString> names = {"ttbar_inclusive"            ,  //"ttbar_inclusive"               
-			   "zjets_m-50_amcatnlo"        ,  //"DYJetsToLL_M-50_amcatnlo"        
-			   "zjets_m-10to50_amcatnlo"    ,  //"DYJetsToLL_M-10to50_amcatnlo"    
-			   "t_tw"                       ,  //"T_tW-channel"                    
-			   "tbar_tw"                    ,  //"Tbar_tW-channel"                 
-			   "zjets_m-50"                 ,  //"DYJetsToLL_M-50"                 
-			   "zjets_m-10to50"             ,  //"DYJetsToLL_M-10to50"             
-			   "z1jets_m-50"                ,  //"DY1JetsToLL_M-50"                
-			   "z1jets_m-10to50"            ,  //"DY1JetsToLL_M-10to50"            
-			   "z2jets_m-50"                ,  //"DY2JetsToLL_M-50"                
-			   "z2jets_m-10to50"            ,  //"DY2JetsToLL_M-10to50"            
-			   "z3jets_m-50"                ,  //"DY3JetsToLL_M-50"                
-			   "z3jets_m-10to50"            ,  //"DY3JetsToLL_M-10to50"            
-			   "z4jets_m-50"                ,  //"DY4JetsToLL_M-50"                
-			   "z4jets_m-10to50"            ,  //"DY4JetsToLL_M-10to50"            
-			   "w1jets"                     ,  //"W1JetsToLNu"                     
-			   "w2jets"                     ,  //"W2JetsToLNu"                     
-			   "w3jets"                     ,  //"W3JetsToLNu"                     
-			   "w4jets"                     ,  //"W4JetsToLNu"                     
-			   "wjets"                      ,  //"WJetsToLNu"                      
-			   "wjets_ext1"                 ,  //"WJetsToLNu_ext1"                 
-			   "wjets_ext2"                 ,  //"WJetsToLNu_ext2"                 
-			   "ww"                         ,  //"WW"                              
-			   "wz_2l2q"                    ,  //"WZJetsTo2L2Q"                    
-			   "wz_3lnu"                    ,  //"WZJetsTo3LNu"                    
-			   "zz_2l2nu"                   ,  //"ZZJetsTo2L2Nu"                   
-			   "zz_2l2q"                    ,  //"ZZJetsTo2L2Q"                    
-			   "zz_4l"                      ,  //"ZZJetsTo4L"                      
-			   "hzg_gluglu"                 ,  //"hzg_gluglu"                      
-			   "hzg_tth"                    ,  //"hzg_tth"                         
-			   "hzg_vbf"                    ,  //"hzg_vbf"                         
-			   "hzg_wminus"                 ,  //"hzg_wminus"                      
-			   "hzg_wplus"                  ,  //"hzg_wplus"                       
-			   "hzg_zh"                     ,  //"hzg_zh"                          
-			   "htautau_gluglu"             ,  //"htautau_gluglu"                  
-			   "zetau"                      ,  //"zetau"                           
-			   "zmutau"                     ,  //"zmutau"                          
-			   "zemu"                       ,  //"zemu"                            
-			   "hetau"                      ,  //"hetau"                           
-			   "hmutau"                     ,  //"hmutau"                          
-			   "hemu"                       ,  //"hemu"                            
-			   "muon_2016B"	                ,  //"muon_2016B_v2"               
-			   "muon_2016C"	                ,  //"muon_2016C"                  
-			   "muon_2016D"	                ,  //"muon_2016D"                  
-			   "muon_2016E"	                ,  //"muon_2016E"                  
-			   "muon_2016F"	                ,  //"muon_2016F"                  
-			   "muon_2016G"	                ,  //"muon_2016G"                  
-			   "muon_2016H"	                ,  //"muon_2016H_v2"               
-			   "electron_2016B"	        ,  //"electron_2016B_v2"           
-			   "electron_2016C"	        ,  //"electron_2016C"              
-			   "electron_2016D"	        ,  //"electron_2016D"              
-			   "electron_2016E"	        ,  //"electron_2016E"              
-			   "electron_2016F"	        ,  //"electron_2016F"              
-			   "electron_2016G"	        ,  //"electron_2016G"              
-			   "electron_2016H"                //"electron_2016H_v2"		   
-  };
-  vector<TString> folders = {"mutau", "etau", "emu"};
-  status = initialize(); //initialize the MVAs
-  if(status) return status;
-  
-  TStopwatch* timer = new TStopwatch();
-  for(unsigned f_i = 0; f_i < files.size(); ++f_i) {
-    auto file = files[f_i];
-    auto name = names[f_i];
-    for(auto folder : folders) {
-      TString file_name = (grid_path + "output_") + (file + ".root");
-      int stat = make_new_tree(file_name, folder, "bltTree_"+name);
-      if(stat) cout << "file " << file.Data() << " folder " << folder.Data()
-		    << " returned status " << stat << endl;
-      status += stat;
-    }
-  }
-  //report the time spent histogramming
-  Double_t cpuTime = timer->CpuTime();
-  Double_t realTime = timer->RealTime();
-  printf("Processing time: %7.2fs CPU time %7.2fs Wall time\n",cpuTime,realTime);
-  if(realTime > 600. ) printf("Processing time: %7.2fmin CPU time %7.2fmin Wall time\n",cpuTime/60.,realTime/60.);
-  return status;
-}
 
 Int_t process_standard_nano_trees(int year = 2016) {
   int status = 0;
@@ -506,7 +371,7 @@ Int_t process_standard_nano_trees(int year = 2016) {
   name += "_";
   TString ext  = ".tree";
   vector<datacard_t> cards;
-  cards.push_back(datacard_t(false, name+"ttbarToSemiLeptonic"));
+  cards.push_back(datacard_t(true , name+"ttbarToSemiLeptonic"));
   cards.push_back(datacard_t(true , name+"ttbarlnu"));
   cards.push_back(datacard_t(true , name+"DY50"));
   cards.push_back(datacard_t(true , name+"SingleAntiToptW"));

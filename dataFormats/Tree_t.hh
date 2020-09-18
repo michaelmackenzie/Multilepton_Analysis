@@ -51,6 +51,7 @@ struct Tree_t {
   //Event variables
   float ht;
   float htsum;
+  float jetpt;
   float njets;
   float nbjets; //pt > 30
   float nbjetsm;
