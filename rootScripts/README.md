@@ -1,32 +1,35 @@
 # Running interactive ROOT scripts with compiled objects
 
-## Histogramming
-
-Histogramming is done using the ZTauTauHistMaker. 
-To recompile this (or any *.cc object):
+## Compiling with ROOT
+All objects are compiled using the ROOT compiler:
 ```
 $> root -l
-root> .L ZTauTauHistMaker.cc++g //+ = compile, ++ = force re-compile even if unchanged, g = debug compilation
+root> .L [data formats/needed library].so
+root> .L [object].cc+g //+ = compile, ++ = force re-compile, g = debug compilation
 ```
+To compile all objects:
+```
+$> root -l compile_objects.C
+```
+Note: several objects may fail to properly compile, depending on the ROOT version used.
+
+## Histogramming
+
+Histogramming is done using the ZTauTauHistMaker, which inherits from TSelector. 
 
 TTrees are assumed to come from the ZTauTauAnalyzer, but TTrees from NanoAODs can be created using the NanoAODConversion
 object.
-```
-$> root -l
-root> .L ParticleCorrections.cc+g //Contains scale factors for electrons and muons
-root> .L NanoAODConversion.cc+g //Will run over a NanoAOD and output ZTauTauAnalyzer-like trees
-```
-The script `process_nanoaods.C` will run over a standard list of NanoAODs and create the needed trees.
+
+The script `process_nanoaods.C` will run over a standard list of NanoAODs and create the needed trees. It also gives an
+example of how to configure the NanoAODConversion object.
 
 The script `process_ztautau.C` will process a standard list of ZTauTauAnalyzer trees with the ZTauTauHistMaker:
 ```
-$> root -l process_ztautau.C # root -l to avoid loading to-be-recompiled ZTauTauHistMaker library
+$> root -l process_ztautau.C # root -l to avoid loading to-be-recompiled libraries
 ```
 
 The `process_ztautau.C` script has many flags defined before its processing loop.
-Some of the flags include:
- - doProcess[] = array of flags to process or not process a ZTauTauAnalyzer sample in the list
- - nanoaod_process[] = array of flags to process or not process a NanoAOD based sample in the list
+Some of the flags are:
  - useNanoAods = flag to use NanoAOD based samples, 0 = ignore, 1 = include, -1 = only do these samples
  - writeTrees = flag to write TTrees along with histograms for MVA training
  - onlyChannel = name of the ZTauTauAnalyzer selection to process
@@ -44,7 +47,7 @@ Some of the flags include:
  and can be differentiated by `eventcategory`.
  
  There are several flags in the background making, which turn on/off processes. The most relevant is `doHiggsDecays_` which is used to 
- switch between Higgs and Z0 CLFV signals.
+ switch between Higgs and Z0 CLFV signals. For NANOAODs, the `doNanoAODs_` flag should be set to true.
  
 ```
 $> root -l make_ztautau_background.C
