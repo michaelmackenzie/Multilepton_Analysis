@@ -20,13 +20,16 @@ public:
 
   int InitializeVariables(TMVA::Factory &factory, TString selection){
     int status = 0;
-    
-    factory.AddVariable("lepm" , "M_{ll}" , "GeV", 'F');   
+
+    if(version_ < 5 || !selection.Contains("emu"))
+      factory.AddVariable("lepm" , "M_{ll}" , "GeV", 'F');   
+    else
+      factory.AddSpectator("lepm" , "M_{ll}" , "GeV", 'F');   
     factory.AddVariable("mtone","MT(MET,l1)","",'F');
     factory.AddVariable("mttwo","MT(MET,l2)","",'F');
     factory.AddVariable("leponept","pT_{l1}","",'F');
     factory.AddVariable("leptwopt","pT_{l2}","",'F');
-    factory.AddVariable("leppt", "Pt_{ll}", "GeV", 'F');
+    factory.AddVariable("leppt", "pT_{ll}", "GeV", 'F');
     factory.AddSpectator("pxivis","p^{vis}_{#xi}","",'F');
     factory.AddSpectator("pxiinv","p^{inv}_{#xi}","",'F');
     if(njets_)
@@ -41,6 +44,9 @@ public:
     factory.AddSpectator("metdeltaphi","#Delta#phi_{MET,ll}","",'F');
     //tau specific
     if(selection.Contains("tau")) {
+      // if(version_ == 5)
+      // 	factory.AddSpectator("lepmestimate" , "M_{ll}^{Coll}" , "GeV", 'F'); 
+      // else
       if(version_ < 4 || !selection.Contains("mutau_e"))
 	factory.AddVariable("lepmestimate" , "M_{ll}^{Coll}" , "GeV", 'F'); 
       else
@@ -110,7 +116,10 @@ public:
   int InitializeVariables(TMVA::Reader &reader, TString selection, Tree_t& tree){
     int status = 0;
     
-    reader.AddVariable("lepm" , &tree.lepm);
+    if(version_ < 5 || !selection.Contains("emu"))
+      reader.AddVariable("lepm" , &tree.lepm);
+    else
+      reader.AddSpectator("lepm" , &tree.lepm);
     reader.AddVariable("mtone", &tree.mtone);
     reader.AddVariable("mttwo", &tree.mttwo);
     reader.AddVariable("leponept", &tree.leponept);

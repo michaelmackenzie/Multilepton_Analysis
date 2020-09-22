@@ -10,21 +10,23 @@
 #include "../dataFormats/SlimPhoton_t.hh+g"
 #include "../dataFormats/Tree_t.hh+g"
 
-//Utilities
-#include "../utils/TrkQualInit.cc+g"
-#include "../utils/Significances.hh+g"
-
-//Conversion tools
-#include "ParticleCorrections.cc+g"
-#include "NanoAODConversion.cc+g"
-
-//Histogrammer
-#include "ZTauTauHistMaker.cc+g"
-
-//Plotting histograms
-#include "DataPlotter.cc+g"
 
 int compile_objects() {
+  TString version = gROOT->GetVersion();
+  if(version.Contains("6.06")) {
+    //Utilities
+    gROOT->LoadMacro("../utils/TrkQualInit.cc+g");
+    gROOT->LoadMacro("../utils/Significances.hh+g");
+    //Histogrammer
+    gROOT->LoadMacro("ZTauTauHistMaker.cc+g");
+    //Plotting histograms
+    gROOT->LoadMacro("DataPlotter.cc+g");
+  } else {
+    //Conversion tools
+    gROOT->LoadMacro("ParticleCorrections.cc+g");
+    gROOT->LoadMacro("NanoAODConversion.cc+g");
+  }
+
   std::cout << "Compilation complete!" << std::endl;
   return 0;
 }

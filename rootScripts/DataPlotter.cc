@@ -1926,7 +1926,7 @@ TCanvas* DataPlotter::plot_significance(TString hist, TString setType, Int_t set
   delete hlast;
   delete hSignal;
   
-  TCanvas* c = new TCanvas("sig", "sig", canvas_x_, canvas_y_);
+  TCanvas* c = new TCanvas(Form("sig_%s_%i",hist.Data(), set), Form("sig_%s_%i",hist.Data(),set), canvas_x_, canvas_y_);
   c->SetTopMargin(0.055);
   // c->SetRightMargin(0.12);
   //get axis titles

@@ -1549,21 +1549,21 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   ////////////////////////////////////////////////////////////////////////////
   // Set 24-29 + selection offset: For testing purposes
   ////////////////////////////////////////////////////////////////////////////
-  bool mutau_test = mutau && tauDeepAntiJet > 100;
-  bool etau_test  = etau  && tauDeepAntiJet > 100;
+  bool mutau_test = mutau && tauDeepAntiEle >  50;
+  bool etau_test  = etau  && tauDeepAntiEle > 100;
 
   if(mutau_test && chargeTest) FillAllHistograms(kMuTau + 24);
   else if(mutau_test)          FillAllHistograms(kMuTau + 24 + fQcdOffset);
   if(etau_test && chargeTest)  FillAllHistograms(kETau  + 24);
   else if(etau_test)           FillAllHistograms(kETau  + 24 + fQcdOffset);
 
-  mutau_test &= tauDeepAntiEle > 50;
-  etau_test  &= tauDeepAntiEle > 100;
+  // mutau_test &= tauDeepAntiEle > 50;
+  // etau_test  &= tauDeepAntiEle > 100;
 
-  if(mutau_test && chargeTest) FillAllHistograms(kMuTau + 25);
-  else if(mutau_test)          FillAllHistograms(kMuTau + 25 + fQcdOffset);
-  if(etau_test && chargeTest)  FillAllHistograms(kETau  + 25);
-  else if(etau_test)           FillAllHistograms(kETau  + 25 + fQcdOffset);
+  // if(mutau_test && chargeTest) FillAllHistograms(kMuTau + 25);
+  // else if(mutau_test)          FillAllHistograms(kMuTau + 25 + fQcdOffset);
+  // if(etau_test && chargeTest)  FillAllHistograms(kETau  + 25);
+  // else if(etau_test)           FillAllHistograms(kETau  + 25 + fQcdOffset);
   
   ////////////////////////////////////////////////////////////////////////////
   // Set 9-12 : BDT Cut
