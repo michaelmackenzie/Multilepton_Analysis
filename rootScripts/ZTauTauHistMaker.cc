@@ -633,6 +633,7 @@ void ZTauTauHistMaker::InitializeTreeVariables(Int_t selection) {
   else if(selection == 2) selecName = "etau";
   else if(selection == 5) selecName = "emu";
   else if(selection == 9) selecName = "mumu";
+  else if(selection == 18)selecName = "ee";
   else                    {
     std::cout << "---Warning! Entry " << fentry
 	      << " has undentified selection " << selection
@@ -1284,9 +1285,9 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
     *leptonTwoP4 = *tauP4;
     leptonTwoFlavor = tauFlavor;
   }
-  if(!(mutau || etau || emu || mumu || llg_study))
+  if(!(mutau || etau || emu || mumu || ee || llg_study))
     return kTRUE;
-  InitializeTreeVariables(mutau+2*etau+5*emu+9*mumu+18*llg_study);
+  InitializeTreeVariables(mutau+2*etau+5*emu+9*mumu+18*ee+36*llg_study);
 
   //if splitting testing/training samples
   if(fFractionMVA > 0.)
@@ -1345,25 +1346,47 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   else if(etau)           FillAllHistograms(kETau  + 1 + fQcdOffset);
   if(emu   && chargeTest) FillAllHistograms(kEMu   + 1);
   else if(emu)            FillAllHistograms(kEMu   + 1 + fQcdOffset);
+  if(mumu  && chargeTest) FillAllHistograms(kMuMu  + 1);
+  else if(mumu)           FillAllHistograms(kMuMu  + 1 + fQcdOffset);
+  if(ee    && chargeTest) FillAllHistograms(kEE    + 1);
+  else if(ee)             FillAllHistograms(kEE    + 1 + fQcdOffset);
 
   TLorentzVector* tau = 0;
   TLorentzVector* muon = 0;
   TLorentzVector* electron = 0;
-  if(abs(leptonOneFlavor) == 15)      tau = leptonOneP4;
-  else if(abs(leptonTwoFlavor) == 15) tau = leptonTwoP4;
-  if(abs(leptonOneFlavor) == 13)      muon = leptonOneP4;
-  else if(abs(leptonTwoFlavor) == 13) muon = leptonTwoP4;
-  if(abs(leptonOneFlavor) == 11)      electron = leptonOneP4;
-  else if(abs(leptonTwoFlavor) == 11) electron = leptonTwoP4;
-
+  TLorentzVector* muon_2 = 0;
+  TLorentzVector* electron_2 = 0;
+  //same flavor categories
+  if(abs(leptonOneFlavor) == abs(leptonTwoFlavor)) {
+    if(abs(leptonOneFlavor) == 13) { //mumu
+      muon = leptonOneP4;
+      muon_2 = leptonTwoP4;
+    } else if(abs(leptonOneFlavor) == 11) { //ee
+      electron = leptonOneP4;
+      electron_2 = leptonTwoP4;
+    }
+  } else {
+    if(abs(leptonOneFlavor) == 15)      tau = leptonOneP4;
+    else if(abs(leptonTwoFlavor) == 15) tau = leptonTwoP4;
+    if(abs(leptonOneFlavor) == 13)      muon = leptonOneP4;
+    else if(abs(leptonTwoFlavor) == 13) muon = leptonTwoP4;
+    if(abs(leptonOneFlavor) == 11)      electron = leptonOneP4;
+    else if(abs(leptonTwoFlavor) == 11) electron = leptonTwoP4;
+  }
   mutau = mutau && (tau != 0) && (muon != 0);
   etau  = etau  && (tau != 0) && (electron != 0);
   emu   = emu   && (muon != 0) && (electron != 0);
+  mumu  = mumu  && (muon != 0) && (muon_2 != 0);
+  ee    = ee    && (electron != 0) && (electron_2 != 0);
 
   mutau = mutau && muon->Pt() > 25. && tau->Pt() > 20.;
   etau  = etau  && electron->Pt() > 28. && tau->Pt() > 20.;
   emu   = emu   && ((electron->Pt() > 28. && muon->Pt() > 5.) ||
 		    (electron->Pt() > 10. && muon->Pt() > 25.));
+  mumu  = mumu  && ((muon->Pt() > 25. && muon_2->Pt() > 5.) ||
+		    (muon->Pt() > 5.  && muon_2->Pt() > 25.));
+  ee    = ee    && ((electron->Pt() > 28. && electron_2->Pt() > 10.) ||
+		    (electron->Pt() > 10. && electron_2->Pt() > 28.));
 
   ////////////////////////////////////////////////////////////
   // Set 2 + selection offset: object pT cuts
@@ -1374,6 +1397,10 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   else if(etau)           FillAllHistograms(kETau  + 2 + fQcdOffset);
   if(emu  && chargeTest)  FillAllHistograms(kEMu   + 2);
   else if(emu)            FillAllHistograms(kEMu   + 2 + fQcdOffset);
+  if(mumu  && chargeTest) FillAllHistograms(kMuMu  + 2);
+  else if(mumu)           FillAllHistograms(kMuMu  + 2 + fQcdOffset);
+  if(ee    && chargeTest) FillAllHistograms(kEE    + 2);
+  else if(ee)             FillAllHistograms(kEE    + 2 + fQcdOffset);
   
   mutau = mutau && abs(muon->Eta()) < 2.4;
   mutau = mutau && abs(tau->Eta()) < 2.3;
@@ -1383,17 +1410,25 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   etau  = etau  && abs(tau->Eta()) < 2.3;
   etau  = etau  && abs(tau->DeltaR(*electron)) > 0.3;
 
-  emu  = emu  && abs(electron->Eta()) < 2.5;
-  emu  = emu  && abs(muon->Eta()) < 2.4;
-  emu  = emu  && abs(muon->DeltaR(*electron)) > 0.3;
+  emu   = emu   && abs(electron->Eta()) < 2.5;
+  emu   = emu   && abs(muon->Eta()) < 2.4;
+  emu   = emu   && abs(muon->DeltaR(*electron)) > 0.3;
+
+  mumu  = mumu  && abs(muon->Eta()) < 2.4;
+  mumu  = mumu  && abs(muon_2->Eta()) < 2.4;
+  mumu  = mumu  && abs(muon->DeltaR(*muon_2)) > 0.3;
+  
+  ee    = ee    && abs(electron->Eta()) < 2.5;
+  ee    = ee    && abs(electron_2->Eta()) < 2.5;
+  ee    = ee    && abs(electron->DeltaR(*electron_2)) > 0.3;
 
   //mass cuts, due to generation ranges need > 50 GeV for all sets
   double mll = (*leptonOneP4+*leptonTwoP4).M();
   mutau &= mll > 50. && mll < 170.;
   etau  &= mll > 50. && mll < 170.;
   emu   &= mll > 50. && mll < 170.;
-  mumu  &= mll > 75. && mll < 170.;
-  ee    &= mll > 75. && mll < 170.;
+  mumu  &= mll > 75. && mll < 120.;
+  ee    &= mll > 75. && mll < 120.;
 
 
   ////////////////////////////////////////////////////////////
@@ -1407,6 +1442,10 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   else if(emu)            FillAllHistograms(kEMu   + 7 + fQcdOffset);
   if(mumu  && chargeTest) FillAllHistograms(kMuMu  + 7);
   else if(mumu)           FillAllHistograms(kMuMu  + 7 + fQcdOffset);
+  if(mumu  && chargeTest) FillAllHistograms(kMuMu  + 7);
+  else if(mumu)           FillAllHistograms(kMuMu  + 7 + fQcdOffset);
+  if(ee    && chargeTest) FillAllHistograms(kEE    + 7);
+  else if(ee)             FillAllHistograms(kEE    + 7 + fQcdOffset);
 
   //////////////////////////////////////////////////////////////
   //
@@ -1492,6 +1531,7 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   etau  &= nBJetsUse == 0;
   emu   &= nBJetsUse == 0;
   mumu  &= nBJetsUse == 0;
+  ee    &= nBJetsUse == 0;
 
   //transverse masses with MET
   double mTTau = (tau != 0) ? 2.*met*tau->Pt() : 0.;
@@ -1540,6 +1580,8 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   else if(emu)            FillAllHistograms(kEMu   + 8 + fQcdOffset);
   if(mumu && chargeTest)  FillAllHistograms(kMuMu  + 8);
   else if(mumu)           FillAllHistograms(kMuMu  + 8 + fQcdOffset);
+  if(ee    && chargeTest) FillAllHistograms(kEE    + 8);
+  else if(ee)             FillAllHistograms(kEE    + 8 + fQcdOffset);
 
   //just Z->mu+mu, for Z pT weights study
   if(mumu && nJets == 0 && nPhotons == 0 && nTaus == 0 && chargeTest)  FillAllHistograms(kMuMu  + 9);

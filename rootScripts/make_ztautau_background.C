@@ -1,4 +1,5 @@
 
+bool backgroundOnly_ = false; //no signal tree
 bool  doHiggsDecays_ = false; //Z or H0 CLFV decay sets
 bool  doDY_ = true;
 bool  doWJets_ = true;
@@ -42,12 +43,12 @@ Int_t make_background(int set = 7, TString selection = "mutau", TString base = "
 			 , doWJets_ //WJets
 			 , doTop_ //ttbar
 			 , doTop_ //ttbar
-			 , (!doHiggsDecays_ && (selection.Contains("mutau"))) //zmutau
-			 , (!doHiggsDecays_ && (selection.Contains("etau") )) //zetau
-			 , (!doHiggsDecays_ && (selection == "emu")  ) //zetau
-			 , (doHiggsDecays_  && (selection.Contains("mutau"))) //hmutau
-			 , (doHiggsDecays_  && (selection.Contains("etau") )) //hetau
-			 , (doHiggsDecays_  && (selection == "emu")  ) //hetau
+			 , (!backgroundOnly_ && !doHiggsDecays_ && (selection.Contains("mutau"))) //zmutau
+			 , (!backgroundOnly_ && !doHiggsDecays_ && (selection.Contains("etau") )) //zetau
+			 , (!backgroundOnly_ && !doHiggsDecays_ && (selection == "emu")  ) //zetau
+			 , (!backgroundOnly_ && doHiggsDecays_  && (selection.Contains("mutau"))) //hmutau
+			 , (!backgroundOnly_ && doHiggsDecays_  && (selection.Contains("etau") )) //hetau
+			 , (!backgroundOnly_ && doHiggsDecays_  && (selection == "emu")  ) //hetau
   };
 
   TFile* fDList[30];
@@ -107,7 +108,8 @@ Int_t make_background(int set = 7, TString selection = "mutau", TString base = "
     type = "";
   else
     printf("Unknown process combination! No name flag added\n");
-  type += (doHiggsDecays_) ? "higgs_" : "Z0_";
+  if(backgroundOnly_) type += "bkg_";
+  else type += (doHiggsDecays_) ? "higgs_" : "Z0_";  
   type += "nano_";
   if(verbose_ > 1)
     cout << "Background training type " << type.Data() << endl;

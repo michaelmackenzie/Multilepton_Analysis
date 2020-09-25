@@ -47,7 +47,7 @@ public :
   TTreeReader     fReader;  //!the tree reader
   TTree          *fChain = 0;   //!pointer to the analyzed TTree or TChain
   enum {kMaxParticles = 20, kMaxCounts = 40};
-  enum {kMuTau = 0, kETau = 30, kEMu = 60, kMuTauE = 90, kETauMu = 105, kMuMu = 120};
+  enum {kMuTau = 0, kETau = 30, kEMu = 60, kMuTauE = 90, kETauMu = 105, kMuMu = 120, kEE = 135};
   enum {kMaxMVAs = 80};
 
   // Readers to access the data (delete the ones you do not need).
@@ -1013,6 +1013,10 @@ void ZTauTauHistMaker::Init(TTree *tree)
     }
     else if(fFolderName == "mumu") {
       //Mu+Mu sets
+      fEventSets [kMuMu + 1] = 1; // events with opposite signs
+      fEventSets [kMuMu + 1+fQcdOffset] = 1; // events with same signs
+      fEventSets [kMuMu + 2] = 1; // events with opposite signs
+      fEventSets [kMuMu + 2+fQcdOffset] = 1; // events with same signs
       fEventSets [kMuMu + 7] = 1; // events with opposite signs
       fEventSets [kMuMu + 7+fQcdOffset] = 1; // events with same signs
       fEventSets [kMuMu + 8] = 1; // events with opposite signs and no bjets
@@ -1026,6 +1030,18 @@ void ZTauTauHistMaker::Init(TTree *tree)
       fEventSets [kMuMu + 19+fQcdOffset] = 1; // events with same
       fEventSets [kMuMu + 20] = 1; // events with opposite signs + >1-jet
       fEventSets [kMuMu + 20+fQcdOffset] = 1; // events with same
+
+    }
+    else if(fFolderName == "ee") {
+      //Mu+Mu sets
+      fEventSets [kEE + 1] = 1; // events with opposite signs
+      fEventSets [kEE + 1+fQcdOffset] = 1; // events with same signs
+      fEventSets [kEE + 2] = 1; // events with opposite signs
+      fEventSets [kEE + 2+fQcdOffset] = 1; // events with same signs
+      fEventSets [kEE + 7] = 1; // events with opposite signs
+      fEventSets [kEE + 7+fQcdOffset] = 1; // events with same signs
+      fEventSets [kEE + 8] = 1; // events with opposite signs and no bjets
+      fEventSets [kEE + 8+fQcdOffset] = 1; // events with same signs
 
     }
     if(fFolderName == "emu") {
