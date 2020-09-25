@@ -34,6 +34,13 @@ histograms/canvases/*/*/*.root
 *.zip
 *.bz
 
+#ignore Roostats specific
+Roostats/workspaces
+Roostats/*.root
+Roostats/*.tree
+Roostats/*.hist
+Roostats/*.pdf
+Roostats/plots
 Pythia
 CLFV_ZDecays_Pythia
 ExRootAnalysis
