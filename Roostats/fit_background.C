@@ -40,7 +40,7 @@ Int_t do_fit(TTree* tree, int set, int year) {
 	    << "Number of electron events is " << n_electron << std::endl;
 
   //Get the signal PDF
-  TFile* fWSSignal = TFile::Open(Form("workspaces/morphed_signal_%i.root", year), "READ");
+  TFile* fWSSignal = TFile::Open(Form("workspaces/morphed_signal_%i_%i.root", year, set), "READ");
   if(!fWSSignal) return 1;
   RooWorkspace* ws_signal = (RooWorkspace*) fWSSignal->Get("ws");
   if(!ws_signal) return 2;
@@ -108,7 +108,7 @@ Int_t do_fit(TTree* tree, int set, int year) {
 
   auto c1 = new TCanvas();
   xframe->Draw();
-  c1->SaveAs(Form("plots/latest_production/%i/fit_lepm_backgroud.pdf", year));
+  c1->SaveAs(Form("plots/latest_production/%i/fit_lepm_backgroud_%i.pdf", year, set));
   TFile* fOut = new TFile(Form("workspaces/fit_lepm_background_%i_%i.root", year, set), "RECREATE");
   fOut->cd();
   auto bkg_data = bkgPDF.generate(RooArgSet(lepm), n_bkg.getVal());
@@ -132,7 +132,7 @@ Int_t fit_background(int set = 8, int year = 2016, bool addLum = true) {
   bkg_name += ".tree";
   TFile* f_bkg = TFile::Open(bkg_name.Data(), "READ");
   if(!f_bkg) return 1;
-  TTree* t_bkg = (TTree*) f_bkg->Get(Form("tree_%i",set+ZTauTauHistMaker::kEMu));
+  TTree* t_bkg = (TTree*) f_bkg->Get("background_tree");
   if(!t_bkg) return 2;
   if(addLum) {
     double lum = 35.9e3;
@@ -143,5 +143,6 @@ Int_t fit_background(int set = 8, int year = 2016, bool addLum = true) {
   }
   std::cout << "---Performing background fit!\n";
   status = do_fit(t_bkg, set, year);
+  if(status) std::cout << "Fit returned status " << status << std::endl;
   return status;
 }

@@ -6,6 +6,8 @@ Int_t morph_signal(int set = 8, int year = 2016, TString base = "../histograms/n
 
   TString muon_name = "workspaces/fit_lepm_SameSign_Muon_";
   muon_name += year;
+  muon_name += "_";
+  muon_name += set;
   muon_name += ".root";
   TFile* f_muon = TFile::Open(muon_name.Data(), "READ");
   if(!f_muon) return 1;
@@ -15,6 +17,8 @@ Int_t morph_signal(int set = 8, int year = 2016, TString base = "../histograms/n
   
   TString electron_name = "workspaces/fit_lepm_SameSign_Electron_";
   electron_name += year;
+  electron_name += "_";
+  electron_name += set;
   electron_name += ".root";
   TFile* f_electron = TFile::Open(electron_name.Data(), "READ");
   if(!f_electron) return 2;
@@ -62,8 +66,8 @@ Int_t morph_signal(int set = 8, int year = 2016, TString base = "../histograms/n
 
   auto c1 = new TCanvas();
   xframe->Draw();
-  c1->SaveAs(Form("plots/latest_production/%i/compare_morphed_pdf.pdf", year));
-  TFile* fOut = new TFile(Form("workspaces/morphed_signal_%i.root", year), "RECREATE");
+  c1->SaveAs(Form("plots/latest_production/%i/compare_morphed_pdf_%i.pdf", year, set));
+  TFile* fOut = new TFile(Form("workspaces/morphed_signal_%i_%i.root", year, set), "RECREATE");
   fOut->cd();
   RooWorkspace ws("ws");
   ws.import(morph_pdf_binned);

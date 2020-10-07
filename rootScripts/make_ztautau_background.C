@@ -1,5 +1,6 @@
 
 bool backgroundOnly_ = false; //no signal tree
+bool dataOnly_ = false; //only data trees
 bool  doHiggsDecays_ = false; //Z or H0 CLFV decay sets
 bool  doDY_ = true;
 bool  doWJets_ = true;
@@ -14,6 +15,10 @@ Int_t make_background(int set = 7, TString selection = "mutau", TString base = "
 
   cout << "Beginning to make tree for selection " << selection.Data() << " with set " << set
        << endl;
+  if(dataOnly_ && backgroundOnly_) {
+    cout << "Set for both background and data only! Exiting...\n";
+    return 1;
+  }
   
   const char* nano_names[] = {"DY50"               ,
 			      "SingleAntiToptW"    ,
@@ -30,25 +35,29 @@ Int_t make_background(int set = 7, TString selection = "mutau", TString base = "
 			      "ZEMu"               ,
 			      "HMuTau"             ,
 			      "HETau"              ,
-			      "HEMu"               
+			      "HEMu"               ,
+			      "SingleMu"           ,
+			      "SingleEle"          
   };
   
-  int doNanoProcess[] = {doDY_
-			 , doTop_ //tbar_tw
-			 , doTop_ //t_tw
-			 , doDiboson_ //WW
-			 , doDiboson_ //WZ
-			 , doDiboson_ //ZZ
-			 , doDiboson_ //WWW
-			 , doWJets_ //WJets
-			 , doTop_ //ttbar
-			 , doTop_ //ttbar
-			 , (!backgroundOnly_ && !doHiggsDecays_ && (selection.Contains("mutau"))) //zmutau
-			 , (!backgroundOnly_ && !doHiggsDecays_ && (selection.Contains("etau") )) //zetau
-			 , (!backgroundOnly_ && !doHiggsDecays_ && (selection == "emu")  ) //zetau
-			 , (!backgroundOnly_ && doHiggsDecays_  && (selection.Contains("mutau"))) //hmutau
-			 , (!backgroundOnly_ && doHiggsDecays_  && (selection.Contains("etau") )) //hetau
-			 , (!backgroundOnly_ && doHiggsDecays_  && (selection == "emu")  ) //hetau
+  int doNanoProcess[] = {!dataOnly_ && doDY_
+			 , !dataOnly_ && doTop_ //tbar_tw
+			 , !dataOnly_ && doTop_ //t_tw
+			 , !dataOnly_ && doDiboson_ //WW
+			 , !dataOnly_ && doDiboson_ //WZ
+			 , !dataOnly_ && doDiboson_ //ZZ
+			 , !dataOnly_ && doDiboson_ //WWW
+			 , !dataOnly_ && doWJets_ //WJets
+			 , !dataOnly_ && doTop_ //ttbar
+			 , !dataOnly_ && doTop_ //ttbar
+			 , !dataOnly_ && (!backgroundOnly_ && !doHiggsDecays_ && (selection.Contains("mutau"))) //zmutau
+			 , !dataOnly_ && (!backgroundOnly_ && !doHiggsDecays_ && (selection.Contains("etau") )) //zetau
+			 , !dataOnly_ && (!backgroundOnly_ && !doHiggsDecays_ && (selection == "emu")  ) //zetau
+			 , !dataOnly_ && (!backgroundOnly_ && doHiggsDecays_  && (selection.Contains("mutau"))) //hmutau
+			 , !dataOnly_ && (!backgroundOnly_ && doHiggsDecays_  && (selection.Contains("etau") )) //hetau
+			 , !dataOnly_ && (!backgroundOnly_ && doHiggsDecays_  && (selection == "emu")  ) //hetau
+			 , dataOnly_ //SingleMu
+			 , dataOnly_ //SingleEle
   };
 
   TFile* fDList[30];
@@ -109,6 +118,7 @@ Int_t make_background(int set = 7, TString selection = "mutau", TString base = "
   else
     printf("Unknown process combination! No name flag added\n");
   if(backgroundOnly_) type += "bkg_";
+  else if(dataOnly_)  type += "data_";
   else type += (doHiggsDecays_) ? "higgs_" : "Z0_";  
   type += "nano_";
   if(verbose_ > 1)
