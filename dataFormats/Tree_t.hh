@@ -47,7 +47,16 @@ struct Tree_t {
   float ptauvisfrac;
   float mestimate;
   float mestimatetwo;
-    
+
+  float alphaz1;
+  float alphah1;
+  float alpha2;
+  float alpha3;
+  float deltaalphaz1;
+  float deltaalphaz2;
+  float deltaalphah1;
+  float deltaalphah2;
+
   //Event variables
   float ht;
   float htsum;

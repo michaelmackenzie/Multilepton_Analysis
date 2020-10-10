@@ -28,6 +28,7 @@ histograms/canvases/*/*/*.root
 *.png
 *.gif
 *.jpg
+*.pdf
 
 #ignore compressed files by default
 *.tar

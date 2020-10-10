@@ -81,7 +81,14 @@ void ZTauTauHistMaker::Begin(TTree * /*tree*/)
   fEventId[50]->fMinLeponept = 35.85477; fEventId[50]->fMinLeptwopt = 30.54400;
 
   fRnd = new TRandom(fRndSeed);
-  
+  if(fRemoveZPtWeights == 2) {
+    TFile* ZPtFile = TFile::Open(Form("%s%i.root", fZPtHistPath.Data(),fYear), "READ");
+    if(!ZPtFile) cout << "WARNING! No Z pT weight file found!\n";
+    else {
+      fZPtScales = (TH2F*) ZPtFile->Get("hRatioNorm");
+      if(!fZPtScales) cout << "WARNING! No Z pT weight histogram found!\n";
+    }
+  }
 }
 
 void ZTauTauHistMaker::SlaveBegin(TTree * /*tree*/)
@@ -234,16 +241,36 @@ void ZTauTauHistMaker::BookEventHistograms() {
       fEventHist[i]->hLepM          = new TH1F("lepm"          , Form("%s: Lepton M"       ,dirname)  , 400,   0, 400);
       fEventHist[i]->hLepEta        = new TH1F("lepeta"        , Form("%s: Lepton Eta"     ,dirname)  , 200, -10,  10);
       fEventHist[i]->hLepPhi        = new TH1F("lepphi"        , Form("%s: Lepton Phi"     ,dirname)  ,  80,  -4,   4);
+      //variable width bins for pT vs mass
+      int nmbins = 35;
+      double mbins[] = { 0.  , 75. , 77. , 79. , 81. ,
+			 82. , 83. , 84. , 85. , 86. ,
+			 87. , 88. , 89. , 90. , 91. ,
+			 92. , 93. , 94. , 95. , 96. ,
+			 97. , 98. , 99. , 100., 102.,
+			 104., 106., 108., 110., 115.,
+			 120., 130., 140., 150., 160.,
+			 1000.};
+      int npbins = 15;
+      double pbins[] = { 0.  , 10. , 15. , 20. , 25. ,
+			 30. , 40. , 50. , 70. , 100.,
+			 150., 200., 300., 400., 600.,
+			 1000.};
+      fEventHist[i]->hLepPtVsM      = new TH2F("lepptvsm"      , Form("%s: Lepton Pt vs M" ,dirname)  , nmbins, mbins, npbins, pbins);
+
       fEventHist[i]->hLepDeltaPhi   = new TH1F("lepdeltaphi"   , Form("%s: Lepton DeltaPhi",dirname)  ,  50,   0,   5);
       fEventHist[i]->hLepDeltaEta   = new TH1F("lepdeltaeta"   , Form("%s: Lepton DeltaEta",dirname)  , 100,   0,   5);
       fEventHist[i]->hLepDeltaR     = new TH1F("lepdeltar"     , Form("%s: Lepton DeltaR"  ,dirname)  , 100,   0,   5);
       fEventHist[i]->hLepDelRVsPhi  = new TH2F("lepdelrvsphi"  , Form("%s: LepDelRVsPhi"   ,dirname)  ,  40,  0,   4, 100,  0,   5);     
       fEventHist[i]->hLepPtOverM    = new TH1F("lepptoverm"    , Form("%s: Lepton Pt / M"  ,dirname)  , 100,   0,  10);
-      fEventHist[i]->hAlpha[0]      = new TH1F("alpha0"        , Form("%s: Alpha 0"        ,dirname)  , 100,   0,   5);
-      fEventHist[i]->hAlpha[1]      = new TH1F("alpha1"        , Form("%s: Alpha 1"        ,dirname)  , 100,   0,   5);
-      fEventHist[i]->hAlpha[2]      = new TH1F("alpha2"        , Form("%s: Alpha 2"        ,dirname)  , 100,   0,   5);
-      fEventHist[i]->hDeltaAlpha[0] = new TH1F("deltaalpha0"   , Form("%s: Delta Alpha 0"  ,dirname)  , 200, -10,  10);
-      fEventHist[i]->hDeltaAlpha[1] = new TH1F("deltaalpha1"   , Form("%s: Delta Alpha 1"  ,dirname)  , 200, -10,  10);
+      fEventHist[i]->hAlpha[0]      = new TH1F("alpha0"        , Form("%s: Alpha (Z) 0"    ,dirname)  , 100,   0,   5);
+      fEventHist[i]->hAlpha[1]      = new TH1F("alpha1"        , Form("%s: Alpha (H) 0"    ,dirname)  , 100,   0,   5);
+      fEventHist[i]->hAlpha[2]      = new TH1F("alpha2"        , Form("%s: Alpha 1"        ,dirname)  , 100,   0,   5);
+      fEventHist[i]->hAlpha[3]      = new TH1F("alpha3"        , Form("%s: Alpha 2"        ,dirname)  , 100,   0,   5);
+      fEventHist[i]->hDeltaAlpha[0] = new TH1F("deltaalpha0"   , Form("%s: Delta Alpha (Z) 0"  ,dirname)  , 200, -10,  10);
+      fEventHist[i]->hDeltaAlpha[1] = new TH1F("deltaalpha1"   , Form("%s: Delta Alpha (Z) 1"  ,dirname)  , 200, -10,  10);
+      fEventHist[i]->hDeltaAlpha[2] = new TH1F("deltaalpha2"   , Form("%s: Delta Alpha (H) 0"  ,dirname)  , 200, -10,  10);
+      fEventHist[i]->hDeltaAlpha[3] = new TH1F("deltaalpha3"   , Form("%s: Delta Alpha (H) 1"  ,dirname)  , 200, -10,  10);
 
       fEventHist[i]->hHtDeltaPhi    = new TH1F("htdeltaphi"    , Form("%s: Ht Lep Delta Phi",dirname) ,  50,   0,   5);
       fEventHist[i]->hMetDeltaPhi   = new TH1F("metdeltaphi"   , Form("%s: Met Lep Delta Phi",dirname),  50,   0,   5);
@@ -507,8 +534,10 @@ void ZTauTauHistMaker::BookTrees() {
       fTrees[i]->Branch("lepdeltaeta",     &fTreeVars.lepdeltaeta    );  
       fTrees[i]->Branch("lepdeltar",       &fTreeVars.lepdeltar      );  
       fTrees[i]->Branch("lepdeltaphi",     &fTreeVars.lepdeltaphi    );  
-      fTrees[i]->Branch("deltaalpha1",     &fTreeVars.deltaalpha1    );
-      fTrees[i]->Branch("deltaalpha2",     &fTreeVars.deltaalpha2    );
+      fTrees[i]->Branch("deltaalphaz1",    &fTreeVars.deltaalphaz1   );
+      fTrees[i]->Branch("deltaalphaz2",    &fTreeVars.deltaalphaz2   );
+      fTrees[i]->Branch("deltaalphah1",    &fTreeVars.deltaalphah1   );
+      fTrees[i]->Branch("deltaalphah2",    &fTreeVars.deltaalphah2   );
       fTrees[i]->Branch("htdeltaphi",      &fTreeVars.htdeltaphi     );  
       fTrees[i]->Branch("metdeltaphi",     &fTreeVars.metdeltaphi    );  
       fTrees[i]->Branch("leponedeltaphi",  &fTreeVars.leponedeltaphi );  
@@ -639,12 +668,15 @@ void ZTauTauHistMaker::InitializeTreeVariables(Int_t selection) {
   fTreeVars.mestimatetwo = fTreeVars.lepm/sqrt(lp1.Mag() / (lp1.Mag() + pnuesttwo));
 
   //definition from (14) and (16) of arxiv:1207.4894
-  double zmass(91.2), tmass(1.78);
-  fTreeVars.alpha1 = (zmass*zmass-tmass*tmass)/(2.*(*leptonOneP4)*(*leptonTwoP4));
+  double hmass(125.), zmass(91.2), tmass(1.78);
+  fTreeVars.alphaz1 = (zmass*zmass-tmass*tmass)/(2.*(*leptonOneP4)*(*leptonTwoP4));
+  fTreeVars.alphah1 = (hmass*hmass-tmass*tmass)/(2.*(*leptonOneP4)*(*leptonTwoP4));
   fTreeVars.alpha2 = leptonTwoP4->Pt()/leptonOneP4->Pt(); //for lep 1 = tau, lep 2 = non-tau
   fTreeVars.alpha3 = leptonOneP4->Pt()/leptonTwoP4->Pt(); //for lep 1 = non-tau, lep 2 = tau
-  fTreeVars.deltaalpha1 = fTreeVars.alpha1 - fTreeVars.alpha2;
-  fTreeVars.deltaalpha2 = fTreeVars.alpha1 - fTreeVars.alpha3;
+  fTreeVars.deltaalphaz1 = fTreeVars.alphaz1 - fTreeVars.alpha2;
+  fTreeVars.deltaalphaz2 = fTreeVars.alphaz1 - fTreeVars.alpha3;
+  fTreeVars.deltaalphah1 = fTreeVars.alphah1 - fTreeVars.alpha2;
+  fTreeVars.deltaalphah2 = fTreeVars.alphah1 - fTreeVars.alpha3;
 
   //event variables
   fTreeVars.ht       = ht;
@@ -721,16 +753,19 @@ float ZTauTauHistMaker::CorrectMET(int selection, float met) {
 }
 
 // re-weight the AMC@NLO DY Z pT
-float ZTauTauHistMaker::GetZPtWeight(float pt) {
+float ZTauTauHistMaker::GetZPtWeight(float pt, float mass) {
   float weight = 1.;
-  if(pt >= 140.)
-    weight = 0.891188;
-  else {
-    weight = (0.876979 + pt*(4.11598e-3 - pt*2.35520e-5));
-    weight *= 1.10211*(0.958512-0.131835*erf((pt-14.1972)/10.1525));
-  }
-  if(weight < 0.) {
-    printf("Warning! Z pT weight < 0: weight = %.3e, pt = %.2f\n", weight, pt);
+  if(!fZPtScales) return weight;
+  //ensure the values are within the bounds
+  if(pt >= 1000.) pt = 999.;
+  if(mass >= 1000.) mass = 999.;
+  int binx = fZPtScales->GetXaxis()->FindBin(mass);
+  int biny = fZPtScales->GetYaxis()->FindBin(pt);
+  weight = fZPtScales->GetBinContent(binx, biny);
+  if(weight <= 0.) {
+    cout << "WARNING! Z pT weight <= 0 = " << weight << " (pt, mass) = ("
+	 << pt << ", " << mass << ") in entry = "<< fentry << "! Returning 1...\n";
+    return 1.;
   }
   return weight;
 }
@@ -892,11 +927,13 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
   //   lepSVDelM = svLepSys.M() - lepSys.M();
   //   lepSVDelPt = svLepSys.Pt() - lepSys.Pt();
   // }
+  
   Hist->hLepPt        ->Fill(lepSys.Pt()            ,eventWeight*genWeight);
   Hist->hLepP         ->Fill(lepSys.P()             ,eventWeight*genWeight);
   Hist->hLepM         ->Fill(lepSys.M()             ,eventWeight*genWeight);
   Hist->hLepEta       ->Fill(lepSys.Eta()           ,eventWeight*genWeight);
   Hist->hLepPhi       ->Fill(lepSys.Phi()           ,eventWeight*genWeight);
+  Hist->hLepPtVsM     ->Fill(lepSys.M(), lepSys.Pt(),eventWeight*genWeight);
 						    		
   Hist->hLepDeltaPhi  ->Fill(lepDelPhi              ,eventWeight*genWeight);
   Hist->hLepDeltaEta  ->Fill(lepDelEta              ,eventWeight*genWeight);
@@ -904,11 +941,14 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
   Hist->hLepDelRVsPhi ->Fill(lepDelR , lepDelPhi    ,eventWeight*genWeight);
   
   Hist->hLepPtOverM   ->Fill(lepSys.Pt()/lepSys.M() ,eventWeight*genWeight);
-  Hist->hAlpha[0]->Fill(fTreeVars.alpha1, eventWeight*genWeight);
-  Hist->hAlpha[1]->Fill(fTreeVars.alpha2, eventWeight*genWeight);
-  Hist->hAlpha[2]->Fill(fTreeVars.alpha3, eventWeight*genWeight);
-  Hist->hDeltaAlpha[0]->Fill(fTreeVars.deltaalpha1, eventWeight*genWeight);
-  Hist->hDeltaAlpha[1]->Fill(fTreeVars.deltaalpha2, eventWeight*genWeight);
+  Hist->hAlpha[0]->Fill(fTreeVars.alphaz1, eventWeight*genWeight);
+  Hist->hAlpha[1]->Fill(fTreeVars.alphah1, eventWeight*genWeight);
+  Hist->hAlpha[2]->Fill(fTreeVars.alpha2, eventWeight*genWeight);
+  Hist->hAlpha[3]->Fill(fTreeVars.alpha3, eventWeight*genWeight);
+  Hist->hDeltaAlpha[0]->Fill(fTreeVars.deltaalphaz1, eventWeight*genWeight);
+  Hist->hDeltaAlpha[1]->Fill(fTreeVars.deltaalphaz2, eventWeight*genWeight);
+  Hist->hDeltaAlpha[2]->Fill(fTreeVars.deltaalphah1, eventWeight*genWeight);
+  Hist->hDeltaAlpha[3]->Fill(fTreeVars.deltaalphah2, eventWeight*genWeight);
 
   Hist->hHtDeltaPhi   ->Fill(htDelPhi               ,eventWeight*genWeight);
   Hist->hMetDeltaPhi  ->Fill(metDelPhi              ,eventWeight*genWeight);
@@ -1309,9 +1349,10 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
 
   // DY z pT weights
   if(fRemoveZPtWeights > 0 && zPtWeight > 0.) eventWeight /= zPtWeight;
-  //only re-weight the DY sample
-  if(fRemoveZPtWeights > 1 && fDYType > 0) {
-    zPtWeight = (leptonTwoP4->E() > 0.1) ? GetZPtWeight((*leptonOneP4+*leptonTwoP4).Pt()) : GetZPtWeight(zPt);
+  //only re-weight the DY sample(s)
+  if(fRemoveZPtWeights > 1 && fIsDY) {
+    zPtWeight = (zMass <= 0. && zPt <= 0. && leptonTwoP4->E() > 0.1) ?
+      GetZPtWeight((*leptonOneP4+*leptonTwoP4).Pt(), (*leptonOneP4+*leptonTwoP4).M()) : GetZPtWeight(zPt, zMass);
     eventWeight *= zPtWeight;
   }
 
@@ -1474,8 +1515,8 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   mutau &= mll > 50. && mll < 170.;
   etau  &= mll > 50. && mll < 170.;
   emu   &= mll > 50. && mll < 170.;
-  mumu  &= mll > 75. && mll < 120.;
-  ee    &= mll > 75. && mll < 120.;
+  mumu  &= mll > 50. && mll < 170.;
+  ee    &= mll > 50. && mll < 170.;
 
 
   ////////////////////////////////////////////////////////////

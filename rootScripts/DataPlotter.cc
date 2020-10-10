@@ -1344,13 +1344,13 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
   double nmc = 0.;
   map<TString, double> nsig;
   if(d && plot_data_) {
-    for(unsigned i = 0; i < hsignal.size(); ++i) {
-      if(!doStatsLegend_ && hsignal[i]->GetEntries() > 0)
-	nsig[hsignal[i]->GetName()] = (hsignal[i]->Integral() + hsignal[i]->GetBinContent(0)+hsignal[i]->GetBinContent(hsignal[i]->GetNbinsX()+1))/signal_scale_;
-    }
     ndata = d->Integral() + d->GetBinContent(0)+d->GetBinContent(d->GetNbinsX()+1);
-    nmc = huncertainty->Integral() + huncertainty->GetBinContent(0)+huncertainty->GetBinContent(huncertainty->GetNbinsX()+1);
   }
+  for(unsigned i = 0; i < hsignal.size(); ++i) {
+    if(!doStatsLegend_ && hsignal[i]->GetEntries() > 0)
+      nsig[hsignal[i]->GetName()] = (hsignal[i]->Integral() + hsignal[i]->GetBinContent(0)+hsignal[i]->GetBinContent(hsignal[i]->GetNbinsX()+1))/signal_scale_;
+  }
+  nmc = huncertainty->Integral() + huncertainty->GetBinContent(0)+huncertainty->GetBinContent(huncertainty->GetNbinsX()+1);
 
   //blind if needed
   if(blindxmin_.size() > 0 && d && plot_data_) {

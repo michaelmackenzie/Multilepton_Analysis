@@ -65,6 +65,7 @@ public :
   Float_t topPtWeight                ;
   Float_t zPtWeight                  ;
   Float_t zPt                        ;
+  Float_t zMass                      ;
   Float_t genTauFlavorWeight         ;
   Int_t tauDecayMode                 ;
   Float_t tauMVA                     ;
@@ -305,6 +306,7 @@ public :
     TH1F* hLepM;
     TH1F* hLepEta;
     TH1F* hLepPhi;
+    TH2F* hLepPtVsM;
     
     TH1F* hLepDeltaPhi;
     TH1F* hLepDeltaEta;
@@ -312,8 +314,8 @@ public :
     TH2F* hLepDelRVsPhi;
     
     TH1F* hLepPtOverM;
-    TH1F* hAlpha[3]; //alpha from arXiv:1207.4894
-    TH1F* hDeltaAlpha[2]; //delta alpha from arXiv:1207.4894
+    TH1F* hAlpha[4]; //alpha from arXiv:1207.4894
+    TH1F* hDeltaAlpha[4]; //delta alpha from arXiv:1207.4894
     
     TH1F* hHtDeltaPhi;
     TH1F* hMetDeltaPhi;
@@ -643,7 +645,7 @@ public :
   virtual void    InitializeTreeVariables(Int_t selection);
   virtual float   GetTauFakeSF(int genFlavor);
   virtual float   CorrectMET(int selection, float met);
-  virtual float   GetZPtWeight(float pt);
+  virtual float   GetZPtWeight(float pt, float mass = 0.);
   virtual void    CountSlimObjects();
 
   virtual void    ProcessLLGStudy();
@@ -688,8 +690,11 @@ public :
   TEventID*     fEventId[kIds]; //for applying box cuts, 0-9 zmutau, 10-19 zetau, 20-29 zemu, higgs + 30 to z sets
   
   TString       fFolderName = ""; //name of the folder the tree is from
-
+  Int_t         fYear = 2016;
+  
   Int_t         fDYType = -1; //for splitting Z->ll into 1: tau tau and 2: e/mu e/mu
+  Bool_t        fIsDY = false; //for checking if DY --> Z pT weights
+  
   Int_t         fWriteTrees = 0; //write out ttrees for the events
   Double_t      fXsec = 0.; //cross-section for full event weight with trees
   Tree_t        fTreeVars; //for filling the ttrees/mva evaluation
@@ -699,7 +704,11 @@ public :
   Int_t         fIsData = 0; //0 if MC, 1 if electron data, 2 if muon data
   bool          fSkipDoubleTrigger = false; //skip events with both triggers (to avoid double counting), only count this lepton status events
   Int_t         fMETWeights = 0; //re-weight events based on the MET
+
   Int_t         fRemoveZPtWeights = 0; // 0 use given weights, 1 remove z pT weight, 2 remove and re-evaluate weights locally
+  TH2F*         fZPtScales = 0; //histogram based z pTvsM weights
+  TString       fZPtHistPath = "scale_factors/z_pt_vs_m_scales_"; //path for file, not including _[year].root
+  
   float         fFractionMVA = 0.; //fraction of events used to train. Ignore these events in histogram filling, reweight the rest to compensate
   TRandom*      fRnd = 0; //for splitting MVA testing/training
   Int_t         fRndSeed = 90; //random number generator seed
@@ -1129,6 +1138,7 @@ void ZTauTauHistMaker::Init(TTree *tree)
   fChain->SetBranchAddress("topPtWeight"         , &topPtWeight          );
   fChain->SetBranchAddress("zPtWeight"           , &zPtWeight            );
   fChain->SetBranchAddress("zPt"                 , &zPt                  );
+  fChain->SetBranchAddress("zMass"               , &zMass                );
   fChain->SetBranchAddress("genTauFlavorWeight"  , &genTauFlavorWeight   );
   fChain->SetBranchAddress("tauDecayMode"        , &tauDecayMode         );
   fChain->SetBranchAddress("tauMVA"              , &tauMVA               );
