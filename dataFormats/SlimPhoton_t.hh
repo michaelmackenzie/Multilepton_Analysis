@@ -10,7 +10,8 @@ public:
   Float_t deltaEta;
   Float_t MVA;
   Float_t MVA17;
-  ClassDef(SlimPhoton_t,1)
+  Bool_t  WP80;
+  ClassDef(SlimPhoton_t,2)
 };
 class SlimPhotons_t : public TObject {
 public:
