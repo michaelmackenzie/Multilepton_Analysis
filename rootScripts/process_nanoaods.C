@@ -70,27 +70,28 @@ Int_t process_nanoaods() {
     ,"dataprocess/LFVAnalysis_SingleMu_2018.root"                 
   };
   const bool doProcess[] = {
-    true ,    //LFVAnalysis_DY50_2016.root"		      
-    true ,    //LFVAnalysis_SingleToptW_2016.root"	      
-    true ,    //LFVAnalysis_SingleAntiToptW_2016.root"	      
-    true ,    //LFVAnalysis_WW_2016.root"			      
-    true ,    //LFVAnalysis_WZ_2016.root"			      
-    true ,    //LFVAnalysis_ZZ_2016.root"			      
-    true ,    //LFVAnalysis_WWW_2016.root"			      
-    true ,    //LFVAnalysis_Wlnu_2016.root"		      
-    true ,    //LFVAnalysis_ttbarToSemiLeptonic_2016.root"      
-    true ,    //LFVAnalysis_ttbarlnu_2016.root"		      
-    true ,    //LFVAnalysis_QCDDoubleEMEnrich30to40_2016.root" 	      
-    true ,    //LFVAnalysis_QCDDoubleEMEnrich30toInf_2016.root"	      
-    true ,    //LFVAnalysis_QCDDoubleEMEnrich40toInf_2016.root"	      
-    true ,    //LFVAnalysis_ZETau_2016.root"		      
-    true ,    //LFVAnalysis_ZMuTau_2016.root"
-    true ,    //LFVAnalysis_ZEMu_2016.root"
+    false,    //LFVAnalysis_DY50_2016.root"		      
+    false,    //LFVAnalysis_SingleToptW_2016.root"	      
+    false,    //LFVAnalysis_SingleAntiToptW_2016.root"	      
+    false,    //LFVAnalysis_WW_2016.root"			      
+    false,    //LFVAnalysis_WZ_2016.root"			      
+    false,    //LFVAnalysis_ZZ_2016.root"			      
+    false,    //LFVAnalysis_WWW_2016.root"			      
+    false,    //LFVAnalysis_Wlnu_2016.root"		      
+    false,    //LFVAnalysis_ttbarToSemiLeptonic_2016.root"      
+    false,    //LFVAnalysis_ttbarlnu_2016.root"		      
+    false,    //LFVAnalysis_QCDDoubleEMEnrich30to40_2016.root" 	      
+    false,    //LFVAnalysis_QCDDoubleEMEnrich30toInf_2016.root"	      
+    false,    //LFVAnalysis_QCDDoubleEMEnrich40toInf_2016.root"	      
+    false,    //LFVAnalysis_ZETau_2016.root"		      
+    false,    //LFVAnalysis_ZMuTau_2016.root"
+    false,    //LFVAnalysis_ZEMu_2016.root"
     true ,    //LFVAnalysis_HETau_2016.root"		      
     true ,    //LFVAnalysis_HMuTau_2016.root"		      
     true ,    //LFVAnalysis_HEMu_2016.root"		      
-    true ,    //LFVAnalysis_SingleEle_2016.root"		      
-    true ,    //LFVAnalysis_SingleMu_2016.root"                 
+    false,    //LFVAnalysis_SingleEle_2016.root"		      
+    false,    //LFVAnalysis_SingleMu_2016.root"                 
+    //2017
     false,    //LFVAnalysis_DY50_2017.root"		      
     false,    //LFVAnalysis_SingleToptW_2017.root"	      
     false,    //LFVAnalysis_SingleAntiToptW_2017.root"	      
@@ -180,6 +181,7 @@ Int_t process_nanoaods() {
     //if debugging, only do requested file
     if(debug_ && !TString(samples[index]).Contains(debugFile_.Data())) continue;
 
+    bool isDY = TString(samples[index]).Contains("DY");
     TFile* f = TFile::Open((path+samples[index]).Data(), "READ");
     if(!f) {
       cout << " File not found! Continuing..." << endl;
@@ -240,6 +242,8 @@ Int_t process_nanoaods() {
     selec->fYear = year;
     selec->fIsData = isData;
     selec->fSkipDoubleTrigger = false; //pre-skipped
+    selec->fSkipMuMuEE = 0; //skip same flavor data
+    selec->fIsDY = isDY; //for Z pT weights
     if(debug_) debugSelec_ = selec;
     if(!debug_)
       t->Process(selec);

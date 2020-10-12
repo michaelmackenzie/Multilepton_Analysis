@@ -61,7 +61,7 @@ double ParticleCorrections::MuonWeight(double pt, double eta, int trigger, int y
   return scale_factor;
 }
 
-double ParticleCorrections::ElectronWeight(double pt, double eta, int year) {
+double ParticleCorrections::ElectronWeight(double pt, double eta, int year, float& trigger_scale) {
   if(year != k2016 && year != k2017 && year != k2018) {
     std::cout << "Warning! Undefined year in " << __func__ << ", returning -1" << std::endl;
     return -1.;
@@ -87,9 +87,14 @@ double ParticleCorrections::ElectronWeight(double pt, double eta, int year) {
   TH2F* hReco = electronRecoMap[year];
   double reco_scale = hReco->GetBinContent(hReco->GetXaxis()->FindBin(fabs(eta)), hReco->GetYaxis()->FindBin(pt));
 
-  if(year == k2016) reco_scale = 1.;
+  TH2F* hTrig = electronTriggerMap[year];
+  trigger_scale = hTrig->GetBinContent(hTrig->GetXaxis()->FindBin(eta), hTrig->GetYaxis()->FindBin(pt));
+
+  //FIXME: add pre-fire for 2017
+  // double prefire_scale = electronPreFireMap[year];
+  double vertex_scale = electronVertexMap[year];
   
-  double scale_factor = id_scale * reco_scale;
+  double scale_factor = id_scale * reco_scale * vertex_scale;
   return scale_factor;
 }
 
@@ -148,7 +153,7 @@ double ParticleCorrections::TauEnergyScale(double pt, double eta, int dm, int ge
   return scale_factor;
 }
 
-  double ParticleCorrections::BTagWeight(double pt, double eta, int jetFlavor, int year, int WP) {
+double ParticleCorrections::BTagWeight(double pt, double eta, int jetFlavor, int year, int WP) {
   if(pt < 20.) pt = 20.;
   if(fabs(eta) > 2.4) return 1.; //can't tag high eta jets
   
@@ -169,3 +174,12 @@ double ParticleCorrections::TauEnergyScale(double pt, double eta, int dm, int ge
   return scale_factor;
 }
 
+double ParticleCorrections::ZWeight(double pt, double mass, int year) {
+  if(pt > 999.) pt = 999.;
+  if(mass > 999.) mass = 999.;
+  int binx = zWeightMap[year]->GetXaxis()->FindBin(mass);
+  int biny = zWeightMap[year]->GetYaxis()->FindBin(pt);
+  double scale_factor = zWeightMap[year]->GetBinContent(binx,biny);
+  if(scale_factor <= 0.) scale_factor = 1.;
+  return scale_factor;
+}

@@ -126,7 +126,13 @@ public :
     electronRecoFileNames[k2016]  = fpair("EGM2D_BtoH_GT20GeV_RecoSF_Legacy2016.root"           ,"EGamma_SF2D");
     electronRecoFileNames[k2017]  = fpair("egammaEffi.txt_EGM2D_runBCDEF_passingRECO_2017.root" ,"EGamma_SF2D");
     electronRecoFileNames[k2018]  = fpair("egammaEffi.txt_EGM2D_updatedAll_2018.root"           ,"EGamma_SF2D");
-
+    std::map<int, fpair> electronTrigFileNames;
+    electronTrigFileNames[k2016]  = fpair("egammaTriggerEfficiency_2016.root"                   ,"EGamma_SF2D");
+    electronTrigFileNames[k2017]  = fpair("egammaTriggerEfficiency_2017.root"                   ,"EGamma_SF2D");
+    electronTrigFileNames[k2018]  = fpair("egammaTriggerEfficiency_2018.root"                   ,"EGamma_SF2D");
+    //FIXME: add electron trigger, pre-fire (2016, 2017) scale
+    //https://twiki.cern.ch/twiki/bin/viewauth/CMS/L1ECALPrefiringWeightRecipe 
+    
     for(int period = k2016; period <= k2018; ++period) {
       if(electronIDFileNames[period].first == "") continue;
       TFile* f = TFile::Open((scaleFactorPath + electronIDFileNames[period].first).Data(),"READ");
@@ -139,6 +145,18 @@ public :
       if(!f) continue;
       electronRecoMap[period] = (TH2F*) f->Get(electronRecoFileNames[period].second.Data());
     }
+    for(int period = k2016; period <= k2018; ++period) {
+      if(electronTrigFileNames[period].first == "") continue;
+      TFile* f = TFile::Open((scaleFactorPath + electronTrigFileNames[period].first).Data(),"READ");
+      if(!f) continue;
+      electronTriggerMap[period] = (TH2F*) f->Get(electronTrigFileNames[period].second.Data());
+    }
+
+    //vertex corrections
+    //https://twiki.cern.ch/twiki/bin/viewauth/CMS/EgammaRunIIRecommendations#HLT_Zvtx_Scale_Factor
+    electronVertexMap[k2016]   = 1.000; //+-0.000
+    electronVertexMap[k2017]   = 0.991; //+-0.001
+    electronVertexMap[k2018]   = 1.000; //+-0.000
     
     //initialize Tau scales
     TString tauScaleFactorPath = gSystem->Getenv("CMSSW_BASE") + fTauScaleFactorPath;
@@ -198,11 +216,26 @@ public :
       if(!f) continue;
       tauFakeESMap[period] = (TGraphAsymmErrors*) f->Get((tauFakeESFileNames[period].second).Data());
     }
+
+    //z correction weights
+    scaleFactorPath = gSystem->Getenv("CMSSW_BASE") + fZScaleFactorPath;
+    std::map<int, fpair> zFileNames;
+    zFileNames[k2016] = fpair("z_pt_vs_m_scales_2016.root", "hRatioNorm");
+    for(int period = k2016; period <= k2018; ++period) {
+      if(zFileNames[period].first == "") continue;
+      TFile* f = TFile::Open((scaleFactorPath + zFileNames[period].first).Data(),"READ");
+      if(!f) continue;
+      zWeightMap[period] = (TH2F*) f->Get((zFileNames[period].second).Data());
+    }
     
   }
   virtual ~ParticleCorrections() {}
   virtual double MuonWeight    (double pt, double eta, int trigger, int era, float& trig_scale);
-  virtual double ElectronWeight(double pt, double eta, int era);
+  virtual double ElectronWeight(double pt, double eta, int era, float& trigger_scale);
+  double ElectronWeight(double pt, double eta, int era) {
+    float tmp(0.);
+    return ElectronWeight(pt, eta, era, tmp);
+  }
   virtual double TauWeight     (double pt, double eta, int genID, int era, double& up, double& down);
   double TauWeight(double pt, double eta, int genID, int era) {
     double up(1.), down(1.);
@@ -210,6 +243,7 @@ public :
   }
   virtual double TauEnergyScale(double pt, double eta, int dm, int genID, int era, double& up, double& down);
   virtual double BTagWeight(double pt, double eta, int jetFlavor, int year, int WP);
+  virtual double ZWeight(double pt, double mass, int year);
   
   enum{k2016, k2017, k2018}; //defined years
   enum{kLowTrigger, kHighTrigger}; //defined triggers
@@ -221,6 +255,7 @@ public :
 
   TString fScaleFactorPath    = "/src/StandardModel/ZEMuAnalysis/test/scale_factors/"; //path from cmssw_base
   TString fTauScaleFactorPath = "/src/TauPOG/TauIDSFs/data/"; //path from cmssw_base
+  TString fZScaleFactorPath   = "/src/StandardModel/CLFVAnalysis/rootScripts/scale_factors/"; //path from cmssw_base
 
 private:
   //muon corrections
@@ -231,6 +266,9 @@ private:
   //electron corrections
   std::map<int, TH2F*> electronIDMap;
   std::map<int, TH2F*> electronRecoMap;
+  std::map<int, float> electronVertexMap;
+  std::map<int, TH2F*> electronTriggerMap;
+  std::map<int, TH2F*> electronPreFireMap;
   //tau ID corrections
   std::map<int, TF1*> tauJetIDMap;
   std::map<int, TF1*> tauJetUpIDMap;
@@ -243,6 +281,8 @@ private:
   std::map<int, TGraphAsymmErrors*> tauFakeESMap;
   //b-jet corrections
   std::map<int, TH2F*> bJetIDMap;
+  //Z pT/mass corrections
+  std::map<int, TH2F*> zWeightMap;
   
   TRandom* fRnd; //for getting random period in year
 };

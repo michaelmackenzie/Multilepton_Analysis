@@ -191,6 +191,8 @@ void NanoAODConversion::InitializeInBranchStructure(TTree* tree) {
   tree->SetBranchAddress("leptonTwoIndex"                  , &leptonTwoSkimIndex             ) ;
   tree->SetBranchAddress("leptonOneFlavor"                 , &leptonOneSkimFlavor            ) ;
   tree->SetBranchAddress("leptonTwoFlavor"                 , &leptonTwoSkimFlavor            ) ;
+  tree->SetBranchAddress("zPt"                             , &zPtIn                          ) ;
+  tree->SetBranchAddress("zMass"                           , &zMassIn                        ) ;
   
 }
 
@@ -219,6 +221,8 @@ void NanoAODConversion::InitializeOutBranchStructure(TTree* tree) {
   tree->Branch("lepTwoTrigWeight"              , &lepTwoTrigWeight     );
   tree->Branch("topPtWeight"                   , &topPtWeight          );
   tree->Branch("zPtWeight"                     , &zPtWeight            );
+  tree->Branch("zPt"                           , &zPtOut               );
+  tree->Branch("zMass"                         , &zMassOut             );
   tree->Branch("genTauFlavorWeight"            , &genTauFlavorWeight   );
   tree->Branch("tauDecayMode"                  , &tauDecayModeOut      );
   tree->Branch("tauMVA"                        , &tauMVA               );
@@ -336,7 +340,12 @@ void NanoAODConversion::InitializeOutBranchStructure(TTree* tree) {
 }
 
 void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
+  //store sign of generator weight
   genWeight = (genWeight == 0.) ? 0. : genWeight/abs(genWeight);
+
+  //////////////////////////////
+  //           MET            //
+  //////////////////////////////
 
   //use PUPPI MET by default
   met = puppMET;
@@ -344,6 +353,11 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
   //set corrected PUPPI MET to be nominal
   puppMETC    = puppMET   ;
   puppMETCphi = puppMETphi;
+
+  //////////////////////////////
+  //        Trigger           //
+  //////////////////////////////
+
   //store muon and electron trigger (1 = electron, 2 = muon, 3 = both)
   //muon trigger is Mu50 for all years and IsoMu24 for 2016, 2018 and IsoMu27 for 2017
   bool lowMuonTriggered  = ((fYear == ParticleCorrections::k2016 && HLT_IsoMu24) || 
@@ -351,7 +365,7 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
 			    (fYear == ParticleCorrections::k2018 && HLT_IsoMu24));
   bool highMuonTriggered = HLT_Mu50;
   bool electronTriggered = ((fYear == ParticleCorrections::k2016 && HLT_Ele27_WPTight_GsF) ||
-			    (fYear == ParticleCorrections::k2017 && HLT_Ele32_WPTight_GsF_L1DoubleEG) || 
+			    (fYear == ParticleCorrections::k2017 && HLT_Ele32_WPTight_GsF_L1DoubleEG) || //FIXME: add L1 Ele35 test as well
 			    (fYear == ParticleCorrections::k2018 && HLT_Ele32_WPTight_GsF));
   triggerLeptonStatus = electronTriggered + 2*(lowMuonTriggered || highMuonTriggered);
 
@@ -362,95 +376,164 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
   if(trigger < 0 && selection == kMuMu) 
     std::cout << "Warning! Di-muon selection but no identified muon trigger!\n";
 
+  //////////////////////////////
+  //   Z info + re-weight     //
+  //////////////////////////////
+  //Z pT/mass info (DY and Z signals only)
+  zPtOut = zPtIn;
+  zMassOut = zMassIn;  
+  if(fIsDY) {
+    //re-weight if pt/mass are defined
+    if(zPtOut > 0. && zMassOut > 0.) zPtWeight = particleCorrections->ZWeight(zPtOut, zMassOut, fYear);
+    //store generator level Z->ll lepton ids
+    nGenHardElectrons = 0; nGenHardMuons = 0; nGenHardTaus = 0;
+    if(abs(zLepOne) == 11)      ++nGenHardElectrons;
+    else if(abs(zLepOne) == 13) ++nGenHardMuons;
+    else if(abs(zLepOne) == 15) ++nGenHardTaus;
+    if(abs(zLepTwo) == 11)      ++nGenHardElectrons;
+    else if(abs(zLepTwo) == 13) ++nGenHardMuons;
+    else if(abs(zLepTwo) == 15) ++nGenHardTaus;
+  }
+
+  //////////////////////////////
+  //      Lepton info         //
+  //////////////////////////////
   nMuons = fNMuons[selection];
   nElectrons = fNElectrons[selection];
   nTaus = fNTaus[selection];
   lepOneWeight     = 1.; lepTwoWeight     = 1.;
   lepOneTrigWeight = 1.; lepTwoTrigWeight = 1.;
-  //store lepton information
+  //////////////////////////////
+  //      lep 1 = muon        //
+  //////////////////////////////
   if(selection == kMuTau || selection == kMuMu) {
-    leptonOneP4->SetPtEtaPhiM(muonPt[fMuonIndices[selection][0]], muonEta[fMuonIndices[selection][0]],
-			      muonPhi[fMuonIndices[selection][0]], muonMass[fMuonIndices[selection][0]]);
-    leptonOneFlavor = -13*muonCharge[fMuonIndices[selection][0]];
-    leptonOneID1 = muonIsoId[fMuonIndices[selection][0]];
+    unsigned index = fMuonIndices[selection][0];
+    leptonOneP4->SetPtEtaPhiM(muonPt[index], muonEta[index],
+			      muonPhi[index], muonMass[index]);
+    leptonOneFlavor = -13*muonCharge[index];
+    leptonOneID1 = muonIsoId[index];
     leptonOneID2 = 0;
-    leptonOneIndex = fMuonIndices[selection][0];
-    if(!fIsData) lepOneWeight = particleCorrections->MuonWeight(muonPt[fMuonIndices[selection][0]],
-								muonEta[fMuonIndices[selection][0]], trigger, fYear, lepOneTrigWeight);
+    leptonOneIndex = index;
+    if(!fIsData) lepOneWeight = particleCorrections->MuonWeight(muonPt[index],
+								muonEta[index], trigger, fYear, lepOneTrigWeight);
+  //////////////////////////////
+  //     lep 1 = electron     //
+  //////////////////////////////
   } else if(selection == kETau || selection == kEMu || selection == kEE) {
-    leptonOneP4->SetPtEtaPhiM(electronPt[fElectronIndices[selection][0]], electronEta[fElectronIndices[selection][0]],
-			      electronPhi[fElectronIndices[selection][0]], electronMass[fElectronIndices[selection][0]]);
-    leptonOneFlavor = -11*electronCharge[fElectronIndices[selection][0]];
+    unsigned index = fElectronIndices[selection][0];
+    leptonOneP4->SetPtEtaPhiM(electronPt[index], electronEta[index],
+			      electronPhi[index], electronMass[index]);
+    leptonOneFlavor = -11*electronCharge[index];
     leptonOneID1 = 0;
     leptonOneID2 = 0;
-    leptonOneIndex = fElectronIndices[selection][0];
-    if(!fIsData) lepOneWeight = particleCorrections->ElectronWeight(electronPt[fElectronIndices[selection][0]],
-								    electronEta[fElectronIndices[selection][0]], fYear);
+    leptonOneIndex = index;
+    if(!fIsData) lepOneWeight = particleCorrections->ElectronWeight(electronPt[index],
+								    electronEta[index]+electronDeltaEtaSC[index], fYear, lepOneTrigWeight);
   }    
+  //////////////////////////////
+  //      lep 2 = tau         //
+  //////////////////////////////
   if(selection == kMuTau || selection == kETau) {
-    leptonTwoP4->SetPtEtaPhiM(tauPt[fTauIndices[selection][0]], tauEta[fTauIndices[selection][0]],
-			      tauPhi[fTauIndices[selection][0]],tauMass[fTauIndices[selection][0]]);
-    leptonTwoFlavor = -15*tauCharge[fTauIndices[selection][0]];
-    tauGenIDOut  = tauGenID[fTauIndices[selection][0]];
+    unsigned index = fMuonIndices[selection][0];
+    leptonTwoP4->SetPtEtaPhiM(tauPt[index], tauEta[index],
+			      tauPhi[index],tauMass[index]);
+    leptonTwoFlavor = -15*tauCharge[index];
+    tauGenIDOut  = tauGenID[index];
     tauGenFlavor = TauFlavorFromID((int) tauGenIDOut);
-    lepTwoWeight = particleCorrections->TauWeight(leptonTwoP4->Pt(), leptonTwoP4->Eta(), tauGenID[fTauIndices[selection][0]], fYear);
-    leptonTwoID1 = tauAntiEle[fTauIndices[selection][0]];
-    leptonTwoID2 = tauAntiMu[fTauIndices[selection][0]];
-    taudxyOut = taudxy[fTauIndices[selection][0]];
-    taudzOut  = taudz[fTauIndices[selection][0]];
-    leptonTwoIndex = fTauIndices[selection][0];
-    tauDecayModeOut = tauDecayMode[fTauIndices[selection][0]];
+    lepTwoWeight = particleCorrections->TauWeight(leptonTwoP4->Pt(), leptonTwoP4->Eta(), tauGenID[index], fYear);
+    leptonTwoID1 = tauAntiEle[index];
+    leptonTwoID2 = tauAntiMu[index];
+    taudxyOut = taudxy[index];
+    taudzOut  = taudz[index];
+    leptonTwoIndex = index;
+    tauDecayModeOut = tauDecayMode[index];
     
     //FIXME: should ID weight use updated tau energy scale?
     double up(1.), down(1.);
     *leptonTwoP4 *= particleCorrections->TauEnergyScale(leptonTwoP4->Pt(), leptonTwoP4->Eta(), tauDecayModeOut,
-							tauGenID[fTauIndices[selection][0]], fYear, up, down); //FIXME: keep uncertainties
-    tauDeepAntiEle = tauDeep2017VsE[fTauIndices[selection][0]];
-    tauDeepAntiMu  = tauDeep2017VsMu[fTauIndices[selection][0]];
-    tauDeepAntiJet = tauDeep2017VsJet[fTauIndices[selection][0]];
+							tauGenID[index], fYear, up, down); //FIXME: keep uncertainties
+    tauDeepAntiEle = tauDeep2017VsE[index];
+    tauDeepAntiMu  = tauDeep2017VsMu[index];
+    tauDeepAntiJet = tauDeep2017VsJet[index];
+  //////////////////////////////
+  //      lep 2 = muon        //
+  //////////////////////////////
   } else if(selection == kEMu) {
-    leptonTwoP4->SetPtEtaPhiM(muonPt[fMuonIndices[selection][0]], muonEta[fMuonIndices[selection][0]],
-			      muonPhi[fMuonIndices[selection][0]],muonMass[fMuonIndices[selection][0]]);
-    leptonTwoFlavor = -13*muonCharge[fMuonIndices[selection][0]];
-    leptonTwoID1 = muonIsoId[fMuonIndices[selection][0]];
+    unsigned index = fMuonIndices[selection][0];
+    leptonTwoP4->SetPtEtaPhiM(muonPt[index], muonEta[index],
+			      muonPhi[index],muonMass[index]);
+    leptonTwoFlavor = -13*muonCharge[index];
+    leptonTwoID1 = muonIsoId[index];
     leptonTwoID2 = 0;
-    leptonTwoIndex = fMuonIndices[selection][0];
-    if(!fIsData) lepTwoWeight = particleCorrections->MuonWeight(muonPt[fMuonIndices[selection][0]],
-								muonEta[fMuonIndices[selection][0]], trigger, fYear, lepTwoTrigWeight);
+    leptonTwoIndex = index;
+    if(!fIsData) lepTwoWeight = particleCorrections->MuonWeight(muonPt[index],
+								muonEta[index], trigger, fYear, lepTwoTrigWeight);
+  //////////////////////////////
+  //      lep 2 = muon(2)     //
+  //////////////////////////////
   } else if(selection == kMuMu) {
-    leptonTwoP4->SetPtEtaPhiM(muonPt[fMuonIndices[selection][1]], muonEta[fMuonIndices[selection][1]],
-			      muonPhi[fMuonIndices[selection][1]], muonMass[fMuonIndices[selection][1]]);
-    leptonTwoFlavor = -13*muonCharge[fMuonIndices[selection][1]];
-    leptonTwoID1 = muonIsoId[fMuonIndices[selection][1]];
+    unsigned index = fMuonIndices[selection][1];
+    leptonTwoP4->SetPtEtaPhiM(muonPt[index], muonEta[index],
+			      muonPhi[index], muonMass[index]);
+    leptonTwoFlavor = -13*muonCharge[index];
+    leptonTwoID1 = muonIsoId[index];
     leptonTwoID2 = 0;
-    leptonTwoIndex = fMuonIndices[selection][1];
-    if(!fIsData) lepTwoWeight = particleCorrections->MuonWeight(muonPt[fMuonIndices[selection][1]],
-								muonEta[fMuonIndices[selection][1]], trigger, fYear, lepTwoTrigWeight);
+    leptonTwoIndex = index;
+    if(!fIsData) lepTwoWeight = particleCorrections->MuonWeight(muonPt[index],
+								muonEta[index], trigger, fYear, lepTwoTrigWeight);
+  //////////////////////////////
+  //    lep 2 = electron(2)   //
+  //////////////////////////////
   } else if(selection == kEE) {
-    leptonTwoP4->SetPtEtaPhiM(electronPt[fElectronIndices[selection][1]], electronEta[fElectronIndices[selection][1]],
-			      electronPhi[fElectronIndices[selection][1]], electronMass[fElectronIndices[selection][1]]);
-    leptonTwoFlavor = -11*electronCharge[fElectronIndices[selection][1]];
+    unsigned index = fElectronIndices[selection][1];
+    leptonTwoP4->SetPtEtaPhiM(electronPt[index], electronEta[index],
+			      electronPhi[index], electronMass[index]);
+    leptonTwoFlavor = -11*electronCharge[index];
     leptonTwoID1 = 0;
     leptonTwoID2 = 0;
-    leptonTwoIndex = fElectronIndices[selection][1];
-    if(!fIsData) lepTwoWeight = particleCorrections->ElectronWeight(electronPt[fElectronIndices[selection][1]],
-								    electronEta[fElectronIndices[selection][1]], fYear);
+    leptonTwoIndex = index;
+    if(!fIsData) lepTwoWeight = particleCorrections->ElectronWeight(electronPt[index],
+								    electronEta[index]+electronDeltaEtaSC[index], fYear, lepTwoTrigWeight);
   }
+  //////////////////////////////
+  //    Store other objects   //
+  //////////////////////////////
   CountJets();
   if(!(selection == kMuTau || selection == kETau) && nTaus > 0) {
-    tauP4->SetPtEtaPhiM(tauPt[fTauIndices[selection][0]], tauEta[fTauIndices[selection][0]], tauPhi[fTauIndices[selection][0]], tauMass[fTauIndices[selection][0]]);
-    taudxyOut = taudxy[fTauIndices[selection][0]];
-    taudzOut  = taudz[fTauIndices[selection][0]];
-    tauFlavor = -15*tauCharge[fTauIndices[selection][0]];
+    unsigned index = fTauIndices[selection][0];
+    tauP4->SetPtEtaPhiM(tauPt[index], tauEta[index], tauPhi[index], tauMass[index]);
+    taudxyOut = taudxy[index];
+    taudzOut  = taudz[index];
+    tauFlavor = -15*tauCharge[index];
   }
-  if(!fIsData)
+  if(!fIsData) {
     eventWeight = lepOneWeight * lepTwoWeight * lepOneTrigWeight * lepTwoTrigWeight * puWeight;
-  else {
+    if(fIsDY) eventWeight *= zPtWeight;
+  } else {
     eventWeight = 1.;
     genWeight = 1.;
     puWeight = 1.;
     lepOneWeight = 1.;
     lepTwoWeight = 1.;
+  }
+  //for ee/mumu, ensure lepton one is higher pT
+  if((selection == kEE || selection == kMuMu) && leptonOneP4->Pt() < leptonTwoP4->Pt()) {
+    //swap momenta
+    TLorentzVector ltmp = *leptonOneP4;
+    leptonOneP4->SetPtEtaPhiM(leptonTwoP4->Pt(), leptonTwoP4->Eta(), leptonTwoP4->Phi(), leptonTwoP4->M());
+    leptonTwoP4->SetPtEtaPhiM(ltmp.Pt(), ltmp.Eta(), ltmp.Phi(), ltmp.M());
+    //swap flavor
+    Int_t ftmp = leptonOneFlavor;
+    leptonOneFlavor = leptonTwoFlavor;
+    leptonTwoFlavor = ftmp;
+    //swap weights
+    Float_t wtmp = lepOneWeight;
+    lepOneWeight = lepTwoWeight;
+    lepTwoWeight = wtmp;
+    //swap indices
+    Int_t itmp = leptonOneIndex;
+    leptonOneIndex = leptonTwoIndex;
+    leptonTwoIndex = itmp;
   }
   
   if(nPhotons > 0) 
@@ -800,6 +883,10 @@ Bool_t NanoAODConversion::Process(Long64_t entry)
   bool emu   = fNTaus[kEMu]   == 0 && fNMuons[kEMu]   == 1 && fNElectrons[kEMu]   == 1 && SelectionID(kEMu);
   bool mumu  = fNTaus[kMuMu]  == 0 && fNMuons[kMuMu]  == 2 && fNElectrons[kMuMu]  == 0 && SelectionID(kMuMu);
   bool ee    = fNTaus[kEE]    == 0 && fNMuons[kEE]    == 0 && fNElectrons[kEE]    == 2 && SelectionID(kEE);
+  if(fSkipMuMuEESS && (ee || mumu)) {
+    mumu = mumu && muonCharge[fMuonIndices[kMuMu][0]]*muonCharge[fMuonIndices[kMuMu][1]] < 0;
+    ee   = ee   && electronCharge[fElectronIndices[kEE][0]]*electronCharge[fElectronIndices[kEE][1]] < 0;
+  }
   if(ee + mumu > 0 && (emu || etau || mutau)) {ee = false; mumu = false;} //if passes a signal region, don't use in ee/mumu categories (should never happen)
   //must pass at least one selection
   if(!mumu && !emu && !etau && !mutau && !ee) {

@@ -60,6 +60,8 @@ public :
   Float_t lepTwoTrigWeight = 1.      ;
   Float_t topPtWeight = 1.           ;
   Float_t zPtWeight = 1.             ;
+  Float_t zPtOut    = 0.             ;
+  Float_t zMassOut    = 0.           ;
   Float_t genTauFlavorWeight = 1.    ;
   Int_t   tauDecayModeOut = 0        ;
   Float_t tauMVA  = 0                ;
@@ -241,6 +243,11 @@ public :
   bool    HLT_Ele27_WPTight_GsF             ;
   bool    HLT_Ele32_WPTight_GsF             ;
   bool    HLT_Ele32_WPTight_GsF_L1DoubleEG  ;
+  Float_t zPtIn              = 0.           ;
+  Float_t zMassIn            = 0.           ;
+  Int_t   zLepOne            = 0            ;
+  Int_t   zLepTwo            = 0            ;
+  
 // Float_t genWeight                         ;
   // Float_t piWeight                          ;
   // Float_t PuppiMET                          ;
@@ -348,7 +355,7 @@ public :
   
   TString       fFolderName = ""; //name of the folder the tree is from
 
-  Int_t         fDYType = -1; //for splitting Z->ll into 1: tau tau and 2: e/mu e/mu
+  Bool_t        fIsDY = false; //for applying Z pT and mass weights
   Tree_t        fTreeVars; //for filling the ttrees/mva evaluation
 
   Int_t         fUseTauFakeSF = 0; //add in fake tau scale factor weight to event weights (2 to use ones defined here)
@@ -360,9 +367,10 @@ public :
   Int_t         fVerbose = 0;
 
   Int_t         fSkipMuMuEE = 1; // whether to skip ee/mumu selections for now
+  Int_t         fSkipMuMuEESS = 1; //whether to skip same sign ee/mumu selections for now
   
   //selection requirements
-  std::map<Int_t, UChar_t> fTauUseDeep;
+  std::map<Int_t, Bool_t>  fTauUseDeep;
 
   std::map<Int_t, UChar_t> fMuonIsoSelect;
   std::map<Int_t, Int_t>   fMuonIDSelect; //0 = any, 1 = loose, 2 = medium, 3 = tight
