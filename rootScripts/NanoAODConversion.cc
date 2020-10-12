@@ -38,6 +38,13 @@ void NanoAODConversion::Begin(TTree * /*tree*/)
   timer->Start();
   particleCorrections = new ParticleCorrections(fMuonIso);
   fChain = 0;
+
+  //Object pT thresholds
+  fElectronPtCount = 10.;
+  fMuonPtCount = 5.;
+  fTauPtCount = 20.;
+  fPhotonPtCount = 10.;
+  
   //initialize selection parameters
   fTauUseDeep[kMuTau] = true;
   fTauUseDeep[kETau]  = true;
@@ -67,44 +74,54 @@ void NanoAODConversion::Begin(TTree * /*tree*/)
 
   //initialize object counting parameters for each selection
   //mutau
-  fCountMuons     [kMuTau] = true;
-  fMuonIsoCount   [kMuTau] = ParticleCorrections::kVLooseMuIso;
-  fMuonIDCount    [kMuTau] = 1;
-  fCountElectrons [kMuTau] = false;
-  fCountTaus      [kMuTau] = true;
-  fTauAntiEleCount[kMuTau] = 2;
-  fTauAntiMuCount [kMuTau] = 2;
-  fTauAntiJetCount[kMuTau] = 4;
-  fTauDeltaRCount [kMuTau] = 0.3;
-  fTauIDDecayCount[kMuTau] = true;
+  fCountMuons       [kMuTau] = true;
+  fMuonIsoCount     [kMuTau] = ParticleCorrections::kVLooseMuIso;
+  fMuonIDCount      [kMuTau] = 1;
+  fCountElectrons   [kMuTau] = false;
+  fCountTaus        [kMuTau] = true;
+  fTauAntiEleCount  [kMuTau] = 2;
+  fTauAntiMuCount   [kMuTau] = 2;
+  fTauAntiJetCount  [kMuTau] = 4;
+  fTauDeltaRCount   [kMuTau] = 0.3;
+  fTauIDDecayCount  [kMuTau] = true;
+  fPhotonIDCount    [kMuTau] = 1; //WP80
+  fPhotonDeltaRCount[kMuTau] = 0.3;
   //etau
-  fCountMuons     [kETau]  = false;
-  fCountElectrons [kETau]  = true;
-  fElectronIDCount[kETau]  = 1;
-  fCountTaus      [kETau]  = true;
-  fTauAntiEleCount[kETau]  = 2;
-  fTauAntiMuCount [kETau]  = 2;
-  fTauAntiJetCount[kETau]  = 4;
-  fTauDeltaRCount [kETau]  = 0.3;
-  fTauIDDecayCount[kETau]  = true;
+  fCountMuons       [kETau]  = false;
+  fCountElectrons   [kETau]  = true;
+  fElectronIDCount  [kETau]  = 1;
+  fCountTaus        [kETau]  = true;
+  fTauAntiEleCount  [kETau]  = 2;
+  fTauAntiMuCount   [kETau]  = 2;
+  fTauAntiJetCount  [kETau]  = 4;
+  fTauDeltaRCount   [kETau]  = 0.3;
+  fTauIDDecayCount  [kETau]  = true;
+  fPhotonIDCount    [kETau] = 1; //WP80
+  fPhotonDeltaRCount[kETau] = 0.3;
   //emu
-  fCountMuons     [kEMu]   = true;
-  fMuonIsoCount   [kEMu]   = ParticleCorrections::kVLooseMuIso;
-  fMuonIDCount    [kEMu]   = 1;
-  fCountElectrons [kEMu]   = true;
-  fElectronIDCount[kEMu]   = 1;
-  fCountTaus      [kEMu]   = false;
+  fCountMuons       [kEMu]   = true;
+  fMuonIsoCount     [kEMu]   = ParticleCorrections::kVLooseMuIso;
+  fMuonIDCount      [kEMu]   = 1;
+  fCountElectrons   [kEMu]   = true;
+  fElectronIDCount  [kEMu]   = 1;
+  fCountTaus        [kEMu]   = false;
+  fPhotonIDCount    [kEMu] = 1; //WP80
+  fPhotonDeltaRCount[kEMu] = 0.3;
   //mumu
-  fCountMuons     [kMuMu]  = true;
-  fMuonIsoCount   [kMuMu]  = ParticleCorrections::kVLooseMuIso;
-  fMuonIDCount    [kMuMu]  = 1;
-  fCountElectrons [kMuMu]  = false;
-  fCountTaus      [kMuMu]  = false;
+  fCountMuons       [kMuMu]  = true;
+  fMuonIsoCount     [kMuMu]  = ParticleCorrections::kVLooseMuIso;
+  fMuonIDCount      [kMuMu]  = 1;
+  fCountElectrons   [kMuMu]  = false;
+  fCountTaus        [kMuMu]  = false;
+  fPhotonIDCount    [kMuMu] = 1; //WP80
+  fPhotonDeltaRCount[kMuMu] = 0.3;
   //ee
-  fCountMuons     [kEE]    = false;
-  fCountElectrons [kEE]    = true;
-  fElectronIDCount[kEE]    = 1;
-  fCountTaus      [kEE]    = false;
+  fCountMuons       [kEE]    = false;
+  fCountElectrons   [kEE]    = true;
+  fElectronIDCount  [kEE]    = 1;
+  fCountTaus        [kEE]    = false;
+  fPhotonIDCount    [kEE] = 1; //WP80
+  fPhotonDeltaRCount[kEE] = 0.3;
 
 }
 
@@ -169,14 +186,14 @@ void NanoAODConversion::InitializeInBranchStructure(TTree* tree) {
   tree->SetBranchAddress("Jet_puId"                        , &jetPUID                        ) ;
   tree->SetBranchAddress("Jet_btagDeepB"                   , &jetBTagDeepB                   ) ;
   tree->SetBranchAddress("Jet_btagCMVA"                    , &jetBTagCMVA                    ) ;
-  tree->SetBranchAddress("nPhoton"                         , &nPhotons                       ) ;
+  tree->SetBranchAddress("nPhoton"                         , &nPhoton                        ) ;
   tree->SetBranchAddress("Photon_pt"                       , &photonPt                       ) ;
   tree->SetBranchAddress("Photon_eta"                      , &photonEta                      ) ;
   tree->SetBranchAddress("Photon_phi"                      , &photonPhi                      ) ;
   tree->SetBranchAddress("Photon_mass"                     , &photonMass                     ) ;
   tree->SetBranchAddress("Photon_mvaID"                    , &photonMVAID                    ) ;
-  tree->SetBranchAddress("Photon_mvaID17"                  , &photonMVAID17                  ) ;
-  // tree->SetBranchAddress("Photon_deltaEta"                 , &photonDeltaEta                 ) ;
+  tree->SetBranchAddress("Photon_mvaID_WP80"               , &photonWP80                     ) ;
+  tree->SetBranchAddress("Photon_mvaID_WP90"               , &photonWP90                     ) ;
   tree->SetBranchAddress("HLT_IsoMu24"                     , &HLT_IsoMu24                    ) ;
   tree->SetBranchAddress("HLT_IsoMu27"                     , &HLT_IsoMu27                    ) ;
   tree->SetBranchAddress("HLT_Mu50"                        , &HLT_Mu50                       ) ;
@@ -270,7 +287,7 @@ void NanoAODConversion::InitializeOutBranchStructure(TTree* tree) {
   tree->Branch("nTausNano"                     , &nTau                 );
   tree->Branch("slimTaus"                      , &slimTaus);
   tree->Branch("nPhotons"                      , &nPhotons             );
-  tree->Branch("nPhotonsNano"                  , &nPhotons             );
+  tree->Branch("nPhotonsNano"                  , &nPhoton              );
   tree->Branch("slimPhotons"                   , &slimPhotons          );
   tree->Branch("nJetsNano"                     , &nJet                 );
   tree->Branch("slimJets"                      , &slimJets             );
@@ -535,10 +552,12 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
     leptonOneIndex = leptonTwoIndex;
     leptonTwoIndex = itmp;
   }
-  
-  if(nPhotons > 0) 
-    photonP4->SetPtEtaPhiM(photonPt[0], photonEta[0], photonPhi[0], photonMass[0]); //FIXME: should use an index map + ID
-  else
+  nPhotons = fNPhotons[selection];
+  if(fNPhotons[selection] > 0) {
+    photonP4->SetPtEtaPhiM(photonPt[fPhotonIndices[selection][0]], photonEta[fPhotonIndices[selection][0]],
+			   photonPhi[fPhotonIndices[selection][0]], photonMass[fPhotonIndices[selection][0]]); 
+    
+  } else
     photonP4->SetPtEtaPhiM(0., 0., 0., 0.);
     
   //save npv as ngoodpv for now
@@ -626,7 +645,8 @@ void NanoAODConversion::CountObjects() {
   for(Int_t selection = kMuTau; selection < kSelections; ++selection) {
     fNTaus[selection] = 0;
     fNElectrons[selection] = 0;
-    fNMuons[selection] = 0;    
+    fNMuons[selection] = 0;
+    fNPhotons[selection] = 0;
   }
   
   //count muons
@@ -634,7 +654,7 @@ void NanoAODConversion::CountObjects() {
     //initialize the muon iso IDs
     muonIsoId[index] = 0; //initially fails all IDs
     for(int level = ParticleCorrections::kVLooseMuIso; level <= ParticleCorrections::kVVTightMuIso; ++level) {
-      if(ParticleCorrections::muonIsoValues[level] > muonRelIso[index])
+      if(particleCorrections->muonIsoValues[level] > muonRelIso[index])
 	muonIsoId[index] += 1; 
       else
 	break;
@@ -749,13 +769,59 @@ void NanoAODConversion::CountObjects() {
     slimTaus[index].positive       = tauCharge[index] > 0;
   }
   //count photons
-  for(Int_t index = 0; index < min((int)kMaxParticles,(int)nPhotons); ++index) {
+  for(Int_t index = 0; index < min((int)kMaxParticles,(int)nPhoton); ++index) {
+    TLorentzVector lv1, lv2;
+    lv2.SetPtEtaPhiM(photonPt[index], photonEta[index], photonPhi[index], photonMass[index]);
+    for(Int_t selection = kMuTau; selection < kSelections; ++selection) {
+      /** Selection cuts on photon **/
+      if(fabs(photonEta[index]) > 2.5 /* FIXME: Add barrel endcap overlap region rejection! */) continue;
+      if(photonPt[index] < fPhotonPtCount) continue; //pT cut
+      if(!(fPhotonIDCount[selection] == 0 || //No ID cut
+	   (fPhotonIDCount[selection] == 1 && photonWP80[index]))) //WP80 cut
+	continue;
+      //ensure no overlaps
+      bool passDeltaR = true;
+      /** check muons **/
+      for(UInt_t imuon = 0; imuon < fNMuons[selection]; ++imuon) {
+	lv1.SetPtEtaPhiM(muonPt[fMuonIndices[selection][imuon]] , muonEta[fMuonIndices[selection][imuon]],
+			 muonPhi[fMuonIndices[selection][imuon]], muonMass[fMuonIndices[selection][imuon]]);
+	passDeltaR = passDeltaR && lv1.DeltaR(lv2) > fPhotonDeltaRCount[selection];
+	if(!passDeltaR) break;
+      }
+      //if fails, move to next photon
+      if(!passDeltaR) continue;
+      /** check electrons **/
+      for(UInt_t ielectron = 0; ielectron < fNElectrons[selection]; ++ielectron) {
+	lv1.SetPtEtaPhiM(electronPt[fElectronIndices[selection][ielectron]] , electronEta[fElectronIndices[selection][ielectron]],
+			 electronPhi[fElectronIndices[selection][ielectron]], electronMass[fElectronIndices[selection][ielectron]]);
+	passDeltaR = passDeltaR && lv1.DeltaR(lv2) > fPhotonDeltaRCount[selection];
+	if(!passDeltaR) break;
+      }
+      //if fails, move to next photon
+      if(!passDeltaR) continue;
+      /** check taus **/
+      for(UInt_t itau = 0; itau < fNTaus[selection]; ++itau) {
+	lv1.SetPtEtaPhiM(tauPt[fTauIndices[selection][itau]] , tauEta[fTauIndices[selection][itau]],
+			 tauPhi[fTauIndices[selection][itau]], tauMass[fTauIndices[selection][itau]]);
+	passDeltaR = passDeltaR && lv1.DeltaR(lv2) > fPhotonDeltaRCount[selection];
+	if(!passDeltaR) break;
+      }
+      //if fails, move to next photon
+      if(!passDeltaR) continue; 
+
+      
+      fPhotonIndices[selection][fNPhotons[selection]] = index;
+      ++fNPhotons[selection];
+      if(fVerbose > 2) std::cout << "Accepting photon " << index << "for selection " << selection << " with pt = " << photonPt[index]
+				 << std::endl;
+    } //end selection loop
     slimPhotons[index].pt    = photonPt[index];
     slimPhotons[index].eta   = photonEta[index];
     slimPhotons[index].phi   = photonPhi[index];
     slimPhotons[index].mass  = photonMass[index];
     slimPhotons[index].MVA   = photonMVAID[index];
     slimPhotons[index].MVA17 = photonMVAID17[index];
+    slimPhotons[index].WP80  = photonWP80[index];
   }
   if(fVerbose > 0) std::cout << "nElectrons = " << nElectrons
 			     << " nMuons = " << nMuons

@@ -1,6 +1,7 @@
 #ifndef __SIGNIFICANCES__HH
 #define __SIGNIFICANCES__HH
 #include "Math/ProbFuncMathCore.h"
+#include <cmath>
 class Significances {
 public:
   Significances(double p = 0.05, double tolerance = 0.001,

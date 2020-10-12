@@ -185,6 +185,7 @@ public :
   UInt_t nMuon                              ;
   UInt_t nElectron                          ;
   UInt_t nTau                               ;
+  UInt_t nPhoton                            ;
   Float_t muonPt[kMaxParticles]             ;
   Float_t muonEta[kMaxParticles]            ;
   Float_t muonPhi[kMaxParticles]            ;
@@ -237,6 +238,8 @@ public :
   Float_t photonDeltaEta[kMaxParticles]     ;
   Float_t photonMVAID[kMaxParticles]        ;
   Float_t photonMVAID17[kMaxParticles]      ;
+  Bool_t photonWP80[kMaxParticles]          ;
+  Bool_t photonWP90[kMaxParticles]          ;
   bool    HLT_IsoMu24                       ;
   bool    HLT_IsoMu27                       ;
   bool    HLT_Mu50                          ;
@@ -370,30 +373,34 @@ public :
   Int_t         fSkipMuMuEESS = 1; //whether to skip same sign ee/mumu selections for now
   
   //selection requirements
-  std::map<Int_t, Bool_t>  fTauUseDeep;
-
+  /** Muons **/
   std::map<Int_t, UChar_t> fMuonIsoSelect;
   std::map<Int_t, Int_t>   fMuonIDSelect; //0 = any, 1 = loose, 2 = medium, 3 = tight
+  /** Electrons **/
   std::map<Int_t, Int_t>   fElectronIDSelect; //0 = any, 1 = WPL, 2 = WP80, 3 = WP90
+  /** Taus **/
+  std::map<Int_t, Bool_t>  fTauUseDeep;
   std::map<Int_t, UChar_t> fTauAntiEleSelect;
   std::map<Int_t, UChar_t> fTauAntiMuSelect;
   std::map<Int_t, Bool_t>  fTauIDDecaySelect;
   std::map<Int_t, UChar_t> fTauAntiJetSelect;
 
-  //for counting objects
+  //for counting objects (usually by selection)
+  /** Muons **/
   Float_t       fMuonPtCount = 0.;
-  Float_t       fElectronPtCount = 0.;
-  Float_t       fTauPtCount = 0.;
-  //counting by selection
   std::map<UInt_t, UChar_t> fMuonIsoCount;
   std::map<UInt_t, Int_t>   fMuonIDCount; //0 = any, 1 = loose, 2 = medium, 3 = tight
   std::map<UInt_t, Bool_t>  fCountMuons;
   std::map<UInt_t, std::map<UInt_t, UInt_t>> fMuonIndices;
   std::map<UInt_t, UInt_t>  fNMuons;
+  /** Electrons **/
+  Float_t       fElectronPtCount = 0.;
   std::map<UInt_t, Int_t>   fElectronIDCount; //0 = any, 1 = WPL, 2 = WP80, 3 = WP90
   std::map<UInt_t, Bool_t>  fCountElectrons;
   std::map<UInt_t, std::map<UInt_t, UInt_t>> fElectronIndices;
   std::map<UInt_t, UInt_t>  fNElectrons;
+  /** Taus **/
+  Float_t       fTauPtCount = 0.;
   std::map<UInt_t, UChar_t> fTauAntiEleCount;
   std::map<UInt_t, UChar_t> fTauAntiMuCount;
   std::map<UInt_t, UChar_t> fTauAntiJetCount;
@@ -402,6 +409,13 @@ public :
   std::map<UInt_t, Bool_t>  fCountTaus;
   std::map<UInt_t, std::map<UInt_t, UInt_t>> fTauIndices;
   std::map<UInt_t, UInt_t>  fNTaus;
+  /** Photons **/
+  Float_t       fPhotonPtCount = 0.;
+  std::map<UInt_t, Float_t> fPhotonDeltaRCount; //distance from leptons
+  std::map<UInt_t, UInt_t>  fPhotonIDCount;
+  std::map<UInt_t, std::map<UInt_t, UInt_t>> fPhotonIndices;
+  std::map<UInt_t, UInt_t>  fNPhotons;
+
   
   //summary variables
   Int_t         fNEE = 0;

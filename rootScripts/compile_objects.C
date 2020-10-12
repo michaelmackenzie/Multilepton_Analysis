@@ -13,14 +13,14 @@
 
 int compile_objects() {
   TString version = gROOT->GetVersion();
+  gROOT->LoadMacro("../utils/Significances.hh+g");
+  //Plotting histograms
+  gROOT->LoadMacro("DataPlotter.cc+g");
   if(version.Contains("6.06")) {
     //Utilities
     gROOT->LoadMacro("../utils/TrkQualInit.cc+g");
-    gROOT->LoadMacro("../utils/Significances.hh+g");
     //Histogrammer
     gROOT->LoadMacro("ZTauTauHistMaker.cc+g");
-    //Plotting histograms
-    gROOT->LoadMacro("DataPlotter.cc+g");
   } else {
     //Conversion tools
     gROOT->LoadMacro("ParticleCorrections.cc+g");

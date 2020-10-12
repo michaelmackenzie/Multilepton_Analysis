@@ -251,7 +251,7 @@ public :
 
   //muon isolation levels
   enum{kVLooseMuIso, kLooseMuIso, kMediumMuIso, kTightMuIso, kVTightMuIso, kVVTightMuIso}; //define iso scale factor sets
-  constexpr static double muonIsoValues[] = {0.4, 0.25, 0.20, 0.15, 0.10, 0.05}; //corresponding values
+  const double muonIsoValues[kVVTightMuIso+1] = {0.4, 0.25, 0.20, 0.15, 0.10, 0.05}; //corresponding values
 
   TString fScaleFactorPath    = "/src/StandardModel/ZEMuAnalysis/test/scale_factors/"; //path from cmssw_base
   TString fTauScaleFactorPath = "/src/TauPOG/TauIDSFs/data/"; //path from cmssw_base

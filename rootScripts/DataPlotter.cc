@@ -188,27 +188,27 @@ void DataPlotter::get_titles(TString hist, TString setType, TString* xtitle, TSt
   }
   else if(hist == "pxivis0") {
     *xtitle = "#vec{P}_{T}^{vis}#bullet#hat{#zeta}";
-    *ytitle = Form("");
+    *ytitle = "";
     *title  = Form("Visible P_{T} projected onto the lepton bisector");
   }
   else if(hist == "pxiinv0") {
     *xtitle = "#vec{P}_{T}^{inv}#bullet#hat{#zeta}";
-    *ytitle = Form("");
+    *ytitle = "";
     *title  = Form("Invisible P_{T} projected onto the lepton bisector");
   }
   else if(hist == "pxidiff0") {
     *xtitle = "#vec{P}_{T}^{vis}#bullet#hat{#zeta} - #vec{P}_{T}^{inv}#bullet#hat{#zeta}";
-    *ytitle = Form("");
+    *ytitle = "";
     *title  = Form("Visible - invisible P_{T} projected onto the lepton bisector");
   }
   else if(hist == "pxidiff20") {
     *xtitle = "#vec{P}_{T}^{inv}#bullet#hat{#zeta} - f(#vec{P}_{T}^{vis}#bullet#hat{#zeta})";
-    *ytitle = Form("");
+    *ytitle = "";
     *title  = Form("Invisible - f(visible) P_{T} projected onto the lepton bisector");
   }
   else if(hist == "pxivisoverinv0") {
     *xtitle = "#vec{P}_{T}^{vis}#bullet#hat{#zeta} / #vec{P}_{T}^{inv}#bullet#hat{#zeta} ";
-    *ytitle = Form("");
+    *ytitle = "";
     *title  = Form("Visible P_{T} / invisible P_{T} projected onto the lepton bisector");
   }
   else if(hist == "pxiinvvsvis0") {
@@ -218,27 +218,27 @@ void DataPlotter::get_titles(TString hist, TString setType, TString* xtitle, TSt
   }
   else if(hist == "pxivis1") {
     *xtitle = "#vec{P}_{T}^{vis}#bullet#hat{#zeta}";
-    *ytitle = Form("");
+    *ytitle = "";
     *title  = Form("Visible P_{T} projected onto the lepton, lepton+#gamma bisector");
   }
   else if(hist == "pxiinv1") {
     *xtitle = "#vec{P}_{T}^{inv}#bullet#hat{#zeta}";
-    *ytitle = Form("");
+    *ytitle = "";
     *title  = Form("Invisible P_{T} projected onto the lepton, lepton+#gamma bisector");
   }
   else if(hist == "pxidiff1") {
     *xtitle = "#vec{P}_{T}^{vis}#bullet#hat{#zeta} - #vec{P}_{T}^{inv}#bullet#hat{#zeta}";
-    *ytitle = Form("");
+    *ytitle = "";
     *title  = Form("Visible - invisible P_{T} projected onto the lepton, lepton+#gamma bisector");
   }
   else if(hist == "pxidiff21") {
     *xtitle = "#vec{P}_{T}^{inv}#bullet#hat{#zeta} - f(#vec{P}_{T}^{vis}#bullet#hat{#zeta})";
-    *ytitle = Form("");
+    *ytitle = "";
     *title  = Form("Invisible - f(visible) P_{T} projected onto the lepton, lepton+#gamma bisector");
   }
   else if(hist == "pxivisoverinv1") {
     *xtitle = "#vec{P}_{T}^{vis}#bullet#hat{#zeta} / #vec{P}_{T}^{inv}#bullet#hat{#zeta} ";
-    *ytitle = Form("");
+    *ytitle = "";
     *title  = Form("Visible P_{T} / invisible P_{T} projected onto the lepton, lepton+#gamma bisector");
   }
   else if(hist == "pxiinvvsvis1") {
@@ -248,27 +248,27 @@ void DataPlotter::get_titles(TString hist, TString setType, TString* xtitle, TSt
   }
   else if(hist == "pxivis2") {
     *xtitle = "#vec{P}_{T}^{vis}#bullet#hat{#zeta}";
-    *ytitle = Form("");
+    *ytitle = "";
     *title  = Form("Visible P_{T} projected onto the di-lepton, #gamma bisector");
   }
   else if(hist == "pxiinv2") {
     *xtitle = "#vec{P}_{T}^{inv}#bullet#hat{#zeta}";
-    *ytitle = Form("");
+    *ytitle = "";
     *title  = Form("Invisible P_{T} projected onto the di-lepton, #gamma bisector");
   }
   else if(hist == "pxidiff2") {
     *xtitle = "#vec{P}_{T}^{vis}#bullet#hat{#zeta} - #vec{P}_{T}^{inv}#bullet#hat{#zeta}";
-    *ytitle = Form("");
+    *ytitle = "";
     *title  = Form("Visible - invisible P_{T} projected onto the di-lepton, #gamma bisector");
   }
   else if(hist == "pxidiff22") {
     *xtitle = "#vec{P}_{T}^{inv}#bullet#hat{#zeta} - f(#vec{P}_{T}^{vis}#bullet#hat{#zeta})";
-    *ytitle = Form("");
+    *ytitle = "";
     *title  = Form("Invisible - f(visible) P_{T} projected onto the di-lepton, #gamma bisector");
   }
   else if(hist == "pxivisoverinv2") {
     *xtitle = "#vec{P}_{T}^{vis}#bullet#hat{#zeta} / #vec{P}_{T}^{inv}#bullet#hat{#zeta} ";
-    *ytitle = Form("");
+    *ytitle = "";
     *title  = Form("Visible P_{T} / invisible P_{T} projected onto the di-lepton, #gamma bisector");
   }
   else if(hist == "pxiinvvsvis2") {
@@ -540,6 +540,11 @@ void DataPlotter::get_titles(TString hist, TString setType, TString* xtitle, TSt
     *xtitle = "pT_{l1}";
     *ytitle = "pT_{l2}";
     *title  = "Lepton 2 pT vs Lepton 1 pT";
+  }
+  else if(hist.Contains("deltaalpha")) {
+    *xtitle = "#Delta#alpha";
+    *ytitle = "";
+    *title  = "#Delta#alpha";
   }
 
 }
