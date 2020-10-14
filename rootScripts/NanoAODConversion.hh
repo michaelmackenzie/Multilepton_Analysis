@@ -63,6 +63,7 @@ public :
   Float_t zPtOut    = 0.             ;
   Float_t zMassOut    = 0.           ;
   Float_t genTauFlavorWeight = 1.    ;
+  Float_t tauEnergyScale = 1.        ;
   Int_t   tauDecayModeOut = 0        ;
   Float_t tauMVA  = 0                ;
   Int_t tauGenIDOut      = 0         ;
@@ -93,6 +94,7 @@ public :
   TLorentzVector* photonP4 = 0       ;
   TLorentzVector* jetP4 = 0          ;
   TLorentzVector* tauP4 = 0          ;
+  Float_t  photonIDWeight = 1.       ;
   Int_t tauFlavor                    ;
   Float_t taudxyOut = 0.             ;
   Float_t taudzOut = 0.              ;
@@ -424,6 +426,7 @@ public :
   Int_t         fNETau = 0;
   Int_t         fNMuTau = 0;
   Int_t         fNFailed = 0;
+  Int_t         fNSkipped = 0;
   
   ClassDef(NanoAODConversion,0);
 

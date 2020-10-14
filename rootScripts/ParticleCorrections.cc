@@ -153,6 +153,37 @@ double ParticleCorrections::TauEnergyScale(double pt, double eta, int dm, int ge
   return scale_factor;
 }
 
+
+double ParticleCorrections::PhotonWeight(double pt, double eta, int year) {
+  if(year != k2016 && year != k2017 && year != k2018) {
+    std::cout << "Warning! Undefined year in " << __func__ << ", returning -1" << std::endl;
+    return -1.;
+  }
+
+  if(year == k2016) {
+    if(pt >= 500.) pt = 499.9; //maximum pT for corrections
+    else if (pt < 20.) pt = 20.;
+    if(eta >= 2.5) eta = 2.49; //maximum eta for corrections
+    else if(eta <= -2.5) eta = -2.49; //minimum eta for corrections
+  } else if(year == k2017) {
+    if(pt >= 499.) pt = 498.9; //maximum pT for corrections
+    else if (pt < 20.) pt = 20.;
+    if(eta >= 2.5) eta = 2.49; //maximum eta for corrections
+    else if(eta <= -2.5) eta = -2.49; //minimum eta for corrections
+  } else if(year == k2018) {
+    if(pt >= 500.) pt = 499.9; //maximum pT for corrections
+    else if (pt < 20.) pt = 20.;
+    if(eta >= 2.5) eta = 2.49; //maximum eta for corrections
+    else if(eta <= -2.5) eta = -2.49; //minimum eta for corrections
+  }
+  
+  TH2F* hID = photonIDMap[year];
+  double id_scale = hID->GetBinContent(hID->GetXaxis()->FindBin(fabs(eta)), hID->GetYaxis()->FindBin(pt));
+
+  double scale_factor = id_scale;
+  return scale_factor;
+}
+
 double ParticleCorrections::BTagWeight(double pt, double eta, int jetFlavor, int year, int WP) {
   if(pt < 20.) pt = 20.;
   if(fabs(eta) > 2.4) return 1.; //can't tag high eta jets

@@ -157,7 +157,7 @@ public :
     electronVertexMap[k2016]   = 1.000; //+-0.000
     electronVertexMap[k2017]   = 0.991; //+-0.001
     electronVertexMap[k2018]   = 1.000; //+-0.000
-    
+
     //initialize Tau scales
     TString tauScaleFactorPath = gSystem->Getenv("CMSSW_BASE") + fTauScaleFactorPath;
     std::map<int, fpair> tauJetIDFileNames;
@@ -217,6 +217,17 @@ public :
       tauFakeESMap[period] = (TGraphAsymmErrors*) f->Get((tauFakeESFileNames[period].second).Data());
     }
 
+    //photon corrections
+    std::map<int, fpair> photonIDFileNames;
+    photonIDFileNames[k2016]    = fpair("2016LegacyReReco_PhotonMVAWP80.root","EGamma_SF2D");
+    for(int period = k2016; period <= k2018; ++period) {
+      if(photonIDFileNames[period].first == "") continue;
+      TFile* f = TFile::Open((scaleFactorPath + photonIDFileNames[period].first).Data(),"READ");
+      if(!f) continue;
+      photonIDMap[period] = (TH2F*) f->Get(photonIDFileNames[period].second.Data());
+    }
+
+
     //z correction weights
     scaleFactorPath = gSystem->Getenv("CMSSW_BASE") + fZScaleFactorPath;
     std::map<int, fpair> zFileNames;
@@ -242,6 +253,7 @@ public :
     return TauWeight(pt, eta, genID, era, up, down);
   }
   virtual double TauEnergyScale(double pt, double eta, int dm, int genID, int era, double& up, double& down);
+  virtual double PhotonWeight(double pt, double eta, int year);
   virtual double BTagWeight(double pt, double eta, int jetFlavor, int year, int WP);
   virtual double ZWeight(double pt, double mass, int year);
   
@@ -279,6 +291,8 @@ private:
   std::map<int, TH1F*> tauESLowMap; // 34 < pT < 170 GeV/c
   std::map<int, TH1F*> tauESHighMap; // pT > 170 GeV/c
   std::map<int, TGraphAsymmErrors*> tauFakeESMap;
+  //photon ID corrections
+  std::map<int, TH2F*> photonIDMap;
   //b-jet corrections
   std::map<int, TH2F*> bJetIDMap;
   //Z pT/mass corrections
