@@ -315,7 +315,7 @@ public :
   };
 
   NanoAODConversion(TTree * /*tree*/ =0) { }
-  virtual ~NanoAODConversion() { }
+  ~NanoAODConversion() { if(particleCorrections) delete particleCorrections; }
   virtual Int_t   Version() const { return 2; }
   virtual void    Begin(TTree *tree);
   virtual void    SlaveBegin(TTree *tree);
