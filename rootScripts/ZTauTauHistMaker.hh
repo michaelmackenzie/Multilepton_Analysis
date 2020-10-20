@@ -307,6 +307,9 @@ public :
     TH1F* hLepEta;
     TH1F* hLepPhi;
     TH2F* hLepPtVsM;
+
+    //Gen-level Z info
+    TH2F* hZPtVsM;
     
     TH1F* hLepDeltaPhi;
     TH1F* hLepDeltaEta;
@@ -481,6 +484,7 @@ public :
     TH1F* hTwoSlimTauMOS;    
     
     
+    TH1F* hPtDiff;
     TH1F* hD0Diff;
     
     //2D distribution

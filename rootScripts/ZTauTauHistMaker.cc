@@ -108,7 +108,7 @@ void ZTauTauHistMaker::FillAllHistograms(Int_t index) {
     FillPhotonHistogram(fPhotonHist[index]);
     FillLepHistogram(   fLepHist   [index]);
   } else
-    printf("WARNING! Attempted to fill un-initialized histogram set %i!\n", index);
+    printf("WARNING! Entry %lld, attempted to fill un-initialized histogram set %i!\n", fentry, index);
   if(fWriteTrees && fTreeSets[index])
     fTrees[index]->Fill();
 }
@@ -257,6 +257,7 @@ void ZTauTauHistMaker::BookEventHistograms() {
 			 150., 200., 300., 400., 600.,
 			 1000.};
       fEventHist[i]->hLepPtVsM      = new TH2F("lepptvsm"      , Form("%s: Lepton Pt vs M" ,dirname)  , nmbins, mbins, npbins, pbins);
+      fEventHist[i]->hZPtVsM        = new TH2F("zptvsm"        , Form("%s: Gen Z Pt vs M"  ,dirname)  , nmbins, mbins, npbins, pbins);
 
       fEventHist[i]->hLepDeltaPhi   = new TH1F("lepdeltaphi"   , Form("%s: Lepton DeltaPhi",dirname)  ,  50,   0,   5);
       fEventHist[i]->hLepDeltaEta   = new TH1F("lepdeltaeta"   , Form("%s: Lepton DeltaEta",dirname)  , 100,   0,   5);
@@ -495,6 +496,7 @@ void ZTauTauHistMaker::BookLepHistograms() {
       fLepHist[i]->hTwoSlimTauMSS= new TH1F("twoslimtaumss", Form("%s: TwoSlimTauMSS",dirname), 100,  0.,200.);
       fLepHist[i]->hTwoSlimTauMOS= new TH1F("twoslimtaumos", Form("%s: TwoSlimTauMOS",dirname), 100,  0.,200.);
 
+      fLepHist[i]->hPtDiff        = new TH1F("ptdiff"      , Form("%s: 1 pT - 2 pT"      ,dirname)  , 200,-100., 100.);
       fLepHist[i]->hD0Diff        = new TH1F("d0diff"      , Form("%s: 2 D0 - 1 D0"      ,dirname)  , 400,-0.2, 0.2);
 
       //2D distributions
@@ -619,6 +621,9 @@ void ZTauTauHistMaker::InitializeTreeVariables(Int_t selection) {
   fTreeVars.lepp   = lep.P();
   fTreeVars.leppt  = lep.Pt();
   fTreeVars.lepm   = lep.M();
+  fTreeVars.lepptoverm    = fTreeVars.leppt   /fTreeVars.lepm;
+  fTreeVars.leponeptoverm = fTreeVars.leponept/fTreeVars.lepm;
+  fTreeVars.leptwoptoverm = fTreeVars.leptwopt/fTreeVars.lepm;
   fTreeVars.lepeta = lep.Eta();
   fTreeVars.lepdeltar   = leptonOneP4->DeltaR(*leptonTwoP4);
   fTreeVars.lepdeltaphi = abs(leptonOneP4->DeltaPhi(*leptonTwoP4));
@@ -934,6 +939,7 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
   Hist->hLepEta       ->Fill(lepSys.Eta()           ,eventWeight*genWeight);
   Hist->hLepPhi       ->Fill(lepSys.Phi()           ,eventWeight*genWeight);
   Hist->hLepPtVsM     ->Fill(lepSys.M(), lepSys.Pt(),eventWeight*genWeight);
+  Hist->hZPtVsM       ->Fill(zMass, zPt             ,eventWeight*genWeight);
 						    		
   Hist->hLepDeltaPhi  ->Fill(lepDelPhi              ,eventWeight*genWeight);
   Hist->hLepDeltaEta  ->Fill(lepDelEta              ,eventWeight*genWeight);
@@ -1283,6 +1289,7 @@ void ZTauTauHistMaker::FillLepHistogram(LepHist_t* Hist) {
 
   // }
 
+  Hist->hPtDiff      ->Fill(leptonOneP4->Pt()-leptonTwoP4->Pt() ,eventWeight*genWeight);
   Hist->hD0Diff      ->Fill(leptonTwoD0-leptonOneD0             ,eventWeight*genWeight);
   Hist->hTwoPtVsOnePt->Fill(leptonOneP4->Pt(), leptonTwoP4->Pt(),eventWeight*genWeight);
 }
@@ -1363,11 +1370,15 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   }
   
   //selections
-  bool mutau = nTaus == 1  && nMuons == 1 && nElectrons == 0;
-  bool etau  = nTaus == 1  && nMuons == 0 && nElectrons == 1;
-  bool emu   = nTaus == 0  && nMuons == 1 && nElectrons == 1;
-  bool mumu  = nMuons == 2; //no other requirement
-  bool ee    = nElectrons == 2; //no other requirement
+  //use the tree name to choose the selection
+  bool mutau = (fFolderName == "mutau") && nTaus == 1  && nMuons == 1;
+  bool etau  = (fFolderName == "etau")  && nTaus == 1  && nElectrons == 1;
+  bool emu   = (fFolderName == "emu")   && nMuons == 1 && nElectrons == 1;
+  //reject overlaps
+  if(mutau && etau) {mutau = false; etau = false;}
+  if(emu && (mutau || etau)) {mutau = false; etau = false;}
+  bool mumu  = !(mutau || etau || emu) && nMuons == 2; //no other requirement
+  bool ee    = !(mutau || etau || emu) && nElectrons == 2; //no other requirement
   bool llg_study = fFolderName == "llg_study" && (nElectrons + nMuons > 0) && nJets > 1 && nPhotons > 0 && (nElectrons + nMuons < 3);
   if(fFolderName == "llg_study" && llg_study && (nMuons + nElectrons == 1) && nTaus > 0) {
     *leptonTwoP4 = *tauP4;
@@ -1375,6 +1386,9 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   }
   if(!(mutau || etau || emu || mumu || ee || llg_study))
     return kTRUE;
+  if((mutau + etau + emu + mumu + ee) > 1)
+    std::cout << "WARNING! Entry " << entry << " passes multiple selections!\n";
+  
   InitializeTreeVariables(mutau+2*etau+5*emu+9*mumu+18*ee+36*llg_study);
 
   //if splitting testing/training samples
@@ -1427,7 +1441,7 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
 
   ////////////////////////////////////////////////////////////
   // Set 1 + selection offset: object number selection
-  ////////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////////  
   if(mutau && chargeTest) FillAllHistograms(kMuTau + 1);
   else if(mutau)          FillAllHistograms(kMuTau + 1 + fQcdOffset);
   if(etau  && chargeTest) FillAllHistograms(kETau  + 1);
@@ -1589,20 +1603,20 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   ////////////////////////////////////////////////////////////
   // Set 6 + selection offset: add counting veto            //
   ////////////////////////////////////////////////////////////
-  bool mct = nMuonCounts[0] == 1; //loose ID
-  bool ect = nElectronCounts[0] == 1; //WPL
-  bool tct = nTauCounts[37] == 1; //same as mutau selection requirements
+  // bool mct = nMuonCounts[0] == 1; //loose ID
+  // bool ect = nElectronCounts[0] == 1; //WPL
+  // bool tct = nTauCounts[37] == 1; //same as mutau selection requirements
 
-  mutau &= mct && tct;
-  etau &= ect && tct;
-  emu &= mct && ect;
+  // mutau &= mct && tct;
+  // etau  &= ect && tct;
+  // emu   &= mct && ect;
   
-  if(mutau && chargeTest) FillAllHistograms(kMuTau + 6);
-  else if(mutau)          FillAllHistograms(kMuTau + 6 + fQcdOffset);
-  if(etau && chargeTest)  FillAllHistograms(kETau  + 6);
-  else if(etau)           FillAllHistograms(kETau  + 6 + fQcdOffset);
-  if(emu && chargeTest)   FillAllHistograms(kEMu   + 6);
-  else if(emu)            FillAllHistograms(kEMu   + 6 + fQcdOffset);
+  // if(mutau && chargeTest) FillAllHistograms(kMuTau + 6);
+  // else if(mutau)          FillAllHistograms(kMuTau + 6 + fQcdOffset);
+  // if(etau && chargeTest)  FillAllHistograms(kETau  + 6);
+  // else if(etau)           FillAllHistograms(kETau  + 6 + fQcdOffset);
+  // if(emu && chargeTest)   FillAllHistograms(kEMu   + 6);
+  // else if(emu)            FillAllHistograms(kEMu   + 6 + fQcdOffset);
 
   ////////////////////////////////////////////////////////////////////////////
   // Set 13 + selection offset: nBJets >= 1 (Top backgrounds)
@@ -1836,7 +1850,7 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   // if(etau && abs(tauGenFlavor - 12) == 1 && chargeTest)  FillAllHistograms(kETau  + 24);
   // else if(etau && abs(tauGenFlavor - 12) == 1)           FillAllHistograms(kETau  + 24 + fQcdOffset);
 
-  bool marioID = nElectrons == 1 && nMuons == 1; //e+mu
+  bool marioID = (fFolderName == "emu") && nElectrons == 1 && nMuons == 1; //e+mu
   marioID = marioID && ((electron->Pt() > 30. && muon->Pt() > 10.) ||
 			(electron->Pt() > 15. && muon->Pt() > 25.)); //trigger selection thresholds
   marioID = marioID && abs(electron->Eta()) < 2.5; //angular acceptances

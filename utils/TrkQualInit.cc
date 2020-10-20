@@ -21,15 +21,24 @@ public:
   int InitializeVariables(TMVA::Factory &factory, TString selection){
     int status = 0;
 
-    if(version_ < 5 || !selection.Contains("emu"))
+    if(version_ < 5 || (!selection.Contains("emu") && version_ < 6))
       factory.AddVariable("lepm" , "M_{ll}" , "GeV", 'F');   
     else
       factory.AddSpectator("lepm" , "M_{ll}" , "GeV", 'F');   
     factory.AddVariable("mtone","MT(MET,l1)","",'F');
     factory.AddVariable("mttwo","MT(MET,l2)","",'F');
-    factory.AddVariable("leponept","pT_{l1}","",'F');
-    factory.AddVariable("leptwopt","pT_{l2}","",'F');
-    factory.AddVariable("leppt", "pT_{ll}", "GeV", 'F');
+    if(version_ < 6) {
+      factory.AddVariable("leponept","pT_{l1}","",'F');
+      factory.AddVariable("leptwopt","pT_{l2}","",'F');
+    } else {
+      factory.AddVariable("leponeptoverm","pT_{l1}/M_{ll}","",'F');
+      factory.AddVariable("leptwoptoverm","pT_{l2}/M_{ll}","",'F');
+    }
+    // if(version_ < 6 || !selection.Contains("emu"))
+    if(version_ == 6)
+      factory.AddVariable("lepptoverm","pT_{ll}/M_{ll}","",'F');
+    else if(version_ < 6)
+      factory.AddVariable("leppt", "pT_{ll}", "GeV", 'F');
     factory.AddSpectator("pxivis","p^{vis}_{#xi}","",'F');
     factory.AddSpectator("pxiinv","p^{inv}_{#xi}","",'F');
     if(njets_)
@@ -44,17 +53,28 @@ public:
     factory.AddSpectator("metdeltaphi","#Delta#phi_{MET,ll}","",'F');
     //tau specific
     if(selection.Contains("tau")) {
-      // if(version_ == 5)
-      // 	factory.AddSpectator("lepmestimate" , "M_{ll}^{Coll}" , "GeV", 'F'); 
-      // else
-      if(version_ < 4 || !selection.Contains("mutau_e"))
+      //Delta alpha, difference between loss estimate using ~mass and pT ratio
+      if(version_ >= 6) {
+	if(selection.Contains("z")) {
+	  if(selection.Contains("_e"))
+	    factory.AddVariable("deltaalphaz2", "#Delta#alpha", "", 'F');
+	  else
+	    factory.AddVariable("deltaalphaz1", "#Delta#alpha", "", 'F');
+	} else {
+	  if(selection.Contains("_e"))
+	    factory.AddVariable("deltaalphah2", "#Delta#alpha", "", 'F');
+	  else
+	    factory.AddVariable("deltaalphah1", "#Delta#alpha", "", 'F');
+	}
+      }
+      if((version_ < 4 || !selection.Contains("mutau_e")) && version_ < 6)
 	factory.AddVariable("lepmestimate" , "M_{ll}^{Coll}" , "GeV", 'F'); 
-      else
+      else if(version_ < 6)
 	factory.AddVariable("lepmestimatetwo" , "M_{ll}^{Coll}" , "GeV", 'F'); 
       if(version_ < 5) {
 	factory.AddVariable("onemetdeltaphi","#Delta#phi_{MET,l1}","",'F');
 	factory.AddVariable("twometdeltaphi","#Delta#phi_{MET,l2}","",'F');
-      } else if(version_ == 5) {
+      } else {
 	factory.AddSpectator("onemetdeltaphi","#Delta#phi_{MET,l1}","",'F');
 	factory.AddSpectator("twometdeltaphi","#Delta#phi_{MET,l2}","",'F');
       }
@@ -66,7 +86,7 @@ public:
 	factory.AddSpectator("leptwoidone"  , "#tau anti-electron ID", "", 'F');
 	factory.AddSpectator("leptwoidtwo"  , "#tau anti-muon ID"    , "", 'F');
 	factory.AddVariable("leptwoidthree", "#tau anti-jet ID"     , "", 'F');
-      } else if(version_ == 5 && !selection.Contains("_")) {
+      } else if(version_ >= 5 && !selection.Contains("_")) {
 	factory.AddSpectator("leptwoidone"  , "#tau anti-electron ID", "", 'F');
 	factory.AddSpectator("leptwoidtwo"  , "#tau anti-muon ID"    , "", 'F');
 	factory.AddSpectator("leptwoidthree", "#tau anti-jet ID"     , "", 'F');
@@ -88,19 +108,13 @@ public:
       factory.AddSpectator("htdeltaphi","#Delta#phi_{hT,ll}","",'F');
       factory.AddSpectator("ht","pT(#Sigma #vec{P}_{Jet})","",'F');
     }
-    if(version_ == 5)
+    if(version_ >= 5)
       factory.AddVariable("jetpt","pT_{Jet}","",'F');
     
-    //higgs specific
-    if(selection.Contains("h")) {
-      // factory.AddVariable("ptoverm := leppt/lepm","pT_{ll}/M_{ll}","",'F');
-    } else {
-      // factory.AddSpectator("ht","pT(#Sigma #vec{P}_{Jet})","",'F');
-    }
     factory.AddVariable("lepdeltaphi","#Delta#phi_{ll}","",'F');
     factory.AddSpectator("htsum","#Sigma pT_{Jet}","",'F');
     factory.AddSpectator("leponeiso","Iso_{l1}","",'F');
-    if(version_ > 0 && version_ < 6) {
+    if(version_ > 0 && version_ < 7) {
       factory.AddVariable("met","MET","GeV",'F');
     } else {
       factory.AddSpectator("met","MET","GeV",'F');
@@ -116,15 +130,21 @@ public:
   int InitializeVariables(TMVA::Reader &reader, TString selection, Tree_t& tree){
     int status = 0;
     
-    if(version_ < 5 || !selection.Contains("emu"))
+    if((version_ < 5 || !selection.Contains("emu")) && version_ < 6)
       reader.AddVariable("lepm" , &tree.lepm);
     else
       reader.AddSpectator("lepm" , &tree.lepm);
     reader.AddVariable("mtone", &tree.mtone);
     reader.AddVariable("mttwo", &tree.mttwo);
-    reader.AddVariable("leponept", &tree.leponept);
-    reader.AddVariable("leptwopt", &tree.leptwopt);
-    reader.AddVariable("leppt", &tree.leppt); 
+    if(version_ < 6) {
+      reader.AddVariable("leponept", &tree.leponept);
+      reader.AddVariable("leptwopt", &tree.leponept);
+      reader.AddVariable("leppt", &tree.leppt); 
+    } else {
+      reader.AddVariable("leponeptoverm", &tree.leponeptoverm);
+      reader.AddVariable("leptwoptoverm", &tree.leponeptoverm);
+      reader.AddVariable("lepptoverm", &tree.lepptoverm); 
+    }
     reader.AddSpectator("pxivis", &tree.pxivis);
     reader.AddSpectator("pxiinv", &tree.pxiinv);
     if(njets_)
@@ -139,14 +159,28 @@ public:
     reader.AddSpectator("metdeltaphi", &tree.metdeltaphi);
     //tau specific
     if(selection.Contains("tau")) {
-      if(version_ < 4 || !selection.Contains("mutau_e"))
+      //Delta alpha, difference between loss estimate using ~mass and pT ratio
+      if(version_ >= 6) {
+	if(selection.Contains("z")) {
+	  if(selection.Contains("_e"))
+	    reader.AddVariable("deltaalphaz2", &tree.deltaalphaz2);
+	  else
+	    reader.AddVariable("deltaalphaz1", &tree.deltaalphaz1);
+	} else {
+	  if(selection.Contains("_e"))
+	    reader.AddVariable("deltaalphah2", &tree.deltaalphah2);
+	  else
+	    reader.AddVariable("deltaalphah1", &tree.deltaalphah1);
+	}
+      }
+      if((version_ < 4 || !selection.Contains("mutau_e")) && version_ < 6)
 	reader.AddVariable("lepmestimate" , &tree.mestimate); 
-      else
+      else if(version_ < 6)
 	reader.AddVariable("lepmestimatetwo" , &tree.mestimatetwo); //project onto the electron
       if(version_ < 5) {
 	reader.AddVariable("onemetdeltaphi", &tree.onemetdeltaphi);
 	reader.AddVariable("twometdeltaphi", &tree.twometdeltaphi);
-      } else if(version_ == 5) {
+      } else {
 	reader.AddSpectator("onemetdeltaphi", &tree.onemetdeltaphi);
 	reader.AddSpectator("twometdeltaphi", &tree.twometdeltaphi);
       }
@@ -158,7 +192,7 @@ public:
 	reader.AddSpectator("leptwoidone"  , &tree.leptwoidone); 
 	reader.AddSpectator("leptwoidtwo"  , &tree.leptwoidtwo); 
 	reader.AddVariable("leptwoidthree", &tree.leptwoidthree); 
-      } else if(version_ == 5 && !selection.Contains("_")) {
+      } else if(version_ >= 5 && !selection.Contains("_")) {
 	reader.AddSpectator("leptwoidone"  , &tree.leptwoidone); 
 	reader.AddSpectator("leptwoidtwo"  , &tree.leptwoidtwo); 
 	reader.AddSpectator("leptwoidthree", &tree.leptwoidthree); 
@@ -180,19 +214,13 @@ public:
       reader.AddSpectator("htdeltaphi", &tree.htdeltaphi);
       reader.AddSpectator("ht", &tree.ht);
     }
-    if(version_ == 5)
+    if(version_ >= 5)
       reader.AddVariable("jetpt",&tree.jetpt);
 
-    //higgs specific
-    if(selection.Contains("h")) {
-      // reader.AddVariable("ptoverm := leppt/lepm","pT_{ll}/M_{ll}","",'F');
-    } else {
-      // reader.AddSpectator("ht","pT(#Sigma #vec{P}_{Jet})","",'F');
-    }
     reader.AddVariable("lepdeltaphi", &tree.lepdeltaphi);
     reader.AddSpectator("htsum", &tree.htsum);
     reader.AddSpectator("leponeiso", &tree.leponeiso);
-    if(version_ > 0 || version_ < 6) {
+    if(version_ > 0 && version_ < 7) {
       reader.AddVariable("met", &tree.met);
     } else {
       reader.AddSpectator("met", &tree.met);
@@ -206,7 +234,7 @@ public:
   }
 
   //default version
-  const static int Default = 5;
+  const static int Default = 6;
   //fields
   int version_;
   int njets_; //flag for jet binned categories

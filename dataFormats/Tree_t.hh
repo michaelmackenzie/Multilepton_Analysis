@@ -5,6 +5,7 @@
 struct Tree_t {
   //lepton variables
   float leponept;
+  float leponeptoverm;
   float leponem;
   float leponeeta;
   float leponed0;
@@ -13,6 +14,7 @@ struct Tree_t {
   float leponeidtwo;
   float leponeidthree;
   float leptwopt;
+  float leptwoptoverm;
   float leptwom;
   float leptwoeta;
   float leptwod0;
@@ -24,6 +26,7 @@ struct Tree_t {
   //di-lepton variables
   float lepp;
   float leppt;
+  float lepptoverm;
   float lepm;
   float lepeta;
   float lepdeltaeta;

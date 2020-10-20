@@ -2025,7 +2025,13 @@ TCanvas* DataPlotter::plot_significance(TString hist, TString setType, Int_t set
 TCanvas* DataPlotter::print_stack(TString hist, TString setType, Int_t set) {
   TCanvas* c = plot_stack(hist,setType,set);
   if(!c) return c;
-  c->Print(Form("figures/%s/%s/%i/stack_%s%s%s%s_%s_set_%i.png",folder_.Data(),selection_.Data(), year_,
+  TString year_dir = "";
+  for(unsigned index = 0; index < years_.size(); ++index) {
+    year_dir += years_[index];
+    if(index != years_.size() - 1) year_dir += "_";
+  }
+  //FIXME: use a method to build the directory path for all printing functions
+  c->Print(Form("figures/%s/%s/%s/stack_%s%s%s%s_%s_set_%i.png",folder_.Data(),selection_.Data(), year_dir.Data(),
 		(setType+"_"+hist).Data(),
 		(logY_ ? "_log":""),
 		((plot_data_) ? "_data":""), (stack_as_hist_ ? "_totbkg" : ""),
@@ -2037,7 +2043,12 @@ TCanvas* DataPlotter::print_hist(TString hist, TString setType, Int_t set) {
   TCanvas* c = plot_hist(hist,setType,set);
   cout << "plotted hist" << endl;
   if(!c) return c;
-  c->Print(Form("figures/%s/%s/%i/hist_%s%s%s_%s_set_%i.png",folder_.Data(),selection_.Data(), year_,
+  TString year_dir = "";
+  for(unsigned index = 0; index < years_.size(); ++index) {
+    year_dir += years_[index];
+    if(index != years_.size() - 1) year_dir += "_";
+  }
+  c->Print(Form("figures/%s/%s/%s/hist_%s%s%s_%s_set_%i.png",folder_.Data(),selection_.Data(), year_dir.Data(),
 		(setType+"_"+hist).Data(),
 		(logY_ ? "_log":""),
 		((plot_data_) ? "_data":""),"dataOverMC",set));
@@ -2048,7 +2059,12 @@ TCanvas* DataPlotter::print_2Dhist(TString hist, TString setType, Int_t set) {
   TCanvas* c = plot_2Dhist(hist,setType,set);
   cout << "plotted 2D hist" << endl;
   if(!c) return c;
-  c->Print(Form("figures/%s/%s/%i/hist2D_%s%s_%s_set_%i.png",folder_.Data(),selection_.Data(), year_,
+  TString year_dir = "";
+  for(unsigned index = 0; index < years_.size(); ++index) {
+    year_dir += years_[index];
+    if(index != years_.size() - 1) year_dir += "_";
+  }
+  c->Print(Form("figures/%s/%s/%s/hist2D_%s%s_%s_set_%i.png",folder_.Data(),selection_.Data(), year_dir.Data(),
 		(setType+"_"+hist).Data(),
 		((plot_data_) ? "_data":""),"dataOverMC",set));
   return c;
@@ -2061,7 +2077,12 @@ TCanvas* DataPlotter::print_single_2Dhist(TString hist, TString setType, Int_t s
   label.ReplaceAll("#",""); //for ease of use in bash
   label.ReplaceAll(" ", "");
   label.ReplaceAll("/", "");
-  c->Print(Form("figures/%s/%s/%i/hist2D_%s_%s%s%s_%s_set_%i.png",folder_.Data(),selection_.Data(), year_, label.Data(), 
+  TString year_dir = "";
+  for(unsigned index = 0; index < years_.size(); ++index) {
+    year_dir += years_[index];
+    if(index != years_.size() - 1) year_dir += "_";
+  }
+  c->Print(Form("figures/%s/%s/%s/hist2D_%s_%s%s%s_%s_set_%i.png",folder_.Data(),selection_.Data(), year_dir.Data(), label.Data(), 
 		(setType+"_"+hist).Data(),
 		(logZ_ ? "_log":""),
 		((plot_data_) ? "_data":""),"dataOverMC",set));
@@ -2074,7 +2095,12 @@ TCanvas* DataPlotter::print_cdf(TString hist, TString setType, Int_t set, TStrin
   label.ReplaceAll("#",""); //for ease of use in bash
   label.ReplaceAll(" ", "");
   label.ReplaceAll("/", "");
-  c->Print(Form("figures/%s/%s/%i/cdf_%s_%s%s%s_%s_set_%i.png",folder_.Data(),selection_.Data(), year_, label.Data(),
+  TString year_dir = "";
+  for(unsigned index = 0; index < years_.size(); ++index) {
+    year_dir += years_[index];
+    if(index != years_.size() - 1) year_dir += "_";
+  }
+  c->Print(Form("figures/%s/%s/%s/cdf_%s_%s%s%s_%s_set_%i.png",folder_.Data(),selection_.Data(), year_dir.Data(), label.Data(),
 		(setType+"_"+hist).Data(),
 		(logY_ ? "_log":""),
 		((plot_data_) ? "_data":""),"dataOverMC",set));
@@ -2089,7 +2115,12 @@ TCanvas* DataPlotter::print_significance(TString hist, TString setType, Int_t se
   label.ReplaceAll("#",""); //for ease of use in bash
   label.ReplaceAll(" ", "");
   label.ReplaceAll("/", "");
-  c->Print(Form("figures/%s/%s/%i/sig_%s%s_%s%s_set_%i.png",folder_.Data(),selection_.Data(), year_,
+  TString year_dir = "";
+  for(unsigned index = 0; index < years_.size(); ++index) {
+    year_dir += years_[index];
+    if(index != years_.size() - 1) year_dir += "_";
+  }
+  c->Print(Form("figures/%s/%s/%s/sig_%s%s_%s%s_set_%i.png",folder_.Data(),selection_.Data(), year_dir.Data(),
 		(doVsEff) ? "vsEff_" : "", label.Data(),
 		(setType+"_"+hist).Data(),
 		(logY_ ? "_log":""),set));
