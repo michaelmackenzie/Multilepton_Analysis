@@ -1,8 +1,9 @@
 //Script to calculate the 95% UL for e+mu resonance
-
+bool doConstraints_ = false;
 
 Int_t calculate_UL(int set = 8, int year = 2016) {
-  TFile* fInput = TFile::Open(Form("workspaces/fit_lepm_background_%i_%i.root", year, set), "READ");
+  TFile* fInput = (doConstraints_) ? TFile::Open(Form("workspaces/fit_lepm_background_constr_%i_%i.root", year, set), "READ") :
+    TFile::Open(Form("workspaces/fit_lepm_background_%i_%i.root", year, set), "READ");
   if(!fInput) return 1;
   fInput->cd();
   RooWorkspace* ws = (RooWorkspace*) fInput->Get("ws");
@@ -19,8 +20,9 @@ Int_t calculate_UL(int set = 8, int year = 2016) {
   nuisance_params.add(*(ws->var("b_bkg")));
   nuisance_params.add(*(ws->var("c_bkg")));
   nuisance_params.add(*(ws->var("d_bkg")));
-  nuisance_params.add(*(ws->var("N_bkg")));
-  nuisance_params.add(*(ws->var("beta_eff")));
+  nuisance_params.add(*(ws->var("n_bkg")));
+  if(doConstraints_)
+    nuisance_params.add(*(ws->var("beta_eff")));
 
   RooArgList glb_list;
   glb_list.add(*(ws->var("global_eff")));
@@ -28,17 +30,19 @@ Int_t calculate_UL(int set = 8, int year = 2016) {
   //Set the model and let it know about the workspace contents
   RooStats::ModelConfig model;
   model.SetWorkspace(*ws);
-  model.SetPdf("totPDF_constr");
+  model.SetPdf((doConstraints_) ? "totPDF_constr" : "totPDF");
   model.SetParametersOfInterest(poi_list);
   model.SetObservables(obs_list);
   model.SetNuisanceParameters(nuisance_params);
-  model.SetGlobalObservables(glb_list);
+  if(doConstraints_)
+    model.SetGlobalObservables(glb_list);
   model.SetName("S+B Model");
   model.SetProtoData(*data_binned);
 
   auto bModel = model.Clone();
   bModel->SetName("B Model");
   double oldval = ((RooRealVar*) poi_list.find("br_emu"))->getVal();
+  ((RooRealVar*) poi_list.find("br_emu"))->setVal(0); //BEWARE that the range of the POI has to contain zero!
   bModel->SetSnapshot(poi_list);
   ((RooRealVar*) poi_list.find("br_emu"))->setVal(oldval);
 
@@ -60,13 +64,13 @@ Int_t calculate_UL(int set = 8, int year = 2016) {
   //est the test statistic to use
   toymc->SetTestStatistic(&profl);
 
-  int npoints = 100; //number of points to scan
+  int npoints = 200; //number of points to scan
   //min and max for the scan (better to choose smaller intervals)
   double poimin = ((RooRealVar*) poi_list.find("br_emu"))->getMin();
   double poimax = ((RooRealVar*) poi_list.find("br_emu"))->getMax();
 
   double min_scan = 1.e-9;
-  double max_scan = 1.e-6;
+  double max_scan = 1.e-5;
   std::cout << "Doing a fixed scan in the interval: " << min_scan << ", "
 	    << max_scan << " with " << npoints << " points\n";
   calc.SetFixedScan(npoints, min_scan, max_scan);
@@ -74,14 +78,24 @@ Int_t calculate_UL(int set = 8, int year = 2016) {
   auto result = calc.GetInterval();
   double upperLimit = result->UpperLimit();
 
-  std::cout << "#####################################################\n"
-	    << "The observed uppoer limit is " << upperLimit << std::endl;
+  std::cout << "##################################################\n"
+	    << "The observed upper limit is " << upperLimit << std::endl;
 
   //compute the expected limit
-  std::cout << "Expectected uppoer limits, using the alternate model: " << std::endl
+  std::cout << "Expected upper limits, using the alternate model: " << std::endl
 	    << " expected limit (median): " << result->GetExpectedUpperLimit( 0) << std::endl
 	    << " expected limit (-1 sig): " << result->GetExpectedUpperLimit(-1) << std::endl
 	    << " expected limit (+1 sig): " << result->GetExpectedUpperLimit( 1) << std::endl
-	    << "#####################################################\n";
+	    << "##################################################\n";
+
+  //Plot the results
+  RooStats::HypoTestInverterPlot freq_plot("HTI_Result_Plot","Frequentist scan result for the W -> pigamma BR",result);
+  //xPlot in a new canvas with style
+  TCanvas* canvas = new TCanvas();
+  canvas->cd();
+  freq_plot.Draw();
+  canvas->SetLogx();
+  //freq_plot.Draw("EXP")
+  canvas->SaveAs(Form("plots/latest_production/%i/pval_vs_br_%i.pdf", year, set));
   return 0;
 }
