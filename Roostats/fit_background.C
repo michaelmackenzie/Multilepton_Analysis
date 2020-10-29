@@ -1,5 +1,6 @@
 //Script to fit the di-lepton mass histogram for same flavor selections
 bool doConstraints_ = false;
+bool includeSignalInFit_ = false;
 
 Int_t add_lum(TTree* tree, double lum) {
   bool debug = false;
@@ -96,6 +97,8 @@ Int_t do_fit(TTree* tree, int set, int year) {
   RooFormulaVar n_sig("n_sig", "@0*@4*sqrt((@1*@2)/(@3*@3))", RooArgList(br_emu, n_electron_var, n_muon_var,br_ll,eff));
   RooRealVar n_bkg("n_bkg", "n_bkg", 500., 0., 1.e5);
 
+  if(!includeSignalInFit_) {br_emu.setVal(0.); br_emu.setConstant(1);}
+  
   RooAddPdf totPDF("totPDF", "totPDF", RooArgList(*sigPDF, bkgPDF), RooArgList(n_sig, n_bkg));
   //PDF with constraints
   RooProdPdf totPDF_constr("totPDF_constr", "totPDF_constr", RooArgList(totPDF, constrain_eff, constr_n_muon, constr_n_electron));
@@ -117,6 +120,7 @@ Int_t do_fit(TTree* tree, int set, int year) {
   else
     totPDF.fitTo(dataset, RooFit::Extended(1));
     
+  if(!includeSignalInFit_) {br_emu.setVal(0.); br_emu.setConstant(0);}
   auto xframe = lepm.frame();
   dataset.plotOn(xframe);
   if(doConstraints_)
@@ -127,10 +131,13 @@ Int_t do_fit(TTree* tree, int set, int year) {
 
   auto c1 = new TCanvas();
   xframe->Draw();
+  gSystem->Exec(Form("[ ! -d plots/latest_production/%i ] && mkdir -p plots/latest_production/%i", year, year));
   if(doConstraints_)
-    c1->SaveAs(Form("plots/latest_production/%i/fit_lepm_backgroud_constr_%i.pdf", year, set));
+    c1->SaveAs(Form("plots/latest_production/%i/fit_lepm_background_constr_%i.pdf", year, set));
   else
-    c1->SaveAs(Form("plots/latest_production/%i/fit_lepm_backgroud_%i.pdf", year, set));
+    c1->SaveAs(Form("plots/latest_production/%i/fit_lepm_background_%i.pdf", year, set));
+
+  //save the workspace
   TFile* fOut = (doConstraints_) ? new TFile(Form("workspaces/fit_lepm_background_constr_%i_%i.root", year, set), "RECREATE") :
     new TFile(Form("workspaces/fit_lepm_background_%i_%i.root", year, set), "RECREATE");
   fOut->cd();
@@ -144,6 +151,7 @@ Int_t do_fit(TTree* tree, int set, int year) {
     ws.import(totPDF);
     ws.import(totPDF_alt, RooFit::RecycleConflictNodes());
   }
+  ws.import(bkgPDF);
   ws.import(*bkg_data);
   ws.Print();
   ws.Write();
@@ -156,6 +164,8 @@ Int_t do_fit(TTree* tree, int set, int year) {
 Int_t fit_background(int set = 8, int year = 2016, bool addLum = true) {
   int status(0);
   TString bkg_name = "background_trees/background_ztautau_bkg_nano_emu_";
+  bkg_name += year;
+  bkg_name += "_";
   bkg_name += set+ZTauTauHistMaker::kEMu;
   bkg_name += ".tree";
   TFile* f_bkg = TFile::Open(bkg_name.Data(), "READ");

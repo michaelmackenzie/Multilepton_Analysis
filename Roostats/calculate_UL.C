@@ -96,6 +96,8 @@ Int_t calculate_UL(int set = 8, int year = 2016) {
   freq_plot.Draw();
   canvas->SetLogx();
   //freq_plot.Draw("EXP")
+  gSystem->Exec(Form("[ ! -d plots/latest_production/%i ] && mkdir -p plots/latest_production/%i", year, year));
   canvas->SaveAs(Form("plots/latest_production/%i/pval_vs_br_%i.pdf", year, set));
+  canvas->SaveAs(Form("plots/latest_production/%i/pval_vs_br_%i.png", year, set));
   return 0;
 }

@@ -53,6 +53,7 @@ Int_t do_fit(TH1F* hvar, int year, bool isMuon, TString hist, int set) {
   auto c1 = new TCanvas();
   xframe->Draw();
   TString name = (isMuon) ? "Muon" : "Electron";
+  gSystem->Exec(Form("[ ! -d plots/latest_production/%i ] && mkdir -p plots/latest_production/%i", year, year));
   c1->SaveAs(Form("plots/latest_production/%i/fit_%s_SameSign_%s_%i.pdf", year, hist.Data(), name.Data(), set));
   TFile* fOut = new TFile(Form("workspaces/fit_%s_SameSign_%s_%i_%i.root", hist.Data(), name.Data(), year, set), "RECREATE");
   fOut->cd();

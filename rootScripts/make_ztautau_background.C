@@ -11,7 +11,7 @@ bool  debug_ = false;
 Int_t verbose_ = 1;
 int   year_ = 2016;
 
-Int_t make_background(int set = 7, TString selection = "mutau", TString base = "../histograms/ztautau/") {
+Int_t make_background(int set = 7, TString selection = "mutau", TString base = "../histograms/nanoaods_dev/") {
 
   cout << "Beginning to make tree for selection " << selection.Data() << " with set " << set
        << endl;
@@ -123,9 +123,9 @@ Int_t make_background(int set = 7, TString selection = "mutau", TString base = "
   type += "nano_";
   if(verbose_ > 1)
     cout << "Background training type " << type.Data() << endl;
-  TFile* out = new TFile(Form("background_ztautau_%s%s_%i.tree",
+  TFile* out = new TFile(Form("background_ztautau_%s%s_%i_%i.tree",
 			      type.Data(),
-			      selection.Data(),set),"RECREATE");
+			      selection.Data(),year_,set),"RECREATE");
   TTree* t = 0;
   printf("Merging trees\n");
   if(verbose_ > 1) {

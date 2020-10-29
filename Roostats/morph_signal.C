@@ -66,6 +66,7 @@ Int_t morph_signal(int set = 8, int year = 2016, TString base = "../histograms/n
 
   auto c1 = new TCanvas();
   xframe->Draw();
+  gSystem->Exec(Form("[ ! -d plots/latest_production/%i ] && mkdir -p plots/latest_production/%i", year, year));
   c1->SaveAs(Form("plots/latest_production/%i/compare_morphed_pdf_%i.pdf", year, set));
   TFile* fOut = new TFile(Form("workspaces/morphed_signal_%i_%i.root", year, set), "RECREATE");
   fOut->cd();
