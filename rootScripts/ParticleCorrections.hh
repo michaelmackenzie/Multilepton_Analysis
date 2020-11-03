@@ -61,7 +61,16 @@ public :
 
     //Trigger map for low and high pT trigger
     std::map<int, fpair> muonTriggerLowFileNames;
+    std::map<int, fpair> muonTriggerLowDataEffFileNames;
+    std::map<int, fpair> muonTriggerLowMCEffFileNames;
     std::map<int, fpair> muonTriggerHighFileNames;
+    std::map<int, fpair> muonTriggerHighDataEffFileNames;
+    std::map<int, fpair> muonTriggerHighMCEffFileNames;
+
+    //////////////////////
+    // Low Muon Trigger //
+    //////////////////////
+
     muonTriggerLowFileNames[2*k2016]    = fpair("EfficienciesAndSF_RunBtoF_muon_2016.root"           ,"IsoMu24_OR_IsoTkMu24_PtEtaBins/abseta_pt_ratio");
     muonTriggerLowFileNames[2*k2016+1]  = fpair("EfficienciesAndSF_Period4_muonTrigger_2016.root"    ,"IsoMu24_OR_IsoTkMu24_PtEtaBins/abseta_pt_ratio");
     muonTriggerLowFileNames[2*k2017]    = fpair("EfficienciesAndSF_2017_RunBtoF_Nov17Nov2017.root"   ,"IsoMu27_PtEtaBins/abseta_pt_ratio");
@@ -69,12 +78,48 @@ public :
     muonTriggerLowFileNames[2*k2018]    = fpair("EfficienciesAndSF_2018Data_BeforeMuonHLTUpdate.root","IsoMu24_PtEtaBins/abseta_pt_ratio");
     muonTriggerLowFileNames[2*k2018+1]  = fpair("EfficienciesAndSF_2018Data_AfterMuonHLTUpdate.root" ,"IsoMu24_PtEtaBins/abseta_pt_ratio");
 
+    //Data efficiencies
+    muonTriggerLowDataEffFileNames[2*k2016]    = fpair("EfficienciesAndSF_RunBtoF_muon_2016.root"           ,"IsoMu24_OR_IsoTkMu24_PtEtaBins/efficienciesDATA/abseta_pt_DATA");
+    muonTriggerLowDataEffFileNames[2*k2016+1]  = fpair("EfficienciesAndSF_Period4_muonTrigger_2016.root"    ,"IsoMu24_OR_IsoTkMu24_PtEtaBins/efficienciesDATA/abseta_pt_DATA");
+    muonTriggerLowDataEffFileNames[2*k2017]    = fpair("EfficienciesAndSF_2017_RunBtoF_Nov17Nov2017.root"   ,"IsoMu27_PtEtaBins/efficienciesDATA/abseta_pt_DATA");
+    muonTriggerLowDataEffFileNames[2*k2017+1]  = fpair("EfficienciesAndSF_2017_RunBtoF_Nov17Nov2017.root"   ,"IsoMu27_PtEtaBins/efficienciesDATA/abseta_pt_DATA");
+    muonTriggerLowDataEffFileNames[2*k2018]    = fpair("EfficienciesAndSF_2018Data_BeforeMuonHLTUpdate.root","IsoMu24_PtEtaBins/efficienciesDATA/abseta_pt_DATA");
+    muonTriggerLowDataEffFileNames[2*k2018+1]  = fpair("EfficienciesAndSF_2018Data_AfterMuonHLTUpdate.root" ,"IsoMu24_PtEtaBins/efficienciesDATA/abseta_pt_DATA");
+
+    //MC efficiencies
+    muonTriggerLowMCEffFileNames[2*k2016]    = fpair("EfficienciesAndSF_RunBtoF_muon_2016.root"           ,"IsoMu24_OR_IsoTkMu24_PtEtaBins/efficienciesMC/abseta_pt_MC");
+    muonTriggerLowMCEffFileNames[2*k2016+1]  = fpair("EfficienciesAndSF_Period4_muonTrigger_2016.root"    ,"IsoMu24_OR_IsoTkMu24_PtEtaBins/efficienciesMC/abseta_pt_MC");
+    muonTriggerLowMCEffFileNames[2*k2017]    = fpair("EfficienciesAndSF_2017_RunBtoF_Nov17Nov2017.root"   ,"IsoMu27_PtEtaBins/efficienciesMC/abseta_pt_MC");
+    muonTriggerLowMCEffFileNames[2*k2017+1]  = fpair("EfficienciesAndSF_2017_RunBtoF_Nov17Nov2017.root"   ,"IsoMu27_PtEtaBins/efficienciesMC/abseta_pt_MC");
+    muonTriggerLowMCEffFileNames[2*k2018]    = fpair("EfficienciesAndSF_2018Data_BeforeMuonHLTUpdate.root","IsoMu24_PtEtaBins/efficienciesMC/abseta_pt_MC");
+    muonTriggerLowMCEffFileNames[2*k2018+1]  = fpair("EfficienciesAndSF_2018Data_AfterMuonHLTUpdate.root" ,"IsoMu24_PtEtaBins/efficienciesMC/abseta_pt_MC");
+
+    ///////////////////////
+    // High Muon Trigger //
+    ///////////////////////
+
     muonTriggerHighFileNames[2*k2016]   = fpair("EfficienciesAndSF_RunBtoF_muon_2016.root"           ,"Mu50_OR_TkMu50_PtEtaBins/abseta_pt_ratio");
     muonTriggerHighFileNames[2*k2016+1] = fpair("EfficienciesAndSF_Period4_muonTrigger_2016.root"    ,"Mu50_OR_TkMu50_PtEtaBins/abseta_pt_ratio");
     muonTriggerHighFileNames[2*k2017]   = fpair("EfficienciesAndSF_2017_RunBtoF_Nov17Nov2017.root"   ,"Mu50_PtEtaBins/abseta_pt_ratio");
     muonTriggerHighFileNames[2*k2017+1] = fpair("EfficienciesAndSF_2017_RunBtoF_Nov17Nov2017.root"   ,"Mu50_PtEtaBins/abseta_pt_ratio");
     muonTriggerHighFileNames[2*k2018]   = fpair("EfficienciesAndSF_2018Data_BeforeMuonHLTUpdate.root","Mu50_OR_OldMu100_OR_TkMu100_PtEtaBins/abseta_pt_ratio");
     muonTriggerHighFileNames[2*k2018+1] = fpair("EfficienciesAndSF_2018Data_AfterMuonHLTUpdate.root" ,"Mu50_OR_OldMu100_OR_TkMu100_PtEtaBins/abseta_pt_ratio");
+
+    //Data efficiencies
+    muonTriggerHighDataEffFileNames[2*k2016]   = fpair("EfficienciesAndSF_RunBtoF_muon_2016.root"           ,"Mu50_OR_TkMu50_PtEtaBins/efficienciesDATA/abseta_pt_DATA");
+    muonTriggerHighDataEffFileNames[2*k2016+1] = fpair("EfficienciesAndSF_Period4_muonTrigger_2016.root"    ,"Mu50_OR_TkMu50_PtEtaBins/efficienciesDATA/abseta_pt_DATA");
+    muonTriggerHighDataEffFileNames[2*k2017]   = fpair("EfficienciesAndSF_2017_RunBtoF_Nov17Nov2017.root"   ,"Mu50_PtEtaBins/efficienciesDATA/abseta_pt_DATA");
+    muonTriggerHighDataEffFileNames[2*k2017+1] = fpair("EfficienciesAndSF_2017_RunBtoF_Nov17Nov2017.root"   ,"Mu50_PtEtaBins/efficienciesDATA/abseta_pt_DATA");
+    muonTriggerHighDataEffFileNames[2*k2018]   = fpair("EfficienciesAndSF_2018Data_BeforeMuonHLTUpdate.root","Mu50_OR_OldMu100_OR_TkMu100_PtEtaBins/efficienciesDATA/abseta_pt_DATA");
+    muonTriggerHighDataEffFileNames[2*k2018+1] = fpair("EfficienciesAndSF_2018Data_AfterMuonHLTUpdate.root" ,"Mu50_OR_OldMu100_OR_TkMu100_PtEtaBins/efficienciesDATA/abseta_pt_DATA");
+
+    //MC efficiencies
+    muonTriggerHighMCEffFileNames[2*k2016]   = fpair("EfficienciesAndSF_RunBtoF_muon_2016.root"           ,"Mu50_OR_TkMu50_PtEtaBins/efficienciesMC/abseta_pt_MC");
+    muonTriggerHighMCEffFileNames[2*k2016+1] = fpair("EfficienciesAndSF_Period4_muonTrigger_2016.root"    ,"Mu50_OR_TkMu50_PtEtaBins/efficienciesMC/abseta_pt_MC");
+    muonTriggerHighMCEffFileNames[2*k2017]   = fpair("EfficienciesAndSF_2017_RunBtoF_Nov17Nov2017.root"   ,"Mu50_PtEtaBins/efficienciesMC/abseta_pt_MC");
+    muonTriggerHighMCEffFileNames[2*k2017+1] = fpair("EfficienciesAndSF_2017_RunBtoF_Nov17Nov2017.root"   ,"Mu50_PtEtaBins/efficienciesMC/abseta_pt_MC");
+    muonTriggerHighMCEffFileNames[2*k2018]   = fpair("EfficienciesAndSF_2018Data_BeforeMuonHLTUpdate.root","Mu50_OR_OldMu100_OR_TkMu100_PtEtaBins/efficienciesMC/abseta_pt_MC");
+    muonTriggerHighMCEffFileNames[2*k2018+1] = fpair("EfficienciesAndSF_2018Data_AfterMuonHLTUpdate.root" ,"Mu50_OR_OldMu100_OR_TkMu100_PtEtaBins/efficienciesMC/abseta_pt_MC");
 
     //initialize ID histograms
     TString scaleFactorPath = gSystem->Getenv("CMSSW_BASE") + fScaleFactorPath;
@@ -113,6 +158,30 @@ public :
       fileList.push_back(f);
     }
 
+    //initialize Low Data Trigger Efficiency histograms
+    for(int period = k2016; period < 2*(k2018+1); ++period) {
+      if(muonTriggerLowDataEffFileNames[period].first == "") { muonLowTriggerEffMap[0][period] = 0; continue; }
+      TFile* f = TFile::Open((scaleFactorPath + muonTriggerLowDataEffFileNames[period].first).Data(),"READ");
+      if(!f) { muonLowTriggerEffMap[0][period] = 0; continue; }
+      muonLowTriggerEffMap[0][period] = (TH2F*) f->Get(muonTriggerLowDataEffFileNames[period].second.Data())->Clone();
+      if(!muonLowTriggerEffMap[0][period])
+	std::cout << "Error! Histogram " << muonTriggerLowDataEffFileNames[period].second.Data() << " in "
+		  << muonTriggerLowDataEffFileNames[period].first.Data() << " not found!\n";
+      fileList.push_back(f);
+    }
+
+    //initialize Low MC Trigger Efficiency histograms
+    for(int period = k2016; period < 2*(k2018+1); ++period) {
+      if(muonTriggerLowMCEffFileNames[period].first == "") { muonLowTriggerEffMap[1][period] = 0; continue; }
+      TFile* f = TFile::Open((scaleFactorPath + muonTriggerLowMCEffFileNames[period].first).Data(),"READ");
+      if(!f) { muonLowTriggerEffMap[1][period] = 0; continue; }
+      muonLowTriggerEffMap[1][period] = (TH2F*) f->Get(muonTriggerLowMCEffFileNames[period].second.Data())->Clone();
+      if(!muonLowTriggerEffMap[1][period])
+	std::cout << "Error! Histogram " << muonTriggerLowMCEffFileNames[period].second.Data() << " in "
+		  << muonTriggerLowMCEffFileNames[period].first.Data() << " not found!\n";
+      fileList.push_back(f);
+    }
+
     //initialize High Trigger histograms
     for(int period = k2016; period < 2*(k2018+1); ++period) {
       if(muonTriggerHighFileNames[period].first == "") { muonHighTriggerMap[period] = 0; continue; }
@@ -122,6 +191,30 @@ public :
       if(!muonHighTriggerMap[period])
 	std::cout << "Error! Histogram " << muonTriggerHighFileNames[period].second.Data() << " in "
 		  << muonTriggerHighFileNames[period].first.Data() << " not found!\n";
+      fileList.push_back(f);
+    }
+
+    //initialize High Data Trigger Efficiency histograms
+    for(int period = k2016; period < 2*(k2018+1); ++period) {
+      if(muonTriggerHighDataEffFileNames[period].first == "") { muonHighTriggerEffMap[0][period] = 0; continue; }
+      TFile* f = TFile::Open((scaleFactorPath + muonTriggerHighDataEffFileNames[period].first).Data(),"READ");
+      if(!f) { muonHighTriggerEffMap[0][period] = 0; continue; }
+      muonHighTriggerEffMap[0][period] = (TH2F*) f->Get(muonTriggerHighDataEffFileNames[period].second.Data())->Clone();
+      if(!muonHighTriggerEffMap[0][period])
+	std::cout << "Error! Histogram " << muonTriggerHighDataEffFileNames[period].second.Data() << " in "
+		  << muonTriggerHighDataEffFileNames[period].first.Data() << " not found!\n";
+      fileList.push_back(f);
+    }
+
+    //initialize High MC Trigger Efficiency histograms
+    for(int period = k2016; period < 2*(k2018+1); ++period) {
+      if(muonTriggerHighMCEffFileNames[period].first == "") { muonHighTriggerEffMap[1][period] = 0; continue; }
+      TFile* f = TFile::Open((scaleFactorPath + muonTriggerHighMCEffFileNames[period].first).Data(),"READ");
+      if(!f) { muonHighTriggerEffMap[1][period] = 0; continue; }
+      muonHighTriggerEffMap[1][period] = (TH2F*) f->Get(muonTriggerHighMCEffFileNames[period].second.Data())->Clone();
+      if(!muonHighTriggerEffMap[1][period])
+	std::cout << "Error! Histogram " << muonTriggerHighMCEffFileNames[period].second.Data() << " in "
+		  << muonTriggerHighMCEffFileNames[period].first.Data() << " not found!\n";
       fileList.push_back(f);
     }
 
@@ -138,6 +231,14 @@ public :
     electronTrigFileNames[k2016]  = fpair("egammaTriggerEfficiency_2016.root"                   ,"EGamma_SF2D");
     electronTrigFileNames[k2017]  = fpair("egammaTriggerEfficiency_2017.root"                   ,"EGamma_SF2D");
     electronTrigFileNames[k2018]  = fpair("egammaTriggerEfficiency_2018.root"                   ,"EGamma_SF2D");
+    std::map<int, fpair> electronTrigDataEffFileNames;
+    electronTrigDataEffFileNames[k2016]  = fpair("egammaTriggerEfficiency_2016.root"                   ,"EGamma_EffData2D");
+    electronTrigDataEffFileNames[k2017]  = fpair("egammaTriggerEfficiency_2017.root"                   ,"EGamma_EffData2D");
+    electronTrigDataEffFileNames[k2018]  = fpair("egammaTriggerEfficiency_2018.root"                   ,"EGamma_EffData2D");
+    std::map<int, fpair> electronTrigMCEffFileNames;
+    electronTrigMCEffFileNames[k2016]  = fpair("egammaTriggerEfficiency_2016.root"                   ,"EGamma_EffMC2D");
+    electronTrigMCEffFileNames[k2017]  = fpair("egammaTriggerEfficiency_2017.root"                   ,"EGamma_EffMC2D");
+    electronTrigMCEffFileNames[k2018]  = fpair("egammaTriggerEfficiency_2018.root"                   ,"EGamma_EffMC2D");
     //FIXME: add electron trigger, pre-fire (2016, 2017) scale
     //https://twiki.cern.ch/twiki/bin/viewauth/CMS/L1ECALPrefiringWeightRecipe 
     
@@ -160,6 +261,20 @@ public :
       TFile* f = TFile::Open((scaleFactorPath + electronTrigFileNames[period].first).Data(),"READ");
       if(!f) continue;
       electronTriggerMap[period] = (TH2F*) f->Get(electronTrigFileNames[period].second.Data())->Clone();
+      fileList.push_back(f);
+    }
+    for(int period = k2016; period <= k2018; ++period) {
+      if(electronTrigDataEffFileNames[period].first == "") continue;
+      TFile* f = TFile::Open((scaleFactorPath + electronTrigDataEffFileNames[period].first).Data(),"READ");
+      if(!f) continue;
+      electronTriggerEffMap[0][period] = (TH2F*) f->Get(electronTrigDataEffFileNames[period].second.Data())->Clone();
+      fileList.push_back(f);
+    }
+    for(int period = k2016; period <= k2018; ++period) {
+      if(electronTrigMCEffFileNames[period].first == "") continue;
+      TFile* f = TFile::Open((scaleFactorPath + electronTrigMCEffFileNames[period].first).Data(),"READ");
+      if(!f) continue;
+      electronTriggerEffMap[1][period] = (TH2F*) f->Get(electronTrigMCEffFileNames[period].second.Data())->Clone();
       fileList.push_back(f);
     }
 
@@ -276,18 +391,19 @@ public :
     
   }
   ~ParticleCorrections() {
-    //FIXME: Close all the open files
     for(TFile* f : fileList) {
       if(f) delete f;
     }
   }
   
   virtual double MuonWeight    (double pt, double eta, int trigger, int era, float& trig_scale);
+  virtual double MuonTriggerEff(double pt, double eta, int trigger, int era, float& data_eff, float& mc_eff);
   virtual double ElectronWeight(double pt, double eta, int era, float& trigger_scale);
   double ElectronWeight(double pt, double eta, int era) {
     float tmp(0.);
     return ElectronWeight(pt, eta, era, tmp);
   }
+  virtual double ElectronTriggerEff(double pt, double eta, int era, float& data_eff, float& mc_eff);
   virtual double TauWeight     (double pt, double eta, int genID, int era, double& up, double& down);
   double TauWeight(double pt, double eta, int genID, int era) {
     double up(1.), down(1.);
@@ -297,7 +413,10 @@ public :
   virtual double PhotonWeight(double pt, double eta, int year);
   virtual double BTagWeight(double pt, double eta, int jetFlavor, int year, int WP);
   virtual double ZWeight(double pt, double mass, int year);
-  
+
+  virtual double BTagCut(int wp, int year);
+  virtual float CombineEfficiencies(float data_eff_1, float mc_eff_1, float data_eff_2, float mc_eff_2);
+
   enum{k2016, k2017, k2018}; //defined years
   enum{kLowTrigger, kHighTrigger}; //defined triggers
   enum{kLooseBTag, kMediumBTag, kTightBTag}; //define btag WPs
@@ -305,23 +424,26 @@ public :
   //muon isolation levels
   enum{kVLooseMuIso, kLooseMuIso, kMediumMuIso, kTightMuIso, kVTightMuIso, kVVTightMuIso}; //define iso scale factor sets
   const double muonIsoValues[kVVTightMuIso+1] = {0.4, 0.25, 0.20, 0.15, 0.10, 0.05}; //corresponding values
-
+  
   TString fScaleFactorPath    = "/src/StandardModel/ZEMuAnalysis/test/scale_factors/"; //path from cmssw_base
   TString fTauScaleFactorPath = "/src/TauPOG/TauIDSFs/data/"; //path from cmssw_base
   TString fZScaleFactorPath   = "/src/StandardModel/CLFVAnalysis/rootScripts/scale_factors/"; //path from cmssw_base
 
   Int_t   fVerbose = 0; //control the verbosity
-private:
+public:
   //muon corrections
   std::map<int, TH2F*> muonIDMap;
   std::map<int, TH2F*> muonIsoMap;
   std::map<int, TH2F*> muonLowTriggerMap;
+  std::map<int, TH2F*> muonLowTriggerEffMap[2]; //Data and MC efficiencies
   std::map<int, TH2F*> muonHighTriggerMap;
+  std::map<int, TH2F*> muonHighTriggerEffMap[2]; //Data and MC efficiencies
   //electron corrections
   std::map<int, TH2F*> electronIDMap     ;
   std::map<int, TH2F*> electronRecoMap   ;
   std::map<int, float> electronVertexMap ;
   std::map<int, TH2F*> electronTriggerMap;
+  std::map<int, TH2F*> electronTriggerEffMap[2]; //Data and MC efficiencies
   std::map<int, TH2F*> electronPreFireMap;
   //tau ID corrections
   std::map<int, TF1*> tauJetIDMap    ;

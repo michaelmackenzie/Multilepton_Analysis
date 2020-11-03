@@ -27,12 +27,21 @@ double ParticleCorrections::MuonWeight(double pt, double eta, int trigger, int y
   double id_scale = hID->GetBinContent(binx, biny);
 
   TH2F* hIso = muonIsoMap[2*year + !firstSection];
-  binx = (year != k2016) ? hIso->GetXaxis()->FindBin(pt) : hIso->GetXaxis()->FindBin(fabs(eta));	   
-  biny = (year != k2016) ? hIso->GetYaxis()->FindBin(fabs(eta)) : hIso->GetYaxis()->FindBin(pt);
-  double iso_scale = hIso->GetBinContent(binx, biny);
-
+  double iso_scale = 1.;
+  if(hIso) {
+    binx = (year != k2016) ? hIso->GetXaxis()->FindBin(pt) : hIso->GetXaxis()->FindBin(fabs(eta));	   
+    biny = (year != k2016) ? hIso->GetYaxis()->FindBin(fabs(eta)) : hIso->GetYaxis()->FindBin(pt);
+    iso_scale = hIso->GetBinContent(binx, biny);
+  } else {
+    std::cout << "WARNING! Missing Muon Iso map! Using scale factor of 1...\n";
+  }
+  
   //Trigger weights
   trig_scale = 1.;
+  //check if can fire a trigger
+  if(trigger == kLowTrigger && ((year == k2016 && pt < 25.) || (year == k2017 && pt < 28.) || (year == k2018 && pt < 25.))) trigger = -1;
+  else if(trigger == kHighTrigger && pt < 51.) trigger = -1;
+
   if(trigger >= 0) { 
     if(year == k2016) {
       if(trigger == kLowTrigger && pt < 26.) pt = 26.;
@@ -48,6 +57,7 @@ double ParticleCorrections::MuonWeight(double pt, double eta, int trigger, int y
     //doesn't flip between years
     trig_scale = hTrigger->GetBinContent(hTrigger->GetXaxis()->FindBin(fabs(eta)), hTrigger->GetYaxis()->FindBin(pt));
   }
+  
   double scale_factor = id_scale * iso_scale;
   if(scale_factor <= 0. || fVerbose > 0) {
     if(scale_factor <= 0.) std::cout << "Warning! Scale factor <= 0! ";
@@ -56,6 +66,61 @@ double ParticleCorrections::MuonWeight(double pt, double eta, int trigger, int y
 	      << " id_scale = " << id_scale
 	      << " iso_scale = " << iso_scale
 	      << " trig_scale = " << trig_scale
+	      << " trigger = " << trigger
+	      << " firstSection = " << firstSection << std::endl;
+  }
+
+  return scale_factor;
+}
+
+double ParticleCorrections::MuonTriggerEff(double pt, double eta, int trigger, int year, float& data_eff, float& mc_eff) {
+  if(year != k2016 && year != k2017 && year != k2018) {
+    std::cout << "Warning! Undefined year in " << __func__ << ", returning -1" << std::endl;
+    return -1.;
+  }
+  
+  if(pt >= 120.) pt = 119.; //maximum pT for corrections
+  else if(pt < 20.) pt = 20.; //minimum pT for corrections
+  if(eta >= 2.4) eta = 2.39; //maximum eta for corrections
+  else if(eta <= -2.4) eta = -2.39; //minimum eta for corrections
+
+  double rand = fRnd->Uniform();
+  bool firstSection = true; //whether this MC is for the first or second part of the data taking period
+  mc_eff = 1.; data_eff = 1.;
+  if(year == k2016)
+    firstSection = rand <= 19.72/35.86;
+  else if(year == k2018)
+    firstSection = rand <= 8.98/59.59;
+  data_eff = 1.; mc_eff = 1.;
+  if(trigger >= 0) { 
+    if(year == k2016) {
+      if(trigger == kLowTrigger && pt < 26.) pt = 26.;
+      else if(trigger == kHighTrigger && pt < 52.) pt = 52.;
+    } else if (year == k2017) {
+      if(trigger == kLowTrigger && pt < 29.) pt = 29.;
+      else if(trigger == kHighTrigger && pt < 52.) pt = 52.;
+    } else if (year == k2018) {
+      if(trigger == kLowTrigger && pt < 26.) pt = 26.;
+      else if(trigger == kHighTrigger && pt < 52.) pt = 52.;
+    }
+    
+    TH2F* hTriggerData = (trigger == kLowTrigger) ? muonLowTriggerEffMap[0][2*year + !firstSection] : muonHighTriggerEffMap[0][2*year + !firstSection];
+    TH2F* hTriggerMC = (trigger == kLowTrigger) ? muonLowTriggerEffMap[0][2*year + !firstSection] : muonHighTriggerEffMap[0][2*year + !firstSection];
+    //doesn't flip between years
+    data_eff = hTriggerData->GetBinContent(hTriggerData->GetXaxis()->FindBin(fabs(eta)), hTriggerData->GetYaxis()->FindBin(pt));
+    mc_eff = hTriggerMC->GetBinContent(hTriggerMC->GetXaxis()->FindBin(fabs(eta)), hTriggerMC->GetYaxis()->FindBin(pt));
+  }
+  //return the scale factor applied to MC to match Data
+  double scale_factor = (mc_eff > 0.) ? data_eff/mc_eff : 0.;
+  if(scale_factor <= 0. || fVerbose > 0) {
+    if(scale_factor <= 0.) std::cout << "Warning! Scale factor <= 0! ";
+    std::cout << "ParticleCorrections::" << __func__
+	      << " year = " << year
+	      << " pt = " << pt
+	      << " eta = " << eta
+	      << " data_eff = " << data_eff
+	      << " mc_eff = " << mc_eff
+	      << " scale_factor = " << scale_factor
 	      << " trigger = " << trigger
 	      << " firstSection = " << firstSection << std::endl;
   }
@@ -99,7 +164,7 @@ double ParticleCorrections::ElectronWeight(double pt, double eta, int year, floa
   trigger_scale = hTrig->GetBinContent(hTrig->GetXaxis()->FindBin(eta_trig), hTrig->GetYaxis()->FindBin(pt));
 
   //can't fire a trigger if below the threshold
-  if((year == k2016 && pt < 27.) || (year == k2017 && pt < 32.) || (year == k2018 && pt < 27.))
+  if((year == k2016 && pt < 28.) || (year == k2017 && pt < 33.) || (year == k2018 && pt < 28.))
     trigger_scale = 1.;
 
   //FIXME: add pre-fire for 2017
@@ -115,6 +180,54 @@ double ParticleCorrections::ElectronWeight(double pt, double eta, int year, floa
 	      << " reco_scale = " << reco_scale
 	      << " trig_scale = " << trigger_scale
 	      << " vertex_scale = " << vertex_scale
+	      << std::endl;
+  }
+  return scale_factor;
+}
+
+double ParticleCorrections::ElectronTriggerEff(double pt, double eta, int year, float& data_eff, float& mc_eff) {
+  if(year != k2016 && year != k2017 && year != k2018) {
+    std::cout << "Warning! Undefined year in " << __func__ << ", returning -1" << std::endl;
+    return -1.;
+  }
+
+  if(year == k2016) {
+    if(pt > 499.)     pt = 499.; //maximum pT for corrections
+    else if(pt < 20.) pt = 20.; //minimum pT for corrections
+    if(eta >= 2.5) eta = 2.49; //maximum eta for corrections
+    else if(eta <= -2.5) eta = -2.49; //minimum eta for corrections
+  } else if(year == k2017) {
+    if(pt > 499.)     pt = 499.; //maximum pT for corrections
+    else if(pt < 20.) pt = 20.; //minimum pT for corrections
+    if(eta >= 2.5) eta = 2.49; //maximum eta for corrections
+    else if(eta <= -2.5) eta = -2.49; //minimum eta for corrections
+  } else if(year == k2018) {
+    if(pt > 499.)     pt = 499.; //maximum pT for corrections
+    else if(pt < 20.) pt = 20.; //minimum pT for corrections
+    if(eta >= 2.5) eta = 2.49; //maximum eta for corrections
+    else if(eta <= -2.5) eta = -2.49; //minimum eta for corrections
+  }
+  
+  double eta_trig = eta;
+  if(eta_trig > 2.4) eta_trig = 2.39;
+  else if(eta_trig <- 2.4) eta_trig = -2.39;
+  TH2F* hTrigData = electronTriggerEffMap[0][year];
+  data_eff = hTrigData->GetBinContent(hTrigData->GetXaxis()->FindBin(eta_trig), hTrigData->GetYaxis()->FindBin(pt));
+  TH2F* hTrigMC = electronTriggerEffMap[1][year];
+  mc_eff = hTrigMC->GetBinContent(hTrigMC->GetXaxis()->FindBin(eta_trig), hTrigMC->GetYaxis()->FindBin(pt));
+
+  //can't fire a trigger if below the threshold
+  if((year == k2016 && pt < 28.) || (year == k2017 && pt < 33.) || (year == k2018 && pt < 28.)) {
+    data_eff = 1.;
+    mc_eff = 1.;
+  }
+  double scale_factor = (mc_eff > 0.) ? data_eff / mc_eff : 0.;
+  if(scale_factor <= 0. || fVerbose > 0) {
+    if(scale_factor <= 0.) std::cout << "Warning! Scale factor <= 0! ";
+    std::cout << "ParticleCorrections::" << __func__
+	      << " year = " << year
+	      << " data_eff = " << data_eff
+	      << " mc_eff = " << mc_eff
 	      << std::endl;
   }
   return scale_factor;
@@ -267,10 +380,11 @@ double ParticleCorrections::BTagWeight(double pt, double eta, int jetFlavor, int
 double ParticleCorrections::ZWeight(double pt, double mass, int year) {
   if(pt > 999.) pt = 999.;
   if(mass > 999.) mass = 999.;
+  //FIXME: Add some sort of warning, suppress after a number of times thrown if no map
+  if(!zWeightMap[year]) return 1.;
   int binx = zWeightMap[year]->GetXaxis()->FindBin(mass);
   int biny = zWeightMap[year]->GetYaxis()->FindBin(pt);
   double scale_factor = zWeightMap[year]->GetBinContent(binx,biny);
-  if(scale_factor <= 0.) scale_factor = 1.;
   if(scale_factor <= 0. || fVerbose > 0) {
     if(scale_factor <= 0.) std::cout << "Warning! Scale factor <= 0! ";
     std::cout << "ParticleCorrections::" << __func__
@@ -278,5 +392,53 @@ double ParticleCorrections::ZWeight(double pt, double mass, int year) {
 	      << " scale_factor = " << scale_factor
 	      << std::endl;
   }
+  if(scale_factor <= 0.) scale_factor = 1.;
+  return scale_factor;
+}
+
+//get B-Tag WP cut value
+double ParticleCorrections::BTagCut(int wp, int year) {
+  const double bTagValues[kTightBTag+1] = {0.2217, 0.6321, 0.8953}; //corresponding values
+  double val = -1.;
+  if(year == ParticleCorrections::k2016) {
+    if(wp == ParticleCorrections::kLooseBTag)       val = 0.2217;
+    else if(wp == ParticleCorrections::kMediumBTag) val = 0.6321;
+    else if(wp == ParticleCorrections::kTightBTag)  val = 0.8953;
+    else std::cout << "WARNING! Unrecognized B-Tag WP " << wp << " for "
+		   << year << " configurations! Returning -1..." << std::endl;
+  }
+  if(year == ParticleCorrections::k2017) {
+    if(wp == ParticleCorrections::kLooseBTag)       val = 0.1522;
+    else if(wp == ParticleCorrections::kMediumBTag) val = 0.4941;
+    else if(wp == ParticleCorrections::kTightBTag)  val = 0.8001;
+    else std::cout << "WARNING! Unrecognized B-Tag WP " << wp << " for "
+		   << year << " configurations! Returning -1..." << std::endl;
+  }
+  if(year == ParticleCorrections::k2018) {
+    if(wp == ParticleCorrections::kLooseBTag)       val = 0.1241;
+    else if(wp == ParticleCorrections::kMediumBTag) val = 0.4184;
+    else if(wp == ParticleCorrections::kTightBTag)  val = 0.7527;
+    else std::cout << "WARNING! Unrecognized B-Tag WP " << wp << " for "
+		   << year << " configurations! Returning -1..." << std::endl;
+  }
+  return val;
+}
+
+//combine efficiencies for two triggers fired
+float ParticleCorrections::CombineEfficiencies(float data_eff_1, float mc_eff_1, float data_eff_2, float mc_eff_2) {
+  float eff_data = 1. - (1. - data_eff_1)*(1. - data_eff_2);
+  float eff_mc   = 1. - (1. -   mc_eff_1)*(1. -   mc_eff_2);
+  float scale_factor = eff_data / eff_mc;
+  if(scale_factor <= 0. || fVerbose > 0) {
+    if(scale_factor <= 0.) std::cout << "Warning! Scale factor <= 0! ";
+    std::cout << "ParticleCorrections::" << __func__
+	      << " data_eff_1 = " << data_eff_1
+	      << " mc_eff_1 = " << mc_eff_1
+	      << " data_eff_2 = " << data_eff_2
+	      << " mc_eff_2 = " << mc_eff_2
+	      << " scale_factor = " << scale_factor
+	      << std::endl;
+  }
+  if(scale_factor <= 0.) scale_factor = 1.;
   return scale_factor;
 }
