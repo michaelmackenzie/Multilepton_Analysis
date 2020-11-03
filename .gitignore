@@ -23,7 +23,7 @@ interface
 scripts/*.root
 *.log
 histograms/canvases/*/*/*.root
-
+studies/*/*.root
 #ignore images by default
 *.png
 *.gif

@@ -68,12 +68,9 @@ struct Tree_t {
   float nbjets; //pt > 30
   float nbjetsm;
   float nbjetsl;
-  float nbjetstot25; //pt > 25
-  float nbjetstot25m;
-  float nbjetstot25l;
-  float nbjetstot20; //pt > 20
-  float nbjetstot20m;
-  float nbjetstot20l;
+  float nbjets20; //pt > 20
+  float nbjets20m;
+  float nbjets20l;
   float nphotons;
   float eventweight;
   float fulleventweight; //includes cross-section and number gen

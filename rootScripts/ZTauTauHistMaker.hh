@@ -64,8 +64,8 @@ public :
   Float_t puWeight                   ;
   Float_t topPtWeight                ;
   Float_t zPtWeight                  ;
-  Float_t zPt                        ;
-  Float_t zMass                      ;
+  Float_t zPt = -1.                  ;
+  Float_t zMass = -1.                ;
   Float_t genTauFlavorWeight         ;
   Int_t tauDecayMode                 ;
   Float_t tauMVA                     ;
@@ -87,8 +87,12 @@ public :
   UChar_t leptonTwoID2               ;
   Int_t   leptonOneIndex             ;
   Int_t   leptonTwoIndex             ;
-  Float_t   leptonOneWeight          ;
-  Float_t   leptonTwoWeight          ;
+  Float_t leptonOneWeight            ;
+  Float_t leptonTwoWeight            ;
+  Float_t leptonOneTrigWeight        ;
+  Float_t leptonTwoTrigWeight        ;
+  Bool_t  leptonOneFired             ;
+  Bool_t  leptonTwoFired             ;
   TLorentzVector* genLeptonOneP4 = 0 ;
   TLorentzVector* genLeptonTwoP4 = 0 ;
   TLorentzVector* photonP4 = 0       ;
@@ -124,27 +128,15 @@ public :
   UInt_t nJets                       ;
   UInt_t nSlimJets                   ;
   SlimJets_t* slimJets               ;
-  UInt_t nJets25                     ;
   UInt_t nJets20                     ;
-  UInt_t nJets25Tot                  ;
-  UInt_t nJetsTot                    ;
   UInt_t nFwdJets                    ;
   UInt_t nBJetsUse                   ; //which to count
   UInt_t nBJets                      ;
   UInt_t nBJetsM                     ;
   UInt_t nBJetsL                     ;
-  UInt_t nBJets25                    ;
-  UInt_t nBJets25M                   ;
-  UInt_t nBJets25L                   ;
   UInt_t nBJets20                    ;
   UInt_t nBJets20M                   ;
   UInt_t nBJets20L                   ;
-  UInt_t nBJets25Tot                 ;
-  UInt_t nBJets25TotM                ;
-  UInt_t nBJets25TotL                ;
-  UInt_t nBJetsTot                   ;
-  UInt_t nBJetsTotM                  ;
-  UInt_t nBJetsTotL                  ;
   UInt_t nGenTausHad                 ;
   UInt_t nGenTausLep                 ;
   UInt_t nGenElectrons               ;
@@ -197,310 +189,301 @@ public :
   TLorentzVector* leptonTwoSVP4 = 0  ;
 
   struct EventHist_t {
-    TH1F* hLumiSection;
-    TH1F* hTriggerStatus;
-    TH1F* hEventWeight;
-    TH1F* hGenWeight;
-    TH1F* hGenTauFlavorWeight;
-    TH1F* hPhotonIDWeight;
-    TH1F* hNPV;
-    TH1F* hNPU;
-    TH1F* hNPartons;
-    TH1F* hNMuons;
-    TH1F* hNSlimMuons;
-    TH1F* hNMuonCounts[kMaxCounts];
-    TH1F* hNElectrons;
-    TH1F* hNSlimElectrons;
-    TH1F* hNElectronCounts[kMaxCounts];
-    TH1F* hNLowPtElectrons;
-    TH1F* hNTaus;
-    TH1F* hNSlimTaus;
-    TH1F* hNTauCounts[kMaxCounts];
-    TH1F* hNPhotons;
-    TH1F* hNSlimPhotons;
-    TH1F* hNSlimJets;
-    TH1F* hNGenTausHad;
-    TH1F* hNGenTausLep;
-    TH1F* hNGenTaus;
-    TH1F* hNGenElectrons;
-    TH1F* hNGenMuons;
-    TH1F* hNGenHardTaus;
-    TH1F* hNGenHardElectrons;
-    TH1F* hNGenHardMuons;
-    TH1F* hNJets;
-    TH1F* hNJets25;
-    TH1F* hNJets20;
-    TH1F* hNJets25Tot;
-    TH1F* hNJetsTot;
-    TH1F* hNFwdJets;
-    TH1F* hNBJets;
-    TH1F* hNBJetsM;
-    TH1F* hNBJetsL;
-    TH1F* hNBJets25;
-    TH1F* hNBJets25M;
-    TH1F* hNBJets25L;
-    TH1F* hNBJets20;
-    TH1F* hNBJets20M;
-    TH1F* hNBJets20L;
-    TH1F* hNBJets25Tot;
-    TH1F* hNBJets25TotM;
-    TH1F* hNBJets25TotL;
-    TH1F* hNBJetsTot;
-    TH1F* hNBJetsTotM;
-    TH1F* hNBJetsTotL;
-    TH1F* hMcEra;
-    TH1F* hTriggerLeptonStatus;
-    TH1F* hPuWeight;
-    TH1F* hTopPtWeight;
-    TH1F* hZPtWeight;
-    TH1F* hTauDecayMode;
-    TH1F* hTauMVA;
-    TH1F* hTauGenFlavor;
-    TH1F* hTauGenFlavorHad;
-    TH1F* hTauVetoedJetPt;
-    TH1F* hTauVetoedJetPtUnc;
-    TH1F* hTauDeepAntiEle;
-    TH1F* hTauDeepAntiMu ;
-    TH1F* hTauDeepAntiJet;
-    TH1F* hHtSum;
-    TH1F* hHt;
-    TH1F* hHtPhi;
-    TH1F* hJetPt;
-    TH1F* hJetM;
-    TH1F* hJetEta;
-    TH1F* hJetPhi;    
-    TH1F* hJetBTag;    
-    TH1F* hJetBMVA;    
-    TH1F* hTauPt;
-    TH1F* hTauM;
-    TH1F* hTauEta;
-    TH1F* hTauPhi;    
-    TH1F* hPuppMet;
-    TH1F* hPFMet;
-    TH1F* hPFMetPhi;
-    TH1F* hPFCovMet00;
-    TH1F* hPFCovMet01;
-    TH1F* hPFCovMet11;
-    TH1F* hTrkMet;
-    TH1F* hTrkMetPhi;
+    TH1D* hLumiSection;
+    TH1D* hTriggerStatus;
+    TH1D* hNTriggered;
+    TH1D* hEventWeight;
+    TH1D* hGenWeight;
+    TH1D* hGenTauFlavorWeight;
+    TH1D* hPhotonIDWeight;
+    TH1D* hNPV;
+    TH1D* hNPU;
+    TH1D* hNPartons;
+    TH1D* hNMuons;
+    TH1D* hNSlimMuons;
+    TH1D* hNMuonCounts[kMaxCounts];
+    TH1D* hNElectrons;
+    TH1D* hNSlimElectrons;
+    TH1D* hNElectronCounts[kMaxCounts];
+    TH1D* hNLowPtElectrons;
+    TH1D* hNTaus;
+    TH1D* hNSlimTaus;
+    TH1D* hNTauCounts[kMaxCounts];
+    TH1D* hNPhotons;
+    TH1D* hNSlimPhotons;
+    TH1D* hNSlimJets;
+    TH1D* hNGenTausHad;
+    TH1D* hNGenTausLep;
+    TH1D* hNGenTaus;
+    TH1D* hNGenElectrons;
+    TH1D* hNGenMuons;
+    TH1D* hNGenHardTaus;
+    TH1D* hNGenHardElectrons;
+    TH1D* hNGenHardMuons;
+    TH1D* hNJets;
+    TH1D* hNJets20;
+    TH1D* hNFwdJets;
+    TH1D* hNBJets;
+    TH1D* hNBJetsM;
+    TH1D* hNBJetsL;
+    TH1D* hNBJets20;
+    TH1D* hNBJets20M;
+    TH1D* hNBJets20L;
+    TH1D* hMcEra;
+    TH1D* hTriggerLeptonStatus;
+    TH1D* hPuWeight;
+    TH1D* hTopPtWeight;
+    TH1D* hZPtWeight;
+    TH1D* hTauDecayMode;
+    TH1D* hTauMVA;
+    TH1D* hTauGenFlavor;
+    TH1D* hTauGenFlavorHad;
+    TH1D* hTauVetoedJetPt;
+    TH1D* hTauVetoedJetPtUnc;
+    TH1D* hTauDeepAntiEle;
+    TH1D* hTauDeepAntiMu ;
+    TH1D* hTauDeepAntiJet;
+    TH1D* hHtSum;
+    TH1D* hHt;
+    TH1D* hHtPhi;
+    TH1D* hJetPt;
+    TH1D* hJetM;
+    TH1D* hJetEta;
+    TH1D* hJetPhi;    
+    TH1D* hJetBTag;    
+    TH1D* hJetBMVA;    
+    TH1D* hTauPt;
+    TH1D* hTauM;
+    TH1D* hTauEta;
+    TH1D* hTauPhi;    
+    TH1D* hPuppMet;
+    TH1D* hPFMet;
+    TH1D* hPFMetPhi;
+    TH1D* hPFCovMet00;
+    TH1D* hPFCovMet01;
+    TH1D* hPFCovMet11;
+    TH1D* hTrkMet;
+    TH1D* hTrkMetPhi;
 
-    TH1F* hMet;
-    TH1F* hMetPhi;
-    TH1F* hMetCorr;
-    TH1F* hMetCorrPhi;
-    TH1F* hCovMet00;
-    TH1F* hCovMet01;
-    TH1F* hCovMet11;
-    TH2F* hMetVsPt;
-    TH2F* hMetVsM;
-    TH2F* hMetVsHtSum; //MET ~ sqrt(htsum)
-    TH1F* hMetOverSqrtHtSum; //MET ~ sqrt(htsum)
+    TH1D* hMet;
+    TH1D* hMetPhi;
+    TH1D* hMetCorr;
+    TH1D* hMetCorrPhi;
+    TH1D* hCovMet00;
+    TH1D* hCovMet01;
+    TH1D* hCovMet11;
+    TH2D* hMetVsPt;
+    TH2D* hMetVsM;
+    TH2D* hMetVsHtSum; //MET ~ sqrt(htsum)
+    TH1D* hMetOverSqrtHtSum; //MET ~ sqrt(htsum)
     
-    TH1F* hMassSVFit;
-    TH1F* hMassErrSVFit;
-    TH1F* hSVFitStatus;
+    TH1D* hMassSVFit;
+    TH1D* hMassErrSVFit;
+    TH1D* hSVFitStatus;
 
     //di-lepton histograms
-    TH1F* hLepPt;
-    TH1F* hLepP;
-    TH1F* hLepM;
-    TH1F* hLepEta;
-    TH1F* hLepPhi;
-    TH2F* hLepPtVsM;
+    TH1D* hLepPt[3]; //0: normal 1: remove Z pT weight if DY file 2: apply weights using reco scales if DY
+    TH1D* hLepP;
+    TH1D* hLepM[3]; //0: normal 1: remove Z pT weight if DY file 2: apply weights using reco scales if DY
+    TH1D* hLepEta;
+    TH1D* hLepPhi;
+    TH2D* hLepPtVsM[3]; //0: normal 1: remove Z pT weight if DY file 2: apply weights using reco scales if DY
 
     //Gen-level Z info
-    TH2F* hZPtVsM;
+    TH2D* hZPtVsM[3]; //0: normal 1: remove Z pT weight 2: apply weights using reco scales if DY
+    TH1D* hZPt[3];
+    TH1D* hZMass[3];
     
-    TH1F* hLepDeltaPhi;
-    TH1F* hLepDeltaEta;
-    TH1F* hLepDeltaR;
-    TH2F* hLepDelRVsPhi;
+    TH1D* hLepDeltaPhi;
+    TH1D* hLepDeltaEta;
+    TH1D* hLepDeltaR;
+    TH2D* hLepDelRVsPhi;
     
-    TH1F* hLepPtOverM;
-    TH1F* hAlpha[4]; //alpha from arXiv:1207.4894
-    TH1F* hDeltaAlpha[4]; //delta alpha from arXiv:1207.4894
+    TH1D* hLepPtOverM;
+    TH1D* hAlpha[4]; //alpha from arXiv:1207.4894
+    TH1D* hDeltaAlpha[4]; //delta alpha from arXiv:1207.4894
     
-    TH1F* hHtDeltaPhi;
-    TH1F* hMetDeltaPhi;
-    TH1F* hJetDeltaPhi;
-    TH1F* hLepOneDeltaPhi;
-    TH1F* hLepTwoDeltaPhi;
+    TH1D* hHtDeltaPhi;
+    TH1D* hMetDeltaPhi;
+    TH1D* hJetDeltaPhi;
+    TH1D* hLepOneDeltaPhi;
+    TH1D* hLepTwoDeltaPhi;
 
     //angles between leptons and jets
-    TH1F* hLepOneJetDeltaR;
-    TH1F* hLepOneJetDeltaPhi;
-    TH1F* hLepOneJetDeltaEta;
-    TH1F* hLepTwoJetDeltaR;
-    TH1F* hLepTwoJetDeltaPhi;
-    TH1F* hLepTwoJetDeltaEta;
+    TH1D* hLepOneJetDeltaR;
+    TH1D* hLepOneJetDeltaPhi;
+    TH1D* hLepOneJetDeltaEta;
+    TH1D* hLepTwoJetDeltaR;
+    TH1D* hLepTwoJetDeltaPhi;
+    TH1D* hLepTwoJetDeltaEta;
     
-    TH1F* hLepSVPt;
-    TH1F* hLepSVM;
-    TH1F* hLepSVEta;
-    TH1F* hLepSVPhi;
+    TH1D* hLepSVPt;
+    TH1D* hLepSVM;
+    TH1D* hLepSVEta;
+    TH1D* hLepSVPhi;
     
-    TH1F* hLepSVDeltaPhi;
-    TH1F* hLepSVDeltaEta;
-    TH1F* hLepSVDeltaM;
-    TH1F* hLepSVDeltaPt;
-    TH1F* hLepSVPtOverM;
+    TH1D* hLepSVDeltaPhi;
+    TH1D* hLepSVDeltaEta;
+    TH1D* hLepSVDeltaM;
+    TH1D* hLepSVDeltaPt;
+    TH1D* hLepSVPtOverM;
     
-    TH1F* hSysM;
-    TH1F* hSysPt;
-    TH1F* hSysEta;
-    TH2F* hSysMvsLepM;
+    TH1D* hSysM;
+    TH1D* hSysPt;
+    TH1D* hSysEta;
+    TH2D* hSysMvsLepM;
     
     //Transverse Masses
-    TH1F* hMTOne;
-    TH1F* hMTTwo;
+    TH1D* hMTOne;
+    TH1D* hMTTwo;
 
     //three sets for combining photon with a lepton or leptons vs photon
-    TH1F* hPXiVis[3];
-    TH1F* hPXiInv[3];
-    TH1F* hPXiVisOverInv[3];
-    TH2F* hPXiInvVsVis[3];
-    TH1F* hPXiDiff[3];
-    TH1F* hPXiDiff2[3];//difference with coeffecients and offset
-    TH1F* hPXiDiff3[3];
+    TH1D* hPXiVis[3];
+    TH1D* hPXiInv[3];
+    TH1D* hPXiVisOverInv[3];
+    TH2D* hPXiInvVsVis[3];
+    TH1D* hPXiDiff[3];
+    TH1D* hPXiDiff2[3];//difference with coeffecients and offset
+    TH1D* hPXiDiff3[3];
     
     //For assuming MET along tau is tau neutrino, only makes sense for e/mu + tau
-    TH1F* hPTauVisFrac;
-    TH1F* hLepMEstimate;
-    TH1F* hLepMEstimateTwo;
+    TH1D* hPTauVisFrac;
+    TH1D* hLepMEstimate;
+    TH1D* hLepMEstimateTwo;
     
-    TH1F* hPtSum[2]; //scalar sum of lepton Pt and Met, and photon for one
-    TH1F* hPt1Sum[4]; //scalar sum of 1 lepton Pt and Met, both leptons, then both minus met
+    TH1D* hPtSum[2]; //scalar sum of lepton Pt and Met, and photon for one
+    TH1D* hPt1Sum[4]; //scalar sum of 1 lepton Pt and Met, both leptons, then both minus met
     //MVA values
-    TH1F* hMVA[kMaxMVAs];
-    TH1F* hMVATrain[kMaxMVAs];
-    TH1F* hMVATest[kMaxMVAs];
+    TH1D* hMVA[kMaxMVAs];
+    TH1D* hMVATrain[kMaxMVAs];
+    TH1D* hMVATest[kMaxMVAs];
 
     //llg study histograms
-    TH1F* hObjMasses[14]; //jets, jets+gamma, jet1/2 + gamma, jets + l1/2, jet1/2 + l1/2, jets+l1+l2, jets + gamma + l1/2, jets + gamma + l1 + l2
-    TH1F* hJetTwoM;
-    TH1F* hJetTwoPt;
-    TH1F* hJetTwoEta;
-    TH1F* hJetTwoBTag;    
-    TH1F* hJetTwoBMVA;    
-    TH1F* hJetsDeltaR;
-    TH1F* hJetsDeltaEta;
-    TH1F* hJetsDeltaPhi;
-    TH1F* hJetsPt;
-    TH1F* hJetsEta;
-    TH1F* hJetsGammaDeltaR;
-    TH1F* hJetsGammaDeltaEta;
-    TH1F* hJetsGammaDeltaPhi;
-    TH1F* hJetsGammaPt;
-    TH1F* hJetsGammaEta;
+    TH1D* hObjMasses[14]; //jets, jets+gamma, jet1/2 + gamma, jets + l1/2, jet1/2 + l1/2, jets+l1+l2, jets + gamma + l1/2, jets + gamma + l1 + l2
+    TH1D* hJetTwoM;
+    TH1D* hJetTwoPt;
+    TH1D* hJetTwoEta;
+    TH1D* hJetTwoBTag;    
+    TH1D* hJetTwoBMVA;    
+    TH1D* hJetsDeltaR;
+    TH1D* hJetsDeltaEta;
+    TH1D* hJetsDeltaPhi;
+    TH1D* hJetsPt;
+    TH1D* hJetsEta;
+    TH1D* hJetsGammaDeltaR;
+    TH1D* hJetsGammaDeltaEta;
+    TH1D* hJetsGammaDeltaPhi;
+    TH1D* hJetsGammaPt;
+    TH1D* hJetsGammaEta;
   };
 
   struct LepHist_t {
-    TH1F* hOnePz;
-    TH1F* hOnePt;
-    TH1F* hOneP;
-    TH1F* hOneM;
-    TH1F* hOneEta;
-    TH1F* hOnePhi;
-    TH1F* hOneD0;
-    TH1F* hOneIso;
-    TH1F* hOneID1;
-    TH1F* hOneID2;
-    TH1F* hOneRelIso;
-    TH1F* hOneFlavor;
-    TH1F* hOneQ;
-    TH1F* hOneTrigger;
+    TH1D* hOnePz;
+    TH1D* hOnePt;
+    TH1D* hOneP;
+    TH1D* hOneM;
+    TH1D* hOneEta;
+    TH1D* hOnePhi;
+    TH1D* hOneD0;
+    TH1D* hOneIso;
+    TH1D* hOneID1;
+    TH1D* hOneID2;
+    TH1D* hOneRelIso;
+    TH1D* hOneFlavor;
+    TH1D* hOneQ;
+    TH1D* hOneTrigger;
     //Gen Info
-    TH1F* hOneGenPt;
-    TH1F* hOneGenE;
-    TH1F* hOneGenEta;
-    TH1F* hOneDeltaPt;
-    TH1F* hOneDeltaE;
-    TH1F* hOneDeltaEta;
-    TH1F* hOneMetDeltaPhi;
+    TH1D* hOneGenPt;
+    TH1D* hOneGenE;
+    TH1D* hOneGenEta;
+    TH1D* hOneDeltaPt;
+    TH1D* hOneDeltaE;
+    TH1D* hOneDeltaEta;
+    TH1D* hOneMetDeltaPhi;
     //SVFit Info
-    TH1F* hOneSVPt;
-    TH1F* hOneSVM;    
-    TH1F* hOneSVEta;
-    TH1F* hOneSVDeltaPt;
-    TH1F* hOneSVDeltaP;
-    TH1F* hOneSVDeltaE;
-    TH1F* hOneSVDeltaEta;
-    TH1F* hOneSlimEQ;
-    TH1F* hOneSlimMuQ;
-    TH1F* hOneSlimTauQ;
-    TH1F* hOneSlimEM;
-    TH1F* hOneSlimEMSS;
-    TH1F* hOneSlimEMOS;
-    TH1F* hOneSlimMuM;
-    TH1F* hOneSlimMuMSS;
-    TH1F* hOneSlimMuMOS;
-    TH1F* hOneSlimTauM;    
-    TH1F* hOneSlimTauMSS;    
-    TH1F* hOneSlimTauMOS;    
+    TH1D* hOneSVPt;
+    TH1D* hOneSVM;    
+    TH1D* hOneSVEta;
+    TH1D* hOneSVDeltaPt;
+    TH1D* hOneSVDeltaP;
+    TH1D* hOneSVDeltaE;
+    TH1D* hOneSVDeltaEta;
+    TH1D* hOneSlimEQ;
+    TH1D* hOneSlimMuQ;
+    TH1D* hOneSlimTauQ;
+    TH1D* hOneSlimEM;
+    TH1D* hOneSlimEMSS;
+    TH1D* hOneSlimEMOS;
+    TH1D* hOneSlimMuM;
+    TH1D* hOneSlimMuMSS;
+    TH1D* hOneSlimMuMOS;
+    TH1D* hOneSlimTauM;    
+    TH1D* hOneSlimTauMSS;    
+    TH1D* hOneSlimTauMOS;    
     
-    TH1F* hTwoPz;
-    TH1F* hTwoPt;
-    TH1F* hTwoP;
-    TH1F* hTwoM;
-    TH1F* hTwoEta;
-    TH1F* hTwoPhi;
-    TH1F* hTwoD0;
-    TH1F* hTwoIso;
-    TH1F* hTwoID1;
-    TH1F* hTwoID2;
-    TH1F* hTwoRelIso;
-    TH1F* hTwoFlavor;
-    TH1F* hTwoQ;
-    TH1F* hTwoTrigger;
+    TH1D* hTwoPz;
+    TH1D* hTwoPt;
+    TH1D* hTwoP;
+    TH1D* hTwoM;
+    TH1D* hTwoEta;
+    TH1D* hTwoPhi;
+    TH1D* hTwoD0;
+    TH1D* hTwoIso;
+    TH1D* hTwoID1;
+    TH1D* hTwoID2;
+    TH1D* hTwoRelIso;
+    TH1D* hTwoFlavor;
+    TH1D* hTwoQ;
+    TH1D* hTwoTrigger;
     //Gen Info
-    TH1F* hTwoGenPt;
-    TH1F* hTwoGenE;
-    TH1F* hTwoGenEta;
-    TH1F* hTwoDeltaPt;
-    TH1F* hTwoDeltaE;
-    TH1F* hTwoDeltaEta;
-    TH1F* hTwoMetDeltaPhi;
+    TH1D* hTwoGenPt;
+    TH1D* hTwoGenE;
+    TH1D* hTwoGenEta;
+    TH1D* hTwoDeltaPt;
+    TH1D* hTwoDeltaE;
+    TH1D* hTwoDeltaEta;
+    TH1D* hTwoMetDeltaPhi;
 
     //SVFit Info
-    TH1F* hTwoSVPt;
-    TH1F* hTwoSVM;    
-    TH1F* hTwoSVEta;
-    TH1F* hTwoSVDeltaPt;
-    TH1F* hTwoSVDeltaP;
-    TH1F* hTwoSVDeltaE;
-    TH1F* hTwoSVDeltaEta;
+    TH1D* hTwoSVPt;
+    TH1D* hTwoSVM;    
+    TH1D* hTwoSVEta;
+    TH1D* hTwoSVDeltaPt;
+    TH1D* hTwoSVDeltaP;
+    TH1D* hTwoSVDeltaE;
+    TH1D* hTwoSVDeltaEta;
 
-    TH1F* hTwoSlimEQ;
-    TH1F* hTwoSlimMuQ;
-    TH1F* hTwoSlimTauQ;
-    TH1F* hTwoSlimEM;
-    TH1F* hTwoSlimEMSS;
-    TH1F* hTwoSlimEMOS;
-    TH1F* hTwoSlimMuM;
-    TH1F* hTwoSlimMuMSS;
-    TH1F* hTwoSlimMuMOS;
-    TH1F* hTwoSlimTauM;    
-    TH1F* hTwoSlimTauMSS;    
-    TH1F* hTwoSlimTauMOS;    
+    TH1D* hTwoSlimEQ;
+    TH1D* hTwoSlimMuQ;
+    TH1D* hTwoSlimTauQ;
+    TH1D* hTwoSlimEM;
+    TH1D* hTwoSlimEMSS;
+    TH1D* hTwoSlimEMOS;
+    TH1D* hTwoSlimMuM;
+    TH1D* hTwoSlimMuMSS;
+    TH1D* hTwoSlimMuMOS;
+    TH1D* hTwoSlimTauM;    
+    TH1D* hTwoSlimTauMSS;    
+    TH1D* hTwoSlimTauMOS;    
     
     
-    TH1F* hPtDiff;
-    TH1F* hD0Diff;
+    TH1D* hPtDiff;
+    TH1D* hD0Diff;
     
     //2D distribution
-    TH2F* hTwoPtVsOnePt;
+    TH2D* hTwoPtVsOnePt;
   };
 
   struct PhotonHist_t {
-    TH1F* hPz;
-    TH1F* hPt;
-    TH1F* hP;
-    TH1F* hEta;
-    TH1F* hPhi;
-    TH1F* hMVA;
-    // TH1F* hIso;
-    // TH1F* hRelIso;
-    // TH1F* hTrigger;
+    TH1D* hPz;
+    TH1D* hPt;
+    TH1D* hP;
+    TH1D* hEta;
+    TH1D* hPhi;
+    TH1D* hMVA;
+    // TH1D* hIso;
+    // TH1D* hRelIso;
+    // TH1D* hTrigger;
   };
 
 
@@ -649,7 +632,7 @@ public :
   virtual void    InitializeTreeVariables(Int_t selection);
   virtual float   GetTauFakeSF(int genFlavor);
   virtual float   CorrectMET(int selection, float met);
-  virtual float   GetZPtWeight(float pt, float mass = 0.);
+  virtual float   GetZPtWeight(double pt, double mass = 0., int doReco = 0);
   virtual void    CountSlimObjects();
 
   virtual void    ProcessLLGStudy();
@@ -698,6 +681,7 @@ public :
   
   Int_t         fDYType = -1; //for splitting Z->ll into 1: tau tau and 2: e/mu e/mu
   Bool_t        fIsDY = false; //for checking if DY --> Z pT weights
+  Bool_t        fDYTesting = false; //for speeding up histogramming to only do DY weight related aspects
   
   Int_t         fWriteTrees = 0; //write out ttrees for the events
   Double_t      fXsec = 0.; //cross-section for full event weight with trees
@@ -710,7 +694,8 @@ public :
   Int_t         fMETWeights = 0; //re-weight events based on the MET
 
   Int_t         fRemoveZPtWeights = 0; // 0 use given weights, 1 remove z pT weight, 2 remove and re-evaluate weights locally
-  TH2F*         fZPtScales = 0; //histogram based z pTvsM weights
+  TH2D*         fZPtScales = 0; //histogram based z pTvsM weights
+  TH2D*         fZPtRecoScales = 0; //histogram based reconstructed z pTvsM weights
   TString       fZPtHistPath = "scale_factors/z_pt_vs_m_scales_"; //path for file, not including _[year].root
   
   float         fFractionMVA = 0.; //fraction of events used to train. Ignore these events in histogram filling, reweight the rest to compensate
@@ -722,6 +707,8 @@ public :
   Int_t         fMETType = 1; // 0: PF corrected 1: PUPPI Corrected
   bool          fForceBJetSense = true; //force can't be more strict id bjets than looser id bjets
   bool          fIsNano = false; //whether the tree is nano AOD based or not
+
+  Int_t         fVerbose = 0; //verbosity level
   
   ClassDef(ZTauTauHistMaker,0);
 
@@ -740,8 +727,61 @@ void ZTauTauHistMaker::Init(TTree *tree)
   // (once per file to be processed).
   if(fChain == 0 && tree != 0) {
 
-    tree->SetBranchStatus("*", 1); //ensure all branches are active
-
+    if(!fDYTesting)
+      tree->SetBranchStatus("*", 1); //ensure all branches are active
+    else {
+      tree->SetBranchStatus("*", 0); //turn off everything except what is needed (or hard to remove)
+      tree->SetBranchStatus("triggerLeptonStatus" , 1);
+      tree->SetBranchStatus("lepOneTrigWeight"    , 1);
+      tree->SetBranchStatus("lepTwoTrigWeight"    , 1);
+      tree->SetBranchStatus("lepOneFired"         , 1);
+      tree->SetBranchStatus("lepTwoFired"         , 1);
+      tree->SetBranchStatus("eventWeight"         , 1);
+      tree->SetBranchStatus("genWeight"           , 1);
+      tree->SetBranchStatus("puWeight"            , 1);
+      tree->SetBranchStatus("topPtWeight"         , 1);
+      tree->SetBranchStatus("zPtWeight"           , 1);
+      tree->SetBranchStatus("zPt"                 , 1);
+      tree->SetBranchStatus("zMass"               , 1);
+      tree->SetBranchStatus("leptonOneP4" 	  , 1);
+      tree->SetBranchStatus("leptonTwoP4" 	  , 1);
+      tree->SetBranchStatus("leptonOneFlavor"     , 1);
+      tree->SetBranchStatus("leptonTwoFlavor"     , 1);
+      tree->SetBranchStatus("leptonOneIndex"      , 1);
+      tree->SetBranchStatus("leptonTwoIndex"      , 1);
+      tree->SetBranchStatus("lepOneWeight"        , 1);
+      tree->SetBranchStatus("lepTwoWeight"        , 1);
+      tree->SetBranchStatus("photonP4"  	  , 1);
+      tree->SetBranchStatus("jetP4"  	          , 1);
+      tree->SetBranchStatus("nMuons"              , 1);
+      tree->SetBranchStatus("nElectrons"          , 1);
+      tree->SetBranchStatus("nTaus"               , 1);
+      tree->SetBranchStatus("nPhotons"            , 1);
+      tree->SetBranchStatus("nJets"               , 1);
+      tree->SetBranchStatus("nJets20"             , 1);
+      tree->SetBranchStatus("nFwdJets"            , 1);
+      tree->SetBranchStatus("nBJets"              , 1);
+      tree->SetBranchStatus("nBJetsM"             , 1);
+      tree->SetBranchStatus("nBJetsL"             , 1);
+      tree->SetBranchStatus("nBJets20"            , 1);
+      tree->SetBranchStatus("nBJets20M"           , 1);
+      tree->SetBranchStatus("nBJets20L"           , 1);
+      tree->SetBranchStatus("nGenTausHad"         , 1);
+      tree->SetBranchStatus("nGenTausLep"         , 1);
+      tree->SetBranchStatus("nGenElectrons"       , 1);
+      tree->SetBranchStatus("nGenMuons"           , 1);
+      tree->SetBranchStatus("nGenPromptTaus"      , 1);
+      tree->SetBranchStatus("nGenPromptElectrons" , 1);
+      tree->SetBranchStatus("nGenPromptMuons"     , 1);
+      tree->SetBranchStatus("puppMET"             , 1);
+      tree->SetBranchStatus("puppMETphi"          , 1);
+      tree->SetBranchStatus("puppMETC"            , 1);
+      tree->SetBranchStatus("puppMETCphi"         , 1);
+      tree->SetBranchStatus("met"                 , 1);
+      tree->SetBranchStatus("metPhi"              , 1);
+      tree->SetBranchStatus("metCorr"             , 1);
+      tree->SetBranchStatus("metCorrPhi"          , 1);
+    }
     TMVA::Tools::Instance(); //load the TMVA library
     for(int i = 0; i < kMaxMVAs; ++i) mva[i] = 0; //initially 0s
 
@@ -790,11 +830,11 @@ void ZTauTauHistMaker::Init(TTree *tree)
 	printf("Booked MVA %s with selection %s\n", fMvaNames[mva_i].Data(), selection.Data());
       }
     }
-    slimMuons = new SlimMuons_t();
-    slimElectrons = new SlimElectrons_t();
-    slimTaus = new SlimTaus_t();
-    slimPhotons = new SlimPhotons_t();
-    slimJets = new SlimJets_t();
+    // slimMuons = new SlimMuons_t();
+    // slimElectrons = new SlimElectrons_t();
+    // slimTaus = new SlimTaus_t();
+    // slimPhotons = new SlimPhotons_t();
+    // slimJets = new SlimJets_t();
     
     fOut = new TFile(Form("ztautau%s%s_%s.hist",(fFolderName == "") ? "" : ("_"+fFolderName).Data(),
 			  (fDYType > 0) ? Form("_%i",fDYType) : "",tree->GetName()),
@@ -1055,29 +1095,32 @@ void ZTauTauHistMaker::Init(TTree *tree)
     }
     else if(fFolderName == "mumu") {
       //Mu+Mu sets
-      fEventSets [kMuMu + 1] = 1; // events with opposite signs
-      fEventSets [kMuMu + 1+fQcdOffset] = 1; // events with same signs
-      fEventSets [kMuMu + 2] = 1; // events with opposite signs
-      fEventSets [kMuMu + 2+fQcdOffset] = 1; // events with same signs
+      if(!fDYTesting) {
+	fEventSets [kMuMu + 1] = 1; // events with opposite signs
+	fEventSets [kMuMu + 1+fQcdOffset] = 1; // events with same signs
+	fEventSets [kMuMu + 2] = 1; // events with opposite signs
+	fEventSets [kMuMu + 2+fQcdOffset] = 1; // events with same signs
+      }
       fEventSets [kMuMu + 7] = 1; // events with opposite signs
       fEventSets [kMuMu + 7+fQcdOffset] = 1; // events with same signs
       fEventSets [kMuMu + 8] = 1; // events with opposite signs and no bjets
       fEventSets [kMuMu + 8+fQcdOffset] = 1; // events with same signs
-      fEventSets [kMuMu + 9] = 1; // events with opposite signs and no jets, no taus, no photons (mostly pure Z->mu + mu)
-      fEventSets [kMuMu + 9+fQcdOffset] = 1; // events with same signs
-      fEventSets [kMuMu +10] = 1; // events with opposite signs and no jets, no taus, no photons (mostly pure Z->mu + mu)
-      fEventSets [kMuMu +10+fQcdOffset] = 1; // events with same signs
-      fEventSets [kMuMu  + 16] = 1; // events with opposite signs and z box cuts
-      fEventSets [kMuMu  + 16+fQcdOffset] = 1; // events with same signs and z box cuts
-      fTreeSets  [kMuMu  + 16] = 1;
+      if(!fDYTesting) {
+	fEventSets [kMuMu + 9] = 1; // events with opposite signs and no jets, no taus, no photons (mostly pure Z->mu + mu)
+	fEventSets [kMuMu + 9+fQcdOffset] = 1; // events with same signs
+	fEventSets [kMuMu +10] = 1; // events with opposite signs and no jets, no taus, no photons (mostly pure Z->mu + mu)
+	fEventSets [kMuMu +10+fQcdOffset] = 1; // events with same signs
+	fEventSets [kMuMu  + 16] = 1; // events with opposite signs and z box cuts
+	fEventSets [kMuMu  + 16+fQcdOffset] = 1; // events with same signs and z box cuts
+	fTreeSets  [kMuMu  + 16] = 1;
 
-      fEventSets [kMuMu + 18] = 1; // events with opposite signs + 0-jet
-      fEventSets [kMuMu + 18+fQcdOffset] = 1; // events with same
-      fEventSets [kMuMu + 19] = 1; // events with opposite signs + 1-jet
-      fEventSets [kMuMu + 19+fQcdOffset] = 1; // events with same
-      fEventSets [kMuMu + 20] = 1; // events with opposite signs + >1-jet
-      fEventSets [kMuMu + 20+fQcdOffset] = 1; // events with same
-
+	fEventSets [kMuMu + 18] = 1; // events with opposite signs + 0-jet
+	fEventSets [kMuMu + 18+fQcdOffset] = 1; // events with same
+	fEventSets [kMuMu + 19] = 1; // events with opposite signs + 1-jet
+	fEventSets [kMuMu + 19+fQcdOffset] = 1; // events with same
+	fEventSets [kMuMu + 20] = 1; // events with opposite signs + >1-jet
+	fEventSets [kMuMu + 20+fQcdOffset] = 1; // events with same
+      }
     }
     else if(fFolderName == "ee") {
       //Mu+Mu sets
@@ -1127,14 +1170,22 @@ void ZTauTauHistMaker::Init(TTree *tree)
   else return;
   printf("ZTauTauHistMaker::Init fChain = tree ");
   std::cout << tree << std::endl;
+  //turn off slim vectors, as they're not that slim
+  fChain->SetBranchStatus("slimElectrons" , 0);
+  fChain->SetBranchStatus("slimMuons"     , 0);
+  fChain->SetBranchStatus("slimTaus"      , 0);
+  fChain->SetBranchStatus("slimJets"      , 0);
+  fChain->SetBranchStatus("slimPhotons"   , 0);
 
-  fChain->SetBranchAddress("runNumber"           , &runNumber            );
-  fChain->SetBranchAddress("evtNumber"           , &eventNumber          );
-  fChain->SetBranchAddress("lumiSection"         , &lumiSection          );
-  fChain->SetBranchAddress("nPV"                 , &nPV                  );
-  fChain->SetBranchAddress("nPU"                 , &nPU                  );
-  fChain->SetBranchAddress("nPartons"            , &nPartons             );
-  fChain->SetBranchAddress("mcEra"               , &mcEra                );
+  if(!fDYTesting) {
+    fChain->SetBranchAddress("runNumber"           , &runNumber            );
+    fChain->SetBranchAddress("evtNumber"           , &eventNumber          );
+    fChain->SetBranchAddress("lumiSection"         , &lumiSection          );
+    fChain->SetBranchAddress("nPV"                 , &nPV                  );
+    fChain->SetBranchAddress("nPU"                 , &nPU                  );
+    fChain->SetBranchAddress("nPartons"            , &nPartons             );
+    fChain->SetBranchAddress("mcEra"               , &mcEra                );
+  }
   fChain->SetBranchAddress("triggerLeptonStatus" , &triggerLeptonStatus  );
   fChain->SetBranchAddress("eventWeight"         , &eventWeight          );
   fChain->SetBranchAddress("genWeight"           , &genWeight            );
@@ -1143,82 +1194,100 @@ void ZTauTauHistMaker::Init(TTree *tree)
   fChain->SetBranchAddress("zPtWeight"           , &zPtWeight            );
   fChain->SetBranchAddress("zPt"                 , &zPt                  );
   fChain->SetBranchAddress("zMass"               , &zMass                );
-  fChain->SetBranchAddress("genTauFlavorWeight"  , &genTauFlavorWeight   );
-  fChain->SetBranchAddress("tauDecayMode"        , &tauDecayMode         );
-  fChain->SetBranchAddress("tauMVA"              , &tauMVA               );
-  fChain->SetBranchAddress("tauGenFlavor"        , &tauGenFlavor         );
-  fChain->SetBranchAddress("tauGenFlavorHad"     , &tauGenFlavorHad      );
-  fChain->SetBranchAddress("tauVetoedJetPt"      , &tauVetoedJetPt       );
-  fChain->SetBranchAddress("tauVetoedJetPtUnc"   , &tauVetoedJetPtUnc    );
+  if(!fDYTesting) {
+    fChain->SetBranchAddress("genTauFlavorWeight"  , &genTauFlavorWeight   );
+    fChain->SetBranchAddress("tauDecayMode"        , &tauDecayMode         );
+    fChain->SetBranchAddress("tauMVA"              , &tauMVA               );
+    fChain->SetBranchAddress("tauGenFlavor"        , &tauGenFlavor         );
+    fChain->SetBranchAddress("tauGenFlavorHad"     , &tauGenFlavorHad      );
+    fChain->SetBranchAddress("tauVetoedJetPt"      , &tauVetoedJetPt       );
+    fChain->SetBranchAddress("tauVetoedJetPtUnc"   , &tauVetoedJetPtUnc    );
+  }
   fChain->SetBranchAddress("leptonOneP4" 	 , &leptonOneP4          );
   fChain->SetBranchAddress("leptonTwoP4" 	 , &leptonTwoP4          );
   fChain->SetBranchAddress("leptonOneFlavor"     , &leptonOneFlavor      );
   fChain->SetBranchAddress("leptonTwoFlavor"     , &leptonTwoFlavor      );
-  fChain->SetBranchAddress("leptonOneD0"         , &leptonOneD0          );
-  fChain->SetBranchAddress("leptonTwoD0"         , &leptonTwoD0          );
-  fChain->SetBranchAddress("leptonOneIso"        , &leptonOneIso         );
-  fChain->SetBranchAddress("leptonTwoIso"        , &leptonTwoIso         );
-  fChain->SetBranchAddress("leptonOneID1"        , &leptonOneID1         );
-  fChain->SetBranchAddress("leptonOneID2"        , &leptonOneID2         );
-  fChain->SetBranchAddress("leptonTwoID1"        , &leptonTwoID1         );
-  fChain->SetBranchAddress("leptonTwoID2"        , &leptonTwoID2         );
+  if(!fDYTesting) {
+    fChain->SetBranchAddress("leptonOneD0"         , &leptonOneD0          );
+    fChain->SetBranchAddress("leptonTwoD0"         , &leptonTwoD0          );
+    fChain->SetBranchAddress("leptonOneIso"        , &leptonOneIso         );
+    fChain->SetBranchAddress("leptonTwoIso"        , &leptonTwoIso         );
+    fChain->SetBranchAddress("leptonOneID1"        , &leptonOneID1         );
+    fChain->SetBranchAddress("leptonOneID2"        , &leptonOneID2         );
+    fChain->SetBranchAddress("leptonTwoID1"        , &leptonTwoID1         );
+    fChain->SetBranchAddress("leptonTwoID2"        , &leptonTwoID2         );
+  }
   fChain->SetBranchAddress("leptonOneIndex"      , &leptonOneIndex       );
   fChain->SetBranchAddress("leptonTwoIndex"      , &leptonTwoIndex       );
   fChain->SetBranchAddress("lepOneWeight"        , &leptonOneWeight      );
   fChain->SetBranchAddress("lepTwoWeight"        , &leptonTwoWeight      );
-  fChain->SetBranchAddress("genLeptonOneP4" 	 , &genLeptonOneP4       );
-  fChain->SetBranchAddress("genLeptonTwoP4" 	 , &genLeptonTwoP4       );
+  fChain->SetBranchAddress("lepOneTrigWeight"    , &leptonOneTrigWeight  );
+  fChain->SetBranchAddress("lepTwoTrigWeight"    , &leptonTwoTrigWeight  );
+  fChain->SetBranchAddress("lepOneFired"         , &leptonOneFired       );
+  fChain->SetBranchAddress("lepTwoFired"         , &leptonTwoFired       );
+  if(!fDYTesting) {
+    fChain->SetBranchAddress("genLeptonOneP4" 	 , &genLeptonOneP4       );
+    fChain->SetBranchAddress("genLeptonTwoP4" 	 , &genLeptonTwoP4       );
+  }
   fChain->SetBranchAddress("photonP4"  	         , &photonP4             );
-  fChain->SetBranchAddress("photonMVA"  	 , &photonMVA            );
-  fChain->SetBranchAddress("photonIDWeight"      , &photonIDWeight       );
+  if(!fDYTesting) {
+    fChain->SetBranchAddress("photonMVA"  	 , &photonMVA            );
+    fChain->SetBranchAddress("photonIDWeight"      , &photonIDWeight       );
+  }
   fChain->SetBranchAddress("jetP4"  	         , &jetOneP4             );
-  fChain->SetBranchAddress("jetBTag"             , &jetOneBTag           ); 
-  fChain->SetBranchAddress("jetBMVA"             , &jetOneBMVA           ); 
-  if(fIsNano) {
-    fChain->SetBranchAddress("nJetsNano"  	 , &nSlimJets            );
-    fChain->SetBranchAddress("slimJets"   	 , &slimJets             );
+  if(!fDYTesting) {
+    fChain->SetBranchAddress("jetBTag"             , &jetOneBTag           ); 
+    fChain->SetBranchAddress("jetBMVA"             , &jetOneBMVA           ); 
+    if(fIsNano) {
+      fChain->SetBranchAddress("nJetsNano"  	 , &nSlimJets            );
+      // fChain->SetBranchAddress("slimJets"   	 , &slimJets             );
+    }
+    if(fFolderName == "llg_study") {
+      fChain->SetBranchAddress("jetTwoP4"  	 , &jetTwoP4             );
+      fChain->SetBranchAddress("jetTwoBTag"  	 , &jetTwoBTag           );
+      fChain->SetBranchAddress("jetTwoBMVA"  	 , &jetTwoBMVA           );
+    }
+    fChain->SetBranchAddress("tauP4"  	         , &tauP4                );
+    fChain->SetBranchAddress("tauFlavor"  	 , &tauFlavor            );
   }
-  if(fFolderName == "llg_study") {
-    fChain->SetBranchAddress("jetTwoP4"  	 , &jetTwoP4             );
-    fChain->SetBranchAddress("jetTwoBTag"  	 , &jetTwoBTag           );
-    fChain->SetBranchAddress("jetTwoBMVA"  	 , &jetTwoBMVA           );
-  }
-  fChain->SetBranchAddress("tauP4"  	         , &tauP4                );
-  fChain->SetBranchAddress("tauFlavor"  	 , &tauFlavor            );
   fChain->SetBranchAddress("nMuons"              , &nMuons               );
-  if(fIsNano) {
-    fChain->SetBranchAddress("tauDeepAntiEle"    , &tauDeepAntiEle       );
-    fChain->SetBranchAddress("tauDeepAntiMu"     , &tauDeepAntiMu        );
-    fChain->SetBranchAddress("tauDeepAntiJet"    , &tauDeepAntiJet       );
-    fChain->SetBranchAddress("nMuonsNano"        , &nSlimMuons           );
-    fChain->SetBranchAddress("slimMuons"         , &slimMuons            );
+  if(!fDYTesting) {
+    if(fIsNano) {
+      fChain->SetBranchAddress("tauDeepAntiEle"    , &tauDeepAntiEle       );
+      fChain->SetBranchAddress("tauDeepAntiMu"     , &tauDeepAntiMu        );
+      fChain->SetBranchAddress("tauDeepAntiJet"    , &tauDeepAntiJet       );
+      fChain->SetBranchAddress("nMuonsNano"        , &nSlimMuons           );
+      // fChain->SetBranchAddress("slimMuons"         , &slimMuons            );
+    }
   }
   fChain->SetBranchAddress("nElectrons"          , &nElectrons           );
-  if(fIsNano) {
-    fChain->SetBranchAddress("nElectronsNano"    , &nSlimElectrons       );
-    fChain->SetBranchAddress("slimElectrons"     , &slimElectrons        );
+  if(!fDYTesting) {
+    if(fIsNano) {
+      fChain->SetBranchAddress("nElectronsNano"    , &nSlimElectrons       );
+      // fChain->SetBranchAddress("slimElectrons"     , &slimElectrons        );
+    }
+    // fChain->SetBranchAddress("nLowPtElectrons"     , &nLowPtElectrons      );
   }
-  fChain->SetBranchAddress("nLowPtElectrons"     , &nLowPtElectrons      );
   fChain->SetBranchAddress("nTaus"               , &nTaus                );
-  if(fIsNano) {
-    fChain->SetBranchAddress("nTausNano"         , &nSlimTaus            );
-    fChain->SetBranchAddress("slimTaus"          , &slimTaus             );
+  if(!fDYTesting) {
+    if(fIsNano) {
+      fChain->SetBranchAddress("nTausNano"         , &nSlimTaus            );
+      // fChain->SetBranchAddress("slimTaus"          , &slimTaus             );
+    }
   }
   fChain->SetBranchAddress("nPhotons"            , &nPhotons             );
-  if(fIsNano) {
-    fChain->SetBranchAddress("nPhotonsNano"  	 , &nSlimPhotons         );
-    fChain->SetBranchAddress("slimPhotons"  	 , &slimPhotons          );
+  if(!fDYTesting) {
+    if(fIsNano) {
+      fChain->SetBranchAddress("nPhotonsNano"  	 , &nSlimPhotons         );
+      // fChain->SetBranchAddress("slimPhotons"  	 , &slimPhotons          );
+    }
   }
   fChain->SetBranchAddress("nJets"               , &nJets                );
-  fChain->SetBranchAddress("nJets25"             , &nJets25              );
   fChain->SetBranchAddress("nJets20"             , &nJets20              );
   fChain->SetBranchAddress("nFwdJets"            , &nFwdJets             );
   fChain->SetBranchAddress("nBJets"              , &nBJets               );
   fChain->SetBranchAddress("nBJetsM"             , &nBJetsM              );
   fChain->SetBranchAddress("nBJetsL"             , &nBJetsL              );
-  fChain->SetBranchAddress("nBJets25"            , &nBJets25             );
-  fChain->SetBranchAddress("nBJets25M"           , &nBJets25M            );
-  fChain->SetBranchAddress("nBJets25L"           , &nBJets25L            );
   fChain->SetBranchAddress("nBJets20"            , &nBJets20             );
   fChain->SetBranchAddress("nBJets20M"           , &nBJets20M            );
   fChain->SetBranchAddress("nBJets20L"           , &nBJets20L            );
@@ -1229,19 +1298,21 @@ void ZTauTauHistMaker::Init(TTree *tree)
   fChain->SetBranchAddress("nGenPromptTaus"      , &nGenHardTaus         );
   fChain->SetBranchAddress("nGenPromptElectrons" , &nGenHardElectrons    );
   fChain->SetBranchAddress("nGenPromptMuons"     , &nGenHardMuons        );
-  fChain->SetBranchAddress("htSum"               , &htSum                );
-  fChain->SetBranchAddress("ht"                  , &ht                   );
-  fChain->SetBranchAddress("htPhi"               , &htPhi                );
-  // fChain->SetBranchAddress("pfMET"               , &pfMET                );
-  // fChain->SetBranchAddress("pfMETphi"            , &pfMETphi             );
-  // fChain->SetBranchAddress("pfMETCov00"          , &pfMETCov00           );
-  // fChain->SetBranchAddress("pfMETCov01"          , &pfMETCov01           );
-  // fChain->SetBranchAddress("pfMETCov11"          , &pfMETCov11           );
-  fChain->SetBranchAddress("pfMETC"              , &pfMETC               );
-  fChain->SetBranchAddress("pfMETCphi"           , &pfMETCphi            );
-  fChain->SetBranchAddress("pfMETCCov00"         , &pfMETCCov00          );
-  fChain->SetBranchAddress("pfMETCCov01"         , &pfMETCCov01          );
-  fChain->SetBranchAddress("pfMETCCov11"         , &pfMETCCov11          );
+  if(!fDYTesting) {
+    fChain->SetBranchAddress("htSum"               , &htSum                );
+    fChain->SetBranchAddress("ht"                  , &ht                   );
+    fChain->SetBranchAddress("htPhi"               , &htPhi                );
+    // fChain->SetBranchAddress("pfMET"               , &pfMET                );
+    // fChain->SetBranchAddress("pfMETphi"            , &pfMETphi             );
+    // fChain->SetBranchAddress("pfMETCov00"          , &pfMETCov00           );
+    // fChain->SetBranchAddress("pfMETCov01"          , &pfMETCov01           );
+    // fChain->SetBranchAddress("pfMETCov11"          , &pfMETCov11           );
+    fChain->SetBranchAddress("pfMETC"              , &pfMETC               );
+    fChain->SetBranchAddress("pfMETCphi"           , &pfMETCphi            );
+    fChain->SetBranchAddress("pfMETCCov00"         , &pfMETCCov00          );
+    fChain->SetBranchAddress("pfMETCCov01"         , &pfMETCCov01          );
+    fChain->SetBranchAddress("pfMETCCov11"         , &pfMETCCov11          );
+  }
   fChain->SetBranchAddress("puppMET"             , &puppMET              );
   fChain->SetBranchAddress("puppMETphi"          , &puppMETphi           );
   // fChain->SetBranchAddress("puppMETCov00"        , &puppMETCov00         );
@@ -1262,17 +1333,19 @@ void ZTauTauHistMaker::Init(TTree *tree)
   fChain->SetBranchAddress("metPhi"              , &metPhi               );
   fChain->SetBranchAddress("metCorr"             , &metCorr              );
   fChain->SetBranchAddress("metCorrPhi"          , &metCorrPhi           );
-  fChain->SetBranchAddress("covMet00"            , &covMet00             );
-  fChain->SetBranchAddress("covMet01"            , &covMet01             );
-  fChain->SetBranchAddress("covMet11"            , &covMet11             );
-  fChain->SetBranchAddress("massSVFit"           , &massSVFit            );
-  fChain->SetBranchAddress("massErrSVFit"        , &massErrSVFit         );
-  fChain->SetBranchAddress("svFitStatus"         , &svFitStatus          );
-  fChain->SetBranchAddress("leptonOneSVP4" 	 , &leptonOneSVP4        );
-  fChain->SetBranchAddress("leptonTwoSVP4" 	 , &leptonTwoSVP4        );
-  if(!fReprocessMVAs) {
-    for(unsigned mva_i = 0; mva_i < fMvaNames.size(); ++mva_i) {
-      fChain->SetBranchAddress(Form("mva%i",mva_i), &fMvaOutputs[mva_i]);
+  if(!fDYTesting) {
+    fChain->SetBranchAddress("covMet00"            , &covMet00             );
+    fChain->SetBranchAddress("covMet01"            , &covMet01             );
+    fChain->SetBranchAddress("covMet11"            , &covMet11             );
+    fChain->SetBranchAddress("massSVFit"           , &massSVFit            );
+    fChain->SetBranchAddress("massErrSVFit"        , &massErrSVFit         );
+    fChain->SetBranchAddress("svFitStatus"         , &svFitStatus          );
+    fChain->SetBranchAddress("leptonOneSVP4" 	 , &leptonOneSVP4        );
+    fChain->SetBranchAddress("leptonTwoSVP4" 	 , &leptonTwoSVP4        );
+    if(!fReprocessMVAs) {
+      for(unsigned mva_i = 0; mva_i < fMvaNames.size(); ++mva_i) {
+	fChain->SetBranchAddress(Form("mva%i",mva_i), &fMvaOutputs[mva_i]);
+      }
     }
   }
   printf("Total number of entries is %lld\n",fChain->GetEntriesFast());

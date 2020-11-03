@@ -549,8 +549,8 @@ void DataPlotter::get_titles(TString hist, TString setType, TString* xtitle, TSt
 
 }
 
-vector<TH1F*> DataPlotter::get_signal(TString hist, TString setType, Int_t set) {
-  vector<TH1F*> h;
+vector<TH1D*> DataPlotter::get_signal(TString hist, TString setType, Int_t set) {
+  vector<TH1D*> h;
   
   //for combining histograms of the same process
   map<TString, unsigned int> indexes;
@@ -562,7 +562,7 @@ vector<TH1F*> DataPlotter::get_signal(TString hist, TString setType, Int_t set) 
     h.push_back(NULL);
     if(isData_[i]) continue;
     if(!isSignal_[i]) continue;
-    TH1F* tmp = (TH1F*) data_[i]->Get(Form("%s_%i/%s", setType.Data(), set, hist.Data()));
+    TH1D* tmp = (TH1D*) data_[i]->Get(Form("%s_%i/%s", setType.Data(), set, hist.Data()));
     if(!tmp) continue;
     // tmp->SetBit(kCanDelete);
     tmp->Scale(scale_[i]);
@@ -601,7 +601,7 @@ vector<TH1F*> DataPlotter::get_signal(TString hist, TString setType, Int_t set) 
 			    (signal_scale_ == 1.) ? "" : Form(" (x%.1f)",signal_scale_), stats));
   }
   //scale return only meaningful histograms
-  vector<TH1F*> hsignals;
+  vector<TH1D*> hsignals;
   for(unsigned int i = 0; i < h.size(); ++i) {
     if(h[i] && indexes[labels_[i]] == i && h[i]->Integral() > 0.) {
       h[i]->Scale(signal_scale_);
@@ -612,16 +612,16 @@ vector<TH1F*> DataPlotter::get_signal(TString hist, TString setType, Int_t set) 
   return hsignals;
 }
 
-TH2F* DataPlotter::get_signal_2D(TString hist, TString setType, Int_t set) {
+TH2D* DataPlotter::get_signal_2D(TString hist, TString setType, Int_t set) {
   {
     auto o = gDirectory->Get("hSignal");
     if(o) delete o;
   }
-  TH2F* h = 0;
+  TH2D* h = 0;
   for(UInt_t i = 0; i < data_.size(); ++i) {
     if(isData_[i]) continue;
     if(!isSignal_[i]) continue;
-    TH2F* tmp = (TH2F*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set, hist.Data()));
+    TH2D* tmp = (TH2D*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set, hist.Data()));
     if(!tmp) continue;
     if(!h) h = tmp;
     else h->Add(tmp);
@@ -645,16 +645,16 @@ TH2F* DataPlotter::get_signal_2D(TString hist, TString setType, Int_t set) {
   return h;
 }
 
-TH1F* DataPlotter::get_data(TString hist, TString setType, Int_t set) {
+TH1D* DataPlotter::get_data(TString hist, TString setType, Int_t set) {
   TString hname = Form("hData_%s_%i", hist.Data(), set);
   {
     auto o = gDirectory->Get(hname.Data());
     if(o) delete o;
   }
-  TH1F* d = 0;
+  TH1D* d = 0;
   for(UInt_t i = 0; i < data_.size(); ++i) {
     if(!isData_[i]) continue;
-    TH1F* tmp = (TH1F*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set, hist.Data()));
+    TH1D* tmp = (TH1D*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set, hist.Data()));
     if(!tmp) continue;
     // tmp->SetBit(kCanDelete);
     if(!d) d = tmp;
@@ -672,15 +672,15 @@ TH1F* DataPlotter::get_data(TString hist, TString setType, Int_t set) {
   return d;
 }
 
-TH2F* DataPlotter::get_data_2D(TString hist, TString setType, Int_t set) {
+TH2D* DataPlotter::get_data_2D(TString hist, TString setType, Int_t set) {
   {
     auto o = gDirectory->Get("hData");
     if(o) delete o;
   }
-  TH2F* d = 0;
+  TH2D* d = 0;
   for(UInt_t i = 0; i < data_.size(); ++i) {
     if(!isData_[i]) continue;
-    TH2F* tmp = (TH2F*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set, hist.Data()));
+    TH2D* tmp = (TH2D*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set, hist.Data()));
     if(!tmp) continue;
     if(!d) d = tmp;
     else d->Add(tmp);
@@ -700,7 +700,7 @@ TH2F* DataPlotter::get_data_2D(TString hist, TString setType, Int_t set) {
   return d;
 }
 
-TH1F* DataPlotter::get_qcd(TString hist, TString setType, Int_t set) {
+TH1D* DataPlotter::get_qcd(TString hist, TString setType, Int_t set) {
   {
     auto o = gDirectory->Get(Form("qcd_%s_%i", hist.Data(), set));
     if(o) delete o;
@@ -708,20 +708,20 @@ TH1F* DataPlotter::get_qcd(TString hist, TString setType, Int_t set) {
   
   Int_t set_qcd = set + qcd_offset_;
 
-  TH1F* hData = get_data(hist, setType, set_qcd);
+  TH1D* hData = get_data(hist, setType, set_qcd);
   if(!hData) return hData;
   hData->SetName(Form("qcd_%s_%i",hist.Data(),set));      
-  TH1F* hMC = 0;
+  TH1D* hMC = 0;
   for(UInt_t i = 0; i < data_.size(); ++i) {
     if(isData_[i]) continue;
-    TH1F* htmp = (TH1F*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set_qcd, hist.Data()));
+    TH1D* htmp = (TH1D*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set_qcd, hist.Data()));
     if(!htmp) continue;
-    htmp = (TH1F*) htmp->Clone("tmp");
+    htmp = (TH1D*) htmp->Clone("tmp");
     // htmp->SetBit(kCanDelete);
     htmp->Scale(scale_[i]);
     if(rebinH_ > 0) htmp->Rebin(rebinH_);
     if(hMC) hMC->Add(htmp);
-    else hMC = (TH1F*) htmp->Clone("qcd_tmp");
+    else hMC = (TH1D*) htmp->Clone("qcd_tmp");
     delete htmp;
   }
   if(hMC) {hData->Add(hMC, -1.); delete hMC;}
@@ -745,13 +745,13 @@ TH1F* DataPlotter::get_qcd(TString hist, TString setType, Int_t set) {
   return hData;
 }
 
-TH1F* DataPlotter::get_stack_uncertainty(THStack* hstack, TString hname) {
+TH1D* DataPlotter::get_stack_uncertainty(THStack* hstack, TString hname) {
   if(!hstack || hstack->GetNhists() == 0)
     return NULL;
   TList* hlist = hstack->GetHists();
-  TH1F* hlast = (TH1F*) hlist->Last();
+  TH1D* hlast = (TH1D*) hlist->Last();
   //clone last histogram to match the setup
-  TH1F* huncertainty = (TH1F*) hlast->Clone(hname.Data());
+  TH1D* huncertainty = (TH1D*) hlast->Clone(hname.Data());
   huncertainty->Clear(); huncertainty->Reset();
   huncertainty->SetTitle("Bkg. #pm#sigma(Stat.)");
   huncertainty->SetFillColor(kGray+1);
@@ -761,16 +761,16 @@ TH1F* DataPlotter::get_stack_uncertainty(THStack* hstack, TString hname) {
   Int_t nbins = hlast->GetNbinsX();
 
   for(TObject* o : *hlist) {
-    if(o->InheritsFrom(TH1F::Class())) {
-      huncertainty->Add((TH1F*) o);
+    if(o->InheritsFrom(TH1D::Class())) {
+      huncertainty->Add((TH1D*) o);
     }
   }
   return huncertainty;
 }
 
 THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set) {
-  vector<TH1F*> h;
-  TH1F* hQCD = (include_qcd_) ? get_qcd(hist,setType,set) : NULL;
+  vector<TH1D*> h;
+  TH1D* hQCD = (include_qcd_) ? get_qcd(hist,setType,set) : NULL;
 
   {
     auto o = gDirectory->Get(Form("%s",hist.Data()));
@@ -793,11 +793,11 @@ THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set) {
     if(isData_[i]) {h.push_back(NULL);continue;}
     if(isSignal_[i]) {h.push_back(NULL);continue;}
     
-    h.push_back((TH1F*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set, hist.Data())));
+    h.push_back((TH1D*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set, hist.Data())));
     if(!h[i]) continue;
     auto o = gDirectory->Get("tmp");
     if(o) delete o;
-    h[i] = (TH1F*) h[i]->Clone("tmp");
+    h[i] = (TH1D*) h[i]->Clone("tmp");
     h[i]->Scale(scale_[i]);
     if(rebinH_ > 0) h[i]->Rebin(rebinH_);
     int index = i;
@@ -844,7 +844,7 @@ THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set) {
 
 TCanvas* DataPlotter::plot_single_2Dhist(TString hist, TString setType, Int_t set, TString label) {
 
-  TH2F* h = 0; //histogram
+  TH2D* h = 0; //histogram
 
   Int_t color = kBlack;
 
@@ -859,9 +859,9 @@ TCanvas* DataPlotter::plot_single_2Dhist(TString hist, TString setType, Int_t se
     if(label != labels_[i]) continue;
     
     //get histogram
-    TH2F* htmp = (TH2F*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set, hist.Data()));
+    TH2D* htmp = (TH2D*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set, hist.Data()));
     if(!htmp) {printf("No hist %s in %s, continuing\n",hist.Data(), fileNames_[i].Data());continue;}
-    htmp = (TH2F*) htmp->Clone("tmp");
+    htmp = (TH2D*) htmp->Clone("tmp");
     //scale to cross section and luminosity
     htmp->Scale(scale_[i]);
     if(rebinH_ > 1) {
@@ -878,7 +878,7 @@ TCanvas* DataPlotter::plot_single_2Dhist(TString hist, TString setType, Int_t se
   // h->SetBit(kCanDelete);
   const char* stats = (doStatsLegend_) ? Form(" #scale[0.8]{(%.2e)}", h->Integral()
 					      +h->GetBinContent(0)+h->GetBinContent(h->GetNbinsX()+1)) : "";
-  TH2F* data = 0;
+  TH2D* data = 0;
   if(plot_data_) {
     data = get_data_2D(hist, setType, set);
     if(!data) {
@@ -914,7 +914,7 @@ TCanvas* DataPlotter::plot_single_2Dhist(TString hist, TString setType, Int_t se
   }
 
   // if(data) data->SetBit(kCanDelete);
-  TH2F* hAxis = (plot_data_ && data) ? data : h;
+  TH2D* hAxis = (plot_data_ && data) ? data : h;
   h->SetTitle(Form("%s%s", label.Data(),stats));
   if(plot_data_) {
     h->SetLineColor(color);
@@ -962,9 +962,9 @@ TCanvas* DataPlotter::plot_single_2Dhist(TString hist, TString setType, Int_t se
 
 TCanvas* DataPlotter::plot_2Dhist(TString hist, TString setType, Int_t set) {
 
-  vector<TH2F*> h; //list of histograms
+  vector<TH2D*> h; //list of histograms
   //check if QCD is defined for this set
-  //  TH2F* hQCD = (include_qcd_) ? get_qcd(hist,setType,set) : NULL;
+  //  TH2D* hQCD = (include_qcd_) ? get_qcd(hist,setType,set) : NULL;
 
   //array of colors and fills for each label
   Int_t color[] = {kRed+1, kYellow+1,kYellow+3,kBlue+1, kRed+3, kViolet-2, kGreen-2, kOrange-9};
@@ -991,9 +991,9 @@ TCanvas* DataPlotter::plot_2Dhist(TString hist, TString setType, Int_t set) {
     if(isData_[i]) {h.push_back(NULL);continue;}
 
     //get histogram
-    TH2F* htmp = (TH2F*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set, hist.Data()));
+    TH2D* htmp = (TH2D*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set, hist.Data()));
     if(!htmp) {printf("No hist %s in %s, continuing\n",hist.Data(), fileNames_[i].Data());continue;}
-    h.push_back((TH2F*) htmp->Clone("tmp"));
+    h.push_back((TH2D*) htmp->Clone("tmp"));
     //scale to cross section and luminosity
     h[i]->Scale(scale_[i]);
 
@@ -1070,7 +1070,7 @@ TCanvas* DataPlotter::plot_2Dhist(TString hist, TString setType, Int_t set) {
     c->Update();
   }
 
-  TH2F* hAxis = (h.size() > 0) ? h[ind] : 0;
+  TH2D* hAxis = (h.size() > 0) ? h[ind] : 0;
   if(!hAxis) return NULL;
   
   if(yMin_ <= yMax_)hAxis->GetYaxis()->SetRangeUser(yMin_,yMax_);
@@ -1092,9 +1092,9 @@ TCanvas* DataPlotter::plot_2Dhist(TString hist, TString setType, Int_t set) {
 
 TCanvas* DataPlotter::plot_hist(TString hist, TString setType, Int_t set) {
 
-  vector<TH1F*> h; //list of histograms
+  vector<TH1D*> h; //list of histograms
   //check if QCD is defined for this set
-  TH1F* hQCD = (include_qcd_) ? get_qcd(hist,setType,set) : NULL;
+  TH1D* hQCD = (include_qcd_) ? get_qcd(hist,setType,set) : NULL;
   if(hQCD) hQCD->SetFillStyle(0);
   // if(hQCD) hQCD->SetBit(kCanDelete);
   //array of colors and fills for each label
@@ -1130,9 +1130,9 @@ TCanvas* DataPlotter::plot_hist(TString hist, TString setType, Int_t set) {
     if(isData_[i]) {h.push_back(NULL);continue;}
 
     //get histogram
-    h.push_back((TH1F*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set, hist.Data())));
+    h.push_back((TH1D*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set, hist.Data())));
     if(!h[i]) {printf("No hist %s in %s, continuing\n",hist.Data(), fileNames_[i].Data());continue;}
-    h[i] = (TH1F*) h[i]->Clone("htmp");
+    h[i] = (TH1D*) h[i]->Clone("htmp");
     //scale to cross section and luminosity
     h[i]->Scale(scale_[i]);
     if(rebinH_ > 0) h[i]->Rebin(rebinH_);
@@ -1232,7 +1232,7 @@ TCanvas* DataPlotter::plot_hist(TString hist, TString setType, Int_t set) {
   c->SetLeftMargin(0.087);
   // c->BuildLegend();//0.6, 0.9, 0.9, 0.45, "", "L");
 
-  TH1F* hAxis = (h.size() > 0) ? h[ind] : hQCD;
+  TH1D* hAxis = (h.size() > 0) ? h[ind] : hQCD;
   if(!hAxis) return NULL;
   
   if(yMin_ <= yMax_)hAxis->SetAxisRange(yMin_,yMax_,"Y");
@@ -1278,8 +1278,8 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
     return NULL;
   }
   // hstack->SetBit(kCanDelete);
-  TH1F* d = get_data(hist, setType, set);
-  vector<TH1F*> hsignal = get_signal(hist,setType,set);
+  TH1D* d = get_data(hist, setType, set);
+  vector<TH1D*> hsignal = get_signal(hist,setType,set);
   {
     auto o = gDirectory->Get(Form("s_%s_%i",hist.Data(),set));
     if(o) delete o;
@@ -1320,9 +1320,9 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
       if(hsignal[i]) hstack->Add(hsignal[i]);
     }
   }
-  TH1F* hstack_hist = 0;
+  TH1D* hstack_hist = 0;
   if(stack_as_hist_) {
-    hstack_hist = (TH1F*) hstack->GetStack()->Last()->Clone("hBackground");
+    hstack_hist = (TH1D*) hstack->GetStack()->Last()->Clone("hBackground");
     hstack_hist->SetFillStyle(3002);
     hstack_hist->SetFillColor(total_background_color_);
     hstack_hist->SetLineColor(total_background_color_);
@@ -1341,7 +1341,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
     }
   }
 
-  TH1F* huncertainty = get_stack_uncertainty(hstack,Form("uncertainty_%s_%i", hist.Data(), set));
+  TH1D* huncertainty = get_stack_uncertainty(hstack,Form("uncertainty_%s_%i", hist.Data(), set));
   if(stack_uncertainty_) 
     huncertainty->Draw("E2 SAME");
 
@@ -1398,14 +1398,14 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
   if(plot_data_ && !d) {
     printf("Warning! Data histogram is Null! Skipping Data/MC plot\n");
   }
-  TH1F* hDataMC = 0;
+  TH1D* hDataMC = 0;
   if(plot_data_ && d && data_over_mc_ > 0)
-    hDataMC = (TH1F*) d->Clone("hDataMC");
+    hDataMC = (TH1D*) d->Clone("hDataMC");
   else if(data_over_mc_ < 0) //make signal/background histograms instead
-    hDataMC = (TH1F*) hstack->GetStack()->Last()->Clone("hRatio");
+    hDataMC = (TH1D*) hstack->GetStack()->Last()->Clone("hRatio");
   TGraphErrors* hDataMCErr = 0;
   int nb = (hDataMC) ? hDataMC->GetNbinsX() : -1;
-  std::vector<TH1F*> hSignalsOverMC;
+  std::vector<TH1D*> hSignalsOverMC;
   if(hDataMC && data_over_mc_ > 0) {
     hDataMC->Clear();
     hDataMC->SetName("hDataMC");
@@ -1439,9 +1439,9 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
     hDataMCErr->SetFillColor(kGray+1);
   } else if(hDataMC && data_over_mc_ < 0) {
     hDataMC->SetName("hRatio");
-    for(TH1F* h : hsignal)
-      hSignalsOverMC.push_back((TH1F*) h->Clone(Form("%s_over_mc", h->GetName())));
-    for(TH1F* h : hSignalsOverMC) {
+    for(TH1D* h : hsignal)
+      hSignalsOverMC.push_back((TH1D*) h->Clone(Form("%s_over_mc", h->GetName())));
+    for(TH1D* h : hSignalsOverMC) {
       if(data_over_mc_ == -2) //~significance squared = sig*sig / data
 	h->Multiply(h);
       h->Divide(hDataMC);
@@ -1575,12 +1575,12 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
 
 TCanvas* DataPlotter::plot_cdf(TString hist, TString setType, Int_t set, TString label) {
 
-  TH1F* hCDF = 0;
+  TH1D* hCDF = 0;
   for(UInt_t i = 0; i < data_.size(); ++i) {
     if(labels_[i] == label) {
-      TH1F* tmp = (TH1F*) data_[i]->Get(Form("%s_%i/%s", setType.Data(), set, hist.Data()));
+      TH1D* tmp = (TH1D*) data_[i]->Get(Form("%s_%i/%s", setType.Data(), set, hist.Data()));
       if(!tmp) continue;
-      tmp = (TH1F*) tmp->Clone("tmp");
+      tmp = (TH1D*) tmp->Clone("tmp");
       // tmp->SetBit(kCanDelete);
       tmp->Scale(scale_[i]);
       
@@ -1600,7 +1600,7 @@ TCanvas* DataPlotter::plot_cdf(TString hist, TString setType, Int_t set, TString
   }
   
   //Build CDF (CDF(x) = integral(pdf(x')dx', -infinity, x))
-  TH1F* tmp = (TH1F*) hCDF->Clone("tmp");
+  TH1D* tmp = (TH1D*) hCDF->Clone("tmp");
   tmp->Scale(1./tmp->Integral()/tmp->GetBinWidth(1));
   const int nbins = tmp->GetNbinsX();
   for(Int_t bin = 1; bin <= nbins; ++bin)
@@ -1618,16 +1618,16 @@ TCanvas* DataPlotter::plot_cdf(TString hist, TString setType, Int_t set, TString
     if(o) delete o;
   }
   THStack* hcdfstack = new THStack(Form("%s_%i_cdf",hist.Data(),set),Form("%s_cdf",hist.Data()));
-  vector<TH1F*> htransforms;
+  vector<TH1D*> htransforms;
   int ntransbins = 50;
   double xtransmin = 0.;
   double xtransmax = 1.7;
   for(TObject* hist : *hists) {
-    TH1F* htmp = (TH1F*) hist;
+    TH1D* htmp = (TH1D*) hist;
     while(auto o = gDirectory->Get(Form("%s_trans_%i", htmp->GetName(),set))) {
       if(o) delete o;
     }
-    TH1F* htrans = new TH1F(Form("%s_trans_%i", htmp->GetName(),set), htmp->GetTitle(),
+    TH1D* htrans = new TH1D(Form("%s_trans_%i", htmp->GetName(),set), htmp->GetTitle(),
 			    ntransbins, xtransmin, xtransmax);
     // htrans->SetBit(kCanDelete);
     
@@ -1650,8 +1650,8 @@ TCanvas* DataPlotter::plot_cdf(TString hist, TString setType, Int_t set, TString
     auto o = gDirectory->Get("data_cdf");
     if(o) delete o;
   }
-  TH1F* d = get_data(hist, setType, set);
-  TH1F* data_cdf = new TH1F("data_cdf", d->GetTitle(),
+  TH1D* d = get_data(hist, setType, set);
+  TH1D* data_cdf = new TH1D("data_cdf", d->GetTitle(),
 			    ntransbins, xtransmin, xtransmax);
   // data_cdf->SetBit(kCanDelete);
   for(Int_t bin = 1; bin <= d->GetNbinsX(); ++bin) {
@@ -1688,12 +1688,12 @@ TCanvas* DataPlotter::plot_cdf(TString hist, TString setType, Int_t set, TString
   pad1->cd();
 
   hcdfstack->Draw("hist noclear");
-  vector<TH1F*> hsignal = get_signal(hist,setType,set);
-  vector<TH1F*> hsignalcdf;
-  for(TH1F* signal : hsignal) {
+  vector<TH1D*> hsignal = get_signal(hist,setType,set);
+  vector<TH1D*> hsignalcdf;
+  for(TH1D* signal : hsignal) {
     auto o = gDirectory->Get(Form("%s_trans", signal->GetName()));
     if(o) delete o;
-    TH1F* htrans = new TH1F(Form("%s_trans", signal->GetName()), signal->GetTitle(),
+    TH1D* htrans = new TH1D(Form("%s_trans", signal->GetName()), signal->GetTitle(),
 			    ntransbins, xtransmin, xtransmax);
     // htrans->SetBit(kCanDelete);
 
@@ -1715,7 +1715,7 @@ TCanvas* DataPlotter::plot_cdf(TString hist, TString setType, Int_t set, TString
   data_cdf->Draw("same");
   delete hCDF; //done with the CDF
 
-  TH1F* hDataMC = (plot_data_) ? (TH1F*) data_cdf->Clone("hDataMC") : 0;
+  TH1D* hDataMC = (plot_data_) ? (TH1D*) data_cdf->Clone("hDataMC") : 0;
   // TGraphErrors* hDataMCErr = 0;
   double nmc = 0.;
   int ndata = 0;
@@ -1723,7 +1723,7 @@ TCanvas* DataPlotter::plot_cdf(TString hist, TString setType, Int_t set, TString
   if(hDataMC) {
     // hDataMC->SetBit(kCanDelete);
     hDataMC->Clear();
-    TH1F* hlast = get_stack_uncertainty(hcdfstack,Form("uncertainty_cdf_%i", set));
+    TH1D* hlast = get_stack_uncertainty(hcdfstack,Form("uncertainty_cdf_%i", set));
     nmc = hlast->Integral();
     nmc += hlast->GetBinContent(0);
     nmc += hlast->GetBinContent(nb+1);
@@ -1837,7 +1837,7 @@ TCanvas* DataPlotter::plot_significance(TString hist, TString setType, Int_t set
 					bool dir = true, Double_t line_val = -1., bool doVsEff = false,
 					TString label1 = "", TString label2 = "") {
 
-  TH1F* hSignal = 0;
+  TH1D* hSignal = 0;
   {
     auto o = gDirectory->Get("hSignal");
     if(o) delete o;
@@ -1845,11 +1845,11 @@ TCanvas* DataPlotter::plot_significance(TString hist, TString setType, Int_t set
   //get the signal histogram
   for(UInt_t i = 0; i < data_.size(); ++i) {
     if(labels_[i] == label) {
-      TH1F* tmp = (TH1F*) data_[i]->Get(Form("%s_%i/%s", setType.Data(), set, hist.Data()));
+      TH1D* tmp = (TH1D*) data_[i]->Get(Form("%s_%i/%s", setType.Data(), set, hist.Data()));
       if(!tmp) continue;
       auto o = gDirectory->Get("tmp");
       if(o) delete o;
-      tmp = (TH1F*) tmp->Clone("tmp");
+      tmp = (TH1D*) tmp->Clone("tmp");
       // tmp->SetBit(kCanDelete);
       tmp->Scale(scale_[i]);
       
@@ -1874,11 +1874,11 @@ TCanvas* DataPlotter::plot_significance(TString hist, TString setType, Int_t set
   rebinH_ = 1;
 
   //take the signal histogram as a template for x-binnning
-  TH1F* hEfficiency = (TH1F*) hSignal->Clone("hEfficiency");
+  TH1D* hEfficiency = (TH1D*) hSignal->Clone("hEfficiency");
   hEfficiency->Clear(); hEfficiency->Reset();
   //get the background stack
   THStack* hstack = get_stack(hist, setType, set);
-  TH1F* hlast = (TH1F*) hstack->GetStack()->Last()->Clone("hlast");
+  TH1D* hlast = (TH1D*) hstack->GetStack()->Last()->Clone("hlast");
 
   //clean up memory
   for(auto htmp : *hstack->GetHists())
@@ -2256,8 +2256,8 @@ Int_t DataPlotter::init_files() {
 	TObject* obj = key->ReadObj();
 	if(obj->InheritsFrom(TH1::Class())) {
 	  events = (TH1F*) obj;
-	  nevents += events->GetBinContent(1);
-	  nevents -= 2.*events->GetBinContent(10);
+	  nevents += events->GetBinContent(1); //total events
+	  nevents -= 2.*events->GetBinContent(10); //negative weight events
 	  if(debug_ > 0) printf("%s %s: bin 1, bin 11: %.0f, %.0f\n", names_[i].Data(), events->GetName(),
 				events->GetBinContent(1), events->GetBinContent(10));
 	}
@@ -2266,7 +2266,7 @@ Int_t DataPlotter::init_files() {
 	std::cout << "Error! No events in the events histogram for " << names_[i].Data() << std::endl;
 	return 1;
       }
-      scale_.push_back(1./(nevents)*xsec_[i]*lum_);
+      scale_.push_back(1./(nevents)*xsec_[i]*((lums_.size() > 0) ? lums_[dataYear_[i]] : lum_));
     }
   }
 
@@ -2288,13 +2288,20 @@ Int_t DataPlotter::add_dataset(TString filepath, TString name, TString label, bo
   else
     xsec_.push_back(1.);
   isSignal_.push_back(isSignal);
+  int dataYear = 0;
+  if(filepath.Contains("2016"))      dataYear = 2016;
+  else if(filepath.Contains("2017")) dataYear = 2017;
+  else if(filepath.Contains("2018")) dataYear = 2018;
+  dataYear_.push_back(dataYear);
   if(verbose_ > 0) 
     std::cout << "Added dataset, filepath = " << filepath.Data()
 	      << " name = " << name.Data()
 	      << " label = " << label.Data()
 	      << " isData = " << isData
 	      << " xsec = " << xsec
-	      << " isSignal = " << isSignal << std::endl;
+	      << " isSignal = " << isSignal
+	      << " year = " << dataYear
+	      << std::endl;
     
   
   return 0;

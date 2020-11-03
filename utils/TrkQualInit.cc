@@ -47,7 +47,7 @@ public:
       factory.AddSpectator("njets", "nJets", "", 'F');
     
     if((version_ < 3) && !(selection.Contains("emu") || selection.Contains("_")))
-      factory.AddVariable("nbjetstot20l", "nBJets (loose ID pt > 20)" , "", 'F');
+      factory.AddVariable("nbjets20l", "nBJets (loose ID pt > 20)" , "", 'F');
     
     factory.AddSpectator("lepdeltaeta","#Delta#eta_{ll}","",'F');
     factory.AddSpectator("metdeltaphi","#Delta#phi_{MET,ll}","",'F');
@@ -153,7 +153,7 @@ public:
       reader.AddSpectator("njets", &tree.njets); 
     
     if(version_ < 3 && !(selection.Contains("emu") || selection.Contains("_")))
-      reader.AddVariable("nbjetstot20l", &tree.nbjetstot20l); 
+      reader.AddVariable("nbjets20l", &tree.nbjets20l); 
     
     reader.AddSpectator("lepdeltaeta", &tree.lepdeltaeta);
     reader.AddSpectator("metdeltaphi", &tree.metdeltaphi);

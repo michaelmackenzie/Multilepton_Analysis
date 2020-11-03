@@ -41,8 +41,13 @@ public:
     values_["HMuTau"] = higgs*2.5e-3;
 
     //generated numbers
-    numbers_["Wlnu"    ] = 29514020;
-    numbers_["Wlnu-ext"] = 57402435;
+    numbers_[2016]["Wlnu"    ] =  29514020;
+    numbers_[2016]["Wlnu-ext"] =  57402435;
+    numbers_[2017]["Wlnu"    ] =  33073306;
+    numbers_[2017]["Wlnu-ext"] =  44627200;
+    numbers_[2017]["DY50"    ] =  25757729;
+    numbers_[2017]["DY50-ext"] = 186217773;
+    
   }
 
   double GetCrossSection(TString name) {
@@ -56,10 +61,10 @@ public:
   }
 
   //if combining files, may want number of generated events
-  long GetGenNumber(TString name) {
+  long GetGenNumber(TString name, int year) {
     long gen(0);
-    auto itr = numbers_.find(name);
-    if(itr != numbers_.end())
+    auto itr = numbers_[year].find(name);
+    if(itr != numbers_[year].end())
       gen = itr->second;
     else
       std::cout << "Generated number for " << name.Data() << " not found! Returning 0...\n";
@@ -67,6 +72,6 @@ public:
   }
 private:
   std::map<TString, double> values_ ; //cross sections
-  std::map<TString, long>   numbers_; // generated numbers
+  std::map<int, std::map<TString, long>>   numbers_; // generated numbers
 };
 #endif

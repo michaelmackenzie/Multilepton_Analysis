@@ -85,6 +85,7 @@
       gSystem->Load((cmssw + path + "dataFormats/Tree_t_hh.so").Data());
 
       gSystem->Load((cmssw + path + "utils/Significances_hh.so").Data());
+      gSystem->Load((cmssw + path + "utils/CrossSections_hh.so").Data());
       gSystem->Load((cmssw + path + "utils/TrkQualInit_cc.so").Data());
 
       // gSystem->Load((cmssw + path + "rootScripts/Fitter_cc.so").Data());

@@ -9,10 +9,18 @@
 #include "../dataFormats/Tree_t.hh+g"
 
 //Utilities
+#include "../utils/CrossSections.hh+g"
 #include "../utils/TrkQualInit.cc+g"
 
 //Histogrammer
 #include "ZTauTauHistMaker.cc+g"
+
+//information for debugging
+bool debug_ = false;
+Long64_t startEvent_ = 0;
+Long64_t nEvents_ = 10;
+ZTauTauHistMaker* selector_ = 0;
+bool DYTesting_ = false;
 
 //information about the data file/data
 struct datacard_t {
@@ -21,13 +29,17 @@ struct datacard_t {
   TString fname_;
   TString filepath_;
   int isData_;
+  bool combine_;
   int category_;
   TH1F* events_;
+  int year_;
   datacard_t(bool process, double xsec, TString fname,
-	     int isData = 0,  TString filepath = "",
-	     int category = 0, TH1F* events = 0) :
-    process_(process), xsec_(xsec), fname_(fname), filepath_(filepath),
-    isData_(isData), category_(category), events_(events) {}
+	     int isData = 0,  bool combine = false,
+	     TString filepath = "",
+	     int category = 0, TH1F* events = 0,
+	     int year = 2016) :
+    process_(process), xsec_(xsec), fname_(fname), combine_(combine),
+    filepath_(filepath), isData_(isData), category_(category), events_(events), year_(year) {}
 };
 
 //information about the selector configuration
@@ -48,8 +60,10 @@ struct config_t {
 
 //run the histogrammer over a specific channel
 Int_t process_channel(datacard_t& card, config_t& config, TDirectoryFile* fChannel) {
-  //for splitting DY lepton decays
-  bool isDY = false; //Not implemented yet
+  //for splitting DY lepton decays and Z pT vs mass weights
+  bool isDY = card.fname_.Contains("DY");
+  bool splitDY = false; //Not implemented
+  
   bool isSignal = (card.fname_.Contains("MuTau") || card.fname_.Contains("ETau")
 		   || card.fname_.Contains("EMu") || card.fname_.Contains("Signal"));
   //for avoiding double counting data events
@@ -63,9 +77,10 @@ Int_t process_channel(datacard_t& card, config_t& config, TDirectoryFile* fChann
   //get events tree and events counting histogram
   while((key2 = (TKey*)nextkey2())) {
     TObject* obj2 = key2->ReadObj();
+    if(!obj2) continue;
     if(obj2->IsA()->InheritsFrom(TH1::Class())) eventsChannel = (TH1F*)obj2;
     if(obj2->IsA()->InheritsFrom(TTree::Class())) {
-      auto tmptree = (TTree*)obj2;
+      TTree* tmptree = (TTree*)obj2;
       //take the latest tree iteration from the file in case of copies
       if(tree) tree = (tmptree->GetEntriesFast() > tree->GetEntriesFast()) ? tmptree : tree;
       else tree = tmptree;
@@ -80,17 +95,20 @@ Int_t process_channel(datacard_t& card, config_t& config, TDirectoryFile* fChann
     printf("Events Channel Histogram in %s/%s not found, continuing processing without it\n",card.filepath_.Data(),fChannel->GetName());
   }
   // if Drell-Yan, loop through it twice, doing tautau then ee/mumu
-  int nloops = (isDY) ? 2 : 1;
+  int nloops = (isDY&&splitDY) ? 2 : 1;
   for(int loop = 1; loop <= nloops; ++loop) {
     ZTauTauHistMaker* selec = new ZTauTauHistMaker(); //selector
+    selec->fDYTesting = DYTesting_;
     selec->fFolderName = fChannel->GetName();
-    if(isDY) selec->fDYType = loop; //if Drell-Yan, tell the selector which loop we're on
+    if(isDY&&splitDY) selec->fDYType = loop; //if Drell-Yan, tell the selector which loop we're on
+    selec->fIsDY = isDY;
     //skip electron data events with both triggers for e+mu channel, to not double count
     selec->fIsData = card.isData_;
+    selec->fYear = card.year_;
     selec->fSkipDoubleTrigger = (isElectronData && (selec->fFolderName == "emu" || selec->fFolderName == "llg_study"));	
     //store a label for this dataset
     selec->fEventCategory = card.category_;
-    selec->fWriteTrees = selec->fIsData == 0 && config.writeTrees_; //don't write trees for data
+    selec->fWriteTrees = (selec->fIsData == 0 || selec->fFolderName == "emu") && config.writeTrees_; //don't write trees for data
     selec->fUseTauFakeSF = config.useTauFakeSF_; //whether or not to use fake tau weights from analyzer/locally re-defined
     selec->fXsec = card.xsec_;
     selec->fXsec /= (card.events_->GetBinContent(1) - 2.*card.events_->GetBinContent(10));; //for writing trees with correct normalization
@@ -99,21 +117,27 @@ Int_t process_channel(datacard_t& card, config_t& config, TDirectoryFile* fChann
     if(isMuonData || isElectronData) selec->fFractionMVA = 0.; //don't split off data for training
     selec->fReprocessMVAs = config.reProcessMVAs_; //whether to evaluate the MVAs or use defined ones from the trees
     selec->fIsNano = true;
-
-    tree->Process(selec,""); //run the selector over the tree
-
+    if(debug_) selec->fVerbose = 1;
+    else       selec->fVerbose = 0;
+    if(!debug_)
+      tree->Process(selec,""); //run the selector over the tree
+    else
+      tree->Process(selec,"", nEvents_, startEvent_); //process specific event range
+    
     //open back up the file
     TFile* out = TFile::Open(Form("ztautau_%s%s_%s.hist",fChannel->GetName(),
-				  (isDY) ? Form("_%i",loop) : "", tree->GetName()),"UPDATE");
+				  (isDY&&splitDY) ? Form("_%i",loop) : "", tree->GetName()),"UPDATE");
     if(out == 0) {
       printf("Unable to find output hist file ztautau_%s%s_%s.hist, continuing\n",fChannel->GetName(),
-	     (isDY) ? Form("_%i",loop) : "", tree->GetName());
+	     (isDY&&splitDY) ? Form("_%i",loop) : "", tree->GetName());
       continue;
     }
     //add the events histogram to the output
     card.events_->Write();
     out->Write();
     delete out;
+    if(debug_) selector_ = selec;
+    else       delete selec;
   }
 
   return 0;
@@ -134,7 +158,6 @@ Int_t process_card(datacard_t& card, config_t& config, TFile* file) {
     printf("Events Histogram in %s not found, continuing\n",card.filepath_.Data());
     return 1;
   }
-
   //for avoiding double counting data events
   bool isElectronData = card.isData_ == 1;
   bool isMuonData = card.isData_ == 2;
@@ -183,55 +206,81 @@ Int_t process_ztautau() {
   /******************************/
   /* Define NANO AOD processing */
   /******************************/
-  TString nanoaod_path = "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_nanoaod_test_trees/";
+  // TString nanoaod_path = "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_nanoaod_test_trees/";
+  TString nanoaod_path = "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_nanoaod_trees_nomva/";
 
+  //cross section handler
+  CrossSections xs;
   vector<datacard_t> nanocards;
   //2016
-  nanocards.push_back(datacard_t(true , 365.34                                  , "clfv_2016_ttbarToSemiLeptonic.tree"     , 0)); //1
-  nanocards.push_back(datacard_t(true , 88.29                                   , "clfv_2016_ttbarlnu.tree"                , 0)); //2
-  nanocards.push_back(datacard_t(true , 6225.42                                 , "clfv_2016_DY50.tree"                    , 0)); //3
-  nanocards.push_back(datacard_t(true , 34.91                                   , "clfv_2016_SingleAntiToptW.tree"         , 0)); //4
-  nanocards.push_back(datacard_t(true , 34.91                                   , "clfv_2016_SingleToptW.tree"             , 0)); //5
-  nanocards.push_back(datacard_t(true , 52850.0                                 , "clfv_2016_Wlnu.tree"                    , 0)); //6
-  nanocards.push_back(datacard_t(true , 12.178                                  , "clfv_2016_WW.tree"                      , 0)); //7
-  nanocards.push_back(datacard_t(true , 27.6                                    , "clfv_2016_WZ.tree"                      , 0)); //8
-  nanocards.push_back(datacard_t(true , ((6225.42)/(3.*3.3658e-2))*9.8e-6       , "clfv_2016_ZETau.tree"                   , 0)); //9
-  nanocards.push_back(datacard_t(true , ((6225.42)/(3.*3.3658e-2))*1.2e-5       , "clfv_2016_ZMuTau.tree"                  , 0)); //10
-  nanocards.push_back(datacard_t(true , 2075.14/0.0337*7.3e-7                   , "clfv_2016_ZEMu.tree"                    , 0)); //11
-  nanocards.push_back(datacard_t(true , (48.61+3.766+0.5071+1.358+0.880)*6.1e-3 , "clfv_2016_HETau.tree"                   , 0)); //12
-  nanocards.push_back(datacard_t(true , (48.61+3.766+0.5071+1.358+0.880)*2.5e-3 , "clfv_2016_HMuTau.tree"                  , 0)); //13
-  nanocards.push_back(datacard_t(true , (48.61+3.766+0.5071+1.358+0.880)*3.5e-4 , "clfv_2016_HEMu.tree"                    , 0)); //14
-  nanocards.push_back(datacard_t(true , 1.                                      , "clfv_2016_SingleMu.tree"                , 2)); //15
-  nanocards.push_back(datacard_t(true , 1.                                      , "clfv_2016_SingleEle.tree"               , 1)); //16
-  nanocards.push_back(datacard_t(true , 12.14                                   , "clfv_2016_ZZ.tree"                      , 0)); //17
-  nanocards.push_back(datacard_t(true , 0.2086                                  , "clfv_2016_WWW.tree"                     , 0)); //18
-  nanocards.push_back(datacard_t(true , 22180.                                  , "clfv_2016_QCDDoubleEMEnrich30to40.tree" , 0)); //19
-  nanocards.push_back(datacard_t(true , 247000.                                 , "clfv_2016_QCDDoubleEMEnrich30toInf.tree", 0)); //20
-  nanocards.push_back(datacard_t(true , 113100.                                 , "clfv_2016_QCDDoubleEMEnrich40toInf.tree", 0)); //21
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("ttbarToSemiLeptonic"     ), "clfv_2016_ttbarToSemiLeptonic.tree"     , 0)); //1
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("ttbarlnu"                ), "clfv_2016_ttbarlnu.tree"                , 0)); //2
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("DY50"                    ), "clfv_2016_DY50.tree"                    , 0)); //3
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("SingleAntiToptW"         ), "clfv_2016_SingleAntiToptW.tree"         , 0)); //4
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("SingleToptW"             ), "clfv_2016_SingleToptW.tree"             , 0)); //5
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Wlnu"                    ), "clfv_2016_Wlnu.tree"                    , 0, true)); //6
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("WW"                      ), "clfv_2016_WW.tree"                      , 0)); //7
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("WZ"                      ), "clfv_2016_WZ.tree"                      , 0)); //8
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("ZETau"                   ), "clfv_2016_ZETau.tree"                   , 0)); //9
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("ZMuTau"                  ), "clfv_2016_ZMuTau.tree"                  , 0)); //10
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("ZEMu"                    ), "clfv_2016_ZEMu.tree"                    , 0)); //11
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("HETau"                   ), "clfv_2016_HETau.tree"                   , 0)); //12
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("HMuTau"                  ), "clfv_2016_HMuTau.tree"                  , 0)); //13
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("HEMu"                    ), "clfv_2016_HEMu.tree"                    , 0)); //14
+  nanocards.push_back(datacard_t(false, 1.                                            , "clfv_2016_SingleMu.tree"                , 2)); //15
+  nanocards.push_back(datacard_t(false, 1.                                            , "clfv_2016_SingleEle.tree"               , 1)); //16
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("ZZ"	                     ), "clfv_2016_ZZ.tree"                      , 0)); //17
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("WWW"	             ), "clfv_2016_WWW.tree"                     , 0)); //18
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("QCDDoubleEMEnrich30to40" ), "clfv_2016_QCDDoubleEMEnrich30to40.tree" , 0)); //19
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("QCDDoubleEMEnrich30toInf"), "clfv_2016_QCDDoubleEMEnrich30toInf.tree", 0)); //20
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("QCDDoubleEMEnrich40toInf"), "clfv_2016_QCDDoubleEMEnrich40toInf.tree", 0)); //21
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Wlnu"                    ), "clfv_2016_Wlnu-ext.tree"                , 0, true)); //22
   //2017
-  nanocards.push_back(datacard_t(false, 365.34                                  , "clfv_2017_ttbarToSemiLeptonic.tree", 0)); //
-  nanocards.push_back(datacard_t(false, 88.29                                   , "clfv_2017_ttbarlnu.tree"           , 0)); //
-  nanocards.push_back(datacard_t(false, 6225.42                                 , "clfv_2017_DY50.tree"               , 0)); //
-  nanocards.push_back(datacard_t(false, 34.91                                   , "clfv_2017_SingleAntiToptW.tree"    , 0)); //
-  nanocards.push_back(datacard_t(false, 34.91                                   , "clfv_2017_SingleToptW.tree"        , 0)); //
-  nanocards.push_back(datacard_t(false, 52850.0                                 , "clfv_2017_Wlnu.tree"               , 0)); //
-  nanocards.push_back(datacard_t(false, 12.178                                  , "clfv_2017_WW.tree"                 , 0)); //
-  nanocards.push_back(datacard_t(false, 27.6                                    , "clfv_2017_WZ.tree"                 , 0)); //
-  nanocards.push_back(datacard_t(false, 2075.14/0.0337*7.3e-7                   , "clfv_2017_Signal.tree"             , 0)); //
-  nanocards.push_back(datacard_t(false, 1.                                      , "clfv_2017_SingleMu.tree"           , 2)); //
-  nanocards.push_back(datacard_t(false, 1.                                      , "clfv_2017_SingleEle.tree"          , 1)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("ttbarToSemiLeptonic"     ), "clfv_2017_ttbarToSemiLeptonic.tree"     , 0)); //1
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("ttbarlnu"                ), "clfv_2017_ttbarlnu.tree"                , 0)); //2
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("DY50"                    ), "clfv_2017_DY50.tree"                    , 0, true)); //3
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("SingleAntiToptW"         ), "clfv_2017_SingleAntiToptW.tree"         , 0)); //4
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("SingleToptW"             ), "clfv_2017_SingleToptW.tree"             , 0)); //5
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Wlnu"                    ), "clfv_2017_Wlnu.tree"                    , 0, true)); //6
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Wlnu"                    ), "clfv_2017_Wlnu-ext.tree"                , 0, true)); //XX
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("WW"                      ), "clfv_2017_WW.tree"                      , 0)); //7
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("WZ"                      ), "clfv_2017_WZ.tree"                      , 0)); //8
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("ZETau"                   ), "clfv_2017_ZETau.tree"                   , 0)); //9
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("ZMuTau"                  ), "clfv_2017_ZMuTau.tree"                  , 0)); //10
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("ZEMu"                    ), "clfv_2017_ZEMu.tree"                    , 0)); //11
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("HETau"                   ), "clfv_2017_HETau.tree"                   , 0)); //12
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("HMuTau"                  ), "clfv_2017_HMuTau.tree"                  , 0)); //13
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("HEMu"                    ), "clfv_2017_HEMu.tree"                    , 0)); //14
+  nanocards.push_back(datacard_t(false, 1.                                            , "clfv_2017_SingleMu.tree"                , 2)); //15
+  nanocards.push_back(datacard_t(false, 1.                                            , "clfv_2017_SingleEle.tree"               , 1)); //16
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("ZZ"	                     ), "clfv_2017_ZZ.tree"                      , 0)); //17
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("WWW"	             ), "clfv_2017_WWW.tree"                     , 0)); //18
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("QCDDoubleEMEnrich30to40" ), "clfv_2017_QCDDoubleEMEnrich30to40.tree" , 0)); //19
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("QCDDoubleEMEnrich30toInf"), "clfv_2017_QCDDoubleEMEnrich30toInf.tree", 0)); //20
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("QCDDoubleEMEnrich40toInf"), "clfv_2017_QCDDoubleEMEnrich40toInf.tree", 0)); //21
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("DY50"                    ), "clfv_2017_DY50-ext.tree"                , 0, true)); //22
   //2018
-  nanocards.push_back(datacard_t(false, 365.34                                  , "clfv_2018_ttbarToSemiLeptonic.tree", 0)); //
-  nanocards.push_back(datacard_t(false, 88.29                                   , "clfv_2018_ttbarlnu.tree"           , 0)); //
-  nanocards.push_back(datacard_t(false, 6225.42                                 , "clfv_2018_DY50.tree"               , 0)); //
-  nanocards.push_back(datacard_t(false, 34.91                                   , "clfv_2018_SingleAntiToptW.tree"    , 0)); //
-  nanocards.push_back(datacard_t(false, 34.91                                   , "clfv_2018_SingleToptW.tree"        , 0)); //
-  nanocards.push_back(datacard_t(false, 52850.0                                 , "clfv_2018_Wlnu.tree"               , 0)); //
-  nanocards.push_back(datacard_t(false, 12.178                                  , "clfv_2018_WW.tree"                 , 0)); //
-  nanocards.push_back(datacard_t(false, 27.6                                    , "clfv_2018_WZ.tree"                 , 0)); //
-  nanocards.push_back(datacard_t(false, 2075.14/0.0337*7.3e-7                   , "clfv_2018_Signal.tree"             , 0)); //
-  nanocards.push_back(datacard_t(false, 1.                                      , "clfv_2018_SingleMu.tree"           , 2)); //
-  nanocards.push_back(datacard_t(false, 1.                                      , "clfv_2018_SingleEle.tree"          , 1)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("ttbarToSemiLeptonic"     ), "clfv_2018_ttbarToSemiLeptonic.tree"     , 0)); //1
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("ttbarlnu"                ), "clfv_2018_ttbarlnu.tree"                , 0)); //2
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("DY50"                    ), "clfv_2018_DY50.tree"                    , 0)); //3
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("SingleAntiToptW"         ), "clfv_2018_SingleAntiToptW.tree"         , 0)); //4
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("SingleToptW"             ), "clfv_2018_SingleToptW.tree"             , 0)); //5
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Wlnu"                    ), "clfv_2018_Wlnu.tree"                    , 0)); //6
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("WW"                      ), "clfv_2018_WW.tree"                      , 0)); //7
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("WZ"                      ), "clfv_2018_WZ.tree"                      , 0)); //8
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("ZETau"                   ), "clfv_2018_ZETau.tree"                   , 0)); //9
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("ZMuTau"                  ), "clfv_2018_ZMuTau.tree"                  , 0)); //10
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("ZEMu"                    ), "clfv_2018_ZEMu.tree"                    , 0)); //11
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("HETau"                   ), "clfv_2018_HETau.tree"                   , 0)); //12
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("HMuTau"                  ), "clfv_2018_HMuTau.tree"                  , 0)); //13
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("HEMu"                    ), "clfv_2018_HEMu.tree"                    , 0)); //14
+  nanocards.push_back(datacard_t(false, 1.                                            , "clfv_2018_SingleMu.tree"                , 2)); //15
+  nanocards.push_back(datacard_t(false, 1.                                            , "clfv_2018_SingleEle.tree"               , 1)); //16
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("ZZ"	                     ), "clfv_2018_ZZ.tree"                      , 0)); //17
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("WWW"	             ), "clfv_2018_WWW.tree"                     , 0)); //18
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("QCDDoubleEMEnrich30to40" ), "clfv_2018_QCDDoubleEMEnrich30to40.tree" , 0)); //19
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("QCDDoubleEMEnrich30toInf"), "clfv_2018_QCDDoubleEMEnrich30toInf.tree", 0)); //20
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("QCDDoubleEMEnrich40toInf"), "clfv_2018_QCDDoubleEMEnrich40toInf.tree", 0)); //21
 
 
   TStopwatch* timer = new TStopwatch();
@@ -239,11 +288,11 @@ Int_t process_ztautau() {
   config_t config;
   config.useTauFakeSF_ = 1; //1 = use given scale factors, 2 = override them with local ones
   config.writeTrees_ = true;
-  config.onlyChannel_ = "ee";
-  config.skipChannels_ = {"all", "jets", "llg_study"};
+  config.onlyChannel_ = "";
+  config.skipChannels_ = {/*"mutau", "etau", "emu",*/ "all", "jets", "llg_study"};
 
   config.reProcessMVAs_ = false;
-  config.removeZPtWeights_ = 0;
+  config.removeZPtWeights_ = 2; //0 = do nothing, 1 = remove Drell-Yan weights, 2 = remove and locally recalculate weights
   config.signalTrainFraction_ = 0.7;
   config.backgroundTrainFraction_ = 0.3;
   cout << "--- Fake Tau SF mode: " << config.useTauFakeSF_
@@ -266,11 +315,41 @@ Int_t process_ztautau() {
   unsigned nfiles = nanocards.size();
   for(unsigned i = 0; i < nfiles; ++i) {
     ++category; // could have just used i + 1?
-    cout << "Loop " << i << ", category " << category
-	 << ", file " << nanocards[i].fname_.Data()
-	 << ", xsec " << nanocards[i].xsec_
-	 << ", doProcess " << nanocards[i].process_ << endl;
+    if(!debug_ || nanocards[i].process_)
+      cout << "Loop " << i << ", category " << category
+	   << ", file " << nanocards[i].fname_.Data()
+	   << ", xsec " << nanocards[i].xsec_
+	   << ", doProcess " << nanocards[i].process_ << endl;
     if(!nanocards[i].process_) continue;
+    //if combining Wlnu samples, weight each by the number of generated over total generated
+    int year = 2016;
+    if(nanocards[i].fname_.Contains("2017"))      year = 2017;
+    else if(nanocards[i].fname_.Contains("2018")) year = 2018;      
+    nanocards[i].year_ = year;
+    if(nanocards[i].combine_) { //only for 2016, 2017 Wlnu samples
+      TString name = nanocards[i].fname_;
+      name.ReplaceAll("clfv_", "");
+      name.ReplaceAll("2016_", "");
+      name.ReplaceAll("2017_", "");
+      name.ReplaceAll("2018_", "");
+      name.ReplaceAll(".tree", "");
+      bool isext = name.Contains("-ext");
+      name.ReplaceAll("-ext", "");
+      long num1 = xs.GetGenNumber(name       , year); //get number of events per sample
+      long num2 = xs.GetGenNumber(name+"-ext", year);
+      if(isext && num1 > 0 && num2 > 0) {
+	double frac = (num2*1./(num1+num2));
+	cout << "Multiplying the " << name.Data() << "-ext cross section by " << frac
+	     << " to combine the extension samples!\n";
+	nanocards[i].xsec_ *= frac;
+      } else if(num1 > 0 && num2 > 0){
+	double frac = (num1*1./(num1+num2));
+	cout << "Multiplying the " << name.Data() << " cross section by " << frac
+	     << " to combine the extension samples!\n";
+	nanocards[i].xsec_ *= frac;
+      } else
+	cout << "ERROR: Didn't find generation numbers for combining with sample name " << name.Data() << endl;
+    } //end combine extension samples
     nanocards[i].category_ = category;
     TString filepath = nanoaod_path + nanocards[i].fname_;
     TFile* f = TFile::Open((filepath).Data(),"READ");

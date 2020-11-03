@@ -14,6 +14,7 @@
 int compile_objects() {
   TString version = gROOT->GetVersion();
   gROOT->LoadMacro("../utils/Significances.hh+g");
+  gROOT->LoadMacro("../utils/CrossSections.hh+g");
   //Plotting histograms
   gROOT->LoadMacro("DataPlotter.cc+g");
   if(version.Contains("6.06")) {

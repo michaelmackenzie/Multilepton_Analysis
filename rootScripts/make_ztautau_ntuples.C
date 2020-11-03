@@ -60,8 +60,9 @@ namespace {
   struct datacard_t {
     bool process_;
     TString fname_;
-    datacard_t(bool process, TString fname) :
-      process_(process), fname_(fname) {}
+    Long64_t iStart_;
+    datacard_t(bool process, TString fname, Long64_t iStart = 0) :
+      process_(process), fname_(fname), iStart_(iStart) {}
   };
 }
 
@@ -116,7 +117,7 @@ Int_t book_mvas() {
   return 0;
 }
 
-//selections: 1 = mutau, 2 = etau, 5 = emu
+//selections: 1 = mutau, 2 = etau, 5 = emu, 9 = mumu, 18 = ee
 Int_t initialize_tree_vars(int selection) {
   if(nBJets  > nBJetsM) nBJetsM = nBJets;
   if(nBJetsM > nBJetsL) nBJetsL = nBJetsM;
@@ -197,8 +198,8 @@ Int_t initialize_tree_vars(int selection) {
   //project onto the bisectors
   fTreeVars.pxivis = (lp1+lp2)*bisector;
   fTreeVars.pxiinv = missing*bisector;
-  double pnuest    = max(0.,lp2*missing/lp2.Mag()); //inv pT along tau = tau pt unit vector dot missing
-  double pnuesttwo = max(0.,lp1*missing/lp1.Mag()); //inv pT along other lepton (for emu case with tau decay)
+  double pnuest    = max(1.e-8,lp2*missing/lp2.Mag()); //inv pT along tau = tau pt unit vector dot missing
+  double pnuesttwo = max(1.e-8,lp1*missing/lp1.Mag()); //inv pT along other lepton (for emu case with tau decay)
   fTreeVars.ptauvisfrac  = lp2.Mag() / (lp2.Mag() + pnuest);
   fTreeVars.mestimate    = fTreeVars.lepm/sqrt(fTreeVars.ptauvisfrac);
   fTreeVars.mestimatetwo = fTreeVars.lepm/sqrt(lp1.Mag() / (lp1.Mag() + pnuesttwo));
@@ -224,11 +225,15 @@ Int_t initialize_tree_vars(int selection) {
   if(selection == 1)      selecName = "mutau";
   else if(selection == 2) selecName = "etau";
   else if(selection == 5) selecName = "emu";
+  else if(selection == 9) selecName = "mumu";
+  else if(selection == 18)selecName = "ee";
   else {                  selecName = "unknown"; cout << "---Warning! Entry " << fentry << " has unknown selection!\n";}
   
   for(unsigned i = 0; i < fMvaNames.size(); ++i) {
-    if((fMvaBranches[i] || (debug&&mva[i]))&& (fMvaNames[i].Contains(selecName.Data()) || //is this selection and filling a branch for it
-	(selecName == "emu" && (fMvaNames[i].Contains("_e") || fMvaNames[i].Contains("_mu")))) && //or leptonic tau category
+    if((fMvaBranches[i] || (debug&&mva[i])) && //branch exists or debug mode
+       ((fMvaNames[i].Contains(selecName.Data()) && !fMvaNames[i].Contains("tau_e") && !fMvaNames[i].Contains("tau_mu")) || //is this selection, reject leptonic tau not in emu
+	(selecName == "emu" && (fMvaNames[i].Contains("_e") || fMvaNames[i].Contains("_mu"))) || //or leptonic tau category
+	((selecName == "mumu" || selecName == "ee") && fMvaNames[i].Contains("emu"))) && //or is ee/mumu and compare to emu
        (fIsJetBinnedMVAs[i] < 0 || fIsJetBinnedMVAs[i] == min((int) fTreeVars.njets,2))) //and either not jet binned or right number of jets
       fMvaOutputs[i] = mva[i]->EvaluateMVA(fMvaNames[i].Data());
     else
@@ -237,7 +242,9 @@ Int_t initialize_tree_vars(int selection) {
       cout << "entry " << fentry << ": MVA " << i << ": score = " << fMvaOutputs[i] << endl;
     if(fMvaOutputs[i] < -100.) 
       cout << "Error value returned for MVA " << fMvaNames[i].Data()
-	   << " evaluation, Entry = " << fentry << endl;
+	   << " evaluation, Entry = " << fentry
+	   << " lepmestimate = " << fTreeVars.mestimate << " lepmestimatetwo = "
+	   << fTreeVars.mestimatetwo << endl;
     if(debug) hDebug->Fill(fMvaOutputs[i]);
   }
   return 0;
@@ -297,6 +304,62 @@ Int_t set_addresses(TTree* fChain) {
   return nfound;
 }
 
+//if there are I/O errors, may be most useful to update the tree in parts
+Int_t make_new_tree_inparts(TString path, TString path_in_file, TString tree_name, Long64_t iStart, Long64_t iStep = 1e6) {
+  cout << "Given file path " << path.Data() << " with folder " << path_in_file.Data()
+       << " and tree name " << tree_name.Data() << endl
+       << "Will process events " << iStart << " through " << iStart+iStep-1 << endl;
+  
+  // get the file and tree we're adding to
+  TFile* file = TFile::Open(path.Data(), ((debug) ? "READ" : "UPDATE"));
+  if(!file) return 1;
+  TDirectory* fdir = (TDirectory*) (path_in_file == "" ? file : file->Get(path_in_file.Data()));
+  if(!fdir) return 2;
+  fdir->cd();
+  TTree* tree = (TTree*) fdir->Get(tree_name.Data());
+  if(!tree) {
+    cout << "Tree not found in given file!\n";
+    return 3;
+  }
+  //set the relevant addresses and add mva branches
+  int status = (set_addresses(tree) == 0) ? 4 : 0;
+  if(status) return status;
+
+  //run through tree and evaluate mvas for each
+  Long64_t nentries = tree->GetEntriesFast();
+  cout << "Processing " << tree->GetName() << " tree with " << nentries << " entries" << endl;
+  for(Long64_t entry = iStart; entry < min(nentries, iStart+iStep); ++entry) {
+    if(entry % 50000 == 0)
+      cout << "Processing entry " << entry << "..." << endl;
+    if(fMaxEntries > 0 && entry-iStart >= fMaxEntries) {
+      cout << "Hit maximum entries, " << fMaxEntries << ", exiting!\n";
+      break;
+    }
+    fentry = entry;
+    Int_t tree_status = tree->GetEntry(entry, 0);
+    int selection = ((nElectrons == 0 && nMuons == 1 && nTaus == 1) +
+		     2*(nElectrons == 1 && nMuons == 0 && nTaus == 1) +
+		     5*(nElectrons == 1 && nMuons == 1 && nTaus == 0) +
+		     9*(nMuons == 2) +
+		     18*(nElectrons == 2));
+    initialize_tree_vars(selection);
+    for(unsigned mva_i = 0; mva_i < fMvaNames.size(); ++mva_i) {
+      if(fMvaBranches[mva_i]) {
+	fMvaBranches[mva_i]->Fill();
+      }
+    }
+  }
+  cout << "Finished processing, writing back the updated tree!" << endl;
+  fdir->cd();
+  tree->Write();
+  fdir->Write();
+  file->Close();
+  cout << "Finished writing back the updated tree!" << endl;
+  delete file;
+  if(nentries > iStart+iStep) return make_new_tree_inparts(path, path_in_file, tree_name, iStart+iStep, iStep);
+  else return 0;
+}
+
 Int_t make_new_tree(TString path, TString path_in_file, TString tree_name) {
   cout << "Given file path " << path.Data() << " with folder " << path_in_file.Data()
        << " and tree name " << tree_name.Data() << endl;
@@ -336,7 +399,9 @@ Int_t make_new_tree(TString path, TString path_in_file, TString tree_name) {
       cout << "Status getting entry: " << tree_status << endl;
     int selection = ((nElectrons == 0 && nMuons == 1 && nTaus == 1) +
 		     2*(nElectrons == 1 && nMuons == 0 && nTaus == 1) +
-		     5*(nElectrons == 1 && nMuons == 1 && nTaus == 0));
+		     5*(nElectrons == 1 && nMuons == 1 && nTaus == 0) +
+		     9*(nMuons == 2) +
+		     18*(nElectrons == 2));
     if(debug && entry%10000 == 0)
       cout << "Using selection " << selection << endl;
     initialize_tree_vars(selection);
@@ -348,10 +413,12 @@ Int_t make_new_tree(TString path, TString path_in_file, TString tree_name) {
   }
   if(debug) hDebug->Draw();
   else {
+    cout << "Finished processing, writing back the updated tree!" << endl;
     fdir->cd();
     tree->Write();
     fdir->Write();
-    file->Write();
+    file->Close();
+    cout << "Finished writing back the updated tree!" << endl;
     delete file;
   }
   return 0;
@@ -363,50 +430,68 @@ Int_t initialize() {
 }
 
 
-Int_t process_standard_nano_trees(int year = 2016) {
+//Parameters: year, true/false to process small parts of the file at a time, true/false to copy the file locally to update,
+//            and true/false to use the trees in the output directory instead of clean trees
+Int_t process_standard_nano_trees(int year = 2016, bool doInParts = false, bool copyLocal = true, bool update = false) {
   int status = 0;
-  TString grid_path = "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_nanoaod_test_trees/";
+  TString grid_path = "root://cmseos.fnal.gov///store/user/mmackenz/ztautau_nanoaod_test_trees/";
+  TString grid_out = "root://cmseos.fnal.gov///store/user/mmackenz/ztautau_nanoaod_test_trees/";
+  if(copyLocal&&!update) grid_path = "root://cmseos.fnal.gov///store/user/mmackenz/ztautau_nanoaod_trees_nomva/";
   TString name = "clfv_";
   name += year;
   name += "_";
   TString ext  = ".tree";
   vector<datacard_t> cards;
-  cards.push_back(datacard_t(true , name+"ttbarToSemiLeptonic"));
-  cards.push_back(datacard_t(true , name+"ttbarlnu"));
-  cards.push_back(datacard_t(true , name+"DY50"));
-  cards.push_back(datacard_t(true , name+"SingleAntiToptW"));
-  cards.push_back(datacard_t(true , name+"SingleToptW"));
+  cards.push_back(datacard_t(false, name+"ttbarToSemiLeptonic"));
+  cards.push_back(datacard_t(false, name+"ttbarlnu"));
+  cards.push_back(datacard_t(false, name+"DY50"));
+  cards.push_back(datacard_t(false, name+"SingleAntiToptW"));
+  cards.push_back(datacard_t(false, name+"SingleToptW"));
   cards.push_back(datacard_t(true , name+"Wlnu"));
-  cards.push_back(datacard_t(true , name+"WW"));
-  cards.push_back(datacard_t(true , name+"WZ"));
+  cards.push_back(datacard_t(true , name+"Wlnu-ext"));
+  cards.push_back(datacard_t(false, name+"WW"));
+  cards.push_back(datacard_t(false, name+"WZ"));
   cards.push_back(datacard_t(true , name+"ZETau"));
   cards.push_back(datacard_t(true , name+"ZMuTau"));
   cards.push_back(datacard_t(true , name+"ZEMu"));
   cards.push_back(datacard_t(true , name+"HETau"));
   cards.push_back(datacard_t(true , name+"HMuTau"));
   cards.push_back(datacard_t(true , name+"HEMu"));
-  cards.push_back(datacard_t(true , name+"SingleMu"));
-  cards.push_back(datacard_t(true , name+"SingleEle"));
-  cards.push_back(datacard_t(true , name+"ZZ"));
-  cards.push_back(datacard_t(true , name+"WWW"));
-  cards.push_back(datacard_t(true , name+"QCDDoubleEMEnrich30to40"));
-  cards.push_back(datacard_t(true , name+"QCDDoubleEMEnrich30toInf"));
-  cards.push_back(datacard_t(true , name+"QCDDoubleEMEnrich40toInf"));
+  cards.push_back(datacard_t(false, name+"SingleMu"));
+  cards.push_back(datacard_t(false, name+"SingleEle"));
+  cards.push_back(datacard_t(false, name+"ZZ"));
+  cards.push_back(datacard_t(false, name+"WWW"));
+  cards.push_back(datacard_t(false, name+"QCDDoubleEMEnrich30to40"));
+  cards.push_back(datacard_t(false, name+"QCDDoubleEMEnrich30toInf"));
+  cards.push_back(datacard_t(false, name+"QCDDoubleEMEnrich40toInf"));
   
-  vector<TString> folders = {"mutau", "etau", "emu"};
+  vector<TString> folders = {"ee", "mumu", "mutau", "etau", "emu"};
   status = initialize(); //initialize the MVAs
   if(status) return status;
   
   TStopwatch* timer = new TStopwatch();
   for(datacard_t& card : cards) {
     if(!card.process_) continue;
+    TString file_name = grid_path + card.fname_ + ext;
+    if(copyLocal) {
+      cout << "Copying " << file_name.Data() << " locally...\n";
+      gSystem->Exec(Form("time xrdcp -f %s ./%s", file_name.Data(), (card.fname_+ext).Data()));
+      file_name = card.fname_ + ext;
+    }
     for(auto folder : folders) {
-      TString file_name = grid_path + card.fname_ + ext;
-      int stat = make_new_tree(file_name, folder, card.fname_);
+      int stat = (doInParts) ? make_new_tree_inparts(file_name, folder, card.fname_, card.iStart_) : make_new_tree(file_name, folder, card.fname_);
       if(stat) cout << "file " << card.fname_.Data() << ": folder " << folder.Data()
-		    << " returned status " << stat << endl;
+    		    << " returned status " << stat << endl;
       status += stat;
     }
+    if(status) { cout << "Status = " << status << ", breaking!\n"; break;}
+    if(copyLocal && !debug) {
+      cout << "Copying " << file_name.Data() << " to " << (grid_out+card.fname_+ext).Data() << "...\n";
+      gSystem->Exec(Form("time xrdcp -f ./%s %s; rm %s;", file_name.Data(), (grid_out+card.fname_+ext).Data(), file_name.Data()));
+    } else if(copyLocal && debug) {
+      cout << "Not copying or deleting local file  " << file_name.Data() << " due to debug mode...\n";
+    }
+
   }
   //report the time spent histogramming
   Double_t cpuTime = timer->CpuTime();

@@ -106,20 +106,24 @@ public :
     double xsec_;
     bool isdata_;
     bool issignal_;
+    Int_t year_;
     Int_t color_;
+    bool combine_; //useful for correcting cross-sections
     
-    DataCard_t() : filename_(""), name_(""), label_(""), xsec_(1.), isdata_(false), issignal_(false), color_(-1) {}
+    DataCard_t() : filename_(""), name_(""), label_(""), xsec_(1.), isdata_(false), issignal_(false), color_(-1), combine_(false) {}
 
-    DataCard_t(TString filename, TString name, TString label, bool isdata, double xsec, bool issignal) : DataCard_t() {
+    DataCard_t(TString filename, TString name, TString label, bool isdata, double xsec, bool issignal, int year, bool combine = false) : DataCard_t() {
       filename_ = filename;
       name_ = name;
       label_ = label;
       xsec_ = xsec;
       isdata_ = isdata;
       issignal_ = issignal;
+      year_ = year;
+      combine_ = combine;
     }
-    DataCard_t(TString filename, TString name, TString label, bool isdata, double xsec, bool issignal, int color) :
-      DataCard_t(filename,name,label,isdata,xsec,issignal) {
+    DataCard_t(TString filename, TString name, TString label, bool isdata, double xsec, bool issignal, int year, int color, bool combine = false) :
+      DataCard_t(filename,name,label,isdata,xsec,issignal,year,combine) {
       color_ = color;
     }
   };
@@ -136,8 +140,10 @@ public :
   vector<TFile*> data_;  //background data files
   vector<bool> isData_; //flag to check if is data
   vector<bool> isSignal_; //flag to check if is signal file
+  vector<Int_t> dataYear_; //list of years it's associated with (2016, 2017, or 2018)
 
   Double_t lum_; //luminosity
+  std::map<Int_t, Double_t> lums_; //luminosity by year
   Double_t rootS_ = 13.; //sqrt(S)
   Int_t seed_ = 90; //random number generator seed
   TRandom* rnd_;
@@ -255,7 +261,7 @@ public :
     label.SetTextAngle(0);
     label.DrawLatex((single) ? lum_txt_x_single_ : lum_txt_x_,
 		    (single) ? lum_txt_y_single_ : lum_txt_y_,
-		    Form("L=%.1f/fb #sqrt{#it{s}} = %.0f TeV",lum_/1e3,rootS_));
+		    Form("L=%.2ffb^{-1} #sqrt{#it{s}} = %.0f TeV",lum_/1e3,rootS_));
   }
 
   void draw_data(int ndata, double nmc, map<TString, double> nsig) {
@@ -305,15 +311,15 @@ public :
   
   virtual void get_titles(TString hist, TString setType, TString* xtitle, TString* ytitle, TString* title);
 
-  virtual vector<TH1F*> get_signal(TString hist, TString setType, Int_t set);
-  virtual TH2F* get_signal_2D(TString hist, TString setType, Int_t set);
+  virtual vector<TH1D*> get_signal(TString hist, TString setType, Int_t set);
+  virtual TH2D* get_signal_2D(TString hist, TString setType, Int_t set);
 
-  virtual TH1F* get_data(TString hist, TString setType, Int_t set);
-  virtual TH2F* get_data_2D(TString hist, TString setType, Int_t set);
+  virtual TH1D* get_data(TString hist, TString setType, Int_t set);
+  virtual TH2D* get_data_2D(TString hist, TString setType, Int_t set);
 
-  virtual TH1F* get_qcd(TString hist, TString setType, Int_t set);
+  virtual TH1D* get_qcd(TString hist, TString setType, Int_t set);
 
-  virtual TH1F* get_stack_uncertainty(THStack* hstack, TString hname);
+  virtual TH1D* get_stack_uncertainty(THStack* hstack, TString hname);
   virtual THStack* get_stack(TString hist, TString setType, Int_t set);
 
   virtual TCanvas* plot_single_2Dhist(TString hist, TString setType, Int_t set, TString label);
