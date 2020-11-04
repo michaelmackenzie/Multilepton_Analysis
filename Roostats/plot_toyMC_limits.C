@@ -1,0 +1,60 @@
+//Script to plot the results of toyMC_limits.C loops
+
+TCanvas* plot_toyMC_limits(int set = 8, int year = 2016) {
+  int status(0);
+  //set only entries, mean, and stdev
+  gStyle->SetOptStat(1111);
+  TString filename = Form("toyMC_limits_%i_%i.txt", year, set);
+  TTree* tree = new TTree("tree_limits", "UL values");
+  tree->ReadFile(filename.Data());
+  TCanvas* c = new TCanvas("c_limits", "c_limits", 1200, 1000);
+  c->Divide(2,2);
+  c->cd(1);
+  TH1F* hlim = new TH1F("hlim", "Observed upper limits", 100, 1.e-9, 1.e-6);
+  tree->Draw("upperLimit>>hlim");
+  hlim->SetLineWidth(2);
+  auto pad = c->cd(2);
+  TH1F* hexp = new TH1F("hexp", "Expected upper limits (-1, 0, +1)", 100, 1.e-9, 1.e-6);
+  tree->Draw("expectedLimit>>hexp");
+  hexp->SetLineWidth(2);
+  TH1F* hexpLo = new TH1F("hexpLo", "hexplo", 100, 1.e-9, 1.e-6);
+  tree->Draw("plusLimit>>hexpLo", "", "sames");
+  hexpLo->SetLineWidth(2);
+  hexpLo->SetLineColor(kGreen);
+  hexpLo->SetLineStyle(kDashed);
+  TH1F* hexpHi = new TH1F("hexpHi", "hexpHi", 100, 1.e-9, 1.e-6);
+  tree->Draw("minusLimit>>hexpHi", "", "sames");
+  hexpHi->SetLineWidth(2);
+  hexpHi->SetLineColor(kRed);
+  hexpHi->SetLineStyle(kDashed);
+  pad->Modified(); pad->Update();
+  hexp->SetAxisRange(0.1, 1.1*max(max(hexp->GetMaximum(), hexpLo->GetMaximum()), hexpHi->GetMaximum()), "Y");
+  TPaveStats* stats = (TPaveStats*) hexp->GetListOfFunctions()->FindObject("stats");
+  stats->SetY2NDC(0.8);
+  stats->SetY1NDC(0.65);
+  stats->SetLineColor(kBlue);
+  stats->SetTextColor(kBlue);
+  stats = (TPaveStats*) hexpLo->GetListOfFunctions()->FindObject("stats");
+  stats->SetY2NDC(0.95);
+  stats->SetY1NDC(0.8);
+  stats->SetLineColor(kGreen+2);
+  stats->SetTextColor(kGreen+2);
+  stats = (TPaveStats*) hexpHi->GetListOfFunctions()->FindObject("stats");
+  stats->SetY2NDC(0.65);
+  stats->SetY1NDC(0.5);
+  stats->SetLineColor(kRed+2);
+  stats->SetTextColor(kRed+2);
+  c->cd(3);
+  TH1F* hdiff = new TH1F("hdiff", "Observed limit - Expected limit", 100, -2e-6, 2.e-6);
+  tree->Draw("(upperLimit-expectedLimit)>>hdiff");
+  hdiff->SetLineWidth(2);
+  c->cd(4);
+  TH1F* hpull = new TH1F("hpull", "Observed limit pulls", 100, -3, 3);
+  tree->Draw("((upperLimit-expectedLimit)/((upperLimit>expectedLimit) ? (minusLimit-expectedLimit) : (expectedLimit-plusLimit)))>>hpull");
+  hpull->SetLineWidth(2);
+  hpull->Fit("gaus");
+  TString outname = Form("plots/latest_production/%i/toyMC_limits_%i", year, set);
+  c->SaveAs((outname+".pdf").Data());
+  c->SaveAs((outname+".png").Data());
+  return c;
+}
