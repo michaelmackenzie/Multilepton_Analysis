@@ -19,8 +19,8 @@ public:
   SlimPhotons_t(UInt_t size) {size_=size;}
   SlimPhoton_t& operator[](UInt_t index) {return slimPhotons[index];}
   UInt_t size_;
-  const static UInt_t MAXSIZE = 30;
+  const static UInt_t MAXSIZE = 50;
   SlimPhoton_t slimPhotons[MAXSIZE];
-  ClassDef(SlimPhotons_t, 1)
+  ClassDef(SlimPhotons_t, 2)
 };
 #endif

@@ -39,7 +39,7 @@ public :
   TTreeReader     fReader;  //!the tree reader
   TTree          *fChain = 0;   //!pointer to the analyzed TTree or TChain
 
-  enum {kMaxParticles = 30};
+  enum {kMaxParticles = 50};
   enum {kMuTau, kETau, kEMu, kMuMu, kEE, kSelections}; //selections
   
   // Output data format
@@ -231,8 +231,14 @@ public :
   Float_t photonDeltaEta[kMaxParticles]     ;
   Float_t photonMVAID[kMaxParticles]        ;
   Float_t photonMVAID17[kMaxParticles]      ;
-  Bool_t photonWP80[kMaxParticles]          ;
-  Bool_t photonWP90[kMaxParticles]          ;
+  Bool_t  photonWP80[kMaxParticles]         ;
+  Bool_t  photonWP90[kMaxParticles]         ;
+  UInt_t  nTrigObjs = 0                     ;
+  Int_t   trigObjFilterBits[kMaxParticles]  ;
+  Float_t trigObjPt[kMaxParticles]          ;
+  Float_t trigObjEta[kMaxParticles]         ;
+  Float_t trigObjPhi[kMaxParticles]         ;
+  Int_t   trigObjID[kMaxParticles]          ;
   bool    HLT_IsoMu24                       ;
   bool    HLT_IsoMu27                       ;
   bool    HLT_Mu50                          ;
@@ -336,7 +342,8 @@ public :
     if(ID == 5) return 15;
     return 26; //unknown
   }
-
+  virtual int      GetTriggerMatch(UInt_t index, bool isMuon);
+  
   Long64_t fentry; //for tracking entry in functions
   //Define relevant fields
   TStopwatch* timer = new TStopwatch();

@@ -7,11 +7,12 @@
 #include "../dataFormats/SlimJet_t.hh+g"
 #include "../dataFormats/SlimPhoton_t.hh+g"
 #include "NanoAODConversion.cc+g"
+#include "../utils/CrossSections.hh"
 
 bool debug_ = false;
-TString debugFile_ = "HMuTau";
-UInt_t debugStart_ = 8947;
-UInt_t debugNEvents_ = 1;
+TString debugFile_ = "DY50";
+UInt_t debugStart_ = 1715234;
+UInt_t debugNEvents_ = 2;
 NanoAODConversion* debugSelec_ = 0;
 
 //information about the data file/data
@@ -37,6 +38,9 @@ Int_t process_nanoaods() {
   TStopwatch* timer = new TStopwatch();
   timer->Start();
 
+  //for getting relevant dataset values (gen number, xsec, etc.)
+  CrossSections xsecs;
+  
   //Data cards
   vector<datacard_t> cards;
   //2016
@@ -81,8 +85,8 @@ Int_t process_nanoaods() {
   cards.push_back(datacard_t(false, "MC/signals/LFVAnalysis_HETau_2017.root"                       , 0.));
   cards.push_back(datacard_t(false, "MC/signals/LFVAnalysis_HMuTau_2017.root"                      , 0.));
   cards.push_back(datacard_t(false, "MC/signals/LFVAnalysis_HEMu_2017.root"                        , 0.));
-  cards.push_back(datacard_t(false, "dataprocess/LFVAnalysis_SingleEle_2017.root"                  , 0.));
-  cards.push_back(datacard_t(false, "dataprocess/LFVAnalysis_SingleMu_2017.root"                   , 0.));                 
+  cards.push_back(datacard_t(true , "dataprocess/LFVAnalysis_SingleEle_2017.root"                  , 0.));
+  cards.push_back(datacard_t(true , "dataprocess/LFVAnalysis_SingleMu_2017.root"                   , 0.));                 
   //2018
   cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_SingleToptW_2018.root"             , 0.003758));
   cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_SingleAntiToptW_2018.root"         , 0.0034));
@@ -145,29 +149,42 @@ Int_t process_nanoaods() {
     float events = -1.;
     double frac_neg = cards[index].negfrac_;
     if(isData == 0) {
-      TString crab_report;
-      TString crab_command = "crab report -d " + crab_path;
-      crab_command += "samples_MC_";
-      if(year == ParticleCorrections::k2016)      crab_command += "2016/crab_2016_LFVDONE_"; 
-      else if(year == ParticleCorrections::k2017) crab_command += "2017/crab_2017_LFVDONE_";
-      else if(year == ParticleCorrections::k2018) crab_command += "2018/crab_2018_LFVDONE_";
-      crab_command += name;
-      crab_command += " | grep read | awk '{print $NF}'";
-      cout << "Getting normalization, using command:\n" << crab_command.Data() << endl;
-      FILE* shell_res = gSystem->OpenPipe(crab_command.Data(), "r");
-      crab_report.Gets(shell_res);
-      gSystem->ClosePipe(shell_res);
-      try {
-	events = stof(crab_report.Data());
-      } catch(exception e) {
-	events = 0.;
+      if(!f->Get("events")) {//Try getting normalization parameters via map and crab if no event count histogram
+	TString crab_report;
+	TString crab_command = "crab report -d " + crab_path;
+	crab_command += "samples_MC_";
+	if(year == ParticleCorrections::k2016)      crab_command += "2016/crab_2016_LFVDONE_"; 
+	else if(year == ParticleCorrections::k2017) crab_command += "2017/crab_2017_LFVDONE_";
+	else if(year == ParticleCorrections::k2018) crab_command += "2018/crab_2018_LFVDONE_";
+	crab_command += name;
+	crab_command += " | grep read | awk '{print $NF}'";
+	cout << "Getting normalization, using command:\n" << crab_command.Data() << endl;
+	FILE* shell_res = gSystem->OpenPipe(crab_command.Data(), "r");
+	crab_report.Gets(shell_res);
+	gSystem->ClosePipe(shell_res);
+	try {
+	  events = stof(crab_report.Data());
+	} catch(exception e) {
+	  events = 0.;
+	}
+	cout << "Found " << events << " events for the file with "
+	     << frac_neg << " fraction negative events" << endl;
+
+      } else { //event count histogram is found
+	TH1D* hevents = (TH1D*) f->Get("events");
+	double nevents = hevents->GetBinContent(1);
+	if(nevents > 0.)
+	  frac_neg = hevents->GetBinContent(11) / nevents;
+	events = (float) nevents;
       }
-      cout << "Found " << events << " events for the file with "
-	   << frac_neg << " fraction negative events" << endl;
+      if(events <= 0.) {
+	cout << "No events found via crab dir, trying instead from CrossSection util...\n";
+	events = xsecs.GetGenNumber(name, year + (2016-ParticleCorrections::k2016)); //uses absolute value year, not enum
+      }
       if(events <= 0.) {
 	cout << "No events found! Can't do normalization --> continue to next file!\n";
 	continue;
-      }
+      } 
     }
     NanoAODConversion* selec = new NanoAODConversion();
     if(events > 0.) selec->fEventCount = events*(1.-2.*frac_neg);

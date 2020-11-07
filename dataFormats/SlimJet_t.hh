@@ -20,8 +20,8 @@ public:
   SlimJets_t(UInt_t size) {size_=size;}
   SlimJet_t& operator[](UInt_t index) {return slimJets[index];}
   UInt_t size_;
-  const static UInt_t MAXSIZE = 30;
+  const static UInt_t MAXSIZE = 50;
   SlimJet_t slimJets[MAXSIZE];
-  ClassDef(SlimJets_t, 2)
+  ClassDef(SlimJets_t, 3)
 };
 #endif

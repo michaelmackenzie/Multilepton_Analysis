@@ -18,8 +18,8 @@ public:
   SlimMuons_t(UInt_t size) {size_=size;}
   SlimMuon_t& operator[](UInt_t index) {return slimMuons[index];}
   UInt_t size_;
-  const static UInt_t MAXSIZE = 30;
+  const static UInt_t MAXSIZE = 50;
   SlimMuon_t slimMuons[MAXSIZE];
-  ClassDef(SlimMuons_t, 2)
+  ClassDef(SlimMuons_t, 3)
 };
 #endif

@@ -134,6 +134,7 @@ double ParticleCorrections::ElectronWeight(double pt, double eta, int year, floa
     return -1.;
   }
 
+  double trig_pt = pt;
   if(year == k2016) {
     if(pt > 499.)     pt = 499.; //maximum pT for corrections
     else if(pt < 20.) pt = 20.; //minimum pT for corrections
@@ -163,9 +164,10 @@ double ParticleCorrections::ElectronWeight(double pt, double eta, int year, floa
   TH2F* hTrig = electronTriggerMap[year];
   trigger_scale = hTrig->GetBinContent(hTrig->GetXaxis()->FindBin(eta_trig), hTrig->GetYaxis()->FindBin(pt));
 
-  //can't fire a trigger if below the threshold
-  if((year == k2016 && pt < 28.) || (year == k2017 && pt < 33.) || (year == k2018 && pt < 28.))
+  //don't scale if can't fire the trigger
+  if((trig_pt < 28. && year == k2016) || (trig_pt < 33. && year == k2017) || (trig_pt < 33. && year == k2018))
     trigger_scale = 1.;
+  
 
   //FIXME: add pre-fire for 2017
   // double prefire_scale = electronPreFireMap[year];
@@ -217,7 +219,7 @@ double ParticleCorrections::ElectronTriggerEff(double pt, double eta, int year, 
   mc_eff = hTrigMC->GetBinContent(hTrigMC->GetXaxis()->FindBin(eta_trig), hTrigMC->GetYaxis()->FindBin(pt));
 
   //can't fire a trigger if below the threshold
-  if((year == k2016 && pt < 28.) || (year == k2017 && pt < 33.) || (year == k2018 && pt < 28.)) {
+  if((year == k2016 && pt < 28.) || (year == k2017 && pt < 33.) || (year == k2018 && pt < 33.)) {
     data_eff = 1.;
     mc_eff = 1.;
   }
