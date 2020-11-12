@@ -46,7 +46,7 @@ class ZTauTauHistMaker : public TSelector {
 public :
   TTreeReader     fReader;  //!the tree reader
   TTree          *fChain = 0;   //!pointer to the analyzed TTree or TChain
-  enum {kMaxParticles = 20, kMaxCounts = 40};
+  enum {kMaxParticles = 50, kMaxCounts = 40};
   enum {kMuTau = 0, kETau = 30, kEMu = 60, kMuTauE = 90, kETauMu = 105, kMuMu = 120, kEE = 145};
   enum {kMaxMVAs = 80};
 
@@ -137,6 +137,10 @@ public :
   UInt_t nBJets20                    ;
   UInt_t nBJets20M                   ;
   UInt_t nBJets20L                   ;
+  Float_t jetsPt[kMaxParticles]      ;
+  Float_t jetsEta[kMaxParticles]     ;
+  Int_t   jetsFlavor[kMaxParticles]  ;
+  Int_t   jetsBTag[kMaxParticles]    ;
   UInt_t nGenTausHad                 ;
   UInt_t nGenTausLep                 ;
   UInt_t nGenElectrons               ;
@@ -229,6 +233,11 @@ public :
     TH1D* hNBJets20;
     TH1D* hNBJets20M;
     TH1D* hNBJets20L;
+    TH1D* hJetsFlavor;
+    TH2D* hJetsPtVsEta  [3]; //0: gen-level light jet 1: gen-level c-jet 2: gen-level b-jet
+    TH2D* hBJetsPtVsEta [3]; //0: gen-level light jet 1: gen-level c-jet 2: gen-level b-jet    
+    TH2D* hBJetsMPtVsEta[3]; //0: gen-level light jet 1: gen-level c-jet 2: gen-level b-jet    
+    TH2D* hBJetsLPtVsEta[3]; //0: gen-level light jet 1: gen-level c-jet 2: gen-level b-jet    
     TH1D* hMcEra;
     TH1D* hTriggerLeptonStatus;
     TH1D* hPuWeight;
@@ -392,6 +401,8 @@ public :
     TH1D* hOneFlavor;
     TH1D* hOneQ;
     TH1D* hOneTrigger;
+    TH1D* hOneWeight;
+    TH1D* hOneTrigWeight;
     //Gen Info
     TH1D* hOneGenPt;
     TH1D* hOneGenE;
@@ -435,6 +446,8 @@ public :
     TH1D* hTwoFlavor;
     TH1D* hTwoQ;
     TH1D* hTwoTrigger;
+    TH1D* hTwoWeight;
+    TH1D* hTwoTrigWeight;
     //Gen Info
     TH1D* hTwoGenPt;
     TH1D* hTwoGenE;
@@ -693,6 +706,8 @@ public :
   bool          fSkipDoubleTrigger = false; //skip events with both triggers (to avoid double counting), only count this lepton status events
   Int_t         fMETWeights = 0; //re-weight events based on the MET
 
+  Int_t         fRemoveTriggerWeights = 0;
+  
   Int_t         fRemoveZPtWeights = 0; // 0 use given weights, 1 remove z pT weight, 2 remove and re-evaluate weights locally
   TH2D*         fZPtScales = 0; //histogram based z pTvsM weights
   TH2D*         fZPtRecoScales = 0; //histogram based reconstructed z pTvsM weights
@@ -766,6 +781,10 @@ void ZTauTauHistMaker::Init(TTree *tree)
       tree->SetBranchStatus("nBJets20"            , 1);
       tree->SetBranchStatus("nBJets20M"           , 1);
       tree->SetBranchStatus("nBJets20L"           , 1);
+      tree->SetBranchStatus("jetsPt"              , 1);
+      tree->SetBranchStatus("jetsEta"             , 1);
+      tree->SetBranchStatus("jetsFlavor"          , 1);
+      tree->SetBranchStatus("jetsBTag"            , 1);
       tree->SetBranchStatus("nGenTausHad"         , 1);
       tree->SetBranchStatus("nGenTausLep"         , 1);
       tree->SetBranchStatus("nGenElectrons"       , 1);
@@ -1095,12 +1114,12 @@ void ZTauTauHistMaker::Init(TTree *tree)
     }
     else if(fFolderName == "mumu") {
       //Mu+Mu sets
-      if(!fDYTesting) {
+      // if(!fDYTesting) {
 	fEventSets [kMuMu + 1] = 1; // events with opposite signs
 	fEventSets [kMuMu + 1+fQcdOffset] = 1; // events with same signs
 	fEventSets [kMuMu + 2] = 1; // events with opposite signs
 	fEventSets [kMuMu + 2+fQcdOffset] = 1; // events with same signs
-      }
+      // }
       fEventSets [kMuMu + 7] = 1; // events with opposite signs
       fEventSets [kMuMu + 7+fQcdOffset] = 1; // events with same signs
       fEventSets [kMuMu + 8] = 1; // events with opposite signs and no bjets
@@ -1298,6 +1317,10 @@ void ZTauTauHistMaker::Init(TTree *tree)
   fChain->SetBranchAddress("nGenPromptTaus"      , &nGenHardTaus         );
   fChain->SetBranchAddress("nGenPromptElectrons" , &nGenHardElectrons    );
   fChain->SetBranchAddress("nGenPromptMuons"     , &nGenHardMuons        );
+  fChain->SetBranchAddress("jetsPt"              , &jetsPt               );
+  fChain->SetBranchAddress("jetsEta"             , &jetsEta              );
+  fChain->SetBranchAddress("jetsFlavor"          , &jetsFlavor           );
+  fChain->SetBranchAddress("jetsBTag"            , &jetsBTag             );
   if(!fDYTesting) {
     fChain->SetBranchAddress("htSum"               , &htSum                );
     fChain->SetBranchAddress("ht"                  , &ht                   );
