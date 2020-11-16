@@ -39,7 +39,7 @@ public :
   TTreeReader     fReader;  //!the tree reader
   TTree          *fChain = 0;   //!pointer to the analyzed TTree or TChain
 
-  enum {kMaxParticles = 50};
+  enum {kMaxParticles = 50, kMaxTriggers = 100};
   enum {kMuTau, kETau, kEMu, kMuMu, kEE, kSelections}; //selections
   
   // Output data format
@@ -61,6 +61,7 @@ public :
   Bool_t  lepOneFired = false        ;
   Bool_t  lepTwoFired = false        ;
   Float_t topPtWeight = 1.           ;
+  Float_t btagWeight = 1.            ;
   Float_t zPtWeight = 1.             ;
   Float_t zPtOut    = -1.            ;
   Float_t zMassOut    = -1.          ;
@@ -171,6 +172,11 @@ public :
   Int_t   svFitStatus                ;
   TLorentzVector* leptonOneSVP4 = 0  ;
   TLorentzVector* leptonTwoSVP4 = 0  ;
+  //Info for b-tag studies
+  Float_t jetsPt[kMaxParticles]      ;
+  Float_t jetsEta[kMaxParticles]     ;
+  Int_t   jetsFlavor[kMaxParticles]  ;
+  Int_t   jetsBTag[kMaxParticles]    ;
 
   //Input data format (only ones that differ from output)
   Int_t nGoodPV                             ;
@@ -224,6 +230,7 @@ public :
   Int_t   jetPUID[kMaxParticles]            ;
   Float_t jetBTagDeepB[kMaxParticles]       ;
   Float_t jetBTagCMVA[kMaxParticles]        ;
+  Int_t   jetFlavor[kMaxParticles]          ;
   Float_t photonPt[kMaxParticles]           ;
   Float_t photonEta[kMaxParticles]          ;
   Float_t photonPhi[kMaxParticles]          ;
@@ -234,11 +241,11 @@ public :
   Bool_t  photonWP80[kMaxParticles]         ;
   Bool_t  photonWP90[kMaxParticles]         ;
   UInt_t  nTrigObjs = 0                     ;
-  Int_t   trigObjFilterBits[kMaxParticles]  ;
-  Float_t trigObjPt[kMaxParticles]          ;
-  Float_t trigObjEta[kMaxParticles]         ;
-  Float_t trigObjPhi[kMaxParticles]         ;
-  Int_t   trigObjID[kMaxParticles]          ;
+  Int_t   trigObjFilterBits[kMaxTriggers]   ;
+  Float_t trigObjPt[kMaxTriggers]           ;
+  Float_t trigObjEta[kMaxTriggers]          ;
+  Float_t trigObjPhi[kMaxTriggers]          ;
+  Int_t   trigObjID[kMaxTriggers]           ;
   bool    HLT_IsoMu24                       ;
   bool    HLT_IsoMu27                       ;
   bool    HLT_Mu50                          ;
@@ -329,6 +336,7 @@ public :
 
   virtual void    InitializeOutBranchStructure(TTree* tree);
   virtual void    InitializeInBranchStructure(TTree* tree);
+  virtual float   BTagWeight(int WP);
   virtual void    InitializeTreeVariables(Int_t selection);
   virtual void    CountJets();
   virtual void    CountObjects();
@@ -418,14 +426,15 @@ public :
 
   
   //summary variables
-  Int_t         fNEE = 0;
-  Int_t         fNMuMu = 0;
-  Int_t         fNEMu = 0;
-  Int_t         fNETau = 0;
-  Int_t         fNMuTau = 0;
-  Int_t         fNFailed = 0;
-  Int_t         fNSkipped = 0;
-  
+  Int_t         fNEE         = 0;
+  Int_t         fNMuMu       = 0;
+  Int_t         fNEMu        = 0;
+  Int_t         fNETau       = 0;
+  Int_t         fNMuTau      = 0;
+  Int_t         fNFailedTrig = 0;
+  Int_t         fNFailed     = 0;
+  Int_t         fNSkipped    = 0;
+
   ClassDef(NanoAODConversion,0);
 
 };

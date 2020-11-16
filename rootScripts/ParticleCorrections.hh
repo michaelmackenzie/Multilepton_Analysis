@@ -388,8 +388,21 @@ public :
       zWeightMap[period] = (TH2F*) f->Get((zFileNames[period].second).Data())->Clone();
       fileList.push_back(f);
     }
-    
+
+    //b-tag efficiency histograms
+    for(int period = k2016; period <= k2018; ++period) { //file per year
+      for(int WP = kLooseBTag; WP <= kTightBTag; ++WP) { //file per working point
+	TString btagname = Form("btag_eff_wp_%i_mumu_%i.root", WP, period+2016);
+	TFile* f = TFile::Open((scaleFactorPath + btagname).Data(),"READ");
+	if(!f) continue;
+	bJetGenBEffMap[period][WP] = (TH2F*) f->Get("hBRatio")->Clone(); //gen-level b-jets
+	bJetGenCEffMap[period][WP] = (TH2F*) f->Get("hCRatio")->Clone(); //gen-level c-jets
+	bJetGenLEffMap[period][WP] = (TH2F*) f->Get("hLRatio")->Clone(); //gen-level light-jets
+	fileList.push_back(f);
+      }
+    }
   }
+  
   ~ParticleCorrections() {
     for(TFile* f : fileList) {
       if(f) delete f;
@@ -411,7 +424,8 @@ public :
   }
   virtual double TauEnergyScale(double pt, double eta, int dm, int genID, int era, double& up, double& down);
   virtual double PhotonWeight(double pt, double eta, int year);
-  virtual double BTagWeight(double pt, double eta, int jetFlavor, int year, int WP);
+  virtual double BTagMCProb(double pt, double eta, int jetFlavor, int year, int WP);
+  virtual double BTagDataProb(double pt, double eta, int jetFlavor, int year, int WP);
   virtual double ZWeight(double pt, double mass, int year);
 
   virtual double BTagCut(int wp, int year);
@@ -458,7 +472,9 @@ public:
   //photon ID corrections
   std::map<int, TH2F*> photonIDMap;
   //b-jet corrections
-  std::map<int, TH2F*> bJetIDMap;
+  std::map<int, std::map<int, TH2F*>> bJetGenBEffMap; //gen-level b-jets
+  std::map<int, std::map<int, TH2F*>> bJetGenCEffMap; //gen-level c-jets
+  std::map<int, std::map<int, TH2F*>> bJetGenLEffMap; //gen-level light-jets
   //Z pT/mass corrections
   std::map<int, TH2F*> zWeightMap;
   //Open files, to close when exiting

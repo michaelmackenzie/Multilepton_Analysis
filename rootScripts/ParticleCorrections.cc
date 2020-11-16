@@ -351,32 +351,104 @@ double ParticleCorrections::PhotonWeight(double pt, double eta, int year) {
  return scale_factor;
 }
 
-double ParticleCorrections::BTagWeight(double pt, double eta, int jetFlavor, int year, int WP) {
+//Probability of passing b-tag WP in the MC
+double ParticleCorrections::BTagMCProb(double pt, double eta, int jetFlavor, int year, int WP) {
   if(pt < 20.) pt = 20.;
-  if(fabs(eta) > 2.4) return 1.; //can't tag high eta jets
+  else if (pt > 999.) pt = 999.;
+  if(fabs(eta) >= 2.5) return 0.; //can't tag high eta jets
+  if(year != k2016 && year != k2017 && year != k2018) {
+    std::cout << "WARNING! Unknown year in ParticleCorrections::" << __func__ << ": "
+	      << year << std::endl;
+    return 0.;
+  }
+  if(WP != kLooseBTag && WP != kMediumBTag && WP != kTightBTag) {
+    std::cout << "WARNING! In ParticleCorrections::" << __func__ << ": Unknown WP "
+	      << WP << std::endl;
+    return 0.;
+  }
+  TH2F* h = 0;
+  if     (abs(jetFlavor) == 5) h = bJetGenBEffMap[year][WP];
+  else if(abs(jetFlavor) == 4) h = bJetGenCEffMap[year][WP];
+  else if(abs(jetFlavor) <  4 || abs(jetFlavor) == 21) h = bJetGenLEffMap[year][WP];
+  else {
+    std::cout << "WARNING! In ParticleCorrections::" << __func__ << ": Unknown jet flavor "
+	      << jetFlavor << std::endl;
+    return 0.;
+  }
+    
+  if(!h) {
+    std::cout << "WARNING! In ParticleCorrections::" << __func__ << ": No Histogram found for year "
+	      << year + 2016 << ", jetFlavor " << jetFlavor << ", WP " << WP << std::endl;
+    return 0.;
+  }
   
-  double scale_factor(1.), x(pt); //use x here
-  if(jetFlavor == 5) { //true b-jets
+  int binx = h->GetXaxis()->FindBin(eta);
+  int biny = h->GetYaxis()->FindBin(pt);
+  double eff = h->GetBinContent(binx, biny);
+  if(eff <= 0.) {
+    std::cout << "WARNING! In ParticleCorrections::" << __func__ << ": Efficiency <= 0. = "
+	      << eff << std::endl;
+    return 0.;
+  }
+  if(eff > 1.) eff = 1.;
+  return eff;
+}
+
+//Probability of passing b-tag WP in data
+double ParticleCorrections::BTagDataProb(double pt, double eta, int jetFlavor, int year, int WP) {
+  if(pt < 20.) pt = 20.;
+  if(fabs(eta) >= 2.5) return 1.; //can't tag high eta jets
+  
+  double scale_factor(1.), x(pt); //use x here, seems like it should be pT?
+  if(jetFlavor == 5 || jetFlavor == 4) { //true b-jets and c-jets (since no dedicated measurement)
     if(year == k2016) {
       if(WP == kLooseBTag)       scale_factor = 0.971065*((1.+(0.0100459*x))/(1.+(0.00975219*x)));
       else if(WP == kMediumBTag) scale_factor = 0.922748*((1.+(0.0241884*x))/(1.+(0.0223119*x)));
       else if(WP == kTightBTag)  scale_factor = 0.573021*((1.+(0.472221*x))/(1.+(0.27584*x)));
+    } else if(year == k2017) {
+      if(WP == kLooseBTag)       scale_factor = 1.04891*((1.+(0.0145976*x))/(1.+(0.0165274*x)));
+      else if(WP == kMediumBTag) scale_factor = 0.991757*((1.+(0.0209615*x))/(1.+(0.0234962*x)));
+      else if(WP == kTightBTag)  scale_factor = 0.908648*((1.+(0.00516407*x))/(1.+(0.00564675*x)));
+    } else if(year == k2018) {
+      if(WP == kLooseBTag)       scale_factor = 0.873139+(0.00420739*(log(x+19.)*(log(x+18.)*(3-(0.380932*log(x+18.))))));
+      else if(WP == kMediumBTag) scale_factor = 1.0097+(-(2.89663e-06*(log(x+19.)*(log(x+18.)*(3-(-(110.381*log(x+18.))))))));
+      else if(WP == kTightBTag)  scale_factor = 0.818896+(0.00682971*(log(x+19.)*(log(x+18.)*(3-(0.440998*log(x+18.))))));
     }
-  } else {
+  } else { //other jets
     if(year == k2016) {
       if(WP == kLooseBTag)       scale_factor = 0.971065*((1.+(0.0100459*x))/(1.+(0.00975219*x)));
       else if(WP == kMediumBTag) scale_factor = 0.922748*((1.+(0.0241884*x))/(1.+(0.0223119*x)));
       else if(WP == kTightBTag)  scale_factor = 0.573021*((1.+(0.472221*x))/(1.+(0.27584*x)));
+    } else if(year == k2017) {
+      if(WP == kLooseBTag)       scale_factor = 1.04891*((1.+(0.0145976*x))/(1.+(0.0165274*x)));
+      else if(WP == kMediumBTag) scale_factor = 0.991757*((1.+(0.0209615*x))/(1.+(0.0234962*x)));
+      else if(WP == kTightBTag)  scale_factor = 0.908648*((1.+(0.00516407*x))/(1.+(0.00564675*x)));
+    } else if(year == k2018) {
+      if(WP == kLooseBTag)       scale_factor = 0.873139+(0.00420739*(log(x+19.)*(log(x+18.)*(3-(0.380932*log(x+18.))))));
+      else if(WP == kMediumBTag) scale_factor = 1.0097+(-(2.89663e-06*(log(x+19.)*(log(x+18.)*(3-(-(110.381*log(x+18.))))))));
+      else if(WP == kTightBTag)  scale_factor = 0.818896+(0.00682971*(log(x+19.)*(log(x+18.)*(3-(0.440998*log(x+18.))))));
     }
   }
+  //Get probability of being tagged in MC
+  double mc_prob = BTagMCProb(pt, eta, jetFlavor, year, WP);
+  //Probaility in data is then P(MC) * SF
+  double data_prob = mc_prob*scale_factor;
   if(scale_factor <= 0. || fVerbose > 0) {
     if(scale_factor <= 0.) std::cout << "Warning! Scale factor <= 0! ";
     std::cout << "ParticleCorrections::" << __func__
 	      << " year = " << year
+	      << " pt = " << pt
+	      << " eta = " << eta
+	      << " flavor = " << jetFlavor
 	      << " scale_factor = " << scale_factor
+	      << " mc_prob = " << mc_prob
+	      << " data_prob = " << data_prob
 	      << std::endl;
   }
-  return scale_factor;
+  if(data_prob > 1.) data_prob = 1.;
+  else if(data_prob < 0.) data_prob = 0.;
+  
+  return data_prob;  
 }
 
 double ParticleCorrections::ZWeight(double pt, double mass, int year) {

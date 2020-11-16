@@ -203,6 +203,7 @@ void NanoAODConversion::InitializeInBranchStructure(TTree* tree) {
   tree->SetBranchAddress("Jet_puId"                        , &jetPUID                        ) ;
   tree->SetBranchAddress("Jet_btagDeepB"                   , &jetBTagDeepB                   ) ;
   tree->SetBranchAddress("Jet_btagCMVA"                    , &jetBTagCMVA                    ) ;
+  tree->SetBranchAddress("Jet_partonFlavour"               , &jetFlavor                      ) ;
   tree->SetBranchAddress("nPhoton"                         , &nPhoton                        ) ;
   tree->SetBranchAddress("Photon_pt"                       , &photonPt                       ) ;
   tree->SetBranchAddress("Photon_eta"                      , &photonEta                      ) ;
@@ -255,6 +256,7 @@ void NanoAODConversion::InitializeOutBranchStructure(TTree* tree) {
   tree->Branch("eventWeight"                   , &eventWeight          );
   tree->Branch("genWeight"                     , &genWeight            );
   tree->Branch("puWeight"                      , &puWeight             );
+  tree->Branch("btagWeight"                    , &btagWeight           );
   tree->Branch("lepOneWeight"                  , &lepOneWeight         );
   tree->Branch("lepTwoWeight"                  , &lepTwoWeight         );
   tree->Branch("lepOneTrigWeight"              , &lepOneTrigWeight     );
@@ -375,7 +377,44 @@ void NanoAODConversion::InitializeOutBranchStructure(TTree* tree) {
   tree->Branch("svFitStatus"                   , &svFitStatus          );
   tree->Branch("leptonOneSVP4"                 , &leptonOneSVP4        );
   tree->Branch("leptonTwoSVP4"                 , &leptonTwoSVP4        );
+  //information for b-tag efficiency studies
+  tree->Branch("jetsPt"                        , jetsPt      , "jetsPt[nJets20]/F");
+  tree->Branch("jetsEta"                       , jetsEta     , "jetsEta[nJets20]/F");
+  tree->Branch("jetsFlavor"                    , jetsFlavor  , "jetsFlavor[nJets20]/I");
+  tree->Branch("jetsBTag"                      , jetsBTag    , "jetsBTag[nJets20]/I");
 
+}
+
+//calculate the weight for b-tagging corrections
+float NanoAODConversion::BTagWeight(int WP) {
+  //loop through each jet, getting the P(b-tag) in data and MC
+  double p_data(1.), p_mc(1.);
+  double bcut = particleCorrections->BTagCut(WP, fYear);
+  if(fVerbose > 1) std::cout << "NanoAODConversion::" << __func__ << ": printing jet b-tag info...\n";
+  for(unsigned jet = 0; jet < nJets20; ++jet) {
+    if(fabs(jetsEta[jet]) >= 2.4) continue;
+    double pd = particleCorrections->BTagDataProb(jetsPt[jet], jetsEta[jet], jetsFlavor[jet], fYear, WP);
+    double pm = particleCorrections->BTagMCProb  (jetsPt[jet], jetsEta[jet], jetsFlavor[jet], fYear, WP);
+    if(fVerbose > 1) std::cout << "Jet " << jet << " has pt = " << jetsPt[jet] << " eta " << jetsEta[jet]
+			       << " pmc = " << pm << " pdata = " << pd << std::endl;
+    if(jetsBTag[jet] > bcut) { //is b-tagged
+      p_data *= pd;
+      p_mc   *= pm;
+    } else {
+      p_data *= 1. - pd;
+      p_mc   *= 1. - pm;
+    }
+    if(fVerbose > 1) std::cout << " --> p_mc = " << p_mc << " p_data = " << p_data << std::endl;
+  }
+  if(fVerbose > 1 || p_data <= 0. || p_mc <= 0.) {
+    if(p_data <= 0. || p_mc <= 0.) std::cout << "Warning! <= 0 b-tag probabilities! ";
+    std::cout << "NanoAODConversion::" << __func__ << " entry " << fentry << ": p_data = " << p_data
+	      << " p_mc = " << p_mc
+	      << " njets = " << nJets20 << std::endl;    
+  }
+  if(p_mc <= 0. || p_data <= 0.) return 1.;
+  float scale_factor = p_data / p_mc;
+  return scale_factor;
 }
 
 void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
@@ -393,6 +432,7 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
   puppMETC    = puppMET   ;
   puppMETCphi = puppMETphi;
 
+  
   //////////////////////////////
   //      Lepton info         //
   //////////////////////////////
@@ -626,9 +666,20 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
   if(!lepTwoFired) lepTwoTrigWeight = 1.;
 
   //////////////////////////////
+  //        b-Tag SF          //
+  //////////////////////////////
+
+  CountJets();
+  if(!fIsData) {
+    int WP = ParticleCorrections::kTightBTag;
+    if(selection == kEMu || selection == kEE || selection == kMuMu)
+      WP = ParticleCorrections::kLooseBTag;
+    btagWeight = BTagWeight(WP);
+  } else btagWeight = 1.;
+
+  //////////////////////////////
   //    Store other objects   //
   //////////////////////////////
-  CountJets();
   if(!(selection == kMuTau || selection == kETau) && nTaus > 0) {
     unsigned index = fTauIndices[selection][0];
     tauP4->SetPtEtaPhiM(tauPt[index], tauEta[index], tauPhi[index], tauMass[index]);
@@ -671,6 +722,7 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
     photonP4->SetPtEtaPhiM(0., 0., 0., 0.);
     photonIDWeight = 1.;
   }
+  
   if(!fIsData) {
     if(trigger_index > 1) { //more than one trigger fired, use efficiencies combined
       float trig_correction = particleCorrections->CombineEfficiencies(data_eff[0], mc_eff[0], data_eff[1], mc_eff[1]);
@@ -681,7 +733,7 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
 		  << trigger_index << " objects in entry "
 		  << fentry << std::endl;
     }
-    eventWeight = lepOneWeight * lepTwoWeight * lepOneTrigWeight * lepTwoTrigWeight * puWeight * photonIDWeight;
+    eventWeight = lepOneWeight * lepTwoWeight * lepOneTrigWeight * lepTwoTrigWeight * puWeight * photonIDWeight * btagWeight;
     if(fIsDY) eventWeight *= zPtWeight;
   } else {
     eventWeight = 1.;
@@ -693,8 +745,9 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
     lepTwoTrigWeight = 1.;
     zPtWeight = 1.;
     photonIDWeight = 1.;
+    btagWeight = 1.;
   }
-  if(eventWeight <= 0. || fVerbose > 1 || (useTrigObj && trigMatchOne == 0 && trigMatchTwo == 0) ) {
+  if(eventWeight <= 0. || fVerbose > 1 /*|| (useTrigObj && trigMatchOne == 0 && trigMatchTwo == 0)*/ ) {
     if(eventWeight <= 0.)
       std::cout << "WARNING! Eventweight <= 0. in entry " << fentry << "!\n";
     if(useTrigObj && trigMatchOne == 0 && trigMatchTwo == 0)
@@ -702,8 +755,10 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
     std::cout << "eventWeight = " << eventWeight
 	      << " genWeight = " << genWeight
 	      << " puWeight = " << puWeight
+	      << " btagWeight = " << btagWeight
+	      << " photonIDWeight = " << photonIDWeight << std::endl
 	      << " lepOneWeight = " << lepOneWeight
-	      << " lepTwoWeight = " << lepTwoWeight << std::endl
+	      << " lepTwoWeight = " << lepTwoWeight 
 	      << " muonLowTriggered = " << lowMuonTriggered
 	      << " muonHighTriggered = " << highMuonTriggered
 	      << " electronTriggered = " << electronTriggered << std::endl
@@ -767,27 +822,26 @@ void NanoAODConversion::CountJets() {
       jetptmax = jetpt;
       jetP4->SetPtEtaPhiM(jetPt[index], jetEta[index], jetPhi[index], jetMass[index]);
     }
-    if(jetpt > 25.)     ++nJets;
-    else if(jetpt > 20) ++nJets20;
+    if(jetpt > 25.) ++nJets;
+    ++nJets20;
 
     htLV += *jetLoop;
     htSum += jetpt;
-
-    if(jetpt > 25) {
-      if(jetBTagDeepB[index] > particleCorrections->BTagCut(ParticleCorrections::kLooseBTag, fYear))
-	++nBJetsL;
-      if(jetBTagDeepB[index] > particleCorrections->BTagCut(ParticleCorrections::kMediumBTag, fYear))
-	++nBJetsM;
-      if(jetBTagDeepB[index] > particleCorrections->BTagCut(ParticleCorrections::kTightBTag, fYear))
-	++nBJets;
+    int jetBTag = 0;
+    if(jetBTagDeepB[index] > particleCorrections->BTagCut(ParticleCorrections::kLooseBTag, fYear)) {
+      ++jetBTag; ++nBJets20L; if(jetpt > 25.) ++nBJetsL;
+      if(jetBTagDeepB[index] > particleCorrections->BTagCut(ParticleCorrections::kMediumBTag, fYear)) {
+	++jetBTag; ++nBJets20M; if(jetpt > 25.) ++nBJetsM;
+	if(jetBTagDeepB[index] > particleCorrections->BTagCut(ParticleCorrections::kTightBTag, fYear)) {
+	  ++jetBTag; ++nBJets20; if(jetpt > 25.) ++nBJets;
+	}
+      }
     }
-    //lower pt bound counts
-    if(jetBTagDeepB[index] > particleCorrections->BTagCut(ParticleCorrections::kLooseBTag, fYear))
-      ++nBJets20L;
-    if(jetBTagDeepB[index] > particleCorrections->BTagCut(ParticleCorrections::kMediumBTag, fYear))
-      ++nBJets20M;
-    if(jetBTagDeepB[index] > particleCorrections->BTagCut(ParticleCorrections::kTightBTag, fYear))
-      ++nBJets20;
+    //save info for jet b-tag efficiency
+    jetsPt    [nJets20-1] = jetpt;
+    jetsEta   [nJets20-1] = jetEta[index];
+    jetsBTag  [nJets20-1] = jetBTag;
+    jetsFlavor[nJets20-1] = jetFlavor[index];
   }
   ht = htLV.Pt();
   htPhi = htLV.Phi();
@@ -1119,7 +1173,7 @@ int NanoAODConversion::GetTriggerMatch(UInt_t index, bool isMuon) {
   if(fVerbose > 2) std::cout << "Doing trigger match on index " << index << " with isMuon = " << isMuon
 			     << " and bits " << (1<<bit_1) << " and " << (1<<bit_2) << std::endl
 			     << "Given lepton pt, eta, phi = " << pt << ", " << eta << ", " << phi << std::endl;
-     float deltar_match = 0.2;
+  float deltar_match = 0.2;
   float deltapt_match = 10; //fractional match, > ~10 means don't use
   for(unsigned trig_i = 0; trig_i < nTrigObjs; ++trig_i) {
     if(trigObjID[trig_i] != id) continue;
@@ -1150,10 +1204,6 @@ Bool_t NanoAODConversion::Process(Long64_t entry)
 {
   fentry = entry;
   if(fVerbose > 1) std::cout << "Event " << entry << std::endl;
-  if(fVerbose > 2) std::cout << "Event info: nMuon = " << nMuon << " nElectron = " << nElectron
-			     << " nTau = " << nTau << " nJet = " << nJet << " nTrigObj = " << nTrigObjs
-			     << " nPhoton = " << nPhoton
-			     << std::endl;
   // The Process() function is called for each entry in the tree (or possibly
   // keyed object in the case of PROOF) to be processed. The entry argument
   // specifies which entry in the currently loaded tree is to be processed.
@@ -1172,7 +1222,21 @@ Bool_t NanoAODConversion::Process(Long64_t entry)
 
   fChain->GetEntry(entry);
   if(entry%50000 == 0) printf("Processing event: %12lld (%5.1f%%)\n", entry, entry*100./fChain->GetEntriesFast());
+  if(fVerbose > 2) std::cout << "Event info: nMuon = " << nMuon << " nElectron = " << nElectron
+			     << " nTau = " << nTau << " nJet = " << nJet << " nTrigObj = " << nTrigObjs
+			     << " nPhoton = " << nPhoton
+			     << std::endl;
+  if(kMaxParticles < nMuon || kMaxParticles < nElectron || kMaxParticles < nJets ||
+     kMaxParticles < nPhotons || kMaxTriggers < nTrigObjs)
+    std::cout << "WARNING! More particles than allowed in event " << entry
+	      << ":\n"  << "Event info: nMuon = " << nMuon << " nElectron = " << nElectron
+	      << " nTau = " << nTau << " nJet = " << nJet << " nTrigObj = " << nTrigObjs
+	      << " nPhoton = " << nPhoton
+	      << std::endl;
+
+
   CountObjects();
+
   //selections (all hopefully exclusive)
   bool mutau = fNTaus[kMuTau] == 1 && fNMuons[kMuTau] == 1 && SelectionID(kMuTau);
   bool etau  = fNTaus[kETau]  == 1 && fNElectrons[kETau]  == 1 && SelectionID(kETau);
@@ -1223,8 +1287,12 @@ Bool_t NanoAODConversion::Process(Long64_t entry)
 	 (selection == kEMu && emu) || (selection == kMuMu && mumu) || (selection == kEE && ee)))
       continue;
     InitializeTreeVariables(selection);    
-    fDirs[selection]->cd();  
-    fOutTrees[selection]->Fill();
+    if(lepOneFired || lepTwoFired) { //FIXME: Add trigger required
+      fDirs[selection]->cd();  
+      fOutTrees[selection]->Fill();
+    } else {
+      ++fNFailedTrig;
+    }
   }
   return kTRUE;
 }
@@ -1254,7 +1322,7 @@ void NanoAODConversion::Terminate()
   Double_t realTime = timer->RealTime();
   printf("Processing time: %7.2fs CPU time %7.2fs Wall time\n",cpuTime,realTime);
   if(realTime > 600. ) printf("Processing time: %7.2fmin CPU time %7.2fmin Wall time\n",cpuTime/60.,realTime/60.);
-  printf("Found %i emu %i etau %i mutau %i mumu %i ee %i failed and %i skipped\n",
-	 fNEMu, fNETau, fNMuTau, fNMuMu, fNEE, fNFailed, fNSkipped);
+  printf("Found %i emu %i etau %i mutau %i mumu %i ee %i failed trigger matching %i failed and %i skipped\n",
+	 fNEMu, fNETau, fNMuTau, fNMuMu, fNEE, fNFailedTrig, fNFailed, fNSkipped);
 
 }
