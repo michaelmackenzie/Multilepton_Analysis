@@ -8,6 +8,8 @@ namespace {
   Tree_t fTreeVars;
   enum {kMaxMVAs = 80};
   //Define relevant fields
+  Int_t year_;
+  TString folder_;
   TStopwatch* timer = new TStopwatch();
   TMVA::Reader* mva[kMaxMVAs]; //read and apply mva weight files
   vector<TString> fMvaNames = { //mva names for getting weights
@@ -38,18 +40,9 @@ namespace {
   UInt_t nBJets                      ;
   UInt_t nBJetsM                     ;
   UInt_t nBJetsL                     ;
-  UInt_t nBJets25                    ;
-  UInt_t nBJets25M                   ;
-  UInt_t nBJets25L                   ;
   UInt_t nBJets20                    ;
   UInt_t nBJets20M                   ;
   UInt_t nBJets20L                   ;
-  UInt_t nBJets25Tot                 ;
-  UInt_t nBJets25TotM                ;
-  UInt_t nBJets25TotL                ;
-  UInt_t nBJetsTot                   ;
-  UInt_t nBJetsTotM                  ;
-  UInt_t nBJetsTotL                  ;
   Long64_t fentry;
   Long64_t fMaxEntries = 0;
   float htPhi;
@@ -110,7 +103,7 @@ Int_t book_mvas() {
     trkQualInit.InitializeVariables(*(mva[mva_i]), selection, fTreeVars);
 
     //Initialize MVA weight file
-    const char* f = Form("weights/%s.weights.xml",fMvaNames[mva_i].Data());
+    const char* f = Form("weights/%s.%i.weights.xml",fMvaNames[mva_i].Data(), year_);
     mva[mva_i]->BookMVA(fMvaNames[mva_i].Data(),f);
     printf("Booked MVA %s with selection %s\n", fMvaNames[mva_i].Data(), selection.Data());
   }
@@ -121,20 +114,9 @@ Int_t book_mvas() {
 Int_t initialize_tree_vars(int selection) {
   if(nBJets  > nBJetsM) nBJetsM = nBJets;
   if(nBJetsM > nBJetsL) nBJetsL = nBJetsM;
-  if(nBJets25   > nBJets25M ) nBJets25M = nBJets25;
-  if(nBJets25M  > nBJets25L ) nBJets25L = nBJets25M;
   if(nBJets20   > nBJets20M ) nBJets20M = nBJets20;
   if(nBJets20M  > nBJets20L ) nBJets20L = nBJets20M;
 
-  //pt > 25
-  nBJets25Tot = nBJets + nBJets25;
-  nBJets25TotM = nBJetsM + nBJets25M;
-  nBJets25TotL = nBJetsL + nBJets25L;
-
-  //pt > 20
-  nBJetsTot = nBJets + nBJets25 + nBJets20;
-  nBJetsTotM = nBJetsM + nBJets25M + nBJets20M;
-  nBJetsTotL = nBJetsL + nBJets25L + nBJets20L;
 
   //update MET with correction
   TVector3 missing(met*cos(metPhi), met*sin(metPhi), 0.);
@@ -209,12 +191,6 @@ Int_t initialize_tree_vars(int selection) {
   fTreeVars.nbjets = nBJets;
   fTreeVars.nbjetsm = nBJetsM;
   fTreeVars.nbjetsl = nBJetsL;
-  fTreeVars.nbjetstot25   = nBJets25Tot;
-  fTreeVars.nbjetstot25m  = nBJets25TotM;
-  fTreeVars.nbjetstot25l  = nBJets25TotL;
-  fTreeVars.nbjetstot20   = nBJetsTot;
-  fTreeVars.nbjetstot20m  = nBJetsTotM;
-  fTreeVars.nbjetstot20l  = nBJetsTotL;
   //don't actually care about these, just for MVA spectators
   fTreeVars.eventweight = 1.;
   fTreeVars.fulleventweight = 1.;
@@ -227,7 +203,9 @@ Int_t initialize_tree_vars(int selection) {
   else if(selection == 5) selecName = "emu";
   else if(selection == 9) selecName = "mumu";
   else if(selection == 18)selecName = "ee";
-  else {                  selecName = "unknown"; cout << "---Warning! Entry " << fentry << " has unknown selection!\n";}
+  else {                  selecName = "unknown"; cout << "---Warning! Entry " << fentry << " has unknown selection "
+						      << selection << "!\n nMuons = " << nMuons << " nElectrons = "
+						      << nElectrons << " nTaus = " << nTaus << endl;}
   
   for(unsigned i = 0; i < fMvaNames.size(); ++i) {
     if((fMvaBranches[i] || (debug&&mva[i])) && //branch exists or debug mode
@@ -265,9 +243,6 @@ Int_t set_addresses(TTree* fChain) {
   fChain->SetBranchStatus("nBJets"              , 1); fChain->SetBranchAddress("nBJets"              , &nBJets               );   
   fChain->SetBranchStatus("nBJetsM"             , 1); fChain->SetBranchAddress("nBJetsM"             , &nBJetsM              );   
   fChain->SetBranchStatus("nBJetsL"             , 1); fChain->SetBranchAddress("nBJetsL"             , &nBJetsL              );   
-  fChain->SetBranchStatus("nBJets25"            , 1); fChain->SetBranchAddress("nBJets25"            , &nBJets25             );   
-  fChain->SetBranchStatus("nBJets25M"           , 1); fChain->SetBranchAddress("nBJets25M"           , &nBJets25M            );   
-  fChain->SetBranchStatus("nBJets25L"           , 1); fChain->SetBranchAddress("nBJets25L"           , &nBJets25L            );   
   fChain->SetBranchStatus("nBJets20"            , 1); fChain->SetBranchAddress("nBJets20"            , &nBJets20             );   
   fChain->SetBranchStatus("nBJets20M"           , 1); fChain->SetBranchAddress("nBJets20M"           , &nBJets20M            );   
   fChain->SetBranchStatus("nBJets20L"           , 1); fChain->SetBranchAddress("nBJets20L"           , &nBJets20L            );   
@@ -280,9 +255,6 @@ Int_t set_addresses(TTree* fChain) {
   fChain->SetBranchStatus("tauDeepAntiEle"      , 1); fChain->SetBranchAddress("tauDeepAntiEle"      , &tauDeepAntiEle       );
   fChain->SetBranchStatus("tauDeepAntiMu"       , 1); fChain->SetBranchAddress("tauDeepAntiMu"       , &tauDeepAntiMu        );
   fChain->SetBranchStatus("tauDeepAntiJet"      , 1); fChain->SetBranchAddress("tauDeepAntiJet"      , &tauDeepAntiJet       );
-
-
-
 
   
   //add new branches for MVA outputs
@@ -337,11 +309,16 @@ Int_t make_new_tree_inparts(TString path, TString path_in_file, TString tree_nam
     }
     fentry = entry;
     Int_t tree_status = tree->GetEntry(entry, 0);
-    int selection = ((nElectrons == 0 && nMuons == 1 && nTaus == 1) +
-		     2*(nElectrons == 1 && nMuons == 0 && nTaus == 1) +
-		     5*(nElectrons == 1 && nMuons == 1 && nTaus == 0) +
-		     9*(nMuons == 2) +
-		     18*(nElectrons == 2));
+    bool mutau = folder_ == "mutau";
+    bool etau  = folder_ == "etau";
+    bool emu   = folder_ == "emu";
+    bool mumu  = folder_ == "mumu";
+    bool ee    = folder_ == "ee";
+    int selection = (mutau +
+		     2*etau +
+		     5*emu +
+		     9*mumu +
+		     18*ee);
     initialize_tree_vars(selection);
     for(unsigned mva_i = 0; mva_i < fMvaNames.size(); ++mva_i) {
       if(fMvaBranches[mva_i]) {
@@ -397,11 +374,16 @@ Int_t make_new_tree(TString path, TString path_in_file, TString tree_name) {
     Int_t tree_status = tree->GetEntry(entry, 0);
     if(debug && entry%10000 == 0)
       cout << "Status getting entry: " << tree_status << endl;
-    int selection = ((nElectrons == 0 && nMuons == 1 && nTaus == 1) +
-		     2*(nElectrons == 1 && nMuons == 0 && nTaus == 1) +
-		     5*(nElectrons == 1 && nMuons == 1 && nTaus == 0) +
-		     9*(nMuons == 2) +
-		     18*(nElectrons == 2));
+    bool mutau = folder_ == "mutau";
+    bool etau  = folder_ == "etau";
+    bool emu   = folder_ == "emu";
+    bool mumu  = folder_ == "mumu";
+    bool ee    = folder_ == "ee";
+    int selection = (mutau +
+		     2*etau +
+		     5*emu +
+		     9*mumu +
+		     18*ee);
     if(debug && entry%10000 == 0)
       cout << "Using selection " << selection << endl;
     initialize_tree_vars(selection);
@@ -434,6 +416,7 @@ Int_t initialize() {
 //            and true/false to use the trees in the output directory instead of clean trees
 Int_t process_standard_nano_trees(int year = 2016, bool doInParts = false, bool copyLocal = true, bool update = false) {
   int status = 0;
+  year_ = year;
   TString grid_path = "root://cmseos.fnal.gov///store/user/mmackenz/ztautau_nanoaod_test_trees/";
   TString grid_out = "root://cmseos.fnal.gov///store/user/mmackenz/ztautau_nanoaod_test_trees/";
   if(copyLocal&&!update) grid_path = "root://cmseos.fnal.gov///store/user/mmackenz/ztautau_nanoaod_trees_nomva/";
@@ -443,27 +426,27 @@ Int_t process_standard_nano_trees(int year = 2016, bool doInParts = false, bool 
   TString ext  = ".tree";
   vector<datacard_t> cards;
   cards.push_back(datacard_t(false, name+"ttbarToSemiLeptonic"));
-  cards.push_back(datacard_t(false, name+"ttbarlnu"));
-  cards.push_back(datacard_t(false, name+"DY50"));
-  cards.push_back(datacard_t(false, name+"SingleAntiToptW"));
-  cards.push_back(datacard_t(false, name+"SingleToptW"));
+  cards.push_back(datacard_t(true , name+"ttbarlnu"));
+  cards.push_back(datacard_t(true , name+"DY50"));
+  cards.push_back(datacard_t(true , name+"SingleAntiToptW"));
+  cards.push_back(datacard_t(true , name+"SingleToptW"));
   cards.push_back(datacard_t(true , name+"Wlnu"));
   cards.push_back(datacard_t(true , name+"Wlnu-ext"));
-  cards.push_back(datacard_t(false, name+"WW"));
-  cards.push_back(datacard_t(false, name+"WZ"));
+  cards.push_back(datacard_t(true , name+"WW"));
+  cards.push_back(datacard_t(true , name+"WZ"));
   cards.push_back(datacard_t(true , name+"ZETau"));
   cards.push_back(datacard_t(true , name+"ZMuTau"));
   cards.push_back(datacard_t(true , name+"ZEMu"));
   cards.push_back(datacard_t(true , name+"HETau"));
   cards.push_back(datacard_t(true , name+"HMuTau"));
   cards.push_back(datacard_t(true , name+"HEMu"));
-  cards.push_back(datacard_t(false, name+"SingleMu"));
-  cards.push_back(datacard_t(false, name+"SingleEle"));
-  cards.push_back(datacard_t(false, name+"ZZ"));
-  cards.push_back(datacard_t(false, name+"WWW"));
-  cards.push_back(datacard_t(false, name+"QCDDoubleEMEnrich30to40"));
-  cards.push_back(datacard_t(false, name+"QCDDoubleEMEnrich30toInf"));
-  cards.push_back(datacard_t(false, name+"QCDDoubleEMEnrich40toInf"));
+  cards.push_back(datacard_t(true , name+"SingleMu"));
+  cards.push_back(datacard_t(true , name+"SingleEle"));
+  cards.push_back(datacard_t(true , name+"ZZ"));
+  cards.push_back(datacard_t(true , name+"WWW"));
+  cards.push_back(datacard_t(true , name+"QCDDoubleEMEnrich30to40"));
+  cards.push_back(datacard_t(true , name+"QCDDoubleEMEnrich30toInf"));
+  cards.push_back(datacard_t(true , name+"QCDDoubleEMEnrich40toInf"));
   
   vector<TString> folders = {"ee", "mumu", "mutau", "etau", "emu"};
   status = initialize(); //initialize the MVAs
@@ -479,6 +462,7 @@ Int_t process_standard_nano_trees(int year = 2016, bool doInParts = false, bool 
       file_name = card.fname_ + ext;
     }
     for(auto folder : folders) {
+      folder_ = folder;
       int stat = (doInParts) ? make_new_tree_inparts(file_name, folder, card.fname_, card.iStart_) : make_new_tree(file_name, folder, card.fname_);
       if(stat) cout << "file " << card.fname_.Data() << ": folder " << folder.Data()
     		    << " returned status " << stat << endl;

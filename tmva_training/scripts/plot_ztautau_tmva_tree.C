@@ -7,15 +7,17 @@
 namespace {
   enum{kMLP, kMLP_MM, kBDT, kBDTRT};
   int MVA_ = kBDT; 
-  TString var_ = "leponept"; //which variable to plot
-  double xMin_ = 20.; //plotting domain
-  double xMax_ = 150.;
+  TString var_ = "lepm"; //which variable to plot
+  double xMin_ = 50.; //plotting domain
+  double xMax_ = 170.;
   int    bins_ = 100; //number of histogram bins
   double yMin_ = 0.; //plotting domain for 2D
   double yMax_ = 100.;
   int    binsy_ = 100; //number of histogram bins
   int    print_ = 0; //print canvases
   int    setSilent_ = 0; //sets to batch mode for canvas printing
+  bool   doGIF_ = false; //change name printing to have counter
+  int    gifCount_ = 0; //gif image number
   double lum_ = 35.9e3; //luminosity to scale by, default to 2016 data
   bool   correctForScale_ = true; //scale test sample to match expectations for total dataset (1./(1.-fracTrain))
   int    verbose_ = 1; //verbosity level
@@ -101,7 +103,7 @@ pair<double,double> get_train_scales(TTree* test_tree, TTree* train_tree) {
   return pair<double,double>(scaleBkgTrain,scaleSigTrain);  
 }
 
-int plot_tmva_tree(const char* file = "training_background_ztautau_higgs_mutau_8",
+int plot_tmva_tree(const char* file = "training_background_ztautau_Z0_nano_mutau_2016_8",
 		   double mva_cut = -1., int category = -1) {
 
   if(setSilent_) gROOT->SetBatch(kTRUE);
@@ -195,8 +197,9 @@ int plot_tmva_tree(const char* file = "training_background_ztautau_higgs_mutau_8
 
 
 
-int stack_tmva_tree(const char* file = "training_background_ztautau_higgs_mutau_8",
-		   double mva_cut = -1., int plot_train = 0)  {
+int stack_tmva_tree(double mva_cut = -1.,
+		    const char* file = "training_background_ztautau_Z0_nano_mutau_2016_8",
+		    int plot_train = 0)  {
 
   if(setSilent_) gROOT->SetBatch(kTRUE);
 
@@ -334,7 +337,9 @@ int stack_tmva_tree(const char* file = "training_background_ztautau_higgs_mutau_
       indexes[name] = index;
 
     htest[index]->SetLineColor(colors[names_nano_[index]]);
-    htest[index]->SetFillColor(colors[names_nano_[index]]);
+    if(!isSignal[name]) htest[index]->SetFillColor(colors[names_nano_[index]]);
+    else htest[index]->SetLineWidth(3);
+    
     // htest[index]->SetFillStyle(3001);
     if(plot_train > 0) htrain[index]->SetMarkerColor(colors[names_nano_[index]]-1);
     if(plot_train > 0) htrain[index]->SetMarkerStyle(20);
@@ -345,6 +350,7 @@ int stack_tmva_tree(const char* file = "training_background_ztautau_higgs_mutau_
 
   THStack* hstacktest  = new THStack("teststack" , "Testing Stack");
   THStack* hstacktrain = new THStack("trainstack", "Training Stack");
+  vector<TH1F*> hsignals;
   for(unsigned index = 0; index <  ndatasets; ++index) {
     TString name = names_nano_[index];
     if(verbose_ > 1)
@@ -358,7 +364,10 @@ int stack_tmva_tree(const char* file = "training_background_ztautau_higgs_mutau_
       htrain[index]->SetTitle(Form("%s #scale[0.5]{#int} = %.2e", htrain[index]->GetTitle(), htrain[index]->Integral()));
       if(isSignal[name]) htrain[index]->Scale(scale_signal_);
     }
-    if(htest[index]->GetEntries() > 0) hstacktest->Add(htest[index]);
+    if(isSignal[name] && htest[index]->GetEntries() > 0)
+      hsignals.push_back(htest[index]);
+    else if(htest[index]->GetEntries() > 0) hstacktest->Add(htest[index]);
+
     if(plot_train > 0 && htrain[index]->GetEntries() > 0) hstacktrain->Add(htrain[index]);
     if(verbose_ > 1)
       cout << "-> Added the histogram to the stack!\n";
@@ -371,7 +380,15 @@ int stack_tmva_tree(const char* file = "training_background_ztautau_higgs_mutau_
       hstacktest->Draw("sames hist noclear");
   } else if(hstacktest->GetNhists() > 0)
     hstacktest->Draw("hist noclear");
-
+  else
+    return 10;
+  double m = hstacktest->GetMaximum();
+  if(plot_train > 0 && hstacktrain->GetNhists() > 0) m = max(m, hstacktrain->GetMaximum());
+  
+  for(unsigned index = 0; index < hsignals.size(); ++index) {
+    hsignals[index]->Draw("hist sames");
+    m = max(m, hsignals[index]->GetMaximum());
+  }
 
   c->SetGridx();
   c->SetGridy();
@@ -379,21 +396,31 @@ int stack_tmva_tree(const char* file = "training_background_ztautau_higgs_mutau_
   c->Update();
   
   if(plot_train > 0 && hstacktrain->GetNhists() > 0) {
-    if(hstacktest->GetNhists() > 0)
-      hstacktrain->SetMaximum(1.2*max(hstacktest->GetMaximum(),hstacktrain->GetMaximum()));
+    hstacktrain->SetMaximum(1.2*m);
     hstacktrain->SetTitle(Form("%s for %s >= %.5f",var_.Data(),mva_var.Data(),mva_cut));
     hstacktrain->GetXaxis()->SetTitle(Form("%s",var_.Data()));
     // hstacktrain->GetYaxis()->SetTitle(Form("Entries / %.1f GeV",hstacktrain->GetXaxis()->GetBinWidth(1)));
   } else  if(hstacktest->GetNhists() > 0) {
     hstacktest->SetTitle(Form("%s for %s >= %.5f",var_.Data(),mva_var.Data(),mva_cut));
+    hstacktest->SetMaximum(1.2*m);
     hstacktest->GetXaxis()->SetTitle(Form("%s",var_.Data()));
     // hstacktest->GetYaxis()->SetTitle(Form("Entries / %.1f GeV",hstacktest->GetXaxis()->GetBinWidth(1)));
   }
   if(print_) {
-    TString fnm = fname;
-    fnm.ReplaceAll("training_background_ztautau_", "");    
-    c->Print(Form("figures/%s_stack_%s_%s_%.4f.png", fnm.Data(), var_.Data(), mva_var.Data(), mva_cut));
+    TString fnm = file;    
+    fnm.ReplaceAll("training_background_ztautau_", "");
+    fnm.ReplaceAll(".", "d");
+    fnm += Form("_stack_%s_%s", var_.Data(), mva_var.Data());
+    gSystem->Exec(Form("[ ! -d figures/%s ] && mkdir -p figures/%s", fnm.Data(), fnm.Data()));
+    if(!doGIF_)
+      c->Print(Form("figures/%s/%s_%.4f.png", fnm.Data(), fnm.Data(), mva_cut));
+    else {
+      c->Print(Form("figures/%s/%s-%i.png", fnm.Data(), fnm.Data(), gifCount_));
+      ++gifCount_;
+    }
   }
+  if(((TH1F*) hstacktest->GetStack()->Last())->Integral() <= 0.) return 10;
+  gStyle->SetOptStat(0);
   return 0;
 }
 
@@ -520,4 +547,36 @@ Int_t plot_limit_gain(const char* file = "training_background_ztautau_higgs_muta
     c->Print(Form("figures/%s_limit_%s.png", fnm.Data(), mva_var.Data()));
   }
   return 0;
+}
+
+int print_gif_figures(const char* file = "training_background_ztautau_Z0_nano_mutau_2016_8",
+		      double mva_start = -1., double mva_end = 1., int mva_steps = 100,
+		      int plot_train = 0) {
+  int status(0);
+  //configure to print images, don't show plots
+  setSilent_ = true;
+  print_ = true;
+
+  //write out an image of the BDT score distribution for reference
+  TString var_prev = var_;
+  double xmin_prev = xMin_;
+  double xmax_prev = xMax_;
+  var_ = "BDT";
+  xMin_ = -1.;
+  xMax_ = 1.5;
+  status += stack_tmva_tree(-1., file, plot_train);
+  var_ = var_prev;
+  xMin_ = xmin_prev;
+  xMax_ = xmax_prev;
+  doGIF_ = true;
+  gifCount_ = 0;
+  
+  //loop through MVA cut values, printing the distribution for each
+  for(int step = 0; step <= mva_steps; ++step) {
+    double mva_cut = mva_start + step*(mva_end - mva_start)/mva_steps;
+    status += stack_tmva_tree(mva_cut, file, plot_train);
+    if(status) break;
+  }
+  
+  return status;
 }

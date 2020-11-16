@@ -24,23 +24,24 @@ public:
     if(version_ < 5 || (!selection.Contains("emu") && version_ < 6))
       factory.AddVariable("lepm" , "M_{ll}" , "GeV", 'F');   
     else
-      factory.AddSpectator("lepm" , "M_{ll}" , "GeV", 'F');   
+      factory.AddSpectator("lepm" , "M_{ll}" , "GeV", 'F');
+    
     factory.AddVariable("mtone","MT(MET,l1)","",'F');
     factory.AddVariable("mttwo","MT(MET,l2)","",'F');
+
     if(version_ < 6) {
       factory.AddVariable("leponept","pT_{l1}","",'F');
       factory.AddVariable("leptwopt","pT_{l2}","",'F');
+      factory.AddVariable("leppt", "pT_{ll}", "GeV", 'F');
     } else {
       factory.AddVariable("leponeptoverm","pT_{l1}/M_{ll}","",'F');
       factory.AddVariable("leptwoptoverm","pT_{l2}/M_{ll}","",'F');
-    }
-    // if(version_ < 6 || !selection.Contains("emu"))
-    if(version_ == 6)
       factory.AddVariable("lepptoverm","pT_{ll}/M_{ll}","",'F');
-    else if(version_ < 6)
-      factory.AddVariable("leppt", "pT_{ll}", "GeV", 'F');
+    }
+
     factory.AddSpectator("pxivis","p^{vis}_{#xi}","",'F');
     factory.AddSpectator("pxiinv","p^{inv}_{#xi}","",'F');
+
     if(njets_)
       factory.AddVariable("njets", "nJets", "", 'F');
     else
@@ -51,26 +52,36 @@ public:
     
     factory.AddSpectator("lepdeltaeta","#Delta#eta_{ll}","",'F');
     factory.AddSpectator("metdeltaphi","#Delta#phi_{MET,ll}","",'F');
+
     //tau specific
     if(selection.Contains("tau")) {
       //Delta alpha, difference between loss estimate using ~mass and pT ratio
-      if(version_ >= 6) {
+      if(false && version_ >= 6) {
 	if(selection.Contains("z")) {
 	  if(selection.Contains("_e"))
-	    factory.AddVariable("deltaalphaz2", "#Delta#alpha", "", 'F');
-	  else
 	    factory.AddVariable("deltaalphaz1", "#Delta#alpha", "", 'F');
+	  else
+	    factory.AddVariable("deltaalphaz2", "#Delta#alpha", "", 'F');
 	} else {
 	  if(selection.Contains("_e"))
-	    factory.AddVariable("deltaalphah2", "#Delta#alpha", "", 'F');
-	  else
 	    factory.AddVariable("deltaalphah1", "#Delta#alpha", "", 'F');
+	  else
+	    factory.AddVariable("deltaalphah2", "#Delta#alpha", "", 'F');
 	}
+      } else {
+	factory.AddSpectator("deltaalphaz1", "#Delta#alpha", "", 'F');
+	factory.AddSpectator("deltaalphaz2", "#Delta#alpha", "", 'F');
+	factory.AddSpectator("deltaalphah1", "#Delta#alpha", "", 'F');
+	factory.AddSpectator("deltaalphah2", "#Delta#alpha", "", 'F');
       }
       if((version_ < 4 || !selection.Contains("mutau_e")) && version_ < 6)
 	factory.AddVariable("lepmestimate" , "M_{ll}^{Coll}" , "GeV", 'F'); 
       else if(version_ < 6)
 	factory.AddVariable("lepmestimatetwo" , "M_{ll}^{Coll}" , "GeV", 'F'); 
+      else {
+	factory.AddSpectator("lepmestimate"    , "M_{ll}^{Coll}" , "GeV", 'F'); 
+	factory.AddSpectator("lepmestimatetwo" , "M_{ll}^{Coll}" , "GeV", 'F'); 
+      }
       if(version_ < 5) {
 	factory.AddVariable("onemetdeltaphi","#Delta#phi_{MET,l1}","",'F');
 	factory.AddVariable("twometdeltaphi","#Delta#phi_{MET,l2}","",'F');
@@ -108,6 +119,7 @@ public:
       factory.AddSpectator("htdeltaphi","#Delta#phi_{hT,ll}","",'F');
       factory.AddSpectator("ht","pT(#Sigma #vec{P}_{Jet})","",'F');
     }
+    
     if(version_ >= 5)
       factory.AddVariable("jetpt","pT_{Jet}","",'F');
     
@@ -134,8 +146,10 @@ public:
       reader.AddVariable("lepm" , &tree.lepm);
     else
       reader.AddSpectator("lepm" , &tree.lepm);
+
     reader.AddVariable("mtone", &tree.mtone);
     reader.AddVariable("mttwo", &tree.mttwo);
+
     if(version_ < 6) {
       reader.AddVariable("leponept", &tree.leponept);
       reader.AddVariable("leptwopt", &tree.leponept);
@@ -145,8 +159,10 @@ public:
       reader.AddVariable("leptwoptoverm", &tree.leponeptoverm);
       reader.AddVariable("lepptoverm", &tree.lepptoverm); 
     }
+    
     reader.AddSpectator("pxivis", &tree.pxivis);
     reader.AddSpectator("pxiinv", &tree.pxiinv);
+
     if(njets_)
       reader.AddVariable("njets", &tree.njets); 
     else
@@ -157,10 +173,11 @@ public:
     
     reader.AddSpectator("lepdeltaeta", &tree.lepdeltaeta);
     reader.AddSpectator("metdeltaphi", &tree.metdeltaphi);
+
     //tau specific
     if(selection.Contains("tau")) {
       //Delta alpha, difference between loss estimate using ~mass and pT ratio
-      if(version_ >= 6) {
+      if(false && version_ >= 6) {
 	if(selection.Contains("z")) {
 	  if(selection.Contains("_e"))
 	    reader.AddVariable("deltaalphaz2", &tree.deltaalphaz2);
@@ -172,11 +189,21 @@ public:
 	  else
 	    reader.AddVariable("deltaalphah1", &tree.deltaalphah1);
 	}
+      } else {
+	reader.AddSpectator("deltaalphaz1", &tree.deltaalphaz1);
+	reader.AddSpectator("deltaalphaz2", &tree.deltaalphaz2);
+	reader.AddSpectator("deltaalphah1", &tree.deltaalphah1);
+	reader.AddSpectator("deltaalphah2", &tree.deltaalphah2);
       }
       if((version_ < 4 || !selection.Contains("mutau_e")) && version_ < 6)
 	reader.AddVariable("lepmestimate" , &tree.mestimate); 
       else if(version_ < 6)
 	reader.AddVariable("lepmestimatetwo" , &tree.mestimatetwo); //project onto the electron
+      else {
+	reader.AddSpectator("lepmestimate" , &tree.mestimate); 
+	reader.AddSpectator("lepmestimatetwo" , &tree.mestimatetwo); //project onto the electron
+      }
+      
       if(version_ < 5) {
 	reader.AddVariable("onemetdeltaphi", &tree.onemetdeltaphi);
 	reader.AddVariable("twometdeltaphi", &tree.twometdeltaphi);

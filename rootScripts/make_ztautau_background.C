@@ -21,6 +21,7 @@ Int_t make_background(int set = 7, TString selection = "mutau", TString base = "
   }
   
   const char* nano_names[] = {"DY50"               ,
+			      "DY50-ext"           ,
 			      "SingleAntiToptW"    ,
 			      "SingleToptW"        ,
 			      "WW"	           ,
@@ -28,6 +29,7 @@ Int_t make_background(int set = 7, TString selection = "mutau", TString base = "
 			      "ZZ"                 ,
 			      "WWW"                ,
 			      "Wlnu"               ,
+			      "Wlnu-ext"           ,
 			      "ttbarToSemiLeptonic",
 			      "ttbarlnu"           ,
 			      "ZMuTau"             ,
@@ -40,7 +42,8 @@ Int_t make_background(int set = 7, TString selection = "mutau", TString base = "
 			      "SingleEle"          
   };
   
-  int doNanoProcess[] = {!dataOnly_ && doDY_
+  int doNanoProcess[] = {!dataOnly_ && doDY_ //DY50
+			 , !dataOnly_ && doDY_ && year_ == 2017 //DY50-ext
 			 , !dataOnly_ && doTop_ //tbar_tw
 			 , !dataOnly_ && doTop_ //t_tw
 			 , !dataOnly_ && doDiboson_ //WW
@@ -48,6 +51,7 @@ Int_t make_background(int set = 7, TString selection = "mutau", TString base = "
 			 , !dataOnly_ && doDiboson_ //ZZ
 			 , !dataOnly_ && doDiboson_ //WWW
 			 , !dataOnly_ && doWJets_ //WJets
+			 , !dataOnly_ && doWJets_ && year_ != 2018 //WJets-ext
 			 , !dataOnly_ && doTop_ //ttbar
 			 , !dataOnly_ && doTop_ //ttbar
 			 , !dataOnly_ && (!backgroundOnly_ && !doHiggsDecays_ && (selection.Contains("mutau"))) //zmutau

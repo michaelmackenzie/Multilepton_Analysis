@@ -11,7 +11,9 @@ class CrossSections {
 public:
   CrossSections() {
     //cross sections by MC dataset
-    values_["DY50"                    ] = 6225.42;
+    double zll = /*2075.14/0.0337*/ 6077.22;
+    double br_ll = 0.0337; //branching ratio of Z->ll
+    values_["DY50"                    ] = zll    ;
     values_["SingleAntiToptW"         ] = 34.91  ;
     values_["SingleToptW"             ] = 34.91  ;
     values_["WWW"	              ] = 0.2086 ;
@@ -31,11 +33,10 @@ public:
 
 
     //signals
-    double zll = 2075.14/0.0337;
     double higgs = (48.61+3.766+0.5071+1.358+0.880);
-    values_["ZEMu"  ] = zll*7.3e-7;
-    values_["ZETau" ] = zll*9.8e-6;
-    values_["ZMuTau"] = zll*1.2e-5;
+    values_["ZEMu"  ] = zll/(3.*br_ll)*7.3e-7;
+    values_["ZETau" ] = zll/(3.*br_ll)*9.8e-6;
+    values_["ZMuTau"] = zll/(3.*br_ll)*1.2e-5;
     values_["HEMu"  ] = higgs*3.5e-4;
     values_["HETau" ] = higgs*6.1e-3;
     values_["HMuTau"] = higgs*2.5e-3;
