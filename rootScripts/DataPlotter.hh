@@ -212,9 +212,9 @@ public :
   // Double_t legend_y2_split_ = 0.45; 
   Double_t legend_sep_ = 2.;
   //luminosity drawing
-  Double_t lum_txt_x_ = 0.67;
+  Double_t lum_txt_x_ = 0.65;
   Double_t lum_txt_y_ = 0.98;
-  Double_t lum_txt_x_single_ = 0.645;
+  Double_t lum_txt_x_single_ = 0.63;
   Double_t lum_txt_y_single_ = 0.975;
   //CMS prelim drawing
   Double_t cms_txt_x_ = 0.28;
@@ -227,8 +227,8 @@ public :
   //data yield drawing
   bool     draw_statistics_ = true;
   Int_t    signal_digits_ = 1;
-  Double_t data_txt_x_ = 0.42;
-  Double_t data_txt_y_ = 0.63;
+  Double_t data_txt_y_ = 0.42;
+  Double_t data_txt_x_ = 0.61;
   
   //significance drawing
   Double_t sig_plot_range_ = 3.5;
@@ -272,19 +272,19 @@ public :
     label.SetTextSize(legend_txt_);
     label.SetTextAlign(13);
     label.SetTextAngle(0);
-    label.DrawLatex(data_txt_y_, data_txt_x_, Form("%10s = %10i", "n_{Data}", ndata));
-    double x = data_txt_x_;
+    label.DrawLatex(data_txt_x_, data_txt_y_, Form("%10s = %10i", "n_{Data}", ndata));
+    double y = data_txt_y_;
     if(nmc > 0.) {
-      x -= 0.045;
-      label.DrawLatex(data_txt_y_, x, Form("%9s = %10.1f", "n_{MC}", nmc));
+      y -= 0.045;
+      label.DrawLatex(data_txt_x_, y, Form("%9s = %10.1f", "n_{MC}", nmc));
     }
     auto it = nsig.begin();
     while(it != nsig.end()) {
-      x -= 0.045;
+      y -= 0.045;
       TString label_string = "%10s = %10.";
       label_string += signal_digits_;
       label_string += "f";
-      label.DrawLatex(data_txt_y_, x, Form(label_string.Data(), Form("n_{%s}", it->first.Data()), it->second));
+      label.DrawLatex(data_txt_x_, y, Form(label_string.Data(), Form("n_{%s}", it->first.Data()), it->second));
       it++;
     }
     

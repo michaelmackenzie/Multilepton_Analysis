@@ -711,6 +711,7 @@ TH1D* DataPlotter::get_qcd(TString hist, TString setType, Int_t set) {
   TH1D* hData = get_data(hist, setType, set_qcd);
   if(!hData) return hData;
   hData->SetName(Form("qcd_%s_%i",hist.Data(),set));      
+  double ndata = hData->Integral() + hData->GetBinContent(0) + hData->GetBinContent(hData->GetNbinsX()+1);
   TH1D* hMC = 0;
   for(UInt_t i = 0; i < data_.size(); ++i) {
     if(isData_[i]) continue;
@@ -724,16 +725,26 @@ TH1D* DataPlotter::get_qcd(TString hist, TString setType, Int_t set) {
     else hMC = (TH1D*) htmp->Clone("qcd_tmp");
     delete htmp;
   }
-  if(hMC) {hData->Add(hMC, -1.); delete hMC;}
+  if(!hMC) {
+    std::cout << "Warning! No MC histogram found when calculating QCD histogram in set "
+	      << set_qcd << std::endl;
+    return NULL;
+  }
+  hData->Add(hMC, -1.);
+  double nmc = hMC->Integral() + hMC->GetBinContent(0) + hMC->GetBinContent(hMC->GetNbinsX()+1);
+  
+  delete hMC;
+  
   for(int i = 0; i < hData->GetNbinsX(); ++i) {
     if(hData->GetBinContent(i+1) < 0.)
       hData->SetBinContent(i+1,0.);
   }
   // hData->SetBit(kCanDelete);
-  hData->Scale(qcd_scale_);
+  double nqcd = hData->Integral() + hData->GetBinContent(0) + hData->GetBinContent(hData->GetNbinsX()+1);
+  hData->Scale(qcd_scale_*(ndata-nmc)/nqcd); //ensure N(QCD) doesn't change from cutting off negative value bins, so not hist dependent
+  nqcd = hData->Integral() + hData->GetBinContent(0) + hData->GetBinContent(hData->GetNbinsX()+1);
   
-  const char* stats = (doStatsLegend_) ? Form(" #scale[0.8]{(%.2e)}", hData->Integral()
-					      +hData->GetBinContent(0)+hData->GetBinContent(hData->GetNbinsX()+1)) : "";
+  const char* stats = (doStatsLegend_) ? Form(" #scale[0.8]{(%.2e)}", nqcd) : "";
   hData->SetTitle(Form("QCD%s",stats));
   if(fill_alpha_ < 1.) {
     hData->SetLineColorAlpha(kOrange+6,fill_alpha_);
@@ -1465,7 +1476,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
     hstack_hist->GetXaxis()->SetTitleSize(axis_font_size_);
     hstack_hist->GetYaxis()->SetTitleSize(axis_font_size_);
     if(yMin_ < yMax_) hstack_hist->GetYaxis()->SetRangeUser(yMin_,yMax_);    
-    else              hstack_hist->GetYaxis()->SetRangeUser(1.e-1,(logY_) ? m*20. : m*1.2);    
+    else              hstack_hist->GetYaxis()->SetRangeUser(8.e-1,(logY_) ? m*20. : m*1.2);    
     if(xMin_ < xMax_) hstack_hist->GetXaxis()->SetRangeUser(xMin_,xMax_);    
     if(plot_title_) hstack_hist->SetTitle (title.Data());
     else hstack_hist->SetTitle("");
@@ -1480,7 +1491,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
     hstack->GetXaxis()->SetTitleSize(axis_font_size_);
     hstack->GetYaxis()->SetTitleSize(axis_font_size_);
     if(yMin_ < yMax_) hstack->GetYaxis()->SetRangeUser(yMin_,yMax_);    
-    else              hstack->GetYaxis()->SetRangeUser(1.e-1,(logY_) ? m*20. : m*1.2);    
+    else              hstack->GetYaxis()->SetRangeUser(8.e-1,(logY_) ? m*20. : m*1.2);    
     if(xMin_ < xMax_) hstack->GetXaxis()->SetRangeUser(xMin_,xMax_);    
     if(plot_title_) hstack->SetTitle (title.Data());
     else hstack->SetTitle("");
@@ -1488,7 +1499,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
       hstack->SetMinimum(yMin_);
       hstack->SetMaximum(yMax_);
     } else {
-      hstack->SetMinimum(1.e-1);
+      hstack->SetMinimum(8.e-1);
       hstack->SetMaximum((logY_>0 ? 2.*m : 1.2*m));
     }
   }

@@ -77,6 +77,15 @@ do
 	a=$a".Z0";
     fi
 
+    # Find the year it's trained for
+    if [[ $f == *"_2016_"* ]]; then
+	a=$a".2016"
+    elif [[ $f == *"_2017_"* ]]; then
+	a=$a".2017"
+    elif [[ $f == *"_2018_"* ]]; then
+	a=$a".2018"
+    fi
+    
     # Copy the file
     a=$a".weights.xml";
     echo "cp "$f" "$a;

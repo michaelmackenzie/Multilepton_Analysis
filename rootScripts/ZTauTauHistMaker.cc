@@ -583,6 +583,7 @@ void ZTauTauHistMaker::BookTrees() {
       fDirectories[3*fn + i]->cd();
       fTrees[i] = new TTree(Form("tree_%i",i),Form("ZTauTauHistMaker TTree %i",i));
       fTrees[i]->Branch("leponept",        &fTreeVars.leponept       );   
+      fTrees[i]->Branch("leponeptoverm",   &fTreeVars.leponeptoverm  );  
       fTrees[i]->Branch("leponem",         &fTreeVars.leponem	     );   
       fTrees[i]->Branch("leponeeta",       &fTreeVars.leponeeta      );  
       fTrees[i]->Branch("leponed0",        &fTreeVars.leponed0       );  
@@ -591,6 +592,7 @@ void ZTauTauHistMaker::BookTrees() {
       fTrees[i]->Branch("leponeidtwo",     &fTreeVars.leponeidtwo    );
       fTrees[i]->Branch("leponeidthree",   &fTreeVars.leponeidthree  );
       fTrees[i]->Branch("leptwopt",        &fTreeVars.leptwopt       );  
+      fTrees[i]->Branch("leptwoptoverm",   &fTreeVars.leptwoptoverm  );  
       fTrees[i]->Branch("leptwom",         &fTreeVars.leptwom	     );   
       fTrees[i]->Branch("leptwoeta",       &fTreeVars.leptwoeta      );  
       fTrees[i]->Branch("leptwod0",        &fTreeVars.leptwod0       );  
@@ -601,6 +603,7 @@ void ZTauTauHistMaker::BookTrees() {
       fTrees[i]->Branch("lepp",            &fTreeVars.lepp	     );   
       fTrees[i]->Branch("leppt",           &fTreeVars.leppt	     );   
       fTrees[i]->Branch("lepm",            &fTreeVars.lepm	     );   
+      fTrees[i]->Branch("lepptoverm",      &fTreeVars.lepptoverm     );   
       fTrees[i]->Branch("lepeta",          &fTreeVars.lepeta	     );   
       fTrees[i]->Branch("lepdeltaeta",     &fTreeVars.lepdeltaeta    );  
       fTrees[i]->Branch("lepdeltar",       &fTreeVars.lepdeltar      );  
@@ -1493,7 +1496,7 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
 
   mutau = mutau && muon->Pt() > 25. && tau->Pt() > 20.;
   etau  = etau  && electron->Pt() > 28. && tau->Pt() > 20.;
-  emu   = emu   && ((electron->Pt() > 28. && muon->Pt() > 5.) ||
+  emu   = emu   && ((electron->Pt() > 28. && muon->Pt() > 10.) ||
 		    (electron->Pt() > 10. && muon->Pt() > 25.));
   mumu  = mumu  && ((muon->Pt() > 25. && muon_2->Pt() > 5.) ||
 		    (muon->Pt() > 10.  && muon_2->Pt() > 25.));
@@ -1671,34 +1674,63 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   ////////////////////////////////////////////////////////////////////////////
   // Set 14 + selection offset: MT(e/mu) > 60, MT(tau) > 50 (W/Top backgrounds)
   ////////////////////////////////////////////////////////////////////////////  
-  if(!fDYTesting) {
-    bool wregion = ((etau && mTE > 80. && mTTau > 50.)
-		    || (mutau && mTMu > 80. && mTTau > 50.)
-		    || (emu && mTE > 80. && mTMu > 80.));
+  // if(!fDYTesting) {
+  //   bool wregion = ((etau && mTE > 80. && mTTau > 50.)
+  // 		    || (mutau && mTMu > 80. && mTTau > 50.)
+  // 		    || (emu && mTE > 80. && mTMu > 80.));
   
-    if(mutau && wregion && chargeTest) FillAllHistograms(kMuTau + 14);
-    else if(mutau && wregion)          FillAllHistograms(kMuTau + 14 + fQcdOffset);
-    if(etau && wregion && chargeTest)  FillAllHistograms(kETau  + 14);
-    else if(etau && wregion)           FillAllHistograms(kETau  + 14 + fQcdOffset);
-    if(emu && wregion && chargeTest)   FillAllHistograms(kEMu   + 14);
-    else if(emu && wregion)            FillAllHistograms(kEMu   + 14 + fQcdOffset);
+  //   if(mutau && wregion && chargeTest) FillAllHistograms(kMuTau + 14);
+  //   else if(mutau && wregion)          FillAllHistograms(kMuTau + 14 + fQcdOffset);
+  //   if(etau && wregion && chargeTest)  FillAllHistograms(kETau  + 14);
+  //   else if(etau && wregion)           FillAllHistograms(kETau  + 14 + fQcdOffset);
+  //   if(emu && wregion && chargeTest)   FillAllHistograms(kEMu   + 14);
+  //   else if(emu && wregion)            FillAllHistograms(kEMu   + 14 + fQcdOffset);
+  // }
+  
+  ////////////////////////////////////////////////////////////////////////////
+  // Set 14 + selection offset: Genuine hadronic taus
+  ////////////////////////////////////////////////////////////////////////////  
+  if(!fDYTesting) {
+    bool genuineTau = fIsData != 0 || abs(tauGenFlavor) == 15;
+    if(mutau && genuineTau && chargeTest) FillAllHistograms(kMuTau + 14);
+    else if(mutau && genuineTau)          FillAllHistograms(kMuTau + 14 + fQcdOffset);
+    if(etau && genuineTau && chargeTest)  FillAllHistograms(kETau  + 14);
+    else if(etau && genuineTau)           FillAllHistograms(kETau  + 14 + fQcdOffset);
   }
   
   ////////////////////////////////////////////////////////////////////////////
   // Set 15 + selection offset: Z backgrounds
   ////////////////////////////////////////////////////////////////////////////  
-  if(!fDYTesting) {
-    bool zregion = ((etau && mTE < 20. && fTreeVars.lepm > 40. && fTreeVars.lepm < 100.)
-		    || (mutau && mTMu < 20. && fTreeVars.lepm > 40. && fTreeVars.lepm < 100.)
-		    || (emu && mTE < 30. && mTMu < 50. && fTreeVars.lepm > 40. && fTreeVars.lepm < 80.));
+  // if(!fDYTesting) {
+  //   bool zregion = ((etau && mTE < 20. && fTreeVars.lepm > 40. && fTreeVars.lepm < 100.)
+  // 		    || (mutau && mTMu < 20. && fTreeVars.lepm > 40. && fTreeVars.lepm < 100.)
+  // 		    || (emu && mTE < 30. && mTMu < 50. && fTreeVars.lepm > 40. && fTreeVars.lepm < 80.));
   
-    if(mutau && zregion && chargeTest) FillAllHistograms(kMuTau + 15);
-    else if(mutau && zregion)          FillAllHistograms(kMuTau + 15 + fQcdOffset);
-    if(etau && zregion && chargeTest)  FillAllHistograms(kETau  + 15);
-    else if(etau && zregion)           FillAllHistograms(kETau  + 15 + fQcdOffset);
-    if(emu && zregion && chargeTest)   FillAllHistograms(kEMu   + 15);
-    else if(emu && zregion)            FillAllHistograms(kEMu   + 15 + fQcdOffset);
+  //   if(mutau && zregion && chargeTest) FillAllHistograms(kMuTau + 15);
+  //   else if(mutau && zregion)          FillAllHistograms(kMuTau + 15 + fQcdOffset);
+  //   if(etau && zregion && chargeTest)  FillAllHistograms(kETau  + 15);
+  //   else if(etau && zregion)           FillAllHistograms(kETau  + 15 + fQcdOffset);
+  //   if(emu && zregion && chargeTest)   FillAllHistograms(kEMu   + 15);
+  //   else if(emu && zregion)            FillAllHistograms(kEMu   + 15 + fQcdOffset);
+  // }
+
+  ////////////////////////////////////////////////////////////////////////////
+  // Set 15 + selection offset: Non-jet based hadronic taus
+  ////////////////////////////////////////////////////////////////////////////  
+  if(!fDYTesting) {
+    bool nonJetTau = fIsData != 0 || abs(tauGenFlavor) != 26;
+    if(mutau && nonJetTau && chargeTest) FillAllHistograms(kMuTau + 15);
+    else if(mutau && nonJetTau)          FillAllHistograms(kMuTau + 15 + fQcdOffset);
+    if(etau && nonJetTau && chargeTest)  FillAllHistograms(kETau  + 15);
+    else if(etau && nonJetTau)           FillAllHistograms(kETau  + 15 + fQcdOffset);
+    if(emu && chargeTest)                FillAllHistograms(kEMu   + 15); //ignore gen ID check if no taus
+    else if(emu)                         FillAllHistograms(kEMu   + 15 + fQcdOffset);
+    // if(mumu && chargeTest)               FillAllHistograms(kMuMu  + 15);
+    // else if(mumu)                        FillAllHistograms(kMuMu  + 15 + fQcdOffset);
+    // if(ee    && chargeTest)              FillAllHistograms(kEE    + 15);
+    // else if(ee)                          FillAllHistograms(kEE    + 15 + fQcdOffset);
   }
+  
   
   ////////////////////////////////////////////////////////////////////////////
   // Set 8 + selection offset: nBJets = 0
