@@ -98,7 +98,7 @@ Int_t initialize_plotter(TString base, TString path, int year) {
 
 
 //Generate the plots and scale factors
-TCanvas* scale_factors(TString selection = "mumu", int set = 7, int year = 2017, int WP = 0,
+TCanvas* scale_factors(TString selection = "mumu", int set = 7, int year = 2016, int WP = 0,
 		       TString path = "../../histograms/nanoaods_dev/") {
 
   //////////////////////
