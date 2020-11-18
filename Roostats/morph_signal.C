@@ -1,11 +1,19 @@
 //Script to morph ee and mumu data into e+mu
 
-Int_t morph_signal(int set = 8, int year = 2016, TString base = "../histograms/nanoaods_dev/") {
+Int_t morph_signal(int set = 8, vector<int> years = {2016}, TString base = "../histograms/nanoaods_dev/") {
 
-  // gROOT->SetBatch(kTRUE);
+  TString year_string = "";
+  for(unsigned i = 0; i < years.size(); ++i) {
+    if(i > 0) year_string += "_";
+    year_string += years[i];
+  }
+
+  ///////////////////
+  // Get Muon Info //
+  ///////////////////
 
   TString muon_name = "workspaces/fit_lepm_SameSign_Muon_";
-  muon_name += year;
+  muon_name += year_string;
   muon_name += "_";
   muon_name += set;
   muon_name += ".root";
@@ -15,8 +23,12 @@ Int_t morph_signal(int set = 8, int year = 2016, TString base = "../histograms/n
   RooWorkspace* ws_muon = (RooWorkspace*) f_muon->Get("ws");
   if(!ws_muon) return -1;
   
+  ///////////////////////
+  // Get Electron Info //
+  ///////////////////////
+
   TString electron_name = "workspaces/fit_lepm_SameSign_Electron_";
-  electron_name += year;
+  electron_name += year_string;
   electron_name += "_";
   electron_name += set;
   electron_name += ".root";
@@ -26,20 +38,45 @@ Int_t morph_signal(int set = 8, int year = 2016, TString base = "../histograms/n
   RooWorkspace* ws_electron = (RooWorkspace*) f_electron->Get("ws");
   if(!ws_electron) return -2;
 
-  TString zemu_name = base + "ztautau_emu_clfv_";
-  zemu_name += year;
-  zemu_name += "_ZEMu.hist";
+  /////////////////////
+  // Get Signal Info //
+  /////////////////////
 
-  TFile* f_zemu = TFile::Open(zemu_name.Data(), "READ");
-  if(!f_zemu) return 3;
+  TList* list = new TList;
+  TFile* ftmp = new TFile("tmp.root", "RECREATE");
+  TFile* f_zemus[years.size()];
+  TTree* t_list[years.size()];
+  for(unsigned i = 0; i < years.size(); ++i) {
+    int year = years[i];
+    TString zemu_name = base + "ztautau_emu_clfv_";
+    zemu_name += year;
+    zemu_name += "_ZEMu.hist";
 
-  TTree* t_zemu = (TTree*) f_zemu->Get(Form("Data/tree_%i/tree_%i",
-					    set+ZTauTauHistMaker::kEMu,
-					    set+ZTauTauHistMaker::kEMu));
-  if(!t_zemu) return 4;
+    f_zemus[i] = TFile::Open(zemu_name.Data(), "READ");
+    if(!f_zemus[i]) {
+      cout << "Signal file " << zemu_name.Data() << " not found\n";
+      return 3;
+    }
+
+    t_list[i] = (TTree*) f_zemus[i]->Get(Form("Data/tree_%i/tree_%i",
+					     set+ZTauTauHistMaker::kEMu,
+					     set+ZTauTauHistMaker::kEMu));
+    if(!t_list[i]) {
+      cout << "Signal tree in file " << zemu_name.Data() << " for set " << set << " not found\n";
+      return 4;
+    }
+    ftmp->cd();
+    t_list[i]->SetName(Form("tree_%i_%i", year, set+ZTauTauHistMaker::kEMu));
+    t_list[i]->Write();
+    list->Add(t_list[i]);
+  }
+  TTree* t_zemu = TTree::MergeTrees(list);
+  t_zemu->SetName("ZEMu_tree");
+  
   std::cout << "All file elements retrieved!\n";
   RooRealVar lepm("lepm","di-lepton invariant mass", 75., 110.);
-  RooDataSet dataset("dataset", "dataset", RooArgSet(lepm), RooFit::Import(*t_zemu));
+  RooRealVar weight("eventweight", "event weight", 1., -100., 100.);
+  RooDataSet dataset("dataset", "dataset", RooArgSet(lepm,weight), RooFit::Import(*t_zemu), RooFit::WeightVar(weight));
 
   std::cout << "Dataset loaded!\n";
   
@@ -52,9 +89,10 @@ Int_t morph_signal(int set = 8, int year = 2016, TString base = "../histograms/n
   RooHistPdf pdf_muon_binned("pdf_muon_binned", "pdf_muon_binned", RooArgSet(lepm), *binned_muon);
   RooHistPdf pdf_electron_binned("pdf_electron_binned", "pdf_electron_binned", RooArgSet(lepm), *binned_electron);
 
-  RooRealVar alpha("alpha", "alpha", 0.5);
+  RooRealVar alpha("alpha", "alpha", 0.5); //how much of each distribution to use --> can fit to find best value
   RooIntegralMorph morph_pdf("morph_pdf", "morph_pdf", pdf_muon_binned, pdf_electron_binned, lepm, alpha);
-
+  //
+  
   auto binned_morphed = morph_pdf.generateBinned(RooArgSet(lepm), 1e8);
   RooHistPdf morph_pdf_binned("morph_pdf_binned", "morphed_pdf_binned", RooArgSet(lepm), *binned_morphed, 4);
 
@@ -66,9 +104,9 @@ Int_t morph_signal(int set = 8, int year = 2016, TString base = "../histograms/n
 
   auto c1 = new TCanvas();
   xframe->Draw();
-  gSystem->Exec(Form("[ ! -d plots/latest_production/%i ] && mkdir -p plots/latest_production/%i", year, year));
-  c1->SaveAs(Form("plots/latest_production/%i/compare_morphed_pdf_%i.pdf", year, set));
-  TFile* fOut = new TFile(Form("workspaces/morphed_signal_%i_%i.root", year, set), "RECREATE");
+  gSystem->Exec(Form("[ ! -d plots/latest_production/%s ] && mkdir -p plots/latest_production/%s", year_string.Data(), year_string.Data()));
+  c1->SaveAs(Form("plots/latest_production/%s/compare_morphed_pdf_%i.pdf", year_string.Data(), set));
+  TFile* fOut = new TFile(Form("workspaces/morphed_signal_%s_%i.root", year_string.Data(), set), "RECREATE");
   fOut->cd();
   RooWorkspace ws("ws");
   ws.import(morph_pdf_binned);

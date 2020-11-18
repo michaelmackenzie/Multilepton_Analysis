@@ -6,39 +6,51 @@ if [[ "$1" == "" ]]
 then
     histSet=8
 fi
-if [[ "$2" == "" ]]
+if [[ "${year}" == "" ]]
 then
-    year=2016
+    year="{2016}"
+elif [[ "${year}" == "all" ]]
+then
+    year="{2016, 2017, 2018}"
+else
+    year="{${year}}"
 fi
+
 if [[ "$3" == "" ]]
 then
     histPath="../histograms/nanoaods_dev/"
 fi
+run_command="root.exe"
+if [[ "$4" != "" ]]
+then
+    echo "Overriding .q continuing, running in batch mode!"
+    run_command="root.exe -b -q"
+fi
 
-echo "**************************************************************************************************"
-echo "Performing iteration for set ${histSet} and year ${year} with histogram path ${histPath}"
+echo "*****************************************************************************************************"
+echo "Performing iteration for set ${histSet} and year(s) ${year} with histogram path ${histPath}"
 echo "Enter \".q\" between each step to close Canvases and move to next step"
-echo "**************************************************************************************************"
+echo "*****************************************************************************************************"
 
 echo "Getting same flavor histograms..."
-root.exe "create_same_flavor_histograms.C(${histSet}, \"${histPath}\", ${year})"
+$run_command "create_same_flavor_histograms.C(${histSet}, ${year}, \"${histPath}\")"
 
 echo "Fitting same flavor muon histograms..."
-root.exe "fit_same_flavor.C(${histSet}, ${year}, true)"
+$run_command "fit_same_flavor.C(${histSet}, ${year}, true)"
 
 echo "Fitting same flavor electron histograms..."
-root.exe "fit_same_flavor.C(${histSet}, ${year}, false)"
+$run_command "fit_same_flavor.C(${histSet}, ${year}, false)"
 
 echo "Morphing same flavor histograms to make signal PDF..."
-root.exe "morph_signal.C(${histSet}, ${year})"
+$run_command "morph_signal.C(${histSet}, ${year})"
 
 echo "Creating background trees..."
-root.exe "create_background_trees.C(${histSet}, ${year}, \"${histPath}\")"
+$run_command "create_background_trees.C(${histSet}, ${year}, \"${histPath}\")"
 
 echo "Fitting background MC distribution..."
-root.exe "fit_background.C(${histSet}, ${year})"
+$run_command "fit_background.C(${histSet}, ${year})"
 
 echo "Calculating the upper limit..."
-root.exe "calculate_UL.C(${histSet}, ${year})"
+$run_command "calculate_UL.C(${histSet}, ${year})"
 
 echo "Finished!"

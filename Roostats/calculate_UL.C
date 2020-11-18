@@ -1,9 +1,15 @@
 //Script to calculate the 95% UL for e+mu resonance
 bool doConstraints_ = false;
 
-Int_t calculate_UL(int set = 8, int year = 2016) {
-  TFile* fInput = (doConstraints_) ? TFile::Open(Form("workspaces/fit_lepm_background_constr_%i_%i.root", year, set), "READ") :
-    TFile::Open(Form("workspaces/fit_lepm_background_%i_%i.root", year, set), "READ");
+Int_t calculate_UL(int set = 8, vector<int> years = {2016}) {
+  TString year_string = "";
+  for(unsigned i = 0; i < years.size(); ++i) {
+    int year = years[i];
+    if(i > 0) year_string += "_";
+    year_string += year;
+  }
+  TFile* fInput = (doConstraints_) ? TFile::Open(Form("workspaces/fit_lepm_background_constr_%s_%i.root", year_string.Data(), set), "READ") :
+    TFile::Open(Form("workspaces/fit_lepm_background_%s_%i.root", year_string.Data(), set), "READ");
   if(!fInput) return 1;
   fInput->cd();
   RooWorkspace* ws = (RooWorkspace*) fInput->Get("ws");
@@ -70,22 +76,24 @@ Int_t calculate_UL(int set = 8, int year = 2016) {
   double poimax = ((RooRealVar*) poi_list.find("br_emu"))->getMax();
 
   double min_scan = 1.e-9;
-  double max_scan = 1.e-5;
+  double max_scan = 5.e-6;
   std::cout << "Doing a fixed scan in the interval: " << min_scan << ", "
 	    << max_scan << " with " << npoints << " points\n";
   calc.SetFixedScan(npoints, min_scan, max_scan);
 
   auto result = calc.GetInterval();
-  double upperLimit = result->UpperLimit();
-
+  double upperLimit  = result->UpperLimit();
+  double expectedUL  = result->GetExpectedUpperLimit( 0);
+  double expectedULM = result->GetExpectedUpperLimit(-1);
+  double expectedULP = result->GetExpectedUpperLimit( 1);
   std::cout << "##################################################\n"
 	    << "The observed upper limit is " << upperLimit << std::endl;
 
   //compute the expected limit
   std::cout << "Expected upper limits, using the alternate model: " << std::endl
-	    << " expected limit (median): " << result->GetExpectedUpperLimit( 0) << std::endl
-	    << " expected limit (-1 sig): " << result->GetExpectedUpperLimit(-1) << std::endl
-	    << " expected limit (+1 sig): " << result->GetExpectedUpperLimit( 1) << std::endl
+	    << " expected limit (median): " << expectedUL  << std::endl
+	    << " expected limit (-1 sig): " << expectedULM << std::endl
+	    << " expected limit (+1 sig): " << expectedULP << std::endl
 	    << "##################################################\n";
 
   //Plot the results
@@ -95,9 +103,19 @@ Int_t calculate_UL(int set = 8, int year = 2016) {
   canvas->cd();
   freq_plot.Draw();
   canvas->SetLogx();
-  //freq_plot.Draw("EXP")
-  gSystem->Exec(Form("[ ! -d plots/latest_production/%i ] && mkdir -p plots/latest_production/%i", year, year));
-  canvas->SaveAs(Form("plots/latest_production/%i/pval_vs_br_%i.pdf", year, set));
-  canvas->SaveAs(Form("plots/latest_production/%i/pval_vs_br_%i.png", year, set));
+  //Add upper limit info to the plot
+  TLatex label;
+  label.SetNDC();
+  label.SetTextFont(72);
+  label.SetTextSize(0.04);
+  label.SetTextColor(kRed);
+  label.SetTextAlign(13);
+  label.DrawLatex(0.12, 0.34, Form("Expected 95%% CL = %.2e^{+%.2e}_{-%.2e}",
+				  expectedUL, expectedULP-expectedUL, expectedUL-expectedULM));
+  label.DrawLatex(0.12, 0.26, Form("Observed 95%% CL = %.2e", upperLimit));
+  
+  gSystem->Exec(Form("[ ! -d plots/latest_production/%s ] && mkdir -p plots/latest_production/%s", year_string.Data(), year_string.Data()));
+  canvas->SaveAs(Form("plots/latest_production/%s/pval_vs_br_%i.pdf", year_string.Data(), set));
+  canvas->SaveAs(Form("plots/latest_production/%s/pval_vs_br_%i.png", year_string.Data(), set));
   return 0;
 }

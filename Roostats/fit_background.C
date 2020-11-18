@@ -2,33 +2,14 @@
 bool doConstraints_ = false;
 bool includeSignalInFit_ = false;
 
-Int_t add_lum(TTree* tree, double lum) {
-  bool debug = false;
-  unsigned nentries = tree->GetEntriesFast();
-  std::cout << "Tree has " << nentries << " to process!\n";
-  Float_t weight(1.), inweight(1.);
-  tree->SetBranchAddress("fulleventweight", &inweight);
-  TBranch* branch = tree->Branch("fulleventweightlum", &weight, 'F');
-  double avg = 0.;
-  for(unsigned entry = 0; entry < nentries; ++entry) {
-    tree->GetEntry(entry);
-    weight = lum*inweight;
-    avg += weight/nentries;
-    branch->Fill();
+Int_t do_fit(TTree* tree, int set, vector<int> years, int seed) {
+  //set the random seed for the fitting + generation
+  RooRandom::randomGenerator()->SetSeed(seed);
+  TString year_string;
+  for(unsigned i = 0; i < years.size(); ++i) {
+    if(i > 0) year_string += "_";
+    year_string += years[i];
   }
-  if(debug) {
-    std::cout << "Finished processing! Avg was " << avg << std::endl;
-    avg = 0.;
-    for(unsigned entry = 0; entry < nentries; ++entry) {
-      tree->GetEntry(entry);
-      avg += weight/nentries;
-    }
-    std::cout << "Finished processing again! Avg was " << avg << std::endl;
-  }
-  return 0;
-}
-
-Int_t do_fit(TTree* tree, int set, int year) {
   RooRealVar lepm("lepm", "di-lepton invariant mass", 110, 75., 110., "GeV/c^{2}");
   RooRealVar weight("fulleventweightlum", "Full event weight*luminosity", 1., -100., 100.);
   RooDataSet dataset("dataset", "dataset", RooArgList(lepm,weight),
@@ -42,7 +23,7 @@ Int_t do_fit(TTree* tree, int set, int year) {
 	    << "Number of electron events is " << n_electron << std::endl;
 
   //Get the signal PDF
-  TFile* fWSSignal = TFile::Open(Form("workspaces/morphed_signal_%i_%i.root", year, set), "READ");
+  TFile* fWSSignal = TFile::Open(Form("workspaces/morphed_signal_%s_%i.root", year_string.Data(), set), "READ");
   if(!fWSSignal) return 1;
   RooWorkspace* ws_signal = (RooWorkspace*) fWSSignal->Get("ws");
   if(!ws_signal) return 2;
@@ -95,7 +76,7 @@ Int_t do_fit(TTree* tree, int set, int year) {
   global_n_electron.setConstant(1);
 
   RooFormulaVar n_sig("n_sig", "@0*@4*sqrt((@1*@2)/(@3*@3))", RooArgList(br_emu, n_electron_var, n_muon_var,br_ll,eff));
-  RooRealVar n_bkg("n_bkg", "n_bkg", 500., 0., 1.e5);
+  RooRealVar n_bkg("n_bkg", "n_bkg", 500., 0., 1.e6);
 
   if(!includeSignalInFit_) {br_emu.setVal(0.); br_emu.setConstant(1);}
   
@@ -131,15 +112,15 @@ Int_t do_fit(TTree* tree, int set, int year) {
 
   auto c1 = new TCanvas();
   xframe->Draw();
-  gSystem->Exec(Form("[ ! -d plots/latest_production/%i ] && mkdir -p plots/latest_production/%i", year, year));
+  gSystem->Exec(Form("[ ! -d plots/latest_production/%s ] && mkdir -p plots/latest_production/%s", year_string.Data(), year_string.Data()));
   if(doConstraints_)
-    c1->SaveAs(Form("plots/latest_production/%i/fit_lepm_background_constr_%i.pdf", year, set));
+    c1->SaveAs(Form("plots/latest_production/%s/fit_lepm_background_constr_%i.pdf", year_string.Data(), set));
   else
-    c1->SaveAs(Form("plots/latest_production/%i/fit_lepm_background_%i.pdf", year, set));
+    c1->SaveAs(Form("plots/latest_production/%s/fit_lepm_background_%i.pdf", year_string.Data(), set));
 
   //save the workspace
-  TFile* fOut = (doConstraints_) ? new TFile(Form("workspaces/fit_lepm_background_constr_%i_%i.root", year, set), "RECREATE") :
-    new TFile(Form("workspaces/fit_lepm_background_%i_%i.root", year, set), "RECREATE");
+  TFile* fOut = (doConstraints_) ? new TFile(Form("workspaces/fit_lepm_background_constr_%s_%i.root", year_string.Data(), set), "RECREATE") :
+    new TFile(Form("workspaces/fit_lepm_background_%s_%i.root", year_string.Data(), set), "RECREATE");
   fOut->cd();
   auto bkg_data = bkgPDF.generate(RooArgSet(lepm), n_bkg.getVal());
   
@@ -160,27 +141,25 @@ Int_t do_fit(TTree* tree, int set, int year) {
   return 0;
 }
 
-
-Int_t fit_background(int set = 8, int year = 2016, bool addLum = true) {
+Int_t fit_background(int set = 8, vector<int> years = {2016}, int seed = 90) {
   int status(0);
+  TList* list = new TList;
+  TString year_string = "";
+  for(unsigned i = 0; i < years.size(); ++i) {
+    if(i > 0) year_string += "_";
+    year_string += years[i];
+  }
   TString bkg_name = "background_trees/background_ztautau_bkg_nano_emu_";
-  bkg_name += year;
+  bkg_name += year_string;
   bkg_name += "_";
   bkg_name += set+ZTauTauHistMaker::kEMu;
   bkg_name += ".tree";
   TFile* f_bkg = TFile::Open(bkg_name.Data(), "READ");
   if(!f_bkg) return 1;
-  TTree* t_bkg = (TTree*) f_bkg->Get("background_tree");
+  TTree* t_bkg = (TTree*) f_bkg->Get(Form("background_tree_%s", year_string.Data()));
   if(!t_bkg) return 2;
-  if(addLum) {
-    double lum = 35.9e3;
-    if(year == 2017) lum = 41.48e3;
-    else if (year == 2018) lum = 59.74e3;
-    std::cout << "---Adding luminosity to weights!\n";
-    add_lum(t_bkg, lum);
-  }
   std::cout << "---Performing background fit!\n";
-  status = do_fit(t_bkg, set, year);
+  status = do_fit(t_bkg, set, years, seed);
   if(status) std::cout << "Fit returned status " << status << std::endl;
   return status;
 }
