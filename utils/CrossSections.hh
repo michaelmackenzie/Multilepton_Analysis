@@ -14,6 +14,7 @@ public:
     double zll = /*2075.14/0.0337*/ 6077.22;
     double br_ll = 0.0337; //branching ratio of Z->ll
     values_["DY50"                    ] = zll    ;
+    values_["Z"                       ] = zll/(3.*br_ll);
     values_["SingleAntiToptW"         ] = 34.91  ;
     values_["SingleToptW"             ] = 34.91  ;
     values_["WWW"	              ] = 0.2086 ;
@@ -51,6 +52,16 @@ public:
     numbers_[2017]["DY50"    ] =  25757729;
     numbers_[2017]["DY50-ext"] = 186217773;
     numbers_[2018]["DY50"    ] = 100194597;
+
+    //Signal gen numbers
+    numbers_[2016]["ZEMu"    ] =  40000;
+    numbers_[2017]["ZEMu"    ] =  80000;
+    numbers_[2018]["ZEMu"    ] =  40000;
+
+    //Luminosity by year
+    lum_[2016] = 35.92e3;
+    lum_[2017] = 41.48e3;
+    lum_[2018] = 59.74e3;
     
   }
 
@@ -74,8 +85,21 @@ public:
       std::cout << "Generated number for " << name.Data() << " not found! Returning 0...\n";
     return gen;
   }
+
+  //Get luminosity by year
+  double GetLuminosity(int year) {
+    double lum(0.);
+    auto itr = lum_.find(year);
+    if(itr != lum_.end())
+      lum = itr->second;
+    else
+      std::cout << "Luminosity for " << year << " not found! Returning 0...\n";
+    return lum;
+  }
+  
 private:
   std::map<TString, double> values_ ; //cross sections
   std::map<int, std::map<TString, long>>   numbers_; // generated numbers
+  std::map<int, double> lum_; //luminosity
 };
 #endif

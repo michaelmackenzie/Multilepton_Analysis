@@ -1,7 +1,13 @@
 //Script to create histograms of mu+mu and e+e data
+#include "DataInfo.C"
 
 Int_t create_same_flavor_histograms(int set = 8, vector<int> years = {2016}, TString path = "../histograms/nanoaods_dev/", TString hist = "lepm") {
   TString type = "event";
+
+  DataInfo muonInfo(set, "muon");
+  DataInfo electronInfo(set, "electron");
+  muonInfo.ReadData();
+  electronInfo.ReadData();
 
   ///////////////////
   // Get Muon Hist //
@@ -28,6 +34,7 @@ Int_t create_same_flavor_histograms(int set = 8, vector<int> years = {2016}, TSt
     if(!h_muon) h_muon = h;
     else h_muon->Add(h);
     muon_out_name += Form("_%i", year);
+    muonInfo.datamap_[year] = h->Integral();
   }
   muon_out_name += ".hist";
   cout << "Writing muon file " << muon_out_name.Data() << "...\n";
@@ -62,6 +69,7 @@ Int_t create_same_flavor_histograms(int set = 8, vector<int> years = {2016}, TSt
     if(!h_electron) h_electron = h;
     else h_electron->Add(h);
     electron_out_name += Form("_%i", year);
+    electronInfo.datamap_[year] = h->Integral();
   }
   electron_out_name += ".hist";
   cout << "Writing electron file " << electron_out_name.Data() << "...\n";
@@ -70,6 +78,10 @@ Int_t create_same_flavor_histograms(int set = 8, vector<int> years = {2016}, TSt
   h_electron->Write();
   electron_out->Write();
   delete electron_out;
+
+  //write out data info
+  muonInfo.WriteData();
+  electronInfo.WriteData();
   
   return 0;
 }

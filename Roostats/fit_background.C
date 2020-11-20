@@ -1,6 +1,9 @@
 //Script to fit the di-lepton mass histogram for same flavor selections
-bool doConstraints_ = false;
-bool includeSignalInFit_ = false;
+#include "DataInfo.C"
+
+bool doConstraints_ = false; //adding in systematics
+bool includeSignalInFit_ = false; //fit background specturm with signal shape in PDF
+bool useSameFlavorCount_ = true; //use N(sig) ~ br_emu*eff*sqrt(N_ee*N_mumu)/br_ll
 
 Int_t do_fit(TTree* tree, int set, vector<int> years, int seed) {
   //set the random seed for the fitting + generation
@@ -15,9 +18,20 @@ Int_t do_fit(TTree* tree, int set, vector<int> years, int seed) {
   RooDataSet dataset("dataset", "dataset", RooArgList(lepm,weight),
 		     RooFit::Import(*tree), RooFit::WeightVar(weight));
 
-  double n_muon = 29409600.; //FIXME: Should not hard code this
-  double n_electron = 12157600.; //FIXME: Should not hard code this
+  //get the nominal data numbers
+  DataInfo muonInfo(set, "muon");
+  DataInfo electronInfo(set, "electron");
+  muonInfo.ReadData();
+  electronInfo.ReadData();
+  
+  double n_muon = 0.;
+  double n_electron = 0.;
+  for(int year : years) {
+    n_muon += muonInfo.datamap_[year];
+    n_electron += electronInfo.datamap_[year];
+  }
 
+  
   std::cout << "Number of events to fit: " << dataset.numEntries() << std::endl
 	    << "Number of muon events is " << n_muon << std::endl
 	    << "Number of electron events is " << n_electron << std::endl;
@@ -38,7 +52,7 @@ Int_t do_fit(TTree* tree, int set, vector<int> years, int seed) {
   RooBernstein bkgPDF("bkgPDF", "Background PDF", lepm, RooArgList(a_bkg, b_bkg, c_bkg, d_bkg));
 
   //Total PDF
-  RooRealVar br_emu("br_emu", "br_emu", 0., -0.00001, 0.1);
+  RooRealVar br_emu("br_emu", "br_emu", 0., -1e-4, 1e-4);
   RooRealVar br_ll("br_ll", "br_ll", 0.033632);
 
   //Add log-normal systematics
@@ -75,7 +89,32 @@ Int_t do_fit(TTree* tree, int set, vector<int> years, int seed) {
   global_n_muon.setConstant(1);
   global_n_electron.setConstant(1);
 
-  RooFormulaVar n_sig("n_sig", "@0*@4*sqrt((@1*@2)/(@3*@3))", RooArgList(br_emu, n_electron_var, n_muon_var,br_ll,eff));
+  //Luminosity based parameters
+  DataInfo signalInfo(set, "zemu");
+  signalInfo.ReadData();
+  CrossSections xs;
+  double lum = 0.;
+  double eff_signal = 0.;
+  for(int year : years) {
+    double lum_year = xs.GetLuminosity(year);
+    lum += lum_year;
+    //get the efficiency of signal for the year, weight by luminosity
+    int gen_year = xs.GetGenNumber("ZEMu", year);
+    double rec_year = signalInfo.datamap_[year];
+    eff_signal += lum_year * (rec_year / gen_year);
+  }
+  eff_signal /= lum; //divide by total luminosity
+  if(!useSameFlavorCount_)
+    eff_nominal.setVal(eff_signal);
+  
+  double zxs = xs.GetCrossSection("Z");
+  RooRealVar lum_var("lum_var", "lum_var", lum);
+  RooRealVar zxs_var("zxs_var", "zxs_var", zxs);
+  
+  RooFormulaVar n_sig("n_sig", ((useSameFlavorCount_) ? "@0*@4*sqrt((@1*@2)/(@3*@3))" : "@0*@1*@2*@3")
+		      , ((useSameFlavorCount_) ? RooArgList(br_emu, n_electron_var, n_muon_var,br_ll,eff) :
+			 RooArgList(br_emu, lum_var, zxs_var, eff))
+		      );
   RooRealVar n_bkg("n_bkg", "n_bkg", 500., 0., 1.e6);
 
   if(!includeSignalInFit_) {br_emu.setVal(0.); br_emu.setConstant(1);}

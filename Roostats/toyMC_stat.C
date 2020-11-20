@@ -2,9 +2,15 @@
 
 bool doConstraints_ = false; //whether or not to use constraint based PDFs
 
-int toyMC_stat(int set, int year, int nfits = 1000) {
+int toyMC_stat(int set, vector<int> years, int nfits = 1000) {
   int status(0);
-  TFile* fInput = TFile::Open(Form("workspaces/fit_lepm_background_%i_%i.root", year, set), "READ");
+  TString year_string = "";
+  for(unsigned i = 0; i < years.size(); ++i) {
+    int year = years[i];
+    if(i > 0) year_string += "_";
+    year_string += year;
+  }
+  TFile* fInput = TFile::Open(Form("workspaces/fit_lepm_background_%s_%i.root", year_string.Data(), set), "READ");
   if(!fInput) return 1;
   fInput->cd();
 
@@ -47,6 +53,6 @@ int toyMC_stat(int set, int year, int nfits = 1000) {
   brpull_frame->Draw();
   canvas->cd(4);
   NLLframe->Draw();
-  canvas->SaveAs(Form("plots/latest_production/%i/plot_toyMC_%i.pdf", year, set));
+  canvas->SaveAs(Form("plots/latest_production/%s/plot_toyMC_%i.pdf", year_string.Data(), set));
   return status;
 }

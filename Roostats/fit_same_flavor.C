@@ -14,7 +14,8 @@ Int_t do_fit(TH1F* hvar, vector<int> years, bool isMuon, TString hist, int set) 
   
   RooRealVar var(hist.Data(), description.Data(), val, min_val, max_val, unit.Data());
   RooDataHist data("data", "data", RooArgList(var), hvar);
-  std::cout << "Number of events to fit: " << data.numEntries() << std::endl;
+  int ndata = data.numEntries();
+  std::cout << "Number of events to fit: " << ndata << std::endl;
 
   //FIXME: change fit based on variable input
   RooRealVar mean("mean", "mean", 91., 85., 95.);
@@ -67,6 +68,7 @@ Int_t do_fit(TH1F* hvar, vector<int> years, bool isMuon, TString hist, int set) 
   ws.Write();
   fOut->Close();
   delete fOut;
+
   return 0;
 }
 

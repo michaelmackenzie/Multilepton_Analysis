@@ -1,7 +1,7 @@
 //Script to calculate the 95% UL for e+mu resonance
 bool doConstraints_ = false;
 
-Int_t calculate_UL(int set = 8, vector<int> years = {2016}) {
+Int_t calculate_UL(int set = 8, vector<int> years = {2016}, bool useToyData = false) {
   TString year_string = "";
   for(unsigned i = 0; i < years.size(); ++i) {
     int year = years[i];
@@ -97,11 +97,22 @@ Int_t calculate_UL(int set = 8, vector<int> years = {2016}) {
 	    << "##################################################\n";
 
   //Plot the results
-  RooStats::HypoTestInverterPlot freq_plot("HTI_Result_Plot","Frequentist scan result for the W -> pigamma BR",result);
+  RooStats::HypoTestInverterPlot freq_plot("HTI_Result_Plot","Expected CLs",result);
   //xPlot in a new canvas with style
   TCanvas* canvas = new TCanvas();
   canvas->cd();
+  // if(useToyData)
+  //   freq_plot.Draw();
+  // else
+  //   freq_plot.Draw("EXP");
   freq_plot.Draw();
+  if(!useToyData) {
+    TGraph* g = (TGraph*) canvas->GetPrimitive("CLs_observed");
+    if(g) {
+      g->SetMarkerSize(0);
+      g->SetLineWidth(0);
+    }
+  }
   canvas->SetLogx();
   //Add upper limit info to the plot
   TLatex label;
@@ -112,10 +123,62 @@ Int_t calculate_UL(int set = 8, vector<int> years = {2016}) {
   label.SetTextAlign(13);
   label.DrawLatex(0.12, 0.34, Form("Expected 95%% CL = %.2e^{+%.2e}_{-%.2e}",
 				  expectedUL, expectedULP-expectedUL, expectedUL-expectedULM));
-  label.DrawLatex(0.12, 0.26, Form("Observed 95%% CL = %.2e", upperLimit));
+  if(useToyData)
+    label.DrawLatex(0.12, 0.26, Form("Observed 95%% CL = %.2e", upperLimit));
   
   gSystem->Exec(Form("[ ! -d plots/latest_production/%s ] && mkdir -p plots/latest_production/%s", year_string.Data(), year_string.Data()));
   canvas->SaveAs(Form("plots/latest_production/%s/pval_vs_br_%i.pdf", year_string.Data(), set));
   canvas->SaveAs(Form("plots/latest_production/%s/pval_vs_br_%i.png", year_string.Data(), set));
+
+
+  //Plot background spectrum (with toy data) and signal with upper limit value
+  auto totPDF = (RooAddPdf*) ws->pdf("totPDF");
+  auto bkgPDF = ws->pdf("bkgPDF");
+  auto sigPDF = ws->pdf("morph_pdf_binned");
+  auto n_sig = ws->function("n_sig");
+  auto n_electron = ws->function("n_electron_var");
+  auto n_muon = ws->function("n_muon_var");
+  auto eff = ws->function("eff");
+  auto lum = ws->var("lum_var");
+  auto zxs = ws->var("zxs_var");
+  auto n_bkg = ws->var("n_bkg");
+  auto lepm = ws->var("lepm");
+  auto xframe = lepm->frame(RooFit::Title("Background + Signal distributions at 95\% CLs limit"));
+
+  //set to expected upper limit
+  br_emu->setVal(expectedUL);
+  br_emu->setConstant(1);
+  totPDF->fitTo(*data);
+  data->plotOn(xframe);
+  double sig_scale = n_sig->getVal()/(n_sig->getVal()+n_bkg->getVal());
+  double bkg_scale = n_bkg->getVal()/(n_sig->getVal()+n_bkg->getVal());  
+
+  totPDF->plotOn(xframe);
+  bkgPDF->plotOn(xframe, RooFit::LineColor(kGreen-3), RooFit::LineStyle(kDashed),
+		 RooFit::Normalization(bkg_scale));
+  sigPDF->plotOn(xframe, RooFit::LineColor(kRed), RooFit::LineStyle(kDashed),
+		 RooFit::Normalization(sig_scale));
+  TCanvas* cmass = new TCanvas();
+  xframe->Draw();
+
+  cmass->SaveAs(Form("plots/latest_production/%s/upperlimit_pdfs_%i.png", year_string.Data(), set));
+  
+  totPDF->Print();
+  bkgPDF->Print();
+  sigPDF->Print();
+  n_sig->Print();
+  br_emu->Print();
+  if(n_electron)
+    n_electron->Print();
+  if(n_muon)
+    n_muon->Print();
+  eff->Print();
+  if(lum)
+    lum->Print();
+  if(zxs)
+    zxs->Print();
+  n_bkg->Print();
+  
+  // std::cout << "PDF list: " << totPDF->pdfList() << std::endl;
   return 0;
 }

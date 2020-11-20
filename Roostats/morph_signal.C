@@ -1,4 +1,5 @@
 //Script to morph ee and mumu data into e+mu
+#include "DataInfo.C"
 
 Int_t morph_signal(int set = 8, vector<int> years = {2016}, TString base = "../histograms/nanoaods_dev/") {
 
@@ -42,6 +43,8 @@ Int_t morph_signal(int set = 8, vector<int> years = {2016}, TString base = "../h
   // Get Signal Info //
   /////////////////////
 
+  DataInfo signalInfo(set, "zemu");
+  signalInfo.ReadData();
   TList* list = new TList;
   TFile* ftmp = new TFile("tmp.root", "RECREATE");
   TFile* f_zemus[years.size()];
@@ -69,7 +72,13 @@ Int_t morph_signal(int set = 8, vector<int> years = {2016}, TString base = "../h
     t_list[i]->SetName(Form("tree_%i_%i", year, set+ZTauTauHistMaker::kEMu));
     t_list[i]->Write();
     list->Add(t_list[i]);
+    //save weighted N(signal) count
+    TH1F* h = new TH1F("h", "h", 1, -1e9, 1e9);
+    t_list[i]->Draw("lepm>>h", "eventweight");
+    signalInfo.datamap_[year] = h->Integral();\
+    delete h;
   }
+  signalInfo.WriteData(); //write signal counts
   TTree* t_zemu = TTree::MergeTrees(list);
   t_zemu->SetName("ZEMu_tree");
   
@@ -89,7 +98,7 @@ Int_t morph_signal(int set = 8, vector<int> years = {2016}, TString base = "../h
   RooHistPdf pdf_muon_binned("pdf_muon_binned", "pdf_muon_binned", RooArgSet(lepm), *binned_muon);
   RooHistPdf pdf_electron_binned("pdf_electron_binned", "pdf_electron_binned", RooArgSet(lepm), *binned_electron);
 
-  RooRealVar alpha("alpha", "alpha", 0.5); //how much of each distribution to use --> can fit to find best value
+  RooRealVar alpha("alpha", "alpha", 0.3); //how much of each distribution to use --> can fit to find best value
   RooIntegralMorph morph_pdf("morph_pdf", "morph_pdf", pdf_muon_binned, pdf_electron_binned, lepm, alpha);
   //
   
@@ -101,9 +110,15 @@ Int_t morph_signal(int set = 8, vector<int> years = {2016}, TString base = "../h
   morph_pdf_binned.plotOn(xframe);
   pdf_muon_binned.plotOn(xframe, RooFit::LineStyle(kDashed), RooFit::LineColor(kRed));
   pdf_electron_binned.plotOn(xframe, RooFit::LineStyle(kDashed), RooFit::LineColor(kGreen));
-
+  
   auto c1 = new TCanvas();
   xframe->Draw();
+  TLegend* leg = new TLegend(0.6, 0.7, 0.9, 0.9);
+  leg->AddEntry(xframe->findObject("pdf_muon_binned_Norm[lepm]"), "Muon PDF", "L");
+  leg->AddEntry(xframe->findObject("pdf_electron_binned_Norm[lepm]"), "Electron PDF", "L");
+  leg->AddEntry(xframe->findObject("morph_pdf_binned_Norm[lepm]"), "Signal PDF", "L");
+  leg->AddEntry(xframe->findObject("h_dataset"), "Signal MC", "PL");
+  leg->Draw("same");
   gSystem->Exec(Form("[ ! -d plots/latest_production/%s ] && mkdir -p plots/latest_production/%s", year_string.Data(), year_string.Data()));
   c1->SaveAs(Form("plots/latest_production/%s/compare_morphed_pdf_%i.pdf", year_string.Data(), set));
   TFile* fOut = new TFile(Form("workspaces/morphed_signal_%s_%i.root", year_string.Data(), set), "RECREATE");
