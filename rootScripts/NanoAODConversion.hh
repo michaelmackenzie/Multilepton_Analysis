@@ -451,6 +451,7 @@ void NanoAODConversion::Init(TTree *tree)
   // Init() will be called many times when running on PROOF
   // (once per file to be processed).
 
+  for(int i = 0; i < kMaxParticles; ++i) jetFlavor[i] = 999; //initialize as unknown
   //initialize output here so it can steal the tree name for file naming
   if(fChain == 0 && tree != 0) {
     //name the tree and the file similarly

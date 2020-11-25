@@ -393,14 +393,24 @@ float NanoAODConversion::BTagWeight(int WP) {
   if(fVerbose > 1) std::cout << "NanoAODConversion::" << __func__ << ": printing jet b-tag info...\n";
   for(unsigned jet = 0; jet < nJets20; ++jet) {
     if(fabs(jetsEta[jet]) >= 2.4) continue;
+    if(fabs(jetFlavor[jet] > 100)) continue; //unknown
     double pd = particleCorrections->BTagDataProb(jetsPt[jet], jetsEta[jet], jetsFlavor[jet], fYear, WP);
     double pm = particleCorrections->BTagMCProb  (jetsPt[jet], jetsEta[jet], jetsFlavor[jet], fYear, WP);
     if(fVerbose > 1) std::cout << "Jet " << jet << " has pt = " << jetsPt[jet] << " eta " << jetsEta[jet]
-			       << " pmc = " << pm << " pdata = " << pd << std::endl;
+			       << " pmc = " << pm << " pdata = " << pd << " with btagged = "
+			       << (jetsBTag[jet] > bcut) << std::endl;
     if(jetsBTag[jet] > bcut) { //is b-tagged
+      if(pd <= 0. || pm <= 0.) {
+	pd = max(0.0001, pd);
+	pm = max(0.0001, pm);
+      }
       p_data *= pd;
       p_mc   *= pm;
     } else {
+      if(pd >= 1. || pm >= 1.) {
+	pd = min(0.9999, pd);
+	pm = min(0.9999, pm);
+      }
       p_data *= 1. - pd;
       p_mc   *= 1. - pm;
     }
