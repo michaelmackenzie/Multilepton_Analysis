@@ -192,9 +192,13 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
   //  TMVA::DataLoader* dataloader = new TMVA::DataLoader(outFolder);
 
 
-  factory->SetBackgroundWeightExpression("fulleventweight");
-  factory->SetSignalWeightExpression("fulleventweight");
-
+  if(signals.size() > 0) {
+    factory->SetBackgroundWeightExpression("fulleventweight");
+    factory->SetSignalWeightExpression("fulleventweight");
+  } else {
+    factory->SetBackgroundWeightExpression("fulleventweightlum");
+    factory->SetSignalWeightExpression("fulleventweightlum");
+  }
   // If you wish to modify default settings
   // (please check "src/Config.h" to see all available global options)
   //    (TMVA::gConfig().GetVariablePlotting()).fTimesRMS = 8.0;
@@ -278,6 +282,13 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
   } else if(signals.size() > 0) {
     sig_cut = "(";
     bkg_cut = "(";
+  } else { //no signals --> use signal flag
+    if(ignore.size() > 0) {
+      sig_cut += "&&";
+      bkg_cut += "&&";
+    }
+    sig_cut = "(issignal >  0.5)";
+    bkg_cut = "(issignal < -0.5)";
   }
   for(int i = 0; i < signals.size(); ++i) {
     if(i > 0 || ignore.size() > 0) {

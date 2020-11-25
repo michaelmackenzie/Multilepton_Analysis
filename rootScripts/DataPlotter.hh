@@ -185,9 +185,9 @@ public :
   Int_t total_background_color_ = kRed-7; //for all backgrounds combined drawing
   Int_t canvas_x_ = 900; //canvas dimensions
   Int_t canvas_y_ = 800;
-  Double_t axis_font_size_ = 0.2; //axis title values
-  Double_t y_title_offset_ = 0.18;
-  Double_t x_title_offset_ = 0.6;
+  Double_t axis_font_size_ = 0.157; //axis title values
+  Double_t y_title_offset_ = 0.20; 
+  Double_t x_title_offset_ = 0.71;
   Double_t x_label_size_ = 0.1;
   Double_t y_label_size_ = 0.1;
   Double_t upper_pad_x1_ = 0.0; //upper pad fractional dimensions
@@ -231,7 +231,7 @@ public :
   Double_t data_txt_x_ = 0.61;
   
   //significance drawing
-  Double_t sig_plot_range_ = 3.5;
+  Double_t sig_plot_range_ = 4.0;
   Int_t limit_mc_err_range_ = 1; //sigma range to show
   ~DataPlotter() {
     for(auto d : data_) {

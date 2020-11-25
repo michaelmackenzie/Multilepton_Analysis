@@ -49,6 +49,8 @@ public:
     numbers_[2016]["Wlnu-ext"] =  57402435;
     numbers_[2017]["Wlnu"    ] =  33073306;
     numbers_[2017]["Wlnu-ext"] =  44627200;
+    numbers_[2016]["DY50"    ] =  49748967;
+    numbers_[2016]["DY50-ext"] =  93007332;
     numbers_[2017]["DY50"    ] =  25757729;
     numbers_[2017]["DY50-ext"] = 186217773;
     numbers_[2018]["DY50"    ] = 100194597;

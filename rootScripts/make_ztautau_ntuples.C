@@ -11,6 +11,7 @@ namespace {
   Int_t year_;
   TString folder_;
   TStopwatch* timer = new TStopwatch();
+  Bool_t fDoAllYearsMVA = true; //use full Run-II trained MVA
   TMVA::Reader* mva[kMaxMVAs]; //read and apply mva weight files
   vector<TString> fMvaNames = { //mva names for getting weights
     "mutau_BDT_8.higgs","mutau_BDT_8.Z0", //0 - 9: total mvas
@@ -102,8 +103,12 @@ Int_t book_mvas() {
     TrkQualInit trkQualInit(fTrkQualVersion, isJetBinned);
     trkQualInit.InitializeVariables(*(mva[mva_i]), selection, fTreeVars);
 
+    TString year_string = "";
+    if(fDoAllYearsMVA) year_string = "2016_2017_2018";
+    else year_string += year_;
+    
     //Initialize MVA weight file
-    const char* f = Form("weights/%s.%i.weights.xml",fMvaNames[mva_i].Data(), year_);
+    const char* f = Form("weights/%s.%s.weights.xml",fMvaNames[mva_i].Data(), year_string.Data());
     mva[mva_i]->BookMVA(fMvaNames[mva_i].Data(),f);
     printf("Booked MVA %s with selection %s\n", fMvaNames[mva_i].Data(), selection.Data());
   }
@@ -425,30 +430,31 @@ Int_t process_standard_nano_trees(int year = 2016, bool doInParts = false, bool 
   name += "_";
   TString ext  = ".tree";
   vector<datacard_t> cards;
-  cards.push_back(datacard_t(false, name+"ttbarToSemiLeptonic"));
-  cards.push_back(datacard_t(true , name+"ttbarlnu"));
-  cards.push_back(datacard_t(true , name+"DY50"));
-  cards.push_back(datacard_t(true , name+"SingleAntiToptW"));
-  cards.push_back(datacard_t(true , name+"SingleToptW"));
-  cards.push_back(datacard_t(true , name+"Wlnu"));
-  cards.push_back(datacard_t(true , name+"Wlnu-ext"));
-  cards.push_back(datacard_t(true , name+"WW"));
-  cards.push_back(datacard_t(true , name+"WZ"));
-  cards.push_back(datacard_t(true , name+"ZETau"));
-  cards.push_back(datacard_t(true , name+"ZMuTau"));
-  cards.push_back(datacard_t(true , name+"ZEMu"));
-  cards.push_back(datacard_t(true , name+"HETau"));
-  cards.push_back(datacard_t(true , name+"HMuTau"));
-  cards.push_back(datacard_t(true , name+"HEMu"));
-  cards.push_back(datacard_t(true , name+"SingleMu"));
-  cards.push_back(datacard_t(true , name+"SingleEle"));
-  cards.push_back(datacard_t(true , name+"ZZ"));
-  cards.push_back(datacard_t(true , name+"WWW"));
-  cards.push_back(datacard_t(true , name+"QCDDoubleEMEnrich30to40"));
-  cards.push_back(datacard_t(true , name+"QCDDoubleEMEnrich30toInf"));
-  cards.push_back(datacard_t(true , name+"QCDDoubleEMEnrich40toInf"));
+  cards.push_back(datacard_t(false                , name+"ttbarToSemiLeptonic"));
+  cards.push_back(datacard_t(false                , name+"ttbarlnu"));
+  cards.push_back(datacard_t(false                , name+"DY50"));
+  cards.push_back(datacard_t(false && year != 2018, name+"DY50-ext"));
+  cards.push_back(datacard_t(false                , name+"SingleAntiToptW"));
+  cards.push_back(datacard_t(false                , name+"SingleToptW"));
+  cards.push_back(datacard_t(false                , name+"Wlnu"));
+  cards.push_back(datacard_t(false && year != 2018, name+"Wlnu-ext"));
+  cards.push_back(datacard_t(false                , name+"WW"));
+  cards.push_back(datacard_t(false                , name+"WZ"));
+  cards.push_back(datacard_t(false                , name+"ZETau"));
+  cards.push_back(datacard_t(false                , name+"ZMuTau"));
+  cards.push_back(datacard_t(false                , name+"ZEMu"));
+  cards.push_back(datacard_t(false                , name+"HETau"));
+  cards.push_back(datacard_t(false                , name+"HMuTau"));
+  cards.push_back(datacard_t(false                , name+"HEMu"));
+  cards.push_back(datacard_t(false                , name+"SingleMu"));
+  cards.push_back(datacard_t(false                , name+"SingleEle"));
+  cards.push_back(datacard_t(false                , name+"ZZ"));
+  cards.push_back(datacard_t(false                , name+"WWW"));
+  cards.push_back(datacard_t(false                , name+"QCDDoubleEMEnrich30to40"));
+  cards.push_back(datacard_t(false                , name+"QCDDoubleEMEnrich30toInf"));
+  cards.push_back(datacard_t(false                , name+"QCDDoubleEMEnrich40toInf"));
   
-  vector<TString> folders = {"ee", "mumu", "mutau", "etau", "emu"};
+  vector<TString> folders = {/*"ee", "mumu",*/ "mutau", "etau", "emu"};
   status = initialize(); //initialize the MVAs
   if(status) return status;
   

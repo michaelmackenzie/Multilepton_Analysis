@@ -78,7 +78,9 @@ do
     fi
 
     # Find the year it's trained for
-    if [[ $f == *"_2016_"* ]]; then
+    if [[ $f == *"_2016_2017_2018_"* ]]; then
+	a=$a".2016_2017_2018"
+    elif [[ $f == *"_2016_"* ]]; then
 	a=$a".2016"
     elif [[ $f == *"_2017_"* ]]; then
 	a=$a".2017"

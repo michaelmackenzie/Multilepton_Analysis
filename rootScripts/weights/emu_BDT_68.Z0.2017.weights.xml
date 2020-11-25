@@ -4,11 +4,11 @@
     <Info name="TMVA Release" value="4.2.1 [262657]"/>
     <Info name="ROOT Release" value="6.06/01 [394753]"/>
     <Info name="Creator" value="mmackenz"/>
-    <Info name="Date" value="Sun Nov 15 14:20:20 2020"/>
+    <Info name="Date" value="Sat Nov 21 08:28:34 2020"/>
     <Info name="Host" value="Linux vocms0315.cern.ch 2.6.32-573.26.1.el6.x86_64 #1 SMP Wed May 4 09:23:05 CEST 2016 x86_64 x86_64 x86_64 GNU/Linux"/>
     <Info name="Dir" value="/uscms_data/d3/mmackenz/CMSSW_8_0_20/src/BLT/BLTAnalysis/tmva_training/training_background_ztautau_Z0_nano_emu_2017_68"/>
     <Info name="Training events" value="84002"/>
-    <Info name="TrainingTime" value="1.00314352e+02"/>
+    <Info name="TrainingTime" value="1.22674626e+02"/>
     <Info name="AnalysisType" value="Classification"/>
   </GeneralInfo>
   <Options>

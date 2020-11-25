@@ -287,102 +287,42 @@ void DataPlotter::get_titles(TString hist, TString setType, TString* xtitle, TSt
     *title  = Form("SVFit di-tau mass error");
   }
   else if(hist == "njets") {
-    *xtitle = "Number of Jets (pT > 30)";
-    *ytitle = "";
-    *title  = Form("Number of Jets");
-  }
-  else if(hist == "njets25tot") {
-    *xtitle = "Number of Jets (25 < pT)";
-    *ytitle = "";
-    *title  = Form("Number of Jets");
-  }
-  else if(hist == "njets25") {
-    *xtitle = "Number of Jets (25 < pT < 30)";
+    *xtitle = "Number of Jets (pT > 25 GeV/c)";
     *ytitle = "";
     *title  = Form("Number of Jets");
   }
   else if(hist == "njets20") {
-    *xtitle = "Number of Jets (20 < pT < 25)";
-    *ytitle = "";
-    *title  = Form("Number of Jets");
-  }
-  else if(hist == "njetstot") {
-    *xtitle = "Number of Jets (20 < pT)";
+    *xtitle = "Number of Jets (pT > 20 GeV/c)";
     *ytitle = "";
     *title  = Form("Number of Jets");
   }
   else if(hist == "nbjets") {
-    *xtitle = "Number of tight ID b-Jets (pT > 30)";
+    *xtitle = "Number of tight ID b-Jets (pT > 25 GeV/c)";
     *ytitle = "";
     *title  = Form("Number of tight ID b-Jets");
   }
   else if(hist == "nbjetsm") {
-    *xtitle = "Number of medium ID b-Jets (pT > 30)";
+    *xtitle = "Number of medium ID b-Jets (pT > 25 GeV/c)";
     *ytitle = "";
     *title  = Form("Number of medium ID b-Jets");
   }
   else if(hist == "nbjetsl") {
-    *xtitle = "Number of loose ID b-Jets (pT > 30)";
-    *ytitle = "";
-    *title  = Form("Number of loose ID b-Jets");
-  }
-  else if(hist == "nbjets25") {
-    *xtitle = "Number of tight ID b-Jets (25 < pT < 30)";
-    *ytitle = "";
-    *title  = Form("Number of tight ID b-Jets");
-  }
-  else if(hist == "nbjets25m") {
-    *xtitle = "Number of medium ID b-Jets (25 < pT < 30)";
-    *ytitle = "";
-    *title  = Form("Number of medium ID b-Jets");
-  }
-  else if(hist == "nbjets25l") {
-    *xtitle = "Number of loose ID b-Jets (25 < pT < 30)";
-    *ytitle = "";
-    *title  = Form("Number of loose ID b-Jets");
-  }
-  else if(hist == "nbjetstot25") {
-    *xtitle = "Number of tight ID b-Jets (25 < pT)";
-    *ytitle = "";
-    *title  = Form("Number of tight ID b-Jets");
-  }
-  else if(hist == "nbjetstot25m") {
-    *xtitle = "Number of medium ID b-Jets (25 < pT)";
-    *ytitle = "";
-    *title  = Form("Number of medium ID b-Jets");
-  }
-  else if(hist == "nbjetstot25l") {
-    *xtitle = "Number of loose ID b-Jets (25 < pT)";
+    *xtitle = "Number of loose ID b-Jets (pT > 25 GeV/c)";
     *ytitle = "";
     *title  = Form("Number of loose ID b-Jets");
   }
   else if(hist == "nbjets20") {
-    *xtitle = "Number of tight ID b-Jets (20 < pT < 25)";
+    *xtitle = "Number of tight ID b-Jets (pT > 20 GeV/c)";
     *ytitle = "";
     *title  = Form("Number of tight ID b-Jets");
   }
   else if(hist == "nbjets20m") {
-    *xtitle = "Number of medium ID b-Jets (20 < pT < 25)";
+    *xtitle = "Number of medium ID b-Jets (pT > 20 GeV/c)";
     *ytitle = "";
     *title  = Form("Number of medium ID b-Jets");
   }
   else if(hist == "nbjets20l") {
-    *xtitle = "Number of loose ID b-Jets (20 < pT < 25)";
-    *ytitle = "";
-    *title  = Form("Number of loose ID b-Jets");
-  }
-  else if(hist == "nbjetstot") {
-    *xtitle = "Number of tight ID b-Jets (20 < pT)";
-    *ytitle = "";
-    *title  = Form("Number of tight ID b-Jets");
-  }
-  else if(hist == "nbjetstotm") {
-    *xtitle = "Number of medium ID b-Jets (20 < pT)";
-    *ytitle = "";
-    *title  = Form("Number of medium ID b-Jets");
-  }
-  else if(hist == "nbjetstotl") {
-    *xtitle = "Number of loose ID b-Jets (20 < pT)";
+    *xtitle = "Number of loose ID b-Jets (pT > 20 GeV/c)";
     *ytitle = "";
     *title  = Form("Number of loose ID b-Jets");
   }
@@ -541,10 +481,30 @@ void DataPlotter::get_titles(TString hist, TString setType, TString* xtitle, TSt
     *ytitle = "pT_{l2}";
     *title  = "Lepton 2 pT vs Lepton 1 pT";
   }
+  else if(hist.Contains("deltaalpham")) { //Mass estimated using alpha formulas
+    *xtitle = "M_{#alpha}";
+    *ytitle = "";
+    *title  = "M_{#alpha}";
+  }
   else if(hist.Contains("deltaalpha")) {
     *xtitle = "#Delta#alpha";
     *ytitle = "";
     *title  = "#Delta#alpha";
+  }
+  else if(hist.Contains("taudeepantimu")) {
+    *xtitle = "#tau anti-#mu ID";
+    *ytitle = "";
+    *title  = "#tau anti-#mu ID";
+  }
+  else if(hist.Contains("taudeepantiele")) {
+    *xtitle = "log_{2}(#tau anti-e ID + 1)";
+    *ytitle = "";
+    *title  = "log_{2}(#tau anti-e ID + 1)";
+  }
+  else if(hist.Contains("taudeepantijet")) {
+    *xtitle = "log_{2}(#tau anti-Jet ID + 1)";
+    *ytitle = "";
+    *title  = "log_{2}(#tau anti-Jet ID + 1)";
   }
 
 }
@@ -605,6 +565,7 @@ vector<TH1D*> DataPlotter::get_signal(TString hist, TString setType, Int_t set) 
   for(unsigned int i = 0; i < h.size(); ++i) {
     if(h[i] && indexes[labels_[i]] == i && h[i]->Integral() > 0.) {
       h[i]->Scale(signal_scale_);
+      if(verbose_ > 0) std::cout << h[i]->GetTitle() << " signal histogram has integral " << h[i]->Integral() << std::endl;
       hsignals.push_back(h[i]);
     }
   }
@@ -667,6 +628,7 @@ TH1D* DataPlotter::get_data(TString hist, TString setType, Int_t set) {
 					      +d->GetBinContent(0)+d->GetBinContent(d->GetNbinsX()+1)) : "";
   d->SetTitle(Form("Data%s",stats));
   d->SetName(hname.Data());
+  if(verbose_ > 0) std::cout << "Data histogram has integral " << d->Integral() << std::endl;
   if(rebinH_ > 0) d->Rebin(rebinH_);
 
   return d;
@@ -714,7 +676,8 @@ TH1D* DataPlotter::get_qcd(TString hist, TString setType, Int_t set) {
   double ndata = hData->Integral() + hData->GetBinContent(0) + hData->GetBinContent(hData->GetNbinsX()+1);
   TH1D* hMC = 0;
   for(UInt_t i = 0; i < data_.size(); ++i) {
-    if(isData_[i]) continue;
+    if(isData_[i]) continue; //skip data for MC histogram
+    if(isSignal_[i]) continue; //skip signals for MC histogram
     TH1D* htmp = (TH1D*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set_qcd, hist.Data()));
     if(!htmp) continue;
     htmp = (TH1D*) htmp->Clone("tmp");
@@ -734,14 +697,16 @@ TH1D* DataPlotter::get_qcd(TString hist, TString setType, Int_t set) {
   double nmc = hMC->Integral() + hMC->GetBinContent(0) + hMC->GetBinContent(hMC->GetNbinsX()+1);
   
   delete hMC;
-  
-  for(int i = 0; i < hData->GetNbinsX(); ++i) {
-    if(hData->GetBinContent(i+1) < 0.)
-      hData->SetBinContent(i+1,0.);
+
+  //set all bins >= 0, including over/underflow
+  for(int i = 0; i <= hData->GetNbinsX()+1; ++i) {
+    if(hData->GetBinContent(i) < 0.)
+      hData->SetBinContent(i,0.);
   }
   // hData->SetBit(kCanDelete);
   double nqcd = hData->Integral() + hData->GetBinContent(0) + hData->GetBinContent(hData->GetNbinsX()+1);
-  hData->Scale(qcd_scale_*(ndata-nmc)/nqcd); //ensure N(QCD) doesn't change from cutting off negative value bins, so not hist dependent
+  if(nqcd > 0.)
+    hData->Scale(qcd_scale_*(ndata-nmc)/nqcd); //ensure N(QCD) doesn't change from cutting off negative value bins, so not hist dependent
   nqcd = hData->Integral() + hData->GetBinContent(0) + hData->GetBinContent(hData->GetNbinsX()+1);
   
   const char* stats = (doStatsLegend_) ? Form(" #scale[0.8]{(%.2e)}", nqcd) : "";
@@ -782,7 +747,7 @@ TH1D* DataPlotter::get_stack_uncertainty(THStack* hstack, TString hname) {
 THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set) {
   vector<TH1D*> h;
   TH1D* hQCD = (include_qcd_) ? get_qcd(hist,setType,set) : NULL;
-
+  if(hQCD && verbose_ > 0) std::cout << "QCD histogram has integral " << hQCD->Integral() << std::endl;
   {
     auto o = gDirectory->Get(Form("%s",hist.Data()));
     if(o) delete o;
@@ -846,7 +811,9 @@ THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set) {
     h[index]->SetTitle(Form("%s%s", name.Data(), stats));
   }
   for(unsigned index = 0; index < labels.size(); ++index) {
-    hstack->Add(h[indexes[labels[index]]]);
+    TH1D* hitr = h[indexes[labels[index]]];
+    if(hitr && verbose_ > 0) std::cout << hitr->GetTitle() << " histogram has integral " << hitr->Integral() << std::endl;
+    hstack->Add(hitr);
   }
   if(hQCD) hstack->Add(hQCD);
   // hstack->SetBit(kCanDelete);
@@ -1282,15 +1249,24 @@ TCanvas* DataPlotter::plot_hist(TString hist, TString setType, Int_t set) {
 }
 
 TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
+  if(verbose_ > 0) std::cout << "Plotting stack with hist = " << hist.Data()
+			     << " type = " << setType.Data() << " and set = "
+			     << set << std::endl;
   //get stack and data histogram
   THStack* hstack = get_stack(hist,setType,set);
   if(!hstack || hstack->GetNhists() <= 0) {
     printf("Null or empty stack!\n");
     return NULL;
   }
+  if(verbose_ > 0) std::cout << "Retrieved the stack with " << hstack->GetNhists() << " histograms\n";
+  
   // hstack->SetBit(kCanDelete);
   TH1D* d = get_data(hist, setType, set);
+  if(verbose_ > 0 && !d) std::cout << "Failed to retrieve the data histogram\n";
+  else if(verbose_ > 0)  std::cout << "Retrieved the data histogram\n";
+
   vector<TH1D*> hsignal = get_signal(hist,setType,set);
+  if(verbose_ > 0) std::cout << "Retrieved the signals with " << hsignal.size() << " histograms\n";
   {
     auto o = gDirectory->Get(Form("s_%s_%i",hist.Data(),set));
     if(o) delete o;
@@ -1382,8 +1358,9 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
   //draw the data with error bars
   if(plot_data_ && d) d->Draw("E same");
 
-  m = max(max(m,hstack->GetMaximum()), (d) ? d->GetMaximum() : 0.);
-
+  m = max(max(m,hstack->GetMaximum()), (d&&plot_data_ > 0) ? d->GetMaximum() : 1.e-5);
+  if(m < 1.e-10) m = 1.e-5;
+  
   pad1->BuildLegend();//0.6, 0.9, 0.9, 0.45, "", "L");
   pad1->SetGrid();
   pad1->Update();
@@ -1462,7 +1439,6 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
   
   if(plot_data_ && hDataMC) 
     hDataMC->GetXaxis()->SetTitle(xtitle.Data());
-  
   else if(hstack_hist)
     hstack_hist->GetXaxis()->SetTitle(xtitle.Data());
   else

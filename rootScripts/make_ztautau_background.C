@@ -9,85 +9,28 @@ bool  doHiggs_ = true;
 bool  doDiboson_ = true;
 bool  debug_ = false;
 Int_t verbose_ = 1;
-int   year_ = 2016;
+vector<int> years_ = {2016};
 
-Int_t make_background(int set = 7, TString selection = "mutau", TString base = "../histograms/nanoaods_dev/") {
-
-  cout << "Beginning to make tree for selection " << selection.Data() << " with set " << set
-       << endl;
-  if(dataOnly_ && backgroundOnly_) {
-    cout << "Set for both background and data only! Exiting...\n";
-    return 1;
-  }
-  
-  const char* nano_names[] = {"DY50"               ,
-			      "DY50-ext"           ,
-			      "SingleAntiToptW"    ,
-			      "SingleToptW"        ,
-			      "WW"	           ,
-			      "WZ"                 ,
-			      "ZZ"                 ,
-			      "WWW"                ,
-			      "Wlnu"               ,
-			      "Wlnu-ext"           ,
-			      "ttbarToSemiLeptonic",
-			      "ttbarlnu"           ,
-			      "ZMuTau"             ,
-			      "ZETau"              ,
-			      "ZEMu"               ,
-			      "HMuTau"             ,
-			      "HETau"              ,
-			      "HEMu"               ,
-			      "SingleMu"           ,
-			      "SingleEle"          
-  };
-  
-  int doNanoProcess[] = {!dataOnly_ && doDY_ //DY50
-			 , !dataOnly_ && doDY_ && year_ == 2017 //DY50-ext
-			 , !dataOnly_ && doTop_ //tbar_tw
-			 , !dataOnly_ && doTop_ //t_tw
-			 , !dataOnly_ && doDiboson_ //WW
-			 , !dataOnly_ && doDiboson_ //WZ
-			 , !dataOnly_ && doDiboson_ //ZZ
-			 , !dataOnly_ && doDiboson_ //WWW
-			 , !dataOnly_ && doWJets_ //WJets
-			 , !dataOnly_ && doWJets_ && year_ != 2018 //WJets-ext
-			 , !dataOnly_ && doTop_ //ttbar
-			 , !dataOnly_ && doTop_ //ttbar
-			 , !dataOnly_ && (!backgroundOnly_ && !doHiggsDecays_ && (selection.Contains("mutau"))) //zmutau
-			 , !dataOnly_ && (!backgroundOnly_ && !doHiggsDecays_ && (selection.Contains("etau") )) //zetau
-			 , !dataOnly_ && (!backgroundOnly_ && !doHiggsDecays_ && (selection == "emu")  ) //zetau
-			 , !dataOnly_ && (!backgroundOnly_ && doHiggsDecays_  && (selection.Contains("mutau"))) //hmutau
-			 , !dataOnly_ && (!backgroundOnly_ && doHiggsDecays_  && (selection.Contains("etau") )) //hetau
-			 , !dataOnly_ && (!backgroundOnly_ && doHiggsDecays_  && (selection == "emu")  ) //hetau
-			 , dataOnly_ //SingleMu
-			 , dataOnly_ //SingleEle
-  };
-
-  TFile* fDList[30];
-  TFile* fList[30];
-  TTree* tList[30]; //to keep trees in memory
+Int_t combine_trees(vector<TString> in_files, TString selection, int file_set, TString out_name) {
+  TFile* fDList[in_files.size()];
+  TFile* fList[in_files.size()];
+  TTree* tList[in_files.size()]; //to keep trees in memory
   TList* list = new TList;
   Int_t filecount = 0;
-  TString fileSelec = selection; //use different selection for files since tau_e/mu decays --> emu channel
-  if(selection.Contains("_")) //is a leptonic tau channel
-    fileSelec = "emu";
-  int nfiles = sizeof(nano_names)/sizeof(*nano_names);
-  for(int i = 0; i < nfiles; ++i) {
+  int nfiles = in_files.size();
+  for(int index = 0; index < nfiles; ++index) {
     fDList[filecount] = 0;
     fList[filecount] = 0;
     tList[filecount] = 0;
-    if(!doNanoProcess[i]) continue;
-    TString sname = nano_names[i];
-    const char* c = Form("%sztautau_%s_clfv_%i_%s.hist",base.Data(),fileSelec.Data(),year_,nano_names[i]);
-    if(gSystem->AccessPathName(c)) {
-      printf("File %s not found, continuing\n",c);
+    const char* file_path = in_files[index];
+    if(gSystem->AccessPathName(file_path)) {
+      printf("File %s not found, continuing\n", file_path);
       continue;
     }
-    fList[filecount] = TFile::Open(Form("%s",c), "READ");
+    fList[filecount] = TFile::Open(file_path, "READ");
     if(verbose_)
-      printf("Getting tree %i for merging, using %s\n",filecount,c);
-    tList[filecount] = (TTree*) fList[filecount]->Get(Form("Data/tree_%i/tree_%i", set, set));
+      printf("Getting tree %i for merging, using %s\n", filecount, file_path);
+    tList[filecount] = (TTree*) fList[filecount]->Get(Form("Data/tree_%i/tree_%i", file_set, file_set));
     if(!tList[filecount]) {
       printf("tree not found, continuing\n");
       continue;
@@ -103,8 +46,95 @@ Int_t make_background(int set = 7, TString selection = "mutau", TString base = "
     printf("No trees found to merge, exiting\n");
     return 1;
   }
+  
   if(verbose_ > 1)
     cout << "Collected " << list->GetSize() << " trees for merging!\n";
+  
+  TFile* out = new TFile(out_name.Data(),"RECREATE");
+  TTree* t = 0;
+  printf("Merging trees\n");
+  if(verbose_ > 1) {
+    for(int i = 0; i < list->GetSize(); ++i)
+      cout << "Tree " << i << ": " << list->At(i)
+	   << " Entries " << tList[i]->GetEntriesFast() << endl;
+  }
+  t = TTree::MergeTrees(list);
+  t->SetName("background_tree");
+  for(int i = 0; i < list->GetSize(); ++i)
+    delete list->At(i);
+
+  out->cd();
+  printf("Writing output tree\n");
+  t->Write();
+  delete t;
+  printf("Writing output file\n");
+  out->Write();
+  out->Close();
+  return 0;
+}
+
+Int_t make_background(int set = 7, TString selection = "mutau", TString base = "../histograms/nanoaods_dev/") {
+
+  cout << "Beginning to make tree for selection " << selection.Data() << " with set " << set
+       << endl;
+  if(dataOnly_ && backgroundOnly_) {
+    cout << "Set for both background and data only! Exiting...\n";
+    return 1;
+  }
+  vector<TString> file_list;
+  TString fileSelec = selection;
+  if(fileSelec.Contains("_")) //leptonic tau
+    fileSelec = "emu";
+  for(int year : years_) {
+    const char* nano_names[] = {"DY50"               ,
+				"DY50-ext"           ,
+				"SingleAntiToptW"    ,
+				"SingleToptW"        ,
+				"WW"	           ,
+				"WZ"                 ,
+				"ZZ"                 ,
+				"WWW"                ,
+				"Wlnu"               ,
+				"Wlnu-ext"           ,
+				"ttbarToSemiLeptonic",
+				"ttbarlnu"           ,
+				"ZMuTau"             ,
+				"ZETau"              ,
+				"ZEMu"               ,
+				"HMuTau"             ,
+				"HETau"              ,
+				"HEMu"               ,
+				"SingleMu"           ,
+				"SingleEle"          
+    };
+  
+    int doNanoProcess[] = {!dataOnly_ && doDY_ //DY50
+			   , !dataOnly_ && doDY_ && year != 2018 //DY50-ext
+			   , !dataOnly_ && doTop_ //tbar_tw
+			   , !dataOnly_ && doTop_ //t_tw
+			   , !dataOnly_ && doDiboson_ //WW
+			   , !dataOnly_ && doDiboson_ //WZ
+			   , !dataOnly_ && doDiboson_ //ZZ
+			   , !dataOnly_ && doDiboson_ //WWW
+			   , !dataOnly_ && doWJets_ //WJets
+			   , !dataOnly_ && doWJets_ && year != 2018 //WJets-ext
+			   , !dataOnly_ && doTop_ //ttbar
+			   , !dataOnly_ && doTop_ //ttbar
+			   , !dataOnly_ && (!backgroundOnly_ && !doHiggsDecays_ && (selection.Contains("mutau"))) //zmutau
+			   , !dataOnly_ && (!backgroundOnly_ && !doHiggsDecays_ && (selection.Contains("etau") )) //zetau
+			   , !dataOnly_ && (!backgroundOnly_ && !doHiggsDecays_ && (selection == "emu")  ) //zetau
+			   , !dataOnly_ && (!backgroundOnly_ && doHiggsDecays_  && (selection.Contains("mutau"))) //hmutau
+			   , !dataOnly_ && (!backgroundOnly_ && doHiggsDecays_  && (selection.Contains("etau") )) //hetau
+			   , !dataOnly_ && (!backgroundOnly_ && doHiggsDecays_  && (selection == "emu")  ) //hetau
+			   , dataOnly_ //SingleMu
+			   , dataOnly_ //SingleEle
+    };
+    int nfiles = sizeof(nano_names)/sizeof(*nano_names);
+    for(int i = 0; i < nfiles; ++i) {
+      if(!doNanoProcess[i]) continue;
+      file_list.push_back(Form("%sztautau_%s_clfv_%i_%s.hist",base.Data(),fileSelec.Data(),year,nano_names[i]));
+    }
+  }
   
   TString type = ""; //which type of process is trained
   if     ( doDY_ && !doWJets_ && !doDiboson_ && !doTop_ && !doHiggs_)
@@ -127,41 +157,53 @@ Int_t make_background(int set = 7, TString selection = "mutau", TString base = "
   type += "nano_";
   if(verbose_ > 1)
     cout << "Background training type " << type.Data() << endl;
-  TFile* out = new TFile(Form("background_ztautau_%s%s_%i_%i.tree",
-			      type.Data(),
-			      selection.Data(),year_,set),"RECREATE");
-  TTree* t = 0;
-  printf("Merging trees\n");
-  if(verbose_ > 1) {
-    for(int i = 0; i < list->GetSize(); ++i)
-      cout << "Tree " << i << ": " << list->At(i)
-	   << " Entries " << tList[i]->GetEntriesFast() << endl;
+  TString year_string = "";
+  for(int i = 0; i < years_.size(); ++i) {
+    if(i > 0) year_string += "_";
+    year_string += years_[i];
   }
-  t = TTree::MergeTrees(list);
-  t->SetName("background_tree");
-  for(int i = 0; i < list->GetSize(); ++i)
-    delete list->At(i);
-
-  out->cd();
-  printf("Writing output tree\n");
-  t->Write();
-  delete t;
-  printf("Writing output file\n");
-  out->Write();
-  out->Close();
-
-  return 0;
+  TString file_out = Form("background_ztautau_%s%s_%s_%i.tree",
+			      type.Data(), selection.Data(), year_string.Data(), set);
+  return combine_trees(file_list, fileSelec, set, file_out);
 }
 
 
 Int_t make_all_backgrounds(TString base = "../histograms/nanoaods/") {
   Int_t status = 0;
   verbose_ = 0;
+  cout << "Making Z decay backgrounds!\n";
+  doHiggsDecays_ = false;
   //b-tag sets
   status += make_background(8,  "mutau"  , base);
   status += make_background(38, "etau"   , base);
   status += make_background(68, "emu"    , base);
   status += make_background(68, "mutau_e", base);
   status += make_background(68, "etau_mu", base);
+  cout << "Making Higgs decay backgrounds!\n";
+  doHiggsDecays_ = true;
+  //b-tag sets
+  status += make_background(8,  "mutau"  , base);
+  status += make_background(38, "etau"   , base);
+  status += make_background(68, "emu"    , base);
+  status += make_background(68, "mutau_e", base);
+  status += make_background(68, "etau_mu", base);
+  return status;
+}
+
+Int_t make_all_years(TString base = "../histograms/nanoaods/") {
+  Int_t status = 0;
+  cout << "Making 2016 backgrounds...\n";
+  years_ = {2016};
+  status += make_all_backgrounds(base);
+  cout << "Making 2017 backgrounds...\n";
+  years_ = {2017};
+  status += make_all_backgrounds(base);
+  cout << "Making 2018 backgrounds...\n";
+  years_ = {2018};
+  status += make_all_backgrounds(base);
+  //make total background file for all years combined
+  cout << "Making Run-II backgrounds...\n";
+  years_ = {2016, 2017, 2018};
+  status += make_all_backgrounds(base);
   return status;
 }

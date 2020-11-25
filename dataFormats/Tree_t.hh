@@ -59,6 +59,8 @@ struct Tree_t {
   float deltaalphaz2;
   float deltaalphah1;
   float deltaalphah2;
+  float deltaalpham1;
+  float deltaalpham2;
 
   //Event variables
   float ht;
@@ -73,9 +75,12 @@ struct Tree_t {
   float nbjets20l;
   float nphotons;
   float eventweight;
+  float eventweightMVA; //for MVA categories/histograms, remove training samples
   float fulleventweight; //includes cross-section and number gen
+  float fulleventweightlum; //includes cross-section, number gen, and luminosity
   float eventcategory; //for identifying the process in mva trainings
-
+  float issignal;
+  
   //identify to use in training
   float train; //  < 0 --> testing, > 0 --> training sample
 };

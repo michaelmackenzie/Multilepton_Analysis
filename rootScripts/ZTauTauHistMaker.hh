@@ -63,6 +63,7 @@ public :
   Float_t genWeight                  ;
   Float_t puWeight                   ;
   Float_t topPtWeight                ;
+  Float_t btagWeight = 1.            ;
   Float_t zPtWeight                  ;
   Float_t zPt = -1.                  ;
   Float_t zMass = -1.                ;
@@ -200,6 +201,7 @@ public :
     TH1D* hGenWeight;
     TH1D* hGenTauFlavorWeight;
     TH1D* hPhotonIDWeight;
+    TH1D* hIsSignal;
     TH1D* hNPV;
     TH1D* hNPU;
     TH1D* hNPartons;
@@ -230,9 +232,9 @@ public :
     TH1D* hNBJets;
     TH1D* hNBJetsM;
     TH1D* hNBJetsL;
-    TH1D* hNBJets20;
-    TH1D* hNBJets20M;
-    TH1D* hNBJets20L;
+    TH1D* hNBJets20[2]; //0: nominal 1: without btag weight
+    TH1D* hNBJets20M[2]; //0: nominal 1: without btag weight
+    TH1D* hNBJets20L[2]; //0: nominal 1: without btag weight
     TH1D* hJetsFlavor;
     TH2D* hJetsPtVsEta  [3]; //0: gen-level light jet 1: gen-level c-jet 2: gen-level b-jet
     TH2D* hBJetsPtVsEta [3]; //0: gen-level light jet 1: gen-level c-jet 2: gen-level b-jet    
@@ -242,6 +244,7 @@ public :
     TH1D* hTriggerLeptonStatus;
     TH1D* hPuWeight;
     TH1D* hTopPtWeight;
+    TH1D* hBTagWeight;
     TH1D* hZPtWeight;
     TH1D* hTauDecayMode;
     TH1D* hTauMVA;
@@ -311,6 +314,7 @@ public :
     TH1D* hLepPtOverM;
     TH1D* hAlpha[4]; //alpha from arXiv:1207.4894
     TH1D* hDeltaAlpha[4]; //delta alpha from arXiv:1207.4894
+    TH1D* hDeltaAlphaM[2]; //mass found by solving delta alpha equations (flipping with lepton is tau for each)
     
     TH1D* hHtDeltaPhi;
     TH1D* hMetDeltaPhi;
@@ -664,7 +668,7 @@ public :
   vector<double> fMvaCuts = {                          //mva score cut values
 			     0.12, 0.04, //mutau       //scores optimize the gained 95% CL
 			     0.06, -0.02,//etau        //all are done by eye on limit gain vs MVA score plot
-			     0.18, 0.16, //emu
+			     0.02, -0.11, //emu
 			     0.10, 0.02, //mutau_e
 			     0.08, 0.02  //etau_mu
   };
@@ -691,6 +695,8 @@ public :
   
   TString       fFolderName = ""; //name of the folder the tree is from
   Int_t         fYear = 2016;
+
+  Bool_t        fIsSignal = false;
   
   Int_t         fDYType = -1; //for splitting Z->ll into 1: tau tau and 2: e/mu e/mu
   Bool_t        fIsDY = false; //for checking if DY --> Z pT weights
@@ -698,6 +704,7 @@ public :
   
   Int_t         fWriteTrees = 0; //write out ttrees for the events
   Double_t      fXsec = 0.; //cross-section for full event weight with trees
+  Double_t      fLum = 0.; //luminosity full event weight with trees
   Tree_t        fTreeVars; //for filling the ttrees/mva evaluation
   Int_t         fEventCategory; //for identifying the process in mva trainings
 
@@ -755,6 +762,7 @@ void ZTauTauHistMaker::Init(TTree *tree)
       tree->SetBranchStatus("genWeight"           , 1);
       tree->SetBranchStatus("puWeight"            , 1);
       tree->SetBranchStatus("topPtWeight"         , 1);
+      tree->SetBranchStatus("btagWeight"          , 1);
       tree->SetBranchStatus("zPtWeight"           , 1);
       tree->SetBranchStatus("zPt"                 , 1);
       tree->SetBranchStatus("zMass"               , 1);
@@ -974,8 +982,10 @@ void ZTauTauHistMaker::Init(TTree *tree)
       fTreeSets  [kETau  + 8] = 1;
       fEventSets [kETau  + 9] = 1; // events with opposite signs 
       fEventSets [kETau  + 9+fQcdOffset] = 1; // events with same signs 
+      fTreeSets  [kETau  + 9] = 1;
       fEventSets [kETau  + 10] = 1; // events with opposite signs 
       fEventSets [kETau  + 10+fQcdOffset] = 1; // events with same signs 
+      fTreeSets  [kETau  + 10] = 1;
     
       fEventSets [kETau  + 11] = 1; // events with opposite signs and mass window
       fEventSets [kETau  + 11+fQcdOffset] = 1; // events with same signs and mass window
@@ -1061,6 +1071,7 @@ void ZTauTauHistMaker::Init(TTree *tree)
       fTreeSets  [kEMu   + 9] = 1;
       fEventSets [kEMu   + 10] = 1; // events with opposite signs 
       fEventSets [kEMu   + 10+fQcdOffset] = 1; // events with same signs 
+      fTreeSets  [kEMu   + 10] = 1;
     
       fEventSets [kEMu   + 11] = 1; // events with opposite signs and mass window
       fEventSets [kEMu   + 11+fQcdOffset] = 1; // events with same signs and mass window
@@ -1210,6 +1221,7 @@ void ZTauTauHistMaker::Init(TTree *tree)
   fChain->SetBranchAddress("genWeight"           , &genWeight            );
   fChain->SetBranchAddress("puWeight"            , &puWeight             );
   fChain->SetBranchAddress("topPtWeight"         , &topPtWeight          );
+  fChain->SetBranchAddress("btagWeight"          , &btagWeight           );
   fChain->SetBranchAddress("zPtWeight"           , &zPtWeight            );
   fChain->SetBranchAddress("zPt"                 , &zPt                  );
   fChain->SetBranchAddress("zMass"               , &zMass                );

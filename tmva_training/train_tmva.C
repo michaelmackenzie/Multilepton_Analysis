@@ -96,61 +96,68 @@ int train_tmva(const char* tree_name = "trees/background_ztautau_Z0_nano_mutau_2
 }
 
 //Train a standard set of selections
-Int_t train_all_selections(int year = 2016, Int_t split_trees = 1, bool doJetBinned = false) {
+Int_t train_all_selections(vector<int> years = {2016}, Int_t split_trees = 1, bool doJetBinned = false) {
   split_trees_ = split_trees;
   gROOT->SetBatch(kTRUE);
   TStopwatch* timer = new TStopwatch();  
   Int_t status = 0;
   multiTrainings_ = true; //so TrainTrkQual changes directory back at the end
   vector<int> signals;
-  if(year == 2016)      signals = nano_signals_2016_;
-  else if(year == 2017) signals = nano_signals_2017_;
-  else if(year == 2018) signals = nano_signals_2018_;
+  if(years.size() == 1)  {
+    if(years[0] == 2016)      signals = nano_signals_2016_;
+    else if(years[0] == 2017) signals = nano_signals_2017_;
+    else if(years[0] == 2018) signals = nano_signals_2018_;
+  }
+  TString year_string = "";
+  for(int i = 0; i < years.size(); ++i) {
+    if(i > 0) year_string += "_";
+    year_string += years[i];
+  }
   if(doJetBinned){
     // 0 jets
-    status += train_tmva(Form("trees/background_ztautau_Z0_nano_mutau_%i_18.tree"     , year), signals);
-    status += train_tmva(Form("trees/background_ztautau_Z0_nano_etau_%i_48.tree"      , year), signals);
-    status += train_tmva(Form("trees/background_ztautau_Z0_nano_emu_%i_78.tree"       , year), signals);
-    status += train_tmva(Form("trees/background_ztautau_Z0_nano_mutau_e_%i_78.tree"   , year), signals);
-    status += train_tmva(Form("trees/background_ztautau_Z0_nano_etau_mu_%i_78.tree"   , year), signals);
-    status += train_tmva(Form("trees/background_ztautau_higgs_nano_mutau_%i_18.tree"  , year), signals);
-    status += train_tmva(Form("trees/background_ztautau_higgs_nano_etau_%i_48.tree"   , year), signals);
-    status += train_tmva(Form("trees/background_ztautau_higgs_nano_emu_%i_78.tree"    , year), signals);
-    status += train_tmva(Form("trees/background_ztautau_higgs_nano_mutau_e_%i_78.tree", year), signals);
-    status += train_tmva(Form("trees/background_ztautau_higgs_nano_etau_mu_%i_78.tree", year), signals);
+    status += train_tmva(Form("trees/background_ztautau_Z0_nano_mutau_%s_18.tree"     , year_string.Data()), signals);
+    status += train_tmva(Form("trees/background_ztautau_Z0_nano_etau_%s_48.tree"      , year_string.Data()), signals);
+    status += train_tmva(Form("trees/background_ztautau_Z0_nano_emu_%s_78.tree"       , year_string.Data()), signals);
+    status += train_tmva(Form("trees/background_ztautau_Z0_nano_mutau_e_%s_78.tree"   , year_string.Data()), signals);
+    status += train_tmva(Form("trees/background_ztautau_Z0_nano_etau_mu_%s_78.tree"   , year_string.Data()), signals);
+    status += train_tmva(Form("trees/background_ztautau_higgs_nano_mutau_%s_18.tree"  , year_string.Data()), signals);
+    status += train_tmva(Form("trees/background_ztautau_higgs_nano_etau_%s_48.tree"   , year_string.Data()), signals);
+    status += train_tmva(Form("trees/background_ztautau_higgs_nano_emu_%s_78.tree"    , year_string.Data()), signals);
+    status += train_tmva(Form("trees/background_ztautau_higgs_nano_mutau_e_%s_78.tree", year_string.Data()), signals);
+    status += train_tmva(Form("trees/background_ztautau_higgs_nano_etau_mu_%s_78.tree", year_string.Data()), signals);
     // 1 jet
-    status += train_tmva(Form("trees/background_ztautau_Z0_nano_mutau_%i_19.tree"     , year), signals);
-    status += train_tmva(Form("trees/background_ztautau_Z0_nano_etau_%i_49.tree"      , year), signals);
-    status += train_tmva(Form("trees/background_ztautau_Z0_nano_emu_%i_79.tree"       , year), signals);
-    status += train_tmva(Form("trees/background_ztautau_Z0_nano_mutau_e_%i_79.tree"   , year), signals);
-    status += train_tmva(Form("trees/background_ztautau_Z0_nano_etau_mu_%i_79.tree"   , year), signals);
-    status += train_tmva(Form("trees/background_ztautau_higgs_nano_mutau_%i_19.tree"  , year), signals);
-    status += train_tmva(Form("trees/background_ztautau_higgs_nano_etau_%i_49.tree"   , year), signals);
-    status += train_tmva(Form("trees/background_ztautau_higgs_nano_emu_%i_79.tree"    , year), signals);
-    status += train_tmva(Form("trees/background_ztautau_higgs_nano_mutau_e_%i_79.tree", year), signals);
-    status += train_tmva(Form("trees/background_ztautau_higgs_nano_etau_mu_%i_79.tree", year), signals);
+    status += train_tmva(Form("trees/background_ztautau_Z0_nano_mutau_%s_19.tree"     , year_string.Data()), signals);
+    status += train_tmva(Form("trees/background_ztautau_Z0_nano_etau_%s_49.tree"      , year_string.Data()), signals);
+    status += train_tmva(Form("trees/background_ztautau_Z0_nano_emu_%s_79.tree"       , year_string.Data()), signals);
+    status += train_tmva(Form("trees/background_ztautau_Z0_nano_mutau_e_%s_79.tree"   , year_string.Data()), signals);
+    status += train_tmva(Form("trees/background_ztautau_Z0_nano_etau_mu_%s_79.tree"   , year_string.Data()), signals);
+    status += train_tmva(Form("trees/background_ztautau_higgs_nano_mutau_%s_19.tree"  , year_string.Data()), signals);
+    status += train_tmva(Form("trees/background_ztautau_higgs_nano_etau_%s_49.tree"   , year_string.Data()), signals);
+    status += train_tmva(Form("trees/background_ztautau_higgs_nano_emu_%s_79.tree"    , year_string.Data()), signals);
+    status += train_tmva(Form("trees/background_ztautau_higgs_nano_mutau_e_%s_79.tree", year_string.Data()), signals);
+    status += train_tmva(Form("trees/background_ztautau_higgs_nano_etau_mu_%s_79.tree", year_string.Data()), signals);
     // >1 jets
-    status += train_tmva(Form("trees/background_ztautau_Z0_nano_mutau_%i_20.tree"     , year), signals);
-    status += train_tmva(Form("trees/background_ztautau_Z0_nano_etau_%i_50.tree"      , year), signals);
-    status += train_tmva(Form("trees/background_ztautau_Z0_nano_emu_%i_80.tree"       , year), signals);
-    status += train_tmva(Form("trees/background_ztautau_Z0_nano_mutau_e_%i_80.tree"   , year), signals);
-    status += train_tmva(Form("trees/background_ztautau_Z0_nano_etau_mu_%i_80.tree"   , year), signals);
-    status += train_tmva(Form("trees/background_ztautau_higgs_nano_mutau_%i_20.tree"  , year), signals);
-    status += train_tmva(Form("trees/background_ztautau_higgs_nano_etau_%i_50.tree"   , year), signals);
-    status += train_tmva(Form("trees/background_ztautau_higgs_nano_emu_%i_80.tree"    , year), signals);
-    status += train_tmva(Form("trees/background_ztautau_higgs_nano_mutau_e_%i_80.tree", year), signals);
-    status += train_tmva(Form("trees/background_ztautau_higgs_nano_etau_mu_%i_80.tree", year), signals);
+    status += train_tmva(Form("trees/background_ztautau_Z0_nano_mutau_%s_20.tree"     , year_string.Data()), signals);
+    status += train_tmva(Form("trees/background_ztautau_Z0_nano_etau_%s_50.tree"      , year_string.Data()), signals);
+    status += train_tmva(Form("trees/background_ztautau_Z0_nano_emu_%s_80.tree"       , year_string.Data()), signals);
+    status += train_tmva(Form("trees/background_ztautau_Z0_nano_mutau_e_%s_80.tree"   , year_string.Data()), signals);
+    status += train_tmva(Form("trees/background_ztautau_Z0_nano_etau_mu_%s_80.tree"   , year_string.Data()), signals);
+    status += train_tmva(Form("trees/background_ztautau_higgs_nano_mutau_%s_20.tree"  , year_string.Data()), signals);
+    status += train_tmva(Form("trees/background_ztautau_higgs_nano_etau_%s_50.tree"   , year_string.Data()), signals);
+    status += train_tmva(Form("trees/background_ztautau_higgs_nano_emu_%s_80.tree"    , year_string.Data()), signals);
+    status += train_tmva(Form("trees/background_ztautau_higgs_nano_mutau_e_%s_80.tree", year_string.Data()), signals);
+    status += train_tmva(Form("trees/background_ztautau_higgs_nano_etau_mu_%s_80.tree", year_string.Data()), signals);
    } else { //Unbinned in njets
-    status += train_tmva(Form("trees/background_ztautau_Z0_nano_mutau_%i_8.tree"      , year), signals);
-    status += train_tmva(Form("trees/background_ztautau_Z0_nano_etau_%i_38.tree"      , year), signals);
-    status += train_tmva(Form("trees/background_ztautau_Z0_nano_emu_%i_68.tree"       , year), signals);
-    status += train_tmva(Form("trees/background_ztautau_Z0_nano_mutau_e_%i_68.tree"   , year), signals);
-    status += train_tmva(Form("trees/background_ztautau_Z0_nano_etau_mu_%i_68.tree"   , year), signals);
-    status += train_tmva(Form("trees/background_ztautau_higgs_nano_mutau_%i_8.tree"   , year), signals);
-    status += train_tmva(Form("trees/background_ztautau_higgs_nano_etau_%i_38.tree"   , year), signals);
-    status += train_tmva(Form("trees/background_ztautau_higgs_nano_emu_%i_68.tree"    , year), signals);
-    status += train_tmva(Form("trees/background_ztautau_higgs_nano_mutau_e_%i_68.tree", year), signals);
-    status += train_tmva(Form("trees/background_ztautau_higgs_nano_etau_mu_%i_68.tree", year), signals);
+    // status += train_tmva(Form("trees/background_ztautau_Z0_nano_mutau_%s_8.tree"      , year_string.Data()), signals);
+    // status += train_tmva(Form("trees/background_ztautau_Z0_nano_etau_%s_38.tree"      , year_string.Data()), signals);
+    // status += train_tmva(Form("trees/background_ztautau_Z0_nano_emu_%s_68.tree"       , year_string.Data()), signals);
+    // status += train_tmva(Form("trees/background_ztautau_Z0_nano_mutau_e_%s_68.tree"   , year_string.Data()), signals);
+    // status += train_tmva(Form("trees/background_ztautau_Z0_nano_etau_mu_%s_68.tree"   , year_string.Data()), signals);
+    status += train_tmva(Form("trees/background_ztautau_higgs_nano_mutau_%s_8.tree"   , year_string.Data()), signals);
+    status += train_tmva(Form("trees/background_ztautau_higgs_nano_etau_%s_38.tree"   , year_string.Data()), signals);
+    status += train_tmva(Form("trees/background_ztautau_higgs_nano_emu_%s_68.tree"    , year_string.Data()), signals);
+    status += train_tmva(Form("trees/background_ztautau_higgs_nano_mutau_e_%s_68.tree", year_string.Data()), signals);
+    status += train_tmva(Form("trees/background_ztautau_higgs_nano_etau_mu_%s_68.tree", year_string.Data()), signals);
   }
   Double_t cpuTime = timer->CpuTime();
   Double_t realTime = timer->RealTime();
@@ -162,12 +169,14 @@ Int_t train_all_selections(int year = 2016, Int_t split_trees = 1, bool doJetBin
 Int_t train_all_years(Int_t split_trees = 1, bool doJetBinned = false) {
   int status(0);
   TStopwatch* timer = new TStopwatch();  
-  cout << "*** Training 2016 MVAs...\n";
-  status += train_all_selections(2016, split_trees, doJetBinned);
-  cout << "*** Training 2017 MVAs...\n";
-  status += train_all_selections(2017, split_trees, doJetBinned);
-  cout << "*** Training 2018 MVAs...\n";
-  status += train_all_selections(2018, split_trees, doJetBinned);
+  // cout << "*** Training 2016 MVAs...\n";
+  // status += train_all_selections({2016}, split_trees, doJetBinned);
+  // cout << "*** Training 2017 MVAs...\n";
+  // status += train_all_selections({2017}, split_trees, doJetBinned);
+  // cout << "*** Training 2018 MVAs...\n";
+  // status += train_all_selections({2018}, split_trees, doJetBinned);
+  cout << "*** Training Full Run-II MVAs...\n";
+  status += train_all_selections({2016, 2017, 2018}, split_trees, doJetBinned);
   Double_t cpuTime = timer->CpuTime();
   Double_t realTime = timer->RealTime();
   printf("Processing time: %7.2fs CPU time %7.2fs Wall time\n",cpuTime,realTime);
