@@ -3,7 +3,8 @@
 
 bool doConstraints_ = false; //adding in systematics
 bool includeSignalInFit_ = false; //fit background specturm with signal shape in PDF
-bool useSameFlavorCount_ = true; //use N(sig) ~ br_emu*eff*sqrt(N_ee*N_mumu)/br_ll
+bool useSameFlavorCount_ = false; //use N(sig) ~ br_emu*eff*sqrt(N_ee*N_mumu)/br_ll
+bool useMorphedPDF_ = false; //use signal PDF from morphing mumu and ee data fits
 
 Int_t do_fit(TTree* tree, int set, vector<int> years, int seed) {
   //set the random seed for the fitting + generation
@@ -37,11 +38,14 @@ Int_t do_fit(TTree* tree, int set, vector<int> years, int seed) {
 	    << "Number of electron events is " << n_electron << std::endl;
 
   //Get the signal PDF
-  TFile* fWSSignal = TFile::Open(Form("workspaces/morphed_signal_%s_%i.root", year_string.Data(), set), "READ");
+  TString nWSSignal;
+  if(useMorphedPDF_) nWSSignal = Form("workspaces/morphed_signal_%s_%i.root", year_string.Data(), set);
+  else               nWSSignal = Form("workspaces/fit_signal_lepm_%s_%i.root", year_string.Data(), set);
+  TFile* fWSSignal = TFile::Open(nWSSignal.Data(), "READ");
   if(!fWSSignal) return 1;
   RooWorkspace* ws_signal = (RooWorkspace*) fWSSignal->Get("ws");
   if(!ws_signal) return 2;
-  auto sigPDF = ws_signal->pdf("morph_pdf_binned");
+  auto sigPDF = ws_signal->pdf((useMorphedPDF_) ? "morph_pdf_binned" : "sigpdf");
 
   //background PDF
   //FIXME: find way of selecting these initial values based on set
@@ -195,7 +199,7 @@ Int_t fit_background(int set = 8, vector<int> years = {2016}, int seed = 90) {
   bkg_name += ".tree";
   TFile* f_bkg = TFile::Open(bkg_name.Data(), "READ");
   if(!f_bkg) return 1;
-  TTree* t_bkg = (TTree*) f_bkg->Get(Form("background_tree_%s", year_string.Data()));
+  TTree* t_bkg = (TTree*) f_bkg->Get("background_tree");
   if(!t_bkg) return 2;
   std::cout << "---Performing background fit!\n";
   status = do_fit(t_bkg, set, years, seed);

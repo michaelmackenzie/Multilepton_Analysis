@@ -130,11 +130,13 @@ Int_t calculate_UL(int set = 8, vector<int> years = {2016}, bool useToyData = fa
   canvas->SaveAs(Form("plots/latest_production/%s/pval_vs_br_%i.pdf", year_string.Data(), set));
   canvas->SaveAs(Form("plots/latest_production/%s/pval_vs_br_%i.png", year_string.Data(), set));
 
-
+  cout << "Finished UL calculation, plotting dataset with expected UL...\n";
+  
   //Plot background spectrum (with toy data) and signal with upper limit value
   auto totPDF = (RooAddPdf*) ws->pdf("totPDF");
   auto bkgPDF = ws->pdf("bkgPDF");
   auto sigPDF = ws->pdf("morph_pdf_binned");
+  if(!sigPDF) sigPDF = ws->pdf("sigpdf");
   auto n_sig = ws->function("n_sig");
   auto n_electron = ws->function("n_electron_var");
   auto n_muon = ws->function("n_muon_var");
@@ -148,8 +150,12 @@ Int_t calculate_UL(int set = 8, vector<int> years = {2016}, bool useToyData = fa
   //set to expected upper limit
   br_emu->setVal(expectedUL);
   br_emu->setConstant(1);
+  cout << "Fitting dataset with branching ratio set to upper limit...\n";
   totPDF->fitTo(*data);
   data->plotOn(xframe);
+
+  cout << "Plotting the PDFs...\n";
+  //FIXME: Plot using components arg of totPDF
   double sig_scale = n_sig->getVal()/(n_sig->getVal()+n_bkg->getVal());
   double bkg_scale = n_bkg->getVal()/(n_sig->getVal()+n_bkg->getVal());  
 
@@ -162,10 +168,14 @@ Int_t calculate_UL(int set = 8, vector<int> years = {2016}, bool useToyData = fa
   xframe->Draw();
 
   cmass->SaveAs(Form("plots/latest_production/%s/upperlimit_pdfs_%i.png", year_string.Data(), set));
-  
+  cout << "Printing variable information...\n";
+
   totPDF->Print();
   bkgPDF->Print();
   sigPDF->Print();
+  if(ws->pdf("sigpdf1")) ws->pdf("sigpdf1")->Print();
+  if(ws->pdf("sigpdf2")) ws->pdf("sigpdf2")->Print();
+  if(ws->var("fracsig")) ws->var("fracsig")->Print();
   n_sig->Print();
   br_emu->Print();
   if(n_electron)
