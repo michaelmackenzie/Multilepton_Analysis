@@ -5,6 +5,7 @@ bool doConstraints_ = false; //adding in systematics
 bool includeSignalInFit_ = false; //fit background specturm with signal shape in PDF
 bool useSameFlavorCount_ = false; //use N(sig) ~ br_emu*eff*sqrt(N_ee*N_mumu)/br_ll
 bool useMorphedPDF_ = false; //use signal PDF from morphing mumu and ee data fits
+bool useExp_ = false; //use exp background func as alt bkg PDF
 
 Int_t do_fit(TTree* tree, int set, vector<int> years, int seed) {
   //set the random seed for the fitting + generation
@@ -14,7 +15,7 @@ Int_t do_fit(TTree* tree, int set, vector<int> years, int seed) {
     if(i > 0) year_string += "_";
     year_string += years[i];
   }
-  RooRealVar lepm("lepm", "di-lepton invariant mass", 110, 75., 110., "GeV/c^{2}");
+  RooRealVar lepm("lepm", "di-lepton invariant mass", 110., 75., 110., "GeV/c^{2}");
   RooRealVar weight("fulleventweightlum", "Full event weight*luminosity", 1., -100., 100.);
   RooDataSet dataset("dataset", "dataset", RooArgList(lepm,weight),
 		     RooFit::Import(*tree), RooFit::WeightVar(weight));
@@ -48,11 +49,10 @@ Int_t do_fit(TTree* tree, int set, vector<int> years, int seed) {
   auto sigPDF = ws_signal->pdf((useMorphedPDF_) ? "morph_pdf_binned" : "sigpdf");
 
   //background PDF
-  //FIXME: find way of selecting these initial values based on set
-  RooRealVar a_bkg("a_bkg", "a_bkg", 3.28640 , -50., 50.);
-  RooRealVar b_bkg("b_bkg", "b_bkg",-0.290163, -50., 50.);
-  RooRealVar c_bkg("c_bkg", "c_bkg", 0.558070, -50., 50.);
-  RooRealVar d_bkg("d_bkg", "d_bkg", 0.264009, -50., 50.);
+  RooRealVar a_bkg("a_bkg", "a_bkg", 1.404   , -5., 5.);
+  RooRealVar b_bkg("b_bkg", "b_bkg", 2.443e-1, -5., 5.);
+  RooRealVar c_bkg("c_bkg", "c_bkg", 5.549e-1, -5., 5.);
+  RooRealVar d_bkg("d_bkg", "d_bkg", 3.675e-1, -5., 5.);
   RooBernstein bkgPDF("bkgPDF", "Background PDF", lepm, RooArgList(a_bkg, b_bkg, c_bkg, d_bkg));
 
   //Total PDF
@@ -127,17 +127,67 @@ Int_t do_fit(TTree* tree, int set, vector<int> years, int seed) {
   //PDF with constraints
   RooProdPdf totPDF_constr("totPDF_constr", "totPDF_constr", RooArgList(totPDF, constrain_eff, constr_n_muon, constr_n_electron));
 
-  //alternate background function
-  RooRealVar tau_bkg("tau_bkg", "tau_bkg", -0.0583634, -50., 0.);
-  RooExponential bkgPDF_exp("bkgPDF_exp", "bkgPDF_exp", lepm, tau_bkg);
-  RooAddPdf totPDF_alt("totPDF_alt", "totPDF_alt", RooArgList(*sigPDF, bkgPDF_exp), RooArgList(n_sig, n_bkg));
-  //PDF with constraint
-  RooProdPdf totPDF_constr_alt("totPDF_constr_alt", "totPDF_constr_alt", RooArgList(totPDF_alt, constrain_eff, constr_n_muon, constr_n_electron));
-  if(doConstraints_)
-    totPDF_constr_alt.fitTo(dataset);
-  else
-    totPDF_alt.fitTo(dataset);
+  ////////////////////////////////////
+  // Alternate Background Functions //
+  ////////////////////////////////////
 
+  //exp bkg
+  RooRealVar tau_exp1("tau_exp1", "tau_exp1", -0.0386, -10., 0.);
+  RooExponential bkgPDF_exp("bkgPDF_exp", "bkgPDF_exp", lepm, tau_exp1);
+
+  //power bkg
+  RooRealVar a_pow("a_pow", "a_pow",  5.445e-3,   -5.,   5.);
+  RooRealVar b_pow("b_pow", "b_pow", -1.229   ,  -10.,  10.);
+  RooRealVar c_pow("c_pow", "c_pow", 8.914e1  , -200., 200.);
+  RooRealVar d_pow("d_pow", "d_pow", 5.428e1  , -100., 100.);
+  RooGenericPdf bkgPDF_pow("bkgPDF_pow","(@1 + (@2 + (@3 + @4/@0)/@0)/@0)/@0", RooArgList(lepm,a_pow, b_pow, c_pow, d_pow));
+
+  //chebychev bkg
+  RooRealVar a_cheb("a_cheb", "a_cheb", -2.104e1, -100., 100.);
+  RooRealVar b_cheb("b_cheb", "b_cheb",-0.290163, -100., 100.);
+  RooRealVar c_cheb("c_cheb", "c_cheb", 0.558070, -100., 100.);
+  RooRealVar d_cheb("d_cheb", "d_cheb", 0.      , -100., 100.);
+  RooChebychev bkgPDF_cheb("bkgPDF_cheb","bkgPDF_cheb", lepm, RooArgList(a_cheb, b_cheb, c_cheb, d_cheb));
+
+  //landau bkg
+  RooRealVar a_land("a_land", "a_land", 3.975e1 ,   0.,  90.);
+  RooRealVar b_land("b_land", "b_land", 7.470e-7,  -5.,   5.);
+  RooLandau bkgPDF_land("bkgPDF_land","bkgPDF_land", lepm, a_land, b_land);
+
+  //3rd order Bernstein
+  RooRealVar a_bst3("a_bst3", "a_bst3", 1.491   , -5., 5.);
+  RooRealVar b_bst3("b_bst3", "b_bst3", 2.078e-1, -5., 5.);
+  RooRealVar c_bst3("c_bst3", "c_bst3", 5.016e-1, -5., 5.);
+  RooBernstein bkgPDF_bst3("bkgPDF_bst3", "bkgPDF_bst3", lepm, RooArgList(a_bst3, b_bst3, c_bst3));
+  
+  //5th order Bernstein
+  RooRealVar a_bst5("a_bst5", "a_bst5", 1.471   , -5., 5.);
+  RooRealVar b_bst5("b_bst5", "b_bst5", 1.452e-1, -5., 5.);
+  RooRealVar c_bst5("c_bst5", "c_bst5", 7.524e-1, -5., 5.);
+  RooRealVar d_bst5("d_bst5", "d_bst5", 2.696e-1, -5., 5.);
+  RooRealVar e_bst5("e_bst5", "e_bst5", 3.687e-1, -5., 5.);
+  RooBernstein bkgPDF_bst5("bkgPDF_bst5", "bkgPDF_bst5", lepm, RooArgList(a_bst5, b_bst5, c_bst5, d_bst5, e_bst5));
+
+  //Signal + Alternate background PDFs
+  RooAddPdf totPDF_exp ("totPDF_alt" , "totPDF_alt" , RooArgList(*sigPDF, bkgPDF_exp) , RooArgList(n_sig, n_bkg));
+  RooAddPdf totPDF_cheb("totPDF_cheb", "totPDF_cheb", RooArgList(*sigPDF, bkgPDF_cheb), RooArgList(n_sig, n_bkg));
+  RooAddPdf totPDF_pow ("totPDF_pow" , "totPDF_pow" , RooArgList(*sigPDF, bkgPDF_pow) , RooArgList(n_sig, n_bkg));
+  RooAddPdf totPDF_land("totPDF_land", "totPDF_land", RooArgList(*sigPDF, bkgPDF_land), RooArgList(n_sig, n_bkg));
+  RooAddPdf totPDF_bst3("totPDF_bst3", "totPDF_bst3", RooArgList(*sigPDF, bkgPDF_bst3), RooArgList(n_sig, n_bkg));
+  RooAddPdf totPDF_bst5("totPDF_bst5", "totPDF_bst5", RooArgList(*sigPDF, bkgPDF_bst5), RooArgList(n_sig, n_bkg));
+
+  //PDF with constraint
+  RooProdPdf totPDF_constr_exp("totPDF_constr_alt", "totPDF_constr_alt", RooArgList(totPDF_exp, constrain_eff, constr_n_muon, constr_n_electron));
+  if(doConstraints_)
+    totPDF_constr_exp.fitTo(dataset);
+  else
+    totPDF_exp.fitTo(dataset);
+  // totPDF_cheb.fitTo(dataset);
+  // totPDF_pow.fitTo(dataset);
+  totPDF_land.fitTo(dataset);
+  totPDF_bst3.fitTo(dataset);
+  totPDF_bst5.fitTo(dataset);
+  
   //fit, plot, etc.
   if(doConstraints_)
     totPDF_constr.fitTo(dataset, RooFit::Extended(1));
@@ -151,10 +201,36 @@ Int_t do_fit(TTree* tree, int set, vector<int> years, int seed) {
     totPDF_constr.plotOn(xframe);
   else
     totPDF.plotOn(xframe);
+  bkgPDF_bst3.plotOn(xframe, RooFit::LineColor(kGreen), RooFit::LineStyle(kDashed));
+  bkgPDF_bst5.plotOn(xframe, RooFit::LineColor(kCyan), RooFit::LineStyle(kDashed));
   bkgPDF_exp.plotOn(xframe, RooFit::LineColor(kRed), RooFit::LineStyle(kDashed));
-
+  // bkgPDF_cheb.plotOn(xframe, RooFit::LineColor(kAzure), RooFit::LineStyle(kDashed));
+  // bkgPDF_pow.plotOn(xframe, RooFit::LineColor(kGreen), RooFit::LineStyle(kDashed));
+  bkgPDF_land.plotOn(xframe, RooFit::LineColor(kViolet-2), RooFit::LineStyle(kDashed));
   auto c1 = new TCanvas();
   xframe->Draw();
+  TLegend* leg = new TLegend(0.6, 0.6, 0.9, 0.9);
+  leg->AddEntry(xframe->findObject("totPDF_Norm[lepm]")     , "Bernstein (3rd)"  , "L");
+  leg->AddEntry(xframe->findObject("bkgPDF_bst3_Norm[lepm]"), "Bernstein (2nd)"  , "L");
+  leg->AddEntry(xframe->findObject("bkgPDF_bst5_Norm[lepm]"), "Bernstein (4th)"  , "L");
+  leg->AddEntry(xframe->findObject("bkgPDF_exp_Norm[lepm]") , "Exponential", "L");
+  // leg->AddEntry(xframe->findObject("bkgPDF_pow_Norm[lepm]") , "Power"      , "L");
+  leg->AddEntry(xframe->findObject("bkgPDF_land_Norm[lepm]"), "Landau"     , "L");
+  leg->Draw();
+
+  cout << "***Frame chi squared values:\n";
+  vector<TString> bkg_names = {"totPDF_Norm[lepm]", "bkgPDF_exp_Norm[lepm]", "bkgPDF_bst3_Norm[lepm]"
+					 , "bkgPDF_bst5_Norm[lepm]", "bkgPDF_land_Norm[lepm]"};
+  vector<int>     bkg_dofs   = {5, 2, 4, 6, 3};
+  for(int index = 0; index < bkg_names.size(); ++index) {
+    TString bkg_name = bkg_names[index];
+    int     bkg_dof  = bkg_dofs [index];
+    //print chi squared / (n(bins) - n(params)), as can't just ask for chi squared and n bins separately easily...
+    cout << " " << bkg_name.Data() << ": " << xframe->chiSquare(bkg_name.Data(), "h_dataset", bkg_dof) << endl;
+  }
+  cout << "Frame contents:\n";
+  xframe->Print();
+  
   gSystem->Exec(Form("[ ! -d plots/latest_production/%s ] && mkdir -p plots/latest_production/%s", year_string.Data(), year_string.Data()));
   if(doConstraints_)
     c1->SaveAs(Form("plots/latest_production/%s/fit_lepm_background_constr_%i.pdf", year_string.Data(), set));
@@ -170,10 +246,10 @@ Int_t do_fit(TTree* tree, int set, vector<int> years, int seed) {
   RooWorkspace ws("ws");
   if(doConstraints_) {
     ws.import(totPDF_constr);
-    ws.import(totPDF_constr_alt, RooFit::RecycleConflictNodes());
+    ws.import(totPDF_constr_exp, RooFit::RecycleConflictNodes());
   } else {
     ws.import(totPDF);
-    ws.import(totPDF_alt, RooFit::RecycleConflictNodes());
+    ws.import(totPDF_exp, RooFit::RecycleConflictNodes());
   }
   ws.import(bkgPDF);
   ws.import(*bkg_data);

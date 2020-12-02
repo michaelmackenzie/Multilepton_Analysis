@@ -1,5 +1,7 @@
 //Script to fit the di-lepton mass histogram for same flavor selections
 
+bool useBkgFunc_ = false; //include a polynomial for background
+
 Int_t do_fit(TH1F* hvar, vector<int> years, bool isMuon, TString hist, int set) {
   TString description, unit;
   double min_val, max_val, val;
@@ -42,14 +44,16 @@ Int_t do_fit(TH1F* hvar, vector<int> years, bool isMuon, TString hist, int set) 
   RooRealVar N_sig("N_sig", "N_sig", 2e7, 1e2, (set == 9) ? 3e5 : 3e7);
   RooRealVar N_bkg("N_bkg", "N_bkg", 2e6, 1, (set == 9) ? 1e5 : 1e7);
 
-  RooAddPdf totpdf("totpdf", "Total PDF", RooArgList(sigpdf,bkgpdf), RooArgList(N_sig,N_bkg));
+  RooAddPdf totpdf("totpdf", "Total PDF", ((useBkgFunc_) ? RooArgList(sigpdf,bkgpdf) : RooArgList(sigpdf)),
+		   ((useBkgFunc_) ? RooArgList(N_sig,N_bkg) : RooArgList(N_sig)));
 
   totpdf.fitTo(data);
 
   auto xframe = var.frame();
   data.plotOn(xframe);
   totpdf.plotOn(xframe);
-  totpdf.plotOn(xframe, RooFit::Components("bkgpdf"), RooFit::LineStyle(kDashed), RooFit::LineColor(kRed));
+  if(useBkgFunc_)
+    totpdf.plotOn(xframe, RooFit::Components("bkgpdf"), RooFit::LineStyle(kDashed), RooFit::LineColor(kRed));
 
   auto c1 = new TCanvas();
   xframe->Draw();

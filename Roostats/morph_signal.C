@@ -98,7 +98,7 @@ Int_t morph_signal(int set = 8, vector<int> years = {2016}, TString base = "../h
   RooHistPdf pdf_muon_binned("pdf_muon_binned", "pdf_muon_binned", RooArgSet(lepm), *binned_muon);
   RooHistPdf pdf_electron_binned("pdf_electron_binned", "pdf_electron_binned", RooArgSet(lepm), *binned_electron);
 
-  RooRealVar alpha("alpha", "alpha", 0.3); //how much of each distribution to use --> can fit to find best value
+  RooRealVar alpha("alpha", "alpha", 0.5); //how much of each distribution to use --> can fit to find best value
   RooIntegralMorph morph_pdf("morph_pdf", "morph_pdf", pdf_muon_binned, pdf_electron_binned, lepm, alpha);
   //
   
