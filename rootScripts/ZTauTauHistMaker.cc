@@ -2,7 +2,7 @@
 // The class definition in ZTauTauHistMaker.h has been generated automatically
 // by the ROOT utility TTree::MakeSelector(). This class is derived
 // from the ROOT class TSelector. For more information on the TSelector
-// framework see $ROOTSYS/README/README.SELECTOR or the ROOT User Manual.
+// framework see $ROOTSYS/README/README.SELECTOR or the ROOT User Manual.n
 
 
 // The following methods are defined in this file:
@@ -144,8 +144,10 @@ void ZTauTauHistMaker::BookEventHistograms() {
       fEventHist[i]->hGenTauFlavorWeight     = new TH1D("gentauflavorweight"  , Form("%s: GenTauFlavorWeight"  ,dirname)  ,  40,    0,   2);     
       fEventHist[i]->hPhotonIDWeight         = new TH1D("photonidweight"      , Form("%s: PhotonIDWeight"      ,dirname)  ,  40,    0,   2);     
       fEventHist[i]->hIsSignal               = new TH1D("issignal"            , Form("%s: IsSignal"            ,dirname)  ,   5,   -2,   3);     
-      fEventHist[i]->hNPV                    = new TH1D("npv"                 , Form("%s: NPV"                 ,dirname)  , 200,  0, 200); 
-      fEventHist[i]->hNPU                    = new TH1D("npu"                 , Form("%s: NPU"                 ,dirname)  , 100,  0, 100); 
+      fEventHist[i]->hNPV[0]                 = new TH1D("npv"                 , Form("%s: NPV"                 ,dirname)  , 200,  0, 200); 
+      fEventHist[i]->hNPV[1]                 = new TH1D("npv1"                , Form("%s: NPV"                 ,dirname)  , 200,  0, 200); 
+      fEventHist[i]->hNPU[0]                 = new TH1D("npu"                 , Form("%s: NPU"                 ,dirname)  , 100,  0, 100); 
+      fEventHist[i]->hNPU[1]                 = new TH1D("npu1"                , Form("%s: NPU"                 ,dirname)  , 100,  0, 100); 
       fEventHist[i]->hNPartons               = new TH1D("npartons"            , Form("%s: NPartons"            ,dirname)  ,  10,  0,  10); 
       fEventHist[i]->hNMuons                 = new TH1D("nmuons"              , Form("%s: NMuons"              ,dirname)  ,  10,  0,  10); 
       fEventHist[i]->hNSlimMuons             = new TH1D("nslimmuons"          , Form("%s: NSlimMuons"          ,dirname)  ,  10,  0,  10); 
@@ -271,6 +273,8 @@ void ZTauTauHistMaker::BookEventHistograms() {
       fEventHist[i]->hLepM[0]       = new TH1D("lepm"          , Form("%s: Lepton M"       ,dirname)  , 400,   0, 400);
       fEventHist[i]->hLepM[1]       = new TH1D("lepm1"         , Form("%s: Lepton M"       ,dirname)  , 400,   0, 400);
       fEventHist[i]->hLepM[2]       = new TH1D("lepm2"         , Form("%s: Lepton M"       ,dirname)  , 400,   0, 400);
+      fEventHist[i]->hLepM[3]       = new TH1D("lepm3"         , Form("%s: Lepton M"       ,dirname)  ,  40,  70, 110);
+      fEventHist[i]->hLepM[4]       = new TH1D("lepm4"         , Form("%s: Lepton M"       ,dirname)  ,  40, 105, 145);
       fEventHist[i]->hLepEta        = new TH1D("lepeta"        , Form("%s: Lepton Eta"     ,dirname)  , 200, -10,  10);
       fEventHist[i]->hLepPhi        = new TH1D("lepphi"        , Form("%s: Lepton Phi"     ,dirname)  ,  80,  -4,   4);
       //variable width bins for pT vs mass
@@ -864,8 +868,10 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
     Hist->hMcEra               ->Fill(mcEra              , genWeight*eventWeight)   ;
     Hist->hGenTauFlavorWeight  ->Fill(genTauFlavorWeight );
     Hist->hPhotonIDWeight      ->Fill(photonIDWeight );
-    Hist->hNPV                 ->Fill(nPV                , genWeight*eventWeight)      ;
-    Hist->hNPU                 ->Fill(nPU                , genWeight*eventWeight)      ;
+    Hist->hNPV[0]              ->Fill(nPV                , genWeight*eventWeight)      ;
+    Hist->hNPV[1]              ->Fill(nPV                , genWeight*eventWeight*((puWeight > 0.) ? 1./puWeight : 1.));
+    Hist->hNPU[0]              ->Fill(nPU                , genWeight*eventWeight)      ;
+    Hist->hNPU[1]              ->Fill(nPU                , genWeight*eventWeight*((puWeight > 0.) ? 1./puWeight : 1.));
     Hist->hNPartons            ->Fill(nPartons           , genWeight*eventWeight)      ;
     Hist->hNMuons              ->Fill(nMuons             , genWeight*eventWeight)      ;
     Hist->hNSlimMuons          ->Fill(nSlimMuons         , genWeight*eventWeight)      ;
@@ -1052,6 +1058,8 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
   Hist->hLepM[0]      ->Fill(lepSys.M()             ,eventWeight*genWeight);
   Hist->hLepM[1]      ->Fill(lepSys.M()             ,bareweight);
   Hist->hLepM[2]      ->Fill(lepSys.M()             ,recoweight);
+  Hist->hLepM[3]      ->Fill(lepSys.M()             ,eventWeight*genWeight);
+  Hist->hLepM[4]      ->Fill(lepSys.M()             ,eventWeight*genWeight);
   Hist->hLepEta       ->Fill(lepSys.Eta()           ,eventWeight*genWeight);
   Hist->hLepPhi       ->Fill(lepSys.Phi()           ,eventWeight*genWeight);
 
@@ -1372,11 +1380,31 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   }
   if(fVerbose > 0 ) std::cout << "MET = " << met << std::endl;
 
+  /////////////////////////////////
+  // Remove weights if requested //
+  /////////////////////////////////
 
   // Trigger weights
   if(fRemoveTriggerWeights > 0) {
     if(leptonOneTrigWeight > 0.) eventWeight /= leptonOneTrigWeight;
     if(leptonTwoTrigWeight > 0.) eventWeight /= leptonTwoTrigWeight;
+  }
+
+  //b-tag weights
+  if(fRemoveBTagWeights > 0 && btagWeight > 0.) {
+    eventWeight /= btagWeight;
+    btagWeight = 1.;
+  }
+
+  //pileup weights
+  if(fRemovePUWeights > 0 && puWeight > 0.) {
+    eventWeight /= puWeight;
+    //replace weight
+    if(fRemovePUWeights > 1) {
+      puWeight = fPUWeight.GetWeight(nPU, fYear);
+      eventWeight *= puWeight;
+    } else
+      puWeight = 1.;
   }
   
   // DY z pT weights
@@ -1435,12 +1463,6 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
     std::cout << "WARNING! Entry " << entry << " passes multiple selections!\n";
   
   InitializeTreeVariables(mutau+2*etau+5*emu+9*mumu+18*ee+36*llg_study);
-
-  //FIXME temporary fix to hadronic tau ID if is not data
-  // if((mutau || etau)&&fIsData==0) {
-  //   eventWeight *= 1./0.95; //remove overall tau ID weight that didn't include if gen tau or not in the total event weight
-  //   if(abs(tauGenFlavor) == 15 && fUseTauFakeSF == 1) genTauFlavorWeight *= 0.95; //apply to real taus to original weights
-  // }
   
   //use locally computed weight 
   if(fUseTauFakeSF > 1 && fIsData == 0) genTauFlavorWeight = GetTauFakeSF(tauGenFlavor);
@@ -1480,7 +1502,7 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   ////////////////////////////////////////////////////////////
   // Set 1 + selection offset: object number selection
   ////////////////////////////////////////////////////////////  
-  if(!fDYTesting) {
+  if(!fDYTesting && !looseQCDSelection) {
     if(mutau && chargeTest) FillAllHistograms(kMuTau + 1);
     else if(mutau)          FillAllHistograms(kMuTau + 1 + fQcdOffset);
     if(etau  && chargeTest) FillAllHistograms(kETau  + 1);
@@ -1521,19 +1543,24 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   mumu  = mumu  && (muon != 0) && (muon_2 != 0);
   ee    = ee    && (electron != 0) && (electron_2 != 0);
 
-  mutau = mutau && muon->Pt() > 25. && tau->Pt() > 20.;
-  etau  = etau  && electron->Pt() > 28. && tau->Pt() > 20.;
-  emu   = emu   && ((electron->Pt() > 28. && muon->Pt() > 10.) ||
-		    (electron->Pt() > 10. && muon->Pt() > 25.));
-  mumu  = mumu  && ((muon->Pt() > 25. && muon_2->Pt() > 10.) ||
-		    (muon->Pt() > 10.  && muon_2->Pt() > 25.));
-  ee    = ee    && ((electron->Pt() > 28. && electron_2->Pt() > 10.) ||
-		    (electron->Pt() > 10. && electron_2->Pt() > 28.));
+  //trigger and object pT thresholds
+  float muon_trig_pt(25.), electron_trig_pt(28.), muon_pt(10.), electron_pt(10.), tau_pt(20.);
+  if(fYear == 2017) muon_trig_pt = 28.;
+  if(fYear != 2016) electron_trig_pt = 33.;
+  
+  mutau = mutau && muon->Pt() > muon_trig_pt && tau->Pt() > tau_pt;
+  etau  = etau  && electron->Pt() > electron_trig_pt && tau->Pt() > tau_pt;
+  emu   = emu   && ((electron->Pt() > electron_trig_pt && muon->Pt() > muon_pt) ||
+		    (electron->Pt() > electron_pt && muon->Pt() > muon_trig_pt));
+  mumu  = mumu  && ((muon->Pt() > muon_trig_pt && muon_2->Pt() > muon_pt) ||
+		    (muon->Pt() > muon_pt  && muon_2->Pt() > muon_trig_pt));
+  ee    = ee    && ((electron->Pt() > electron_trig_pt && electron_2->Pt() > electron_pt) ||
+		    (electron->Pt() > electron_pt && electron_2->Pt() > electron_trig_pt));
 
   ////////////////////////////////////////////////////////////
   // Set 2 + selection offset: object pT cuts
   ////////////////////////////////////////////////////////////
-  if(!fDYTesting) {
+  if(!fDYTesting && !looseQCDSelection) {
     if(mutau && chargeTest) FillAllHistograms(kMuTau + 2);
     else if(mutau)          FillAllHistograms(kMuTau + 2 + fQcdOffset);
     if(etau  && chargeTest) FillAllHistograms(kETau  + 2);
@@ -1584,20 +1611,33 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   ////////////////////////////////////////////////////////////
   // Set 7 + selection offset: object eta + mass cuts
   ////////////////////////////////////////////////////////////
-
-  if(mutau && chargeTest) FillAllHistograms(kMuTau + 7);
-  else if(mutau)          FillAllHistograms(kMuTau + 7 + fQcdOffset);
-  if(etau  && chargeTest) FillAllHistograms(kETau  + 7);
-  else if(etau)           FillAllHistograms(kETau  + 7 + fQcdOffset);
-  if(emu  && chargeTest)  FillAllHistograms(kEMu   + 7);
-  else if(emu)            FillAllHistograms(kEMu   + 7 + fQcdOffset);
-  if(mumu  && chargeTest) FillAllHistograms(kMuMu  + 7);
-  else if(mumu)           FillAllHistograms(kMuMu  + 7 + fQcdOffset);
-  if(mumu  && chargeTest) FillAllHistograms(kMuMu  + 7);
-  else if(mumu)           FillAllHistograms(kMuMu  + 7 + fQcdOffset);
-  if(ee    && chargeTest) FillAllHistograms(kEE    + 7);
-  else if(ee)             FillAllHistograms(kEE    + 7 + fQcdOffset);
-
+  if(!looseQCDSelection) {
+    if(mutau && chargeTest) FillAllHistograms(kMuTau + 7);
+    else if(mutau)          FillAllHistograms(kMuTau + 7 + fQcdOffset);
+    if(etau  && chargeTest) FillAllHistograms(kETau  + 7);
+    else if(etau)           FillAllHistograms(kETau  + 7 + fQcdOffset);
+    if(emu  && chargeTest)  FillAllHistograms(kEMu   + 7);
+    else if(emu)            FillAllHistograms(kEMu   + 7 + fQcdOffset);
+    if(mumu  && chargeTest) FillAllHistograms(kMuMu  + 7);
+    else if(mumu)           FillAllHistograms(kMuMu  + 7 + fQcdOffset);
+    if(mumu  && chargeTest) FillAllHistograms(kMuMu  + 7);
+    else if(mumu)           FillAllHistograms(kMuMu  + 7 + fQcdOffset);
+    if(ee    && chargeTest) FillAllHistograms(kEE    + 7);
+    else if(ee)             FillAllHistograms(kEE    + 7 + fQcdOffset);
+  } else { //QCD selection
+    if(mutau && chargeTest) FillAllHistograms(kMuTau + 3);
+    else if(mutau)          FillAllHistograms(kMuTau + 3 + fQcdOffset);
+    if(etau  && chargeTest) FillAllHistograms(kETau  + 3);
+    else if(etau)           FillAllHistograms(kETau  + 3 + fQcdOffset);
+    if(emu  && chargeTest)  FillAllHistograms(kEMu   + 3);
+    else if(emu)            FillAllHistograms(kEMu   + 3 + fQcdOffset);
+    if(mumu  && chargeTest) FillAllHistograms(kMuMu  + 3);
+    else if(mumu)           FillAllHistograms(kMuMu  + 3 + fQcdOffset);
+    if(mumu  && chargeTest) FillAllHistograms(kMuMu  + 3);
+    else if(mumu)           FillAllHistograms(kMuMu  + 3 + fQcdOffset);
+    if(ee    && chargeTest) FillAllHistograms(kEE    + 3);
+    else if(ee)             FillAllHistograms(kEE    + 3 + fQcdOffset);
+  }
 
   if(fDYTesting) return kTRUE;
   
@@ -1644,7 +1684,7 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   etau  &= tauDeepAntiMu  >= 10; //
   etau  &= tauDeepAntiEle >= 50; //63 = tight
 
-  if(!fDYTesting) {
+  if(!fDYTesting && !looseQCDSelection) {
     if(mutau && chargeTest) FillAllHistograms(kMuTau + 5);
     else if(mutau)          FillAllHistograms(kMuTau + 5 + fQcdOffset);
     if(etau && chargeTest)  FillAllHistograms(kETau  + 5);
@@ -1674,7 +1714,7 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   ////////////////////////////////////////////////////////////////////////////
   // Set 13 + selection offset: nBJets >= 1 (Top backgrounds)
   ////////////////////////////////////////////////////////////////////////////  
-  if(!fDYTesting) {
+  if(!fDYTesting && !looseQCDSelection) {
     if(mutau && nBJetsUse > 0 && chargeTest) FillAllHistograms(kMuTau + 13);
     else if(mutau && nBJetsUse > 0)          FillAllHistograms(kMuTau + 13 + fQcdOffset);
     if(etau && nBJetsUse > 0 && chargeTest)  FillAllHistograms(kETau  + 13);
@@ -1717,7 +1757,7 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   ////////////////////////////////////////////////////////////////////////////
   // Set 14 + selection offset: Genuine hadronic taus
   ////////////////////////////////////////////////////////////////////////////  
-  if(!fDYTesting) {
+  if(!fDYTesting && !looseQCDSelection) {
     bool genuineTau = fIsData != 0 || abs(tauGenFlavor) == 15;
     if(mutau && genuineTau && chargeTest) FillAllHistograms(kMuTau + 14);
     else if(mutau && genuineTau)          FillAllHistograms(kMuTau + 14 + fQcdOffset);
@@ -1744,7 +1784,7 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   ////////////////////////////////////////////////////////////////////////////
   // Set 15 + selection offset: Non-jet based hadronic taus
   ////////////////////////////////////////////////////////////////////////////  
-  if(!fDYTesting) {
+  if(!fDYTesting && !looseQCDSelection) {
     bool nonJetTau = fIsData != 0 || abs(tauGenFlavor) != 26;
     if(mutau && nonJetTau && chargeTest) FillAllHistograms(kMuTau + 15);
     else if(mutau && nonJetTau)          FillAllHistograms(kMuTau + 15 + fQcdOffset);
@@ -1762,17 +1802,39 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   ////////////////////////////////////////////////////////////////////////////
   // Set 8 + selection offset: nBJets = 0
   ////////////////////////////////////////////////////////////////////////////
-  if(mutau && chargeTest) FillAllHistograms(kMuTau + 8);
-  else if(mutau)          FillAllHistograms(kMuTau + 8 + fQcdOffset);
-  if(etau && chargeTest)  FillAllHistograms(kETau  + 8);
-  else if(etau)           FillAllHistograms(kETau  + 8 + fQcdOffset);
-  if(emu && chargeTest)   FillAllHistograms(kEMu   + 8);
-  else if(emu)            FillAllHistograms(kEMu   + 8 + fQcdOffset);
-  if(mumu && chargeTest)  FillAllHistograms(kMuMu  + 8);
-  else if(mumu)           FillAllHistograms(kMuMu  + 8 + fQcdOffset);
-  if(ee    && chargeTest) FillAllHistograms(kEE    + 8);
-  else if(ee)             FillAllHistograms(kEE    + 8 + fQcdOffset);
-
+  if(!looseQCDSelection) {
+    if(mutau && chargeTest) FillAllHistograms(kMuTau + 8);
+    else if(mutau)          FillAllHistograms(kMuTau + 8 + fQcdOffset);
+    if(etau  && chargeTest) FillAllHistograms(kETau  + 8);
+    else if(etau)           FillAllHistograms(kETau  + 8 + fQcdOffset);
+    if(emu  && chargeTest)  FillAllHistograms(kEMu   + 8);
+    else if(emu)            FillAllHistograms(kEMu   + 8 + fQcdOffset);
+    if(mumu  && chargeTest) FillAllHistograms(kMuMu  + 8);
+    else if(mumu)           FillAllHistograms(kMuMu  + 8 + fQcdOffset);
+    if(mumu  && chargeTest) FillAllHistograms(kMuMu  + 8);
+    else if(mumu)           FillAllHistograms(kMuMu  + 8 + fQcdOffset);
+    if(ee    && chargeTest) FillAllHistograms(kEE    + 8);
+    else if(ee)             FillAllHistograms(kEE    + 8 + fQcdOffset);
+  } else { //QCD selection
+    if(mutau && chargeTest) FillAllHistograms(kMuTau + 4);
+    else if(mutau)          FillAllHistograms(kMuTau + 4 + fQcdOffset);
+    if(etau  && chargeTest) FillAllHistograms(kETau  + 4);
+    else if(etau)           FillAllHistograms(kETau  + 4 + fQcdOffset);
+    if(emu  && chargeTest)  FillAllHistograms(kEMu   + 4);
+    else if(emu)            FillAllHistograms(kEMu   + 4 + fQcdOffset);
+    if(mumu  && chargeTest) FillAllHistograms(kMuMu  + 4);
+    else if(mumu)           FillAllHistograms(kMuMu  + 4 + fQcdOffset);
+    if(mumu  && chargeTest) FillAllHistograms(kMuMu  + 4);
+    else if(mumu)           FillAllHistograms(kMuMu  + 4 + fQcdOffset);
+    if(ee    && chargeTest) FillAllHistograms(kEE    + 4);
+    else if(ee)             FillAllHistograms(kEE    + 4 + fQcdOffset);
+  }
+  
+  mutau &= !looseQCDSelection;
+  etau  &= !looseQCDSelection;
+  emu   &= !looseQCDSelection;
+  mumu  &= !looseQCDSelection;
+  ee    &= !looseQCDSelection;
   
   if(fDYTesting) return kTRUE;
 
@@ -1955,7 +2017,8 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   marioID = marioID && abs(electron->Eta()) < 2.5; //angular acceptances
   marioID = marioID && abs(muon->Eta()) < 2.4;
   marioID = marioID && abs(muon->DeltaR(*electron)) > 0.3;
-
+  marioID &= !looseQCDSelection;
+  
   marioID &= (nBJetsM) == 0; //medium ID
   marioID &= (nJets == 0) || jetOneP4->Pt() < 78.; //highest pT jet cut
   marioID &= met < 28.;

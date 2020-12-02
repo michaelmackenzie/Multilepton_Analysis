@@ -41,6 +41,8 @@
 #include "../dataFormats/Tree_t.hh"
 //initialize local MVA weight files
 #include "../utils/TrkQualInit.cc"
+//define PU weights locally
+#include "../utils/PUWeight.hh"
 
 class ZTauTauHistMaker : public TSelector {
 public :
@@ -67,6 +69,7 @@ public :
   Float_t zPtWeight                  ;
   Float_t zPt = -1.                  ;
   Float_t zMass = -1.                ;
+  Bool_t  looseQCDSelection = false  ;
   Float_t genTauFlavorWeight         ;
   Int_t tauDecayMode                 ;
   Float_t tauMVA                     ;
@@ -202,8 +205,8 @@ public :
     TH1D* hGenTauFlavorWeight;
     TH1D* hPhotonIDWeight;
     TH1D* hIsSignal;
-    TH1D* hNPV;
-    TH1D* hNPU;
+    TH1D* hNPV[2]; //0: with PU weights 1: without PU weights
+    TH1D* hNPU[2]; //0: with PU weights 1: without PU weights
     TH1D* hNPartons;
     TH1D* hNMuons;
     TH1D* hNSlimMuons;
@@ -296,7 +299,7 @@ public :
     //di-lepton histograms
     TH1D* hLepPt[3]; //0: normal 1: remove Z pT weight if DY file 2: apply weights using reco scales if DY
     TH1D* hLepP;
-    TH1D* hLepM[3]; //0: normal 1: remove Z pT weight if DY file 2: apply weights using reco scales if DY
+    TH1D* hLepM[5]; //0: normal 1: remove Z pT weight if DY file 2: apply weights using reco scales if DY 3: Zoomed on Z Mass 4: Zoomed on H Mass
     TH1D* hLepEta;
     TH1D* hLepPhi;
     TH2D* hLepPtVsM[3]; //0: normal 1: remove Z pT weight if DY file 2: apply weights using reco scales if DY
@@ -714,6 +717,10 @@ public :
   Int_t         fMETWeights = 0; //re-weight events based on the MET
 
   Int_t         fRemoveTriggerWeights = 0;
+  Int_t         fRemoveBTagWeights = 0;
+
+  Int_t         fRemovePUWeights = 0; //0: do nothing 1: remove weights 2: replace weights
+  PUWeight      fPUWeight; //object to define pu weights
   
   Int_t         fRemoveZPtWeights = 0; // 0 use given weights, 1 remove z pT weight, 2 remove and re-evaluate weights locally
   TH2D*         fZPtScales = 0; //histogram based z pTvsM weights
@@ -1225,6 +1232,7 @@ void ZTauTauHistMaker::Init(TTree *tree)
   fChain->SetBranchAddress("zPtWeight"           , &zPtWeight            );
   fChain->SetBranchAddress("zPt"                 , &zPt                  );
   fChain->SetBranchAddress("zMass"               , &zMass                );
+  fChain->SetBranchAddress("looseQCDSelection"   , &looseQCDSelection    );
   if(!fDYTesting) {
     fChain->SetBranchAddress("genTauFlavorWeight"  , &genTauFlavorWeight   );
     fChain->SetBranchAddress("tauDecayMode"        , &tauDecayMode         );
