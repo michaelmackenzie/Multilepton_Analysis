@@ -904,20 +904,22 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
   Hist->hNBJetsL             ->Fill(nBJetsL            , genWeight*eventWeight)      ;
   Hist->hNBJets20[0]         ->Fill(nBJets20           , genWeight*eventWeight)      ;
   Hist->hNBJets20M[0]        ->Fill(nBJets20M          , genWeight*eventWeight)      ;
-  Hist->hNBJets20L[0]        ->Fill(nBJets20L          , genWeight*eventWeight*((btagWeight > 0.) ? 1./btagWeight : 1.));
-  Hist->hNBJets20[1]         ->Fill(nBJets20           , genWeight*eventWeight*((btagWeight > 0.) ? 1./btagWeight : 1.));
-  Hist->hNBJets20M[1]        ->Fill(nBJets20M          , genWeight*eventWeight*((btagWeight > 0.) ? 1./btagWeight : 1.));
-  Hist->hNBJets20L[1]        ->Fill(nBJets20L          , genWeight*eventWeight*((btagWeight > 0.) ? 1./btagWeight : 1.));
+  Hist->hNBJets20L[0]        ->Fill(nBJets20L          , genWeight*eventWeight)      ;
+  float nobwt = genWeight*eventWeight;
+  if(btagWeight > 0.) nobwt /= btagWeight;
+  Hist->hNBJets20[1]         ->Fill(nBJets20           , nobwt);
+  Hist->hNBJets20M[1]        ->Fill(nBJets20M          , nobwt);
+  Hist->hNBJets20L[1]        ->Fill(nBJets20L          , nobwt);
   //Store basic info for all accepted jets
   for(UInt_t jet = 0; jet < nJets20; ++jet) {
     Hist->hJetsFlavor->Fill(jetsFlavor[jet], genWeight*eventWeight);
     int flavor = abs(jetsFlavor[jet]);
-    if(flavor > 20) continue; //unknown parent
+    if(flavor > 20) flavor = 1; //unknown parent defaults to light jet
     
     int index = 0; //light jets
     if(flavor == 4)      index = 1; // c-jet
     else if(flavor == 5) index = 2; // b-jet
-    double jpt = jetsPt[jet], jeta = jetsEta[jet], wt = genWeight*eventWeight;
+    float jpt = jetsPt[jet], jeta = jetsEta[jet], wt = genWeight*eventWeight;
     if(btagWeight > 0.) wt /= btagWeight; //remove previous correction
     Hist->hJetsPtVsEta[index]->Fill(jeta, jpt, wt);
     if(jetsBTag[jet] > 0) { //Loose b-tag
