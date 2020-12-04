@@ -48,9 +48,9 @@ TH2D* get_histogram(int set, int quark, bool useBTag, int WP) {
 
   //setup the histogram title and axis titles
   if(useBTag) {
-    if(WP == 2)      name = "Loose";
+    if(WP == 0)      name = "Loose";
     else if(WP == 1) name = "Medium";
-    else if(WP == 0) name = "Tight";
+    else if(WP == 2) name = "Tight";
     name += " B-Tagged Jet pT vs #eta for gen-level";
   } else       name = "Jet pT vs #eta for gen-level";
   if(quark == 0)      name += " light Jets";
@@ -180,7 +180,7 @@ TCanvas* scale_factors(TString selection = "mumu", int set = 7, int year = 2016,
   TCanvas* c2 = new TCanvas("c_ratio", "c_ratio", 1600, 450);
   TString wp = "Loose";
   if(WP == 1) wp = "Medium";
-  else if(WP == 0) wp = "Tight";
+  else if(WP == 2) wp = "Tight";
   c2->Divide(3,1);
   pad = c2->cd(1);
   TH2D* hLRatio = (TH2D*) hLBJets->Clone("hLRatio");
