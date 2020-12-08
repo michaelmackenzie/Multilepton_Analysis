@@ -87,7 +87,8 @@ Int_t fit_signal(int set = 8, vector<int> years = {2016, 2017, 2018}, TString ba
   auto xframe = lepm.frame();
   dataset.plotOn(xframe);
   totpdf.plotOn(xframe);
-  totpdf.plotOn(xframe, RooFit::Components("bkgpdf"), RooFit::LineStyle(kDashed), RooFit::LineColor(kRed));
+  totpdf.plotOn(xframe, RooFit::Components("sigpdf1"), RooFit::LineStyle(kDashed), RooFit::LineColor(kRed));
+  totpdf.plotOn(xframe, RooFit::Components("sigpdf2"), RooFit::LineStyle(kDashed), RooFit::LineColor(kRed));
 
   auto c1 = new TCanvas();
   xframe->Draw();

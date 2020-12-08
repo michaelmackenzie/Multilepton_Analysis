@@ -44,6 +44,9 @@ $run_command "fit_same_flavor.C(${histSet}, ${year}, false)"
 echo "Morphing same flavor histograms to make signal PDF..."
 $run_command "morph_signal.C(${histSet}, ${year})"
 
+echo "Fitting directly the signal PDF..."
+$run_command "fit_signal.C(${histSet}, ${year})"
+
 echo "Creating background trees..."
 $run_command "create_background_trees.C(${histSet}, ${year}, \"${histPath}\")"
 
