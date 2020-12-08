@@ -25,6 +25,7 @@ public:
     values_["Wlnu-ext"                ] = 52850.0;
     values_["ttbarToSemiLeptonic"     ] = 365.34 ;
     values_["ttbarlnu"                ] = 88.29  ;
+    values_["ttbarToHadronic"         ] = 687.1  ;
     values_["SingleEle"               ] = 1.     ;
     values_["SingleMu"                ] = 1.     ;
     values_["QCDDoubleEMEnrich30to40" ] = 22180. ;
@@ -42,7 +43,16 @@ public:
     values_["HETau" ] = higgs*6.1e-3;
     values_["HMuTau"] = higgs*2.5e-3;
 
-    //generated numbers
+    //data SS qcd estimates
+    //give fraction of (Data - MC) / Data * (OS / SS) by selection for full Run-II
+    values_["QCD_mutau"] = 0.518567 * 1.10205;
+    values_["QCD_etau"]  = 0.491449 * 1.12844;
+    values_["QCD_emu"]   = 0.355374 * 1.61248;
+    
+    ///////////////////////
+    // generated numbers //
+    ///////////////////////
+
     //Retrieved from DAS, can access on command line via:
     //$> das_client -query="dataset <das name> | grep dataset.nevents "
     numbers_[2016]["Wlnu"    ] =  29514020;
