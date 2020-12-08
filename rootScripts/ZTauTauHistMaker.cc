@@ -183,7 +183,7 @@ void ZTauTauHistMaker::BookEventHistograms() {
       fEventHist[i]->hNBJets20M[1]           = new TH1D("nbjets20m1"          , Form("%s: NBJets20M"           ,dirname)  ,  20,  0,  20);
       fEventHist[i]->hNBJets20L[1]           = new TH1D("nbjets20l1"          , Form("%s: NBJets20L"           ,dirname)  ,  20,  0,  20);
 
-      fEventHist[i]->hJetsFlavor             = new TH1D("jetsflavor"          , Form("%s: JetsFlavor"          ,dirname)  ,  50, -20,  30);
+      fEventHist[i]->hJetsFlavor             = new TH1D("jetsflavor"          , Form("%s: JetsFlavor"          ,dirname)  ,  60, -10,  50);
       int njetspt = 6;
       double jetspt[] = {0.  , 30. , 40. , 50.  , 70.,
 			 100., 
@@ -345,6 +345,8 @@ void ZTauTauHistMaker::BookEventHistograms() {
       fEventHist[i]->hDeltaAlpha[3] = new TH1D("deltaalpha3"   , Form("%s: Delta Alpha (H) 1"  ,dirname)  , 200, -10,  10);
       fEventHist[i]->hDeltaAlphaM[0]= new TH1D("deltaalpham0"  , Form("%s: Delta Alpha Mass 0" ,dirname)  , 400,   0, 400);
       fEventHist[i]->hDeltaAlphaM[1]= new TH1D("deltaalpham1"  , Form("%s: Delta Alpha Mass 1" ,dirname)  , 400,   0, 400);
+      fEventHist[i]->hDeltaAlphaMColM[0]= new TH1D("deltaalphamcolm0"  , Form("%s: MCol - Alpha Mass 0" ,dirname)  , 200,   -100, 100);
+      fEventHist[i]->hDeltaAlphaMColM[1]= new TH1D("deltaalphamcolm1"  , Form("%s: MCol - Alpha Mass 1" ,dirname)  , 200,   -100, 100);
 
       fEventHist[i]->hHtDeltaPhi    = new TH1D("htdeltaphi"    , Form("%s: Ht Lep Delta Phi",dirname) ,  50,   0,   5);
       fEventHist[i]->hMetDeltaPhi   = new TH1D("metdeltaphi"   , Form("%s: Met Lep Delta Phi",dirname),  50,   0,   5);
@@ -740,8 +742,8 @@ void ZTauTauHistMaker::InitializeTreeVariables(Int_t selection) {
   //project onto the bisectors
   fTreeVars.pxivis = (lp1+lp2)*bisector;
   fTreeVars.pxiinv = missing*bisector;
-  double pnuest    = max(0.,lp2*missing/lp2.Mag()); //inv pT along tau = tau pt unit vector dot missing
-  double pnuesttwo = max(0.,lp1*missing/lp1.Mag()); //inv pT along other lepton (for emu case with tau decay)
+  double pnuest    = max(0.,lp2*missing/lp2.Mag()); //inv pT along tau = lep 2 pt unit vector dot missing
+  double pnuesttwo = max(0.,lp1*missing/lp1.Mag()); //inv pT along tau = lep 1 (for emu case with tau decay)
   fTreeVars.ptauvisfrac  = lp2.Mag() / (lp2.Mag() + pnuest);
   fTreeVars.mestimate    = fTreeVars.lepm/sqrt(fTreeVars.ptauvisfrac);
   fTreeVars.mestimatetwo = fTreeVars.lepm/sqrt(lp1.Mag() / (lp1.Mag() + pnuesttwo));
@@ -760,8 +762,8 @@ void ZTauTauHistMaker::InitializeTreeVariables(Int_t selection) {
   fTreeVars.deltaalphah1 = fTreeVars.alphah1 - fTreeVars.alpha2;
   fTreeVars.deltaalphah2 = fTreeVars.alphah1 - fTreeVars.alpha3;
   //mass from delta alpha equation: m_boson = sqrt(m_tau^2 + pT(lep)/pT(tau) * p(l1) \cdot p(l2))
-  fTreeVars.deltaalpham1 = std::sqrt(tmass*tmass + fTreeVars.alpha2 * lepdot);
-  fTreeVars.deltaalpham2 = std::sqrt(tmass*tmass + fTreeVars.alpha3 * lepdot);
+  fTreeVars.deltaalpham1 = std::sqrt(tmass*tmass + fTreeVars.alpha2 * lepdot); //lep 1 = tau
+  fTreeVars.deltaalpham2 = std::sqrt(tmass*tmass + fTreeVars.alpha3 * lepdot); //lep 2 = tau
   //event variables
   fTreeVars.ht       = ht;
   fTreeVars.htsum    = htSum;
@@ -777,15 +779,15 @@ void ZTauTauHistMaker::InitializeTreeVariables(Int_t selection) {
   fTreeVars.eventweight = genWeight*eventWeight;
   fTreeVars.eventweightMVA = genWeight*eventWeight;
   fTreeVars.fulleventweight = genWeight*eventWeight*fXsec;
-  if(fUseTauFakeSF) fTreeVars.fulleventweight *= genTauFlavorWeight;
-  if(fUseTauFakeSF) fTreeVars.eventweight *= genTauFlavorWeight;
+  if(fUseTauFakeSF && fIsData == 0) fTreeVars.fulleventweight *= genTauFlavorWeight;
+  if(fUseTauFakeSF && fIsData == 0) fTreeVars.eventweight *= genTauFlavorWeight;
   fTreeVars.fulleventweightlum = fTreeVars.fulleventweight*fLum;
   
   fTreeVars.eventcategory = fEventCategory;
   if(fFractionMVA > 0.) fTreeVars.train = (fRnd->Uniform() < fFractionMVA) ? 1. : -1.; //whether or not it is in the training sample
-  fTreeVars.issignal = (2*fIsSignal - 1) * (fIsData == 0); //signal = 1, background = -1, data = 0
+  fTreeVars.issignal = (2*fIsSignal - 1) * fIsData == 0; //signal = 1, background = -1, data = 0
   //if splitting testing/training samples
-  if(!fDYTesting && fFractionMVA > 0. && fIsData == 0)
+  if(!fDYTesting && fFractionMVA > 0.)
     fTreeVars.eventweightMVA *= (fTreeVars.train > 0.) ? 0. : 1./(1.-fFractionMVA); //if training, ignore, else rescale to account for training sample removed
   
   TString selecName = "";
@@ -1097,6 +1099,8 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
   Hist->hDeltaAlpha[3]->Fill((double) fTreeVars.deltaalphah2, eventWeight*genWeight);
   Hist->hDeltaAlphaM[0]->Fill((double) fTreeVars.deltaalpham1, eventWeight*genWeight);
   Hist->hDeltaAlphaM[1]->Fill((double) fTreeVars.deltaalpham2, eventWeight*genWeight);
+  Hist->hDeltaAlphaMColM[0]->Fill(fTreeVars.mestimate    - fTreeVars.deltaalpham2, eventWeight*genWeight);
+  Hist->hDeltaAlphaMColM[1]->Fill(fTreeVars.mestimatetwo - fTreeVars.deltaalpham1, eventWeight*genWeight);
 
   Hist->hHtDeltaPhi   ->Fill(htDelPhi               ,eventWeight*genWeight);
   Hist->hMetDeltaPhi  ->Fill(metDelPhi              ,eventWeight*genWeight);
@@ -1386,16 +1390,28 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   // Remove weights if requested //
   /////////////////////////////////
 
-  // Trigger weights
+  //trigger weights
   if(fRemoveTriggerWeights > 0) {
     if(leptonOneTrigWeight > 0.) eventWeight /= leptonOneTrigWeight;
     if(leptonTwoTrigWeight > 0.) eventWeight /= leptonTwoTrigWeight;
   }
 
+  //photon ID weights
+  if(fRemovePhotonIDWeights > 0) {
+    if(photonIDWeight > 0.) eventWeight /= photonIDWeight;
+  }
+
   //b-tag weights
   if(fRemoveBTagWeights > 0 && btagWeight > 0.) {
     eventWeight /= btagWeight;
-    btagWeight = 1.;
+    if(fVerbose > 0) std::cout << "btag weight originally: " << btagWeight << std::endl;
+    if(fRemoveBTagWeights > 1) { //replace the weights
+      int wp = BTagWeight::kLooseBTag;
+      if(fFolderName == "mutau" || fFolderName == "etau") wp = BTagWeight::kTightBTag;
+      btagWeight = fBTagWeight.GetWeight(wp, fYear, nJets20, jetsPt, jetsEta, jetsFlavor, jetsBTag);
+    } else
+      btagWeight = 1.;
+    if(fVerbose > 0) std::cout << "btag weight updated: " << btagWeight << std::endl;
   }
 
   //pileup weights
@@ -1870,7 +1886,8 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   ////////////////////////////////////////////////////////////////////////////
   //Set event weight to ignore training sample
   Float_t prev_wt = eventWeight;
-  eventWeight = fabs(fTreeVars.eventweightMVA); //use abs to remove gen weight sign
+  //only use weight if MC or is same sign data 
+  eventWeight = (fIsData == 0 || !chargeTest) ? fabs(fTreeVars.eventweightMVA) : 1.; //use abs to remove gen weight sign
   
   //Total background Z0 MVAs
   if(mutau && chargeTest && fMvaOutputs[1] > fMvaCuts[1]) FillAllHistograms(kMuTau + 9);

@@ -30,7 +30,13 @@ Int_t combine_trees(vector<TString> in_files, TString selection, int file_set, T
     fList[filecount] = TFile::Open(file_path, "READ");
     if(verbose_)
       printf("Getting tree %i for merging, using %s\n", filecount, file_path);
-    tList[filecount] = (TTree*) fList[filecount]->Get(Form("Data/tree_%i/tree_%i", file_set, file_set));
+    //if QCD, offset set to same sign selection
+    int set_use = file_set;
+    TString fname = fList[filecount]->GetName();
+    if((fname.Contains("SingleMu") || fname.Contains("SingleEle")) && !dataOnly_) //check if QCD
+      set_use += ZTauTauHistMaker::fQcdOffset;
+    if(verbose_ > 1) cout << "Using file set " << set_use << endl;
+    tList[filecount] = (TTree*) fList[filecount]->Get(Form("Data/tree_%i/tree_%i", set_use, set_use));
     if(!tList[filecount]) {
       printf("tree not found, continuing\n");
       continue;
@@ -73,7 +79,7 @@ Int_t combine_trees(vector<TString> in_files, TString selection, int file_set, T
   return 0;
 }
 
-Int_t make_background(int set = 7, TString selection = "mutau", TString base = "../histograms/nanoaods_dev/") {
+Int_t make_background(int set = 8, TString selection = "mutau", TString base = "../histograms/nanoaods_dev/") {
 
   cout << "Beginning to make tree for selection " << selection.Data() << " with set " << set
        << endl;
@@ -105,7 +111,10 @@ Int_t make_background(int set = 7, TString selection = "mutau", TString base = "
 				"HETau"              ,
 				"HEMu"               ,
 				"SingleMu"           ,
-				"SingleEle"          
+				"SingleEle"          ,
+				"QCD_SingleMu"       , //use same sign data
+				"QCD_SingleEle"
+				
     };
   
     int doNanoProcess[] = {!dataOnly_ && doDY_ //DY50
@@ -128,11 +137,15 @@ Int_t make_background(int set = 7, TString selection = "mutau", TString base = "
 			   , !dataOnly_ && (!backgroundOnly_ && doHiggsDecays_  && (selection == "emu")  ) //hetau
 			   , dataOnly_ //SingleMu
 			   , dataOnly_ //SingleEle
+			   , !dataOnly_ && !fileSelec.Contains("etau")  //SingleMu QCD
+			   , !dataOnly_ && !fileSelec.Contains("mutau") //SingleEle QCD
     };
     int nfiles = sizeof(nano_names)/sizeof(*nano_names);
     for(int i = 0; i < nfiles; ++i) {
       if(!doNanoProcess[i]) continue;
-      file_list.push_back(Form("%sztautau_%s_clfv_%i_%s.hist",base.Data(),fileSelec.Data(),year,nano_names[i]));
+      TString name = nano_names[i];
+      if(name.Contains("Single") && name.Contains("QCD")) name.ReplaceAll("QCD_", "");
+      file_list.push_back(Form("%sztautau_%s_clfv_%i_%s.hist",base.Data(),fileSelec.Data(),year,name.Data()));
     }
   }
   
@@ -168,7 +181,7 @@ Int_t make_background(int set = 7, TString selection = "mutau", TString base = "
 }
 
 
-Int_t make_all_backgrounds(TString base = "../histograms/nanoaods/") {
+Int_t make_all_backgrounds(TString base = "../histograms/nanoaods_dev/") {
   Int_t status = 0;
   verbose_ = 0;
   cout << "Making Z decay backgrounds!\n";
@@ -190,7 +203,7 @@ Int_t make_all_backgrounds(TString base = "../histograms/nanoaods/") {
   return status;
 }
 
-Int_t make_all_years(TString base = "../histograms/nanoaods/") {
+Int_t make_all_years(TString base = "../histograms/nanoaods_dev/") {
   Int_t status = 0;
   cout << "Making 2016 backgrounds...\n";
   years_ = {2016};

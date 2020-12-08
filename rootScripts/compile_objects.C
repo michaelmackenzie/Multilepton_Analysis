@@ -9,17 +9,17 @@
 #include "../dataFormats/SlimJet_t.hh+g"
 #include "../dataFormats/SlimPhoton_t.hh+g"
 #include "../dataFormats/Tree_t.hh+g"
-
+#include "../utils/Significances.hh+g"
+#include "../utils/CrossSections.hh+g"
+#include "../utils/PUWeight.hh+g"
+#include "../utils/BTagWeight.hh+g"
+#include "./DataPlotter.cc+g"
 
 int compile_objects() {
   TString version = gROOT->GetVersion();
-  gROOT->LoadMacro("../utils/Significances.hh+g");
-  gROOT->LoadMacro("../utils/CrossSections.hh+g");
-  //Plotting histograms
-  gROOT->LoadMacro("DataPlotter.cc+g");
   if(version.Contains("6.06")) {
     //Utilities
-    gROOT->LoadMacro("../utils/TrkQualInit.cc+g");
+    gROOT->LoadMacro("../utils/TrkQualInit.hh+g");
     //Histogrammer
     gROOT->LoadMacro("ZTauTauHistMaker.cc+g");
   } else {

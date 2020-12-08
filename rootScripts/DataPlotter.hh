@@ -40,9 +40,12 @@ public :
     Int_t    rebin_;
     vector<Double_t> blindmin_;
     vector<Double_t> blindmax_;
-
+    Int_t    plot_data_;
+    Int_t    data_over_mc_;
+    
     PlottingCard_t() : hist_(""), type_(""), label_(""), set_(-1),
-		       xmin_(1.), xmax_(-1.), ymin_(1.), ymax_(-1.), rebin_(1) {}
+		       xmin_(1.), xmax_(-1.), ymin_(1.), ymax_(-1.), rebin_(1),
+		       plot_data_(999), data_over_mc_(999) {}
 
     PlottingCard_t(TString hist, TString type) : PlottingCard_t() {
       hist_ = hist;
@@ -231,7 +234,7 @@ public :
   Double_t data_txt_x_ = 0.61;
   
   //significance drawing
-  Double_t sig_plot_range_ = 4.0;
+  Double_t sig_plot_range_ = 4.5;
   Int_t limit_mc_err_range_ = 1; //sigma range to show
   ~DataPlotter() {
     for(auto d : data_) {
@@ -353,6 +356,10 @@ public :
     rebinH_ = card.rebin_;
     blindxmin_ = card.blindmin_;
     blindxmax_ = card.blindmax_;
+    if(card.plot_data_ < 100)
+      plot_data_ = card.plot_data_;
+    if(card.data_over_mc_ < 100)
+      data_over_mc_ = card.data_over_mc_;
     return plot_hist(card.hist_, card.type_, card.set_, card.xmin_, card.xmax_);
   }
 
@@ -364,6 +371,10 @@ public :
     rebinH_ = card.rebin_;
     blindxmin_ = card.blindmin_;
     blindxmax_ = card.blindmax_;
+    if(card.plot_data_ < 100)
+      plot_data_ = card.plot_data_;
+    if(card.data_over_mc_ < 100)
+      data_over_mc_ = card.data_over_mc_;
     return plot_stack(card.hist_, card.type_, card.set_, card.xmin_, card.xmax_);
   }
 
@@ -375,6 +386,10 @@ public :
     rebinH_ = card.rebin_;
     blindxmin_ = card.blindmin_;
     blindxmax_ = card.blindmax_;
+    if(card.plot_data_ < 100)
+      plot_data_ = card.plot_data_;
+    if(card.data_over_mc_ < 100)
+      data_over_mc_ = card.data_over_mc_;
     return plot_cdf(card.hist_, card.type_, card.set_, card.label_, card.xmin_, card.xmax_);
   }
 
@@ -397,6 +412,10 @@ public :
     rebinH_ = card.rebin_;
     blindxmin_ = card.blindmin_;
     blindxmax_ = card.blindmax_;
+    if(card.plot_data_ < 100)
+      plot_data_ = card.plot_data_;
+    if(card.data_over_mc_ < 100)
+      data_over_mc_ = card.data_over_mc_;
     return print_stack(card.hist_, card.type_, card.set_, card.xmin_, card.xmax_);
   }
 
@@ -408,6 +427,10 @@ public :
     rebinH_ = card.rebin_;
     blindxmin_ = card.blindmin_;
     blindxmax_ = card.blindmax_;
+    if(card.plot_data_ < 100)
+      plot_data_ = card.plot_data_;
+    if(card.data_over_mc_ < 100)
+      data_over_mc_ = card.data_over_mc_;
     return print_hist(card.hist_, card.type_, card.set_, card.xmin_, card.xmax_);
   }
 

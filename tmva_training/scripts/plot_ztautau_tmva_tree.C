@@ -18,26 +18,67 @@ namespace {
   int    setSilent_ = 0; //sets to batch mode for canvas printing
   bool   doGIF_ = false; //change name printing to have counter
   int    gifCount_ = 0; //gif image number
-  double lum_ = 35.9e3; //luminosity to scale by, default to 2016 data
+  double lum_ = 1.; //luminosity to scale by, 1 by default since now in weights
   bool   correctForScale_ = true; //scale test sample to match expectations for total dataset (1./(1.-fracTrain))
   int    verbose_ = 1; //verbosity level
   double scale_signal_ = 250.; //scale signal to be visible
+  int    max_categories_ = 70; //number of categories to check
+}
 
-  vector<TString> names_nano_ = {  "t#bar{t}qql#nu" 
-				 , "t#bar{t}l#nul#nu"
-				 , "Z+Jets"	  
-				 , "Single top"	  
-				 , "Single top"	  
-				 , "W+Jets"	  
-				 , "Diboson"	  
-				 , "Diboson"	  
-				 , "Z->e#tau"	  
-				 , "Z->#mu#tau"	  
-				 , "Z->e#mu"	  
-				 , "H->e#tau"	  
-				 , "H->#mu#tau"	  
-				 , "H->e#mu"	  
-  };
+void set_config(TString var, double xmin, double xmax, int xbins) {
+  var_ = var; xMin_ = xmin; xMax_ = xmax; bins_ = xbins;
+}
+
+TString get_label_from_category(int category) {
+  switch(category) {
+  case 1: case 2: case 24: case 25: case 26: case 27: case 49: case 50: case 51:
+    return "t#bar{t}";
+  case 3: case 23: case 28: case 48: case 52:
+    return "Z+Jets";
+  case 4: case 5: case 29: case 30: case 53: case 54:
+    return "Single top";
+  case 6: case 22: case 31: case 32: case 55:
+    return "Wl#nu";
+  case 7: case 8: case 17: case 18: case 33: case 34:
+  case 43: case 44: case 56: case 57: case 66: case 67:
+    return "Diboson";
+  case 15: case 16: case 41: case 42: case 64: case 65: //data
+    return "QCD"; 
+  case 9: case 35: case 58:
+    return "Z->e#tau";
+  case 10: case 36: case 59:
+    return "Z->#mu#tau";
+  case 11: case 37: case 60:
+    return "Z->e#mu";
+  case 12: case 38: case 61:
+    return "H->e#tau";
+  case 13: case 39: case 62:
+    return "H->#mu#tau";
+  case 14: case 40: case 63:
+    return "H->e#mu";
+  default:
+    return "UNKNOWN";
+  }
+}
+
+//get file name from configuration
+TString get_file_name(bool isHiggs = true, TString selection = "mutau",
+		      vector<int> years = {2016, 2017, 2018}, int set = 8) {
+  TString name = "training_background_ztautau_";
+  name += (isHiggs) ? "higgs_nano_" : "Z0_nano_";
+  name += selection + "_";
+  for(int year : years) {
+    name += year;
+    name += "_";
+  }
+  if(selection == "mutau")        set += ZTauTauHistMaker::kMuTau;
+  else if(selection == "etau")    set += ZTauTauHistMaker::kETau;
+  else if(selection == "emu")     set += ZTauTauHistMaker::kEMu;
+  else if(selection == "mutau_e") set += ZTauTauHistMaker::kEMu;
+  else if(selection == "etau_mu") set += ZTauTauHistMaker::kEMu;
+  name += set;
+  if(verbose_ > 0) cout << "Using file base name " << name.Data() << endl;
+  return name;
 }
 
 //assumes CLs
@@ -148,7 +189,7 @@ int plot_tmva_tree(const char* file = "training_background_ztautau_Z0_nano_mutau
   if(fname.Contains("mock"))
     cut = Form("genweight*((%s>=%.5f)",mva_var.Data(),mva_cut); //don't weight data/mock data
   else
-    cut = Form("fulleventweight*((%s>=%.5f)",mva_var.Data(),mva_cut);
+    cut = Form("fulleventweightlum*((%s>=%.5f)",mva_var.Data(),mva_cut);
     
   if(category > -1) cut += Form("&&(eventcategory == %i)",category);
   cut += ")";
@@ -226,9 +267,8 @@ int stack_tmva_tree(double mva_cut = -1.,
 
   std::map<TString, int> colors;
   colors["Z+Jets"] = kRed-7;
-  colors["W+Jets"] = kGreen-7;
-  colors["t#bar{t}qql#nu"] = kYellow-7;
-  colors["t#bar{t}l#nul#nu"] = kMagenta-7;
+  colors["Wl#nu"] = kGreen-7;
+  colors["t#bar{t}"] = kYellow-7;
   colors["Single top"] = kCyan-7;
   colors["Diboson"]= kViolet+6;
   colors["Z->e#tau"] = kBlue;
@@ -238,13 +278,15 @@ int stack_tmva_tree(double mva_cut = -1.,
   colors["H->#mu#tau"] = kBlue;
   colors["H->e#mu"] = kBlue;
   colors["Data"]   = kBlack;
+  colors["QCD"]   = kOrange;
+  colors["UNKNOWN"]   = kRed;
   std::map<TString, int> isSignal;
 
   //initialize a map of histogram titles to index in histogram array to use
   std::map<TString, int> indexes;
-  unsigned ndatasets = names_nano_.size();
+  unsigned ndatasets = max_categories_;
   for(unsigned index = 0; index < ndatasets ; ++index) 
-    indexes[names_nano_[index]] = -1;
+    indexes[get_label_from_category(index+1)] = -1;
 
   //arrays of histograms for plotting
   TH1F* htest[ndatasets];
@@ -281,16 +323,16 @@ int stack_tmva_tree(double mva_cut = -1.,
   TH1F* hSigTest;
   for(int index = 0; index <  ndatasets; ++index) {
     if(verbose_ > 1)
-      cout << "Filling histogram " << index << ": name = " << names_nano_[index].Data()<< endl;
+      cout << "Filling histogram " << index << ": name = " << get_label_from_category(index+1).Data()<< endl;
     int category = index + 1; //current definition of category is offset by 1
     
-    htest[index] = new TH1F(Form("htest_%i",index),   Form("Test %s" , names_nano_[index].Data()), bins_, xMin_, xMax_);
-    if(plot_train > 0) htrain[index] = new TH1F(Form("htrain_%i",index), Form("Train %s",  names_nano_[index].Data()), bins_, xMin_, xMax_);
+    htest[index] = new TH1F(Form("htest_%i",index),   Form("Test %s" , get_label_from_category(index+1).Data()), bins_, xMin_, xMax_);
+    if(plot_train > 0) htrain[index] = new TH1F(Form("htrain_%i",index), Form("Train %s",  get_label_from_category(index+1).Data()), bins_, xMin_, xMax_);
     TString cut;
     if(fname.Contains("mock"))
       cut = Form("genweight*((%s>=%.5f)",mva_var.Data(),mva_cut);
     else
-      cut = Form("fulleventweight*((%s>=%.5f)",mva_var.Data(),mva_cut);
+      cut = Form("fulleventweightlum*((%s>=%.5f)",mva_var.Data(),mva_cut);
 
     cut += Form("&&(eventcategory == %i))",category);
     
@@ -303,7 +345,7 @@ int stack_tmva_tree(double mva_cut = -1.,
       cout << "Performing signal test: ";
     test_tree->Draw("classID>>hSigTest",Form("(eventcategory==%i)",category));
     bool isSig = hSigTest->GetMean() > 0.5;
-    isSignal[names_nano_[index]] = isSig;//save signal label
+    isSignal[get_label_from_category(index+1)] = isSig;//save signal label
     if(verbose_ > 1)
       cout  << isSig << endl;
     delete hSigTest;
@@ -311,7 +353,7 @@ int stack_tmva_tree(double mva_cut = -1.,
     if(plot_train > 0) train_tree->Draw(Form("%s>>htrain_%i", var_.Data(), index), cut.Data());
     if(plot_train > 0 && verbose_ > 1)
       cout << "Test histogram has " << htest[index]->GetEntries() << " entries\n";
-    TString name = names_nano_[index];
+    TString name = get_label_from_category(index+1);
     if(plot_train > 0) htrain[index]->Scale(((isSig) ? scaleSigTrain : scaleBkgTrain));
 
     if(correctForScale_) {//re-scale test/train sample to each look like entire background expectation
@@ -336,14 +378,14 @@ int stack_tmva_tree(double mva_cut = -1.,
     } else //map this index
       indexes[name] = index;
 
-    htest[index]->SetLineColor(colors[names_nano_[index]]);
-    if(!isSignal[name]) htest[index]->SetFillColor(colors[names_nano_[index]]);
+    htest[index]->SetLineColor(colors[get_label_from_category(index+1)]);
+    if(!isSignal[name]) htest[index]->SetFillColor(colors[get_label_from_category(index+1)]);
     else htest[index]->SetLineWidth(3);
     
     // htest[index]->SetFillStyle(3001);
-    if(plot_train > 0) htrain[index]->SetMarkerColor(colors[names_nano_[index]]-1);
+    if(plot_train > 0) htrain[index]->SetMarkerColor(colors[get_label_from_category(index+1)]-1);
     if(plot_train > 0) htrain[index]->SetMarkerStyle(20);
-    if(plot_train > 0) htrain[index]->SetLineColor(colors[ names_nano_[index]]-1);
+    if(plot_train > 0) htrain[index]->SetLineColor(colors[ get_label_from_category(index+1)]-1);
   }
   TObject* o = (gDirectory->Get("c1"));
   if(o) delete o;
@@ -352,7 +394,7 @@ int stack_tmva_tree(double mva_cut = -1.,
   THStack* hstacktrain = new THStack("trainstack", "Training Stack");
   vector<TH1F*> hsignals;
   for(unsigned index = 0; index <  ndatasets; ++index) {
-    TString name = names_nano_[index];
+    TString name = get_label_from_category(index+1);
     if(verbose_ > 1)
       cout << "Looking at histogram " << index << ", name = " << name.Data() << endl
 	   << "index map = " << indexes[name] << ", issignal = " << isSignal[name] << endl;
@@ -468,7 +510,7 @@ Int_t plot_limit_gain(const char* file = "training_background_ztautau_higgs_muta
   if(fname.Contains("mock"))
     cut_start = "genweight*("; //don't weight data/mock data
   else
-    cut_start = "fulleventweight*(";
+    cut_start = "fulleventweightlum*(";
 
   cout << "Initializing mva histograms" << endl;
   //Initialize histograms with binning to match the MVA cut steps
@@ -485,8 +527,9 @@ Int_t plot_limit_gain(const char* file = "training_background_ztautau_higgs_muta
 
 
   pair<double,double> trainScales = get_train_scales(test_tree, train_tree);
-  double sig_scale = (1.+trainScales.second)/trainScales.second;
-  double bkg_scale = (1.+trainScales.first)/trainScales.first;
+  //returns test/train = x --> test + train = 1 = test + test/x = test(1+1/x) --> 1/test = 1 + 1/x
+  double sig_scale = 1.+ 1./trainScales.second;
+  double bkg_scale = 1.+ 1./trainScales.first;
   sig_scale *= lum_;
   bkg_scale *= lum_;
   hsig_test->Scale(sig_scale);
@@ -521,7 +564,7 @@ Int_t plot_limit_gain(const char* file = "training_background_ztautau_higgs_muta
     if(verbose_>1)
       cout << "Limit step " << step << " nbkg = " << n_bkg_test << " nsig = " << n_sig_test << endl;
     double val(-1);
-    double limit =significances.LimitGain(n_sig_test, n_bkg_test, val); //get_limit(n_bkg_test, n_sig_test, confidence);
+    double limit = significances.LimitGain(n_sig_test, n_bkg_test, val);
     if(limit < 0.) limit = 0.;
     lims_test[step] = limit;
     if(verbose_>1)
@@ -533,7 +576,7 @@ Int_t plot_limit_gain(const char* file = "training_background_ztautau_higgs_muta
   g->SetLineColor(kBlue);
   if(!setSilent_) gROOT->SetBatch(kFALSE);
   g->Draw();
-  g->GetYaxis()->SetRangeUser(0., 3.);
+  g->GetYaxis()->SetRangeUser(0., 4.);
   g->GetXaxis()->SetRangeUser(-1., 1.);
   g->SetTitle("Limit gain vs MVA score; MVA score; Limit gain");
   c->SetGrid();

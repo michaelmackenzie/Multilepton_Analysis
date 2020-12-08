@@ -730,6 +730,7 @@ TH1D* DataPlotter::get_stack_uncertainty(THStack* hstack, TString hname) {
   TH1D* huncertainty = (TH1D*) hlast->Clone(hname.Data());
   huncertainty->Clear(); huncertainty->Reset();
   huncertainty->SetTitle("Bkg. #pm#sigma(Stat.)");
+  huncertainty->SetName(hname.Data());
   huncertainty->SetFillColor(kGray+1);
   huncertainty->SetLineColor(kGray+1);
   huncertainty->SetFillStyle(3001);
@@ -1509,9 +1510,8 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
     mn = max(0.2*mn,5e-1);
     m = 1.2*m;
     m = min(m, 2.0);
-    hDataMC->GetYaxis()->SetRangeUser(mn,m);    
-    hDataMC->SetMinimum(mn);
-    hDataMC->SetMaximum(m);
+    // hDataMC->GetYaxis()->SetRangeUser(mn,m);    
+    hDataMC->GetYaxis()->SetRangeUser(0.6, 1.4);
     //  hDataMC->GetXaxis()->SetLabelOffset(0.5);
   
     hDataMC->SetMarkerStyle(20);
@@ -2018,11 +2018,12 @@ TCanvas* DataPlotter::print_stack(TString hist, TString setType, Int_t set) {
     if(index != years_.size() - 1) year_dir += "_";
   }
   //FIXME: use a method to build the directory path for all printing functions
-  c->Print(Form("figures/%s/%s/%s/stack_%s%s%s%s_%s_set_%i.png",folder_.Data(),selection_.Data(), year_dir.Data(),
+  c->Print(Form("figures/%s/%s/%s/stack_%s%s%s%s_%s%s_set_%i.png",folder_.Data(),selection_.Data(), year_dir.Data(),
 		(setType+"_"+hist).Data(),
 		(logY_ ? "_log":""),
 		((plot_data_) ? "_data":""), (stack_as_hist_ ? "_totbkg" : ""),
-		((data_over_mc_ < 0) ? "sigOverBkg" : "dataOverMC"),set));
+		((data_over_mc_ < 0) ? "sigOverBkg" : "dataOverMC"),
+		((include_qcd_ == 0) ? "_noqcd" : ""), set));
   return c;
 }
 
@@ -2035,10 +2036,11 @@ TCanvas* DataPlotter::print_hist(TString hist, TString setType, Int_t set) {
     year_dir += years_[index];
     if(index != years_.size() - 1) year_dir += "_";
   }
-  c->Print(Form("figures/%s/%s/%s/hist_%s%s%s_%s_set_%i.png",folder_.Data(),selection_.Data(), year_dir.Data(),
+  c->Print(Form("figures/%s/%s/%s/hist_%s%s%s_%s%s_set_%i.png",folder_.Data(),selection_.Data(), year_dir.Data(),
 		(setType+"_"+hist).Data(),
 		(logY_ ? "_log":""),
-		((plot_data_) ? "_data":""),"dataOverMC",set));
+		((plot_data_) ? "_data":""),"dataOverMC",
+		((include_qcd_ == 0) ? "_noqcd" : ""), set));
   return c;
 }
 
@@ -2051,9 +2053,10 @@ TCanvas* DataPlotter::print_2Dhist(TString hist, TString setType, Int_t set) {
     year_dir += years_[index];
     if(index != years_.size() - 1) year_dir += "_";
   }
-  c->Print(Form("figures/%s/%s/%s/hist2D_%s%s_%s_set_%i.png",folder_.Data(),selection_.Data(), year_dir.Data(),
+  c->Print(Form("figures/%s/%s/%s/hist2D_%s%s_%s%s_set_%i.png",folder_.Data(),selection_.Data(), year_dir.Data(),
 		(setType+"_"+hist).Data(),
-		((plot_data_) ? "_data":""),"dataOverMC",set));
+		((plot_data_) ? "_data":""),"dataOverMC",
+		((include_qcd_ == 0) ? "_noqcd" : ""), set));
   return c;
 }
 
@@ -2069,10 +2072,11 @@ TCanvas* DataPlotter::print_single_2Dhist(TString hist, TString setType, Int_t s
     year_dir += years_[index];
     if(index != years_.size() - 1) year_dir += "_";
   }
-  c->Print(Form("figures/%s/%s/%s/hist2D_%s_%s%s%s_%s_set_%i.png",folder_.Data(),selection_.Data(), year_dir.Data(), label.Data(), 
+  c->Print(Form("figures/%s/%s/%s/hist2D_%s_%s%s%s_%s%s_set_%i.png",folder_.Data(),selection_.Data(), year_dir.Data(), label.Data(), 
 		(setType+"_"+hist).Data(),
 		(logZ_ ? "_log":""),
-		((plot_data_) ? "_data":""),"dataOverMC",set));
+		((plot_data_) ? "_data":""),"dataOverMC",
+		((include_qcd_ == 0) ? "_noqcd" : ""), set));
   return c;
 }
 
@@ -2087,10 +2091,11 @@ TCanvas* DataPlotter::print_cdf(TString hist, TString setType, Int_t set, TStrin
     year_dir += years_[index];
     if(index != years_.size() - 1) year_dir += "_";
   }
-  c->Print(Form("figures/%s/%s/%s/cdf_%s_%s%s%s_%s_set_%i.png",folder_.Data(),selection_.Data(), year_dir.Data(), label.Data(),
+  c->Print(Form("figures/%s/%s/%s/cdf_%s_%s%s%s_%s%s_set_%i.png",folder_.Data(),selection_.Data(), year_dir.Data(), label.Data(),
 		(setType+"_"+hist).Data(),
 		(logY_ ? "_log":""),
-		((plot_data_) ? "_data":""),"dataOverMC",set));
+		((plot_data_) ? "_data":""),"dataOverMC",
+		((include_qcd_ == 0) ? "_noqcd" : ""), set));
   return c;
 }
 

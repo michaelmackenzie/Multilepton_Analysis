@@ -431,6 +431,7 @@ Int_t process_standard_nano_trees(int year = 2016, bool doInParts = false, bool 
   TString ext  = ".tree";
   vector<datacard_t> cards;
   cards.push_back(datacard_t(false                , name+"ttbarToSemiLeptonic"));
+  cards.push_back(datacard_t(false                , name+"ttbarToHadronic"));
   cards.push_back(datacard_t(false                , name+"ttbarlnu"));
   cards.push_back(datacard_t(false                , name+"DY50"));
   cards.push_back(datacard_t(false && year != 2018, name+"DY50-ext"));

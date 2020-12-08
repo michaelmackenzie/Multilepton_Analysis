@@ -288,7 +288,7 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
       bkg_cut += "&&";
     }
     sig_cut = "(issignal >  0.5)";
-    bkg_cut = "(issignal < -0.5)";
+    bkg_cut = "(issignal <  0.5)"; //use background MC and SS data
   }
   for(int i = 0; i < signals.size(); ++i) {
     if(i > 0 || ignore.size() > 0) {

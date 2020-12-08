@@ -40,9 +40,11 @@
 #include "../dataFormats/SlimPhoton_t.hh"
 #include "../dataFormats/Tree_t.hh"
 //initialize local MVA weight files
-#include "../utils/TrkQualInit.cc"
+#include "../utils/TrkQualInit.hh"
 //define PU weights locally
 #include "../utils/PUWeight.hh"
+//define BTag weights locally
+#include "../utils/BTagWeight.hh"
 
 class ZTauTauHistMaker : public TSelector {
 public :
@@ -318,6 +320,7 @@ public :
     TH1D* hAlpha[4]; //alpha from arXiv:1207.4894
     TH1D* hDeltaAlpha[4]; //delta alpha from arXiv:1207.4894
     TH1D* hDeltaAlphaM[2]; //mass found by solving delta alpha equations (flipping with lepton is tau for each)
+    TH1D* hDeltaAlphaMColM[2]; //Collimated mass - delta alpha mass
     
     TH1D* hHtDeltaPhi;
     TH1D* hMetDeltaPhi;
@@ -669,11 +672,11 @@ public :
     "mutau_e_BDT_68.higgs","mutau_e_BDT_68.Z0",
     "etau_mu_BDT_68.higgs","etau_mu_BDT_68.Z0"};
   vector<double> fMvaCuts = {                          //mva score cut values
-			     0.12, 0.04, //mutau       //scores optimize the gained 95% CL
-			     0.06, -0.02,//etau        //all are done by eye on limit gain vs MVA score plot
+			     0.19, 0.12,  //mutau      //scores optimize the gained 95% CL
+			     0.14, 0.05,  //etau       //all are done by eye on limit gain vs MVA score plot
 			     0.02, -0.11, //emu
-			     0.10, 0.02, //mutau_e
-			     0.08, 0.02  //etau_mu
+			     0.14, 0.04,  //mutau_e
+			     0.15, 0.07   //etau_mu
   };
   Int_t   fIsJetBinnedMVAs[kMaxMVAs]; //storing number of jets for MVA, < 0 if not binned
   Float_t fMvaOutputs[kMaxMVAs];
@@ -717,8 +720,9 @@ public :
   Int_t         fMETWeights = 0; //re-weight events based on the MET
 
   Int_t         fRemoveTriggerWeights = 0;
-  Int_t         fRemoveBTagWeights = 0;
-
+  Int_t         fRemovePhotonIDWeights = 1;
+  Int_t         fRemoveBTagWeights = 0; //0: do nothing 1: remove weights 2: replace weights
+  BTagWeight    fBTagWeight;
   Int_t         fRemovePUWeights = 0; //0: do nothing 1: remove weights 2: replace weights
   PUWeight      fPUWeight; //object to define pu weights
   
@@ -898,19 +902,21 @@ void ZTauTauHistMaker::Init(TTree *tree)
       fEventSets [kMuTau + 4+fQcdOffset] = 1;
       fEventSets [kMuTau + 5] = 1;
       fEventSets [kMuTau + 5+fQcdOffset] = 1;
-      fTreeSets  [kMuTau + 5] = 1;
+      fTreeSets  [kMuTau + 5] = 0;
       fEventSets [kMuTau + 6] = 1;
       fEventSets [kMuTau + 6+fQcdOffset] = 1;
-      fTreeSets  [kMuTau + 6] = 1;
+      fTreeSets  [kMuTau + 6] = 0;
 
       fEventSets [kMuTau + 7] = 1; // events with opposite signs and passing Mu+Tau Pt + angle cuts with no photon check
       fEventSets [kMuTau + 7+fQcdOffset] = 1; // events with same signs and passing Mu+Tau Pt + angle cuts with no photon check
-      fTreeSets  [kMuTau + 7] = 1;
+      fTreeSets  [kMuTau + 7] = 0;
 
-      // Sets 8-10 MVA cuts applied
       fEventSets [kMuTau + 8] = 1; // events with opposite signs
       fEventSets [kMuTau + 8+fQcdOffset] = 1; // events with same signs 
       fTreeSets  [kMuTau + 8] = 1;
+      fTreeSets  [kMuTau + 8+fQcdOffset] = fIsData != 0; //save SS data for QCD training
+
+      // Sets 9-10 MVA cuts applied
       fEventSets [kMuTau + 9] = 1; // events with opposite signs 
       fEventSets [kMuTau + 9+fQcdOffset] = 1; // events with same signs 
       fEventSets [kMuTau + 10] = 1; // events with opposite signs 
@@ -936,13 +942,13 @@ void ZTauTauHistMaker::Init(TTree *tree)
 
       fEventSets [kMuTau + 18] = 1; // events with opposite signs and nJets = 0
       fEventSets [kMuTau + 18+fQcdOffset] = 1; // events with same signs and nJets = 0
-      fTreeSets  [kMuTau + 18] = 1;
+      fTreeSets  [kMuTau + 18] = 0;
       fEventSets [kMuTau + 19] = 1; // events with opposite signs and nJets = 1
       fEventSets [kMuTau + 19+fQcdOffset] = 1; // events with same signs and nJets = 1
-      fTreeSets  [kMuTau + 19] = 1;
+      fTreeSets  [kMuTau + 19] = 0;
       fEventSets [kMuTau + 20] = 1; // events with opposite signs and nJets > 1
       fEventSets [kMuTau + 20+fQcdOffset] = 1; // events with same signs and nJets > 1
-      fTreeSets  [kMuTau + 20] = 1;
+      fTreeSets  [kMuTau + 20] = 0;
 
       fEventSets [kMuTau + 21] = 1; // events with opposite signs and nPhotons = 0
       fEventSets [kMuTau + 21+fQcdOffset] = 1; // events with same signs and nPhotons = 0
@@ -971,22 +977,23 @@ void ZTauTauHistMaker::Init(TTree *tree)
       fEventSets [kETau  + 4+fQcdOffset] = 1;
       fEventSets [kETau  + 5] = 1;
       fEventSets [kETau  + 5+fQcdOffset] = 1;
-      fTreeSets  [kETau + 5] = 1;
+      fTreeSets  [kETau + 5] = 0;
       fEventSets [kETau  + 6] = 1;
       fEventSets [kETau  + 6+fQcdOffset] = 1;
-      fTreeSets  [kETau + 6] = 1;
+      fTreeSets  [kETau + 6] = 0;
 
       // fEventSets [kETau  + 6] = 1; // events with opposite signs and passing Mu+Tau Pt cuts with no photon check
       // fEventSets [kETau  + 6+fQcdOffset] = 1; // events with same signs and passing Mu+Tau Pt cuts with no photon check
 
       fEventSets [kETau  + 7] = 1; // events with opposite signs and passing Mu+Tau Pt + angle cuts with no photon check
       fEventSets [kETau  + 7+fQcdOffset] = 1; // events with same signs and passing Mu+Tau Pt + angle cuts with no photon check
-      fTreeSets  [kETau  + 7] = 1;
+      fTreeSets  [kETau  + 7] = 0;
 
       // Sets 8-10 MVA cuts applied
       fEventSets [kETau  + 8] = 1; // events with opposite signs
       fEventSets [kETau  + 8+fQcdOffset] = 1; // events with same signs 
       fTreeSets  [kETau  + 8] = 1;
+      fTreeSets  [kETau  + 8+fQcdOffset] = fIsData != 0; //save ss data for qcd training
       fEventSets [kETau  + 9] = 1; // events with opposite signs 
       fEventSets [kETau  + 9+fQcdOffset] = 1; // events with same signs 
       fTreeSets  [kETau  + 9] = 1;
@@ -1014,13 +1021,13 @@ void ZTauTauHistMaker::Init(TTree *tree)
 
       fEventSets [kETau  + 18] = 1; // events with opposite signs and nJets = 0
       fEventSets [kETau  + 18+fQcdOffset] = 1; // events with same signs and nJets = 0
-      fTreeSets  [kETau  + 18] = 1;
+      fTreeSets  [kETau  + 18] = 0;
       fEventSets [kETau  + 19] = 1; // events with opposite signs and nJets = 1
       fEventSets [kETau  + 19+fQcdOffset] = 1; // events with same signs and nJets = 1
-      fTreeSets  [kETau  + 19] = 1;
+      fTreeSets  [kETau  + 19] = 0;
       fEventSets [kETau  + 20] = 1; // events with opposite signs and nJets > 1
       fEventSets [kETau  + 20+fQcdOffset] = 1; // events with same signs and nJets > 1
-      fTreeSets  [kETau  + 20] = 1;
+      fTreeSets  [kETau  + 20] = 0;
 
       fEventSets [kETau  + 21] = 1; // events with opposite signs and nPhotons = 0
       fEventSets [kETau  + 21+fQcdOffset] = 1; // events with same signs and nPhotons = 0
@@ -1057,22 +1064,23 @@ void ZTauTauHistMaker::Init(TTree *tree)
       fEventSets [kEMu   + 4+fQcdOffset] = 1;
       fEventSets [kEMu   + 5] = 1;
       fEventSets [kEMu   + 5+fQcdOffset] = 1;
-      fTreeSets  [kEMu + 5] = 1;
+      fTreeSets  [kEMu + 5] = 0;
       fEventSets [kEMu   + 6] = 1;
       fEventSets [kEMu   + 6+fQcdOffset] = 1;
-      fTreeSets  [kEMu + 6] = 1;
+      fTreeSets  [kEMu + 6] = 0;
 
       // fEventSets [kEMu   + 6] = 1; // events with opposite signs and passing Mu+Tau Pt cuts with no photon check
       // fEventSets [kEMu   + 6+fQcdOffset] = 1; // events with same signs and passing Mu+Tau Pt cuts with no photon check
 
       fEventSets [kEMu   + 7] = 1; // events with opposite signs and passing Mu+Tau Pt + angle cuts with no photon check
       fEventSets [kEMu   + 7+fQcdOffset] = 1; // events with same signs and passing Mu+Tau Pt + angle cuts with no photon check
-      fTreeSets  [kEMu   + 7] = 1;
+      fTreeSets  [kEMu   + 7] = 0;
 
       // Sets 8-10 MVA cuts applied
       fEventSets [kEMu   + 8] = 1; // events with opposite signs
       fEventSets [kEMu   + 8+fQcdOffset] = 1; // events with same signs 
       fTreeSets  [kEMu   + 8] = 1;
+      fTreeSets  [kEMu   + 8+fQcdOffset] = fIsData != 0; //save ss data for qcd training
       fEventSets [kEMu   + 9] = 1; // events with opposite signs 
       fEventSets [kEMu   + 9+fQcdOffset] = 1; // events with same signs 
       fTreeSets  [kEMu   + 9] = 1;
@@ -1095,19 +1103,19 @@ void ZTauTauHistMaker::Init(TTree *tree)
 
       fEventSets [kEMu   + 16] = 1; // events with opposite signs and z box cuts
       fEventSets [kEMu   + 16+fQcdOffset] = 1; // events with same signs and z box cuts
-      fTreeSets  [kEMu   + 16] = 1;
+      fTreeSets  [kEMu   + 16] = 0;
       fEventSets [kEMu   + 17] = 1; // events with opposite signs and higgs box cuts
       fEventSets [kEMu   + 17+fQcdOffset] = 1; // events with same signs and higgs box cuts
 
       fEventSets [kEMu   + 18] = 1; // events with opposite signs and nJets = 0
       fEventSets [kEMu   + 18+fQcdOffset] = 1; // events with same signs and nJets = 0
-      fTreeSets  [kEMu   + 18] = 1;
+      fTreeSets  [kEMu   + 18] = 0;
       fEventSets [kEMu   + 19] = 1; // events with opposite signs and nJets = 1
       fEventSets [kEMu   + 19+fQcdOffset] = 1; // events with same signs and nJets = 1
-      fTreeSets  [kEMu   + 19] = 1;
+      fTreeSets  [kEMu   + 19] = 0;
       fEventSets [kEMu   + 20] = 1; // events with opposite signs and nJets > 1
       fEventSets [kEMu   + 20+fQcdOffset] = 1; // events with same signs and nJets > 1
-      fTreeSets  [kEMu   + 20] = 1;
+      fTreeSets  [kEMu   + 20] = 0;
 
       fEventSets [kEMu   + 21] = 1; // events with opposite signs and nPhotons = 0
       fEventSets [kEMu   + 21+fQcdOffset] = 1; // events with same signs and nPhotons = 0
@@ -1149,7 +1157,7 @@ void ZTauTauHistMaker::Init(TTree *tree)
 	fEventSets [kMuMu +10+fQcdOffset] = 1; // events with same signs
 	fEventSets [kMuMu  + 16] = 1; // events with opposite signs and z box cuts
 	fEventSets [kMuMu  + 16+fQcdOffset] = 1; // events with same signs and z box cuts
-	fTreeSets  [kMuMu  + 16] = 1;
+	fTreeSets  [kMuMu  + 16] = 0;
 
 	fEventSets [kMuMu + 18] = 1; // events with opposite signs + 0-jet
 	fEventSets [kMuMu + 18+fQcdOffset] = 1; // events with same
@@ -1175,13 +1183,13 @@ void ZTauTauHistMaker::Init(TTree *tree)
       fEventSets [kEE + 10+fQcdOffset] = 1; // events with same signs
       fEventSets [kEE + 16] = 1; // events with opposite signs and z box cuts
       fEventSets [kEE + 16+fQcdOffset] = 1; // events with same signs and z box cuts
-      fTreeSets  [kEE + 16] = 1;
+      fTreeSets  [kEE + 16] = 0;
       fEventSets [kEE + 17] = 1; // events with opposite signs and z box cuts
       fEventSets [kEE + 17+fQcdOffset] = 1; // events with same signs and z box cuts
-      fTreeSets  [kEE + 17] = 1;
+      fTreeSets  [kEE + 17] = 0;
       fEventSets [kEE + 18] = 1; // events with opposite signs and z box cuts
       fEventSets [kEE + 18+fQcdOffset] = 1; // events with same signs and z box cuts
-      fTreeSets  [kEE + 18] = 1;
+      fTreeSets  [kEE + 18] = 0;
 
     }
     if(fFolderName == "emu") {
