@@ -234,8 +234,11 @@ public :
   Double_t data_txt_x_ = 0.61;
   
   //significance drawing
-  Double_t sig_plot_range_ = 4.5;
+  Double_t sig_plot_range_ = 3.5;
   Int_t limit_mc_err_range_ = 1; //sigma range to show
+  Double_t limit_xmax_ = -1.; // range to define limit within
+  Double_t limit_xmin_ =  1.; // range to define limit within
+
   ~DataPlotter() {
     for(auto d : data_) {
       if(d->TestBit(TObject::kNotDeleted)) {delete d;}
@@ -460,6 +463,12 @@ public :
   }
   TCanvas* print_cdf(PlottingCard_t card) {
     rebinH_ = card.rebin_;
+    blindxmin_ = card.blindmin_;
+    blindxmax_ = card.blindmax_;
+    if(card.plot_data_ < 100)
+      plot_data_ = card.plot_data_;
+    if(card.data_over_mc_ < 100)
+      data_over_mc_ = card.data_over_mc_;
     return print_cdf(card.hist_, card.type_, card.set_, card.label_, card.xmin_, card.xmax_);
   }
 

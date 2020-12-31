@@ -41,6 +41,7 @@
 #include "../dataFormats/Tree_t.hh"
 //initialize local MVA weight files
 #include "../utils/TrkQualInit.hh"
+#include "../utils/MVAConfig.hh"
 //define PU weights locally
 #include "../utils/PUWeight.hh"
 //define BTag weights locally
@@ -51,7 +52,7 @@ public :
   TTreeReader     fReader;  //!the tree reader
   TTree          *fChain = 0;   //!pointer to the analyzed TTree or TChain
   enum {kMaxParticles = 50, kMaxCounts = 40};
-  enum {kMuTau = 0, kETau = 30, kEMu = 60, kMuTauE = 90, kETauMu = 105, kMuMu = 120, kEE = 145};
+  enum {kMuTau = 0, kETau = 30, kEMu = 60, kMuTauE = 90, kETauMu = 105, kMuMu = 120, kEE = 150};
   enum {kMaxMVAs = 80};
 
   // Readers to access the data (delete the ones you do not need).
@@ -91,6 +92,7 @@ public :
   UChar_t leptonOneID2               ;
   UChar_t leptonTwoID1               ;
   UChar_t leptonTwoID2               ;
+  UChar_t leptonTwoID3               ;
   Int_t   leptonOneIndex             ;
   Int_t   leptonTwoIndex             ;
   Float_t leptonOneWeight            ;
@@ -355,6 +357,8 @@ public :
     //Transverse Masses
     TH1D* hMTOne;
     TH1D* hMTTwo;
+    TH1D* hMTOneOverM;
+    TH1D* hMTTwoOverM;
 
     //three sets for combining photon with a lepton or leptons vs photon
     TH1D* hPXiVis[3];
@@ -452,6 +456,7 @@ public :
     TH1D* hTwoIso;
     TH1D* hTwoID1;
     TH1D* hTwoID2;
+    TH1D* hTwoID3;
     TH1D* hTwoRelIso;
     TH1D* hTwoFlavor;
     TH1D* hTwoQ;
@@ -657,7 +662,8 @@ public :
   virtual float   CorrectMET(int selection, float met);
   virtual float   GetZPtWeight(double pt, double mass = 0., int doReco = 0);
   virtual void    CountSlimObjects();
-
+  virtual int     Category(TString selection);
+  
   virtual void    ProcessLLGStudy();
 
 
@@ -671,13 +677,9 @@ public :
     "emu_BDT_68.higgs","emu_BDT_68.Z0",
     "mutau_e_BDT_68.higgs","mutau_e_BDT_68.Z0",
     "etau_mu_BDT_68.higgs","etau_mu_BDT_68.Z0"};
-  vector<double> fMvaCuts = {                          //mva score cut values
-			     0.19, 0.12,  //mutau      //scores optimize the gained 95% CL
-			     0.14, 0.05,  //etau       //all are done by eye on limit gain vs MVA score plot
-			     0.02, -0.11, //emu
-			     0.14, 0.04,  //mutau_e
-			     0.15, 0.07   //etau_mu
-  };
+  std::map<TString, vector<double>> fMVACutsByCategory;
+  MVAConfig fMVAConfig; //contains MVA names and categories
+
   Int_t   fIsJetBinnedMVAs[kMaxMVAs]; //storing number of jets for MVA, < 0 if not binned
   Float_t fMvaOutputs[kMaxMVAs];
   Int_t   fTrkQualVersion = TrkQualInit::Default; //for updating which variables are used
@@ -737,7 +739,7 @@ public :
   bool          fReprocessMVAs = false; //whether or not to use the tree given MVA values
   Int_t         fBJetCounting = 1; // 0: pT > 30 1: pT > 25 2: pT > 20
   Int_t         fBJetTightness = 1; // 0: tight 1: medium 2: loose
-  Int_t         fMETType = 1; // 0: PF corrected 1: PUPPI Corrected
+  Int_t         fMETType = 0; // 0: PF corrected 1: PUPPI Corrected
   bool          fForceBJetSense = true; //force can't be more strict id bjets than looser id bjets
   bool          fIsNano = false; //whether the tree is nano AOD based or not
 
@@ -824,36 +826,36 @@ void ZTauTauHistMaker::Init(TTree *tree)
     for(int i = 0; i < kMaxMVAs; ++i) mva[i] = 0; //initially 0s
 
     if(fReprocessMVAs) {
-      for(unsigned mva_i = 0; mva_i < fMvaNames.size(); ++mva_i) {
+      for(unsigned mva_i = 0; mva_i < fMVAConfig.names_.size(); ++mva_i) {
       
 	mva[mva_i] = new TMVA::Reader("!Color:!Silent");
 	TString selection = "";
-	if(fMvaNames[mva_i].Contains("higgs")) selection += "h";
+	if(fMVAConfig.names_[mva_i].Contains("higgs")) selection += "h";
 	else selection += "z";
-	if(fMvaNames[mva_i].Contains("mutau")) selection += "mutau";
-	else if(fMvaNames[mva_i].Contains("etau")) selection += "etau";
-	else if(fMvaNames[mva_i].Contains("emu")) selection += "emu";
+	if(fMVAConfig.names_[mva_i].Contains("mutau")) selection += "mutau";
+	else if(fMVAConfig.names_[mva_i].Contains("etau")) selection += "etau";
+	else if(fMVAConfig.names_[mva_i].Contains("emu")) selection += "emu";
 	else {
 	  printf ("Warning! Didn't determine mva weight file %s corresponding selection!\n",
-		  fMvaNames[mva_i].Data());
+		  fMVAConfig.names_[mva_i].Data());
 	  selection += "mutau"; //just to default to something
 	}
 	//add for leptonic tau channels FIXME: Put as part of original check
-	if(fMvaNames[mva_i].Contains("mutau_e")) selection += "_e";
-	else if(fMvaNames[mva_i].Contains("etau_mu")) selection += "_mu";
+	if(fMVAConfig.names_[mva_i].Contains("mutau_e")) selection += "_e";
+	else if(fMVAConfig.names_[mva_i].Contains("etau_mu")) selection += "_mu";
 
 	Int_t isJetBinned = -1; // -1 is not binned, 0 = 0 jets, 1 = 1 jet, 2 = >1 jets
-	if(fMvaNames[mva_i].Contains("_18") || //0 jet
-	   fMvaNames[mva_i].Contains("_48") ||
-	   fMvaNames[mva_i].Contains("_78"))
+	if(fMVAConfig.names_[mva_i].Contains("_18") || //0 jet
+	   fMVAConfig.names_[mva_i].Contains("_48") ||
+	   fMVAConfig.names_[mva_i].Contains("_78"))
 	  isJetBinned = 0;
-	else if(fMvaNames[mva_i].Contains("_19") || //1 jet
-		fMvaNames[mva_i].Contains("_49") ||
-		fMvaNames[mva_i].Contains("_79"))
+	else if(fMVAConfig.names_[mva_i].Contains("_19") || //1 jet
+		fMVAConfig.names_[mva_i].Contains("_49") ||
+		fMVAConfig.names_[mva_i].Contains("_79"))
 	  isJetBinned = 1;
-	else if(fMvaNames[mva_i].Contains("_20") || //>1 jet
-		fMvaNames[mva_i].Contains("_50") ||
-		fMvaNames[mva_i].Contains("_80"))
+	else if(fMVAConfig.names_[mva_i].Contains("_20") || //>1 jet
+		fMVAConfig.names_[mva_i].Contains("_50") ||
+		fMVAConfig.names_[mva_i].Contains("_80"))
 	  isJetBinned = 2;
 
 	fIsJetBinnedMVAs[mva_i] = isJetBinned; //store for checking when filling
@@ -863,9 +865,9 @@ void ZTauTauHistMaker::Init(TTree *tree)
 	TrkQualInit trkQualInit(fTrkQualVersion, isJetBinned);
 	trkQualInit.InitializeVariables(*(mva[mva_i]), selection, fTreeVars);
 	//Initialize MVA weight file
-	const char* f = Form("weights/%s.weights.xml",fMvaNames[mva_i].Data());
-	mva[mva_i]->BookMVA(fMvaNames[mva_i].Data(),f);
-	printf("Booked MVA %s with selection %s\n", fMvaNames[mva_i].Data(), selection.Data());
+	const char* f = Form("weights/%s.weights.xml",fMVAConfig.names_[mva_i].Data());
+	mva[mva_i]->BookMVA(fMVAConfig.names_[mva_i].Data(),f);
+	printf("Booked MVA %s with selection %s\n", fMVAConfig.names_[mva_i].Data(), selection.Data());
       }
     }
     // slimMuons = new SlimMuons_t();
@@ -902,308 +904,242 @@ void ZTauTauHistMaker::Init(TTree *tree)
       fEventSets [kMuTau + 4+fQcdOffset] = 1;
       fEventSets [kMuTau + 5] = 1;
       fEventSets [kMuTau + 5+fQcdOffset] = 1;
-      fTreeSets  [kMuTau + 5] = 0;
       fEventSets [kMuTau + 6] = 1;
       fEventSets [kMuTau + 6+fQcdOffset] = 1;
-      fTreeSets  [kMuTau + 6] = 0;
-
-      fEventSets [kMuTau + 7] = 1; // events with opposite signs and passing Mu+Tau Pt + angle cuts with no photon check
-      fEventSets [kMuTau + 7+fQcdOffset] = 1; // events with same signs and passing Mu+Tau Pt + angle cuts with no photon check
-      fTreeSets  [kMuTau + 7] = 0;
+      fEventSets [kMuTau + 7] = 1;
+      fEventSets [kMuTau + 7+fQcdOffset] = 1;
 
       fEventSets [kMuTau + 8] = 1; // events with opposite signs
       fEventSets [kMuTau + 8+fQcdOffset] = 1; // events with same signs 
       fTreeSets  [kMuTau + 8] = 1;
       fTreeSets  [kMuTau + 8+fQcdOffset] = fIsData != 0; //save SS data for QCD training
 
-      // Sets 9-10 MVA cuts applied
-      fEventSets [kMuTau + 9] = 1; // events with opposite signs 
-      fEventSets [kMuTau + 9+fQcdOffset] = 1; // events with same signs 
-      fEventSets [kMuTau + 10] = 1; // events with opposite signs 
-      fEventSets [kMuTau + 10+fQcdOffset] = 1; // events with same signs 
-    
-      fEventSets [kMuTau + 11] = 1; // events with opposite signs and mass window
-      fEventSets [kMuTau + 11+fQcdOffset] = 1; // events with same signs and mass window
-      fEventSets [kMuTau + 12] = 1; // events with opposite signs and mass window
-      fEventSets [kMuTau + 12+fQcdOffset] = 1; // events with same signs and mass window
+      // MVA categories
+      for(int i = 9; i < 19; ++i) {fEventSets[kMuTau + i] = 1; fEventSets[kMuTau + i + fQcdOffset] = 1;}
 
-      //background regions
-      fEventSets [kMuTau + 13] = 1; // events with opposite signs and top set
-      fEventSets [kMuTau + 13+fQcdOffset] = 1; // events with same signs and top set
-      fEventSets [kMuTau + 14] = 1; // events with opposite signs and w+jets set
-      fEventSets [kMuTau + 14+fQcdOffset] = 1; // events with same signs and w+jets set
-      fEventSets [kMuTau + 15] = 1; // events with opposite signs and z+jets set
-      fEventSets [kMuTau + 15+fQcdOffset] = 1; // events with same signs and z+jets set
+      fEventSets [kMuTau + 22] = 1; // events with opposite signs and nJets = 0
+      fEventSets [kMuTau + 22+fQcdOffset] = 1; // events with same signs and nJets = 0
+      fEventSets [kMuTau + 23] = 1; // events with opposite signs and nJets > 0
+      fEventSets [kMuTau + 23+fQcdOffset] = 1; // events with same signs and nJets > 0
 
-      // fEventSets [kMuTau + 16] = 1; // events with opposite signs and z box cuts
-      // fEventSets [kMuTau + 16+fQcdOffset] = 1; // events with same signs and z box cuts
-      // fEventSets [kMuTau + 17] = 1; // events with opposite signs and higgs box cuts
-      // fEventSets [kMuTau + 17+fQcdOffset] = 1; // events with same signs and higgs box cuts
+      fEventSets [kMuTau + 24] = 1; // events with opposite signs and mass window
+      fEventSets [kMuTau + 24+fQcdOffset] = 1; // events with same signs and mass window
+      fEventSets [kMuTau + 25] = 1; // events with opposite signs and mass window
+      fEventSets [kMuTau + 25+fQcdOffset] = 1; // events with same signs and mass window
 
-      fEventSets [kMuTau + 18] = 1; // events with opposite signs and nJets = 0
-      fEventSets [kMuTau + 18+fQcdOffset] = 1; // events with same signs and nJets = 0
-      fTreeSets  [kMuTau + 18] = 0;
-      fEventSets [kMuTau + 19] = 1; // events with opposite signs and nJets = 1
-      fEventSets [kMuTau + 19+fQcdOffset] = 1; // events with same signs and nJets = 1
-      fTreeSets  [kMuTau + 19] = 0;
-      fEventSets [kMuTau + 20] = 1; // events with opposite signs and nJets > 1
-      fEventSets [kMuTau + 20+fQcdOffset] = 1; // events with same signs and nJets > 1
-      fTreeSets  [kMuTau + 20] = 0;
+      fEventSets [kMuTau + 26] = 1; // events with opposite signs and top set
+      fEventSets [kMuTau + 26+fQcdOffset] = 1; // events with same signs and top set
 
-      fEventSets [kMuTau + 21] = 1; // events with opposite signs and nPhotons = 0
-      fEventSets [kMuTau + 21+fQcdOffset] = 1; // events with same signs and nPhotons = 0
-      fEventSets [kMuTau + 22] = 1; // events with opposite signs and nPhotons > 0
-      fEventSets [kMuTau + 22+fQcdOffset] = 1; // events with same signs and nPhotons > 0
-      fEventSets [kMuTau + 23] = 1; 
-      fEventSets [kMuTau + 23+fQcdOffset] = 1; 
-
-      //Test sets
-      fEventSets [kMuTau + 24] = 1;
-      fEventSets [kMuTau + 24+fQcdOffset] = 1;
-      fEventSets [kMuTau + 25] = 1;
-      fEventSets [kMuTau + 25+fQcdOffset] = 1;
-      
+      fEventSets [kMuTau + 27] = 1;
+      fEventSets [kMuTau + 27+fQcdOffset] = 1; 
+      fEventSets [kMuTau + 28] = 1;
+      fEventSets [kMuTau + 28+fQcdOffset] = 1; 
+      fEventSets [kMuTau + 29] = 1;
+      fEventSets [kMuTau + 29+fQcdOffset] = 1; 
     }
     else if(fFolderName == "etau") {
-      //E+Tau
-      fEventSets [kETau  + 1] = 1; // all opposite signed events
-      fEventSets [kETau  + 1+fQcdOffset] = 1; // all same signed events
-      fEventSets [kETau  + 2] = 1; // events with opposite signs and >= 1 photon
-      fEventSets [kETau  + 2+fQcdOffset] = 1; // events with same signs and >= 1 photon
+      fEventSets [kETau + 1] = 1; // all opposite signed events
+      fEventSets [kETau + 1+fQcdOffset] = 1; // all same signed events
+      fEventSets [kETau + 2] = 1; // events with opposite signs and >= 1 photon
+      fEventSets [kETau + 2+fQcdOffset] = 1; // events with same signs and >= 1 photon
     
-      fEventSets [kETau  + 3] = 1; 
-      fEventSets [kETau  + 3+fQcdOffset] = 1; 
-      fEventSets [kETau  + 4] = 1;
-      fEventSets [kETau  + 4+fQcdOffset] = 1;
-      fEventSets [kETau  + 5] = 1;
-      fEventSets [kETau  + 5+fQcdOffset] = 1;
-      fTreeSets  [kETau + 5] = 0;
-      fEventSets [kETau  + 6] = 1;
-      fEventSets [kETau  + 6+fQcdOffset] = 1;
-      fTreeSets  [kETau + 6] = 0;
+      fEventSets [kETau + 3] = 1; 
+      fEventSets [kETau + 3+fQcdOffset] = 1; 
+      fEventSets [kETau + 4] = 1;
+      fEventSets [kETau + 4+fQcdOffset] = 1;
+      fEventSets [kETau + 5] = 1;
+      fEventSets [kETau + 5+fQcdOffset] = 1;
+      fEventSets [kETau + 6] = 1;
+      fEventSets [kETau + 6+fQcdOffset] = 1;
+      fEventSets [kETau + 7] = 1;
+      fEventSets [kETau + 7+fQcdOffset] = 1;
 
-      // fEventSets [kETau  + 6] = 1; // events with opposite signs and passing Mu+Tau Pt cuts with no photon check
-      // fEventSets [kETau  + 6+fQcdOffset] = 1; // events with same signs and passing Mu+Tau Pt cuts with no photon check
+      fEventSets [kETau + 8] = 1; // events with opposite signs
+      fEventSets [kETau + 8+fQcdOffset] = 1; // events with same signs 
+      fTreeSets  [kETau + 8] = 1;
+      fTreeSets  [kETau + 8+fQcdOffset] = fIsData != 0; //save SS data for QCD training
 
-      fEventSets [kETau  + 7] = 1; // events with opposite signs and passing Mu+Tau Pt + angle cuts with no photon check
-      fEventSets [kETau  + 7+fQcdOffset] = 1; // events with same signs and passing Mu+Tau Pt + angle cuts with no photon check
-      fTreeSets  [kETau  + 7] = 0;
+      // MVA categories
+      for(int i = 9; i < 19; ++i) {fEventSets[kETau + i] = 1; fEventSets[kETau + i + fQcdOffset] = 1;}
 
-      // Sets 8-10 MVA cuts applied
-      fEventSets [kETau  + 8] = 1; // events with opposite signs
-      fEventSets [kETau  + 8+fQcdOffset] = 1; // events with same signs 
-      fTreeSets  [kETau  + 8] = 1;
-      fTreeSets  [kETau  + 8+fQcdOffset] = fIsData != 0; //save ss data for qcd training
-      fEventSets [kETau  + 9] = 1; // events with opposite signs 
-      fEventSets [kETau  + 9+fQcdOffset] = 1; // events with same signs 
-      fTreeSets  [kETau  + 9] = 1;
-      fEventSets [kETau  + 10] = 1; // events with opposite signs 
-      fEventSets [kETau  + 10+fQcdOffset] = 1; // events with same signs 
-      fTreeSets  [kETau  + 10] = 1;
-    
-      fEventSets [kETau  + 11] = 1; // events with opposite signs and mass window
-      fEventSets [kETau  + 11+fQcdOffset] = 1; // events with same signs and mass window
-      fEventSets [kETau  + 12] = 1; // events with opposite signs and mass window
-      fEventSets [kETau  + 12+fQcdOffset] = 1; // events with same signs and mass window
+      fEventSets [kETau + 22] = 1; // events with opposite signs and nJets = 0
+      fEventSets [kETau + 22+fQcdOffset] = 1; // events with same signs and nJets = 0
+      fEventSets [kETau + 23] = 1; // events with opposite signs and nJets > 0
+      fEventSets [kETau + 23+fQcdOffset] = 1; // events with same signs and nJets > 0
 
-      //background regions
-      fEventSets [kETau  + 13] = 1; // events with opposite signs and top set
-      fEventSets [kETau  + 13+fQcdOffset] = 1; // events with same signs and top set
-      fEventSets [kETau  + 14] = 1; // events with opposite signs and w+jets set
-      fEventSets [kETau  + 14+fQcdOffset] = 1; // events with same signs and w+jets set
-      fEventSets [kETau  + 15] = 1; // events with opposite signs and z+jets set
-      fEventSets [kETau  + 15+fQcdOffset] = 1; // events with same signs and z+jets set
+      fEventSets [kETau + 24] = 1; // events with opposite signs and mass window
+      fEventSets [kETau + 24+fQcdOffset] = 1; // events with same signs and mass window
+      fEventSets [kETau + 25] = 1; // events with opposite signs and mass window
+      fEventSets [kETau + 25+fQcdOffset] = 1; // events with same signs and mass window
 
-      // fEventSets [kETau  + 16] = 1; // events with opposite signs and z box cuts
-      // fEventSets [kETau  + 16+fQcdOffset] = 1; // events with same signs and z box cuts
-      // fEventSets [kETau  + 17] = 1; // events with opposite signs and higgs box cuts
-      // fEventSets [kETau  + 17+fQcdOffset] = 1; // events with same signs and higgs box cuts
+      fEventSets [kETau + 26] = 1; // events with opposite signs and top set
+      fEventSets [kETau + 26+fQcdOffset] = 1; // events with same signs and top set
 
-      fEventSets [kETau  + 18] = 1; // events with opposite signs and nJets = 0
-      fEventSets [kETau  + 18+fQcdOffset] = 1; // events with same signs and nJets = 0
-      fTreeSets  [kETau  + 18] = 0;
-      fEventSets [kETau  + 19] = 1; // events with opposite signs and nJets = 1
-      fEventSets [kETau  + 19+fQcdOffset] = 1; // events with same signs and nJets = 1
-      fTreeSets  [kETau  + 19] = 0;
-      fEventSets [kETau  + 20] = 1; // events with opposite signs and nJets > 1
-      fEventSets [kETau  + 20+fQcdOffset] = 1; // events with same signs and nJets > 1
-      fTreeSets  [kETau  + 20] = 0;
-
-      fEventSets [kETau  + 21] = 1; // events with opposite signs and nPhotons = 0
-      fEventSets [kETau  + 21+fQcdOffset] = 1; // events with same signs and nPhotons = 0
-      fEventSets [kETau  + 22] = 1; // events with opposite signs and nPhotons > 0
-      fEventSets [kETau  + 22+fQcdOffset] = 1; // events with same signs and nPhotons > 0
-      fEventSets [kETau  + 23] = 1; 
-      fEventSets [kETau  + 23+fQcdOffset] = 1; 
-
-      //Test sets
-      fEventSets [kETau  + 24] = 1;
-      fEventSets [kETau  + 24+fQcdOffset] = 1; 
-      fEventSets [kETau  + 25] = 1;
-      fEventSets [kETau  + 25+fQcdOffset] = 1; 
-      // fEventSets [kEMu   + 26] = 1;
-      // fEventSets [kEMu   + 26+fQcdOffset] = 1; 
-      // fEventSets [kEMu   + 27] = 1;
-      // fEventSets [kEMu   + 27+fQcdOffset] = 1; 
-      // fEventSets [kEMu   + 28] = 1;
-      // fEventSets [kEMu   + 28+fQcdOffset] = 1; 
-      // fEventSets [kEMu   + 29] = 1;
-      // fEventSets [kEMu   + 29+fQcdOffset] = 1; 
-
+      fEventSets [kETau + 27] = 1;
+      fEventSets [kETau + 27+fQcdOffset] = 1; 
+      fEventSets [kETau + 28] = 1;
+      fEventSets [kETau + 28+fQcdOffset] = 1; 
+      fEventSets [kETau + 29] = 1;
+      fEventSets [kETau + 29+fQcdOffset] = 1; 
     }
     else if(fFolderName == "emu") {
-      //E+Mu
-      fEventSets [kEMu   + 1] = 1; // all opposite signed events
-      fEventSets [kEMu   + 1+fQcdOffset] = 1; // all same signed events
-      fEventSets [kEMu   + 2] = 1; // events with opposite signs and >= 1 photon
-      fEventSets [kEMu   + 2+fQcdOffset] = 1; // events with same signs and >= 1 photon
+      fEventSets [kEMu + 1] = 1; // all opposite signed events
+      fEventSets [kEMu + 1+fQcdOffset] = 1; // all same signed events
+      fEventSets [kEMu + 2] = 1; // events with opposite signs and >= 1 photon
+      fEventSets [kEMu + 2+fQcdOffset] = 1; // events with same signs and >= 1 photon
     
-      fEventSets [kEMu   + 3] = 1; 
-      fEventSets [kEMu   + 3+fQcdOffset] = 1; 
-      fEventSets [kEMu   + 4] = 1;
-      fEventSets [kEMu   + 4+fQcdOffset] = 1;
-      fEventSets [kEMu   + 5] = 1;
-      fEventSets [kEMu   + 5+fQcdOffset] = 1;
-      fTreeSets  [kEMu + 5] = 0;
-      fEventSets [kEMu   + 6] = 1;
-      fEventSets [kEMu   + 6+fQcdOffset] = 1;
-      fTreeSets  [kEMu + 6] = 0;
+      fEventSets [kEMu + 3] = 1; 
+      fEventSets [kEMu + 3+fQcdOffset] = 1; 
+      fEventSets [kEMu + 4] = 1;
+      fEventSets [kEMu + 4+fQcdOffset] = 1;
+      fEventSets [kEMu + 5] = 1;
+      fEventSets [kEMu + 5+fQcdOffset] = 1;
+      fEventSets [kEMu + 6] = 1;
+      fEventSets [kEMu + 6+fQcdOffset] = 1;
+      fEventSets [kEMu + 7] = 1;
+      fEventSets [kEMu + 7+fQcdOffset] = 1;
 
-      // fEventSets [kEMu   + 6] = 1; // events with opposite signs and passing Mu+Tau Pt cuts with no photon check
-      // fEventSets [kEMu   + 6+fQcdOffset] = 1; // events with same signs and passing Mu+Tau Pt cuts with no photon check
+      fEventSets [kEMu + 8] = 1; // events with opposite signs
+      fEventSets [kEMu + 8+fQcdOffset] = 1; // events with same signs 
+      fTreeSets  [kEMu + 8] = 1;
+      fTreeSets  [kEMu + 8+fQcdOffset] = fIsData != 0; //save SS data for QCD training
 
-      fEventSets [kEMu   + 7] = 1; // events with opposite signs and passing Mu+Tau Pt + angle cuts with no photon check
-      fEventSets [kEMu   + 7+fQcdOffset] = 1; // events with same signs and passing Mu+Tau Pt + angle cuts with no photon check
-      fTreeSets  [kEMu   + 7] = 0;
+      // MVA categories
+      for(int i = 9; i < 19; ++i) {fEventSets[kEMu + i] = 1; fEventSets[kEMu + i + fQcdOffset] = 1;}
 
-      // Sets 8-10 MVA cuts applied
-      fEventSets [kEMu   + 8] = 1; // events with opposite signs
-      fEventSets [kEMu   + 8+fQcdOffset] = 1; // events with same signs 
-      fTreeSets  [kEMu   + 8] = 1;
-      fTreeSets  [kEMu   + 8+fQcdOffset] = fIsData != 0; //save ss data for qcd training
-      fEventSets [kEMu   + 9] = 1; // events with opposite signs 
-      fEventSets [kEMu   + 9+fQcdOffset] = 1; // events with same signs 
-      fTreeSets  [kEMu   + 9] = 1;
-      fEventSets [kEMu   + 10] = 1; // events with opposite signs 
-      fEventSets [kEMu   + 10+fQcdOffset] = 1; // events with same signs 
-      fTreeSets  [kEMu   + 10] = 1;
-    
-      fEventSets [kEMu   + 11] = 1; // events with opposite signs and mass window
-      fEventSets [kEMu   + 11+fQcdOffset] = 1; // events with same signs and mass window
-      fEventSets [kEMu   + 12] = 1; // events with opposite signs and mass window
-      fEventSets [kEMu   + 12+fQcdOffset] = 1; // events with same signs and mass window
+      fEventSets [kEMu + 20] = 1; // events with opposite signs and z box cuts
+      fEventSets [kEMu + 20+fQcdOffset] = 1; // events with same signs and z box cuts
+      fEventSets [kEMu + 21] = 1; // events with opposite signs and higgs box cuts
+      fEventSets [kEMu + 21+fQcdOffset] = 1; // events with same signs and higgs box cuts
 
-      //background regions
-      fEventSets [kEMu   + 13] = 1; // events with opposite signs and top set
-      fEventSets [kEMu   + 13+fQcdOffset] = 1; // events with same signs and top set
-      fEventSets [kEMu   + 14] = 1; // events with opposite signs and w+jets set
-      fEventSets [kEMu   + 14+fQcdOffset] = 1; // events with same signs and w+jets set
-      fEventSets [kEMu   + 15] = 1; // events with opposite signs and z+jets set
-      fEventSets [kEMu   + 15+fQcdOffset] = 1; // events with same signs and z+jets set
+      fEventSets [kEMu + 22] = 1; // events with opposite signs and nJets = 0
+      fEventSets [kEMu + 22+fQcdOffset] = 1; // events with same signs and nJets = 0
+      fEventSets [kEMu + 23] = 1; // events with opposite signs and nJets > 0
+      fEventSets [kEMu + 23+fQcdOffset] = 1; // events with same signs and nJets > 0
 
-      fEventSets [kEMu   + 16] = 1; // events with opposite signs and z box cuts
-      fEventSets [kEMu   + 16+fQcdOffset] = 1; // events with same signs and z box cuts
-      fTreeSets  [kEMu   + 16] = 0;
-      fEventSets [kEMu   + 17] = 1; // events with opposite signs and higgs box cuts
-      fEventSets [kEMu   + 17+fQcdOffset] = 1; // events with same signs and higgs box cuts
+      fEventSets [kEMu + 24] = 1; // events with opposite signs and mass window
+      fEventSets [kEMu + 24+fQcdOffset] = 1; // events with same signs and mass window
+      fEventSets [kEMu + 25] = 1; // events with opposite signs and mass window
+      fEventSets [kEMu + 25+fQcdOffset] = 1; // events with same signs and mass window
 
-      fEventSets [kEMu   + 18] = 1; // events with opposite signs and nJets = 0
-      fEventSets [kEMu   + 18+fQcdOffset] = 1; // events with same signs and nJets = 0
-      fTreeSets  [kEMu   + 18] = 0;
-      fEventSets [kEMu   + 19] = 1; // events with opposite signs and nJets = 1
-      fEventSets [kEMu   + 19+fQcdOffset] = 1; // events with same signs and nJets = 1
-      fTreeSets  [kEMu   + 19] = 0;
-      fEventSets [kEMu   + 20] = 1; // events with opposite signs and nJets > 1
-      fEventSets [kEMu   + 20+fQcdOffset] = 1; // events with same signs and nJets > 1
-      fTreeSets  [kEMu   + 20] = 0;
+      fEventSets [kEMu + 26] = 1; // events with opposite signs and top set
+      fEventSets [kEMu + 26+fQcdOffset] = 1; // events with same signs and top set
 
-      fEventSets [kEMu   + 21] = 1; // events with opposite signs and nPhotons = 0
-      fEventSets [kEMu   + 21+fQcdOffset] = 1; // events with same signs and nPhotons = 0
-      fEventSets [kEMu   + 22] = 1; // events with opposite signs and nPhotons > 0
-      fEventSets [kEMu   + 22+fQcdOffset] = 1; // events with same signs and nPhotons > 0
-      fEventSets [kEMu   + 23] = 1;  //mario's box cuts
-      fEventSets [kEMu   + 23+fQcdOffset] = 1; 
-
-      //Test sets
-      fEventSets [kEMu   + 24] = 1;
-      fEventSets [kEMu   + 24+fQcdOffset] = 1; 
-      fEventSets [kEMu   + 25] = 1;
-      fEventSets [kEMu   + 25+fQcdOffset] = 1; 
-      // fEventSets [kEMu   + 26] = 1;
-      // fEventSets [kEMu   + 26+fQcdOffset] = 1; 
-      // fEventSets [kEMu   + 27] = 1;
-      // fEventSets [kEMu   + 27+fQcdOffset] = 1; 
-      // fEventSets [kEMu   + 28] = 1;
-      // fEventSets [kEMu   + 28+fQcdOffset] = 1; 
-      // fEventSets [kEMu   + 29] = 1;
-      // fEventSets [kEMu   + 29+fQcdOffset] = 1; 
+      fEventSets [kEMu + 27] = 1;
+      fEventSets [kEMu + 27+fQcdOffset] = 1; 
+      fEventSets [kEMu + 28] = 1;
+      fEventSets [kEMu + 28+fQcdOffset] = 1; 
+      fEventSets [kEMu + 29] = 1;
+      fEventSets [kEMu + 29+fQcdOffset] = 1; 
     }
     else if(fFolderName == "mumu") {
-      //Mu+Mu sets
-      // if(!fDYTesting) {
-	fEventSets [kMuMu + 1] = 1; // events with opposite signs
-	fEventSets [kMuMu + 1+fQcdOffset] = 1; // events with same signs
-	fEventSets [kMuMu + 2] = 1; // events with opposite signs
-	fEventSets [kMuMu + 2+fQcdOffset] = 1; // events with same signs
-      // }
-      fEventSets [kMuMu + 7] = 1; // events with opposite signs
-      fEventSets [kMuMu + 7+fQcdOffset] = 1; // events with same signs
-      fEventSets [kMuMu + 8] = 1; // events with opposite signs and no bjets
-      fEventSets [kMuMu + 8+fQcdOffset] = 1; // events with same signs
-      if(!fDYTesting) {
-	fEventSets [kMuMu + 9] = 1; // events with opposite signs and no jets, no taus, no photons (mostly pure Z->mu + mu)
-	fEventSets [kMuMu + 9+fQcdOffset] = 1; // events with same signs
-	fEventSets [kMuMu +10] = 1; // events with opposite signs and no jets, no taus, no photons (mostly pure Z->mu + mu)
-	fEventSets [kMuMu +10+fQcdOffset] = 1; // events with same signs
-	fEventSets [kMuMu  + 16] = 1; // events with opposite signs and z box cuts
-	fEventSets [kMuMu  + 16+fQcdOffset] = 1; // events with same signs and z box cuts
-	fTreeSets  [kMuMu  + 16] = 0;
+      fEventSets [kMuMu + 1] = 1; // all opposite signed events
+      fEventSets [kMuMu + 1+fQcdOffset] = 1; // all same signed events
+      fEventSets [kMuMu + 2] = 1; // events with opposite signs and >= 1 photon
+      fEventSets [kMuMu + 2+fQcdOffset] = 1; // events with same signs and >= 1 photon
+    
+      fEventSets [kMuMu + 3] = 1; 
+      fEventSets [kMuMu + 3+fQcdOffset] = 1; 
+      fEventSets [kMuMu + 4] = 1;
+      fEventSets [kMuMu + 4+fQcdOffset] = 1;
+      fEventSets [kMuMu + 5] = 1;
+      fEventSets [kMuMu + 5+fQcdOffset] = 1;
+      fEventSets [kMuMu + 6] = 1;
+      fEventSets [kMuMu + 6+fQcdOffset] = 1;
+      fEventSets [kMuMu + 7] = 1;
+      fEventSets [kMuMu + 7+fQcdOffset] = 1;
 
-	fEventSets [kMuMu + 18] = 1; // events with opposite signs + 0-jet
-	fEventSets [kMuMu + 18+fQcdOffset] = 1; // events with same
-	fEventSets [kMuMu + 19] = 1; // events with opposite signs + 1-jet
-	fEventSets [kMuMu + 19+fQcdOffset] = 1; // events with same
-	fEventSets [kMuMu + 20] = 1; // events with opposite signs + >1-jet
-	fEventSets [kMuMu + 20+fQcdOffset] = 1; // events with same
-      }
+      fEventSets [kMuMu + 8] = 1; // events with opposite signs
+      fEventSets [kMuMu + 8+fQcdOffset] = 1; // events with same signs 
+      fTreeSets  [kMuMu + 8] = 1;
+      fTreeSets  [kMuMu + 8+fQcdOffset] = fIsData != 0; //save SS data for QCD training
+
+      // MVA categories
+      for(int i = 9; i < 19; ++i) {fEventSets[kMuMu + i] = 1; fEventSets[kMuMu + i + fQcdOffset] = 1;}
+
+      fEventSets [kMuMu + 20] = 1; // events with opposite signs and z box cuts
+      fEventSets [kMuMu + 20+fQcdOffset] = 1; // events with same signs and z box cuts
+      fEventSets [kMuMu + 21] = 1; // events with opposite signs and higgs box cuts
+      fEventSets [kMuMu + 21+fQcdOffset] = 1; // events with same signs and higgs box cuts
+
+      fEventSets [kMuMu + 22] = 1; // events with opposite signs and nJets = 0
+      fEventSets [kMuMu + 22+fQcdOffset] = 1; // events with same signs and nJets = 0
+      fEventSets [kMuMu + 23] = 1; // events with opposite signs and nJets > 0
+      fEventSets [kMuMu + 23+fQcdOffset] = 1; // events with same signs and nJets > 0
+
+      fEventSets [kMuMu + 24] = 1; // events with opposite signs and mass window
+      fEventSets [kMuMu + 24+fQcdOffset] = 1; // events with same signs and mass window
+      fEventSets [kMuMu + 25] = 1; // events with opposite signs and mass window
+      fEventSets [kMuMu + 25+fQcdOffset] = 1; // events with same signs and mass window
+
+      fEventSets [kMuMu + 26] = 1; // events with opposite signs and top set
+      fEventSets [kMuMu + 26+fQcdOffset] = 1; // events with same signs and top set
+
+      fEventSets [kMuMu + 27] = 1;
+      fEventSets [kMuMu + 27+fQcdOffset] = 1; 
+      fEventSets [kMuMu + 28] = 1;
+      fEventSets [kMuMu + 28+fQcdOffset] = 1; 
+      fEventSets [kMuMu + 29] = 1;
+      fEventSets [kMuMu + 29+fQcdOffset] = 1; 
     }
     else if(fFolderName == "ee") {
-      //Mu+Mu sets
-      fEventSets [kEE + 1] = 1; // events with opposite signs
-      fEventSets [kEE + 1+fQcdOffset] = 1; // events with same signs
-      fEventSets [kEE + 2] = 1; // events with opposite signs
-      fEventSets [kEE + 2+fQcdOffset] = 1; // events with same signs
-      fEventSets [kEE + 7] = 1; // events with opposite signs
-      fEventSets [kEE + 7+fQcdOffset] = 1; // events with same signs
-      fEventSets [kEE + 8] = 1; // events with opposite signs and no bjets
-      fEventSets [kEE + 8+fQcdOffset] = 1; // events with same signs
-      fEventSets [kEE + 9] = 1; // events with opposite signs and no bjets
-      fEventSets [kEE + 9+fQcdOffset] = 1; // events with same signs
-      fEventSets [kEE + 10] = 1; // events with opposite signs and no bjets
-      fEventSets [kEE + 10+fQcdOffset] = 1; // events with same signs
-      fEventSets [kEE + 16] = 1; // events with opposite signs and z box cuts
-      fEventSets [kEE + 16+fQcdOffset] = 1; // events with same signs and z box cuts
-      fTreeSets  [kEE + 16] = 0;
-      fEventSets [kEE + 17] = 1; // events with opposite signs and z box cuts
-      fEventSets [kEE + 17+fQcdOffset] = 1; // events with same signs and z box cuts
-      fTreeSets  [kEE + 17] = 0;
-      fEventSets [kEE + 18] = 1; // events with opposite signs and z box cuts
-      fEventSets [kEE + 18+fQcdOffset] = 1; // events with same signs and z box cuts
-      fTreeSets  [kEE + 18] = 0;
+      fEventSets [kEE + 1] = 1; // all opposite signed events
+      fEventSets [kEE + 1+fQcdOffset] = 1; // all same signed events
+      fEventSets [kEE + 2] = 1; // events with opposite signs and >= 1 photon
+      fEventSets [kEE + 2+fQcdOffset] = 1; // events with same signs and >= 1 photon
+    
+      fEventSets [kEE + 3] = 1; 
+      fEventSets [kEE + 3+fQcdOffset] = 1; 
+      fEventSets [kEE + 4] = 1;
+      fEventSets [kEE + 4+fQcdOffset] = 1;
+      fEventSets [kEE + 5] = 1;
+      fEventSets [kEE + 5+fQcdOffset] = 1;
+      fEventSets [kEE + 6] = 1;
+      fEventSets [kEE + 6+fQcdOffset] = 1;
+      fEventSets [kEE + 7] = 1;
+      fEventSets [kEE + 7+fQcdOffset] = 1;
 
+      fEventSets [kEE + 8] = 1; // events with opposite signs
+      fEventSets [kEE + 8+fQcdOffset] = 1; // events with same signs 
+      fTreeSets  [kEE + 8] = 1;
+      fTreeSets  [kEE + 8+fQcdOffset] = fIsData != 0; //save SS data for QCD training
+
+      // MVA categories
+      for(int i = 9; i < 19; ++i) {fEventSets[kEE + i] = 1; fEventSets[kEE + i + fQcdOffset] = 1;}
+
+      fEventSets [kEE + 20] = 1; // events with opposite signs and z box cuts
+      fEventSets [kEE + 20+fQcdOffset] = 1; // events with same signs and z box cuts
+      fEventSets [kEE + 21] = 1; // events with opposite signs and higgs box cuts
+      fEventSets [kEE + 21+fQcdOffset] = 1; // events with same signs and higgs box cuts
+
+      fEventSets [kEE + 22] = 1; // events with opposite signs and nJets = 0
+      fEventSets [kEE + 22+fQcdOffset] = 1; // events with same signs and nJets = 0
+      fEventSets [kEE + 23] = 1; // events with opposite signs and nJets > 0
+      fEventSets [kEE + 23+fQcdOffset] = 1; // events with same signs and nJets > 0
+
+      fEventSets [kEE + 24] = 1; // events with opposite signs and mass window
+      fEventSets [kEE + 24+fQcdOffset] = 1; // events with same signs and mass window
+      fEventSets [kEE + 25] = 1; // events with opposite signs and mass window
+      fEventSets [kEE + 25+fQcdOffset] = 1; // events with same signs and mass window
+
+      fEventSets [kEE + 26] = 1; // events with opposite signs and top set
+      fEventSets [kEE + 26+fQcdOffset] = 1; // events with same signs and top set
+
+      fEventSets [kEE + 27] = 1;
+      fEventSets [kEE + 27+fQcdOffset] = 1; 
+      fEventSets [kEE + 28] = 1;
+      fEventSets [kEE + 28+fQcdOffset] = 1; 
+      fEventSets [kEE + 29] = 1;
+      fEventSets [kEE + 29+fQcdOffset] = 1; 
     }
     if(fFolderName == "emu") {
       //Leptonic tau channels
       //mu+tau_e
-      fEventSets [kMuTauE+ 9] = 1; // events with opposite signs + BDT cut
-      fEventSets [kMuTauE+ 9+fQcdOffset] = 1; // events with same
-      fEventSets [kMuTauE+ 10] = 1; // events with opposite signs + BDT cut
-      fEventSets [kMuTauE+ 10+fQcdOffset] = 1; // events with same
+      // MVA categories
+      for(int i = 9; i < 19; ++i) {fEventSets[kMuTauE + i] = 1; fEventSets[kMuTauE + i + fQcdOffset] = 1;}
       //e+tau_mu
-      fEventSets [kETauMu+ 9] = 1; // events with opposite signs + BDT cut
-      fEventSets [kETauMu+ 9+fQcdOffset] = 1; // events with same
-      fEventSets [kETauMu+ 10] = 1; // events with opposite signs + BDT cut
-      fEventSets [kETauMu+ 10+fQcdOffset] = 1; // events with same
+      // MVA categories
+      for(int i = 9; i < 19; ++i) {fEventSets[kETauMu + i] = 1; fEventSets[kETauMu + i + fQcdOffset] = 1;}
     }
 
     //initialize all the histograms
@@ -1263,6 +1199,7 @@ void ZTauTauHistMaker::Init(TTree *tree)
     fChain->SetBranchAddress("leptonOneID2"        , &leptonOneID2         );
     fChain->SetBranchAddress("leptonTwoID1"        , &leptonTwoID1         );
     fChain->SetBranchAddress("leptonTwoID2"        , &leptonTwoID2         );
+    fChain->SetBranchAddress("leptonTwoID3"        , &leptonTwoID3         );
   }
   fChain->SetBranchAddress("leptonOneIndex"      , &leptonOneIndex       );
   fChain->SetBranchAddress("leptonTwoIndex"      , &leptonTwoIndex       );
@@ -1394,7 +1331,7 @@ void ZTauTauHistMaker::Init(TTree *tree)
     fChain->SetBranchAddress("leptonOneSVP4" 	 , &leptonOneSVP4        );
     fChain->SetBranchAddress("leptonTwoSVP4" 	 , &leptonTwoSVP4        );
     if(!fReprocessMVAs) {
-      for(unsigned mva_i = 0; mva_i < fMvaNames.size(); ++mva_i) {
+      for(unsigned mva_i = 0; mva_i < fMVAConfig.names_.size(); ++mva_i) {
 	fChain->SetBranchAddress(Form("mva%i",mva_i), &fMvaOutputs[mva_i]);
       }
     }

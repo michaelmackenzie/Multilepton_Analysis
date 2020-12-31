@@ -5,20 +5,21 @@ TString selection_ = "emu"; //current options: mutau, etau, emu, mutau_e, etau_m
 Int_t verbose_ = 0; //verbosity level
 Int_t useOpenGL_ = 0;
 bool  doStatsLegend_ = false;
-TString hist_dir_ = "nanoaods";
-TString folder_ = "nanoaods";
+TString hist_dir_ = "nanoaods_dev";
+TString folder_ = "nanoaods_dev";
 bool doAllEMu_ = false; //plot all emu signals (including leptonic decays) on selection_ == "emu"
-bool printCDFs_ = false; //print cdf transform of MVAs
+bool printCDFs_ = true; //print cdf transform of MVAs
 bool printLimitVsEff_ = false; //print limit gain vs signal efficiency from MVA cut
 bool printMVATotBkg_ = false; //print MVA distributions as total background vs signal
 bool print2Ds_ = false;
-bool printSignificances_ = false;
-bool printMVAPlots_ = false;
+bool printSignificances_ = true;
+bool printMVAPlots_ = true;
 bool printSlimCounts_ = false; 
-bool printBlindSets_ = false; //print sets > MVA score cut without data
-vector<int> years_ = {2016}; //if using multiple years, list of years of interest
+bool printBlindSets_ = true; //print sets > MVA score cut without data
+vector<int> years_ = {2016, 2017, 2018}; //list of years of interest
 bool offsetSets_ = true; //offset by selection set from ZTauTauHistMaker
 int sigOverBkg_ = 0; //plot sig / bkg or data / MC (0 = data/MC, 1 = sig/MC, 2 = sig*sig/MC)
+int doRunPeriod_ = 0; //do a specific run period of data
 
 Int_t print_significance_canvases(vector<TString> hists, vector<TString> types, vector<TString> labels, vector<int> sets) {
   TCanvas* c = 0;
@@ -128,6 +129,131 @@ Int_t print_statistics(TString hist, TString type, int set, double xmin = 1., do
   DataPlotter::Empty_Canvas(c);
   return 0;
 }
+
+//print Higgs-Combine cut-and-count data card assuming standard MVA sets
+Int_t print_combine_card(TString hist, TString type, TString label, double xmin = 1., double xmax = -1.) {
+  if(!dataplotter_) return -1;
+  //make a directory for the card if needed
+  TString year_s = "";
+  for(unsigned index = 0; index < years_.size(); ++index) {
+    year_s += years_[index];
+    if(index < years_.size() - 1) year_s += "_";
+  }
+  gSystem->Exec(Form("[ ! -d datacards/%s ] && mkdir -p datacards/%s", year_s.Data(), year_s.Data()));
+
+  //get initial selection set based on Higgs decay or not
+  bool isHiggs = label.Contains("H->");
+  int base_set = (isHiggs) ? 14 : 9; //FIXME: Get from HistMaker
+  int max_sets = 5;
+  if(selection_ == "mutau"  ) base_set += ZTauTauHistMaker::kMuTau;
+  if(selection_ == "etau"   ) base_set += ZTauTauHistMaker::kETau;
+  if(selection_ == "emu"    ) base_set += ZTauTauHistMaker::kEMu;
+  if(selection_ == "mutau_e") base_set += ZTauTauHistMaker::kMuTauE;
+  if(selection_ == "etau_mu") base_set += ZTauTauHistMaker::kETauMu;
+
+  vector<double> bkgs, sigs;
+  for(int curr_set = base_set; curr_set < base_set + max_sets; ++curr_set) {
+    TCanvas* c = dataplotter_->plot_stack(hist, type, curr_set);
+    if(!c) return 1;
+    TList* list = c->GetListOfPrimitives();
+    if(!list) return 2;
+    for(auto o : *list) {
+      try {
+	auto pad = (TPad*) o;
+	if(!pad) continue;
+	TList* pad_list = pad->GetListOfPrimitives();
+	bool bkg_f(false), sig_f(false);
+	for(auto h : *pad_list) {
+	  // cout << h->GetName() << ": " << h->GetTitle() << ": " << h->InheritsFrom("THStack") << endl;
+	  if(h->InheritsFrom("THStack")) {
+	    THStack* hstack = (THStack*) h;
+	    TH1D* hbkg = (TH1D*) hstack->GetStack()->Last();
+	    int bin_lo = (xmin < xmax) ? hbkg->FindBin(xmin) : 0;
+	    int bin_hi = (xmin < xmax) ? hbkg->FindBin(xmax) : hbkg->GetNbinsX()+1;
+	    double bkg = hbkg->Integral(bin_lo, bin_hi);
+	    bkgs.push_back(bkg);
+	    bkg_f = true;
+	  } else if(h->InheritsFrom("TH1D")) { //signal histograms or data
+	    TH1D* h_curr = (TH1D*) h;
+	    if(TString(h_curr->GetName()).Contains(label.Data())) {
+	      int bin_lo = (xmin < xmax) ? h_curr->FindBin(xmin) : 0;
+	      int bin_hi = (xmin < xmax) ? h_curr->FindBin(xmax) : h_curr->GetNbinsX()+1;
+	      double sig = h_curr->Integral(bin_lo, bin_hi);
+	      sigs.push_back(sig);
+	      sig_f = true;
+	    }
+	  }
+	  delete h;
+	}
+	if(!sig_f&&bkg_f) sigs.push_back(0.);
+	
+      } catch(exception e) {
+      }
+    }
+    DataPlotter::Empty_Canvas(c);    
+  }
+  
+  if(bkgs.size() != sigs.size()) {
+    cout << "Background size = " << bkgs.size() << " != signal size = " << sigs.size() << endl;
+    return 3;
+  }
+
+  //Re-create datacard for the process, add information
+  TString name = label;
+  name.ReplaceAll("#", "");
+  name.ReplaceAll(" ", "");
+  name.ReplaceAll("/", "");
+  name.ReplaceAll("->", "");
+  name.ToLower();
+  cout << "Using label --> name = " << name.Data() << endl;
+  TString filepath = Form("datacards/%s/counting_MVA_%s.txt", year_s.Data(), name.Data());
+  gSystem->Exec(Form("echo \"# -*- mode: tcl -*-\">| %s", filepath.Data()));
+  gSystem->Exec(Form("echo \"#Auto generated counting card for LFVAnalysis \n\">> %s", filepath.Data()));
+  gSystem->Exec(Form("echo \"imax %2zu number of channels \">> %s", bkgs.size(), filepath.Data()));
+  gSystem->Exec(Form("echo \"jmax  1 number of backgrounds \">> %s", filepath.Data()));
+  gSystem->Exec(Form("echo \"kmax  0 number of nuisance parameters (sources of systematical uncertainties) \n\">> %s", filepath.Data()));
+ 
+  TString bins   = "bin          ";
+  TString obs    = "observation  ";
+  TString bins_p = "bin          ";
+  TString proc_l = "process      ";
+  TString proc_c = "process      ";
+  TString rate   = "rate         ";
+  for(unsigned index = 0; index < bkgs.size(); ++index) {
+    //Append information to combined card
+    bins += Form("mva%i ", index);
+    obs  +=      "  1  ";
+    bins_p += Form("     mva%i       mva%i  ", index, index);
+    proc_l +=      "      sig        bkg  ";
+    proc_c +=      "       0          1   ";
+    rate   += Form("%10.1f %10.1f ", sigs[index], bkgs[index]);
+
+    //output information for individual channel's card
+    TString filepath_i = Form("datacards/%s/counting_MVA_%s_%i.txt", year_s.Data(), name.Data(), index);
+    gSystem->Exec(Form("echo \"# -*- mode: tcl -*-\">| %s", filepath_i.Data()));
+    gSystem->Exec(Form("echo \"#Auto generated counting card for LFVAnalysis \n\">> %s", filepath_i.Data()));
+    gSystem->Exec(Form("echo \"imax  1 number of channels \">> %s", filepath_i.Data()));
+    gSystem->Exec(Form("echo \"jmax  1 number of backgrounds \">> %s", filepath_i.Data()));
+    gSystem->Exec(Form("echo \"kmax  0 number of nuisance parameters (sources of systematical uncertainties) \n\">> %s", filepath_i.Data()));
+    gSystem->Exec(Form("echo \"bin              mva \">> %s", filepath_i.Data()));
+    gSystem->Exec(Form("echo \"observation       1 \">> %s" , filepath_i.Data()));
+    gSystem->Exec(Form("echo \"bin              mva        mva \">> %s", filepath_i.Data()));
+    gSystem->Exec(Form("echo \"process          sig        bkg \">> %s", filepath_i.Data()));
+    gSystem->Exec(Form("echo \"process           0          1  \">> %s", filepath_i.Data()));
+    gSystem->Exec(Form("echo \"rate       %10.1f %10.1f  \n\">> %s", sigs[index], bkgs[index], filepath_i.Data()));
+    
+    cout << index << ": Bkg = " << bkgs[index] << " Sig = " << sigs[index] << endl;
+  }
+  gSystem->Exec(Form("echo \"%s \">> %s", bins.Data(), filepath.Data()));
+  gSystem->Exec(Form("echo \"%s \n\">> %s", obs.Data() , filepath.Data()));
+  gSystem->Exec(Form("echo \"%s \">> %s", bins_p.Data() , filepath.Data()));
+  gSystem->Exec(Form("echo \"%s \">> %s", proc_l.Data() , filepath.Data()));
+  gSystem->Exec(Form("echo \"%s \n\">> %s", proc_c.Data() , filepath.Data()));
+  gSystem->Exec(Form("echo \"%s \n\">> %s", rate.Data() , filepath.Data()));
+  
+  return 0;
+}
+
 
 TCanvas* print_canvas(TString hist, TString type, int set, bool stacks = true, TString name = "") {
   if(!dataplotter_) {
@@ -393,16 +519,19 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
   } else if(selection_ == "emu" || selection_.Contains("tau_") || selection_ == "ee" || selection_ == "mumu") { //print all MVAs for emu dataset categories
     int mvas[] = {4,5, //H, Z -> emu
 		  6,7, //H, Z -> mutau_e
-		  8,9};//H, Z ->etau_mu    
+		  8,9};//H, Z ->etau_mu
+    double blinds[] = {-0.2, -0.2,
+		       0.  , 0.  ,
+		       0.  , 0.  };
     for(int mva_i = 0; mva_i < sizeof(mvas)/sizeof(*mvas); ++mva_i) {
       if(selection_ == "ee" || selection_ == "mumu") { //don't need to blind the ee/mumu channels
 	mvaplottingcards.push_back(DataPlotter::PlottingCard_t(Form("mva%i"     ,mvas[mva_i]), "event", 200, -1.,   1.));
 	mvaplottingcards.push_back(DataPlotter::PlottingCard_t(Form("mvatest%i" ,mvas[mva_i]), "event",   2, -1.,   1.));
 	mvaplottingcards.push_back(DataPlotter::PlottingCard_t(Form("mvatrain%i",mvas[mva_i]), "event",   2, -1.,   1.));
       } else {
-	mvaplottingcards.push_back(DataPlotter::PlottingCard_t(Form("mva%i"     ,mvas[mva_i]), "event", 200, -1.,   1. , 0.01, 1. ));
-	mvaplottingcards.push_back(DataPlotter::PlottingCard_t(Form("mvatest%i" ,mvas[mva_i]), "event",   2, -1.,   1. , 0.01, 1. ));
-	mvaplottingcards.push_back(DataPlotter::PlottingCard_t(Form("mvatrain%i",mvas[mva_i]), "event",   2, -1.,   1. , 0.01, 1. ));
+	mvaplottingcards.push_back(DataPlotter::PlottingCard_t(Form("mva%i"     ,mvas[mva_i]), "event", 200, -1.,   1. , blinds[mva_i], 1. ));
+	mvaplottingcards.push_back(DataPlotter::PlottingCard_t(Form("mvatest%i" ,mvas[mva_i]), "event",   2, -1.,   1. , blinds[mva_i], 1. ));
+	mvaplottingcards.push_back(DataPlotter::PlottingCard_t(Form("mvatrain%i",mvas[mva_i]), "event",   2, -1.,   1. , blinds[mva_i], 1. ));
       }
     }
   }
@@ -426,10 +555,10 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
   // plottingcards.push_back(DataPlotter::PlottingCard_t("onereliso",         "lep",   1, 0.,   0.15));
   // plottingcards.push_back(DataPlotter::PlottingCard_t("twod0",             "lep",   2, -0.05,0.05));
 
-  // plottingcards.push_back(DataPlotter::PlottingCard_t("oneid1",  "lep",   0, 0,10));
-  // plottingcards.push_back(DataPlotter::PlottingCard_t("twoid1",  "lep",   0, 0,50));
-  // plottingcards.push_back(DataPlotter::PlottingCard_t("oneid2",  "lep",   0, 0,10));
-  // plottingcards.push_back(DataPlotter::PlottingCard_t("twoid2",  "lep",   0, 0,10));
+  plottingcards.push_back(DataPlotter::PlottingCard_t("oneid1",  "lep",   0, 0,10));
+  plottingcards.push_back(DataPlotter::PlottingCard_t("twoid1",  "lep",   0, 0,50));
+  plottingcards.push_back(DataPlotter::PlottingCard_t("oneid2",  "lep",   0, 0,10));
+  plottingcards.push_back(DataPlotter::PlottingCard_t("twoid2",  "lep",   0, 0,10));
     
     
   // plottingcards.push_back(DataPlotter::PlottingCard_t("oneslimeq",  "lep",   0, -2,4));
@@ -555,20 +684,20 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
   vector<DataPlotter::PlottingCard_t> cdfplottingcards;
   if(label != "") {
     if(selection_=="mutau") {
-      cdfplottingcards.push_back(DataPlotter::PlottingCard_t("mva0", "event", ("H"+label), 1, 0., 1.7, 0.578, 1.7));
-      cdfplottingcards.push_back(DataPlotter::PlottingCard_t("mva1", "event", ("Z"+label), 1, 0., 1.7, 0.578, 1.7));
+      cdfplottingcards.push_back(DataPlotter::PlottingCard_t("mva0", "event", ("H"+label), 1, 0., 1.7, 0.3, 1.7));
+      cdfplottingcards.push_back(DataPlotter::PlottingCard_t("mva1", "event", ("Z"+label), 1, 0., 1.7, 0.3, 1.7));
     } else if(selection_ == "etau") {
-      cdfplottingcards.push_back(DataPlotter::PlottingCard_t("mva2", "event", ("H"+label), 1, 0., 1.7, 0.578, 1.7));
-      cdfplottingcards.push_back(DataPlotter::PlottingCard_t("mva3", "event", ("Z"+label), 1, 0., 1.7, 0.578, 1.7));
+      cdfplottingcards.push_back(DataPlotter::PlottingCard_t("mva2", "event", ("H"+label), 1, 0., 1.7, 0.3, 1.7));
+      cdfplottingcards.push_back(DataPlotter::PlottingCard_t("mva3", "event", ("Z"+label), 1, 0., 1.7, 0.3, 1.7));
     } else if(selection_ == "emu") {
-      cdfplottingcards.push_back(DataPlotter::PlottingCard_t("mva4", "event", ("H"+label), 1, 0., 1.7, 0.578, 1.7));
-      cdfplottingcards.push_back(DataPlotter::PlottingCard_t("mva5", "event", ("Z"+label), 1, 0., 1.7, 0.578, 1.7));
+      cdfplottingcards.push_back(DataPlotter::PlottingCard_t("mva4", "event", ("H"+label), 1, 0., 1.7, 0.3, 1.7));
+      cdfplottingcards.push_back(DataPlotter::PlottingCard_t("mva5", "event", ("Z"+label), 1, 0., 1.7, 0.3, 1.7));
     } else if(selection_ == "mutau_e") {
-      cdfplottingcards.push_back(DataPlotter::PlottingCard_t("mva6", "event", ("H"+label), 1, 0., 1.7, 0.578, 1.7));
-      cdfplottingcards.push_back(DataPlotter::PlottingCard_t("mva7", "event", ("Z"+label), 1, 0., 1.7, 0.578, 1.7));
+      cdfplottingcards.push_back(DataPlotter::PlottingCard_t("mva6", "event", ("H"+label), 1, 0., 1.7, 0.3, 1.7));
+      cdfplottingcards.push_back(DataPlotter::PlottingCard_t("mva7", "event", ("Z"+label), 1, 0., 1.7, 0.3, 1.7));
     } else if(selection_ == "etau_mu") {
-      cdfplottingcards.push_back(DataPlotter::PlottingCard_t("mva8", "event", ("H"+label), 1, 0., 1.7, 0.578, 1.7));
-      cdfplottingcards.push_back(DataPlotter::PlottingCard_t("mva9", "event", ("Z"+label), 1, 0., 1.7, 0.578, 1.7));
+      cdfplottingcards.push_back(DataPlotter::PlottingCard_t("mva8", "event", ("H"+label), 1, 0., 1.7, 0.3, 1.7));
+      cdfplottingcards.push_back(DataPlotter::PlottingCard_t("mva9", "event", ("Z"+label), 1, 0., 1.7, 0.3, 1.7));
     }
   }
   if(printCDFs_) {
@@ -583,69 +712,85 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
       }
     }
   }
-  
   if(printSignificances_) {
+    CrossSections xsecs;
+    double zxs(xsecs.GetCrossSection("Z"));
+    TString hlim, zlim;
+    if(selection_.Contains("mutau")) {
+      hlim = Form("Current Limit %.1e", xsecs.GetCrossSection("HMuTau")/zxs);
+      zlim = Form("Current Limit %.1e", xsecs.GetCrossSection("ZMuTau")/zxs);
+    } else if(selection_.Contains("etau")) {
+      hlim = Form("Current Limit %.1e", xsecs.GetCrossSection("HETau")/zxs);
+      zlim = Form("Current Limit %.1e", xsecs.GetCrossSection("ZETau")/zxs);
+    } else if(selection_.Contains("emu")) {
+      hlim = Form("Current Limit %.1e", xsecs.GetCrossSection("HEMu")/zxs);
+      zlim = Form("Current Limit %.1e", xsecs.GetCrossSection("ZEMu")/zxs);
+    } else {
+      cout << "Can't deterimine limits for selection " << selection_.Data() << "!\n";
+    }
+    cout << "Using Z cross-section " << zxs << " and limit labels of:\n"
+	 << hlim.Data() << endl << zlim.Data() << endl;
     if(label != "") {
       for(int logy = 0; logy < 2; ++logy) { //print log and not log y axis
 	dataplotter_->logY_ = logy;
 	for(int s : sets) {
 	  if(selection_=="mutau") {
-	    auto c = dataplotter_->print_significance("mva0", "event", s, ("H"+label), -1., 1., true, -1., false, "CMS #sqrt{s}=13 TeV Limit (2.5e-3)");
+	    auto c = dataplotter_->print_significance("mva0", "event", s, ("H"+label), -1., 1., true, -1., false, hlim.Data());
 	    DataPlotter::Empty_Canvas(c);
-	    c = dataplotter_->print_significance("mva1", "event", s, ("Z"+label), -1., 1.3, true, -0.71, false, "LEP Limit (1.2e-5)");
+	    c = dataplotter_->print_significance("mva1", "event", s, ("Z"+label), -1., 1.3, true, -0.71, false, zlim.Data());
 	    DataPlotter::Empty_Canvas(c);
 	    if(printLimitVsEff_) {
-	      c = dataplotter_->print_significance("mva0", "event", s, ("H"+label), 0., 1., true, -1., true, "CMS #sqrt{s}=13 TeV Limit (2.5e-3)"); //significance vs efficiency
+	      c = dataplotter_->print_significance("mva0", "event", s, ("H"+label), 0., 1., true, -1., true, hlim.Data()); //significance vs efficiency
 	      DataPlotter::Empty_Canvas(c);
-	      c = dataplotter_->print_significance("mva1", "event", s, ("Z"+label), 0., 1., true, -0.71, true, "LEP Limit (1.2e-5)"); //significance vs efficiency
+	      c = dataplotter_->print_significance("mva1", "event", s, ("Z"+label), 0., 1., true, -0.71, true, zlim.Data()); //significance vs efficiency
 	      DataPlotter::Empty_Canvas(c);
 	    }
 	  }
 	  else if(selection_=="etau") {
-	    auto c = dataplotter_->print_significance("mva2", "event", s, ("H"+label), -1., 1.,true, -1., false, "CMS #sqrt{s}=13 TeV Limit (6.1e-3)");
+	    auto c = dataplotter_->print_significance("mva2", "event", s, ("H"+label), -1., 1.,true, -1., false, hlim.Data());
 	    DataPlotter::Empty_Canvas(c);									
-	    c = dataplotter_->print_significance("mva3", "event", s, ("Z"+label), -1., 1.,true, -1., false, "LEP Limit (9.8e-6)");
+	    c = dataplotter_->print_significance("mva3", "event", s, ("Z"+label), -1., 1.,true, -1., false, zlim.Data());
 	    DataPlotter::Empty_Canvas(c);
 	    if(printLimitVsEff_) {
-	      c = dataplotter_->print_significance("mva2", "event", s, ("H"+label), 0., 1., true, -1., true, "CMS #sqrt{s}=13 TeV Limit (6.1e-3)");
+	      c = dataplotter_->print_significance("mva2", "event", s, ("H"+label), 0., 1., true, -1., true, hlim.Data());
 	      DataPlotter::Empty_Canvas(c);
-	      c = dataplotter_->print_significance("mva3", "event", s, ("Z"+label), 0., 1., true, -1., true, "LEP Limit (9.8e-6)");
+	      c = dataplotter_->print_significance("mva3", "event", s, ("Z"+label), 0., 1., true, -1., true, zlim.Data());
 	      DataPlotter::Empty_Canvas(c);
 	    }
 	  }
 	  else if(selection_=="emu") {
-	    auto c = dataplotter_->print_significance("mva4", "event", s, ("H"+label), -1., 1., true, -1. , false, "CMS #sqrt{s}=8 TeV Limit (1.1e-4)");
+	    auto c = dataplotter_->print_significance("mva4", "event", s, ("H"+label), -1., 1., true, -1. , false, hlim.Data());
 	    DataPlotter::Empty_Canvas(c);
-	    c = dataplotter_->print_significance("mva5", "event", s, ("Z"+label), -1., 1., true, -.44, false, "CMS #sqrt{s}=8 TeV Limit (7.3e-7)");
+	    c = dataplotter_->print_significance("mva5", "event", s, ("Z"+label), -1., 1., true, -.44, false, zlim.Data());
 	    DataPlotter::Empty_Canvas(c);
 	    if(printLimitVsEff_) {
-	      c = dataplotter_->print_significance("mva4", "event", s, ("H"+label), 0., 1., true, -1. , true, "CMS #sqrt{s}=8 TeV Limit (1.1e-4)");
+	      c = dataplotter_->print_significance("mva4", "event", s, ("H"+label), 0., 1., true, -1. , true, hlim.Data());
 	      DataPlotter::Empty_Canvas(c);
-	      c = dataplotter_->print_significance("mva5", "event", s, ("Z"+label), 0., 1., true, -.44, true, "CMS #sqrt{s}=8 TeV Limit (7.3e-7)");
+	      c = dataplotter_->print_significance("mva5", "event", s, ("Z"+label), 0., 1., true, -.44, true, zlim.Data());
 	      DataPlotter::Empty_Canvas(c);
 	    }
 	  }
 	  else if(selection_=="mutau_e") {
-	    auto c = dataplotter_->print_significance("mva6", "event", s, ("H"+label), -1., 1., true, -1., false, "CMS #sqrt{s}=13 TeV Limit (2.5e-3)");
+	    auto c = dataplotter_->print_significance("mva6", "event", s, ("H"+label), -1., 1., true, -1., false, hlim.Data());
 	    DataPlotter::Empty_Canvas(c);
-	    c = dataplotter_->print_significance("mva7", "event", s, ("Z"+label), -1., 1.3, true, -0.71, false, "LEP Limit (1.2e-5)");
+	    c = dataplotter_->print_significance("mva7", "event", s, ("Z"+label), -1., 1.3, true, -0.71, false, zlim.Data());
 	    DataPlotter::Empty_Canvas(c);
 	    if(printLimitVsEff_) {	  
-	      c = dataplotter_->print_significance("mva6", "event", s, ("H"+label), 0., 1., true, -1., true, "CMS #sqrt{s}=13 TeV Limit (2.5e-3)"); //significance vs efficiency
+	      c = dataplotter_->print_significance("mva6", "event", s, ("H"+label), 0., 1., true, -1., true, hlim.Data()); //significance vs efficiency
 	      DataPlotter::Empty_Canvas(c);
-	      c = dataplotter_->print_significance("mva7", "event", s, ("Z"+label), 0., 1., true, -0.71, true, "LEP Limit (1.2e-5)"); //significance vs efficiency
+	      c = dataplotter_->print_significance("mva7", "event", s, ("Z"+label), 0., 1., true, -0.71, true, zlim.Data()); //significance vs efficiency
 	      DataPlotter::Empty_Canvas(c);
 	    }
 	  }
 	  else if(selection_=="etau_mu") {
-	    auto c = dataplotter_->print_significance("mva8", "event", s, ("H"+label), -1., 1.,true, -1., false, "CMS #sqrt{s}=13 TeV Limit (6.1e-3)");
+	    auto c = dataplotter_->print_significance("mva8", "event", s, ("H"+label), -1., 1.,true, -1., false, hlim.Data());
 	    DataPlotter::Empty_Canvas(c);									
-	    c = dataplotter_->print_significance("mva9", "event", s, ("Z"+label), -1., 1.,true, -1., false, "LEP Limit (9.8e-6)");
+	    c = dataplotter_->print_significance("mva9", "event", s, ("Z"+label), -1., 1.,true, -1., false, zlim.Data());
 	    DataPlotter::Empty_Canvas(c);
 	    if(printLimitVsEff_) {
-	      c = dataplotter_->print_significance("mva8", "event", s, ("H"+label), 0., 1., true, -1., true, "CMS #sqrt{s}=13 TeV Limit (6.1e-3)");
+	      c = dataplotter_->print_significance("mva8", "event", s, ("H"+label), 0., 1., true, -1., true, hlim.Data());
 	      DataPlotter::Empty_Canvas(c);
-	      c = dataplotter_->print_significance("mva9", "event", s, ("Z"+label), 0., 1., true, -1., true, "LEP Limit (9.8e-6)");
+	      c = dataplotter_->print_significance("mva9", "event", s, ("Z"+label), 0., 1., true, -1., true, zlim.Data());
 	      DataPlotter::Empty_Canvas(c);
 	    }
 	  }
@@ -819,8 +964,25 @@ Int_t init_dataplotter() {
       cards.push_back(dcard("HMuTau"           , "HMuTau"           , "H->#mu#tau", false, xs.GetCrossSection("HMuTau"), true, year, kGreen-1));
     }
     //Add data
-    if(selection_ != "etau"  && selection_!="ee"  ) cards.push_back(dcard("SingleMu" , "SingleMu" , "Data", true , 1., false, year));
-    if(selection_ != "mutau" && selection_!="mumu") cards.push_back(dcard("SingleEle", "SingleEle", "Data", true , 1., false, year));
+    if(doRunPeriod_ == 0) {
+      if(selection_ != "etau"  && selection_!="ee"  ) cards.push_back(dcard("SingleMu" , "SingleMu" , "Data", true , 1., false, year));
+      if(selection_ != "mutau" && selection_!="mumu") cards.push_back(dcard("SingleEle", "SingleEle", "Data", true , 1., false, year));
+    } else {
+      std::vector<TString> periods;
+      if(year == 2016) periods = {"B", "C", "D", "E", "F", "G", "H"};
+      if(year == 2017) periods = {"B", "C", "D", "E", "F"};
+      if(year == 2018) periods = {"A", "B", "C", "D"};
+      for(int period = 0; period < periods.size(); ++period) {
+	if(year == 2016 && ((doRunPeriod_ == 1 && period > 4) || (doRunPeriod_ == 2 && period < 5))) continue;
+	if(year == 2017 && ((doRunPeriod_ == 1 && period > 2) || (doRunPeriod_ == 2 && period < 3))) continue;
+	if(year == 2018 && ((doRunPeriod_ == 1 && period > 1) || (doRunPeriod_ == 2 && period < 2))) continue;
+	TString p_name = "Run"; p_name += periods[period];
+	TString muon_name = "SingleMuon" + p_name;
+	TString electron_name = "SingleMuon" + p_name;
+	if(selection_ != "etau"  && selection_!="ee"  ) cards.push_back(dcard(muon_name.Data()    , muon_name.Data()    , "Data", true , 1., false, year));
+	if(selection_ != "mutau" && selection_!="mumu") cards.push_back(dcard(electron_name.Data(), electron_name.Data(), "Data", true , 1., false, year));
+      }
+    }
   } //end years loop
   
 
@@ -856,7 +1018,14 @@ Int_t init_dataplotter() {
   double lum = 0.;
   for(int year : years_) {
     double currLum = 0.;
-    if(year == 2016)      currLum = 35.92e3; //pb^-1
+    if(year == 2016) {
+      if(doRunPeriod_ == 0)
+	currLum = 35.92e3; //pb^-1
+      else if(doRunPeriod_ == 1)
+	currLum = (5.892 + 2.646 + 4.353 + 4.117 + 3.174)*1.e3; //B-F
+      else if(doRunPeriod_ == 2)
+	currLum = (7.540 + 8.606)*1.e3; //G-H
+    }
     else if(year == 2017) currLum = 41.48e3;
     else if(year == 2018) currLum = 59.74e3;
     dataplotter_->lums_[year] = currLum; //store the luminosity for the year
@@ -960,12 +1129,42 @@ Int_t print_emu_cutsets() {
   return status;
 }
 
-Int_t print_card_standard_sets(DataPlotter::PlottingCard_t& card) {
+//print a card for each selection
+Int_t print_card_standard_sets(DataPlotter::PlottingCard_t card) {
   vector<int> sets = {6, 7, 8};
   vector<TString> selections = {"mutau", "etau", "emu", "mutau_e", "etau_mu"};
   Int_t status = 0;
   for(TString selection : selections) {
     selection_ = selection;
+    status += init_dataplotter();
+    for(int index = 0; index < sets.size(); ++index) {
+      card.set_ = sets[index];
+      double scale = 150.;
+      if     (selection_ == "mutau"  ) card.set_ += ZTauTauHistMaker::kMuTau;
+      else if(selection_ == "etau"   ) card.set_ += ZTauTauHistMaker::kETau;
+      else if(selection_ == "emu"    ) {scale = 100.; card.set_ += ZTauTauHistMaker::kEMu;}
+      else if(selection_ == "mutau_e") {scale = 100.; card.set_ += ZTauTauHistMaker::kEMu;}
+      else if(selection_ == "etau_mu") {scale = 100.; card.set_ += ZTauTauHistMaker::kEMu;}
+      else if(selection_ == "mumu")    {scale = 1.e4; card.set_ += ZTauTauHistMaker::kMuMu;}
+      else if(selection_ == "ee"  )    {scale = 1.e4; card.set_ += ZTauTauHistMaker::kEE;}
+      dataplotter_->signal_scale_ = scale;
+      auto c = dataplotter_->print_stack(card);
+      status += (c) ? 0 : 1;
+      if(c) DataPlotter::Empty_Canvas(c);
+    }
+  }
+  return status;
+}
+
+//print a card for each year and full Run-II
+Int_t print_card_standard_years(DataPlotter::PlottingCard_t card) {
+  vector<int> sets = {6, 7, 8};
+  Int_t status = 0;
+  for(int year_i = 0; year_i < 4; ++year_i) {
+    if     (year_i == 0) years_ = {2016};
+    else if(year_i == 1) years_ = {2017};
+    else if(year_i == 2) years_ = {2018};
+    else if(year_i == 3) years_ = {2016, 2017, 2018};
     status += init_dataplotter();
     for(int index = 0; index < sets.size(); ++index) {
       card.set_ = sets[index];
@@ -983,6 +1182,43 @@ Int_t print_card_standard_sets(DataPlotter::PlottingCard_t& card) {
       if(c) DataPlotter::Empty_Canvas(c);
     }
   }
+  return status;
+}
+
+//print mutau QCD mystery plots
+Int_t print_mutau_qcd_plots() {
+  std::vector<DataPlotter::PlottingCard_t> cards;
+  cards.push_back(DataPlotter::PlottingCard_t("lepm"          , "event", 8, 2, 45., 200.));
+  cards.push_back(DataPlotter::PlottingCard_t("lepdeltar"     , "event", 8, 1,  0.,   5.));
+  cards.push_back(DataPlotter::PlottingCard_t("taudecaymode"  , "event", 8, 0,  0.,  15.));
+  cards.push_back(DataPlotter::PlottingCard_t("taudeepantiele", "event", 8, 0,  0.,  30.));
+  cards.push_back(DataPlotter::PlottingCard_t("taudeepantimu" , "event", 8, 0,  0.,  30.));
+  cards.push_back(DataPlotter::PlottingCard_t("taudeepantijet", "event", 8, 0,  0.,  30.));
+  cards.push_back(DataPlotter::PlottingCard_t("onept"         , "lep"  , 8, 2, 25., 100.));
+  cards.push_back(DataPlotter::PlottingCard_t("twopt"         , "lep"  , 8, 2, 20.,  80.));
+  cards.push_back(DataPlotter::PlottingCard_t("twoeta"        , "lep"  , 8, 2, -3.,   5.));
+  cards.push_back(DataPlotter::PlottingCard_t("twoid1"        , "lep"  , 8, 0,  0.,  50.));
+  cards.push_back(DataPlotter::PlottingCard_t("twoid2"        , "lep"  , 8, 0,  0.,  10.));
+  std::vector<int> sets = {8};
+  int status(0);
+  doRunPeriod_ = 0;
+  years_ = {2016};
+  nanoaod_init("mutau", "nanoaods_dev", "nanoaods_dev");
+  status += dataplotter_->print_stacks(cards, sets, {}, {});
+  years_ = {2017};
+  nanoaod_init("mutau", "nanoaods_dev", "nanoaods_dev");
+  status += dataplotter_->print_stacks(cards, sets, {}, {});
+  years_ = {2018};
+  nanoaod_init("mutau", "nanoaods_dev", "nanoaods_dev");
+  status += dataplotter_->print_stacks(cards, sets, {}, {});
+  years_ = {2016};
+  doRunPeriod_ = 1;
+  nanoaod_init("mutau", "nanoaods_dev", "nanoaods_dev_1");
+  status += dataplotter_->print_stacks(cards, sets, {}, {});
+  years_ = {2016};
+  doRunPeriod_ = 2;
+  nanoaod_init("mutau", "nanoaods_dev", "nanoaods_dev_2");
+  status += dataplotter_->print_stacks(cards, sets, {}, {});
   return status;
 }
 
@@ -1211,5 +1447,33 @@ Int_t print_standard_canvas_selections(TString name = "", TString histDir = "", 
   Double_t realTime = timer->RealTime();
   printf("Processing time: %7.2fs CPU time %7.2fs Wall time\n",cpuTime,realTime);
   if(realTime > 600. ) printf("Processing time: %7.2fmin CPU time %7.2fmin Wall time\n",cpuTime/60.,realTime/60.);
+  return status;
+}
+
+
+//Print cut-and-count cards for Higgs Combine
+Int_t print_combine_cards() {
+  int status(0);
+  selection_ = "mutau";
+  status += init_dataplotter();
+  status += print_combine_card("ntriggered", "event", "Z->#mu#tau");
+  status += print_combine_card("ntriggered", "event", "H->#mu#tau");
+  selection_ = "etau";
+  status += init_dataplotter();
+  status += print_combine_card("ntriggered", "event", "Z->e#tau");
+  status += print_combine_card("ntriggered", "event", "H->e#tau");
+  selection_ = "emu";
+  status += init_dataplotter();
+  status += print_combine_card("lepm", "event", "Z->e#mu",  86.,  96.); //do in mass window
+  status += print_combine_card("lepm", "event", "H->e#mu", 120., 130.); //do in mass window
+  selection_ = "mutau_e";
+  status += init_dataplotter();
+  status += print_combine_card("ntriggered", "event", "Z->#mu#tau");
+  status += print_combine_card("ntriggered", "event", "H->#mu#tau");
+  selection_ = "etau_mu";
+  status += init_dataplotter();
+  status += print_combine_card("ntriggered", "event", "Z->e#tau");
+  status += print_combine_card("ntriggered", "event", "H->e#tau");
+
   return status;
 }

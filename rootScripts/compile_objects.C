@@ -11,6 +11,7 @@
 #include "../dataFormats/Tree_t.hh+g"
 #include "../utils/Significances.hh+g"
 #include "../utils/CrossSections.hh+g"
+#include "../utils/MVAConfig.hh+g"
 #include "../utils/PUWeight.hh+g"
 #include "../utils/BTagWeight.hh+g"
 #include "./DataPlotter.cc+g"

@@ -23,12 +23,14 @@ public:
     if(f) {
       dataHists_[2016] = (TH1F*) f->Get("pileup")->Clone("hd_2016");
       if(!dataHists_[2016]) std::cout << "Warning! No pileup histogram found for 2016 data!\n";
+      files_.push_back(f);
     }
     //MC
     f = TFile::Open((base_path+"pileup_profile_Summer16.root").Data(), "READ");
     if(f) {
       mcHists_[2016] = (TH1F*) f->Get("pu_mc")->Clone("hm_2016");
       if(!mcHists_[2016]) std::cout << "Warning! No pileup histogram found for 2016 MC!\n";
+      files_.push_back(f);
     }
     
     ////////////////
@@ -39,12 +41,14 @@ public:
     if(f) {
       dataHists_[2017] = (TH1F*) f->Get("pileup")->Clone("hd_2017");
       if(!dataHists_[2017]) std::cout << "Warning! No pileup histogram found for 2017 data!\n";
+      files_.push_back(f);
     }
     //MC
     f = TFile::Open((base_path+"mcPileup2017.root").Data(), "READ");
     if(f) {
       mcHists_[2017] = (TH1F*) f->Get("pu_mc")->Clone("hm_2017");
       if(!mcHists_[2017]) std::cout << "Warning! No pileup histogram found for 2017 MC!\n";
+      files_.push_back(f);
     }
 
     ////////////////
@@ -55,20 +59,23 @@ public:
     if(f) {
       dataHists_[2018] = (TH1F*) f->Get("pileup")->Clone("hd_2018");
       if(!dataHists_[2018]) std::cout << "Warning! No pileup histogram found for 2018 data!\n";
+      files_.push_back(f);
     }
     //MC
     f = TFile::Open((base_path+"mcPileup2018.root").Data(), "READ");
     if(f) {
       mcHists_[2018] = (TH1F*) f->Get("pu_mc")->Clone("hm_2018");
       if(!mcHists_[2018]) std::cout << "Warning! No pileup histogram found for 2018 MC!\n";
+      files_.push_back(f);
     }
 
     for(int year = 2016; year < 2019; ++year) {
       if(dataHists_[year] && mcHists_[year]) mcHists_[year]->Scale(dataHists_[year]->Integral()/mcHists_[year]->Integral());
     }
-
   }
 
+  ~PUWeight() { for(unsigned i = 0; i < files_.size(); ++i) delete files_[i]; }
+  
   float GetWeight(float nint, int year) {
     float weight(1.), ndata(1.), nmc(1.);
     TH1F* hdata = dataHists_[year];
@@ -92,5 +99,6 @@ public:
 // private:
   std::map<int, TH1F*> dataHists_;
   std::map<int, TH1F*> mcHists_;
+  std::vector<TFile*> files_;
 };
 #endif

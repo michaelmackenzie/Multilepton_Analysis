@@ -457,7 +457,7 @@ int stack_tmva_tree(double mva_cut = -1.,
     if(!doGIF_)
       c->Print(Form("figures/%s/%s_%.4f.png", fnm.Data(), fnm.Data(), mva_cut));
     else {
-      c->Print(Form("figures/%s/%s-%i.png", fnm.Data(), fnm.Data(), gifCount_));
+      c->Print(Form("figures/%s/%s-%03i.png", fnm.Data(), fnm.Data(), gifCount_));
       ++gifCount_;
     }
   }
@@ -466,8 +466,9 @@ int stack_tmva_tree(double mva_cut = -1.,
   return 0;
 }
 
-Int_t plot_limit_gain(const char* file = "training_background_ztautau_higgs_mutau_8", int plot_train = 0,
-		      double xmin = -1, double xmax = 1., int max_steps = 100) {
+Int_t plot_limit_gain(const char* file = "training_background_ztautau_higgs_mutau_8",
+		      TString cut = "", //apply some cut
+		      int plot_train = 0, double xmin = -1, double xmax = 1., int max_steps = 100) {
 
   // gROOT->SetBatch(kTRUE);
 
@@ -511,7 +512,8 @@ Int_t plot_limit_gain(const char* file = "training_background_ztautau_higgs_muta
     cut_start = "genweight*("; //don't weight data/mock data
   else
     cut_start = "fulleventweightlum*(";
-
+  if(cut != "") cut_start += cut + "&&";
+  
   cout << "Initializing mva histograms" << endl;
   //Initialize histograms with binning to match the MVA cut steps
   TString cut_bkg = cut_start + "classID==0)";
@@ -592,6 +594,7 @@ Int_t plot_limit_gain(const char* file = "training_background_ztautau_higgs_muta
   return 0;
 }
 
+//print the distributions in steps of the MVA cut, to make a gif of the cut effect
 int print_gif_figures(const char* file = "training_background_ztautau_Z0_nano_mutau_2016_8",
 		      double mva_start = -1., double mva_end = 1., int mva_steps = 100,
 		      int plot_train = 0) {

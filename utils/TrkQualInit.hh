@@ -8,6 +8,7 @@
 // #include "TMVA/DataLoader.h"
 #include "TMVA/Tools.h"
 #include "TMVA/Reader.h"
+#include "TTree.h"
 #endif
 #include "../dataFormats/Tree_t.hh"
 
@@ -18,177 +19,139 @@ public:
     njets_ = njets;
   }
 
-  int InitializeVariables(TMVA::Factory &factory, TString selection){
-    int status = 0;
+  //information for a variable
+  struct Var_t {
+    TString var_;
+    TString desc_;
+    TString unit_; 
+    float* val_; //address
+    bool use_; //use or just spectator
+    char type_;
+    Var_t(TString var, TString desc, TString unit, float* val, bool use) : var_(var), desc_(desc),
+									  unit_(unit), val_(val),
+									  use_(use), type_('F') {}
+  };
 
-    if(!selection.Contains("emu"))
-      factory.AddVariable("lepm" , "M_{ll}" , "GeV", 'F');   
-    else
-      factory.AddSpectator("lepm" , "M_{ll}" , "GeV", 'F');
-    
-    factory.AddVariable("mtone","MT(MET,l1)","",'F');
-    factory.AddVariable("mttwo","MT(MET,l2)","",'F');
-    factory.AddVariable("onemetdeltaphi","#Delta#phi_{MET,l1}","",'F');
-    factory.AddVariable("twometdeltaphi","#Delta#phi_{MET,l2}","",'F');
+  //get list of variables for training/evaluating MVAs
+  std::vector<Var_t> GetVariables(TString selection, Tree_t& tree) {
+    std::vector<Var_t> variables;
+    //necessary event information
+    variables.push_back(Var_t("fulleventweight"   ,"fullEventWeight"   ,"", &tree.fulleventweight   , false));
+    variables.push_back(Var_t("fulleventweightlum","fullEventWeightLum","", &tree.fulleventweightlum, false));
+    variables.push_back(Var_t("eventweight"       ,"eventWeight"       ,"", &tree.eventweight       , false));
+    variables.push_back(Var_t("eventcategory"     ,"eventCategory"     ,"", &tree.eventcategory     , false));
+    variables.push_back(Var_t("issignal"          ,"isSignal"          ,"", &tree.issignal          , false));
+
 
     if(!selection.Contains("emu")) {
-      factory.AddVariable("leponept","pT_{l1}","",'F');
-      factory.AddVariable("leptwopt","pT_{l2}","",'F');
-      factory.AddVariable("leppt", "pT_{ll}", "GeV", 'F');
+      variables.push_back(Var_t("lepm" , "M_{ll}"    , "GeV", &tree.lepm , true)); 
+      variables.push_back(Var_t("mtone", "MT(MET,l1)", ""   , &tree.mtone, true));
+      variables.push_back(Var_t("mttwo", "MT(MET,l2)", ""   , &tree.mttwo, true));
     } else {
-      factory.AddVariable("leponeptoverm","pT_{l1}/M_{ll}","",'F');
-      factory.AddVariable("leptwoptoverm","pT_{l2}/M_{ll}","",'F');
-      factory.AddVariable("lepptoverm","pT_{ll}/M_{ll}","",'F');
+      variables.push_back(Var_t("lepm"      , "M_{ll}"           , "GeV", &tree.lepm      , false)); 
+      variables.push_back(Var_t("mtoneoverm", "MT(MET,l1)/M_{ll}", ""   , &tree.mtoneoverm, true));
+      variables.push_back(Var_t("mttwooverm", "MT(MET,l2)/M_{ll}", ""   , &tree.mttwooverm, true));
     }
+    
+    
+    variables.push_back(Var_t("onemetdeltaphi","#Delta#phi_{MET,l1}","", &tree.onemetdeltaphi, true));
+    variables.push_back(Var_t("twometdeltaphi","#Delta#phi_{MET,l2}","", &tree.twometdeltaphi, true));
 
-    // if(njets_)
-    //   factory.AddVariable("njets", "nJets", "", 'F');
-    // else
-    //   factory.AddSpectator("njets", "nJets", "", 'F');
-        
-    factory.AddVariable("lepdeltaphi","#Delta#phi_{ll}","",'F');
-    factory.AddSpectator("lepdeltaeta","#Delta#eta_{ll}","",'F');
-    factory.AddSpectator("metdeltaphi","#Delta#phi_{MET,ll}","",'F');
+    if(!selection.Contains("emu")) {
+      variables.push_back(Var_t("leponept","pT_{l1}","GeV", &tree.leponept, true));
+      variables.push_back(Var_t("leptwopt","pT_{l2}","GeV", &tree.leptwopt, true));
+      variables.push_back(Var_t("leppt"   ,"pT_{ll}","GeV", &tree.leppt   , true));
+    } else {
+      variables.push_back(Var_t("leponeptoverm","pT_{l1}/M_{ll}","", &tree.leponeptoverm, true));
+      variables.push_back(Var_t("leptwoptoverm","pT_{l2}/M_{ll}","", &tree.leptwoptoverm, true));
+      variables.push_back(Var_t("lepptoverm"   ,"pT_{ll}/M_{ll}","", &tree.lepptoverm   , true));
+    }
+    variables.push_back(Var_t("lepdeltaphi","#Delta#phi_{ll}"    ,"", &tree.lepdeltaphi, true));
+    variables.push_back(Var_t("lepdeltaeta","#Delta#eta_{ll}"    ,"", &tree.lepdeltaeta, false));
+    variables.push_back(Var_t("metdeltaphi","#Delta#phi_{MET,ll}","", &tree.metdeltaphi, false));
 
-    factory.AddSpectator("pxivis","p^{vis}_{#xi}","",'F');
-    factory.AddSpectator("pxiinv","p^{inv}_{#xi}","",'F');
+    variables.push_back(Var_t("pxivis","p^{vis}_{#xi}","", &tree.pxivis, false));
+    variables.push_back(Var_t("pxiinv","p^{inv}_{#xi}","", &tree.pxiinv, false));
 
     //tau specific
     if(selection.Contains("tau")) {
       //Delta alpha, difference between loss estimate using ~mass and pT ratio
       if(selection.Contains("z")) {
 	if(selection.Contains("_e"))
-	  factory.AddVariable("deltaalphaz1", "#Delta#alpha", "", 'F');
+	  variables.push_back(Var_t("deltaalphaz1","#Delta#alpha","",&tree.deltaalphaz1, true));
 	else
-	  factory.AddVariable("deltaalphaz2", "#Delta#alpha", "", 'F');
+	  variables.push_back(Var_t("deltaalphaz2","#Delta#alpha","",&tree.deltaalphaz2, true));
       } else {
 	if(selection.Contains("_e"))
-	  factory.AddVariable("deltaalphah1", "#Delta#alpha", "", 'F');
+	  variables.push_back(Var_t("deltaalphah1","#Delta#alpha","",&tree.deltaalphah1, true));
 	else
-	  factory.AddVariable("deltaalphah2", "#Delta#alpha", "", 'F');
+	  variables.push_back(Var_t("deltaalphah2","#Delta#alpha","",&tree.deltaalphah2, true));
       }
       if((!selection.Contains("mutau_e")))
-	factory.AddVariable("lepmestimate" , "M_{ll}^{Coll}" , "GeV", 'F'); 
+	variables.push_back(Var_t("lepmestimate","M_{ll}^{Coll}","GeV", &tree.mestimate, true));
       else
-	factory.AddVariable("lepmestimatetwo" , "M_{ll}^{Coll}" , "GeV", 'F'); 
+	variables.push_back(Var_t("lepmestimatetwo","M_{ll}^{Coll}","GeV", &tree.mestimatetwo, true));
 
-      factory.AddSpectator("leptwoidone"  , "#tau anti-electron ID", "", 'F');
-      factory.AddSpectator("leptwoidtwo"  , "#tau anti-muon ID"    , "", 'F');
-      factory.AddSpectator("leptwoidthree", "#tau anti-jet ID"     , "", 'F');
+      variables.push_back(Var_t("leptwoidone"  ,"#tau anti-electron ID","", &tree.leptwoidone  , false));
+      variables.push_back(Var_t("leptwoidtwo"  ,"#tau anti-muon ID"    ,"", &tree.leptwoidtwo  , false));
+      variables.push_back(Var_t("leptwoidthree","#tau anti-jet ID"     ,"", &tree.leptwoidthree, false));
     } else { //end tau specific
-      factory.AddSpectator("lepmestimate" , "M_{ll}^{Coll}" , "GeV", 'F');   
-      factory.AddSpectator("onemetdeltaphi","#Delta#phi_{MET,l1}","",'F');  //FIXME: Remove
-      factory.AddSpectator("twometdeltaphi","#Delta#phi_{MET,l2}","",'F');  
+      variables.push_back(Var_t("lepmestimate","M_{ll}^{Coll}","GeV", &tree.mestimate, false));
+      // variables.push_back(Var_t("onemetdeltaphi","#Delta#phi_{MET,l1}","", &tree.onemetdeltaphi, false)); //FIXME: Remove
+      // variables.push_back(Var_t("twometdeltaphi","#Delta#phi_{MET,l2}","", &tree.onemetdeltaphi, false));
     }
     
-    factory.AddSpectator("leponedeltaphi","#Delta#phi_{l1,ll}","",'F');
-    factory.AddSpectator("leptwodeltaphi","#Delta#phi_{l2,ll}","",'F');
-    factory.AddSpectator("leponed0","D0_{l1}","",'F');
-    factory.AddSpectator("leptwod0","D0_{l2}","",'F');
+    variables.push_back(Var_t("leponedeltaphi","#Delta#phi_{l1,ll}","", &tree.leponedeltaphi, false));
+    variables.push_back(Var_t("leptwodeltaphi","#Delta#phi_{l2,ll}","", &tree.leptwodeltaphi, false));
+    variables.push_back(Var_t("leponed0"      ,"D0_{l1}"           ,"", &tree.leponed0      , false));
+    variables.push_back(Var_t("leptwod0"      ,"D0_{l2}"           ,"", &tree.leptwod0      , false));
 
-    factory.AddSpectator("htdeltaphi","#Delta#phi_{hT,ll}","",'F');
-    factory.AddSpectator("ht","pT(#Sigma #vec{P}_{Jet})","",'F');
-    factory.AddSpectator("htsum","#Sigma pT_{Jet}","",'F');
+    variables.push_back(Var_t("htdeltaphi","#Delta#phi_{hT,ll}"      ,"", &tree.htdeltaphi, false));
+    variables.push_back(Var_t("ht"        ,"pT(#Sigma #vec{P}_{Jet})","", &tree.ht        , false));
+    variables.push_back(Var_t("htsum"     ,"#Sigma pT_{Jet}"         ,"", &tree.htsum     , false));
     
-    factory.AddVariable("jetpt","pT_{Jet}","",'F');    
+    //FIXME: Remove jet pT from Z->X+tau since doesn't help
+    variables.push_back(Var_t("jetpt","pT_{Jet}","", &tree.jetpt, true));
 
-    factory.AddSpectator("leponeiso","Iso_{l1}","",'F');
+    variables.push_back(Var_t("leponeiso","Iso_{l1}","", &tree.leponeiso, false));
 
-    factory.AddVariable("met","MET","GeV",'F');
+    variables.push_back(Var_t("met","MET","GeV", &tree.met, true));
     
-    factory.AddSpectator("lepdeltar","#DeltaR_{ll}","",'F');
-    factory.AddSpectator("fulleventweight", "fullEventWeight", "", 'F'); 
-    factory.AddSpectator("fulleventweightlum", "fullEventWeightLum", "", 'F'); 
-    factory.AddSpectator("eventweight", "eventWeight", "", 'F'); 
-    factory.AddSpectator("eventcategory", "eventCategory", "", 'F'); 
+    variables.push_back(Var_t("lepdeltar"         ,"#DeltaR_{ll}"      ,"", &tree.lepdeltar         , false));
 
+    return variables;
+  }
+  
+  int InitializeVariables(TMVA::Factory &factory, TString selection){
+    int status = 0;
+    Tree_t tree; //not used
+    std::vector<Var_t> variables = GetVariables(selection, tree);
+    for(unsigned index = 0; index < variables.size(); ++index) {
+      Var_t& var = variables[index];
+      if(var.use_) factory.AddVariable (var.var_.Data(), var.desc_.Data(), var.unit_.Data(), var.type_);
+      else         factory.AddSpectator(var.var_.Data(), var.desc_.Data(), var.unit_.Data(), var.type_);
+    }
     return status;
   }
 
   int InitializeVariables(TMVA::Reader &reader, TString selection, Tree_t& tree){
     int status = 0;
-    
-    if(!selection.Contains("emu"))
-      reader.AddVariable("lepm" , &tree.lepm);
-    else
-      reader.AddSpectator("lepm" , &tree.lepm);
-
-    reader.AddVariable("mtone", &tree.mtone);
-    reader.AddVariable("mttwo", &tree.mttwo);
-    reader.AddVariable("onemetdeltaphi", &tree.onemetdeltaphi);
-    reader.AddVariable("twometdeltaphi", &tree.twometdeltaphi);
-
-    if(!selection.Contains("emu")) {
-      reader.AddVariable("leponept", &tree.leponept);
-      reader.AddVariable("leptwopt", &tree.leponept);
-      reader.AddVariable("leppt", &tree.leppt); 
-    } else {
-      reader.AddVariable("leponeptoverm", &tree.leponeptoverm);
-      reader.AddVariable("leptwoptoverm", &tree.leponeptoverm);
-      reader.AddVariable("lepptoverm", &tree.lepptoverm); 
+    std::vector<Var_t> variables = GetVariables(selection, tree);
+    for(unsigned index = 0; index < variables.size(); ++index) {
+      Var_t& var = variables[index];
+      if(var.use_) reader.AddVariable (var.var_.Data(), var.val_);
+      else         reader.AddSpectator(var.var_.Data(), var.val_);
     }
-    
-    // if(njets_)
-    //   reader.AddVariable("njets", &tree.njets); 
-    // else
-    //   reader.AddSpectator("njets", &tree.njets); 
-    
-    reader.AddVariable("lepdeltaphi", &tree.lepdeltaphi);
-    reader.AddSpectator("lepdeltaeta", &tree.lepdeltaeta);
-    reader.AddSpectator("metdeltaphi", &tree.metdeltaphi);
+    return status;
+  }
 
-    reader.AddSpectator("pxivis", &tree.pxivis);
-    reader.AddSpectator("pxiinv", &tree.pxiinv);
-
-    //tau specific
-    if(selection.Contains("tau")) {
-      //Delta alpha, difference between loss estimate using ~mass and pT ratio
-      if(selection.Contains("z")) {
-	if(selection.Contains("_e"))
-	  reader.AddVariable("deltaalphaz1", &tree.deltaalphaz2);
-	else
-	  reader.AddVariable("deltaalphaz2", &tree.deltaalphaz1);
-      } else {
-	if(selection.Contains("_e"))
-	  reader.AddVariable("deltaalphah1", &tree.deltaalphah2);
-	else
-	  reader.AddVariable("deltaalphah2", &tree.deltaalphah1);
-      }
-      if(!selection.Contains("mutau_e"))
-	reader.AddVariable("lepmestimate" , &tree.mestimate); 
-      else 
-	reader.AddVariable("lepmestimatetwo" , &tree.mestimatetwo); //project onto the electron
-      
-      reader.AddSpectator("leptwoidone"  , &tree.leptwoidone); 
-      reader.AddSpectator("leptwoidtwo"  , &tree.leptwoidtwo); 
-      reader.AddSpectator("leptwoidthree", &tree.leptwoidthree); 
-    } else { //end tau specific
-      reader.AddSpectator("lepmestimate" , &tree.mestimate); 
-      reader.AddSpectator("onemetdeltaphi", &tree.onemetdeltaphi); //FIXME: Remove
-      reader.AddSpectator("twometdeltaphi", &tree.twometdeltaphi);
+  int SetBranchAddresses(TTree* tree, TString selection, Tree_t& tree_t){
+    int status = 0;
+    std::vector<Var_t> variables = GetVariables(selection, tree_t);
+    for(unsigned index = 0; index < variables.size(); ++index) {
+      Var_t& var = variables[index];
+      tree->SetBranchAddress(var.var_.Data(), var.val_);
     }
-    
-    reader.AddSpectator("leponedeltaphi", &tree.leponedeltaphi);
-    reader.AddSpectator("leptwodeltaphi", &tree.leptwodeltaphi);
-    reader.AddSpectator("leponed0", &tree.leponed0);
-    reader.AddSpectator("leptwod0", &tree.leptwod0);
-
-    reader.AddSpectator("htdeltaphi", &tree.htdeltaphi);
-    reader.AddSpectator("ht", &tree.ht);
-    reader.AddSpectator("htsum", &tree.htsum);
-
-    reader.AddVariable("jetpt",&tree.jetpt);
-
-    reader.AddSpectator("leponeiso", &tree.leponeiso);
-
-    reader.AddVariable("met", &tree.met);
-    
-    reader.AddSpectator("lepdeltar", &tree.lepdeltar);
-    reader.AddSpectator("fulleventweight", &tree.fulleventweight); 
-    reader.AddSpectator("fulleventweightlum", &tree.fulleventweightlum); 
-    reader.AddSpectator("eventweight", &tree.eventweight); 
-    reader.AddSpectator("eventcategory", &tree.eventcategory);
-    
     return status;
   }
 

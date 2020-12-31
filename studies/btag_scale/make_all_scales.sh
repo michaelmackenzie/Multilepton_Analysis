@@ -8,6 +8,7 @@ then
 else
     selection="$1"
 fi
+
 for year in $years
 do
     echo "Making scale factors for year = ${year}"
@@ -15,6 +16,7 @@ do
     do
 	root.exe -q -b "scale_factors.C(\"${selection}\", 7, ${year}, ${wp})"
     done
+    echo "Finished year ${year}"
 done
 
 echo "Finished!"

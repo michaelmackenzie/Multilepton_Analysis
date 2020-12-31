@@ -4,24 +4,13 @@
 //               is defined by the .rootrc file
 //------------------------------------------------------------------------------
 {
-                                // the line below tells rootcling where to look for 
-				// the include files
+  // the line below tells rootcling where to look for 
+  // the include files
 
   gInterpreter->AddIncludePath("./");
-  gInterpreter->AddIncludePath("../rootScripts");
   gInterpreter->AddIncludePath("./include");
-  // gInterpreter->AddIncludePath(gSystem->Getenv("CLHEP_INC"));
   gInterpreter->AddIncludePath(Form("%s/include",gSystem->Getenv("ROOTSYS")));
   TString hostname = gSystem->Getenv("HOSTNAME");
-//-----------------------------------------------------------------------------
-// load in ROOT physics vectors and event generator libraries
-//-----------------------------------------------------------------------------
-  // gSystem->Load("$ROOTSYS/lib/libEG.so");
-  // //  gSystem->Load("$ROOTSYS/lib/libPhysics.so");
-  // gSystem->Load("$ROOTSYS/lib/libMinuit.so");
-  // gSystem->Load("$ROOTSYS/lib/libFumili.so");
-  //  gSystem->Load("$ROOTSYS/lib/libTree.so");
-  //  gSystem->Load("$ROOTSYS/lib/libRuby.so");
 //-----------------------------------------------------------------------------
 //  check batch mode
 //-----------------------------------------------------------------------------
@@ -39,27 +28,16 @@
   // }
 
   // printf("   batch_mode = %i\n",batch_mode);
-//-----------------------------------------------------------------------------
-// always need libStntuple_loop, but the other 2 libs should be loaded in 
-// only if we're running bare root
-//-----------------------------------------------------------------------------
   const char* exec_name = gApplication->Argv(0);
  
-  // printf(" nargs = %2i exec_name = %s\n",nargs, exec_name);
-
   if (exec_name) {
     if (strcmp(exec_name,"root.exe") == 0) {
+      gInterpreter->AddIncludePath("../rootScripts");
 					// print overflows/underflows in the stat box
       gStyle->SetOptStat(11111111);
 					// print fit results in the stat box
       gStyle->SetOptFit(1110);
       TArrow::SetDefaultArrowSize(0.015);
-    // }
-    // else if (strstr(exec_name,"mu2e.NNN") != 0) {
-    //   //      gSystem->Load("$MU2E_BASE_RELEASE/lib/libmurat_obj.so");
-    //   gSystem->Load("$MU2E_BASE_RELEASE/lib/libStntuple_val.so");
-    //   //      gSystem->Load("$MU2E_BASE_RELEASE/lib/libmurat_plot.so");
-    // }
 
       //-----------------------------------------------------------------------------
       // report the process ID which simplifies debugging
@@ -103,7 +81,7 @@
 //-----------------------------------------------------------------------------
 //  databases
 //-----------------------------------------------------------------------------
-  if(hostname.Contains("cmslpc") && TString(gSystem->Getenv("PWD")).Contains("BLTAnalysis/")) { //only load if on LPC and not in nano AOD area
+  if(hostname.Contains("cmslpc") && TString(gSystem->Getenv("PWD")).Contains("BLTAnalysis/")) { //only load if on LPC and not in NanoAOD area
     cout << "Loading Bacon data formats." << endl;
     gSystem->Load("libBaconAnaDataFormats.so"); 
   }

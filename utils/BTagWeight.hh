@@ -27,10 +27,12 @@ public:
 	  histsB_[year][wp] = (TH2D*) f->Get("hBRatio")->Clone(Form("hB_%i_%i", year, wp));
 	  if(!histsL_[year][wp]) std::cout << "BTagWeight::BTagWeight: Warning! No light quark histogram found for wp = "
 					   << wp << " year = " << year << std::endl;
+	  files_.push_back(f); //to close later
 	}
       }
     }
   }
+  ~BTagWeight() { for(unsigned i = 0; i < files_.size(); ++i) delete files_[i]; }
 
   float GetMCEff(int WP, int year, float jetpt, float jeteta, int jetflavor) {
     TH2D* h = 0;
@@ -128,5 +130,6 @@ public:
   std::map<int, std::map<int, TH2D*>> histsL_; //light quarks
   std::map<int, std::map<int, TH2D*>> histsC_; //c quarks
   std::map<int, std::map<int, TH2D*>> histsB_; //b quarks
+  std::vector<TFile*> files_;
 };
 #endif

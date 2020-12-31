@@ -45,6 +45,8 @@ struct Tree_t {
   float met;
   float mtone;
   float mttwo;
+  float mtoneoverm;
+  float mttwooverm;
   float pxivis;
   float pxiinv;
   float ptauvisfrac;

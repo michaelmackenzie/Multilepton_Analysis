@@ -151,6 +151,16 @@ void DataPlotter::get_titles(TString hist, TString setType, TString* xtitle, TSt
     *ytitle = Form("Events / %.2f",.05*rebinH_);
     *title  = Form("Isolation of the Trailing Lepton %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
+  else if(hist == "twoid1" && (selection_ == "mutau" || selection_ == "etau")) {
+    *xtitle = "tau MVA anti-ele ID";
+    *ytitle = "";
+    *title  = "";
+  }
+  else if(hist == "twoid2" && (selection_ == "mutau" || selection_ == "etau")) {
+    *xtitle = "tau MVA anti-mu ID";
+    *ytitle = "";
+    *title  = "";
+  }
   else if(hist == "lepdeltar") {
     *xtitle = "#DeltaR_{ll}";
     *ytitle = Form("Events / %.1f",0.1*rebinH_);
@@ -1606,9 +1616,9 @@ TCanvas* DataPlotter::plot_cdf(TString hist, TString setType, Int_t set, TString
   }
   THStack* hcdfstack = new THStack(Form("%s_%i_cdf",hist.Data(),set),Form("%s_cdf",hist.Data()));
   vector<TH1D*> htransforms;
-  int ntransbins = 50;
   double xtransmin = 0.;
   double xtransmax = 1.7;
+  int ntransbins = (xtransmax-xtransmin)/0.02; //0.02 width bins
   for(TObject* hist : *hists) {
     TH1D* htmp = (TH1D*) hist;
     while(auto o = gDirectory->Get(Form("%s_trans_%i", htmp->GetName(),set))) {
@@ -1824,6 +1834,7 @@ TCanvas* DataPlotter::plot_significance(TString hist, TString setType, Int_t set
 					bool dir = true, Double_t line_val = -1., bool doVsEff = false,
 					TString label1 = "", TString label2 = "") {
 
+  //Get the histogram definining the signal significance
   TH1D* hSignal = 0;
   {
     auto o = gDirectory->Get("hSignal");
@@ -1831,7 +1842,7 @@ TCanvas* DataPlotter::plot_significance(TString hist, TString setType, Int_t set
   }
   //get the signal histogram
   for(UInt_t i = 0; i < data_.size(); ++i) {
-    if(labels_[i] == label) {
+    if(labels_[i] == label) { //look for correct label
       TH1D* tmp = (TH1D*) data_[i]->Get(Form("%s_%i/%s", setType.Data(), set, hist.Data()));
       if(!tmp) continue;
       auto o = gDirectory->Get("tmp");
@@ -1863,6 +1874,7 @@ TCanvas* DataPlotter::plot_significance(TString hist, TString setType, Int_t set
   //take the signal histogram as a template for x-binnning
   TH1D* hEfficiency = (TH1D*) hSignal->Clone("hEfficiency");
   hEfficiency->Clear(); hEfficiency->Reset();
+  
   //get the background stack
   THStack* hstack = get_stack(hist, setType, set);
   TH1D* hlast = (TH1D*) hstack->GetStack()->Last()->Clone("hlast");
@@ -1874,6 +1886,13 @@ TCanvas* DataPlotter::plot_significance(TString hist, TString setType, Int_t set
 
   //parameters for limit loop
   UInt_t nbins = hSignal->GetNbinsX();
+  UInt_t maxbin = nbins;
+  UInt_t minbin = 0;
+  if(limit_xmax_ > limit_xmin_) { //define a specific window to look in
+    maxbin = hSignal->FindBin(limit_xmax_) - 1; //don't include the found bin
+    minbin = hSignal->FindBin(limit_xmin_);    
+  }
+  
   double clsig = 1.644853627; // 95% CL value
   bool doExactLimit = true;
   
@@ -1883,13 +1902,18 @@ TCanvas* DataPlotter::plot_significance(TString hist, TString setType, Int_t set
 
   double p(0.05), tolerance(0.001), val(-1.);
   Significances significances(p, tolerance, useCLs_, 10);
+  double max_score(-1.), max_value(-1.);
   for(UInt_t bin = 1; bin <= nbins; ++bin) {
     xs[bin-1] = (dir) ? hSignal->GetBinLowEdge(bin) : hSignal->GetBinLowEdge(bin) + hSignal->GetBinWidth(bin);
     sigs[bin-1] = 0.;
     xerrs[bin-1] = 0.;
+    sigsErrUp[bin-1] = 0.;    
+    sigsErrDown[bin-1] = 0.;    
+    if(bin > maxbin) continue;
+    if(bin <= minbin) continue;
     double bkgerr(0.), sigerr(0.);
-    double bkgval = (dir) ? hlast->IntegralAndError(bin, nbins, bkgerr) : hlast->IntegralAndError(1, bin, bkgerr);
-    double sigval = (dir) ? hSignal->IntegralAndError(bin, nbins, sigerr) : hSignal->IntegralAndError(1, bin, sigerr);
+    double bkgval = (dir) ? hlast->IntegralAndError(bin, maxbin, bkgerr) : hlast->IntegralAndError(minbin, bin, bkgerr);
+    double sigval = (dir) ? hSignal->IntegralAndError(bin, maxbin, sigerr) : hSignal->IntegralAndError(minbin, bin, sigerr);
     if(init_sig < 0. && sigval > 0.) init_sig = sigval;
     //plot vs signal efficiency instead
     if(doVsEff) xs[bin-1] = sigval/init_sig;
@@ -1899,6 +1923,7 @@ TCanvas* DataPlotter::plot_significance(TString hist, TString setType, Int_t set
     if(doExactLimit)  //get 95% CL by finding signal scale so poisson prob n < n_bkg for mu = n_bkg + n_sig = 0.05
       significance = significances.LimitGain(sigval, bkgval, val);
     sigs[bin-1] = significance;
+    if(max_value < significance) {max_value = significance; max_score = xs[bin-1];}
     //Add MC uncertainty band
     if(limit_mc_err_range_) {
       //bkg+1 sigma
@@ -1917,6 +1942,9 @@ TCanvas* DataPlotter::plot_significance(TString hist, TString setType, Int_t set
   //clean up memory
   delete hlast;
   delete hSignal;
+
+  //print information about maximimum
+  printf("Maximum limit gain of %.5e at %.5f\n", max_value, max_score);
   
   TCanvas* c = new TCanvas(Form("sig_%s_%i",hist.Data(), set), Form("sig_%s_%i",hist.Data(),set), canvas_x_, canvas_y_);
   c->SetTopMargin(0.055);
@@ -1927,7 +1955,8 @@ TCanvas* DataPlotter::plot_significance(TString hist, TString setType, Int_t set
   TString title;
   get_titles(hist,setType,&xtitle,&ytitle,&title);
 
-  TGraph* gSignificance = (limit_mc_err_range_) ? new TGraphAsymmErrors(nbins, xs, sigs, xerrs, xerrs, sigsErrUp, sigsErrDown) : new TGraph(nbins, xs, sigs);
+  TGraph* gSignificance = (limit_mc_err_range_) ? new TGraphAsymmErrors(nbins, xs, sigs, xerrs, xerrs, sigsErrUp, sigsErrDown) :
+    new TGraph(nbins, xs, sigs);
   if(verbose_ > 1) {
     std::cout << "Printing up to 15 significance bins (" << nbins << " total):\n";
     for(int bin = 1; bin < min(1.*nbins, 1.*16); ++bin)

@@ -13,8 +13,11 @@ public:
     //cross sections by MC dataset
     double zll = /*2075.14/0.0337*/ 6077.22;
     double br_ll = 0.0337; //branching ratio of Z->ll
+    double zxs = zll/(3.*br_ll);
+    double higgs = (48.61+3.766+0.5071+1.358+0.880);
     values_["DY50"                    ] = zll    ;
-    values_["Z"                       ] = zll/(3.*br_ll);
+    values_["Z"                       ] = zxs    ;
+    values_["H"                       ] = higgs  ;
     values_["SingleAntiToptW"         ] = 34.91  ;
     values_["SingleToptW"             ] = 34.91  ;
     values_["WWW"	              ] = 0.2086 ;
@@ -35,13 +38,12 @@ public:
 
 
     //signals
-    double higgs = (48.61+3.766+0.5071+1.358+0.880);
-    values_["ZEMu"  ] = zll/(3.*br_ll)*7.3e-7;
-    values_["ZETau" ] = zll/(3.*br_ll)*9.8e-6;
-    values_["ZMuTau"] = zll/(3.*br_ll)*1.2e-5;
-    values_["HEMu"  ] = higgs*3.5e-4;
-    values_["HETau" ] = higgs*6.1e-3;
-    values_["HMuTau"] = higgs*2.5e-3;
+    values_["ZEMu"  ] = zxs*7.5e-7; //PDG: 7.5e-7 ATLAS: 7.5e-7 CMS: 7.3e-7
+    values_["ZETau" ] = zxs*8.1e-6; //PDG: 9.8e-6 ATLAS: 8.1e-6 (13 TeV) 
+    values_["ZMuTau"] = zxs*6.3e-6; //PDG: 1.2e-5 ATLAS: 6.3e-6 (13 TeV) 6.1e-6 (13+8 TeV)
+    values_["HEMu"  ] = higgs*5.9e-5; //PDG: 3.5e-4 CMS: 5.6e-5 ATLAS: 5.9e-5
+    values_["HETau" ] = higgs*1.9e-3; //PDG: 6.1e-3 CMS: 1.9e-3
+    values_["HMuTau"] = higgs*1.6e-3; //PDG: 2.5e-3 CMS: 1.6e-3
 
     //data SS qcd estimates
     //give fraction of (Data - MC) / Data * (OS / SS) by selection for full Run-II
@@ -69,6 +71,21 @@ public:
     numbers_[2016]["ZEMu"    ] =  40000;
     numbers_[2017]["ZEMu"    ] =  80000;
     numbers_[2018]["ZEMu"    ] =  40000;
+    numbers_[2016]["ZMuTau"  ] =  40000;
+    numbers_[2017]["ZMuTau"  ] =  80000;
+    numbers_[2018]["ZMuTau"  ] =  40000;
+    numbers_[2016]["ZETau"   ] =  40000;
+    numbers_[2017]["ZETau"   ] =  80000;
+    numbers_[2018]["ZETau"   ] =  40000;
+    numbers_[2016]["HEMu"    ] =  40000;
+    numbers_[2017]["HEMu"    ] =  80000;
+    numbers_[2018]["HEMu"    ] =  40000;
+    numbers_[2016]["HMuTau"  ] =  40000;
+    numbers_[2017]["HMuTau"  ] =  80000;
+    numbers_[2018]["HMuTau"  ] =  40000;
+    numbers_[2016]["HETau"   ] =  40000;
+    numbers_[2017]["HETau"   ] =  80000;
+    numbers_[2018]["HETau"   ] =  40000;
 
     //Luminosity by year
     lum_[2016] = 35.92e3;
