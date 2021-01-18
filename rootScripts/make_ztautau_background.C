@@ -9,7 +9,7 @@ bool  doHiggs_ = true;
 bool  doDiboson_ = true;
 bool  debug_ = false;
 Int_t verbose_ = 1;
-vector<int> years_ = {2016};
+vector<int> years_ = {2016, 2017, 2018};
 
 Int_t combine_trees(vector<TString> in_files, TString selection, int file_set, TString out_name) {
   TFile* fDList[in_files.size()];
@@ -205,15 +205,15 @@ Int_t make_all_backgrounds(TString base = "../histograms/nanoaods_dev/") {
 
 Int_t make_all_years(TString base = "../histograms/nanoaods_dev/") {
   Int_t status = 0;
-  cout << "Making 2016 backgrounds...\n";
-  years_ = {2016};
-  status += make_all_backgrounds(base);
-  cout << "Making 2017 backgrounds...\n";
-  years_ = {2017};
-  status += make_all_backgrounds(base);
-  cout << "Making 2018 backgrounds...\n";
-  years_ = {2018};
-  status += make_all_backgrounds(base);
+  // cout << "Making 2016 backgrounds...\n";
+  // years_ = {2016};
+  // status += make_all_backgrounds(base);
+  // cout << "Making 2017 backgrounds...\n";
+  // years_ = {2017};
+  // status += make_all_backgrounds(base);
+  // cout << "Making 2018 backgrounds...\n";
+  // years_ = {2018};
+  // status += make_all_backgrounds(base);
   //make total background file for all years combined
   cout << "Making Run-II backgrounds...\n";
   years_ = {2016, 2017, 2018};

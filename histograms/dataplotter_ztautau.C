@@ -8,18 +8,20 @@ bool  doStatsLegend_ = false;
 TString hist_dir_ = "nanoaods_dev";
 TString folder_ = "nanoaods_dev";
 bool doAllEMu_ = false; //plot all emu signals (including leptonic decays) on selection_ == "emu"
-bool printCDFs_ = true; //print cdf transform of MVAs
+bool printCDFs_ = false; //print cdf transform of MVAs
 bool printLimitVsEff_ = false; //print limit gain vs signal efficiency from MVA cut
 bool printMVATotBkg_ = false; //print MVA distributions as total background vs signal
 bool print2Ds_ = false;
-bool printSignificances_ = true;
-bool printMVAPlots_ = true;
+bool printSignificances_ = false;
+bool printMVAPlots_ = false;
 bool printSlimCounts_ = false; 
-bool printBlindSets_ = true; //print sets > MVA score cut without data
+bool printBlindSets_ = false; //print sets > MVA score cut without data
 vector<int> years_ = {2016, 2017, 2018}; //list of years of interest
 bool offsetSets_ = true; //offset by selection set from ZTauTauHistMaker
 int sigOverBkg_ = 0; //plot sig / bkg or data / MC (0 = data/MC, 1 = sig/MC, 2 = sig*sig/MC)
 int doRunPeriod_ = 0; //do a specific run period of data
+int useQCD_ = 1; //use qcd estimate
+int useMisID_ = 1; //use Mis-ID estimate
 
 Int_t print_significance_canvases(vector<TString> hists, vector<TString> types, vector<TString> labels, vector<int> sets) {
   TCanvas* c = 0;
@@ -910,7 +912,10 @@ Int_t init_dataplotter() {
     dataplotter_->qcd_scale_ = 1.10205; //+- 0.00636 Found with Run-II set 234 --> 34
   else
     dataplotter_->qcd_scale_ = 1.61248; //+- 0.01344 Found with Run-II set 264 --> 64
-  
+
+  dataplotter_->include_qcd_ = useQCD_;
+  dataplotter_->include_misid_ = useMisID_;
+
   dataplotter_->doStatsLegend_ = doStatsLegend_;
   if(selection_ == "emu")
     dataplotter_->signal_scale_ = 25.;
@@ -1057,7 +1062,7 @@ Int_t nanoaod_init(TString selection = "emu", TString histDir = "nanoaods", TStr
   Int_t status = init_dataplotter();
   if(!status) {
     if(selection == "emu")
-      dataplotter_->signal_scale_ = 100.;
+      {dataplotter_->signal_scale_ = 100.; dataplotter_->signal_scales_["H->e#mu"] = 250.;}
     else if(selection.Contains("_"))
       dataplotter_->signal_scale_ = 150.;
     else if(selection.Contains("tau"))
@@ -1290,6 +1295,45 @@ Int_t print_qcd_plots() {
   dataplotter_->include_qcd_ = prev;
   return status;
 }
+
+//print MisID method plots
+Int_t print_misid_plots() {
+  Int_t status = 0;
+  if(!dataplotter_) return 1;
+  dataplotter_->include_qcd_ = 0;
+  int offset = 0;
+  if     (selection_ == "mutau"  ) offset = ZTauTauHistMaker::kMuTau;
+  else if(selection_ == "etau"   ) offset = ZTauTauHistMaker::kETau;
+  else if(selection_ == "emu"    ) offset = ZTauTauHistMaker::kEMu;
+  else if(selection_ == "mutau_e") offset = ZTauTauHistMaker::kEMu;
+  else if(selection_ == "etau_mu") offset = ZTauTauHistMaker::kEMu;
+  else if(selection_ == "mumu")    offset = ZTauTauHistMaker::kMuMu;
+  else if(selection_ == "ee"  )    offset = ZTauTauHistMaker::kEE;
+  vector<int> sets = {3+offset, 4+offset,
+		      7+offset, 8+offset,
+		      7+offset+ZTauTauHistMaker::fQcdOffset,
+		      8+offset+ZTauTauHistMaker::fQcdOffset};
+  vector<DataPlotter::PlottingCard_t> cards;
+  cards.push_back(DataPlotter::PlottingCard_t("leppt" , "event", 2,  0., 170.));
+  cards.push_back(DataPlotter::PlottingCard_t("lepm"  , "event", 2, 50., 170.));
+  cards.push_back(DataPlotter::PlottingCard_t("twopt" , "lep"  , 2, 20., 100.));
+  cards.push_back(DataPlotter::PlottingCard_t("twoeta", "lep"  , 2, -3.,   5.));
+  cards.push_back(DataPlotter::PlottingCard_t("taudecaymode", "event", 0, 0., 15.));
+  cards.push_back(DataPlotter::PlottingCard_t("taudecaymode1","event", 0, 0., 15.));
+  cards.push_back(DataPlotter::PlottingCard_t("onept" , "lep"  , 2, 20., 100.));
+  for(int set : sets) {
+    for(DataPlotter::PlottingCard_t card : cards) {
+      card.set_ = set;
+      TCanvas* c;
+      c = dataplotter_->print_stack(card);
+      if(c) {
+	DataPlotter::Empty_Canvas(c);
+      }
+    }
+  }
+  return status;
+}
+
 //print standard stacks for each selection
 Int_t print_standard_selections(TString histDir = "", TString figureDir = "") {
   if(histDir != "") hist_dir_ = histDir;
@@ -1303,38 +1347,38 @@ Int_t print_standard_selections(TString histDir = "", TString figureDir = "") {
   status += print_standard_plots({7,8}, {150., 150.});
   if(printBlindSets_) status += print_blind_sets({9,10}, {20.,20.}, {2, 2});
   
-  selection_ = "etau";
-  status += init_dataplotter();
-  status += print_standard_plots({7,8}, {150., 150.});
-  if(printBlindSets_) status += print_blind_sets({9,10}, {20.,20.}, {2, 2});
-
-  selection_ = "emu";
-  status += init_dataplotter();
-  status += print_standard_plots({7,8}, {100.,100.});
-  // status += print_emu_cutsets();
-  if(printBlindSets_) status += print_blind_sets({9,10,11,12}, {2.,2.,10.,10.}, {2,2,2,2});
-
-  selection_ = "mutau_e";
-  status += init_dataplotter();
-  offsetSets_ = false;
-  status += print_standard_plots({67,68}, {150., 150.});
-  offsetSets_ = true;
-  if(printBlindSets_) status += print_blind_sets({9,10}, {2.,2.}, {2,2});
-
-  selection_ = "etau_mu";
-  status += init_dataplotter();
-  offsetSets_ = false;
-  status += print_standard_plots({67,68}, {150., 150.});
-  offsetSets_ = true;
-  if(printBlindSets_) status += print_blind_sets({9,10}, {2.,2.}, {2,2});
-
-  // selection_ = "mumu";
+  // selection_ = "etau";
   // status += init_dataplotter();
-  // status += print_standard_plots({7, 8}, {2.e4, 2.e4});
+  // status += print_standard_plots({7,8}, {150., 150.});
+  // if(printBlindSets_) status += print_blind_sets({9,10}, {20.,20.}, {2, 2});
 
-  // selection_ = "ee";
+  // selection_ = "emu";
   // status += init_dataplotter();
-  // status += print_standard_plots({7, 8}, {2.e4, 2.e4});
+  // status += print_standard_plots({7,8}, {100.,100.});
+  // // status += print_emu_cutsets();
+  // if(printBlindSets_) status += print_blind_sets({9,10,11,12}, {2.,2.,10.,10.}, {2,2,2,2});
+
+  // selection_ = "mutau_e";
+  // status += init_dataplotter();
+  // offsetSets_ = false;
+  // status += print_standard_plots({67,68}, {150., 150.});
+  // offsetSets_ = true;
+  // if(printBlindSets_) status += print_blind_sets({9,10}, {2.,2.}, {2,2});
+
+  // selection_ = "etau_mu";
+  // status += init_dataplotter();
+  // offsetSets_ = false;
+  // status += print_standard_plots({67,68}, {150., 150.});
+  // offsetSets_ = true;
+  // if(printBlindSets_) status += print_blind_sets({9,10}, {2.,2.}, {2,2});
+
+  selection_ = "mumu";
+  status += init_dataplotter();
+  status += print_standard_plots({7, 8}, {2.e4, 2.e4});
+
+  selection_ = "ee";
+  status += init_dataplotter();
+  status += print_standard_plots({7, 8}, {2.e4, 2.e4});
 
   Double_t cpuTime = timer->CpuTime();
   Double_t realTime = timer->RealTime();

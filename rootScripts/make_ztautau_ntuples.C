@@ -83,18 +83,18 @@ Int_t book_mvas() {
     else if(fMvaNames[mva_i].Contains("etau_mu")) selection += "_mu";
 
     Int_t isJetBinned = -1; // -1 is not binned, 0 = 0 jets, 1 = 1 jet, 2 = >1 jets
-    if(fMvaNames[mva_i].Contains("_18") || //0 jet
-       fMvaNames[mva_i].Contains("_48") ||
-       fMvaNames[mva_i].Contains("_78"))
-      isJetBinned = 0;
-    else if(fMvaNames[mva_i].Contains("_19") || //1 jet
-	    fMvaNames[mva_i].Contains("_49") ||
-	    fMvaNames[mva_i].Contains("_79"))
-      isJetBinned = 1;
-    else if(fMvaNames[mva_i].Contains("_20") || //>1 jet
-	    fMvaNames[mva_i].Contains("_50") ||
-	    fMvaNames[mva_i].Contains("_80"))
-      isJetBinned = 2;
+    // if(fMvaNames[mva_i].Contains("_18") || //0 jet
+    //    fMvaNames[mva_i].Contains("_48") ||
+    //    fMvaNames[mva_i].Contains("_78"))
+    //   isJetBinned = 0;
+    // else if(fMvaNames[mva_i].Contains("_19") || //1 jet
+    // 	    fMvaNames[mva_i].Contains("_49") ||
+    // 	    fMvaNames[mva_i].Contains("_79"))
+    //   isJetBinned = 1;
+    // else if(fMvaNames[mva_i].Contains("_20") || //>1 jet
+    // 	    fMvaNames[mva_i].Contains("_50") ||
+    // 	    fMvaNames[mva_i].Contains("_80"))
+    //   isJetBinned = 2;
 
     fIsJetBinnedMVAs[mva_i] = isJetBinned; //store for checking when filling
       
@@ -117,12 +117,6 @@ Int_t book_mvas() {
 
 //selections: 1 = mutau, 2 = etau, 5 = emu, 9 = mumu, 18 = ee
 Int_t initialize_tree_vars(int selection) {
-  if(nBJets  > nBJetsM) nBJetsM = nBJets;
-  if(nBJetsM > nBJetsL) nBJetsL = nBJetsM;
-  if(nBJets20   > nBJets20M ) nBJets20M = nBJets20;
-  if(nBJets20M  > nBJets20L ) nBJets20L = nBJets20M;
-
-
   //update MET with correction
   TVector3 missing(met*cos(metPhi), met*sin(metPhi), 0.);
   TVector3 missingCorr(metCorr*cos(metCorrPhi), metCorr*sin(metCorrPhi), 0.);
@@ -131,38 +125,46 @@ Int_t initialize_tree_vars(int selection) {
   fTreeVars.met = missing.Mag();
   metPhi = missing.Phi();
 
+  // if(nBJets  > nBJetsM) nBJetsM = nBJets;
+  // if(nBJetsM > nBJetsL) nBJetsL = nBJetsM;
+  // if(nBJets20   > nBJets20M ) nBJets20M = nBJets20;
+  // if(nBJets20M  > nBJets20L ) nBJets20L = nBJets20M;
+
   fTreeVars.leponept  = leptonOneP4->Pt();
   fTreeVars.leptwopt  = leptonTwoP4->Pt();
-  fTreeVars.leponeidone   = 0.;
-  fTreeVars.leponeidtwo   = 0.; 
-  fTreeVars.leponeidthree = 0.;
-  if(selection < 5) {//tau selection
-    fTreeVars.leptwoidone   = tauDeepAntiEle;
-    fTreeVars.leptwoidtwo   = tauDeepAntiMu; 
-    fTreeVars.leptwoidthree = tauDeepAntiJet;
-  } else { //no other ids for now
-    fTreeVars.leptwoidone   = 0.;
-    fTreeVars.leptwoidtwo   = 0.; 
-    fTreeVars.leptwoidthree = 0.;
-  }
+  // fTreeVars.leponeidone   = 0.;
+  // fTreeVars.leponeidtwo   = 0.; 
+  // fTreeVars.leponeidthree = 0.;
+  // if(selection < 4) {//tau selection
+  //   fTreeVars.leptwoidone   = tauDeepAntiEle;
+  //   fTreeVars.leptwoidtwo   = tauDeepAntiMu; 
+  //   fTreeVars.leptwoidthree = tauDeepAntiJet;
+  // } else { //no other ids for now
+  //   fTreeVars.leptwoidone   = 0.;
+  //   fTreeVars.leptwoidtwo   = 0.; 
+  //   fTreeVars.leptwoidthree = 0.;
+  // }
 
   TLorentzVector lep = *leptonOneP4 + *leptonTwoP4;
   fTreeVars.leppt  = lep.Pt();
   fTreeVars.lepm   = lep.M();
+  fTreeVars.lepptoverm    = fTreeVars.leppt   /fTreeVars.lepm;
+  fTreeVars.leponeptoverm = fTreeVars.leponept/fTreeVars.lepm;
+  fTreeVars.leptwoptoverm = fTreeVars.leptwopt/fTreeVars.lepm;
   // fTreeVars.lepeta = lep.Eta();
   // fTreeVars.lepdeltar   = leptonOneP4->DeltaR(*leptonTwoP4);
   fTreeVars.lepdeltaphi = abs(leptonOneP4->DeltaPhi(*leptonTwoP4));
-  fTreeVars.lepdeltaeta = abs(leptonOneP4->Eta() - leptonTwoP4->Eta());
+  // fTreeVars.lepdeltaeta = abs(leptonOneP4->Eta() - leptonTwoP4->Eta());
 
   //phi differences
-  fTreeVars.htdeltaphi = abs(lep.Phi() - htPhi);
-  if(fTreeVars.htdeltaphi > M_PI)
-    fTreeVars.htdeltaphi = abs(2.*M_PI - fTreeVars.htdeltaphi);
-  fTreeVars.metdeltaphi = abs(lep.Phi() - metPhi);
-  if(fTreeVars.metdeltaphi > M_PI)
-    fTreeVars.metdeltaphi = abs(2.*M_PI - fTreeVars.metdeltaphi);
-  fTreeVars.leponedeltaphi = abs(leptonOneP4->DeltaPhi(lep));
-  fTreeVars.leptwodeltaphi = abs(leptonTwoP4->DeltaPhi(lep));
+  // fTreeVars.htdeltaphi = abs(lep.Phi() - htPhi);
+  // if(fTreeVars.htdeltaphi > M_PI)
+  //   fTreeVars.htdeltaphi = abs(2.*M_PI - fTreeVars.htdeltaphi);
+  // fTreeVars.metdeltaphi = abs(lep.Phi() - metPhi);
+  // if(fTreeVars.metdeltaphi > M_PI)
+  //   fTreeVars.metdeltaphi = abs(2.*M_PI - fTreeVars.metdeltaphi);
+  // fTreeVars.leponedeltaphi = abs(leptonOneP4->DeltaPhi(lep));
+  // fTreeVars.leptwodeltaphi = abs(leptonTwoP4->DeltaPhi(lep));
   fTreeVars.onemetdeltaphi = abs(leptonOneP4->Phi() - metPhi);
   if(fTreeVars.onemetdeltaphi > M_PI)
     fTreeVars.onemetdeltaphi = abs(2.*M_PI - fTreeVars.onemetdeltaphi);
@@ -173,6 +175,8 @@ Int_t initialize_tree_vars(int selection) {
   
   fTreeVars.mtone = sqrt(2.*fTreeVars.met*fTreeVars.leponept*(1.-cos(leptonOneP4->Phi() - metPhi)));
   fTreeVars.mttwo = sqrt(2.*fTreeVars.met*fTreeVars.leptwopt*(1.-cos(leptonTwoP4->Phi() - metPhi)));
+  fTreeVars.mtoneoverm = fTreeVars.mtone / fTreeVars.lepm;
+  fTreeVars.mttwooverm = fTreeVars.mttwo / fTreeVars.lepm;
 
   //momentum projections onto bisector
   TVector3 lp1 = leptonOneP4->Vect();
@@ -191,16 +195,33 @@ Int_t initialize_tree_vars(int selection) {
   fTreeVars.mestimate    = fTreeVars.lepm/sqrt(fTreeVars.ptauvisfrac);
   fTreeVars.mestimatetwo = fTreeVars.lepm/sqrt(lp1.Mag() / (lp1.Mag() + pnuesttwo));
 
+  double hmass(125.), zmass(91.2), tmass(1.78), lepdot(2.*((*leptonOneP4)*(*leptonTwoP4)));
+  //delta alpha 1 = (m_boson^2 - m_tau^2) / (p(l1)\cdot p(l2))
+  //delta alpha 2 = pT(l1) / pT(l2) (l1 = tau)
+  //delta alpha 3 = pT(l2) / pT(l1) (l2 = tau)
+  fTreeVars.alphaz1 = (zmass*zmass-tmass*tmass)/(lepdot);
+  fTreeVars.alphah1 = (hmass*hmass-tmass*tmass)/(lepdot);
+  fTreeVars.alpha2 = leptonTwoP4->Pt()/leptonOneP4->Pt(); //for lep 1 = tau, lep 2 = non-tau
+  fTreeVars.alpha3 = leptonOneP4->Pt()/leptonTwoP4->Pt(); //for lep 2 = non-tau, lep 1 = tau
+  fTreeVars.deltaalphaz1 = fTreeVars.alphaz1 - fTreeVars.alpha2;
+  fTreeVars.deltaalphaz2 = fTreeVars.alphaz1 - fTreeVars.alpha3;
+  fTreeVars.deltaalphah1 = fTreeVars.alphah1 - fTreeVars.alpha2;
+  fTreeVars.deltaalphah2 = fTreeVars.alphah1 - fTreeVars.alpha3;
+  //mass from delta alpha equation: m_boson = sqrt(m_tau^2 + pT(lep)/pT(tau) * p(l1) \cdot p(l2))
+  fTreeVars.deltaalpham1 = std::sqrt(tmass*tmass + fTreeVars.alpha2 * lepdot); //lep 1 = tau
+  fTreeVars.deltaalpham2 = std::sqrt(tmass*tmass + fTreeVars.alpha3 * lepdot); //lep 2 = tau
+
   fTreeVars.jetpt = jetP4->Pt();
   fTreeVars.njets = njets;
-  fTreeVars.nbjets = nBJets;
-  fTreeVars.nbjetsm = nBJetsM;
-  fTreeVars.nbjetsl = nBJetsL;
+  // fTreeVars.nbjets = nBJets;
+  // fTreeVars.nbjetsm = nBJetsM;
+  // fTreeVars.nbjetsl = nBJetsL;
   //don't actually care about these, just for MVA spectators
   fTreeVars.eventweight = 1.;
   fTreeVars.fulleventweight = 1.;
+  fTreeVars.fulleventweightlum = 1.;
   fTreeVars.eventcategory = 1;
-  fTreeVars.train = 0;
+  fTreeVars.train = 1;
   
   TString selecName = "";
   if(selection == 1)      selecName = "mutau";
@@ -239,27 +260,29 @@ Int_t set_addresses(TTree* fChain) {
   fChain->SetBranchStatus("leptonOneP4"         , 1); fChain->SetBranchAddress("leptonOneP4"         , &leptonOneP4          );   
   fChain->SetBranchStatus("leptonTwoP4"         , 1); fChain->SetBranchAddress("leptonTwoP4"         , &leptonTwoP4          );   
   fChain->SetBranchStatus("jetP4"               , 1); fChain->SetBranchAddress("jetP4"               , &jetP4                );   
-  fChain->SetBranchStatus("nMuons"              , 1); fChain->SetBranchAddress("nMuons"              , &nMuons               );   
-  fChain->SetBranchStatus("nElectrons"          , 1); fChain->SetBranchAddress("nElectrons"          , &nElectrons           );   
-  fChain->SetBranchStatus("nTaus"               , 1); fChain->SetBranchAddress("nTaus"               , &nTaus                );   
+  // fChain->SetBranchStatus("nMuons"              , 1); fChain->SetBranchAddress("nMuons"              , &nMuons               );   
+  // fChain->SetBranchStatus("nElectrons"          , 1); fChain->SetBranchAddress("nElectrons"          , &nElectrons           );   
+  // fChain->SetBranchStatus("nTaus"               , 1); fChain->SetBranchAddress("nTaus"               , &nTaus                );   
   // fChain->SetBranchStatus("nPhotons"            , 1); fChain->SetBranchAddress("nPhotons"            , &fTreeVars.nphotons   );   
   fChain->SetBranchStatus("nJets"               , 1); fChain->SetBranchAddress("nJets"               , &njets                );   
   // fChain->SetBranchStatus("nFwdJets"            , 1); fChain->SetBranchAddress("nFwdJets"            , &nfwdjets             );   
-  fChain->SetBranchStatus("nBJets"              , 1); fChain->SetBranchAddress("nBJets"              , &nBJets               );   
-  fChain->SetBranchStatus("nBJetsM"             , 1); fChain->SetBranchAddress("nBJetsM"             , &nBJetsM              );   
-  fChain->SetBranchStatus("nBJetsL"             , 1); fChain->SetBranchAddress("nBJetsL"             , &nBJetsL              );   
-  fChain->SetBranchStatus("nBJets20"            , 1); fChain->SetBranchAddress("nBJets20"            , &nBJets20             );   
-  fChain->SetBranchStatus("nBJets20M"           , 1); fChain->SetBranchAddress("nBJets20M"           , &nBJets20M            );   
-  fChain->SetBranchStatus("nBJets20L"           , 1); fChain->SetBranchAddress("nBJets20L"           , &nBJets20L            );   
+  // fChain->SetBranchStatus("nBJets"              , 1); fChain->SetBranchAddress("nBJets"              , &nBJets               );   
+  // fChain->SetBranchStatus("nBJetsM"             , 1); fChain->SetBranchAddress("nBJetsM"             , &nBJetsM              );   
+  // fChain->SetBranchStatus("nBJetsL"             , 1); fChain->SetBranchAddress("nBJetsL"             , &nBJetsL              );   
+  // fChain->SetBranchStatus("nBJets20"            , 1); fChain->SetBranchAddress("nBJets20"            , &nBJets20             );   
+  // fChain->SetBranchStatus("nBJets20M"           , 1); fChain->SetBranchAddress("nBJets20M"           , &nBJets20M            );   
+  // fChain->SetBranchStatus("nBJets20L"           , 1); fChain->SetBranchAddress("nBJets20L"           , &nBJets20L            );   
   fChain->SetBranchStatus("puppMETC"            , 1); fChain->SetBranchAddress("puppMETC"            , &met                  );   
   fChain->SetBranchStatus("puppMETCphi"         , 1); fChain->SetBranchAddress("puppMETCphi"         , &metPhi               );   
+  // fChain->SetBranchStatus("met"                 , 1); fChain->SetBranchAddress("met"                 , &met                  );   
+  // fChain->SetBranchStatus("metPhi"              , 1); fChain->SetBranchAddress("metPhi"              , &metPhi               );   
   fChain->SetBranchStatus("metCorr"             , 1); fChain->SetBranchAddress("metCorr"             , &metCorr              );   
   fChain->SetBranchStatus("metCorrPhi"          , 1); fChain->SetBranchAddress("metCorrPhi"          , &metCorrPhi           );   
-  fChain->SetBranchStatus("ht"                  , 1); fChain->SetBranchAddress("ht"                  , &fTreeVars.ht         );   
-  fChain->SetBranchStatus("htPhi"               , 1); fChain->SetBranchAddress("htPhi"               , &htPhi                );   
-  fChain->SetBranchStatus("tauDeepAntiEle"      , 1); fChain->SetBranchAddress("tauDeepAntiEle"      , &tauDeepAntiEle       );
-  fChain->SetBranchStatus("tauDeepAntiMu"       , 1); fChain->SetBranchAddress("tauDeepAntiMu"       , &tauDeepAntiMu        );
-  fChain->SetBranchStatus("tauDeepAntiJet"      , 1); fChain->SetBranchAddress("tauDeepAntiJet"      , &tauDeepAntiJet       );
+  // fChain->SetBranchStatus("ht"                  , 1); fChain->SetBranchAddress("ht"                  , &fTreeVars.ht         );   
+  // fChain->SetBranchStatus("htPhi"               , 1); fChain->SetBranchAddress("htPhi"               , &htPhi                );   
+  // fChain->SetBranchStatus("tauDeepAntiEle"      , 1); fChain->SetBranchAddress("tauDeepAntiEle"      , &tauDeepAntiEle       );
+  // fChain->SetBranchStatus("tauDeepAntiMu"       , 1); fChain->SetBranchAddress("tauDeepAntiMu"       , &tauDeepAntiMu        );
+  // fChain->SetBranchStatus("tauDeepAntiJet"      , 1); fChain->SetBranchAddress("tauDeepAntiJet"      , &tauDeepAntiJet       );
 
   
   //add new branches for MVA outputs
@@ -423,37 +446,38 @@ Int_t process_standard_nano_trees(int year = 2016, bool doInParts = false, bool 
   int status = 0;
   year_ = year;
   TString grid_path = "root://cmseos.fnal.gov///store/user/mmackenz/ztautau_nanoaod_test_trees/";
-  TString grid_out = "root://cmseos.fnal.gov///store/user/mmackenz/ztautau_nanoaod_test_trees/";
+  // TString grid_out = "root://cmseos.fnal.gov///store/user/mmackenz/ztautau_nanoaod_test_trees/";
+  TString grid_out = "root://cmseos.fnal.gov///store/user/mmackenz/ztautau_nanoaod_trees/";
   if(copyLocal&&!update) grid_path = "root://cmseos.fnal.gov///store/user/mmackenz/ztautau_nanoaod_trees_nomva/";
   TString name = "clfv_";
   name += year;
   name += "_";
   TString ext  = ".tree";
   vector<datacard_t> cards;
-  cards.push_back(datacard_t(false                , name+"ttbarToSemiLeptonic"));
-  cards.push_back(datacard_t(false                , name+"ttbarToHadronic"));
-  cards.push_back(datacard_t(false                , name+"ttbarlnu"));
-  cards.push_back(datacard_t(false                , name+"DY50"));
-  cards.push_back(datacard_t(false && year != 2018, name+"DY50-ext"));
-  cards.push_back(datacard_t(false                , name+"SingleAntiToptW"));
-  cards.push_back(datacard_t(false                , name+"SingleToptW"));
-  cards.push_back(datacard_t(false                , name+"Wlnu"));
-  cards.push_back(datacard_t(false && year != 2018, name+"Wlnu-ext"));
-  cards.push_back(datacard_t(false                , name+"WW"));
-  cards.push_back(datacard_t(false                , name+"WZ"));
-  cards.push_back(datacard_t(false                , name+"ZETau"));
-  cards.push_back(datacard_t(false                , name+"ZMuTau"));
-  cards.push_back(datacard_t(false                , name+"ZEMu"));
-  cards.push_back(datacard_t(false                , name+"HETau"));
-  cards.push_back(datacard_t(false                , name+"HMuTau"));
-  cards.push_back(datacard_t(false                , name+"HEMu"));
-  cards.push_back(datacard_t(false                , name+"SingleMu"));
-  cards.push_back(datacard_t(false                , name+"SingleEle"));
-  cards.push_back(datacard_t(false                , name+"ZZ"));
-  cards.push_back(datacard_t(false                , name+"WWW"));
-  cards.push_back(datacard_t(false                , name+"QCDDoubleEMEnrich30to40"));
-  cards.push_back(datacard_t(false                , name+"QCDDoubleEMEnrich30toInf"));
-  cards.push_back(datacard_t(false                , name+"QCDDoubleEMEnrich40toInf"));
+  cards.push_back(datacard_t(true                 , name+"ttbarToSemiLeptonic"));
+  cards.push_back(datacard_t(true                 , name+"ttbarToHadronic"));
+  cards.push_back(datacard_t(true                 , name+"ttbarlnu"));
+  cards.push_back(datacard_t(true                 , name+"DY50"));
+  cards.push_back(datacard_t(true  && year != 2018, name+"DY50-ext"));
+  cards.push_back(datacard_t(true                 , name+"SingleAntiToptW"));
+  cards.push_back(datacard_t(true                 , name+"SingleToptW"));
+  cards.push_back(datacard_t(true                 , name+"Wlnu"));
+  cards.push_back(datacard_t(true  && year != 2018, name+"Wlnu-ext"));
+  cards.push_back(datacard_t(true                 , name+"WW"));
+  cards.push_back(datacard_t(true                 , name+"WZ"));
+  cards.push_back(datacard_t(true                 , name+"ZETau"));
+  cards.push_back(datacard_t(true                 , name+"ZMuTau"));
+  cards.push_back(datacard_t(true                 , name+"ZEMu"));
+  cards.push_back(datacard_t(true                 , name+"HETau"));
+  cards.push_back(datacard_t(true                 , name+"HMuTau"));
+  cards.push_back(datacard_t(true                 , name+"HEMu"));
+  cards.push_back(datacard_t(true                 , name+"SingleMu"));
+  cards.push_back(datacard_t(true                 , name+"SingleEle"));
+  cards.push_back(datacard_t(true                 , name+"ZZ"));
+  cards.push_back(datacard_t(true                 , name+"WWW"));
+  cards.push_back(datacard_t(true                 , name+"QCDDoubleEMEnrich30to40"));
+  cards.push_back(datacard_t(true                 , name+"QCDDoubleEMEnrich30toInf"));
+  cards.push_back(datacard_t(true                 , name+"QCDDoubleEMEnrich40toInf"));
   
   vector<TString> folders = {/*"ee", "mumu",*/ "mutau", "etau", "emu"};
   status = initialize(); //initialize the MVAs
@@ -468,14 +492,16 @@ Int_t process_standard_nano_trees(int year = 2016, bool doInParts = false, bool 
       gSystem->Exec(Form("time xrdcp -f %s ./%s", file_name.Data(), (card.fname_+ext).Data()));
       file_name = card.fname_ + ext;
     }
+    int stat = 0; //status for this card
     for(auto folder : folders) {
       folder_ = folder;
-      int stat = (doInParts) ? make_new_tree_inparts(file_name, folder, card.fname_, card.iStart_) : make_new_tree(file_name, folder, card.fname_);
-      if(stat) cout << "file " << card.fname_.Data() << ": folder " << folder.Data()
+      int stat_f = (doInParts) ? make_new_tree_inparts(file_name, folder, card.fname_, card.iStart_) : make_new_tree(file_name, folder, card.fname_);
+      if(stat_f) cout << "file " << card.fname_.Data() << ": folder " << folder.Data()
     		    << " returned status " << stat << endl;
-      status += stat;
+      stat += stat_f;
     }
-    if(status) { cout << "Status = " << status << ", breaking!\n"; break;}
+    status += stat;
+    if(stat) { cout << "Card status = " << stat << ", continuing!\n"; continue;}
     if(copyLocal && !debug) {
       cout << "Copying " << file_name.Data() << " to " << (grid_out+card.fname_+ext).Data() << "...\n";
       gSystem->Exec(Form("time xrdcp -f ./%s %s; rm %s;", file_name.Data(), (grid_out+card.fname_+ext).Data(), file_name.Data()));
