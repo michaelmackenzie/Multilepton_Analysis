@@ -14,6 +14,7 @@
 #include "../utils/MVAConfig.hh+g"
 #include "../utils/PUWeight.hh+g"
 #include "../utils/BTagWeight.hh+g"
+#include "../utils/JetToTauWeight.hh+g"
 #include "./DataPlotter.cc+g"
 
 int compile_objects() {

@@ -82,6 +82,7 @@ struct Tree_t {
   float fulleventweightlum; //includes cross-section, number gen, and luminosity
   float eventcategory; //for identifying the process in mva trainings
   float issignal;
+  float category; //selection category e.g. mutau_h, mutau_e
   
   //identify to use in training
   float train; //  < 0 --> testing, > 0 --> training sample

@@ -118,6 +118,8 @@ public:
   //Get luminosity by year
   double GetLuminosity(int year) {
     double lum(0.);
+    if(year < 10) // using enums
+      year += 2016;
     auto itr = lum_.find(year);
     if(itr != lum_.end())
       lum = itr->second;
