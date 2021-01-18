@@ -27,33 +27,43 @@ then
     run_command="root.exe -b -q"
 fi
 
+doHiggs="false"
+if [[ "$5" != "" ]]
+then
+    echo "Processing for the Higgs boson signal!"
+    doHiggs="true"
+fi
+
 echo "*****************************************************************************************************"
 echo "Performing iteration for set ${histSet} and year(s) ${year} with histogram path ${histPath}"
 echo "Enter \".q\" between each step to close Canvases and move to next step"
 echo "*****************************************************************************************************"
 
-echo "Getting same flavor histograms..."
-$run_command "create_same_flavor_histograms.C(${histSet}, ${year}, \"${histPath}\")"
+if [[ "$doHiggs" == "false" ]]
+then
+    echo "Getting same flavor histograms..."
+    $run_command "create_same_flavor_histograms.C(${histSet}, ${year}, \"${histPath}\")"
 
-echo "Fitting same flavor muon histograms..."
-$run_command "fit_same_flavor.C(${histSet}, ${year}, true)"
+    echo "Fitting same flavor muon histograms..."
+    $run_command "fit_same_flavor.C(${histSet}, ${year}, true)"
 
-echo "Fitting same flavor electron histograms..."
-$run_command "fit_same_flavor.C(${histSet}, ${year}, false)"
+    echo "Fitting same flavor electron histograms..."
+    $run_command "fit_same_flavor.C(${histSet}, ${year}, false)"
 
-echo "Morphing same flavor histograms to make signal PDF..."
-$run_command "morph_signal.C(${histSet}, ${year})"
+    echo "Morphing same flavor histograms to make signal PDF..."
+    $run_command "morph_signal.C(${histSet}, ${year})"
+fi
 
 echo "Fitting directly the signal PDF..."
-$run_command "fit_signal.C(${histSet}, ${year})"
+$run_command "fit_signal.C(${histSet}, ${year}, \"${histPath}\", ${doHiggs})"
 
 echo "Creating background trees..."
 $run_command "create_background_trees.C(${histSet}, ${year}, \"${histPath}\")"
 
 echo "Fitting background MC distribution..."
-$run_command "fit_background.C(${histSet}, ${year})"
+$run_command "fit_background.C(${histSet}, ${year}, ${doHiggs})"
 
 echo "Calculating the upper limit..."
-$run_command "calculate_UL.C(${histSet}, ${year})"
+$run_command "calculate_UL.C(${histSet}, ${year}, ${doHiggs})"
 
 echo "Finished!"

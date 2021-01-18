@@ -1,50 +1,59 @@
 //Script to calculate the 95% UL for e+mu resonance
 bool doConstraints_ = false;
 bool fixBkgParams_ = false;
+bool useBinnedBkgFit_ = true;
 
-Int_t calculate_UL(int set = 8, vector<int> years = {2016, 2017, 2018},
-		   bool doHiggs = false, bool useToyData = false) {
+Int_t calculate_UL_MVA(int set = 8, TString selection = "zmutau",
+		       vector<int> years = {2016/*, 2017, 2018*/},
+		       bool useToyData = false) {
+  TString hist;
+  if     (selection == "hmutau"  ) hist = "mva0";
+  else if(selection == "zmutau"  ) hist = "mva1";
+  else if(selection == "hetau"   ) hist = "mva2";
+  else if(selection == "zetau"   ) hist = "mva3";
+  else if(selection == "hemu"    ) hist = "mva4";
+  else if(selection == "zemu"    ) hist = "mva5";
+  else if(selection == "hmutau_e") hist = "mva6";
+  else if(selection == "zmutau_e") hist = "mva7";
+  else if(selection == "hetau_mu") hist = "mva8";
+  else if(selection == "zetau_mu") hist = "mva9";
+  else {
+    cout << "Unidentified selection " << selection.Data() << endl;
+    return -1;
+  }
+
+  TString selec = selection; selec.ReplaceAll("z", ""); selec.ReplaceAll("h", "");
+  if(selec.Contains("_")) selec = "emu";
+  TString signame = selection; signame.ReplaceAll("z", "Z"); signame.ReplaceAll("h", "H");
+  signame.ReplaceAll("_e", ""); signame.ReplaceAll("_mu",""); signame.ReplaceAll("m", "M");
+  signame.ReplaceAll("e", "E"); signame.ReplaceAll("t", "T");
+  
   TString year_string = "";
   for(unsigned i = 0; i < years.size(); ++i) {
     int year = years[i];
     if(i > 0) year_string += "_";
     year_string += year;
   }
-  TFile* fInput = 0;
-  if(doConstraints_)
-    fInput = TFile::Open(Form("workspaces/fit_%s_lepm_background_constr_%s_%i.root", (doHiggs) ? "hemu" : "zemu", year_string.Data(), set), "READ");
-  else
-    fInput = TFile::Open(Form("workspaces/fit_%s_lepm_background_%s_%i.root", (doHiggs) ? "hemu" : "zemu", year_string.Data(), set), "READ");
+  TFile* fInput = TFile::Open(Form("workspaces/hist_background_mva_%s_%s_%s_%i.root", selection.Data(), hist.Data(), year_string.Data(), set), "READ");
   if(!fInput) return 1;
   fInput->cd();
   RooWorkspace* ws = (RooWorkspace*) fInput->Get("ws");
-  RooRealVar* br_emu = ws->var("br_emu");
-  RooArgList poi_list(*br_emu);
-  RooArgList obs_list(*(ws->var("lepm")));
-  RooDataSet* data = (RooDataSet*) ws->data("bkgPDFData");
+  if(!ws) return 2;
+  RooRealVar* br_sig = ws->var("br_sig");
+  if(!br_sig) return 2;
+  
+  RooArgList poi_list(*br_sig);
+  RooArgList obs_list(*(ws->var(hist.Data())));
+  RooDataSet* data = (RooDataSet*) ws->data("bkgMVAPDFData");
+  if(!data) return 3;
   auto data_binned = data->binnedClone("data_binned", "data_binned");
 
   ws->Print();
-  auto a_bkg = ws->var((doHiggs) ? "a_bst3" : "a_bst4");
-  auto b_bkg = ws->var((doHiggs) ? "b_bst3" : "b_bst4");
-  auto c_bkg = ws->var((doHiggs) ? "c_bst3" : "c_bst4");
-  auto d_bkg = ws->var((doHiggs) ? "d_bst3" : "d_bst4");
-  auto n_bkg = ws->var("n_bkg");
-  if(fixBkgParams_) {
-    a_bkg->setConstant(1);
-    b_bkg->setConstant(1);
-    c_bkg->setConstant(1);
-    if(!doHiggs)
-      d_bkg->setConstant(1);
-  }
+  auto n_bkg  = ws->var("n_bkg");
+  if(!n_bkg) return 4;
   
   RooArgList nuisance_params;
-  nuisance_params.add(*a_bkg);
-  nuisance_params.add(*b_bkg);
-  nuisance_params.add(*c_bkg);
-  if(!doHiggs)
-    nuisance_params.add(*d_bkg);
-  nuisance_params.add(*n_bkg);
+  nuisance_params.add(*n_bkg );
   if(doConstraints_)
     nuisance_params.add(*(ws->var("beta_eff")));
 
@@ -54,7 +63,7 @@ Int_t calculate_UL(int set = 8, vector<int> years = {2016, 2017, 2018},
   //Set the model and let it know about the workspace contents
   RooStats::ModelConfig model;
   model.SetWorkspace(*ws);
-  model.SetPdf((doConstraints_) ? "totPDF_constr" : "totPDF");
+  model.SetPdf((doConstraints_) ? "totMVAPDF_constr" : "totMVAPDF");
   model.SetParametersOfInterest(poi_list);
   model.SetObservables(obs_list);
   model.SetNuisanceParameters(nuisance_params);
@@ -65,10 +74,10 @@ Int_t calculate_UL(int set = 8, vector<int> years = {2016, 2017, 2018},
 
   auto bModel = model.Clone();
   bModel->SetName("B Model");
-  double oldval = ((RooRealVar*) poi_list.find("br_emu"))->getVal();
-  ((RooRealVar*) poi_list.find("br_emu"))->setVal(0); //BEWARE that the range of the POI has to contain zero!
+  double oldval = ((RooRealVar*) poi_list.find("br_sig"))->getVal();
+  ((RooRealVar*) poi_list.find("br_sig"))->setVal(0); //BEWARE that the range of the POI has to contain zero!
   bModel->SetSnapshot(poi_list);
-  ((RooRealVar*) poi_list.find("br_emu"))->setVal(oldval);
+  ((RooRealVar*) poi_list.find("br_sig"))->setVal(oldval);
 
   RooStats::AsymptoticCalculator fc(*data_binned, *bModel, model);
   fc.SetOneSided(1);
@@ -90,11 +99,11 @@ Int_t calculate_UL(int set = 8, vector<int> years = {2016, 2017, 2018},
 
   int npoints = 200; //number of points to scan
   //min and max for the scan (better to choose smaller intervals)
-  double poimin = ((RooRealVar*) poi_list.find("br_emu"))->getMin();
-  double poimax = ((RooRealVar*) poi_list.find("br_emu"))->getMax();
+  double poimin = ((RooRealVar*) poi_list.find("br_sig"))->getMin();
+  double poimax = ((RooRealVar*) poi_list.find("br_sig"))->getMax();
 
-  double min_scan = (doHiggs) ? 5.e-7 : 1.e-9;
-  double max_scan = (doHiggs) ? 1.e-3 : 5.e-6;
+  double min_scan = (selection.Contains("z")) ? 1.e-6 : 1.e-5;
+  double max_scan = (selection.Contains("z")) ? 2.e-5 : 1.e-2;
   std::cout << "Doing a fixed scan in the interval: " << min_scan << ", "
 	    << max_scan << " with " << npoints << " points\n";
   calc.SetFixedScan(npoints, min_scan, max_scan);
@@ -129,6 +138,7 @@ Int_t calculate_UL(int set = 8, vector<int> years = {2016, 2017, 2018},
     if(g) {
       g->SetMarkerSize(0);
       g->SetLineWidth(0);
+      g->SetMarkerColorAlpha(0,0.);
     }
   }
   canvas->SetLogx();
@@ -145,60 +155,47 @@ Int_t calculate_UL(int set = 8, vector<int> years = {2016, 2017, 2018},
     label.DrawLatex(0.12, 0.26, Form("Observed 95%% CL = %.2e", upperLimit));
   
   gSystem->Exec(Form("[ ! -d plots/latest_production/%s ] && mkdir -p plots/latest_production/%s", year_string.Data(), year_string.Data()));
-  canvas->SaveAs(Form("plots/latest_production/%s/pval_vs_br_%s_%i.pdf", year_string.Data(), (doHiggs) ? "hemu" : "zemu", set));
-  canvas->SaveAs(Form("plots/latest_production/%s/pval_vs_br_%s_%i.png", year_string.Data(), (doHiggs) ? "hemu" : "zemu", set));
+  canvas->SaveAs(Form("plots/latest_production/%s/pval_vs_br_%s_%s_%i.pdf", year_string.Data(), hist.Data(), selection.Data(), set));
+  canvas->SaveAs(Form("plots/latest_production/%s/pval_vs_br_%s_%s_%i.png", year_string.Data(), hist.Data(), selection.Data(), set));
 
   cout << "Finished UL calculation, plotting dataset with expected UL...\n";
   
   //Plot background spectrum (with toy data) and signal with upper limit value
-  auto totPDF = (RooAddPdf*) ws->pdf("totPDF");
-  auto bkgPDF = (doHiggs) ? ws->pdf("bkgPDF_bst3") : ws->pdf("bkgPDF_bst4");
-  auto sigPDF = ws->pdf("morph_pdf_binned");
-  if(!sigPDF) sigPDF = ws->pdf("sigpdf");
+  auto totPDF = (RooAddPdf*) ws->pdf("totMVAPDF");
+  auto bkgPDF = ws->pdf("bkgMVAPDF");
+  auto sigPDF = ws->pdf("sigMVAPDF");
   auto n_sig = ws->function("n_sig");
-  auto n_electron = ws->function("n_electron_var");
-  auto n_muon = ws->function("n_muon_var");
   auto eff = ws->function("eff");
   auto lum = ws->var("lum_var");
   auto zxs = ws->var("bxs_var");
-  auto lepm = ws->var("lepm");
-  auto xframe = lepm->frame(RooFit::Title("Background + Signal distributions at 95\% CLs limit"));
+  auto mva = ws->var(hist.Data());
+  auto xframe = mva->frame(RooFit::Title("Background + Signal distributions at 95\% CLs limit"));
 
   //set to expected upper limit
-  br_emu->setVal(expectedUL);
-  br_emu->setConstant(1);
+  br_sig->setVal(expectedUL);
+  br_sig->setConstant(1);
   cout << "Fitting dataset with branching ratio set to upper limit...\n";
   totPDF->fitTo(*data);
   data->plotOn(xframe);
 
   cout << "Plotting the PDFs...\n";
   totPDF->plotOn(xframe);
-  totPDF->plotOn(xframe, RooFit::Components((doHiggs) ? "bkgPDF_bst3" : "bkgPDF_bst4"), RooFit::LineColor(kGreen-3), RooFit::LineStyle(kDashed));
-  totPDF->plotOn(xframe, RooFit::Components("sigpdf"), RooFit::LineColor(kRed), RooFit::LineStyle(kDashed));
+  totPDF->plotOn(xframe, RooFit::Components("bkgMVAPDF"), RooFit::LineColor(kGreen-3), RooFit::LineStyle(kDashed));
+  totPDF->plotOn(xframe, RooFit::Components("sigMVAPDF"), RooFit::LineColor(kRed), RooFit::LineStyle(kDashed));
   TCanvas* cmass = new TCanvas();
   xframe->Draw();
 
-  cmass->SaveAs(Form("plots/latest_production/%s/upperlimit_pdfs_%s_%i.png", year_string.Data(), (doHiggs) ? "hemu" : "zemu", set));
+  cmass->SaveAs(Form("plots/latest_production/%s/upperlimit_pdfs_%s_%s_%i.png", year_string.Data(), hist.Data(), selection.Data(), set));
   cout << "Printing variable information...\n";
 
   totPDF->Print();
   bkgPDF->Print();
   sigPDF->Print();
-  if(ws->pdf("sigpdf1")) ws->pdf("sigpdf1")->Print();
-  if(ws->pdf("sigpdf2")) ws->pdf("sigpdf2")->Print();
-  if(ws->var("fracsig")) ws->var("fracsig")->Print();
-  n_sig->Print();
-  br_emu->Print();
-  if(n_electron)
-    n_electron->Print();
-  if(n_muon)
-    n_muon->Print();
-  eff->Print();
-  if(lum)
-    lum->Print();
-  if(zxs)
-    zxs->Print();
-  n_bkg->Print();
+  if(br_sig) br_sig->Print();
+  if(n_sig) n_sig->Print();
+  if(eff) eff->Print();
+  if(n_bkg) n_bkg->Print();
+  if(lum) lum->Print();
   
   return 0;
 }

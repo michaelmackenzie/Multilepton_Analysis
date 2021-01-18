@@ -7,7 +7,7 @@ bool useSameFlavorCount_ = false; //use N(sig) ~ br_emu*eff*sqrt(N_ee*N_mumu)/br
 bool useMorphedPDF_ = false; //use signal PDF from morphing mumu and ee data fits
 bool useExp_ = false; //use exp background func as alt bkg PDF
 
-Int_t do_fit(TTree* tree, int set, vector<int> years, int seed) {
+Int_t do_fit(TTree* tree, int set, vector<int> years, bool doHiggs, int seed) {
   //set the random seed for the fitting + generation
   RooRandom::randomGenerator()->SetSeed(seed);
   TString year_string;
@@ -15,7 +15,11 @@ Int_t do_fit(TTree* tree, int set, vector<int> years, int seed) {
     if(i > 0) year_string += "_";
     year_string += years[i];
   }
-  RooRealVar lepm("lepm", "di-lepton invariant mass", 110., 75., 110., "GeV/c^{2}");
+  RooRealVar lepm("lepm", "di-lepton invariant mass",
+		  (doHiggs) ? 160. : 110.,
+		  (doHiggs) ? 100. : 75. ,
+		  (doHiggs) ? 160. : 110.,
+		  "GeV/c^{2}");
   RooRealVar weight("fulleventweightlum", "Full event weight*luminosity", 1., -100., 100.);
   RooDataSet dataset("dataset", "dataset", RooArgList(lepm,weight),
 		     RooFit::Import(*tree), RooFit::WeightVar(weight));
@@ -40,23 +44,17 @@ Int_t do_fit(TTree* tree, int set, vector<int> years, int seed) {
 
   //Get the signal PDF
   TString nWSSignal;
-  if(useMorphedPDF_) nWSSignal = Form("workspaces/morphed_signal_%s_%i.root", year_string.Data(), set);
-  else               nWSSignal = Form("workspaces/fit_signal_lepm_%s_%i.root", year_string.Data(), set);
+  if(useMorphedPDF_ && !doHiggs) nWSSignal = Form("workspaces/morphed_signal_%s_%i.root", year_string.Data(), set);
+  else                           nWSSignal = Form("workspaces/fit_signal_%s_lepm_%s_%i.root", ((doHiggs) ? "hemu" : "zemu"),
+						  year_string.Data(), set);
   TFile* fWSSignal = TFile::Open(nWSSignal.Data(), "READ");
   if(!fWSSignal) return 1;
   RooWorkspace* ws_signal = (RooWorkspace*) fWSSignal->Get("ws");
   if(!ws_signal) return 2;
   auto sigPDF = ws_signal->pdf((useMorphedPDF_) ? "morph_pdf_binned" : "sigpdf");
 
-  //background PDF
-  RooRealVar a_bkg("a_bkg", "a_bkg", 1.404   , -5., 5.);
-  RooRealVar b_bkg("b_bkg", "b_bkg", 2.443e-1, -5., 5.);
-  RooRealVar c_bkg("c_bkg", "c_bkg", 5.549e-1, -5., 5.);
-  RooRealVar d_bkg("d_bkg", "d_bkg", 3.675e-1, -5., 5.);
-  RooBernstein bkgPDF("bkgPDF", "Background PDF", lepm, RooArgList(a_bkg, b_bkg, c_bkg, d_bkg));
-
   //Total PDF
-  RooRealVar br_emu("br_emu", "br_emu", 0., -1e-4, 1e-4);
+  RooRealVar br_emu("br_emu", "br_emu", 0., (doHiggs) ? -0.01 : -1e-4, (doHiggs) ? 0.01 : 1e-4);
   RooRealVar br_ll("br_ll", "br_ll", 0.033632);
 
   //Add log-normal systematics
@@ -94,7 +92,7 @@ Int_t do_fit(TTree* tree, int set, vector<int> years, int seed) {
   global_n_electron.setConstant(1);
 
   //Luminosity based parameters
-  DataInfo signalInfo(set, "zemu");
+  DataInfo signalInfo(set, (doHiggs) ? "hemu" : "zemu");
   signalInfo.ReadData();
   CrossSections xs;
   double lum = 0.;
@@ -103,29 +101,26 @@ Int_t do_fit(TTree* tree, int set, vector<int> years, int seed) {
     double lum_year = xs.GetLuminosity(year);
     lum += lum_year;
     //get the efficiency of signal for the year, weight by luminosity
-    int gen_year = xs.GetGenNumber("ZEMu", year);
+    int gen_year = xs.GetGenNumber((doHiggs) ? "HEMu" : "ZEMu", year);
     double rec_year = signalInfo.datamap_[year];
     eff_signal += lum_year * (rec_year / gen_year);
   }
   eff_signal /= lum; //divide by total luminosity
-  if(!useSameFlavorCount_)
+  if(!useSameFlavorCount_ || doHiggs)
     eff_nominal.setVal(eff_signal);
   
-  double zxs = xs.GetCrossSection("Z");
+  double bxs = xs.GetCrossSection((doHiggs) ? "H" : "Z");
   RooRealVar lum_var("lum_var", "lum_var", lum);
-  RooRealVar zxs_var("zxs_var", "zxs_var", zxs);
+  RooRealVar bxs_var("bxs_var", "bxs_var", bxs);
   
-  RooFormulaVar n_sig("n_sig", ((useSameFlavorCount_) ? "@0*@4*sqrt((@1*@2)/(@3*@3))" : "@0*@1*@2*@3")
-		      , ((useSameFlavorCount_) ? RooArgList(br_emu, n_electron_var, n_muon_var,br_ll,eff) :
-			 RooArgList(br_emu, lum_var, zxs_var, eff))
+  RooFormulaVar n_sig("n_sig", ((useSameFlavorCount_&&!doHiggs) ? "@0*@4*sqrt((@1*@2)/(@3*@3))" : "@0*@1*@2*@3")
+		      , ((useSameFlavorCount_&&!doHiggs) ? RooArgList(br_emu, n_electron_var, n_muon_var,br_ll,eff) :
+			 RooArgList(br_emu, lum_var, bxs_var, eff))
 		      );
   RooRealVar n_bkg("n_bkg", "n_bkg", 500., 0., 1.e6);
 
   if(!includeSignalInFit_) {br_emu.setVal(0.); br_emu.setConstant(1);}
   
-  RooAddPdf totPDF("totPDF", "totPDF", RooArgList(*sigPDF, bkgPDF), RooArgList(n_sig, n_bkg));
-  //PDF with constraints
-  RooProdPdf totPDF_constr("totPDF_constr", "totPDF_constr", RooArgList(totPDF, constrain_eff, constr_n_muon, constr_n_electron));
 
   ////////////////////////////////////
   // Alternate Background Functions //
@@ -154,13 +149,25 @@ Int_t do_fit(TTree* tree, int set, vector<int> years, int seed) {
   RooRealVar b_land("b_land", "b_land", 7.470e-7,  -5.,   5.);
   RooLandau bkgPDF_land("bkgPDF_land","bkgPDF_land", lepm, a_land, b_land);
 
-  //3rd order Bernstein
+  //1st order Bernstein
+  RooRealVar a_bst2("a_bst2", "a_bst2", 1.491   , -5., 5.);
+  RooRealVar b_bst2("b_bst2", "b_bst2", 2.078e-1, -5., 5.);
+  RooBernstein bkgPDF_bst2("bkgPDF_bst2", "bkgPDF_bst2", lepm, RooArgList(a_bst2, b_bst2));
+  
+  //2nd order Bernstein
   RooRealVar a_bst3("a_bst3", "a_bst3", 1.491   , -5., 5.);
   RooRealVar b_bst3("b_bst3", "b_bst3", 2.078e-1, -5., 5.);
   RooRealVar c_bst3("c_bst3", "c_bst3", 5.016e-1, -5., 5.);
   RooBernstein bkgPDF_bst3("bkgPDF_bst3", "bkgPDF_bst3", lepm, RooArgList(a_bst3, b_bst3, c_bst3));
-  
-  //5th order Bernstein
+
+  //3rd order Bernstein
+  RooRealVar a_bst4("a_bst4", "a_bst4", 1.404   , -5., 5.);
+  RooRealVar b_bst4("b_bst4", "b_bst4", 2.443e-1, -5., 5.);
+  RooRealVar c_bst4("c_bst4", "c_bst4", 5.549e-1, -5., 5.);
+  RooRealVar d_bst4("d_bst4", "d_bst4", 3.675e-1, -5., 5.);
+  RooBernstein bkgPDF_bst4("bkgPDF_bst4", "Background PDF", lepm, RooArgList(a_bst4, b_bst4, c_bst4, d_bst4));
+
+  //4th order Bernstein
   RooRealVar a_bst5("a_bst5", "a_bst5", 1.471   , -5., 5.);
   RooRealVar b_bst5("b_bst5", "b_bst5", 1.452e-1, -5., 5.);
   RooRealVar c_bst5("c_bst5", "c_bst5", 7.524e-1, -5., 5.);
@@ -168,12 +175,19 @@ Int_t do_fit(TTree* tree, int set, vector<int> years, int seed) {
   RooRealVar e_bst5("e_bst5", "e_bst5", 3.687e-1, -5., 5.);
   RooBernstein bkgPDF_bst5("bkgPDF_bst5", "bkgPDF_bst5", lepm, RooArgList(a_bst5, b_bst5, c_bst5, d_bst5, e_bst5));
 
+  //Signal + main background PDF
+  RooAddPdf totPDF("totPDF", "totPDF", RooArgList(*sigPDF, (doHiggs) ? bkgPDF_bst3 : bkgPDF_bst4), RooArgList(n_sig, n_bkg));
+  //PDF with constraints
+  RooProdPdf totPDF_constr("totPDF_constr", "totPDF_constr", RooArgList(totPDF, constrain_eff, constr_n_muon, constr_n_electron));
+
   //Signal + Alternate background PDFs
   RooAddPdf totPDF_exp ("totPDF_alt" , "totPDF_alt" , RooArgList(*sigPDF, bkgPDF_exp) , RooArgList(n_sig, n_bkg));
   RooAddPdf totPDF_cheb("totPDF_cheb", "totPDF_cheb", RooArgList(*sigPDF, bkgPDF_cheb), RooArgList(n_sig, n_bkg));
   RooAddPdf totPDF_pow ("totPDF_pow" , "totPDF_pow" , RooArgList(*sigPDF, bkgPDF_pow) , RooArgList(n_sig, n_bkg));
   RooAddPdf totPDF_land("totPDF_land", "totPDF_land", RooArgList(*sigPDF, bkgPDF_land), RooArgList(n_sig, n_bkg));
+  RooAddPdf totPDF_bst2("totPDF_bst2", "totPDF_bst2", RooArgList(*sigPDF, bkgPDF_bst2), RooArgList(n_sig, n_bkg));
   RooAddPdf totPDF_bst3("totPDF_bst3", "totPDF_bst3", RooArgList(*sigPDF, bkgPDF_bst3), RooArgList(n_sig, n_bkg));
+  RooAddPdf totPDF_bst4("totPDF_bst4", "totPDF_bst4", RooArgList(*sigPDF, bkgPDF_bst4), RooArgList(n_sig, n_bkg));
   RooAddPdf totPDF_bst5("totPDF_bst5", "totPDF_bst5", RooArgList(*sigPDF, bkgPDF_bst5), RooArgList(n_sig, n_bkg));
 
   //PDF with constraint
@@ -184,9 +198,11 @@ Int_t do_fit(TTree* tree, int set, vector<int> years, int seed) {
     totPDF_exp.fitTo(dataset);
   // totPDF_cheb.fitTo(dataset);
   // totPDF_pow.fitTo(dataset);
-  totPDF_land.fitTo(dataset);
-  totPDF_bst3.fitTo(dataset);
-  totPDF_bst5.fitTo(dataset);
+  // totPDF_land.fitTo(dataset);
+  if(doHiggs)  totPDF_bst2.fitTo(dataset);
+  if(doHiggs)  totPDF_bst4.fitTo(dataset);
+  if(!doHiggs) totPDF_bst3.fitTo(dataset);
+  if(!doHiggs) totPDF_bst5.fitTo(dataset);
   
   //fit, plot, etc.
   if(doConstraints_)
@@ -200,31 +216,51 @@ Int_t do_fit(TTree* tree, int set, vector<int> years, int seed) {
   if(doConstraints_)
     totPDF_constr.plotOn(xframe);
   else
-    totPDF.plotOn(xframe);
-  bkgPDF_bst3.plotOn(xframe, RooFit::LineColor(kGreen), RooFit::LineStyle(kDashed));
-  bkgPDF_bst5.plotOn(xframe, RooFit::LineColor(kCyan), RooFit::LineStyle(kDashed));
+    totPDF.plotOn(xframe, RooFit::LineColor(kBlue));
+  if(!doHiggs) {
+    bkgPDF_bst3.plotOn(xframe, RooFit::LineColor(kGreen), RooFit::LineStyle(kDashed));
+    bkgPDF_bst5.plotOn(xframe, RooFit::LineColor(kViolet-2), RooFit::LineStyle(kDashed));
+  } else {
+    bkgPDF_bst2.plotOn(xframe, RooFit::LineColor(kGreen), RooFit::LineStyle(kDashed));
+    bkgPDF_bst4.plotOn(xframe, RooFit::LineColor(kViolet-2), RooFit::LineStyle(kDashed));
+  }
+  
   bkgPDF_exp.plotOn(xframe, RooFit::LineColor(kRed), RooFit::LineStyle(kDashed));
   // bkgPDF_cheb.plotOn(xframe, RooFit::LineColor(kAzure), RooFit::LineStyle(kDashed));
   // bkgPDF_pow.plotOn(xframe, RooFit::LineColor(kGreen), RooFit::LineStyle(kDashed));
-  bkgPDF_land.plotOn(xframe, RooFit::LineColor(kViolet-2), RooFit::LineStyle(kDashed));
+  // bkgPDF_land.plotOn(xframe, RooFit::LineColor(kViolet-2), RooFit::LineStyle(kDashed));
   auto c1 = new TCanvas();
   xframe->Draw();
   TLegend* leg = new TLegend(0.6, 0.6, 0.9, 0.9);
-  leg->AddEntry(xframe->findObject("totPDF_Norm[lepm]")     , "Bernstein (3rd)"  , "L");
-  leg->AddEntry(xframe->findObject("bkgPDF_bst3_Norm[lepm]"), "Bernstein (2nd)"  , "L");
-  leg->AddEntry(xframe->findObject("bkgPDF_bst5_Norm[lepm]"), "Bernstein (4th)"  , "L");
+  //ones not drawn won't appear in the legend
+  leg->AddEntry(xframe->findObject("totPDF_Norm[lepm]")     , (doHiggs) ? "Bernstein (2nd)" : "Bernstein (3rd)"  , "L");
+
+  if(!doHiggs) {
+    leg->AddEntry(xframe->findObject("bkgPDF_bst3_Norm[lepm]"), "Bernstein (2nd)"  , "L");
+    leg->AddEntry(xframe->findObject("bkgPDF_bst5_Norm[lepm]"), "Bernstein (4th)"  , "L");
+  }
+  if(doHiggs) {
+    leg->AddEntry(xframe->findObject("bkgPDF_bst2_Norm[lepm]"), "Bernstein (1st)"  , "L");
+    leg->AddEntry(xframe->findObject("bkgPDF_bst4_Norm[lepm]"), "Bernstein (3rd)"  , "L");
+  }
   leg->AddEntry(xframe->findObject("bkgPDF_exp_Norm[lepm]") , "Exponential", "L");
   // leg->AddEntry(xframe->findObject("bkgPDF_pow_Norm[lepm]") , "Power"      , "L");
-  leg->AddEntry(xframe->findObject("bkgPDF_land_Norm[lepm]"), "Landau"     , "L");
+  // leg->AddEntry(xframe->findObject("bkgPDF_land_Norm[lepm]"), "Landau"     , "L");
   leg->Draw();
 
   cout << "***Frame chi squared values:\n";
-  vector<TString> bkg_names = {"totPDF_Norm[lepm]", "bkgPDF_exp_Norm[lepm]", "bkgPDF_bst3_Norm[lepm]"
-					 , "bkgPDF_bst5_Norm[lepm]", "bkgPDF_land_Norm[lepm]"};
-  vector<int>     bkg_dofs   = {5, 2, 4, 6, 3};
-  for(int index = 0; index < bkg_names.size(); ++index) {
-    TString bkg_name = bkg_names[index];
-    int     bkg_dof  = bkg_dofs [index];
+  vector<pair<TString, int>> bkg_funcs = {pair<TString, int>("totPDF_Norm[lepm]", (doHiggs) ? 4 : 5),
+					  pair<TString, int>("bkgPDF_exp_Norm[lepm]", 2),
+					  pair<TString, int>("bkgPDF_bst2_Norm[lepm]", 3),
+					  pair<TString, int>("bkgPDF_bst3_Norm[lepm]", 4),
+					  pair<TString, int>("bkgPDF_bst4_Norm[lepm]", 5),
+					  pair<TString, int>("bkgPDF_bst5_Norm[lepm]", 6),
+					  pair<TString, int>("bkgPDF_land_Norm[lepm]", 3)};
+  for(int index = 0; index < bkg_funcs.size(); ++index) {
+    TString bkg_name = bkg_funcs[index].first;
+    // if(doHiggs  && bkg_name.Contains("bst5")) continue;
+    // if(!doHiggs && bkg_name.Contains("bst2")) continue;
+    int     bkg_dof  = bkg_funcs[index].second;
     //print chi squared / (n(bins) - n(params)), as can't just ask for chi squared and n bins separately easily...
     cout << " " << bkg_name.Data() << ": " << xframe->chiSquare(bkg_name.Data(), "h_dataset", bkg_dof) << endl;
   }
@@ -233,15 +269,20 @@ Int_t do_fit(TTree* tree, int set, vector<int> years, int seed) {
   
   gSystem->Exec(Form("[ ! -d plots/latest_production/%s ] && mkdir -p plots/latest_production/%s", year_string.Data(), year_string.Data()));
   if(doConstraints_)
-    c1->SaveAs(Form("plots/latest_production/%s/fit_lepm_background_constr_%i.pdf", year_string.Data(), set));
+    c1->SaveAs(Form("plots/latest_production/%s/fit_%s_lepm_background_constr_%i.png", year_string.Data(), (doHiggs) ? "hemu" : "zemu", set));
   else
-    c1->SaveAs(Form("plots/latest_production/%s/fit_lepm_background_%i.pdf", year_string.Data(), set));
+    c1->SaveAs(Form("plots/latest_production/%s/fit_%s_lepm_background_%i.png", year_string.Data(), (doHiggs) ? "hemu" : "zemu", set));
 
   //save the workspace
-  TFile* fOut = (doConstraints_) ? new TFile(Form("workspaces/fit_lepm_background_constr_%s_%i.root", year_string.Data(), set), "RECREATE") :
-    new TFile(Form("workspaces/fit_lepm_background_%s_%i.root", year_string.Data(), set), "RECREATE");
+  TFile* fOut = 0;
+  if(doConstraints_)
+    fOut = new TFile(Form("workspaces/fit_%s_lepm_background_constr_%s_%i.root", (doHiggs) ? "hemu" : "zemu",
+			  year_string.Data(), set), "RECREATE");
+  else
+    fOut = new TFile(Form("workspaces/fit_%s_lepm_background_%s_%i.root", (doHiggs) ? "hemu" : "zemu",
+			  year_string.Data(), set), "RECREATE");
   fOut->cd();
-  auto bkg_data = bkgPDF.generate(RooArgSet(lepm), n_bkg.getVal());
+  auto bkg_data = (doHiggs) ? bkgPDF_bst3.generate(RooArgSet(lepm), n_bkg.getVal()) : bkgPDF_bst4.generate(RooArgSet(lepm), n_bkg.getVal());
   
   RooWorkspace ws("ws");
   if(doConstraints_) {
@@ -249,9 +290,19 @@ Int_t do_fit(TTree* tree, int set, vector<int> years, int seed) {
     ws.import(totPDF_constr_exp, RooFit::RecycleConflictNodes());
   } else {
     ws.import(totPDF);
-    ws.import(totPDF_exp, RooFit::RecycleConflictNodes());
+    if(!doHiggs) {
+      ws.import(totPDF_bst5, RooFit::RecycleConflictNodes());
+      ws.import(totPDF_bst3, RooFit::RecycleConflictNodes());
+    } else {
+      ws.import(totPDF_bst2, RooFit::RecycleConflictNodes());
+      ws.import(totPDF_bst4, RooFit::RecycleConflictNodes());
+    }
+      // ws.import(totPDF_exp, RooFit::RecycleConflictNodes());
   }
-  ws.import(bkgPDF);
+  if(doHiggs)
+    ws.import(bkgPDF_bst3);
+  else
+    ws.import(bkgPDF_bst4);
   ws.import(*bkg_data);
   ws.Print();
   ws.Write();
@@ -260,7 +311,8 @@ Int_t do_fit(TTree* tree, int set, vector<int> years, int seed) {
   return 0;
 }
 
-Int_t fit_background(int set = 8, vector<int> years = {2016}, int seed = 90) {
+Int_t fit_background(int set = 8, vector<int> years = {2016, 2017, 2018},
+		     bool doHiggs = false, int seed = 90) {
   int status(0);
   TList* list = new TList;
   TString year_string = "";
@@ -278,7 +330,7 @@ Int_t fit_background(int set = 8, vector<int> years = {2016}, int seed = 90) {
   TTree* t_bkg = (TTree*) f_bkg->Get("background_tree");
   if(!t_bkg) return 2;
   std::cout << "---Performing background fit!\n";
-  status = do_fit(t_bkg, set, years, seed);
+  status = do_fit(t_bkg, set, years, doHiggs, seed);
   if(status) std::cout << "Fit returned status " << status << std::endl;
   return status;
 }
