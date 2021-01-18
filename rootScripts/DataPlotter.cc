@@ -567,14 +567,18 @@ vector<TH1D*> DataPlotter::get_signal(TString hist, TString setType, Int_t set) 
     
     const char* stats = (doStatsLegend_) ? Form(" #scale[0.8]{(%.2e)}", h[index]->Integral()
 						+h[index]->GetBinContent(0)+h[index]->GetBinContent(h[index]->GetNbinsX()+1)) : "";
+    Double_t signal_scale = signal_scale_;
+    if(signal_scales_.find(labels_[index]) != signal_scales_.end()) signal_scale = signal_scales_[labels_[index]];
     h[index]->SetTitle(Form("%s%s%s", name.Data(),
-			    (signal_scale_ == 1.) ? "" : Form(" (x%.1f)",signal_scale_), stats));
+			    (signal_scale == 1.) ? "" : Form(" (x%.0f)",signal_scale), stats));
   }
   //scale return only meaningful histograms
   vector<TH1D*> hsignals;
   for(unsigned int i = 0; i < h.size(); ++i) {
     if(h[i] && indexes[labels_[i]] == i && h[i]->Integral() > 0.) {
-      h[i]->Scale(signal_scale_);
+      Double_t signal_scale = signal_scale_;
+      if(signal_scales_.find(labels_[i]) != signal_scales_.end()) signal_scale = signal_scales_[labels_[i]];
+      h[i]->Scale(signal_scale);
       if(verbose_ > 0) std::cout << h[i]->GetTitle() << " signal histogram has integral " << h[i]->Integral() << std::endl;
       hsignals.push_back(h[i]);
     }
@@ -681,7 +685,7 @@ TH1D* DataPlotter::get_qcd(TString hist, TString setType, Int_t set) {
   Int_t set_qcd = set + qcd_offset_;
 
   TH1D* hData = get_data(hist, setType, set_qcd);
-  if(!hData) return hData;
+  if(!hData) return hData;  
   hData->SetName(Form("qcd_%s_%i",hist.Data(),set));      
   double ndata = hData->Integral() + hData->GetBinContent(0) + hData->GetBinContent(hData->GetNbinsX()+1);
   TH1D* hMC = 0;
@@ -698,6 +702,10 @@ TH1D* DataPlotter::get_qcd(TString hist, TString setType, Int_t set) {
     else hMC = (TH1D*) htmp->Clone("qcd_tmp");
     delete htmp;
   }
+  TH1D* hMisID = (include_misid_) ? get_misid(hist, setType, set_qcd) : 0;
+  if(!hMC) hMC = hMisID;
+  else if(hMisID) hMC->Add(hMisID);
+  
   if(!hMC) {
     std::cout << "Warning! No MC histogram found when calculating QCD histogram in set "
 	      << set_qcd << std::endl;
@@ -722,11 +730,71 @@ TH1D* DataPlotter::get_qcd(TString hist, TString setType, Int_t set) {
   const char* stats = (doStatsLegend_) ? Form(" #scale[0.8]{(%.2e)}", nqcd) : "";
   hData->SetTitle(Form("QCD%s",stats));
   if(fill_alpha_ < 1.) {
-    hData->SetLineColorAlpha(kOrange+6,fill_alpha_);
-    hData->SetFillColorAlpha(kOrange+6,fill_alpha_);
+    hData->SetLineColorAlpha(qcd_color_,fill_alpha_);
+    hData->SetFillColorAlpha(qcd_color_,fill_alpha_);
   } else {
-    hData->SetLineColor(kOrange+6);
-    hData->SetFillColor(kOrange+6);
+    hData->SetLineColor(qcd_color_);
+    hData->SetFillColor(qcd_color_);
+  }
+  return hData;
+}
+
+TH1D* DataPlotter::get_misid(TString hist, TString setType, Int_t set) {
+  {
+    auto o = gDirectory->Get(Form("misid_%s_%i", hist.Data(), set));
+    if(o) delete o;
+  }
+  
+  Int_t set_misid = set + misid_offset_;
+  if(set_misid < 0) return NULL;
+  
+  TH1D* hData = get_data(hist, setType, set_misid);
+  if(!hData) return hData;
+  hData->SetName(Form("misid_%s_%i",hist.Data(),set));      
+  double ndata = hData->Integral() + hData->GetBinContent(0) + hData->GetBinContent(hData->GetNbinsX()+1);
+  TH1D* hMC = 0;
+  for(UInt_t i = 0; i < data_.size(); ++i) {
+    if(isData_[i]) continue; //skip data for MC histogram
+    if(isSignal_[i]) continue; //skip signals for MC histogram
+    TH1D* htmp = (TH1D*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set_misid, hist.Data()));
+    if(!htmp) continue;
+    htmp = (TH1D*) htmp->Clone("tmp");
+    // htmp->SetBit(kCanDelete);
+    htmp->Scale(scale_[i]);
+    if(rebinH_ > 0) htmp->Rebin(rebinH_);
+    if(hMC) hMC->Add(htmp);
+    else hMC = (TH1D*) htmp->Clone("misid_tmp");
+    delete htmp;
+  }
+  if(!hMC) {
+    std::cout << "Warning! No MC histogram found when calculating Anti-Iso histogram in set "
+	      << set_misid << std::endl;
+    return NULL;
+  }
+  hData->Add(hMC, -1.);
+  double nmc = hMC->Integral() + hMC->GetBinContent(0) + hMC->GetBinContent(hMC->GetNbinsX()+1);
+  
+  delete hMC;
+
+  //set all bins >= 0, including over/underflow
+  for(int i = 0; i <= hData->GetNbinsX()+1; ++i) {
+    if(hData->GetBinContent(i) < 0.)
+      hData->SetBinContent(i,0.);
+  }
+  // hData->SetBit(kCanDelete);
+  double nmisid = hData->Integral() + hData->GetBinContent(0) + hData->GetBinContent(hData->GetNbinsX()+1);
+  if(nmisid > 0.)
+    hData->Scale((ndata-nmc)/nmisid); //ensure N(Anit-Iso) doesn't change from cutting off negative value bins, so not hist dependent
+  nmisid = hData->Integral() + hData->GetBinContent(0) + hData->GetBinContent(hData->GetNbinsX()+1);
+  
+  const char* stats = (doStatsLegend_) ? Form(" #scale[0.8]{(%.2e)}", nmisid) : "";
+  hData->SetTitle(Form("Mis-ID%s",stats));
+  if(fill_alpha_ < 1.) {
+    hData->SetLineColorAlpha(misid_color_,fill_alpha_);
+    hData->SetFillColorAlpha(misid_color_,fill_alpha_);
+  } else {
+    hData->SetLineColor(misid_color_);
+    hData->SetFillColor(misid_color_);
   }
   return hData;
 }
@@ -758,7 +826,9 @@ TH1D* DataPlotter::get_stack_uncertainty(THStack* hstack, TString hname) {
 THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set) {
   vector<TH1D*> h;
   TH1D* hQCD = (include_qcd_) ? get_qcd(hist,setType,set) : NULL;
+  TH1D* hMisID = (include_misid_) ? get_misid(hist,setType,set) : NULL;
   if(hQCD && verbose_ > 0) std::cout << "QCD histogram has integral " << hQCD->Integral() << std::endl;
+  if(hMisID && verbose_ > 0) std::cout << "MisID histogram has integral " << hMisID->Integral() << std::endl;
   {
     auto o = gDirectory->Get(Form("%s",hist.Data()));
     if(o) delete o;
@@ -826,6 +896,7 @@ THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set) {
     if(hitr && verbose_ > 0) std::cout << hitr->GetTitle() << " histogram has integral " << hitr->Integral() << std::endl;
     hstack->Add(hitr);
   }
+  if(hMisID) hstack->Add(hMisID);
   if(hQCD) hstack->Add(hQCD);
   // hstack->SetBit(kCanDelete);
   return hstack;
@@ -1085,6 +1156,8 @@ TCanvas* DataPlotter::plot_hist(TString hist, TString setType, Int_t set) {
   //check if QCD is defined for this set
   TH1D* hQCD = (include_qcd_) ? get_qcd(hist,setType,set) : NULL;
   if(hQCD) hQCD->SetFillStyle(0);
+  TH1D* hMisID = (include_misid_) ? get_misid(hist,setType,set) : NULL;
+  if(hMisID) hMisID->SetFillStyle(0);
   // if(hQCD) hQCD->SetBit(kCanDelete);
   //array of colors and fills for each label
   Int_t bkg_color[] = {kRed+1, kRed-2, kYellow+1,kSpring-1 , kViolet-2, kGreen-2, kRed+3,kOrange-9,kBlue+1};
@@ -1093,6 +1166,7 @@ TCanvas* DataPlotter::plot_hist(TString hist, TString setType, Int_t set) {
   Int_t sig_fill[]  = {0,          0,          0,         0,        0,         0,       0};//3002,3001,3003,3003,3005,3006,3003,3003};
   TLegend* leg = new TLegend(legend_x1_, legend_y1_, legend_x2_, legend_y2_);
   if(hQCD) leg->AddEntry(hQCD, hQCD->GetTitle(), "L");
+  if(hMisID) leg->AddEntry(hMisID, hMisID->GetTitle(), "L");
   // leg->SetDrawOption("L");
   leg->SetBorderSize(0);
   leg->SetTextSize(legend_txt_);
@@ -1174,13 +1248,15 @@ TCanvas* DataPlotter::plot_hist(TString hist, TString setType, Int_t set) {
     }
     const char* stats = (doStatsLegend_) ? Form(" #scale[0.8]{(%.2e)}", h[index]->Integral()
 						+h[index]->GetBinContent(0)+h[index]->GetBinContent(h[index]->GetNbinsX()+1)) : "";
+    Double_t signal_scale = signal_scale_;
+    if(signal_scales_.find(labels_[index]) != signal_scales_.end()) signal_scale = signal_scales_[labels_[index]];
     if(isSignal_[index])
       h[index]->SetTitle(Form("%s%s%s", name.Data(),
-			      (signal_scale_ == 1. || normalize_1ds_) ? "" : Form(" (x%.1f)",signal_scale_),
+			      (signal_scale == 1. || normalize_1ds_) ? "" : Form(" (x%.1f)",signal_scale),
 			      stats));
     else
       h[index]->SetTitle(Form("%s%s", name.Data(),stats));
-    if(isSignal_[i] && signal_scale_ > 1.) h[i]->Scale(signal_scale_);
+    if(isSignal_[i] && signal_scale > 1.) h[i]->Scale(signal_scale);
     if((int) i == index) leg->AddEntry(h[index], h[index]->GetTitle(), "L");
   }
   //plot each histogram, remember which is first for axis setting
@@ -1208,6 +1284,10 @@ TCanvas* DataPlotter::plot_hist(TString hist, TString setType, Int_t set) {
   if(h.size() == 0 && hQCD) hQCD->Draw("hist");
   else if(hQCD) hQCD->Draw("hist same");
   if(hQCD) m = max(m,hQCD->GetMaximum());
+  if(hMisID && normalize_1ds_) hMisID->Scale(1./hMisID->Integral());
+  if(h.size() == 0 && hMisID) hMisID->Draw("hist");
+  else if(hMisID) hMisID->Draw("hist same");
+  if(hMisID) m = max(m,hMisID->GetMaximum());
   
   //get axis titles
   TString xtitle;
@@ -1350,8 +1430,11 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
     ndata = d->Integral() + d->GetBinContent(0)+d->GetBinContent(d->GetNbinsX()+1);
   }
   for(unsigned i = 0; i < hsignal.size(); ++i) {
-    if(!doStatsLegend_ && hsignal[i]->GetEntries() > 0)
-      nsig[hsignal[i]->GetName()] = (hsignal[i]->Integral() + hsignal[i]->GetBinContent(0)+hsignal[i]->GetBinContent(hsignal[i]->GetNbinsX()+1))/signal_scale_;
+    if(!doStatsLegend_ && hsignal[i]->GetEntries() > 0) {
+      Double_t signal_scale = signal_scale_;
+      if(signal_scales_.find(labels_[i]) != signal_scales_.end()) signal_scale = signal_scales_[labels_[i]];
+      nsig[hsignal[i]->GetName()] = (hsignal[i]->Integral() + hsignal[i]->GetBinContent(0)+hsignal[i]->GetBinContent(hsignal[i]->GetNbinsX()+1))/signal_scale;
+    }
   }
   nmc = huncertainty->Integral() + huncertainty->GetBinContent(0)+huncertainty->GetBinContent(huncertainty->GetNbinsX()+1);
 
@@ -1534,9 +1617,11 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
     c->SetGrid();
     m = 0.;
     for(unsigned index = 0; index < hSignalsOverMC.size(); ++index) {
-      if(signal_scale_ > 0.) {
-	hSignalsOverMC[index]->Scale(1./signal_scale_);
-	if(data_over_mc_ == -2) hSignalsOverMC[index]->Scale(1./signal_scale_);
+      Double_t signal_scale = signal_scale_;
+      if(signal_scales_.find(labels_[index]) != signal_scales_.end()) signal_scale = signal_scales_[labels_[index]];
+      if(signal_scale > 0.) {
+	hSignalsOverMC[index]->Scale(1./signal_scale);
+	if(data_over_mc_ == -2) hSignalsOverMC[index]->Scale(1./signal_scale);
       }
       if(index == 0) hSignalsOverMC[index]->Draw("hist E1");
       else           hSignalsOverMC[index]->Draw("hist E1 same");

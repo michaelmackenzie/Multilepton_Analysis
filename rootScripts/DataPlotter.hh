@@ -167,12 +167,17 @@ public :
   Int_t stack_uncertainty_ = 1; //whether or not to add gray shading for uncertainty
   Int_t debug_ = 0; //for debugging
   Int_t include_qcd_ = 1; //use the same sign selection to get the QCD
-  Int_t qcd_offset_ = 200; //set number offset to get same sign selection
+  Int_t qcd_offset_ = 1000; //set number offset to get same sign selection
+  Int_t qcd_color_ = kOrange+6; //QCD histogram color
+  Int_t include_misid_ = 0; //use the anti-iso selection to get the misidentified lepton contribution
+  Int_t misid_offset_ = 2000; //set number offset to get the anti-iso selection
+  Int_t misid_color_ = kGreen+2; //MisID histogram color
   Int_t plot_title_ = 0; //Plot the title on the canvas
   Double_t fill_alpha_ = 1.; //alpha to use for hist plotting
   Int_t normalize_1ds_ = 0; //normalzie 1D histograms when plotting
   Int_t normalize_2ds_ = 1; //normalzie 2D histograms when plotting
   Double_t signal_scale_ = 1.; //increase the size of the signal if needed
+  std::map<TString, Double_t> signal_scales_; //map from signal label to signal scaling
   Int_t stack_signal_ = 0; //put signal into the stack
   Int_t stack_as_hist_ = 0; //plot the stack as a total background histogram
   Int_t plot_y_title_ = 0; //plot y title on 1D histograms
@@ -324,6 +329,8 @@ public :
   virtual TH2D* get_data_2D(TString hist, TString setType, Int_t set);
 
   virtual TH1D* get_qcd(TString hist, TString setType, Int_t set);
+
+  virtual TH1D* get_misid(TString hist, TString setType, Int_t set);
 
   virtual TH1D* get_stack_uncertainty(THStack* hstack, TString hname);
   virtual THStack* get_stack(TString hist, TString setType, Int_t set);
