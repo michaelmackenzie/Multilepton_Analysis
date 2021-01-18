@@ -46,13 +46,15 @@
 #include "../utils/PUWeight.hh"
 //define BTag weights locally
 #include "../utils/BTagWeight.hh"
+//define Jet->tau weights locally
+#include "../utils/JetToTauWeight.hh"
 
 class ZTauTauHistMaker : public TSelector {
 public :
   TTreeReader     fReader;  //!the tree reader
   TTree          *fChain = 0;   //!pointer to the analyzed TTree or TChain
   enum {kMaxParticles = 50, kMaxCounts = 40};
-  enum {kMuTau = 0, kETau = 30, kEMu = 60, kMuTauE = 90, kETauMu = 105, kMuMu = 120, kEE = 150};
+  enum {kMuTau = 0, kETau = 100, kEMu = 200, kMuTauE = 300, kETauMu = 400, kMuMu = 500, kEE = 600};
   enum {kMaxMVAs = 80};
 
   // Readers to access the data (delete the ones you do not need).
@@ -149,6 +151,15 @@ public :
   Float_t jetsEta[kMaxParticles]     ;
   Int_t   jetsFlavor[kMaxParticles]  ;
   Int_t   jetsBTag[kMaxParticles]    ;
+  Float_t tausPt[kMaxParticles]      ;
+  Float_t tausEta[kMaxParticles]     ;
+  Bool_t  tausIsPositive[kMaxParticles];
+  Int_t   tausDM[kMaxParticles]      ;
+  Int_t   tausGenFlavor[kMaxParticles];
+  UChar_t tausAntiJet[kMaxParticles] ;
+  UChar_t tausMVAAntiMu[kMaxParticles];
+  UChar_t tausAntiMu[kMaxParticles]  ;
+  UChar_t tausAntiEle[kMaxParticles] ;
   UInt_t nGenTausHad                 ;
   UInt_t nGenTausLep                 ;
   UInt_t nGenElectrons               ;
@@ -253,7 +264,7 @@ public :
     TH1D* hTopPtWeight;
     TH1D* hBTagWeight;
     TH1D* hZPtWeight;
-    TH1D* hTauDecayMode;
+    TH1D* hTauDecayMode[2]; //with and without event weights
     TH1D* hTauMVA;
     TH1D* hTauGenFlavor;
     TH1D* hTauGenFlavorHad;
@@ -312,6 +323,14 @@ public :
     TH2D* hZPtVsM[3]; //0: normal 1: remove Z pT weight 2: apply weights using reco scales if DY
     TH1D* hZPt[3];
     TH1D* hZMass[3];
+
+    //Jet --> tau_h histograms
+    TH2D* hFakeTauNJetDMPtEta[3/*iso cat*/][5/*njets*/][4/*DM*/];
+    TH1D* hTausPt;
+    TH1D* hTausEta;
+    TH1D* hTausDM;
+    TH1D* hTausGenFlavor;
+    TH1D* hTausAntiJet;
     
     TH1D* hLepDeltaPhi;
     TH1D* hLepDeltaEta;
@@ -632,7 +651,7 @@ public :
     }
   };
   
-  ZTauTauHistMaker(TTree * /*tree*/ =0) { }
+  ZTauTauHistMaker(TTree * /*tree*/ =0) : fMuonJetToTauWeight("mumu"), fElectronJetToTauWeight("ee") { }
   virtual ~ZTauTauHistMaker() { }
   virtual Int_t   Version() const { return 2; }
   virtual void    Begin(TTree *tree);
@@ -685,65 +704,70 @@ public :
   Int_t   fTrkQualVersion = TrkQualInit::Default; //for updating which variables are used
   
   //Histograms:
-  const static Int_t fn = 400; //max histogram sets
+  const static Int_t fn = 4000; //max histogram sets: 0 - 999 typical, 1000 - 1999 QCD, 2000 - 2999 MisID, 3000 - 3999 QCD+MisID
   const static Int_t kIds = 60; //max box cut ID sets
-  const static Int_t fQcdOffset = 200; //histogram set + offset = set with same sign selection
+  const static Int_t fQcdOffset = 1000; //histogram set + offset = set with same sign selection
+  const static Int_t fMisIDOffset = 2000; //histogram set + offset = set with loose ID selection
   Int_t fEventSets[fn];  //indicates which sets to create
   Int_t fTreeSets[fn];   //indicates which trees to create
 
-  TFile*        fOut;
-  TDirectory*   fTopDir;
-  TDirectory*   fDirectories[4*fn]; // 0 - fn events, fn - 2fn photon, 2fn - 3fn lep, 3fn - 4fn trees
-  EventHist_t*  fEventHist[fn];
-  PhotonHist_t* fPhotonHist[fn];
-  LepHist_t*    fLepHist[fn];
-  TTree*        fTrees[fn];
-
-  TEventID*     fEventId[kIds]; //for applying box cuts, 0-9 zmutau, 10-19 zetau, 20-29 zemu, higgs + 30 to z sets
+  TFile*          fOut;
+  TDirectory*     fTopDir;
+  TDirectory*     fDirectories[4*fn]; // 0 - fn events, fn - 2fn photon, 2fn - 3fn lep, 3fn - 4fn trees
+  EventHist_t*    fEventHist[fn];
+  PhotonHist_t*   fPhotonHist[fn];
+  LepHist_t*      fLepHist[fn];
+  TTree*          fTrees[fn];
+		  
+  TEventID*       fEventId[kIds]; //for applying box cuts, 0-9 zmutau, 10-19 zetau, 20-29 zemu, higgs + 30 to z sets
+  		  
+  TString         fFolderName = ""; //name of the folder the tree is from
+  Int_t           fYear = 2016;
+		  
+  Bool_t          fIsSignal = false;
+  		  
+  Int_t           fDYType = -1; //for splitting Z->ll into 1: tau tau and 2: e/mu e/mu
+  Bool_t          fIsDY = false; //for checking if DY --> Z pT weights
+  Bool_t          fDYTesting = false; //for speeding up histogramming to only do DY weight related aspects
+  		  
+  Int_t           fWriteTrees = 0; //write out ttrees for the events
+  Double_t        fXsec = 0.; //cross-section for full event weight with trees
+  Double_t        fLum = 0.; //luminosity full event weight with trees
+  Tree_t          fTreeVars; //for filling the ttrees/mva evaluation
+  Int_t           fEventCategory; //for identifying the process in mva trainings
+		  
+  Int_t           fUseTauFakeSF = 0; //add in fake tau scale factor weight to event weights (2 to use ones defined here)
+  Int_t           fFakeTauIsoCut = 50; //fake tau tight Iso category definition
+  Int_t           fIsData = 0; //0 if MC, 1 if electron data, 2 if muon data
+  bool            fSkipDoubleTrigger = false; //skip events with both triggers (to avoid double counting), only count this lepton status events
+  Int_t           fMETWeights = 0; //re-weight events based on the MET
+		  
+  Int_t           fRemoveTriggerWeights = 0;
+  Int_t           fRemovePhotonIDWeights = 1;
+  Int_t           fRemoveBTagWeights = 0; //0: do nothing 1: remove weights 2: replace weights
+  BTagWeight      fBTagWeight;
+  Int_t           fRemovePUWeights = 0; //0: do nothing 1: remove weights 2: replace weights
+  PUWeight        fPUWeight; //object to define pu weights
+  Int_t           fAddJetTauWeights = 1; //0: do nothing 1: weight anti-iso tau CR data
+  JetToTauWeight  fMuonJetToTauWeight; //for mutau
+  JetToTauWeight  fElectronJetToTauWeight; //for etau
   
-  TString       fFolderName = ""; //name of the folder the tree is from
-  Int_t         fYear = 2016;
-
-  Bool_t        fIsSignal = false;
-  
-  Int_t         fDYType = -1; //for splitting Z->ll into 1: tau tau and 2: e/mu e/mu
-  Bool_t        fIsDY = false; //for checking if DY --> Z pT weights
-  Bool_t        fDYTesting = false; //for speeding up histogramming to only do DY weight related aspects
-  
-  Int_t         fWriteTrees = 0; //write out ttrees for the events
-  Double_t      fXsec = 0.; //cross-section for full event weight with trees
-  Double_t      fLum = 0.; //luminosity full event weight with trees
-  Tree_t        fTreeVars; //for filling the ttrees/mva evaluation
-  Int_t         fEventCategory; //for identifying the process in mva trainings
-
-  Int_t         fUseTauFakeSF = 0; //add in fake tau scale factor weight to event weights (2 to use ones defined here)
-  Int_t         fIsData = 0; //0 if MC, 1 if electron data, 2 if muon data
-  bool          fSkipDoubleTrigger = false; //skip events with both triggers (to avoid double counting), only count this lepton status events
-  Int_t         fMETWeights = 0; //re-weight events based on the MET
-
-  Int_t         fRemoveTriggerWeights = 0;
-  Int_t         fRemovePhotonIDWeights = 1;
-  Int_t         fRemoveBTagWeights = 0; //0: do nothing 1: remove weights 2: replace weights
-  BTagWeight    fBTagWeight;
-  Int_t         fRemovePUWeights = 0; //0: do nothing 1: remove weights 2: replace weights
-  PUWeight      fPUWeight; //object to define pu weights
-  
-  Int_t         fRemoveZPtWeights = 0; // 0 use given weights, 1 remove z pT weight, 2 remove and re-evaluate weights locally
-  TH2D*         fZPtScales = 0; //histogram based z pTvsM weights
-  TH2D*         fZPtRecoScales = 0; //histogram based reconstructed z pTvsM weights
-  TString       fZPtHistPath = "scale_factors/z_pt_vs_m_scales_"; //path for file, not including _[year].root
-  
-  float         fFractionMVA = 0.; //fraction of events used to train. Ignore these events in histogram filling, reweight the rest to compensate
-  TRandom*      fRnd = 0; //for splitting MVA testing/training
-  Int_t         fRndSeed = 90; //random number generator seed
-  bool          fReprocessMVAs = false; //whether or not to use the tree given MVA values
-  Int_t         fBJetCounting = 1; // 0: pT > 30 1: pT > 25 2: pT > 20
-  Int_t         fBJetTightness = 1; // 0: tight 1: medium 2: loose
-  Int_t         fMETType = 0; // 0: PF corrected 1: PUPPI Corrected
-  bool          fForceBJetSense = true; //force can't be more strict id bjets than looser id bjets
-  bool          fIsNano = false; //whether the tree is nano AOD based or not
-
-  Int_t         fVerbose = 0; //verbosity level
+  Int_t           fRemoveZPtWeights = 0; // 0 use given weights, 1 remove z pT weight, 2 remove and re-evaluate weights locally
+  TH2D*           fZPtScales = 0; //histogram based z pTvsM weights
+  TH2D*           fZPtRecoScales = 0; //histogram based reconstructed z pTvsM weights
+  TString         fZPtHistPath = "scale_factors/z_pt_vs_m_scales_"; //path for file, not including _[year].root
+  		  
+  float           fFractionMVA = 0.; //fraction of events used to train. Ignore these events in histogram filling, reweight the rest to compensate
+  TRandom*        fRnd = 0; //for splitting MVA testing/training
+  Int_t           fRndSeed = 90; //random number generator seed
+  bool            fReprocessMVAs = false; //whether or not to use the tree given MVA values
+  Int_t           fBJetCounting = 1; // 0: pT > 30 1: pT > 25 2: pT > 20
+  Int_t           fBJetTightness = 1; // 0: tight 1: medium 2: loose
+  Int_t           fMETType = 0; // 0: PF corrected 1: PUPPI Corrected
+  bool            fForceBJetSense = true; //force can't be more strict id bjets than looser id bjets
+  bool            fIsNano = false; //whether the tree is nano AOD based or not
+		  
+  Int_t           fVerbose = 0; //verbosity level
   
   ClassDef(ZTauTauHistMaker,0);
 
@@ -787,8 +811,17 @@ void ZTauTauHistMaker::Init(TTree *tree)
       tree->SetBranchStatus("leptonTwoIndex"      , 1);
       tree->SetBranchStatus("lepOneWeight"        , 1);
       tree->SetBranchStatus("lepTwoWeight"        , 1);
+      tree->SetBranchStatus("leptonOneID1"        , 1);
+      tree->SetBranchStatus("leptonTwoID1"        , 1);
+      tree->SetBranchStatus("leptonTwoID2"        , 1);
       tree->SetBranchStatus("photonP4"  	  , 1);
       tree->SetBranchStatus("jetP4"  	          , 1);
+      tree->SetBranchStatus("tauP4"               , 1);
+      tree->SetBranchStatus("tauDeepAntiJet"      , 1);
+      tree->SetBranchStatus("tauGenFlavor"        , 1);
+      tree->SetBranchStatus("tauDecayMode"        , 1);
+      tree->SetBranchStatus("tauFlavor"  	  , 1);
+      tree->SetBranchStatus("looseQCDSelection"   , 1);
       tree->SetBranchStatus("nMuons"              , 1);
       tree->SetBranchStatus("nElectrons"          , 1);
       tree->SetBranchStatus("nTaus"               , 1);
@@ -806,6 +839,13 @@ void ZTauTauHistMaker::Init(TTree *tree)
       tree->SetBranchStatus("jetsEta"             , 1);
       tree->SetBranchStatus("jetsFlavor"          , 1);
       tree->SetBranchStatus("jetsBTag"            , 1);
+      tree->SetBranchStatus("tausPt"              , 1);
+      tree->SetBranchStatus("tausEta"             , 1);
+      tree->SetBranchStatus("tausIsPositive"      , 1);
+      tree->SetBranchStatus("tausDM"              , 1);
+      tree->SetBranchStatus("tausGenFlavor"       , 1);
+      tree->SetBranchStatus("tausAntiJet"         , 1);
+      tree->SetBranchStatus("tausMVAAntiMu"       , 1);
       tree->SetBranchStatus("nGenTausHad"         , 1);
       tree->SetBranchStatus("nGenTausLep"         , 1);
       tree->SetBranchStatus("nGenElectrons"       , 1);
@@ -893,253 +933,159 @@ void ZTauTauHistMaker::Init(TTree *tree)
     //currently sets 0-29 are mutau, 30-59 are etau, and 60-89 are emu
     // fEventSets [0] = 0; // all events
     if(fFolderName == "mutau") {
-      fEventSets [kMuTau + 1] = 1; // all opposite signed events
-      fEventSets [kMuTau + 1+fQcdOffset] = 1; // all same signed events
-      fEventSets [kMuTau + 2] = 1; // events with opposite signs and >= 1 photon
-      fEventSets [kMuTau + 2+fQcdOffset] = 1; // events with same signs and >= 1 photon
+      fEventSets [kMuTau + 1] = 1; // all events
+      fEventSets [kMuTau + 2] = 1; // events with >= 1 photon
     
       fEventSets [kMuTau + 3] = 1; 
-      fEventSets [kMuTau + 3+fQcdOffset] = 1; 
       fEventSets [kMuTau + 4] = 1;
-      fEventSets [kMuTau + 4+fQcdOffset] = 1;
       fEventSets [kMuTau + 5] = 1;
-      fEventSets [kMuTau + 5+fQcdOffset] = 1;
       fEventSets [kMuTau + 6] = 1;
-      fEventSets [kMuTau + 6+fQcdOffset] = 1;
       fEventSets [kMuTau + 7] = 1;
-      fEventSets [kMuTau + 7+fQcdOffset] = 1;
-
-      fEventSets [kMuTau + 8] = 1; // events with opposite signs
-      fEventSets [kMuTau + 8+fQcdOffset] = 1; // events with same signs 
+      fEventSets [kMuTau + 8] = 1;
       fTreeSets  [kMuTau + 8] = 1;
       fTreeSets  [kMuTau + 8+fQcdOffset] = fIsData != 0; //save SS data for QCD training
 
       // MVA categories
-      for(int i = 9; i < 19; ++i) {fEventSets[kMuTau + i] = 1; fEventSets[kMuTau + i + fQcdOffset] = 1;}
+      for(int i = 9; i < 19; ++i) fEventSets[kMuTau + i] = 1;
 
-      fEventSets [kMuTau + 22] = 1; // events with opposite signs and nJets = 0
-      fEventSets [kMuTau + 22+fQcdOffset] = 1; // events with same signs and nJets = 0
-      fEventSets [kMuTau + 23] = 1; // events with opposite signs and nJets > 0
-      fEventSets [kMuTau + 23+fQcdOffset] = 1; // events with same signs and nJets > 0
 
-      fEventSets [kMuTau + 24] = 1; // events with opposite signs and mass window
-      fEventSets [kMuTau + 24+fQcdOffset] = 1; // events with same signs and mass window
-      fEventSets [kMuTau + 25] = 1; // events with opposite signs and mass window
-      fEventSets [kMuTau + 25+fQcdOffset] = 1; // events with same signs and mass window
+      fEventSets [kMuTau + 20] = 1; //
+      fEventSets [kMuTau + 21] = 1; //
+      fEventSets [kMuTau + 22] = 1; // events with nJets = 0
+      fEventSets [kMuTau + 23] = 1; // events with nJets > 0
 
-      fEventSets [kMuTau + 26] = 1; // events with opposite signs and top set
-      fEventSets [kMuTau + 26+fQcdOffset] = 1; // events with same signs and top set
+      fEventSets [kMuTau + 24] = 1; // events within mass window
+      fEventSets [kMuTau + 25] = 1; // events within mass window
 
+      fEventSets [kMuTau + 26] = 1; // events top set
       fEventSets [kMuTau + 27] = 1;
-      fEventSets [kMuTau + 27+fQcdOffset] = 1; 
       fEventSets [kMuTau + 28] = 1;
-      fEventSets [kMuTau + 28+fQcdOffset] = 1; 
       fEventSets [kMuTau + 29] = 1;
-      fEventSets [kMuTau + 29+fQcdOffset] = 1; 
     }
     else if(fFolderName == "etau") {
-      fEventSets [kETau + 1] = 1; // all opposite signed events
-      fEventSets [kETau + 1+fQcdOffset] = 1; // all same signed events
-      fEventSets [kETau + 2] = 1; // events with opposite signs and >= 1 photon
-      fEventSets [kETau + 2+fQcdOffset] = 1; // events with same signs and >= 1 photon
+      fEventSets [kETau + 1] = 1; // all events
+      fEventSets [kETau + 2] = 1; // events with >= 1 photon
     
       fEventSets [kETau + 3] = 1; 
-      fEventSets [kETau + 3+fQcdOffset] = 1; 
       fEventSets [kETau + 4] = 1;
-      fEventSets [kETau + 4+fQcdOffset] = 1;
       fEventSets [kETau + 5] = 1;
-      fEventSets [kETau + 5+fQcdOffset] = 1;
       fEventSets [kETau + 6] = 1;
-      fEventSets [kETau + 6+fQcdOffset] = 1;
       fEventSets [kETau + 7] = 1;
-      fEventSets [kETau + 7+fQcdOffset] = 1;
-
-      fEventSets [kETau + 8] = 1; // events with opposite signs
-      fEventSets [kETau + 8+fQcdOffset] = 1; // events with same signs 
+      fEventSets [kETau + 8] = 1;
       fTreeSets  [kETau + 8] = 1;
       fTreeSets  [kETau + 8+fQcdOffset] = fIsData != 0; //save SS data for QCD training
 
       // MVA categories
-      for(int i = 9; i < 19; ++i) {fEventSets[kETau + i] = 1; fEventSets[kETau + i + fQcdOffset] = 1;}
+      for(int i = 9; i < 19; ++i) fEventSets[kETau + i] = 1;
 
-      fEventSets [kETau + 22] = 1; // events with opposite signs and nJets = 0
-      fEventSets [kETau + 22+fQcdOffset] = 1; // events with same signs and nJets = 0
-      fEventSets [kETau + 23] = 1; // events with opposite signs and nJets > 0
-      fEventSets [kETau + 23+fQcdOffset] = 1; // events with same signs and nJets > 0
+      fEventSets [kETau + 20] = 1; //
+      fEventSets [kETau + 21] = 1; //
+      fEventSets [kETau + 22] = 1; // events with nJets = 0
+      fEventSets [kETau + 23] = 1; // events with nJets > 0
 
-      fEventSets [kETau + 24] = 1; // events with opposite signs and mass window
-      fEventSets [kETau + 24+fQcdOffset] = 1; // events with same signs and mass window
-      fEventSets [kETau + 25] = 1; // events with opposite signs and mass window
-      fEventSets [kETau + 25+fQcdOffset] = 1; // events with same signs and mass window
+      fEventSets [kETau + 24] = 1; // events within mass window
+      fEventSets [kETau + 25] = 1; // events within mass window
 
-      fEventSets [kETau + 26] = 1; // events with opposite signs and top set
-      fEventSets [kETau + 26+fQcdOffset] = 1; // events with same signs and top set
-
+      fEventSets [kETau + 26] = 1; // events top set
       fEventSets [kETau + 27] = 1;
-      fEventSets [kETau + 27+fQcdOffset] = 1; 
       fEventSets [kETau + 28] = 1;
-      fEventSets [kETau + 28+fQcdOffset] = 1; 
       fEventSets [kETau + 29] = 1;
-      fEventSets [kETau + 29+fQcdOffset] = 1; 
     }
     else if(fFolderName == "emu") {
-      fEventSets [kEMu + 1] = 1; // all opposite signed events
-      fEventSets [kEMu + 1+fQcdOffset] = 1; // all same signed events
-      fEventSets [kEMu + 2] = 1; // events with opposite signs and >= 1 photon
-      fEventSets [kEMu + 2+fQcdOffset] = 1; // events with same signs and >= 1 photon
+      fEventSets [kEMu  + 1] = 1; // all events
+      fEventSets [kEMu  + 2] = 1; // events with >= 1 photon
     
-      fEventSets [kEMu + 3] = 1; 
-      fEventSets [kEMu + 3+fQcdOffset] = 1; 
-      fEventSets [kEMu + 4] = 1;
-      fEventSets [kEMu + 4+fQcdOffset] = 1;
-      fEventSets [kEMu + 5] = 1;
-      fEventSets [kEMu + 5+fQcdOffset] = 1;
-      fEventSets [kEMu + 6] = 1;
-      fEventSets [kEMu + 6+fQcdOffset] = 1;
-      fEventSets [kEMu + 7] = 1;
-      fEventSets [kEMu + 7+fQcdOffset] = 1;
-
-      fEventSets [kEMu + 8] = 1; // events with opposite signs
-      fEventSets [kEMu + 8+fQcdOffset] = 1; // events with same signs 
-      fTreeSets  [kEMu + 8] = 1;
-      fTreeSets  [kEMu + 8+fQcdOffset] = fIsData != 0; //save SS data for QCD training
+      fEventSets [kEMu  + 3] = 1; 
+      fEventSets [kEMu  + 4] = 1;
+      fEventSets [kEMu  + 5] = 1;
+      fEventSets [kEMu  + 6] = 1;
+      fEventSets [kEMu  + 7] = 1;
+      fEventSets [kEMu  + 8] = 1;
+      fTreeSets  [kEMu  + 8] = 1;
+      fTreeSets  [kEMu  + 8+fQcdOffset] = fIsData != 0; //save SS data for QCD training
 
       // MVA categories
-      for(int i = 9; i < 19; ++i) {fEventSets[kEMu + i] = 1; fEventSets[kEMu + i + fQcdOffset] = 1;}
+      for(int i = 9; i < 19; ++i) fEventSets[kEMu  + i] = 1;
 
-      fEventSets [kEMu + 20] = 1; // events with opposite signs and z box cuts
-      fEventSets [kEMu + 20+fQcdOffset] = 1; // events with same signs and z box cuts
-      fEventSets [kEMu + 21] = 1; // events with opposite signs and higgs box cuts
-      fEventSets [kEMu + 21+fQcdOffset] = 1; // events with same signs and higgs box cuts
+      fEventSets [kEMu  + 20] = 1; //
+      fEventSets [kEMu  + 21] = 1; //
+      fEventSets [kEMu  + 22] = 1; // events with nJets = 0
+      fEventSets [kEMu  + 23] = 1; // events with nJets > 0
 
-      fEventSets [kEMu + 22] = 1; // events with opposite signs and nJets = 0
-      fEventSets [kEMu + 22+fQcdOffset] = 1; // events with same signs and nJets = 0
-      fEventSets [kEMu + 23] = 1; // events with opposite signs and nJets > 0
-      fEventSets [kEMu + 23+fQcdOffset] = 1; // events with same signs and nJets > 0
+      fEventSets [kEMu  + 24] = 1; // events within mass window
+      fEventSets [kEMu  + 25] = 1; // events within mass window
 
-      fEventSets [kEMu + 24] = 1; // events with opposite signs and mass window
-      fEventSets [kEMu + 24+fQcdOffset] = 1; // events with same signs and mass window
-      fEventSets [kEMu + 25] = 1; // events with opposite signs and mass window
-      fEventSets [kEMu + 25+fQcdOffset] = 1; // events with same signs and mass window
-
-      fEventSets [kEMu + 26] = 1; // events with opposite signs and top set
-      fEventSets [kEMu + 26+fQcdOffset] = 1; // events with same signs and top set
-
-      fEventSets [kEMu + 27] = 1;
-      fEventSets [kEMu + 27+fQcdOffset] = 1; 
-      fEventSets [kEMu + 28] = 1;
-      fEventSets [kEMu + 28+fQcdOffset] = 1; 
-      fEventSets [kEMu + 29] = 1;
-      fEventSets [kEMu + 29+fQcdOffset] = 1; 
+      fEventSets [kEMu  + 26] = 1; // events top set
+      fEventSets [kEMu  + 27] = 1;
+      fEventSets [kEMu  + 28] = 1;
+      fEventSets [kEMu  + 29] = 1;
     }
     else if(fFolderName == "mumu") {
-      fEventSets [kMuMu + 1] = 1; // all opposite signed events
-      fEventSets [kMuMu + 1+fQcdOffset] = 1; // all same signed events
-      fEventSets [kMuMu + 2] = 1; // events with opposite signs and >= 1 photon
-      fEventSets [kMuMu + 2+fQcdOffset] = 1; // events with same signs and >= 1 photon
+      fEventSets [kMuMu + 1] = 1; // all events
+      fEventSets [kMuMu + 2] = 1; // events with >= 1 photon
     
       fEventSets [kMuMu + 3] = 1; 
-      fEventSets [kMuMu + 3+fQcdOffset] = 1; 
       fEventSets [kMuMu + 4] = 1;
-      fEventSets [kMuMu + 4+fQcdOffset] = 1;
       fEventSets [kMuMu + 5] = 1;
-      fEventSets [kMuMu + 5+fQcdOffset] = 1;
       fEventSets [kMuMu + 6] = 1;
-      fEventSets [kMuMu + 6+fQcdOffset] = 1;
       fEventSets [kMuMu + 7] = 1;
-      fEventSets [kMuMu + 7+fQcdOffset] = 1;
-
-      fEventSets [kMuMu + 8] = 1; // events with opposite signs
-      fEventSets [kMuMu + 8+fQcdOffset] = 1; // events with same signs 
+      fEventSets [kMuMu + 8] = 1;
       fTreeSets  [kMuMu + 8] = 1;
       fTreeSets  [kMuMu + 8+fQcdOffset] = fIsData != 0; //save SS data for QCD training
 
       // MVA categories
-      for(int i = 9; i < 19; ++i) {fEventSets[kMuMu + i] = 1; fEventSets[kMuMu + i + fQcdOffset] = 1;}
+      for(int i = 9; i < 19; ++i) fEventSets[kMuMu + i] = 1;
 
-      fEventSets [kMuMu + 20] = 1; // events with opposite signs and z box cuts
-      fEventSets [kMuMu + 20+fQcdOffset] = 1; // events with same signs and z box cuts
-      fEventSets [kMuMu + 21] = 1; // events with opposite signs and higgs box cuts
-      fEventSets [kMuMu + 21+fQcdOffset] = 1; // events with same signs and higgs box cuts
+      fEventSets [kMuMu + 20] = 1; //
+      fEventSets [kMuMu + 21] = 1; //
+      fEventSets [kMuMu + 22] = 1; // events with nJets = 0
+      fEventSets [kMuMu + 23] = 1; // events with nJets > 0
 
-      fEventSets [kMuMu + 22] = 1; // events with opposite signs and nJets = 0
-      fEventSets [kMuMu + 22+fQcdOffset] = 1; // events with same signs and nJets = 0
-      fEventSets [kMuMu + 23] = 1; // events with opposite signs and nJets > 0
-      fEventSets [kMuMu + 23+fQcdOffset] = 1; // events with same signs and nJets > 0
+      fEventSets [kMuMu + 24] = 1; // events within mass window
+      fEventSets [kMuMu + 25] = 1; // events within mass window
 
-      fEventSets [kMuMu + 24] = 1; // events with opposite signs and mass window
-      fEventSets [kMuMu + 24+fQcdOffset] = 1; // events with same signs and mass window
-      fEventSets [kMuMu + 25] = 1; // events with opposite signs and mass window
-      fEventSets [kMuMu + 25+fQcdOffset] = 1; // events with same signs and mass window
-
-      fEventSets [kMuMu + 26] = 1; // events with opposite signs and top set
-      fEventSets [kMuMu + 26+fQcdOffset] = 1; // events with same signs and top set
-
+      fEventSets [kMuMu + 26] = 1; // events top set
       fEventSets [kMuMu + 27] = 1;
-      fEventSets [kMuMu + 27+fQcdOffset] = 1; 
       fEventSets [kMuMu + 28] = 1;
-      fEventSets [kMuMu + 28+fQcdOffset] = 1; 
       fEventSets [kMuMu + 29] = 1;
-      fEventSets [kMuMu + 29+fQcdOffset] = 1; 
     }
     else if(fFolderName == "ee") {
-      fEventSets [kEE + 1] = 1; // all opposite signed events
-      fEventSets [kEE + 1+fQcdOffset] = 1; // all same signed events
-      fEventSets [kEE + 2] = 1; // events with opposite signs and >= 1 photon
-      fEventSets [kEE + 2+fQcdOffset] = 1; // events with same signs and >= 1 photon
+      fEventSets [kEE   + 1] = 1; // all events
+      fEventSets [kEE   + 2] = 1; // events with >= 1 photon
     
-      fEventSets [kEE + 3] = 1; 
-      fEventSets [kEE + 3+fQcdOffset] = 1; 
-      fEventSets [kEE + 4] = 1;
-      fEventSets [kEE + 4+fQcdOffset] = 1;
-      fEventSets [kEE + 5] = 1;
-      fEventSets [kEE + 5+fQcdOffset] = 1;
-      fEventSets [kEE + 6] = 1;
-      fEventSets [kEE + 6+fQcdOffset] = 1;
-      fEventSets [kEE + 7] = 1;
-      fEventSets [kEE + 7+fQcdOffset] = 1;
-
-      fEventSets [kEE + 8] = 1; // events with opposite signs
-      fEventSets [kEE + 8+fQcdOffset] = 1; // events with same signs 
-      fTreeSets  [kEE + 8] = 1;
-      fTreeSets  [kEE + 8+fQcdOffset] = fIsData != 0; //save SS data for QCD training
+      fEventSets [kEE   + 3] = 1; 
+      fEventSets [kEE   + 4] = 1;
+      fEventSets [kEE   + 5] = 1;
+      fEventSets [kEE   + 6] = 1;
+      fEventSets [kEE   + 7] = 1;
+      fEventSets [kEE   + 8] = 1;
+      fTreeSets  [kEE   + 8] = 1;
+      fTreeSets  [kEE   + 8+fQcdOffset] = fIsData != 0; //save SS data for QCD training
 
       // MVA categories
-      for(int i = 9; i < 19; ++i) {fEventSets[kEE + i] = 1; fEventSets[kEE + i + fQcdOffset] = 1;}
+      for(int i = 9; i < 19; ++i) fEventSets[kEE   + i] = 1;
 
-      fEventSets [kEE + 20] = 1; // events with opposite signs and z box cuts
-      fEventSets [kEE + 20+fQcdOffset] = 1; // events with same signs and z box cuts
-      fEventSets [kEE + 21] = 1; // events with opposite signs and higgs box cuts
-      fEventSets [kEE + 21+fQcdOffset] = 1; // events with same signs and higgs box cuts
+      fEventSets [kEE   + 20] = 1; //
+      fEventSets [kEE   + 21] = 1; //
+      fEventSets [kEE   + 22] = 1; // events with nJets = 0
+      fEventSets [kEE   + 23] = 1; // events with nJets > 0
 
-      fEventSets [kEE + 22] = 1; // events with opposite signs and nJets = 0
-      fEventSets [kEE + 22+fQcdOffset] = 1; // events with same signs and nJets = 0
-      fEventSets [kEE + 23] = 1; // events with opposite signs and nJets > 0
-      fEventSets [kEE + 23+fQcdOffset] = 1; // events with same signs and nJets > 0
+      fEventSets [kEE   + 24] = 1; // events within mass window
+      fEventSets [kEE   + 25] = 1; // events within mass window
 
-      fEventSets [kEE + 24] = 1; // events with opposite signs and mass window
-      fEventSets [kEE + 24+fQcdOffset] = 1; // events with same signs and mass window
-      fEventSets [kEE + 25] = 1; // events with opposite signs and mass window
-      fEventSets [kEE + 25+fQcdOffset] = 1; // events with same signs and mass window
-
-      fEventSets [kEE + 26] = 1; // events with opposite signs and top set
-      fEventSets [kEE + 26+fQcdOffset] = 1; // events with same signs and top set
-
-      fEventSets [kEE + 27] = 1;
-      fEventSets [kEE + 27+fQcdOffset] = 1; 
-      fEventSets [kEE + 28] = 1;
-      fEventSets [kEE + 28+fQcdOffset] = 1; 
-      fEventSets [kEE + 29] = 1;
-      fEventSets [kEE + 29+fQcdOffset] = 1; 
+      fEventSets [kEE   + 26] = 1; // events top set
+      fEventSets [kEE   + 27] = 1;
+      fEventSets [kEE   + 28] = 1;
+      fEventSets [kEE   + 29] = 1;
     }
     if(fFolderName == "emu") {
       //Leptonic tau channels
       //mu+tau_e
       // MVA categories
-      for(int i = 9; i < 19; ++i) {fEventSets[kMuTauE + i] = 1; fEventSets[kMuTauE + i + fQcdOffset] = 1;}
+      for(int i = 9; i < 19; ++i) fEventSets[kMuTauE + i] = 1;
       //e+tau_mu
       // MVA categories
-      for(int i = 9; i < 19; ++i) {fEventSets[kETauMu + i] = 1; fEventSets[kETauMu + i + fQcdOffset] = 1;}
+      for(int i = 9; i < 19; ++i) fEventSets[kETauMu + i] = 1;
     }
 
     //initialize all the histograms
@@ -1177,11 +1123,11 @@ void ZTauTauHistMaker::Init(TTree *tree)
   fChain->SetBranchAddress("zPt"                 , &zPt                  );
   fChain->SetBranchAddress("zMass"               , &zMass                );
   fChain->SetBranchAddress("looseQCDSelection"   , &looseQCDSelection    );
+  fChain->SetBranchAddress("tauGenFlavor"        , &tauGenFlavor         );
+  fChain->SetBranchAddress("tauDecayMode"        , &tauDecayMode         );
   if(!fDYTesting) {
     fChain->SetBranchAddress("genTauFlavorWeight"  , &genTauFlavorWeight   );
-    fChain->SetBranchAddress("tauDecayMode"        , &tauDecayMode         );
     fChain->SetBranchAddress("tauMVA"              , &tauMVA               );
-    fChain->SetBranchAddress("tauGenFlavor"        , &tauGenFlavor         );
     fChain->SetBranchAddress("tauGenFlavorHad"     , &tauGenFlavorHad      );
     fChain->SetBranchAddress("tauVetoedJetPt"      , &tauVetoedJetPt       );
     fChain->SetBranchAddress("tauVetoedJetPtUnc"   , &tauVetoedJetPtUnc    );
@@ -1195,12 +1141,12 @@ void ZTauTauHistMaker::Init(TTree *tree)
     fChain->SetBranchAddress("leptonTwoD0"         , &leptonTwoD0          );
     fChain->SetBranchAddress("leptonOneIso"        , &leptonOneIso         );
     fChain->SetBranchAddress("leptonTwoIso"        , &leptonTwoIso         );
-    fChain->SetBranchAddress("leptonOneID1"        , &leptonOneID1         );
     fChain->SetBranchAddress("leptonOneID2"        , &leptonOneID2         );
-    fChain->SetBranchAddress("leptonTwoID1"        , &leptonTwoID1         );
-    fChain->SetBranchAddress("leptonTwoID2"        , &leptonTwoID2         );
     fChain->SetBranchAddress("leptonTwoID3"        , &leptonTwoID3         );
   }
+  fChain->SetBranchAddress("leptonOneID1"        , &leptonOneID1         );
+  fChain->SetBranchAddress("leptonTwoID1"        , &leptonTwoID1         );
+  fChain->SetBranchAddress("leptonTwoID2"        , &leptonTwoID2         );
   fChain->SetBranchAddress("leptonOneIndex"      , &leptonOneIndex       );
   fChain->SetBranchAddress("leptonTwoIndex"      , &leptonTwoIndex       );
   fChain->SetBranchAddress("lepOneWeight"        , &leptonOneWeight      );
@@ -1231,15 +1177,15 @@ void ZTauTauHistMaker::Init(TTree *tree)
       fChain->SetBranchAddress("jetTwoBTag"  	 , &jetTwoBTag           );
       fChain->SetBranchAddress("jetTwoBMVA"  	 , &jetTwoBMVA           );
     }
-    fChain->SetBranchAddress("tauP4"  	         , &tauP4                );
-    fChain->SetBranchAddress("tauFlavor"  	 , &tauFlavor            );
   }
+  fChain->SetBranchAddress("tauP4"  	         , &tauP4                );
+  fChain->SetBranchAddress("tauFlavor"  	 , &tauFlavor            );
   fChain->SetBranchAddress("nMuons"              , &nMuons               );
+  fChain->SetBranchAddress("tauDeepAntiJet"    , &tauDeepAntiJet       );
   if(!fDYTesting) {
     if(fIsNano) {
       fChain->SetBranchAddress("tauDeepAntiEle"    , &tauDeepAntiEle       );
       fChain->SetBranchAddress("tauDeepAntiMu"     , &tauDeepAntiMu        );
-      fChain->SetBranchAddress("tauDeepAntiJet"    , &tauDeepAntiJet       );
       fChain->SetBranchAddress("nMuonsNano"        , &nSlimMuons           );
       // fChain->SetBranchAddress("slimMuons"         , &slimMuons            );
     }
@@ -1286,6 +1232,13 @@ void ZTauTauHistMaker::Init(TTree *tree)
   fChain->SetBranchAddress("jetsEta"             , &jetsEta              );
   fChain->SetBranchAddress("jetsFlavor"          , &jetsFlavor           );
   fChain->SetBranchAddress("jetsBTag"            , &jetsBTag             );
+  fChain->SetBranchAddress("tausPt"               , &tausPt               );
+  fChain->SetBranchAddress("tausEta"              , &tausEta              );
+  fChain->SetBranchAddress("tausIsPositive"       , &tausIsPositive       );
+  fChain->SetBranchAddress("tausDM"               , &tausDM               );
+  fChain->SetBranchAddress("tausGenFlavor"        , &tausGenFlavor        );
+  fChain->SetBranchAddress("tausAntiJet"          , &tausAntiJet          );
+  fChain->SetBranchAddress("tausMVAAntiMu"        , &tausMVAAntiMu        );
   if(!fDYTesting) {
     fChain->SetBranchAddress("htSum"               , &htSum                );
     fChain->SetBranchAddress("ht"                  , &ht                   );
