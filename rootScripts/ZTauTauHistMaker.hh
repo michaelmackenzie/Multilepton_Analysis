@@ -160,6 +160,13 @@ public :
   UChar_t tausMVAAntiMu[kMaxParticles];
   UChar_t tausAntiMu[kMaxParticles]  ;
   UChar_t tausAntiEle[kMaxParticles] ;
+  UInt_t nExtraLep = 0               ;
+  Float_t leptonsPt[kMaxParticles]   ;
+  Float_t leptonsEta[kMaxParticles]  ;
+  Bool_t  leptonsIsPositive[kMaxParticles];
+  Bool_t  leptonsIsMuon[kMaxParticles];
+  UChar_t leptonsID[kMaxParticles]   ;
+  UChar_t leptonsIsoID[kMaxParticles];
   UInt_t nGenTausHad                 ;
   UInt_t nGenTausLep                 ;
   UInt_t nGenElectrons               ;
@@ -331,6 +338,13 @@ public :
     TH1D* hTausDM;
     TH1D* hTausGenFlavor;
     TH1D* hTausAntiJet;
+
+    //Jet --> electron/muon histograms
+    TH2D* hFakeLepPtEta[3/*iso cat*/];
+    TH1D* hLeptonsPt;
+    TH1D* hLeptonsEta;
+    TH1D* hLeptonsID;
+    TH1D* hLeptonsIsoID;
     
     TH1D* hLepDeltaPhi;
     TH1D* hLepDeltaEta;
@@ -737,6 +751,8 @@ public :
   Int_t           fEventCategory; //for identifying the process in mva trainings
 		  
   Int_t           fUseTauFakeSF = 0; //add in fake tau scale factor weight to event weights (2 to use ones defined here)
+  Int_t           fFakeElectronIsoCut = 3; //fake electron tight ID category definition
+  Int_t           fFakeMuonIsoCut = 3; //fake muon tight Iso ID category definition
   Int_t           fFakeTauIsoCut = 50; //fake tau tight Iso category definition
   Int_t           fIsData = 0; //0 if MC, 1 if electron data, 2 if muon data
   bool            fSkipDoubleTrigger = false; //skip events with both triggers (to avoid double counting), only count this lepton status events
@@ -846,6 +862,13 @@ void ZTauTauHistMaker::Init(TTree *tree)
       tree->SetBranchStatus("tausGenFlavor"       , 1);
       tree->SetBranchStatus("tausAntiJet"         , 1);
       tree->SetBranchStatus("tausMVAAntiMu"       , 1);
+      tree->SetBranchStatus("nExtraLep"           , 1);
+      tree->SetBranchStatus("leptonsPt"           , 1);
+      tree->SetBranchStatus("leptonsEta"          , 1);
+      tree->SetBranchStatus("leptonsIsPositive"   , 1);
+      tree->SetBranchStatus("leptonsIsMuon"       , 1);
+      tree->SetBranchStatus("leptonsID"           , 1);
+      tree->SetBranchStatus("leptonsIsoID"        , 1);
       tree->SetBranchStatus("nGenTausHad"         , 1);
       tree->SetBranchStatus("nGenTausLep"         , 1);
       tree->SetBranchStatus("nGenElectrons"       , 1);
@@ -1239,6 +1262,13 @@ void ZTauTauHistMaker::Init(TTree *tree)
   fChain->SetBranchAddress("tausGenFlavor"        , &tausGenFlavor        );
   fChain->SetBranchAddress("tausAntiJet"          , &tausAntiJet          );
   fChain->SetBranchAddress("tausMVAAntiMu"        , &tausMVAAntiMu        );
+  fChain->SetBranchAddress("nExtraLep"            , &nExtraLep            );
+  fChain->SetBranchAddress("leptonsPt"            , &leptonsPt            );
+  fChain->SetBranchAddress("leptonsEta"           , &leptonsEta           );
+  fChain->SetBranchAddress("leptonsIsPositive"    , &leptonsIsPositive    );
+  fChain->SetBranchAddress("leptonsIsMuon"        , &leptonsIsMuon        );
+  fChain->SetBranchAddress("leptonsID"            , &leptonsID            );
+  fChain->SetBranchAddress("leptonsIsoID"         , &leptonsIsoID         );
   if(!fDYTesting) {
     fChain->SetBranchAddress("htSum"               , &htSum                );
     fChain->SetBranchAddress("ht"                  , &ht                   );

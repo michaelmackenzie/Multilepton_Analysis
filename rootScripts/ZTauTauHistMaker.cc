@@ -370,6 +370,13 @@ void ZTauTauHistMaker::BookEventHistograms() {
       fEventHist[i]->hTausDM      = new TH1D("tausdm"     , Form("%s: TausDM     ",dirname),  15,  0.,  15.);
       fEventHist[i]->hTausAntiJet = new TH1D("tausantijet", Form("%s: TausAntiJet",dirname),  30,  0.,  30.);
 
+      for(int cat = 0; cat < 3; ++cat)
+	fEventHist[i]->hFakeLepPtEta[cat] = new TH2D(Form("fakeleppteta_%i", cat), Form("%s: Fake lepton Eta vs Pt" ,dirname), ntpbins, tpbins, ntetabins, tetabins);
+
+      fEventHist[i]->hLeptonsPt   = new TH1D("leptonspt"  , Form("%s: LeptonsPt  ",dirname), 100,  0., 200.);
+      fEventHist[i]->hLeptonsEta  = new TH1D("leptonseta" , Form("%s: LeptonsEta ",dirname), 100, -5.,   5.);
+      fEventHist[i]->hLeptonsID   = new TH1D("leptonsid"  , Form("%s: LeptonsID  ",dirname),  15,  0.,  15.);
+      fEventHist[i]->hLeptonsIsoID= new TH1D("leptonsisoid",Form("%s: LeptonsIsoID",dirname), 15,  0.,  15.);
       
       fEventHist[i]->hLepDeltaPhi   = new TH1D("lepdeltaphi"   , Form("%s: Lepton DeltaPhi",dirname)  ,  50,   0,   5);
       fEventHist[i]->hLepDeltaEta   = new TH1D("lepdeltaeta"   , Form("%s: Lepton DeltaEta",dirname)  , 100,   0,   5);
@@ -1135,6 +1142,23 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
     }
   }
   
+  //Histograms for jet --> lepton scale factors
+  for(UInt_t ilep = 0; ilep < nExtraLep; ++ilep) {
+    double eta = fabs(leptonsEta[ilep]);
+    if(!leptonsIsMuon[ilep] && eta > 2.5) continue;
+    if(leptonsIsMuon[ilep] && eta > 2.4) continue;
+
+    Hist->hLeptonsPt->Fill(leptonsPt[ilep], eventWeight*genWeight);
+    Hist->hLeptonsEta->Fill(leptonsEta[ilep], eventWeight*genWeight);
+    Hist->hLeptonsID->Fill(leptonsID[ilep], eventWeight*genWeight);
+    Hist->hLeptonsIsoID->Fill(leptonsIsoID[ilep], eventWeight*genWeight);
+    Hist->hFakeLepPtEta[0]->Fill(leptonsPt[ilep], eta, eventWeight*genWeight); //all leptons
+    if((leptonsIsMuon[ilep] && leptonsIsoID[ilep] > fFakeMuonIsoCut) || (!leptonsIsMuon[ilep] && leptonsID[ilep] > fFakeElectronIsoCut))
+      Hist->hFakeLepPtEta[1]->Fill(leptonsPt[ilep], eta, eventWeight*genWeight); //tight leptons
+    else
+      Hist->hFakeLepPtEta[2]->Fill(leptonsPt[ilep], eta, eventWeight*genWeight); //loose leptons
+  }
+  
   if(fDYTesting) return;
   
   Hist->hAlpha[0]->Fill((double) fTreeVars.alphaz1, eventWeight*genWeight);
@@ -1490,8 +1514,8 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   //reject overlaps
   if(mutau && etau) {mutau = false; etau = false;}
   if(emu && (mutau || etau)) {mutau = false; etau = false;}
-  bool mumu  = fFolderName == "mumu" && nMuons == 2; //no other requirement
-  bool ee    = fFolderName == "ee" && nElectrons == 2; //no other requirement
+  bool mumu  = fFolderName == "mumu" && nMuons >= 2; //no other requirement
+  bool ee    = fFolderName == "ee" && nElectrons >= 2; //no other requirement
   if(fVerbose > 0) std::cout << "Event has selection statuses: mutau = " << mutau
 			     << " etau = " << etau << " emu = " << emu
 			     << " mumu = " << mumu << " and ee = " << ee << std::endl
