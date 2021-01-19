@@ -1245,9 +1245,9 @@ void NanoAODConversion::CountLightLeptons(int selection) {
     for(unsigned nlep = 0; nlep < fNMuons[selection]; ++nlep) {
       int index = fMuonIndices[selection][nlep];
       if(index == leptonOneIndex || index == leptonTwoIndex) continue;
-      leptonsPt        [nExtraLep] = electronPt [index];
-      leptonsEta       [nExtraLep] = electronEta[index];
-      leptonsIsPositive[nExtraLep] = (electronCharge[index] > 0);
+      leptonsPt        [nExtraLep] = muonPt [index];
+      leptonsEta       [nExtraLep] = muonEta[index];
+      leptonsIsPositive[nExtraLep] = (muonCharge[index] > 0);
       leptonsIsMuon    [nExtraLep] = true;
       leptonsID        [nExtraLep] = (muonLooseId[index] + 2*muonMediumId[index] + 4*muonTightId[index]);
       leptonsIsoID     [nExtraLep] = muonIsoId[index];
