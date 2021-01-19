@@ -10,7 +10,7 @@
 #include "TMVA/Reader.h"
 #include "TTree.h"
 #endif
-#include "../dataFormats/Tree_t.hh"
+#include "interface/Tree_t.hh"
 
 class TrkQualInit {
 public:

@@ -33,21 +33,21 @@
 #include <iostream>
 
 //local includes
-#include "../interface/SlimElectron_t.hh"
-#include "../interface/SlimMuon_t.hh"
-#include "../interface/SlimTau_t.hh"
-#include "../interface/SlimJet_t.hh"
-#include "../interface/SlimPhoton_t.hh"
-#include "../interface/Tree_t.hh"
+#include "interface/SlimElectron_t.hh"
+#include "interface/SlimMuon_t.hh"
+#include "interface/SlimTau_t.hh"
+#include "interface/SlimJet_t.hh"
+#include "interface/SlimPhoton_t.hh"
+#include "interface/Tree_t.hh"
 //initialize local MVA weight files
-#include "../interface/TrkQualInit.hh"
-#include "../interface/MVAConfig.hh"
+#include "interface/TrkQualInit.hh"
+#include "interface/MVAConfig.hh"
 //define PU weights locally
-#include "../interface/PUWeight.hh"
+#include "interface/PUWeight.hh"
 //define BTag weights locally
-#include "../interface/BTagWeight.hh"
+#include "interface/BTagWeight.hh"
 //define Jet->tau weights locally
-#include "../interface/JetToTauWeight.hh"
+#include "interface/JetToTauWeight.hh"
 
 class ZTauTauHistMaker : public TSelector {
 public :

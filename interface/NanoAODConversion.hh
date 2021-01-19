@@ -2,13 +2,13 @@
 #define NanoAODConversion_hh
 
 //locally defined objects
-#include "ParticleCorrections.hh"
-#include "../dataFormats/SlimElectron_t.hh"
-#include "../dataFormats/SlimMuon_t.hh"
-#include "../dataFormats/SlimTau_t.hh"
-#include "../dataFormats/SlimJet_t.hh"
-#include "../dataFormats/SlimPhoton_t.hh"
-#include "../utils/PUWeight.hh"
+#include "interface/ParticleCorrections.hh"
+#include "interface/SlimElectron_t.hh"
+#include "interface/SlimMuon_t.hh"
+#include "interface/SlimTau_t.hh"
+#include "interface/SlimJet_t.hh"
+#include "interface/SlimPhoton_t.hh"
+#include "interface/PUWeight.hh"
 
 #include <TROOT.h>
 #include <TChain.h>

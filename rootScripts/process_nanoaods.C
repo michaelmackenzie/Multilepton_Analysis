@@ -1,14 +1,4 @@
 // Script to process NANO AODs to match format of bltTrees
-#include "ParticleCorrections.cc+g"
-#include "../dataFormats/SlimObject_t.hh+g"
-#include "../dataFormats/SlimElectron_t.hh+g"
-#include "../dataFormats/SlimMuon_t.hh+g"
-#include "../dataFormats/SlimTau_t.hh+g"
-#include "../dataFormats/SlimJet_t.hh+g"
-#include "../dataFormats/SlimPhoton_t.hh+g"
-#include "../utils/CrossSections.hh+g"
-#include "../utils/PUWeight.hh+g"
-#include "NanoAODConversion.cc+g"
 
 bool debug_ = false;
 TString debugFile_ = "SingleEle";
