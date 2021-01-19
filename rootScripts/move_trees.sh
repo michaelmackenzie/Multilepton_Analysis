@@ -6,11 +6,14 @@ if [ "$1" == "" ]
 then
     outdir="ztautau_nanoaod_trees_nomva"
 fi
+
+year=$4
+
 if [ "$2" == "" ]
 then
-    indir="./*.tree"
+    indir="./*${year}*.tree"
 else
-    indir="root://cmseos.fnal.gov//store/user/mmackenz/"${indir}"/*.tree"
+    indir="root://cmseos.fnal.gov//store/user/mmackenz/"${indir}"/*${year}*.tree"
 fi
 if [ "$3" == "" ]
 then
@@ -18,6 +21,7 @@ then
 else
     force="-f "
 fi
+
 outdir="root://cmseos.fnal.gov//store/user/mmackenz/"${outdir}
 
 echo "Using input path ${indir} and output path ${outdir}"

@@ -369,7 +369,7 @@ double ParticleCorrections::BTagMCProb(double pt, double eta, int jetFlavor, int
   TH2F* h = 0;
   if     (abs(jetFlavor) == 5) h = bJetGenBEffMap[year][WP];
   else if(abs(jetFlavor) == 4) h = bJetGenCEffMap[year][WP];
-  else if(abs(jetFlavor) <  4 || abs(jetFlavor) == 21) h = bJetGenLEffMap[year][WP];
+  else if(abs(jetFlavor) <  4 || abs(jetFlavor) > 20) h = bJetGenLEffMap[year][WP];
   else {
     std::cout << "WARNING! In ParticleCorrections::" << __func__ << ": Unknown jet flavor "
 	      << jetFlavor << std::endl;
@@ -474,7 +474,6 @@ double ParticleCorrections::ZWeight(double pt, double mass, int year) {
 
 //get B-Tag WP cut value
 double ParticleCorrections::BTagCut(int wp, int year) {
-  const double bTagValues[kTightBTag+1] = {0.2217, 0.6321, 0.8953}; //corresponding values
   double val = -1.;
   if(year == ParticleCorrections::k2016) {
     if(wp == ParticleCorrections::kLooseBTag)       val = 0.2217;

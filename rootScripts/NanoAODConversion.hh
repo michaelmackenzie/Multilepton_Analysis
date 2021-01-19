@@ -8,6 +8,7 @@
 #include "../dataFormats/SlimTau_t.hh"
 #include "../dataFormats/SlimJet_t.hh"
 #include "../dataFormats/SlimPhoton_t.hh"
+#include "../utils/PUWeight.hh"
 
 #include <TROOT.h>
 #include <TChain.h>
@@ -41,16 +42,18 @@ public :
 
   enum {kMaxParticles = 50, kMaxTriggers = 100};
   enum {kMuTau, kETau, kEMu, kMuMu, kEE, kSelections}; //selections
-  
+  TString fSelecNames[kSelections];
   // Output data format
   UInt_t runNumber = 0               ;
   ULong64_t eventNumber = 0          ;
   UInt_t lumiSection = 0             ;
   UInt_t nPV  = 0                    ;
   Float_t nPU = 0                    ;
+  Int_t  nPUAdded = 0                ;
   UInt_t nPartons = 0                ;
   UInt_t mcEra = 0                   ;
   UInt_t triggerLeptonStatus = 0     ;
+  UInt_t muonTriggerStatus = 0       ;
   Float_t eventWeight = 1.           ;
   Float_t genWeight = 1.             ;
   Float_t puWeight = 1.              ;
@@ -65,6 +68,7 @@ public :
   Float_t zPtWeight = 1.             ;
   Float_t zPtOut    = -1.            ;
   Float_t zMassOut    = -1.          ;
+  Bool_t  looseQCDSelection = false  ;
   Float_t genTauFlavorWeight = 1.    ;
   Float_t tauEnergyScale = 1.        ;
   Int_t   tauDecayModeOut = 0        ;
@@ -88,6 +92,7 @@ public :
   UChar_t leptonTwoID1 = 0           ;
   UChar_t leptonOneID2 = 0           ;
   UChar_t leptonTwoID2 = 0           ;
+  UChar_t leptonTwoID3 = 0           ;
   Int_t   leptonOneIndex = 0         ;
   Int_t   leptonTwoIndex = 0         ;
   Int_t   leptonOneSkimIndex = -1    ;
@@ -109,6 +114,7 @@ public :
   UInt_t nElectrons = 0              ;
   SlimElectrons_t slimElectrons      ;
   UInt_t nTaus = 0                   ;
+  UInt_t nExtraLep = 0               ;
   SlimTaus_t slimTaus                ;
   SlimJets_t slimJets                ;
   UInt_t nPhotons = 0                ;
@@ -177,13 +183,33 @@ public :
   Float_t jetsEta[kMaxParticles]     ;
   Int_t   jetsFlavor[kMaxParticles]  ;
   Int_t   jetsBTag[kMaxParticles]    ;
+  //Info for fake tau studies
+  Float_t tausPt[kMaxParticles]      ;
+  Float_t tausEta[kMaxParticles]     ;
+  Bool_t  tausIsPositive[kMaxParticles];
+  Int_t   tausDM[kMaxParticles]      ;
+  Int_t   tausGenFlavor[kMaxParticles];
+  UChar_t tausAntiJet[kMaxParticles] ;
+  UChar_t tausAntiMu[kMaxParticles]  ;
+  UChar_t tausMVAAntiMu[kMaxParticles];
+  UChar_t tausAntiEle[kMaxParticles] ;
+  //Info for fake light lepton studies
+  Float_t leptonsPt[kMaxParticles]   ;
+  Float_t leptonsEta[kMaxParticles]  ;
+  Bool_t  leptonsIsPositive[kMaxParticles];
+  Bool_t  leptonsIsMuon[kMaxParticles];
+  UChar_t leptonsID[kMaxParticles]   ;
+  UChar_t leptonsIsoID[kMaxParticles];
 
   //Input data format (only ones that differ from output)
   Int_t nGoodPV                             ;
   UInt_t nJet                               ;
   UInt_t nMuon                              ;
+  Int_t  nMuonsSkim                         ;
   UInt_t nElectron                          ;
+  Int_t  nElectronsSkim                     ;
   UInt_t nTau                               ;
+  Int_t  nTausSkim                          ;
   UInt_t nPhoton                            ;
   Float_t muonPt[kMaxParticles]             ;
   Float_t muonEta[kMaxParticles]            ;
@@ -215,6 +241,7 @@ public :
   UChar_t tauAntiEle[kMaxParticles]         ;
   UChar_t tauAntiEle2018[kMaxParticles]     ;
   UChar_t tauAntiMu[kMaxParticles]          ;
+  UChar_t tauAntiJet[kMaxParticles]         ;
   Int_t   tauDecayMode[kMaxParticles]       ;
   Bool_t  tauIDDecayMode[kMaxParticles]     ;
   Bool_t  tauIDDecayModeNew[kMaxParticles]  ;
@@ -338,7 +365,9 @@ public :
   virtual void    InitializeInBranchStructure(TTree* tree);
   virtual float   BTagWeight(int WP);
   virtual void    InitializeTreeVariables(Int_t selection);
-  virtual void    CountJets();
+  virtual void    CountJets(int selection);
+  virtual void    CountTaus(int selection);
+  virtual void    CountLightLeptons(int selection);
   virtual void    CountObjects();
   virtual bool    SelectionID(Int_t selection);
   virtual float   GetTauFakeSF(int genFlavor);
@@ -357,6 +386,9 @@ public :
   TStopwatch* timer = new TStopwatch();
 
   ParticleCorrections* particleCorrections = 0;
+  PUWeight      fPUWeight;
+  Int_t         fReplacePUWeights = 0; //0: do nothing 1: use locally defined value
+
   TFile*        fOut;
   TDirectory*   fDirs[kSelections];
   TTree*        fOutTrees[kSelections];
@@ -371,13 +403,14 @@ public :
 
   Int_t         fUseTauFakeSF = 0; //add in fake tau scale factor weight to event weights (2 to use ones defined here)
   Int_t         fIsData = 0; //0 if MC, 1 if electron data, 2 if muon data
-  bool          fSkipDoubleTrigger = false; //skip events with both triggers (to avoid double counting), only count this lepton status events
+  Bool_t        fSkipDoubleTrigger = false; //skip events with both triggers (to avoid double counting), only count this lepton status events
   Int_t         fMETWeights = 0; //re-weight events based on the MET
   Int_t         fRemoveZPtWeights = 0; // 0 use given weights, 1 remove z pT weight, 2 remove and re-evaluate weights locally
-
+  Bool_t        fDoTriggerMatchPt = true; //use pT threshold when matching triggers
+  
   Int_t         fVerbose = 0;
 
-  Int_t         fSkipMuMuEE = 1; // whether to skip ee/mumu selections for now
+  Int_t         fSkipMuMuEE = 0; // whether to skip ee/mumu selections for now
   Int_t         fSkipMuMuEESS = 1; //whether to skip same sign ee/mumu selections for now
   
   //selection requirements
@@ -396,6 +429,7 @@ public :
   //for counting objects (usually by selection)
   /** Muons **/
   Float_t       fMuonPtCount = 0.;
+  Float_t       fMuonEtaCount = 2.4;
   std::map<UInt_t, UChar_t> fMuonIsoCount;
   std::map<UInt_t, Int_t>   fMuonIDCount; //0 = any, 1 = loose, 2 = medium, 3 = tight
   std::map<UInt_t, Bool_t>  fCountMuons;
@@ -403,14 +437,17 @@ public :
   std::map<UInt_t, UInt_t>  fNMuons;
   /** Electrons **/
   Float_t       fElectronPtCount = 0.;
+  Float_t       fElectronEtaCount = 2.5;
   std::map<UInt_t, Int_t>   fElectronIDCount; //0 = any, 1 = WPL, 2 = WP80, 3 = WP90
   std::map<UInt_t, Bool_t>  fCountElectrons;
   std::map<UInt_t, std::map<UInt_t, UInt_t>> fElectronIndices;
   std::map<UInt_t, UInt_t>  fNElectrons;
   /** Taus **/
   Float_t       fTauPtCount = 0.;
+  Float_t       fTauEtaCount = 2.3;
   std::map<UInt_t, UChar_t> fTauAntiEleCount;
   std::map<UInt_t, UChar_t> fTauAntiMuCount;
+  std::map<UInt_t, UChar_t> fTauAntiOldMuCount;
   std::map<UInt_t, UChar_t> fTauAntiJetCount;
   std::map<UInt_t, Bool_t>  fTauIDDecayCount;
   std::map<UInt_t, Float_t> fTauDeltaRCount; //distance from light lepton
@@ -434,6 +471,7 @@ public :
   Int_t         fNFailedTrig = 0;
   Int_t         fNFailed     = 0;
   Int_t         fNSkipped    = 0;
+  Int_t         fQCDCounts[kSelections];
 
   ClassDef(NanoAODConversion,0);
 
