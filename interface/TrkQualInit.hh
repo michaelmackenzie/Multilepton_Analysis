@@ -5,7 +5,7 @@
 #if not defined(__CINT__) || defined(__MAKECINT__)
 // needs to be included when makecint runs (ACLIC)
 #include "TMVA/Factory.h"
-// #include "TMVA/DataLoader.h"
+#include "TMVA/DataLoader.h"
 #include "TMVA/Tools.h"
 #include "TMVA/Reader.h"
 #include "TTree.h"
@@ -122,17 +122,17 @@ public:
     return variables;
   }
   
-  // int InitializeVariables(TMVA::Factory &factory, TString selection){
-  //   int status = 0;
-  //   Tree_t tree; //not used
-  //   std::vector<Var_t> variables = GetVariables(selection, tree);
-  //   for(unsigned index = 0; index < variables.size(); ++index) {
-  //     Var_t& var = variables[index];
-  //     if(var.use_) factory.AddVariable (var.var_.Data(), var.desc_.Data(), var.unit_.Data(), var.type_);
-  //     else         factory.AddSpectator(var.var_.Data(), var.desc_.Data(), var.unit_.Data(), var.type_);
-  //   }
-  //   return status;
-  // }
+  int InitializeVariables(TMVA::DataLoader &loader, TString selection){
+    int status = 0;
+    Tree_t tree; //not used
+    std::vector<Var_t> variables = GetVariables(selection, tree);
+    for(unsigned index = 0; index < variables.size(); ++index) {
+      Var_t& var = variables[index];
+      if(var.use_) loader.AddVariable (var.var_.Data(), var.desc_.Data(), var.unit_.Data(), var.type_);
+      else         loader.AddSpectator(var.var_.Data(), var.desc_.Data(), var.unit_.Data(), var.type_);
+    }
+    return status;
+  }
 
   int InitializeVariables(TMVA::Reader &reader, TString selection, Tree_t& tree){
     int status = 0;
