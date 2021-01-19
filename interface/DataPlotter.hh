@@ -21,7 +21,7 @@
 #include "TObject.h"
 #include "TLegend.h"
 #include "TGaxis.h"
-#include "../utils/Significances.hh"
+#include "interface/Significances.hh"
 #include "Math/ProbFuncMathCore.h"
 
 class DataPlotter : public TObject {
@@ -38,8 +38,8 @@ public :
     Double_t ymin_;
     Double_t ymax_;
     Int_t    rebin_;
-    vector<Double_t> blindmin_;
-    vector<Double_t> blindmax_;
+    std::vector<Double_t> blindmin_;
+    std::vector<Double_t> blindmax_;
     Int_t    plot_data_;
     Int_t    data_over_mc_;
     
@@ -82,12 +82,12 @@ public :
     }
     //multiple blinding ranges
     PlottingCard_t(TString hist, TString type, Int_t rebin, Double_t xmin, Double_t xmax,
-		   vector<Double_t> blindmin, vector<Double_t> blindmax) : PlottingCard_t(hist,type,rebin,xmin,xmax) {
+		   std::vector<Double_t> blindmin, std::vector<Double_t> blindmax) : PlottingCard_t(hist,type,rebin,xmin,xmax) {
       blindmin_ = blindmin;
       blindmax_ = blindmax;
     }
     PlottingCard_t(TString hist, TString type, Int_t set, Int_t rebin, Double_t xmin, Double_t xmax,
-		   vector<Double_t> blindmin, vector<Double_t> blindmax) : PlottingCard_t(hist,type,set,rebin,xmin,xmax) {
+		   std::vector<Double_t> blindmin, std::vector<Double_t> blindmax) : PlottingCard_t(hist,type,set,rebin,xmin,xmax) {
       blindmin_ = blindmin;
       blindmax_ = blindmax;
     }
@@ -134,16 +134,16 @@ public :
   TString selection_ = "mutau"; //selection category
   std::vector<Int_t> years_ = {2016};
   Int_t verbose_ = 0;
-  vector<Double_t> scale_; //scales for datasets
-  vector<Int_t>    process_; //indicates which backgrounds to use
-  vector<TString> names_; //to get event histograms
-  vector<TString> labels_; //to label tlegend and group datasets
-  vector<Double_t> xsec_;
-  vector<TString> fileNames_;
-  vector<TFile*> data_;  //background data files
-  vector<bool> isData_; //flag to check if is data
-  vector<bool> isSignal_; //flag to check if is signal file
-  vector<Int_t> dataYear_; //list of years it's associated with (2016, 2017, or 2018)
+  std::vector<Double_t> scale_; //scales for datasets
+  std::vector<Int_t>    process_; //indicates which backgrounds to use
+  std::vector<TString> names_; //to get event histograms
+  std::vector<TString> labels_; //to label tlegend and group datasets
+  std::vector<Double_t> xsec_;
+  std::vector<TString> fileNames_;
+  std::vector<TFile*> data_;  //background data files
+  std::vector<bool> isData_; //flag to check if is data
+  std::vector<bool> isSignal_; //flag to check if is signal file
+  std::vector<Int_t> dataYear_; //list of years it's associated with (2016, 2017, or 2018)
 
   Double_t lum_; //luminosity
   std::map<Int_t, Double_t> lums_; //luminosity by year
@@ -155,10 +155,10 @@ public :
   Double_t xMax_ = -1e6;
   Double_t yMin_ =  1e6;
   Double_t yMax_ = -1e6;
-  vector<Double_t> blindxmin_; //for blinding along x axis
-  vector<Double_t> blindxmax_;
-  vector<Double_t> blindymin_; //for blinding along y axis
-  vector<Double_t> blindymax_;
+  std::vector<Double_t> blindxmin_; //for blinding along x axis
+  std::vector<Double_t> blindxmax_;
+  std::vector<Double_t> blindymin_; //for blinding along y axis
+  std::vector<Double_t> blindymax_;
   Int_t logZ_ = 1; //log plot settings
   Int_t logY_ = 0;
   Int_t plot_data_ = 1; //only MC or include data
@@ -275,7 +275,7 @@ public :
 		    Form("L=%.2ffb^{-1} #sqrt{#it{s}} = %.0f TeV",lum_/1e3,rootS_));
   }
 
-  void draw_data(int ndata, double nmc, map<TString, double> nsig) {
+  void draw_data(int ndata, double nmc, std::map<TString, double> nsig) {
     TLatex label;
     label.SetNDC();
     label.SetTextFont(72);
@@ -322,7 +322,7 @@ public :
   
   virtual void get_titles(TString hist, TString setType, TString* xtitle, TString* ytitle, TString* title);
 
-  virtual vector<TH1D*> get_signal(TString hist, TString setType, Int_t set);
+  virtual std::vector<TH1D*> get_signal(TString hist, TString setType, Int_t set);
   virtual TH2D* get_signal_2D(TString hist, TString setType, Int_t set);
 
   virtual TH1D* get_data(TString hist, TString setType, Int_t set);
@@ -486,11 +486,11 @@ public :
     xMin_ = xmin; xMax_=xmax; auto c = print_significance(hist, setType, set, label, dir, line_val, doVsEff, label1, label2); reset_axes(); return c;
   }
 
-  virtual Int_t print_stacks(vector<TString> hists, vector<TString> setTypes, vector<Int_t>sets,
-			     vector<Double_t> xMaxs, vector<Double_t> xMins, vector<Int_t> rebins
-			     , vector<Double_t> signal_scales, vector<Int_t> base_rebins);
+  virtual Int_t print_stacks(std::vector<TString> hists, std::vector<TString> setTypes, std::vector<Int_t>sets,
+			     std::vector<Double_t> xMaxs, std::vector<Double_t> xMins, std::vector<Int_t> rebins
+			     , std::vector<Double_t> signal_scales, std::vector<Int_t> base_rebins);
 
-  Int_t print_stacks(vector<PlottingCard_t> cards, vector<Int_t> sets, vector<Double_t> signal_scales, vector<Int_t> base_rebins) {
+  Int_t print_stacks(std::vector<PlottingCard_t> cards, std::vector<Int_t> sets, std::vector<Double_t> signal_scales, std::vector<Int_t> base_rebins) {
     Int_t status = 0;
     for(unsigned index = 0; index < sets.size(); ++index) {
       if(signal_scales.size() == sets.size()) signal_scale_ = signal_scales[index];
@@ -506,11 +506,11 @@ public :
     return status;
   }
   
-  virtual Int_t print_hists(vector<TString> hists, vector<TString> setTypes, vector<Int_t> sets,
-			    vector<Double_t> xMaxs, vector<Double_t> xMins, vector<Int_t> rebins
-			    , vector<Double_t> signal_scales, vector<Int_t> base_rebins);
+  virtual Int_t print_hists(std::vector<TString> hists, std::vector<TString> setTypes, std::vector<Int_t> sets,
+			    std::vector<Double_t> xMaxs, std::vector<Double_t> xMins, std::vector<Int_t> rebins
+			    , std::vector<Double_t> signal_scales, std::vector<Int_t> base_rebins);
 
-  Int_t print_hists(vector<PlottingCard_t> cards, vector<Int_t> sets, vector<Double_t> signal_scales, vector<Int_t> base_rebins) {
+  Int_t print_hists(std::vector<PlottingCard_t> cards, std::vector<Int_t> sets, std::vector<Double_t> signal_scales, std::vector<Int_t> base_rebins) {
     Int_t status = 0;
     for(unsigned index = 0; index < sets.size(); ++index) {
       if(signal_scales.size() == sets.size()) signal_scale_ = signal_scales[index];

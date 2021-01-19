@@ -1,4 +1,4 @@
-#include "DataPlotter.hh"
+#include "interface/DataPlotter.hh"
 
 void DataPlotter::get_titles(TString hist, TString setType, TString* xtitle, TString* ytitle, TString* title) {
   if(hist == "lepdelrvsphi") {
@@ -519,13 +519,13 @@ void DataPlotter::get_titles(TString hist, TString setType, TString* xtitle, TSt
 
 }
 
-vector<TH1D*> DataPlotter::get_signal(TString hist, TString setType, Int_t set) {
-  vector<TH1D*> h;
+std::vector<TH1D*> DataPlotter::get_signal(TString hist, TString setType, Int_t set) {
+  std::vector<TH1D*> h;
   
   //for combining histograms of the same process
-  map<TString, unsigned int> indexes;
+  std::map<TString, unsigned int> indexes;
   
-  map<TString, int> colors; //index for the color array
+  std::map<TString, int> colors; //index for the color array
   unsigned int n_colors = 0;
   
   for(UInt_t i = 0; i < data_.size(); ++i) {
@@ -573,7 +573,7 @@ vector<TH1D*> DataPlotter::get_signal(TString hist, TString setType, Int_t set) 
 			    (signal_scale == 1.) ? "" : Form(" (x%.0f)",signal_scale), stats));
   }
   //scale return only meaningful histograms
-  vector<TH1D*> hsignals;
+  std::vector<TH1D*> hsignals;
   for(unsigned int i = 0; i < h.size(); ++i) {
     if(h[i] && indexes[labels_[i]] == i && h[i]->Integral() > 0.) {
       Double_t signal_scale = signal_scale_;
@@ -813,7 +813,7 @@ TH1D* DataPlotter::get_stack_uncertainty(THStack* hstack, TString hname) {
   huncertainty->SetLineColor(kGray+1);
   huncertainty->SetFillStyle(3001);
   huncertainty->SetMarkerSize(0.); //so no marker
-  Int_t nbins = hlast->GetNbinsX();
+  // Int_t nbins = hlast->GetNbinsX();
 
   for(TObject* o : *hlist) {
     if(o->InheritsFrom(TH1D::Class())) {
@@ -824,7 +824,7 @@ TH1D* DataPlotter::get_stack_uncertainty(THStack* hstack, TString hname) {
 }
 
 THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set) {
-  vector<TH1D*> h;
+  std::vector<TH1D*> h;
   TH1D* hQCD = (include_qcd_) ? get_qcd(hist,setType,set) : NULL;
   TH1D* hMisID = (include_misid_) ? get_misid(hist,setType,set) : NULL;
   if(hQCD && verbose_ > 0) std::cout << "QCD histogram has integral " << hQCD->Integral() << std::endl;
@@ -836,9 +836,9 @@ THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set) {
   
   THStack* hstack = new THStack(Form("%s",hist.Data()),Form("%s",hist.Data()));
   //for combining histograms of the same process
-  map<TString, int> indexes;
-  vector<TString> labels; //use to preserve order of entries
-  map<TString, int> colors; //index for the color array
+  std::map<TString, int> indexes;
+  std::vector<TString> labels; //use to preserve order of entries
+  std::map<TString, int> colors; //index for the color array
   int n_colors = 0;
   if(debug_) 
       printf("get_stack: entry name label scale\n");
@@ -959,9 +959,8 @@ TCanvas* DataPlotter::plot_single_2Dhist(TString hist, TString setType, Int_t se
       } else {
 	Double_t mx      = h->GetMaximum();
 	Double_t data_mx = data->GetMaximum();
-	h->GetZaxis()->SetRangeUser(1.e-3*data_mx,data_mx*1.e2);
-	data->GetZaxis()->SetRangeUser(1.e-3*data_mx,1.1*data_mx);
-	// h->Scale(20.*data_mx/mx); // set to have the same maximum
+	h->GetZaxis()->SetRangeUser(1.e-3*std::min(mx,data_mx),std::max(mx, data_mx)*1.e2);
+	data->GetZaxis()->SetRangeUser(1.e-3*std::min(mx, data_mx),1.e2*std::max(mx,data_mx));
       }
     }
   } else {
@@ -1022,7 +1021,7 @@ TCanvas* DataPlotter::plot_single_2Dhist(TString hist, TString setType, Int_t se
 
 TCanvas* DataPlotter::plot_2Dhist(TString hist, TString setType, Int_t set) {
 
-  vector<TH2D*> h; //list of histograms
+  std::vector<TH2D*> h; //list of histograms
   //check if QCD is defined for this set
   //  TH2D* hQCD = (include_qcd_) ? get_qcd(hist,setType,set) : NULL;
 
@@ -1041,9 +1040,9 @@ TCanvas* DataPlotter::plot_2Dhist(TString hist, TString setType, Int_t set) {
   //  double m = 0.;
 
   //for combining histograms of the same process
-  map<TString, int> indexes;
+  std::map<TString, int> indexes;
   
-  map<TString, int> colors; //map label to index for the color array
+  std::map<TString, int> colors; //map label to index for the color array
   int n_colors = 0; //number of colors used so far
 
   for(UInt_t i = 0; i < data_.size(); ++i) {
@@ -1152,7 +1151,7 @@ TCanvas* DataPlotter::plot_2Dhist(TString hist, TString setType, Int_t set) {
 
 TCanvas* DataPlotter::plot_hist(TString hist, TString setType, Int_t set) {
 
-  vector<TH1D*> h; //list of histograms
+  std::vector<TH1D*> h; //list of histograms
   //check if QCD is defined for this set
   TH1D* hQCD = (include_qcd_) ? get_qcd(hist,setType,set) : NULL;
   if(hQCD) hQCD->SetFillStyle(0);
@@ -1182,9 +1181,9 @@ TCanvas* DataPlotter::plot_hist(TString hist, TString setType, Int_t set) {
   double m = 0.;
 
   //for combining histograms of the same process
-  map<TString, int> indexes;
+  std::map<TString, int> indexes;
   
-  map<TString, int> colors; //map label to index for the color array
+  std::map<TString, int> colors; //map label to index for the color array
   int n_bkg_colors = 0; //number of bkg colors used so far
   int n_sig_colors = 0; //number of sig colors used so far
 
@@ -1267,14 +1266,14 @@ TCanvas* DataPlotter::plot_hist(TString hist, TString setType, Int_t set) {
     if(h[it->second]->GetEntries() == 0) continue;
     if(first) {
       if(normalize_1ds_) h[it->second]->Scale(1./h[it->second]->Integral());
-      m = max(m,h[it->second]->GetMaximum());
+      m = std::max(m,h[it->second]->GetMaximum());
       h[it->second]->Draw("hist");
       ind = it->second;
       first = false;
     }
     else {
       if(normalize_1ds_) h[it->second]->Scale(1./h[it->second]->Integral());
-      m = max(m,h[it->second]->GetMaximum());
+      m = std::max(m,h[it->second]->GetMaximum());
       h[it->second]->Draw("same hist");
     }
     it++;
@@ -1283,11 +1282,11 @@ TCanvas* DataPlotter::plot_hist(TString hist, TString setType, Int_t set) {
   if(hQCD && normalize_1ds_) hQCD->Scale(1./hQCD->Integral());
   if(h.size() == 0 && hQCD) hQCD->Draw("hist");
   else if(hQCD) hQCD->Draw("hist same");
-  if(hQCD) m = max(m,hQCD->GetMaximum());
+  if(hQCD) m = std::max(m,hQCD->GetMaximum());
   if(hMisID && normalize_1ds_) hMisID->Scale(1./hMisID->Integral());
   if(h.size() == 0 && hMisID) hMisID->Draw("hist");
   else if(hMisID) hMisID->Draw("hist same");
-  if(hMisID) m = max(m,hMisID->GetMaximum());
+  if(hMisID) m = std::max(m,hMisID->GetMaximum());
   
   //get axis titles
   TString xtitle;
@@ -1356,7 +1355,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
   if(verbose_ > 0 && !d) std::cout << "Failed to retrieve the data histogram\n";
   else if(verbose_ > 0)  std::cout << "Retrieved the data histogram\n";
 
-  vector<TH1D*> hsignal = get_signal(hist,setType,set);
+  std::vector<TH1D*> hsignal = get_signal(hist,setType,set);
   if(verbose_ > 0) std::cout << "Retrieved the signals with " << hsignal.size() << " histograms\n";
   {
     auto o = gDirectory->Get(Form("s_%s_%i",hist.Data(),set));
@@ -1364,7 +1363,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
   }
   TCanvas* c = new TCanvas(Form("s_%s_%i",hist.Data(),set),Form("s_%s_%i",hist.Data(),set), canvas_x_, canvas_y_);
   //split the top into main stack and bottom into Data/MC if plotting data
-  TPad *pad1, *pad2;
+  TPad *pad1 = 0, *pad2 = 0;
 
 
   if((plot_data_ && d) || (plot_data_ == 0 && data_over_mc_ < 0)) {
@@ -1414,7 +1413,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
     for(unsigned int i = 0; i < hsignal.size(); ++i) {
       if(hsignal[i] && hsignal[i]->GetEntries() > 0) {
 	hsignal[i]->Draw("hist same");
-	m = max(m, hsignal[i]->GetMaximum());
+	m = std::max(m, hsignal[i]->GetMaximum());
       }
     }
   }
@@ -1425,7 +1424,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
 
   int ndata = 0.;
   double nmc = 0.;
-  map<TString, double> nsig;
+  std::map<TString, double> nsig;
   if(d && plot_data_) {
     ndata = d->Integral() + d->GetBinContent(0)+d->GetBinContent(d->GetNbinsX()+1);
   }
@@ -1452,7 +1451,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
   //draw the data with error bars
   if(plot_data_ && d) d->Draw("E same");
 
-  m = max(max(m,hstack->GetMaximum()), (d&&plot_data_ > 0) ? d->GetMaximum() : 1.e-5);
+  m = std::max(std::max(m,hstack->GetMaximum()), (d&&plot_data_ > 0) ? d->GetMaximum() : 1.e-5);
   if(m < 1.e-10) m = 1.e-5;
   
   pad1->BuildLegend();//0.6, 0.9, 0.9, 0.45, "", "L");
@@ -1509,7 +1508,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
       xerr[i-1] = huncertainty->GetBinWidth(i)/2.;
       yerr[i-1] = (mcVal > 0.) ? mcErr/mcVal : 0.;
       if(dataVal == 0 || mcVal == 0) {hDataMC->SetBinContent(i,-1); continue;}
-      double err = sqrt(mcErr*mcErr + dataErr*dataErr);
+      // double err = sqrt(mcErr*mcErr + dataErr*dataErr);
       double errRatio = (dataVal/mcVal)*(dataVal/mcVal)*(dataErr*dataErr/(dataVal*dataVal));
       errRatio = sqrt(errRatio);
       double ratio = dataVal/mcVal;
@@ -1600,9 +1599,9 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
     hDataMC->GetYaxis()->SetLabelSize(y_label_size_);
     m = hDataMC->GetMaximum();
     double mn = hDataMC->GetMinimum();
-    mn = max(0.2*mn,5e-1);
+    mn = std::max(0.2*mn,5e-1);
     m = 1.2*m;
-    m = min(m, 2.0);
+    m = std::min(m, 2.0);
     // hDataMC->GetYaxis()->SetRangeUser(mn,m);    
     hDataMC->GetYaxis()->SetRangeUser(0.6, 1.4);
     //  hDataMC->GetXaxis()->SetLabelOffset(0.5);
@@ -1625,7 +1624,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
       }
       if(index == 0) hSignalsOverMC[index]->Draw("hist E1");
       else           hSignalsOverMC[index]->Draw("hist E1 same");
-      m = max(m, hSignalsOverMC[index]->GetMaximum());
+      m = std::max(m, hSignalsOverMC[index]->GetMaximum());
     }
     if(hSignalsOverMC.size() > 0) {
       hSignalsOverMC[0]->GetXaxis()->SetTitle(xtitle.Data());
@@ -1700,7 +1699,7 @@ TCanvas* DataPlotter::plot_cdf(TString hist, TString setType, Int_t set, TString
     if(o) delete o;
   }
   THStack* hcdfstack = new THStack(Form("%s_%i_cdf",hist.Data(),set),Form("%s_cdf",hist.Data()));
-  vector<TH1D*> htransforms;
+  std::vector<TH1D*> htransforms;
   double xtransmin = 0.;
   double xtransmax = 1.7;
   int ntransbins = (xtransmax-xtransmin)/0.02; //0.02 width bins
@@ -1751,7 +1750,7 @@ TCanvas* DataPlotter::plot_cdf(TString hist, TString setType, Int_t set, TString
   delete d;
 
   TCanvas* c = new TCanvas(Form("cdf_%s_%s_%i",hist.Data(),label.Data(),set),Form("cdf_%s_%s_%i",hist.Data(),label.Data(),set), canvas_x_, canvas_y_);
-  TPad *pad1, *pad2;
+  TPad *pad1 = 0, *pad2 = 0;
 
 
   if(plot_data_) {
@@ -1770,8 +1769,8 @@ TCanvas* DataPlotter::plot_cdf(TString hist, TString setType, Int_t set, TString
   pad1->cd();
 
   hcdfstack->Draw("hist noclear");
-  vector<TH1D*> hsignal = get_signal(hist,setType,set);
-  vector<TH1D*> hsignalcdf;
+  std::vector<TH1D*> hsignal = get_signal(hist,setType,set);
+  std::vector<TH1D*> hsignalcdf;
   for(TH1D* signal : hsignal) {
     auto o = gDirectory->Get(Form("%s_trans", signal->GetName()));
     if(o) delete o;
@@ -1858,7 +1857,7 @@ TCanvas* DataPlotter::plot_cdf(TString hist, TString setType, Int_t set, TString
   if(plot_y_title_) hcdfstack->GetYaxis()->SetTitle(ytitle.Data());
   hcdfstack->GetXaxis()->SetTitleSize(axis_font_size_);
   hcdfstack->GetYaxis()->SetTitleSize(axis_font_size_);
-  double m = max(max(m,hcdfstack->GetMaximum()), (data_cdf) ? data_cdf->GetMaximum() : 0.);
+  double m = std::max(std::max(m,hcdfstack->GetMaximum()), (data_cdf) ? data_cdf->GetMaximum() : 0.);
 
   if(yMin_ < yMax_) hcdfstack->GetYaxis()->SetRangeUser(yMin_,yMax_);    
   else              hcdfstack->GetYaxis()->SetRangeUser(1.e-1,m*1.2);    
@@ -1900,9 +1899,9 @@ TCanvas* DataPlotter::plot_cdf(TString hist, TString setType, Int_t set, TString
     hDataMC->GetYaxis()->SetLabelSize(y_label_size_);
     double m = hDataMC->GetMaximum();
     double mn = hDataMC->GetMinimum();
-    mn = max(0.2*mn,5e-1);
+    mn = std::max(0.2*mn,5e-1);
     m = 1.2*m;
-    m = min(m, 2.0);
+    m = std::min(m, 2.0);
     hDataMC->GetYaxis()->SetRangeUser(mn,m);    
     hDataMC->SetMinimum(mn);
     hDataMC->SetMaximum(m);
@@ -2017,9 +2016,9 @@ TCanvas* DataPlotter::plot_significance(TString hist, TString setType, Int_t set
 	significance = significances.LimitGain(sigval, bkgval+bkgerr, val);
       sigsErrUp[bin-1] = sigs[bin-1]-significance;
       //bkg-1 sigma
-      significance = sigval/sqrt(max(0.1, bkgval-bkgerr))/clsig; //not really significance but ratio of signal to background fluctuation
+      significance = sigval/sqrt(std::max(0.1, bkgval-bkgerr))/clsig; //not really significance but ratio of signal to background fluctuation
       if(doExactLimit)  //get 95% CL by finding signal scale so poisson prob n < n_bkg for mu = n_bkg + n_sig = 0.05
-	significance = significances.LimitGain(sigval, max(0.1, bkgval-bkgerr), val);
+	significance = significances.LimitGain(sigval, std::max(0.1, bkgval-bkgerr), val);
       sigsErrDown[bin-1] = significance-sigs[bin-1];
     }
   }
@@ -2044,7 +2043,7 @@ TCanvas* DataPlotter::plot_significance(TString hist, TString setType, Int_t set
     new TGraph(nbins, xs, sigs);
   if(verbose_ > 1) {
     std::cout << "Printing up to 15 significance bins (" << nbins << " total):\n";
-    for(int bin = 1; bin < min(1.*nbins, 1.*16); ++bin)
+    for(int bin = 1; bin < std::min(1.*nbins, 1.*16); ++bin)
       std::cout << "Bin " << bin << ": " << "(x, +xerr, -xerr, y, +yerr, -yerr) = ("
 		<< xs[bin-1] << ", " << xerrs[bin-1] << ", " << xerrs[bin-1] << ", " << sigs[bin-1]
 		<< ", " << sigsErrDown[bin-1] << ", " << sigsErrUp[bin-1] <<")"
@@ -2143,7 +2142,7 @@ TCanvas* DataPlotter::print_stack(TString hist, TString setType, Int_t set) {
 
 TCanvas* DataPlotter::print_hist(TString hist, TString setType, Int_t set) {
   TCanvas* c = plot_hist(hist,setType,set);
-  cout << "plotted hist" << endl;
+  std::cout << "plotted hist" << std::endl;
   if(!c) return c;
   TString year_dir = "";
   for(unsigned index = 0; index < years_.size(); ++index) {
@@ -2160,7 +2159,7 @@ TCanvas* DataPlotter::print_hist(TString hist, TString setType, Int_t set) {
 
 TCanvas* DataPlotter::print_2Dhist(TString hist, TString setType, Int_t set) {
   TCanvas* c = plot_2Dhist(hist,setType,set);
-  cout << "plotted 2D hist" << endl;
+  std::cout << "plotted 2D hist" << std::endl;
   if(!c) return c;
   TString year_dir = "";
   for(unsigned index = 0; index < years_.size(); ++index) {
@@ -2176,7 +2175,7 @@ TCanvas* DataPlotter::print_2Dhist(TString hist, TString setType, Int_t set) {
 
 TCanvas* DataPlotter::print_single_2Dhist(TString hist, TString setType, Int_t set, TString label) {
   TCanvas* c = plot_single_2Dhist(hist,setType,set,label);
-  cout << "plotted 2D hist " << label.Data() << endl;
+  std::cout << "plotted 2D hist " << label.Data() << std::endl;
   if(!c) return c;
   label.ReplaceAll("#",""); //for ease of use in bash
   label.ReplaceAll(" ", "");
@@ -2233,9 +2232,9 @@ TCanvas* DataPlotter::print_significance(TString hist, TString setType, Int_t se
   return c;
 }
 
-Int_t DataPlotter::print_stacks(vector<TString> hists, vector<TString> setTypes, vector<Int_t> sets
-				, vector<Double_t> xMaxs, vector<Double_t> xMins, vector<Int_t> rebins
-				, vector<Double_t> signal_scales = {}, vector<Int_t> base_rebins = {}) {
+Int_t DataPlotter::print_stacks(std::vector<TString> hists, std::vector<TString> setTypes, std::vector<Int_t> sets
+				, std::vector<Double_t> xMaxs, std::vector<Double_t> xMins, std::vector<Int_t> rebins
+				, std::vector<Double_t> signal_scales = {}, std::vector<Int_t> base_rebins = {}) {
   if(hists.size() != setTypes.size()) {
     printf("hist size != hist type size!\n");
     return 1;
@@ -2281,9 +2280,9 @@ Int_t DataPlotter::print_stacks(vector<TString> hists, vector<TString> setTypes,
   return 0;
 }
 
-Int_t DataPlotter::print_hists(vector<TString> hists, vector<TString> setTypes, vector<Int_t> sets
-			       , vector<Double_t> xMaxs, vector<Double_t> xMins, vector<Int_t> rebins
-			       , vector<Double_t> signal_scales = {}, vector<Int_t> base_rebins = {}) {
+Int_t DataPlotter::print_hists(std::vector<TString> hists, std::vector<TString> setTypes, std::vector<Int_t> sets
+			       , std::vector<Double_t> xMaxs, std::vector<Double_t> xMins, std::vector<Int_t> rebins
+			       , std::vector<Double_t> signal_scales = {}, std::vector<Int_t> base_rebins = {}) {
   if(hists.size() != setTypes.size()) {
     printf("hist size != hist type size!\n");
     return 1;
@@ -2334,7 +2333,7 @@ Int_t DataPlotter::print_hists(vector<TString> hists, vector<TString> setTypes, 
 Int_t DataPlotter::init_files() {
 
   UInt_t nFiles = fileNames_.size();
-  vector<TFile*> f;
+  std::vector<TFile*> f;
   for(UInt_t i = 0; i < nFiles; ++i) {
     if(verbose_ > 0) 
       std::cout << "Initializing dataset, filepath = " << fileNames_[i].Data()

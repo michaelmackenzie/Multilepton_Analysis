@@ -16,12 +16,12 @@
 #include "TSystem.h"
 #include "TF1.h"
 
-class ParticleCorrections : public TObject {
+class ParticleCorrections {
 public :
   ParticleCorrections() : ParticleCorrections(kTightMuIso) {}
   ParticleCorrections(int muIsoLevel) {
     fRnd = new TRandom3(90);
-    typedef pair<TString,TString> fpair;
+    typedef std::pair<TString,TString> fpair;
     std::map<int, fpair> muonIDFileNames;
     //FIXME: Clone objects and close files after retrieving them
     
@@ -297,9 +297,9 @@ public :
       tauJetIDMap[period] = (TF1*) f->Get((tauJetIDFileNames[period].second+"_cent").Data())->Clone();
       tauJetUpIDMap[period] = (TF1*) f->Get((tauJetIDFileNames[period].second+"_up").Data())->Clone();
       tauJetDownIDMap[period] = (TF1*) f->Get((tauJetIDFileNames[period].second+"_down").Data())->Clone();
-      if(!tauJetIDMap[period]) cout << "Error! tauJetID " << tauJetIDFileNames[period].second.Data() << " TF1 not found!\n";
-      if(!tauJetUpIDMap[period]) cout << "Error! tauJetUpID " << tauJetIDFileNames[period].second.Data() << " TF1 not found!\n";
-      if(!tauJetDownIDMap[period]) cout << "Error! tauJetDownID " << tauJetIDFileNames[period].second.Data() << " TF1 not found!\n";
+      if(!tauJetIDMap[period]) std::cout << "Error! tauJetID " << tauJetIDFileNames[period].second.Data() << " TF1 not found!\n";
+      if(!tauJetUpIDMap[period]) std::cout << "Error! tauJetUpID " << tauJetIDFileNames[period].second.Data() << " TF1 not found!\n";
+      if(!tauJetDownIDMap[period]) std::cout << "Error! tauJetDownID " << tauJetIDFileNames[period].second.Data() << " TF1 not found!\n";
       fileList.push_back(f);
     }
     std::map<int, fpair> tauEleIDFileNames;
@@ -403,7 +403,7 @@ public :
     }
   }
   
-  ~ParticleCorrections() {
+  virtual ~ParticleCorrections() {
     for(TFile* f : fileList) {
       if(f) delete f;
     }

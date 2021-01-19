@@ -12,8 +12,8 @@ class BTagWeight {
 public:
   BTagWeight() {
     TFile* f = 0;
-    vector<int> working_points = {kLooseBTag, kMediumBTag, kTightBTag};
-    vector<int> years = {2016, 2017, 2018};
+    std::vector<int> working_points = {kLooseBTag, kMediumBTag, kTightBTag};
+    std::vector<int> years = {2016, 2017, 2018};
     for(int wp : working_points) {
       for(int year : years) {
 	f = TFile::Open(Form("scale_factors/btag_eff_wp_%i_mumu_%i.root", wp, year), "READ");

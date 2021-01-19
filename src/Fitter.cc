@@ -156,7 +156,7 @@ TF1* Fitter::Get_background_function(Int_t order = 2) {
   Int_t index0[] = {0,1,3,5,8,11}; //too lazy to do math
   Int_t numImplemented = 6;
   TString var = Form("(2*(x-%.2f)/(%.2f-%.2f) - 1)",fitMin_,fitMax_,fitMin_);
-  for(int i = 0; i < min(order,numImplemented); ++i) {
+  for(int i = 0; i < std::min(order,numImplemented); ++i) {
     eq = eq + Form(" + [%i]*(",i+1);
     eq = eq + Form("%.4f*%s^%i",coeff[index0[i]],var.Data(),i+1);
     for(int j = 1; j <= (i+1)/2; ++j) {

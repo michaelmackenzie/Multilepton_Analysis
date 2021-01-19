@@ -20,7 +20,7 @@ public:
   }
 
   //Probability of signal + background assuming only background for multiple categories
-  double Probability(vector<double> signals, vector<double> backgrounds) {
+  double Probability(std::vector<double> signals, std::vector<double> backgrounds) {
     double val = 1.;
     unsigned categories = signals.size();
     if(verbose_ > 1) {
@@ -69,7 +69,7 @@ public:
   }
 
   //find scale factor applied to signal to achieve p_ within tolerance_ for given categories
-  double LimitGain(vector<double> signals, vector<double> backgrounds, double &val) {
+  double LimitGain(std::vector<double> signals, std::vector<double> backgrounds, double &val) {
     static const double clsig = 1.96; // 95% CL value
     unsigned categories = signals.size();
     if(categories != backgrounds.size()) {
@@ -80,7 +80,7 @@ public:
     double significance = 0.;
     //loop through categories, set to be approximate limit for most sensitive category
     for(unsigned index = 0; index < categories; ++index)
-      significance = max(significance, signals[index]/sqrt(backgrounds[index])/clsig);
+      significance = std::max(significance, signals[index]/sqrt(backgrounds[index])/clsig);
     double scale = (significance > 0.) ? 1./significance : 1.; //scale signal until achieve tolerance
     double orig_scale = scale;
     val = -1.; //running probability value
@@ -89,7 +89,7 @@ public:
       if(val > -0.5) //only update if not first attempt
 	scale *= (val/p_ < 4.) ? (1.-p_)/(1.-val) : orig_scale; //if far, start with the approximation scale
       ++attempts;
-      vector<double> tmp_signals = signals; //to apply scale factor to
+      std::vector<double> tmp_signals = signals; //to apply scale factor to
       for(unsigned index = 0; index < categories; ++index) tmp_signals[index] = tmp_signals[index]*scale;      
       val = Probability(tmp_signals, backgrounds);
       if(verbose_ > 1) std::cout << "Attempt " << attempts << " val = " << val << " with scale " << scale << std::endl;

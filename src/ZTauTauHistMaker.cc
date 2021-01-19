@@ -25,7 +25,7 @@
 //
 
 
-#include "ZTauTauHistMaker.hh"
+#include "interface/ZTauTauHistMaker.hh"
 #include <TStyle.h>
 
 void ZTauTauHistMaker::Begin(TTree * /*tree*/)
@@ -762,8 +762,8 @@ void ZTauTauHistMaker::InitializeTreeVariables(Int_t selection) {
   //project onto the bisectors
   fTreeVars.pxivis = (lp1+lp2)*bisector;
   fTreeVars.pxiinv = missing*bisector;
-  double pnuest    = max(1.e-8,lp2*missing/lp2.Mag()); //inv pT along tau = lep 2 pt unit vector dot missing
-  double pnuesttwo = max(1.e-8,lp1*missing/lp1.Mag()); //inv pT along tau = lep 1 (for emu case with tau decay)
+  double pnuest    = std::max(1.e-8,lp2*missing/lp2.Mag()); //inv pT along tau = lep 2 pt unit vector dot missing
+  double pnuesttwo = std::max(1.e-8,lp1*missing/lp1.Mag()); //inv pT along tau = lep 1 (for emu case with tau decay)
   fTreeVars.ptauvisfrac  = lp2.Mag() / (lp2.Mag() + pnuest);
   fTreeVars.mestimate    = fTreeVars.lepm/sqrt(fTreeVars.ptauvisfrac);
   fTreeVars.mestimatetwo = fTreeVars.lepm/sqrt(lp1.Mag() / (lp1.Mag() + pnuesttwo));
@@ -828,14 +828,14 @@ void ZTauTauHistMaker::InitializeTreeVariables(Int_t selection) {
     for(unsigned i = 0; i < fMVAConfig.names_.size(); ++i) {
       if((fMVAConfig.names_[i].Contains(selecName.Data()) || //is this selection
 	  (selecName == "emu" && (fMVAConfig.names_[i].Contains("_e") || fMVAConfig.names_[i].Contains("_mu")))) && //or leptonic tau category
-	 (fIsJetBinnedMVAs[i] < 0 || fIsJetBinnedMVAs[i] == min((int) nJets,2))) //and either not jet binned or right number of jets
+	 (fIsJetBinnedMVAs[i] < 0 || fIsJetBinnedMVAs[i] == std::min((int) nJets,2))) //and either not jet binned or right number of jets
 	fMvaOutputs[i] = mva[i]->EvaluateMVA(fMVAConfig.names_[i].Data());
       else
 	fMvaOutputs[i] = -2.;
       
       if(fMvaOutputs[i] < -2.1) 
-	cout << "Error value returned for MVA " << fMVAConfig.names_[i].Data()
-	     << " evaluation, Entry = " << fentry << endl;
+	std::cout << "Error value returned for MVA " << fMVAConfig.names_[i].Data()
+	     << " evaluation, Entry = " << fentry << std::endl;
     }
   }
 }
@@ -852,6 +852,7 @@ float ZTauTauHistMaker::GetTauFakeSF(int genFlavor) {
 }
 
 float ZTauTauHistMaker::CorrectMET(int selection, float met) {
+  if(selection > 0) return met;
   float corrected = met;
   
   // switch(abs(selection)) {
@@ -874,7 +875,7 @@ float ZTauTauHistMaker::GetZPtWeight(double pt, double mass, int doReco) {
   int biny = h->GetYaxis()->FindBin(pt);
   weight = h->GetBinContent(binx, biny);
   if(weight <= 0.) {
-    cout << "WARNING! Z pT weight <= 0 = " << weight << " (pt, mass) = ("
+    std::cout << "WARNING! Z pT weight <= 0 = " << weight << " (pt, mass) = ("
 	 << pt << ", " << mass << ") using doReco = " << doReco << " in entry = "<< fentry << "! Returning 1...\n";
     return 1.;
   }
@@ -1090,9 +1091,9 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
   Hist->hLepPhi       ->Fill(lepSys.Phi()           ,eventWeight*genWeight);
 
   //2D histograms for DY reweighting
-  Hist->hLepPtVsM[0]  ->Fill(max(lepSys.M(), 0.), max(lepSys.Pt(), 0.),eventWeight*genWeight);
-  Hist->hLepPtVsM[1]  ->Fill(max(lepSys.M(), 0.), max(lepSys.Pt(), 0.),bareweight);
-  Hist->hLepPtVsM[2]  ->Fill(max(lepSys.M(), 0.), max(lepSys.Pt(), 0.),recoweight);
+  Hist->hLepPtVsM[0]  ->Fill(std::max(lepSys.M(), 0.), std::max(lepSys.Pt(), 0.),eventWeight*genWeight);
+  Hist->hLepPtVsM[1]  ->Fill(std::max(lepSys.M(), 0.), std::max(lepSys.Pt(), 0.),bareweight);
+  Hist->hLepPtVsM[2]  ->Fill(std::max(lepSys.M(), 0.), std::max(lepSys.Pt(), 0.),recoweight);
   Hist->hZPtVsM[0]    ->Fill(zmass, zpt  ,eventWeight*genWeight);
   Hist->hZPtVsM[1]    ->Fill(zmass, zpt  ,bareweight);
   Hist->hZPtVsM[2]    ->Fill(zmass, zpt  ,recoweight);
@@ -1370,12 +1371,12 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
     else if(fDYType == 2 && ((nGenHardMuons + nGenHardElectrons) < 2
 			     || nGenHardTaus >= 2)) return kTRUE;  //add not tau condition, to avoid double counting
     else if(nGenHardMuons + nGenHardElectrons < 2 && nGenHardTaus < 2) {
-      cout << "Warning! Unable to identify type of DY event!" << endl
-	   << "nGenHardTaus = " << nGenHardTaus << endl
-	   << "nGenHardMuons = " << nGenHardMuons << endl
-	   << "nGenHardElectrons = " << nGenHardElectrons << endl
-	   << "fDYType = " << fDYType << endl
-	   << "Entry " << fentry << endl;
+      std::cout << "Warning! Unable to identify type of DY event!" << std::endl
+	   << "nGenHardTaus = " << nGenHardTaus << std::endl
+	   << "nGenHardMuons = " << nGenHardMuons << std::endl
+	   << "nGenHardElectrons = " << nGenHardElectrons << std::endl
+	   << "fDYType = " << fDYType << std::endl
+	   << "Entry " << fentry << std::endl;
       return kTRUE;
     }
   }
@@ -1524,8 +1525,6 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   lp2.SetZ(0.);
   TVector3 bisector = (lp1.Mag()*lp2 + lp2.Mag()*lp1);
   if(bisector.Mag() > 0.) bisector.SetMag(1.);
-  double pxi_vis = (lp1+lp2)*bisector;
-  double pxi_inv = missing*bisector;
 
   //count number of electrons, muons, and taus
   // if(fIsNano) CountSlimObjects();
@@ -2020,7 +2019,7 @@ int ZTauTauHistMaker::Category(TString selection) {
   //get MVA output index by selection
   int mva_i = fMVAConfig.GetIndexBySelection(selection);
   if(mva_i < 0) return category;
-  vector<double> mvaCuts = fMVAConfig.categories_[selection];
+  std::vector<double> mvaCuts = fMVAConfig.categories_[selection];
   for(unsigned index = 0; index < mvaCuts.size(); ++index) {
     if(fMvaOutputs[mva_i] > mvaCuts[index]) ++category; //passes category
     else break; //fails

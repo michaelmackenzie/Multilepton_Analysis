@@ -33,6 +33,7 @@
   if (exec_name) {
     if (strcmp(exec_name,"root.exe") == 0) {
       gInterpreter->AddIncludePath("../rootScripts");
+      gInterpreter->AddIncludePath("../interface");
 					// print overflows/underflows in the stat box
       gStyle->SetOptStat(11111111);
 					// print fit results in the stat box
@@ -51,26 +52,12 @@
       if(!hostname.Contains("cmslpc")) path += "/../";
 
       //add check for NanoAOD working area, no BLT repository
-      if(TString(gSystem->Getenv("PWD")).Contains("CLFVAnalysis")) path = "/src/StandardModel/CLFVAnalysis/";
+      if(TString(gSystem->Getenv("PWD")).Contains("CLFVAnalysis_dev"))  path = "/src/StandardModel/CLFVAnalysis_dev/";
+      else if(TString(gSystem->Getenv("PWD")).Contains("CLFVAnalysis")) path = "/src/StandardModel/CLFVAnalysis/";
       
       // gSystem->Load((cmssw + path + "AsciiPlotter/AsciiPlotter_cc.so").Data());
 
-      gSystem->Load((cmssw + path + "dataFormats/SlimObject_t_hh.so").Data());
-      gSystem->Load((cmssw + path + "dataFormats/SlimMuon_t_hh.so").Data());
-      gSystem->Load((cmssw + path + "dataFormats/SlimElectron_t_hh.so").Data());
-      gSystem->Load((cmssw + path + "dataFormats/SlimTau_t_hh.so").Data());
-      gSystem->Load((cmssw + path + "dataFormats/SlimJet_t_hh.so").Data());
-      gSystem->Load((cmssw + path + "dataFormats/Tree_t_hh.so").Data());
-
-      gSystem->Load((cmssw + path + "utils/Significances_hh.so").Data());
-      gSystem->Load((cmssw + path + "utils/CrossSections_hh.so").Data());
-      gSystem->Load((cmssw + path + "utils/TrkQualInit_cc.so").Data());
-
-      // gSystem->Load((cmssw + path + "rootScripts/Fitter_cc.so").Data());
-      gSystem->Load((cmssw + path + "rootScripts/ZTauTauHistMaker_cc.so").Data());
-      gSystem->Load((cmssw + path + "rootScripts/DataPlotter_cc.so").Data());
-      gSystem->Load((cmssw + path + "rootScripts/ParticleCorrections_cc.so").Data());
-      gSystem->Load((cmssw + path + "rootScripts/NanoAODConversion_cc.so").Data());
+      gSystem->Load((cmssw + path + "lib/libCLFVAnalysis.so").Data());
      // gSystem->Load((cmssw + path + "CutsetTraining/CutsetTrainer_cc.so").Data());
 
       // cout << "Loading SVFit libraries" << endl;

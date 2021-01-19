@@ -25,7 +25,7 @@
 //
 
 
-#include "NanoAODConversion.hh"
+#include "interface/NanoAODConversion.hh"
 #include <TStyle.h>
 
 void NanoAODConversion::Begin(TTree * /*tree*/)
@@ -401,15 +401,15 @@ float NanoAODConversion::BTagWeight(int WP) {
 			       << (jetsBTag[jet] > bcut) << std::endl;
     if(jetsBTag[jet] > bcut) { //is b-tagged
       if(pd <= 0. || pm <= 0.) {
-	pd = max(0.0001, pd);
-	pm = max(0.0001, pm);
+	pd = std::max(0.0001, pd);
+	pm = std::max(0.0001, pm);
       }
       p_data *= pd;
       p_mc   *= pm;
     } else {
       if(pd >= 1. || pm >= 1.) {
-	pd = min(0.9999, pd);
-	pm = min(0.9999, pm);
+	pd = std::min(0.9999, pd);
+	pm = std::min(0.9999, pm);
       }
       p_data *= 1. - pd;
       p_mc   *= 1. - pm;
@@ -806,7 +806,7 @@ void NanoAODConversion::CountJets() {
   // }
   TLorentzVector htLV;
   TLorentzVector* jetLoop = new TLorentzVector(); //for checking delta R
-  for(int index = 0; index < min((int)njets,(int)kMaxParticles); ++index) {
+  for(int index = 0; index < std::min((int)njets,(int)kMaxParticles); ++index) {
     slimJets[index].pt       = jetPt[index];
     slimJets[index].eta      = jetEta[index];
     slimJets[index].phi      = jetPhi[index];
@@ -871,7 +871,7 @@ void NanoAODConversion::CountObjects() {
   }
   
   //count muons
-  for(Int_t index = 0; index < min(((int)nMuon),((int)kMaxParticles)); ++index) {
+  for(Int_t index = 0; index < std::min(((int)nMuon),((int)kMaxParticles)); ++index) {
     //initialize the muon iso IDs
     muonIsoId[index] = 0; //initially fails all IDs
     for(int level = ParticleCorrections::kVLooseMuIso; level <= ParticleCorrections::kVVTightMuIso; ++level) {
@@ -914,7 +914,7 @@ void NanoAODConversion::CountObjects() {
     slimMuons[index].positive = muonCharge[index] > 0;
   }
   //count electrons
-  for(Int_t index = 0; index < min(((int)kMaxParticles),((int)nElectron)); ++index) {
+  for(Int_t index = 0; index < std::min(((int)kMaxParticles),((int)nElectron)); ++index) {
     for(Int_t selection = kMuTau; selection < kSelections; ++selection) {
       if(fCountElectrons[selection] &&
 	 (fElectronIDCount[selection] == 0 ||
@@ -943,7 +943,7 @@ void NanoAODConversion::CountObjects() {
     slimElectrons[index].positive   = electronCharge[index] > 0;
   }
   //count taus
-  for(Int_t index = 0; index < min(((int)kMaxParticles),((int)nTau)); ++index) {
+  for(Int_t index = 0; index < std::min(((int)kMaxParticles),((int)nTau)); ++index) {
     TLorentzVector lv1, lv2;
     lv2.SetPtEtaPhiM(tauPt[index], tauEta[index], tauPhi[index], tauMass[index]);
     if(tauPt[index] < fTauPtCount) continue; //continue to next tau
@@ -1007,7 +1007,7 @@ void NanoAODConversion::CountObjects() {
     slimTaus[index].positive       = tauCharge[index] > 0;
   }
   //count photons
-  for(Int_t index = 0; index < min((int)kMaxParticles,(int)nPhoton); ++index) {
+  for(Int_t index = 0; index < std::min((int)kMaxParticles,(int)nPhoton); ++index) {
     TLorentzVector lv1, lv2;
     lv2.SetPtEtaPhiM(photonPt[index], photonEta[index], photonPhi[index], photonMass[index]);
     for(Int_t selection = kMuTau; selection < kSelections; ++selection) {
@@ -1132,6 +1132,7 @@ float NanoAODConversion::GetTauFakeSF(int genFlavor) {
 }
 
 float NanoAODConversion::CorrectMET(int selection, float met) {
+  if(selection < 0) return met;
   float corrected = met;
   
   // switch(abs(selection)) {

@@ -1,4 +1,4 @@
-#include "ParticleCorrections.hh"
+#include "interface/ParticleCorrections.hh"
 
 
 double ParticleCorrections::MuonWeight(double pt, double eta, int trigger, int year, float& trig_scale) {
@@ -474,7 +474,6 @@ double ParticleCorrections::ZWeight(double pt, double mass, int year) {
 
 //get B-Tag WP cut value
 double ParticleCorrections::BTagCut(int wp, int year) {
-  const double bTagValues[kTightBTag+1] = {0.2217, 0.6321, 0.8953}; //corresponding values
   double val = -1.;
   if(year == ParticleCorrections::k2016) {
     if(wp == ParticleCorrections::kLooseBTag)       val = 0.2217;

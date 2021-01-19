@@ -33,21 +33,21 @@
 #include <iostream>
 
 //local includes
-#include "../dataFormats/SlimElectron_t.hh"
-#include "../dataFormats/SlimMuon_t.hh"
-#include "../dataFormats/SlimTau_t.hh"
-#include "../dataFormats/SlimJet_t.hh"
-#include "../dataFormats/SlimPhoton_t.hh"
-#include "../dataFormats/Tree_t.hh"
+#include "../interface/SlimElectron_t.hh"
+#include "../interface/SlimMuon_t.hh"
+#include "../interface/SlimTau_t.hh"
+#include "../interface/SlimJet_t.hh"
+#include "../interface/SlimPhoton_t.hh"
+#include "../interface/Tree_t.hh"
 //initialize local MVA weight files
-#include "../utils/TrkQualInit.hh"
-#include "../utils/MVAConfig.hh"
+#include "../interface/TrkQualInit.hh"
+#include "../interface/MVAConfig.hh"
 //define PU weights locally
-#include "../utils/PUWeight.hh"
+#include "../interface/PUWeight.hh"
 //define BTag weights locally
-#include "../utils/BTagWeight.hh"
+#include "../interface/BTagWeight.hh"
 //define Jet->tau weights locally
-#include "../utils/JetToTauWeight.hh"
+#include "../interface/JetToTauWeight.hh"
 
 class ZTauTauHistMaker : public TSelector {
 public :
@@ -690,13 +690,13 @@ public :
   //Define relevant fields
   TStopwatch* timer = new TStopwatch();
   TMVA::Reader* mva[kMaxMVAs]; //read and apply mva weight files
-  vector<TString> fMvaNames = { //mva names for getting weights
+  std::vector<TString> fMvaNames = { //mva names for getting weights
     "mutau_BDT_8.higgs","mutau_BDT_8.Z0", //0 - 9: total mvas
     "etau_BDT_38.higgs","etau_BDT_38.Z0",
     "emu_BDT_68.higgs","emu_BDT_68.Z0",
     "mutau_e_BDT_68.higgs","mutau_e_BDT_68.Z0",
     "etau_mu_BDT_68.higgs","etau_mu_BDT_68.Z0"};
-  std::map<TString, vector<double>> fMVACutsByCategory;
+  std::map<TString, std::vector<double>> fMVACutsByCategory;
   MVAConfig fMVAConfig; //contains MVA names and categories
 
   Int_t   fIsJetBinnedMVAs[kMaxMVAs]; //storing number of jets for MVA, < 0 if not binned

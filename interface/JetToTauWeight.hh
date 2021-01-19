@@ -12,7 +12,7 @@ class JetToTauWeight {
 public:
   JetToTauWeight(TString selection) {
     TFile* f = 0;
-    vector<int> years = {2016, 2017, 2018};
+    std::vector<int> years = {2016, 2017, 2018};
     for(int year : years) {
       f = TFile::Open(Form("scale_factors/jet_to_tau_%s_%i.root", selection.Data(), year), "READ");
       if(f) {

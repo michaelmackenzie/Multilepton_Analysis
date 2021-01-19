@@ -10,6 +10,7 @@
 *_tree
 *.xml
 *Weights*
+lib/
 tmva_training/plots/*
 tmva_training/*.root
 tmva_training/scripts/figures/*.png
@@ -18,8 +19,6 @@ tmva_training/CWoLa_*
 tmva_training/training_*
 tmva_training/scripts/CWoLa_*
 bin
-src
-interface
 scripts/*.root
 *.log
 histograms/canvases/*/*/*.root
