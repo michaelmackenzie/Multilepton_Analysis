@@ -369,7 +369,7 @@ double ParticleCorrections::BTagMCProb(double pt, double eta, int jetFlavor, int
   TH2F* h = 0;
   if     (abs(jetFlavor) == 5) h = bJetGenBEffMap[year][WP];
   else if(abs(jetFlavor) == 4) h = bJetGenCEffMap[year][WP];
-  else if(abs(jetFlavor) <  4 || abs(jetFlavor) == 21) h = bJetGenLEffMap[year][WP];
+  else if(abs(jetFlavor) <  4 || abs(jetFlavor) > 20) h = bJetGenLEffMap[year][WP];
   else {
     std::cout << "WARNING! In ParticleCorrections::" << __func__ << ": Unknown jet flavor "
 	      << jetFlavor << std::endl;
