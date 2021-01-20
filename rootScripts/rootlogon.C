@@ -34,6 +34,8 @@
     if (strcmp(exec_name,"root.exe") == 0) {
       gInterpreter->AddIncludePath("../rootScripts");
       gInterpreter->AddIncludePath("../interface");
+      gInterpreter->AddIncludePath("../scale_factors");
+      gInterpreter->AddIncludePath("../weights");
 					// print overflows/underflows in the stat box
       gStyle->SetOptStat(11111111);
 					// print fit results in the stat box

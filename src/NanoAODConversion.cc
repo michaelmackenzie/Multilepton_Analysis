@@ -182,6 +182,7 @@ void NanoAODConversion::InitializeInBranchStructure(TTree* tree) {
   tree->SetBranchAddress("Muon_looseId"                    , &muonLooseId                    ) ;
   tree->SetBranchAddress("Muon_mediumId"                   , &muonMediumId                   ) ;
   tree->SetBranchAddress("Muon_tightId"                    , &muonTightId                    ) ;
+  tree->SetBranchAddress("Muon_genPartFlav"                , &muonGenFlavor                  ) ;
   tree->SetBranchAddress("nElectron"                       , &nElectron                      ) ;
   tree->SetBranchAddress("nElectrons"                      , &nElectronsSkim                 ) ;
   tree->SetBranchAddress("Electron_pt"                     , &electronPt                     ) ;
@@ -194,6 +195,7 @@ void NanoAODConversion::InitializeInBranchStructure(TTree* tree) {
   tree->SetBranchAddress("Electron_mvaFall17V2Iso_WPL"     , &electronWPL                    ) ;
   tree->SetBranchAddress("Electron_mvaFall17V2Iso_WP80"    , &electronWP80                   ) ;
   tree->SetBranchAddress("Electron_mvaFall17V2Iso_WP90"    , &electronWP90                   ) ;
+  tree->SetBranchAddress("Electron_genPartFlav"            , &electronGenFlavor              ) ;
   tree->SetBranchAddress("nTau"                            , &nTau                           ) ;
   tree->SetBranchAddress("nTaus"                           , &nTausSkim                      ) ;
   tree->SetBranchAddress("Tau_pt"                          , &tauPt                          ) ;
@@ -430,6 +432,8 @@ void NanoAODConversion::InitializeOutBranchStructure(TTree* tree) {
   tree->Branch("leptonsIsMuon"                 , leptonsIsMuon    , "leptonsIsMuon[nExtraLep]/O");
   tree->Branch("leptonsID"                     , leptonsID        , "leptonsID[nExtraLep]/b");
   tree->Branch("leptonsIsoID"                  , leptonsIsoID     , "leptonsIsoID[nExtraLep]/b");
+  tree->Branch("leptonsTriggered"              , leptonsTriggered , "leptonsTriggered[nExtraLep]/b");
+  tree->Branch("leptonsGenFlavor"              , leptonsGenFlavor , "leptonsGenFlavor[nExtraLep]/b");
 
 }
 
@@ -1239,6 +1243,8 @@ void NanoAODConversion::CountLightLeptons(int selection) {
       leptonsIsMuon    [nExtraLep] = false;
       leptonsID        [nExtraLep] = (electronWPL[index] + 2*electronWP90[index] + 4*electronWP80[index]);
       leptonsIsoID     [nExtraLep] = 0;
+      leptonsTriggered [nExtraLep] = GetTriggerMatch(index, false);
+      leptonsGenFlavor [nExtraLep] = electronGenFlavor[index];
       ++nExtraLep;
     }
   } else if(selection == kMuMu) {
@@ -1251,6 +1257,8 @@ void NanoAODConversion::CountLightLeptons(int selection) {
       leptonsIsMuon    [nExtraLep] = true;
       leptonsID        [nExtraLep] = (muonLooseId[index] + 2*muonMediumId[index] + 4*muonTightId[index]);
       leptonsIsoID     [nExtraLep] = muonIsoId[index];
+      leptonsTriggered [nExtraLep] = GetTriggerMatch(index, true);
+      leptonsGenFlavor [nExtraLep] = muonGenFlavor[index];
       ++nExtraLep;
     }
   }

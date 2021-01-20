@@ -200,6 +200,8 @@ public :
   Bool_t  leptonsIsMuon[kMaxParticles];
   UChar_t leptonsID[kMaxParticles]   ;
   UChar_t leptonsIsoID[kMaxParticles];
+  UChar_t leptonsTriggered[kMaxParticles];
+  UChar_t leptonsGenFlavor[kMaxParticles];
 
   //Input data format (only ones that differ from output)
   Int_t nGoodPV                             ;
@@ -221,6 +223,7 @@ public :
   Bool_t  muonLooseId[kMaxParticles]        ;
   Bool_t  muonMediumId[kMaxParticles]       ;
   Bool_t  muonTightId[kMaxParticles]        ;
+  UChar_t muonGenFlavor[kMaxParticles]      ;
   Float_t electronPt[kMaxParticles]         ;
   Float_t electronEta[kMaxParticles]        ;
   Float_t electronPhi[kMaxParticles]        ;
@@ -228,9 +231,10 @@ public :
   Int_t   electronCharge[kMaxParticles]     ;
   Float_t electronDeltaEtaSC[kMaxParticles] ;
   Float_t electronMVAFall17[kMaxParticles]  ;
-  Bool_t electronWPL [kMaxParticles]        ;
-  Bool_t electronWP80[kMaxParticles]        ;
-  Bool_t electronWP90[kMaxParticles]        ;
+  Bool_t  electronWPL [kMaxParticles]       ;
+  Bool_t  electronWP80[kMaxParticles]       ;
+  Bool_t  electronWP90[kMaxParticles]       ;
+  UChar_t electronGenFlavor[kMaxParticles]  ;
   Float_t tauPt[kMaxParticles]              ;
   Float_t tauEta[kMaxParticles]             ;
   Float_t tauPhi[kMaxParticles]             ;
