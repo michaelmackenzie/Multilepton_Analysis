@@ -340,16 +340,16 @@ void ZTauTauHistMaker::BookEventHistograms() {
       fEventHist[i]->hZMass[2]      = new TH1D("zmass2"        , Form("%s: Z Mass"         ,dirname)  , nmbins,   mbins);
 
       //Jet --> tau_h histograms
-      //variable width bins for pT vs mass
+      //variable width bins for eta vs pT
       const int ntetabins = 2;
       const double tetabins[ntetabins+1] = { 0., 1.5, 2.3};
       
       if(ntetabins != sizeof(tetabins)/sizeof(*tetabins)-1) std::cout << "WARNING! N(tau eta bins) for 2D histograms is off! nbins = "
 								<< ntetabins << " size calc = " << sizeof(tetabins)/sizeof(*tetabins)-1
 								<< std::endl;
-      const int ntpbins = 6;
-      const double tpbins[ntpbins+1] = { 25., 30., 35., 45., 60.,
-					 100.,
+      const int ntpbins = 7;
+      const double tpbins[ntpbins+1] = { 20., 25., 30., 35., 45.,
+					 60., 100.,
 					 1000.};
       
       if(ntpbins != sizeof(tpbins)/sizeof(*tpbins)-1) std::cout << "WARNING! N(tau pT bins) for 2D histograms is off! nbins = "
@@ -365,18 +365,38 @@ void ZTauTauHistMaker::BookEventHistograms() {
 	  }
 	}
       }
+
       fEventHist[i]->hTausPt      = new TH1D("tauspt"     , Form("%s: TausPt     ",dirname), 100,  0., 200.);
       fEventHist[i]->hTausEta     = new TH1D("tauseta"    , Form("%s: TausEta    ",dirname), 100, -5.,   5.);
       fEventHist[i]->hTausDM      = new TH1D("tausdm"     , Form("%s: TausDM     ",dirname),  15,  0.,  15.);
       fEventHist[i]->hTausAntiJet = new TH1D("tausantijet", Form("%s: TausAntiJet",dirname),  30,  0.,  30.);
 
+      //Jet --> light lep histograms
+      //variable width bins for eta vs pT
+      const int nletabins = 2;
+      const double letabins[nletabins+1] = { 0., 1.5, 2.3};
+      
+      if(nletabins != sizeof(letabins)/sizeof(*letabins)-1) std::cout << "WARNING! N(light lep eta bins) for 2D histograms is off! nbins = "
+								<< nletabins << " size calc = " << sizeof(letabins)/sizeof(*letabins)-1
+								<< std::endl;
+      const int nlpbins = 6;
+      const double lpbins[nlpbins+1] = { 10., 15., 20., 30., 40.,
+					 55., 
+					 1000.};
+      
+      if(nlpbins != sizeof(lpbins)/sizeof(*lpbins)-1) std::cout << "WARNING! N(light lep pT bins) for 2D histograms is off! nbins = "
+								<< nlpbins << " size calc = " << sizeof(lpbins)/sizeof(*lpbins)-1
+								<< std::endl;
+
       for(int cat = 0; cat < 3; ++cat)
-	fEventHist[i]->hFakeLepPtEta[cat] = new TH2D(Form("fakeleppteta_%i", cat), Form("%s: Fake lepton Eta vs Pt" ,dirname), ntpbins, tpbins, ntetabins, tetabins);
+	fEventHist[i]->hFakeLepPtEta[cat] = new TH2D(Form("fakeleppteta_%i", cat), Form("%s: Fake lepton Eta vs Pt" ,dirname), nlpbins, lpbins, nletabins, letabins);
 
       fEventHist[i]->hLeptonsPt   = new TH1D("leptonspt"  , Form("%s: LeptonsPt  ",dirname), 100,  0., 200.);
       fEventHist[i]->hLeptonsEta  = new TH1D("leptonseta" , Form("%s: LeptonsEta ",dirname), 100, -5.,   5.);
       fEventHist[i]->hLeptonsID   = new TH1D("leptonsid"  , Form("%s: LeptonsID  ",dirname),  15,  0.,  15.);
       fEventHist[i]->hLeptonsIsoID= new TH1D("leptonsisoid",Form("%s: LeptonsIsoID",dirname), 15,  0.,  15.);
+
+      //end light lep fake histograms
       
       fEventHist[i]->hLepDeltaPhi   = new TH1D("lepdeltaphi"   , Form("%s: Lepton DeltaPhi",dirname)  ,  50,   0,   5);
       fEventHist[i]->hLepDeltaEta   = new TH1D("lepdeltaeta"   , Form("%s: Lepton DeltaEta",dirname)  , 100,   0,   5);
