@@ -9,7 +9,7 @@ bool doMC_ = false; //perform the study on MC
 //Get the 2D jet pT vs eta histogram
 TH2D* get_histogram(int setAbs, bool isdata, int icat) {
   TH2D* h = 0;
-  TString name = Form("fakelep_%i", icat);
+  TString name = Form("fakeleppteta_%i", icat);
 
   unsigned nfiles = dataplotter_->data_.size();
   //get the histogram for each process added to the dataplotter
@@ -45,12 +45,12 @@ TCanvas* make_canvas(TH2D* hrates[3], TString name, bool iseff = true) {
   pad = c->cd(1);
   hrates[1]->Draw("colz");
   hrates[1]->SetTitle(hrates[2]->GetName());
-  if(iseff) hrates[0]->GetYaxis()->SetRangeUser(0., 1.);
+  if(iseff) hrates[0]->GetYaxis()->SetRangeUser(0., 1.2);
   pad->SetLogx();
   pad = c->cd(2);
   hrates[2]->Draw("colz");
   hrates[2]->SetTitle(hrates[2]->GetName());
-  if(iseff) hrates[2]->GetYaxis()->SetRangeUser(0., 1.);
+  if(iseff) hrates[2]->GetYaxis()->SetRangeUser(0., 1.2);
   pad->SetLogx();
   return c;
 }
@@ -72,7 +72,7 @@ TCanvas* make_eta_region_canvas(TH2D* hnum, TH2D* hdnm, TString name, bool iseff
     hetas[ibin]->SetLineWidth(2);
     hetas[ibin]->SetMarkerStyle(6);
     hetas[ibin]->SetTitle(hetas[ibin]->GetName());
-    if(iseff) hetas[ibin]->GetYaxis()->SetRangeUser(0., 1.);
+    if(iseff) hetas[ibin]->GetYaxis()->SetRangeUser(0., 1.2);
     pad->SetLogx();
   }
   return c;

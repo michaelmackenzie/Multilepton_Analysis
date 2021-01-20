@@ -5,8 +5,9 @@ TString selection_ = "emu"; //current options: mutau, etau, emu, mutau_e, etau_m
 Int_t verbose_ = 0; //verbosity level
 Int_t useOpenGL_ = 0;
 bool  doStatsLegend_ = false;
-TString hist_dir_ = "nanoaods_dev";
-TString folder_ = "nanoaods_dev";
+TString hist_path_ = "root://cmseos.fnal.gov//store/user/mmackenz/histograms/"; //where histogram files are
+TString hist_dir_ = "nanoaods_dev"; //which histogram directory to use
+TString folder_ = "nanoaods_dev"; //figures output folder
 bool doAllEMu_ = false; //plot all emu signals (including leptonic decays) on selection_ == "emu"
 bool printCDFs_ = false; //print cdf transform of MVAs
 bool printLimitVsEff_ = false; //print limit gain vs signal efficiency from MVA cut
@@ -1015,7 +1016,7 @@ Int_t init_dataplotter() {
 	cout << "ERROR: Didn't find generation numbers for combining with sample name " << name.Data() << endl;
     }
     //update file path
-    cards[index].filename_ = Form("%s/ztautau_%s_clfv_%i_%s.hist", hist_dir_.Data(), selection_dir.Data(),
+    cards[index].filename_ = Form("%s/ztautau_%s_clfv_%i_%s.hist", (hist_path_+hist_dir_).Data(), selection_dir.Data(),
 				  cards[index].year_, (cards[index].filename_).Data());
   } //end file name loop
   

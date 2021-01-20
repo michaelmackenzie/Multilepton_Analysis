@@ -229,9 +229,9 @@ Int_t process_ztautau() {
   /******************************/
   /* Define NANO AOD processing */
   /******************************/
-  TString nanoaod_path = "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_nanoaod_trees/";
+  // TString nanoaod_path = "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_nanoaod_trees/";
   // TString nanoaod_path = "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_nanoaod_test_trees/";
-  // TString nanoaod_path = "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_nanoaod_trees_nomva/";
+  TString nanoaod_path = "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_nanoaod_trees_nomva/";
 
   //cross section handler
   CrossSections xs;
@@ -254,8 +254,8 @@ Int_t process_ztautau() {
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("HETau"                   ), "clfv_2016_HETau.tree"                   , 0)); //12
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("HMuTau"                  ), "clfv_2016_HMuTau.tree"                  , 0)); //13
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("HEMu"                    ), "clfv_2016_HEMu.tree"                    , 0)); //14
-  nanocards.push_back(datacard_t(true , 1.                                            , "clfv_2016_SingleMu.tree"                , 2)); //15
-  nanocards.push_back(datacard_t(true , 1.                                            , "clfv_2016_SingleEle.tree"               , 1)); //16
+  nanocards.push_back(datacard_t(false, 1.                                            , "clfv_2016_SingleMu.tree"                , 2)); //15
+  nanocards.push_back(datacard_t(false, 1.                                            , "clfv_2016_SingleEle.tree"               , 1)); //16
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZZ"	                     ), "clfv_2016_ZZ.tree"                      , 0)); //17
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("WWW"	             ), "clfv_2016_WWW.tree"                     , 0)); //18
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("QCDDoubleEMEnrich30to40" ), "clfv_2016_QCDDoubleEMEnrich30to40.tree" , 0)); //19
@@ -332,8 +332,8 @@ Int_t process_ztautau() {
   config_t config;
   config.useTauFakeSF_ = 1; //1 = use given scale factors, 2 = override them with local ones
   config.writeTrees_ = true;
-  config.onlyChannel_ = "etau";
-  config.skipChannels_ = {/*"mutau", "etau", "emu", "mumu", "ee",*/ "all", "jets", "llg_study"};
+  config.onlyChannel_ = "";
+  config.skipChannels_ = {"mutau", "etau", "emu", /*"mumu", "ee",*/ "all", "jets", "llg_study"};
 
   config.reProcessMVAs_ = false;
   config.removeZPtWeights_ = 2; //0 = do nothing, 1 = remove Drell-Yan weights, 2 = remove and locally recalculate weights
