@@ -1,18 +1,5 @@
 # Running interactive ROOT scripts with compiled objects
 
-## Compiling with ROOT
-All objects are compiled using the ROOT compiler:
-```
-$> root -l
-root> .L [data formats/needed library].so
-root> .L [object].cc+g //+ = compile, ++ = force re-compile, g = debug compilation
-```
-To compile all objects:
-```
-$> root -l compile_objects.C
-```
-Note: several objects may fail to properly compile, depending on the ROOT version used.
-
 ## Histogramming
 
 Histogramming is done using the ZTauTauHistMaker, which inherits from TSelector. 
@@ -25,7 +12,7 @@ example of how to configure the NanoAODConversion object.
 
 The script `process_ztautau.C` will process a standard list of ZTauTauAnalyzer trees with the ZTauTauHistMaker:
 ```
-$> root -l process_ztautau.C # root -l to avoid loading to-be-recompiled libraries
+$> root.exe process_ztautau.C
 ```
 
 The `process_ztautau.C` script has many flags defined before its processing loop.
@@ -50,7 +37,7 @@ Some of the flags are:
  switch between Higgs and Z0 CLFV signals. For NANOAODs, the `doNanoAODs_` flag should be set to true.
  
 ```
-$> root -l make_ztautau_background.C
+$> root.exe make_ztautau_background.C
 root> doHiggsDecays_ = [true/false]
 root> make_background([selection set number], "[selection]", "[path/to/histogram/files/")
 ```
