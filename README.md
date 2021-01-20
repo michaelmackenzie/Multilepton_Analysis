@@ -1,12 +1,9 @@
 # Multilepton_Analysis
-Analysis work using the MultileptonAnalyzer as well as the ZTauTauAnalyzer.
-See the NWU BLT Analyzers for more information on the creation and format of these trees.
-Tools have been added to re-write NANOAOD format Event trees into BLT Analyzer format trees.
+Analysis work using NANOAOD based format.
 
 ## Overview of the analysis tools/strategies
-This assumes ntuples have been created using a BLT based analyzer for Monte Carlo and data samples.
-Currently, this workflow assumes all samples are for 2016.
-These tools can be configured to use 2016, 2017, and 2018 NANOAOD based samples as well.
+This assumes ntuples have been created using a skimmer run on Monte Carlo and data samples in NANOAOD format.
+See: https://github.com/michaelmackenzie/ZEMuAnalysis/tree/mmackenz_dev for an example skimmer.
 
 The first step in the workflow is creating sparse trees and sets of histograms for specific analysis selections.
 This is done using a *HistMaker* type object. This object is a TSelector that processes each event in the given trees.
@@ -30,9 +27,8 @@ the evaluation of these MVAs. The DataPlotter can then make approximate CDF and 
 score distributions.
 
 ## Directories
-### rootScripts
-Contains ROOT scripts to process the analyzer produced ntuples
-See the README in the rootScript directory.
+### src/interface
+Contains the analyzers and tools.
 
 ### histograms
 Used to plot the histograms from a given book in a HistMaker's output
@@ -64,28 +60,21 @@ Script to plot the results of a CWoLa training.
 Script to fit a signal + background vs background only hypothesis to a CWoLa trained tree vs MVA score.
 
 
-## Examples
+## Compiling and loading
 
-Examples in examples directory:
-
-`root.exe process_ntuples.C` runs the ZTauTauHistMaker over a few example MC samples
-
-`root.exe plot_histograms.C` loads a DataPlotter with the resulting histograms
-
-In ROOT:
-```c++
-  .x process_ntuples.C; //create histogram files
-  .L plot_histograms.C; //plot the histograms using a DataPlotter (dataplotter_ in this namespace)
-  plot_histograms("[name of histogram]", [set number], "[set type]", [xmin], [xmax], [rebin number]); //returns a canvas
+Libraries can be loaded by default with the `rootlogon.C` by using `root.exe` or ignored by using `root -l`.
+Objects can be recompiled using:
+```
+make clean
+make -j4
 ```
 
-General examples:
-
+## Examples
 in ROOT:
   
 ### ZTauTauHistMaker
 ```c++
-.L ZTauTauHistMaker.cc++g; //recompile in debug mode
+.L lib/libCLFVAnalysis.so
 TTree* tree = [Get ZTauTau Tree for selection S];
 ZTauTauMaker* selec = new ZTauTauHistMaker();
 selec->fFolderName = "[selection name, S]";
@@ -94,7 +83,7 @@ tree->Process(selec,"");
 
 ### DataPlotter
 ```c++
-.L DataPlotter.cc++g; //recompile in debug mode
+.L lib/libCLFVAnalysis.so
 DataPlotter* d = new DataPlotter();
 d->add_dataset("[file path]", "[dataset name when generated e.g. zjets_m-50]", "[Label e.g. Z+Jets]", [0 if MC 1 if Data], [xsec in pb^-1], [true if signal false if background]);
 TCanvas* c = d->plot_stack("[histogram name e.g. lepm]", "[histogram folder e.g. event]", [histogram set number]);
