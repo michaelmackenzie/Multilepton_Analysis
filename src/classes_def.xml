@@ -1,0 +1,26 @@
+<lcgdict>
+  <class name="Tree_t"/>
+  <class name="CrossSections"/>
+  <class name="Significances"/>
+  <class name="BTagWeight"/>
+  <class name="PUWeight"/>
+  <class name="JetToTauWeight"/>
+  <class name="SlimObject_t"/>
+  <class name="SlimObjects_t"/>
+  <class name="SlimElectron_t"/>
+  <class name="SlimElectrons_t"/>
+  <class name="SlimMuon_t"/>
+  <class name="SlimMuons_t"/>
+  <class name="SlimTau_t"/>
+  <class name="SlimTaus_t"/>
+  <class name="SlimJet_t"/>
+  <class name="SlimJets_t"/>
+  <class name="SlimPhoton_t"/>
+  <class name="SlimPhotons_t"/>
+  <class name="MVAConfig"/>
+  <class name="TrkQualInit"/>
+  <class name="ZTauTauHistMaker"/>
+  <class name="DataPlotter"/>
+  <class name="ParticleCorrections"/>
+  <class name="NanoAODConversion"/>
+</lcgdict>
