@@ -16,7 +16,9 @@ public:
     std::vector<int> years = {2016, 2017, 2018};
     for(int wp : working_points) {
       for(int year : years) {
-	f = TFile::Open(Form("scale_factors/btag_eff_wp_%i_mumu_%i.root", wp, year), "READ");
+	f = TFile::Open(Form("../scale_factors/btag_eff_wp_%i_mumu_%i.root", wp, year), "READ");
+	if(!f)
+	  f = TFile::Open(Form("scale_factors/btag_eff_wp_%i_mumu_%i.root", wp, year), "READ");
 	if(f) {
 	  histsL_[year][wp] = (TH2D*) f->Get("hLRatio")->Clone(Form("hL_%i_%i", year, wp));
 	  if(!histsL_[year][wp]) std::cout << "BTagWeight::BTagWeight: Warning! No light quark histogram found for wp = "

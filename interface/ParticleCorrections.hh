@@ -441,7 +441,7 @@ public :
   
   TString fScaleFactorPath    = "/src/StandardModel/ZEMuAnalysis/test/scale_factors/"; //path from cmssw_base
   TString fTauScaleFactorPath = "/src/TauPOG/TauIDSFs/data/"; //path from cmssw_base
-  TString fZScaleFactorPath   = "/src/StandardModel/CLFVAnalysis/rootScripts/scale_factors/"; //path from cmssw_base
+  TString fZScaleFactorPath   = "/src/StandardModel/CLFVAnalysis/scale_factors/"; //path from cmssw_base
 
   Int_t   fVerbose = 0; //control the verbosity
 public:

@@ -14,7 +14,9 @@ public:
     TFile* f = 0;
     std::vector<int> years = {2016, 2017, 2018};
     for(int year : years) {
-      f = TFile::Open(Form("scale_factors/jet_to_tau_%s_%i.root", selection.Data(), year), "READ");
+      f = TFile::Open(Form("../scale_factors/jet_to_tau_%s_%i.root", selection.Data(), year), "READ");
+      if(!f)
+	f = TFile::Open(Form("scale_factors/jet_to_tau_%s_%i.root", selection.Data(), year), "READ");
       if(f) {
 	for(int dm = 0; dm < 4; ++dm) {
 	  //Get MC histogram

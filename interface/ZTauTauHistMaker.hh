@@ -48,6 +48,8 @@
 #include "interface/BTagWeight.hh"
 //define Jet->tau weights locally
 #include "interface/JetToTauWeight.hh"
+//define Jet->lep weights locally
+#include "interface/JetToLepWeight.hh"
 
 class ZTauTauHistMaker : public TSelector {
 public :
@@ -147,6 +149,9 @@ public :
   UInt_t nBJets20                    ;
   UInt_t nBJets20M                   ;
   UInt_t nBJets20L                   ;
+  Bool_t isLooseMuon                 ;
+  Bool_t isLooseElectron             ;
+  Bool_t isLooseTau                  ;
   Float_t jetsPt[kMaxParticles]      ;
   Float_t jetsEta[kMaxParticles]     ;
   Int_t   jetsFlavor[kMaxParticles]  ;
@@ -330,6 +335,8 @@ public :
     TH2D* hZPtVsM[3]; //0: normal 1: remove Z pT weight 2: apply weights using reco scales if DY
     TH1D* hZPt[3];
     TH1D* hZMass[3];
+
+    TH1D* hLooseLep;
 
     //Jet --> tau_h histograms
     TH2D* hFakeTauNJetDMPtEta[3/*iso cat*/][5/*njets*/][4/*DM*/];
@@ -665,7 +672,8 @@ public :
     }
   };
   
-  ZTauTauHistMaker(TTree * /*tree*/ =0) : fMuonJetToTauWeight("mumu"), fElectronJetToTauWeight("ee") { }
+  ZTauTauHistMaker(TTree * /*tree*/ =0) : fMuonJetToTauWeight("mumu"), fElectronJetToTauWeight("ee"),
+					  fJetToMuonWeight("mumu"), fJetToElectronWeight("ee") { }
   virtual ~ZTauTauHistMaker() { }
   virtual Int_t   Version() const { return 2; }
   virtual void    Begin(TTree *tree);
@@ -767,11 +775,13 @@ public :
   Int_t           fAddJetTauWeights = 1; //0: do nothing 1: weight anti-iso tau CR data
   JetToTauWeight  fMuonJetToTauWeight; //for mutau
   JetToTauWeight  fElectronJetToTauWeight; //for etau
+  JetToLepWeight  fJetToMuonWeight; //for mutau
+  JetToLepWeight  fJetToElectronWeight; //for etau
   
   Int_t           fRemoveZPtWeights = 0; // 0 use given weights, 1 remove z pT weight, 2 remove and re-evaluate weights locally
   TH2D*           fZPtScales = 0; //histogram based z pTvsM weights
   TH2D*           fZPtRecoScales = 0; //histogram based reconstructed z pTvsM weights
-  TString         fZPtHistPath = "scale_factors/z_pt_vs_m_scales_"; //path for file, not including _[year].root
+  TString         fZPtHistPath = "../scale_factors/z_pt_vs_m_scales_"; //path for file, not including _[year].root
   		  
   float           fFractionMVA = 0.; //fraction of events used to train. Ignore these events in histogram filling, reweight the rest to compensate
   TRandom*        fRnd = 0; //for splitting MVA testing/training

@@ -340,6 +340,8 @@ void ZTauTauHistMaker::BookEventHistograms() {
       fEventHist[i]->hZMass[2]      = new TH1D("zmass2"        , Form("%s: Z Mass"         ,dirname)  , nmbins,   mbins);
 
       //Jet --> tau_h histograms
+      fEventHist[i]->hLooseLep      = new TH1D("looselep"      , Form("%s: LooseLep"       ,dirname)  , 15, 0, 15);
+
       //variable width bins for eta vs pT
       const int ntetabins = 2;
       const double tetabins[ntetabins+1] = { 0., 1.5, 2.3};
@@ -1139,6 +1141,7 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
 
 
   //Histograms for jet --> tau_h scale factors
+  Hist->hLooseLep     ->Fill(isLooseElectron + 2*isLooseMuon + 4*isLooseTau, eventWeight*genWeight);
   for(UInt_t itau = 0; itau < nTaus; ++itau) {
     int dm = -1; int njets = (nJets > 4) ? 4 : nJets;
     if(fIsData == 0 && abs(tausGenFlavor[itau]) != 15) continue; //ignore MC fake taus
@@ -1588,9 +1591,9 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   // Check if anti-iso lepton category
   //////////////////////////////////////////////////////////////
   
-  bool isLooseElectron = (ee || emu || etau) && looseQCDSelection;
-  bool isLooseMuon     = (mumu || emu || mutau) && looseQCDSelection;
-  bool isLooseTau      = (etau || mutau) && tauDeepAntiJet < 50 && looseQCDSelection;
+  isLooseElectron = (ee || emu || etau) && looseQCDSelection;
+  isLooseMuon     = (mumu || emu || mutau) && looseQCDSelection;
+  isLooseTau      = (etau || mutau) && tauDeepAntiJet < 50 && looseQCDSelection;
 
   if(isLooseElectron) {
     if(emu || etau) isLooseElectron &= leptonOneID1 < 4; //Not WP80
@@ -1674,17 +1677,27 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   //remove MC estimated jet --> tau component
   mutau &= fIsData > 0 || abs(tauGenFlavor) != 26;
   etau  &= fIsData > 0 || abs(tauGenFlavor) != 26;
-  mutau &= !isLooseMuon; //FIXME: add back in loose muon region
-  etau  &= !isLooseElectron; //FIXME: add back in loose muon region
+
+  //FIXME: add back in loose light leptons
+  mutau &= !isLooseMuon;
+  etau  &= !isLooseElectron;
+
   //weigh anti-iso tau region by anti-iso --> tight iso weight
   if(mutau && isLooseTau) {
     //use data factor for MC and Data, since not using MC estimated fake tau rates
-    eventWeight *= fMuonJetToTauWeight.GetDataFactor(tauDecayMode, fYear, tauP4->Pt(), tauP4->Eta());
+    eventWeight *= fMuonJetToTauWeight.GetDataFactor(tauDecayMode, fYear, tau->Pt(), tau->Eta());
   } else if(etau && isLooseTau) {
     //use data factor for MC and Data, since not using MC estimated fake tau rates
-    eventWeight *= fElectronJetToTauWeight.GetDataFactor(tauDecayMode, fYear, tauP4->Pt(), tauP4->Eta());
+    eventWeight *= fElectronJetToTauWeight.GetDataFactor(tauDecayMode, fYear, tau->Pt(), tau->Eta());
   }
-  
+  if(mutau && isLooseMuon) {
+    //use data factor for MC and Data, since not using MC estimated fake tau rates
+    eventWeight *= fJetToMuonWeight.GetDataFactor(fYear, muon->Pt(), muon->Eta());
+  } else if(etau && isLooseElectron) {
+    //use data factor for MC and Data, since not using MC estimated fake tau rates
+    eventWeight *= fJetToElectronWeight.GetDataFactor(fYear, electron->Pt(), electron->Eta());
+  }
+    
   ////////////////////////////////////////////////////////////
   // Set 2 + selection offset: object pT cuts
   ////////////////////////////////////////////////////////////

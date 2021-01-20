@@ -439,11 +439,11 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
   plottingcards.push_back(DataPlotter::PlottingCard_t("deltaalpham0",   "event", 1,45., 200.  ));
   plottingcards.push_back(DataPlotter::PlottingCard_t("deltaalpham1",   "event", 2,45., 200.  ));
   if(selection_ == "emu" || selection_ == "llg_study") {
-    plottingcards.push_back(DataPlotter::PlottingCard_t("lepmestimate",   "event", 1, 50.,  200., {100.}, {160.} ));
-    plottingcards.push_back(DataPlotter::PlottingCard_t("lepmestimatetwo","event", 1, 50.,  200., {100.}, {160.} ));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("lepmestimate",   "event", 1, 50.,  200., vector<double>({100.}), vector<double>({160.}) ));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("lepmestimatetwo","event", 1, 50.,  200., vector<double>({100.}), vector<double>({160.}) ));
   } else {
-    plottingcards.push_back(DataPlotter::PlottingCard_t("lepmestimate",   "event", 1, 50.,  200., {100.}, {160.}));
-    plottingcards.push_back(DataPlotter::PlottingCard_t("lepmestimatetwo","event", 1, 50.,  200., {100.}, {160.}));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("lepmestimate",   "event", 1, 50.,  200., vector<double>({100.}), vector<double>({160.})));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("lepmestimatetwo","event", 1, 50.,  200., vector<double>({100.}), vector<double>({160.})));
   }
   plottingcards.push_back(DataPlotter::PlottingCard_t("met",            "event", 2, 0.,   120. ));
   // plottingcards.push_back(DataPlotter::PlottingCard_t("puppmet",        "event", 2, 0.,   120. ));
@@ -637,7 +637,7 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
     plottingcards.push_back(DataPlotter::PlottingCard_t("eta", "photon", 1, -2.5,  2.5)); 
     plottingcards.push_back(DataPlotter::PlottingCard_t("p",   "photon", 1,  5. ,  100.)); 
     plottingcards.push_back(DataPlotter::PlottingCard_t("mva", "photon", 2,  0.1 , 1.)); 
-    plottingcards.push_back(DataPlotter::PlottingCard_t("sysm","event",  2, 20., 250., {120.}, {130.} ));
+    plottingcards.push_back(DataPlotter::PlottingCard_t("sysm","event",  2, 20., 250., vector<double>({120.}), vector<double>({130.}) ));
     plottingcards.push_back(DataPlotter::PlottingCard_t("ntaus","event", 0, 0, 5));
   }
 
