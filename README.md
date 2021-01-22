@@ -1,6 +1,32 @@
 # Multilepton_Analysis
 Analysis work using NANOAOD based format.
 
+## Cloning and building tools
+Setup CMSSW release:
+```
+cd ~/nobackup
+mkdir CLFV
+cd CLFV
+cmsrel CMSSW_10_2_18
+cd CMSSW_10_2_18/src
+cmsenv
+```
+Setup NANOAOD skimming repository:
+```
+git clone https://github.com/michaelmackenzie/ZEMuAnalysis.git StandardModel/ZEMuAnalysis #or use https://github.com/ --> git@github.com:
+cd StandardModel/ZEMuAnalysis #StandardModel is used for historical reasons
+git checkout mmackenz_dev
+cd -
+git clone https://github.com/cms-nanoAOD/nanoAOD-tools.git PhysicsTools/NanoAODTools
+scram b
+```
+Setup NANOAOD skim processing and analysis repository:
+```
+git clone https://github.com/michaelmackenzie/Multilepton_Analysis.git StandardModel/CLFVAnalysis
+cd CLFVAnalysis
+make -j4
+```
+
 ## Overview of the analysis tools/strategies
 This assumes ntuples have been created using a skimmer run on Monte Carlo and data samples in NANOAOD format.
 See: https://github.com/michaelmackenzie/ZEMuAnalysis/tree/mmackenz_dev for an example skimmer.
