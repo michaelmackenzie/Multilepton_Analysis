@@ -1244,7 +1244,7 @@ void NanoAODConversion::CountLightLeptons(int selection) {
       leptonsID        [nExtraLep] = (electronWPL[index] + 2*electronWP90[index] + 4*electronWP80[index]);
       leptonsIsoID     [nExtraLep] = 0;
       leptonsTriggered [nExtraLep] = GetTriggerMatch(index, false);
-      leptonsGenFlavor [nExtraLep] = electronGenFlavor[index];
+      leptonsGenFlavor [nExtraLep] = (fIsData == 0) ? electronGenFlavor[index] : 0;
       ++nExtraLep;
     }
   } else if(selection == kMuMu) {
@@ -1258,7 +1258,7 @@ void NanoAODConversion::CountLightLeptons(int selection) {
       leptonsID        [nExtraLep] = (muonLooseId[index] + 2*muonMediumId[index] + 4*muonTightId[index]);
       leptonsIsoID     [nExtraLep] = muonIsoId[index];
       leptonsTriggered [nExtraLep] = GetTriggerMatch(index, true);
-      leptonsGenFlavor [nExtraLep] = muonGenFlavor[index];
+      leptonsGenFlavor [nExtraLep] = (fIsData == 0) ? muonGenFlavor[index] : 0;
       ++nExtraLep;
     }
   }
