@@ -193,6 +193,7 @@ public :
   UChar_t tausAntiMu[kMaxParticles]  ;
   UChar_t tausMVAAntiMu[kMaxParticles];
   UChar_t tausAntiEle[kMaxParticles] ;
+  Float_t tausWeight[kMaxParticles]  ;
   //Info for fake light lepton studies
   Float_t leptonsPt[kMaxParticles]   ;
   Float_t leptonsEta[kMaxParticles]  ;

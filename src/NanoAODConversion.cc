@@ -424,6 +424,7 @@ void NanoAODConversion::InitializeOutBranchStructure(TTree* tree) {
   tree->Branch("tausAntiMu"                    , tausAntiMu    , "tausAntiMu[nTaus]/b");
   tree->Branch("tausMVAAntiMu"                 , tausMVAAntiMu , "tausMVAAntiMu[nTaus]/b");
   tree->Branch("tausAntiEle"                   , tausAntiEle   , "tausAntiEle[nTaus]/b");
+  tree->Branch("tausWeight"                    , tausWeight    , "tausWeight[nTaus]/F");
   //information for fake light lepton estimation
   tree->Branch("nExtraLep"                     , &nExtraLep);
   tree->Branch("leptonsPt"                     , leptonsPt        , "leptonsPt[nExtraLep]/F");
@@ -654,7 +655,7 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
     leptonTwoFlavor = -15*tauCharge[index];
     tauGenIDOut  = tauGenID[index];
     tauGenFlavor = TauFlavorFromID((int) tauGenIDOut);
-    lepTwoWeight = particleCorrections->TauWeight(leptonTwoP4->Pt(), leptonTwoP4->Eta(), tauGenID[index], fYear);
+    lepTwoWeight = (fIsData == 0) ? particleCorrections->TauWeight(leptonTwoP4->Pt(), leptonTwoP4->Eta(), tauGenID[index], fYear) : 1.;
     leptonTwoID1 = tauAntiEle[index]; //MVA ID
     leptonTwoID2 = tauAntiMu[index];  //MVA ID
     leptonTwoID3 = tauAntiJet[index];  //MVA ID
@@ -1227,6 +1228,7 @@ void NanoAODConversion::CountTaus(int selection) {
     tausAntiEle   [ntau] = tauDeep2017VsE[index];
     tausDM        [ntau] = tauDecayMode[index];
     tausGenFlavor [ntau] = TauFlavorFromID((int) tauGenID[index]);
+    tausWeight    [ntau] = (fIsData == 0) ? particleCorrections->TauWeight(tauPt[index], tauEta[index], tauGenID[index], fYear) : 1.;
   }
 }
 
