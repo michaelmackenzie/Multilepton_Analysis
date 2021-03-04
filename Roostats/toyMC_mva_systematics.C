@@ -40,11 +40,23 @@ int toyMC_mva_systematics(int set = 8, TString selection = "zmutau",
 
   //Set an example branching ratio
   double true_br_sig = (selection.Contains("h") ? 5.e-3 : 5.e-5);
+  br_sig->setVal(true_br_sig); //set the branching fraction to the true value
 
   //Create histograms for the fit results
   TH1F* hBrSig  = new TH1F("hbrsig" , "Branching Ratios", 80, min(-2.*true_br_sig, -3.e-6), max(2.*true_br_sig, 3.e-6));
   TH1F* hBrDiff = new TH1F("hbrdiff", "Branching Ratio Errors", 80, min(-2.*true_br_sig, -3.e-6), max(2.*true_br_sig, 3.e-6));
   TH1F* hBrPull = new TH1F("hbrpull", "Branching Ratio Pulls", 80, -10., 10.);
+
+  //Store the nominal number of background and signal events per category
+  vector<double> n_bkgs, n_sigs;
+  int index = 0;
+  while(ws->pdf((self_test) ? Form("bkgMVAPDF_%i", index) : Form("bkgMVAPDF_%i_sys_%i", index, systematic))) {
+    auto n_bkg = ws->var((self_test) ? Form("n_bkg_%i", index) : Form("n_bkg_%i_sys_%i", index, systematic));
+    auto n_sig = ws->function((self_test) ? Form("n_sig_%i", index) : Form("n_sig_%i_sys_%i", index, systematic));
+    n_bkgs.push_back(n_bkg->getVal());
+    n_sigs.push_back(n_sig->getVal());
+    ++index;
+  }
 
   //perform each fit
   gSystem->Exec(Form("[ ! -d plots/latest_production/%s ] && mkdir -p plots/latest_production/%s", year_string.Data(), year_string.Data()));
@@ -52,33 +64,31 @@ int toyMC_mva_systematics(int set = 8, TString selection = "zmutau",
   for(int ifit = 0; ifit < nfits; ++ifit) {
     br_sig->setVal(true_br_sig); //reset the branching fraction to the true value
     //Generate data using the generating PDF --> generate data for each category
-    int index = 0;
     map<string, RooDataHist*> dataCategoryMap;
-    while(ws->pdf(Form("bkgMVAPDF_%i_sys_%i", index, systematic))) {
-      auto bkgMVAPDF = ws->pdf((self_test) ? Form("bkgMVAPDF_%i", index) : Form("bkgMVAPDF_%i_sys_%i", index, systematic));
-      auto n_bkg = ws->var((self_test) ? Form("n_bkg_%i", index) : Form("n_bkg_%i_sys_%i", index, systematic));
-      auto n_sig = ws->function((self_test) ? Form("n_sig_%i", index) : Form("n_sig_%i_sys_%i", index, systematic));
-      int n_bkg_events = rnd->Poisson(n_bkg->getVal());
-      int n_sig_events = rnd->Poisson(n_sig->getVal());
-      cout << "Generating background data for index " << index << " with " << n_bkg_events << " events\n";
+    for(unsigned icat = 0; icat < n_bkgs.size(); ++icat) {
+      int n_bkg_events = rnd->Poisson(n_bkgs[icat]);
+      int n_sig_events = rnd->Poisson(n_sigs[icat]);
+      auto bkgMVAPDF = ws->pdf((self_test) ? Form("bkgMVAPDF_%i", icat) : Form("bkgMVAPDF_%i_sys_%i", icat, systematic));
+      cout << "Generating background data for index " << icat << " with " << n_bkg_events << " events (mean = "
+           << n_bkgs[icat] << ")\n";
       RooDataHist* bkg_mva_gen = bkgMVAPDF->generateBinned(RooArgSet(*mva), n_bkg_events);
-      cout << "Generating signal data for index " << index << " with " << n_sig_events << " events\n";
-      auto sigMVAPDF = ws->pdf((self_test) ? Form("sigMVAPDF_%i", index) : Form("sigMVAPDF_%i_sys_%i", index, systematic));
+      cout << "Generating signal data for index " << icat << " with " << n_sig_events << " events (mean = "
+           << n_sigs[icat] << ")\n";
+      auto sigMVAPDF = ws->pdf((self_test) ? Form("sigMVAPDF_%i", icat) : Form("sigMVAPDF_%i_sys_%i", icat, systematic));
       RooDataHist* sig_mva_gen = sigMVAPDF->generateBinned(RooArgSet(*mva), n_sig_events);
       if(ifit == 0) sigMVAPDF->Print();
       bkg_mva_gen->add(*sig_mva_gen);
       if(ifit == 0) bkg_mva_gen->Print();
-      string category = Form("%s_%i", selection.Data(), index);
+      string category = Form("%s_%i", selection.Data(), icat);
       dataCategoryMap[category] = bkg_mva_gen;
-      cout << "Category " << index << " has " << n_bkg->getVal() << " background and "
-           << n_sig->getVal() << " signal\n";
-      ++index;
+      cout << "Category " << icat << " has " << n_bkg_events << " background and "
+           << n_sig_events << " signal\n";
     }
 
     RooDataHist combined_data("combined_data", "combined_data", *mva, *categories, dataCategoryMap);
     if(ifit == 0) {
       combined_data.Print();
-      for(int i = 0; i < index; ++i) {
+      for(unsigned i = 0; i < n_bkgs.size(); ++i) {
         dataCategoryMap[Form("%s_%i", selection.Data(), i)]->Print();
       }
     }
@@ -98,7 +108,7 @@ int toyMC_mva_systematics(int set = 8, TString selection = "zmutau",
 
     //print an example fit
     if(ifit == 0) {
-      for(unsigned i = 0; i < index; ++i) {
+      for(unsigned i = 0; i < n_bkgs.size(); ++i) {
         auto xframe = mva->frame(50);
         combined_data.plotOn(xframe, RooFit::Cut(Form("%s==%i",selection.Data(),i)));
         fit_PDF->plotOn(xframe, RooFit::Components(Form("sigMVAPDF_%i", i)),
@@ -123,9 +133,9 @@ int toyMC_mva_systematics(int set = 8, TString selection = "zmutau",
       }
     }
     //cleanup memory
-    for(int i = 0; i < index; ++i) {
-      delete dataCategoryMap[Form("%s_%i", selection.Data(), i)];
-    }
+    // for(unsigned i = 0; i < n_bkgs.size(); ++i) {
+    //   delete dataCategoryMap[Form("%s_%i", selection.Data(), i)];
+    // }
   }
 
   auto c1 = new TCanvas("fit_results", "Fit Results", 1000, 800);
