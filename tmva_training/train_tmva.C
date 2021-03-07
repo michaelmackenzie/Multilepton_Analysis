@@ -9,12 +9,12 @@ int train_tmva(const char* tree_name = "trees/background_ztautau_Z0_nano_mutau_2
   TString x = tree_name;
   x.ReplaceAll("trees/", ""); //remove directory from name
   TObjArray *tx = x.Tokenize(".");
-  
+
   printf("Getting Trees\n");
 
   f = TFile::Open(tree_name, "READ");
 
-  
+
   TTree* signal;
   int isData = 0;
   if(x.Contains("mock")) {
@@ -38,7 +38,7 @@ int train_tmva(const char* tree_name = "trees/background_ztautau_Z0_nano_mutau_2
     use_njets_ = 0;
   else
     use_njets_ = 1;
-    
+
   tmvaName = "training_";
   for(int i = 0; i < tx->GetLast(); ++i) tmvaName +=   ((TObjString *)(tx->At(i)))->String();
   int n = ignore.size();
@@ -63,7 +63,7 @@ int train_tmva(const char* tree_name = "trees/background_ztautau_Z0_nano_mutau_2
     printf("Unknown selection! Defaulting to Z0!\n");
     selection += "z";
   }
-  
+
   if(tmvaName.Contains("mutau")) {
     selection += "mutau";
     if(tmvaName.Contains("_e_"))
@@ -87,7 +87,7 @@ int train_tmva(const char* tree_name = "trees/background_ztautau_Z0_nano_mutau_2
 Int_t train_all_selections(vector<int> years = {2016}, Int_t split_trees = 1, bool doJetBinned = false) {
   split_trees_ = split_trees;
   gROOT->SetBatch(kTRUE);
-  TStopwatch* timer = new TStopwatch();  
+  TStopwatch* timer = new TStopwatch();
   Int_t status = 0;
   multiTrainings_ = true; //so TrainTrkQual changes directory back at the end
   TString year_string = "";
@@ -150,7 +150,7 @@ Int_t train_all_selections(vector<int> years = {2016}, Int_t split_trees = 1, bo
 
 Int_t train_all_years(Int_t split_trees = 1, bool doJetBinned = false) {
   int status(0);
-  TStopwatch* timer = new TStopwatch();  
+  TStopwatch* timer = new TStopwatch();
   // cout << "*** Training 2016 MVAs...\n";
   // status += train_all_selections({2016}, split_trees, doJetBinned);
   // cout << "*** Training 2017 MVAs...\n";

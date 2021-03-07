@@ -1,8 +1,8 @@
 // Script to process NANO AODs to match format of bltTrees
 
 bool debug_ = false;
-TString debugFile_ = "SingleEle";
-UInt_t debugStart_ = 0;
+TString debugFile_ = "WW";
+UInt_t debugStart_ = 21361;
 UInt_t debugNEvents_ = 1;
 NanoAODConversion* debugSelec_ = 0;
 
@@ -14,8 +14,8 @@ struct datacard_t {
   TString filepath_;
   int isData_;
   datacard_t(bool process, TString fname,
-	     double negfrac = 0., int isData = 0,  
-	     TString filepath = "") :
+             double negfrac = 0., int isData = 0,
+             TString filepath = "") :
     process_(process), negfrac_(negfrac), fname_(fname), filepath_(filepath),
     isData_(isData) {}
 };
@@ -31,7 +31,7 @@ Int_t process_nanoaods() {
 
   //for getting relevant dataset values (gen number, xsec, etc.)
   CrossSections xsecs;
-  
+
   //Data cards
   vector<datacard_t> cards;
 
@@ -42,19 +42,14 @@ Int_t process_nanoaods() {
   cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_SingleToptW_2016.root"             , 0.003758));
   cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_SingleAntiToptW_2016.root"         , 0.0034));
   cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_DY50_2016.root"                    , 0));
-  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_DY50-ext_2016.root"                , 0));
   cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_WW_2016.root"                      , 0.));
   cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_WZ_2016.root"                      , 0.));
   cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_ZZ_2016.root"                      , 0.));
-  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_WWW_2016.root"                     , 0.06054));
   cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Wlnu_2016.root"                    , 0.));
-  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Wlnu-ext_2016.root"                , 0.));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_ttbarToSemiLeptonic_2016.root"     , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Wlnu-1J_2016.root"                 , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_ttbarToSemiLeptonic_2016.root"     , 0.));
   cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_ttbarToHadronic_2016.root"         , 0.));
   cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_ttbarlnu_2016.root"                , 0.));
-  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_QCDDoubleEMEnrich30to40_2016.root" , 0.));
-  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_QCDDoubleEMEnrich30toInf_2016.root", 0.));
-  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_QCDDoubleEMEnrich40toInf_2016.root", 0.));
   cards.push_back(datacard_t(false, "MC/signals/LFVAnalysis_ZETau_2016.root"                       , 0.));
   cards.push_back(datacard_t(false, "MC/signals/LFVAnalysis_ZMuTau_2016.root"                      , 0.));
   cards.push_back(datacard_t(false, "MC/signals/LFVAnalysis_ZEMu_2016.root"                        , 0.));
@@ -62,14 +57,22 @@ Int_t process_nanoaods() {
   cards.push_back(datacard_t(false, "MC/signals/LFVAnalysis_HMuTau_2016.root"                      , 0.));
   cards.push_back(datacard_t(false, "MC/signals/LFVAnalysis_HEMu_2016.root"                        , 0.));
   cards.push_back(datacard_t(false, "dataprocess/LFVAnalysis_SingleEle_2016.root"                  , 0.));
-  cards.push_back(datacard_t(false, "dataprocess/LFVAnalysis_SingleMu_2016.root"                   , 0.));                 
-  // cards.push_back(datacard_t(false, "dataprocess/LFVAnalysis_SingleMuonRun2016B_2016.root"         , 0.));                 
-  // cards.push_back(datacard_t(false, "dataprocess/LFVAnalysis_SingleMuonRun2016C_2016.root"         , 0.));                 
-  // cards.push_back(datacard_t(false, "dataprocess/LFVAnalysis_SingleMuonRun2016D_2016.root"         , 0.));                 
-  // cards.push_back(datacard_t(false, "dataprocess/LFVAnalysis_SingleMuonRun2016E_2016.root"         , 0.));                 
-  // cards.push_back(datacard_t(false, "dataprocess/LFVAnalysis_SingleMuonRun2016F_2016.root"         , 0.));                 
-  // cards.push_back(datacard_t(false, "dataprocess/LFVAnalysis_SingleMuonRun2016G_2016.root"         , 0.));                 
-  // cards.push_back(datacard_t(false, "dataprocess/LFVAnalysis_SingleMuonRun2016H_2016.root"         , 0.));                 
+  cards.push_back(datacard_t(false, "dataprocess/LFVAnalysis_SingleMu_2016.root"                   , 0.));
+
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_DY50-ext_2016.root"                , 0));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_WWW_2016.root"                     , 0.06054));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Wlnu-ext_2016.root"                , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_QCDDoubleEMEnrich30to40_2016.root" , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_QCDDoubleEMEnrich30toInf_2016.root", 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_QCDDoubleEMEnrich40toInf_2016.root", 0.));
+
+  // cards.push_back(datacard_t(false, "dataprocess/LFVAnalysis_SingleMuonRun2016B_2016.root"         , 0.));
+  // cards.push_back(datacard_t(false, "dataprocess/LFVAnalysis_SingleMuonRun2016C_2016.root"         , 0.));
+  // cards.push_back(datacard_t(false, "dataprocess/LFVAnalysis_SingleMuonRun2016D_2016.root"         , 0.));
+  // cards.push_back(datacard_t(false, "dataprocess/LFVAnalysis_SingleMuonRun2016E_2016.root"         , 0.));
+  // cards.push_back(datacard_t(false, "dataprocess/LFVAnalysis_SingleMuonRun2016F_2016.root"         , 0.));
+  // cards.push_back(datacard_t(false, "dataprocess/LFVAnalysis_SingleMuonRun2016G_2016.root"         , 0.));
+  // cards.push_back(datacard_t(false, "dataprocess/LFVAnalysis_SingleMuonRun2016H_2016.root"         , 0.));
 
   ////////////
   //  2017  //
@@ -98,15 +101,15 @@ Int_t process_nanoaods() {
   cards.push_back(datacard_t(false, "MC/signals/LFVAnalysis_HMuTau_2017.root"                      , 0.));
   cards.push_back(datacard_t(false, "MC/signals/LFVAnalysis_HEMu_2017.root"                        , 0.));
   cards.push_back(datacard_t(false, "dataprocess/LFVAnalysis_SingleEle_2017.root"                  , 0.));
-  cards.push_back(datacard_t(false, "dataprocess/LFVAnalysis_SingleMu_2017.root"                   , 0.));                 
+  cards.push_back(datacard_t(false, "dataprocess/LFVAnalysis_SingleMu_2017.root"                   , 0.));
 
   ////////////
   //  2018  //
   ////////////
-  
+
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_DY50_2018.root"                    , 0.0004962));
   cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_SingleToptW_2018.root"             , 0.003758));
   cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_SingleAntiToptW_2018.root"         , 0.0034));
-  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_DY50_2018.root"                    , 0.0004962));
   cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_WW_2018.root"                      , 0.001916));
   cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_WZ_2018.root"                      , 0.));
   cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_ZZ_2018.root"                      , 0.));
@@ -125,9 +128,9 @@ Int_t process_nanoaods() {
   cards.push_back(datacard_t(false, "MC/signals/LFVAnalysis_HMuTau_2018.root"                      , 0.));
   cards.push_back(datacard_t(false, "MC/signals/LFVAnalysis_HEMu_2018.root"                        , 0.));
   cards.push_back(datacard_t(false, "dataprocess/LFVAnalysis_SingleEle_2018.root"                  , 0.));
-  cards.push_back(datacard_t(false, "dataprocess/LFVAnalysis_SingleMu_2018.root"                   , 0.));                 
+  cards.push_back(datacard_t(false, "dataprocess/LFVAnalysis_SingleMu_2018.root"                   , 0.));
 
-  
+
   for(unsigned index = 0; index < cards.size(); ++index) {
     if(debug_ && !cards[index].fname_.Contains(debugFile_.Data())) continue; //don't print other info in debug
     cout << "**File " << cards[index].fname_.Data() << ", process = " << cards[index].process_ << endl;
@@ -152,7 +155,7 @@ Int_t process_nanoaods() {
     Int_t isData = 0;
     if(name.Contains("SingleEle")) isData = 1;
     else if(name.Contains("SingleMu")) isData = 2;
-    
+
     name.ReplaceAll("MC/", "");
     name.ReplaceAll("backgrounds/", "");
     name.ReplaceAll("signals/", "");
@@ -167,43 +170,43 @@ Int_t process_nanoaods() {
     double frac_neg = cards[index].negfrac_;
     if(isData == 0) {
       if(!f->Get("events")) {//Try getting normalization parameters via map and crab if no event count histogram
-	TString crab_report;
-	TString crab_command = "crab report -d " + crab_path;
-	crab_command += "samples_MC_";
-	if(year == ParticleCorrections::k2016)      crab_command += "2016/crab_2016_LFVDONE_"; 
-	else if(year == ParticleCorrections::k2017) crab_command += "2017/crab_2017_LFVDONE_";
-	else if(year == ParticleCorrections::k2018) crab_command += "2018/crab_2018_LFVDONE_";
-	crab_command += name;
-	crab_command += " | grep read | awk '{print $NF}'";
-	cout << "Getting normalization, using command:\n" << crab_command.Data() << endl;
-	FILE* shell_res = gSystem->OpenPipe(crab_command.Data(), "r");
-	crab_report.Gets(shell_res);
-	gSystem->ClosePipe(shell_res);
-	try {
-	  events = stof(crab_report.Data());
-	} catch(exception e) {
-	  events = 0.;
-	}
-	cout << "Found " << events << " events for the file with "
-	     << frac_neg << " fraction negative events" << endl;
+        TString crab_report;
+        TString crab_command = "crab report -d " + crab_path;
+        crab_command += "samples_MC_";
+        if(year == ParticleCorrections::k2016)      crab_command += "2016/crab_2016_LFVDONE_";
+        else if(year == ParticleCorrections::k2017) crab_command += "2017/crab_2017_LFVDONE_";
+        else if(year == ParticleCorrections::k2018) crab_command += "2018/crab_2018_LFVDONE_";
+        crab_command += name;
+        crab_command += " | grep read | awk '{print $NF}'";
+        cout << "Getting normalization, using command:\n" << crab_command.Data() << endl;
+        FILE* shell_res = gSystem->OpenPipe(crab_command.Data(), "r");
+        crab_report.Gets(shell_res);
+        gSystem->ClosePipe(shell_res);
+        try {
+          events = stof(crab_report.Data());
+        } catch(exception e) {
+          events = 0.;
+        }
+        cout << "Found " << events << " events for the file with "
+             << frac_neg << " fraction negative events" << endl;
 
       } else { //event count histogram is found
-	TH1D* hevents = (TH1D*) f->Get("events");
-	double nevents = hevents->GetBinContent(1);
-	if(nevents > 0.)
-	  frac_neg = hevents->GetBinContent(10) / nevents;
-	events = (float) nevents;
-	cout << "Found events histogram, using nevents = " << nevents << " and frac_neg = "
-	     << frac_neg << " (vs " << cards[index].negfrac_ << ")\n";
+        TH1D* hevents = (TH1D*) f->Get("events");
+        double nevents = hevents->GetBinContent(1);
+        if(nevents > 0.)
+          frac_neg = hevents->GetBinContent(10) / nevents;
+        events = (float) nevents;
+        cout << "Found events histogram, using nevents = " << nevents << " and frac_neg = "
+             << frac_neg << " (vs " << cards[index].negfrac_ << ")\n";
       }
       if(events <= 0.) {
-	cout << "No events found via crab dir, trying instead from CrossSection util...\n";
-	events = xsecs.GetGenNumber(name, year + (2016-ParticleCorrections::k2016)); //uses absolute value year, not enum
+        cout << "No events found via crab dir, trying instead from CrossSection util...\n";
+        events = xsecs.GetGenNumber(name, year + (2016-ParticleCorrections::k2016)); //uses absolute value year, not enum
       }
       if(events <= 0.) {
-	cout << "No events found! Can't do normalization --> continue to next file!\n";
-	continue;
-      } 
+        cout << "No events found! Can't do normalization --> continue to next file!\n";
+        continue;
+      }
     }
     bool isSignal = name.Contains("ZEMu") || name.Contains("ZETau") || name.Contains("ZMuTau");
     isSignal     |= name.Contains("HEMu") || name.Contains("HETau") || name.Contains("HMuTau");
@@ -217,6 +220,7 @@ Int_t process_nanoaods() {
     selec->fSkipMuMuEE = 0; //skip same flavor data
     selec->fIsDY = isDY; //for Z pT weights
     selec->fVerbose = (debug_) ? 3 : 1; //print warnings as they come normally, print extra in debug
+    if(debug_ && debugNEvents_ == 1) selec->fVerbose = 10;
     if(debug_) debugSelec_ = selec;
     if(!debug_)
       t->Process(selec);
@@ -227,11 +231,11 @@ Int_t process_nanoaods() {
     if(!debug_) delete selec;
     delete f;
   }
-  
+
   Double_t cpuTime = timer->CpuTime();
   Double_t realTime = timer->RealTime();
   printf("Total processing time: %7.2fs CPU time %7.2fs Wall time\n",cpuTime,realTime);
   if(realTime > 600. ) printf("Total processing time: %7.2fmin CPU time %7.2fmin Wall time\n",cpuTime/60.,realTime/60.);
-  
+
   return 0;
 }

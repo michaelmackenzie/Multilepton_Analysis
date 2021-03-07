@@ -1,20 +1,23 @@
 #! /bin/bash
 outdir=$1
 indir=$2
-force=""
+force=$3
+year=$4
+selection=$5
 if [ "$1" == "" ]
 then
     outdir="nanoaods_dev/"
 fi
 
-year=$4
-selection=$5
-
+lscommand="ls"
+filehead=""
 if [ "${indir}" == "" ]
 then
     indir="./ztautau_${selection}*${year}*.hist"
 else
-    indir="root://cmseos.fnal.gov//store/user/mmackenz/"${indir}"/ztautau_${selection}*${year}*.tree"
+    filehead="root://cmseos.fnal.gov//store/user/mmackenz/histograms/"${indir}"/"
+    indir="/store/user/mmackenz/histograms/"${indir}"/ztautau_${selection}*${year}*.hist"
+    lscommand="eos root://cmseos.fnal.gov ls"
 fi
 
 if [ "$3" == "" ]
@@ -24,9 +27,15 @@ else
     force="-f "
 fi
 
-outdir="root://cmseos.fnal.gov//store/user/mmackenz/histograms/"${outdir}
+outdir="/store/user/mmackenz/histograms/"${outdir}
+if [ `eosls ${outdir} &> /dev/null | head -n 1 | wc | awk '{print $1}'` -eq 0 ]
+then
+    echo "Creating output directory ${outdir}"
+    eos root://cmseos.fnal.gov mkdir ${outdir}
+fi
+outdir="root://cmseos.fnal.gov/"${outdir}
 
 echo "Using input path ${indir} and output path ${outdir}"
-for f in `ls ${indir}`; do echo "Copying tree file "${f}; xrdcp ${force}$f $outdir; done
+for f in `${lscommand} ${indir}`; do echo "Copying hist file "${filehead}${f}; xrdcp ${force}${filehead}$f $outdir; done
 
 echo "Finished moving histograms! Remove local files when confident there were no errors"

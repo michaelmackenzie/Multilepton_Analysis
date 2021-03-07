@@ -48,7 +48,7 @@
       printf("process ID: %i\n",gSystem->GetPid());
       TAuthenticate::SetGlobalUser(gSystem->Getenv("USER"));
       gInterpreter->ProcessLine(".! ps | grep root");
-      printf("Loading AsciiPlotter, ZTauTau_X_Makers, Fitter, DataPlotter, and CutsetTrainer\n");
+      printf("Loading lib/libCLFVAnalysis.so!\n");
       TString cmssw = gSystem->Getenv("CMSSW_BASE");
       TString path = (hostname.Contains("cmslpc")) ? "/src/BLT/BLTAnalysis/" : gSystem->Getenv("PWD");
       if(!hostname.Contains("cmslpc")) path += "/../";

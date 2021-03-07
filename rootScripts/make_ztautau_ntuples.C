@@ -6,7 +6,7 @@
 namespace {
   //Tree Variables
   Tree_t fTreeVars;
-  enum {kMaxMVAs = 80};
+  // enum {kMaxMVAs = 80};
   //Define relevant fields
   Int_t year_;
   TString folder_;
@@ -47,7 +47,7 @@ namespace {
   Long64_t fentry;
   Long64_t fMaxEntries = 0;
   float htPhi;
-  
+
   bool debug = false;
   TH1F* hDebug = 0; //if debugging, make a histograms of scores instead
 
@@ -63,9 +63,9 @@ namespace {
 Int_t book_mvas() {
   TMVA::Tools::Instance(); //load the library
   for(int i = 0; i < kMaxMVAs; ++i) mva[i] = 0; //initially 0s
-    
+
   for(unsigned mva_i = 0; mva_i < fMvaNames.size(); ++mva_i) {
-      
+
     mva[mva_i] = new TMVA::Reader("!Color:!Silent");
     TString selection = "";
     if(fMvaNames[mva_i].Contains("higgs")) selection += "h";
@@ -75,7 +75,7 @@ Int_t book_mvas() {
     else if(fMvaNames[mva_i].Contains("emu")) selection += "emu";
     else {
       printf ("Warning! Didn't determine mva weight file %s corresponding selection!\n",
-	      fMvaNames[mva_i].Data());
+              fMvaNames[mva_i].Data());
       selection += "mutau"; //just to default to something
     }
     //add for leptonic tau channels FIXME: Put as part of original check
@@ -88,16 +88,16 @@ Int_t book_mvas() {
     //    fMvaNames[mva_i].Contains("_78"))
     //   isJetBinned = 0;
     // else if(fMvaNames[mva_i].Contains("_19") || //1 jet
-    // 	    fMvaNames[mva_i].Contains("_49") ||
-    // 	    fMvaNames[mva_i].Contains("_79"))
+    //      fMvaNames[mva_i].Contains("_49") ||
+    //      fMvaNames[mva_i].Contains("_79"))
     //   isJetBinned = 1;
     // else if(fMvaNames[mva_i].Contains("_20") || //>1 jet
-    // 	    fMvaNames[mva_i].Contains("_50") ||
-    // 	    fMvaNames[mva_i].Contains("_80"))
+    //      fMvaNames[mva_i].Contains("_50") ||
+    //      fMvaNames[mva_i].Contains("_80"))
     //   isJetBinned = 2;
 
     fIsJetBinnedMVAs[mva_i] = isJetBinned; //store for checking when filling
-      
+
     printf("Using selection %s\n", selection.Data());
     //use a tool to initialize the MVA variables and spectators
     TrkQualInit trkQualInit(fTrkQualVersion, isJetBinned);
@@ -106,7 +106,7 @@ Int_t book_mvas() {
     TString year_string = "";
     if(fDoAllYearsMVA) year_string = "2016_2017_2018";
     else year_string += year_;
-    
+
     //Initialize MVA weight file
     const char* f = Form("weights/%s.%s.weights.xml",fMvaNames[mva_i].Data(), year_string.Data());
     mva[mva_i]->BookMVA(fMvaNames[mva_i].Data(),f);
@@ -133,15 +133,15 @@ Int_t initialize_tree_vars(int selection) {
   fTreeVars.leponept  = leptonOneP4->Pt();
   fTreeVars.leptwopt  = leptonTwoP4->Pt();
   // fTreeVars.leponeidone   = 0.;
-  // fTreeVars.leponeidtwo   = 0.; 
+  // fTreeVars.leponeidtwo   = 0.;
   // fTreeVars.leponeidthree = 0.;
   // if(selection < 4) {//tau selection
   //   fTreeVars.leptwoidone   = tauDeepAntiEle;
-  //   fTreeVars.leptwoidtwo   = tauDeepAntiMu; 
+  //   fTreeVars.leptwoidtwo   = tauDeepAntiMu;
   //   fTreeVars.leptwoidthree = tauDeepAntiJet;
   // } else { //no other ids for now
   //   fTreeVars.leptwoidone   = 0.;
-  //   fTreeVars.leptwoidtwo   = 0.; 
+  //   fTreeVars.leptwoidtwo   = 0.;
   //   fTreeVars.leptwoidthree = 0.;
   // }
 
@@ -172,7 +172,7 @@ Int_t initialize_tree_vars(int selection) {
   if(fTreeVars.twometdeltaphi > M_PI)
     fTreeVars.twometdeltaphi = abs(2.*M_PI - fTreeVars.twometdeltaphi);
 
-  
+
   fTreeVars.mtone = sqrt(2.*fTreeVars.met*fTreeVars.leponept*(1.-cos(leptonOneP4->Phi() - metPhi)));
   fTreeVars.mttwo = sqrt(2.*fTreeVars.met*fTreeVars.leptwopt*(1.-cos(leptonTwoP4->Phi() - metPhi)));
   fTreeVars.mtoneoverm = fTreeVars.mtone / fTreeVars.lepm;
@@ -185,7 +185,7 @@ Int_t initialize_tree_vars(int selection) {
   lp2.SetZ(0.);
   TVector3 bisector = (lp1.Mag()*lp2 + lp2.Mag()*lp1); //divides leptons
   if(bisector.Mag() > 0.) bisector.SetMag(1.);
-  
+
   //project onto the bisectors
   fTreeVars.pxivis = (lp1+lp2)*bisector;
   fTreeVars.pxiinv = missing*bisector;
@@ -222,7 +222,7 @@ Int_t initialize_tree_vars(int selection) {
   fTreeVars.fulleventweightlum = 1.;
   fTreeVars.eventcategory = 1;
   fTreeVars.train = 1;
-  
+
   TString selecName = "";
   if(selection == 1)      selecName = "mutau";
   else if(selection == 2) selecName = "etau";
@@ -230,25 +230,25 @@ Int_t initialize_tree_vars(int selection) {
   else if(selection == 9) selecName = "mumu";
   else if(selection == 18)selecName = "ee";
   else {                  selecName = "unknown"; cout << "---Warning! Entry " << fentry << " has unknown selection "
-						      << selection << "!\n nMuons = " << nMuons << " nElectrons = "
-						      << nElectrons << " nTaus = " << nTaus << endl;}
-  
+                                                      << selection << "!\n nMuons = " << nMuons << " nElectrons = "
+                                                      << nElectrons << " nTaus = " << nTaus << endl;}
+
   for(unsigned i = 0; i < fMvaNames.size(); ++i) {
     if((fMvaBranches[i] || (debug&&mva[i])) && //branch exists or debug mode
        ((fMvaNames[i].Contains(selecName.Data()) && !fMvaNames[i].Contains("tau_e") && !fMvaNames[i].Contains("tau_mu")) || //is this selection, reject leptonic tau not in emu
-	(selecName == "emu" && (fMvaNames[i].Contains("_e") || fMvaNames[i].Contains("_mu"))) || //or leptonic tau category
-	((selecName == "mumu" || selecName == "ee") && fMvaNames[i].Contains("emu"))) && //or is ee/mumu and compare to emu
+        (selecName == "emu" && (fMvaNames[i].Contains("_e") || fMvaNames[i].Contains("_mu"))) || //or leptonic tau category
+        ((selecName == "mumu" || selecName == "ee") && fMvaNames[i].Contains("emu"))) && //or is ee/mumu and compare to emu
        (fIsJetBinnedMVAs[i] < 0 || fIsJetBinnedMVAs[i] == min((int) fTreeVars.njets,2))) //and either not jet binned or right number of jets
       fMvaOutputs[i] = mva[i]->EvaluateMVA(fMvaNames[i].Data());
     else
       fMvaOutputs[i] = -2.;
     if(debug && fentry % 10000 == 0)
       cout << "entry " << fentry << ": MVA " << i << ": score = " << fMvaOutputs[i] << endl;
-    if(fMvaOutputs[i] < -100.) 
+    if(fMvaOutputs[i] < -100.)
       cout << "Error value returned for MVA " << fMvaNames[i].Data()
-	   << " evaluation, Entry = " << fentry
-	   << " lepmestimate = " << fTreeVars.mestimate << " lepmestimatetwo = "
-	   << fTreeVars.mestimatetwo << endl;
+           << " evaluation, Entry = " << fentry
+           << " lepmestimate = " << fTreeVars.mestimate << " lepmestimatetwo = "
+           << fTreeVars.mestimatetwo << endl;
     if(debug) hDebug->Fill(fMvaOutputs[i]);
   }
   return 0;
@@ -257,34 +257,34 @@ Int_t initialize_tree_vars(int selection) {
 //read only information needed by MVAs, for selections,  or for debugging
 Int_t set_addresses(TTree* fChain) {
   fChain->SetBranchStatus("*", 0); //turn off all branches
-  fChain->SetBranchStatus("leptonOneP4"         , 1); fChain->SetBranchAddress("leptonOneP4"         , &leptonOneP4          );   
-  fChain->SetBranchStatus("leptonTwoP4"         , 1); fChain->SetBranchAddress("leptonTwoP4"         , &leptonTwoP4          );   
-  fChain->SetBranchStatus("jetP4"               , 1); fChain->SetBranchAddress("jetP4"               , &jetP4                );   
-  // fChain->SetBranchStatus("nMuons"              , 1); fChain->SetBranchAddress("nMuons"              , &nMuons               );   
-  // fChain->SetBranchStatus("nElectrons"          , 1); fChain->SetBranchAddress("nElectrons"          , &nElectrons           );   
-  // fChain->SetBranchStatus("nTaus"               , 1); fChain->SetBranchAddress("nTaus"               , &nTaus                );   
-  // fChain->SetBranchStatus("nPhotons"            , 1); fChain->SetBranchAddress("nPhotons"            , &fTreeVars.nphotons   );   
-  fChain->SetBranchStatus("nJets"               , 1); fChain->SetBranchAddress("nJets"               , &njets                );   
-  // fChain->SetBranchStatus("nFwdJets"            , 1); fChain->SetBranchAddress("nFwdJets"            , &nfwdjets             );   
-  // fChain->SetBranchStatus("nBJets"              , 1); fChain->SetBranchAddress("nBJets"              , &nBJets               );   
-  // fChain->SetBranchStatus("nBJetsM"             , 1); fChain->SetBranchAddress("nBJetsM"             , &nBJetsM              );   
-  // fChain->SetBranchStatus("nBJetsL"             , 1); fChain->SetBranchAddress("nBJetsL"             , &nBJetsL              );   
-  // fChain->SetBranchStatus("nBJets20"            , 1); fChain->SetBranchAddress("nBJets20"            , &nBJets20             );   
-  // fChain->SetBranchStatus("nBJets20M"           , 1); fChain->SetBranchAddress("nBJets20M"           , &nBJets20M            );   
-  // fChain->SetBranchStatus("nBJets20L"           , 1); fChain->SetBranchAddress("nBJets20L"           , &nBJets20L            );   
-  fChain->SetBranchStatus("puppMETC"            , 1); fChain->SetBranchAddress("puppMETC"            , &met                  );   
-  fChain->SetBranchStatus("puppMETCphi"         , 1); fChain->SetBranchAddress("puppMETCphi"         , &metPhi               );   
-  // fChain->SetBranchStatus("met"                 , 1); fChain->SetBranchAddress("met"                 , &met                  );   
-  // fChain->SetBranchStatus("metPhi"              , 1); fChain->SetBranchAddress("metPhi"              , &metPhi               );   
-  fChain->SetBranchStatus("metCorr"             , 1); fChain->SetBranchAddress("metCorr"             , &metCorr              );   
-  fChain->SetBranchStatus("metCorrPhi"          , 1); fChain->SetBranchAddress("metCorrPhi"          , &metCorrPhi           );   
-  // fChain->SetBranchStatus("ht"                  , 1); fChain->SetBranchAddress("ht"                  , &fTreeVars.ht         );   
-  // fChain->SetBranchStatus("htPhi"               , 1); fChain->SetBranchAddress("htPhi"               , &htPhi                );   
+  fChain->SetBranchStatus("leptonOneP4"         , 1); fChain->SetBranchAddress("leptonOneP4"         , &leptonOneP4          );
+  fChain->SetBranchStatus("leptonTwoP4"         , 1); fChain->SetBranchAddress("leptonTwoP4"         , &leptonTwoP4          );
+  fChain->SetBranchStatus("jetP4"               , 1); fChain->SetBranchAddress("jetP4"               , &jetP4                );
+  // fChain->SetBranchStatus("nMuons"              , 1); fChain->SetBranchAddress("nMuons"              , &nMuons               );
+  // fChain->SetBranchStatus("nElectrons"          , 1); fChain->SetBranchAddress("nElectrons"          , &nElectrons           );
+  // fChain->SetBranchStatus("nTaus"               , 1); fChain->SetBranchAddress("nTaus"               , &nTaus                );
+  // fChain->SetBranchStatus("nPhotons"            , 1); fChain->SetBranchAddress("nPhotons"            , &fTreeVars.nphotons   );
+  fChain->SetBranchStatus("nJets"               , 1); fChain->SetBranchAddress("nJets"               , &njets                );
+  // fChain->SetBranchStatus("nFwdJets"            , 1); fChain->SetBranchAddress("nFwdJets"            , &nfwdjets             );
+  // fChain->SetBranchStatus("nBJets"              , 1); fChain->SetBranchAddress("nBJets"              , &nBJets               );
+  // fChain->SetBranchStatus("nBJetsM"             , 1); fChain->SetBranchAddress("nBJetsM"             , &nBJetsM              );
+  // fChain->SetBranchStatus("nBJetsL"             , 1); fChain->SetBranchAddress("nBJetsL"             , &nBJetsL              );
+  // fChain->SetBranchStatus("nBJets20"            , 1); fChain->SetBranchAddress("nBJets20"            , &nBJets20             );
+  // fChain->SetBranchStatus("nBJets20M"           , 1); fChain->SetBranchAddress("nBJets20M"           , &nBJets20M            );
+  // fChain->SetBranchStatus("nBJets20L"           , 1); fChain->SetBranchAddress("nBJets20L"           , &nBJets20L            );
+  fChain->SetBranchStatus("puppMETC"            , 1); fChain->SetBranchAddress("puppMETC"            , &met                  );
+  fChain->SetBranchStatus("puppMETCphi"         , 1); fChain->SetBranchAddress("puppMETCphi"         , &metPhi               );
+  // fChain->SetBranchStatus("met"                 , 1); fChain->SetBranchAddress("met"                 , &met                  );
+  // fChain->SetBranchStatus("metPhi"              , 1); fChain->SetBranchAddress("metPhi"              , &metPhi               );
+  fChain->SetBranchStatus("metCorr"             , 1); fChain->SetBranchAddress("metCorr"             , &metCorr              );
+  fChain->SetBranchStatus("metCorrPhi"          , 1); fChain->SetBranchAddress("metCorrPhi"          , &metCorrPhi           );
+  // fChain->SetBranchStatus("ht"                  , 1); fChain->SetBranchAddress("ht"                  , &fTreeVars.ht         );
+  // fChain->SetBranchStatus("htPhi"               , 1); fChain->SetBranchAddress("htPhi"               , &htPhi                );
   // fChain->SetBranchStatus("tauDeepAntiEle"      , 1); fChain->SetBranchAddress("tauDeepAntiEle"      , &tauDeepAntiEle       );
   // fChain->SetBranchStatus("tauDeepAntiMu"       , 1); fChain->SetBranchAddress("tauDeepAntiMu"       , &tauDeepAntiMu        );
   // fChain->SetBranchStatus("tauDeepAntiJet"      , 1); fChain->SetBranchAddress("tauDeepAntiJet"      , &tauDeepAntiJet       );
 
-  
+
   //add new branches for MVA outputs
   for(unsigned mva_i = 0; mva_i < fMvaNames.size(); ++mva_i)  fMvaBranches[mva_i] = 0; //set to 0 initially
   int nfound = 0;
@@ -295,12 +295,12 @@ Int_t set_addresses(TTree* fChain) {
       if(!debug) fMvaBranches[mva_i] = fChain->Branch(Form("mva%i",mva_i), &(fMvaOutputs[mva_i]));
     } else { //update branch if it exists
       if(!debug) {
-	fChain->SetBranchStatus(Form("mva%i", mva_i), 1);
-	fChain->SetBranchAddress(Form("mva%i", mva_i), &(fMvaOutputs[mva_i]));
-	fMvaBranches[mva_i] = fChain->GetBranch(Form("mva%i",mva_i));
+        fChain->SetBranchStatus(Form("mva%i", mva_i), 1);
+        fChain->SetBranchAddress(Form("mva%i", mva_i), &(fMvaOutputs[mva_i]));
+        fMvaBranches[mva_i] = fChain->GetBranch(Form("mva%i",mva_i));
       }
     }
-  }      
+  }
   return nfound;
 }
 
@@ -309,7 +309,7 @@ Int_t make_new_tree_inparts(TString path, TString path_in_file, TString tree_nam
   cout << "Given file path " << path.Data() << " with folder " << path_in_file.Data()
        << " and tree name " << tree_name.Data() << endl
        << "Will process events " << iStart << " through " << iStart+iStep-1 << endl;
-  
+
   // get the file and tree we're adding to
   TFile* file = TFile::Open(path.Data(), ((debug) ? "READ" : "UPDATE"));
   if(!file) return 1;
@@ -343,14 +343,14 @@ Int_t make_new_tree_inparts(TString path, TString path_in_file, TString tree_nam
     bool mumu  = folder_ == "mumu";
     bool ee    = folder_ == "ee";
     int selection = (mutau +
-		     2*etau +
-		     5*emu +
-		     9*mumu +
-		     18*ee);
+                     2*etau +
+                     5*emu +
+                     9*mumu +
+                     18*ee);
     initialize_tree_vars(selection);
     for(unsigned mva_i = 0; mva_i < fMvaNames.size(); ++mva_i) {
       if(fMvaBranches[mva_i]) {
-	fMvaBranches[mva_i]->Fill();
+        fMvaBranches[mva_i]->Fill();
       }
     }
   }
@@ -368,7 +368,7 @@ Int_t make_new_tree_inparts(TString path, TString path_in_file, TString tree_nam
 Int_t make_new_tree(TString path, TString path_in_file, TString tree_name) {
   cout << "Given file path " << path.Data() << " with folder " << path_in_file.Data()
        << " and tree name " << tree_name.Data() << endl;
-  
+
   // get the file and tree we're adding to
   TFile* file = TFile::Open(path.Data(), ((debug) ? "READ" : "UPDATE"));
   if(!file) return 1;
@@ -408,16 +408,16 @@ Int_t make_new_tree(TString path, TString path_in_file, TString tree_name) {
     bool mumu  = folder_ == "mumu";
     bool ee    = folder_ == "ee";
     int selection = (mutau +
-		     2*etau +
-		     5*emu +
-		     9*mumu +
-		     18*ee);
+                     2*etau +
+                     5*emu +
+                     9*mumu +
+                     18*ee);
     if(debug && entry%10000 == 0)
       cout << "Using selection " << selection << endl;
     initialize_tree_vars(selection);
     for(unsigned mva_i = 0; mva_i < fMvaNames.size(); ++mva_i) {
       if(!debug&&fMvaBranches[mva_i]) {
-	fMvaBranches[mva_i]->Fill();
+        fMvaBranches[mva_i]->Fill();
       }
     }
   }
@@ -446,8 +446,8 @@ Int_t process_standard_nano_trees(int year = 2016, bool doInParts = false, bool 
   int status = 0;
   year_ = year;
   TString grid_path = "root://cmseos.fnal.gov///store/user/mmackenz/ztautau_nanoaod_test_trees/";
-  // TString grid_out = "root://cmseos.fnal.gov///store/user/mmackenz/ztautau_nanoaod_test_trees/";
-  TString grid_out = "root://cmseos.fnal.gov///store/user/mmackenz/ztautau_nanoaod_trees/";
+  TString grid_out = "root://cmseos.fnal.gov///store/user/mmackenz/ztautau_nanoaod_test_trees/";
+  // TString grid_out = "root://cmseos.fnal.gov///store/user/mmackenz/ztautau_nanoaod_trees/";
   if(copyLocal&&!update) grid_path = "root://cmseos.fnal.gov///store/user/mmackenz/ztautau_nanoaod_trees_nomva/";
   TString name = "clfv_";
   name += year;
@@ -478,11 +478,11 @@ Int_t process_standard_nano_trees(int year = 2016, bool doInParts = false, bool 
   cards.push_back(datacard_t(true                 , name+"QCDDoubleEMEnrich30to40"));
   cards.push_back(datacard_t(true                 , name+"QCDDoubleEMEnrich30toInf"));
   cards.push_back(datacard_t(true                 , name+"QCDDoubleEMEnrich40toInf"));
-  
+
   vector<TString> folders = {/*"ee", "mumu",*/ "mutau", "etau", "emu"};
   status = initialize(); //initialize the MVAs
   if(status) return status;
-  
+
   TStopwatch* timer = new TStopwatch();
   for(datacard_t& card : cards) {
     if(!card.process_) continue;
@@ -497,7 +497,7 @@ Int_t process_standard_nano_trees(int year = 2016, bool doInParts = false, bool 
       folder_ = folder;
       int stat_f = (doInParts) ? make_new_tree_inparts(file_name, folder, card.fname_, card.iStart_) : make_new_tree(file_name, folder, card.fname_);
       if(stat_f) cout << "file " << card.fname_.Data() << ": folder " << folder.Data()
-    		    << " returned status " << stat << endl;
+                    << " returned status " << stat << endl;
       stat += stat_f;
     }
     status += stat;
