@@ -4,7 +4,7 @@
 //use the dataplotter to manage normalizations and initializations
 DataPlotter* dataplotter_ = 0;
 int verbose_ = 0;
-bool doMC_ = false; //perform the study on MC
+bool doMC_ = true; //perform the study on MC
 
 //Get the 2D jet pT vs eta histogram
 TH2D* get_histogram(int setAbs, bool isdata, int icat) {
@@ -120,12 +120,13 @@ Int_t initialize_plotter(TString base, TString path, int year) {
 
 //Generate the plots and scale factors
 Int_t scale_factors(TString selection = "mumu", int set = 7, int year = 2016,
-		    TString path = "../../histograms/nanoaods_dev/") {
+		    TString path = "nanoaods_dev/") {
   
   //////////////////////
   // Initialize files //
   //////////////////////
-
+  path = "root://cmseos.fnal.gov//store/user/mmackenz/histograms/" + path;
+  
   //get the absolute value of the set, offsetting by the selection
   int setAbs = set;
   if(selection == "mutau")      setAbs += ZTauTauHistMaker::kMuTau;
@@ -172,6 +173,7 @@ Int_t scale_factors(TString selection = "mumu", int set = 7, int year = 2016,
     //ensure weight sum objects are created
     if(doMC_ && !hMCFakeLepRates[icat]->GetSumw2N()) hMCFakeLepRates[icat]->Sumw2();
     if(!hDataFakeLepRates[icat]->GetSumw2N()) hDataFakeLepRates[icat]->Sumw2();
+    if(doMC_) hDataFakeLepRates[icat]->Add(hMCFakeLepRates[icat], -1.);
   }
   if(verbose_ > 0) cout << "Finished retrieving all histograms!\n";
 
@@ -213,6 +215,7 @@ Int_t scale_factors(TString selection = "mumu", int set = 7, int year = 2016,
   c->Print(Form("%s_data_eff.png", name.Data()));
   if(doMC_) {
     c = make_canvas(hMCFakeLepRates, "c_rate_mc", false);
+    c->Print(Form("%s_mc_rate_vs_eta.png", name.Data()));
     c = make_eta_region_canvas(hMCFakeLepRates[1], hMCFakeLepRates[0], "c_eta_eff_mc", true);
     c->Print(Form("%s_mc_eff_vs_eta.png", name.Data()));
     c = make_eta_region_canvas(hMCFakeLepRates[1], hMCFakeLepRates[0], "c_eff_mc", true, true);
