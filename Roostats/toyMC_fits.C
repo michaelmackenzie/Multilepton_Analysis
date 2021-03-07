@@ -33,17 +33,17 @@ int toyMC_fits(int set, vector<int> years, int nfits = 1000, bool print = true) 
   auto n_sig = wsIn->function("n_sig");
   auto eff = wsIn->function("eff");
 
-  
+
   //create the study
   RooMCStudy mcstudy(*gener_PDF,RooArgSet(*lepm),RooFit::FitModel(*fit_PDF),RooFit::Silence(), RooFit::Extended(1),
-		     RooFit::FitOptions(RooFit::Save(1), RooFit::PrintEvalErrors(0)));
+                     RooFit::FitOptions(RooFit::Save(1), RooFit::PrintEvalErrors(0)));
 
   //perform the study
   mcstudy.generateAndFit(nfits);
 
   if(!n_sig) cout << "n_sig variable not found!\n";
   else     {
-    n_sig->Print();    
+    n_sig->Print();
     br_emu->Print();
   }
 
@@ -52,7 +52,7 @@ int toyMC_fits(int set, vector<int> years, int nfits = 1000, bool print = true) 
   if(wsIn->var("br_ll")) wsIn->var("br_ll")->Print();
   if(wsIn->function("n_muon_var")) wsIn->function("n_muon_var")->Print();
   if(wsIn->function("n_electron_var")) wsIn->function("n_electron_var")->Print();
-  
+
   auto canvas = new TCanvas("c_toy", "c_toy", 1200, 1000);
   canvas->Divide(2,2);
 
@@ -70,7 +70,7 @@ int toyMC_fits(int set, vector<int> years, int nfits = 1000, bool print = true) 
     auto NLLframe = mcstudy.plotNLL(RooFit::Bins(40));
     NLLframe->Draw();
   }
-  
+
   canvas->cd(1);
   brval_frame->Draw();
   if(print)

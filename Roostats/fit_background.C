@@ -16,20 +16,20 @@ Int_t do_fit(TTree* tree, int set, vector<int> years, bool doHiggs, int seed) {
     year_string += years[i];
   }
   RooRealVar lepm("lepm", "di-lepton invariant mass",
-		  (doHiggs) ? 160. : 110.,
-		  (doHiggs) ? 100. : 75. ,
-		  (doHiggs) ? 160. : 110.,
-		  "GeV/c^{2}");
+                  (doHiggs) ? 160. : 110.,
+                  (doHiggs) ? 100. : 75. ,
+                  (doHiggs) ? 160. : 110.,
+                  "GeV/c^{2}");
   RooRealVar weight("fulleventweightlum", "Full event weight*luminosity", 1., -100., 100.);
   RooDataSet dataset("dataset", "dataset", RooArgList(lepm,weight),
-		     RooFit::Import(*tree), RooFit::WeightVar(weight));
+                     RooFit::Import(*tree), RooFit::WeightVar(weight));
 
   //get the nominal data numbers
   DataInfo muonInfo(set, "muon");
   DataInfo electronInfo(set, "electron");
   muonInfo.ReadData();
   electronInfo.ReadData();
-  
+
   double n_muon = 0.;
   double n_electron = 0.;
   for(int year : years) {
@@ -37,16 +37,16 @@ Int_t do_fit(TTree* tree, int set, vector<int> years, bool doHiggs, int seed) {
     n_electron += electronInfo.datamap_[year];
   }
 
-  
+
   std::cout << "Number of events to fit: " << dataset.numEntries() << std::endl
-	    << "Number of muon events is " << n_muon << std::endl
-	    << "Number of electron events is " << n_electron << std::endl;
+            << "Number of muon events is " << n_muon << std::endl
+            << "Number of electron events is " << n_electron << std::endl;
 
   //Get the signal PDF
   TString nWSSignal;
   if(useMorphedPDF_ && !doHiggs) nWSSignal = Form("workspaces/morphed_signal_%s_%i.root", year_string.Data(), set);
   else                           nWSSignal = Form("workspaces/fit_signal_%s_lepm_%s_%i.root", ((doHiggs) ? "hemu" : "zemu"),
-						  year_string.Data(), set);
+                                                  year_string.Data(), set);
   TFile* fWSSignal = TFile::Open(nWSSignal.Data(), "READ");
   if(!fWSSignal) return 1;
   RooWorkspace* ws_signal = (RooWorkspace*) fWSSignal->Get("ws");
@@ -108,19 +108,19 @@ Int_t do_fit(TTree* tree, int set, vector<int> years, bool doHiggs, int seed) {
   eff_signal /= lum; //divide by total luminosity
   if(!useSameFlavorCount_ || doHiggs)
     eff_nominal.setVal(eff_signal);
-  
+
   double bxs = xs.GetCrossSection((doHiggs) ? "H" : "Z");
   RooRealVar lum_var("lum_var", "lum_var", lum);
   RooRealVar bxs_var("bxs_var", "bxs_var", bxs);
-  
+
   RooFormulaVar n_sig("n_sig", ((useSameFlavorCount_&&!doHiggs) ? "@0*@4*sqrt((@1*@2)/(@3*@3))" : "@0*@1*@2*@3")
-		      , ((useSameFlavorCount_&&!doHiggs) ? RooArgList(br_emu, n_electron_var, n_muon_var,br_ll,eff) :
-			 RooArgList(br_emu, lum_var, bxs_var, eff))
-		      );
+                      , ((useSameFlavorCount_&&!doHiggs) ? RooArgList(br_emu, n_electron_var, n_muon_var,br_ll,eff) :
+                         RooArgList(br_emu, lum_var, bxs_var, eff))
+                      );
   RooRealVar n_bkg("n_bkg", "n_bkg", 500., 0., 1.e6);
 
   if(!includeSignalInFit_) {br_emu.setVal(0.); br_emu.setConstant(1);}
-  
+
 
   ////////////////////////////////////
   // Alternate Background Functions //
@@ -153,7 +153,7 @@ Int_t do_fit(TTree* tree, int set, vector<int> years, bool doHiggs, int seed) {
   RooRealVar a_bst2("a_bst2", "a_bst2", 1.491   , -5., 5.);
   RooRealVar b_bst2("b_bst2", "b_bst2", 2.078e-1, -5., 5.);
   RooBernstein bkgPDF_bst2("bkgPDF_bst2", "bkgPDF_bst2", lepm, RooArgList(a_bst2, b_bst2));
-  
+
   //2nd order Bernstein
   RooRealVar a_bst3("a_bst3", "a_bst3", 1.491   , -5., 5.);
   RooRealVar b_bst3("b_bst3", "b_bst3", 2.078e-1, -5., 5.);
@@ -203,13 +203,13 @@ Int_t do_fit(TTree* tree, int set, vector<int> years, bool doHiggs, int seed) {
   if(doHiggs)  totPDF_bst4.fitTo(dataset);
   if(!doHiggs) totPDF_bst3.fitTo(dataset);
   if(!doHiggs) totPDF_bst5.fitTo(dataset);
-  
+
   //fit, plot, etc.
   if(doConstraints_)
     totPDF_constr.fitTo(dataset, RooFit::Extended(1));
   else
     totPDF.fitTo(dataset, RooFit::Extended(1));
-    
+
   if(!includeSignalInFit_) {br_emu.setVal(0.); br_emu.setConstant(0);}
   auto xframe = lepm.frame();
   dataset.plotOn(xframe);
@@ -224,7 +224,7 @@ Int_t do_fit(TTree* tree, int set, vector<int> years, bool doHiggs, int seed) {
     bkgPDF_bst2.plotOn(xframe, RooFit::LineColor(kGreen), RooFit::LineStyle(kDashed));
     bkgPDF_bst4.plotOn(xframe, RooFit::LineColor(kViolet-2), RooFit::LineStyle(kDashed));
   }
-  
+
   bkgPDF_exp.plotOn(xframe, RooFit::LineColor(kRed), RooFit::LineStyle(kDashed));
   // bkgPDF_cheb.plotOn(xframe, RooFit::LineColor(kAzure), RooFit::LineStyle(kDashed));
   // bkgPDF_pow.plotOn(xframe, RooFit::LineColor(kGreen), RooFit::LineStyle(kDashed));
@@ -250,12 +250,12 @@ Int_t do_fit(TTree* tree, int set, vector<int> years, bool doHiggs, int seed) {
 
   cout << "***Frame chi squared values:\n";
   vector<pair<TString, int>> bkg_funcs = {pair<TString, int>("totPDF_Norm[lepm]", (doHiggs) ? 4 : 5),
-					  pair<TString, int>("bkgPDF_exp_Norm[lepm]", 2),
-					  pair<TString, int>("bkgPDF_bst2_Norm[lepm]", 3),
-					  pair<TString, int>("bkgPDF_bst3_Norm[lepm]", 4),
-					  pair<TString, int>("bkgPDF_bst4_Norm[lepm]", 5),
-					  pair<TString, int>("bkgPDF_bst5_Norm[lepm]", 6),
-					  pair<TString, int>("bkgPDF_land_Norm[lepm]", 3)};
+                                          pair<TString, int>("bkgPDF_exp_Norm[lepm]", 2),
+                                          pair<TString, int>("bkgPDF_bst2_Norm[lepm]", 3),
+                                          pair<TString, int>("bkgPDF_bst3_Norm[lepm]", 4),
+                                          pair<TString, int>("bkgPDF_bst4_Norm[lepm]", 5),
+                                          pair<TString, int>("bkgPDF_bst5_Norm[lepm]", 6),
+                                          pair<TString, int>("bkgPDF_land_Norm[lepm]", 3)};
   for(int index = 0; index < bkg_funcs.size(); ++index) {
     TString bkg_name = bkg_funcs[index].first;
     // if(doHiggs  && bkg_name.Contains("bst5")) continue;
@@ -266,7 +266,7 @@ Int_t do_fit(TTree* tree, int set, vector<int> years, bool doHiggs, int seed) {
   }
   cout << "Frame contents:\n";
   xframe->Print();
-  
+
   gSystem->Exec(Form("[ ! -d plots/latest_production/%s ] && mkdir -p plots/latest_production/%s", year_string.Data(), year_string.Data()));
   if(doConstraints_)
     c1->SaveAs(Form("plots/latest_production/%s/fit_%s_lepm_background_constr_%i.png", year_string.Data(), (doHiggs) ? "hemu" : "zemu", set));
@@ -277,13 +277,13 @@ Int_t do_fit(TTree* tree, int set, vector<int> years, bool doHiggs, int seed) {
   TFile* fOut = 0;
   if(doConstraints_)
     fOut = new TFile(Form("workspaces/fit_%s_lepm_background_constr_%s_%i.root", (doHiggs) ? "hemu" : "zemu",
-			  year_string.Data(), set), "RECREATE");
+                          year_string.Data(), set), "RECREATE");
   else
     fOut = new TFile(Form("workspaces/fit_%s_lepm_background_%s_%i.root", (doHiggs) ? "hemu" : "zemu",
-			  year_string.Data(), set), "RECREATE");
+                          year_string.Data(), set), "RECREATE");
   fOut->cd();
   auto bkg_data = (doHiggs) ? bkgPDF_bst3.generate(RooArgSet(lepm), n_bkg.getVal()) : bkgPDF_bst4.generate(RooArgSet(lepm), n_bkg.getVal());
-  
+
   RooWorkspace ws("ws");
   if(doConstraints_) {
     ws.import(totPDF_constr);
@@ -312,7 +312,7 @@ Int_t do_fit(TTree* tree, int set, vector<int> years, bool doHiggs, int seed) {
 }
 
 Int_t fit_background(int set = 8, vector<int> years = {2016, 2017, 2018},
-		     bool doHiggs = false, int seed = 90) {
+                     bool doHiggs = false, int seed = 90) {
   int status(0);
   TList* list = new TList;
   TString year_string = "";

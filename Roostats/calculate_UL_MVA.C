@@ -4,8 +4,8 @@ bool fixBkgParams_ = false;
 bool useBinnedBkgFit_ = true;
 
 Int_t calculate_UL_MVA(int set = 8, TString selection = "zmutau",
-		       vector<int> years = {2016/*, 2017, 2018*/},
-		       bool useToyData = false) {
+                       vector<int> years = {2016/*, 2017, 2018*/},
+                       bool useToyData = false) {
   TString hist;
   if     (selection == "hmutau"  ) hist = "mva0";
   else if(selection == "zmutau"  ) hist = "mva1";
@@ -27,7 +27,7 @@ Int_t calculate_UL_MVA(int set = 8, TString selection = "zmutau",
   TString signame = selection; signame.ReplaceAll("z", "Z"); signame.ReplaceAll("h", "H");
   signame.ReplaceAll("_e", ""); signame.ReplaceAll("_mu",""); signame.ReplaceAll("m", "M");
   signame.ReplaceAll("e", "E"); signame.ReplaceAll("t", "T");
-  
+
   TString year_string = "";
   for(unsigned i = 0; i < years.size(); ++i) {
     int year = years[i];
@@ -41,7 +41,7 @@ Int_t calculate_UL_MVA(int set = 8, TString selection = "zmutau",
   if(!ws) return 2;
   RooRealVar* br_sig = ws->var("br_sig");
   if(!br_sig) return 2;
-  
+
   RooArgList poi_list(*br_sig);
   RooArgList obs_list(*(ws->var(hist.Data())));
   RooDataSet* data = (RooDataSet*) ws->data("bkgMVAPDFData");
@@ -51,7 +51,7 @@ Int_t calculate_UL_MVA(int set = 8, TString selection = "zmutau",
   ws->Print();
   auto n_bkg  = ws->var("n_bkg");
   if(!n_bkg) return 4;
-  
+
   RooArgList nuisance_params;
   nuisance_params.add(*n_bkg );
   if(doConstraints_)
@@ -105,7 +105,7 @@ Int_t calculate_UL_MVA(int set = 8, TString selection = "zmutau",
   double min_scan = (selection.Contains("z")) ? 1.e-6 : 1.e-5;
   double max_scan = (selection.Contains("z")) ? 2.e-5 : 1.e-2;
   std::cout << "Doing a fixed scan in the interval: " << min_scan << ", "
-	    << max_scan << " with " << npoints << " points\n";
+            << max_scan << " with " << npoints << " points\n";
   calc.SetFixedScan(npoints, min_scan, max_scan);
 
   auto result = calc.GetInterval();
@@ -114,14 +114,14 @@ Int_t calculate_UL_MVA(int set = 8, TString selection = "zmutau",
   double expectedULM = result->GetExpectedUpperLimit(-1);
   double expectedULP = result->GetExpectedUpperLimit( 1);
   std::cout << "##################################################\n"
-	    << "The observed upper limit is " << upperLimit << std::endl;
+            << "The observed upper limit is " << upperLimit << std::endl;
 
   //compute the expected limit
   std::cout << "Expected upper limits, using the alternate model: " << std::endl
-	    << " expected limit (median): " << expectedUL  << std::endl
-	    << " expected limit (-1 sig): " << expectedULM << std::endl
-	    << " expected limit (+1 sig): " << expectedULP << std::endl
-	    << "##################################################\n";
+            << " expected limit (median): " << expectedUL  << std::endl
+            << " expected limit (-1 sig): " << expectedULM << std::endl
+            << " expected limit (+1 sig): " << expectedULP << std::endl
+            << "##################################################\n";
 
   //Plot the results
   RooStats::HypoTestInverterPlot freq_plot("HTI_Result_Plot","Expected CLs",result);
@@ -150,16 +150,16 @@ Int_t calculate_UL_MVA(int set = 8, TString selection = "zmutau",
   label.SetTextColor(kRed);
   label.SetTextAlign(13);
   label.DrawLatex(0.12, 0.34, Form("Expected 95%% CL = %.2e^{+%.2e}_{-%.2e}",
-				  expectedUL, expectedULP-expectedUL, expectedUL-expectedULM));
+                                  expectedUL, expectedULP-expectedUL, expectedUL-expectedULM));
   if(useToyData)
     label.DrawLatex(0.12, 0.26, Form("Observed 95%% CL = %.2e", upperLimit));
-  
+
   gSystem->Exec(Form("[ ! -d plots/latest_production/%s ] && mkdir -p plots/latest_production/%s", year_string.Data(), year_string.Data()));
   canvas->SaveAs(Form("plots/latest_production/%s/pval_vs_br_%s_%s_%i.pdf", year_string.Data(), hist.Data(), selection.Data(), set));
   canvas->SaveAs(Form("plots/latest_production/%s/pval_vs_br_%s_%s_%i.png", year_string.Data(), hist.Data(), selection.Data(), set));
 
   cout << "Finished UL calculation, plotting dataset with expected UL...\n";
-  
+
   //Plot background spectrum (with toy data) and signal with upper limit value
   auto totPDF = (RooAddPdf*) ws->pdf("totMVAPDF");
   auto bkgPDF = ws->pdf("bkgMVAPDF");
@@ -196,6 +196,6 @@ Int_t calculate_UL_MVA(int set = 8, TString selection = "zmutau",
   if(eff) eff->Print();
   if(n_bkg) n_bkg->Print();
   if(lum) lum->Print();
-  
+
   return 0;
 }

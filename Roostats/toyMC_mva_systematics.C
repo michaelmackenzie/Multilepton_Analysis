@@ -6,10 +6,14 @@ int toyMC_mva_systematics(int set = 8, TString selection = "zmutau",
                           int systematic = 5,
                           int nfits = 500,
                           bool print = true,
-                          bool self_test = false) {
+                          bool self_test = false,
+                          int seed = 90) {
   int status(0);
-  int seed = 90;
   double scale_lum = -1.; //for testing effects from changing the luminosity
+  double fit_bias = 0.;
+  if     (selection == "zmutau") fit_bias = -2.5e-7;
+  else if(selection == "zetau" ) fit_bias =  4.0e-7;
+
   TRandom3* rnd = new TRandom3(seed);
 
   TString year_string = "";
@@ -69,10 +73,11 @@ int toyMC_mva_systematics(int set = 8, TString selection = "zmutau",
   }
 
   //Create histograms for the fit results
-  TH1F* hBrSig  = new TH1F("hbrsig" , "Branching Ratios", 80, min(-2.*true_br_sig, -3.e-6), max(2.*true_br_sig, 3.e-6));
-  TH1F* hBrDiff = new TH1F("hbrdiff", "Branching Ratio Errors", 80, min(-2.*true_br_sig, -3.e-6), max(2.*true_br_sig, 3.e-6));
-  TH1F* hBrPull = new TH1F("hbrpull", "Branching Ratio Pulls", 80, -10., 10.);
-  TH1F* hNLL    = new TH1F("hnll", "Fit NLL", 100, -2.67e7, -2.62e7);
+  TH1F* hBrSig   = new TH1F("hbrsig" , "Branching Ratios", 80, min(-2.*true_br_sig, -3.e-6), max(2.*true_br_sig, 3.e-6));
+  TH1F* hBrDiff  = new TH1F("hbrdiff", "Branching Ratio Errors", 80, min(-2.*true_br_sig, -3.e-6), max(2.*true_br_sig, 3.e-6));
+  TH1F* hBrDiffB = new TH1F("hbrdiff", "Branching Ratio Errors with bias offset", 80, min(-2.*true_br_sig, -3.e-6), max(2.*true_br_sig, 3.e-6));
+  TH1F* hBrPull  = new TH1F("hbrpull", "Branching Ratio Pulls", 80, -10., 10.);
+  TH1F* hNLL     = new TH1F("hnll", "Fit NLL", 100, -2.67e7, -2.62e7);
   bool donll = false;
 
   /////////////////////////
@@ -137,13 +142,15 @@ int toyMC_mva_systematics(int set = 8, TString selection = "zmutau",
       br_sig->Print();
       fit_PDF->Print();
       cout << "Fit br_sig - true br_sig = " << br_sig->getVal() << " - " << true_br_sig
-           << " = " << br_sig->getVal()-true_br_sig << endl;
+           << " = " << br_sig->getVal()-true_br_sig << " - bias = "
+           << br_sig->getVal()-true_br_sig - fit_bias << endl;
     }
 
     //store the fit results
     hBrSig->Fill(br_sig->getVal());
     hBrDiff->Fill(br_sig->getVal() - true_br_sig);
-    hBrPull->Fill((br_sig->getVal() - true_br_sig)/br_sig->getError());
+    hBrDiffB->Fill(br_sig->getVal() - true_br_sig - fit_bias);
+    hBrPull->Fill((br_sig->getVal() - true_br_sig - fit_bias)/br_sig->getError());
     if(donll) {
       auto nll = fit_PDF->createNLL(combined_data);
       if(nll) hNLL->Fill(nll->getVal());
@@ -193,10 +200,12 @@ int toyMC_mva_systematics(int set = 8, TString selection = "zmutau",
   hBrDiff->Fit("gaus");
   hBrDiff->Draw();
   c1->cd(3);
+  hBrDiffB->Fit("gaus");
+  hBrDiffB->Draw();
+  c1->cd(4);
   hBrPull->Fit("gaus");
   hBrPull->Draw();
-  c1->cd(4);
-  hNLL->Draw();
+  // hNLL->Draw();
   if(print) {
     if(self_test)
       c1->SaveAs(Form("plots/latest_production/%s/toyMC_mva_systematics_results_self_%s_%i.png", year_string.Data(), selection.Data(), set));

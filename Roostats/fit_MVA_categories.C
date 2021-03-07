@@ -1,3 +1,6 @@
+//Fit the MVA distribution in multiple categories
+
+
 Int_t fit_MVA_categories(int set = 8, TString selection = "zmutau",
 			 vector<int> years = {2016/*, 2017, 2018*/},
 			 int seed = 90) {

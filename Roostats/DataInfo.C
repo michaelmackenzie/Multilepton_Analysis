@@ -9,7 +9,7 @@ public:
   //read data
   void ReadData() {
     std::ifstream file(Form("data/data_%s_set_%i.txt", tag_.Data(), set_));
-    std::string str; 
+    std::string str;
     while(std::getline(file, str)){
       std::string year_s, num_s;
       std::istringstream stream_s(str);
@@ -30,7 +30,7 @@ public:
       itr++;
     }
   }
-  
+
   int set_;
   TString tag_;
   std::map<int, double> datamap_;
