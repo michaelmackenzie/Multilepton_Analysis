@@ -24,7 +24,7 @@ public :
     typedef std::pair<TString,TString> fpair;
     std::map<int, fpair> muonIDFileNames;
     //FIXME: Clone objects and close files after retrieving them
-    
+
     muonIDFileNames[2*k2016]    = fpair("RunBCDEF_SF_ID_muon_2016.root","NUM_TightID_DEN_genTracks_eta_pt");
     muonIDFileNames[2*k2016+1]  = fpair("RunGH_SF_ID_muon_2016.root"   ,"NUM_TightID_DEN_genTracks_eta_pt");
     muonIDFileNames[2*k2017]    = fpair("2017_Mu_RunBCDEF_SF_ID.root"  ,"NUM_TightID_DEN_genTracks_pt_abseta");
@@ -57,6 +57,31 @@ public :
       //FIXME: Add 2017 muon iso scale factors
       muonIsoFileNames[2*k2018]   = fpair("RunABCD_SF_ISO_muon_2018.root" ,"NUM_LooseRelIso_DEN_MediumID_pt_abseta");
       muonIsoFileNames[2*k2018+1] = fpair("RunABCD_SF_ISO_muon_2018.root" ,"NUM_LooseRelIso_DEN_MediumID_pt_abseta");
+    }
+
+    //initialize ID histograms
+    TString scaleFactorPath = gSystem->Getenv("CMSSW_BASE") + fScaleFactorPath;
+    for(int period = k2016; period < 2*(k2018+1); ++period) {
+      if(muonIDFileNames[period].first == "") { muonIDMap[period] = 0; continue; }
+      TFile* f = TFile::Open((scaleFactorPath + muonIDFileNames[period].first).Data(),"READ");
+      if(!f) { muonIDMap[period] = 0; continue; }
+      muonIDMap[period] = (TH2F*) f->Get(muonIDFileNames[period].second.Data())->Clone();
+      if(!muonIDMap[period])
+        std::cout << "Error! Histogram " << muonIDFileNames[period].second.Data() << " in "
+                  << muonIDFileNames[period].first.Data() << " not found!\n";
+      fileList.push_back(f);
+    }
+
+    //initialize ISO histograms
+    for(int period = k2016; period < 2*(k2018+1); ++period) {
+      if(muonIsoFileNames[period].first == "") { muonIsoMap[period] = 0; continue; }
+      TFile* f = TFile::Open((scaleFactorPath + muonIsoFileNames[period].first).Data(),"READ");
+      if(!f) { muonIsoMap[period] = 0; continue; }
+      muonIsoMap[period] = (TH2F*) f->Get(muonIsoFileNames[period].second.Data())->Clone();
+      if(!muonIsoMap[period])
+        std::cout << "Error! Histogram " << muonIsoFileNames[period].second.Data() << " in "
+                  << muonIsoFileNames[period].first.Data() << " not found!\n";
+      fileList.push_back(f);
     }
 
     //Trigger map for low and high pT trigger
@@ -121,30 +146,6 @@ public :
     muonTriggerHighMCEffFileNames[2*k2018]   = fpair("EfficienciesAndSF_2018Data_BeforeMuonHLTUpdate.root","Mu50_OR_OldMu100_OR_TkMu100_PtEtaBins/efficienciesMC/abseta_pt_MC");
     muonTriggerHighMCEffFileNames[2*k2018+1] = fpair("EfficienciesAndSF_2018Data_AfterMuonHLTUpdate.root" ,"Mu50_OR_OldMu100_OR_TkMu100_PtEtaBins/efficienciesMC/abseta_pt_MC");
 
-    //initialize ID histograms
-    TString scaleFactorPath = gSystem->Getenv("CMSSW_BASE") + fScaleFactorPath;
-    for(int period = k2016; period < 2*(k2018+1); ++period) {
-      if(muonIDFileNames[period].first == "") { muonIDMap[period] = 0; continue; }
-      TFile* f = TFile::Open((scaleFactorPath + muonIDFileNames[period].first).Data(),"READ");
-      if(!f) { muonIDMap[period] = 0; continue; }
-      muonIDMap[period] = (TH2F*) f->Get(muonIDFileNames[period].second.Data())->Clone();
-      if(!muonIDMap[period])
-	std::cout << "Error! Histogram " << muonIDFileNames[period].second.Data() << " in "
-		  << muonIDFileNames[period].first.Data() << " not found!\n";
-      fileList.push_back(f);
-    }
-
-    //initialize ISO histograms
-    for(int period = k2016; period < 2*(k2018+1); ++period) {
-      if(muonIsoFileNames[period].first == "") { muonIsoMap[period] = 0; continue; }
-      TFile* f = TFile::Open((scaleFactorPath + muonIsoFileNames[period].first).Data(),"READ");
-      if(!f) { muonIsoMap[period] = 0; continue; }
-      muonIsoMap[period] = (TH2F*) f->Get(muonIsoFileNames[period].second.Data())->Clone();
-      if(!muonIsoMap[period])
-	std::cout << "Error! Histogram " << muonIsoFileNames[period].second.Data() << " in "
-		  << muonIsoFileNames[period].first.Data() << " not found!\n";
-      fileList.push_back(f);
-    }
 
     //initialize Low Trigger histograms
     for(int period = k2016; period < 2*(k2018+1); ++period) {
@@ -153,8 +154,8 @@ public :
       if(!f) { muonLowTriggerMap[period] = 0; continue; }
       muonLowTriggerMap[period] = (TH2F*) f->Get(muonTriggerLowFileNames[period].second.Data())->Clone();
       if(!muonLowTriggerMap[period])
-	std::cout << "Error! Histogram " << muonTriggerLowFileNames[period].second.Data() << " in "
-		  << muonTriggerLowFileNames[period].first.Data() << " not found!\n";
+        std::cout << "Error! Histogram " << muonTriggerLowFileNames[period].second.Data() << " in "
+                  << muonTriggerLowFileNames[period].first.Data() << " not found!\n";
       fileList.push_back(f);
     }
 
@@ -165,8 +166,8 @@ public :
       if(!f) { muonLowTriggerEffMap[0][period] = 0; continue; }
       muonLowTriggerEffMap[0][period] = (TH2F*) f->Get(muonTriggerLowDataEffFileNames[period].second.Data())->Clone();
       if(!muonLowTriggerEffMap[0][period])
-	std::cout << "Error! Histogram " << muonTriggerLowDataEffFileNames[period].second.Data() << " in "
-		  << muonTriggerLowDataEffFileNames[period].first.Data() << " not found!\n";
+        std::cout << "Error! Histogram " << muonTriggerLowDataEffFileNames[period].second.Data() << " in "
+                  << muonTriggerLowDataEffFileNames[period].first.Data() << " not found!\n";
       fileList.push_back(f);
     }
 
@@ -177,8 +178,8 @@ public :
       if(!f) { muonLowTriggerEffMap[1][period] = 0; continue; }
       muonLowTriggerEffMap[1][period] = (TH2F*) f->Get(muonTriggerLowMCEffFileNames[period].second.Data())->Clone();
       if(!muonLowTriggerEffMap[1][period])
-	std::cout << "Error! Histogram " << muonTriggerLowMCEffFileNames[period].second.Data() << " in "
-		  << muonTriggerLowMCEffFileNames[period].first.Data() << " not found!\n";
+        std::cout << "Error! Histogram " << muonTriggerLowMCEffFileNames[period].second.Data() << " in "
+                  << muonTriggerLowMCEffFileNames[period].first.Data() << " not found!\n";
       fileList.push_back(f);
     }
 
@@ -189,8 +190,8 @@ public :
       if(!f) { muonHighTriggerMap[period] = 0; continue; }
       muonHighTriggerMap[period] = (TH2F*) f->Get(muonTriggerHighFileNames[period].second.Data())->Clone();
       if(!muonHighTriggerMap[period])
-	std::cout << "Error! Histogram " << muonTriggerHighFileNames[period].second.Data() << " in "
-		  << muonTriggerHighFileNames[period].first.Data() << " not found!\n";
+        std::cout << "Error! Histogram " << muonTriggerHighFileNames[period].second.Data() << " in "
+                  << muonTriggerHighFileNames[period].first.Data() << " not found!\n";
       fileList.push_back(f);
     }
 
@@ -201,8 +202,8 @@ public :
       if(!f) { muonHighTriggerEffMap[0][period] = 0; continue; }
       muonHighTriggerEffMap[0][period] = (TH2F*) f->Get(muonTriggerHighDataEffFileNames[period].second.Data())->Clone();
       if(!muonHighTriggerEffMap[0][period])
-	std::cout << "Error! Histogram " << muonTriggerHighDataEffFileNames[period].second.Data() << " in "
-		  << muonTriggerHighDataEffFileNames[period].first.Data() << " not found!\n";
+        std::cout << "Error! Histogram " << muonTriggerHighDataEffFileNames[period].second.Data() << " in "
+                  << muonTriggerHighDataEffFileNames[period].first.Data() << " not found!\n";
       fileList.push_back(f);
     }
 
@@ -213,8 +214,8 @@ public :
       if(!f) { muonHighTriggerEffMap[1][period] = 0; continue; }
       muonHighTriggerEffMap[1][period] = (TH2F*) f->Get(muonTriggerHighMCEffFileNames[period].second.Data())->Clone();
       if(!muonHighTriggerEffMap[1][period])
-	std::cout << "Error! Histogram " << muonTriggerHighMCEffFileNames[period].second.Data() << " in "
-		  << muonTriggerHighMCEffFileNames[period].first.Data() << " not found!\n";
+        std::cout << "Error! Histogram " << muonTriggerHighMCEffFileNames[period].second.Data() << " in "
+                  << muonTriggerHighMCEffFileNames[period].first.Data() << " not found!\n";
       fileList.push_back(f);
     }
 
@@ -240,8 +241,8 @@ public :
     electronTrigMCEffFileNames[k2017]  = fpair("egammaTriggerEfficiency_2017.root"                   ,"EGamma_EffMC2D");
     electronTrigMCEffFileNames[k2018]  = fpair("egammaTriggerEfficiency_2018.root"                   ,"EGamma_EffMC2D");
     //FIXME: add electron trigger, pre-fire (2016, 2017) scale
-    //https://twiki.cern.ch/twiki/bin/viewauth/CMS/L1ECALPrefiringWeightRecipe 
-    
+    //https://twiki.cern.ch/twiki/bin/viewauth/CMS/L1ECALPrefiringWeightRecipe
+
     for(int period = k2016; period <= k2018; ++period) {
       if(electronIDFileNames[period].first == "") continue;
       TFile* f = TFile::Open((scaleFactorPath + electronIDFileNames[period].first).Data(),"READ");
@@ -392,37 +393,57 @@ public :
     //b-tag efficiency histograms
     for(int period = k2016; period <= k2018; ++period) { //file per year
       for(int WP = kLooseBTag; WP <= kTightBTag; ++WP) { //file per working point
-	TString btagname = Form("btag_eff_wp_%i_mumu_%i.root", WP, period+2016);
-	TFile* f = TFile::Open((scaleFactorPath + btagname).Data(),"READ");
-	if(!f) continue;
-	bJetGenBEffMap[period][WP] = (TH2F*) f->Get("hBRatio")->Clone(); //gen-level b-jets
-	bJetGenCEffMap[period][WP] = (TH2F*) f->Get("hCRatio")->Clone(); //gen-level c-jets
-	bJetGenLEffMap[period][WP] = (TH2F*) f->Get("hLRatio")->Clone(); //gen-level light-jets
-	fileList.push_back(f);
+        TString btagname = Form("btag_eff_wp_%i_mumu_%i.root", WP, period+2016);
+        TFile* f = TFile::Open((scaleFactorPath + btagname).Data(),"READ");
+        if(!f) continue;
+        bJetGenBEffMap[period][WP] = (TH2F*) f->Get("hBRatio")->Clone(); //gen-level b-jets
+        bJetGenCEffMap[period][WP] = (TH2F*) f->Get("hCRatio")->Clone(); //gen-level c-jets
+        bJetGenLEffMap[period][WP] = (TH2F*) f->Get("hLRatio")->Clone(); //gen-level light-jets
+        fileList.push_back(f);
       }
     }
   }
-  
+
   virtual ~ParticleCorrections() {
     for(TFile* f : fileList) {
       if(f) delete f;
     }
   }
-  
-  virtual double MuonWeight    (double pt, double eta, int trigger, int era, float& trig_scale);
-  virtual double MuonTriggerEff(double pt, double eta, int trigger, int era, float& data_eff, float& mc_eff);
-  virtual double ElectronWeight(double pt, double eta, int era, float& trigger_scale);
+
+  virtual void MuonWeight(double pt, double eta, int trigger, int era, float& trig_scale,
+                          float& weight_id, float& weight_up_id , float& weight_down_id , int& ibin_id,
+                          float& weight_iso, float& weight_up_iso, float& weight_down_iso, int& ibin_iso
+                          );
+  double MuonWeight(double pt, double eta, int trigger, int era, float& trig_scale) {
+    float wt1, wt2;
+    float up, down, up2, down2;
+    int ibin, ibin2;
+    MuonWeight(pt, eta, trigger, era, trig_scale, wt1, up, down, ibin, wt2, up2, down2, ibin2);
+    return wt1*wt2;
+  }
+  virtual double MuonTriggerEff(double pt, double eta, int trigger, int era, float& data_eff, float& mc_eff/*, int& ibin*/);
+
+  virtual void ElectronWeight(double pt, double eta, int era, float& trigger_scale,
+                              float& weight_id , float& weight_up_id , float& weight_down_id , int& ibin_id,
+                              float& weight_rec, float& weight_up_rec, float& weight_down_rec, int& ibin_rec
+                              );
   double ElectronWeight(double pt, double eta, int era) {
-    float tmp(0.);
-    return ElectronWeight(pt, eta, era, tmp);
+    float wt1, wt2;
+    float trig, up, down, up2, down2;
+    int ibin, ibin2;
+    ElectronWeight(pt, eta, era, trig, wt1, up, down, ibin, wt2, up2, down2, ibin2);
+    return wt1*wt2;
   }
   virtual double ElectronTriggerEff(double pt, double eta, int era, float& data_eff, float& mc_eff);
-  virtual double TauWeight     (double pt, double eta, int genID, int era, double& up, double& down);
+
+  virtual double TauWeight(double pt, double eta, int genID, int era, float& up, float& down, int& ibin);
   double TauWeight(double pt, double eta, int genID, int era) {
-    double up(1.), down(1.);
-    return TauWeight(pt, eta, genID, era, up, down);
+    float up, down;
+    int ibin;
+    return TauWeight(pt, eta, genID, era, up, down, ibin);
   }
-  virtual double TauEnergyScale(double pt, double eta, int dm, int genID, int era, double& up, double& down);
+  virtual double TauEnergyScale(double pt, double eta, int dm, int genID, int era, float& up, float& down, int& ibin);
+
   virtual double PhotonWeight(double pt, double eta, int year);
   virtual double BTagMCProb(double pt, double eta, int jetFlavor, int year, int WP);
   virtual double BTagDataProb(double pt, double eta, int jetFlavor, int year, int WP);
@@ -438,7 +459,7 @@ public :
   //muon isolation levels
   enum{kVLooseMuIso, kLooseMuIso, kMediumMuIso, kTightMuIso, kVTightMuIso, kVVTightMuIso}; //define iso scale factor sets
   const double muonIsoValues[kVVTightMuIso+1] = {0.4, 0.25, 0.20, 0.15, 0.10, 0.05}; //corresponding values
-  
+
   TString fScaleFactorPath    = "/src/StandardModel/ZEMuAnalysis/test/scale_factors/"; //path from cmssw_base
   TString fTauScaleFactorPath = "/src/TauPOG/TauIDSFs/data/"; //path from cmssw_base
   TString fZScaleFactorPath   = "/src/StandardModel/CLFVAnalysis/scale_factors/"; //path from cmssw_base
@@ -478,7 +499,7 @@ public:
   //Z pT/mass corrections
   std::map<int, TH2F*> zWeightMap;
   //Open files, to close when exiting
-  std::vector<TFile*> fileList; 
+  std::vector<TFile*> fileList;
   TRandom* fRnd; //for getting random period in year
 };
 #endif // #ifdef ParticleCorrections_cxx

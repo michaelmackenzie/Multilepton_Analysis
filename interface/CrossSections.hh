@@ -9,9 +9,9 @@
 
 class CrossSections {
 public:
-  CrossSections() {
+  CrossSections(int useUL = 0) {
     //cross sections by MC dataset
-    double zll = /*2075.14/0.0337*/ 6077.22;
+    double zll = (useUL > 0) ? 6435. : /*2075.14/0.0337*/ 6077.22; //UL: AMC@NLO = 6435 MadGraph = 5321
     double br_ll = 0.0337; //branching ratio of Z->ll
     double zxs = zll/(3.*br_ll);
     double higgs = (48.61+3.766+0.5071+1.358+0.880);
@@ -20,12 +20,12 @@ public:
     values_["H"                       ] = higgs  ;
     values_["SingleAntiToptW"         ] = 34.91  ;
     values_["SingleToptW"             ] = 34.91  ;
-    values_["WWW"	              ] = 0.2086 ;
+    values_["WWW"                     ] = 0.2086 ;
     values_["WZ"                      ] = 27.6   ;
-    values_["ZZ"	              ] = 12.14  ;
-    values_["WW"	              ] = 12.178 ;
+    values_["ZZ"                      ] = 12.14  ;
+    values_["WW"                      ] = 12.178 ;
     values_["Wlnu"                    ] = 52850.0;
-    values_["Wlnu-ext"                ] = 52850.0;
+    values_["Wlnu-1J"                 ] = 8104.0 ;
     values_["ttbarToSemiLeptonic"     ] = 365.34 ;
     values_["ttbarlnu"                ] = 88.29  ;
     values_["ttbarToHadronic"         ] = 687.1  ;
@@ -39,7 +39,7 @@ public:
 
     //signals
     values_["ZEMu"  ] = zxs*7.5e-7; //PDG: 7.5e-7 ATLAS: 7.5e-7 CMS: 7.3e-7
-    values_["ZETau" ] = zxs*8.1e-6; //PDG: 9.8e-6 ATLAS: 8.1e-6 (13 TeV) 
+    values_["ZETau" ] = zxs*8.1e-6; //PDG: 9.8e-6 ATLAS: 8.1e-6 (13 TeV)
     values_["ZMuTau"] = zxs*6.3e-6; //PDG: 1.2e-5 ATLAS: 6.3e-6 (13 TeV) 6.1e-6 (13+8 TeV)
     values_["HEMu"  ] = higgs*5.9e-5; //PDG: 3.5e-4 CMS: 5.6e-5 ATLAS: 5.9e-5
     values_["HETau" ] = higgs*1.9e-3; //PDG: 6.1e-3 CMS: 1.9e-3
@@ -50,7 +50,7 @@ public:
     values_["QCD_mutau"] = 0.518567 * 1.10205;
     values_["QCD_etau"]  = 0.491449 * 1.12844;
     values_["QCD_emu"]   = 0.355374 * 1.61248;
-    
+
     ///////////////////////
     // generated numbers //
     ///////////////////////
@@ -91,7 +91,7 @@ public:
     lum_[2016] = 35.92e3;
     lum_[2017] = 41.48e3;
     lum_[2018] = 59.74e3;
-    
+
   }
 
   double GetCrossSection(TString name) {
@@ -127,7 +127,7 @@ public:
       std::cout << "Luminosity for " << year << " not found! Returning 0...\n";
     return lum;
   }
-  
+
 private:
   std::map<TString, double> values_ ; //cross sections
   std::map<int, std::map<TString, long>>   numbers_; // generated numbers

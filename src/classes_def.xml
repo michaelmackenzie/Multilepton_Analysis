@@ -20,7 +20,10 @@
   <class name="MVAConfig"/>
   <class name="TrkQualInit"/>
   <class name="ZTauTauHistMaker"/>
+  <class name="DataCard_t"/>
+  <class name="PlottingCard_t"/>
   <class name="DataPlotter"/>
+  <class name="StandardDataConfig"/>
   <class name="ParticleCorrections"/>
   <class name="NanoAODConversion"/>
 </lcgdict>

@@ -28,6 +28,7 @@ struct Tree_t {
   float leppt;
   float lepptoverm;
   float lepm;
+  float lepmt;
   float lepeta;
   float lepdeltaeta;
   float lepdeltar;
@@ -45,6 +46,7 @@ struct Tree_t {
   float met;
   float mtone;
   float mttwo;
+  float mtlep;
   float mtoneoverm;
   float mttwooverm;
   float pxivis;

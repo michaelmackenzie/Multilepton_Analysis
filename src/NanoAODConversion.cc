@@ -51,7 +51,7 @@ void NanoAODConversion::Begin(TTree * /*tree*/)
   fMuonPtCount = 10.;
   fTauPtCount = 20.;
   fPhotonPtCount = 10.;
-  
+
   //initialize selection parameters
   fTauUseDeep[kMuTau] = true;
   fTauUseDeep[kETau]  = true;
@@ -63,7 +63,7 @@ void NanoAODConversion::Begin(TTree * /*tree*/)
   //mutau
   fMuonIsoSelect   [kMuTau] = ParticleCorrections::kTightMuIso;
   fMuonIDSelect    [kMuTau] = 3;
-  fTauAntiEleSelect[kMuTau] = 1;
+  fTauAntiEleSelect[kMuTau] = 10;
   fTauAntiMuSelect [kMuTau] = 10;
   fTauAntiJetSelect[kMuTau] = 50;
   fTauIDDecaySelect[kMuTau] = true;
@@ -91,7 +91,7 @@ void NanoAODConversion::Begin(TTree * /*tree*/)
   fCountElectrons   [kMuTau] = true;
   fElectronIDCount  [kMuTau] = 1;
   fCountTaus        [kMuTau] = true;
-  fTauAntiEleCount  [kMuTau] = 1;
+  fTauAntiEleCount  [kMuTau] = 10;
   fTauAntiMuCount   [kMuTau] = 10;
   fTauAntiOldMuCount[kMuTau] = 0;
   fTauAntiJetCount  [kMuTau] = 5;
@@ -106,7 +106,7 @@ void NanoAODConversion::Begin(TTree * /*tree*/)
   fCountElectrons   [kETau]  = true;
   fElectronIDCount  [kETau]  = 1;
   fCountTaus        [kETau]  = true;
-  fTauAntiEleCount  [kETau]  = 50;
+  fTauAntiEleCount  [kETau]  = 10;
   fTauAntiMuCount   [kETau]  = 10;
   fTauAntiOldMuCount[kETau]  = 0;
   fTauAntiJetCount  [kETau]  = 5;
@@ -130,7 +130,7 @@ void NanoAODConversion::Begin(TTree * /*tree*/)
   fCountElectrons   [kMuMu]  = true;
   fElectronIDCount  [kMuMu]  = 1;
   fCountTaus        [kMuMu]  = true;
-  fTauAntiEleCount  [kMuMu]  = 1;
+  fTauAntiEleCount  [kMuMu]  = 10;
   fTauAntiMuCount   [kMuMu]  = 10;
   fTauAntiOldMuCount[kMuMu]  = 2;
   fTauAntiJetCount  [kMuMu]  = 5;
@@ -262,7 +262,7 @@ void NanoAODConversion::InitializeInBranchStructure(TTree* tree) {
   tree->SetBranchAddress("leptonTwoFlavor"                 , &leptonTwoSkimFlavor            ) ;
   tree->SetBranchAddress("zPt"                             , &zPtIn                          ) ;
   tree->SetBranchAddress("zMass"                           , &zMassIn                        ) ;
-  
+
 }
 
 void NanoAODConversion::InitializeOutBranchStructure(TTree* tree) {
@@ -272,7 +272,7 @@ void NanoAODConversion::InitializeOutBranchStructure(TTree* tree) {
   if(!leptonTwoSVP4) leptonTwoSVP4 = new TLorentzVector();
   if(!jetP4)         jetP4         = new TLorentzVector();
   if(!photonP4)      photonP4      = new TLorentzVector();
-  
+
   tree->Branch("runNumber"                     , &runNumber            );
   tree->Branch("evtNumber"                     , &eventNumber          );
   tree->Branch("lumiSection"                   , &lumiSection          );
@@ -287,8 +287,22 @@ void NanoAODConversion::InitializeOutBranchStructure(TTree* tree) {
   tree->Branch("genWeight"                     , &genWeight            );
   tree->Branch("puWeight"                      , &puWeight             );
   tree->Branch("btagWeight"                    , &btagWeight           );
-  tree->Branch("lepOneWeight"                  , &lepOneWeight         );
-  tree->Branch("lepTwoWeight"                  , &lepTwoWeight         );
+  tree->Branch("lepOneWeight1"                 , &lepOneWeight1        );
+  tree->Branch("lepOneWeight1_up"              , &lepOneWeight1_up     );
+  tree->Branch("lepOneWeight1_down"            , &lepOneWeight1_down   );
+  tree->Branch("lepOneWeight1_bin"             , &lepOneWeight1_bin    );
+  tree->Branch("lepOneWeight2"                 , &lepOneWeight2        );
+  tree->Branch("lepOneWeight2_up"              , &lepOneWeight2_up     );
+  tree->Branch("lepOneWeight2_down"            , &lepOneWeight2_down   );
+  tree->Branch("lepOneWeight2_bin"             , &lepOneWeight2_bin    );
+  tree->Branch("lepTwoWeight1"                 , &lepTwoWeight1        );
+  tree->Branch("lepTwoWeight1_up"              , &lepTwoWeight1_up     );
+  tree->Branch("lepTwoWeight1_down"            , &lepTwoWeight1_down   );
+  tree->Branch("lepTwoWeight1_bin"             , &lepTwoWeight1_bin    );
+  tree->Branch("lepTwoWeight2"                 , &lepTwoWeight2        );
+  tree->Branch("lepTwoWeight2_up"              , &lepTwoWeight2_up     );
+  tree->Branch("lepTwoWeight2_down"            , &lepTwoWeight2_down   );
+  tree->Branch("lepTwoWeight2_bin"             , &lepTwoWeight2_bin    );
   tree->Branch("lepOneTrigWeight"              , &lepOneTrigWeight     );
   tree->Branch("lepTwoTrigWeight"              , &lepTwoTrigWeight     );
   tree->Branch("lepOneFired"                   , &lepOneFired          );
@@ -300,6 +314,9 @@ void NanoAODConversion::InitializeOutBranchStructure(TTree* tree) {
   tree->Branch("looseQCDSelection"             , &looseQCDSelection    );
   tree->Branch("genTauFlavorWeight"            , &genTauFlavorWeight   );
   tree->Branch("tauEnergyScale"                , &tauEnergyScale       );
+  tree->Branch("tauES_up"                      , &tauES_up             );
+  tree->Branch("tauES_down"                    , &tauES_down           );
+  tree->Branch("tauES_bin"                     , &tauES_bin            );
   tree->Branch("tauDecayMode"                  , &tauDecayModeOut      );
   tree->Branch("tauMVA"                        , &tauMVA               );
   tree->Branch("tauGenID"                      , &tauGenIDOut          );
@@ -443,28 +460,28 @@ float NanoAODConversion::BTagWeight(int WP) {
   //loop through each jet, getting the P(b-tag) in data and MC
   double p_data(1.), p_mc(1.);
   UInt_t nbjets = 0;
-  if(fVerbose > 1) std::cout << "NanoAODConversion::" << __func__ 
-			     << ": printing jet b-tag info for WP = "
-			     << WP << "...\n";
+  if(fVerbose > 1) std::cout << "NanoAODConversion::" << __func__
+                             << ": printing jet b-tag info for WP = "
+                             << WP << "...\n";
   for(unsigned jet = 0; jet < nJets20; ++jet) {
     if(fabs(jetsEta[jet]) >= 2.4) continue;
     double pd = particleCorrections->BTagDataProb(jetsPt[jet], jetsEta[jet], jetsFlavor[jet], fYear, WP);
     double pm = particleCorrections->BTagMCProb  (jetsPt[jet], jetsEta[jet], jetsFlavor[jet], fYear, WP);
     if(fVerbose > 1) std::cout << "Jet " << jet << " has pt = " << jetsPt[jet] << " eta " << jetsEta[jet]
-			       << " pmc = " << pm << " pdata = " << pd << " btagID = " << jetsBTag[jet] 
-			       << " with btagged = " << (jetsBTag[jet] > WP) << std::endl;
+                               << " pmc = " << pm << " pdata = " << pd << " btagID = " << jetsBTag[jet]
+                               << " with btagged = " << (jetsBTag[jet] > WP) << std::endl;
     if(jetsBTag[jet] > WP) { //is b-tagged
       ++nbjets;
       if(pd <= 0. || pm <= 0.) {
-	pd = std::max(0.0001, pd);
-	pm = std::max(0.0001, pm);
+        pd = std::max(0.0001, pd);
+        pm = std::max(0.0001, pm);
       }
       p_data *= pd;
       p_mc   *= pm;
     } else {
       if(pd >= 1. || pm >= 1.) {
-	pd = std::min(0.9999, pd);
-	pm = std::min(0.9999, pm);
+        pd = std::min(0.9999, pd);
+        pm = std::min(0.9999, pm);
       }
       p_data *= 1. - pd;
       p_mc   *= 1. - pm;
@@ -475,14 +492,14 @@ float NanoAODConversion::BTagWeight(int WP) {
   if     (WP == ParticleCorrections::kLooseBTag ) nexpected = nBJets20L;
   else if(WP == ParticleCorrections::kMediumBTag) nexpected = nBJets20M;
   if(nbjets != nexpected)
-    std::cout << "Entry " << fentry << " Warning! btag nbjets = " << nbjets 
-	      << " doesn't equal expected " << nexpected << "!\n";
+    std::cout << "Entry " << fentry << " Warning! btag nbjets = " << nbjets
+              << " doesn't equal expected " << nexpected << "!\n";
 
   if(fVerbose > 1 || p_data <= 0. || p_mc <= 0.) {
     if(p_data <= 0. || p_mc <= 0.) std::cout << "Warning! <= 0 b-tag probabilities! ";
     std::cout << "NanoAODConversion::" << __func__ << " entry " << fentry << ": p_data = " << p_data
-	      << " p_mc = " << p_mc << " scale = " << p_data/p_mc
-	      << " njets = " << nJets20 << " nbjets = " << nbjets << std::endl;    
+              << " p_mc = " << p_mc << " scale = " << p_data/p_mc
+              << " njets = " << nJets20 << " nbjets = " << nbjets << std::endl;
   }
   if(p_mc <= 0. || p_data <= 0.) return 1.;
   float scale_factor = p_data / p_mc;
@@ -492,6 +509,19 @@ float NanoAODConversion::BTagWeight(int WP) {
 void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
   //store sign of generator weight
   genWeight = (genWeight == 0.) ? 0. : genWeight/abs(genWeight);
+
+  lepOneWeight1      = 1.; lepTwoWeight1      = 1.;
+  lepOneWeight1_up   = 1.; lepTwoWeight1_up   = 1.;
+  lepOneWeight1_down = 1.; lepTwoWeight1_down = 1.;
+  lepOneWeight1_bin  = 0 ; lepTwoWeight1_bin  = 0 ;
+
+  lepOneWeight2      = 1.; lepTwoWeight2      = 1.;
+  lepOneWeight2_up   = 1.; lepTwoWeight2_up   = 1.;
+  lepOneWeight2_down = 1.; lepTwoWeight2_down = 1.;
+  lepOneWeight2_bin  = 0 ; lepTwoWeight2_bin  = 0 ;
+
+  lepOneTrigWeight   = 1.; lepTwoTrigWeight   = 1.;
+  lepOneFired        = 0 ; lepTwoFired        = 0 ;
 
   //////////////////////////////
   //           MET            //
@@ -504,21 +534,18 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
   puppMETC    = puppMET   ;
   puppMETCphi = puppMETphi;
 
-  
+
   //////////////////////////////
   //      Lepton info         //
   //////////////////////////////
   nMuons = fNMuons[selection];
   nElectrons = fNElectrons[selection];
   nTaus = fNTaus[selection];
-  lepOneWeight     = 1.; lepTwoWeight     = 1.;
-  lepOneTrigWeight = 1.; lepTwoTrigWeight = 1.;
-  lepOneFired      = 0 ; lepTwoFired      = 0 ;
   if(fVerbose > 1) std::cout << "nElectrons = " << nElectrons
-			     << " nMuons = " << nMuons
-			     << " nTaus = " << nTaus
-			     << " nPhotons = "  << nPhotons
-			     << std::endl;
+                             << " nMuons = " << nMuons
+                             << " nTaus = " << nTaus
+                             << " nPhotons = "  << nPhotons
+                             << std::endl;
 
   //////////////////////////////
   //        Trigger           //
@@ -526,9 +553,9 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
 
   //store muon and electron trigger (1 = electron, 2 = muon, 3 = both)
   //muon trigger is Mu50 for all years and IsoMu24 for 2016, 2018 and IsoMu27 for 2017
-  bool lowMuonTriggered  = nMuons > 0 && ((fYear == ParticleCorrections::k2016 && HLT_IsoMu24) || 
-					  (fYear == ParticleCorrections::k2017 && HLT_IsoMu27) || 
-					  (fYear == ParticleCorrections::k2018 && HLT_IsoMu24));
+  bool lowMuonTriggered  = nMuons > 0 && ((fYear == ParticleCorrections::k2016 && HLT_IsoMu24) ||
+                                          (fYear == ParticleCorrections::k2017 && HLT_IsoMu27) ||
+                                          (fYear == ParticleCorrections::k2018 && HLT_IsoMu24));
   bool highMuonTriggered = nMuons > 0 && HLT_Mu50;
   double muon_lo_pt = (fYear == ParticleCorrections::k2017) ? 28. : 25.;
   double muon_hi_pt = 50.; //independent of year
@@ -537,41 +564,41 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
      (fYear == ParticleCorrections::k2017 && HLT_Ele32_WPTight_GsF_L1DoubleEG) || //FIXME: add L1 Ele35 test as well
      (fYear == ParticleCorrections::k2018 && HLT_Ele32_WPTight_GsF));
   double elec_pt = (fYear == ParticleCorrections::k2016) ? 28. : 33.;
-  
+
   triggerLeptonStatus = electronTriggered + 2*(lowMuonTriggered || highMuonTriggered); //bit 1: electron bit 2: muon
   muonTriggerStatus = lowMuonTriggered + 2*highMuonTriggered; //store which triggers were fired
-  
+
   bool useTrigObj = nTrigObjs > 0; //do actual trigger matching if trigger objects are available
   if(!useTrigObj) std::cout << "NanoAODConversion::" << __func__
-			    << ": Warning! No trigger objects available in event "
-			    << fentry << std::endl;
+                            << ": Warning! No trigger objects available in event "
+                            << fentry << std::endl;
 
   int trigMatchOne = 0; //trigger matching result
   int trigMatchTwo = 0; //trigger matching result
-  
+
   int trigger = -1; //muon weights need to know which trigger to use
   if(selection == kMuTau || selection == kEMu || selection == kMuMu)
     //default to low trigger if it passed it, < 0 if no trigger
     trigger = (lowMuonTriggered) ? ParticleCorrections::kLowTrigger : (2*highMuonTriggered - 1)*ParticleCorrections::kHighTrigger;
-  if(!lowMuonTriggered && !highMuonTriggered && (selection == kMuMu || selection == kMuTau)) 
+  if(!lowMuonTriggered && !highMuonTriggered && (selection == kMuMu || selection == kMuTau))
     std::cout << "NanoAODConversion::" << __func__
-	      << "Warning! Muon only selection but no identified muon trigger in event "
-	      << fentry << std::endl;
-  else if(!electronTriggered && (selection == kEE || selection == kETau)) 
+              << "Warning! Muon only selection but no identified muon trigger in event "
+              << fentry << std::endl;
+  else if(!electronTriggered && (selection == kEE || selection == kETau))
     std::cout << "NanoAODConversion::" << __func__
-	      << "Warning! Electron only selection but no identified electron trigger in event "
-	      << fentry << std::endl;
+              << "Warning! Electron only selection but no identified electron trigger in event "
+              << fentry << std::endl;
   else if(!electronTriggered && !lowMuonTriggered && !highMuonTriggered)
     std::cout << "NanoAODConversion::" << __func__
-	      << "Warning! Passed a selection but no identified trigger in event "
-	      << fentry << std::endl;
-  
+              << "Warning! Passed a selection but no identified trigger in event "
+              << fentry << std::endl;
+
   //////////////////////////////
   //   Z info + re-weight     //
   //////////////////////////////
   //Z pT/mass info (DY and Z signals only)
   zPtOut = zPtIn;
-  zMassOut = zMassIn;  
+  zMassOut = zMassIn;
   if(fIsDY) {
     //re-weight if pt/mass are defined
     if(zPtOut > 0. && zMassOut > 0.) zPtWeight = particleCorrections->ZWeight(zPtOut, zMassOut, fYear);
@@ -594,14 +621,14 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
   //reset lepton IDs
   leptonOneID1 = 0; leptonOneID2 = 0;
   leptonTwoID1 = 0; leptonTwoID2 = 0; leptonTwoID3 = 0;
-  
+
   //////////////////////////////
   //      lep 1 = muon        //
   //////////////////////////////
   if(selection == kMuTau || selection == kMuMu) {
     unsigned index = (selection == kMuMu) ? leptonOneIndex : fMuonIndices[selection][0];
     leptonOneP4->SetPtEtaPhiM(muonPt[index], muonEta[index],
-			      muonPhi[index], muonMass[index]);
+                              muonPhi[index], muonMass[index]);
     leptonOneFlavor = -13*muonCharge[index];
     leptonOneID1 = muonIsoId[index];
     leptonOneID2 = 0;
@@ -610,15 +637,18 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
     trigMatchOne = GetTriggerMatch(index, true);
     if(!fIsData) {
       if(useTrigObj) {
-	if(trigMatchOne == 0) trigger = -1;
-	else                  trigger = (trigMatchOne == 1 || trigMatchOne == 3) ? ParticleCorrections::kLowTrigger : ParticleCorrections::kHighTrigger;
+        if(trigMatchOne == 0) trigger = -1;
+        else                  trigger = (trigMatchOne == 1 || trigMatchOne == 3) ? ParticleCorrections::kLowTrigger : ParticleCorrections::kHighTrigger;
       }
-      lepOneWeight = particleCorrections->MuonWeight(muonPt[index], muonEta[index], trigger, fYear, lepOneTrigWeight);
+      particleCorrections->MuonWeight(muonPt[index], muonEta[index], trigger, fYear, lepOneTrigWeight,
+                                      lepOneWeight1, lepOneWeight1_up, lepOneWeight1_down, lepOneWeight1_bin,
+                                      lepOneWeight2, lepOneWeight2_up, lepOneWeight2_down, lepOneWeight2_bin
+                                      );
       if(trigger > -1) {
-	particleCorrections->MuonTriggerEff(muonPt[index], muonEta[index], trigger, fYear, data_eff[trigger_index], mc_eff[trigger_index]);
-	++trigger_index;
+        particleCorrections->MuonTriggerEff(muonPt[index], muonEta[index], trigger, fYear, data_eff[trigger_index], mc_eff[trigger_index]);
+        ++trigger_index;
       } else
-	lepOneTrigWeight = 1.; //no weight if didn't trigger
+        lepOneTrigWeight = 1.; //no weight if didn't trigger
     }
     if(lowMuonTriggered || highMuonTriggered)
       lepOneFired = (useTrigObj) ? trigMatchOne > 0 : (lowMuonTriggered && muonPt[index] > muon_lo_pt) || (highMuonTriggered && muonPt[index] > muon_hi_pt);
@@ -628,34 +658,39 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
   } else if(selection == kETau || selection == kEMu || selection == kEE) {
     unsigned index = (selection == kEE) ? leptonOneIndex : fElectronIndices[selection][0];
     leptonOneP4->SetPtEtaPhiM(electronPt[index], electronEta[index],
-			      electronPhi[index], electronMass[index]);
+                              electronPhi[index], electronMass[index]);
     leptonOneFlavor = -11*electronCharge[index];
     leptonOneID1 = electronWPL[index] + 2*electronWP90[index] + 4*electronWP80[index];
     leptonOneID2 = 0;
     leptonOneIndex = index;
     trigMatchOne = GetTriggerMatch(index, false);
     if(!fIsData) {
-      lepOneWeight = particleCorrections->ElectronWeight(electronPt[index], electronEta[index]+electronDeltaEtaSC[index], fYear, lepOneTrigWeight);
+      particleCorrections->ElectronWeight(electronPt[index], electronEta[index]+electronDeltaEtaSC[index], fYear, lepOneTrigWeight,
+                                          lepOneWeight1, lepOneWeight1_up, lepOneWeight1_down, lepOneWeight1_bin,
+                                          lepOneWeight2, lepOneWeight2_up, lepOneWeight2_down, lepOneWeight2_bin
+                                          );
       if((trigMatchOne > 0 && useTrigObj) || (!useTrigObj && electronTriggered)) {
-	particleCorrections->ElectronTriggerEff(electronPt[index], electronEta[index]+electronDeltaEtaSC[index], fYear, data_eff[trigger_index], mc_eff[trigger_index]);
-	++trigger_index;
+        particleCorrections->ElectronTriggerEff(electronPt[index], electronEta[index]+electronDeltaEtaSC[index], fYear,
+                                                data_eff[trigger_index], mc_eff[trigger_index]);
+        ++trigger_index;
       } else
-	lepOneTrigWeight = 1.; //no weight if didn't trigger
+        lepOneTrigWeight = 1.; //no weight if didn't trigger
     }
-    if(electronTriggered) 
+    if(electronTriggered)
       lepOneFired = (useTrigObj) ? trigMatchOne > 0 : electronPt[index] > elec_pt;
-  }    
+  }
   //////////////////////////////
   //      lep 2 = tau         //
   //////////////////////////////
   if(selection == kMuTau || selection == kETau) {
     unsigned index = fTauIndices[selection][0];
     leptonTwoP4->SetPtEtaPhiM(tauPt[index], tauEta[index],
-			      tauPhi[index],tauMass[index]);
+                              tauPhi[index],tauMass[index]);
     leptonTwoFlavor = -15*tauCharge[index];
     tauGenIDOut  = tauGenID[index];
     tauGenFlavor = TauFlavorFromID((int) tauGenIDOut);
-    lepTwoWeight = (fIsData == 0) ? particleCorrections->TauWeight(leptonTwoP4->Pt(), leptonTwoP4->Eta(), tauGenID[index], fYear) : 1.;
+    lepTwoWeight1 = (fIsData == 0) ? particleCorrections->TauWeight(leptonTwoP4->Pt(), leptonTwoP4->Eta(), tauGenID[index], fYear,
+                                                                    lepTwoWeight1_up, lepTwoWeight1_down, lepTwoWeight1_bin) : 1.;
     leptonTwoID1 = tauAntiEle[index]; //MVA ID
     leptonTwoID2 = tauAntiMu[index];  //MVA ID
     leptonTwoID3 = tauAntiJet[index];  //MVA ID
@@ -663,15 +698,14 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
     taudzOut  = taudz[index];
     leptonTwoIndex = index;
     tauDecayModeOut = tauDecayMode[index];
-    
+
     //FIXME: should ID weight use updated tau energy scale?
-    double up(1.), down(1.);    
-    tauEnergyScale = particleCorrections->TauEnergyScale(leptonTwoP4->Pt(), leptonTwoP4->Eta(), tauDecayModeOut,
-							 tauGenID[index], fYear, up, down); //FIXME: keep uncertainties
+    tauEnergyScale = (fIsData == 0) ? particleCorrections->TauEnergyScale(leptonTwoP4->Pt(), leptonTwoP4->Eta(), tauDecayModeOut,
+                                                                          tauGenID[index], fYear, tauES_up, tauES_down, tauES_bin) : 1.;
     if(tauEnergyScale <= 0.)
       std::cout << "WARNING! In event " << fentry
-		<< " tau energy scale <= 0 = " << tauEnergyScale
-		<< std::endl;
+                << " tau energy scale <= 0 = " << tauEnergyScale
+                << std::endl;
     *leptonTwoP4 *= tauEnergyScale;
     tauDeepAntiEle = tauDeep2017VsE[index];
     tauDeepAntiMu  = tauDeep2017VsMu[index];
@@ -682,7 +716,7 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
   } else if(selection == kEMu) {
     unsigned index = fMuonIndices[selection][0];
     leptonTwoP4->SetPtEtaPhiM(muonPt[index], muonEta[index],
-			      muonPhi[index],muonMass[index]);
+                              muonPhi[index],muonMass[index]);
     leptonTwoFlavor = -13*muonCharge[index];
     leptonTwoID1 = muonIsoId[index];
     leptonTwoID2 = 0;
@@ -694,12 +728,15 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
       else                  trigger = (trigMatchTwo == 1 || trigMatchTwo == 3) ? ParticleCorrections::kLowTrigger : ParticleCorrections::kHighTrigger;
     }
     if(!fIsData) {
-      lepTwoWeight = particleCorrections->MuonWeight(muonPt[index], muonEta[index], trigger, fYear, lepTwoTrigWeight);
+      particleCorrections->MuonWeight(muonPt[index], muonEta[index], trigger, fYear, lepTwoTrigWeight,
+                                      lepTwoWeight1, lepTwoWeight1_up, lepTwoWeight1_down, lepTwoWeight1_bin,
+                                      lepTwoWeight2, lepTwoWeight2_up, lepTwoWeight2_down, lepTwoWeight2_bin
+                                      );
       if(trigger > -1) {
-	particleCorrections->MuonTriggerEff(muonPt[index], muonEta[index], trigger, fYear, data_eff[trigger_index], mc_eff[trigger_index]);
-	++trigger_index;
+        particleCorrections->MuonTriggerEff(muonPt[index], muonEta[index], trigger, fYear, data_eff[trigger_index], mc_eff[trigger_index]);
+        ++trigger_index;
       } else
-	lepTwoTrigWeight = 1.; //no weight if didn't trigger
+        lepTwoTrigWeight = 1.; //no weight if didn't trigger
     }
     if(lowMuonTriggered || highMuonTriggered)
       lepTwoFired = (useTrigObj) ? trigMatchTwo > 0 : (lowMuonTriggered && muonPt[index] > muon_lo_pt) || (highMuonTriggered && muonPt[index] > muon_hi_pt);
@@ -709,23 +746,25 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
   } else if(selection == kMuMu) {
     unsigned index = leptonTwoIndex; //fMuonIndices[selection][1];
     leptonTwoP4->SetPtEtaPhiM(muonPt[index], muonEta[index],
-			      muonPhi[index], muonMass[index]);
+                              muonPhi[index], muonMass[index]);
     leptonTwoFlavor = -13*muonCharge[index];
     leptonTwoID1 = muonIsoId[index];
     leptonTwoID2 = 0;
-    leptonTwoIndex = index;
     trigMatchTwo = GetTriggerMatch(index, true);
     if(useTrigObj) {
       if(trigMatchTwo == 0) trigger = -1;
       else                  trigger = (trigMatchTwo == 1 || trigMatchTwo == 3) ? ParticleCorrections::kLowTrigger : ParticleCorrections::kHighTrigger;
     }
     if(!fIsData) {
-      lepTwoWeight = particleCorrections->MuonWeight(muonPt[index], muonEta[index], trigger, fYear, lepTwoTrigWeight);
+      particleCorrections->MuonWeight(muonPt[index], muonEta[index], trigger, fYear, lepTwoTrigWeight,
+                                      lepTwoWeight1, lepTwoWeight1_up, lepTwoWeight1_down, lepTwoWeight1_bin,
+                                      lepTwoWeight2, lepTwoWeight2_up, lepTwoWeight2_down, lepTwoWeight2_bin
+                                      );
       if(trigger > -1) {
-	particleCorrections->MuonTriggerEff(muonPt[index], muonEta[index], trigger, fYear, data_eff[trigger_index], mc_eff[trigger_index]);
-	++trigger_index;
+        particleCorrections->MuonTriggerEff(muonPt[index], muonEta[index], trigger, fYear, data_eff[trigger_index], mc_eff[trigger_index]);
+        ++trigger_index;
       } else
-	lepTwoTrigWeight = 1.; //no weight if didn't trigger
+        lepTwoTrigWeight = 1.; //no weight if didn't trigger
     }
     if(lowMuonTriggered || highMuonTriggered)
       lepTwoFired = (useTrigObj) ? trigMatchTwo > 0 : (lowMuonTriggered && muonPt[index] > muon_lo_pt) || (highMuonTriggered && muonPt[index] > muon_hi_pt);
@@ -735,19 +774,22 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
   } else if(selection == kEE) {
     unsigned index = leptonTwoIndex; //fElectronIndices[selection][1];
     leptonTwoP4->SetPtEtaPhiM(electronPt[index], electronEta[index],
-			      electronPhi[index], electronMass[index]);
+                              electronPhi[index], electronMass[index]);
     leptonTwoFlavor = -11*electronCharge[index];
     leptonTwoID1 = electronWPL[index] + 2*electronWP90[index] + 4*electronWP80[index];
     leptonTwoID2 = 0;
-    leptonTwoIndex = index;
     trigMatchTwo = GetTriggerMatch(index, false);
     if(!fIsData) {
-      lepTwoWeight = particleCorrections->ElectronWeight(electronPt[index], electronEta[index]+electronDeltaEtaSC[index], fYear, lepTwoTrigWeight);
+      particleCorrections->ElectronWeight(electronPt[index], electronEta[index]+electronDeltaEtaSC[index], fYear, lepTwoTrigWeight,
+                                          lepTwoWeight1, lepTwoWeight1_up, lepTwoWeight1_down, lepTwoWeight1_bin,
+                                          lepTwoWeight2, lepTwoWeight2_up, lepTwoWeight2_down, lepTwoWeight2_bin
+                                          );
       if((trigMatchTwo > 0 && useTrigObj) || (!useTrigObj && electronTriggered)) {
-	particleCorrections->ElectronTriggerEff(electronPt[index], electronEta[index]+electronDeltaEtaSC[index], fYear, data_eff[trigger_index], mc_eff[trigger_index]);
-	++trigger_index;
+        particleCorrections->ElectronTriggerEff(electronPt[index], electronEta[index]+electronDeltaEtaSC[index], fYear,
+                                                data_eff[trigger_index], mc_eff[trigger_index]);
+        ++trigger_index;
       } else
-	lepTwoTrigWeight = 1.; //no weight if didn't trigger
+        lepTwoTrigWeight = 1.; //no weight if didn't trigger
     }
     if(electronTriggered)
       lepTwoFired = (useTrigObj) ? trigMatchTwo > 0 : electronPt[index] > elec_pt;
@@ -787,7 +829,7 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
     CountTaus(selection);
   }
   CountLightLeptons(selection);
-  
+
   //for ee/mumu, ensure lepton one is higher pT
   if((selection == kEE || selection == kMuMu) && leptonOneP4->Pt() < leptonTwoP4->Pt()) {
     //swap momenta
@@ -799,12 +841,18 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
     leptonOneFlavor = leptonTwoFlavor;
     leptonTwoFlavor = ftmp;
     //swap weights
-    Float_t wtmp = lepOneWeight;
-    lepOneWeight = lepTwoWeight;
-    lepTwoWeight = wtmp;
+    Float_t wtmp = lepOneWeight1;
+    lepOneWeight1 = lepTwoWeight1;
+    lepTwoWeight1 = wtmp;
     wtmp = lepOneTrigWeight;
     lepOneTrigWeight = lepTwoTrigWeight;
     lepTwoTrigWeight = wtmp;
+    wtmp = lepOneWeight1_up;
+    lepOneWeight1_up = lepTwoWeight1_up;
+    lepTwoWeight1_up = wtmp;
+    wtmp = lepOneWeight1_down;
+    lepOneWeight1_down = lepTwoWeight1_down;
+    lepTwoWeight1_down = wtmp;
     //swap trig bools
     Bool_t ttmp = lepOneFired;
     lepOneFired = lepTwoFired;
@@ -817,31 +865,36 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
   nPhotons = fNPhotons[selection];
   if(fNPhotons[selection] > 0) {
     photonP4->SetPtEtaPhiM(photonPt[fPhotonIndices[selection][0]], photonEta[fPhotonIndices[selection][0]],
-			   photonPhi[fPhotonIndices[selection][0]], photonMass[fPhotonIndices[selection][0]]); 
+                           photonPhi[fPhotonIndices[selection][0]], photonMass[fPhotonIndices[selection][0]]);
     if(!fIsData) photonIDWeight = particleCorrections->PhotonWeight(photonP4->Pt(), photonP4->Eta(), fYear);
   } else {
     photonP4->SetPtEtaPhiM(0., 0., 0., 0.);
     photonIDWeight = 1.;
   }
-  
+
   if(!fIsData) {
     if(trigger_index > 1) { //more than one trigger fired, use efficiencies combined
       float trig_correction = particleCorrections->CombineEfficiencies(data_eff[0], mc_eff[0], data_eff[1], mc_eff[1]);
       lepOneTrigWeight = (trig_correction >= 0.) ? sqrt(trig_correction) : 1.; //split evenly between them, doesn't matter though
       lepTwoTrigWeight = (trig_correction >= 0.) ? sqrt(trig_correction) : 1.;
       if(trigger_index > 2)
-	std::cout << "WARNING! Counting of trigger objects found "
-		  << trigger_index << " objects in entry "
-		  << fentry << std::endl;
+        std::cout << "WARNING! Counting of trigger objects found "
+                  << trigger_index << " objects in entry "
+                  << fentry << std::endl;
     }
-    eventWeight = lepOneWeight * lepTwoWeight * lepOneTrigWeight * lepTwoTrigWeight * puWeight * photonIDWeight * btagWeight;
+    eventWeight = lepOneWeight1 * lepOneWeight2 * lepTwoWeight1 * lepTwoWeight2 * lepOneTrigWeight * lepTwoTrigWeight * puWeight * btagWeight;
+    if(fUsePhotonWeight > 0) eventWeight *= photonIDWeight;
+    else if(fUsePhotonWeight < 0) photonIDWeight = 1.; //completely ignore and ensure is not used
+
     if(fIsDY) eventWeight *= zPtWeight;
   } else {
     eventWeight = 1.;
     genWeight = 1.;
     puWeight = 1.;
-    lepOneWeight = 1.;
-    lepTwoWeight = 1.;
+    lepOneWeight1 = 1.;
+    lepOneWeight2 = 1.;
+    lepTwoWeight1 = 1.;
+    lepTwoWeight2 = 1.;
     lepOneTrigWeight = 1.;
     lepTwoTrigWeight = 1.;
     zPtWeight = 1.;
@@ -854,24 +907,26 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
     if(useTrigObj && trigMatchOne == 0 && trigMatchTwo == 0)
       std::cout << "WARNING! No trigger match found in entry " << fentry << "!\n";
     std::cout << "eventWeight = " << eventWeight
-	      << " genWeight = " << genWeight
-	      << " puWeight = " << puWeight
-	      << " btagWeight = " << btagWeight
-	      << " photonIDWeight = " << photonIDWeight << std::endl
-	      << " lepOneWeight = " << lepOneWeight
-	      << " lepTwoWeight = " << lepTwoWeight 
-	      << " muonLowTriggered = " << lowMuonTriggered
-	      << " muonHighTriggered = " << highMuonTriggered
-	      << " electronTriggered = " << electronTriggered << std::endl
-	      << " lepOneTrigWeight = " << lepOneTrigWeight
-	      << " lepTwoTrigWeight = " << lepTwoTrigWeight
-	      << " lepOneFired = " << lepOneFired
-	      << " lepTwoFired = " << lepTwoFired
-	      << " trigMatchOne = " << trigMatchOne
-	      << " trigMatchTwo = " << trigMatchTwo      
-	      << std::endl;
+              << " genWeight = " << genWeight
+              << " puWeight = " << puWeight
+              << " btagWeight = " << btagWeight
+              << " photonIDWeight = " << photonIDWeight << std::endl
+              << " lepOneWeight1 = " << lepOneWeight1
+              << " lepOneWeight2 = " << lepOneWeight2
+              << " lepTwoWeight1 = " << lepTwoWeight1
+              << " lepTwoWeight2 = " << lepTwoWeight2
+              << " muonLowTriggered = " << lowMuonTriggered
+              << " muonHighTriggered = " << highMuonTriggered
+              << " electronTriggered = " << electronTriggered << std::endl
+              << " lepOneTrigWeight = " << lepOneTrigWeight
+              << " lepTwoTrigWeight = " << lepTwoTrigWeight
+              << " lepOneFired = " << lepOneFired
+              << " lepTwoFired = " << lepTwoFired
+              << " trigMatchOne = " << trigMatchOne
+              << " trigMatchTwo = " << trigMatchTwo
+              << std::endl;
   }
-  
+
   //save npv as ngoodpv for now
   nPV = nGoodPV;
 }
@@ -887,7 +942,7 @@ void NanoAODConversion::CountJets(int selection) {
   ht = 0.; htPhi = 0.; htSum = 0.;
   jetP4->SetPtEtaPhiM(0., 0., 0., 0.);
   float jetptmax = -1.;
-  int jetIDFlag = 1; 
+  int jetIDFlag = 1;
   int jetPUIDFlag = 4;
   // if(fYear == ParticleCorrections::k2017) {
   //   jetIDFlag = 4; jetPUIDFlag = 6;
@@ -905,7 +960,7 @@ void NanoAODConversion::CountJets(int selection) {
     slimJets[index].puID     = jetPUID[index];
     slimJets[index].bTagCMVA = jetBTagCMVA[index];
     slimJets[index].bTagDeep = jetBTagDeepB[index];
-    
+
     float jetpt = jetPt[index];
     if(jetpt < 20.) continue; //too low of jet pt
     if((jetpt < 50. && jetPUID[index] < jetPUIDFlag) || jetID[index] < jetIDFlag) //bad jet
@@ -923,7 +978,7 @@ void NanoAODConversion::CountJets(int selection) {
     /** check muons **/
     for(UInt_t imuon = 0; imuon < fNMuons[selection]; ++imuon) {
       lv.SetPtEtaPhiM(muonPt[fMuonIndices[selection][imuon]] , muonEta[fMuonIndices[selection][imuon]],
-		      muonPhi[fMuonIndices[selection][imuon]], muonMass[fMuonIndices[selection][imuon]]);
+                      muonPhi[fMuonIndices[selection][imuon]], muonMass[fMuonIndices[selection][imuon]]);
       passDeltaR &= jetLoop->DeltaR(lv) > deltaRMin;
       if(!passDeltaR) break;
     }
@@ -933,7 +988,7 @@ void NanoAODConversion::CountJets(int selection) {
     /** check electrons **/
     for(UInt_t ielectron = 0; ielectron < fNElectrons[selection]; ++ielectron) {
       lv.SetPtEtaPhiM(electronPt[fElectronIndices[selection][ielectron]] , electronEta[fElectronIndices[selection][ielectron]],
-		      electronPhi[fElectronIndices[selection][ielectron]], electronMass[fElectronIndices[selection][ielectron]]);
+                      electronPhi[fElectronIndices[selection][ielectron]], electronMass[fElectronIndices[selection][ielectron]]);
       passDeltaR &= jetLoop->DeltaR(lv) > deltaRMin;
       if(!passDeltaR) break;
     }
@@ -943,32 +998,32 @@ void NanoAODConversion::CountJets(int selection) {
     /** check taus **/
     for(UInt_t itau = 0; itau < fNTaus[selection]; ++itau) {
       lv.SetPtEtaPhiM(tauPt[fTauIndices[selection][itau]] , tauEta[fTauIndices[selection][itau]],
-		      tauPhi[fTauIndices[selection][itau]], tauMass[fTauIndices[selection][itau]]);
+                      tauPhi[fTauIndices[selection][itau]], tauMass[fTauIndices[selection][itau]]);
       passDeltaR &= jetLoop->DeltaR(lv) > deltaRMin;
       if(!passDeltaR) break;
     }
     //if fails, move to next jet
-    if(!passDeltaR) continue; 
+    if(!passDeltaR) continue;
 
     /** check photons **/
     for(UInt_t iphoton = 0; iphoton < fNPhotons[selection]; ++iphoton) {
       lv.SetPtEtaPhiM(photonPt[ fPhotonIndices[selection][iphoton]], photonEta[ fPhotonIndices[selection][iphoton]],
-		      photonPhi[fPhotonIndices[selection][iphoton]], photonMass[fPhotonIndices[selection][iphoton]]);
+                      photonPhi[fPhotonIndices[selection][iphoton]], photonMass[fPhotonIndices[selection][iphoton]]);
       passDeltaR &= jetLoop->DeltaR(lv) > deltaRMin;
       if(!passDeltaR) break;
     }
     //if fails, move to next jet
-    if(!passDeltaR) continue; 
-    
+    if(!passDeltaR) continue;
+
     //////////////////////////
     // Count jet, check eta //
     //////////////////////////
-    
+
     if(abs(jetEta[index]) < 2.4) {
       //store the hardest jet
       if(jetptmax < jetpt) {
-	jetptmax = jetpt;
-	jetP4->SetPtEtaPhiM(jetPt[index], jetEta[index], jetPhi[index], jetMass[index]);
+        jetptmax = jetpt;
+        jetP4->SetPtEtaPhiM(jetPt[index], jetEta[index], jetPhi[index], jetMass[index]);
       }
       if(jetpt > 25.) ++nJets;
       ++nJets20;
@@ -978,15 +1033,15 @@ void NanoAODConversion::CountJets(int selection) {
       int jetBTag = 0;
       //check if b-tagged, must have eta < 2.4
       if(fabs(jetEta[index]) < 2.4) {
-	if(jetBTagDeepB[index] > particleCorrections->BTagCut(ParticleCorrections::kLooseBTag, fYear)) {
-	  ++jetBTag; ++nBJets20L; if(jetpt > 25.) ++nBJetsL;
-	  if(jetBTagDeepB[index] > particleCorrections->BTagCut(ParticleCorrections::kMediumBTag, fYear)) {
-	    ++jetBTag; ++nBJets20M; if(jetpt > 25.) ++nBJetsM;
-	    if(jetBTagDeepB[index] > particleCorrections->BTagCut(ParticleCorrections::kTightBTag, fYear)) {
-	      ++jetBTag; ++nBJets20; if(jetpt > 25.) ++nBJets;
-	    }
-	  }
-	}
+        if(jetBTagDeepB[index] > particleCorrections->BTagCut(ParticleCorrections::kLooseBTag, fYear)) {
+          ++jetBTag; ++nBJets20L; if(jetpt > 25.) ++nBJetsL;
+          if(jetBTagDeepB[index] > particleCorrections->BTagCut(ParticleCorrections::kMediumBTag, fYear)) {
+            ++jetBTag; ++nBJets20M; if(jetpt > 25.) ++nBJetsM;
+            if(jetBTagDeepB[index] > particleCorrections->BTagCut(ParticleCorrections::kTightBTag, fYear)) {
+              ++jetBTag; ++nBJets20; if(jetpt > 25.) ++nBJets;
+            }
+          }
+        }
       }
       //save info for jet b-tag efficiency
       jetsPt    [nJets20-1] = jetpt;
@@ -1001,9 +1056,9 @@ void NanoAODConversion::CountJets(int selection) {
   htPhi = htLV.Phi();
   delete jetLoop;
   if(fVerbose > 1) std::cout << "Jet counts: nJets20 = " << nJets20
-			     << " nBJets20 = " << nBJets20 
-			     << " nBJets20L = " << nBJets20L
-			     << std::endl;
+                             << " nBJets20 = " << nBJets20
+                             << " nBJets20L = " << nBJets20L
+                             << std::endl;
 }
 
 //count and create maps for reconstructed objects
@@ -1015,7 +1070,7 @@ void NanoAODConversion::CountObjects() {
     fNMuons[selection] = 0;
     fNPhotons[selection] = 0;
   }
-  
+
   //count muons
   for(Int_t index = 0; index < std::min(((int)nMuon),((int)kMaxParticles)); ++index) {
     //initialize the muon iso IDs
@@ -1026,27 +1081,33 @@ void NanoAODConversion::CountObjects() {
       // std::cout << "level = " << level << ", address = " << &(particleCorrections->muonIsoValues[level]);
       double isoval = particleCorrections->muonIsoValues[level];
       if(isoval > muonRelIso[index])
-	muonIsoId[index] += 1; 
+        muonIsoId[index] += 1;
       else
-	break;
+        break;
     }
     for(Int_t selection = kMuTau; selection < kSelections; ++selection) {
+      if(fVerbose > 9) std::cout << "Checking muon " << index << " for selection " << fSelecNames[selection].Data() << " with pt = " << muonPt[index]
+                                 << " eta = " << muonEta[index]
+                                 << " iso = " << ((int) muonIsoId[index]) << " > isoId = " << ((int) fMuonIsoCount[selection])
+                                 << " loose id = " << muonLooseId[index]
+                                 << " medium id = " << muonMediumId[index] << " tight id = " << muonTightId[index]
+                                 << std::endl;
       if(fCountMuons[selection] &&
-	 muonIsoId[index] > fMuonIsoCount[selection] &&
-	 (fMuonIDCount[selection] == 0 ||
-	  (fMuonIDCount[selection] == 1 && muonLooseId[index]) ||
-	  (fMuonIDCount[selection] == 2 && muonMediumId[index]) ||
-	  (fMuonIDCount[selection] == 3 && muonTightId[index])) &&
-	 muonPt[index] > fMuonPtCount &&
-	 fabs(muonEta[index]) < fMuonEtaCount) {
-	fMuonIndices[selection][fNMuons[selection]] = index;
-	++fNMuons[selection];
-	if(fVerbose > 2) std::cout << "Accepting muon " << index << " for selection " << fSelecNames[selection].Data() << " with pt = " << muonPt[index]
-				   << " eta = " << muonEta[index]
-				   << " iso = " << ((int) muonIsoId[index]) << " > isoId = " << ((int) fMuonIsoCount[selection])
-				   << " loose id = " << muonLooseId[index]
-				   << " medium id = " << muonMediumId[index] << " tight id = " << muonTightId[index]
-				   << std::endl;
+         muonIsoId[index] > fMuonIsoCount[selection] &&
+         (fMuonIDCount[selection] == 0 ||
+          (fMuonIDCount[selection] == 1 && muonLooseId[index]) ||
+          (fMuonIDCount[selection] == 2 && muonMediumId[index]) ||
+          (fMuonIDCount[selection] == 3 && muonTightId[index])) &&
+         muonPt[index] > fMuonPtCount &&
+         fabs(muonEta[index]) < fMuonEtaCount) {
+        fMuonIndices[selection][fNMuons[selection]] = index;
+        ++fNMuons[selection];
+        if(fVerbose > 2) std::cout << "Accepting muon " << index << " for selection " << fSelecNames[selection].Data() << " with pt = " << muonPt[index]
+                                   << " eta = " << muonEta[index]
+                                   << " iso = " << ((int) muonIsoId[index]) << " > isoId = " << ((int) fMuonIsoCount[selection])
+                                   << " loose id = " << muonLooseId[index]
+                                   << " medium id = " << muonMediumId[index] << " tight id = " << muonTightId[index]
+                                   << std::endl;
       }
     } //end selection loop
     //store basic information for all muons
@@ -1063,22 +1124,27 @@ void NanoAODConversion::CountObjects() {
   //count electrons
   for(Int_t index = 0; index < std::min(((int)kMaxParticles),((int)nElectron)); ++index) {
     for(Int_t selection = kMuTau; selection < kSelections; ++selection) {
+      if(fVerbose > 9) std::cout << "Checking electron " << index << " for selection " << fSelecNames[selection].Data() << " with pt = " << electronPt[index]
+                                 << " eta = " << electronEta[index]
+                                 << " loose id = " << electronWPL[index]
+                                 << " medium id = " << electronWP80[index] << " tight id = " << electronWP90[index]
+                                 << std::endl;
       double elec_eta = fabs(electronEta[index] + electronDeltaEtaSC[index]);
       if(fCountElectrons[selection] &&
-	 (fElectronIDCount[selection] == 0 ||
-	  (fElectronIDCount[selection] == 1 && electronWPL[index]) ||
-	  (fElectronIDCount[selection] == 2 && electronWP80[index]) ||
-	  (fElectronIDCount[selection] == 3 && electronWP90[index])) &&
-	 electronPt[index] > fElectronPtCount && 
-	  elec_eta < fElectronEtaCount &&
-	 (elec_eta <  1.442 || elec_eta > 1.566)) {
-	fElectronIndices[selection][fNElectrons[selection]] = index;
-	++fNElectrons[selection];
-	if(fVerbose > 2) std::cout << "Accepting electron " << index << " for selection " << fSelecNames[selection].Data() << " with pt = " << electronPt[index]
-				   << " eta = " << electronEta[index]
-				   << " loose id = " << electronWPL[index]
-				   << " medium id = " << electronWP80[index] << " tight id = " << electronWP90[index]
-				   << std::endl;
+         (fElectronIDCount[selection] == 0 ||
+          (fElectronIDCount[selection] == 1 && electronWPL[index]) ||
+          (fElectronIDCount[selection] == 2 && electronWP80[index]) ||
+          (fElectronIDCount[selection] == 3 && electronWP90[index])) &&
+         electronPt[index] > fElectronPtCount &&
+          elec_eta < fElectronEtaCount &&
+         (elec_eta <  1.442 || elec_eta > 1.566)) {
+        fElectronIndices[selection][fNElectrons[selection]] = index;
+        ++fNElectrons[selection];
+        if(fVerbose > 2) std::cout << "Accepting electron " << index << " for selection " << fSelecNames[selection].Data() << " with pt = " << electronPt[index]
+                                   << " eta = " << electronEta[index]
+                                   << " loose id = " << electronWPL[index]
+                                   << " medium id = " << electronWP80[index] << " tight id = " << electronWP90[index]
+                                   << std::endl;
       }
     } //end selection loop
     //store basic information for all electrons
@@ -1098,46 +1164,53 @@ void NanoAODConversion::CountObjects() {
     lv2.SetPtEtaPhiM(tauPt[index], tauEta[index], tauPhi[index], tauMass[index]);
     if(tauPt[index] < fTauPtCount || fabs(tauEta[index]) > fTauEtaCount) continue; //continue to next tau
     for(Int_t selection = kMuTau; selection < kSelections; ++selection) {
+      if(fVerbose > 9) std::cout << "Checking tau " << index << " for selection " << fSelecNames[selection].Data() << " with pt = " << tauPt[index]
+                                 << " eta = " << tauEta[index]
+                                 << " decay id = " << tauIDDecayModeNew[index]
+                                 << " anti ele id = " << ((int) tauDeep2017VsE[index])
+                                 << " anti mu id = " << ((int) tauDeep2017VsMu[index])
+                                 << " anti jet id = " << ((int) tauDeep2017VsJet[index])
+                                 << std::endl;
       //ensure no overlaps
       bool passDeltaR = true;
       /** check muons **/
       for(UInt_t imuon = 0; imuon < fNMuons[selection]; ++imuon) {
-      	lv1.SetPtEtaPhiM(muonPt[fMuonIndices[selection][imuon]] , muonEta[fMuonIndices[selection][imuon]],
-      			 muonPhi[fMuonIndices[selection][imuon]], muonMass[fMuonIndices[selection][imuon]]);
-      	passDeltaR = passDeltaR && lv1.DeltaR(lv2) > fTauDeltaRCount[selection];
-      	if(!passDeltaR) break;
+        lv1.SetPtEtaPhiM(muonPt[fMuonIndices[selection][imuon]] , muonEta[fMuonIndices[selection][imuon]],
+                         muonPhi[fMuonIndices[selection][imuon]], muonMass[fMuonIndices[selection][imuon]]);
+        passDeltaR = passDeltaR && lv1.DeltaR(lv2) > fTauDeltaRCount[selection];
+        if(!passDeltaR) break;
       }
       //if fails, move to next selection
       if(!passDeltaR) continue;
       /** check electrons **/
       for(UInt_t ielectron = 0; ielectron < fNElectrons[selection]; ++ielectron) {
-      	lv1.SetPtEtaPhiM(electronPt[fElectronIndices[selection][ielectron]] , electronEta[fElectronIndices[selection][ielectron]],
-      			 electronPhi[fElectronIndices[selection][ielectron]], electronMass[fElectronIndices[selection][ielectron]]);
-      	passDeltaR = passDeltaR && lv1.DeltaR(lv2) > fTauDeltaRCount[selection];
-      	if(!passDeltaR) break;
+        lv1.SetPtEtaPhiM(electronPt[fElectronIndices[selection][ielectron]] , electronEta[fElectronIndices[selection][ielectron]],
+                         electronPhi[fElectronIndices[selection][ielectron]], electronMass[fElectronIndices[selection][ielectron]]);
+        passDeltaR = passDeltaR && lv1.DeltaR(lv2) > fTauDeltaRCount[selection];
+        if(!passDeltaR) break;
       }
       //if fails, move to next selection
       if(!passDeltaR) continue;
       if(fCountTaus[selection] &&
-	 ((!fTauUseDeep[selection] &&
-	   tauAntiEle[index] >= fTauAntiEleCount[selection] && //MVA based IDs
-	   tauAntiMu[index] >= fTauAntiMuCount[selection] &&
-	   (!fTauIDDecayCount[selection] || tauIDDecayMode[index])) ||
-	  (fTauUseDeep[selection] &&
-	   tauDeep2017VsE[index] >= fTauAntiEleCount[selection] && //Deep NN based IDs
-	   tauDeep2017VsMu [index] >= fTauAntiMuCount [selection] &&
-	   tauAntiMu[index] >= fTauAntiOldMuCount[selection] && //Old MVA ID due to 2016 QCD excess
-	   tauDeep2017VsJet[index] >= fTauAntiJetCount[selection] &&
-	   (!fTauIDDecayCount[selection] || tauIDDecayModeNew[index])))) {
-	fTauIndices[selection][fNTaus[selection]] = index;
-	++fNTaus[selection];
-	if(fVerbose > 2) std::cout << "Accepting tau " << index << " for selection " << fSelecNames[selection].Data() << " with pt = " << tauPt[index]
-				   << " eta = " << tauEta[index]
-				   << " decay id = " << tauIDDecayModeNew[index]
-				   << " anti ele id = " << ((int) tauDeep2017VsE[index])
-				   << " anti mu id = " << ((int) tauDeep2017VsMu[index])
-				   << " anti jet id = " << ((int) tauDeep2017VsJet[index])
-				   << std::endl;
+         ((!fTauUseDeep[selection] &&
+           tauAntiEle[index] >= fTauAntiEleCount[selection] && //MVA based IDs
+           tauAntiMu[index] >= fTauAntiMuCount[selection] &&
+           (!fTauIDDecayCount[selection] || tauIDDecayMode[index])) ||
+          (fTauUseDeep[selection] &&
+           tauDeep2017VsE[index] >= fTauAntiEleCount[selection] && //Deep NN based IDs
+           tauDeep2017VsMu [index] >= fTauAntiMuCount [selection] &&
+           tauAntiMu[index] >= fTauAntiOldMuCount[selection] && //Old MVA ID due to 2016 QCD excess
+           tauDeep2017VsJet[index] >= fTauAntiJetCount[selection] &&
+           (!fTauIDDecayCount[selection] || tauIDDecayModeNew[index])))) {
+        fTauIndices[selection][fNTaus[selection]] = index;
+        ++fNTaus[selection];
+        if(fVerbose > 2) std::cout << "Accepting tau " << index << " for selection " << fSelecNames[selection].Data() << " with pt = " << tauPt[index]
+                                   << " eta = " << tauEta[index]
+                                   << " decay id = " << tauIDDecayModeNew[index]
+                                   << " anti ele id = " << ((int) tauDeep2017VsE[index])
+                                   << " anti mu id = " << ((int) tauDeep2017VsMu[index])
+                                   << " anti jet id = " << ((int) tauDeep2017VsJet[index])
+                                   << std::endl;
       }
     } //end selection loop
     //store basic information for all taus
@@ -1166,44 +1239,44 @@ void NanoAODConversion::CountObjects() {
       if(fabs(photonEta[index]) > 2.5 /* FIXME: Add barrel endcap overlap region rejection! */) continue;
       if(photonPt[index] < fPhotonPtCount) continue; //pT cut
       if(!(fPhotonIDCount[selection] == 0 || //No ID cut
-	   (fPhotonIDCount[selection] == 1 && photonWP80[index]))) //WP80 cut FIXME: switch to WP90
-	continue;
+           (fPhotonIDCount[selection] == 1 && photonWP80[index]))) //WP80 cut FIXME: switch to WP90
+        continue;
       //ensure no overlaps
       bool passDeltaR = true;
       /** check muons **/
       for(UInt_t imuon = 0; imuon < fNMuons[selection]; ++imuon) {
-	lv1.SetPtEtaPhiM(muonPt[fMuonIndices[selection][imuon]] , muonEta[fMuonIndices[selection][imuon]],
-			 muonPhi[fMuonIndices[selection][imuon]], muonMass[fMuonIndices[selection][imuon]]);
-	passDeltaR = passDeltaR && lv1.DeltaR(lv2) > fPhotonDeltaRCount[selection];
-	if(!passDeltaR) break;
+        lv1.SetPtEtaPhiM(muonPt[fMuonIndices[selection][imuon]] , muonEta[fMuonIndices[selection][imuon]],
+                         muonPhi[fMuonIndices[selection][imuon]], muonMass[fMuonIndices[selection][imuon]]);
+        passDeltaR = passDeltaR && lv1.DeltaR(lv2) > fPhotonDeltaRCount[selection];
+        if(!passDeltaR) break;
       }
       //if fails, move to next photon
       if(!passDeltaR) continue;
       /** check electrons **/
       for(UInt_t ielectron = 0; ielectron < fNElectrons[selection]; ++ielectron) {
-	lv1.SetPtEtaPhiM(electronPt[fElectronIndices[selection][ielectron]] , electronEta[fElectronIndices[selection][ielectron]],
-			 electronPhi[fElectronIndices[selection][ielectron]], electronMass[fElectronIndices[selection][ielectron]]);
-	passDeltaR = passDeltaR && lv1.DeltaR(lv2) > fPhotonDeltaRCount[selection];
-	if(!passDeltaR) break;
+        lv1.SetPtEtaPhiM(electronPt[fElectronIndices[selection][ielectron]] , electronEta[fElectronIndices[selection][ielectron]],
+                         electronPhi[fElectronIndices[selection][ielectron]], electronMass[fElectronIndices[selection][ielectron]]);
+        passDeltaR = passDeltaR && lv1.DeltaR(lv2) > fPhotonDeltaRCount[selection];
+        if(!passDeltaR) break;
       }
       //if fails, move to next photon
       if(!passDeltaR) continue;
       /** check taus **/
       for(UInt_t itau = 0; itau < fNTaus[selection]; ++itau) {
-	lv1.SetPtEtaPhiM(tauPt[fTauIndices[selection][itau]] , tauEta[fTauIndices[selection][itau]],
-			 tauPhi[fTauIndices[selection][itau]], tauMass[fTauIndices[selection][itau]]);
-	passDeltaR = passDeltaR && lv1.DeltaR(lv2) > fPhotonDeltaRCount[selection];
-	if(!passDeltaR) break;
+        lv1.SetPtEtaPhiM(tauPt[fTauIndices[selection][itau]] , tauEta[fTauIndices[selection][itau]],
+                         tauPhi[fTauIndices[selection][itau]], tauMass[fTauIndices[selection][itau]]);
+        passDeltaR = passDeltaR && lv1.DeltaR(lv2) > fPhotonDeltaRCount[selection];
+        if(!passDeltaR) break;
       }
       //if fails, move to next photon
-      if(!passDeltaR) continue; 
+      if(!passDeltaR) continue;
 
-      
+
       fPhotonIndices[selection][fNPhotons[selection]] = index;
       ++fNPhotons[selection];
       if(fVerbose > 2) std::cout << "Accepting photon " << index << " for selection " << fSelecNames[selection].Data() << " with pt = " << photonPt[index]
-				 << " eta = " << photonEta[index]
-				 << std::endl;
+                                 << " eta = " << photonEta[index]
+                                 << std::endl;
     } //end selection loop
     slimPhotons[index].pt    = photonPt[index];
     slimPhotons[index].eta   = photonEta[index];
@@ -1221,6 +1294,7 @@ void NanoAODConversion::CountTaus(int selection) {
     unsigned index = fTauIndices[selection][ntau];
     tausPt        [ntau] = tauPt [index];
     tausEta       [ntau] = tauEta[index];
+    tausPhi       [ntau] = tauPhi[index];
     tausIsPositive[ntau] = (tauCharge[index] > 0);
     tausAntiJet   [ntau] = tauDeep2017VsJet[index];
     tausAntiMu    [ntau] = tauDeep2017VsMu[index];
@@ -1229,6 +1303,17 @@ void NanoAODConversion::CountTaus(int selection) {
     tausDM        [ntau] = tauDecayMode[index];
     tausGenFlavor [ntau] = TauFlavorFromID((int) tauGenID[index]);
     tausWeight    [ntau] = (fIsData == 0) ? particleCorrections->TauWeight(tauPt[index], tauEta[index], tauGenID[index], fYear) : 1.;
+    float up, down;
+    int bin;
+    float tausEScale = particleCorrections->TauEnergyScale(tauPt[index], tauEta[index], tauDecayMode[index],
+                                                           tauGenID[index], fYear, up, down, bin);
+    if(tausEScale <= 0.)
+      std::cout << "WARNING! In event " << fentry
+                << __func__ << " tau energy scale <= 0 = " << tausEScale
+                << " for index " << index
+                << std::endl;
+    else tausPt[ntau] *= tausEScale;
+
   }
 }
 
@@ -1274,9 +1359,9 @@ bool NanoAODConversion::SelectionID(Int_t selection) {
     int index = (selection == kMuMu) ? leptonOneSkimIndex : fMuonIndices[selection][0];
     passed &= muonIsoId[index] > fMuonIsoSelect[selection];
     passed &=  fMuonIDSelect[selection] == 0 ||
-	      (fMuonIDSelect[selection] == 1 && muonLooseId [index]) ||
-	      (fMuonIDSelect[selection] == 2 && muonMediumId[index]) ||
-	      (fMuonIDSelect[selection] == 3 && muonTightId [index]);
+              (fMuonIDSelect[selection] == 1 && muonLooseId [index]) ||
+              (fMuonIDSelect[selection] == 2 && muonMediumId[index]) ||
+              (fMuonIDSelect[selection] == 3 && muonTightId [index]);
     if(fVerbose > 2) std::cout << "SelectionID: After Muon 1 has status " << passed << std::endl;
   }
   if(!passed) return false;
@@ -1284,9 +1369,9 @@ bool NanoAODConversion::SelectionID(Int_t selection) {
     int index = (selection == kMuMu) ? leptonTwoSkimIndex : fMuonIndices[selection][1];
     passed &= muonIsoId[index] > fMuonIsoSelect[selection];
     passed &=  fMuonIDSelect[selection] == 0 ||
-	      (fMuonIDSelect[selection] == 1 && muonLooseId [index]) ||
-	      (fMuonIDSelect[selection] == 2 && muonMediumId[index]) ||
-	      (fMuonIDSelect[selection] == 3 && muonTightId [index]);
+              (fMuonIDSelect[selection] == 1 && muonLooseId [index]) ||
+              (fMuonIDSelect[selection] == 2 && muonMediumId[index]) ||
+              (fMuonIDSelect[selection] == 3 && muonTightId [index]);
     if(fVerbose > 2) std::cout << "SelectionID: After Muon 2 has status " << passed << std::endl;
   }
   if(!passed) return false;
@@ -1315,13 +1400,13 @@ bool NanoAODConversion::SelectionID(Int_t selection) {
   if(selection == kMuTau || selection == kETau) {
     if(!fTauUseDeep[selection])
       passed &= tauAntiEle[fTauIndices[selection][0]] >= fTauAntiEleSelect[selection] && //MVA based IDs
-	tauAntiMu[fTauIndices[selection][0]] >= fTauAntiMuSelect[selection] &&
-	(!fTauIDDecaySelect[selection] || tauIDDecayMode[fTauIndices[selection][0]]);
+        tauAntiMu[fTauIndices[selection][0]] >= fTauAntiMuSelect[selection] &&
+        (!fTauIDDecaySelect[selection] || tauIDDecayMode[fTauIndices[selection][0]]);
     else
       passed &= (tauDeep2017VsE  [fTauIndices[selection][0]] >= fTauAntiEleSelect[selection] && //Deep NN based IDs
-		 tauDeep2017VsMu [fTauIndices[selection][0]] >= fTauAntiMuSelect [selection] &&
-		 tauDeep2017VsJet[fTauIndices[selection][0]] >= fTauAntiJetSelect[selection] &&
-		 (!fTauIDDecaySelect[selection] || tauIDDecayModeNew[fTauIndices[selection][0]]));
+                 tauDeep2017VsMu [fTauIndices[selection][0]] >= fTauAntiMuSelect [selection] &&
+                 tauDeep2017VsJet[fTauIndices[selection][0]] >= fTauAntiJetSelect[selection] &&
+                 (!fTauIDDecaySelect[selection] || tauIDDecayModeNew[fTauIndices[selection][0]]));
 
     if(fVerbose > 2) std::cout << "SelectionID: After Tau 1 has status " << passed << std::endl;
   }
@@ -1342,7 +1427,7 @@ float NanoAODConversion::GetTauFakeSF(int genFlavor) {
 float NanoAODConversion::CorrectMET(int selection, float met) {
   if(selection < 0) return met;
   float corrected = met;
-  
+
   // switch(abs(selection)) {
   // case 0 : weight = (1.1 - 0.2/150.*met); break; // mu+tau
   // case 1 : weight = 1.; break; // e+tau
@@ -1395,10 +1480,10 @@ int NanoAODConversion::GetTriggerMatch(UInt_t index, bool isMuon) {
     min_pt_2 = (fYear == ParticleCorrections::k2016) ? 28. : 33.;
   }
 
-  
+
   if(fVerbose > 2) std::cout << "Doing trigger match on index " << index << " with isMuon = " << isMuon
-			     << " and bits " << (1<<bit_1) << " and " << (1<<bit_2) << std::endl
-			     << "Given lepton pt, eta, phi = " << pt << ", " << eta << ", " << phi << std::endl;
+                             << " and bits " << (1<<bit_1) << " and " << (1<<bit_2) << std::endl
+                             << "Given lepton pt, eta, phi = " << pt << ", " << eta << ", " << phi << std::endl;
   if(pt < min_pt_1 && pt < min_pt_2) {
     if(fVerbose > 2) std::cout << " lepton pT below trigger thresholds\n";
     return 0; //pT below threshold considered
@@ -1415,9 +1500,9 @@ int NanoAODConversion::GetTriggerMatch(UInt_t index, bool isMuon) {
 
     if(!passBit1 && !passBit2) continue;
     if(fVerbose > 2) std::cout << " TrigObj " << trig_i << " passed bits check, has pt, eta, phi "
-			       << trigObjPt[trig_i] <<  ", " 
-			       << trigObjEta[trig_i] <<  ", " 
-			       << trigObjPhi[trig_i] << std::endl;
+                               << trigObjPt[trig_i] <<  ", "
+                               << trigObjEta[trig_i] <<  ", "
+                               << trigObjPhi[trig_i] << std::endl;
     if(fabs(pt - trigObjPt[trig_i]) < pt*deltapt_match) {
       float deltaeta = fabs(eta - trigObjEta[trig_i]);
       float deltaphi = fabs(phi - trigObjPhi[trig_i]);
@@ -1425,7 +1510,7 @@ int NanoAODConversion::GetTriggerMatch(UInt_t index, bool isMuon) {
       if(fVerbose > 2) std::cout << "  TrigObj " << trig_i << " passed pt check\n";
       if(sqrt(deltaeta*deltaeta + deltaphi*deltaphi) < deltar_match) {
       if(fVerbose > 2) std::cout << "   TrigObj " << trig_i << " passed delta r xcheck\n";
-	return (passBit1 + 2*passBit2);
+        return (passBit1 + 2*passBit2);
       }
     }
   }
@@ -1456,16 +1541,16 @@ Bool_t NanoAODConversion::Process(Long64_t entry)
   fChain->GetEntry(entry);
   if(entry%50000 == 0) printf("Processing event: %12lld (%5.1f%%)\n", entry, entry*100./fChain->GetEntriesFast());
   if(fVerbose > 2) std::cout << "Event info: nMuon = " << nMuon << " nElectron = " << nElectron
-			     << " nTau = " << nTau << " nJet = " << nJet << " nTrigObj = " << nTrigObjs
-			     << " nPhoton = " << nPhoton
-			     << std::endl;
+                             << " nTau = " << nTau << " nJet = " << nJet << " nTrigObj = " << nTrigObjs
+                             << " nPhoton = " << nPhoton
+                             << std::endl;
   if(kMaxParticles < nMuon || kMaxParticles < nElectron || kMaxParticles < nJets ||
      kMaxParticles < nTau  || kMaxParticles < nPhotons  || kMaxTriggers < nTrigObjs)
     std::cout << "WARNING! More particles than allowed in event " << entry
-	      << ":\n"  << "Event info: nMuon = " << nMuon << " nElectron = " << nElectron
-	      << " nTau = " << nTau << " nJet = " << nJet << " nTrigObj = " << nTrigObjs
-	      << " nPhoton = " << nPhoton
-	      << std::endl;
+              << ":\n"  << "Event info: nMuon = " << nMuon << " nElectron = " << nElectron
+              << " nTau = " << nTau << " nJet = " << nJet << " nTrigObj = " << nTrigObjs
+              << " nPhoton = " << nPhoton
+              << std::endl;
 
   //replace pileup weight if requested
   if(fIsData == 0 && fReplacePUWeights > 0) puWeight = fPUWeight.GetWeight(nPU, fYear+2016); //uses absolute year number
@@ -1473,47 +1558,41 @@ Bool_t NanoAODConversion::Process(Long64_t entry)
   CountObjects();
 
   //selections (all hopefully exclusive)
-  bool muontriggered = HLT_Mu50 || ((fYear == ParticleCorrections::k2016 && HLT_IsoMu24) || 
-				    (fYear == ParticleCorrections::k2017 && HLT_IsoMu27) || 
-				    (fYear == ParticleCorrections::k2018 && HLT_IsoMu24));
+  bool muontriggered = HLT_Mu50 || ((fYear == ParticleCorrections::k2016 && HLT_IsoMu24) ||
+                                    (fYear == ParticleCorrections::k2017 && HLT_IsoMu27) ||
+                                    (fYear == ParticleCorrections::k2018 && HLT_IsoMu24));
 
   bool electrontriggered = ((fYear == ParticleCorrections::k2016 && HLT_Ele27_WPTight_GsF) ||
-			  (fYear == ParticleCorrections::k2017 && HLT_Ele32_WPTight_GsF_L1DoubleEG) || //FIXME: add L1 Ele35 test as well
-			  (fYear == ParticleCorrections::k2018 && HLT_Ele32_WPTight_GsF));
-  
+                          (fYear == ParticleCorrections::k2017 && HLT_Ele32_WPTight_GsF_L1DoubleEG) || //FIXME: add L1 Ele35 test as well
+                          (fYear == ParticleCorrections::k2018 && HLT_Ele32_WPTight_GsF));
+
   bool triggered = muontriggered || electrontriggered;
 
   bool mutau = fNTaus[kMuTau] == 1 && fNMuons[kMuTau] == 1 && muontriggered /* && SelectionID(kMuTau)*/;
   bool etau  = fNTaus[kETau]  == 1 && fNElectrons[kETau]  == 1 && electrontriggered /* && SelectionID(kETau)*/;
-  //if a good muon, electron, and tau, veto from tau categories (use actual selection IDs)
-  if(mutau && SelectionID(kMuTau) && etau && SelectionID(kETau)) {mutau = false; etau = false;}
   bool emu   = fNMuons[kEMu]   == 1 && fNElectrons[kEMu]   == 1 && triggered /* && SelectionID(kEMu)*/;
   bool mumu  = fNMuons[kMuMu]  >= 2 && fNElectrons[kMuMu]  == 0 && muontriggered /* && SelectionID(kMuMu)*/;
   bool ee    = fNMuons[kEE]    == 0 && fNElectrons[kEE]    >= 2 && electrontriggered /* && SelectionID(kEE)*/;
-  bool skipSS = false; //to track if no selection is in error or expected
-  if(fSkipMuMuEESS && (ee || mumu)) { //require opposite sign if skipping same sign for ee/mumu
-    mumu = mumu && muonCharge[fMuonIndices[kMuMu][0]]*muonCharge[fMuonIndices[kMuMu][1]] < 0;
-    ee   = ee   && electronCharge[fElectronIndices[kEE][0]]*electronCharge[fElectronIndices[kEE][1]] < 0;
-    skipSS = !(ee || mumu); //failed due to SS rejection
-  }
-  if(ee + mumu > 0 && ((emu && SelectionID(kEMu)) || (etau && SelectionID(kETau)) || (mutau && SelectionID(kMuTau)))) {
-    ee = false; mumu = false;} //if passes a signal region, don't use in ee/mumu categories (shouldn't happen)
-  //must pass at least one selection
-  if(!mumu && !emu && !etau && !mutau && !ee) {
-    if(!skipSS) {
-      ++fNFailed;
-      if(fVerbose > 0) std::cout << "Warning! Event " << entry << " passes no selection! Skim flavors are: " 
-				 << leptonOneSkimFlavor << " and " << leptonTwoSkimFlavor << std::endl;
-    } else {
-      ++fNSkipped;
-    }
-    return kTRUE;
-  }
+
+  //if a good muon, electron, and tau, veto from tau categories (use actual selection IDs)
+  if(mutau && SelectionID(kMuTau) && etau && SelectionID(kETau)) {mutau = false; etau = false;}
 
   //Reject overlap of etau/mutau with emu
   if(emu && SelectionID(kEMu) && ((mutau && SelectionID(kMuTau)) || (etau && SelectionID(kETau)))) {mutau = false; etau = false;}
-  
-  //remove data overlap
+
+  if(ee + mumu > 0 && ((emu && SelectionID(kEMu)) || (etau && SelectionID(kETau)) || (mutau && SelectionID(kMuTau)))) {
+    ee = false; mumu = false;} //if passes a signal region, don't use in ee/mumu categories (shouldn't happen)
+
+  //must pass at least one selection
+  if(!mumu && !emu && !etau && !mutau && !ee) {
+    ++fNFailed;
+    if(fVerbose > 0) std::cout << "Warning! Event " << entry << " passes no selection! Skim flavors are: "
+                                 << leptonOneSkimFlavor << " and " << leptonTwoSkimFlavor << std::endl;
+    return kTRUE;
+  }
+
+
+  //remove single lepton data from category without corresponding lepton flavor
   ee    &= fIsData != 2;
   etau  &= fIsData != 2;
   mumu  &= fIsData != 1;
@@ -1528,43 +1607,61 @@ Bool_t NanoAODConversion::Process(Long64_t entry)
   if((int) (emu&&SelectionID(kEMu)+etau&&SelectionID(kETau)
      +mutau&&SelectionID(kMuTau)+mumu&&SelectionID(kMuMu)
      +ee&&SelectionID(kEE)) > 1 && fVerbose > 0) std::cout << "Warning! Event " << entry << " passes multiple selections!\n"
-							  << "mutau = " << mutau << " etau = " << etau << " emu = " << emu
-							  << " mumu = " << mumu << " ee = " << ee << std::endl;
-  
+                                                          << "mutau = " << mutau << " etau = " << etau << " emu = " << emu
+                                                          << " mumu = " << mumu << " ee = " << ee << std::endl;
+
+
+  /////////////////////////////////////
+  // Selection Loop
+  /////////////////////////////////////
+
   //loop through selections, in case an event passes multiple (shouldn't happen)
   for(int selection = kMuTau; selection < kSelections; ++selection) {
-    if(fSkipMuMuEE > 0 && (selection == kMuMu || selection == kEE)) { //check if skipping same flavor sets
+    //check if it passes the selection
+    if(!((selection == kMuTau && mutau) || (selection == kETau && etau) ||
+         (selection == kEMu && emu) || (selection == kMuMu && mumu) || (selection == kEE && ee)))
+      continue;
+
+    //Initialize all the relevant variables
+    InitializeTreeVariables(selection);
+
+    //Check is a same sign (SS) event if requested to skip them
+    bool skipSS = fSkipMuMuEESS && ((selection == kMuMu && muonCharge[leptonOneIndex] == muonCharge[leptonTwoIndex]) ||
+                                    (selection == kEE && electronCharge[leptonOneIndex] == electronCharge[leptonTwoIndex]));
+
+    //Skip the SS events if requested
+    if(skipSS) {
       ++fNSkipped;
       continue;
     }
-    //check if it passes the selection
-    if(!((selection == kMuTau && mutau) || (selection == kETau && etau) ||
-	 (selection == kEMu && emu) || (selection == kMuMu && mumu) || (selection == kEE && ee)))
-      continue;
-    //Check if passes tight ID requirements, if not mark for ABCD QCD scale factor calculation
+
+    //Check if passes tight ID requirements, if not mark for ABCD scale factor calculation
     looseQCDSelection = !SelectionID(selection);
     if(looseQCDSelection) ++fQCDCounts[selection];
-    InitializeTreeVariables(selection);
+
+
     if((selection == kMuMu || selection == kEE) && ((int) nElectrons != nElectronsSkim || (int) nMuons != nMuonsSkim))
       std::cout << fentry << ": Light lepton counts differ between skim and conversion! N(electrons) = " << nElectronsSkim
-		<< " --> " << nElectrons << ", N(muons) = " << nMuonsSkim << " --> " << nMuons << std::endl;
+                << " --> " << nElectrons << ", N(muons) = " << nMuonsSkim << " --> " << nMuons << std::endl;
+
     //a trigger must be fired
     if(lepOneFired || lepTwoFired) {
       //skip electron data with muon trigger
       if(fIsData == 1 && ((abs(leptonOneFlavor) == 13 && lepOneFired) || (abs(leptonTwoFlavor) == 13 && lepTwoFired)))
-	  continue;
+          continue;
       //skip muon data without muon trigger
       if(fIsData == 2 && !(abs(leptonOneFlavor) == 13 && lepOneFired) && !(abs(leptonTwoFlavor) == 13 && lepTwoFired))
-	continue;
+        continue;
       //fill the event tree
-      fDirs[selection]->cd();  
+      fDirs[selection]->cd();
       fOutTrees[selection]->Fill();
     } else {
       ++fNFailedTrig;
     }
-  }
+  } //end selection loop
+
   return kTRUE;
-}
+} //end process call
 
 void NanoAODConversion::SlaveTerminate()
 {
@@ -1592,7 +1689,7 @@ void NanoAODConversion::Terminate()
   printf("Processing time: %7.2fs CPU time %7.2fs Wall time\n",cpuTime,realTime);
   if(realTime > 600. ) printf("Processing time: %7.2fmin CPU time %7.2fmin Wall time\n",cpuTime/60.,realTime/60.);
   printf("Found:      %10i MuTau, %10i ETau, %10i EMu, %10i MuMu, %10i EE, %i failed trigger matching, %i failed, and %i skipped\n",
-	 fNMuTau, fNETau, fNEMu, fNMuMu, fNEE, fNFailedTrig, fNFailed, fNSkipped);
+         fNMuTau, fNETau, fNEMu, fNMuMu, fNEE, fNFailedTrig, fNFailed, fNSkipped);
 
   printf("QCD counts: ");
   for(int i = kMuTau; i < kSelections; ++i) printf("%10i %s, ", fQCDCounts[i], fSelecNames[i].Data());

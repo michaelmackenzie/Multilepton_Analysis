@@ -16,8 +16,11 @@
 #include "interface/SlimPhoton_t.hh"
 #include "interface/MVAConfig.hh"
 #include "interface/TrkQualInit.hh"
+#include "interface/PlottingCard_t.hh"
+#include "interface/DataCard_t.hh"
 #include "interface/ZTauTauHistMaker.hh"
 #include "interface/DataPlotter.hh"
+#include "interface/StandardDataConfig.hh"
 #include "interface/ParticleCorrections.hh"
 #include "interface/NanoAODConversion.hh"
 

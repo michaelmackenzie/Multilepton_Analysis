@@ -57,8 +57,22 @@ public :
   Float_t eventWeight = 1.           ;
   Float_t genWeight = 1.             ;
   Float_t puWeight = 1.              ;
-  Float_t lepOneWeight = 1.          ;
-  Float_t lepTwoWeight = 1.          ;
+  Float_t lepOneWeight1              ;
+  Float_t lepOneWeight1_up           ;
+  Float_t lepOneWeight1_down         ;
+  Int_t   lepOneWeight1_bin          ;
+  Float_t lepOneWeight2              ;
+  Float_t lepOneWeight2_up           ;
+  Float_t lepOneWeight2_down         ;
+  Int_t   lepOneWeight2_bin          ;
+  Float_t lepTwoWeight1              ;
+  Float_t lepTwoWeight1_up           ;
+  Float_t lepTwoWeight1_down         ;
+  Int_t   lepTwoWeight1_bin          ;
+  Float_t lepTwoWeight2              ;
+  Float_t lepTwoWeight2_up           ;
+  Float_t lepTwoWeight2_down         ;
+  Int_t   lepTwoWeight2_bin          ;
   Float_t lepOneTrigWeight = 1.      ;
   Float_t lepTwoTrigWeight = 1.      ;
   Bool_t  lepOneFired = false        ;
@@ -71,6 +85,9 @@ public :
   Bool_t  looseQCDSelection = false  ;
   Float_t genTauFlavorWeight = 1.    ;
   Float_t tauEnergyScale = 1.        ;
+  Float_t tauES_up                   ;
+  Float_t tauES_down                 ;
+  Int_t   tauES_bin                  ;
   Int_t   tauDecayModeOut = 0        ;
   Float_t tauMVA  = 0                ;
   Int_t tauGenIDOut      = 0         ;
@@ -85,9 +102,9 @@ public :
   Int_t leptonOneSkimFlavor = 0      ;
   Int_t leptonTwoSkimFlavor = 0      ;
   Float_t leptonOneD0   = 0          ;
-  Float_t leptonTwoD0	= 0	     ;
-  Float_t leptonOneIso	= 0	     ;
-  Float_t leptonTwoIso = 0           ; 
+  Float_t leptonTwoD0   = 0          ;
+  Float_t leptonOneIso  = 0          ;
+  Float_t leptonTwoIso = 0           ;
   UChar_t leptonOneID1 = 0           ;
   UChar_t leptonTwoID1 = 0           ;
   UChar_t leptonOneID2 = 0           ;
@@ -186,6 +203,7 @@ public :
   //Info for fake tau studies
   Float_t tausPt[kMaxParticles]      ;
   Float_t tausEta[kMaxParticles]     ;
+  Float_t tausPhi[kMaxParticles]     ;
   Bool_t  tausIsPositive[kMaxParticles];
   Int_t   tausDM[kMaxParticles]      ;
   Int_t   tausGenFlavor[kMaxParticles];
@@ -241,7 +259,7 @@ public :
   Float_t tauPhi[kMaxParticles]             ;
   Float_t tauMass[kMaxParticles]            ;
   Int_t   tauCharge[kMaxParticles]          ;
-  Float_t taudxy[kMaxParticles]             ;            
+  Float_t taudxy[kMaxParticles]             ;
   Float_t taudz[kMaxParticles]              ;
   UChar_t tauAntiEle[kMaxParticles]         ;
   UChar_t tauAntiEle2018[kMaxParticles]     ;
@@ -288,7 +306,7 @@ public :
   Float_t zMassIn            = -1.          ;
   Int_t   zLepOne            = 0            ;
   Int_t   zLepTwo            = 0            ;
-  
+
 // Float_t genWeight                         ;
   // Float_t piWeight                          ;
   // Float_t PuppiMET                          ;
@@ -317,7 +335,7 @@ public :
     float lepdeltaphi;
 
     //extra angles
-    float htdeltaphi;    
+    float htdeltaphi;
     float metdeltaphi;
     float leponedeltaphi;
     float leptwodeltaphi;
@@ -333,7 +351,7 @@ public :
     float ptauvisfrac;
     float mestimate;
     float mestimatetwo;
-    
+
     //Event variables
     float ht;
     float htsum;
@@ -385,7 +403,7 @@ public :
     return 26; //unknown
   }
   virtual int      GetTriggerMatch(UInt_t index, bool isMuon);
-  
+
   Long64_t fentry; //for tracking entry in functions
   //Define relevant fields
   TStopwatch* timer = new TStopwatch();
@@ -400,7 +418,7 @@ public :
   Float_t       fEventCount = 0.;
   Int_t         fYear = ParticleCorrections::k2016; //data taking year
   Int_t         fMuonIso = ParticleCorrections::kTightMuIso; //which isolation selection to use
-  
+
   TString       fFolderName = ""; //name of the folder the tree is from
 
   Bool_t        fIsDY = false; //for applying Z pT and mass weights
@@ -412,12 +430,13 @@ public :
   Int_t         fMETWeights = 0; //re-weight events based on the MET
   Int_t         fRemoveZPtWeights = 0; // 0 use given weights, 1 remove z pT weight, 2 remove and re-evaluate weights locally
   Bool_t        fDoTriggerMatchPt = true; //use pT threshold when matching triggers
-  
+  Int_t         fUsePhotonWeight = -1; //whether to include a photon ID weight or not, -1 means set to 1
+
   Int_t         fVerbose = 0;
 
   Int_t         fSkipMuMuEE = 0; // whether to skip ee/mumu selections for now
   Int_t         fSkipMuMuEESS = 1; //whether to skip same sign ee/mumu selections for now
-  
+
   //selection requirements
   /** Muons **/
   std::map<Int_t, UChar_t> fMuonIsoSelect;
@@ -466,7 +485,7 @@ public :
   std::map<UInt_t, std::map<UInt_t, UInt_t>> fPhotonIndices;
   std::map<UInt_t, UInt_t>  fNPhotons;
 
-  
+
   //summary variables
   Int_t         fNEE         = 0;
   Int_t         fNMuMu       = 0;
@@ -503,7 +522,7 @@ void NanoAODConversion::Init(TTree *tree)
     TH1F* h = new TH1F(("Events_"+name).Data(), "Event counting", 10, 1, 11);
     h->Fill(1, fEventCount);
     h->Write();
-    
+
     for(int selection = 0; selection < kSelections; ++selection) {
       TString selectionName = "";
       if     (selection == kMuTau) selectionName = "mutau";
