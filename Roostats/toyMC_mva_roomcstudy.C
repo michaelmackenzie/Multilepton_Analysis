@@ -4,7 +4,7 @@
 int toyMC_mva_roomcstudy(int set = 8, TString selection = "zmutau",
                           vector<int> years = {2016, 2017, 2018},
                           int systematic = 5,
-                          int nfits = 500,
+                          int nfits = 1000,
                           bool print = true,
                           int seed = 90) {
   int status(0);
@@ -56,7 +56,7 @@ int toyMC_mva_roomcstudy(int set = 8, TString selection = "zmutau",
   br_sig->setVal(true_br_sig); //set the branching fraction to the true value
 
   RooMCStudy mcstudy(*gen_PDF,RooArgSet(*mva, *categories),RooFit::FitModel(*fit_PDF),RooFit::Silence(), RooFit::Extended(1),
-                     RooFit::FitOptions(RooFit::Save(1), RooFit::PrintEvalErrors(0)));
+                     RooFit::FitOptions(RooFit::Save(1), RooFit::PrintEvalErrors(0)), RooFit::Binned(1));
 
   //perform the study
   mcstudy.generateAndFit(nfits);
