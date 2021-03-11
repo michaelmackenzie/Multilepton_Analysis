@@ -25,7 +25,7 @@ then
 fi
 if [[ "$MAXSYS" == "" ]]
 then
-    MAXSYS=21
+    MAXSYS=27
 fi
 if [[ "$SEED" == "" ]]
 then

@@ -11,6 +11,7 @@
 *.xml
 *Weights*
 lib/
+studies/*/rootfiles/
 tmva_training/plots/*
 tmva_training/*.root
 tmva_training/scripts/figures/*.png

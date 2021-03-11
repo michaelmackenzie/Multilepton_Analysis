@@ -13,6 +13,8 @@ int toyMC_mva_systematics(int set = 8, TString selection = "zmutau",
   double fit_bias = 0.;
   if     (selection == "zmutau") fit_bias = -2.5e-7;
   else if(selection == "zetau" ) fit_bias =  4.0e-7;
+  else if(selection == "hmutau") fit_bias =  1.8e-4;
+  else if(selection == "hetau" ) fit_bias =  9.3e-4;
 
   TRandom3* rnd = new TRandom3(seed);
 
@@ -51,6 +53,13 @@ int toyMC_mva_systematics(int set = 8, TString selection = "zmutau",
   auto br_sig = ws->var("br_sig");
   auto lum_var = ws->var("lum_var");
 
+  //turn off systematic constraints for evaluating these uncertainties
+  if(ws->var("br_sig_eff")) {
+    auto br_sig_eff = ws->var("br_sig_eff");
+    br_sig_eff->setVal(1.);
+    br_sig_eff->setConstant(1);
+    cout << "Setting branching fraction systematic factor to constant!\n";
+  }
 
   //Set an example branching ratio
   double true_br_sig = (selection.Contains("h") ? 5.e-3 : 5.e-6);
@@ -64,6 +73,11 @@ int toyMC_mva_systematics(int set = 8, TString selection = "zmutau",
     auto n_sig = ws->function((self_test) ? Form("n_sig_%i", index) : Form("n_sig_%i_sys_%i", index, systematic));
     n_bkgs.push_back((scale_lum > 0.) ? scale_lum*n_bkg->getVal() : n_bkg->getVal());
     n_sigs.push_back((scale_lum > 0.) ? scale_lum*n_sig->getVal() : n_sig->getVal());
+    if(n_bkg->getVal() <= 0. || n_sig->getVal() <= 0.) {
+      cout << "Category " << index << " has an undefined event numbers! N(bkg) = " << n_bkg->getVal()
+           << " and N(sig) = " << n_sig->getVal() << endl;
+      return 2;
+    }
     ++index;
   }
 
@@ -73,11 +87,11 @@ int toyMC_mva_systematics(int set = 8, TString selection = "zmutau",
   }
 
   //Create histograms for the fit results
-  TH1F* hBrSig   = new TH1F("hbrsig" , "Branching Ratios", 80, min(-2.*true_br_sig, -3.e-6), max(2.*true_br_sig, 3.e-6));
-  TH1F* hBrDiff  = new TH1F("hbrdiff", "Branching Ratio Errors", 80, min(-2.*true_br_sig, -3.e-6), max(2.*true_br_sig, 3.e-6));
-  TH1F* hBrDiffB = new TH1F("hbrdiff", "Branching Ratio Errors with bias offset", 80, min(-2.*true_br_sig, -3.e-6), max(2.*true_br_sig, 3.e-6));
-  TH1F* hBrPull  = new TH1F("hbrpull", "Branching Ratio Pulls", 80, -10., 10.);
-  TH1F* hNLL     = new TH1F("hnll", "Fit NLL", 100, -2.67e7, -2.62e7);
+  TH1F* hBrSig   = new TH1F("hbrsig"  , "Branching Ratios", 80, min(-2.*true_br_sig, -3.e-6), max(2.*true_br_sig, 3.e-6));
+  TH1F* hBrDiff  = new TH1F("hbrdiff" , "Branching Ratio Errors", 80, min(-2.*true_br_sig, -3.e-6), max(2.*true_br_sig, 3.e-6));
+  TH1F* hBrDiffB = new TH1F("hbrdiffb", "Branching Ratio Errors with bias offset", 80, min(-2.*true_br_sig, -3.e-6), max(2.*true_br_sig, 3.e-6));
+  TH1F* hBrPull  = new TH1F("hbrpull" , "Branching Ratio Pulls", 80, -10., 10.);
+  TH1F* hNLL     = new TH1F("hnll"    , "Fit NLL", 100, -2.67e7, -2.62e7);
   bool donll = false;
 
   /////////////////////////
@@ -95,7 +109,11 @@ int toyMC_mva_systematics(int set = 8, TString selection = "zmutau",
       //vary the number of events using a Poisson distribution with expected as the mean
       int n_bkg_events = rnd->Poisson(n_bkgs[icat]);
       int n_sig_events = rnd->Poisson(n_sigs[icat]);
-
+      if(n_bkg_events < 0 || n_sig_events < 0) {
+        cout << "Category " << icat << " has an undefined event numbers! N(bkg) = " << n_bkg_events
+             << " and N(sig) = " << n_sig_events << endl;
+        return 3;
+      }
       //get the background PDF
       auto bkgMVAPDF = ws->pdf((self_test) ? Form("bkgMVAPDF_%i", icat) : Form("bkgMVAPDF_%i_sys_%i", icat, systematic));
       cout << "Generating background data for index " << icat << " with " << n_bkg_events << " events (mean = "
@@ -136,7 +154,7 @@ int toyMC_mva_systematics(int set = 8, TString selection = "zmutau",
 
     //perform the fit
     if(ifit % 10 == 0) cout << "Performing fit " << ifit << endl;
-    fit_PDF->fitTo(combined_data, RooFit::Extended(1));
+    fit_PDF->fitTo(combined_data, RooFit::Extended(1)/*, RooFit::Constrain(br_sig_constr)*/);
     if(ifit == 0) {
       cout << "Finished the fit!\n";
       br_sig->Print();
