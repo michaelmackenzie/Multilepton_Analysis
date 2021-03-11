@@ -144,7 +144,7 @@ struct EventHist_t {
     
   TH1D* hLepDeltaPhi;
   TH1D* hLepDeltaEta;
-  TH1D* hLepDeltaR;
+  TH1D* hLepDeltaR[3]; //0: nominal 1: without qcd weights 2: scale bin with weights
   TH2D* hLepDelRVsPhi;
     
   TH1D* hLepPtOverM;

@@ -56,6 +56,8 @@
 #include "interface/JetToTauWeight.hh"
 //define Jet->lep weights locally
 #include "interface/JetToLepWeight.hh"
+//define SS->OS weights locally
+#include "interface/QCDWeight.hh"
 //define a systematic variation
 #include "interface/SystematicShifts.hh"
 
@@ -93,6 +95,10 @@ public :
   Float_t jetToTauWeightUp           ;
   Float_t jetToTauWeightDown         ;
   Float_t jetToTauWeightSys          ;
+  Float_t qcdWeight                  ;
+  Float_t qcdWeightUp                ;
+  Float_t qcdWeightDown              ;
+  Float_t qcdWeightSys               ;
   Int_t tauDecayMode                 ;
   Float_t tauMVA                     ;
   Float_t tauES                      ;
@@ -382,9 +388,10 @@ public :
     }
   };
 
-  ZTauTauHistMaker(TTree * /*tree*/ =0) : fMuonJetToTauWeight("mumu", 0), fMuonJetToTauMCWeight("mumu", 2),
-                                          fElectronJetToTauWeight("ee", 0),
-                                          fJetToMuonWeight("mumu"), fJetToElectronWeight("ee") { }
+  ZTauTauHistMaker(TTree * /*tree*/ = 0) : fMuonJetToTauWeight("mumu", 0), fMuonJetToTauMCWeight("mumu", 2),
+                                           fElectronJetToTauWeight("ee", 0),
+                                           fJetToMuonWeight("mumu"), fJetToElectronWeight("ee"),
+                                           fQCDWeight("emu") { }
   virtual ~ZTauTauHistMaker() { }
   virtual Int_t   Version() const { return 2; }
   virtual void    Begin(TTree *tree);
@@ -499,6 +506,7 @@ public :
   JetToTauWeight  fElectronJetToTauWeight; //for etau
   JetToLepWeight  fJetToMuonWeight; //for mutau
   JetToLepWeight  fJetToElectronWeight; //for etau
+  QCDWeight       fQCDWeight; //for emu
 
   Int_t           fRemoveZPtWeights = 0; // 0 use given weights, 1 remove z pT weight, 2 remove and re-evaluate weights locally
   ZPtWeight       fZPtWeight; //re-weight Drell-Yan pT vs Mass

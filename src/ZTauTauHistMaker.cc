@@ -413,7 +413,14 @@ void ZTauTauHistMaker::BookEventHistograms() {
 
       fEventHist[i]->hLepDeltaPhi   = new TH1D("lepdeltaphi"   , Form("%s: Lepton DeltaPhi",dirname)  ,  50,   0,   5);
       fEventHist[i]->hLepDeltaEta   = new TH1D("lepdeltaeta"   , Form("%s: Lepton DeltaEta",dirname)  , 100,   0,   5);
-      fEventHist[i]->hLepDeltaR     = new TH1D("lepdeltar"     , Form("%s: Lepton DeltaR"  ,dirname)  , 100,   0,   5);
+      fEventHist[i]->hLepDeltaR[0]  = new TH1D("lepdeltar"     , Form("%s: Lepton DeltaR"  ,dirname)  , 100,   0,   5);
+      double drbins[] = {0.  , 1.2 , 2.  , 2.5 , 2.75,
+                         3.  , 3.2 , 3.4 , 3.6 , 3.8 ,
+                         4.  , 4.25, 4.5 , 4.75, 5.  ,
+                         5.3,
+                         6.};
+      fEventHist[i]->hLepDeltaR[1]  = new TH1D("lepdeltar1"    , Form("%s: Lepton DeltaR"  ,dirname)  , (sizeof(drbins)/sizeof(*drbins) - 1), drbins);
+      fEventHist[i]->hLepDeltaR[2]  = new TH1D("lepdeltar2"    , Form("%s: Lepton DeltaR"  ,dirname)  , (sizeof(drbins)/sizeof(*drbins) - 1), drbins);
       fEventHist[i]->hLepDelRVsPhi  = new TH2D("lepdelrvsphi"  , Form("%s: LepDelRVsPhi"   ,dirname)  ,  40,  0,   4, 100,  0,   5);
       fEventHist[i]->hLepPtOverM    = new TH1D("lepptoverm"    , Form("%s: Lepton Pt / M"  ,dirname)  , 100,   0,  10);
       fEventHist[i]->hAlpha[0]      = new TH1D("alpha0"        , Form("%s: Alpha (Z) 0"    ,dirname)  , 100,   0,   5);
@@ -1041,6 +1048,10 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
   Hist->hTauDeepAntiMu     ->Fill(tauDeepAntiMu              , genWeight*eventWeight)   ;
   Hist->hTauDeepAntiJet    ->Fill(std::log2(tauDeepAntiJet+1), genWeight*eventWeight)   ;
 
+  if(jetOneP4 && jetOneP4->Pt() > 0.) { //if 0 then no jet stored
+    Hist->hJetPt           ->Fill(jetOneP4->Pt()             , genWeight*eventWeight)   ;
+  }
+
   if(!fDYTesting) {
 
     // Hist->hTauVetoedJetPt         ->Fill(tauVetoedJetPt     , genWeight*eventWeight)   ;
@@ -1179,7 +1190,9 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
 
   Hist->hLepDeltaPhi  ->Fill(lepDelPhi              ,eventWeight*genWeight);
   Hist->hLepDeltaEta  ->Fill(lepDelEta              ,eventWeight*genWeight);
-  Hist->hLepDeltaR    ->Fill(lepDelR                ,eventWeight*genWeight);
+  Hist->hLepDeltaR[0] ->Fill(lepDelR                ,eventWeight*genWeight);
+  Hist->hLepDeltaR[1] ->Fill(lepDelR                ,(qcdWeight > 0.) ? eventWeight*genWeight/qcdWeight : eventWeight*genWeight);
+  Hist->hLepDeltaR[2] ->Fill(lepDelR                ,eventWeight*genWeight); //same binning as scale factor measurement
   Hist->hLepDelRVsPhi ->Fill(lepDelR , lepDelPhi    ,eventWeight*genWeight);
   Hist->hLepPtOverM   ->Fill(lepSys.Pt()/lepSys.M() ,eventWeight*genWeight);
 
@@ -1494,7 +1507,8 @@ void ZTauTauHistMaker::FillLepHistogram(LepHist_t* Hist) {
 void ZTauTauHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
   for(int sys = 0; sys < kMaxSystematics; ++sys) {
     float weight = eventWeight*genWeight;
-    TLorentzVector lv1 = *leptonTwoP4;
+    if(weight == 0.) continue; //no way to re-scale 0
+    TLorentzVector lv1 = *leptonOneP4;
     TLorentzVector lv2 = *leptonTwoP4;
     if(sys == 0) weight = weight;                                          //do nothing
     else if  (sys ==  1) {                                                 //electron ID scale factors
@@ -1564,7 +1578,16 @@ void ZTauTauHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
     //     lv2 *= (tauESSys  / tauES);
     //   }
     // }                                                                   //End tau ES
+    else if  (sys == 25) weight *= (qcdWeight > 0.) ? qcdWeightUp  / qcdWeight : 0.; //SS --> OS weights
+    else if  (sys == 26) weight *= (qcdWeight > 0.) ? qcdWeightDown/ qcdWeight : 0.;
+    else if  (sys == 27) weight *= (qcdWeight > 0.) ? qcdWeightSys / qcdWeight : 0.;
     else continue; //no need to fill undefined systematics
+
+    if(std::isnan(weight)) {
+      std::cout << "ZTauTauHistMaker::" << __func__ << ": Entry " << fentry << " Systematic " << sys << " weight is NaN! event weight = "
+                << eventWeight << ", setting to 0...\n";
+      weight = 0.;
+    }
 
     TLorentzVector lepSys = lv1 + lv2;
 
@@ -1576,8 +1599,19 @@ void ZTauTauHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
     Hist->hTwoEta[sys]->Fill(lv2.Eta()   , weight);
     Hist->hWeightChange[sys]->Fill((eventWeight*genWeight != 0.) ? (eventWeight*genWeight - weight) / (eventWeight*genWeight) : 0.);
     //MVA outputs
+    float mvaweight = fTreeVars.eventweightMVA*(weight/(eventWeight*genWeight));
+    if(std::isnan(mvaweight)) {
+      std::cout << "ZTauTauHistMaker::" << __func__ << ": Entry " << fentry << " MVA weight is NaN! eventweightMVA = "
+                << fTreeVars.eventweightMVA << ", setting to 0...\n";
+      mvaweight = 0.;
+    }
     for(unsigned i = 0; i < fMVAConfig.names_.size(); ++i) {
-      Hist->hMVA[i][sys]->Fill(fMvaOutputs[i], fTreeVars.eventweightMVA*weight/(eventWeight*genWeight));
+      float mvascore = fMvaOutputs[i];
+      if(std::isnan(mvascore)) {
+        std::cout << "ZTauTauHistMaker::" << __func__ << ": Entry " << fentry << " MVA score is NaN! Setting to -2...\n";
+        mvascore = -2.;
+      }
+      Hist->hMVA[i][sys]->Fill(mvascore, mvaweight);
     }
   }
 }
@@ -2058,7 +2092,12 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   etau  &= fIsData > 0 || abs(tauGenFlavor) != 26;
 
 
+  /////////////////////////
+  // Jet --> tau weights //
+  /////////////////////////
+
   //weigh anti-iso tau region by anti-iso --> tight iso weight
+  jetToTauWeight = 1.; jetToTauWeightUp = 1.; jetToTauWeightDown = 1.; jetToTauWeightSys = 1.;
   if(mutau && isLooseTau) {
     //use data factor for MC and Data, since not using MC estimated fake tau rates
     jetToTauWeight = fMuonJetToTauWeight.GetDataFactor(tauDecayMode, fYear, tau->Pt(), tau->Eta(), muon->Pt(),
@@ -2067,10 +2106,25 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
     //use data factor for MC and Data, since not using MC estimated fake tau rates
     jetToTauWeight = fElectronJetToTauWeight.GetDataFactor(tauDecayMode, fYear, tau->Pt(), tau->Eta(), electron->Pt(),
                                                            jetToTauWeightUp, jetToTauWeightDown, jetToTauWeightSys);
-  } else {
-    jetToTauWeight = 1.; jetToTauWeightUp = 1.; jetToTauWeightDown = 1.; jetToTauWeightSys = 1.;
   }
+
   eventWeight *= jetToTauWeight;
+
+  ///////////////////////
+  // SS --> OS weights //
+  ///////////////////////
+
+  qcdWeight = 1.; qcdWeightUp = 1.; qcdWeightDown = 1.; qcdWeightSys = 1.;
+  //get scale factor for same sign --> opposite sign
+  if(emu && !chargeTest) {
+    qcdWeight = fQCDWeight.GetWeight(fTreeVars.lepdeltar, fYear, qcdWeightUp, qcdWeightDown, qcdWeightSys);
+  }
+
+  eventWeight *= qcdWeight;
+
+  /////////////////////////
+  // Jet --> lep weights //
+  /////////////////////////
 
   if(mutau && isLooseMuon) {
     //use data factor for MC and Data, since not using MC estimated fake tau rates
