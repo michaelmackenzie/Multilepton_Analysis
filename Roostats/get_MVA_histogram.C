@@ -1,11 +1,12 @@
 //Script to retrieve the background and signal MVA histograms
 #include "../histograms/dataplotter_ztautau.C"
 #include "../interface/SystematicHist_t.hh"
+int overall_rebin_ = 1;
 
 int get_systematics(int set, TString hist, TFile* f, TString canvas_name) {
   int status(0);
   f->cd();
-  dataplotter_->rebinH_ = 1;
+  dataplotter_->rebinH_ = overall_rebin_;
   for(int isys = 0; isys < kMaxSystematics; ++isys) {
     THStack* hstack = dataplotter_->get_stack(Form("%s_%i", hist.Data(), isys), "systematic", set);
     if(!hstack) {++status; continue;}
@@ -19,6 +20,7 @@ int get_systematics(int set, TString hist, TFile* f, TString canvas_name) {
     for(auto h : signals) {
       h->Draw("hist same");
     }
+    hstack->GetXaxis()->SetRangeUser(-1.,1.);
     gSystem->Exec(Form("mkdir -p %s_sys", canvas_name.Data()));
     c->Print(Form("%s_sys/sys_%i.png", canvas_name.Data(), isys));
     for(auto h : signals) {
@@ -73,7 +75,7 @@ int get_individual_MVA_histogram(int set = 8, TString selection = "zmutau",
   if     (selec == "mutau") set_offset = ZTauTauHistMaker::kMuTau;
   else if(selec == "etau" ) set_offset = ZTauTauHistMaker::kETau;
 
-  dataplotter_->rebinH_ = 100;
+  dataplotter_->rebinH_ = 100*overall_rebin_;
   //get background distribution
   THStack* hstack = dataplotter_->get_stack(hist, "event", set+set_offset);
   if(!hstack) return 1;
@@ -88,6 +90,7 @@ int get_individual_MVA_histogram(int set = 8, TString selection = "zmutau",
   for(auto h : signals) {
     h->Draw("same");
   }
+  hstack->GetXaxis()->SetRangeUser(-1.,1.);
   TString year_string;
   for(unsigned i = 0; i < years.size(); ++i) {
     if(i > 0) year_string += "_";

@@ -101,12 +101,12 @@ Int_t fit_background_MVA_binned(int set = 8, TString selection = "zmutau",
   selection_ = selection;
   double sys_unc = 0.;
   vector<TString> hists;
-  if     (selection == "hmutau"  ) {hists = {"mva0", "mva6"}; sys_unc = 1.e-2;}
+  if     (selection == "hmutau"  ) {hists = {"mva0", "mva6"}; sys_unc = 2.e-1;}
   else if(selection == "zmutau"  ) {hists = {"mva1", "mva7"}; sys_unc = 2.e-1;}
-  else if(selection == "hetau"   ) {hists = {"mva2", "mva8"}; sys_unc = 1.e-2;}
-  else if(selection == "zetau"   ) {hists = {"mva3", "mva9"}; sys_unc = 1.e-2;}
-  else if(selection == "hemu"    ) {hists = {"mva4"};         sys_unc = 1.e-2;}
-  else if(selection == "zemu"    ) {hists = {"mva5"};         sys_unc = 1.e-2;}
+  else if(selection == "hetau"   ) {hists = {"mva2", "mva8"}; sys_unc = 2.e-1;}
+  else if(selection == "zetau"   ) {hists = {"mva3", "mva9"}; sys_unc = 2.e-1;}
+  else if(selection == "hemu"    ) {hists = {"mva4"};         sys_unc = 2.e-1;}
+  else if(selection == "zemu"    ) {hists = {"mva5"};         sys_unc = 2.e-1;}
   else {
     cout << "Unidentified selection " << selection.Data() << endl;
     return -1;
@@ -183,6 +183,10 @@ Int_t fit_background_MVA_binned(int set = 8, TString selection = "zmutau",
 
   cout << "Individual PDFs constructed!\n";
 
+  /////////////////////////////////
+  // Define relevant parameters  //
+  /////////////////////////////////
+
   //Luminosity based parameters
   CrossSections xs;
   double lum = 0.;
@@ -198,16 +202,20 @@ Int_t fit_background_MVA_binned(int set = 8, TString selection = "zmutau",
   RooRealVar br_sig("br_sig", "br_sig", 0., -0.01, 0.01); br_sig_ = &br_sig;
   RooRealVar lum_var("lum_var", "lum_var", lum); lum_var_ = &lum_var;
   RooRealVar bxs_var("bxs_var", "bxs_var", bxs); bxs_var_ = &bxs_var;
-  RooRealVar br_sig_eff("br_sig_eff", "br_sig_eff", 1., 0., 2.); //for systematic on br_sig
-  RooRealVar sys_unc_var("sys_unc_var", "sys_unc_var", sys_unc, 0., 2.);
-  RooRealVar sys_mean_var("sys_mean_var", "sys_mean_var", 1., 0., 2.);
-  RooGaussian br_sig_constr("br_sig_constr", "br_sig_constr", br_sig_eff, sys_mean_var, sys_unc_var); //constraint on br_sig systematic
-  sys_unc_var.setConstant(1);
-  sys_mean_var.setConstant(1);
-  if(!doConstraints_) br_sig_eff.setConstant(1);
+  RooRealVar br_sig_kappa("br_sig_kappa", "br_sig_kappa", 1. + sys_unc, 0., 2. + sys_unc); br_sig_kappa.setConstant(1);
+  RooRealVar br_sig_beta("br_sig_beta", "br_sig_beta", 0., -10., 10.);
+  RooFormulaVar br_sig_eff("br_sig_eff", "@0 * pow(@1, @2)", RooArgList(br_sig, br_sig_kappa, br_sig_beta));
+  RooRealVar zero("zero", "zero", 0., -1., 1.); zero.setConstant(1);
+  RooRealVar one("one", "one", 1., 0., 2.); one.setConstant(1);
+  RooGaussian   br_sig_constr("br_sig_constr", "br_sig_constr", br_sig_beta, zero, one); //constraint on br_sig systematic
+  if(!doConstraints_) br_sig_beta.setConstant(1);
   br_sig_constr_ = &br_sig_constr;
   xs_sig_ = xs.GetCrossSection(signame.Data());
   cout << "Global variables defined!\n";
+
+  /////////////////////////////////
+  //      Define Full PDFs       //
+  /////////////////////////////////
 
   //Create each individual PDF
   vector<RooAbsPdf*> totMVAPDFs;
@@ -220,8 +228,8 @@ Int_t fit_background_MVA_binned(int set = 8, TString selection = "zmutau",
     double eff_signal = hmva_sigs[index]->Integral()/(lum*xs_sig_);
     eff_nominals.push_back(new RooRealVar(Form("eff_nominal_%i", index),
                                           "eff_nominal", eff_signal));
-    n_sigs.push_back(new RooFormulaVar(Form("n_sig_%i", index), "@0*@1*@2*@3*@4",
-                                       RooArgList(br_sig, br_sig_eff, lum_var, bxs_var,
+    n_sigs.push_back(new RooFormulaVar(Form("n_sig_%i", index), "@0*@1*@2*@3",
+                                       RooArgList(br_sig_eff, lum_var, bxs_var,
                                                   *eff_nominals[index])));
     n_bkgs.push_back(new RooRealVar(Form("n_bkg_%i", index), "n_bkg", hmva_bkgs[index]->Integral(), 0., 1.e8));
     cout << "Index " << index << " Nominal signal efficiency = " << eff_signal << endl;
@@ -284,6 +292,7 @@ Int_t fit_background_MVA_binned(int set = 8, TString selection = "zmutau",
                   RooFit::Slice(categories, Form("%s_%i", selection.Data(),index)), RooFit::ProjWData(combined_data));
     auto c1 = new TCanvas();
     xframe->Draw();
+    xframe->GetXaxis()->SetRangeUser(-0.8, 0.3);
     TLegend* leg = new TLegend(0.6, 0.7, 0.9, 0.9);
     leg->AddEntry((TH1*) (c1->GetPrimitive(Form("totMVAPDF_%i_Norm[mva]_Comp[sigMVAPDF_%i]", index, index))), Form("Signal (x%.0f)", sig_scale), "L");
     leg->AddEntry((TH1*) (c1->GetPrimitive(Form("totMVAPDF_%i_Norm[mva]_Comp[bkgMVAPDF_%i]", index, index))), "Background", "L");

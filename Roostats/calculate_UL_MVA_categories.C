@@ -1,5 +1,5 @@
 //Script to calculate the 95% UL for e+mu resonance
-bool doConstraints_ = false;
+bool doConstraints_ = true;
 bool fixBkgParams_ = false;
 bool useBinnedBkgFit_ = true;
 
@@ -50,17 +50,21 @@ Int_t calculate_UL_MVA_categories(int set = 8, TString selection = "zmutau",
 
   // if(doConstraints_) nuisance_params.add(*(ws->var("beta_eff")));
 
-  // RooArgList glb_list;
-  // glb_list.add(*(ws->var("global_eff")));
-
+  RooArgList glb_list;
+  if(doConstraints_) {
+    nuisance_params.add(*(ws->var("br_sig_beta")));
+    glb_list.add(*(ws->var("br_sig_kappa")));
+    glb_list.add(*(ws->var("one")));
+    glb_list.add(*(ws->var("zero")));
+  }
   //Set the model and let it know about the workspace contents
   RooStats::ModelConfig model;
   model.SetWorkspace(*ws);
-  model.SetPdf((doConstraints_) ? "totPDF_constr" : "totPDF");
+  model.SetPdf("totPDF");
   model.SetParametersOfInterest(poi_list);
   model.SetObservables(obs_list);
   model.SetNuisanceParameters(nuisance_params);
-  // if(doConstraints_) model.SetGlobalObservables(glb_list);
+  if(doConstraints_) model.SetGlobalObservables(glb_list);
   model.SetName("S+B Model");
   model.SetProtoData(*data);
 
@@ -94,7 +98,7 @@ Int_t calculate_UL_MVA_categories(int set = 8, TString selection = "zmutau",
   double poimin = ((RooRealVar*) poi_list.find("br_sig"))->getMin();
   double poimax = ((RooRealVar*) poi_list.find("br_sig"))->getMax();
 
-  double min_scan = (selection.Contains("z")) ? 1.e-9 : 1.e-3;
+  double min_scan = (selection.Contains("z")) ? 5.e-7 : 1.e-4;
   double max_scan = (selection.Contains("z")) ? 2.e-5 : 1.e-2;
   if(years.size() > 1) {min_scan /= 50.; max_scan /= 2.;}
 
@@ -150,7 +154,7 @@ Int_t calculate_UL_MVA_categories(int set = 8, TString selection = "zmutau",
     label.DrawLatex(0.12, 0.26, Form("Observed 95%% CL = %.2e", upperLimit));
 
   gSystem->Exec(Form("[ ! -d plots/latest_production/%s ] && mkdir -p plots/latest_production/%s", year_string.Data(), year_string.Data()));
-  canvas->SaveAs(Form("plots/latest_production/%s/pval_vs_br_%s_mva_categories_%i.pdf", year_string.Data(), selection.Data(), set));
+  // canvas->SaveAs(Form("plots/latest_production/%s/pval_vs_br_%s_mva_categories_%i.pdf", year_string.Data(), selection.Data(), set));
   canvas->SaveAs(Form("plots/latest_production/%s/pval_vs_br_%s_mva_categories_%i.png", year_string.Data(), selection.Data(), set));
 
   cout << "Finished UL calculation, plotting dataset with expected UL...\n";

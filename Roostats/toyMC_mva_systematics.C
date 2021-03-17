@@ -11,10 +11,10 @@ int toyMC_mva_systematics(int set = 8, TString selection = "zmutau",
   int status(0);
   double scale_lum = -1.; //for testing effects from changing the luminosity
   double fit_bias = 0.;
-  if     (selection == "zmutau") fit_bias = -2.5e-7;
-  else if(selection == "zetau" ) fit_bias =  4.0e-7;
-  else if(selection == "hmutau") fit_bias =  1.8e-4;
-  else if(selection == "hetau" ) fit_bias =  9.3e-4;
+  if     (selection == "zmutau") fit_bias = 0.;
+  else if(selection == "zetau" ) fit_bias = 0.;
+  else if(selection == "hmutau") fit_bias = 0.;
+  else if(selection == "hetau" ) fit_bias = 0.;
 
   TRandom3* rnd = new TRandom3(seed);
 
@@ -54,10 +54,10 @@ int toyMC_mva_systematics(int set = 8, TString selection = "zmutau",
   auto lum_var = ws->var("lum_var");
 
   //turn off systematic constraints for evaluating these uncertainties
-  if(ws->var("br_sig_eff")) {
-    auto br_sig_eff = ws->var("br_sig_eff");
-    br_sig_eff->setVal(1.);
-    br_sig_eff->setConstant(1);
+  if(ws->var("br_sig_beta")) {
+    auto br_sig_beta = ws->var("br_sig_beta");
+    br_sig_beta->setVal(0.);
+    br_sig_beta->setConstant(1);
     cout << "Setting branching fraction systematic factor to constant!\n";
   }
 
