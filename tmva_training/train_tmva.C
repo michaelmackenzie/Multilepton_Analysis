@@ -14,6 +14,9 @@ int train_tmva(const char* tree_name = "trees/background_ztautau_Z0_nano_mutau_2
 
   f = TFile::Open(tree_name, "READ");
 
+  if(!f) {
+    return 1;
+  }
 
   TTree* signal;
   int isData = 0;
@@ -27,8 +30,8 @@ int train_tmva(const char* tree_name = "trees/background_ztautau_Z0_nano_mutau_2
   TTree* background = signal;
   if(!signal || !background) {
     printf("Trees not found\n");
-    f->ls("");
-    return 1;
+    f->ls();
+    return 2;
   }
 
   //check if jet binned selection
