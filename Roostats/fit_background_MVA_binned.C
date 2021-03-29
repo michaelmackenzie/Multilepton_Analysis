@@ -5,14 +5,17 @@
 bool doConstraints_ = true; //adding in systematics
 bool includeSignalInFit_ = true; //fit background specturm with signal shape in PDF
 bool addSignalToToyMC_ = false; // inject signal to the generated data distribution
-TString selection_;
-RooRealVar* br_sig_;
+TString selection_; //signal, e.g. "zmutau"
+
+RooRealVar* br_sig_; //fields common to systematics and nominal PDFs
 RooRealVar* mva_;
 RooRealVar* bxs_var_;
 RooRealVar* lum_var_;
 double      xs_sig_;
 RooGaussian* br_sig_constr_;
 RooCategory* categories_;
+
+int spline_order_ = 0; //for interpolating the histogram --> PDF
 
 //create a PDF for each systematic variation
 Int_t get_systematics(vector<vector<TH1D*>>& sig, vector<vector<TH1D*>>& bkg, RooWorkspace& ws) {
@@ -47,11 +50,13 @@ Int_t get_systematics(vector<vector<TH1D*>>& sig, vector<vector<TH1D*>>& bkg, Ro
       bkgMVAPDFs .push_back(new RooHistPdf (Form("bkgMVAPDF_%i_sys_%i" , index, isys),
                                             "Background MVA PDF",
                                             RooArgSet(*mva_),
-                                            *bkgMVADatas[index]));
+                                            *bkgMVADatas[index],
+                                            spline_order_));
       sigMVAPDFs .push_back(new RooHistPdf (Form("sigMVAPDF_%i_sys_%i" , index, isys),
                                             "Signal MVA PDF",
                                             RooArgSet(*mva_),
-                                            *sigMVADatas[index]));
+                                            *sigMVADatas[index],
+                                            spline_order_));
       cout << " Created individual PDFs for category " << index << endl;
       //initialize variables
       double eff_signal = sig[index][isys]->Integral()/(lum_var_->getVal()*xs_sig_);
@@ -99,14 +104,15 @@ Int_t fit_background_MVA_binned(int set = 8, TString selection = "zmutau",
                                 int seed = 90) {
   int status(0);
   selection_ = selection;
-  double sys_unc = 0.;
+  double sys_unc = 0.; //systematic uncertainty on branching fraction
+  double stat_unc = 0.3; //fractional statistical uncertainty on branching fraction
   vector<TString> hists;
-  if     (selection == "hmutau"  ) {hists = {"mva0", "mva6"}; sys_unc = 2.e-1;}
-  else if(selection == "zmutau"  ) {hists = {"mva1", "mva7"}; sys_unc = 2.e-1;}
-  else if(selection == "hetau"   ) {hists = {"mva2", "mva8"}; sys_unc = 2.e-1;}
-  else if(selection == "zetau"   ) {hists = {"mva3", "mva9"}; sys_unc = 2.e-1;}
-  else if(selection == "hemu"    ) {hists = {"mva4"};         sys_unc = 2.e-1;}
-  else if(selection == "zemu"    ) {hists = {"mva5"};         sys_unc = 2.e-1;}
+  if     (selection == "hmutau"  ) {hists = {"mva0", "mva6"}; stat_unc = 2.8e-4/5.e-3; sys_unc = 0.20*stat_unc;}
+  else if(selection == "zmutau"  ) {hists = {"mva1", "mva7"}; stat_unc = 1.3e-6/5.e-6; sys_unc = 0.87*stat_unc;}
+  else if(selection == "hetau"   ) {hists = {"mva2", "mva8"}; stat_unc = 3.5e-4/5.e-3; sys_unc = 0.20*stat_unc;}
+  else if(selection == "zetau"   ) {hists = {"mva3", "mva9"}; stat_unc = 1.5e-6/5.e-6; sys_unc = 1.40*stat_unc;}
+  else if(selection == "hemu"    ) {hists = {"mva4"};         stat_unc = 1.5e-6/5.e-6; sys_unc = 0.20*stat_unc;}
+  else if(selection == "zemu"    ) {hists = {"mva5"};         stat_unc = 1.5e-6/5.e-6; sys_unc = 0.20*stat_unc;}
   else {
     cout << "Unidentified selection " << selection.Data() << endl;
     return -1;
@@ -176,8 +182,8 @@ Int_t fit_background_MVA_binned(int set = 8, TString selection = "zmutau",
          << hmva_bkgs[index]->Integral() << endl;
     bkgMVADatas.push_back(new RooDataHist(Form("bkgMVAData_%i", index), "Background MVA Data", RooArgList(mva), hmva_bkgs   [index]));
     sigMVADatas.push_back(new RooDataHist(Form("sigMVAData_%i", index), "Signal MVA Data"    , RooArgList(mva), hmva_sigs   [index]));
-    bkgMVAPDFs .push_back(new RooHistPdf (Form("bkgMVAPDF_%i" , index), "Background MVA PDF" , RooArgSet (mva), *bkgMVADatas[index]));
-    sigMVAPDFs .push_back(new RooHistPdf (Form("sigMVAPDF_%i" , index), "Signal MVA PDF"     , RooArgSet (mva), *sigMVADatas[index]));
+    bkgMVAPDFs .push_back(new RooHistPdf (Form("bkgMVAPDF_%i" , index), "Background MVA PDF" , RooArgSet (mva), *bkgMVADatas[index], spline_order_));
+    sigMVAPDFs .push_back(new RooHistPdf (Form("sigMVAPDF_%i" , index), "Signal MVA PDF"     , RooArgSet (mva), *sigMVADatas[index], spline_order_));
     cout << "Finished index " << index << endl;
   }
 

@@ -13,7 +13,7 @@ then
 fi
 if [[ "$SELECTION" == "" ]]
 then
-    SELECTION="zmutau"
+    SELECTION="zemu"
 fi
 if [[ "$YEAR" == "" ]]
 then
@@ -35,12 +35,12 @@ fi
 
 echo "Performing ${NFITS} fits on systematics for ${SELECTION} up to ${MAXSYS} using selection set ${HISTSET} from year ${YEAR} with base seed ${SEED}"
 echo "- Performing self test..."
-root.exe -q -b "toyMC_mva_systematics.C(${HISTSET}, \"${SELECTION}\", ${YEAR}, 0, ${NFITS}, true, true, ${SEED})"
+root.exe -q -b "toyMC_bemu_systematics.C(${HISTSET}, \"${SELECTION}\", ${YEAR}, 0, ${NFITS}, true, true, ${SEED})"
 
 for (( isys=0; isys<=$MAXSYS; isys++ ))
 do
     echo "- Systematic number ${isys}..."
-    root.exe -q -b "toyMC_mva_systematics.C(${HISTSET}, \"${SELECTION}\", ${YEAR}, ${isys}, ${NFITS}, true, false, ${SEED})"
+    root.exe -q -b "toyMC_bemu_systematics.C(${HISTSET}, \"${SELECTION}\", ${YEAR}, ${isys}, ${NFITS}, true, false, ${SEED})"
 done
 
 echo "Finished!"

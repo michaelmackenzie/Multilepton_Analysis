@@ -2,6 +2,7 @@
 bool doConstraints_ = true;
 bool fixBkgParams_ = false;
 bool useBinnedBkgFit_ = true;
+int  single_cat_ = -1; //category to do the limit for
 
 Int_t calculate_UL_MVA_categories(int set = 8, TString selection = "zmutau",
                                   vector<int> years = {2016, 2017, 2018},
@@ -36,12 +37,12 @@ Int_t calculate_UL_MVA_categories(int set = 8, TString selection = "zmutau",
   RooArgList poi_list(*br_sig);
   RooArgList obs_list(*(ws->var("mva")));
   RooDataHist* data = (RooDataHist*) ws->data("combined_data");
-  if(!data) return 3;
-
   ws->Print();
   vector<RooRealVar*> n_bkgs;
   RooArgList nuisance_params;
-  for(int i_cat = 0; i_cat < n_categories; ++i_cat) {
+  int cat_start = (single_cat_ >= 0) ? single_cat_ : 0;
+  int cat_end = (single_cat_ >= 0) ? single_cat_ + 1 : n_categories;
+  for(int i_cat = cat_start; i_cat < cat_end; ++i_cat) {
     auto n_bkg  = ws->var(Form("n_bkg_%i", i_cat));
     if(!n_bkg) return 4 + i_cat;
     n_bkgs.push_back(n_bkg);
@@ -57,10 +58,16 @@ Int_t calculate_UL_MVA_categories(int set = 8, TString selection = "zmutau",
     glb_list.add(*(ws->var("one")));
     glb_list.add(*(ws->var("zero")));
   }
+  else if(ws->var("br_sig_kappa")) {
+    ws->var("br_sig_kappa")->setVal(1.);
+    ws->var("br_sig_kappa")->setConstant(1);
+    ws->var("br_sig_beta")->setVal(0.);
+    ws->var("br_sig_beta")->setConstant(1);
+  }
   //Set the model and let it know about the workspace contents
   RooStats::ModelConfig model;
   model.SetWorkspace(*ws);
-  model.SetPdf("totPDF");
+  model.SetPdf((single_cat_ >= 0) ? Form("totMVAPDF_%i", single_cat_) : "totPDF");
   model.SetParametersOfInterest(poi_list);
   model.SetObservables(obs_list);
   model.SetNuisanceParameters(nuisance_params);
@@ -68,10 +75,15 @@ Int_t calculate_UL_MVA_categories(int set = 8, TString selection = "zmutau",
   model.SetName("S+B Model");
   model.SetProtoData(*data);
 
+  auto mva = ws->var("mva");
+  auto PDF = model.GetPdf();
+  if(single_cat_ >= 0) {
+    data = PDF->generateBinned(RooArgSet(*mva), n_bkgs[0]->getVal());
+  }
   auto bModel = model.Clone();
   bModel->SetName("B Model");
   double oldval = ((RooRealVar*) poi_list.find("br_sig"))->getVal();
-  ((RooRealVar*) poi_list.find("br_sig"))->setVal(0); //BEWARE that the range of the POI has to contain zero!
+  ((RooRealVar*) poi_list.find("br_sig"))->setVal(0.); //BEWARE that the range of the POI has to contain zero!
   bModel->SetSnapshot(poi_list);
   ((RooRealVar*) poi_list.find("br_sig"))->setVal(oldval);
 
@@ -93,7 +105,7 @@ Int_t calculate_UL_MVA_categories(int set = 8, TString selection = "zmutau",
   //est the test statistic to use
   toymc->SetTestStatistic(&profl);
 
-  int npoints = 500; //number of points to scan
+  int npoints = 200; //number of points to scan
   //min and max for the scan (better to choose smaller intervals)
   double poimin = ((RooRealVar*) poi_list.find("br_sig"))->getMin();
   double poimax = ((RooRealVar*) poi_list.find("br_sig"))->getMax();
@@ -101,7 +113,7 @@ Int_t calculate_UL_MVA_categories(int set = 8, TString selection = "zmutau",
   double min_scan = (selection.Contains("z")) ? 5.e-7 : 1.e-4;
   double max_scan = (selection.Contains("z")) ? 2.e-5 : 1.e-2;
   if(years.size() > 1) {min_scan /= 50.; max_scan /= 2.;}
-
+  if(doConstraints_) {min_scan *= 1.5; max_scan *= 3.;}
   std::cout << "Doing a fixed scan in the interval: " << min_scan << ", "
             << max_scan << " with " << npoints << " points\n";
 
@@ -154,8 +166,14 @@ Int_t calculate_UL_MVA_categories(int set = 8, TString selection = "zmutau",
     label.DrawLatex(0.12, 0.26, Form("Observed 95%% CL = %.2e", upperLimit));
 
   gSystem->Exec(Form("[ ! -d plots/latest_production/%s ] && mkdir -p plots/latest_production/%s", year_string.Data(), year_string.Data()));
-  // canvas->SaveAs(Form("plots/latest_production/%s/pval_vs_br_%s_mva_categories_%i.pdf", year_string.Data(), selection.Data(), set));
-  canvas->SaveAs(Form("plots/latest_production/%s/pval_vs_br_%s_mva_categories_%i.png", year_string.Data(), selection.Data(), set));
+  TString cname = Form("plots/latest_production/%s/pval_vs_br_%s_mva_categories",
+                       year_string.Data(), selection.Data());
+  if(doConstraints_) cname += "_constr";
+  cname +="_";
+  cname += set;
+  if(single_cat_ >= 0) cname += Form("_cat_%i", single_cat_);
+  cname += ".png";
+  canvas->SaveAs(cname.Data());
 
   cout << "Finished UL calculation, plotting dataset with expected UL...\n";
 
@@ -167,7 +185,6 @@ Int_t calculate_UL_MVA_categories(int set = 8, TString selection = "zmutau",
   // auto eff = ws->function("eff");
   // auto lum = ws->var("lum_var");
   // auto zxs = ws->var("bxs_var");
-  // auto mva = ws->var("mva");
   // auto xframe = mva->frame(RooFit::Title("Background + Signal distributions at 95\% CLs limit"));
 
   // //set to expected upper limit
