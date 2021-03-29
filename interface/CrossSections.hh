@@ -46,10 +46,10 @@ public:
     values_["HMuTau"] = higgs*1.6e-3; //PDG: 2.5e-3 CMS: 1.6e-3
 
     //data SS qcd estimates
-    //give fraction of (Data - MC) / Data * (OS / SS) by selection for full Run-II
-    values_["QCD_mutau"] = 0.518567 * 1.10205;
-    values_["QCD_etau"]  = 0.491449 * 1.12844;
-    values_["QCD_emu"]   = 0.355374 * 1.61248;
+    //give fraction of SS --> OS or j --> tau weighted (Data - MC) / Data for full Run-II
+    values_["QCD_mutau"] = 0.918;
+    values_["QCD_etau"]  = 0.935;
+    values_["QCD_emu"]   = 0.342;
 
     ///////////////////////
     // generated numbers //

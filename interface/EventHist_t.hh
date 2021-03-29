@@ -207,7 +207,7 @@ struct EventHist_t {
   TH1D* hPtSum[2]; //scalar sum of lepton Pt and Met, and photon for one
   TH1D* hPt1Sum[4]; //scalar sum of 1 lepton Pt and Met, both leptons, then both minus met
   //MVA values
-  TH1D* hMVA[kMaxMVAs];
+  TH1D* hMVA[kMaxMVAs][2]; //0: high binning score for CDF 1: distribution for fitting
   TH1D* hMVATrain[kMaxMVAs];
   TH1D* hMVATest[kMaxMVAs];
 

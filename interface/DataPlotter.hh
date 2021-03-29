@@ -42,6 +42,7 @@ public :
   std::vector<bool> isData_; //flag to check if is data
   std::vector<bool> isSignal_; //flag to check if is signal file
   std::vector<Int_t> dataYear_; //list of years it's associated with (2016, 2017, or 2018)
+  // std::map<TString, double> systematicMap_; //map of background label to a systematic uncertainty
 
   Double_t lum_; //luminosity
   std::map<Int_t, Double_t> lums_; //luminosity by year
@@ -294,7 +295,11 @@ public :
     return plot_stack(card.hist_, card.type_, card.set_, card.xmin_, card.xmax_);
   }
 
-  virtual TGraphAsymmErrors* get_errors(TH1D* h, TH1D* h_p, TH1D* h_m, bool ratio = false);
+  virtual TGraphAsymmErrors* get_errors(TH1D* h, TH1D* h_p, TH1D* h_m, bool ratio, double& r_min, double& r_max);
+  TGraphAsymmErrors* get_errors(TH1D* h, TH1D* h_p, TH1D* h_m, bool ratio = false) {
+    double tmp1, tmp2;
+    return get_errors(h, h_p, h_m, ratio, tmp1, tmp2);
+  }
   virtual TCanvas* plot_systematic(TString hist, Int_t set, Int_t systematic);
   TCanvas* plot_systematic(TString hist, Int_t set, Int_t systematic, Double_t xmin, Double_t xmax) {
     xMin_ = xmin; xMax_=xmax; auto c = plot_systematic(hist, set, systematic); reset_axes(); return c;
@@ -367,6 +372,7 @@ public :
     if(card.data_over_mc_ < 100)
       data_over_mc_ = card.data_over_mc_;
     only_signal_ = card.label_;
+    single_systematic_ = card.single_systematic_;
     return print_systematic(card.hist_, card.set_, card.systematic_, card.xmin_, card.xmax_, card.tag_);
   }
 

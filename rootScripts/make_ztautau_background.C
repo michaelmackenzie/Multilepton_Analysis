@@ -45,8 +45,12 @@ Int_t combine_trees(vector<TString> in_files, TString selection, int file_set, T
     if(combineLepTau_ && selection.Contains("tau") && !selection.Contains("_") && TString(file_path).Contains("_emu_"))
       set_use = file_set + ZTauTauHistMaker::kEMu;
     TString fname = fList[filecount]->GetName();
-    if((fname.Contains("SingleMu") || fname.Contains("SingleEle")) && !dataOnly_) //check if QCD
-      set_use += ZTauTauHistMaker::fQcdOffset;
+    if((fname.Contains("SingleMu") || fname.Contains("SingleEle")) && !dataOnly_) {//check if data-driven background
+      if(selection == "mutau" || selection == "etau") //jet --> tau backgrounds
+        set_use += ZTauTauHistMaker::fMisIDOffset;
+      else                                            //QCD SS -> OS backgrounds
+        set_use += ZTauTauHistMaker::fQcdOffset;
+    }
     if(verbose_ > 1) cout << "Using file set " << set_use << endl;
     tList[filecount] = (TTree*) fList[filecount]->Get(Form("Data/tree_%i/tree_%i", set_use, set_use));
     if(!tList[filecount]) {
@@ -94,7 +98,7 @@ Int_t combine_trees(vector<TString> in_files, TString selection, int file_set, T
 //Create a file list and call the tree merging function for a given selection
 Int_t make_background(int set = 8, TString selection = "mutau", TString base = "nanoaods_dev") {
 
-  base = "root://cmseos.fnal.gov//store/user/mmackenz/histograms/" + base;
+  base = "root://cmseos.fnal.gov//store/user/mmackenz/histograms/" + base + "/";
   cout << "Beginning to make tree for selection " << selection.Data() << " with set " << set
        << " and histogram path " << base.Data()
        << endl;

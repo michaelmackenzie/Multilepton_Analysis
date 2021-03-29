@@ -104,12 +104,10 @@ void ZTauTauHistMaker::FillAllHistograms(Int_t index) {
                                << " with event weight = " << eventWeight
                                << " and gen weight = " << genWeight << " !\n";
     FillLepHistogram(   fLepHist   [index]);
-    if(fDoSystematics) FillSystematicHistogram(fSystematicHist[index]);
-    if(fDYTesting) return;
-    FillPhotonHistogram(fPhotonHist[index]);
+    if(fDoSystematics && fSysSets[index]) FillSystematicHistogram(fSystematicHist[index]);
+    if(!fDYTesting) FillPhotonHistogram(fPhotonHist[index]);
   } else
     printf("WARNING! Entry %lld, attempted to fill un-initialized histogram set %i!\n", fentry, index);
-  if(fDYTesting) return;
   if(fWriteTrees && fTreeSets[index])
     fTrees[index]->Fill();
 }
@@ -272,9 +270,9 @@ void ZTauTauHistMaker::BookEventHistograms() {
       fEventHist[i]->hLepPt[2]      = new TH1D("leppt2"        , Form("%s: Lepton Pt"      ,dirname)  , 200,   0, 400);
       fEventHist[i]->hLepP          = new TH1D("lepp"          , Form("%s: Lepton P"       ,dirname)  , 200,   0, 400);
       // fEventHist[i]->hLepE          = new TH1D("lepe"          , Form("%s: Lepton E"       ,dirname)  , 200,   0, 400);
-      fEventHist[i]->hLepM[0]       = new TH1D("lepm"          , Form("%s: Lepton M"       ,dirname)  , 400,   0, 400);
-      fEventHist[i]->hLepM[1]       = new TH1D("lepm1"         , Form("%s: Lepton M"       ,dirname)  , 400,   0, 400);
-      fEventHist[i]->hLepM[2]       = new TH1D("lepm2"         , Form("%s: Lepton M"       ,dirname)  , 400,   0, 400);
+      fEventHist[i]->hLepM[0]       = new TH1D("lepm"          , Form("%s: Lepton M"       ,dirname)  , 400,   0, 200);
+      fEventHist[i]->hLepM[1]       = new TH1D("lepm1"         , Form("%s: Lepton M"       ,dirname)  , 400,   0, 200);
+      fEventHist[i]->hLepM[2]       = new TH1D("lepm2"         , Form("%s: Lepton M"       ,dirname)  , 400,   0, 200);
       fEventHist[i]->hLepM[3]       = new TH1D("lepm3"         , Form("%s: Lepton M"       ,dirname)  ,  40,  70, 110);
       fEventHist[i]->hLepM[4]       = new TH1D("lepm4"         , Form("%s: Lepton M"       ,dirname)  ,  40, 105, 145);
       fEventHist[i]->hLepMt         = new TH1D("lepmt"         , Form("%s: Lepton Mt"      ,dirname)  , 400,   0, 400);
@@ -504,7 +502,9 @@ void ZTauTauHistMaker::BookEventHistograms() {
       fEventHist[i]->hPt1Sum[3]        = new TH1D("pt1sum3"        , Form("%s: Scalar Pt sum Lepton 1 + 2 - MET" ,dirname)    ,1000,  0.,  1000.);
       for(unsigned j = 0; j < fMVAConfig.names_.size(); ++j)  {
         //high mva score binning to improve cdf making
-        fEventHist[i]->hMVA[j]        = new TH1D(Form("mva%i",j)     , Form("%s: %s MVA" ,dirname, fMVAConfig.names_[j].Data()) ,10000, -1.,  2.);
+        fEventHist[i]->hMVA[j][0]     = new TH1D(Form("mva%i",j)     , Form("%s: %s MVA" ,dirname, fMVAConfig.names_[j].Data()) ,10000, -1.,  2.);
+        // fEventHist[i]->hMVA[j][1]     = new TH1D(Form("mva%i_1",j)   , Form("%s: %s MVA" ,dirname, fMVAConfig.names_[j].Data()) ,
+        //                                          fMVAConfig.NBins(j), fMVAConfig.Bins(j));
         fEventHist[i]->hMVATrain[j]   = new TH1D(Form("mvatrain%i",j), Form("%s: %s MVA (train)" ,dirname, fMVAConfig.names_[j].Data()) ,500, -3.,  2.);
         fEventHist[i]->hMVATest[j]    = new TH1D(Form("mvatest%i",j) , Form("%s: %s MVA (test)" ,dirname, fMVAConfig.names_[j].Data())  ,500, -3.,  2.);
       }
@@ -659,15 +659,22 @@ void ZTauTauHistMaker::BookLepHistograms() {
 }
 
 void ZTauTauHistMaker::BookSystematicHistograms() {
+  for(int i = 0; i < fQcdOffset; ++i) {
+    if(fSysSets[i]) { //turn on all offset histogram sets
+      fSysSets[i+fQcdOffset] = 1;
+      fSysSets[i+fMisIDOffset] = 1;
+      fSysSets[i+fQcdOffset+fMisIDOffset] = 1;
+    }
+  }
   for(int i = 0; i < fn; i++) {
-    if(fEventSets[i] > 0) {
+    if(fEventSets[i] > 0 && fSysSets[i] > 0) {
       char* dirname        = new char[20];
       sprintf(dirname,"systematic_%i",i);
       fDirectories[4*fn + i] = fTopDir->mkdir(dirname);
       fDirectories[4*fn + i]->cd();
       fSystematicHist[i] = new SystematicHist_t;
       for(int sys = 0; sys < kMaxSystematics; ++sys) {
-        fSystematicHist[i]->hLepM  [sys] = new TH1D(Form("lepm_%i"  , sys), Form("%s: LepM %i" , dirname, sys) , 100,   0, 200);
+        fSystematicHist[i]->hLepM  [sys] = new TH1D(Form("lepm_%i"  , sys), Form("%s: LepM %i" , dirname, sys) , 400,   0, 200);
         fSystematicHist[i]->hLepPt [sys] = new TH1D(Form("leppt_%i" , sys), Form("%s: LepPt %i", dirname, sys) , 100,   0, 200);
         fSystematicHist[i]->hOnePt [sys] = new TH1D(Form("onept_%i" , sys), Form("%s: Pt %i"   , dirname, sys) , 100,   0, 200);
         fSystematicHist[i]->hOneEta[sys] = new TH1D(Form("oneeta_%i", sys), Form("%s: Eta %i"  , dirname, sys) , 100, -10,  10);
@@ -683,7 +690,6 @@ void ZTauTauHistMaker::BookSystematicHistograms() {
 }
 
 void ZTauTauHistMaker::BookTrees() {
-  if(fDYTesting) return;
   for(int i = 0; i < fn; ++i) {
     if(fTreeSets[i] != 0) {
       char* dirname        = new char[20];
@@ -887,15 +893,13 @@ void ZTauTauHistMaker::InitializeTreeVariables(Int_t selection) {
   fTreeVars.eventweight = genWeight*eventWeight;
   fTreeVars.eventweightMVA = genWeight*eventWeight;
   fTreeVars.fulleventweight = genWeight*eventWeight*fXsec;
-  if(fUseTauFakeSF && fIsData == 0) fTreeVars.fulleventweight *= genTauFlavorWeight;
-  if(fUseTauFakeSF && fIsData == 0) fTreeVars.eventweight *= genTauFlavorWeight;
   fTreeVars.fulleventweightlum = fTreeVars.fulleventweight*fLum;
 
   fTreeVars.eventcategory = fEventCategory;
   if(fFractionMVA > 0.) fTreeVars.train = (fRnd->Uniform() < fFractionMVA) ? 1. : -1.; //whether or not it is in the training sample
   fTreeVars.issignal = (fIsData == 0) ? (2.*(fIsSignal) - 1.) : 0.; //signal = 1, background = -1, data = 0
   //if splitting testing/training samples
-  if(!fDYTesting && fFractionMVA > 0.)
+  if(!fDYTesting)
     fTreeVars.eventweightMVA *= (fTreeVars.train > 0.) ? 0. : 1./(1.-fFractionMVA); //if training, ignore, else rescale to account for training sample removed
 
   TString selecName = "";
@@ -1286,7 +1290,8 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
 
   //MVA outputs
   for(unsigned i = 0; i < fMVAConfig.names_.size(); ++i) {
-    Hist->hMVA[i]      ->Fill(fMvaOutputs[i], fTreeVars.eventweightMVA); //remove training samples
+    Hist->hMVA[i][0]->Fill(fMvaOutputs[i], fTreeVars.eventweightMVA); //remove training samples
+    // Hist->hMVA[i][1]->Fill(fMvaOutputs[i], fTreeVars.eventweightMVA); //remove training samples
     if (fTreeVars.train > 0) Hist->hMVATrain[i]->Fill(fMvaOutputs[i], fTreeVars.eventweight*((!fDYTesting && fFractionMVA > 0.) ? 1./fFractionMVA : 1.));
     if (fTreeVars.train < 0) Hist->hMVATest[i] ->Fill(fMvaOutputs[i], fTreeVars.eventweightMVA);
   }
@@ -1581,6 +1586,9 @@ void ZTauTauHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
     else if  (sys == 25) weight *= (qcdWeight > 0.) ? qcdWeightUp  / qcdWeight : 0.; //SS --> OS weights
     else if  (sys == 26) weight *= (qcdWeight > 0.) ? qcdWeightDown/ qcdWeight : 0.;
     else if  (sys == 27) weight *= (qcdWeight > 0.) ? qcdWeightSys / qcdWeight : 0.;
+    else if  (sys == 28) weight *= jetToTauWeightCorrUp     / jetToTauWeightCorr   ; //Jet --> tau weight pT corrections
+    else if  (sys == 29) weight *= jetToTauWeightCorrDown   / jetToTauWeightCorr   ;
+    else if  (sys == 30) weight *= jetToTauWeightCorrSys    / jetToTauWeightCorr   ;
     else continue; //no need to fill undefined systematics
 
     if(std::isnan(weight)) {
@@ -1607,8 +1615,8 @@ void ZTauTauHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
     }
     for(unsigned i = 0; i < fMVAConfig.names_.size(); ++i) {
       float mvascore = fMvaOutputs[i];
-      if(std::isnan(mvascore)) {
-        std::cout << "ZTauTauHistMaker::" << __func__ << ": Entry " << fentry << " MVA score is NaN! Setting to -2...\n";
+      if(std::isnan(mvascore) && fVerbose > 0) {
+        std::cout << "ZTauTauHistMaker::" << __func__ << ": Entry " << fentry << " MVA " << i << " score is NaN! Setting to -2...\n";
         mvascore = -2.;
       }
       Hist->hMVA[i][sys]->Fill(mvascore, mvaweight);
@@ -2075,10 +2083,11 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   ////////////////////////////////////////////////////////////
   // Set 40-41 + selection offset: Fake taus estimated with MC estimated scale factors
   ////////////////////////////////////////////////////////////
-  Float_t tmp_evt_wt = eventWeight;
+  Float_t tmp_evt_wt = eventWeight; //recored weight before corrections to update all weights at the end
+
   if(!fDYTesting && mutau) {
-    float up, down, sys; //don't care about the MC uncertainties in MC study
-    if(isLooseTau) eventWeight *= fMuonJetToTauMCWeight.GetDataFactor(tauDecayMode, fYear, tau->Pt(), tau->Eta(), muon->Pt(), up, down, sys);
+    //don't care about the MC uncertainties in MC study
+    if(isLooseTau) eventWeight *= fMuonJetToTauMCWeight.GetDataFactor(tauDecayMode, fYear, tau->Pt(), tau->Eta(), muon->Pt());
     if(tauGenFlavor != 26) {
       FillAllHistograms(set_offset + 40); //true tight taus or loose taus
     } else {
@@ -2098,17 +2107,22 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
 
   //weigh anti-iso tau region by anti-iso --> tight iso weight
   jetToTauWeight = 1.; jetToTauWeightUp = 1.; jetToTauWeightDown = 1.; jetToTauWeightSys = 1.;
+  jetToTauWeightCorr = 1.; jetToTauWeightCorrUp = 1.; jetToTauWeightCorrDown = 1.; jetToTauWeightCorrSys = 1.;
   if(mutau && isLooseTau) {
     //use data factor for MC and Data, since not using MC estimated fake tau rates
     jetToTauWeight = fMuonJetToTauWeight.GetDataFactor(tauDecayMode, fYear, tau->Pt(), tau->Eta(), muon->Pt(),
-                                                       jetToTauWeightUp, jetToTauWeightDown, jetToTauWeightSys);
+                                                       jetToTauWeightUp, jetToTauWeightDown, jetToTauWeightSys,
+                                                       jetToTauWeightCorr, jetToTauWeightCorrUp, jetToTauWeightCorrDown,
+                                                       jetToTauWeightCorrSys);
   } else if(etau && isLooseTau) {
     //use data factor for MC and Data, since not using MC estimated fake tau rates
     jetToTauWeight = fElectronJetToTauWeight.GetDataFactor(tauDecayMode, fYear, tau->Pt(), tau->Eta(), electron->Pt(),
-                                                           jetToTauWeightUp, jetToTauWeightDown, jetToTauWeightSys);
+                                                           jetToTauWeightUp, jetToTauWeightDown, jetToTauWeightSys,
+                                                           jetToTauWeightCorr, jetToTauWeightCorrUp, jetToTauWeightCorrDown,
+                                                           jetToTauWeightCorrSys);
   }
 
-  eventWeight *= jetToTauWeight;
+  eventWeight *= jetToTauWeight*jetToTauWeightCorr;
 
   ///////////////////////
   // SS --> OS weights //
@@ -2156,9 +2170,8 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
     if(tausAntiJet[0] <= fFakeTauIsoCut) {
       //add loose --> tight tau weight
       Float_t temp_event_weight = eventWeight;
-      float up, down, sys;
-      if(mumu) eventWeight *= fMuonJetToTauWeight.GetDataFactor    (tausDM[0], fYear, tausPt[0], tausEta[0], -1. /*muon->Pt()    */, up, down, sys);
-      if(ee)   eventWeight *= fElectronJetToTauWeight.GetDataFactor(tausDM[0], fYear, tausPt[0], tausEta[0], -1. /*electron->Pt()*/, up, down, sys);
+      if(mumu) eventWeight *= fMuonJetToTauWeight.GetDataFactor    (tausDM[0], fYear, tausPt[0], tausEta[0], -1. /*muon->Pt()    */);
+      if(ee)   eventWeight *= fElectronJetToTauWeight.GetDataFactor(tausDM[0], fYear, tausPt[0], tausEta[0], -1. /*electron->Pt()*/);
       FillAllHistograms(set_offset + 51);
       eventWeight = temp_event_weight; //restore the event weight
     } else{
@@ -2207,44 +2220,49 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   eventWeight = (fIsData == 0 || !chargeTest) ? fabs(fTreeVars.eventweightMVA) : prev_wt; //use abs to remove gen weight sign
 
   int category = -1; //histogram set to use, based on MVA score
-  //Total background Z0 MVAs: 9 - 13
-  if(mutau) {
-    category = Category("zmutau");
-  } else if(etau) {
-    category = Category("zetau");
-  } else if(emu) {
-    category = Category("zemu");
-    FillAllHistograms(set_offset + 9 + category);
-    category = Category("zmutau_e");
-    FillAllHistograms(set_offset + kMuTauE - kEMu + 9 + category);
-    category = Category("zetau_mu");
-    FillAllHistograms(set_offset + kETauMu - kEMu + 9 + category);
-  } else if(mumu) {
-    category = Category("zemu");
-  } else if(ee) {
-    category = Category("zemu");
+  if(false) { //FIXME: Ignore MVA categories for now
+    //Total background Z0 MVAs: 9 - 13
+    if(mutau) {
+      category = Category("zmutau");
+    } else if(etau) {
+      category = Category("zetau");
+    } else if(emu) {
+      category = Category("zemu");
+      FillAllHistograms(set_offset + 9 + category);
+      category = Category("zmutau_e");
+      FillAllHistograms(set_offset + kMuTauE - kEMu + 9 + category);
+      category = Category("zetau_mu");
+      FillAllHistograms(set_offset + kETauMu - kEMu + 9 + category);
+    } else if(mumu) {
+      category = Category("zemu");
+    } else if(ee) {
+      category = Category("zemu");
+    }
   }
   if(category >= 0 && !emu) //do emu separately, rest do here
     FillAllHistograms(set_offset + 9 + category);
 
   //Total background higgs MVAs 14 - 18
   category = -1;
-  if(mutau) {
-    category = Category("hmutau");
-  } else if(etau) {
-    category = Category("hetau");
-  } else if(emu) {
-    category = Category("hemu");
-    FillAllHistograms(set_offset + 9 + category);
-    category = Category("hmutau_e");
-    FillAllHistograms(set_offset + kMuTauE - kEMu + 9 + category);
-    category = Category("hetau_mu");
-    FillAllHistograms(set_offset + kETauMu - kEMu + 9 + category);
-  } else if(mumu) {
-    category = Category("hemu");
-  } else if(ee) {
-    category = Category("hemu");
+  if(false) {
+    if(mutau) {
+      category = Category("hmutau");
+    } else if(etau) {
+      category = Category("hetau");
+    } else if(emu) {
+      category = Category("hemu");
+      FillAllHistograms(set_offset + 9 + category);
+      category = Category("hmutau_e");
+      FillAllHistograms(set_offset + kMuTauE - kEMu + 9 + category);
+      category = Category("hetau_mu");
+      FillAllHistograms(set_offset + kETauMu - kEMu + 9 + category);
+    } else if(mumu) {
+      category = Category("hemu");
+    } else if(ee) {
+      category = Category("hemu");
+    }
   }
+
   if(category >= 0 && !emu) //do emu separately, rest do here
     FillAllHistograms(set_offset + 14 + category);
 

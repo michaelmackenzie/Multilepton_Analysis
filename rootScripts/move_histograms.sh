@@ -28,7 +28,7 @@ else
 fi
 
 outdir="/store/user/mmackenz/histograms/"${outdir}
-if [ `eosls ${outdir} 2>&1 | grep -v "Unable to stat" | head -n 1 | wc | awk '{print $1}'` -eq 0 ]
+if [ `eos root://cmseos.fnal.gov ls ${outdir} 2>&1 | grep -v "Unable to stat" | head -n 1 | wc | awk '{print $1}'` -eq 0 ]
 then
     echo "Creating output directory ${outdir}"
     eos root://cmseos.fnal.gov mkdir ${outdir}

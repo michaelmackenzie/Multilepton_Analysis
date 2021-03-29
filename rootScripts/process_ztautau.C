@@ -14,6 +14,8 @@ bool CutFlowTesting_ = false; //test just basic cutflow sets
 bool removeTrigWeights_ = false;
 int removeBTagWeights_ = 2;
 
+int systematicSeed_ = 90; //seed for systematic random shifts
+
 //information about the data file/data
 struct datacard_t {
   bool process_;
@@ -95,7 +97,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TDirectoryFile* fChann
   cout << "Processing " << card.fname_.Data() << " with eventCategory = " << card.category_ << " isSignal = " << isSignal << " isDY = " << isDY
        << " isData = " << card.isData_ << endl;
   for(int loop = 1; loop <= nloops; ++loop) {
-    ZTauTauHistMaker* selec = new ZTauTauHistMaker(); //selector
+    ZTauTauHistMaker* selec = new ZTauTauHistMaker(systematicSeed_); //selector
     selec->fDYTesting = DYTesting_;
     selec->fDYFakeTauTesting = DYFakeTau_;
     selec->fWJFakeTauTesting = WJFakeTau_;
@@ -262,7 +264,7 @@ Int_t process_ztautau() {
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("Wlnu"                    ), "clfv_2016_Wlnu-ext.tree"                , 0, useUL&&true)); //22
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("DY50"                    ), "clfv_2016_DY50-ext.tree"                , 0, useUL&&true)); //23
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("ttbarToHadronic"         ), "clfv_2016_ttbarToHadronic.tree"         , 0)); //24
-  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Wlnu-1J"                 ), "clfv_2016_Wlnu-1J.tree"                 , 0)); //6
+  // nanocards.push_back(datacard_t(false, xs.GetCrossSection("Wlnu-1J"                 ), "clfv_2016_Wlnu-1J.tree"                 , 0)); //6
   // nanocards.push_back(datacard_t(true , 1.                                            , "clfv_2016_SingleMuonRunB.tree"          , 2)); //15
   // nanocards.push_back(datacard_t(true , 1.                                            , "clfv_2016_SingleMuonRunC.tree"          , 2)); //15
   // nanocards.push_back(datacard_t(true , 1.                                            , "clfv_2016_SingleMuonRunD.tree"          , 2)); //15
@@ -331,12 +333,12 @@ Int_t process_ztautau() {
   config_t config;
   config.useTauFakeSF_ = 1; //1 = use given scale factors, 2 = override them with local ones
   config.writeTrees_ = true;
-  config.onlyChannel_ = "etau";
+  config.onlyChannel_ = "mutau";
   config.skipChannels_ = {/*"mutau", "etau", "emu",*/ "mumu", "ee", "all", "jets", "llg_study"};
   config.reProcessMVAs_ = false;
   config.removeZPtWeights_ = 2; //0 = do nothing, 1 = remove Drell-Yan weights, 2 = remove and locally recalculate weights
-  // config.signalTrainFraction_ = 0.7;
-  // config.backgroundTrainFraction_ = 0.3;
+  config.signalTrainFraction_ = 0.3;
+  config.backgroundTrainFraction_ = 0.3;
   config.doSystematics_ = true;
   cout << "--- Fake Tau SF mode: " << config.useTauFakeSF_
        << ", Write Trees mode: " << config.writeTrees_

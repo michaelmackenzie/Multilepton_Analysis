@@ -22,7 +22,7 @@ scram b
 ```
 Setup NANOAOD skim processing and analysis repository:
 ```
-git clone https://github.com/michaelmackenzie/Multilepton_Analysis.git StandardModel/CLFVAnalysis
+git clone https://github.com/michaelmackenzie/Multilepton_Analysis.git CLFVAnalysis #no second level to avoid CMSSW scram compiling
 cd CLFVAnalysis
 make -j4
 ```

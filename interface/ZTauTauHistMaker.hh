@@ -95,6 +95,10 @@ public :
   Float_t jetToTauWeightUp           ;
   Float_t jetToTauWeightDown         ;
   Float_t jetToTauWeightSys          ;
+  Float_t jetToTauWeightCorr         ;
+  Float_t jetToTauWeightCorrUp       ;
+  Float_t jetToTauWeightCorrDown     ;
+  Float_t jetToTauWeightCorrSys      ;
   Float_t qcdWeight                  ;
   Float_t qcdWeightUp                ;
   Float_t qcdWeightDown              ;
@@ -388,10 +392,11 @@ public :
     }
   };
 
-  ZTauTauHistMaker(TTree * /*tree*/ = 0) : fMuonJetToTauWeight("mumu", 0), fMuonJetToTauMCWeight("mumu", 2),
-                                           fElectronJetToTauWeight("ee", 0),
-                                           fJetToMuonWeight("mumu"), fJetToElectronWeight("ee"),
-                                           fQCDWeight("emu") { }
+  ZTauTauHistMaker(int seed = 90, TTree * /*tree*/ = 0) : fSystematicSeed(seed),
+                                                          fMuonJetToTauWeight("mumu", 0, seed), fMuonJetToTauMCWeight("mumu", 2, seed),
+                                                          fElectronJetToTauWeight("ee", 0, seed),
+                                                          fJetToMuonWeight("mumu"), fJetToElectronWeight("ee"),
+                                                          fQCDWeight("emu", seed), fZPtWeight(seed) { }
   virtual ~ZTauTauHistMaker() { }
   virtual Int_t   Version() const { return 2; }
   virtual void    Begin(TTree *tree);
@@ -437,7 +442,13 @@ public :
     "etau_BDT_38.higgs","etau_BDT_38.Z0",
     "emu_BDT_68.higgs","emu_BDT_68.Z0",
     "mutau_e_BDT_68.higgs","mutau_e_BDT_68.Z0",
-    "etau_mu_BDT_68.higgs","etau_mu_BDT_68.Z0"};
+    "etau_mu_BDT_68.higgs","etau_mu_BDT_68.Z0",
+    "mutau_TMlpANN_8.higgs","mutau_TMlpANN_8.Z0", //10 - 19: alternate mvas
+    "etau_TMlpANN_8.higgs","etau_TMlpANN_8.Z0",
+    "emu_BDT_68.higgs","emu_BDT_68.Z0",
+    "mutau_e_TMlpANN_8.higgs","mutau_e_TMlpANN_8.Z0",
+    "etau_mu_TMlpANN_8.higgs","etau_mu_TMlpANN_8.Z0"
+  };
   std::map<TString, std::vector<double>> fMVACutsByCategory;
   MVAConfig fMVAConfig; //contains MVA names and categories
 
@@ -451,6 +462,7 @@ public :
   const static Int_t fQcdOffset = 1000; //histogram set + offset = set with same sign selection
   const static Int_t fMisIDOffset = 2000; //histogram set + offset = set with loose ID selection
   Int_t fEventSets[fn];  //indicates which sets to create
+  Int_t fSysSets[fn];  //indicates which systematic sets to create
   Int_t fTreeSets[fn];   //indicates which trees to create
 
   TFile*          fOut;
@@ -494,6 +506,8 @@ public :
   bool            fSkipDoubleTrigger = false; //skip events with both triggers (to avoid double counting), only count this lepton status events
   Int_t           fMETWeights = 0; //re-weight events based on the MET
 
+  Int_t           fSystematicSeed; //for systematic variations
+
   Int_t           fRemoveTriggerWeights = 0;
   Int_t           fRemovePhotonIDWeights = 1;
   Int_t           fRemoveBTagWeights = 0; //0: do nothing 1: remove weights 2: replace weights
@@ -513,8 +527,7 @@ public :
 
   float           fFractionMVA = 0.; //fraction of events used to train. Ignore these events in histogram filling, reweight the rest to compensate
   TRandom*        fRnd = 0; //for splitting MVA testing/training
-  Int_t           fRndSeed = 90; //random number generator seed
-  Int_t           fSystematicSeed = 90; //for systematic variations
+  Int_t           fRndSeed = 90; //random number generator seed (not the same as systematics, as want fixed even for systematic studies)
   SystematicShifts* fSystematicShifts; //decides if a systematic is shifted up or down
   bool            fReprocessMVAs = false; //whether or not to use the tree given MVA values
   Int_t           fBJetCounting = 1; // 0: pT > 30 1: pT > 25 2: pT > 20
@@ -717,6 +730,7 @@ void ZTauTauHistMaker::Init(TTree *tree)
 
     for(int i = 0; i < fn; ++i) {
       fEventSets[i]  = 0;
+      fSysSets[i] = 0;
     }
     for(int i = 0; i < fn; ++i) {
       fTreeSets[i]  = 0;
@@ -727,19 +741,19 @@ void ZTauTauHistMaker::Init(TTree *tree)
     // fEventSets [0] = 0; // all events
     if(fFolderName == "mutau") {
       fEventSets [kMuTau + 1] = 1; // all events
-      fEventSets [kMuTau + 2] = 1; // events with >= 1 photon
-
+      fEventSets [kMuTau + 2] = 1; //
       fEventSets [kMuTau + 3] = 1;
       fEventSets [kMuTau + 4] = 1;
-      fEventSets [kMuTau + 5] = 1;
-      fEventSets [kMuTau + 6] = 1;
+
+      // fEventSets [kMuTau + 5] = 1;
+      // fEventSets [kMuTau + 6] = 1;
       fEventSets [kMuTau + 7] = 1;
       fEventSets [kMuTau + 8] = 1;
       fTreeSets  [kMuTau + 8] = 1;
-      fTreeSets  [kMuTau + 8+fQcdOffset] = fIsData != 0; //save SS data for QCD training
-
+      fTreeSets  [kMuTau + 8+fMisIDOffset] = fIsData != 0; //save Loose ID data for MVA training
+      fSysSets   [kMuTau + 8] = 1;
       // MVA categories
-      for(int i = 9; i < 19; ++i) fEventSets[kMuTau + i] = 1;
+      // for(int i = 9; i < 19; ++i) fEventSets[kMuTau + i] = 1;
 
 
       fEventSets [kMuTau + 20] = 1; //
@@ -778,10 +792,11 @@ void ZTauTauHistMaker::Init(TTree *tree)
       fEventSets [kETau + 7] = 1;
       fEventSets [kETau + 8] = 1;
       fTreeSets  [kETau + 8] = 1;
-      fTreeSets  [kETau + 8+fQcdOffset] = fIsData != 0; //save SS data for QCD training
+      fTreeSets  [kETau + 8+fMisIDOffset] = fIsData != 0; //save Loose ID data for MVA training
+      fSysSets   [kETau + 8] = 1;
 
-      // MVA categories
-      for(int i = 9; i < 19; ++i) fEventSets[kETau + i] = 1;
+      // // MVA categories
+      // for(int i = 9; i < 19; ++i) fEventSets[kETau + i] = 1;
 
       fEventSets [kETau + 20] = 1; //
       fEventSets [kETau + 21] = 1; //
@@ -815,9 +830,10 @@ void ZTauTauHistMaker::Init(TTree *tree)
       fEventSets [kEMu  + 8] = 1;
       fTreeSets  [kEMu  + 8] = 1;
       fTreeSets  [kEMu  + 8+fQcdOffset] = fIsData != 0; //save SS data for QCD training
+      fSysSets   [kEMu  + 8] = 1;
 
-      // MVA categories
-      for(int i = 9; i < 19; ++i) fEventSets[kEMu  + i] = 1;
+      // // MVA categories
+      // for(int i = 9; i < 19; ++i) fEventSets[kEMu  + i] = 1;
 
       fEventSets [kEMu  + 20] = 1; //
       fEventSets [kEMu  + 21] = 1; //
@@ -846,11 +862,11 @@ void ZTauTauHistMaker::Init(TTree *tree)
       fEventSets [kMuMu + 6] = 1;
       fEventSets [kMuMu + 7] = 1;
       fEventSets [kMuMu + 8] = 1;
-      fTreeSets  [kMuMu + 8] = 1;
-      fTreeSets  [kMuMu + 8+fQcdOffset] = fIsData != 0; //save SS data for QCD training
+      // fTreeSets  [kMuMu + 8] = 1;
+      // fTreeSets  [kMuMu + 8+fQcdOffset] = fIsData != 0; //save SS data for QCD training
 
-      // MVA categories
-      for(int i = 9; i < 19; ++i) fEventSets[kMuMu + i] = 1;
+      // // MVA categories
+      // for(int i = 9; i < 19; ++i) fEventSets[kMuMu + i] = 1;
 
       fEventSets [kMuMu + 20] = 1; //
       fEventSets [kMuMu + 21] = 1; //
@@ -882,11 +898,11 @@ void ZTauTauHistMaker::Init(TTree *tree)
       fEventSets [kEE   + 6] = 1;
       fEventSets [kEE   + 7] = 1;
       fEventSets [kEE   + 8] = 1;
-      fTreeSets  [kEE   + 8] = 1;
-      fTreeSets  [kEE   + 8+fQcdOffset] = fIsData != 0; //save SS data for QCD training
+      // fTreeSets  [kEE   + 8] = 1;
+      // fTreeSets  [kEE   + 8+fQcdOffset] = fIsData != 0; //save SS data for QCD training
 
-      // MVA categories
-      for(int i = 9; i < 19; ++i) fEventSets[kEE   + i] = 1;
+      // // MVA categories
+      // for(int i = 9; i < 19; ++i) fEventSets[kEE   + i] = 1;
 
       fEventSets [kEE   + 20] = 1; //
       fEventSets [kEE   + 21] = 1; //

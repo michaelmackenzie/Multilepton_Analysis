@@ -844,18 +844,21 @@ THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set) {
   std::vector<TString> labels; //use to preserve order of entries
   std::map<TString, int> colors; //index for the color array
   int n_colors = 0;
-  if(debug_)
-      printf("get_stack: entry name label scale\n");
+  if(debug_ || verbose_ > 0)
+    printf("%s: entry name label scale\n", __func__);
   for(UInt_t i = 0; i < data_.size(); ++i) {
-    if(debug_)
-      printf("get_stack: %i %s %s %.4f\n",
+    if(debug_ || verbose_ > 0)
+      printf("%s: index = %i name = %s label = %s scale = %.4f\n", __func__,
              i, names_[i].Data(), labels_[i].Data(), scale_[i]);
 
     if(isData_[i]) {h.push_back(NULL);continue;}
     if(isSignal_[i]) {h.push_back(NULL);continue;}
 
     h.push_back((TH1D*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set, hist.Data())));
-    if(!h[i]) continue;
+    if(!h[i]) {
+      printf("%s: Histogram %s (%s) not found! Continuing...\n", __func__, names_[i].Data(), labels_[i].Data());
+      continue;
+    }
     auto o = gDirectory->Get("tmp");
     if(o) delete o;
     h[i] = (TH1D*) h[i]->Clone("tmp");
@@ -1661,10 +1664,11 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
 }
 
 //Get a TGraph to represent the errors of a histogram represented in other histogrms
-TGraphAsymmErrors* DataPlotter::get_errors(TH1D* h, TH1D* h_p, TH1D* h_m, bool ratio) {
+TGraphAsymmErrors* DataPlotter::get_errors(TH1D* h, TH1D* h_p, TH1D* h_m, bool ratio, double& r_min, double& r_max) {
 
   int nbins = h->GetNbinsX();
   double xs[nbins], ys[nbins], p_errs[nbins], m_errs[nbins], x_errs[nbins];
+  r_min = 10.; r_max = -1.;
   for(int ibin = 1; ibin <= nbins; ++ibin) {
     xs[ibin-1] = h->GetBinCenter(ibin);
     x_errs[ibin-1] = h->GetBinWidth(ibin)/2.;
@@ -1683,8 +1687,10 @@ TGraphAsymmErrors* DataPlotter::get_errors(TH1D* h, TH1D* h_p, TH1D* h_m, bool r
       }
       ys[ibin-1] = 1.;
     }
+    r_min = std::min(r_min, ys[ibin-1] - m_errs[ibin-1]);
+    r_max = std::max(r_max, ys[ibin-1] + p_errs[ibin-1]);
   }
-  TGraphAsymmErrors* g = new TGraphAsymmErrors(nbins, xs, ys, x_errs, x_errs, p_errs, m_errs);
+  TGraphAsymmErrors* g = new TGraphAsymmErrors(nbins, xs, ys, x_errs, x_errs, m_errs, p_errs);
   g->SetName(Form("g%s_%s", (ratio) ? "_r" : "", h->GetName()));
   g->SetFillColor(h->GetFillColor());
   g->SetLineColor(h->GetLineColor());
@@ -1727,11 +1733,21 @@ TCanvas* DataPlotter::plot_systematic(TString hist, Int_t set, Int_t systematic)
   pad2->Draw();
   pad1->cd();
 
+  ///////////////////////////////////////////////////////////////////////////////////////
   //Draw the background stack with +- systematic as histograms
+  ///////////////////////////////////////////////////////////////////////////////////////
+
+  if(hstack_b->GetNhists() == 0 || hstack_p->GetNhists() == 0|| (!single_systematic_ && hstack_m->GetNhists() == 0)) {
+    printf("%s: Systematics stacks may be empty! N(hists): base = %i, +1 = %i, -1 = %i\n", __func__,
+           hstack_b->GetNhists(), hstack_p->GetNhists(), (single_systematic_) ? 0 : hstack_m->GetNhists());
+    return NULL;
+  }
+
   TH1D* h_b = (TH1D*) hstack_b->GetStack()->Last();
   TH1D* h_p = (TH1D*) hstack_p->GetStack()->Last();
   TH1D* h_m = (single_systematic_) ? 0 : (TH1D*) hstack_m->GetStack()->Last();
 
+  h_b->SetName(Form("h_bkg_%i_sys_%i", set, systematic));
   h_b->SetLineColor(kRed-3);
   h_b->SetLineWidth(2);
   h_b->SetFillColor(0);
@@ -1772,17 +1788,40 @@ TCanvas* DataPlotter::plot_systematic(TString hist, Int_t set, Int_t systematic)
   pad1->SetGrid();
   if(logY_) pad1->SetLogy();
 
-  //Draw the ratio histograms
+  ///////////////////////////////////////////////////////////////////////////////////////
+  //Draw the ratio histograms on the lower pad
+  ///////////////////////////////////////////////////////////////////////////////////////
+
   pad2->cd();
 
-  TGraph* g_r_stack = get_errors(h_b, h_p, h_m, true);
-  g_r_stack->Draw("APL");
+  double r_min, r_max;
+  TGraph* g_r_stack = get_errors(h_b, h_p, h_m, true, r_min, r_max);
+  if(verbose_ > 1) printf("%s: Ratio min/max for Bkg = %.4f/%.4f\n", __func__, r_min, r_max);
+  g_r_stack->SetFillColor(g_r_stack->GetLineColor());
+  g_r_stack->SetFillStyle(3001);
+  g_r_stack->Draw("ALE2");
   for(unsigned index = 0; index < signals_b.size(); ++index) {
-    TGraph* g = get_errors(signals_b[index], signals_p[index], (single_systematic_) ? 0 : signals_m[index], true);
-    g->Draw("PL");
+    double r_min_s, r_max_s;
+    TGraph* g = get_errors(signals_b[index], signals_p[index], (single_systematic_) ? 0 : signals_m[index], true, r_min_s, r_max_s);
+    if(verbose_ > 1) printf("%s: Ratio min/max for %s = %.4f/%.4f\n", __func__, signals_b[index]->GetTitle(), r_min_s, r_max_s);
+    if(index == 2) g->SetLineWidth(g->GetLineWidth()-1);
+    if(index == 0) {
+      g->SetFillColor(g->GetLineColor());
+      g->SetFillStyle(3004);
+      g->Draw("PL");
+      g->Draw("PLE2");
+    } else {
+      g->Draw("PL");
+    }
+    r_min = std::min(r_min, r_min_s);
+    r_max = std::max(r_max, r_max_s);
   }
-  g_r_stack->Draw("PL"); //add background to foreground
-  g_r_stack->GetYaxis()->SetRangeUser(0.9, 1.1);
+  // g_r_stack->Draw("LE2"); //add background to foreground
+  if(verbose_ > 1) printf("%s: Ratio plot min/max = %.3f/%.3f\n", __func__, r_min, r_max);
+  r_min = std::min(0.995, 1. + 1.15*(r_min - 1.));
+  r_max = std::max(1.005, 1. + 1.15*(r_max - 1.));
+  if(verbose_ > 1) printf("%s: Expanded Ratio plot min/max = %.3f/%.3f\n", __func__, r_min, r_max);
+  g_r_stack->GetYaxis()->SetRangeUser(r_min, r_max);
   if(xMin_ < xMax_) g_r_stack->GetXaxis()->SetRangeUser(xMin_, xMax_);
   g_r_stack->GetYaxis()->SetTitleSize(axis_font_size_);
   g_r_stack->GetXaxis()->SetTitleSize(axis_font_size_);
@@ -2276,10 +2315,17 @@ TCanvas* DataPlotter::print_stack(TString hist, TString setType, Int_t set, TStr
 TCanvas* DataPlotter::print_systematic(TString hist, Int_t set, Int_t systematic, TString tag) {
   TCanvas* c = plot_systematic(hist,set,systematic);
   if(!c) return c;
-  if(single_systematic_)
-    c->Print(GetFigureName(Form("single_%i", systematic), hist, set, "sys", tag));
-  else
-    c->Print(GetFigureName(Form("%i", systematic), hist, set, "sys", tag));
+  TString label = "";
+  if(single_systematic_) label += "single_";
+  label += systematic;
+  if(only_signal_ != "") {
+    label += "_";
+    label += only_signal_;
+    label.ReplaceAll("#", "");
+    label.ReplaceAll("->", "");
+    label.ToLower();
+  }
+  c->Print(GetFigureName(label, hist, set, "sys", tag));
   return c;
 }
 

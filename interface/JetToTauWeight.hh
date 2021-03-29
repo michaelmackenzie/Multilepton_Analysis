@@ -16,7 +16,7 @@ public:
     TFile* f = 0;
     std::vector<int> years = {2016, 2017, 2018};
     std::vector<TString> file_regions;
-    int max_pt_bins(0), max_eta_bins(0);
+    int max_pt_bins(0), max_eta_bins(0), max_corr_bins(0);
     rnd_ = new TRandom3(seed);
     if(Mode % 10 == 3) {
       file_regions.push_back("_ptregion_4"); file_regions.push_back("_ptregion_2");
@@ -70,12 +70,19 @@ public:
         if(!f) continue;
       }
       corrections_[year] = (TH1D*) f->Get("PtScale")->Clone(Form("correction_%s_%i", selection.Data(), year));
+      if(!corrections_[year]) {
+        std::cout << "JetToTauWeight::JetToTauWeight: Warning! No lead pt correction histogram found for year = "
+                  << year << " selection = " << selection.Data() << std::endl;
+      } else {
+        max_corr_bins = std::max(max_corr_bins, corrections_[year]->GetNbinsX());
+      }
       files_.push_back(f);
     }
 
     //Define shifted systematic weights as up or down
     for(int year : years) {
       isShiftedUp_[year] = {};
+      isShiftedUpPt_[year] = {};
       for(int dm = 0; dm < 4; ++dm) {
         isShiftedUp_[year][dm] = {};
         for(int eta = 0; eta < max_eta_bins; ++eta) {
@@ -88,13 +95,18 @@ public:
           }
         }
       }
+      for(int ibin = 0; ibin < max_corr_bins; ++ibin) {
+        isShiftedUpPt_[year][ibin] = rnd_->Uniform() > 0.5;
+      }
     }
   }
 
   ~JetToTauWeight() { for(unsigned i = 0; i < files_.size(); ++i) delete files_[i]; }
 
   //Get scale factor for Data
-  float GetDataFactor(int DM, int year, float pt, float eta, float pt_lead, float& up, float& down, float& sys) {
+  float GetDataFactor(int DM, int year, float pt, float eta, float pt_lead, float& up, float& down, float& sys,
+                      float& pt_wt, float& pt_up, float& pt_down, float& pt_sys) {
+    pt_wt = 1.; pt_up = 1.; pt_down = 1.; pt_sys = 1.;
     TH2D* h = 0;
     //get correct decay mode histogram
     int idm = 0;
@@ -132,7 +144,7 @@ public:
 
     // Check if using the binned histogram values
     if(!useFit)
-      return GetFactor(h, hCorrection, pt, eta, DM, ptregion, pt_lead, year, up, down, sys);
+      return GetFactor(h, hCorrection, pt, eta, DM, ptregion, pt_lead, year, up, down, sys, pt_wt, pt_up, pt_down, pt_sys);
 
     //use the fit function if not interpolating
 
@@ -176,8 +188,17 @@ public:
     return eff;
   }
 
+  //Get weight without any systematics carried
+  float GetDataFactor(int DM, int year, float pt, float eta, float pt_lead) {
+    float up, down, sys, pt_wt, pt_up, pt_down, pt_sys;
+    float weight = GetDataFactor(DM, year, pt, eta, pt_lead, up, down, sys, pt_wt, pt_up, pt_down, pt_sys);
+    weight *= pt_wt;
+    return weight;
+  }
+
 private:
-  float GetFactor(TH2D* h, TH1D* hCorrection, float pt, float eta, int DM, int ptregion, float pt_lead, int year, float& up, float& down, float& sys) {
+  float GetFactor(TH2D* h, TH1D* hCorrection, float pt, float eta, int DM, int ptregion, float pt_lead, int year, float& up, float& down, float& sys,
+                  float& pt_wt, float& pt_up, float& pt_down, float& pt_sys) {
     //ensure within kinematic regions
     eta = fabs(eta);
     if(pt > 199.) pt = 199.;
@@ -192,12 +213,15 @@ private:
     float eff_bin = h->GetBinContent(binx, biny);
     float err_bin = h->GetBinError  (binx, biny);
     float eff = -1.;
-    float correction = (pt_lead > 0.) ? hCorrection->GetBinContent(std::min(hCorrection->GetNbinsX(), hCorrection->FindBin(pt_lead))) : 1.;
-    if(correction < 0.) {
+    int corr_bin = (pt_lead > 0.) ? std::min(hCorrection->GetNbinsX(), hCorrection->FindBin(pt_lead)) : 1;
+    pt_wt = (pt_lead > 0.) ? hCorrection->GetBinContent(corr_bin) : 1.;
+    float corr_error = (pt_lead > 0.) ? hCorrection->GetBinError  (corr_bin) : 0.;
+    if(pt_wt < 0.) {
       std::cout << "JetToTauWeight::" << __func__ << ": Warning! Lead pT correction < 0! Lead pT = " << pt_lead
-                << " correction = " << correction
+                << " pt correction weight = " << pt_wt
                 << " year = " << year << std::endl;
-      correction = 1.;
+      pt_wt = 1.;
+      corr_error = 0.;
     }
     if(doInterpolation) {
       double pt_bin = h->GetXaxis()->GetBinCenter(binx);
@@ -232,11 +256,15 @@ private:
     //write as scale factor instead of efficiency
     //eff_0 = a / (a+b) = 1 / (1 + 1/eff_p) = eff_p / (eff_p + 1)
     // --> eff_p = eff_0 / (1 - eff_0)
-    eff = correction * eff / (1. - eff);
+    eff = eff / (1. - eff);
     up   = std::max(min_eff, std::min(max_eff, up  )); //don't need to warn about these
     down = std::max(min_eff, std::min(max_eff, down));
-    up   = correction * up   / (1. - up  );
-    down = correction * down / (1. - down);
+    up   = up   / (1. - up  );
+    down = down / (1. - down);
+
+    //calculate pt correction uncertainties
+    pt_up   = pt_wt + corr_error;
+    pt_down = std::max(pt_wt - corr_error, 0.f);
 
     //Systematic shifted weight
     int idm = 0;
@@ -249,7 +277,8 @@ private:
     else if(DM == 11)
       idm = 3;
 
-    sys = (isShiftedUp_[year][idm][biny-1][binx-1][ptregion]) ? up : down;
+    sys  = (isShiftedUp_[year][idm][biny-1][binx-1][ptregion]) ? up : down;
+    pt_sys = (isShiftedUpPt_[year][corr_bin]) ? pt_up : pt_down;
 
     return eff;
   }
@@ -265,5 +294,7 @@ public:
   TRandom3* rnd_; //for generating systematic shifted parameters
   //       year          DM            eta           pt      ptregion
   std::map<int, std::map<int, std::map<int, std::map<int, std::map<int, bool>>>>> isShiftedUp_; //whether the systematic is shifted up or down
+  //       year          ptbin
+  std::map<int, std::map<int, bool>> isShiftedUpPt_; //whether the pt correction systematic is shifted up or down
 };
 #endif

@@ -1,10 +1,10 @@
 //------------------------------------------------------------------------------
-//  rootlogon.C: a sample ROOT logon macro allowing use of ROOT script 
+//  rootlogon.C: a sample ROOT logon macro allowing use of ROOT script
 //               compiler in CDF RunII environment. The name of this macro file
 //               is defined by the .rootrc file
 //------------------------------------------------------------------------------
 {
-  // the line below tells rootcling where to look for 
+  // the line below tells rootcling where to look for
   // the include files
 
   gInterpreter->AddIncludePath("./");
@@ -29,16 +29,16 @@
 
   // printf("   batch_mode = %i\n",batch_mode);
   const char* exec_name = gApplication->Argv(0);
- 
+
   if (exec_name) {
     if (strcmp(exec_name,"root.exe") == 0) {
       gInterpreter->AddIncludePath("../rootScripts");
       gInterpreter->AddIncludePath("../interface");
       gInterpreter->AddIncludePath("../scale_factors");
       gInterpreter->AddIncludePath("../weights");
-					// print overflows/underflows in the stat box
+                                        // print overflows/underflows in the stat box
       gStyle->SetOptStat(11111111);
-					// print fit results in the stat box
+                                        // print fit results in the stat box
       gStyle->SetOptFit(1110);
       TArrow::SetDefaultArrowSize(0.015);
 
@@ -54,9 +54,9 @@
       if(!hostname.Contains("cmslpc")) path += "/../";
 
       //add check for NanoAOD working area, no BLT repository
-      if(TString(gSystem->Getenv("PWD")).Contains("CLFVAnalysis_dev"))  path = "/src/StandardModel/CLFVAnalysis_dev/";
-      else if(TString(gSystem->Getenv("PWD")).Contains("CLFVAnalysis")) path = "/src/StandardModel/CLFVAnalysis/";
-      
+      if(TString(gSystem->Getenv("PWD")).Contains("CLFVAnalysis_dev"))  path = "/src/CLFVAnalysis_dev/";
+      else if(TString(gSystem->Getenv("PWD")).Contains("CLFVAnalysis")) path = "/src/CLFVAnalysis/";
+
       // gSystem->Load((cmssw + path + "AsciiPlotter/AsciiPlotter_cc.so").Data());
 
       gSystem->Load((cmssw + path + "lib/libCLFVAnalysis.so").Data());
@@ -72,8 +72,6 @@
 //-----------------------------------------------------------------------------
   if(hostname.Contains("cmslpc") && TString(gSystem->Getenv("PWD")).Contains("BLTAnalysis/")) { //only load if on LPC and not in NanoAOD area
     cout << "Loading Bacon data formats." << endl;
-    gSystem->Load("libBaconAnaDataFormats.so"); 
+    gSystem->Load("libBaconAnaDataFormats.so");
   }
 }
-
-
