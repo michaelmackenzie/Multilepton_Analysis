@@ -7,7 +7,10 @@
 #include "interface/Significances.hh"
 #include "interface/BTagWeight.hh"
 #include "interface/PUWeight.hh"
+#include "interface/JetPUWeight.hh"
 #include "interface/JetToTauWeight.hh"
+#include "interface/MuonIDWeight.hh"
+#include "interface/ElectronIDWeight.hh"
 #include "interface/SlimObject_t.hh"
 #include "interface/SlimElectron_t.hh"
 #include "interface/SlimMuon_t.hh"
@@ -30,7 +33,9 @@ namespace { struct dictionary {
   Significances dummy3;
   BTagWeight dummy4;
   PUWeight dummy5;
+  JetPUWeight dummy5b;
   JetToTauWeight dummy6;
+  MuonIDWeight dummy6b;
   SlimObject_t dummy7;
   SlimElectron_t dummy8;
   SlimMuon_t dummy9;

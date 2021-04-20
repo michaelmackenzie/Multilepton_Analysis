@@ -4,7 +4,10 @@
   <class name="Significances"/>
   <class name="BTagWeight"/>
   <class name="PUWeight"/>
+  <class name="JetPUWeight"/>
   <class name="JetToTauWeight"/>
+  <class name="MuonIDWeight"/>
+  <class name="ElectronIDWeight"/>
   <class name="SlimObject_t"/>
   <class name="SlimObjects_t"/>
   <class name="SlimElectron_t"/>
