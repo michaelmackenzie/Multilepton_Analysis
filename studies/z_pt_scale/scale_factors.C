@@ -5,14 +5,14 @@
 DataPlotter* dataplotter_ = 0;
 double lum_;
 int verbose_ = 0;
-bool rebin_ = true; //rebin fixed with histogram to variable width
-bool rebinGen_ = true; //rebin for the gen-level histograms
+bool rebin_ = false; //rebin fixed with histogram to variable width
+bool rebinGen_ = false; //rebin for the gen-level histograms
 bool useCorrectedHist_ = false; //use the MC histogram with the Drell-Yan weights
 bool useOnlyPt_ = false; //don't fit in mass --> Make 1 bin for entire range
 
 //create a histogram with variable bin widths from fixed with histogram
 TH2D* create_rebinned_histogram(TH2D* h, const int& nbinsx, const double* xbins,
-				const int& nbinsy, const double* ybins) {
+                                const int& nbinsy, const double* ybins) {
   if(!h) return NULL;
   TH2D* hBinned = new TH2D(Form("%s_binned", h->GetName()), h->GetTitle(), nbinsx, xbins, nbinsy, ybins);
   int nx(0);
@@ -30,7 +30,7 @@ TH2D* create_rebinned_histogram(TH2D* h, const int& nbinsx, const double* xbins,
       else if(iy == h->GetNbinsY()+1) ny = nbinsy+1; //overflow
       else if(ny >= nbinsy+1) ny = nbinsy+1;
       else {
-	while(h->GetYaxis()->GetBinLowEdge(iy) >= ybins[ny]) ++ny;
+        while(h->GetYaxis()->GetBinLowEdge(iy) >= ybins[ny]) ++ny;
       }
       if(ny >= nbinsy+1) ny = nbinsy+1;
       double binc  = hBinned->GetBinContent(nx,ny);
@@ -40,23 +40,23 @@ TH2D* create_rebinned_histogram(TH2D* h, const int& nbinsx, const double* xbins,
       hBinned->SetBinContent(nx, ny, binc+origc);
       hBinned->SetBinError(nx, ny, sqrt(bine*bine+orige*orige));
       if(verbose_ > 1) cout << "Bin old: (" << ix << ", " << iy << ") = "
-			    << origc << "+-" << orige
-			    <<" bin new: ("
-			    << nx << ", " << ny << ") = "
-			    << hBinned->GetBinContent(nx,ny) << "+-" << hBinned->GetBinError(nx,ny)
-			    << endl
-			    << "Bin range old: " << h->GetXaxis()->GetBinLowEdge(ix) << " < x < "
-			    << h->GetXaxis()->GetBinLowEdge(ix)+h->GetXaxis()->GetBinWidth(ix)
-			    << " " << h->GetYaxis()->GetBinLowEdge(iy) << " < y < "
-			    << h->GetYaxis()->GetBinLowEdge(iy)+h->GetYaxis()->GetBinWidth(iy) << endl
-			    << "Bin range new: " << hBinned->GetXaxis()->GetBinLowEdge(nx) << " < x < "
-			    << hBinned->GetXaxis()->GetBinLowEdge(nx)+hBinned->GetXaxis()->GetBinWidth(nx)
-			    << " " << hBinned->GetYaxis()->GetBinLowEdge(ny) << " < y < "
-			    << hBinned->GetYaxis()->GetBinLowEdge(ny)+hBinned->GetYaxis()->GetBinWidth(ny) << endl;
+                            << origc << "+-" << orige
+                            <<" bin new: ("
+                            << nx << ", " << ny << ") = "
+                            << hBinned->GetBinContent(nx,ny) << "+-" << hBinned->GetBinError(nx,ny)
+                            << endl
+                            << "Bin range old: " << h->GetXaxis()->GetBinLowEdge(ix) << " < x < "
+                            << h->GetXaxis()->GetBinLowEdge(ix)+h->GetXaxis()->GetBinWidth(ix)
+                            << " " << h->GetYaxis()->GetBinLowEdge(iy) << " < y < "
+                            << h->GetYaxis()->GetBinLowEdge(iy)+h->GetYaxis()->GetBinWidth(iy) << endl
+                            << "Bin range new: " << hBinned->GetXaxis()->GetBinLowEdge(nx) << " < x < "
+                            << hBinned->GetXaxis()->GetBinLowEdge(nx)+hBinned->GetXaxis()->GetBinWidth(nx)
+                            << " " << hBinned->GetYaxis()->GetBinLowEdge(ny) << " < y < "
+                            << hBinned->GetYaxis()->GetBinLowEdge(ny)+hBinned->GetYaxis()->GetBinWidth(ny) << endl;
     }
   }
   if(verbose_ > 0) cout << "Integral before rebinning = " << h->Integral()
-			<< ", integral after rebinning = " << hBinned->Integral() << endl;
+                        << ", integral after rebinning = " << hBinned->Integral() << endl;
   return hBinned;
 }
 
@@ -64,37 +64,37 @@ void get_pt_binning(double* binning, int &nbins, int type = 0) {
   if(type == 0) { // reco info
     nbins = 58;
     double bins[] = { 0.  , 0.5 , 1.  , 1.5 , 2.  ,
-		      2.5 , 2.75, 3.  , 3.25, 3.5 ,
-		      3.75, 4.  , 4.25, 4.5 , 4.75,
-		      5.  , 5.25, 5.5 , 5.75, 6.  ,
-		      6.25, 6.5 , 6.75, 7.  , 7.25,
-		      7.5 , 7.75, 8.  , 8.5 , 9.  ,
-		      9.5 , 10. , 10.5, 11. , 11.5,
-		      12. , 12.5, 13. , 13.5, 14. ,
-		      14.5, 15. , 16. , 17. , 18. ,
-		      19. , 20. , 22. , 24. , 26. ,
-		      28. , 30. , 33. , 43. , 60. ,
-		      80. , 105., 150., 
-		      1000.};
+                      2.5 , 2.75, 3.  , 3.25, 3.5 ,
+                      3.75, 4.  , 4.25, 4.5 , 4.75,
+                      5.  , 5.25, 5.5 , 5.75, 6.  ,
+                      6.25, 6.5 , 6.75, 7.  , 7.25,
+                      7.5 , 7.75, 8.  , 8.5 , 9.  ,
+                      9.5 , 10. , 10.5, 11. , 11.5,
+                      12. , 12.5, 13. , 13.5, 14. ,
+                      14.5, 15. , 16. , 17. , 18. ,
+                      19. , 20. , 22. , 24. , 26. ,
+                      28. , 30. , 33. , 43. , 60. ,
+                      80. , 105., 150.,
+                      1000.};
     for(int bin = 0; bin <= nbins; ++bin)
       binning[bin] = bins[bin];
   } else if (type == 1 || type == 2) { //Gen-level info
     nbins = 66;
     const double bins[] = { 0.  , 0.5 , 1.  , 1.5 , 2.  ,
-			    2.5 , 2.75, 3.  , 3.25, 3.5 ,
-			    3.75, 4.  , 4.25, 4.5 , 4.75,
-			    5.  , 5.25, 5.5 , 5.75, 6.  ,
-			    6.25, 6.5 , 6.75, 7.  , 7.25,
-			    7.5 , 7.75, 8.  , 8.5 , 9.  ,
-			    9.5 , 10. , 10.5, 11. , 11.5,
-			    12. , 12.5, 13. , 13.5, 14. ,
-			    14.5, 15. , 16. , 17. , 18. ,
-			    19. , 20. , 22. , 24. , 26. ,
-			    28. , 30. , 33. , 36. , 40. ,
-			    43. , 46. , 50. , 55. , 60. ,
-			    65. , 70. , 75. , 80. , 88. ,
-			    105.,
-			    1000.};
+                            2.5 , 2.75, 3.  , 3.25, 3.5 ,
+                            3.75, 4.  , 4.25, 4.5 , 4.75,
+                            5.  , 5.25, 5.5 , 5.75, 6.  ,
+                            6.25, 6.5 , 6.75, 7.  , 7.25,
+                            7.5 , 7.75, 8.  , 8.5 , 9.  ,
+                            9.5 , 10. , 10.5, 11. , 11.5,
+                            12. , 12.5, 13. , 13.5, 14. ,
+                            14.5, 15. , 16. , 17. , 18. ,
+                            19. , 20. , 22. , 24. , 26. ,
+                            28. , 30. , 33. , 36. , 40. ,
+                            43. , 46. , 50. , 55. , 60. ,
+                            65. , 70. , 75. , 80. , 88. ,
+                            105.,
+                            1000.};
     for(int bin = 0; bin <= nbins; ++bin)
       binning[bin] = bins[bin];
 
@@ -112,34 +112,34 @@ void get_mass_binning(double* binning, int &nbins, int type = 0) {
   if(type == 0) { //reco info
       nbins = 60;
       double bins[] = { 0.   , 60.  , 70.  , 74.  , 77.  ,
-			79.  , 81.  , 82.  , 83.  , 84.  ,
-			84.75, 85.5 , 86.  , 86.5 , 87.  ,
-			87.5 , 87.75, 88.  , 88.25, 88.5 ,
-			88.75, 89.  , 89.25, 89.5 , 89.75,
-			90.  , 90.15, 90.3 , 90.45, 90.6 ,
-			90.75, 90.9 , 91.05, 91.2 , 91.35,
-			91.5 , 91.75, 92.  , 92.25, 92.5 ,
-			92.75, 93.  , 93.25, 93.5 , 94.  ,
-			94.5 , 95.  , 95.5 , 96.  , 96.5 ,
-			97.  , 98.  , 99.  , 100. , 103. ,
-			106. , 110. , 115. , 120. , 130. , 
-			1000.};
+                        79.  , 81.  , 82.  , 83.  , 84.  ,
+                        84.75, 85.5 , 86.  , 86.5 , 87.  ,
+                        87.5 , 87.75, 88.  , 88.25, 88.5 ,
+                        88.75, 89.  , 89.25, 89.5 , 89.75,
+                        90.  , 90.15, 90.3 , 90.45, 90.6 ,
+                        90.75, 90.9 , 91.05, 91.2 , 91.35,
+                        91.5 , 91.75, 92.  , 92.25, 92.5 ,
+                        92.75, 93.  , 93.25, 93.5 , 94.  ,
+                        94.5 , 95.  , 95.5 , 96.  , 96.5 ,
+                        97.  , 98.  , 99.  , 100. , 103. ,
+                        106. , 110. , 115. , 120. , 130. ,
+                        1000.};
     for(int bin = 0; bin <= nbins; ++bin)
       binning[bin] = bins[bin];
   } else if(type == 1 || type == 2) { //gen-level info
     nbins = 55;
     const double bins[] = { 0.   , 55.  , 60.  , 65.  , 70.  ,
-			    74.  , 77.  , 79.  , 81.  , 82.  ,
-			    83.  , 84.  , 84.75, 85.5 , 86.  ,
-			    86.5 , 87.  , 87.5 , 87.75, 88.  ,
-			    88.25, 88.5 , 88.75, 89.  , 89.25,
-			    89.5 , 89.75, 90.  , 90.3 , 90.6 ,
-			    90.9 , 91.2 , 91.5 , 91.75, 92.  ,
-			    92.25, 92.5 , 92.75, 93.  , 93.25,
-			    93.5 , 94.  , 94.5 , 95.  , 95.5 ,
-			    96.  , 96.5 , 97.  , 98.  , 99.  ,
-			    100. , 103. , 106. , 110. , 115. ,
-			    1000.};
+                            74.  , 77.  , 79.  , 81.  , 82.  ,
+                            83.  , 84.  , 84.75, 85.5 , 86.  ,
+                            86.5 , 87.  , 87.5 , 87.75, 88.  ,
+                            88.25, 88.5 , 88.75, 89.  , 89.25,
+                            89.5 , 89.75, 90.  , 90.3 , 90.6 ,
+                            90.9 , 91.2 , 91.5 , 91.75, 92.  ,
+                            92.25, 92.5 , 92.75, 93.  , 93.25,
+                            93.5 , 94.  , 94.5 , 95.  , 95.5 ,
+                            96.  , 96.5 , 97.  , 98.  , 99.  ,
+                            100. , 103. , 106. , 110. , 115. ,
+                            1000.};
     for(int bin = 0; bin <= nbins; ++bin)
       binning[bin] = bins[bin];
   } else
@@ -156,9 +156,9 @@ TH2D* get_mc_histogram(int set, int type = 0) {
 
   if(type == 0) hname = (useCorrectedHist_) ? "lepptvsm2" : "lepptvsm1"; //MC
   else if(type == 1) hname = (useCorrectedHist_) ? "zptvsm0" : "zptvsm1"; //Uncorrected Gen-level histogram
-  else if(type == 2) hname = "zptvsm2"; //Corrected with reco scale factors Gen-level histogram  
+  else if(type == 2) hname = "zptvsm2"; //Corrected with reco scale factors Gen-level histogram
   if(type == 3) hname = "lepptvsm0"; //corrected reco with gen weights
-  
+
   if(verbose_ > 0) cout << "Getting 2D MC histograms named << " << hname.Data() << " with bkg = " << bkg << endl;
 
   for(unsigned d = 0; d < nfiles; ++d) {
@@ -166,7 +166,7 @@ TH2D* get_mc_histogram(int set, int type = 0) {
     bool isDY = dataplotter_->names_[d].Contains("DY50");
     if((bkg && isDY) || (!bkg && !isDY)) continue;
     if(verbose_ > 0) cout << "Retrieving histogram " << hpath.Data() << " for " << dataplotter_->names_[d].Data()
-			  << " with bkg = " << bkg << " and isDY = " << isDY << endl;
+                          << " with bkg = " << bkg << " and isDY = " << isDY << endl;
     TH2D* hTmp = (TH2D*) dataplotter_->data_[d]->Get(hpath.Data());
     if(!hTmp) {
       if(verbose_ > 0) cout << "MC Histogram " << hname.Data() << " for " << dataplotter_->names_[d].Data() << " not found!\n";
@@ -185,20 +185,20 @@ Int_t initialize_plotter(bool useMuon, TString base, TString path, int year) {
   dataplotter_->include_qcd_ = 0;
   dataplotter_->set_luminosity(lum_);
   dataplotter_->verbose_ =verbose_;
-  
-  typedef DataPlotter::DataCard_t dcard;
+
+  typedef DataCard_t dcard;
   std::vector<dcard> cards;
   //card constructor:    filepath,                             name,                  label,              isData, xsec,  isSignal, color
-  if(year != 2017)
+  if(year == 2018)
     cards.push_back(dcard(path+base+"DY50.hist"             , "DY50"               , "Drell-Yan"         , false, 6225.42, false, kRed-7));
   else
     cards.push_back(dcard(path+base+"DY50-ext.hist"         , "DY50"               , "Drell-Yan"         , false, 6225.42, false, kRed-7));
   cards.push_back(dcard(path+base+"SingleAntiToptW.hist"    , "SingleAntiToptW"    , "SingleTop"         , false, 34.91  , false, kCyan-7));
   cards.push_back(dcard(path+base+"SingleToptW.hist"        , "SingleToptW"        , "SingleTop"         , false, 34.91  , false, kCyan-7));
-  cards.push_back(dcard(path+base+"WWW.hist"                , "WWW"	           , "ZZ,WZ,WWW"         , false, 0.2086 , false, kViolet-2));
+  cards.push_back(dcard(path+base+"WWW.hist"                , "WWW"                , "ZZ,WZ,WWW"         , false, 0.2086 , false, kViolet-2));
   cards.push_back(dcard(path+base+"WZ.hist"                 , "WZ"                 , "ZZ,WZ,WWW"         , false, 27.6   , false, kViolet-2));
-  cards.push_back(dcard(path+base+"ZZ.hist"                 , "ZZ"	           , "ZZ,WZ,WWW"         , false, 12.14  , false, kViolet-2));
-  cards.push_back(dcard(path+base+"WW.hist"                 , "WW"	           , "WW"                , false, 12.178 , false, kViolet-9));
+  cards.push_back(dcard(path+base+"ZZ.hist"                 , "ZZ"                 , "ZZ,WZ,WWW"         , false, 12.14  , false, kViolet-2));
+  cards.push_back(dcard(path+base+"WW.hist"                 , "WW"                 , "WW"                , false, 12.178 , false, kViolet-9));
   cards.push_back(dcard(path+base+"Wlnu.hist"               , "Wlnu"               , "W+Jets"            , false, 52850.0, false, kGreen-7));
   cards.push_back(dcard(path+base+"ttbarToSemiLeptonic.hist", "ttbarToSemiLeptonic", "t#bar{t}"          , false, 365.34 , false, kYellow-7));
   cards.push_back(dcard(path+base+"ttbarlnu.hist"           , "ttbarlnu"           , "t#bar{t}"          , false, 88.29  , false, kYellow-7));
@@ -212,7 +212,9 @@ Int_t initialize_plotter(bool useMuon, TString base, TString path, int year) {
 }
 
 
-TCanvas* scale_factors(bool useMuon = true, int set = 8, int year = 2016, TString path = "../../histograms/nanoaods_dev/") {
+TCanvas* scale_factors(bool useMuon = true, int set = 7, int year = 2016, TString path = "nanoaods_dev") {
+  path = "root://cmseos.fnal.gov//store/user/mmackenz/histograms/" + path + "/";
+
   //Get data histogram
   TString baseName = "ztautau_";
   baseName += (useMuon) ? "mumu_clfv_" : "ee_clfv_";
@@ -264,7 +266,7 @@ TCanvas* scale_factors(bool useMuon = true, int set = 8, int year = 2016, TStrin
       if(hData->GetBinContent(binx,biny) < 0.) hData->SetBinContent(binx, biny, 0.);
     }
   }
-  
+
   //get corrected histogram for cross-checks
   bool useCorrPrev = useCorrectedHist_;
   useCorrectedHist_ = true;
@@ -283,7 +285,7 @@ TCanvas* scale_factors(bool useMuon = true, int set = 8, int year = 2016, TStrin
     return NULL;
   }
   hMCGenCorr->SetName("hMCGenCorr");
-  
+
   ////////////////////////
   // Get gen histograms //
   ////////////////////////
@@ -352,11 +354,11 @@ TCanvas* scale_factors(bool useMuon = true, int set = 8, int year = 2016, TStrin
   TString c_name = (useCorrectedHist_) ? "c_fixed_zpt" : "c_zpt";
   TCanvas* c = new TCanvas(c_name.Data(), c_name.Data(), 1600, 900);
   c->Divide(3,2);
-  
+
   ///////////////////////
   //  Draw reco plots  //
   ///////////////////////
-  
+
   TVirtualPad* pad = c->cd(1);
   hDataRebinned->SetTitle("Data: Di-lepton pT vs Mass");
   hDataRebinned->Draw("colz");
@@ -442,10 +444,12 @@ TCanvas* scale_factors(bool useMuon = true, int set = 8, int year = 2016, TStrin
   pad->SetLogy();
 
   //save the images
+  gSystem->Exec("[ ! -d figures ] && mkdir figures");
+  gSystem->Exec("[ ! -d rootfiles ] && mkdir rootfiles");
   if(!useCorrectedHist_) {
     c->Print(Form("figures/pt_vs_m_%i.png", year));
     //save the scale factor histogram
-    TFile* fout = new TFile(Form("z_pt_vs_m_scales_%i.root", year), "RECREATE");
+    TFile* fout = new TFile(Form("rootfiles/z_pt_vs_m_scales_%i.root", year), "RECREATE");
     fout->cd();
     hRatioShape->Write();
     hGenRatio->Write();
@@ -501,7 +505,7 @@ TCanvas* scale_factors(bool useMuon = true, int set = 8, int year = 2016, TStrin
 
 TCanvas* test_scale_factors(bool useMuon = true, int set = 8, int year = 2016, bool correct = true, TString path = "../../histograms/nanoaods_dev/") {
   //Get file with scale factor histograms
-  TString scale_name = Form("z_pt_vs_m_scales_%i.root", year);
+  TString scale_name = Form("rootfiles/z_pt_vs_m_scales_%i.root", year);
   TFile* fscale = TFile::Open(scale_name.Data(), "READ");
   if(!fscale)
     return NULL;
@@ -572,7 +576,7 @@ TCanvas* test_scale_factors(bool useMuon = true, int set = 8, int year = 2016, b
   int n_mass_bins = 100;
   double mass_bins[n_mass_bins+1];
   get_mass_binning(mass_bins, n_mass_bins);
-  
+
   if(rebin_ && verbose_ > 0) cout << "Rebinning data histogram\n";
   TH2D* hDataRebinned = (!rebin_) ? hData : create_rebinned_histogram(hData, n_mass_bins, mass_bins, n_pt_bins, pt_bins);
   TH2D* hMCRebinned   = (!rebin_) ? hMC   : create_rebinned_histogram(hMC  , n_mass_bins, mass_bins, n_pt_bins, pt_bins);
@@ -582,9 +586,9 @@ TCanvas* test_scale_factors(bool useMuon = true, int set = 8, int year = 2016, b
     for(int binx = 1; binx <= hMCRebinned->GetNbinsX(); ++binx) {
       double valx = hMCRebinned->GetXaxis()->GetBinCenter(binx);
       for(int biny = 1; biny <= hMCRebinned->GetNbinsY(); ++biny) {
-	double valy = hMCRebinned->GetYaxis()->GetBinCenter(biny);
-	double scale_bin = hReco->GetBinContent(binx,biny);
-	hMCRebinned->SetBinContent(binx,biny,scale_bin*(hMCRebinned->GetBinContent(binx,biny)));
+        double valy = hMCRebinned->GetYaxis()->GetBinCenter(biny);
+        double scale_bin = hReco->GetBinContent(binx,biny);
+        hMCRebinned->SetBinContent(binx,biny,scale_bin*(hMCRebinned->GetBinContent(binx,biny)));
       }
     }
   }

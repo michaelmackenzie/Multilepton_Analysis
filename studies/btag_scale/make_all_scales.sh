@@ -1,23 +1,37 @@
 #! /bin/bash
 
-years="2016 2017 2018"
-wps="0 1 2"
-if [[ "$1" == "" ]]
+SELECTION=$1
+HISTDIR=$2
+HISTSET=$3
+YEARS=$4
+WPS="0 1 2"
+if [[ "$SELECTION" == "" ]]
 then
-    selection="mumu"
-else
-    selection="$1"
+    SELECTION="mumu"
+fi
+if [[ "$HISTDIR" == "" ]]
+then
+    HISTDIR="nanoaods_dev"
+fi
+if [[ "$HISTSET" == "" ]]
+then
+    HISTSET=7
+fi
+if [[ "$YEARS" == "" ]]
+then
+    YEARS="2016 2017 2018"
 fi
 
-for year in $years
+echo "Using YEARS = ${YEARS}, WPS = ${WPS}, SELECTION = ${SELECTION}, HISTSET = ${HISTSET}, and HISTDIR = ${HISTDIR}"
+
+for year in $YEARS
 do
     echo "Making scale factors for year = ${year}"
-    for wp in $wps
+    for wp in $WPS
     do
-	root.exe -q -b "scale_factors.C(\"${selection}\", 7, ${year}, ${wp})"
+        root.exe -q -b "scale_factors.C(\"${SELECTION}\", ${HISTSET}, ${year}, ${wp})"
     done
     echo "Finished year ${year}"
 done
 
-echo "Finished!"
-    
+echo "Finished all years and working points "

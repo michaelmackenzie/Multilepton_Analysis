@@ -9,13 +9,13 @@ int verbose_ = 0;
 TH2D* get_histogram(int set, int quark, bool useBTag, int WP) {
   TH2D* h = 0;
   //get the histogram name, depending on if requiring a b-tag
-  TString name = "jetsptvseta";  
+  TString name = "jetsptvseta";
   if(useBTag) {
-    if(WP == 2) //Loose
+    if(WP == 0) //Loose
       name = "bjetslptvseta";
     else if(WP == 1) //Medium
       name = "bjetsmptvseta";
-    else if(WP == 0) //Tight
+    else if(WP == 2) //Tight
       name = "bjetsptvseta";
     else {
       cout << "Unknown b-tag working point " << WP << "!\n";
@@ -43,7 +43,7 @@ TH2D* get_histogram(int set, int quark, bool useBTag, int WP) {
     if(!h) h = hTmp;
     else h->Add(hTmp);
   }
-  
+
   if(!h) return NULL;
 
   //setup the histogram title and axis titles
@@ -69,21 +69,21 @@ Int_t initialize_plotter(TString base, TString path, int year) {
   dataplotter_->include_qcd_ = 0;
   dataplotter_->set_luminosity(1.e3); //lum per inv fb
   dataplotter_->verbose_ = verbose_;
-  
-  typedef DataPlotter::DataCard_t dcard;
+
+  typedef DataCard_t dcard;
   std::vector<dcard> cards;
   //card constructor:    filepath,                             name,                  label,              isData, xsec,  isSignal
   CrossSections xs; //cross section handler
-  if(year == 2018) 
+  if(year == 2018)
     cards.push_back(dcard(path+base+"DY50.hist"             , "DY50"               , "Drell-Yan"         , false, xs.GetCrossSection("DY50"               ), false, year));
   else
     cards.push_back(dcard(path+base+"DY50-ext.hist"         , "DY50"               , "Drell-Yan"         , false, xs.GetCrossSection("DY50"               ), false, year));
   cards.push_back(dcard(path+base+"SingleAntiToptW.hist"    , "SingleAntiToptW"    , "SingleTop"         , false, xs.GetCrossSection("SingleAntiToptW"    ), false, year));
   cards.push_back(dcard(path+base+"SingleToptW.hist"        , "SingleToptW"        , "SingleTop"         , false, xs.GetCrossSection("SingleToptW"        ), false, year));
-  cards.push_back(dcard(path+base+"WWW.hist"                , "WWW"	           , "ZZ,WZ,WWW"         , false, xs.GetCrossSection("WWW"	          ), false, year));
+  cards.push_back(dcard(path+base+"WWW.hist"                , "WWW"                , "ZZ,WZ,WWW"         , false, xs.GetCrossSection("WWW"                ), false, year));
   cards.push_back(dcard(path+base+"WZ.hist"                 , "WZ"                 , "ZZ,WZ,WWW"         , false, xs.GetCrossSection("WZ"                 ), false, year));
-  cards.push_back(dcard(path+base+"ZZ.hist"                 , "ZZ"	           , "ZZ,WZ,WWW"         , false, xs.GetCrossSection("ZZ"	          ), false, year));
-  cards.push_back(dcard(path+base+"WW.hist"                 , "WW"	           , "WW"                , false, xs.GetCrossSection("WW"	          ), false, year));
+  cards.push_back(dcard(path+base+"ZZ.hist"                 , "ZZ"                 , "ZZ,WZ,WWW"         , false, xs.GetCrossSection("ZZ"                 ), false, year));
+  cards.push_back(dcard(path+base+"WW.hist"                 , "WW"                 , "WW"                , false, xs.GetCrossSection("WW"                 ), false, year));
   cards.push_back(dcard(path+base+"Wlnu.hist"               , "Wlnu"               , "W+Jets"            , false, xs.GetCrossSection("Wlnu"               ), false, year));
   cards.push_back(dcard(path+base+"ttbarToSemiLeptonic.hist", "ttbarToSemiLeptonic", "t#bar{t}"          , false, xs.GetCrossSection("ttbarToSemiLeptonic"), false, year));
   cards.push_back(dcard(path+base+"ttbarlnu.hist"           , "ttbarlnu"           , "t#bar{t}"          , false, xs.GetCrossSection("ttbarlnu"           ), false, year));
@@ -99,7 +99,9 @@ Int_t initialize_plotter(TString base, TString path, int year) {
 
 //Generate the plots and scale factors
 TCanvas* scale_factors(TString selection = "mumu", int set = 7, int year = 2016, int WP = 0,
-		       TString path = "../../histograms/nanoaods_dev/") {
+                       TString path = "nanoaods_dev") {
+
+  path = "root://cmseos.fnal.gov//store/user/mmackenz/histograms/" + path + "/";
 
   //////////////////////
   // Initialize files //
@@ -141,7 +143,7 @@ TCanvas* scale_factors(TString selection = "mumu", int set = 7, int year = 2016,
     cout << "Not all histograms found!\n";
     return NULL;
   }
-  
+
   //////////////////////
   //  Draw jet rates  //
   //////////////////////
@@ -150,28 +152,22 @@ TCanvas* scale_factors(TString selection = "mumu", int set = 7, int year = 2016,
   c->Divide(3,2);
   TVirtualPad* pad = c->cd(1);
   hLBJets->Draw("colz");
-  pad->SetRightMargin(0.12);
-  pad->SetLogy();
+  pad->SetRightMargin(0.15);
   pad = c->cd(2);
   hCBJets->Draw("colz");
-  pad->SetRightMargin(0.12);
-  pad->SetLogy();
+  pad->SetRightMargin(0.15);
   pad = c->cd(3);
   hBBJets->Draw("colz");
-  pad->SetRightMargin(0.12);
-  pad->SetLogy();
+  pad->SetRightMargin(0.15);
   pad = c->cd(4);
   hLJets->Draw("colz");
-  pad->SetRightMargin(0.12);
-  pad->SetLogy();
+  pad->SetRightMargin(0.15);
   pad = c->cd(5);
   hCJets->Draw("colz");
-  pad->SetRightMargin(0.12);
-  pad->SetLogy();
+  pad->SetRightMargin(0.15);
   pad = c->cd(6);
   hBJets->Draw("colz");
-  pad->SetRightMargin(0.12);
-  pad->SetLogy();
+  pad->SetRightMargin(0.15);
 
   //////////////////////
   // Draw b-jet effs  //
@@ -190,9 +186,8 @@ TCanvas* scale_factors(TString selection = "mumu", int set = 7, int year = 2016,
   hLRatio->SetTitle((wp + " B-Tagged MC efficiency for gen-level light Jets").Data());
   hLRatio->SetXTitle("#eta");
   hLRatio->SetYTitle("pT (GeV/c)");
-  pad->SetRightMargin(0.13);
+  pad->SetRightMargin(0.15);
   pad->SetLeftMargin(0.1);
-  pad->SetLogy();
   pad = c2->cd(2);
   TH2D* hCRatio = (TH2D*) hCBJets->Clone("hCRatio");
   hCRatio->Divide(hCJets);
@@ -201,9 +196,8 @@ TCanvas* scale_factors(TString selection = "mumu", int set = 7, int year = 2016,
   hCRatio->SetTitle((wp + " B-Tagged MC efficiency for gen-level C-Jets").Data());
   hCRatio->SetXTitle("#eta");
   hCRatio->SetYTitle("pT (GeV/c)");
-  pad->SetRightMargin(0.13);
+  pad->SetRightMargin(0.15);
   pad->SetLeftMargin(0.1);
-  pad->SetLogy();
   pad = c2->cd(3);
   TH2D* hBRatio = (TH2D*) hBBJets->Clone("hBRatio");
   hBRatio->Divide(hBJets);
@@ -212,10 +206,9 @@ TCanvas* scale_factors(TString selection = "mumu", int set = 7, int year = 2016,
   hBRatio->SetTitle((wp + " B-Tagged MC efficiency for gen-level B-Jets").Data());
   hBRatio->SetXTitle("#eta");
   hBRatio->SetYTitle("pT (GeV/c)");
-  pad->SetRightMargin(0.13);
+  pad->SetRightMargin(0.15);
   pad->SetLeftMargin(0.1);
-  pad->SetLogy();
-  
+
   gStyle->SetOptStat(0);
 
   //////////////////////
@@ -234,6 +227,16 @@ TCanvas* scale_factors(TString selection = "mumu", int set = 7, int year = 2016,
   //print canvases
   c->Print((name+"_rate.png").Data());
   c2->Print((name+"_eff.png").Data());
+  for(int ic = 1; ic <= 6; ++ic) {
+    auto pad = c->cd(ic);
+    pad->SetLogy();
+    if(ic < 4) {
+      pad = c2->cd(ic);
+      pad->SetLogy();
+    }
+  }
+  c->Print((name+"_rate_log.png").Data());
+  c2->Print((name+"_eff_log.png").Data());
   //write out histogram ratios
   TFile* fOut = new TFile(Form("rootfiles/btag_eff_wp_%i_%s_%i.root", WP, selection.Data(), year), "RECREATE");
   hLRatio->Write();
