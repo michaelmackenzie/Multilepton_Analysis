@@ -155,7 +155,7 @@ Int_t calculate_UL_MVA(int set = 8, TString selection = "zmutau",
     label.DrawLatex(0.12, 0.26, Form("Observed 95%% CL = %.2e", upperLimit));
 
   gSystem->Exec(Form("[ ! -d plots/latest_production/%s ] && mkdir -p plots/latest_production/%s", year_string.Data(), year_string.Data()));
-  canvas->SaveAs(Form("plots/latest_production/%s/pval_vs_br_%s_%s_%i.pdf", year_string.Data(), hist.Data(), selection.Data(), set));
+  // canvas->SaveAs(Form("plots/latest_production/%s/pval_vs_br_%s_%s_%i.pdf", year_string.Data(), hist.Data(), selection.Data(), set));
   canvas->SaveAs(Form("plots/latest_production/%s/pval_vs_br_%s_%s_%i.png", year_string.Data(), hist.Data(), selection.Data(), set));
 
   cout << "Finished UL calculation, plotting dataset with expected UL...\n";

@@ -43,7 +43,7 @@ Int_t fit_background_MVA(int set = 8, TString selection = "zmutau",
   bkg_name += year_string + "_";
   bkg_name += set+set_offset;
   bkg_name += ".tree";
-  
+
   TFile* f_bkg = TFile::Open(bkg_name.Data(), "READ");
   if(!f_bkg) return 1;
   TTree* tree = (TTree*) f_bkg->Get("background_tree");
@@ -101,7 +101,7 @@ Int_t fit_background_MVA(int set = 8, TString selection = "zmutau",
   eff_signal /= lum; //divide by total luminosity
   eff_nominal.setVal(eff_signal);
   cout << "Nominal efficiency = " << eff_signal << endl;
-  
+
   //Get total boson cross section and set total luminosity
   double bxs = xs.GetCrossSection((selection.Contains("z")) ? "Z" : "H");
   RooRealVar lum_var("lum_var", "lum_var", lum);
@@ -112,7 +112,7 @@ Int_t fit_background_MVA(int set = 8, TString selection = "zmutau",
   RooRealVar n_bkg("n_bkg", "n_bkg", 1.e5, 0., 1.e8);
 
   if(!includeSignalInFit_) {br_sig.setVal(0.); br_sig.setConstant(1);}
-  
+
   //Signal + main background PDF
   RooAddPdf totMVAPDF("totMVAPDF", "totMVAPDF", RooArgList(*sigMVAPDF, bkgMVAPDF), RooArgList(n_sig, n_bkg));
   //PDF with constraints
@@ -129,12 +129,12 @@ Int_t fit_background_MVA(int set = 8, TString selection = "zmutau",
   totMVAPDF.plotOn(xframe, RooFit::Components("bkgMVAPDF"), RooFit::LineColor(kRed), RooFit::LineStyle(kDashed));
   totMVAPDF.plotOn(xframe, RooFit::Components("sigMVAPDF"), RooFit::LineColor(kRed), RooFit::LineStyle(kDashed));
 
-  
+
   auto c1 = new TCanvas();
   xframe->Draw();
-  
+
   gSystem->Exec(Form("[ ! -d plots/latest_production/%s ] && mkdir -p plots/latest_production/%s", year_string.Data(), year_string.Data()));
-  c1->SaveAs(Form("plots/latest_production/%s/hist_background_mva_%s_%s_%i.pdf", year_string.Data(), selection.Data(), hist.Data(), set));
+  c1->SaveAs(Form("plots/latest_production/%s/hist_background_mva_%s_%s_%i.png", year_string.Data(), selection.Data(), hist.Data(), set));
   TFile* fOut = new TFile(Form("workspaces/hist_background_mva_%s_%s_%s_%i.root", selection.Data(), hist.Data(), year_string.Data(), set), "RECREATE");
   fOut->cd();
   RooWorkspace ws("ws");

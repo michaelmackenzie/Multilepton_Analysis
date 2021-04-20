@@ -151,7 +151,7 @@ int get_individual_MVA_histogram(int set = 8, TString selection = "zmutau",
   if     (selec == "mutau") set_offset = ZTauTauHistMaker::kMuTau;
   else if(selec == "etau" ) set_offset = ZTauTauHistMaker::kETau;
 
-  dataplotter_->rebinH_ = 100*overall_rebin_;
+  dataplotter_->rebinH_ = 10*overall_rebin_;
   //get background distribution
   THStack* hstack = dataplotter_->get_stack(hist, "event", set+set_offset);
   if(!hstack) return 1;
@@ -203,16 +203,18 @@ int get_individual_MVA_histogram(int set = 8, TString selection = "zmutau",
   return status;
 }
 
-int get_MVA_histogram(int set = 8, TString selection = "zmutau",
+int get_MVA_histogram(vector<int> sets = {8}, TString selection = "zmutau",
                       vector<int> years = {2016, 2017, 2018},
                       TString base = "nanoaods_dev") {
   int status(0);
-  status += get_individual_MVA_histogram(set, selection, years, base);
-  if(test_sys_ < 0) { //only do one selection if debugging
-    if(selection.Contains("mutau"))
-      status += get_individual_MVA_histogram(set, selection+"_e", years, base);
-    else if(selection.Contains("etau"))
-      status += get_individual_MVA_histogram(set, selection+"_mu", years, base);
+  for(int set : sets) {
+    status += get_individual_MVA_histogram(set, selection, years, base);
+    if(test_sys_ < 0) { //only do one selection if debugging
+      if(selection.Contains("mutau"))
+        status += get_individual_MVA_histogram(set, selection+"_e", years, base);
+      else if(selection.Contains("etau"))
+        status += get_individual_MVA_histogram(set, selection+"_mu", years, base);
+    }
   }
   return status;
 }

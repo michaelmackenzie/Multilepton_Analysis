@@ -211,3 +211,11 @@ int get_bemu_histogram(int set = 8, TString selection = "zemu",
   fout->Close();
   return status;
 }
+
+int get_bemu_histogram(vector<int> sets, TString selection = "zemu",
+                       vector<int> years = {2016, 2017, 2018},
+                       TString base = "nanoaods_dev") {
+  int status(0);
+  for(int set : sets) status += get_bemu_histogram(set, selection, years, base);
+  return status;
+}

@@ -139,5 +139,66 @@ train_tmva("[make_background.C out file]", {[list of process IDs to ignore]}");
 ```
 
 
- 
+### Scale factors (studies)
+Several scale factor are measured for this analysis, as well as inputs for POG derived scale factors.
+The order of the scale factors given below is the order they should be evaluated in.
 
+#### Jet PU ID
+The Jet/MET POG gives scale factors for MC --> Data, but the MC efficiencies need to be evaluated
+for the specific selection. This is done using `studies/jet_puid_eff/`.
+This generates the histogram using the TTree rather than histograms produced by the ZTauTauHistMaker.
+
+```
+$> cd studies/jet_puid_eff
+$> root.exe -q -b "scale_factors([year], \"[selection]\", \"[tree path]\", \"[MC file to use]\");
+```
+
+This should be done for all years needed.
+The JetPUWeight object that uses this assumes the selection is "mumu".
+
+#### B-Tag
+The B-Tag POG gives scale factors for MC --> Data, but the MC efficiencies need to be evaluated
+for the specific selection. This is done using `studies/btag_scale/`
+
+```
+$> cd studies/btag_scale
+$> root.exe -q -b "scale_factors(\"[selection]\", [histogram set], [year], [b-tag WP], \"[histogram path]\");
+```
+
+This should be done for all years, selections, and working points needed.
+This can be automated using:
+
+```
+$> ./make_all_scales.sh
+```
+
+#### Z pT re-weighting
+The Drell-Yan Monte Carlo has imperfect modeling of the Z pT vs Mass spectrum.
+To correct for this, Data/MC weights in the mumu selection are used to correct the
+distrubution. These are evaluated first using reconstructed quantities, and then
+the correction factors are derived by comparing the Generator level pT vs Mass before
+and after the reconstructed level correction. These generator level corrections are
+then used for all selections.
+
+```
+$> cd studies/z_pt_scale
+$> root.exe -q -b "scale_factors.C(true, [histogram set], [year], \"[histogram path]\")
+```
+
+The current strategy for making these scale factors is to use the mumu selection,
+create the scale factors for a given year, re-histogram the samples (mostly just DY50)
+and then re-create the scale factors to have the proper gen-level scale factors.
+
+#### Jet --> tau transfer factors
+The jet --> tau background is estimated using a loose jet ID control region, where
+the data is applied to the tight jet anti-ID region using transfer factors. These factors
+are measured in the mumu and ee selection region, where the number of taus in bins
+of pT, eta, and decay mode are counted in both the loose and tight anti-jet ID region.
+The transfer factor is then N(tight) / N(loose) for the given bin, though the fraction
+N(tight) / (N(tight) + N(loose)) is instead stored since it's more convenient to plot
+given it's restricted between 0 and 1.
+
+```
+$> cd studies/fake_tau_scale
+$> root.exe -q -b "scale_factors.C"
+```

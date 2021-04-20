@@ -13,6 +13,8 @@ struct EventHist_t {
   TH1D* hGenWeight;
   TH1D* hGenTauFlavorWeight;
   TH1D* hPhotonIDWeight;
+  TH1D* hJetToTauWeight;
+  TH1D* hJetToTauWeightGroup;
   TH1D* hIsSignal;
   TH1D* hNPV[2]; //0: with PU weights 1: without PU weights
   TH1D* hNPU[2]; //0: with PU weights 1: without PU weights
@@ -39,7 +41,8 @@ struct EventHist_t {
   TH1D* hNGenHardElectrons;
   TH1D* hNGenHardMuons;
   TH1D* hNJets;
-  TH1D* hNJets20;
+  TH1D* hNJets20[2];
+  TH1D* hNJets20Rej[2];
   TH1D* hNFwdJets;
   TH1D* hNBJets;
   TH1D* hNBJetsM;
@@ -52,9 +55,12 @@ struct EventHist_t {
   TH2D* hBJetsPtVsEta [3]; //0: gen-level light jet 1: gen-level c-jet 2: gen-level b-jet    
   TH2D* hBJetsMPtVsEta[3]; //0: gen-level light jet 1: gen-level c-jet 2: gen-level b-jet    
   TH2D* hBJetsLPtVsEta[3]; //0: gen-level light jet 1: gen-level c-jet 2: gen-level b-jet    
+  TH2D* hJetsPtVsEtaPU[2]; //jet pT vs eta for PU ID MC efficiency calculation
   TH1D* hMcEra;
   TH1D* hTriggerLeptonStatus;
+  TH1D* hMuonTriggerStatus;
   TH1D* hPuWeight;
+  TH1D* hJetPUIDWeight;
   TH1D* hTopPtWeight;
   TH1D* hBTagWeight;
   TH1D* hZPtWeight;
@@ -70,7 +76,7 @@ struct EventHist_t {
   TH1D* hHtSum;
   TH1D* hHt;
   TH1D* hHtPhi;
-  TH1D* hJetPt;
+  TH1D* hJetPt[2];
   TH1D* hJetM;
   TH1D* hJetEta;
   TH1D* hJetPhi;    

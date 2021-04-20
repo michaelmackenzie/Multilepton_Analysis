@@ -402,6 +402,7 @@ void get_event_cards(vector<PlottingCard_t> &cards) {
   //jet counts
   cards.push_back(PlottingCard_t("njets",          "event", 0, 0.,   10. ));
   cards.push_back(PlottingCard_t("njets20",        "event", 0, 0.,   10. ));
+  cards.push_back(PlottingCard_t("njets201",       "event", 0, 0.,   10. ));
   cards.push_back(PlottingCard_t("nbjets",         "event", 0, 0.,   10. ));
   cards.push_back(PlottingCard_t("nbjetsm",        "event", 0, 0.,   10. ));
   cards.push_back(PlottingCard_t("nbjetsl",        "event", 0, 0.,   10. ));
@@ -421,6 +422,8 @@ void get_event_cards(vector<PlottingCard_t> &cards) {
 
   cards.push_back(PlottingCard_t("npv",            "event", 0, 0.,   60. ));
   cards.push_back(PlottingCard_t("npu",            "event", 0, 0.,   60. ));
+  cards.push_back(PlottingCard_t("npv1",           "event", 0, 0.,   60. ));
+  cards.push_back(PlottingCard_t("npu1",           "event", 0, 0.,   60. ));
 
   cards.push_back(PlottingCard_t("htsum",             "event", 5, 0.,   800.));
   cards.push_back(PlottingCard_t("ht",                "event", 5, 0.,   800.));
@@ -453,7 +456,7 @@ void get_lep_kin_cards(vector<PlottingCard_t> &cards) {
   cards.push_back(PlottingCard_t("twoeta",         "lep",   2, -3.,    5. ));
   if(selection_ == "emu" || selection_.Contains("tau_")) { //emu dataset
     cards.push_back(PlottingCard_t("lepm",         "event", 2, 50.,   170., {84, 118}, {98, 132.} ));
-  } else //etau or mutau
+  } else //etau, mutau, ee, or mumu
     cards.push_back(PlottingCard_t("lepm",         "event", 2, 50.,   170. ));
   cards.push_back(PlottingCard_t("leppt",          "event", 2, 0.,   150. ));
   if(selection_ == "ee" || selection_ == "mumu") {
@@ -484,18 +487,18 @@ void get_lep_kin_cards(vector<PlottingCard_t> &cards) {
   cards.push_back(PlottingCard_t("oneid2",  "lep",   0, 0,10));
   cards.push_back(PlottingCard_t("twoid2",  "lep",   0, 0,10));
 
-  cards.push_back(PlottingCard_t("htdeltaphi",        "event", 1, 0.,   5.0 ));
-  cards.push_back(PlottingCard_t("metdeltaphi",       "event", 1, 0.,   5.0 ));
-  cards.push_back(PlottingCard_t("leponedeltaphi",    "event", 1, 0.,   5.0 ));
-  cards.push_back(PlottingCard_t("leptwodeltaphi",    "event", 1, 0.,   5.0 ));
+  // cards.push_back(PlottingCard_t("htdeltaphi",        "event", 1, 0.,   5.0 ));
+  // cards.push_back(PlottingCard_t("metdeltaphi",       "event", 1, 0.,   5.0 ));
+  // cards.push_back(PlottingCard_t("leponedeltaphi",    "event", 1, 0.,   5.0 ));
+  // cards.push_back(PlottingCard_t("leptwodeltaphi",    "event", 1, 0.,   5.0 ));
   cards.push_back(PlottingCard_t("onemetdeltaphi",    "lep",   1, 0.,   5.0 ));
   cards.push_back(PlottingCard_t("twometdeltaphi",    "lep",   1, 0.,   5.0 ));
-  cards.push_back(PlottingCard_t("leponejetdeltaphi", "event", 1, 0.,   5.0 ));
-  cards.push_back(PlottingCard_t("leptwojetdeltaphi", "event", 1, 0.,   5.0 ));
-  cards.push_back(PlottingCard_t("leponejetdeltaeta", "event", 1, 0.,   6.  ));
-  cards.push_back(PlottingCard_t("leptwojetdeltaeta", "event", 1, 0.,   6.  ));
-  cards.push_back(PlottingCard_t("leponejetdeltar",   "event", 1, 0.,   6.  ));
-  cards.push_back(PlottingCard_t("leptwojetdeltar",   "event", 1, 0.,   6.  ));
+  // cards.push_back(PlottingCard_t("leponejetdeltaphi", "event", 1, 0.,   5.0 ));
+  // cards.push_back(PlottingCard_t("leptwojetdeltaphi", "event", 1, 0.,   5.0 ));
+  // cards.push_back(PlottingCard_t("leponejetdeltaeta", "event", 1, 0.,   6.  ));
+  // cards.push_back(PlottingCard_t("leptwojetdeltaeta", "event", 1, 0.,   6.  ));
+  // cards.push_back(PlottingCard_t("leponejetdeltar",   "event", 1, 0.,   6.  ));
+  // cards.push_back(PlottingCard_t("leptwojetdeltar",   "event", 1, 0.,   6.  ));
 }
 
 //add cards for tau variables
@@ -571,6 +574,71 @@ void get_mva_cards(vector<PlottingCard_t> &cards) {
     }
   }
 
+}
+
+//add cards for the systematically shifted distributions
+void get_sys_cards(vector<PlottingCard_t> &cards) {
+
+  //get the histograms and signal labels of interest
+  TString hist1("mva"), label1;
+  TString hist2("mva"), label2;
+  double xmin(1.), xmax(-1.);
+  if     (selection_ == "mutau"  ) {hist1 += 0    ; hist2 += 1    ; label1 = "H->#mu#tau"; label2 = "Z->#mu#tau"; xmin = -0.6; xmax = 0.5;}
+  else if(selection_ == "etau"   ) {hist1 += 2    ; hist2 += 3    ; label1 = "H->e#tau"  ; label2 = "Z->e#tau"  ; xmin = -0.6; xmax = 0.5;}
+  else if(selection_ == "emu"    ) {hist1 = "lepm"; hist2 = "lepm"; label1 = "H->e#mu"   ; label2 = "Z->e#mu"   ;}
+  else if(selection_ == "mutau_e") {hist1 += 6    ; hist2 += 7    ; label1 = "H->#mu#tau"; label2 = "Z->#mu#tau"; xmin = -0.6; xmax = 0.5;}
+  else if(selection_ == "etau_mu") {hist1 += 8    ; hist2 += 9    ; label1 = "H->e#tau"  ; label2 = "Z->e#tau"  ; xmin = -0.6; xmax = 0.5;}
+
+  //add a plot for each interesting systematic
+  for(int i = 0; i < 11; ++i) {
+    PlottingCard_t card1(hist1, "systematic", label1, 1, xmin, xmax, 1., -1.);
+    PlottingCard_t card2(hist2, "systematic", label2, 1, xmin, xmax, 1., -1.);
+    //add the +- 1 systematic plot
+    card1.systematic_ = 1 + i*3;
+    card2.systematic_ = 1 + i*3;
+    cards.push_back(card1);
+    cards.push_back(card2);
+    //add the random systematic plot
+    card1.systematic_ = 3 + i*3;
+    card2.systematic_ = 3 + i*3;
+    if(card1.systematic_ == 24) continue; //FIXME: Skipping missing systematic
+    card1.single_systematic_ = true;
+    card2.single_systematic_ = true;
+    cards.push_back(card1);
+    cards.push_back(card2);
+  }
+}
+
+Int_t print_sys_cards(vector<int> sets) {
+  if(!dataplotter_) return 1;
+  vector<PlottingCard_t> cards;
+  get_sys_cards(cards);
+  int status = 0;
+  if(offsetSets_) {
+    for(unsigned i = 0; i < sets.size(); ++ i) {
+      if(selection_ == "mutau"  ) sets[i] += ZTauTauHistMaker::kMuTau;
+      if(selection_ == "etau"   ) sets[i] += ZTauTauHistMaker::kETau;
+      if(selection_ == "emu"    ) sets[i] += ZTauTauHistMaker::kEMu;
+      if(selection_ == "mutau_e") sets[i] += ZTauTauHistMaker::kMuTauE;
+      if(selection_ == "etau_mu") sets[i] += ZTauTauHistMaker::kETauMu;
+      if(selection_ == "mumu")    sets[i] += ZTauTauHistMaker::kMuMu;
+      if(selection_ == "ee")      sets[i] += ZTauTauHistMaker::kEE;
+    }
+  }
+  for(int iset : sets) {
+    for(auto card : cards) {
+      card.set_ = iset;
+      dataplotter_->logY_ = 0;
+      auto c = dataplotter_->print_systematic(card);
+      status += (c) ? 0 : 1;
+      DataPlotter::Empty_Canvas(c);
+      dataplotter_->logY_ = 1;
+      c = dataplotter_->print_systematic(card);
+      status += (c) ? 0 : 1;
+      DataPlotter::Empty_Canvas(c);
+    }
+  }
+  return status;
 }
 
 //print many distributions for the selection sets
@@ -865,12 +933,13 @@ Int_t init_dataplotter() {
   if(sigOverBkg_) dataplotter_->data_over_mc_ = -sigOverBkg_;
   dataplotter_->selection_ = selection_;
   dataplotter_->folder_ = folder_;
-  if(selection_ == "mutau")
-    dataplotter_->qcd_scale_ = 1.12844; //+- 0.01201 Found with Run-II set 204 --> 4
-  else if(selection_ == "etau")
-    dataplotter_->qcd_scale_ = 1.10205; //+- 0.00636 Found with Run-II set 234 --> 34
-  else
-    dataplotter_->qcd_scale_ = 1.61248; //+- 0.01344 Found with Run-II set 264 --> 64
+  dataplotter_->qcd_scale_ = 1.;
+  // if(selection_ == "mutau")
+  //   dataplotter_->qcd_scale_ = 1.12844; //+- 0.01201 Found with Run-II set 204 --> 4
+  // else if(selection_ == "etau")
+  //   dataplotter_->qcd_scale_ = 1.10205; //+- 0.00636 Found with Run-II set 234 --> 34
+  // else
+  //   dataplotter_->qcd_scale_ = 1.61248; //+- 0.01344 Found with Run-II set 264 --> 64
 
   dataplotter_->include_qcd_ = useQCD_;
   dataplotter_->include_misid_ = useMisID_;
@@ -897,10 +966,11 @@ Int_t init_dataplotter() {
 
   std::vector<dcard> cards;
   std::vector<bool> combines;
+  bool oneDY = true;
   for(int year : years_) {
     //card constructor:    filepath,              name,                  label,      isData,                   xsec               ,  isSignal,year,  color,   combine extension samples
-    cards.push_back(dcard("DY50"               , "DY50"               , "Drell-Yan", false, xs.GetCrossSection("DY50"               ), false, year, kRed-7   , !useUL_&&year!=2018));
-    if(year != 2018 && !useUL_) {
+    cards.push_back(dcard("DY50"               , "DY50"               , "Drell-Yan", false, xs.GetCrossSection("DY50"               ), false, year, kRed-7   , !oneDY&&!useUL_&&year!=2018));
+    if(!oneDY && year != 2018 && !useUL_) {
       cards.push_back(dcard("DY50-ext"         , "DY50-ext"           , "Drell-Yan", false, xs.GetCrossSection("DY50"               ), false, year, kRed-7   , true));
     }
     cards.push_back(dcard("SingleAntiToptW"    , "SingleAntiToptW"    , "Top"      , false, xs.GetCrossSection("SingleAntiToptW"    ), false, year, kYellow-7));
@@ -1022,7 +1092,7 @@ Int_t nanoaod_init(TString selection = "emu", TString histDir = "nanoaods", TStr
 
   selection_ = selection;
   useMisID_ = selection == "mutau" || selection == "etau";
-  useQCD_ = !useMisID_;
+  useQCD_ = !useMisID_ && selection != "mumu" && selection != "ee";
   offsetSets_ = selection != "etau_mu" && selection != "mutau_e";
   Int_t status = init_dataplotter();
   return status;
@@ -1140,7 +1210,7 @@ Int_t print_card_standard_sets(PlottingCard_t card) {
 
 //print a card for each year and full Run-II
 Int_t print_card_standard_years(PlottingCard_t card) {
-  vector<int> sets = {6, 7, 8};
+  vector<int> sets = {7, 8};
   Int_t status = 0;
   for(int year_i = 0; year_i < 4; ++year_i) {
     if     (year_i == 0) years_ = {2016};

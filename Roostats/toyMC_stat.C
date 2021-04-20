@@ -53,6 +53,6 @@ int toyMC_stat(int set, vector<int> years, int nfits = 1000) {
   brpull_frame->Draw();
   canvas->cd(4);
   NLLframe->Draw();
-  canvas->SaveAs(Form("plots/latest_production/%s/plot_toyMC_%i.pdf", year_string.Data(), set));
+  canvas->SaveAs(Form("plots/latest_production/%s/plot_toyMC_%i.png", year_string.Data(), set));
   return status;
 }

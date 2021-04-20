@@ -13,7 +13,7 @@ Int_t do_fit(TH1F* hvar, vector<int> years, bool isMuon, TString hist, int set) 
     std::cout << "Unknown variable " << hist.Data() <<"!\n";
     return 1;
   }
-  
+
   RooRealVar var(hist.Data(), description.Data(), val, min_val, max_val, unit.Data());
   RooDataHist data("data", "data", RooArgList(var), hvar);
   int ndata = data.numEntries();
@@ -64,7 +64,7 @@ Int_t do_fit(TH1F* hvar, vector<int> years, bool isMuon, TString hist, int set) 
     dir_name += years[i];
   }
   gSystem->Exec(Form("[ ! -d plots/latest_production/%s ] && mkdir -p plots/latest_production/%s", dir_name.Data(), dir_name.Data()));
-  c1->SaveAs(Form("plots/latest_production/%s/fit_%s_SameSign_%s_%i.pdf", dir_name.Data(), hist.Data(), name.Data(), set));
+  c1->SaveAs(Form("plots/latest_production/%s/fit_%s_SameSign_%s_%i.png", dir_name.Data(), hist.Data(), name.Data(), set));
   TFile* fOut = new TFile(Form("workspaces/fit_%s_SameSign_%s_%s_%i.root", hist.Data(), name.Data(), dir_name.Data(), set), "RECREATE");
   fOut->cd();
   RooWorkspace ws("ws");

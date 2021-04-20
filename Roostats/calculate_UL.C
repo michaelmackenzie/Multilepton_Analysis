@@ -145,7 +145,7 @@ Int_t calculate_UL(int set = 8, vector<int> years = {2016, 2017, 2018},
     label.DrawLatex(0.12, 0.26, Form("Observed 95%% CL = %.2e", upperLimit));
   
   gSystem->Exec(Form("[ ! -d plots/latest_production/%s ] && mkdir -p plots/latest_production/%s", year_string.Data(), year_string.Data()));
-  canvas->SaveAs(Form("plots/latest_production/%s/pval_vs_br_%s_%i.pdf", year_string.Data(), (doHiggs) ? "hemu" : "zemu", set));
+  // canvas->SaveAs(Form("plots/latest_production/%s/pval_vs_br_%s_%i.pdf", year_string.Data(), (doHiggs) ? "hemu" : "zemu", set));
   canvas->SaveAs(Form("plots/latest_production/%s/pval_vs_br_%s_%i.png", year_string.Data(), (doHiggs) ? "hemu" : "zemu", set));
 
   cout << "Finished UL calculation, plotting dataset with expected UL...\n";

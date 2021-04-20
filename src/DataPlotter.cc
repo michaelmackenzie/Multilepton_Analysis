@@ -1710,6 +1710,21 @@ TCanvas* DataPlotter::plot_systematic(TString hist, Int_t set, Int_t systematic)
 
   if(!hstack_b || !hstack_p || !(single_systematic_ || hstack_m)) return NULL;
 
+  //Get data if needed
+  TH1D* d = (plot_data_ > 0) ? get_data(hist+"_0", "systematic", set) : 0;
+  if(plot_data_ > 0 && !d) return NULL;
+
+  //blind if needed
+  if(blindxmin_.size() > 0 && d) {
+    unsigned nbins = d->GetNbinsX();
+    for(unsigned bin = 1; bin <= nbins; ++bin) {
+      double binlow = d->GetBinLowEdge(bin);
+      double binhigh = binlow + d->GetBinWidth(bin);
+      if(isBlind(binlow, binhigh))
+        d->SetBinContent(bin, 0.);
+    }
+  }
+
   //Get signal histograms
   std::vector<TH1D*> signals_b = get_signal(hist+"_0"                               , "systematic", set);
   std::vector<TH1D*> signals_p = get_signal(Form("%s_%i", hist.Data(), systematic  ), "systematic", set);
@@ -1758,7 +1773,11 @@ TCanvas* DataPlotter::plot_systematic(TString hist, Int_t set, Int_t systematic)
   h_b->Draw("same hist");
   g_stack->Draw("P2");
 
+  //Draw the data
+  d->Draw("E same");
+
   TLegend* leg = new TLegend(legend_x1_, 0.93, legend_x2_, 0.93 - 0.1*(1+signals_b.size()));
+  leg->AddEntry(d, "Data");
   leg->AddEntry(g_stack, "Background", "FL");
 
   double m = std::max((!h_m) ? 0. : h_m->GetMaximum(), h_p->GetMaximum());

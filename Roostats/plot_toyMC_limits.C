@@ -57,7 +57,7 @@ TCanvas* plot_toyMC_limits(int set = 8, int year = 2016) {
   hpull->SetMarkerStyle(20);
   hpull->Fit("gaus");
   TString outname = Form("plots/latest_production/%i/toyMC_limits_%i", year, set);
-  c->SaveAs((outname+".pdf").Data());
+  // c->SaveAs((outname+".pdf").Data());
   c->SaveAs((outname+".png").Data());
   return c;
 }

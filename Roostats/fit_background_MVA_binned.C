@@ -23,6 +23,7 @@ Int_t get_systematics(vector<vector<TH1D*>>& sig, vector<vector<TH1D*>>& bkg, Ro
   if(sig.size() == 0) return 1;
   unsigned nsys = sig[0].size();
   unsigned ncat = sig.size();
+  cout << "There are " << nsys << " systematics with " << ncat << " categories\n";
   for(unsigned isys = 0; isys < nsys; ++isys) {
     cout << "Getting PDFs for systematic " << isys << endl;
     vector<RooDataHist*> bkgMVADatas, sigMVADatas;
@@ -99,7 +100,7 @@ Int_t get_systematics(vector<vector<TH1D*>>& sig, vector<vector<TH1D*>>& bkg, Ro
   return status;
 }
 
-Int_t fit_background_MVA_binned(int set = 8, TString selection = "zmutau",
+Int_t fit_background_MVA_binned(vector<int> sets = {8}, TString selection = "zmutau",
                                 vector<int> years = {2016, 2017, 2018},
                                 int seed = 90) {
   int status(0);
@@ -136,37 +137,42 @@ Int_t fit_background_MVA_binned(int set = 8, TString selection = "zmutau",
 
   vector<TH1D*> hmva_bkgs, hmva_sigs;
   vector<vector<TH1D*>> hsys_bkg, hsys_sig;
-  for(unsigned index = 0; index < selecs.size(); ++index) {
-    TString bkg_name = "histograms/" + selecs[index] + "_" + hists[index] + "_";
-    bkg_name += set;
-    bkg_name += "_" + year_string;
-    bkg_name += ".hist";
-    TFile* f_bkg = TFile::Open(bkg_name.Data(), "READ");
-    if(!f_bkg) return 1;
-    TH1D* hmva_bkg = (TH1D*) f_bkg->Get("hbackground");
-    if(!hmva_bkg) return 2;
-    TString selec_hname = selection;
-    selec_hname.ReplaceAll("_e", "");
-    selec_hname.ReplaceAll("_mu", "");
-    TH1D* hmva_sig = (TH1D*) f_bkg->Get(selec_hname.Data());
-    if(!hmva_sig) return 3;
-    hmva_bkg->SetName(Form("hbkg_%i", index));
-    hmva_sig->SetName(Form("hsig_%i", index));
-    hmva_bkgs.push_back(hmva_bkg);
-    hmva_sigs.push_back(hmva_sig);
+  int sys_index = 0;
+  for(int set : sets) {
+    for(unsigned index = 0; index < selecs.size(); ++index) {
+      TString bkg_name = "histograms/" + selecs[index] + "_" + hists[index] + "_";
+      bkg_name += set;
+      bkg_name += "_" + year_string;
+      bkg_name += ".hist";
+      TFile* f_bkg = TFile::Open(bkg_name.Data(), "READ");
+      if(!f_bkg) return 1;
+      TH1D* hmva_bkg = (TH1D*) f_bkg->Get("hbackground");
+      if(!hmva_bkg) return 2;
+      TString selec_hname = selection;
+      selec_hname.ReplaceAll("_e", "");
+      selec_hname.ReplaceAll("_mu", "");
+      TH1D* hmva_sig = (TH1D*) f_bkg->Get(selec_hname.Data());
+      if(!hmva_sig) return 3;
+      hmva_bkg->SetName(Form("hbkg_%i_%i", set, index));
+      hmva_sig->SetName(Form("hsig_%i_%i", set, index));
+      hmva_bkgs.push_back(hmva_bkg);
+      hmva_sigs.push_back(hmva_sig);
 
-    //Load systematic varied mva histograms
-    hsys_bkg.push_back({}); hsys_sig.push_back({});
-    for(int isys = 0; isys < kMaxSystematics; ++isys) {
-      hsys_bkg[index].push_back((TH1D*) f_bkg->Get(Form("hbkg_sys_%i", isys)));
-      hsys_sig[index].push_back((TH1D*) f_bkg->Get(Form("%s_sys_%i", selec_hname.Data(), isys)));
-      if(hsys_bkg[index][isys]) hsys_bkg[index][isys]->SetName(Form("hbkg_%i_sys_%i", index, isys));
-      else cout << "Systematic background " << isys << " not found!\n";
-      if(hsys_sig[index][isys]) hsys_sig[index][isys]->SetName(Form("hsig_%i_sys_%i", index, isys));
-      else cout << "Systematic signal " << isys << " not found!\n";
+      //Load systematic varied mva histograms
+      hsys_bkg.push_back({}); hsys_sig.push_back({});
+      for(int isys = 0; isys < kMaxSystematics; ++isys) {
+        hsys_bkg[sys_index].push_back((TH1D*) f_bkg->Get(Form("hbkg_sys_%i", isys)));
+        hsys_sig[sys_index].push_back((TH1D*) f_bkg->Get(Form("%s_sys_%i", selec_hname.Data(), isys)));
+        if(hsys_bkg[sys_index][isys]) hsys_bkg[sys_index][isys]->SetName(Form("hbkg_%i_%i_sys_%i", set, index, isys));
+        else cout << "Systematic background " << isys << " not found!\n";
+        if(hsys_sig[sys_index][isys]) hsys_sig[sys_index][isys]->SetName(Form("hsig_%i_%i_sys_%i", set, index, isys));
+        else cout << "Systematic signal " << isys << " not found!\n";
+      }
+      ++sys_index;
+      f_bkg->ls(); f_bkg->Print();
     }
-    f_bkg->ls(); f_bkg->Print();
   }
+  if(hmva_bkgs.size() == 0 || hmva_sigs.size() == 0) return -1;
 
   cout << "All file elements retrieved!\n";
 
@@ -178,13 +184,14 @@ Int_t fit_background_MVA_binned(int set = 8, TString selection = "zmutau",
   vector<RooDataHist*> bkgMVADatas, sigMVADatas;
   vector<RooHistPdf*>  bkgMVAPDFs , sigMVAPDFs ;
   for(unsigned index = 0; index < hmva_bkgs.size(); ++index) {
-    cout << "Starting index " << index << ": sig int = " << hmva_sigs[index]->Integral() << " and bkg int = "
+    cout << "Starting index " << index << ": sig int = "
+         << hmva_sigs[index]->Integral() << " and bkg int = "
          << hmva_bkgs[index]->Integral() << endl;
-    bkgMVADatas.push_back(new RooDataHist(Form("bkgMVAData_%i", index), "Background MVA Data", RooArgList(mva), hmva_bkgs   [index]));
-    sigMVADatas.push_back(new RooDataHist(Form("sigMVAData_%i", index), "Signal MVA Data"    , RooArgList(mva), hmva_sigs   [index]));
-    bkgMVAPDFs .push_back(new RooHistPdf (Form("bkgMVAPDF_%i" , index), "Background MVA PDF" , RooArgSet (mva), *bkgMVADatas[index], spline_order_));
-    sigMVAPDFs .push_back(new RooHistPdf (Form("sigMVAPDF_%i" , index), "Signal MVA PDF"     , RooArgSet (mva), *sigMVADatas[index], spline_order_));
-    cout << "Finished index " << index << endl;
+      bkgMVADatas.push_back(new RooDataHist(Form("bkgMVAData_%i", index), "Background MVA Data", RooArgList(mva), hmva_bkgs   [index]));
+      sigMVADatas.push_back(new RooDataHist(Form("sigMVAData_%i", index), "Signal MVA Data"    , RooArgList(mva), hmva_sigs   [index]));
+      bkgMVAPDFs .push_back(new RooHistPdf (Form("bkgMVAPDF_%i" , index), "Background MVA PDF" , RooArgSet (mva), *bkgMVADatas[index], spline_order_));
+      sigMVAPDFs .push_back(new RooHistPdf (Form("sigMVAPDF_%i" , index), "Signal MVA PDF"     , RooArgSet (mva), *sigMVADatas[index], spline_order_));
+      cout << "Finished index " << index << endl;
   }
 
   cout << "Individual PDFs constructed!\n";
@@ -230,6 +237,7 @@ Int_t fit_background_MVA_binned(int set = 8, TString selection = "zmutau",
   map<string, RooDataHist*> dataCategoryMap;
   vector<RooRealVar*> eff_nominals, n_bkgs;
   vector<RooFormulaVar*> n_sigs;
+
   for(unsigned index = 0; index < bkgMVAPDFs.size(); ++index) {
     double eff_signal = hmva_sigs[index]->Integral()/(lum*xs_sig_);
     eff_nominals.push_back(new RooRealVar(Form("eff_nominal_%i", index),
@@ -285,6 +293,11 @@ Int_t fit_background_MVA_binned(int set = 8, TString selection = "zmutau",
   totPDF.Print();
   br_sig.Print();
   gSystem->Exec(Form("[ ! -d plots/latest_production/%s ] && mkdir -p plots/latest_production/%s", year_string.Data(), year_string.Data()));
+  TString set_str = "";
+  for(int set : sets) {
+    if(set_str == "") set_str += set;
+    else {set_str += "_"; set_str += set;}
+  }
   for(unsigned index = 0; index < totMVAPDFs.size(); ++index) {
     auto xframe = mva.frame(50);
     // combined_data.plotOn(xframe, RooFit::Cut(Form("%s==%i",selection.Data(),index)));
@@ -303,14 +316,14 @@ Int_t fit_background_MVA_binned(int set = 8, TString selection = "zmutau",
     leg->AddEntry((TH1*) (c1->GetPrimitive(Form("totMVAPDF_%i_Norm[mva]_Comp[sigMVAPDF_%i]", index, index))), Form("Signal (x%.0f)", sig_scale), "L");
     leg->AddEntry((TH1*) (c1->GetPrimitive(Form("totMVAPDF_%i_Norm[mva]_Comp[bkgMVAPDF_%i]", index, index))), "Background", "L");
     leg->Draw();
-    c1->SaveAs(Form("plots/latest_production/%s/hist_background_mva_category_%i_%s_%i.png", year_string.Data(), index, selection.Data(), set));
+    c1->SaveAs(Form("plots/latest_production/%s/hist_background_mva_category_%i_%s_%s.png", year_string.Data(), index, selection.Data(), set_str.Data()));
     c1->SetLogy();
-    c1->SaveAs(Form("plots/latest_production/%s/hist_background_mva_category_%i_%s_%i_log.png", year_string.Data(), index, selection.Data(), set));
+    c1->SaveAs(Form("plots/latest_production/%s/hist_background_mva_category_%i_%s_%s_log.png", year_string.Data(), index, selection.Data(), set_str.Data()));
     bxs_var.setVal(prev_val);
   }
 
   gSystem->Exec("[ ! -d workspaces ] && mkdir workspaces");
-  TFile* fOut = new TFile(Form("workspaces/hist_background_mva_%s_%s_%i.root", selection.Data(), year_string.Data(), set), "RECREATE");
+  TFile* fOut = new TFile(Form("workspaces/hist_background_mva_%s_%s_%s.root", selection.Data(), year_string.Data(), set_str.Data()), "RECREATE");
   fOut->cd();
   RooWorkspace ws("ws");
   ws.import(totPDF);

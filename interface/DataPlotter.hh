@@ -214,7 +214,8 @@ public :
     bool blind = false;
     if(xmax < xmin) return blind;
     for(unsigned index = 0; index < blindxmin_.size(); ++index) {
-      if(xmin >= blindxmin_[index] && xmax < blindxmax_[index]) {
+      if((xmin >= blindxmin_[index] && xmin < blindxmax_[index]) || //if either edge of the bin is within the blinding, blind it
+         (xmax > blindxmin_[index] && xmax <= blindxmax_[index])) {
         blind = true;
         break;
       }

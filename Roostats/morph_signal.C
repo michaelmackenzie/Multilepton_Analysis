@@ -120,7 +120,7 @@ Int_t morph_signal(int set = 8, vector<int> years = {2016}, TString base = "../h
   leg->AddEntry(xframe->findObject("h_dataset"), "Signal MC", "PL");
   leg->Draw("same");
   gSystem->Exec(Form("[ ! -d plots/latest_production/%s ] && mkdir -p plots/latest_production/%s", year_string.Data(), year_string.Data()));
-  c1->SaveAs(Form("plots/latest_production/%s/compare_morphed_pdf_%i.pdf", year_string.Data(), set));
+  c1->SaveAs(Form("plots/latest_production/%s/compare_morphed_pdf_%i.png", year_string.Data(), set));
   TFile* fOut = new TFile(Form("workspaces/morphed_signal_%s_%i.root", year_string.Data(), set), "RECREATE");
   fOut->cd();
   RooWorkspace ws("ws");

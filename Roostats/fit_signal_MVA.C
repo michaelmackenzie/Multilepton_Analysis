@@ -101,7 +101,7 @@ Int_t fit_signal_MVA(int set = 8, TString selection = "zmutau",
   hmva->Draw("same P E1");
   
   gSystem->Exec(Form("[ ! -d plots/latest_production/%s ] && mkdir -p plots/latest_production/%s", year_string.Data(), year_string.Data()));
-  c1->SaveAs(Form("plots/latest_production/%s/hist_signal_mva_%s_%s_%i.pdf", year_string.Data(), selection.Data(), hist.Data(), set));
+  c1->SaveAs(Form("plots/latest_production/%s/hist_signal_mva_%s_%s_%i.png", year_string.Data(), selection.Data(), hist.Data(), set));
   TFile* fOut = new TFile(Form("workspaces/hist_signal_mva_%s_%s_%s_%i.root", selection.Data(), hist.Data(), year_string.Data(), set), "RECREATE");
   fOut->cd();
   RooWorkspace ws("ws");

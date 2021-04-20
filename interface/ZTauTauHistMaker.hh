@@ -48,6 +48,8 @@
 #include "interface/MVAConfig.hh"
 //define PU weights locally
 #include "interface/PUWeight.hh"
+//define Jet PU weights locally
+#include "interface/JetPUWeight.hh"
 //define BTag weights locally
 #include "interface/BTagWeight.hh"
 //define Z pT weights locally
@@ -58,8 +60,13 @@
 #include "interface/JetToLepWeight.hh"
 //define SS->OS weights locally
 #include "interface/QCDWeight.hh"
+//define Muon ID weights locally
+#include "interface/MuonIDWeight.hh"
+//define Electron ID weights locally
+#include "interface/ElectronIDWeight.hh"
 //define a systematic variation
 #include "interface/SystematicShifts.hh"
+#include "interface/SystematicGrouping.hh"
 
 class ZTauTauHistMaker : public TSelector {
 public :
@@ -78,9 +85,11 @@ public :
   UInt_t nPartons                    ;
   UInt_t mcEra                       ;
   UInt_t triggerLeptonStatus         ;
+  UInt_t muonTriggerStatus           ;
   Float_t eventWeight                ;
   Float_t genWeight                  ;
   Float_t puWeight                   ;
+  Float_t jetPUIDWeight = 1.         ;
   Float_t topPtWeight                ;
   Float_t btagWeight = 1.            ;
   Float_t zPtWeight                  ;
@@ -95,6 +104,7 @@ public :
   Float_t jetToTauWeightUp           ;
   Float_t jetToTauWeightDown         ;
   Float_t jetToTauWeightSys          ;
+  Int_t   jetToTauWeightGroup        ;
   Float_t jetToTauWeightCorr         ;
   Float_t jetToTauWeightCorrUp       ;
   Float_t jetToTauWeightCorrDown     ;
@@ -132,21 +142,25 @@ public :
   Float_t leptonOneWeight1_up = 1.   ;
   Float_t leptonOneWeight1_down = 1. ;
   Int_t   leptonOneWeight1_bin = 0   ;
+  Int_t   leptonOneWeight1_group = 0 ;
   Float_t leptonOneWeight1_sys       ;
   Float_t leptonOneWeight2 = 1.      ;
   Float_t leptonOneWeight2_up = 1.   ;
   Float_t leptonOneWeight2_down = 1. ;
   Int_t   leptonOneWeight2_bin = 0   ;
   Float_t leptonOneWeight2_sys       ;
+  Int_t   leptonOneWeight2_group = 0 ;
   Float_t leptonTwoWeight1 = 1.      ;
   Float_t leptonTwoWeight1_up = 1.   ;
   Float_t leptonTwoWeight1_down = 1. ;
   Int_t   leptonTwoWeight1_bin = 0   ;
+  Int_t   leptonTwoWeight1_group = 0 ;
   Float_t leptonTwoWeight1_sys       ;
   Float_t leptonTwoWeight2 = 1.      ;
   Float_t leptonTwoWeight2_up = 1.   ;
   Float_t leptonTwoWeight2_down = 1. ;
   Int_t   leptonTwoWeight2_bin = 0   ;
+  Int_t   leptonTwoWeight2_group = 0 ;
   Float_t leptonTwoWeight2_sys       ;
   Float_t leptonOneTrigWeight        ;
   Float_t leptonTwoTrigWeight        ;
@@ -159,6 +173,8 @@ public :
   Float_t         photonIDWeight     ;
   TLorentzVector* jetOneP4 = 0       ;
   TLorentzVector* jetTwoP4 = 0       ;
+  Int_t jetOneID                     ;
+  Int_t jetOnePUID                   ;
   Bool_t jetOneBTag                  ;
   Float_t jetOneBMVA                 ;
   Bool_t jetTwoBTag                  ;
@@ -188,6 +204,7 @@ public :
   UInt_t nSlimJets                   ;
   SlimJets_t* slimJets               ;
   UInt_t nJets20                     ;
+  UInt_t nJets20Rej                  ;
   UInt_t nFwdJets                    ;
   UInt_t nBJetsUse                   ; //which to count
   UInt_t nBJets                      ;
@@ -199,6 +216,8 @@ public :
   Bool_t isLooseMuon                 ;
   Bool_t isLooseElectron             ;
   Bool_t isLooseTau                  ;
+  Float_t jetsRejPt[kMaxParticles]   ;
+  Float_t jetsRejEta[kMaxParticles]  ;
   Float_t jetsPt[kMaxParticles]      ;
   Float_t jetsEta[kMaxParticles]     ;
   Int_t   jetsFlavor[kMaxParticles]  ;
@@ -436,6 +455,7 @@ public :
   Long64_t fentry; //for tracking entry in functions
   //Define relevant fields
   TStopwatch* timer = new TStopwatch();
+  // TStopwatch timer_funcs; //for measuring time taken in each function
   TMVA::Reader* mva[kMaxMVAs]; //read and apply mva weight files
   std::vector<TString> fMvaNames = { //mva names for getting weights
     "mutau_BDT_8.higgs","mutau_BDT_8.Z0", //0 - 9: total mvas
@@ -490,7 +510,7 @@ public :
   Bool_t          fQCDFakeTauTesting = false; //for speeding up histogramming to only do qcd jet --> fake tau scale factor aspects
   Bool_t          fCutFlowTesting = false; //for only testing basic cutflow sets
 
-  Bool_t          fDoSystematics = false;
+  Int_t           fDoSystematics = 0; //0: ignore systematic histograms 1: fill them -1: only fill them
 
   Int_t           fWriteTrees = 0; //write out ttrees for the events
   Double_t        fXsec = 0.; //cross-section for full event weight with trees
@@ -514,6 +534,8 @@ public :
   BTagWeight      fBTagWeight;
   Int_t           fRemovePUWeights = 0; //0: do nothing 1: remove weights 2: replace weights
   PUWeight        fPUWeight; //object to define pu weights
+  Int_t           fUseJetPUIDWeights = 1; //use jet PU ID weights
+  JetPUWeight     fJetPUWeight; //object to define jet PU ID weights
   Int_t           fAddJetTauWeights = 1; //0: do nothing 1: weight anti-iso tau CR data
   JetToTauWeight  fMuonJetToTauWeight; //for mutau
   JetToTauWeight  fMuonJetToTauMCWeight; //for mutau using MC estimated factors
@@ -521,6 +543,8 @@ public :
   JetToLepWeight  fJetToMuonWeight; //for mutau
   JetToLepWeight  fJetToElectronWeight; //for etau
   QCDWeight       fQCDWeight; //for emu
+  MuonIDWeight    fMuonIDWeight;
+  ElectronIDWeight fElectronIDWeight;
 
   Int_t           fRemoveZPtWeights = 0; // 0 use given weights, 1 remove z pT weight, 2 remove and re-evaluate weights locally
   ZPtWeight       fZPtWeight; //re-weight Drell-Yan pT vs Mass
@@ -529,6 +553,7 @@ public :
   TRandom*        fRnd = 0; //for splitting MVA testing/training
   Int_t           fRndSeed = 90; //random number generator seed (not the same as systematics, as want fixed even for systematic studies)
   SystematicShifts* fSystematicShifts; //decides if a systematic is shifted up or down
+  SystematicGrouping fSystematicGrouping; //Groups systematics together
   bool            fReprocessMVAs = false; //whether or not to use the tree given MVA values
   Int_t           fBJetCounting = 1; // 0: pT > 30 1: pT > 25 2: pT > 20
   Int_t           fBJetTightness = 1; // 0: tight 1: medium 2: loose
@@ -560,6 +585,7 @@ void ZTauTauHistMaker::Init(TTree *tree)
     else {
       tree->SetBranchStatus("*", 0); //turn off everything except what is needed (or hard to remove)
       tree->SetBranchStatus("triggerLeptonStatus" , 1);
+      tree->SetBranchStatus("muonTriggerStatus"   , 1);
       tree->SetBranchStatus("lepOneTrigWeight"    , 1);
       tree->SetBranchStatus("lepTwoTrigWeight"    , 1);
       tree->SetBranchStatus("lepOneFired"         , 1);
@@ -600,6 +626,8 @@ void ZTauTauHistMaker::Init(TTree *tree)
       tree->SetBranchStatus("photonP4"            , 1);
       tree->SetBranchStatus("photonIDWeight"      , 1);
       tree->SetBranchStatus("jetP4"               , 1);
+      tree->SetBranchStatus("jetID"               , 1);
+      tree->SetBranchStatus("jetPUID"             , 1);
       tree->SetBranchStatus("tauP4"               , 1);
       tree->SetBranchStatus("tauDeepAntiJet"      , 1);
       tree->SetBranchStatus("tauDeepAntiEle"      , 1);
@@ -617,6 +645,7 @@ void ZTauTauHistMaker::Init(TTree *tree)
       tree->SetBranchStatus("nPhotons"            , 1);
       tree->SetBranchStatus("nJets"               , 1);
       tree->SetBranchStatus("nJets20"             , 1);
+      tree->SetBranchStatus("nJets20Rej"          , 1);
       tree->SetBranchStatus("nFwdJets"            , 1);
       tree->SetBranchStatus("nBJets"              , 1);
       tree->SetBranchStatus("nBJetsM"             , 1);
@@ -624,6 +653,8 @@ void ZTauTauHistMaker::Init(TTree *tree)
       tree->SetBranchStatus("nBJets20"            , 1);
       tree->SetBranchStatus("nBJets20M"           , 1);
       tree->SetBranchStatus("nBJets20L"           , 1);
+      tree->SetBranchStatus("jetsRejPt"           , 1);
+      tree->SetBranchStatus("jetsRejEta"          , 1);
       tree->SetBranchStatus("jetsPt"              , 1);
       tree->SetBranchStatus("jetsEta"             , 1);
       tree->SetBranchStatus("jetsFlavor"          , 1);
@@ -756,30 +787,34 @@ void ZTauTauHistMaker::Init(TTree *tree)
       // for(int i = 9; i < 19; ++i) fEventSets[kMuTau + i] = 1;
 
 
-      fEventSets [kMuTau + 20] = 1; //
-      fEventSets [kMuTau + 21] = 1; //
+      // fEventSets [kMuTau + 20] = 1; //
+      // fEventSets [kMuTau + 21] = 1; //
       fEventSets [kMuTau + 22] = 1; // events with nJets = 0
+      // fSysSets   [kMuTau + 22] = 1;
       fEventSets [kMuTau + 23] = 1; // events with nJets > 0
+      // fSysSets   [kMuTau + 23] = 1;
 
       fEventSets [kMuTau + 24] = 1; // events within mass window
       fEventSets [kMuTau + 25] = 1; // events within mass window
 
       fEventSets [kMuTau + 26] = 1; // events top set
-      fEventSets [kMuTau + 27] = 1;
-      fEventSets [kMuTau + 28] = 1;
-      fEventSets [kMuTau + 29] = 1;
+      fEventSets [kMuTau + 27] = 1; //genuine tau MC
+      // fEventSets [kMuTau + 28] = 1;
+      // fEventSets [kMuTau + 29] = 1;
 
-      fEventSets [kMuTau + 30] = 1;
-      fEventSets [kMuTau + 31] = 1;
-      fEventSets [kMuTau + 32] = 1;
+      // fEventSets [kMuTau + 30] = 1;
+      // fEventSets [kMuTau + 31] = 1;
+      // fEventSets [kMuTau + 32] = 1;
 
-      fEventSets [kMuTau + 34] = 1;
+      // fEventSets [kMuTau + 34] = 1;
       fEventSets [kMuTau + 35] = 1;
-      fEventSets [kMuTau + 36] = 1;
+      // fEventSets [kMuTau + 36] = 1;
 
-      fEventSets [kMuTau + 40] = 1;
-      fEventSets [kMuTau + 41] = 1;
+      fEventSets [kMuTau + 40] = 1; //Closure j-->tau test, true MC taus
+      fEventSets [kMuTau + 41] = 1; //Closure j-->tau test, fake MC taus + weights
 
+      fEventSets [kMuTau + 45] = 1; //taus in the barrel
+      fEventSets [kMuTau + 46] = 1; //taus in the endcap
     }
     else if(fFolderName == "etau") {
       fEventSets [kETau + 1] = 1; // all events
@@ -787,8 +822,8 @@ void ZTauTauHistMaker::Init(TTree *tree)
 
       fEventSets [kETau + 3] = 1;
       fEventSets [kETau + 4] = 1;
-      fEventSets [kETau + 5] = 1;
-      fEventSets [kETau + 6] = 1;
+      // fEventSets [kETau + 5] = 1;
+      // fEventSets [kETau + 6] = 1;
       fEventSets [kETau + 7] = 1;
       fEventSets [kETau + 8] = 1;
       fTreeSets  [kETau + 8] = 1;
@@ -798,25 +833,31 @@ void ZTauTauHistMaker::Init(TTree *tree)
       // // MVA categories
       // for(int i = 9; i < 19; ++i) fEventSets[kETau + i] = 1;
 
-      fEventSets [kETau + 20] = 1; //
-      fEventSets [kETau + 21] = 1; //
+      // fEventSets [kETau + 20] = 1; //
+      // fEventSets [kETau + 21] = 1; //
       fEventSets [kETau + 22] = 1; // events with nJets = 0
+      // fSysSets   [kETau + 22] = 1;
       fEventSets [kETau + 23] = 1; // events with nJets > 0
+      // fSysSets   [kETau + 23] = 1;
 
       fEventSets [kETau + 24] = 1; // events within mass window
       fEventSets [kETau + 25] = 1; // events within mass window
 
       fEventSets [kETau + 26] = 1; // events top set
       fEventSets [kETau + 27] = 1;
-      fEventSets [kETau + 28] = 1;
-      fEventSets [kETau + 29] = 1;
-      fEventSets [kETau + 30] = 1;
-      fEventSets [kETau + 31] = 1;
-      fEventSets [kETau + 32] = 1;
+      // fEventSets [kETau + 28] = 1;
+      // fEventSets [kETau + 29] = 1;
 
-      fEventSets [kETau + 34] = 1;
+      // fEventSets [kETau + 30] = 1;
+      // fEventSets [kETau + 31] = 1;
+      // fEventSets [kETau + 32] = 1;
+
+      // fEventSets [kETau + 34] = 1;
       fEventSets [kETau + 35] = 1;
-      fEventSets [kETau + 36] = 1;
+      // fEventSets [kETau + 36] = 1;
+
+      fEventSets [kETau + 45] = 1; //taus in the barrel
+      fEventSets [kETau + 46] = 1; //taus in the endcap
     }
     else if(fFolderName == "emu") {
       fEventSets [kEMu  + 1] = 1; // all events
@@ -824,8 +865,9 @@ void ZTauTauHistMaker::Init(TTree *tree)
 
       fEventSets [kEMu  + 3] = 1;
       fEventSets [kEMu  + 4] = 1;
-      fEventSets [kEMu  + 5] = 1;
-      fEventSets [kEMu  + 6] = 1;
+
+      // fEventSets [kEMu  + 5] = 1;
+      // fEventSets [kEMu  + 6] = 1;
       fEventSets [kEMu  + 7] = 1;
       fEventSets [kEMu  + 8] = 1;
       fTreeSets  [kEMu  + 8] = 1;
@@ -835,22 +877,26 @@ void ZTauTauHistMaker::Init(TTree *tree)
       // // MVA categories
       // for(int i = 9; i < 19; ++i) fEventSets[kEMu  + i] = 1;
 
-      fEventSets [kEMu  + 20] = 1; //
-      fEventSets [kEMu  + 21] = 1; //
+      // fEventSets [kEMu  + 20] = 1; //
+      // fEventSets [kEMu  + 21] = 1; //
       fEventSets [kEMu  + 22] = 1; // events with nJets = 0
+      fSysSets   [kEMu  + 22] = 1;
       fEventSets [kEMu  + 23] = 1; // events with nJets > 0
+      fSysSets   [kEMu  + 23] = 1;
 
       fEventSets [kEMu  + 24] = 1; // events within mass window
       fEventSets [kEMu  + 25] = 1; // events within mass window
 
       fEventSets [kEMu  + 26] = 1; // events top set
       fEventSets [kEMu  + 27] = 1;
-      fEventSets [kEMu  + 28] = 1;
-      fEventSets [kEMu  + 29] = 1;
+      // fEventSets [kEMu  + 28] = 1;
+      // fEventSets [kEMu  + 29] = 1;
 
-      fEventSets [kEMu  + 34] = 1;
+      // fEventSets [kEMu  + 34] = 1;
       fEventSets [kEMu  + 35] = 1;
-      fEventSets [kEMu  + 36] = 1;
+      // fEventSets [kEMu  + 36] = 1;
+      fEventSets [kEMu  + 45] = 1; //taus in the barrel, but put all e+mu here
+      fEventSets [kEMu  + 46] = 1; //taus in the endcap, but put no e+mu here
     }
     else if(fFolderName == "mumu") {
       fEventSets [kMuMu + 1] = 1; // all events
@@ -858,8 +904,8 @@ void ZTauTauHistMaker::Init(TTree *tree)
 
       fEventSets [kMuMu + 3] = 1;
       fEventSets [kMuMu + 4] = 1;
-      fEventSets [kMuMu + 5] = 1;
-      fEventSets [kMuMu + 6] = 1;
+      // fEventSets [kMuMu + 5] = 1;
+      // fEventSets [kMuMu + 6] = 1;
       fEventSets [kMuMu + 7] = 1;
       fEventSets [kMuMu + 8] = 1;
       // fTreeSets  [kMuMu + 8] = 1;
@@ -868,34 +914,36 @@ void ZTauTauHistMaker::Init(TTree *tree)
       // // MVA categories
       // for(int i = 9; i < 19; ++i) fEventSets[kMuMu + i] = 1;
 
-      fEventSets [kMuMu + 20] = 1; //
-      fEventSets [kMuMu + 21] = 1; //
+      // fEventSets [kMuMu + 20] = 1; //
+      // fEventSets [kMuMu + 21] = 1; //
       fEventSets [kMuMu + 22] = 1; // events with nJets = 0
+      // fSysSets   [kMuMu + 22] = 1;
       fEventSets [kMuMu + 23] = 1; // events with nJets > 0
+      // fSysSets   [kMuMu + 23] = 1;
 
       fEventSets [kMuMu + 24] = 1; // events within mass window
       fEventSets [kMuMu + 25] = 1; // events within mass window
 
       fEventSets [kMuMu + 26] = 1; // events top set
       fEventSets [kMuMu + 27] = 1;
-      fEventSets [kMuMu + 28] = 1;
-      fEventSets [kMuMu + 29] = 1;
-      fEventSets [kMuMu + 30] = 1;
+      // fEventSets [kMuMu + 28] = 1;
+      // fEventSets [kMuMu + 29] = 1;
+      // fEventSets [kMuMu + 30] = 1;
 
-      fEventSets [kMuMu + 34] = 1;
+      // fEventSets [kMuMu + 34] = 1;
       fEventSets [kMuMu + 35] = 1;
-      fEventSets [kMuMu + 36] = 1;
+      // fEventSets [kMuMu + 36] = 1;
       fEventSets [kMuMu + 50] = 1;
       fEventSets [kMuMu + 51] = 1;
     }
     else if(fFolderName == "ee") {
       fEventSets [kEE   + 1] = 1; // all events
-      fEventSets [kEE   + 2] = 1; // events with >= 1 photon
-
+      fEventSets [kEE   + 2] = 1;
       fEventSets [kEE   + 3] = 1;
       fEventSets [kEE   + 4] = 1;
-      fEventSets [kEE   + 5] = 1;
-      fEventSets [kEE   + 6] = 1;
+
+      // fEventSets [kEE   + 5] = 1;
+      // fEventSets [kEE   + 6] = 1;
       fEventSets [kEE   + 7] = 1;
       fEventSets [kEE   + 8] = 1;
       // fTreeSets  [kEE   + 8] = 1;
@@ -904,23 +952,25 @@ void ZTauTauHistMaker::Init(TTree *tree)
       // // MVA categories
       // for(int i = 9; i < 19; ++i) fEventSets[kEE   + i] = 1;
 
-      fEventSets [kEE   + 20] = 1; //
-      fEventSets [kEE   + 21] = 1; //
+      // fEventSets [kEE   + 20] = 1; //
+      // fEventSets [kEE   + 21] = 1; //
       fEventSets [kEE   + 22] = 1; // events with nJets = 0
+      // fSysSets   [kEE   + 22] = 1;
       fEventSets [kEE   + 23] = 1; // events with nJets > 0
+      // fSysSets   [kEE   + 23] = 1;
 
       fEventSets [kEE   + 24] = 1; // events within mass window
       fEventSets [kEE   + 25] = 1; // events within mass window
 
       fEventSets [kEE   + 26] = 1; // events top set
       fEventSets [kEE   + 27] = 1;
-      fEventSets [kEE   + 28] = 1;
-      fEventSets [kEE   + 29] = 1;
-      fEventSets [kEE   + 30] = 1;
+      // fEventSets [kEE   + 28] = 1;
+      // fEventSets [kEE   + 29] = 1;
+      // fEventSets [kEE   + 30] = 1;
 
-      fEventSets [kEE   + 34] = 1;
+      // fEventSets [kEE   + 34] = 1;
       fEventSets [kEE   + 35] = 1;
-      fEventSets [kEE   + 36] = 1;
+      // fEventSets [kEE   + 36] = 1;
       fEventSets [kEE   + 50] = 1;
       fEventSets [kEE   + 51] = 1;
     }
@@ -928,10 +978,10 @@ void ZTauTauHistMaker::Init(TTree *tree)
       //Leptonic tau channels
       //mu+tau_e
       // MVA categories
-      for(int i = 9; i < 19; ++i) fEventSets[kMuTauE + i] = 1;
+      // for(int i = 9; i < 19; ++i) fEventSets[kMuTauE + i] = 1;
       //e+tau_mu
       // MVA categories
-      for(int i = 9; i < 19; ++i) fEventSets[kETauMu + i] = 1;
+      // for(int i = 9; i < 19; ++i) fEventSets[kETauMu + i] = 1;
     }
 
     //initialize all the histograms
@@ -960,6 +1010,7 @@ void ZTauTauHistMaker::Init(TTree *tree)
     fChain->SetBranchAddress("mcEra"               , &mcEra                );
   }
   fChain->SetBranchAddress("triggerLeptonStatus" , &triggerLeptonStatus  );
+  fChain->SetBranchAddress("muonTriggerStatus"   , &muonTriggerStatus    );
   fChain->SetBranchAddress("eventWeight"         , &eventWeight          );
   fChain->SetBranchAddress("genWeight"           , &genWeight            );
   fChain->SetBranchAddress("puWeight"            , &puWeight             );
@@ -1027,16 +1078,15 @@ void ZTauTauHistMaker::Init(TTree *tree)
   fChain->SetBranchAddress("photonP4"            , &photonP4             );
   if(!fDYTesting) {
     fChain->SetBranchAddress("photonMVA"         , &photonMVA            );
-    fChain->SetBranchAddress("photonIDWeight"      , &photonIDWeight       );
+    fChain->SetBranchAddress("photonIDWeight"    , &photonIDWeight       );
   }
   fChain->SetBranchAddress("jetP4"               , &jetOneP4             );
+  fChain->SetBranchAddress("jetID"               , &jetOneID             );
+  fChain->SetBranchAddress("jetPUID"             , &jetOnePUID           );
   if(!fDYTesting) {
-    fChain->SetBranchAddress("jetBTag"             , &jetOneBTag           );
-    fChain->SetBranchAddress("jetBMVA"             , &jetOneBMVA           );
-    if(fIsNano) {
-      fChain->SetBranchAddress("nJetsNano"       , &nSlimJets            );
-      // fChain->SetBranchAddress("slimJets"     , &slimJets             );
-    }
+    fChain->SetBranchAddress("jetBTag"           , &jetOneBTag           );
+    fChain->SetBranchAddress("jetBMVA"           , &jetOneBMVA           );
+    fChain->SetBranchAddress("nJetsNano"       , &nSlimJets            );
     if(fFolderName == "llg_study") {
       fChain->SetBranchAddress("jetTwoP4"        , &jetTwoP4             );
       fChain->SetBranchAddress("jetTwoBTag"      , &jetTwoBTag           );
@@ -1050,35 +1100,24 @@ void ZTauTauHistMaker::Init(TTree *tree)
   fChain->SetBranchAddress("tauDeepAntiEle"    , &tauDeepAntiEle       );
   fChain->SetBranchAddress("tauDeepAntiMu"     , &tauDeepAntiMu        );
   if(!fDYTesting) {
-    if(fIsNano) {
-      fChain->SetBranchAddress("nMuonsNano"        , &nSlimMuons           );
-      // fChain->SetBranchAddress("slimMuons"         , &slimMuons            );
-    }
+    fChain->SetBranchAddress("nMuonsNano"        , &nSlimMuons           );
   }
   fChain->SetBranchAddress("nElectrons"          , &nElectrons           );
   if(!fDYTesting) {
-    if(fIsNano) {
-      fChain->SetBranchAddress("nElectronsNano"    , &nSlimElectrons       );
-      // fChain->SetBranchAddress("slimElectrons"     , &slimElectrons        );
-    }
+    fChain->SetBranchAddress("nElectronsNano"    , &nSlimElectrons       );
     // fChain->SetBranchAddress("nLowPtElectrons"     , &nLowPtElectrons      );
   }
   fChain->SetBranchAddress("nTaus"               , &nTaus                );
   if(!fDYTesting) {
-    if(fIsNano) {
-      fChain->SetBranchAddress("nTausNano"         , &nSlimTaus            );
-      // fChain->SetBranchAddress("slimTaus"          , &slimTaus             );
-    }
+    fChain->SetBranchAddress("nTausNano"         , &nSlimTaus            );
   }
   fChain->SetBranchAddress("nPhotons"            , &nPhotons             );
   if(!fDYTesting) {
-    if(fIsNano) {
-      fChain->SetBranchAddress("nPhotonsNano"    , &nSlimPhotons         );
-      // fChain->SetBranchAddress("slimPhotons"          , &slimPhotons          );
-    }
+    fChain->SetBranchAddress("nPhotonsNano"    , &nSlimPhotons         );
   }
   fChain->SetBranchAddress("nJets"               , &nJets                );
   fChain->SetBranchAddress("nJets20"             , &nJets20              );
+  fChain->SetBranchAddress("nJets20Rej"          , &nJets20Rej           );
   fChain->SetBranchAddress("nFwdJets"            , &nFwdJets             );
   fChain->SetBranchAddress("nBJets"              , &nBJets               );
   fChain->SetBranchAddress("nBJetsM"             , &nBJetsM              );
@@ -1093,6 +1132,8 @@ void ZTauTauHistMaker::Init(TTree *tree)
   fChain->SetBranchAddress("nGenPromptTaus"      , &nGenHardTaus         );
   fChain->SetBranchAddress("nGenPromptElectrons" , &nGenHardElectrons    );
   fChain->SetBranchAddress("nGenPromptMuons"     , &nGenHardMuons        );
+  fChain->SetBranchAddress("jetsRejPt"           , &jetsRejPt            );
+  fChain->SetBranchAddress("jetsRejEta"          , &jetsRejEta           );
   fChain->SetBranchAddress("jetsPt"              , &jetsPt               );
   fChain->SetBranchAddress("jetsEta"             , &jetsEta              );
   fChain->SetBranchAddress("jetsFlavor"          , &jetsFlavor           );

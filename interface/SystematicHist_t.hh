@@ -4,7 +4,7 @@
 #include "TH2.h"
 #include "interface/EventHist_t.hh"
 
-enum{kMaxSystematics = 50};
+enum{kMaxSystematics = 300};
 struct SystematicHist_t {
   TH1D* hEventWeight[kMaxSystematics];
   TH1D* hPuWeight[kMaxSystematics];

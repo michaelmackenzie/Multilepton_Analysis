@@ -105,18 +105,18 @@ void ZTauTauHistMaker::FillAllHistograms(Int_t index) {
                                << " and gen weight = " << genWeight << " !\n";
     FillLepHistogram(   fLepHist   [index]);
     if(fDoSystematics && fSysSets[index]) FillSystematicHistogram(fSystematicHist[index]);
-    if(!fDYTesting) FillPhotonHistogram(fPhotonHist[index]);
+    // if(!fDYTesting) FillPhotonHistogram(fPhotonHist[index]);
   } else
     printf("WARNING! Entry %lld, attempted to fill un-initialized histogram set %i!\n", fentry, index);
-  if(fWriteTrees && fTreeSets[index])
+  if(fDoSystematics >= 0 && fWriteTrees && fTreeSets[index])
     fTrees[index]->Fill();
 }
 
 void ZTauTauHistMaker::BookHistograms() {
   BookEventHistograms();
   BookLepHistograms();
-  BookPhotonHistograms();
-  if(fWriteTrees) BookTrees();
+  // BookPhotonHistograms();
+  if(fWriteTrees && fDoSystematics >= 0) BookTrees();
   if(fDoSystematics) BookSystematicHistograms();
 }
 
@@ -141,7 +141,10 @@ void ZTauTauHistMaker::BookEventHistograms() {
       fEventHist[i]->hEventWeightMVA         = new TH1D("eventweightmva"      , Form("%s: EventWeightMVA"      ,dirname)  , 100,   -5,   5);
       fEventHist[i]->hGenWeight              = new TH1D("genweight"           , Form("%s: GenWeight"           ,dirname)  ,   5, -2.5, 2.5);
       fEventHist[i]->hGenTauFlavorWeight     = new TH1D("gentauflavorweight"  , Form("%s: GenTauFlavorWeight"  ,dirname)  ,  40,    0,   2);
-      fEventHist[i]->hPhotonIDWeight         = new TH1D("photonidweight"      , Form("%s: PhotonIDWeight"      ,dirname)  ,  40,    0,   2);
+      // fEventHist[i]->hPhotonIDWeight         = new TH1D("photonidweight"      , Form("%s: PhotonIDWeight"      ,dirname)  ,  40,    0,   2);
+      fEventHist[i]->hJetToTauWeight         = new TH1D("jettotauweight"      , Form("%s: JetToTauWeight"      ,dirname)  ,  40,  0,   2);
+      int jstart = SystematicGrouping::kJetToTau;
+      fEventHist[i]->hJetToTauWeightGroup    = new TH1D("jettotauweightgroup" , Form("%s: JetToTauWeightGroup" ,dirname)  ,  50, jstart, 50+jstart);
       fEventHist[i]->hIsSignal               = new TH1D("issignal"            , Form("%s: IsSignal"            ,dirname)  ,   5,   -2,   3);
       fEventHist[i]->hNPV[0]                 = new TH1D("npv"                 , Form("%s: NPV"                 ,dirname)  , 200,  0, 200);
       fEventHist[i]->hNPV[1]                 = new TH1D("npv1"                , Form("%s: NPV"                 ,dirname)  , 200,  0, 200);
@@ -156,21 +159,24 @@ void ZTauTauHistMaker::BookEventHistograms() {
       fEventHist[i]->hNSlimElectrons         = new TH1D("nslimelectrons"      , Form("%s: NSlimElectrons"      ,dirname)  ,  10,  0,  10);
       // for(int icount = 0; icount < kMaxCounts; ++icount)
       //        fEventHist[i]->hNElectronCounts[icount]= new TH1D(Form("nelectroncounts%i",icount), Form("%s: NElectronCounts %i",dirname,icount),  10,  0,  10);
-      fEventHist[i]->hNLowPtElectrons        = new TH1D("nlowptelectrons"     , Form("%s: NLowPtElectrons"     ,dirname)  ,  10,  0,  10);
+      // fEventHist[i]->hNLowPtElectrons        = new TH1D("nlowptelectrons"     , Form("%s: NLowPtElectrons"     ,dirname)  ,  10,  0,  10);
       fEventHist[i]->hNTaus                  = new TH1D("ntaus"               , Form("%s: NTaus"               ,dirname)  ,  10,  0,  10);
       fEventHist[i]->hNSlimTaus              = new TH1D("nslimtaus"           , Form("%s: NSlimTaus"           ,dirname)  ,  10,  0,  10);
       // for(int icount = 0; icount < kMaxCounts; ++icount)
       //        fEventHist[i]->hNTauCounts[icount]   = new TH1D(Form("ntaucounts%i",icount), Form("%s: NTauCounts %i",dirname,icount),  10,  0,  10);
-      fEventHist[i]->hNSlimPhotons           = new TH1D("nslimphotons"        , Form("%s: NSlimPhotons"        ,dirname)  ,  20,  0,  20);
+      // fEventHist[i]->hNSlimPhotons           = new TH1D("nslimphotons"        , Form("%s: NSlimPhotons"        ,dirname)  ,  20,  0,  20);
       fEventHist[i]->hNPhotons               = new TH1D("nphotons"            , Form("%s: NPhotons"            ,dirname)  ,  10,  0,  10);
       fEventHist[i]->hNGenTausHad            = new TH1D("ngentaushad"         , Form("%s: NGenTausHad"         ,dirname)  ,  10,  0,  10);
       fEventHist[i]->hNGenTausLep            = new TH1D("ngentauslep"         , Form("%s: NGenTausLep"         ,dirname)  ,  10,  0,  10);
       fEventHist[i]->hNGenTaus               = new TH1D("ngentaus"            , Form("%s: NGenTaus"            ,dirname)  ,  10,  0,  10);
       fEventHist[i]->hNGenElectrons          = new TH1D("ngenelectrons"       , Form("%s: NGenElectrons"       ,dirname)  ,  10,  0,  10);
       fEventHist[i]->hNGenMuons              = new TH1D("ngenmuons"           , Form("%s: NGenMuons"           ,dirname)  ,  10,  0,  10);
-      fEventHist[i]->hNSlimJets              = new TH1D("nslimjets"           , Form("%s: NSlimJets"           ,dirname)  ,  30,  0,  30);
+      // fEventHist[i]->hNSlimJets              = new TH1D("nslimjets"           , Form("%s: NSlimJets"           ,dirname)  ,  30,  0,  30);
       fEventHist[i]->hNJets                  = new TH1D("njets"               , Form("%s: NJets"               ,dirname)  ,  20,  0,  20);
-      fEventHist[i]->hNJets20                = new TH1D("njets20"             , Form("%s: NJets20"             ,dirname)  ,  20,  0,  20);
+      fEventHist[i]->hNJets20[0]             = new TH1D("njets20"             , Form("%s: NJets20"             ,dirname)  ,  20,  0,  20);
+      fEventHist[i]->hNJets20[1]             = new TH1D("njets201"            , Form("%s: NJets20"             ,dirname)  ,  20,  0,  20);
+      fEventHist[i]->hNJets20Rej[0]          = new TH1D("njets20rej"          , Form("%s: NJets20Rej"          ,dirname)  ,  20,  0,  20);
+      fEventHist[i]->hNJets20Rej[1]          = new TH1D("njets20rej1"         , Form("%s: NJets20Rej"          ,dirname)  ,  20,  0,  20);
       fEventHist[i]->hNFwdJets               = new TH1D("nfwdjets"            , Form("%s: NFwdJets"            ,dirname)  ,  20,  0,  20);
       fEventHist[i]->hNBJets                 = new TH1D("nbjets"              , Form("%s: NBJets"              ,dirname)  ,  20,  0,  20);
       fEventHist[i]->hNBJetsM                = new TH1D("nbjetsm"             , Form("%s: NBJetsM"             ,dirname)  ,  20,  0,  20);
@@ -208,16 +214,18 @@ void ZTauTauHistMaker::BookEventHistograms() {
 
       fEventHist[i]->hMcEra                  = new TH1D("mcera"               , Form("%s: McEra"               ,dirname) ,   5,   0,  5);
       fEventHist[i]->hTriggerLeptonStatus    = new TH1D("triggerleptonstatus" , Form("%s: TriggerLeptonStatus" ,dirname) ,  10,   0, 10);
+      fEventHist[i]->hMuonTriggerStatus      = new TH1D("muontriggerstatus"   , Form("%s: MuonTriggerStatus"   ,dirname) ,  10,   0, 10);
       fEventHist[i]->hNTriggered             = new TH1D("ntriggered"          , Form("%s: NTriggered"          ,dirname) ,  10,   0, 10);
       fEventHist[i]->hPuWeight               = new TH1D("puweight"            , Form("%s: PuWeight"            ,dirname) , 200,   0,  2);
+      fEventHist[i]->hJetPUIDWeight          = new TH1D("jetpuidweight"       , Form("%s: JetPUIDWeight"       ,dirname) , 100,   0,  2);
       fEventHist[i]->hTopPtWeight            = new TH1D("topptweight"         , Form("%s: TopPtWeight"         ,dirname) , 200,   0,  2);
       fEventHist[i]->hBTagWeight             = new TH1D("btagweight"          , Form("%s: BTagWeight"          ,dirname) , 200,   0,  2);
       fEventHist[i]->hZPtWeight              = new TH1D("zptweight"           , Form("%s: ZPtWeight"           ,dirname) , 200,   0,  2);
       fEventHist[i]->hTauDecayMode[0]        = new TH1D("taudecaymode"        , Form("%s: TauDecayMode"        ,dirname) ,  15,   0, 15);
       fEventHist[i]->hTauDecayMode[1]        = new TH1D("taudecaymode1"       , Form("%s: TauDecayMode"        ,dirname) ,  15,   0, 15);
-      fEventHist[i]->hTauMVA                 = new TH1D("taumva"              , Form("%s: TauMVA"              ,dirname) , 100,   0,  1);
+      // fEventHist[i]->hTauMVA                 = new TH1D("taumva"              , Form("%s: TauMVA"              ,dirname) , 100,   0,  1);
       fEventHist[i]->hTauGenFlavor           = new TH1D("taugenflavor"        , Form("%s: TauGenFlavor"        ,dirname) ,  50,   0, 50);
-      fEventHist[i]->hTauGenFlavorHad        = new TH1D("taugenflavorhad"     , Form("%s: TauGenFlavorHad"     ,dirname) ,  50,   0, 50);
+      // fEventHist[i]->hTauGenFlavorHad        = new TH1D("taugenflavorhad"     , Form("%s: TauGenFlavorHad"     ,dirname) ,  50,   0, 50);
       fEventHist[i]->hTauDeepAntiEle         = new TH1D("taudeepantiele"      , Form("%s: TauDeepAntiEle"      ,dirname) ,   30,  0, 30);
       fEventHist[i]->hTauDeepAntiMu          = new TH1D("taudeepantimu"       , Form("%s: TauDeepAntiMu"       ,dirname) ,   30,  0, 30);
       fEventHist[i]->hTauDeepAntiJet         = new TH1D("taudeepantijet"      , Form("%s: TauDeepAntiJet"      ,dirname) ,   30,  0, 30);
@@ -226,23 +234,24 @@ void ZTauTauHistMaker::BookEventHistograms() {
       fEventHist[i]->hHtSum                  = new TH1D("htsum"               , Form("%s: HtSum"               ,dirname) , 200,   0,800);
       fEventHist[i]->hHt                     = new TH1D("ht"                  , Form("%s: Ht"                  ,dirname) , 200,   0,800);
       fEventHist[i]->hHtPhi                  = new TH1D("htphi"               , Form("%s: HtPhi"               ,dirname) , 100,  -4,  4);
-      fEventHist[i]->hJetPt                  = new TH1D("jetpt"               , Form("%s: JetPt"               ,dirname)  , 300,   0, 300);
-      fEventHist[i]->hJetM                   = new TH1D("jetm"                , Form("%s: JetM"                ,dirname)  , 150,   0, 300);
+      fEventHist[i]->hJetPt[0]               = new TH1D("jetpt"               , Form("%s: JetPt"               ,dirname) , 150,   0, 300);
+      fEventHist[i]->hJetPt[1]               = new TH1D("jetpt1"              , Form("%s: JetPt"               ,dirname) , 150,   0, 300);
+      // fEventHist[i]->hJetM                   = new TH1D("jetm"                , Form("%s: JetM"                ,dirname)  , 150,   0, 300);
       fEventHist[i]->hJetEta                 = new TH1D("jeteta"              , Form("%s: JetEta"              ,dirname)  , 200, -10,  10);
-      fEventHist[i]->hJetPhi                 = new TH1D("jetphi"              , Form("%s: JetPhi"              ,dirname)  , 100,  -4,  4);
-      fEventHist[i]->hJetBMVA                = new TH1D("jetbmva"             , Form("%s: JetBMVA"             ,dirname)  , 300, -1.,  2.);
-      fEventHist[i]->hJetBTag                = new TH1D("jetbtag"             , Form("%s: JetBTag"             ,dirname)  ,   2,   0,   2);
+      // fEventHist[i]->hJetPhi                 = new TH1D("jetphi"              , Form("%s: JetPhi"              ,dirname)  , 100,  -4,  4);
+      // fEventHist[i]->hJetBMVA                = new TH1D("jetbmva"             , Form("%s: JetBMVA"             ,dirname)  , 300, -1.,  2.);
+      // fEventHist[i]->hJetBTag                = new TH1D("jetbtag"             , Form("%s: JetBTag"             ,dirname)  ,   2,   0,   2);
       fEventHist[i]->hTauPt                  = new TH1D("taupt"               , Form("%s: TauPt"               ,dirname)  , 300,   0, 300);
-      fEventHist[i]->hTauM                   = new TH1D("taum"                , Form("%s: TauM"                ,dirname)  , 100,   0, 4.);
+      // fEventHist[i]->hTauM                   = new TH1D("taum"                , Form("%s: TauM"                ,dirname)  , 100,   0, 4.);
       fEventHist[i]->hTauEta                 = new TH1D("taueta"              , Form("%s: TauEta"              ,dirname)  , 200, -10,  10);
-      fEventHist[i]->hTauPhi                 = new TH1D("tauphi"              , Form("%s: TauPhi"              ,dirname)  , 100,  -4,  4);
+      // fEventHist[i]->hTauPhi                 = new TH1D("tauphi"              , Form("%s: TauPhi"              ,dirname)  , 100,  -4,  4);
 
-      fEventHist[i]->hPFMet                  = new TH1D("pfmet"               , Form("%s: PF Met"              ,dirname)  , 200,  0, 400);
-      fEventHist[i]->hPFMetPhi               = new TH1D("pfmetphi"            , Form("%s: PF MetPhi"           ,dirname)  ,  80, -4,   4);
-      fEventHist[i]->hPFCovMet00             = new TH1D("pfcovmet00"          , Form("%s: PF CovMet00"         ,dirname) , 1000,    0.,1000.);
-      fEventHist[i]->hPFCovMet01             = new TH1D("pfcovmet01"          , Form("%s: PF CovMet01"         ,dirname) , 1000,-1000.,1000.);
-      fEventHist[i]->hPFCovMet11             = new TH1D("pfcovmet11"          , Form("%s: PF CovMet11"         ,dirname) , 1000,    0.,1000.);
-      fEventHist[i]->hPuppMet                = new TH1D("puppmet"             , Form("%s: PUPPI Met"           ,dirname)  , 200,  0, 400);
+      // fEventHist[i]->hPFMet                  = new TH1D("pfmet"               , Form("%s: PF Met"              ,dirname)  , 200,  0, 400);
+      // fEventHist[i]->hPFMetPhi               = new TH1D("pfmetphi"            , Form("%s: PF MetPhi"           ,dirname)  ,  80, -4,   4);
+      // fEventHist[i]->hPFCovMet00             = new TH1D("pfcovmet00"          , Form("%s: PF CovMet00"         ,dirname) , 1000,    0.,1000.);
+      // fEventHist[i]->hPFCovMet01             = new TH1D("pfcovmet01"          , Form("%s: PF CovMet01"         ,dirname) , 1000,-1000.,1000.);
+      // fEventHist[i]->hPFCovMet11             = new TH1D("pfcovmet11"          , Form("%s: PF CovMet11"         ,dirname) , 1000,    0.,1000.);
+      // fEventHist[i]->hPuppMet                = new TH1D("puppmet"             , Form("%s: PUPPI Met"           ,dirname)  , 200,  0, 400);
       // fEventHist[i]->hPuppMetPhi             = new TH1D("puppmetphi"          , Form("%s: PUPPI MetPhi"        ,dirname)  ,  80, -4,   4);
       // fEventHist[i]->hPuppCovMet00           = new TH1D("puppcovmet00"        , Form("%s: PUPPI CovMet00"      ,dirname) , 1000,    0.,1000.);
       // fEventHist[i]->hPuppCovMet01        = new TH1D("puppcovmet01"        , Form("%s: PUPPI CovMet01"      ,dirname) , 1000,-1000.,1000.);
@@ -253,13 +262,13 @@ void ZTauTauHistMaker::BookEventHistograms() {
       fEventHist[i]->hMetPhi                 = new TH1D("metphi"              , Form("%s: MetPhi"              ,dirname)  ,  80, -4,   4);
       fEventHist[i]->hMetCorr                = new TH1D("metcorr"             , Form("%s: Met Correction"      ,dirname)  , 200,  0, 40);
       fEventHist[i]->hMetCorrPhi             = new TH1D("metcorrphi"          , Form("%s: MetPhi Correction"   ,dirname)  ,  80, -4,   4);
-      fEventHist[i]->hCovMet00               = new TH1D("covmet00"            , Form("%s: CovMet00"            ,dirname) , 1000,    0.,1000.);
-      fEventHist[i]->hCovMet01               = new TH1D("covmet01"            , Form("%s: CovMet01"            ,dirname) , 1000,-1000.,1000.);
-      fEventHist[i]->hCovMet11               = new TH1D("covmet11"            , Form("%s: CovMet11"            ,dirname) , 1000,    0.,1000.);
-      fEventHist[i]->hMetVsPt                = new TH2D("metvspt"             , Form("%s: MetVsPt"             ,dirname) ,200,0,400, 200,0,400);
-      fEventHist[i]->hMetVsM                 = new TH2D("metvsm"              , Form("%s: MetVsM"              ,dirname) ,200,0,400, 200,0,400);
-      fEventHist[i]->hMetVsHtSum             = new TH2D("metvshtsum"          , Form("%s: MetVsHtSum"          ,dirname) ,200,0,400, 200,0,400);
-      fEventHist[i]->hMetOverSqrtHtSum       = new TH1D("metoversqrthtsum"    , Form("%s: MetOverSqrtHtSum"    ,dirname) ,  200,    0., 400.);
+      // fEventHist[i]->hCovMet00               = new TH1D("covmet00"            , Form("%s: CovMet00"            ,dirname) , 1000,    0.,1000.);
+      // fEventHist[i]->hCovMet01               = new TH1D("covmet01"            , Form("%s: CovMet01"            ,dirname) , 1000,-1000.,1000.);
+      // fEventHist[i]->hCovMet11               = new TH1D("covmet11"            , Form("%s: CovMet11"            ,dirname) , 1000,    0.,1000.);
+      // fEventHist[i]->hMetVsPt                = new TH2D("metvspt"             , Form("%s: MetVsPt"             ,dirname) ,200,0,400, 200,0,400);
+      // fEventHist[i]->hMetVsM                 = new TH2D("metvsm"              , Form("%s: MetVsM"              ,dirname) ,200,0,400, 200,0,400);
+      // fEventHist[i]->hMetVsHtSum             = new TH2D("metvshtsum"          , Form("%s: MetVsHtSum"          ,dirname) ,200,0,400, 200,0,400);
+      // fEventHist[i]->hMetOverSqrtHtSum       = new TH1D("metoversqrthtsum"    , Form("%s: MetOverSqrtHtSum"    ,dirname) ,  200,    0., 400.);
       // fEventHist[i]->hMassSVFit                   = new TH1D("masssvfit"           , Form("%s: MassSVFit"           ,dirname) , 1000,    0., 200.);
       // fEventHist[i]->hMassErrSVFit        = new TH1D("masserrsvfit"        , Form("%s: MassErrSVFit"        ,dirname) , 1000,    0., 100.);
       // fEventHist[i]->hSVFitStatus            = new TH1D("svfitstatus"         , Form("%s: SVFitStatus"         ,dirname) ,   10,    0.,  10.);
@@ -268,7 +277,7 @@ void ZTauTauHistMaker::BookEventHistograms() {
       fEventHist[i]->hLepPt[0]      = new TH1D("leppt"         , Form("%s: Lepton Pt"      ,dirname)  , 200,   0, 400);
       fEventHist[i]->hLepPt[1]      = new TH1D("leppt1"        , Form("%s: Lepton Pt"      ,dirname)  , 200,   0, 400);
       fEventHist[i]->hLepPt[2]      = new TH1D("leppt2"        , Form("%s: Lepton Pt"      ,dirname)  , 200,   0, 400);
-      fEventHist[i]->hLepP          = new TH1D("lepp"          , Form("%s: Lepton P"       ,dirname)  , 200,   0, 400);
+      // fEventHist[i]->hLepP          = new TH1D("lepp"          , Form("%s: Lepton P"       ,dirname)  , 200,   0, 400);
       // fEventHist[i]->hLepE          = new TH1D("lepe"          , Form("%s: Lepton E"       ,dirname)  , 200,   0, 400);
       fEventHist[i]->hLepM[0]       = new TH1D("lepm"          , Form("%s: Lepton M"       ,dirname)  , 400,   0, 200);
       fEventHist[i]->hLepM[1]       = new TH1D("lepm1"         , Form("%s: Lepton M"       ,dirname)  , 400,   0, 200);
@@ -279,40 +288,53 @@ void ZTauTauHistMaker::BookEventHistograms() {
       fEventHist[i]->hLepEta        = new TH1D("lepeta"        , Form("%s: Lepton Eta"     ,dirname)  , 200, -10,  10);
       fEventHist[i]->hLepPhi        = new TH1D("lepphi"        , Form("%s: Lepton Phi"     ,dirname)  ,  80,  -4,   4);
       //variable width bins for pT vs mass
-      const int nmbins = 63;
-      const double mbins[nmbins+1] = { 0.   , 55.  , 60.  , 65.  , 70.  ,
-                                       74.  , 77.  , 79.  , 81.  , 82.  ,
-                                       83.  , 84.  , 84.75, 85.5 , 86.  ,
-                                       86.5 , 87.  , 87.5 , 87.75, 88.  ,
-                                       88.25, 88.5 , 88.75, 89.  , 89.25,
-                                       89.5 , 89.75, 90.  , 90.15, 90.3 ,
-                                       90.45, 90.6 , 90.75, 90.9 , 91.05,
-                                       91.2 , 91.35, 91.5 , 91.75, 92.  ,
-                                       92.25, 92.5 , 92.75, 93.  , 93.25,
-                                       93.5 , 94.  , 94.5 , 95.  , 95.5 ,
-                                       96.  , 96.5 , 97.  , 98.  , 99.  ,
-                                       100. , 103. , 106. , 110. , 115. ,
-                                       120. , 130. , 140. ,
+      const int nmbins = 12;
+      const double mbins[nmbins+1] = { 0.   , 70.  , 75.  , 80.  , 85.  ,
+                                       90.  , 95.  , 100. , 105. , 110. ,
+                                       120. , 140. ,
                                        1000.};
+      // const int nmbins = 63;
+      // const double mbins[nmbins+1] = { 0.   , 55.  , 60.  , 65.  , 70.  ,
+      //                                  74.  , 77.  , 79.  , 81.  , 82.  ,
+      //                                  83.  , 84.  , 84.75, 85.5 , 86.  ,
+      //                                  86.5 , 87.  , 87.5 , 87.75, 88.  ,
+      //                                  88.25, 88.5 , 88.75, 89.  , 89.25,
+      //                                  89.5 , 89.75, 90.  , 90.15, 90.3 ,
+      //                                  90.45, 90.6 , 90.75, 90.9 , 91.05,
+      //                                  91.2 , 91.35, 91.5 , 91.75, 92.  ,
+      //                                  92.25, 92.5 , 92.75, 93.  , 93.25,
+      //                                  93.5 , 94.  , 94.5 , 95.  , 95.5 ,
+      //                                  96.  , 96.5 , 97.  , 98.  , 99.  ,
+      //                                  100. , 103. , 106. , 110. , 115. ,
+      //                                  120. , 130. , 140. ,
+      //                                  1000.};
       if(nmbins != sizeof(mbins)/sizeof(*mbins)-1) std::cout << "WARNING! N(pT bins) for 2D histograms is off! nbins = "
                                                              << nmbins << " size calc = " << sizeof(mbins)/sizeof(*mbins)-1
                                                              << std::endl;
-      const int npbins = 67;
-      const double pbins[npbins+1] = { 0.  , 0.5 , 1.  , 1.5 , 2.  ,
-                                       2.5 , 2.75, 3.  , 3.25, 3.5 ,
-                                       3.75, 4.  , 4.25, 4.5 , 4.75,
-                                       5.  , 5.25, 5.5 , 5.75, 6.  ,
-                                       6.25, 6.5 , 6.75, 7.  , 7.25,
-                                       7.5 , 7.75, 8.  , 8.5 , 9.  ,
-                                       9.5 , 10. , 10.5, 11. , 11.5,
-                                       12. , 12.5, 13. , 13.5, 14. ,
-                                       14.5, 15. , 16. , 17. , 18. ,
-                                       19. , 20. , 22. , 24. , 26. ,
-                                       28. , 30. , 33. , 36. , 40. ,
-                                       43. , 46. , 50. , 55. , 60. ,
-                                       65. , 70. , 75. , 80. , 88. ,
-                                       105., 150.,
+      const int npbins = 27;
+      const double pbins[npbins+1] = { 0.  , 1.  , 2.  , 3.  , 4.  ,
+                                       5.  , 6.  , 7.  , 8.  , 9.  ,
+                                       10. , 11. , 12. , 14. , 16. ,
+                                       20. , 25. , 30. , 35. , 40. ,
+                                       45. , 50. , 60. , 70. , 80. ,
+                                       100., 150.,
                                        1000.};
+      // const int npbins = 67;
+      // const double pbins[npbins+1] = { 0.  , 0.5 , 1.  , 1.5 , 2.  ,
+      //                                  2.5 , 2.75, 3.  , 3.25, 3.5 ,
+      //                                  3.75, 4.  , 4.25, 4.5 , 4.75,
+      //                                  5.  , 5.25, 5.5 , 5.75, 6.  ,
+      //                                  6.25, 6.5 , 6.75, 7.  , 7.25,
+      //                                  7.5 , 7.75, 8.  , 8.5 , 9.  ,
+      //                                  9.5 , 10. , 10.5, 11. , 11.5,
+      //                                  12. , 12.5, 13. , 13.5, 14. ,
+      //                                  14.5, 15. , 16. , 17. , 18. ,
+      //                                  19. , 20. , 22. , 24. , 26. ,
+      //                                  28. , 30. , 33. , 36. , 40. ,
+      //                                  43. , 46. , 50. , 55. , 60. ,
+      //                                  65. , 70. , 75. , 80. , 88. ,
+      //                                  105., 150.,
+      //                                  1000.};
 
       if(npbins != sizeof(pbins)/sizeof(*pbins)-1) std::cout << "WARNING! N(pT bins) for 2D histograms is off! nbins = "
                                                              << npbins << " size calc = " << sizeof(pbins)/sizeof(*pbins)-1
@@ -419,7 +441,7 @@ void ZTauTauHistMaker::BookEventHistograms() {
                          6.};
       fEventHist[i]->hLepDeltaR[1]  = new TH1D("lepdeltar1"    , Form("%s: Lepton DeltaR"  ,dirname)  , (sizeof(drbins)/sizeof(*drbins) - 1), drbins);
       fEventHist[i]->hLepDeltaR[2]  = new TH1D("lepdeltar2"    , Form("%s: Lepton DeltaR"  ,dirname)  , (sizeof(drbins)/sizeof(*drbins) - 1), drbins);
-      fEventHist[i]->hLepDelRVsPhi  = new TH2D("lepdelrvsphi"  , Form("%s: LepDelRVsPhi"   ,dirname)  ,  40,  0,   4, 100,  0,   5);
+      // fEventHist[i]->hLepDelRVsPhi  = new TH2D("lepdelrvsphi"  , Form("%s: LepDelRVsPhi"   ,dirname)  ,  40,  0,   4, 100,  0,   5);
       fEventHist[i]->hLepPtOverM    = new TH1D("lepptoverm"    , Form("%s: Lepton Pt / M"  ,dirname)  , 100,   0,  10);
       fEventHist[i]->hAlpha[0]      = new TH1D("alpha0"        , Form("%s: Alpha (Z) 0"    ,dirname)  , 100,   0,   5);
       fEventHist[i]->hAlpha[1]      = new TH1D("alpha1"        , Form("%s: Alpha (H) 0"    ,dirname)  , 100,   0,   5);
@@ -434,18 +456,18 @@ void ZTauTauHistMaker::BookEventHistograms() {
       fEventHist[i]->hDeltaAlphaMColM[0]= new TH1D("deltaalphamcolm0"  , Form("%s: MCol - Alpha Mass 0" ,dirname)  , 200,   -100, 100);
       fEventHist[i]->hDeltaAlphaMColM[1]= new TH1D("deltaalphamcolm1"  , Form("%s: MCol - Alpha Mass 1" ,dirname)  , 200,   -100, 100);
 
-      fEventHist[i]->hHtDeltaPhi    = new TH1D("htdeltaphi"    , Form("%s: Ht Lep Delta Phi",dirname) ,  50,   0,   5);
+      // fEventHist[i]->hHtDeltaPhi    = new TH1D("htdeltaphi"    , Form("%s: Ht Lep Delta Phi",dirname) ,  50,   0,   5);
       fEventHist[i]->hMetDeltaPhi   = new TH1D("metdeltaphi"   , Form("%s: Met Lep Delta Phi",dirname),  50,   0,   5);
-      fEventHist[i]->hJetDeltaPhi   = new TH1D("jetdeltaphi"   , Form("%s: Jet Lep Delta Phi",dirname),  50,   0,   5);
+      // fEventHist[i]->hJetDeltaPhi   = new TH1D("jetdeltaphi"   , Form("%s: Jet Lep Delta Phi",dirname),  50,   0,   5);
       fEventHist[i]->hLepOneDeltaPhi   = new TH1D("leponedeltaphi"   , Form("%s: Lep One vs Sys Delta Phi",dirname),  50,   0,   5);
       fEventHist[i]->hLepTwoDeltaPhi   = new TH1D("leptwodeltaphi"   , Form("%s: Lep Two vs Sys Delta Phi",dirname),  50,   0,   5);
 
-      fEventHist[i]->hLepOneJetDeltaR     = new TH1D("leponejetdeltar"     , Form("%s: Lep One vs Jet Delta R"  ,dirname),  60,   0,   6);
-      fEventHist[i]->hLepOneJetDeltaPhi   = new TH1D("leponejetdeltaphi"   , Form("%s: Lep One vs Jet Delta Phi",dirname),  50,   0,   5);
-      fEventHist[i]->hLepOneJetDeltaEta   = new TH1D("leponejetdeltaeta"   , Form("%s: Lep One vs Jet Delta Eta",dirname),  60,   0,   6);
-      fEventHist[i]->hLepTwoJetDeltaR     = new TH1D("leptwojetdeltar"     , Form("%s: Lep One vs Jet Delta R"  ,dirname),  60,   0,   6);
-      fEventHist[i]->hLepTwoJetDeltaPhi   = new TH1D("leptwojetdeltaphi"   , Form("%s: Lep One vs Jet Delta Phi",dirname),  50,   0,   5);
-      fEventHist[i]->hLepTwoJetDeltaEta   = new TH1D("leptwojetdeltaeta"   , Form("%s: Lep One vs Jet Delta Eta",dirname),  60,   0,   6);
+      // fEventHist[i]->hLepOneJetDeltaR     = new TH1D("leponejetdeltar"     , Form("%s: Lep One vs Jet Delta R"  ,dirname),  60,   0,   6);
+      // fEventHist[i]->hLepOneJetDeltaPhi   = new TH1D("leponejetdeltaphi"   , Form("%s: Lep One vs Jet Delta Phi",dirname),  50,   0,   5);
+      // fEventHist[i]->hLepOneJetDeltaEta   = new TH1D("leponejetdeltaeta"   , Form("%s: Lep One vs Jet Delta Eta",dirname),  60,   0,   6);
+      // fEventHist[i]->hLepTwoJetDeltaR     = new TH1D("leptwojetdeltar"     , Form("%s: Lep One vs Jet Delta R"  ,dirname),  60,   0,   6);
+      // fEventHist[i]->hLepTwoJetDeltaPhi   = new TH1D("leptwojetdeltaphi"   , Form("%s: Lep One vs Jet Delta Phi",dirname),  50,   0,   5);
+      // fEventHist[i]->hLepTwoJetDeltaEta   = new TH1D("leptwojetdeltaeta"   , Form("%s: Lep One vs Jet Delta Eta",dirname),  60,   0,   6);
 
       // fEventHist[i]->hLepSVPt       = new TH1D("lepsvpt"       , Form("%s: Lepton SVFit Pt"      ,dirname)  , 200,   0, 400);
       // fEventHist[i]->hLepSVM        = new TH1D("lepsvm"        , Form("%s: Lepton SVFit M"       ,dirname)  , 400,   0, 400);
@@ -457,10 +479,10 @@ void ZTauTauHistMaker::BookEventHistograms() {
       // fEventHist[i]->hLepSVDeltaPt  = new TH1D("lepsvdeltapt"  , Form("%s: Lepton SVFit DeltaPt" ,dirname)  , 200, -10,  90);
       // fEventHist[i]->hLepSVPtOverM  = new TH1D("lepsvptoverm"  , Form("%s: Lepton SVFit Pt / M"  ,dirname)  , 100,   0,  10);
 
-      fEventHist[i]->hSysM          = new TH1D("sysm"          , Form("%s: SysM"          ,dirname)  ,1000,  0, 1e3);
-      fEventHist[i]->hSysPt         = new TH1D("syspt"         , Form("%s: SysPt"         ,dirname)  , 200,  0, 400);
-      fEventHist[i]->hSysEta        = new TH1D("syseta"        , Form("%s: SysEta"        ,dirname)  , 100, -5,   5);
-      fEventHist[i]->hSysMvsLepM    = new TH2D("sysmvslepm"    , Form("%s: SysMvsLepM"    ,dirname)  , 200, 0., 200., 200, 0., 200.);
+      // fEventHist[i]->hSysM          = new TH1D("sysm"          , Form("%s: SysM"          ,dirname)  ,1000,  0, 1e3);
+      // fEventHist[i]->hSysPt         = new TH1D("syspt"         , Form("%s: SysPt"         ,dirname)  , 200,  0, 400);
+      // fEventHist[i]->hSysEta        = new TH1D("syseta"        , Form("%s: SysEta"        ,dirname)  , 100, -5,   5);
+      // fEventHist[i]->hSysMvsLepM    = new TH2D("sysmvslepm"    , Form("%s: SysMvsLepM"    ,dirname)  , 200, 0., 200., 200, 0., 200.);
 
       fEventHist[i]->hMTOne         = new TH1D("mtone"         , Form("%s: MTOne"         ,dirname)  , 200, 0.,   200.);
       fEventHist[i]->hMTTwo         = new TH1D("mttwo"         , Form("%s: MTTwo"         ,dirname)  , 200, 0.,   200.);
@@ -475,34 +497,34 @@ void ZTauTauHistMaker::BookEventHistograms() {
       fEventHist[i]->hPXiDiff[0]       = new TH1D("pxidiff0"       , Form("%s: PXiVis - PXiInv" ,dirname)  ,2000,-500.,  1500.);
       fEventHist[i]->hPXiDiff2[0]      = new TH1D("pxidiff20"      , Form("%s: a*PXiVis + b - PXiInv" ,dirname)  ,2000,-500.,  1500.);
       fEventHist[i]->hPXiDiff3[0]      = new TH1D("pxidiff30"      , Form("%s: PXiInv + (1-a)*PXiVis + b" ,dirname)  ,1000,-500., 500.);
-      fEventHist[i]->hPXiVis[1]        = new TH1D("pxivis1"        , Form("%s: PXiVis     "     ,dirname)  ,1000,  -100.,  900.);
-      fEventHist[i]->hPXiInv[1]        = new TH1D("pxiinv1"        , Form("%s: PXiInv     "     ,dirname)  ,1000,-500.,   500.);
-      fEventHist[i]->hPXiVisOverInv[1] = new TH1D("pxivisoverinv1" , Form("%s: PXiVisOverInv"   ,dirname)  ,1000, -10.,    10.);
-      fEventHist[i]->hPXiInvVsVis[1]   = new TH2D("pxiinvvsvis1"   , Form("%s: PXiInv vs PXiVis",dirname)  , 800, -100., 700., 1000,-500.,   500.);
-      fEventHist[i]->hPXiDiff[1]       = new TH1D("pxidiff1"       , Form("%s: PXiVis - PXiInv" ,dirname)  ,2000,-500.,  1500.);
-      fEventHist[i]->hPXiDiff2[1]      = new TH1D("pxidiff21"      , Form("%s: a*PXiVis + b - PXiInv" ,dirname)  ,2000,-500.,  1500.);
-      fEventHist[i]->hPXiDiff3[1]      = new TH1D("pxidiff31"      , Form("%s: PXiInv + (1-a)*PXiVis + b" ,dirname)  ,1000,-500., 500.);
-      fEventHist[i]->hPXiVis[2]        = new TH1D("pxivis2"        , Form("%s: PXiVis     "     ,dirname)  ,1000,  -100.,  900.);
-      fEventHist[i]->hPXiInv[2]        = new TH1D("pxiinv2"        , Form("%s: PXiInv     "     ,dirname)  ,1000,-500.,   500.);
-      fEventHist[i]->hPXiVisOverInv[2] = new TH1D("pxivisoverinv2" , Form("%s: PXiVisOverInv"   ,dirname)  ,1000, -10.,    10.);
-      fEventHist[i]->hPXiInvVsVis[2]   = new TH2D("pxiinvvsvis2"   , Form("%s: PXiInv vs PXiVis",dirname)  , 800, -100., 700., 1000,-500.,   500.);
-      fEventHist[i]->hPXiDiff[2]       = new TH1D("pxidiff2"       , Form("%s: PXiVis - PXiInv" ,dirname)  ,2000,-500.,  1500.);
-      fEventHist[i]->hPXiDiff2[2]      = new TH1D("pxidiff22"      , Form("%s: a*PXiVis + b - PXiInv" ,dirname)  ,2000,-500.,  1500.);
-      fEventHist[i]->hPXiDiff3[2]      = new TH1D("pxidiff32"      , Form("%s: PXiInv + (1-a)*PXiVis + b" ,dirname)  ,1000,-500., 500.);
+      // fEventHist[i]->hPXiVis[1]        = new TH1D("pxivis1"        , Form("%s: PXiVis     "     ,dirname)  ,1000,  -100.,  900.);
+      // fEventHist[i]->hPXiInv[1]        = new TH1D("pxiinv1"        , Form("%s: PXiInv     "     ,dirname)  ,1000,-500.,   500.);
+      // fEventHist[i]->hPXiVisOverInv[1] = new TH1D("pxivisoverinv1" , Form("%s: PXiVisOverInv"   ,dirname)  ,1000, -10.,    10.);
+      // fEventHist[i]->hPXiInvVsVis[1]   = new TH2D("pxiinvvsvis1"   , Form("%s: PXiInv vs PXiVis",dirname)  , 800, -100., 700., 1000,-500.,   500.);
+      // fEventHist[i]->hPXiDiff[1]       = new TH1D("pxidiff1"       , Form("%s: PXiVis - PXiInv" ,dirname)  ,2000,-500.,  1500.);
+      // fEventHist[i]->hPXiDiff2[1]      = new TH1D("pxidiff21"      , Form("%s: a*PXiVis + b - PXiInv" ,dirname)  ,2000,-500.,  1500.);
+      // fEventHist[i]->hPXiDiff3[1]      = new TH1D("pxidiff31"      , Form("%s: PXiInv + (1-a)*PXiVis + b" ,dirname)  ,1000,-500., 500.);
+      // fEventHist[i]->hPXiVis[2]        = new TH1D("pxivis2"        , Form("%s: PXiVis     "     ,dirname)  ,1000,  -100.,  900.);
+      // fEventHist[i]->hPXiInv[2]        = new TH1D("pxiinv2"        , Form("%s: PXiInv     "     ,dirname)  ,1000,-500.,   500.);
+      // fEventHist[i]->hPXiVisOverInv[2] = new TH1D("pxivisoverinv2" , Form("%s: PXiVisOverInv"   ,dirname)  ,1000, -10.,    10.);
+      // fEventHist[i]->hPXiInvVsVis[2]   = new TH2D("pxiinvvsvis2"   , Form("%s: PXiInv vs PXiVis",dirname)  , 800, -100., 700., 1000,-500.,   500.);
+      // fEventHist[i]->hPXiDiff[2]       = new TH1D("pxidiff2"       , Form("%s: PXiVis - PXiInv" ,dirname)  ,2000,-500.,  1500.);
+      // fEventHist[i]->hPXiDiff2[2]      = new TH1D("pxidiff22"      , Form("%s: a*PXiVis + b - PXiInv" ,dirname)  ,2000,-500.,  1500.);
+      // fEventHist[i]->hPXiDiff3[2]      = new TH1D("pxidiff32"      , Form("%s: PXiInv + (1-a)*PXiVis + b" ,dirname)  ,1000,-500., 500.);
 
       fEventHist[i]->hPTauVisFrac      = new TH1D("ptauvisfrac"    , Form("%s: visible tau pT fraction " ,dirname)  ,300,0.,  1.5);
       fEventHist[i]->hLepMEstimate     = new TH1D("lepmestimate"   , Form("%s: Estimate di-lepton mass"  ,dirname)  ,200,0.,  800.);
       fEventHist[i]->hLepMEstimateTwo  = new TH1D("lepmestimatetwo", Form("%s: Estimate di-lepton mass"  ,dirname)  ,200,0.,  800.);
 
       fEventHist[i]->hPtSum[0]         = new TH1D("ptsum0"         , Form("%s: Scalar Pt sum"                    ,dirname)    ,1000,  0.,  1000.);
-      fEventHist[i]->hPtSum[1]         = new TH1D("ptsum1"         , Form("%s: Scalar Pt sum"                    ,dirname)    ,1000,  0.,  1000.);
-      fEventHist[i]->hPt1Sum[0]        = new TH1D("pt1sum0"        , Form("%s: Scalar Pt sum Lepton 1 + MET"     ,dirname)    ,1000,  0.,  1000.);
-      fEventHist[i]->hPt1Sum[1]        = new TH1D("pt1sum1"        , Form("%s: Scalar Pt sum Lepton 2 + MET"     ,dirname)    ,1000,  0.,  1000.);
-      fEventHist[i]->hPt1Sum[2]        = new TH1D("pt1sum2"        , Form("%s: Scalar Pt sum Lepton 1 + 2"       ,dirname)    ,1000,  0.,  1000.);
-      fEventHist[i]->hPt1Sum[3]        = new TH1D("pt1sum3"        , Form("%s: Scalar Pt sum Lepton 1 + 2 - MET" ,dirname)    ,1000,  0.,  1000.);
+      // fEventHist[i]->hPtSum[1]         = new TH1D("ptsum1"         , Form("%s: Scalar Pt sum"                    ,dirname)    ,1000,  0.,  1000.);
+      // fEventHist[i]->hPt1Sum[0]        = new TH1D("pt1sum0"        , Form("%s: Scalar Pt sum Lepton 1 + MET"     ,dirname)    ,1000,  0.,  1000.);
+      // fEventHist[i]->hPt1Sum[1]        = new TH1D("pt1sum1"        , Form("%s: Scalar Pt sum Lepton 2 + MET"     ,dirname)    ,1000,  0.,  1000.);
+      // fEventHist[i]->hPt1Sum[2]        = new TH1D("pt1sum2"        , Form("%s: Scalar Pt sum Lepton 1 + 2"       ,dirname)    ,1000,  0.,  1000.);
+      // fEventHist[i]->hPt1Sum[3]        = new TH1D("pt1sum3"        , Form("%s: Scalar Pt sum Lepton 1 + 2 - MET" ,dirname)    ,1000,  0.,  1000.);
       for(unsigned j = 0; j < fMVAConfig.names_.size(); ++j)  {
         //high mva score binning to improve cdf making
-        fEventHist[i]->hMVA[j][0]     = new TH1D(Form("mva%i",j)     , Form("%s: %s MVA" ,dirname, fMVAConfig.names_[j].Data()) ,10000, -1.,  2.);
+        fEventHist[i]->hMVA[j][0]     = new TH1D(Form("mva%i",j)     , Form("%s: %s MVA" ,dirname, fMVAConfig.names_[j].Data()) , 3000, -1.,  2.);
         // fEventHist[i]->hMVA[j][1]     = new TH1D(Form("mva%i_1",j)   , Form("%s: %s MVA" ,dirname, fMVAConfig.names_[j].Data()) ,
         //                                          fMVAConfig.NBins(j), fMVAConfig.Bins(j));
         fEventHist[i]->hMVATrain[j]   = new TH1D(Form("mvatrain%i",j), Form("%s: %s MVA (train)" ,dirname, fMVAConfig.names_[j].Data()) ,500, -3.,  2.);
@@ -567,7 +589,9 @@ void ZTauTauHistMaker::BookLepHistograms() {
       fLepHist[i]->hOneFlavor    = new TH1D("oneflavor"  , Form("%s: Flavor"  ,dirname)  ,  20,   0,  20);
       fLepHist[i]->hOneQ         = new TH1D("oneq"       , Form("%s: Q"       ,dirname)  ,   5,  -2,   2);
       fLepHist[i]->hOneTrigger   = new TH1D("onetrigger" , Form("%s: Trigger" ,dirname)  ,  10,   0,  10);
-      fLepHist[i]->hOneWeight    = new TH1D("oneweight"  , Form("%s: Weight"  ,dirname)  , 100, -1.,  3.);
+      fLepHist[i]->hOneWeight    = new TH1D("oneweight"  , Form("%s: Weight"  ,dirname)  , 100,   0,   2);
+      fLepHist[i]->hOneWeight1Group = new TH1D("oneweight1group"  , Form("%s: Weight group"  ,dirname)  , 50, 0,  50);
+      fLepHist[i]->hOneWeight2Group = new TH1D("oneweight2group"  , Form("%s: Weight group"  ,dirname)  , 50, 0,  50);
       fLepHist[i]->hOneTrigWeight= new TH1D("onetrigweight", Form("%s: Trig Weight"  ,dirname)  , 100, -1.,  3.);
       //Gen Info
       fLepHist[i]->hOneGenPt     = new TH1D("onegenpt"   , Form("%s: Gen Pt"   ,dirname)  , 200,   0, 200);
@@ -618,8 +642,10 @@ void ZTauTauHistMaker::BookLepHistograms() {
       fLepHist[i]->hTwoFlavor    = new TH1D("twoflavor"  , Form("%s: Flavor"  ,dirname)  ,  20,   0,  20);
       fLepHist[i]->hTwoQ         = new TH1D("twoq"       , Form("%s: Q"       ,dirname)  ,   5,  -2,   2);
       fLepHist[i]->hTwoTrigger   = new TH1D("twotrigger" , Form("%s: Trigger" ,dirname)  ,  10,   0,  10);
-      fLepHist[i]->hTwoWeight    = new TH1D("twoweight"  , Form("%s: Weight"  ,dirname)  , 100, -1.,  3.);
-      fLepHist[i]->hTwoTrigWeight= new TH1D("twotrigweight", Form("%s: Trig Weight"  ,dirname)  , 100, -1.,  3.);
+      fLepHist[i]->hTwoWeight1Group = new TH1D("twoweight1group"  , Form("%s: Weight group"  ,dirname)  , 50, 0,  50);
+      fLepHist[i]->hTwoWeight2Group = new TH1D("twoweight2group"  , Form("%s: Weight group"  ,dirname)  , 50, 0,  50);
+      fLepHist[i]->hTwoWeight    = new TH1D("twoweight"  , Form("%s: Weight"  ,dirname)  , 100,   0,   2);
+      fLepHist[i]->hTwoTrigWeight= new TH1D("twotrigweight", Form("%s: Trig Weight"  ,dirname)  , 100, 0,  2);
       //Gen Info
       fLepHist[i]->hTwoGenPt     = new TH1D("twogenpt"   , Form("%s: Gen Pt"   ,dirname)  , 200,   0, 200);
       fLepHist[i]->hTwoGenE      = new TH1D("twogene"    , Form("%s: Gen E"    ,dirname)  , 200,   0, 1e3);
@@ -675,14 +701,14 @@ void ZTauTauHistMaker::BookSystematicHistograms() {
       fSystematicHist[i] = new SystematicHist_t;
       for(int sys = 0; sys < kMaxSystematics; ++sys) {
         fSystematicHist[i]->hLepM  [sys] = new TH1D(Form("lepm_%i"  , sys), Form("%s: LepM %i" , dirname, sys) , 400,   0, 200);
-        fSystematicHist[i]->hLepPt [sys] = new TH1D(Form("leppt_%i" , sys), Form("%s: LepPt %i", dirname, sys) , 100,   0, 200);
-        fSystematicHist[i]->hOnePt [sys] = new TH1D(Form("onept_%i" , sys), Form("%s: Pt %i"   , dirname, sys) , 100,   0, 200);
-        fSystematicHist[i]->hOneEta[sys] = new TH1D(Form("oneeta_%i", sys), Form("%s: Eta %i"  , dirname, sys) , 100, -10,  10);
-        fSystematicHist[i]->hTwoPt [sys] = new TH1D(Form("twopt_%i" , sys), Form("%s: Pt %i"   , dirname, sys) , 100,   0, 200);
-        fSystematicHist[i]->hTwoEta[sys] = new TH1D(Form("twoeta_%i", sys), Form("%s: Eta %i"  , dirname, sys) , 100, -10,  10);
-        fSystematicHist[i]->hWeightChange[sys] = new TH1D(Form("weightchange_%i", sys), Form("%s: Relative weight change %i"  , dirname, sys) , 100, -1,  1);
+        fSystematicHist[i]->hLepPt [sys] = new TH1D(Form("leppt_%i" , sys), Form("%s: LepPt %i", dirname, sys) ,  50,   0, 200);
+        fSystematicHist[i]->hOnePt [sys] = new TH1D(Form("onept_%i" , sys), Form("%s: Pt %i"   , dirname, sys) ,  50,   0, 200);
+        fSystematicHist[i]->hOneEta[sys] = new TH1D(Form("oneeta_%i", sys), Form("%s: Eta %i"  , dirname, sys) ,  30,  -3,   3);
+        fSystematicHist[i]->hTwoPt [sys] = new TH1D(Form("twopt_%i" , sys), Form("%s: Pt %i"   , dirname, sys) ,  50,   0, 200);
+        fSystematicHist[i]->hTwoEta[sys] = new TH1D(Form("twoeta_%i", sys), Form("%s: Eta %i"  , dirname, sys) ,  30,  -3,   3);
+        fSystematicHist[i]->hWeightChange[sys] = new TH1D(Form("weightchange_%i", sys), Form("%s: Relative weight change %i"  , dirname, sys) ,  50, -0.5,  0.5);
         for(unsigned j = 0; j < fMVAConfig.names_.size(); ++j)  {
-          fSystematicHist[i]->hMVA[j][sys] = new TH1D(Form("mva%i_%i",j, sys)     , Form("%s: %s MVA %i" ,dirname, fMVAConfig.names_[j].Data(), sys) ,100, -1.,  2.);
+          fSystematicHist[i]->hMVA[j][sys] = new TH1D(Form("mva%i_%i",j, sys)     , Form("%s: %s MVA %i" ,dirname, fMVAConfig.names_[j].Data(), sys) ,300, -1.,  2.);
         }
       }
     }
@@ -699,23 +725,23 @@ void ZTauTauHistMaker::BookTrees() {
       fTrees[i] = new TTree(Form("tree_%i",i),Form("ZTauTauHistMaker TTree %i",i));
       fTrees[i]->Branch("leponept",           &fTreeVars.leponept          );
       fTrees[i]->Branch("leponeptoverm",      &fTreeVars.leponeptoverm     );
-      fTrees[i]->Branch("leponem",            &fTreeVars.leponem           );
+      // fTrees[i]->Branch("leponem",            &fTreeVars.leponem           );
       fTrees[i]->Branch("leponeeta",          &fTreeVars.leponeeta         );
       fTrees[i]->Branch("leponed0",           &fTreeVars.leponed0          );
-      fTrees[i]->Branch("leponeiso",          &fTreeVars.leponeiso         );
-      fTrees[i]->Branch("leponeidone",        &fTreeVars.leponeidone       );
-      fTrees[i]->Branch("leponeidtwo",        &fTreeVars.leponeidtwo       );
-      fTrees[i]->Branch("leponeidthree",      &fTreeVars.leponeidthree     );
+      // fTrees[i]->Branch("leponeiso",          &fTreeVars.leponeiso         );
+      // fTrees[i]->Branch("leponeidone",        &fTreeVars.leponeidone       );
+      // fTrees[i]->Branch("leponeidtwo",        &fTreeVars.leponeidtwo       );
+      // fTrees[i]->Branch("leponeidthree",      &fTreeVars.leponeidthree     );
       fTrees[i]->Branch("leptwopt",           &fTreeVars.leptwopt          );
       fTrees[i]->Branch("leptwoptoverm",      &fTreeVars.leptwoptoverm     );
-      fTrees[i]->Branch("leptwom",            &fTreeVars.leptwom           );
+      // fTrees[i]->Branch("leptwom",            &fTreeVars.leptwom           );
       fTrees[i]->Branch("leptwoeta",          &fTreeVars.leptwoeta         );
       fTrees[i]->Branch("leptwod0",           &fTreeVars.leptwod0          );
-      fTrees[i]->Branch("leptwoiso",          &fTreeVars.leptwoiso         );
-      fTrees[i]->Branch("leptwoidone",        &fTreeVars.leptwoidone       );
-      fTrees[i]->Branch("leptwoidtwo",        &fTreeVars.leptwoidtwo       );
-      fTrees[i]->Branch("leptwoidthree",      &fTreeVars.leptwoidthree     );
-      fTrees[i]->Branch("lepp",               &fTreeVars.lepp              );
+      // fTrees[i]->Branch("leptwoiso",          &fTreeVars.leptwoiso         );
+      // fTrees[i]->Branch("leptwoidone",        &fTreeVars.leptwoidone       );
+      // fTrees[i]->Branch("leptwoidtwo",        &fTreeVars.leptwoidtwo       );
+      // fTrees[i]->Branch("leptwoidthree",      &fTreeVars.leptwoidthree     );
+      // fTrees[i]->Branch("lepp",               &fTreeVars.lepp              );
       fTrees[i]->Branch("leppt",              &fTreeVars.leppt             );
       fTrees[i]->Branch("lepm",               &fTreeVars.lepm              );
       fTrees[i]->Branch("lepptoverm",         &fTreeVars.lepptoverm        );
@@ -748,13 +774,13 @@ void ZTauTauHistMaker::BookTrees() {
       fTrees[i]->Branch("htsum",              &fTreeVars.htsum             );
       fTrees[i]->Branch("jetpt",              &fTreeVars.jetpt             );
       fTrees[i]->Branch("njets",              &fTreeVars.njets             );
-      fTrees[i]->Branch("nbjets",             &fTreeVars.nbjets            );
-      fTrees[i]->Branch("nbjetsm",            &fTreeVars.nbjetsm           );
-      fTrees[i]->Branch("nbjetsl",            &fTreeVars.nbjetsl           );
-      fTrees[i]->Branch("nbjets20",           &fTreeVars.nbjets20          );
-      fTrees[i]->Branch("nbjets20m",          &fTreeVars.nbjets20m         );
-      fTrees[i]->Branch("nbjets20l",          &fTreeVars.nbjets20l         );
-      fTrees[i]->Branch("nphotons",           &fTreeVars.nphotons          );
+      // fTrees[i]->Branch("nbjets",             &fTreeVars.nbjets            );
+      // fTrees[i]->Branch("nbjetsm",            &fTreeVars.nbjetsm           );
+      // fTrees[i]->Branch("nbjetsl",            &fTreeVars.nbjetsl           );
+      // fTrees[i]->Branch("nbjets20",           &fTreeVars.nbjets20          );
+      // fTrees[i]->Branch("nbjets20m",          &fTreeVars.nbjets20m         );
+      // fTrees[i]->Branch("nbjets20l",          &fTreeVars.nbjets20l         );
+      // fTrees[i]->Branch("nphotons",           &fTreeVars.nphotons          );
 
       fTrees[i]->Branch("eventweight",        &fTreeVars.eventweightMVA    );
       fTrees[i]->Branch("fulleventweight",    &fTreeVars.fulleventweight   );
@@ -960,19 +986,24 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
   // Hist->hTriggerStatus       ->Fill(triggerStatus      , genWeight*eventWeight)      ;
   Hist->hEventWeight         ->Fill(eventWeight             );
   Hist->hGenWeight           ->Fill(genWeight               );
-  Hist->hEventWeightMVA      ->Fill(fTreeVars.eventweightMVA);
-  Hist->hIsSignal            ->Fill(fTreeVars.issignal      );
-  Hist->hNMuons              ->Fill(nMuons             , genWeight*eventWeight)      ;
-  Hist->hNElectrons          ->Fill(nElectrons         , genWeight*eventWeight)      ;
-  Hist->hNTaus               ->Fill(nTaus              , genWeight*eventWeight)      ;
-  if(!fDYTesting) {
+  if(fDoSystematics >= 0)
+    Hist->hEventWeightMVA      ->Fill(fTreeVars.eventweightMVA);
+  Hist->hJetToTauWeight      ->Fill(jetToTauWeight          );
+  Hist->hJetToTauWeightGroup ->Fill(jetToTauWeightGroup, genWeight*eventWeight)      ;
+  if(fDoSystematics >= 0) {
+    Hist->hIsSignal            ->Fill(fTreeVars.issignal      );
+    Hist->hNMuons              ->Fill(nMuons             , genWeight*eventWeight)      ;
+    Hist->hNElectrons          ->Fill(nElectrons         , genWeight*eventWeight)      ;
+    Hist->hNTaus               ->Fill(nTaus              , genWeight*eventWeight)      ;
+  }
+  Hist->hNPV[0]              ->Fill(nPV                , genWeight*eventWeight)      ;
+  Hist->hNPV[1]              ->Fill(nPV                , genWeight*eventWeight*((puWeight > 0.) ? 1./puWeight : 1.));
+  Hist->hNPU[0]              ->Fill(nPU                , genWeight*eventWeight)      ;
+  Hist->hNPU[1]              ->Fill(nPU                , genWeight*eventWeight*((puWeight > 0.) ? 1./puWeight : 1.));
+  if(!fDYTesting && fDoSystematics >= 0) {
     Hist->hMcEra               ->Fill(mcEra              , genWeight*eventWeight)   ;
     Hist->hGenTauFlavorWeight  ->Fill(genTauFlavorWeight );
-    Hist->hPhotonIDWeight      ->Fill(photonIDWeight );
-    Hist->hNPV[0]              ->Fill(nPV                , genWeight*eventWeight)      ;
-    Hist->hNPV[1]              ->Fill(nPV                , genWeight*eventWeight*((puWeight > 0.) ? 1./puWeight : 1.));
-    Hist->hNPU[0]              ->Fill(nPU                , genWeight*eventWeight)      ;
-    Hist->hNPU[1]              ->Fill(nPU                , genWeight*eventWeight*((puWeight > 0.) ? 1./puWeight : 1.));
+    // Hist->hPhotonIDWeight      ->Fill(photonIDWeight );
     Hist->hNPartons            ->Fill(nPartons           , genWeight*eventWeight)      ;
     Hist->hNSlimMuons          ->Fill(nSlimMuons         , genWeight*eventWeight)      ;
     // for(int icount = 0; icount < kMaxCounts; ++icount)
@@ -980,182 +1011,192 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
     Hist->hNSlimElectrons      ->Fill(nSlimElectrons     , genWeight*eventWeight)      ;
     // for(int icount = 0; icount < kMaxCounts; ++icount)
     //   Hist->hNElectronCounts[icount]->Fill(nElectronCounts[icount], genWeight*eventWeight);
-    Hist->hNLowPtElectrons     ->Fill(nLowPtElectrons    , genWeight*eventWeight)      ;
+    // Hist->hNLowPtElectrons     ->Fill(nLowPtElectrons    , genWeight*eventWeight)      ;
     Hist->hNSlimTaus           ->Fill(nSlimTaus          , genWeight*eventWeight)      ;
     // for(int icount = 0; icount < kMaxCounts; ++icount)
     //   Hist->hNTauCounts[icount]->Fill(nTauCounts[icount] , genWeight*eventWeight)      ;
     Hist->hNPhotons            ->Fill(nPhotons           , genWeight*eventWeight)      ;
-    Hist->hNSlimPhotons        ->Fill(nSlimPhotons       , genWeight*eventWeight)      ;
-    Hist->hNSlimJets           ->Fill(nSlimJets          , genWeight*eventWeight)      ;
+    // Hist->hNSlimPhotons        ->Fill(nSlimPhotons       , genWeight*eventWeight)      ;
+    // Hist->hNSlimJets           ->Fill(nSlimJets          , genWeight*eventWeight)      ;
     Hist->hNGenTausHad         ->Fill(nGenTausHad        , genWeight*eventWeight)      ;
     Hist->hNGenTausLep         ->Fill(nGenTausLep        , genWeight*eventWeight)      ;
     Hist->hNGenTaus            ->Fill(nGenTausLep+nGenTausHad, genWeight*eventWeight)      ;
     Hist->hNGenElectrons       ->Fill(nGenElectrons      , genWeight*eventWeight)      ;
     Hist->hNGenMuons           ->Fill(nGenMuons          , genWeight*eventWeight)      ;
-
   }
-  Hist->hNJets               ->Fill(nJets              , genWeight*eventWeight)      ;
-  Hist->hNJets20             ->Fill(nJets20            , genWeight*eventWeight)      ;
-  Hist->hNFwdJets            ->Fill(nFwdJets           , genWeight*eventWeight)      ;
-  Hist->hNBJets              ->Fill(nBJets             , genWeight*eventWeight)      ;
-  Hist->hNBJetsM             ->Fill(nBJetsM            , genWeight*eventWeight)      ;
-  Hist->hNBJetsL             ->Fill(nBJetsL            , genWeight*eventWeight)      ;
-  Hist->hNBJets20[0]         ->Fill(nBJets20           , genWeight*eventWeight)      ;
-  Hist->hNBJets20M[0]        ->Fill(nBJets20M          , genWeight*eventWeight)      ;
-  Hist->hNBJets20L[0]        ->Fill(nBJets20L          , genWeight*eventWeight)      ;
-  float nobwt = genWeight*eventWeight;
-  if(btagWeight > 0.) nobwt /= btagWeight;
-  Hist->hNBJets20[1]         ->Fill(nBJets20           , nobwt);
-  Hist->hNBJets20M[1]        ->Fill(nBJets20M          , nobwt);
-  Hist->hNBJets20L[1]        ->Fill(nBJets20L          , nobwt);
-  //Store basic info for all accepted jets
-  for(UInt_t jet = 0; jet < nJets20; ++jet) {
-    Hist->hJetsFlavor->Fill(jetsFlavor[jet], genWeight*eventWeight);
-    int flavor = abs(jetsFlavor[jet]);
-    if(flavor > 20) flavor = 1; //unknown parent defaults to light jet
+  if(fDoSystematics >= 0) {
+    Hist->hNJets               ->Fill(nJets              , genWeight*eventWeight)      ;
+    Hist->hNJets20[0]          ->Fill(nJets20            , genWeight*eventWeight)      ;
+    Hist->hNJets20[1]          ->Fill(nJets20            , genWeight*eventWeight/jetPUIDWeight);
+    Hist->hNJets20Rej[0]       ->Fill(nJets20Rej         , genWeight*eventWeight)      ;
+    Hist->hNJets20Rej[1]       ->Fill(nJets20Rej         , genWeight*eventWeight/jetPUIDWeight);
+    Hist->hNFwdJets            ->Fill(nFwdJets           , genWeight*eventWeight)      ;
+    Hist->hNBJets              ->Fill(nBJets             , genWeight*eventWeight)      ;
+    Hist->hNBJetsM             ->Fill(nBJetsM            , genWeight*eventWeight)      ;
+    Hist->hNBJetsL             ->Fill(nBJetsL            , genWeight*eventWeight)      ;
+    Hist->hNBJets20[0]         ->Fill(nBJets20           , genWeight*eventWeight)      ;
+    Hist->hNBJets20M[0]        ->Fill(nBJets20M          , genWeight*eventWeight)      ;
+    Hist->hNBJets20L[0]        ->Fill(nBJets20L          , genWeight*eventWeight)      ;
+    float nobwt = genWeight*eventWeight;
+    if(btagWeight > 0.) nobwt /= btagWeight;
+    Hist->hNBJets20[1]         ->Fill(nBJets20           , nobwt);
+    Hist->hNBJets20M[1]        ->Fill(nBJets20M          , nobwt);
+    Hist->hNBJets20L[1]        ->Fill(nBJets20L          , nobwt);
+    //Store basic info for all accepted jets
+    for(UInt_t jet = 0; jet < nJets20; ++jet) {
+      Hist->hJetsFlavor->Fill(jetsFlavor[jet], genWeight*eventWeight);
+      int flavor = abs(jetsFlavor[jet]);
+      if(flavor > 20) flavor = 1; //unknown parent defaults to light jet
 
-    int index = 0; //light jets
-    if(flavor == 4)      index = 1; // c-jet
-    else if(flavor == 5) index = 2; // b-jet
-    float jpt = jetsPt[jet], jeta = jetsEta[jet], wt = genWeight*eventWeight;
-    if(btagWeight > 0.) wt /= btagWeight; //remove previous correction
-    Hist->hJetsPtVsEta[index]->Fill(jeta, jpt, wt);
-    if(jetsBTag[jet] > 0) { //Loose b-tag
-      Hist->hBJetsLPtVsEta[index]->Fill(jeta, jpt, wt);
-      if(jetsBTag[jet] > 1) { //Medium b-tag
-        Hist->hBJetsMPtVsEta[index]->Fill(jeta, jpt, wt);
-        if(jetsBTag[jet] > 2) { //Tight b-tag
-          Hist->hBJetsPtVsEta[index]->Fill(jeta, jpt, wt);
+      int index = 0; //light jets
+      if(flavor == 4)      index = 1; // c-jet
+      else if(flavor == 5) index = 2; // b-jet
+      float jpt = jetsPt[jet], jeta = jetsEta[jet], wt = genWeight*eventWeight;
+      if(btagWeight > 0.) wt /= btagWeight; //remove previous correction
+      Hist->hJetsPtVsEta[index]->Fill(jeta, jpt, wt);
+      if(jetsBTag[jet] > 0) { //Loose b-tag
+        Hist->hBJetsLPtVsEta[index]->Fill(jeta, jpt, wt);
+        if(jetsBTag[jet] > 1) { //Medium b-tag
+          Hist->hBJetsMPtVsEta[index]->Fill(jeta, jpt, wt);
+          if(jetsBTag[jet] > 2) { //Tight b-tag
+            Hist->hBJetsPtVsEta[index]->Fill(jeta, jpt, wt);
+          }
         }
       }
     }
   }
-
   Hist->hTriggerLeptonStatus ->Fill(triggerLeptonStatus, genWeight*eventWeight)   ;
+  Hist->hMuonTriggerStatus   ->Fill(muonTriggerStatus, genWeight*eventWeight)   ;
   Hist->hNTriggered          ->Fill(leptonOneFired+leptonTwoFired, genWeight*eventWeight)   ;
-  Hist->hPuWeight            ->Fill(puWeight)   ;
-  Hist->hTopPtWeight         ->Fill(topPtWeight);
-  Hist->hBTagWeight          ->Fill(btagWeight) ;
-  Hist->hZPtWeight           ->Fill(zPtWeight)  ;
-  if(tauP4 && tauP4->Pt() > 0.) { //if 0 then no additional tau stored
-    Hist->hTauPt           ->Fill(tauP4->Pt()        , genWeight*eventWeight)   ;
-    Hist->hTauM            ->Fill(tauP4->M()         , genWeight*eventWeight)   ;
-    Hist->hTauEta          ->Fill(tauP4->Eta()       , genWeight*eventWeight)   ;
-    Hist->hTauPhi          ->Fill(tauP4->Phi()       , genWeight*eventWeight)   ;
+  if(fDoSystematics >= 0) {
+    Hist->hPuWeight            ->Fill(puWeight)   ;
+    Hist->hJetPUIDWeight       ->Fill(jetPUIDWeight)   ;
+    Hist->hTopPtWeight         ->Fill(topPtWeight);
+    Hist->hBTagWeight          ->Fill(btagWeight) ;
+    Hist->hZPtWeight           ->Fill(zPtWeight)  ;
+    if(tauP4 && tauP4->Pt() > 0.) { //if 0 then no additional tau stored
+      Hist->hTauPt           ->Fill(tauP4->Pt()        , genWeight*eventWeight)   ;
+      // Hist->hTauM            ->Fill(tauP4->M()         , genWeight*eventWeight)   ;
+      Hist->hTauEta          ->Fill(tauP4->Eta()       , genWeight*eventWeight)   ;
+      // Hist->hTauPhi          ->Fill(tauP4->Phi()       , genWeight*eventWeight)   ;
+    }
+    Hist->hTauGenFlavor      ->Fill(tauGenFlavor               , genWeight*eventWeight)   ;
+    Hist->hTauDecayMode[0]   ->Fill(tauDecayMode               , genWeight*eventWeight)   ;
+    Hist->hTauDecayMode[1]   ->Fill(tauDecayMode);
+    // Hist->hTauMVA            ->Fill(tauMVA                     , genWeight*eventWeight)   ;
+    // Hist->hTauGenFlavorHad   ->Fill(tauGenFlavorHad            , genWeight*eventWeight)   ;
+    Hist->hTauDeepAntiEle    ->Fill(std::log2(tauDeepAntiEle+1), genWeight*eventWeight)   ;
+    Hist->hTauDeepAntiMu     ->Fill(tauDeepAntiMu              , genWeight*eventWeight)   ;
+    Hist->hTauDeepAntiJet    ->Fill(std::log2(tauDeepAntiJet+1), genWeight*eventWeight)   ;
+
+    if(jetOneP4 && jetOneP4->Pt() > 0.) { //if 0 then no jet stored
+      Hist->hJetPt[0]        ->Fill(jetOneP4->Pt()             , genWeight*eventWeight)   ;
+      Hist->hJetPt[1]        ->Fill(jetOneP4->Pt()             , genWeight*eventWeight/jetPUIDWeight)   ;
+    }
   }
-  Hist->hTauGenFlavor      ->Fill(tauGenFlavor               , genWeight*eventWeight)   ;
-  Hist->hTauDecayMode[0]   ->Fill(tauDecayMode               , genWeight*eventWeight)   ;
-  Hist->hTauDecayMode[1]   ->Fill(tauDecayMode);
-  Hist->hTauMVA            ->Fill(tauMVA                     , genWeight*eventWeight)   ;
-  Hist->hTauGenFlavorHad   ->Fill(tauGenFlavorHad            , genWeight*eventWeight)   ;
-  Hist->hTauDeepAntiEle    ->Fill(std::log2(tauDeepAntiEle+1), genWeight*eventWeight)   ;
-  Hist->hTauDeepAntiMu     ->Fill(tauDeepAntiMu              , genWeight*eventWeight)   ;
-  Hist->hTauDeepAntiJet    ->Fill(std::log2(tauDeepAntiJet+1), genWeight*eventWeight)   ;
 
-  if(jetOneP4 && jetOneP4->Pt() > 0.) { //if 0 then no jet stored
-    Hist->hJetPt           ->Fill(jetOneP4->Pt()             , genWeight*eventWeight)   ;
-  }
+  if(!fDYTesting && fDoSystematics >= 0) {
 
-  if(!fDYTesting) {
-
-    // Hist->hTauVetoedJetPt         ->Fill(tauVetoedJetPt     , genWeight*eventWeight)   ;
-    // Hist->hTauVetoedJetPtUnc   ->Fill(tauVetoedJetPtUnc  , genWeight*eventWeight)   ;
     Hist->hHtSum             ->Fill(htSum              , genWeight*eventWeight)   ;
     Hist->hHt                ->Fill(ht                 , genWeight*eventWeight)   ;
     Hist->hHtPhi             ->Fill(htPhi              , genWeight*eventWeight)   ;
 
     if(jetOneP4 && jetOneP4->Pt() > 0.) { //if 0 then no jet stored
-      Hist->hJetPt           ->Fill(jetOneP4->Pt()        , genWeight*eventWeight)   ;
-      Hist->hJetM            ->Fill(jetOneP4->M()         , genWeight*eventWeight)   ;
+      // Hist->hJetM            ->Fill(jetOneP4->M()         , genWeight*eventWeight)   ;
       Hist->hJetEta          ->Fill(jetOneP4->Eta()       , genWeight*eventWeight)   ;
-      Hist->hJetPhi          ->Fill(jetOneP4->Phi()       , genWeight*eventWeight)   ;
-      Hist->hJetBTag         ->Fill(jetOneBTag            , genWeight*eventWeight)   ;
-      Hist->hJetBMVA         ->Fill(jetOneBMVA            , genWeight*eventWeight)   ;
+      // Hist->hJetPhi          ->Fill(jetOneP4->Phi()       , genWeight*eventWeight)   ;
+      // Hist->hJetBTag         ->Fill(jetOneBTag            , genWeight*eventWeight)   ;
+      // Hist->hJetBMVA         ->Fill(jetOneBMVA            , genWeight*eventWeight)   ;
     }
 
-    Hist->hPuppMet           ->Fill(puppMETC              , genWeight*eventWeight)      ;
-    Hist->hPFMet             ->Fill(pfMETC                , genWeight*eventWeight)      ;
-    Hist->hPFMetPhi          ->Fill(pfMETCphi             , genWeight*eventWeight)      ;
-    Hist->hPFCovMet00        ->Fill(pfMETCCov00           , genWeight*eventWeight)   ;
-    Hist->hPFCovMet01        ->Fill(pfMETCCov01           , genWeight*eventWeight)   ;
-    Hist->hPFCovMet11        ->Fill(pfMETCov11           , genWeight*eventWeight)   ;
+    // Hist->hPuppMet           ->Fill(puppMETC              , genWeight*eventWeight)      ;
+    // Hist->hPFMet             ->Fill(pfMETC                , genWeight*eventWeight)      ;
+    // Hist->hPFMetPhi          ->Fill(pfMETCphi             , genWeight*eventWeight)      ;
+    // Hist->hPFCovMet00        ->Fill(pfMETCCov00           , genWeight*eventWeight)   ;
+    // Hist->hPFCovMet01        ->Fill(pfMETCCov01           , genWeight*eventWeight)   ;
+    // Hist->hPFCovMet11        ->Fill(pfMETCov11           , genWeight*eventWeight)   ;
     // Hist->hTrkMet              ->Fill(trkMET                , genWeight*eventWeight)      ;
     // Hist->hTrkMetPhi           ->Fill(trkMETphi             , genWeight*eventWeight)      ;
   } //end if(!fDYTesting)
 
-  Hist->hMet               ->Fill(met                , genWeight*eventWeight)      ;
-  Hist->hMTOne             ->Fill(fTreeVars.mtone    , eventWeight*genWeight);
-  Hist->hMTTwo             ->Fill(fTreeVars.mttwo    , eventWeight*genWeight);
-  Hist->hMTLep             ->Fill(fTreeVars.mtlep    , eventWeight*genWeight);
+  if(fDoSystematics >= 0) {
+    Hist->hMet               ->Fill(met                , genWeight*eventWeight)      ;
+    Hist->hMTOne             ->Fill(fTreeVars.mtone    , eventWeight*genWeight);
+    Hist->hMTTwo             ->Fill(fTreeVars.mttwo    , eventWeight*genWeight);
+    Hist->hMTLep             ->Fill(fTreeVars.mtlep    , eventWeight*genWeight);
+  }
 
-  if(!fDYTesting) {
+  if(!fDYTesting && fDoSystematics >= 0) {
     Hist->hMetPhi            ->Fill(metPhi             , genWeight*eventWeight)      ;
     Hist->hMetCorr           ->Fill(metCorr            , genWeight*eventWeight)      ;
     Hist->hMetCorrPhi        ->Fill(metCorrPhi         , genWeight*eventWeight)      ;
-    Hist->hCovMet00          ->Fill(covMet00           , genWeight*eventWeight)   ;
-    Hist->hCovMet01          ->Fill(covMet01           , genWeight*eventWeight)   ;
-    Hist->hCovMet11          ->Fill(covMet11           , genWeight*eventWeight)   ;
+    // Hist->hCovMet00          ->Fill(covMet00           , genWeight*eventWeight)   ;
+    // Hist->hCovMet01          ->Fill(covMet01           , genWeight*eventWeight)   ;
+    // Hist->hCovMet11          ->Fill(covMet11           , genWeight*eventWeight)   ;
     Hist->hMTOneOverM        ->Fill(fTreeVars.mtoneoverm  ,eventWeight*genWeight);
     Hist->hMTTwoOverM        ->Fill(fTreeVars.mttwooverm  ,eventWeight*genWeight);
   } //end if(!fDYTesting)
 
   TLorentzVector lepSys = (*leptonOneP4) + (*leptonTwoP4);
 
-  if(!fDYTesting) {
-    Hist->hMetVsPt             ->Fill(lepSys.Pt(), met   , genWeight*eventWeight)   ;
-    Hist->hMetVsM              ->Fill(lepSys.M(), met    , genWeight*eventWeight)   ;
-    Hist->hMetVsHtSum          ->Fill(htSum     , met    , genWeight*eventWeight)   ;
-    if(htSum > 0.) //avoid divide by 0 issue
-      Hist->hMetOverSqrtHtSum  ->Fill(met/sqrt(htSum)    , genWeight*eventWeight)   ;
-
-    // Hist->hMassSVFit      ->Fill(massSVFit          , genWeight*eventWeight)   ;
-    // Hist->hMassErrSVFit        ->Fill(massErrSVFit       , genWeight*eventWeight)   ;
-    // Hist->hSVFitStatus         ->Fill(svFitStatus        , genWeight*eventWeight)   ;
-  } //end if(!fDYTesting)
-
-  TLorentzVector sys    = (*photonP4) + lepSys;
-  TLorentzVector svLepSys = (leptonOneSVP4 && leptonTwoSVP4) ? (*leptonOneSVP4) + (*leptonTwoSVP4) : TLorentzVector(0.,0.,0.,0.);
-  TLorentzVector svSys    = (leptonOneSVP4 && leptonTwoSVP4) ? (*photonP4) + svLepSys              : TLorentzVector(0.,0.,0.,0.);
+  // if(!fDYTesting && fDoSystematics >= 0) {
+  //   Hist->hMetVsPt             ->Fill(lepSys.Pt(), met   , genWeight*eventWeight)   ;
+  //   Hist->hMetVsM              ->Fill(lepSys.M(), met    , genWeight*eventWeight)   ;
+  //   Hist->hMetVsHtSum          ->Fill(htSum     , met    , genWeight*eventWeight)   ;
+  //   if(htSum > 0.) //avoid divide by 0 issue
+  //     Hist->hMetOverSqrtHtSum  ->Fill(met/sqrt(htSum)    , genWeight*eventWeight)   ;
+  // }
 
   double lepDelR   = leptonOneP4->DeltaR(*leptonTwoP4);
   double lepDelPhi = abs(leptonOneP4->DeltaPhi(*leptonTwoP4));
   double lepDelEta = abs(leptonOneP4->Eta() - leptonTwoP4->Eta());
-  double htDelPhi  = abs(lepSys.Phi() - htPhi);
-  double jetDelPhi = (jetOneP4 && jetOneP4->Pt() > 0.) ? abs(lepSys.DeltaPhi(*jetOneP4)) : -1.;
-  if(htDelPhi > M_PI)
-    htDelPhi = abs(2.*M_PI - htDelPhi);
-  double metDelPhi  = abs(lepSys.Phi() - metPhi);
-  if(metDelPhi > M_PI)
-    metDelPhi = abs(2.*M_PI - metDelPhi);
-  double lepOneDelPhi  = abs(lepSys.Phi() - leptonOneP4->Phi());
-  if(lepOneDelPhi > M_PI)
-    lepOneDelPhi = abs(2.*M_PI - lepOneDelPhi);
-  double lepTwoDelPhi  = abs(lepSys.Phi() - leptonTwoP4->Phi());
-  if(lepTwoDelPhi > M_PI)
-    lepTwoDelPhi = abs(2.*M_PI - lepTwoDelPhi);
+  if(fDoSystematics >= 0) {
+    TLorentzVector sys    = (*photonP4) + lepSys;
+    TLorentzVector svLepSys = (leptonOneSVP4 && leptonTwoSVP4) ? (*leptonOneSVP4) + (*leptonTwoSVP4) : TLorentzVector(0.,0.,0.,0.);
+    TLorentzVector svSys    = (leptonOneSVP4 && leptonTwoSVP4) ? (*photonP4) + svLepSys              : TLorentzVector(0.,0.,0.,0.);
 
-  //angles between leptons and leading jet
-  double lepOneJetDeltaR   = (jetOneP4 && jetOneP4->Pt() > 0.) ? leptonOneP4->DeltaR(*jetOneP4)            : -1.;
-  double lepOneJetDeltaPhi = (jetOneP4 && jetOneP4->Pt() > 0.) ? abs(leptonOneP4->DeltaPhi(*jetOneP4))     : -1.;
-  double lepOneJetDeltaEta = (jetOneP4 && jetOneP4->Pt() > 0.) ? abs(leptonOneP4->Eta() - jetOneP4->Eta()) : -1.;
-  double lepTwoJetDeltaR   = (jetOneP4 && jetOneP4->Pt() > 0.) ? leptonTwoP4->DeltaR(*jetOneP4)            : -1.;
-  double lepTwoJetDeltaPhi = (jetOneP4 && jetOneP4->Pt() > 0.) ? abs(leptonTwoP4->DeltaPhi(*jetOneP4))     : -1.;
-  double lepTwoJetDeltaEta = (jetOneP4 && jetOneP4->Pt() > 0.) ? abs(leptonTwoP4->Eta() - jetOneP4->Eta()) : -1.;
+    double htDelPhi  = abs(lepSys.Phi() - htPhi);
+    // double jetDelPhi = (jetOneP4 && jetOneP4->Pt() > 0.) ? abs(lepSys.DeltaPhi(*jetOneP4)) : -1.;
+    if(htDelPhi > M_PI)
+      htDelPhi = abs(2.*M_PI - htDelPhi);
+    double metDelPhi  = abs(lepSys.Phi() - metPhi);
+    if(metDelPhi > M_PI)
+      metDelPhi = abs(2.*M_PI - metDelPhi);
+    double lepOneDelPhi  = abs(lepSys.Phi() - leptonOneP4->Phi());
+    if(lepOneDelPhi > M_PI)
+      lepOneDelPhi = abs(2.*M_PI - lepOneDelPhi);
+    double lepTwoDelPhi  = abs(lepSys.Phi() - leptonTwoP4->Phi());
+    if(lepTwoDelPhi > M_PI)
+      lepTwoDelPhi = abs(2.*M_PI - lepTwoDelPhi);
 
-  // float lepSVDelR   = -1.;
-  // float lepSVDelPhi = -1.;
-  // float lepSVDelEta = -1.;
-  // float lepSVDelM   = -20.;
-  // float lepSVDelPt  = -20.;
-  // if(leptonOneSVP4 && leptonTwoSVP4
-  //    && leptonOneSVP4->Pt() > 1.e-5 && leptonTwoSVP4->Pt() > 1.e-5) {
-  //   lepSVDelR   = leptonOneSVP4->DeltaR(*leptonTwoSVP4)           ;
-  //   lepSVDelPhi = abs(leptonOneSVP4->DeltaPhi(*leptonTwoSVP4))    ;
-  //   lepSVDelEta = abs(leptonOneSVP4->Eta() - leptonTwoSVP4->Eta());
-  //   lepSVDelM = svLepSys.M() - lepSys.M();
-  //   lepSVDelPt = svLepSys.Pt() - lepSys.Pt();
-  // }
+    // Hist->hHtDeltaPhi   ->Fill(htDelPhi               ,eventWeight*genWeight);
+    Hist->hMetDeltaPhi  ->Fill(metDelPhi              ,eventWeight*genWeight);
+    // if(jetDelPhi >= 0.) Hist->hJetDeltaPhi  ->Fill(jetDelPhi,eventWeight*genWeight);
+    Hist->hLepOneDeltaPhi->Fill(lepOneDelPhi          ,eventWeight*genWeight);
+    Hist->hLepTwoDeltaPhi->Fill(lepTwoDelPhi          ,eventWeight*genWeight);
 
+    //angles between leptons and leading jet
+    // double lepOneJetDeltaR   = (jetOneP4 && jetOneP4->Pt() > 0.) ? leptonOneP4->DeltaR(*jetOneP4)            : -1.;
+    // double lepOneJetDeltaPhi = (jetOneP4 && jetOneP4->Pt() > 0.) ? abs(leptonOneP4->DeltaPhi(*jetOneP4))     : -1.;
+    // double lepOneJetDeltaEta = (jetOneP4 && jetOneP4->Pt() > 0.) ? abs(leptonOneP4->Eta() - jetOneP4->Eta()) : -1.;
+    // double lepTwoJetDeltaR   = (jetOneP4 && jetOneP4->Pt() > 0.) ? leptonTwoP4->DeltaR(*jetOneP4)            : -1.;
+    // double lepTwoJetDeltaPhi = (jetOneP4 && jetOneP4->Pt() > 0.) ? abs(leptonTwoP4->DeltaPhi(*jetOneP4))     : -1.;
+    // double lepTwoJetDeltaEta = (jetOneP4 && jetOneP4->Pt() > 0.) ? abs(leptonTwoP4->Eta() - jetOneP4->Eta()) : -1.;
+
+    // float lepSVDelR   = -1.;
+    // float lepSVDelPhi = -1.;
+    // float lepSVDelEta = -1.;
+    // float lepSVDelM   = -20.;
+    // float lepSVDelPt  = -20.;
+    // if(leptonOneSVP4 && leptonTwoSVP4
+    //    && leptonOneSVP4->Pt() > 1.e-5 && leptonTwoSVP4->Pt() > 1.e-5) {
+    //   lepSVDelR   = leptonOneSVP4->DeltaR(*leptonTwoSVP4)           ;
+    //   lepSVDelPhi = abs(leptonOneSVP4->DeltaPhi(*leptonTwoSVP4))    ;
+    //   lepSVDelEta = abs(leptonOneSVP4->Eta() - leptonTwoSVP4->Eta());
+    //   lepSVDelM = svLepSys.M() - lepSys.M();
+    //   lepSVDelPt = svLepSys.Pt() - lepSys.Pt();
+    // }
+  }
   //for removing or alternate DY reweighting weights
   double bareweight = (fIsDY && zPtWeight > 0.) ? eventWeight*genWeight/zPtWeight : eventWeight*genWeight;
   float tmp_1, tmp_2, tmp_3;
@@ -1166,127 +1207,128 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
   if(zmass < 0.) zmass = 0.;
 
   Hist->hLepPt[0]     ->Fill(lepSys.Pt()            ,eventWeight*genWeight);
-  Hist->hLepPt[1]     ->Fill(lepSys.Pt()            ,bareweight);
-  Hist->hLepPt[2]     ->Fill(lepSys.Pt()            ,recoweight);
-  Hist->hLepP         ->Fill(lepSys.P()             ,eventWeight*genWeight);
   Hist->hLepM[0]      ->Fill(lepSys.M()             ,eventWeight*genWeight);
-  Hist->hLepM[1]      ->Fill(lepSys.M()             ,bareweight);
-  Hist->hLepM[2]      ->Fill(lepSys.M()             ,recoweight);
-  Hist->hLepM[3]      ->Fill(lepSys.M()             ,eventWeight*genWeight);
-  Hist->hLepM[4]      ->Fill(lepSys.M()             ,eventWeight*genWeight);
-  Hist->hLepMt        ->Fill(lepSys.Mt()            ,eventWeight*genWeight);
-  Hist->hLepEta       ->Fill(lepSys.Eta()           ,eventWeight*genWeight);
-  Hist->hLepPhi       ->Fill(lepSys.Phi()           ,eventWeight*genWeight);
+  if(fDoSystematics >= 0) {
+    Hist->hLepPt[1]     ->Fill(lepSys.Pt()            ,bareweight);
+    Hist->hLepPt[2]     ->Fill(lepSys.Pt()            ,recoweight);
+    // Hist->hLepP         ->Fill(lepSys.P()             ,eventWeight*genWeight);
+    Hist->hLepM[1]      ->Fill(lepSys.M()             ,bareweight);
+    Hist->hLepM[2]      ->Fill(lepSys.M()             ,recoweight);
+    Hist->hLepM[3]      ->Fill(lepSys.M()             ,eventWeight*genWeight);
+    Hist->hLepM[4]      ->Fill(lepSys.M()             ,eventWeight*genWeight);
+    Hist->hLepMt        ->Fill(lepSys.Mt()            ,eventWeight*genWeight);
+    Hist->hLepEta       ->Fill(lepSys.Eta()           ,eventWeight*genWeight);
+    Hist->hLepPhi       ->Fill(lepSys.Phi()           ,eventWeight*genWeight);
 
-  //2D histograms for DY reweighting
-  Hist->hLepPtVsM[0]  ->Fill(std::max(lepSys.M(), 0.), std::max(lepSys.Pt(), 0.),eventWeight*genWeight);
-  Hist->hLepPtVsM[1]  ->Fill(std::max(lepSys.M(), 0.), std::max(lepSys.Pt(), 0.),bareweight);
-  Hist->hLepPtVsM[2]  ->Fill(std::max(lepSys.M(), 0.), std::max(lepSys.Pt(), 0.),recoweight);
-  Hist->hZPtVsM[0]    ->Fill(zmass, zpt  ,eventWeight*genWeight);
-  Hist->hZPtVsM[1]    ->Fill(zmass, zpt  ,bareweight);
-  Hist->hZPtVsM[2]    ->Fill(zmass, zpt  ,recoweight);
-  Hist->hZPt[0]       ->Fill(zpt  ,eventWeight*genWeight);
-  Hist->hZPt[1]       ->Fill(zpt  ,bareweight);
-  Hist->hZPt[2]       ->Fill(zpt  ,recoweight);
-  Hist->hZMass[0]     ->Fill(zmass,eventWeight*genWeight);
-  Hist->hZMass[1]     ->Fill(zmass,bareweight);
-  Hist->hZMass[2]     ->Fill(zmass,recoweight);
+    //2D histograms for DY reweighting
+    Hist->hLepPtVsM[0]  ->Fill(std::max(lepSys.M(), 0.), std::max(lepSys.Pt(), 0.),eventWeight*genWeight);
+    Hist->hLepPtVsM[1]  ->Fill(std::max(lepSys.M(), 0.), std::max(lepSys.Pt(), 0.),bareweight);
+    Hist->hLepPtVsM[2]  ->Fill(std::max(lepSys.M(), 0.), std::max(lepSys.Pt(), 0.),recoweight);
+    Hist->hZPtVsM[0]    ->Fill(zmass, zpt  ,eventWeight*genWeight);
+    Hist->hZPtVsM[1]    ->Fill(zmass, zpt  ,bareweight);
+    Hist->hZPtVsM[2]    ->Fill(zmass, zpt  ,recoweight);
+    Hist->hZPt[0]       ->Fill(zpt  ,eventWeight*genWeight);
+    Hist->hZPt[1]       ->Fill(zpt  ,bareweight);
+    Hist->hZPt[2]       ->Fill(zpt  ,recoweight);
+    Hist->hZMass[0]     ->Fill(zmass,eventWeight*genWeight);
+    Hist->hZMass[1]     ->Fill(zmass,bareweight);
+    Hist->hZMass[2]     ->Fill(zmass,recoweight);
 
-  Hist->hLepDeltaPhi  ->Fill(lepDelPhi              ,eventWeight*genWeight);
-  Hist->hLepDeltaEta  ->Fill(lepDelEta              ,eventWeight*genWeight);
-  Hist->hLepDeltaR[0] ->Fill(lepDelR                ,eventWeight*genWeight);
-  Hist->hLepDeltaR[1] ->Fill(lepDelR                ,(qcdWeight > 0.) ? eventWeight*genWeight/qcdWeight : eventWeight*genWeight);
-  Hist->hLepDeltaR[2] ->Fill(lepDelR                ,eventWeight*genWeight); //same binning as scale factor measurement
-  Hist->hLepDelRVsPhi ->Fill(lepDelR , lepDelPhi    ,eventWeight*genWeight);
-  Hist->hLepPtOverM   ->Fill(lepSys.Pt()/lepSys.M() ,eventWeight*genWeight);
+    Hist->hLepDeltaPhi  ->Fill(lepDelPhi              ,eventWeight*genWeight);
+    Hist->hLepDeltaEta  ->Fill(lepDelEta              ,eventWeight*genWeight);
+    Hist->hLepDeltaR[0] ->Fill(lepDelR                ,eventWeight*genWeight);
+    Hist->hLepDeltaR[1] ->Fill(lepDelR                ,(qcdWeight > 0.) ? eventWeight*genWeight/qcdWeight : eventWeight*genWeight);
+    Hist->hLepDeltaR[2] ->Fill(lepDelR                ,eventWeight*genWeight); //same binning as scale factor measurement
+    // Hist->hLepDelRVsPhi ->Fill(lepDelR , lepDelPhi    ,eventWeight*genWeight);
+    Hist->hLepPtOverM   ->Fill(lepSys.Pt()/lepSys.M() ,eventWeight*genWeight);
 
+    //Histograms for jet --> tau_h scale factors
+    Hist->hLooseLep     ->Fill(isLooseElectron + 2*isLooseMuon + 4*isLooseTau, eventWeight*genWeight);
+    for(UInt_t itau = 0; itau < nTaus; ++itau) {
+      int dm = -1; int njets = (nJets > 4) ? 4 : nJets;
+      bool fakeMC = fIsData == 0 && abs(tausGenFlavor[itau]) == 26;
+      if(fabs(tausEta[itau]) > 2.3) continue;
+      if(tausMVAAntiMu[itau] < 2) continue; //ignore ones that fail the old MVA anti-mu tight ID
+      if(tausAntiEle[itau] < 10) continue; //ignore ones that have low anti-ele ID FIXME: Ensure this is done before here!
+      float tau_wt = tausWeight[itau];
+      if(fIsData || tau_wt <= 0.) tau_wt = 1.;
 
-  //Histograms for jet --> tau_h scale factors
-  Hist->hLooseLep     ->Fill(isLooseElectron + 2*isLooseMuon + 4*isLooseTau, eventWeight*genWeight);
-  for(UInt_t itau = 0; itau < nTaus; ++itau) {
-    int dm = -1; int njets = (nJets > 4) ? 4 : nJets;
-    bool fakeMC = fIsData == 0 && abs(tausGenFlavor[itau]) == 26;
-    if(fabs(tausEta[itau]) > 2.3) continue;
-    if(tausMVAAntiMu[itau] < 2) continue; //ignore ones that fail the old MVA anti-mu tight ID
-    if(tausAntiEle[itau] < 10) continue; //ignore ones that have low anti-ele ID FIXME: Ensure this is done before here!
-    float tau_wt = tausWeight[itau];
-    if(fIsData || tau_wt <= 0.) tau_wt = 1.;
+      if(!fakeMC) {
+        Hist->hTausPt->Fill(tausPt[itau], tau_wt*eventWeight*genWeight);
+        Hist->hTausEta->Fill(tausEta[itau], tau_wt*eventWeight*genWeight);
+        Hist->hTausDM->Fill(tausDM[itau], tau_wt*eventWeight*genWeight);
+        Hist->hTausAntiJet->Fill(std::log2(tausAntiJet[itau]+1), tau_wt*eventWeight*genWeight);
+        Hist->hTausAntiEle->Fill(std::log2(tausAntiEle[itau]+1), tau_wt*eventWeight*genWeight);
+        Hist->hTausAntiMu ->Fill(tausAntiMu[itau]              , tau_wt*eventWeight*genWeight);
+        Hist->hTausMVAAntiMu->Fill(tausMVAAntiMu[itau]         , tau_wt*eventWeight*genWeight);
+        Hist->hTausGenFlavor->Fill(tausGenFlavor[itau], tau_wt*eventWeight*genWeight);
+        TLorentzVector tausLV;
+        tausLV.SetPtEtaPhiM(tausPt[itau], tausEta[itau], tausPhi[itau], 1.776);
+        Hist->hTausDeltaR->Fill(abs(tausLV.DeltaR(*leptonOneP4)), tau_wt*eventWeight*genWeight);
+      }
 
-    if(!fakeMC) {
-      Hist->hTausPt->Fill(tausPt[itau], tau_wt*eventWeight*genWeight);
-      Hist->hTausEta->Fill(tausEta[itau], tau_wt*eventWeight*genWeight);
-      Hist->hTausDM->Fill(tausDM[itau], tau_wt*eventWeight*genWeight);
-      Hist->hTausAntiJet->Fill(std::log2(tausAntiJet[itau]+1), tau_wt*eventWeight*genWeight);
-      Hist->hTausAntiEle->Fill(std::log2(tausAntiEle[itau]+1), tau_wt*eventWeight*genWeight);
-      Hist->hTausAntiMu ->Fill(tausAntiMu[itau]              , tau_wt*eventWeight*genWeight);
-      Hist->hTausMVAAntiMu->Fill(tausMVAAntiMu[itau]         , tau_wt*eventWeight*genWeight);
-      Hist->hTausGenFlavor->Fill(tausGenFlavor[itau], tau_wt*eventWeight*genWeight);
-      TLorentzVector tausLV;
-      tausLV.SetPtEtaPhiM(tausPt[itau], tausEta[itau], tausPhi[itau], 1.776);
-      Hist->hTausDeltaR->Fill(abs(tausLV.DeltaR(*leptonOneP4)), tau_wt*eventWeight*genWeight);
-    }
+      if     (tausDM[itau] == 0 ) dm = 0;
+      else if(tausDM[itau] == 1 ) dm = 1;
+      else if(tausDM[itau] == 10) dm = 2;
+      else if(tausDM[itau] == 11) dm = 3;
+      else if(tausDM[itau] < 0  ) dm = 0; //only happens in tree version with bug --> default to progress until fixed
 
-    if     (tausDM[itau] == 0 ) dm = 0;
-    else if(tausDM[itau] == 1 ) dm = 1;
-    else if(tausDM[itau] == 10) dm = 2;
-    else if(tausDM[itau] == 11) dm = 3;
-    else if(tausDM[itau] < 0  ) dm = 0; //only happens in tree version with bug --> default to progress until fixed
-
-    const int nptregions = 5; //to measure scale factor in regions of the lead muon pT as a cross-check
-    bool ptregions[nptregions] = {true,
-                                  fTreeVars.leponept > 55.,
-                                  fTreeVars.leponept > 60.,
-                                  fTreeVars.leponept < 55.,
-                                  fTreeVars.leponept < 60.};
-                                  // fTreeVars.leponept < 40.,
-                                  // fTreeVars.leponept > 40. && fTreeVars.leponept < 55.,
-                                  // fTreeVars.leponept > 55. && fTreeVars.leponept < 80.,
-                                  // fTreeVars.leponept > 80.};
-    for(int iptr = 0; iptr < nptregions; ++iptr) {
-      if(!ptregions[iptr]) continue;
-      // std::cout << "Filling iptr = " << iptr << " njets = " << njets << " and dm = " << dm << std::endl;
-      if(dm >= 0) {
-        if(fakeMC) {
-          Hist->hFakeTauMCNJetDMPtEta[iptr][0][njets][dm]->Fill(tausPt[itau], abs(tausEta[itau]), tau_wt*eventWeight*genWeight); //all taus
-        } else {
-          Hist->hFakeTauNJetDMPtEta[iptr][0][njets][dm]  ->Fill(tausPt[itau], abs(tausEta[itau]), tau_wt*eventWeight*genWeight); //all taus
-        }
-        if(tausAntiJet[itau] > fFakeTauIsoCut) {
+      const int nptregions = 5; //to measure scale factor in regions of the lead muon pT as a cross-check
+      bool ptregions[nptregions] = {true,
+                                    fTreeVars.leponept > 55.,
+                                    fTreeVars.leponept > 60.,
+                                    fTreeVars.leponept < 55.,
+                                    fTreeVars.leponept < 60.};
+      // fTreeVars.leponept < 40.,
+      // fTreeVars.leponept > 40. && fTreeVars.leponept < 55.,
+      // fTreeVars.leponept > 55. && fTreeVars.leponept < 80.,
+      // fTreeVars.leponept > 80.};
+      for(int iptr = 0; iptr < nptregions; ++iptr) {
+        if(!ptregions[iptr]) continue;
+        // std::cout << "Filling iptr = " << iptr << " njets = " << njets << " and dm = " << dm << std::endl;
+        if(dm >= 0) {
           if(fakeMC) {
-            Hist->hFakeTauMCNJetDMPtEta[iptr][1][njets][dm]->Fill(tausPt[itau], abs(tausEta[itau]), tau_wt*eventWeight*genWeight); //tight Iso
+            Hist->hFakeTauMCNJetDMPtEta[iptr][0][njets][dm]->Fill(tausPt[itau], abs(tausEta[itau]), tau_wt*eventWeight*genWeight); //all taus
           } else {
-            Hist->hFakeTauNJetDMPtEta[iptr][1][njets][dm]  ->Fill(tausPt[itau], abs(tausEta[itau]), tau_wt*eventWeight*genWeight); //tight Iso
+            Hist->hFakeTauNJetDMPtEta[iptr][0][njets][dm]  ->Fill(tausPt[itau], abs(tausEta[itau]), tau_wt*eventWeight*genWeight); //all taus
           }
-        } else {
-          if(fakeMC) {
-            Hist->hFakeTauMCNJetDMPtEta[iptr][2][njets][dm]->Fill(tausPt[itau], abs(tausEta[itau]), tau_wt*eventWeight*genWeight); //anti-Iso
+          if(tausAntiJet[itau] > fFakeTauIsoCut) {
+            if(fakeMC) {
+              Hist->hFakeTauMCNJetDMPtEta[iptr][1][njets][dm]->Fill(tausPt[itau], abs(tausEta[itau]), tau_wt*eventWeight*genWeight); //tight Iso
+            } else {
+              Hist->hFakeTauNJetDMPtEta[iptr][1][njets][dm]  ->Fill(tausPt[itau], abs(tausEta[itau]), tau_wt*eventWeight*genWeight); //tight Iso
+            }
           } else {
-            Hist->hFakeTauNJetDMPtEta[iptr][2][njets][dm]  ->Fill(tausPt[itau], abs(tausEta[itau]), tau_wt*eventWeight*genWeight); //anti-Iso
+            if(fakeMC) {
+              Hist->hFakeTauMCNJetDMPtEta[iptr][2][njets][dm]->Fill(tausPt[itau], abs(tausEta[itau]), tau_wt*eventWeight*genWeight); //anti-Iso
+            } else {
+              Hist->hFakeTauNJetDMPtEta[iptr][2][njets][dm]  ->Fill(tausPt[itau], abs(tausEta[itau]), tau_wt*eventWeight*genWeight); //anti-Iso
+            }
           }
         }
       }
     }
-  }
 
-  //Histograms for jet --> lepton scale factors
-  for(UInt_t ilep = 0; ilep < nExtraLep; ++ilep) {
-    double eta = fabs(leptonsEta[ilep]);
-    if(leptonsTriggered[ilep] == 0) continue; //only look at triggered leptons
-    if(!leptonsIsMuon[ilep] && eta > 2.5) continue; //skip electrons above 2.5 eta
-    if(leptonsIsMuon[ilep] && eta > 2.4) continue; //skip muons above 2.4 eta
-    if(fIsData == 0 && leptonsGenFlavor[ilep] < 6) continue; //MC light lep from jets or unknown, also skipping unmatched
+    //Histograms for jet --> lepton scale factors
+    for(UInt_t ilep = 0; ilep < nExtraLep; ++ilep) {
+      double eta = fabs(leptonsEta[ilep]);
+      if(leptonsTriggered[ilep] == 0) continue; //only look at triggered leptons
+      if(!leptonsIsMuon[ilep] && eta > 2.5) continue; //skip electrons above 2.5 eta
+      if(leptonsIsMuon[ilep] && eta > 2.4) continue; //skip muons above 2.4 eta
+      if(fIsData == 0 && leptonsGenFlavor[ilep] < 6) continue; //MC light lep from jets or unknown, also skipping unmatched
 
-    Hist->hLeptonsPt->Fill(leptonsPt[ilep], eventWeight*genWeight);
-    Hist->hLeptonsEta->Fill(leptonsEta[ilep], eventWeight*genWeight);
-    Hist->hLeptonsID->Fill(leptonsID[ilep], eventWeight*genWeight);
-    Hist->hLeptonsIsoID->Fill(leptonsIsoID[ilep], eventWeight*genWeight);
-    Hist->hLeptonsGenFlavor->Fill(leptonsGenFlavor[ilep], eventWeight*genWeight);
-    Hist->hFakeLepPtEta[0]->Fill(leptonsPt[ilep], eta, eventWeight*genWeight); //all leptons
-    if((leptonsIsMuon[ilep] && leptonsIsoID[ilep] > fFakeMuonIsoCut) || (!leptonsIsMuon[ilep] && leptonsID[ilep] > fFakeElectronIsoCut))
-      Hist->hFakeLepPtEta[1]->Fill(leptonsPt[ilep], eta, eventWeight*genWeight); //tight leptons
-    else
-      Hist->hFakeLepPtEta[2]->Fill(leptonsPt[ilep], eta, eventWeight*genWeight); //loose leptons
-  }
+      Hist->hLeptonsPt->Fill(leptonsPt[ilep], eventWeight*genWeight);
+      Hist->hLeptonsEta->Fill(leptonsEta[ilep], eventWeight*genWeight);
+      Hist->hLeptonsID->Fill(leptonsID[ilep], eventWeight*genWeight);
+      Hist->hLeptonsIsoID->Fill(leptonsIsoID[ilep], eventWeight*genWeight);
+      Hist->hLeptonsGenFlavor->Fill(leptonsGenFlavor[ilep], eventWeight*genWeight);
+      Hist->hFakeLepPtEta[0]->Fill(leptonsPt[ilep], eta, eventWeight*genWeight); //all leptons
+      if((leptonsIsMuon[ilep] && leptonsIsoID[ilep] > fFakeMuonIsoCut) || (!leptonsIsMuon[ilep] && leptonsID[ilep] > fFakeElectronIsoCut))
+        Hist->hFakeLepPtEta[1]->Fill(leptonsPt[ilep], eta, eventWeight*genWeight); //tight leptons
+      else
+        Hist->hFakeLepPtEta[2]->Fill(leptonsPt[ilep], eta, eventWeight*genWeight); //loose leptons
+    }
+  } //end if(fDoSystematics >= 0)
 
   //MVA outputs
   for(unsigned i = 0; i < fMVAConfig.names_.size(); ++i) {
@@ -1295,6 +1337,7 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
     if (fTreeVars.train > 0) Hist->hMVATrain[i]->Fill(fMvaOutputs[i], fTreeVars.eventweight*((!fDYTesting && fFractionMVA > 0.) ? 1./fFractionMVA : 1.));
     if (fTreeVars.train < 0) Hist->hMVATest[i] ->Fill(fMvaOutputs[i], fTreeVars.eventweightMVA);
   }
+  if(fDoSystematics < 0) return;
 
   Hist->hLepMEstimate   ->Fill(fTreeVars.mestimate   , eventWeight*genWeight);
   Hist->hLepMEstimateTwo->Fill(fTreeVars.mestimatetwo, eventWeight*genWeight);
@@ -1314,21 +1357,6 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
 
   if(fDYTesting) return;
 
-  Hist->hHtDeltaPhi   ->Fill(htDelPhi               ,eventWeight*genWeight);
-  Hist->hMetDeltaPhi  ->Fill(metDelPhi              ,eventWeight*genWeight);
-  if(jetDelPhi >= 0.) Hist->hJetDeltaPhi  ->Fill(jetDelPhi,eventWeight*genWeight);
-  Hist->hLepOneDeltaPhi->Fill(lepOneDelPhi          ,eventWeight*genWeight);
-  Hist->hLepTwoDeltaPhi->Fill(lepTwoDelPhi          ,eventWeight*genWeight);
-
-  if(jetOneP4 && jetOneP4->Pt() > 0.) { //only fill if there's at least one jet
-    Hist->hLepOneJetDeltaR  ->Fill(lepOneJetDeltaR  ,eventWeight*genWeight);
-    Hist->hLepOneJetDeltaPhi->Fill(lepOneJetDeltaPhi,eventWeight*genWeight);
-    Hist->hLepOneJetDeltaEta->Fill(lepOneJetDeltaEta,eventWeight*genWeight);
-    Hist->hLepTwoJetDeltaR  ->Fill(lepTwoJetDeltaR  ,eventWeight*genWeight);
-    Hist->hLepTwoJetDeltaPhi->Fill(lepTwoJetDeltaPhi,eventWeight*genWeight);
-    Hist->hLepTwoJetDeltaEta->Fill(lepTwoJetDeltaEta,eventWeight*genWeight);
-  }
-
   // Hist->hLepSVPt      ->Fill(svLepSys.Pt()            ,eventWeight*genWeight);
   // Hist->hLepSVM       ->Fill(svLepSys.M()             ,eventWeight*genWeight);
   // Hist->hLepSVEta     ->Fill(((svLepSys.Pt() > 1.e-5) ? svLepSys.Eta()  : -1e6),eventWeight*genWeight);
@@ -1341,10 +1369,10 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
   // Hist->hLepSVPtOverM  ->Fill(svLepSys.Pt()/svLepSys.M() ,eventWeight*genWeight);
 
 
-  Hist->hSysM          ->Fill(sys.M()      ,eventWeight*genWeight);
-  Hist->hSysPt         ->Fill(sys.Pt()     ,eventWeight*genWeight);
-  Hist->hSysEta        ->Fill(sys.Eta()    ,eventWeight*genWeight);
-  Hist->hSysMvsLepM    ->Fill(lepSys.M(), sys.M(), eventWeight*genWeight);
+  // Hist->hSysM          ->Fill(sys.M()      ,eventWeight*genWeight);
+  // Hist->hSysPt         ->Fill(sys.Pt()     ,eventWeight*genWeight);
+  // Hist->hSysEta        ->Fill(sys.Eta()    ,eventWeight*genWeight);
+  // Hist->hSysMvsLepM    ->Fill(lepSys.M(), sys.M(), eventWeight*genWeight);
 
   TVector3 lp1 = leptonOneP4->Vect();
   TVector3 lp2 = leptonTwoP4->Vect();
@@ -1356,25 +1384,10 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
   TVector3 bisector0 = (lp1.Mag()*lp2 + lp2.Mag()*lp1); //divides leptons
   if(bisector0.Mag() > 0.) bisector0.SetMag(1.);
 
-  //combine photon with nearest lepton
-  TVector3 lpp = (leptonOneP4->DeltaR(*photonP4) > leptonTwoP4->DeltaR(*photonP4)) ? lp2 : lp1;
-  //  (lp1 + lp2 - lpp) = not nearest to photon lepton
-  TVector3 bisector1 = ((lpp+pp).Mag()*(lp1+lp2-lpp) + (lpp+pp)*((lp1+lp2-lpp).Mag())); //divides lepton + photon and lepton
-  if(bisector1.Mag() > 0.) bisector1.SetMag(1.);
-
-  //combine leptons together
-  TVector3 bisector2 = (pp.Mag())*(lp1+lp2) + (lp1+lp2).Mag()*pp; //divides leptons and photon
-  if(bisector2.Mag() > 0.) bisector2.SetMag(1.); //mag = 0 often since no photon often
-
   //project onto the bisectors
   //ignore photon
   double pxi_vis0 = (lp1+lp2)*bisector0;
   double pxi_inv0 = missing*bisector0;
-  //add photon in
-  double pxi_vis1 = (lp1+lp2+pp)*bisector1;
-  double pxi_inv1 = missing*bisector1;
-  double pxi_vis2 = (lp1+lp2+pp)*bisector2;
-  double pxi_inv2 = missing*bisector2;
 
   Hist->hPXiVis[0]     ->Fill(pxi_vis0         ,eventWeight*genWeight);
   Hist->hPXiInv[0]     ->Fill(pxi_inv0         ,eventWeight*genWeight);
@@ -1384,38 +1397,15 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
 
   Hist->hPTauVisFrac    ->Fill(1.*fTreeVars.ptauvisfrac , eventWeight*genWeight);
 
-  if(nPhotons > 0) {
-    Hist->hPXiVis[1]     ->Fill(pxi_vis1         ,eventWeight*genWeight);
-    Hist->hPXiInv[1]     ->Fill(pxi_inv1         ,eventWeight*genWeight);
-    Hist->hPXiVisOverInv[1]->Fill((pxi_inv1 != 0.) ? pxi_vis1/pxi_inv1 : 1.e6 ,eventWeight*genWeight);
-    Hist->hPXiInvVsVis[1]->Fill(pxi_vis1, pxi_inv1,eventWeight*genWeight);
-    Hist->hPXiDiff[1]    ->Fill(pxi_vis1-pxi_inv1 ,eventWeight*genWeight);
-    Hist->hPXiVis[2]     ->Fill(pxi_vis2         ,eventWeight*genWeight);
-    Hist->hPXiInv[2]     ->Fill(pxi_inv2         ,eventWeight*genWeight);
-    Hist->hPXiVisOverInv[2]->Fill((pxi_inv2 != 0.) ? pxi_vis2/pxi_inv2 : 1.e6 ,eventWeight*genWeight);
-    Hist->hPXiInvVsVis[2]->Fill(pxi_vis2, pxi_inv2,eventWeight*genWeight);
-    Hist->hPXiDiff[2]    ->Fill(pxi_vis2-pxi_inv2 ,eventWeight*genWeight);
-  }
-
   double coeff = 0.85 - 1.; // match 2016 clfv higgs paper (defined pxi inv = xi dot (lep1 + lep2 + met) = my pxi inv + pxi vis)
   double offset = -60.;
   Hist->hPXiDiff3[0]   ->Fill(pxi_inv0 - (coeff*pxi_vis0+offset) ,eventWeight*genWeight);
-  Hist->hPXiDiff3[1]   ->Fill(pxi_inv1 - (coeff*pxi_vis1+offset) ,eventWeight*genWeight);
-  Hist->hPXiDiff3[2]   ->Fill(pxi_inv2 - (coeff*pxi_vis2+offset) ,eventWeight*genWeight);
 
   coeff = 0.6;
   offset = -40.;
   Hist->hPXiDiff2[0]   ->Fill(pxi_inv0 - (coeff*pxi_vis0+offset) ,eventWeight*genWeight);
-  Hist->hPXiDiff2[1]   ->Fill(pxi_inv1 - (coeff*pxi_vis1+offset) ,eventWeight*genWeight);
-  Hist->hPXiDiff2[2]   ->Fill(pxi_inv2 - (coeff*pxi_vis2+offset) ,eventWeight*genWeight);
 
   Hist->hPtSum[0]      ->Fill(leptonOneP4->Pt()+leptonTwoP4->Pt()+met ,eventWeight*genWeight);
-  Hist->hPtSum[1]      ->Fill(leptonOneP4->Pt()+leptonTwoP4->Pt()+photonP4->Pt()+met ,eventWeight*genWeight);
-  Hist->hPt1Sum[0]     ->Fill(leptonOneP4->Pt()+met ,eventWeight*genWeight);
-  Hist->hPt1Sum[1]     ->Fill(leptonTwoP4->Pt()+met ,eventWeight*genWeight);
-  Hist->hPt1Sum[2]     ->Fill(leptonTwoP4->Pt()+leptonTwoP4->Pt() ,eventWeight*genWeight);
-  Hist->hPt1Sum[3]     ->Fill(leptonTwoP4->Pt()+leptonTwoP4->Pt()-met ,eventWeight*genWeight);
-
 }
 
 void ZTauTauHistMaker::FillPhotonHistogram(PhotonHist_t* Hist) {
@@ -1436,36 +1426,49 @@ void ZTauTauHistMaker::FillLepHistogram(LepHist_t* Hist) {
   /////////////
   Hist->hOnePz        ->Fill(leptonOneP4->Pz()            ,eventWeight*genWeight);
   Hist->hOnePt        ->Fill(leptonOneP4->Pt()            ,eventWeight*genWeight);
-  if(nTaus == 1) {
-    Hist->hJetTauOnePt[0]->Fill(leptonOneP4->Pt()         ,eventWeight*genWeight);
-    if(tausPt[0] < 30.)
-      Hist->hJetTauOnePt[1]->Fill(leptonOneP4->Pt()       ,eventWeight*genWeight);
-    else if(tausPt[0] < 45.)
-      Hist->hJetTauOnePt[2]->Fill(leptonOneP4->Pt()       ,eventWeight*genWeight);
-    else
-      Hist->hJetTauOnePt[3]->Fill(leptonOneP4->Pt()       ,eventWeight*genWeight);
+  if(fDoSystematics >= 0) {
+    if(nTaus == 1) {
+      Hist->hJetTauOnePt[0]->Fill(leptonOneP4->Pt()         ,eventWeight*genWeight);
+      if(tausPt[0] < 30.)
+        Hist->hJetTauOnePt[1]->Fill(leptonOneP4->Pt()       ,eventWeight*genWeight);
+      else if(tausPt[0] < 45.)
+        Hist->hJetTauOnePt[2]->Fill(leptonOneP4->Pt()       ,eventWeight*genWeight);
+      else
+        Hist->hJetTauOnePt[3]->Fill(leptonOneP4->Pt()       ,eventWeight*genWeight);
+    }
+    Hist->hOneP         ->Fill(leptonOneP4->P()             ,eventWeight*genWeight);
+    Hist->hOneM         ->Fill(leptonOneP4->M()             ,eventWeight*genWeight);
+    Hist->hOneEta       ->Fill(leptonOneP4->Eta()           ,eventWeight*genWeight);
+    Hist->hOnePhi       ->Fill(leptonOneP4->Phi()           ,eventWeight*genWeight);
+    Hist->hOneD0        ->Fill(leptonOneD0                  ,eventWeight*genWeight);
+    Hist->hOneIso       ->Fill(leptonOneIso                 ,eventWeight*genWeight);
+    Hist->hOneID1       ->Fill(leptonOneID1                 ,eventWeight*genWeight);
+    Hist->hOneID2       ->Fill(leptonOneID2                 ,eventWeight*genWeight);
+    double relIso1 = leptonOneIso/ leptonOneP4->Pt();
+    Hist->hOneRelIso    ->Fill(relIso1                      ,eventWeight*genWeight);
+    Hist->hOneFlavor    ->Fill(fabs(leptonOneFlavor)        ,eventWeight*genWeight);
+    Hist->hOneQ         ->Fill(leptonOneFlavor < 0 ? -1 : 1 ,eventWeight*genWeight);
   }
-  Hist->hOneP         ->Fill(leptonOneP4->P()             ,eventWeight*genWeight);
-  Hist->hOneM         ->Fill(leptonOneP4->M()             ,eventWeight*genWeight);
-  Hist->hOneEta       ->Fill(leptonOneP4->Eta()           ,eventWeight*genWeight);
-  Hist->hOnePhi       ->Fill(leptonOneP4->Phi()           ,eventWeight*genWeight);
-  Hist->hOneD0        ->Fill(leptonOneD0                  ,eventWeight*genWeight);
-  Hist->hOneIso       ->Fill(leptonOneIso                 ,eventWeight*genWeight);
-  Hist->hOneID1       ->Fill(leptonOneID1                 ,eventWeight*genWeight);
-  Hist->hOneID2       ->Fill(leptonOneID2                 ,eventWeight*genWeight);
-  double relIso1 = leptonOneIso/ leptonOneP4->Pt();
-  Hist->hOneRelIso    ->Fill(relIso1                      ,eventWeight*genWeight);
-  Hist->hOneFlavor    ->Fill(fabs(leptonOneFlavor)        ,eventWeight*genWeight);
-  Hist->hOneQ         ->Fill(leptonOneFlavor < 0 ? -1 : 1 ,eventWeight*genWeight);
   Hist->hOneTrigger   ->Fill(leptonOneFired               ,eventWeight*genWeight);
-  Hist->hOneWeight    ->Fill(leptonOneWeight1*leptonOneWeight2,eventWeight*genWeight);
-  Hist->hOneTrigWeight->Fill(leptonOneTrigWeight          ,eventWeight*genWeight);
+  int offset_1(0), offset_2(0);
+  if(abs(leptonOneFlavor) == 11) {
+    offset_1 = SystematicGrouping::kElectronID;
+    offset_2 = SystematicGrouping::kElectronRecoID;
+  } else if(abs(leptonOneFlavor) == 13) {
+    offset_1 = SystematicGrouping::kMuonID;
+    offset_2 = SystematicGrouping::kMuonIsoID;
+  }
+  Hist->hOneWeight1Group->Fill(leptonOneWeight1_group - offset_1     ,eventWeight*genWeight);
+  Hist->hOneWeight2Group->Fill(leptonOneWeight2_group - offset_2     ,eventWeight*genWeight);
+  if(fDoSystematics >= 0) {
+    Hist->hOneWeight    ->Fill(leptonOneWeight1*leptonOneWeight2,eventWeight*genWeight);
+    Hist->hOneTrigWeight->Fill(leptonOneTrigWeight          ,eventWeight*genWeight);
 
-  double oneMetDelPhi  = abs(leptonOneP4->Phi() - metPhi);
-  if(oneMetDelPhi > M_PI)
-    oneMetDelPhi = abs(2.*M_PI - oneMetDelPhi);
-  Hist->hOneMetDeltaPhi   ->Fill(oneMetDelPhi   ,eventWeight*genWeight);
-
+    double oneMetDelPhi  = abs(leptonOneP4->Phi() - metPhi);
+    if(oneMetDelPhi > M_PI)
+      oneMetDelPhi = abs(2.*M_PI - oneMetDelPhi);
+    Hist->hOneMetDeltaPhi   ->Fill(oneMetDelPhi   ,eventWeight*genWeight);
+  }
 
   /////////////
   //  Lep 2  //
@@ -1473,40 +1476,56 @@ void ZTauTauHistMaker::FillLepHistogram(LepHist_t* Hist) {
 
   Hist->hTwoPz        ->Fill(leptonTwoP4->Pz()            ,eventWeight*genWeight);
   Hist->hTwoPt        ->Fill(leptonTwoP4->Pt()            ,eventWeight*genWeight);
-  if(nTaus == 1) {
-    Hist->hJetTauTwoPt[0]->Fill(leptonTwoP4->Pt()         ,eventWeight*genWeight);
-    if(tausPt[0] < 30.)
-      Hist->hJetTauTwoPt[1]->Fill(leptonTwoP4->Pt()       ,eventWeight*genWeight);
-    else if(tausPt[0] < 45.)
-      Hist->hJetTauTwoPt[2]->Fill(leptonTwoP4->Pt()       ,eventWeight*genWeight);
-    else
-      Hist->hJetTauTwoPt[3]->Fill(leptonTwoP4->Pt()       ,eventWeight*genWeight);
+  if(fDoSystematics >= 0) {
+    if(nTaus == 1) {
+      Hist->hJetTauTwoPt[0]->Fill(leptonTwoP4->Pt()         ,eventWeight*genWeight);
+      if(tausPt[0] < 30.)
+        Hist->hJetTauTwoPt[1]->Fill(leptonTwoP4->Pt()       ,eventWeight*genWeight);
+      else if(tausPt[0] < 45.)
+        Hist->hJetTauTwoPt[2]->Fill(leptonTwoP4->Pt()       ,eventWeight*genWeight);
+      else
+        Hist->hJetTauTwoPt[3]->Fill(leptonTwoP4->Pt()       ,eventWeight*genWeight);
+    }
+    Hist->hTwoP         ->Fill(leptonTwoP4->P()             ,eventWeight*genWeight);
+    Hist->hTwoM         ->Fill(leptonTwoP4->M()             ,eventWeight*genWeight);
+    Hist->hTwoEta       ->Fill(leptonTwoP4->Eta()           ,eventWeight*genWeight);
+    Hist->hTwoPhi       ->Fill(leptonTwoP4->Phi()           ,eventWeight*genWeight);
+    Hist->hTwoD0        ->Fill(leptonTwoD0                  ,eventWeight*genWeight);
+    Hist->hTwoIso       ->Fill(leptonTwoIso                 ,eventWeight*genWeight);
+    Hist->hTwoID1       ->Fill(leptonTwoID1                 ,eventWeight*genWeight);
+    Hist->hTwoID2       ->Fill(leptonTwoID2                 ,eventWeight*genWeight);
+    Hist->hTwoID3       ->Fill(leptonTwoID3                 ,eventWeight*genWeight);
+    double relIso2 = leptonTwoIso/ leptonTwoP4->Pt();
+    Hist->hTwoRelIso    ->Fill(relIso2                      ,eventWeight*genWeight);
+    Hist->hTwoFlavor    ->Fill(fabs(leptonTwoFlavor)        ,eventWeight*genWeight);
+    Hist->hTwoQ         ->Fill(leptonTwoFlavor < 0 ? -1 : 1 ,eventWeight*genWeight);
   }
-  Hist->hTwoP         ->Fill(leptonTwoP4->P()             ,eventWeight*genWeight);
-  Hist->hTwoM         ->Fill(leptonTwoP4->M()             ,eventWeight*genWeight);
-  Hist->hTwoEta       ->Fill(leptonTwoP4->Eta()           ,eventWeight*genWeight);
-  Hist->hTwoPhi       ->Fill(leptonTwoP4->Phi()           ,eventWeight*genWeight);
-  Hist->hTwoD0        ->Fill(leptonTwoD0                  ,eventWeight*genWeight);
-  Hist->hTwoIso       ->Fill(leptonTwoIso                 ,eventWeight*genWeight);
-  Hist->hTwoID1       ->Fill(leptonTwoID1                 ,eventWeight*genWeight);
-  Hist->hTwoID2       ->Fill(leptonTwoID2                 ,eventWeight*genWeight);
-  Hist->hTwoID3       ->Fill(leptonTwoID3                 ,eventWeight*genWeight);
-  double relIso2 = leptonTwoIso/ leptonTwoP4->Pt();
-  Hist->hTwoRelIso    ->Fill(relIso2                      ,eventWeight*genWeight);
-  Hist->hTwoFlavor    ->Fill(fabs(leptonTwoFlavor)        ,eventWeight*genWeight);
-  Hist->hTwoQ         ->Fill(leptonTwoFlavor < 0 ? -1 : 1 ,eventWeight*genWeight);
   Hist->hTwoTrigger   ->Fill(leptonTwoFired               ,eventWeight*genWeight);
-  Hist->hTwoWeight    ->Fill(leptonTwoWeight1*leptonTwoWeight2,eventWeight*genWeight);
-  Hist->hTwoTrigWeight->Fill(leptonTwoTrigWeight          ,eventWeight*genWeight);
+  offset_1 = 0; offset_2 = 0;
+  if(abs(leptonTwoFlavor) == 11) {
+    offset_1 = SystematicGrouping::kElectronID;
+    offset_2 = SystematicGrouping::kElectronRecoID;
+  } else if(abs(leptonTwoFlavor) == 13) {
+    offset_1 = SystematicGrouping::kMuonID;
+    offset_2 = SystematicGrouping::kMuonIsoID;
+  }
+  Hist->hTwoWeight1Group->Fill(leptonOneWeight1_group - offset_1     ,eventWeight*genWeight);
+  Hist->hTwoWeight2Group->Fill(leptonOneWeight2_group - offset_2     ,eventWeight*genWeight);
+  Hist->hTwoWeight1Group->Fill(leptonTwoWeight1_group     ,eventWeight*genWeight);
+  Hist->hTwoWeight2Group->Fill(leptonTwoWeight2_group     ,eventWeight*genWeight);
+  if(fDoSystematics >= 0) {
+    Hist->hTwoWeight    ->Fill(leptonTwoWeight1*leptonTwoWeight2,eventWeight*genWeight);
+    Hist->hTwoTrigWeight->Fill(leptonTwoTrigWeight          ,eventWeight*genWeight);
 
-  double twoMetDelPhi  = abs(leptonTwoP4->Phi() - metPhi);
-  if(twoMetDelPhi > M_PI)
-    twoMetDelPhi = abs(2.*M_PI - twoMetDelPhi);
-  Hist->hTwoMetDeltaPhi   ->Fill(twoMetDelPhi   ,eventWeight*genWeight);
+    double twoMetDelPhi  = abs(leptonTwoP4->Phi() - metPhi);
+    if(twoMetDelPhi > M_PI)
+      twoMetDelPhi = abs(2.*M_PI - twoMetDelPhi);
+    Hist->hTwoMetDeltaPhi   ->Fill(twoMetDelPhi   ,eventWeight*genWeight);
 
-  Hist->hPtDiff      ->Fill(leptonOneP4->Pt()-leptonTwoP4->Pt() ,eventWeight*genWeight);
-  Hist->hD0Diff      ->Fill(leptonTwoD0-leptonOneD0             ,eventWeight*genWeight);
-  Hist->hTwoPtVsOnePt->Fill(leptonOneP4->Pt(), leptonTwoP4->Pt(),eventWeight*genWeight);
+    Hist->hPtDiff      ->Fill(leptonOneP4->Pt()-leptonTwoP4->Pt() ,eventWeight*genWeight);
+    Hist->hD0Diff      ->Fill(leptonTwoD0-leptonOneD0             ,eventWeight*genWeight);
+    Hist->hTwoPtVsOnePt->Fill(leptonOneP4->Pt(), leptonTwoP4->Pt(),eventWeight*genWeight);
+  }
 }
 
 void ZTauTauHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
@@ -1589,7 +1608,51 @@ void ZTauTauHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
     else if  (sys == 28) weight *= jetToTauWeightCorrUp     / jetToTauWeightCorr   ; //Jet --> tau weight pT corrections
     else if  (sys == 29) weight *= jetToTauWeightCorrDown   / jetToTauWeightCorr   ;
     else if  (sys == 30) weight *= jetToTauWeightCorrSys    / jetToTauWeightCorr   ;
-    else continue; //no need to fill undefined systematics
+    else if  (sys >= SystematicGrouping::kJetToTau && sys < 100) { //Jet --> tau systematic groupings
+      int js = SystematicGrouping::kJetToTau;
+      if(2*(jetToTauWeightGroup) - js     == sys) weight *= jetToTauWeightUp   / jetToTauWeight;
+      if(2*(jetToTauWeightGroup) - js + 1 == sys) weight *= jetToTauWeightDown / jetToTauWeight;
+    } else if  (sys >= SystematicGrouping::kMuonID && sys < 150) { //Muon ID
+      int offset = SystematicGrouping::kMuonID;
+      if(abs(leptonOneFlavor) == 13) {
+        if(2*(leptonOneWeight1_group) - offset     == sys) weight *= leptonOneWeight1_up   / leptonOneWeight1;
+        if(2*(leptonOneWeight1_group) - offset + 1 == sys) weight *= leptonOneWeight1_down / leptonOneWeight1;
+      }
+      if(abs(leptonTwoFlavor) == 13) {
+        if(2*(leptonTwoWeight1_group) - offset     == sys) weight *= leptonTwoWeight1_up   / leptonTwoWeight1;
+        if(2*(leptonTwoWeight1_group) - offset + 1 == sys) weight *= leptonTwoWeight1_down / leptonTwoWeight1;
+      }
+    } else if  (sys >= SystematicGrouping::kMuonIsoID && sys < 200) { //Muon ID
+      int offset = SystematicGrouping::kMuonIsoID;
+      if(abs(leptonOneFlavor) == 13) {
+        if(2*(leptonOneWeight2_group) - offset     == sys) weight *= leptonOneWeight2_up   / leptonOneWeight2;
+        if(2*(leptonOneWeight2_group) - offset + 1 == sys) weight *= leptonOneWeight2_down / leptonOneWeight2;
+      }
+      if(abs(leptonTwoFlavor) == 13) {
+        if(2*(leptonTwoWeight2_group) - offset     == sys) weight *= leptonTwoWeight2_up   / leptonTwoWeight2;
+        if(2*(leptonTwoWeight2_group) - offset + 1 == sys) weight *= leptonTwoWeight2_down / leptonTwoWeight2;
+      }
+    } else if  (sys >= SystematicGrouping::kElectronID && sys < 250) { //Electron ID
+      int offset = SystematicGrouping::kElectronID;
+      if(abs(leptonOneFlavor) == 11) {
+        if(2*(leptonOneWeight1_group) - offset     == sys) weight *= leptonOneWeight1_up   / leptonOneWeight1;
+        if(2*(leptonOneWeight1_group) - offset + 1 == sys) weight *= leptonOneWeight1_down / leptonOneWeight1;
+      }
+      if(abs(leptonTwoFlavor) == 11) {
+        if(2*(leptonTwoWeight1_group) - offset     == sys) weight *= leptonTwoWeight1_up   / leptonTwoWeight1;
+        if(2*(leptonTwoWeight1_group) - offset + 1 == sys) weight *= leptonTwoWeight1_down / leptonTwoWeight1;
+      }
+    } else if  (sys >= SystematicGrouping::kElectronRecoID && sys < 300) { //Electron Reco ID
+      int offset = SystematicGrouping::kElectronRecoID;
+      if(abs(leptonOneFlavor) == 11) {
+        if(2*(leptonOneWeight2_group) - offset     == sys) weight *= leptonOneWeight2_up   / leptonOneWeight2;
+        if(2*(leptonOneWeight2_group) - offset + 1 == sys) weight *= leptonOneWeight2_down / leptonOneWeight2;
+      }
+      if(abs(leptonTwoFlavor) == 11) {
+        if(2*(leptonTwoWeight2_group) - offset     == sys) weight *= leptonTwoWeight2_up   / leptonTwoWeight2;
+        if(2*(leptonTwoWeight2_group) - offset + 1 == sys) weight *= leptonTwoWeight2_down / leptonTwoWeight2;
+      }
+    } else continue; //no need to fill undefined systematics
 
     if(std::isnan(weight)) {
       std::cout << "ZTauTauHistMaker::" << __func__ << ": Entry " << fentry << " Systematic " << sys << " weight is NaN! event weight = "
@@ -1721,7 +1784,7 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   }
 
   //b-tag weights
-  if(fRemoveBTagWeights > 0 && btagWeight > 0.) {
+  if(fRemoveBTagWeights > 0 && btagWeight > 0. && !fIsData) {
     eventWeight /= btagWeight;
     if(fVerbose > 0) std::cout << "btag weight originally: " << btagWeight << std::endl;
     if(fRemoveBTagWeights > 1) { //replace the weights
@@ -1734,7 +1797,7 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   }
 
   //pileup weights
-  if(fRemovePUWeights > 0 && puWeight > 0.) {
+  if(fRemovePUWeights > 0 && puWeight > 0. && !fIsData) {
     eventWeight /= puWeight;
     //replace weight
     if(fRemovePUWeights > 1) {
@@ -1743,6 +1806,13 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
     } else
       puWeight = 1.;
   }
+
+  //jet PU ID weight
+  jetPUIDWeight = 1.;
+  if(fUseJetPUIDWeights > 0 && !fIsData) {
+    jetPUIDWeight = fJetPUWeight.GetWeight(fYear, nJets20, jetsPt, jetsEta, nJets20Rej, jetsRejPt, jetsRejEta);
+  }
+  eventWeight *= jetPUIDWeight;
 
   // DY z pT weights
   if(!fIsDY) {zPtWeight = 1.; zPtWeightUp = 1.; zPtWeightDown = 1.; zPtWeightSys = 1.;}
@@ -1765,7 +1835,7 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
 
 
   //No weights in data
-  if(fIsData) { eventWeight = 1.; puWeight = 1.; genWeight = 1.; zPtWeight = 1.; genTauFlavorWeight = 1.; }
+  if(fIsData) { eventWeight = 1.; puWeight = 1.; genWeight = 1.; zPtWeight = 1.; genTauFlavorWeight = 1.; jetPUIDWeight = 1.; btagWeight = 1.;}
 
 
   //Initialize systematic variation weights
@@ -1913,6 +1983,9 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   ee    = ee    && ((electron->Pt() > electron_trig_pt && electron_2->Pt() > electron_pt) ||
                     (electron->Pt() > electron_pt && electron_2->Pt() > electron_trig_pt));
 
+  mumu &= nMuons     == 2;
+  ee   &= nElectrons == 2;
+
   ////////////////////////////////////////////////////////////
   // Set 2 + selection offset: object pT cuts
   ////////////////////////////////////////////////////////////
@@ -1992,8 +2065,8 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   ////////////////////////////////////////////////////////////
   // Set 34 + selection offset: High pT lepton one region
   ////////////////////////////////////////////////////////////
-  if((!fDYTesting || mutau || etau) && fTreeVars.leponept > 60.)
-    FillAllHistograms(set_offset + 34);
+  // if((!fDYTesting || mutau || etau) && fTreeVars.leponept > 60.)
+  //   FillAllHistograms(set_offset + 34);
 
   //////////////////////////////////////////////////////////////
   //
@@ -2005,31 +2078,31 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   ////////////////////////////////////////////////////////////////////////////
   // Set 29 + selection offset: Z mass + Jets selection
   ////////////////////////////////////////////////////////////////////////////
-  bool isZRegion = mll > 70. && mll < 110. && nJets > 0;
-  if(ee || etau || emu) isZRegion &= electron->Pt() > 28.;
-  if(mumu || mutau || emu) isZRegion &= muon->Pt() > 25.;
-  if(mumu) isZRegion &= muon_2->Pt() > 25.;
-  if(ee) isZRegion &= electron_2->Pt() > 28.;
-  if(isZRegion&&(fDYFakeTauTesting || !fDYTesting))
-    FillAllHistograms(set_offset + 29);
+  // bool isZRegion = mll > 70. && mll < 110. && nJets > 0;
+  // if(ee || etau || emu) isZRegion &= electron->Pt() > 28.;
+  // if(mumu || mutau || emu) isZRegion &= muon->Pt() > 25.;
+  // if(mumu) isZRegion &= muon_2->Pt() > 25.;
+  // if(ee) isZRegion &= electron_2->Pt() > 28.;
+  // if(isZRegion&&(fDYFakeTauTesting || !fDYTesting))
+  //   FillAllHistograms(set_offset + 29);
 
-  if(fDYFakeTauTesting&&!fQCDFakeTauTesting&&!fWJFakeTauTesting&&!fTTFakeTauTesting) return kTRUE;
+  // if(fDYFakeTauTesting&&!fQCDFakeTauTesting&&!fWJFakeTauTesting&&!fTTFakeTauTesting) return kTRUE;
 
   ////////////////////////////////////////////////////////////////////////////
   // Set 30 + selection offset: QCD selection
   ////////////////////////////////////////////////////////////////////////////
-  if((fQCDFakeTauTesting || !fDYTesting)&&(etau || (mutau /*&& leptonOneIso/fTreeVars.leponept > 0.05*/)) && fTreeVars.mtlep < 40.)
-    FillAllHistograms(set_offset + 30);
+  // if((fQCDFakeTauTesting || !fDYTesting)&&(etau || (mutau /*&& leptonOneIso/fTreeVars.leponept > 0.05*/)) && fTreeVars.mtlep < 40.)
+  //   FillAllHistograms(set_offset + 30);
 
-  if(fQCDFakeTauTesting&&!fWJFakeTauTesting&&!fTTFakeTauTesting) return kTRUE;
+  // if(fQCDFakeTauTesting&&!fWJFakeTauTesting&&!fTTFakeTauTesting) return kTRUE;
 
   ////////////////////////////////////////////////////////////////////////////
   // Set 31 + selection offset: W+Jets selection
   ////////////////////////////////////////////////////////////////////////////
-  if((fWJFakeTauTesting || !fDYTesting)&&(etau || mutau) && fTreeVars.mtlep > 70.)
-    FillAllHistograms(set_offset + 31);
+  // if((fWJFakeTauTesting || !fDYTesting)&&(etau || mutau) && fTreeVars.mtlep > 70.)
+  //   FillAllHistograms(set_offset + 31);
 
-  if(fWJFakeTauTesting&&!fTTFakeTauTesting) return kTRUE;
+  // if(fWJFakeTauTesting&&!fTTFakeTauTesting) return kTRUE;
 
 
   //configure bjet counting based on selection
@@ -2058,10 +2131,10 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   ////////////////////////////////////////////////////////////////////////////
   // Set 32 + selection offset: ttbar selection
   ////////////////////////////////////////////////////////////////////////////
-  if((fTTFakeTauTesting || !fDYTesting) && (etau || mutau) && nBJetsUse > 0)
-    FillAllHistograms(set_offset + 32);
+  // if((fTTFakeTauTesting || !fDYTesting) && (etau || mutau) && nBJetsUse > 0)
+  //   FillAllHistograms(set_offset + 32);
 
-  if(fTTFakeTauTesting) return kTRUE;
+  // if(fTTFakeTauTesting) return kTRUE;
 
   //////////////////////////
   // Handle loose leptons //
@@ -2076,7 +2149,7 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   // Set 35 + selection offset: last set with MC estimated taus
   ////////////////////////////////////////////////////////////
 
-  if(!fDYTesting || !(mumu || ee)) {
+  if(!fDYTesting/* || !(mumu || ee)*/) {
     FillAllHistograms(set_offset + 35);
   }
 
@@ -2106,20 +2179,22 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   /////////////////////////
 
   //weigh anti-iso tau region by anti-iso --> tight iso weight
-  jetToTauWeight = 1.; jetToTauWeightUp = 1.; jetToTauWeightDown = 1.; jetToTauWeightSys = 1.;
+  jetToTauWeight = 1.; jetToTauWeightUp = 1.; jetToTauWeightDown = 1.; jetToTauWeightSys = 1.; jetToTauWeightGroup = 0;
   jetToTauWeightCorr = 1.; jetToTauWeightCorrUp = 1.; jetToTauWeightCorrDown = 1.; jetToTauWeightCorrSys = 1.;
   if(mutau && isLooseTau) {
     //use data factor for MC and Data, since not using MC estimated fake tau rates
     jetToTauWeight = fMuonJetToTauWeight.GetDataFactor(tauDecayMode, fYear, tau->Pt(), tau->Eta(), muon->Pt(),
-                                                       jetToTauWeightUp, jetToTauWeightDown, jetToTauWeightSys,
+                                                       jetToTauWeightUp, jetToTauWeightDown, jetToTauWeightSys, jetToTauWeightGroup,
                                                        jetToTauWeightCorr, jetToTauWeightCorrUp, jetToTauWeightCorrDown,
                                                        jetToTauWeightCorrSys);
+    jetToTauWeightGroup += SystematicGrouping::kJetToTau;
   } else if(etau && isLooseTau) {
     //use data factor for MC and Data, since not using MC estimated fake tau rates
     jetToTauWeight = fElectronJetToTauWeight.GetDataFactor(tauDecayMode, fYear, tau->Pt(), tau->Eta(), electron->Pt(),
-                                                           jetToTauWeightUp, jetToTauWeightDown, jetToTauWeightSys,
+                                                           jetToTauWeightUp, jetToTauWeightDown, jetToTauWeightSys, jetToTauWeightGroup,
                                                            jetToTauWeightCorr, jetToTauWeightCorrUp, jetToTauWeightCorrDown,
                                                            jetToTauWeightCorrSys);
+    jetToTauWeightGroup += SystematicGrouping::kJetToTau;
   }
 
   eventWeight *= jetToTauWeight*jetToTauWeightCorr;
@@ -2160,8 +2235,8 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   ////////////////////////////////////////////////////////////
   // Set 7 + selection offset: No MC estimated fake taus
   ////////////////////////////////////////////////////////////
-
-  FillAllHistograms(set_offset + 7);
+  if(fDoSystematics >= 0)
+    FillAllHistograms(set_offset + 7);
 
   if(fCutFlowTesting) return kTRUE;
 
@@ -2183,8 +2258,8 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   ////////////////////////////////////////////////////////////
   // Set 36 + selection offset: High pT lepton one region
   ////////////////////////////////////////////////////////////
-  if((!fDYTesting || mutau || etau) && fTreeVars.leponept > 60.)
-    FillAllHistograms(set_offset + 36);
+  // if((!fDYTesting || mutau || etau) && fTreeVars.leponept > 60.)
+  //   FillAllHistograms(set_offset + 36);
 
   //flags for top backgrounds
   bool mutau_top = mutau && nBJetsUse > 0;
@@ -2208,7 +2283,23 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   if(!is_top)
     FillAllHistograms(set_offset + 8);
 
+  ////////////////////////////////////////////////////////////////////////////
+  // Set 45-46 + selection offset: Tau eta region categories
+  ////////////////////////////////////////////////////////////////////////////
+  if((emu || ((mutau || etau) && fabs(tau->Eta()) < 1.5)) && !is_top) //no tau in emu, put all with barrel category
+    FillAllHistograms(set_offset + 45);
+  else if((mutau || etau) && fabs(tau->Eta()) >= 1.5 && !is_top)
+    FillAllHistograms(set_offset + 46);
+
   if(fDYTesting) return kTRUE;
+
+  ////////////////////////////////////////////////////////////////////////////
+  // Set 22-23 + selection offset: Jet categories 0, > 0
+  ////////////////////////////////////////////////////////////////////////////
+  if((mutau || etau || emu || mumu || ee) && nJets == 0 && !is_top)
+    FillAllHistograms(set_offset + 22);
+  else if((mutau || etau || emu || mumu || ee) && nJets > 0 && !is_top)
+    FillAllHistograms(set_offset + 23);
 
 
   ////////////////////////////////////////////////////////////////////////////
@@ -2276,20 +2367,12 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   //z ids
   // if(mutau && fEventId[0] && fEventId[0]->IDWord(fTreeVars) == 0)   FillAllHistograms(set_offset + 20);
   // if(etau && fEventId[10] && fEventId[10]->IDWord(fTreeVars) == 0)  FillAllHistograms(set_offset + 20);
-  if(emu && fEventId[20] && fEventId[20]->IDWord(fTreeVars) == 0)   FillAllHistograms(set_offset + 20);
-  if(mumu && fEventId[20] && fEventId[20]->IDWord(fTreeVars) == 0)  FillAllHistograms(set_offset + 20);
-  if(ee && fEventId[20] && fEventId[20]->IDWord(fTreeVars) == 0)    FillAllHistograms(set_offset + 20);
-  //higgs ids
-  if(emu && fEventId[50] && fEventId[50]->IDWord(fTreeVars) == 0)   FillAllHistograms(set_offset + 21);
+  // if(emu && fEventId[20] && fEventId[20]->IDWord(fTreeVars) == 0)   FillAllHistograms(set_offset + 20);
+  // if(mumu && fEventId[20] && fEventId[20]->IDWord(fTreeVars) == 0)  FillAllHistograms(set_offset + 20);
+  // if(ee && fEventId[20] && fEventId[20]->IDWord(fTreeVars) == 0)    FillAllHistograms(set_offset + 20);
+  // //higgs ids
+  // if(emu && fEventId[50] && fEventId[50]->IDWord(fTreeVars) == 0)   FillAllHistograms(set_offset + 21);
 
-
-  ////////////////////////////////////////////////////////////////////////////
-  // Set 22-23 + selection offset: Jet categories 0, > 0
-  ////////////////////////////////////////////////////////////////////////////
-  if((mutau || etau || emu || mumu || ee) && nJets == 0)
-    FillAllHistograms(set_offset + 22);
-  else if((mutau || etau || emu || mumu || ee) && nJets > 0)
-    FillAllHistograms(set_offset + 23);
 
   ////////////////////////////////////////////////////////////////////////////
   // Set 24-25 : Mass window sets
@@ -2321,10 +2404,10 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   ////////////////////////////////////////////////////////////////////////////
   // Set 28 + selection offset: Non-jet based hadronic taus
   ////////////////////////////////////////////////////////////////////////////
-  bool nonJetTau = fIsData != 0 || abs(tauGenFlavor) != 26;
-  nonJetTau &= mutau || etau;
-  if(nonJetTau)
-    FillAllHistograms(set_offset + 28);
+  // bool nonJetTau = fIsData != 0 || abs(tauGenFlavor) != 26;
+  // nonJetTau &= mutau || etau;
+  // if(nonJetTau)
+  //   FillAllHistograms(set_offset + 28);
 
 
   return kTRUE;
@@ -2473,12 +2556,18 @@ int ZTauTauHistMaker::Category(TString selection) {
 
 //initialize the randomly assigned systematic shifts
 void ZTauTauHistMaker::InitializeSystematics() {
+  leptonOneWeight1_group = 0; leptonOneWeight2_group = 0;
+  leptonTwoWeight1_group = 0; leptonTwoWeight2_group = 0;
   if(abs(leptonOneFlavor) == 11) {
     leptonOneWeight1_sys = fSystematicShifts->ElectronID    (fYear, leptonOneWeight1_bin) ? leptonOneWeight1_up : leptonOneWeight1_down;
     leptonOneWeight2_sys = fSystematicShifts->ElectronRecoID(fYear, leptonOneWeight2_bin) ? leptonOneWeight2_up : leptonOneWeight2_down;
+    leptonOneWeight1_group = fElectronIDWeight.GetIDGroup(leptonOneWeight1_bin, fYear) + SystematicGrouping::kElectronID;
+    leptonOneWeight2_group = fElectronIDWeight.GetRecoGroup(leptonOneWeight2_bin, fYear) + SystematicGrouping::kElectronRecoID;
   } else if(abs(leptonOneFlavor) == 13) {
     leptonOneWeight1_sys = fSystematicShifts->MuonID   (fYear, leptonOneWeight1_bin) ? leptonOneWeight1_up : leptonOneWeight1_down;
     leptonOneWeight2_sys = fSystematicShifts->MuonIsoID(fYear, leptonOneWeight2_bin) ? leptonOneWeight2_up : leptonOneWeight2_down;
+    leptonOneWeight1_group = fMuonIDWeight.GetIDGroup(leptonOneWeight1_bin, fYear) + SystematicGrouping::kMuonID;
+    leptonOneWeight2_group = fMuonIDWeight.GetIsoGroup(leptonOneWeight2_bin, fYear) + SystematicGrouping::kMuonIsoID;
   } else if(abs(leptonOneFlavor) == 15) {
     int tauGenID = 0;
     if     (abs(tauGenFlavor) == 15) tauGenID = 5;
@@ -2490,9 +2579,13 @@ void ZTauTauHistMaker::InitializeSystematics() {
   if(abs(leptonTwoFlavor) == 11) {
     leptonTwoWeight1_sys = fSystematicShifts->ElectronID    (fYear, leptonTwoWeight1_bin) ? leptonTwoWeight1_up : leptonTwoWeight1_down;
     leptonTwoWeight2_sys = fSystematicShifts->ElectronRecoID(fYear, leptonTwoWeight2_bin) ? leptonTwoWeight2_up : leptonTwoWeight2_down;
+    leptonTwoWeight1_group = fElectronIDWeight.GetIDGroup(leptonTwoWeight1_bin, fYear) + SystematicGrouping::kElectronID;
+    leptonTwoWeight2_group = fElectronIDWeight.GetRecoGroup(leptonTwoWeight2_bin, fYear) + SystematicGrouping::kElectronRecoID;
   } else if(abs(leptonTwoFlavor) == 13) {
     leptonTwoWeight1_sys = fSystematicShifts->MuonID   (fYear, leptonTwoWeight1_bin) ? leptonTwoWeight1_up : leptonTwoWeight1_down;
     leptonTwoWeight2_sys = fSystematicShifts->MuonIsoID(fYear, leptonTwoWeight2_bin) ? leptonTwoWeight2_up : leptonTwoWeight2_down;
+    leptonTwoWeight1_group = fMuonIDWeight.GetIDGroup(leptonOneWeight1_bin, fYear) + SystematicGrouping::kMuonID;
+    leptonTwoWeight2_group = fMuonIDWeight.GetIsoGroup(leptonOneWeight2_bin, fYear) + SystematicGrouping::kMuonIsoID;
   } else if(abs(leptonTwoFlavor) == 15) {
     int tauGenID = 0;
     if     (abs(tauGenFlavor) == 15) tauGenID = 5;

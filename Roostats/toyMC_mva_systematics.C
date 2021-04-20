@@ -131,6 +131,7 @@ int toyMC_mva_systematics(int set = 8, TString selection = "zmutau",
 
       //add the signal to the background data, to fit the total
       bkg_mva_gen->add(*sig_mva_gen);
+      delete sig_mva_gen;
       if(ifit == 0) bkg_mva_gen->Print();
 
       //store the resulting data in the category map
@@ -154,7 +155,7 @@ int toyMC_mva_systematics(int set = 8, TString selection = "zmutau",
 
     //perform the fit
     if(ifit % 10 == 0) cout << "Performing fit " << ifit << endl;
-    fit_PDF->fitTo(combined_data, RooFit::Extended(1)/*, RooFit::Constrain(br_sig_constr)*/);
+    fit_PDF->fitTo(combined_data, RooFit::PrintLevel(-1), RooFit::Warnings(0), RooFit::PrintEvalErrors(-1));
     if(ifit == 0) {
       cout << "Finished the fit!\n";
       br_sig->Print();
@@ -177,7 +178,7 @@ int toyMC_mva_systematics(int set = 8, TString selection = "zmutau",
     //print an example fit
     if(ifit == 0 && print) {
       for(unsigned i = 0; i < n_bkgs.size(); ++i) {
-        auto xframe = mva->frame(50);
+        auto xframe = mva->frame(-0.8, 0.5);
         combined_data.plotOn(xframe, RooFit::Cut(Form("%s==%i",selection.Data(),i)));
         fit_PDF->plotOn(xframe, RooFit::Components(Form("sigMVAPDF_%i", i)),
                         RooFit::Slice(*categories, Form("%s_%i", selection.Data(),i)), RooFit::ProjWData(combined_data));
@@ -198,6 +199,9 @@ int toyMC_mva_systematics(int set = 8, TString selection = "zmutau",
           c1->SaveAs(Form("plots/latest_production/%s/toyMC_mva_systematics_self_cat_%i_%s_%i_log.png", year_string.Data(), i, selection.Data(), set));
         else
           c1->SaveAs(Form("plots/latest_production/%s/toyMC_mva_systematics_%i_cat_%i_%s_%i_log.png", year_string.Data(), systematic, i, selection.Data(), set));
+        delete xframe;
+        delete leg;
+        delete c1;
       }
     }
 

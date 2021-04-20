@@ -119,6 +119,8 @@ public :
   TLorentzVector* photonP4 = 0       ;
   TLorentzVector* jetP4 = 0          ;
   TLorentzVector* tauP4 = 0          ;
+  Int_t    jetIDOut                  ;
+  Int_t    jetPUIDOut                ;
   Float_t  photonIDWeight = 1.       ;
   Int_t tauFlavor                    ;
   Float_t taudxyOut = 0.             ;
@@ -138,6 +140,7 @@ public :
   SlimPhotons_t slimPhotons          ;
   UInt_t nJets     = 0               ;
   UInt_t nJets20   = 0               ;
+  UInt_t nJets20Rej = 0              ;
   UInt_t nFwdJets  = 0               ;
   UInt_t nBJets       = 0            ;
   UInt_t nBJetsM      = 0            ;
@@ -200,6 +203,8 @@ public :
   Float_t jetsEta[kMaxParticles]     ;
   Int_t   jetsFlavor[kMaxParticles]  ;
   Int_t   jetsBTag[kMaxParticles]    ;
+  Float_t jetsRejPt[kMaxParticles]   ; //rejected by PU ID jet information for PU ID scale factors
+  Float_t jetsRejEta[kMaxParticles]  ;
   //Info for fake tau studies
   Float_t tausPt[kMaxParticles]      ;
   Float_t tausEta[kMaxParticles]     ;
@@ -402,7 +407,11 @@ public :
     if(ID == 5) return 15;
     return 26; //unknown
   }
-  virtual int      GetTriggerMatch(UInt_t index, bool isMuon);
+  virtual int      GetTriggerMatch(UInt_t index, bool isMuon, Int_t& trigIndex);
+  int      GetTriggerMatch(UInt_t index, bool isMuon) {
+    int tmp;
+    return GetTriggerMatch(index, isMuon, tmp);
+  }
 
   Long64_t fentry; //for tracking entry in functions
   //Define relevant fields

@@ -74,6 +74,6 @@ int toyMC_fits(int set, vector<int> years, int nfits = 1000, bool print = true) 
   canvas->cd(1);
   brval_frame->Draw();
   if(print)
-    canvas->SaveAs(Form("plots/latest_production/%s/plot_toyMC_fits_%i.pdf", year_string.Data(), set));
+    canvas->SaveAs(Form("plots/latest_production/%s/plot_toyMC_fits_%i.png", year_string.Data(), set));
   return status;
 }

@@ -1,14 +1,16 @@
 //Script to calculate the 95% UL for e+mu resonance
-bool doConstraints_ = true;
+bool doConstraints_ = false;
 bool fixBkgParams_ = false;
 bool useBinnedBkgFit_ = true;
+bool doBlind_ = true; //use nominal Asimov data for limit calculator
 int  single_cat_ = -1; //category to do the limit for
 
-Int_t calculate_UL_MVA_categories(int set = 8, TString selection = "zmutau",
+Int_t calculate_UL_MVA_categories(vector<int> sets = {8}, TString selection = "zmutau",
                                   vector<int> years = {2016, 2017, 2018},
                                   bool useToyData = false) {
 
   int n_categories = (selection.Contains("emu")) ? 1 : 2;
+  n_categories *= sets.size();
 
   //construct needed signal names
   // TString selec = selection; selec.ReplaceAll("z", ""); selec.ReplaceAll("h", "");
@@ -23,8 +25,15 @@ Int_t calculate_UL_MVA_categories(int set = 8, TString selection = "zmutau",
     year_string += year;
   }
 
+  //do the same for the set list
+  TString set_str = "";
+  for(int set : sets) {
+    if(set_str == "") set_str += set;
+    else {set_str += "_"; set_str += set;}
+  }
+
   //get the workspace from the previous stage
-  TFile* fInput = TFile::Open(Form("workspaces/hist_background_mva_%s_%s_%i.root", selection.Data(), year_string.Data(), set), "READ");
+  TFile* fInput = TFile::Open(Form("workspaces/hist_background_mva_%s_%s_%s.root", selection.Data(), year_string.Data(), set_str.Data()), "READ");
   if(!fInput) return 1;
   fInput->cd();
   RooWorkspace* ws = (RooWorkspace*) fInput->Get("ws");
@@ -87,7 +96,7 @@ Int_t calculate_UL_MVA_categories(int set = 8, TString selection = "zmutau",
   bModel->SetSnapshot(poi_list);
   ((RooRealVar*) poi_list.find("br_sig"))->setVal(oldval);
 
-  RooStats::AsymptoticCalculator fc(*data, *bModel, model);
+  RooStats::AsymptoticCalculator fc(*data, *bModel, model, doBlind_);
   fc.SetOneSided(1);
   //create a hypotest inverter passing the desired calculator
   RooStats::HypoTestInverter calc(fc);
@@ -170,7 +179,7 @@ Int_t calculate_UL_MVA_categories(int set = 8, TString selection = "zmutau",
                        year_string.Data(), selection.Data());
   if(doConstraints_) cname += "_constr";
   cname +="_";
-  cname += set;
+  cname += set_str.Data();
   if(single_cat_ >= 0) cname += Form("_cat_%i", single_cat_);
   cname += ".png";
   canvas->SaveAs(cname.Data());

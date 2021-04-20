@@ -20,6 +20,8 @@ struct LepHist_t {
   TH1D* hOneQ;
   TH1D* hOneTrigger;
   TH1D* hOneWeight;
+  TH1D* hOneWeight1Group;
+  TH1D* hOneWeight2Group;
   TH1D* hOneTrigWeight;
   //Gen Info
   TH1D* hOneGenPt;
@@ -67,6 +69,8 @@ struct LepHist_t {
   TH1D* hTwoQ;
   TH1D* hTwoTrigger;
   TH1D* hTwoWeight;
+  TH1D* hTwoWeight1Group;
+  TH1D* hTwoWeight2Group;
   TH1D* hTwoTrigWeight;
   //Gen Info
   TH1D* hTwoGenPt;

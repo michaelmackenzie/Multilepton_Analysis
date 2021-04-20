@@ -36,7 +36,7 @@ Int_t compare_signal_pdfs(int set = 8, vector<int> years = {2016, 2017, 2018}, T
   leg->AddEntry(xframe->findObject("sigpdf_Norm[lepm]"), "Fit PDF", "L");
   leg->Draw("same");
   gSystem->Exec(Form("[ ! -d plots/latest_production/%s ] && mkdir -p plots/latest_production/%s", year_string.Data(), year_string.Data()));
-  c1->SaveAs(Form("plots/latest_production/%s/compare_signal_pdfs_%s_%i.pdf", year_string.Data(), hist.Data(), set));
+  // c1->SaveAs(Form("plots/latest_production/%s/compare_signal_pdfs_%s_%i.pdf", year_string.Data(), hist.Data(), set));
   c1->SaveAs(Form("plots/latest_production/%s/compare_signal_pdfs_%s_%i.png", year_string.Data(), hist.Data(), set));
   
   return 0;

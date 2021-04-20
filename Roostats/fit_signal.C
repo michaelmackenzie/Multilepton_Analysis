@@ -2,7 +2,7 @@
 #include "DataInfo.C"
 
 Int_t fit_signal(int set = 8, vector<int> years = {2016, 2017, 2018},
-		 TString base = "../histograms/nanoaods_dev/", bool doHiggs = false) {
+                 TString base = "../histograms/nanoaods_dev/", bool doHiggs = false) {
 
   TString hist = "lepm";
   TString year_string = "";
@@ -93,7 +93,7 @@ Int_t fit_signal(int set = 8, vector<int> years = {2016, 2017, 2018},
   auto c1 = new TCanvas();
   xframe->Draw();
   gSystem->Exec(Form("[ ! -d plots/latest_production/%s ] && mkdir -p plots/latest_production/%s", year_string.Data(), year_string.Data()));
-  c1->SaveAs(Form("plots/latest_production/%s/fit_signal_%s_%s_%i.pdf", year_string.Data(), signalName.Data(), hist.Data(), set));
+  c1->SaveAs(Form("plots/latest_production/%s/fit_signal_%s_%s_%i.png", year_string.Data(), signalName.Data(), hist.Data(), set));
   TFile* fOut = new TFile(Form("workspaces/fit_signal_%s_%s_%s_%i.root", signalName.Data(), hist.Data(), year_string.Data(), set), "RECREATE");
   fOut->cd();
   RooWorkspace ws("ws");

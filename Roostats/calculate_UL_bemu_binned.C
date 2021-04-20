@@ -1,7 +1,7 @@
 //Script to calculate the 95% UL for e+mu resonance using binned fits
 bool doConstraints_ = false;
 
-Int_t calculate_UL_bemu_binned(int set = 8, TString selection = "zemu",
+Int_t calculate_UL_bemu_binned(vector<int> sets = {8}, TString selection = "zemu",
                                vector<int> years = {2016, 2017, 2018},
                                bool useToyData = false) {
   TString year_string = "";
@@ -10,34 +10,42 @@ Int_t calculate_UL_bemu_binned(int set = 8, TString selection = "zemu",
     if(i > 0) year_string += "_";
     year_string += year;
   }
+  TString set_str = "";
+  for(int set : sets) {
+    if(set_str == "") set_str += set;
+    else {set_str += "_"; set_str += set;}
+  }
   bool doHiggs = selection.Contains("h");
-  TFile* fInput = TFile::Open(Form("workspaces/fit_%s_lepm_background_binned_%s_%i.root", selection.Data(), year_string.Data(), set), "READ");
+  TFile* fInput = TFile::Open(Form("workspaces/fit_%s_lepm_background_binned_%s_%s.root", selection.Data(), year_string.Data(), set_str.Data()), "READ");
   if(!fInput) return 1;
   fInput->cd();
   RooWorkspace* ws = (RooWorkspace*) fInput->Get("ws");
+  if(!ws) {cout << "Workspace not found!\n"; return -1;}
   RooRealVar* br_sig = ws->var("br_sig");
   RooArgList poi_list(*br_sig);
   RooArgList obs_list(*(ws->var("lepm")));
-  RooDataSet* data = (RooDataSet*) ws->data((doHiggs) ? "bkgPDF_bst3Data" : "bkgPDF_bst4Data");
+  RooDataHist* data = (RooDataHist*) ws->data("combined_data");
   ws->Print();
   if(!data) { cout << "Toy data not found!\n"; return 2;}
-  auto data_binned = data->binnedClone("data_binned", "data_binned");
-
-  auto a_bkg = ws->var((doHiggs) ? "a_bst3" : "a_bst4");
-  auto b_bkg = ws->var((doHiggs) ? "b_bst3" : "b_bst4");
-  auto c_bkg = ws->var((doHiggs) ? "c_bst3" : "c_bst4");
-  auto d_bkg = ws->var((doHiggs) ? "d_bst3" : "d_bst4");
-  auto n_bkg = ws->var("n_bkg");
+  // auto data_binned = data->binnedClone("data_binned", "data_binned");
+  //loop through each category, getting nuisance parameters
   RooArgList nuisance_params;
-  nuisance_params.add(*a_bkg);
-  nuisance_params.add(*b_bkg);
-  nuisance_params.add(*c_bkg);
-  if(!doHiggs)
-    nuisance_params.add(*d_bkg);
-  nuisance_params.add(*n_bkg);
   if(doConstraints_)
     nuisance_params.add(*(ws->var("br_sig_beta")));
-
+  int index = 0;
+  for(int set : sets) {
+    auto a_bkg = ws->var((doHiggs) ? Form("a_bst3_%i", set) : Form("a_bst4_%i", set));
+    auto b_bkg = ws->var((doHiggs) ? Form("b_bst3_%i", set) : Form("b_bst4_%i", set));
+    auto c_bkg = ws->var((doHiggs) ? Form("c_bst3_%i", set) : Form("c_bst4_%i", set));
+    auto d_bkg = ws->var((doHiggs) ? Form("d_bst3_%i", set) : Form("d_bst4_%i", set));
+    auto n_bkg = ws->var(Form("n_bkg_%i", set));
+    nuisance_params.add(*a_bkg);
+    nuisance_params.add(*b_bkg);
+    nuisance_params.add(*c_bkg);
+    if(!doHiggs)
+      nuisance_params.add(*d_bkg);
+    nuisance_params.add(*n_bkg);
+  }
   RooArgList glb_list;
   if(doConstraints_) {
     glb_list.add(*(ws->var("br_sig_kappa")));
@@ -46,14 +54,14 @@ Int_t calculate_UL_bemu_binned(int set = 8, TString selection = "zemu",
   //Set the model and let it know about the workspace contents
   RooStats::ModelConfig model;
   model.SetWorkspace(*ws);
-  model.SetPdf((doConstraints_) ? "totPDF_constr" : "totPDF");
+  model.SetPdf("totPDF");
   model.SetParametersOfInterest(poi_list);
   model.SetObservables(obs_list);
   model.SetNuisanceParameters(nuisance_params);
   if(doConstraints_)
     model.SetGlobalObservables(glb_list);
   model.SetName("S+B Model");
-  model.SetProtoData(*data_binned);
+  model.SetProtoData(*data);
 
   auto bModel = model.Clone();
   bModel->SetName("B Model");
@@ -62,7 +70,7 @@ Int_t calculate_UL_bemu_binned(int set = 8, TString selection = "zemu",
   bModel->SetSnapshot(poi_list);
   ((RooRealVar*) poi_list.find("br_sig"))->setVal(oldval);
 
-  RooStats::AsymptoticCalculator fc(*data_binned, *bModel, model);
+  RooStats::AsymptoticCalculator fc(*data, *bModel, model);
   fc.SetOneSided(1);
   //create a hypotest inverter passing the desired calculator
   RooStats::HypoTestInverter calc(fc);
@@ -85,8 +93,8 @@ Int_t calculate_UL_bemu_binned(int set = 8, TString selection = "zemu",
   double poimin = ((RooRealVar*) poi_list.find("br_sig"))->getMin();
   double poimax = ((RooRealVar*) poi_list.find("br_sig"))->getMax();
 
-  double min_scan = (doHiggs) ? 5.e-7 : 5.e-11;
-  double max_scan = (doHiggs) ? 1.e-3 : 1.e-6;
+  double min_scan = (doHiggs) ? 5.e-7 : 1.e-9;
+  double max_scan = (doHiggs) ? 1.e-3 : 1.e-5;
   std::cout << "Doing a fixed scan in the interval: " << min_scan << ", "
             << max_scan << " with " << npoints << " points\n";
   calc.SetFixedScan(npoints, min_scan, max_scan);
@@ -137,55 +145,55 @@ Int_t calculate_UL_bemu_binned(int set = 8, TString selection = "zemu",
     label.DrawLatex(0.12, 0.26, Form("Observed 95%% CL = %.2e", upperLimit));
 
   gSystem->Exec(Form("[ ! -d plots/latest_production/%s ] && mkdir -p plots/latest_production/%s", year_string.Data(), year_string.Data()));
-  canvas->SaveAs(Form("plots/latest_production/%s/pval_vs_br_%s_binned_%i.png", year_string.Data(), selection.Data(), set));
+  canvas->SaveAs(Form("plots/latest_production/%s/pval_vs_br_%s_binned_%s.png", year_string.Data(), selection.Data(), set_str.Data()));
 
   cout << "Finished UL calculation, plotting dataset with expected UL...\n";
 
   //Plot background spectrum (with toy data) and signal with upper limit value
-  auto totPDF = (RooAddPdf*) ws->pdf("totPDF");
-  auto bkgPDF = (doHiggs) ? ws->pdf("bkgPDF_bst3") : ws->pdf("bkgPDF_bst4");
-  auto sigPDF = ws->pdf("morph_pdf_binned");
-  if(!sigPDF) sigPDF = ws->pdf("sigPDF");
-  auto n_sig = ws->function("n_sig");
-  auto eff = ws->function("eff_nominal");
-  auto lum = ws->var("lum_var");
-  auto zxs = ws->var("bxs_var");
-  auto lepm = ws->var("lepm");
-  auto br_sig_beta = ws->var("br_sig_beta");
-  auto br_sig_kappa = ws->var("br_sig_kappa");
-  auto xframe = lepm->frame(RooFit::Title("Background + Signal distributions at 95\% CLs limit"));
+  // auto totPDF = (RooAddPdf*) ws->pdf("totPDF");
+  // auto bkgPDF = (doHiggs) ? ws->pdf("bkgPDF_bst3") : ws->pdf("bkgPDF_bst4");
+  // auto sigPDF = ws->pdf("morph_pdf_binned");
+  // if(!sigPDF) sigPDF = ws->pdf("sigPDF");
+  // auto n_sig = ws->function("n_sig");
+  // auto eff = ws->function("eff_nominal");
+  // auto lum = ws->var("lum_var");
+  // auto zxs = ws->var("bxs_var");
+  // auto lepm = ws->var("lepm");
+  // auto br_sig_beta = ws->var("br_sig_beta");
+  // auto br_sig_kappa = ws->var("br_sig_kappa");
+  // auto xframe = lepm->frame(RooFit::Title("Background + Signal distributions at 95\% CLs limit"));
 
-  //set to expected upper limit
-  br_sig->setVal(expectedUL);
-  br_sig->setConstant(1);
-  cout << "Fitting dataset with branching ratio set to upper limit...\n";
-  totPDF->fitTo(*data);
-  data->plotOn(xframe);
+  // //set to expected upper limit
+  // br_sig->setVal(expectedUL);
+  // br_sig->setConstant(1);
+  // cout << "Fitting dataset with branching ratio set to upper limit...\n";
+  // totPDF->fitTo(*data);
+  // data->plotOn(xframe);
 
-  cout << "Plotting the PDFs...\n";
-  totPDF->plotOn(xframe);
-  totPDF->plotOn(xframe, RooFit::Components((doHiggs) ? "bkgPDF_bst3" : "bkgPDF_bst4"), RooFit::LineColor(kGreen-3), RooFit::LineStyle(kDashed));
-  totPDF->plotOn(xframe, RooFit::Components("sigPDF"), RooFit::LineColor(kRed), RooFit::LineStyle(kDashed));
-  TCanvas* cmass = new TCanvas();
-  xframe->Draw();
+  // cout << "Plotting the PDFs...\n";
+  // totPDF->plotOn(xframe);
+  // totPDF->plotOn(xframe, RooFit::Components((doHiggs) ? "bkgPDF_bst3" : "bkgPDF_bst4"), RooFit::LineColor(kGreen-3), RooFit::LineStyle(kDashed));
+  // totPDF->plotOn(xframe, RooFit::Components("sigPDF"), RooFit::LineColor(kRed), RooFit::LineStyle(kDashed));
+  // TCanvas* cmass = new TCanvas();
+  // xframe->Draw();
 
-  cmass->SaveAs(Form("plots/latest_production/%s/upperlimit_pdfs_%s_binned_%i.png", year_string.Data(), (doHiggs) ? "hemu" : "zemu", set));
-  cout << "Printing variable information...\n";
+  // cmass->SaveAs(Form("plots/latest_production/%s/upperlimit_pdfs_%s_binned_%i.png", year_string.Data(), (doHiggs) ? "hemu" : "zemu", set));
+  // cout << "Printing variable information...\n";
 
-  totPDF->Print();
-  bkgPDF->Print();
-  sigPDF->Print();
-  if(ws->pdf("sigpdf1")) ws->pdf("sigpdf1")->Print();
-  if(ws->pdf("sigpdf2")) ws->pdf("sigpdf2")->Print();
-  if(ws->var("fracsig")) ws->var("fracsig")->Print();
-  n_sig->Print();
-  br_sig->Print();
-  eff->Print();
-  if(lum)
-    lum->Print();
-  if(zxs)
-    zxs->Print();
-  n_bkg->Print();
+  // totPDF->Print();
+  // bkgPDF->Print();
+  // sigPDF->Print();
+  // if(ws->pdf("sigpdf1")) ws->pdf("sigpdf1")->Print();
+  // if(ws->pdf("sigpdf2")) ws->pdf("sigpdf2")->Print();
+  // if(ws->var("fracsig")) ws->var("fracsig")->Print();
+  // n_sig->Print();
+  // br_sig->Print();
+  // eff->Print();
+  // if(lum)
+  //   lum->Print();
+  // if(zxs)
+  //   zxs->Print();
+  // n_bkg->Print();
 
   return 0;
 }

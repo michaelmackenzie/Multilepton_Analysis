@@ -32,7 +32,7 @@ public:
       if(!mcHists_[2016]) std::cout << "Warning! No pileup histogram found for 2016 MC!\n";
       files_.push_back(f);
     }
-    
+
     ////////////////
     // 2017 files //
     ////////////////
@@ -75,7 +75,7 @@ public:
   }
 
   ~PUWeight() { for(unsigned i = 0; i < files_.size(); ++i) delete files_[i]; }
-  
+
   float GetWeight(float nint, int year) {
     float weight(1.), ndata(1.), nmc(1.);
     TH1F* hdata = dataHists_[year];
@@ -91,12 +91,11 @@ public:
     nmc   = hMC  ->GetBinContent(n);
     if(ndata > 0. && nmc > 0.) weight = ndata/nmc;
     if(weight > 3.) std::cout << "Warning in PUWeight::" << __func__ << ": weight = "
-			      << weight << " > 3 with nInt = " << nint << " and year = "
-			      << year << " ndata = " << ndata << " nmc = " << nmc << std::endl;
+                              << weight << " > 3 with nInt = " << nint << " and year = "
+                              << year << " ndata = " << ndata << " nmc = " << nmc << std::endl;
     return weight;
   }
 
-// private:
   std::map<int, TH1F*> dataHists_;
   std::map<int, TH1F*> mcHists_;
   std::vector<TFile*> files_;

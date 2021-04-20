@@ -1,8 +1,8 @@
 // Script to process NANO AODs to match format of bltTrees
 
 bool debug_ = false;
-TString debugFile_ = "WW";
-UInt_t debugStart_ = 21361;
+TString debugFile_ = "DY50_2018";
+UInt_t debugStart_ = 26809;
 UInt_t debugNEvents_ = 1;
 NanoAODConversion* debugSelec_ = 0;
 
@@ -58,7 +58,6 @@ Int_t process_nanoaods() {
   cards.push_back(datacard_t(false, "MC/signals/LFVAnalysis_HEMu_2016.root"                        , 0.));
   cards.push_back(datacard_t(false, "dataprocess/LFVAnalysis_SingleEle_2016.root"                  , 0.));
   cards.push_back(datacard_t(false, "dataprocess/LFVAnalysis_SingleMu_2016.root"                   , 0.));
-
   cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_DY50-ext_2016.root"                , 0));
   cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_WWW_2016.root"                     , 0.06054));
   cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Wlnu-ext_2016.root"                , 0.));
@@ -107,7 +106,7 @@ Int_t process_nanoaods() {
   //  2018  //
   ////////////
 
-  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_DY50_2018.root"                    , 0.0004962));
+  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_DY50_2018.root"                    , 0.0004962));
   cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_SingleToptW_2018.root"             , 0.003758));
   cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_SingleAntiToptW_2018.root"         , 0.0034));
   cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_WW_2018.root"                      , 0.001916));

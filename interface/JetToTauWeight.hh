@@ -12,7 +12,7 @@
 
 class JetToTauWeight {
 public:
-  JetToTauWeight(TString selection, int Mode = 0, int seed = 90) : Mode_(Mode) {
+  JetToTauWeight(TString selection, int Mode = 0, int seed = 90, int verbose = 0) : Mode_(Mode), verbose_(verbose) {
     TFile* f = 0;
     std::vector<int> years = {2016, 2017, 2018};
     std::vector<TString> file_regions;
@@ -26,7 +26,10 @@ public:
     } else {
       file_regions.push_back("");
     }
+    int group   = 0; //for systematic grouping
+    // int groupPt = 0;
     for(int year : years) {
+      if(verbose_ > 1) printf("%s: Initializing %i scale factors\n", __func__, year);
       //get the jet --> tau scale factors measured
       for(unsigned ptregion = 0; ptregion < file_regions.size(); ++ptregion) {
         TString file_region = file_regions[ptregion];
@@ -43,8 +46,23 @@ public:
                         << " Mode = " << Mode << " selection = " << selection.Data() << std::endl;
             } else {
               histsData_[ptregion][year][dm]->SetName(Form("%s_%s_%i_%i", histsData_[ptregion][year][dm]->GetName(), selection.Data(), year, ptregion));
-              max_pt_bins = std::max(histsData_[ptregion][year][dm]->GetNbinsX(), max_pt_bins);
-              max_eta_bins = std::max(histsData_[ptregion][year][dm]->GetNbinsY(), max_eta_bins);
+              int nptbins = histsData_[ptregion][year][dm]->GetNbinsX();
+              int netabins = histsData_[ptregion][year][dm]->GetNbinsY();
+              max_pt_bins = std::max(nptbins, max_pt_bins);
+              max_eta_bins = std::max(netabins, max_eta_bins);
+              //split into high and low eta regions
+              for(int ietabin = 1; ietabin <= netabins; ++ietabin) {
+                //combine pT regions in systematic groups
+                int nptgroups = 1;
+                for(int iptbin = 1; iptbin <= nptbins; ++iptbin) {
+                  int ptgroup = 0;
+                  //split pT into high and low pT regions
+                  if(nptgroups > 1 && histsData_[ptregion][year][dm]->GetXaxis()->GetBinLowEdge(iptbin) > 39.99) ptgroup = 1;
+                  group_[(year-2016)*kYear + dm*kDM + ietabin*kEta + iptbin] = ptgroup + group;
+                }
+                group += (nptgroups - 1); //add the ptgroup assigned above
+                ++group; //each eta bin is a different group
+              }
             }
             //Get Data fits
             for(int ieta = 0; ieta < 2; ++ieta) {
@@ -104,7 +122,7 @@ public:
   ~JetToTauWeight() { for(unsigned i = 0; i < files_.size(); ++i) delete files_[i]; }
 
   //Get scale factor for Data
-  float GetDataFactor(int DM, int year, float pt, float eta, float pt_lead, float& up, float& down, float& sys,
+  float GetDataFactor(int DM, int year, float pt, float eta, float pt_lead, float& up, float& down, float& sys, int& group,
                       float& pt_wt, float& pt_up, float& pt_down, float& pt_sys) {
     pt_wt = 1.; pt_up = 1.; pt_down = 1.; pt_sys = 1.;
     TH2D* h = 0;
@@ -138,13 +156,13 @@ public:
     if(!h) {
       std::cout << "JetToTauWeight::" << __func__ << " Undefined histogram for DM = "
                 << DM << " year = " << year << " ptregion = " << ptregion << std::endl;
-      up = 1.; down = 1.; sys = 1.;
+      up = 1.; down = 1.; sys = 1.; group = -1;
       return 1.;
     }
 
     // Check if using the binned histogram values
     if(!useFit)
-      return GetFactor(h, hCorrection, pt, eta, DM, ptregion, pt_lead, year, up, down, sys, pt_wt, pt_up, pt_down, pt_sys);
+      return GetFactor(h, hCorrection, pt, eta, DM, ptregion, pt_lead, year, up, down, sys, group, pt_wt, pt_up, pt_down, pt_sys);
 
     //use the fit function if not interpolating
 
@@ -188,16 +206,22 @@ public:
     return eff;
   }
 
+  int GetGroup(int idm, int year, int ieta, int ipt) {
+    return group_[(year - 2016)*kYear + idm*kDM + ieta*kEta + ipt]; //get systematic group
+  }
+
   //Get weight without any systematics carried
   float GetDataFactor(int DM, int year, float pt, float eta, float pt_lead) {
     float up, down, sys, pt_wt, pt_up, pt_down, pt_sys;
-    float weight = GetDataFactor(DM, year, pt, eta, pt_lead, up, down, sys, pt_wt, pt_up, pt_down, pt_sys);
+    int group;
+    float weight = GetDataFactor(DM, year, pt, eta, pt_lead, up, down, sys, group, pt_wt, pt_up, pt_down, pt_sys);
     weight *= pt_wt;
     return weight;
   }
 
 private:
-  float GetFactor(TH2D* h, TH1D* hCorrection, float pt, float eta, int DM, int ptregion, float pt_lead, int year, float& up, float& down, float& sys,
+  float GetFactor(TH2D* h, TH1D* hCorrection, float pt, float eta, int DM, int ptregion, float pt_lead, int year,
+                  float& up, float& down, float& sys, int& group,
                   float& pt_wt, float& pt_up, float& pt_down, float& pt_sys) {
     //ensure within kinematic regions
     eta = fabs(eta);
@@ -205,11 +229,24 @@ private:
     else if(pt < 20.) pt = 20.;
     if(eta > 2.3) eta = 2.29;
 
+    //For grouping
+    int idm = 0;
+    if(DM == 0)
+      idm = 0;
+    else if(DM == 1)
+      idm = 1;
+    else if(DM == 10)
+      idm = 2;
+    else if(DM == 11)
+      idm = 3;
+
     bool doInterpolation = (Mode_ % 100) / 10 > 0;
 
     //get bin value
     int binx = h->GetXaxis()->FindBin(pt);
     int biny = h->GetYaxis()->FindBin(eta);
+    group = GetGroup(idm, year, biny, binx); //get systematic group
+
     float eff_bin = h->GetBinContent(binx, biny);
     float err_bin = h->GetBinError  (binx, biny);
     float eff = -1.;
@@ -267,16 +304,6 @@ private:
     pt_down = std::max(pt_wt - corr_error, 0.f);
 
     //Systematic shifted weight
-    int idm = 0;
-    if(DM == 0)
-      idm = 0;
-    else if(DM == 1)
-      idm = 1;
-    else if(DM == 10)
-      idm = 2;
-    else if(DM == 11)
-      idm = 3;
-
     sys  = (isShiftedUp_[year][idm][biny-1][binx-1][ptregion]) ? up : down;
     pt_sys = (isShiftedUpPt_[year][corr_bin]) ? pt_up : pt_down;
 
@@ -284,17 +311,20 @@ private:
   }
 
 public:
-  enum { kMaxPtRegions = 10};
+  enum { kMaxPtRegions = 10, kYear = 10000, kDM = 1000, kEta = 100};
   std::map<int, std::map<int, TH2D*>> histsData_[kMaxPtRegions];
   std::map<int, TH1D*> corrections_;
   std::map<int, std::map<int, std::map<int, TF1*>>> funcsData_[kMaxPtRegions];
   std::vector<TFile*> files_;
   int Mode_; // 100*use linear fit + 10*interpolate bins + scale factor version
+  int verbose_;
   //scale factor versions: 0/1 = 1 pt range, 2 = use MC estimated factors, 3 = 2 pt ranges, 4 = 4 pt ranges
   TRandom3* rnd_; //for generating systematic shifted parameters
   //       year          DM            eta           pt      ptregion
   std::map<int, std::map<int, std::map<int, std::map<int, std::map<int, bool>>>>> isShiftedUp_; //whether the systematic is shifted up or down
   //       year          ptbin
   std::map<int, std::map<int, bool>> isShiftedUpPt_; //whether the pt correction systematic is shifted up or down
+  std::map<int, int> group_; //correction groups for systematics
+  std::map<int, int> groupPt_; //pT correction groups for systematics
 };
 #endif
