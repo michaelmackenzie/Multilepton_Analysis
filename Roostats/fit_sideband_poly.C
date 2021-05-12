@@ -1,37 +1,77 @@
 //Script to fit the side band regions with an exponential
+bool use_range_ = true; //Whether to fit in a RooFit::Range or not
+bool use_blind_ = true; //Whether to remove data from a region or not
 
 void fit_sideband_poly() {
 
-  // Make a fit model
+  // POI
   RooRealVar mass("mass", "mass", 75., 120., "GeV/c^{2}");
   mass.setRange("LowSideband", 75., 85.);
   mass.setRange("HighSideband", 95., 120.);
   mass.setRange("Full", 75., 120.);
-  RooRealVar tau("tau", "The exponent", -0.2, -10., -0.01);
+
+  // Make a generator model
+  RooRealVar tau("tau", "The exponent", -0.05, -10., -0.001);
   RooExponential exp("exp", "A falling exponential function", mass, tau);
 
   // Generate some toy data
-  RooDataHist* dataset = exp.generateBinned(RooArgSet(mass), 1e5);
-  tau.setVal(-2.); //shift away from the true value
-  auto data_blinded = dataset->reduce("mass < 84.9 || mass > 95.7");
+  RooDataHist* data = exp.generateBinned(RooArgSet(mass), 1e5);
+  auto data_blinded = data->reduce("mass < 84.9 || mass > 95.7");
 
-  exp.fitTo(/* *dataset */*data_blinded, RooFit::Range("LowSideband", "HighSideband"));
+  // Make a fit model
+  RooRealVar a("a", "a", 1., -5., 5.);
+  RooRealVar b("b", "b", 1., -5., 5.);
+  RooRealVar c("c", "c", 1., -5., 5.);
+  RooRealVar d("d", "d", 1., -5., 5.);
+  RooBernstein bernPDF("bernPDF", "bernPDF", mass, RooArgSet(a,b,c,d));
+
+  RooRealVar mean("mean", "mean", 0., -100., 100.);
+  RooRealVar sigma("sigma", "sigma", 10., 0.1, 100.);
+  RooGaussian gausPDF("gausPDF", "gausPDF", mass, mean, sigma);
+
+  if(use_range_) {
+    gausPDF.fitTo((use_blind_) ? *data_blinded : *data, RooFit::Range("LowSideband", "HighSideband"));
+    bernPDF.fitTo((use_blind_) ? *data_blinded : *data, RooFit::Range("LowSideband", "HighSideband"));
+  } else {
+    gausPDF.fitTo((use_blind_) ? *data_blinded : *data);
+    bernPDF.fitTo((use_blind_) ? *data_blinded : *data);
+  }
 
   auto xframe = mass.frame();
-  data_blinded->plotOn(xframe);
-  exp.plotOn(xframe, RooFit::Range("LowSideband"), RooFit::NormRange("LowSideband,HighSideband"));
-  exp.plotOn(xframe, RooFit::Range("HighSideband"), RooFit::NormRange("LowSideband,HighSideband"));
-  exp.plotOn(xframe, RooFit::Range("Full"), RooFit::LineColor(kRed), RooFit::LineStyle(kDashed), RooFit::NormRange("LowSideband,HighSideband"));
+  if(use_blind_) data_blinded->plotOn(xframe);
+  else           data->plotOn(xframe);
 
-  auto c1 = new TCanvas();
-  xframe->Draw();
-
+  gausPDF.plotOn(xframe, RooFit::Range("Full"), RooFit::NormRange("LowSideband,HighSideband"));
   std::cout << "*************************************************************" << std::endl
             << "Chi^2/dof: " << xframe->chiSquare() << std::endl
             << "N(bins) = " << data_blinded->numEntries() << std::endl //need number of bins not blinded though...
             << "--> Chi^2 = " << xframe->chiSquare()*data_blinded->numEntries() << std::endl
-            << "--> P(Chi^2)= " << ROOT::Math::chisquared_cdf_c(xframe->chiSquare()*data_blinded->numEntries(), data_blinded->numEntries() - 2 /*norm and tau free params*/)
+            << "--> P(Chi^2)= " << ROOT::Math::chisquared_cdf_c(xframe->chiSquare()*data_blinded->numEntries(), data_blinded->numEntries() - 5)
             << std::endl
             << "*************************************************************"
             << std::endl;
+
+  bernPDF.plotOn(xframe, RooFit::Range("Full"), RooFit::NormRange("LowSideband,HighSideband"), RooFit::LineColor(kGreen), RooFit::LineStyle(10));
+  std::cout << "*************************************************************" << std::endl
+            << "Chi^2/dof: " << xframe->chiSquare() << std::endl
+            << "N(bins) = " << data_blinded->numEntries() << std::endl //need number of bins not blinded though...
+            << "--> Chi^2 = " << xframe->chiSquare()*data_blinded->numEntries() << std::endl
+            << "--> P(Chi^2)= " << ROOT::Math::chisquared_cdf_c(xframe->chiSquare()*data_blinded->numEntries(), data_blinded->numEntries() - 5)
+            << std::endl
+            << "*************************************************************"
+            << std::endl;
+
+  exp.plotOn(xframe, RooFit::Range("Full"), RooFit::LineColor(kRed), RooFit::LineStyle(kDashed), RooFit::NormRange("LowSideband,HighSideband"));
+  std::cout << "*************************************************************" << std::endl
+            << "Chi^2/dof: " << xframe->chiSquare() << std::endl
+            << "N(bins) = " << data_blinded->numEntries() << std::endl
+            << "--> Chi^2 = " << xframe->chiSquare()*data_blinded->numEntries() << std::endl
+            << "--> P(Chi^2)= " << ROOT::Math::chisquared_cdf_c(xframe->chiSquare()*data_blinded->numEntries(), data_blinded->numEntries() - 2)
+            << std::endl
+            << "*************************************************************"
+            << std::endl;
+  auto c1 = new TCanvas();
+  xframe->Draw();
+  xframe->Print();
+  c1->Print(Form("fit_sideband_poly_blind_%i_ranges_%i.png", use_blind_, use_range_));
 }
