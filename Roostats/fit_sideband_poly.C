@@ -1,49 +1,37 @@
-//Script to fit the side band regions with a polynomial
+//Script to fit the side band regions with an exponential
 
-Int_t fit_sideband_poly(int set = 8, int year = 2016) {
+void fit_sideband_poly() {
 
-  TFile* fInput = TFile::Open(Form("background_trees/background_ztautau_data_nano_emu_%i.tree",
-				       set+ZTauTauHistMaker::kEMu), "READ");
-  if(!fInput) return 1;
-  TTree* tree = (TTree*) fInput->Get("background_tree");
-  if(!tree) return 2;
-
-  RooRealVar mass("lepm", "lepm", 75., 120., "GeV/c^{2}");
+  // Make a fit model
+  RooRealVar mass("mass", "mass", 75., 120., "GeV/c^{2}");
   mass.setRange("LowSideband", 75., 85.);
   mass.setRange("HighSideband", 95., 120.);
+  mass.setRange("Full", 75., 120.);
+  RooRealVar tau("tau", "The exponent", -0.2, -10., -0.01);
+  RooExponential exp("exp", "A falling exponential function", mass, tau);
 
-  RooRealVar a_bkg("a_bkg", "a_bkg", -0.8 ,  -3.,  3.);
-  RooRealVar b_bkg("b_bkg", "b_bkg",  0.3 ,  -3.,  3.);
-  RooRealVar c_bkg("c_bkg", "c_bkg", -0.2 ,  -3.,  3.);
-  RooRealVar d_bkg("d_bkg", "d_bkg", -0.02,  -3.,  3.);
-  RooRealVar e_bkg("e_bkg", "e_bkg",  0.  , -10., 10.);
-  RooRealVar f_bkg("f_bkg", "f_bkg",  0.  , -10., 10.);
-  RooRealVar g_bkg("g_bkg", "g_bkg",  0.  , -10., 10.);
+  // Generate some toy data
+  RooDataHist* dataset = exp.generateBinned(RooArgSet(mass), 1e5);
+  tau.setVal(-2.); //shift away from the true value
+  auto data_blinded = dataset->reduce("mass < 84.9 || mass > 95.7");
 
-  RooChebychev bkgPDF("bkgPDF", "bkgPDF", mass, RooArgList(a_bkg, b_bkg, c_bkg));
+  exp.fitTo(/* *dataset */*data_blinded, RooFit::Range("LowSideband", "HighSideband"));
 
-  RooDataSet dataset("dataset", "dataset", RooArgSet(mass), RooFit::Import(tree));
-
-  bkgPDF.fitTo(dataset, RooFit::Range("LowSideband", "HighSideband"));
-
-  auto data_blinded = dataset.reduce("lepm < 84.9 || lepm > 95.7");
-  auto xframe = mass.frame(50);
+  auto xframe = mass.frame();
   data_blinded->plotOn(xframe);
-  bkgPDF.plotOn(xframe, RooFit::Range("LowSideband", "HighSideband"));
+  exp.plotOn(xframe, RooFit::Range("LowSideband"), RooFit::NormRange("LowSideband,HighSideband"));
+  exp.plotOn(xframe, RooFit::Range("HighSideband"), RooFit::NormRange("LowSideband,HighSideband"));
+  exp.plotOn(xframe, RooFit::Range("Full"), RooFit::LineColor(kRed), RooFit::LineStyle(kDashed), RooFit::NormRange("LowSideband,HighSideband"));
 
   auto c1 = new TCanvas();
   xframe->Draw();
-  gSystem->Exec(Form("[ ! -d plots/latest_production/%i ] && mkdir -p plots/latest_production/%i", year, year));
-  c1->SaveAs(Form("plots/latest_productions/%i/fit_sideband_poly_%i.png", year, set));
 
-  std::cout << "Chi^2: " << xframe->chiSquare() << std::endl;
-
-  TFile* fOut = new TFile(Form("workspaces/fit_sideband_poly_%i_%i.root", year, set), "RECREATE");
-  fOut->cd();
-  RooWorkspace workspace("ws");
-  workspace.import(bkgPDF);
-  // workspace.Print();
-  workspace.Write();
-  fOut->Close();
-  return 0;
+  std::cout << "*************************************************************" << std::endl
+            << "Chi^2/dof: " << xframe->chiSquare() << std::endl
+            << "N(bins) = " << data_blinded->numEntries() << std::endl //need number of bins not blinded though...
+            << "--> Chi^2 = " << xframe->chiSquare()*data_blinded->numEntries() << std::endl
+            << "--> P(Chi^2)= " << ROOT::Math::chisquared_cdf_c(xframe->chiSquare()*data_blinded->numEntries(), data_blinded->numEntries() - 2 /*norm and tau free params*/)
+            << std::endl
+            << "*************************************************************"
+            << std::endl;
 }
