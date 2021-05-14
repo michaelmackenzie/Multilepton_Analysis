@@ -34,9 +34,9 @@ void fit_sideband_poly() {
   RooGaussian gausPDF("gausPDF", "gausPDF", mass, mean, sigma);
 
   if(use_range_) {
-    exp.fitTo    ((use_blind_) ? *data_blinded : *data, RooFit::Range("LowSideband", "HighSideband"));
-    gausPDF.fitTo((use_blind_) ? *data_blinded : *data, RooFit::Range("LowSideband", "HighSideband"));
-    bernPDF.fitTo((use_blind_) ? *data_blinded : *data, RooFit::Range("LowSideband", "HighSideband"));
+    exp.fitTo    ((use_blind_) ? *data_blinded : *data, RooFit::Range("LowSideband,HighSideband"));
+    gausPDF.fitTo((use_blind_) ? *data_blinded : *data, RooFit::Range("LowSideband,HighSideband"));
+    bernPDF.fitTo((use_blind_) ? *data_blinded : *data, RooFit::Range("LowSideband,HighSideband"));
   } else {
     exp.fitTo    ((use_blind_) ? *data_blinded : *data);
     gausPDF.fitTo((use_blind_) ? *data_blinded : *data);
