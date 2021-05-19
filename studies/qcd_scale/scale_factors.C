@@ -151,12 +151,12 @@ Int_t initialize_plotter(TString base, TString path, int year) {
 
 //Generate the plots and scale factors
 Int_t scale_factors(TString selection = "emu", int set = 8, int year = 2016,
-                    TString path = "nanoaods_dev/") {
+                    TString path = "nanoaods_dev") {
 
   //////////////////////
   // Initialize files //
   //////////////////////
-  path = "root://cmseos.fnal.gov//store/user/mmackenz/histograms/" + path;
+  path = "root://cmseos.fnal.gov//store/user/mmackenz/histograms/" + path + "/";
 
   //get the absolute value of the set, offsetting by the selection and using a loose selection
   int setAbs = set + ZTauTauHistMaker::fMisIDOffset;
@@ -232,7 +232,7 @@ Int_t scale_factors(TString selection = "emu", int set = 8, int year = 2016,
   gSystem->Exec("[ ! -d rootfiles ] && mkdir rootfiles");
 
   //construct general figure name
-  TString name = "figures/fake_tau_";
+  TString name = "figures/qcd_";
   name += selection + "_";
   name += year;
 

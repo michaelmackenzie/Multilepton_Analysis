@@ -13,28 +13,43 @@ pair<TH2D*,TH2D*> get_histograms(TTree* t) {
   TH2D* hJets     = new TH2D("hJets"    , "Jet #eta vs p_{T}", 5, ptbins, 12, etabins);
   float jetsPt[100], jetsEta[100], jetsRejPt[100], jetsRejEta[100];
   UInt_t nJets20, nJets20Rej;
+  float eventWeight, genWeight;
+  t->SetBranchStatus("*", 0);
+  t->SetBranchStatus("nJets20"    , 1);
+  t->SetBranchStatus("nJets20Rej" , 1);
+  t->SetBranchStatus("jetsPt"     , 1);
+  t->SetBranchStatus("jetsEta"    , 1);
+  t->SetBranchStatus("jetsRejPt"  , 1);
+  t->SetBranchStatus("jetsRejEta" , 1);
+  t->SetBranchStatus("eventWeight", 1);
+  t->SetBranchStatus("genWeight"  , 1);
+
   t->SetBranchAddress("nJets20", &nJets20);
   t->SetBranchAddress("nJets20Rej", &nJets20Rej);
   t->SetBranchAddress("jetsPt", &jetsPt);
   t->SetBranchAddress("jetsEta", &jetsEta);
   t->SetBranchAddress("jetsRejPt", &jetsRejPt);
   t->SetBranchAddress("jetsRejEta", &jetsRejEta);
-  for(Long64_t entry = 0; entry < t->GetEntriesFast(); ++entry) {
+  t->SetBranchAddress("eventWeight", &eventWeight);
+  t->SetBranchAddress("genWeight", &genWeight);
+  Long64_t nentries = t->GetEntriesFast();
+  for(Long64_t entry = 0; entry < nentries; ++entry) {
+    if(entry % (nentries/10) == 0) printf("Processing entry %10lld (%5.1f%%)...\n", entry, entry*100./(nentries));
     t->GetEntry(entry);
     for(int ijet = 0; ijet < nJets20; ++ijet) {
-      hJetsPUID->Fill(jetsPt[ijet], jetsEta[ijet]);
-      hJets->Fill(jetsPt[ijet], jetsEta[ijet]);
+      hJetsPUID->Fill(jetsPt[ijet], jetsEta[ijet], eventWeight*genWeight);
+      hJets->Fill(jetsPt[ijet], jetsEta[ijet], eventWeight*genWeight);
     }
     for(int ijet = 0; ijet < nJets20Rej; ++ijet) {
-      hJets->Fill(jetsRejPt[ijet], jetsRejEta[ijet]);
+      hJets->Fill(jetsRejPt[ijet], jetsRejEta[ijet], eventWeight*genWeight);
     }
   }
   return pair<TH2D*,TH2D*>(hJets, hJetsPUID);
 }
 
 //Generate the plots and scale factors
-TCanvas* scale_factors(int year = 2016, TString selection = "mumu",
-                       TString path = "ztautau_nanoaod_trees_nomva", TString filename = "DY50") {
+TCanvas* scale_factors(int year = 2016, TString filename = "DY50", TString selection = "mumu",
+                       TString path = "ztautau_nanoaod_trees_nomva") {
 
   path = "root://cmseos.fnal.gov//store/user/mmackenz/" + path + "/";
 

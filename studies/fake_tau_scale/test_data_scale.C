@@ -133,9 +133,15 @@ TCanvas* make_canvas(int set1, int set2, PlottingCard_t card, bool print, TH1D* 
   TString xtitle = card.hist_;
   xtitle.ReplaceAll("jettau", "");
   xtitle.ReplaceAll("1", ""); xtitle.ReplaceAll("2", ""); xtitle.ReplaceAll("3", "");
-  if(xtitle.Contains("one")) {xtitle.ReplaceAll("one",""); xtitle = xtitle + "^{1}";}
-  if(xtitle.Contains("two")) {xtitle.ReplaceAll("two",""); xtitle = xtitle + "^{2}";}
+  bool addone = xtitle.Contains("one");
+  bool addtwo = xtitle.Contains("two");
+  xtitle.ReplaceAll("one","");
+  xtitle.ReplaceAll("two","");
   xtitle.ReplaceAll("eta", "#eta"); xtitle.ReplaceAll("phi", "#phi"); xtitle.ReplaceAll("pt", "p_{T}");
+  if(addone) xtitle = xtitle + "^{1}";
+  if(addtwo) xtitle = xtitle + "^{2}";
+  xtitle.ReplaceAll("taus", "#tau ");
+  xtitle.ReplaceAll("dm", "Decay Mode");
   hratio->GetYaxis()->SetRangeUser(0.5, 1.5);
   hratio->GetXaxis()->SetRangeUser(card.xmin_, card.xmax_);
   hratio->SetXTitle(xtitle.Data());
@@ -205,6 +211,7 @@ int test_data_scale(TString selection = "mumu", int set1 = 50, int set2 = 51, in
   make_canvas(setAbs1, setAbs2, PlottingCard_t("jettauonept" , "lep"  , 0, 0,  0., 200.), true, hData, hMC);
   if(!hData || !hMC) return 1;
   TH1D* hRatio = (TH1D*) hData->Clone("PtScale");
+  hRatio->Scale(hMC->Integral() / hData->Integral());
   hRatio->Divide(hMC);
   hRatio->Write();
 
@@ -212,6 +219,7 @@ int test_data_scale(TString selection = "mumu", int set1 = 50, int set2 = 51, in
   make_canvas(setAbs1, setAbs2, PlottingCard_t("jettauonept1" , "lep"  , 0, 0,  0., 200.), true, hData, hMC);
   if(!hData || !hMC) return 1;
   TH1D* hRatio_1 = (TH1D*) hData->Clone("PtScale_1");
+  hRatio_1->Scale(hMC->Integral() / hData->Integral());
   hRatio_1->Divide(hMC);
   hRatio_1->Write();
 
@@ -219,6 +227,7 @@ int test_data_scale(TString selection = "mumu", int set1 = 50, int set2 = 51, in
   make_canvas(setAbs1, setAbs2, PlottingCard_t("jettauonept2" , "lep"  , 0, 0,  0., 200.), true, hData, hMC);
   if(!hData || !hMC) return 1;
   TH1D* hRatio_2 = (TH1D*) hData->Clone("PtScale_2");
+  hRatio_2->Scale(hMC->Integral() / hData->Integral());
   hRatio_2->Divide(hMC);
   hRatio_2->Write();
 
@@ -226,6 +235,7 @@ int test_data_scale(TString selection = "mumu", int set1 = 50, int set2 = 51, in
   make_canvas(setAbs1, setAbs2, PlottingCard_t("jettauonept3" , "lep"  , 0, 0,  0., 200.), true, hData, hMC);
   if(!hData || !hMC) return 1;
   TH1D* hRatio_3 = (TH1D*) hData->Clone("PtScale_3");
+  hRatio_3->Scale(hMC->Integral() / hData->Integral());
   hRatio_3->Divide(hMC);
   hRatio_3->Write();
 

@@ -154,10 +154,15 @@ TH2D* get_mc_histogram(int set, int type = 0) {
   bool bkg = false;
   if(type < 0) {bkg = true; type = abs(type) - 1;}
 
-  if(type == 0) hname = (useCorrectedHist_) ? "lepptvsm2" : "lepptvsm1"; //MC
-  else if(type == 1) hname = (useCorrectedHist_) ? "zptvsm0" : "zptvsm1"; //Uncorrected Gen-level histogram
-  else if(type == 2) hname = "zptvsm2"; //Corrected with reco scale factors Gen-level histogram
-  if(type == 3) hname = "lepptvsm0"; //corrected reco with gen weights
+  if(type == 0)       hname = (useCorrectedHist_) ? "lepptvsm2" : "lepptvsm1"; //MC
+  else if(type == 1)  hname = (useCorrectedHist_) ? "zptvsm0" : "zptvsm1"; //Uncorrected Gen-level histogram
+  else if(type == 2)  hname = "zptvsm2"; //Corrected with reco scale factors Gen-level histogram
+  else if(type == 3)  hname = "lepptvsm0"; //corrected reco with gen weights
+  //Electron channel systematic histograms
+  else if(type == 10) hname = (useCorrectedHist_) ? "lepptvsm4" : "lepptvsm1"; //MC
+  else if(type == 11) hname = (useCorrectedHist_) ? "zptvsm3" : "zptvsm1"; //Uncorrected Gen-level histogram
+  else if(type == 12) hname = "zptvsm4"; //Corrected with reco scale factors Gen-level histogram
+  else if(type == 13) hname = "lepptvsm3"; //corrected reco with gen weights
 
   if(verbose_ > 0) cout << "Getting 2D MC histograms named << " << hname.Data() << " with bkg = " << bkg << endl;
 
@@ -189,10 +194,10 @@ Int_t initialize_plotter(bool useMuon, TString base, TString path, int year) {
   typedef DataCard_t dcard;
   std::vector<dcard> cards;
   //card constructor:    filepath,                             name,                  label,              isData, xsec,  isSignal, color
-  if(year == 2018)
+  // if(year == 2018)
     cards.push_back(dcard(path+base+"DY50.hist"             , "DY50"               , "Drell-Yan"         , false, 6225.42, false, kRed-7));
-  else
-    cards.push_back(dcard(path+base+"DY50-ext.hist"         , "DY50"               , "Drell-Yan"         , false, 6225.42, false, kRed-7));
+  // else
+  //   cards.push_back(dcard(path+base+"DY50-ext.hist"         , "DY50"               , "Drell-Yan"         , false, 6225.42, false, kRed-7));
   cards.push_back(dcard(path+base+"SingleAntiToptW.hist"    , "SingleAntiToptW"    , "SingleTop"         , false, 34.91  , false, kCyan-7));
   cards.push_back(dcard(path+base+"SingleToptW.hist"        , "SingleToptW"        , "SingleTop"         , false, 34.91  , false, kCyan-7));
   cards.push_back(dcard(path+base+"WWW.hist"                , "WWW"                , "ZZ,WZ,WWW"         , false, 0.2086 , false, kViolet-2));
@@ -247,12 +252,12 @@ TCanvas* scale_factors(bool useMuon = true, int set = 7, int year = 2016, TStrin
   /////////////////////////
 
   if(verbose_ > 0) std::cout << "Getting the MC histogram" << std::endl;
-  TH2D* hMC = get_mc_histogram(setAbs, 0);
+  TH2D* hMC = get_mc_histogram(setAbs, 0+10*!useMuon);
   if(!hMC) {
     cout << "Failed to retrieve the MC histogram!\n";
     return NULL;
   }
-  TH2D* hBkg = get_mc_histogram(setAbs, -1);
+  TH2D* hBkg = get_mc_histogram(setAbs, -1-10*!useMuon);
   if(!hBkg) {
     cout << "Failed to retrieve the background histogram!\n";
     return NULL;
@@ -270,7 +275,7 @@ TCanvas* scale_factors(bool useMuon = true, int set = 7, int year = 2016, TStrin
   //get corrected histogram for cross-checks
   bool useCorrPrev = useCorrectedHist_;
   useCorrectedHist_ = true;
-  TH2D* hMCCorr = get_mc_histogram(setAbs, 0);
+  TH2D* hMCCorr = get_mc_histogram(setAbs, 0+10*!useMuon);
   useCorrectedHist_ = useCorrPrev;
   if(!hMCCorr) {
     cout << "Failed to retrieve the corrected MC histogram!\n";
@@ -279,7 +284,7 @@ TCanvas* scale_factors(bool useMuon = true, int set = 7, int year = 2016, TStrin
   hMCCorr->SetName("hMCCorr");
 
   //get reco corrected with gen weights for cross-checks
-  TH2D* hMCGenCorr = get_mc_histogram(setAbs, 3);
+  TH2D* hMCGenCorr = get_mc_histogram(setAbs, 3+10*!useMuon);
   if(!hMCGenCorr) {
     cout << "Failed to retrieve the gen-level corrected reco MC histogram!\n";
     return NULL;
@@ -290,7 +295,7 @@ TCanvas* scale_factors(bool useMuon = true, int set = 7, int year = 2016, TStrin
   // Get gen histograms //
   ////////////////////////
   //gen-level before corrections
-  TH2D* hGenOrig = get_mc_histogram(setAbs, 1);
+  TH2D* hGenOrig = get_mc_histogram(setAbs, 1+10*!useMuon);
   if(!hGenOrig) {
     cout << "Failed to retrieve the Uncorrected Gen-level histogram!\n";
     return NULL;
@@ -298,7 +303,7 @@ TCanvas* scale_factors(bool useMuon = true, int set = 7, int year = 2016, TStrin
   hGenOrig->SetName("hGenOrig");
 
   //gen-level after reco corrections
-  TH2D* hGenCorr = get_mc_histogram(setAbs, 2);
+  TH2D* hGenCorr = get_mc_histogram(setAbs, 2+10*!useMuon);
   if(!hGenCorr) {
     cout << "Failed to retrieve the corrected Gen-level histogram!\n";
     return NULL;
@@ -307,7 +312,7 @@ TCanvas* scale_factors(bool useMuon = true, int set = 7, int year = 2016, TStrin
 
   //gen-level after gen corrections
   useCorrectedHist_ = true;
-  TH2D* hGenCorr2 = get_mc_histogram(setAbs, 1);
+  TH2D* hGenCorr2 = get_mc_histogram(setAbs, 1+10*!useMuon);
   useCorrectedHist_ = useCorrPrev;
   if(!hGenCorr2) {
     cout << "Failed to retrieve the gen-weight corrected Gen-level histogram!\n";
@@ -447,9 +452,9 @@ TCanvas* scale_factors(bool useMuon = true, int set = 7, int year = 2016, TStrin
   gSystem->Exec("[ ! -d figures ] && mkdir figures");
   gSystem->Exec("[ ! -d rootfiles ] && mkdir rootfiles");
   if(!useCorrectedHist_) {
-    c->Print(Form("figures/pt_vs_m_%i.png", year));
+    c->Print(Form("figures/pt_vs_m_%s_%i.png", (useMuon) ? "mumu" : "ee", year));
     //save the scale factor histogram
-    TFile* fout = new TFile(Form("rootfiles/z_pt_vs_m_scales_%i.root", year), "RECREATE");
+    TFile* fout = new TFile(Form("rootfiles/z_pt_vs_m_scales_%s_%i.root", (useMuon) ? "mumu" : "ee", year), "RECREATE");
     fout->cd();
     hRatioShape->Write();
     hGenRatio->Write();
@@ -498,7 +503,7 @@ TCanvas* scale_factors(bool useMuon = true, int set = 7, int year = 2016, TStrin
   if(!useOnlyPt_)
     pad->SetLogx();
   pad->SetLogy();
-  c2->Print(Form("figures/pt_vs_m_crosscheck_%i.png", year));
+  c2->Print(Form("figures/pt_vs_m_crosscheck_%s_%i.png", (useMuon) ? "mumu" : "ee", year));
 
   return c;
 }
@@ -547,13 +552,13 @@ TCanvas* test_scale_factors(bool useMuon = true, int set = 8, int year = 2016, b
   if(!hGenZ) { cout << "Failed to get the gen z scale factors!\n"; return NULL;}
 
   if(verbose_ > 0) std::cout << "Getting the MC histogram" << std::endl;
-  TH2D* hMC = get_mc_histogram(setAbs, 0);
+  TH2D* hMC = get_mc_histogram(setAbs, 0+10*!useMuon);
   if(!hMC) {
     cout << "Failed to retrieve the MC histogram!\n";
     return NULL;
   }
   hMC->SetName("hMC");
-  TH2D* hBkg = get_mc_histogram(setAbs, -1);
+  TH2D* hBkg = get_mc_histogram(setAbs, -1-10*!useMuon);
   if(!hBkg) {
     cout << "Failed to retrieve the background histogram!\n";
     return NULL;
@@ -562,7 +567,7 @@ TCanvas* test_scale_factors(bool useMuon = true, int set = 8, int year = 2016, b
   //subtract the non-DY from the data
   hData->Add(hBkg,-1);
 
-  TH2D* hGenOrig = get_mc_histogram(setAbs, 1);
+  TH2D* hGenOrig = get_mc_histogram(setAbs, 1+10*!useMuon);
   if(!hGenOrig) {
     cout << "Failed to retrieve the Uncorrected Gen-level histogram!\n";
     return NULL;
