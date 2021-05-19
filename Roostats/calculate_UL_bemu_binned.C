@@ -1,5 +1,7 @@
 //Script to calculate the 95% UL for e+mu resonance using binned fits
-bool doConstraints_ = false;
+bool doConstraints_ = true;
+bool use_bernstein_ = false;
+bool blind_data_ = true;
 
 Int_t calculate_UL_bemu_binned(vector<int> sets = {8}, TString selection = "zemu",
                                vector<int> years = {2016, 2017, 2018},
@@ -16,17 +18,23 @@ Int_t calculate_UL_bemu_binned(vector<int> sets = {8}, TString selection = "zemu
     else {set_str += "_"; set_str += set;}
   }
   bool doHiggs = selection.Contains("h");
-  TFile* fInput = TFile::Open(Form("workspaces/fit_%s_lepm_background_binned_%s_%s.root", selection.Data(), year_string.Data(), set_str.Data()), "READ");
+  TFile* fInput = TFile::Open(Form("workspaces/fit_%s_lepm_background_binned%s_%s_%s.root", selection.Data(),
+                                   (doConstraints_) ? "_constr" : "",
+                                   year_string.Data(), set_str.Data()), "READ");
   if(!fInput) return 1;
   fInput->cd();
   RooWorkspace* ws = (RooWorkspace*) fInput->Get("ws");
   if(!ws) {cout << "Workspace not found!\n"; return -1;}
+  ws->Print();
   RooRealVar* br_sig = ws->var("br_sig");
   RooArgList poi_list(*br_sig);
   RooArgList obs_list(*(ws->var("lepm")));
-  RooDataHist* data = (RooDataHist*) ws->data("combined_data");
-  ws->Print();
-  if(!data) { cout << "Toy data not found!\n"; return 2;}
+  RooDataHist* data = (RooDataHist*) ws->data((blind_data_) ? "combined_toy_data" : "combined_data");
+  if(!data) {cout << "Data not found!\n"; return 2;}
+  double bmass = (doHiggs) ? 125. : 91.;
+  RooDataHist* data_sig = (RooDataHist*) data->reduce(Form("lepm > %.3f && lepm < %.3f", bmass - 5., bmass + 5.));
+  double ndata_sig = data_sig->sumEntries();
+  RooAbsPdf* totPDF = ws->pdf("totPDF");
   // auto data_binned = data->binnedClone("data_binned", "data_binned");
   //loop through each category, getting nuisance parameters
   RooArgList nuisance_params;
@@ -34,16 +42,18 @@ Int_t calculate_UL_bemu_binned(vector<int> sets = {8}, TString selection = "zemu
     nuisance_params.add(*(ws->var("br_sig_beta")));
   int index = 0;
   for(int set : sets) {
-    auto a_bkg = ws->var((doHiggs) ? Form("a_bst3_%i", set) : Form("a_bst4_%i", set));
-    auto b_bkg = ws->var((doHiggs) ? Form("b_bst3_%i", set) : Form("b_bst4_%i", set));
-    auto c_bkg = ws->var((doHiggs) ? Form("c_bst3_%i", set) : Form("c_bst4_%i", set));
-    auto d_bkg = ws->var((doHiggs) ? Form("d_bst3_%i", set) : Form("d_bst4_%i", set));
+    TString var_name = (use_bernstein_) ? "bst" : "cheb";
+    var_name += (doHiggs || set == 13) ? "3" : "4";
+    auto a_bkg = ws->var(Form("a_%s_%i", var_name.Data(), set));
+    auto b_bkg = ws->var(Form("b_%s_%i", var_name.Data(), set));
+    auto c_bkg = ws->var(Form("c_%s_%i", var_name.Data(), set));
+    auto d_bkg = ws->var(Form("d_%s_%i", var_name.Data(), set));
     auto n_bkg = ws->var(Form("n_bkg_%i", set));
-    nuisance_params.add(*a_bkg);
-    nuisance_params.add(*b_bkg);
-    nuisance_params.add(*c_bkg);
-    if(!doHiggs)
-      nuisance_params.add(*d_bkg);
+    if(a_bkg) nuisance_params.add(*a_bkg);
+    else {cout << "PDF variables not found!\n"; return 3;}
+    if(b_bkg) nuisance_params.add(*b_bkg);
+    if(c_bkg) nuisance_params.add(*c_bkg);
+    if(d_bkg) nuisance_params.add(*d_bkg);
     nuisance_params.add(*n_bkg);
   }
   RooArgList glb_list;
@@ -63,12 +73,24 @@ Int_t calculate_UL_bemu_binned(vector<int> sets = {8}, TString selection = "zemu
   model.SetName("S+B Model");
   model.SetProtoData(*data);
 
+  br_sig->setVal((doHiggs) ? 1.e-4 : 3.e-7);
+  cout << endl << endl << "##################################################################-" << endl
+       << "--- N(sig) vs N(bkg) at " << br_sig->getVal() << ":\n";
+  for(int set : sets) {
+    auto n_sig = ws->function(Form("n_sig_%i", set));
+    double nsig = n_sig->getVal();
+    auto n_bkg = ws->var(Form("n_bkg_%i", set));
+    double nbkg = n_bkg->getVal();
+    std::cout << " set " << set << ": N(sig) = " << nsig << " N(bkg) = " << nbkg << " N(data region) = " << ndata_sig << std::endl;
+  }
+  cout << "##################################################################" << endl << endl << endl;
+
   auto bModel = model.Clone();
   bModel->SetName("B Model");
-  double oldval = ((RooRealVar*) poi_list.find("br_sig"))->getVal();
-  ((RooRealVar*) poi_list.find("br_sig"))->setVal(0); //BEWARE that the range of the POI has to contain zero!
+  double oldval = br_sig->getVal();
+  br_sig->setVal(0); //BEWARE that the range of the POI has to contain zero!
   bModel->SetSnapshot(poi_list);
-  ((RooRealVar*) poi_list.find("br_sig"))->setVal(oldval);
+  br_sig->setVal(oldval);
 
   RooStats::AsymptoticCalculator fc(*data, *bModel, model);
   fc.SetOneSided(1);
@@ -90,15 +112,16 @@ Int_t calculate_UL_bemu_binned(vector<int> sets = {8}, TString selection = "zemu
 
   int npoints = 200; //number of points to scan
   //min and max for the scan (better to choose smaller intervals)
-  double poimin = ((RooRealVar*) poi_list.find("br_sig"))->getMin();
-  double poimax = ((RooRealVar*) poi_list.find("br_sig"))->getMax();
+  // double poimin = ((RooRealVar*) poi_list.find("br_sig"))->getMin();
+  // double poimax = ((RooRealVar*) poi_list.find("br_sig"))->getMax();
 
   double min_scan = (doHiggs) ? 5.e-7 : 1.e-9;
-  double max_scan = (doHiggs) ? 1.e-3 : 1.e-5;
+  double max_scan = (doHiggs) ? 1.e-3 : 1.e-6;
   std::cout << "Doing a fixed scan in the interval: " << min_scan << ", "
             << max_scan << " with " << npoints << " points\n";
   calc.SetFixedScan(npoints, min_scan, max_scan);
 
+  calc.SetVerbose(-1);
   auto result = calc.GetInterval();
   double upperLimit  = result->UpperLimit();
   double expectedUL  = result->GetExpectedUpperLimit( 0);
@@ -113,6 +136,19 @@ Int_t calculate_UL_bemu_binned(vector<int> sets = {8}, TString selection = "zemu
             << " expected limit (-1 sig): " << expectedULM << std::endl
             << " expected limit (+1 sig): " << expectedULP << std::endl
             << "##################################################\n";
+
+
+  br_sig->setVal(upperLimit);
+  cout << endl << endl << "##################################################################-" << endl
+       << "--- N(sig) vs N(bkg) at " << br_sig->getVal() << ":\n";
+  for(int set : sets) {
+    auto n_sig = ws->function(Form("n_sig_%i", set));
+    double nsig = n_sig->getVal();
+    auto n_bkg = ws->var(Form("n_bkg_%i", set));
+    double nbkg = n_bkg->getVal();
+    cout << "--- Set " << set << ": N(sig) = " << nsig << " N(bkg) = " << nbkg << " N(data region) = " << ndata_sig << endl;
+  }
+  cout << "##################################################################" << endl << endl << endl;
 
   //Plot the results
   RooStats::HypoTestInverterPlot freq_plot("HTI_Result_Plot","Expected CLs",result);
@@ -145,7 +181,9 @@ Int_t calculate_UL_bemu_binned(vector<int> sets = {8}, TString selection = "zemu
     label.DrawLatex(0.12, 0.26, Form("Observed 95%% CL = %.2e", upperLimit));
 
   gSystem->Exec(Form("[ ! -d plots/latest_production/%s ] && mkdir -p plots/latest_production/%s", year_string.Data(), year_string.Data()));
-  canvas->SaveAs(Form("plots/latest_production/%s/pval_vs_br_%s_binned_%s.png", year_string.Data(), selection.Data(), set_str.Data()));
+  canvas->SaveAs(Form("plots/latest_production/%s/pval_vs_br_%s_binned%s_%s.png", year_string.Data(), selection.Data(),
+                      (doConstraints_) ? "_constr" : "",
+                      set_str.Data()));
 
   cout << "Finished UL calculation, plotting dataset with expected UL...\n";
 

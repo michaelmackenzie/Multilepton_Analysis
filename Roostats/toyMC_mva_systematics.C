@@ -1,7 +1,7 @@
 //Script to perform toy MC fits using either the same PDF to generate and fit
 // or a systematically shifted generation PDF and the nominal to fit
 
-int toyMC_mva_systematics(int set = 8, TString selection = "zmutau",
+int toyMC_mva_systematics(vector<int> sets = {8}, TString selection = "zmutau",
                           vector<int> years = {2016, 2017, 2018},
                           int systematic = 5,
                           int nfits = 500,
@@ -17,6 +17,12 @@ int toyMC_mva_systematics(int set = 8, TString selection = "zmutau",
   else if(selection == "hetau" ) fit_bias = 0.;
 
   TRandom3* rnd = new TRandom3(seed);
+
+  if(sets.size() != 1) {
+    cout << "Multiple sets not implemented!\n";
+    return -1;
+  }
+  int set = sets[0];
 
   TString year_string = "";
   for(unsigned i = 0; i < years.size(); ++i) {
@@ -98,7 +104,9 @@ int toyMC_mva_systematics(int set = 8, TString selection = "zmutau",
   // Fit Loop
   /////////////////////////
 
-  gSystem->Exec(Form("[ ! -d plots/latest_production/%s ] && mkdir -p plots/latest_production/%s", year_string.Data(), year_string.Data()));
+  TString base_path = Form("plots/latest_production/%s/toyMC_mva_systematics_%s_%i", year_string.Data(), selection.Data(), set);
+  gSystem->Exec(Form("[ ! -d %s ] && mkdir -p %s", base_path.Data(), base_path.Data()));
+
   RooCategory* categories = (RooCategory*) (ws->obj(selection.Data()));
   RooDataHist* combined_data_last; //save just for plotting
   for(int ifit = 0; ifit < nfits; ++ifit) {
@@ -191,14 +199,14 @@ int toyMC_mva_systematics(int set = 8, TString selection = "zmutau",
         leg->AddEntry((TH1*) (c1->GetPrimitive(Form("totMVAPDF_%i_Norm[mva]_Comp[bkgMVAPDF_%i]", i, i))), "Background", "L");
         leg->Draw();
         if(self_test)
-          c1->SaveAs(Form("plots/latest_production/%s/toyMC_mva_systematics_self_cat_%i_%s_%i.png", year_string.Data(), i, selection.Data(), set));
+          c1->SaveAs(Form("%s/self_cat_%i.png", base_path.Data(), i));
         else
-          c1->SaveAs(Form("plots/latest_production/%s/toyMC_mva_systematics_%i_cat_%i_%s_%i.png", year_string.Data(), systematic, i, selection.Data(), set));
-        c1->SetLogy();
-        if(self_test)
-          c1->SaveAs(Form("plots/latest_production/%s/toyMC_mva_systematics_self_cat_%i_%s_%i_log.png", year_string.Data(), i, selection.Data(), set));
-        else
-          c1->SaveAs(Form("plots/latest_production/%s/toyMC_mva_systematics_%i_cat_%i_%s_%i_log.png", year_string.Data(), systematic, i, selection.Data(), set));
+          c1->SaveAs(Form("%s/sys_%i_cat_%i.png", base_path.Data(), systematic, i));
+        // c1->SetLogy();
+        // if(self_test)
+        //   c1->SaveAs(Form("%s/self_cat_%i_log.png", i, selection.Data()));
+        // else
+        //   c1->SaveAs(Form("%s/sys_%i_cat_%i_log.png", systematic, i, selection.Data()));
         delete xframe;
         delete leg;
         delete c1;
@@ -230,9 +238,9 @@ int toyMC_mva_systematics(int set = 8, TString selection = "zmutau",
   // hNLL->Draw();
   if(print) {
     if(self_test)
-      c1->SaveAs(Form("plots/latest_production/%s/toyMC_mva_systematics_results_self_%s_%i.png", year_string.Data(), selection.Data(), set));
+      c1->SaveAs(Form("%s/results_self.png", base_path.Data()));
     else
-      c1->SaveAs(Form("plots/latest_production/%s/toyMC_mva_systematics_results_%i_%s_%i.png", year_string.Data(), systematic, selection.Data(), set));
+      c1->SaveAs(Form("%s/results_sys_%i.png", base_path.Data(), systematic));
   }
 
   return status;

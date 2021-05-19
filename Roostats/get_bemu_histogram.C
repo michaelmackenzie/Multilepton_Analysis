@@ -7,6 +7,8 @@ vector<TH1D*> hsigs_;
 int test_sys_ = -1; //set to systematic number if debugging/inspecting it
 double xmin_;
 double xmax_;
+bool blind_data_ = true;
+bool do_systematics_ = false;
 
 int get_systematics(int set, TString hist, TFile* f, TString canvas_name) {
   int status(0);
@@ -126,9 +128,70 @@ int get_systematics(int set, TString hist, TFile* f, TString canvas_name) {
   return status;
 }
 
-int get_bemu_histogram(int set = 8, TString selection = "zemu",
-                       vector<int> years = {2016, 2017, 2018},
-                       TString base = "nanoaods_dev") {
+int get_same_flavor_histogram(int set, TString selection, vector<int> years, TString base) {
+
+  int status(0);
+  TString hist = "lepm";
+
+  //define parameters for dataplotter script
+  years_ = years;
+  status = nanoaod_init(selection, base, base);
+  if(status) {
+    cout << "DataPlotter initialization script returned " << status << ", exiting!\n";
+    return status;
+  }
+  int set_offset = (selection == "mumu") ? ZTauTauHistMaker::kMuMu : ZTauTauHistMaker::kEE;
+
+  dataplotter_->rebinH_ = overall_rebin_;
+
+  //get background distribution
+  THStack* hstack = dataplotter_->get_stack(hist, "event", set+set_offset);
+  if(!hstack) return 1;
+
+  //get data
+  TH1D* hdata = dataplotter_->get_data(hist, "event", set+set_offset);
+  if(!hdata) return 2;
+
+  /////////////////////////////////////////////////
+  // Plot the results
+  /////////////////////////////////////////////////
+
+  TCanvas* c = new TCanvas();
+  hstack->Draw("hist noclear");
+  hdata->Draw("same E");
+  hstack->GetXaxis()->SetRangeUser(70., 150.);
+
+  TString year_string;
+  for(unsigned i = 0; i < years.size(); ++i) {
+    if(i > 0) year_string += "_";
+    year_string += years[i];
+  }
+
+  gSystem->Exec(Form("[ ! -d plots/latest_production/%s ] && mkdir -p plots/latest_production/%s", year_string.Data(), year_string.Data()));
+  TString canvas_name = Form("plots/latest_production/%s/hist_%s_%s_%i", year_string.Data(), hist.Data(), selection.Data(), set);
+  c->Print(canvas_name + ".png");
+
+  gSystem->Exec("[ ! -d histograms ] && mkdir histograms");
+  TFile* fout = new TFile(Form("histograms/%s_%s_%i_%s.hist", selection.Data(), hist.Data(), set, year_string.Data()), "RECREATE");
+  hstack->SetName("hstack");
+  hstack->Write();
+  TH1D* hlast = (TH1D*) hstack->GetStack()->Last();
+  hlast->SetName("hbackground");
+  hlast->Write();
+  hdata->SetName("hdata");
+  hdata->Write();
+
+  // if(do_systematics_)
+  //   status += get_systematics(set+set_offset, hist, fout, canvas_name);
+  fout->Close();
+  return status;
+
+}
+
+//Get the signal, background, and data histograms in the signal selection
+int get_bemu_single_histogram(int set = 8, TString selection = "zemu",
+                              vector<int> years = {2016, 2017, 2018},
+                              TString base = "nanoaods_dev") {
 
   hsigs_ = {};
   int status(0);
@@ -149,6 +212,7 @@ int get_bemu_histogram(int set = 8, TString selection = "zemu",
   if(test_sys_ >= 0) dataplotter_->verbose_ = 1;
 
   //get background distribution
+  if(set == 13 || set == 18) {dataplotter_->signal_scale_ = 20.; dataplotter_->signal_scales_["H->e#mu"] = 50.;}
   THStack* hstack = dataplotter_->get_stack(hist, "event", set+set_offset);
   if(!hstack) return 1;
 
@@ -167,9 +231,20 @@ int get_bemu_histogram(int set = 8, TString selection = "zemu",
   for(auto h : signals) {
     h->Draw("hist same");
   }
+  TH1D* hdata_clone = (TH1D*) hdata->Clone("hdata_clone");
+  if(blind_data_) {
+    int bin_lo, bin_hi;
+    bin_lo = hdata_clone->FindBin(86.);
+    bin_hi = hdata_clone->FindBin(96.);
+    for(int bin = bin_lo; bin < bin_hi; ++bin) hdata_clone->SetBinContent(bin, 0.);
+    bin_lo = hdata_clone->FindBin(120.);
+    bin_hi = hdata_clone->FindBin(130.);
+    for(int bin = bin_lo; bin < bin_hi; ++bin) hdata_clone->SetBinContent(bin, 0.);
+  }
+  hdata_clone->Draw("same E");
 
   if(selection == "zemu") {xmin_ = 70.; xmax_ = 110.;}
-  else if(selection == "hemu") {xmin_ = 70.; xmax_ = 110.;}
+  else if(selection == "hemu") {xmin_ = 110.; xmax_ = 150.;}
   else {xmin_ = 50.; xmax_ = 170.;}
 
   hstack->GetXaxis()->SetRangeUser(xmin_, xmax_);
@@ -193,21 +268,24 @@ int get_bemu_histogram(int set = 8, TString selection = "zemu",
   hbkg_ = (TH1D*) hlast->Clone("hbkg_");
   for(auto h : signals) {
     TString hname = h->GetName();
+    cout << "Signal " << hname.Data() << " has an integral of " << h->Integral() << " before re-scaling and ";
+    if(dataplotter_->signal_scales_.find(hname) != dataplotter_->signal_scales_.end())
+      h->Scale(1./dataplotter_->signal_scales_[hname]);
+    else
+      h->Scale(1./dataplotter_->signal_scale_);
+    cout << h->Integral() << " after\n";
     hname.ReplaceAll("#", "");
     hname.ReplaceAll("->", "");
     hname.ToLower();
     h->SetName(hname.Data());
     hsigs_.push_back((TH1D*) h->Clone(Form("hsig_%s_", hname.Data()))); //store the signal for plotting against systematic
-    if(dataplotter_->signal_scales_.find(hname) != dataplotter_->signal_scales_.end())
-      h->Scale(1./dataplotter_->signal_scales_[hname]);
-    else
-      h->Scale(1./dataplotter_->signal_scale_);
     h->Write();
   }
   hdata->SetName("hdata");
   hdata->Write();
 
-  status += get_systematics(set+set_offset, hist, fout, canvas_name);
+  if(do_systematics_)
+    status += get_systematics(set+set_offset, hist, fout, canvas_name);
   fout->Close();
   return status;
 }
@@ -216,6 +294,10 @@ int get_bemu_histogram(vector<int> sets, TString selection = "zemu",
                        vector<int> years = {2016, 2017, 2018},
                        TString base = "nanoaods_dev") {
   int status(0);
-  for(int set : sets) status += get_bemu_histogram(set, selection, years, base);
+  for(int set : sets) {
+    status += get_bemu_single_histogram(set, selection, years, base);
+    status += get_same_flavor_histogram(set, "mumu", years, base);
+    status += get_same_flavor_histogram(set, "ee", years, base);
+  }
   return status;
 }

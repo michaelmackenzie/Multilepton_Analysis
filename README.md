@@ -200,5 +200,18 @@ given it's restricted between 0 and 1.
 
 ```
 $> cd studies/fake_tau_scale
-$> root.exe -q -b "scale_factors.C"
+$> root.exe -q -b "scale_factors.C(\"[measurement selection]\", [selection set], [year])"
+$> root.exe -q -b "test_data_scale.C("[measurement selection]\", [tight tau selection set], [loose tau selection set], [year])"
+```
+
+#### QCD transfer factors
+The QCD background is estimated using a loose lepton ID control region, where
+the data is applied to the tight ID region using transfer factors. These factors
+are measured in the emu selection region, where the number of events in bins
+of lepton delta R are counted in both the loose and tight ID region.
+The transfer factor is then N(tight) / N(loose) for the given bin
+
+```
+$> cd studies/qcd_scale
+$> root.exe -q -b "scale_factors.C(\"[measurement selection]\", [selection set], [year])"
 ```

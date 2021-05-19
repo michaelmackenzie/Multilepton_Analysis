@@ -9,6 +9,7 @@ void fit_sideband_poly() {
   mass.setRange("LowSideband" , 75., 85.);
   mass.setRange("HighSideband", 95., 120.);
   mass.setRange("Full", 75., 120.);
+  mass.setBins(90);
 
   // Make a generator model
   double true_val = -0.05;
@@ -17,17 +18,18 @@ void fit_sideband_poly() {
 
   // Generate some toy data
   RooDataHist* data = exp.generateBinned(RooArgSet(mass), 1e5);
-  auto data_blinded = data->reduce("mass < 84.9 || mass > 95.7");
+  auto data_blinded = data->reduce("mass < 85 || mass > 95");
 
   // shift tau away to re-fit later
   tau.setVal(-1.);
 
   // Make a fit model
-  RooRealVar a("a", "a", 2.03, -5., 5.);
-  RooRealVar b("b", "b", 0.65, -5., 5.);
+  RooRealVar a("a", "a", 2.02, -5., 5.);
+  RooRealVar b("b", "b", 0.64, -5., 5.);
   RooRealVar c("c", "c", 0.40, -5., 5.);
   RooRealVar d("d", "d", 0.21, -5., 5.);
   RooBernstein bernPDF("bernPDF", "bernPDF", mass, RooArgSet(a,b,c,d));
+  // bernPDF.selectNormalizationRange("LowSideband,HighSideband", kTRUE);
 
   RooRealVar mean("mean", "mean", -500., -1000., 100.);
   RooRealVar sigma("sigma", "sigma", 110., 0.1, 1000.);

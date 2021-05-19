@@ -33,7 +33,9 @@ Int_t calculate_UL_MVA_categories(vector<int> sets = {8}, TString selection = "z
   }
 
   //get the workspace from the previous stage
-  TFile* fInput = TFile::Open(Form("workspaces/hist_background_mva_%s_%s_%s.root", selection.Data(), year_string.Data(), set_str.Data()), "READ");
+  TFile* fInput = TFile::Open(Form("workspaces/hist_background_mva_%s%s_%s_%s.root", selection.Data(),
+                                   (doConstraints_) ? "_constr" : "",
+                                   year_string.Data(), set_str.Data()), "READ");
   if(!fInput) return 1;
   fInput->cd();
   RooWorkspace* ws = (RooWorkspace*) fInput->Get("ws");
@@ -45,7 +47,7 @@ Int_t calculate_UL_MVA_categories(vector<int> sets = {8}, TString selection = "z
 
   RooArgList poi_list(*br_sig);
   RooArgList obs_list(*(ws->var("mva")));
-  RooDataHist* data = (RooDataHist*) ws->data("combined_data");
+  RooDataHist* data = (RooDataHist*) ws->data((doBlind_) ? "combined_toy_data" : "combined_data");
   ws->Print();
   vector<RooRealVar*> n_bkgs;
   RooArgList nuisance_params;
@@ -114,18 +116,24 @@ Int_t calculate_UL_MVA_categories(vector<int> sets = {8}, TString selection = "z
   //est the test statistic to use
   toymc->SetTestStatistic(&profl);
 
-  int npoints = 200; //number of points to scan
+  int npoints = 100; //number of points to scan
   //min and max for the scan (better to choose smaller intervals)
   double poimin = ((RooRealVar*) poi_list.find("br_sig"))->getMin();
   double poimax = ((RooRealVar*) poi_list.find("br_sig"))->getMax();
 
-  double min_scan = (selection.Contains("z")) ? 5.e-7 : 1.e-4;
-  double max_scan = (selection.Contains("z")) ? 2.e-5 : 1.e-2;
-  if(years.size() > 1) {min_scan /= 50.; max_scan /= 2.;}
-  if(doConstraints_) {min_scan *= 1.5; max_scan *= 3.;}
+  bool doHiggs = selection.Contains("h");
+  double min_scan = (!doHiggs) ? 2.e-8 : 2.e-6;
+  double max_scan = (!doHiggs) ? 1.e-5 : 1.e-3;
+  // if(years.size() > 1) {min_scan /= 50.; max_scan /= 2.;}
+  if(doConstraints_) {min_scan *= 1.; max_scan *= 3.;}
   std::cout << "Doing a fixed scan in the interval: " << min_scan << ", "
             << max_scan << " with " << npoints << " points\n";
 
+  if(poimin > min_scan || poimax < max_scan) {
+    cout << "POI scan issue! range = [" << min_scan << ", " << max_scan
+         << "] but POI range = [" << poimin << ", " << poimax << "]\n";
+    return 10;
+  }
   calc.SetFixedScan(npoints, min_scan, max_scan);
 
   auto result = calc.GetInterval();
@@ -159,8 +167,10 @@ Int_t calculate_UL_MVA_categories(vector<int> sets = {8}, TString selection = "z
       g->SetMarkerSize(0);
       g->SetLineWidth(0);
       g->SetMarkerColorAlpha(0,0.);
+      g->GetXaxis()->SetRangeUser(min_scan, max_scan);
     }
   }
+  canvas->GetListOfPrimitives()->Print();
   canvas->SetLogx();
   //Add upper limit info to the plot
   TLatex label;

@@ -17,6 +17,8 @@ RooCategory* categories_;
 
 int spline_order_ = 0; //for interpolating the histogram --> PDF
 
+bool blind_data_ = true;
+
 //create a PDF for each systematic variation
 Int_t get_systematics(vector<vector<TH1D*>>& sig, vector<vector<TH1D*>>& bkg, RooWorkspace& ws) {
   int status(0);
@@ -70,7 +72,7 @@ Int_t get_systematics(vector<vector<TH1D*>>& sig, vector<vector<TH1D*>>& bkg, Ro
                                          )
                        );
       n_bkgs.push_back(new RooRealVar(Form("n_bkg_%i_sys_%i", index, isys),
-                                      "n_bkg", bkg[index][isys]->Integral(), 0., 1.e8));
+                                      "n_bkg", bkg[index][isys]->Integral(), 1.e3, 1.e7));
 
       //construct the total PDF for this category
       auto totpdf = new RooAddPdf(Form("totMVAPDF_%i_sys_%i", index, isys),
@@ -105,13 +107,15 @@ Int_t fit_background_MVA_binned(vector<int> sets = {8}, TString selection = "zmu
                                 int seed = 90) {
   int status(0);
   selection_ = selection;
+  RooRandom::randomGenerator()->SetSeed(seed);
+
   double sys_unc = 0.; //systematic uncertainty on branching fraction
   double stat_unc = 0.3; //fractional statistical uncertainty on branching fraction
   vector<TString> hists;
   if     (selection == "hmutau"  ) {hists = {"mva0", "mva6"}; stat_unc = 2.8e-4/5.e-3; sys_unc = 0.20*stat_unc;}
   else if(selection == "zmutau"  ) {hists = {"mva1", "mva7"}; stat_unc = 1.3e-6/5.e-6; sys_unc = 0.87*stat_unc;}
   else if(selection == "hetau"   ) {hists = {"mva2", "mva8"}; stat_unc = 3.5e-4/5.e-3; sys_unc = 0.20*stat_unc;}
-  else if(selection == "zetau"   ) {hists = {"mva3", "mva9"}; stat_unc = 1.5e-6/5.e-6; sys_unc = 1.40*stat_unc;}
+  else if(selection == "zetau"   ) {hists = {"mva3", "mva9"}; stat_unc = 1.5e-6/5.e-6; sys_unc = 0.20*stat_unc;}
   else if(selection == "hemu"    ) {hists = {"mva4"};         stat_unc = 1.5e-6/5.e-6; sys_unc = 0.20*stat_unc;}
   else if(selection == "zemu"    ) {hists = {"mva5"};         stat_unc = 1.5e-6/5.e-6; sys_unc = 0.20*stat_unc;}
   else {
@@ -135,7 +139,7 @@ Int_t fit_background_MVA_binned(vector<int> sets = {8}, TString selection = "zmu
     year_string += years[i];
   }
 
-  vector<TH1D*> hmva_bkgs, hmva_sigs;
+  vector<TH1D*> hmva_bkgs, hmva_sigs, hmva_dats;
   vector<vector<TH1D*>> hsys_bkg, hsys_sig;
   int sys_index = 0;
   for(int set : sets) {
@@ -148,6 +152,8 @@ Int_t fit_background_MVA_binned(vector<int> sets = {8}, TString selection = "zmu
       if(!f_bkg) return 1;
       TH1D* hmva_bkg = (TH1D*) f_bkg->Get("hbackground");
       if(!hmva_bkg) return 2;
+      TH1D* hmva_dat = (TH1D*) f_bkg->Get("hdata");
+      if(!hmva_dat) return 2;
       TString selec_hname = selection;
       selec_hname.ReplaceAll("_e", "");
       selec_hname.ReplaceAll("_mu", "");
@@ -155,8 +161,10 @@ Int_t fit_background_MVA_binned(vector<int> sets = {8}, TString selection = "zmu
       if(!hmva_sig) return 3;
       hmva_bkg->SetName(Form("hbkg_%i_%i", set, index));
       hmva_sig->SetName(Form("hsig_%i_%i", set, index));
+      hmva_dat->SetName(Form("hdat_%i_%i", set, index));
       hmva_bkgs.push_back(hmva_bkg);
       hmva_sigs.push_back(hmva_sig);
+      hmva_dats.push_back(hmva_dat);
 
       //Load systematic varied mva histograms
       hsys_bkg.push_back({}); hsys_sig.push_back({});
@@ -172,7 +180,7 @@ Int_t fit_background_MVA_binned(vector<int> sets = {8}, TString selection = "zmu
       f_bkg->ls(); f_bkg->Print();
     }
   }
-  if(hmva_bkgs.size() == 0 || hmva_sigs.size() == 0) return -1;
+  if(hmva_bkgs.size() == 0 || hmva_sigs.size() == 0 || hmva_dats.size() == 0) return -1;
 
   cout << "All file elements retrieved!\n";
 
@@ -181,14 +189,16 @@ Int_t fit_background_MVA_binned(vector<int> sets = {8}, TString selection = "zmu
   RooRealVar mva("mva","MVA score", xmin, xmax);
   mva.setBins(hmva_bkgs[0]->GetNbinsX());
   mva_ = &mva;
-  vector<RooDataHist*> bkgMVADatas, sigMVADatas;
+  vector<RooDataHist*> bkgMVADatas, sigMVADatas, datMVADatas;
   vector<RooHistPdf*>  bkgMVAPDFs , sigMVAPDFs ;
   for(unsigned index = 0; index < hmva_bkgs.size(); ++index) {
-    cout << "Starting index " << index << ": sig int = "
-         << hmva_sigs[index]->Integral() << " and bkg int = "
-         << hmva_bkgs[index]->Integral() << endl;
+    cout << "Starting index " << index
+         << ": sig int = " << hmva_sigs[index]->Integral()
+         << " bkg int = " << hmva_bkgs[index]->Integral()
+         << " and data int = " << hmva_dats[index]->Integral() << endl;
       bkgMVADatas.push_back(new RooDataHist(Form("bkgMVAData_%i", index), "Background MVA Data", RooArgList(mva), hmva_bkgs   [index]));
       sigMVADatas.push_back(new RooDataHist(Form("sigMVAData_%i", index), "Signal MVA Data"    , RooArgList(mva), hmva_sigs   [index]));
+      datMVADatas.push_back(new RooDataHist(Form("datMVAData_%i", index), "Data MVA Data"      , RooArgList(mva), hmva_dats   [index]));
       bkgMVAPDFs .push_back(new RooHistPdf (Form("bkgMVAPDF_%i" , index), "Background MVA PDF" , RooArgSet (mva), *bkgMVADatas[index], spline_order_));
       sigMVAPDFs .push_back(new RooHistPdf (Form("sigMVAPDF_%i" , index), "Signal MVA PDF"     , RooArgSet (mva), *sigMVADatas[index], spline_order_));
       cout << "Finished index " << index << endl;
@@ -208,11 +218,12 @@ Int_t fit_background_MVA_binned(vector<int> sets = {8}, TString selection = "zmu
     lum += lum_year;
   }
 
+  bool doHiggs = selection.Contains("h");
   //Get total boson cross section and set total luminosity
   double bxs = xs.GetCrossSection((selection.Contains("z")) ? "Z" : "H");
 
   //Parameters common to all categories
-  RooRealVar br_sig("br_sig", "br_sig", 0., -0.01, 0.01); br_sig_ = &br_sig;
+  RooRealVar br_sig("br_sig", "br_sig", 0., (doHiggs) ? -0.1 : -1.e-3, (doHiggs) ? 0.1 : 1.e-3); br_sig_ = &br_sig;
   RooRealVar lum_var("lum_var", "lum_var", lum); lum_var_ = &lum_var;
   RooRealVar bxs_var("bxs_var", "bxs_var", bxs); bxs_var_ = &bxs_var;
   RooRealVar br_sig_kappa("br_sig_kappa", "br_sig_kappa", 1. + sys_unc, 0., 2. + sys_unc); br_sig_kappa.setConstant(1);
@@ -234,7 +245,7 @@ Int_t fit_background_MVA_binned(vector<int> sets = {8}, TString selection = "zmu
   vector<RooAbsPdf*> totMVAPDFs;
   RooCategory categories(selection.Data(), selection.Data()); //for creating a data hist
   categories_ = &categories;
-  map<string, RooDataHist*> dataCategoryMap;
+  map<string, RooDataHist*> dataCategoryMap, toyDataCategoryMap;
   vector<RooRealVar*> eff_nominals, n_bkgs;
   vector<RooFormulaVar*> n_sigs;
 
@@ -245,7 +256,7 @@ Int_t fit_background_MVA_binned(vector<int> sets = {8}, TString selection = "zmu
     n_sigs.push_back(new RooFormulaVar(Form("n_sig_%i", index), "@0*@1*@2*@3",
                                        RooArgList(br_sig_eff, lum_var, bxs_var,
                                                   *eff_nominals[index])));
-    n_bkgs.push_back(new RooRealVar(Form("n_bkg_%i", index), "n_bkg", hmva_bkgs[index]->Integral(), 0., 1.e8));
+    n_bkgs.push_back(new RooRealVar(Form("n_bkg_%i", index), "n_bkg", hmva_bkgs[index]->Integral(), 1.e3, 1.e7));
     cout << "Index " << index << " Nominal signal efficiency = " << eff_signal << endl;
     //Signal + main background PDF
     RooAbsPdf* totpdf = new RooAddPdf(Form((doConstraints_) ? "totMVAPDF0_%i" : "totMVAPDF_%i", index),
@@ -265,7 +276,8 @@ Int_t fit_background_MVA_binned(vector<int> sets = {8}, TString selection = "zmu
       RooDataHist* sig_mva_gen = sigMVAPDFs[index]->generateBinned(RooArgSet(mva), hmva_sigs[index]->Integral());
       bkg_mva_gen->add(*sig_mva_gen);
     }
-    dataCategoryMap[category] = bkg_mva_gen;
+    toyDataCategoryMap[category] = bkg_mva_gen;
+    dataCategoryMap[category] = datMVADatas[index];
   }
 
   cout << "Total PDFs defined!\n";
@@ -278,13 +290,20 @@ Int_t fit_background_MVA_binned(vector<int> sets = {8}, TString selection = "zmu
 
   cout << "Total combined PDF defined!\n";
 
+  RooDataHist combined_toy_data("combined_toy_data", "combined_toy_data", mva, categories, toyDataCategoryMap);
   RooDataHist combined_data("combined_data", "combined_data", mva, categories, dataCategoryMap);
 
   cout << "Combined data defined!\n";
 
   if(!includeSignalInFit_) {br_sig.setVal(0.); br_sig.setConstant(1);}
 
-  // totPDF.fitTo(combined_data, RooFit::Extended(1));
+  if(blind_data_) {
+    cout << "Fitting to the toy data\n";
+    totPDF.fitTo(combined_toy_data, RooFit::Extended(1));
+  } else {
+    cout << "Fitting to the data\n";
+    totPDF.fitTo(combined_data, RooFit::Extended(1));
+  }
 
   cout << "Total PDF fit finished!\n";
 
@@ -300,33 +319,45 @@ Int_t fit_background_MVA_binned(vector<int> sets = {8}, TString selection = "zmu
   }
   for(unsigned index = 0; index < totMVAPDFs.size(); ++index) {
     auto xframe = mva.frame(50);
-    // combined_data.plotOn(xframe, RooFit::Cut(Form("%s==%i",selection.Data(),index)));
+    if(blind_data_)
+      combined_toy_data.plotOn(xframe, RooFit::Cut(Form("%s==%i",selection.Data(),index)));
+    else
+      combined_data.plotOn(xframe, RooFit::Cut(Form("%s==%i",selection.Data(),index)));
     double prev_val = bxs_var.getVal();
     double sig_scale = (signame.Contains("H")) ? 200. : 100.;
-    bxs_var.setVal(sig_scale*prev_val); //scale signal boson cross section, since br_sig has limits
-
-    totPDF.plotOn(xframe, RooFit::Components(Form("sigMVAPDF_%i", index)),
-                  RooFit::Slice(categories, Form("%s_%i", selection.Data(),index)), RooFit::ProjWData(combined_data));
+    bxs_var.setVal(0.);
     totPDF.plotOn(xframe, RooFit::Components(Form("bkgMVAPDF_%i", index)), RooFit::LineColor(kRed), RooFit::LineStyle(kDashed),
-                  RooFit::Slice(categories, Form("%s_%i", selection.Data(),index)), RooFit::ProjWData(combined_data));
+                  RooFit::Slice(categories, Form("%s_%i", selection.Data(),index)), RooFit::ProjWData((blind_data_) ? combined_toy_data : combined_data));
+    bxs_var.setVal(sig_scale*prev_val); //scale signal boson cross section, since br_sig has limits
+    totPDF.plotOn(xframe, RooFit::Components(Form("sigMVAPDF_%i", index)),
+                  RooFit::Slice(categories, Form("%s_%i", selection.Data(),index)), RooFit::ProjWData((blind_data_) ? combined_toy_data : combined_data));
     auto c1 = new TCanvas();
     xframe->Draw();
-    xframe->GetXaxis()->SetRangeUser(-0.8, 0.3);
-    TLegend* leg = new TLegend(0.6, 0.7, 0.9, 0.9);
+    xframe->GetXaxis()->SetRangeUser(-0.6, 0.3);
+    hmva_dats[index]->Draw("same E");
+    if(blind_data_) {
+      auto h = c1->GetPrimitive(Form("h_combined_toy_data_Cut[%s==%i]", selection.Data(), index));
+      if(h) delete h;
+    }
+    TLegend* leg = new TLegend(0.65, 0.7, 0.9, 0.9);
     leg->AddEntry((TH1*) (c1->GetPrimitive(Form("totMVAPDF_%i_Norm[mva]_Comp[sigMVAPDF_%i]", index, index))), Form("Signal (x%.0f)", sig_scale), "L");
     leg->AddEntry((TH1*) (c1->GetPrimitive(Form("totMVAPDF_%i_Norm[mva]_Comp[bkgMVAPDF_%i]", index, index))), "Background", "L");
+    leg->AddEntry(hmva_dats[index], "Data");
     leg->Draw();
     c1->SaveAs(Form("plots/latest_production/%s/hist_background_mva_category_%i_%s_%s.png", year_string.Data(), index, selection.Data(), set_str.Data()));
-    c1->SetLogy();
-    c1->SaveAs(Form("plots/latest_production/%s/hist_background_mva_category_%i_%s_%s_log.png", year_string.Data(), index, selection.Data(), set_str.Data()));
+    // c1->SetLogy();
+    // c1->SaveAs(Form("plots/latest_production/%s/hist_background_mva_category_%i_%s_%s_log.png", year_string.Data(), index, selection.Data(), set_str.Data()));
     bxs_var.setVal(prev_val);
   }
 
   gSystem->Exec("[ ! -d workspaces ] && mkdir workspaces");
-  TFile* fOut = new TFile(Form("workspaces/hist_background_mva_%s_%s_%s.root", selection.Data(), year_string.Data(), set_str.Data()), "RECREATE");
+  TFile* fOut = new TFile(Form("workspaces/hist_background_mva_%s%s_%s_%s.root", selection.Data(),
+                               (doConstraints_) ? "_constr" : "",
+                               year_string.Data(), set_str.Data()), "RECREATE");
   fOut->cd();
   RooWorkspace ws("ws");
   ws.import(totPDF);
+  ws.import(combined_toy_data);
   ws.import(combined_data);
   get_systematics(hsys_sig, hsys_bkg, ws);
   ws.Write();

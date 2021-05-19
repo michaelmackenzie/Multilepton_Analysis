@@ -1,17 +1,20 @@
 //Script to retrieve the background and signal MVA histograms
 #include "../histograms/dataplotter_ztautau.C"
 #include "../interface/SystematicHist_t.hh"
-int overall_rebin_ = 1;
+int overall_rebin_ = 2;
 TH1D* hbkg_;
 vector<TH1D*> hsigs_;
 int test_sys_ = -1; //set to systematic number if debugging/inspecting it
+bool blind_data_ = true; //set data bins > MVA score level to 0
 
-int get_systematics(int set, TString hist, TFile* f, TString canvas_name) {
+int get_systematics(int set, TString hist, TH1D* hdata, TFile* f, TString canvas_name) {
   int status(0);
   f->cd();
   dataplotter_->rebinH_ = overall_rebin_;
   hbkg_->SetLineColor(kRed-3);
   hbkg_->SetFillColor(0);
+  TH1D* hdata_ratio = (TH1D*) hdata->Clone("hdata_ratio");
+  hdata_ratio->Divide(hbkg_);
 
   //Loop through each systematic, creating PDFs and example figures
   for(int isys = (test_sys_ >= 0 ? test_sys_ : 0); isys < (test_sys_ >= 0 ? test_sys_ + 1 : kMaxSystematics); ++isys) {
@@ -58,6 +61,7 @@ int get_systematics(int set, TString hist, TFile* f, TString canvas_name) {
       g_sig->SetFillColor(g_sig->GetLineColor());
       g_sig->Draw("P2");
     }
+    hdata->Draw("same E");
     g_bkg->GetXaxis()->SetRangeUser(-0.6,0.3);
     g_bkg->SetTitle("");
 
@@ -89,6 +93,7 @@ int get_systematics(int set, TString hist, TFile* f, TString canvas_name) {
         g_sig->Draw("PL");
       }
     }
+    hdata_ratio->Draw("same E");
     g_r_bkg->GetXaxis()->SetRangeUser(-0.6,0.3);
     g_r_bkg->GetXaxis()->SetLabelSize(0.08);
     g_r_bkg->GetYaxis()->SetLabelSize(0.08);
@@ -112,7 +117,8 @@ int get_systematics(int set, TString hist, TFile* f, TString canvas_name) {
     }
     hbkg->Write();
     hstack->Write();
-    f->Flush();
+    // f->Flush();
+    delete c;
   }
   return status;
 }
@@ -161,12 +167,28 @@ int get_individual_MVA_histogram(int set = 8, TString selection = "zmutau",
     if(!h) return 2;
   }
 
+  TH1D* hdata = dataplotter_->get_data(hist, "event", set+set_offset);
+  if(!hdata) return 3;
+  hdata->SetName("hdata");
+  //blind high MVA score region if desired
+  if(blind_data_) {
+    double mva_cut = 0.;
+    int bin_start = hdata->FindBin(mva_cut);
+    for(int bin = bin_start; bin <= hdata->GetNbinsX(); ++bin) {
+      hdata->SetBinContent(bin, 0.);
+      hdata->SetBinError(bin, 0.5);
+    }
+  }
+
   TCanvas* c = new TCanvas();
   hstack->Draw("hist noclear");
   for(auto h : signals) {
     h->Draw("hist same");
   }
+  hdata->Draw("same E");
   hstack->GetXaxis()->SetRangeUser(-0.6,0.3);
+  hstack->GetYaxis()->SetRangeUser(0.9,1.1*hstack->GetMaximum());
+
   TString year_string;
   for(unsigned i = 0; i < years.size(); ++i) {
     if(i > 0) year_string += "_";
@@ -179,6 +201,7 @@ int get_individual_MVA_histogram(int set = 8, TString selection = "zmutau",
 
   gSystem->Exec("[ ! -d histograms ] && mkdir histograms");
   TFile* fout = new TFile(Form("histograms/%s_%s_%i_%s.hist", selection.Data(), hist.Data(), set, year_string.Data()), "RECREATE");
+  hdata->Write();
   hstack->SetName("hstack");
   hstack->Write();
   TH1D* hlast = (TH1D*) hstack->GetStack()->Last();
@@ -198,7 +221,7 @@ int get_individual_MVA_histogram(int set = 8, TString selection = "zmutau",
       h->Scale(1./dataplotter_->signal_scale_);
     h->Write();
   }
-  status += get_systematics(set+set_offset, hist, fout, canvas_name);
+  status += get_systematics(set+set_offset, hist, hdata, fout, canvas_name);
   fout->Close();
   return status;
 }

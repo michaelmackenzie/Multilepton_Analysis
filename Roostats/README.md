@@ -38,6 +38,42 @@ Runs a simple asymptotic CLs calculation of the upper limit
 root.exe "calculate_UL.C([set number], [year])"
 ```
 
+## B->e+mu upper limit using binned distributions
+
+## Input parameters
+HISTSET: Base histogram set number corresponding to the selection in ZTauTauHistMaker
+default: 8
+options: single set number or bracketed list of set numbers for separate categories
+
+SELECTION: Signal decay performing the analysis for
+default: zmutau
+options: zmutau, zetau, hmutau, hetau
+
+YEAR: List of years to perform the analysis on (in brackets)
+default: {2016, 2017, 2018}
+
+HISTPATH: Directory for the set of histograms to use, from /uscms/store/user/mmackenz/histograms
+default: nanoaods_dev
+
+### Retrieve the binned distributions
+```
+root.exe -q -b "get_bemu_histogram($HISTSET, \"$SELECTION\", $YEAR, \"$HISTPATH\")"
+```
+
+### Create background and signal PDFs
+Read the histogram files for the background and signal PDFs, fit analytic functions to these.
+Creates a RooSimultaneous PDF for the multiple categories of the selection.
+Also creates PDFs for each systematically shifted histogram.
+```
+root.exe -q -b "fit_background_bemu_binned.C($HISTSET, \"${SELECTION}\", ${YEAR})"
+```
+
+### Perform upper limit test
+Read the workspace for the background and signal PDFs, perform upper limit calculations.
+```
+root.exe -q -b "calculate_UL_bmeu_binned.C(${HISTSET}, \"${SELECTION}\", ${YEAR})"
+```
+
 ## Evaluating the upper limit for B->X+tau using an MVA score fit
 The UL calculation uses MC and data-driven background estimated MVA score
 histograms to create a background PDF and a histogram of the expected
@@ -62,7 +98,7 @@ Load the histogram sets using the DataPlotter defined in CLFVAnalysis/histograms
 Writes these histograms locally to Roostats/histograms/.
 Histograms using systematically shifted scale factors are also stored.
 ```
-root.exe -q -b "get_MVA_histograms.C(${HISTSET}, \"${SELECTION}\", ${YEAR}, \"${HISTSET}\")"
+root.exe -q -b "get_MVA_histogram.C(${HISTSET}, \"${SELECTION}\", ${YEAR}, \"${HISTPATH}\")"
 ```
 ### Create background and signal PDFs
 Read the histogram files for the background and signal PDFs, create RooHistPdfs for these.
