@@ -128,14 +128,14 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
   Use["MLPBFGS"]         = 0; // Recommended ANN with optional training method
   Use["MLPBNN"]          = 0; // Recommended ANN with BFGS training method and bayesian regulator
   Use["CFMlpANN"]        = 0; // Depreciated ANN from ALEPH
-  Use["TMlpANN"]         = 1; // ROOT's own ANN
+  Use["TMlpANN"]         = 0; // ROOT's own ANN
 
   //
   // --- Support Vector Machine
   Use["SVM"]             = 0;
   //
   // --- Boosted Decision Trees
-  Use["BDT"]             = 1; // uses Adaptive Boost
+  Use["BDT"]             = 0; // uses Adaptive Boost
   Use["BDT_MM"]          = 1; // uses Adaptive Boost and modifications
   Use["BDTG"]            = 0; // uses Gradient Boost
   Use["BDTB"]            = 0; // uses Bagging
@@ -256,8 +256,8 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
     sig_cut += "&&";
     bkg_cut += "&&";
   }
-  sig_cut = "(issignal >  0.5)&&fulleventweightlum<50&&fulleventweight>-10";
-  bkg_cut = "(issignal <  0.5)&&fulleventweightlum<50&&fulleventweight>-10"; //use background MC and SS data
+  sig_cut = "(issignal >  0.5)"; //&&fulleventweightlum<50&&fulleventweight>-10";
+  bkg_cut = "(issignal <  0.5)"; //&&fulleventweightlum<50&&fulleventweight>-10"; //use background MC and SS data
 
   printf("\033[32m--- Using signal identification cut %s\033[0m\n", sig_cut.Data());
   printf("\033[32m--- Using background identification cut %s\033[0m\n", bkg_cut.Data());

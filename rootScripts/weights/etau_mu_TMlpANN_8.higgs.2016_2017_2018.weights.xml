@@ -1,0 +1,85 @@
+<?xml version="1.0"?>
+<MethodSetup Method="TMlpANN::TMlpANN">
+  <GeneralInfo>
+    <Info name="TMVA Release" value="4.2.1 [262657]"/>
+    <Info name="ROOT Release" value="6.12/07 [396295]"/>
+    <Info name="Creator" value="mmackenz"/>
+    <Info name="Date" value="Sun Mar 14 19:13:06 2021"/>
+    <Info name="Host" value="Linux cmsbuild92.cern.ch 2.6.32-696.30.1.el6.x86_64 #1 SMP Tue May 22 06:09:36 CEST 2018 x86_64 x86_64 x86_64 GNU/Linux"/>
+    <Info name="Dir" value="/uscms_data/d3/mmackenz/ZEMu/CMSSW_10_2_18/src/StandardModel/CLFVAnalysis_dev/tmva_training/training_background_ztautau_higgs_nano_etau_mu_2016_2017_2018_8"/>
+    <Info name="Training events" value="219104"/>
+    <Info name="TrainingTime" value="1.16476007e+03"/>
+    <Info name="AnalysisType" value="Classification"/>
+  </GeneralInfo>
+  <Options>
+    <Option name="V" modified="Yes">False</Option>
+    <Option name="VerbosityLevel" modified="No">Default</Option>
+    <Option name="VarTransform" modified="No">None</Option>
+    <Option name="H" modified="Yes">False</Option>
+    <Option name="CreateMVAPdfs" modified="No">False</Option>
+    <Option name="IgnoreNegWeightsInTraining" modified="No">False</Option>
+    <Option name="NCycles" modified="Yes">200</Option>
+    <Option name="HiddenLayers" modified="Yes">N+1,N</Option>
+    <Option name="ValidationFraction" modified="Yes">3.000000e-01</Option>
+    <Option name="LearningMethod" modified="Yes">bfgs</Option>
+  </Options>
+  <Variables NVar="13">
+    <Variable VarIndex="0" Expression="lepm" Label="lepm" Title="M_{ll}" Unit="GeV" Internal="lepm" Type="F" Min="5.10006180e+01" Max="1.69995972e+02"/>
+    <Variable VarIndex="1" Expression="mtone" Label="mtone" Title="MT(MET,l1)" Unit="" Internal="mtone" Type="F" Min="0.00000000e+00" Max="7.78607727e+02"/>
+    <Variable VarIndex="2" Expression="mttwo" Label="mttwo" Title="MT(MET,l2)" Unit="" Internal="mttwo" Type="F" Min="0.00000000e+00" Max="6.82405640e+02"/>
+    <Variable VarIndex="3" Expression="onemetdeltaphi" Label="onemetdeltaphi" Title="#Delta#phi_{MET,l1}" Unit="" Internal="onemetdeltaphi" Type="F" Min="0.00000000e+00" Max="3.14158368e+00"/>
+    <Variable VarIndex="4" Expression="twometdeltaphi" Label="twometdeltaphi" Title="#Delta#phi_{MET,l2}" Unit="" Internal="twometdeltaphi" Type="F" Min="0.00000000e+00" Max="3.14158368e+00"/>
+    <Variable VarIndex="5" Expression="leponept" Label="leponept" Title="pT_{l1}" Unit="GeV" Internal="leponept" Type="F" Min="1.00005484e+01" Max="6.30076050e+02"/>
+    <Variable VarIndex="6" Expression="leptwopt" Label="leptwopt" Title="pT_{l2}" Unit="GeV" Internal="leptwopt" Type="F" Min="1.00026598e+01" Max="6.94669861e+02"/>
+    <Variable VarIndex="7" Expression="leppt" Label="leppt" Title="pT_{ll}" Unit="GeV" Internal="leppt" Type="F" Min="2.08220277e-02" Max="7.31669312e+02"/>
+    <Variable VarIndex="8" Expression="lepdeltaphi" Label="lepdeltaphi" Title="#Delta#phi_{ll}" Unit="" Internal="lepdeltaphi" Type="F" Min="0.00000000e+00" Max="3.14158368e+00"/>
+    <Variable VarIndex="9" Expression="deltaalphah2" Label="deltaalphah2" Title="#Delta#alpha" Unit="" Internal="deltaalphah2" Type="F" Min="-3.92832832e+01" Max="5.87523127e+00"/>
+    <Variable VarIndex="10" Expression="lepmestimate" Label="lepmestimate" Title="M_{ll}^{Coll}" Unit="GeV" Internal="lepmestimate" Type="F" Min="5.10006180e+01" Max="6.99045715e+02"/>
+    <Variable VarIndex="11" Expression="jetpt" Label="jetpt" Title="pT_{Jet}" Unit="" Internal="jetpt" Type="F" Min="0.00000000e+00" Max="1.58200000e+03"/>
+    <Variable VarIndex="12" Expression="met" Label="met" Title="MET" Unit="GeV" Internal="met" Type="F" Min="5.43983504e-02" Max="1.40503223e+03"/>
+  </Variables>
+  <Spectators NSpec="21">
+    <Spectator SpecIndex="0" Expression="fulleventweight" Label="fulleventweight" Title="fullEventWeight" Unit="" Internal="fulleventweight" Type="F" Min="-8.35170431e-05" Max="6.94858909e-01"/>
+    <Spectator SpecIndex="1" Expression="fulleventweightlum" Label="fulleventweightlum" Title="fullEventWeightLum" Unit="" Internal="fulleventweightlum" Type="F" Min="-3.46428704e+00" Max="4.94859657e+01"/>
+    <Spectator SpecIndex="2" Expression="eventweight" Label="eventweight" Title="eventWeight" Unit="" Internal="eventweight" Type="F" Min="-2.06139159e+00" Max="1.26309452e+01"/>
+    <Spectator SpecIndex="3" Expression="eventcategory" Label="eventcategory" Title="eventCategory" Unit="" Internal="eventcategory" Type="F" Min="1.00000000e+00" Max="6.70000000e+01"/>
+    <Spectator SpecIndex="4" Expression="issignal" Label="issignal" Title="isSignal" Unit="" Internal="issignal" Type="F" Min="-1.00000000e+00" Max="1.00000000e+00"/>
+    <Spectator SpecIndex="5" Expression="lepdeltaeta" Label="lepdeltaeta" Title="#Delta#eta_{ll}" Unit="" Internal="lepdeltaeta" Type="F" Min="0.00000000e+00" Max="4.50537109e+00"/>
+    <Spectator SpecIndex="6" Expression="metdeltaphi" Label="metdeltaphi" Title="#Delta#phi_{MET,ll}" Unit="" Internal="metdeltaphi" Type="F" Min="6.27060217e-06" Max="3.14158201e+00"/>
+    <Spectator SpecIndex="7" Expression="pxivis" Label="pxivis" Title="p^{vis}_{#xi}" Unit="" Internal="pxivis" Type="F" Min="2.17224544e-04" Max="7.25986084e+02"/>
+    <Spectator SpecIndex="8" Expression="pxiinv" Label="pxiinv" Title="p^{inv}_{#xi}" Unit="" Internal="pxiinv" Type="F" Min="-3.96934448e+02" Max="1.40234741e+03"/>
+    <Spectator SpecIndex="9" Expression="leptwoidone" Label="leptwoidone" Title="#tau anti-electron ID" Unit="" Internal="leptwoidone" Type="F" Min="0.00000000e+00" Max="0.00000000e+00"/>
+    <Spectator SpecIndex="10" Expression="leptwoidtwo" Label="leptwoidtwo" Title="#tau anti-muon ID" Unit="" Internal="leptwoidtwo" Type="F" Min="0.00000000e+00" Max="0.00000000e+00"/>
+    <Spectator SpecIndex="11" Expression="leptwoidthree" Label="leptwoidthree" Title="#tau anti-jet ID" Unit="" Internal="leptwoidthree" Type="F" Min="0.00000000e+00" Max="0.00000000e+00"/>
+    <Spectator SpecIndex="12" Expression="leponedeltaphi" Label="leponedeltaphi" Title="#Delta#phi_{l1,ll}" Unit="" Internal="leponedeltaphi" Type="F" Min="0.00000000e+00" Max="3.14158154e+00"/>
+    <Spectator SpecIndex="13" Expression="leptwodeltaphi" Label="leptwodeltaphi" Title="#Delta#phi_{l2,ll}" Unit="" Internal="leptwodeltaphi" Type="F" Min="0.00000000e+00" Max="3.14157701e+00"/>
+    <Spectator SpecIndex="14" Expression="leponed0" Label="leponed0" Title="D0_{l1}" Unit="" Internal="leponed0" Type="F" Min="-1.58818668e-23" Max="-1.58818668e-23"/>
+    <Spectator SpecIndex="15" Expression="leptwod0" Label="leptwod0" Title="D0_{l2}" Unit="" Internal="leptwod0" Type="F" Min="-1.58818668e-23" Max="-1.58818668e-23"/>
+    <Spectator SpecIndex="16" Expression="htdeltaphi" Label="htdeltaphi" Title="#Delta#phi_{hT,ll}" Unit="" Internal="htdeltaphi" Type="F" Min="4.51356254e-06" Max="3.14157200e+00"/>
+    <Spectator SpecIndex="17" Expression="ht" Label="ht" Title="pT(#Sigma #vec{P}_{Jet})" Unit="" Internal="ht" Type="F" Min="-1.58818668e-23" Max="-1.58818668e-23"/>
+    <Spectator SpecIndex="18" Expression="htsum" Label="htsum" Title="#Sigma pT_{Jet}" Unit="" Internal="htsum" Type="F" Min="-1.58818668e-23" Max="-1.58818668e-23"/>
+    <Spectator SpecIndex="19" Expression="leponeiso" Label="leponeiso" Title="Iso_{l1}" Unit="" Internal="leponeiso" Type="F" Min="-1.58818668e-23" Max="-1.58818668e-23"/>
+    <Spectator SpecIndex="20" Expression="lepdeltar" Label="lepdeltar" Title="#DeltaR_{ll}" Unit="" Internal="lepdeltar" Type="F" Min="3.48146409e-01" Max="5.29943180e+00"/>
+  </Spectators>
+  <Classes NClass="2">
+    <Class Name="Background" Index="0"/>
+    <Class Name="Signal" Index="1"/>
+  </Classes>
+  <Transformations NTransformations="0"/>
+  <MVAPdfs/>
+  <Weights>
+    <Architecture BuildOptions="@lepm,@mtone,@mttwo,@onemetdeltaphi,@twometdeltaphi,@leponept,@leptwopt,@leppt,@lepdeltaphi,@deltaalphah2,@lepmestimate,@jetpt,@met:14:13:type"/>
+    <input>
+      31.7089 93.4097 49.4199 69.8006 48.7345 69.78 0.895878 1.7871 0.904906 1.75844 28.5617 47.0843 27.669 48.4981 37.6505 54.8542 0.776839 2.12994 2.11201 1.07331 46.1523 107.771 58.2923 44.964 41.9402 58.5239 
+    </input>
+    <output>
+      1 0 
+    </output>
+    <neurons>
+      -0.320666 0.183895 0.026737 -0.165637 0.472739 -0.431334 0.418773 0.141415 -0.181857 0.333602 0.256356 -0.147864 0.476468 0.324874 0.981951 -0.728297 -1.64629 -3.84209 -1.11612 0.339507 0.449147 -0.34952 -0.329931 0.607638 -0.953646 -0.397815 -0.53955 0.0548501 -0.645717 0.600371 0.43737 0.0279694 -1.21139 -0.588435 -0.149808 -0.269342 -0.438913 0.233918 0.124063 -0.374758 -0.922471 
+    </neurons>
+    <synapses>
+      -0.639339 1.01987 1.09948 -0.322464 0.819136 -0.387206 0.890825 -0.0191917 0.651808 0.242279 0.617571 0.536784 0.313031 -0.175611 0.652812 0.649323 -1.30331 -0.251282 1.13618 -2.26035 0.857467 0.529488 -1.58165 0.555818 -0.104219 1.00104 1.32664 -2.3755 1.93175 0.612808 1.79387 -0.0364171 -0.259192 -0.0186445 0.119714 0.117056 -2.30184 -0.506557 -2.38142 -1.91971 0.211441 0.999533 0.0915012 -0.663169 1.57308 0.566916 0.320866 0.0998095 3.31079 -2.96344 -0.506449 -0.940076 4.90732 0.979629 0.462334 0.149918 0.69686 0.779862 -0.0777085 -0.737692 -0.44707 0.852029 1.63711 0.0497883 1.35079 0.926253 0.37689 -0.498469 0.694405 -1.52827 0.412163 1.03887 0.577017 -0.339585 -0.307512 -0.200188 0.673767 0.228981 -1.1556 1.63014 1.01904 0.491297 -0.306667 0.170146 0.128566 -1.75209 -0.549314 1.36674 -0.704282 -1.07931 -1.12234 -0.469658 -0.849476 2.28994 -0.352642 0.0812464 1.38626 0.941362 -1.48124 -0.439213 1.23259 -2.05328 0.376159 -0.359311 0.543028 1.94388 -0.445122 -0.596561 -2.74422 1.08848 -0.0721306 1.87073 0.335843 -1.31705 2.79626 0.633534 2.04903 2.11474 0.530979 -1.19908 -0.11266 -1.4022 0.738686 0.548082 0.089129 0.286661 -0.764285 1.31787 -0.304116 0.305573 -0.707093 0.471513 -0.772054 -0.560271 0.10328 0.631336 -1.69718 0.188838 0.867776 -0.842316 0.0756497 -1.27985 0.862783 1.45185 1.63786 -0.713233 0.271944 -0.718745 1.21865 -0.0643222 0.114812 -0.526522 -2.09539 1.47311 0.103174 1.1016 2.77486 -0.147237 2.77113 0.128287 -0.705766 -2.71007 -2.16276 1.36621 0.0112084 -0.686653 -0.0585711 0.0445279 0.698679 0.188342 1.4461 -1.02251 0.192186 -1.28483 1.06453 1.15278 0.690599 0.846904 -1.82788 1.08921 -0.327134 0.0749529 0.580049 0.564165 0.439588 -0.870544 -0.514867 -0.169844 0.579776 0.0229618 0.13393 -0.369608 -0.226323 0.582993 -0.653232 0.152775 0.351929 0.314763 -0.394539 0.0483448 -0.40139 -0.675391 0.197759 -0.649884 -0.335411 -1.10699 0.0119981 -1.21277 -0.391815 -0.327532 0.622435 0.246011 0.0198487 0.462744 0.819562 -0.231537 0.275758 0.562231 -0.348035 -0.659421 0.0221712 0.468546 0.473378 0.0488968 -0.719767 -0.604135 -0.0861153 0.529206 1.02113 -0.250782 -0.119076 0.23793 -0.406299 0.130482 0.626277 -0.431796 0.120262 0.41882 0.082293 0.60899 -0.247432 -0.338843 -0.759744 -0.28182 0.695887 -0.159139 -0.251871 -0.322443 0.479481 0.0470594 -0.321205 0.219402 0.685583 1.75717 1.5674 -1.9729 -2.96881 1.0332 0.69622 -1.65169 0.562064 2.64925 -1.15779 0.054544 -3.07257 -1.57611 -0.177328 0.755716 -0.81125 -3.33104 0.483711 0.0596197 -0.992039 -0.427206 1.18533 1.05743 0.787351 1.88014 0.37278 1.99752 1.18319 0.790456 -0.566655 0.94996 -2.40578 0.36696 1.1883 0.678081 0.225088 -0.0772509 0.501339 0.410236 -0.315905 -0.367517 0.958222 1.4783 1.00386 -2.86415 -0.18968 -0.935609 0.325223 -1.96437 2.14767 0.790693 -0.68651 1.83316 -0.507559 1.00184 -0.148535 0.483197 -0.298491 -0.692627 -0.708901 0.563005 -0.157308 0.487996 0.388263 -0.23285 0.359628 0.0438494 -0.308978 0.224419 0.763612 0.154169 0.234358 0.55441 0.841057 0.314647 0.377131 0.598933 -0.137 0.0487277 0.157294 0.172958 0.792095 0.442634 0.753152 0.966016 0.0731185 -0.49549 -0.28043 0.230241 0.110495 0.261595 1.08471 0.090305 -0.178885 0.646978 -0.620432 0.585778 0.0799526 -0.460702 0.0259648 0.17239 -0.475829 0.0618535 -0.494551 -0.7278 -0.209647 0.542563 -0.52471 -0.714247 -0.615446 -0.0173484 -1.20345 0.697489 -0.00848617 1.13436 -0.816323 1.51051 -1.49155 1.22301 2.08953 -0.864182 -0.201549 0.733649 -1.01007 
+    </synapses>
+  </Weights>
+</MethodSetup>
