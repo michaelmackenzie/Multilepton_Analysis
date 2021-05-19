@@ -806,22 +806,22 @@ TH1D* DataPlotter::get_misid(TString hist, TString setType, Int_t set) {
 TH1D* DataPlotter::get_stack_uncertainty(THStack* hstack, TString hname) {
   if(!hstack || hstack->GetNhists() == 0)
     return NULL;
-  TList* hlist = hstack->GetHists();
-  TH1D* hlast = (TH1D*) hlist->Last();
+  TH1D* hlast = (add_bkg_hists_manually_) ? (TH1D*) hstack->GetHists()->Last() : (TH1D*) hstack->GetStack()->Last();
   //clone last histogram to match the setup
   TH1D* huncertainty = (TH1D*) hlast->Clone(hname.Data());
-  huncertainty->Clear(); huncertainty->Reset();
-  huncertainty->SetTitle("Bkg. #pm#sigma(Stat.)");
+  if(add_bkg_hists_manually_) {huncertainty->Clear(); huncertainty->Reset();}
+  huncertainty->SetTitle("Bkg #pm#sigma(Stat)");
   huncertainty->SetName(hname.Data());
   huncertainty->SetFillColor(kGray+1);
   huncertainty->SetLineColor(kGray+1);
   huncertainty->SetFillStyle(3001);
   huncertainty->SetMarkerSize(0.); //so no marker
   // Int_t nbins = hlast->GetNbinsX();
-
-  for(TObject* o : *hlist) {
-    if(o->InheritsFrom(TH1D::Class())) {
-      huncertainty->Add((TH1D*) o);
+  if(add_bkg_hists_manually_) {
+    for(TObject* o : *(hstack->GetHists())) {
+      if(o->InheritsFrom(TH1D::Class())) {
+        huncertainty->Add((TH1D*) o);
+      }
     }
   }
   return huncertainty;
@@ -856,7 +856,8 @@ THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set) {
 
     h.push_back((TH1D*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set, hist.Data())));
     if(!h[i]) {
-      printf("%s: Histogram %s (%s) not found! Continuing...\n", __func__, names_[i].Data(), labels_[i].Data());
+      printf("%s: Histogram %s/%s/%i for %s (%s) %i not found! Continuing...\n",
+             __func__, hist.Data(), setType.Data(), set, names_[i].Data(), labels_[i].Data(), dataYear_[i]);
       continue;
     }
     auto o = gDirectory->Get("tmp");
@@ -1352,7 +1353,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
   //get stack and data histogram
   THStack* hstack = get_stack(hist,setType,set);
   if(!hstack || hstack->GetNhists() <= 0) {
-    printf("Null or empty stack!\n");
+    printf("Null or empty stack! %s/%s/%i\n", hist.Data(), setType.Data(), set);
     return NULL;
   }
   if(verbose_ > 0) std::cout << "Retrieved the stack with " << hstack->GetNhists() << " histograms\n";
@@ -1484,7 +1485,10 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
     pad1->Update();
   }
 
+  ////////////////////////////////////////////////////////////////
   //Make a Data/MC histogram
+  ////////////////////////////////////////////////////////////////
+
   if(plot_data_ && !d) {
     printf("Warning! Data histogram is Null! Skipping Data/MC plot\n");
   }
@@ -1563,13 +1567,13 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
       hstack_hist->SetMaximum(yMax_);
     } else {
       hstack_hist->SetMinimum(1.e-1);
-      hstack_hist->SetMaximum((logY_>0 ? 2.*m : 1.2*m));
+      hstack_hist->SetMaximum((logY_>0 ? 2.*m : 1.1*m));
     }
   } else {
     hstack->GetXaxis()->SetTitleSize(axis_font_size_);
     hstack->GetYaxis()->SetTitleSize(axis_font_size_);
     if(yMin_ < yMax_) hstack->GetYaxis()->SetRangeUser(yMin_,yMax_);
-    else              hstack->GetYaxis()->SetRangeUser(8.e-1,(logY_) ? m*20. : m*1.2);
+    else              hstack->GetYaxis()->SetRangeUser(8.e-1,(logY_) ? m*20. : m*1.1);
     if(xMin_ < xMax_) hstack->GetXaxis()->SetRangeUser(xMin_,xMax_);
     if(plot_title_) hstack->SetTitle (title.Data());
     else hstack->SetTitle("");
@@ -1578,7 +1582,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
       hstack->SetMaximum(yMax_);
     } else {
       hstack->SetMinimum(8.e-1);
-      hstack->SetMaximum((logY_>0 ? 2.*m : 1.2*m));
+      hstack->SetMaximum((logY_>0 ? 2.*m : 1.1*m));
     }
   }
 
@@ -1837,8 +1841,8 @@ TCanvas* DataPlotter::plot_systematic(TString hist, Int_t set, Int_t systematic)
   }
   // g_r_stack->Draw("LE2"); //add background to foreground
   if(verbose_ > 1) printf("%s: Ratio plot min/max = %.3f/%.3f\n", __func__, r_min, r_max);
-  r_min = std::min(0.995, 1. + 1.15*(r_min - 1.));
-  r_max = std::max(1.005, 1. + 1.15*(r_max - 1.));
+  r_min = std::min(0.98, 1. + 1.15*(r_min - 1.));
+  r_max = std::max(1.02, 1. + 1.15*(r_max - 1.));
   if(verbose_ > 1) printf("%s: Expanded Ratio plot min/max = %.3f/%.3f\n", __func__, r_min, r_max);
   g_r_stack->GetYaxis()->SetRangeUser(r_min, r_max);
   if(xMin_ < xMax_) g_r_stack->GetXaxis()->SetRangeUser(xMin_, xMax_);
@@ -1850,6 +1854,10 @@ TCanvas* DataPlotter::plot_systematic(TString hist, Int_t set, Int_t systematic)
   g_r_stack->GetYaxis()->SetTitleOffset(y_title_offset_);
   g_r_stack->SetTitle(Form(";%s;", xtitle.Data()));
 
+  //draw data / MC
+  TH1D* hdata_ratio = (TH1D*) d->Clone(Form("%s_ratio", d->GetName()));
+  hdata_ratio->Divide(h_b);
+  hdata_ratio->Draw("same");
   pad2->SetGrid();
 
   return c;
@@ -2179,7 +2187,6 @@ TCanvas* DataPlotter::plot_significance(TString hist, TString setType, Int_t set
   }
 
   double clsig = 1.644853627; // 95% CL value
-  bool doExactLimit = true;
 
   double xs[nbins], xerrs[nbins]; //for significance graph
   double sigs[nbins], sigsErrUp[nbins], sigsErrDown[nbins];
@@ -2205,7 +2212,7 @@ TCanvas* DataPlotter::plot_significance(TString hist, TString setType, Int_t set
     hEfficiency->SetBinContent(bin, sigval);
     if(bkgval <= 0. || sigval <= 0.) continue;
     double significance = sigval/sqrt(bkgval)/clsig; //not really significance but ratio of signal to background fluctuation
-    if(doExactLimit)  //get 95% CL by finding signal scale so poisson prob n < n_bkg for mu = n_bkg + n_sig = 0.05
+    if(doExactLimit_)  //get 95% CL by finding signal scale so poisson prob n < n_bkg for mu = n_bkg + n_sig = 0.05
       significance = significances.LimitGain(sigval, bkgval, val);
     sigs[bin-1] = significance;
     if(max_value < significance) {max_value = significance; max_score = xs[bin-1];}
@@ -2213,12 +2220,12 @@ TCanvas* DataPlotter::plot_significance(TString hist, TString setType, Int_t set
     if(limit_mc_err_range_) {
       //bkg+1 sigma
       significance = sigval/sqrt(bkgval+bkgerr)/clsig; //not really significance but ratio of signal to background fluctuation
-      if(doExactLimit)  //get 95% CL by finding signal scale so poisson prob n < n_bkg for mu = n_bkg + n_sig = 0.05
+      if(doExactLimit_)  //get 95% CL by finding signal scale so poisson prob n < n_bkg for mu = n_bkg + n_sig = 0.05
         significance = significances.LimitGain(sigval, bkgval+bkgerr, val);
       sigsErrUp[bin-1] = sigs[bin-1]-significance;
       //bkg-1 sigma
       significance = sigval/sqrt(std::max(0.1, bkgval-bkgerr))/clsig; //not really significance but ratio of signal to background fluctuation
-      if(doExactLimit)  //get 95% CL by finding signal scale so poisson prob n < n_bkg for mu = n_bkg + n_sig = 0.05
+      if(doExactLimit_)  //get 95% CL by finding signal scale so poisson prob n < n_bkg for mu = n_bkg + n_sig = 0.05
         significance = significances.LimitGain(sigval, std::max(0.1, bkgval-bkgerr), val);
       sigsErrDown[bin-1] = significance-sigs[bin-1];
     }
@@ -2252,8 +2259,10 @@ TCanvas* DataPlotter::plot_significance(TString hist, TString setType, Int_t set
   }
 
   gSignificance->SetName(Form("gsig_%s_%i", label.Data(),set));
-  gSignificance->SetTitle(Form("; %s; Limit gain factor",
-                               (doVsEff) ? "Efficiency" : (xtitle+" Cut Value").Data()));
+  gSignificance->SetTitle(Form("; %s; %s",
+                               (doVsEff) ? "Efficiency" : (xtitle+" Cut Value").Data(),
+                               (doExactLimit_) ? "Limit gain factor" : Form("s/(%.3f*#sqrt{b})", clsig))
+                          );
   gSignificance->SetLineColor(kBlue);
   if(limit_mc_err_range_) gSignificance->SetFillColor(kGreen);
   gSignificance->SetLineWidth(3);
@@ -2311,7 +2320,7 @@ TCanvas* DataPlotter::plot_significance(TString hist, TString setType, Int_t set
     axis->Draw();
   }
   TLegend* leg = new TLegend(0.55, (line_val > 0.) ? 0.55 : 0.6, 0.89, 0.8);
-  leg->AddEntry(gSignificance, "Limit Gain", "L");
+  leg->AddEntry(gSignificance, (doExactLimit_) ? "Limit Gain" : "Significance/#sigma_{95%}", "L");
   if(!doVsEff) leg->AddEntry(hEfficiency, "N(Signal)", "L");
   leg->AddEntry(line, (label1 == "") ? "Current Limit" : label1.Data(), "L");
   if(second_line) leg->AddEntry(second_line, (label2 == "") ? "Previous Limit" : label2.Data(), "L");
@@ -2517,7 +2526,7 @@ Int_t DataPlotter::init_files() {
     if(isData_[i]) scale_.push_back(1.);
     else {
       // loop through the directory and add events from each event histogram (in case of hadd combined dataset)
-      double nevents = 0.;
+      int nevents = 0;
       TKey* key = 0;
       TIter nextkey(f[i]->GetListOfKeys());
       TH1F* events = 0;
@@ -2535,6 +2544,7 @@ Int_t DataPlotter::init_files() {
         std::cout << "Error! No events in the events histogram for " << names_[i].Data() << std::endl;
         return 1;
       }
+      ngenerated_.push_back(nevents);
       scale_.push_back(1./(nevents)*xsec_[i]*((lums_.size() > 0) ? lums_[dataYear_[i]] : lum_));
     }
   }

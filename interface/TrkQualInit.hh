@@ -23,13 +23,13 @@ public:
   struct Var_t {
     TString var_;
     TString desc_;
-    TString unit_; 
+    TString unit_;
     float* val_; //address
     bool use_; //use or just spectator
     char type_;
     Var_t(TString var, TString desc, TString unit, float* val, bool use) : var_(var), desc_(desc),
-									  unit_(unit), val_(val),
-									  use_(use), type_('F') {}
+                                                                          unit_(unit), val_(val),
+                                                                          use_(use), type_('F') {}
   };
 
   //get list of variables for training/evaluating MVAs
@@ -44,16 +44,16 @@ public:
 
 
     if(!selection.Contains("emu")) {
-      variables.push_back(Var_t("lepm" , "M_{ll}"    , "GeV", &tree.lepm , true)); 
+      variables.push_back(Var_t("lepm" , "M_{ll}"    , "GeV", &tree.lepm , true));
       variables.push_back(Var_t("mtone", "MT(MET,l1)", ""   , &tree.mtone, true));
       variables.push_back(Var_t("mttwo", "MT(MET,l2)", ""   , &tree.mttwo, true));
     } else {
-      variables.push_back(Var_t("lepm"      , "M_{ll}"           , "GeV", &tree.lepm      , false)); 
+      variables.push_back(Var_t("lepm"      , "M_{ll}"           , "GeV", &tree.lepm      , false));
       variables.push_back(Var_t("mtoneoverm", "MT(MET,l1)/M_{ll}", ""   , &tree.mtoneoverm, true));
       variables.push_back(Var_t("mttwooverm", "MT(MET,l2)/M_{ll}", ""   , &tree.mttwooverm, true));
     }
-    
-    
+
+
     variables.push_back(Var_t("onemetdeltaphi","#Delta#phi_{MET,l1}","", &tree.onemetdeltaphi, true));
     variables.push_back(Var_t("twometdeltaphi","#Delta#phi_{MET,l2}","", &tree.twometdeltaphi, true));
 
@@ -77,30 +77,30 @@ public:
     if(selection.Contains("tau")) {
       //Delta alpha, difference between loss estimate using ~mass and pT ratio
       if(selection.Contains("z")) {
-	if(selection.Contains("_e"))
-	  variables.push_back(Var_t("deltaalphaz1","#Delta#alpha","",&tree.deltaalphaz1, true));
-	else
-	  variables.push_back(Var_t("deltaalphaz2","#Delta#alpha","",&tree.deltaalphaz2, true));
+        if(selection.Contains("_e"))
+          variables.push_back(Var_t("deltaalphaz1","#Delta#alpha","",&tree.deltaalphaz1, true));
+        else
+          variables.push_back(Var_t("deltaalphaz2","#Delta#alpha","",&tree.deltaalphaz2, true));
       } else {
-	if(selection.Contains("_e"))
-	  variables.push_back(Var_t("deltaalphah1","#Delta#alpha","",&tree.deltaalphah1, true));
-	else
-	  variables.push_back(Var_t("deltaalphah2","#Delta#alpha","",&tree.deltaalphah2, true));
+        if(selection.Contains("_e"))
+          variables.push_back(Var_t("deltaalphah1","#Delta#alpha","",&tree.deltaalphah1, true));
+        else
+          variables.push_back(Var_t("deltaalphah2","#Delta#alpha","",&tree.deltaalphah2, true));
       }
       if((!selection.Contains("mutau_e")))
-	variables.push_back(Var_t("lepmestimate","M_{ll}^{Coll}","GeV", &tree.mestimate, true));
+        variables.push_back(Var_t("lepmestimate","M_{ll}^{Coll}","GeV", &tree.mestimate, true));
       else
-	variables.push_back(Var_t("lepmestimatetwo","M_{ll}^{Coll}","GeV", &tree.mestimatetwo, true));
+        variables.push_back(Var_t("lepmestimatetwo","M_{ll}^{Coll}","GeV", &tree.mestimatetwo, true));
 
-      variables.push_back(Var_t("leptwoidone"  ,"#tau anti-electron ID","", &tree.leptwoidone  , false));
-      variables.push_back(Var_t("leptwoidtwo"  ,"#tau anti-muon ID"    ,"", &tree.leptwoidtwo  , false));
-      variables.push_back(Var_t("leptwoidthree","#tau anti-jet ID"     ,"", &tree.leptwoidthree, false));
+      // variables.push_back(Var_t("leptwoidone"  ,"#tau anti-electron ID","", &tree.leptwoidone  , false));
+      // variables.push_back(Var_t("leptwoidtwo"  ,"#tau anti-muon ID"    ,"", &tree.leptwoidtwo  , false));
+      // variables.push_back(Var_t("leptwoidthree","#tau anti-jet ID"     ,"", &tree.leptwoidthree, false));
     } else { //end tau specific
       variables.push_back(Var_t("lepmestimate","M_{ll}^{Coll}","GeV", &tree.mestimate, false));
       // variables.push_back(Var_t("onemetdeltaphi","#Delta#phi_{MET,l1}","", &tree.onemetdeltaphi, false)); //FIXME: Remove
       // variables.push_back(Var_t("twometdeltaphi","#Delta#phi_{MET,l2}","", &tree.onemetdeltaphi, false));
     }
-    
+
     variables.push_back(Var_t("leponedeltaphi","#Delta#phi_{l1,ll}","", &tree.leponedeltaphi, false));
     variables.push_back(Var_t("leptwodeltaphi","#Delta#phi_{l2,ll}","", &tree.leptwodeltaphi, false));
     variables.push_back(Var_t("leponed0"      ,"D0_{l1}"           ,"", &tree.leponed0      , false));
@@ -109,19 +109,19 @@ public:
     variables.push_back(Var_t("htdeltaphi","#Delta#phi_{hT,ll}"      ,"", &tree.htdeltaphi, false));
     variables.push_back(Var_t("ht"        ,"pT(#Sigma #vec{P}_{Jet})","", &tree.ht        , false));
     variables.push_back(Var_t("htsum"     ,"#Sigma pT_{Jet}"         ,"", &tree.htsum     , false));
-    
+
     //FIXME: Remove jet pT from Z->X+tau since doesn't help
     variables.push_back(Var_t("jetpt","pT_{Jet}","", &tree.jetpt, true));
 
-    variables.push_back(Var_t("leponeiso","Iso_{l1}","", &tree.leponeiso, false));
+    // variables.push_back(Var_t("leponeiso","Iso_{l1}","", &tree.leponeiso, false));
 
-    variables.push_back(Var_t("met","MET","GeV", &tree.met, true));
-    
+    // variables.push_back(Var_t("met","MET","GeV", &tree.met, true));
+
     variables.push_back(Var_t("lepdeltar"         ,"#DeltaR_{ll}"      ,"", &tree.lepdeltar         , false));
 
     return variables;
   }
-  
+
   int InitializeVariables(TMVA::DataLoader &loader, TString selection){
     int status = 0;
     Tree_t tree; //not used
@@ -160,6 +160,6 @@ public:
   //fields
   int version_;
   int njets_; //flag for jet binned categories
-  
+
 };
 #endif

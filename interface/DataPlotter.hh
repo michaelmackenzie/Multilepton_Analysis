@@ -42,6 +42,7 @@ public :
   std::vector<bool> isData_; //flag to check if is data
   std::vector<bool> isSignal_; //flag to check if is signal file
   std::vector<Int_t> dataYear_; //list of years it's associated with (2016, 2017, or 2018)
+  std::vector<Int_t> ngenerated_; //generation number for datasets
   // std::map<TString, double> systematicMap_; //map of background label to a systematic uncertainty
 
   Double_t lum_; //luminosity
@@ -64,6 +65,7 @@ public :
   Int_t rebinH_ = 1; //rebinning of histograms
   Int_t data_over_mc_ = 1; //do data/MC or data-MC: 0 = none, 1 = data/MC, -1 = signal/bkg, -2 = signal/sqrt(bkg)
   Int_t stack_uncertainty_ = 1; //whether or not to add gray shading for uncertainty
+  Int_t add_bkg_hists_manually_ = 0; //whether to use Stacks given uncertainty or add them by hand
   Int_t debug_ = 0; //for debugging
   Int_t include_qcd_ = 1; //use the same sign selection to get the QCD
   Int_t qcd_offset_ = 1000; //set number offset to get same sign selection
@@ -88,6 +90,7 @@ public :
   Int_t useOpenGL_ = 1; //Use open GL with plotting
   bool doStatsLegend_ = true; //Give each backgrounds contribution in the legend
   bool useCLs_ = true; //whether to use CLs or CLs+b when calculating limits/limit gains
+  bool doExactLimit_ = true; //whether to use signal/sqrt(background) or actual calculation
 
   //Various canvas drawing numbers
   Int_t background_colors_[10] = {kRed-7, kRed-3    , kYellow-7 , kGreen-7, kViolet+6, kCyan-7  , kRed+3 ,kOrange-9,kBlue+1};

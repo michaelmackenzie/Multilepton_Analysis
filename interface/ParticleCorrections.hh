@@ -379,9 +379,9 @@ public :
     //z correction weights
     scaleFactorPath = gSystem->Getenv("CMSSW_BASE") + fZScaleFactorPath;
     std::map<int, fpair> zFileNames;
-    zFileNames[k2016] = fpair("z_pt_vs_m_scales_2016.root", "hRatioNorm");
-    //FIXME: Add 2017 Drell-Yan scale factors
-    //FIXME: Add 2018 Drell-Yan scale factors
+    zFileNames[k2016] = fpair("z_pt_vs_m_scales_mumu_2016.root", "hRatioNorm");
+    zFileNames[k2017] = fpair("z_pt_vs_m_scales_mumu_2017.root", "hRatioNorm");
+    zFileNames[k2018] = fpair("z_pt_vs_m_scales_mumu_2018.root", "hRatioNorm");
     for(int period = k2016; period <= k2018; ++period) {
       if(zFileNames[period].first == "") continue;
       TFile* f = TFile::Open((scaleFactorPath + zFileNames[period].first).Data(),"READ");

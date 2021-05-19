@@ -127,6 +127,10 @@ public :
   TLorentzVector* leptonTwoP4 = 0    ;
   Int_t leptonOneFlavor              ;
   Int_t leptonTwoFlavor              ;
+  Int_t leptonOneGenFlavor           ;
+  Int_t leptonTwoGenFlavor           ;
+  Bool_t isFakeElectron = false      ;
+  Bool_t isFakeMuon     = false      ;
   Float_t leptonOneD0                ;
   Float_t leptonTwoD0                ;
   Float_t leptonOneIso               ;
@@ -164,8 +168,12 @@ public :
   Float_t leptonTwoWeight2_sys       ;
   Float_t leptonOneTrigWeight        ;
   Float_t leptonTwoTrigWeight        ;
+  Int_t   leptonOneTrigger           ;
+  Int_t   leptonTwoTrigger           ;
   Bool_t  leptonOneFired             ;
   Bool_t  leptonTwoFired             ;
+  Int_t   nTrigModes                 ;
+  Float_t triggerWeights[3]          ;
   TLorentzVector* genLeptonOneP4 = 0 ;
   TLorentzVector* genLeptonTwoP4 = 0 ;
   TLorentzVector* photonP4 = 0       ;
@@ -509,6 +517,7 @@ public :
   Bool_t          fTTFakeTauTesting = false; //for speeding up histogramming to only do ttbar jet --> fake tau scale factor aspects
   Bool_t          fQCDFakeTauTesting = false; //for speeding up histogramming to only do qcd jet --> fake tau scale factor aspects
   Bool_t          fCutFlowTesting = false; //for only testing basic cutflow sets
+  Bool_t          fDoMVASets = false; //for filling MVA cut sets even in DYTesting mode
 
   Int_t           fDoSystematics = 0; //0: ignore systematic histograms 1: fill them -1: only fill them
 
@@ -525,6 +534,7 @@ public :
   Int_t           fIsData = 0; //0 if MC, 1 if electron data, 2 if muon data
   bool            fSkipDoubleTrigger = false; //skip events with both triggers (to avoid double counting), only count this lepton status events
   Int_t           fMETWeights = 0; //re-weight events based on the MET
+  Int_t           fUseMCEstimatedFakeLep = 0;
 
   Int_t           fSystematicSeed; //for systematic variations
 
@@ -584,12 +594,22 @@ void ZTauTauHistMaker::Init(TTree *tree)
       tree->SetBranchStatus("*", 1); //ensure all branches are active
     else {
       tree->SetBranchStatus("*", 0); //turn off everything except what is needed (or hard to remove)
+      tree->SetBranchStatus("runNumber"           , 1);
+      tree->SetBranchStatus("evtNumber"           , 1);
+      tree->SetBranchStatus("lumiSection"         , 1);
+      tree->SetBranchStatus("nPV"                 , 1);
+      tree->SetBranchStatus("nPU"                 , 1);
+      tree->SetBranchStatus("nPartons"            , 1);
       tree->SetBranchStatus("triggerLeptonStatus" , 1);
       tree->SetBranchStatus("muonTriggerStatus"   , 1);
       tree->SetBranchStatus("lepOneTrigWeight"    , 1);
       tree->SetBranchStatus("lepTwoTrigWeight"    , 1);
+      tree->SetBranchStatus("lepOneTrigger"       , 1);
+      tree->SetBranchStatus("lepTwoTrigger"       , 1);
       tree->SetBranchStatus("lepOneFired"         , 1);
       tree->SetBranchStatus("lepTwoFired"         , 1);
+      tree->SetBranchStatus("nTrigModes"          , 1);
+      tree->SetBranchStatus("triggerWeights"      , 1);
       tree->SetBranchStatus("eventWeight"         , 1);
       tree->SetBranchStatus("genWeight"           , 1);
       tree->SetBranchStatus("puWeight"            , 1);
@@ -602,6 +622,8 @@ void ZTauTauHistMaker::Init(TTree *tree)
       tree->SetBranchStatus("leptonTwoP4"         , 1);
       tree->SetBranchStatus("leptonOneFlavor"     , 1);
       tree->SetBranchStatus("leptonTwoFlavor"     , 1);
+      tree->SetBranchStatus("leptonOneGenFlavor"  , 1);
+      tree->SetBranchStatus("leptonTwoGenFlavor"  , 1);
       tree->SetBranchStatus("leptonOneIndex"      , 1);
       tree->SetBranchStatus("leptonTwoIndex"      , 1);
       tree->SetBranchStatus("lepOneWeight1"       , 1);
@@ -874,8 +896,10 @@ void ZTauTauHistMaker::Init(TTree *tree)
       fTreeSets  [kEMu  + 8+fQcdOffset] = fIsData != 0; //save SS data for QCD training
       fSysSets   [kEMu  + 8] = 1;
 
-      // // MVA categories
-      // for(int i = 9; i < 19; ++i) fEventSets[kEMu  + i] = 1;
+      // MVA categories
+      for(int i = 9; i < 19; ++i) fEventSets[kEMu  + i] = 1;
+      fSysSets[kEMu  + 9  + fMVAConfig.categories_["zemu"].size()] = 1; //start with most significant category
+      fSysSets[kEMu  + 14 + fMVAConfig.categories_["hemu"].size()] = 1; //start with most significant category
 
       // fEventSets [kEMu  + 20] = 1; //
       // fEventSets [kEMu  + 21] = 1; //
@@ -911,8 +935,8 @@ void ZTauTauHistMaker::Init(TTree *tree)
       // fTreeSets  [kMuMu + 8] = 1;
       // fTreeSets  [kMuMu + 8+fQcdOffset] = fIsData != 0; //save SS data for QCD training
 
-      // // MVA categories
-      // for(int i = 9; i < 19; ++i) fEventSets[kMuMu + i] = 1;
+      // MVA categories
+      for(int i = 9; i < 19; ++i) fEventSets[kMuMu + i] = 1;
 
       // fEventSets [kMuMu + 20] = 1; //
       // fEventSets [kMuMu + 21] = 1; //
@@ -949,8 +973,8 @@ void ZTauTauHistMaker::Init(TTree *tree)
       // fTreeSets  [kEE   + 8] = 1;
       // fTreeSets  [kEE   + 8+fQcdOffset] = fIsData != 0; //save SS data for QCD training
 
-      // // MVA categories
-      // for(int i = 9; i < 19; ++i) fEventSets[kEE   + i] = 1;
+      // MVA categories
+      for(int i = 9; i < 19; ++i) fEventSets[kEE   + i] = 1;
 
       // fEventSets [kEE   + 20] = 1; //
       // fEventSets [kEE   + 21] = 1; //
@@ -978,10 +1002,10 @@ void ZTauTauHistMaker::Init(TTree *tree)
       //Leptonic tau channels
       //mu+tau_e
       // MVA categories
-      // for(int i = 9; i < 19; ++i) fEventSets[kMuTauE + i] = 1;
+      for(int i = 9; i < 19; ++i) fEventSets[kMuTauE + i] = 1;
       //e+tau_mu
       // MVA categories
-      // for(int i = 9; i < 19; ++i) fEventSets[kETauMu + i] = 1;
+      for(int i = 9; i < 19; ++i) fEventSets[kETauMu + i] = 1;
     }
 
     //initialize all the histograms
@@ -1000,13 +1024,13 @@ void ZTauTauHistMaker::Init(TTree *tree)
   // fChain->SetBranchStatus("slimJets"      , 0);
   // fChain->SetBranchStatus("slimPhotons"   , 0);
 
+  fChain->SetBranchAddress("runNumber"           , &runNumber            );
+  fChain->SetBranchAddress("evtNumber"           , &eventNumber          );
+  fChain->SetBranchAddress("lumiSection"         , &lumiSection          );
+  fChain->SetBranchAddress("nPV"                 , &nPV                  );
+  fChain->SetBranchAddress("nPU"                 , &nPU                  );
+  fChain->SetBranchAddress("nPartons"            , &nPartons             );
   if(!fDYTesting) {
-    fChain->SetBranchAddress("runNumber"           , &runNumber            );
-    fChain->SetBranchAddress("evtNumber"           , &eventNumber          );
-    fChain->SetBranchAddress("lumiSection"         , &lumiSection          );
-    fChain->SetBranchAddress("nPV"                 , &nPV                  );
-    fChain->SetBranchAddress("nPU"                 , &nPU                  );
-    fChain->SetBranchAddress("nPartons"            , &nPartons             );
     fChain->SetBranchAddress("mcEra"               , &mcEra                );
   }
   fChain->SetBranchAddress("triggerLeptonStatus" , &triggerLeptonStatus  );
@@ -1036,6 +1060,8 @@ void ZTauTauHistMaker::Init(TTree *tree)
   fChain->SetBranchAddress("leptonTwoP4"         , &leptonTwoP4          );
   fChain->SetBranchAddress("leptonOneFlavor"     , &leptonOneFlavor      );
   fChain->SetBranchAddress("leptonTwoFlavor"     , &leptonTwoFlavor      );
+  fChain->SetBranchAddress("leptonOneGenFlavor"  , &leptonOneGenFlavor   );
+  fChain->SetBranchAddress("leptonTwoGenFlavor"  , &leptonTwoGenFlavor   );
   if(!fDYTesting) {
     fChain->SetBranchAddress("leptonOneD0"         , &leptonOneD0          );
     fChain->SetBranchAddress("leptonTwoD0"         , &leptonTwoD0          );
@@ -1069,8 +1095,12 @@ void ZTauTauHistMaker::Init(TTree *tree)
 
   fChain->SetBranchAddress("lepOneTrigWeight"    , &leptonOneTrigWeight  );
   fChain->SetBranchAddress("lepTwoTrigWeight"    , &leptonTwoTrigWeight  );
+  fChain->SetBranchAddress("lepOneTrigger"       , &leptonOneTrigger     );
+  fChain->SetBranchAddress("lepTwoTrigger"       , &leptonTwoTrigger     );
   fChain->SetBranchAddress("lepOneFired"         , &leptonOneFired       );
   fChain->SetBranchAddress("lepTwoFired"         , &leptonTwoFired       );
+  fChain->SetBranchAddress("nTrigModes"          , &nTrigModes           );
+  fChain->SetBranchAddress("triggerWeights"      , &triggerWeights       );
   if(!fDYTesting) {
     fChain->SetBranchAddress("genLeptonOneP4"    , &genLeptonOneP4       );
     fChain->SetBranchAddress("genLeptonTwoP4"    , &genLeptonTwoP4       );

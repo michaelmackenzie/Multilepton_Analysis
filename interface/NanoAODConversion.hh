@@ -9,6 +9,7 @@
 #include "interface/SlimJet_t.hh"
 #include "interface/SlimPhoton_t.hh"
 #include "interface/PUWeight.hh"
+#include "interface/RoccoR.h"
 
 #include <TROOT.h>
 #include <TChain.h>
@@ -25,7 +26,7 @@
 #include "TH1.h"
 #include "TH2.h"
 #include "TString.h"
-#include "TRandom.h" //for splitting testing/training samples
+#include "TRandom3.h" //for applying Rochester corrections
 
 // TMVA includes
 #include "TMVA/Tools.h"
@@ -40,7 +41,7 @@ public :
   TTreeReader     fReader;  //!the tree reader
   TTree          *fChain = 0;   //!pointer to the analyzed TTree or TChain
 
-  enum {kMaxParticles = 50, kMaxTriggers = 100};
+  enum {kMaxParticles = 50, kMaxTriggers = 100, kTrigModes = 3};
   enum {kMuTau, kETau, kEMu, kMuMu, kEE, kSelections}; //selections
   TString fSelecNames[kSelections];
   // Output data format
@@ -77,6 +78,10 @@ public :
   Float_t lepTwoTrigWeight = 1.      ;
   Bool_t  lepOneFired = false        ;
   Bool_t  lepTwoFired = false        ;
+  Int_t   lepOneTrigger              ;
+  Int_t   lepTwoTrigger              ;
+  Int_t   nTrigModes = kTrigModes    ;
+  Float_t triggerWeights[kTrigModes] ;
   Float_t topPtWeight = 1.           ;
   Float_t btagWeight = 1.            ;
   Float_t zPtWeight = 1.             ;
@@ -99,6 +104,8 @@ public :
   TLorentzVector* leptonTwoP4 = 0    ;
   Int_t leptonOneFlavor = 0          ;
   Int_t leptonTwoFlavor = 0          ;
+  Int_t leptonOneGenFlavor = 0       ;
+  Int_t leptonTwoGenFlavor = 0       ;
   Int_t leptonOneSkimFlavor = 0      ;
   Int_t leptonTwoSkimFlavor = 0      ;
   Float_t leptonOneD0   = 0          ;
@@ -114,6 +121,8 @@ public :
   Int_t   leptonTwoIndex = 0         ;
   Int_t   leptonOneSkimIndex = -1    ;
   Int_t   leptonTwoSkimIndex = -1    ;
+  Float_t leptonOnePtSF = 1.         ;
+  Float_t leptonTwoPtSF = 1.         ;
   TLorentzVector* genLeptonOneP4 = 0 ;
   TLorentzVector* genLeptonTwoP4 = 0 ;
   TLorentzVector* photonP4 = 0       ;
@@ -247,6 +256,8 @@ public :
   Bool_t  muonLooseId[kMaxParticles]        ;
   Bool_t  muonMediumId[kMaxParticles]       ;
   Bool_t  muonTightId[kMaxParticles]        ;
+  Int_t   muonNTrkLayers[kMaxParticles]     ;
+  Float_t muonRoccoSF[kMaxParticles]        ;
   UChar_t muonGenFlavor[kMaxParticles]      ;
   Float_t electronPt[kMaxParticles]         ;
   Float_t electronEta[kMaxParticles]        ;
@@ -311,7 +322,8 @@ public :
   Float_t zMassIn            = -1.          ;
   Int_t   zLepOne            = 0            ;
   Int_t   zLepTwo            = 0            ;
-
+  Float_t leptonOneGenPt     = 0.           ;
+  Float_t leptonTwoGenPt     = 0.           ;
 // Float_t genWeight                         ;
   // Float_t piWeight                          ;
   // Float_t PuppiMET                          ;
@@ -396,6 +408,7 @@ public :
   virtual void    CountJets(int selection);
   virtual void    CountTaus(int selection);
   virtual void    CountLightLeptons(int selection);
+  virtual void    ApplyMuonCorrections();
   virtual void    CountObjects();
   virtual bool    SelectionID(Int_t selection);
   virtual float   GetTauFakeSF(int genFlavor);
@@ -405,6 +418,15 @@ public :
     if(ID == 1 || ID == 3) return 11;
     if(ID == 2 || ID == 4) return 13;
     if(ID == 5) return 15;
+    return 26; //unknown
+  }
+  int             MuonFlavorFromID(int ID) {
+    if(ID == 1 || ID == 5 || ID == 4 || ID == 3 || ID == 15) return 13;
+    return 26; //unknown
+  }
+  int             ElectronFlavorFromID(int ID) {
+    if(ID == 1 || ID == 5 || ID == 4 || ID == 3 || ID == 15) return 11;
+    if(ID == 22) return 22;
     return 26; //unknown
   }
   virtual int      GetTriggerMatch(UInt_t index, bool isMuon, Int_t& trigIndex);
@@ -420,6 +442,9 @@ public :
   ParticleCorrections* particleCorrections = 0;
   PUWeight      fPUWeight;
   Int_t         fReplacePUWeights = 0; //0: do nothing 1: use locally defined value
+  RoccoR*       fRoccoR;
+  TRandom3*     fRnd;
+  Int_t         fRndSeed = 90;
 
   TFile*        fOut;
   TDirectory*   fDirs[kSelections];
@@ -442,6 +467,8 @@ public :
   Int_t         fUsePhotonWeight = -1; //whether to include a photon ID weight or not, -1 means set to 1
 
   Int_t         fVerbose = 0;
+  Bool_t        fIgnoreNoTriggerMatch = false; //don't print a warning if no trigger match found
+  Bool_t        fIgnoreNoSelection = false; //don't print a warning if no selection found
 
   Int_t         fSkipMuMuEE = 0; // whether to skip ee/mumu selections for now
   Int_t         fSkipMuMuEESS = 1; //whether to skip same sign ee/mumu selections for now
@@ -505,6 +532,7 @@ public :
   Int_t         fNFailed     = 0;
   Int_t         fNSkipped    = 0;
   Int_t         fQCDCounts[kSelections];
+  Int_t         fNHighMuonTriggered = 0;
 
   ClassDef(NanoAODConversion,0);
 

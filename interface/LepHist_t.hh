@@ -5,10 +5,11 @@
 
 struct LepHist_t {
   TH1D* hOnePz;
-  TH1D* hOnePt;
+  TH1D* hOnePt[10]; //0: nominal 1: no trigger weight 2-5: trigger weight options 6: no ID1 weight 7: no ID2 weight
   TH1D* hJetTauOnePt[4]; //bins of extra tau pT range
   TH1D* hOneP;
   TH1D* hOneM;
+  TH1D* hOnePtOverM;
   TH1D* hOneEta;
   TH1D* hOnePhi;
   TH1D* hOneD0;
@@ -17,6 +18,7 @@ struct LepHist_t {
   TH1D* hOneID2;
   TH1D* hOneRelIso;
   TH1D* hOneFlavor;
+  TH1D* hOneGenFlavor;
   TH1D* hOneQ;
   TH1D* hOneTrigger;
   TH1D* hOneWeight;
@@ -53,10 +55,11 @@ struct LepHist_t {
   TH1D* hOneSlimTauMOS;
 
   TH1D* hTwoPz;
-  TH1D* hTwoPt;
+  TH1D* hTwoPt[10]; //0: nominal 1: no trigger weight 2-5: trigger weight options 6: no ID1 weight 7: no ID2 weight
   TH1D* hJetTauTwoPt[4]; //bins of extra tau pT range
   TH1D* hTwoP;
   TH1D* hTwoM;
+  TH1D* hTwoPtOverM;
   TH1D* hTwoEta;
   TH1D* hTwoPhi;
   TH1D* hTwoD0;
@@ -66,6 +69,7 @@ struct LepHist_t {
   TH1D* hTwoID3;
   TH1D* hTwoRelIso;
   TH1D* hTwoFlavor;
+  TH1D* hTwoGenFlavor;
   TH1D* hTwoQ;
   TH1D* hTwoTrigger;
   TH1D* hTwoWeight;

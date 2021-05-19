@@ -42,7 +42,10 @@ public:
     TH2D* h = 0;
     if(jetpt > 999.) jetpt = 999.;
     else if(jetpt < 20.) jetpt = 20.;
-    if(fabs(jeteta) > 2.4) jeteta = 2.39*jeteta/fabs(jeteta);
+    if(fabs(jeteta) > 2.4) {
+      std::cout << "!!! BTagWeight::" << __func__ << " jet |eta| > 2.4!\n";
+      jeteta = 2.39*jeteta/fabs(jeteta);
+    }
     if(abs(jetflavor) == 4) //c-quark
       h = histsC_[year][WP];
     else if(abs(jetflavor) == 5) //b-quark

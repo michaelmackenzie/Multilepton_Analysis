@@ -16,14 +16,14 @@ namespace {
   vector<TString> fMvaNames = { //mva names for getting weights
     "mutau_BDT_MM_8.higgs","mutau_BDT_MM_8.Z0", //0 - 9: total mvas
     "etau_BDT_MM_8.higgs","etau_BDT_MM_8.Z0",
-    "emu_BDT_68.higgs","emu_BDT_68.Z0",
+    "emu_BDT_MM_8.higgs","emu_BDT_MM_8.Z0",
     "mutau_e_BDT_MM_8.higgs","mutau_e_BDT_MM_8.Z0",
-    "etau_mu_BDT_MM_8.higgs","etau_mu_BDT_MM_8.Z0",
+    "etau_mu_BDT_MM_8.higgs","etau_mu_BDT_MM_8.Z0"/*,
     "mutau_TMlpANN_8.higgs","mutau_TMlpANN_8.Z0", //10 - 19: alternate mvas
     "etau_TMlpANN_8.higgs","etau_TMlpANN_8.Z0",
     "emu_BDT_68.higgs","emu_BDT_68.Z0",
     "mutau_e_TMlpANN_8.higgs","mutau_e_TMlpANN_8.Z0",
-    "etau_mu_TMlpANN_8.higgs","etau_mu_TMlpANN_8.Z0"
+    "etau_mu_TMlpANN_8.higgs","etau_mu_TMlpANN_8.Z0"*/
   };
   Int_t   fIsJetBinnedMVAs[kMaxMVAs]; //storing number of jets for MVA, < 0 if not binned
   Float_t fMvaOutputs[kMaxMVAs];
@@ -43,6 +43,7 @@ namespace {
   UChar_t tauDeepAntiEle             ;
   UChar_t tauDeepAntiMu              ;
   UChar_t tauDeepAntiJet             ;
+  Int_t   tauGenFlavor               ;
   UInt_t njets;
   UInt_t nBJets                      ;
   UInt_t nBJetsM                     ;
@@ -61,8 +62,10 @@ namespace {
     bool process_;
     TString fname_;
     Long64_t iStart_;
+    bool isData_;
+    bool skipJetTaus_;
     datacard_t(bool process, TString fname, Long64_t iStart = 0) :
-      process_(process), fname_(fname), iStart_(iStart) {}
+      process_(process), fname_(fname), iStart_(iStart), isData_(false), skipJetTaus_(false) {}
   };
 }
 
@@ -278,10 +281,10 @@ Int_t set_addresses(TTree* fChain) {
   // fChain->SetBranchStatus("nBJets20"            , 1); fChain->SetBranchAddress("nBJets20"            , &nBJets20             );
   // fChain->SetBranchStatus("nBJets20M"           , 1); fChain->SetBranchAddress("nBJets20M"           , &nBJets20M            );
   // fChain->SetBranchStatus("nBJets20L"           , 1); fChain->SetBranchAddress("nBJets20L"           , &nBJets20L            );
-  fChain->SetBranchStatus("puppMETC"            , 1); fChain->SetBranchAddress("puppMETC"            , &met                  );
-  fChain->SetBranchStatus("puppMETCphi"         , 1); fChain->SetBranchAddress("puppMETCphi"         , &metPhi               );
-  // fChain->SetBranchStatus("met"                 , 1); fChain->SetBranchAddress("met"                 , &met                  );
-  // fChain->SetBranchStatus("metPhi"              , 1); fChain->SetBranchAddress("metPhi"              , &metPhi               );
+  // fChain->SetBranchStatus("puppMETC"            , 1); fChain->SetBranchAddress("puppMETC"            , &met                  );
+  // fChain->SetBranchStatus("puppMETCphi"         , 1); fChain->SetBranchAddress("puppMETCphi"         , &metPhi               );
+  fChain->SetBranchStatus("met"                 , 1); fChain->SetBranchAddress("met"                 , &met                  );
+  fChain->SetBranchStatus("metPhi"              , 1); fChain->SetBranchAddress("metPhi"              , &metPhi               );
   fChain->SetBranchStatus("metCorr"             , 1); fChain->SetBranchAddress("metCorr"             , &metCorr              );
   fChain->SetBranchStatus("metCorrPhi"          , 1); fChain->SetBranchAddress("metCorrPhi"          , &metCorrPhi           );
   // fChain->SetBranchStatus("ht"                  , 1); fChain->SetBranchAddress("ht"                  , &fTreeVars.ht         );
@@ -289,6 +292,7 @@ Int_t set_addresses(TTree* fChain) {
   // fChain->SetBranchStatus("tauDeepAntiEle"      , 1); fChain->SetBranchAddress("tauDeepAntiEle"      , &tauDeepAntiEle       );
   // fChain->SetBranchStatus("tauDeepAntiMu"       , 1); fChain->SetBranchAddress("tauDeepAntiMu"       , &tauDeepAntiMu        );
   // fChain->SetBranchStatus("tauDeepAntiJet"      , 1); fChain->SetBranchAddress("tauDeepAntiJet"      , &tauDeepAntiJet       );
+  fChain->SetBranchStatus("tauGenFlavor"        , 1); fChain->SetBranchAddress("tauGenFlavor"        , &tauGenFlavor         );
 
 
   //add new branches for MVA outputs
@@ -311,7 +315,7 @@ Int_t set_addresses(TTree* fChain) {
 }
 
 //if there are I/O errors, may be most useful to update the tree in parts
-Int_t make_new_tree_inparts(TString path, TString path_in_file, TString tree_name, Long64_t iStart, Long64_t iStep = 1e6) {
+Int_t make_new_tree_inparts(TString path, TString path_in_file, TString tree_name, Long64_t iStart, Long64_t iStep = 1e6, bool isData = false, bool skipJetTaus = false) {
   cout << "Given file path " << path.Data() << " with folder " << path_in_file.Data()
        << " and tree name " << tree_name.Data() << endl
        << "Will process events " << iStart << " through " << iStart+iStep-1 << endl;
@@ -336,7 +340,7 @@ Int_t make_new_tree_inparts(TString path, TString path_in_file, TString tree_nam
   cout << "Processing " << tree->GetName() << " tree with " << nentries << " entries" << endl;
   for(Long64_t entry = iStart; entry < min(nentries, iStart+iStep); ++entry) {
     if(entry % 50000 == 0)
-      cout << "Processing entry " << entry << "..." << endl;
+      printf("Processing entry %10lld (%5.1f%%)...\n", entry, entry*100./nentries);
     if(fMaxEntries > 0 && entry-iStart >= fMaxEntries) {
       cout << "Hit maximum entries, " << fMaxEntries << ", exiting!\n";
       break;
@@ -348,15 +352,24 @@ Int_t make_new_tree_inparts(TString path, TString path_in_file, TString tree_nam
     bool emu   = folder_ == "emu";
     bool mumu  = folder_ == "mumu";
     bool ee    = folder_ == "ee";
-    int selection = (mutau +
-                     2*etau +
-                     5*emu +
-                     9*mumu +
-                     18*ee);
-    initialize_tree_vars(selection);
-    for(unsigned mva_i = 0; mva_i < fMvaNames.size(); ++mva_i) {
-      if(fMvaBranches[mva_i]) {
-        fMvaBranches[mva_i]->Fill();
+    if((mutau || etau) && isData && skipJetTaus && tauGenFlavor > 15) {
+      for(unsigned i = 0; i < fMvaNames.size(); ++i) {
+        if(fMvaBranches[i]) {
+          fMvaOutputs[i] = -2.;
+          fMvaBranches[i]->Fill();
+        }
+      }
+    } else {
+      int selection = (mutau +
+                       2*etau +
+                       5*emu +
+                       9*mumu +
+                       18*ee);
+      initialize_tree_vars(selection);
+      for(unsigned mva_i = 0; mva_i < fMvaNames.size(); ++mva_i) {
+        if(fMvaBranches[mva_i]) {
+          fMvaBranches[mva_i]->Fill();
+        }
       }
     }
   }
@@ -371,7 +384,7 @@ Int_t make_new_tree_inparts(TString path, TString path_in_file, TString tree_nam
   else return 0;
 }
 
-Int_t make_new_tree(TString path, TString path_in_file, TString tree_name) {
+Int_t make_new_tree(TString path, TString path_in_file, TString tree_name, bool isData = false, bool skipJetTaus = false) {
   cout << "Given file path " << path.Data() << " with folder " << path_in_file.Data()
        << " and tree name " << tree_name.Data() << endl;
 
@@ -399,7 +412,7 @@ Int_t make_new_tree(TString path, TString path_in_file, TString tree_name) {
   cout << "Processing " << tree->GetName() << " tree with " << nentries << " entries" << endl;
   for(Long64_t entry = 0; entry < nentries; ++entry) {
     if(entry % 50000 == 0)
-      cout << "Processing entry " << entry << "..." << endl;
+      printf("Processing entry %10lld (%5.1f%%)...\n", entry, entry*100./nentries);
     if(fMaxEntries > 0 && entry >= fMaxEntries) {
       cout << "Hit maximum entries, " << fMaxEntries << ", exiting!\n";
       break;
@@ -413,17 +426,26 @@ Int_t make_new_tree(TString path, TString path_in_file, TString tree_name) {
     bool emu   = folder_ == "emu";
     bool mumu  = folder_ == "mumu";
     bool ee    = folder_ == "ee";
-    int selection = (mutau +
-                     2*etau +
-                     5*emu +
-                     9*mumu +
-                     18*ee);
-    if(debug && entry%10000 == 0)
-      cout << "Using selection " << selection << endl;
-    initialize_tree_vars(selection);
-    for(unsigned mva_i = 0; mva_i < fMvaNames.size(); ++mva_i) {
-      if(!debug&&fMvaBranches[mva_i]) {
-        fMvaBranches[mva_i]->Fill();
+    if((mutau || etau) && !isData && skipJetTaus && tauGenFlavor > 15) {
+      for(unsigned i = 0; i < fMvaNames.size(); ++i) {
+        if(fMvaBranches[i]) {
+          fMvaOutputs[i] = -2.;
+          fMvaBranches[i]->Fill();
+        }
+      }
+    } else {
+      int selection = (mutau +
+                       2*etau +
+                       5*emu +
+                       9*mumu +
+                       18*ee);
+      if(debug && entry%10000 == 0)
+        cout << "Using selection " << selection << endl;
+      initialize_tree_vars(selection);
+      for(unsigned mva_i = 0; mva_i < fMvaNames.size(); ++mva_i) {
+        if(!debug&&fMvaBranches[mva_i]) {
+          fMvaBranches[mva_i]->Fill();
+        }
       }
     }
   }
@@ -460,32 +482,32 @@ Int_t process_standard_nano_trees(int year = 2016, bool doInParts = false, bool 
   name += "_";
   TString ext  = ".tree";
   vector<datacard_t> cards;
-  cards.push_back(datacard_t(false                , name+"ttbarToSemiLeptonic"));
-  cards.push_back(datacard_t(false                , name+"ttbarToHadronic"));
-  cards.push_back(datacard_t(false                , name+"ttbarlnu"));
+  cards.push_back(datacard_t(true                 , name+"ttbarToSemiLeptonic"));
+  cards.push_back(datacard_t(true                 , name+"ttbarToHadronic"));
+  cards.push_back(datacard_t(true                 , name+"ttbarlnu"));
   cards.push_back(datacard_t(true                 , name+"DY50"));
-  cards.push_back(datacard_t(false && year != 2018, name+"DY50-ext"));
-  cards.push_back(datacard_t(false                , name+"SingleAntiToptW"));
-  cards.push_back(datacard_t(false                , name+"SingleToptW"));
-  cards.push_back(datacard_t(false                , name+"Wlnu"));
-  cards.push_back(datacard_t(false && year != 2018, name+"Wlnu-ext"));
-  cards.push_back(datacard_t(false                , name+"WW"));
-  cards.push_back(datacard_t(false                , name+"WZ"));
-  cards.push_back(datacard_t(false                , name+"ZETau"));
-  cards.push_back(datacard_t(false                , name+"ZMuTau"));
-  cards.push_back(datacard_t(false                , name+"ZEMu"));
-  cards.push_back(datacard_t(false                , name+"HETau"));
-  cards.push_back(datacard_t(false                , name+"HMuTau"));
-  cards.push_back(datacard_t(false                , name+"HEMu"));
-  cards.push_back(datacard_t(false                , name+"SingleMu"));
-  cards.push_back(datacard_t(false                , name+"SingleEle"));
-  cards.push_back(datacard_t(false                , name+"ZZ"));
-  cards.push_back(datacard_t(false                , name+"WWW"));
-  cards.push_back(datacard_t(false                , name+"QCDDoubleEMEnrich30to40"));
-  cards.push_back(datacard_t(false                , name+"QCDDoubleEMEnrich30toInf"));
-  cards.push_back(datacard_t(false                , name+"QCDDoubleEMEnrich40toInf"));
+  cards.push_back(datacard_t(true  && year != 2018, name+"DY50-ext"));
+  cards.push_back(datacard_t(true                 , name+"SingleAntiToptW"));
+  cards.push_back(datacard_t(true                 , name+"SingleToptW"));
+  cards.push_back(datacard_t(true                 , name+"Wlnu"));
+  cards.push_back(datacard_t(true  && year != 2018, name+"Wlnu-ext"));
+  cards.push_back(datacard_t(true                 , name+"WW"));
+  cards.push_back(datacard_t(true                 , name+"WZ"));
+  cards.push_back(datacard_t(true                 , name+"ZETau"));
+  cards.push_back(datacard_t(true                 , name+"ZMuTau"));
+  cards.push_back(datacard_t(true                 , name+"ZEMu"));
+  cards.push_back(datacard_t(true                 , name+"HETau"));
+  cards.push_back(datacard_t(true                 , name+"HMuTau"));
+  cards.push_back(datacard_t(true                 , name+"HEMu"));
+  cards.push_back(datacard_t(true                 , name+"ZZ"));
+  cards.push_back(datacard_t(true                 , name+"WWW"));
+  cards.push_back(datacard_t(true                 , name+"QCDDoubleEMEnrich30to40"));
+  cards.push_back(datacard_t(true                 , name+"QCDDoubleEMEnrich30toInf"));
+  cards.push_back(datacard_t(true                 , name+"QCDDoubleEMEnrich40toInf"));
+  cards.push_back(datacard_t(true                 , name+"SingleMu"));
+  cards.push_back(datacard_t(true                 , name+"SingleEle"));
 
-  vector<TString> folders = {/*"ee", "mumu",*/ "mutau", "etau", "emu"};
+  vector<TString> folders = {"ee", "mumu", "mutau", "etau", "emu"};
   status = initialize(); //initialize the MVAs
   if(status) return status;
 
@@ -498,10 +520,13 @@ Int_t process_standard_nano_trees(int year = 2016, bool doInParts = false, bool 
       gSystem->Exec(Form("time xrdcp -f %s ./%s", file_name.Data(), (card.fname_+ext).Data()));
       file_name = card.fname_ + ext;
     }
+    card.skipJetTaus_ = true;
+    if(card.fname_.Contains("SingleMu") || card.fname_.Contains("SingleEle")) card.isData_ = true;
     int stat = 0; //status for this card
     for(auto folder : folders) {
       folder_ = folder;
-      int stat_f = (doInParts) ? make_new_tree_inparts(file_name, folder, card.fname_, card.iStart_) : make_new_tree(file_name, folder, card.fname_);
+      int stat_f = ((doInParts) ? make_new_tree_inparts(file_name, folder, card.fname_, card.iStart_, card.isData_, card.skipJetTaus_) :
+                    make_new_tree(file_name, folder, card.fname_, card.isData_, card.skipJetTaus_));
       if(stat_f) cout << "file " << card.fname_.Data() << ": folder " << folder.Data()
                     << " returned status " << stat << endl;
       stat += stat_f;

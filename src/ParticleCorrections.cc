@@ -91,6 +91,17 @@ double ParticleCorrections::MuonTriggerEff(double pt, double eta, int trigger, i
     return -1.;
   }
 
+  if(trigger != kLowTrigger && trigger != kHighTrigger) {
+    std::cout << __func__ << ": Warning! Undefined trigger " << trigger << ", defaulting to low trigger\n";
+    trigger = kLowTrigger;
+  }
+
+  if((pt < 25. && year != k2017) || (pt < 28. && year == k2017)) { //can't fire the trigger
+    data_eff = 1.e-10;
+    mc_eff   = 1.e-10;
+    return 0.;
+  }
+
   if(pt >= 120.) pt = 119.; //maximum pT for corrections
   else if(pt < 20.) pt = 20.; //minimum pT for corrections
   if(eta >= 2.4) eta = 2.39; //maximum eta for corrections
@@ -104,24 +115,23 @@ double ParticleCorrections::MuonTriggerEff(double pt, double eta, int trigger, i
   else if(year == k2018)
     firstSection = rand <= 8.98/59.59;
   data_eff = 1.; mc_eff = 1.;
-  if(trigger >= 0) {
-    if(year == k2016) {
-      if(trigger == kLowTrigger && pt < 26.) pt = 26.;
-      else if(trigger == kHighTrigger && pt < 52.) pt = 52.;
-    } else if (year == k2017) {
-      if(trigger == kLowTrigger && pt < 29.) pt = 29.;
-      else if(trigger == kHighTrigger && pt < 52.) pt = 52.;
-    } else if (year == k2018) {
-      if(trigger == kLowTrigger && pt < 26.) pt = 26.;
-      else if(trigger == kHighTrigger && pt < 52.) pt = 52.;
-    }
-
-    TH2F* hTriggerData = (trigger == kLowTrigger) ? muonLowTriggerEffMap[0][2*year + !firstSection] : muonHighTriggerEffMap[0][2*year + !firstSection];
-    TH2F* hTriggerMC = (trigger == kLowTrigger) ? muonLowTriggerEffMap[0][2*year + !firstSection] : muonHighTriggerEffMap[0][2*year + !firstSection];
-    //doesn't flip between years
-    data_eff = hTriggerData->GetBinContent(hTriggerData->GetXaxis()->FindBin(fabs(eta)), hTriggerData->GetYaxis()->FindBin(pt));
-    mc_eff = hTriggerMC->GetBinContent(hTriggerMC->GetXaxis()->FindBin(fabs(eta)), hTriggerMC->GetYaxis()->FindBin(pt));
+  if(year == k2016) {
+    if(trigger == kLowTrigger && pt < 26.) pt = 26.;
+    else if(trigger == kHighTrigger && pt < 52.) pt = 52.;
+  } else if (year == k2017) {
+    if(trigger == kLowTrigger && pt < 29.) pt = 29.;
+    else if(trigger == kHighTrigger && pt < 52.) pt = 52.;
+  } else if (year == k2018) {
+    if(trigger == kLowTrigger && pt < 26.) pt = 26.;
+    else if(trigger == kHighTrigger && pt < 52.) pt = 52.;
   }
+
+  TH2F* hTriggerData = (trigger == kLowTrigger) ? muonLowTriggerEffMap[0][2*year + !firstSection] : muonHighTriggerEffMap[0][2*year + !firstSection];
+  TH2F* hTriggerMC   = (trigger == kLowTrigger) ? muonLowTriggerEffMap[1][2*year + !firstSection] : muonHighTriggerEffMap[1][2*year + !firstSection];
+  //axes doesn't flip between years
+  data_eff = hTriggerData->GetBinContent(hTriggerData->GetXaxis()->FindBin(fabs(eta)), hTriggerData->GetYaxis()->FindBin(pt));
+  mc_eff = hTriggerMC->GetBinContent(hTriggerMC->GetXaxis()->FindBin(fabs(eta)), hTriggerMC->GetYaxis()->FindBin(pt));
+
   //return the scale factor applied to MC to match Data
   double scale_factor = (mc_eff > 0.) ? data_eff/mc_eff : 0.;
   if(scale_factor <= 0. || fVerbose > 0) {
@@ -278,7 +288,7 @@ double ParticleCorrections::TauWeight(double pt, double eta, int genID, int year
     std::cout << "Warning! Undefined year in " << __func__ << ", returning -1" << std::endl;
     return -1.;
   }
-
+  if(pt < 20.001) pt = 20.001; //has to be slightly greater than 20
   double scale_factor = 1.;
   up = 1.; down = 1.; ibin = 0;
   if(genID == 5) { //genuine tau
@@ -303,6 +313,9 @@ double ParticleCorrections::TauWeight(double pt, double eta, int genID, int year
     if(scale_factor <= 0.) std::cout << "Warning! Scale factor <= 0! ";
     std::cout << "ParticleCorrections::" << __func__
               << " year = " << year
+              << " pt = " << pt
+              << " eta = " << eta
+              << " genID = " << genID
               << " scale_factor = " << scale_factor
               << std::endl;
   }

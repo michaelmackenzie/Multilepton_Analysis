@@ -17,6 +17,7 @@ public:
     double higgs = (48.61+3.766+0.5071+1.358+0.880);
     values_["DY50"                    ] = zll    ;
     values_["Z"                       ] = zxs    ;
+    values_["Br_Zll"                  ] = br_ll  ;
     values_["H"                       ] = higgs  ;
     values_["SingleAntiToptW"         ] = 34.91  ;
     values_["SingleToptW"             ] = 34.91  ;

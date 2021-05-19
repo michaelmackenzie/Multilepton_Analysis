@@ -118,12 +118,12 @@ struct EventHist_t {
   TH1D* hLepMt;
   TH1D* hLepEta;
   TH1D* hLepPhi;
-  TH2D* hLepPtVsM[3]; //0: normal 1: remove Z pT weight if DY file 2: apply weights using reco scales if DY
+  TH2D* hLepPtVsM[5]; //0: normal 1: remove Z pT weight if DY file 2: apply weights using reco scales if DY 3: using systematic gen-level weights 4: using systematic reco-level weights
 
   //Gen-level Z info
-  TH2D* hZPtVsM[3]; //0: normal 1: remove Z pT weight 2: apply weights using reco scales if DY
-  TH1D* hZPt[3];
-  TH1D* hZMass[3];
+  TH2D* hZPtVsM[5]; //0: normal 1: remove Z pT weight 2: apply weights using reco scales if DY 3: using systematic gen-level weights 4: using systematic reco-level weights
+  TH1D* hZPt[5];
+  TH1D* hZMass[5];
 
   TH1D* hLooseLep;
 

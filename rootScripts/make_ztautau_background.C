@@ -54,7 +54,7 @@ Int_t combine_trees(vector<TString> in_files, TString selection, int file_set, T
     if(verbose_ > 1) cout << "Using file set " << set_use << endl;
     tList[filecount] = (TTree*) fList[filecount]->Get(Form("Data/tree_%i/tree_%i", set_use, set_use));
     if(!tList[filecount]) {
-      printf("tree not found, continuing\n");
+      printf("%s tree not found, continuing\n", file_path);
       continue;
     }
     if(debug_) tList[filecount]->Print();
@@ -207,25 +207,25 @@ Int_t make_all_backgrounds(TString base = "nanoaods_dev") {
   combineLepTau_ = false;
   cout << "Making Z decay backgrounds!\n";
   doHiggsDecays_ = false;
-  //b-tag sets
-  status += make_background(8,  "mutau"  , base);
-  status += make_background(38, "etau"   , base);
-  status += make_background(68, "emu"    , base);
-  status += make_background(68, "mutau_e", base);
-  status += make_background(68, "etau_mu", base);
+  //b-tag cut sets
+  status += make_background(8, "mutau"  , base);
+  status += make_background(8, "etau"   , base);
+  status += make_background(8, "emu"    , base);
+  status += make_background(8, "mutau_e", base);
+  status += make_background(8, "etau_mu", base);
   cout << "Making Higgs decay backgrounds!\n";
   doHiggsDecays_ = true;
-  //b-tag sets
-  status += make_background(8,  "mutau"  , base);
-  status += make_background(38, "etau"   , base);
-  status += make_background(68, "emu"    , base);
-  status += make_background(68, "mutau_e", base);
-  status += make_background(68, "etau_mu", base);
+  //b-tag cut sets
+  status += make_background(8, "mutau"  , base);
+  status += make_background(8, "etau"   , base);
+  status += make_background(8, "emu"    , base);
+  status += make_background(8, "mutau_e", base);
+  status += make_background(8, "etau_mu", base);
   return status;
 }
 
 //Create TTrees for all samples for all years
-Int_t make_all_years(TString base = "../histograms/nanoaods_dev/") {
+Int_t make_all_years(TString base = "nanoaods_dev") {
   Int_t status = 0;
   // cout << "Making 2016 backgrounds...\n";
   // years_ = {2016};

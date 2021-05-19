@@ -17,6 +17,7 @@
 #include "interface/SlimTau_t.hh"
 #include "interface/SlimJet_t.hh"
 #include "interface/SlimPhoton_t.hh"
+#include "interface/RoccoR.h"
 #include "interface/MVAConfig.hh"
 #include "interface/TrkQualInit.hh"
 #include "interface/PlottingCard_t.hh"
@@ -36,18 +37,19 @@ namespace { struct dictionary {
   JetPUWeight dummy5b;
   JetToTauWeight dummy6;
   MuonIDWeight dummy6b;
+  ZPtWeight dummy6c;
   SlimObject_t dummy7;
   SlimElectron_t dummy8;
   SlimMuon_t dummy9;
   SlimTau_t dummy10;
   SlimJet_t dummy11;
   SlimPhoton_t dummy12;
+  RoccoR dummy12b;
   MVAConfig dummy13;
   TrkQualInit dummy14;
   ZTauTauHistMaker dummy15;
   DataPlotter dummy16;
   ParticleCorrections dummy17;
-  NanoAODConversion dummy18;  
+  NanoAODConversion dummy18;
 };
 }
-

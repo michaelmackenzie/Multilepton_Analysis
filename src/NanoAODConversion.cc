@@ -39,6 +39,11 @@ void NanoAODConversion::Begin(TTree * /*tree*/)
   particleCorrections = new ParticleCorrections(fMuonIso);
   if(fVerbose > 0) particleCorrections->fVerbose = fVerbose - 1; //1 lower level, 1 further in depth
   fChain = 0;
+  TString dir = gSystem->Getenv("CMSSW_BASE");
+  if(dir == "") dir = "../";
+  else dir += "/src/CLFVAnalysis/";
+  fRoccoR = new RoccoR(Form("%sscale_factors/RoccoR%i.txt", dir.Data(), fYear + 2016));
+  fRnd = new TRandom3(fRndSeed);
 
   for(int i = kMuTau; i < kSelections; ++i) fQCDCounts[i] = 0;
   fSelecNames[kMuTau] = "MuTau";
@@ -182,6 +187,7 @@ void NanoAODConversion::InitializeInBranchStructure(TTree* tree) {
   tree->SetBranchAddress("Muon_looseId"                    , &muonLooseId                    ) ;
   tree->SetBranchAddress("Muon_mediumId"                   , &muonMediumId                   ) ;
   tree->SetBranchAddress("Muon_tightId"                    , &muonTightId                    ) ;
+  tree->SetBranchAddress("Muon_nTrackerLayers"             , &muonNTrkLayers                 ) ;
   tree->SetBranchAddress("Muon_genPartFlav"                , &muonGenFlavor                  ) ;
   tree->SetBranchAddress("nElectron"                       , &nElectron                      ) ;
   tree->SetBranchAddress("nElectrons"                      , &nElectronsSkim                 ) ;
@@ -260,6 +266,8 @@ void NanoAODConversion::InitializeInBranchStructure(TTree* tree) {
   tree->SetBranchAddress("leptonTwoIndex"                  , &leptonTwoSkimIndex             ) ;
   tree->SetBranchAddress("leptonOneFlavor"                 , &leptonOneSkimFlavor            ) ;
   tree->SetBranchAddress("leptonTwoFlavor"                 , &leptonTwoSkimFlavor            ) ;
+  tree->SetBranchAddress("leptonOneGenPt"                  , &leptonOneGenPt                 ) ;
+  tree->SetBranchAddress("leptonTwoGenPt"                  , &leptonTwoGenPt                 ) ;
   tree->SetBranchAddress("zPt"                             , &zPtIn                          ) ;
   tree->SetBranchAddress("zMass"                           , &zMassIn                        ) ;
 
@@ -303,10 +311,14 @@ void NanoAODConversion::InitializeOutBranchStructure(TTree* tree) {
   tree->Branch("lepTwoWeight2_up"              , &lepTwoWeight2_up     );
   tree->Branch("lepTwoWeight2_down"            , &lepTwoWeight2_down   );
   tree->Branch("lepTwoWeight2_bin"             , &lepTwoWeight2_bin    );
+  tree->Branch("lepOneTrigger"                 , &lepOneTrigger        );
+  tree->Branch("lepTwoTrigger"                 , &lepTwoTrigger        );
   tree->Branch("lepOneTrigWeight"              , &lepOneTrigWeight     );
   tree->Branch("lepTwoTrigWeight"              , &lepTwoTrigWeight     );
   tree->Branch("lepOneFired"                   , &lepOneFired          );
   tree->Branch("lepTwoFired"                   , &lepTwoFired          );
+  tree->Branch("nTrigModes"                    , &nTrigModes           );
+  tree->Branch("triggerWeights"                , &triggerWeights, "triggerWeights[nTrigModes]/F");
   tree->Branch("topPtWeight"                   , &topPtWeight          );
   tree->Branch("zPtWeight"                     , &zPtWeight            );
   tree->Branch("zPt"                           , &zPtOut               );
@@ -328,6 +340,10 @@ void NanoAODConversion::InitializeOutBranchStructure(TTree* tree) {
   tree->Branch("leptonTwoP4"                   , &leptonTwoP4          );
   tree->Branch("leptonOneFlavor"               , &leptonOneFlavor      );
   tree->Branch("leptonTwoFlavor"               , &leptonTwoFlavor      );
+  tree->Branch("leptonOneGenFlavor"            , &leptonOneGenFlavor   );
+  tree->Branch("leptonTwoGenFlavor"            , &leptonTwoGenFlavor   );
+  tree->Branch("leptonOneGenPt"                , &leptonOneGenPt       );
+  tree->Branch("leptonTwoGenPt"                , &leptonTwoGenPt       );
   tree->Branch("leptonOneD0"                   , &leptonOneD0          );
   tree->Branch("leptonTwoD0"                   , &leptonTwoD0          );
   tree->Branch("leptonOneIso"                  , &leptonOneIso         );
@@ -339,6 +355,8 @@ void NanoAODConversion::InitializeOutBranchStructure(TTree* tree) {
   tree->Branch("leptonTwoID3"                  , &leptonTwoID3         );
   tree->Branch("leptonOneIndex"                , &leptonOneIndex       );
   tree->Branch("leptonTwoIndex"                , &leptonTwoIndex       );
+  tree->Branch("leptonOnePtSF"                 , &leptonOnePtSF        );
+  tree->Branch("leptonTwoPtSF"                 , &leptonTwoPtSF        );
   tree->Branch("leptonOneSkimIndex"            , &leptonOneSkimIndex   );
   tree->Branch("leptonTwoSkimIndex"            , &leptonTwoSkimIndex   );
   tree->Branch("leptonOneSkimFlavor"           , &leptonOneSkimFlavor  );
@@ -529,6 +547,8 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
   lepOneTrigWeight   = 1.; lepTwoTrigWeight   = 1.;
   lepOneFired        = 0 ; lepTwoFired        = 0 ;
 
+  leptonOnePtSF = 1.; leptonTwoPtSF = 1.;
+
   //////////////////////////////
   //           MET            //
   //////////////////////////////
@@ -556,13 +576,14 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
   //////////////////////////////
   //        Trigger           //
   //////////////////////////////
+  bool useMu50 = true; //whether or not to consider the Mu50 trigger as an OR with IsoMu
 
   //store muon and electron trigger (1 = electron, 2 = muon, 3 = both)
   //muon trigger is Mu50 for all years and IsoMu24 for 2016, 2018 and IsoMu27 for 2017
   bool lowMuonTriggered  = nMuons > 0 && ((fYear == ParticleCorrections::k2016 && HLT_IsoMu24) ||
                                           (fYear == ParticleCorrections::k2017 && HLT_IsoMu27) ||
                                           (fYear == ParticleCorrections::k2018 && HLT_IsoMu24));
-  bool highMuonTriggered = false && nMuons > 0 && HLT_Mu50; //turn off high muon trigger use
+  bool highMuonTriggered = useMu50 && nMuons > 0 && HLT_Mu50;
 
   double muon_lo_pt = (fYear == ParticleCorrections::k2017) ? 28. : 25.;
   double muon_hi_pt = 50.; //independent of year
@@ -589,15 +610,15 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
   if(selection == kMuTau || selection == kEMu || selection == kMuMu)
     //default to low trigger if it passed it, < 0 if no trigger
     trigger = (lowMuonTriggered) ? ParticleCorrections::kLowTrigger : (2*highMuonTriggered - 1)*ParticleCorrections::kHighTrigger;
-  if(!lowMuonTriggered && !highMuonTriggered && (selection == kMuMu || selection == kMuTau))
+  if(!lowMuonTriggered && !highMuonTriggered && (selection == kMuMu || selection == kMuTau) && !fIgnoreNoTriggerMatch)
     std::cout << "!!! NanoAODConversion::" << __func__
               << " Warning! Muon only selection but no identified muon trigger in event "
               << fentry << std::endl;
-  else if(!electronTriggered && (selection == kEE || selection == kETau))
+  else if(!electronTriggered && (selection == kEE || selection == kETau) && !fIgnoreNoTriggerMatch)
     std::cout << "!!! NanoAODConversion::" << __func__
               << " Warning! Electron only selection but no identified electron trigger in event "
               << fentry << std::endl;
-  else if(!electronTriggered && !lowMuonTriggered && !highMuonTriggered)
+  else if(!electronTriggered && !lowMuonTriggered && !highMuonTriggered && !fIgnoreNoTriggerMatch)
     std::cout << "!!! NanoAODConversion::" << __func__
               << " Warning! Passed a selection but no identified trigger in event "
               << fentry << std::endl;
@@ -625,6 +646,7 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
 
   //for multiple potential triggers fired, consider efficiencies instead of scale factors
   float data_eff[2], mc_eff[2];
+  bool trig_fired[2];
   int trigger_index = 0;
 
   //reset lepton IDs
@@ -642,23 +664,27 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
     leptonOneID1 = muonIsoId[index];
     leptonOneID2 = 0;
     leptonOneIso = muonRelIso[index]*muonPt[index];
+    leptonOnePtSF = muonRoccoSF[index];
+    leptonOneGenFlavor = (!fIsData) ? MuonFlavorFromID(muonGenFlavor[index]) : 0;
     leptonOneIndex = index;
     trigMatchOne = GetTriggerMatch(index, true, trigIndexOne);
     if(trigMatchOne == 2 && !highMuonTriggered) trigMatchOne = 0; //if not using high muon trigger, ignore a match to it
+    trig_fired[trigger_index] = trigMatchOne;
+    if(useTrigObj) {
+      if(trigMatchOne == 0) trigger = -1;
+      else                  trigger = (trigMatchOne == 1 || trigMatchOne == 3) ? ParticleCorrections::kLowTrigger : ParticleCorrections::kHighTrigger;
+    }
     if(!fIsData) {
-      if(useTrigObj) {
-        if(trigMatchOne == 0) trigger = -1;
-        else                  trigger = (trigMatchOne == 1 || trigMatchOne == 3) ? ParticleCorrections::kLowTrigger : ParticleCorrections::kHighTrigger;
-      }
       particleCorrections->MuonWeight(muonPt[index], muonEta[index], trigger, fYear, lepOneTrigWeight,
                                       lepOneWeight1, lepOneWeight1_up, lepOneWeight1_down, lepOneWeight1_bin,
                                       lepOneWeight2, lepOneWeight2_up, lepOneWeight2_down, lepOneWeight2_bin
                                       );
       particleCorrections->MuonTriggerEff(muonPt[index], muonEta[index], (trigger < 0) ? ParticleCorrections::kLowTrigger : trigger,
                                           fYear, data_eff[trigger_index], mc_eff[trigger_index]);
-      lepOneTrigWeight = (trigger > -1) ? data_eff[trigger_index] / mc_eff[trigger_index] : (1. - data_eff[trigger_index]) / (1. - mc_eff[trigger_index]);
-      ++trigger_index;
+      lepOneTrigWeight = (trigMatchOne > 0) ? data_eff[trigger_index] / mc_eff[trigger_index] : (1. - data_eff[trigger_index]) / (1. - mc_eff[trigger_index]);
+      if(fVerbose > 2) std::cout << "Lepton 1 has trigger status " << trigger << " and trigger weight " << lepOneTrigWeight << std::endl;
     }
+    ++trigger_index;
     if(lowMuonTriggered || highMuonTriggered)
       lepOneFired = (useTrigObj) ? trigMatchOne > 0 : (lowMuonTriggered && muonPt[index] > muon_lo_pt) || (highMuonTriggered && muonPt[index] > muon_hi_pt);
   //////////////////////////////
@@ -671,8 +697,10 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
     leptonOneFlavor = -11*electronCharge[index];
     leptonOneID1 = electronWPL[index] + 2*electronWP90[index] + 4*electronWP80[index];
     leptonOneID2 = 0;
+    leptonOneGenFlavor = (!fIsData) ? ElectronFlavorFromID(electronGenFlavor[index]) : 0;
     leptonOneIndex = index;
     trigMatchOne = GetTriggerMatch(index, false, trigIndexOne);
+    trig_fired[trigger_index] = trigMatchOne;
     if(!fIsData) {
       particleCorrections->ElectronWeight(electronPt[index], electronEta[index]+electronDeltaEtaSC[index], fYear, lepOneTrigWeight,
                                           lepOneWeight1, lepOneWeight1_up, lepOneWeight1_down, lepOneWeight1_bin,
@@ -680,9 +708,10 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
                                           );
       particleCorrections->ElectronTriggerEff(electronPt[index], electronEta[index]+electronDeltaEtaSC[index], fYear,
                                               data_eff[trigger_index], mc_eff[trigger_index]);
-      lepOneTrigWeight = (trigger > -1) ? data_eff[trigger_index] / mc_eff[trigger_index] : (1. - data_eff[trigger_index]) / (1. - mc_eff[trigger_index]);
-      ++trigger_index;
+      lepOneTrigWeight = (trigMatchOne) ? data_eff[trigger_index] / mc_eff[trigger_index] : (1. - data_eff[trigger_index]) / (1. - mc_eff[trigger_index]);
+      if(fVerbose > 2) std::cout << "Lepton 1 has trigger status " << trigger << " and trigger weight " << lepOneTrigWeight << std::endl;
     }
+    ++trigger_index;
     if(electronTriggered)
       lepOneFired = (useTrigObj) ? trigMatchOne > 0 : electronPt[index] > elec_pt;
     if(fVerbose > 9) std::cout << "Lepton one found as an electron with index " << index
@@ -696,9 +725,19 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
     unsigned index = fTauIndices[selection][0];
     leptonTwoP4->SetPtEtaPhiM(tauPt[index], tauEta[index],
                               tauPhi[index],tauMass[index]);
+    //FIXME: should apply energy scale correction to all taus
+    tauEnergyScale = (fIsData == 0) ? particleCorrections->TauEnergyScale(leptonTwoP4->Pt(), leptonTwoP4->Eta(), tauDecayMode[index],
+                                                                          tauGenID[index], fYear, tauES_up, tauES_down, tauES_bin) : 1.;
+    if(tauEnergyScale <= 0.)
+      std::cout << "WARNING! In event " << fentry
+                << " tau energy scale <= 0 = " << tauEnergyScale
+                << std::endl;
+    *leptonTwoP4 *= tauEnergyScale;
+
     leptonTwoFlavor = -15*tauCharge[index];
     tauGenIDOut  = tauGenID[index];
     tauGenFlavor = TauFlavorFromID((int) tauGenIDOut);
+    leptonTwoGenFlavor = tauGenFlavor;
     lepTwoWeight1 = (fIsData == 0) ? particleCorrections->TauWeight(leptonTwoP4->Pt(), leptonTwoP4->Eta(), tauGenID[index], fYear,
                                                                     lepTwoWeight1_up, lepTwoWeight1_down, lepTwoWeight1_bin) : 1.;
     leptonTwoID1 = tauAntiEle[index]; //MVA ID
@@ -709,14 +748,6 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
     leptonTwoIndex = index;
     tauDecayModeOut = tauDecayMode[index];
 
-    //FIXME: should ID weight use updated tau energy scale?
-    tauEnergyScale = (fIsData == 0) ? particleCorrections->TauEnergyScale(leptonTwoP4->Pt(), leptonTwoP4->Eta(), tauDecayModeOut,
-                                                                          tauGenID[index], fYear, tauES_up, tauES_down, tauES_bin) : 1.;
-    if(tauEnergyScale <= 0.)
-      std::cout << "WARNING! In event " << fentry
-                << " tau energy scale <= 0 = " << tauEnergyScale
-                << std::endl;
-    *leptonTwoP4 *= tauEnergyScale;
     tauDeepAntiEle = tauDeep2017VsE[index];
     tauDeepAntiMu  = tauDeep2017VsMu[index];
     tauDeepAntiJet = tauDeep2017VsJet[index];
@@ -731,38 +762,12 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
     leptonTwoID1 = muonIsoId[index];
     leptonTwoID2 = 0;
     leptonTwoIso = muonRelIso[index]*muonPt[index];
+    leptonTwoPtSF = muonRoccoSF[index];
+    leptonTwoGenFlavor = (!fIsData) ? MuonFlavorFromID(muonGenFlavor[index]) : 0;
     leptonTwoIndex = index;
     trigMatchTwo = GetTriggerMatch(index, true, trigIndexTwo);
     if(trigMatchTwo == 2 && !highMuonTriggered) trigMatchTwo = 0; //if not using high muon trigger, ignore a match to it
-    if(useTrigObj) {
-      if(trigMatchOne == 0) trigger = -1;
-      else                  trigger = (trigMatchTwo == 1 || trigMatchTwo == 3) ? ParticleCorrections::kLowTrigger : ParticleCorrections::kHighTrigger;
-    }
-    if(!fIsData) {
-      particleCorrections->MuonWeight(muonPt[index], muonEta[index], trigger, fYear, lepTwoTrigWeight,
-                                      lepTwoWeight1, lepTwoWeight1_up, lepTwoWeight1_down, lepTwoWeight1_bin,
-                                      lepTwoWeight2, lepTwoWeight2_up, lepTwoWeight2_down, lepTwoWeight2_bin
-                                      );
-      particleCorrections->MuonTriggerEff(muonPt[index], muonEta[index], (trigger < 0) ? ParticleCorrections::kLowTrigger : trigger,
-                                          fYear, data_eff[trigger_index], mc_eff[trigger_index]);
-      lepTwoTrigWeight = (trigger > -1) ? data_eff[trigger_index] / mc_eff[trigger_index] : (1. - data_eff[trigger_index]) / (1. - mc_eff[trigger_index]);
-      ++trigger_index;
-    }
-    if(lowMuonTriggered || highMuonTriggered)
-      lepTwoFired = (useTrigObj) ? trigMatchTwo > 0 : (lowMuonTriggered && muonPt[index] > muon_lo_pt) || (highMuonTriggered && muonPt[index] > muon_hi_pt);
-  //////////////////////////////
-  //      lep 2 = muon(2)     //
-  //////////////////////////////
-  } else if(selection == kMuMu) {
-    unsigned index = (nMuons > 2) ? leptonTwoIndex : fMuonIndices[selection][1];
-    leptonTwoP4->SetPtEtaPhiM(muonPt[index], muonEta[index],
-                              muonPhi[index], muonMass[index]);
-    leptonTwoFlavor = -13*muonCharge[index];
-    leptonTwoID1 = muonIsoId[index];
-    leptonTwoID2 = 0;
-    trigMatchTwo = GetTriggerMatch(index, true, trigIndexTwo);
-    if(trigMatchTwo == 2 && !highMuonTriggered) trigMatchTwo = 0; //if not using high muon trigger, ignore a match to it
-    leptonTwoIndex = index;
+    trig_fired[trigger_index] = trigMatchTwo;
     if(useTrigObj) {
       if(trigMatchTwo == 0) trigger = -1;
       else                  trigger = (trigMatchTwo == 1 || trigMatchTwo == 3) ? ParticleCorrections::kLowTrigger : ParticleCorrections::kHighTrigger;
@@ -774,9 +779,47 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
                                       );
       particleCorrections->MuonTriggerEff(muonPt[index], muonEta[index], (trigger < 0) ? ParticleCorrections::kLowTrigger : trigger,
                                           fYear, data_eff[trigger_index], mc_eff[trigger_index]);
-      lepTwoTrigWeight = (trigger > -1) ? data_eff[trigger_index] / mc_eff[trigger_index] : (1. - data_eff[trigger_index]) / (1. - mc_eff[trigger_index]);
-      ++trigger_index;
+      lepTwoTrigWeight = (trigMatchTwo) ? data_eff[trigger_index] / mc_eff[trigger_index] : (1. - data_eff[trigger_index]) / (1. - mc_eff[trigger_index]);
+      if(fVerbose > 2) std::cout << "Lepton 2 has trigger status " << trigger << " and trigger weight " << lepTwoTrigWeight << std::endl;
     }
+    ++trigger_index;
+    if(lowMuonTriggered || highMuonTriggered)
+      lepTwoFired = (useTrigObj) ? trigMatchTwo > 0 : (lowMuonTriggered && muonPt[index] > muon_lo_pt) || (highMuonTriggered && muonPt[index] > muon_hi_pt);
+    else if(trigMatchTwo > 0) {
+      std::cout << "!!! Warning! Entry " << fentry << " has no muon trigger but muon matched to a trigger with bits = " << trigMatchTwo
+                << " HLT_IsoMu24 = " << HLT_IsoMu24 << " HLT_IsoMu27 = " << HLT_IsoMu27 << " HLT_Mu50 = " << HLT_Mu50 << std::endl;
+    }
+  //////////////////////////////
+  //      lep 2 = muon(2)     //
+  //////////////////////////////
+  } else if(selection == kMuMu) {
+    unsigned index = (nMuons > 2) ? leptonTwoIndex : fMuonIndices[selection][1];
+    leptonTwoP4->SetPtEtaPhiM(muonPt[index], muonEta[index],
+                              muonPhi[index], muonMass[index]);
+    leptonTwoFlavor = -13*muonCharge[index];
+    leptonTwoID1 = muonIsoId[index];
+    leptonTwoID2 = 0;
+    leptonTwoPtSF = muonRoccoSF[index];
+    leptonTwoGenFlavor = (!fIsData) ? MuonFlavorFromID(muonGenFlavor[index]) : 0;
+    leptonTwoIndex = index;
+    trigMatchTwo = GetTriggerMatch(index, true, trigIndexTwo);
+    if(trigMatchTwo == 2 && !highMuonTriggered) trigMatchTwo = 0; //if not using high muon trigger, ignore a match to it
+    trig_fired[trigger_index] = trigMatchTwo;
+    if(useTrigObj) {
+      if(trigMatchTwo == 0) trigger = -1;
+      else                  trigger = (trigMatchTwo == 1 || trigMatchTwo == 3) ? ParticleCorrections::kLowTrigger : ParticleCorrections::kHighTrigger;
+    }
+    if(!fIsData) {
+      particleCorrections->MuonWeight(muonPt[index], muonEta[index], trigger, fYear, lepTwoTrigWeight,
+                                      lepTwoWeight1, lepTwoWeight1_up, lepTwoWeight1_down, lepTwoWeight1_bin,
+                                      lepTwoWeight2, lepTwoWeight2_up, lepTwoWeight2_down, lepTwoWeight2_bin
+                                      );
+      particleCorrections->MuonTriggerEff(muonPt[index], muonEta[index], (trigger < 0) ? ParticleCorrections::kLowTrigger : trigger,
+                                          fYear, data_eff[trigger_index], mc_eff[trigger_index]);
+      lepTwoTrigWeight = (trigMatchTwo) ? data_eff[trigger_index] / mc_eff[trigger_index] : (1. - data_eff[trigger_index]) / (1. - mc_eff[trigger_index]);
+      if(fVerbose > 2) std::cout << "Lepton 2 has trigger status " << trigger << " and trigger weight " << lepTwoTrigWeight << std::endl;
+    }
+    ++trigger_index;
     if(lowMuonTriggered || highMuonTriggered)
       lepTwoFired = (useTrigObj) ? trigMatchTwo > 0 : (lowMuonTriggered && muonPt[index] > muon_lo_pt) || (highMuonTriggered && muonPt[index] > muon_hi_pt);
   //////////////////////////////
@@ -790,7 +833,9 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
     leptonTwoID1 = electronWPL[index] + 2*electronWP90[index] + 4*electronWP80[index];
     leptonTwoID2 = 0;
     trigMatchTwo = GetTriggerMatch(index, false, trigIndexTwo);
+    leptonTwoGenFlavor = (!fIsData) ? ElectronFlavorFromID(electronGenFlavor[index]) : 0;
     leptonTwoIndex = index;
+    trig_fired[trigger_index] = trigMatchTwo;
     if(!fIsData) {
       particleCorrections->ElectronWeight(electronPt[index], electronEta[index]+electronDeltaEtaSC[index], fYear, lepTwoTrigWeight,
                                           lepTwoWeight1, lepTwoWeight1_up, lepTwoWeight1_down, lepTwoWeight1_bin,
@@ -798,9 +843,10 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
                                           );
       particleCorrections->ElectronTriggerEff(electronPt[index], electronEta[index]+electronDeltaEtaSC[index], fYear,
                                               data_eff[trigger_index], mc_eff[trigger_index]);
-      lepTwoTrigWeight = (trigger > -1) ? data_eff[trigger_index] / mc_eff[trigger_index] : (1. - data_eff[trigger_index]) / (1. - mc_eff[trigger_index]);
-      ++trigger_index;
+      lepTwoTrigWeight = (trigMatchTwo) ? data_eff[trigger_index] / mc_eff[trigger_index] : (1. - data_eff[trigger_index]) / (1. - mc_eff[trigger_index]);
+      if(fVerbose > 2) std::cout << "Lepton 2 has trigger status " << trigger << " and trigger weight " << lepTwoTrigWeight << std::endl;
     }
+    ++trigger_index;
     if(electronTriggered)
       lepTwoFired = (useTrigObj) ? trigMatchTwo > 0 : electronPt[index] > elec_pt;
     if(fVerbose > 9) std::cout << "Lepton two found as an electron with index " << index
@@ -817,7 +863,7 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
 
   if(trigIndexOne == trigIndexTwo && (lepOneFired || lepTwoFired)) {
     std::cout << "!!! Warning! Entry " << fentry << ": Both leptons are matched to the same trigger index " << trigIndexOne << " selection "
-              << selection << std::endl;
+              << fSelecNames[selection].Data() << std::endl;
   }
   //////////////////////////////
   //        b-Tag SF          //
@@ -859,6 +905,27 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
     std::cout << "!!! Warning! Entry " << fentry << ": Check point 3: Same flavor channel has repeated indices: "
               << leptonOneIndex << " " << leptonTwoIndex << std::endl;
 
+  lepOneTrigger = trigMatchOne;
+  lepTwoTrigger = trigMatchTwo;
+
+  //correct the trigger status using the trigger matching information
+  if(selection == kEE) {
+    triggerLeptonStatus = (lepOneFired || lepTwoFired);
+    muonTriggerStatus = 0;
+  } else if(selection == kMuMu) {
+    triggerLeptonStatus = 2*(lepOneFired || lepTwoFired);
+    muonTriggerStatus = lepOneTrigger | lepTwoTrigger; //OR of bits 1 and 2
+  } else if(selection == kEMu) {
+    triggerLeptonStatus = lepOneFired + 2*lepTwoFired;
+    muonTriggerStatus = lepTwoTrigger;
+  } else if(selection == kMuTau) {
+    triggerLeptonStatus = 2*lepOneFired;
+    muonTriggerStatus = lepOneTrigger;
+  } else if(selection == kETau) {
+    triggerLeptonStatus = lepOneFired;
+    muonTriggerStatus = 0;
+  }
+
   //for ee/mumu, ensure lepton one is higher pT
   if((selection == kEE || selection == kMuMu) && leptonOneP4->Pt() < leptonTwoP4->Pt()) {
     //swap momenta
@@ -890,10 +957,22 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
     Int_t itmp = leptonOneIndex;
     leptonOneIndex = leptonTwoIndex;
     leptonTwoIndex = itmp;
+    //swap trigger match
+    itmp = lepOneTrigger;
+    lepOneTrigger = lepTwoTrigger;
+    lepTwoTrigger = itmp;
   }
+
   if((selection == kEE || selection == kMuMu) && leptonOneIndex == leptonTwoIndex)
     std::cout << "!!! Warning! Entry " << fentry << ": Check point 4: Same flavor channel has repeated indices: "
               << leptonOneIndex << " " << leptonTwoIndex << std::endl;
+
+  //A Mu50 event
+  if(muonTriggerStatus == 2) {
+    if(fVerbose > 2)
+      std::cout << "Entry " << fentry << " has Mu50 event: " << (int) lepOneTrigger << " " << (int) lepTwoTrigger << " status " << muonTriggerStatus << std::endl;
+    ++fNHighMuonTriggered;
+  }
 
   nPhotons = fNPhotons[selection];
   if(fNPhotons[selection] > 0) {
@@ -906,18 +985,82 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
   }
 
   if(!fIsData) {
-    // if(trigger_index > 1) { //more than one trigger fired, use efficiencies combined
-    //   float trig_correction = particleCorrections->CombineEfficiencies(data_eff[0], mc_eff[0], data_eff[1], mc_eff[1]);
-    //   lepOneTrigWeight = (trig_correction >= 0.) ? sqrt(trig_correction) : 1.; //split evenly between them, doesn't matter though
-    //   lepTwoTrigWeight = (trig_correction >= 0.) ? sqrt(trig_correction) : 1.;
+    //establish the overall trigger weight for all modes
+    if(lepOneFired && lepTwoFired) {
+      //use the muon trigger by default, picking the higher pT lepton if both are the same flavor
+      if(abs(leptonOneFlavor) == 13 || abs(leptonTwoFlavor) != 13) {
+        triggerWeights[0] = lepOneTrigWeight;
+      } else { //second one is a muon and first is an electron --> use muon
+        triggerWeights[0] = lepTwoTrigWeight;
+      }
+    } else if(lepOneFired) {
+      triggerWeights[0] = lepOneTrigWeight;
+    } else if(lepTwoFired) {
+      triggerWeights[0] = lepTwoTrigWeight;
+    } else {
+      triggerWeights[0] = 1.f; //no trigger fired, will be removed anyway
+    }
+    //probability of at least one triggering
+    triggerWeights[1] = (1. - (1.-data_eff[0])*(1.-data_eff[1]))/(1. - (1. - mc_eff[0])*(1. - mc_eff[1]));
+    if(triggerWeights[1] > 10.) std::cout << "!!! Warning! Entry " << fentry << " has large triggerWeights[1] = "
+                                          << triggerWeights[1] << " data_eff = (" << data_eff[0] << ", "
+                                          << data_eff[1] << ") mc_eff = (" << mc_eff[0] << ", "
+                                          << mc_eff[1] << ")\n";
+    //probability of this event
+    triggerWeights[2] = 1.f;
+    triggerWeights[2] *= (trig_fired[0]) ? data_eff[0]/mc_eff[0] : (1. - data_eff[0]) / (1. - mc_eff[0]);
+    triggerWeights[2] *= (trig_fired[1]) ? data_eff[1]/mc_eff[1] : (1. - data_eff[1]) / (1. - mc_eff[1]);
+
+    if((lepOneFired || lepTwoFired) && leptonTwoP4->Pt() < 20. && abs(triggerWeights[2] - triggerWeights[0]) > 0.001) {
+      std::cout << "!!! Warning! Entry " << fentry << " trigger weight methods disagree (0,1,2): ("
+                << triggerWeights[0] << ", " << triggerWeights[1] << ", " << triggerWeights[2] << ") data_eff = ("
+                << data_eff[0] << ", " << data_eff[1] << ") mc_eff = ("
+                << mc_eff[0] << ", " << mc_eff[1] << ") fired = ("
+                << trig_fired[0] << ", " << trig_fired[1] << ")\n";
+    }
+
+    if((lepOneFired && leptonOneP4->Pt() < muon_lo_pt) || (lepTwoFired && leptonTwoP4->Pt() < muon_lo_pt)) {
+      std::cout << "!!! Warning! Entry " << fentry << " has leptons firing triggers below threshold, 1: "
+                << leptonOneP4->Pt() << " 2: " << leptonTwoP4->Pt() << " selection " << fSelecNames[selection].Data()
+                << std::endl;
+    }
+
+    int triggerMode = 0;
+    if(triggerMode == 0) { //use only 1 of the triggers, defaulting to muon
+      if(lepOneFired && lepTwoFired) {
+        //use the muon trigger by default, picking the higher pT lepton if both are the same flavor
+        if(abs(leptonOneFlavor) == 13 || abs(leptonTwoFlavor) != 13) {
+          lepTwoTrigWeight = 1.;
+        } else { //second one is a muon and first is an electron --> use muon
+          lepOneTrigWeight = 1.;
+        }
+      } else { //use weight from the firing lepton, set other to 1
+        if(!lepOneFired) lepOneTrigWeight = 1.;
+        if(!lepTwoFired) lepTwoTrigWeight = 1.;
+      }
+    } else if(triggerMode == 1) { //ask the probability of a trigger firing in data / MC
+      float trig_correction = particleCorrections->CombineEfficiencies(data_eff[0], mc_eff[0], data_eff[1], mc_eff[1]);
+      lepOneTrigWeight = (trig_correction >= 0.) ? sqrt(trig_correction) : 1.; //split evenly between them, doesn't matter though
+      lepTwoTrigWeight = (trig_correction >= 0.) ? sqrt(trig_correction) : 1.;
+    } else if(triggerMode == 2) { //consider inefficiency if a trigger didn't fire: Currently has normalization issues
+      float trig_correction = (trig_fired[0]) ? data_eff[0] / mc_eff[0] : (1. - data_eff[0]) / (1. - mc_eff[0]);
+      trig_correction *= (trig_fired[1]) ? data_eff[1] / mc_eff[1] : (1. - data_eff[1]) / (1. - mc_eff[1]);
+      if(fabs(trig_correction - lepOneTrigWeight*lepTwoTrigWeight) > 1.e-5)
+        std::cout << "!!! Warning! Entry " << fentry << " has disagreeing trigger weights! " << trig_correction << " vs "
+                  << lepOneTrigWeight*lepTwoTrigWeight << " (" << lepOneTrigWeight << " * " << lepTwoTrigWeight << ")\n";
+    }
+
+    if(abs(triggerWeights[triggerMode] - lepOneTrigWeight * lepTwoTrigWeight) > 0.001)
+      std::cout << "!!! Warning! Entry " << fentry << ": Trigger weight disagreement! "
+           << triggerWeights[triggerMode] << " vs " << lepOneTrigWeight*lepTwoTrigWeight << std::endl;
+
     if(trigger_index > 2)
-      std::cout << "!!! WARNING! Counting of trigger objects found "
+      std::cout << "!!! Warning! Counting of trigger objects found "
                 << trigger_index << " objects in entry "
                 << fentry << std::endl;
-    // }
     eventWeight = lepOneWeight1 * lepOneWeight2 * lepTwoWeight1 * lepTwoWeight2 * lepOneTrigWeight * lepTwoTrigWeight * puWeight * btagWeight;
     if(fUsePhotonWeight > 0) eventWeight *= photonIDWeight;
-    else if(fUsePhotonWeight < 0) photonIDWeight = 1.; //completely ignore and ensure is not used
+    else if(fUsePhotonWeight < 0) photonIDWeight = 1.; //completely ignore and ensure it is not used
 
     if(fIsDY) eventWeight *= zPtWeight;
   } else {
@@ -933,6 +1076,14 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
     zPtWeight = 1.;
     photonIDWeight = 1.;
     btagWeight = 1.;
+    triggerWeights[0] = 1.;
+    triggerWeights[1] = 1.;
+    triggerWeights[2] = 1.;
+  }
+  if((trig_fired[0] + trig_fired[1]) != (lepOneFired + lepTwoFired)) {
+    std::cout << "!!! Warning! Entry " << fentry << " trigger firing disagreement! trig_fired = ("
+              << trig_fired[0] << ", " << trig_fired[1] << ") lepOneFired = " << lepOneFired
+              << " lepTwoFired = " << lepTwoFired << std::endl;
   }
   if(eventWeight <= 0. || fVerbose > 1 /*|| (useTrigObj && trigMatchOne == 0 && trigMatchTwo == 0)*/ ) {
     if(eventWeight <= 0.)
@@ -953,6 +1104,9 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
               << " electronTriggered = " << electronTriggered << std::endl
               << " lepOneTrigWeight = " << lepOneTrigWeight
               << " lepTwoTrigWeight = " << lepTwoTrigWeight
+              << " triggerWeights[0] = " << triggerWeights[0]
+              << " triggerWeights[1] = " << triggerWeights[1]
+              << " triggerWeights[2] = " << triggerWeights[2]
               << " lepOneFired = " << lepOneFired
               << " lepTwoFired = " << lepTwoFired
               << " trigMatchOne = " << trigMatchOne
@@ -1041,15 +1195,15 @@ void NanoAODConversion::CountJets(int selection) {
     //if fails, move to next jet
     if(!passDeltaR) continue;
 
-    /** check photons **/
-    for(UInt_t iphoton = 0; iphoton < fNPhotons[selection]; ++iphoton) {
-      lv.SetPtEtaPhiM(photonPt[ fPhotonIndices[selection][iphoton]], photonEta[ fPhotonIndices[selection][iphoton]],
-                      photonPhi[fPhotonIndices[selection][iphoton]], photonMass[fPhotonIndices[selection][iphoton]]);
-      passDeltaR &= jetLoop->DeltaR(lv) > deltaRMin;
-      if(!passDeltaR) break;
-    }
-    //if fails, move to next jet
-    if(!passDeltaR) continue;
+    // /** check photons **/
+    // for(UInt_t iphoton = 0; iphoton < fNPhotons[selection]; ++iphoton) {
+    //   lv.SetPtEtaPhiM(photonPt[ fPhotonIndices[selection][iphoton]], photonEta[ fPhotonIndices[selection][iphoton]],
+    //                   photonPhi[fPhotonIndices[selection][iphoton]], photonMass[fPhotonIndices[selection][iphoton]]);
+    //   passDeltaR &= jetLoop->DeltaR(lv) > deltaRMin;
+    //   if(!passDeltaR) break;
+    // }
+    // //if fails, move to next jet
+    // if(!passDeltaR) continue;
 
     //check if jet fails PU ID or not
     if(jetpt < 50. && jetPUID[index] < jetPUIDFlag) {
@@ -1063,7 +1217,7 @@ void NanoAODConversion::CountJets(int selection) {
     // Count jet, check eta //
     //////////////////////////
 
-    if(abs(jetEta[index]) < 2.4) {
+    if(abs(jetEta[index]) < 3.) {
       //store the hardest jet
       if(jetptmax < jetpt) {
         jetptmax = jetpt;
@@ -1107,8 +1261,25 @@ void NanoAODConversion::CountJets(int selection) {
                              << std::endl;
 }
 
+//apply the Rochester corrections to the muon objects' pts
+void NanoAODConversion::ApplyMuonCorrections() {
+  const static int s(0), m(0); //error set and member for corrections
+  for(UInt_t index = 0; index < nMuon; ++index) {
+    const double u = fRnd->Uniform();
+    double sf = 1.;
+    if(fIsData) {
+      sf = fRoccoR->kScaleDT(muonCharge[index], muonPt[index], muonEta[index], muonPhi[index], s, m);
+    } else {
+      sf = fRoccoR->kSmearMC(muonCharge[index], muonPt[index], muonEta[index], muonPhi[index], muonNTrkLayers[index], u, s, m);
+    }
+    muonPt[index] *= sf;
+    muonRoccoSF[index] = sf;
+  }
+}
+
 //count and create maps for reconstructed objects
 void NanoAODConversion::CountObjects() {
+  ApplyMuonCorrections(); //apply corrections before counting objects
   //reset counters
   for(Int_t selection = kMuTau; selection < kSelections; ++selection) {
     fNTaus[selection] = 0;
@@ -1504,6 +1675,7 @@ float NanoAODConversion::GetZPtWeight(float pt) {
 int NanoAODConversion::GetTriggerMatch(UInt_t index, bool isMuon, Int_t& trigIndex) {
   float pt, eta, phi, min_pt_1, min_pt_2;
   int bit_1, bit_2, id; //trigger bits to use and pdgID
+  bool flag_1(true), flag_2(true);
   if(isMuon) {
     pt  = muonPt[index];
     eta = muonEta[index];
@@ -1513,6 +1685,8 @@ int NanoAODConversion::GetTriggerMatch(UInt_t index, bool isMuon, Int_t& trigInd
     bit_2 = 10; //Mu50
     min_pt_2 = 50.;
     id = 13;
+    flag_1 = (fYear == ParticleCorrections::k2017) ? HLT_IsoMu27 : HLT_IsoMu24;
+    flag_2 = HLT_Mu50;
   } else { //electron
     pt  = electronPt[index];
     eta = electronEta[index];
@@ -1527,6 +1701,10 @@ int NanoAODConversion::GetTriggerMatch(UInt_t index, bool isMuon, Int_t& trigInd
     }
     min_pt_1 = (fYear == ParticleCorrections::k2016) ? 28. : 33.;
     min_pt_2 = (fYear == ParticleCorrections::k2016) ? 28. : 33.;
+    flag_1 = ((fYear == ParticleCorrections::k2016 && HLT_Ele27_WPTight_GsF) ||
+              (fYear == ParticleCorrections::k2017 && HLT_Ele32_WPTight_GsF_L1DoubleEG) ||
+              (fYear == ParticleCorrections::k2018 && HLT_Ele32_WPTight_GsF));
+    flag_2 = flag_1;
   }
 
 
@@ -1540,18 +1718,24 @@ int NanoAODConversion::GetTriggerMatch(UInt_t index, bool isMuon, Int_t& trigInd
 
   float deltar_match = 0.2;
   float deltapt_match = 10; //fractional match, > ~10 means don't use
+  bool passedBit1 = false;
+  bool passedBit2 = false;
+  trigIndex = -1;
   for(unsigned trig_i = 0; trig_i < nTrigObjs; ++trig_i) {
     if(trigObjID[trig_i] != id) continue;
     //check if passes correct bit and the considered pT threshold for that trigger
-    bool passBit1 = ((trigObjFilterBits[trig_i] & (1<<bit_1)) != 0) && (!fDoTriggerMatchPt || pt > min_pt_1);
-    bool passBit2 = ((trigObjFilterBits[trig_i] & (1<<bit_2)) != 0) && (!fDoTriggerMatchPt || pt > min_pt_2);
+    bool passBit1 = ((trigObjFilterBits[trig_i] & (1<<bit_1)) != 0) && (!fDoTriggerMatchPt || (pt > min_pt_1 && trigObjPt[trig_i] > min_pt_1));
+    bool passBit2 = ((trigObjFilterBits[trig_i] & (1<<bit_2)) != 0) && (!fDoTriggerMatchPt || (pt > min_pt_2 && trigObjPt[trig_i] > min_pt_2));
     if(fVerbose > 2) std::cout << " TrigObj " << trig_i << " has bits " << trigObjFilterBits[trig_i] << std::endl;
-
     if(!passBit1 && !passBit2) continue;
     if(fVerbose > 2) std::cout << " TrigObj " << trig_i << " passed bits check, has pt, eta, phi "
                                << trigObjPt[trig_i] <<  ", "
                                << trigObjEta[trig_i] <<  ", "
                                << trigObjPhi[trig_i] << std::endl;
+    passBit1 &= flag_1;
+    passBit2 &= flag_2;
+    if(!passBit1 && !passBit2) continue;
+    if(fVerbose > 2) std::cout << " TrigObj " << trig_i << " passed global flag test\n";
     if(fabs(pt - trigObjPt[trig_i]) < pt*deltapt_match) {
       float deltaeta = fabs(eta - trigObjEta[trig_i]);
       float deltaphi = fabs(phi - trigObjPhi[trig_i]);
@@ -1560,12 +1744,14 @@ int NanoAODConversion::GetTriggerMatch(UInt_t index, bool isMuon, Int_t& trigInd
       if(sqrt(deltaeta*deltaeta + deltaphi*deltaphi) < deltar_match) {
       if(fVerbose > 2) std::cout << "   TrigObj " << trig_i << " passed delta r xcheck\n";
       trigIndex = trig_i;
-      return (passBit1 + 2*passBit2);
+      if(fVerbose > 2)
+        std::cout << "--- Found a matching trigger object! Continuing search for additional matches...\n";
+      passedBit1 |= passBit1;
+      passedBit2 |= passBit2;
       }
     }
   }
-  trigIndex = -1;
-  return 0;//no matching trigger object found
+  return (passedBit1+2*passedBit2);//no matching trigger object found = 0
 }
 
 Bool_t NanoAODConversion::Process(Long64_t entry)
@@ -1640,7 +1826,7 @@ Bool_t NanoAODConversion::Process(Long64_t entry)
   //must pass at least one selection
   if(!mumu && !emu && !etau && !mutau && !ee) {
     ++fNFailed;
-    if((fVerbose > 0 && nMuonsSkim < 3 && nElectronsSkim < 3) || fVerbose > 1)
+    if(!fIgnoreNoSelection && ((fVerbose > 0 && nMuonsSkim < 3 && nElectronsSkim < 3) || fVerbose > 1))
       std::cout << "!!! Warning! Event " << entry << " passes no selection! Skim flavors are: "
                 << leptonOneSkimFlavor << " and " << leptonTwoSkimFlavor << std::endl;
     return kTRUE;
@@ -1749,8 +1935,8 @@ void NanoAODConversion::Terminate()
   Double_t realTime = timer->RealTime();
   printf("Processing time: %7.2fs CPU time %7.2fs Wall time\n",cpuTime,realTime);
   if(realTime > 600. ) printf("Processing time: %7.2fmin CPU time %7.2fmin Wall time\n",cpuTime/60.,realTime/60.);
-  printf("Found:      %10i MuTau, %10i ETau, %10i EMu, %10i MuMu, %10i EE, %i failed trigger matching, %i failed, and %i skipped\n",
-         fNMuTau, fNETau, fNEMu, fNMuMu, fNEE, fNFailedTrig, fNFailed, fNSkipped);
+  printf("Found:      %10i MuTau, %10i ETau, %10i EMu, %10i MuMu, %10i EE, %i failed trigger matching, %i failed, %i skipped, and %i high muon triggered events\n",
+         fNMuTau, fNETau, fNEMu, fNMuMu, fNEE, fNFailedTrig, fNFailed, fNSkipped, fNHighMuonTriggered);
 
   printf("QCD counts: ");
   for(int i = kMuTau; i < kSelections; ++i) printf("%10i %s, ", fQCDCounts[i], fSelecNames[i].Data());

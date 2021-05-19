@@ -7,6 +7,7 @@
   <class name="JetPUWeight"/>
   <class name="JetToTauWeight"/>
   <class name="MuonIDWeight"/>
+  <class name="ZPtWeight"/>
   <class name="ElectronIDWeight"/>
   <class name="SlimObject_t"/>
   <class name="SlimObjects_t"/>
@@ -20,6 +21,7 @@
   <class name="SlimJets_t"/>
   <class name="SlimPhoton_t"/>
   <class name="SlimPhotons_t"/>
+  <class name="RoccoR"/>
   <class name="MVAConfig"/>
   <class name="TrkQualInit"/>
   <class name="ZTauTauHistMaker"/>
