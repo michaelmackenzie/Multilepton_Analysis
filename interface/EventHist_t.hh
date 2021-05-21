@@ -52,9 +52,9 @@ struct EventHist_t {
   TH1D* hNBJets20L[2]; //0: nominal 1: without btag weight
   TH1D* hJetsFlavor;
   TH2D* hJetsPtVsEta  [3]; //0: gen-level light jet 1: gen-level c-jet 2: gen-level b-jet
-  TH2D* hBJetsPtVsEta [3]; //0: gen-level light jet 1: gen-level c-jet 2: gen-level b-jet    
-  TH2D* hBJetsMPtVsEta[3]; //0: gen-level light jet 1: gen-level c-jet 2: gen-level b-jet    
-  TH2D* hBJetsLPtVsEta[3]; //0: gen-level light jet 1: gen-level c-jet 2: gen-level b-jet    
+  TH2D* hBJetsPtVsEta [3]; //0: gen-level light jet 1: gen-level c-jet 2: gen-level b-jet
+  TH2D* hBJetsMPtVsEta[3]; //0: gen-level light jet 1: gen-level c-jet 2: gen-level b-jet
+  TH2D* hBJetsLPtVsEta[3]; //0: gen-level light jet 1: gen-level c-jet 2: gen-level b-jet
   TH2D* hJetsPtVsEtaPU[2]; //jet pT vs eta for PU ID MC efficiency calculation
   TH1D* hMcEra;
   TH1D* hTriggerLeptonStatus;
@@ -79,13 +79,13 @@ struct EventHist_t {
   TH1D* hJetPt[2];
   TH1D* hJetM;
   TH1D* hJetEta;
-  TH1D* hJetPhi;    
-  TH1D* hJetBTag;    
-  TH1D* hJetBMVA;    
+  TH1D* hJetPhi;
+  TH1D* hJetBTag;
+  TH1D* hJetBMVA;
   TH1D* hTauPt;
   TH1D* hTauM;
   TH1D* hTauEta;
-  TH1D* hTauPhi;    
+  TH1D* hTauPhi;
   TH1D* hPuppMet;
   TH1D* hPFMet;
   TH1D* hPFMetPhi;
@@ -106,7 +106,7 @@ struct EventHist_t {
   TH2D* hMetVsM;
   TH2D* hMetVsHtSum; //MET ~ sqrt(htsum)
   TH1D* hMetOverSqrtHtSum; //MET ~ sqrt(htsum)
-    
+
   TH1D* hMassSVFit;
   TH1D* hMassErrSVFit;
   TH1D* hSVFitStatus;
@@ -147,18 +147,18 @@ struct EventHist_t {
   TH1D* hLeptonsID;
   TH1D* hLeptonsIsoID;
   TH1D* hLeptonsGenFlavor;
-    
+
   TH1D* hLepDeltaPhi;
   TH1D* hLepDeltaEta;
   TH1D* hLepDeltaR[3]; //0: nominal 1: without qcd weights 2: scale bin with weights
   TH2D* hLepDelRVsPhi;
-    
+
   TH1D* hLepPtOverM;
   TH1D* hAlpha[4]; //alpha from arXiv:1207.4894
   TH1D* hDeltaAlpha[4]; //delta alpha from arXiv:1207.4894
   TH1D* hDeltaAlphaM[2]; //mass found by solving delta alpha equations (flipping with lepton is tau for each)
   TH1D* hDeltaAlphaMColM[2]; //Collimated mass - delta alpha mass
-    
+
   TH1D* hHtDeltaPhi;
   TH1D* hMetDeltaPhi;
   TH1D* hJetDeltaPhi;
@@ -172,23 +172,23 @@ struct EventHist_t {
   TH1D* hLepTwoJetDeltaR;
   TH1D* hLepTwoJetDeltaPhi;
   TH1D* hLepTwoJetDeltaEta;
-    
+
   TH1D* hLepSVPt;
   TH1D* hLepSVM;
   TH1D* hLepSVEta;
   TH1D* hLepSVPhi;
-    
+
   TH1D* hLepSVDeltaPhi;
   TH1D* hLepSVDeltaEta;
   TH1D* hLepSVDeltaM;
   TH1D* hLepSVDeltaPt;
   TH1D* hLepSVPtOverM;
-    
+
   TH1D* hSysM;
   TH1D* hSysPt;
   TH1D* hSysEta;
   TH2D* hSysMvsLepM;
-    
+
   //Transverse Masses
   TH1D* hMTOne;
   TH1D* hMTTwo;
@@ -204,12 +204,12 @@ struct EventHist_t {
   TH1D* hPXiDiff[3];
   TH1D* hPXiDiff2[3];//difference with coeffecients and offset
   TH1D* hPXiDiff3[3];
-    
+
   //For assuming MET along tau is tau neutrino, only makes sense for e/mu + tau
   TH1D* hPTauVisFrac;
   TH1D* hLepMEstimate;
   TH1D* hLepMEstimateTwo;
-    
+
   TH1D* hPtSum[2]; //scalar sum of lepton Pt and Met, and photon for one
   TH1D* hPt1Sum[4]; //scalar sum of 1 lepton Pt and Met, both leptons, then both minus met
   //MVA values
@@ -222,8 +222,8 @@ struct EventHist_t {
   TH1D* hJetTwoM;
   TH1D* hJetTwoPt;
   TH1D* hJetTwoEta;
-  TH1D* hJetTwoBTag;    
-  TH1D* hJetTwoBMVA;    
+  TH1D* hJetTwoBTag;
+  TH1D* hJetTwoBMVA;
   TH1D* hJetsDeltaR;
   TH1D* hJetsDeltaEta;
   TH1D* hJetsDeltaPhi;

@@ -586,10 +586,14 @@ void ZTauTauHistMaker::BookLepHistograms() {
         TString name = "onept"; if(j > 0) name += j;
         fLepHist[i]->hOnePt[j]     = new TH1D(name.Data(), Form("%s: Pt"      ,dirname)  , 200,   0, 200);
       }
-      fLepHist[i]->hJetTauOnePt[0] = new TH1D("jettauonept" , Form("%s: Pt"   ,dirname)  , nbins_pt, pts);
-      fLepHist[i]->hJetTauOnePt[1] = new TH1D("jettauonept1", Form("%s: Pt"   ,dirname)  , nbins_pt, pts);
-      fLepHist[i]->hJetTauOnePt[2] = new TH1D("jettauonept2", Form("%s: Pt"   ,dirname)  , nbins_pt, pts);
-      fLepHist[i]->hJetTauOnePt[3] = new TH1D("jettauonept3", Form("%s: Pt"   ,dirname)  , nbins_pt, pts);
+      for(int ptregion = 0; ptregion < 4; ++ptregion) {
+        for(int dmregion = 0; dmregion < 5; ++dmregion) {
+          TString name = "jettauonept";
+          if(ptregion > 0) name += ptregion;
+          if(dmregion > 0) {name += "_"; name += dmregion;}
+          fLepHist[i]->hJetTauOnePt[dmregion][ptregion] = new TH1D(name.Data() , Form("%s: Pt"   ,dirname)  , nbins_pt, pts);
+        }
+      }
       fLepHist[i]->hOneP         = new TH1D("onep"       , Form("%s: P"       ,dirname)  , 200,   0, 1e3);
       fLepHist[i]->hOneM         = new TH1D("onem"       , Form("%s: M"       ,dirname)  , 200,   0, 1e1);
       fLepHist[i]->hOnePtOverM   = new TH1D("oneptoverm" , Form("%s: Pt / M_{ll}",dirname)  , 100,   0,  10);
@@ -643,10 +647,14 @@ void ZTauTauHistMaker::BookLepHistograms() {
         TString name = "twopt"; if(j > 0) name += j;
         fLepHist[i]->hTwoPt[j]     = new TH1D(name.Data(), Form("%s: Pt"      ,dirname)  , 200,   0, 200);
       }
-      fLepHist[i]->hJetTauTwoPt[0] = new TH1D("jettautwopt" , Form("%s: Pt"   ,dirname)  , nbins_pt, pts);
-      fLepHist[i]->hJetTauTwoPt[1] = new TH1D("jettautwopt1", Form("%s: Pt"   ,dirname)  , nbins_pt, pts);
-      fLepHist[i]->hJetTauTwoPt[2] = new TH1D("jettautwopt2", Form("%s: Pt"   ,dirname)  , nbins_pt, pts);
-      fLepHist[i]->hJetTauTwoPt[3] = new TH1D("jettautwopt3", Form("%s: Pt"   ,dirname)  , nbins_pt, pts);
+      for(int ptregion = 0; ptregion < 4; ++ptregion) {
+        for(int dmregion = 0; dmregion < 5; ++dmregion) {
+          TString name = "jettautwopt";
+          if(ptregion > 0) name += ptregion;
+          if(dmregion > 0) {name += "_"; name += dmregion;}
+          fLepHist[i]->hJetTauTwoPt[dmregion][ptregion] = new TH1D(name.Data() , Form("%s: Pt"   ,dirname)  , nbins_pt, pts);
+        }
+      }
       fLepHist[i]->hTwoP         = new TH1D("twop"       , Form("%s: P"       ,dirname)  , 200,   0, 1e3);
       fLepHist[i]->hTwoM         = new TH1D("twom"       , Form("%s: M"       ,dirname)  , 200,   0, 1e1);
       fLepHist[i]->hTwoPtOverM   = new TH1D("twoptoverm" , Form("%s: Pt / M_{ll}",dirname)  , 100,   0,  10);
@@ -1477,14 +1485,25 @@ void ZTauTauHistMaker::FillLepHistogram(LepHist_t* Hist) {
     wt = btagWeight;
     Hist->hOnePt[9]->Fill(leptonOneP4->Pt(), eventWeight*genWeight/wt);
 
-    if(nTaus == 1) {
-      Hist->hJetTauOnePt[0]->Fill(leptonOneP4->Pt()         ,eventWeight*genWeight);
-      if(tausPt[0] < 30.)
-        Hist->hJetTauOnePt[1]->Fill(leptonOneP4->Pt()       ,eventWeight*genWeight);
-      else if(tausPt[0] < 45.)
-        Hist->hJetTauOnePt[2]->Fill(leptonOneP4->Pt()       ,eventWeight*genWeight);
-      else
-        Hist->hJetTauOnePt[3]->Fill(leptonOneP4->Pt()       ,eventWeight*genWeight);
+    if(nTaus == 1 && ((fabs(leptonTwoFlavor) == 15 && tauDecayMode%10 < 2) || (tausDM[0] < 2 || tausDM[0] > 9))) {
+      int dmr = (fabs(leptonTwoFlavor) == 15) ? tauDecayMode : tausDM[0];
+      if(dmr > 9) dmr -= (10 - 2); //10,11 --> 2,3
+      dmr += 1; //dmr = DM ID + 1, so 0 can be inclusive
+      float taupt = (fabs(leptonTwoFlavor) == 15) ? leptonTwoP4->Pt() : tausPt[0];
+      int ptr;
+      if(taupt < 30.)      ptr = 1;
+      else if(taupt < 45.) ptr = 2;
+      else                 ptr = 3;
+      float wt = eventWeight*genWeight;
+      if(jetToTauWeightCorr > 0.) wt /= jetToTauWeightCorr; // remove the pT correction
+      Hist->hJetTauOnePt[0][0]    ->Fill(leptonOneP4->Pt(), wt);
+      Hist->hJetTauOnePt[dmr][0]  ->Fill(leptonOneP4->Pt(), wt);
+      Hist->hJetTauOnePt[0][ptr]  ->Fill(leptonOneP4->Pt(), wt);
+      Hist->hJetTauOnePt[dmr][ptr]->Fill(leptonOneP4->Pt(), wt);
+      Hist->hJetTauTwoPt[0][0]    ->Fill(leptonTwoP4->Pt(), wt);
+      Hist->hJetTauTwoPt[dmr][0]  ->Fill(leptonTwoP4->Pt(), wt);
+      Hist->hJetTauTwoPt[0][ptr]  ->Fill(leptonTwoP4->Pt(), wt);
+      Hist->hJetTauTwoPt[dmr][ptr]->Fill(leptonTwoP4->Pt(), wt);
     }
     Hist->hOneP         ->Fill(leptonOneP4->P()             ,eventWeight*genWeight);
     Hist->hOneM         ->Fill(leptonOneP4->M()             ,eventWeight*genWeight);
@@ -1548,15 +1567,6 @@ void ZTauTauHistMaker::FillLepHistogram(LepHist_t* Hist) {
     wt = btagWeight;
     Hist->hTwoPt[9]->Fill(leptonTwoP4->Pt(), eventWeight*genWeight/wt);
 
-    if(nTaus == 1) {
-      Hist->hJetTauTwoPt[0]->Fill(leptonTwoP4->Pt()         ,eventWeight*genWeight);
-      if(tausPt[0] < 30.)
-        Hist->hJetTauTwoPt[1]->Fill(leptonTwoP4->Pt()       ,eventWeight*genWeight);
-      else if(tausPt[0] < 45.)
-        Hist->hJetTauTwoPt[2]->Fill(leptonTwoP4->Pt()       ,eventWeight*genWeight);
-      else
-        Hist->hJetTauTwoPt[3]->Fill(leptonTwoP4->Pt()       ,eventWeight*genWeight);
-    }
     Hist->hTwoP         ->Fill(leptonTwoP4->P()             ,eventWeight*genWeight);
     Hist->hTwoM         ->Fill(leptonTwoP4->M()             ,eventWeight*genWeight);
     Hist->hTwoPtOverM   ->Fill(leptonTwoP4->Pt() / fTreeVars.lepm, eventWeight*genWeight);

@@ -6,6 +6,8 @@ int verbose_ = 0;
 int year_;
 TString selection_;
 
+bool useTauRegion_ = true; //use etau or mutau same-sign region for correction
+
 //initialize the files and scales using a DataPlotter
 Int_t initialize_plotter(TString base, TString path, int year) {
   if(dataplotter_) delete dataplotter_;
@@ -169,12 +171,12 @@ TCanvas* make_canvas(int set1, int set2, PlottingCard_t card, bool print) {
 }
 
 int test_data_scale(TString selection = "mumu", int set1 = 50, int set2 = 51, int year = 2016,
-                    TString path = "nanoaods_dev/") {
+                    TString path = "nanoaods_dev") {
 
   //////////////////////
   // Initialize files //
   //////////////////////
-  path = "root://cmseos.fnal.gov//store/user/mmackenz/histograms/" + path;
+  path = "root://cmseos.fnal.gov//store/user/mmackenz/histograms/" + path + "/";
   year_=year;
   selection_=selection;
   //get the absolute value of the sets, offsetting by the selection
@@ -240,6 +242,15 @@ int test_data_scale(TString selection = "mumu", int set1 = 50, int set2 = 51, in
   hRatio_3->Write();
 
   f->Close();
+
+  //DM 0
+  make_canvas(setAbs1, setAbs2, PlottingCard_t("jettauonept_1" , "lep"  , 0, 0,  0., 200.), true, hData, hMC);
+  //DM 1
+  make_canvas(setAbs1, setAbs2, PlottingCard_t("jettauonept_2" , "lep"  , 0, 0,  0., 200.), true, hData, hMC);
+  //DM 10
+  make_canvas(setAbs1, setAbs2, PlottingCard_t("jettauonept_3" , "lep"  , 0, 0,  0., 200.), true, hData, hMC);
+  //DM 11
+  make_canvas(setAbs1, setAbs2, PlottingCard_t("jettauonept_4" , "lep"  , 0, 0,  0., 200.), true, hData, hMC);
 
   //print relevant plots
   make_canvas(setAbs1, setAbs2, PlottingCard_t("onept" , "lep"  , 0, 2,  20., 120.), true);

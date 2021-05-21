@@ -8,7 +8,7 @@ int test_sys_ = -1; //set to systematic number if debugging/inspecting it
 double xmin_;
 double xmax_;
 bool blind_data_ = true;
-bool do_systematics_ = false;
+bool do_systematics_ = true;
 
 int get_systematics(int set, TString hist, TFile* f, TString canvas_name) {
   int status(0);
@@ -30,6 +30,9 @@ int get_systematics(int set, TString hist, TFile* f, TString canvas_name) {
     //Get the signals
     vector<TH1D*> signals = dataplotter_->get_signal(Form("%s_%i", hist.Data(), isys), "systematic", set);
     if(signals.size() == 0) {++status; continue;}
+    // //get data
+    // TH1D* hdata = dataplotter_->get_data(Form("%s_%i", hist.Data(), isys), "systematic", set);
+    // if(!hdata) {++status; continue;}
 
     //Create an example plot with the systematic shift + ratio plot
     TCanvas* c = new TCanvas(Form("c_sys_%i", isys), Form("c_sys_%i", isys), 1200, 900);

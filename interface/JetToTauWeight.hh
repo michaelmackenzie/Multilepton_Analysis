@@ -82,15 +82,17 @@ public:
         }
       }
       //get the corrections based on the leading lepton pT
-      f = TFile::Open(Form("../scale_factors/jet_to_tau_lead_pt_correction_%s_%i.root", selection.Data(), year), "READ");
+      TString pt_corr_selec = selection;//"mutau";
+      // if(selection == "ee") pt_corr_selec = "etau";
+      f = TFile::Open(Form("../scale_factors/jet_to_tau_lead_pt_correction_%s_%i.root", pt_corr_selec.Data(), year), "READ");
       if(!f) {
-        f = TFile::Open(Form("scale_factors/jet_to_tau_lead_pt_correction_%s_%i.root", selection.Data(), year), "READ");
+        f = TFile::Open(Form("scale_factors/jet_to_tau_lead_pt_correction_%s_%i.root", pt_corr_selec.Data(), year), "READ");
         if(!f) continue;
       }
-      corrections_[year] = (TH1D*) f->Get("PtScale")->Clone(Form("correction_%s_%i", selection.Data(), year));
+      corrections_[year] = (TH1D*) f->Get("PtScale")->Clone(Form("correction_%s_%i", pt_corr_selec.Data(), year));
       if(!corrections_[year]) {
         std::cout << "JetToTauWeight::JetToTauWeight: Warning! No lead pt correction histogram found for year = "
-                  << year << " selection = " << selection.Data() << std::endl;
+                  << year << " selection = " << pt_corr_selec.Data() << std::endl;
       } else {
         max_corr_bins = std::max(max_corr_bins, corrections_[year]->GetNbinsX());
       }
