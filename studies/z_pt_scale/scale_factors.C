@@ -193,20 +193,21 @@ Int_t initialize_plotter(bool useMuon, TString base, TString path, int year) {
 
   typedef DataCard_t dcard;
   std::vector<dcard> cards;
+  CrossSections xs; //cross section handler
   //card constructor:    filepath,                             name,                  label,              isData, xsec,  isSignal, color
-  // if(year == 2018)
-    cards.push_back(dcard(path+base+"DY50.hist"             , "DY50"               , "Drell-Yan"         , false, 6225.42, false, kRed-7));
-  // else
-  //   cards.push_back(dcard(path+base+"DY50-ext.hist"         , "DY50"               , "Drell-Yan"         , false, 6225.42, false, kRed-7));
-  cards.push_back(dcard(path+base+"SingleAntiToptW.hist"    , "SingleAntiToptW"    , "SingleTop"         , false, 34.91  , false, kCyan-7));
-  cards.push_back(dcard(path+base+"SingleToptW.hist"        , "SingleToptW"        , "SingleTop"         , false, 34.91  , false, kCyan-7));
-  cards.push_back(dcard(path+base+"WWW.hist"                , "WWW"                , "ZZ,WZ,WWW"         , false, 0.2086 , false, kViolet-2));
-  cards.push_back(dcard(path+base+"WZ.hist"                 , "WZ"                 , "ZZ,WZ,WWW"         , false, 27.6   , false, kViolet-2));
-  cards.push_back(dcard(path+base+"ZZ.hist"                 , "ZZ"                 , "ZZ,WZ,WWW"         , false, 12.14  , false, kViolet-2));
-  cards.push_back(dcard(path+base+"WW.hist"                 , "WW"                 , "WW"                , false, 12.178 , false, kViolet-9));
-  cards.push_back(dcard(path+base+"Wlnu.hist"               , "Wlnu"               , "W+Jets"            , false, 52850.0, false, kGreen-7));
-  cards.push_back(dcard(path+base+"ttbarToSemiLeptonic.hist", "ttbarToSemiLeptonic", "t#bar{t}"          , false, 365.34 , false, kYellow-7));
-  cards.push_back(dcard(path+base+"ttbarlnu.hist"           , "ttbarlnu"           , "t#bar{t}"          , false, 88.29  , false, kYellow-7));
+  if(year == 2017)
+    cards.push_back(dcard(path+base+"DY50-ext.hist"         , "DY50-ext"           , "Drell-Yan"         , false, xs.GetCrossSection("DY50"               ), false, year));
+  else
+    cards.push_back(dcard(path+base+"DY50-amc.hist"         , "DY50-amc"           , "Drell-Yan"         , false, xs.GetCrossSection("DY50"               ), false, year));
+  cards.push_back(dcard(path+base+"SingleAntiToptW.hist"    , "SingleAntiToptW"    , "SingleTop"         , false, xs.GetCrossSection("SingleAntiToptW"    ), false, year));
+  cards.push_back(dcard(path+base+"SingleToptW.hist"        , "SingleToptW"        , "SingleTop"         , false, xs.GetCrossSection("SingleToptW"        ), false, year));
+  cards.push_back(dcard(path+base+"WWW.hist"                , "WWW"                , "ZZ,WZ,WWW"         , false, xs.GetCrossSection("WWW"                ), false, year));
+  cards.push_back(dcard(path+base+"WZ.hist"                 , "WZ"                 , "ZZ,WZ,WWW"         , false, xs.GetCrossSection("WZ"                 ), false, year));
+  cards.push_back(dcard(path+base+"ZZ.hist"                 , "ZZ"                 , "ZZ,WZ,WWW"         , false, xs.GetCrossSection("ZZ"                 ), false, year));
+  cards.push_back(dcard(path+base+"WW.hist"                 , "WW"                 , "WW"                , false, xs.GetCrossSection("WW"                 ), false, year));
+  cards.push_back(dcard(path+base+"Wlnu.hist"               , "Wlnu"               , "W+Jets"            , false, xs.GetCrossSection("Wlnu"               ), false, year));
+  cards.push_back(dcard(path+base+"ttbarToSemiLeptonic.hist", "ttbarToSemiLeptonic", "t#bar{t}"          , false, xs.GetCrossSection("ttbarToSemiLeptonic"), false, year));
+  cards.push_back(dcard(path+base+"ttbarlnu.hist"           , "ttbarlnu"           , "t#bar{t}"          , false, xs.GetCrossSection("ttbarlnu"           ), false, year));
 
   int status(0);
   for(auto card : cards)

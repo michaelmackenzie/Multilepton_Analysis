@@ -436,13 +436,13 @@ public :
   }
   virtual double ElectronTriggerEff(double pt, double eta, int era, float& data_eff, float& mc_eff);
 
-  virtual double TauWeight(double pt, double eta, int genID, int era, float& up, float& down, int& ibin);
-  double TauWeight(double pt, double eta, int genID, int era) {
+  virtual double TauWeight(double pt, double eta, int genID, UChar_t antiJet, int era, float& up, float& down, int& ibin);
+  double TauWeight(double pt, double eta, int genID, UChar_t antiJet, int era) {
     float up, down;
     int ibin;
-    return TauWeight(pt, eta, genID, era, up, down, ibin);
+    return TauWeight(pt, eta, genID, antiJet, era, up, down, ibin);
   }
-  virtual double TauEnergyScale(double pt, double eta, int dm, int genID, int era, float& up, float& down, int& ibin);
+  virtual double TauEnergyScale(double pt, double eta, int dm, int genID, UChar_t antiJet, int era, float& up, float& down, int& ibin);
 
   virtual double PhotonWeight(double pt, double eta, int year);
   virtual double BTagMCProb(double pt, double eta, int jetFlavor, int year, int WP);

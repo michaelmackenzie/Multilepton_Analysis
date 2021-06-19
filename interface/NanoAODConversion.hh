@@ -258,6 +258,8 @@ public :
   Bool_t  muonTightId[kMaxParticles]        ;
   Int_t   muonNTrkLayers[kMaxParticles]     ;
   Float_t muonRoccoSF[kMaxParticles]        ;
+  Float_t muondxy[kMaxParticles]            ;
+  Float_t muondz[kMaxParticles]             ;
   UChar_t muonGenFlavor[kMaxParticles]      ;
   Float_t electronPt[kMaxParticles]         ;
   Float_t electronEta[kMaxParticles]        ;
@@ -269,6 +271,9 @@ public :
   Bool_t  electronWPL [kMaxParticles]       ;
   Bool_t  electronWP80[kMaxParticles]       ;
   Bool_t  electronWP90[kMaxParticles]       ;
+  Float_t electronRelIso[kMaxParticles]     ;
+  Float_t electrondxy[kMaxParticles]        ;
+  Float_t electrondz[kMaxParticles]         ;
   UChar_t electronGenFlavor[kMaxParticles]  ;
   Float_t tauPt[kMaxParticles]              ;
   Float_t tauEta[kMaxParticles]             ;
@@ -318,6 +323,7 @@ public :
   bool    HLT_Ele27_WPTight_GsF             ;
   bool    HLT_Ele32_WPTight_GsF             ;
   bool    HLT_Ele32_WPTight_GsF_L1DoubleEG  ;
+  UChar_t LHE_Njets                         ;
   Float_t zPtIn              = -1.          ;
   Float_t zMassIn            = -1.          ;
   Int_t   zLepOne            = 0            ;

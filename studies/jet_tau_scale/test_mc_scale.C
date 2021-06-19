@@ -3,12 +3,17 @@
 //use the dataplotter to manage normalizations and initializations
 DataPlotter* dataplotter_ = 0;
 int verbose_ = 0;
+int year_;
+TString selection_;
+int splitWJ_ = 1;
+int splitDY_ = 1;
 
 //initialize the files and scales using a DataPlotter
 Int_t initialize_plotter(TString base, TString path, int year) {
   if(dataplotter_) delete dataplotter_;
   dataplotter_ = new DataPlotter();
   dataplotter_->include_qcd_ = 0;
+  dataplotter_->include_misid_ = 0;
   dataplotter_->verbose_ = verbose_;
 
   typedef DataCard_t dcard;
@@ -16,10 +21,13 @@ Int_t initialize_plotter(TString base, TString path, int year) {
   //card constructor:    filepath,                             name,                  label,              isData, xsec,  isSignal
   CrossSections xs; //cross section handler
   dataplotter_->set_luminosity(xs.GetLuminosity(year));
-  if(year == 2018)
-    cards.push_back(dcard(path+base+"DY50.hist"             , "DY50"               , "Drell-Yan", false, xs.GetCrossSection("DY50"               ), false, year, kRed-7   ));
-  else
-    cards.push_back(dcard(path+base+"DY50-ext.hist"         , "DY50"               , "Drell-Yan", false, xs.GetCrossSection("DY50"               ), false, year, kRed-7   ));
+  TString dyname = (year == 2017) ? "DY50-ext" : "DY50-amc";
+  if(splitDY_) {
+    cards.push_back(dcard(path+base+dyname+"-1.hist"        , dyname+"-1"          , "Drell-Yan", false, xs.GetCrossSection("DY50"               ), false, year));
+    cards.push_back(dcard(path+base+dyname+"-2.hist"        , dyname+"-2"          , "Drell-Yan", false, xs.GetCrossSection("DY50"               ), false, year));
+  } else {
+    cards.push_back(dcard(path+base+dyname+".hist"          , dyname               , "Drell-Yan", false, xs.GetCrossSection("DY50"               ), false, year));
+  }
   cards.push_back(dcard(path+base+"SingleAntiToptW.hist"    , "SingleAntiToptW"    , "Top"      , false, xs.GetCrossSection("SingleAntiToptW"    ), false, year, kYellow-7));
   cards.push_back(dcard(path+base+"SingleToptW.hist"        , "SingleToptW"        , "Top"      , false, xs.GetCrossSection("SingleToptW"        ), false, year, kYellow-7));
   cards.push_back(dcard(path+base+"ttbarToSemiLeptonic.hist", "ttbarToSemiLeptonic", "Top"      , false, xs.GetCrossSection("ttbarToSemiLeptonic"), false, year, kYellow-7));
@@ -28,7 +36,33 @@ Int_t initialize_plotter(TString base, TString path, int year) {
   cards.push_back(dcard(path+base+"WZ.hist"                 , "WZ"                 , "Other VB" , false, xs.GetCrossSection("WZ"                 ), false, year, kViolet-9));
   cards.push_back(dcard(path+base+"ZZ.hist"                 , "ZZ"                 , "Other VB" , false, xs.GetCrossSection("ZZ"                 ), false, year, kViolet-9));
   cards.push_back(dcard(path+base+"WW.hist"                 , "WW"                 , "Other VB" , false, xs.GetCrossSection("WW"                 ), false, year, kViolet-9));
-  cards.push_back(dcard(path+base+"Wlnu.hist"               , "Wlnu"               , "Other VB" , false, xs.GetCrossSection("Wlnu"               ), false, year, kViolet-9));
+  double wxs = xs.GetCrossSection("Wlnu");
+  double ngen1 = xs.GetGenNumber("Wlnu", year);
+  double ngen2 = xs.GetGenNumber("Wlnu-ext", year);
+  if(splitWJ_) {
+    if(year != 2018) {
+      cards.push_back(dcard(path+base+"Wlnu-0.hist"         , "Wlnu"               , "Other VB"          , false, wxs*(ngen1)/(ngen1+ngen2)                , false, year));
+      cards.push_back(dcard(path+base+"Wlnu-ext-0.hist"     , "Wlnu"               , "Other VB"          , false, wxs*(ngen2)/(ngen1+ngen2)                , false, year));
+    } else {
+      cards.push_back(dcard(path+base+"Wlnu-0.hist"         , "Wlnu"               , "Other VB"          , false, wxs                                      , false, year));
+    }
+    cards.push_back(dcard(path+base+"Wlnu-1J.hist"          , "Wlnu-1J"            , "Other VB"          , false, xs.GetCrossSection("Wlnu-1J"            ), false, year));
+    cards.push_back(dcard(path+base+"Wlnu-2J.hist"          , "Wlnu-2J"            , "Other VB"          , false, xs.GetCrossSection("Wlnu-2J"            ), false, year));
+    cards.push_back(dcard(path+base+"Wlnu-3J.hist"          , "Wlnu-3J"            , "Other VB"          , false, xs.GetCrossSection("Wlnu-3J"            ), false, year));
+    if(year != 2017) {
+      cards.push_back(dcard(path+base+"Wlnu-4J.hist"        , "Wlnu-4J"            , "Other VB"          , false, xs.GetCrossSection("Wlnu-4J"            ), false, year));
+    } else {
+      cards.push_back(dcard(path+base+"Wlnu-4.hist"         , "Wlnu"               , "Other VB"          , false, wxs*(ngen1)/(ngen1+ngen2)                , false, year));
+      cards.push_back(dcard(path+base+"Wlnu-ext-4.hist"     , "Wlnu"               , "Other VB"          , false, wxs*(ngen2)/(ngen1+ngen2)                , false, year));
+    }
+  } else {
+    if(year != 2018) {
+      cards.push_back(dcard(path+base+"Wlnu.hist"             , "Wlnu"               , "Other VB" , false, wxs*(ngen1)/(ngen1+ngen2)                   , false, year));
+      cards.push_back(dcard(path+base+"Wlnu-ext.hist"         , "Wlnu"               , "Other VB" , false, wxs*(ngen2)/(ngen1+ngen2)                   , false, year));
+    } else {
+      cards.push_back(dcard(path+base+"Wlnu.hist"             , "Wlnu"               , "Other VB" , false, wxs                                         , false, year));
+    }
+  }
   if(!base.Contains("etau") && !base.Contains("ee"))
     cards.push_back(dcard(path+base+"SingleMu.hist", "SingleMu", "Data", true, 1., false, year));
   if(!base.Contains("mutau") && !base.Contains("mumu"))
@@ -49,9 +83,9 @@ TCanvas* make_canvas(int set1, int set2, PlottingCard_t card, bool print) {
   dataplotter_->rebinH_ = card.rebin_;
   dataplotter_->doStatsLegend_ = false;
   THStack* hstack_loose = dataplotter_->get_stack(card.hist_, card.type_, set1+dataplotter_->misid_offset_);
-  if(!hstack_loose) return NULL;
+  if(!hstack_loose || hstack_loose->GetNhists() == 0) return NULL;
   THStack* hstack_tight = dataplotter_->get_stack(card.hist_, card.type_, set2);
-  if(!hstack_tight) return NULL;
+  if(!hstack_tight || hstack_tight->GetNhists() == 0) return NULL;
   TH1D* hloose = (TH1D*) hstack_loose->GetStack()->Last()->Clone(("h_"+card.hist_+"_loose").Data());
   TCanvas* c = new TCanvas("c1","c1",1200,800);
   TPad* pad1 = new TPad("pad1", "pad1", 0., 0.35, 1., 1.0 );
@@ -91,8 +125,8 @@ TCanvas* make_canvas(int set1, int set2, PlottingCard_t card, bool print) {
   datalabel.SetTextFont(72);
   datalabel.SetTextSize(0.07);
   datalabel.SetTextAlign(13);
-  datalabel.DrawLatex(0.67, 0.62 , Form("Tight  : %10.1f", ((TH1D*) hstack_tight->GetStack()->Last())->Integral()));
-  datalabel.DrawLatex(0.67, 0.54, Form("Loose: %10.1f", hloose->Integral()));
+  datalabel.DrawLatex(0.67, 0.62 , Form("Tight  : %10.1f", ((TH1D*) hstack_tight->GetStack()->Last())->Integral(0, hloose->GetNbinsX() + 1)));
+  datalabel.DrawLatex(0.67, 0.54, Form("Loose: %10.1f", hloose->Integral(0, hloose->GetNbinsX() + 1)));
 
   //Draw the ratio plot
   pad2->cd();
@@ -106,6 +140,7 @@ TCanvas* make_canvas(int set1, int set2, PlottingCard_t card, bool print) {
   if(xtitle.Contains("one")) {xtitle.ReplaceAll("one",""); xtitle = xtitle + "^{1}";}
   if(xtitle.Contains("two")) {xtitle.ReplaceAll("two",""); xtitle = xtitle + "^{2}";}
   xtitle.ReplaceAll("eta", "#eta"); xtitle.ReplaceAll("phi", "#phi"); xtitle.ReplaceAll("pt", "p_{T}");
+  if(xtitle.Contains("metdelta")) {xtitle.ReplaceAll("metdelta", ""); xtitle.ReplaceAll("}", ""); xtitle = "#Delta" + xtitle + ",MET}";}
   hratio->Draw("E1");
   hratio->GetYaxis()->SetRangeUser(0.5, 1.5);
   hratio->GetXaxis()->SetRangeUser(card.xmin_, card.xmax_);
@@ -124,17 +159,21 @@ TCanvas* make_canvas(int set1, int set2, PlottingCard_t card, bool print) {
   line->SetLineWidth(2);
   line->Draw("sames");
   pad2->SetGrid();
-  if(print) c->Print(Form("figures/test_mc_%s_%s.png", card.type_.Data(), card.hist_.Data()));
+  if(print) {
+    TString dir = Form("figures/test_mc_%s_%i_%i/", selection_.Data(), year_, set1);
+    gSystem->Exec(Form("[ ! -d %s ] && mkdir -p %s", dir.Data(), dir.Data()));
+    c->Print(Form("%s%s_%s.png", dir.Data(), card.type_.Data(), card.hist_.Data()));
+  }
   return c;
 }
 
-int test_mc_scale(TString selection = "mutau", int set1 = 41, int set2 = 41, int year = 2016,
-                  TString path = "nanoaods_dev/") {
+int test_mc_scale(TString selection = "mutau", int year = 2016, int set1 = 41, int set2 = 41,
+                  TString path = "nanoaods_dev") {
 
   //////////////////////
   // Initialize files //
   //////////////////////
-  path = "root://cmseos.fnal.gov//store/user/mmackenz/histograms/" + path;
+  path = "root://cmseos.fnal.gov//store/user/mmackenz/histograms/" + path + "/";
 
   //get the absolute value of the sets, offsetting by the selection
   int offset = 0;
@@ -145,7 +184,8 @@ int test_mc_scale(TString selection = "mutau", int set1 = 41, int set2 = 41, int
   else if(selection == "ee"   ) offset = ZTauTauHistMaker::kEE   ;
   int setAbs1 = set1 + offset;
   int setAbs2 = set2 + offset;
-
+  selection_ = selection;
+  year_ = year;
   //construct the general name of each file, not including the sample name
   TString baseName = "ztautau_" + selection + "_clfv_";
   baseName += year;
@@ -159,11 +199,19 @@ int test_mc_scale(TString selection = "mutau", int set1 = 41, int set2 = 41, int
   }
 
   //print relevant plots
-  make_canvas(setAbs1, setAbs2, PlottingCard_t("onept" , "lep", 0, 2, 20., 120.), true);
+  make_canvas(setAbs1, setAbs2, PlottingCard_t("onept" , "lep", 0, 5, 20., 120.), true);
   make_canvas(setAbs1, setAbs2, PlottingCard_t("oneeta", "lep", 0, 5, -3.,   3.), true);
-  make_canvas(setAbs1, setAbs2, PlottingCard_t("twopt" , "lep", 0, 2, 20., 100.), true);
+  make_canvas(setAbs1, setAbs2, PlottingCard_t("twopt" , "lep", 0, 5, 20., 100.), true);
   make_canvas(setAbs1, setAbs2, PlottingCard_t("twoeta", "lep", 0, 5, -3.,   3.), true);
   make_canvas(setAbs1, setAbs2, PlottingCard_t("taudecaymode", "event", 0, 1, 0,   12.), true);
-  make_canvas(setAbs1, setAbs2, PlottingCard_t("njets", "event", 0, 1, 0,   7.), true);
+  make_canvas(setAbs1, setAbs2, PlottingCard_t("njets", "event", 0, 1, 0.,   7.), true);
+  make_canvas(setAbs1, setAbs2, PlottingCard_t("mtone", "event", 0, 5, 0., 150.), true);
+  make_canvas(setAbs1, setAbs2, PlottingCard_t("mttwo", "event", 0, 5, 0., 150.), true);
+  make_canvas(setAbs1, setAbs2, PlottingCard_t("mtlep", "event", 0, 5, 0., 150.), true);
+  make_canvas(setAbs1, setAbs2, PlottingCard_t("met"  , "event", 0, 2, 0., 100.), true);
+  make_canvas(setAbs1, setAbs2, PlottingCard_t("onemetdeltaphi", "lep", 0, 2, 0., 4.), true);
+  make_canvas(setAbs1, setAbs2, PlottingCard_t("twometdeltaphi", "lep", 0, 2, 0., 4.), true);
+  make_canvas(setAbs1, setAbs2, PlottingCard_t("jettautwopt"   , "lep", 0, 1, 0., 200.), true);
+  make_canvas(setAbs1, setAbs2, PlottingCard_t("jettautwoeta"  , "lep", 0, 1,-3., 3.), true);
   return 0;
 }

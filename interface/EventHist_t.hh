@@ -15,10 +15,12 @@ struct EventHist_t {
   TH1D* hPhotonIDWeight;
   TH1D* hJetToTauWeight;
   TH1D* hJetToTauWeightGroup;
+  TH1D* hJetToTauWeightCorr;
   TH1D* hIsSignal;
   TH1D* hNPV[2]; //0: with PU weights 1: without PU weights
   TH1D* hNPU[2]; //0: with PU weights 1: without PU weights
   TH1D* hNPartons;
+  TH1D* hLHENJets;
   TH1D* hNMuons;
   TH1D* hNSlimMuons;
   TH1D* hNMuonCounts[kMaxCounts];
@@ -61,6 +63,7 @@ struct EventHist_t {
   TH1D* hMuonTriggerStatus;
   TH1D* hPuWeight;
   TH1D* hJetPUIDWeight;
+  TH1D* hPrefireWeight;
   TH1D* hTopPtWeight;
   TH1D* hBTagWeight;
   TH1D* hZPtWeight;
@@ -119,6 +122,7 @@ struct EventHist_t {
   TH1D* hLepEta;
   TH1D* hLepPhi;
   TH2D* hLepPtVsM[5]; //0: normal 1: remove Z pT weight if DY file 2: apply weights using reco scales if DY 3: using systematic gen-level weights 4: using systematic reco-level weights
+  TH2D* hLepMVsMVA[2]; //0: zemu MVA 1: hemu MVA
 
   //Gen-level Z info
   TH2D* hZPtVsM[5]; //0: normal 1: remove Z pT weight 2: apply weights using reco scales if DY 3: using systematic gen-level weights 4: using systematic reco-level weights
@@ -139,6 +143,9 @@ struct EventHist_t {
   TH1D* hTausMVAAntiMu;
   TH1D* hTausGenFlavor;
   TH1D* hTausDeltaR;
+  TH1D* hFakeTausPt;
+  TH1D* hFakeTausEta;
+  TH1D* hFakeTausDM;
 
   //Jet --> electron/muon histograms
   TH2D* hFakeLepPtEta[3/*iso cat*/];
@@ -209,6 +216,7 @@ struct EventHist_t {
   TH1D* hPTauVisFrac;
   TH1D* hLepMEstimate;
   TH1D* hLepMEstimateTwo;
+  TH1D* hLepDot;
 
   TH1D* hPtSum[2]; //scalar sum of lepton Pt and Met, and photon for one
   TH1D* hPt1Sum[4]; //scalar sum of 1 lepton Pt and Met, both leptons, then both minus met

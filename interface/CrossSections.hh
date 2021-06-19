@@ -9,48 +9,59 @@
 
 class CrossSections {
 public:
-  CrossSections(int useUL = 0) {
+  CrossSections(int useUL = 0, int ZMode = 0) {
     //cross sections by MC dataset
     double zll = (useUL > 0) ? 6435. : /*2075.14/0.0337*/ 6077.22; //UL: AMC@NLO = 6435 MadGraph = 5321
+    if(ZMode == 1 && useUL == 0) zll = 4963.0;
+
     double br_ll = 0.0337; //branching ratio of Z->ll
     double zxs = zll/(3.*br_ll);
     double higgs = (48.61+3.766+0.5071+1.358+0.880);
-    values_["DY50"                    ] = zll    ;
-    values_["Z"                       ] = zxs    ;
-    values_["Br_Zll"                  ] = br_ll  ;
-    values_["H"                       ] = higgs  ;
-    values_["SingleAntiToptW"         ] = 34.91  ;
-    values_["SingleToptW"             ] = 34.91  ;
-    values_["WWW"                     ] = 0.2086 ;
-    values_["WZ"                      ] = 27.6   ;
-    values_["ZZ"                      ] = 12.14  ;
-    values_["WW"                      ] = 12.178 ;
-    values_["Wlnu"                    ] = 52850.0;
-    values_["Wlnu-1J"                 ] = 8104.0 ;
-    values_["ttbarToSemiLeptonic"     ] = 365.34 ;
-    values_["ttbarlnu"                ] = 88.29  ;
-    values_["ttbarToHadronic"         ] = 687.1  ;
-    values_["SingleEle"               ] = 1.     ;
-    values_["SingleMu"                ] = 1.     ;
-    values_["QCDDoubleEMEnrich30to40" ] = 22180. ;
-    values_["QCDDoubleEMEnrich30toInf"] = 247000.;
-    values_["QCDDoubleEMEnrich40toInf"] = 113100.;
+    values_["DY50"                    ][2016] = zll    ;
+    values_["DY50"                    ][2017] = (ZMode == 1) ? 6435. : zll;
+    values_["DY50"                    ][2018] = (ZMode == 1) ? 6435. : zll;
+    values_["DY10"                    ][2016] = 18610. ;
+    values_["DY10"                    ][2017] = 18610. ;
+    values_["DY10"                    ][2018] = 18610. ;
+    values_["Z"                       ][2016] = zxs    ;
+    values_["Br_Zll"                  ][2016] = br_ll  ;
+    values_["H"                       ][2016] = higgs  ;
+    values_["SingleAntiToptW"         ][2016] = 35.85  ; //34.91  ;
+    values_["SingleToptW"             ][2016] = 35.85  ; //34.91  ;
+    values_["WWW"                     ][2016] = 0.2086 ;
+    values_["WWZ"                     ][2016] = 0.1651 ;
+    values_["WZ"                      ][2016] = 47.13  ; //27.6   ;
+    values_["ZZ"                      ][2016] = 16.523 ; //12.14  ;
+    values_["WW"                      ][2016] = 12.178 ;
+    values_["Wlnu"                    ][2016] = 61526.7; //52850.0;
+    values_["Wlnu-1J"                 ][2016] =  9341.3*1.219; //defined as total * fraction of unbinned with 1J * integral(unbinned 1J) / integral(1J)
+    values_["Wlnu-2J"                 ][2016] =  3195.4*1.219;
+    values_["Wlnu-3J"                 ][2016] =  1110.9*1.219;
+    values_["Wlnu-4J"                 ][2016] =   626.2*1.219;
+    values_["ttbarToSemiLeptonic"     ][2016] = 365.34 ;
+    values_["ttbarlnu"                ][2016] = 87.31  ; //88.29  ;
+    values_["ttbarToHadronic"         ][2016] = 687.1  ;
+    values_["SingleEle"               ][2016] = 1.     ;
+    values_["SingleMu"                ][2016] = 1.     ;
+    values_["QCDDoubleEMEnrich30to40" ][2016] = 22180. ;
+    values_["QCDDoubleEMEnrich30toInf"][2016] = 247000.;
+    values_["QCDDoubleEMEnrich40toInf"][2016] = 113100.;
 
 
 
     //signals
-    values_["ZEMu"  ] = zxs*7.5e-7; //PDG: 7.5e-7 ATLAS: 7.5e-7 CMS: 7.3e-7
-    values_["ZETau" ] = zxs*8.1e-6; //PDG: 9.8e-6 ATLAS: 8.1e-6 (13 TeV)
-    values_["ZMuTau"] = zxs*6.3e-6; //PDG: 1.2e-5 ATLAS: 6.3e-6 (13 TeV) 6.1e-6 (13+8 TeV)
-    values_["HEMu"  ] = higgs*5.9e-5; //PDG: 3.5e-4 CMS: 5.6e-5 ATLAS: 5.9e-5
-    values_["HETau" ] = higgs*1.9e-3; //PDG: 6.1e-3 CMS: 1.9e-3
-    values_["HMuTau"] = higgs*1.6e-3; //PDG: 2.5e-3 CMS: 1.6e-3
+    values_["ZEMu"  ][2016] = zxs*7.5e-7; //PDG: 7.5e-7 ATLAS: 7.5e-7 CMS: 7.3e-7
+    values_["ZETau" ][2016] = zxs*8.1e-6; //PDG: 9.8e-6 ATLAS: 8.1e-6 (13 TeV)
+    values_["ZMuTau"][2016] = zxs*6.3e-6; //PDG: 1.2e-5 ATLAS: 6.3e-6 (13 TeV) 6.1e-6 (13+8 TeV)
+    values_["HEMu"  ][2016] = higgs*5.9e-5; //PDG: 3.5e-4 CMS: 5.6e-5 ATLAS: 5.9e-5
+    values_["HETau" ][2016] = higgs*1.9e-3; //PDG: 6.1e-3 CMS: 1.9e-3
+    values_["HMuTau"][2016] = higgs*1.6e-3; //PDG: 2.5e-3 CMS: 1.6e-3
 
     //data SS qcd estimates
     //give fraction of SS --> OS or j --> tau weighted (Data - MC) / Data for full Run-II
-    values_["QCD_mutau"] = 0.918;
-    values_["QCD_etau"]  = 0.935;
-    values_["QCD_emu"]   = 0.342;
+    values_["QCD_mutau"][2016] = 0.918;
+    values_["QCD_etau" ][2016]  = 0.935;
+    values_["QCD_emu"  ][2016]   = 0.342;
 
     ///////////////////////
     // generated numbers //
@@ -89,17 +100,17 @@ public:
     numbers_[2018]["HETau"   ] =  40000;
 
     //Luminosity by year
-    lum_[2016] = 35.92e3;
+    lum_[2016] = 36.33e3;
     lum_[2017] = 41.48e3;
-    lum_[2018] = 59.74e3;
+    lum_[2018] = 59.83e3;
 
   }
 
-  double GetCrossSection(TString name) {
+  double GetCrossSection(TString name, int year = 2016) {
     double xsec(1.);
     auto itr = values_.find(name);
     if(itr != values_.end())
-      xsec = itr->second;
+      xsec = itr->second[year];
     else
       std::cout << "Cross section for " << name.Data() << " not found! Returning 1...\n";
     return xsec;
@@ -130,7 +141,7 @@ public:
   }
 
 private:
-  std::map<TString, double> values_ ; //cross sections
+  std::map<TString, std::map<int, double>> values_ ; //cross sections
   std::map<int, std::map<TString, long>>   numbers_; // generated numbers
   std::map<int, double> lum_; //luminosity
 };

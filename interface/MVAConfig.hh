@@ -30,8 +30,8 @@ public:
     categories_["zmutau"  ] = {-0.28180, -0.15400, -0.04330,  0.12920};
     categories_["hetau"   ] = {-0.06700,  0.04130,  0.15380,  0.33350};
     categories_["zetau"   ] = {-0.25540, -0.11290, -0.03850,  0.05990};
-    categories_["hemu"    ] = {-0.05770, -0.03100,  0.01220,  0.01700}; //defined with cut-and-count in M in [M_B - 5, M_B + 5]
-    categories_["zemu"    ] = {-0.21800, -0.15100, -0.08000,  0.00400}; //defined with cut-and-count in M in [M_B - 5, M_B + 5]
+    categories_["hemu"    ] = {-0.05770, -0.015  , -0.015  ,  0.085  }; //defined with cut-and-count in M in [M_B - 5, M_B + 5]
+    categories_["zemu"    ] = {-0.21800, -0.080  , -0.005  ,  0.060  }; //defined with cut-and-count in M in [M_B - 5, M_B + 5]
     categories_["hmutau_e"] = {-0.10660,  0.00650,  0.08600,  0.15860};
     categories_["zmutau_e"] = {-0.12310, -0.09790, -0.05830,  0.07190};
     categories_["hetau_mu"] = {-0.12820, -0.00400,  0.08060,  0.16160};

@@ -281,7 +281,7 @@ double ParticleCorrections::ElectronTriggerEff(double pt, double eta, int year, 
 }
 
 //correction for the tau ID
-double ParticleCorrections::TauWeight(double pt, double eta, int genID, int year,
+double ParticleCorrections::TauWeight(double pt, double eta, int genID, UChar_t antiJet, int year,
                                       float& up, float& down, int& ibin
                                       ) {
   if(year != k2016 && year != k2017 && year != k2018) {
@@ -291,6 +291,7 @@ double ParticleCorrections::TauWeight(double pt, double eta, int genID, int year
   if(pt < 20.001) pt = 20.001; //has to be slightly greater than 20
   double scale_factor = 1.;
   up = 1.; down = 1.; ibin = 0;
+  int antiJetIndex = (antiJet >= 50) ? 1 : 0; //tight or loose tau
   if(genID == 5) { //genuine tau
     scale_factor *= tauJetIDMap[year]->Eval(pt);
     up *= tauJetUpIDMap[year]->Eval(pt);
@@ -316,6 +317,7 @@ double ParticleCorrections::TauWeight(double pt, double eta, int genID, int year
               << " pt = " << pt
               << " eta = " << eta
               << " genID = " << genID
+              << " antiJet = " << antiJetIndex
               << " scale_factor = " << scale_factor
               << std::endl;
   }
@@ -323,13 +325,15 @@ double ParticleCorrections::TauWeight(double pt, double eta, int genID, int year
 }
 
 //correction to the tau TLorentzVector
-double ParticleCorrections::TauEnergyScale(double pt, double eta, int dm, int genID, int year, float& up, float& down, int& ibin) {
+double ParticleCorrections::TauEnergyScale(double pt, double eta, int dm, int genID, UChar_t antiJet, int year, float& up, float& down, int& ibin) {
   double scale_factor = 1.;
   up = 1.; down = 1.; ibin = 0;
   double pt_low = 34.;
   double pt_high = 170.;
   //only defined for certain decay modes
   if(!(dm == 0 || dm == 1 || dm == 10 || dm == 11)) return scale_factor;
+
+  int antiJetIndex = (antiJet >= 50) ? 1 : 0; //tight or loose tau
 
   /////////////////////
   // Genuine taus
@@ -339,7 +343,7 @@ double ParticleCorrections::TauEnergyScale(double pt, double eta, int dm, int ge
     //Use the low energy scale factor, but uncertainty using high and low
     int bin_low  = tauESLowMap [year]->FindBin(dm);
     int bin_high = tauESHighMap[year]->FindBin(dm);
-    scale_factor = tauESLowMap[year]->GetBinContent(bin_low);
+    scale_factor = tauESLowMap [year]->GetBinContent(bin_low);
     ibin = bin_low - 1;
     if(pt < pt_low) { //use only the low uncertainty
       up   = scale_factor + tauESLowMap[year]->GetBinError(bin_low);
@@ -394,6 +398,7 @@ double ParticleCorrections::TauEnergyScale(double pt, double eta, int dm, int ge
               << " dm = " << dm
               << " pt = " << pt
               << " eta = " << eta
+              << " tight jet = " << antiJetIndex
               << " scale_factor = " << scale_factor
               << std::endl;
   }

@@ -5,10 +5,13 @@
 #include "interface/Tree_t.hh"
 #include "interface/CrossSections.hh"
 #include "interface/Significances.hh"
+#include "interface/CreateCategories.hh"
 #include "interface/BTagWeight.hh"
 #include "interface/PUWeight.hh"
 #include "interface/JetPUWeight.hh"
+#include "interface/PrefireWeight.hh"
 #include "interface/JetToTauWeight.hh"
+#include "interface/JetToTauComposition.hh"
 #include "interface/MuonIDWeight.hh"
 #include "interface/ElectronIDWeight.hh"
 #include "interface/SlimObject_t.hh"
@@ -32,12 +35,15 @@ namespace { struct dictionary {
   Tree_t dummy1;
   CrossSections dummy2;
   Significances dummy3;
+  CreateCategories dummy3b;
   BTagWeight dummy4;
   PUWeight dummy5;
   JetPUWeight dummy5b;
+  PrefireWeight dummy5c;
   JetToTauWeight dummy6;
-  MuonIDWeight dummy6b;
-  ZPtWeight dummy6c;
+  JetToTauComposition dummy6b;
+  MuonIDWeight dummy6c;
+  ZPtWeight dummy6d;
   SlimObject_t dummy7;
   SlimElectron_t dummy8;
   SlimMuon_t dummy9;

@@ -5,8 +5,13 @@
 
 struct LepHist_t {
   TH1D* hOnePz;
-  TH1D* hOnePt[10]; //0: nominal 1: no trigger weight 2-5: trigger weight options 6: no ID1 weight 7: no ID2 weight
+  TH1D* hOnePt[12]; //0: nominal 1: no trigger weight 2-5: trigger weight options 6: no ID1 weight 7: no ID2 weight
   TH1D* hJetTauOnePt[5/*tau DM*/][4/*tau pT range*/];
+  TH1D* hJetTauOneR;
+  TH1D* hJetTauOneEta;
+  TH2D* hJetTauOnePtVsR[5/*tau DM*/];
+  TH1D* hJetTauOneMetDeltaPhi;
+  TH1D* hJetTauCompOnePt;
   TH1D* hOneP;
   TH1D* hOneM;
   TH1D* hOnePtOverM;
@@ -55,8 +60,13 @@ struct LepHist_t {
   TH1D* hOneSlimTauMOS;
 
   TH1D* hTwoPz;
-  TH1D* hTwoPt[10]; //0: nominal 1: no trigger weight 2-5: trigger weight options 6: no ID1 weight 7: no ID2 weight
+  TH1D* hTwoPt[12]; //0: nominal 1: no trigger weight 2-5: trigger weight options 6: no ID1 weight 7: no ID2 weight
   TH1D* hJetTauTwoPt[5/*tau DM*/][4/*tau pT range*/];
+  TH1D* hJetTauTwoR;
+  TH1D* hJetTauTwoEta;
+  TH2D* hJetTauTwoPtVsR[5/*tau DM*/];
+  TH1D* hJetTauTwoMetDeltaPhi;
+  TH1D* hJetTauCompTwoPt;
   TH1D* hTwoP;
   TH1D* hTwoM;
   TH1D* hTwoPtOverM;
@@ -113,6 +123,7 @@ struct LepHist_t {
 
   //2D distribution
   TH2D* hTwoPtVsOnePt;
+  TH2D* hJetTauTwoPtVsOnePt;
 };
 
 

@@ -2,10 +2,13 @@
   <class name="Tree_t"/>
   <class name="CrossSections"/>
   <class name="Significances"/>
+  <class name="CreateCategories"/>
   <class name="BTagWeight"/>
   <class name="PUWeight"/>
   <class name="JetPUWeight"/>
+  <class name="PrefireWeight"/>
   <class name="JetToTauWeight"/>
+  <class name="JetToTauComposition"/>
   <class name="MuonIDWeight"/>
   <class name="ZPtWeight"/>
   <class name="ElectronIDWeight"/>

@@ -1,6 +1,13 @@
 #include "interface/DataPlotter.hh"
 
 void DataPlotter::get_titles(TString hist, TString setType, TString* xtitle, TString* ytitle, TString* title) {
+  TString lep1("l1"), lep2("l2");
+  if     (selection_ == "mutau"   ) {lep1 = "#mu" ; lep2 = "#tau";}
+  else if(selection_ == "etau"    ) {lep1 = "e"   ; lep2 = "#tau";}
+  else if(selection_ == "emu"     ) {lep1 = "e"   ; lep2 = "#mu" ;}
+  else if(selection_.Contains("_")) {lep1 = "e"   ; lep2 = "#mu" ;}
+  else if(selection_ == "ee"      ) {lep1 = "e1"  ; lep2 = "e2"  ;}
+  else if(selection_ == "mumu"    ) {lep1 = "#mu1"; lep2 = "#mu2";}
   if(hist == "lepdelrvsphi") {
     *xtitle = Form("#DeltaR / %.1f",0.1*rebinH_);
     *ytitle = Form("#Delta#phi / %.1f",0.1*rebinH_);
@@ -27,7 +34,7 @@ void DataPlotter::get_titles(TString hist, TString setType, TString* xtitle, TSt
     *title  = Form("Missing Transverse Energy %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
   else if(hist == "lepptoverm") {
-    *xtitle = "pT_{ll} / M_{ll}";
+    *xtitle = "p_{T}^{ll} / M_{ll}";
     *ytitle = Form("Events / %.1f GeV/c^{2}",0.2*rebinH_);
     *title  = Form("pT Over Mass of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
@@ -57,7 +64,7 @@ void DataPlotter::get_titles(TString hist, TString setType, TString* xtitle, TSt
     *title  = Form("Momentum of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
   else if(hist == "leppt") {
-    *xtitle = "pT_{ll} (GeV/c)";
+    *xtitle = "p_{T}^{ll} (GeV/c)";
     *ytitle = Form("Events / %.0f GeV/c",2.*rebinH_);
     *title  = Form("pT of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
@@ -87,47 +94,47 @@ void DataPlotter::get_titles(TString hist, TString setType, TString* xtitle, TSt
     *title  = Form("SVfit pT of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
   else if(hist == "pt" && setType == "photon") {
-    *xtitle = "pT_{#gamma} (GeV/c)";
+    *xtitle = "p_{T}^{#gamma} (GeV/c)";
     *ytitle = Form("Events / %.0f GeV/c",2.*rebinH_);
     *title  = Form("pT of the Photon");
   }
   else if(hist == "onept") {
-    *xtitle = "pT_{l} (GeV/c)";
+    *xtitle = Form("p_{T}^{%s} (GeV/c)", lep1.Data());
     *ytitle = Form("Events / %.0f GeV/c",1.*rebinH_);
     *title  = Form("pT of the First Lepton %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
   else if(hist == "twopt") {
-    *xtitle = "pT_{2} (GeV/c)";
+    *xtitle = Form("p_{T}^{%s} (GeV/c)", lep2.Data());
     *ytitle = Form("Events / %.0f GeV/c",1.*rebinH_);
     *title  = Form("pT of the Second Lepton %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
   else if(hist == "onesvpt") {
-    *xtitle = "SVFit pT_{l} (GeV/c)";
+    *xtitle = "SVFit p_{T}^{1} (GeV/c)";
     *ytitle = Form("Events / %.0f GeV/c",1.*rebinH_);
     *title  = Form("SVFit pT of the Leading Lepton %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
   else if(hist == "onesvdeltapt") {
-    *xtitle = "SVFit pT_{l1} - pT_{l1} (GeV/c)";
+    *xtitle = Form("SVFit p_{T}^{%s} - pT_{%s} (GeV/c)", lep1.Data(), lep1.Data());
     *ytitle = Form("Events / %.0f GeV/c",1.*rebinH_);
     *title  = Form("SVFit pT Change of the Leading Lepton %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
   else if(hist == "twosvpt") {
-    *xtitle = "SVFit pT_{l2} (GeV/c)";
+    *xtitle = "SVFit p_{T}^{l2} (GeV/c)";
     *ytitle = Form("Events / %.0f GeV/c",1.*rebinH_);
     *title  = Form("SVFit pT of the Trailing Lepton %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
   else if(hist == "twosvdeltapt") {
-    *xtitle = "SVFit pT_{l2} - pT_{l2} (GeV/c)";
+    *xtitle = "SVFit p_{T}^{l2} - pT_{l2} (GeV/c)";
     *ytitle = Form("Events / %.0f GeV/c",1.*rebinH_);
     *title  = Form("SVFit pT Change of the Trailing Lepton %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
   else if(hist == "onem") {
-    *xtitle = "M_{l} (GeV/c^{2})";
+    *xtitle = Form("M_{%s} (GeV/c^{2})", lep1.Data());
     *ytitle = Form("Events / %.0f GeV/c",1.*rebinH_);
     *title  = Form("Mass of the Leading Lepton %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
   else if(hist == "twom") {
-    *xtitle = "M_{#tau} (GeV/c^{2})";
+    *xtitle = Form("M_{%s} (GeV/c^{2})", lep2.Data());
     *ytitle = Form("Events / %.0f GeV/c",1.*rebinH_);
     *title  = Form("Mass of the Trailing Lepton %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
@@ -142,12 +149,12 @@ void DataPlotter::get_titles(TString hist, TString setType, TString* xtitle, TSt
     *title  = Form("SVFit Mass of the Trailing Lepton %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
   else if(hist == "oneiso") {
-    *xtitle = "Lepton Isolation";
+    *xtitle = Form("%s Isolation", lep1.Data());
     *ytitle = Form("Events / %.2f",.05*rebinH_);
     *title  = Form("Isolation of the Leading Lepton %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
   else if(hist == "twoiso") {
-    *xtitle = "#tau Isolation";
+    *xtitle = Form("%s Isolation", lep2.Data());
     *ytitle = Form("Events / %.2f",.05*rebinH_);
     *title  = Form("Isolation of the Trailing Lepton %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
@@ -297,42 +304,42 @@ void DataPlotter::get_titles(TString hist, TString setType, TString* xtitle, TSt
     *title  = Form("SVFit di-tau mass error");
   }
   else if(hist == "njets") {
-    *xtitle = "Number of Jets (pT > 25 GeV/c)";
+    *xtitle = "Number of Jets";
     *ytitle = "";
     *title  = Form("Number of Jets");
   }
   else if(hist == "njets20") {
-    *xtitle = "Number of Jets (pT > 20 GeV/c)";
+    *xtitle = "Number of Jets";
     *ytitle = "";
     *title  = Form("Number of Jets");
   }
   else if(hist == "nbjets") {
-    *xtitle = "Number of tight ID b-Jets (pT > 25 GeV/c)";
+    *xtitle = "Number of tight ID b-Jets";
     *ytitle = "";
     *title  = Form("Number of tight ID b-Jets");
   }
   else if(hist == "nbjetsm") {
-    *xtitle = "Number of medium ID b-Jets (pT > 25 GeV/c)";
+    *xtitle = "Number of medium ID b-Jets";
     *ytitle = "";
     *title  = Form("Number of medium ID b-Jets");
   }
   else if(hist == "nbjetsl") {
-    *xtitle = "Number of loose ID b-Jets (pT > 25 GeV/c)";
+    *xtitle = "Number of loose ID b-Jets";
     *ytitle = "";
     *title  = Form("Number of loose ID b-Jets");
   }
   else if(hist == "nbjets20") {
-    *xtitle = "Number of tight ID b-Jets (pT > 20 GeV/c)";
+    *xtitle = "Number of tight ID b-Jets";
     *ytitle = "";
     *title  = Form("Number of tight ID b-Jets");
   }
   else if(hist == "nbjets20m") {
-    *xtitle = "Number of medium ID b-Jets (pT > 20 GeV/c)";
+    *xtitle = "Number of medium ID b-Jets";
     *ytitle = "";
     *title  = Form("Number of medium ID b-Jets");
   }
   else if(hist == "nbjets20l") {
-    *xtitle = "Number of loose ID b-Jets (pT > 20 GeV/c)";
+    *xtitle = "Number of loose ID b-Jets";
     *ytitle = "";
     *title  = Form("Number of loose ID b-Jets");
   }
@@ -360,6 +367,31 @@ void DataPlotter::get_titles(TString hist, TString setType, TString* xtitle, TSt
     *xtitle = "MT(MET,#tau)";
     *ytitle = "";
     *title  = Form("MT(MET,#tau)");
+  }
+  else if(hist == "mtone") {
+    *xtitle = Form("MT(%s,MET)", lep1.Data());
+    *ytitle = "";
+    *title  = "";
+  }
+  else if(hist == "mttwo") {
+    *xtitle = Form("MT(%s,MET)", lep2.Data());
+    *ytitle = "";
+    *title  = "";
+  }
+  else if(hist == "mtlep") {
+    *xtitle = "MT(ll,MET)";
+    *ytitle = "";
+    *title  = "";
+  }
+  else if(hist == "oneeta") {
+    *xtitle = Form("#eta^{%s}", lep1.Data());
+    *ytitle = "";
+    *title  = "";
+  }
+  else if(hist == "twoeta") {
+    *xtitle = Form("#eta^{%s}", lep2.Data());
+    *ytitle = "";
+    *title  = "";
   }
   else if(hist == "ptsum0") {
     *xtitle = "pT_{l} + pT_{#tau} + MET";
@@ -392,7 +424,7 @@ void DataPlotter::get_titles(TString hist, TString setType, TString* xtitle, TSt
     *title  = Form("pT_{#tau} + pT_{l} - MET");
   }
   else if(hist == "ht") {
-    *xtitle = "pT of (#Sigma #vec{P}_{Jet})";
+    *xtitle = "p_{T} of (#Sigma #vec{P}_{Jet})";
     *ytitle = "";
     *title  = Form("Jet vector pT sum");
   }
@@ -402,7 +434,7 @@ void DataPlotter::get_titles(TString hist, TString setType, TString* xtitle, TSt
     *title  = Form("Jet vector sum #phi");
   }
   else if(hist == "htsum") {
-    *xtitle = " #Sigma (pT of #vec{P}_{Jet})";
+    *xtitle = " #Sigma (p_{T} of #vec{P}_{Jet})";
     *ytitle = "";
     *title  = Form("Jet scalar pT sum");
   }
@@ -432,63 +464,63 @@ void DataPlotter::get_titles(TString hist, TString setType, TString* xtitle, TSt
     *title  = "#Delta#phi between Jet sum and di-lepton";
   }
   else if(hist == "leponedeltaphi") {
-    *xtitle = "#Delta#phi(l_{1},ll)";
+    *xtitle = Form("#Delta#phi(%s,ll)", lep1.Data());
     *ytitle = "";
     *title  = "#Delta#phi between lepton 1 and di-lepton";
   }
   else if(hist == "leptwodeltaphi") {
-    *xtitle = "#Delta#phi(l_{2},ll)";
+    *xtitle = Form("#Delta#phi(%s,ll)", lep2.Data());
     *ytitle = "";
     *title  = "#Delta#phi between lepton 2 and di-lepton";
   }
   else if(hist == "onemetdeltaphi") {
-    *xtitle = "#Delta#phi(l_{1},MET)";
+    *xtitle = Form("#Delta#phi(%s,MET)", lep1.Data());
     *ytitle = "";
     *title  = "#Delta#phi between MET and lepton 1";
   }
   else if(hist == "twometdeltaphi") {
-    *xtitle = "#Delta#phi(l_{2},MET)";
+    *xtitle = Form("#Delta#phi(%s,MET)", lep2.Data());
     *ytitle = "";
     *title  = "#Delta#phi between MET and lepton 2";
   }
   else if(hist == "oneiso") {
-    *xtitle = "l_{1} Iso";
+    *xtitle = Form("%s Iso", lep1.Data());
     *ytitle = "";
     *title  = "l_{1} Iso";
   }
   else if(hist == "onereliso") {
-    *xtitle = "l_{1} Iso/pT";
+    *xtitle = Form("%s Iso/p_{T}", lep1.Data());
     *ytitle = "";
-    *title  = "l_{1} Iso/pT";
+    *title  = "l_{1} Iso/p_{T}";
   }
   else if(hist == "twoiso") {
-    *xtitle = "l_{2} Iso";
+    *xtitle = Form("%s Iso", lep2.Data());
     *ytitle = "";
     *title  = "l_{2} Iso";
   }
   else if(hist == "tworeliso") {
-    *xtitle = "l_{2} Iso/pT";
+    *xtitle = Form("%s Iso/p_{T}", lep2.Data());
     *ytitle = "";
-    *title  = "l_{2} Iso/pT";
+    *title  = "l_{2} Iso/p_{T}";
   }
   else if(hist == "oned0") {
-    *xtitle = "l_{1} D0";
+    *xtitle = Form("%s D0", lep1.Data());
     *ytitle = "";
     *title  = "l_{1} D0";
   }
   else if(hist == "twod0") {
-    *xtitle = "l_{2} D0";
+    *xtitle = Form("%s D0", lep2.Data());
     *ytitle = "";
     *title  = "l_{2} D0";
   }
   else if(hist == "metvspt") {
-    *xtitle = "pT_{ll}";
+    *xtitle = "p_{T}^{ll}";
     *ytitle = "MET";
     *title  = "MET vs di-lepton pT";
   }
   else if(hist == "twoptvsonept") {
-    *xtitle = "pT_{l1}";
-    *ytitle = "pT_{l2}";
+    *xtitle = "p_{T}^{l1}";
+    *ytitle = "p_{T}^{l2}";
     *title  = "Lepton 2 pT vs Lepton 1 pT";
   }
   else if(hist.Contains("deltaalpham")) { //Mass estimated using alpha formulas
@@ -743,6 +775,65 @@ TH1D* DataPlotter::get_qcd(TString hist, TString setType, Int_t set) {
   return hData;
 }
 
+TH2D* DataPlotter::get_qcd_2D(TString hist, TString setType, Int_t set) {
+  {
+    auto o = gDirectory->Get(Form("qcd_%s_%s_%i", hist.Data(), setType.Data(), set));
+    if(o) delete o;
+  }
+
+  //check if already doing qcd histogram, and if so return nothing
+  if((set >= qcd_offset_ && set < misid_offset_) || set >= misid_offset_ + qcd_offset_) return NULL;
+
+  Int_t set_qcd = set + qcd_offset_;
+
+  TH2D* hData = get_data_2D(hist, setType, set_qcd);
+  if(!hData) return hData;
+  hData->SetName(Form("qcd_%s_%s_%i",hist.Data(), setType.Data(), set));
+  double ndata = hData->Integral(); // FIXME: Add overflow to integral
+  TH2D* hMC = 0;
+  for(UInt_t i = 0; i < data_.size(); ++i) {
+    if(isData_[i]) continue; //skip data for MC histogram
+    if(isSignal_[i]) continue; //skip signals for MC histogram
+    TH2D* htmp = (TH2D*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set_qcd, hist.Data()));
+    if(!htmp) continue;
+    htmp = (TH2D*) htmp->Clone("tmp");
+    // htmp->SetBit(kCanDelete);
+    htmp->Scale(scale_[i]);
+    // if(rebinH_ > 0) htmp->Rebin(rebinH_);
+    if(hMC) hMC->Add(htmp);
+    else hMC = (TH2D*) htmp->Clone(Form("qcd_%s_%s_%i", hist.Data(), setType.Data(), set));
+    delete htmp;
+  }
+  TH2D* hMisID = (include_misid_) ? get_misid_2D(hist, setType, set_qcd) : 0;
+  if(!hMC) hMC = hMisID;
+  else if(hMisID) hMC->Add(hMisID);
+
+  if(!hMC) {
+    std::cout << "Warning! No 2D MC histogram found when calculating QCD histogram in set "
+              << set_qcd << std::endl;
+    return NULL;
+  }
+  hData->Add(hMC, -1.);
+  double nmc = hMC->Integral(); //FIXME: Add overflow to integral
+
+  delete hMC;
+
+  //set all bins >= 0, including over/underflow
+  for(int xbin = 0; xbin <= hData->GetNbinsX()+1; ++xbin) {
+    for(int ybin = 0; ybin <= hData->GetNbinsY()+1; ++ybin) {
+      if(hData->GetBinContent(xbin, ybin) < 0.)
+        hData->SetBinContent(xbin, ybin,0.);
+    }
+  }
+  // hData->SetBit(kCanDelete);
+  double nqcd = hData->Integral(); //FIXME: Add overflow to integral
+  if(nqcd > 0.)
+    hData->Scale(qcd_scale_*(ndata-nmc)/nqcd); //ensure N(QCD) doesn't change from cutting off negative value bins, so not hist dependent
+  nqcd = hData->Integral(); //FIXME: Add overflow to integral
+
+  return hData;
+}
+
 TH1D* DataPlotter::get_misid(TString hist, TString setType, Int_t set) {
   {
     auto o = gDirectory->Get(Form("misid_%s_%i", hist.Data(), set));
@@ -800,6 +891,59 @@ TH1D* DataPlotter::get_misid(TString hist, TString setType, Int_t set) {
     hData->SetLineColor(misid_color_);
     hData->SetFillColor(misid_color_);
   }
+  return hData;
+}
+
+TH2D* DataPlotter::get_misid_2D(TString hist, TString setType, Int_t set) {
+  {
+    auto o = gDirectory->Get(Form("misid_%s_%s_%i", hist.Data(), setType.Data(), set));
+    if(o) delete o;
+  }
+
+  Int_t set_misid = set + misid_offset_;
+  if(set_misid < 0) return NULL;
+
+  TH2D* hData = get_data_2D(hist, setType, set_misid);
+  if(!hData) return hData;
+  hData->SetName(Form("misid_%s_%s_%i",hist.Data(), setType.Data(), set));
+  double ndata = hData->Integral(); //FIXME: Add overflow to integral
+  TH2D* hMC = 0;
+  for(UInt_t i = 0; i < data_.size(); ++i) {
+    if(isData_[i]) continue; //skip data for MC histogram
+    if(isSignal_[i]) continue; //skip signals for MC histogram
+    TH2D* htmp = (TH2D*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set_misid, hist.Data()));
+    if(!htmp) continue;
+    htmp = (TH2D*) htmp->Clone("tmp");
+    // htmp->SetBit(kCanDelete);
+    htmp->Scale(scale_[i]);
+    // if(rebinH_ > 0) htmp->Rebin(rebinH_);
+    if(hMC) hMC->Add(htmp);
+    else hMC = (TH2D*) htmp->Clone(Form("misid_%s_%s_%i", hist.Data(), setType.Data(), set));
+    delete htmp;
+  }
+  if(!hMC) {
+    std::cout << "Warning! No 2D MC histogram found when calculating Anti-Iso histogram in set "
+              << set_misid << std::endl;
+    return NULL;
+  }
+  hData->Add(hMC, -1.);
+  double nmc = hMC->Integral(); //FIXME: Add overflow to integral
+
+  delete hMC;
+
+  //set all bins >= 0, including over/underflow
+  for(int xbin = 0; xbin <= hData->GetNbinsX()+1; ++xbin) {
+    for(int ybin = 0; ybin <= hData->GetNbinsY()+1; ++ybin) {
+      if(hData->GetBinContent(xbin, ybin) < 0.)
+        hData->SetBinContent(xbin, ybin, 0.);
+    }
+  }
+  // hData->SetBit(kCanDelete);
+  double nmisid = hData->Integral(); //FIXME: Add overflow to integral
+  if(nmisid > 0.)
+    hData->Scale((ndata-nmc)/nmisid); //ensure N(Anit-Iso) doesn't change from cutting off negative value bins, so not hist dependent
+  nmisid = hData->Integral(); //FIXME: Add overflow to integral
+
   return hData;
 }
 
@@ -908,6 +1052,52 @@ THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set) {
   if(hQCD) hstack->Add(hQCD);
   // hstack->SetBit(kCanDelete);
   return hstack;
+}
+
+TH2D* DataPlotter::get_background_2D(TString hist, TString setType, Int_t set) {
+  TH2D* hBkg = 0;
+  TH2D* hQCD = (include_qcd_) ? get_qcd_2D(hist,setType,set) : NULL;
+  TH2D* hMisID = (include_misid_) ? get_misid_2D(hist,setType,set) : NULL;
+  if(hQCD && verbose_ > 0) std::cout << "QCD histogram has integral " << hQCD->Integral() << std::endl;
+  if(hMisID && verbose_ > 0) std::cout << "MisID histogram has integral " << hMisID->Integral() << std::endl;
+  {
+    auto o = gDirectory->Get(Form("%s",hist.Data()));
+    if(o) delete o;
+  }
+
+  if(debug_ || verbose_ > 0)
+    printf("%s: entry name label scale\n", __func__);
+  for(UInt_t i = 0; i < data_.size(); ++i) {
+    if(debug_ || verbose_ > 0)
+      printf("%s: index = %i name = %s label = %s scale = %.4f\n", __func__,
+             i, names_[i].Data(), labels_[i].Data(), scale_[i]);
+
+    if(isData_[i]) continue;
+    if(isSignal_[i]) continue;
+
+    TH2D* h = (TH2D*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set, hist.Data()));
+    if(!h) {
+      printf("%s: Histogram %s/%s/%i for %s (%s) %i not found! Continuing...\n",
+             __func__, hist.Data(), setType.Data(), set, names_[i].Data(), labels_[i].Data(), dataYear_[i]);
+      continue;
+    }
+    auto o = gDirectory->Get("tmp");
+    if(o) delete o;
+    h = (TH2D*) h->Clone("tmp");
+    h->Scale(scale_[i]);
+    // if(rebinH_ > 0) h->Rebin(rebinH_);
+    if(!hBkg) {
+      hBkg = h;
+      hBkg->SetName(Form("%s_%s_%i", hist.Data(), setType.Data(), set));
+    } else {
+      hBkg->Add(h);
+      delete h;
+    }
+  }
+  if(hMisID) hBkg->Add(hMisID);
+  if(hQCD) hBkg->Add(hQCD);
+  // hBkg->SetBit(kCanDelete);
+  return hBkg;
 }
 
 TCanvas* DataPlotter::plot_single_2Dhist(TString hist, TString setType, Int_t set, TString label) {
@@ -1373,6 +1563,16 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
   //split the top into main stack and bottom into Data/MC if plotting data
   TPad *pad1 = 0, *pad2 = 0;
 
+  //Normalize to the stack integral if normalizing, for simplicity
+  if(d && normalize_1ds_ && d->Integral() > 0.) {
+    d->Scale(((TH1D*)hstack->GetStack()->Last())->Integral() / d->Integral());
+  }
+  if(normalize_1ds_) {
+    for(TH1D* hsig : hsignal) {
+      if(hsig->Integral() > 0.)
+        hsig->Scale(((TH1D*)hstack->GetStack()->Last())->Integral() / hsig->Integral());
+    }
+  }
 
   if((plot_data_ && d) || (plot_data_ == 0 && data_over_mc_ < 0)) {
     pad1 = new TPad("pad1","pad1",upper_pad_x1_, upper_pad_y1_, upper_pad_x2_, upper_pad_y2_); //xL yL xH xH, (0,0) = bottom left
@@ -1718,6 +1918,11 @@ TCanvas* DataPlotter::plot_systematic(TString hist, Int_t set, Int_t systematic)
   TH1D* d = (plot_data_ > 0) ? get_data(hist+"_0", "systematic", set) : 0;
   if(plot_data_ > 0 && !d) return NULL;
 
+  //Normalize to the stack integral if normalizing, for simplicity
+  if(d && normalize_1ds_ && d->Integral() > 0.) {
+    d->Scale(((TH1D*)hstack_b->GetStack()->Last())->Integral() / d->Integral());
+  }
+
   //blind if needed
   if(blindxmin_.size() > 0 && d) {
     unsigned nbins = d->GetNbinsX();
@@ -1734,6 +1939,20 @@ TCanvas* DataPlotter::plot_systematic(TString hist, Int_t set, Int_t systematic)
   std::vector<TH1D*> signals_p = get_signal(Form("%s_%i", hist.Data(), systematic  ), "systematic", set);
   std::vector<TH1D*> signals_m = (single_systematic_) ? std::vector<TH1D*>{} : get_signal(Form("%s_%i", hist.Data(), systematic+1), "systematic", set);
 
+  if(normalize_1ds_) {
+    for(TH1D* hsig : signals_b) {
+      if(hsig->Integral() > 0.)
+        hsig->Scale(((TH1D*)hstack_b->GetStack()->Last())->Integral() / hsig->Integral());
+    }
+    for(TH1D* hsig : signals_p) {
+      if(hsig->Integral() > 0.)
+        hsig->Scale(((TH1D*)hstack_b->GetStack()->Last())->Integral() / hsig->Integral());
+    }
+    for(TH1D* hsig : signals_m) {
+      if(hsig->Integral() > 0.)
+        hsig->Scale(((TH1D*)hstack_b->GetStack()->Last())->Integral() / hsig->Integral());
+    }
+  }
   //Setup the canvas
   TCanvas* c = new TCanvas(c_name.Data(),
                            c_name.Data(),
@@ -1765,6 +1984,12 @@ TCanvas* DataPlotter::plot_systematic(TString hist, Int_t set, Int_t systematic)
   TH1D* h_b = (TH1D*) hstack_b->GetStack()->Last();
   TH1D* h_p = (TH1D*) hstack_p->GetStack()->Last();
   TH1D* h_m = (single_systematic_) ? 0 : (TH1D*) hstack_m->GetStack()->Last();
+
+  if(!h_b || !h_p || (!h_m && !single_systematic_)) {
+    printf("%s: Systematics histograms not found! Stack N(hists): base = %i, +1 = %i, -1 = %i\n", __func__,
+           hstack_b->GetNhists(), hstack_p->GetNhists(), (single_systematic_) ? 0 : hstack_m->GetNhists());
+    return NULL;
+  }
 
   h_b->SetName(Form("h_bkg_%i_sys_%i", set, systematic));
   h_b->SetLineColor(kRed-3);

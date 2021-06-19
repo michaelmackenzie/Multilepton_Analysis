@@ -4,7 +4,7 @@
 //use the dataplotter to manage normalizations and initializations
 DataPlotter* dataplotter_ = 0;
 int verbose_ = 0;
-int drawFit_ = 0; //whether to draw the linear fits
+int drawFit_ = 1; //whether to draw the linear fits
 int rebin_ = 1;
 
 //Get the delta R histogram
@@ -54,32 +54,38 @@ TCanvas* make_ratio_canvas(TH1D* hnum, TH1D* hdnm, TF1 *&f1) {
     fit_option += " 0";
     hRatio->Draw("E1");
   }
-  hRatio->Fit("pol1", fit_option.Data());
+  TString fit_func = "pol1(0) + gaus(2)";
+  TF1* f = new TF1("fit_func", fit_func.Data());
+  f->SetParameters(1.7, -0.1, 0.25, 3.2, 0.4);
+  hRatio->Fit(f, fit_option.Data());
   hRatio->SetLineWidth(2);
   hRatio->SetLineColor(kBlue);
   hRatio->SetMarkerStyle(20);
   hRatio->GetYaxis()->SetRangeUser(0.01, 5.);
   hRatio->SetYTitle("OS/SS");
-  f1 = hRatio->GetFunction("pol1");
-  if(drawFit_) {
+  f1 = f;//hRatio->GetFunction("fit_func");
+  if(f1 && drawFit_) {
     hRatio->Draw("E1");
     TH1D* herr_2s = (TH1D*) hRatio->Clone(Form("%s_err_2s", hRatio->GetName()));
     herr_2s->Reset();
+    herr_2s->SetMarkerSize(0.);
     (TVirtualFitter::GetFitter())->GetConfidenceIntervals(herr_2s, 0.95);
     herr_2s->SetFillColor(kYellow);
-    // herr_2s->SetFillStyle(3001);
+    herr_2s->SetFillStyle(3001);
     herr_2s->Draw("E3 same");
     TH1D* herr_1s = (TH1D*) hRatio->Clone(Form("%s_err_1s", hRatio->GetName()));
     herr_1s->Reset();
+    herr_1s->SetMarkerSize(0.);
     (TVirtualFitter::GetFitter())->GetConfidenceIntervals(herr_1s, 0.68);
     herr_1s->SetFillColor(kGreen);
-    // herr_1s->SetFillStyle(3001);
+    herr_1s->SetFillStyle(3001);
     herr_1s->Draw("E3 same");
     hRatio->Draw("E1 same"); //add again on top of confidence intervals
     f1->Draw("same");
   } else {
     gStyle->SetOptFit(0);
   }
+  if(!f1) cout << "Error! Fit function not found!\n";
   return c;
 }
 
@@ -122,10 +128,10 @@ Int_t initialize_plotter(TString base, TString path, int year) {
   //card constructor:    filepath,                             name,                  label,              isData, xsec,  isSignal
   CrossSections xs; //cross section handler
   dataplotter_->set_luminosity(xs.GetLuminosity(year));
-  if(year == 2018)
-    cards.push_back(dcard(path+base+"DY50.hist"             , "DY50"               , "Drell-Yan"         , false, xs.GetCrossSection("DY50"               ), false, year));
+  if(year == 2017)
+    cards.push_back(dcard(path+base+"DY50-ext.hist"         , "DY50-ext"           , "Drell-Yan"         , false, xs.GetCrossSection("DY50"               ), false, year));
   else
-    cards.push_back(dcard(path+base+"DY50-ext.hist"         , "DY50"               , "Drell-Yan"         , false, xs.GetCrossSection("DY50"               ), false, year));
+    cards.push_back(dcard(path+base+"DY50-amc.hist"         , "DY50-amc"           , "Drell-Yan"         , false, xs.GetCrossSection("DY50"               ), false, year));
   cards.push_back(dcard(path+base+"SingleAntiToptW.hist"    , "SingleAntiToptW"    , "SingleTop"         , false, xs.GetCrossSection("SingleAntiToptW"    ), false, year));
   cards.push_back(dcard(path+base+"SingleToptW.hist"        , "SingleToptW"        , "SingleTop"         , false, xs.GetCrossSection("SingleToptW"        ), false, year));
   cards.push_back(dcard(path+base+"WWW.hist"                , "WWW"                , "ZZ,WZ,WWW"         , false, xs.GetCrossSection("WWW"                ), false, year));
@@ -244,8 +250,8 @@ Int_t scale_factors(TString selection = "emu", int set = 8, int year = 2016,
   c2->SetLogy();
   c2->Print((name+"_OS_log.png").Data());
   c3->Print((name+"_scale.png").Data());
-  c3->SetLogy();
-  c3->Print((name+"_scale_log.png").Data());
+  // c3->SetLogy();
+  // c3->Print((name+"_scale_log.png").Data());
 
   const char* fname = Form("rootfiles/qcd_scale_%s_%i.root", selection.Data(), year);
   TFile* fOut = new TFile(fname, "RECREATE");
@@ -256,8 +262,10 @@ Int_t scale_factors(TString selection = "emu", int set = 8, int year = 2016,
     if(hQCDScale->GetBinContent(ibin) > 5.) hQCDScale->SetBinContent(ibin, 5.);
   }
   hQCDScale->Write();
-  f->SetName("fRatio");
-  f->Write();
+  if(f) {
+    f->SetName("fRatio");
+    f->Write();
+  }
   fOut->Close();
   delete fOut;
   return 0;

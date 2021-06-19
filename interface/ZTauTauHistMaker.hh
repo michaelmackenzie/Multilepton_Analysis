@@ -50,12 +50,15 @@
 #include "interface/PUWeight.hh"
 //define Jet PU weights locally
 #include "interface/JetPUWeight.hh"
+//define Pre-fire weights locally
+#include "interface/PrefireWeight.hh"
 //define BTag weights locally
 #include "interface/BTagWeight.hh"
 //define Z pT weights locally
 #include "interface/ZPtWeight.hh"
 //define Jet->tau weights locally
 #include "interface/JetToTauWeight.hh"
+#include "interface/JetToTauComposition.hh"
 //define Jet->lep weights locally
 #include "interface/JetToLepWeight.hh"
 //define SS->OS weights locally
@@ -90,6 +93,7 @@ public :
   Float_t genWeight                  ;
   Float_t puWeight                   ;
   Float_t jetPUIDWeight = 1.         ;
+  Float_t prefireWeight = 1.         ;
   Float_t topPtWeight                ;
   Float_t btagWeight = 1.            ;
   Float_t zPtWeight                  ;
@@ -300,6 +304,8 @@ public :
   Int_t   svFitStatus                ;
   TLorentzVector* leptonOneSVP4 = 0  ;
   TLorentzVector* leptonTwoSVP4 = 0  ;
+  //gen-level info
+  UChar_t LHE_Njets                  ;
 
 
   //define object to apply box cuts
@@ -420,11 +426,20 @@ public :
   };
 
   ZTauTauHistMaker(int seed = 90, TTree * /*tree*/ = 0) : fSystematicSeed(seed),
-                                                          fMuonJetToTauWeight("mumu", 0, seed), fMuonJetToTauMCWeight("mumu", 2, seed),
-                                                          fElectronJetToTauWeight("ee", 0, seed),
+                                                          fMuonJetToTauWeight("MuonWeight", "mutau", 8, 1200100, seed, 1),
+                                                          fMuonJetToTauMCWeight("MuonMCWeight", "mutau", 35, 1000002, seed, 1),
+                                                          // fMuonJetToTauWeight("MuonWeight", "mumu", 7, 1100, seed, 1),
+                                                          // fMuonJetToTauMCWeight("MuonMCWeight", "mutau", 35, 1000102, seed, 1),
+                                                          fMuonJetToTauComp("mutau", 2035, 0, 1),
+                                                          fElectronJetToTauWeight("ElectronWeight", "ee", 7, 1000, seed),
                                                           fJetToMuonWeight("mumu"), fJetToElectronWeight("ee"),
                                                           fQCDWeight("emu", seed), fZPtWeight(seed) { }
-  virtual ~ZTauTauHistMaker() { }
+  ~ZTauTauHistMaker() {
+    for(int proc = 0; proc < JetToTauComposition::kLast; ++proc) {
+      delete fMuonJetToTauWeights[proc];
+    }
+    delete fSystematicShifts;
+  }
   virtual Int_t   Version() const { return 2; }
   virtual void    Begin(TTree *tree);
   virtual void    SlaveBegin(TTree *tree);
@@ -456,6 +471,13 @@ public :
   virtual void    CountSlimObjects();
   virtual int     Category(TString selection);
   virtual void    InitializeSystematics();
+  TString GetOutputName() {
+    return Form("ztautau%s_%s%s%s.hist",
+                (fFolderName == "") ? "" : ("_"+fFolderName).Data(),fChain->GetName(),
+                (fDYType >  0) ? Form("-%i",fDYType) : "",
+                (fWNJets >= 0) ? Form("-%i",fWNJets) : ""
+                );
+  }
 
   virtual void    ProcessLLGStudy();
 
@@ -511,12 +533,14 @@ public :
 
   Int_t           fDYType = -1; //for splitting Z->ll into 1: tau tau and 2: e/mu e/mu
   Bool_t          fIsDY = false; //for checking if DY --> Z pT weights
+  Int_t           fWNJets = -1;  //for splitting w+jets samples
   Bool_t          fDYTesting = false; //for speeding up histogramming to only do DY weight related aspects
   Bool_t          fDYFakeTauTesting = false; //for speeding up histogramming to only do DY jet --> fake tau scale factor aspects
   Bool_t          fWJFakeTauTesting = false; //for speeding up histogramming to only do W+jet --> fake tau scale factor aspects
   Bool_t          fTTFakeTauTesting = false; //for speeding up histogramming to only do ttbar jet --> fake tau scale factor aspects
   Bool_t          fQCDFakeTauTesting = false; //for speeding up histogramming to only do qcd jet --> fake tau scale factor aspects
   Bool_t          fCutFlowTesting = false; //for only testing basic cutflow sets
+  Bool_t          fJetTauTesting = false; //for including MC j->tau sets in testing mode
   Bool_t          fDoMVASets = false; //for filling MVA cut sets even in DYTesting mode
 
   Int_t           fDoSystematics = 0; //0: ignore systematic histograms 1: fill them -1: only fill them
@@ -546,9 +570,17 @@ public :
   PUWeight        fPUWeight; //object to define pu weights
   Int_t           fUseJetPUIDWeights = 1; //use jet PU ID weights
   JetPUWeight     fJetPUWeight; //object to define jet PU ID weights
+  Int_t           fUsePrefireWeights = 1; //use pre-fire weights
+  PrefireWeight   fPrefireWeight; //object to define pre-fire weights
   Int_t           fAddJetTauWeights = 1; //0: do nothing 1: weight anti-iso tau CR data
   JetToTauWeight  fMuonJetToTauWeight; //for mutau
   JetToTauWeight  fMuonJetToTauMCWeight; //for mutau using MC estimated factors
+  JetToTauComposition  fMuonJetToTauComp; //for mutau
+  JetToTauWeight* fMuonJetToTauWeights[JetToTauComposition::kLast];
+  Float_t*        fJetToTauWts   = new Float_t[JetToTauComposition::kLast];
+  Float_t*        fJetToTauCorrs = new Float_t[JetToTauComposition::kLast];
+  Float_t*        fJetToTauComps = new Float_t[JetToTauComposition::kLast];
+  Bool_t          fUseJetToTauComposition = false;
   JetToTauWeight  fElectronJetToTauWeight; //for etau
   JetToLepWeight  fJetToMuonWeight; //for mutau
   JetToLepWeight  fJetToElectronWeight; //for etau
@@ -599,7 +631,7 @@ void ZTauTauHistMaker::Init(TTree *tree)
       tree->SetBranchStatus("lumiSection"         , 1);
       tree->SetBranchStatus("nPV"                 , 1);
       tree->SetBranchStatus("nPU"                 , 1);
-      tree->SetBranchStatus("nPartons"            , 1);
+      // tree->SetBranchStatus("nPartons"            , 1);
       tree->SetBranchStatus("triggerLeptonStatus" , 1);
       tree->SetBranchStatus("muonTriggerStatus"   , 1);
       tree->SetBranchStatus("lepOneTrigWeight"    , 1);
@@ -613,7 +645,7 @@ void ZTauTauHistMaker::Init(TTree *tree)
       tree->SetBranchStatus("eventWeight"         , 1);
       tree->SetBranchStatus("genWeight"           , 1);
       tree->SetBranchStatus("puWeight"            , 1);
-      tree->SetBranchStatus("topPtWeight"         , 1);
+      // tree->SetBranchStatus("topPtWeight"         , 1);
       tree->SetBranchStatus("btagWeight"          , 1);
       tree->SetBranchStatus("zPtWeight"           , 1);
       tree->SetBranchStatus("zPt"                 , 1);
@@ -624,6 +656,10 @@ void ZTauTauHistMaker::Init(TTree *tree)
       tree->SetBranchStatus("leptonTwoFlavor"     , 1);
       tree->SetBranchStatus("leptonOneGenFlavor"  , 1);
       tree->SetBranchStatus("leptonTwoGenFlavor"  , 1);
+      tree->SetBranchStatus("leptonOneIso"        , 1);
+      tree->SetBranchStatus("leptonTwoIso"        , 1);
+      tree->SetBranchStatus("leptonOneD0"         , 1);
+      tree->SetBranchStatus("leptonTwoD0"         , 1);
       tree->SetBranchStatus("leptonOneIndex"      , 1);
       tree->SetBranchStatus("leptonTwoIndex"      , 1);
       tree->SetBranchStatus("lepOneWeight1"       , 1);
@@ -715,6 +751,7 @@ void ZTauTauHistMaker::Init(TTree *tree)
       tree->SetBranchStatus("metPhi"              , 1);
       tree->SetBranchStatus("metCorr"             , 1);
       tree->SetBranchStatus("metCorrPhi"          , 1);
+      tree->SetBranchStatus("LHE_Njets"           , 1);
       if(!fReprocessMVAs) {
         for(unsigned mva_i = 0; mva_i < fMVAConfig.names_.size(); ++mva_i) {
           tree->SetBranchStatus(Form("mva%i",mva_i), 1);
@@ -774,10 +811,8 @@ void ZTauTauHistMaker::Init(TTree *tree)
     // slimTaus = new SlimTaus_t();
     // slimPhotons = new SlimPhotons_t();
     // slimJets = new SlimJets_t();
-
-    fOut = new TFile(Form("ztautau%s%s_%s.hist",(fFolderName == "") ? "" : ("_"+fFolderName).Data(),
-                          (fDYType > 0) ? Form("_%i",fDYType) : "",tree->GetName()),
-                     "RECREATE","ZTauTauHistMaker output histogram file");
+    fChain = tree;
+    fOut = new TFile(GetOutputName(), "RECREATE","ZTauTauHistMaker output histogram file");
     fTopDir = fOut->mkdir("Data");
     fTopDir->cd();
 
@@ -824,13 +859,15 @@ void ZTauTauHistMaker::Init(TTree *tree)
       // fEventSets [kMuTau + 28] = 1;
       // fEventSets [kMuTau + 29] = 1;
 
-      // fEventSets [kMuTau + 30] = 1;
-      // fEventSets [kMuTau + 31] = 1;
-      // fEventSets [kMuTau + 32] = 1;
+      fEventSets [kMuTau + 30] = 1;
+      fEventSets [kMuTau + 31] = 1;
+      fEventSets [kMuTau + 32] = 1;
 
       // fEventSets [kMuTau + 34] = 1;
       fEventSets [kMuTau + 35] = 1;
-      // fEventSets [kMuTau + 36] = 1;
+      fEventSets [kMuTau + 36] = 1;
+      fEventSets [kMuTau + 37] = 1;
+      fEventSets [kMuTau + 38] = 1;
 
       fEventSets [kMuTau + 40] = 1; //Closure j-->tau test, true MC taus
       fEventSets [kMuTau + 41] = 1; //Closure j-->tau test, fake MC taus + weights
@@ -870,13 +907,15 @@ void ZTauTauHistMaker::Init(TTree *tree)
       // fEventSets [kETau + 28] = 1;
       // fEventSets [kETau + 29] = 1;
 
-      // fEventSets [kETau + 30] = 1;
-      // fEventSets [kETau + 31] = 1;
-      // fEventSets [kETau + 32] = 1;
+      fEventSets [kETau + 30] = 1;
+      fEventSets [kETau + 31] = 1;
+      fEventSets [kETau + 32] = 1;
 
       // fEventSets [kETau + 34] = 1;
       fEventSets [kETau + 35] = 1;
-      // fEventSets [kETau + 36] = 1;
+      fEventSets [kETau + 36] = 1;
+      fEventSets [kETau + 37] = 1;
+      fEventSets [kETau + 38] = 1;
 
       fEventSets [kETau + 45] = 1; //taus in the barrel
       fEventSets [kETau + 46] = 1; //taus in the endcap
@@ -1029,8 +1068,10 @@ void ZTauTauHistMaker::Init(TTree *tree)
   fChain->SetBranchAddress("lumiSection"         , &lumiSection          );
   fChain->SetBranchAddress("nPV"                 , &nPV                  );
   fChain->SetBranchAddress("nPU"                 , &nPU                  );
-  fChain->SetBranchAddress("nPartons"            , &nPartons             );
+  fChain->SetBranchAddress("LHE_Njets"           , &LHE_Njets            );
   if(!fDYTesting) {
+    fChain->SetBranchAddress("nPartons"            , &nPartons             );
+    fChain->SetBranchAddress("topPtWeight"         , &topPtWeight          );
     fChain->SetBranchAddress("mcEra"               , &mcEra                );
   }
   fChain->SetBranchAddress("triggerLeptonStatus" , &triggerLeptonStatus  );
@@ -1038,7 +1079,6 @@ void ZTauTauHistMaker::Init(TTree *tree)
   fChain->SetBranchAddress("eventWeight"         , &eventWeight          );
   fChain->SetBranchAddress("genWeight"           , &genWeight            );
   fChain->SetBranchAddress("puWeight"            , &puWeight             );
-  fChain->SetBranchAddress("topPtWeight"         , &topPtWeight          );
   fChain->SetBranchAddress("btagWeight"          , &btagWeight           );
   fChain->SetBranchAddress("zPtWeight"           , &zPtWeight            );
   fChain->SetBranchAddress("zPt"                 , &zPt                  );
@@ -1062,11 +1102,11 @@ void ZTauTauHistMaker::Init(TTree *tree)
   fChain->SetBranchAddress("leptonTwoFlavor"     , &leptonTwoFlavor      );
   fChain->SetBranchAddress("leptonOneGenFlavor"  , &leptonOneGenFlavor   );
   fChain->SetBranchAddress("leptonTwoGenFlavor"  , &leptonTwoGenFlavor   );
+  fChain->SetBranchAddress("leptonOneIso"        , &leptonOneIso         );
+  fChain->SetBranchAddress("leptonTwoIso"        , &leptonTwoIso         );
+  fChain->SetBranchAddress("leptonOneD0"         , &leptonOneD0          );
+  fChain->SetBranchAddress("leptonTwoD0"         , &leptonTwoD0          );
   if(!fDYTesting) {
-    fChain->SetBranchAddress("leptonOneD0"         , &leptonOneD0          );
-    fChain->SetBranchAddress("leptonTwoD0"         , &leptonTwoD0          );
-    fChain->SetBranchAddress("leptonOneIso"        , &leptonOneIso         );
-    fChain->SetBranchAddress("leptonTwoIso"        , &leptonTwoIso         );
     fChain->SetBranchAddress("leptonOneID2"        , &leptonOneID2         );
     fChain->SetBranchAddress("leptonTwoID3"        , &leptonTwoID3         );
   }

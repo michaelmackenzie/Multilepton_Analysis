@@ -86,8 +86,8 @@ void NanoAODConversion::Begin(TTree * /*tree*/)
   fMuonIsoSelect   [kMuMu]  = ParticleCorrections::kTightMuIso;
   fMuonIDSelect    [kMuMu]  = 3;
   //ee
-  fElectronIDSelect[kEE]    = 2;
-
+  fElectronIDSelect[kEE]    = 2
+;
   //initialize object counting parameters for each selection
   //mutau
   fCountMuons       [kMuTau] = true;
@@ -189,6 +189,8 @@ void NanoAODConversion::InitializeInBranchStructure(TTree* tree) {
   tree->SetBranchAddress("Muon_tightId"                    , &muonTightId                    ) ;
   tree->SetBranchAddress("Muon_nTrackerLayers"             , &muonNTrkLayers                 ) ;
   tree->SetBranchAddress("Muon_genPartFlav"                , &muonGenFlavor                  ) ;
+  tree->SetBranchAddress("Muon_dxy"                        , &muondxy                        ) ;
+  tree->SetBranchAddress("Muon_dz"                         , &muondz                         ) ;
   tree->SetBranchAddress("nElectron"                       , &nElectron                      ) ;
   tree->SetBranchAddress("nElectrons"                      , &nElectronsSkim                 ) ;
   tree->SetBranchAddress("Electron_pt"                     , &electronPt                     ) ;
@@ -201,7 +203,10 @@ void NanoAODConversion::InitializeInBranchStructure(TTree* tree) {
   tree->SetBranchAddress("Electron_mvaFall17V2Iso_WPL"     , &electronWPL                    ) ;
   tree->SetBranchAddress("Electron_mvaFall17V2Iso_WP80"    , &electronWP80                   ) ;
   tree->SetBranchAddress("Electron_mvaFall17V2Iso_WP90"    , &electronWP90                   ) ;
+  tree->SetBranchAddress("Electron_pfRelIso03_all"         , &electronRelIso                 ) ;
   tree->SetBranchAddress("Electron_genPartFlav"            , &electronGenFlavor              ) ;
+  tree->SetBranchAddress("Electron_dxy"                    , &electrondxy                    ) ;
+  tree->SetBranchAddress("Electron_dz"                     , &electrondz                     ) ;
   tree->SetBranchAddress("nTau"                            , &nTau                           ) ;
   tree->SetBranchAddress("nTaus"                           , &nTausSkim                      ) ;
   tree->SetBranchAddress("Tau_pt"                          , &tauPt                          ) ;
@@ -262,6 +267,7 @@ void NanoAODConversion::InitializeInBranchStructure(TTree* tree) {
   tree->SetBranchAddress("TrigObj_phi"                     , &trigObjPhi                     ) ;
   tree->SetBranchAddress("TrigObj_id"                      , &trigObjID                      ) ;
 
+  tree->SetBranchAddress("LHE_Njets"                       , &LHE_Njets                      ) ;
   tree->SetBranchAddress("leptonOneIndex"                  , &leptonOneSkimIndex             ) ;
   tree->SetBranchAddress("leptonTwoIndex"                  , &leptonTwoSkimIndex             ) ;
   tree->SetBranchAddress("leptonOneFlavor"                 , &leptonOneSkimFlavor            ) ;
@@ -270,6 +276,8 @@ void NanoAODConversion::InitializeInBranchStructure(TTree* tree) {
   tree->SetBranchAddress("leptonTwoGenPt"                  , &leptonTwoGenPt                 ) ;
   tree->SetBranchAddress("zPt"                             , &zPtIn                          ) ;
   tree->SetBranchAddress("zMass"                           , &zMassIn                        ) ;
+  tree->SetBranchAddress("zLepOne"                         , &zLepOne                        ) ;
+  tree->SetBranchAddress("zLepTwo"                         , &zLepTwo                        ) ;
 
 }
 
@@ -476,7 +484,8 @@ void NanoAODConversion::InitializeOutBranchStructure(TTree* tree) {
   tree->Branch("leptonsIsoID"                  , leptonsIsoID     , "leptonsIsoID[nExtraLep]/b");
   tree->Branch("leptonsTriggered"              , leptonsTriggered , "leptonsTriggered[nExtraLep]/b");
   tree->Branch("leptonsGenFlavor"              , leptonsGenFlavor , "leptonsGenFlavor[nExtraLep]/b");
-
+  //gen level info
+  tree->Branch("LHE_Njets"                     , &LHE_Njets);
 }
 
 //calculate the weight for b-tagging corrections
@@ -652,6 +661,8 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
   //reset lepton IDs
   leptonOneID1 = 0; leptonOneID2 = 0;
   leptonTwoID1 = 0; leptonTwoID2 = 0; leptonTwoID3 = 0;
+  leptonOneIso = -1.; leptonTwoIso = -1.;
+  leptonOneD0 = 0.; leptonTwoD0 = 0.;
 
   //////////////////////////////
   //      lep 1 = muon        //
@@ -664,6 +675,7 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
     leptonOneID1 = muonIsoId[index];
     leptonOneID2 = 0;
     leptonOneIso = muonRelIso[index]*muonPt[index];
+    leptonOneD0 = sqrt(muondxy[index]*muondxy[index] + muondz[index]*muondz[index]);
     leptonOnePtSF = muonRoccoSF[index];
     leptonOneGenFlavor = (!fIsData) ? MuonFlavorFromID(muonGenFlavor[index]) : 0;
     leptonOneIndex = index;
@@ -697,6 +709,8 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
     leptonOneFlavor = -11*electronCharge[index];
     leptonOneID1 = electronWPL[index] + 2*electronWP90[index] + 4*electronWP80[index];
     leptonOneID2 = 0;
+    leptonOneIso = electronRelIso[index]*electronPt[index];
+    leptonOneD0 = sqrt(electrondxy[index]*electrondxy[index] + electrondz[index]*electrondz[index]);
     leptonOneGenFlavor = (!fIsData) ? ElectronFlavorFromID(electronGenFlavor[index]) : 0;
     leptonOneIndex = index;
     trigMatchOne = GetTriggerMatch(index, false, trigIndexOne);
@@ -727,7 +741,7 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
                               tauPhi[index],tauMass[index]);
     //FIXME: should apply energy scale correction to all taus
     tauEnergyScale = (fIsData == 0) ? particleCorrections->TauEnergyScale(leptonTwoP4->Pt(), leptonTwoP4->Eta(), tauDecayMode[index],
-                                                                          tauGenID[index], fYear, tauES_up, tauES_down, tauES_bin) : 1.;
+                                                                          tauGenID[index], tauDeep2017VsJet[index], fYear, tauES_up, tauES_down, tauES_bin) : 1.;
     if(tauEnergyScale <= 0.)
       std::cout << "WARNING! In event " << fentry
                 << " tau energy scale <= 0 = " << tauEnergyScale
@@ -738,13 +752,14 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
     tauGenIDOut  = tauGenID[index];
     tauGenFlavor = TauFlavorFromID((int) tauGenIDOut);
     leptonTwoGenFlavor = tauGenFlavor;
-    lepTwoWeight1 = (fIsData == 0) ? particleCorrections->TauWeight(leptonTwoP4->Pt(), leptonTwoP4->Eta(), tauGenID[index], fYear,
+    lepTwoWeight1 = (fIsData == 0) ? particleCorrections->TauWeight(leptonTwoP4->Pt(), leptonTwoP4->Eta(), tauGenID[index], tauDeep2017VsJet[index], fYear,
                                                                     lepTwoWeight1_up, lepTwoWeight1_down, lepTwoWeight1_bin) : 1.;
     leptonTwoID1 = tauAntiEle[index]; //MVA ID
     leptonTwoID2 = tauAntiMu[index];  //MVA ID
     leptonTwoID3 = tauAntiJet[index];  //MVA ID
     taudxyOut = taudxy[index];
     taudzOut  = taudz[index];
+    leptonTwoD0 = sqrt(taudxy[index]*taudxy[index] + taudz[index]*taudz[index]);
     leptonTwoIndex = index;
     tauDecayModeOut = tauDecayMode[index];
 
@@ -762,6 +777,7 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
     leptonTwoID1 = muonIsoId[index];
     leptonTwoID2 = 0;
     leptonTwoIso = muonRelIso[index]*muonPt[index];
+    leptonTwoD0 = sqrt(muondxy[index]*muondxy[index] + muondz[index]*muondz[index]);
     leptonTwoPtSF = muonRoccoSF[index];
     leptonTwoGenFlavor = (!fIsData) ? MuonFlavorFromID(muonGenFlavor[index]) : 0;
     leptonTwoIndex = index;
@@ -799,6 +815,8 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
     leptonTwoFlavor = -13*muonCharge[index];
     leptonTwoID1 = muonIsoId[index];
     leptonTwoID2 = 0;
+    leptonTwoIso = muonRelIso[index]*muonPt[index];
+    leptonTwoD0 = sqrt(muondxy[index]*muondxy[index] + muondz[index]*muondz[index]);
     leptonTwoPtSF = muonRoccoSF[index];
     leptonTwoGenFlavor = (!fIsData) ? MuonFlavorFromID(muonGenFlavor[index]) : 0;
     leptonTwoIndex = index;
@@ -832,6 +850,8 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
     leptonTwoFlavor = -11*electronCharge[index];
     leptonTwoID1 = electronWPL[index] + 2*electronWP90[index] + 4*electronWP80[index];
     leptonTwoID2 = 0;
+    leptonTwoIso = electronRelIso[index]*electronPt[index];
+    leptonTwoD0 = sqrt(electrondxy[index]*electrondxy[index] + electrondz[index]*electrondz[index]);
     trigMatchTwo = GetTriggerMatch(index, false, trigIndexTwo);
     leptonTwoGenFlavor = (!fIsData) ? ElectronFlavorFromID(electronGenFlavor[index]) : 0;
     leptonTwoIndex = index;
@@ -897,8 +917,8 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
       taudzOut  = 0.;
       tauFlavor = 0;
     }
-    CountTaus(selection);
   }
+  CountTaus(selection);
   CountLightLeptons(selection);
 
   if((selection == kEE || selection == kMuMu) && leptonOneIndex == leptonTwoIndex)
@@ -1522,11 +1542,11 @@ void NanoAODConversion::CountTaus(int selection) {
     tausAntiEle   [ntau] = tauDeep2017VsE[index];
     tausDM        [ntau] = tauDecayMode[index];
     tausGenFlavor [ntau] = TauFlavorFromID((int) tauGenID[index]);
-    tausWeight    [ntau] = (fIsData == 0) ? particleCorrections->TauWeight(tauPt[index], tauEta[index], tauGenID[index], fYear) : 1.;
+    tausWeight    [ntau] = (fIsData == 0) ? particleCorrections->TauWeight(tauPt[index], tauEta[index], tauGenID[index], tauDeep2017VsJet[index], fYear) : 1.;
     float up, down;
     int bin;
     float tausEScale = particleCorrections->TauEnergyScale(tauPt[index], tauEta[index], tauDecayMode[index],
-                                                           tauGenID[index], fYear, up, down, bin);
+                                                           tauGenID[index], tauDeep2017VsJet[index], fYear, up, down, bin);
     if(tausEScale <= 0.)
       std::cout << "WARNING! In event " << fentry
                 << __func__ << " tau energy scale <= 0 = " << tausEScale
@@ -1867,8 +1887,8 @@ Bool_t NanoAODConversion::Process(Long64_t entry)
     InitializeTreeVariables(selection);
 
     //Check is a same sign (SS) event if requested to skip them
-    bool skipSS = fSkipMuMuEESS && ((selection == kMuMu && muonCharge[leptonOneIndex] == muonCharge[leptonTwoIndex]) ||
-                                    (selection == kEE && electronCharge[leptonOneIndex] == electronCharge[leptonTwoIndex]));
+    bool skipSS = fSkipMuMuEESS && ((selection == kMuMu && muonCharge    [leptonOneIndex] == muonCharge    [leptonTwoIndex]) ||
+                                    (selection == kEE   && electronCharge[leptonOneIndex] == electronCharge[leptonTwoIndex]));
 
     //Skip the SS events if requested
     if(skipSS) {
@@ -1877,6 +1897,7 @@ Bool_t NanoAODConversion::Process(Long64_t entry)
                   << " Skim flavors = " << leptonOneSkimFlavor << " and " << leptonTwoSkimFlavor
                   << ", indices = " << leptonOneIndex << " and " << leptonTwoIndex
                   << ", skim indices = " << leptonOneSkimIndex << " and " << leptonTwoSkimIndex
+                  << " found selection = " << fSelecNames[selection].Data()
                   << std::endl;
       ++fNSkipped;
       continue;

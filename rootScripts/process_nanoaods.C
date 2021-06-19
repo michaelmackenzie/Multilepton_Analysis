@@ -46,32 +46,36 @@ Int_t process_nanoaods() {
   //  2016  //
   ////////////
 
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_SingleToptW_2016.root"             , 0.003758));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_SingleAntiToptW_2016.root"         , 0.0034));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_DY50_2016.root"                    , 0));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_WW_2016.root"                      , 0.));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_WZ_2016.root"                      , 0.));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_ZZ_2016.root"                      , 0.));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_Wlnu_2016.root"                    , 0.));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_Wlnu-1J_2016.root"                 , 0.));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_ttbarToSemiLeptonic_2016.root"     , 0.));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_ttbarToHadronic_2016.root"         , 0.));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_ttbarlnu_2016.root"                , 0.));
-  cards.push_back(datacard_t(true , "MC/signals/LFVAnalysis_ZETau_2016.root"                       , 0.));
-  cards.push_back(datacard_t(true , "MC/signals/LFVAnalysis_ZMuTau_2016.root"                      , 0.));
-  cards.push_back(datacard_t(true , "MC/signals/LFVAnalysis_ZEMu_2016.root"                        , 0.));
-  cards.push_back(datacard_t(true , "MC/signals/LFVAnalysis_HETau_2016.root"                       , 0.));
-  cards.push_back(datacard_t(true , "MC/signals/LFVAnalysis_HMuTau_2016.root"                      , 0.));
-  cards.push_back(datacard_t(true , "MC/signals/LFVAnalysis_HEMu_2016.root"                        , 0.));
-  cards.push_back(datacard_t(true , "dataprocess/LFVAnalysis_SingleEle_2016.root"                  , 0.));
-  cards.push_back(datacard_t(true , "dataprocess/LFVAnalysis_SingleMu_2016.root"                   , 0.));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_DY50-ext_2016.root"                , 0));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_WWW_2016.root"                     , 0.06054));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_Wlnu-ext_2016.root"                , 0.));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_QCDDoubleEMEnrich30to40_2016.root" , 0.));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_QCDDoubleEMEnrich30toInf_2016.root", 0.));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_QCDDoubleEMEnrich40toInf_2016.root", 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_SingleToptW_2016.root"             , 0.003758));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_SingleAntiToptW_2016.root"         , 0.0034));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_DY50-amc_2016.root"                , 0));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_WW_2016.root"                      , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_WZ_2016.root"                      , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_ZZ_2016.root"                      , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Wlnu_2016.root"                    , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Wlnu-ext_2016.root"                , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Wlnu-1J_2016.root"                 , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Wlnu-2J_2016.root"                 , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Wlnu-3J_2016.root"                 , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Wlnu-4J_2016.root"                 , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_ttbarToSemiLeptonic_2016.root"     , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_ttbarToHadronic_2016.root"         , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_ttbarlnu_2016.root"                , 0.));
+  cards.push_back(datacard_t(false, "MC/signals/LFVAnalysis_ZETau_2016.root"                       , 0.));
+  cards.push_back(datacard_t(false, "MC/signals/LFVAnalysis_ZMuTau_2016.root"                      , 0.));
+  cards.push_back(datacard_t(false, "MC/signals/LFVAnalysis_ZEMu_2016.root"                        , 0.));
+  cards.push_back(datacard_t(false, "MC/signals/LFVAnalysis_HETau_2016.root"                       , 0.));
+  cards.push_back(datacard_t(false, "MC/signals/LFVAnalysis_HMuTau_2016.root"                      , 0.));
+  cards.push_back(datacard_t(false, "MC/signals/LFVAnalysis_HEMu_2016.root"                        , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_WWW_2016.root"                     , 0.06054));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_QCDDoubleEMEnrich30to40_2016.root" , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_QCDDoubleEMEnrich30toInf_2016.root", 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_QCDDoubleEMEnrich40toInf_2016.root", 0.));
+  cards.push_back(datacard_t(false, "dataprocess/LFVAnalysis_SingleEle_2016.root"                  , 0.));
+  cards.push_back(datacard_t(false, "dataprocess/LFVAnalysis_SingleMu_2016.root"                   , 0.));
 
+  // cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_DY50_2016.root"                    , 0));
+  // cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_DY50-ext_2016.root"                , 0));
   // cards.push_back(datacard_t(false, "dataprocess/LFVAnalysis_SingleMuonRun2016B_2016.root"         , 0.));
   // cards.push_back(datacard_t(false, "dataprocess/LFVAnalysis_SingleMuonRun2016C_2016.root"         , 0.));
   // cards.push_back(datacard_t(false, "dataprocess/LFVAnalysis_SingleMuonRun2016D_2016.root"         , 0.));
@@ -84,57 +88,65 @@ Int_t process_nanoaods() {
   //  2017  //
   ////////////
 
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_DY50_2017.root"                    , 0.1624));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_DY50-ext_2017.root"                , 0.1624));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_SingleToptW_2017.root"             , 0.003758));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_SingleAntiToptW_2017.root"         , 0.0034));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_WW_2017.root"                      , 0.));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_WZ_2017.root"                      , 0.));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_ZZ_2017.root"                      , 0.));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_WWW_2017.root"                     , 0.06054));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_Wlnu_2017.root"                    , 0.0004079));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_Wlnu-ext_2017.root"                , 0.0004079));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_ttbarToSemiLeptonic_2017.root"     , 0.));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_ttbarToHadronic_2017.root"         , 0.));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_ttbarlnu_2017.root"                , 0.));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_QCDDoubleEMEnrich30to40_2017.root" , 0.));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_QCDDoubleEMEnrich30toInf_2017.root", 0.));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_QCDDoubleEMEnrich40toInf_2017.root", 0.));
-  cards.push_back(datacard_t(true , "MC/signals/LFVAnalysis_ZETau_2017.root"                       , 0.));
-  cards.push_back(datacard_t(true , "MC/signals/LFVAnalysis_ZMuTau_2017.root"                      , 0.));
-  cards.push_back(datacard_t(true , "MC/signals/LFVAnalysis_ZEMu_2017.root"                        , 0.));
-  cards.push_back(datacard_t(true , "MC/signals/LFVAnalysis_HETau_2017.root"                       , 0.));
-  cards.push_back(datacard_t(true , "MC/signals/LFVAnalysis_HMuTau_2017.root"                      , 0.));
-  cards.push_back(datacard_t(true , "MC/signals/LFVAnalysis_HEMu_2017.root"                        , 0.));
-  cards.push_back(datacard_t(true , "dataprocess/LFVAnalysis_SingleEle_2017.root"                  , 0.));
-  cards.push_back(datacard_t(true , "dataprocess/LFVAnalysis_SingleMu_2017.root"                   , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_DY50_2017.root"                    , 0.1624));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_DY50-ext_2017.root"                , 0.1624));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_SingleToptW_2017.root"             , 0.003758));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_SingleAntiToptW_2017.root"         , 0.0034));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_WW_2017.root"                      , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_WZ_2017.root"                      , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_ZZ_2017.root"                      , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_WWW_2017.root"                     , 0.06054));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Wlnu_2017.root"                    , 0.0004079));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Wlnu-ext_2017.root"                , 0.0004079));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Wlnu-1J_2017.root"                 , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Wlnu-2J_2017.root"                 , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Wlnu-3J_2017.root"                 , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_ttbarToSemiLeptonic_2017.root"     , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_ttbarToHadronic_2017.root"         , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_ttbarlnu_2017.root"                , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_QCDDoubleEMEnrich30to40_2017.root" , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_QCDDoubleEMEnrich30toInf_2017.root", 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_QCDDoubleEMEnrich40toInf_2017.root", 0.));
+  cards.push_back(datacard_t(false, "MC/signals/LFVAnalysis_ZETau_2017.root"                       , 0.));
+  cards.push_back(datacard_t(false, "MC/signals/LFVAnalysis_ZMuTau_2017.root"                      , 0.));
+  cards.push_back(datacard_t(false, "MC/signals/LFVAnalysis_ZEMu_2017.root"                        , 0.));
+  cards.push_back(datacard_t(false, "MC/signals/LFVAnalysis_HETau_2017.root"                       , 0.));
+  cards.push_back(datacard_t(false, "MC/signals/LFVAnalysis_HMuTau_2017.root"                      , 0.));
+  cards.push_back(datacard_t(false, "MC/signals/LFVAnalysis_HEMu_2017.root"                        , 0.));
+  cards.push_back(datacard_t(false, "dataprocess/LFVAnalysis_SingleEle_2017.root"                  , 0.));
+  cards.push_back(datacard_t(false, "dataprocess/LFVAnalysis_SingleMu_2017.root"                   , 0.));
 
   ////////////
   //  2018  //
   ////////////
 
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_DY50_2018.root"                    , 0.0004962));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_SingleToptW_2018.root"             , 0.003758));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_SingleAntiToptW_2018.root"         , 0.0034));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_WW_2018.root"                      , 0.001916));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_WZ_2018.root"                      , 0.));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_ZZ_2018.root"                      , 0.));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_WWW_2018.root"                     , 0.06197));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_Wlnu_2018.root"                    , 0.0003866));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_ttbarToSemiLeptonic_2018.root"     , 0.));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_ttbarToHadronic_2018.root"         , 0.));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_ttbarlnu_2018.root"                , 0.));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_QCDDoubleEMEnrich30to40_2018.root" , 0.));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_QCDDoubleEMEnrich30toInf_2018.root", 0.));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_QCDDoubleEMEnrich40toInf_2018.root", 0.));
-  cards.push_back(datacard_t(true , "MC/signals/LFVAnalysis_ZETau_2018.root"                       , 0.));
-  cards.push_back(datacard_t(true , "MC/signals/LFVAnalysis_ZMuTau_2018.root"                      , 0.));
-  cards.push_back(datacard_t(true , "MC/signals/LFVAnalysis_ZEMu_2018.root"                        , 0.));
-  cards.push_back(datacard_t(true , "MC/signals/LFVAnalysis_HETau_2018.root"                       , 0.));
-  cards.push_back(datacard_t(true , "MC/signals/LFVAnalysis_HMuTau_2018.root"                      , 0.));
-  cards.push_back(datacard_t(true , "MC/signals/LFVAnalysis_HEMu_2018.root"                        , 0.));
-  cards.push_back(datacard_t(true , "dataprocess/LFVAnalysis_SingleEle_2018.root"                  , 0.));
-  cards.push_back(datacard_t(true , "dataprocess/LFVAnalysis_SingleMu_2018.root"                   , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_DY50-amc_2018.root"                , 0.0004962));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_SingleToptW_2018.root"             , 0.003758));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_SingleAntiToptW_2018.root"         , 0.0034));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_WW_2018.root"                      , 0.001916));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_WZ_2018.root"                      , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_ZZ_2018.root"                      , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_WWW_2018.root"                     , 0.06197));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Wlnu_2018.root"                    , 0.0003866));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Wlnu-1J_2018.root"                 , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Wlnu-2J_2018.root"                 , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Wlnu-3J_2018.root"                 , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Wlnu-4J_2018.root"                 , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_ttbarToSemiLeptonic_2018.root"     , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_ttbarToHadronic_2018.root"         , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_ttbarlnu_2018.root"                , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_QCDDoubleEMEnrich30to40_2018.root" , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_QCDDoubleEMEnrich30toInf_2018.root", 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_QCDDoubleEMEnrich40toInf_2018.root", 0.));
+  cards.push_back(datacard_t(false, "MC/signals/LFVAnalysis_ZETau_2018.root"                       , 0.));
+  cards.push_back(datacard_t(false, "MC/signals/LFVAnalysis_ZMuTau_2018.root"                      , 0.));
+  cards.push_back(datacard_t(false, "MC/signals/LFVAnalysis_ZEMu_2018.root"                        , 0.));
+  cards.push_back(datacard_t(false, "MC/signals/LFVAnalysis_HETau_2018.root"                       , 0.));
+  cards.push_back(datacard_t(false, "MC/signals/LFVAnalysis_HMuTau_2018.root"                      , 0.));
+  cards.push_back(datacard_t(false, "MC/signals/LFVAnalysis_HEMu_2018.root"                        , 0.));
+  cards.push_back(datacard_t(false, "dataprocess/LFVAnalysis_SingleEle_2018.root"                  , 0.));
+  cards.push_back(datacard_t(false, "dataprocess/LFVAnalysis_SingleMu_2018.root"                   , 0.));
+  // cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_DY50_2018.root"                    , 0.0004962));
 
 
   for(unsigned index = 0; index < cards.size(); ++index) {
@@ -246,7 +258,8 @@ Int_t process_nanoaods() {
     delete f;
     if(!debug_ && copyWhenDone_) {
       if(copyTreesLocally_) gSystem->Exec("rm tmp.tree");
-      gSystem->Exec("./move_trees.sh \"\" \"\" d; rm *.tree;");
+      TString tname = Form("clfv_%i_%s", year+2016, name.Data());
+      gSystem->Exec(Form("./move_trees.sh \"\" \"\" d %s; rm %s.tree;", tname.Data(), tname.Data()));
     }
   }
 

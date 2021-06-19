@@ -239,11 +239,14 @@ public :
   virtual TH2D* get_data_2D(TString hist, TString setType, Int_t set);
 
   virtual TH1D* get_qcd(TString hist, TString setType, Int_t set);
+  virtual TH2D* get_qcd_2D(TString hist, TString setType, Int_t set);
 
   virtual TH1D* get_misid(TString hist, TString setType, Int_t set);
+  virtual TH2D* get_misid_2D(TString hist, TString setType, Int_t set);
 
   virtual TH1D* get_stack_uncertainty(THStack* hstack, TString hname);
   virtual THStack* get_stack(TString hist, TString setType, Int_t set);
+  virtual TH2D* get_background_2D(TString hist, TString setType, Int_t set);
 
   virtual TCanvas* plot_single_2Dhist(TString hist, TString setType, Int_t set, TString label);
   TCanvas* plot_single_2Dhist(TString hist, TString setType, Int_t set, TString label,
