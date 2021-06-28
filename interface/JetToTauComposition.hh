@@ -18,10 +18,16 @@ public:
   JetToTauComposition(TString selection, int set = 35, int Mode = 0, int verbose = 0) : Mode_(Mode), verbose_(verbose) {
     TFile* f = 0;
     std::vector<int> years = {2016, 2017, 2018};
-    useFits_ = (Mode % 100) / 10 == 1;
-    TString name = "jettautwopt";
+    useOnePt_   = (Mode %  10) /  1 == 1;
+    useOneDPhi_ = (Mode %  10) /  1 == 2;
+    useFits_    = (Mode % 100) / 10 == 1;
+    TString name            = "jettautwopt";
+    if(useOnePt_)      name = "jettauonept";
+    else if(useOneDPhi_) name = "jettauonemetdeltaphi";
     if(verbose_ > 0) {
       std::cout << __func__ << ":\n Mode = " << Mode
+                << " useOnePt = " << useOnePt_
+                << " useOneDPhi = " << useOneDPhi_
                 << " useFits = " << useFits_
                 << std::endl
                 << " scale factor selection = " << selection.Data()
@@ -65,29 +71,43 @@ public:
   ~JetToTauComposition() { for(unsigned i = 0; i < files_.size(); ++i) delete files_[i]; }
 
   //Get scale factor for Data
-  void GetComposition(float pt, int year, float*& compositions) {
-    if(pt < 20. ) pt = 20.;
-    if(pt > 199.) pt = 199.;
+  void GetComposition(float pt, float pt_lead, float lead_dphi, int year, float*& compositions) {
+    if(pt < 20. ) pt = 20.f;
+    if(pt > 199.) pt = 199.f;
+    if(pt_lead < 20. ) pt_lead = 20.f;
+    if(pt_lead > 199.) pt_lead = 199.f;
+    lead_dphi = fabs(lead_dphi);
+    if(lead_dphi < 0.) lead_dphi = 0.f;
+    if(lead_dphi > M_PI) lead_dphi = M_PI;
     float tot = 0.f;
+    float var = pt;
+    if(useOnePt_) var = pt_lead;
+    else if(useOneDPhi_) var = lead_dphi;
+    if(verbose_ > 1)
+      std::cout << __func__ << ": Composition fractions for"
+                << " pt = " << pt << " lead pt = " << pt_lead << " lead met dPhi = " << lead_dphi
+                << " year = " << year << std::endl;
     for(int proc = 0; proc < kLast; ++proc) {
-      float comp = 0.;
+      float comp = 0.f;
       if(useFits_) {
         auto f = funcsData_[year][proc];
         if(!f) {
           std::cout << "!!! " << __func__ << ": No fit function found for year = " << year << " and process = " << proc << std::endl;
         } else {
-          comp = f->Eval(pt);
+          comp = f->Eval(var);
         }
       } else {
         auto h = histsData_[year][proc];
         if(!h) {
           std::cout << "!!! " << __func__ << ": No histogram found for year = " << year << " and process = " << proc << std::endl;
         } else {
-          comp = h->GetBinContent(h->FindBin(pt));
+          comp = h->GetBinContent(h->FindBin(var));
         }
       }
-      if(comp > 1. || comp < 0.) {
+      if(verbose_ > 1) std::cout << __func__ << ": Composition fraction for process " << proc << " = " << comp << std::endl;
+      if(comp > 1.f || comp < 0.f) {
         std::cout << "!!! " << __func__ << ": Composition fraction out of bounds, comp = " << comp
+                  << " pt = " << pt << " lead pt = " << pt_lead << " lead met dPhi = " << lead_dphi
                   << " year = " << year << std::endl;
         comp = std::max(0.f, std::min(comp, 1.f));
       }
@@ -96,6 +116,7 @@ public:
     }
     if(fabs(tot - 1.f) > 1.e-4) {
         std::cout << "!!! " << __func__ << ": Total composition out of tolerance, total = " << tot
+                  << " pt = " << pt << " lead pt = " << pt_lead << " lead met dphi = " << lead_dphi
                   << " year = " << year << std::endl;
     }
   }
@@ -108,6 +129,8 @@ public:
   std::vector<TFile*> files_;
   int Mode_;
   int verbose_;
+  bool useOnePt_;
+  bool useOneDPhi_;
   bool useFits_;
 
 };

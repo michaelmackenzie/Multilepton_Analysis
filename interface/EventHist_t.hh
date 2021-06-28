@@ -2,6 +2,7 @@
 #define __EVENTHIST__HH
 #include "TH1.h"
 #include "TH2.h"
+#include "interface/JetToTauComposition.hh"
 
 enum{kMaxCounts = 40, kMaxMVAs = 80};
 struct EventHist_t {
@@ -16,6 +17,8 @@ struct EventHist_t {
   TH1D* hJetToTauWeight;
   TH1D* hJetToTauWeightGroup;
   TH1D* hJetToTauWeightCorr;
+  TH1D* hJetToTauComps[JetToTauComposition::kLast];
+  TH1D* hJetToTauWts  [JetToTauComposition::kLast];
   TH1D* hIsSignal;
   TH1D* hNPV[2]; //0: with PU weights 1: without PU weights
   TH1D* hNPU[2]; //0: with PU weights 1: without PU weights

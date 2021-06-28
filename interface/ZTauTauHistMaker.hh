@@ -426,17 +426,19 @@ public :
   };
 
   ZTauTauHistMaker(int seed = 90, TTree * /*tree*/ = 0) : fSystematicSeed(seed),
-                                                          fMuonJetToTauWeight("MuonWeight", "mutau", 8, 1200100, seed, 1),
-                                                          fMuonJetToTauMCWeight("MuonMCWeight", "mutau", 35, 1000002, seed, 1),
+                                                          fMuonJetToTauWeight("MuonWeight", "mutau", 31, 1200100, seed, 0),
+                                                          fMuonJetToTauMCWeight("MuonMCWeight", "mutau", 35, 1000002, seed, 0),
                                                           // fMuonJetToTauWeight("MuonWeight", "mumu", 7, 1100, seed, 1),
                                                           // fMuonJetToTauMCWeight("MuonMCWeight", "mutau", 35, 1000102, seed, 1),
-                                                          fMuonJetToTauComp("mutau", 2035, 0, 1),
-                                                          fElectronJetToTauWeight("ElectronWeight", "ee", 7, 1000, seed),
+                                                          fMuonJetToTauComp("mutau", 2035, 2, 0), fMuonJetToTauSSComp("mutau", 3035, 2, 0),
+                                                          fElectronJetToTauWeight("ElectronWeight", "etau", 31, 1000100, seed),
+                                                          fElectronJetToTauComp("etau", 2035, 2, 0), fElectronJetToTauSSComp("etau", 3035, 2, 0),
                                                           fJetToMuonWeight("mumu"), fJetToElectronWeight("ee"),
                                                           fQCDWeight("emu", seed), fZPtWeight(seed) { }
   ~ZTauTauHistMaker() {
     for(int proc = 0; proc < JetToTauComposition::kLast; ++proc) {
       delete fMuonJetToTauWeights[proc];
+      delete fElectronJetToTauWeights[proc];
     }
     delete fSystematicShifts;
   }
@@ -576,12 +578,17 @@ public :
   JetToTauWeight  fMuonJetToTauWeight; //for mutau
   JetToTauWeight  fMuonJetToTauMCWeight; //for mutau using MC estimated factors
   JetToTauComposition  fMuonJetToTauComp; //for mutau
+  JetToTauComposition  fMuonJetToTauSSComp; //for mutau SS systematic test
   JetToTauWeight* fMuonJetToTauWeights[JetToTauComposition::kLast];
+  JetToTauWeight  fElectronJetToTauWeight; //for etau
+  JetToTauComposition  fElectronJetToTauComp; //for etau
+  JetToTauComposition  fElectronJetToTauSSComp; //for etau SS systematic test
+  JetToTauWeight* fElectronJetToTauWeights[JetToTauComposition::kLast];
   Float_t*        fJetToTauWts   = new Float_t[JetToTauComposition::kLast];
   Float_t*        fJetToTauCorrs = new Float_t[JetToTauComposition::kLast];
   Float_t*        fJetToTauComps = new Float_t[JetToTauComposition::kLast];
   Bool_t          fUseJetToTauComposition = false;
-  JetToTauWeight  fElectronJetToTauWeight; //for etau
+
   JetToLepWeight  fJetToMuonWeight; //for mutau
   JetToLepWeight  fJetToElectronWeight; //for etau
   QCDWeight       fQCDWeight; //for emu
@@ -871,6 +878,7 @@ void ZTauTauHistMaker::Init(TTree *tree)
 
       fEventSets [kMuTau + 40] = 1; //Closure j-->tau test, true MC taus
       fEventSets [kMuTau + 41] = 1; //Closure j-->tau test, fake MC taus + weights
+      fEventSets [kMuTau + 42] = 1; //Closure j-->tau test, fake MC taus without weights
 
       fEventSets [kMuTau + 45] = 1; //taus in the barrel
       fEventSets [kMuTau + 46] = 1; //taus in the endcap
@@ -916,6 +924,10 @@ void ZTauTauHistMaker::Init(TTree *tree)
       fEventSets [kETau + 36] = 1;
       fEventSets [kETau + 37] = 1;
       fEventSets [kETau + 38] = 1;
+
+      fEventSets [kETau + 40] = 1; //Closure j-->tau test, true MC taus
+      fEventSets [kETau + 41] = 1; //Closure j-->tau test, fake MC taus + weights
+      fEventSets [kETau + 42] = 1; //Closure j-->tau test, fake MC taus without weights
 
       fEventSets [kETau + 45] = 1; //taus in the barrel
       fEventSets [kETau + 46] = 1; //taus in the endcap

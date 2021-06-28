@@ -310,7 +310,7 @@ int test_data_scale(TString selection = "mumu", int year = 2016, int set1 = 50, 
   ////////////////////////
 
   TH1D *hData, *hMC;
-  TFile* f = new TFile(Form("rootfiles/jet_to_tau_lead_pt_correction_%s_%i.root", selection.Data(), year), "RECREATE");
+  TFile* f = new TFile(Form("rootfiles/jet_to_tau_lead_pt_correction_%s_%i_%i.root", selection.Data(), set1, year), "RECREATE");
   f->cd();
 
   //total tau pT range
@@ -409,6 +409,7 @@ int test_data_scale(TString selection = "mumu", int year = 2016, int set1 = 50, 
   make_2d_canvas(setAbs1, setAbs2, PlottingCard_t("jettautwoptvsr", "lep", 0), true);
   make_2d_canvas(setAbs1, setAbs2, PlottingCard_t("twoptvsonept"  , "lep", 0), true);
   make_canvas(setAbs1, setAbs2, PlottingCard_t("onept"      , "lep"  , 0, 2,  20., 120.), true);
+  make_canvas(setAbs1, setAbs2, PlottingCard_t("onereliso"  , "lep"  , 0, 2,   0.,  0.2), true);
   make_canvas(setAbs1, setAbs2, PlottingCard_t("onept11"    , "lep"  , 0, 2,  20., 120.), true);
   make_canvas(setAbs1, setAbs2, PlottingCard_t("oneeta"     , "lep"  , 0, 2,  -3.,   3.), true);
   make_canvas(setAbs1, setAbs2, PlottingCard_t("twopt"      , "lep"  , 0, 2,  20., 100.), true);
@@ -423,7 +424,7 @@ int test_data_scale(TString selection = "mumu", int year = 2016, int set1 = 50, 
   make_canvas(setAbs1, setAbs2, PlottingCard_t("njets"      , "event", 0, 1,   0.,   7.), true);
   make_canvas(setAbs1, setAbs2, PlottingCard_t("lepdeltar"  , "event", 0, 2,   0.,   6.), true);
   make_canvas(setAbs1, setAbs2, PlottingCard_t("lepdeltaphi", "event", 0, 2,   0.,   4.), true);
-  make_canvas(setAbs1, setAbs2, PlottingCard_t("lepm"       , "event", 0, 2,  50., 170.), true);
+  make_canvas(setAbs1, setAbs2, PlottingCard_t("lepm"       , "event", 0, 5,  50., 170.), true);
   make_canvas(setAbs1, setAbs2, PlottingCard_t("jettauoner" , "lep"  , 0               ), true);
   make_canvas(setAbs1, setAbs2, PlottingCard_t("jettautwor" , "lep"  , 0               ), true);
   make_canvas(setAbs1, setAbs2, PlottingCard_t("jettautwopt", "lep"  , 0               ), true);

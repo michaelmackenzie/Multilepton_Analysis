@@ -26,7 +26,7 @@ TH1D* get_qcd(PlottingCard_t card) {
   // delete hstack;
   return hQCD;
 }
-void make_composition(PlottingCard_t card, bool printHists = false) {
+void make_composition(PlottingCard_t card, bool printHists = false, bool debug = false) {
   TString hist = card.hist_;
   TString type = card.type_;
   int set = card.set_;
@@ -38,18 +38,22 @@ void make_composition(PlottingCard_t card, bool printHists = false) {
   TH1D* hQCD = get_qcd(card);
   hQCD->SetLineColor(dataplotter_->qcd_color_);
   hQCD->SetFillColor(dataplotter_->qcd_color_);
+  if(debug) cout << "Composition for: hist = " << hist.Data() << " type = " << type.Data() << endl
+                 << "Integrals:\n QCD = " << hQCD->Integral() << endl;
   //Get the total expectation
-  TH1D* htot = (TH1D*) hstack->GetStack()->Last();
+  TH1D* htot = (TH1D*) hstack->GetStack()->Last()->Clone("htot");
   htot->Add(hQCD);
 
   //Divide by the total expectation for fractional composition
   THStack* comp = new THStack(Form("comp_%s", hist.Data()), Form("comp_%s", hist.Data()));
   for(auto o : *hstack->GetHists()) {
     TH1D* h = (TH1D*) o->Clone(Form("hComposition_%s_%s", hist.Data(), o->GetTitle()));
+    if(debug) cout << " " << h->GetTitle() << " = " << h->Integral() << endl;
     h->Divide(htot);
     if(printHists) h->Write();
     comp->Add(h);
   }
+  if(debug) cout << " Total = " << htot->Integral() << endl;
   //for plotting purposes, clone qcd
   TH1D* hQCD_orig = (TH1D*) hQCD->Clone("QCD_orig");
   hQCD->Divide(htot);
@@ -143,7 +147,7 @@ Int_t initialize_plotter(TString base, TString path, int year) {
 
 
 //Generate the plots and scale factors
-Int_t composition(TString selection = "mutau", int setmc = 41, int setqcd = 35, int year = 2016, TString path = "nanoaods_dev") {
+Int_t composition(TString selection = "mutau", int setmc = 42, int setqcd = 35, int year = 2016, TString path = "nanoaods_dev") {
 
   //////////////////////
   // Initialize files //
@@ -196,7 +200,15 @@ Int_t composition(TString selection = "mutau", int setmc = 41, int setqcd = 35, 
   make_composition(PlottingCard_t("twopt", "lep", setmcAbs, 2, 20., 150.), true);
   make_composition(PlottingCard_t("jettautwopt", "lep", setmcAbs), true);
   make_composition(PlottingCard_t("jettauonept", "lep", setmcAbs), true);
+  make_composition(PlottingCard_t("jettautwor", "lep", setmcAbs), true);
+  make_composition(PlottingCard_t("jettauoner", "lep", setmcAbs), true);
+  make_composition(PlottingCard_t("jettauonemetdeltaphi", "lep", setmcAbs, 2, 0., 4.), true);
+  make_composition(PlottingCard_t("jettautwometdeltaphi", "lep", setmcAbs, 2, 0., 4.), true);
+  make_composition(PlottingCard_t("mtone", "event", setmcAbs, 5, 0., 150.), true);
+  make_composition(PlottingCard_t("mttwo", "event", setmcAbs, 5, 0., 150.), true);
+  make_composition(PlottingCard_t("mtlep", "event", setmcAbs, 5, 0., 150.), true);
 
+  // make_composition(PlottingCard_t("jettauonemetdeltaphi", "lep", setmcAbs, 2, 0., 4.), false, true);
 
   fOut->Close();
   delete fOut;

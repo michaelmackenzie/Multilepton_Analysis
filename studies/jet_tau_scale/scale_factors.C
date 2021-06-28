@@ -7,6 +7,8 @@ int verbose_ = 0;
 int usePtRegion_ = 0; //regions: 0 = all, 1 = pT > 45, 2 = pT > 60, 3 = pT < 45, 4 = pT < 60
 int drawFit_ = 1; //whether to draw the linear fits
 int splitWJ_ = 1; //whether to use jet binned w+jets samples or not
+TString process_ = ""; //Process of interest, where all others should be subtracted
+bool usingMCTaus_ = false; //whether or not the histogram set uses MC taus
 
 //Get the 2D jet pT vs eta histogram
 TH2D* get_histogram(int setAbs, int ijet, int idm, int isdata, int icat) {
@@ -17,7 +19,14 @@ TH2D* get_histogram(int setAbs, int ijet, int idm, int isdata, int icat) {
   unsigned nfiles = dataplotter_->data_.size();
   //get the histogram for each process added to the dataplotter
   for(unsigned d = 0; d < nfiles; ++d) {
-    if(dataplotter_->isData_[d] != (isdata > 0)) continue;
+    if(process_ == "") {
+      if(dataplotter_->isData_[d] != (isdata > 0)) continue;
+    } else if(isdata <= 0) { //MC taus
+      //check if this is the correct process
+      if(dataplotter_->labels_[d] != process_) continue;
+    } else { //data, with other processes subtracted
+      if(dataplotter_->labels_[d] == process_) continue; //skip correct process
+    }
     TString hpath = Form("event_%i/%s", setAbs, name.Data());
     if(verbose_ > 1) cout << "Retrieving histogram " << hpath.Data() << " for " << dataplotter_->names_[d].Data()
                           << " with scale = " << dataplotter_->scale_[d] << endl;
@@ -28,6 +37,10 @@ TH2D* get_histogram(int setAbs, int ijet, int idm, int isdata, int icat) {
     }
     hTmp = (TH2D*) hTmp->Clone(Form("hTmp_%s", name.Data()));
     if(!dataplotter_->isData_[d]) hTmp->Scale(dataplotter_->scale_[d]);
+
+    //subtract other MC processes from data
+    if(isdata > 0 && !dataplotter_->isData_[d]) hTmp->Scale(-1.);
+
     if(!h) h = hTmp;
     else h->Add(hTmp);
     if(verbose_ > 1) cout << "Histogram " << hpath.Data() << " has integral " << hTmp->Integral() << endl;
@@ -120,7 +133,7 @@ TCanvas* make_eta_region_canvas(TH2D* hnum, TH2D* hdnm, TString name, bool iseff
       func->SetParameters(0.1, 0.01, 0., 0.);
       func->SetParLimits(0, 0., 1.); //scale
       func->SetParLimits(1, -1.,  1.); //slope
-      func->SetParLimits(2, -2, 2); //x-offset
+      func->SetParLimits(2, -5, 5); //x-offset
       func->SetParLimits(3, 0., 1.); //y-offset
     }
     hetas[ibin]->Fit(func, fit_option.Data());
@@ -208,47 +221,47 @@ Int_t initialize_plotter(TString base, TString path, int year) {
   dataplotter_->set_luminosity(xs.GetLuminosity(year));
   if(verbose_ > 0) cout << "--- Dataplotter luminosity for " << year << " = " << dataplotter_->lum_ << endl;
   if(year == 2017) {
-    cards.push_back(dcard(path+base+"DY50-ext-1.hist"       , "DY50-ext-1"         , "Drell-Yan"         , false, xs.GetCrossSection("DY50"               ), false, year));
-    cards.push_back(dcard(path+base+"DY50-ext-2.hist"       , "DY50-ext-2"         , "Drell-Yan"         , false, xs.GetCrossSection("DY50"               ), false, year));
+    cards.push_back(dcard(path+base+"DY50-ext-1.hist"       , "DY50-ext-1"         , "ZJets"         , false, xs.GetCrossSection("DY50"               ), false, year));
+    cards.push_back(dcard(path+base+"DY50-ext-2.hist"       , "DY50-ext-2"         , "ZJets"         , false, xs.GetCrossSection("DY50"               ), false, year));
   } else {
-    cards.push_back(dcard(path+base+"DY50-amc-1.hist"       , "DY50-amc-1"         , "Drell-Yan"         , false, xs.GetCrossSection("DY50"               ), false, year));
-    cards.push_back(dcard(path+base+"DY50-amc-2.hist"       , "DY50-amc-2"         , "Drell-Yan"         , false, xs.GetCrossSection("DY50"               ), false, year));
+    cards.push_back(dcard(path+base+"DY50-amc-1.hist"       , "DY50-amc-1"         , "ZJets"         , false, xs.GetCrossSection("DY50"               ), false, year));
+    cards.push_back(dcard(path+base+"DY50-amc-2.hist"       , "DY50-amc-2"         , "ZJets"         , false, xs.GetCrossSection("DY50"               ), false, year));
   }
-  cards.push_back(dcard(path+base+"SingleAntiToptW.hist"    , "SingleAntiToptW"    , "SingleTop"         , false, xs.GetCrossSection("SingleAntiToptW"    ), false, year));
-  cards.push_back(dcard(path+base+"SingleToptW.hist"        , "SingleToptW"        , "SingleTop"         , false, xs.GetCrossSection("SingleToptW"        ), false, year));
-  cards.push_back(dcard(path+base+"WWW.hist"                , "WWW"                , "ZZ,WZ,WWW"         , false, xs.GetCrossSection("WWW"                ), false, year));
-  cards.push_back(dcard(path+base+"WZ.hist"                 , "WZ"                 , "ZZ,WZ,WWW"         , false, xs.GetCrossSection("WZ"                 ), false, year));
-  cards.push_back(dcard(path+base+"ZZ.hist"                 , "ZZ"                 , "ZZ,WZ,WWW"         , false, xs.GetCrossSection("ZZ"                 ), false, year));
-  cards.push_back(dcard(path+base+"WW.hist"                 , "WW"                 , "WW"                , false, xs.GetCrossSection("WW"                 ), false, year));
+  cards.push_back(dcard(path+base+"SingleAntiToptW.hist"    , "SingleAntiToptW"    , "Top"         , false, xs.GetCrossSection("SingleAntiToptW"    ), false, year));
+  cards.push_back(dcard(path+base+"SingleToptW.hist"        , "SingleToptW"        , "Top"         , false, xs.GetCrossSection("SingleToptW"        ), false, year));
+  cards.push_back(dcard(path+base+"WWW.hist"                , "WWW"                , "WJets"         , false, xs.GetCrossSection("WWW"                ), false, year));
+  cards.push_back(dcard(path+base+"WZ.hist"                 , "WZ"                 , "WJets"         , false, xs.GetCrossSection("WZ"                 ), false, year));
+  cards.push_back(dcard(path+base+"ZZ.hist"                 , "ZZ"                 , "WJets"         , false, xs.GetCrossSection("ZZ"                 ), false, year));
+  cards.push_back(dcard(path+base+"WW.hist"                 , "WW"                 , "WJets"                , false, xs.GetCrossSection("WW"                 ), false, year));
   double wxs = xs.GetCrossSection("Wlnu");
-  double ngen1 = xs.GetGenNumber("Wlnu", year);
-  double ngen2 = xs.GetGenNumber("Wlnu-ext", year);
+  double ngen1 = (year == 2018) ? 1. : xs.GetGenNumber("Wlnu", year);
+  double ngen2 = (year == 2018) ? 0. : xs.GetGenNumber("Wlnu-ext", year);
   if(splitWJ_) {
     if(year != 2018) {
-      cards.push_back(dcard(path+base+"Wlnu-0.hist"         , "Wlnu"               , "Other VB"          , false, wxs*(ngen1)/(ngen1+ngen2)                , false, year));
-      cards.push_back(dcard(path+base+"Wlnu-ext-0.hist"     , "Wlnu"               , "Other VB"          , false, wxs*(ngen2)/(ngen1+ngen2)                , false, year));
+      cards.push_back(dcard(path+base+"Wlnu-0.hist"         , "Wlnu"               , "WJets"          , false, wxs*(ngen1)/(ngen1+ngen2)                , false, year));
+      cards.push_back(dcard(path+base+"Wlnu-ext-0.hist"     , "Wlnu"               , "WJets"          , false, wxs*(ngen2)/(ngen1+ngen2)                , false, year));
     } else {
-      cards.push_back(dcard(path+base+"Wlnu-0.hist"         , "Wlnu"               , "Other VB"          , false, wxs                                      , false, year));
+      cards.push_back(dcard(path+base+"Wlnu-0.hist"         , "Wlnu"               , "WJets"          , false, wxs                                      , false, year));
     }
-    cards.push_back(dcard(path+base+"Wlnu-1J.hist"          , "Wlnu-1J"            , "Other VB"          , false, xs.GetCrossSection("Wlnu-1J"            ), false, year));
-    cards.push_back(dcard(path+base+"Wlnu-2J.hist"          , "Wlnu-2J"            , "Other VB"          , false, xs.GetCrossSection("Wlnu-2J"            ), false, year));
-    cards.push_back(dcard(path+base+"Wlnu-3J.hist"          , "Wlnu-3J"            , "Other VB"          , false, xs.GetCrossSection("Wlnu-3J"            ), false, year));
+    cards.push_back(dcard(path+base+"Wlnu-1J.hist"          , "Wlnu-1J"            , "WJets"          , false, xs.GetCrossSection("Wlnu-1J"            ), false, year));
+    cards.push_back(dcard(path+base+"Wlnu-2J.hist"          , "Wlnu-2J"            , "WJets"          , false, xs.GetCrossSection("Wlnu-2J"            ), false, year));
+    cards.push_back(dcard(path+base+"Wlnu-3J.hist"          , "Wlnu-3J"            , "WJets"          , false, xs.GetCrossSection("Wlnu-3J"            ), false, year));
     if(year != 2017) {
-      cards.push_back(dcard(path+base+"Wlnu-4J.hist"        , "Wlnu-4J"            , "Other VB"          , false, xs.GetCrossSection("Wlnu-4J"            ), false, year));
+      cards.push_back(dcard(path+base+"Wlnu-4J.hist"        , "Wlnu-4J"            , "WJets"          , false, xs.GetCrossSection("Wlnu-4J"            ), false, year));
     } else {
-      cards.push_back(dcard(path+base+"Wlnu-4.hist"         , "Wlnu"               , "Other VB"          , false, wxs*(ngen1)/(ngen1+ngen2)                , false, year));
-      cards.push_back(dcard(path+base+"Wlnu-ext-4.hist"     , "Wlnu"               , "Other VB"          , false, wxs*(ngen2)/(ngen1+ngen2)                , false, year));
+      cards.push_back(dcard(path+base+"Wlnu-4.hist"         , "Wlnu"               , "WJets"          , false, wxs*(ngen1)/(ngen1+ngen2)                , false, year));
+      cards.push_back(dcard(path+base+"Wlnu-ext-4.hist"     , "Wlnu"               , "WJets"          , false, wxs*(ngen2)/(ngen1+ngen2)                , false, year));
     }
   } else {
     if(year != 2018) {
-      cards.push_back(dcard(path+base+"Wlnu.hist"             , "Wlnu"               , "Other VB" , false, wxs*(ngen1)/(ngen1+ngen2)                   , false, year));
-      cards.push_back(dcard(path+base+"Wlnu-ext.hist"         , "Wlnu"               , "Other VB" , false, wxs*(ngen2)/(ngen1+ngen2)                   , false, year));
+      cards.push_back(dcard(path+base+"Wlnu.hist"             , "Wlnu"               , "WJets" , false, wxs*(ngen1)/(ngen1+ngen2)                   , false, year));
+      cards.push_back(dcard(path+base+"Wlnu-ext.hist"         , "Wlnu"               , "WJets" , false, wxs*(ngen2)/(ngen1+ngen2)                   , false, year));
     } else {
-      cards.push_back(dcard(path+base+"Wlnu.hist"             , "Wlnu"               , "Other VB" , false, wxs                                         , false, year));
+      cards.push_back(dcard(path+base+"Wlnu.hist"             , "Wlnu"               , "WJets" , false, wxs                                         , false, year));
     }
   }
-  cards.push_back(dcard(path+base+"ttbarToSemiLeptonic.hist", "ttbarToSemiLeptonic", "t#bar{t}"          , false, xs.GetCrossSection("ttbarToSemiLeptonic"), false, year));
-  cards.push_back(dcard(path+base+"ttbarlnu.hist"           , "ttbarlnu"           , "t#bar{t}"          , false, xs.GetCrossSection("ttbarlnu"           ), false, year));
+  cards.push_back(dcard(path+base+"ttbarToSemiLeptonic.hist", "ttbarToSemiLeptonic", "Top"          , false, xs.GetCrossSection("ttbarToSemiLeptonic"), false, year));
+  cards.push_back(dcard(path+base+"ttbarlnu.hist"           , "ttbarlnu"           , "Top"          , false, xs.GetCrossSection("ttbarlnu"           ), false, year));
   if(!base.Contains("etau") && !base.Contains("ee"))
     cards.push_back(dcard(path+base+"SingleMu.hist", "SingleMu", "Data", true, 1., false, year));
   if(!base.Contains("mutau") && !base.Contains("mumu"))
@@ -264,8 +277,18 @@ Int_t initialize_plotter(TString base, TString path, int year) {
 
 
 //Generate the plots and scale factors
-Int_t scale_factors(TString selection = "mumu", int set1 = 8, int set2 = 8, int year = 2016,
+Int_t scale_factors(TString selection = "mumu", TString process = "", int set1 = 8, int set2 = 8, int year = 2016,
                     TString path = "nanoaods_dev") {
+
+  ///////////////////////
+  // Initialize params //
+  ///////////////////////
+  if(process != "") {
+    cout << "Warning! Setting process tag to null as not yet implemented!\n";
+    process = "";
+  }
+  process_ = process;
+  usingMCTaus_ = (set1 % 100) > 34 && (set1 % 100) < 40;
 
   //////////////////////
   // Initialize files //
@@ -489,12 +512,12 @@ Int_t scale_factors(TString selection = "mumu", int set1 = 8, int set2 = 8, int 
   return 0;
 }
 
-int do_all_ptregions(TString selection = "mumu", int set1 = 7, int set2 = 7, int year = 2016,
+int do_all_ptregions(TString selection = "mumu", TString process = "", int set1 = 7, int set2 = 7, int year = 2016,
                      TString path = "nanoaods_dev/") {
   int status(0);
   for(int ipt = 0; ipt < 5; ++ipt) {
     usePtRegion_ = ipt;
-    status += scale_factors(selection, set1, set2, year, path);
+    status += scale_factors(selection, process, set1, set2, year, path);
   }
   return status;
 }

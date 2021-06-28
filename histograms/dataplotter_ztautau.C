@@ -1088,7 +1088,6 @@ Int_t init_dataplotter() {
       } else {
         cards.push_back(dcard((DYName+"-ext").Data(), (DYName+"-ext").Data(), "Drell-Yan", false, xs.GetCrossSection("DY50", year), false, year, kRed-7   , true));
       }
-      cards.push_back(dcard("DY50-ext"         , "DY50-ext"           , "Drell-Yan", false, xs.GetCrossSection("DY50"               , year), false, year, kRed-7   , true));
     }
     if(selection_ == "emu") {
       cards.push_back(dcard("ZEMu"             , "ZEMu"             , "Z->e#mu"   , false, xs.GetCrossSection("ZEMu"  ), true, year, kBlue   ));
@@ -1485,7 +1484,11 @@ Int_t print_misid_debug_plots(bool doMC = false) {
                       30 + offset, //QCD selection
                       30 + offset + ZTauTauHistMaker::fMisIDOffset,
                       30 + offset + ZTauTauHistMaker::fQcdOffset,
-                      30 + offset + ZTauTauHistMaker::fQcdOffset + ZTauTauHistMaker::fMisIDOffset
+                      30 + offset + ZTauTauHistMaker::fQcdOffset + ZTauTauHistMaker::fMisIDOffset,
+                      32 + offset, //Top selection
+                      32 + offset + ZTauTauHistMaker::fMisIDOffset,
+                      32 + offset + ZTauTauHistMaker::fQcdOffset,
+                      32 + offset + ZTauTauHistMaker::fQcdOffset + ZTauTauHistMaker::fMisIDOffset
   };
   if(doMC) {
     sets.push_back(35 + offset); //Nominal
@@ -1496,10 +1499,17 @@ Int_t print_misid_debug_plots(bool doMC = false) {
     sets.push_back(36 + offset + ZTauTauHistMaker::fMisIDOffset);
     sets.push_back(36 + offset + ZTauTauHistMaker::fQcdOffset);
     sets.push_back(36 + offset + ZTauTauHistMaker::fQcdOffset + ZTauTauHistMaker::fMisIDOffset);
-
+    sets.push_back(37 + offset); //WJets
+    sets.push_back(37 + offset + ZTauTauHistMaker::fMisIDOffset);
+    sets.push_back(37 + offset + ZTauTauHistMaker::fQcdOffset);
+    sets.push_back(37 + offset + ZTauTauHistMaker::fQcdOffset + ZTauTauHistMaker::fMisIDOffset);
+    sets.push_back(38 + offset); //Top
+    sets.push_back(38 + offset + ZTauTauHistMaker::fMisIDOffset);
+    sets.push_back(38 + offset + ZTauTauHistMaker::fQcdOffset);
+    sets.push_back(38 + offset + ZTauTauHistMaker::fQcdOffset + ZTauTauHistMaker::fMisIDOffset);
   }
   vector<PlottingCard_t> cards;
-  cards.push_back(PlottingCard_t("lepm"          , "event", 2, 50., 170.));
+  cards.push_back(PlottingCard_t("lepm"          , "event", 5, 50., 170.));
   cards.push_back(PlottingCard_t("onept"         , "lep"  , 1, 20., 120.));
   cards.push_back(PlottingCard_t("oneeta"        , "lep"  , 2, -3.,   5.));
   cards.push_back(PlottingCard_t("twopt"         , "lep"  , 2, 20., 100.));
@@ -1510,12 +1520,12 @@ Int_t print_misid_debug_plots(bool doMC = false) {
   cards.push_back(PlottingCard_t("mttwo"         , "event", 2,  0., 150.));
   cards.push_back(PlottingCard_t("mtlep"         , "event", 2,  0., 150.));
   cards.push_back(PlottingCard_t("lepdeltar"     , "event", 5,  0.,   5.));
-  cards.push_back(PlottingCard_t("njets"         , "event", 1,  0.,   5.));
+  cards.push_back(PlottingCard_t("njets20"       , "event", 1,  0.,   5.));
   cards.push_back(PlottingCard_t("onemetdeltaphi", "lep"  , 1,  0.,   5.));
   cards.push_back(PlottingCard_t("twometdeltaphi", "lep"  , 1,  0.,   5.));
 
   for(int set : sets) {
-    if(set % 100 == 35 || set % 100 == 36) dataplotter_->include_misid_ = 0;
+    if(set % 100 >= 35 && set % 100 <= 38) dataplotter_->include_misid_ = 0;
     else dataplotter_->include_misid_ = 1;
     for(PlottingCard_t card : cards) {
       card.set_ = set;

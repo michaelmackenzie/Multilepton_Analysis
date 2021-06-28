@@ -118,9 +118,9 @@ public:
         if     (selection == "mumu") pt_corr_selec = "mutau";
         else if(selection == "ee"  ) pt_corr_selec = "etau";
       }
-      f = TFile::Open(Form("../scale_factors/jet_to_tau_lead_pt_correction_%s_%i.root", pt_corr_selec.Data(), year), "READ");
+      f = TFile::Open(Form("../scale_factors/jet_to_tau_lead_pt_correction_%s_%i_%i.root", pt_corr_selec.Data(), set, year), "READ");
       if(!f) {
-        f = TFile::Open(Form("scale_factors/jet_to_tau_lead_pt_correction_%s_%i.root", pt_corr_selec.Data(), year), "READ");
+        f = TFile::Open(Form("scale_factors/jet_to_tau_lead_pt_correction_%s_%i_%i.root", pt_corr_selec.Data(), set, year), "READ");
         if(!f) continue;
       }
       int dmmodes = (doDMCorrections_) ? 4 : 1;
@@ -159,9 +159,9 @@ public:
 
       TString eta_corr_selec = "mutau";
       if(selection == "ee") eta_corr_selec = "etau";
-      f = TFile::Open(Form("../scale_factors/jet_to_tau_lead_pt_correction_%s_%i.root", eta_corr_selec.Data(), year), "READ");
+      f = TFile::Open(Form("../scale_factors/jet_to_tau_lead_pt_correction_%s_%i_%i.root", eta_corr_selec.Data(), set, year), "READ");
       if(!f) {
-        f = TFile::Open(Form("scale_factors/jet_to_tau_lead_pt_correction_%s_%i.root", eta_corr_selec.Data(), year), "READ");
+        f = TFile::Open(Form("scale_factors/jet_to_tau_lead_pt_correction_%s_%i_%i.root", eta_corr_selec.Data(), set, year), "READ");
         if(!f) continue;
       }
       if(!f && (useEtaCorrections_ || useMetDPhiCorrections_)) {
@@ -255,7 +255,7 @@ public:
       up = 1.; down = 1.; sys = 1.; group = -1;
       return 1.;
     }
-    if(!hCorrection) {
+    if(!hCorrection && doPtCorrections_) {
       std::cout << "JetToTauWeight::" << __func__ << ": " << name_.Data() << " Undefined correction histogram for DM = "
                 << DM << " year = " << year << " ptregion = " << ptregion << std::endl;
       up = 1.; down = 1.; sys = 1.; group = -1;
@@ -372,7 +372,7 @@ private:
     // Get closure test correction
     ///////////////////////////////////////////////////////////
 
-    int corr_bin = (pt_lead > 0.) ? std::min(hCorrection->GetNbinsX(), hCorrection->FindBin(pt_lead)) : 1;
+    int corr_bin = (hCorrection && pt_lead > 0.) ? std::min(hCorrection->GetNbinsX(), hCorrection->FindBin(pt_lead)) : 1;
     if(pt_lead < 0. || !doPtCorrections_ || useMCFits_) {
       pt_wt = 1.;
     } else if(use2DCorrections_) {
