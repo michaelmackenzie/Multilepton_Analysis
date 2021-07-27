@@ -185,7 +185,7 @@ void test_variable_width_bins(int Mode = 0) {
   // Perform the scan
   /////////////////////////////////////////////////
 
-  const int    npoints  = 5;
+  const int    npoints  = 50;
   const double min_scan = 5e2;
   const double max_scan = 5e4;
   calc.SetFixedScan(npoints, min_scan, max_scan);
