@@ -4,13 +4,14 @@ bool fixBkgParams_ = false;
 bool useBinnedBkgFit_ = true;
 bool doBlind_ = true; //use nominal Asimov data for limit calculator
 int  single_cat_ = -1; //category to do the limit for
+bool dry_run_ = false; //quit before performing calculations
 
 Int_t calculate_UL_MVA_categories(vector<int> sets = {8}, TString selection = "zmutau",
                                   vector<int> years = {2016, 2017, 2018},
                                   bool useToyData = false) {
 
   int n_categories = (selection.Contains("emu")) ? 1 : 2;
-  n_categories *= sets.size();
+  n_categories *= sets.size(); //emu and Xtau per histogram set
 
   //construct needed signal names
   // TString selec = selection; selec.ReplaceAll("z", ""); selec.ReplaceAll("h", "");
@@ -37,6 +38,7 @@ Int_t calculate_UL_MVA_categories(vector<int> sets = {8}, TString selection = "z
                                    (doConstraints_) ? "_constr" : "",
                                    year_string.Data(), set_str.Data()), "READ");
   if(!fInput) return 1;
+  cout << "Using input file " << fInput->GetName() << endl;
   fInput->cd();
   RooWorkspace* ws = (RooWorkspace*) fInput->Get("ws");
   if(!ws) return 2;
@@ -47,18 +49,27 @@ Int_t calculate_UL_MVA_categories(vector<int> sets = {8}, TString selection = "z
 
   RooArgList poi_list(*br_sig);
   RooArgList obs_list(*(ws->var("mva")));
+  obs_list.add(*((RooCategory*) ws->obj(selection.Data())));
   RooDataHist* data = (RooDataHist*) ws->data((doBlind_) ? "combined_toy_data" : "combined_data");
   ws->Print();
   vector<RooRealVar*> n_bkgs;
+  vector<RooFormulaVar*> n_sigs;
   RooArgList nuisance_params;
   int cat_start = (single_cat_ >= 0) ? single_cat_ : 0;
   int cat_end = (single_cat_ >= 0) ? single_cat_ + 1 : n_categories;
+  cout << "---------------------------------------------------------------\n"
+       << "Nominal yields by category:\n";
   for(int i_cat = cat_start; i_cat < cat_end; ++i_cat) {
     auto n_bkg  = ws->var(Form("n_bkg_%i", i_cat));
     if(!n_bkg) return 4 + i_cat;
+    auto n_sig  = (RooFormulaVar*) ws->function(Form("n_sig_%i", i_cat));
+    if(!n_sig) return 5 + i_cat;
     n_bkgs.push_back(n_bkg);
+    n_sigs.push_back(n_sig);
     nuisance_params.add(*n_bkg);
+    cout << " " << i_cat << ": N(bkg) = " << n_bkg->getVal() << " N(sig) = " << n_sig->getVal() << endl;
   }
+  cout << "---------------------------------------------------------------\n\n";
 
   // if(doConstraints_) nuisance_params.add(*(ws->var("beta_eff")));
 
@@ -116,7 +127,7 @@ Int_t calculate_UL_MVA_categories(vector<int> sets = {8}, TString selection = "z
   //est the test statistic to use
   toymc->SetTestStatistic(&profl);
 
-  int npoints = 100; //number of points to scan
+  int npoints = 10; //number of points to scan
   //min and max for the scan (better to choose smaller intervals)
   double poimin = ((RooRealVar*) poi_list.find("br_sig"))->getMin();
   double poimax = ((RooRealVar*) poi_list.find("br_sig"))->getMax();
@@ -135,7 +146,10 @@ Int_t calculate_UL_MVA_categories(vector<int> sets = {8}, TString selection = "z
     return 10;
   }
   calc.SetFixedScan(npoints, min_scan, max_scan);
-
+  if(dry_run_) {
+    cout << "Setup finished! Exiting dry run...\n";
+    return 0;
+  }
   auto result = calc.GetInterval();
   double upperLimit  = result->UpperLimit();
   double expectedUL  = result->GetExpectedUpperLimit( 0);
@@ -170,7 +184,7 @@ Int_t calculate_UL_MVA_categories(vector<int> sets = {8}, TString selection = "z
       g->GetXaxis()->SetRangeUser(min_scan, max_scan);
     }
   }
-  canvas->GetListOfPrimitives()->Print();
+  // canvas->GetListOfPrimitives()->Print();
   canvas->SetLogx();
   //Add upper limit info to the plot
   TLatex label;

@@ -125,6 +125,7 @@ void test_variable_width_bins(int Mode = 0) {
   totPDF       .plotOn(xframe, RooFit::Slice(categories, "cat_1"), RooFit::ProjWData(combined_data));
   xframe->Draw();
   c->SaveAs(Form("test_variable_width_bins_%i.png", Mode));
+  nsig.setVal(1.e3); nsig.setConstant(0);
 
 
   /////////////////////////////////////////////////
@@ -134,11 +135,12 @@ void test_variable_width_bins(int Mode = 0) {
   RooWorkspace ws;
   ws.import(totPDF);
   ws.import(combined_data);
-  nsig.setConstant(0); nsig.setVal(1.e3);
 
   //Create fit model
   RooArgList poi_list(nsig);
   RooArgList obs_list(obs);
+  if(Mode % 10 == 0)
+    obs_list.add(categories);
   RooArgList nuisance_params;
   if(Mode % 10 != 2)
     nuisance_params.add(nbkg_1);
@@ -165,7 +167,8 @@ void test_variable_width_bins(int Mode = 0) {
   ((RooRealVar*) poi_list.find("nsig"))->setVal(1.e3);
 
   bool useAsimov = false;
-  RooStats::AsymptoticCalculator fc(combined_data, *bModel, model, useAsimov);
+  RooStats::AsymptoticCalculator fc((Mode % 10 == 0) ? combined_data : ((Mode % 10 == 1) ? data : data2),
+                                    *bModel, model, useAsimov);
   fc.SetOneSided(1);
   //create a hypotest inverter passing the desired calculator
   RooStats::HypoTestInverter calc(fc);
