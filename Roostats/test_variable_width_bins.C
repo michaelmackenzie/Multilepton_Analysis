@@ -7,21 +7,24 @@ void test_variable_width_bins(int Mode = 0) {
   /////////////////////////////////////////////////
 
   vector<double> bins_array;
-  if(Mode < 10) {
-    bins_array = {-6., -4., -3., -2.5, -2., -1.5, -1., -0.75, -0.5, -0.25, 0.,
-                  0.25, 0.5, 0.75, 1., 1.5, 2., 2.5, 3., 4., 6.};
+  if(Mode % 100 < 10) {
+    bins_array = {-5., -4., -3., -2.5, -2., -1.5, -1., -0.75, -0.5, -0.25, 0.,
+                  0.25, 0.5, 0.75, 1., 1.5, 2., 2.5, 3., 4., 5.};
   } else {
-    for(double bin_edge = -6.; bin_edge <= 6.; bin_edge += 0.25)
+    for(double bin_edge = -5.; bin_edge <= 5.; bin_edge += 0.25)
       bins_array.push_back(bin_edge);
   }
   double * bins = bins_array.data();
   int nbins = bins_array.size() - 1;
-  TH1D* hdata  = new TH1D("hdata" , "Data"  , nbins, bins);
-  TH1D* hMC    = new TH1D("hMC"   , "MC"    , nbins, bins);
-  TH1D* hdata2 = new TH1D("hdata2", "Data"  , nbins, bins);
-  TH1D* hMC2   = new TH1D("hMC2"  , "MC"    , nbins, bins);
-  TH1D* hsig_1 = new TH1D("hsig_1", "Signal", nbins, bins);
-  TH1D* hsig_2 = new TH1D("hsig_2", "Signal", nbins, bins);
+  TH1D* hdata  = new TH1D("hdata" , "Data"  , nbins, bins); hdata ->Sumw2();
+  TH1D* hMC    = new TH1D("hMC"   , "MC"    , nbins, bins); hMC   ->Sumw2();
+  TH1D* hdata2 = new TH1D("hdata2", "Data"  , nbins, bins); hdata2->Sumw2();
+  TH1D* hMC2   = new TH1D("hMC2"  , "MC"    , nbins, bins); hMC2  ->Sumw2();
+  TH1D* hsig_1 = new TH1D("hsig_1", "Signal", nbins, bins); hsig_1->Sumw2();
+  TH1D* hsig_2 = new TH1D("hsig_2", "Signal", nbins, bins); hsig_2->Sumw2();
+
+  bool useAsimov     = (Mode %  1000) /  100 == 1;
+  bool includeSignal = (Mode % 10000) / 1000 == 1;
 
   TRandom3 rnd(90);
   for(int i = 0; i < 1e7; ++i) {
@@ -37,8 +40,35 @@ void test_variable_width_bins(int Mode = 0) {
     hsig_2->Fill(rnd.Gaus(1.2,0.2));
   }
 
-  TCanvas* c = new TCanvas("c_orig", "c_orig", 1200, 600);
-  c->Divide(2,1);
+  //pump up MC statistics
+  for(int i = 0; i < 2e7; ++i) {
+    hMC ->Fill(rnd.Gaus());
+    hMC2->Fill(rnd.Gaus());
+  }
+  hMC->Scale(1.e7/hMC->Integral());
+  hMC2->Scale(1.e6/hMC2->Integral());
+
+  if(useAsimov) {
+    delete hdata;
+    delete hdata2;
+    hdata  = (TH1D*) hMC ->Clone("hdata");
+    hdata2 = (TH1D*) hMC2->Clone("hdata2");
+    hdata->SetTitle("Data");
+    hdata2->SetTitle("Data");
+    if(includeSignal) {
+      hdata ->Add(hsig_1);
+      hdata2->Add(hsig_2);
+    }
+  } else if(includeSignal) {
+    for(int i = 0; i < 5e3; ++i) {
+      hdata ->Fill(rnd.Gaus(1.2,0.2));
+      hdata2->Fill(rnd.Gaus(1.2,0.2));
+    }
+  }
+
+  TCanvas* c = new TCanvas("c_orig", "c_orig", 1200, 1200);
+  c->Divide(2,2);
+
   c->cd(1);
   hdata->SetMarkerStyle(20);
   hdata->SetMarkerSize(0.8);
@@ -46,10 +76,24 @@ void test_variable_width_bins(int Mode = 0) {
   hMC->SetLineColor(kRed);
   hMC->SetLineWidth(2);
   hMC->Draw("same");
-  hsig_1->Scale(1.e-3);
-  hsig_1->SetLineColor(kRed);
+  hsig_1->Scale(3.e3/1.e7);
+  hsig_1->SetLineColor(kGreen);
   hsig_1->SetLineWidth(2);
-  hsig_1->Draw("same");
+  hsig_1->SetFillColor(kGreen);
+  hsig_1->SetFillStyle(3003);
+  hsig_1->Draw("hist same");
+
+  c->cd(3);
+  TH1D* hRatio_1 = (TH1D*) hdata->Clone("hRatio_1");
+  hRatio_1->Divide(hMC);
+  hRatio_1->SetTitle("Data / MC");
+  hRatio_1->Draw("E");
+  hRatio_1->GetYaxis()->SetRangeUser(0.93, 1.07);
+  TLine* line = new TLine(bins[0], 1., bins[nbins], 1.);
+  line->SetLineColor(kRed);
+  line->SetLineWidth(2);
+  line->Draw("same");
+
   c->cd(2);
   hdata2->SetMarkerStyle(20);
   hdata2->SetMarkerSize(0.8);
@@ -57,11 +101,22 @@ void test_variable_width_bins(int Mode = 0) {
   hMC2->SetLineColor(kRed);
   hMC2->SetLineWidth(2);
   hMC2->Draw("same");
-  hsig_2->Scale(1.e-3);
-  hsig_2->SetLineColor(kRed);
+  hsig_2->Scale(3.e3/1.e7);
+  hsig_2->SetLineColor(kGreen);
   hsig_2->SetLineWidth(2);
-  hsig_2->Draw("same");
-  c->SaveAs("test_variable_width_bins_orig.png");
+  hsig_2->SetFillColor(kGreen);
+  hsig_2->SetFillStyle(3003);
+  hsig_2->Draw("hist same");
+
+  c->cd(4);
+  TH1D* hRatio_2 = (TH1D*) hdata2->Clone("hRatio_2");
+  hRatio_2->Divide(hMC2);
+  hRatio_2->SetTitle("Data / MC");
+  hRatio_2->Draw("E");
+  hRatio_2->GetYaxis()->SetRangeUser(0.93, 1.07);
+  line->Draw("same");
+
+  c->SaveAs(Form("test_variable_width_bins_hists_%i.png", Mode));
 
   /////////////////////////////////////////////////
   // Create Roo objects for toy Data/MC
@@ -109,12 +164,16 @@ void test_variable_width_bins(int Mode = 0) {
 
   //fit to get N(bkg) correct
   nsig.setVal(0.); nsig.setConstant(1);
-  if(Mode % 10 == 1)
+  if(Mode % 10 == 1) {
     totPDF_1.fitTo(data, RooFit::Extended(1));
-  else if(Mode % 10 == 2)
+    totPDF_1.fitTo(data, RooFit::Extended(1));
+  } else if(Mode % 10 == 2) {
     totPDF_2.fitTo(data2, RooFit::Extended(1));
-  else
+    totPDF_2.fitTo(data2, RooFit::Extended(1));
+  } else {
     totPDF.fitTo(combined_data, RooFit::Extended(1));
+    totPDF.fitTo(combined_data, RooFit::Extended(1));
+  }
 
   double nbkg_1_nom(nbkg_1.getVal()), nbkg_2_nom(nbkg_2.getVal());
 
@@ -166,9 +225,9 @@ void test_variable_width_bins(int Mode = 0) {
   bModel->SetSnapshot(poi_list);
   ((RooRealVar*) poi_list.find("nsig"))->setVal(1.e3);
 
-  bool useAsimov = false;
+  bool calcUseAsimov = false;
   RooStats::AsymptoticCalculator fc((Mode % 10 == 0) ? combined_data : ((Mode % 10 == 1) ? data : data2),
-                                    *bModel, model, useAsimov);
+                                    *bModel, model, calcUseAsimov);
   fc.SetOneSided(1);
   //create a hypotest inverter passing the desired calculator
   RooStats::HypoTestInverter calc(fc);
@@ -186,8 +245,8 @@ void test_variable_width_bins(int Mode = 0) {
   /////////////////////////////////////////////////
 
   const int    npoints  = 50;
-  const double min_scan = 5e2;
-  const double max_scan = 5e4;
+  const double min_scan = 1e2;
+  const double max_scan = 1e4;
   calc.SetFixedScan(npoints, min_scan, max_scan);
 
   auto result = calc.GetInterval();
