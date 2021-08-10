@@ -1,14 +1,18 @@
 //Script to fit the MVA background distribution using pre-defined MVA histograms
 #include "DataInfo.C"
-#include "../interface/SystematicHist_t.hh"
+// #include "../interface/SystematicHist_t.hh"
 
-bool doConstraints_ = true; //adding in systematics
+bool doConstraints_ = false; //adding in systematics
 bool includeSignalInFit_ = true; //fit background specturm with signal shape in PDF
 bool addSignalToToyMC_ = false; // inject signal to the generated data distribution
+bool ignore_sys_ = true; //ignore systematics
+bool correct_bin_width_ = true; //multiply bins by bin width to account for PDF dividing by bin width
+int verbose_ = 1;
 TString selection_; //signal, e.g. "zmutau"
 
 RooRealVar* br_sig_; //fields common to systematics and nominal PDFs
 RooRealVar* mva_;
+// RooBinning* mva_bins_;
 RooRealVar* bxs_var_;
 RooRealVar* lum_var_;
 double      xs_sig_;
@@ -168,7 +172,7 @@ Int_t fit_background_MVA_binned(vector<int> sets = {8}, TString selection = "zmu
 
       //Load systematic varied mva histograms
       hsys_bkg.push_back({}); hsys_sig.push_back({});
-      for(int isys = 0; isys < kMaxSystematics; ++isys) {
+      for(int isys = 0; isys < 300 /*kMaxSystematics*/; ++isys) {
         hsys_bkg[sys_index].push_back((TH1D*) f_bkg->Get(Form("hbkg_sys_%i", isys)));
         hsys_sig[sys_index].push_back((TH1D*) f_bkg->Get(Form("%s_sys_%i", selec_hname.Data(), isys)));
         if(hsys_bkg[sys_index][isys]) hsys_bkg[sys_index][isys]->SetName(Form("hbkg_%i_%i_sys_%i", set, index, isys));
@@ -177,7 +181,7 @@ Int_t fit_background_MVA_binned(vector<int> sets = {8}, TString selection = "zmu
         else cout << "Systematic signal " << isys << " not found!\n";
       }
       ++sys_index;
-      f_bkg->ls(); f_bkg->Print();
+      if(verbose_ > 1) f_bkg->ls(); f_bkg->Print();
     }
   }
   if(hmva_bkgs.size() == 0 || hmva_sigs.size() == 0 || hmva_dats.size() == 0) return -1;
@@ -187,8 +191,11 @@ Int_t fit_background_MVA_binned(vector<int> sets = {8}, TString selection = "zmu
   //create a histogram for the PDF
   double xmin(hmva_bkgs[0]->GetBinLowEdge(1)), xmax(hmva_bkgs[0]->GetBinLowEdge(hmva_bkgs[0]->GetNbinsX()) + hmva_bkgs[0]->GetBinWidth(hmva_bkgs[0]->GetNbinsX()));
   RooRealVar mva("mva","MVA score", xmin, xmax);
-  mva.setBins(hmva_bkgs[0]->GetNbinsX());
+  RooBinning mva_bins(hmva_bkgs[0]->GetNbinsX(), hmva_bkgs[0]->GetXaxis()->GetXbins()->GetArray(), "mva_bins");
+  mva.setBinning(mva_bins);
+  // mva.setBins(hmva_bkgs[0]->GetNbinsX());
   mva_ = &mva;
+  // mva_bins_ = &mva_bins;
   vector<RooDataHist*> bkgMVADatas, sigMVADatas, datMVADatas;
   vector<RooHistPdf*>  bkgMVAPDFs , sigMVAPDFs ;
   for(unsigned index = 0; index < hmva_bkgs.size(); ++index) {
@@ -318,38 +325,38 @@ Int_t fit_background_MVA_binned(vector<int> sets = {8}, TString selection = "zmu
     else {set_str += "_"; set_str += set;}
   }
   for(unsigned index = 0; index < totMVAPDFs.size(); ++index) {
-    auto xframe = mva.frame(50);
-    if(blind_data_)
-      combined_toy_data.plotOn(xframe, RooFit::Cut(Form("%s==%i",selection.Data(),index)));
-    else
-      combined_data.plotOn(xframe, RooFit::Cut(Form("%s==%i",selection.Data(),index)));
+    auto c1 = new TCanvas();
+    auto xframe = mva.frame();
+    string cut = Form("%s == %i", selection.Data(), index);
+    if(blind_data_) {
+      combined_toy_data.plotOn(xframe, RooFit::Cut(cut.c_str()), RooFit::Invisible());
+    } else {
+      combined_data.plotOn(xframe, RooFit::Cut(cut.c_str()));
+    }
     double prev_val = bxs_var.getVal();
     double sig_scale = (signame.Contains("H")) ? 200. : 100.;
     bxs_var.setVal(0.);
-    totPDF.plotOn(xframe, RooFit::Components(Form("bkgMVAPDF_%i", index)), RooFit::LineColor(kRed), RooFit::LineStyle(kDashed),
+    totPDF.plotOn(xframe, RooFit::Components(Form("bkgMVAPDF_%i", index)),
+                  RooFit::LineColor(kRed), RooFit::LineStyle(kDashed),
                   RooFit::Slice(categories, Form("%s_%i", selection.Data(),index)), RooFit::ProjWData((blind_data_) ? combined_toy_data : combined_data));
     bxs_var.setVal(sig_scale*prev_val); //scale signal boson cross section, since br_sig has limits
     totPDF.plotOn(xframe, RooFit::Components(Form("sigMVAPDF_%i", index)),
                   RooFit::Slice(categories, Form("%s_%i", selection.Data(),index)), RooFit::ProjWData((blind_data_) ? combined_toy_data : combined_data));
-    auto c1 = new TCanvas();
+    if(blind_data_) combined_data.plotOn(xframe, RooFit::Cut(cut.c_str()));
+
     xframe->Draw();
     xframe->GetXaxis()->SetRangeUser(-0.6, 0.3);
-    hmva_dats[index]->Draw("same E");
-    if(blind_data_) {
-      auto h = c1->GetPrimitive(Form("h_combined_toy_data_Cut[%s==%i]", selection.Data(), index));
-      if(h) delete h;
-    }
+    // hmva_dats[index]->Draw("same E");
     TLegend* leg = new TLegend(0.65, 0.7, 0.9, 0.9);
     leg->AddEntry((TH1*) (c1->GetPrimitive(Form("totMVAPDF_%i_Norm[mva]_Comp[sigMVAPDF_%i]", index, index))), Form("Signal (x%.0f)", sig_scale), "L");
     leg->AddEntry((TH1*) (c1->GetPrimitive(Form("totMVAPDF_%i_Norm[mva]_Comp[bkgMVAPDF_%i]", index, index))), "Background", "L");
-    leg->AddEntry(hmva_dats[index], "Data");
+    leg->AddEntry((TH1*) (c1->GetPrimitive(Form("h_combined_data_Cut[%s]", cut.c_str()))), "Data", "PL");
+    // leg->AddEntry(hmva_dats[index], "Data");
     leg->Draw();
     c1->SaveAs(Form("plots/latest_production/%s/hist_background_mva_category_%i_%s_%s.png", year_string.Data(), index, selection.Data(), set_str.Data()));
-    // c1->SetLogy();
-    // c1->SaveAs(Form("plots/latest_production/%s/hist_background_mva_category_%i_%s_%s_log.png", year_string.Data(), index, selection.Data(), set_str.Data()));
     bxs_var.setVal(prev_val);
   }
-
+  cout << "Observable binning" << mva.getBinning() << endl;
   gSystem->Exec("[ ! -d workspaces ] && mkdir workspaces");
   TFile* fOut = new TFile(Form("workspaces/hist_background_mva_%s%s_%s_%s.root", selection.Data(),
                                (doConstraints_) ? "_constr" : "",
@@ -359,10 +366,11 @@ Int_t fit_background_MVA_binned(vector<int> sets = {8}, TString selection = "zmu
   ws.import(totPDF);
   ws.import(combined_toy_data);
   ws.import(combined_data);
-  get_systematics(hsys_sig, hsys_bkg, ws);
+  if(!ignore_sys_)
+    get_systematics(hsys_sig, hsys_bkg, ws);
   ws.Write();
+  cout << "Writing results to " << fOut->GetName() << endl;
   fOut->Close();
-  delete fOut;
 
   return status;
 }

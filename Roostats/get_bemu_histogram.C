@@ -10,6 +10,42 @@ double xmax_;
 bool blind_data_ = true;
 bool do_systematics_ = true;
 
+int get_same_flavor_systematics(int set, TString hist, TFile* f) {
+  int status(0);
+  f->cd();
+  dataplotter_->rebinH_ = overall_rebin_;
+
+  //Loop through each systematic, writing MC histograms
+  for(int isys = (test_sys_ >= 0 ? test_sys_ : 0); isys < (test_sys_ >= 0 ? test_sys_ + 1 : kMaxSystematics); ++isys) {
+    cout << "Retrieving same-flavor systematic " << isys << "...\n";
+    //Get background for the systematic
+    THStack* hstack = dataplotter_->get_stack(Form("%s_%i", hist.Data(), isys), "systematic", set);
+    if(!hstack) {++status; continue;}
+    if(!hstack->GetStack()) {++status; continue;}
+
+    TH1D* hbkg = (TH1D*) hstack->GetStack()->Last();
+    hbkg->SetName(Form("hbkg_sys_%i", isys));
+    TH1D* hDY = (TH1D*) hbkg->Clone(Form("hDY_sys_%i", isys));
+    //remove non-DY backgrounds from DY histogram
+    for(auto o : *(hstack->GetHists())) {
+      TH1D* h = (TH1D*) o;
+      if(TString(h->GetName()).Contains("DY")) continue;
+      hDY->Add(h, -1.); //subtract off non-DY MC
+    }
+
+    if(test_sys_ >= 0) {
+      cout << "Nominal background: " << hbkg_->Integral()
+           << " shifted background: " << hbkg->Integral() << endl;
+    }
+
+    hbkg->Write();
+    hDY->Write();
+
+    f->Flush();
+  }
+  return status;
+}
+
 int get_systematics(int set, TString hist, TFile* f, TString canvas_name) {
   int status(0);
   f->cd();
@@ -184,8 +220,8 @@ int get_same_flavor_histogram(int set, TString selection, vector<int> years, TSt
   hdata->SetName("hdata");
   hdata->Write();
 
-  // if(do_systematics_)
-  //   status += get_systematics(set+set_offset, hist, fout, canvas_name);
+  if(do_systematics_)
+    status += get_same_flavor_systematics(set+set_offset, hist, fout);
   fout->Close();
   return status;
 
@@ -263,12 +299,22 @@ int get_bemu_single_histogram(int set = 8, TString selection = "zemu",
 
   gSystem->Exec("[ ! -d histograms ] && mkdir histograms");
   TFile* fout = new TFile(Form("histograms/%s_%s_%i_%s.hist", selection.Data(), hist.Data(), set, year_string.Data()), "RECREATE");
+  //Write the entire stack in case it's needed
   hstack->SetName("hstack");
   hstack->Write();
+  //get a histogram of the background MC
   TH1D* hlast = (TH1D*) hstack->GetStack()->Last();
   hlast->SetName("hbackground");
   hlast->Write();
   hbkg_ = (TH1D*) hlast->Clone("hbkg_");
+  //get just the Drell-Yan contribution of the background to correct N(Data) --> N(Z events)
+  TH1D* hDY = (TH1D*) hlast->Clone("hDY");
+  for(auto o : *(hstack->GetHists())) {
+    TH1D* h = (TH1D*) o;
+    if(TString(h->GetName()).Contains("DY")) continue;
+    hDY->Add(h, -1.); //subtract off non-DY MC
+  }
+  hDY->Write();
   for(auto h : signals) {
     TString hname = h->GetName();
     cout << "Signal " << hname.Data() << " has an integral of " << h->Integral() << " before re-scaling and ";
@@ -298,8 +344,11 @@ int get_bemu_histogram(vector<int> sets, TString selection = "zemu",
                        TString base = "nanoaods_dev") {
   int status(0);
   for(int set : sets) {
-    status += get_bemu_single_histogram(set, selection, years, base);
+    cout << "Getting signal region histograms for set " << set << "...\n";
+    // status += get_bemu_single_histogram(set, selection, years, base);
+    cout << "Getting mumu region histograms for set " << set << "...\n";
     status += get_same_flavor_histogram(set, "mumu", years, base);
+    cout << "Getting ee region histograms for set " << set << "...\n";
     status += get_same_flavor_histogram(set, "ee", years, base);
   }
   return status;

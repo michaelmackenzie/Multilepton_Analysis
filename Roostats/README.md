@@ -71,7 +71,7 @@ root.exe -q -b "fit_background_bemu_binned.C($HISTSET, \"${SELECTION}\", ${YEAR}
 ### Perform upper limit test
 Read the workspace for the background and signal PDFs, perform upper limit calculations.
 ```
-root.exe -q -b "calculate_UL_bmeu_binned.C(${HISTSET}, \"${SELECTION}\", ${YEAR})"
+root.exe -q -b "calculate_UL_bemu_binned.C(${HISTSET}, \"${SELECTION}\", ${YEAR})"
 ```
 
 ## Evaluating the upper limit for B->X+tau using an MVA score fit
@@ -117,6 +117,10 @@ Read the workspace for the background and signal PDFs, perform upper limit calcu
 Systematics are numbered based on the histogram set filled in the Systematic filling in ZTauTauHistMaker.
 ```
 root.exe -q -b "toyMC_mva_systematics.C(${HISTSET}, \"${SELECTION}\", ${YEAR}, ${SYSTEMATIC})"
+```
+Many systematics can be tested at once using a bash script
+```
+time ./do_toyMC_MVA_stats.sh "${HISTSET}" "${SELECTION}" "${YEAR}" [Number of fits] [Maximum systematic] [Minimum systematic] [seed]
 ```
 Alternatively, one can test using a RooMCStudy
 ```

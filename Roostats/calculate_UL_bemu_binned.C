@@ -1,5 +1,5 @@
 //Script to calculate the 95% UL for e+mu resonance using binned fits
-bool doConstraints_ = true;
+bool doConstraints_ = false;
 bool use_bernstein_ = false;
 bool blind_data_ = true;
 

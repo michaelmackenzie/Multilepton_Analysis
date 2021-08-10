@@ -8,15 +8,15 @@ MAXSYS=$5
 MINSYS=$6
 SEED=$7
 
-if [[ "$HISTSET" == "" ]]
+if [[ "${HISTSET}" == "" ]]
 then
     HISTSET=8
 fi
-if [[ "$SELECTION" == "" ]]
+if [[ "${SELECTION}" == "" ]]
 then
     SELECTION="zmutau"
 fi
-if [[ "$YEAR" == "" ]]
+if [[ "${YEAR}" == "" ]]
 then
     YEAR="{2016, 2017, 2018}"
 fi

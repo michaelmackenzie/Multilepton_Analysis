@@ -1,11 +1,13 @@
 //Script to retrieve the background and signal MVA histograms
 #include "../histograms/dataplotter_ztautau.C"
 #include "../interface/SystematicHist_t.hh"
-int overall_rebin_ = 2;
+int overall_rebin_ = 0;
 TH1D* hbkg_;
 vector<TH1D*> hsigs_;
 int test_sys_ = -1; //set to systematic number if debugging/inspecting it
 bool blind_data_ = true; //set data bins > MVA score level to 0
+bool ignore_sys_ = true; //don't get systematics
+bool use_dev_mva_ = true; //use the extra MVA hist for development, mvax_1
 
 int get_systematics(int set, TString hist, TH1D* hdata, TFile* f, TString canvas_name) {
   int status(0);
@@ -144,6 +146,7 @@ int get_individual_MVA_histogram(int set = 8, TString selection = "zmutau",
     cout << "Unidentified selection " << selection.Data() << endl;
     return -1;
   }
+  if(use_dev_mva_) hist += "_1";
 
   //define parameters for dataplotter script
   TString selec = selection; selec.ReplaceAll("z", ""); selec.ReplaceAll("h", "");
@@ -195,6 +198,9 @@ int get_individual_MVA_histogram(int set = 8, TString selection = "zmutau",
     year_string += years[i];
   }
 
+  //remove dev label for systematics/naming, since they're not defined
+  if(use_dev_mva_) hist.ReplaceAll("_1", "");
+
   gSystem->Exec(Form("[ ! -d plots/latest_production/%s ] && mkdir -p plots/latest_production/%s", year_string.Data(), year_string.Data()));
   TString canvas_name = Form("plots/latest_production/%s/hist_%s_%s_%i", year_string.Data(), hist.Data(), selection.Data(), set);
   c->Print(canvas_name + ".png");
@@ -221,7 +227,11 @@ int get_individual_MVA_histogram(int set = 8, TString selection = "zmutau",
       h->Scale(1./dataplotter_->signal_scale_);
     h->Write();
   }
-  status += get_systematics(set+set_offset, hist, hdata, fout, canvas_name);
+
+
+  if(!ignore_sys_)
+    status += get_systematics(set+set_offset, hist, hdata, fout, canvas_name);
+  fout->Write();
   fout->Close();
   return status;
 }
@@ -232,6 +242,9 @@ int get_MVA_histogram(vector<int> sets = {8}, TString selection = "zmutau",
   int status(0);
   for(int set : sets) {
     status += get_individual_MVA_histogram(set, selection, years, base);
+    // cout << "WARNING! Changing base histogram path!\n";
+    // base = "nanoaods";
+    // overall_rebin_ = 2;
     if(test_sys_ < 0) { //only do one selection if debugging
       if(selection.Contains("mutau"))
         status += get_individual_MVA_histogram(set, selection+"_e", years, base);
