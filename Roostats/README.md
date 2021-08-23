@@ -131,20 +131,48 @@ root.exe -q -b "toyMC_mva_roomcstudy.C(${HISTSET}, \"${SELECTION}\", ${YEAR}, ${
 
 Higgs Combine statistics:
 https://cds.cern.ch/record/1379837/files/NOTE2011_005.pdf
+
 Higgs Combine page:
 https://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/
+
 Useful Higgs Combine tutorial:
 https://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/tutorial2020/exercise/
 
 Useful variables:
+
 HISTSTRING="8"
+
 YEARSTRING="2016_2017_2018"
 
 ### Create the data cards and files
-This assumes histograms for the search channel have already been retrieved
+This assumes histograms for the search channel have already been retrieved.
+
 This creates a data card and data file for each selection, and then the combined search:
 ```
 root.exe -q -b "create_combine_cards.C(${HISTSET}, \"${SELECTION}\", ${YEAR})"
+```
+#### Card inputs
+```
+imax <number of categories>
+jmax <number of background types>
+kmax <number of nuisance parameters>
+
+bin <cat name one> <cat name two> ...
+observation <n in cat one> <n in cat two> ...
+
+bin <cat name one> <cat name one> ..for each background/signal.. <cat name two> ...
+process <bkg/sig name> <next bkg/sig name> ...
+process  <process number> ...
+
+rate <n exp in cat 1 process 1> ....
+
+#shape based uncertainties
+<systematic> shape <1/0> <1/0> ...
+#log-normal uncertainty, also gmN = gamma, lnU = log-uniform
+<systematic> lnN <value> <value_2> ...
+
+#Use Barlow-Beeston-lite in all bins for given channel, * for all channels
+[channel] autoMCStats 0
 ```
 
 ### Estimate an upper limit
@@ -167,15 +195,15 @@ plotImpacts.py -i impacts_${SELECTION}.json -o impacts_${SELECTION}
 ```
 
 ### Additional tests
-Generate workspace
+Generate workspace:
 ```
 text2workspace.py <card> -o <workspace>
 ```
-Perform diagnostics
+Perform diagnostics:
 ```
 combine -M FitDiagnostics <card>  --forceRecreateNLL
 ```
-Perform upperlimits
+Perform upperlimits:
 ```
 combine -M AsymptoticLimits <card> [--run <expected/blind>] [--noFitAsimov]
 ```
