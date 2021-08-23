@@ -1,5 +1,25 @@
 //Script to prepare a rootfile and datacard for Higgs Combine tools
-#include "../interface/SystematicHist_t.hh"
+int verbose_ = 1;
+
+//Get the name of the systematic
+TString systematic_name(int sys, TString selection) {
+  TString name = "";
+  if     (sys ==   1 || sys ==   2) name = "EleID";
+  else if(sys ==   4 || sys ==   5) name = "MuonID";
+  else if(sys ==  10 || sys ==  11) name = "JetToTau";
+  else if(sys ==  13 || sys ==  14) name = "ZpT";
+  else if(sys ==  16 || sys ==  17) name = "EleRecoID";
+  else if(sys ==  19 || sys ==  20) name = "MuonIsoID";
+  else if(sys ==  22 || sys ==  23) name = "TauES";
+  else if(sys ==  25 || sys ==  26) name = "QCDScale";
+  else if(sys ==  28 || sys ==  29) name = "JetToTauNC";
+  else if(selection.Contains("etau")  && (sys ==  37 || sys ==  38)) name = "TauMuID";
+  else if(selection.Contains("mutau") && (sys ==  40 || sys ==  41)) name = "TauEleID";
+  else if(sys >= 100 && sys < 106) name = Form("TauJetID%i", (sys-100)/2);
+  else if(selection.Contains("mutau") && sys >= 110 && sys < 140) name = Form("TauMuID%i", (sys-110)/2);
+  else if(selection.Contains("etau")  && sys >= 140 && sys < 158) name = Form("TauEleID%i", (sys-140)/2);
+  return name;
+}
 
 Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
                              vector<int> years = {2016, 2017, 2018},
@@ -65,14 +85,22 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
 
   vector<THStack*> hsys_stacks;
   vector<TH1D*> hsys_signals;
-  for(int isys = 1; isys < kMaxSystematics; isys += 3) { //take only the up/down systematics
+  for(int isys = 1; isys < 300; isys += 2) {
+     //take only the up/down systematics from the sets < 50, skipping the _sys set. Above 50, only up/down
+    if(isys < 50 && (isys % 3) == 0) isys +=1;
+    if(isys == 49) isys = 50; //skip to get to set 50
+    TString name = systematic_name(isys, selection);
+    if(name == "") continue;
+    if(verbose_ > 0) cout << "Using sys " << isys << ", " << isys+1 << " as systematic " << name.Data() << endl;
+    if(name != systematic_name(isys+1, selection)) cout << "!!! Sys " << isys << ", " << isys+1 << " are different!\n";
     THStack* hstack_up   = (THStack*) fInput->Get(Form("hstack_sys_%i", isys));
     THStack* hstack_down = (THStack*) fInput->Get(Form("hstack_sys_%i", isys+1));
     TH1D* hsig_up        = (TH1D*)    fInput->Get(Form("%s_sys_%i", selec.Data(), isys));
     TH1D* hsig_down      = (TH1D*)    fInput->Get(Form("%s_sys_%i", selec.Data(), isys+1));
     if(!hstack_up || !hstack_down || !hsig_up || !hsig_down) continue; //need all 4 to use
-    hstack_up->SetTitle(Form("sys_%i", isys)); //store the systematic name in the title
-    hsig_up->SetTitle(Form("sys_%i", isys));
+    hstack_down->SetTitle(Form("sys_%i", isys)); //store the systematic number in the title
+    hstack_up  ->SetTitle(name.Data()); //Form("sys_%i", isys)); //store the systematic name in the title
+    hsig_up    ->SetTitle(name.Data()); //Form("sys_%i", isys));
     hsys_stacks.push_back(hstack_up);
     hsys_stacks.push_back(hstack_down);
     hsys_signals.push_back(hsig_up);
@@ -94,6 +122,7 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
   //////////////////////////////////////////////////////////////////
 
   TH1D* hdata = (TH1D*) hbkg->Clone("data_obs");
+  hdata->SetTitle("Toy MC Data");
   for(int ibin = 1; ibin <= hdata->GetNbinsX(); ++ibin) {
     int nentries = rnd->Poisson(hdata->GetBinContent(ibin));
     hdata->SetBinContent(ibin, nentries);
@@ -145,6 +174,8 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
     hname.ReplaceAll(Form("_%s_%i", hist.Data(), set+set_offset), "");
     hname.ReplaceAll("s_", "");
     hname.ReplaceAll(" ", "");
+    hname.ReplaceAll("#", "");
+    hname.ReplaceAll("/", "");
     bins_p += Form("%15s", hist.Data());
     proc_l += Form("%15s", hname.Data());
     proc_c +=      "           1   ";
@@ -177,23 +208,28 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
     THStack* hstack_down = hsys_stacks [2*isys+1];
     TH1D*    hsig_up     = hsys_signals[2*isys  ];
     TH1D*    hsig_down   = hsys_signals[2*isys+1];
-    TString sys = Form("%-7s shape ", hstack_up->GetTitle());
-    hsig_up->SetName(Form("%s_%sUp", selection.Data(), hstack_up->GetTitle()));
+    TString name = hstack_up->GetTitle();
+    if(name == "") continue; //systematic we don't care about
+    if(verbose_ > 0) cout << "Processing systematic " << name.Data() << endl;
+    TString sys = Form("%-13s shape ", name.Data());
+    hsig_up->SetName(Form("%s_%sUp", selection.Data(), name.Data()));
     hsig_up->Write();
-    hsig_down->SetName(Form("%s_%sDown", selection.Data(), hstack_up->GetTitle()));
+    hsig_down->SetName(Form("%s_%sDown", selection.Data(), name.Data()));
     hsig_down->Write();
-    sys += Form("%12i", 1);
+    sys += Form("%6i", 1);
     for(int ihist = 0; ihist < hstack_up->GetNhists(); ++ihist) {
       TH1D* hbkg_i_up = (TH1D*) hstack_up->GetHists()->At(ihist);
       if(!hbkg_i_up) {cout << "Systematic " << isys << " Background (up) hist " << ihist << " not retrieved!\n"; continue;}
       TH1D* hbkg_i_down = (TH1D*) hstack_down->GetHists()->At(ihist);
       if(!hbkg_i_down) {cout << "Systematic " << isys << " Background (down) hist " << ihist << " not retrieved!\n"; continue;}
       TString hname = hbkg_i_up->GetName();
-      TString isys_set = hstack_up->GetTitle();
+      TString isys_set = hstack_down->GetTitle();
       isys_set.ReplaceAll("sys_", "");
       hname.ReplaceAll(Form("_%s_%s_%i", hist.Data(), isys_set.Data(), set+set_offset), "");
       hname.ReplaceAll("s_", "");
       hname.ReplaceAll(" ", "");
+      hname.ReplaceAll("#", "");
+      hname.ReplaceAll("/", "");
       TString hname_up   = Form("%s_%sUp"  , hname.Data(), hstack_up->GetTitle());
       TString hname_down = Form("%s_%sDown", hname.Data(), hstack_up->GetTitle());
       hbkg_i_up->SetName(hname_up.Data());

@@ -6,11 +6,13 @@ YEAR=$3
 NFITS=$4
 MAXSYS=$5
 MINSYS=$6
-SEED=$7
+ZEROSIGNAL=$7
+NOSELF=$8
+SEED=$9
 
 if [[ "${HISTSET}" == "" ]]
 then
-    HISTSET=8
+    HISTSET="{8}"
 fi
 if [[ "${SELECTION}" == "" ]]
 then
@@ -26,11 +28,17 @@ then
 fi
 if [[ "$MAXSYS" == "" ]]
 then
-    MAXSYS=30
+    MAXSYS=33
 fi
 if [[ "$MINSYS" == "" ]]
 then
     MINSYS=0
+fi
+if [[ "$ZEROSIGNAL" == "" ]]
+then
+    ZEROSIGNAL="false"
+else
+    ZEROSIGNAL="true"
 fi
 if [[ "$SEED" == "" ]]
 then
@@ -38,14 +46,17 @@ then
 fi
 
 
-echo "Performing ${NFITS} fits on systematics for ${SELECTION} from ${MINSYS} up to ${MAXSYS} using selection set ${HISTSET} from year ${YEAR} with base seed ${SEED}"
-echo "- Performing self test..."
-root.exe -q -b "toyMC_mva_systematics.C(${HISTSET}, \"${SELECTION}\", ${YEAR}, 0, ${NFITS}, true, true, ${SEED})"
+echo "Performing ${NFITS} fits on systematics for ${SELECTION} from ${MINSYS} up to ${MAXSYS} using selection set ${HISTSET} from year ${YEAR} with base seed ${SEED} using zero_signal = ${ZEROSIGNAL}"
+if [[ "${NOSELF}" == "" ]]
+then
+    echo "- Performing self test..."
+    root.exe -q -b "toyMC_mva_systematics.C(${HISTSET}, \"${SELECTION}\", ${YEAR}, 0, ${NFITS}, true, true, ${ZEROSIGNAL}, ${SEED})"
+fi
 
 for (( isys=$MINSYS; isys<=$MAXSYS; isys++ ))
 do
     echo "- Systematic number ${isys}..."
-    time root.exe -q -b "toyMC_mva_systematics.C(${HISTSET}, \"${SELECTION}\", ${YEAR}, ${isys}, ${NFITS}, true, false, ${SEED})"
+    time root.exe -q -b "toyMC_mva_systematics.C(${HISTSET}, \"${SELECTION}\", ${YEAR}, ${isys}, ${NFITS}, true, false, ${ZEROSIGNAL}, ${SEED})"
 done
 
-echo "Finished!"
+echo "Finished systematic testing"

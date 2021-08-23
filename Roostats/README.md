@@ -57,7 +57,7 @@ default: nanoaods_dev
 
 ### Retrieve the binned distributions
 ```
-root.exe -q -b "get_bemu_histogram($HISTSET, \"$SELECTION\", $YEAR, \"$HISTPATH\")"
+root.exe -q -b "get_bemu_histogram.C($HISTSET, \"$SELECTION\", $YEAR, \"$HISTPATH\")"
 ```
 
 ### Create background and signal PDFs
@@ -79,7 +79,7 @@ The UL calculation uses MC and data-driven background estimated MVA score
 histograms to create a background PDF and a histogram of the expected
 signal MVA score distribution to create the signal PDF
 
-## Input parameters
+### Input parameters
 HISTSET: Base histogram set number corresponding to the selection in ZTauTauHistMaker
 default: 8
 
@@ -126,3 +126,63 @@ Alternatively, one can test using a RooMCStudy
 ```
 root.exe -q -b "toyMC_mva_roomcstudy.C(${HISTSET}, \"${SELECTION}\", ${YEAR}, ${SYSTEMATIC})"
 ```
+
+## Using Higgs Combine with MVA fits
+
+Higgs Combine statistics:
+https://cds.cern.ch/record/1379837/files/NOTE2011_005.pdf
+Higgs Combine page:
+https://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/
+Useful Higgs Combine tutorial:
+https://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/tutorial2020/exercise/
+
+Useful variables:
+HISTSTRING="8"
+YEARSTRING="2016_2017_2018"
+
+### Create the data cards and files
+This assumes histograms for the search channel have already been retrieved
+This creates a data card and data file for each selection, and then the combined search:
+```
+root.exe -q -b "create_combine_cards.C(${HISTSET}, \"${SELECTION}\", ${YEAR})"
+```
+
+### Estimate an upper limit
+Standard running:
+```
+cd datacards/${YEARSTRING}
+combine -d combine_mva_total_${SELECTION}.txt
+```
+One can estimate the bin uncertainty impact by commenting out "* autoMCStats 0"
+
+### Generate impacts
+```
+cd datacards/${YEARSTRING}
+WORKSPACE=combine_mva_total_${SELECTION}_workspace.root
+text2workspace.py combine_mva_total_${SELECTION}_${HISTSTRING}.txt -o ${WORKSPACE}
+combineTool.py -M Impacts -d ${WORKSPACE} -m 0 --rMin -1 --rMax 2 --robustFit 1 --doInitialFit
+combineTool.py -M Impacts -d ${WORKSPACE} -m 0 --rMin -1 --rMax 2 --robustFit 1 --doFits
+combineTool.py -M Impacts -d ${WORKSPACE} -m 0 --rMin -1 --rMax 2 --robustFit 1 --output impacts_${SELECTION}.json
+plotImpacts.py -i impacts_${SELECTION}.json -o impacts_${SELECTION}
+```
+
+### Additional tests
+Generate workspace
+```
+text2workspace.py <card> -o <workspace>
+```
+Perform diagnostics
+```
+combine -M FitDiagnostics <card>  --forceRecreateNLL
+```
+Perform upperlimits
+```
+combine -M AsymptoticLimits <card> [--run <expected/blind>] [--noFitAsimov]
+```
+Without asymptotic limits:
+```
+combine -M HybridNew <datacard> --LHCmode LHC-limits -n <name> --saveHybridResult --fork 0 [ --expectedFromGrid <quantile, e.g. 0.500>]
+```
+
+Options:
+--rule: CLsplusb, CLs

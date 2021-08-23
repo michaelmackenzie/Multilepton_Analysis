@@ -15,21 +15,23 @@ public:
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   // Mode = 1000000 * (don't use pT corrections) + 100000 * (1*(use tau eta corrections) + 2*(use one met dphi))
   //        + 10000 * (use 2D pT vs delta R corrections)
-  //        + 1000 * (use DM binned pT corrections) + 100 * (use scale factor fits) + 10 * (interpolate bins) + (2* use MC Fits + pT region mode)
+  //        + 1000 * (use DM binned pT corrections) + 100 * (1*(use scale factor fits) + 2*(use fitter errors))
+  //        + 10 * (interpolate bins) + (2* use MC Fits + pT region mode)
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   JetToTauWeight(TString name, TString selection, int set = 8, int Mode = 0, int seed = 90, int verbose = 0) : name_(name), Mode_(Mode), verbose_(verbose) {
     TFile* f = 0;
     std::vector<int> years = {2016, 2017, 2018};
     std::vector<TString> file_regions;
     int max_pt_bins(0), max_eta_bins(0), max_corr_bins(0);
-    useMCFits_         = (Mode %       10) == 2;
-    doInterpolation_   = (Mode %      100) /      10 == 1;
-    useFits_           = (Mode %     1000) /     100 == 1;
-    doDMCorrections_   = (Mode %    10000) /    1000 == 1;
-    use2DCorrections_  = (Mode %   100000) /   10000;
-    useEtaCorrections_ = ((Mode %  1000000) /  100000) % 2 == 1;
-    useMetDPhiCorrections_ = (Mode %  1000000) /  100000 > 1;
-    doPtCorrections_   = (Mode % 10000000) / 1000000 - 1; //0: don't do -1: nominal selection 1: xtau selection
+    useMCFits_             = ( Mode %       10) == 2;
+    doInterpolation_       = ( Mode %      100) /      10 == 1;
+    useFits_               = ((Mode %     1000) /     100) % 2 == 1;
+    useFitterErrors_       = ((Mode %     1000) /     100) > 1;
+    doDMCorrections_       = ( Mode %    10000) /    1000 == 1;
+    use2DCorrections_      = ( Mode %   100000) /   10000;
+    useEtaCorrections_     = ((Mode %  1000000) /  100000) % 2 == 1;
+    useMetDPhiCorrections_ = ( Mode %  1000000) /  100000 > 1;
+    doPtCorrections_       = ( Mode % 10000000) / 1000000 - 1; //0: don't do -1: nominal selection 1: xtau selection
     rnd_ = new TRandom3(seed);
     if(Mode % 10 == 3) {
       file_regions.push_back("_ptregion_4"); file_regions.push_back("_ptregion_2");
@@ -92,10 +94,11 @@ public:
                 ++group; //each eta bin is a different group
               }
             }
-            //Get Data fits
+            //Get Data fits and errors
             for(int ieta = 0; ieta < 2; ++ieta) {
-              const char* hname = (useMCFits_) ? Form("fit_mc_func_%idm_%ieta", dm, ieta) : Form("fit_func_%idm_%ieta", dm, ieta);
-              funcsData_[ptregion][year][dm][ieta] = (TF1*) f->Get(hname);
+              const char* fname   = (useMCFits_) ? Form("fit_mc_func_%idm_%ieta", dm, ieta) : Form("fit_func_%idm_%ieta", dm, ieta);
+              const char* errname = (useMCFits_) ? Form("fit_1s_error_mc_%idm_%ieta", dm, ieta) : Form("fit_1s_error_%idm_%ieta", dm, ieta);
+              funcsData_[ptregion][year][dm][ieta] = (TF1*) f->Get(fname);
               if(!funcsData_[ptregion][year][dm][ieta]) {
                 if(useFits_)
                   std::cout << "JetToTauWeight::JetToTauWeight: " << name.Data() << " Warning! No Data fit found for dm = "
@@ -104,6 +107,15 @@ public:
               } else
                 funcsData_[ptregion][year][dm][ieta]->SetName(Form("%s-%s_%s_%i_%i", name_.Data(), funcsData_[ptregion][year][dm][ieta]->GetName(),
                                                                    selection.Data(), year, ptregion));
+              errorsData_[ptregion][year][dm][ieta] = (TH1D*) f->Get(errname);
+              if(!errorsData_[ptregion][year][dm][ieta]) {
+                if(useFitterErrors_)
+                  std::cout << "JetToTauWeight::JetToTauWeight: " << name.Data() << " Warning! No fit errors found for dm = "
+                            << dm << " eta region = " << ieta << " year = " << year << " ptregion = " << ptregion
+                            << " Mode = " << Mode << " selection = " << selection.Data() << std::endl;
+              } else
+                errorsData_[ptregion][year][dm][ieta]->SetName(Form("%s-%s_%s_%i_%i", name_.Data(), errorsData_[ptregion][year][dm][ieta]->GetName(),
+                                                                    selection.Data(), year, ptregion));
             }
           }
           files_.push_back(f); //to close later
@@ -121,37 +133,38 @@ public:
       f = TFile::Open(Form("../scale_factors/jet_to_tau_lead_pt_correction_%s_%i_%i.root", pt_corr_selec.Data(), set, year), "READ");
       if(!f) {
         f = TFile::Open(Form("scale_factors/jet_to_tau_lead_pt_correction_%s_%i_%i.root", pt_corr_selec.Data(), set, year), "READ");
-        if(!f) continue;
       }
-      int dmmodes = (doDMCorrections_) ? 4 : 1;
-      for(int dm = 0; dm < dmmodes; ++dm) {
-        TString name = "PtScale";
-        TString name2D = (use2DCorrections_ > 1) ? "Pt2Vs1Scale" : "PtVsRScale";
-        if(dmmodes > 1) name   += Form("_DM%i", dm);
-        if(dmmodes > 1) name2D += Form("_DM%i", dm);
-        corrections_[dm][year] = (TH1D*) f->Get(name.Data());
-        if(!corrections_[dm][year]) {
-          std::cout << "JetToTauWeight::JetToTauWeight: " << name_.Data() << " Warning! No lead pt correction histogram found for year = "
-                    << year << " selection = " << pt_corr_selec.Data();
-          if(dmmodes > 1) std::cout << " DM = " << dm + (dm > 1)*8;
-          std::cout << std::endl;
-        } else {
-          corrections_[dm][year] = (TH1D*) corrections_[dm][year]->Clone(Form("%s-correction_%s_%i_%i", name_.Data(), pt_corr_selec.Data(), dm, year));
-          max_corr_bins = std::max(max_corr_bins, corrections_[dm][year]->GetNbinsX());
-        }
-        corrections2D_[dm][year] = (TH2D*) f->Get(name2D.Data());
-        if(!corrections2D_[dm][year]) {
-          if(use2DCorrections_) {
-            std::cout << "JetToTauWeight::JetToTauWeight: " << name_.Data() << " Warning! No 2D lead pt correction histogram found for year = "
+      if(f) {
+        int dmmodes = (doDMCorrections_) ? 4 : 1;
+        for(int dm = 0; dm < dmmodes; ++dm) {
+          TString name = "PtScale";
+          TString name2D = (use2DCorrections_ > 1) ? "Pt2Vs1Scale" : "PtVsRScale";
+          if(dmmodes > 1) name   += Form("_DM%i", dm);
+          if(dmmodes > 1) name2D += Form("_DM%i", dm);
+          corrections_[dm][year] = (TH1D*) f->Get(name.Data());
+          if(!corrections_[dm][year]) {
+            std::cout << "JetToTauWeight::JetToTauWeight: " << name_.Data() << " Warning! No lead pt correction histogram found for year = "
                       << year << " selection = " << pt_corr_selec.Data();
             if(dmmodes > 1) std::cout << " DM = " << dm + (dm > 1)*8;
             std::cout << std::endl;
+          } else {
+            corrections_[dm][year] = (TH1D*) corrections_[dm][year]->Clone(Form("%s-correction_%s_%i_%i", name_.Data(), pt_corr_selec.Data(), dm, year));
+            max_corr_bins = std::max(max_corr_bins, corrections_[dm][year]->GetNbinsX());
           }
-        } else {
-          corrections2D_[dm][year] = (TH2D*) corrections2D_[dm][year]->Clone(Form("%s-correction2d_%s_%i_%i", name_.Data(), pt_corr_selec.Data(), dm, year));
+          corrections2D_[dm][year] = (TH2D*) f->Get(name2D.Data());
+          if(!corrections2D_[dm][year]) {
+            if(use2DCorrections_) {
+              std::cout << "JetToTauWeight::JetToTauWeight: " << name_.Data() << " Warning! No 2D lead pt correction histogram found for year = "
+                        << year << " selection = " << pt_corr_selec.Data();
+              if(dmmodes > 1) std::cout << " DM = " << dm + (dm > 1)*8;
+              std::cout << std::endl;
+            }
+          } else {
+            corrections2D_[dm][year] = (TH2D*) corrections2D_[dm][year]->Clone(Form("%s-correction2d_%s_%i_%i", name_.Data(), pt_corr_selec.Data(), dm, year));
+          }
         }
+        files_.push_back(f);
       }
-      files_.push_back(f);
 
       ///////////////////////////////////////////////////////////////////
       //get the corrections based on the tau eta
@@ -159,14 +172,16 @@ public:
 
       TString eta_corr_selec = "mutau";
       if(selection == "ee") eta_corr_selec = "etau";
-      f = TFile::Open(Form("../scale_factors/jet_to_tau_lead_pt_correction_%s_%i_%i.root", eta_corr_selec.Data(), set, year), "READ");
+      int eta_set = set;
+      if(eta_set % 100 >= 36 && eta_set % 100 <= 38) eta_set -=6; //use data distributions for non-closure corrections if using MC taus
+
+      f = TFile::Open(Form("../scale_factors/jet_to_tau_lead_pt_correction_%s_%i_%i.root", eta_corr_selec.Data(), eta_set, year), "READ");
       if(!f) {
-        f = TFile::Open(Form("scale_factors/jet_to_tau_lead_pt_correction_%s_%i_%i.root", eta_corr_selec.Data(), set, year), "READ");
-        if(!f) continue;
+        f = TFile::Open(Form("scale_factors/jet_to_tau_lead_pt_correction_%s_%i_%i.root", eta_corr_selec.Data(), eta_set, year), "READ");
       }
       if(!f && (useEtaCorrections_ || useMetDPhiCorrections_)) {
         std::cout << "JetToTauWeight::JetToTauWeight: " << name_.Data() << " Warning! No eta/metDPhi correction file found for year = "
-                  << year << " selection = " << eta_corr_selec.Data() << std::endl;
+                  << year << " selection = " << eta_corr_selec.Data() << " set = " << eta_set << std::endl;
       } else if(f) {
         if(useEtaCorrections_) {
           etaCorrections_[year] = (TH1D*) f->Get("EtaScale");
@@ -266,7 +281,7 @@ public:
     if(eta > 2.29) eta = 2.29;
     TF1* func = funcsData_[ptregion][year][idm][h->GetYaxis()->FindBin(eta)-1];
     //check if function is found
-    if(!func) {
+    if(!func && useFits_) {
       std::cout << "JetToTauWeight::" << __func__ << ": " << name_.Data() << " Undefined function for DM = "
                 << DM << " eta = " << eta << " year = " << year << " ptregion = "
                 << ptregion << std::endl;
@@ -274,7 +289,17 @@ public:
       return 1.;
     }
 
-    return GetFactor(h, func, hCorrection, pt, eta, DM, ptregion, pt_lead, deltar, metdphi, year, up, down, sys, group, pt_wt, pt_up, pt_down, pt_sys);
+    TH1D* hFitterErrors = errorsData_[ptregion][year][idm][h->GetYaxis()->FindBin(eta)-1];
+    //check if errors are found
+    if(!hFitterErrors && useFitterErrors_) {
+      std::cout << "JetToTauWeight::" << __func__ << ": " << name_.Data() << " Undefined fitter errors for DM = "
+                << DM << " eta = " << eta << " year = " << year << " ptregion = "
+                << ptregion << std::endl;
+      up = 1.; down = 1.; sys = 1.;
+      return 1.;
+    }
+
+    return GetFactor(h, func, hCorrection, hFitterErrors, pt, eta, DM, ptregion, pt_lead, deltar, metdphi, year, up, down, sys, group, pt_wt, pt_up, pt_down, pt_sys);
   }
 
   int GetGroup(int idm, int year, int ieta, int ipt) {
@@ -299,7 +324,8 @@ public:
   }
 
 private:
-  float GetFactor(TH2D* h, TF1* func, TH1D* hCorrection, float pt, float eta, int DM, int ptregion, float pt_lead, float deltar,
+  float GetFactor(TH2D* h, TF1* func, TH1D* hCorrection, TH1D* hFitterErrors,
+                  float pt, float eta, int DM, int ptregion, float pt_lead, float deltar,
                   float metdphi, int year,
                   float& up, float& down, float& sys, int& group,
                   float& pt_wt, float& pt_up, float& pt_down, float& pt_sys) {
@@ -329,17 +355,23 @@ private:
 
     if(useFits_) {
       eff = func->Eval(pt);
-      double* params = new double[10];
-      func->GetParameters(params);
-      for(int i = 0; i < func->GetNpar(); ++i)
-        func->SetParameter(i, func->GetParameter(i)+func->GetParError(i));
-      up = func->Eval(pt);
-      for(int i = 0; i < func->GetNpar(); ++i)
-        func->SetParameter(i, func->GetParameter(i)-func->GetParError(i));
-      down = func->Eval(pt);
-      func->SetParameters(params);
-      sys = up; //FIXME: sys set to just up
-      delete[] params;
+      if(useFitterErrors_) {
+        int bin_fitter = std::min(hFitterErrors->FindBin(pt), hFitterErrors->GetNbinsX());
+        up   = hFitterErrors->GetBinContent(bin_fitter) + hFitterErrors->GetBinError(bin_fitter);
+        down = hFitterErrors->GetBinContent(bin_fitter) - hFitterErrors->GetBinError(bin_fitter);
+      } else {
+        double* params = new double[10];
+        func->GetParameters(params);
+        for(int i = 0; i < func->GetNpar(); ++i)
+          func->SetParameter(i, func->GetParameter(i)+func->GetParError(i));
+        up = func->Eval(pt);
+        for(int i = 0; i < func->GetNpar(); ++i)
+          func->SetParameter(i, func->GetParameter(i)-func->GetParError(i));
+        down = func->Eval(pt);
+        func->SetParameters(params);
+        delete[] params;
+      }
+      sys = up; //FIXME: sys set to just up for fits
     } else { //use the binned values
       //get bin value
       int binx = h->GetXaxis()->FindBin(pt);
@@ -445,7 +477,7 @@ private:
     ///////////////////////////////////////////////////////////
 
     const static float min_eff = 0.000001;
-    const static float max_eff = 0.9     ; //force weight < 0.9 / (0.1) = 9
+    const static float max_eff = 0.75     ; //force weight < 0.75 / (0.25) = 3
     //check if allowed value
     if(eff < min_eff) {
       std::cout << "JetToTauWeight::" << __func__ << ": " << name_.Data() << " Warning! Eff < " << min_eff << " = " << eff
@@ -461,20 +493,21 @@ private:
     //write as scale factor instead of efficiency
     //eff_0 = a / (a+b) = 1 / (1 + 1/eff_p) = eff_p / (eff_p + 1)
     // --> eff_p = eff_0 / (1 - eff_0)
-    eff = eff / (1. - eff);
+    eff = eff / (1.f - eff);
     up   = std::max(min_eff, std::min(max_eff, up  )); //don't need to warn about these
     down = std::max(min_eff, std::min(max_eff, down));
-    up   = up   / (1. - up  );
-    down = down / (1. - down);
-    sys  = sys  / (1. - sys );
+    up   = up   / (1.f - up  );
+    down = down / (1.f - down);
+    sys  = sys  / (1.f - sys );
 
     //calculate pt correction uncertainties
-    //Set systematic to be the max of the size of the correction and the statistical error
-    float pt_dev = fabs(pt_wt - 1.);
-    pt_up   = std::max(pt_wt + corr_error, 1.f + pt_dev);
-    pt_down = std::max(std::min(pt_wt - corr_error, 1.f - pt_dev), 0.f);
-    pt_down = std::max(pt_wt - corr_error, 0.f);
-    pt_sys = 1.; //Set systematic to be the size of the correction
+    //Set systematic to be the correction size
+    //Set up to be in direction of pt weight, down in opposite direction around the pt weight
+    float pt_dev = pt_wt - 1.f;
+    float sigma = (1 - 2*(pt_dev < 0.f)) * std::sqrt(pt_dev*pt_dev + corr_error*corr_error); //sign it with pt_dev sign
+    pt_up   = std::max(0.f, pt_wt + sigma);
+    pt_down = std::max(0.f, pt_wt - sigma);
+    pt_sys = 1.f; //Set systematic to be without the correction
 
     return eff;
   }
@@ -487,6 +520,7 @@ public:
   std::map<int, TH1D*> etaCorrections_;
   std::map<int, TH1D*> metDPhiCorrections_;
   std::map<int, std::map<int, std::map<int, TF1*>>> funcsData_[kMaxPtRegions];
+  std::map<int, std::map<int, std::map<int, TH1D*>>> errorsData_[kMaxPtRegions];
   std::vector<TFile*> files_;
   TString name_;
   int Mode_;
@@ -502,6 +536,7 @@ public:
   bool useMCFits_;
   bool doInterpolation_;
   bool useFits_;
+  bool useFitterErrors_;
   int  doPtCorrections_;
   bool doDMCorrections_;
   int  use2DCorrections_;

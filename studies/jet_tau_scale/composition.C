@@ -59,17 +59,47 @@ void make_composition(PlottingCard_t card, bool printHists = false, bool debug =
   hQCD->Divide(htot);
   if(printHists) hQCD->Write();
   comp->Add(hQCD);
+
+  TString xtitle = card.hist_;
+  xtitle.ReplaceAll("jettau", "");
+  xtitle.ReplaceAll("1", ""); xtitle.ReplaceAll("2", ""); xtitle.ReplaceAll("3", "");
+  bool addone = xtitle.Contains("one");
+  bool addtwo = xtitle.Contains("two");
+  xtitle.ReplaceAll("one","");
+  xtitle.ReplaceAll("two","");
+  xtitle.ReplaceAll("delta", "#Delta");
+  xtitle.ReplaceAll("eta", "#eta"); xtitle.ReplaceAll("phi", "#phi"); xtitle.ReplaceAll("pt", "p_{T}");
+  if(addone) xtitle = xtitle + "^{1}";
+  if(addtwo) xtitle = xtitle + "^{2}";
+  xtitle.ReplaceAll("taus", "#tau ");
+  xtitle.ReplaceAll("met", "MET ");
+  xtitle.ReplaceAll("dm", "Decay Mode");
+
+  TLegend* leg = new TLegend(0.7, 0.7, 0.9, 0.9);
+  leg->AddEntry(hQCD_orig, "QCD", "F");
+  for(auto o : *hstack->GetHists()) leg->AddEntry(o, o->GetTitle(), "F");
+
   TCanvas* c = new TCanvas(Form("c_%s", hist.Data()), Form("c_%s", hist.Data()), 1000, 600);
   c->Divide(2,1);
   auto pad = c->cd(1);
   hstack->Draw("hist noclear");
+  // pad->Modified(); c->Modified();
+  // pad->Update(); c->Update();
+  // gPad->Modified(); gPad->Update();
+  // hstack->GetXaxis()->SetTitle(xtitle.Data());
+  hstack->SetTitle(xtitle.Data());
   hQCD_orig->SetFillStyle(3003);
   hQCD_orig->Draw("hist same");
   pad->SetLogy();
+  leg->Draw();
   c->cd(2);
   comp->Draw("hist noclear");
+  // comp->GetXaxis()->SetTitle(xtitle.Data());
+  comp->SetTitle(xtitle.Data());
+  // comp->GetYaxis()->SetTitle("Fraction of CR");
   comp->SetMaximum(1.05);
   comp->SetMinimum(0.);
+  leg->Draw();
   c->Modified(); c->Update();
   if(card.xmin_ < card.xmax_ && comp->GetXaxis()) comp->GetXaxis()->SetRangeUser(card.xmin_, card.xmax_);
   c->Modified(); c->Update();

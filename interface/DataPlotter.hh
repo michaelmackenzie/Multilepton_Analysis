@@ -59,6 +59,7 @@ public :
   std::vector<Double_t> blindxmax_;
   std::vector<Double_t> blindymin_; //for blinding along y axis
   std::vector<Double_t> blindymax_;
+  TString figure_format_ = "png"; //format plots are written out in
   Int_t logZ_ = 1; //log plot settings
   Int_t logY_ = 0;
   Int_t plot_data_ = 1; //only MC or include data
@@ -66,6 +67,7 @@ public :
   Int_t data_over_mc_ = 1; //do data/MC or data-MC: 0 = none, 1 = data/MC, -1 = signal/bkg, -2 = signal/sqrt(bkg)
   Int_t stack_uncertainty_ = 1; //whether or not to add gray shading for uncertainty
   Int_t add_bkg_hists_manually_ = 0; //whether to use Stacks given uncertainty or add them by hand
+  Int_t density_plot_ = 0; //divide by bin width
   Int_t debug_ = 0; //for debugging
   Int_t include_qcd_ = 1; //use the same sign selection to get the QCD
   Int_t qcd_offset_ = 1000; //set number offset to get same sign selection
@@ -230,6 +232,13 @@ public :
     return isBlind(value,value);
   }
 
+  void density(TH1* h) {
+    for(int bin = 1; bin <= h->GetNbinsX(); ++bin) {
+      h->SetBinContent(bin, h->GetBinContent(bin)/h->GetBinWidth(bin));
+      h->SetBinError(bin, h->GetBinError(bin)/h->GetBinWidth(bin));
+    }
+  }
+
   virtual void get_titles(TString hist, TString setType, TString* xtitle, TString* ytitle, TString* title);
 
   virtual std::vector<TH1D*> get_signal(TString hist, TString setType, Int_t set);
@@ -310,6 +319,9 @@ public :
   virtual TCanvas* plot_systematic(TString hist, Int_t set, Int_t systematic);
   TCanvas* plot_systematic(TString hist, Int_t set, Int_t systematic, Double_t xmin, Double_t xmax) {
     xMin_ = xmin; xMax_=xmax; auto c = plot_systematic(hist, set, systematic); reset_axes(); return c;
+  }
+  TCanvas* plot_systematic(TString hist, Int_t set, Int_t systematic, Double_t xmin, Double_t xmax, Double_t blind_min, Double_t blind_max) {
+    blindxmin_ = {blind_min}; blindxmax_= {blind_max}; return plot_systematic(hist, set, systematic, xmin, xmax);
   }
   TCanvas* plot_systematic(PlottingCard_t card) {
     rebinH_ = card.rebin_;
@@ -455,7 +467,7 @@ public :
         card.set_ = sets[index];
         auto c = print_stack(card);
         status += (c) ? 0 : 1;
-        printf("Printing Data/MC stack %s %s set %i has status %i\n",card.type_.Data(),card.hist_.Data(),card.set_,status);
+        if(verbose_ > 0 || status) printf("Printing Data/MC stack %s %s set %i has status %i\n",card.type_.Data(),card.hist_.Data(),card.set_,status);
         Empty_Canvas(c);
       }
     }
@@ -503,7 +515,7 @@ public :
     if(!include_misid_)                      name += "_nomisid";
     if(tag != "")                            name += "_" + tag;
 
-    name += Form("_set_%i.png", set);
+    name += Form("_set_%i.%s", set, figure_format_.Data());
     return name;
   }
 

@@ -12,10 +12,12 @@
 
 class ElectronIDWeight {
 public:
-  ElectronIDWeight(int seed = 90, int verbose = 0) : verbose_(verbose) {
+  ElectronIDWeight(int Mode = 0, int seed = 90, int verbose = 0) : verbose_(verbose) {
     TFile* f = 0;
     std::vector<TString> file_regions;
     rnd_ = new TRandom3(seed);
+
+    interpolate_ = Mode % 10 == 1;
 
     typedef std::pair<TString,TString> fpair;
     std::map<int, fpair> electronIDFileNames;
@@ -27,14 +29,22 @@ public:
     electronRecoFileNames[k2017]  = fpair("egammaEffi.txt_EGM2D_runBCDEF_passingRECO_2017.root" ,"EGamma_SF2D");
     electronRecoFileNames[k2018]  = fpair("egammaEffi.txt_EGM2D_updatedAll_2018.root"           ,"EGamma_SF2D");
     std::map<int, fpair> electronTrigFileNames;
-    electronTrigFileNames[k2016]  = fpair("egammaTriggerEfficiency_2016.root"                   ,"EGamma_SF2D");
-    electronTrigFileNames[k2017]  = fpair("egammaTriggerEfficiency_2017.root"                   ,"EGamma_SF2D");
-    electronTrigFileNames[k2018]  = fpair("egammaTriggerEfficiency_2018.root"                   ,"EGamma_SF2D");
+    electronTrigFileNames[k2016]  = fpair("egamma_trigger_eff_2016.root", "EGamma_SF2D");
+    electronTrigFileNames[k2017]  = fpair("egamma_trigger_eff_2017.root", "EGamma_SF2D");
+    electronTrigFileNames[k2018]  = fpair("egamma_trigger_eff_2018.root", "EGamma_SF2D");
+    // electronTrigFileNames[k2016]  = fpair("egammaTriggerEfficiency_2016.root", "EGamma_SF2D");
+    // electronTrigFileNames[k2017]  = fpair("egammaTriggerEfficiency_2017.root", "EGamma_SF2D");
+    // electronTrigFileNames[k2018]  = fpair("egammaTriggerEfficiency_2018.root", "EGamma_SF2D");
 
     int groupID  = 0; //for systematic grouping
     int groupReco = 0;
     for(int period = k2016; period < (k2018 + 1); ++period) {
       if(verbose_ > 1) printf("--- %s: Initializing %i scale factors\n", __func__, period+2016);
+
+      //////////////////////////////////////////
+      //Electron ID files
+      //////////////////////////////////////////
+
       f = TFile::Open(("../scale_factors/" + electronIDFileNames[period].first).Data(), "READ");
       if(f) {
         TH2F* h = (TH2F*) f->Get(electronIDFileNames[period].second.Data());
@@ -70,11 +80,16 @@ public:
         }
         files_.push_back(f);
       }
+
+      //////////////////////////////////////////
+      //Electron Reco ID files
+      //////////////////////////////////////////
+
       f = TFile::Open(("../scale_factors/" + electronRecoFileNames[period].first).Data(), "READ");
       if(f) {
         TH2F* h = (TH2F*) f->Get(electronRecoFileNames[period].second.Data());
         if(!h) {
-          printf("!!! %s: Electron Reco ID histogram not found for %i!\n", __func__, period/2+2016);
+          printf("!!! %s: Electron Reco ID histogram not found for %i!\n", __func__, period+2016);
         } else {
           histRecoData_[period] = h;
           //determine which axis is pT axis
@@ -105,6 +120,29 @@ public:
         }
         files_.push_back(f);
       }
+
+      //////////////////////////////////////////
+      //Electron Trigger files
+      //////////////////////////////////////////
+
+      f = TFile::Open(("../scale_factors/" + electronTrigFileNames[period].first).Data(), "READ");
+      if(f) {
+        TH2F* h = (TH2F*) f->Get("EGamma_EffData2D");
+        if(!h) {
+          printf("!!! %s: Electron Trigger Data Eff histogram not found for %i!\n", __func__, period+2016);
+        } else {
+          h->SetName(Form("%s_%i", h->GetName(), period+2016));
+          histTrigDataEff_[period] = h;
+        }
+        h = (TH2F*) f->Get("EGamma_EffMC2D");
+        if(!h) {
+          printf("!!! %s: Electron Trigger MC Eff histogram not found for %i!\n", __func__, period+2016);
+        } else {
+          h->SetName(Form("%s_%i", h->GetName(), period+2016));
+          histTrigMCEff_[period] = h;
+        }
+        files_.push_back(f);
+      }
     }
   }
 
@@ -117,15 +155,87 @@ public:
     return groupReco_[(year-2016) * kYear + bin];
   }
 
+  //interpolate only based on the pT value
+  double interpolate(TH2F* h, double eta, double pt) {
+    int xbin = std::min(h->GetNbinsX(), std::max(h->GetXaxis()->FindBin(eta), 1));
+    int nybins = h->GetNbinsY();
+    int ybin = std::min(nybins, std::max(h->GetYaxis()->FindBin(pt), 1));
+    double val = h->GetBinContent(xbin, ybin);
+    double cen = h->GetYaxis()->GetBinCenter(ybin);
+    double val_2, cen_2;
+    //interpolate to higher bin if above center but not last bin, or it's the first bin so no lower bin
+    if((pt > cen && ybin < nybins) || ybin == 1) {
+      val_2 = h->GetBinContent(xbin, ybin+1);
+      cen_2 = h->GetYaxis()->GetBinCenter(ybin+1);
+    } else {
+      val_2 = h->GetBinContent(xbin, ybin-1);
+      cen_2 = h->GetYaxis()->GetBinCenter(ybin-1);
+    }
+    val = val + (pt - cen) * (val_2 - val) / (cen_2 - cen);
+    val = std::min(0.9999, std::max(val, 1.e-4)); //ensure a reasonable efficiency
+    return val;
+  }
+
+  double TriggerEff(double pt, double eta, int year, float& data_eff, float& mc_eff) {
+    data_eff = 0.5; //safer default than 0 or 1, as eff and 1-eff are well defined in ratios
+    mc_eff = 0.5;
+    year -= 2016;
+    if(year != k2016 && year != k2017 && year != k2018) {
+      std::cout << "Warning! Undefined year in " << __func__ << ", returning -1" << std::endl;
+      return 1.;
+    }
+    //can't fire a trigger if below the threshold
+    if((year == k2016 && pt < 28.) || (year == k2017 && pt < 33.) || (year == k2018 && pt < 33.)) {
+      return 1.;
+    }
+
+    if(eta >= 2.49)       eta =  2.49; //maximum eta for corrections
+    else if(eta <= -2.49) eta = -2.49; //minimum eta for corrections
+    if(pt > 499.)     pt = 499.; //maximum pT for corrections
+    else if(pt < 28.) pt =  28.; //minimum pT for corrections
+
+    TH2F* hTrigData = histTrigDataEff_[year];
+    TH2F* hTrigMC = histTrigMCEff_[year];
+    if(!hTrigData) {
+      std::cout << "!!! " << __func__ << ": Undefined Data trigger efficiency histogram for " << year << std::endl;
+      return 1.;
+    }
+    if(!hTrigMC) {
+      std::cout << "!!! " << __func__ << ": Undefined MC trigger efficiency histogram for " << year << std::endl;
+      return 1.;
+    }
+    if(interpolate_) {
+      data_eff = interpolate(hTrigData, eta, pt);
+      mc_eff   = interpolate(hTrigMC  , eta, pt);
+    } else {
+      data_eff = hTrigData->GetBinContent(hTrigData->GetXaxis()->FindBin(eta), hTrigData->GetYaxis()->FindBin(pt));
+      mc_eff   = hTrigMC  ->GetBinContent(hTrigMC  ->GetXaxis()->FindBin(eta), hTrigMC  ->GetYaxis()->FindBin(pt));
+    }
+
+    double scale_factor = (mc_eff > 0.) ? data_eff / mc_eff : 1.;
+    if(scale_factor <= 0. || verbose_ > 0) {
+      if(scale_factor <= 0.) std::cout << "Warning! Scale factor <= 0! ";
+      std::cout << "ElectronIDWeight::" << __func__
+                << " year = " << year + 2016
+                << " data_eff = " << data_eff
+                << " mc_eff = " << mc_eff
+                << std::endl;
+    }
+    return scale_factor;
+  }
+
 public:
   enum { k2016, k2017, k2018};
   enum { kYear = 100000, kBinY = 100};
   std::map<int, TH2F*> histIDData_;
   std::map<int, TH2F*> histRecoData_;
+  std::map<int, TH2F*> histTrigMCEff_;
+  std::map<int, TH2F*> histTrigDataEff_;
   std::vector<TFile*> files_;
   int verbose_;
   TRandom3* rnd_; //for generating systematic shifted parameters
   std::map<int, int> groupID_; //correction groups for systematics
   std::map<int, int> groupReco_;
+  bool interpolate_;
 };
 #endif

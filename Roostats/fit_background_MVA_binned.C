@@ -5,7 +5,7 @@
 bool doConstraints_ = false; //adding in systematics
 bool includeSignalInFit_ = true; //fit background specturm with signal shape in PDF
 bool addSignalToToyMC_ = false; // inject signal to the generated data distribution
-bool ignore_sys_ = true; //ignore systematics
+bool ignore_sys_ = false; //ignore systematics
 bool correct_bin_width_ = true; //multiply bins by bin width to account for PDF dividing by bin width
 int verbose_ = 1;
 TString selection_; //signal, e.g. "zmutau"
@@ -76,7 +76,7 @@ Int_t get_systematics(vector<vector<TH1D*>>& sig, vector<vector<TH1D*>>& bkg, Ro
                                          )
                        );
       n_bkgs.push_back(new RooRealVar(Form("n_bkg_%i_sys_%i", index, isys),
-                                      "n_bkg", bkg[index][isys]->Integral(), 1.e3, 1.e7));
+                                      "n_bkg", bkg[index][isys]->Integral(), 1.e5, 2.e7));
 
       //construct the total PDF for this category
       auto totpdf = new RooAddPdf(Form("totMVAPDF_%i_sys_%i", index, isys),
@@ -112,16 +112,16 @@ Int_t fit_background_MVA_binned(vector<int> sets = {8}, TString selection = "zmu
   int status(0);
   selection_ = selection;
   RooRandom::randomGenerator()->SetSeed(seed);
+  gStyle->SetOptStat(0);
 
   double sys_unc = 0.; //systematic uncertainty on branching fraction
-  double stat_unc = 0.3; //fractional statistical uncertainty on branching fraction
   vector<TString> hists;
-  if     (selection == "hmutau"  ) {hists = {"mva0", "mva6"}; stat_unc = 2.8e-4/5.e-3; sys_unc = 0.20*stat_unc;}
-  else if(selection == "zmutau"  ) {hists = {"mva1", "mva7"}; stat_unc = 1.3e-6/5.e-6; sys_unc = 0.87*stat_unc;}
-  else if(selection == "hetau"   ) {hists = {"mva2", "mva8"}; stat_unc = 3.5e-4/5.e-3; sys_unc = 0.20*stat_unc;}
-  else if(selection == "zetau"   ) {hists = {"mva3", "mva9"}; stat_unc = 1.5e-6/5.e-6; sys_unc = 0.20*stat_unc;}
-  else if(selection == "hemu"    ) {hists = {"mva4"};         stat_unc = 1.5e-6/5.e-6; sys_unc = 0.20*stat_unc;}
-  else if(selection == "zemu"    ) {hists = {"mva5"};         stat_unc = 1.5e-6/5.e-6; sys_unc = 0.20*stat_unc;}
+  if     (selection == "hmutau"  ) {hists = {"mva0", "mva6"}; sys_unc = 0.40;}
+  else if(selection == "zmutau"  ) {hists = {"mva1", "mva7"}; sys_unc = 0.40;}
+  else if(selection == "hetau"   ) {hists = {"mva2", "mva8"}; sys_unc = 1.22;}
+  else if(selection == "zetau"   ) {hists = {"mva3", "mva9"}; sys_unc = 1.22;}
+  else if(selection == "hemu"    ) {hists = {"mva4"};         sys_unc = 0.20;}
+  else if(selection == "zemu"    ) {hists = {"mva5"};         sys_unc = 0.20;}
   else {
     cout << "Unidentified selection " << selection.Data() << endl;
     return -1;
@@ -257,13 +257,14 @@ Int_t fit_background_MVA_binned(vector<int> sets = {8}, TString selection = "zmu
   vector<RooFormulaVar*> n_sigs;
 
   for(unsigned index = 0; index < bkgMVAPDFs.size(); ++index) {
+    double nbkg = hmva_bkgs[index]->Integral();
     double eff_signal = hmva_sigs[index]->Integral()/(lum*xs_sig_);
     eff_nominals.push_back(new RooRealVar(Form("eff_nominal_%i", index),
                                           "eff_nominal", eff_signal));
     n_sigs.push_back(new RooFormulaVar(Form("n_sig_%i", index), "@0*@1*@2*@3",
                                        RooArgList(br_sig_eff, lum_var, bxs_var,
                                                   *eff_nominals[index])));
-    n_bkgs.push_back(new RooRealVar(Form("n_bkg_%i", index), "n_bkg", hmva_bkgs[index]->Integral(), 1.e3, 1.e7));
+    n_bkgs.push_back(new RooRealVar(Form("n_bkg_%i", index), "n_bkg", hmva_bkgs[index]->Integral(), nbkg/3., nbkg*3.));
     cout << "Index " << index << " Nominal signal efficiency = " << eff_signal << endl;
     //Signal + main background PDF
     RooAbsPdf* totpdf = new RooAddPdf(Form((doConstraints_) ? "totMVAPDF0_%i" : "totMVAPDF_%i", index),
@@ -277,7 +278,7 @@ Int_t fit_background_MVA_binned(vector<int> sets = {8}, TString selection = "zmu
     categories.defineType(category.c_str(), index);
     //generate some toy bkg + sig
     cout << "Generating background data for index " << index << "!\n";
-    RooDataHist* bkg_mva_gen = bkgMVAPDFs[index]->generateBinned(RooArgSet(mva), hmva_bkgs[index]->Integral());
+    RooDataHist* bkg_mva_gen = bkgMVAPDFs[index]->generateBinned(RooArgSet(mva), nbkg);
     cout << "Generating signal data for index " << index << "!\n";
     if(addSignalToToyMC_) {
       RooDataHist* sig_mva_gen = sigMVAPDFs[index]->generateBinned(RooArgSet(mva), hmva_sigs[index]->Integral());

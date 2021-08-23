@@ -113,6 +113,8 @@ public :
   Float_t jetToTauWeightCorrUp       ;
   Float_t jetToTauWeightCorrDown     ;
   Float_t jetToTauWeightCorrSys      ;
+  Float_t jetToTauWeight_compUp      ;
+  Float_t jetToTauWeight_compDown    ;
   Float_t qcdWeight                  ;
   Float_t qcdWeightUp                ;
   Float_t qcdWeightDown              ;
@@ -434,7 +436,7 @@ public :
                                                           fElectronJetToTauWeight("ElectronWeight", "etau", 31, 1000100, seed),
                                                           fElectronJetToTauComp("etau", 2035, 2, 0), fElectronJetToTauSSComp("etau", 3035, 2, 0),
                                                           fJetToMuonWeight("mumu"), fJetToElectronWeight("ee"),
-                                                          fQCDWeight("emu", seed), fZPtWeight(seed) { }
+                                                          fQCDWeight("emu", 11010, seed, 2), fElectronIDWeight(1, seed, 0), fZPtWeight("MuMu", seed) { }
   ~ZTauTauHistMaker() {
     for(int proc = 0; proc < JetToTauComposition::kLast; ++proc) {
       delete fMuonJetToTauWeights[proc];
@@ -564,7 +566,7 @@ public :
 
   Int_t           fSystematicSeed; //for systematic variations
 
-  Int_t           fRemoveTriggerWeights = 0;
+  Int_t           fRemoveTriggerWeights = 0; // 0: do nothing 1: remove weights 2: replace weights
   Int_t           fRemovePhotonIDWeights = 1;
   Int_t           fRemoveBTagWeights = 0; //0: do nothing 1: remove weights 2: replace weights
   BTagWeight      fBTagWeight;
@@ -584,9 +586,11 @@ public :
   JetToTauComposition  fElectronJetToTauComp; //for etau
   JetToTauComposition  fElectronJetToTauSSComp; //for etau SS systematic test
   JetToTauWeight* fElectronJetToTauWeights[JetToTauComposition::kLast];
-  Float_t*        fJetToTauWts   = new Float_t[JetToTauComposition::kLast];
-  Float_t*        fJetToTauCorrs = new Float_t[JetToTauComposition::kLast];
-  Float_t*        fJetToTauComps = new Float_t[JetToTauComposition::kLast];
+  Float_t*        fJetToTauWts       = new Float_t[JetToTauComposition::kLast];
+  Float_t*        fJetToTauCorrs     = new Float_t[JetToTauComposition::kLast];
+  Float_t*        fJetToTauComps     = new Float_t[JetToTauComposition::kLast];
+  Float_t*        fJetToTauCompsUp   = new Float_t[JetToTauComposition::kLast];
+  Float_t*        fJetToTauCompsDown = new Float_t[JetToTauComposition::kLast];
   Bool_t          fUseJetToTauComposition = false;
 
   JetToLepWeight  fJetToMuonWeight; //for mutau
@@ -822,6 +826,7 @@ void ZTauTauHistMaker::Init(TTree *tree)
     fOut = new TFile(GetOutputName(), "RECREATE","ZTauTauHistMaker output histogram file");
     fTopDir = fOut->mkdir("Data");
     fTopDir->cd();
+    std::cout << "Using output filename " << GetOutputName() << std::endl;
 
     for(int i = 0; i < fn; ++i) {
       fEventSets[i]  = 0;
@@ -950,14 +955,16 @@ void ZTauTauHistMaker::Init(TTree *tree)
       // MVA categories
       for(int i = 9; i < 19; ++i) fEventSets[kEMu  + i] = 1;
       fSysSets[kEMu  + 9  + fMVAConfig.categories_["zemu"].size()] = 1; //start with most significant category
+      fSysSets[kEMu  + 8  + fMVAConfig.categories_["zemu"].size()] = 1; //second most significant category
       fSysSets[kEMu  + 14 + fMVAConfig.categories_["hemu"].size()] = 1; //start with most significant category
+      fSysSets[kEMu  + 13 + fMVAConfig.categories_["hemu"].size()] = 1; //second most significant category
 
       // fEventSets [kEMu  + 20] = 1; //
       // fEventSets [kEMu  + 21] = 1; //
       fEventSets [kEMu  + 22] = 1; // events with nJets = 0
-      fSysSets   [kEMu  + 22] = 1;
+      // fSysSets   [kEMu  + 22] = 1;
       fEventSets [kEMu  + 23] = 1; // events with nJets > 0
-      fSysSets   [kEMu  + 23] = 1;
+      // fSysSets   [kEMu  + 23] = 1;
 
       fEventSets [kEMu  + 24] = 1; // events within mass window
       fEventSets [kEMu  + 25] = 1; // events within mass window
@@ -983,11 +990,16 @@ void ZTauTauHistMaker::Init(TTree *tree)
       // fEventSets [kMuMu + 6] = 1;
       fEventSets [kMuMu + 7] = 1;
       fEventSets [kMuMu + 8] = 1;
+      fSysSets   [kMuMu + 8] = 1;
       // fTreeSets  [kMuMu + 8] = 1;
       // fTreeSets  [kMuMu + 8+fQcdOffset] = fIsData != 0; //save SS data for QCD training
 
       // MVA categories
       for(int i = 9; i < 19; ++i) fEventSets[kMuMu + i] = 1;
+      fSysSets[kMuMu  + 9  + fMVAConfig.categories_["zemu"].size()] = 1; //start with most significant category
+      fSysSets[kMuMu  + 8  + fMVAConfig.categories_["zemu"].size()] = 1; //second most significant category
+      fSysSets[kMuMu  + 14 + fMVAConfig.categories_["hemu"].size()] = 1; //start with most significant category
+      fSysSets[kMuMu  + 13 + fMVAConfig.categories_["hemu"].size()] = 1; //second most significant category
 
       // fEventSets [kMuMu + 20] = 1; //
       // fEventSets [kMuMu + 21] = 1; //
@@ -1021,11 +1033,16 @@ void ZTauTauHistMaker::Init(TTree *tree)
       // fEventSets [kEE   + 6] = 1;
       fEventSets [kEE   + 7] = 1;
       fEventSets [kEE   + 8] = 1;
+      fSysSets   [kEE   + 8] = 1;
       // fTreeSets  [kEE   + 8] = 1;
       // fTreeSets  [kEE   + 8+fQcdOffset] = fIsData != 0; //save SS data for QCD training
 
       // MVA categories
-      for(int i = 9; i < 19; ++i) fEventSets[kEE   + i] = 1;
+      for(int i = 9; i < 19; ++i) fEventSets[kEE + i] = 1;
+      fSysSets[kEE    + 9  + fMVAConfig.categories_["zemu"].size()] = 1; //start with most significant category
+      fSysSets[kEE    + 8  + fMVAConfig.categories_["zemu"].size()] = 1; //second most significant category
+      fSysSets[kEE    + 14 + fMVAConfig.categories_["hemu"].size()] = 1; //start with most significant category
+      fSysSets[kEE    + 13 + fMVAConfig.categories_["hemu"].size()] = 1; //second most significant category
 
       // fEventSets [kEE   + 20] = 1; //
       // fEventSets [kEE   + 21] = 1; //

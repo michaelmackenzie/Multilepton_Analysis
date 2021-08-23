@@ -6,8 +6,8 @@ TH1D* hbkg_;
 vector<TH1D*> hsigs_;
 int test_sys_ = -1; //set to systematic number if debugging/inspecting it
 bool blind_data_ = true; //set data bins > MVA score level to 0
-bool ignore_sys_ = true; //don't get systematics
-bool use_dev_mva_ = true; //use the extra MVA hist for development, mvax_1
+bool ignore_sys_ = false; //don't get systematics
+bool use_dev_mva_ = false; //use the extra MVA hist for development, mvax_1
 
 int get_systematics(int set, TString hist, TH1D* hdata, TFile* f, TString canvas_name) {
   int status(0);
@@ -242,9 +242,6 @@ int get_MVA_histogram(vector<int> sets = {8}, TString selection = "zmutau",
   int status(0);
   for(int set : sets) {
     status += get_individual_MVA_histogram(set, selection, years, base);
-    // cout << "WARNING! Changing base histogram path!\n";
-    // base = "nanoaods";
-    // overall_rebin_ = 2;
     if(test_sys_ < 0) { //only do one selection if debugging
       if(selection.Contains("mutau"))
         status += get_individual_MVA_histogram(set, selection+"_e", years, base);

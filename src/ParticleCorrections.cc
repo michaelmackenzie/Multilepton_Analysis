@@ -195,7 +195,7 @@ void ParticleCorrections::ElectronWeight(double pt, double eta, int year, float&
 
   double eta_trig = eta;
   if(eta_trig > 2.4) eta_trig = 2.39;
-  else if(eta_trig <- 2.4) eta_trig = -2.39;
+  else if(eta_trig < -2.4) eta_trig = -2.39;
   TH2F* hTrig = electronTriggerMap[year];
   trigger_scale = hTrig->GetBinContent(hTrig->GetXaxis()->FindBin(eta_trig), hTrig->GetYaxis()->FindBin(pt));
 
@@ -238,30 +238,15 @@ double ParticleCorrections::ElectronTriggerEff(double pt, double eta, int year, 
     return -1.;
   }
 
-  if(year == k2016) {
-    if(pt > 499.)     pt = 499.; //maximum pT for corrections
-    else if(pt < 20.) pt = 20.; //minimum pT for corrections
-    if(eta >= 2.5) eta = 2.49; //maximum eta for corrections
-    else if(eta <= -2.5) eta = -2.49; //minimum eta for corrections
-  } else if(year == k2017) {
-    if(pt > 499.)     pt = 499.; //maximum pT for corrections
-    else if(pt < 20.) pt = 20.; //minimum pT for corrections
-    if(eta >= 2.5) eta = 2.49; //maximum eta for corrections
-    else if(eta <= -2.5) eta = -2.49; //minimum eta for corrections
-  } else if(year == k2018) {
-    if(pt > 499.)     pt = 499.; //maximum pT for corrections
-    else if(pt < 20.) pt = 20.; //minimum pT for corrections
-    if(eta >= 2.5) eta = 2.49; //maximum eta for corrections
-    else if(eta <= -2.5) eta = -2.49; //minimum eta for corrections
-  }
+  if(eta >= 2.39) eta = 2.39; //maximum eta for corrections
+  else if(eta <= -2.39) eta = -2.39; //minimum eta for corrections
+  if(pt > 499.)     pt = 499.; //maximum pT for corrections
+  else if(pt < 20.) pt = 20.; //minimum pT for corrections
 
-  double eta_trig = eta;
-  if(eta_trig > 2.4) eta_trig = 2.39;
-  else if(eta_trig <- 2.4) eta_trig = -2.39;
   TH2F* hTrigData = electronTriggerEffMap[0][year];
-  data_eff = hTrigData->GetBinContent(hTrigData->GetXaxis()->FindBin(eta_trig), hTrigData->GetYaxis()->FindBin(pt));
+  data_eff = hTrigData->GetBinContent(hTrigData->GetXaxis()->FindBin(eta), hTrigData->GetYaxis()->FindBin(pt));
   TH2F* hTrigMC = electronTriggerEffMap[1][year];
-  mc_eff = hTrigMC->GetBinContent(hTrigMC->GetXaxis()->FindBin(eta_trig), hTrigMC->GetYaxis()->FindBin(pt));
+  mc_eff = hTrigMC->GetBinContent(hTrigMC->GetXaxis()->FindBin(eta), hTrigMC->GetYaxis()->FindBin(pt));
 
   //can't fire a trigger if below the threshold
   if((year == k2016 && pt < 28.) || (year == k2017 && pt < 33.) || (year == k2018 && pt < 33.)) {

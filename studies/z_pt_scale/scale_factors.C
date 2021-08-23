@@ -181,6 +181,13 @@ TH2D* get_mc_histogram(int set, int type = 0) {
     if(!h) h = hTmp;
     else h->Add(hTmp);
   }
+
+  //loop through and ensure all bins are >= 0
+  for(int xbin = 1; xbin <= h->GetNbinsX(); ++xbin) {
+    for(int ybin = 1; ybin <= h->GetNbinsY(); ++ybin) {
+      if(h->GetBinContent(xbin, ybin) < 0.) h->SetBinContent(xbin, ybin, 0.);
+    }
+  }
   return h;
 }
 
@@ -195,10 +202,19 @@ Int_t initialize_plotter(bool useMuon, TString base, TString path, int year) {
   std::vector<dcard> cards;
   CrossSections xs; //cross section handler
   //card constructor:    filepath,                             name,                  label,              isData, xsec,  isSignal, color
-  if(year == 2017)
-    cards.push_back(dcard(path+base+"DY50-ext.hist"         , "DY50-ext"           , "Drell-Yan"         , false, xs.GetCrossSection("DY50"               ), false, year));
-  else
-    cards.push_back(dcard(path+base+"DY50-amc.hist"         , "DY50-amc"           , "Drell-Yan"         , false, xs.GetCrossSection("DY50"               ), false, year));
+  if(year == 2017) {
+    long num1 = xs.GetGenNumber("DY50"    , 2017);
+    long num2 = xs.GetGenNumber("DY50-ext", 2017);
+    double r1 = num1 / (1.*num1 + num2);
+    double r2 = num2 / (1.*num1 + num2);
+    cards.push_back(dcard(path+base+"DY50-1.hist"           , "DY50"               , "Drell-Yan"         , false, r1*xs.GetCrossSection("DY50"            ), false, year));
+    cards.push_back(dcard(path+base+"DY50-2.hist"           , "DY50"               , "Drell-Yan"         , false, r1*xs.GetCrossSection("DY50"            ), false, year));
+    cards.push_back(dcard(path+base+"DY50-ext-1.hist"       , "DY50-ext"           , "Drell-Yan"         , false, r2*xs.GetCrossSection("DY50"            ), false, year));
+    cards.push_back(dcard(path+base+"DY50-ext-2.hist"       , "DY50-ext"           , "Drell-Yan"         , false, r2*xs.GetCrossSection("DY50"            ), false, year));
+  } else {
+    cards.push_back(dcard(path+base+"DY50-amc-1.hist"       , "DY50-amc"           , "Drell-Yan"         , false, xs.GetCrossSection("DY50"               ), false, year));
+    cards.push_back(dcard(path+base+"DY50-amc-2.hist"       , "DY50-amc"           , "Drell-Yan"         , false, xs.GetCrossSection("DY50"               ), false, year));
+  }
   cards.push_back(dcard(path+base+"SingleAntiToptW.hist"    , "SingleAntiToptW"    , "SingleTop"         , false, xs.GetCrossSection("SingleAntiToptW"    ), false, year));
   cards.push_back(dcard(path+base+"SingleToptW.hist"        , "SingleToptW"        , "SingleTop"         , false, xs.GetCrossSection("SingleToptW"        ), false, year));
   cards.push_back(dcard(path+base+"WWW.hist"                , "WWW"                , "ZZ,WZ,WWW"         , false, xs.GetCrossSection("WWW"                ), false, year));

@@ -70,24 +70,44 @@ public:
     return -1;
   }
 
-  Double_t* Bins(Int_t index, Int_t& nbins) {
+  std::vector<Double_t> Bins(Int_t index, Int_t& nbins) {
     TString selection = GetSelectionByIndex(index);
     std::vector<Double_t> bins;
     if       (selection == "hmutau") {
-      for(double bin = -1.; bin <= 2.; bin += 0.05) {
-        bins.push_back(bin);
+      double edges[] = {-1.00, -0.80,
+                        -0.30, -0.25, -0.20, -0.16, -0.13,
+                        -0.10, -0.07, -0.04, -0.01,  0.02,
+                        +0.05,  0.20,
+                        +0.50,  2.00};
+      for(unsigned bin = 0; bin < sizeof(edges)/sizeof(*edges); ++bin) {
+        bins.push_back(edges[bin]);
       }
     } else if(selection == "zmutau") {
-      for(double bin = -1.; bin <= 2.; bin += 0.05) {
-        bins.push_back(bin);
+      double edges[] = {-1.00, -0.80,
+                        -0.30, -0.25, -0.20, -0.15, -0.10,
+                        -0.07, -0.04, -0.01,  0.02,  0.05,
+                        +0.08,  0.20,
+                        +0.50,  2.00};
+      for(unsigned bin = 0; bin < sizeof(edges)/sizeof(*edges); ++bin) {
+        bins.push_back(edges[bin]);
       }
     } else if(selection == "hetau") {
-      for(double bin = -1.; bin <= 2.; bin += 0.05) {
-        bins.push_back(bin);
+      double edges[] = {-1.00, -0.80,
+                        -0.30, -0.25, -0.20, -0.16, -0.13,
+                        -0.10, -0.07, -0.04, -0.01,  0.02,
+                        +0.05,  0.20,
+                        +0.50,  2.00};
+      for(unsigned bin = 0; bin < sizeof(edges)/sizeof(*edges); ++bin) {
+        bins.push_back(edges[bin]);
       }
     } else if(selection == "zetau") {
-      for(double bin = -1.; bin <= 2.; bin += 0.05) {
-        bins.push_back(bin);
+      double edges[] = {-1.00, -0.80,
+                        -0.30, -0.25, -0.20, -0.16, -0.13,
+                        -0.10, -0.07, -0.04, -0.01,  0.02,
+                        +0.05,  0.20,
+                        +0.50,  2.00};
+      for(unsigned bin = 0; bin < sizeof(edges)/sizeof(*edges); ++bin) {
+        bins.push_back(edges[bin]);
       }
     } else if(selection == "hemu") {
       for(double bin = -1.; bin <= 2.; bin += 0.05) {
@@ -98,27 +118,47 @@ public:
         bins.push_back(bin);
       }
     } else if(selection == "hmutau_e") {
-      for(double bin = -1.; bin <= 2.; bin += 0.05) {
-        bins.push_back(bin);
+      double edges[] = {-1.00, -0.80,
+                        -0.30, -0.25, -0.20, -0.16, -0.13,
+                        -0.10, -0.07, -0.04, -0.01,  0.02,
+                        +0.05,  0.20,
+                        +0.50,  2.00};
+      for(unsigned bin = 0; bin < sizeof(edges)/sizeof(*edges); ++bin) {
+        bins.push_back(edges[bin]);
       }
     } else if(selection == "zmutau_e") {
-      for(double bin = -1.; bin <= 2.; bin += 0.05) {
-        bins.push_back(bin);
+      double edges[] = {-1.00, -0.80,
+                        -0.30, -0.25, -0.20, -0.15, -0.10,
+                        -0.07, -0.04, -0.01,  0.02,  0.05,
+                        +0.08,  0.20,
+                        +0.50,  2.00};
+      for(unsigned bin = 0; bin < sizeof(edges)/sizeof(*edges); ++bin) {
+        bins.push_back(edges[bin]);
       }
     } else if(selection == "hetau_mu") {
-      for(double bin = -1.; bin <= 2.; bin += 0.05) {
-        bins.push_back(bin);
+      double edges[] = {-1.00, -0.80,
+                        -0.30, -0.25, -0.20, -0.16, -0.13,
+                        -0.10, -0.07, -0.04, -0.01,  0.02,
+                        +0.05,  0.20,
+                        +0.50,  2.00};
+      for(unsigned bin = 0; bin < sizeof(edges)/sizeof(*edges); ++bin) {
+        bins.push_back(edges[bin]);
       }
     } else if(selection == "zetau_mu") {
-      for(double bin = -1.; bin <= 2.; bin += 0.05) {
-        bins.push_back(bin);
+      double edges[] = {-1.00, -0.80,
+                        -0.30, -0.25, -0.20, -0.16, -0.13,
+                        -0.10, -0.07, -0.04, -0.01,  0.02,
+                        +0.05,  0.20,
+                        +0.50,  2.00};
+      for(unsigned bin = 0; bin < sizeof(edges)/sizeof(*edges); ++bin) {
+        bins.push_back(edges[bin]);
       }
     }
     nbins = bins.size() - 1;
-    return bins.data();
+    return bins;
   }
 
-  Double_t* Bins(Int_t index) {
+  std::vector<Double_t> Bins(Int_t index) {
     Int_t nbins;
     return Bins(index, nbins);
   }

@@ -9,6 +9,9 @@ double xmin_;
 double xmax_;
 bool blind_data_ = true;
 bool do_systematics_ = true;
+bool allow_sys_errors_ = true; //if there are missing systematic histograms, clone the default for now
+TH1D* hDefault_; //store the default histogram in case of missing systematics
+// TH1D* hDY_;
 
 int get_same_flavor_systematics(int set, TString hist, TFile* f) {
   int status(0);
@@ -20,28 +23,34 @@ int get_same_flavor_systematics(int set, TString hist, TFile* f) {
     cout << "Retrieving same-flavor systematic " << isys << "...\n";
     //Get background for the systematic
     THStack* hstack = dataplotter_->get_stack(Form("%s_%i", hist.Data(), isys), "systematic", set);
-    if(!hstack) {++status; continue;}
-    if(!hstack->GetStack()) {++status; continue;}
-
-    TH1D* hbkg = (TH1D*) hstack->GetStack()->Last();
-    hbkg->SetName(Form("hbkg_sys_%i", isys));
-    TH1D* hDY = (TH1D*) hbkg->Clone(Form("hDY_sys_%i", isys));
-    //remove non-DY backgrounds from DY histogram
-    for(auto o : *(hstack->GetHists())) {
-      TH1D* h = (TH1D*) o;
-      if(TString(h->GetName()).Contains("DY")) continue;
-      hDY->Add(h, -1.); //subtract off non-DY MC
+    TH1D* hbkg, hDY;
+    if(!hstack || !hstack->GetStack()) {
+      ++status;
+      if(!allow_sys_errors_)
+        continue;
+      else
+        cout << "Missing same-flavor histogram for set " << set << " and sys " << isys << endl;
+      hbkg = (TH1D*) hDefault_->Clone(Form("hbkg_sys_%i", isys));
+      // hDY  = (TH1D*) hDY_     ->Clone(Form("hDY_sys_%i" , isys));
+    } else {
+      hbkg = (TH1D*) hstack->GetStack()->Last();
+      hbkg->SetName(Form("hbkg_sys_%i", isys));
+      // TH1D* hDY = (TH1D*) hbkg->Clone(Form("hDY_sys_%i", isys));
+      // //remove non-DY backgrounds from DY histogram
+      // for(auto o : *(hstack->GetHists())) {
+      //   TH1D* h = (TH1D*) o;
+      //   if(TString(h->GetName()).Contains("DY")) continue;
+      //   hDY->Add(h, -1.); //subtract off non-DY MC
+      // }
     }
-
     if(test_sys_ >= 0) {
       cout << "Nominal background: " << hbkg_->Integral()
            << " shifted background: " << hbkg->Integral() << endl;
     }
 
     hbkg->Write();
-    hDY->Write();
-
-    f->Flush();
+    // hDY->Write();
+    // f->Flush();
   }
   return status;
 }
@@ -163,6 +172,7 @@ int get_systematics(int set, TString hist, TFile* f, TString canvas_name) {
     }
     hbkg->Write();
     f->Flush();
+    delete c;
   }
   return status;
 }
@@ -220,8 +230,10 @@ int get_same_flavor_histogram(int set, TString selection, vector<int> years, TSt
   hdata->SetName("hdata");
   hdata->Write();
 
+  hDefault_ = (TH1D*) hlast->Clone("hDefault");
   if(do_systematics_)
     status += get_same_flavor_systematics(set+set_offset, hist, fout);
+  delete hDefault_;
   fout->Close();
   return status;
 
@@ -341,11 +353,15 @@ int get_bemu_single_histogram(int set = 8, TString selection = "zemu",
 
 int get_bemu_histogram(vector<int> sets, TString selection = "zemu",
                        vector<int> years = {2016, 2017, 2018},
-                       TString base = "nanoaods_dev") {
+                       TString base = "nanoaods_dev",
+                       bool get_same_flavor = true) {
   int status(0);
   for(int set : sets) {
     cout << "Getting signal region histograms for set " << set << "...\n";
-    // status += get_bemu_single_histogram(set, selection, years, base);
+    status += get_bemu_single_histogram(set, selection, years, base);
+  }
+  if(get_same_flavor) {
+    int set = 8; //normalization set
     cout << "Getting mumu region histograms for set " << set << "...\n";
     status += get_same_flavor_histogram(set, "mumu", years, base);
     cout << "Getting ee region histograms for set " << set << "...\n";

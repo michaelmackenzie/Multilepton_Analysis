@@ -7,6 +7,7 @@ int toyMC_mva_systematics(vector<int> sets = {8}, TString selection = "zmutau",
                           int nfits = 500,
                           bool print = true,
                           bool self_test = false,
+                          bool zero_signal = false,
                           int seed = 90) {
   int status(0);
   double scale_lum = -1.; //for testing effects from changing the luminosity
@@ -68,22 +69,26 @@ int toyMC_mva_systematics(vector<int> sets = {8}, TString selection = "zmutau",
   }
 
   //Set an example branching ratio
-  double true_br_sig = (selection.Contains("h") ? 5.e-3 : 5.e-6);
+  double true_br_sig = (selection.Contains("h") ? 1.e-3 : 5.e-6);
+  if(zero_signal) true_br_sig = 0.;
   br_sig->setVal(true_br_sig); //set the branching fraction to the true value
 
   //Store the nominal number of background and signal events per category
   vector<double> n_bkgs, n_sigs;
   int index = 0;
+  vector<RooHistPdf*> bkgPDFs, sigPDFs;
   while(ws->pdf((self_test) ? Form("bkgMVAPDF_%i", index) : Form("bkgMVAPDF_%i_sys_%i", index, systematic))) {
     auto n_bkg = ws->var((self_test) ? Form("n_bkg_%i", index) : Form("n_bkg_%i_sys_%i", index, systematic));
     auto n_sig = ws->function((self_test) ? Form("n_sig_%i", index) : Form("n_sig_%i_sys_%i", index, systematic));
     n_bkgs.push_back((scale_lum > 0.) ? scale_lum*n_bkg->getVal() : n_bkg->getVal());
     n_sigs.push_back((scale_lum > 0.) ? scale_lum*n_sig->getVal() : n_sig->getVal());
-    if(n_bkg->getVal() <= 0. || n_sig->getVal() <= 0.) {
+    if(n_bkg->getVal() <= 0. || (!zero_signal && n_sig->getVal() <= 0.)) {
       cout << "Category " << index << " has an undefined event numbers! N(bkg) = " << n_bkg->getVal()
            << " and N(sig) = " << n_sig->getVal() << endl;
       return 2;
     }
+    bkgPDFs.push_back((RooHistPdf*) ws->pdf((self_test) ? Form("bkgMVAPDF_%i", index) : Form("bkgMVAPDF_%i_sys_%i", index, systematic)));
+    sigPDFs.push_back((RooHistPdf*) ws->pdf((self_test) ? Form("sigMVAPDF_%i", index) : Form("sigMVAPDF_%i_sys_%i", index, systematic)));
     ++index;
   }
 
@@ -104,14 +109,20 @@ int toyMC_mva_systematics(vector<int> sets = {8}, TString selection = "zmutau",
   // Fit Loop
   /////////////////////////
 
-  TString base_path = Form("plots/latest_production/%s/toyMC_mva_systematics_%s_%i", year_string.Data(), selection.Data(), set);
+  TString base_path = Form("plots/latest_production/%s/toyMC_mva_systematics%s_%s_%i",
+                           year_string.Data(), (zero_signal ? "_nosig" : ""), selection.Data(), set);
   gSystem->Exec(Form("[ ! -d %s ] && mkdir -p %s", base_path.Data(), base_path.Data()));
 
   RooCategory* categories = (RooCategory*) (ws->obj(selection.Data()));
   RooDataHist* combined_data_last; //save just for plotting
+  gErrorIgnoreLevel = kInfo;
+  // RooMsgService::instance().SetStreamStatus(1,false);
+  RooMsgService::instance().setStreamStatus(1,false);
   for(int ifit = 0; ifit < nfits; ++ifit) {
+    if(ifit % 100 == 0) cout << "Performing fit " << ifit << "...\n";
+
     br_sig->setVal(true_br_sig); //reset the branching fraction to the true value
-    //Generate data using the generating PDF --> generate data for each category
+    //Generate data using the generating PDF --> generate data for each category FIXME: Do extended fit on systematic PDFs to do this automatically
     map<string, RooDataHist*> dataCategoryMap;
     for(unsigned icat = 0; icat < n_bkgs.size(); ++icat) {
       //vary the number of events using a Poisson distribution with expected as the mean
@@ -123,31 +134,39 @@ int toyMC_mva_systematics(vector<int> sets = {8}, TString selection = "zmutau",
         return 3;
       }
       //get the background PDF
-      auto bkgMVAPDF = ws->pdf((self_test) ? Form("bkgMVAPDF_%i", icat) : Form("bkgMVAPDF_%i_sys_%i", icat, systematic));
-      cout << "Generating background data for index " << icat << " with " << n_bkg_events << " events (mean = "
-           << n_bkgs[icat] << ")\n";
+      auto bkgMVAPDF = bkgPDFs[icat];
+      if(ifit == 0) {
+        cout << "Generating background data for index " << icat << " with " << n_bkg_events << " events (mean = "
+             << n_bkgs[icat] << ")\n";
+      }
       //generate toy data
       RooDataHist* bkg_mva_gen = bkgMVAPDF->generateBinned(RooArgSet(*mva), n_bkg_events);
 
-      //get the signal PDF
-      auto sigMVAPDF = ws->pdf((self_test) ? Form("sigMVAPDF_%i", icat) : Form("sigMVAPDF_%i_sys_%i", icat, systematic));
-      cout << "Generating signal data for index " << icat << " with " << n_sig_events << " events (mean = "
-           << n_sigs[icat] << ")\n";
-      //generate toy data
-      RooDataHist* sig_mva_gen = sigMVAPDF->generateBinned(RooArgSet(*mva), n_sig_events);
-      if(ifit == 0) sigMVAPDF->Print();
+      if(!zero_signal) {
+        //get the signal PDF
+        auto sigMVAPDF = sigPDFs[icat];
+        if(ifit == 0) {
+          cout << "Generating signal data for index " << icat << " with " << n_sig_events << " events (mean = "
+               << n_sigs[icat] << ")\n";
+        }
+        //generate toy data
+        RooDataHist* sig_mva_gen = sigMVAPDF->generateBinned(RooArgSet(*mva), n_sig_events);
+        if(ifit == 0) sigMVAPDF->Print();
 
-      //add the signal to the background data, to fit the total
-      bkg_mva_gen->add(*sig_mva_gen);
-      delete sig_mva_gen;
+        //add the signal to the background data, to fit the total
+        bkg_mva_gen->add(*sig_mva_gen);
+        delete sig_mva_gen;
+      }
       if(ifit == 0) bkg_mva_gen->Print();
 
       //store the resulting data in the category map
       string category = Form("%s_%i", selection.Data(), icat);
       dataCategoryMap[category] = bkg_mva_gen;
 
-      cout << "Category " << icat << " has " << n_bkg_events << " background and "
-           << n_sig_events << " signal\n";
+      if(ifit == 0) {
+        cout << "Category " << icat << " has " << n_bkg_events << " background and "
+             << n_sig_events << " signal\n";
+      }
     } //end category loop
 
     //define the total dataset
@@ -159,10 +178,10 @@ int toyMC_mva_systematics(vector<int> sets = {8}, TString selection = "zmutau",
       }
     }
     //set the branching fraction to a random value near the true value
-    br_sig->setVal(true_br_sig * (1.5 - rnd->Uniform()));
+    br_sig->setVal((zero_signal ? true_br_sig : 5.e-6) * (1.5 - rnd->Uniform()));
 
     //perform the fit
-    if(ifit % 10 == 0) cout << "Performing fit " << ifit << endl;
+    if(ifit == 0) cout << "Performing fit " << ifit << endl;
     fit_PDF->fitTo(combined_data, RooFit::PrintLevel(-1), RooFit::Warnings(0), RooFit::PrintEvalErrors(-1));
     if(ifit == 0) {
       cout << "Finished the fit!\n";
@@ -242,6 +261,7 @@ int toyMC_mva_systematics(vector<int> sets = {8}, TString selection = "zmutau",
     else
       c1->SaveAs(Form("%s/results_sys_%i.png", base_path.Data(), systematic));
   }
+  delete c1;
 
   return status;
 }

@@ -1,30 +1,25 @@
 #! /bin/bash
 #selections include z/h + emu/etau/mutau, e.g. "zmutau"
-selection=$1
-histSet=$2
-year=$3
-histPath=$4
-if [[ "${selection}" == "" ]]
+SELECTION=$1
+HISTSET=$2
+YEAR=$3
+HISTPATH=$4
+if [[ "${SELECTION}" == "" ]]
 then
-    selection="zmutau"
+    SELECTION="zmutau"
 fi
-if [[ "${histSet}" == "" ]]
+if [[ "${HISTSET}" == "" ]]
 then
-    histSet=8
+    HISTSET="{8}"
 fi
-if [[ "${year}" == "" ]]
+if [[ "${YEAR}" == "" ]]
 then
-    year="{2016}"
-elif [[ "${year}" == "all" ]]
-then
-    year="{2016, 2017, 2018}"
-else
-    year="{${year}}"
+    YEAR="{2016, 2017, 2018}"
 fi
 
-if [[ "${histPath}" == "" ]]
+if [[ "${HISTPATH}" == "" ]]
 then
-    histPath="nanoaods_mva"
+    HISTPATH="nanoaods"
 fi
 
 echo "******************************************************************************************************************"
@@ -32,30 +27,20 @@ echo "Performing iteration for selection ${selection} set ${histSet} and year(s)
 echo "Enter \".q\" between each step to close Canvases and move to next step"
 echo "******************************************************************************************************************"
 
-run_command="root.exe"
+run_command="root.exe -b"
 if [[ "$5" != "" ]]
 then
-    echo "*** Overriding .q continuing, running in batch mode!"
+    echo "*** Overriding .q continuing, running without prompts"
     run_command="root.exe -b -q"
 fi
 
 echo "*** Retrieving MVA histograms using the DataPlotter..."
-$run_command "get_MVA_histogram.C(${histSet}, \"${selection}\", ${year}, \"${histPath}\")"
-if [[ "${selection}" == *"tau" ]]
-then
-    echo "*** Retrieving leptonic decay MVA histograms using the DataPlotter..."
-    if [[ "${selection}" == *"etau" ]]
-    then
-        $run_command "get_MVA_histogram.C(${histSet}, \"${selection}_mu\", ${year}, \"${histPath}\")"
-    else
-        $run_command "get_MVA_histogram.C(${histSet}, \"${selection}_e\", ${year}, \"${histPath}\")"
-    fi
-fi
+$run_command "get_MVA_histogram.C(${HISTSET}, \"${SELECTION}\", ${YEAR}, \"${HISTPATH}\")"
 
 echo "Creating histogram PDFs using the MVA distributions..."
-$run_command "fit_background_MVA_binned.C(${histSet}, \"${selection}\", ${year})"
+$run_command "fit_background_MVA_binned.C(${HISTSET}, \"${SELECTION}\", ${YEAR})"
 
 echo "Calculating the upper limit..."
-$run_command "calculate_UL_MVA_categories.C(${histSet}, \"${selection}\", ${year})"
+$run_command "calculate_UL_MVA_categories.C(${HISTSET}, \"${SELECTION}\", ${YEAR})"
 
-echo "Finished!"
+echo "Finished iteration"

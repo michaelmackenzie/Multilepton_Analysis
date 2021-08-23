@@ -3,6 +3,9 @@
 #include <utility>
 #include <string>
 #include "interface/Tree_t.hh"
+#include "interface/EventHist_t.hh"
+#include "interface/LepHist_t.hh"
+#include "interface/SystematicHist_t.hh"
 #include "interface/CrossSections.hh"
 #include "interface/Significances.hh"
 #include "interface/CreateCategories.hh"
@@ -12,6 +15,7 @@
 #include "interface/PrefireWeight.hh"
 #include "interface/JetToTauWeight.hh"
 #include "interface/JetToTauComposition.hh"
+#include "interface/QCDWeight.hh"
 #include "interface/MuonIDWeight.hh"
 #include "interface/ElectronIDWeight.hh"
 #include "interface/SlimObject_t.hh"
@@ -42,6 +46,7 @@ namespace { struct dictionary {
   PrefireWeight dummy5c;
   JetToTauWeight dummy6;
   JetToTauComposition dummy6b;
+  QCDWeight dummy6bb;
   MuonIDWeight dummy6c;
   ZPtWeight dummy6d;
   SlimObject_t dummy7;

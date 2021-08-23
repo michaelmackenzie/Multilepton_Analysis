@@ -71,7 +71,7 @@ public:
   ~JetToTauComposition() { for(unsigned i = 0; i < files_.size(); ++i) delete files_[i]; }
 
   //Get scale factor for Data
-  void GetComposition(float pt, float pt_lead, float lead_dphi, int year, float*& compositions) {
+  void GetComposition(float pt, float pt_lead, float lead_dphi, int year, float*& compositions, float*& comp_up, float*& comp_down) {
     if(pt < 20. ) pt = 20.f;
     if(pt > 199.) pt = 199.f;
     if(pt_lead < 20. ) pt_lead = 20.f;
@@ -88,13 +88,14 @@ public:
                 << " pt = " << pt << " lead pt = " << pt_lead << " lead met dPhi = " << lead_dphi
                 << " year = " << year << std::endl;
     for(int proc = 0; proc < kLast; ++proc) {
-      float comp = 0.f;
+      float comp(0.f), up(0.f), down(0.f);
       if(useFits_) {
         auto f = funcsData_[year][proc];
         if(!f) {
           std::cout << "!!! " << __func__ << ": No fit function found for year = " << year << " and process = " << proc << std::endl;
         } else {
           comp = f->Eval(var);
+          up = comp; down = comp;
         }
       } else {
         auto h = histsData_[year][proc];
@@ -102,6 +103,8 @@ public:
           std::cout << "!!! " << __func__ << ": No histogram found for year = " << year << " and process = " << proc << std::endl;
         } else {
           comp = h->GetBinContent(h->FindBin(var));
+          up   = comp + h->GetBinError(h->FindBin(var));
+          down = comp - h->GetBinError(h->FindBin(var));
         }
       }
       if(verbose_ > 1) std::cout << __func__ << ": Composition fraction for process " << proc << " = " << comp << std::endl;
@@ -111,7 +114,11 @@ public:
                   << " year = " << year << std::endl;
         comp = std::max(0.f, std::min(comp, 1.f));
       }
+      up   = std::max(0.f, std::min(up  , 1.f));
+      down = std::max(0.f, std::min(down, 1.f));
       compositions[proc] = comp;
+      comp_up  [proc] = up;
+      comp_down[proc] = down;
       tot += comp;
     }
     if(fabs(tot - 1.f) > 1.e-4) {

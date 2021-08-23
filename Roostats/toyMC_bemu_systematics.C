@@ -62,26 +62,24 @@ int toyMC_bemu_systematics(vector<int> sets = {8}, TString selection = "zemu",
 
   //Z->ee/mumu normalization info
   if(useZNorm_) {
-    for(int set : sets) {
-      RooRealVar* n_mumu = (RooRealVar*) ws->obj((self_test) ? Form("mumu_n_data_%i", set) : Form("mumu_n_data_%i_sys_%i", set, systematic));
-      RooRealVar* n_ee   = (RooRealVar*) ws->obj((self_test) ? Form("ee_n_data_%i"  , set) : Form("ee_n_data_%i_sys_%i"  , set, systematic));
-      if(!n_mumu || !n_ee) {
-        cout << "Z->ee/mumu normalization missing for set " << set << " with systematic " << systematic << endl;
-        return 2;
-      }
-      if(verbose_ > 0) {
-        cout << "--- Using set " << set << " N(mumu) = " << n_mumu->getVal() << " N(ee) = " << n_ee->getVal() << endl;
-      }
-      //set to the fitting PDF to use the number found in the shifted PDF world
-      RooRealVar* n_fit_mumu = (RooRealVar*) ws->obj(Form("mumu_n_data_%i", set));
-      RooRealVar* n_fit_ee   = (RooRealVar*) ws->obj(Form("ee_n_data_%i"  , set));
-      if(!n_fit_mumu || !n_fit_ee) {
-        cout << "Z->ee/mumu normalization missing for set " << set << " without systematic\n";
-        return 2;
-      }
-      n_fit_mumu->setVal(n_mumu->getVal());
-      n_fit_ee  ->setVal(n_ee  ->getVal());
+    RooRealVar* n_mumu = (RooRealVar*) ws->obj((self_test) ? "mumu_n_data" : Form("mumu_n_data_sys_%i", systematic));
+    RooRealVar* n_ee   = (RooRealVar*) ws->obj((self_test) ? "ee_n_data"   : Form("ee_n_data_sys_%i"  , systematic));
+    if(!n_mumu || !n_ee) {
+      cout << "Z->ee/mumu normalization missing for systematic " << systematic << endl;
+      return 2;
     }
+    if(verbose_ > 0) {
+      cout << "--- Using N(mumu) = " << n_mumu->getVal() << " N(ee) = " << n_ee->getVal() << endl;
+    }
+    //set to the fitting PDF to use the number found in the shifted PDF world
+    RooRealVar* n_fit_mumu = (RooRealVar*) ws->obj("mumu_n_data");
+    RooRealVar* n_fit_ee   = (RooRealVar*) ws->obj("ee_n_data"  );
+    if(!n_fit_mumu || !n_fit_ee) {
+      cout << "Z->ee/mumu normalization missing without systematic\n";
+      return 2;
+    }
+    n_fit_mumu->setVal(n_mumu->getVal());
+    n_fit_ee  ->setVal(n_ee  ->getVal());
   }
 
   //variables of interest

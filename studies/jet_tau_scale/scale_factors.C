@@ -47,7 +47,7 @@ TH2D* get_histogram(int setAbs, int ijet, int idm, int isdata, int icat) {
   }
 
   if(!h) return NULL;
-  if(verbose_ > 0) cout << "--- Histogram " << name.Data() << " set " << setAbs << " integral = " << h->Integral() << endl;
+  if(verbose_ > 1) cout << "--- Histogram " << name.Data() << " set " << setAbs << " integral = " << h->Integral() << endl;
   //setup the histogram title and axis titles
   h->SetTitle(name.Data());
   h->SetXTitle("pT (GeV/c)");
@@ -89,7 +89,7 @@ TCanvas* make_jet_canvas(TH2D* h[5][4], TString name) {
 
 //make 1D plots in eta regions
 TCanvas* make_eta_region_canvas(TH2D* hnum, TH2D* hdnm, TString name, bool iseff,
-                                TF1 *&f1, TF1 *&f2) {
+                                TF1 *&f1, TF1 *&f2, bool print_unc = false, TString tag = "") {
   int nbins = hnum->GetNbinsY();
   TH1D* hetas[nbins];
   TCanvas* c = new TCanvas(name.Data(), name.Data(), 500*nbins, 450);
@@ -116,27 +116,63 @@ TCanvas* make_eta_region_canvas(TH2D* hnum, TH2D* hdnm, TString name, bool iseff
         hetas[ibin]->SetBinError  (jbin,0.9);
       }
     }
-    TString fit_option = (verbose_ > 1) ? "" : "q";
+    TString fit_option = (verbose_ > 0) ? "S" : "q";
     if(!drawFit_) {
       fit_option += " 0";
       hetas[ibin]->Draw("E1");
     }
     TF1* func;
-    int mode = 1; //0: pol1 1: atan
+    int mode = 4; //0: pol1 1: atan 2: pol1 + landau 3: pol1 + gaussian
     if(mode == 0) {
       func = new TF1("func", "[slope]*x + [intercept]", 0.,  999.);
       func->SetParameters(0.1, 0.1);
       func->SetParLimits(0, 0., 1.);
       func->SetParLimits(1, -10., 10.);
     } else if(mode == 1) {
-      func = new TF1("func", "[scale]*(std::atan([slope]*x + [xoffset])/3.14159265 + 0.5) + (1 - [scale])*[yoffset]", 0.,  999.);
+      func = new TF1("func", "[scale]*(std::atan([slope]*(x + [xoffset]))/3.14159265 + 0.5) + (1 - [scale])*[yoffset]", 0.,  999.);
       func->SetParameters(0.1, 0.01, 0., 0.);
-      func->SetParLimits(0, 0., 1.); //scale
-      func->SetParLimits(1, -1.,  1.); //slope
-      func->SetParLimits(2, -5, 5); //x-offset
-      func->SetParLimits(3, 0., 1.); //y-offset
+      // func->SetParLimits(func->GetParNumber("scale")  , 0., 1.); //0
+      // func->SetParLimits(func->GetParNumber("slope")  , -1e5, 1e5); //1
+      // func->SetParLimits(func->GetParNumber("xoffset"), -1e5, 1e5); //2
+      // func->SetParLimits(func->GetParNumber("yoffset"), 0., 1.); //3
+    } else if(mode == 2) {
+      func = new TF1("func", "[offset] + [slope]*x + [scale]*TMath::Landau(x, [MPV], [Sigma])", 0., 999.);
+      func->SetParameters(50., 10., 0.1, 1., 0.1);
+      func->SetParLimits(func->GetParNumber("MPV"), -1.e4, 1.e4);    //0
+      func->SetParLimits(func->GetParNumber("Sigma"), 1e-6, 1.e5);   //1
+      func->SetParLimits(func->GetParNumber("offset"), -1.e3, 1.e3);   //2
+      func->SetParLimits(func->GetParNumber("scale"), -1.e7, 1.e7); //3
+      func->SetParLimits(func->GetParNumber("slope"), -10., 10.);    //4
+    } else if(mode == 3) {
+      func = new TF1("func", "[offset] + [slope]*x + [scale]*TMath::Gaus(x, [MPV], [Sigma])", 0., 999.);
+      func->SetParameters(50., 10., 0.1, 1., 0.1);
+      func->SetParLimits(func->GetParNumber("MPV"), -1.e4, 1.e4);    //0
+      func->SetParLimits(func->GetParNumber("Sigma"), 1e-6, 1.e5);   //1
+      func->SetParLimits(func->GetParNumber("offset"), -1.e3, 1.e3);   //2
+      func->SetParLimits(func->GetParNumber("scale"), -1.e7, 1.e7); //3
+      func->SetParLimits(func->GetParNumber("slope"), -10., 10.);    //4
+    } else if(mode == 4) {
+      func = new TF1("func", "[offset] + [slope] / (x + [xoffset])", 19., 999.);
+      func->SetParameters(0.1, -5., 10.);
+      // func->SetParLimits(func->GetParNumber("offset"), -1e3, 1e3);   //0
+      // func->SetParLimits(func->GetParNumber("slope"), -1.e3, 1.e3);  //1
+      func->SetParLimits(func->GetParNumber("xoffset"), -19., 1e4);  //2
     }
-    hetas[ibin]->Fit(func, fit_option.Data());
+    auto fit_res = hetas[ibin]->Fit(func, fit_option.Data());
+    if(!fit_res || fit_res == -1) {
+      cout << "Fit result not returned!\n";
+    } else if(fit_res == 4) {
+      cout << "Fit failed! Repeating with shifted values...\n";
+      if(mode == 4) func->SetParameters(0.1, 1., 2.);
+      fit_res = hetas[ibin]->Fit(func, fit_option.Data());
+    } else if(verbose_ > 0) {
+      try {
+        cout << "Fit address: " << fit_res << endl;
+        fit_res->Print();
+      } catch(exception e) {
+        cout << "Printing the fit result failed! " << e.what() << endl;
+      }
+    }
     hetas[ibin]->SetLineWidth(2);
     hetas[ibin]->SetMarkerStyle(6);
     TString eta_region = Form("%.1f #leq |#eta| < %.1f, %s", hnum->GetYaxis()->GetBinLowEdge(ibin+1),
@@ -165,6 +201,10 @@ TCanvas* make_eta_region_canvas(TH2D* hnum, TH2D* hdnm, TString name, bool iseff
       herr_1s->Draw("E3 same");
       hetas[ibin]->Draw("E1 same"); //add again on top of confidence intervals
       f->Draw("same");
+      if(print_unc) {
+        herr_1s->SetName(Form("fit_1s_error_%s_%ieta", tag.Data(), ibin));
+        herr_1s->Write();
+      }
     } else {
       if(!drawFit_) gStyle->SetOptFit(0);
       if(!f) cout << "!!! " << __func__ << ": Fit function not found! Eta region " << eta_region.Data() << endl;
@@ -212,7 +252,7 @@ Int_t initialize_plotter(TString base, TString path, int year) {
   if(dataplotter_) delete dataplotter_;
   dataplotter_ = new DataPlotter();
   dataplotter_->include_qcd_ = 0;
-  dataplotter_->verbose_ = verbose_;
+  dataplotter_->verbose_ = max(0, verbose_ - 1);
 
   typedef DataCard_t dcard;
   std::vector<dcard> cards;
@@ -290,6 +330,7 @@ Int_t scale_factors(TString selection = "mumu", TString process = "", int set1 =
   process_ = process;
   usingMCTaus_ = (set1 % 100) > 34 && (set1 % 100) < 40;
 
+  TVirtualFitter::SetMaxIterations( 1e6 );
   //////////////////////
   // Initialize files //
   //////////////////////
@@ -468,11 +509,16 @@ Int_t scale_factors(TString selection = "mumu", TString process = "", int set1 =
   c12b->Print((name+"mc_true_loose_rate.png").Data());
   c13 ->Print((name+"data_eff.png").Data());
   c14 ->Print((name+"mc_fake_eff.png").Data());
+
+  const char* fname = ((usePtRegion_ == 0) ? Form("rootfiles/jet_to_tau_%s_%i_%i.root", selection.Data(), set1, year) :
+                       Form("rootfiles/jet_to_tau_%s_%i_ptregion_%i_%i.root", selection.Data(), set1, usePtRegion_, year));
+  TFile* fOut = new TFile(fname, "RECREATE");
+
   TF1 *funcs[8], *mcfuncs[8];
   for(int idm = 0; idm < ndm; ++idm) {
     //Make data factors
     TCanvas* c = make_eta_region_canvas(hDataFakeTauRates_j[1][idm], hDataFakeTauRates_j[0][idm], Form("c_eta_dm%i_eff_data", idm), true,
-                                        funcs[2*idm], funcs[2*idm+1]);
+                                        funcs[2*idm], funcs[2*idm+1], true, Form("%idm", idm));
     if(!funcs[2*idm] || !funcs[2*idm+1]) cout << "Error gettting fit functions for DM = " << idm << endl;
     else {
       funcs[2*idm]  ->SetName(Form("fit_func_%idm_0eta", idm));
@@ -484,7 +530,7 @@ Int_t scale_factors(TString selection = "mumu", TString process = "", int set1 =
 
     //Make MC fake estimated factors
     c = make_eta_region_canvas(hMCFakeTauRates_j[1][idm], hMCFakeTauRates_j[0][idm], Form("c_eta_dm%i_eff_fake_mc", idm), true,
-                               mcfuncs[2*idm], mcfuncs[2*idm+1]);
+                               mcfuncs[2*idm], mcfuncs[2*idm+1], true, Form("mc_%idm", idm));
     if(!mcfuncs[2*idm] || !mcfuncs[2*idm+1]) cout << "Error gettting fit functions for DM = " << idm << endl;
     else {
       mcfuncs[2*idm]  ->SetName(Form("fit_mc_func_%idm_0eta", idm));
@@ -495,9 +541,6 @@ Int_t scale_factors(TString selection = "mumu", TString process = "", int set1 =
     c->Print(Form("%sfake_mc_dm%i_eff_log.png", name.Data(), idm));
   }
 
-  const char* fname = ((usePtRegion_ == 0) ? Form("rootfiles/jet_to_tau_%s_%i_%i.root", selection.Data(), set1, year) :
-                       Form("rootfiles/jet_to_tau_%s_%i_ptregion_%i_%i.root", selection.Data(), set1, usePtRegion_, year));
-  TFile* fOut = new TFile(fname, "RECREATE");
   for(int i = 0; i < 4; ++i) {
     hDataFakeTauEffs_j[i]->Write();
     if(hMCFakeTauEffs_j[i]) hMCFakeTauEffs_j[i]->Write();

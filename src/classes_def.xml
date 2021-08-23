@@ -1,5 +1,8 @@
 <lcgdict>
   <class name="Tree_t"/>
+  <class name="EventHist_t"/>
+  <class name="LepHist_t"/>
+  <class name="SystematicHist_t"/>
   <class name="CrossSections"/>
   <class name="Significances"/>
   <class name="CreateCategories"/>
@@ -9,6 +12,7 @@
   <class name="PrefireWeight"/>
   <class name="JetToTauWeight"/>
   <class name="JetToTauComposition"/>
+  <class name="QCDWeight"/>
   <class name="MuonIDWeight"/>
   <class name="ZPtWeight"/>
   <class name="ElectronIDWeight"/>

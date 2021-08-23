@@ -1,7 +1,8 @@
 //Script to calculate the 95% UL for e+mu resonance using binned fits
-bool doConstraints_ = false;
-bool use_bernstein_ = false;
+bool doConstraints_ = true;
+bool use_bernstein_ = true;
 bool blind_data_ = true;
+bool use_data_in_calc_ = true;
 
 Int_t calculate_UL_bemu_binned(vector<int> sets = {8}, TString selection = "zemu",
                                vector<int> years = {2016, 2017, 2018},
@@ -29,7 +30,8 @@ Int_t calculate_UL_bemu_binned(vector<int> sets = {8}, TString selection = "zemu
   RooRealVar* br_sig = ws->var("br_sig");
   RooArgList poi_list(*br_sig);
   RooArgList obs_list(*(ws->var("lepm")));
-  RooDataHist* data = (RooDataHist*) ws->data((blind_data_) ? "combined_toy_data" : "combined_data");
+  obs_list.add(*((RooCategory*) ws->obj(selection.Data())));
+  RooDataHist* data = (RooDataHist*) ws->data((use_data_in_calc_) ? "combined_data" : "combined_toy_data");
   if(!data) {cout << "Data not found!\n"; return 2;}
   double bmass = (doHiggs) ? 125. : 91.;
   RooDataHist* data_sig = (RooDataHist*) data->reduce(Form("lepm > %.3f && lepm < %.3f", bmass - 5., bmass + 5.));
@@ -42,20 +44,25 @@ Int_t calculate_UL_bemu_binned(vector<int> sets = {8}, TString selection = "zemu
     nuisance_params.add(*(ws->var("br_sig_beta")));
   int index = 0;
   for(int set : sets) {
+    auto setPDF = ws->pdf(Form("bkgPDF_%i", set));
+    setPDF->Print();
     TString var_name = (use_bernstein_) ? "bst" : "cheb";
-    var_name += (doHiggs || set == 13) ? "3" : "4";
-    auto a_bkg = ws->var(Form("a_%s_%i", var_name.Data(), set));
-    auto b_bkg = ws->var(Form("b_%s_%i", var_name.Data(), set));
-    auto c_bkg = ws->var(Form("c_%s_%i", var_name.Data(), set));
-    auto d_bkg = ws->var(Form("d_%s_%i", var_name.Data(), set));
-    auto n_bkg = ws->var(Form("n_bkg_%i", set));
-    if(a_bkg) nuisance_params.add(*a_bkg);
-    else {cout << "PDF variables not found!\n"; return 3;}
-    if(b_bkg) nuisance_params.add(*b_bkg);
-    if(c_bkg) nuisance_params.add(*c_bkg);
-    if(d_bkg) nuisance_params.add(*d_bkg);
-    nuisance_params.add(*n_bkg);
+    TString title = setPDF->getTitle();
+    cout << "PDF has title " << title.Data() << endl;
+    title.ReplaceAll("bkgPDF_", ""); title.ReplaceAll(var_name.Data(), "");
+    int nvar = title.Atoi();
+    var_name += nvar;
+    char variable[] = "a";
+    for(int ivar = 0; ivar < nvar; ++ivar) {
+      TString x_bkg_name = Form("%s_%s_%i", TString(variable).Data(), var_name.Data(), set);
+      auto var = ws->var(x_bkg_name.Data());
+      if(var) nuisance_params.add(*var);
+      else {cout << "PDF variable " << x_bkg_name.Data() << " not found for set " << set << "!\n"; return 3;}
+      variable[0] += 1;
+    }
+    ++index;
   }
+
   RooArgList glb_list;
   if(doConstraints_) {
     glb_list.add(*(ws->var("br_sig_kappa")));
@@ -115,8 +122,8 @@ Int_t calculate_UL_bemu_binned(vector<int> sets = {8}, TString selection = "zemu
   // double poimin = ((RooRealVar*) poi_list.find("br_sig"))->getMin();
   // double poimax = ((RooRealVar*) poi_list.find("br_sig"))->getMax();
 
-  double min_scan = (doHiggs) ? 5.e-7 : 1.e-9;
-  double max_scan = (doHiggs) ? 1.e-3 : 1.e-6;
+  double min_scan = (doHiggs) ? 1.e-6 : 1.e-8;
+  double max_scan = (doHiggs) ? 5.e-4 : 1.e-6;
   std::cout << "Doing a fixed scan in the interval: " << min_scan << ", "
             << max_scan << " with " << npoints << " points\n";
   calc.SetFixedScan(npoints, min_scan, max_scan);
@@ -127,8 +134,9 @@ Int_t calculate_UL_bemu_binned(vector<int> sets = {8}, TString selection = "zemu
   double expectedUL  = result->GetExpectedUpperLimit( 0);
   double expectedULM = result->GetExpectedUpperLimit(-1);
   double expectedULP = result->GetExpectedUpperLimit( 1);
-  std::cout << "##################################################\n"
-            << "The observed upper limit is " << upperLimit << std::endl;
+  std::cout << "##################################################\n";
+  if(!blind_data_ || !use_data_in_calc_)
+  cout << "The observed upper limit is " << upperLimit << std::endl;
 
   //compute the expected limit
   std::cout << "Expected upper limits, using the alternate model: " << std::endl
@@ -139,16 +147,18 @@ Int_t calculate_UL_bemu_binned(vector<int> sets = {8}, TString selection = "zemu
 
 
   br_sig->setVal(upperLimit);
-  cout << endl << endl << "##################################################################-" << endl
-       << "--- N(sig) vs N(bkg) at " << br_sig->getVal() << ":\n";
-  for(int set : sets) {
-    auto n_sig = ws->function(Form("n_sig_%i", set));
-    double nsig = n_sig->getVal();
-    auto n_bkg = ws->var(Form("n_bkg_%i", set));
-    double nbkg = n_bkg->getVal();
-    cout << "--- Set " << set << ": N(sig) = " << nsig << " N(bkg) = " << nbkg << " N(data region) = " << ndata_sig << endl;
+  if(!use_data_in_calc_ || !blind_data_) {
+    cout << endl << endl << "##################################################################-" << endl
+         << "--- N(sig) vs N(bkg) at " << br_sig->getVal() << ":\n";
+    for(int set : sets) {
+      auto n_sig = ws->function(Form("n_sig_%i", set));
+      double nsig = n_sig->getVal();
+      auto n_bkg = ws->var(Form("n_bkg_%i", set));
+      double nbkg = n_bkg->getVal();
+      cout << "--- Set " << set << ": N(sig) = " << nsig << " N(bkg) = " << nbkg << " N(data region) = " << ndata_sig << endl;
+    }
+    cout << "##################################################################" << endl << endl << endl;
   }
-  cout << "##################################################################" << endl << endl << endl;
 
   //Plot the results
   RooStats::HypoTestInverterPlot freq_plot("HTI_Result_Plot","Expected CLs",result);

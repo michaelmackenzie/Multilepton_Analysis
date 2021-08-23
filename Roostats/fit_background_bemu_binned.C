@@ -1,15 +1,16 @@
 //Script to fit the di-lepton mass histogram for the B->e+mu searches
 // #include "../interface/SystematicHist_t.hh"
 
-bool doConstraints_ = false; //adding in systematics
+bool doConstraints_ = true; //adding in systematics
 bool includeSignalInFit_ = false; //fit background specturm with signal shape in PDF
-bool fit_toy_mc_ = true; //fit the background functions to the MC background dataset
-bool blind_data_ = false; //use sidebands and blind the signal region
+bool fit_toy_mc_ = false; //fit the background functions to the MC background dataset
+bool blind_data_ = true; //use sidebands and blind the signal region
 bool require_same_flavor_ = true; //ensure same flavor histograms are available for normalization
 bool require_dy_hist_ = false; //ensure DY MC estimate is with the same flavor data
-bool use_bernstein_ = false; //use bernstein or chebychev for default background pdf choice
+bool use_bernstein_ = true; //use bernstein or chebychev for default background pdf choice
 bool do_fits_ = true; //actually perform the fits, set to false for testing purposes
 int test_sys_ = -1; //systematic number for testing, -1 to not test
+bool do_systematics_ = false; //ignore systematic fits
 
 RooRealVar* br_sig_; //fields common to systematics and nominal PDFs
 TString year_string_;
@@ -49,7 +50,7 @@ Double_t chebychev_fit(RooDataHist& data, int order) {
   RooRealVar n_bkg("n_cheb_tmp", "n(bkg)", 1e5, 0., 1e6);
   RooChebychev func("cheb_tmp_pdf", "cheb_tmp_pdf", *lepm_, list);
   RooAddPdf tot("cheb_tmp_tot_pdf", "totPDF_cheb_tmp", RooArgList(func), RooArgList(n_bkg));
-  if(blind_data_)
+  if(blind_data_&&false)
     tot.fitTo(data, RooFit::Range("LowSideband,HighSideband"));
   else
     tot.fitTo(data);
@@ -70,7 +71,7 @@ Double_t bernstein_fit(RooDataHist& data, int order) {
     list.add(*vars[i]);
   }
   RooBernstein func("bst_tmp_pdf", "bst_tmp_pdf", *lepm_, list);
-  if(blind_data_)
+  if(blind_data_&&false)
     func.fitTo(data, RooFit::Range("LowSideband,HighSideband"));
   else
     func.fitTo(data);
@@ -167,22 +168,22 @@ Int_t fit_systematics(TFile* fOut, TString selection, vector<int> sets, map<int,
         n_mumu_dy = 1.e7;
       } else {
         TH1D* hmumu_mc = (TH1D*) fmumu_->Get(Form("hbkg_sys_%i", isys));
-        TH1D* hmumu_dy = (TH1D*) fmumu_->Get(Form("hDY_sys_%i" , isys));
+        // TH1D* hmumu_dy = (TH1D*) fmumu_->Get(Form("hDY_sys_%i" , isys));
         n_mumu_mc   = hmumu_mc->Integral(hmumu_mc->FindBin(70.), hmumu_mc->FindBin(110.));
-        n_mumu_dy   = hmumu_dy->Integral(hmumu_dy->FindBin(70.), hmumu_dy->FindBin(110.));
+        // n_mumu_dy   = hmumu_dy->Integral(hmumu_dy->FindBin(70.), hmumu_dy->FindBin(110.));
         delete hmumu_mc;
-        delete hmumu_dy;
+        // delete hmumu_dy;
       }
       if(!fee_) {
         n_ee_mc = 1.e7;
         n_ee_dy = 1.e7;
       } else {
         TH1D* hee_mc = (TH1D*) fee_->Get(Form("hbkg_sys_%i", isys));
-        TH1D* hee_dy = (TH1D*) fee_->Get(Form("hDY_sys_%i" , isys));
+        // TH1D* hee_dy = (TH1D*) fee_->Get(Form("hDY_sys_%i" , isys));
         n_ee_mc   = hee_mc->Integral(hee_mc->FindBin(70.), hee_mc->FindBin(110.));
-        n_ee_dy   = hee_dy->Integral(hee_dy->FindBin(70.), hee_dy->FindBin(110.));
+        // n_ee_dy   = hee_dy->Integral(hee_dy->FindBin(70.), hee_dy->FindBin(110.));
         delete hee_mc;
-        delete hee_dy;
+        // delete hee_dy;
       }
 
       //add the shifted N(Z) prediction using N(data) = shifted MC, N(MC) = non-shifted MC i.e. expected non-shifted but measured shifted amount
@@ -286,8 +287,6 @@ Int_t fit_systematics(TFile* fOut, TString selection, vector<int> sets, map<int,
       totPDF->addPdf(*totPDFs[i], Form("%s_%i", selection.Data(), i));
     ws.import(*totPDF);
   }
-  ws.Print();
-  ws.Write();
   return 0;
 }
 
@@ -299,6 +298,7 @@ Int_t fit_background_bemu_binned(vector<int> sets = {8}, TString selection = "ze
 
   //set the random seed for the fitting + generation
   RooRandom::randomGenerator()->SetSeed(seed);
+  gStyle->SetOptStat(0);
 
   TString year_string = "";
   for(unsigned i = 0; i < years.size(); ++i) {
@@ -340,7 +340,7 @@ Int_t fit_background_bemu_binned(vector<int> sets = {8}, TString selection = "ze
   }
 
   //systematic uncertainty
-  double sys_unc = (doHiggs) ? 0. : 0.6;
+  double sys_unc = (doHiggs) ? 0.06 : 0.20;
 
   //Get total boson cross section and set total luminosity
   double bxs = xs.GetCrossSection((doHiggs) ? "H" : "Z");
@@ -359,7 +359,7 @@ Int_t fit_background_bemu_binned(vector<int> sets = {8}, TString selection = "ze
   RooFormulaVar br_sig_eff("br_sig_eff", "@0 * pow(@1, @2)", RooArgList(br_sig, br_sig_kappa, br_sig_beta)); br_sig_eff_ = &br_sig_eff;
   RooRealVar zero("zero", "zero", 0., -1., 1.); zero.setConstant(1);
   RooRealVar one("one", "one", 1., 0., 2.); one.setConstant(1);
-  RooGaussian   br_sig_constr("br_sig_constr", "br_sig_constr", br_sig_beta, zero, one); //constraint on br_sig systematic
+  RooGaussian br_sig_constr("br_sig_constr", "br_sig_constr", br_sig_beta, zero, one); //constraint on br_sig systematic
   if(!doConstraints_) br_sig_beta.setConstant(1);
   br_sig_constr_ = &br_sig_constr;
   xs_sig_ = xs.GetCrossSection(signame.Data());
@@ -371,87 +371,112 @@ Int_t fit_background_bemu_binned(vector<int> sets = {8}, TString selection = "ze
   vector<RooFormulaVar*> n_sigs;
   vector<RooRealVar*> n_bkgs;
   vector<RooAbsPdf*> totPDFs;
-  vector<RooAbsPdf*> totPDFs_exp1, totPDFs_cheb2, totPDFs_cheb3, totPDFs_cheb4, totPDFs_cheb5, totPDFs_bst2, totPDFs_bst3, totPDFs_bst4, totPDFs_bst5; //alternate background descriptions
+  vector<RooAbsPdf*> totPDFs_exp1, totPDFs_cheb2, totPDFs_cheb3, totPDFs_cheb4, totPDFs_cheb5, totPDFs_bst2, totPDFs_bst3, totPDFs_bst4, totPDFs_bst5, totPDFs_bst6; //alternate background descriptions
   vector<RooAbsPdf*> bkgPDFs;
   map<int,int> orders;
   std::set<int> orders_used;
-
-  ////////////////////////////////////////////////////////////
-  // Read in the data
-  ////////////////////////////////////////////////////////////
 
   //save the workspace
   TFile* fOut = new TFile(Form("workspaces/fit_%s_lepm_background_binned%s_%s_%s.root", selection.Data(),
                                (doConstraints_) ? "_constr" : "",
                                year_string.Data(), set_str.Data()), "RECREATE");
   RooWorkspace ws("ws");
+
+  ////////////////////////////////////////////////////////////
+  // Read in the normalization data (Z->ee, Z->mumu)
+  ////////////////////////////////////////////////////////////
+
+  const int norm_set = 8; //set used to measure the number of Z's in the dataset
+
+  //Z->mumu normalization
+  fmumu_ = TFile::Open(Form("histograms/mumu_lepm_%i_%s.hist", norm_set, year_string.Data()), "READ");
+  double n_mumu_data, n_mumu_mc, n_mumu_dy;
+  if(!fmumu_) {
+    if(require_same_flavor_)
+      return 12;
+    n_mumu_data = 1.e7*years.size();
+    n_mumu_mc = 1.e7*years.size();
+    n_mumu_dy = n_mumu_mc;
+  } else {
+    TH1D* hmumu_data = (TH1D*) fmumu_->Get("hdata");
+    TH1D* hmumu_mc   = (TH1D*) fmumu_->Get("hbackground");
+    // TH1D* hmumu_dy   = (TH1D*) fmumu_->Get("hDY");
+    if(!hmumu_data || !hmumu_mc/* || (!hmumu_dy && require_dy_hist_)*/) {
+      cout << "MuMu histograms not available for set " << norm_set << endl;
+      return 14;
+    }
+    n_mumu_data = hmumu_data->Integral(hmumu_data->FindBin(70.), hmumu_data->FindBin(110.));
+    n_mumu_mc   = hmumu_mc  ->Integral(hmumu_mc  ->FindBin(70.), hmumu_mc  ->FindBin(110.));
+    // n_mumu_dy   = (hmumu_dy) ? hmumu_dy->Integral(hmumu_dy  ->FindBin(70.), hmumu_dy  ->FindBin(110.)) : n_mumu_mc;
+    delete hmumu_data;
+    delete hmumu_mc;
+    // if(hmumu_dy) delete hmumu_dy;
+  }
+
+  //Z->ee normalization
+  fee_ = TFile::Open(Form("histograms/ee_lepm_%i_%s.hist", norm_set, year_string.Data()), "READ");
+  double n_ee_data, n_ee_mc, n_ee_dy;
+  if(!fee_) {
+    if(require_same_flavor_)
+      return 13;
+    n_ee_data = 1.e7*years.size();
+    n_ee_mc = 1.e7*years.size();
+    n_ee_dy = n_ee_mc;
+  } else {
+    TH1D* hee_data = (TH1D*) fee_->Get("hdata");
+    TH1D* hee_mc   = (TH1D*) fee_->Get("hbackground");
+    // TH1D* hee_dy   = (TH1D*) fee_->Get("hDY");
+    if(!hee_data || !hee_mc/* || (!hee_dy && require_dy_hist_)*/) {
+      cout << "EE histograms not available for set " << norm_set << endl;
+      return 15;
+    }
+    n_ee_data = hee_data->Integral(hee_data->FindBin(70.), hee_data->FindBin(110.));
+    n_ee_mc   = hee_mc  ->Integral(hee_mc  ->FindBin(70.), hee_mc  ->FindBin(110.));
+    // n_ee_dy   = (hee_dy) ? hee_dy  ->Integral(hee_dy  ->FindBin(70.), hee_dy  ->FindBin(110.)) : n_ee_mc;
+    delete hee_data;
+    delete hee_mc;
+    // if(hee_dy) delete hee_dy;
+  }
+
+  //Save normalization parameters
+  RooRealVar* mumu_n_data   = new RooRealVar("mumu_n_data", "Z->mumu count from Data", n_mumu_data, 1.e5, 1e9); mumu_n_data->setConstant(1);
+  RooRealVar* ee_n_data     = new RooRealVar("ee_n_data"  , "Z->ee count from Data"  , n_ee_data  , 1.e5, 1e9); ee_n_data  ->setConstant(1);
+  //account for non-DY contamination by N(Data DY mumu) = N(Data mumu)*(N(MC DY mumu) / N(MC mumu))
+  //eff(Data DY mumu) ~ eff(MC DY mumu) = N(MC DY mumu) / N(MC Z->mumu)
+  // --> N(Data Z->mumu) = N(Data DY mumu) / eff(MC DY mumu) = N(Data mumu) * (N(MC DY mumu)/N(MC mumu)) / eff(MC DY mumu)
+  // --> effective efficiency to use for N(Data Z->mumu) = N(Data mumu) / eff'(MC mumu):
+  // eff'(MC mumu) = eff(MC DY mumu) * N(MC mumu)/N(MC DY mumu) = N(MC mumu) / N(MC Z->mumu), **ignoring the contamination**
+  RooRealVar* mumu_eff_mc   = new RooRealVar("mumu_eff_mc", "Z->mumu efficiency from MC", n_mumu_mc  /(lum*zxs*br_zll), 0., 1.); mumu_eff_mc_ = mumu_eff_mc;
+  RooRealVar* ee_eff_mc     = new RooRealVar("ee_eff_mc"  , "Z->ee efficiency from MC"  , n_ee_mc    /(lum*zxs*br_zll), 0., 1.); ee_eff_mc_   = ee_eff_mc;
+  mumu_eff_mc->setConstant(1);
+  ee_eff_mc  ->setConstant(1);
+  //Use mumu and ee efficiencies to normalize our signal, N(sig) = eff(sig) * Br(sig) * (N(mumu)/eff(mumu) + N(ee)/eff(ee))/2 / Br(Z->ll) * XS(B) / XS(Z)
+  // --> N(Z->ll) = N(mumu) / eff(mumu) --> N(Z) = N(mumu) / eff(mumu) / Br(Z->mumu)
+  // Use geometric mean instead of average of estimates: N(Z) = sqrt(N(Z | mumu) * N(Z | ee)) to reduce systematics
+  RooFormulaVar* n_z_mumu = new RooFormulaVar("n_z_mumu", "@0 / @1 / @2", RooArgList(*mumu_n_data, *mumu_eff_mc, br_zll_var));
+  RooFormulaVar* n_z_ee   = new RooFormulaVar("n_z_ee"  , "@0 / @1 / @2", RooArgList(*ee_n_data  , *ee_eff_mc  , br_zll_var));
+
+  ////////////////////////////////////////////////////////////
+  // Read in the signal selection data (signal, background)
+  ////////////////////////////////////////////////////////////
+
   int index = 0;
   for(int set : sets) {
     cout << "Reading in the data information for set " << set << endl;
     TFile* f = TFile::Open(Form("histograms/%s_lepm_%i_%s.hist", selection.Data(), set, year_string.Data()), "READ");
-    if(!f) return 1 + 100*set;
-    fmumu_ = TFile::Open(Form("histograms/mumu_lepm_%i_%s.hist", set, year_string.Data()), "READ");
-    double n_mumu_data, n_mumu_mc, n_mumu_dy;
-    if(!fmumu_) {
-      if(require_same_flavor_)
-        return 2 + 100*set;
-      n_mumu_data = 1.e7*years.size();
-      n_mumu_mc = 1.e7*years.size();
-      n_mumu_dy = n_mumu_mc;
-    } else {
-      TH1D* hmumu_data = (TH1D*) fmumu_->Get("hdata");
-      TH1D* hmumu_mc   = (TH1D*) fmumu_->Get("hbackground");
-      TH1D* hmumu_dy   = (TH1D*) fmumu_->Get("hDY");
-      if(!hmumu_data || !hmumu_mc || (!hmumu_dy && require_dy_hist_)) {
-        cout << "MuMu histograms not available for set " << set << endl;
-        return 4 + 100*set;
-      }
-      n_mumu_data = hmumu_data->Integral(hmumu_data->FindBin(70.), hmumu_data->FindBin(110.));
-      n_mumu_mc   = hmumu_mc  ->Integral(hmumu_mc  ->FindBin(70.), hmumu_mc  ->FindBin(110.));
-      n_mumu_dy   = (hmumu_dy) ? hmumu_dy->Integral(hmumu_dy  ->FindBin(70.), hmumu_dy  ->FindBin(110.)) : n_mumu_mc;
-      delete hmumu_data;
-      delete hmumu_mc;
-      if(hmumu_dy) delete hmumu_dy;
-    }
-
-    fee_ = TFile::Open(Form("histograms/ee_lepm_%i_%s.hist", set, year_string.Data()), "READ");
-    double n_ee_data, n_ee_mc, n_ee_dy;
-    if(!fee_) {
-      if(require_same_flavor_)
-        return 3 + 100*set;
-      n_ee_data = 1.e7*years.size();
-      n_ee_mc = 1.e7*years.size();
-      n_ee_dy = n_ee_mc;
-    } else {
-      TH1D* hee_data = (TH1D*) fee_->Get("hdata");
-      TH1D* hee_mc   = (TH1D*) fee_->Get("hbackground");
-      TH1D* hee_dy   = (TH1D*) fee_->Get("hDY");
-      if(!hee_data || !hee_mc || (!hee_dy && require_dy_hist_)) {
-        cout << "EE histograms not available for set " << set << endl;
-        return 5 + 100*set;
-      }
-      n_ee_data = hee_data->Integral(hee_data->FindBin(70.), hee_data->FindBin(110.));
-      n_ee_mc   = hee_mc  ->Integral(hee_mc  ->FindBin(70.), hee_mc  ->FindBin(110.));
-      n_ee_dy   = (hee_dy) ? hee_dy  ->Integral(hee_dy  ->FindBin(70.), hee_dy  ->FindBin(110.)) : n_ee_mc;
-      delete hee_data;
-      delete hee_mc;
-      if(hee_dy) delete hee_dy;
-    }
-
+    if(!f) return 1 + 10*set;
 
     TH1D* hbkg  = (TH1D*) f->Get("hbackground");
     TH1D* hsig  = (TH1D*) f->Get(selection.Data());
     TH1D* hdata = (TH1D*) f->Get("hdata");
     if(!hbkg || !hsig || !hdata) {
       cout << "Not all base histograms found!\n";
-      return 4 + 100*set;
+      return 4 + 10*set;
     }
-
-    if(blind_data_) {
-      int bin_lo = hdata->FindBin(bmass - 5.);
-      int bin_hi = hdata->FindBin(bmass + 5.);
-      for(int bin = bin_lo; bin <= bin_hi; ++bin) hdata->SetBinContent(bin, 0.);
-    }
+    TH1F* hdata_blinded = (TH1F*) hdata->Clone("hdata_blinded");
+    int bin_lo = hdata_blinded->FindBin(bmass - 5.);
+    int bin_hi = hdata_blinded->FindBin(bmass + 5.);
+    for(int bin = bin_lo; bin <= bin_hi; ++bin) hdata_blinded->SetBinContent(bin, 0.);
 
     ////////////////////////////////////////////////////////////
     // Create RooFit products for the data
@@ -462,29 +487,17 @@ Int_t fit_background_bemu_binned(vector<int> sets = {8}, TString selection = "ze
     lepm_ = &lepm;
 
     //create RooDataHist from histograms
-    RooDataHist bkgData (Form("bkgData_%i" , set),  "Background Data", RooArgList(lepm), hbkg );
-    RooDataHist sigData (Form("sigData_%i" , set),  "Signal Data"    , RooArgList(lepm), hsig );
-    RooDataHist dataData(Form("dataData_%i", set),  "Data Data"      , RooArgList(lepm), hdata);
+    RooDataHist* bkgData  = new RooDataHist(Form("bkgData_%i" , set),  "Background Data", RooArgList(lepm), hbkg );
+    RooDataHist* sigData  = new RooDataHist(Form("sigData_%i" , set),  "Signal Data"    , RooArgList(lepm), hsig );
+    RooDataHist* dataData = new RooDataHist(Form("dataData_%i", set),  "Data Data"      , RooArgList(lepm), hdata);
 
     //decide which dataset to fit to
     RooDataHist *fitData;
-    if(fit_toy_mc_) fitData = (blind_data_) ? (RooDataHist*) bkgData.reduce (Form("lepm < %.3f || lepm > %.3f", bmass - 5., bmass + 5.)) : &bkgData;
-    else            fitData = &dataData; //(blind_data_) ? (RooDataHist*) dataData.reduce(Form("lepm < %.3f || lepm > %.3f", bmass - 5., bmass + 5.)) : &dataData;
+    if(fit_toy_mc_) fitData = (blind_data_&&false) ? (RooDataHist*) bkgData->reduce (Form("lepm < %.3f || lepm > %.3f", bmass - 5., bmass + 5.)) : bkgData;
+    else            fitData = dataData; //(blind_data_) ? (RooDataHist*) dataData->reduce(Form("lepm < %.3f || lepm > %.3f", bmass - 5., bmass + 5.)) : dataData;
     double nexp_sig = hsig->Integral(hsig->FindBin(lepm.getMin()), hsig->FindBin(lepm.getMax()));
     RooRealVar* eff_nominal = new RooRealVar(Form("eff_nominal_%i", set), "Nominal signal efficiency", nexp_sig/(lum*xs_sig_), 0., 1.);
     eff_nominal->setConstant(1);
-
-    RooRealVar* mumu_n_data   = new RooRealVar(Form("mumu_n_data_%i"  , set), "Z->mumu count from Data"     , n_mumu_data          , 0., 1e9); mumu_n_data  ->setConstant(1);
-    RooRealVar* ee_n_data     = new RooRealVar(Form("ee_n_data_%i"    , set), "Z->ee count from Data"       , n_ee_data            , 0., 1e9); ee_n_data    ->setConstant(1);
-    //account for non-DY contamination by N(DY mumu) = N(mumu)*(N(MC DY mumu) / N(MC mumu))
-    //eff(DY mumu) = N(DY mumu) / N(Z->mumu)
-    // --> N(Z->mumu) = N(DY mumu) / eff(DY mumu) = N(mumu) * (N(DY mumu)/N(mumu)) / eff(DY mumu)
-    // --> effective efficiency to use for N(Z->mumu) = N(mumu) / eff'(mumu):
-    // eff'(mumu) = eff(DY mumu) * N(mumu)/N(DY mumu) = N(MC mumu) / N(Z->mumu), *ignoring the contamination*
-    RooRealVar* mumu_eff_mc   = new RooRealVar(Form("mumu_eff_mc_%i"  , set), "Z->mumu efficiency from MC"  , n_mumu_mc  /(lum*zxs*br_zll), 0., 1.); mumu_eff_mc_ = mumu_eff_mc;
-    RooRealVar* ee_eff_mc     = new RooRealVar(Form("ee_eff_mc_%i"    , set), "Z->ee efficiency from MC"    , n_ee_mc    /(lum*zxs*br_zll), 0., 1.); ee_eff_mc_ = ee_eff_mc;
-    mumu_eff_mc  ->setConstant(1);
-    ee_eff_mc    ->setConstant(1);
 
     ////////////////////////////////////////////////////////////
     // Fit the signal distribution
@@ -505,12 +518,12 @@ Int_t fit_background_bemu_binned(vector<int> sets = {8}, TString selection = "ze
     RooRealVar* N_sig    = new RooRealVar(Form("N_sig_%i"    , set), "N_sig", 2e5, 1e2, 3e6);
     RooAddPdf* totsigpdf = new RooAddPdf(Form("totSigPDF_%i" , set), "Signal PDF", RooArgList(*sigPDF), RooArgList(*N_sig));
 
-    totsigpdf->fitTo(sigData, RooFit::SumW2Error(1));
+    totsigpdf->fitTo(*sigData, RooFit::SumW2Error(1));
     fracsig->setConstant(1); mean->setConstant(1); sigma->setConstant(1);
     enne->setConstant(1); alpha->setConstant(1); mean2->setConstant(1); sigma2->setConstant(1);
 
     auto sigframe = lepm.frame();
-    sigData.plotOn(sigframe);
+    sigData->plotOn(sigframe);
     sigPDF->plotOn(sigframe);
     sigPDF->plotOn(sigframe, RooFit::Components(Form("sigpdf1_%i", set)), RooFit::LineColor(kRed), RooFit::LineStyle(kDashed));
     sigPDF->plotOn(sigframe, RooFit::Components(Form("sigpdf2_%i", set)), RooFit::LineColor(kRed), RooFit::LineStyle(kDashed));
@@ -526,22 +539,15 @@ Int_t fit_background_bemu_binned(vector<int> sets = {8}, TString selection = "ze
     ////////////////////////////////////////////////////////////
 
     cout << "---Performing background fit for set " << set << endl
-         << "---Number of background events to fit: " << bkgData.numEntries() << endl;
+         << "---Number of background events to fit: " << bkgData->numEntries() << endl;
 
     //Total PDF parameters
-    //Use mumu and ee efficiencies to normalize our signal, N(sig) = eff(sig) * Br(sig) * (N(mumu)/eff(mumu) + N(ee)/eff(ee))/2 / Br(Z->ll) * XS(B) / XS(Z)
-    // --> N(Z->ll) = N(mumu) / eff(mumu) --> N(Z) = N(mumu) / eff(mumu) / Br(Z->mumu)
-    // Consider geometric mean instead of average of estimates: N(Z) = sqrt(N(Z | mumu) * N(Z | ee))
-    RooFormulaVar* n_z_mumu = new RooFormulaVar(Form("n_z_mumu_%i", set), "@0 / @1 / @2", RooArgList(*mumu_n_data, *mumu_eff_mc, br_zll_var));
-    RooFormulaVar* n_z_ee   = new RooFormulaVar(Form("n_z_ee_%i"  , set), "@0 / @1 / @2", RooArgList(*ee_n_data  , *ee_eff_mc  , br_zll_var));
     RooFormulaVar* n_sig = new RooFormulaVar(Form("n_sig_%i", set),  "@0*@1*sqrt(@2*@3)*(@4/@5)", //using geometric mean of N(Z) estimates
                                              RooArgList(br_sig_eff, *eff_nominal, *n_z_mumu, *n_z_ee, bxs_var, zxs_var));
     // RooFormulaVar* n_sig = new RooFormulaVar(Form("n_sig_%i", set),  "@0*@1*(@2+@3)/2", //using mean of N(Z) estimates
     //                                          RooArgList(br_sig_eff, *eff_nominal, *n_z_mumu, *n_z_ee));
     // RooFormulaVar* n_sig = new RooFormulaVar(Form("n_sig_%i", set),  "@0*@1*@2*@3", RooArgList(br_sig_eff, lum_var, bxs_var, *eff_nominal));
-    RooRealVar*    n_bkg = new RooRealVar   (Form("n_bkg_%i", set), "n_bkg", bkgData.sumEntries(), 0., 1.e7);
-    // RooRealVar* mumu_n_mc     = new RooRealVar(Form("mumu_n_mc_%i"    , set), "Z->mumu count from MC"       , n_mumu_mc            , 0., 1e9); mumu_n_mc    ->setConstant(1);
-    // RooRealVar* mumu_n_dy     = new RooRealVar(Form("mumu_n_dy_%i"    , set), "Z->mumu count from DY MC"    , n_mumu_dy            , 0., 1e9); mumu_n_dy    ->setConstant(1);
+    RooRealVar*    n_bkg = new RooRealVar   (Form("n_bkg_%i", set), "n_bkg", bkgData->sumEntries(), 0., 1.e7);
     if(abs(n_sig->getVal() - lum*eff_nominal->getVal()*bxs*br_sig.getVal())/n_sig->getVal() > 0.01) {
       cout << "!!! Warning! Signal yield calculations significantly disagree! n_sig = " << n_sig->getVal()
            << " and lumi*eff*bxs*br_sig = " << lum*eff_nominal->getVal()*bxs*br_sig.getVal() << endl;
@@ -645,6 +651,16 @@ Int_t fit_background_bemu_binned(vector<int> sets = {8}, TString selection = "ze
     RooBernstein* bkgPDF_bst5 = new RooBernstein(Form("bkgPDF_bst5_%i", set), "bkgPDF_bst5", lepm, RooArgList(*a_bst5, *b_bst5, *c_bst5, *d_bst5, *e_bst5));
     bkgPDFs.push_back(bkgPDF_bst5);
 
+    //5th order Bernstein
+    RooRealVar* a_bst6 = new RooRealVar(Form("a_bst6_%i", set), "a_bst6", 1.471   , -5., 5.);
+    RooRealVar* b_bst6 = new RooRealVar(Form("b_bst6_%i", set), "b_bst6", 1.452e-1, -5., 5.);
+    RooRealVar* c_bst6 = new RooRealVar(Form("c_bst6_%i", set), "c_bst6", 7.524e-1, -5., 5.);
+    RooRealVar* d_bst6 = new RooRealVar(Form("d_bst6_%i", set), "d_bst6", 2.696e-1, -5., 5.);
+    RooRealVar* e_bst6 = new RooRealVar(Form("e_bst6_%i", set), "e_bst6", 3.687e-1, -5., 5.);
+    RooRealVar* f_bst6 = new RooRealVar(Form("f_bst6_%i", set), "f_bst6", 1.e-1   , -5., 5.);
+    RooBernstein* bkgPDF_bst6 = new RooBernstein(Form("bkgPDF_bst6_%i", set), "bkgPDF_bst6", lepm, RooArgList(*a_bst6, *b_bst6, *c_bst6, *d_bst6, *e_bst6, *f_bst6));
+    bkgPDFs.push_back(bkgPDF_bst6);
+
     //Signal + Alternate background PDFs
     RooAddPdf* totPDF_exp1  = new RooAddPdf(Form("totPDF_exp1_%i" , set), "totPDF_exp1" , RooArgList(*sigPDF, *bkgPDF_exp1) , RooArgList(*n_sig, *n_bkg));
     RooAddPdf* totPDF_cheb2 = new RooAddPdf(Form("totPDF_cheb2_%i", set), "totPDF_cheb2", RooArgList(*sigPDF, *bkgPDF_cheb2), RooArgList(*n_sig, *n_bkg));
@@ -657,6 +673,7 @@ Int_t fit_background_bemu_binned(vector<int> sets = {8}, TString selection = "ze
     RooAddPdf* totPDF_bst3 = new RooAddPdf(Form("totPDF_bst3_%i", set), "totPDF_bst3", RooArgList(*sigPDF, *bkgPDF_bst3), RooArgList(*n_sig, *n_bkg));
     RooAddPdf* totPDF_bst4 = new RooAddPdf(Form("totPDF_bst4_%i", set), "totPDF_bst4", RooArgList(*sigPDF, *bkgPDF_bst4), RooArgList(*n_sig, *n_bkg));
     RooAddPdf* totPDF_bst5 = new RooAddPdf(Form("totPDF_bst5_%i", set), "totPDF_bst5", RooArgList(*sigPDF, *bkgPDF_bst5), RooArgList(*n_sig, *n_bkg));
+    RooAddPdf* totPDF_bst6 = new RooAddPdf(Form("totPDF_bst6_%i", set), "totPDF_bst6", RooArgList(*sigPDF, *bkgPDF_bst6), RooArgList(*n_sig, *n_bkg));
 
     //PDFs with constraints
     // RooProdPdf totPDF_constr_exp (Form("totPDF_constr_alt_%i" , set), "totPDF_constr_alt" , RooArgList(totPDF_exp , br_sig_constr));
@@ -680,20 +697,25 @@ Int_t fit_background_bemu_binned(vector<int> sets = {8}, TString selection = "ze
          << "############################################################################" << endl
          << endl;
 
-    orders[set] = bkg_order;
-    orders_used.insert(bkg_order);
 
     RooAbsPdf* bkgpdf_type;
     if(use_bernstein_) {
       if(bkg_order < 1 || bkg_order > 4) {
-        cout << "Background order " << bkg_order << " for Bernstein too high/low! Using default for this set of ";
-        bkg_order = (doHiggs || set == 13) ? 2 : 3;
+        cout << endl
+             << "############################################################################" << endl
+             << "## Background order " << bkg_order << " for Bernstein too high/low! Setting the order to ";
+        bkg_order = std::max(1, std::min(4, bkg_order)); //take the closest allowed value
+        cout << bkg_order << endl
+             << "############################################################################" << endl
+             << endl;
+        //(doHiggs || set == 13) ? 2 : 3;
         cout << bkg_order << endl;
       }
       if     (bkg_order == 1) bkgpdf_type = bkgPDF_bst2;
       else if(bkg_order == 2) bkgpdf_type = bkgPDF_bst3;
       else if(bkg_order == 3) bkgpdf_type = bkgPDF_bst4;
       else if(bkg_order == 4) bkgpdf_type = bkgPDF_bst5;
+      else if(bkg_order == 5) bkgpdf_type = bkgPDF_bst6;
     } else {
       if(bkg_order < 1 || bkg_order > 4) {
         cout << "Background order " << bkg_order << " for Chebychev too high/low! Using default for this set of ";
@@ -706,6 +728,10 @@ Int_t fit_background_bemu_binned(vector<int> sets = {8}, TString selection = "ze
       else if(bkg_order == 4) bkgpdf_type = bkgPDF_cheb5;
     }
     bkgpdf_type->SetName(Form("bkgPDF_%i", set));
+
+    orders[set] = bkg_order;
+    orders_used.insert(bkg_order);
+
     RooAddPdf* totPDF         = new RooAddPdf (Form("totPDF_%i"       , set), "totPDF"       , RooArgList(*sigPDF, *bkgpdf_type), RooArgList(*n_sig, *n_bkg));
     RooProdPdf* totPDF_constr = new RooProdPdf(Form("totPDF_constr_%i", set), "totPDF_constr", RooArgList(*totPDF, br_sig_constr));
 
@@ -721,7 +747,7 @@ Int_t fit_background_bemu_binned(vector<int> sets = {8}, TString selection = "ze
       // if(blind_data_)
       //   totPDF_constr     ->fitTo(*fitData, RooFit::Range("LowSideband", "HighSideband"), RooFit::SumW2Error(1), RooFit::Extended(1));
       // else
-      if(blind_data_)
+      if(blind_data_&&false)
         totPDF_constr     ->fitTo(*fitData, RooFit::SumW2Error(1), RooFit::Extended(1), RooFit::Range("LowSideband,HighSideband"));
       else
         totPDF_constr     ->fitTo(*fitData, RooFit::SumW2Error(1), RooFit::Extended(1));
@@ -729,7 +755,7 @@ Int_t fit_background_bemu_binned(vector<int> sets = {8}, TString selection = "ze
     } else {
       // totPDF_pow .fitTo(*fitData, RooFit::SumW2Error(1));
       // totPDF_land.fitTo(*fitData, RooFit::SumW2Error(1));
-      if(blind_data_) {
+      if(blind_data_&&false) {
         totPDF_exp1 ->fitTo(*fitData, RooFit::Range("LowSideband,HighSideband"), RooFit::SumW2Error(1), RooFit::Extended(1));
         totPDF_cheb2->fitTo(*fitData, RooFit::Range("LowSideband,HighSideband"), RooFit::SumW2Error(1), RooFit::Extended(1));
         totPDF_cheb3->fitTo(*fitData, RooFit::Range("LowSideband,HighSideband"), RooFit::SumW2Error(1), RooFit::Extended(1));
@@ -740,6 +766,7 @@ Int_t fit_background_bemu_binned(vector<int> sets = {8}, TString selection = "ze
           totPDF_bst3 ->fitTo(*fitData, RooFit::Range("LowSideband,HighSideband"), RooFit::SumW2Error(1), RooFit::Extended(1));
           totPDF_bst4 ->fitTo(*fitData, RooFit::Range("LowSideband,HighSideband"), RooFit::SumW2Error(1), RooFit::Extended(1));
           totPDF_bst5 ->fitTo(*fitData, RooFit::Range("LowSideband,HighSideband"), RooFit::SumW2Error(1), RooFit::Extended(1));
+          totPDF_bst6 ->fitTo(*fitData, RooFit::Range("LowSideband,HighSideband"), RooFit::SumW2Error(1), RooFit::Extended(1));
         }
         totPDF      ->fitTo(*fitData, RooFit::Range("LowSideband,HighSideband"), RooFit::SumW2Error(1), RooFit::Extended(1));
       } else {
@@ -752,7 +779,10 @@ Int_t fit_background_bemu_binned(vector<int> sets = {8}, TString selection = "ze
           totPDF_bst2 ->fitTo(*fitData, RooFit::SumW2Error(1), RooFit::Extended(1));
           totPDF_bst3 ->fitTo(*fitData, RooFit::SumW2Error(1), RooFit::Extended(1));
           totPDF_bst4 ->fitTo(*fitData, RooFit::SumW2Error(1), RooFit::Extended(1));
+          cout << "Fitting 4th order Bernstein\n";
           totPDF_bst5 ->fitTo(*fitData, RooFit::SumW2Error(1), RooFit::Extended(1));
+          cout << "Fitting 5th order Bernstein\n";
+          totPDF_bst6 ->fitTo(*fitData, RooFit::SumW2Error(1), RooFit::Extended(1));
         }
         totPDF      ->fitTo(*fitData, RooFit::SumW2Error(1), RooFit::Extended(1));
       }
@@ -765,6 +795,7 @@ Int_t fit_background_bemu_binned(vector<int> sets = {8}, TString selection = "ze
       totPDFs_bst3 .push_back(totPDF_bst3 );
       totPDFs_bst4 .push_back(totPDF_bst4 );
       totPDFs_bst5 .push_back(totPDF_bst5 );
+      totPDFs_bst6 .push_back(totPDF_bst6 );
       totPDFs.push_back(totPDF);
     }
     if(!do_fits_) {
@@ -775,7 +806,7 @@ Int_t fit_background_bemu_binned(vector<int> sets = {8}, TString selection = "ze
     br_sig.setVal(0.);
     double nexp = hbkg->Integral(hbkg->FindBin(lepm.getMin()), hbkg->FindBin(lepm.getMax()));
     RooDataHist* gen_data = totPDF->generateBinned(RooArgSet(lepm), nexp);
-    dataCategoryMap[category] = &dataData;
+    dataCategoryMap[category] = dataData;
     toyDataCategoryMap[category] = gen_data;
 
     ////////////////////////////////////////////////////////////
@@ -784,8 +815,12 @@ Int_t fit_background_bemu_binned(vector<int> sets = {8}, TString selection = "ze
 
     if(!includeSignalInFit_) {br_sig.setVal(0.); br_sig.setConstant(0);}
     auto xframe = lepm.frame();
-    if(!xframe) {cout << "Error! POI frame not defined --> Problem with the variable!\n"; return 10 + 100*set;}
-    fitData->plotOn(xframe);
+    if(!xframe) {cout << "Error! POI frame not defined --> Problem with the variable!\n"; return 6 + 10*set;}
+    if(blind_data_) {
+      fitData->plotOn(xframe, RooFit::Invisible());
+    } else {
+      fitData->plotOn(xframe);
+    }
     if(doConstraints_)
       totPDF_constr->plotOn(xframe, RooFit::LineColor(kBlue), RooFit::Range("FullRange"));
     else
@@ -793,22 +828,34 @@ Int_t fit_background_bemu_binned(vector<int> sets = {8}, TString selection = "ze
     cout << "### totPDF chi square: " << xframe->chiSquare()*fitData->numEntries() << endl;
     if(!doConstraints_) {
       if(use_bernstein_) {
-        if(bkg_order != 1) totPDF_bst2->plotOn(xframe, RooFit::LineColor(kRed       ), RooFit::LineStyle(kDashed), RooFit::Range("FullRange"));
-        cout << "### Bernstein 1st order chi square: " << xframe->chiSquare()*fitData->numEntries() << endl;
-        if(bkg_order != 2) totPDF_bst3->plotOn(xframe, RooFit::LineColor(kGreen     ), RooFit::LineStyle(kDashed), RooFit::Range("FullRange"));
-        cout << "### Bernstein 2nd order chi square: " << xframe->chiSquare()*fitData->numEntries() << endl;
-        if(bkg_order != 3) totPDF_bst4->plotOn(xframe, RooFit::LineColor(kYellow + 1), RooFit::LineStyle(kDashed), RooFit::Range("FullRange"));
-        cout << "### Bernstein 3rd order chi square: " << xframe->chiSquare()*fitData->numEntries() << endl;
-        if(bkg_order != 4) totPDF_bst5->plotOn(xframe, RooFit::LineColor(kViolet - 2), RooFit::LineStyle(kDashed), RooFit::Range("FullRange"));
-        cout << "### Bernstein 4th order chi square: " << xframe->chiSquare()*fitData->numEntries() << endl;
+        if(bkg_order != 1 && bkg_order < 3) {
+          totPDF_bst2->plotOn(xframe, RooFit::LineColor(kRed       ), RooFit::LineStyle(kDashed), RooFit::Range("FullRange"));
+          cout << "### Bernstein 1st order chi square: " << xframe->chiSquare()*fitData->numEntries() << endl;
+        }
+        if(bkg_order != 2) {
+          totPDF_bst3->plotOn(xframe, RooFit::LineColor(kGreen     ), RooFit::LineStyle(kDashed), RooFit::Range("FullRange"));
+          cout << "### Bernstein 2nd order chi square: " << xframe->chiSquare()*fitData->numEntries() << endl;
+        }
+        if(bkg_order != 3) {
+          totPDF_bst4->plotOn(xframe, RooFit::LineColor(kYellow + 1), RooFit::LineStyle(kDashed), RooFit::Range("FullRange"));
+          cout << "### Bernstein 3rd order chi square: " << xframe->chiSquare()*fitData->numEntries() << endl;
+        }
+        if(bkg_order != 4 && bkg_order > 1) {
+          totPDF_bst5->plotOn(xframe, RooFit::LineColor(kViolet - 2), RooFit::LineStyle(kDashed), RooFit::Range("FullRange"));
+          cout << "### Bernstein 4th order chi square: " << xframe->chiSquare()*fitData->numEntries() << endl;
+        }
+        if(bkg_order != 5 && bkg_order > 2) {
+          totPDF_bst6->plotOn(xframe, RooFit::LineColor(kRed - 2), RooFit::LineStyle(kDashed), RooFit::Range("FullRange"));
+          cout << "### Bernstein 5th order chi square: " << xframe->chiSquare()*fitData->numEntries() << endl;
+        }
       } else {
-        if(bkg_order != 1) totPDF_cheb2->plotOn(xframe, RooFit::LineColor(kRed       ), RooFit::LineStyle(kDashed), RooFit::Range("FullRange"));
+        if(bkg_order != 1 && bkg_order < 3) totPDF_cheb2->plotOn(xframe, RooFit::LineColor(kRed       ), RooFit::LineStyle(kDashed), RooFit::Range("FullRange"));
         cout << "### Chebychev 1st order chi square: " << xframe->chiSquare()*fitData->numEntries() << endl;
         if(bkg_order != 2) totPDF_cheb3->plotOn(xframe, RooFit::LineColor(kGreen     ), RooFit::LineStyle(kDashed), RooFit::Range("FullRange"));
         cout << "### Chebychev 2nd order chi square: " << xframe->chiSquare()*fitData->numEntries() << endl;
         if(bkg_order != 3) totPDF_cheb4->plotOn(xframe, RooFit::LineColor(kYellow + 1), RooFit::LineStyle(kDashed), RooFit::Range("FullRange"));
         cout << "### Chebychev 3rd order chi square: " << xframe->chiSquare()*fitData->numEntries() << endl;
-        if(bkg_order != 4) totPDF_cheb5->plotOn(xframe, RooFit::LineColor(kViolet - 2), RooFit::LineStyle(kDashed), RooFit::Range("FullRange"));
+        if(bkg_order != 4 && bkg_order > 1) totPDF_cheb5->plotOn(xframe, RooFit::LineColor(kViolet - 2), RooFit::LineStyle(kDashed), RooFit::Range("FullRange"));
         cout << "### Chebychev 4th order chi square: " << xframe->chiSquare()*fitData->numEntries() << endl;
       }
       // bkgPDF_exp1->plotOn(xframe, RooFit::LineColor(kRed), RooFit::LineStyle(kDashed));
@@ -818,66 +865,42 @@ Int_t fit_background_bemu_binned(vector<int> sets = {8}, TString selection = "ze
     }
     auto c1 = new TCanvas(Form("c_%i", set), Form("c_%i", set));
     xframe->Draw();
+    if(blind_data_) hdata_blinded->Draw("same E1");
     TLegend* leg = new TLegend(0.6, 0.6, 0.9, 0.9);
     //ones not drawn won't appear in the legend
     TString func_name = (use_bernstein_) ? "Bernstein" : "Chebychev";
-    if(bkg_order == 2) func_name += " (2nd)";
-    else if(bkg_order == 2) func_name += " (3nd)";
-    else func_name += (doHiggs || set == 13) ? " (2nd)" : " (3rd)"; //guess
-    leg->AddEntry(xframe->findObject(Form("totPDF_%i_Norm[lepm]_Range[FullRange]_NormRange[FullRange]", set)), func_name.Data()  , "L");
+    if(bkg_order == 1) func_name += " (1st)";
+    else if(bkg_order == 2) func_name += " (2nd)";
+    else if(bkg_order == 3) func_name += " (3nd)";
+    else if(bkg_order == 4) func_name += " (4th)";
+    else if(bkg_order == 5) func_name += " (5th)";
+    else func_name += " (XX)";
+    leg->AddEntry(xframe->findObject(Form("totPDF_%i_Norm[lepm]_Range[FullRange]", set)), func_name.Data()  , "L");
     if(!doConstraints_) {
       if(use_bernstein_) {
-        if(bkg_order != 1) leg->AddEntry(xframe->findObject(Form("totPDF_bst2_%i_Norm[lepm]_Range[FullRange]_NormRange[FullRange]", set)), "Bernstein (1st)"  , "L");
-        if(bkg_order != 2) leg->AddEntry(xframe->findObject(Form("totPDF_bst3_%i_Norm[lepm]_Range[FullRange]_NormRange[FullRange]", set)), "Bernstein (2nd)"  , "L");
-        if(bkg_order != 3) leg->AddEntry(xframe->findObject(Form("totPDF_bst4_%i_Norm[lepm]_Range[FullRange]_NormRange[FullRange]", set)), "Bernstein (3rd)"  , "L");
-        if(bkg_order != 4) leg->AddEntry(xframe->findObject(Form("totPDF_bst5_%i_Norm[lepm]_Range[FullRange]_NormRange[FullRange]", set)), "Bernstein (4th)"  , "L");
+        if(bkg_order != 1 && bkg_order < 3) leg->AddEntry(xframe->findObject(Form("totPDF_bst2_%i_Norm[lepm]_Range[FullRange]", set)), "Bernstein (1st)"  , "L");
+        if(bkg_order != 2) leg->AddEntry(xframe->findObject(Form("totPDF_bst3_%i_Norm[lepm]_Range[FullRange]", set)), "Bernstein (2nd)"  , "L");
+        if(bkg_order != 3) leg->AddEntry(xframe->findObject(Form("totPDF_bst4_%i_Norm[lepm]_Range[FullRange]", set)), "Bernstein (3rd)"  , "L");
+        if(bkg_order != 4 && bkg_order > 1) leg->AddEntry(xframe->findObject(Form("totPDF_bst5_%i_Norm[lepm]_Range[FullRange]", set)), "Bernstein (4th)"  , "L");
+        if(bkg_order != 5 && bkg_order > 2) leg->AddEntry(xframe->findObject(Form("totPDF_bst6_%i_Norm[lepm]_Range[FullRange]", set)), "Bernstein (5th)"  , "L");
       } else {
-        if(bkg_order != 1) leg->AddEntry(xframe->findObject(Form("totPDF_cheb2_%i_Norm[lepm]_Range[FullRange]_NormRange[FullRange]", set)), "Chebychev (1st)"  , "L");
-        if(bkg_order != 2) leg->AddEntry(xframe->findObject(Form("totPDF_cheb3_%i_Norm[lepm]_Range[FullRange]_NormRange[FullRange]", set)), "Chebychev (2nd)"  , "L");
-        if(bkg_order != 3) leg->AddEntry(xframe->findObject(Form("totPDF_cheb4_%i_Norm[lepm]_Range[FullRange]_NormRange[FullRange]", set)), "Chebychev (3rd)"  , "L");
-        if(bkg_order != 4) leg->AddEntry(xframe->findObject(Form("totPDF_cheb5_%i_Norm[lepm]_Range[FullRange]_NormRange[FullRange]", set)), "Chebychev (4th)"  , "L");
+        if(bkg_order != 1 && bkg_order < 3) leg->AddEntry(xframe->findObject(Form("totPDF_cheb2_%i_Norm[lepm]_Range[FullRange]", set)), "Chebychev (1st)"  , "L");
+        if(bkg_order != 2) leg->AddEntry(xframe->findObject(Form("totPDF_cheb3_%i_Norm[lepm]_Range[FullRange]", set)), "Chebychev (2nd)"  , "L");
+        if(bkg_order != 3) leg->AddEntry(xframe->findObject(Form("totPDF_cheb4_%i_Norm[lepm]_Range[FullRange]", set)), "Chebychev (3rd)"  , "L");
+        if(bkg_order != 4 && bkg_order > 1) leg->AddEntry(xframe->findObject(Form("totPDF_cheb5_%i_Norm[lepm]_Range[FullRange]", set)), "Chebychev (4th)"  , "L");
       }
     }
     xframe->Print();
-    // if(!doHiggs) {
-    //   leg->AddEntry(xframe->findObject("bkgPDF_bst5_Norm[lepm]"), "Bernstein (4th)"  , "L");
-    // }
-    // if(doHiggs) {
-    //   leg->AddEntry(xframe->findObject("bkgPDF_bst2_Norm[lepm]"), "Bernstein (1st)"  , "L");
-    //   leg->AddEntry(xframe->findObject("bkgPDF_bst4_Norm[lepm]"), "Bernstein (3rd)"  , "L");
-    // }
-    // leg->AddEntry(xframe->findObject("bkgPDF_exp_Norm[lepm]") , "Exponential", "L");
-    // leg->AddEntry(xframe->findObject("bkgPDF_pow_Norm[lepm]") , "Power"      , "L");
-    // leg->AddEntry(xframe->findObject("bkgPDF_land_Norm[lepm]"), "Landau"     , "L");
     leg->Draw();
 
     c1->SaveAs(Form("plots/latest_production/%s/fit_%s_lepm_binned_background%s_%s_cat_%i.png", year_string.Data(), selection.Data(),
                     (doConstraints_) ? "_constr" : "",
                     set_str.Data(), index));
 
-    // fOut->cd();
-    // auto bkg_data = (doHiggs) ? bkgPDF_bst3.generate(RooArgSet(lepm), n_bkg.getVal()) : bkgPDF_bst4.generate(RooArgSet(lepm), n_bkg.getVal());
-
-    // if(doConstraints_) {
-    //   ws.import(totPDF_constr);
-    //   ws.import(totPDF_constr_exp, RooFit::RecycleConflictNodes());
-    // } else {
-    //   ws.import(totPDF);
-    //   if(!doHiggs) {
-    //     ws.import(totPDF_bst5, RooFit::RecycleConflictNodes());
-    //     ws.import(totPDF_bst3, RooFit::RecycleConflictNodes());
-    //   } else {
-    //     ws.import(totPDF_bst2, RooFit::RecycleConflictNodes());
-    //     ws.import(totPDF_bst4, RooFit::RecycleConflictNodes());
-    //   }
-    //   // ws.import(totPDF_exp, RooFit::RecycleConflictNodes());
-    // }
-    // if(doHiggs)
-    //   ws.import(bkgPDF_bst3);
-    // else
-    //   ws.import(bkgPDF_bst4);
-    // ws.import(*bkg_data);
-
+    delete hsig;
+    delete hbkg;
+    delete hdata;
+    delete hdata_blinded;
     ++index;
   }
   cout << "--- Finished getting data for each category! Creating simultaneous PDF\n";
@@ -890,6 +913,7 @@ Int_t fit_background_bemu_binned(vector<int> sets = {8}, TString selection = "ze
   RooSimultaneous totPDF_bst3_cat ("totPDF_bst3" , "The Total PDF", categories);
   RooSimultaneous totPDF_bst4_cat ("totPDF_bst4" , "The Total PDF", categories);
   RooSimultaneous totPDF_bst5_cat ("totPDF_bst5" , "The Total PDF", categories);
+  RooSimultaneous totPDF_bst6_cat ("totPDF_bst6" , "The Total PDF", categories);
   for(unsigned i = 0; i < totPDFs.size(); ++i) {
     totPDF_cat      .addPdf(*totPDFs[i]      , Form("%s_%i", selection.Data(), i));
     if(!doConstraints_) {
@@ -901,18 +925,25 @@ Int_t fit_background_bemu_binned(vector<int> sets = {8}, TString selection = "ze
       totPDF_bst3_cat .addPdf(*totPDFs_bst3 [i], Form("%s_%i", selection.Data(), i));
       totPDF_bst4_cat .addPdf(*totPDFs_bst4 [i], Form("%s_%i", selection.Data(), i));
       totPDF_bst5_cat .addPdf(*totPDFs_bst5 [i], Form("%s_%i", selection.Data(), i));
+      totPDF_bst6_cat .addPdf(*totPDFs_bst6 [i], Form("%s_%i", selection.Data(), i));
     }
   }
 
   cout << "Total combined PDF defined!\n";
 
+  cout << "Data map values:\n";
+  for(int iset = 0; iset < (int) sets.size(); ++iset) {
+    string category = Form("%s_%i", selection.Data(), iset);
+    cout << " set " << sets[iset] << ": " << dataCategoryMap[category]->sumEntries() << endl;
+  }
   RooDataHist combined_data("combined_data", "combined_data", lepm, categories, dataCategoryMap);
   RooDataHist combined_toy_data("combined_toy_data", "combined_toy_data", lepm, categories, toyDataCategoryMap);
 
   cout << "Combined data defined!\n";
 
   fOut->cd();
-  ws.import(totPDF_cat      );
+  ws.import(br_sig_blind);
+  ws.import(totPDF_cat, RooFit::RecycleConflictNodes());
   if(!doConstraints_) {
     ws.import(totPDF_exp1_cat , RooFit::RecycleConflictNodes());
     if(!use_bernstein_ && orders_used.find(2) == orders_used.end())
@@ -929,15 +960,22 @@ Int_t fit_background_bemu_binned(vector<int> sets = {8}, TString selection = "ze
       ws.import(totPDF_bst4_cat , RooFit::RecycleConflictNodes());
     if(use_bernstein_ && orders_used.find(4) == orders_used.end())
       ws.import(totPDF_bst5_cat , RooFit::RecycleConflictNodes());
+    if(use_bernstein_ && orders_used.find(5) == orders_used.end())
+      ws.import(totPDF_bst6_cat , RooFit::RecycleConflictNodes());
   }
   ws.import(combined_data);
   ws.import(combined_toy_data);
 
   //import systematics
-  fit_systematics(fOut, selection, sets, orders, ws);
-
+  if(do_systematics_) fit_systematics(fOut, selection, sets, orders, ws);
+  ws.Print();
+  ws.Write();
   delete fOut;
-  // delete f;
 
+  cout << "Default background orders:";
+  for(int set : sets) {
+    cout << " set " << set << ": " << orders[set];
+  }
+  cout << endl;
   return status;
 }

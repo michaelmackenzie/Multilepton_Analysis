@@ -74,6 +74,10 @@ struct PlottingCard_t {
                  Double_t blindmin, Double_t blindmax) : PlottingCard_t(hist,type,rebin,xmin,xmax,blindmin,blindmax) {
     label_ = label;
   }
+  PlottingCard_t(TString hist, TString type, TString label, Int_t rebin, Double_t xmin, Double_t xmax,
+                 std::vector<Double_t> blindmin, std::vector<Double_t> blindmax) : PlottingCard_t(hist,type,rebin,xmin,xmax,blindmin,blindmax) {
+    label_ = label;
+  }
   PlottingCard_t(TString hist, TString type, Int_t set, TString label, Int_t rebin, Double_t xmin, Double_t xmax,
                  Double_t blindmin, Double_t blindmax) : PlottingCard_t(hist,type,set,rebin,xmin,xmax,blindmin,blindmax) {
     label_ = label;

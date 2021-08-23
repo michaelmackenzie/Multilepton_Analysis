@@ -569,8 +569,8 @@ std::vector<TH1D*> DataPlotter::get_signal(TString hist, TString setType, Int_t 
     if(!tmp) continue;
     // tmp->SetBit(kCanDelete);
     tmp->Scale(scale_[i]);
-
     h[i] = tmp;
+    if(density_plot_) density(h[i]);
     if(rebinH_ > 1) h[i]->Rebin(rebinH_);
     unsigned int index = i;
     unsigned int i_color = n_colors;
@@ -598,7 +598,7 @@ std::vector<TH1D*> DataPlotter::get_signal(TString hist, TString setType, Int_t 
       h[index]->SetName(Form("%s",hname.Data()));
     }
 
-    const char* stats = (doStatsLegend_) ? Form(" #scale[0.8]{(%.2e)}", h[index]->Integral()
+    const char* stats = (doStatsLegend_) ? Form(" #scale[0.8]{(%.2e)}", h[index]->Integral((density_plot_ > 0) ? "width" : "")
                                                 +h[index]->GetBinContent(0)+h[index]->GetBinContent(h[index]->GetNbinsX()+1)) : "";
     Double_t signal_scale = signal_scale_;
     if(signal_scales_.find(labels_[index]) != signal_scales_.end()) signal_scale = signal_scales_[labels_[index]];
@@ -612,7 +612,7 @@ std::vector<TH1D*> DataPlotter::get_signal(TString hist, TString setType, Int_t 
       Double_t signal_scale = signal_scale_;
       if(signal_scales_.find(labels_[i]) != signal_scales_.end()) signal_scale = signal_scales_[labels_[i]];
       h[i]->Scale(signal_scale);
-      if(verbose_ > 0) std::cout << h[i]->GetTitle() << " signal histogram has integral " << h[i]->Integral() << std::endl;
+      if(verbose_ > 0) std::cout << h[i]->GetTitle() << " signal histogram has integral " << h[i]->Integral((density_plot_ > 0) ? "width" : "") << std::endl;
       hsignals.push_back(h[i]);
     }
   }
@@ -633,7 +633,7 @@ TH2D* DataPlotter::get_signal_2D(TString hist, TString setType, Int_t set) {
     if(!tmp) continue;
     if(!h) h = tmp;
     else h->Add(tmp);
-    const char* stats = (doStatsLegend_) ? Form(" #scale[0.8]{(%.2e)}", h->Integral()
+    const char* stats = (doStatsLegend_) ? Form(" #scale[0.8]{(%.2e)}", h->Integral((density_plot_ > 0) ? "width" : "")
                                                 +h->GetBinContent(0)+h->GetBinContent(h->GetNbinsX()+1)) : "";
 
     h->SetTitle(Form("%s%s", labels_[i].Data(), stats));
@@ -664,6 +664,7 @@ TH1D* DataPlotter::get_data(TString hist, TString setType, Int_t set) {
     if(!isData_[i]) continue;
     TH1D* tmp = (TH1D*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set, hist.Data()));
     if(!tmp) continue;
+    if(density_plot_) density(tmp);
     // tmp->SetBit(kCanDelete);
     if(!d) d = tmp;
     else d->Add(tmp);
@@ -671,11 +672,11 @@ TH1D* DataPlotter::get_data(TString hist, TString setType, Int_t set) {
   if(!d) return NULL;
   d->SetLineWidth(2);
   d->SetMarkerStyle(20);
-  const char* stats = (doStatsLegend_) ? Form(" #scale[0.8]{(%.2e)}", d->Integral()
+  const char* stats = (doStatsLegend_) ? Form(" #scale[0.8]{(%.2e)}", d->Integral((density_plot_ > 0) ? "width" : "")
                                               +d->GetBinContent(0)+d->GetBinContent(d->GetNbinsX()+1)) : "";
   d->SetTitle(Form("Data%s",stats));
   d->SetName(hname.Data());
-  if(verbose_ > 0) std::cout << "Data histogram has integral " << d->Integral() << std::endl;
+  if(verbose_ > 0) std::cout << "Data histogram has integral " << d->Integral((density_plot_ > 0) ? "width" : "") << std::endl;
   if(rebinH_ > 0) d->Rebin(rebinH_);
 
   return d;
@@ -697,7 +698,7 @@ TH2D* DataPlotter::get_data_2D(TString hist, TString setType, Int_t set) {
   if(!d) return NULL;
   d->SetLineWidth(2);
   d->SetMarkerStyle(20);
-  const char* stats = (doStatsLegend_) ? Form(" #scale[0.8]{(%.2e)}", d->Integral()
+  const char* stats = (doStatsLegend_) ? Form(" #scale[0.8]{(%.2e)}", d->Integral((density_plot_ > 0) ? "width" : "")
                                               +d->GetBinContent(0)+d->GetBinContent(d->GetNbinsX()+1)) : "";
   d->SetTitle(Form("Data%s",stats));
   d->SetName("hData");
@@ -723,7 +724,7 @@ TH1D* DataPlotter::get_qcd(TString hist, TString setType, Int_t set) {
   TH1D* hData = get_data(hist, setType, set_qcd);
   if(!hData) return hData;
   hData->SetName(Form("qcd_%s_%i",hist.Data(),set));
-  double ndata = hData->Integral() + hData->GetBinContent(0) + hData->GetBinContent(hData->GetNbinsX()+1);
+  double ndata = hData->Integral((density_plot_ > 0) ? "width" : "") + hData->GetBinContent(0) + hData->GetBinContent(hData->GetNbinsX()+1);
   TH1D* hMC = 0;
   for(UInt_t i = 0; i < data_.size(); ++i) {
     if(isData_[i]) continue; //skip data for MC histogram
@@ -733,6 +734,7 @@ TH1D* DataPlotter::get_qcd(TString hist, TString setType, Int_t set) {
     htmp = (TH1D*) htmp->Clone("tmp");
     // htmp->SetBit(kCanDelete);
     htmp->Scale(scale_[i]);
+    if(density_plot_) density(htmp);
     if(rebinH_ > 0) htmp->Rebin(rebinH_);
     if(hMC) hMC->Add(htmp);
     else hMC = (TH1D*) htmp->Clone("qcd_tmp");
@@ -748,7 +750,7 @@ TH1D* DataPlotter::get_qcd(TString hist, TString setType, Int_t set) {
     return NULL;
   }
   hData->Add(hMC, -1.);
-  double nmc = hMC->Integral() + hMC->GetBinContent(0) + hMC->GetBinContent(hMC->GetNbinsX()+1);
+  double nmc = hMC->Integral((density_plot_ > 0) ? "width" : "") + hMC->GetBinContent(0) + hMC->GetBinContent(hMC->GetNbinsX()+1);
 
   delete hMC;
 
@@ -758,10 +760,10 @@ TH1D* DataPlotter::get_qcd(TString hist, TString setType, Int_t set) {
       hData->SetBinContent(i,0.);
   }
   // hData->SetBit(kCanDelete);
-  double nqcd = hData->Integral() + hData->GetBinContent(0) + hData->GetBinContent(hData->GetNbinsX()+1);
+  double nqcd = hData->Integral((density_plot_ > 0) ? "width" : "") + hData->GetBinContent(0) + hData->GetBinContent(hData->GetNbinsX()+1);
   if(nqcd > 0.)
     hData->Scale(qcd_scale_*(ndata-nmc)/nqcd); //ensure N(QCD) doesn't change from cutting off negative value bins, so not hist dependent
-  nqcd = hData->Integral() + hData->GetBinContent(0) + hData->GetBinContent(hData->GetNbinsX()+1);
+  nqcd = hData->Integral((density_plot_ > 0) ? "width" : "") + hData->GetBinContent(0) + hData->GetBinContent(hData->GetNbinsX()+1);
 
   const char* stats = (doStatsLegend_) ? Form(" #scale[0.8]{(%.2e)}", nqcd) : "";
   hData->SetTitle(Form("QCD%s",stats));
@@ -789,7 +791,7 @@ TH2D* DataPlotter::get_qcd_2D(TString hist, TString setType, Int_t set) {
   TH2D* hData = get_data_2D(hist, setType, set_qcd);
   if(!hData) return hData;
   hData->SetName(Form("qcd_%s_%s_%i",hist.Data(), setType.Data(), set));
-  double ndata = hData->Integral(); // FIXME: Add overflow to integral
+  double ndata = hData->Integral((density_plot_ > 0) ? "width" : ""); // FIXME: Add overflow to integral
   TH2D* hMC = 0;
   for(UInt_t i = 0; i < data_.size(); ++i) {
     if(isData_[i]) continue; //skip data for MC histogram
@@ -814,7 +816,7 @@ TH2D* DataPlotter::get_qcd_2D(TString hist, TString setType, Int_t set) {
     return NULL;
   }
   hData->Add(hMC, -1.);
-  double nmc = hMC->Integral(); //FIXME: Add overflow to integral
+  double nmc = hMC->Integral((density_plot_ > 0) ? "width" : ""); //FIXME: Add overflow to integral
 
   delete hMC;
 
@@ -826,10 +828,10 @@ TH2D* DataPlotter::get_qcd_2D(TString hist, TString setType, Int_t set) {
     }
   }
   // hData->SetBit(kCanDelete);
-  double nqcd = hData->Integral(); //FIXME: Add overflow to integral
+  double nqcd = hData->Integral((density_plot_ > 0) ? "width" : ""); //FIXME: Add overflow to integral
   if(nqcd > 0.)
     hData->Scale(qcd_scale_*(ndata-nmc)/nqcd); //ensure N(QCD) doesn't change from cutting off negative value bins, so not hist dependent
-  nqcd = hData->Integral(); //FIXME: Add overflow to integral
+  nqcd = hData->Integral((density_plot_ > 0) ? "width" : ""); //FIXME: Add overflow to integral
 
   return hData;
 }
@@ -846,7 +848,7 @@ TH1D* DataPlotter::get_misid(TString hist, TString setType, Int_t set) {
   TH1D* hData = get_data(hist, setType, set_misid);
   if(!hData) return hData;
   hData->SetName(Form("misid_%s_%i",hist.Data(),set));
-  double ndata = hData->Integral() + hData->GetBinContent(0) + hData->GetBinContent(hData->GetNbinsX()+1);
+  double ndata = hData->Integral((density_plot_ > 0) ? "width" : "") + hData->GetBinContent(0) + hData->GetBinContent(hData->GetNbinsX()+1);
   TH1D* hMC = 0;
   for(UInt_t i = 0; i < data_.size(); ++i) {
     if(isData_[i]) continue; //skip data for MC histogram
@@ -856,6 +858,7 @@ TH1D* DataPlotter::get_misid(TString hist, TString setType, Int_t set) {
     htmp = (TH1D*) htmp->Clone("tmp");
     // htmp->SetBit(kCanDelete);
     htmp->Scale(scale_[i]);
+    if(density_plot_) density(htmp);
     if(rebinH_ > 0) htmp->Rebin(rebinH_);
     if(hMC) hMC->Add(htmp);
     else hMC = (TH1D*) htmp->Clone("misid_tmp");
@@ -867,7 +870,7 @@ TH1D* DataPlotter::get_misid(TString hist, TString setType, Int_t set) {
     return NULL;
   }
   hData->Add(hMC, -1.);
-  double nmc = hMC->Integral() + hMC->GetBinContent(0) + hMC->GetBinContent(hMC->GetNbinsX()+1);
+  double nmc = hMC->Integral((density_plot_ > 0) ? "width" : "") + hMC->GetBinContent(0) + hMC->GetBinContent(hMC->GetNbinsX()+1);
 
   delete hMC;
 
@@ -877,10 +880,10 @@ TH1D* DataPlotter::get_misid(TString hist, TString setType, Int_t set) {
       hData->SetBinContent(i,0.);
   }
   // hData->SetBit(kCanDelete);
-  double nmisid = hData->Integral() + hData->GetBinContent(0) + hData->GetBinContent(hData->GetNbinsX()+1);
+  double nmisid = hData->Integral((density_plot_ > 0) ? "width" : "") + hData->GetBinContent(0) + hData->GetBinContent(hData->GetNbinsX()+1);
   if(nmisid > 0.)
     hData->Scale((ndata-nmc)/nmisid); //ensure N(Anit-Iso) doesn't change from cutting off negative value bins, so not hist dependent
-  nmisid = hData->Integral() + hData->GetBinContent(0) + hData->GetBinContent(hData->GetNbinsX()+1);
+  nmisid = hData->Integral((density_plot_ > 0) ? "width" : "") + hData->GetBinContent(0) + hData->GetBinContent(hData->GetNbinsX()+1);
 
   const char* stats = (doStatsLegend_) ? Form(" #scale[0.8]{(%.2e)}", nmisid) : "";
   hData->SetTitle(Form("%s%s",misid_label_.Data(), stats));
@@ -906,7 +909,7 @@ TH2D* DataPlotter::get_misid_2D(TString hist, TString setType, Int_t set) {
   TH2D* hData = get_data_2D(hist, setType, set_misid);
   if(!hData) return hData;
   hData->SetName(Form("misid_%s_%s_%i",hist.Data(), setType.Data(), set));
-  double ndata = hData->Integral(); //FIXME: Add overflow to integral
+  double ndata = hData->Integral((density_plot_ > 0) ? "width" : ""); //FIXME: Add overflow to integral
   TH2D* hMC = 0;
   for(UInt_t i = 0; i < data_.size(); ++i) {
     if(isData_[i]) continue; //skip data for MC histogram
@@ -927,7 +930,7 @@ TH2D* DataPlotter::get_misid_2D(TString hist, TString setType, Int_t set) {
     return NULL;
   }
   hData->Add(hMC, -1.);
-  double nmc = hMC->Integral(); //FIXME: Add overflow to integral
+  double nmc = hMC->Integral((density_plot_ > 0) ? "width" : ""); //FIXME: Add overflow to integral
 
   delete hMC;
 
@@ -939,10 +942,10 @@ TH2D* DataPlotter::get_misid_2D(TString hist, TString setType, Int_t set) {
     }
   }
   // hData->SetBit(kCanDelete);
-  double nmisid = hData->Integral(); //FIXME: Add overflow to integral
+  double nmisid = hData->Integral((density_plot_ > 0) ? "width" : ""); //FIXME: Add overflow to integral
   if(nmisid > 0.)
     hData->Scale((ndata-nmc)/nmisid); //ensure N(Anit-Iso) doesn't change from cutting off negative value bins, so not hist dependent
-  nmisid = hData->Integral(); //FIXME: Add overflow to integral
+  nmisid = hData->Integral((density_plot_ > 0) ? "width" : ""); //FIXME: Add overflow to integral
 
   return hData;
 }
@@ -975,8 +978,8 @@ THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set) {
   std::vector<TH1D*> h;
   TH1D* hQCD = (include_qcd_) ? get_qcd(hist,setType,set) : NULL;
   TH1D* hMisID = (include_misid_) ? get_misid(hist,setType,set) : NULL;
-  if(hQCD && verbose_ > 0) std::cout << "QCD histogram has integral " << hQCD->Integral() << std::endl;
-  if(hMisID && verbose_ > 0) std::cout << "MisID histogram has integral " << hMisID->Integral() << std::endl;
+  if(hQCD && verbose_ > 0) std::cout << "QCD histogram has integral " << hQCD->Integral((density_plot_ > 0) ? "width" : "") << std::endl;
+  if(hMisID && verbose_ > 0) std::cout << "MisID histogram has integral " << hMisID->Integral((density_plot_ > 0) ? "width" : "") << std::endl;
   {
     auto o = gDirectory->Get(Form("%s",hist.Data()));
     if(o) delete o;
@@ -1008,6 +1011,7 @@ THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set) {
     if(o) delete o;
     h[i] = (TH1D*) h[i]->Clone("tmp");
     h[i]->Scale(scale_[i]);
+    if(density_plot_) density(h[i]);
     if(rebinH_ > 0) h[i]->Rebin(rebinH_);
     int index = i;
     int i_color = n_colors;
@@ -1039,13 +1043,13 @@ THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set) {
       h[index]->SetMarkerStyle(20);
       h[index]->SetName(Form("s_%s_%s_%i",name.Data(),hist.Data(),set));
     }
-    const char* stats = (doStatsLegend_) ? Form(" #scale[0.8]{(%.2e)}", h[index]->Integral()
+    const char* stats = (doStatsLegend_) ? Form(" #scale[0.8]{(%.2e)}", h[index]->Integral((density_plot_ > 0) ? "width" : "")
                                                 +h[index]->GetBinContent(0)+h[index]->GetBinContent(h[index]->GetNbinsX()+1)) : "";
     h[index]->SetTitle(Form("%s%s", name.Data(), stats));
   }
   for(unsigned index = 0; index < labels.size(); ++index) {
     TH1D* hitr = h[indexes[labels[index]]];
-    if(hitr && verbose_ > 0) std::cout << hitr->GetTitle() << " histogram has integral " << hitr->Integral() << std::endl;
+    if(hitr && verbose_ > 0) std::cout << hitr->GetTitle() << " histogram has integral " << hitr->Integral((density_plot_ > 0) ? "width" : "") << std::endl;
     hstack->Add(hitr);
   }
   if(hMisID) hstack->Add(hMisID);
@@ -1443,7 +1447,7 @@ TCanvas* DataPlotter::plot_hist(TString hist, TString setType, Int_t set) {
       h[index]->SetMarkerStyle(20);
       h[index]->SetName(Form("h_%s_%s_%i",name.Data(),hist.Data(),set));
     }
-    const char* stats = (doStatsLegend_) ? Form(" #scale[0.8]{(%.2e)}", h[index]->Integral()
+    const char* stats = (doStatsLegend_) ? Form(" #scale[0.8]{(%.2e)}", h[index]->Integral((density_plot_ > 0) ? "width" : "")
                                                 +h[index]->GetBinContent(0)+h[index]->GetBinContent(h[index]->GetNbinsX()+1)) : "";
     Double_t signal_scale = signal_scale_;
     if(signal_scales_.find(labels_[index]) != signal_scales_.end()) signal_scale = signal_scales_[labels_[index]];
@@ -1565,12 +1569,12 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
 
   //Normalize to the stack integral if normalizing, for simplicity
   if(d && normalize_1ds_ && d->Integral() > 0.) {
-    d->Scale(((TH1D*)hstack->GetStack()->Last())->Integral() / d->Integral());
+    d->Scale(((TH1D*)hstack->GetStack()->Last())->Integral((density_plot_ > 0) ? "width" : "") / d->Integral((density_plot_ > 0) ? "width" : ""));
   }
   if(normalize_1ds_) {
     for(TH1D* hsig : hsignal) {
       if(hsig->Integral() > 0.)
-        hsig->Scale(((TH1D*)hstack->GetStack()->Last())->Integral() / hsig->Integral());
+        hsig->Scale(((TH1D*)hstack->GetStack()->Last())->Integral((density_plot_ > 0) ? "width" : "") / hsig->Integral((density_plot_ > 0) ? "width" : ""));
     }
   }
 
@@ -1634,7 +1638,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
   double nmc = 0.;
   std::map<TString, double> nsig;
   if(d && plot_data_) {
-    ndata = d->Integral() + d->GetBinContent(0)+d->GetBinContent(d->GetNbinsX()+1);
+    ndata = d->Integral((density_plot_ > 0) ? "width" : "") + d->GetBinContent(0)+d->GetBinContent(d->GetNbinsX()+1);
   }
   for(unsigned i = 0; i < hsignal.size(); ++i) {
     if(!doStatsLegend_ && hsignal[i]->GetEntries() > 0) {
@@ -1642,10 +1646,10 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
       if(signal_scales_.find(hsignal[i]->GetName()) != signal_scales_.end()) {
         signal_scale = signal_scales_[hsignal[i]->GetName()];
       }
-      nsig[hsignal[i]->GetName()] = (hsignal[i]->Integral() + hsignal[i]->GetBinContent(0)+hsignal[i]->GetBinContent(hsignal[i]->GetNbinsX()+1))/signal_scale;
+      nsig[hsignal[i]->GetName()] = (hsignal[i]->Integral((density_plot_ > 0) ? "width" : "") + hsignal[i]->GetBinContent(0)+hsignal[i]->GetBinContent(hsignal[i]->GetNbinsX()+1))/signal_scale;
     }
   }
-  nmc = huncertainty->Integral() + huncertainty->GetBinContent(0)+huncertainty->GetBinContent(huncertainty->GetNbinsX()+1);
+  nmc = huncertainty->Integral((density_plot_ > 0) ? "width" : "") + huncertainty->GetBinContent(0)+huncertainty->GetBinContent(huncertainty->GetNbinsX()+1);
 
   //blind if needed
   if(blindxmin_.size() > 0 && d && plot_data_) {
@@ -1938,6 +1942,11 @@ TCanvas* DataPlotter::plot_systematic(TString hist, Int_t set, Int_t systematic)
   std::vector<TH1D*> signals_b = get_signal(hist+"_0"                               , "systematic", set);
   std::vector<TH1D*> signals_p = get_signal(Form("%s_%i", hist.Data(), systematic  ), "systematic", set);
   std::vector<TH1D*> signals_m = (single_systematic_) ? std::vector<TH1D*>{} : get_signal(Form("%s_%i", hist.Data(), systematic+1), "systematic", set);
+  if(signals_b.size() != signals_p.size() || (!single_systematic_ && signals_b.size() != signals_m.size())) {
+    std::cout << __func__ << ": Error! Signal vectors not equal for base (" << signals_b.size() <<") and shifted (+"
+              << signals_p.size() << ", -" << signals_m.size() << ") hist = " << hist.Data() << " sys = " << systematic << " histograms!\n";
+    return NULL;
+  }
 
   if(normalize_1ds_) {
     for(TH1D* hsig : signals_b) {
@@ -2012,6 +2021,10 @@ TCanvas* DataPlotter::plot_systematic(TString hist, Int_t set, Int_t systematic)
   double m = std::max((!h_m) ? 0. : h_m->GetMaximum(), h_p->GetMaximum());
 
   for(unsigned index = 0; index < signals_b.size(); ++index) {
+    if(!signals_b[index] || !signals_p[index] || (!single_systematic_ && !signals_m[index])) {
+      std::cout << __func__ << ": Systematic histograms missing for signal " << index << std::endl;
+      return NULL;
+    }
     TGraph* g = get_errors(signals_b[index], signals_p[index], (single_systematic_) ? 0 : signals_m[index]);
     signals_b[index]->SetFillColor(0);
     signals_b[index]->Draw("hist same");
@@ -2239,10 +2252,10 @@ TCanvas* DataPlotter::plot_cdf(TString hist, TString setType, Int_t set, TString
     // hDataMC->SetBit(kCanDelete);
     hDataMC->Clear();
     TH1D* hlast = get_stack_uncertainty(hcdfstack,Form("uncertainty_cdf_%i", set));
-    nmc = hlast->Integral();
+    nmc = hlast->Integral((density_plot_ > 0) ? "width" : "");
     nmc += hlast->GetBinContent(0);
     nmc += hlast->GetBinContent(nb+1);
-    ndata = data_cdf->Integral();
+    ndata = data_cdf->Integral((density_plot_ > 0) ? "width" : "");
     ndata += data_cdf->GetBinContent(0);
     ndata += data_cdf->GetBinContent(nb+1);
     for(int i = 1; i <= nb; ++i) {

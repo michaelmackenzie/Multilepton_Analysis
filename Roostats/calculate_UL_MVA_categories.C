@@ -5,6 +5,7 @@ bool useBinnedBkgFit_ = true;
 bool doBlind_ = true; //use nominal Asimov data for limit calculator
 int  single_cat_ = -1; //category to do the limit for
 bool dry_run_ = false; //quit before performing calculations
+bool useFixedScan_ = true;
 
 Int_t calculate_UL_MVA_categories(vector<int> sets = {8}, TString selection = "zmutau",
                                   vector<int> years = {2016, 2017, 2018},
@@ -49,12 +50,18 @@ Int_t calculate_UL_MVA_categories(vector<int> sets = {8}, TString selection = "z
 
   RooArgList poi_list(*br_sig);
   RooArgList obs_list(*(ws->var("mva")));
-  obs_list.add(*((RooCategory*) ws->obj(selection.Data())));
+  RooCategory* categories = ((RooCategory*) ws->obj(selection.Data()));
+  if(!categories) {
+    cout << "Failed to find category variable!\n";
+    return 3;
+  }
+  obs_list.add(*categories);
   RooDataHist* data = (RooDataHist*) ws->data((doBlind_) ? "combined_toy_data" : "combined_data");
   ws->Print();
   vector<RooRealVar*> n_bkgs;
   vector<RooFormulaVar*> n_sigs;
   RooArgList nuisance_params;
+  RooArgList glb_list;
   int cat_start = (single_cat_ >= 0) ? single_cat_ : 0;
   int cat_end = (single_cat_ >= 0) ? single_cat_ + 1 : n_categories;
   cout << "---------------------------------------------------------------\n"
@@ -68,17 +75,17 @@ Int_t calculate_UL_MVA_categories(vector<int> sets = {8}, TString selection = "z
     n_sigs.push_back(n_sig);
     nuisance_params.add(*n_bkg);
     cout << " " << i_cat << ": N(bkg) = " << n_bkg->getVal() << " N(sig) = " << n_sig->getVal() << endl;
+    glb_list.add(*(ws->var(Form("eff_nominal_%i", i_cat))));
   }
   cout << "---------------------------------------------------------------\n\n";
 
-  // if(doConstraints_) nuisance_params.add(*(ws->var("beta_eff")));
-
-  RooArgList glb_list;
   if(doConstraints_) {
     nuisance_params.add(*(ws->var("br_sig_beta")));
     glb_list.add(*(ws->var("br_sig_kappa")));
     glb_list.add(*(ws->var("one")));
     glb_list.add(*(ws->var("zero")));
+    glb_list.add(*(ws->var("bxs_var")));
+    glb_list.add(*(ws->var("lum_var")));
   }
   else if(ws->var("br_sig_kappa")) {
     ws->var("br_sig_kappa")->setVal(1.);
@@ -109,7 +116,10 @@ Int_t calculate_UL_MVA_categories(vector<int> sets = {8}, TString selection = "z
   bModel->SetSnapshot(poi_list);
   ((RooRealVar*) poi_list.find("br_sig"))->setVal(oldval);
 
-  RooStats::AsymptoticCalculator fc(*data, *bModel, model, doBlind_);
+  // TVirtualFitter::SetMaxIterations( 1e7 );
+
+  bool doAsimov = false && doBlind_;
+  RooStats::AsymptoticCalculator fc(*data, *bModel, model, doAsimov);
   fc.SetOneSided(1);
   //create a hypotest inverter passing the desired calculator
   RooStats::HypoTestInverter calc(fc);
@@ -127,16 +137,21 @@ Int_t calculate_UL_MVA_categories(vector<int> sets = {8}, TString selection = "z
   //est the test statistic to use
   toymc->SetTestStatistic(&profl);
 
-  int npoints = 10; //number of points to scan
+  int npoints = 200; //number of points to scan
+  if(doConstraints_) npoints /= 2;
+
   //min and max for the scan (better to choose smaller intervals)
   double poimin = ((RooRealVar*) poi_list.find("br_sig"))->getMin();
   double poimax = ((RooRealVar*) poi_list.find("br_sig"))->getMax();
 
   bool doHiggs = selection.Contains("h");
-  double min_scan = (!doHiggs) ? 2.e-8 : 2.e-6;
-  double max_scan = (!doHiggs) ? 1.e-5 : 1.e-3;
+  double min_scan = (!doHiggs) ? 2.e-8 : 1.e-6;
+  double max_scan = (!doHiggs) ? 1.e-5 : 2.e-3;
   // if(years.size() > 1) {min_scan /= 50.; max_scan /= 2.;}
-  if(doConstraints_) {min_scan *= 1.; max_scan *= 3.;}
+  if(doConstraints_) {
+    min_scan *= 0.88;
+    max_scan *= (selection.Contains("etau")) ? 10. : 3.;
+  }
   std::cout << "Doing a fixed scan in the interval: " << min_scan << ", "
             << max_scan << " with " << npoints << " points\n";
 
@@ -145,7 +160,10 @@ Int_t calculate_UL_MVA_categories(vector<int> sets = {8}, TString selection = "z
          << "] but POI range = [" << poimin << ", " << poimax << "]\n";
     return 10;
   }
-  calc.SetFixedScan(npoints, min_scan, max_scan);
+  if(useFixedScan_)
+    calc.SetFixedScan(npoints, min_scan, max_scan, true); //bool is for log scan vs linear scan
+  else
+    calc.SetAutoScan();
   if(dry_run_) {
     cout << "Setup finished! Exiting dry run...\n";
     return 0;

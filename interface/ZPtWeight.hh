@@ -12,7 +12,8 @@
 
 class ZPtWeight {
 public:
-  ZPtWeight(int Mode = 1, int seed = 90) {
+  ZPtWeight(TString Name, int Mode = 1, int seed = 90) {
+    Name_ = Name;
     Mode_ = Mode;
     TFile* f = 0;
     TFile* fsys = 0;
@@ -61,24 +62,31 @@ public:
     TH2D* h = (doReco > 0) ? hZPtRecoScales_[year] : hZPtScales_[year];
     TH2D* hsys = (doReco > 0) ? hZPtSysRecoScales_[year] : hZPtSysScales_[year];
     if(!h) {
-      std::cout << "ZPtWeight::" << __func__ << " WARNING! Z pT weights not defined for year = " << year
+      std::cout << Name_.Data() << " ZPtWeight::" << __func__ << " WARNING! Z pT weights not defined for year = " << year
                 << " and doReco = " << doReco << std::endl;
       return weight;
     }
     //ensure the values are within the bounds
     if(pt >= 1000.) pt = 999.;
     if(mass >= 1000.) mass = 999.;
-    int binx = h->GetXaxis()->FindBin(mass);
-    int biny = h->GetYaxis()->FindBin(pt);
+    const int binx = std::max(1, std::min(h->GetNbinsX(), h->GetXaxis()->FindBin(mass)));
+    const int biny = std::max(1, std::min(h->GetNbinsY(), h->GetYaxis()->FindBin(pt)));
     weight = h->GetBinContent(binx, biny);
-    double sys_weight = (hsys) ? hsys->GetBinContent(binx, biny) : weight;
-    up     = (Mode_ > 0) ? weight + abs(weight - sys_weight) : weight + h->GetBinError(binx, biny);
-    down   = (Mode_ > 0) ? weight - abs(weight - sys_weight) : weight - h->GetBinError(binx, biny);
-    down   = std::max(0.f, down);
-    sys    = (isShiftedUp_[year][binx-1][biny-1]) ? up : down;
+    float sys_weight = (hsys) ? hsys->GetBinContent(binx, biny) : weight;
+
+    const float min_weight = 1.e-6; //minimum weight allowed
+    weight     = std::max(min_weight, weight);
+    sys_weight = std::max(min_weight, sys_weight);
+
+    //if using systematic weight set, set up to that weight, down to the same difference but in the opposite direction
+    up     = (Mode_ > 0) ? sys_weight             : weight + h->GetBinError(binx, biny);
+    down   = (Mode_ > 0) ? 2.*weight - sys_weight : weight - h->GetBinError(binx, biny);
+    down   = std::max(min_weight, down);
     if(Mode_ > 0) sys = sys_weight;
+    else sys = (isShiftedUp_[year][binx-1][biny-1]) ? up : down;
+
     if(weight <= 0.) {
-      std::cout << "ZPtWeight::" << __func__ << " WARNING! Z pT weight <= 0 = " << weight << " (pt, mass) = ("
+      std::cout << Name_.Data() << " ZPtWeight::" << __func__ << " WARNING! Z pT weight <= 0 = " << weight << " (pt, mass) = ("
                 << pt << ", " << mass << ") using doReco = " << doReco << " and year = "<< year << "! Returning 1...\n";
       return 1.;
     }
@@ -91,6 +99,7 @@ public:
   std::map<int, TH2D*> hZPtSysScales_; //scales from a different data region
   std::map<int, TH2D*> hZPtSysRecoScales_; //scales from a different data region
   std::vector<TFile*> files_;
+  TString Name_;
   int Mode_;
   TRandom3* rnd_; //for generating systematic shifted parameters
   //       year          eta           pt
