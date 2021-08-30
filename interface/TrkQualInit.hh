@@ -42,11 +42,25 @@ public:
     variables.push_back(Var_t("eventcategory"     ,"eventCategory"     ,"", &tree.eventcategory     , false));
     variables.push_back(Var_t("issignal"          ,"isSignal"          ,"", &tree.issignal          , false));
 
+    if(version_ > 7 && (selection.Contains("mutau") || selection.Contains("etau"))) {
+      variables.push_back(Var_t("leponeprimepz0", "leponeprimepz0", "GeV", &(tree.leponeprimepz[0]), version_ == 8));
+      variables.push_back(Var_t("leponeprimee0" , "leponeprimee0" , "GeV", &(tree.leponeprimee [0]), version_ == 8));
+      variables.push_back(Var_t("leptwoprimepz0", "leptwoprimepz0", "GeV", &(tree.leptwoprimepz[0]), version_ == 8));
+      variables.push_back(Var_t("leptwoprimepx0", "leptwoprimepx0", "GeV", &(tree.leptwoprimepx[0]), version_ == 8));
+      variables.push_back(Var_t("leptwoprimee0" , "leptwoprimee0" , "GeV", &(tree.leptwoprimee [0]), version_ == 8));
+      variables.push_back(Var_t("metprimee0"    , "metprimee0"    , "GeV", &(tree.metprimee    [0]), version_ == 8));
+      // variables.push_back(Var_t("leponeprimepz0", "leponeprimepz0", "GeV", &(tree.leponeprimepzt), version_ == 8));
+      // variables.push_back(Var_t("leponeprimee0" , "leponeprimee0" , "GeV", &(tree.leponeprimeet ), version_ == 8));
+      // variables.push_back(Var_t("leptwoprimepz0", "leptwoprimepz0", "GeV", &(tree.leptwoprimepzt), version_ == 8));
+      // variables.push_back(Var_t("leptwoprimepx0", "leptwoprimepx0", "GeV", &(tree.leptwoprimepxt), version_ == 8));
+      // variables.push_back(Var_t("leptwoprimee0" , "leptwoprimee0" , "GeV", &(tree.leptwoprimeet ), version_ == 8));
+      // variables.push_back(Var_t("metprimee0"    , "metprimee0"    , "GeV", &(tree.metprimeet    ), version_ == 8));
+    }
 
     if(!selection.Contains("emu")) {
       variables.push_back(Var_t("lepm" , "M_{ll}"    , "GeV", &tree.lepm , true));
-      variables.push_back(Var_t("mtone", "MT(MET,l1)", ""   , &tree.mtone, true));
-      variables.push_back(Var_t("mttwo", "MT(MET,l2)", ""   , &tree.mttwo, true));
+      variables.push_back(Var_t("mtone", "MT(MET,l1)", ""   , &tree.mtone, version_ != 8));
+      variables.push_back(Var_t("mttwo", "MT(MET,l2)", ""   , &tree.mttwo, version_ != 8));
     } else {
       variables.push_back(Var_t("lepm"      , "M_{ll}"           , "GeV", &tree.lepm      , false));
       variables.push_back(Var_t("mtoneoverm", "MT(MET,l1)/M_{ll}", ""   , &tree.mtoneoverm, true));
@@ -54,19 +68,19 @@ public:
     }
 
 
-    variables.push_back(Var_t("onemetdeltaphi","#Delta#phi_{MET,l1}","", &tree.onemetdeltaphi, true));
-    variables.push_back(Var_t("twometdeltaphi","#Delta#phi_{MET,l2}","", &tree.twometdeltaphi, true));
+    variables.push_back(Var_t("onemetdeltaphi","#Delta#phi_{MET,l1}","", &tree.onemetdeltaphi, version_ != 8));
+    variables.push_back(Var_t("twometdeltaphi","#Delta#phi_{MET,l2}","", &tree.twometdeltaphi, version_ != 8));
 
     if(!selection.Contains("emu")) {
-      variables.push_back(Var_t("leponept","pT_{l1}","GeV", &tree.leponept, true));
-      variables.push_back(Var_t("leptwopt","pT_{l2}","GeV", &tree.leptwopt, true));
-      variables.push_back(Var_t("leppt"   ,"pT_{ll}","GeV", &tree.leppt   , true));
+      variables.push_back(Var_t("leponept","pT_{l1}","GeV", &tree.leponept, version_ != 8));
+      variables.push_back(Var_t("leptwopt","pT_{l2}","GeV", &tree.leptwopt, version_ != 8));
+      variables.push_back(Var_t("leppt"   ,"pT_{ll}","GeV", &tree.leppt   , version_ != 8));
     } else {
       variables.push_back(Var_t("leponeptoverm","pT_{l1}/M_{ll}","", &tree.leponeptoverm, true));
       variables.push_back(Var_t("leptwoptoverm","pT_{l2}/M_{ll}","", &tree.leptwoptoverm, true));
       variables.push_back(Var_t("lepptoverm"   ,"pT_{ll}/M_{ll}","", &tree.lepptoverm   , true));
     }
-    variables.push_back(Var_t("lepdeltaphi","#Delta#phi_{ll}"    ,"", &tree.lepdeltaphi, true));
+    variables.push_back(Var_t("lepdeltaphi","#Delta#phi_{ll}"    ,"", &tree.lepdeltaphi, version_ != 8));
     variables.push_back(Var_t("lepdeltaeta","#Delta#eta_{ll}"    ,"", &tree.lepdeltaeta, false));
     variables.push_back(Var_t("metdeltaphi","#Delta#phi_{MET,ll}","", &tree.metdeltaphi, false));
 
@@ -111,11 +125,7 @@ public:
     variables.push_back(Var_t("htsum"     ,"#Sigma pT_{Jet}"         ,"", &tree.htsum     , false));
 
     //FIXME: Remove jet pT from Z->X+tau since doesn't help
-    variables.push_back(Var_t("jetpt","pT_{Jet}","", &tree.jetpt, true));
-
-    // variables.push_back(Var_t("leponeiso","Iso_{l1}","", &tree.leponeiso, false));
-
-    // variables.push_back(Var_t("met","MET","GeV", &tree.met, true));
+    variables.push_back(Var_t("jetpt","pT_{Jet}","", &tree.jetpt, version_ < 8));
 
     variables.push_back(Var_t("lepdeltar"         ,"#DeltaR_{ll}"      ,"", &tree.lepdeltar         , false));
 
@@ -155,6 +165,18 @@ public:
     return status;
   }
 
+  void TestVariables(Long64_t entry, TTree* tree, TString selection, Tree_t& vars, bool setAddresses = true) {
+    std::vector<Var_t> variables = GetVariables(selection, vars);
+    if(setAddresses) SetBranchAddresses(tree, selection, vars);
+    tree->GetEntry(entry);
+    for(unsigned index = 0; index < variables.size(); ++index) {
+      Var_t& var = variables[index];
+      printf("%20s (%30s) = %12.5f", var.var_.Data(), var.desc_.Data(), *(var.val_));
+      if(var.use_) printf(" (Variable)\n");
+      else         printf(" (Spectator)\n");
+      if(TMath::IsNaN(*(var.val_)) || !TMath::Finite(*(var.val_))) printf("!!! Variable %s is nan/not finite!\n", var.var_.Data());
+    }
+  }
   //default version
   const static int Default = 7;
   //fields

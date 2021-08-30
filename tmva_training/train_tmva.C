@@ -57,6 +57,10 @@ int train_tmva(const char* tree_name = "trees/background_ztautau_Z0_nano_mutau_2
       if( i < n-1) tmvaName += "_";
     }
   }
+
+  //if the version is non-default, add to the name
+  if(trkqual_version_ > -1 && trkqual_version_ != TrkQualInit::Default) tmvaName += Form("_v%i", trkqual_version_);
+
   TString selection = "";
   if(tmvaName.Contains("Z0"))
     selection += "z";
@@ -134,15 +138,15 @@ Int_t train_all_selections(vector<int> years = {2016}, Int_t split_trees = 1, bo
     status += train_tmva(Form("trees/background_ztautau_higgs_nano_etau_mu_%s_80.tree", year_string.Data()));
    } else { //Unbinned in njets
     status += train_tmva(Form("trees/background_ztautau_Z0_nano_mutau_%s_8.tree"      , year_string.Data()));
-    status += train_tmva(Form("trees/background_ztautau_Z0_nano_etau_%s_8.tree"      , year_string.Data()));
-    status += train_tmva(Form("trees/background_ztautau_Z0_nano_emu_%s_8.tree"       , year_string.Data()));
-    status += train_tmva(Form("trees/background_ztautau_Z0_nano_mutau_e_%s_8.tree"   , year_string.Data()));
-    status += train_tmva(Form("trees/background_ztautau_Z0_nano_etau_mu_%s_8.tree"   , year_string.Data()));
+    status += train_tmva(Form("trees/background_ztautau_Z0_nano_etau_%s_8.tree"       , year_string.Data()));
+    status += train_tmva(Form("trees/background_ztautau_Z0_nano_emu_%s_8.tree"        , year_string.Data()));
+    status += train_tmva(Form("trees/background_ztautau_Z0_nano_mutau_e_%s_8.tree"    , year_string.Data()));
+    status += train_tmva(Form("trees/background_ztautau_Z0_nano_etau_mu_%s_8.tree"    , year_string.Data()));
     status += train_tmva(Form("trees/background_ztautau_higgs_nano_mutau_%s_8.tree"   , year_string.Data()));
-    status += train_tmva(Form("trees/background_ztautau_higgs_nano_etau_%s_8.tree"   , year_string.Data()));
-    status += train_tmva(Form("trees/background_ztautau_higgs_nano_emu_%s_8.tree"    , year_string.Data()));
-    status += train_tmva(Form("trees/background_ztautau_higgs_nano_mutau_e_%s_8.tree", year_string.Data()));
-    status += train_tmva(Form("trees/background_ztautau_higgs_nano_etau_mu_%s_8.tree", year_string.Data()));
+    status += train_tmva(Form("trees/background_ztautau_higgs_nano_etau_%s_8.tree"    , year_string.Data()));
+    status += train_tmva(Form("trees/background_ztautau_higgs_nano_emu_%s_8.tree"     , year_string.Data()));
+    status += train_tmva(Form("trees/background_ztautau_higgs_nano_mutau_e_%s_8.tree" , year_string.Data()));
+    status += train_tmva(Form("trees/background_ztautau_higgs_nano_etau_mu_%s_8.tree" , year_string.Data()));
   }
   Double_t cpuTime = timer->CpuTime();
   Double_t realTime = timer->RealTime();
@@ -151,9 +155,13 @@ Int_t train_all_selections(vector<int> years = {2016}, Int_t split_trees = 1, bo
   return status;
 }
 
-Int_t train_all_years(Int_t split_trees = 1, bool doJetBinned = false) {
+Int_t train_all_years(Int_t split_trees = 1, bool doJetBinned = false, int variable_version = -1) {
   int status(0);
   TStopwatch* timer = new TStopwatch();
+  if(variable_version > -1) {
+    cout << "Setting the TrkQualInit version from default to " << variable_version << endl;
+    trkqual_version_ = variable_version;
+  }
   // cout << "*** Training 2016 MVAs...\n";
   // status += train_all_selections({2016}, split_trees, doJetBinned);
   // cout << "*** Training 2017 MVAs...\n";

@@ -429,7 +429,7 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
 
   if (Use["MLP_MM"]) {
     TString network;
-    network = "N,5,5"; //10,5,5
+    network = "10"; //"N,5,5"; //10,5,5
     factory->BookMethod(dataloader, TMVA::Types::kMLP, "MLP_MM",
                          Form("!H:!V:VarTransform=N:NCycles=600:HiddenLayers=%s:TestRate=5:!UseRegulator",
                               network.Data()));

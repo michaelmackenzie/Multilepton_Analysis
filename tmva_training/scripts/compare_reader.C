@@ -9,6 +9,7 @@ int verbose_ = 0;
 bool doTest_ = true;
 TH1F* hCompare_[3];
 Long64_t maxEntries_ = 1e5;
+int version_; //TrkQualInit version
 
 //get file name from configuration
 TString get_file_name(bool isHiggs = true, TString selection = "mutau",
@@ -39,7 +40,7 @@ int init_reader(TString selection, bool isHiggs) {
   }
   if(reader_) delete reader_;
   reader_ = new TMVA::Reader("!Color:!Silent");
-  TrkQualInit trkQualInit;
+  TrkQualInit trkQualInit(version_);
   selection = ((isHiggs) ? "h"+selection : "z"+selection);
   status += trkQualInit.InitializeVariables(*reader_, selection, treeVars_);
   status += trkQualInit.SetBranchAddresses(tree_, selection, treeVars_);
@@ -102,9 +103,13 @@ int compare_point(TString selection = "emu", bool isHiggs = true,
   return 0;
 }
 
-int compare_reader(TString selection = "mutau", bool isHiggs = false,
-                   vector<int> years = {2016, 2017, 2018}, int set = 8) {
+int compare_reader(TString selection = "zmutau",
+                   vector<int> years = {2016, 2017, 2018}, int set = 8, int variable_version = TrkQualInit::Default) {
   if(maxEntries_ == 1) verbose_ = 2;
+  version_ = variable_version;
+  bool isHiggs = selection.Contains("h");
+  selection.ReplaceAll("h", "");
+  selection.ReplaceAll("z", "");
   int status = init(selection, isHiggs, years, set);
   if(status) return status;
   hCompare_[0] = new TH1F("score_r", "Score (Reader)", 100, -1., 1.);

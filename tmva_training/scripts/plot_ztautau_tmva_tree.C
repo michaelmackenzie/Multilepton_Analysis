@@ -6,7 +6,7 @@
 
 namespace {
   enum{kMLP, kMLP_MM, kBDT, kBDTRT};
-  int MVA_ = kBDT; 
+  int MVA_ = kBDT;
   TString var_ = "lepm"; //which variable to plot
   double xMin_ = 50.; //plotting domain
   double xMax_ = 170.;
@@ -43,7 +43,7 @@ TString get_label_from_category(int category) {
   case 43: case 44: case 56: case 57: case 66: case 67:
     return "Diboson";
   case 15: case 16: case 41: case 42: case 64: case 65: //data
-    return "QCD"; 
+    return "QCD";
   case 9: case 35: case 58:
     return "Z->e#tau";
   case 10: case 36: case 59:
@@ -62,8 +62,11 @@ TString get_label_from_category(int category) {
 }
 
 //get file name from configuration
-TString get_file_name(bool isHiggs = true, TString selection = "mutau",
-		      vector<int> years = {2016, 2017, 2018}, int set = 8) {
+TString get_file_name(TString selection = "zmutau",
+                      vector<int> years = {2016, 2017, 2018}, int set = 8) {
+  bool isHiggs = selection.Contains("h");
+  selection.ReplaceAll("h", "");
+  selection.ReplaceAll("z", "");
   TString name = "training_background_ztautau_";
   name += (isHiggs) ? "higgs_nano_" : "Z0_nano_";
   name += selection + "_";
@@ -94,16 +97,16 @@ double get_limit(double nbackground, double nsignal, double confidence = 0.95) {
       scale = 4./nsignal;
     else if(nbackground < 5.)
       scale = (3.+sqrt(nbackground)*1.93)/nsignal;
-    
+
     double denom = ROOT::Math::poisson_cdf((int) (nbackground), nbackground); //normalizing for CLs
     int counts = 0;
     do { //guess scale factors until close to limit goal
       ++counts;
-      //confidence limit at this value	
+      //confidence limit at this value
       val = ROOT::Math::poisson_cdf((int) (nbackground), nbackground + nsignal*scale) / denom;
       if(verbose_ > 5) printf("Loop for limit: val = %.3e scale = %.3e\n", val, scale);
       if(abs(val-p) > tolerance) //only update if still not succeeding
-	scale = (val/p < 4.) ? (1.-p)/(1.-val)*scale : scale*(0.9); //if far slowly approach
+        scale = (val/p < 4.) ? (1.-p)/(1.-val)*scale : scale*(0.9); //if far slowly approach
     } while(abs(val - p) > tolerance && counts < 100);
     if(counts == 100)
       cout << "Error! Maximum attempts reached in limit calculation!\n" << endl;
@@ -119,7 +122,7 @@ pair<double,double> get_train_scales(TTree* test_tree, TTree* train_tree) {
     cout << "get_train_scales: getting background class" << endl;
   test_tree-> Draw(Form("%s>>htest_-1" , var_.Data()),"(classID==0)");//background class ID
   TH1F* htesttmp  = (TH1F*) gDirectory->Get("htest_-1");
-  train_tree->Draw(Form("%s>>htrain_-1", var_.Data()),"(classID==0)"); 
+  train_tree->Draw(Form("%s>>htrain_-1", var_.Data()),"(classID==0)");
   TH1F* htraintmp = (TH1F*) gDirectory->Get("htrain_-1");
   if(!htesttmp || !htraintmp) {
     cout << "ERROR! Histograms for getting scale factors not found!\n";
@@ -141,11 +144,11 @@ pair<double,double> get_train_scales(TTree* test_tree, TTree* train_tree) {
   scaleSigTrain = htesttmp->Integral()/htraintmp->Integral();
   delete htraintmp;
   delete htesttmp;
-  return pair<double,double>(scaleBkgTrain,scaleSigTrain);  
+  return pair<double,double>(scaleBkgTrain,scaleSigTrain);
 }
 
 int plot_tmva_tree(const char* file = "training_background_ztautau_Z0_nano_mutau_2016_8",
-		   double mva_cut = -1., int category = -1) {
+                   double mva_cut = -1., int category = -1) {
 
   if(setSilent_) gROOT->SetBatch(kTRUE);
   else gROOT->SetBatch(kFALSE);
@@ -156,7 +159,7 @@ int plot_tmva_tree(const char* file = "training_background_ztautau_Z0_nano_mutau
   fname += "/";
   fname += file;
   fname += ".root";
-    
+
   TFile* f = TFile::Open(fname.Data(),"READ");
   if(!f)
     return 1;
@@ -167,7 +170,7 @@ int plot_tmva_tree(const char* file = "training_background_ztautau_Z0_nano_mutau
     printf("Trees not found\n");
     return 2;
   }
-  
+
   TH1F* htest  = new TH1F("htest" ,"Test" ,bins_,xMin_,xMax_);
   TH1F* htrain = new TH1F("htrain","Train",bins_,xMin_,xMax_);
 
@@ -184,13 +187,13 @@ int plot_tmva_tree(const char* file = "training_background_ztautau_Z0_nano_mutau
     printf("MVA_ value doesn't correspond to known MVA\n");
     return 3;
   }
-  
+
   TString cut;
   if(fname.Contains("mock"))
     cut = Form("genweight*((%s>=%.5f)",mva_var.Data(),mva_cut); //don't weight data/mock data
   else
     cut = Form("fulleventweightlum*((%s>=%.5f)",mva_var.Data(),mva_cut);
-    
+
   if(category > -1) cut += Form("&&(eventcategory == %i)",category);
   cut += ")";
   test_tree-> Draw(Form("%s>>htest" , var_.Data()), cut.Data());
@@ -200,7 +203,7 @@ int plot_tmva_tree(const char* file = "training_background_ztautau_Z0_nano_mutau
     printf("Scaling training sample by %.4f\n", scale_train);
     htrain->Scale(scale_train);
   }
-  
+
   TCanvas* c = new TCanvas(("c_"+var_).Data(),(var_+" Canvas").Data(), 900, 500);
   //  htest->Scale(htrain->Integral()/htest->Integral());
   htrain->Draw("hist");
@@ -218,7 +221,7 @@ int plot_tmva_tree(const char* file = "training_background_ztautau_Z0_nano_mutau
   c->SetGridy();
   c->BuildLegend();
   c->Update();
-  
+
   htrain->SetMaximum(1.2*max(htest->GetMaximum(),htrain->GetMaximum()));
   htrain->SetTitle(Form("%s for %s >= %.5f",var_.Data(),mva_var.Data(),mva_cut));
   htrain->SetXTitle(Form("%s",var_.Data()));
@@ -238,9 +241,9 @@ int plot_tmva_tree(const char* file = "training_background_ztautau_Z0_nano_mutau
 
 
 
-int stack_tmva_tree(double mva_cut = -1.,
-		    const char* file = "training_background_ztautau_Z0_nano_mutau_2016_8",
-		    int plot_train = 0)  {
+int stack_tmva_tree(const char* file = "training_background_ztautau_Z0_nano_mutau_2016_8",
+                    double mva_cut = -1.,
+                    int plot_train = 0)  {
 
   if(setSilent_) gROOT->SetBatch(kTRUE);
 
@@ -249,14 +252,14 @@ int stack_tmva_tree(double mva_cut = -1.,
   fname += "/";
   fname += file;
   fname += ".root";
-    
+
   TFile* f = TFile::Open(fname.Data(),"READ");
   if(!f) {
     printf("File not found\n");
     return 1;
   } else if(verbose_ > 0)
     printf("Opened the file\n");
-  
+
   TTree *test_tree  = (TTree*) f->Get("TestTree");
   TTree *train_tree = (TTree*) f->Get("TrainTree");
   if(!test_tree || !train_tree) {
@@ -285,7 +288,7 @@ int stack_tmva_tree(double mva_cut = -1.,
   //initialize a map of histogram titles to index in histogram array to use
   std::map<TString, int> indexes;
   unsigned ndatasets = max_categories_;
-  for(unsigned index = 0; index < ndatasets ; ++index) 
+  for(unsigned index = 0; index < ndatasets ; ++index)
     indexes[get_label_from_category(index+1)] = -1;
 
   //arrays of histograms for plotting
@@ -309,14 +312,14 @@ int stack_tmva_tree(double mva_cut = -1.,
     printf("MVA_ value doesn't correspond to known MVA\n");
     return 3;
   }
-  
+
   //assume all backgrounds use the same training fraction, and the same for all signals
   pair<double,double> train_scales = get_train_scales(test_tree, train_tree);
   double scaleBkgTrain = train_scales.first;
   double scaleSigTrain = train_scales.second;
   if(verbose_ > 1)
     printf("Retrieved the training/testing fractions (bkg=%.3f, sig=%.3f)\n", scaleBkgTrain, scaleSigTrain);
-  
+
   if(plot_train > 0)
     printf("Scaling background by %.2f and signal by %.2f for training trees\n", scaleBkgTrain, scaleSigTrain);
 
@@ -325,7 +328,7 @@ int stack_tmva_tree(double mva_cut = -1.,
     if(verbose_ > 1)
       cout << "Filling histogram " << index << ": name = " << get_label_from_category(index+1).Data()<< endl;
     int category = index + 1; //current definition of category is offset by 1
-    
+
     htest[index] = new TH1F(Form("htest_%i",index),   Form("Test %s" , get_label_from_category(index+1).Data()), bins_, xMin_, xMax_);
     if(plot_train > 0) htrain[index] = new TH1F(Form("htrain_%i",index), Form("Train %s",  get_label_from_category(index+1).Data()), bins_, xMin_, xMax_);
     TString cut;
@@ -335,7 +338,7 @@ int stack_tmva_tree(double mva_cut = -1.,
       cut = Form("fulleventweightlum*((%s>=%.5f)",mva_var.Data(),mva_cut);
 
     cut += Form("&&(eventcategory == %i))",category);
-    
+
     test_tree->Draw(Form("%s>>htest_%i" , var_.Data(), index), cut.Data());
     if(verbose_ > 1)
       cout << "Test histogram has " << htest[index]->GetEntries() << " entries\n";
@@ -349,7 +352,7 @@ int stack_tmva_tree(double mva_cut = -1.,
     if(verbose_ > 1)
       cout  << isSig << endl;
     delete hSigTest;
-    
+
     if(plot_train > 0) train_tree->Draw(Form("%s>>htrain_%i", var_.Data(), index), cut.Data());
     if(plot_train > 0 && verbose_ > 1)
       cout << "Test histogram has " << htest[index]->GetEntries() << " entries\n";
@@ -361,7 +364,7 @@ int stack_tmva_tree(double mva_cut = -1.,
       double sig_correction = (1.+scaleSigTrain)/scaleSigTrain;
       double bkg_correction = (1.+scaleBkgTrain)/scaleBkgTrain;
       if(verbose_>1)
-	printf("Scaling by training compensation (bkg=%.4f,sig=%.4f)\n", bkg_correction, sig_correction);
+        printf("Scaling by training compensation (bkg=%.4f,sig=%.4f)\n", bkg_correction, sig_correction);
 
       htest[index]->Scale((isSig) ? sig_correction : bkg_correction);
       if(plot_train > 0) htrain[index]->Scale((isSig) ? sig_correction : bkg_correction);
@@ -381,7 +384,7 @@ int stack_tmva_tree(double mva_cut = -1.,
     htest[index]->SetLineColor(colors[get_label_from_category(index+1)]);
     if(!isSignal[name]) htest[index]->SetFillColor(colors[get_label_from_category(index+1)]);
     else htest[index]->SetLineWidth(3);
-    
+
     // htest[index]->SetFillStyle(3001);
     if(plot_train > 0) htrain[index]->SetMarkerColor(colors[get_label_from_category(index+1)]-1);
     if(plot_train > 0) htrain[index]->SetMarkerStyle(20);
@@ -397,7 +400,7 @@ int stack_tmva_tree(double mva_cut = -1.,
     TString name = get_label_from_category(index+1);
     if(verbose_ > 1)
       cout << "Looking at histogram " << index << ", name = " << name.Data() << endl
-	   << "index map = " << indexes[name] << ", issignal = " << isSignal[name] << endl;
+           << "index map = " << indexes[name] << ", issignal = " << isSignal[name] << endl;
     if(indexes[name] != index)
       continue;
     htest[index] ->SetTitle(Form("%s #scale[0.5]{#int} = %.2e", htest[index] ->GetTitle() , htest[index]->Integral()));
@@ -414,7 +417,7 @@ int stack_tmva_tree(double mva_cut = -1.,
     if(verbose_ > 1)
       cout << "-> Added the histogram to the stack!\n";
   }
-  
+
   TCanvas* c = new TCanvas("c_stack","Stack Canvas", 1200, 800);
   if(plot_train > 0 && hstacktrain->GetNhists() > 0) {
     hstacktrain->Draw("E noclear");
@@ -426,7 +429,7 @@ int stack_tmva_tree(double mva_cut = -1.,
     return 10;
   double m = hstacktest->GetMaximum();
   if(plot_train > 0 && hstacktrain->GetNhists() > 0) m = max(m, hstacktrain->GetMaximum());
-  
+
   for(unsigned index = 0; index < hsignals.size(); ++index) {
     hsignals[index]->Draw("hist sames");
     m = max(m, hsignals[index]->GetMaximum());
@@ -436,7 +439,7 @@ int stack_tmva_tree(double mva_cut = -1.,
   c->SetGridy();
   c->BuildLegend();
   c->Update();
-  
+
   if(plot_train > 0 && hstacktrain->GetNhists() > 0) {
     hstacktrain->SetMaximum(1.2*m);
     hstacktrain->SetTitle(Form("%s for %s >= %.5f",var_.Data(),mva_var.Data(),mva_cut));
@@ -449,7 +452,7 @@ int stack_tmva_tree(double mva_cut = -1.,
     // hstacktest->GetYaxis()->SetTitle(Form("Entries / %.1f GeV",hstacktest->GetXaxis()->GetBinWidth(1)));
   }
   if(print_) {
-    TString fnm = file;    
+    TString fnm = file;
     fnm.ReplaceAll("training_background_ztautau_", "");
     fnm.ReplaceAll(".", "d");
     fnm += Form("_stack_%s_%s", var_.Data(), mva_var.Data());
@@ -467,8 +470,8 @@ int stack_tmva_tree(double mva_cut = -1.,
 }
 
 Int_t plot_limit_gain(const char* file = "training_background_ztautau_higgs_mutau_8",
-		      TString cut = "", //apply some cut
-		      int plot_train = 0, double xmin = -1, double xmax = 1., int max_steps = 100) {
+                      TString cut = "", //apply some cut
+                      int plot_train = 0, double xmin = -1, double xmax = 1., int max_steps = 100) {
 
   // gROOT->SetBatch(kTRUE);
 
@@ -478,7 +481,7 @@ Int_t plot_limit_gain(const char* file = "training_background_ztautau_higgs_muta
   fname += "/";
   fname += file;
   fname += ".root";
-    
+
   TFile* f = TFile::Open(fname.Data(),"READ");
   if(!f)
     return 1;
@@ -489,7 +492,7 @@ Int_t plot_limit_gain(const char* file = "training_background_ztautau_higgs_muta
     printf("Trees not found\n");
     return 2;
   }
-  
+
   TH1F* htest  = new TH1F("htest" ,"Test" ,bins_,xMin_,xMax_);
   TH1F* htrain = new TH1F("htrain","Train",bins_,xMin_,xMax_);
 
@@ -506,14 +509,14 @@ Int_t plot_limit_gain(const char* file = "training_background_ztautau_higgs_muta
     printf("MVA_ value doesn't correspond to known MVA\n");
     return 3;
   }
-  
+
   TString cut_start;
   if(fname.Contains("mock"))
     cut_start = "genweight*("; //don't weight data/mock data
   else
     cut_start = "fulleventweightlum*(";
   if(cut != "") cut_start += cut + "&&";
-  
+
   cout << "Initializing mva histograms" << endl;
   //Initialize histograms with binning to match the MVA cut steps
   TString cut_bkg = cut_start + "classID==0)";
@@ -588,7 +591,7 @@ Int_t plot_limit_gain(const char* file = "training_background_ztautau_higgs_muta
   line->Draw();
   if(print_) {
     TString fnm = file;
-    fnm.ReplaceAll("training_background_ztautau_", "");    
+    fnm.ReplaceAll("training_background_ztautau_", "");
     c->Print(Form("figures/%s_limit_%s.png", fnm.Data(), mva_var.Data()));
   }
   return 0;
@@ -596,8 +599,8 @@ Int_t plot_limit_gain(const char* file = "training_background_ztautau_higgs_muta
 
 //print the distributions in steps of the MVA cut, to make a gif of the cut effect
 int print_gif_figures(const char* file = "training_background_ztautau_Z0_nano_mutau_2016_8",
-		      double mva_start = -1., double mva_end = 1., int mva_steps = 100,
-		      int plot_train = 0) {
+                      double mva_start = -1., double mva_end = 1., int mva_steps = 100,
+                      int plot_train = 0) {
   int status(0);
   //configure to print images, don't show plots
   setSilent_ = true;
@@ -610,19 +613,19 @@ int print_gif_figures(const char* file = "training_background_ztautau_Z0_nano_mu
   var_ = "BDT";
   xMin_ = -1.;
   xMax_ = 1.5;
-  status += stack_tmva_tree(-1., file, plot_train);
+  status += stack_tmva_tree(file, -1., plot_train);
   var_ = var_prev;
   xMin_ = xmin_prev;
   xMax_ = xmax_prev;
   doGIF_ = true;
   gifCount_ = 0;
-  
+
   //loop through MVA cut values, printing the distribution for each
   for(int step = 0; step <= mva_steps; ++step) {
     double mva_cut = mva_start + step*(mva_end - mva_start)/mva_steps;
-    status += stack_tmva_tree(mva_cut, file, plot_train);
+    status += stack_tmva_tree(file, mva_cut, plot_train);
     if(status) break;
   }
-  
+
   return status;
 }
