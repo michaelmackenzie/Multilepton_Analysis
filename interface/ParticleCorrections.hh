@@ -233,13 +233,13 @@ public :
     electronTrigFileNames[k2017]  = fpair("egammaTriggerEfficiency_2017.root"                   ,"EGamma_SF2D");
     electronTrigFileNames[k2018]  = fpair("egammaTriggerEfficiency_2018.root"                   ,"EGamma_SF2D");
     std::map<int, fpair> electronTrigDataEffFileNames;
-    electronTrigDataEffFileNames[k2016]  = fpair("egammaTriggerEfficiency_2016.root"                   ,"EGamma_EffData2D");
-    electronTrigDataEffFileNames[k2017]  = fpair("egammaTriggerEfficiency_2017.root"                   ,"EGamma_EffData2D");
-    electronTrigDataEffFileNames[k2018]  = fpair("egammaTriggerEfficiency_2018.root"                   ,"EGamma_EffData2D");
+    electronTrigDataEffFileNames[k2016]  = fpair("egammaTriggerEfficiency_2016.root"            ,"EGamma_EffData2D");
+    electronTrigDataEffFileNames[k2017]  = fpair("egammaTriggerEfficiency_2017.root"            ,"EGamma_EffData2D");
+    electronTrigDataEffFileNames[k2018]  = fpair("egammaTriggerEfficiency_2018.root"            ,"EGamma_EffData2D");
     std::map<int, fpair> electronTrigMCEffFileNames;
-    electronTrigMCEffFileNames[k2016]  = fpair("egammaTriggerEfficiency_2016.root"                   ,"EGamma_EffMC2D");
-    electronTrigMCEffFileNames[k2017]  = fpair("egammaTriggerEfficiency_2017.root"                   ,"EGamma_EffMC2D");
-    electronTrigMCEffFileNames[k2018]  = fpair("egammaTriggerEfficiency_2018.root"                   ,"EGamma_EffMC2D");
+    electronTrigMCEffFileNames[k2016]  = fpair("egammaTriggerEfficiency_2016.root"              ,"EGamma_EffMC2D");
+    electronTrigMCEffFileNames[k2017]  = fpair("egammaTriggerEfficiency_2017.root"              ,"EGamma_EffMC2D");
+    electronTrigMCEffFileNames[k2018]  = fpair("egammaTriggerEfficiency_2018.root"              ,"EGamma_EffMC2D");
     //FIXME: add electron trigger, pre-fire (2016, 2017) scale
     //https://twiki.cern.ch/twiki/bin/viewauth/CMS/L1ECALPrefiringWeightRecipe
 

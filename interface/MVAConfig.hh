@@ -119,7 +119,7 @@ public:
       }
     } else if(selection == "hmutau_e") {
       double edges[] = {-1.00, -0.80,
-                        -0.30, -0.25, -0.20, -0.16, -0.13,
+                        -0.30, -0.25, -0.20, -0.15, -0.10,
                         -0.10, -0.07, -0.04, -0.01,  0.02,
                         +0.05,  0.20,
                         +0.50,  2.00};
@@ -127,10 +127,10 @@ public:
         bins.push_back(edges[bin]);
       }
     } else if(selection == "zmutau_e") {
-      double edges[] = {-1.00, -0.80,
-                        -0.30, -0.25, -0.20, -0.15, -0.10,
-                        -0.07, -0.04, -0.01,  0.02,  0.05,
-                        +0.08,  0.20,
+      double edges[] = {-1.00, -0.80 ,
+                        -0.30, -0.27 , -0.24, -0.21, -0.18,
+                        -0.15, -0.12 , -0.09, -0.06, -0.03,
+                        +0.00,  0.025,  0.05, 0.20,
                         +0.50,  2.00};
       for(unsigned bin = 0; bin < sizeof(edges)/sizeof(*edges); ++bin) {
         bins.push_back(edges[bin]);
@@ -145,10 +145,10 @@ public:
         bins.push_back(edges[bin]);
       }
     } else if(selection == "zetau_mu") {
-      double edges[] = {-1.00, -0.80,
-                        -0.30, -0.25, -0.20, -0.16, -0.13,
-                        -0.10, -0.07, -0.04, -0.01,  0.02,
-                        +0.05,  0.20,
+      double edges[] = {-1.00, -0.80 ,
+                        -0.30, -0.27 , -0.24, -0.21, -0.18,
+                        -0.15, -0.12 , -0.09, -0.06, -0.03,
+                        +0.00,  0.025,  0.05, 0.20,
                         +0.50,  2.00};
       for(unsigned bin = 0; bin < sizeof(edges)/sizeof(*edges); ++bin) {
         bins.push_back(edges[bin]);

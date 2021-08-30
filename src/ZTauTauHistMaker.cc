@@ -40,6 +40,7 @@ void ZTauTauHistMaker::Begin(TTree * /*tree*/)
   fChain = 0;
   fElectronIDWeight.verbose_ = fVerbose;
   fMuonIDWeight.verbose_ = fVerbose;
+  fBTagWeight.verbose_ = fVerbose;
 
   fMuonJetToTauWeights[JetToTauComposition::kWJets] = new JetToTauWeight("MuonWJets", "mutau",   31,  301300, fSystematicSeed, 0);
   fMuonJetToTauWeights[JetToTauComposition::kZJets] = new JetToTauWeight("MuonZJets", "mutau",   31,  301300, fSystematicSeed, 0);
@@ -560,6 +561,21 @@ void ZTauTauHistMaker::BookEventHistograms() {
       fEventHist[i]->hLepMEstimateTwo  = new TH1D("lepmestimatetwo", Form("%s: Estimate di-lepton mass"  ,dirname)  ,200,0.,  800.);
       fEventHist[i]->hLepDot           = new TH1D("lepdot"         , Form("%s: sqrt(p1 dot p2)"          ,dirname)  ,200,0.,  400.);
 
+      for(int mode = 0; mode < 3; ++mode) {
+        fEventHist[i]->hLepOnePrimePx[mode] = new TH1D(Form("leponeprimepx%i", mode), Form("%s: l1 px" , dirname), 200, -200., 200.);
+        fEventHist[i]->hLepTwoPrimePx[mode] = new TH1D(Form("leptwoprimepx%i", mode), Form("%s: l2 px" , dirname), 200, -200., 200.);
+        fEventHist[i]->hMetPrimePx   [mode] = new TH1D(Form("metprimepx%i"   , mode), Form("%s: met px", dirname), 200, -200., 200.);
+        fEventHist[i]->hLepOnePrimePy[mode] = new TH1D(Form("leponeprimepy%i", mode), Form("%s: l1 py" , dirname), 200, -200., 200.);
+        fEventHist[i]->hLepTwoPrimePy[mode] = new TH1D(Form("leptwoprimepy%i", mode), Form("%s: l2 py" , dirname), 200, -200., 200.);
+        fEventHist[i]->hMetPrimePy   [mode] = new TH1D(Form("metprimepy%i"   , mode), Form("%s: met py", dirname), 200, -200., 200.);
+        fEventHist[i]->hLepOnePrimePz[mode] = new TH1D(Form("leponeprimepz%i", mode), Form("%s: l1 pz" , dirname), 200, -200., 200.);
+        fEventHist[i]->hLepTwoPrimePz[mode] = new TH1D(Form("leptwoprimepz%i", mode), Form("%s: l2 pz" , dirname), 200, -200., 200.);
+        fEventHist[i]->hMetPrimePz   [mode] = new TH1D(Form("metprimepz%i"   , mode), Form("%s: met pz", dirname), 200, -200., 200.);
+        fEventHist[i]->hLepOnePrimeE [mode] = new TH1D(Form("leponeprimee%i" , mode), Form("%s: l1 e " , dirname), 200,    0., 200.);
+        fEventHist[i]->hLepTwoPrimeE [mode] = new TH1D(Form("leptwoprimee%i" , mode), Form("%s: l2 e " , dirname), 200,    0., 200.);
+        fEventHist[i]->hMetPrimeE    [mode] = new TH1D(Form("metprimee%i"    , mode), Form("%s: met e ", dirname), 200,    0., 200.);
+      }
+
       fEventHist[i]->hPtSum[0]         = new TH1D("ptsum0"         , Form("%s: Scalar Pt sum"                    ,dirname)    ,1000,  0.,  1000.);
       // fEventHist[i]->hPtSum[1]         = new TH1D("ptsum1"         , Form("%s: Scalar Pt sum"                    ,dirname)    ,1000,  0.,  1000.);
       // fEventHist[i]->hPt1Sum[0]        = new TH1D("pt1sum0"        , Form("%s: Scalar Pt sum Lepton 1 + MET"     ,dirname)    ,1000,  0.,  1000.);
@@ -864,13 +880,22 @@ void ZTauTauHistMaker::BookTrees() {
       fTrees[i]->Branch("htsum",              &fTreeVars.htsum             );
       fTrees[i]->Branch("jetpt",              &fTreeVars.jetpt             );
       fTrees[i]->Branch("njets",              &fTreeVars.njets             );
-      // fTrees[i]->Branch("nbjets",             &fTreeVars.nbjets            );
-      // fTrees[i]->Branch("nbjetsm",            &fTreeVars.nbjetsm           );
-      // fTrees[i]->Branch("nbjetsl",            &fTreeVars.nbjetsl           );
-      // fTrees[i]->Branch("nbjets20",           &fTreeVars.nbjets20          );
-      // fTrees[i]->Branch("nbjets20m",          &fTreeVars.nbjets20m         );
-      // fTrees[i]->Branch("nbjets20l",          &fTreeVars.nbjets20l         );
-      // fTrees[i]->Branch("nphotons",           &fTreeVars.nphotons          );
+
+      //boosted frame variables
+      for(int mode = 0; mode < 3; ++mode) {
+        fTrees[i]->Branch(Form("leponeprimepx%i", mode), &fTreeVars.leponeprimepx[mode]);
+        fTrees[i]->Branch(Form("leptwoprimepx%i", mode), &fTreeVars.leptwoprimepx[mode]);
+        fTrees[i]->Branch(Form("metprimepx%i"   , mode), &fTreeVars.metprimepx   [mode]);
+        fTrees[i]->Branch(Form("leponeprimepy%i", mode), &fTreeVars.leponeprimepy[mode]);
+        fTrees[i]->Branch(Form("leptwoprimepy%i", mode), &fTreeVars.leptwoprimepy[mode]);
+        fTrees[i]->Branch(Form("metprimepy%i"   , mode), &fTreeVars.metprimepy   [mode]);
+        fTrees[i]->Branch(Form("leponeprimepz%i", mode), &fTreeVars.leponeprimepz[mode]);
+        fTrees[i]->Branch(Form("leptwoprimepz%i", mode), &fTreeVars.leptwoprimepz[mode]);
+        fTrees[i]->Branch(Form("metprimepz%i"   , mode), &fTreeVars.metprimepz   [mode]);
+        fTrees[i]->Branch(Form("leponeprimee%i" , mode), &fTreeVars.leponeprimee [mode]);
+        fTrees[i]->Branch(Form("leptwoprimee%i" , mode), &fTreeVars.leptwoprimee [mode]);
+        fTrees[i]->Branch(Form("metprimee%i"    , mode), &fTreeVars.metprimee    [mode]);
+      }
 
       fTrees[i]->Branch("eventweight",        &fTreeVars.eventweightMVA    );
       fTrees[i]->Branch("fulleventweight",    &fTreeVars.fulleventweight   );
@@ -1017,6 +1042,70 @@ void ZTauTauHistMaker::InitializeTreeVariables(Int_t selection) {
   fTreeVars.eventweightMVA = genWeight*eventWeight;
   fTreeVars.fulleventweight = genWeight*eventWeight*fXsec;
   fTreeVars.fulleventweightlum = fTreeVars.fulleventweight*fLum;
+
+  //Perform a transform to the Z/H boson frame
+  //Requires knowledge of which lepton has associated neutrinos (or if none do)
+  TLorentzVector metP4;
+  metP4.SetPtEtaPhiE(missing.Pt(), 0., missing.Phi(), missing.Pt());
+  for(int imode = 0; imode < 3; ++imode) {
+    TLorentzVector system;
+    system = *leptonOneP4 + *leptonTwoP4;
+    if(imode < 2) system += metP4;
+    TVector3 boost = -1*system.BoostVector();
+    boost.SetZ(0.); //only transform pT to 0
+    TLorentzVector lepOnePrime(*leptonOneP4);
+    TLorentzVector lepTwoPrime(*leptonTwoP4);
+    TLorentzVector metPrime(missing, missing.Mag());
+    lepOnePrime.Boost(boost); lepTwoPrime.Boost(boost); metPrime.Boost(boost); //boost so system pT = 0
+    double phiRot;
+    if(imode < 2) { //set MET along x axis
+      phiRot = -metPrime.Phi();
+    } else { //set lepton two pT (muon in emu) along the x-axis
+      phiRot = -lepTwoPrime.Phi();
+    }
+    lepOnePrime.RotateZ(phiRot); lepTwoPrime.RotateZ(phiRot); metPrime.RotateZ(phiRot);
+
+    //if the tau has a negative momentum, rotate about x 180 degrees to make it positive
+    if((imode != 1 && lepTwoPrime.Pz() < 0.) || (imode == 1 && lepOnePrime.Pz() < 0.)) { //for emu, use the muon
+      lepOnePrime.RotateX(M_PI); lepTwoPrime.RotateX(M_PI); metPrime.RotateX(M_PI);
+    }
+    if(std::isnan(lepOnePrime.Px()) || std::isnan(lepOnePrime.Py()) || std::isnan(lepOnePrime.Pz()) || std::isnan(lepOnePrime.E())) {
+      std::cout << "!!! Entry " << fentry << " has NaN boosted lepton p4 components!\n ";
+      leptonOneP4->Print();
+      leptonTwoP4->Print();
+      metP4.Print();
+      system.Print();
+      boost.Print();
+      lepOnePrime.Print();
+      lepTwoPrime.Print();
+      metPrime.Print();
+      fTreeVars.leponeprimepx[imode] = 0.;
+      fTreeVars.leptwoprimepx[imode] = 0.;
+      fTreeVars.metprimepx   [imode] = 0.;
+      fTreeVars.leponeprimepy[imode] = 0.;
+      fTreeVars.leptwoprimepy[imode] = 0.;
+      fTreeVars.metprimepy   [imode] = 0.;
+      fTreeVars.leponeprimepz[imode] = 0.;
+      fTreeVars.leptwoprimepz[imode] = 0.;
+      fTreeVars.metprimepz   [imode] = 0.;
+      fTreeVars.leponeprimee [imode] = 0.;
+      fTreeVars.leptwoprimee [imode] = 0.;
+      fTreeVars.metprimee    [imode] = 0.;
+    } else {
+      fTreeVars.leponeprimepx[imode] = lepOnePrime.Px();
+      fTreeVars.leptwoprimepx[imode] = lepTwoPrime.Px();
+      fTreeVars.metprimepx   [imode] =    metPrime.Px();
+      fTreeVars.leponeprimepy[imode] = lepOnePrime.Py();
+      fTreeVars.leptwoprimepy[imode] = lepTwoPrime.Py();
+      fTreeVars.metprimepy   [imode] =    metPrime.Py();
+      fTreeVars.leponeprimepz[imode] = lepOnePrime.Pz();
+      fTreeVars.leptwoprimepz[imode] = lepTwoPrime.Pz();
+      fTreeVars.metprimepz   [imode] =    metPrime.Pz();
+      fTreeVars.leponeprimee [imode] = lepOnePrime.E();
+      fTreeVars.leptwoprimee [imode] = lepTwoPrime.E();
+      fTreeVars.metprimee    [imode] =    metPrime.E();
+    }
+  }
 
   fTreeVars.eventcategory = fEventCategory;
   if(fFractionMVA > 0.) fTreeVars.train = (fRnd->Uniform() < fFractionMVA) ? 1. : -1.; //whether or not it is in the training sample
@@ -1469,6 +1558,20 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
 
   Hist->hLepMEstimate   ->Fill(fTreeVars.mestimate   , eventWeight*genWeight);
   Hist->hLepMEstimateTwo->Fill(fTreeVars.mestimatetwo, eventWeight*genWeight);
+  for(int mode = 0; mode < 3; ++mode) {
+    Hist->hLepOnePrimePx[mode]->Fill(fTreeVars.leponeprimepx[mode], eventWeight*genWeight);
+    Hist->hLepTwoPrimePx[mode]->Fill(fTreeVars.leptwoprimepx[mode], eventWeight*genWeight);
+    Hist->hMetPrimePx   [mode]->Fill(fTreeVars.metprimepx   [mode], eventWeight*genWeight);
+    Hist->hLepOnePrimePy[mode]->Fill(fTreeVars.leponeprimepy[mode], eventWeight*genWeight);
+    Hist->hLepTwoPrimePy[mode]->Fill(fTreeVars.leptwoprimepy[mode], eventWeight*genWeight);
+    Hist->hMetPrimePy   [mode]->Fill(fTreeVars.metprimepy   [mode], eventWeight*genWeight);
+    Hist->hLepOnePrimePz[mode]->Fill(fTreeVars.leponeprimepz[mode], eventWeight*genWeight);
+    Hist->hLepTwoPrimePz[mode]->Fill(fTreeVars.leptwoprimepz[mode], eventWeight*genWeight);
+    Hist->hMetPrimePz   [mode]->Fill(fTreeVars.metprimepz   [mode], eventWeight*genWeight);
+    Hist->hLepOnePrimeE [mode]->Fill(fTreeVars.leponeprimee [mode], eventWeight*genWeight);
+    Hist->hLepTwoPrimeE [mode]->Fill(fTreeVars.leptwoprimee [mode], eventWeight*genWeight);
+    Hist->hMetPrimeE    [mode]->Fill(fTreeVars.metprimee    [mode], eventWeight*genWeight);
+  }
 
   Hist->hLepDot  ->Fill(sqrt(2.*((*leptonOneP4)*(*leptonTwoP4))), eventWeight*genWeight);
   Hist->hAlpha[0]->Fill((double) fTreeVars.alphaz1, eventWeight*genWeight);
@@ -1836,6 +1939,11 @@ void ZTauTauHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
         else if(sys == 42 && abs(tauGenFlavor) == 11)
           weight *= leptonTwoWeight1_sys / leptonTwoWeight1;
       }
+    } else if  (sys == 43) { weight *= (fIsData) ? 1. : 1. + 0.016; //luminosity uncertainty
+    } else if  (sys == 44) { weight *= (fIsData) ? 1. : 1. - 0.016;
+    } else if  (sys == 45) { weight *= (btagWeight > 0.) ? btagWeightUp   / btagWeight : 1.; //btag uncertainty
+    } else if  (sys == 46) { weight *= (btagWeight > 0.) ? btagWeightDown / btagWeight : 1.;
+
     // } else if  (sys >= 50 && sys < 56) { //jet->tau statistical, separated by years
     //   int base = 50;
     //   if(abs(leptonTwoFlavor) == 15) {
@@ -1903,26 +2011,27 @@ void ZTauTauHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
         else if((sys == base + 1 + 2*bin) && abs(tauGenFlavor) == 11)
           weight *= leptonTwoWeight1_down / leptonTwoWeight1;
       }
-    } else if  (sys >= SystematicGrouping::kElectronID && sys < 250) { //Electron ID
-      int offset = SystematicGrouping::kElectronID;
-      if(abs(leptonOneFlavor) == 11) {
-        if(2*(leptonOneWeight1_group) - offset     == sys) weight *= leptonOneWeight1_up   / leptonOneWeight1;
-        if(2*(leptonOneWeight1_group) - offset + 1 == sys) weight *= leptonOneWeight1_down / leptonOneWeight1;
-      }
-      if(abs(leptonTwoFlavor) == 11) {
-        if(2*(leptonTwoWeight1_group) - offset     == sys) weight *= leptonTwoWeight1_up   / leptonTwoWeight1;
-        if(2*(leptonTwoWeight1_group) - offset + 1 == sys) weight *= leptonTwoWeight1_down / leptonTwoWeight1;
-      }
-    } else if  (sys >= SystematicGrouping::kElectronRecoID && sys < 300) { //Electron Reco ID
-      int offset = SystematicGrouping::kElectronRecoID;
-      if(abs(leptonOneFlavor) == 11) {
-        if(2*(leptonOneWeight2_group) - offset     == sys) weight *= leptonOneWeight2_up   / leptonOneWeight2;
-        if(2*(leptonOneWeight2_group) - offset + 1 == sys) weight *= leptonOneWeight2_down / leptonOneWeight2;
-      }
-      if(abs(leptonTwoFlavor) == 11) {
-        if(2*(leptonTwoWeight2_group) - offset     == sys) weight *= leptonTwoWeight2_up   / leptonTwoWeight2;
-        if(2*(leptonTwoWeight2_group) - offset + 1 == sys) weight *= leptonTwoWeight2_down / leptonTwoWeight2;
-      }
+      //Remove electron ID and Reco ID groupings, as generally systematically correlated errors
+    // } else if  (sys >= SystematicGrouping::kElectronID && sys < 250) { //Electron ID
+    //   int offset = SystematicGrouping::kElectronID;
+    //   if(abs(leptonOneFlavor) == 11) {
+    //     if(2*(leptonOneWeight1_group) - offset     == sys) weight *= leptonOneWeight1_up   / leptonOneWeight1;
+    //     if(2*(leptonOneWeight1_group) - offset + 1 == sys) weight *= leptonOneWeight1_down / leptonOneWeight1;
+    //   }
+    //   if(abs(leptonTwoFlavor) == 11) {
+    //     if(2*(leptonTwoWeight1_group) - offset     == sys) weight *= leptonTwoWeight1_up   / leptonTwoWeight1;
+    //     if(2*(leptonTwoWeight1_group) - offset + 1 == sys) weight *= leptonTwoWeight1_down / leptonTwoWeight1;
+    //   }
+    // } else if  (sys >= SystematicGrouping::kElectronRecoID && sys < 300) { //Electron Reco ID
+    //   int offset = SystematicGrouping::kElectronRecoID;
+    //   if(abs(leptonOneFlavor) == 11) {
+    //     if(2*(leptonOneWeight2_group) - offset     == sys) weight *= leptonOneWeight2_up   / leptonOneWeight2;
+    //     if(2*(leptonOneWeight2_group) - offset + 1 == sys) weight *= leptonOneWeight2_down / leptonOneWeight2;
+    //   }
+    //   if(abs(leptonTwoFlavor) == 11) {
+    //     if(2*(leptonTwoWeight2_group) - offset     == sys) weight *= leptonTwoWeight2_up   / leptonTwoWeight2;
+    //     if(2*(leptonTwoWeight2_group) - offset + 1 == sys) weight *= leptonTwoWeight2_down / leptonTwoWeight2;
+    //   }
     } else continue; //no need to fill undefined systematics
 
     if(std::isnan(weight)) {
@@ -2076,9 +2185,17 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
     if(fRemoveBTagWeights > 1) { //replace the weights
       int wp = BTagWeight::kLooseBTag;
       if(fFolderName == "mutau" || fFolderName == "etau") wp = BTagWeight::kTightBTag;
-      btagWeight = fBTagWeight.GetWeight(wp, fYear, nJets20, jetsPt, jetsEta, jetsFlavor, jetsBTag);
-    } else
+      btagWeight = fBTagWeight.GetWeight(wp, fYear, nJets20, jetsPt, jetsEta, jetsFlavor, jetsBTag, btagWeightUp, btagWeightDown);
+      eventWeight *= btagWeight;
+      if((btagWeight - btagWeightUp) * (btagWeight - btagWeightDown) > 1.e-3 && fVerbose > 0) {
+        std::cout << "!!! Warning: Entry " << fentry << " B-tag weight up/down are on the same side of the weight: Wt = "
+                  << btagWeight << " Up = " << btagWeightUp << " Down = " << btagWeightDown << std::endl;
+      }
+    } else {
       btagWeight = 1.;
+      btagWeightUp = 1.;
+      btagWeightDown = 1.;
+    }
     if(fVerbose > 0) std::cout << " B-tag weight updated: " << btagWeight << std::endl;
   }
 

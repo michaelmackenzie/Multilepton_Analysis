@@ -96,6 +96,8 @@ public :
   Float_t prefireWeight = 1.         ;
   Float_t topPtWeight                ;
   Float_t btagWeight = 1.            ;
+  Float_t btagWeightUp = 1.          ;
+  Float_t btagWeightDown = 1.        ;
   Float_t zPtWeight                  ;
   Float_t zPtWeightUp                ;
   Float_t zPtWeightDown              ;

@@ -50,18 +50,19 @@ public:
 
 
     //signals
-    values_["ZEMu"  ][2016] = zxs*7.5e-7; //PDG: 7.5e-7 ATLAS: 7.5e-7 CMS: 7.3e-7
-    values_["ZETau" ][2016] = zxs*8.1e-6; //PDG: 9.8e-6 ATLAS: 8.1e-6 (13 TeV)
-    values_["ZMuTau"][2016] = zxs*6.3e-6; //PDG: 1.2e-5 ATLAS: 6.3e-6 (13 TeV) 6.1e-6 (13+8 TeV)
-    values_["HEMu"  ][2016] = higgs*5.9e-5; //PDG: 3.5e-4 CMS: 5.6e-5 ATLAS: 5.9e-5
-    values_["HETau" ][2016] = higgs*1.9e-3; //PDG: 6.1e-3 CMS: 1.9e-3
-    values_["HMuTau"][2016] = higgs*1.6e-3; //PDG: 2.5e-3 CMS: 1.6e-3
+    //normalized to example branching fractions
+    values_["ZEMu"  ][2016] = zxs*5e-7;   //PDG: 7.5e-7 ATLAS: 7.5e-7 CMS: 7.3e-7
+    values_["ZETau" ][2016] = zxs*5e-6; //PDG: 9.8e-6 ATLAS: 8.1e-6 (13 TeV)
+    values_["ZMuTau"][2016] = zxs*5e-6; //PDG: 1.2e-5 ATLAS: 6.3e-6 (13 TeV) 6.1e-6 (13+8 TeV)
+    values_["HEMu"  ][2016] = higgs*1e-4; //PDG: 3.5e-4 CMS: 5.6e-5 ATLAS: 5.9e-5
+    values_["HETau" ][2016] = higgs*1.e-3; //PDG: 6.1e-3 CMS: 1.9e-3
+    values_["HMuTau"][2016] = higgs*1.e-3; //PDG: 2.5e-3 CMS: 1.6e-3
 
     //data SS qcd estimates
     //give fraction of SS --> OS or j --> tau weighted (Data - MC) / Data for full Run-II
     values_["QCD_mutau"][2016] = 0.918;
-    values_["QCD_etau" ][2016]  = 0.935;
-    values_["QCD_emu"  ][2016]   = 0.342;
+    values_["QCD_etau" ][2016] = 0.935;
+    values_["QCD_emu"  ][2016] = 0.342;
 
     ///////////////////////
     // generated numbers //

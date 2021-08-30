@@ -13,6 +13,22 @@ void DataPlotter::get_titles(TString hist, TString setType, TString* xtitle, TSt
     *ytitle = Form("#Delta#phi / %.1f",0.1*rebinH_);
     *title  = Form("#DeltaR vs #Delta#phi Between Leptons %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
   }
+  else if(hist.Contains("prime")) {
+    *xtitle = hist;
+    xtitle->ReplaceAll("prime", " #tilde{");
+    xtitle->ReplaceAll("met", "MET");
+    xtitle->ReplaceAll("lepone", lep1.Data());
+    xtitle->ReplaceAll("leptwo", lep2.Data());
+    xtitle->ReplaceAll("0", "");
+    xtitle->ReplaceAll("1", "");
+    xtitle->ReplaceAll("2", "");
+    if(xtitle->Contains("p")) {
+      xtitle->ReplaceAll("p", "p_{");
+      *xtitle = *xtitle + "}";
+    }
+    xtitle->ReplaceAll("{e", "{E");
+    *xtitle = *xtitle + "}";
+  }
   else if(hist == "sysm" && setType == "event") {
     *xtitle = "M_{ll#gamma} (GeV/c^{2})";
     *ytitle = Form("Events / %.0f GeV/c^{2}",1.*rebinH_);
@@ -2731,7 +2747,7 @@ Int_t DataPlotter::print_hists(std::vector<TString> hists, std::vector<TString> 
       rebinH_ = rebins[i]*base_rebin;
       TCanvas* c = print_hist(hist,setType,set);
       Int_t status = (c) ? 0 : 1;
-      printf("Printing Data/MC hist %s %s set %i has status %i\n",setType.Data(),hist.Data(),set,status);
+      if(verbose_ > 0) printf("Printing Data/MC hist %s %s set %i has status %i\n",setType.Data(),hist.Data(),set,status);
       Empty_Canvas(c);
     }
     ++set_index;

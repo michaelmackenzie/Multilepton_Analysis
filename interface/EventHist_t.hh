@@ -223,6 +223,20 @@ struct EventHist_t {
   TH1D* hLepMEstimateTwo;
   TH1D* hLepDot;
 
+  //Transformed frame variables
+  TH1D* hLepOnePrimePx[3];
+  TH1D* hLepTwoPrimePx[3];
+  TH1D* hMetPrimePx   [3];
+  TH1D* hLepOnePrimePy[3];
+  TH1D* hLepTwoPrimePy[3];
+  TH1D* hMetPrimePy   [3];
+  TH1D* hLepOnePrimePz[3];
+  TH1D* hLepTwoPrimePz[3];
+  TH1D* hMetPrimePz   [3];
+  TH1D* hLepOnePrimeE [3];
+  TH1D* hLepTwoPrimeE [3];
+  TH1D* hMetPrimeE    [3];
+
   TH1D* hPtSum[2]; //scalar sum of lepton Pt and Met, and photon for one
   TH1D* hPt1Sum[4]; //scalar sum of 1 lepton Pt and Met, both leptons, then both minus met
   //MVA values
