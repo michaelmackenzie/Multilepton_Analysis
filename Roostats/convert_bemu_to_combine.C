@@ -261,12 +261,12 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
 
     RooCategory* categories = new RooCategory(Form("cat_%i", set), Form("cat_%i", set));
     int index = 0;
-    RooMultiPdf* multiPDF = construct_multidim_pdf((fitSideBands_) ? *blindDataHist : *dataData , *lepm, *categories, fitSideBands_, index, set, 2);
-    if(multiPDF->getNumPdfs() < 1) {
+    auto multiPDF = construct_multidim_pdf((fitSideBands_) ? *blindDataHist : *dataData , *lepm, *categories, fitSideBands_, index, set, 2);
+    if(categories->numTypes() < 1) {
       cout << "MultiPDF has no PDFs in set " << set << endl;
       return 5;
     }
-    RooAbsPdf* bkgPDF = multiPDF->getPdf(index);
+    RooAbsPdf* bkgPDF = multiPDF->getPdf(Form("index_%i", index));
     categories->setIndex(index);
     cats += Form("%-8s discrete\n", categories->GetName());
 
@@ -313,9 +313,9 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
       chi_sqs.push_back(chi_sq / (nentries - order - 2));
 
       if(useMultiDim_) {
-        for(int ipdf = 0; ipdf < multiPDF->getNumPdfs(); ++ipdf) {
+        for(int ipdf = 0; ipdf < categories->numTypes(); ++ipdf) {
           if(ipdf == index) continue;
-          auto pdf = multiPDF->getPdf(ipdf);
+          auto pdf = multiPDF->getPdf(Form("index_%i", ipdf));
           name = pdf->GetName();
           title = pdf->GetTitle();
           pdf->plotOn(xframe, RooFit::Name(pdf->GetName()), RooFit::LineColor(colors[ipdf % colors.size()]), RooFit::LineStyle(kDashed), RooFit::Range("FullRange"));
@@ -335,12 +335,12 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
       leg->AddEntry(bkgPDF->GetName(), Form("%s - #chi^{2}/DOF = %.2f", bkgPDF->GetTitle(), chi_sqs[0]), "L");
       if(useMultiDim_) {
         int offset = 1;
-        for(int ipdf = 0; ipdf < multiPDF->getNumPdfs(); ++ipdf) {
+        for(int ipdf = 0; ipdf < categories->numTypes(); ++ipdf) {
           if(ipdf == index) {
             offset = 0;
             continue;
           }
-          auto pdf = multiPDF->getPdf(ipdf);
+          auto pdf = multiPDF->getPdf(Form("index_%i", ipdf));
           leg->AddEntry(pdf->GetName(), Form("%s - #chi^{2}/DOF = %.2f", pdf->GetTitle(), chi_sqs[ipdf+offset]), "L");
         }
       }
@@ -361,12 +361,12 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
       norm /= dataDiff->Integral(low_bin, high_bin);
       dataDiff->Scale(norm); //set the norms equal
       vector<TH1D*> pdfDiffs;
-      for(int ipdf = 0; ipdf < multiPDF->getNumPdfs(); ++ipdf) {
+      for(int ipdf = 0; ipdf < categories->numTypes(); ++ipdf) {
         if(ipdf == index) {
           continue;
         }
         pdfDiffs.push_back((TH1D*) dataDiff->Clone(Form("hPdfDiff_%i", ipdf)));
-        auto pdf = multiPDF->getPdf(ipdf);
+        auto pdf = multiPDF->getPdf(Form("index_%i", ipdf));
       }
       // TH1D* hBkgPDF = (TH1D*) dataDiff->Clone("hBkgPDF");
       for(int ibin = low_bin; ibin <= high_bin; ++ibin) {
@@ -378,12 +378,12 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
           dataDiff->SetBinContent(ibin, data->GetBinContent(ibin) - dataDiff->GetBinContent(ibin));
           dataDiff->SetBinError(ibin, data->GetBinError(ibin));
         }
-        for(int ipdf = 0; ipdf < multiPDF->getNumPdfs(); ++ipdf) {
+        for(int ipdf = 0; ipdf < categories->numTypes(); ++ipdf) {
           if(ipdf == index) {
             continue;
           }
           TH1D* hPDFDiff = pdfDiffs[ipdf - (ipdf > index)];
-          auto pdf = multiPDF->getPdf(ipdf);
+          auto pdf = multiPDF->getPdf(Form("index_%i", ipdf));
           hPDFDiff->SetBinContent(ibin, norm*(pdf->getVal() - bkgPDF->getVal()));
           hPDFDiff->SetBinError(ibin,0.);
         }
@@ -397,7 +397,7 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
       line->SetLineColor(kBlue);
       line->SetLineWidth(2);
       line->Draw("same");
-      // for(int ipdf = 0; ipdf < multiPDF->getNumPdfs(); ++ipdf) {
+      // for(int ipdf = 0; ipdf < categories->numTypes(); ++ipdf) {
       //   if(ipdf == index) {
       //     continue;
       //   }

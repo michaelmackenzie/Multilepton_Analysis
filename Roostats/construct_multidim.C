@@ -154,17 +154,18 @@ void add_bernsteins(RooDataHist& data, RooRealVar& obs, RooArgList& list, bool u
   if(verbose > 0) cout << "### Best fit Bernstein order is " << best_order << " with chisq = " << chi_min << endl;
 }
 
-RooMultiPdf* construct_multidim_pdf(RooDataHist& data, RooRealVar& obs, RooCategory& categories, bool useSideBands, int& index, int set, int verbose = 0) {
+RooSimultaneous* construct_multidim_pdf(RooDataHist& data, RooRealVar& obs, RooCategory& categories, bool useSideBands, int& index, int set, int verbose = 0) {
   RooArgList pdfList;
   // add_bernsteins(data, obs, pdfList, useSideBands, index, set, verbose);
   add_chebychevs(data, obs, pdfList, useSideBands, index, set, verbose);
   add_exponentials(data, obs, pdfList, useSideBands, set, verbose);
+  RooSimultaneous* pdfs =  new RooSimultaneous("bkg_multi", "Background function PDF choice", categories);
   for(int ipdf = 0; ipdf < pdfList.getSize(); ++ipdf) {
     RooAbsPdf* pdf = (RooAbsPdf*) pdfList.at(ipdf);
-    categories.defineType(pdf->GetName(), ipdf);
+    categories.defineType(Form("index_%i", ipdf), ipdf);
+    pdfs->addPdf(*pdf, Form("index_%i", ipdf));
   }
-  RooMultiPdf* pdf =  new RooMultiPdf("bkg_multi", "Background function PDF choice", categories, pdfList);
-  return pdf;
+  return pdfs;
 }
 
 #endif
