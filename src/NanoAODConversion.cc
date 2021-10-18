@@ -27,6 +27,7 @@
 
 #include "interface/NanoAODConversion.hh"
 #include <TStyle.h>
+using namespace CLFV;
 
 void NanoAODConversion::Begin(TTree * /*tree*/)
 {
@@ -278,6 +279,10 @@ void NanoAODConversion::InitializeInBranchStructure(TTree* tree) {
   tree->SetBranchAddress("zMass"                           , &zMassIn                        ) ;
   tree->SetBranchAddress("zLepOne"                         , &zLepOne                        ) ;
   tree->SetBranchAddress("zLepTwo"                         , &zLepTwo                        ) ;
+  tree->SetBranchAddress("zLepOnePt"                       , &zLepOnePt                      ) ;
+  tree->SetBranchAddress("zLepTwoPt"                       , &zLepTwoPt                      ) ;
+  tree->SetBranchAddress("zLepOneEta"                      , &zLepOneEta                     ) ;
+  tree->SetBranchAddress("zLepTwoEta"                      , &zLepTwoEta                     ) ;
 
 }
 
@@ -331,6 +336,11 @@ void NanoAODConversion::InitializeOutBranchStructure(TTree* tree) {
   tree->Branch("zPtWeight"                     , &zPtWeight            );
   tree->Branch("zPt"                           , &zPtOut               );
   tree->Branch("zMass"                         , &zMassOut             );
+  tree->Branch("zLepOnePt"                     , &zLepOnePt            );
+  tree->Branch("zLepTwoPt"                     , &zLepTwoPt            );
+  tree->Branch("zLepOneEta"                    , &zLepOneEta           );
+  tree->Branch("zLepTwoEta"                    , &zLepTwoEta           );
+  tree->Branch("embeddingWeight"               , &embeddingWeight      );
   tree->Branch("looseQCDSelection"             , &looseQCDSelection    );
   tree->Branch("genTauFlavorWeight"            , &genTauFlavorWeight   );
   tree->Branch("tauEnergyScale"                , &tauEnergyScale       );
@@ -541,8 +551,15 @@ float NanoAODConversion::BTagWeight(int WP) {
 
 void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
   //store sign of generator weight
-  genWeight = (genWeight == 0.) ? 0. : genWeight/abs(genWeight);
-
+  eventWeight = 1.;
+  if(!fIsEmbed) {
+    genWeight = (genWeight == 0.) ? 0. : genWeight/abs(genWeight);
+    embeddingWeight = 1.;
+  } else {
+    embeddingWeight = (genWeight > 1.) ? 1. : abs(genWeight);
+    if(embeddingWeight > 1.) embeddingWeight = 0.; //should be an efficiency, <= 1
+    genWeight = (genWeight > 1.) ? 0. : 1.;
+  }
   lepOneWeight1      = 1.; lepTwoWeight1      = 1.;
   lepOneWeight1_up   = 1.; lepTwoWeight1_up   = 1.;
   lepOneWeight1_down = 1.; lepTwoWeight1_down = 1.;
@@ -756,7 +773,7 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
                                                                     lepTwoWeight1_up, lepTwoWeight1_down, lepTwoWeight1_bin) : 1.;
     leptonTwoID1 = tauAntiEle[index]; //MVA ID
     leptonTwoID2 = tauAntiMu[index];  //MVA ID
-    leptonTwoID3 = tauAntiJet[index];  //MVA ID
+    leptonTwoID3 = tauAntiJet[index]; //MVA ID
     taudxyOut = taudxy[index];
     taudzOut  = taudz[index];
     leptonTwoD0 = sqrt(taudxy[index]*taudxy[index] + taudz[index]*taudz[index]);
@@ -1078,7 +1095,16 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
       std::cout << "!!! Warning! Counting of trigger objects found "
                 << trigger_index << " objects in entry "
                 << fentry << std::endl;
-    eventWeight = lepOneWeight1 * lepOneWeight2 * lepTwoWeight1 * lepTwoWeight2 * lepOneTrigWeight * lepTwoTrigWeight * puWeight * btagWeight;
+
+    if(fIsEmbed) {
+      puWeight = 1.; //PU taken from data
+      zPtWeight = 1.; //Z spectrum taken from data
+      photonIDWeight = 1.; //photons away from leptons from data, near becomes less clear
+      btagWeight = 1.; //b-tagged jets taken from data
+    }
+
+    //use *= since embedding already starts with an inherent weight
+    eventWeight = lepOneWeight1 * lepOneWeight2 * lepTwoWeight1 * lepTwoWeight2 * lepOneTrigWeight * lepTwoTrigWeight * puWeight * btagWeight * embeddingWeight;
     if(fUsePhotonWeight > 0) eventWeight *= photonIDWeight;
     else if(fUsePhotonWeight < 0) photonIDWeight = 1.; //completely ignore and ensure it is not used
 
@@ -1105,7 +1131,7 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
               << trig_fired[0] << ", " << trig_fired[1] << ") lepOneFired = " << lepOneFired
               << " lepTwoFired = " << lepTwoFired << std::endl;
   }
-  if(eventWeight <= 0. || fVerbose > 1 /*|| (useTrigObj && trigMatchOne == 0 && trigMatchTwo == 0)*/ ) {
+  if((eventWeight <= 0. && embeddingWeight != 0.) || fVerbose > 1 /*|| (useTrigObj && trigMatchOne == 0 && trigMatchTwo == 0)*/ ) {
     if(eventWeight <= 0.)
       std::cout << "WARNING! Eventweight <= 0. in entry " << fentry << "!\n";
     if(useTrigObj && trigMatchOne == 0 && trigMatchTwo == 0)
@@ -1114,6 +1140,7 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
               << " genWeight = " << genWeight
               << " puWeight = " << puWeight
               << " btagWeight = " << btagWeight
+              << " embeddingWeight = " << embeddingWeight
               << " photonIDWeight = " << photonIDWeight << std::endl
               << " lepOneWeight1 = " << lepOneWeight1
               << " lepOneWeight2 = " << lepOneWeight2
@@ -1813,7 +1840,7 @@ Bool_t NanoAODConversion::Process(Long64_t entry)
               << std::endl;
 
   //replace pileup weight if requested
-  if(fIsData == 0 && fReplacePUWeights > 0) puWeight = fPUWeight.GetWeight(nPU, fYear+2016); //uses absolute year number
+  if(fIsData == 0 && fIsEmbed == 0 && fReplacePUWeights > 0) puWeight = fPUWeight.GetWeight(nPU, fYear+2016); //uses absolute year number
 
   CountObjects();
 

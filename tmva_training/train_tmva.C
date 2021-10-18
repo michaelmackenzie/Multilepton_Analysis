@@ -1,4 +1,5 @@
 // Script to call the TMVA training script, TrainTrkQual
+using namespace CLFV;
 
 #include "TrainTrkQual.C"
 

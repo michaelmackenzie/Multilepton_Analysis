@@ -62,7 +62,8 @@ void make_composition(PlottingCard_t card, bool printHists = false, bool debug =
 
   TString xtitle = card.hist_;
   xtitle.ReplaceAll("jettau", "");
-  xtitle.ReplaceAll("1", ""); xtitle.ReplaceAll("2", ""); xtitle.ReplaceAll("3", "");
+  xtitle.ReplaceAll("_", "");
+  xtitle.ReplaceAll("1", ""); xtitle.ReplaceAll("0", ""); xtitle.ReplaceAll("2", ""); xtitle.ReplaceAll("3", "");
   bool addone = xtitle.Contains("one");
   bool addtwo = xtitle.Contains("two");
   xtitle.ReplaceAll("one","");
@@ -232,15 +233,18 @@ Int_t composition(TString selection = "mutau", int setmc = 42, int setqcd = 35, 
   make_composition(PlottingCard_t("jettauonept", "lep", setmcAbs), true);
   make_composition(PlottingCard_t("jettautwor", "lep", setmcAbs), true);
   make_composition(PlottingCard_t("jettauoner", "lep", setmcAbs), true);
-  make_composition(PlottingCard_t("jettauonemetdeltaphi", "lep", setmcAbs, 2, 0., 4.), true);
-  make_composition(PlottingCard_t("jettautwometdeltaphi", "lep", setmcAbs, 2, 0., 4.), true);
+  make_composition(PlottingCard_t("jettauonemetdeltaphi", "lep", setmcAbs, 1, 0., 4.), true);
+  make_composition(PlottingCard_t("jettautwometdeltaphi", "lep", setmcAbs, 1, 0., 4.), true);
   make_composition(PlottingCard_t("mtone", "event", setmcAbs, 5, 0., 150.), true);
   make_composition(PlottingCard_t("mttwo", "event", setmcAbs, 5, 0., 150.), true);
   make_composition(PlottingCard_t("mtlep", "event", setmcAbs, 5, 0., 150.), true);
 
-  // make_composition(PlottingCard_t("jettauonemetdeltaphi", "lep", setmcAbs, 2, 0., 4.), false, true);
+  //Decay mode dependent compositions
+  make_composition(PlottingCard_t("jettauonemetdeltaphi_0", "lep", setmcAbs, 1, 0., 4.), true);
+  make_composition(PlottingCard_t("jettauonemetdeltaphi_1", "lep", setmcAbs, 1, 0., 4.), true);
+  make_composition(PlottingCard_t("jettauonemetdeltaphi_2", "lep", setmcAbs, 1, 0., 4.), true);
+  make_composition(PlottingCard_t("jettauonemetdeltaphi_3", "lep", setmcAbs, 1, 0., 4.), true);
 
   fOut->Close();
-  delete fOut;
   return 0;
 }

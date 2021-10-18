@@ -48,6 +48,7 @@
 #include "TMVA/DataLoader.h"
 #include "TMVA/Tools.h"
 #endif
+using namespace CLFV;
 
 TString selection_ = "zmutau";
 Int_t split_trees_ = 0; //split training/testing using tree defined samples
@@ -137,9 +138,9 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
   // --- Boosted Decision Trees
   Use["BDT"]             = 0; // uses Adaptive Boost
   Use["BDT_MM"]          = 1; // uses Adaptive Boost and modifications
+  Use["BDTRT"]           = 0; // uses randomized trees (Random Forest Technique) with Bagging
   Use["BDTG"]            = 0; // uses Gradient Boost
   Use["BDTB"]            = 0; // uses Bagging
-  Use["BDTRT"]           = 0; // uses randomized trees (Random Forest Technique) with Bagging
   Use["BDTD"]            = 0; // decorrelation + Adaptive Boost
   Use["BDTF"]            = 0; // allow usage of fisher discriminant for node splitting
   //
@@ -266,7 +267,7 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
 
 
   Double_t nSigFrac =  0.5;//0.2; //only use if trees aren't pre-split
-  Double_t nBkgFrac =  0.15;//0.043;//0.2;
+  Double_t nBkgFrac =  0.3;//0.043;//0.2;
   Long64_t nSig = signal->CopyTree(signal_cuts)->GetEntriesFast();
   Long64_t nBkg = background->CopyTree(bkg_cuts)->GetEntriesFast();
   TString options = "";
@@ -429,7 +430,7 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
 
   if (Use["MLP_MM"]) {
     TString network;
-    network = "10"; //"N,5,5"; //10,5,5
+    network = "20,10"; //"N,5,5"; //10,5,5
     factory->BookMethod(dataloader, TMVA::Types::kMLP, "MLP_MM",
                          Form("!H:!V:VarTransform=N:NCycles=600:HiddenLayers=%s:TestRate=5:!UseRegulator",
                               network.Data()));
@@ -455,17 +456,13 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
     factory->BookMethod(dataloader, TMVA::Types::kSVM, "SVM", "Gamma=.5:Tol=0.001:C=1:VarTransform=Norm" );
 
   // Boosted Decision Trees
-  if (Use["BDTG"]) // Gradient Boost
-    factory->BookMethod(dataloader, TMVA::Types::kBDT, "BDTG",
-        "!H:!V:NTrees=1000:BoostType=Grad:Shrinkage=0.10:UseBaggedGrad:GradBaggingFraction=0.5:nCuts=20:NNodesMax=5" );
-
   if (Use["BDT"])  // Adaptive Boost
     factory->BookMethod(dataloader, TMVA::Types::kBDT,"BDT",
         "!H:!V:NTrees=850:nEventsMin=150:MaxDepth=3:BoostType=AdaBoost:AdaBoostBeta=0.5:SeparationType=GiniIndex:nCuts=20:PruneMethod=NoPruning:CreateMVAPdfs=False" );
 
   if (Use["BDT_MM"])  // Adaptive Boost
     factory->BookMethod(dataloader, TMVA::Types::kBDT,"BDT_MM",
-                        "!H:!V:NTrees=850:MinNodeSize=2.5%:MaxDepth=3:BoostType=AdaBoost:AdaBoostBeta=0.5:UseBaggedBoost:BaggedSampleFraction=0.5:SeparationType=GiniIndex:nCuts=20" );
+                        "!H:!V:NTrees=400:MinNodeSize=1.5%:MaxDepth=3:BoostType=AdaBoost:AdaBoostBeta=0.5:UseBaggedBoost:BaggedSampleFraction=0.5:SeparationType=GiniIndex:nCuts=20" );
 
   if (Use["BDTRT"]) {  // Bagging Boost Random Trees
     TString bdtSetup = "!H:!V";
@@ -475,6 +472,9 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
     factory->BookMethod(dataloader, TMVA::Types::kBDT, "BDTRT",bdtSetup.Data());
   }
 
+  if (Use["BDTG"]) // Gradient Boost
+    factory->BookMethod(dataloader, TMVA::Types::kBDT, "BDTG",
+        "!H:!V:NTrees=1000:BoostType=Grad:Shrinkage=0.10:UseBaggedGrad:GradBaggingFraction=0.5:nCuts=20:NNodesMax=5" );
 
   if (Use["BDTB"]) // Bagging
     factory->BookMethod(dataloader, TMVA::Types::kBDT, "BDTB",
@@ -537,6 +537,18 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
 
    // Launch the GUI for the root macros
   if (!dryrun_&&!gROOT->IsBatch()) TMVA::TMVAGui( outfilename );
+  else if(!dryrun_) { //if not a dry run and batch mode, make some relevant plots directly
+    TMVA::variables(outFolder.Data(), outfilename.Data(), "InputVariables_Id"); //1D variable plots
+    TMVA::mvas(outFolder.Data(), outfilename.Data(), TMVA::kCompareType); //Training + Testing MVA scores
+    TMVA::correlations(outFolder.Data(), outfilename.Data()); //linear correlations
+    TMVA::efficiencies(outFolder.Data(), outfilename.Data()); //ROC
+    //make scatter plots for all variables
+    Tree_t tmp_tree_t; //not used
+    auto vars = trkqualinit.GetVariables(selection_, tmp_tree_t);
+    for(auto var : vars) {
+      if(var.use_) TMVA::correlationscatters(outFolder.Data(), outfilename.Data(), var.var_.Data()); //2D correlations
+    }
+  }
   if(multiTrainings_) {gSystem->cd(".."); inTrainDir_ = false;}
   return 0;
 }

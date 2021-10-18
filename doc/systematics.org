@@ -1,0 +1,179 @@
+* Currently implemented systematic uncertainties and missing ones
+
+* Implemented
+
+** Muon
+*** Muon ID
+Systematically shifted histograms
+Weight stored in lepton(One/Two)Weight1
+Grouped (sys + stat) bin uncertainties by |muon eta|, muon pt, and data period (2016 split in 2)
+pt regions : 0-25, 25-40, 40-50, 50+
+eta regions: 0-1.15, 1.15-2.4
+Index 100-149
+Index = 100 + (ptindex + npt*etaindex) + (npt*neta)*(period)
+where period = 2*(year - 2016) + run section (always section 0 for 2017)
+--> 8 groups per run section, 6 run sections (5 used), 48 histograms, 42 used
+Index 100-124, 132-148 are the meaningful histograms
+*--> 2018 is being split up but using scale factors run period inclusive!*
+Added a line to ZTauTauHistMaker to set all MC to the same period in 2018
+
+100% correlated bin errors are in indices: 4 (up), 5 (down), and 6 (sys)
+
+*** Muon Iso ID
+Systematically shifted histograms
+Weight stored in lepton(One/Two)Weight2
+Grouped (sys + stat) bin uncertainties by |muon eta|, muon pt, and data period (2016 split in 2)
+pt regions : 0-25, 25-40, 40-50, 50+
+eta regions: 0-1.15, 1.15-2.4
+Index 150-199
+Index = 150 + (ptindex + npt*etaindex) + (npt*neta)*(period)
+where period = 2*(year - 2016) + run section (always section 0 for 2017)
+--> 8 groups per run section, 6 run sections (5 used), 48 histograms, 42 used
+Index 150-174, 182-198 are the meaningful histograms
+
+*--> 2018 is being split up but using scale factors run period inclusive!*
+Added a line to ZTauTauHistMaker to set all MC to the same period in 2018
+
+100% correlated bin errors are in indices: 19 (up), 20 (down), and 21 (sys)
+
+** Tau
+*** Jet to tau (statistical)
+Systematically shifted histograms
+Grouped stat bin uncertainties by |tau eta|, tau pt, tau DM, and year
+pt regions : 0-25, 25-40, 40-50, 50+
+eta regions: 0-1.15, 1.15-2.4
+Index 150-199
+Index = 150 + (ptindex + npt*etaindex) + (npt*neta)*(period)
+where period = 2*(year - 2016) + run section (always section 0 for 2017)
+--> 8 groups per run section, 6 run sections (5 used), 48 histograms, 42 used
+Index 150-174, 182-198 are the meaningful histograms
+
+*--> 2018 is being split up but using scale factors run period inclusive!*
+Added a line to ZTauTauHistMaker to set all MC to the same period in 2018
+
+*** Tau IDs
+The tau ID uncertainties are for the anti-jet ID, anti-muon ID, and anti-electron ID.
+Two anti-muon IDs are used, but not all are implemented yet
+Tau ID uncertainties are statistical dominated, so years and scale factor bins should be treated
+as uncorrelated in general.
+Weights are applied depending on the generator level particle PDG ID, where anti-jet uncertainty
+is applied to genuine taus, anti-muon uncertainty is applied to genuine muons, and anti-electron
+uncertainty is applied to genuine electrons.
+
+These are all currently fluctuated together in indices: 7 (up), 8 (down), 9 (sys)
+And genID separated, but these bins correlated, in indices: 34 - 42
+
+POG Info: https://twiki.cern.ch/twiki/bin/viewauth/CMS/TauIDRecommendationForRun2#Corrections_for_the_DeepTauv2p1
+The uncertainty in all SFs is dominated by statistical sources (uncertainty in data, but also data driven
+estimation methods and template bin-by-bin uncertainties).
+The uncertainties in the SFs should be treated uncorrelated across years, as well as across tau pT bins if
+you are using pT-dependent SFs, or across DMs if you are using the DM-dependent SFs with tau pT > 40 GeV.
+This means that in each year, each real-tau template is to be split into pT bins or by DM, and there is one
+uncorrelated nuisance parameter for each year, tau pT bin or DM. For example for the real-tau component of
+Drell-Yan, ZTT:
+The pT bins should be at the finest [20,25,30,35,40,infty], so five nuisance parameters: ZTT_tauid_pt20to25,
+ZTT_tauid_pt25to30, ZTT_tauid_pt35to40, , ZTT_tauid_ptgt40.
+DMs may be split into 0, 1, and three prongs combined (10+11), so five templates: ZTT_tauid_dm0, ZTT_tauid_dm1,
+ZTT_tauid_3prong.
+Analyses that do not constrain the tau ID efficiency might consider using a single nuisance parameter together
+with a pT bin correlated shape uncertainty, which still is to be treated uncorrelated across years.
+Analyses that use looser working point of VSe (looser than VLoose) and/or VSmu (looser than Tight) discriminators,
+should add additional uncertainty. In this case, additional 3% should be added to MC and 5% to embedding sample
+for nominal tau pT < 100 GeV. For high pT tau, where tau pT > 100 GeV, additional 15% should be added.
+
+** Event
+
+*** QCD (statistical)
+Systematically shifted histograms
+Currently just using the bin errors without groups
+Systematic indices: 25 (up), 26 (down), and 27 (sys)
+
+
+* Not implemented
+** Muon
+*** Rocchester corrections
+Can test simply using/not using the corrections
+Need to re-evaluate the MVA to account for this shift
+
+** Tau
+*** Tau energy scale
+Uncertainty changes the tau energy/four vector
+Need to re-evaluate the MVA to account for this shift
+
+*** Jet to tau method systematic
+Systematic uncertainty on the validity/efficacy of the method
+Need a way to parameterize how well this method works
+Same-sign region requires different W+Jet scales at the minimum, as it's a different process in same-sign really
+Could use same-sign scale factors + non-closure correction + composition and then inspect same-sign region,
+but this would require a significant amount of work
+
+*** Jet to tau composition
+Need to evaluate the uncertainty on the composition, where adding the constraint that the sum seems complicated
+Could shift the tau efficiency scale factors and take the resulting composition histogram as the systematic histogram?
+ 
+*** Tau IDs
+The old anti-muon ID uncertainty is not currently implemented.
+Need to look at bin-by-bin uncertainties for each scale factor and year
+
+** Jet
+*** B-tag uncertainties
+*** Jet energy scale
+*** Jet IDs
+
+** Event
+
+*** QCD (systematic)
+Need to estimate the uncertainty on the method itself
+Could parameterize in terms of the Delta R discrepancy in the measurement regions?
+Like a non-closure correction, but only applied to the systematic
+
+*** MET
+
+*** Pileup
+Pileup up and down weights are passed by the weight calculator in the nanoAOD skimmer
+Still need to determine how to do this for the signal processes, which use a local
+version of the weight calculation due to issues with the automatic calculation object
+
+
+* Evaluation method
+Systematic uncertainties will either be an overall bias or a bias
+that will scale with the true branching fraction. For uncertainties
+that will scale with signal strength, use the Signal Shift method,
+and for absolute shifts use the Zero Signal method.
+
+** Signal Shift
+Generate background and signal events using the shifted PDFs
+Fit using the nominal PDFs
+Record the branching fraction error and its pull
+Repeat many times
+Take the mean shift in the branching fraction as the systematic
+Write this as a fraction, % uncertainty = bias / BR used
+
+** Zero Signal
+Generate background only events using the shifted PDFs
+Fit using the nominal PDFs, including signal
+Record the branching fraction error (from 0) and its pull
+Repeat many times
+Take the mean shift in the branching fraction as the systematic
+Record as an absolute uncertainty, rather than fractional since 0 used
+
+** Background fit methods
+The background and signal are modeled using analytic functions.
+The background is described by fitting the entire dataset with the given background
+functions. A family of functions is used, e.g. Bernstein polynomials, where an F-test
+is performed to pick the order that describes the data the best.
+*Should this order be selected by fitting the sidebands?*
+*Is this correct that the background function is ultimately fit to the entire dataset?*
+The signal PDF is fit to the signal MC.
+
+*** Background function choice
+The uncertainty due to background function choice is evaluated by considering the
+background as described by an alternate choice.
+Datasets are generated using the alternate background PDF (with or without signal)
+and then these toy datasets are fit using the standard PDF. The bias is the deviation
+in the mean signal branching fraction measured from the true branching fraction injected.
+
+*** Analytic function vs MC
+The background MC can instead be used as the alternate PDF, where datasets are generated
+using the binned MC and fit using the nominal background and signal analytic functions.
+*Should the normalization of the background MC be fixed to the N(data)?*

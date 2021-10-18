@@ -1,4 +1,5 @@
 //Script to make TTrees from trees in histogram files for MVA training and Roostats fitting
+using namespace CLFV;
 
 bool  backgroundOnly_ = false; //no signal tree
 bool  dataOnly_ = false; //only data trees
@@ -113,6 +114,7 @@ Int_t make_background(int set = 8, TString selection = "mutau", TString base = "
   for(int year : years_) {
     const char* nano_names[] = {"DY50"               ,
                                 "DY50-ext"           ,
+                                "DY50-amc"           ,
                                 "SingleAntiToptW"    ,
                                 "SingleToptW"        ,
                                 "WW"               ,
@@ -136,8 +138,9 @@ Int_t make_background(int set = 8, TString selection = "mutau", TString base = "
 
     };
 
-    int doNanoProcess[] = {!dataOnly_ && doDY_ //DY50
-                           , !dataOnly_ && doDY_ && year != 2018 //DY50-ext
+    int doNanoProcess[] = {!dataOnly_   && doDY_ && year == 2017 //DY50
+                           , !dataOnly_ && doDY_ && year == 2017 //DY50-ext
+                           , !dataOnly_ && doDY_ && year != 2017 //DY50-amc
                            , !dataOnly_ && doTop_ //tbar_tw
                            , !dataOnly_ && doTop_ //t_tw
                            , !dataOnly_ && doDiboson_ //WW
@@ -164,7 +167,12 @@ Int_t make_background(int set = 8, TString selection = "mutau", TString base = "
       if(!doNanoProcess[i]) continue;
       TString name = nano_names[i];
       if(name.Contains("Single") && name.Contains("QCD")) name.ReplaceAll("QCD_", "");
-      file_list.push_back(Form("%sztautau_%s_clfv_%i_%s.hist",base.Data(),fileSelec.Data(),year,name.Data()));
+      if(name.Contains("DY50")) {
+        file_list.push_back(Form("%sztautau_%s_clfv_%i_%s-1.hist",base.Data(),fileSelec.Data(),year,name.Data()));
+        file_list.push_back(Form("%sztautau_%s_clfv_%i_%s-2.hist",base.Data(),fileSelec.Data(),year,name.Data()));
+      } else {
+        file_list.push_back(Form("%sztautau_%s_clfv_%i_%s.hist",base.Data(),fileSelec.Data(),year,name.Data()));
+      }
       if(combineLepTau_ && fileSelec.Contains("tau") && !fileSelec.Contains("_"))
         file_list.push_back(Form("%sztautau_emu_clfv_%i_%s.hist",base.Data(),year,name.Data()));
     }

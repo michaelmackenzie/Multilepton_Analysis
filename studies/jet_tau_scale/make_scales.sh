@@ -37,7 +37,9 @@ do
     do
         echo "Making scales for process ${PROCESS} year ${YEAR}, sets are ${SET1} and ${SET2}"
         root.exe -q -b "scale_factors.C(\"${SELECTION}\", \"${PROCESS}\", ${SET1}, ${SET2}, ${YEAR}, \"${HISTS}\")"
+        echo "Making non-closure corrections for process ${PROCESS} year ${YEAR}, sets are ${SET1} and ${SET2}"
+        root.exe -q -b "test_data_scale.C(\"${SELECTION}\", \"${PROCESS}\", ${SET1}, ${SET2}, ${YEAR}, \"${HISTS}\")"
     done
 done
 
-echo "Finished all scale factors"
+echo "Finished all scale factors and (initial) non-closure corrections"

@@ -1,3 +1,5 @@
+using namespace CLFV;
+
 #include "TrainTrkQual.C"
 #include "copy_tree.C"
 int test_training(const char* file = "trees/background_ztautau_Z0_nano_mutau_2016_2017_2018_8.tree",
@@ -12,5 +14,5 @@ int test_training(const char* file = "trees/background_ztautau_Z0_nano_mutau_201
   if(version > -1) trkqual_version_ = version;
   printf("Beginning test training\n");
   return TrainTrkQual(s, t, "test_tmva_training", {});
-  
+
 }

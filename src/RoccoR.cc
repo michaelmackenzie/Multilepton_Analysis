@@ -1,11 +1,9 @@
-#ifndef ElectroWeakAnalysis_RoccoR
-#define ElectroWeakAnalysis_RoccoR
-
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
 #include "interface/RoccoR.h"
 
+using namespace CLFV;
 const double CrystalBall::pi = 3.14159;
 const double CrystalBall::sqrtPiOver2 = sqrt(CrystalBall::pi/2.0);
 const double CrystalBall::sqrt2 = sqrt(2.0);
@@ -332,5 +330,3 @@ double RoccoR::kScaleFromGenMCerror(int Q, double pt, double eta, double phi, in
 double RoccoR::kScaleAndSmearMCerror(int Q, double pt, double eta, double phi, int n, double u, double w) const{
     return error([this, Q, pt, eta, phi, n, u, w](int s, int m) {return kScaleAndSmearMC(Q, pt, eta, phi, n, u, w, s, m);});
 }
-
-#endif

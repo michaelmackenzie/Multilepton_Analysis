@@ -9,6 +9,7 @@ LIB 	 := lib/libCLFVAnalysis.so
 -include $(OBJS:.o=.d)
 
 obj/lib/%.o: src/%.cc
+	if [[ ! -d obj/lib ]]; then mkdir -p obj/lib; fi; if [[ ! -d lib ]]; then mkdir lib; fi;
 	$(CXX) $(CXXFLAGS) -fPIC -c $< -o $@
 	$(CXX) $(CXXFLAGS) -MM -MP -MT $@ $< -o $(@:.o=.d)
 

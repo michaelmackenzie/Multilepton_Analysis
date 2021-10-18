@@ -7,143 +7,173 @@
 //ROOT includes
 #include "TString.h"
 
-class CrossSections {
-public:
-  CrossSections(int useUL = 0, int ZMode = 0) {
-    //cross sections by MC dataset
-    double zll = (useUL > 0) ? 6435. : /*2075.14/0.0337*/ 6077.22; //UL: AMC@NLO = 6435 MadGraph = 5321
-    if(ZMode == 1 && useUL == 0) zll = 4963.0;
 
-    double br_ll = 0.0337; //branching ratio of Z->ll
-    double zxs = zll/(3.*br_ll);
-    double higgs = (48.61+3.766+0.5071+1.358+0.880);
-    values_["DY50"                    ][2016] = zll    ;
-    values_["DY50"                    ][2017] = (ZMode == 1) ? 6435. : zll;
-    values_["DY50"                    ][2018] = (ZMode == 1) ? 6435. : zll;
-    values_["DY10"                    ][2016] = 18610. ;
-    values_["DY10"                    ][2017] = 18610. ;
-    values_["DY10"                    ][2018] = 18610. ;
-    values_["Z"                       ][2016] = zxs    ;
-    values_["Br_Zll"                  ][2016] = br_ll  ;
-    values_["H"                       ][2016] = higgs  ;
-    values_["SingleAntiToptW"         ][2016] = 35.85  ; //34.91  ;
-    values_["SingleToptW"             ][2016] = 35.85  ; //34.91  ;
-    values_["WWW"                     ][2016] = 0.2086 ;
-    values_["WWZ"                     ][2016] = 0.1651 ;
-    values_["WZ"                      ][2016] = 47.13  ; //27.6   ;
-    values_["ZZ"                      ][2016] = 16.523 ; //12.14  ;
-    values_["WW"                      ][2016] = 12.178 ;
-    values_["Wlnu"                    ][2016] = 61526.7; //52850.0;
-    values_["Wlnu-1J"                 ][2016] =  9341.3*1.219; //defined as total * fraction of unbinned with 1J * integral(unbinned 1J) / integral(1J)
-    values_["Wlnu-2J"                 ][2016] =  3195.4*1.219;
-    values_["Wlnu-3J"                 ][2016] =  1110.9*1.219;
-    values_["Wlnu-4J"                 ][2016] =   626.2*1.219;
-    values_["ttbarToSemiLeptonic"     ][2016] = 365.34 ;
-    values_["ttbarlnu"                ][2016] = 87.31  ; //88.29  ;
-    values_["ttbarToHadronic"         ][2016] = 687.1  ;
-    values_["SingleEle"               ][2016] = 1.     ;
-    values_["SingleMu"                ][2016] = 1.     ;
-    values_["QCDDoubleEMEnrich30to40" ][2016] = 22180. ;
-    values_["QCDDoubleEMEnrich30toInf"][2016] = 247000.;
-    values_["QCDDoubleEMEnrich40toInf"][2016] = 113100.;
+namespace CLFV {
+  class CrossSections {
+  public:
+    CrossSections(int useUL = 0, int ZMode = 0) {
+      //cross sections by MC dataset
+      double zll = (useUL > 0) ? 6435. : /*2075.14/0.0337*/ 6077.22; //UL: AMC@NLO = 6435 MadGraph = 5321
+      if(ZMode == 1 && useUL == 0) zll = 4963.0;
 
+      double br_ll = 0.0337; //branching ratio of Z->ll
+      double zxs = zll/(3.*br_ll);
+      double higgs = (48.61+3.766+0.5071+1.358+0.880);
+      values_["DY50"                    ][2016] = zll    ;
+      values_["DY50"                    ][2017] = (ZMode == 1) ? 6435. : zll;
+      values_["DY50"                    ][2018] = (ZMode == 1) ? 6435. : zll;
+      values_["DY10"                    ][2016] = 18610. ;
+      values_["DY10"                    ][2017] = 18610. ;
+      values_["DY10"                    ][2018] = 18610. ;
+      values_["Z"                       ][2016] = zxs    ;
+      values_["Br_Zll"                  ][2016] = br_ll  ;
+      values_["H"                       ][2016] = higgs  ;
+      values_["SingleAntiToptW"         ][2016] = 35.85  ; //34.91  ;
+      values_["SingleToptW"             ][2016] = 35.85  ; //34.91  ;
+      values_["WWW"                     ][2016] = 0.2086 ;
+      values_["WWZ"                     ][2016] = 0.1651 ;
+      values_["WZ"                      ][2016] = 47.13  ; //27.6   ;
+      values_["ZZ"                      ][2016] = 16.523 ; //12.14  ;
+      values_["WW"                      ][2016] = 12.178 ;
+      values_["Wlnu"                    ][2016] = 61526.7; //52850.0;
+      values_["Wlnu-1J"                 ][2016] =  9341.3*1.219; //defined as total * fraction of unbinned with 1J * integral(unbinned 1J) / integral(1J)
+      values_["Wlnu-2J"                 ][2016] =  3195.4*1.219;
+      values_["Wlnu-3J"                 ][2016] =  1110.9*1.219;
+      values_["Wlnu-4J"                 ][2016] =   626.2*1.219;
+      values_["ttbarToSemiLeptonic"     ][2016] = 365.34 ;
+      values_["ttbarlnu"                ][2016] = 87.31  ; //88.29  ;
+      values_["ttbarToHadronic"         ][2016] = 687.1  ;
+      values_["SingleEle"               ][2016] = 1.     ;
+      values_["SingleMu"                ][2016] = 1.     ;
+      values_["QCDDoubleEMEnrich30to40" ][2016] = 22180. ;
+      values_["QCDDoubleEMEnrich30toInf"][2016] = 247000.;
+      values_["QCDDoubleEMEnrich40toInf"][2016] = 113100.;
 
+      //Scale factors for embedding due to inefficiencies in processing
+      values_["Embed-EMu-B"][2016] = 1.0738;
+      values_["Embed-EMu-C"][2016] = 1.0518;
+      values_["Embed-EMu-D"][2016] = 1.0076;
+      values_["Embed-EMu-E"][2016] = 1.1195;
+      values_["Embed-EMu-F"][2016] = 1.1809;
+      values_["Embed-EMu-G"][2016] = 1.1145;
+      values_["Embed-EMu-H"][2016] = 1.1002;
 
-    //signals
-    //normalized to example branching fractions
-    values_["ZEMu"  ][2016] = zxs*5e-7;   //PDG: 7.5e-7 ATLAS: 7.5e-7 CMS: 7.3e-7
-    values_["ZETau" ][2016] = zxs*5e-6; //PDG: 9.8e-6 ATLAS: 8.1e-6 (13 TeV)
-    values_["ZMuTau"][2016] = zxs*5e-6; //PDG: 1.2e-5 ATLAS: 6.3e-6 (13 TeV) 6.1e-6 (13+8 TeV)
-    values_["HEMu"  ][2016] = higgs*1e-4; //PDG: 3.5e-4 CMS: 5.6e-5 ATLAS: 5.9e-5
-    values_["HETau" ][2016] = higgs*1.e-3; //PDG: 6.1e-3 CMS: 1.9e-3
-    values_["HMuTau"][2016] = higgs*1.e-3; //PDG: 2.5e-3 CMS: 1.6e-3
+      values_["Embed-ETau-B"][2016] = 1.1195;
+      values_["Embed-ETau-C"][2016] = 1.1236;
+      values_["Embed-ETau-D"][2016] = 1.0002;
+      values_["Embed-ETau-E"][2016] = 1.0798;
+      values_["Embed-ETau-F"][2016] = 1.2075;
+      values_["Embed-ETau-G"][2016] = 1.1088;
+      values_["Embed-ETau-H"][2016] = 1.1758;
 
-    //data SS qcd estimates
-    //give fraction of SS --> OS or j --> tau weighted (Data - MC) / Data for full Run-II
-    values_["QCD_mutau"][2016] = 0.918;
-    values_["QCD_etau" ][2016] = 0.935;
-    values_["QCD_emu"  ][2016] = 0.342;
+      values_["Embed-MuTau-B"][2016] = 1.1266;
+      values_["Embed-MuTau-C"][2016] = 1.2147;
+      values_["Embed-MuTau-D"][2016] = 1.0259;
+      values_["Embed-MuTau-E"][2016] = 1.1810;
+      values_["Embed-MuTau-F"][2016] = 1.1244;
+      values_["Embed-MuTau-G"][2016] = 1.1694;
+      values_["Embed-MuTau-H"][2016] = 1.1369;
 
-    ///////////////////////
-    // generated numbers //
-    ///////////////////////
+      // *** ElMu : Total Mini / Nano = 29697000/27193414 = 1.0920
+      // *** ElTau: Total Mini / Nano = 26477000/23673882 = 1.1184
+      // *** MuTau: Total Mini / Nano = 26367000/23198322 = 1.1365
 
-    //Retrieved from DAS, can access on command line via:
-    //$> das_client -query="dataset <das name> | grep dataset.nevents "
-    numbers_[2016]["Wlnu"    ] =  29514020;
-    numbers_[2016]["Wlnu-ext"] =  57402435;
-    numbers_[2017]["Wlnu"    ] =  33073306;
-    numbers_[2017]["Wlnu-ext"] =  44627200;
-    numbers_[2016]["DY50"    ] =  49748967;
-    numbers_[2016]["DY50-ext"] =  93007332;
-    numbers_[2017]["DY50"    ] =  25757729;
-    numbers_[2017]["DY50-ext"] = 186217773;
-    numbers_[2018]["DY50"    ] = 100194597;
+      //signals
+      //normalized to example branching fractions
+      values_["ZEMu"  ][2016] = zxs*5e-7;   //PDG: 7.5e-7 ATLAS: 7.5e-7 CMS: 7.3e-7
+      values_["ZETau" ][2016] = zxs*5e-6; //PDG: 9.8e-6 ATLAS: 8.1e-6 (13 TeV)
+      values_["ZMuTau"][2016] = zxs*5e-6; //PDG: 1.2e-5 ATLAS: 6.3e-6 (13 TeV) 6.1e-6 (13+8 TeV)
+      values_["HEMu"  ][2016] = higgs*1.e-4; //PDG: 3.5e-4 CMS: 5.6e-5 ATLAS: 5.9e-5
+      values_["HETau" ][2016] = higgs*1.e-3; //PDG: 6.1e-3 CMS: 1.9e-3
+      values_["HMuTau"][2016] = higgs*1.e-3; //PDG: 2.5e-3 CMS: 1.6e-3
 
-    //Signal gen numbers
-    numbers_[2016]["ZEMu"    ] =  40000;
-    numbers_[2017]["ZEMu"    ] =  80000;
-    numbers_[2018]["ZEMu"    ] =  40000;
-    numbers_[2016]["ZMuTau"  ] =  40000;
-    numbers_[2017]["ZMuTau"  ] =  80000;
-    numbers_[2018]["ZMuTau"  ] =  40000;
-    numbers_[2016]["ZETau"   ] =  40000;
-    numbers_[2017]["ZETau"   ] =  80000;
-    numbers_[2018]["ZETau"   ] =  40000;
-    numbers_[2016]["HEMu"    ] =  40000;
-    numbers_[2017]["HEMu"    ] =  80000;
-    numbers_[2018]["HEMu"    ] =  40000;
-    numbers_[2016]["HMuTau"  ] =  40000;
-    numbers_[2017]["HMuTau"  ] =  80000;
-    numbers_[2018]["HMuTau"  ] =  40000;
-    numbers_[2016]["HETau"   ] =  40000;
-    numbers_[2017]["HETau"   ] =  80000;
-    numbers_[2018]["HETau"   ] =  40000;
+      //data SS qcd estimates
+      //give fraction of SS --> OS or j --> tau weighted (Data - MC) / Data for full Run-II
+      values_["QCD_mutau"][2016] = 0.918;
+      values_["QCD_etau" ][2016] = 0.935;
+      values_["QCD_emu"  ][2016] = 0.342;
 
-    //Luminosity by year
-    lum_[2016] = 36.33e3;
-    lum_[2017] = 41.48e3;
-    lum_[2018] = 59.83e3;
+      ///////////////////////
+      // generated numbers //
+      ///////////////////////
 
-  }
+      //Retrieved from DAS, can access on command line via:
+      //$> das_client -query="dataset <das name> | grep dataset.nevents "
+      numbers_[2016]["Wlnu"    ] =  29514020;
+      numbers_[2016]["Wlnu-ext"] =  57402435;
+      numbers_[2017]["Wlnu"    ] =  33073306;
+      numbers_[2017]["Wlnu-ext"] =  44627200;
+      numbers_[2016]["DY50"    ] =  49748967;
+      numbers_[2016]["DY50-ext"] =  93007332;
+      numbers_[2017]["DY50"    ] =  25757729;
+      numbers_[2017]["DY50-ext"] = 186217773;
+      numbers_[2018]["DY50"    ] = 100194597;
 
-  double GetCrossSection(TString name, int year = 2016) {
-    double xsec(1.);
-    auto itr = values_.find(name);
-    if(itr != values_.end())
-      xsec = itr->second[year];
-    else
-      std::cout << "Cross section for " << name.Data() << " not found! Returning 1...\n";
-    return xsec;
-  }
+      //Signal gen numbers
+      numbers_[2016]["ZEMu"    ] =  40000;
+      numbers_[2017]["ZEMu"    ] =  80000;
+      numbers_[2018]["ZEMu"    ] =  40000;
+      numbers_[2016]["ZMuTau"  ] =  40000;
+      numbers_[2017]["ZMuTau"  ] =  80000;
+      numbers_[2018]["ZMuTau"  ] =  40000;
+      numbers_[2016]["ZETau"   ] =  40000;
+      numbers_[2017]["ZETau"   ] =  80000;
+      numbers_[2018]["ZETau"   ] =  40000;
+      numbers_[2016]["HEMu"    ] =  40000;
+      numbers_[2017]["HEMu"    ] =  80000;
+      numbers_[2018]["HEMu"    ] =  40000;
+      numbers_[2016]["HMuTau"  ] =  40000;
+      numbers_[2017]["HMuTau"  ] =  80000;
+      numbers_[2018]["HMuTau"  ] =  40000;
+      numbers_[2016]["HETau"   ] =  40000;
+      numbers_[2017]["HETau"   ] =  80000;
+      numbers_[2018]["HETau"   ] =  40000;
 
-  //if combining files, may want number of generated events
-  long GetGenNumber(TString name, int year) {
-    long gen(0);
-    auto itr = numbers_[year].find(name);
-    if(itr != numbers_[year].end())
-      gen = itr->second;
-    else
-      std::cout << "Generated number for " << name.Data() << " not found! Returning 0...\n";
-    return gen;
-  }
+      //Luminosity by year
+      lum_[2016] = 36.33e3;
+      lum_[2017] = 41.48e3;
+      lum_[2018] = 59.83e3;
 
-  //Get luminosity by year
-  double GetLuminosity(int year) {
-    double lum(0.);
-    if(year < 10) // using enums
-      year += 2016;
-    auto itr = lum_.find(year);
-    if(itr != lum_.end())
-      lum = itr->second;
-    else
-      std::cout << "Luminosity for " << year << " not found! Returning 0...\n";
-    return lum;
-  }
+    }
 
-private:
-  std::map<TString, std::map<int, double>> values_ ; //cross sections
-  std::map<int, std::map<TString, long>>   numbers_; // generated numbers
-  std::map<int, double> lum_; //luminosity
-};
+    double GetCrossSection(TString name, int year = 2016) {
+      double xsec(1.);
+      auto itr = values_.find(name);
+      if(itr != values_.end())
+        xsec = itr->second[year];
+      else
+        std::cout << "Cross section for " << name.Data() << " not found! Returning 1...\n";
+      return xsec;
+    }
+
+    //if combining files, may want number of generated events
+    long GetGenNumber(TString name, int year) {
+      long gen(0);
+      auto itr = numbers_[year].find(name);
+      if(itr != numbers_[year].end())
+        gen = itr->second;
+      else
+        std::cout << "Generated number for " << name.Data() << " not found! Returning 0...\n";
+      return gen;
+    }
+
+    //Get luminosity by year
+    double GetLuminosity(int year) {
+      double lum(0.);
+      if(year < 10) // using enums
+        year += 2016;
+      auto itr = lum_.find(year);
+      if(itr != lum_.end())
+        lum = itr->second;
+      else
+        std::cout << "Luminosity for " << year << " not found! Returning 0...\n";
+      return lum;
+    }
+
+  private:
+    std::map<TString, std::map<int, double>> values_ ; //cross sections
+    std::map<int, std::map<TString, long>>   numbers_; // generated numbers
+    std::map<int, double> lum_; //luminosity
+  };
+}
 #endif

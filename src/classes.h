@@ -2,6 +2,7 @@
 #include <map>
 #include <utility>
 #include <string>
+#include "interface/GlobalConstants.h"
 #include "interface/Tree_t.hh"
 #include "interface/EventHist_t.hh"
 #include "interface/LepHist_t.hh"
@@ -17,6 +18,9 @@
 #include "interface/JetToTauComposition.hh"
 #include "interface/QCDWeight.hh"
 #include "interface/MuonIDWeight.hh"
+#include "interface/ZPtWeight.hh"
+#include "interface/EmbeddingWeight.hh"
+#include "interface/TauIDWeight.hh"
 #include "interface/ElectronIDWeight.hh"
 #include "interface/SlimObject_t.hh"
 #include "interface/SlimElectron_t.hh"
@@ -31,36 +35,39 @@
 #include "interface/DataCard_t.hh"
 #include "interface/ZTauTauHistMaker.hh"
 #include "interface/DataPlotter.hh"
-#include "interface/StandardDataConfig.hh"
 #include "interface/ParticleCorrections.hh"
 #include "interface/NanoAODConversion.hh"
 
-namespace { struct dictionary {
-  Tree_t dummy1;
-  CrossSections dummy2;
-  Significances dummy3;
-  CreateCategories dummy3b;
-  BTagWeight dummy4;
-  PUWeight dummy5;
-  JetPUWeight dummy5b;
-  PrefireWeight dummy5c;
-  JetToTauWeight dummy6;
-  JetToTauComposition dummy6b;
-  QCDWeight dummy6bb;
-  MuonIDWeight dummy6c;
-  ZPtWeight dummy6d;
-  SlimObject_t dummy7;
-  SlimElectron_t dummy8;
-  SlimMuon_t dummy9;
-  SlimTau_t dummy10;
-  SlimJet_t dummy11;
-  SlimPhoton_t dummy12;
-  RoccoR dummy12b;
-  MVAConfig dummy13;
-  TrkQualInit dummy14;
-  ZTauTauHistMaker dummy15;
-  DataPlotter dummy16;
-  ParticleCorrections dummy17;
-  NanoAODConversion dummy18;
-};
+using namespace CLFV;
+namespace CLFV {
+  struct dictionary {
+    Tree_t dummy1;
+    CrossSections dummy2;
+    Significances dummy3;
+    CreateCategories dummy3b;
+    BTagWeight dummy4;
+    PUWeight dummy5;
+    JetPUWeight dummy5b;
+    PrefireWeight dummy5c;
+    JetToTauWeight dummy6;
+    JetToTauComposition dummy6b;
+    QCDWeight dummy6bb;
+    MuonIDWeight dummy6c;
+    ZPtWeight dummy6d;
+    EmbeddingWeight dummy6e;
+    TauIDWeight dummy6f;
+    SlimObject_t dummy7;
+    SlimElectron_t dummy8;
+    SlimMuon_t dummy9;
+    SlimTau_t dummy10;
+    SlimJet_t dummy11;
+    SlimPhoton_t dummy12;
+    RoccoR dummy12b;
+    MVAConfig dummy13;
+    TrkQualInit dummy14;
+    ZTauTauHistMaker dummy15;
+    DataPlotter dummy16;
+    ParticleCorrections dummy17;
+    NanoAODConversion dummy18;
+  };
 }

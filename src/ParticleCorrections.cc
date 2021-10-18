@@ -1,4 +1,5 @@
 #include "interface/ParticleCorrections.hh"
+using namespace CLFV;
 
 
 void ParticleCorrections::MuonWeight(double pt, double eta, int trigger, int year, float& trig_scale,

@@ -33,7 +33,10 @@ TH1D* get_histogram(TString name, int setAbs, int isdata, TString type = "event"
 
   //setup the histogram title and axis titles
   h->SetTitle("");
-  h->SetXTitle("#DeltaR");
+  if(name.Contains("deltar"))
+    h->SetXTitle("#DeltaR");
+  else if(name.Contains("deltaphi"))
+    h->SetXTitle("#Delta#phi");
   h->SetYTitle("");
   if(rebin_ > 1) h->Rebin(rebin_);
 
@@ -65,7 +68,10 @@ TH2D* get_2D_histogram(TString name, int setAbs, int isdata, TString type = "eve
   //setup the histogram title and axis titles
   h->SetTitle("");
   h->SetXTitle("#eta");
-  h->SetYTitle("#DeltaR");
+  if(name.Contains("delr"))
+    h->SetYTitle("#DeltaR");
+  else if(name.Contains("delphi"))
+    h->SetYTitle("#Delta#phi");
 
   return h;
 }

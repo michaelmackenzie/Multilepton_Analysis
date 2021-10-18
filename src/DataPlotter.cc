@@ -1,4 +1,5 @@
 #include "interface/DataPlotter.hh"
+using namespace CLFV;
 
 void DataPlotter::get_titles(TString hist, TString setType, TString* xtitle, TString* ytitle, TString* title) {
   TString lep1("l1"), lep2("l2");
@@ -603,7 +604,8 @@ std::vector<TH1D*> DataPlotter::get_signal(TString hist, TString setType, Int_t 
       h[index]->Add(h[i]);
       delete h[i];
     } else {
-      TString hname = name; //Form("%s_%s_%i", name.Data(), hist.Data(), set);
+      TString hname = Form("%s_%s_%i", name.Data(), hist.Data(), set);
+      if(density_plot_) hname += "_density";
       auto o = gDirectory->Get(hname.Data());
       if(o) delete o;
       h[index]->SetFillStyle(signal_fill_style_);
@@ -611,7 +613,7 @@ std::vector<TH1D*> DataPlotter::get_signal(TString hist, TString setType, Int_t 
       h[index]->SetLineColor(signal_colors_[i_color]);
       h[index]->SetMarkerColor(signal_colors_[i_color]);
       h[index]->SetLineWidth(3);
-      h[index]->SetName(Form("%s",hname.Data()));
+      h[index]->SetName(hname.Data());
     }
 
     const char* stats = (doStatsLegend_) ? Form(" #scale[0.8]{(%.2e)}", h[index]->Integral((density_plot_ > 0) ? "width" : "")
@@ -671,6 +673,7 @@ TH2D* DataPlotter::get_signal_2D(TString hist, TString setType, Int_t set) {
 
 TH1D* DataPlotter::get_data(TString hist, TString setType, Int_t set) {
   TString hname = Form("hData_%s_%i", hist.Data(), set);
+  if(density_plot_) hname += "_density";
   {
     auto o = gDirectory->Get(hname.Data());
     if(o) delete o;
@@ -680,10 +683,12 @@ TH1D* DataPlotter::get_data(TString hist, TString setType, Int_t set) {
     if(!isData_[i]) continue;
     TH1D* tmp = (TH1D*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set, hist.Data()));
     if(!tmp) continue;
+    tmp = (TH1D*) tmp->Clone("tmp");
     if(density_plot_) density(tmp);
     // tmp->SetBit(kCanDelete);
-    if(!d) d = tmp;
+    if(!d) d = (TH1D*) tmp->Clone("hdata");
     else d->Add(tmp);
+    delete tmp;
   }
   if(!d) return NULL;
   d->SetLineWidth(2);
@@ -790,6 +795,8 @@ TH1D* DataPlotter::get_qcd(TString hist, TString setType, Int_t set) {
     hData->SetLineColor(qcd_color_);
     hData->SetFillColor(qcd_color_);
   }
+  hData->SetName(Form("QCD_%s_%s_%i", hist.Data(), setType.Data(), set));
+  if(density_plot_) hData->SetName(Form("%s_density", hData->GetName()));
   return hData;
 }
 
@@ -817,7 +824,10 @@ TH2D* DataPlotter::get_qcd_2D(TString hist, TString setType, Int_t set) {
     htmp = (TH2D*) htmp->Clone("tmp");
     // htmp->SetBit(kCanDelete);
     htmp->Scale(scale_[i]);
-    // if(rebinH_ > 0) htmp->Rebin(rebinH_);
+    if(rebinH_ > 0) {
+      htmp->RebinX(rebinH_);
+      htmp->RebinY(rebinH_);
+    }
     if(hMC) hMC->Add(htmp);
     else hMC = (TH2D*) htmp->Clone(Form("qcd_%s_%s_%i", hist.Data(), setType.Data(), set));
     delete htmp;
@@ -869,6 +879,10 @@ TH1D* DataPlotter::get_misid(TString hist, TString setType, Int_t set) {
   for(UInt_t i = 0; i < data_.size(); ++i) {
     if(isData_[i]) continue; //skip data for MC histogram
     if(isSignal_[i]) continue; //skip signals for MC histogram
+    if(!data_[i]) {
+      std::cout << "!!! Error! Data entry " << i << " has no data folder! Label = " << labels_[i].Data() << " Name = " << names_[i].Data() << std::endl;
+      continue;
+    }
     TH1D* htmp = (TH1D*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set_misid, hist.Data()));
     if(!htmp) continue;
     htmp = (TH1D*) htmp->Clone("tmp");
@@ -910,6 +924,8 @@ TH1D* DataPlotter::get_misid(TString hist, TString setType, Int_t set) {
     hData->SetLineColor(misid_color_);
     hData->SetFillColor(misid_color_);
   }
+  hData->SetName(Form("MisID_%s_%s_%i", hist.Data(), setType.Data(), set));
+  if(density_plot_) hData->SetName(Form("%s_density", hData->GetName()));
   return hData;
 }
 
@@ -935,6 +951,10 @@ TH2D* DataPlotter::get_misid_2D(TString hist, TString setType, Int_t set) {
     htmp = (TH2D*) htmp->Clone("tmp");
     // htmp->SetBit(kCanDelete);
     htmp->Scale(scale_[i]);
+    if(rebinH_ > 0) {
+      htmp->RebinX(rebinH_);
+      htmp->RebinY(rebinH_);
+    }
     // if(rebinH_ > 0) htmp->Rebin(rebinH_);
     if(hMC) hMC->Add(htmp);
     else hMC = (TH2D*) htmp->Clone(Form("misid_%s_%s_%i", hist.Data(), setType.Data(), set));
@@ -1026,7 +1046,7 @@ THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set) {
     auto o = gDirectory->Get("tmp");
     if(o) delete o;
     h[i] = (TH1D*) h[i]->Clone("tmp");
-    h[i]->Scale(scale_[i]);
+    h[i]->Scale(scale_[i] * ((isEmbed_[i]) ? embed_scale_ : 1.));
     if(density_plot_) density(h[i]);
     if(rebinH_ > 0) h[i]->Rebin(rebinH_);
     int index = i;
@@ -1058,6 +1078,7 @@ THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set) {
       h[index]->SetLineWidth(2);
       h[index]->SetMarkerStyle(20);
       h[index]->SetName(Form("s_%s_%s_%i",name.Data(),hist.Data(),set));
+      if(density_plot_) h[index]->SetName(Form("%s_density", h[index]->GetName()));
     }
     const char* stats = (doStatsLegend_) ? Form(" #scale[0.8]{(%.2e)}", h[index]->Integral((density_plot_ > 0) ? "width" : "")
                                                 +h[index]->GetBinContent(0)+h[index]->GetBinContent(h[index]->GetNbinsX()+1)) : "";
@@ -1071,6 +1092,8 @@ THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set) {
   if(hMisID) hstack->Add(hMisID);
   if(hQCD) hstack->Add(hQCD);
   // hstack->SetBit(kCanDelete);
+  hstack->SetName(Form("stack_%s_%s_%i", hist.Data(), setType.Data(), set));
+  if(density_plot_) hstack->SetName(Form("%s_density", hstack->GetName()));
   return hstack;
 }
 
@@ -1124,34 +1147,48 @@ TCanvas* DataPlotter::plot_single_2Dhist(TString hist, TString setType, Int_t se
 
   TH2D* h = 0; //histogram
 
-  Int_t color = kBlack;
-
   {
     auto o = gDirectory->Get(Form("h2d_%s_%i",hist.Data(),set));
     if(o) delete o;
   }
 
-  TCanvas* c = new TCanvas(Form("h2d_%s_%i",hist.Data(),set),Form("h2D_%s_%i",hist.Data(),set), canvas_x_, canvas_y_);
+  TString name = label;
+  name.ReplaceAll("#", "");
+  name.ReplaceAll("->", "");
+  TCanvas* c = new TCanvas(Form("c_2D_%s_%s_%i",name.Data(),hist.Data(),set),Form("c_2D_%s_%s_%i",name.Data(),hist.Data(),set), canvas_x_, canvas_y_);
+  c->SetTopMargin(0.06);
+  c->SetRightMargin(single_2d_right_margin_);
+  c->SetLeftMargin(0.087);
 
-  for(UInt_t i = 0; i < data_.size(); ++i) {
-    if(label != labels_[i]) continue;
+  if(label == "MisID") {
+    h = get_misid_2D(hist, setType, set);
+  } else if(label == "QCD") {
+    h = get_qcd_2D(hist, setType, set);
+  } else {
+    for(UInt_t i = 0; i < data_.size(); ++i) {
+      if(label != labels_[i]) continue;
 
-    //get histogram
-    TH2D* htmp = (TH2D*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set, hist.Data()));
-    if(!htmp) {printf("No hist %s in %s, continuing\n",hist.Data(), fileNames_[i].Data());continue;}
-    htmp = (TH2D*) htmp->Clone("tmp");
-    //scale to cross section and luminosity
-    htmp->Scale(scale_[i]);
-    if(rebinH_ > 1) {
-      htmp->RebinX(rebinH_);
-      htmp->RebinY(rebinH_);
+      //get histogram
+      TH2D* htmp = (TH2D*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set, hist.Data()));
+      if(!htmp) {printf("No hist %s in %s, continuing\n",hist.Data(), fileNames_[i].Data());continue;}
+      htmp = (TH2D*) htmp->Clone("tmp");
+      //scale to cross section and luminosity
+      htmp->Scale(scale_[i]);
+      if(rebinH_ > 1) {
+        htmp->RebinX(rebinH_);
+        htmp->RebinY(rebinH_);
+      }
+      if(h) {
+        h->Add(htmp);
+        delete htmp;
+      }
+      else h = htmp;
+
     }
-    if(h) {
-      h->Add(htmp);
-      delete htmp;
-    }
-    else h = htmp;
-
+  }
+  if(!h) {
+    std::cout << "Failed to find histogram with label " << label.Data() << std::endl;
+    return NULL;
   }
   // h->SetBit(kCanDelete);
   const char* stats = (doStatsLegend_) ? Form(" #scale[0.8]{(%.2e)}", h->Integral()
@@ -1160,14 +1197,14 @@ TCanvas* DataPlotter::plot_single_2Dhist(TString hist, TString setType, Int_t se
   if(plot_data_) {
     data = get_data_2D(hist, setType, set);
     if(!data) {
-      printf("Warning! Data not found!\n");
+      printf("%s: Warning! Data not found!\n", __func__);
     } else {
       gStyle->SetPalette(kRainBow);
-      // if(normalize_2ds_ && data->Integral() > 0. && logZ_) {
-      //        data->Scale(1./data->Integral());
-      // }
-      data->Scale(1./data->GetMaximum());
-      data->Draw("col");
+      if(normalize_2ds_ && data->Integral() > 0. && logZ_) {
+             data->Scale(1./data->Integral());
+      }
+      // data->Scale(1./data->GetMaximum());
+      data->Draw(single_2d_data_style_.Data());
     }
     if(normalize_2ds_&&h->Integral() > 0.) {
       if(logZ_) {
@@ -1194,17 +1231,19 @@ TCanvas* DataPlotter::plot_single_2Dhist(TString hist, TString setType, Int_t se
   TH2D* hAxis = (plot_data_ && data) ? data : h;
   h->SetTitle(Form("%s%s", label.Data(),stats));
   if(plot_data_) {
-    h->SetLineColor(color);
+    h->SetLineColor(single_2d_color_);
     if(fill_alpha_ < 1.)
-      h->SetMarkerColorAlpha(color,0.5);
+      h->SetMarkerColorAlpha(single_2d_color_,0.5);
     else
-      h->SetMarkerColor(color);
-    h->SetMarkerStyle(6);
-    h->SetContour(10);
+      h->SetMarkerColor(single_2d_color_);
+    h->SetMarkerStyle(single_2d_marker_style_);
+    h->SetMarkerSize(single_2d_marker_size_);
+    h->SetContour(single_2d_ncontour_);
+    h->SetLineWidth(single_2d_linewidth_);
     // h->RebinX(2); h->RebinY(2);
   }
   h->SetName(Form("h2D_%s_%s_%i",label.Data(),hist.Data(),set));
-  if(plot_data_ && data) h->Draw("same cont3");
+  if(plot_data_ && data) h->Draw(Form("same %s", single_2d_style_.Data()));
   else                   h->Draw("colz");
 
   //get axis titles
@@ -1214,10 +1253,7 @@ TCanvas* DataPlotter::plot_single_2Dhist(TString hist, TString setType, Int_t se
   get_titles(hist,setType,&xtitle,&ytitle,&title);
 
   c->SetGrid();
-  c->SetTopMargin(0.06);
-  c->SetRightMargin(0.05 - (plot_data_-1)*0.08);
-  c->SetLeftMargin(0.09);
-  if(normalize_2ds_ == 0) c->BuildLegend(); //0.6, 0.9, 0.9, 0.45, "", "L");
+  if(single_2d_legend_) c->BuildLegend(); //0.6, 0.9, 0.9, 0.45, "", "L");
   if(yMin_ <= yMax_)hAxis->GetYaxis()->SetRangeUser(yMin_,yMax_);
   if(xMin_ <= xMax_)hAxis->GetXaxis()->SetRangeUser(xMin_,xMax_);
   //draw text on plots
@@ -1253,6 +1289,9 @@ TCanvas* DataPlotter::plot_2Dhist(TString hist, TString setType, Int_t set) {
   }
 
   TCanvas* c = new TCanvas(Form("h2d_%s_%i",hist.Data(),set),Form("h2D_%s_%i",hist.Data(),set), canvas_x_, canvas_y_);
+  c->SetTopMargin(0.06);
+  c->SetRightMargin(single_2d_right_margin_);
+  c->SetLeftMargin(0.087);
 
   //maximum z value of histograms, for plotting
   //  double m = 0.;
@@ -1330,9 +1369,6 @@ TCanvas* DataPlotter::plot_2Dhist(TString hist, TString setType, Int_t set) {
   get_titles(hist,setType,&xtitle,&ytitle,&title);
 
   c->SetGrid();
-  c->SetTopMargin(0.06);
-  c->SetRightMargin(0.05);
-  c->SetLeftMargin(0.087);
   c->BuildLegend();//0.6, 0.9, 0.9, 0.45, "", "L");
   auto o = c->GetPrimitive("TPave");
   if(o) {
@@ -1344,6 +1380,8 @@ TCanvas* DataPlotter::plot_2Dhist(TString hist, TString setType, Int_t set) {
     tl->SetX1NDC(((doStatsLegend_) ? legend_x1_stats_ : legend_x1_));
     tl->SetX2NDC(legend_x2_);
     tl->SetEntrySeparation(legend_sep_);
+    tl->SetFillColor(0);
+    tl->SetLineWidth(0);
     c->Update();
   }
 
@@ -1579,7 +1617,9 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
     auto o = gDirectory->Get(Form("s_%s_%i",hist.Data(),set));
     if(o) delete o;
   }
-  TCanvas* c = new TCanvas(Form("s_%s_%i",hist.Data(),set),Form("s_%s_%i",hist.Data(),set), canvas_x_, canvas_y_);
+  TCanvas* c = new TCanvas(Form("s_%s_%i%s",hist.Data(),set, (density_plot_) ? "_density" : ""),
+                           Form("s_%s_%i%s",hist.Data(),set, (density_plot_) ? "_density" : ""),
+                           canvas_x_, canvas_y_);
   //split the top into main stack and bottom into Data/MC if plotting data
   TPad *pad1 = 0, *pad2 = 0;
 
@@ -2770,14 +2810,20 @@ Int_t DataPlotter::init_files() {
                 << " xsec = " << xsec_[i]
                 << " isSignal = " << isSignal_[i] << std::endl;
     f.push_back(TFile::Open(fileNames_[i].Data(),"READ"));
-    if(f[i]) data_.push_back((TFile*) f[i]->Get("Data"));
+    if(f[i]) {
+      data_.push_back((TFile*) f[i]->Get("Data"));
+      if(!data_[i]) {
+        printf("File %s Data folder not found! Exiting\n", fileNames_[i].Data());
+        return 2;
+      }
+    }
     else {
       printf("File %s not found! Exiting\n", fileNames_[i].Data());
       return 1;
     }
   }
   for(UInt_t i = 0; i < nFiles; ++i) {
-    if(isData_[i]) scale_.push_back(1.);
+    if(isData_[i] || isEmbed_[i]) scale_.push_back(xsec_[i]); //xsec is 1 for data, near 1 for embedding
     else {
       // loop through the directory and add events from each event histogram (in case of hadd combined dataset)
       int nevents = 0;
@@ -2811,11 +2857,12 @@ Int_t DataPlotter::init_files() {
   return 0;
 }
 
-Int_t DataPlotter::add_dataset(TString filepath, TString name, TString label, bool isData, double xsec, bool isSignal) {
+Int_t DataPlotter::add_dataset(TString filepath, TString name, TString label, bool isData, double xsec, bool isSignal, bool isEmbed) {
   fileNames_.push_back(filepath);
   names_.push_back(name);
   labels_.push_back(label);
   isData_.push_back(isData);
+  isEmbed_.push_back(isEmbed);
   if(!isData)
     xsec_.push_back(xsec);
   else

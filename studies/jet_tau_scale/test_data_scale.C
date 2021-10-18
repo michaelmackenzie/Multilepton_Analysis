@@ -274,8 +274,8 @@ TCanvas* make_2d_canvas(int set1, int set2, PlottingCard_t card, bool print) {
   return make_2d_canvas(set1, set2, card, print, hData, hMC);
 }
 
-int test_data_scale(TString selection = "mumu", int year = 2016, int set1 = 50, int set2 = 51,
-                    TString path = "nanoaods_dev") {
+int test_data_scale(TString selection = "mutau", TString process = "WJets", int set1 = 31, int set2 = 2031,
+                    int year = 2016, TString path = "nanoaods_dev") {
 
   //////////////////////
   // Initialize files //
@@ -398,6 +398,30 @@ int test_data_scale(TString selection = "mumu", int year = 2016, int set1 = 50, 
 
   make_canvas(setAbs1, setAbs2, PlottingCard_t("jettauonemetdeltaphi", "lep", 0), true, hData, hMC);
   hData = (TH1D*) hData->Clone("OneMetDeltaPhi");
+  hData->Scale(hMC->Integral() / hData->Integral());
+  hData->Divide(hMC);
+  hData->Write();
+
+  make_canvas(setAbs1, setAbs2, PlottingCard_t("jettauonemetdeltaphi_0", "lep", 0), true, hData, hMC);
+  hData = (TH1D*) hData->Clone("OneMetDeltaPhi0");
+  hData->Scale(hMC->Integral() / hData->Integral());
+  hData->Divide(hMC);
+  hData->Write();
+
+  make_canvas(setAbs1, setAbs2, PlottingCard_t("jettauonemetdeltaphi_1", "lep", 0), true, hData, hMC);
+  hData = (TH1D*) hData->Clone("OneMetDeltaPhi1");
+  hData->Scale(hMC->Integral() / hData->Integral());
+  hData->Divide(hMC);
+  hData->Write();
+
+  make_canvas(setAbs1, setAbs2, PlottingCard_t("jettauonemetdeltaphi_2", "lep", 0), true, hData, hMC);
+  hData = (TH1D*) hData->Clone("OneMetDeltaPhi2");
+  hData->Scale(hMC->Integral() / hData->Integral());
+  hData->Divide(hMC);
+  hData->Write();
+
+  make_canvas(setAbs1, setAbs2, PlottingCard_t("jettauonemetdeltaphi_3", "lep", 0), true, hData, hMC);
+  hData = (TH1D*) hData->Clone("OneMetDeltaPhi3");
   hData->Scale(hMC->Integral() / hData->Integral());
   hData->Divide(hMC);
   hData->Write();

@@ -16,18 +16,27 @@ TH2D* get_histogram(int setAbs, int ijet, int idm, int isdata, int icat) {
   TString name = (isdata < 0) ? "faketaumc" : "faketau";
   name += (usePtRegion_ == 0) ? Form("%ijet%idm_%i", ijet, idm, icat) : Form("%ijet%idm_%i_%i", ijet, idm, icat, usePtRegion_);
 
+  //name for MC fake taus to subtract process specific fake tau estimates from data
+  TString faketauname = name;
+  if(isdata >= 0) faketauname.ReplaceAll("faketau", "faketaumc");
+
   unsigned nfiles = dataplotter_->data_.size();
   //get the histogram for each process added to the dataplotter
   for(unsigned d = 0; d < nfiles; ++d) {
     if(process_ == "") {
       if(dataplotter_->isData_[d] != (isdata > 0)) continue;
     } else if(isdata <= 0) { //MC taus
-      //check if this is the correct process
-      if(dataplotter_->labels_[d] != process_) continue;
+      if(dataplotter_->isData_[d]) continue; //skip if data
+      //check if this is the correct process if getting fake taus, always get all processes true taus
+      if(isdata < 0 && dataplotter_->labels_[d] != process_) continue;
     } else { //data, with other processes subtracted
       if(dataplotter_->labels_[d] == process_) continue; //skip correct process
     }
-    TString hpath = Form("event_%i/%s", setAbs, name.Data());
+    //offset to the MC fake taus set if subtracting the process specific fake taus
+    int set = setAbs;
+    bool bkgProcess = isdata == 1 && !dataplotter_->isData_[d];
+    if(bkgProcess && !usingMCTaus_) set += 6;
+    TString hpath = Form("event_%i/%s", set, ((bkgProcess) ? faketauname : name).Data());
     if(verbose_ > 1) cout << "Retrieving histogram " << hpath.Data() << " for " << dataplotter_->names_[d].Data()
                           << " with scale = " << dataplotter_->scale_[d] << endl;
     TH2D* hTmp = (TH2D*) dataplotter_->data_[d]->Get(hpath.Data());
@@ -39,11 +48,11 @@ TH2D* get_histogram(int setAbs, int ijet, int idm, int isdata, int icat) {
     if(!dataplotter_->isData_[d]) hTmp->Scale(dataplotter_->scale_[d]);
 
     //subtract other MC processes from data
-    if(isdata > 0 && !dataplotter_->isData_[d]) hTmp->Scale(-1.);
+    if(bkgProcess) hTmp->Scale(-1.);
 
-    if(!h) h = hTmp;
-    else h->Add(hTmp);
     if(verbose_ > 1) cout << "Histogram " << hpath.Data() << " has integral " << hTmp->Integral() << endl;
+    if(!h) {h = hTmp; h->SetName(Form("h_%s", name.Data()));}
+    else {h->Add(hTmp); delete hTmp;}
   }
 
   if(!h) return NULL;
@@ -323,10 +332,10 @@ Int_t scale_factors(TString selection = "mumu", TString process = "", int set1 =
   ///////////////////////
   // Initialize params //
   ///////////////////////
-  if(process != "") {
-    cout << "Warning! Setting process tag to null as not yet implemented!\n";
-    process = "";
-  }
+  // if(process != "") {
+  //   cout << "Warning! Setting process tag to null as not yet implemented!\n";
+  //   process = "";
+  // }
   process_ = process;
   usingMCTaus_ = (set1 % 100) > 34 && (set1 % 100) < 40;
 
@@ -484,6 +493,7 @@ Int_t scale_factors(TString selection = "mumu", TString process = "", int set1 =
   //construct general figure name
   TString name = "figures/fake_tau_";
   name += selection + "_";
+  if(process_ != "") name += process_ + "_";
   name += year;
   name += "_";
   name += set1;
@@ -510,8 +520,8 @@ Int_t scale_factors(TString selection = "mumu", TString process = "", int set1 =
   c13 ->Print((name+"data_eff.png").Data());
   c14 ->Print((name+"mc_fake_eff.png").Data());
 
-  const char* fname = ((usePtRegion_ == 0) ? Form("rootfiles/jet_to_tau_%s_%i_%i.root", selection.Data(), set1, year) :
-                       Form("rootfiles/jet_to_tau_%s_%i_ptregion_%i_%i.root", selection.Data(), set1, usePtRegion_, year));
+  const char* fname = ((usePtRegion_ == 0) ? Form("rootfiles/jet_to_tau_%s_%s%i_%i.root", selection.Data(), (process_ == "") ? "" : (process_+"_").Data(), set1, year) :
+                       Form("rootfiles/jet_to_tau_%s_%s%i_ptregion_%i_%i.root", selection.Data(), (process_ == "") ? "" : (process_+"_").Data(), set1, usePtRegion_, year));
   TFile* fOut = new TFile(fname, "RECREATE");
 
   TF1 *funcs[8], *mcfuncs[8];

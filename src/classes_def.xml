@@ -15,6 +15,8 @@
   <class name="QCDWeight"/>
   <class name="MuonIDWeight"/>
   <class name="ZPtWeight"/>
+  <class name="EmbeddingWeight"/>
+  <class name="TauIDWeight"/>
   <class name="ElectronIDWeight"/>
   <class name="SlimObject_t"/>
   <class name="SlimObjects_t"/>
@@ -35,7 +37,6 @@
   <class name="DataCard_t"/>
   <class name="PlottingCard_t"/>
   <class name="DataPlotter"/>
-  <class name="StandardDataConfig"/>
   <class name="ParticleCorrections"/>
   <class name="NanoAODConversion"/>
 </lcgdict>

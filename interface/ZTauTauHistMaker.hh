@@ -33,6 +33,7 @@
 #include <iostream>
 
 //local includes
+#include "interface/GlobalConstants.h"
 #include "interface/SlimElectron_t.hh"
 #include "interface/SlimMuon_t.hh"
 #include "interface/SlimTau_t.hh"
@@ -46,16 +47,13 @@
 //initialize local MVA weight files
 #include "interface/TrkQualInit.hh"
 #include "interface/MVAConfig.hh"
-//define PU weights locally
 #include "interface/PUWeight.hh"
-//define Jet PU weights locally
 #include "interface/JetPUWeight.hh"
-//define Pre-fire weights locally
 #include "interface/PrefireWeight.hh"
-//define BTag weights locally
 #include "interface/BTagWeight.hh"
-//define Z pT weights locally
 #include "interface/ZPtWeight.hh"
+#include "interface/EmbeddingWeight.hh"
+#include "interface/TauIDWeight.hh"
 //define Jet->tau weights locally
 #include "interface/JetToTauWeight.hh"
 #include "interface/JetToTauComposition.hh"
@@ -71,560 +69,574 @@
 #include "interface/SystematicShifts.hh"
 #include "interface/SystematicGrouping.hh"
 
-class ZTauTauHistMaker : public TSelector {
-public :
-  TTreeReader     fReader;  //!the tree reader
-  TTree          *fChain = 0;   //!pointer to the analyzed TTree or TChain
-  enum {kMaxParticles = 50, kMaxCounts = 40};
-  enum {kMuTau = 0, kETau = 100, kEMu = 200, kMuTauE = 300, kETauMu = 400, kMuMu = 500, kEE = 600};
-  enum {kMaxMVAs = 80};
+namespace CLFV {
 
-  // Readers to access the data (delete the ones you do not need).
-  UInt_t runNumber                   ;
-  ULong64_t eventNumber              ;
-  UInt_t lumiSection                 ;
-  UInt_t nPV                         ;
-  Float_t nPU                        ;
-  UInt_t nPartons                    ;
-  UInt_t mcEra                       ;
-  UInt_t triggerLeptonStatus         ;
-  UInt_t muonTriggerStatus           ;
-  Float_t eventWeight                ;
-  Float_t genWeight                  ;
-  Float_t puWeight                   ;
-  Float_t jetPUIDWeight = 1.         ;
-  Float_t prefireWeight = 1.         ;
-  Float_t topPtWeight                ;
-  Float_t btagWeight = 1.            ;
-  Float_t btagWeightUp = 1.          ;
-  Float_t btagWeightDown = 1.        ;
-  Float_t zPtWeight                  ;
-  Float_t zPtWeightUp                ;
-  Float_t zPtWeightDown              ;
-  Float_t zPtWeightSys               ;
-  Float_t zPt = -1.                  ;
-  Float_t zMass = -1.                ;
-  Bool_t  looseQCDSelection = false  ;
-  Float_t genTauFlavorWeight         ;
-  Float_t jetToTauWeight             ;
-  Float_t jetToTauWeightUp           ;
-  Float_t jetToTauWeightDown         ;
-  Float_t jetToTauWeightSys          ;
-  Int_t   jetToTauWeightGroup        ;
-  Float_t jetToTauWeightCorr         ;
-  Float_t jetToTauWeightCorrUp       ;
-  Float_t jetToTauWeightCorrDown     ;
-  Float_t jetToTauWeightCorrSys      ;
-  Float_t jetToTauWeight_compUp      ;
-  Float_t jetToTauWeight_compDown    ;
-  Float_t qcdWeight                  ;
-  Float_t qcdWeightUp                ;
-  Float_t qcdWeightDown              ;
-  Float_t qcdWeightSys               ;
-  Int_t tauDecayMode                 ;
-  Float_t tauMVA                     ;
-  Float_t tauES                      ;
-  Float_t tauESUp                    ;
-  Float_t tauESDown                  ;
-  Int_t   tauESBin                   ;
-  Int_t tauGenFlavor                 ;
-  Int_t tauGenFlavorHad              ;
-  Float_t tauVetoedJetPt             ;
-  Float_t tauVetoedJetPtUnc          ;
-  TLorentzVector* leptonOneP4 = 0    ;
-  TLorentzVector* leptonTwoP4 = 0    ;
-  Int_t leptonOneFlavor              ;
-  Int_t leptonTwoFlavor              ;
-  Int_t leptonOneGenFlavor           ;
-  Int_t leptonTwoGenFlavor           ;
-  Bool_t isFakeElectron = false      ;
-  Bool_t isFakeMuon     = false      ;
-  Float_t leptonOneD0                ;
-  Float_t leptonTwoD0                ;
-  Float_t leptonOneIso               ;
-  Float_t leptonTwoIso               ;
-  UChar_t leptonOneID1               ;
-  UChar_t leptonOneID2               ;
-  UChar_t leptonTwoID1               ;
-  UChar_t leptonTwoID2               ;
-  UChar_t leptonTwoID3               ;
-  Int_t   leptonOneIndex             ;
-  Int_t   leptonTwoIndex             ;
-  Float_t leptonOneWeight1 = 1.      ;
-  Float_t leptonOneWeight1_up = 1.   ;
-  Float_t leptonOneWeight1_down = 1. ;
-  Int_t   leptonOneWeight1_bin = 0   ;
-  Int_t   leptonOneWeight1_group = 0 ;
-  Float_t leptonOneWeight1_sys       ;
-  Float_t leptonOneWeight2 = 1.      ;
-  Float_t leptonOneWeight2_up = 1.   ;
-  Float_t leptonOneWeight2_down = 1. ;
-  Int_t   leptonOneWeight2_bin = 0   ;
-  Float_t leptonOneWeight2_sys       ;
-  Int_t   leptonOneWeight2_group = 0 ;
-  Float_t leptonTwoWeight1 = 1.      ;
-  Float_t leptonTwoWeight1_up = 1.   ;
-  Float_t leptonTwoWeight1_down = 1. ;
-  Int_t   leptonTwoWeight1_bin = 0   ;
-  Int_t   leptonTwoWeight1_group = 0 ;
-  Float_t leptonTwoWeight1_sys       ;
-  Float_t leptonTwoWeight2 = 1.      ;
-  Float_t leptonTwoWeight2_up = 1.   ;
-  Float_t leptonTwoWeight2_down = 1. ;
-  Int_t   leptonTwoWeight2_bin = 0   ;
-  Int_t   leptonTwoWeight2_group = 0 ;
-  Float_t leptonTwoWeight2_sys       ;
-  Float_t leptonOneTrigWeight        ;
-  Float_t leptonTwoTrigWeight        ;
-  Int_t   leptonOneTrigger           ;
-  Int_t   leptonTwoTrigger           ;
-  Bool_t  leptonOneFired             ;
-  Bool_t  leptonTwoFired             ;
-  Int_t   nTrigModes                 ;
-  Float_t triggerWeights[3]          ;
-  TLorentzVector* genLeptonOneP4 = 0 ;
-  TLorentzVector* genLeptonTwoP4 = 0 ;
-  TLorentzVector* photonP4 = 0       ;
-  Float_t         photonMVA          ;
-  Float_t         photonIDWeight     ;
-  TLorentzVector* jetOneP4 = 0       ;
-  TLorentzVector* jetTwoP4 = 0       ;
-  Int_t jetOneID                     ;
-  Int_t jetOnePUID                   ;
-  Bool_t jetOneBTag                  ;
-  Float_t jetOneBMVA                 ;
-  Bool_t jetTwoBTag                  ;
-  Float_t jetTwoBMVA                 ;
-  TLorentzVector* tauP4 = 0          ;
-  Int_t  tauFlavor                   ;
-  UChar_t tauDeepAntiEle             ;
-  UChar_t tauDeepAntiMu              ;
-  UChar_t tauDeepAntiJet             ;
-  UInt_t nMuons                      ;
-  UInt_t nSlimMuons                  ;
-  SlimMuons_t* slimMuons             ;
-  UInt_t nMuonCounts[kMaxCounts]     ;
-  UInt_t nElectrons                  ;
-  UInt_t nSlimElectrons              ;
-  SlimElectrons_t* slimElectrons     ;
-  UInt_t nElectronCounts[kMaxCounts] ;
-  UInt_t nLowPtElectrons             ;
-  UInt_t nTaus                       ;
-  UInt_t nSlimTaus                   ;
-  SlimTaus_t* slimTaus               ;
-  UInt_t nTauCounts[kMaxCounts]      ;
-  UInt_t nPhotons                    ;
-  UInt_t nSlimPhotons                ;
-  SlimPhotons_t* slimPhotons         ;
-  UInt_t nJets                       ;
-  UInt_t nSlimJets                   ;
-  SlimJets_t* slimJets               ;
-  UInt_t nJets20                     ;
-  UInt_t nJets20Rej                  ;
-  UInt_t nFwdJets                    ;
-  UInt_t nBJetsUse                   ; //which to count
-  UInt_t nBJets                      ;
-  UInt_t nBJetsM                     ;
-  UInt_t nBJetsL                     ;
-  UInt_t nBJets20                    ;
-  UInt_t nBJets20M                   ;
-  UInt_t nBJets20L                   ;
-  Bool_t isLooseMuon                 ;
-  Bool_t isLooseElectron             ;
-  Bool_t isLooseTau                  ;
-  Float_t jetsRejPt[kMaxParticles]   ;
-  Float_t jetsRejEta[kMaxParticles]  ;
-  Float_t jetsPt[kMaxParticles]      ;
-  Float_t jetsEta[kMaxParticles]     ;
-  Int_t   jetsFlavor[kMaxParticles]  ;
-  Int_t   jetsBTag[kMaxParticles]    ;
-  Float_t tausPt[kMaxParticles]      ;
-  Float_t tausEta[kMaxParticles]     ;
-  Float_t tausPhi[kMaxParticles]     ;
-  Bool_t  tausIsPositive[kMaxParticles];
-  Int_t   tausDM[kMaxParticles]      ;
-  Int_t   tausGenFlavor[kMaxParticles];
-  UChar_t tausAntiJet[kMaxParticles] ;
-  UChar_t tausMVAAntiMu[kMaxParticles];
-  UChar_t tausAntiMu[kMaxParticles]  ;
-  UChar_t tausAntiEle[kMaxParticles] ;
-  Float_t tausWeight[kMaxParticles]  ;
-  UInt_t nExtraLep = 0               ;
-  Float_t leptonsPt[kMaxParticles]   ;
-  Float_t leptonsEta[kMaxParticles]  ;
-  Bool_t  leptonsIsPositive[kMaxParticles];
-  Bool_t  leptonsIsMuon[kMaxParticles];
-  UChar_t leptonsID[kMaxParticles]   ;
-  UChar_t leptonsIsoID[kMaxParticles];
-  UChar_t leptonsTriggered[kMaxParticles];
-  UChar_t leptonsGenFlavor[kMaxParticles];
-  UInt_t nGenTausHad                 ;
-  UInt_t nGenTausLep                 ;
-  UInt_t nGenElectrons               ;
-  UInt_t nGenMuons                   ;
-  UInt_t nGenHardTaus                ; //for DY splitting by hard process
-  UInt_t nGenHardElectrons           ; //for DY splitting by hard process
-  UInt_t nGenHardMuons               ; //for DY splitting by hard process
-  Float_t htSum                      ;
-  Float_t ht                         ;
-  Float_t htPhi                      ;
-  //Different met definitions
-  Float_t pfMET                      ;
-  Float_t pfMETphi                   ;
-  Float_t pfMETCov00                 ;
-  Float_t pfMETCov01                 ;
-  Float_t pfMETCov11                 ;
-  Float_t pfMETC                     ;
-  Float_t pfMETCphi                  ;
-  Float_t pfMETCCov00                ;
-  Float_t pfMETCCov01                ;
-  Float_t pfMETCCov11                ;
-  Float_t puppMET                    ;
-  Float_t puppMETphi                 ;
-  Float_t puppMETCov00               ;
-  Float_t puppMETCov01               ;
-  Float_t puppMETCov11               ;
-  Float_t puppMETC                   ;
-  Float_t puppMETCphi                ;
-  Float_t puppMETCCov00              ;
-  Float_t puppMETCCov01              ;
-  Float_t puppMETCCov11              ;
-  Float_t alpacaMET                  ;
-  Float_t alpacaMETphi               ;
-  Float_t pcpMET                     ;
-  Float_t pcpMETphi                  ;
-  Float_t trkMET                     ;
-  Float_t trkMETphi                  ;
-  //used in original SVFit algorithm
-  Float_t met                        ;
-  Float_t metPhi                     ;
-  Float_t metCorr                    ;
-  Float_t metCorrPhi                 ;
-  Float_t covMet00                   ;
-  Float_t covMet01                   ;
-  Float_t covMet11                   ;
-  Float_t massSVFit                  ;
-  Float_t massErrSVFit               ;
-  Int_t   svFitStatus                ;
-  TLorentzVector* leptonOneSVP4 = 0  ;
-  TLorentzVector* leptonTwoSVP4 = 0  ;
-  //gen-level info
-  UChar_t LHE_Njets                  ;
+  class ZTauTauHistMaker : public TSelector {
+  public :
+    TTreeReader     fReader;  //!the tree reader
+    TTree          *fChain = 0;   //!pointer to the analyzed TTree or TChain
+    enum {kMaxParticles = 50, kMaxCounts = 40};
+    enum {kMuTau = 0, kETau = 100, kEMu = 200, kMuTauE = 300, kETauMu = 400, kMuMu = 500, kEE = 600};
+    enum {kMaxMVAs = 80};
+
+    // Readers to access the data (delete the ones you do not need).
+    UInt_t runNumber                   ;
+    ULong64_t eventNumber              ;
+    UInt_t lumiSection                 ;
+    UInt_t nPV                         ;
+    Float_t nPU                        ;
+    UInt_t nPartons                    ;
+    UInt_t mcEra                       ;
+    UInt_t triggerLeptonStatus         ;
+    UInt_t muonTriggerStatus           ;
+    Float_t eventWeight                ;
+    Float_t genWeight                  ;
+    Float_t puWeight                   ;
+    Float_t jetPUIDWeight = 1.         ;
+    Float_t prefireWeight = 1.         ;
+    Float_t topPtWeight                ;
+    Float_t btagWeight = 1.            ;
+    Float_t btagWeightUp = 1.          ;
+    Float_t btagWeightDown = 1.        ;
+    Float_t zPtWeight                  ;
+    Float_t zPtWeightUp                ;
+    Float_t zPtWeightDown              ;
+    Float_t zPtWeightSys               ;
+    Float_t zPt = -1.                  ;
+    Float_t zMass = -1.                ;
+    Float_t zLepOnePt                  ;
+    Float_t zLepTwoPt                  ;
+    Float_t zLepOneEta                 ;
+    Float_t zLepTwoEta                 ;
+    Float_t embeddingWeight = 1.       ;
+    Float_t embeddingUnfoldingWeight   ;
+    Bool_t  looseQCDSelection = false  ;
+    Float_t genTauFlavorWeight         ;
+    Float_t jetToTauWeight             ;
+    Float_t jetToTauWeightUp           ;
+    Float_t jetToTauWeightDown         ;
+    Float_t jetToTauWeightSys          ;
+    Int_t   jetToTauWeightGroup        ;
+    Float_t jetToTauWeightCorr         ;
+    Float_t jetToTauWeightCorrUp       ;
+    Float_t jetToTauWeightCorrDown     ;
+    Float_t jetToTauWeightCorrSys      ;
+    Float_t jetToTauWeight_compUp      ;
+    Float_t jetToTauWeight_compDown    ;
+    Float_t qcdWeight                  ;
+    Float_t qcdWeightUp                ;
+    Float_t qcdWeightDown              ;
+    Float_t qcdWeightSys               ;
+    Int_t tauDecayMode                 ;
+    Float_t tauMVA                     ;
+    Float_t tauES                      ;
+    Float_t tauESUp                    ;
+    Float_t tauESDown                  ;
+    Int_t   tauESBin                   ;
+    Int_t tauGenFlavor                 ;
+    Int_t tauGenFlavorHad              ;
+    Float_t tauVetoedJetPt             ;
+    Float_t tauVetoedJetPtUnc          ;
+    TLorentzVector* leptonOneP4 = 0    ;
+    TLorentzVector* leptonTwoP4 = 0    ;
+    Int_t leptonOneFlavor              ;
+    Int_t leptonTwoFlavor              ;
+    Int_t leptonOneGenFlavor           ;
+    Int_t leptonTwoGenFlavor           ;
+    Bool_t isFakeElectron = false      ;
+    Bool_t isFakeMuon     = false      ;
+    Float_t leptonOneD0                ;
+    Float_t leptonTwoD0                ;
+    Float_t leptonOneIso               ;
+    Float_t leptonTwoIso               ;
+    UChar_t leptonOneID1               ;
+    UChar_t leptonOneID2               ;
+    UChar_t leptonTwoID1               ;
+    UChar_t leptonTwoID2               ;
+    UChar_t leptonTwoID3               ;
+    Int_t   leptonOneIndex             ;
+    Int_t   leptonTwoIndex             ;
+    Float_t leptonOneWeight1 = 1.      ;
+    Float_t leptonOneWeight1_up = 1.   ;
+    Float_t leptonOneWeight1_down = 1. ;
+    Int_t   leptonOneWeight1_bin = 0   ;
+    Int_t   leptonOneWeight1_group = 0 ;
+    Float_t leptonOneWeight1_sys       ;
+    Float_t leptonOneWeight2 = 1.      ;
+    Float_t leptonOneWeight2_up = 1.   ;
+    Float_t leptonOneWeight2_down = 1. ;
+    Int_t   leptonOneWeight2_bin = 0   ;
+    Float_t leptonOneWeight2_sys       ;
+    Int_t   leptonOneWeight2_group = 0 ;
+    Float_t leptonTwoWeight1 = 1.      ;
+    Float_t leptonTwoWeight1_up = 1.   ;
+    Float_t leptonTwoWeight1_down = 1. ;
+    Int_t   leptonTwoWeight1_bin = 0   ;
+    Int_t   leptonTwoWeight1_group = 0 ;
+    Float_t leptonTwoWeight1_sys       ;
+    Float_t leptonTwoWeight2 = 1.      ;
+    Float_t leptonTwoWeight2_up = 1.   ;
+    Float_t leptonTwoWeight2_down = 1. ;
+    Int_t   leptonTwoWeight2_bin = 0   ;
+    Int_t   leptonTwoWeight2_group = 0 ;
+    Float_t leptonTwoWeight2_sys       ;
+    Float_t leptonOneTrigWeight        ;
+    Float_t leptonTwoTrigWeight        ;
+    Int_t   leptonOneTrigger           ;
+    Int_t   leptonTwoTrigger           ;
+    Bool_t  leptonOneFired             ;
+    Bool_t  leptonTwoFired             ;
+    Int_t   nTrigModes                 ;
+    Float_t triggerWeights[3]          ;
+    TLorentzVector* genLeptonOneP4 = 0 ;
+    TLorentzVector* genLeptonTwoP4 = 0 ;
+    TLorentzVector* photonP4 = 0       ;
+    Float_t         photonMVA          ;
+    Float_t         photonIDWeight     ;
+    TLorentzVector* jetOneP4 = 0       ;
+    TLorentzVector* jetTwoP4 = 0       ;
+    Int_t jetOneID                     ;
+    Int_t jetOnePUID                   ;
+    Bool_t jetOneBTag                  ;
+    Float_t jetOneBMVA                 ;
+    Bool_t jetTwoBTag                  ;
+    Float_t jetTwoBMVA                 ;
+    TLorentzVector* tauP4 = 0          ;
+    Int_t  tauFlavor                   ;
+    UChar_t tauDeepAntiEle             ;
+    UChar_t tauDeepAntiMu              ;
+    UChar_t tauDeepAntiJet             ;
+    UInt_t nMuons                      ;
+    UInt_t nSlimMuons                  ;
+    SlimMuons_t* slimMuons             ;
+    UInt_t nMuonCounts[kMaxCounts]     ;
+    UInt_t nElectrons                  ;
+    UInt_t nSlimElectrons              ;
+    SlimElectrons_t* slimElectrons     ;
+    UInt_t nElectronCounts[kMaxCounts] ;
+    UInt_t nLowPtElectrons             ;
+    UInt_t nTaus                       ;
+    UInt_t nSlimTaus                   ;
+    SlimTaus_t* slimTaus               ;
+    UInt_t nTauCounts[kMaxCounts]      ;
+    UInt_t nPhotons                    ;
+    UInt_t nSlimPhotons                ;
+    SlimPhotons_t* slimPhotons         ;
+    UInt_t nJets                       ;
+    UInt_t nSlimJets                   ;
+    SlimJets_t* slimJets               ;
+    UInt_t nJets20                     ;
+    UInt_t nJets20Rej                  ;
+    UInt_t nFwdJets                    ;
+    UInt_t nBJetsUse                   ; //which to count
+    UInt_t nBJets                      ;
+    UInt_t nBJetsM                     ;
+    UInt_t nBJetsL                     ;
+    UInt_t nBJets20                    ;
+    UInt_t nBJets20M                   ;
+    UInt_t nBJets20L                   ;
+    Bool_t isLooseMuon                 ;
+    Bool_t isLooseElectron             ;
+    Bool_t isLooseTau                  ;
+    Float_t jetsRejPt[kMaxParticles]   ;
+    Float_t jetsRejEta[kMaxParticles]  ;
+    Float_t jetsPt[kMaxParticles]      ;
+    Float_t jetsEta[kMaxParticles]     ;
+    Int_t   jetsFlavor[kMaxParticles]  ;
+    Int_t   jetsBTag[kMaxParticles]    ;
+    Float_t tausPt[kMaxParticles]      ;
+    Float_t tausEta[kMaxParticles]     ;
+    Float_t tausPhi[kMaxParticles]     ;
+    Bool_t  tausIsPositive[kMaxParticles];
+    Int_t   tausDM[kMaxParticles]      ;
+    Int_t   tausGenFlavor[kMaxParticles];
+    UChar_t tausAntiJet[kMaxParticles] ;
+    UChar_t tausMVAAntiMu[kMaxParticles];
+    UChar_t tausAntiMu[kMaxParticles]  ;
+    UChar_t tausAntiEle[kMaxParticles] ;
+    Float_t tausWeight[kMaxParticles]  ;
+    UInt_t nExtraLep = 0               ;
+    Float_t leptonsPt[kMaxParticles]   ;
+    Float_t leptonsEta[kMaxParticles]  ;
+    Bool_t  leptonsIsPositive[kMaxParticles];
+    Bool_t  leptonsIsMuon[kMaxParticles];
+    UChar_t leptonsID[kMaxParticles]   ;
+    UChar_t leptonsIsoID[kMaxParticles];
+    UChar_t leptonsTriggered[kMaxParticles];
+    UChar_t leptonsGenFlavor[kMaxParticles];
+    UInt_t nGenTausHad                 ;
+    UInt_t nGenTausLep                 ;
+    UInt_t nGenElectrons               ;
+    UInt_t nGenMuons                   ;
+    UInt_t nGenHardTaus                ; //for DY splitting by hard process
+    UInt_t nGenHardElectrons           ; //for DY splitting by hard process
+    UInt_t nGenHardMuons               ; //for DY splitting by hard process
+    Float_t htSum                      ;
+    Float_t ht                         ;
+    Float_t htPhi                      ;
+    //Different met definitions
+    Float_t pfMET                      ;
+    Float_t pfMETphi                   ;
+    Float_t pfMETCov00                 ;
+    Float_t pfMETCov01                 ;
+    Float_t pfMETCov11                 ;
+    Float_t pfMETC                     ;
+    Float_t pfMETCphi                  ;
+    Float_t pfMETCCov00                ;
+    Float_t pfMETCCov01                ;
+    Float_t pfMETCCov11                ;
+    Float_t puppMET                    ;
+    Float_t puppMETphi                 ;
+    Float_t puppMETCov00               ;
+    Float_t puppMETCov01               ;
+    Float_t puppMETCov11               ;
+    Float_t puppMETC                   ;
+    Float_t puppMETCphi                ;
+    Float_t puppMETCCov00              ;
+    Float_t puppMETCCov01              ;
+    Float_t puppMETCCov11              ;
+    Float_t alpacaMET                  ;
+    Float_t alpacaMETphi               ;
+    Float_t pcpMET                     ;
+    Float_t pcpMETphi                  ;
+    Float_t trkMET                     ;
+    Float_t trkMETphi                  ;
+    //used in original SVFit algorithm
+    Float_t met                        ;
+    Float_t metPhi                     ;
+    Float_t metCorr                    ;
+    Float_t metCorrPhi                 ;
+    Float_t covMet00                   ;
+    Float_t covMet01                   ;
+    Float_t covMet11                   ;
+    Float_t massSVFit                  ;
+    Float_t massErrSVFit               ;
+    Int_t   svFitStatus                ;
+    TLorentzVector* leptonOneSVP4 = 0  ;
+    TLorentzVector* leptonTwoSVP4 = 0  ;
+    //gen-level info
+    UChar_t LHE_Njets                  ;
 
 
-  //define object to apply box cuts
-  class TEventID {
-  public:
-    enum {
-      kLepm           = 0x1 <<0,
-      kLepmestimate   = 0x1 <<1,
-      kLeppt          = 0x1 <<2,
-      kMtone          = 0x1 <<3,
-      kMttwo          = 0x1 <<4,
-      kLeponept       = 0x1 <<5,
-      kLeptwopt       = 0x1 <<6,
-      kOnemetdeltaphi = 0x1 <<7,
-      kTwometdeltaphi = 0x1 <<8,
-      kLeponedeltaphi = 0x1 <<9,
-      kLeptwodeltaphi = 0x1 <<10,
-      kHt             = 0x1 <<11,
-      kNJets          = 0x1 <<12,
-      kJetpt          = 0x1 <<13,
-      kLepdeltaphi    = 0x1 <<14,
-      kMet            = 0x1 <<15
+    //define object to apply box cuts
+    class TEventID {
+    public:
+      enum {
+            kLepm           = 0x1 <<0,
+            kLepmestimate   = 0x1 <<1,
+            kLeppt          = 0x1 <<2,
+            kMtone          = 0x1 <<3,
+            kMttwo          = 0x1 <<4,
+            kLeponept       = 0x1 <<5,
+            kLeptwopt       = 0x1 <<6,
+            kOnemetdeltaphi = 0x1 <<7,
+            kTwometdeltaphi = 0x1 <<8,
+            kLeponedeltaphi = 0x1 <<9,
+            kLeptwodeltaphi = 0x1 <<10,
+            kHt             = 0x1 <<11,
+            kNJets          = 0x1 <<12,
+            kJetpt          = 0x1 <<13,
+            kLepdeltaphi    = 0x1 <<14,
+            kMet            = 0x1 <<15
+      };
+      Float_t fMinLepm          ;
+      Float_t fMinLepmestimate  ;
+      Float_t fMinLeppt         ;
+      Float_t fMinMtone         ;
+      Float_t fMinMttwo         ;
+      Float_t fMinLeponept      ;
+      Float_t fMinLeptwopt      ;
+      Float_t fMinOnemetdeltaphi;
+      Float_t fMinTwometdeltaphi;
+      Float_t fMinLeponedeltaphi;
+      Float_t fMinLeptwodeltaphi;
+      Float_t fMinHt            ;
+      Float_t fMinNJets         ;
+      Float_t fMinJetpt         ;
+      Float_t fMinLepdeltaphi   ;
+      Float_t fMinMet           ;
+
+      Float_t fMaxLepm          ;
+      Float_t fMaxLepmestimate  ;
+      Float_t fMaxLeppt         ;
+      Float_t fMaxMtone         ;
+      Float_t fMaxMttwo         ;
+      Float_t fMaxLeponept      ;
+      Float_t fMaxLeptwopt      ;
+      Float_t fMaxOnemetdeltaphi;
+      Float_t fMaxTwometdeltaphi;
+      Float_t fMaxLeponedeltaphi;
+      Float_t fMaxLeptwodeltaphi;
+      Float_t fMaxHt            ;
+      Float_t fMaxNJets         ;
+      Float_t fMaxJetpt         ;
+      Float_t fMaxLepdeltaphi   ;
+      Float_t fMaxMet           ;
+
+      Int_t fUseMask;
+
+      TEventID() {
+        fUseMask  = 0xffffffff; //id mask to select which cuts to use
+
+        fMinLepm           = -1.e9;
+        fMinLepmestimate   = -1.e9;
+        fMinLeppt          = -1.e9;
+        fMinMtone          = -1.e9;
+        fMinMttwo          = -1.e9;
+        fMinLeponept       = -1.e9;
+        fMinLeptwopt       = -1.e9;
+        fMinOnemetdeltaphi = -1.e9;
+        fMinTwometdeltaphi = -1.e9;
+        fMinLeponedeltaphi = -1.e9;
+        fMinLeptwodeltaphi = -1.e9;
+        fMinHt             = -1.e9;
+        fMinNJets          = -1.e9;
+        fMinJetpt          = -1.e9;
+        fMinMet            = -1.e9;
+        fMinLepdeltaphi    = -1.e9;
+
+        fMaxLepm           =  1.e9;
+        fMaxLepmestimate   =  1.e9;
+        fMaxLeppt          =  1.e9;
+        fMaxMtone          =  1.e9;
+        fMaxMttwo          =  1.e9;
+        fMaxLeponept       =  1.e9;
+        fMaxLeptwopt       =  1.e9;
+        fMaxOnemetdeltaphi =  1.e9;
+        fMaxTwometdeltaphi =  1.e9;
+        fMaxLeponedeltaphi =  1.e9;
+        fMaxLeptwodeltaphi =  1.e9;
+        fMaxHt             =  1.e9;
+        fMaxNJets          =  1.e9;
+        fMaxJetpt          =  1.e9;
+        fMaxMet            =  1.e9;
+        fMaxLepdeltaphi    =  1.e9;
+      }
+
+      Int_t IDWord (Tree_t variables) {
+        Int_t id_word(0);
+        if(variables.lepm           < fMinLepm           || variables.lepm            > fMaxLepm           ) id_word |= kLepm           ;
+        if(variables.mestimate      < fMinLepmestimate   || variables.mestimate       > fMaxLepmestimate   ) id_word |= kLepmestimate   ;
+        if(variables.leppt          < fMinLeppt          || variables.leppt           > fMaxLeppt          ) id_word |= kLeppt          ;
+        if(variables.mtone          < fMinMtone          || variables.mtone           > fMaxMtone          ) id_word |= kMtone          ;
+        if(variables.mttwo          < fMinMttwo          || variables.mttwo           > fMaxMttwo          ) id_word |= kMttwo          ;
+        if(variables.leponept       < fMinLeponept       || variables.leponept        > fMaxLeponept       ) id_word |= kLeponept       ;
+        if(variables.leptwopt       < fMinLeptwopt       || variables.leptwopt        > fMaxLeptwopt       ) id_word |= kLeptwopt       ;
+        if(variables.onemetdeltaphi < fMinOnemetdeltaphi || variables.onemetdeltaphi  > fMaxOnemetdeltaphi ) id_word |= kOnemetdeltaphi ;
+        if(variables.twometdeltaphi < fMinTwometdeltaphi || variables.twometdeltaphi  > fMaxTwometdeltaphi ) id_word |= kTwometdeltaphi ;
+        if(variables.leponedeltaphi < fMinLeponedeltaphi || variables.leponedeltaphi  > fMaxLeponedeltaphi ) id_word |= kLeponedeltaphi ;
+        if(variables.leptwodeltaphi < fMinLeptwodeltaphi || variables.leptwodeltaphi  > fMaxLeptwodeltaphi ) id_word |= kLeptwodeltaphi ;
+        if(variables.ht             < fMinHt             || variables.ht              > fMaxHt             ) id_word |= kHt             ;
+        if(variables.njets          < fMinNJets          || variables.njets           > fMaxNJets          ) id_word |= kNJets          ;
+        if(variables.jetpt          < fMinJetpt          || variables.jetpt           > fMaxJetpt          ) id_word |= kJetpt          ;
+        if(variables.lepdeltaphi    < fMinLepdeltaphi    || variables.lepdeltaphi     > fMaxLepdeltaphi    ) id_word |= kLepdeltaphi    ;
+        if(variables.met            < fMinMet            || variables.met             > fMaxMet            ) id_word |= kMet            ;
+        return (id_word & fUseMask);
+      }
     };
-    Float_t fMinLepm          ;
-    Float_t fMinLepmestimate  ;
-    Float_t fMinLeppt         ;
-    Float_t fMinMtone         ;
-    Float_t fMinMttwo         ;
-    Float_t fMinLeponept      ;
-    Float_t fMinLeptwopt      ;
-    Float_t fMinOnemetdeltaphi;
-    Float_t fMinTwometdeltaphi;
-    Float_t fMinLeponedeltaphi;
-    Float_t fMinLeptwodeltaphi;
-    Float_t fMinHt            ;
-    Float_t fMinNJets         ;
-    Float_t fMinJetpt         ;
-    Float_t fMinLepdeltaphi   ;
-    Float_t fMinMet           ;
 
-    Float_t fMaxLepm          ;
-    Float_t fMaxLepmestimate  ;
-    Float_t fMaxLeppt         ;
-    Float_t fMaxMtone         ;
-    Float_t fMaxMttwo         ;
-    Float_t fMaxLeponept      ;
-    Float_t fMaxLeptwopt      ;
-    Float_t fMaxOnemetdeltaphi;
-    Float_t fMaxTwometdeltaphi;
-    Float_t fMaxLeponedeltaphi;
-    Float_t fMaxLeptwodeltaphi;
-    Float_t fMaxHt            ;
-    Float_t fMaxNJets         ;
-    Float_t fMaxJetpt         ;
-    Float_t fMaxLepdeltaphi   ;
-    Float_t fMaxMet           ;
+    ZTauTauHistMaker(int seed = 90, TTree * /*tree*/ = 0) : fSystematicSeed(seed),
+                                                            fMuonJetToTauWeight("MuonWeight", "mutau", 31, 1200100, seed, 0),
+                                                            fMuonJetToTauMCWeight("MuonMCWeight", "mutau", 35, 1000002, seed, 0),
+                                                            // fMuonJetToTauWeight("MuonWeight", "mumu", 7, 1100, seed, 1),
+                                                            // fMuonJetToTauMCWeight("MuonMCWeight", "mutau", 35, 1000102, seed, 1),
+                                                            fMuonJetToTauComp("mutau", 2035, 102, 0), fMuonJetToTauSSComp("mutau", 3035, 102, 0),
+                                                            fElectronJetToTauWeight("ElectronWeight", "etau", 31, 1000100, seed),
+                                                            fElectronJetToTauComp("etau", 2035, 102, 0), fElectronJetToTauSSComp("etau", 3035, 102, 0),
+                                                            fJetToMuonWeight("mumu"), fJetToElectronWeight("ee"),
+                                                            fQCDWeight("emu", 11010, seed, 2), fElectronIDWeight(1, seed, 0), fZPtWeight("MuMu", seed) { }
+    ~ZTauTauHistMaker() {
+      for(int proc = 0; proc < JetToTauComposition::kLast; ++proc) {
+        delete fMuonJetToTauWeights[proc];
+        delete fElectronJetToTauWeights[proc];
+      }
+      delete fSystematicShifts;
+    }
+    virtual Int_t   Version() const { return 2; }
+    virtual void    Begin(TTree *tree);
+    virtual void    SlaveBegin(TTree *tree);
+    virtual void    Init(TTree *tree);
+    virtual Bool_t  Notify();
+    virtual Bool_t  Process(Long64_t entry);
+    virtual Int_t   GetEntry(Long64_t entry, Int_t getall = 0) { return fChain ? fChain->GetTree()->GetEntry(entry, getall) : 0; }
+    virtual void    SetOption(const char *option) { fOption = option; }
+    virtual void    SetObject(TObject *obj) { fObject = obj; }
+    virtual void    SetInputList(TList *input) { fInput = input; }
+    virtual TList  *GetOutputList() const { return fOutput; }
+    virtual void    SlaveTerminate();
+    virtual void    Terminate();
 
-    Int_t fUseMask;
-
-    TEventID() {
-      fUseMask  = 0xffffffff; //id mask to select which cuts to use
-
-      fMinLepm           = -1.e9;
-      fMinLepmestimate   = -1.e9;
-      fMinLeppt          = -1.e9;
-      fMinMtone          = -1.e9;
-      fMinMttwo          = -1.e9;
-      fMinLeponept       = -1.e9;
-      fMinLeptwopt       = -1.e9;
-      fMinOnemetdeltaphi = -1.e9;
-      fMinTwometdeltaphi = -1.e9;
-      fMinLeponedeltaphi = -1.e9;
-      fMinLeptwodeltaphi = -1.e9;
-      fMinHt             = -1.e9;
-      fMinNJets          = -1.e9;
-      fMinJetpt          = -1.e9;
-      fMinMet            = -1.e9;
-      fMinLepdeltaphi    = -1.e9;
-
-      fMaxLepm           =  1.e9;
-      fMaxLepmestimate   =  1.e9;
-      fMaxLeppt          =  1.e9;
-      fMaxMtone          =  1.e9;
-      fMaxMttwo          =  1.e9;
-      fMaxLeponept       =  1.e9;
-      fMaxLeptwopt       =  1.e9;
-      fMaxOnemetdeltaphi =  1.e9;
-      fMaxTwometdeltaphi =  1.e9;
-      fMaxLeponedeltaphi =  1.e9;
-      fMaxLeptwodeltaphi =  1.e9;
-      fMaxHt             =  1.e9;
-      fMaxNJets          =  1.e9;
-      fMaxJetpt          =  1.e9;
-      fMaxMet            =  1.e9;
-      fMaxLepdeltaphi    =  1.e9;
+    virtual void    FillAllHistograms(Int_t index);
+    virtual void    BookHistograms();
+    virtual void    BookEventHistograms();
+    virtual void    BookPhotonHistograms();
+    virtual void    BookLepHistograms();
+    virtual void    BookSystematicHistograms();
+    virtual void    BookTrees();
+    virtual void    FillEventHistogram(EventHist_t* Hist);
+    virtual void    FillPhotonHistogram(PhotonHist_t* Hist);
+    virtual void    FillLepHistogram(LepHist_t* Hist);
+    virtual void    FillSystematicHistogram(SystematicHist_t* Hist);
+    virtual void    InitializeTreeVariables(Int_t selection);
+    virtual float   GetTauFakeSF(int genFlavor);
+    virtual float   CorrectMET(int selection, float met);
+    virtual void    CountSlimObjects();
+    virtual int     Category(TString selection);
+    virtual void    InitializeSystematics();
+    TString GetOutputName() {
+      return Form("ztautau%s_%s%s%s.hist",
+                  (fFolderName == "") ? "" : ("_"+fFolderName).Data(),fChain->GetName(),
+                  (fDYType >  0) ? Form("-%i",fDYType) : "",
+                  (fWNJets >= 0) ? Form("-%i",fWNJets) : ""
+                  );
     }
 
-    Int_t IDWord (Tree_t variables) {
-      Int_t id_word(0);
-      if(variables.lepm           < fMinLepm           || variables.lepm            > fMaxLepm           ) id_word |= kLepm           ;
-      if(variables.mestimate      < fMinLepmestimate   || variables.mestimate       > fMaxLepmestimate   ) id_word |= kLepmestimate   ;
-      if(variables.leppt          < fMinLeppt          || variables.leppt           > fMaxLeppt          ) id_word |= kLeppt          ;
-      if(variables.mtone          < fMinMtone          || variables.mtone           > fMaxMtone          ) id_word |= kMtone          ;
-      if(variables.mttwo          < fMinMttwo          || variables.mttwo           > fMaxMttwo          ) id_word |= kMttwo          ;
-      if(variables.leponept       < fMinLeponept       || variables.leponept        > fMaxLeponept       ) id_word |= kLeponept       ;
-      if(variables.leptwopt       < fMinLeptwopt       || variables.leptwopt        > fMaxLeptwopt       ) id_word |= kLeptwopt       ;
-      if(variables.onemetdeltaphi < fMinOnemetdeltaphi || variables.onemetdeltaphi  > fMaxOnemetdeltaphi ) id_word |= kOnemetdeltaphi ;
-      if(variables.twometdeltaphi < fMinTwometdeltaphi || variables.twometdeltaphi  > fMaxTwometdeltaphi ) id_word |= kTwometdeltaphi ;
-      if(variables.leponedeltaphi < fMinLeponedeltaphi || variables.leponedeltaphi  > fMaxLeponedeltaphi ) id_word |= kLeponedeltaphi ;
-      if(variables.leptwodeltaphi < fMinLeptwodeltaphi || variables.leptwodeltaphi  > fMaxLeptwodeltaphi ) id_word |= kLeptwodeltaphi ;
-      if(variables.ht             < fMinHt             || variables.ht              > fMaxHt             ) id_word |= kHt             ;
-      if(variables.njets          < fMinNJets          || variables.njets           > fMaxNJets          ) id_word |= kNJets          ;
-      if(variables.jetpt          < fMinJetpt          || variables.jetpt           > fMaxJetpt          ) id_word |= kJetpt          ;
-      if(variables.lepdeltaphi    < fMinLepdeltaphi    || variables.lepdeltaphi     > fMaxLepdeltaphi    ) id_word |= kLepdeltaphi    ;
-      if(variables.met            < fMinMet            || variables.met             > fMaxMet            ) id_word |= kMet            ;
-      return (id_word & fUseMask);
-    }
+    virtual void    ProcessLLGStudy();
+
+
+    Long64_t fentry; //for tracking entry in functions
+    //Define relevant fields
+    TStopwatch* timer = new TStopwatch();
+    // TStopwatch timer_funcs; //for measuring time taken in each function
+    TMVA::Reader* mva[kMaxMVAs]; //read and apply mva weight files
+    std::vector<TString> fMvaNames = { //mva names for getting weights
+                                      "mutau_BDT_8.higgs","mutau_BDT_8.Z0", //0 - 9: total mvas
+                                      "etau_BDT_38.higgs","etau_BDT_38.Z0",
+                                      "emu_BDT_68.higgs","emu_BDT_68.Z0",
+                                      "mutau_e_BDT_68.higgs","mutau_e_BDT_68.Z0",
+                                      "etau_mu_BDT_68.higgs","etau_mu_BDT_68.Z0",
+                                      "mutau_TMlpANN_8.higgs","mutau_TMlpANN_8.Z0", //10 - 19: alternate mvas
+                                      "etau_TMlpANN_8.higgs","etau_TMlpANN_8.Z0",
+                                      "emu_BDT_68.higgs","emu_BDT_68.Z0",
+                                      "mutau_e_TMlpANN_8.higgs","mutau_e_TMlpANN_8.Z0",
+                                      "etau_mu_TMlpANN_8.higgs","etau_mu_TMlpANN_8.Z0"
+    };
+    std::map<TString, std::vector<double>> fMVACutsByCategory;
+    MVAConfig fMVAConfig; //contains MVA names and categories
+
+    Int_t   fIsJetBinnedMVAs[kMaxMVAs]; //storing number of jets for MVA, < 0 if not binned
+    Float_t fMvaOutputs[kMaxMVAs];
+    Int_t   fTrkQualVersion = TrkQualInit::Default; //for updating which variables are used
+
+    //Histograms:
+    const static Int_t fn = 4000; //max histogram sets: 0 - 999 typical, 1000 - 1999 QCD, 2000 - 2999 MisID, 3000 - 3999 QCD+MisID
+    const static Int_t kIds = 60; //max box cut ID sets
+    const static Int_t fQcdOffset = 1000; //histogram set + offset = set with same sign selection
+    const static Int_t fMisIDOffset = 2000; //histogram set + offset = set with loose ID selection
+    Int_t fEventSets[fn];  //indicates which sets to create
+    Int_t fSysSets[fn];  //indicates which systematic sets to create
+    Int_t fTreeSets[fn];   //indicates which trees to create
+
+    TFile*          fOut;
+    TDirectory*     fTopDir;
+    TDirectory*     fDirectories[5*fn]; // 0 - fn events, fn - 2fn photon, 2fn - 3fn lep, 3fn - 4fn trees, 4fn - 5fn systematic histograms
+    EventHist_t*    fEventHist[fn];
+    PhotonHist_t*   fPhotonHist[fn];
+    LepHist_t*      fLepHist[fn];
+    SystematicHist_t* fSystematicHist[fn];
+    TTree*          fTrees[fn];
+
+    TEventID*       fEventId[kIds]; //for applying box cuts, 0-9 zmutau, 10-19 zetau, 20-29 zemu, higgs + 30 to z sets
+
+    TString         fFolderName = ""; //name of the folder the tree is from
+    Int_t           fYear = 2016;
+
+    Bool_t          fIsSignal = false;
+
+    Int_t           fDYType = -1; //for splitting Z->ll into 1: tau tau and 2: e/mu e/mu
+    Bool_t          fIsDY = false; //for checking if DY --> Z pT weights
+    Int_t           fWNJets = -1;  //for splitting w+jets samples
+    Bool_t          fDYTesting = false; //for speeding up histogramming to only do DY weight related aspects
+    Bool_t          fDYFakeTauTesting = false; //for speeding up histogramming to only do DY jet --> fake tau scale factor aspects
+    Bool_t          fWJFakeTauTesting = false; //for speeding up histogramming to only do W+jet --> fake tau scale factor aspects
+    Bool_t          fTTFakeTauTesting = false; //for speeding up histogramming to only do ttbar jet --> fake tau scale factor aspects
+    Bool_t          fQCDFakeTauTesting = false; //for speeding up histogramming to only do qcd jet --> fake tau scale factor aspects
+    Bool_t          fCutFlowTesting = false; //for only testing basic cutflow sets
+    Bool_t          fJetTauTesting = false; //for including MC j->tau sets in testing mode
+    Bool_t          fDoMVASets = false; //for filling MVA cut sets even in DYTesting mode
+
+    Int_t           fDoSystematics = 0; //0: ignore systematic histograms 1: fill them -1: only fill them
+
+    Int_t           fWriteTrees = 0; //write out ttrees for the events
+    Double_t        fXsec = 0.; //cross-section for full event weight with trees
+    Double_t        fLum = 0.; //luminosity full event weight with trees
+    Tree_t          fTreeVars; //for filling the ttrees/mva evaluation
+    Int_t           fEventCategory; //for identifying the process in mva trainings
+
+    Int_t           fUseTauFakeSF = 0; //add in fake tau scale factor weight to event weights (2 to use ones defined here)
+    Int_t           fFakeElectronIsoCut = 3; //fake electron tight ID category definition
+    Int_t           fFakeMuonIsoCut = 3; //fake muon tight Iso ID category definition
+    Int_t           fFakeTauIsoCut = 50; //fake tau tight Iso category definition
+    Int_t           fIsData = 0; //0 if MC, 1 if electron data, 2 if muon data
+    Int_t           fIsEmbed = 0; //whether or not this is an embeded sample
+    Int_t           fUseEmbedCuts = 0; //whether or not to use the kinematic restrictions for embedded sample generation
+    bool            fSkipDoubleTrigger = false; //skip events with both triggers (to avoid double counting), only count this lepton status events
+    Int_t           fMETWeights = 0; //re-weight events based on the MET
+    Int_t           fUseMCEstimatedFakeLep = 0;
+
+    Int_t           fSystematicSeed; //for systematic variations
+
+    Int_t           fRemoveTriggerWeights = 0; // 0: do nothing 1: remove weights 2: replace weights
+    Int_t           fRemovePhotonIDWeights = 1;
+    Int_t           fRemoveBTagWeights = 0; //0: do nothing 1: remove weights 2: replace weights
+    BTagWeight      fBTagWeight;
+    Int_t           fRemovePUWeights = 0; //0: do nothing 1: remove weights 2: replace weights
+    PUWeight        fPUWeight; //object to define pu weights
+    Int_t           fUseJetPUIDWeights = 1; //use jet PU ID weights
+    JetPUWeight     fJetPUWeight; //object to define jet PU ID weights
+    Int_t           fUsePrefireWeights = 1; //use pre-fire weights
+    PrefireWeight   fPrefireWeight; //object to define pre-fire weights
+    Int_t           fAddJetTauWeights = 1; //0: do nothing 1: weight anti-iso tau CR data
+    JetToTauWeight  fMuonJetToTauWeight; //for mutau
+    JetToTauWeight  fMuonJetToTauMCWeight; //for mutau using MC estimated factors
+    JetToTauComposition  fMuonJetToTauComp; //for mutau
+    JetToTauComposition  fMuonJetToTauSSComp; //for mutau SS systematic test
+    JetToTauWeight* fMuonJetToTauWeights[JetToTauComposition::kLast];
+    JetToTauWeight  fElectronJetToTauWeight; //for etau
+    JetToTauComposition  fElectronJetToTauComp; //for etau
+    JetToTauComposition  fElectronJetToTauSSComp; //for etau SS systematic test
+    JetToTauWeight* fElectronJetToTauWeights[JetToTauComposition::kLast];
+    Float_t*        fJetToTauWts       = new Float_t[JetToTauComposition::kLast];
+    Float_t*        fJetToTauCorrs     = new Float_t[JetToTauComposition::kLast];
+    Float_t*        fJetToTauComps     = new Float_t[JetToTauComposition::kLast];
+    Float_t*        fJetToTauCompsUp   = new Float_t[JetToTauComposition::kLast];
+    Float_t*        fJetToTauCompsDown = new Float_t[JetToTauComposition::kLast];
+    Bool_t          fUseJetToTauComposition = false;
+
+    JetToLepWeight  fJetToMuonWeight; //for mutau
+    JetToLepWeight  fJetToElectronWeight; //for etau
+    QCDWeight       fQCDWeight; //for emu
+    MuonIDWeight    fMuonIDWeight;
+    ElectronIDWeight fElectronIDWeight;
+
+    Int_t           fRemoveZPtWeights = 0; // 0 use given weights, 1 remove z pT weight, 2 remove and re-evaluate weights locally
+    ZPtWeight       fZPtWeight; //re-weight Drell-Yan pT vs Mass
+    EmbeddingWeight fEmbeddingWeight; //correct di-muon embedding selection unfolding
+    Int_t           fEmbeddedTesting = 0; //play with embedding configurations/weights
+    TauIDWeight*    fTauIDWeight; //tau ID/ES corrections
+
+    float           fFractionMVA = 0.; //fraction of events used to train. Ignore these events in histogram filling, reweight the rest to compensate
+    TRandom*        fRnd = 0; //for splitting MVA testing/training
+    Int_t           fRndSeed = 90; //random number generator seed (not the same as systematics, as want fixed even for systematic studies)
+    SystematicShifts* fSystematicShifts; //decides if a systematic is shifted up or down
+    SystematicGrouping fSystematicGrouping; //Groups systematics together
+    bool            fReprocessMVAs = false; //whether or not to use the tree given MVA values
+    Int_t           fBJetCounting = 1; // 0: pT > 30 1: pT > 25 2: pT > 20
+    Int_t           fBJetTightness = 1; // 0: tight 1: medium 2: loose
+    Int_t           fMETType = 0; // 0: PF corrected 1: PUPPI Corrected
+    bool            fForceBJetSense = true; //force can't be more strict id bjets than looser id bjets
+    bool            fIsNano = false; //whether the tree is nano AOD based or not
+
+    Int_t           fVerbose = 0; //verbosity level
+
+    ClassDef(ZTauTauHistMaker,0);
+
   };
-
-  ZTauTauHistMaker(int seed = 90, TTree * /*tree*/ = 0) : fSystematicSeed(seed),
-                                                          fMuonJetToTauWeight("MuonWeight", "mutau", 31, 1200100, seed, 0),
-                                                          fMuonJetToTauMCWeight("MuonMCWeight", "mutau", 35, 1000002, seed, 0),
-                                                          // fMuonJetToTauWeight("MuonWeight", "mumu", 7, 1100, seed, 1),
-                                                          // fMuonJetToTauMCWeight("MuonMCWeight", "mutau", 35, 1000102, seed, 1),
-                                                          fMuonJetToTauComp("mutau", 2035, 2, 0), fMuonJetToTauSSComp("mutau", 3035, 2, 0),
-                                                          fElectronJetToTauWeight("ElectronWeight", "etau", 31, 1000100, seed),
-                                                          fElectronJetToTauComp("etau", 2035, 2, 0), fElectronJetToTauSSComp("etau", 3035, 2, 0),
-                                                          fJetToMuonWeight("mumu"), fJetToElectronWeight("ee"),
-                                                          fQCDWeight("emu", 11010, seed, 2), fElectronIDWeight(1, seed, 0), fZPtWeight("MuMu", seed) { }
-  ~ZTauTauHistMaker() {
-    for(int proc = 0; proc < JetToTauComposition::kLast; ++proc) {
-      delete fMuonJetToTauWeights[proc];
-      delete fElectronJetToTauWeights[proc];
-    }
-    delete fSystematicShifts;
-  }
-  virtual Int_t   Version() const { return 2; }
-  virtual void    Begin(TTree *tree);
-  virtual void    SlaveBegin(TTree *tree);
-  virtual void    Init(TTree *tree);
-  virtual Bool_t  Notify();
-  virtual Bool_t  Process(Long64_t entry);
-  virtual Int_t   GetEntry(Long64_t entry, Int_t getall = 0) { return fChain ? fChain->GetTree()->GetEntry(entry, getall) : 0; }
-  virtual void    SetOption(const char *option) { fOption = option; }
-  virtual void    SetObject(TObject *obj) { fObject = obj; }
-  virtual void    SetInputList(TList *input) { fInput = input; }
-  virtual TList  *GetOutputList() const { return fOutput; }
-  virtual void    SlaveTerminate();
-  virtual void    Terminate();
-
-  virtual void    FillAllHistograms(Int_t index);
-  virtual void    BookHistograms();
-  virtual void    BookEventHistograms();
-  virtual void    BookPhotonHistograms();
-  virtual void    BookLepHistograms();
-  virtual void    BookSystematicHistograms();
-  virtual void    BookTrees();
-  virtual void    FillEventHistogram(EventHist_t* Hist);
-  virtual void    FillPhotonHistogram(PhotonHist_t* Hist);
-  virtual void    FillLepHistogram(LepHist_t* Hist);
-  virtual void    FillSystematicHistogram(SystematicHist_t* Hist);
-  virtual void    InitializeTreeVariables(Int_t selection);
-  virtual float   GetTauFakeSF(int genFlavor);
-  virtual float   CorrectMET(int selection, float met);
-  virtual void    CountSlimObjects();
-  virtual int     Category(TString selection);
-  virtual void    InitializeSystematics();
-  TString GetOutputName() {
-    return Form("ztautau%s_%s%s%s.hist",
-                (fFolderName == "") ? "" : ("_"+fFolderName).Data(),fChain->GetName(),
-                (fDYType >  0) ? Form("-%i",fDYType) : "",
-                (fWNJets >= 0) ? Form("-%i",fWNJets) : ""
-                );
-  }
-
-  virtual void    ProcessLLGStudy();
-
-
-  Long64_t fentry; //for tracking entry in functions
-  //Define relevant fields
-  TStopwatch* timer = new TStopwatch();
-  // TStopwatch timer_funcs; //for measuring time taken in each function
-  TMVA::Reader* mva[kMaxMVAs]; //read and apply mva weight files
-  std::vector<TString> fMvaNames = { //mva names for getting weights
-    "mutau_BDT_8.higgs","mutau_BDT_8.Z0", //0 - 9: total mvas
-    "etau_BDT_38.higgs","etau_BDT_38.Z0",
-    "emu_BDT_68.higgs","emu_BDT_68.Z0",
-    "mutau_e_BDT_68.higgs","mutau_e_BDT_68.Z0",
-    "etau_mu_BDT_68.higgs","etau_mu_BDT_68.Z0",
-    "mutau_TMlpANN_8.higgs","mutau_TMlpANN_8.Z0", //10 - 19: alternate mvas
-    "etau_TMlpANN_8.higgs","etau_TMlpANN_8.Z0",
-    "emu_BDT_68.higgs","emu_BDT_68.Z0",
-    "mutau_e_TMlpANN_8.higgs","mutau_e_TMlpANN_8.Z0",
-    "etau_mu_TMlpANN_8.higgs","etau_mu_TMlpANN_8.Z0"
-  };
-  std::map<TString, std::vector<double>> fMVACutsByCategory;
-  MVAConfig fMVAConfig; //contains MVA names and categories
-
-  Int_t   fIsJetBinnedMVAs[kMaxMVAs]; //storing number of jets for MVA, < 0 if not binned
-  Float_t fMvaOutputs[kMaxMVAs];
-  Int_t   fTrkQualVersion = TrkQualInit::Default; //for updating which variables are used
-
-  //Histograms:
-  const static Int_t fn = 4000; //max histogram sets: 0 - 999 typical, 1000 - 1999 QCD, 2000 - 2999 MisID, 3000 - 3999 QCD+MisID
-  const static Int_t kIds = 60; //max box cut ID sets
-  const static Int_t fQcdOffset = 1000; //histogram set + offset = set with same sign selection
-  const static Int_t fMisIDOffset = 2000; //histogram set + offset = set with loose ID selection
-  Int_t fEventSets[fn];  //indicates which sets to create
-  Int_t fSysSets[fn];  //indicates which systematic sets to create
-  Int_t fTreeSets[fn];   //indicates which trees to create
-
-  TFile*          fOut;
-  TDirectory*     fTopDir;
-  TDirectory*     fDirectories[5*fn]; // 0 - fn events, fn - 2fn photon, 2fn - 3fn lep, 3fn - 4fn trees, 4fn - 5fn systematic histograms
-  EventHist_t*    fEventHist[fn];
-  PhotonHist_t*   fPhotonHist[fn];
-  LepHist_t*      fLepHist[fn];
-  SystematicHist_t* fSystematicHist[fn];
-  TTree*          fTrees[fn];
-
-  TEventID*       fEventId[kIds]; //for applying box cuts, 0-9 zmutau, 10-19 zetau, 20-29 zemu, higgs + 30 to z sets
-
-  TString         fFolderName = ""; //name of the folder the tree is from
-  Int_t           fYear = 2016;
-
-  Bool_t          fIsSignal = false;
-
-  Int_t           fDYType = -1; //for splitting Z->ll into 1: tau tau and 2: e/mu e/mu
-  Bool_t          fIsDY = false; //for checking if DY --> Z pT weights
-  Int_t           fWNJets = -1;  //for splitting w+jets samples
-  Bool_t          fDYTesting = false; //for speeding up histogramming to only do DY weight related aspects
-  Bool_t          fDYFakeTauTesting = false; //for speeding up histogramming to only do DY jet --> fake tau scale factor aspects
-  Bool_t          fWJFakeTauTesting = false; //for speeding up histogramming to only do W+jet --> fake tau scale factor aspects
-  Bool_t          fTTFakeTauTesting = false; //for speeding up histogramming to only do ttbar jet --> fake tau scale factor aspects
-  Bool_t          fQCDFakeTauTesting = false; //for speeding up histogramming to only do qcd jet --> fake tau scale factor aspects
-  Bool_t          fCutFlowTesting = false; //for only testing basic cutflow sets
-  Bool_t          fJetTauTesting = false; //for including MC j->tau sets in testing mode
-  Bool_t          fDoMVASets = false; //for filling MVA cut sets even in DYTesting mode
-
-  Int_t           fDoSystematics = 0; //0: ignore systematic histograms 1: fill them -1: only fill them
-
-  Int_t           fWriteTrees = 0; //write out ttrees for the events
-  Double_t        fXsec = 0.; //cross-section for full event weight with trees
-  Double_t        fLum = 0.; //luminosity full event weight with trees
-  Tree_t          fTreeVars; //for filling the ttrees/mva evaluation
-  Int_t           fEventCategory; //for identifying the process in mva trainings
-
-  Int_t           fUseTauFakeSF = 0; //add in fake tau scale factor weight to event weights (2 to use ones defined here)
-  Int_t           fFakeElectronIsoCut = 3; //fake electron tight ID category definition
-  Int_t           fFakeMuonIsoCut = 3; //fake muon tight Iso ID category definition
-  Int_t           fFakeTauIsoCut = 50; //fake tau tight Iso category definition
-  Int_t           fIsData = 0; //0 if MC, 1 if electron data, 2 if muon data
-  bool            fSkipDoubleTrigger = false; //skip events with both triggers (to avoid double counting), only count this lepton status events
-  Int_t           fMETWeights = 0; //re-weight events based on the MET
-  Int_t           fUseMCEstimatedFakeLep = 0;
-
-  Int_t           fSystematicSeed; //for systematic variations
-
-  Int_t           fRemoveTriggerWeights = 0; // 0: do nothing 1: remove weights 2: replace weights
-  Int_t           fRemovePhotonIDWeights = 1;
-  Int_t           fRemoveBTagWeights = 0; //0: do nothing 1: remove weights 2: replace weights
-  BTagWeight      fBTagWeight;
-  Int_t           fRemovePUWeights = 0; //0: do nothing 1: remove weights 2: replace weights
-  PUWeight        fPUWeight; //object to define pu weights
-  Int_t           fUseJetPUIDWeights = 1; //use jet PU ID weights
-  JetPUWeight     fJetPUWeight; //object to define jet PU ID weights
-  Int_t           fUsePrefireWeights = 1; //use pre-fire weights
-  PrefireWeight   fPrefireWeight; //object to define pre-fire weights
-  Int_t           fAddJetTauWeights = 1; //0: do nothing 1: weight anti-iso tau CR data
-  JetToTauWeight  fMuonJetToTauWeight; //for mutau
-  JetToTauWeight  fMuonJetToTauMCWeight; //for mutau using MC estimated factors
-  JetToTauComposition  fMuonJetToTauComp; //for mutau
-  JetToTauComposition  fMuonJetToTauSSComp; //for mutau SS systematic test
-  JetToTauWeight* fMuonJetToTauWeights[JetToTauComposition::kLast];
-  JetToTauWeight  fElectronJetToTauWeight; //for etau
-  JetToTauComposition  fElectronJetToTauComp; //for etau
-  JetToTauComposition  fElectronJetToTauSSComp; //for etau SS systematic test
-  JetToTauWeight* fElectronJetToTauWeights[JetToTauComposition::kLast];
-  Float_t*        fJetToTauWts       = new Float_t[JetToTauComposition::kLast];
-  Float_t*        fJetToTauCorrs     = new Float_t[JetToTauComposition::kLast];
-  Float_t*        fJetToTauComps     = new Float_t[JetToTauComposition::kLast];
-  Float_t*        fJetToTauCompsUp   = new Float_t[JetToTauComposition::kLast];
-  Float_t*        fJetToTauCompsDown = new Float_t[JetToTauComposition::kLast];
-  Bool_t          fUseJetToTauComposition = false;
-
-  JetToLepWeight  fJetToMuonWeight; //for mutau
-  JetToLepWeight  fJetToElectronWeight; //for etau
-  QCDWeight       fQCDWeight; //for emu
-  MuonIDWeight    fMuonIDWeight;
-  ElectronIDWeight fElectronIDWeight;
-
-  Int_t           fRemoveZPtWeights = 0; // 0 use given weights, 1 remove z pT weight, 2 remove and re-evaluate weights locally
-  ZPtWeight       fZPtWeight; //re-weight Drell-Yan pT vs Mass
-
-  float           fFractionMVA = 0.; //fraction of events used to train. Ignore these events in histogram filling, reweight the rest to compensate
-  TRandom*        fRnd = 0; //for splitting MVA testing/training
-  Int_t           fRndSeed = 90; //random number generator seed (not the same as systematics, as want fixed even for systematic studies)
-  SystematicShifts* fSystematicShifts; //decides if a systematic is shifted up or down
-  SystematicGrouping fSystematicGrouping; //Groups systematics together
-  bool            fReprocessMVAs = false; //whether or not to use the tree given MVA values
-  Int_t           fBJetCounting = 1; // 0: pT > 30 1: pT > 25 2: pT > 20
-  Int_t           fBJetTightness = 1; // 0: tight 1: medium 2: loose
-  Int_t           fMETType = 0; // 0: PF corrected 1: PUPPI Corrected
-  bool            fForceBJetSense = true; //force can't be more strict id bjets than looser id bjets
-  bool            fIsNano = false; //whether the tree is nano AOD based or not
-
-  Int_t           fVerbose = 0; //verbosity level
-
-  ClassDef(ZTauTauHistMaker,0);
-
-};
-
+}
 #endif
 
 #ifdef ZTauTauHistMaker_cxx
+using namespace CLFV;
 void ZTauTauHistMaker::Init(TTree *tree)
 {
   // The Init() function is called when the selector needs to initialize
@@ -663,6 +675,11 @@ void ZTauTauHistMaker::Init(TTree *tree)
       tree->SetBranchStatus("zPtWeight"           , 1);
       tree->SetBranchStatus("zPt"                 , 1);
       tree->SetBranchStatus("zMass"               , 1);
+      tree->SetBranchStatus("zLepOnePt"           , 1);
+      tree->SetBranchStatus("zLepTwoPt"           , 1);
+      tree->SetBranchStatus("zLepOneEta"          , 1);
+      tree->SetBranchStatus("zLepTwoEta"          , 1);
+      tree->SetBranchStatus("embeddingWeight"     , 1);
       tree->SetBranchStatus("leptonOneP4"         , 1);
       tree->SetBranchStatus("leptonTwoP4"         , 1);
       tree->SetBranchStatus("leptonOneFlavor"     , 1);
@@ -1114,6 +1131,11 @@ void ZTauTauHistMaker::Init(TTree *tree)
   fChain->SetBranchAddress("zPtWeight"           , &zPtWeight            );
   fChain->SetBranchAddress("zPt"                 , &zPt                  );
   fChain->SetBranchAddress("zMass"               , &zMass                );
+  fChain->SetBranchAddress("zLepOnePt"           , &zLepOnePt            );
+  fChain->SetBranchAddress("zLepTwoPt"           , &zLepTwoPt            );
+  fChain->SetBranchAddress("zLepOneEta"          , &zLepOneEta           );
+  fChain->SetBranchAddress("zLepTwoEta"          , &zLepTwoEta           );
+  fChain->SetBranchAddress("embeddingWeight"     , &embeddingWeight      );
   fChain->SetBranchAddress("looseQCDSelection"   , &looseQCDSelection    );
   fChain->SetBranchAddress("tauGenFlavor"        , &tauGenFlavor         );
   fChain->SetBranchAddress("tauDecayMode"        , &tauDecayMode         );

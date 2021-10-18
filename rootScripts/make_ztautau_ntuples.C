@@ -1,6 +1,7 @@
 /**
    Script to clone BLT ZTauTau Analyzer trees and add MVA scores to the trees
  **/
+using namespace CLFV;
 
 
 namespace {
@@ -160,18 +161,18 @@ Int_t initialize_tree_vars(int selection) {
   fTreeVars.lepptoverm    = fTreeVars.leppt   /fTreeVars.lepm;
   fTreeVars.leponeptoverm = fTreeVars.leponept/fTreeVars.lepm;
   fTreeVars.leptwoptoverm = fTreeVars.leptwopt/fTreeVars.lepm;
-  // fTreeVars.lepeta = lep.Eta();
-  // fTreeVars.lepdeltar   = leptonOneP4->DeltaR(*leptonTwoP4);
+  fTreeVars.lepeta = lep.Eta();
+  fTreeVars.lepdeltar   = leptonOneP4->DeltaR(*leptonTwoP4);
   fTreeVars.lepdeltaphi = abs(leptonOneP4->DeltaPhi(*leptonTwoP4));
-  // fTreeVars.lepdeltaeta = abs(leptonOneP4->Eta() - leptonTwoP4->Eta());
+  fTreeVars.lepdeltaeta = abs(leptonOneP4->Eta() - leptonTwoP4->Eta());
 
   //phi differences
   // fTreeVars.htdeltaphi = abs(lep.Phi() - htPhi);
   // if(fTreeVars.htdeltaphi > M_PI)
   //   fTreeVars.htdeltaphi = abs(2.*M_PI - fTreeVars.htdeltaphi);
-  // fTreeVars.metdeltaphi = abs(lep.Phi() - metPhi);
-  // if(fTreeVars.metdeltaphi > M_PI)
-  //   fTreeVars.metdeltaphi = abs(2.*M_PI - fTreeVars.metdeltaphi);
+  fTreeVars.metdeltaphi = abs(lep.Phi() - metPhi);
+  if(fTreeVars.metdeltaphi > M_PI)
+    fTreeVars.metdeltaphi = abs(2.*M_PI - fTreeVars.metdeltaphi);
   // fTreeVars.leponedeltaphi = abs(leptonOneP4->DeltaPhi(lep));
   // fTreeVars.leptwodeltaphi = abs(leptonTwoP4->DeltaPhi(lep));
   fTreeVars.onemetdeltaphi = abs(leptonOneP4->Phi() - metPhi);
@@ -204,6 +205,7 @@ Int_t initialize_tree_vars(int selection) {
   fTreeVars.mestimate    = fTreeVars.lepm/sqrt(fTreeVars.ptauvisfrac);
   fTreeVars.mestimatetwo = fTreeVars.lepm/sqrt(lp1.Mag() / (lp1.Mag() + pnuesttwo));
 
+  //FIXME: Particle information should be global constants
   double hmass(125.), zmass(91.2), tmass(1.78), lepdot(2.*((*leptonOneP4)*(*leptonTwoP4)));
   //delta alpha 1 = (m_boson^2 - m_tau^2) / (p(l1)\cdot p(l2))
   //delta alpha 2 = pT(l1) / pT(l2) (l1 = tau)
@@ -217,8 +219,8 @@ Int_t initialize_tree_vars(int selection) {
   fTreeVars.deltaalphah1 = fTreeVars.alphah1 - fTreeVars.alpha2;
   fTreeVars.deltaalphah2 = fTreeVars.alphah1 - fTreeVars.alpha3;
   //mass from delta alpha equation: m_boson = sqrt(m_tau^2 + pT(lep)/pT(tau) * p(l1) \cdot p(l2))
-  fTreeVars.deltaalpham1 = std::sqrt(tmass*tmass + fTreeVars.alpha2 * lepdot); //lep 1 = tau
-  fTreeVars.deltaalpham2 = std::sqrt(tmass*tmass + fTreeVars.alpha3 * lepdot); //lep 2 = tau
+  fTreeVars.deltaalpham1 = sqrt(tmass*tmass + fTreeVars.alpha2 * lepdot); //lep 1 = tau
+  fTreeVars.deltaalpham2 = sqrt(tmass*tmass + fTreeVars.alpha3 * lepdot); //lep 2 = tau
 
   fTreeVars.jetpt = jetP4->Pt();
   fTreeVars.njets = njets;
@@ -474,8 +476,8 @@ Int_t process_standard_nano_trees(int year = 2016, bool doInParts = false, bool 
   int status = 0;
   year_ = year;
   TString grid_path = "root://cmseos.fnal.gov///store/user/mmackenz/ztautau_nanoaod_test_trees/";
-  TString grid_out = "root://cmseos.fnal.gov///store/user/mmackenz/ztautau_nanoaod_test_trees/";
-  // TString grid_out = "root://cmseos.fnal.gov///store/user/mmackenz/ztautau_nanoaod_trees/";
+  // TString grid_out = "root://cmseos.fnal.gov///store/user/mmackenz/ztautau_nanoaod_test_trees/";
+  TString grid_out = "root://cmseos.fnal.gov///store/user/mmackenz/ztautau_nanoaod_trees/";
   if(copyLocal&&!update) grid_path = "root://cmseos.fnal.gov///store/user/mmackenz/ztautau_nanoaod_trees_nomva/";
   TString name = "clfv_";
   name += year;
@@ -525,7 +527,7 @@ Int_t process_standard_nano_trees(int year = 2016, bool doInParts = false, bool 
       gSystem->Exec(Form("time xrdcp -f %s ./%s", file_name.Data(), (card.fname_+ext).Data()));
       file_name = card.fname_ + ext;
     }
-    card.skipJetTaus_ = true;
+    card.skipJetTaus_ = false;
     if(card.fname_.Contains("SingleMu") || card.fname_.Contains("SingleEle")) card.isData_ = true;
     int stat = 0; //status for this card
     for(auto folder : folders) {
