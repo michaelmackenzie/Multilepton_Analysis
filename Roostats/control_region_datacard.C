@@ -1,26 +1,18 @@
 //Script to prepare a rootfile and datacard for Higgs Combine tools
 #include "mva_systematic_names.C"
-bool use_fake_bkg_norm_ = false; //add a large uncertainty on j->tau/qcd norm to be fit by data
 
-Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
-                             vector<int> years = {2016, 2017, 2018},
-                             int seed = 90) {
+Int_t control_region_datacard(int set = 8, TString selection = "mumu",
+                              TString signal = "zmutau",
+                              vector<int> years = {2016, 2017, 2018},
+                              int seed = 90) {
 
   //////////////////////////////////////////////////////////////////
   // Initialize relevant variables
   //////////////////////////////////////////////////////////////////
 
   int status(0);
-  TString hist;
-  if     (selection == "hmutau"  ) hist = "mva0";
-  else if(selection == "zmutau"  ) hist = "mva1";
-  else if(selection == "hetau"   ) hist = "mva2";
-  else if(selection == "zetau"   ) hist = "mva3";
-  else if(selection == "hmutau_e") hist = "mva6";
-  else if(selection == "zmutau_e") hist = "mva7";
-  else if(selection == "hetau_mu") hist = "mva8";
-  else if(selection == "zetau_mu") hist = "mva9";
-  else {
+  TString hist = "lepm";
+  if(selection != "mumu" && selection != "ee") {
     cout << "Unidentified selection " << selection.Data() << endl;
     return -1;
   }
@@ -30,15 +22,13 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
     if(i > 0) year_string += "_";
     year_string += years[i];
   }
-  int set_offset = 0;
-  if     (selection.Contains("_")) set_offset = ZTauTauHistMaker::kEMu;
-  else if(selection.Contains("etau")) set_offset = ZTauTauHistMaker::kETau;
+  int set_offset = ZTauTauHistMaker::kMuMu;
+  if     (selection == "ee") set_offset = ZTauTauHistMaker::kEE;
 
-  TRandom3* rnd = new TRandom3(seed); //for generating mock data
-  bool isHiggs = selection.Contains("h");
+  bool isHiggs = signal.Contains("h");
 
   //determine the signal name and branching ratio
-  TString selec = selection;  selec.ReplaceAll("_e", ""); selec.ReplaceAll("_mu", "");
+  TString selec = signal;  selec.ReplaceAll("_e", ""); selec.ReplaceAll("_mu", "");
   TString signame = selec;
   signame.ReplaceAll("z", "Z"); signame.ReplaceAll("h", "H");
   signame.ReplaceAll("m", "M"); signame.ReplaceAll("e", "E"); signame.ReplaceAll("t", "T");
@@ -56,7 +46,7 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
   // Read in the nominal histograms
   //////////////////////////////////////////////////////////////////
 
-  TFile* fInput = TFile::Open(Form("histograms/%s_%s_%i_%s.hist", selection.Data(), hist.Data(), set, year_string.Data()), "READ");
+  TFile* fInput = TFile::Open(Form("histograms/%s_CR_lepm_%i_%s.hist", selection.Data(), set, year_string.Data()), "READ");
   if(!fInput) return 1;
 
   if(verbose_ > 1) fInput->ls();
@@ -66,9 +56,12 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
   TH1D* hbkg = (TH1D*) fInput->Get("hbackground");
   if(!hbkg) {cout << "Background histogram not found!\n"; return 3;}
   TH1D* hsig = (TH1D*) fInput->Get(selec.Data());
-  if(!hsig) {cout << "Signal histogram not found!\n"; return 4;}
-  hsig->Scale(sig_scale);
-
+  if(!hsig) {
+    cout << "Signal histogram not found! Continuing by setting its rate to 0...\n";
+  }
+  else {
+    hsig->Scale(sig_scale);
+  }
   //////////////////////////////////////////////////////////////////
   // Read in the systematic histograms
   //////////////////////////////////////////////////////////////////
@@ -79,27 +72,32 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
      //take only the up/down systematics from the sets < 50, skipping the _sys set. Above 50, only up/down
     if(isys < 43 && (isys % 3) == 0) isys +=1;
     if(isys == 49) isys = 50; //skip to get to set 50
-    auto sys_info = systematic_name(isys, selection);
+    auto sys_info = systematic_name(isys, signal);
     TString name = sys_info.first;
     TString type = sys_info.second;
-    if(name == "") continue;
+    if(name == "" || name.Contains("Tau")) continue;
     if(verbose_ > 0) cout << "Using sys " << isys << ", " << isys+1 << " as systematic " << name.Data() << endl;
-    if(name != systematic_name(isys+1, selection).first) cout << "!!! Sys " << isys << ", " << isys+1 << " have different names!\n";
+    if(name != systematic_name(isys+1, signal).first) cout << "!!! Sys " << isys << ", " << isys+1 << " have different names!\n";
     THStack* hstack_up   = (THStack*) fInput->Get(Form("hstack_sys_%i", isys));
     THStack* hstack_down = (THStack*) fInput->Get(Form("hstack_sys_%i", isys+1));
     TH1D* hsig_up        = (TH1D*)    fInput->Get(Form("%s_sys_%i", selec.Data(), isys));
     TH1D* hsig_down      = (TH1D*)    fInput->Get(Form("%s_sys_%i", selec.Data(), isys+1));
-    if(!hstack_up || !hstack_down || !hsig_up || !hsig_down) {
+    if(!hstack_up || !hstack_down) {
       cout << "Systematic histograms for " << name.Data() << " not found!\n"
            << "stack up = " << hstack_up << " stack down = " << hstack_down
            << " sig up = " << hsig_up << " sig down = " << hsig_down << endl;
-      continue; //need all 4 to use
+      continue; //need both background stacks
     }
-    hsig_up->Scale(sig_scale);
-    hsig_down->Scale(sig_scale);
+    if(hsig_up) {
+      hsig_up->Scale(sig_scale);
+      hsig_up->SetTitle(type.Data()); //Form("sys_%i", isys));
+    } else hsig_up = new TH1D(Form("hsig_%i_up", isys), type.Data(), 1, 0, 1);
+    if(hsig_down) {
+      hsig_down->Scale(sig_scale);
+      hsig_down->SetTitle(type.Data()); //Form("sys_%i", isys));
+    } else hsig_down = new TH1D(Form("hsig_%i_down", isys), type.Data(), 1, 0, 1);
     hstack_down->SetTitle(Form("sys_%i", isys)); //store the systematic number in the title
     hstack_up  ->SetTitle(name.Data()); //Form("sys_%i", isys)); //store the systematic name in the title
-    hsig_up    ->SetTitle(type.Data()); //Form("sys_%i", isys));
     hsys_stacks.push_back(hstack_up);
     hsys_stacks.push_back(hstack_down);
     hsys_signals.push_back(hsig_up);
@@ -110,9 +108,9 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
   // Configure the output file
   //////////////////////////////////////////////////////////////////
 
-  TString outName = Form("combine_mva_%s_%i.root", selection.Data(), set);
+  TString outName = Form("combine_mva_%s_cr_%s_%i.root", signal.Data(), selection.Data(), set);
   TFile* fOut = new TFile(("datacards/"+year_string+"/"+outName).Data(), "RECREATE");
-  auto dir = fOut->mkdir(hist.Data());
+  auto dir = fOut->mkdir(Form("%sCount", selection.Data()));
   dir->cd();
 
 
@@ -120,13 +118,13 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
   // Generate toy data
   //////////////////////////////////////////////////////////////////
 
-  TH1D* hdata = (TH1D*) hbkg->Clone("data_obs");
-  hdata->SetTitle("Asimov Data");
-  for(int ibin = 1; ibin <= hdata->GetNbinsX(); ++ibin) {
-    double nentries = std::max(0., hdata->GetBinContent(ibin));
-    hdata->SetBinContent(ibin, nentries);
-    hdata->SetBinError(ibin, sqrt(nentries));
-  }
+  const double mass_min =  70.01;
+  const double mass_max = 109.99;
+  double error;
+
+  TH1D* hdata = new TH1D("data_obs", "Asimov data", 1, 0, 1);
+  hdata->SetBinContent(1, hbkg->Integral(hbkg->FindBin(mass_min), hbkg->FindBin(mass_max)));
+  hdata->SetBinError(1, sqrt(hdata->GetBinContent(1)));
   hdata->Write();
 
   //////////////////////////////////////////////////////////////////
@@ -135,11 +133,11 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
 
   //Create directory for the data cards if needed
   gSystem->Exec(Form("[ ! -d datacards/%s ] && mkdir -p datacards/%s", year_string.Data(), year_string.Data()));
-  TString filepath = Form("datacards/%s/combine_mva_%s_%i.txt", year_string.Data(), selection.Data(), set);
+  TString filepath = Form("datacards/%s/combine_mva_%s_cr_%s_%i.txt", year_string.Data(), signal.Data(), selection.Data(), set);
   gSystem->Exec(Form("echo \"# -*- mode: tcl -*-\">| %s", filepath.Data()));
   gSystem->Exec(Form("echo \"#Auto generated counting card for CLFVAnalysis \">> %s", filepath.Data()));
   gSystem->Exec(Form("echo \"#Signal branching fraction used: %.3e \n\">> %s", br_sig, filepath.Data()));
-  gSystem->Exec(Form("echo \"imax %2zu number of channels \">> %s", (unsigned long) 1, filepath.Data())); //FIXME: Add multiple channels
+  gSystem->Exec(Form("echo \"imax %2zu number of channels \">> %s", (unsigned long) 1, filepath.Data()));
   gSystem->Exec(Form("echo \"jmax  * number of backgrounds \">> %s", filepath.Data()));
   gSystem->Exec(Form("echo \"kmax  * number of nuisance parameters \n\">> %s", filepath.Data()));
   gSystem->Exec(Form("echo \"----------------------------------------------------------------------------------------------------------- \">> %s", filepath.Data()));
@@ -147,7 +145,7 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
   gSystem->Exec(Form("echo \"----------------------------------------------------------------------------------------------------------- \n\">> %s", filepath.Data()));
 
   //Start each line, building for each background process
-  TString bins   = "bin                     " + hist; //channel definition, 1 per channel
+  TString bins   = "bin                  " + selection + "Count"; //channel definition, 1 per channel
   TString bins_p = "bin          ";                   //per process per channel channel listing
   TString proc_l = "process      ";                   //process definition per channel
   TString proc_c = "process      ";                   //process class per channel
@@ -160,31 +158,45 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
   //////////////////////////////////////////////////////////////////
 
   //Add signal first
-  bins_p += Form("%15s", hist.Data());
-  proc_l += Form("%15s", selection.Data());
+  if(!hsig) {
+    hsig = new TH1D(signal.Data(), signal.Data(), 1, 0, 1);
+  } else {
+    double nsig = hsig->IntegralAndError(hsig->FindBin(mass_min), hsig->FindBin(mass_max), error);
+    hsig = new TH1D(hsig->GetName(), hsig->GetTitle(), 1, 0, 1);
+    hsig->SetBinContent(1, nsig);
+    hsig->SetBinError(1, error);
+  }
+  double nominal_sig = hsig->Integral();
+  vector<double> nominal_bkgs;
+  
+  bins_p += Form("%15s", (selection+"Count").Data());
+  proc_l += Form("%15s", signal.Data());
   proc_c +=      "            0   ";
   rate   += Form("%15.1f", hsig->Integral());
-  hsig->SetName(selection.Data());
+  hsig->SetName(signal.Data());
   hsig->Write(); //add to the output file
   for(int ihist = 0; ihist < hstack->GetNhists(); ++ihist) {
     TH1D* hbkg_i = (TH1D*) hstack->GetHists()->At(ihist);
     if(!hbkg_i) {cout << "Background hist " << ihist << " not retrieved!\n"; continue;}
     TString hname = hbkg_i->GetName();
     hname.ReplaceAll(Form("_%s_%i", hist.Data(), set+set_offset), "");
-    hname.ReplaceAll(Form("_%s_1_%i", hist.Data(), set+set_offset), "");
     hname.ReplaceAll(Form("_%s_event_%i", hist.Data(), set+set_offset), "");
-    hname.ReplaceAll(Form("_%s_1_event_%i", hist.Data(), set+set_offset), "");
     hname.ReplaceAll("s_", "");
     hname.ReplaceAll(" ", "");
     hname.ReplaceAll("#", "");
     hname.ReplaceAll("/", "");
     hname.ReplaceAll("->", "To");
-    bins_p += Form("%15s", hist.Data());
+    double nbkg = hbkg_i->IntegralAndError(hbkg_i->FindBin(mass_min), hbkg_i->FindBin(mass_max), error);
+    hbkg_i = new TH1D(hname.Data(), hbkg_i->GetTitle(), 1, 0, 1);
+    hbkg_i->SetBinContent(1, nbkg);
+    hbkg_i->SetBinError(1, error);
+    nominal_bkgs.push_back(nbkg);
+    bins_p += Form("%15s", (selection+"Count").Data());
     proc_l += Form("%15s", hname.Data());
     proc_c +=      "           1   ";
     rate   += Form("%15.1f", hbkg_i->Integral());
-    hbkg_i->SetName(hname.Data());
     hbkg_i->Write(); //add to the output file
+    if(nominal_bkgs[ihist] <= 0.) cout << "Nominal backgroud count for " << hname.Data() << " is <= 0 = " << nominal_bkgs[ihist] << endl;
   }
 
   //Print the contents of the card
@@ -200,17 +212,12 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
   TString alt_card = filepath; alt_card.ReplaceAll(".txt", "_nosys.txt");
   gSystem->Exec(Form("cp %s %s", filepath.Data(), alt_card.Data()));
   gSystem->Exec(Form("echo \"# * autoMCStats 0\n\">> %s", alt_card.Data())); //default to commenting out MC uncertainties
-  alt_card = filepath; alt_card.ReplaceAll(".txt", "_mcstat.txt");
-  gSystem->Exec(Form("cp %s %s", filepath.Data(), alt_card.Data()));
-  gSystem->Exec(Form("echo \"* autoMCStats 0\n\">> %s", alt_card.Data())); //default to including MC uncertainties
 
   //////////////////////////////////////////////////////////////////
   // Print the systematics to the card
   //////////////////////////////////////////////////////////////////
 
   int nsys = hsys_stacks.size()/2;
-  TString qcd_bkg_line = "";
-  TString jtt_bkg_line = "";
   for(int isys = 0; isys < nsys; ++isys) {
     THStack* hstack_up   = hsys_stacks [2*isys  ];
     THStack* hstack_down = hsys_stacks [2*isys+1];
@@ -220,22 +227,33 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
     TString type = hsig_up->GetTitle();
     if(name == "") continue; //systematic we don't care about
     if(verbose_ > 0) cout << "Processing systematic " << name.Data() << endl;
-    TString sys = Form("%-13s %5s ", name.Data(), type.Data());
-    hsig_up->SetName(Form("%s_%sUp", selection.Data(), name.Data()));
-    hsig_up->Write();
-    hsig_down->SetName(Form("%s_%sDown", selection.Data(), name.Data()));
-    hsig_down->Write();
-    bool do_fake_bkg_line = (qcd_bkg_line == "");
-    if(do_fake_bkg_line) {
-      qcd_bkg_line = Form("%-13s %5s      1", "QCDNorm", "lnN");
-      jtt_bkg_line = Form("%-13s %5s      1", "JetToTauNorm", "lnN");
+    if(hstack->GetNhists() != hstack_up->GetNhists() || hstack->GetNhists() != hstack_down->GetNhists()) {
+      cout << "Stacks for systematic " << name.Data() << " have different number of hists!\n";
+      continue;
     }
+    {
+      double nsig = hsig_up->IntegralAndError(hsig_up->FindBin(mass_min), hsig_up->FindBin(mass_max), error);
+      hsig_up = new TH1D(hsig_up->GetName(), hsig_up->GetTitle(), 1, 0, 1);
+      hsig_up->SetBinContent(1, nsig);
+      hsig_up->SetBinError(1, error);
+    }
+    {
+      double nsig = hsig_down->IntegralAndError(hsig_down->FindBin(mass_min), hsig_down->FindBin(mass_max), error);
+      hsig_down = new TH1D(hsig_down->GetName(), hsig_down->GetTitle(), 1, 0, 1);
+      hsig_down->SetBinContent(1, nsig);
+      hsig_down->SetBinError(1, error);
+    }
+    TString sys = Form("%-13s %5s ", name.Data(), type.Data());
+    hsig_up->SetName(Form("%s_%sUp", signal.Data(), name.Data()));
+    hsig_up->Write();
+    hsig_down->SetName(Form("%s_%sDown", signal.Data(), name.Data()));
+    hsig_down->Write();
     if(type == "shape") {
-      sys += Form("%6i", 1);
+      sys += Form("%6i", (name.Contains("Tau") ? 0 : 1));
     } else {
-      double sys_up   = (hsig->Integral() > 0.) ? hsig->Integral()/hsig_up->Integral() : 0.;
-      double sys_down = (hsig->Integral() > 0.) ? hsig->Integral()/hsig_down->Integral() : 0.;
-      double val = sys_up; //max((sys_up < 1.) ? 1./sys_up : sys_up, (sys_down < 1.) ? 1./sys_down : sys_down);
+      double sys_up   = (nominal_sig > 0.) ? nominal_sig/hsig_up->Integral() : 1.;
+      double sys_down = (nominal_sig > 0.) ? nominal_sig/hsig_down->Integral() : 1.;
+      double val = sys_up; //max((sys_up < 1. && sys_up > 0.) ? 1./sys_up : sys_up, (sys_down < 1. && sys_down > 0.) ? 1./sys_down : sys_down);
       sys += Form("%6.3f", val);
     }
     for(int ihist = 0; ihist < hstack_up->GetNhists(); ++ihist) {
@@ -245,15 +263,21 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
       if(!hbkg_i_down) {cout << "Systematic " << isys << " Background (down) hist " << ihist << " not retrieved!\n"; continue;}
       TH1D* hbkg_i = (TH1D*) hstack->GetHists()->At(ihist);
       if(!hbkg_i) {cout << "Background hist " << ihist << " not retrieved! Exiting...\n"; break;}
+      double nbkg = hbkg_i_up->IntegralAndError(hbkg_i_up->FindBin(mass_min), hbkg_i_up->FindBin(mass_max), error);
+      hbkg_i_up = new TH1D(hbkg_i_up->GetName(), hbkg_i_up->GetTitle(), 1, 0, 1);
+      hbkg_i_up->SetBinContent(1, nbkg);
+      hbkg_i_up->SetBinError(1, error);
+      nbkg = hbkg_i_down->IntegralAndError(hbkg_i_down->FindBin(mass_min), hbkg_i_down->FindBin(mass_max), error);
+      hbkg_i_down = new TH1D(hbkg_i_down->GetName(), hbkg_i_down->GetTitle(), 1, 0, 1);
+      hbkg_i_down->SetBinContent(1, nbkg);
+      hbkg_i_down->SetBinError(1, error);
+
       TString hname = hbkg_i_up->GetName();
       TString isys_set = hstack_down->GetTitle();
       isys_set.ReplaceAll("sys_", "");
       hname.ReplaceAll(Form("_%s_%s_%i", hist.Data(), isys_set.Data(), set+set_offset), "");
       hname.ReplaceAll(Form("_%s_%s_systematic_%i", hist.Data(), isys_set.Data(), set+set_offset), "");
       hname.ReplaceAll(Form("_%s_systematic_%i", hist.Data(), set+set_offset), "");
-      hname.ReplaceAll(Form("_%s_1_systematic_%i", hist.Data(), set+set_offset), "");
-      // hname.ReplaceAll(Form("_%s_%s_systematic_%i", hist.Data(), isys_set.Data(), set+set_offset), "");
-      // hname.ReplaceAll(Form("_%s_1_systematic_%i", hist.Data(), set+set_offset), "");
       hname.ReplaceAll("s_", "");
       hname.ReplaceAll(" ", "");
       hname.ReplaceAll("#", "");
@@ -265,25 +289,16 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
       hbkg_i_up->Write(); //add to the output file
       hbkg_i_down->SetName(hname_down.Data());
       hbkg_i_down->Write(); //add to the output file
-      if(do_fake_bkg_line && hname == "QCD")   qcd_bkg_line += Form("%15.3f", 1.30); //additional 30% uncertainty
-      else if(do_fake_bkg_line)                qcd_bkg_line += Form("%15i", 1);
-      if(do_fake_bkg_line && hname == "MisID") jtt_bkg_line += Form("%15.3f", 1.30); //additional 30% uncertainty
-      else if(do_fake_bkg_line)                jtt_bkg_line += Form("%15i", 1);
-
       if(type == "shape") {
-        sys += Form("%15i", 1);
+        sys += Form("%15i", (name.Contains("Tau") ? 0 : 1));
       } else {
-        double sys_up   = (hbkg_i->Integral() > 0.) ? hbkg_i->Integral()/hbkg_i_up->Integral() : 0.;
-        double sys_down = (hbkg_i->Integral() > 0.) ? hbkg_i->Integral()/hbkg_i_down->Integral() : 0.;
-        double val = sys_up; //max((sys_up < 1.) ? 1./sys_up : sys_up, (sys_down < 1.) ? 1./sys_down : sys_down);
+        double sys_up   = (nominal_bkgs[ihist] > 0.) ? nominal_bkgs[ihist]/hbkg_i_up->Integral() : 1.;
+        double sys_down = (nominal_bkgs[ihist] > 0.) ? nominal_bkgs[ihist]/hbkg_i_down->Integral() : 1.;
+        double val = sys_up; //max((sys_up < 1. && sys_up > 0.) ? 1./sys_up : sys_up, (sys_down < 1. && sys_down > 0.) ? 1./sys_down : sys_down);
         sys += Form("%15.3f", val);
       }
     }
     gSystem->Exec(Form("echo \"%s \">> %s", sys.Data() , filepath.Data()));
-  }
-  if(use_fake_bkg_norm_) {
-    gSystem->Exec(Form("echo \"%s \">> %s", qcd_bkg_line.Data() , filepath.Data()));
-    gSystem->Exec(Form("echo \"%s \">> %s", jtt_bkg_line.Data() , filepath.Data()));
   }
   gSystem->Exec(Form("echo \"\n* autoMCStats 0\n\">> %s", filepath.Data()));
 

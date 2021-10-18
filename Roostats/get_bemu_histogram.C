@@ -11,7 +11,7 @@ bool blind_data_ = true;
 bool do_systematics_ = true;
 bool allow_sys_errors_ = true; //if there are missing systematic histograms, clone the default for now
 TH1D* hDefault_; //store the default histogram in case of missing systematics
-// TH1D* hDY_;
+TH1D* hDY_;
 
 int get_same_flavor_systematics(int set, TString hist, TFile* f) {
   int status(0);
@@ -23,7 +23,7 @@ int get_same_flavor_systematics(int set, TString hist, TFile* f) {
     cout << "Retrieving same-flavor systematic " << isys << "...\n";
     //Get background for the systematic
     THStack* hstack = dataplotter_->get_stack(Form("%s_%i", hist.Data(), isys), "systematic", set);
-    TH1D* hbkg, hDY;
+    TH1D *hbkg(0), *hDY(0);
     if(!hstack || !hstack->GetStack()) {
       ++status;
       if(!allow_sys_errors_)
@@ -31,17 +31,19 @@ int get_same_flavor_systematics(int set, TString hist, TFile* f) {
       else
         cout << "Missing same-flavor histogram for set " << set << " and sys " << isys << endl;
       hbkg = (TH1D*) hDefault_->Clone(Form("hbkg_sys_%i", isys));
-      // hDY  = (TH1D*) hDY_     ->Clone(Form("hDY_sys_%i" , isys));
+      hDY  = (TH1D*) hDY_     ->Clone(Form("hDY_sys_%i" , isys));
     } else {
-      hbkg = (TH1D*) hstack->GetStack()->Last();
-      hbkg->SetName(Form("hbkg_sys_%i", isys));
-      // TH1D* hDY = (TH1D*) hbkg->Clone(Form("hDY_sys_%i", isys));
-      // //remove non-DY backgrounds from DY histogram
-      // for(auto o : *(hstack->GetHists())) {
-      //   TH1D* h = (TH1D*) o;
-      //   if(TString(h->GetName()).Contains("DY")) continue;
-      //   hDY->Add(h, -1.); //subtract off non-DY MC
-      // }
+      //add up components of the Z->ll/Bkg
+      for(auto o : *(hstack->GetHists())) {
+        TH1D* h = (TH1D*) o;
+        if(TString(h->GetName()).Contains("Z->ee/#mu#mu")) {
+          if(hDY) hDY->Add(h);
+          else   {hDY = h; hDY->SetName(Form("hDY_sys_%i", isys));}
+        } else {
+          if(hbkg) hbkg->Add(h);
+          else    {hbkg = h; hbkg->SetName(Form("hbkg_sys_%i", isys));}
+        }
+      }
     }
     if(test_sys_ >= 0) {
       cout << "Nominal background: " << hbkg_->Integral()
@@ -49,7 +51,7 @@ int get_same_flavor_systematics(int set, TString hist, TFile* f) {
     }
 
     hbkg->Write();
-    // hDY->Write();
+    hDY->Write();
     // f->Flush();
   }
   return status;
@@ -165,6 +167,7 @@ int get_systematics(int set, TString hist, TFile* f, TString canvas_name) {
         h->Scale(1./dataplotter_->signal_scale_);
       hname.ReplaceAll("#", "");
       hname.ReplaceAll("->", "");
+      hname.ReplaceAll(Form("_%s_%i", hist.Data(), set), "");
       hname.ToLower();
       hname += "_sys_"; hname += isys;
       h->SetName(hname.Data());
@@ -231,6 +234,7 @@ int get_same_flavor_histogram(int set, TString selection, vector<int> years, TSt
   hdata->Write();
 
   hDefault_ = (TH1D*) hlast->Clone("hDefault");
+  hDY_ = (TH1D*) hlast->Clone("hDYDefault");
   if(do_systematics_)
     status += get_same_flavor_systematics(set+set_offset, hist, fout);
   delete hDefault_;
@@ -337,6 +341,7 @@ int get_bemu_single_histogram(int set = 8, TString selection = "zemu",
     cout << h->Integral() << " after\n";
     hname.ReplaceAll("#", "");
     hname.ReplaceAll("->", "");
+    hname.ReplaceAll(Form("_%s_%i", hist.Data(), set+set_offset), "");
     hname.ToLower();
     h->SetName(hname.Data());
     hsigs_.push_back((TH1D*) h->Clone(Form("hsig_%s_", hname.Data()))); //store the signal for plotting against systematic

@@ -49,7 +49,9 @@ Int_t calculate_UL_MVA_categories(vector<int> sets = {8}, TString selection = "z
   if(!br_sig) return 2;
 
   RooArgList poi_list(*br_sig);
-  RooArgList obs_list(*(ws->var("mva")));
+  RooArgList obs_list;
+  for(int index = 0; index < 2*sets.size(); ++index) obs_list.add(*(ws->var(Form("mva%i", index))));
+
   RooCategory* categories = ((RooCategory*) ws->obj(selection.Data()));
   if(!categories) {
     cout << "Failed to find category variable!\n";

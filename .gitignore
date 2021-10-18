@@ -22,6 +22,9 @@ tmva_training/scripts/figures/*/*.png
 tmva_training/CWoLa_*
 tmva_training/training_*
 tmva_training/scripts/CWoLa_*
+Roostats/datacards/*/*.root
+Roostats/datacards/*/*.json
+Roostats/datacards/*/*.txt
 bin
 scripts/*.root
 *.log

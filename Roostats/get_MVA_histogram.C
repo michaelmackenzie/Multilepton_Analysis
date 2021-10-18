@@ -9,6 +9,121 @@ bool blind_data_ = true; //set data bins > MVA score level to 0
 bool ignore_sys_ = false; //don't get systematics
 bool use_dev_mva_ = false; //use the extra MVA hist for development, mvax_1
 
+int get_same_flavor_systematics(int set, TString hist, TH1D* hdata, TFile* f) {
+  int status(0);
+  f->cd();
+  dataplotter_->rebinH_ = 1;
+
+  //Loop through each systematic, creating PDFs and example figures
+  for(int isys = (test_sys_ >= 0 ? test_sys_ : 0); isys < (test_sys_ >= 0 ? test_sys_ + 1 : kMaxSystematics); ++isys) {
+    cout << "Getting same flavor systematic " << isys << " for set " << set << endl;
+    //Get background for the systematic
+    THStack* hstack = dataplotter_->get_stack(Form("%s_%i", hist.Data(), isys), "systematic", set);
+    if(!hstack) {++status; continue;}
+    if(!hstack->GetStack()) {++status; continue;}
+    vector<TH1D*> signals = dataplotter_->get_signal(Form("%s_%i", hist.Data(), isys), "systematic", set);
+    if(signals.size() == 0) {++status; continue;}
+
+    hstack->SetName(Form("hstack_sys_%i", isys));
+    TH1D* hbkg = (TH1D*) hstack->GetStack()->Last();
+    hbkg->SetName(Form("hbkg_sys_%i", isys));
+    hbkg->Write();
+    hstack->Write();
+
+    for(auto h : signals) {
+      TString hname = h->GetName();
+      if(dataplotter_->signal_scales_.find(hname) != dataplotter_->signal_scales_.end())
+        h->Scale(1./dataplotter_->signal_scales_[hname]);
+      else
+        h->Scale(1./dataplotter_->signal_scale_);
+      hname.ReplaceAll("#", "");
+      hname.ReplaceAll("->", "");
+      hname.ReplaceAll(Form("_%s_%i_%i", hist.Data(), isys, set), "");
+      hname.ToLower();
+      hname += "_sys_"; hname += isys;
+      h->SetName(hname.Data());
+      h->Write();
+    }
+    // f->Flush();
+  }
+  return status;
+}
+
+
+int get_same_flavor_histogram(int set = 8, TString selection = "mumu",
+                              vector<int> years = {2016, 2017, 2018},
+                              TString base = "nanoaods_dev") {
+
+  int status(0);
+  TString hist = "lepm";
+
+  if(selection != "mumu" && selection != "ee") {
+    cout << "Undefined same flavor selection " << selection.Data() << endl;
+    return 1;
+  }
+
+  //define parameters for dataplotter script
+  years_ = years;
+  status = nanoaod_init(selection, base, base);
+  if(status) {
+    cout << "DataPlotter initialization script returned " << status << ", exiting!\n";
+    return status;
+  }
+
+  int set_offset = ZTauTauHistMaker::kMuMu;
+  if     (selection == "ee") set_offset = ZTauTauHistMaker::kEE;
+
+  dataplotter_->rebinH_ = 1;
+  //get background distribution
+  THStack* hstack = dataplotter_->get_stack(hist, "event", set+set_offset);
+  if(!hstack) return 1;
+
+  std::vector<TH1D*> signals = dataplotter_->get_signal(hist, "event", set+set_offset);
+  if(signals.size() == 0) return 2;
+  for(auto h : signals) {
+    if(!h) return 2;
+  }
+
+  TH1D* hdata = dataplotter_->get_data(hist, "event", set+set_offset);
+  if(!hdata) return 3;
+  hdata->SetName("hdata");
+
+  TString year_string;
+  for(unsigned i = 0; i < years.size(); ++i) {
+    if(i > 0) year_string += "_";
+    year_string += years[i];
+  }
+
+  gSystem->Exec("[ ! -d histograms ] && mkdir histograms");
+  TFile* fout = new TFile(Form("histograms/%s_CR_lepm_%i_%s.hist", selection.Data(), set, year_string.Data()), "RECREATE");
+  hdata->Write();
+  hstack->SetName("hstack");
+  hstack->Write();
+  TH1D* hlast = (TH1D*) hstack->GetStack()->Last();
+  hlast->SetName("hbackground");
+  hlast->Write();
+
+  for(auto h : signals) {
+    TString hname = h->GetName();
+    hname.ReplaceAll("#", "");
+    hname.ReplaceAll("->", "");
+    hname.ReplaceAll(Form("_%s_%i", hist.Data(), set+set_offset), "");
+    hname.ToLower();
+    h->SetName(hname.Data());
+    if(dataplotter_->signal_scales_.find(hname) != dataplotter_->signal_scales_.end())
+      h->Scale(1./dataplotter_->signal_scales_[hname]);
+    else
+      h->Scale(1./dataplotter_->signal_scale_);
+    h->Write();
+  }
+
+  if(!ignore_sys_)
+    status += get_same_flavor_systematics(set+set_offset, hist, hdata, fout);
+  fout->Write();
+  fout->Close();
+  return status;
+}
+
 int get_systematics(int set, TString hist, TH1D* hdata, TFile* f, TString canvas_name) {
   int status(0);
   f->cd();
@@ -112,6 +227,7 @@ int get_systematics(int set, TString hist, TH1D* hdata, TFile* f, TString canvas
         h->Scale(1./dataplotter_->signal_scale_);
       hname.ReplaceAll("#", "");
       hname.ReplaceAll("->", "");
+      hname.ReplaceAll(Form("_%s_%i_%i", hist.Data(), isys, set), "");
       hname.ToLower();
       hname += "_sys_"; hname += isys;
       h->SetName(hname.Data());
@@ -218,6 +334,10 @@ int get_individual_MVA_histogram(int set = 8, TString selection = "zmutau",
     TString hname = h->GetName();
     hname.ReplaceAll("#", "");
     hname.ReplaceAll("->", "");
+    if(use_dev_mva_)
+      hname.ReplaceAll(Form("_%s_1_%i", hist.Data(), set+set_offset), "");
+    else
+      hname.ReplaceAll(Form("_%s_%i", hist.Data(), set+set_offset), "");
     hname.ToLower();
     h->SetName(hname.Data());
     hsigs_.push_back((TH1D*) h->Clone(Form("hsig_%s_", hname.Data()))); //store the signal for plotting against systematic
@@ -248,6 +368,10 @@ int get_MVA_histogram(vector<int> sets = {8}, TString selection = "zmutau",
       else if(selection.Contains("etau"))
         status += get_individual_MVA_histogram(set, selection+"_mu", years, base);
     }
+    cout << "Getting mumu histograms for set " << set << endl;
+    status += get_same_flavor_histogram(set, "mumu", years, base);
+    cout << "Getting ee histograms for set " << set << endl;
+    status += get_same_flavor_histogram(set, "ee"  , years, base);
   }
   return status;
 }

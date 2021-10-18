@@ -5,13 +5,13 @@
 bool doConstraints_ = false; //adding in systematics
 bool includeSignalInFit_ = true; //fit background specturm with signal shape in PDF
 bool addSignalToToyMC_ = false; // inject signal to the generated data distribution
-bool ignore_sys_ = false; //ignore systematics
+bool ignore_sys_ = true; //ignore systematics
 bool correct_bin_width_ = true; //multiply bins by bin width to account for PDF dividing by bin width
 int verbose_ = 1;
 TString selection_; //signal, e.g. "zmutau"
 
 RooRealVar* br_sig_; //fields common to systematics and nominal PDFs
-RooRealVar* mva_;
+vector<RooRealVar*> mvas_;
 // RooBinning* mva_bins_;
 RooRealVar* bxs_var_;
 RooRealVar* lum_var_;
@@ -50,18 +50,18 @@ Int_t get_systematics(vector<vector<TH1D*>>& sig, vector<vector<TH1D*>>& bkg, Ro
       cout << " Initializing histogram datasets for category " << index << endl;
       bkgMVADatas.push_back(new RooDataHist(Form("bkgMVAData_%i_sys_%i", index, isys),
                                             "Background MVA Data",
-                                            RooArgList(*mva_), bkg[index][isys]));
+                                            RooArgList(*mvas_[index]), bkg[index][isys]));
       sigMVADatas.push_back(new RooDataHist(Form("sigMVAData_%i_sys_%i", index, isys),
                                             "Signal MVA Data",
-                                            RooArgList(*mva_), sig[index][isys]));
+                                            RooArgList(*mvas_[index]), sig[index][isys]));
       bkgMVAPDFs .push_back(new RooHistPdf (Form("bkgMVAPDF_%i_sys_%i" , index, isys),
                                             "Background MVA PDF",
-                                            RooArgSet(*mva_),
+                                            RooArgSet(*mvas_[index]),
                                             *bkgMVADatas[index],
                                             spline_order_));
       sigMVAPDFs .push_back(new RooHistPdf (Form("sigMVAPDF_%i_sys_%i" , index, isys),
                                             "Signal MVA PDF",
-                                            RooArgSet(*mva_),
+                                            RooArgSet(*mvas_[index]),
                                             *sigMVADatas[index],
                                             spline_order_));
       cout << " Created individual PDFs for category " << index << endl;
@@ -162,7 +162,11 @@ Int_t fit_background_MVA_binned(vector<int> sets = {8}, TString selection = "zmu
       selec_hname.ReplaceAll("_e", "");
       selec_hname.ReplaceAll("_mu", "");
       TH1D* hmva_sig = (TH1D*) f_bkg->Get(selec_hname.Data());
-      if(!hmva_sig) return 3;
+      if(!hmva_sig) {
+        cout << "Signal " << selec_hname.Data() << " not found!\n";
+        f_bkg->ls();
+        return 3;
+      }
       hmva_bkg->SetName(Form("hbkg_%i_%i", set, index));
       hmva_sig->SetName(Form("hsig_%i_%i", set, index));
       hmva_dat->SetName(Form("hdat_%i_%i", set, index));
@@ -172,43 +176,52 @@ Int_t fit_background_MVA_binned(vector<int> sets = {8}, TString selection = "zmu
 
       //Load systematic varied mva histograms
       hsys_bkg.push_back({}); hsys_sig.push_back({});
-      for(int isys = 0; isys < 300 /*kMaxSystematics*/; ++isys) {
-        hsys_bkg[sys_index].push_back((TH1D*) f_bkg->Get(Form("hbkg_sys_%i", isys)));
-        hsys_sig[sys_index].push_back((TH1D*) f_bkg->Get(Form("%s_sys_%i", selec_hname.Data(), isys)));
-        if(hsys_bkg[sys_index][isys]) hsys_bkg[sys_index][isys]->SetName(Form("hbkg_%i_%i_sys_%i", set, index, isys));
-        else cout << "Systematic background " << isys << " not found!\n";
-        if(hsys_sig[sys_index][isys]) hsys_sig[sys_index][isys]->SetName(Form("hsig_%i_%i_sys_%i", set, index, isys));
-        else cout << "Systematic signal " << isys << " not found!\n";
+      if(!ignore_sys_) {
+        for(int isys = 0; isys < 300 /*kMaxSystematics*/; ++isys) {
+          hsys_bkg[sys_index].push_back((TH1D*) f_bkg->Get(Form("hbkg_sys_%i", isys)));
+          hsys_sig[sys_index].push_back((TH1D*) f_bkg->Get(Form("%s_sys_%i", selec_hname.Data(), isys)));
+          if(hsys_bkg[sys_index][isys]) hsys_bkg[sys_index][isys]->SetName(Form("hbkg_%i_%i_sys_%i", set, index, isys));
+          else cout << "Systematic background " << isys << " not found!\n";
+          if(hsys_sig[sys_index][isys]) hsys_sig[sys_index][isys]->SetName(Form("hsig_%i_%i_sys_%i", set, index, isys));
+          else cout << "Systematic signal " << isys << " not found!\n";
+        }
+        ++sys_index;
       }
-      ++sys_index;
       if(verbose_ > 1) f_bkg->ls(); f_bkg->Print();
     }
   }
-  if(hmva_bkgs.size() == 0 || hmva_sigs.size() == 0 || hmva_dats.size() == 0) return -1;
+  if(hmva_bkgs.size() != 2*sets.size() || hmva_sigs.size() != 2*sets.size() || hmva_dats.size() != 2*sets.size()) return -1;
 
   cout << "All file elements retrieved!\n";
 
   //create a histogram for the PDF
   double xmin(hmva_bkgs[0]->GetBinLowEdge(1)), xmax(hmva_bkgs[0]->GetBinLowEdge(hmva_bkgs[0]->GetNbinsX()) + hmva_bkgs[0]->GetBinWidth(hmva_bkgs[0]->GetNbinsX()));
-  RooRealVar mva("mva","MVA score", xmin, xmax);
-  RooBinning mva_bins(hmva_bkgs[0]->GetNbinsX(), hmva_bkgs[0]->GetXaxis()->GetXbins()->GetArray(), "mva_bins");
-  mva.setBinning(mva_bins);
-  // mva.setBins(hmva_bkgs[0]->GetNbinsX());
-  mva_ = &mva;
-  // mva_bins_ = &mva_bins;
   vector<RooDataHist*> bkgMVADatas, sigMVADatas, datMVADatas;
   vector<RooHistPdf*>  bkgMVAPDFs , sigMVAPDFs ;
-  for(unsigned index = 0; index < hmva_bkgs.size(); ++index) {
+  for(int index = 0; index < hmva_bkgs.size(); ++index) {
     cout << "Starting index " << index
          << ": sig int = " << hmva_sigs[index]->Integral()
          << " bkg int = " << hmva_bkgs[index]->Integral()
          << " and data int = " << hmva_dats[index]->Integral() << endl;
-      bkgMVADatas.push_back(new RooDataHist(Form("bkgMVAData_%i", index), "Background MVA Data", RooArgList(mva), hmva_bkgs   [index]));
-      sigMVADatas.push_back(new RooDataHist(Form("sigMVAData_%i", index), "Signal MVA Data"    , RooArgList(mva), hmva_sigs   [index]));
-      datMVADatas.push_back(new RooDataHist(Form("datMVAData_%i", index), "Data MVA Data"      , RooArgList(mva), hmva_dats   [index]));
-      bkgMVAPDFs .push_back(new RooHistPdf (Form("bkgMVAPDF_%i" , index), "Background MVA PDF" , RooArgSet (mva), *bkgMVADatas[index], spline_order_));
-      sigMVAPDFs .push_back(new RooHistPdf (Form("sigMVAPDF_%i" , index), "Signal MVA PDF"     , RooArgSet (mva), *sigMVADatas[index], spline_order_));
-      cout << "Finished index " << index << endl;
+
+    //Create an observable for each category
+    RooRealVar* mva = new RooRealVar(Form("mva%i", index),"MVA score", xmin, xmax);
+    int nbins = sizeof(hmva_bkgs[index]->GetXaxis()->GetXbins()->GetArray()) / sizeof(double); //check if using variable binning
+    if(nbins > 1) { //using variable binning
+      RooBinning* mva_bins = new RooBinning(hmva_bkgs[index]->GetNbinsX(), hmva_bkgs[index]->GetXaxis()->GetXbins()->GetArray(), Form("mva%i_bins", index));
+      mva->setBinning(*mva_bins);
+    } else {
+      mva->setBins(hmva_bkgs[index]->GetNbinsX());
+    }
+    mvas_.push_back(mva);
+
+    //Create data hists and PDFs from the histograms
+    bkgMVADatas.push_back(new RooDataHist(Form("bkgMVAData_%i", index), "Background MVA Data", RooArgList(*mva), hmva_bkgs   [index]));
+    sigMVADatas.push_back(new RooDataHist(Form("sigMVAData_%i", index), "Signal MVA Data"    , RooArgList(*mva), hmva_sigs   [index]));
+    datMVADatas.push_back(new RooDataHist(Form("datMVAData_%i", index), "Data MVA Data"      , RooArgList(*mva), hmva_dats   [index]));
+    bkgMVAPDFs .push_back(new RooHistPdf (Form("bkgMVAPDF_%i" , index), "Background MVA PDF" , RooArgSet (*mva), *bkgMVADatas[index], spline_order_));
+    sigMVAPDFs .push_back(new RooHistPdf (Form("sigMVAPDF_%i" , index), "Signal MVA PDF"     , RooArgSet (*mva), *sigMVADatas[index], spline_order_));
+    cout << "Finished index " << index << endl;
   }
 
   cout << "Individual PDFs constructed!\n";
@@ -278,10 +291,10 @@ Int_t fit_background_MVA_binned(vector<int> sets = {8}, TString selection = "zmu
     categories.defineType(category.c_str(), index);
     //generate some toy bkg + sig
     cout << "Generating background data for index " << index << "!\n";
-    RooDataHist* bkg_mva_gen = bkgMVAPDFs[index]->generateBinned(RooArgSet(mva), nbkg);
+    RooDataHist* bkg_mva_gen = bkgMVAPDFs[index]->generateBinned(RooArgSet(*mvas_[index]), nbkg);
     cout << "Generating signal data for index " << index << "!\n";
     if(addSignalToToyMC_) {
-      RooDataHist* sig_mva_gen = sigMVAPDFs[index]->generateBinned(RooArgSet(mva), hmva_sigs[index]->Integral());
+      RooDataHist* sig_mva_gen = sigMVAPDFs[index]->generateBinned(RooArgSet(*mvas_[index]), hmva_sigs[index]->Integral());
       bkg_mva_gen->add(*sig_mva_gen);
     }
     toyDataCategoryMap[category] = bkg_mva_gen;
@@ -298,8 +311,11 @@ Int_t fit_background_MVA_binned(vector<int> sets = {8}, TString selection = "zmu
 
   cout << "Total combined PDF defined!\n";
 
-  RooDataHist combined_toy_data("combined_toy_data", "combined_toy_data", mva, categories, toyDataCategoryMap);
-  RooDataHist combined_data("combined_data", "combined_data", mva, categories, dataCategoryMap);
+  RooArgList mva_list;
+  for(int index = 0; index < mvas_.size(); ++index) mva_list.add(*mvas_[index]);
+
+  RooDataHist combined_toy_data("combined_toy_data", "combined_toy_data", mva_list, categories, toyDataCategoryMap);
+  RooDataHist combined_data("combined_data", "combined_data", mva_list, categories, dataCategoryMap);
 
   cout << "Combined data defined!\n";
 
@@ -327,7 +343,7 @@ Int_t fit_background_MVA_binned(vector<int> sets = {8}, TString selection = "zmu
   }
   for(unsigned index = 0; index < totMVAPDFs.size(); ++index) {
     auto c1 = new TCanvas();
-    auto xframe = mva.frame();
+    auto xframe = mvas_[index]->frame();
     string cut = Form("%s == %i", selection.Data(), index);
     if(blind_data_) {
       combined_toy_data.plotOn(xframe, RooFit::Cut(cut.c_str()), RooFit::Invisible());
@@ -349,15 +365,15 @@ Int_t fit_background_MVA_binned(vector<int> sets = {8}, TString selection = "zmu
     xframe->GetXaxis()->SetRangeUser(-0.6, 0.3);
     // hmva_dats[index]->Draw("same E");
     TLegend* leg = new TLegend(0.65, 0.7, 0.9, 0.9);
-    leg->AddEntry((TH1*) (c1->GetPrimitive(Form("totMVAPDF_%i_Norm[mva]_Comp[sigMVAPDF_%i]", index, index))), Form("Signal (x%.0f)", sig_scale), "L");
-    leg->AddEntry((TH1*) (c1->GetPrimitive(Form("totMVAPDF_%i_Norm[mva]_Comp[bkgMVAPDF_%i]", index, index))), "Background", "L");
+    leg->AddEntry((TH1*) (c1->GetPrimitive(Form("totMVAPDF_%i_Norm[mva%i]_Comp[sigMVAPDF_%i]", index, index, index))), Form("Signal (x%.0f)", sig_scale), "L");
+    leg->AddEntry((TH1*) (c1->GetPrimitive(Form("totMVAPDF_%i_Norm[mva%i]_Comp[bkgMVAPDF_%i]", index, index, index))), "Background", "L");
     leg->AddEntry((TH1*) (c1->GetPrimitive(Form("h_combined_data_Cut[%s]", cut.c_str()))), "Data", "PL");
     // leg->AddEntry(hmva_dats[index], "Data");
     leg->Draw();
     c1->SaveAs(Form("plots/latest_production/%s/hist_background_mva_category_%i_%s_%s.png", year_string.Data(), index, selection.Data(), set_str.Data()));
     bxs_var.setVal(prev_val);
+    cout << "Observable " << index << " binning" << mvas_[index]->getBinning() << endl;
   }
-  cout << "Observable binning" << mva.getBinning() << endl;
   gSystem->Exec("[ ! -d workspaces ] && mkdir workspaces");
   TFile* fOut = new TFile(Form("workspaces/hist_background_mva_%s%s_%s_%s.root", selection.Data(),
                                (doConstraints_) ? "_constr" : "",

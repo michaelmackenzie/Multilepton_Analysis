@@ -52,12 +52,16 @@ int combine_channels(int set = 8, TString selection = "zmutau",
   TString pro_cat   = "process    ";
   TString rate      = "rate       ";
   TString filler = "-----------------------------------------------------------------------------------------------------------";
-  std::map<TString, TString> systematics;
+  std::map<TString, TString> systematics; //shape uncertainties
+  std::map<TString, TString> systematics_lnN; //normalization uncertainties
 
   //////////////////////////////////////////////////////////////////
   // Read the input data cards
   //////////////////////////////////////////////////////////////////
+  int nchannels = 0;
   for(size_t ifile = 0; ifile < filelist.size(); ++ifile) {
+    if(filelist[ifile].find("_cr_") != string::npos) continue; //don't combine control regions
+    ++nchannels;
     cout << "Reading file " << filelist[ifile].c_str() << endl;
     std::ifstream file(filelist[ifile].c_str());
     std::string str;
@@ -108,6 +112,20 @@ int combine_channels(int set = 8, TString selection = "zmutau",
           systematics[sys] = current;
         }
         continue;
+      } else if(current.Contains(" lnN ")) { //line that defines the systematic lnN uncertainties
+        TObjArray* split_line = current.Tokenize(" ");
+        TString sys = ((TObjString*) split_line->At(0))->String();
+        if(systematics_lnN.find(sys) != systematics_lnN.end()) { //already in the map
+          current.ReplaceAll("lnN", "   ");
+          if(sys.Sizeof() < 7) //remove the extra space for 0-9 systematics
+            current.ReplaceAll((sys+" ").Data(), "");
+          else
+            current.ReplaceAll(sys.Data(), "");
+          systematics_lnN[sys] = systematics_lnN[sys] + current;
+        } else {
+          systematics_lnN[sys] = current;
+        }
+        continue;
       }
     }
   }
@@ -122,7 +140,7 @@ int combine_channels(int set = 8, TString selection = "zmutau",
     else
       gSystem->Exec(Form("echo \"%s \" >> %s", preamble[index].Data(), outName.Data()));
   }
-  gSystem->Exec(Form("echo \"\nimax  %2zu number of channels \" >> %s", filelist.size(), outName.Data()));
+  gSystem->Exec(Form("echo \"\nimax  %2i number of channels \" >> %s", nchannels, outName.Data()));
   gSystem->Exec(Form("echo \"jmax   * number of backgrounds \" >> %s", outName.Data()));
   gSystem->Exec(Form("echo \"kmax   * number of nuisance parameters \n\" >> %s", outName.Data()));
   gSystem->Exec(Form("echo \"%s \" >> %s", filler.Data(), outName.Data()));
@@ -140,6 +158,9 @@ int combine_channels(int set = 8, TString selection = "zmutau",
   //add a systematic free version
   TString alt_file = outName; alt_file.ReplaceAll(".txt", "_nosys.txt");
   gSystem->Exec(Form("cp %s %s", outName.Data(), alt_file.Data()));
+  gSystem->Exec(Form("echo \"# * autoMCStats 0\n\" >> %s", alt_file.Data()));
+  alt_file = outName; alt_file.ReplaceAll(".txt", "_mcstat.txt");
+  gSystem->Exec(Form("cp %s %s", outName.Data(), alt_file.Data()));
   gSystem->Exec(Form("echo \"* autoMCStats 0\n\" >> %s", alt_file.Data()));
 
   //print systematics
@@ -147,12 +168,16 @@ int combine_channels(int set = 8, TString selection = "zmutau",
   for(itr = systematics.begin(); itr != systematics.end(); itr++) {
     gSystem->Exec(Form("echo \"%s \" >> %s", itr->second.Data(), outName.Data()));
   }
+  for(itr = systematics_lnN.begin(); itr != systematics_lnN.end(); itr++) {
+    gSystem->Exec(Form("echo \"%s \" >> %s", itr->second.Data(), outName.Data()));
+  }
   gSystem->Exec(Form("echo \"\n* autoMCStats 0\n\" >> %s", outName.Data()));
 
   //////////////////////////////////////////////////////////////////
   // Merge the relevant data files
   //////////////////////////////////////////////////////////////////
-  gSystem->Exec(Form("hadd -f datacards/%s/%s datacards/%s/combine_mva_%s*_%i.root",
+  gSystem->Exec(Form("hadd -f datacards/%s/%s `ls -d datacards/%s/combine_mva_%s*_%i.root | grep -v _cr_`",
                      year_string.Data(), outRootName.Data(), year_string.Data(), selection.Data(), set));
+
   return status;
 }

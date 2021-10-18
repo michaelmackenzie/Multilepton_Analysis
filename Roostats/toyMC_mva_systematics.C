@@ -56,7 +56,13 @@ int toyMC_mva_systematics(vector<int> sets = {8}, TString selection = "zmutau",
 
 
   //variables of interest
-  auto mva = ws->var("mva");
+  vector<RooRealVar*> mvas;
+  RooArgList mva_list;
+  for(int index = 0; index < 2*sets.size(); ++index) {
+    mvas.push_back(ws->var(Form("mva%i", index)));
+    mva_list.add(*mvas[index]);
+  }
+
   auto br_sig = ws->var("br_sig");
   auto lum_var = ws->var("lum_var");
 
@@ -140,7 +146,7 @@ int toyMC_mva_systematics(vector<int> sets = {8}, TString selection = "zmutau",
              << n_bkgs[icat] << ")\n";
       }
       //generate toy data
-      RooDataHist* bkg_mva_gen = bkgMVAPDF->generateBinned(RooArgSet(*mva), n_bkg_events);
+      RooDataHist* bkg_mva_gen = bkgMVAPDF->generateBinned(RooArgSet(*mvas[icat]), n_bkg_events);
 
       if(!zero_signal) {
         //get the signal PDF
@@ -150,7 +156,7 @@ int toyMC_mva_systematics(vector<int> sets = {8}, TString selection = "zmutau",
                << n_sigs[icat] << ")\n";
         }
         //generate toy data
-        RooDataHist* sig_mva_gen = sigMVAPDF->generateBinned(RooArgSet(*mva), n_sig_events);
+        RooDataHist* sig_mva_gen = sigMVAPDF->generateBinned(RooArgSet(*mvas[icat]), n_sig_events);
         if(ifit == 0) sigMVAPDF->Print();
 
         //add the signal to the background data, to fit the total
@@ -170,7 +176,7 @@ int toyMC_mva_systematics(vector<int> sets = {8}, TString selection = "zmutau",
     } //end category loop
 
     //define the total dataset
-    RooDataHist combined_data("combined_data", "combined_data", *mva, *categories, dataCategoryMap);
+    RooDataHist combined_data("combined_data", "combined_data", mva_list, *categories, dataCategoryMap);
     if(ifit == 0) {
       combined_data.Print();
       for(unsigned i = 0; i < n_bkgs.size(); ++i) {
@@ -205,7 +211,7 @@ int toyMC_mva_systematics(vector<int> sets = {8}, TString selection = "zmutau",
     //print an example fit
     if(ifit == 0 && print) {
       for(unsigned i = 0; i < n_bkgs.size(); ++i) {
-        auto xframe = mva->frame(-0.8, 0.5);
+        auto xframe = mvas[i]->frame(-0.8, 0.5);
         combined_data.plotOn(xframe, RooFit::Cut(Form("%s==%i",selection.Data(),i)));
         fit_PDF->plotOn(xframe, RooFit::Components(Form("sigMVAPDF_%i", i)),
                         RooFit::Slice(*categories, Form("%s_%i", selection.Data(),i)), RooFit::ProjWData(combined_data));
@@ -214,8 +220,8 @@ int toyMC_mva_systematics(vector<int> sets = {8}, TString selection = "zmutau",
         auto c1 = new TCanvas();
         xframe->Draw();
         TLegend* leg = new TLegend(0.6, 0.7, 0.9, 0.9);
-        leg->AddEntry((TH1*) (c1->GetPrimitive(Form("totMVAPDF_%i_Norm[mva]_Comp[sigMVAPDF_%i]", i, i))), "Signal", "L");
-        leg->AddEntry((TH1*) (c1->GetPrimitive(Form("totMVAPDF_%i_Norm[mva]_Comp[bkgMVAPDF_%i]", i, i))), "Background", "L");
+        leg->AddEntry((TH1*) (c1->GetPrimitive(Form("totMVAPDF_%i_Norm[mva%i]_Comp[sigMVAPDF_%i]", i, i, i))), "Signal", "L");
+        leg->AddEntry((TH1*) (c1->GetPrimitive(Form("totMVAPDF_%i_Norm[mva%i]_Comp[bkgMVAPDF_%i]", i, i, i))), "Background", "L");
         leg->Draw();
         if(self_test)
           c1->SaveAs(Form("%s/self_cat_%i.png", base_path.Data(), i));

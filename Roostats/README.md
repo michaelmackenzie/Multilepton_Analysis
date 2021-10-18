@@ -183,15 +183,45 @@ combine -d combine_mva_total_${SELECTION}.txt
 ```
 One can estimate the bin uncertainty impact by commenting out "* autoMCStats 0"
 
+### Make limit plots
+Run Combine over each category and the combination, and create a plot showing the limits
+```
+root.exe -q -b "make_limit_plot.C(${HISTSTRING}, \"${SELECTION}\", ${YEAR})"
+```
+
 ### Generate impacts
+Running on the combined search:
 ```
 cd datacards/${YEARSTRING}
 WORKSPACE=combine_mva_total_${SELECTION}_workspace.root
 text2workspace.py combine_mva_total_${SELECTION}_${HISTSTRING}.txt -o ${WORKSPACE}
-combineTool.py -M Impacts -d ${WORKSPACE} -m 0 --rMin -1 --rMax 2 --robustFit 1 --doInitialFit
-combineTool.py -M Impacts -d ${WORKSPACE} -m 0 --rMin -1 --rMax 2 --robustFit 1 --doFits
-combineTool.py -M Impacts -d ${WORKSPACE} -m 0 --rMin -1 --rMax 2 --robustFit 1 --output impacts_${SELECTION}.json
-plotImpacts.py -i impacts_${SELECTION}.json -o impacts_${SELECTION}
+combineTool.py -M Impacts -d ${WORKSPACE} -m 0 --rMin -20 --rMax 20 --robustFit 1 --doInitialFit -t -1
+combineTool.py -M Impacts -d ${WORKSPACE} -m 0 --rMin -20 --rMax 20 --robustFit 1 --doFits -t -1
+combineTool.py -M Impacts -d ${WORKSPACE} -m 0 --rMin -20 --rMax 20 --robustFit 1 --output impacts_total_${SELECTION}_${HISTSTRING}.json -t -1
+plotImpacts.py -i impacts_total_${SELECTION}_${HISTSTRING}.json -o impacts_total_${SELECTION}_${HISTSTRING}
+```
+
+Running on a single category:
+```
+cd datacards/${YEARSTRING}
+CHANNEL="zmutau_e" #just for an example
+WORKSPACE=combine_mva_${CHANNEL}_workspace.root
+text2workspace.py combine_mva_${CHANNEL}_${HISTSTRING}.txt -o ${WORKSPACE}
+combineTool.py -M Impacts -d ${WORKSPACE} -m 0 --rMin -20 --rMax 20 --robustFit 1 --doInitialFit -t -1
+combineTool.py -M Impacts -d ${WORKSPACE} -m 0 --rMin -20 --rMax 20 --robustFit 1 --doFits -t -1
+combineTool.py -M Impacts -d ${WORKSPACE} -m 0 --rMin -20 --rMax 20 --robustFit 1 --output impacts_${CHANNEL}_${HISTSTRING}.json -t -1
+plotImpacts.py -i impacts_${CHANNEL}_${HISTSTRING}.json -o impacts_${CHANNEL}_${HISTSTRING}
+```
+
+Running on a selection with control regions:
+```
+cd datacards/${YEARSTRING}
+WORKSPACE=combine_mva_total_cr_${SELECTION}_workspace.root
+text2workspace.py combine_mva_total_cr_${SELECTION}_${HISTSTRING}.txt -o ${WORKSPACE}
+combineTool.py -M Impacts -d ${WORKSPACE} -m 0 --rMin -20 --rMax 20 --robustFit 1 --doInitialFit -t -1
+combineTool.py -M Impacts -d ${WORKSPACE} -m 0 --rMin -20 --rMax 20 --robustFit 1 --doFits -t -1
+combineTool.py -M Impacts -d ${WORKSPACE} -m 0 --rMin -20 --rMax 20 --robustFit 1 --output impacts_total_cr_${SELECTION}_${HISTSTRING}.json -t -1
+plotImpacts.py -i impacts_total_cr_${SELECTION}_${HISTSTRING}.json -o impacts_total_cr_${SELECTION}_${HISTSTRING}
 ```
 
 ### Additional tests
@@ -213,4 +243,8 @@ combine -M HybridNew <datacard> --LHCmode LHC-limits -n <name> --saveHybridResul
 ```
 
 Options:
---rule: CLsplusb, CLs
+-t [number of toys, -1 to use Asimov dataset]
+--doAsimov
+--noFitAsimov
+--run <both/expected/observed/blind>
+--rule <CLsplusb/CLs>
