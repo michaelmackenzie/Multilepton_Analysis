@@ -2,6 +2,7 @@
 #define __CONSTRUCT_MULTIDIM__
 //Construct multi-dimensional PDF with discrete index
 bool useFrameChiSq_ = false;
+bool use_generic_bernstein_ = true;
 
 //Get the chi-squared using a RooChi2Var
 double get_subrange_chisquare(RooRealVar& obs, RooAbsPdf* pdf, RooDataHist& data, const char* range) {
@@ -56,6 +57,28 @@ RooChebychev* create_chebychev(RooRealVar& obs, int order, int set) {
   return new RooChebychev(Form("chb_%i_order_%i", set, order), Form("Chebychev PDF, order %i", order), obs, list);
 }
 
+RooAbsPdf* create_generic_bernstein(RooRealVar& obs, int order, int set) {
+
+  vector<RooRealVar*> variables;
+  RooArgSet var_set;
+  var_set.add(obs);
+  TString formula;
+  double xmin = obs.getMin();
+  double xmax = obs.getMax();
+  TString var_form = Form("(%s - %.3f)/%.3f", obs.GetName(), xmin, (xmax - xmin));
+  double vals[] = {1.404, 2.443e-1, 5.549e-1, 3.675e-1, 0., 0., 0., 0., 0., 0., 0.};
+
+  for(int ivar = 0; ivar <= order; ++ivar) {
+    RooRealVar* v = new RooRealVar(Form("bst_%i_order_%i_c_%i", set, order, ivar), Form("bst_%i_order_%i_c_%i", set, order, ivar), 1./pow(10,ivar), -5., 5.);
+    formula += Form("%.0f*(%s)^%i*(1-%s)^%i*%s", TMath::Binomial(order, ivar), var_form.Data(), ivar, var_form.Data(), order-ivar, v->GetName());
+    if(ivar < order) formula += " + ";
+    var_set.add(*v);
+  }
+  cout << "#### Bernstein order " << order << " formula: " << formula.Data() << endl;
+  RooAbsPdf* pdf = new RooGenericPdf(Form("bst_%i_order_%i", set, order), Form("Bernstein PDF, order %i", order), formula.Data(), var_set);
+  return pdf;
+}
+
 //Create a Bernstein polynomial PDF
 RooBernstein* create_bernstein(RooRealVar& obs, int order, int set) {
   vector<RooRealVar*> vars;
@@ -69,7 +92,7 @@ RooBernstein* create_bernstein(RooRealVar& obs, int order, int set) {
 
 //Fit exponentials and add passing ones
 void add_exponentials(RooDataHist& data, RooRealVar& obs, RooArgList& list, bool useSideBands, int set, int verbose) {
-  const int max_order = 4;
+  const int max_order = 5;
   const double max_chisq = 5.; //per DOF
   for(int order = 0; order <= max_order; ++order) {
     RooAbsPdf* pdf = create_exponential(obs, order, set);
@@ -134,7 +157,7 @@ void add_bernsteins(RooDataHist& data, RooRealVar& obs, RooArgList& list, bool u
   int num_added = -1;
   int best_order;
   for(int order = 1; order <= max_order; ++order) {
-    RooBernstein* pdf = create_bernstein(obs, order, set);
+    RooAbsPdf* pdf = (use_generic_bernstein_) ? create_generic_bernstein(obs, order, set) : create_bernstein(obs, order, set);
     if(useSideBands)
       pdf->fitTo(data, RooFit::PrintLevel(-1 + 2*(verbose > 2)), RooFit::Warnings(0), RooFit::PrintEvalErrors(-1), RooFit::Range("LowSideband,HighSideband"));
     else
@@ -160,9 +183,9 @@ void add_bernsteins(RooDataHist& data, RooRealVar& obs, RooArgList& list, bool u
 
 RooSimultaneous* construct_multidim_pdf(RooDataHist& data, RooRealVar& obs, RooCategory& categories, bool useSideBands, int& index, int set, int verbose = 0) {
   RooArgList pdfList;
-  // add_bernsteins(data, obs, pdfList, useSideBands, index, set, verbose);
-  add_chebychevs(data, obs, pdfList, useSideBands, index, set, verbose);
-  // add_exponentials(data, obs, pdfList, useSideBands, set, verbose);
+  add_bernsteins(data, obs, pdfList, useSideBands, index, set, verbose);
+  // add_chebychevs(data, obs, pdfList, useSideBands, index, set, verbose);
+  add_exponentials(data, obs, pdfList, useSideBands, set, verbose);
   RooSimultaneous* pdfs =  new RooSimultaneous("bkg_multi", "Background function PDF choice", categories);
   for(int ipdf = 0; ipdf < pdfList.getSize(); ++ipdf) {
     RooAbsPdf* pdf = (RooAbsPdf*) pdfList.at(ipdf);

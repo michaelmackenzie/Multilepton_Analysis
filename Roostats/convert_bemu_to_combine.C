@@ -277,12 +277,12 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
       bkgPDF->SetName("bkg");
     }
 
-    RooRealVar* N_bkg    = new RooRealVar("bkg_norm", "N(bkg)", 2e5, 1e2, 3e6);
+    RooRealVar* N_bkg    = new RooRealVar("bkg_norm", "N(bkg)", data->Integral(low_bin, high_bin), 1e2, 3e6);
     RooAddPdf* totbkgpdf = new RooAddPdf(Form("toBkgPDF_%i" , set), "Background PDF", RooArgList(*bkgPDF), RooArgList(*N_bkg));
-    if(fitSideBands_)
-      totbkgpdf->fitTo(*dataData, RooFit::SumW2Error(1), RooFit::Extended(1), RooFit::Range("LowSideband,HighSideband"));
-    else
-      totbkgpdf->fitTo(*dataData, RooFit::SumW2Error(1), RooFit::Extended(1));
+    // if(fitSideBands_)
+    //   totbkgpdf->fitTo(*dataData, RooFit::SumW2Error(1), RooFit::Extended(1), RooFit::Range("LowSideband,HighSideband"));
+    // else
+    //   totbkgpdf->fitTo(*dataData, RooFit::SumW2Error(1), RooFit::Extended(1));
 
     //Generate toy data to stand in for the observed data
     RooDataSet* dataset = bkgPDF->generate(RooArgSet(*lepm), data->Integral(low_bin, high_bin));
