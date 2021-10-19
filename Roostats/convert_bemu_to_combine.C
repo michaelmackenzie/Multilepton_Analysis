@@ -209,6 +209,7 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
     TH1D* blindData = (TH1D*) data->Clone("hblind_data");
     const double blind_min = (isHiggs) ? 120. : 86.;
     const double blind_max = (isHiggs) ? 130. : 96.;
+    sig->Scale(sig_scale);
 
     for(int ibin = blindData->FindBin(blind_min); ibin <= blindData->FindBin(blind_max); ++ibin) {
       blindData->SetBinContent(ibin, 0.);
@@ -305,6 +306,8 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
       else           dataData->plotOn(xframe);
       double chi_sq = get_chi_squared(*lepm, bkgPDF, *dataData, fitSideBands_);
       bkgPDF->plotOn(xframe, RooFit::Name(bkgPDF->GetName()), RooFit::LineColor(kBlue), RooFit::NormRange("FullRange"), RooFit::Range("FullRange"));
+      sigData->plotOn(xframe, RooFit::Invisible());
+      sigPDF->plotOn(xframe, RooFit::Name("sigPDF"), RooFit::LineColor(kRed), RooFit::NormRange("BlindRegion"), RooFit::Range("FullRange"));
 
       TString name = bkgPDF->GetName();
       TString title = bkgPDF->GetTitle();
@@ -334,6 +337,7 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
       } else {
         leg->AddEntry("data", Form("Data, N(entries) = %.0f", data->Integral(low_bin, high_bin)), "PL");
       }
+      leg->AddEntry("sigPDF", Form("Signal, BR = %.1e, N(sig) = %.1f", br_sig, sig->Integral(low_bin, high_bin)), "L");
       leg->AddEntry(bkgPDF->GetName(), Form("%s - #chi^{2}/DOF = %.2f", bkgPDF->GetTitle(), chi_sqs[0]), "L");
       if(useMultiDim_) {
         int offset = 1;
@@ -354,6 +358,7 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
       double norm = data->Integral(low_bin,high_bin);
       TH1D* dataDiff = (blindData_) ? (TH1D*) blindData->Clone("dataDiff") : (TH1D*) data->Clone("dataDiff");
       dataDiff->SetTitle("Data - Background Fit");
+      TH1D* sigDiff = (TH1D*) dataDiff->Clone("sigDiff");
       vector<TH1D*> pdfDiffs;
       for(int ipdf = 0; ipdf < categories->numTypes(); ++ipdf) {
         if(ipdf == index) {
@@ -366,6 +371,7 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
         double x = dataDiff->GetBinCenter(ibin);
         lepm->setVal(x);
         dataDiff->SetBinContent(ibin, bkgPDF->getVal());
+        sigDiff ->SetBinContent(ibin, sigPDF->getVal());
         for(int ipdf = 0; ipdf < categories->numTypes(); ++ipdf) {
           if(ipdf == index) {
             continue;
@@ -376,6 +382,7 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
         }
       }
       dataDiff->Scale(norm/dataDiff->Integral(low_bin, high_bin)); //set the norms equal
+      sigDiff->Scale(sig->Integral(low_bin, high_bin) / sigDiff->Integral(low_bin, high_bin));
       for(int ipdf = 0; ipdf < categories->numTypes(); ++ipdf) {
         if(ipdf == index) {
           continue;
@@ -413,12 +420,16 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
       line->SetLineColor(kBlue);
       line->SetLineWidth(2);
       line->Draw("same");
+      sigDiff->SetLineColor(kRed);
+      sigDiff->SetLineWidth(2);
+      sigDiff->Draw("hist same");
       for(int ipdf = 0; ipdf < categories->numTypes(); ++ipdf) {
         if(ipdf == index) {
           continue;
         }
         TH1D* hPDFDiff = pdfDiffs[ipdf - (ipdf > index)];
         hPDFDiff->SetLineColor(colors[ipdf % colors.size()]);
+        hPDFDiff->SetLineStyle(kDashed);
         hPDFDiff->Draw("same hist");
       }
       //print the results
