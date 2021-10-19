@@ -299,6 +299,8 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
       const int nentries = 40;
       auto xframe = lepm->frame(nentries);
       xframe->SetTitle("");
+      sigData->plotOn(xframe, RooFit::Invisible());
+      sigPDF->plotOn(xframe, RooFit::Name("sigPDF"), RooFit::LineColor(kRed), RooFit::NormRange("BlindRegion"), RooFit::Range("FullRange"));
       if(blindData_) {
         dataData->plotOn(xframe, RooFit::Invisible());
         // dataset->plotOn(xframe, RooFit::Name("toy_data"));
@@ -306,8 +308,6 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
       else           dataData->plotOn(xframe);
       double chi_sq = get_chi_squared(*lepm, bkgPDF, *dataData, fitSideBands_);
       bkgPDF->plotOn(xframe, RooFit::Name(bkgPDF->GetName()), RooFit::LineColor(kBlue), RooFit::NormRange("FullRange"), RooFit::Range("FullRange"));
-      sigData->plotOn(xframe, RooFit::Invisible());
-      sigPDF->plotOn(xframe, RooFit::Name("sigPDF"), RooFit::LineColor(kRed), RooFit::NormRange("BlindRegion"), RooFit::Range("FullRange"));
 
       TString name = bkgPDF->GetName();
       TString title = bkgPDF->GetTitle();
