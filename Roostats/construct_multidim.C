@@ -1,6 +1,31 @@
 #ifndef __CONSTRUCT_MULTIDIM__
 #define __CONSTRUCT_MULTIDIM__
 //Construct multi-dimensional PDF with discrete index
+bool useFrameChiSq_ = false;
+
+//Get the chi-squared using a RooChi2Var
+double get_subrange_chisquare(RooRealVar& obs, RooAbsPdf* pdf, RooDataHist& data, const char* range) {
+  RooChi2Var chi("chi", "chi", *pdf, data, RooFit::Range(range));
+  return chi.getVal();
+}
+
+//Evaluate the chi-squared
+double get_chi_squared(RooRealVar& obs, RooAbsPdf* pdf, RooDataHist& data, bool useSideBands) {
+  if(useFrameChiSq_) {
+    auto xframe = obs.frame();
+    data.plotOn(xframe);
+    pdf->plotOn(xframe);
+    const double chi_sq = xframe->chiSquare() * data.numEntries(); //returns chi squared / entries
+    delete xframe;
+    return chi_sq;
+  }
+  if(useSideBands) {
+    double chi_sq = get_subrange_chisquare(obs, pdf, data, "LowSideband");
+    chi_sq += get_subrange_chisquare(obs, pdf, data, "HighSideband");
+    return chi_sq;
+  }
+  return get_subrange_chisquare(obs, pdf, data, "FullRange");
+}
 
 //Create an exponential PDF sum
 RooAbsPdf* create_exponential(RooRealVar& obs, int order, int set) {
@@ -52,17 +77,8 @@ void add_exponentials(RooDataHist& data, RooRealVar& obs, RooArgList& list, bool
       pdf->fitTo(data, RooFit::PrintLevel(-1), RooFit::Warnings(0), RooFit::PrintEvalErrors(-1), RooFit::Range("LowSideband,HighSideband"));
     else
       pdf->fitTo(data, RooFit::PrintLevel(-1), RooFit::Warnings(0), RooFit::PrintEvalErrors(-1));
-    auto xframe = obs.frame();
-    if(useSideBands) {
-      data.plotOn(xframe, RooFit::Range("LowSideband,HighSideband"));
-      pdf->plotOn(xframe, RooFit::Range("LowSideband,HighSideband"));
-    } else {
-      data.plotOn(xframe);
-      pdf->plotOn(xframe);
-    }
-    const int dof = (data.numEntries() - 2*order - 2);  //DOF = number of variables + normalization
-    const double chi_sq = xframe->chiSquare() * data.numEntries(); //returns chi squared / entries
-    delete xframe;
+    const int dof = (data.numEntries() - 2*order - 1);  //DOF = number of variables + normalization
+    const double chi_sq = get_chi_squared(obs, pdf, data, useSideBands);
     if(chi_sq / dof < max_chisq) {
       list.add(*pdf);
     } else {
@@ -84,16 +100,11 @@ void add_chebychevs(RooDataHist& data, RooRealVar& obs, RooArgList& list, bool u
   for(int order = 1; order <= max_order; ++order) {
     RooChebychev* pdf = create_chebychev(obs, order, set);
     if(useSideBands)
-      pdf->fitTo(data, RooFit::PrintLevel(-1), RooFit::Warnings(0), RooFit::PrintEvalErrors(-1), RooFit::Range("LowSideband,HighSideband"));
+      pdf->fitTo(data, RooFit::PrintLevel(-1 + 2*(verbose > 2)), RooFit::Warnings(0), RooFit::PrintEvalErrors(-1), RooFit::Range("LowSideband,HighSideband"));
     else
-      pdf->fitTo(data, RooFit::PrintLevel(-1), RooFit::Warnings(0), RooFit::PrintEvalErrors(-1));
-    auto xframe = obs.frame();
-    data.plotOn(xframe);
-    pdf->plotOn(xframe);
-
+      pdf->fitTo(data, RooFit::PrintLevel(-1 + 2*(verbose > 2)), RooFit::Warnings(0), RooFit::PrintEvalErrors(-1));
     const int dof = (data.numEntries() - order - 2);  //DOF = number of variables + normalization
-    const double chi_sq = xframe->chiSquare() * data.numEntries(); //returns chi squared / entries
-    delete xframe;
+    const double chi_sq = get_chi_squared(obs, pdf, data, useSideBands);
     if(chi_sq / dof < max_chisq) {
       list.add(*pdf);
       ++num_added;
@@ -106,7 +117,9 @@ void add_chebychevs(RooDataHist& data, RooRealVar& obs, RooArgList& list, bool u
     else {
       delete pdf;
     }
-    if(verbose > 1) cout << "### Chebychev order " << order << " has chisq = " << chi_sq << " / " << dof << " = " << chi_sq/dof << endl;
+    if(verbose > 1) cout << "### Chebychev order " << order << " has chisq = "
+                         << chi_sq << " / " << dof << " = " << chi_sq/dof
+                         << endl;
   }
   if(verbose > 0) cout << "### Best fit Chebychev order is " << best_order << " with chisq = " << chi_min << endl;
 }
@@ -123,20 +136,11 @@ void add_bernsteins(RooDataHist& data, RooRealVar& obs, RooArgList& list, bool u
   for(int order = 1; order <= max_order; ++order) {
     RooBernstein* pdf = create_bernstein(obs, order, set);
     if(useSideBands)
-      pdf->fitTo(data, RooFit::PrintLevel(-1), RooFit::Warnings(0), RooFit::PrintEvalErrors(-1), RooFit::Range("LowSideband,HighSideband"));
+      pdf->fitTo(data, RooFit::PrintLevel(-1 + 2*(verbose > 2)), RooFit::Warnings(0), RooFit::PrintEvalErrors(-1), RooFit::Range("LowSideband,HighSideband"));
     else
-      pdf->fitTo(data, RooFit::PrintLevel(-1), RooFit::Warnings(0), RooFit::PrintEvalErrors(-1));
-    auto xframe = obs.frame();
-    if(useSideBands) {
-      data.plotOn(xframe, RooFit::Range("LowSideband,HighSideband"));
-      pdf->plotOn(xframe, RooFit::Range("LowSideband,HighSideband"));
-    } else {
-      data.plotOn(xframe);
-      pdf->plotOn(xframe);
-    }
+      pdf->fitTo(data, RooFit::PrintLevel(-1 + 2*(verbose > 2)), RooFit::Warnings(0), RooFit::PrintEvalErrors(-1));
     const int dof = (data.numEntries() - order - 2);  //DOF = number of variables + normalization
-    const double chi_sq = xframe->chiSquare() * data.numEntries(); //returns chi squared / entries
-    delete xframe;
+    const double chi_sq = get_chi_squared(obs, pdf, data, useSideBands);
     if(chi_sq / dof < max_chisq) {
       list.add(*pdf);
       ++num_added;
@@ -158,7 +162,7 @@ RooSimultaneous* construct_multidim_pdf(RooDataHist& data, RooRealVar& obs, RooC
   RooArgList pdfList;
   // add_bernsteins(data, obs, pdfList, useSideBands, index, set, verbose);
   add_chebychevs(data, obs, pdfList, useSideBands, index, set, verbose);
-  add_exponentials(data, obs, pdfList, useSideBands, set, verbose);
+  // add_exponentials(data, obs, pdfList, useSideBands, set, verbose);
   RooSimultaneous* pdfs =  new RooSimultaneous("bkg_multi", "Background function PDF choice", categories);
   for(int ipdf = 0; ipdf < pdfList.getSize(); ++ipdf) {
     RooAbsPdf* pdf = (RooAbsPdf*) pdfList.at(ipdf);

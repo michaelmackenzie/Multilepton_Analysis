@@ -223,6 +223,7 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
     lepm->setRange("FullRange", xmin, xmax);
     lepm->setRange("LowSideband", xmin, blind_min);
     lepm->setRange("HighSideband", blind_max, xmax);
+    lepm->setRange("BlindRegion", blind_min, blind_max);
 
     //create RooDataHist from histograms
     RooDataHist* bkgData  = new RooDataHist("bkg_data" ,  "Background Data", RooArgList(*lepm), bkg );
@@ -302,13 +303,13 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
         // dataset->plotOn(xframe, RooFit::Name("toy_data"));
       }
       else           dataData->plotOn(xframe);
-      bkgPDF->plotOn(xframe, RooFit::Name(bkgPDF->GetName()), RooFit::LineColor(kBlue), RooFit::Range("FullRange"));
+      double chi_sq = get_chi_squared(*lepm, bkgPDF, *dataData, fitSideBands_);
+      bkgPDF->plotOn(xframe, RooFit::Name(bkgPDF->GetName()), RooFit::LineColor(kBlue), RooFit::NormRange("FullRange"), RooFit::Range("FullRange"));
 
-      double chi_sq = xframe->chiSquare() * nentries;
       TString name = bkgPDF->GetName();
       TString title = bkgPDF->GetTitle();
       int order = ((title(title.Sizeof() - 2)) - '0');
-      vector<int> colors = {kRed, kYellow, kViolet, kGreen, kOrange+2, kAtlantic};
+      vector<int> colors = {kRed, kYellow, kViolet, kGreen, kOrange+2, kAtlantic, kRed+2, kMagenta};
       vector<double> chi_sqs;
       chi_sqs.push_back(chi_sq / (nentries - order - 2));
 
@@ -318,11 +319,12 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
           auto pdf = multiPDF->getPdf(Form("index_%i", ipdf));
           name = pdf->GetName();
           title = pdf->GetTitle();
-          pdf->plotOn(xframe, RooFit::Name(pdf->GetName()), RooFit::LineColor(colors[ipdf % colors.size()]), RooFit::LineStyle(kDashed), RooFit::Range("FullRange"));
-          chi_sq = xframe->chiSquare() * nentries;
+          chi_sq = get_chi_squared(*lepm, pdf, *dataData, fitSideBands_);
+          pdf->plotOn(xframe, RooFit::Name(pdf->GetName()), RooFit::LineColor(colors[ipdf % colors.size()]), RooFit::LineStyle(kDashed),
+                      RooFit::NormRange("FullRange"), RooFit::Range("FullRange"));
           order = ((title(title.Sizeof() - 2)) - '0');
           if(title.Contains("Exponential")) order *= 2;
-          chi_sqs.push_back(chi_sq / (nentries - order - 2));
+          chi_sqs.push_back(chi_sq / (nentries - order - 1));
         }
       }
       xframe->Draw();
@@ -352,30 +354,44 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
       double norm = data->Integral(low_bin,high_bin);
       TH1D* dataDiff = (blindData_) ? (TH1D*) blindData->Clone("dataDiff") : (TH1D*) data->Clone("dataDiff");
       dataDiff->SetTitle("Data - Background Fit");
-      //First make a histogram of the PDF, due to normalization issues
-      for(int ibin = low_bin; ibin <= high_bin; ++ibin) {
-        double x = dataDiff->GetBinCenter(ibin);
-        lepm->setVal(x);
-        dataDiff->SetBinContent(ibin, bkgPDF->getVal());
-      }
-      norm /= dataDiff->Integral(low_bin, high_bin);
-      dataDiff->Scale(norm); //set the norms equal
       vector<TH1D*> pdfDiffs;
       for(int ipdf = 0; ipdf < categories->numTypes(); ++ipdf) {
         if(ipdf == index) {
           continue;
         }
         pdfDiffs.push_back((TH1D*) dataDiff->Clone(Form("hPdfDiff_%i", ipdf)));
-        auto pdf = multiPDF->getPdf(Form("index_%i", ipdf));
       }
-      // TH1D* hBkgPDF = (TH1D*) dataDiff->Clone("hBkgPDF");
+      //First make a histogram of the PDF, due to normalization issues
       for(int ibin = low_bin; ibin <= high_bin; ++ibin) {
         double x = dataDiff->GetBinCenter(ibin);
         lepm->setVal(x);
+        dataDiff->SetBinContent(ibin, bkgPDF->getVal());
+        for(int ipdf = 0; ipdf < categories->numTypes(); ++ipdf) {
+          if(ipdf == index) {
+            continue;
+          }
+          TH1D* hPDFDiff = pdfDiffs[ipdf - (ipdf > index)];
+          auto pdf = multiPDF->getPdf(Form("index_%i", ipdf));
+          hPDFDiff->SetBinContent(ibin, pdf->getVal());
+        }
+      }
+      dataDiff->Scale(norm/dataDiff->Integral(low_bin, high_bin)); //set the norms equal
+      for(int ipdf = 0; ipdf < categories->numTypes(); ++ipdf) {
+        if(ipdf == index) {
+          continue;
+        }
+        TH1D* hPDFDiff = pdfDiffs[ipdf - (ipdf > index)];
+        hPDFDiff->Scale(norm/hPDFDiff->Integral(low_bin, high_bin));
+      }
+
+      for(int ibin = low_bin; ibin <= high_bin; ++ibin) {
+        double x = dataDiff->GetBinCenter(ibin);
+        lepm->setVal(x);
+        double val = dataDiff->GetBinContent(ibin);
         if((blindData_ && x > blind_min && x < blind_max) || (data->GetBinContent(ibin) < 1)) {
           dataDiff->SetBinContent(ibin, 0.);
         } else {
-          dataDiff->SetBinContent(ibin, data->GetBinContent(ibin) - dataDiff->GetBinContent(ibin));
+          dataDiff->SetBinContent(ibin, data->GetBinContent(ibin) - val);
           dataDiff->SetBinError(ibin, data->GetBinError(ibin));
         }
         for(int ipdf = 0; ipdf < categories->numTypes(); ++ipdf) {
@@ -384,7 +400,7 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
           }
           TH1D* hPDFDiff = pdfDiffs[ipdf - (ipdf > index)];
           auto pdf = multiPDF->getPdf(Form("index_%i", ipdf));
-          hPDFDiff->SetBinContent(ibin, norm*(pdf->getVal() - bkgPDF->getVal()));
+          hPDFDiff->SetBinContent(ibin, hPDFDiff->GetBinContent(ibin) - val);
           hPDFDiff->SetBinError(ibin,0.);
         }
       }
@@ -392,19 +408,19 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
 
       //Draw difference histogram
       dataDiff->Draw("E1");
-      dataDiff->GetXaxis()->SetRangeUser(xmin, xmax);
+      dataDiff->GetXaxis()->SetRangeUser(xmin+1.e-3, xmax-1.e-3);
       TLine* line = new TLine(xmin, 0., xmax, 0.);
       line->SetLineColor(kBlue);
       line->SetLineWidth(2);
       line->Draw("same");
-      // for(int ipdf = 0; ipdf < categories->numTypes(); ++ipdf) {
-      //   if(ipdf == index) {
-      //     continue;
-      //   }
-      //   TH1D* hPDFDiff = pdfDiffs[ipdf - (ipdf > index)];
-      //   hPDFDiff->SetLineColor(colors[ipdf % colors.size()]);
-      //   hPDFDiff->Draw("same hist");
-      // }
+      for(int ipdf = 0; ipdf < categories->numTypes(); ++ipdf) {
+        if(ipdf == index) {
+          continue;
+        }
+        TH1D* hPDFDiff = pdfDiffs[ipdf - (ipdf > index)];
+        hPDFDiff->SetLineColor(colors[ipdf % colors.size()]);
+        hPDFDiff->Draw("same hist");
+      }
       //print the results
       c->SaveAs(Form("plots/latest_production/%s/convert_bemu_%s_%i_bkg_pdfs.png", year_string.Data(), selection.Data(), set));
       delete xframe;
