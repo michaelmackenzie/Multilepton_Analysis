@@ -13,6 +13,7 @@ bool useSameFlavor_ = true;
 bool includeSys_ = true;
 bool printPlots_ = true;
 bool fitSideBands_ = true;
+bool export_ = true; //if locally run, export the workspace to LPC
 
 //Retrieve yields for each relevant systematic
 void get_systematics(TFile* f, TString label, int set, vector<double>& yields, vector<TString>& names, double xmin = 1., double xmax = -1.) {
@@ -675,6 +676,13 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
   }
   if(useMultiDim_) {
     gSystem->Exec(Form("echo \"%s \n\">> %s", cats.Data(), filepath.Data()));
+  }
+
+  if(export_ && !gSystem->Getenv("HOSTNAME").Contains("cmslpc")) {
+    TString outpath = "mmackenz@cmslpc140.fnal.gov:/uscms/home/mmackenz/nobackup/ZEMu/CMSSW_10_2_18/src/CLFVAnalysis/Roostats/imports/";
+    outpath += Form("combine_%s_%s_%s.root", year_string.Data(), selection.Data(), set_string.Data());
+    cout << "Exporting file " << filepath.Data() << " to " << outpath.Data() << endl;
+    gSystem->Exec(Form("scp %s %s", filepath.Data(), outpath.Data()));
   }
 
   return status;
