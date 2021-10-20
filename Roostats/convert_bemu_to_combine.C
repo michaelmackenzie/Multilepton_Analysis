@@ -678,9 +678,12 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
     gSystem->Exec(Form("echo \"%s \n\">> %s", cats.Data(), filepath.Data()));
   }
 
-  if(export_ && !gSystem->Getenv("HOSTNAME").Contains("cmslpc")) {
+  if(export_ && !TString(gSystem->Getenv("HOSTNAME")).Contains("cmslpc")) {
     TString outpath = "mmackenz@cmslpc140.fnal.gov:/uscms/home/mmackenz/nobackup/ZEMu/CMSSW_10_2_18/src/CLFVAnalysis/Roostats/imports/";
     outpath += Form("combine_%s_%s_%s.root", year_string.Data(), selection.Data(), set_string.Data());
+    cout << "Exporting file " << fOut->GetName() << " to " << outpath.Data() << endl;
+    gSystem->Exec(Form("scp %s %s", fOut->GetName(), outpath.Data()));
+    outpath.ReplaceAll(".root", ".txt");
     cout << "Exporting file " << filepath.Data() << " to " << outpath.Data() << endl;
     gSystem->Exec(Form("scp %s %s", filepath.Data(), outpath.Data()));
   }

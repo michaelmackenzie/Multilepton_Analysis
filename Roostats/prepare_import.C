@@ -16,5 +16,10 @@ Int_t prepare_import(vector<int> sets = {8}, TString selection = "zemu",
   TString infile = Form("imports/combine_%s_%s_%s.root", year_string.Data(), selection.Data(), set_string.Data());
   TString outfile = Form("datacards/%s/combine_%s_%s.root", year_string.Data(), selection.Data(), set_string.Data());
 
-  return convert_simultaneous_to_multipdf(infile, outfile);
+  int status = convert_simultaneous_to_multipdf(infile, outfile);
+  if(!status) return status;
+  infile.ReplaceAll(".root", ".txt");
+  outfile.ReplaceAll(".root", ".txt");
+  gSystem->Exec(Form("cp %s %s", infile.Data(), outfile.Data()));
+  return 0;
 }
