@@ -53,6 +53,7 @@
 #include "interface/BTagWeight.hh"
 #include "interface/ZPtWeight.hh"
 #include "interface/EmbeddingWeight.hh"
+#include "interface/EmbeddingTnPWeight.hh"
 #include "interface/TauIDWeight.hh"
 //define Jet->tau weights locally
 #include "interface/JetToTauWeight.hh"
@@ -139,6 +140,8 @@ namespace CLFV {
     Float_t tauVetoedJetPtUnc          ;
     TLorentzVector* leptonOneP4 = 0    ;
     TLorentzVector* leptonTwoP4 = 0    ;
+    Float_t leptonOneSCEta = -999      ;
+    Float_t leptonTwoSCEta = -999      ;
     Int_t leptonOneFlavor              ;
     Int_t leptonTwoFlavor              ;
     Int_t leptonOneGenFlavor           ;
@@ -264,6 +267,7 @@ namespace CLFV {
     UChar_t leptonsIsoID[kMaxParticles];
     UChar_t leptonsTriggered[kMaxParticles];
     UChar_t leptonsGenFlavor[kMaxParticles];
+    Int_t  nGenTaus = 0                ; // counting from gen part list matched to electroweak process in skimming stage
     UInt_t nGenTausHad                 ;
     UInt_t nGenTausLep                 ;
     UInt_t nGenElectrons               ;
@@ -444,13 +448,22 @@ namespace CLFV {
                                                             fElectronJetToTauWeight("ElectronWeight", "etau", 31, 1000100, seed),
                                                             fElectronJetToTauComp("etau", 2035, 102, 0), fElectronJetToTauSSComp("etau", 3035, 102, 0),
                                                             fJetToMuonWeight("mumu"), fJetToElectronWeight("ee"),
-                                                            fQCDWeight("emu", 11010, seed, 2), fElectronIDWeight(1, seed, 0), fZPtWeight("MuMu", seed) { }
+                                                            fQCDWeight("emu", 11010, seed, 2), fElectronIDWeight(1, seed, 0), fZPtWeight("MuMu", seed),
+                                                            fEmbeddingWeight(), fEmbeddingTnPWeight(1/*interpolate scales or not*/) {}
     ~ZTauTauHistMaker() {
+      delete fCutFlow;
       for(int proc = 0; proc < JetToTauComposition::kLast; ++proc) {
         delete fMuonJetToTauWeights[proc];
         delete fElectronJetToTauWeights[proc];
       }
+      DeleteHistograms();
+
+      delete fTauIDWeight;
       delete fSystematicShifts;
+      delete fEventId[20];
+      delete fEventId[21];
+      delete fEventId[50];
+      delete fRnd;
     }
     virtual Int_t   Version() const { return 2; }
     virtual void    Begin(TTree *tree);
@@ -473,6 +486,7 @@ namespace CLFV {
     virtual void    BookLepHistograms();
     virtual void    BookSystematicHistograms();
     virtual void    BookTrees();
+    virtual void    DeleteHistograms();
     virtual void    FillEventHistogram(EventHist_t* Hist);
     virtual void    FillPhotonHistogram(PhotonHist_t* Hist);
     virtual void    FillLepHistogram(LepHist_t* Hist);
@@ -535,6 +549,7 @@ namespace CLFV {
     LepHist_t*      fLepHist[fn];
     SystematicHist_t* fSystematicHist[fn];
     TTree*          fTrees[fn];
+    TH1D*           fCutFlow; //cut-flow
 
     TEventID*       fEventId[kIds]; //for applying box cuts, 0-9 zmutau, 10-19 zetau, 20-29 zemu, higgs + 30 to z sets
 
@@ -570,6 +585,7 @@ namespace CLFV {
     Int_t           fIsData = 0; //0 if MC, 1 if electron data, 2 if muon data
     Int_t           fIsEmbed = 0; //whether or not this is an embeded sample
     Int_t           fUseEmbedCuts = 0; //whether or not to use the kinematic restrictions for embedded sample generation
+    Int_t           fUseEmbedTnPWeights = 1; //whether or not to use the locally calculated lepton ID/trigger weights
     bool            fSkipDoubleTrigger = false; //skip events with both triggers (to avoid double counting), only count this lepton status events
     Int_t           fMETWeights = 0; //re-weight events based on the MET
     Int_t           fUseMCEstimatedFakeLep = 0;
@@ -612,6 +628,7 @@ namespace CLFV {
     Int_t           fRemoveZPtWeights = 0; // 0 use given weights, 1 remove z pT weight, 2 remove and re-evaluate weights locally
     ZPtWeight       fZPtWeight; //re-weight Drell-Yan pT vs Mass
     EmbeddingWeight fEmbeddingWeight; //correct di-muon embedding selection unfolding
+    EmbeddingTnPWeight fEmbeddingTnPWeight; //correct lepton ID/trigger efficiencies in embedding simulation
     Int_t           fEmbeddedTesting = 0; //play with embedding configurations/weights
     TauIDWeight*    fTauIDWeight; //tau ID/ES corrections
 
@@ -682,6 +699,8 @@ void ZTauTauHistMaker::Init(TTree *tree)
       tree->SetBranchStatus("embeddingWeight"     , 1);
       tree->SetBranchStatus("leptonOneP4"         , 1);
       tree->SetBranchStatus("leptonTwoP4"         , 1);
+      tree->SetBranchStatus("leptonOneSCEta"      , 1);
+      tree->SetBranchStatus("leptonTwoSCEta"      , 1);
       tree->SetBranchStatus("leptonOneFlavor"     , 1);
       tree->SetBranchStatus("leptonTwoFlavor"     , 1);
       tree->SetBranchStatus("leptonOneGenFlavor"  , 1);
@@ -766,6 +785,7 @@ void ZTauTauHistMaker::Init(TTree *tree)
       tree->SetBranchStatus("leptonsIsoID"        , 1);
       tree->SetBranchStatus("leptonsTriggered"    , 1);
       tree->SetBranchStatus("leptonsGenFlavor"    , 1);
+      tree->SetBranchStatus("nGenTaus"            , 1);
       tree->SetBranchStatus("nGenTausHad"         , 1);
       tree->SetBranchStatus("nGenTausLep"         , 1);
       tree->SetBranchStatus("nGenElectrons"       , 1);
@@ -958,10 +978,9 @@ void ZTauTauHistMaker::Init(TTree *tree)
     }
     else if(fFolderName == "emu") {
       fEventSets [kEMu  + 1] = 1; // all events
-      fEventSets [kEMu  + 2] = 1; // events with >= 1 photon
-
-      fEventSets [kEMu  + 3] = 1;
-      fEventSets [kEMu  + 4] = 1;
+      fEventSets [kEMu  + 2] = 1; // after pT cuts
+      fEventSets [kEMu  + 3] = 1; // after eta, mass, trigger cuts
+      fEventSets [kEMu  + 4] = 1; // after additional IDs
 
       // fEventSets [kEMu  + 5] = 1;
       // fEventSets [kEMu  + 6] = 1;
@@ -980,24 +999,26 @@ void ZTauTauHistMaker::Init(TTree *tree)
 
       // fEventSets [kEMu  + 20] = 1; //
       // fEventSets [kEMu  + 21] = 1; //
-      fEventSets [kEMu  + 22] = 1; // events with nJets = 0
+      // fEventSets [kEMu  + 22] = 1; // events with nJets = 0
       // fSysSets   [kEMu  + 22] = 1;
-      fEventSets [kEMu  + 23] = 1; // events with nJets > 0
+      // fEventSets [kEMu  + 23] = 1; // events with nJets > 0
       // fSysSets   [kEMu  + 23] = 1;
 
       fEventSets [kEMu  + 24] = 1; // events within mass window
       fEventSets [kEMu  + 25] = 1; // events within mass window
 
-      fEventSets [kEMu  + 26] = 1; // events top set
-      fEventSets [kEMu  + 27] = 1;
+      // fEventSets [kEMu  + 26] = 1; // events top set
+      // fEventSets [kEMu  + 27] = 1;
       // fEventSets [kEMu  + 28] = 1;
       // fEventSets [kEMu  + 29] = 1;
+
+      fEventSets [kEMu  + 32] = 1; // > 0 b-jets (top selection)
 
       // fEventSets [kEMu  + 34] = 1;
       fEventSets [kEMu  + 35] = 1;
       // fEventSets [kEMu  + 36] = 1;
-      fEventSets [kEMu  + 45] = 1; //taus in the barrel, but put all e+mu here
-      fEventSets [kEMu  + 46] = 1; //taus in the endcap, but put no e+mu here
+      // fEventSets [kEMu  + 45] = 1; //taus in the barrel, but put all e+mu here
+      // fEventSets [kEMu  + 46] = 1; //taus in the endcap, but put no e+mu here
     }
     else if(fFolderName == "mumu") {
       fEventSets [kMuMu + 1] = 1; // all events
@@ -1151,6 +1172,8 @@ void ZTauTauHistMaker::Init(TTree *tree)
   }
   fChain->SetBranchAddress("leptonOneP4"         , &leptonOneP4          );
   fChain->SetBranchAddress("leptonTwoP4"         , &leptonTwoP4          );
+  fChain->SetBranchAddress("leptonOneSCEta"      , &leptonOneSCEta       );
+  fChain->SetBranchAddress("leptonTwoSCEta"      , &leptonTwoSCEta       );
   fChain->SetBranchAddress("leptonOneFlavor"     , &leptonOneFlavor      );
   fChain->SetBranchAddress("leptonTwoFlavor"     , &leptonTwoFlavor      );
   fChain->SetBranchAddress("leptonOneGenFlavor"  , &leptonOneGenFlavor   );
@@ -1248,6 +1271,7 @@ void ZTauTauHistMaker::Init(TTree *tree)
   fChain->SetBranchAddress("nBJets20"            , &nBJets20             );
   fChain->SetBranchAddress("nBJets20M"           , &nBJets20M            );
   fChain->SetBranchAddress("nBJets20L"           , &nBJets20L            );
+  fChain->SetBranchAddress("nGenTaus"            , &nGenTaus             );
   fChain->SetBranchAddress("nGenTausHad"         , &nGenTausHad          );
   fChain->SetBranchAddress("nGenTausLep"         , &nGenTausLep          );
   fChain->SetBranchAddress("nGenElectrons"       , &nGenElectrons        );

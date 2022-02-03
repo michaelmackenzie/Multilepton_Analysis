@@ -1,0 +1,18 @@
+Unix.*.Root.MacroPath:.:$(CMSSW_BASE)/CLFVAnalysis/rootScripts:$(CMSSW_BASE)/scale_factors:~/root_macros:$(ROOTSYS)/tutorials
+
+Unix*.Root.DynamicPath:.:~/rootlibs:$(LD_LIBRARY_PATH)
+Root.Html.OutputDir:.
+Root.Html.SourceDir:.:$(ROOTSYS)/src
+#
+#  next line tells ROOT to use rootlogon.C macro from the 
+#  current directory and not any of the default ones
+#
+Rint.Logon:          $(PWD)/rootlogon.C
+Rint.Logoff:
+
+# Root.MemStat:  1
+Root.ObjectStat:  1
+#
+# Gui.IconPath:  $(PWD)/Stntuple/icons
+# Record session commands, set to "-" to turn off command recording
+Rint.History:            $(PWD)/.root_hist

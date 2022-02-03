@@ -20,8 +20,8 @@ namespace CLFV {
 
   class ParticleCorrections {
   public :
-    ParticleCorrections() : ParticleCorrections(kTightMuIso) {}
-    ParticleCorrections(int muIsoLevel) {
+    ParticleCorrections(bool isEmbed) : ParticleCorrections(isEmbed, kTightMuIso) {}
+    ParticleCorrections(bool isEmbed, int muIsoLevel) : isEmbed_(isEmbed) {
       fRnd = new TRandom3(90);
       typedef std::pair<TString,TString> fpair;
       std::map<int, fpair> muonIDFileNames;
@@ -436,6 +436,7 @@ namespace CLFV {
       ElectronWeight(pt, eta, era, trig, wt1, up, down, ibin, wt2, up2, down2, ibin2);
       return wt1*wt2;
     }
+    double ElectronEnergyScale(double pt, double eta, int year, float& up, float& down);
     virtual double ElectronTriggerEff(double pt, double eta, int era, float& data_eff, float& mc_eff);
 
     virtual double TauWeight(double pt, double eta, int genID, UChar_t antiJet, int era, float& up, float& down, int& ibin);
@@ -468,6 +469,7 @@ namespace CLFV {
 
     Int_t   fVerbose = 0; //control the verbosity
   public:
+    bool isEmbed_;
     //muon corrections
     std::map<int, TH2F*> muonIDMap;
     std::map<int, TH2F*> muonIsoMap;

@@ -49,36 +49,129 @@ namespace CLFV {
       values_["QCDDoubleEMEnrich30toInf"][2016] = 247000.;
       values_["QCDDoubleEMEnrich40toInf"][2016] = 113100.;
 
+      //////////////////////////////////////////////////////////////////////////////////
       //Scale factors for embedding due to inefficiencies in processing
-      values_["Embed-EMu-B"][2016] = 1.0738;
-      values_["Embed-EMu-C"][2016] = 1.0518;
-      values_["Embed-EMu-D"][2016] = 1.0076;
-      values_["Embed-EMu-E"][2016] = 1.1195;
-      values_["Embed-EMu-F"][2016] = 1.1809;
-      values_["Embed-EMu-G"][2016] = 1.1145;
-      values_["Embed-EMu-H"][2016] = 1.1002;
 
-      values_["Embed-ETau-B"][2016] = 1.1195;
-      values_["Embed-ETau-C"][2016] = 1.1236;
+      //2016
+      values_["Embed-EMu-B"][2016] = 1.0500;
+      values_["Embed-EMu-C"][2016] = 1.0384;
+      values_["Embed-EMu-D"][2016] = 1.0000;
+      values_["Embed-EMu-E"][2016] = 1.1195;
+      values_["Embed-EMu-F"][2016] = 1.1512;
+      values_["Embed-EMu-G"][2016] = 1.0869;
+      values_["Embed-EMu-H"][2016] = 1.1368;
+
+      values_["Embed-ETau-B"][2016] = 1.0630;
+      values_["Embed-ETau-C"][2016] = 1.0001;
       values_["Embed-ETau-D"][2016] = 1.0002;
-      values_["Embed-ETau-E"][2016] = 1.0798;
-      values_["Embed-ETau-F"][2016] = 1.2075;
-      values_["Embed-ETau-G"][2016] = 1.1088;
+      values_["Embed-ETau-E"][2016] = 1.1017;
+      values_["Embed-ETau-F"][2016] = 1.1401;
+      values_["Embed-ETau-G"][2016] = 1.1246;
       values_["Embed-ETau-H"][2016] = 1.1758;
 
-      values_["Embed-MuTau-B"][2016] = 1.1266;
-      values_["Embed-MuTau-C"][2016] = 1.2147;
-      values_["Embed-MuTau-D"][2016] = 1.0259;
-      values_["Embed-MuTau-E"][2016] = 1.1810;
-      values_["Embed-MuTau-F"][2016] = 1.1244;
-      values_["Embed-MuTau-G"][2016] = 1.1694;
-      values_["Embed-MuTau-H"][2016] = 1.1369;
+      values_["Embed-MuTau-B"][2016] = 1.0833;
+      values_["Embed-MuTau-C"][2016] = 1.2368;
+      values_["Embed-MuTau-D"][2016] = 1.0171;
+      values_["Embed-MuTau-E"][2016] = 1.1940;
+      values_["Embed-MuTau-F"][2016] = 1.1564;
+      values_["Embed-MuTau-G"][2016] = 1.1467;
+      values_["Embed-MuTau-H"][2016] = 1.1323;
 
-      // *** ElMu : Total Mini / Nano = 29697000/27193414 = 1.0920
-      // *** ElTau: Total Mini / Nano = 26477000/23673882 = 1.1184
-      // *** MuTau: Total Mini / Nano = 26367000/23198322 = 1.1365
+      values_["Embed-MuMu-B"][2016]  = 1.0657;
+      values_["Embed-MuMu-C"][2016]  = 1.0195;
+      values_["Embed-MuMu-D"][2016]  = 1.0178;
+      values_["Embed-MuMu-E"][2016]  = 1.0573;
+      values_["Embed-MuMu-F"][2016]  = 1.1227;
+      values_["Embed-MuMu-G"][2016]  = 1.0557;
+      values_["Embed-MuMu-H"][2016]  = 1.0611;
 
-      //signals
+      values_["Embed-ElEl-B"][2016]  = 1.0280;
+      values_["Embed-ElEl-C"][2016]  = 1.0329;
+      values_["Embed-ElEl-D"][2016]  = 1.0198;
+      values_["Embed-ElEl-E"][2016]  = 1.0517;
+      values_["Embed-ElEl-F"][2016]  = 1.0390;
+      values_["Embed-ElEl-G"][2016]  = 1.1005;
+      values_["Embed-ElEl-H"][2016]  = 1.0498;
+
+      // *** Total 2016 ElMu : Total Mini / Nano = 29697000/27318414 = 1.0870
+      // *** Total 2016 ElTau: Total Mini / Nano = 26477000/24049075 = 1.1009
+      // *** Total 2016 MuTau: Total Mini / Nano = 26367000/23397800 = 1.1269
+      // *** Total 2016 MuMu : Total Mini / Nano = 38448000/36381476 = 1.0568
+      // *** Total 2016 ElEl : Total Mini / Nano = 34637000/32933414 = 1.0517
+
+      //2017
+      values_["Embed-EMu-B"][2017] = 2.0244;
+      values_["Embed-EMu-C"][2017] = 4.5268;
+      values_["Embed-EMu-D"][2017] = 1.1387;
+      values_["Embed-EMu-E"][2017] = 2.6201;
+      values_["Embed-EMu-F"][2017] = 6.0306;
+
+      values_["Embed-ETau-B"][2017] = 2.4139;
+      values_["Embed-ETau-C"][2017] = 3.2928;
+      values_["Embed-ETau-D"][2017] = 1.0589;
+      values_["Embed-ETau-E"][2017] = 2.4626;
+      values_["Embed-ETau-F"][2017] = 4.1141;
+
+      values_["Embed-MuTau-B"][2017] = 2.2020;
+      values_["Embed-MuTau-C"][2017] = 5.0035;
+      values_["Embed-MuTau-D"][2017] = 1.1480;
+      values_["Embed-MuTau-E"][2017] = 2.7259;
+      values_["Embed-MuTau-F"][2017] = 5.6159;
+
+      values_["Embed-MuMu-B"][2017]  = 1.9039;
+      values_["Embed-MuMu-C"][2017]  = 3.2283;
+      values_["Embed-MuMu-D"][2017]  = 1.3284;
+      values_["Embed-MuMu-E"][2017]  = 2.8647;
+      values_["Embed-MuMu-F"][2017]  = 6.8001;
+
+      values_["Embed-ElEl-B"][2017]  = 1.5825;
+      values_["Embed-ElEl-C"][2017]  = 2.7471;
+      values_["Embed-ElEl-D"][2017]  = 1.1859;
+      values_["Embed-ElEl-E"][2017]  = 2.5760;
+      values_["Embed-ElEl-F"][2017]  = 5.4018;
+
+
+      // *** Total 2017 ElMu  Mini / Nano = 37713920/12833285 = 2.9387
+      // *** Total 2017 ElTau Mini / Nano = 32788982/12741595 = 2.5733
+      // *** Total 2017 MuTau Mini / Nano = 34683979/11470240 = 3.0238
+      // *** Total 2017 MuMu  Mini / Nano = 64519124/21647343 = 2.9804
+      // *** Total 2017 ElEl  Mini / Nano = 45398261/17827258 = 2.5465
+
+      //2018
+      values_["Embed-EMu-A"][2018] = 1.0832;
+      values_["Embed-EMu-B"][2018] = 1.0118;
+      values_["Embed-EMu-C"][2018] = 1.1415;
+      values_["Embed-EMu-D"][2018] = 4.6364;
+
+      values_["Embed-ETau-A"][2018] = 1.1062;
+      values_["Embed-ETau-B"][2018] = 1.2357;
+      values_["Embed-ETau-C"][2018] = 1.1306;
+      values_["Embed-ETau-D"][2018] = 2.4541;
+
+      values_["Embed-MuTau-A"][2018] = 1.0764;
+      values_["Embed-MuTau-B"][2018] = 1.0591;
+      values_["Embed-MuTau-C"][2018] = 1.0022;
+      values_["Embed-MuTau-D"][2018] = 2.7302;
+
+      values_["Embed-MuMu-A"][2018]  = 1.1174;
+      values_["Embed-MuMu-B"][2018]  = 1.2995;
+      values_["Embed-MuMu-C"][2018]  = 1.0580;
+      values_["Embed-MuMu-D"][2018]  = 7.5245;
+
+      values_["Embed-ElEl-A"][2018]  = 1.2749;
+      values_["Embed-ElEl-B"][2018]  = 1.0317;
+      values_["Embed-ElEl-C"][2018]  = 1.0151;
+      values_["Embed-ElEl-D"][2018]  = 2.8849;
+
+      // --- Total 2018 ElMu  Mini / Nano = 55484067/30962759 = 1.7919
+      // --- Total 2018 ElTau Mini / Nano = 48434386/30515756 = 1.5871
+      // --- Total 2018 MuTau Mini / Nano = 48428591/31170318 = 1.5536
+      // --- Total 2018 MuMu  Mini / Nano = 78733782/39175846 = 2.0097
+      // --- Total 2018 ElEl  Mini / Nano = 59254929/35680605 = 1.6607
+
+      ////////////////////////////////////////////////////////////
+      // Signal example branching fractions
+
       //normalized to example branching fractions
       values_["ZEMu"  ][2016] = zxs*5e-7;   //PDG: 7.5e-7 ATLAS: 7.5e-7 CMS: 7.3e-7
       values_["ZETau" ][2016] = zxs*5e-6; //PDG: 9.8e-6 ATLAS: 8.1e-6 (13 TeV)
@@ -139,10 +232,16 @@ namespace CLFV {
     double GetCrossSection(TString name, int year = 2016) {
       double xsec(1.);
       auto itr = values_.find(name);
-      if(itr != values_.end())
-        xsec = itr->second[year];
-      else
+      if(itr != values_.end()) {
+        auto itr_2 = itr->second.find(year);
+        if(itr_2 != itr->second.end()) {
+          xsec = itr->second[year];
+        } else {
+          std::cout << "Cross section for year " << year << " for sample " << name.Data() << " not found! Returning 1...\n";
+        }
+      } else {
         std::cout << "Cross section for " << name.Data() << " not found! Returning 1...\n";
+      }
       return xsec;
     }
 

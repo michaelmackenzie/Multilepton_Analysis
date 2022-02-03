@@ -76,7 +76,7 @@ namespace CLFV {
       }
     }
 
-    ~PUWeight() { for(unsigned i = 0; i < files_.size(); ++i) delete files_[i]; }
+    ~PUWeight() { for(unsigned i = 0; i < files_.size(); ++i) files_[i]->Close(); }
 
     float GetWeight(float nint, int year) {
       float weight(1.), ndata(1.), nmc(1.);

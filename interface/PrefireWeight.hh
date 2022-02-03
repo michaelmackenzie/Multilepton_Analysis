@@ -33,7 +33,7 @@ namespace CLFV {
       }
     }
 
-    ~PrefireWeight() { for(unsigned i = 0; i < files_.size(); ++i) delete files_[i]; }
+    ~PrefireWeight() { for(unsigned i = 0; i < files_.size(); ++i) files_[i]->Close(); }
 
     float GetProbability(int year, float jetpt, float jeteta) {
       float prob(0.);

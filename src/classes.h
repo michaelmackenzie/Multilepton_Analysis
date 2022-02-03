@@ -9,6 +9,7 @@
 #include "interface/SystematicHist_t.hh"
 #include "interface/CrossSections.hh"
 #include "interface/Significances.hh"
+#include "interface/Utilities.hh"
 #include "interface/CreateCategories.hh"
 #include "interface/BTagWeight.hh"
 #include "interface/PUWeight.hh"
@@ -20,6 +21,7 @@
 #include "interface/MuonIDWeight.hh"
 #include "interface/ZPtWeight.hh"
 #include "interface/EmbeddingWeight.hh"
+#include "interface/EmbeddingTnPWeight.hh"
 #include "interface/TauIDWeight.hh"
 #include "interface/ElectronIDWeight.hh"
 #include "interface/SlimObject_t.hh"
@@ -44,6 +46,7 @@ namespace CLFV {
     Tree_t dummy1;
     CrossSections dummy2;
     Significances dummy3;
+    Utilities dummy3a;
     CreateCategories dummy3b;
     BTagWeight dummy4;
     PUWeight dummy5;
@@ -55,6 +58,7 @@ namespace CLFV {
     MuonIDWeight dummy6c;
     ZPtWeight dummy6d;
     EmbeddingWeight dummy6e;
+    EmbeddingTnPWeight dummy6e2;
     TauIDWeight dummy6f;
     SlimObject_t dummy7;
     SlimElectron_t dummy8;

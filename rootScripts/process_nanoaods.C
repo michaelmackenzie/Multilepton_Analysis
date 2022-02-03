@@ -73,27 +73,27 @@ Int_t process_nanoaods() {
   cards.push_back(datacard_t(false, "dataprocess/LFVAnalysis_SingleMu_2016.root"                   , 0.));
 
   //Embedding cards
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_Embed-MuTau-B_2016.root"           , 0.));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_Embed-MuTau-C_2016.root"           , 0.));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_Embed-MuTau-D_2016.root"           , 0.));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_Embed-MuTau-E_2016.root"           , 0.));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_Embed-MuTau-F_2016.root"           , 0.));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_Embed-MuTau-G_2016.root"           , 0.));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_Embed-MuTau-H_2016.root"           , 0.));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_Embed-ETau-B_2016.root"            , 0.));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_Embed-ETau-C_2016.root"            , 0.));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_Embed-ETau-D_2016.root"            , 0.));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_Embed-ETau-E_2016.root"            , 0.));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_Embed-ETau-F_2016.root"            , 0.));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_Embed-ETau-G_2016.root"            , 0.));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_Embed-ETau-H_2016.root"            , 0.));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_Embed-EMu-B_2016.root"             , 0.));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_Embed-EMu-C_2016.root"             , 0.));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_Embed-EMu-D_2016.root"             , 0.));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_Embed-EMu-E_2016.root"             , 0.));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_Embed-EMu-F_2016.root"             , 0.));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_Embed-EMu-G_2016.root"             , 0.));
-  cards.push_back(datacard_t(true , "MC/backgrounds/LFVAnalysis_Embed-EMu-H_2016.root"             , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Embed-MuTau-B_2016.root"           , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Embed-MuTau-C_2016.root"           , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Embed-MuTau-D_2016.root"           , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Embed-MuTau-E_2016.root"           , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Embed-MuTau-F_2016.root"           , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Embed-MuTau-G_2016.root"           , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Embed-MuTau-H_2016.root"           , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Embed-ETau-B_2016.root"            , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Embed-ETau-C_2016.root"            , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Embed-ETau-D_2016.root"            , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Embed-ETau-E_2016.root"            , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Embed-ETau-F_2016.root"            , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Embed-ETau-G_2016.root"            , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Embed-ETau-H_2016.root"            , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Embed-EMu-B_2016.root"             , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Embed-EMu-C_2016.root"             , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Embed-EMu-D_2016.root"             , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Embed-EMu-E_2016.root"             , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Embed-EMu-F_2016.root"             , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Embed-EMu-G_2016.root"             , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Embed-EMu-H_2016.root"             , 0.));
 
   // cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_DY50_2016.root"                    , 0));
   // cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_DY50-ext_2016.root"                , 0));
@@ -137,6 +137,23 @@ Int_t process_nanoaods() {
   cards.push_back(datacard_t(false, "dataprocess/LFVAnalysis_SingleEle_2017.root"                  , 0.));
   cards.push_back(datacard_t(false, "dataprocess/LFVAnalysis_SingleMu_2017.root"                   , 0.));
 
+  //Embedding cards
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Embed-MuTau-B_2017.root"           , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Embed-MuTau-C_2017.root"           , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Embed-MuTau-D_2017.root"           , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Embed-MuTau-E_2017.root"           , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Embed-MuTau-F_2017.root"           , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Embed-ETau-B_2017.root"            , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Embed-ETau-C_2017.root"            , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Embed-ETau-D_2017.root"            , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Embed-ETau-E_2017.root"            , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Embed-ETau-F_2017.root"            , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Embed-EMu-B_2017.root"             , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Embed-EMu-C_2017.root"             , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Embed-EMu-D_2017.root"             , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Embed-EMu-E_2017.root"             , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Embed-EMu-F_2017.root"             , 0.));
+
   ////////////
   //  2018  //
   ////////////
@@ -169,6 +186,19 @@ Int_t process_nanoaods() {
   // cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_QCDDoubleEMEnrich30to40_2018.root" , 0.));
   // cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_DY50_2018.root"                    , 0.0004962));
 
+  //Embedding cards
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Embed-MuTau-A_2018.root"           , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Embed-MuTau-B_2018.root"           , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Embed-MuTau-C_2018.root"           , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Embed-MuTau-D_2018.root"           , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Embed-ETau-A_2018.root"            , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Embed-ETau-B_2018.root"            , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Embed-ETau-C_2018.root"            , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Embed-ETau-D_2018.root"            , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Embed-EMu-A_2018.root"             , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Embed-EMu-B_2018.root"             , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Embed-EMu-C_2018.root"             , 0.));
+  cards.push_back(datacard_t(false, "MC/backgrounds/LFVAnalysis_Embed-EMu-D_2018.root"             , 0.));
 
   for(unsigned index = 0; index < cards.size(); ++index) {
     if(debug_ && !cards[index].fname_.Contains(debugFile_.Data())) continue; //don't print other info in debug

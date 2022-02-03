@@ -242,7 +242,7 @@ namespace CLFV {
       }
     }
 
-    ~JetToTauWeight() { for(unsigned i = 0; i < files_.size(); ++i) delete files_[i]; }
+    ~JetToTauWeight() { for(unsigned i = 0; i < files_.size(); ++i) files_[i]->Close(); }
 
     //Get scale factor for Data
     float GetDataFactor(int DM, int year, float pt, float eta, float pt_lead, float deltar, float metdphi,

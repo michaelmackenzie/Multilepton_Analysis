@@ -5,6 +5,7 @@
   <class name="SystematicHist_t"/>
   <class name="CrossSections"/>
   <class name="Significances"/>
+  <class name="Utilities"/>
   <class name="CreateCategories"/>
   <class name="BTagWeight"/>
   <class name="PUWeight"/>
@@ -16,6 +17,7 @@
   <class name="MuonIDWeight"/>
   <class name="ZPtWeight"/>
   <class name="EmbeddingWeight"/>
+  <class name="EmbeddingTnPWeight"/>
   <class name="TauIDWeight"/>
   <class name="ElectronIDWeight"/>
   <class name="SlimObject_t"/>

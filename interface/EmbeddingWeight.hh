@@ -8,6 +8,7 @@
 #include "TFile.h"
 #include "TH2.h"
 #include "TF1.h"
+#include "TSystem.h"
 #include "TRandom3.h"
 #include "RooRealVar.h"
 #include "RooFormulaVar.h"
@@ -20,11 +21,11 @@ namespace CLFV {
       TFile* f = 0;
       rnd_ = new TRandom3(seed);
 
+      TString cmssw = gSystem->Getenv("CMSSW_BASE");
+      TString path = (cmssw == "") ? "../scale_factors" : cmssw + "/src/CLFVAnalysis/scale_factors";
       for(int year = k2016; year <= k2018; ++year) {
         //Get variables
-        f = TFile::Open(Form("../scale_factors/htt_scalefactors_legacy_%i.root", year + 2016), "READ");
-        if(!f)
-          f = TFile::Open(Form("scale_factors/htt_scalefactors_legacy_%i.root", year+2016), "READ");
+        f = TFile::Open(Form("%s/htt_scalefactors_legacy_%i.root", path.Data(), year + 2016), "READ");
         if(!f) {
           std::cout << "Embedding corrections file for " << year + 2016 << " not found!\n";
         } else {
@@ -41,15 +42,16 @@ namespace CLFV {
             genTauEta      [year][0] = (RooRealVar*) w->var("gt1_eta");
             genTauEta      [year][1] = (RooRealVar*) w->var("gt2_eta");
             genTauEta      [year][2] = (RooRealVar*) w->var("gt_eta");
-            muonTrig       [year][0] = (RooFormulaVar*) w->obj("m_trg_data");
-            muonTrig       [year][1] = (RooFormulaVar*) w->obj("m_trg_mc");
-            muonIso        [year]    = (RooFormulaVar*) w->obj("m_iso_ratio");
-            muonID         [year]    = (RooFormulaVar*) w->obj("m_id_ratio");
+            muonTrig       [year][0] = (RooFormulaVar*) w->obj((year == k2017) ? "m_trg27_kit_data"  : "m_trg_data");
+            muonTrig       [year][1] = (RooFormulaVar*) w->obj((year == k2017) ? "m_trg27_kit_embed" : "m_trg_mc");
+            muonIso        [year]    = (RooFormulaVar*) w->obj((year == k2017) ? "m_iso_binned_embed_kit_ratio" : "m_iso_ratio");
+            muonID         [year]    = (RooFormulaVar*) w->obj((year == k2017) ? "m_id_embed_kit_ratio" : "m_id_ratio");
             muonPt         [year]    = (RooRealVar*) w->var("m_pt");
             muonEta        [year]    = (RooRealVar*) w->var("m_eta");
-            electronTrig   [year][0] = (RooFormulaVar*) w->obj("e_trg_data");
-            electronTrig   [year][1] = (RooFormulaVar*) w->obj("e_trg_mc");
-            electronID     [year]    = (RooFormulaVar*) w->obj("e_id_ratio");
+            electronTrig   [year][0] = (RooFormulaVar*) w->obj((year == k2017) ? "e_trg32_kit_data"  : "e_trg_data");
+            electronTrig   [year][1] = (RooFormulaVar*) w->obj((year == k2017) ? "e_trg32_kit_embed" : "e_trg_mc");
+            electronID     [year]    = (RooFormulaVar*) w->obj((year == k2017) ? "e_id80_kit_ratio" : "e_id_ratio");
+            electronIso    [year]    = (RooFormulaVar*) w->obj((year == k2017) ? "e_iso_binned_embed_kit_ratio" : "e_iso_ratio"); //the KIT ID is without iso, so apply this as well
             electronPt     [year]    = (RooRealVar*) w->var("e_pt");
             electronEta    [year]    = (RooRealVar*) w->var("e_eta");
           }
@@ -58,7 +60,7 @@ namespace CLFV {
       }
     }
 
-    ~EmbeddingWeight() { for(unsigned i = 0; i < files_.size(); ++i) delete files_[i]; }
+    ~EmbeddingWeight() { for(unsigned i = 0; i < files_.size(); ++i) files_[i]->Close(); }
 
 
     double UnfoldingWeight(double pt_1, double eta_1, double pt_2, double eta_2, int year) {
@@ -142,6 +144,7 @@ namespace CLFV {
 
     double MuonTriggerWeight(double pt, double eta, int year, float& data_eff, float& mc_eff) {
       year -= 2016;
+      mc_eff = 0.5; data_eff = 0.5;
       if(year != k2016 && year != k2017 && year != k2018) {
         std::cout << "Warning! Undefined year in EmbeddingWeight::" << __func__ << ", returning 1" << std::endl;
         return 1.;
@@ -156,6 +159,16 @@ namespace CLFV {
       }
 
       ///////////////////////////
+      // Assert allowed ranges
+      ///////////////////////////
+
+      //not able to trigger
+      if((pt < 25. && year != k2017) || (pt < 28. && year == k2017)) {
+        return 1.;
+      }
+      eta = std::max(-2.39, std::min(2.39, eta));
+
+      ///////////////////////////
       // Get efficiencies
       ///////////////////////////
 
@@ -168,7 +181,8 @@ namespace CLFV {
       if(scale_factor <= 0. || data_eff <= 0. || mc_eff <= 0.) {
         std::cout << "Warning! Scale factor <= 0 in EmbeddingWeight::" << __func__
                   << ": data_eff = " << data_eff << " mc_eff = " << mc_eff
-                  << ", returning 1" << std::endl;
+                  << "; pt = " << pt << " eta = " << eta
+                  << "; returning 1" << std::endl;
         //0.5 is safest for efficiencies, so no 0/0 in eff/eff or (1-eff)/(1-eff)
         mc_eff = 0.5;
         data_eff = 0.5;
@@ -187,7 +201,7 @@ namespace CLFV {
         std::cout << "Error! EmbeddingWeight::" << __func__ << ": Electron variables not found!\n";
         return 1.;
       }
-      if(!electronID[year]) {
+      if(!electronID[year] || !electronIso[year]) {
         std::cout << "Error! EmbeddingWeight::" << __func__ << ": Weight functions not found!\n";
         return 1.;
       }
@@ -198,7 +212,7 @@ namespace CLFV {
 
       electronPt [year]->setVal(pt);
       electronEta[year]->setVal(eta);
-      double scale_factor(electronID[year]->evaluate());
+      double scale_factor(electronID[year]->evaluate() * electronIso[year]->evaluate());
 
       if(scale_factor <= 0.) {
         std::cout << "Warning! Scale factor <= 0 in EmbeddingWeight::" << __func__ << ", returning 1" << std::endl;
@@ -209,6 +223,7 @@ namespace CLFV {
 
     double ElectronTriggerWeight(double pt, double eta, int year, float& data_eff, float& mc_eff) {
       year -= 2016;
+      mc_eff = 0.5; data_eff = 0.5;
       if(year != k2016 && year != k2017 && year != k2018) {
         std::cout << "Warning! Undefined year in EmbeddingWeight::" << __func__ << ", returning 1" << std::endl;
         return 1.;
@@ -223,6 +238,16 @@ namespace CLFV {
       }
 
       ///////////////////////////
+      // Assert allowed ranges
+      ///////////////////////////
+
+      //not able to trigger
+      if((pt < 33. && year != k2016) || (pt < 28. && year == k2016)) {
+        return 1.;
+      }
+      eta = std::max(-2.49, std::min(2.49, eta));
+
+      ///////////////////////////
       // Get efficiencies
       ///////////////////////////
 
@@ -233,9 +258,10 @@ namespace CLFV {
       double scale_factor((mc_eff > 0.) ? data_eff / mc_eff : 1.);
 
       if(scale_factor <= 0. || data_eff <= 0. || mc_eff <= 0.) {
-        std::cout << "Warning! Scale factor <= 0 in EmbeddingWeight::" << __func__
+        std::cout << "Warning! Scale factor <= 0 or NaN in EmbeddingWeight::" << __func__
                   << ": data_eff = " << data_eff << " mc_eff = " << mc_eff
-                  << ", returning 1" << std::endl;
+                  << "; pt = " << pt << " eta = " << eta
+                  << "; returning 1" << std::endl;
         //0.5 is safest for efficiencies, so no 0/0 in eff/eff or (1-eff)/(1-eff)
         mc_eff = 0.5;
         data_eff = 0.5;
@@ -259,6 +285,7 @@ namespace CLFV {
     RooRealVar* muonEta[k2018+1]; //reconstructed muon eta
     RooFormulaVar* electronTrig[k2018+1][2]; //electron trigger weight function 0: data eff 1: mc eff
     RooFormulaVar* electronID[k2018+1]; //electron ID weight function
+    RooFormulaVar* electronIso[k2018+1]; //electron iso ID weight function
     RooRealVar* electronPt[k2018+1]; //reconstructed electron pT
     RooRealVar* electronEta[k2018+1]; //reconstructed electron eta
     int verbose_;

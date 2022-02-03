@@ -90,6 +90,9 @@ namespace CLFV {
     Float_t zMassOut    = -1.          ;
     Bool_t  looseQCDSelection = false  ;
     Float_t genTauFlavorWeight = 1.    ;
+    Float_t eleEnergyScale = 1.        ;
+    Float_t eleES_up                   ;
+    Float_t eleES_down                 ;
     Float_t tauEnergyScale = 1.        ;
     Float_t tauES_up                   ;
     Float_t tauES_down                 ;
@@ -103,6 +106,8 @@ namespace CLFV {
     Float_t tauVetoedJetPtUnc = 0      ;
     TLorentzVector* leptonOneP4 = 0    ;
     TLorentzVector* leptonTwoP4 = 0    ;
+    Float_t leptonOneSCEta             ;
+    Float_t leptonTwoSCEta             ;
     Int_t leptonOneFlavor = 0          ;
     Int_t leptonTwoFlavor = 0          ;
     Int_t leptonOneGenFlavor = 0       ;
@@ -247,6 +252,7 @@ namespace CLFV {
     UInt_t nTau                               ;
     Int_t  nTausSkim                          ;
     UInt_t nPhoton                            ;
+    Int_t  nGenTaus = 0                       ;
     Float_t muonPt[kMaxParticles]             ;
     Float_t muonEta[kMaxParticles]            ;
     Float_t muonPhi[kMaxParticles]            ;
@@ -275,6 +281,7 @@ namespace CLFV {
     Float_t electronRelIso[kMaxParticles]     ;
     Float_t electrondxy[kMaxParticles]        ;
     Float_t electrondz[kMaxParticles]         ;
+    Float_t electronECorr[kMaxParticles]      ;
     UChar_t electronGenFlavor[kMaxParticles]  ;
     Float_t tauPt[kMaxParticles]              ;
     Float_t tauEta[kMaxParticles]             ;

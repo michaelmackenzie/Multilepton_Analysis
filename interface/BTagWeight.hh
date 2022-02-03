@@ -38,7 +38,7 @@ namespace CLFV {
         }
       }
     }
-    ~BTagWeight() { for(unsigned i = 0; i < files_.size(); ++i) delete files_[i]; }
+    ~BTagWeight() { for(unsigned i = 0; i < files_.size(); ++i) files_[i]->Close(); }
 
     float GetMCEff(int WP, int year, float jetpt, float jeteta, int jetflavor) {
       TH2D* h = 0;

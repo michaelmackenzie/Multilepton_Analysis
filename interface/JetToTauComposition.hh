@@ -66,7 +66,7 @@ namespace CLFV {
       }
     }
 
-    ~JetToTauComposition() { for(unsigned i = 0; i < files_.size(); ++i) delete files_[i]; }
+    ~JetToTauComposition() { for(unsigned i = 0; i < files_.size(); ++i) files_[i]->Close(); }
 
     //Get scale factor for Data
     void GetComposition(float pt, int DM, float pt_lead, float lead_dphi, int year, float*& compositions, float*& comp_up, float*& comp_down) {

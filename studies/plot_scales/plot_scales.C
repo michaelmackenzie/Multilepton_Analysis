@@ -6,10 +6,10 @@
 //////////////////////////////////////////////////
 TCanvas* plot_1D_slices(TH2* hID, TString cname, bool xaxis = true) {
   TCanvas* c = new TCanvas(cname.Data(), cname.Data(), 1000, 700);
-  int nbins = (xaxis) ? hID->GetNbinsX() : hID->GetNbinsY();
+  const int nbins = (xaxis) ? hID->GetNbinsX() : hID->GetNbinsY();
   TLegend* leg = new TLegend(0.7, 0.13, 0.9, 0.5);
-  int colors[] = {kRed, kBlue, kGreen, kViolet, kOrange, kYellow+2,
-                  kAtlantic, kGreen+2, kRed+2, kBlue+2, kViolet-2};
+  const int colors[] = {kRed, kBlue, kGreen, kViolet, kOrange, kYellow+2,
+                        kAtlantic, kGreen+2, kRed+2, kBlue+2, kViolet-2};
   TH1* haxis;
   double ymin(1.e9), ymax(-1.e9);
   for(int ibin = 1; ibin <= nbins; ++ibin) {
@@ -18,13 +18,17 @@ TCanvas* plot_1D_slices(TH2* hID, TString cname, bool xaxis = true) {
     h->SetLineWidth(2);
     h->SetMarkerSize(0.8);
     h->SetMarkerStyle(20);
+    h->SetMarkerColor(colors[ibin-1]);
     if(ibin == 1) {h->Draw("E"); haxis = h;}
     else h->Draw("E same");
-    double xmin = (xaxis) ? hID->GetXaxis()->GetBinLowEdge(ibin) : hID->GetYaxis()->GetBinLowEdge(ibin);
-    double xmax = (xaxis) ? xmin + hID->GetXaxis()->GetBinWidth(ibin) : xmin + hID->GetYaxis()->GetBinWidth(ibin);
+    const double xmin = (xaxis) ? hID->GetXaxis()->GetBinLowEdge(ibin) : hID->GetYaxis()->GetBinLowEdge(ibin);
+    const double xmax = (xaxis) ? xmin + hID->GetXaxis()->GetBinWidth(ibin) : xmin + hID->GetYaxis()->GetBinWidth(ibin);
     leg->AddEntry(h, Form("[%.2f, %.2f]", xmin, xmax));
-    ymin = min(ymin, h->GetMinimum());
-    ymax = max(ymax, h->GetMaximum());
+    for(int jbin = 1; jbin <= h->GetNbinsX(); ++jbin) {
+      const double binc = h->GetBinContent(jbin);
+      ymin = std::min(ymin, binc);
+      ymax = std::max(ymax, binc);
+    }
   }
   leg->Draw();
   haxis->GetXaxis()->SetTitleSize(0.05);
@@ -318,11 +322,85 @@ TCanvas* plot_electron_trigger_scale(int year, bool error = false) {
     if(c) {
       c->Print(Form("figures/electron_trigger_slices_%i.png", year));
       c->SetLogx();
-      c->Print(Form("figures/electron_trigger_slices_log_%i.png", year));
-    }
+      c->Print(Form("figures/electron_trigger_slices_log_%i.png", year));    }
   }
   return plot_scale(hID, Form("c_elec_trigger_%i", year), error);
 }
+
+//////////////////////////////////////////////////
+// Plot the embedding scale factors
+//////////////////////////////////////////////////
+TCanvas* plot_embedding_scale(int year, int Mode, bool isMuon) {
+  TString path = Form("../../scale_factors/embedding_eff_%s_mode-%i_%i.root", (isMuon) ? "mumu" : "ee", Mode, year);
+  TFile* f = TFile::Open(path.Data(), "READ");
+  if(!f) return NULL;
+  TH2F* hID = (TH2F*) f->Get("PtVsEtaSF");
+  if(!hID) {
+    cout << "Embedding histogram for " << year << " Mode = " << Mode << " isMuon = " << isMuon << " not found!\n";
+    return NULL;
+  }
+  hID->SetDirectory(0);
+  f->Close();
+  TCanvas* c = plot_1D_slices(hID, Form("c_embed_%s_mode-%i_slice_%i", (isMuon) ? "mumu" : "ee", Mode, year), true);
+  c->SetTitle("");
+  c->Print(Form("figures/embed_%s_mode-%i_slices_%i.png", (isMuon) ? "mumu" : "ee", Mode, year));
+  c->SetLogx();
+  c->Print(Form("figures/embed_%s_mode-%i_slices_log_%i.png", (isMuon) ? "mumu" : "ee", Mode, year));
+  return c;
+}
+
+//////////////////////////////////////////////////
+// Plot the embedding KIT scale factors
+//////////////////////////////////////////////////
+TCanvas* plot_embedding_kit_scale(int year, int Mode, bool isMuon) {
+  TString path = Form("../../scale_factors/htt_scalefactors_legacy_%i.root", year);
+  TFile* f = TFile::Open(path.Data(), "READ");
+  if(!f) return NULL;
+  RooWorkspace* w = (RooWorkspace*) f->Get("w");
+  if(!w) return NULL;
+  RooRealVar* pt  = (RooRealVar*) w->obj((isMuon) ? "m_pt"  : "e_pt");
+  RooRealVar* eta = (RooRealVar*) w->obj((isMuon) ? "m_eta" : "e_eta");
+  RooFormulaVar* scale = 0;
+  if(year == 2017) {
+    if(Mode == 0) scale = (RooFormulaVar*) w->obj((isMuon) ? "m_trg27_embed_kit_ratio" : "e_trg32_embed_kit_ratio");
+    if(Mode == 1) scale = (RooFormulaVar*) w->obj((isMuon) ? "m_id_embed_kit_ratio" : "e_id80_kit_ratio");
+    if(Mode == 2 && isMuon) return NULL; //iso binned drawing is broken
+    if(Mode == 2) scale = (RooFormulaVar*) w->obj((isMuon) ? "m_iso_binned_embed_kit_ratio" : "e_iso_kit_ratio");
+  }
+  if(!scale || !pt || !eta) return NULL;
+
+  vector<double> eta_bins;
+  if(isMuon) eta_bins = {0., 1., 1.4442, 1.566, 2.1, 2.5}; //{-2.4,-2.0,-1.5,-0.8, 0.0, 0.8, 1.5, 2.0, 2.4};
+  else       eta_bins = {0., 0.9, 1.2, 2.1, 2.4}; //{-2.5,-2.0,-1.566,-1.4442, -0.8, 0.0, 0.8, 1.4442, 1.566, 2.0, 2.5};
+
+  TString cname = Form("embed_kit_scale_%s_mode-%i_%i", (isMuon) ? "mumu" : "ee", Mode, year);
+  TCanvas* c = new TCanvas(cname.Data(), cname.Data(), 1000, 700);
+  TLegend* leg = new TLegend(0.7, 0.13, 0.9, 0.5);
+  int colors[] = {kRed, kBlue, kGreen, kViolet, kOrange, kYellow+2,
+                  kAtlantic, kGreen+2, kRed+2, kBlue+2, kViolet-2};
+  auto frame = pt->frame(((Mode == 0) ? ((isMuon) ? 20. : 25) : 10.), 500.);
+  if(!frame) return NULL;
+  for(int ibin = 1; ibin < eta_bins.size(); ++ibin) {
+    eta->setVal((eta_bins[ibin - 1] + eta_bins[ibin])/2.);
+    scale->plotOn(frame, RooFit::LineColor(colors[ibin-1]), RooFit::Name(Form("bin_%i", ibin)));
+  }
+  frame->Draw();
+  for(int ibin = 1; ibin < eta_bins.size(); ++ibin) {
+    leg->AddEntry(Form("bin_%i", ibin), Form("#eta = %.2f", (eta_bins[ibin - 1] + eta_bins[ibin])/2.));
+  }
+  frame->SetMinimum(0.);
+  frame->SetMaximum(2.);
+  leg->Draw();
+  c->SetBottomMargin(0.13);
+  c->SetLeftMargin(0.1);
+  c->SetRightMargin(0.1);
+  c->Print(Form("figures/%s.png", cname.Data()));
+  c->SetLogx();
+  c->Print(Form("figures/%s_log.png", cname.Data()));
+  f->Close();
+  return c;
+}
+
 
 //////////////////////////////////////////////////
 // Plot the tau anti-jet ID scale factors/errors
@@ -498,5 +576,18 @@ void plot_scales() {
         delete c;
       }
     }
+    //Embedding TnP scale factors
+    c = plot_embedding_scale    (year, 0, false); if(c) delete c; //electron trigger
+    c = plot_embedding_scale    (year, 1, false); if(c) delete c; //electron ID
+    c = plot_embedding_scale    (year, 0, true ); if(c) delete c; //muon trigger
+    c = plot_embedding_scale    (year, 1, true ); if(c) delete c; //muon ID
+    c = plot_embedding_scale    (year, 2, true ); if(c) delete c; //muon iso ID
+    //Embedding KIT scales
+    c = plot_embedding_kit_scale(year, 0, false); if(c) delete c; //electron trigger
+    c = plot_embedding_kit_scale(year, 1, false); if(c) delete c; //electron ID
+    c = plot_embedding_kit_scale(year, 2, false); if(c) delete c; //electron iso ID
+    c = plot_embedding_kit_scale(year, 0, true ); if(c) delete c; //muon trigger
+    c = plot_embedding_kit_scale(year, 1, true ); if(c) delete c; //muon ID
+    c = plot_embedding_kit_scale(year, 2, true ); if(c) delete c; //muon iso ID
   }
 }

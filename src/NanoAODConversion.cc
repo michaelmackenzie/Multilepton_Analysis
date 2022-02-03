@@ -37,7 +37,7 @@ void NanoAODConversion::Begin(TTree * /*tree*/)
 
   printf("NanoAODConversion::Begin\n");
   timer->Start();
-  particleCorrections = new ParticleCorrections(fMuonIso);
+  particleCorrections = new ParticleCorrections(fIsEmbed, fMuonIso);
   if(fVerbose > 0) particleCorrections->fVerbose = fVerbose - 1; //1 lower level, 1 further in depth
   fChain = 0;
   TString dir = gSystem->Getenv("CMSSW_BASE");
@@ -208,8 +208,10 @@ void NanoAODConversion::InitializeInBranchStructure(TTree* tree) {
   tree->SetBranchAddress("Electron_genPartFlav"            , &electronGenFlavor              ) ;
   tree->SetBranchAddress("Electron_dxy"                    , &electrondxy                    ) ;
   tree->SetBranchAddress("Electron_dz"                     , &electrondz                     ) ;
+  tree->SetBranchAddress("Electron_eCorr"                  , &electronECorr                  ) ;
   tree->SetBranchAddress("nTau"                            , &nTau                           ) ;
   tree->SetBranchAddress("nTaus"                           , &nTausSkim                      ) ;
+  tree->SetBranchAddress("nGenTaus"                        , &nGenTaus                       ) ;
   tree->SetBranchAddress("Tau_pt"                          , &tauPt                          ) ;
   tree->SetBranchAddress("Tau_eta"                         , &tauEta                         ) ;
   tree->SetBranchAddress("Tau_phi"                         , &tauPhi                         ) ;
@@ -356,6 +358,8 @@ void NanoAODConversion::InitializeOutBranchStructure(TTree* tree) {
   tree->Branch("tauVetoedJetPtUnc"             , &tauVetoedJetPtUnc    );
   tree->Branch("leptonOneP4"                   , &leptonOneP4          );
   tree->Branch("leptonTwoP4"                   , &leptonTwoP4          );
+  tree->Branch("leptonOneSCEta"                , &leptonOneSCEta       );
+  tree->Branch("leptonTwoSCEta"                , &leptonTwoSCEta       );
   tree->Branch("leptonOneFlavor"               , &leptonOneFlavor      );
   tree->Branch("leptonTwoFlavor"               , &leptonTwoFlavor      );
   tree->Branch("leptonOneGenFlavor"            , &leptonOneGenFlavor   );
@@ -417,6 +421,7 @@ void NanoAODConversion::InitializeOutBranchStructure(TTree* tree) {
   tree->Branch("nBJets20"                      , &nBJets20             );
   tree->Branch("nBJets20M"                     , &nBJets20M            );
   tree->Branch("nBJets20L"                     , &nBJets20L            );
+  tree->Branch("nGenTaus"                      , &nGenTaus             );
   tree->Branch("nGenTausHad"                   , &nGenTausHad          );
   tree->Branch("nGenTausLep"                   , &nGenTausLep          );
   tree->Branch("nGenElectrons"                 , &nGenElectrons        );
@@ -557,7 +562,6 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
     embeddingWeight = 1.;
   } else {
     embeddingWeight = (genWeight > 1.) ? 1. : abs(genWeight);
-    if(embeddingWeight > 1.) embeddingWeight = 0.; //should be an efficiency, <= 1
     genWeight = (genWeight > 1.) ? 0. : 1.;
   }
   lepOneWeight1      = 1.; lepTwoWeight1      = 1.;
@@ -574,6 +578,9 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
   lepOneFired        = 0 ; lepTwoFired        = 0 ;
 
   leptonOnePtSF = 1.; leptonTwoPtSF = 1.;
+
+  tauEnergyScale = 1.; tauES_up = 1.; tauES_down = 1.;
+  eleEnergyScale = 1.; eleES_up = 1.; eleES_down = 1.;
 
   //////////////////////////////
   //           MET            //
@@ -688,6 +695,7 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
     unsigned index = (selection == kMuMu && nMuons > 2) ? leptonOneIndex : fMuonIndices[selection][0];
     leptonOneP4->SetPtEtaPhiM(muonPt[index], muonEta[index],
                               muonPhi[index], muonMass[index]);
+    leptonOneSCEta = muonEta[index];
     leptonOneFlavor = -13*muonCharge[index];
     leptonOneID1 = muonIsoId[index];
     leptonOneID2 = 0;
@@ -723,6 +731,7 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
     unsigned index = (selection == kEE && nElectrons > 2) ? leptonOneIndex : fElectronIndices[selection][0];
     leptonOneP4->SetPtEtaPhiM(electronPt[index], electronEta[index],
                               electronPhi[index], electronMass[index]);
+    leptonOneSCEta = electronEta[index] + electronDeltaEtaSC[index];
     leptonOneFlavor = -11*electronCharge[index];
     leptonOneID1 = electronWPL[index] + 2*electronWP90[index] + 4*electronWP80[index];
     leptonOneID2 = 0;
@@ -740,6 +749,14 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
       particleCorrections->ElectronTriggerEff(electronPt[index], electronEta[index]+electronDeltaEtaSC[index], fYear,
                                               data_eff[trigger_index], mc_eff[trigger_index]);
       lepOneTrigWeight = (trigMatchOne) ? data_eff[trigger_index] / mc_eff[trigger_index] : (1. - data_eff[trigger_index]) / (1. - mc_eff[trigger_index]);
+      eleEnergyScale = particleCorrections->ElectronEnergyScale(electronPt[index], electronEta[index]+electronDeltaEtaSC[index], fYear,
+                                                                eleES_up, eleES_down);
+      if(fIsEmbed) { //remove given energy correction
+        const float eCorr = electronECorr[index];
+        if(eCorr > 0.f) *leptonOneP4 *= 1./eCorr;
+      }
+      *leptonOneP4 *= eleEnergyScale;
+
       if(fVerbose > 2) std::cout << "Lepton 1 has trigger status " << trigger << " and trigger weight " << lepOneTrigWeight << std::endl;
     }
     ++trigger_index;
@@ -756,6 +773,7 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
     unsigned index = fTauIndices[selection][0];
     leptonTwoP4->SetPtEtaPhiM(tauPt[index], tauEta[index],
                               tauPhi[index],tauMass[index]);
+    leptonTwoSCEta = tauEta[index];
     //FIXME: should apply energy scale correction to all taus
     tauEnergyScale = (fIsData == 0) ? particleCorrections->TauEnergyScale(leptonTwoP4->Pt(), leptonTwoP4->Eta(), tauDecayMode[index],
                                                                           tauGenID[index], tauDeep2017VsJet[index], fYear, tauES_up, tauES_down, tauES_bin) : 1.;
@@ -790,6 +808,7 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
     unsigned index = fMuonIndices[selection][0];
     leptonTwoP4->SetPtEtaPhiM(muonPt[index], muonEta[index],
                               muonPhi[index],muonMass[index]);
+    leptonTwoSCEta = muonEta[index];
     leptonTwoFlavor = -13*muonCharge[index];
     leptonTwoID1 = muonIsoId[index];
     leptonTwoID2 = 0;
@@ -829,6 +848,7 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
     unsigned index = (nMuons > 2) ? leptonTwoIndex : fMuonIndices[selection][1];
     leptonTwoP4->SetPtEtaPhiM(muonPt[index], muonEta[index],
                               muonPhi[index], muonMass[index]);
+    leptonTwoSCEta = muonEta[index];
     leptonTwoFlavor = -13*muonCharge[index];
     leptonTwoID1 = muonIsoId[index];
     leptonTwoID2 = 0;
@@ -864,6 +884,7 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
     unsigned index = (nElectrons > 2) ? leptonTwoIndex : fElectronIndices[selection][1];
     leptonTwoP4->SetPtEtaPhiM(electronPt[index], electronEta[index],
                               electronPhi[index], electronMass[index]);
+    leptonTwoSCEta = electronEta[index] + electronDeltaEtaSC[index];
     leptonTwoFlavor = -11*electronCharge[index];
     leptonTwoID1 = electronWPL[index] + 2*electronWP90[index] + 4*electronWP80[index];
     leptonTwoID2 = 0;
@@ -881,6 +902,13 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
       particleCorrections->ElectronTriggerEff(electronPt[index], electronEta[index]+electronDeltaEtaSC[index], fYear,
                                               data_eff[trigger_index], mc_eff[trigger_index]);
       lepTwoTrigWeight = (trigMatchTwo) ? data_eff[trigger_index] / mc_eff[trigger_index] : (1. - data_eff[trigger_index]) / (1. - mc_eff[trigger_index]);
+      eleEnergyScale = particleCorrections->ElectronEnergyScale(electronPt[index], electronEta[index]+electronDeltaEtaSC[index], fYear,
+                                                                eleES_up, eleES_down);
+      if(fIsEmbed) { //remove given energy correction
+        const float eCorr = electronECorr[index];
+        if(eCorr > 0.f) *leptonTwoP4 *= 1./eCorr;
+      }
+      *leptonTwoP4 *= eleEnergyScale;
       if(fVerbose > 2) std::cout << "Lepton 2 has trigger status " << trigger << " and trigger weight " << lepTwoTrigWeight << std::endl;
     }
     ++trigger_index;
@@ -986,6 +1014,9 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
     wtmp = lepOneWeight1_down;
     lepOneWeight1_down = lepTwoWeight1_down;
     lepTwoWeight1_down = wtmp;
+    wtmp = leptonOneSCEta;
+    leptonOneSCEta = leptonTwoSCEta;
+    leptonTwoSCEta = wtmp;
     //swap trig bools
     Bool_t ttmp = lepOneFired;
     lepOneFired = lepTwoFired;

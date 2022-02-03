@@ -233,6 +233,24 @@ void ParticleCorrections::ElectronWeight(double pt, double eta, int year, float&
   weight_down_rec = vertex_scale * (reco_scale - reco_error);
 }
 
+double ParticleCorrections::ElectronEnergyScale(double pt, double eta, int year, float& up, float& down) {
+  up = 1.; down = 1.;
+  double scale_factor = 1.;
+  if(year != k2016 && year != k2017 && year != k2018) {
+    std::cout << "Warning! Undefined year in " << __func__ << ", returning -1" << std::endl;
+    return 1.;
+  }
+  if(!isEmbed_) return 1.;
+
+  pt = std::max(20., pt); //FIXME: should pt < 20 be corrected?
+  bool barrel = abs(eta) < 1.479;
+  if(year == k2016) {
+    if(barrel) { scale_factor -= 0.0024; up = scale_factor + 0.0050; down = scale_factor - 0.0050; }
+    else       { scale_factor -= 0.0070; up = scale_factor + 0.0125; down = scale_factor - 0.0125; }
+  }
+  return scale_factor;
+}
+
 double ParticleCorrections::ElectronTriggerEff(double pt, double eta, int year, float& data_eff, float& mc_eff) {
   if(year != k2016 && year != k2017 && year != k2018) {
     std::cout << "Warning! Undefined year in " << __func__ << ", returning -1" << std::endl;
@@ -278,6 +296,11 @@ double ParticleCorrections::TauWeight(double pt, double eta, int genID, UChar_t 
   double scale_factor = 1.;
   up = 1.; down = 1.; ibin = 0;
   int antiJetIndex = (antiJet >= 50) ? 1 : 0; //tight or loose tau
+
+  if(isEmbed_ && genID != 5) { //don't apply anti-mu and anti-ele corrections
+    return scale_factor;
+  }
+
   if(genID == 5) { //genuine tau
     scale_factor *= tauJetIDMap[year]->Eval(pt);
     up *= tauJetUpIDMap[year]->Eval(pt);
@@ -320,6 +343,16 @@ double ParticleCorrections::TauEnergyScale(double pt, double eta, int dm, int ge
   if(!(dm == 0 || dm == 1 || dm == 10 || dm == 11)) return scale_factor;
 
   int antiJetIndex = (antiJet >= 50) ? 1 : 0; //tight or loose tau
+
+  //if embedding sample, use fixed corrections
+  if(isEmbed_) {
+    if(year == k2016) {
+      if     (dm == 0) {scale_factor += -0.0020; up = scale_factor + 0.0046; down = scale_factor - 0.0046;}
+      else if(dm == 1) {scale_factor += -0.0022; up = scale_factor + 0.0022; down = scale_factor - 0.0025;}
+      else             {scale_factor += -0.0126; up = scale_factor + 0.0033; down = scale_factor - 0.0051;}
+    }
+    return scale_factor;
+  }
 
   /////////////////////
   // Genuine taus

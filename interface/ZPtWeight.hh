@@ -57,7 +57,7 @@ namespace CLFV {
       }
     }
 
-    ~ZPtWeight() { for(unsigned i = 0; i < files_.size(); ++i) delete files_[i]; }
+    ~ZPtWeight() { for(unsigned i = 0; i < files_.size(); ++i) files_[i]->Close(); }
 
     float GetWeight(int year, float pt, float mass, bool doReco, float& up, float& down, float& sys) {
       float weight = 1.; up = 1.; down = 1.; sys = 1.;

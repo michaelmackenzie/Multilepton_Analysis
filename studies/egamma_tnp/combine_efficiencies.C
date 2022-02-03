@@ -66,9 +66,9 @@ void combine_efficiencies(int year) {
   hData->Write();
   hMC->Write();
   hScale->Write();
-  fit_scales(hData, year);
-  fit_scales(hMC, year);
-  fit_scales(hScale, year);
+  // fit_scales(hData, year);
+  // fit_scales(hMC, year);
+  // fit_scales(hScale, year);
   fout->Write();
   fout->Close();
 }

@@ -253,6 +253,26 @@ Int_t process_card(datacard_t& card, config_t& config, TFile* file) {
     if(isMuonData && (currentChannel == "etau" || currentChannel == "ee")) {
       cout << "Muon data on electron only channel, continuing!\n"; continue;
     }
+    //skip channels with irrelevant embedding final states
+    if(card.fname_.Contains("Embed-")) {
+      if(currentChannel == "emu" && card.fname_.Contains("Tau-")) {
+        cout << "Skipping irrelavant embedding final state!\n";
+        continue;
+      }
+      if(currentChannel == "etau" && card.fname_.Contains("MuTau-")) {
+        cout << "Skipping irrelavant embedding final state!\n";
+        continue;
+      }
+      if(currentChannel == "mutau" && card.fname_.Contains("ETau-")) {
+        cout << "Skipping irrelavant embedding final state!\n";
+        continue;
+      }
+    }
+    //skip if a signal in an irrelevant channel
+    if(card.fname_.Contains("EMu.tree"  ) && (currentChannel != "emu")) continue;
+    if(card.fname_.Contains("ETau.tree" ) && (currentChannel == "mutau" || currentChannel == "mumu")) continue;
+    if(card.fname_.Contains("MuTau.tree") && (currentChannel == "etau"  || currentChannel == "ee"  )) continue;
+
     process_channel(card, config, fChannel);
   }
   delete events;
@@ -305,20 +325,20 @@ Int_t process_ztautau() {
   nanocards.push_back(datacard_t(false, xs.GetCrossSection("Wlnu-2J"                 ), "clfv_2016_Wlnu-2J.tree"                 , 0)); //6
   nanocards.push_back(datacard_t(false, xs.GetCrossSection("Wlnu-3J"                 ), "clfv_2016_Wlnu-3J.tree"                 , 0)); //6
   nanocards.push_back(datacard_t(false, xs.GetCrossSection("Wlnu-4J"                 ), "clfv_2016_Wlnu-4J.tree"                 , 0)); //6
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-MuTau-B"           ), "clfv_2016_Embed-MuTau-B.tree"           , 0)); //
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-MuTau-C"           ), "clfv_2016_Embed-MuTau-C.tree"           , 0)); //
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-MuTau-D"           ), "clfv_2016_Embed-MuTau-D.tree"           , 0)); //
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-MuTau-E"           ), "clfv_2016_Embed-MuTau-E.tree"           , 0)); //
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-MuTau-F"           ), "clfv_2016_Embed-MuTau-F.tree"           , 0)); //
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-MuTau-G"           ), "clfv_2016_Embed-MuTau-G.tree"           , 0)); //
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-MuTau-H"           ), "clfv_2016_Embed-MuTau-H.tree"           , 0)); //
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-ETau-B"            ), "clfv_2016_Embed-ETau-B.tree"            , 0)); //
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-ETau-C"            ), "clfv_2016_Embed-ETau-C.tree"            , 0)); //
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-ETau-D"            ), "clfv_2016_Embed-ETau-D.tree"            , 0)); //
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-ETau-E"            ), "clfv_2016_Embed-ETau-E.tree"            , 0)); //
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-ETau-F"            ), "clfv_2016_Embed-ETau-F.tree"            , 0)); //
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-ETau-G"            ), "clfv_2016_Embed-ETau-G.tree"            , 0)); //
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-ETau-H"            ), "clfv_2016_Embed-ETau-H.tree"            , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-MuTau-B"           ), "clfv_2016_Embed-MuTau-B.tree"           , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-MuTau-C"           ), "clfv_2016_Embed-MuTau-C.tree"           , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-MuTau-D"           ), "clfv_2016_Embed-MuTau-D.tree"           , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-MuTau-E"           ), "clfv_2016_Embed-MuTau-E.tree"           , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-MuTau-F"           ), "clfv_2016_Embed-MuTau-F.tree"           , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-MuTau-G"           ), "clfv_2016_Embed-MuTau-G.tree"           , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-MuTau-H"           ), "clfv_2016_Embed-MuTau-H.tree"           , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-ETau-B"            ), "clfv_2016_Embed-ETau-B.tree"            , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-ETau-C"            ), "clfv_2016_Embed-ETau-C.tree"            , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-ETau-D"            ), "clfv_2016_Embed-ETau-D.tree"            , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-ETau-E"            ), "clfv_2016_Embed-ETau-E.tree"            , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-ETau-F"            ), "clfv_2016_Embed-ETau-F.tree"            , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-ETau-G"            ), "clfv_2016_Embed-ETau-G.tree"            , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-ETau-H"            ), "clfv_2016_Embed-ETau-H.tree"            , 0)); //
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-EMu-B"             ), "clfv_2016_Embed-EMu-B.tree"             , 0)); //
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-EMu-C"             ), "clfv_2016_Embed-EMu-C.tree"             , 0)); //
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-EMu-D"             ), "clfv_2016_Embed-EMu-D.tree"             , 0)); //
@@ -366,6 +386,21 @@ Int_t process_ztautau() {
   nanocards.push_back(datacard_t(false, 1.                                            , "clfv_2017_SingleEle.tree"               , 1)); //42
   nanocards.push_back(datacard_t(false, xs.GetCrossSection("ZZ"                      ), "clfv_2017_ZZ.tree"                      , 0)); //43
   nanocards.push_back(datacard_t(false, xs.GetCrossSection("WWW"                     ), "clfv_2017_WWW.tree"                     , 0)); //44
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-MuTau-B"           ), "clfv_2017_Embed-MuTau-B.tree"           , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-MuTau-C"           ), "clfv_2017_Embed-MuTau-C.tree"           , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-MuTau-D"           ), "clfv_2017_Embed-MuTau-D.tree"           , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-MuTau-E"           ), "clfv_2017_Embed-MuTau-E.tree"           , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-MuTau-F"           ), "clfv_2017_Embed-MuTau-F.tree"           , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-ETau-B"            ), "clfv_2017_Embed-ETau-B.tree"            , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-ETau-C"            ), "clfv_2017_Embed-ETau-C.tree"            , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-ETau-D"            ), "clfv_2017_Embed-ETau-D.tree"            , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-ETau-E"            ), "clfv_2017_Embed-ETau-E.tree"            , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-ETau-F"            ), "clfv_2017_Embed-ETau-F.tree"            , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-EMu-B"             ), "clfv_2017_Embed-EMu-B.tree"             , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-EMu-C"             ), "clfv_2017_Embed-EMu-C.tree"             , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-EMu-D"             ), "clfv_2017_Embed-EMu-D.tree"             , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-EMu-E"             ), "clfv_2017_Embed-EMu-E.tree"             , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-EMu-F"             ), "clfv_2017_Embed-EMu-F.tree"             , 0)); //
   // nanocards.push_back(datacard_t(true , xs.GetCrossSection("QCDDoubleEMEnrich30to40" ), "clfv_2017_QCDDoubleEMEnrich30to40.tree" , 0)); //45
   // nanocards.push_back(datacard_t(true , xs.GetCrossSection("QCDDoubleEMEnrich30toInf"), "clfv_2017_QCDDoubleEMEnrich30toInf.tree", 0)); //46
   // nanocards.push_back(datacard_t(true , xs.GetCrossSection("QCDDoubleEMEnrich40toInf"), "clfv_2017_QCDDoubleEMEnrich40toInf.tree", 0)); //47
@@ -396,6 +431,18 @@ Int_t process_ztautau() {
   nanocards.push_back(datacard_t(false, 1.                                            , "clfv_2018_SingleEle.tree"               , 1)); //65
   nanocards.push_back(datacard_t(false, xs.GetCrossSection("ZZ"                      ), "clfv_2018_ZZ.tree"                      , 0)); //66
   nanocards.push_back(datacard_t(false, xs.GetCrossSection("WWW"                     ), "clfv_2018_WWW.tree"                     , 0)); //67
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-MuTau-A"           ), "clfv_2018_Embed-MuTau-A.tree"           , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-MuTau-B"           ), "clfv_2018_Embed-MuTau-B.tree"           , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-MuTau-C"           ), "clfv_2018_Embed-MuTau-C.tree"           , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-MuTau-D"           ), "clfv_2018_Embed-MuTau-D.tree"           , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-ETau-A"            ), "clfv_2018_Embed-ETau-A.tree"            , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-ETau-B"            ), "clfv_2018_Embed-ETau-B.tree"            , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-ETau-C"            ), "clfv_2018_Embed-ETau-C.tree"            , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-ETau-D"            ), "clfv_2018_Embed-ETau-D.tree"            , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-EMu-A"             ), "clfv_2018_Embed-EMu-A.tree"             , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-EMu-B"             ), "clfv_2018_Embed-EMu-B.tree"             , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-EMu-C"             ), "clfv_2018_Embed-EMu-C.tree"             , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-EMu-D"             ), "clfv_2018_Embed-EMu-D.tree"             , 0)); //
   // nanocards.push_back(datacard_t(true , xs.GetCrossSection("QCDDoubleEMEnrich30to40" ), "clfv_2018_QCDDoubleEMEnrich30to40.tree" , 0)); //68
   // nanocards.push_back(datacard_t(true , xs.GetCrossSection("QCDDoubleEMEnrich30toInf"), "clfv_2018_QCDDoubleEMEnrich30toInf.tree", 0)); //69
   // nanocards.push_back(datacard_t(true , xs.GetCrossSection("QCDDoubleEMEnrich40toInf"), "clfv_2018_QCDDoubleEMEnrich40toInf.tree", 0)); //70
@@ -408,7 +455,7 @@ Int_t process_ztautau() {
   config.useTauFakeSF_ = 1; //1 = use given scale factors, 2 = override them with local ones
   config.writeTrees_ = writeTrees_;
   config.onlyChannel_ = "mutau";
-  config.skipChannels_ = {/*"mutau", "etau", "emu", "mumu", "ee",*/ "all", "jets", "llg_study"};
+  config.skipChannels_ = {/*"mutau", "etau", "emu",*/ "mumu", "ee", "all", "jets", "llg_study"};
   config.reProcessMVAs_ = false;
   config.signalTrainFraction_ = 0.3;
   config.backgroundTrainFraction_ = 0.3;
@@ -480,7 +527,7 @@ Int_t process_ztautau() {
     printf("using %s\n",filepath.Data());
     nanocards[i].filepath_ = filepath;
     int status = process_card(nanocards[i], config, f);
-    delete f;
+    f->Close();
   } //end file loop
   //report the time spent histogramming
   Double_t cpuTime = timer->CpuTime();

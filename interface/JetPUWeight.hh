@@ -38,7 +38,7 @@ namespace CLFV {
       files_.push_back(feff);
     }
 
-    ~JetPUWeight() { for(unsigned i = 0; i < files_.size(); ++i) delete files_[i]; }
+    ~JetPUWeight() { for(unsigned i = 0; i < files_.size(); ++i) files_[i]->Close(); }
 
     float GetMCEff(int year, float jetpt, float jeteta) {
       if(jetpt > 49.99) jetpt = 49.99;

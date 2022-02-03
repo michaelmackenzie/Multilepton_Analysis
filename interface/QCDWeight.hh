@@ -130,7 +130,7 @@ namespace CLFV {
       }
     }
 
-    ~QCDWeight() { for(unsigned i = 0; i < files_.size(); ++i) delete files_[i]; }
+    ~QCDWeight() { for(unsigned i = 0; i < files_.size(); ++i) files_[i]->Close(); }
 
     //Get scale factor for Data
     float GetWeight(float deltar, float deltaphi, float oneeta, int year, float& up, float& down, float& sys) {

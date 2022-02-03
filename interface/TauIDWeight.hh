@@ -17,7 +17,7 @@ namespace CLFV {
 
   class TauIDWeight {
   public:
-    TauIDWeight(bool isEmbed = false, int verbose = 0) : verbose_(verbose) {
+    TauIDWeight(bool isEmbed = false, int verbose = 0) : isEmbed_(isEmbed), verbose_(verbose) {
       std::vector<TString> file_regions;
 
       typedef std::pair<TString,TString> fpair;
@@ -126,7 +126,7 @@ namespace CLFV {
       }
     }
 
-    ~TauIDWeight() { for(unsigned i = 0; i < files_.size(); ++i) delete files_[i]; }
+    ~TauIDWeight() { for(unsigned i = 0; i < files_.size(); ++i) files_[i]->Close(); }
 
     //correction for the tau ID
     double IDWeight(double pt, double eta, int genID, UChar_t antiJet, int year,
@@ -181,6 +181,16 @@ namespace CLFV {
       if(!(dm == 0 || dm == 1 || dm == 10 || dm == 11)) return scale_factor;
 
       int antiJetIndex = (antiJet >= 50) ? 1 : 0; //tight or loose tau
+
+      //if embedding sample, use fixed corrections
+      if(isEmbed_) {
+        if(year == k2016) {
+          if     (dm == 0) {scale_factor += -0.0020; up = scale_factor + 0.0046; down = scale_factor - 0.0046;}
+          else if(dm == 1) {scale_factor += -0.0022; up = scale_factor + 0.0022; down = scale_factor - 0.0025;}
+          else             {scale_factor += -0.0126; up = scale_factor + 0.0033; down = scale_factor - 0.0051;}
+        }
+        return scale_factor;
+      }
 
       /////////////////////
       // Genuine taus
@@ -253,6 +263,7 @@ namespace CLFV {
     enum { k2016, k2017, k2018};
     enum { kYear = 100000, kRunSection = 10000, kBinY = 100};
     std::vector<TFile*> files_;
+    bool isEmbed_;
     int verbose_;
     std::map<int, TF1*> tauJetIDMap    ;
     std::map<int, TF1*> tauJetUpIDMap  ;

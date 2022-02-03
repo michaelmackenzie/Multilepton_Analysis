@@ -148,7 +148,7 @@ namespace CLFV {
       }
     }
 
-    ~ElectronIDWeight() { for(unsigned i = 0; i < files_.size(); ++i) delete files_[i]; }
+    ~ElectronIDWeight() { for(unsigned i = 0; i < files_.size(); ++i) files_[i]->Close(); }
 
     int GetIDGroup(int bin, int year) {
       return groupID_[(year-2016) * kYear + bin];
