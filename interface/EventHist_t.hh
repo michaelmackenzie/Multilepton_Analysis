@@ -13,6 +13,7 @@ namespace CLFV {
     TH1D* hEventWeight;
     TH1D* hLogEventWeight;
     TH1D* hEventWeightMVA;
+    TH1D* hFullEventWeightLum;
     TH1D* hGenWeight;
     TH1D* hEmbeddingWeight;
     TH1D* hEmbeddingUnfoldingWeight;

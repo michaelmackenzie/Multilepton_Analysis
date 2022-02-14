@@ -163,8 +163,9 @@ void ZTauTauHistMaker::BookEventHistograms() {
       fEventHist[i]->hLogEventWeight         = new TH1D("logeventweight"      , Form("%s: LogEventWeight"      ,dirname)  , 100,  -10,   1);
       fEventHist[i]->hEventWeightMVA         = new TH1D("eventweightmva"      , Form("%s: EventWeightMVA"      ,dirname)  , 100,   -5,   5);
       fEventHist[i]->hGenWeight              = new TH1D("genweight"           , Form("%s: GenWeight"           ,dirname)  ,   5, -2.5, 2.5);
+      fEventHist[i]->hFullEventWeightLum     = new TH1D("fulleventweightlum"  , Form("%s: abs(FullEventWeightLum)",dirname)  , 500, 0, 100);
       // fEventHist[i]->hGenTauFlavorWeight     = new TH1D("gentauflavorweight"  , Form("%s: GenTauFlavorWeight"  ,dirname)  ,  40,    0,   2);
-      fEventHist[i]->hEmbeddingWeight        = new TH1D("embeddingweight"     , Form("%s: EmbeddingWeight"     ,dirname)  ,  40,    0,   1);
+      fEventHist[i]->hEmbeddingWeight        = new TH1D("embeddingweight"     , Form("%s: EmbeddingWeight"     ,dirname)  , 100,    0,   0.5);
       fEventHist[i]->hEmbeddingUnfoldingWeight = new TH1D("embeddingunfoldingweight", Form("%s: EmbeddingUnfoldingWeight"     ,dirname), 50,    0,   2);
       // fEventHist[i]->hPhotonIDWeight         = new TH1D("photonidweight"      , Form("%s: PhotonIDWeight"      ,dirname)  ,  40,    0,   2);
       fEventHist[i]->hJetToTauWeight         = new TH1D("jettotauweight"      , Form("%s: JetToTauWeight"      ,dirname)  ,  40,  0,   2);
@@ -1229,6 +1230,7 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
   // Hist->hTriggerStatus       ->Fill(triggerStatus      , genWeight*eventWeight)      ;
   Hist->hEventWeight         ->Fill(eventWeight             );
   Hist->hLogEventWeight      ->Fill((eventWeight > 1.e-10) ? std::log10(eventWeight) : -999.);
+  Hist->hFullEventWeightLum  ->Fill(std::fabs(fTreeVars.fulleventweightlum), genWeight*eventWeight);
   Hist->hGenWeight           ->Fill(genWeight               );
   Hist->hEmbeddingWeight     ->Fill(embeddingWeight         );
   Hist->hEmbeddingUnfoldingWeight->Fill(embeddingUnfoldingWeight);
@@ -2162,6 +2164,8 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
 
   fChain->GetEntry(entry,0);
   if(fVerbose > 0 || entry%50000 == 0) printf("Processing event: %12lld (%5.1f%%)\n", entry, entry*100./fChain->GetEntriesFast());
+  int icutflow = 0;
+  fCutFlow->Fill(icutflow); ++icutflow; //0
 
   //DY Splitting
   if(fDYType > 0) {
@@ -2179,15 +2183,19 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
       return kTRUE;
     }
   }
+
+  fCutFlow->Fill(icutflow); ++icutflow; //1
   //split W+Jets into N(jets) generated for binned sample combination
   if(fWNJets > -1 && LHE_Njets != fWNJets) {
     return kTRUE;
   }
 
-  //If running embedding, reject di-tau production from non-embedding MC
-  if(fUseEmbedCuts && !fIsEmbed && !fIsData && nGenTaus == 2) {
+  //If running embedding, reject di-tau production from non-embedding MC (except tau-tau DY MC, which is already separated by histogram files)
+  if(fDYType != 1 && fUseEmbedCuts && !fIsEmbed && !fIsData && nGenTaus == 2) {
     return kTRUE;
   }
+
+  fCutFlow->Fill(icutflow); ++icutflow; //2
 
   ////////////////////////
   // Data overlap check //
@@ -2210,7 +2218,7 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
     }
   }
 
-  fCutFlow->Fill(0);
+  fCutFlow->Fill(icutflow); ++icutflow; //3
 
   //Print debug info
   if(fVerbose > 0 ) {
@@ -2371,7 +2379,7 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
     return kTRUE;
   }
 
-  fCutFlow->Fill(1);
+  fCutFlow->Fill(icutflow); ++icutflow; //4
 
   if((mutau + etau + emu + mumu + ee) > 1)
     std::cout << "WARNING! Entry " << entry << " passes multiple selections!\n";
@@ -2386,146 +2394,7 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
     if(leptonOneTrigWeight > 0.) eventWeight /= leptonOneTrigWeight;
     if(leptonTwoTrigWeight > 0.) eventWeight /= leptonTwoTrigWeight;
     leptonOneTrigWeight = 1.; leptonTwoTrigWeight = 1.;
-    if(fRemoveTriggerWeights > 1) {
-      float data_eff[2] = {0.5f, 0.5f}; //set to 0.5 so no danger in doing the ratio of eff or 1 - eff
-      float mc_eff[2]   = {0.5f, 0.5f};
-      if(ee) {
-        if(fIsEmbed) {
-          if(fUseEmbedTnPWeights) {
-            fEmbeddingTnPWeight.ElectronTriggerWeight(leptonOneP4->Pt(), leptonOneSCEta, fYear, data_eff[0], mc_eff[0]);
-            fEmbeddingTnPWeight.ElectronTriggerWeight(leptonTwoP4->Pt(), leptonTwoSCEta, fYear, data_eff[1], mc_eff[1]);
-          } else {
-            fEmbeddingWeight.ElectronTriggerWeight(leptonOneP4->Pt(), leptonOneSCEta, fYear, data_eff[0], mc_eff[0]);
-            fEmbeddingWeight.ElectronTriggerWeight(leptonTwoP4->Pt(), leptonTwoSCEta, fYear, data_eff[1], mc_eff[1]);
-          }
-        } else {
-          fElectronIDWeight.TriggerEff(leptonOneP4->Pt(), leptonOneSCEta, fYear, data_eff[0], mc_eff[0]);
-          fElectronIDWeight.TriggerEff(leptonTwoP4->Pt(), leptonTwoSCEta, fYear, data_eff[1], mc_eff[1]);
-        }
-      }
-      if(emu) {
-        if(fIsEmbed) {
-          if(fUseEmbedTnPWeights) {
-            fEmbeddingTnPWeight.ElectronTriggerWeight(leptonOneP4->Pt(), leptonOneSCEta, fYear, data_eff[0], mc_eff[0]);
-            fEmbeddingTnPWeight.MuonTriggerWeight(leptonTwoP4->Pt(), leptonTwoP4->Eta(), fYear, data_eff[1], mc_eff[1]);
-          } else {
-            fEmbeddingWeight.ElectronTriggerWeight(leptonOneP4->Pt(), leptonOneSCEta, fYear, data_eff[0], mc_eff[0]);
-            fEmbeddingWeight.MuonTriggerWeight(leptonTwoP4->Pt(), leptonTwoP4->Eta(), fYear, data_eff[1], mc_eff[1]);
-          }
-        } else {
-          fElectronIDWeight.TriggerEff(leptonOneP4->Pt(), leptonOneSCEta, fYear, data_eff[0], mc_eff[0]);
-          //use low trigger in case the lepton didn't fire a trigger
-          fMuonIDWeight.TriggerEff(leptonTwoP4->Pt(), leptonTwoP4->Eta(), fYear, !leptonTwoFired || muonTriggerStatus != 2, data_eff[1], mc_eff[1]);
-        }
-      }
-      if(etau) {
-        if(fIsEmbed) {
-          if(fUseEmbedTnPWeights) {
-            fEmbeddingTnPWeight.ElectronTriggerWeight(leptonOneP4->Pt(), leptonOneSCEta, fYear, data_eff[0], mc_eff[0]);
-          } else {
-            fEmbeddingWeight.ElectronTriggerWeight(leptonOneP4->Pt(), leptonOneSCEta, fYear, data_eff[0], mc_eff[0]);
-          }
-        } else {
-          fElectronIDWeight.TriggerEff(leptonOneP4->Pt(), leptonOneSCEta, fYear, data_eff[0], mc_eff[0]);
-        }
-        data_eff[1] = 0.f; mc_eff[1] = 0.f; //tau can't trigger
-      }
-      if(mumu) {
-        if(fIsEmbed) {
-          if(fUseEmbedTnPWeights) {
-            fEmbeddingTnPWeight.MuonTriggerWeight(leptonOneP4->Pt(), leptonOneP4->Eta(), fYear, data_eff[0], mc_eff[0]);
-            fEmbeddingTnPWeight.MuonTriggerWeight(leptonTwoP4->Pt(), leptonTwoP4->Eta(), fYear, data_eff[1], mc_eff[1]);
-          } else {
-            fEmbeddingWeight.MuonTriggerWeight(leptonOneP4->Pt(), leptonOneP4->Eta(), fYear, data_eff[0], mc_eff[0]);
-            fEmbeddingWeight.MuonTriggerWeight(leptonTwoP4->Pt(), leptonTwoP4->Eta(), fYear, data_eff[1], mc_eff[1]);
-          }
-        } else {
-          //use low trigger in case the lepton didn't fire a trigger
-          fMuonIDWeight.TriggerEff(leptonOneP4->Pt(), leptonOneP4->Eta(), fYear, !leptonOneFired || muonTriggerStatus != 2, data_eff[0], mc_eff[0]);
-          fMuonIDWeight.TriggerEff(leptonTwoP4->Pt(), leptonTwoP4->Eta(), fYear, !leptonTwoFired || muonTriggerStatus != 2, data_eff[1], mc_eff[1]);
-        }
-      }
-      if(mutau) {
-        if(fIsEmbed) {
-          if(fUseEmbedTnPWeights) {
-            fEmbeddingTnPWeight.MuonTriggerWeight(leptonOneP4->Pt(), leptonOneP4->Eta(), fYear, data_eff[0], mc_eff[0]);
-          } else {
-            fEmbeddingWeight.MuonTriggerWeight(leptonOneP4->Pt(), leptonOneP4->Eta(), fYear, data_eff[0], mc_eff[0]);
-          }
-        } else {
-          fMuonIDWeight.TriggerEff(leptonOneP4->Pt(), leptonOneP4->Eta(), fYear, muonTriggerStatus != 2, data_eff[0], mc_eff[0]);
-        }
-        data_eff[1] = 0.f; mc_eff[1] = 0.f; //tau can't trigger
-      }
-      //use just the muon if there's a muon or the leading firing lepton otherwise
-      if(fRemoveTriggerWeights == 2) {
-        if(leptonOneFired && (abs(leptonOneFlavor) == 13 || !leptonTwoFired || abs(leptonTwoFlavor) != 13)) {
-          leptonOneTrigWeight = data_eff[0] / mc_eff[0];
-        } else {
-          leptonTwoTrigWeight = data_eff[1] / mc_eff[1];
-        }
-      }
-      //use the probability of each lepton triggering or not triggering
-      else if(fRemoveTriggerWeights == 3) {
-        //if unable to fire the trigger, mc/data efficiency set equal at 0.5, so division is safe
-        leptonOneTrigWeight = (leptonOneFired) ? data_eff[0] / mc_eff[0] : (1.-data_eff[0])/(1.-mc_eff[0]);
-        leptonTwoTrigWeight = (leptonTwoFired) ? data_eff[1] / mc_eff[1] : (1.-data_eff[1])/(1.-mc_eff[1]);
-        if(leptonTwoP4->Pt() < ((abs(leptonTwoFlavor) == 13) ? muon_trig_pt : electron_trig_pt))
-          leptonTwoTrigWeight = 1.; //couldn't fire, so ensure no weight effect
-      }
-      //use the probability that at least one fires
-      else if(fRemoveTriggerWeights == 4) {
-        float prob_data(1.f), prob_mc(1.f);
-        float pt_1(leptonOneP4->Pt()), pt_2(leptonTwoP4->Pt());
-        //check if each is triggerable
-        if(fabs(leptonOneFlavor) == 13 && pt_1 > muon_trig_pt) {
-          prob_data *= (1.f - data_eff[0]);
-          prob_mc   *= (1.f - mc_eff[0]  );
-        }
-        if(fabs(leptonTwoFlavor) == 13 && pt_2 > muon_trig_pt) {
-          prob_data *= (1.f - data_eff[1]);
-          prob_mc   *= (1.f - mc_eff[1]  );
-        }
-        if(fabs(leptonOneFlavor) == 11 && pt_1 > electron_trig_pt) {
-          prob_data *= (1.f - data_eff[0]);
-          prob_mc   *= (1.f - mc_eff[0]  );
-        }
-        if(fabs(leptonTwoFlavor) == 11 && pt_2 > electron_trig_pt) {
-          prob_data *= (1.f - data_eff[1]);
-          prob_mc   *= (1.f - mc_eff[1]  );
-        }
-        if(prob_data >= 1.f || prob_mc >= 1.f) {
-          if(fVerbose > 0) { //often due to changed trigger thresholds, so only warn if debugging
-            std::cout << "!!! " << fentry << " Warning! Inefficiency calculation >= 1!"
-                      << " 1-eff(data) = " << prob_data
-                      << " 1-eff(MC) = " << prob_mc
-                      << std::endl;
-          }
-        }
-        prob_data = std::min(0.9999f, prob_data);
-        prob_mc   = std::min(0.9999f, prob_mc  );
-        if(fabs(leptonTwoFlavor) == 15) { //no need to split if other lepton can't fire
-          leptonOneTrigWeight = (1.f - prob_data) / (1.f - prob_mc);
-        } else {
-          leptonOneTrigWeight = sqrt((1.f - prob_data) / (1.f - prob_mc));
-          leptonTwoTrigWeight = sqrt((1.f - prob_data) / (1.f - prob_mc));
-        }
-      }
-
-      if(leptonOneTrigWeight < 0. || leptonTwoTrigWeight < 0. || std::isnan(leptonOneTrigWeight) || std::isnan(leptonTwoTrigWeight)) {
-        std::cout << "!!! " << fentry << " Warning! Trigger efficiency calculation failed: wt_1 = "
-                  << leptonOneTrigWeight << " wt_2 = " << leptonTwoTrigWeight
-                  << " P(l1) = (" << data_eff[0] << ", " << mc_eff[0] << ")"
-                  << " P(l2) = (" << data_eff[1] << ", " << mc_eff[1] << ")"
-                  << " fired(l1) = " << leptonOneFired
-                  << " fired(l2) = " << leptonTwoFired
-                  << std::endl;
-        leptonOneTrigWeight = 1.; leptonTwoTrigWeight = 1.;
-      }
-      //keep this the same for now, to see the comparison plot using this trigger weight array
-      // triggerWeights[0] = leptonOneTrigWeight * leptonTwoTrigWeight;
-      eventWeight *= leptonOneTrigWeight * leptonTwoTrigWeight;
-    }
+    if(fRemoveTriggerWeights > 1) ApplyTriggerWeights(muon_trig_pt, electron_trig_pt);
   }
 
 
@@ -2670,7 +2539,7 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
     FillAllHistograms(set_offset + 1);
   }
 
-  fCutFlow->Fill(2);
+  fCutFlow->Fill(icutflow); ++icutflow; //5
 
   TLorentzVector* tau = 0;
   TLorentzVector* muon = 0;
@@ -2695,6 +2564,7 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
     else if(abs(leptonTwoFlavor) == 11) electron = leptonTwoP4;
   }
 
+  //lepton vectors must be found
   mutau = mutau && (tau != 0) && (muon != 0);
   etau  = etau  && (tau != 0) && (electron != 0);
   emu   = emu   && (muon != 0) && (electron != 0);
@@ -2702,8 +2572,9 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   ee    = ee    && (electron != 0) && (electron_2 != 0);
 
 
-  mutau = mutau && muon->Pt() > muon_trig_pt && tau->Pt() > tau_pt;
-  etau  = etau  && electron->Pt() > electron_trig_pt && tau->Pt() > tau_pt;
+  //leptons must satisfy the pt requirements and fire a trigger
+  mutau = mutau && muon->Pt() > muon_trig_pt && tau->Pt() > tau_pt && leptonOneFired;
+  etau  = etau  && electron->Pt() > electron_trig_pt && tau->Pt() > tau_pt && leptonOneFired;
   emu   = emu   && ((electron->Pt() > electron_trig_pt && muon->Pt() > muon_pt && leptonOneFired) ||
                     (electron->Pt() > electron_pt && muon->Pt() > muon_trig_pt && leptonTwoFired));
   mumu  = mumu  && ((muon->Pt() > muon_trig_pt && muon_2->Pt() > muon_pt && leptonOneFired) ||
@@ -2711,6 +2582,7 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   ee    = ee    && ((electron->Pt() > electron_trig_pt && electron_2->Pt() > electron_pt && leptonOneFired) ||
                     (electron->Pt() > electron_pt && electron_2->Pt() > electron_trig_pt && leptonTwoFired));
 
+  //don't allow multiple muons/electrons in mumu/ee selections
   mumu &= nMuons     == 2;
   ee   &= nElectrons == 2;
 
@@ -2722,11 +2594,11 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
     FillAllHistograms(set_offset + 2);
   }
 
-  fCutFlow->Fill(3);
+  fCutFlow->Fill(icutflow); ++icutflow; //6
 
   const double electron_eta_max = (fUseEmbedCuts) ? 2.2 : 2.5;
-  const double muon_eta_max = (fUseEmbedCuts) ? 2.2 : 2.4;
-  const double tau_eta_max = (fUseEmbedCuts) ? 2.2 : 2.3;
+  const double muon_eta_max     = (fUseEmbedCuts) ? 2.2 : 2.4;
+  const double tau_eta_max      = (fUseEmbedCuts) ? 2.2 : 2.3;
 
   mutau = mutau && abs(muon->Eta()) < muon_eta_max;
   mutau = mutau && abs(tau->Eta()) < tau_eta_max;
@@ -2771,7 +2643,7 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   if(!(mutau || etau || emu || mumu || ee)) return kTRUE;
 
 
-  fCutFlow->Fill(4);
+  fCutFlow->Fill(icutflow); ++icutflow; //7
 
   ////////////////////////////////////////////////////////////
   // Set 3 + selection offset: eta, mass, and trigger cuts
@@ -2788,12 +2660,12 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   mutau &= isLooseTau || tauDeepAntiJet >= 50; //63 = tight
   mutau &= tauDeepAntiMu  >= 10; //15 = tight
   mutau &= tauDeepAntiEle >= 10; //15 = loose
-  mutau &= leptonTwoID2   >=  2; // 3 = tight MVA ID
+  mutau &= leptonTwoID2   >=  2; //1 = loose, 3 = tight tau MVA anti-muon ID
 
   etau  &= isLooseTau || tauDeepAntiJet >= 50; //
   etau  &= tauDeepAntiMu  >= 10; //15 = tight
   etau  &= tauDeepAntiEle >= 50; //63 = tight
-  etau  &= leptonTwoID2   >=  2; // 3 = tight MVA ID
+  etau  &= leptonTwoID2   >=  2; //1 = loose, 3 = tight tau MVA anti-muon ID
 
   //remove tau decay modes not interested in
   mutau &= tauDecayMode != 5 && tauDecayMode != 6;
@@ -2804,12 +2676,23 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
     FillAllHistograms(set_offset + 4);
   }
 
-  fCutFlow->Fill(5);
+  fCutFlow->Fill(icutflow); ++icutflow; //8
 
   //cut-flow for not loose lepton/QCD
-  if(!looseQCDSelection)               fCutFlow->Fill(6);
-  if(!looseQCDSelection && chargeTest) fCutFlow->Fill(7);
+  if(!looseQCDSelection)               {fCutFlow->Fill(icutflow);} //9
+  ++icutflow;
+  if(!looseQCDSelection && chargeTest) {fCutFlow->Fill(icutflow);} //10
+  ++icutflow;
 
+  //cut-flow for fake leptons
+  if(fIsData) fCutFlow->Fill(icutflow); //11
+  else if(emu) {
+    if((fabs(leptonOneFlavor) == fabs(leptonOneGenFlavor))
+       && (fabs(leptonTwoFlavor) == fabs(leptonTwoGenFlavor))) {
+      fCutFlow->Fill(icutflow);
+    }
+  }
+  ++icutflow;
   ////////////////////////////////////////////////////////////
   // Set 34 + selection offset: High pT lepton one region
   ////////////////////////////////////////////////////////////
@@ -2870,7 +2753,8 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
 
   if(!(mutau || etau || emu || mumu || ee)) return kTRUE;
 
-  if(!looseQCDSelection && chargeTest) fCutFlow->Fill(8);
+  if(!looseQCDSelection && chargeTest) {fCutFlow->Fill(icutflow);} //12
+  ++icutflow;
 
   ////////////////////////////////////////////////////////////
   // Set 35 + selection offset: last set with MC estimated taus and leptons
@@ -3067,7 +2951,8 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
 
   if(!(mutau || etau || emu || mumu || ee)) return kTRUE;
 
-  if(!looseQCDSelection && chargeTest) fCutFlow->Fill(9);
+  if(!looseQCDSelection && chargeTest) {fCutFlow->Fill(icutflow);} //13
+  ++icutflow;
 
   ////////////////////////////////////////////////////////////////////////////
   // Set 30 + selection offset: QCD selection
@@ -3135,7 +3020,8 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
 
   if(fCutFlowTesting) return kTRUE;
 
-  if(!looseQCDSelection && chargeTest) fCutFlow->Fill(10);
+  if(!looseQCDSelection && chargeTest) {fCutFlow->Fill(icutflow);} //14
+  ++icutflow;
 
   //Test the jet --> tau scale factors in mumu/ee
   if((mumu || ee) && nTaus == 1 && tausDM[0] != 5 && tausDM[0] != 6 && (fIsData || abs(tausGenFlavor[0]) != 26)) {
@@ -3200,14 +3086,71 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
 
   if(!(mutau || etau || emu || mumu || ee)) return kTRUE;
 
-  if(!looseQCDSelection && chargeTest) fCutFlow->Fill(11);
-  if(!looseQCDSelection && chargeTest && abs(genWeight) > 0.) fCutFlow->Fill(12);
-  if(!looseQCDSelection && chargeTest && abs(genWeight*eventWeight) > 0.) fCutFlow->Fill(13);
+  if(!looseQCDSelection && chargeTest)                                    {fCutFlow->Fill(icutflow);} //15
+  ++icutflow;
+  if(!looseQCDSelection && chargeTest && abs(genWeight) > 0.)             {fCutFlow->Fill(icutflow);} //16
+  ++icutflow;
+  if(!looseQCDSelection && chargeTest && abs(genWeight*eventWeight) > 0.) {fCutFlow->Fill(icutflow);} //17
+  ++icutflow;
 
   ////////////////////////////////////////////////////////////////////////////
   // Set 8 + selection offset: nBJets = 0
   ////////////////////////////////////////////////////////////////////////////
   FillAllHistograms(set_offset + 8);
+
+  if(emu && (!fDYTesting || fTriggerTesting)) {
+    if(leptonOneFired && leptonOneP4->Pt() > electron_trig_pt) {
+      ////////////////////////////////////////////////////////////////////////////
+      // Set 60 + selection offset: Electron triggered
+      ////////////////////////////////////////////////////////////////////////////
+      FillAllHistograms(set_offset + 60);
+    }
+
+    if(leptonTwoFired && leptonTwoP4->Pt() > muon_trig_pt) {
+      ////////////////////////////////////////////////////////////////////////////
+      // Set 61 + selection offset: Muon triggered
+      ////////////////////////////////////////////////////////////////////////////
+      FillAllHistograms(set_offset + 61);
+    }
+
+    if(leptonOneFired && leptonTwoFired) {
+      ////////////////////////////////////////////////////////////////////////////
+      // Set 62 + selection offset: Electron and Muon triggered
+      ////////////////////////////////////////////////////////////////////////////
+      FillAllHistograms(set_offset + 62);
+    }
+
+    if(leptonOneP4->Pt() > electron_trig_pt) {
+      ////////////////////////////////////////////////////////////////////////////
+      // Set 63 + selection offset: Electron triggerable
+      ////////////////////////////////////////////////////////////////////////////
+      FillAllHistograms(set_offset + 63);
+    } else {
+      ////////////////////////////////////////////////////////////////////////////
+      // Set 66 + selection offset: electron not triggerable
+      ////////////////////////////////////////////////////////////////////////////
+      FillAllHistograms(set_offset + 66);
+    }
+
+    if(leptonTwoP4->Pt() > muon_trig_pt) {
+      ////////////////////////////////////////////////////////////////////////////
+      // Set 64 + selection offset: muon triggerable
+      ////////////////////////////////////////////////////////////////////////////
+      FillAllHistograms(set_offset + 64);
+    } else {
+      ////////////////////////////////////////////////////////////////////////////
+      // Set 67 + selection offset: muon not triggerable
+      ////////////////////////////////////////////////////////////////////////////
+      FillAllHistograms(set_offset + 67);
+    }
+
+    if(leptonOneP4->Pt() > electron_trig_pt && leptonTwoP4->Pt() > muon_trig_pt) {
+      ////////////////////////////////////////////////////////////////////////////
+      // Set 65 + selection offset: Electron+Muon triggerable
+      ////////////////////////////////////////////////////////////////////////////
+      FillAllHistograms(set_offset + 65);
+    }
+  }
 
   ////////////////////////////////////////////////////////////////////////////
   // Set 45-46 + selection offset: Tau eta region categories
@@ -3332,6 +3275,152 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
 
 
   return kTRUE;
+}
+
+void ZTauTauHistMaker::ApplyTriggerWeights(const float muon_trig_pt, const float electron_trig_pt) {
+  float data_eff[2] = {0.5f, 0.5f}; //set to 0.5 so no danger in doing the ratio of eff or 1 - eff
+  float mc_eff[2]   = {0.5f, 0.5f};
+
+  ////////////////////////////////
+  // Get the efficiencies
+  ////////////////////////////////
+
+  // Electrons
+  if(fabs(leptonOneFlavor) == 11) { //lepton 1 is an electron
+    if(fIsEmbed) {
+      if(fUseEmbedTnPWeights) {
+        fEmbeddingTnPWeight.ElectronTriggerWeight(leptonOneP4->Pt(), leptonOneSCEta, fYear, data_eff[0], mc_eff[0]);
+      } else {
+        fEmbeddingWeight.ElectronTriggerWeight   (leptonOneP4->Pt(), leptonOneSCEta, fYear, data_eff[0], mc_eff[0]);
+      }
+    } else {
+      fElectronIDWeight.TriggerEff               (leptonOneP4->Pt(), leptonOneSCEta, fYear, data_eff[0], mc_eff[0]);
+    }
+  }
+  if(fabs(leptonTwoFlavor) == 11) { //lepton 2 is an electron
+    if(fIsEmbed) {
+      if(fUseEmbedTnPWeights) {
+        fEmbeddingTnPWeight.ElectronTriggerWeight(leptonTwoP4->Pt(), leptonTwoSCEta, fYear, data_eff[1], mc_eff[1]);
+      } else {
+        fEmbeddingWeight.ElectronTriggerWeight   (leptonTwoP4->Pt(), leptonTwoSCEta, fYear, data_eff[1], mc_eff[1]);
+      }
+    } else {
+      fElectronIDWeight.TriggerEff               (leptonTwoP4->Pt(), leptonTwoSCEta, fYear, data_eff[1], mc_eff[1]);
+    }
+  }
+
+  // Muons
+  if(fabs(leptonTwoFlavor) == 13) { //lepton 2 is a muon
+    if(fIsEmbed) {
+      if(fUseEmbedTnPWeights) {
+        fEmbeddingTnPWeight.MuonTriggerWeight(leptonTwoP4->Pt(), leptonTwoP4->Eta(), fYear, data_eff[1], mc_eff[1]);
+      } else {
+        fEmbeddingWeight.MuonTriggerWeight   (leptonTwoP4->Pt(), leptonTwoP4->Eta(), fYear, data_eff[1], mc_eff[1]);
+      }
+    } else {
+      //use low trigger in case the lepton didn't fire a trigger
+      fMuonIDWeight.TriggerEff               (leptonTwoP4->Pt(), leptonTwoP4->Eta(), fYear, !leptonTwoFired || muonTriggerStatus != 2, data_eff[1], mc_eff[1]);
+    }
+  }
+  if(fabs(leptonOneFlavor) == 13) { //lepton 1 is a muon
+    if(fIsEmbed) {
+      if(fUseEmbedTnPWeights) {
+        fEmbeddingTnPWeight.MuonTriggerWeight(leptonOneP4->Pt(), leptonOneP4->Eta(), fYear, data_eff[0], mc_eff[0]);
+      } else {
+        fEmbeddingWeight.MuonTriggerWeight   (leptonOneP4->Pt(), leptonOneP4->Eta(), fYear, data_eff[0], mc_eff[0]);
+      }
+    } else {
+      fMuonIDWeight.TriggerEff               (leptonOneP4->Pt(), leptonOneP4->Eta(), fYear, !leptonOneFired || muonTriggerStatus != 2, data_eff[0], mc_eff[0]);
+    }
+  }
+
+  // Taus
+  if(fabs(leptonTwoFlavor) == 15) {
+    data_eff[1] = 0.f; mc_eff[1] = 0.f; //tau can't trigger
+  }
+
+  ////////////////////////////////
+  // Apply the corrections
+  ////////////////////////////////
+
+  const float pt_1(leptonOneP4->Pt()), pt_2(leptonTwoP4->Pt());
+  const float min_pt_1 = (fabs(leptonOneFlavor) == 13) ? muon_trig_pt : electron_trig_pt;
+  const float min_pt_2 = (fabs(leptonTwoFlavor) == 13) ? muon_trig_pt : electron_trig_pt;
+  //use just the muon if there's a muon or the leading firing lepton otherwise
+  if(fRemoveTriggerWeights == 2) {
+    if((leptonOneFired && pt_1 >= min_pt_1) && (abs(leptonOneFlavor) == 13 || !leptonTwoFired || abs(leptonTwoFlavor) != 13)) {
+      leptonOneTrigWeight = data_eff[0] / mc_eff[0];
+    } else {
+      leptonTwoTrigWeight = data_eff[1] / mc_eff[1];
+    }
+  }
+
+  //use the probability of the event, given whether or not each lepton triggered
+  else if(fRemoveTriggerWeights == 3) {
+    //P(event) = P(lep 1 status) * P(lep 2 status)
+    //SF = P(event | Data) / P(event | MC) = (P(1 | Data) * P(2 | Data)) / (P(1 | MC) * P(2 | MC))
+    //SF = (P(1 | Data) / P(1 | MC)) * (P(2 | Data) / P(2 | MC))
+
+    //if a lepton couldn't fire, ensure no weight effect
+    if(pt_1 < min_pt_1) {
+      leptonOneTrigWeight = 1.;
+    } else {
+      leptonOneTrigWeight = (leptonOneFired) ? data_eff[0] / mc_eff[0] : (1.-data_eff[0])/(1.-mc_eff[0]);
+    }
+    if(fabs(leptonOneFlavor) == 15 || pt_2 < min_pt_2) {
+      leptonTwoTrigWeight = 1.;
+    } else {
+      leptonTwoTrigWeight = (leptonTwoFired) ? data_eff[1] / mc_eff[1] : (1.-data_eff[1])/(1.-mc_eff[1]);
+    }
+  }
+
+  //use the probability that at least one fires
+  else if(fRemoveTriggerWeights == 4) {
+    // P(at least 1 fires) = 1 - P(neither fires) = 1 - Product of P(doesn't fire)
+    float prob_data(1.f), prob_mc(1.f);
+    //check if each is triggerable, and if so apply the P(!fire) for MC and Data
+    if(pt_1 > min_pt_1) {
+      prob_data *= (1.f - data_eff[0]);
+      prob_mc   *= (1.f - mc_eff[0]  );
+    }
+    if(pt_2 > min_pt_2) {
+      prob_data *= (1.f - data_eff[1]);
+      prob_mc   *= (1.f - mc_eff[1]  );
+    }
+    if(prob_data >= 1.f || prob_mc >= 1.f) {
+      if(fVerbose > 0) { //often due to changed trigger thresholds, so only warn if debugging
+        std::cout << "!!! " << fentry << " Warning! Inefficiency calculation >= 1!"
+                  << " 1-eff(data) = " << prob_data
+                  << " 1-eff(MC) = " << prob_mc
+                  << std::endl;
+      }
+    }
+    prob_data = std::max(0.f, std::min(0.9999f, prob_data)); //avoid a ~1/0  or sqrt(negative) situation
+    prob_mc   = std::max(0.f, std::min(0.9999f, prob_mc  ));
+    const float trig_wt = (1.f - prob_data) / (1.f - prob_mc);
+    if(fabs(leptonTwoFlavor) == 15 || pt_2 < min_pt_2) { //no need to split if other lepton can't fire
+      leptonOneTrigWeight = trig_wt;
+    } else if(pt_1 < min_pt_1) { //only lepton two could (and did) fire
+      leptonTwoTrigWeight = trig_wt;
+    } else { //both could fire, so equally split the weight between the two
+      leptonOneTrigWeight = std::sqrt(trig_wt);
+      leptonTwoTrigWeight = std::sqrt(trig_wt);
+    }
+  }
+
+  if(leptonOneTrigWeight < 0. || leptonTwoTrigWeight < 0. || std::isnan(leptonOneTrigWeight) || std::isnan(leptonTwoTrigWeight)) {
+    std::cout << "!!! " << fentry << " Warning! Trigger efficiency calculation failed: wt_1 = "
+              << leptonOneTrigWeight << " wt_2 = " << leptonTwoTrigWeight
+              << " P(l1) = (" << data_eff[0] << ", " << mc_eff[0] << ")"
+              << " P(l2) = (" << data_eff[1] << ", " << mc_eff[1] << ")"
+              << " fired(l1) = " << leptonOneFired
+              << " fired(l2) = " << leptonTwoFired
+              << std::endl;
+    leptonOneTrigWeight = 1.; leptonTwoTrigWeight = 1.;
+  }
+  //keep this the same for now, to see the comparison plot using this trigger weight array
+  // triggerWeights[0] = leptonOneTrigWeight * leptonTwoTrigWeight;
+  eventWeight *= leptonOneTrigWeight * leptonTwoTrigWeight;
 }
 
 void ZTauTauHistMaker::CountSlimObjects() {
@@ -3479,12 +3568,12 @@ int ZTauTauHistMaker::Category(TString selection) {
 void ZTauTauHistMaker::InitializeSystematics() {
   leptonOneWeight1_group = 0; leptonOneWeight2_group = 0;
   leptonTwoWeight1_group = 0; leptonTwoWeight2_group = 0;
-  if(abs(leptonOneFlavor) == 11) {
+  if(fabs(leptonOneFlavor) == 11) {
     leptonOneWeight1_sys = fSystematicShifts->ElectronID    (fYear, leptonOneWeight1_bin) ? leptonOneWeight1_up : leptonOneWeight1_down;
     leptonOneWeight2_sys = fSystematicShifts->ElectronRecoID(fYear, leptonOneWeight2_bin) ? leptonOneWeight2_up : leptonOneWeight2_down;
     leptonOneWeight1_group = fElectronIDWeight.GetIDGroup(leptonOneWeight1_bin, fYear) + SystematicGrouping::kElectronID;
     leptonOneWeight2_group = fElectronIDWeight.GetRecoGroup(leptonOneWeight2_bin, fYear) + SystematicGrouping::kElectronRecoID;
-  } else if(abs(leptonOneFlavor) == 13) {
+  } else if(fabs(leptonOneFlavor) == 13) {
     if(fYear == 2018) { //remove the period dependence for 2018, as it is using inclusive weights
       leptonOneWeight1_bin %= 10000;
       leptonTwoWeight1_bin %= 10000;
@@ -3495,7 +3584,7 @@ void ZTauTauHistMaker::InitializeSystematics() {
     leptonOneWeight2_sys = fSystematicShifts->MuonIsoID(fYear, leptonOneWeight2_bin) ? leptonOneWeight2_up : leptonOneWeight2_down;
     leptonOneWeight1_group = fMuonIDWeight.GetIDGroup(leptonOneWeight1_bin, fYear) + SystematicGrouping::kMuonID;
     leptonOneWeight2_group = fMuonIDWeight.GetIsoGroup(leptonOneWeight2_bin, fYear) + SystematicGrouping::kMuonIsoID;
-  } else if(abs(leptonOneFlavor) == 15) {
+  } else if(fabs(leptonOneFlavor) == 15) {
     int tauGenID = 0;
     if     (abs(tauGenFlavor) == 15) tauGenID = 5;
     else if(abs(tauGenFlavor) == 13) tauGenID = 2;

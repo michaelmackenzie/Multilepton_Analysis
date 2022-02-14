@@ -494,6 +494,7 @@ namespace CLFV {
     virtual void    InitializeTreeVariables(Int_t selection);
     virtual float   GetTauFakeSF(int genFlavor);
     virtual float   CorrectMET(int selection, float met);
+    virtual void    ApplyTriggerWeights(const float muon_trig_pt, const float electron_trig_pt);
     virtual void    CountSlimObjects();
     virtual int     Category(TString selection);
     virtual void    InitializeSystematics();
@@ -568,6 +569,7 @@ namespace CLFV {
     Bool_t          fQCDFakeTauTesting = false; //for speeding up histogramming to only do qcd jet --> fake tau scale factor aspects
     Bool_t          fCutFlowTesting = false; //for only testing basic cutflow sets
     Bool_t          fJetTauTesting = false; //for including MC j->tau sets in testing mode
+    Bool_t          fTriggerTesting = false; //add emu histograms for electron/muon triggered events
     Bool_t          fDoMVASets = false; //for filling MVA cut sets even in DYTesting mode
 
     Int_t           fDoSystematics = 0; //0: ignore systematic histograms 1: fill them -1: only fill them
@@ -1019,6 +1021,18 @@ void ZTauTauHistMaker::Init(TTree *tree)
       // fEventSets [kEMu  + 36] = 1;
       // fEventSets [kEMu  + 45] = 1; //taus in the barrel, but put all e+mu here
       // fEventSets [kEMu  + 46] = 1; //taus in the endcap, but put no e+mu here
+
+      if(!fDYTesting || fTriggerTesting) { //testing e+mu triggering
+        fEventSets [kEMu  + 60] = 1; //electron fired
+        fEventSets [kEMu  + 61] = 1; //muon fired
+        fEventSets [kEMu  + 62] = 1; //both fired
+        fEventSets [kEMu  + 63] = 1; //electron could trigger
+        fEventSets [kEMu  + 64] = 1; //muon could trigger
+        fEventSets [kEMu  + 65] = 1; //both could trigger
+        fEventSets [kEMu  + 66] = 1; //electron can't trigger
+        fEventSets [kEMu  + 67] = 1; //muon can't trigger
+      }
+
     }
     else if(fFolderName == "mumu") {
       fEventSets [kMuMu + 1] = 1; // all events

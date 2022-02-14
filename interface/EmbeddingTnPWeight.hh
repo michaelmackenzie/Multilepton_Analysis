@@ -100,19 +100,34 @@ namespace CLFV {
 
       double scale_factor(1.);
       pt = std::max(10.01, std::min(pt, 499.));
-      eta = std::min(2.39, fabs(eta)); //std::max(-2.39, std::min(2.39, eta));
+      eta = std::min(2.39, fabs(eta));
 
       ///////////////////////////
       // Apply ID weight
       ///////////////////////////
-      scale_factor *= hIDData->GetBinContent(hIDData->GetXaxis()->FindBin(eta), hIDData->GetYaxis()->FindBin(pt));
-      scale_factor /= hIDMC  ->GetBinContent(hIDMC  ->GetXaxis()->FindBin(eta), hIDMC  ->GetYaxis()->FindBin(pt));
+      double data_eff(1.), mc_eff(1.);
+      if(interpolate_) {
+        //Perform a linear interpolation
+        data_eff = Utilities::Interpolate(hIDData, eta, pt, Utilities::kYAxis);
+        mc_eff   = Utilities::Interpolate(hIDMC  , eta, pt, Utilities::kYAxis);
+      } else {
+        data_eff = hIDData->GetBinContent(hIDData->GetXaxis()->FindBin(eta), hIDData->GetYaxis()->FindBin(pt));
+        mc_eff   = hIDMC  ->GetBinContent(hIDMC  ->GetXaxis()->FindBin(eta), hIDMC  ->GetYaxis()->FindBin(pt));
+      }
+      scale_factor *= data_eff / mc_eff;
 
       ///////////////////////////
       // Apply Iso ID weight
       ///////////////////////////
-      scale_factor *= hIsoIDData->GetBinContent(hIsoIDData->GetXaxis()->FindBin(eta), hIsoIDData->GetYaxis()->FindBin(pt));
-      scale_factor /= hIsoIDMC  ->GetBinContent(hIsoIDMC  ->GetXaxis()->FindBin(eta), hIsoIDMC  ->GetYaxis()->FindBin(pt));
+      if(interpolate_) {
+        //Perform a linear interpolation
+        data_eff = Utilities::Interpolate(hIsoIDData, eta, pt, Utilities::kYAxis);
+        mc_eff   = Utilities::Interpolate(hIsoIDMC  , eta, pt, Utilities::kYAxis);
+      } else {
+        data_eff = hIsoIDData->GetBinContent(hIsoIDData->GetXaxis()->FindBin(eta), hIsoIDData->GetYaxis()->FindBin(pt));
+        mc_eff   = hIsoIDMC  ->GetBinContent(hIsoIDMC  ->GetXaxis()->FindBin(eta), hIsoIDMC  ->GetYaxis()->FindBin(pt));
+      }
+      scale_factor *= data_eff / mc_eff;
 
       if(scale_factor <= 0.) {
         std::cout << "Warning! Scale factor <= 0 in EmbeddingTnPWeight::" << __func__ << ", returning 1" << std::endl;
@@ -191,8 +206,16 @@ namespace CLFV {
       ///////////////////////////
       // Apply ID weight
       ///////////////////////////
-      scale_factor *= hIDData->GetBinContent(hIDData->GetXaxis()->FindBin(eta), hIDData->GetYaxis()->FindBin(pt));
-      scale_factor /= hIDMC  ->GetBinContent(hIDMC  ->GetXaxis()->FindBin(eta), hIDMC  ->GetYaxis()->FindBin(pt));
+      double data_eff(1.), mc_eff(1.);
+      if(interpolate_) {
+        //Perform a linear interpolation
+        data_eff = Utilities::Interpolate(hIDData, eta, pt, Utilities::kYAxis);
+        mc_eff   = Utilities::Interpolate(hIDMC  , eta, pt, Utilities::kYAxis);
+      } else {
+        data_eff = hIDData->GetBinContent(hIDData->GetXaxis()->FindBin(eta), hIDData->GetYaxis()->FindBin(pt));
+        mc_eff   = hIDMC  ->GetBinContent(hIDMC  ->GetXaxis()->FindBin(eta), hIDMC  ->GetYaxis()->FindBin(pt));
+      }
+      scale_factor *= data_eff / mc_eff;
 
       if(scale_factor <= 0.) {
         std::cout << "Warning! Scale factor <= 0 in EmbeddingTnPWeight::" << __func__ << ", returning 1" << std::endl;
