@@ -55,6 +55,7 @@ EmbeddingTnPWeight::EmbeddingTnPWeight(const int Mode, const int verbose) : verb
             }
           }
         }
+        f->Close();
       }
     }
   }
