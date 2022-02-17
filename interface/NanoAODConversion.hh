@@ -428,8 +428,12 @@ namespace CLFV {
     virtual void    CountTaus(int selection);
     virtual void    CountLightLeptons(int selection);
     virtual void    ApplyMuonCorrections();
+    virtual bool    ElectronID(Int_t index, Int_t ID);
+    virtual bool    MuonID(Int_t index, Int_t isoID, Int_t ID);
+    virtual bool    TauID (Int_t index, Bool_t useDeep, Int_t antiEle, Int_t antiMu, Int_t antiJet, Bool_t DM, Int_t oldAntiMu);
     virtual void    CountObjects();
     virtual bool    SelectionID(Int_t selection);
+    virtual bool    QCDSelection(Int_t selection);
     virtual float   GetTauFakeSF(int genFlavor);
     virtual float   CorrectMET(int selection, float met);
     virtual float   GetZPtWeight(float pt);
@@ -509,7 +513,7 @@ namespace CLFV {
     //for counting objects (usually by selection)
     /** Muons **/
     Float_t       fMuonPtCount = 0.;
-    Float_t       fMuonEtaCount = 2.4;
+    Float_t       fMuonEtaCount = 2.2;
     std::map<UInt_t, UChar_t> fMuonIsoCount;
     std::map<UInt_t, Int_t>   fMuonIDCount; //0 = any, 1 = loose, 2 = medium, 3 = tight
     std::map<UInt_t, Bool_t>  fCountMuons;
@@ -517,14 +521,14 @@ namespace CLFV {
     std::map<UInt_t, UInt_t>  fNMuons;
     /** Electrons **/
     Float_t       fElectronPtCount = 0.;
-    Float_t       fElectronEtaCount = 2.5;
+    Float_t       fElectronEtaCount = 2.2;
     std::map<UInt_t, Int_t>   fElectronIDCount; //0 = any, 1 = WPL, 2 = WP80, 3 = WP90
     std::map<UInt_t, Bool_t>  fCountElectrons;
     std::map<UInt_t, std::map<UInt_t, UInt_t>> fElectronIndices;
     std::map<UInt_t, UInt_t>  fNElectrons;
     /** Taus **/
     Float_t       fTauPtCount = 0.;
-    Float_t       fTauEtaCount = 2.3;
+    Float_t       fTauEtaCount = 2.2;
     std::map<UInt_t, UChar_t> fTauAntiEleCount;
     std::map<UInt_t, UChar_t> fTauAntiMuCount;
     std::map<UInt_t, UChar_t> fTauAntiOldMuCount;

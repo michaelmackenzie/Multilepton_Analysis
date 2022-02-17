@@ -163,7 +163,8 @@ void ZTauTauHistMaker::BookEventHistograms() {
       fEventHist[i]->hLogEventWeight         = new TH1D("logeventweight"      , Form("%s: LogEventWeight"      ,dirname)  , 100,  -10,   1);
       fEventHist[i]->hEventWeightMVA         = new TH1D("eventweightmva"      , Form("%s: EventWeightMVA"      ,dirname)  , 100,   -5,   5);
       fEventHist[i]->hGenWeight              = new TH1D("genweight"           , Form("%s: GenWeight"           ,dirname)  ,   5, -2.5, 2.5);
-      fEventHist[i]->hFullEventWeightLum     = new TH1D("fulleventweightlum"  , Form("%s: abs(FullEventWeightLum)",dirname)  , 500, 0, 100);
+      fEventHist[i]->hFullEventWeightLum     = new TH1D("fulleventweightlum"  , Form("%s: abs(FullEventWeightLum)",dirname)  , 500, 0, 15);
+      fEventHist[i]->hLogFullEventWeightLum  = new TH1D("logfulleventweightlum", Form("%s: log(abs(FullEventWeightLum))",dirname)  , 100, -10, 2);
       // fEventHist[i]->hGenTauFlavorWeight     = new TH1D("gentauflavorweight"  , Form("%s: GenTauFlavorWeight"  ,dirname)  ,  40,    0,   2);
       fEventHist[i]->hEmbeddingWeight        = new TH1D("embeddingweight"     , Form("%s: EmbeddingWeight"     ,dirname)  , 100,    0,   0.5);
       fEventHist[i]->hEmbeddingUnfoldingWeight = new TH1D("embeddingunfoldingweight", Form("%s: EmbeddingUnfoldingWeight"     ,dirname), 50,    0,   2);
@@ -197,7 +198,7 @@ void ZTauTauHistMaker::BookEventHistograms() {
       // for(int icount = 0; icount < kMaxCounts; ++icount)
       //        fEventHist[i]->hNTauCounts[icount]   = new TH1D(Form("ntaucounts%i",icount), Form("%s: NTauCounts %i",dirname,icount),  10,  0,  10);
       // fEventHist[i]->hNSlimPhotons           = new TH1D("nslimphotons"        , Form("%s: NSlimPhotons"        ,dirname)  ,  20,  0,  20);
-      // fEventHist[i]->hNPhotons               = new TH1D("nphotons"            , Form("%s: NPhotons"            ,dirname)  ,  10,  0,  10);
+      fEventHist[i]->hNPhotons               = new TH1D("nphotons"            , Form("%s: NPhotons"            ,dirname)  ,  10,  0,  10);
       fEventHist[i]->hNGenTausHad            = new TH1D("ngentaushad"         , Form("%s: NGenTausHad"         ,dirname)  ,  10,  0,  10);
       fEventHist[i]->hNGenTausLep            = new TH1D("ngentauslep"         , Form("%s: NGenTausLep"         ,dirname)  ,  10,  0,  10);
       fEventHist[i]->hNGenTaus               = new TH1D("ngentaus"            , Form("%s: NGenTaus"            ,dirname)  ,  10,  0,  10);
@@ -1213,8 +1214,8 @@ float ZTauTauHistMaker::GetTauFakeSF(int genFlavor) {
   return weight;
 }
 
-float ZTauTauHistMaker::CorrectMET(int selection, float met) {
-  if(selection > 0) return met;
+float ZTauTauHistMaker::CorrectMET(const int selection, const float met) {
+  if(selection < 0) return met;
   float corrected = met;
 
   // switch(abs(selection)) {
@@ -1231,6 +1232,7 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
   Hist->hEventWeight         ->Fill(eventWeight             );
   Hist->hLogEventWeight      ->Fill((eventWeight > 1.e-10) ? std::log10(eventWeight) : -999.);
   Hist->hFullEventWeightLum  ->Fill(std::fabs(fTreeVars.fulleventweightlum), genWeight*eventWeight);
+  Hist->hLogFullEventWeightLum->Fill(std::log10(std::fabs(fTreeVars.fulleventweightlum)), genWeight*eventWeight);
   Hist->hGenWeight           ->Fill(genWeight               );
   Hist->hEmbeddingWeight     ->Fill(embeddingWeight         );
   Hist->hEmbeddingUnfoldingWeight->Fill(embeddingUnfoldingWeight);
@@ -1269,7 +1271,7 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
     // Hist->hNSlimTaus           ->Fill(nSlimTaus          , genWeight*eventWeight)      ;
     // for(int icount = 0; icount < kMaxCounts; ++icount)
     //   Hist->hNTauCounts[icount]->Fill(nTauCounts[icount] , genWeight*eventWeight)      ;
-    // Hist->hNPhotons            ->Fill(nPhotons           , genWeight*eventWeight)      ;
+    Hist->hNPhotons            ->Fill(nPhotons           , genWeight*eventWeight)      ;
     // Hist->hNSlimPhotons        ->Fill(nSlimPhotons       , genWeight*eventWeight)      ;
     // Hist->hNSlimJets           ->Fill(nSlimJets          , genWeight*eventWeight)      ;
     Hist->hNGenTausHad         ->Fill(nGenTausHad        , genWeight*eventWeight)      ;
