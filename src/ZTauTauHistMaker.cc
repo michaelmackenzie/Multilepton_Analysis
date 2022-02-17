@@ -951,9 +951,9 @@ void ZTauTauHistMaker::BookTrees() {
 void ZTauTauHistMaker::DeleteHistograms() {
   for(int i = 0; i < fn; i++) {
     if(fEventSets[i] != 0) {
-      delete fEventHist[i];
-      delete fLepHist[i];
-      if(fDoSystematics && fSysSets[i]) delete fSystematicHist[i];
+      if(fEventHist[i]) delete fEventHist[i];
+      if(fLepHist  [i]) delete fLepHist  [i];
+      if(fDoSystematics && fSysSets[i] && fSystematicHist[i]) delete fSystematicHist[i];
     }
   }
 }

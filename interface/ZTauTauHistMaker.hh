@@ -448,13 +448,25 @@ namespace CLFV {
                                                             fElectronJetToTauWeight("ElectronWeight", "etau", 31, 1000100, seed),
                                                             fElectronJetToTauComp("etau", 2035, 102, 0), fElectronJetToTauSSComp("etau", 3035, 102, 0),
                                                             fJetToMuonWeight("mumu"), fJetToElectronWeight("ee"),
-                                                            fQCDWeight("emu", 11010, seed, 2), fElectronIDWeight(1, seed, 0), fZPtWeight("MuMu", seed),
-                                                            fEmbeddingWeight(), fEmbeddingTnPWeight(1/*interpolate scales or not*/) {}
-    ~ZTauTauHistMaker() {
-      delete fCutFlow;
+                                                            fQCDWeight("emu", 11010, seed, 0), fElectronIDWeight(1, seed, 0), fZPtWeight("MuMu", seed),
+                                                            fEmbeddingWeight(), fEmbeddingTnPWeight(1/*interpolate scales or not*/) {
+      fCutFlow = nullptr;
+      for(int i = 0; i < fn; i++) {
+        fEventHist     [i] = nullptr;
+        fLepHist       [i] = nullptr;
+        fSystematicHist[i] = nullptr;
+      }
       for(int proc = 0; proc < JetToTauComposition::kLast; ++proc) {
-        delete fMuonJetToTauWeights[proc];
-        delete fElectronJetToTauWeights[proc];
+        fMuonJetToTauWeights    [proc] = nullptr;
+        fElectronJetToTauWeights[proc] = nullptr;
+      }
+    }
+
+    ~ZTauTauHistMaker() {
+      if(fCutFlow) delete fCutFlow;
+      for(int proc = 0; proc < JetToTauComposition::kLast; ++proc) {
+        if(fMuonJetToTauWeights    [proc]) delete fMuonJetToTauWeights    [proc];
+        if(fElectronJetToTauWeights[proc]) delete fElectronJetToTauWeights[proc];
       }
       DeleteHistograms();
 
