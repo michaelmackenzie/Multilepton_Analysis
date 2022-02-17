@@ -91,6 +91,7 @@ double EmbeddingTnPWeight::GetScale(const TH2F* data, const TH2F* mc, const doub
 }
 
 //-------------------------------------------------------------------------------------------------------------------------
+// Get Muon ID + Iso ID scale factor
 double EmbeddingTnPWeight::MuonIDWeight(double pt, double eta, int year) {
   year -= 2016;
   if(year != k2016 && year != k2017 && year != k2018) {
@@ -135,6 +136,7 @@ double EmbeddingTnPWeight::MuonIDWeight(double pt, double eta, int year) {
 }
 
 //-------------------------------------------------------------------------------------------------------------------------
+// Get Muon trigger scale factor
 double EmbeddingTnPWeight::MuonTriggerWeight(double pt, double eta, int year, float& data_eff, float& mc_eff) {
   year -= 2016;
   data_eff = 0.5; mc_eff = 0.5;
@@ -176,6 +178,7 @@ double EmbeddingTnPWeight::MuonTriggerWeight(double pt, double eta, int year, fl
 }
 
 //-------------------------------------------------------------------------------------------------------------------------
+// Get Electron ID scale factor
 double EmbeddingTnPWeight::ElectronIDWeight(double pt, double eta, int year) {
   year -= 2016;
   if(year != k2016 && year != k2017 && year != k2018) {
@@ -209,6 +212,7 @@ double EmbeddingTnPWeight::ElectronIDWeight(double pt, double eta, int year) {
 
 
 //-------------------------------------------------------------------------------------------------------------------------
+// Get Electron trigger scale factor
 double EmbeddingTnPWeight::ElectronTriggerWeight(double pt, double eta, int year, float& data_eff, float& mc_eff) {
   year -= 2016;
   data_eff = 0.5; mc_eff = 0.5;
