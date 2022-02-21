@@ -1233,10 +1233,10 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
   Hist->hEventWeight         ->Fill(eventWeight             );
   Hist->hLogEventWeight      ->Fill((eventWeight > 1.e-10) ? std::log10(eventWeight) : -999.);
   Hist->hFullEventWeightLum  ->Fill(std::fabs(fTreeVars.fulleventweightlum), genWeight*eventWeight);
-  Hist->hLogFullEventWeightLum->Fill(std::log10(std::fabs(fTreeVars.fulleventweightlum)), genWeight*eventWeight);
-  Hist->hGenWeight           ->Fill(genWeight, eventWeight  );
-  Hist->hEmbeddingWeight     ->Fill(embeddingWeight         );
-  Hist->hLogEmbeddingWeight  ->Fill(std::log10(embeddingWeight));
+  Hist->hLogFullEventWeightLum->Fill((std::fabs(fTreeVars.fulleventweightlum) > 1.e-10) ? std::log10(std::fabs(fTreeVars.fulleventweightlum)) : -999., genWeight*eventWeight);
+  Hist->hGenWeight           ->Fill(genWeight                   , eventWeight          );
+  Hist->hEmbeddingWeight     ->Fill(embeddingWeight             , eventWeight*genWeight);
+  Hist->hLogEmbeddingWeight  ->Fill((embeddingWeight > 1.e-10) ? std::log10(embeddingWeight) : -999. , eventWeight*genWeight     );
   Hist->hEmbeddingUnfoldingWeight->Fill(embeddingUnfoldingWeight);
   if(fDoSystematics >= 0)
     Hist->hEventWeightMVA      ->Fill(fTreeVars.eventweightMVA);
@@ -2411,6 +2411,12 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   //apply embedding unfolding correction to embedded samples
   if(fIsEmbed) {
     if(fIsEmbed && embeddingWeight > 0.9) { //as branching fraction is in the weight, should never be this large
+      if(std::fabs(genWeight) > 0.5) {
+        std::cout << "!!! Warning! Event " << fentry << ": Embedding generation weight is large but gen-weight non-zero! Embedding weight = "
+                  << embeddingWeight << " genWeight = " << genWeight
+                  << " event = " << eventNumber << " lumi = " << lumiSection << " run = " << runNumber
+                  << std::endl;
+      }
       eventWeight /= embeddingWeight; //remove the previous weight
       embeddingWeight = 1.; //FIXME: Determine what to do with these bad event weights (remove when skimming?)
       genWeight = 0.; //remove the event by using the gen weight

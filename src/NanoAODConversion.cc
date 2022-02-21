@@ -274,6 +274,10 @@ void NanoAODConversion::InitializeInBranchStructure(TTree* tree) {
   }
   tree->SetBranchAddress("LHE_Njets"                       , &LHE_Njets                      ) ;
 
+  tree->SetBranchAddress("event"                           , &eventNumber                      ) ;
+  tree->SetBranchAddress("run"                             , &runNumber                      ) ;
+  tree->SetBranchAddress("luminosityBlock"                 , &lumiSection                      ) ;
+
   //Skimmer defined branches
   tree->SetBranchAddress("leptonOneIndex"                  , &leptonOneSkimIndex             ) ;
   tree->SetBranchAddress("leptonTwoIndex"                  , &leptonTwoSkimIndex             ) ;
@@ -563,6 +567,61 @@ float NanoAODConversion::BTagWeight(int WP) {
 
 //-----------------------------------------------------------------------------------------------------------------
 // Initialize event variables for the given selection
+void NanoAODConversion::InitializeEventVariables() {
+  ////////////////////////////////////////////////////////////////////
+  //   Generator/Embedding Weight
+  ////////////////////////////////////////////////////////////////////
+  //store sign of the generator weight, except in embedding weight where the value is meaningful --> move this to a new variable
+  embeddingWeight = 1.;
+  if(!fIsEmbed) {
+    genWeight = (genWeight == 0.) ? 0. : genWeight/std::fabs(genWeight);
+  } else {
+    //if embedding weight is undefined, set to near-zero
+    genWeight = std::fabs(genWeight);
+    if(genWeight > 1.) {  //remove the undefined event by setting genWeight to 0
+      genWeight = 0.;
+    } else if(genWeight == 1.) {
+      std::cout << "!!! Warning! Entry = " << fentry << ": Unit input embedding weight = " << genWeight
+                << " in event = " << eventNumber << " lumi = " << lumiSection << " run = " << runNumber
+                << std::endl;
+      genWeight = 0.;
+    } else { //move the weight value to the embeddingWeight variable
+      embeddingWeight = genWeight;
+      genWeight = 1.;
+    }
+    if(embeddingWeight >= 1. && genWeight > 0.5) {
+      std::cout << "!!! Warning! Entry = " << fentry << ": Large embedding weight = " << embeddingWeight
+                << " with non-zero genWeight = " << genWeight
+                << " in event = " << eventNumber << " lumi = " << lumiSection << " run = " << runNumber
+                << std::endl;
+    }
+  }
+
+  ////////////////////////////////////////////////////////////////////
+  //   Z info + re-weight
+  ////////////////////////////////////////////////////////////////////
+  //Z pT/mass info (DY and Z signals only)
+  zPtOut = zPtIn;
+  zMassOut = zMassIn;
+  if(fIsDY) {
+    //re-weight if pt/mass are defined
+    if(zPtOut > 0. && zMassOut > 0.) zPtWeight = particleCorrections->ZWeight(zPtOut, zMassOut, fYear);
+    //store generator level Z->ll lepton ids
+    nGenHardElectrons = 0; nGenHardMuons = 0; nGenHardTaus = 0;
+    //lepton one
+    if(abs(zLepOne) == 11)      ++nGenHardElectrons;
+    else if(abs(zLepOne) == 13) ++nGenHardMuons;
+    else if(abs(zLepOne) == 15) ++nGenHardTaus;
+    //lepton two
+    if(abs(zLepTwo) == 11)      ++nGenHardElectrons;
+    else if(abs(zLepTwo) == 13) ++nGenHardMuons;
+    else if(abs(zLepTwo) == 15) ++nGenHardTaus;
+  }
+
+}
+
+//-----------------------------------------------------------------------------------------------------------------
+// Initialize event variables for the given selection
 void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
   eventWeight = 1.; //reset the overall event weight
 
@@ -585,27 +644,11 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
   tauEnergyScale = 1.; tauES_up = 1.; tauES_down = 1.;
   eleEnergyScale = 1.; eleES_up = 1.; eleES_down = 1.;
 
-  //store sign of the generator weight, except in embedding weight where the value is meaningful --> move this to a new variable
-  if(!fIsEmbed) {
-    genWeight = (genWeight == 0.) ? 0. : genWeight/std::fabs(genWeight);
-    embeddingWeight = 1.;
-  } else {
-    //if embedding weight is undefined, set to near-zero
-    genWeight = std::fabs(genWeight);
-    if(genWeight >= 1.) {  //remove the undefined event by setting genWeight to 0
-      embeddingWeight = 1.e-5;
-      genWeight = 0.;
-    } else { //move the weight value to the embeddingWeight variable
-      embeddingWeight = genWeight;
-      genWeight = 1.;
-    }
-  }
-
   //////////////////////////////
   //           MET            //
   //////////////////////////////
 
-  //use PUPPI MET by default
+  //use PUPPI MET by default, update by selection due to any MET corrections after object pT corrections
   met = puppMET;
   metPhi = puppMETphi;
   //set corrected PUPPI MET to be nominal
@@ -676,27 +719,6 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
     std::cout << "!!! NanoAODConversion::" << __func__
               << " Warning! Passed a selection but no identified trigger in event "
               << fentry << std::endl;
-  }
-
-  //////////////////////////////
-  //   Z info + re-weight     //
-  //////////////////////////////
-  //Z pT/mass info (DY and Z signals only)
-  zPtOut = zPtIn;
-  zMassOut = zMassIn;
-  if(fIsDY) {
-    //re-weight if pt/mass are defined
-    if(zPtOut > 0. && zMassOut > 0.) zPtWeight = particleCorrections->ZWeight(zPtOut, zMassOut, fYear);
-    //store generator level Z->ll lepton ids
-    nGenHardElectrons = 0; nGenHardMuons = 0; nGenHardTaus = 0;
-    //lepton one
-    if(abs(zLepOne) == 11)      ++nGenHardElectrons;
-    else if(abs(zLepOne) == 13) ++nGenHardMuons;
-    else if(abs(zLepOne) == 15) ++nGenHardTaus;
-    //lepton two
-    if(abs(zLepTwo) == 11)      ++nGenHardElectrons;
-    else if(abs(zLepTwo) == 13) ++nGenHardMuons;
-    else if(abs(zLepTwo) == 15) ++nGenHardTaus;
   }
 
   //for multiple potential triggers fired, consider efficiencies instead of scale factors
@@ -2051,6 +2073,7 @@ Bool_t NanoAODConversion::Process(Long64_t entry)
                                                                                  << "mutau = " << mutau_selec << " etau = " << etau_selec << " emu = " << emu_selec
                                                                                  << " mumu = " << mumu_selec << " ee = " << ee_selec << std::endl;
 
+  InitializeEventVariables(); //variables independent of selection
 
   /////////////////////////////////////
   // Selection Loop

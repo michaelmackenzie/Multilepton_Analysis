@@ -343,10 +343,6 @@ namespace CLFV {
     Float_t embeddingWeight    = 1.           ;
     Float_t leptonOneGenPt     = 0.           ;
     Float_t leptonTwoGenPt     = 0.           ;
-    // Float_t genWeight                         ;
-    // Float_t piWeight                          ;
-    // Float_t PuppiMET                          ;
-    // Float_t nPV                               ;
 
     //Tree Variables
     struct Tree_t {
@@ -423,6 +419,7 @@ namespace CLFV {
     virtual void    InitializeOutBranchStructure(TTree* tree);
     virtual void    InitializeInBranchStructure(TTree* tree);
     virtual float   BTagWeight(int WP);
+    virtual void    InitializeEventVariables();
     virtual void    InitializeTreeVariables(Int_t selection);
     virtual void    CountJets(int selection);
     virtual void    CountTaus(int selection);
