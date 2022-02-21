@@ -256,19 +256,19 @@ namespace CLFV {
 
     virtual void get_titles(TString hist, TString setType, TString* xtitle, TString* ytitle, TString* title);
 
-    virtual std::vector<TH1D*> get_signal(TString hist, TString setType, Int_t set);
+    virtual std::vector<TH1*> get_signal(TString hist, TString setType, Int_t set);
     virtual TH2D* get_signal_2D(TString hist, TString setType, Int_t set);
 
-    virtual TH1D* get_data(TString hist, TString setType, Int_t set);
+    virtual TH1* get_data(TString hist, TString setType, Int_t set);
     virtual TH2D* get_data_2D(TString hist, TString setType, Int_t set);
 
-    virtual TH1D* get_qcd(TString hist, TString setType, Int_t set);
+    virtual TH1* get_qcd(TString hist, TString setType, Int_t set);
     virtual TH2D* get_qcd_2D(TString hist, TString setType, Int_t set);
 
-    virtual TH1D* get_misid(TString hist, TString setType, Int_t set);
+    virtual TH1* get_misid(TString hist, TString setType, Int_t set);
     virtual TH2D* get_misid_2D(TString hist, TString setType, Int_t set);
 
-    virtual TH1D* get_stack_uncertainty(THStack* hstack, TString hname);
+    virtual TH1* get_stack_uncertainty(THStack* hstack, TString hname);
     virtual THStack* get_stack(TString hist, TString setType, Int_t set);
     virtual TH2D* get_background_2D(TString hist, TString setType, Int_t set);
 
@@ -327,8 +327,8 @@ namespace CLFV {
       return plot_stack(card.hist_, card.type_, card.set_, card.xmin_, card.xmax_);
     }
 
-    virtual TGraphAsymmErrors* get_errors(TH1D* h, TH1D* h_p, TH1D* h_m, bool ratio, double& r_min, double& r_max);
-    TGraphAsymmErrors* get_errors(TH1D* h, TH1D* h_p, TH1D* h_m, bool ratio = false) {
+    virtual TGraphAsymmErrors* get_errors(TH1* h, TH1* h_p, TH1* h_m, bool ratio, double& r_min, double& r_max);
+    TGraphAsymmErrors* get_errors(TH1* h, TH1* h_p, TH1* h_m, bool ratio = false) {
       double tmp1, tmp2;
       return get_errors(h, h_p, h_m, ratio, tmp1, tmp2);
     }

@@ -564,15 +564,9 @@ float NanoAODConversion::BTagWeight(int WP) {
 //-----------------------------------------------------------------------------------------------------------------
 // Initialize event variables for the given selection
 void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
-  //store sign of the generator weight, expect embedding where the value is meaningful
-  eventWeight = 1.;
-  if(!fIsEmbed) {
-    genWeight = (genWeight == 0.) ? 0. : genWeight/std::fabs(genWeight);
-    embeddingWeight = 1.;
-  } else {
-    embeddingWeight = (genWeight > 1.) ? 1. : std::fabs(genWeight);
-    genWeight = (genWeight > 1.) ? 0. : 1.;
-  }
+  eventWeight = 1.; //reset the overall event weight
+
+  //reset to-be-defined weights
   lepOneWeight1      = 1.; lepTwoWeight1      = 1.;
   lepOneWeight1_up   = 1.; lepTwoWeight1_up   = 1.;
   lepOneWeight1_down = 1.; lepTwoWeight1_down = 1.;
@@ -591,6 +585,22 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
   tauEnergyScale = 1.; tauES_up = 1.; tauES_down = 1.;
   eleEnergyScale = 1.; eleES_up = 1.; eleES_down = 1.;
 
+  //store sign of the generator weight, except in embedding weight where the value is meaningful --> move this to a new variable
+  if(!fIsEmbed) {
+    genWeight = (genWeight == 0.) ? 0. : genWeight/std::fabs(genWeight);
+    embeddingWeight = 1.;
+  } else {
+    //if embedding weight is undefined, set to near-zero
+    genWeight = std::fabs(genWeight);
+    if(genWeight >= 1.) {  //remove the undefined event by setting genWeight to 0
+      embeddingWeight = 1.e-5;
+      genWeight = 0.;
+    } else { //move the weight value to the embeddingWeight variable
+      embeddingWeight = genWeight;
+      genWeight = 1.;
+    }
+  }
+
   //////////////////////////////
   //           MET            //
   //////////////////////////////
@@ -606,9 +616,10 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
   //////////////////////////////
   //      Lepton info         //
   //////////////////////////////
-  nMuons = fNMuons[selection];
+  nMuons     = fNMuons    [selection];
   nElectrons = fNElectrons[selection];
-  nTaus = fNTaus[selection];
+  nTaus      = fNTaus     [selection];
+  nPhotons   = fNPhotons  [selection]; //also set N(photons) variable
   if(fVerbose > 1) std::cout << "nElectrons = " << nElectrons
                              << " nMuons = " << nMuons
                              << " nTaus = " << nTaus
@@ -1054,8 +1065,7 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
     ++fNHighMuonTriggered;
   }
 
-  nPhotons = fNPhotons[selection];
-  if(fNPhotons[selection] > 0) {
+  if(nPhotons > 0) {
     const unsigned index = fPhotonIndices[selection][0];
     photonP4->SetPtEtaPhiM(photonPt [index], photonEta [index],
                            photonPhi[index], photonMass[index]);

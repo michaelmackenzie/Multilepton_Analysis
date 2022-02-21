@@ -460,6 +460,9 @@ namespace CLFV {
         fMuonJetToTauWeights    [proc] = nullptr;
         fElectronJetToTauWeights[proc] = nullptr;
       }
+      fRnd = nullptr;
+      fSystematicShifts = nullptr;
+      for(int i = 0; i <kIds; ++i) fEventId[i] = nullptr;
     }
 
     ~ZTauTauHistMaker() {
@@ -470,13 +473,12 @@ namespace CLFV {
       }
       DeleteHistograms();
 
-      delete fTauIDWeight;
-      delete fSystematicShifts;
-      delete fEventId[20];
-      delete fEventId[21];
-      delete fEventId[50];
-      delete fRnd;
+      if (fTauIDWeight     ) delete fTauIDWeight     ;
+      if (fSystematicShifts) delete fSystematicShifts;
+      if (fRnd             ) delete fRnd             ;
+      for(int i = 0; i <kIds; ++i) {if(fEventId[i]) delete fEventId[i];}
     }
+
     virtual Int_t   Version() const { return 2; }
     virtual void    Begin(TTree *tree);
     virtual void    SlaveBegin(TTree *tree);

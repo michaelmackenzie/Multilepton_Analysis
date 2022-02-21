@@ -167,6 +167,7 @@ void ZTauTauHistMaker::BookEventHistograms() {
       fEventHist[i]->hLogFullEventWeightLum  = new TH1D("logfulleventweightlum", Form("%s: log(abs(FullEventWeightLum))",dirname)  , 100, -10, 2);
       // fEventHist[i]->hGenTauFlavorWeight     = new TH1D("gentauflavorweight"  , Form("%s: GenTauFlavorWeight"  ,dirname)  ,  40,    0,   2);
       fEventHist[i]->hEmbeddingWeight        = new TH1D("embeddingweight"     , Form("%s: EmbeddingWeight"     ,dirname)  , 100,    0,   0.5);
+      fEventHist[i]->hLogEmbeddingWeight     = new TH1D("logembeddingweight"  , Form("%s: Log10(EmbeddingWeight)" ,dirname), 40,   -9,   1);
       fEventHist[i]->hEmbeddingUnfoldingWeight = new TH1D("embeddingunfoldingweight", Form("%s: EmbeddingUnfoldingWeight"     ,dirname), 50,    0,   2);
       // fEventHist[i]->hPhotonIDWeight         = new TH1D("photonidweight"      , Form("%s: PhotonIDWeight"      ,dirname)  ,  40,    0,   2);
       fEventHist[i]->hJetToTauWeight         = new TH1D("jettotauweight"      , Form("%s: JetToTauWeight"      ,dirname)  ,  40,  0,   2);
@@ -1007,28 +1008,28 @@ void ZTauTauHistMaker::InitializeTreeVariables(Int_t selection) {
   fTreeVars.leptwoptoverm = fTreeVars.leptwopt/fTreeVars.lepm;
   fTreeVars.lepeta = lep.Eta();
   fTreeVars.lepdeltar   = leptonOneP4->DeltaR(*leptonTwoP4);
-  fTreeVars.lepdeltaphi = abs(leptonOneP4->DeltaPhi(*leptonTwoP4));
-  fTreeVars.lepdeltaeta = abs(leptonOneP4->Eta() - leptonTwoP4->Eta());
+  fTreeVars.lepdeltaphi = std::fabs(leptonOneP4->DeltaPhi(*leptonTwoP4));
+  fTreeVars.lepdeltaeta = std::fabs(leptonOneP4->Eta() - leptonTwoP4->Eta());
 
   //phi differences
-  fTreeVars.htdeltaphi = abs(lep.Phi() - htPhi);
+  fTreeVars.htdeltaphi = std::fabs(lep.Phi() - htPhi);
   if(fTreeVars.htdeltaphi > M_PI)
-    fTreeVars.htdeltaphi = abs(2.*M_PI - fTreeVars.htdeltaphi);
-  fTreeVars.metdeltaphi = abs(lep.Phi() - metPhi);
+    fTreeVars.htdeltaphi = std::fabs(2.*M_PI - fTreeVars.htdeltaphi);
+  fTreeVars.metdeltaphi = std::fabs(lep.Phi() - metPhi);
   if(fTreeVars.metdeltaphi > M_PI)
-    fTreeVars.metdeltaphi = abs(2.*M_PI - fTreeVars.metdeltaphi);
-  fTreeVars.leponedeltaphi = abs(leptonOneP4->Phi() - lep.Phi());
+    fTreeVars.metdeltaphi = std::fabs(2.*M_PI - fTreeVars.metdeltaphi);
+  fTreeVars.leponedeltaphi = std::fabs(leptonOneP4->Phi() - lep.Phi());
   if(fTreeVars.leponedeltaphi > M_PI)
-    fTreeVars.leponedeltaphi = abs(2.*M_PI - fTreeVars.leponedeltaphi);
-  fTreeVars.leptwodeltaphi = abs(leptonTwoP4->Phi() - lep.Phi());
+    fTreeVars.leponedeltaphi = std::fabs(2.*M_PI - fTreeVars.leponedeltaphi);
+  fTreeVars.leptwodeltaphi = std::fabs(leptonTwoP4->Phi() - lep.Phi());
   if(fTreeVars.leptwodeltaphi > M_PI)
-    fTreeVars.leptwodeltaphi = abs(2.*M_PI - fTreeVars.leptwodeltaphi);
-  fTreeVars.onemetdeltaphi = abs(leptonOneP4->Phi() - metPhi);
+    fTreeVars.leptwodeltaphi = std::fabs(2.*M_PI - fTreeVars.leptwodeltaphi);
+  fTreeVars.onemetdeltaphi = std::fabs(leptonOneP4->Phi() - metPhi);
   if(fTreeVars.onemetdeltaphi > M_PI)
-    fTreeVars.onemetdeltaphi = abs(2.*M_PI - fTreeVars.onemetdeltaphi);
-  fTreeVars.twometdeltaphi = abs(leptonTwoP4->Phi() - metPhi);
+    fTreeVars.onemetdeltaphi = std::fabs(2.*M_PI - fTreeVars.onemetdeltaphi);
+  fTreeVars.twometdeltaphi = std::fabs(leptonTwoP4->Phi() - metPhi);
   if(fTreeVars.twometdeltaphi > M_PI)
-    fTreeVars.twometdeltaphi = abs(2.*M_PI - fTreeVars.twometdeltaphi);
+    fTreeVars.twometdeltaphi = std::fabs(2.*M_PI - fTreeVars.twometdeltaphi);
 
   //MET variables
   fTreeVars.met = met;
@@ -1205,7 +1206,7 @@ void ZTauTauHistMaker::InitializeTreeVariables(Int_t selection) {
 
 float ZTauTauHistMaker::GetTauFakeSF(int genFlavor) {
   float weight = 1.;
-  switch(abs(genFlavor)) {
+  switch(std::abs(genFlavor)) {
   case 15 : weight = 0.95; break;
   case 11 : weight = genTauFlavorWeight; break;
   case 13 : weight = genTauFlavorWeight; break;
@@ -1218,7 +1219,7 @@ float ZTauTauHistMaker::CorrectMET(const int selection, const float met) {
   if(selection < 0) return met;
   float corrected = met;
 
-  // switch(abs(selection)) {
+  // switch(std::abs(selection)) {
   // case 0 : weight = (1.1 - 0.2/150.*met); break; // mu+tau
   // case 1 : weight = 1.; break; // e+tau
   // case 2 : weight = 1.; break; // e+mu
@@ -1233,8 +1234,9 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
   Hist->hLogEventWeight      ->Fill((eventWeight > 1.e-10) ? std::log10(eventWeight) : -999.);
   Hist->hFullEventWeightLum  ->Fill(std::fabs(fTreeVars.fulleventweightlum), genWeight*eventWeight);
   Hist->hLogFullEventWeightLum->Fill(std::log10(std::fabs(fTreeVars.fulleventweightlum)), genWeight*eventWeight);
-  Hist->hGenWeight           ->Fill(genWeight               );
+  Hist->hGenWeight           ->Fill(genWeight, eventWeight  );
   Hist->hEmbeddingWeight     ->Fill(embeddingWeight         );
+  Hist->hLogEmbeddingWeight  ->Fill(std::log10(embeddingWeight));
   Hist->hEmbeddingUnfoldingWeight->Fill(embeddingUnfoldingWeight);
   if(fDoSystematics >= 0)
     Hist->hEventWeightMVA      ->Fill(fTreeVars.eventweightMVA);
@@ -1301,7 +1303,7 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
     //Store basic info for all accepted jets
     for(UInt_t jet = 0; jet < nJets20; ++jet) {
       // Hist->hJetsFlavor->Fill(jetsFlavor[jet], genWeight*eventWeight);
-      int flavor = abs(jetsFlavor[jet]);
+      int flavor = std::abs(jetsFlavor[jet]);
       if(flavor > 20) flavor = 1; //unknown parent defaults to light jet
 
       int index = 0; //light jets
@@ -1407,27 +1409,27 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
   //     Hist->hMetOverSqrtHtSum  ->Fill(met/sqrt(htSum)    , genWeight*eventWeight)   ;
   // }
 
-  double lepDelR   = abs(leptonOneP4->DeltaR(*leptonTwoP4));
-  double lepDelPhi = abs(leptonOneP4->DeltaPhi(*leptonTwoP4));
-  double lepDelEta = abs(leptonOneP4->Eta() - leptonTwoP4->Eta());
+  double lepDelR   = std::fabs(leptonOneP4->DeltaR(*leptonTwoP4));
+  double lepDelPhi = std::fabs(leptonOneP4->DeltaPhi(*leptonTwoP4));
+  double lepDelEta = std::fabs(leptonOneP4->Eta() - leptonTwoP4->Eta());
   if(fDoSystematics >= 0) {
     TLorentzVector sys    = (*photonP4) + lepSys;
     TLorentzVector svLepSys = (leptonOneSVP4 && leptonTwoSVP4) ? (*leptonOneSVP4) + (*leptonTwoSVP4) : TLorentzVector(0.,0.,0.,0.);
     TLorentzVector svSys    = (leptonOneSVP4 && leptonTwoSVP4) ? (*photonP4) + svLepSys              : TLorentzVector(0.,0.,0.,0.);
 
-    double htDelPhi  = abs(lepSys.Phi() - htPhi);
-    // double jetDelPhi = (jetOneP4 && jetOneP4->Pt() > 0.) ? abs(lepSys.DeltaPhi(*jetOneP4)) : -1.;
+    double htDelPhi  = std::fabs(lepSys.Phi() - htPhi);
+    // double jetDelPhi = (jetOneP4 && jetOneP4->Pt() > 0.) ? std::fabs(lepSys.DeltaPhi(*jetOneP4)) : -1.;
     if(htDelPhi > M_PI)
-      htDelPhi = abs(2.*M_PI - htDelPhi);
-    double metDelPhi  = abs(lepSys.Phi() - metPhi);
+      htDelPhi = std::fabs(2.*M_PI - htDelPhi);
+    double metDelPhi  = std::fabs(lepSys.Phi() - metPhi);
     if(metDelPhi > M_PI)
-      metDelPhi = abs(2.*M_PI - metDelPhi);
-    double lepOneDelPhi  = abs(lepSys.Phi() - leptonOneP4->Phi());
+      metDelPhi = std::fabs(2.*M_PI - metDelPhi);
+    double lepOneDelPhi  = std::fabs(lepSys.Phi() - leptonOneP4->Phi());
     if(lepOneDelPhi > M_PI)
-      lepOneDelPhi = abs(2.*M_PI - lepOneDelPhi);
-    double lepTwoDelPhi  = abs(lepSys.Phi() - leptonTwoP4->Phi());
+      lepOneDelPhi = std::fabs(2.*M_PI - lepOneDelPhi);
+    double lepTwoDelPhi  = std::fabs(lepSys.Phi() - leptonTwoP4->Phi());
     if(lepTwoDelPhi > M_PI)
-      lepTwoDelPhi = abs(2.*M_PI - lepTwoDelPhi);
+      lepTwoDelPhi = std::fabs(2.*M_PI - lepTwoDelPhi);
 
     // Hist->hHtDeltaPhi   ->Fill(htDelPhi               ,eventWeight*genWeight);
     Hist->hMetDeltaPhi  ->Fill(metDelPhi              ,eventWeight*genWeight);
@@ -1437,11 +1439,11 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
 
     //angles between leptons and leading jet
     // double lepOneJetDeltaR   = (jetOneP4 && jetOneP4->Pt() > 0.) ? leptonOneP4->DeltaR(*jetOneP4)            : -1.;
-    // double lepOneJetDeltaPhi = (jetOneP4 && jetOneP4->Pt() > 0.) ? abs(leptonOneP4->DeltaPhi(*jetOneP4))     : -1.;
-    // double lepOneJetDeltaEta = (jetOneP4 && jetOneP4->Pt() > 0.) ? abs(leptonOneP4->Eta() - jetOneP4->Eta()) : -1.;
+    // double lepOneJetDeltaPhi = (jetOneP4 && jetOneP4->Pt() > 0.) ? std::fabs(leptonOneP4->DeltaPhi(*jetOneP4))     : -1.;
+    // double lepOneJetDeltaEta = (jetOneP4 && jetOneP4->Pt() > 0.) ? std::fabs(leptonOneP4->Eta() - jetOneP4->Eta()) : -1.;
     // double lepTwoJetDeltaR   = (jetOneP4 && jetOneP4->Pt() > 0.) ? leptonTwoP4->DeltaR(*jetOneP4)            : -1.;
-    // double lepTwoJetDeltaPhi = (jetOneP4 && jetOneP4->Pt() > 0.) ? abs(leptonTwoP4->DeltaPhi(*jetOneP4))     : -1.;
-    // double lepTwoJetDeltaEta = (jetOneP4 && jetOneP4->Pt() > 0.) ? abs(leptonTwoP4->Eta() - jetOneP4->Eta()) : -1.;
+    // double lepTwoJetDeltaPhi = (jetOneP4 && jetOneP4->Pt() > 0.) ? std::fabs(leptonTwoP4->DeltaPhi(*jetOneP4))     : -1.;
+    // double lepTwoJetDeltaEta = (jetOneP4 && jetOneP4->Pt() > 0.) ? std::fabs(leptonTwoP4->Eta() - jetOneP4->Eta()) : -1.;
 
     // float lepSVDelR   = -1.;
     // float lepSVDelPhi = -1.;
@@ -1451,8 +1453,8 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
     // if(leptonOneSVP4 && leptonTwoSVP4
     //    && leptonOneSVP4->Pt() > 1.e-5 && leptonTwoSVP4->Pt() > 1.e-5) {
     //   lepSVDelR   = leptonOneSVP4->DeltaR(*leptonTwoSVP4)           ;
-    //   lepSVDelPhi = abs(leptonOneSVP4->DeltaPhi(*leptonTwoSVP4))    ;
-    //   lepSVDelEta = abs(leptonOneSVP4->Eta() - leptonTwoSVP4->Eta());
+    //   lepSVDelPhi = std::fabs(leptonOneSVP4->DeltaPhi(*leptonTwoSVP4))    ;
+    //   lepSVDelEta = std::fabs(leptonOneSVP4->Eta() - leptonTwoSVP4->Eta());
     //   lepSVDelM = svLepSys.M() - lepSys.M();
     //   lepSVDelPt = svLepSys.Pt() - lepSys.Pt();
     // }
@@ -1514,10 +1516,10 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
     Hist->hLepDeltaR[0] ->Fill(lepDelR                ,eventWeight*genWeight);
     Hist->hLepDeltaR[1] ->Fill(lepDelR                ,(qcdWeight > 0.) ? eventWeight*genWeight/qcdWeight : eventWeight*genWeight);
     Hist->hLepDeltaR[2] ->Fill(lepDelR                ,eventWeight*genWeight); //same binning as scale factor measurement
-    Hist->hLepDelRVsOneEta[0]->Fill(fabs(fTreeVars.leponeeta), lepDelR, eventWeight*genWeight);
-    Hist->hLepDelRVsOneEta[1]->Fill(fabs(fTreeVars.leponeeta), lepDelR, (qcdWeight > 0.) ? eventWeight*genWeight/qcdWeight : eventWeight*genWeight);
-    Hist->hLepDelPhiVsOneEta[0]->Fill(fabs(fTreeVars.leponeeta), lepDelPhi, eventWeight*genWeight);
-    Hist->hLepDelPhiVsOneEta[1]->Fill(fabs(fTreeVars.leponeeta), lepDelPhi, (qcdWeight > 0.) ? eventWeight*genWeight/qcdWeight : eventWeight*genWeight);
+    Hist->hLepDelRVsOneEta[0]->Fill(std::fabs(fTreeVars.leponeeta), lepDelR, eventWeight*genWeight);
+    Hist->hLepDelRVsOneEta[1]->Fill(std::fabs(fTreeVars.leponeeta), lepDelR, (qcdWeight > 0.) ? eventWeight*genWeight/qcdWeight : eventWeight*genWeight);
+    Hist->hLepDelPhiVsOneEta[0]->Fill(std::fabs(fTreeVars.leponeeta), lepDelPhi, eventWeight*genWeight);
+    Hist->hLepDelPhiVsOneEta[1]->Fill(std::fabs(fTreeVars.leponeeta), lepDelPhi, (qcdWeight > 0.) ? eventWeight*genWeight/qcdWeight : eventWeight*genWeight);
 
     // Hist->hLepDelRVsPhi ->Fill(lepDelR , lepDelPhi    ,eventWeight*genWeight);
     Hist->hLepPtOverM   ->Fill(lepSys.Pt()/lepSys.M() ,eventWeight*genWeight);
@@ -1527,8 +1529,8 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
     if(nTaus == 1) {
       for(UInt_t itau = 0; itau < nTaus; ++itau) {
         int dm = -1; int njets = std::min(4, (int) nJets);
-        bool fakeMC = fIsData == 0 && abs(tausGenFlavor[itau]) == 26;
-        if(fabs(tausEta[itau]) > 2.3) continue;
+        bool fakeMC = fIsData == 0 && std::abs(tausGenFlavor[itau]) == 26;
+        if(std::fabs(tausEta[itau]) > 2.3) continue;
         if(tausMVAAntiMu[itau] < 2) continue; //ignore ones that fail the old MVA anti-mu tight ID
         if(tausAntiEle[itau] < 10) continue; //ignore ones that have low anti-ele ID FIXME: Ensure this is done before here!
         float tau_wt = tausWeight[itau];
@@ -1547,7 +1549,7 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
           Hist->hTausGenFlavor->Fill(tausGenFlavor[itau], tau_wt*eventWeight*genWeight);
           TLorentzVector tausLV;
           tausLV.SetPtEtaPhiM(tausPt[itau], tausEta[itau], tausPhi[itau], 1.777);
-          Hist->hTausDeltaR->Fill(abs(tausLV.DeltaR(*leptonOneP4)), tau_wt*eventWeight*genWeight);
+          Hist->hTausDeltaR->Fill(std::fabs(tausLV.DeltaR(*leptonOneP4)), tau_wt*eventWeight*genWeight);
         } else {
           Hist->hFakeTausPt->Fill(tausPt[itau], tau_wt*eventWeight*genWeight);
           Hist->hFakeTausEta->Fill(tausEta[itau], tau_wt*eventWeight*genWeight);
@@ -1570,21 +1572,21 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
         for(int iptr = 0; iptr < nptregions; ++iptr) {
           if(!ptregions[iptr]) continue;
           if(fakeMC) {
-            Hist->hFakeTauMCNJetDMPtEta[iptr][0][njets][dm]->Fill(tausPt[itau], abs(tausEta[itau]), tau_wt*eventWeight*genWeight); //all taus
+            Hist->hFakeTauMCNJetDMPtEta[iptr][0][njets][dm]->Fill(tausPt[itau], std::fabs(tausEta[itau]), tau_wt*eventWeight*genWeight); //all taus
           } else {
-            Hist->hFakeTauNJetDMPtEta[iptr][0][njets][dm]  ->Fill(tausPt[itau], abs(tausEta[itau]), tau_wt*eventWeight*genWeight); //all taus
+            Hist->hFakeTauNJetDMPtEta[iptr][0][njets][dm]  ->Fill(tausPt[itau], std::fabs(tausEta[itau]), tau_wt*eventWeight*genWeight); //all taus
           }
           if(tausAntiJet[itau] > fFakeTauIsoCut) {
             if(fakeMC) {
-              Hist->hFakeTauMCNJetDMPtEta[iptr][1][njets][dm]->Fill(tausPt[itau], abs(tausEta[itau]), tau_wt*eventWeight*genWeight); //tight Iso
+              Hist->hFakeTauMCNJetDMPtEta[iptr][1][njets][dm]->Fill(tausPt[itau], std::fabs(tausEta[itau]), tau_wt*eventWeight*genWeight); //tight Iso
             } else {
-              Hist->hFakeTauNJetDMPtEta[iptr][1][njets][dm]  ->Fill(tausPt[itau], abs(tausEta[itau]), tau_wt*eventWeight*genWeight); //tight Iso
+              Hist->hFakeTauNJetDMPtEta[iptr][1][njets][dm]  ->Fill(tausPt[itau], std::fabs(tausEta[itau]), tau_wt*eventWeight*genWeight); //tight Iso
             }
           } else {
             if(fakeMC) {
-              Hist->hFakeTauMCNJetDMPtEta[iptr][2][njets][dm]->Fill(tausPt[itau], abs(tausEta[itau]), tau_wt*eventWeight*genWeight); //anti-Iso
+              Hist->hFakeTauMCNJetDMPtEta[iptr][2][njets][dm]->Fill(tausPt[itau], std::fabs(tausEta[itau]), tau_wt*eventWeight*genWeight); //anti-Iso
             } else {
-              Hist->hFakeTauNJetDMPtEta[iptr][2][njets][dm]  ->Fill(tausPt[itau], abs(tausEta[itau]), tau_wt*eventWeight*genWeight); //anti-Iso
+              Hist->hFakeTauNJetDMPtEta[iptr][2][njets][dm]  ->Fill(tausPt[itau], std::fabs(tausEta[itau]), tau_wt*eventWeight*genWeight); //anti-Iso
             }
           }
         }
@@ -1593,7 +1595,7 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
 
     //Histograms for jet --> lepton scale factors
     for(UInt_t ilep = 0; ilep < nExtraLep; ++ilep) {
-      double eta = fabs(leptonsEta[ilep]);
+      double eta = std::fabs(leptonsEta[ilep]);
       if(leptonsTriggered[ilep] == 0) continue; //only look at triggered leptons
       if(!leptonsIsMuon[ilep] && eta > 2.5) continue; //skip electrons above 2.5 eta
       if(leptonsIsMuon[ilep] && eta > 2.4) continue; //skip muons above 2.4 eta
@@ -1754,14 +1756,14 @@ void ZTauTauHistMaker::FillLepHistogram(LepHist_t* Hist) {
     wt = jetToTauWeightCorr/jetToTauWeight;
     Hist->hOnePt[11]->Fill(leptonOneP4->Pt(), eventWeight*genWeight/wt);
 
-    if(nTaus == 1 && ((fabs(leptonTwoFlavor) == 15 && tauDecayMode%10 < 2) || (tausDM[0] < 2 || tausDM[0] > 9))) {
-      int dmr = (fabs(leptonTwoFlavor) == 15) ? tauDecayMode : tausDM[0];
+    if(nTaus == 1 && ((std::abs(leptonTwoFlavor) == 15 && tauDecayMode%10 < 2) || (tausDM[0] < 2 || tausDM[0] > 9))) {
+      int dmr = (std::abs(leptonTwoFlavor) == 15) ? tauDecayMode : tausDM[0];
       if(dmr > 9) dmr -= (10 - 2); //10,11 --> 2,3
       dmr += 1; //dmr = DM ID + 1, so 0 can be inclusive
-      float taupt = (fabs(leptonTwoFlavor) == 15) ? leptonTwoP4->Pt() : tausPt[0];
+      float taupt = (std::abs(leptonTwoFlavor) == 15) ? leptonTwoP4->Pt() : tausPt[0];
       int ptr;
       TLorentzVector taulv;
-      if(fabs(leptonTwoFlavor) == 15) taulv = *leptonTwoP4;
+      if(std::abs(leptonTwoFlavor) == 15) taulv = *leptonTwoP4;
       else taulv.SetPtEtaPhiM(tausPt[0], tausEta[0], tausPhi[0], 1.777);
 
       if(taupt < 30.)      ptr = 1;
@@ -1769,7 +1771,7 @@ void ZTauTauHistMaker::FillLepHistogram(LepHist_t* Hist) {
       else                 ptr = 3;
       float wt = eventWeight*genWeight;
       if(jetToTauWeightCorr > 0.) wt *= jetToTauWeight / jetToTauWeightCorr; // remove the pT correction
-      double dr = abs(leptonOneP4->DeltaR(taulv));
+      double dr = std::fabs(leptonOneP4->DeltaR(taulv));
       Hist->hJetTauOnePt[0][0]    ->Fill(leptonOneP4->Pt(), wt);
       Hist->hJetTauOnePt[dmr][0]  ->Fill(leptonOneP4->Pt(), wt);
       Hist->hJetTauOnePt[0][ptr]  ->Fill(leptonOneP4->Pt(), wt);
@@ -1777,11 +1779,11 @@ void ZTauTauHistMaker::FillLepHistogram(LepHist_t* Hist) {
       Hist->hJetTauOnePtVsR[0]    ->Fill(leptonOneP4->Pt(), dr, wt);
       Hist->hJetTauOnePtVsR[dmr]  ->Fill(leptonOneP4->Pt(), dr, wt);
       Hist->hJetTauOneR->Fill(dr, wt);
-      Hist->hJetTauOneEta->Fill(fabs(leptonOneP4->Eta()), wt);
+      Hist->hJetTauOneEta->Fill(std::fabs(leptonOneP4->Eta()), wt);
       Hist->hJetTauOneMetDeltaPhi[0]->Fill(fTreeVars.onemetdeltaphi, wt); //inclusive
       Hist->hJetTauOneMetDeltaPhi[dmr]->Fill(fTreeVars.onemetdeltaphi, wt);
 
-      dr = abs(leptonTwoP4->DeltaR(taulv));
+      dr = std::fabs(leptonTwoP4->DeltaR(taulv));
       Hist->hJetTauTwoPt[0][0]    ->Fill(leptonTwoP4->Pt(), wt);
       Hist->hJetTauTwoPt[dmr][0]  ->Fill(leptonTwoP4->Pt(), wt);
       Hist->hJetTauTwoPt[0][ptr]  ->Fill(leptonTwoP4->Pt(), wt);
@@ -1789,7 +1791,7 @@ void ZTauTauHistMaker::FillLepHistogram(LepHist_t* Hist) {
       Hist->hJetTauTwoPtVsR[0]    ->Fill(leptonTwoP4->Pt(), dr, wt);
       Hist->hJetTauTwoPtVsR[dmr]  ->Fill(leptonTwoP4->Pt(), dr, wt);
       Hist->hJetTauTwoR->Fill(dr, wt);
-      Hist->hJetTauTwoEta->Fill(fabs(leptonTwoP4->Eta()), wt);
+      Hist->hJetTauTwoEta->Fill(std::fabs(leptonTwoP4->Eta()), wt);
       Hist->hJetTauTwoPtVsOnePt->Fill(leptonOneP4->Pt(), taulv.Pt(), wt);
       Hist->hJetTauTwoMetDeltaPhi->Fill(fTreeVars.twometdeltaphi, wt);
     }
@@ -1804,16 +1806,16 @@ void ZTauTauHistMaker::FillLepHistogram(LepHist_t* Hist) {
     Hist->hOneID2       ->Fill(leptonOneID2                 ,eventWeight*genWeight);
     double relIso1 = leptonOneIso/ leptonOneP4->Pt();
     Hist->hOneRelIso    ->Fill(relIso1                      ,eventWeight*genWeight);
-    Hist->hOneFlavor    ->Fill(fabs(leptonOneFlavor)        ,eventWeight*genWeight);
+    Hist->hOneFlavor    ->Fill(std::abs(leptonOneFlavor)        ,eventWeight*genWeight);
     Hist->hOneGenFlavor ->Fill(leptonOneGenFlavor           ,eventWeight*genWeight);
     Hist->hOneQ         ->Fill(leptonOneFlavor < 0 ? -1 : 1 ,eventWeight*genWeight);
   }
   Hist->hOneTrigger   ->Fill(leptonOneTrigger               ,eventWeight*genWeight);
   int offset_1(0), offset_2(0);
-  if(abs(leptonOneFlavor) == 11) {
+  if(std::abs(leptonOneFlavor) == 11) {
     offset_1 = SystematicGrouping::kElectronID;
     offset_2 = SystematicGrouping::kElectronRecoID;
-  } else if(abs(leptonOneFlavor) == 13) {
+  } else if(std::abs(leptonOneFlavor) == 13) {
     offset_1 = SystematicGrouping::kMuonID;
     offset_2 = SystematicGrouping::kMuonIsoID;
   }
@@ -1823,9 +1825,9 @@ void ZTauTauHistMaker::FillLepHistogram(LepHist_t* Hist) {
     Hist->hOneWeight    ->Fill(leptonOneWeight1*leptonOneWeight2,eventWeight*genWeight);
     Hist->hOneTrigWeight->Fill(leptonOneTrigWeight          ,eventWeight*genWeight);
 
-    double oneMetDelPhi  = abs(leptonOneP4->Phi() - metPhi);
+    double oneMetDelPhi  = std::fabs(leptonOneP4->Phi() - metPhi);
     if(oneMetDelPhi > M_PI)
-      oneMetDelPhi = abs(2.*M_PI - oneMetDelPhi);
+      oneMetDelPhi = std::fabs(2.*M_PI - oneMetDelPhi);
     Hist->hOneMetDeltaPhi   ->Fill(oneMetDelPhi   ,eventWeight*genWeight);
   }
 
@@ -1873,16 +1875,16 @@ void ZTauTauHistMaker::FillLepHistogram(LepHist_t* Hist) {
     Hist->hTwoID3       ->Fill(leptonTwoID3                 ,eventWeight*genWeight);
     double relIso2 = leptonTwoIso/ leptonTwoP4->Pt();
     Hist->hTwoRelIso    ->Fill(relIso2                      ,eventWeight*genWeight);
-    Hist->hTwoFlavor    ->Fill(fabs(leptonTwoFlavor)        ,eventWeight*genWeight);
+    Hist->hTwoFlavor    ->Fill(std::abs(leptonTwoFlavor)        ,eventWeight*genWeight);
     Hist->hTwoGenFlavor ->Fill(leptonTwoGenFlavor           ,eventWeight*genWeight);
     Hist->hTwoQ         ->Fill(leptonTwoFlavor < 0 ? -1 : 1 ,eventWeight*genWeight);
   }
   Hist->hTwoTrigger   ->Fill(leptonTwoTrigger               ,eventWeight*genWeight);
   offset_1 = 0; offset_2 = 0;
-  if(abs(leptonTwoFlavor) == 11) {
+  if(std::abs(leptonTwoFlavor) == 11) {
     offset_1 = SystematicGrouping::kElectronID;
     offset_2 = SystematicGrouping::kElectronRecoID;
-  } else if(abs(leptonTwoFlavor) == 13) {
+  } else if(std::abs(leptonTwoFlavor) == 13) {
     offset_1 = SystematicGrouping::kMuonID;
     offset_2 = SystematicGrouping::kMuonIsoID;
   }
@@ -1892,9 +1894,9 @@ void ZTauTauHistMaker::FillLepHistogram(LepHist_t* Hist) {
     Hist->hTwoWeight    ->Fill(leptonTwoWeight1*leptonTwoWeight2,eventWeight*genWeight);
     Hist->hTwoTrigWeight->Fill(leptonTwoTrigWeight          ,eventWeight*genWeight);
 
-    double twoMetDelPhi  = abs(leptonTwoP4->Phi() - metPhi);
+    double twoMetDelPhi  = std::fabs(leptonTwoP4->Phi() - metPhi);
     if(twoMetDelPhi > M_PI)
-      twoMetDelPhi = abs(2.*M_PI - twoMetDelPhi);
+      twoMetDelPhi = std::fabs(2.*M_PI - twoMetDelPhi);
     Hist->hTwoMetDeltaPhi   ->Fill(twoMetDelPhi   ,eventWeight*genWeight);
 
     Hist->hPtDiff      ->Fill(leptonOneP4->Pt()-leptonTwoP4->Pt() ,eventWeight*genWeight);
@@ -1914,32 +1916,32 @@ void ZTauTauHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
     TLorentzVector lv2 = *leptonTwoP4;
     if(sys == 0) weight = weight;                                          //do nothing
     else if  (sys ==  1) {                                                 //electron ID scale factors
-      if(abs(leptonOneFlavor) == 11) weight *= leptonOneWeight1_up / leptonOneWeight1;
-      if(abs(leptonTwoFlavor) == 11) weight *= leptonTwoWeight1_up / leptonTwoWeight1;
+      if(std::abs(leptonOneFlavor) == 11) weight *= leptonOneWeight1_up / leptonOneWeight1;
+      if(std::abs(leptonTwoFlavor) == 11) weight *= leptonTwoWeight1_up / leptonTwoWeight1;
     } else if(sys ==  2) {
-      if(abs(leptonOneFlavor) == 11) weight *= leptonOneWeight1_down / leptonOneWeight1;
-      if(abs(leptonTwoFlavor) == 11) weight *= leptonTwoWeight1_down / leptonTwoWeight1;
+      if(std::abs(leptonOneFlavor) == 11) weight *= leptonOneWeight1_down / leptonOneWeight1;
+      if(std::abs(leptonTwoFlavor) == 11) weight *= leptonTwoWeight1_down / leptonTwoWeight1;
     } else if(sys ==  3) {
-      if(abs(leptonOneFlavor) == 11) weight *= leptonOneWeight1_sys / leptonOneWeight1;
-      if(abs(leptonTwoFlavor) == 11) weight *= leptonTwoWeight1_sys / leptonTwoWeight1;
+      if(std::abs(leptonOneFlavor) == 11) weight *= leptonOneWeight1_sys / leptonOneWeight1;
+      if(std::abs(leptonTwoFlavor) == 11) weight *= leptonTwoWeight1_sys / leptonTwoWeight1;
     } else if(sys ==  4) {                                                 //muon ID scale factors
-      if(abs(leptonOneFlavor) == 13) weight *= leptonOneWeight1_up / leptonOneWeight1;
-      if(abs(leptonTwoFlavor) == 13) weight *= leptonTwoWeight1_up / leptonTwoWeight1;
+      if(std::abs(leptonOneFlavor) == 13) weight *= leptonOneWeight1_up / leptonOneWeight1;
+      if(std::abs(leptonTwoFlavor) == 13) weight *= leptonTwoWeight1_up / leptonTwoWeight1;
     } else if(sys ==  5) {
-      if(abs(leptonOneFlavor) == 13) weight *= leptonOneWeight1_down / leptonOneWeight1;
-      if(abs(leptonTwoFlavor) == 13) weight *= leptonTwoWeight1_down / leptonTwoWeight1;
+      if(std::abs(leptonOneFlavor) == 13) weight *= leptonOneWeight1_down / leptonOneWeight1;
+      if(std::abs(leptonTwoFlavor) == 13) weight *= leptonTwoWeight1_down / leptonTwoWeight1;
     } else if(sys ==  6) {
-      if(abs(leptonOneFlavor) == 13) weight *= leptonOneWeight1_sys  / leptonOneWeight1;
-      if(abs(leptonTwoFlavor) == 13) weight *= leptonTwoWeight1_sys  / leptonTwoWeight1;
+      if(std::abs(leptonOneFlavor) == 13) weight *= leptonOneWeight1_sys  / leptonOneWeight1;
+      if(std::abs(leptonTwoFlavor) == 13) weight *= leptonTwoWeight1_sys  / leptonTwoWeight1;
     } else if(sys ==  7) {                                                 //tau ID scale factors
-      if(abs(leptonOneFlavor) == 15) weight *= leptonOneWeight1_up / leptonOneWeight1;
-      if(abs(leptonTwoFlavor) == 15) weight *= leptonTwoWeight1_up / leptonTwoWeight1;
+      if(std::abs(leptonOneFlavor) == 15) weight *= leptonOneWeight1_up / leptonOneWeight1;
+      if(std::abs(leptonTwoFlavor) == 15) weight *= leptonTwoWeight1_up / leptonTwoWeight1;
     } else if(sys ==  8) {
-      if(abs(leptonOneFlavor) == 15) weight *= leptonOneWeight1_down / leptonOneWeight1;
-      if(abs(leptonTwoFlavor) == 15) weight *= leptonTwoWeight1_down / leptonTwoWeight1;
+      if(std::abs(leptonOneFlavor) == 15) weight *= leptonOneWeight1_down / leptonOneWeight1;
+      if(std::abs(leptonTwoFlavor) == 15) weight *= leptonTwoWeight1_down / leptonTwoWeight1;
     } else if(sys ==  9) {
-      if(abs(leptonOneFlavor) == 15) weight *= leptonOneWeight1_sys  / leptonOneWeight1;
-      if(abs(leptonTwoFlavor) == 15) weight *= leptonTwoWeight1_sys  / leptonTwoWeight1;
+      if(std::abs(leptonOneFlavor) == 15) weight *= leptonOneWeight1_sys  / leptonOneWeight1;
+      if(std::abs(leptonTwoFlavor) == 15) weight *= leptonTwoWeight1_sys  / leptonTwoWeight1;
     } else if(sys == 10) weight *= jetToTauWeightUp     / jetToTauWeight ; //Jet --> tau weights
     else if  (sys == 11) weight *= jetToTauWeightDown   / jetToTauWeight ;
     else if  (sys == 12) weight *= jetToTauWeightSys    / jetToTauWeight ;
@@ -1947,36 +1949,36 @@ void ZTauTauHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
     else if  (sys == 14) weight *= zPtWeightDown        / zPtWeight      ;
     else if  (sys == 15) weight *= zPtWeightSys         / zPtWeight      ;
     else if  (sys == 16) {                                                 //electron reco ID scale factors
-      if(abs(leptonOneFlavor) == 11) weight *= leptonOneWeight2_up / leptonOneWeight2;
-      if(abs(leptonTwoFlavor) == 11) weight *= leptonTwoWeight2_up / leptonTwoWeight2;
+      if(std::abs(leptonOneFlavor) == 11) weight *= leptonOneWeight2_up / leptonOneWeight2;
+      if(std::abs(leptonTwoFlavor) == 11) weight *= leptonTwoWeight2_up / leptonTwoWeight2;
     } else if(sys == 17) {
-      if(abs(leptonOneFlavor) == 11) weight *= leptonOneWeight2_down / leptonOneWeight2;
-      if(abs(leptonTwoFlavor) == 11) weight *= leptonTwoWeight2_down / leptonTwoWeight2;
+      if(std::abs(leptonOneFlavor) == 11) weight *= leptonOneWeight2_down / leptonOneWeight2;
+      if(std::abs(leptonTwoFlavor) == 11) weight *= leptonTwoWeight2_down / leptonTwoWeight2;
     } else if(sys == 18) {
-      if(abs(leptonOneFlavor) == 11) weight *= leptonOneWeight2_sys / leptonOneWeight2;
-      if(abs(leptonTwoFlavor) == 11) weight *= leptonTwoWeight2_sys / leptonTwoWeight2;
+      if(std::abs(leptonOneFlavor) == 11) weight *= leptonOneWeight2_sys / leptonOneWeight2;
+      if(std::abs(leptonTwoFlavor) == 11) weight *= leptonTwoWeight2_sys / leptonTwoWeight2;
     } else if(sys == 19) {                                                 //muon iso ID scale factors
-      if(abs(leptonOneFlavor) == 13) weight *= leptonOneWeight2_up / leptonOneWeight2;
-      if(abs(leptonTwoFlavor) == 13) weight *= leptonTwoWeight2_up / leptonTwoWeight2;
+      if(std::abs(leptonOneFlavor) == 13) weight *= leptonOneWeight2_up / leptonOneWeight2;
+      if(std::abs(leptonTwoFlavor) == 13) weight *= leptonTwoWeight2_up / leptonTwoWeight2;
     } else if(sys == 20) {
-      if(abs(leptonOneFlavor) == 13) weight *= leptonOneWeight2_down / leptonOneWeight2;
-      if(abs(leptonTwoFlavor) == 13) weight *= leptonTwoWeight2_down / leptonTwoWeight2;
+      if(std::abs(leptonOneFlavor) == 13) weight *= leptonOneWeight2_down / leptonOneWeight2;
+      if(std::abs(leptonTwoFlavor) == 13) weight *= leptonTwoWeight2_down / leptonTwoWeight2;
     } else if(sys == 21) {
-      if(abs(leptonOneFlavor) == 13) weight *= leptonOneWeight2_sys  / leptonOneWeight2;
-      if(abs(leptonTwoFlavor) == 13) weight *= leptonTwoWeight2_sys  / leptonTwoWeight2;
+      if(std::abs(leptonOneFlavor) == 13) weight *= leptonOneWeight2_sys  / leptonOneWeight2;
+      if(std::abs(leptonTwoFlavor) == 13) weight *= leptonTwoWeight2_sys  / leptonTwoWeight2;
     }
     //FIXME: Need to re-evaluate variables using the updated tau four momentum
     else if  (sys == 22) {                                                 //Tau ES
-      if(abs(leptonTwoFlavor) == 15 && tauES > 0. && tauESUp > 0.) {
+      if(std::abs(leptonTwoFlavor) == 15 && tauES > 0. && tauESUp > 0.) {
         lv2 *= (tauESUp / tauES);
       }
     } else if(sys == 23) {
-      if(abs(leptonTwoFlavor) == 15 && tauES > 0. && tauESDown > 0.) {
+      if(std::abs(leptonTwoFlavor) == 15 && tauES > 0. && tauESDown > 0.) {
         lv2 *= (tauESDown / tauES);
       }
     }
     // else if(sys == 24) {
-    //   if(abs(leptonTwoFlavor) == 15 && tauES > 0. && tauESDown > 0.) {
+    //   if(std::abs(leptonTwoFlavor) == 15 && tauES > 0. && tauESDown > 0.) {
     //     lv2 *= (tauESSys  / tauES);
     //   }
     // }                                                                   //End tau ES
@@ -1990,24 +1992,24 @@ void ZTauTauHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
     else if  (sys == 32) weight *= jetToTauWeight_compDown  / jetToTauWeightCorr   ;
     else if  (sys == 33) weight *= jetToTauWeight_compUp    / jetToTauWeightCorr   ;
     else if(sys > 33 && sys < 43) {                                                // tau IDs by PDG ID
-      if(abs(leptonTwoFlavor) == 15) {
-        if(sys == 34 && abs(tauGenFlavor) == 15)       //tau anti-jet ID scale factors
+      if(std::abs(leptonTwoFlavor) == 15) {
+        if(sys == 34 && std::abs(tauGenFlavor) == 15)       //tau anti-jet ID scale factors
           weight *= leptonTwoWeight1_up / leptonTwoWeight1;
-        else if(sys == 35 && abs(tauGenFlavor) == 15)
+        else if(sys == 35 && std::abs(tauGenFlavor) == 15)
           weight *= leptonTwoWeight1_down / leptonTwoWeight1;
-        else if(sys == 36 && abs(tauGenFlavor) == 15)
+        else if(sys == 36 && std::abs(tauGenFlavor) == 15)
           weight *= leptonTwoWeight1_sys / leptonTwoWeight1;
-        else if(sys == 37 && abs(tauGenFlavor) == 13)  //tau anti-mu ID scale factors
+        else if(sys == 37 && std::abs(tauGenFlavor) == 13)  //tau anti-mu ID scale factors
           weight *= leptonTwoWeight1_up / leptonTwoWeight1;
-        else if(sys == 38 && abs(tauGenFlavor) == 13)
+        else if(sys == 38 && std::abs(tauGenFlavor) == 13)
           weight *= leptonTwoWeight1_down / leptonTwoWeight1;
-        else if(sys == 39 && abs(tauGenFlavor) == 13)
+        else if(sys == 39 && std::abs(tauGenFlavor) == 13)
           weight *= leptonTwoWeight1_sys / leptonTwoWeight1;
-        else if(sys == 40 && abs(tauGenFlavor) == 11)  //tau anti-ele ID scale factors
+        else if(sys == 40 && std::abs(tauGenFlavor) == 11)  //tau anti-ele ID scale factors
           weight *= leptonTwoWeight1_up / leptonTwoWeight1;
-        else if(sys == 41 && abs(tauGenFlavor) == 11)
+        else if(sys == 41 && std::abs(tauGenFlavor) == 11)
           weight *= leptonTwoWeight1_down / leptonTwoWeight1;
-        else if(sys == 42 && abs(tauGenFlavor) == 11)
+        else if(sys == 42 && std::abs(tauGenFlavor) == 11)
           weight *= leptonTwoWeight1_sys / leptonTwoWeight1;
       }
     } else if  (sys == 43) { weight *= (fIsData) ? 1. : 1. + 0.016; //luminosity uncertainty
@@ -2017,11 +2019,11 @@ void ZTauTauHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
 
     // } else if  (sys >= 50 && sys < 56) { //jet->tau statistical, separated by years
     //   int base = 50;
-    //   if(abs(leptonTwoFlavor) == 15) {
+    //   if(std::abs(leptonTwoFlavor) == 15) {
     //     int bin = 2*(fYear - 2016); //uncorrelated between years
-    //     if((sys == base + bin) && abs(tauGenFlavor) == 15)
+    //     if((sys == base + bin) && std::abs(tauGenFlavor) == 15)
     //       weight *= jetToTauWeightUp   / jetToTauWeight;
-    //     else if((sys == base + 1 + bin) && abs(tauGenFlavor) == 15)
+    //     else if((sys == base + 1 + bin) && std::abs(tauGenFlavor) == 15)
     //       weight *= jetToTauWeightDown / jetToTauWeight;
     //   }
       //Removed j->tau groupings since now using fitter errors uncorrelated by years
@@ -2033,73 +2035,73 @@ void ZTauTauHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
       //Removed muon ID groupings since it appears to be small enough to treat correlated
     // } else if  (sys >= SystematicGrouping::kMuonID && sys < 150) { //Muon ID
     //   int offset = SystematicGrouping::kMuonID;
-    //   if(abs(leptonOneFlavor) == 13) {
+    //   if(std::abs(leptonOneFlavor) == 13) {
     //     if(2*(leptonOneWeight1_group) - offset     == sys) weight *= leptonOneWeight1_up   / leptonOneWeight1;
     //     if(2*(leptonOneWeight1_group) - offset + 1 == sys) weight *= leptonOneWeight1_down / leptonOneWeight1;
     //   }
-    //   if(abs(leptonTwoFlavor) == 13) {
+    //   if(std::abs(leptonTwoFlavor) == 13) {
     //     if(2*(leptonTwoWeight1_group) - offset     == sys) weight *= leptonTwoWeight1_up   / leptonTwoWeight1;
     //     if(2*(leptonTwoWeight1_group) - offset + 1 == sys) weight *= leptonTwoWeight1_down / leptonTwoWeight1;
     //   }
       //Removed muon iso ID groupings since it appears to be small enough to treat correlated
     // } else if  (sys >= SystematicGrouping::kMuonIsoID && sys < 200) { //Muon ID
     //   int offset = SystematicGrouping::kMuonIsoID;
-    //   if(abs(leptonOneFlavor) == 13) {
+    //   if(std::abs(leptonOneFlavor) == 13) {
     //     if(2*(leptonOneWeight2_group) - offset     == sys) weight *= leptonOneWeight2_up   / leptonOneWeight2;
     //     if(2*(leptonOneWeight2_group) - offset + 1 == sys) weight *= leptonOneWeight2_down / leptonOneWeight2;
     //   }
-    //   if(abs(leptonTwoFlavor) == 13) {
+    //   if(std::abs(leptonTwoFlavor) == 13) {
     //     if(2*(leptonTwoWeight2_group) - offset     == sys) weight *= leptonTwoWeight2_up   / leptonTwoWeight2;
     //     if(2*(leptonTwoWeight2_group) - offset + 1 == sys) weight *= leptonTwoWeight2_down / leptonTwoWeight2;
     //   }
     } else if  (sys >= 100 && sys < 106) { //tau anti-jet ID, separated by years
       if(fFolderName == "mumu" || fFolderName == "ee") continue;
       int base = 100;
-      if(abs(leptonTwoFlavor) == 15) {
+      if(std::abs(leptonTwoFlavor) == 15) {
         int bin = 2*(fYear - 2016); //uncorrelated between years
-        if((sys == base + bin) && abs(tauGenFlavor) == 15)
+        if((sys == base + bin) && std::abs(tauGenFlavor) == 15)
           weight *= leptonTwoWeight1_up / leptonTwoWeight1;
-        else if((sys == base + 1 + bin) && abs(tauGenFlavor) == 15)
+        else if((sys == base + 1 + bin) && std::abs(tauGenFlavor) == 15)
           weight *= leptonTwoWeight1_down / leptonTwoWeight1;
       }
     } else if  (sys >= 110 && sys < 140) { //tau anti-mu ID, separated by 5 bins per year --> 15 histograms per up/down
       if(fFolderName == "mumu" || fFolderName == "ee") continue;
       int base = 110;
-      if(abs(leptonTwoFlavor) == 15) {
+      if(std::abs(leptonTwoFlavor) == 15) {
         int bin = 5*(fYear - 2016) + leptonTwoWeight1_bin; //uncorrelated between years and bins
-        if((sys == base + 2*bin) && abs(tauGenFlavor) == 13)
+        if((sys == base + 2*bin) && std::abs(tauGenFlavor) == 13)
           weight *= leptonTwoWeight1_up / leptonTwoWeight1;
-        else if((sys == base + 1 + 2*bin) && abs(tauGenFlavor) == 13)
+        else if((sys == base + 1 + 2*bin) && std::abs(tauGenFlavor) == 13)
           weight *= leptonTwoWeight1_down / leptonTwoWeight1;
       }
     } else if  (sys >= 140 && sys < 158) { //tau anti-ele ID, separated by 3 bins per year --> 9 histograms per up/down
       if(fFolderName == "mumu" || fFolderName == "ee") continue;
       int base = 140;
-      if(abs(leptonTwoFlavor) == 15) {
+      if(std::abs(leptonTwoFlavor) == 15) {
         int bin = 3*(fYear - 2016) + leptonTwoWeight1_bin; //uncorrelated between years and bins
-        if((sys == base + 2*bin) && abs(tauGenFlavor) == 11)
+        if((sys == base + 2*bin) && std::abs(tauGenFlavor) == 11)
           weight *= leptonTwoWeight1_up / leptonTwoWeight1;
-        else if((sys == base + 1 + 2*bin) && abs(tauGenFlavor) == 11)
+        else if((sys == base + 1 + 2*bin) && std::abs(tauGenFlavor) == 11)
           weight *= leptonTwoWeight1_down / leptonTwoWeight1;
       }
       //Remove electron ID and Reco ID groupings, as generally systematically correlated errors
     // } else if  (sys >= SystematicGrouping::kElectronID && sys < 250) { //Electron ID
     //   int offset = SystematicGrouping::kElectronID;
-    //   if(abs(leptonOneFlavor) == 11) {
+    //   if(std::abs(leptonOneFlavor) == 11) {
     //     if(2*(leptonOneWeight1_group) - offset     == sys) weight *= leptonOneWeight1_up   / leptonOneWeight1;
     //     if(2*(leptonOneWeight1_group) - offset + 1 == sys) weight *= leptonOneWeight1_down / leptonOneWeight1;
     //   }
-    //   if(abs(leptonTwoFlavor) == 11) {
+    //   if(std::abs(leptonTwoFlavor) == 11) {
     //     if(2*(leptonTwoWeight1_group) - offset     == sys) weight *= leptonTwoWeight1_up   / leptonTwoWeight1;
     //     if(2*(leptonTwoWeight1_group) - offset + 1 == sys) weight *= leptonTwoWeight1_down / leptonTwoWeight1;
     //   }
     // } else if  (sys >= SystematicGrouping::kElectronRecoID && sys < 300) { //Electron Reco ID
     //   int offset = SystematicGrouping::kElectronRecoID;
-    //   if(abs(leptonOneFlavor) == 11) {
+    //   if(std::abs(leptonOneFlavor) == 11) {
     //     if(2*(leptonOneWeight2_group) - offset     == sys) weight *= leptonOneWeight2_up   / leptonOneWeight2;
     //     if(2*(leptonOneWeight2_group) - offset + 1 == sys) weight *= leptonOneWeight2_down / leptonOneWeight2;
     //   }
-    //   if(abs(leptonTwoFlavor) == 11) {
+    //   if(std::abs(leptonTwoFlavor) == 11) {
     //     if(2*(leptonTwoWeight2_group) - offset     == sys) weight *= leptonTwoWeight2_up   / leptonTwoWeight2;
     //     if(2*(leptonTwoWeight2_group) - offset + 1 == sys) weight *= leptonTwoWeight2_down / leptonTwoWeight2;
     //   }
@@ -2207,7 +2209,7 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   if(fIsData > 0) {
     int pdgid = (fIsData == 1) ? 11 : 13; //pdg ID for the data stream
     //if no selected lepton fired this trigger, continue
-    if(!((abs(leptonOneFlavor) == pdgid && leptonOneFired) || (abs(leptonTwoFlavor) == pdgid && leptonTwoFired)))
+    if(!((std::abs(leptonOneFlavor) == pdgid && leptonOneFired) || (std::abs(leptonTwoFlavor) == pdgid && leptonTwoFired)))
       return kTRUE;
 
     if(triggerLeptonStatus != ((UInt_t) fIsData)) { //trigger doesn't match data stream
@@ -2215,7 +2217,7 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
       if(fSkipDoubleTrigger) { //don't allow double triggers
         int other_pdgid = (fIsData == 1) ? 13 : 11; //pdg ID for the other data stream
         //only skip if the selected lepton actually fired the trigger
-        if((abs(leptonOneFlavor) == other_pdgid && leptonOneFired) ||(abs(leptonTwoFlavor) == other_pdgid && leptonTwoFired)) return kTRUE;
+        if((std::abs(leptonOneFlavor) == other_pdgid && leptonOneFired) ||(std::abs(leptonTwoFlavor) == other_pdgid && leptonTwoFired)) return kTRUE;
       }
     }
   }
@@ -2260,7 +2262,7 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   // Remove weights if requested //
   /////////////////////////////////
 
-  bool trigError = nTrigModes > 0 && !fIsData && abs(triggerWeights[0] - leptonOneTrigWeight*leptonTwoTrigWeight) > 0.001;
+  bool trigError = nTrigModes > 0 && !fIsData && std::fabs(triggerWeights[0] - leptonOneTrigWeight*leptonTwoTrigWeight) > 0.001;
   if(trigError) std::cout << "!!! Warning! Entry " << fentry;
   if(trigError || fVerbose > 0) std::cout << " TriggerWeights[0] = " << triggerWeights[0]
                                           << " vs leptonOneTrigWeight*leptonTwoTrigWeight = "
@@ -2408,6 +2410,11 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
 
   //apply embedding unfolding correction to embedded samples
   if(fIsEmbed) {
+    if(fIsEmbed && embeddingWeight > 0.9) { //as branching fraction is in the weight, should never be this large
+      eventWeight /= embeddingWeight; //remove the previous weight
+      embeddingWeight = 1.; //FIXME: Determine what to do with these bad event weights (remove when skimming?)
+      genWeight = 0.; //remove the event by using the gen weight
+    }
     embeddingUnfoldingWeight = fEmbeddingWeight.UnfoldingWeight(zLepOnePt, zLepOneEta, zLepTwoPt, zLepTwoEta, fYear);
     eventWeight *= embeddingUnfoldingWeight;
     eventWeight /= leptonOneWeight1; eventWeight /= leptonOneWeight2;
@@ -2419,36 +2426,36 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
     leptonTwoWeight1_up   = 1.; leptonTwoWeight2_up   = 1.;
     leptonTwoWeight1_down = 1.; leptonTwoWeight2_down = 1.;
     int tauGenID = 0;
-    if     (abs(tauGenFlavor) == 15) tauGenID = 5;
-    else if(abs(tauGenFlavor) == 13) tauGenID = 2;
-    else if(abs(tauGenFlavor) == 11) tauGenID = 1;
-    if     (abs(leptonOneFlavor) == 11) {
+    if     (std::abs(tauGenFlavor) == 15) tauGenID = 5;
+    else if(std::abs(tauGenFlavor) == 13) tauGenID = 2;
+    else if(std::abs(tauGenFlavor) == 11) tauGenID = 1;
+    if     (std::abs(leptonOneFlavor) == 11) {
       if(fUseEmbedTnPWeights) {
         leptonOneWeight1 = fEmbeddingTnPWeight.ElectronIDWeight(leptonOneP4->Pt(), leptonOneSCEta, fYear);
       } else {
         leptonOneWeight1 = fEmbeddingWeight.ElectronIDWeight(leptonOneP4->Pt(), leptonOneSCEta, fYear);
       }
-    } else if(abs(leptonOneFlavor) == 13) {
+    } else if(std::abs(leptonOneFlavor) == 13) {
       if(fUseEmbedTnPWeights) {
         leptonOneWeight1 = fEmbeddingTnPWeight.MuonIDWeight(leptonOneP4->Pt(), leptonOneP4->Eta(), fYear);
       } else {
         leptonOneWeight1 = fEmbeddingWeight.MuonIDWeight(leptonOneP4->Pt(), leptonOneP4->Eta(), fYear);
       }
-    } else if(abs(leptonOneFlavor) == 15) leptonOneWeight1 = fTauIDWeight->IDWeight(leptonOneP4->Pt(), leptonOneP4->Eta(), tauGenID, tauDeepAntiJet,
+    } else if(std::abs(leptonOneFlavor) == 15) leptonOneWeight1 = fTauIDWeight->IDWeight(leptonOneP4->Pt(), leptonOneP4->Eta(), tauGenID, tauDeepAntiJet,
                                                                                   fYear, leptonOneWeight1_up, leptonOneWeight1_down);
-    if     (abs(leptonTwoFlavor) == 11) {
+    if     (std::abs(leptonTwoFlavor) == 11) {
       if(fUseEmbedTnPWeights) {
         leptonTwoWeight1 = fEmbeddingTnPWeight.ElectronIDWeight(leptonTwoP4->Pt(), leptonTwoSCEta, fYear);
       } else {
         leptonTwoWeight1 = fEmbeddingWeight.ElectronIDWeight(leptonTwoP4->Pt(), leptonTwoSCEta, fYear);
       }
-    } else if(abs(leptonTwoFlavor) == 13) {
+    } else if(std::abs(leptonTwoFlavor) == 13) {
       if(fUseEmbedTnPWeights) {
         leptonTwoWeight1 = fEmbeddingTnPWeight.MuonIDWeight(leptonTwoP4->Pt(), leptonTwoP4->Eta(), fYear);
       } else {
         leptonTwoWeight1 = fEmbeddingWeight.MuonIDWeight(leptonTwoP4->Pt(), leptonTwoP4->Eta(), fYear);
       }
-    } else if(abs(leptonTwoFlavor) == 15) leptonTwoWeight1 = fTauIDWeight->IDWeight(leptonTwoP4->Pt(), leptonTwoP4->Eta(), tauGenID, tauDeepAntiJet,
+    } else if(std::abs(leptonTwoFlavor) == 15) leptonTwoWeight1 = fTauIDWeight->IDWeight(leptonTwoP4->Pt(), leptonTwoP4->Eta(), tauGenID, tauDeepAntiJet,
                                                                                   fYear, leptonTwoWeight1_up, leptonTwoWeight1_down);
 
     eventWeight *= leptonOneWeight1; eventWeight *= leptonOneWeight2;
@@ -2510,10 +2517,10 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
     if(mumu)  isLooseMuon &= leptonOneID1 < 4 || leptonTwoID1 < 4; //Not Tight IsoID
   }
 
-  isFakeElectron  = !fIsData && ((fabs(leptonOneFlavor) == 11 && leptonOneGenFlavor == 26) ||
-                                 (fabs(leptonTwoFlavor) == 11 && leptonTwoGenFlavor == 26));
-  isFakeMuon      = !fIsData && ((fabs(leptonOneFlavor) == 13 && leptonOneGenFlavor == 26) ||
-                                 (fabs(leptonTwoFlavor) == 13 && leptonTwoGenFlavor == 26));
+  isFakeElectron  = !fIsData && ((std::abs(leptonOneFlavor) == 11 && leptonOneGenFlavor == 26) ||
+                                 (std::abs(leptonTwoFlavor) == 11 && leptonTwoGenFlavor == 26));
+  isFakeMuon      = !fIsData && ((std::abs(leptonOneFlavor) == 13 && leptonOneGenFlavor == 26) ||
+                                 (std::abs(leptonTwoFlavor) == 13 && leptonTwoGenFlavor == 26));
 
   jetToTauWeight = 1.; jetToTauWeightUp = 1.; jetToTauWeightDown = 1.; jetToTauWeightSys = 1.; jetToTauWeightGroup = 0;
   jetToTauWeightCorr = 1.; jetToTauWeightCorrUp = 1.; jetToTauWeightCorrDown = 1.; jetToTauWeightCorrSys = 1.;
@@ -2549,21 +2556,21 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   TLorentzVector* muon_2 = 0;
   TLorentzVector* electron_2 = 0;
   //same flavor categories
-  if(abs(leptonOneFlavor) == abs(leptonTwoFlavor)) {
-    if(abs(leptonOneFlavor) == 13) { //mumu
+  if(std::abs(leptonOneFlavor) == std::abs(leptonTwoFlavor)) {
+    if(std::abs(leptonOneFlavor) == 13) { //mumu
       muon = leptonOneP4;
       muon_2 = leptonTwoP4;
-    } else if(abs(leptonOneFlavor) == 11) { //ee
+    } else if(std::abs(leptonOneFlavor) == 11) { //ee
       electron = leptonOneP4;
       electron_2 = leptonTwoP4;
     }
   } else {
-    if(abs(leptonOneFlavor) == 15)      tau = leptonOneP4;
-    else if(abs(leptonTwoFlavor) == 15) tau = leptonTwoP4;
-    if(abs(leptonOneFlavor) == 13)      muon = leptonOneP4;
-    else if(abs(leptonTwoFlavor) == 13) muon = leptonTwoP4;
-    if(abs(leptonOneFlavor) == 11)      electron = leptonOneP4;
-    else if(abs(leptonTwoFlavor) == 11) electron = leptonTwoP4;
+    if(std::abs(leptonOneFlavor) == 15)      tau = leptonOneP4;
+    else if(std::abs(leptonTwoFlavor) == 15) tau = leptonTwoP4;
+    if(std::abs(leptonOneFlavor) == 13)      muon = leptonOneP4;
+    else if(std::abs(leptonTwoFlavor) == 13) muon = leptonTwoP4;
+    if(std::abs(leptonOneFlavor) == 11)      electron = leptonOneP4;
+    else if(std::abs(leptonTwoFlavor) == 11) electron = leptonTwoP4;
   }
 
   //lepton vectors must be found
@@ -2602,25 +2609,25 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   const double muon_eta_max     = (fUseEmbedCuts) ? 2.2 : 2.4;
   const double tau_eta_max      = (fUseEmbedCuts) ? 2.2 : 2.3;
 
-  mutau = mutau && abs(muon->Eta()) < muon_eta_max;
-  mutau = mutau && abs(tau->Eta()) < tau_eta_max;
-  mutau = mutau && abs(tau->DeltaR(*muon)) > 0.3;
+  mutau = mutau && std::fabs(muon->Eta()) < muon_eta_max;
+  mutau = mutau && std::fabs(tau->Eta()) < tau_eta_max;
+  mutau = mutau && std::fabs(tau->DeltaR(*muon)) > 0.3;
 
-  etau  = etau  && abs(electron->Eta()) < electron_eta_max;
-  etau  = etau  && abs(tau->Eta()) < tau_eta_max;
-  etau  = etau  && abs(tau->DeltaR(*electron)) > 0.3;
+  etau  = etau  && std::fabs(electron->Eta()) < electron_eta_max;
+  etau  = etau  && std::fabs(tau->Eta()) < tau_eta_max;
+  etau  = etau  && std::fabs(tau->DeltaR(*electron)) > 0.3;
 
-  emu   = emu   && abs(electron->Eta()) < electron_eta_max;
-  emu   = emu   && abs(muon->Eta()) < muon_eta_max;
-  emu   = emu   && abs(muon->DeltaR(*electron)) > 0.3;
+  emu   = emu   && std::fabs(electron->Eta()) < electron_eta_max;
+  emu   = emu   && std::fabs(muon->Eta()) < muon_eta_max;
+  emu   = emu   && std::fabs(muon->DeltaR(*electron)) > 0.3;
 
-  mumu  = mumu  && abs(muon->Eta()) < muon_eta_max;
-  mumu  = mumu  && abs(muon_2->Eta()) < muon_eta_max;
-  mumu  = mumu  && abs(muon->DeltaR(*muon_2)) > 0.3;
+  mumu  = mumu  && std::fabs(muon->Eta()) < muon_eta_max;
+  mumu  = mumu  && std::fabs(muon_2->Eta()) < muon_eta_max;
+  mumu  = mumu  && std::fabs(muon->DeltaR(*muon_2)) > 0.3;
 
-  ee    = ee    && abs(electron->Eta()) < electron_eta_max;
-  ee    = ee    && abs(electron_2->Eta()) < electron_eta_max;
-  ee    = ee    && abs(electron->DeltaR(*electron_2)) > 0.3;
+  ee    = ee    && std::fabs(electron->Eta()) < electron_eta_max;
+  ee    = ee    && std::fabs(electron_2->Eta()) < electron_eta_max;
+  ee    = ee    && std::fabs(electron->DeltaR(*electron_2)) > 0.3;
 
   //mass cuts, due to generation ranges need > 50 GeV for all sets
   double mll = (*leptonOneP4+*leptonTwoP4).M();
@@ -2689,8 +2696,8 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   //cut-flow for fake leptons
   if(fIsData) fCutFlow->Fill(icutflow); //11
   else if(emu) {
-    if((fabs(leptonOneFlavor) == fabs(leptonOneGenFlavor))
-       && (fabs(leptonTwoFlavor) == fabs(leptonTwoGenFlavor))) {
+    if((std::abs(leptonOneFlavor) == std::abs(leptonOneGenFlavor))
+       && (std::abs(leptonTwoFlavor) == std::abs(leptonTwoGenFlavor))) {
       fCutFlow->Fill(icutflow);
     }
   }
@@ -2839,8 +2846,8 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   }
 
   //remove MC estimated jet --> tau component
-  mutau &= fIsData > 0 || abs(tauGenFlavor) != 26;
-  etau  &= fIsData > 0 || abs(tauGenFlavor) != 26;
+  mutau &= fIsData > 0 || std::abs(tauGenFlavor) != 26;
+  etau  &= fIsData > 0 || std::abs(tauGenFlavor) != 26;
 
 
   /////////////////////////
@@ -3026,7 +3033,7 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   ++icutflow;
 
   //Test the jet --> tau scale factors in mumu/ee
-  if((mumu || ee) && nTaus == 1 && tausDM[0] != 5 && tausDM[0] != 6 && (fIsData || abs(tausGenFlavor[0]) != 26)) {
+  if((mumu || ee) && nTaus == 1 && tausDM[0] != 5 && tausDM[0] != 6 && (fIsData || std::abs(tausGenFlavor[0]) != 26)) {
     if(tausAntiJet[0] <= fFakeTauIsoCut) { //loose ID tau
       //add loose --> tight tau weight, without leading lepton pT closure correction
       Float_t temp_event_weight = eventWeight;
@@ -3090,9 +3097,9 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
 
   if(!looseQCDSelection && chargeTest)                                    {fCutFlow->Fill(icutflow);} //15
   ++icutflow;
-  if(!looseQCDSelection && chargeTest && abs(genWeight) > 0.)             {fCutFlow->Fill(icutflow);} //16
+  if(!looseQCDSelection && chargeTest && std::fabs(genWeight) > 0.)             {fCutFlow->Fill(icutflow);} //16
   ++icutflow;
-  if(!looseQCDSelection && chargeTest && abs(genWeight*eventWeight) > 0.) {fCutFlow->Fill(icutflow);} //17
+  if(!looseQCDSelection && chargeTest && std::fabs(genWeight*eventWeight) > 0.) {fCutFlow->Fill(icutflow);} //17
   ++icutflow;
 
   ////////////////////////////////////////////////////////////////////////////
@@ -3191,7 +3198,7 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   //Set event weight to ignore training sample
   Float_t prev_wt = eventWeight;
   //only use weight if MC or is same sign data
-  eventWeight = (fIsData == 0 || !chargeTest) ? fabs(fTreeVars.eventweightMVA) : prev_wt; //use abs to remove gen weight sign
+  eventWeight = (fIsData == 0 || !chargeTest) ? std::fabs(fTreeVars.eventweightMVA) : prev_wt; //use abs to remove gen weight sign
   bool doMVASets = !fDYTesting || fDoMVASets;
   int category = -1; //histogram set to use, based on MVA score
   if(doMVASets) {
@@ -3262,7 +3269,7 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   ////////////////////////////////////////////////////////////////////////////
   // Set 27 + selection offset: Genuine hadronic taus
   ////////////////////////////////////////////////////////////////////////////
-  bool genuineTau = fIsData != 0 || abs(tauGenFlavor) == 15;
+  bool genuineTau = fIsData != 0 || std::abs(tauGenFlavor) == 15;
   genuineTau &= mutau || etau;
   if(genuineTau)
     FillAllHistograms(set_offset + 27);
@@ -3270,7 +3277,7 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   ////////////////////////////////////////////////////////////////////////////
   // Set 28 + selection offset: Non-jet based hadronic taus
   ////////////////////////////////////////////////////////////////////////////
-  // bool nonJetTau = fIsData != 0 || abs(tauGenFlavor) != 26;
+  // bool nonJetTau = fIsData != 0 || std::abs(tauGenFlavor) != 26;
   // nonJetTau &= mutau || etau;
   // if(nonJetTau)
   //   FillAllHistograms(set_offset + 28);
@@ -3288,7 +3295,7 @@ void ZTauTauHistMaker::ApplyTriggerWeights(const float muon_trig_pt, const float
   ////////////////////////////////
 
   // Electrons
-  if(fabs(leptonOneFlavor) == 11) { //lepton 1 is an electron
+  if(std::abs(leptonOneFlavor) == 11) { //lepton 1 is an electron
     if(fIsEmbed) {
       if(fUseEmbedTnPWeights) {
         fEmbeddingTnPWeight.ElectronTriggerWeight(leptonOneP4->Pt(), leptonOneSCEta, fYear, data_eff[0], mc_eff[0]);
@@ -3299,7 +3306,7 @@ void ZTauTauHistMaker::ApplyTriggerWeights(const float muon_trig_pt, const float
       fElectronIDWeight.TriggerEff               (leptonOneP4->Pt(), leptonOneSCEta, fYear, data_eff[0], mc_eff[0]);
     }
   }
-  if(fabs(leptonTwoFlavor) == 11) { //lepton 2 is an electron
+  if(std::abs(leptonTwoFlavor) == 11) { //lepton 2 is an electron
     if(fIsEmbed) {
       if(fUseEmbedTnPWeights) {
         fEmbeddingTnPWeight.ElectronTriggerWeight(leptonTwoP4->Pt(), leptonTwoSCEta, fYear, data_eff[1], mc_eff[1]);
@@ -3312,7 +3319,7 @@ void ZTauTauHistMaker::ApplyTriggerWeights(const float muon_trig_pt, const float
   }
 
   // Muons
-  if(fabs(leptonTwoFlavor) == 13) { //lepton 2 is a muon
+  if(std::abs(leptonTwoFlavor) == 13) { //lepton 2 is a muon
     if(fIsEmbed) {
       if(fUseEmbedTnPWeights) {
         fEmbeddingTnPWeight.MuonTriggerWeight(leptonTwoP4->Pt(), leptonTwoP4->Eta(), fYear, data_eff[1], mc_eff[1]);
@@ -3324,7 +3331,7 @@ void ZTauTauHistMaker::ApplyTriggerWeights(const float muon_trig_pt, const float
       fMuonIDWeight.TriggerEff               (leptonTwoP4->Pt(), leptonTwoP4->Eta(), fYear, !leptonTwoFired || muonTriggerStatus != 2, data_eff[1], mc_eff[1]);
     }
   }
-  if(fabs(leptonOneFlavor) == 13) { //lepton 1 is a muon
+  if(std::abs(leptonOneFlavor) == 13) { //lepton 1 is a muon
     if(fIsEmbed) {
       if(fUseEmbedTnPWeights) {
         fEmbeddingTnPWeight.MuonTriggerWeight(leptonOneP4->Pt(), leptonOneP4->Eta(), fYear, data_eff[0], mc_eff[0]);
@@ -3337,7 +3344,7 @@ void ZTauTauHistMaker::ApplyTriggerWeights(const float muon_trig_pt, const float
   }
 
   // Taus
-  if(fabs(leptonTwoFlavor) == 15) {
+  if(std::abs(leptonTwoFlavor) == 15) {
     data_eff[1] = 0.f; mc_eff[1] = 0.f; //tau can't trigger
   }
 
@@ -3346,11 +3353,11 @@ void ZTauTauHistMaker::ApplyTriggerWeights(const float muon_trig_pt, const float
   ////////////////////////////////
 
   const float pt_1(leptonOneP4->Pt()), pt_2(leptonTwoP4->Pt());
-  const float min_pt_1 = (fabs(leptonOneFlavor) == 13) ? muon_trig_pt : electron_trig_pt;
-  const float min_pt_2 = (fabs(leptonTwoFlavor) == 13) ? muon_trig_pt : electron_trig_pt;
+  const float min_pt_1 = (std::abs(leptonOneFlavor) == 13) ? muon_trig_pt : electron_trig_pt;
+  const float min_pt_2 = (std::abs(leptonTwoFlavor) == 13) ? muon_trig_pt : electron_trig_pt;
   //use just the muon if there's a muon or the leading firing lepton otherwise
   if(fRemoveTriggerWeights == 2) {
-    if((leptonOneFired && pt_1 >= min_pt_1) && (abs(leptonOneFlavor) == 13 || !leptonTwoFired || abs(leptonTwoFlavor) != 13)) {
+    if((leptonOneFired && pt_1 >= min_pt_1) && (std::abs(leptonOneFlavor) == 13 || !leptonTwoFired || std::abs(leptonTwoFlavor) != 13)) {
       leptonOneTrigWeight = data_eff[0] / mc_eff[0];
     } else {
       leptonTwoTrigWeight = data_eff[1] / mc_eff[1];
@@ -3369,7 +3376,7 @@ void ZTauTauHistMaker::ApplyTriggerWeights(const float muon_trig_pt, const float
     } else {
       leptonOneTrigWeight = (leptonOneFired) ? data_eff[0] / mc_eff[0] : (1.-data_eff[0])/(1.-mc_eff[0]);
     }
-    if(fabs(leptonOneFlavor) == 15 || pt_2 < min_pt_2) {
+    if(std::abs(leptonOneFlavor) == 15 || pt_2 < min_pt_2) {
       leptonTwoTrigWeight = 1.;
     } else {
       leptonTwoTrigWeight = (leptonTwoFired) ? data_eff[1] / mc_eff[1] : (1.-data_eff[1])/(1.-mc_eff[1]);
@@ -3400,7 +3407,7 @@ void ZTauTauHistMaker::ApplyTriggerWeights(const float muon_trig_pt, const float
     prob_data = std::max(0.f, std::min(0.9999f, prob_data)); //avoid a ~1/0  or sqrt(negative) situation
     prob_mc   = std::max(0.f, std::min(0.9999f, prob_mc  ));
     const float trig_wt = (1.f - prob_data) / (1.f - prob_mc);
-    if(fabs(leptonTwoFlavor) == 15 || pt_2 < min_pt_2) { //no need to split if other lepton can't fire
+    if(std::abs(leptonTwoFlavor) == 15 || pt_2 < min_pt_2) { //no need to split if other lepton can't fire
       leptonOneTrigWeight = trig_wt;
     } else if(pt_1 < min_pt_1) { //only lepton two could (and did) fire
       leptonTwoTrigWeight = trig_wt;
@@ -3570,12 +3577,12 @@ int ZTauTauHistMaker::Category(TString selection) {
 void ZTauTauHistMaker::InitializeSystematics() {
   leptonOneWeight1_group = 0; leptonOneWeight2_group = 0;
   leptonTwoWeight1_group = 0; leptonTwoWeight2_group = 0;
-  if(fabs(leptonOneFlavor) == 11) {
+  if(std::abs(leptonOneFlavor) == 11) {
     leptonOneWeight1_sys = fSystematicShifts->ElectronID    (fYear, leptonOneWeight1_bin) ? leptonOneWeight1_up : leptonOneWeight1_down;
     leptonOneWeight2_sys = fSystematicShifts->ElectronRecoID(fYear, leptonOneWeight2_bin) ? leptonOneWeight2_up : leptonOneWeight2_down;
     leptonOneWeight1_group = fElectronIDWeight.GetIDGroup(leptonOneWeight1_bin, fYear) + SystematicGrouping::kElectronID;
     leptonOneWeight2_group = fElectronIDWeight.GetRecoGroup(leptonOneWeight2_bin, fYear) + SystematicGrouping::kElectronRecoID;
-  } else if(fabs(leptonOneFlavor) == 13) {
+  } else if(std::abs(leptonOneFlavor) == 13) {
     if(fYear == 2018) { //remove the period dependence for 2018, as it is using inclusive weights
       leptonOneWeight1_bin %= 10000;
       leptonTwoWeight1_bin %= 10000;
@@ -3586,29 +3593,29 @@ void ZTauTauHistMaker::InitializeSystematics() {
     leptonOneWeight2_sys = fSystematicShifts->MuonIsoID(fYear, leptonOneWeight2_bin) ? leptonOneWeight2_up : leptonOneWeight2_down;
     leptonOneWeight1_group = fMuonIDWeight.GetIDGroup(leptonOneWeight1_bin, fYear) + SystematicGrouping::kMuonID;
     leptonOneWeight2_group = fMuonIDWeight.GetIsoGroup(leptonOneWeight2_bin, fYear) + SystematicGrouping::kMuonIsoID;
-  } else if(fabs(leptonOneFlavor) == 15) {
+  } else if(std::abs(leptonOneFlavor) == 15) {
     int tauGenID = 0;
-    if     (abs(tauGenFlavor) == 15) tauGenID = 5;
-    else if(abs(tauGenFlavor) == 13) tauGenID = 2;
-    else if(abs(tauGenFlavor) == 11) tauGenID = 1;
+    if     (std::abs(tauGenFlavor) == 15) tauGenID = 5;
+    else if(std::abs(tauGenFlavor) == 13) tauGenID = 2;
+    else if(std::abs(tauGenFlavor) == 11) tauGenID = 1;
     leptonOneWeight1_sys = fSystematicShifts->TauID(fYear, tauGenID, leptonOneWeight1_bin) ? leptonOneWeight1_up : leptonOneWeight1_down;
     leptonOneWeight2_sys = leptonOneWeight2; //not defined
   }
-  if(abs(leptonTwoFlavor) == 11) {
+  if(std::abs(leptonTwoFlavor) == 11) {
     leptonTwoWeight1_sys = fSystematicShifts->ElectronID    (fYear, leptonTwoWeight1_bin) ? leptonTwoWeight1_up : leptonTwoWeight1_down;
     leptonTwoWeight2_sys = fSystematicShifts->ElectronRecoID(fYear, leptonTwoWeight2_bin) ? leptonTwoWeight2_up : leptonTwoWeight2_down;
     leptonTwoWeight1_group = fElectronIDWeight.GetIDGroup(leptonTwoWeight1_bin, fYear) + SystematicGrouping::kElectronID;
     leptonTwoWeight2_group = fElectronIDWeight.GetRecoGroup(leptonTwoWeight2_bin, fYear) + SystematicGrouping::kElectronRecoID;
-  } else if(abs(leptonTwoFlavor) == 13) {
+  } else if(std::abs(leptonTwoFlavor) == 13) {
     leptonTwoWeight1_sys = fSystematicShifts->MuonID   (fYear, leptonTwoWeight1_bin) ? leptonTwoWeight1_up : leptonTwoWeight1_down;
     leptonTwoWeight2_sys = fSystematicShifts->MuonIsoID(fYear, leptonTwoWeight2_bin) ? leptonTwoWeight2_up : leptonTwoWeight2_down;
     leptonTwoWeight1_group = fMuonIDWeight.GetIDGroup(leptonOneWeight1_bin, fYear) + SystematicGrouping::kMuonID;
     leptonTwoWeight2_group = fMuonIDWeight.GetIsoGroup(leptonOneWeight2_bin, fYear) + SystematicGrouping::kMuonIsoID;
-  } else if(abs(leptonTwoFlavor) == 15) {
+  } else if(std::abs(leptonTwoFlavor) == 15) {
     int tauGenID = 0;
-    if     (abs(tauGenFlavor) == 15) tauGenID = 5;
-    else if(abs(tauGenFlavor) == 13) tauGenID = 2;
-    else if(abs(tauGenFlavor) == 11) tauGenID = 1;
+    if     (std::abs(tauGenFlavor) == 15) tauGenID = 5;
+    else if(std::abs(tauGenFlavor) == 13) tauGenID = 2;
+    else if(std::abs(tauGenFlavor) == 11) tauGenID = 1;
     leptonTwoWeight1_sys = fSystematicShifts->TauID(fYear, tauGenID, leptonTwoWeight1_bin) ? leptonTwoWeight1_up : leptonTwoWeight1_down;
     leptonTwoWeight2_sys = leptonTwoWeight2; //not defined
   }
@@ -3636,6 +3643,7 @@ void ZTauTauHistMaker::Terminate()
   fCutFlow->Write(); //add the cut-flow histogram to the output
   fOut->Write();//Form("%s_OutFile.root",fChain->GetName()));
   fOut->Close();
+  delete fOut;
   // timer->Stop();
   Double_t cpuTime = timer->CpuTime();
   Double_t realTime = timer->RealTime();

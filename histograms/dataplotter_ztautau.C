@@ -87,9 +87,9 @@ Int_t create_categories(TString hist, TString type, Int_t set, TString signal = 
   }
   THStack* hstack = dataplotter_->get_stack(hist, type, set);
   if(!hstack) return 1;
-  TH1D* hbkg = (TH1D*) hstack->GetStack()->Last();
-  vector<TH1D*> hsigs = dataplotter_->get_signal(hist, type, set);
-  TH1D* hsig = 0;
+  TH1* hbkg = (TH1*) hstack->GetStack()->Last();
+  vector<TH1*> hsigs = dataplotter_->get_signal(hist, type, set);
+  TH1* hsig = 0;
   for(auto h : hsigs) {
     if(TString(h->GetTitle()).Contains(signal.Data())) hsig = h;
   }
@@ -132,7 +132,7 @@ Int_t print_statistics(TString hist, TString type, int set, double xmin = 1., do
           THStack* hstack = (THStack*) h;
           TList* hist_list = hstack->GetHists();
           for(auto hl : *hist_list) {
-            TH1D* hist = (TH1D*) hl;
+            TH1* hist = (TH1*) hl;
             double error = 0.;
             double integral = 0.;
             cout << "--> " << hist->GetTitle() << ": ";
@@ -151,8 +151,8 @@ Int_t print_statistics(TString hist, TString type, int set, double xmin = 1., do
             variance += error*error;
             delete hist;
           }
-        } else if(h->InheritsFrom("TH1D")) { //signal histograms or data
-            TH1D* hist = (TH1D*) h;
+        } else if(h->InheritsFrom("TH1")) { //signal histograms or data
+            TH1* hist = (TH1*) h;
             double error = 0.;
             double integral = 0.;
             cout << "--> " << hist->GetTitle() << ": ";
@@ -216,14 +216,14 @@ Int_t print_combine_card(TString hist, TString type, TString label, double xmin 
           // cout << h->GetName() << ": " << h->GetTitle() << ": " << h->InheritsFrom("THStack") << endl;
           if(h->InheritsFrom("THStack")) {
             THStack* hstack = (THStack*) h;
-            TH1D* hbkg = (TH1D*) hstack->GetStack()->Last();
+            TH1* hbkg = (TH1*) hstack->GetStack()->Last();
             int bin_lo = (xmin < xmax) ? hbkg->FindBin(xmin) : 0;
             int bin_hi = (xmin < xmax) ? hbkg->FindBin(xmax) : hbkg->GetNbinsX()+1;
             double bkg = hbkg->Integral(bin_lo, bin_hi);
             bkgs.push_back(bkg);
             bkg_f = true;
-          } else if(h->InheritsFrom("TH1D")) { //signal histograms or data
-            TH1D* h_curr = (TH1D*) h;
+          } else if(h->InheritsFrom("TH1")) { //signal histograms or data
+            TH1* h_curr = (TH1*) h;
             if(TString(h_curr->GetName()).Contains(label.Data())) {
               int bin_lo = (xmin < xmax) ? h_curr->FindBin(xmin) : 0;
               int bin_hi = (xmin < xmax) ? h_curr->FindBin(xmax) : h_curr->GetNbinsX()+1;
@@ -1075,7 +1075,7 @@ void get_datacards(std::vector<dcard>& cards, bool forStudies = false) {
   bool oneDY = false; //for faster scale factor testing/debugging
 
   //Initialize the data run by year
-  map<int,vector<TString>> runs;
+  std::map<int, std::vector<TString>> runs;
   std::map<int, std::vector<TString>> periods;
   periods[2016] = {"B", "C", "D", "E", "F", "G", "H"};
   periods[2017] = {"B", "C", "D", "E", "F"};
@@ -1127,10 +1127,12 @@ void get_datacards(std::vector<dcard>& cards, bool forStudies = false) {
       } else {
         for(int period = 0; period < periods[year].size(); ++period) {
           TString run = periods[year][period];
-          if(selection_ == "mutau")
+          if(selection_ == "mutau") {
             cards.push_back(dcard(("Embed-MuTau-"+run).Data(), ("Embed-MuTau-"+run).Data(), embed.Data(), false, xs.GetCrossSection("Embed-MuTau-"+run, year), false, year, kRed-7));
-          if(selection_ == "etau")
+          }
+          if(selection_ == "etau") {
             cards.push_back(dcard(("Embed-ETau-" +run).Data(), ("Embed-ETau-" +run).Data(), embed.Data(), false, xs.GetCrossSection("Embed-ETau-" +run, year), false, year, kRed-7));
+          }
           cards.push_back(  dcard(("Embed-EMu-"  +run).Data(), ("Embed-EMu-"  +run).Data(), embed.Data(), false, xs.GetCrossSection("Embed-EMu-"  +run, year), false, year, kRed-7));
         }
       }
@@ -1537,8 +1539,8 @@ Int_t print_qcd_plots() {
       c = dataplotter_->print_stack(card);
       if(c) {
         TVirtualPad* c1 = (TVirtualPad*) c->GetListOfPrimitives()->At(0);
-        TH1D* hMC   = (TH1D*) c1->GetPrimitive(Form("uncertainty_%s_%i", card.hist_.Data(), card.set_));
-        TH1D* hData = (TH1D*) c1->GetPrimitive(Form("hData_%s_%i", card.hist_.Data(), card.set_));
+        TH1* hMC   = (TH1*) c1->GetPrimitive(Form("uncertainty_%s_%i", card.hist_.Data(), card.set_));
+        TH1* hData = (TH1*) c1->GetPrimitive(Form("hData_%s_%i", card.hist_.Data(), card.set_));
         if(!hMC || !hData) cout << "MC or Data histogram not found!\n";
         else {
           double errmc, errdata;
@@ -1805,7 +1807,7 @@ Int_t print_qcd_debug_plots() {
 }
 
 //print Embedding debugging plots
-Int_t print_embedding_debug_plots(bool doMC = false) {
+Int_t print_embedding_debug_plots(bool doMC = false, bool doExtraEMu = false) {
   Int_t status = 0;
   if(!dataplotter_) return 1;
   dataplotter_->include_qcd_ = 0;
@@ -1832,6 +1834,17 @@ Int_t print_embedding_debug_plots(bool doMC = false) {
     // sets.push_back(35 + offset + ZTauTauHistMaker::fQcdOffset);
     // sets.push_back(35 + offset + ZTauTauHistMaker::fQcdOffset + ZTauTauHistMaker::fMisIDOffset);
   }
+  if(doExtraEMu && selection_ == "emu") {
+    sets.push_back(60 + offset);
+    sets.push_back(61 + offset);
+    sets.push_back(62 + offset);
+    sets.push_back(63 + offset);
+    sets.push_back(64 + offset);
+    sets.push_back(65 + offset);
+    sets.push_back(66 + offset);
+    sets.push_back(67 + offset);
+  }
+
   vector<PlottingCard_t> cards;
   if(selection_ != "emu")
     cards.push_back(PlottingCard_t("lepm"        , "event", 2, 50., 170.));
@@ -1871,8 +1884,10 @@ Int_t print_embedding_debug_plots(bool doMC = false) {
 
   //Weights for debugging
   cards.push_back(PlottingCard_t("eventweight", "event", 0,  0.,  1.1));
+  cards.push_back(PlottingCard_t("genweight"  , "event", 0, -2.5,  2.5));
   cards.push_back(PlottingCard_t("logeventweight", "event", 0, -5.,  1.));
-  cards.push_back(PlottingCard_t("embeddingweight", "event", 0,  0.,  1.));
+  cards.push_back(PlottingCard_t("embeddingweight", "event", 0,  0.,  0.4));
+  cards.push_back(PlottingCard_t("logembeddingweight", "event", 0, -9.,  1.));
   cards.push_back(PlottingCard_t("embeddingunfoldingweight", "event", 0,  0.5,  1.5));
   cards.push_back(PlottingCard_t("onetrigweight", "lep", 0,  0.5,  1.5));
   cards.push_back(PlottingCard_t("twotrigweight", "lep", 0,  0.5,  1.5));
@@ -1898,7 +1913,7 @@ Int_t print_embedding_debug_plots(bool doMC = false) {
 }
 
 //print all years/selections embedding debugging plots
-Int_t print_all_embedding_debug_plots(bool doMC = false) {
+Int_t print_all_embedding_debug_plots(bool doMC = false, bool doExtraEMu = false) {
   vector<TString> selections = {"emu", "etau", "mutau"};
   vector<int> years = {2016, 2017, 2018};
   int status(0);
@@ -1906,8 +1921,13 @@ Int_t print_all_embedding_debug_plots(bool doMC = false) {
     years_ = {year};
     for(TString selection : selections) {
       nanoaod_init(selection, hist_dir_, folder_);
-      status += print_embedding_debug_plots(doMC);
+      status += print_embedding_debug_plots(doMC, doExtraEMu);
     }
+  }
+  years_ = {2016, 2017, 2018};
+  for(TString selection : selections) {
+    nanoaod_init(selection, hist_dir_, folder_);
+    status += print_embedding_debug_plots(doMC, doExtraEMu);
   }
   return status;
 }
