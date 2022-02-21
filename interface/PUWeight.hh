@@ -13,70 +13,58 @@ namespace CLFV {
 
   class PUWeight {
   public:
-    PUWeight(TString base_path = "/uscms/home/mmackenz/nobackup/ZEMu/CMSSW_10_2_18/") {
-      base_path += "src/PhysicsTools/NanoAODTools/python/postprocessing/data/pileup/";
+    PUWeight() {
+      const TString cmssw = gSystem->Getenv("CMSSW_BASE");
+      const TString path = (cmssw == "") ? "../scale_factors" : cmssw + "/src/PhysicsTools/NanoAODTools/python/postprocessing/data/pileup";
       TFile* f = 0;
 
-      ////////////////
-      // 2016 files //
-      ////////////////
-      //data
-      f = TFile::Open((base_path+"PileupData_GoldenJSON_Full2016.root").Data(), "READ");
-      if(f) {
-        dataHists_[2016] = (TH1F*) f->Get("pileup")->Clone("hd_2016");
-        if(!dataHists_[2016]) std::cout << "Warning! No pileup histogram found for 2016 data!\n";
-        files_.push_back(f);
-      }
-      //MC
-      f = TFile::Open((base_path+"pileup_profile_Summer16.root").Data(), "READ");
-      if(f) {
-        mcHists_[2016] = (TH1F*) f->Get("pu_mc")->Clone("hm_2016");
-        if(!mcHists_[2016]) std::cout << "Warning! No pileup histogram found for 2016 MC!\n";
-        files_.push_back(f);
-      }
+      std::map<int, TString> fnames_data, fnames_mc;
+      fnames_data[2016] = "/PileupData_GoldenJSON_Full2016.root";
+      fnames_data[2017] = "/PileupHistogram-goldenJSON-13tev-2017-99bins_withVar.root";
+      fnames_data[2018] = "/PileupHistogram-goldenJSON-13tev-2018-100bins_withVar.root";
+      fnames_mc  [2016] = "/pileup_profile_Summer16.root";
+      fnames_mc  [2017] = "/mcPileup2017.root";
+      fnames_mc  [2018] = "/mcPileup2018.root";
 
-      ////////////////
-      // 2017 files //
-      ////////////////
-      //data
-      f = TFile::Open((base_path+"PileupHistogram-goldenJSON-13tev-2017-99bins_withVar.root").Data(), "READ");
-      if(f) {
-        dataHists_[2017] = (TH1F*) f->Get("pileup")->Clone("hd_2017");
-        if(!dataHists_[2017]) std::cout << "Warning! No pileup histogram found for 2017 data!\n";
-        files_.push_back(f);
-      }
-      //MC
-      f = TFile::Open((base_path+"mcPileup2017.root").Data(), "READ");
-      if(f) {
-        mcHists_[2017] = (TH1F*) f->Get("pu_mc")->Clone("hm_2017");
-        if(!mcHists_[2017]) std::cout << "Warning! No pileup histogram found for 2017 MC!\n";
-        files_.push_back(f);
-      }
-
-      ////////////////
-      // 2018 files //
-      ////////////////
-      //data
-      f = TFile::Open((base_path+"PileupHistogram-goldenJSON-13tev-2018-100bins_withVar.root").Data(), "READ");
-      if(f) {
-        dataHists_[2018] = (TH1F*) f->Get("pileup")->Clone("hd_2018");
-        if(!dataHists_[2018]) std::cout << "Warning! No pileup histogram found for 2018 data!\n";
-        files_.push_back(f);
-      }
-      //MC
-      f = TFile::Open((base_path+"mcPileup2018.root").Data(), "READ");
-      if(f) {
-        mcHists_[2018] = (TH1F*) f->Get("pu_mc")->Clone("hm_2018");
-        if(!mcHists_[2018]) std::cout << "Warning! No pileup histogram found for 2018 MC!\n";
-        files_.push_back(f);
-      }
-
-      for(int year = 2016; year < 2019; ++year) {
+      //Retrieve data for each year
+      for(int year = 2016; year <= 2018; ++year) {
+        //data
+        f = TFile::Open((path+fnames_data[year]).Data(), "READ");
+        if(f) {
+          dataHists_[year] = (TH1F*) f->Get("pileup");
+          if(!dataHists_[year]) {
+            std::cout << "!!! Warning: " << __func__ << ": No pileup histogram found for " << year << " Data!\n";
+          } else {
+            dataHists_[year]->Clone(Form("hd_%i", year));
+            dataHists_[year]->SetDirectory(0);
+          }
+          f->Close();
+          delete f;
+        }
+        //MC
+        f = TFile::Open((path+fnames_mc[year]).Data(), "READ");
+        if(f) {
+          mcHists_[year] = (TH1F*) f->Get("pu_mc");
+          if(!mcHists_[year]) {
+            std::cout << "!!! Warning: " << __func__ << ": No pileup histogram found for " << year << " MC!\n";
+          } else {
+            mcHists_[year]->Clone(Form("hm_%i", year));
+            mcHists_[year]->SetDirectory(0);
+          }
+          f->Close();
+          delete f;
+        }
+        //Scale MC normalization to match the data normalization
         if(dataHists_[year] && mcHists_[year]) mcHists_[year]->Scale(dataHists_[year]->Integral()/mcHists_[year]->Integral());
       }
+
+
     }
 
-    ~PUWeight() { for(unsigned i = 0; i < files_.size(); ++i) files_[i]->Close(); }
+    ~PUWeight() {
+      for(std::pair<int, TH1F*> val : dataHists_) {if(val.second) delete val.second;}
+      for(std::pair<int, TH1F*> val : mcHists_  ) {if(val.second) delete val.second;}
+    }
 
     float GetWeight(float nint, int year) {
       float weight(1.), ndata(1.), nmc(1.);
@@ -100,7 +88,6 @@ namespace CLFV {
 
     std::map<int, TH1F*> dataHists_;
     std::map<int, TH1F*> mcHists_;
-    std::vector<TFile*> files_;
   };
 }
 #endif

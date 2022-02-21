@@ -27,10 +27,12 @@ JetPUWeight::JetPUWeight(int seed) {
           hists_[year]->SetDirectory(0);
         }
         f->Close();
+        delete f;
       }
     }
   }
   feff->Close();
+  delete feff;
 }
 
 //-------------------------------------------------------------------------------------------------------------------------

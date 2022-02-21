@@ -113,7 +113,7 @@ QCDWeight::QCDWeight(const TString selection, const int Mode, const int seed, co
         histsSys_[year]->SetDirectory(0);
       }
       f->Close();
-      // files_.push_back(f); //to close later
+      delete f;
     }
   }
 

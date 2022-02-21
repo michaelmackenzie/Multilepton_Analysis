@@ -44,6 +44,7 @@ BTagWeight::BTagWeight(const int seed) {
           histsB_[year][wp] = h;
         }
         f->Close();
+        delete f;
       }
     }
   }

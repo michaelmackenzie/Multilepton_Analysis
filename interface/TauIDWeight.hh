@@ -126,7 +126,7 @@ namespace CLFV {
       }
     }
 
-    ~TauIDWeight() { for(unsigned i = 0; i < files_.size(); ++i) files_[i]->Close(); }
+    ~TauIDWeight() { for(unsigned i = 0; i < files_.size(); ++i) {files_[i]->Close(); delete files_[i];}}
 
     //correction for the tau ID
     double IDWeight(double pt, double eta, int genID, UChar_t antiJet, int year,

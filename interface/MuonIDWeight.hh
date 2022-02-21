@@ -1,22 +1,28 @@
 #ifndef __MUONIDWEIGHT__
 #define __MUONIDWEIGHT__
 //Class to handle muon ID scale factors
+
 //c++ includes
 #include <map>
 #include <iostream>
+
 //ROOT includes
 #include "TFile.h"
 #include "TH2.h"
 #include "TF1.h"
 #include "TRandom3.h"
+#include "TSystem.h"
 
 namespace CLFV {
   class MuonIDWeight {
   public:
-    MuonIDWeight(int seed = 90, int verbose = 0) : verbose_(verbose) {
+    MuonIDWeight(const int seed = 90, const int verbose = 0) : verbose_(verbose) {
       TFile* f = 0;
       std::vector<TString> file_regions;
       rnd_ = new TRandom3(seed);
+
+      const TString cmssw = gSystem->Getenv("CMSSW_BASE");
+      const TString path = (cmssw == "") ? "../scale_factors" : cmssw + "/src/CLFVAnalysis/scale_factors";
 
       typedef std::pair<TString,TString> fpair;
       std::map<int, fpair> muonIDFileNames;
@@ -74,31 +80,32 @@ namespace CLFV {
         ///////////////////////////////////
 
         if(verbose_ > 1) printf("--- %s: Initializing %i scale factors\n", __func__, period/2+2016);
-        f = TFile::Open(("../scale_factors/" + muonIDFileNames[period].first).Data(), "READ");
+        f = TFile::Open((path + "/" + muonIDFileNames[period].first).Data(), "READ");
         if(f) {
           TH2F* h = (TH2F*) f->Get(muonIDFileNames[period].second.Data());
           if(!h) {
             printf("!!! %s: Muon ID histogram not found for %i!\n", __func__, period/2+2016);
           } else {
+            h->SetDirectory(0);
+            h->SetName(Form("%s_period_%i", h->GetName(), period));
             histIDData_[period] = h;
             //determine which axis is pT axis
-            bool ptIsX = h->GetXaxis()->GetBinLowEdge(h->GetNbinsX()) > 10.;
-            int netagroups = 2;
-            int nptgroups = 4;
+            const bool ptIsX = h->GetXaxis()->GetBinLowEdge(h->GetNbinsX()) > 10.;
+            const int netagroups = 2;
+            const int nptgroups = 4;
             //loop through the histogram, determining the bin groupings
             for(int binx = 1; binx <= h->GetNbinsX(); ++binx) {
               for(int biny = 1; biny <= h->GetNbinsY(); ++biny) {
                 int ptgroup(0), etagroup(0);
-                double ptmin  = ((ptIsX) ? h->GetXaxis()->GetBinLowEdge(binx) :
+                const double ptmin  = ((ptIsX) ? h->GetXaxis()->GetBinLowEdge(binx) :
                                  h->GetYaxis()->GetBinLowEdge(biny));
-                double etamin = ((!ptIsX) ? h->GetXaxis()->GetBinLowEdge(binx) :
-                                 h->GetYaxis()->GetBinLowEdge(biny));
-                etamin = abs(etamin);
+                const double etamin = std::fabs(((!ptIsX) ? h->GetXaxis()->GetBinLowEdge(binx) :
+                                           h->GetYaxis()->GetBinLowEdge(biny)));
                 if(etamin > 1.15) etagroup = 1;
                 if(ptmin > 49.99) ptgroup = 3;
                 else if(ptmin > 39.99) ptgroup = 2;
                 else if(ptmin > 24.99) ptgroup = 1;
-                int totgroup = groupID + (etagroup*nptgroups) + ptgroup;
+                const int totgroup = groupID + (etagroup*nptgroups) + ptgroup;
                 groupID_[kYear*(period/2) + kRunSection*(period % 2 == 0) + kBinY*biny + binx] = totgroup;
                 if(verbose_ > 1)
                   printf("--- %s ID bin (%i,%i) with min (%.1f,%.1f) has group (pt,eta) + offset = (%i, %i) + %i = %i\n",
@@ -108,38 +115,39 @@ namespace CLFV {
             if(period % 2 == 1)
               groupID += (netagroups)*(nptgroups);
           }
-          files_.push_back(f);
+          f->Close();
         }
 
         ///////////////////////////////////
         // Muon Iso ID
         ///////////////////////////////////
 
-        f = TFile::Open(("../scale_factors/" + muonIsoFileNames[period].first).Data(), "READ");
+        f = TFile::Open((path + "/" + muonIsoFileNames[period].first).Data(), "READ");
         if(f) {
           TH2F* h = (TH2F*) f->Get(muonIsoFileNames[period].second.Data());
           if(!h) {
             printf("!!! %s: Muon Iso ID histogram not found for %i!\n", __func__, period/2+2016);
           } else {
+            h->SetDirectory(0);
+            h->SetName(Form("%s_period_%i", h->GetName(), period));
             histIsoData_[period] = h;
             //determine which axis is pT axis
-            bool ptIsX = h->GetXaxis()->GetBinLowEdge(h->GetNbinsX()) > 10.;
-            int netagroups = 2;
-            int nptgroups = 4;
+            const bool ptIsX = h->GetXaxis()->GetBinLowEdge(h->GetNbinsX()) > 10.;
+            const int netagroups = 2;
+            const int nptgroups = 4;
             //loop through the histogram, determining the bin groupings
             for(int binx = 1; binx <= h->GetNbinsX(); ++binx) {
               for(int biny = 1; biny <= h->GetNbinsY(); ++biny) {
                 int ptgroup(0), etagroup(0);
-                double ptmin  = ((ptIsX) ? h->GetXaxis()->GetBinLowEdge(binx) :
+                const double ptmin  = ((ptIsX) ? h->GetXaxis()->GetBinLowEdge(binx) :
                                  h->GetYaxis()->GetBinLowEdge(biny));
-                double etamin = ((!ptIsX) ? h->GetXaxis()->GetBinLowEdge(binx) :
-                                 h->GetYaxis()->GetBinLowEdge(biny));
-                etamin = abs(etamin);
+                const double etamin = std::fabs(((!ptIsX) ? h->GetXaxis()->GetBinLowEdge(binx) :
+                                                 h->GetYaxis()->GetBinLowEdge(biny)));
                 if(etamin > 1.15) etagroup = 1;
                 if(ptmin > 49.99) ptgroup = 3;
                 else if(ptmin > 39.99) ptgroup = 2;
                 else if(ptmin > 24.99) ptgroup = 1;
-                int totgroup = groupIso + (etagroup*nptgroups) + ptgroup;
+                const int totgroup = groupIso + (etagroup*nptgroups) + ptgroup;
                 groupIso_[kYear*(period/2) + kRunSection*(period % 2 == 0) + kBinY*biny + binx] = totgroup;
                 if(verbose_ > 1)
                   printf("--- %s Iso bin (%i,%i) with min (%.1f,%.1f) has group (pt,eta) + offset = (%i, %i) + %i = %i\n",
@@ -149,44 +157,70 @@ namespace CLFV {
             if(period % 2 == 1)
               groupIso += (netagroups)*(nptgroups);
           }
-          files_.push_back(f);
+          f->Close();
         }
-        f = TFile::Open(("../scale_factors/" + muonTriggerLowFileNames[period].first).Data(), "READ");
+
+        ///////////////////////////////////
+        // Muon low trigger
+        ///////////////////////////////////
+
+        f = TFile::Open((path + "/" + muonTriggerLowFileNames[period].first).Data(), "READ");
         if(f) {
           TH2F* h = (TH2F*) f->Get((muonTriggerLowFileNames[period].second + "/efficienciesDATA/abseta_pt_DATA").Data());
           if(!h) {
             printf("!!! %s: Muon low trigger data histogram not found for %i!\n", __func__, period/2+2016);
           } else {
+            h->SetDirectory(0);
+            h->SetName(Form("%s_period_%i", h->GetName(), period));
             histTriggerLowData_[period] = h;
           }
           h = (TH2F*) f->Get((muonTriggerLowFileNames[period].second + "/efficienciesMC/abseta_pt_MC").Data());
           if(!h) {
             printf("!!! %s: Muon low trigger MC histogram not found for %i!\n", __func__, period/2+2016);
           } else {
+            h->SetDirectory(0);
+            h->SetName(Form("%s_period_%i", h->GetName(), period));
             histTriggerLowMC_[period] = h;
           }
-          files_.push_back(f);
+          f->Close();
         }
-        f = TFile::Open(("../scale_factors/" + muonTriggerHighFileNames[period].first).Data(), "READ");
+
+        ///////////////////////////////////
+        // Muon high trigger
+        ///////////////////////////////////
+
+        f = TFile::Open((path + "/" + muonTriggerHighFileNames[period].first).Data(), "READ");
         if(f) {
           TH2F* h = (TH2F*) f->Get((muonTriggerHighFileNames[period].second + "/efficienciesDATA/abseta_pt_DATA").Data());
           if(!h) {
             printf("!!! %s: Muon high trigger data histogram not found for %i!\n", __func__, period/2+2016);
           } else {
+            h->SetDirectory(0);
+            h->SetName(Form("%s_period_%i", h->GetName(), period));
             histTriggerHighData_[period] = h;
           }
           h = (TH2F*) f->Get((muonTriggerHighFileNames[period].second + "/efficienciesMC/abseta_pt_MC").Data());
           if(!h) {
             printf("!!! %s: Muon high trigger MC histogram not found for %i!\n", __func__, period/2+2016);
           } else {
+            h->SetDirectory(0);
+            h->SetName(Form("%s_period_%i", h->GetName(), period));
             histTriggerHighMC_[period] = h;
           }
-          files_.push_back(f);
+          f->Close();
         }
       }
     }
 
-    ~MuonIDWeight() { for(unsigned i = 0; i < files_.size(); ++i) files_[i]->Close(); }
+    ~MuonIDWeight() {
+      if(rnd_) delete rnd_;
+      for(std::pair<int, TH2F*> val : histIDData_         ) {if(val.second) delete val.second;}
+      for(std::pair<int, TH2F*> val : histIsoData_        ) {if(val.second) delete val.second;}
+      for(std::pair<int, TH2F*> val : histTriggerLowData_ ) {if(val.second) delete val.second;}
+      for(std::pair<int, TH2F*> val : histTriggerLowMC_   ) {if(val.second) delete val.second;}
+      for(std::pair<int, TH2F*> val : histTriggerHighData_) {if(val.second) delete val.second;}
+      for(std::pair<int, TH2F*> val : histTriggerHighMC_  ) {if(val.second) delete val.second;}
+    }
 
     int GetIDGroup(int bin, int year) {
       return groupID_[(year-2016) * kYear + bin];
@@ -264,13 +298,12 @@ namespace CLFV {
   public:
     enum { k2016, k2017, k2018};
     enum { kYear = 100000, kRunSection = 10000, kBinY = 100};
-    std::map<int, TH2F*> histIDData_;
-    std::map<int, TH2F*> histIsoData_;
-    std::map<int, TH2F*> histTriggerLowData_;
-    std::map<int, TH2F*> histTriggerLowMC_;
+    std::map<int, TH2F*> histIDData_         ;
+    std::map<int, TH2F*> histIsoData_        ;
+    std::map<int, TH2F*> histTriggerLowData_ ;
+    std::map<int, TH2F*> histTriggerLowMC_   ;
     std::map<int, TH2F*> histTriggerHighData_;
-    std::map<int, TH2F*> histTriggerHighMC_;
-    std::vector<TFile*> files_;
+    std::map<int, TH2F*> histTriggerHighMC_  ;
     int verbose_;
     TRandom3* rnd_; //for generating systematic shifted parameters
     std::map<int, int> groupID_; //correction groups for systematics
