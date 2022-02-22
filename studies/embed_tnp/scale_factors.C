@@ -201,10 +201,13 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
   // Initialize histograms
   ///////////////////////////////////////
 
+  const bool use_abs_eta = true; //use eta or |eta| in the scale factor measurement
   vector<double> eta_bins;
   const double gap_low(1.4442), gap_high(1.566);
-  if(isMuon) eta_bins = {0., 0.9, 1.2, 2.1, 2.4}; //{-2.4,-2.0,-1.5,-0.8, 0.0, 0.8, 1.5, 2.0, 2.4};
-  else       eta_bins = {0., 1., gap_low, gap_high, 2.1, 2.5}; //{-2.5,-2.0,-1.566,-1.4442, -0.8, 0.0, 0.8, 1.4442, 1.566, 2.0, 2.5};
+  if(isMuon && use_abs_eta) eta_bins = {0., 0.9, 1.2, 2.1, 2.4}; //muon
+  else if(isMuon)           eta_bins = {-2.4, -2.1, -1.2, -0.9, 0., 0.9, 1.2, 2.1, 2.4}; //muon
+  else if(use_abs_eta)      eta_bins = {0., 1., gap_low, gap_high, 2.1, 2.5}; //electron
+  else                      eta_bins = {-2.5, -2.1, -gap_low, -gap_high, -1., 0., 1., gap_low, gap_high, 2.1, 2.5}; //electron
   vector<double> pt_bins;
   if(isMuon) {
     if(Mode == 0) pt_bins = {20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 38, 40, 45, 50, 60, 80, 100, 500};
@@ -333,8 +336,9 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
       //opposite flavor
       if(one_q*two_q > 0) continue;
       //electron eta veto
-      if(!isMuon && gap_low <= fabs(one_sc_eta) && fabs(one_sc_eta) <= gap_high) continue;
-      if(!isMuon && gap_low <= fabs(two_sc_eta) && fabs(two_sc_eta) <= gap_high) continue;
+      // no need to veto since it's naturally a bin region
+      // if(!isMuon && gap_low <= fabs(one_sc_eta) && fabs(one_sc_eta) <= gap_high) continue;
+      // if(!isMuon && gap_low <= fabs(two_sc_eta) && fabs(two_sc_eta) <= gap_high) continue;
       //must fire the trigger
       if(!((one_pt > trig_pt_min && one_triggered) || (two_pt > trig_pt_min && two_triggered))) continue;
       //must satisfy minimum thresholds
@@ -357,12 +361,12 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
       float wt = pu_weight*((isMC > 1) ? ((gen_weight < 0) ? -1. : 1.) : gen_weight)*xs_scale;
 
       if(applyScales_ && Mode != 1 && isMC && hSF_1) { //Apply the ID1 scale factors for the trigger and ID2 measurements
-        wt *= hSF_1->GetBinContent(hSF_1->GetXaxis()->FindBin(one_sc_eta), hSF_1->GetYaxis()->FindBin(one_pt));
-        wt *= hSF_1->GetBinContent(hSF_1->GetXaxis()->FindBin(two_sc_eta), hSF_1->GetYaxis()->FindBin(two_pt));
+        wt *= hSF_1->GetBinContent(hSF_1->GetXaxis()->FindBin((use_abs_eta) ? fabs(one_sc_eta) : one_sc_eta), hSF_1->GetYaxis()->FindBin(one_pt));
+        wt *= hSF_1->GetBinContent(hSF_1->GetXaxis()->FindBin((use_abs_eta) ? fabs(two_sc_eta) : two_sc_eta), hSF_1->GetYaxis()->FindBin(two_pt));
       }
       if(applyScales_ && Mode == 0 && isMC && hSF_2) { //Apply the ID2 scale factors for the trigger measurements
-        wt *= hSF_2->GetBinContent(hSF_2->GetXaxis()->FindBin(one_sc_eta), hSF_2->GetYaxis()->FindBin(one_pt));
-        wt *= hSF_2->GetBinContent(hSF_2->GetXaxis()->FindBin(two_sc_eta), hSF_2->GetYaxis()->FindBin(two_pt));
+        wt *= hSF_2->GetBinContent(hSF_2->GetXaxis()->FindBin((use_abs_eta) ? fabs(one_sc_eta) : one_sc_eta), hSF_2->GetYaxis()->FindBin(one_pt));
+        wt *= hSF_2->GetBinContent(hSF_2->GetXaxis()->FindBin((use_abs_eta) ? fabs(two_sc_eta) : two_sc_eta), hSF_2->GetYaxis()->FindBin(two_pt));
       }
 
       if(debug_ == 1) {
@@ -378,16 +382,16 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
          one_id1 >= 3 && one_id2 >= (4 * isMuon) && (Mode != 0 || one_triggered)
          && (!tag_triggers || one_triggered)) {
         bool test = false;
-        if(Mode == 0) test = two_triggered;
-        if(Mode == 1) test = two_id1 >= 3;
-        if(Mode == 2) test = two_id2 >= 4;
+        if     (Mode == 0) test = two_triggered;
+        else if(Mode == 1) test = two_id1 >= 3;
+        else if(Mode == 2) test = two_id2 >= 4;
 
         //Fill the (eta,pt) counting histogram for the (eta,pt) point
-        if(test) hPass->Fill(fabs(two_sc_eta), two_pt, wt);
-        else     hFail->Fill(fabs(two_sc_eta), two_pt, wt);
+        if(test) hPass->Fill((use_abs_eta) ? fabs(two_sc_eta) : two_sc_eta, two_pt, wt);
+        else     hFail->Fill((use_abs_eta) ? fabs(two_sc_eta) : two_sc_eta, two_pt, wt);
 
         //Fill the mass histogram for the (eta,pt) point
-        const int mapBin = hPass->GetXaxis()->FindBin(fabs(two_sc_eta)) + 100*hPass->GetYaxis()->FindBin(two_pt);
+        const int mapBin = hPass->GetXaxis()->FindBin((use_abs_eta) ? fabs(two_sc_eta) : two_sc_eta) + 100*hPass->GetYaxis()->FindBin(two_pt);
         if(test) massHists_pass[mapBin]->Fill(pair_mass, wt);
         else     massHists_fail[mapBin]->Fill(pair_mass, wt);
 
@@ -406,16 +410,16 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
          two_id1 >= 3 && two_id2 >= (4 * isMuon) && (Mode != 0 || two_triggered)
          && (!tag_triggers || two_triggered)) {
         bool test = false;
-        if(Mode == 0) test = one_triggered;
-        if(Mode == 1) test = two_id1 >= 3;
-        if(Mode == 2) test = two_id2 >= 4;
+        if     (Mode == 0) test = one_triggered;
+        else if(Mode == 1) test = one_id1 >= 3;
+        else if(Mode == 2) test = one_id2 >= 4;
 
         //Fill the (eta,pt) counting histogram for the (eta,pt) point
-        if(test) hPass->Fill(fabs(one_sc_eta), one_pt, wt);
-        else     hFail->Fill(fabs(one_sc_eta), one_pt, wt);
+        if(test) hPass->Fill((use_abs_eta) ? fabs(one_sc_eta) : one_sc_eta, one_pt, wt);
+        else     hFail->Fill((use_abs_eta) ? fabs(one_sc_eta) : one_sc_eta, one_pt, wt);
 
         //Fill the mass histogram for the (eta,pt) point
-        int mapBin = hPass->GetXaxis()->FindBin(fabs(one_sc_eta)) + 100* hPass->GetYaxis()->FindBin(one_pt);
+        const int mapBin = hPass->GetXaxis()->FindBin((use_abs_eta) ? fabs(one_sc_eta) : one_sc_eta) + 100* hPass->GetYaxis()->FindBin(one_pt);
         if(test) massHists_pass[mapBin]->Fill(pair_mass, wt);
         else     massHists_fail[mapBin]->Fill(pair_mass, wt);
 
