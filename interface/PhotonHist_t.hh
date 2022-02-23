@@ -6,15 +6,15 @@
 namespace CLFV {
 
   struct PhotonHist_t {
-    TH1D* hPz;
-    TH1D* hPt;
-    TH1D* hP;
-    TH1D* hEta;
-    TH1D* hPhi;
-    TH1D* hMVA;
-    // TH1D* hIso;
-    // TH1D* hRelIso;
-    // TH1D* hTrigger;
+    TH1* hPz;
+    TH1* hPt;
+    TH1* hP;
+    TH1* hEta;
+    TH1* hPhi;
+    TH1* hMVA;
+    // TH1* hIso;
+    // TH1* hRelIso;
+    // TH1* hTrigger;
   };
 }
 #endif

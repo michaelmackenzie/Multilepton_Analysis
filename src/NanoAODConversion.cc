@@ -1794,48 +1794,63 @@ bool NanoAODConversion::SelectionID(Int_t selection) {
 //-----------------------------------------------------------------------------------------------------------------
 // check if the selected leptons pass most IDs but fail the QCD measurement region tight ID
 bool NanoAODConversion::QCDSelection(Int_t selection) {
-  bool passed = true;
-  //check muon
+  bool passed = true; //Each lepton must pass Loose ID and least one must fail the Tight ID
+  bool lep1_not_tight = true; //Check if leptons fail the Tight ID after passing the Loose ID
+  bool lep2_not_tight = true;
+
+  //check muons
   if(selection == kMuTau || selection == kMuMu || selection == kEMu) {
-    int index = (selection == kMuMu) ? leptonOneSkimIndex : fMuonIndices[selection][0];
-    passed &=  MuonID(index, fMuonIsoCount [selection], fMuonIDSelect[selection]); //passes loose QCD region ID
-    passed &= !MuonID(index, fMuonIsoSelect[selection], fMuonIDSelect[selection]); //fails  tight QCD region ID
+    const int index = (selection == kMuMu) ? leptonOneSkimIndex : fMuonIndices[selection][0];
+    passed &= !MuonID(index, fMuonIsoCount [selection], fMuonIDSelect[selection]); //must pass loose QCD region ID
+    if(selection == kEMu) { //lepton two is the muon
+      lep2_not_tight = !MuonID(index, fMuonIsoSelect[selection], fMuonIDSelect[selection]); //fails  tight QCD region ID
+    } else { //lepton one is the muon
+      lep1_not_tight = !MuonID(index, fMuonIsoSelect[selection], fMuonIDSelect[selection]); //fails  tight QCD region ID
+    }
     if(fVerbose > 2) std::cout << __func__ << ": After Muon 1 has status " << passed << std::endl;
   }
   if(!passed) return false;
   if(selection == kMuMu) {
     int index = (selection == kMuMu) ? leptonTwoSkimIndex : fMuonIndices[selection][1];
-    passed &=  MuonID(index, fMuonIsoCount [selection], fMuonIDSelect[selection]); //passes loose QCD region ID
-    passed &= !MuonID(index, fMuonIsoSelect[selection], fMuonIDSelect[selection]); //fails  tight QCD region ID
+    passed &= !MuonID(index, fMuonIsoCount [selection], fMuonIDSelect[selection]); //must pass loose QCD region ID
+    lep2_not_tight = !MuonID(index, fMuonIsoSelect[selection], fMuonIDSelect[selection]); //fails  tight QCD region ID
     if(fVerbose > 2) std::cout << __func__ << ": After Muon 2 has status " << passed << std::endl;
   }
   if(!passed) return false;
-  //check electron
+
+  //check electrons
   if(selection == kETau || selection == kEMu || selection == kEE) {
     int index = (selection == kEE) ? leptonOneSkimIndex : fElectronIndices[selection][0];
     passed &=  ElectronID(index, fElectronIDCount [selection]); //passes loose QCD region ID
-    passed &= !ElectronID(index, fElectronIDSelect[selection]); //fails  tight QCD region ID
+    lep1_not_tight = !ElectronID(index, fElectronIDSelect[selection]); //fails  tight QCD region ID
     if(fVerbose > 2) std::cout << __func__ << ": After Electron 1 has status " << passed << std::endl;
   }
   if(!passed) return false;
   if(selection == kEE) {
     int index = (selection == kEE) ? leptonTwoSkimIndex : fElectronIndices[selection][1];
     passed &=  ElectronID(index, fElectronIDCount [selection]); //passes loose QCD region ID
-    passed &= !ElectronID(index, fElectronIDSelect[selection]); //fails  tight QCD region ID
+    lep2_not_tight = !ElectronID(index, fElectronIDSelect[selection]); //fails  tight QCD region ID
     if(fVerbose > 2) std::cout << __func__ << ": After Electron 2 has status " << passed << std::endl;
   }
   if(!passed) return false;
+
   //check tau
   if(selection == kMuTau || selection == kETau) {
     int index = fTauIndices[selection][0];
     passed &= TauID(index, fTauUseDeep[selection], fTauAntiEleSelect[selection],
                     fTauAntiMuSelect[selection], fTauAntiJetCount[selection],    //passes loose anti-jet ID
                     fTauIDDecaySelect[selection], fTauAntiOldMuCount[selection]);
-    passed &= !TauID(index, fTauUseDeep[selection], fTauAntiEleSelect[selection],
-                     fTauAntiMuSelect[selection], fTauAntiJetSelect[selection],  //fails tight anti-jet ID
-                     fTauIDDecaySelect[selection],  fTauAntiOldMuCount[selection]);
+    lep2_not_tight = !TauID(index, fTauUseDeep[selection], fTauAntiEleSelect[selection],
+                            fTauAntiMuSelect[selection], fTauAntiJetSelect[selection],  //fails tight anti-jet ID
+                            fTauIDDecaySelect[selection],  fTauAntiOldMuCount[selection]);
     if(fVerbose > 2) std::cout << __func__ << ": After Tau 1 has status " << passed << std::endl;
   }
+  if(!passed) return false;
+
+ //at least one lepton must fail the Tight ID check
+  passed = lep1_not_tight || lep2_not_tight;
+  if(fVerbose > 2) std::cout << __func__ << ": Lep 1 !Tight = " << lep1_not_tight << "; Lep 2 !Tight = " << lep2_not_tight
+                             << "; status = " << passed << std::endl;
   return passed;
 }
 

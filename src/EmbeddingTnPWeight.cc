@@ -115,9 +115,12 @@ double EmbeddingTnPWeight::MuonIDWeight(double pt, double eta, int year) {
     return 1.;
   }
 
-  double scale_factor(1.);
+  const bool use_abs_eta = hIDMC->GetXaxis()->GetBinLowEdge(1) > -1.; //test if |eta| or eta on x-axis
+  if(use_abs_eta) eta = std::fabs(eta);
   pt = std::max(10.01, std::min(pt, 499.));
-  eta = std::min(2.39, fabs(eta));
+  eta = std::min(2.39, std::max(-2.39, eta));
+
+  double scale_factor(1.);
   float data_eff(1.), mc_eff(1.);
 
   ///////////////////////////
@@ -157,9 +160,12 @@ double EmbeddingTnPWeight::MuonTriggerWeight(double pt, double eta, int year, fl
     return 1.;
   }
 
-  double scale_factor(1.);
+  const bool use_abs_eta = hMC->GetXaxis()->GetBinLowEdge(1) > -1.; //test if |eta| or eta on x-axis
+  if(use_abs_eta) eta = std::fabs(eta);
   pt = std::max(10.01, std::min(pt, 499.));
-  eta = std::min(2.39, fabs(eta)); //std::max(-2.39, std::min(2.39, eta));
+  eta = std::min(2.39, std::max(-2.39, eta));
+
+  double scale_factor(1.);
 
   ///////////////////////////
   // Apply trigger weight
@@ -195,9 +201,12 @@ double EmbeddingTnPWeight::ElectronIDWeight(double pt, double eta, int year) {
     return 1.;
   }
 
-  double scale_factor(1.);
+  const bool use_abs_eta = hIDMC->GetXaxis()->GetBinLowEdge(1) > -1.; //test if |eta| or eta on x-axis
+  if(use_abs_eta) eta = std::fabs(eta);
   pt = std::max(10.01, std::min(pt, 499.));
-  eta = std::min(2.49, std::fabs(eta)); //std::max(-2.49, std::min(2.49, eta));
+  eta = std::min(2.49, std::max(-2.49, eta));
+
+  double scale_factor(1.);
   float data_eff(1.), mc_eff(1.);
 
   ///////////////////////////
@@ -233,9 +242,12 @@ double EmbeddingTnPWeight::ElectronTriggerWeight(double pt, double eta, int year
     return 1.;
   }
 
-  double scale_factor(1.);
+  const bool use_abs_eta = hMC->GetXaxis()->GetBinLowEdge(1) > -1.; //test if |eta| or eta on x-axis
+  if(use_abs_eta) eta = std::fabs(eta);
   pt = std::max(10.01, std::min(pt, 499.));
-  eta = std::min(2.49, fabs(eta)); //std::max(-2.49, std::min(2.49, eta));
+  eta = std::min(2.49, std::max(-2.49, eta));
+
+  double scale_factor(1.);
 
   ///////////////////////////
   // Apply trigger weight
