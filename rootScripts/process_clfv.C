@@ -1,6 +1,8 @@
 //information for debugging
 #include "histogramming_config.C"
-bool copyConfig_ = true;
+#include "process_card.C"
+bool copyConfig_ = true; //create a new config file to use to prevent changes
+bool newProcess_ = true; //run card processing in a new process to avoid memory issues
 
 using namespace CLFV;
 
@@ -64,12 +66,18 @@ Int_t process_clfv() {
       } else
         cout << "ERROR: Didn't find generation numbers for combining with sample name " << name.Data() << endl;
     } //end combine extension samples
-    gSystem->Exec(Form("root.exe -q -b -l \"process_card.C(\\\"%s\\\", \\\"%s\\\", %f, %i, %i, %i, %i)\"",
-                       nanoaod_path.Data(), nanocards[i].fname_.Data(), nanocards[i].xsec_,
-                       nanocards[i].isData_, nanocards[i].combine_, useUL, category
-                       )
-                  );
-    sleep(2); //add 2 sec buffer between loops
+    if(newProcess_) {
+      gSystem->Exec(Form("root.exe -q -b -l \"process_card.C(\\\"%s\\\", \\\"%s\\\", %f, %i, %i, %i, %i)\"",
+                         nanoaod_path.Data(), nanocards[i].fname_.Data(), nanocards[i].xsec_,
+                         nanocards[i].isData_, nanocards[i].combine_, useUL, category
+                         )
+                    );
+      sleep(2); //add 2 sec buffer between loops
+    } else { //process within this process
+      process_card(nanoaod_path.Data(), nanocards[i].fname_.Data(), nanocards[i].xsec_,
+                   nanocards[i].isData_, nanocards[i].combine_, useUL, category
+                   );
+    }
   } //end file loop
   //report the time spent histogramming
   Double_t realTime = timer->RealTime();

@@ -2,6 +2,7 @@
 #include <map>
 #include <utility>
 #include <string>
+
 #include "interface/GlobalConstants.h"
 #include "interface/Tree_t.hh"
 #include "interface/EventHist_t.hh"
@@ -15,6 +16,7 @@
 #include "interface/PUWeight.hh"
 #include "interface/JetPUWeight.hh"
 #include "interface/PrefireWeight.hh"
+#include "interface/JetToLepWeight.hh"
 #include "interface/JetToTauWeight.hh"
 #include "interface/JetToTauComposition.hh"
 #include "interface/QCDWeight.hh"
@@ -33,17 +35,21 @@
 #include "interface/RoccoR.h"
 #include "interface/MVAConfig.hh"
 #include "interface/TrkQualInit.hh"
-#include "interface/PlottingCard_t.hh"
-#include "interface/DataCard_t.hh"
 #include "interface/ZTauTauHistMaker.hh"
+#include "interface/DataCard_t.hh"
+#include "interface/PlottingCard_t.hh"
 #include "interface/DataPlotter.hh"
 #include "interface/ParticleCorrections.hh"
 #include "interface/NanoAODConversion.hh"
+#include "interface/Fitter.hh"
 
 using namespace CLFV;
 namespace CLFV {
   struct dictionary {
     Tree_t dummy1;
+    EventHist_t dummy1b;
+    LepHist_t dummy1c;
+    SystematicHist_t dummy1d;
     CrossSections dummy2;
     Significances dummy3;
     Utilities dummy3a;
@@ -54,12 +60,14 @@ namespace CLFV {
     PrefireWeight dummy5c;
     JetToTauWeight dummy6;
     JetToTauComposition dummy6b;
-    QCDWeight dummy6bb;
+    JetToLepWeight dummy6b2;
+    QCDWeight dummy6b3;
+    ElectronIDWeight dummy6c2;
     MuonIDWeight dummy6c;
-    ZPtWeight dummy6d;
-    EmbeddingWeight dummy6e;
-    EmbeddingTnPWeight dummy6e2;
-    TauIDWeight dummy6f;
+    TauIDWeight dummy6d;
+    ZPtWeight dummy6e;
+    EmbeddingWeight dummy6f;
+    EmbeddingTnPWeight dummy6f2;
     SlimObject_t dummy7;
     SlimElectron_t dummy8;
     SlimMuon_t dummy9;
@@ -70,8 +78,11 @@ namespace CLFV {
     MVAConfig dummy13;
     TrkQualInit dummy14;
     ZTauTauHistMaker dummy15;
+    DataCard_t dummy15b;
+    PlottingCard_t dummy15c;
     DataPlotter dummy16;
     ParticleCorrections dummy17;
     NanoAODConversion dummy18;
+    Fitter dummy19;
   };
 }

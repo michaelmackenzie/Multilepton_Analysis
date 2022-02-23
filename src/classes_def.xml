@@ -1,4 +1,5 @@
 <lcgdict>
+  <class name="std::map<TString, double>"/>
   <class name="Tree_t"/>
   <class name="EventHist_t"/>
   <class name="LepHist_t"/>
@@ -13,13 +14,14 @@
   <class name="PrefireWeight"/>
   <class name="JetToTauWeight"/>
   <class name="JetToTauComposition"/>
+  <class name="JetToLepWeight"/>
   <class name="QCDWeight"/>
+  <class name="ElectronIDWeight"/>
   <class name="MuonIDWeight"/>
+  <class name="TauIDWeight"/>
   <class name="ZPtWeight"/>
   <class name="EmbeddingWeight"/>
   <class name="EmbeddingTnPWeight"/>
-  <class name="TauIDWeight"/>
-  <class name="ElectronIDWeight"/>
   <class name="SlimObject_t"/>
   <class name="SlimObjects_t"/>
   <class name="SlimElectron_t"/>
@@ -41,4 +43,5 @@
   <class name="DataPlotter"/>
   <class name="ParticleCorrections"/>
   <class name="NanoAODConversion"/>
+  <class name="Fitter"/>
 </lcgdict>

@@ -58,6 +58,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TDirectoryFile* fChann
       selec->fQCDFakeTauTesting = QCDFakeTau_;
       selec->fJetTauTesting = JetTauTesting_;
       selec->fCutFlowTesting = CutFlowTesting_;
+      selec->fTriggerTesting = TriggerTesting_;
       selec->fDoMVASets = DoMVASets_ > 0 && (DoMVASets_ > 2 || (DoMVASets_ == 2 && !(selec->fFolderName.Contains("tau"))) || (selec->fFolderName == "emu"));
       selec->fRemoveTriggerWeights = removeTrigWeights_;
       selec->fRemoveBTagWeights = removeBTagWeights_;
@@ -86,8 +87,8 @@ Int_t process_channel(datacard_t& card, config_t& config, TDirectoryFile* fChann
       selec->fUseTauFakeSF = config.useTauFakeSF_; //whether or not to use fake tau weights from analyzer/locally re-defined
       if(card.isData_ == 0) {
         selec->fXsec = card.xsec_;
-        selec->fXsec /= (card.events_->GetBinContent(1) - 2.*card.events_->GetBinContent(10));; //for writing trees with correct normalization
-        selec->fLum = card.lum_; //for adding lum to tree weights
+        selec->fXsec /= (selec->fIsEmbed) ? 1. : (card.events_->GetBinContent(1) - 2.*card.events_->GetBinContent(10));; //for writing trees with correct normalization
+        selec->fLum = (selec->fIsEmbed) ? 1. : card.lum_; //for adding lum to tree weights
       } else {
         CrossSections xs;
         selec->fXsec = xs.GetCrossSection(Form("QCD_%s", selec->fFolderName.Data()));
@@ -101,7 +102,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TDirectoryFile* fChann
       selec->fReprocessMVAs = config.reProcessMVAs_; //whether to evaluate the MVAs or use defined ones from the trees
       selec->fIsNano = true;
       if(debug_ && nEvents_ < 20) selec->fVerbose = 1;
-      else       selec->fVerbose = 0;
+      else                        selec->fVerbose = 0;
       selector_ = selec;
       if(!debug_)
         tree->Process(selec,""); //run the selector over the tree
@@ -118,6 +119,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TDirectoryFile* fChann
       //add the events histogram to the output
       card.events_->Write();
       out->Write();
+      out->Close();
       delete out;
       if(!debug_) delete selec;
     } //end DY loop
