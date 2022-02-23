@@ -3,6 +3,7 @@
 int debug_ = 0;
 int  nentries_ = 2e6;
 bool applyScales_ = false; //apply conditioned IDs' scale factors
+bool use_abs_eta_ = true; //use eta or |eta| in the scale factor measurement
 
 //Fit the mass distribution with a signal and background function
 double extract_nz(TH1F* hMass, double& nerror, int BkgMode, TString figname = "", TString figtitle = "") {
@@ -201,13 +202,12 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
   // Initialize histograms
   ///////////////////////////////////////
 
-  const bool use_abs_eta = true; //use eta or |eta| in the scale factor measurement
   vector<double> eta_bins;
   const double gap_low(1.4442), gap_high(1.566);
-  if(isMuon && use_abs_eta) eta_bins = {0., 0.9, 1.2, 2.1, 2.4}; //muon
+  if(isMuon && use_abs_eta_) eta_bins = {0., 0.9, 1.2, 2.1, 2.4}; //muon
   else if(isMuon)           eta_bins = {-2.4, -2.1, -1.2, -0.9, 0., 0.9, 1.2, 2.1, 2.4}; //muon
-  else if(use_abs_eta)      eta_bins = {0., 1., gap_low, gap_high, 2.1, 2.5}; //electron
-  else                      eta_bins = {-2.5, -2.1, -gap_low, -gap_high, -1., 0., 1., gap_low, gap_high, 2.1, 2.5}; //electron
+  else if(use_abs_eta_)      eta_bins = {0., 1., gap_low, gap_high, 2.1, 2.5}; //electron
+  else                      eta_bins = {-2.5, -2.1, -gap_high, -gap_low, -1., 0., 1., gap_low, gap_high, 2.1, 2.5}; //electron
   vector<double> pt_bins;
   if(isMuon) {
     if(Mode == 0) pt_bins = {20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 38, 40, 45, 50, 60, 80, 100, 500};
@@ -317,6 +317,8 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
     cout << nentries << " events to process";
     if(isMC == 1) cout << " in run " << run.Data();
     cout << endl;
+
+    //Define the thresholds
     float trig_pt_min = (isMuon) ? 25. : 33.;
     if((!isMuon && year == 2016) || (isMuon && year == 2017)) trig_pt_min = 28.;
     float tag_pt_min = trig_pt_min; //(Mode == 0) ? trig_pt_min : 15.;
@@ -324,9 +326,15 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
     bool  tag_triggers = true; //whether or not to always require the tag to trigger
     float probe_eta_max = 2.3;
     float probe_pt_min = (Mode == 0) ? tag_pt_min - 1. : 10.;
+
+    //Define ID selections
     int id1_min(0), id2_min(0);
     if(Mode != 1) id1_min = 3; //tight muon ID / WP80 electron ID
     if(isMuon && Mode == 0) id2_min = 4; //tight muon Iso ID for trigger only
+    const int id1_tag = 3;
+    const int id2_tag = (isMuon) ? 4 : -1; //tight muon Iso ID or no ID for electron
+
+    //Loop through the input tree
     for(ULong64_t entry = 0; entry < nentries; ++entry) {
       if(entry % 100000 == 0) printf("Processing entry %12lld (%5.1f%%)...\n", entry, entry*100./nentries);
       t->GetEntry(entry);
@@ -361,12 +369,12 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
       float wt = pu_weight*((isMC > 1) ? ((gen_weight < 0) ? -1. : 1.) : gen_weight)*xs_scale;
 
       if(applyScales_ && Mode != 1 && isMC && hSF_1) { //Apply the ID1 scale factors for the trigger and ID2 measurements
-        wt *= hSF_1->GetBinContent(hSF_1->GetXaxis()->FindBin((use_abs_eta) ? fabs(one_sc_eta) : one_sc_eta), hSF_1->GetYaxis()->FindBin(one_pt));
-        wt *= hSF_1->GetBinContent(hSF_1->GetXaxis()->FindBin((use_abs_eta) ? fabs(two_sc_eta) : two_sc_eta), hSF_1->GetYaxis()->FindBin(two_pt));
+        wt *= hSF_1->GetBinContent(hSF_1->GetXaxis()->FindBin((use_abs_eta_) ? fabs(one_sc_eta) : one_sc_eta), hSF_1->GetYaxis()->FindBin(one_pt));
+        wt *= hSF_1->GetBinContent(hSF_1->GetXaxis()->FindBin((use_abs_eta_) ? fabs(two_sc_eta) : two_sc_eta), hSF_1->GetYaxis()->FindBin(two_pt));
       }
       if(applyScales_ && Mode == 0 && isMC && hSF_2) { //Apply the ID2 scale factors for the trigger measurements
-        wt *= hSF_2->GetBinContent(hSF_2->GetXaxis()->FindBin((use_abs_eta) ? fabs(one_sc_eta) : one_sc_eta), hSF_2->GetYaxis()->FindBin(one_pt));
-        wt *= hSF_2->GetBinContent(hSF_2->GetXaxis()->FindBin((use_abs_eta) ? fabs(two_sc_eta) : two_sc_eta), hSF_2->GetYaxis()->FindBin(two_pt));
+        wt *= hSF_2->GetBinContent(hSF_2->GetXaxis()->FindBin((use_abs_eta_) ? fabs(one_sc_eta) : one_sc_eta), hSF_2->GetYaxis()->FindBin(one_pt));
+        wt *= hSF_2->GetBinContent(hSF_2->GetXaxis()->FindBin((use_abs_eta_) ? fabs(two_sc_eta) : two_sc_eta), hSF_2->GetYaxis()->FindBin(two_pt));
       }
 
       if(debug_ == 1) {
@@ -387,11 +395,11 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
         else if(Mode == 2) test = two_id2 >= 4;
 
         //Fill the (eta,pt) counting histogram for the (eta,pt) point
-        if(test) hPass->Fill((use_abs_eta) ? fabs(two_sc_eta) : two_sc_eta, two_pt, wt);
-        else     hFail->Fill((use_abs_eta) ? fabs(two_sc_eta) : two_sc_eta, two_pt, wt);
+        if(test) hPass->Fill((use_abs_eta_) ? fabs(two_sc_eta) : two_sc_eta, two_pt, wt);
+        else     hFail->Fill((use_abs_eta_) ? fabs(two_sc_eta) : two_sc_eta, two_pt, wt);
 
         //Fill the mass histogram for the (eta,pt) point
-        const int mapBin = hPass->GetXaxis()->FindBin((use_abs_eta) ? fabs(two_sc_eta) : two_sc_eta) + 100*hPass->GetYaxis()->FindBin(two_pt);
+        const int mapBin = hPass->GetXaxis()->FindBin((use_abs_eta_) ? fabs(two_sc_eta) : two_sc_eta) + 100*hPass->GetYaxis()->FindBin(two_pt);
         if(test) massHists_pass[mapBin]->Fill(pair_mass, wt);
         else     massHists_fail[mapBin]->Fill(pair_mass, wt);
 
@@ -415,11 +423,11 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
         else if(Mode == 2) test = one_id2 >= 4;
 
         //Fill the (eta,pt) counting histogram for the (eta,pt) point
-        if(test) hPass->Fill((use_abs_eta) ? fabs(one_sc_eta) : one_sc_eta, one_pt, wt);
-        else     hFail->Fill((use_abs_eta) ? fabs(one_sc_eta) : one_sc_eta, one_pt, wt);
+        if(test) hPass->Fill((use_abs_eta_) ? fabs(one_sc_eta) : one_sc_eta, one_pt, wt);
+        else     hFail->Fill((use_abs_eta_) ? fabs(one_sc_eta) : one_sc_eta, one_pt, wt);
 
         //Fill the mass histogram for the (eta,pt) point
-        const int mapBin = hPass->GetXaxis()->FindBin((use_abs_eta) ? fabs(one_sc_eta) : one_sc_eta) + 100* hPass->GetYaxis()->FindBin(one_pt);
+        const int mapBin = hPass->GetXaxis()->FindBin((use_abs_eta_) ? fabs(one_sc_eta) : one_sc_eta) + 100* hPass->GetYaxis()->FindBin(one_pt);
         if(test) massHists_pass[mapBin]->Fill(pair_mass, wt);
         else     massHists_fail[mapBin]->Fill(pair_mass, wt);
 
