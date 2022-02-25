@@ -9,7 +9,7 @@ bool blindData_ = true;
 bool useRateParams_ = false;
 bool fixSignalPDF_ = true;
 bool useMultiDim_ = true;
-bool useSameFlavor_ = true;
+bool useSameFlavor_ = false;
 bool includeSys_ = true;
 bool printPlots_ = true;
 bool fitSideBands_ = true;
@@ -222,7 +222,7 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
     int low_bin = data->FindBin(xmin+1.e-3);
     int high_bin = data->FindBin(xmax-1.e-3);
     lepm->setBins(high_bin - low_bin + 1);
-    lepm->setRange("FullRange", xmin, xmax);
+    lepm->setRange("full", xmin, xmax);
     lepm->setRange("LowSideband", xmin, blind_min);
     lepm->setRange("HighSideband", blind_max, xmax);
     lepm->setRange("BlindRegion", blind_min, blind_max);
@@ -301,14 +301,14 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
       auto xframe = lepm->frame(nentries);
       xframe->SetTitle("");
       sigData->plotOn(xframe, RooFit::Invisible());
-      sigPDF->plotOn(xframe, RooFit::Name("sigPDF"), RooFit::LineColor(kRed), RooFit::NormRange("BlindRegion"), RooFit::Range("FullRange"));
+      sigPDF->plotOn(xframe, RooFit::Name("sigPDF"), RooFit::LineColor(kRed), RooFit::NormRange("BlindRegion"), RooFit::Range("full"));
       if(blindData_) {
         dataData->plotOn(xframe, RooFit::Invisible());
         // dataset->plotOn(xframe, RooFit::Name("toy_data"));
       }
       else           dataData->plotOn(xframe);
       double chi_sq = get_chi_squared(*lepm, bkgPDF, *dataData, fitSideBands_);
-      bkgPDF->plotOn(xframe, RooFit::Name(bkgPDF->GetName()), RooFit::LineColor(kBlue), RooFit::NormRange("FullRange"), RooFit::Range("FullRange"));
+      bkgPDF->plotOn(xframe, RooFit::Name(bkgPDF->GetName()), RooFit::LineColor(kBlue), RooFit::NormRange("full"), RooFit::Range("full"));
 
       TString name = bkgPDF->GetName();
       TString title = bkgPDF->GetTitle();
@@ -325,7 +325,7 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
           title = pdf->GetTitle();
           chi_sq = get_chi_squared(*lepm, pdf, *dataData, fitSideBands_);
           pdf->plotOn(xframe, RooFit::Name(pdf->GetName()), RooFit::LineColor(colors[ipdf % colors.size()]), RooFit::LineStyle(kDashed),
-                      RooFit::NormRange("FullRange"), RooFit::Range("FullRange"));
+                      RooFit::NormRange("full"), RooFit::Range("full"));
           order = ((title(title.Sizeof() - 2)) - '0');
           if(title.Contains("Exponential")) order *= 2;
           chi_sqs.push_back(chi_sq / (nentries - order - 1));
