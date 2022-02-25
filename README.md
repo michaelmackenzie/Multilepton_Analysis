@@ -14,11 +14,8 @@ cmsenv
 Setup NANOAOD skimming repository:
 ```
 git clone https://github.com/michaelmackenzie/ZEMuAnalysis.git StandardModel/ZEMuAnalysis #or use https://github.com/ --> git@github.com:
-cd StandardModel/ZEMuAnalysis #StandardModel is used for historical reasons
-git checkout mmackenz_dev
-cd -
 git clone https://github.com/cms-nanoAOD/nanoAOD-tools.git PhysicsTools/NanoAODTools
-scram b
+scram b -j4
 ```
 Setup NANOAOD skim processing and analysis repository:
 ```
@@ -29,9 +26,13 @@ make -j4
 
 ## Overview of the analysis tools/strategies
 This assumes ntuples have been created using a skimmer run on Monte Carlo and data samples in NANOAOD format.
-See: https://github.com/michaelmackenzie/ZEMuAnalysis/tree/mmackenz_dev for an example skimmer.
+See: https://github.com/michaelmackenzie/ZEMuAnalysis/
 
-The first step in the workflow is creating sparse trees and sets of histograms for specific analysis selections.
+The NANOAOD format ntuples need to be changed to match the expected ntuple format used by these analysis tools,
+originally designed to match the ZTauTauAnalyzer output. This is done using the *NanoAODConversion* TSelector,
+which runs over the NANOAOD Tree *Events*. An example of this is shown in `rootScripts/process_nanoaods.C`.
+
+The next step in the workflow is creating sparse trees and sets of histograms for specific analysis selections.
 This is done using a *HistMaker* type object. This object is a TSelector that processes each event in the given trees.
 Along with the histograms, the HistMaker will store the event count histogram that is used for normalization of 
 Monte Carlo samples. The histograms are created with ranges and binnings such that they should only need to be created
@@ -42,7 +43,7 @@ is of interest. This involves applying normalization and cross-section scales to
 One is also often interested in combing different samples together into a single contribution (such as all top
 related backgrounds). This is done using the *DataPlotter* object, which takes in a *DataCard* that gives
 the sample histogram file, the normalization, the plotting label, and a few flags such as whether or not the sample
-is real data.
+is data.
 This object then will create plots based on the histogram set (which usually differ by different physics selections),
 optionally printing them to disk.
 
