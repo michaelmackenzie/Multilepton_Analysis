@@ -41,7 +41,7 @@ root.exe "calculate_UL.C([set number], [year])"
 ## B->e+mu upper limit using binned distributions
 
 ## Input parameters
-HISTSET: Base histogram set number corresponding to the selection in ZTauTauHistMaker
+HISTSET: Base histogram set number corresponding to the selection in CLFVHistMaker
 default: 8
 options: single set number or bracketed list of set numbers for separate categories
 
@@ -80,7 +80,7 @@ histograms to create a background PDF and a histogram of the expected
 signal MVA score distribution to create the signal PDF
 
 ### Input parameters
-HISTSET: Base histogram set number corresponding to the selection in ZTauTauHistMaker
+HISTSET: Base histogram set number corresponding to the selection in CLFVHistMaker
 default: 8
 
 SELECTION: Signal decay performing the analysis for
@@ -94,7 +94,7 @@ HISTPATH: Directory for the set of histograms to use, from /uscms/store/user/mma
 default: nanoaods_dev
 
 ### Get MVA score histograms
-Load the histogram sets using the DataPlotter defined in CLFVAnalysis/histograms/dataplotter_ztautau.C.
+Load the histogram sets using the DataPlotter defined in CLFVAnalysis/histograms/dataplotter_clfv.C.
 Writes these histograms locally to Roostats/histograms/.
 Histograms using systematically shifted scale factors are also stored.
 ```
@@ -114,7 +114,7 @@ root.exe -q -b "calculate_UL_MVA_categories.C(${HISTSET}, \"${SELECTION}\", ${YE
 ```
 ### Perform systematic tests
 Read the workspace for the background and signal PDFs, perform upper limit calculations.
-Systematics are numbered based on the histogram set filled in the Systematic filling in ZTauTauHistMaker.
+Systematics are numbered based on the histogram set filled in the Systematic filling in CLFVHistMaker.
 ```
 root.exe -q -b "toyMC_mva_systematics.C(${HISTSET}, \"${SELECTION}\", ${YEAR}, ${SYSTEMATIC})"
 ```

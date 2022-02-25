@@ -15,7 +15,7 @@ where period = 2*(year - 2016) + run section (always section 0 for 2017)
 --> 8 groups per run section, 6 run sections (5 used), 48 histograms, 42 used
 Index 100-124, 132-148 are the meaningful histograms
 *--> 2018 is being split up but using scale factors run period inclusive!*
-Added a line to ZTauTauHistMaker to set all MC to the same period in 2018
+Added a line to CLFVHistMaker to set all MC to the same period in 2018
 
 100% correlated bin errors are in indices: 4 (up), 5 (down), and 6 (sys)
 
@@ -32,7 +32,7 @@ where period = 2*(year - 2016) + run section (always section 0 for 2017)
 Index 150-174, 182-198 are the meaningful histograms
 
 *--> 2018 is being split up but using scale factors run period inclusive!*
-Added a line to ZTauTauHistMaker to set all MC to the same period in 2018
+Added a line to CLFVHistMaker to set all MC to the same period in 2018
 
 100% correlated bin errors are in indices: 19 (up), 20 (down), and 21 (sys)
 
@@ -49,7 +49,7 @@ where period = 2*(year - 2016) + run section (always section 0 for 2017)
 Index 150-174, 182-198 are the meaningful histograms
 
 *--> 2018 is being split up but using scale factors run period inclusive!*
-Added a line to ZTauTauHistMaker to set all MC to the same period in 2018
+Added a line to CLFVHistMaker to set all MC to the same period in 2018
 
 *** Tau IDs
 The tau ID uncertainties are for the anti-jet ID, anti-muon ID, and anti-electron ID.

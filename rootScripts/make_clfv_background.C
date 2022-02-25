@@ -22,12 +22,12 @@ Int_t combine_trees(vector<TString> in_files, TString selection, int file_set, T
   Int_t filecount = 0;
   int nfiles = in_files.size();
   int set_offset = 0;
-  if     (selection == "mutau"   ) set_offset = ZTauTauHistMaker::kMuTau;
-  else if(selection == "etau"    ) set_offset = ZTauTauHistMaker::kETau;
-  else if(selection == "emu"     ) set_offset = ZTauTauHistMaker::kEMu;
-  else if(selection.Contains("_")) set_offset = ZTauTauHistMaker::kEMu;
-  else if(selection == "mumu"    ) set_offset = ZTauTauHistMaker::kMuMu;
-  else if(selection == "ee"      ) set_offset = ZTauTauHistMaker::kEE;
+  if     (selection == "mutau"   ) set_offset = CLFVHistMaker::kMuTau;
+  else if(selection == "etau"    ) set_offset = CLFVHistMaker::kETau;
+  else if(selection == "emu"     ) set_offset = CLFVHistMaker::kEMu;
+  else if(selection.Contains("_")) set_offset = CLFVHistMaker::kEMu;
+  else if(selection == "mumu"    ) set_offset = CLFVHistMaker::kMuMu;
+  else if(selection == "ee"      ) set_offset = CLFVHistMaker::kEE;
 
   for(int index = 0; index < nfiles; ++index) {
     fDList[filecount] = 0;
@@ -44,13 +44,13 @@ Int_t combine_trees(vector<TString> in_files, TString selection, int file_set, T
     //if QCD, offset set to same sign selection
     int set_use = file_set + set_offset;
     if(combineLepTau_ && selection.Contains("tau") && !selection.Contains("_") && TString(file_path).Contains("_emu_"))
-      set_use = file_set + ZTauTauHistMaker::kEMu;
+      set_use = file_set + CLFVHistMaker::kEMu;
     TString fname = fList[filecount]->GetName();
     if((fname.Contains("SingleMu") || fname.Contains("SingleEle")) && !dataOnly_) {//check if data-driven background
       if(selection == "mutau" || selection == "etau") //jet --> tau backgrounds
-        set_use += ZTauTauHistMaker::fMisIDOffset;
+        set_use += CLFVHistMaker::fMisIDOffset;
       else                                            //QCD SS -> OS backgrounds
-        set_use += ZTauTauHistMaker::fQcdOffset;
+        set_use += CLFVHistMaker::fQcdOffset;
     }
     if(verbose_ > 1) cout << "Using file set " << set_use << endl;
     tList[filecount] = (TTree*) fList[filecount]->Get(Form("Data/tree_%i/tree_%i", set_use, set_use));
@@ -168,13 +168,13 @@ Int_t make_background(int set = 8, TString selection = "mutau", TString base = "
       TString name = nano_names[i];
       if(name.Contains("Single") && name.Contains("QCD")) name.ReplaceAll("QCD_", "");
       if(name.Contains("DY50")) {
-        file_list.push_back(Form("%sztautau_%s_clfv_%i_%s-1.hist",base.Data(),fileSelec.Data(),year,name.Data()));
-        file_list.push_back(Form("%sztautau_%s_clfv_%i_%s-2.hist",base.Data(),fileSelec.Data(),year,name.Data()));
+        file_list.push_back(Form("%sclfv_%s_clfv_%i_%s-1.hist",base.Data(),fileSelec.Data(),year,name.Data()));
+        file_list.push_back(Form("%sclfv_%s_clfv_%i_%s-2.hist",base.Data(),fileSelec.Data(),year,name.Data()));
       } else {
-        file_list.push_back(Form("%sztautau_%s_clfv_%i_%s.hist",base.Data(),fileSelec.Data(),year,name.Data()));
+        file_list.push_back(Form("%sclfv_%s_clfv_%i_%s.hist",base.Data(),fileSelec.Data(),year,name.Data()));
       }
       if(combineLepTau_ && fileSelec.Contains("tau") && !fileSelec.Contains("_"))
-        file_list.push_back(Form("%sztautau_emu_clfv_%i_%s.hist",base.Data(),year,name.Data()));
+        file_list.push_back(Form("%sclfv_emu_clfv_%i_%s.hist",base.Data(),year,name.Data()));
     }
   }
 
@@ -203,7 +203,7 @@ Int_t make_background(int set = 8, TString selection = "mutau", TString base = "
     if(i > 0) year_string += "_";
     year_string += years_[i];
   }
-  TString file_out = Form("background_ztautau_%s%s_%s_%i.tree",
+  TString file_out = Form("background_clfv_%s%s_%s_%i.tree",
                               type.Data(), selection.Data(), year_string.Data(), set);
   return combine_trees(file_list, fileSelec, set, file_out);
 }

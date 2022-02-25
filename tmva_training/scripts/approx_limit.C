@@ -1,7 +1,7 @@
 //Approximate the upper limit on the branching fraction using MVA output trees
 
 TString get_file_name(TString selection, int set, vector<int> years, int version) {
-  TString file = "training_background_ztautau_";
+  TString file = "training_background_clfv_";
   bool ishiggs = selection.Contains("h");
   if(ishiggs) file += "higgs_";
   else        file += "Z0_";

@@ -26,7 +26,7 @@ Int_t process_clfv() {
   const int copy_num_ = (copyConfig_) ? count_processes() : -1;
   // if(copy_num_ >= 0) gSystem->Exec(Form("cp histogramming_config.C histogramming_config_%i.C", copy_num_));
 
-  //loop over data formats, 0 = bltTrees from ZTauTauAnalyzer, 1 = trees from converting Nano AODS
+  //loop over data formats, 0 = bltTrees from CLFVAnalyzer, 1 = trees from converting Nano AODS
   Int_t category = 0;
   unsigned nfiles = nanocards.size();
   for(unsigned i = 0; i < nfiles; ++i) {

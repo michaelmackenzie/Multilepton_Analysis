@@ -4,8 +4,8 @@ using namespace CLFV;
 bool copyTreesLocally_ = false;
 bool copyWhenDone_ = true;
 bool debug_ = false;
-TString debugFile_ = "SingleMu";
-UInt_t debugStart_ = 9457;
+TString debugFile_ = "DY50-amc";
+UInt_t debugStart_ = 508389;
 UInt_t debugNEvents_ = 1;
 NanoAODConversion* debugSelec_ = 0;
 bool ignoreNoTrigger_ = true;
@@ -299,7 +299,7 @@ Int_t process_nanoaods() {
     selec->fVerbose = (debug_ && debugNEvents_ < 100) ? 3 : 1; //print warnings as they come normally, print extra in debug
     selec->fIgnoreNoTriggerMatch = ignoreNoTrigger_;
     selec->fIgnoreNoSelection = ignoreNoSelection_;
-    if(debug_ && debugNEvents_ == 1) selec->fVerbose = 10;
+    if(debug_ && debugNEvents_ <= 2) selec->fVerbose = 10;
     if(debug_) debugSelec_ = selec;
     if(!debug_)
       t->Process(selec);

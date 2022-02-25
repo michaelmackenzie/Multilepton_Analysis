@@ -1,5 +1,5 @@
 //Script to retrieve the background and signal MVA histograms
-#include "../histograms/dataplotter_ztautau.C"
+#include "../histograms/dataplotter_clfv.C"
 #include "../interface/SystematicHist_t.hh"
 int overall_rebin_ = 0;
 TH1D* hbkg_;
@@ -70,8 +70,8 @@ int get_same_flavor_histogram(int set = 8, TString selection = "mumu",
     return status;
   }
 
-  int set_offset = ZTauTauHistMaker::kMuMu;
-  if     (selection == "ee") set_offset = ZTauTauHistMaker::kEE;
+  int set_offset = CLFVHistMaker::kMuMu;
+  if     (selection == "ee") set_offset = CLFVHistMaker::kEE;
 
   dataplotter_->rebinH_ = 1;
   //get background distribution
@@ -272,9 +272,9 @@ int get_individual_MVA_histogram(int set = 8, TString selection = "zmutau",
     cout << "DataPlotter initialization script returned " << status << ", exiting!\n";
     return status;
   }
-  int set_offset = ZTauTauHistMaker::kEMu;
-  if     (selec == "mutau") set_offset = ZTauTauHistMaker::kMuTau;
-  else if(selec == "etau" ) set_offset = ZTauTauHistMaker::kETau;
+  int set_offset = CLFVHistMaker::kEMu;
+  if     (selec == "mutau") set_offset = CLFVHistMaker::kMuTau;
+  else if(selec == "etau" ) set_offset = CLFVHistMaker::kETau;
 
   dataplotter_->rebinH_ = 10*overall_rebin_;
   //get background distribution

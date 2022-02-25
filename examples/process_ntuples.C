@@ -1,5 +1,5 @@
-// Script to read in ZTauTau Analyzer ntuples and output histogrammed files
-#include "../rootScripts/ZTauTauHistMaker.cc+g"
+// Script to read in CLFV Analyzer ntuples and output histogrammed files
+#include "../rootScripts/CLFVHistMaker.cc+g"
 
 int process_ntuples() {
   //list of files to process
@@ -64,15 +64,15 @@ int process_ntuples() {
       }
 
       //run the histogramming selector over the tree
-      ZTauTauHistMaker* selec = new ZTauTauHistMaker();
+      CLFVHistMaker* selec = new CLFVHistMaker();
       //store some information first
       selec->fFolderName = fChannel->GetName();
       selec->fXsec = 1.; //ignore for now
       tree->Process(selec);
 	//open back up the file
-	TFile* out = new TFile(Form("ztautau_%s_%s.hist",fChannel->GetName(), tree->GetName()),"UPDATE");
+	TFile* out = new TFile(Form("clfv_%s_%s.hist",fChannel->GetName(), tree->GetName()),"UPDATE");
 	if(out == 0) {
-	  printf("Unable to find output hist file ztautau_%s_%s.hist, continuing\n",fChannel->GetName(), tree->GetName());
+	  printf("Unable to find output hist file clfv_%s_%s.hist, continuing\n",fChannel->GetName(), tree->GetName());
 	  continue;
 	}
 	//add the events histogram to the output

@@ -23,7 +23,7 @@ Int_t fit_signal(int set = 8, vector<int> years = {2016, 2017, 2018},
   TTree* t_list[years.size()];
   for(unsigned i = 0; i < years.size(); ++i) {
     int year = years[i];
-    TString bemu_name = base + "ztautau_emu_clfv_";
+    TString bemu_name = base + "clfv_emu_clfv_";
     bemu_name += year;
     bemu_name += (doHiggs) ? "_HEMu.hist" : "_ZEMu.hist";
 
@@ -34,14 +34,14 @@ Int_t fit_signal(int set = 8, vector<int> years = {2016, 2017, 2018},
     }
 
     t_list[i] = (TTree*) f_bemus[i]->Get(Form("Data/tree_%i/tree_%i",
-					     set+ZTauTauHistMaker::kEMu,
-					     set+ZTauTauHistMaker::kEMu));
+					     set+CLFVHistMaker::kEMu,
+					     set+CLFVHistMaker::kEMu));
     if(!t_list[i]) {
       cout << "Signal tree in file " << bemu_name.Data() << " for set " << set << " not found\n";
       return 4;
     }
     ftmp->cd();
-    t_list[i]->SetName(Form("tree_%i_%i", year, set+ZTauTauHistMaker::kEMu));
+    t_list[i]->SetName(Form("tree_%i_%i", year, set+CLFVHistMaker::kEMu));
     t_list[i]->Write();
     list->Add(t_list[i]);
     //save weighted N(signal) count

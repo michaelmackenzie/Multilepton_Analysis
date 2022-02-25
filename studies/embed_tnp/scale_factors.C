@@ -2,8 +2,8 @@
 
 int debug_ = 0;
 int  nentries_ = 2e6;
-bool applyScales_ = false; //apply conditioned IDs' scale factors
-bool use_abs_eta_ = true; //use eta or |eta| in the scale factor measurement
+bool applyScales_ = true; //apply conditioned IDs' scale factors
+bool use_abs_eta_ = false; //use eta or |eta| in the scale factor measurement
 
 //Fit the mass distribution with a signal and background function
 double extract_nz(TH1F* hMass, double& nerror, int BkgMode, TString figname = "", TString figtitle = "") {
@@ -205,9 +205,11 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
   vector<double> eta_bins;
   const double gap_low(1.4442), gap_high(1.566);
   if(isMuon && use_abs_eta_) eta_bins = {0., 0.9, 1.2, 2.1, 2.4}; //muon
-  else if(isMuon)           eta_bins = {-2.4, -2.1, -1.2, -0.9, 0., 0.9, 1.2, 2.1, 2.4}; //muon
-  else if(use_abs_eta_)      eta_bins = {0., 1., gap_low, gap_high, 2.1, 2.5}; //electron
-  else                      eta_bins = {-2.5, -2.1, -gap_high, -gap_low, -1., 0., 1., gap_low, gap_high, 2.1, 2.5}; //electron
+  else if(isMuon)            eta_bins = {-2.4, -2.1, -1.2, -0.9, 0., 0.9, 1.2, 2.1, 2.4}; //muon
+  else if(use_abs_eta_)      eta_bins = {0., 0.2, 0.5, 1., gap_low, gap_high, 2.1, 2.5}; //electron
+  else                       eta_bins = {-2.5, -2.1, -gap_high, -gap_low, -1., -0.5, -0.2, 0., 0.2, 0.5, 1., gap_low, gap_high, 2.1, 2.5}; //electron
+  // else if(use_abs_eta_)      eta_bins = {0., 1., gap_low, gap_high, 2.1, 2.5}; //electron
+  // else                       eta_bins = {-2.5, -2.1, -gap_high, -gap_low, -1., 0., 1., gap_low, gap_high, 2.1, 2.5}; //electron
   vector<double> pt_bins;
   if(isMuon) {
     if(Mode == 0) pt_bins = {20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 38, 40, 45, 50, 60, 80, 100, 500};
@@ -369,14 +371,18 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
       float wt = pu_weight*((isMC > 1) ? ((gen_weight < 0) ? -1. : 1.) : gen_weight)*xs_scale;
 
       if(applyScales_ && Mode != 1 && isMC && hSF_1) { //Apply the ID1 scale factors for the trigger and ID2 measurements
-        wt *= hSF_1->GetBinContent(hSF_1->GetXaxis()->FindBin((use_abs_eta_) ? fabs(one_sc_eta) : one_sc_eta), hSF_1->GetYaxis()->FindBin(one_pt));
-        wt *= hSF_1->GetBinContent(hSF_1->GetXaxis()->FindBin((use_abs_eta_) ? fabs(two_sc_eta) : two_sc_eta), hSF_1->GetYaxis()->FindBin(two_pt));
+        wt *= hSF_1->GetBinContent(hSF_1->GetXaxis()->FindBin((use_abs_eta_) ? fabs(one_sc_eta) : one_sc_eta), min(hSF_1->GetNbinsY(), hSF_1->GetYaxis()->FindBin(one_pt)));
+        wt *= hSF_1->GetBinContent(hSF_1->GetXaxis()->FindBin((use_abs_eta_) ? fabs(two_sc_eta) : two_sc_eta), min(hSF_1->GetNbinsY(), hSF_1->GetYaxis()->FindBin(two_pt)));
       }
       if(applyScales_ && Mode == 0 && isMC && hSF_2) { //Apply the ID2 scale factors for the trigger measurements
-        wt *= hSF_2->GetBinContent(hSF_2->GetXaxis()->FindBin((use_abs_eta_) ? fabs(one_sc_eta) : one_sc_eta), hSF_2->GetYaxis()->FindBin(one_pt));
-        wt *= hSF_2->GetBinContent(hSF_2->GetXaxis()->FindBin((use_abs_eta_) ? fabs(two_sc_eta) : two_sc_eta), hSF_2->GetYaxis()->FindBin(two_pt));
+        wt *= hSF_2->GetBinContent(hSF_2->GetXaxis()->FindBin((use_abs_eta_) ? fabs(one_sc_eta) : one_sc_eta), min(hSF_2->GetNbinsY(), hSF_2->GetYaxis()->FindBin(one_pt)));
+        wt *= hSF_2->GetBinContent(hSF_2->GetXaxis()->FindBin((use_abs_eta_) ? fabs(two_sc_eta) : two_sc_eta), min(hSF_2->GetNbinsY(), hSF_2->GetYaxis()->FindBin(two_pt)));
       }
-
+      if(wt <= 0.) {
+        cout << "!!! Warning! Weight <= 0: Entry " << entry << ", nused " << nused << ", gen weight = " << gen_weight << ", weight = " << wt << endl
+             << " one: pt = " << one_pt << " eta = " << one_eta << " id1 = " << one_id1 << " id2 = " << one_id2 << " triggered = " << one_triggered << endl
+             << " two: pt = " << two_pt << " eta = " << two_eta << " id1 = " << two_id1 << " id2 = " << two_id2 << " triggered = " << two_triggered << endl;
+      }
       if(debug_ == 1) {
         cout << "Entry " << entry << ", nused " << nused << ", gen weight = " << gen_weight << ", weight = " << wt << endl
              << " one: pt = " << one_pt << " eta = " << one_eta << " id1 = " << one_id1 << " id2 = " << one_id2 << " triggered = " << one_triggered << endl

@@ -13,10 +13,10 @@ lscommand="ls"
 filehead=""
 if [ "${indir}" == "" ]
 then
-    indir="./ztautau_${selection}*${year}*.hist"
+    indir="./clfv_${selection}*${year}*.hist"
 else
     filehead="root://cmseos.fnal.gov//store/user/mmackenz/histograms/"${indir}"/"
-    indir="/store/user/mmackenz/histograms/"${indir}"/ztautau_${selection}*${year}*.hist"
+    indir="/store/user/mmackenz/histograms/"${indir}"/clfv_${selection}*${year}*.hist"
     lscommand="eos root://cmseos.fnal.gov ls"
 fi
 

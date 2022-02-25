@@ -14,10 +14,10 @@ Int_t create_same_flavor_histograms(int set = 8, vector<int> years = {2016}, TSt
   ///////////////////
   
   TH1D* h_muon = 0;
-  TString muon_out_name = Form("histograms/mumu_%s_%i", hist.Data(), set+ZTauTauHistMaker::kMuMu);
+  TString muon_out_name = Form("histograms/mumu_%s_%i", hist.Data(), set+CLFVHistMaker::kMuMu);
   for(int year : years) {
     //get mu+mu file
-    TString muon_name = path + "ztautau_mumu_clfv_";
+    TString muon_name = path + "clfv_mumu_clfv_";
     muon_name += year;
     muon_name += "_SingleMu.hist";
     TFile* f_muon = TFile::Open(muon_name.Data(), "READ");
@@ -26,7 +26,7 @@ Int_t create_same_flavor_histograms(int set = 8, vector<int> years = {2016}, TSt
       return 1;
     }
     //get di-lepton mass
-    TH1D* h = (TH1D*) f_muon->Get(Form("Data/%s_%i/%s", type.Data(), set+ZTauTauHistMaker::kMuMu, hist.Data()));
+    TH1D* h = (TH1D*) f_muon->Get(Form("Data/%s_%i/%s", type.Data(), set+CLFVHistMaker::kMuMu, hist.Data()));
     if(!h) {
       cout << "No muon histogram found for year " << year << " and set " << set << endl;
       return 2;
@@ -49,10 +49,10 @@ Int_t create_same_flavor_histograms(int set = 8, vector<int> years = {2016}, TSt
   ///////////////////////
 
   TH1D* h_electron = 0;
-  TString electron_out_name = Form("histograms/ee_%s_%i", hist.Data(), set+ZTauTauHistMaker::kEE);
+  TString electron_out_name = Form("histograms/ee_%s_%i", hist.Data(), set+CLFVHistMaker::kEE);
   for(int year : years) {
     //get mu+mu file
-    TString electron_name = path + "ztautau_ee_clfv_";
+    TString electron_name = path + "clfv_ee_clfv_";
     electron_name += year;
     electron_name += "_SingleEle.hist";
     TFile* f_electron = TFile::Open(electron_name.Data(), "READ");
@@ -61,7 +61,7 @@ Int_t create_same_flavor_histograms(int set = 8, vector<int> years = {2016}, TSt
       return 1;
     }
     //get di-lepton mass
-    TH1D* h = (TH1D*) f_electron->Get(Form("Data/%s_%i/%s", type.Data(), set+ZTauTauHistMaker::kEE, hist.Data()));
+    TH1D* h = (TH1D*) f_electron->Get(Form("Data/%s_%i/%s", type.Data(), set+CLFVHistMaker::kEE, hist.Data()));
     if(!h) {
       cout << "No electron histogram found for year " << year << " and set " << set << endl;
       return 2;

@@ -14,18 +14,18 @@ int version_; //TrkQualInit version
 //get file name from configuration
 TString get_file_name(bool isHiggs = true, TString selection = "mutau",
                       vector<int> years = {2016, 2017, 2018}, int set = 8) {
-  TString name = "training_background_ztautau_";
+  TString name = "training_background_clfv_";
   name += (isHiggs) ? "higgs_nano_" : "Z0_nano_";
   name += selection + "_";
   for(int year : years) {
     name += year;
     name += "_";
   }
-  // if(selection == "mutau")        set += ZTauTauHistMaker::kMuTau;
-  // else if(selection == "etau")    set += ZTauTauHistMaker::kETau;
-  // else if(selection == "emu")     set += ZTauTauHistMaker::kEMu;
-  // else if(selection == "mutau_e") set += ZTauTauHistMaker::kEMu;
-  // else if(selection == "etau_mu") set += ZTauTauHistMaker::kEMu;
+  // if(selection == "mutau")        set += CLFVHistMaker::kMuTau;
+  // else if(selection == "etau")    set += CLFVHistMaker::kETau;
+  // else if(selection == "emu")     set += CLFVHistMaker::kEMu;
+  // else if(selection == "mutau_e") set += CLFVHistMaker::kEMu;
+  // else if(selection == "etau_mu") set += CLFVHistMaker::kEMu;
   name += set;
   if(verbose_ > 0) cout << "Using file base name " << name.Data() << endl;
   return name;

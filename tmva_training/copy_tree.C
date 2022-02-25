@@ -1,5 +1,4 @@
-
-int copy_tree(const char* file = "trees/background_ztautau_Z0_nano_mutau_2016_2017_2018_8.tree",
+int copy_tree(const char* file = "trees/background_clfv_Z0_nano_mutau_2016_2017_2018_8.tree",
                int nentries = 100) {
   TFile* f = TFile::Open(file, "READ");
   if(!f) return 1;

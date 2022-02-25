@@ -347,14 +347,14 @@ Int_t scale_factors(TString selection = "mumu", TString process = "", int set1 =
 
   //get the absolute value of the set, offsetting by the selection
   int set1Abs = set1;
-  if(selection == "mutau")      set1Abs += ZTauTauHistMaker::kMuTau;
-  else if(selection == "etau" ) set1Abs += ZTauTauHistMaker::kETau ;
-  else if(selection == "emu"  ) set1Abs += ZTauTauHistMaker::kEMu  ;
-  else if(selection == "mumu" ) set1Abs += ZTauTauHistMaker::kMuMu ;
-  else if(selection == "ee"   ) set1Abs += ZTauTauHistMaker::kEE   ;
+  if(selection == "mutau")      set1Abs += CLFVHistMaker::kMuTau;
+  else if(selection == "etau" ) set1Abs += CLFVHistMaker::kETau ;
+  else if(selection == "emu"  ) set1Abs += CLFVHistMaker::kEMu  ;
+  else if(selection == "mumu" ) set1Abs += CLFVHistMaker::kMuMu ;
+  else if(selection == "ee"   ) set1Abs += CLFVHistMaker::kEE   ;
   int set2Abs = set2 + (set1Abs - set1);
   //construct the general name of each file, not including the sample name
-  TString baseName = "ztautau_" + selection + "_clfv_";
+  TString baseName = "clfv_" + selection + "_clfv_";
   baseName += year;
   baseName += "_";
 

@@ -49,7 +49,7 @@ pair<TH2D*,TH2D*> get_histograms(TTree* t) {
 
 //Generate the plots and scale factors
 TCanvas* scale_factors(int year = 2016, TString filename = "DY50", TString selection = "mumu",
-                       TString path = "ztautau_nanoaod_trees_nomva") {
+                       TString path = "clfv_nanoaod_trees_nomva") {
 
   path = "root://cmseos.fnal.gov//store/user/mmackenz/" + path + "/";
 

@@ -5,7 +5,7 @@ The most commonly used MVAs here are the boosted decision tree (BDT) and artific
 The ANN used here is the multi-layer perceptron (MLP).
 
 The most common method of training here uses `train_tmva.C`.
-This is used to load a TTree that is a merged list of TTrees from the `ZTauTauHistMaker`.
+This is used to load a TTree that is a merged list of TTrees from the `CLFVHistMaker`.
 This does some configuring, and then passes the tree to `TrainTrkQual.C` for the actual training.
 
 There is a map of strings to integers, that turns on/off different MVAs to be trained.
@@ -15,7 +15,7 @@ Depending on the name of the tree, the selection/boson of interest in the traini
 The script then adds variables to be trained using, or spectators to simply carry along, corresponding
 to these selections/boson identified.
 
-The fraction of events to train are either decided by the script, or are passed from the ZTauTauHistMaker pre-defined.
+The fraction of events to train are either decided by the script, or are passed from the CLFVHistMaker pre-defined.
 
 The structure of the MVAs can be edited by following to where they're initialized in the TMVA factory.
 
@@ -54,12 +54,12 @@ where `maxEntries_` can be set for faster testing.
 
 ### Plot variables and estimate limits
 
-To study the distributions in the trees as well as the MVA variables, use the script `scripts/plot_ztautau_tmva_tree.C`.
+To study the distributions in the trees as well as the MVA variables, use the script `scripts/plot_clfv_tmva_tree.C`.
 The MVA variable of interest is set using the defined enums at the top and the variable `MVA_`.
 The plotting information is defined in the script anonymous namespace at the top.
 
 The process labels defined by the `get_label_from_category` function is a hack to try to make these distributions
-more meaningful, so it needs updating at any point the `rootScripts/process_ztautau.C` data file lists are changed.
+more meaningful, so it needs updating at any point the `rootScripts/process_clfv.C` data file lists are changed.
 
 `get_file_name` is a short cut to define the training file name using the selection information given.
 
@@ -70,7 +70,7 @@ instead of histograms.
 
 ```
 $> cd scripts
-$> root.exe plot_ztautau_tree.C
+$> root.exe plot_clfv_tree.C
 root> plot_tmva_tree(get_file_name("zmutau", {2016,2017,2018}, 8), -1, -1)
 root> stack_tmva_tree(get_file_name("zmutau", {2016,2017,2018}, 8), -1, 0)
 ```

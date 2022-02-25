@@ -41,7 +41,7 @@ TCanvas* plot_limits(TString selection, int set) {
   mva_file += ".root";
 
   //next build box file path
-  box_file += "training_background_ztautau_";
+  box_file += "training_background_clfv_";
   if(isHiggs) box_file += "higgs_";
   else        box_file += "Z0_";
   box_file += selec;

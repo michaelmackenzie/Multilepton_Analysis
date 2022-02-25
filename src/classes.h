@@ -35,7 +35,7 @@
 #include "interface/RoccoR.h"
 #include "interface/MVAConfig.hh"
 #include "interface/TrkQualInit.hh"
-#include "interface/ZTauTauHistMaker.hh"
+#include "interface/CLFVHistMaker.hh"
 #include "interface/DataCard_t.hh"
 #include "interface/PlottingCard_t.hh"
 #include "interface/DataPlotter.hh"
@@ -77,7 +77,7 @@ namespace CLFV {
     RoccoR dummy12b;
     MVAConfig dummy13;
     TrkQualInit dummy14;
-    ZTauTauHistMaker dummy15;
+    CLFVHistMaker dummy15;
     DataCard_t dummy15b;
     PlottingCard_t dummy15c;
     DataPlotter dummy16;

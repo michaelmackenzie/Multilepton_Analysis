@@ -299,14 +299,14 @@ Int_t scale_factors(TString selection = "emu", int set = 8, int year = 2016,
   path = "root://cmseos.fnal.gov//store/user/mmackenz/histograms/" + path + "/";
 
   //get the absolute value of the set, offsetting by the selection and using a loose selection
-  int setAbs = set + ZTauTauHistMaker::fMisIDOffset;
-  if(selection == "mutau")      setAbs += ZTauTauHistMaker::kMuTau;
-  else if(selection == "etau" ) setAbs += ZTauTauHistMaker::kETau ;
-  else if(selection == "emu"  ) setAbs += ZTauTauHistMaker::kEMu  ;
-  else if(selection == "mumu" ) setAbs += ZTauTauHistMaker::kMuMu ;
-  else if(selection == "ee"   ) setAbs += ZTauTauHistMaker::kEE   ;
+  int setAbs = set + CLFVHistMaker::fMisIDOffset;
+  if(selection == "mutau")      setAbs += CLFVHistMaker::kMuTau;
+  else if(selection == "etau" ) setAbs += CLFVHistMaker::kETau ;
+  else if(selection == "emu"  ) setAbs += CLFVHistMaker::kEMu  ;
+  else if(selection == "mumu" ) setAbs += CLFVHistMaker::kMuMu ;
+  else if(selection == "ee"   ) setAbs += CLFVHistMaker::kEE   ;
   //construct the general name of each file, not including the sample name
-  TString baseName = "ztautau_" + selection + "_clfv_";
+  TString baseName = "clfv_" + selection + "_clfv_";
   baseName += year;
   baseName += "_";
 
@@ -323,8 +323,8 @@ Int_t scale_factors(TString selection = "emu", int set = 8, int year = 2016,
 
   TH1D* hData[2]; //OS and SS
   TH1D* hMC[2]; //OS and SS
-  hData[0] = get_histogram("lepdeltar1", setAbs+ZTauTauHistMaker::fQcdOffset, 1); //SS
-  hMC[0]   = get_histogram("lepdeltar1", setAbs+ZTauTauHistMaker::fQcdOffset, 0); //SS
+  hData[0] = get_histogram("lepdeltar1", setAbs+CLFVHistMaker::fQcdOffset, 1); //SS
+  hMC[0]   = get_histogram("lepdeltar1", setAbs+CLFVHistMaker::fQcdOffset, 0); //SS
   hData[1] = get_histogram("lepdeltar1", setAbs                             , 1); //OS
   hMC[1]   = get_histogram("lepdeltar1", setAbs                             , 0); //OS
 
@@ -405,7 +405,7 @@ Int_t scale_factors(TString selection = "emu", int set = 8, int year = 2016,
   TCanvas* c;
   TH1D *hOS, *hSS, *hRatio;
   hOS = get_qcd_histogram("lepdeltaphi1", setAbs);
-  hSS = get_qcd_histogram("lepdeltaphi1", setAbs+ZTauTauHistMaker::fQcdOffset);
+  hSS = get_qcd_histogram("lepdeltaphi1", setAbs+CLFVHistMaker::fQcdOffset);
   c = make_ratio_canvas(hOS, hSS, f, false, false, 0, 3.2);
   if(c) c->Print((name + "_lepdeltaphi1_ratio.png").Data());
   if(hOS && hSS) {
@@ -415,7 +415,7 @@ Int_t scale_factors(TString selection = "emu", int set = 8, int year = 2016,
   }
 
   hOS = get_qcd_histogram("lepdeltaphi", setAbs);
-  hSS = get_qcd_histogram("lepdeltaphi", setAbs+ZTauTauHistMaker::fQcdOffset);
+  hSS = get_qcd_histogram("lepdeltaphi", setAbs+CLFVHistMaker::fQcdOffset);
   c = make_ratio_canvas(hOS, hSS, f, false, false, 0, 3.2);
   if(c) c->Print((name + "_lepdeltaphi_ratio.png").Data());
   if(hOS && hSS) {
@@ -426,7 +426,7 @@ Int_t scale_factors(TString selection = "emu", int set = 8, int year = 2016,
   }
 
   hOS = get_qcd_histogram("oneeta", setAbs, "lep");
-  hSS = get_qcd_histogram("oneeta", setAbs+ZTauTauHistMaker::fQcdOffset, "lep");
+  hSS = get_qcd_histogram("oneeta", setAbs+CLFVHistMaker::fQcdOffset, "lep");
   c = make_ratio_canvas(hOS, hSS, f, false, false, -2.5, 2.5);
   if(c) c->Print((name + "_oneeta_ratio.png").Data());
   if(hOS && hSS) {
@@ -437,7 +437,7 @@ Int_t scale_factors(TString selection = "emu", int set = 8, int year = 2016,
   }
 
   hOS = get_qcd_histogram("lepdeltar2", setAbs);
-  hSS = get_qcd_histogram("lepdeltar2", setAbs+ZTauTauHistMaker::fQcdOffset);
+  hSS = get_qcd_histogram("lepdeltar2", setAbs+CLFVHistMaker::fQcdOffset);
   c = make_ratio_canvas(hOS, hSS, f, false, false);
   if(c) c->Print((name + "_lepdeltar2_ratio.png").Data());
   if(hOS && hSS) {
@@ -449,7 +449,7 @@ Int_t scale_factors(TString selection = "emu", int set = 8, int year = 2016,
 
   TH2D *h2DOS, *h2DSS, *h2DRatio;
   h2DOS = get_2D_qcd_histogram("lepdelrvsoneeta1", setAbs);
-  h2DSS = get_2D_qcd_histogram("lepdelrvsoneeta1", setAbs+ZTauTauHistMaker::fQcdOffset);
+  h2DSS = get_2D_qcd_histogram("lepdelrvsoneeta1", setAbs+CLFVHistMaker::fQcdOffset);
   c = make_2D_ratio_canvas(h2DOS, h2DSS, 0., 2.5, 0., 5.);
   if(c) c->Print((name + "_lepdelrvsoneeta1_ratio.png").Data());
   if(h2DOS && h2DSS) {
@@ -459,12 +459,12 @@ Int_t scale_factors(TString selection = "emu", int set = 8, int year = 2016,
   }
 
   h2DOS = get_2D_qcd_histogram("lepdelrvsoneeta", setAbs);
-  h2DSS = get_2D_qcd_histogram("lepdelrvsoneeta", setAbs+ZTauTauHistMaker::fQcdOffset);
+  h2DSS = get_2D_qcd_histogram("lepdelrvsoneeta", setAbs+CLFVHistMaker::fQcdOffset);
   c = make_2D_ratio_canvas(h2DOS, h2DSS, 0., 2.5, 0., 5.);
   if(c) c->Print((name + "_lepdelrvsoneeta_ratio.png").Data());
 
   h2DOS = get_2D_qcd_histogram("lepdelphivsoneeta1", setAbs);
-  h2DSS = get_2D_qcd_histogram("lepdelphivsoneeta1", setAbs+ZTauTauHistMaker::fQcdOffset);
+  h2DSS = get_2D_qcd_histogram("lepdelphivsoneeta1", setAbs+CLFVHistMaker::fQcdOffset);
   c = make_2D_ratio_canvas(h2DOS, h2DSS, 0., 2.5, 0., 3.2);
   if(c) c->Print((name + "_lepdelphivsoneeta1_ratio.png").Data());
   if(h2DOS && h2DSS) {
@@ -474,7 +474,7 @@ Int_t scale_factors(TString selection = "emu", int set = 8, int year = 2016,
   }
 
   h2DOS = get_2D_qcd_histogram("lepdelphivsoneeta", setAbs);
-  h2DSS = get_2D_qcd_histogram("lepdelphivsoneeta", setAbs+ZTauTauHistMaker::fQcdOffset);
+  h2DSS = get_2D_qcd_histogram("lepdelphivsoneeta", setAbs+CLFVHistMaker::fQcdOffset);
   c = make_2D_ratio_canvas(h2DOS, h2DSS, 0., 2.5, 0., 3.2);
   if(c) c->Print((name + "_lepdelphivsoneeta_ratio.png").Data());
 

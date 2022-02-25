@@ -1,5 +1,5 @@
 /**
-   Script to clone BLT ZTauTau Analyzer trees and add MVA scores to the trees
+   Script to clone CLFV Analyzer trees and add MVA scores to the trees
  **/
 using namespace CLFV;
 
@@ -475,10 +475,10 @@ Int_t initialize() {
 Int_t process_standard_nano_trees(int year = 2016, bool doInParts = false, bool copyLocal = true, bool update = false) {
   int status = 0;
   year_ = year;
-  TString grid_path = "root://cmseos.fnal.gov///store/user/mmackenz/ztautau_nanoaod_test_trees/";
-  // TString grid_out = "root://cmseos.fnal.gov///store/user/mmackenz/ztautau_nanoaod_test_trees/";
-  TString grid_out = "root://cmseos.fnal.gov///store/user/mmackenz/ztautau_nanoaod_trees/";
-  if(copyLocal&&!update) grid_path = "root://cmseos.fnal.gov///store/user/mmackenz/ztautau_nanoaod_trees_nomva/";
+  TString grid_path = "root://cmseos.fnal.gov///store/user/mmackenz/clfv_nanoaod_test_trees/";
+  // TString grid_out = "root://cmseos.fnal.gov///store/user/mmackenz/clfv_nanoaod_test_trees/";
+  TString grid_out = "root://cmseos.fnal.gov///store/user/mmackenz/clfv_nanoaod_trees/";
+  if(copyLocal&&!update) grid_path = "root://cmseos.fnal.gov///store/user/mmackenz/clfv_nanoaod_trees_nomva/";
   TString name = "clfv_";
   name += year;
   name += "_";

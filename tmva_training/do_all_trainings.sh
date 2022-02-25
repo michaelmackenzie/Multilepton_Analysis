@@ -14,9 +14,9 @@ echo "Doing training for selections ${SELECTIONS} on set ${SET} in year string $
 for SELECTION in $SELECTIONS;
 do
     #Z signal
-    root.exe -q -b "train_tmva.C(\"trees/background_ztautau_Z0_nano_${SELECTION}_${YEARS}_${SET}.tree\")"
+    root.exe -q -b "train_tmva.C(\"trees/background_clfv_Z0_nano_${SELECTION}_${YEARS}_${SET}.tree\")"
     #H signal
-    root.exe -q -b "train_tmva.C(\"trees/background_ztautau_higgs_nano_${SELECTION}_${YEARS}_${SET}.tree\")"
+    root.exe -q -b "train_tmva.C(\"trees/background_clfv_higgs_nano_${SELECTION}_${YEARS}_${SET}.tree\")"
 done
 
 echo "Finished all selections"

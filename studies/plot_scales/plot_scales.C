@@ -9,7 +9,8 @@ TCanvas* plot_1D_slices(TH2* hID, TString cname, bool xaxis = true) {
   const int nbins = (xaxis) ? hID->GetNbinsX() : hID->GetNbinsY();
   TLegend* leg = new TLegend(0.7, 0.13, 0.9, 0.5);
   const int colors[] = {kRed, kBlue, kGreen, kViolet, kOrange, kYellow+2,
-                        kAtlantic, kGreen+2, kRed+2, kBlue+2, kViolet-2};
+                        kAtlantic, kGreen+2, kRed+2, kBlue+2, kViolet-2,
+                        kOrange+2,kViolet+2, kBlue-2};
   TH1* haxis;
   double ymin(1.e9), ymax(-1.e9);
   for(int ibin = 1; ibin <= nbins; ++ibin) {

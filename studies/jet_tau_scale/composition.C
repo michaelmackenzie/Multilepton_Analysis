@@ -187,15 +187,15 @@ Int_t composition(TString selection = "mutau", int setmc = 42, int setqcd = 35, 
 
   //get the absolute value of the set, offsetting by the selection
   int setmcAbs = setmc;
-  if(selection == "mutau")      setmcAbs += ZTauTauHistMaker::kMuTau;
-  else if(selection == "etau" ) setmcAbs += ZTauTauHistMaker::kETau ;
-  else if(selection == "emu"  ) setmcAbs += ZTauTauHistMaker::kEMu  ;
-  else if(selection == "mumu" ) setmcAbs += ZTauTauHistMaker::kMuMu ;
-  else if(selection == "ee"   ) setmcAbs += ZTauTauHistMaker::kEE   ;
+  if(selection == "mutau")      setmcAbs += CLFVHistMaker::kMuTau;
+  else if(selection == "etau" ) setmcAbs += CLFVHistMaker::kETau ;
+  else if(selection == "emu"  ) setmcAbs += CLFVHistMaker::kEMu  ;
+  else if(selection == "mumu" ) setmcAbs += CLFVHistMaker::kMuMu ;
+  else if(selection == "ee"   ) setmcAbs += CLFVHistMaker::kEE   ;
   int setqcdAbs = setqcd + (setmcAbs - setmc);
 
   //construct the general name of each file, not including the sample name
-  TString baseName = "ztautau_" + selection + "_clfv_";
+  TString baseName = "clfv_" + selection + "_clfv_";
   baseName += year;
   baseName += "_";
 

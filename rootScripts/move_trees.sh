@@ -6,7 +6,7 @@ year=$4
 
 if [ "${outdir}" == "" ]
 then
-    outdir="ztautau_nanoaod_trees_nomva"
+    outdir="clfv_nanoaod_trees_nomva"
 fi
 
 if [ "${indir}" == "" ]

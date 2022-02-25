@@ -1,5 +1,5 @@
 //Script to retrieve the background and signal di-lepton mass histograms
-#include "../histograms/dataplotter_ztautau.C"
+#include "../histograms/dataplotter_clfv.C"
 #include "../interface/SystematicHist_t.hh"
 int overall_rebin_ = 1;
 TH1D* hbkg_;
@@ -192,7 +192,7 @@ int get_same_flavor_histogram(int set, TString selection, vector<int> years, TSt
     cout << "DataPlotter initialization script returned " << status << ", exiting!\n";
     return status;
   }
-  int set_offset = (selection == "mumu") ? ZTauTauHistMaker::kMuMu : ZTauTauHistMaker::kEE;
+  int set_offset = (selection == "mumu") ? CLFVHistMaker::kMuMu : CLFVHistMaker::kEE;
 
   dataplotter_->rebinH_ = overall_rebin_;
 
@@ -260,7 +260,7 @@ int get_bemu_single_histogram(int set = 8, TString selection = "zemu",
     cout << "DataPlotter initialization script returned " << status << ", exiting!\n";
     return status;
   }
-  int set_offset = ZTauTauHistMaker::kEMu;
+  int set_offset = CLFVHistMaker::kEMu;
 
   dataplotter_->rebinH_ = overall_rebin_;
 

@@ -238,7 +238,7 @@ TCanvas* scale_factors(bool useMuon = true, int set = 7, int year = 2016, TStrin
   path = "root://cmseos.fnal.gov//store/user/mmackenz/histograms/" + path + "/";
 
   //Get data histogram
-  TString baseName = "ztautau_";
+  TString baseName = "clfv_";
   baseName += (useMuon) ? "mumu_clfv_" : "ee_clfv_";
   baseName += year;
   baseName += "_";
@@ -246,7 +246,7 @@ TCanvas* scale_factors(bool useMuon = true, int set = 7, int year = 2016, TStrin
   if(verbose_ > 0) std::cout << "Retrieving data file " << dataName.Data() << std::endl;
   TFile* fData = TFile::Open((path+dataName).Data(), "READ");
   if(!fData) return NULL;
-  int setAbs = (useMuon) ? set+ZTauTauHistMaker::kMuMu : set+ZTauTauHistMaker::kEE;
+  int setAbs = (useMuon) ? set+CLFVHistMaker::kMuMu : set+CLFVHistMaker::kEE;
   TH2D* hData = (TH2D*) fData->Get(Form("Data/event_%i/lepptvsm1", setAbs));
   if(verbose_ > 0) std::cout << "Retrieving data histogram" << std::endl;
   if(!hData) {
@@ -532,7 +532,7 @@ TCanvas* test_scale_factors(bool useMuon = true, int set = 8, int year = 2016, b
   if(!fscale)
     return NULL;
 
-  TString baseName = "ztautau_";
+  TString baseName = "clfv_";
   baseName += (useMuon) ? "mumu_clfv_" : "ee_clfv_";
   baseName += year;
   baseName += "_";
@@ -542,7 +542,7 @@ TCanvas* test_scale_factors(bool useMuon = true, int set = 8, int year = 2016, b
   if(verbose_ > 0) std::cout << "Retrieving data file " << dataName.Data() << std::endl;
   TFile* fData = TFile::Open((path+dataName).Data(), "READ");
   if(!fData) return NULL;
-  int setAbs = (useMuon) ? set+ZTauTauHistMaker::kMuMu : set+ZTauTauHistMaker::kEE;
+  int setAbs = (useMuon) ? set+CLFVHistMaker::kMuMu : set+CLFVHistMaker::kEE;
   TH2D* hData = (TH2D*) fData->Get(Form("Data/event_%i/lepptvsm0", setAbs));
   if(verbose_ > 0) std::cout << "Retrieving data histogram" << std::endl;
   if(!hData) {

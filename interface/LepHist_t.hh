@@ -10,7 +10,7 @@ namespace CLFV {
     TH1* hJetTauOnePt[5/*tau DM*/][4/*tau pT range*/];
     TH1* hJetTauOneR = 0;
     TH1* hJetTauOneEta = 0;
-    TH2D* hJetTauOnePtVsR[5/*tau DM + inclusive*/];
+    TH2* hJetTauOnePtVsR[5/*tau DM + inclusive*/];
     TH1* hJetTauOneMetDeltaPhi[5/*tau DM + inclusive*/];
     TH1* hJetTauCompOnePt = 0;
     TH1* hOneP = 0;
@@ -65,7 +65,7 @@ namespace CLFV {
     TH1* hJetTauTwoPt[5/*tau DM*/][4/*tau pT range*/];
     TH1* hJetTauTwoR = 0;
     TH1* hJetTauTwoEta = 0;
-    TH2D* hJetTauTwoPtVsR[5/*tau DM*/];
+    TH2* hJetTauTwoPtVsR[5/*tau DM*/];
     TH1* hJetTauTwoMetDeltaPhi = 0;
     TH1* hJetTauCompTwoPt = 0;
     TH1* hTwoP = 0;
@@ -123,8 +123,8 @@ namespace CLFV {
     TH1* hD0Diff = 0;
 
     //2D distribution
-    TH2D* hTwoPtVsOnePt = 0;
-    TH2D* hJetTauTwoPtVsOnePt = 0;
+    TH2* hTwoPtVsOnePt = 0;
+    TH2* hJetTauTwoPtVsOnePt = 0;
 
     // ~LepHist_t() {
     //   // if(hOnePz                          ) delete hOnePz                          ;

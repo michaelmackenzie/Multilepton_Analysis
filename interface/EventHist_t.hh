@@ -63,11 +63,11 @@ namespace CLFV {
     TH1* hNBJets20M[2]; //0: nominal 1: without btag weight
     TH1* hNBJets20L[2]; //0: nominal 1: without btag weight
     TH1* hJetsFlavor;
-    TH2D* hJetsPtVsEta  [3]; //0: gen-level light jet 1: gen-level c-jet 2: gen-level b-jet
-    TH2D* hBJetsPtVsEta [3]; //0: gen-level light jet 1: gen-level c-jet 2: gen-level b-jet
-    TH2D* hBJetsMPtVsEta[3]; //0: gen-level light jet 1: gen-level c-jet 2: gen-level b-jet
-    TH2D* hBJetsLPtVsEta[3]; //0: gen-level light jet 1: gen-level c-jet 2: gen-level b-jet
-    TH2D* hJetsPtVsEtaPU[2]; //jet pT vs eta for PU ID MC efficiency calculation
+    TH2* hJetsPtVsEta  [3]; //0: gen-level light jet 1: gen-level c-jet 2: gen-level b-jet
+    TH2* hBJetsPtVsEta [3]; //0: gen-level light jet 1: gen-level c-jet 2: gen-level b-jet
+    TH2* hBJetsMPtVsEta[3]; //0: gen-level light jet 1: gen-level c-jet 2: gen-level b-jet
+    TH2* hBJetsLPtVsEta[3]; //0: gen-level light jet 1: gen-level c-jet 2: gen-level b-jet
+    TH2* hJetsPtVsEtaPU[2]; //jet pT vs eta for PU ID MC efficiency calculation
     TH1* hMcEra;
     TH1* hTriggerLeptonStatus;
     TH1* hMuonTriggerStatus;
@@ -115,9 +115,9 @@ namespace CLFV {
     TH1* hCovMet00;
     TH1* hCovMet01;
     TH1* hCovMet11;
-    TH2D* hMetVsPt;
-    TH2D* hMetVsM;
-    TH2D* hMetVsHtSum; //MET ~ sqrt(htsum)
+    TH2* hMetVsPt;
+    TH2* hMetVsM;
+    TH2* hMetVsHtSum; //MET ~ sqrt(htsum)
     TH1* hMetOverSqrtHtSum; //MET ~ sqrt(htsum)
 
     TH1* hMassSVFit;
@@ -131,11 +131,11 @@ namespace CLFV {
     TH1* hLepMt;
     TH1* hLepEta;
     TH1* hLepPhi;
-    TH2D* hLepPtVsM[5]; //0: normal 1: remove Z pT weight if DY file 2: apply weights using reco scales if DY 3: using systematic gen-level weights 4: using systematic reco-level weights
-    TH2D* hLepMVsMVA[2]; //0: zemu MVA 1: hemu MVA
+    TH2* hLepPtVsM[5]; //0: normal 1: remove Z pT weight if DY file 2: apply weights using reco scales if DY 3: using systematic gen-level weights 4: using systematic reco-level weights
+    TH2* hLepMVsMVA[2]; //0: zemu MVA 1: hemu MVA
 
     //Gen-level Z info
-    TH2D* hZPtVsM[5]; //0: normal 1: remove Z pT weight 2: apply weights using reco scales if DY 3: using systematic gen-level weights 4: using systematic reco-level weights
+    TH2* hZPtVsM[5]; //0: normal 1: remove Z pT weight 2: apply weights using reco scales if DY 3: using systematic gen-level weights 4: using systematic reco-level weights
     TH1* hZPt[5];
     TH1* hZMass[5];
     TH1* hZLepOnePt;
@@ -146,8 +146,8 @@ namespace CLFV {
     TH1* hLooseLep;
 
     //Jet --> tau_h histograms
-    TH2D* hFakeTauNJetDMPtEta  [5/*leading muon pT regions*/][3/*iso cat*/][5/*njets*/][4/*DM*/];
-    TH2D* hFakeTauMCNJetDMPtEta[5/*leading muon pT regions*/][3/*iso cat*/][5/*njets*/][4/*DM*/];
+    TH2* hFakeTauNJetDMPtEta  [5/*leading muon pT regions*/][3/*iso cat*/][5/*njets*/][4/*DM*/];
+    TH2* hFakeTauMCNJetDMPtEta[5/*leading muon pT regions*/][3/*iso cat*/][5/*njets*/][4/*DM*/];
     TH1* hTausPt;
     TH1* hTausEta;
     TH1* hTausDM;
@@ -162,7 +162,7 @@ namespace CLFV {
     TH1* hFakeTausDM;
 
     //Jet --> electron/muon histograms
-    TH2D* hFakeLepPtEta[3/*iso cat*/];
+    TH2* hFakeLepPtEta[3/*iso cat*/];
     TH1* hLeptonsPt;
     TH1* hLeptonsEta;
     TH1* hLeptonsID;
@@ -172,9 +172,9 @@ namespace CLFV {
     TH1* hLepDeltaPhi[2]; //0: nominal 1: without qcd weights
     TH1* hLepDeltaEta;
     TH1* hLepDeltaR[3]; //0: nominal 1: without qcd weights 2: scale bin with weights
-    TH2D* hLepDelRVsPhi;
-    TH2D* hLepDelRVsOneEta[2]; //0: nominal 1: without QCD weights
-    TH2D* hLepDelPhiVsOneEta[2]; //0: nominal 1: without QCD weights
+    TH2* hLepDelRVsPhi;
+    TH2* hLepDelRVsOneEta[2]; //0: nominal 1: without QCD weights
+    TH2* hLepDelPhiVsOneEta[2]; //0: nominal 1: without QCD weights
 
     TH1* hLepPtOverM;
     TH1* hAlpha[4]; //alpha from arXiv:1207.4894
@@ -210,12 +210,12 @@ namespace CLFV {
     TH1* hSysM;
     TH1* hSysPt;
     TH1* hSysEta;
-    TH2D* hSysMvsLepM;
+    TH2* hSysMvsLepM;
 
     //Transverse Masses
     TH1* hMTOne;
     TH1* hMTTwo;
-    TH2D* hMTTwoVsOne;
+    TH2* hMTTwoVsOne;
     TH1* hMTLep;
     TH1* hMTOneOverM;
     TH1* hMTTwoOverM;
@@ -224,7 +224,7 @@ namespace CLFV {
     TH1* hPXiVis[3];
     TH1* hPXiInv[3];
     TH1* hPXiVisOverInv[3];
-    TH2D* hPXiInvVsVis[3];
+    TH2* hPXiInvVsVis[3];
     TH1* hPXiDiff[3];
     TH1* hPXiDiff2[3];//difference with coeffecients and offset
     TH1* hPXiDiff3[3];

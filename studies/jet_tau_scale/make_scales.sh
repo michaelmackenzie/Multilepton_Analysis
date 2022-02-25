@@ -32,6 +32,11 @@ do
         SET1=38
         SET2=2038
         PROCESS="Top"
+    elif [[ "${PROCESS}" == "Top3" ]] #MC tops in nominal selection, for MC based scale factors
+    then
+        SET1=35
+        SET2=2035
+        PROCESS="Top"
     fi
     for YEAR in $YEARS
     do

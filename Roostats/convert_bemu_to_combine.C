@@ -18,9 +18,9 @@ bool export_ = true; //if locally run, export the workspace to LPC
 //Retrieve yields for each relevant systematic
 void get_systematics(TFile* f, TString label, int set, vector<double>& yields, vector<TString>& names, double xmin = 1., double xmax = -1.) {
   //offset the set number to the absolute set value
-  if     (label == "zee"   || label == "eeBkg"  ) set += ZTauTauHistMaker::kEE;
-  else if(label == "zmumu" || label == "mumuBkg") set += ZTauTauHistMaker::kMuMu;
-  else                                            set += ZTauTauHistMaker::kEMu;
+  if     (label == "zee"   || label == "eeBkg"  ) set += CLFVHistMaker::kEE;
+  else if(label == "zmumu" || label == "mumuBkg") set += CLFVHistMaker::kMuMu;
+  else                                            set += CLFVHistMaker::kEMu;
 
   //only add systematic names to the list once
   bool addNames = names.size() == 0;
@@ -38,7 +38,7 @@ void get_systematics(TFile* f, TString label, int set, vector<double>& yields, v
     }
     prev_name = sys_name;
     TString hist_name;
-    if(set > ZTauTauHistMaker::kMuMu) hist_name = Form("%s_sys_%i", (label.Contains("Bkg")) ? "hbkg" : "hDY", isys);
+    if(set > CLFVHistMaker::kMuMu) hist_name = Form("%s_sys_%i", (label.Contains("Bkg")) ? "hbkg" : "hDY", isys);
     else                              hist_name = Form("%s_lepm_%i_%i_sys_%i", label.Data(), isys, set, isys);
     TH1D* h = (TH1D*) f->Get(hist_name.Data());
     if(!h) {

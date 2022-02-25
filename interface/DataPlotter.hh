@@ -102,7 +102,7 @@ namespace CLFV {
     TString only_signal_ = ""; //Only plot the given signal label
     Int_t plot_y_title_ = 0; //plot y title on 1D histograms
     Double_t qcd_scale_ = 1.; //scale factor for SS --> OS selection
-    TString folder_ = "ztautau"; //figures folder for printing
+    TString folder_ = "clfv"; //figures folder for printing
     Int_t useOpenGL_ = 1; //Use open GL with plotting
     bool doStatsLegend_ = true; //Give each backgrounds contribution in the legend
     bool useCLs_ = true; //whether to use CLs or CLs+b when calculating limits/limit gains

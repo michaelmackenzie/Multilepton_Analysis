@@ -285,16 +285,16 @@ int test_data_scale(TString selection = "mutau", TString process = "WJets", int 
   selection_=selection;
   //get the absolute value of the sets, offsetting by the selection
   int offset = 0;
-  if(selection == "mutau")      offset = ZTauTauHistMaker::kMuTau;
-  else if(selection == "etau" ) offset = ZTauTauHistMaker::kETau ;
-  else if(selection == "emu"  ) offset = ZTauTauHistMaker::kEMu  ;
-  else if(selection == "mumu" ) offset = ZTauTauHistMaker::kMuMu ;
-  else if(selection == "ee"   ) offset = ZTauTauHistMaker::kEE   ;
+  if(selection == "mutau")      offset = CLFVHistMaker::kMuTau;
+  else if(selection == "etau" ) offset = CLFVHistMaker::kETau ;
+  else if(selection == "emu"  ) offset = CLFVHistMaker::kEMu  ;
+  else if(selection == "mumu" ) offset = CLFVHistMaker::kMuMu ;
+  else if(selection == "ee"   ) offset = CLFVHistMaker::kEE   ;
   int setAbs1 = set1 + offset;
   int setAbs2 = set2 + offset;
 
   //construct the general name of each file, not including the sample name
-  TString baseName = "ztautau_" + selection + "_clfv_";
+  TString baseName = "clfv_" + selection + "_clfv_";
   baseName += year;
   baseName += "_";
 

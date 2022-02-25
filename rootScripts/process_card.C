@@ -10,7 +10,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TDirectoryFile* fChann
 
   bool isSignal = (card.fname_.Contains("MuTau") || card.fname_.Contains("ETau")
                    || card.fname_.Contains("EMu") || card.fname_.Contains("Signal"));
-  isSignal &= card.fname_.Contains("Embed"); //reject the embedding samples
+  isSignal &= !card.fname_.Contains("Embed"); //reject the embedding samples
   //for avoiding double counting data events
   bool isElectronData = card.isData_ == 1;
   bool isMuonData = card.isData_ == 2;
@@ -48,7 +48,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TDirectoryFile* fChann
        << " removeTrigWeights = " << removeTrigWeights_ << endl;
   for(int wjloop = -1; wjloop < nwloops; ++wjloop) { //start from -1 to also do unsplit histogram
     for(int dyloop = 1; dyloop <= ndyloops; ++dyloop) {
-      ZTauTauHistMaker* selec = new ZTauTauHistMaker(systematicSeed_); //selector
+      CLFVHistMaker* selec = new CLFVHistMaker(systematicSeed_); //selector
       selec->fFolderName = fChannel->GetName();
 
       selec->fDYTesting = DYTesting_;
@@ -190,21 +190,21 @@ Int_t process_single_card(datacard_t& card, config_t& config, TFile* file) {
     if(isMuonData && (currentChannel == "etau" || currentChannel == "ee")) {
       cout << "Muon data on electron only channel, continuing!\n"; continue;
     }
-    //skip channels with irrelevant embedding final states
-    if(card.fname_.Contains("Embed-")) {
-      if(currentChannel == "emu" && card.fname_.Contains("Tau-")) {
-        cout << "Skipping irrelavant embedding final state!\n";
-        continue;
-      }
-      if(currentChannel == "etau" && card.fname_.Contains("MuTau-")) {
-        cout << "Skipping irrelavant embedding final state!\n";
-        continue;
-      }
-      if(currentChannel == "mutau" && card.fname_.Contains("ETau-")) {
-        cout << "Skipping irrelavant embedding final state!\n";
-        continue;
-      }
-    }
+    // //skip channels with irrelevant embedding final states
+    // if(card.fname_.Contains("Embed-")) {
+    //   if(currentChannel == "emu" && card.fname_.Contains("Tau-")) {
+    //     cout << "Skipping irrelavant embedding final state!\n";
+    //     continue;
+    //   }
+    //   if(currentChannel == "etau" && card.fname_.Contains("MuTau-")) {
+    //     cout << "Skipping irrelavant embedding final state!\n";
+    //     continue;
+    //   }
+    //   if(currentChannel == "mutau" && card.fname_.Contains("ETau-")) {
+    //     cout << "Skipping irrelavant embedding final state!\n";
+    //     continue;
+    //   }
+    // }
     //skip if a signal in an irrelevant channel
     if(card.fname_.Contains("EMu.tree"  ) && (currentChannel != "emu")) continue;
     if(card.fname_.Contains("ETau.tree" ) && (currentChannel == "mutau" || currentChannel == "mumu")) continue;

@@ -5,8 +5,8 @@
 // found on file: /eos/uscms/store/user/mmackenz/batch_output/single_lepton_2016_20190909_153240/output_ttbar_inclusive.root
 //////////////////////////////////////////////////////////
 
-#ifndef ZTauTauHistMaker_hh
-#define ZTauTauHistMaker_hh
+#ifndef CLFVHistMaker_hh
+#define CLFVHistMaker_hh
 
 
 #include <TROOT.h>
@@ -72,7 +72,7 @@
 
 namespace CLFV {
 
-  class ZTauTauHistMaker : public TSelector {
+  class CLFVHistMaker : public TSelector {
   public :
     TTreeReader     fReader;  //!the tree reader
     TTree          *fChain = 0;   //!pointer to the analyzed TTree or TChain
@@ -439,7 +439,7 @@ namespace CLFV {
       }
     };
 
-    ZTauTauHistMaker(int seed = 90, TTree * /*tree*/ = 0) : fSystematicSeed(seed),
+    CLFVHistMaker(int seed = 90, TTree * /*tree*/ = 0) : fSystematicSeed(seed),
                                                             fMuonJetToTauWeight("MuonWeight", "mutau", 31, 1200100, seed, 0),
                                                             fMuonJetToTauMCWeight("MuonMCWeight", "mutau", 35, 1000002, seed, 0),
                                                             // fMuonJetToTauWeight("MuonWeight", "mumu", 7, 1100, seed, 1),
@@ -465,7 +465,7 @@ namespace CLFV {
       for(int i = 0; i <kIds; ++i) fEventId[i] = nullptr;
     }
 
-    ~ZTauTauHistMaker() {
+    ~CLFVHistMaker() {
       if(fCutFlow) delete fCutFlow;
       for(int proc = 0; proc < JetToTauComposition::kLast; ++proc) {
         if(fMuonJetToTauWeights    [proc]) delete fMuonJetToTauWeights    [proc];
@@ -513,7 +513,7 @@ namespace CLFV {
     virtual int     Category(TString selection);
     virtual void    InitializeSystematics();
     TString GetOutputName() {
-      return Form("ztautau%s_%s%s%s.hist",
+      return Form("clfv%s_%s%s%s.hist",
                   (fFolderName == "") ? "" : ("_"+fFolderName).Data(),fChain->GetName(),
                   (fDYType >  0) ? Form("-%i",fDYType) : "",
                   (fWNJets >= 0) ? Form("-%i",fWNJets) : ""
@@ -662,15 +662,15 @@ namespace CLFV {
 
     Int_t           fVerbose = 0; //verbosity level
 
-    ClassDef(ZTauTauHistMaker,0);
+    ClassDef(CLFVHistMaker,0);
 
   };
 }
 #endif
 
-#ifdef ZTauTauHistMaker_cxx
+#ifdef CLFVHistMaker_cxx
 using namespace CLFV;
-void ZTauTauHistMaker::Init(TTree *tree)
+void CLFVHistMaker::Init(TTree *tree)
 {
   // The Init() function is called when the selector needs to initialize
   // a new tree or chain. Typically here the reader is initialized.
@@ -878,7 +878,7 @@ void ZTauTauHistMaker::Init(TTree *tree)
     // slimPhotons = new SlimPhotons_t();
     // slimJets = new SlimJets_t();
     fChain = tree;
-    fOut = new TFile(GetOutputName(), "RECREATE","ZTauTauHistMaker output histogram file");
+    fOut = new TFile(GetOutputName(), "RECREATE","CLFVHistMaker output histogram file");
     fTopDir = fOut->mkdir("Data");
     fTopDir->cd();
     std::cout << "Using output filename " << GetOutputName() << std::endl;
@@ -1151,7 +1151,7 @@ void ZTauTauHistMaker::Init(TTree *tree)
 
   if(tree != 0) fChain = tree;
   else return;
-  printf("ZTauTauHistMaker::Init fChain = tree ");
+  printf("CLFVHistMaker::Init fChain = tree ");
   std::cout << tree << std::endl;
   // //turn off slim vectors, as they're not that slim
   // fChain->SetBranchStatus("slimElectrons" , 0);
@@ -1386,7 +1386,7 @@ void ZTauTauHistMaker::Init(TTree *tree)
 }
 
 
-Bool_t ZTauTauHistMaker::Notify()
+Bool_t CLFVHistMaker::Notify()
 {
   // The Notify() function is called when a new file is opened. This
   // can be either for a new TTree in a TChain or when when a new TTree
@@ -1398,4 +1398,4 @@ Bool_t ZTauTauHistMaker::Notify()
 }
 
 
-#endif // #ifdef ZTauTauHistMaker_cxx
+#endif // #ifdef CLFVHistMaker_cxx

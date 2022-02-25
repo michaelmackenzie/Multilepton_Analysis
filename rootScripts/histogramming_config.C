@@ -4,17 +4,18 @@
 bool debug_ = false;
 Long64_t startEvent_ = 429;
 Long64_t nEvents_ = 1; //at 20, verbosity returns to normal
-ZTauTauHistMaker* selector_ = 0;
+CLFVHistMaker* selector_ = 0;
 
-bool DYTesting_ = true; //speed up running for scale factor calculation/debugging
-bool DYFakeTau_ = false; //speed up dy fake tau scale factor
-bool WJFakeTau_ = true; //speed up w+jets fake tau scale factor
-bool TTFakeTau_ = true; //speed up ttbar fake tau scale factor
-bool QCDFakeTau_ = true; //speed up qcd fake tau scale factor
-bool JetTauTesting_ = true; //perform MC closure test
+bool DYTesting_      = true; //speed up running for scale factor calculation/debugging
+bool DYFakeTau_      = false; //speed up dy fake tau scale factor
+bool WJFakeTau_      = true; //speed up w+jets fake tau scale factor
+bool TTFakeTau_      = true; //speed up ttbar fake tau scale factor
+bool QCDFakeTau_     = true; //speed up qcd fake tau scale factor
+bool JetTauTesting_  = true; //perform MC closure test
 bool CutFlowTesting_ = false; //test just basic cutflow sets
+bool TriggerTesting_ = false; //make a few extra selections for emu trigger testing
 
-int removeTrigWeights_ = 4; //0: do nothing 1: remove weights 2: replace 3: replace P(event) 4: replace P(at least 1 triggered)
+int removeTrigWeights_ = 3; //0: do nothing 1: remove weights 2: replace 3: replace P(event) 4: replace P(at least 1 triggered)
 int removeBTagWeights_ = 2;//2;
 int removeZPtWeights_ = 2;//2;
 int useJetPUIDWeights_ = 1;//1;
@@ -79,7 +80,7 @@ config_t get_config(bool useUL) {
 
   config.useTauFakeSF_ = 1; //1 = use given scale factors, 2 = override them with local ones
   config.writeTrees_ = writeTrees_;
-  config.onlyChannel_ = "";
+  config.onlyChannel_ = "emu";
   config.skipChannels_ = {/*"mutau", "etau", "emu",*/ "mumu", "ee", "all", "jets", "llg_study"};
   config.reProcessMVAs_ = false;
   config.signalTrainFraction_ = 0.3;
@@ -90,11 +91,11 @@ config_t get_config(bool useUL) {
 }
 
 vector<datacard_t> get_data_cards(TString& nanoaod_path) {
-  // nanoaod_path = "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_nanoaod_trees/";
-  // nanoaod_path = "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_nanoaod_test_trees/";
-  nanoaod_path = "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_nanoaod_trees_nomva/";
-  // nanoaod_path = "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_nanoaod_trees_debug/";
-  // nanoaod_path = "root://cmseos.fnal.gov//store/user/mmackenz/ztautau_nanoaod_trees_UL/";
+  // nanoaod_path = "root://cmseos.fnal.gov//store/user/mmackenz/clfv_nanoaod_trees/";
+  // nanoaod_path = "root://cmseos.fnal.gov//store/user/mmackenz/clfv_nanoaod_test_trees/";
+  nanoaod_path = "root://cmseos.fnal.gov//store/user/mmackenz/clfv_nanoaod_trees_nomva/";
+  // nanoaod_path = "root://cmseos.fnal.gov//store/user/mmackenz/clfv_nanoaod_trees_debug/";
+  // nanoaod_path = "root://cmseos.fnal.gov//store/user/mmackenz/clfv_nanoaod_trees_UL/";
 
   printf("\033[32m--- Using tree path: %s\033[0m\n", nanoaod_path.Data());
 
@@ -130,25 +131,25 @@ vector<datacard_t> get_data_cards(TString& nanoaod_path) {
   nanocards.push_back(datacard_t(false, xs.GetCrossSection("Wlnu-2J"                 ), "clfv_2016_Wlnu-2J.tree"                 , 0)); //6
   nanocards.push_back(datacard_t(false, xs.GetCrossSection("Wlnu-3J"                 ), "clfv_2016_Wlnu-3J.tree"                 , 0)); //6
   nanocards.push_back(datacard_t(false, xs.GetCrossSection("Wlnu-4J"                 ), "clfv_2016_Wlnu-4J.tree"                 , 0)); //6
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-MuTau-B"     , 2016), "clfv_2016_Embed-MuTau-B.tree"           , 0)); //
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-MuTau-C"     , 2016), "clfv_2016_Embed-MuTau-C.tree"           , 0)); //
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-MuTau-D"     , 2016), "clfv_2016_Embed-MuTau-D.tree"           , 0)); //
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-MuTau-E"     , 2016), "clfv_2016_Embed-MuTau-E.tree"           , 0)); //
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-MuTau-F"     , 2016), "clfv_2016_Embed-MuTau-F.tree"           , 0)); //
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-MuTau-G"     , 2016), "clfv_2016_Embed-MuTau-G.tree"           , 0)); //
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-MuTau-H"     , 2016), "clfv_2016_Embed-MuTau-H.tree"           , 0)); //
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-ETau-B"      , 2016), "clfv_2016_Embed-ETau-B.tree"            , 0)); //
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-ETau-C"      , 2016), "clfv_2016_Embed-ETau-C.tree"            , 0)); //
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-ETau-D"      , 2016), "clfv_2016_Embed-ETau-D.tree"            , 0)); //
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-ETau-E"      , 2016), "clfv_2016_Embed-ETau-E.tree"            , 0)); //
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-ETau-F"      , 2016), "clfv_2016_Embed-ETau-F.tree"            , 0)); //
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-ETau-G"      , 2016), "clfv_2016_Embed-ETau-G.tree"            , 0)); //
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-ETau-H"      , 2016), "clfv_2016_Embed-ETau-H.tree"            , 0)); //
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-EMu-B"       , 2016), "clfv_2016_Embed-EMu-B.tree"             , 0)); //
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-EMu-C"       , 2016), "clfv_2016_Embed-EMu-C.tree"             , 0)); //
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-EMu-D"       , 2016), "clfv_2016_Embed-EMu-D.tree"             , 0)); //
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-EMu-E"       , 2016), "clfv_2016_Embed-EMu-E.tree"             , 0)); //
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-EMu-F"       , 2016), "clfv_2016_Embed-EMu-F.tree"             , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-MuTau-B"     , 2016), "clfv_2016_Embed-MuTau-B.tree"           , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-MuTau-C"     , 2016), "clfv_2016_Embed-MuTau-C.tree"           , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-MuTau-D"     , 2016), "clfv_2016_Embed-MuTau-D.tree"           , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-MuTau-E"     , 2016), "clfv_2016_Embed-MuTau-E.tree"           , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-MuTau-F"     , 2016), "clfv_2016_Embed-MuTau-F.tree"           , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-MuTau-G"     , 2016), "clfv_2016_Embed-MuTau-G.tree"           , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-MuTau-H"     , 2016), "clfv_2016_Embed-MuTau-H.tree"           , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-ETau-B"      , 2016), "clfv_2016_Embed-ETau-B.tree"            , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-ETau-C"      , 2016), "clfv_2016_Embed-ETau-C.tree"            , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-ETau-D"      , 2016), "clfv_2016_Embed-ETau-D.tree"            , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-ETau-E"      , 2016), "clfv_2016_Embed-ETau-E.tree"            , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-ETau-F"      , 2016), "clfv_2016_Embed-ETau-F.tree"            , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-ETau-G"      , 2016), "clfv_2016_Embed-ETau-G.tree"            , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-ETau-H"      , 2016), "clfv_2016_Embed-ETau-H.tree"            , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-EMu-B"       , 2016), "clfv_2016_Embed-EMu-B.tree"             , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-EMu-C"       , 2016), "clfv_2016_Embed-EMu-C.tree"             , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-EMu-D"       , 2016), "clfv_2016_Embed-EMu-D.tree"             , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-EMu-E"       , 2016), "clfv_2016_Embed-EMu-E.tree"             , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-EMu-F"       , 2016), "clfv_2016_Embed-EMu-F.tree"             , 0)); //
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-EMu-G"       , 2016), "clfv_2016_Embed-EMu-G.tree"             , 0)); //
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-EMu-H"       , 2016), "clfv_2016_Embed-EMu-H.tree"             , 0)); //
   // nanocards.push_back(datacard_t(false, xs.GetCrossSection("DY50"                    ), "clfv_2016_DY50.tree"                    , 0, useUL&&true)); //3
@@ -236,18 +237,18 @@ vector<datacard_t> get_data_cards(TString& nanoaod_path) {
   nanocards.push_back(datacard_t(false, 1.                                            , "clfv_2018_SingleEle.tree"               , 1)); //65
   nanocards.push_back(datacard_t(false, xs.GetCrossSection("ZZ"                      ), "clfv_2018_ZZ.tree"                      , 0)); //66
   nanocards.push_back(datacard_t(false, xs.GetCrossSection("WWW"                     ), "clfv_2018_WWW.tree"                     , 0)); //67
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-MuTau-A"     , 2018), "clfv_2018_Embed-MuTau-A.tree"           , 0)); //
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-MuTau-B"     , 2018), "clfv_2018_Embed-MuTau-B.tree"           , 0)); //
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-MuTau-C"     , 2018), "clfv_2018_Embed-MuTau-C.tree"           , 0)); //
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-MuTau-D"     , 2018), "clfv_2018_Embed-MuTau-D.tree"           , 0)); //
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-ETau-A"      , 2018), "clfv_2018_Embed-ETau-A.tree"            , 0)); //
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-ETau-B"      , 2018), "clfv_2018_Embed-ETau-B.tree"            , 0)); //
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-ETau-C"      , 2018), "clfv_2018_Embed-ETau-C.tree"            , 0)); //
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-ETau-D"      , 2018), "clfv_2018_Embed-ETau-D.tree"            , 0)); //
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-EMu-A"       , 2018), "clfv_2018_Embed-EMu-A.tree"             , 0)); //
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-EMu-B"       , 2018), "clfv_2018_Embed-EMu-B.tree"             , 0)); //
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-EMu-C"       , 2018), "clfv_2018_Embed-EMu-C.tree"             , 0)); //
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-EMu-D"       , 2018), "clfv_2018_Embed-EMu-D.tree"             , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-MuTau-A"     , 2018), "clfv_2018_Embed-MuTau-A.tree"           , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-MuTau-B"     , 2018), "clfv_2018_Embed-MuTau-B.tree"           , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-MuTau-C"     , 2018), "clfv_2018_Embed-MuTau-C.tree"           , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-MuTau-D"     , 2018), "clfv_2018_Embed-MuTau-D.tree"           , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-ETau-A"      , 2018), "clfv_2018_Embed-ETau-A.tree"            , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-ETau-B"      , 2018), "clfv_2018_Embed-ETau-B.tree"            , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-ETau-C"      , 2018), "clfv_2018_Embed-ETau-C.tree"            , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-ETau-D"      , 2018), "clfv_2018_Embed-ETau-D.tree"            , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-EMu-A"       , 2018), "clfv_2018_Embed-EMu-A.tree"             , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-EMu-B"       , 2018), "clfv_2018_Embed-EMu-B.tree"             , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-EMu-C"       , 2018), "clfv_2018_Embed-EMu-C.tree"             , 0)); //
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-EMu-D"       , 2018), "clfv_2018_Embed-EMu-D.tree"             , 0)); //
   // nanocards.push_back(datacard_t(true , xs.GetCrossSection("QCDDoubleEMEnrich30to40" ), "clfv_2018_QCDDoubleEMEnrich30to40.tree" , 0)); //68
   // nanocards.push_back(datacard_t(true , xs.GetCrossSection("QCDDoubleEMEnrich30toInf"), "clfv_2018_QCDDoubleEMEnrich30toInf.tree", 0)); //69
   // nanocards.push_back(datacard_t(true , xs.GetCrossSection("QCDDoubleEMEnrich40toInf"), "clfv_2018_QCDDoubleEMEnrich40toInf.tree", 0)); //70

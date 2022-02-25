@@ -1,5 +1,5 @@
-#define ZTauTauHistMaker_cxx
-// The class definition in ZTauTauHistMaker.h has been generated automatically
+#define CLFVHistMaker_cxx
+// The class definition in CLFVHistMaker.h has been generated automatically
 // by the ROOT utility TTree::MakeSelector(). This class is derived
 // from the ROOT class TSelector. For more information on the TSelector
 // framework see $ROOTSYS/README/README.SELECTOR or the ROOT User Manual.n
@@ -19,24 +19,24 @@
 //
 // To use this file, try the following session on your Tree T:
 //
-// root> T->Process("ZTauTauHistMaker.C")
-// root> T->Process("ZTauTauHistMaker.C","some options")
-// root> T->Process("ZTauTauHistMaker.C+")
+// root> T->Process("CLFVHistMaker.C")
+// root> T->Process("CLFVHistMaker.C","some options")
+// root> T->Process("CLFVHistMaker.C+")
 //
 
 
-#include "interface/ZTauTauHistMaker.hh"
+#include "interface/CLFVHistMaker.hh"
 #include <TStyle.h>
 using namespace CLFV;
 
-void ZTauTauHistMaker::Begin(TTree * /*tree*/)
+void CLFVHistMaker::Begin(TTree * /*tree*/)
 {
   // The Begin() function is called at the start of the query.
   // When running with PROOF Begin() is only called on the client.
   // The tree argument is deprecated (on PROOF 0 is passed).
 
   TString option = GetOption();
-  printf("ZTauTauHistMaker::Begin\n");
+  printf("CLFVHistMaker::Begin\n");
   timer->Start();
   fChain = 0;
   fElectronIDWeight.verbose_ = fVerbose;
@@ -108,18 +108,18 @@ void ZTauTauHistMaker::Begin(TTree * /*tree*/)
 
 }
 
-void ZTauTauHistMaker::SlaveBegin(TTree * /*tree*/)
+void CLFVHistMaker::SlaveBegin(TTree * /*tree*/)
 {
   // The SlaveBegin() function is called after the Begin() function.
   // When running with PROOF SlaveBegin() is called on each slave server.
   // The tree argument is deprecated (on PROOF 0 is passed).
 
-  printf("ZTauTauHistMaker::SlaveBegin\n");
+  printf("CLFVHistMaker::SlaveBegin\n");
   TString option = GetOption();
 
 }
 
-void ZTauTauHistMaker::FillAllHistograms(Int_t index) {
+void CLFVHistMaker::FillAllHistograms(Int_t index) {
   if(fEventSets [index]) {
     FillEventHistogram( fEventHist [index]);
     if(fVerbose > 0) std::cout << "Filling histograms for set " << index
@@ -134,7 +134,7 @@ void ZTauTauHistMaker::FillAllHistograms(Int_t index) {
     fTrees[index]->Fill();
 }
 
-void ZTauTauHistMaker::BookHistograms() {
+void CLFVHistMaker::BookHistograms() {
   BookEventHistograms();
   BookLepHistograms();
   // BookPhotonHistograms();
@@ -142,7 +142,7 @@ void ZTauTauHistMaker::BookHistograms() {
   if(fDoSystematics) BookSystematicHistograms();
 }
 
-void ZTauTauHistMaker::BookEventHistograms() {
+void CLFVHistMaker::BookEventHistograms() {
   for(int i = 0; i < fQcdOffset; ++i) {
     if(fEventSets[i]) { //turn on all offset histogram sets
       fEventSets[i+fQcdOffset] = 1;
@@ -233,18 +233,18 @@ void ZTauTauHistMaker::BookEventHistograms() {
                           2.   ,
                           2.5};
 
-      fEventHist[i]->hJetsPtVsEta[0]         = new TH2D("jetsptvseta0"        , Form("%s: Jet pT vs eta [0]"   ,dirname),  njetseta, jetseta, njetspt, jetspt);
-      fEventHist[i]->hJetsPtVsEta[1]         = new TH2D("jetsptvseta1"        , Form("%s: Jet pT vs eta [1]"   ,dirname),  njetseta, jetseta, njetspt, jetspt);
-      fEventHist[i]->hJetsPtVsEta[2]         = new TH2D("jetsptvseta2"        , Form("%s: Jet pT vs eta [2]"   ,dirname),  njetseta, jetseta, njetspt, jetspt);
-      fEventHist[i]->hBJetsPtVsEta[0]        = new TH2D("bjetsptvseta0"       , Form("%s: Jet pT vs eta [0]"   ,dirname),  njetseta, jetseta, njetspt, jetspt);
-      fEventHist[i]->hBJetsPtVsEta[1]        = new TH2D("bjetsptvseta1"       , Form("%s: Jet pT vs eta [1]"   ,dirname),  njetseta, jetseta, njetspt, jetspt);
-      fEventHist[i]->hBJetsPtVsEta[2]        = new TH2D("bjetsptvseta2"       , Form("%s: Jet pT vs eta [2]"   ,dirname),  njetseta, jetseta, njetspt, jetspt);
-      fEventHist[i]->hBJetsMPtVsEta[0]       = new TH2D("bjetsmptvseta0"      , Form("%s: Jet pT vs eta [0]"   ,dirname),  njetseta, jetseta, njetspt, jetspt);
-      fEventHist[i]->hBJetsMPtVsEta[1]       = new TH2D("bjetsmptvseta1"      , Form("%s: Jet pT vs eta [1]"   ,dirname),  njetseta, jetseta, njetspt, jetspt);
-      fEventHist[i]->hBJetsMPtVsEta[2]       = new TH2D("bjetsmptvseta2"      , Form("%s: Jet pT vs eta [2]"   ,dirname),  njetseta, jetseta, njetspt, jetspt);
-      fEventHist[i]->hBJetsLPtVsEta[0]       = new TH2D("bjetslptvseta0"      , Form("%s: Jet pT vs eta [0]"   ,dirname),  njetseta, jetseta, njetspt, jetspt);
-      fEventHist[i]->hBJetsLPtVsEta[1]       = new TH2D("bjetslptvseta1"      , Form("%s: Jet pT vs eta [1]"   ,dirname),  njetseta, jetseta, njetspt, jetspt);
-      fEventHist[i]->hBJetsLPtVsEta[2]       = new TH2D("bjetslptvseta2"      , Form("%s: Jet pT vs eta [2]"   ,dirname),  njetseta, jetseta, njetspt, jetspt);
+      fEventHist[i]->hJetsPtVsEta[0]         = new TH2F("jetsptvseta0"        , Form("%s: Jet pT vs eta [0]"   ,dirname),  njetseta, jetseta, njetspt, jetspt);
+      fEventHist[i]->hJetsPtVsEta[1]         = new TH2F("jetsptvseta1"        , Form("%s: Jet pT vs eta [1]"   ,dirname),  njetseta, jetseta, njetspt, jetspt);
+      fEventHist[i]->hJetsPtVsEta[2]         = new TH2F("jetsptvseta2"        , Form("%s: Jet pT vs eta [2]"   ,dirname),  njetseta, jetseta, njetspt, jetspt);
+      fEventHist[i]->hBJetsPtVsEta[0]        = new TH2F("bjetsptvseta0"       , Form("%s: Jet pT vs eta [0]"   ,dirname),  njetseta, jetseta, njetspt, jetspt);
+      fEventHist[i]->hBJetsPtVsEta[1]        = new TH2F("bjetsptvseta1"       , Form("%s: Jet pT vs eta [1]"   ,dirname),  njetseta, jetseta, njetspt, jetspt);
+      fEventHist[i]->hBJetsPtVsEta[2]        = new TH2F("bjetsptvseta2"       , Form("%s: Jet pT vs eta [2]"   ,dirname),  njetseta, jetseta, njetspt, jetspt);
+      fEventHist[i]->hBJetsMPtVsEta[0]       = new TH2F("bjetsmptvseta0"      , Form("%s: Jet pT vs eta [0]"   ,dirname),  njetseta, jetseta, njetspt, jetspt);
+      fEventHist[i]->hBJetsMPtVsEta[1]       = new TH2F("bjetsmptvseta1"      , Form("%s: Jet pT vs eta [1]"   ,dirname),  njetseta, jetseta, njetspt, jetspt);
+      fEventHist[i]->hBJetsMPtVsEta[2]       = new TH2F("bjetsmptvseta2"      , Form("%s: Jet pT vs eta [2]"   ,dirname),  njetseta, jetseta, njetspt, jetspt);
+      fEventHist[i]->hBJetsLPtVsEta[0]       = new TH2F("bjetslptvseta0"      , Form("%s: Jet pT vs eta [0]"   ,dirname),  njetseta, jetseta, njetspt, jetspt);
+      fEventHist[i]->hBJetsLPtVsEta[1]       = new TH2F("bjetslptvseta1"      , Form("%s: Jet pT vs eta [1]"   ,dirname),  njetseta, jetseta, njetspt, jetspt);
+      fEventHist[i]->hBJetsLPtVsEta[2]       = new TH2F("bjetslptvseta2"      , Form("%s: Jet pT vs eta [2]"   ,dirname),  njetseta, jetseta, njetspt, jetspt);
 
       // fEventHist[i]->hMcEra                  = new TH1D("mcera"               , Form("%s: McEra"               ,dirname) ,   5,   0,  5);
       fEventHist[i]->hTriggerLeptonStatus    = new TH1D("triggerleptonstatus" , Form("%s: TriggerLeptonStatus" ,dirname) ,  10,   0, 10);
@@ -300,9 +300,9 @@ void ZTauTauHistMaker::BookEventHistograms() {
       // fEventHist[i]->hCovMet00               = new TH1F("covmet00"            , Form("%s: CovMet00"            ,dirname) , 1000,    0.,1000.);
       // fEventHist[i]->hCovMet01               = new TH1F("covmet01"            , Form("%s: CovMet01"            ,dirname) , 1000,-1000.,1000.);
       // fEventHist[i]->hCovMet11               = new TH1F("covmet11"            , Form("%s: CovMet11"            ,dirname) , 1000,    0.,1000.);
-      // fEventHist[i]->hMetVsPt                = new TH2D("metvspt"             , Form("%s: MetVsPt"             ,dirname) ,200,0,400, 200,0,400);
-      // fEventHist[i]->hMetVsM                 = new TH2D("metvsm"              , Form("%s: MetVsM"              ,dirname) ,200,0,400, 200,0,400);
-      // fEventHist[i]->hMetVsHtSum             = new TH2D("metvshtsum"          , Form("%s: MetVsHtSum"          ,dirname) ,200,0,400, 200,0,400);
+      // fEventHist[i]->hMetVsPt                = new TH2F("metvspt"             , Form("%s: MetVsPt"             ,dirname) ,200,0,400, 200,0,400);
+      // fEventHist[i]->hMetVsM                 = new TH2F("metvsm"              , Form("%s: MetVsM"              ,dirname) ,200,0,400, 200,0,400);
+      // fEventHist[i]->hMetVsHtSum             = new TH2F("metvshtsum"          , Form("%s: MetVsHtSum"          ,dirname) ,200,0,400, 200,0,400);
       // fEventHist[i]->hMetOverSqrtHtSum       = new TH1F("metoversqrthtsum"    , Form("%s: MetOverSqrtHtSum"    ,dirname) ,  200,    0., 400.);
       // fEventHist[i]->hMassSVFit                   = new TH1F("masssvfit"           , Form("%s: MassSVFit"           ,dirname) , 1000,    0., 200.);
       // fEventHist[i]->hMassErrSVFit        = new TH1F("masserrsvfit"        , Form("%s: MassErrSVFit"        ,dirname) , 1000,    0., 100.);
@@ -378,16 +378,16 @@ void ZTauTauHistMaker::BookEventHistograms() {
                                                              << npbins << " size calc = " << sizeof(pbins)/sizeof(*pbins)-1
                                                              << std::endl;
 
-      fEventHist[i]->hLepPtVsM[0]   = new TH2D("lepptvsm0"     , Form("%s: Lepton Pt vs M" ,dirname)  , nmbins, mbins, npbins, pbins);
-      fEventHist[i]->hLepPtVsM[1]   = new TH2D("lepptvsm1"     , Form("%s: Lepton Pt vs M" ,dirname)  , nmbins, mbins, npbins, pbins);
-      fEventHist[i]->hLepPtVsM[2]   = new TH2D("lepptvsm2"     , Form("%s: Lepton Pt vs M" ,dirname)  , nmbins, mbins, npbins, pbins);
-      fEventHist[i]->hLepPtVsM[3]   = new TH2D("lepptvsm3"     , Form("%s: Lepton Pt vs M" ,dirname)  , nmbins, mbins, npbins, pbins);
-      fEventHist[i]->hLepPtVsM[4]   = new TH2D("lepptvsm4"     , Form("%s: Lepton Pt vs M" ,dirname)  , nmbins, mbins, npbins, pbins);
-      fEventHist[i]->hZPtVsM[0]     = new TH2D("zptvsm0"       , Form("%s: Gen Z Pt vs M"  ,dirname)  , nmbins, mbins, npbins, pbins);
-      fEventHist[i]->hZPtVsM[1]     = new TH2D("zptvsm1"       , Form("%s: Gen Z Pt vs M"  ,dirname)  , nmbins, mbins, npbins, pbins);
-      fEventHist[i]->hZPtVsM[2]     = new TH2D("zptvsm2"       , Form("%s: Gen Z Pt vs M"  ,dirname)  , nmbins, mbins, npbins, pbins);
-      fEventHist[i]->hZPtVsM[3]     = new TH2D("zptvsm3"       , Form("%s: Gen Z Pt vs M"  ,dirname)  , nmbins, mbins, npbins, pbins);
-      fEventHist[i]->hZPtVsM[4]     = new TH2D("zptvsm4"       , Form("%s: Gen Z Pt vs M"  ,dirname)  , nmbins, mbins, npbins, pbins);
+      fEventHist[i]->hLepPtVsM[0]   = new TH2F("lepptvsm0"     , Form("%s: Lepton Pt vs M" ,dirname)  , nmbins, mbins, npbins, pbins);
+      fEventHist[i]->hLepPtVsM[1]   = new TH2F("lepptvsm1"     , Form("%s: Lepton Pt vs M" ,dirname)  , nmbins, mbins, npbins, pbins);
+      fEventHist[i]->hLepPtVsM[2]   = new TH2F("lepptvsm2"     , Form("%s: Lepton Pt vs M" ,dirname)  , nmbins, mbins, npbins, pbins);
+      fEventHist[i]->hLepPtVsM[3]   = new TH2F("lepptvsm3"     , Form("%s: Lepton Pt vs M" ,dirname)  , nmbins, mbins, npbins, pbins);
+      fEventHist[i]->hLepPtVsM[4]   = new TH2F("lepptvsm4"     , Form("%s: Lepton Pt vs M" ,dirname)  , nmbins, mbins, npbins, pbins);
+      fEventHist[i]->hZPtVsM[0]     = new TH2F("zptvsm0"       , Form("%s: Gen Z Pt vs M"  ,dirname)  , nmbins, mbins, npbins, pbins);
+      fEventHist[i]->hZPtVsM[1]     = new TH2F("zptvsm1"       , Form("%s: Gen Z Pt vs M"  ,dirname)  , nmbins, mbins, npbins, pbins);
+      fEventHist[i]->hZPtVsM[2]     = new TH2F("zptvsm2"       , Form("%s: Gen Z Pt vs M"  ,dirname)  , nmbins, mbins, npbins, pbins);
+      fEventHist[i]->hZPtVsM[3]     = new TH2F("zptvsm3"       , Form("%s: Gen Z Pt vs M"  ,dirname)  , nmbins, mbins, npbins, pbins);
+      fEventHist[i]->hZPtVsM[4]     = new TH2F("zptvsm4"       , Form("%s: Gen Z Pt vs M"  ,dirname)  , nmbins, mbins, npbins, pbins);
       fEventHist[i]->hZPt[0]        = new TH1F("zpt"           , Form("%s: Z Pt"           ,dirname)  , npbins,   pbins);
       fEventHist[i]->hZPt[1]        = new TH1F("zpt1"          , Form("%s: Z Pt"           ,dirname)  , npbins,   pbins);
       fEventHist[i]->hZPt[2]        = new TH1F("zpt2"          , Form("%s: Z Pt"           ,dirname)  , npbins,   pbins);
@@ -434,10 +434,10 @@ void ZTauTauHistMaker::BookEventHistograms() {
             for(int iptr = 0; iptr < nptregions; ++iptr) {
               // std::cout << "Initializing iptr = " << iptr << " njets = " << njets << " cat = " << cat << " and dm = " << dm << std::endl;
               const char* hname = (iptr == 0) ? Form("faketau%ijet%idm_%i", njets, dm, cat) : Form("faketau%ijet%idm_%i_%i", njets, dm, cat, iptr);
-              fEventHist[i]->hFakeTauNJetDMPtEta[iptr][cat][njets][dm]   = new TH2D(hname, Form("%s: Fake tau Eta vs Pt" ,dirname),
+              fEventHist[i]->hFakeTauNJetDMPtEta[iptr][cat][njets][dm]   = new TH2F(hname, Form("%s: Fake tau Eta vs Pt" ,dirname),
                                                                                   ntpbins, tpbins, ntetabins, tetabins);
               const char* hmcname = (iptr == 0) ? Form("faketaumc%ijet%idm_%i", njets, dm, cat) : Form("faketaumc%ijet%idm_%i_%i", njets, dm, cat, iptr);
-              fEventHist[i]->hFakeTauMCNJetDMPtEta[iptr][cat][njets][dm] = new TH2D(hmcname, Form("%s: Fake tau MC Eta vs Pt" ,dirname),
+              fEventHist[i]->hFakeTauMCNJetDMPtEta[iptr][cat][njets][dm] = new TH2F(hmcname, Form("%s: Fake tau MC Eta vs Pt" ,dirname),
                                                                                     ntpbins, tpbins, ntetabins, tetabins);
             }
           }
@@ -475,7 +475,7 @@ void ZTauTauHistMaker::BookEventHistograms() {
                                                                 << std::endl;
 
       for(int cat = 0; cat < 3; ++cat)
-        fEventHist[i]->hFakeLepPtEta[cat] = new TH2D(Form("fakeleppteta_%i", cat), Form("%s: Fake lepton Eta vs Pt" ,dirname), nlpbins, lpbins, nletabins, letabins);
+        fEventHist[i]->hFakeLepPtEta[cat] = new TH2F(Form("fakeleppteta_%i", cat), Form("%s: Fake lepton Eta vs Pt" ,dirname), nlpbins, lpbins, nletabins, letabins);
 
       fEventHist[i]->hLeptonsPt   = new TH1F("leptonspt"  , Form("%s: LeptonsPt  ",dirname), 100,  0., 200.);
       fEventHist[i]->hLeptonsEta  = new TH1F("leptonseta" , Form("%s: LeptonsEta ",dirname),  50, -2.5, 2.5);
@@ -496,12 +496,12 @@ void ZTauTauHistMaker::BookEventHistograms() {
       const int ndrbins = (sizeof(drbins)/sizeof(*drbins) - 1);
       fEventHist[i]->hLepDeltaR[1]  = new TH1F("lepdeltar1"    , Form("%s: Lepton DeltaR"  ,dirname)  , ndrbins, drbins);
       fEventHist[i]->hLepDeltaR[2]  = new TH1F("lepdeltar2"    , Form("%s: Lepton DeltaR"  ,dirname)  , ndrbins, drbins);
-      fEventHist[i]->hLepDelRVsOneEta[0] = new TH2D("lepdelrvsoneeta" , Form("%s: LepDelRVsOneEta",dirname),  15, 0., 2.5, ndrbins, drbins);
-      fEventHist[i]->hLepDelRVsOneEta[1] = new TH2D("lepdelrvsoneeta1", Form("%s: LepDelRVsOneEta",dirname),  15, 0., 2.5, ndrbins, drbins);
-      fEventHist[i]->hLepDelPhiVsOneEta[0] = new TH2D("lepdelphivsoneeta" , Form("%s: LepDelPhiVsOneEta",dirname), 15, 0., 2.5, 15, 0., 3.5);
-      fEventHist[i]->hLepDelPhiVsOneEta[1] = new TH2D("lepdelphivsoneeta1", Form("%s: LepDelPhiVsOneEta",dirname), 15, 0., 2.5, 15, 0., 3.5);
+      fEventHist[i]->hLepDelRVsOneEta[0] = new TH2F("lepdelrvsoneeta" , Form("%s: LepDelRVsOneEta",dirname),  15, 0., 2.5, ndrbins, drbins);
+      fEventHist[i]->hLepDelRVsOneEta[1] = new TH2F("lepdelrvsoneeta1", Form("%s: LepDelRVsOneEta",dirname),  15, 0., 2.5, ndrbins, drbins);
+      fEventHist[i]->hLepDelPhiVsOneEta[0] = new TH2F("lepdelphivsoneeta" , Form("%s: LepDelPhiVsOneEta",dirname), 15, 0., 2.5, 15, 0., 3.5);
+      fEventHist[i]->hLepDelPhiVsOneEta[1] = new TH2F("lepdelphivsoneeta1", Form("%s: LepDelPhiVsOneEta",dirname), 15, 0., 2.5, 15, 0., 3.5);
 
-      // fEventHist[i]->hLepDelRVsPhi  = new TH2D("lepdelrvsphi"  , Form("%s: LepDelRVsPhi"   ,dirname)  ,  40,  0,   4, 100,  0,   5);
+      // fEventHist[i]->hLepDelRVsPhi  = new TH2F("lepdelrvsphi"  , Form("%s: LepDelRVsPhi"   ,dirname)  ,  40,  0,   4, 100,  0,   5);
       fEventHist[i]->hLepPtOverM    = new TH1F("lepptoverm"    , Form("%s: Lepton Pt / M"  ,dirname)  , 100,   0,  10);
       // fEventHist[i]->hAlpha[0]      = new TH1F("alpha0"        , Form("%s: Alpha (Z) 0"    ,dirname)  , 100,   0,   5);
       // fEventHist[i]->hAlpha[1]      = new TH1F("alpha1"        , Form("%s: Alpha (H) 0"    ,dirname)  , 100,   0,   5);
@@ -542,11 +542,11 @@ void ZTauTauHistMaker::BookEventHistograms() {
       // fEventHist[i]->hSysM          = new TH1F("sysm"          , Form("%s: SysM"          ,dirname)  ,1000,  0, 1e3);
       // fEventHist[i]->hSysPt         = new TH1F("syspt"         , Form("%s: SysPt"         ,dirname)  , 200,  0, 400);
       // fEventHist[i]->hSysEta        = new TH1F("syseta"        , Form("%s: SysEta"        ,dirname)  , 100, -5,   5);
-      // fEventHist[i]->hSysMvsLepM    = new TH2D("sysmvslepm"    , Form("%s: SysMvsLepM"    ,dirname)  , 200, 0., 200., 200, 0., 200.);
+      // fEventHist[i]->hSysMvsLepM    = new TH2F("sysmvslepm"    , Form("%s: SysMvsLepM"    ,dirname)  , 200, 0., 200., 200, 0., 200.);
 
       fEventHist[i]->hMTOne         = new TH1F("mtone"         , Form("%s: MTOne"         ,dirname)  , 100, 0.,   150.);
       fEventHist[i]->hMTTwo         = new TH1F("mttwo"         , Form("%s: MTTwo"         ,dirname)  , 100, 0.,   150.);
-      fEventHist[i]->hMTTwoVsOne    = new TH2D("mttwovsone"    , Form("%s: MTTwoVsOne"    ,dirname)  ,  50, 0.,   100., 50, 0., 100.);
+      fEventHist[i]->hMTTwoVsOne    = new TH2F("mttwovsone"    , Form("%s: MTTwoVsOne"    ,dirname)  ,  50, 0.,   100., 50, 0., 100.);
       fEventHist[i]->hMTLep         = new TH1F("mtlep"         , Form("%s: MTLep"         ,dirname)  , 100, 0.,   150.);
       fEventHist[i]->hMTOneOverM    = new TH1F("mtoneoverm"    , Form("%s: MTOneOverM"    ,dirname)  , 100, 0.,   10.);
       fEventHist[i]->hMTTwoOverM    = new TH1F("mttwooverm"    , Form("%s: MTTwoOverM"    ,dirname)  , 100, 0.,   10.);
@@ -554,21 +554,21 @@ void ZTauTauHistMaker::BookEventHistograms() {
       // fEventHist[i]->hPXiVis[0]        = new TH1F("pxivis0"        , Form("%s: PXiVis     "     ,dirname)  ,1000,  -100.,  900.);
       // fEventHist[i]->hPXiInv[0]        = new TH1F("pxiinv0"        , Form("%s: PXiInv     "     ,dirname)  ,1000,-500.,   500.);
       // fEventHist[i]->hPXiVisOverInv[0] = new TH1F("pxivisoverinv0" , Form("%s: PXiVisOverInv"   ,dirname)  ,1000, -10.,    10.);
-      // fEventHist[i]->hPXiInvVsVis[0]   = new TH2D("pxiinvvsvis0"   , Form("%s: PXiInv vs PXiVis",dirname)  , 800, -100., 700., 1000,-500.,   500.);
+      // fEventHist[i]->hPXiInvVsVis[0]   = new TH2F("pxiinvvsvis0"   , Form("%s: PXiInv vs PXiVis",dirname)  , 800, -100., 700., 1000,-500.,   500.);
       fEventHist[i]->hPXiDiff[0]       = new TH1F("pxidiff0"       , Form("%s: PXiVis - PXiInv" ,dirname)  , 100,-500.,  1500.);
       fEventHist[i]->hPXiDiff2[0]      = new TH1F("pxidiff20"      , Form("%s: a*PXiVis + b - PXiInv" ,dirname)  ,100,-500.,  1500.);
       fEventHist[i]->hPXiDiff3[0]      = new TH1F("pxidiff30"      , Form("%s: PXiInv + (1-a)*PXiVis + b" ,dirname)  ,100,-500., 500.);
       // fEventHist[i]->hPXiVis[1]        = new TH1F("pxivis1"        , Form("%s: PXiVis     "     ,dirname)  ,1000,  -100.,  900.);
       // fEventHist[i]->hPXiInv[1]        = new TH1F("pxiinv1"        , Form("%s: PXiInv     "     ,dirname)  ,1000,-500.,   500.);
       // fEventHist[i]->hPXiVisOverInv[1] = new TH1F("pxivisoverinv1" , Form("%s: PXiVisOverInv"   ,dirname)  ,1000, -10.,    10.);
-      // fEventHist[i]->hPXiInvVsVis[1]   = new TH2D("pxiinvvsvis1"   , Form("%s: PXiInv vs PXiVis",dirname)  , 800, -100., 700., 1000,-500.,   500.);
+      // fEventHist[i]->hPXiInvVsVis[1]   = new TH2F("pxiinvvsvis1"   , Form("%s: PXiInv vs PXiVis",dirname)  , 800, -100., 700., 1000,-500.,   500.);
       // fEventHist[i]->hPXiDiff[1]       = new TH1F("pxidiff1"       , Form("%s: PXiVis - PXiInv" ,dirname)  ,2000,-500.,  1500.);
       // fEventHist[i]->hPXiDiff2[1]      = new TH1F("pxidiff21"      , Form("%s: a*PXiVis + b - PXiInv" ,dirname)  ,2000,-500.,  1500.);
       // fEventHist[i]->hPXiDiff3[1]      = new TH1F("pxidiff31"      , Form("%s: PXiInv + (1-a)*PXiVis + b" ,dirname)  ,1000,-500., 500.);
       // fEventHist[i]->hPXiVis[2]        = new TH1F("pxivis2"        , Form("%s: PXiVis     "     ,dirname)  ,1000,  -100.,  900.);
       // fEventHist[i]->hPXiInv[2]        = new TH1F("pxiinv2"        , Form("%s: PXiInv     "     ,dirname)  ,1000,-500.,   500.);
       // fEventHist[i]->hPXiVisOverInv[2] = new TH1F("pxivisoverinv2" , Form("%s: PXiVisOverInv"   ,dirname)  ,1000, -10.,    10.);
-      // fEventHist[i]->hPXiInvVsVis[2]   = new TH2D("pxiinvvsvis2"   , Form("%s: PXiInv vs PXiVis",dirname)  , 800, -100., 700., 1000,-500.,   500.);
+      // fEventHist[i]->hPXiInvVsVis[2]   = new TH2F("pxiinvvsvis2"   , Form("%s: PXiInv vs PXiVis",dirname)  , 800, -100., 700., 1000,-500.,   500.);
       // fEventHist[i]->hPXiDiff[2]       = new TH1F("pxidiff2"       , Form("%s: PXiVis - PXiInv" ,dirname)  ,2000,-500.,  1500.);
       // fEventHist[i]->hPXiDiff2[2]      = new TH1F("pxidiff22"      , Form("%s: a*PXiVis + b - PXiInv" ,dirname)  ,2000,-500.,  1500.);
       // fEventHist[i]->hPXiDiff3[2]      = new TH1F("pxidiff32"      , Form("%s: PXiInv + (1-a)*PXiVis + b" ,dirname)  ,1000,-500., 500.);
@@ -612,7 +612,7 @@ void ZTauTauHistMaker::BookEventHistograms() {
   }
 }
 
-void ZTauTauHistMaker::BookPhotonHistograms() {
+void CLFVHistMaker::BookPhotonHistograms() {
   if(fDYTesting) return;
   for(int i = 0; i < fn; i++) {
     if(fEventSets[i] > 0) {
@@ -635,7 +635,7 @@ void ZTauTauHistMaker::BookPhotonHistograms() {
   }
 }
 
-void ZTauTauHistMaker::BookLepHistograms() {
+void CLFVHistMaker::BookLepHistograms() {
   // if(fDYTesting) return;
   for(int i = 0; i < fn; i++) {
     if(fEventSets[i] > 0) {
@@ -668,7 +668,7 @@ void ZTauTauHistMaker::BookLepHistograms() {
       for(int dmregion = 0; dmregion < 5; ++dmregion) {
         TString name_r = "jettauoneptvsr";
         if(dmregion > 0) {name_r += "_"; name_r += dmregion;}
-        fLepHist[i]->hJetTauOnePtVsR[dmregion] = new TH2D(name_r.Data() , Form("%s: Delta R Vs One Pt"   ,dirname)  , nbins_pt, pts, nrbins, rbins);
+        fLepHist[i]->hJetTauOnePtVsR[dmregion] = new TH2F(name_r.Data() , Form("%s: Delta R Vs One Pt"   ,dirname)  , nbins_pt, pts, nrbins, rbins);
         for(int ptregion = 0; ptregion < 4; ++ptregion) {
           TString name = "jettauonept";
           if(ptregion > 0) name += ptregion;
@@ -741,7 +741,7 @@ void ZTauTauHistMaker::BookLepHistograms() {
       for(int dmregion = 0; dmregion < 5; ++dmregion) {
         TString name_r = "jettautwoptvsr";
         if(dmregion > 0) {name_r += "_"; name_r += dmregion;}
-        fLepHist[i]->hJetTauTwoPtVsR[dmregion] = new TH2D(name_r.Data() , Form("%s: Delta R Vs Two Pt"   ,dirname)  , nbins_pt, pts, nrbins, rbins);
+        fLepHist[i]->hJetTauTwoPtVsR[dmregion] = new TH2F(name_r.Data() , Form("%s: Delta R Vs Two Pt"   ,dirname)  , nbins_pt, pts, nrbins, rbins);
         for(int ptregion = 0; ptregion < 4; ++ptregion) {
           TString name = "jettautwopt";
           if(ptregion > 0) name += ptregion;
@@ -806,18 +806,18 @@ void ZTauTauHistMaker::BookLepHistograms() {
       fLepHist[i]->hD0Diff        = new TH1F("d0diff"      , Form("%s: 2 D0 - 1 D0"      ,dirname)  , 200,-0.2, 0.2);
 
       //2D distributions
-      fLepHist[i]->hTwoPtVsOnePt       = new TH2D("twoptvsonept", Form("%s: Two pT vs One pT", dirname), 100, 0, 200, 100, 0, 200);
+      fLepHist[i]->hTwoPtVsOnePt       = new TH2F("twoptvsonept", Form("%s: Two pT vs One pT", dirname), 100, 0, 200, 100, 0, 200);
       int nbins_tau_pt = 6;
       float tau_pts[] = {0., 25., 30., 35., 40.,
                          50.,
                          150.};
-      fLepHist[i]->hJetTauTwoPtVsOnePt = new TH2D("jettautwoptvsonept", Form("%s: Two pT vs One pT", dirname), nbins_pt, pts, nbins_tau_pt, tau_pts);
+      fLepHist[i]->hJetTauTwoPtVsOnePt = new TH2F("jettautwoptvsonept", Form("%s: Two pT vs One pT", dirname), nbins_pt, pts, nbins_tau_pt, tau_pts);
       delete dirname;
     }
   }
 }
 
-void ZTauTauHistMaker::BookSystematicHistograms() {
+void CLFVHistMaker::BookSystematicHistograms() {
   for(int i = 0; i < fQcdOffset; ++i) {
     if(fSysSets[i]) { //turn on all offset histogram sets
       fSysSets[i+fQcdOffset] = 1;
@@ -851,7 +851,7 @@ void ZTauTauHistMaker::BookSystematicHistograms() {
   }
 }
 
-void ZTauTauHistMaker::BookTrees() {
+void CLFVHistMaker::BookTrees() {
   for(int i = 0; i < fn; ++i) {
     if(fTreeSets[i] != 0) {
       char* dirname        = new char[20];
@@ -859,7 +859,7 @@ void ZTauTauHistMaker::BookTrees() {
       fDirectories[3*fn + i] = fTopDir->mkdir(dirname);
       fDirectories[3*fn + i]->cd();
       delete dirname;
-      fTrees[i] = new TTree(Form("tree_%i",i),Form("ZTauTauHistMaker TTree %i",i));
+      fTrees[i] = new TTree(Form("tree_%i",i),Form("CLFVHistMaker TTree %i",i));
       fTrees[i]->Branch("leponept",           &fTreeVars.leponept          );
       fTrees[i]->Branch("leponeptoverm",      &fTreeVars.leponeptoverm     );
       // fTrees[i]->Branch("leponem",            &fTreeVars.leponem           );
@@ -950,7 +950,7 @@ void ZTauTauHistMaker::BookTrees() {
   }
 }
 
-void ZTauTauHistMaker::DeleteHistograms() {
+void CLFVHistMaker::DeleteHistograms() {
   for(int i = 0; i < fn; i++) {
     if(fEventSets[i] != 0) {
       if(fEventHist[i]) delete fEventHist[i];
@@ -962,7 +962,7 @@ void ZTauTauHistMaker::DeleteHistograms() {
 
 
 //selections: 1 = mutau, 2 = etau, 5 = emu, 9 = mumu, 18 = ee
-void ZTauTauHistMaker::InitializeTreeVariables(Int_t selection) {
+void CLFVHistMaker::InitializeTreeVariables(Int_t selection) {
   //force it to be that nbjets loose >= nbjets medium etc
   if(fForceBJetSense) {
     if(nBJets  > nBJetsM) nBJetsM = nBJets;
@@ -1205,7 +1205,7 @@ void ZTauTauHistMaker::InitializeTreeVariables(Int_t selection) {
   }
 }
 
-float ZTauTauHistMaker::GetTauFakeSF(int genFlavor) {
+float CLFVHistMaker::GetTauFakeSF(int genFlavor) {
   float weight = 1.;
   switch(std::abs(genFlavor)) {
   case 15 : weight = 0.95; break;
@@ -1216,7 +1216,7 @@ float ZTauTauHistMaker::GetTauFakeSF(int genFlavor) {
   return weight;
 }
 
-float ZTauTauHistMaker::CorrectMET(const int selection, const float met) {
+float CLFVHistMaker::CorrectMET(const int selection, const float met) {
   if(selection < 0) return met;
   float corrected = met;
 
@@ -1228,7 +1228,7 @@ float ZTauTauHistMaker::CorrectMET(const int selection, const float met) {
   return corrected;
 }
 
-void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
+void CLFVHistMaker::FillEventHistogram(EventHist_t* Hist) {
   // Hist->hLumiSection         ->Fill(lumiSection        , genWeight*eventWeight)      ;
   // Hist->hTriggerStatus       ->Fill(triggerStatus      , genWeight*eventWeight)      ;
   Hist->hEventWeight         ->Fill(eventWeight             );
@@ -1713,7 +1713,7 @@ void ZTauTauHistMaker::FillEventHistogram(EventHist_t* Hist) {
   // Hist->hPtSum[0]      ->Fill(leptonOneP4->Pt()+leptonTwoP4->Pt()+met ,eventWeight*genWeight);
 }
 
-void ZTauTauHistMaker::FillPhotonHistogram(PhotonHist_t* Hist) {
+void CLFVHistMaker::FillPhotonHistogram(PhotonHist_t* Hist) {
   Hist->hPz  ->Fill(photonP4->Pz() , eventWeight*genWeight );
   Hist->hPt  ->Fill(photonP4->Pt() , eventWeight*genWeight );
   Hist->hP   ->Fill(photonP4->P()  , eventWeight*genWeight );
@@ -1725,7 +1725,7 @@ void ZTauTauHistMaker::FillPhotonHistogram(PhotonHist_t* Hist) {
   // Hist->hTrigger   ;
 }
 
-void ZTauTauHistMaker::FillLepHistogram(LepHist_t* Hist) {
+void CLFVHistMaker::FillLepHistogram(LepHist_t* Hist) {
   /////////////
   //  Lep 1  //
   /////////////
@@ -1906,7 +1906,7 @@ void ZTauTauHistMaker::FillLepHistogram(LepHist_t* Hist) {
   }
 }
 
-void ZTauTauHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
+void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
   bool isSameFlavor = fFolderName == "ee" || fFolderName == "mumu";
   bool isMuTau = fFolderName == "mutau";
   bool isETau  = fFolderName == "etau";
@@ -2109,7 +2109,7 @@ void ZTauTauHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
     } else continue; //no need to fill undefined systematics
 
     if(std::isnan(weight)) {
-      std::cout << "ZTauTauHistMaker::" << __func__ << ": Entry " << fentry << " Systematic " << sys << " weight is NaN! event weight = "
+      std::cout << "CLFVHistMaker::" << __func__ << ": Entry " << fentry << " Systematic " << sys << " weight is NaN! event weight = "
                 << eventWeight << ", setting to 0...\n";
       weight = 0.;
     }
@@ -2126,7 +2126,7 @@ void ZTauTauHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
     //MVA outputs
     float mvaweight = fTreeVars.eventweightMVA*(weight/(eventWeight*genWeight));
     if(std::isnan(mvaweight)) {
-      std::cout << "ZTauTauHistMaker::" << __func__ << ": Entry " << fentry << " MVA weight is NaN! eventweightMVA = "
+      std::cout << "CLFVHistMaker::" << __func__ << ": Entry " << fentry << " MVA weight is NaN! eventweightMVA = "
                 << fTreeVars.eventweightMVA << ", setting to 0...\n";
       mvaweight = 0.;
     }
@@ -2139,7 +2139,7 @@ void ZTauTauHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
          ) continue;
       float mvascore = fMvaOutputs[i];
       if(std::isnan(mvascore) && fVerbose > 0) {
-        std::cout << "ZTauTauHistMaker::" << __func__ << ": Entry " << fentry << " MVA " << i << " score is NaN! Setting to -2...\n";
+        std::cout << "CLFVHistMaker::" << __func__ << ": Entry " << fentry << " MVA " << i << " score is NaN! Setting to -2...\n";
         mvascore = -2.;
       }
       Hist->hMVA[i][sys]->Fill(mvascore, mvaweight);
@@ -2148,7 +2148,7 @@ void ZTauTauHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
 }
 
 
-Bool_t ZTauTauHistMaker::Process(Long64_t entry)
+Bool_t CLFVHistMaker::Process(Long64_t entry)
 {
   fentry = entry;
   // The Process() function is called for each entry in the tree (or possibly
@@ -3293,7 +3293,7 @@ Bool_t ZTauTauHistMaker::Process(Long64_t entry)
   return kTRUE;
 }
 
-void ZTauTauHistMaker::ApplyTriggerWeights(const float muon_trig_pt, const float electron_trig_pt) {
+void CLFVHistMaker::ApplyTriggerWeights(const float muon_trig_pt, const float electron_trig_pt) {
   float data_eff[2] = {0.5f, 0.5f}; //set to 0.5 so no danger in doing the ratio of eff or 1 - eff
   float mc_eff[2]   = {0.5f, 0.5f};
 
@@ -3439,7 +3439,7 @@ void ZTauTauHistMaker::ApplyTriggerWeights(const float muon_trig_pt, const float
   eventWeight *= leptonOneTrigWeight * leptonTwoTrigWeight;
 }
 
-void ZTauTauHistMaker::CountSlimObjects() {
+void CLFVHistMaker::CountSlimObjects() {
   //reset counters
   for(int index = 0; index < kMaxCounts; ++index) {
     nMuonCounts[index] = 0;
@@ -3567,7 +3567,7 @@ void ZTauTauHistMaker::CountSlimObjects() {
 }
 
 //determine MVA category
-int ZTauTauHistMaker::Category(TString selection) {
+int CLFVHistMaker::Category(TString selection) {
   int category = 0;
   //get MVA output index by selection
   int mva_i = fMVAConfig.GetIndexBySelection(selection);
@@ -3581,7 +3581,7 @@ int ZTauTauHistMaker::Category(TString selection) {
 }
 
 //initialize the randomly assigned systematic shifts
-void ZTauTauHistMaker::InitializeSystematics() {
+void CLFVHistMaker::InitializeSystematics() {
   leptonOneWeight1_group = 0; leptonOneWeight2_group = 0;
   leptonTwoWeight1_group = 0; leptonTwoWeight2_group = 0;
   if(std::abs(leptonOneFlavor) == 11) {
@@ -3628,11 +3628,11 @@ void ZTauTauHistMaker::InitializeSystematics() {
   }
 }
 
-void ZTauTauHistMaker::ProcessLLGStudy() {
+void CLFVHistMaker::ProcessLLGStudy() {
 
 }
 
-void ZTauTauHistMaker::SlaveTerminate()
+void CLFVHistMaker::SlaveTerminate()
 {
   // The SlaveTerminate() function is called after all entries or objects
   // have been processed. When running with PROOF SlaveTerminate() is called
@@ -3640,7 +3640,7 @@ void ZTauTauHistMaker::SlaveTerminate()
 
 }
 
-void ZTauTauHistMaker::Terminate()
+void CLFVHistMaker::Terminate()
 {
   // The Terminate() function is the last function to be called during
   // a query. It always runs on the client, it can be used to present

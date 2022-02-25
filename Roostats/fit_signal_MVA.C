@@ -42,12 +42,12 @@ Int_t fit_signal_MVA(int set = 8, TString selection = "zmutau",
   TString signame = selection; signame.ReplaceAll("z", "Z"); signame.ReplaceAll("h", "H");
   signame.ReplaceAll("_e", ""); signame.ReplaceAll("_mu",""); signame.ReplaceAll("m", "M");
   signame.ReplaceAll("e", "E"); signame.ReplaceAll("t", "T");
-  int set_offset = ZTauTauHistMaker::kEMu;
-  if     (selec == "mutau") set_offset = ZTauTauHistMaker::kMuTau;
-  else if(selec == "etau" ) set_offset = ZTauTauHistMaker::kETau;
+  int set_offset = CLFVHistMaker::kEMu;
+  if     (selec == "mutau") set_offset = CLFVHistMaker::kMuTau;
+  else if(selec == "etau" ) set_offset = CLFVHistMaker::kETau;
   for(unsigned i = 0; i < years.size(); ++i) {
     int year = years[i];
-    TString sig_name = base + "ztautau_" + selec + "_clfv_";
+    TString sig_name = base + "clfv_" + selec + "_clfv_";
     sig_name += year;
     sig_name += "_" + signame + ".hist";
 

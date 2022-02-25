@@ -81,7 +81,7 @@ Int_t fit_same_flavor(int set = 8, vector<int> years = {2016}, bool doMuon = tru
   int status(0);
   TString name = (doMuon) ? "histograms/mumu_" : "histograms/ee_";
   name +=  hist + "_";
-  name += (doMuon) ? set+ZTauTauHistMaker::kMuMu : set+ZTauTauHistMaker::kEE;
+  name += (doMuon) ? set+CLFVHistMaker::kMuMu : set+CLFVHistMaker::kEE;
   for(int year : years) {
     name += "_";
     name += year;

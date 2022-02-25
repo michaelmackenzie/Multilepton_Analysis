@@ -2132,7 +2132,7 @@ Bool_t NanoAODConversion::Process(Long64_t entry)
     default    : isTight = false      ; break;
     }
     looseQCDSelection = QCDSelection(selection);
-    if(!looseQCDSelection && !isTight) { //remove events passing neither the tight nor ABCD measurement region selection
+    if(!looseQCDSelection && !isTight) { //remove events passing neither the tight nor the ABCD measurement region selection
       continue;
     }
 
