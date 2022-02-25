@@ -29,7 +29,7 @@ This assumes ntuples have been created using a skimmer run on Monte Carlo and da
 See: https://github.com/michaelmackenzie/ZEMuAnalysis/
 
 The NANOAOD format ntuples need to be changed to match the expected ntuple format used by these analysis tools,
-originally designed to match the ZTauTauAnalyzer output. This is done using the *NanoAODConversion* TSelector,
+originally designed to match the CLFVAnalyzer output. This is done using the *NanoAODConversion* TSelector,
 which runs over the NANOAOD Tree *Events*. An example of this is shown in `rootScripts/process_nanoaods.C`.
 
 The next step in the workflow is creating sparse trees and sets of histograms for specific analysis selections.
@@ -60,7 +60,7 @@ Contains the analyzers and tools.
 ### histograms
 Used to plot the histograms from a given book in a HistMaker's output
 adding together the processes with their cross section and generation values, primarily
-using dataplotter_ztautau.C. This uses the DataPlotter data handler to plot, storing the object as a field of the script
+using dataplotter_clfv.C. This uses the DataPlotter data handler to plot, storing the object as a field of the script
 
 ### tmva_training
 Used to train MVAs to separate backgrounds from signal
@@ -68,7 +68,7 @@ Used to train MVAs to separate backgrounds from signal
 CWoLa training uses variables not correlated with the dilepton mass to separate two mass ranges,
 hopefully only succeeding when there is a resonance in one of the masses
 
-ztautau training uses signal/background labels to train the MVAs
+clfv training uses signal/background labels to train the MVAs
 
 #### MVA scripts/
 ##### make_mock_data.C
@@ -99,11 +99,11 @@ make -j4
 ## Examples
 in ROOT:
   
-### ZTauTauHistMaker
+### CLFVHistMaker
 ```c++
 .L lib/libCLFVAnalysis.so
-TTree* tree = [Get ZTauTau Tree for selection S];
-ZTauTauMaker* selec = new ZTauTauHistMaker();
+TTree* tree = [Get CLFV Tree for selection S];
+CLFVMaker* selec = new CLFVHistMaker();
 selec->fFolderName = "[selection name, S]";
 tree->Process(selec,"");
 ```
@@ -147,7 +147,7 @@ The order of the scale factors given below is the order they should be evaluated
 #### Jet PU ID
 The Jet/MET POG gives scale factors for MC --> Data, but the MC efficiencies need to be evaluated
 for the specific selection. This is done using `studies/jet_puid_eff/`.
-This generates the histogram using the TTree rather than histograms produced by the ZTauTauHistMaker.
+This generates the histogram using the TTree rather than histograms produced by the CLFVHistMaker.
 
 ```
 $> cd studies/jet_puid_eff
