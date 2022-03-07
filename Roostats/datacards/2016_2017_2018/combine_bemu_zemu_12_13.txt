@@ -1,0 +1,38 @@
+# -*- mode: tcl -*-
+#Auto generated counting card for CLFVAnalysis 
+#Signal branching fraction used: 1.000e-07 
+
+imax  2 number of channels 
+jmax  * number of backgrounds 
+kmax  * number of nuisance parameters 
+
+----------------------------------------------------------------------------------------------------------- 
+shapes * * combine_bemu_zemu_12_13.root $CHANNEL:$PROCESS
+----------------------------------------------------------------------------------------------------------- 
+
+bin          lepm_12   lepm_13    
+observation      -1        -1         
+
+bin          lepm_12   lepm_12   lepm_13   lepm_13 
+process        zemu       bkg      zemu       bkg 
+process           0         1         0         1 
+
+rate           11.1   25877.0      16.4   19814.0 
+
+----------------------------------------------------------------------------------------------------------- 
+
+EleID     lnN   5.0704     -        5.0662     -      
+MuonID    lnN   5.0216     -        5.0194     -      
+ZpT       lnN   5.0039     -        5.0031     -      
+EleRecoID lnN   5.0192     -        5.0181     -      
+MuonIsoID lnN   5.0089     -        5.0077     -      
+QCDScale  lnN   5.0039     -        5.0031     -      
+Lumi      lnN   5.0840     -        5.0832     -      
+BTag      lnN   4.9851     -        4.9931     -      
+
+----------------------------------------------------------------------------------------------------------- 
+
+cat_12   discrete
+cat_13   discrete
+ 
+
