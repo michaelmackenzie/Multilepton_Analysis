@@ -19,6 +19,8 @@ namespace CLFV {
     TH1* hOneEta = 0;
     TH1* hOnePhi = 0;
     TH1* hOneD0 = 0;
+    TH1* hOneDXY = 0;
+    TH1* hOneDZ = 0;
     TH1* hOneIso = 0;
     TH1* hOneID1 = 0;
     TH1* hOneID2 = 0;
@@ -74,6 +76,8 @@ namespace CLFV {
     TH1* hTwoEta = 0;
     TH1* hTwoPhi = 0;
     TH1* hTwoD0 = 0;
+    TH1* hTwoDXY = 0;
+    TH1* hTwoDZ = 0;
     TH1* hTwoIso = 0;
     TH1* hTwoID1 = 0;
     TH1* hTwoID2 = 0;
@@ -121,6 +125,8 @@ namespace CLFV {
 
     TH1* hPtDiff = 0;
     TH1* hD0Diff = 0;
+    TH1* hDXYDiff = 0;
+    TH1* hDZDiff = 0;
 
     //2D distribution
     TH2* hTwoPtVsOnePt = 0;

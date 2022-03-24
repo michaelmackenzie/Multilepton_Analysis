@@ -29,6 +29,53 @@
 #include <TStyle.h>
 using namespace CLFV;
 
+
+//--------------------------------------------------------------------------------------------------------------
+CLFVHistMaker::CLFVHistMaker(int seed, TTree * /*tree*/) : fSystematicSeed(seed),
+                                                           fMuonJetToTauWeight("MuonWeight", "mutau", 31, 1200100, seed, 0),
+                                                           fMuonJetToTauMCWeight("MuonMCWeight", "mutau", 35, 1000002, seed, 0),
+                                                           // fMuonJetToTauWeight("MuonWeight", "mumu", 7, 1100, seed, 1),
+                                                           // fMuonJetToTauMCWeight("MuonMCWeight", "mutau", 35, 1000102, seed, 1),
+                                                           fMuonJetToTauComp("mutau", 2035, 102, 0), fMuonJetToTauSSComp("mutau", 3035, 102, 0),
+                                                           fElectronJetToTauWeight("ElectronWeight", "etau", 31, 1000100, seed),
+                                                           fElectronJetToTauComp("etau", 2035, 102, 0), fElectronJetToTauSSComp("etau", 3035, 102, 0),
+                                                           fJetToMuonWeight("mumu"), fJetToElectronWeight("ee"),
+                                                           fQCDWeight("emu", /*11010*/ 1100200/*anti-iso, jet binned, no fits*/, seed, 0),
+                                                           fElectronIDWeight(1, seed, 0), fZPtWeight("MuMu", seed),
+                                                           fEmbeddingWeight(), fEmbeddingTnPWeight(11/*10*(use 2016 BF/GH scales) + 1*(interpolate scales or not)*/) {
+
+  //ensure pointers set to null to not attempt to delete if never initialized
+  fCutFlow = nullptr;
+  for(int i = 0; i < fn; i++) {
+    fEventHist     [i] = nullptr;
+    fLepHist       [i] = nullptr;
+    fSystematicHist[i] = nullptr;
+  }
+  for(int proc = 0; proc < JetToTauComposition::kLast; ++proc) {
+    fMuonJetToTauWeights    [proc] = nullptr;
+    fElectronJetToTauWeights[proc] = nullptr;
+  }
+  fRnd = nullptr;
+  fSystematicShifts = nullptr;
+  for(int i = 0; i <kIds; ++i) fEventId[i] = nullptr;
+}
+
+//--------------------------------------------------------------------------------------------------------------
+CLFVHistMaker::~CLFVHistMaker() {
+  if(fCutFlow) delete fCutFlow;
+  for(int proc = 0; proc < JetToTauComposition::kLast; ++proc) {
+    if(fMuonJetToTauWeights    [proc]) delete fMuonJetToTauWeights    [proc];
+    if(fElectronJetToTauWeights[proc]) delete fElectronJetToTauWeights[proc];
+  }
+  DeleteHistograms();
+
+  if (fTauIDWeight     ) delete fTauIDWeight     ;
+  if (fSystematicShifts) delete fSystematicShifts;
+  if (fRnd             ) delete fRnd             ;
+  for(int i = 0; i <kIds; ++i) {if(fEventId[i]) delete fEventId[i];}
+}
+
+//--------------------------------------------------------------------------------------------------------------
 void CLFVHistMaker::Begin(TTree * /*tree*/)
 {
   // The Begin() function is called at the start of the query.
@@ -44,17 +91,17 @@ void CLFVHistMaker::Begin(TTree * /*tree*/)
   fBTagWeight.verbose_ = fVerbose;
   fCutFlow = new TH1D("hcutflow", "Cut-flow", 100, 0, 100);
 
-  fMuonJetToTauWeights[JetToTauComposition::kWJets] = new JetToTauWeight("MuonWJets", "mutau",   31,  301300, fSystematicSeed, 0);
-  fMuonJetToTauWeights[JetToTauComposition::kZJets] = new JetToTauWeight("MuonZJets", "mutau",   31,  301300, fSystematicSeed, 0);
-  fMuonJetToTauWeights[JetToTauComposition::kTop  ] = new JetToTauWeight("MuonTop"  , "mutau",   38, 1101302, fSystematicSeed, 0);
-  fMuonJetToTauWeights[JetToTauComposition::kQCD  ] = new JetToTauWeight("MuonQCD"  , "mutau", 1030,  101300, fSystematicSeed, 0);
-  // fMuonJetToTauWeights[JetToTauComposition::kTop  ] = new JetToTauWeight("MuonTop"  , "mutau",   32, 1100300, fSystematicSeed, 0);
+  fMuonJetToTauWeights    [JetToTauComposition::kWJets] = new JetToTauWeight("MuonWJets"    , "mutau",   31,  301300, fSystematicSeed, 0);
+  fMuonJetToTauWeights    [JetToTauComposition::kZJets] = new JetToTauWeight("MuonZJets"    , "mutau",   31,  301300, fSystematicSeed, 0);
+  fMuonJetToTauWeights    [JetToTauComposition::kTop  ] = new JetToTauWeight("MuonTop"      , "mutau",   38, 1101302, fSystematicSeed, 0);
+  fMuonJetToTauWeights    [JetToTauComposition::kQCD  ] = new JetToTauWeight("MuonQCD"      , "mutau", 1030,  101300, fSystematicSeed, 0);
+  // fMuonJetToTauWeights    [JetToTauComposition::kTop  ] = new JetToTauWeight("MuonTop"      , "mutau",   32, 1100300, fSystematicSeed, 0);
 
-  fElectronJetToTauWeights[JetToTauComposition::kWJets] = new JetToTauWeight("ElectronWJets", "etau",   31,  301300, fSystematicSeed, 0);
-  fElectronJetToTauWeights[JetToTauComposition::kZJets] = new JetToTauWeight("ElectronZJets", "etau",   31,  301300, fSystematicSeed, 0);
-  fElectronJetToTauWeights[JetToTauComposition::kTop  ] = new JetToTauWeight("ElectronTop"  , "etau",   38, 1101302, fSystematicSeed, 0);
-  fElectronJetToTauWeights[JetToTauComposition::kQCD  ] = new JetToTauWeight("ElectronQCD"  , "etau", 1030,  101300, fSystematicSeed, 0);
-  // fElectronJetToTauWeights[JetToTauComposition::kTop  ] = new JetToTauWeight("ElectronTop"  , "etau",   32, 1100300, fSystematicSeed, 0);
+  fElectronJetToTauWeights[JetToTauComposition::kWJets] = new JetToTauWeight("ElectronWJets", "etau" ,   31,  301300, fSystematicSeed, 0);
+  fElectronJetToTauWeights[JetToTauComposition::kZJets] = new JetToTauWeight("ElectronZJets", "etau" ,   31,  301300, fSystematicSeed, 0);
+  fElectronJetToTauWeights[JetToTauComposition::kTop  ] = new JetToTauWeight("ElectronTop"  , "etau" ,   38, 1101302, fSystematicSeed, 0);
+  fElectronJetToTauWeights[JetToTauComposition::kQCD  ] = new JetToTauWeight("ElectronQCD"  , "etau" , 1030,  101300, fSystematicSeed, 0);
+  // fElectronJetToTauWeights[JetToTauComposition::kTop  ] = new JetToTauWeight("ElectronTop"  , "etau" ,   32, 1100300, fSystematicSeed, 0);
 
   fTauIDWeight = new TauIDWeight(fIsEmbed, fVerbose);
 
@@ -108,6 +155,7 @@ void CLFVHistMaker::Begin(TTree * /*tree*/)
 
 }
 
+//--------------------------------------------------------------------------------------------------------------
 void CLFVHistMaker::SlaveBegin(TTree * /*tree*/)
 {
   // The SlaveBegin() function is called after the Begin() function.
@@ -119,6 +167,7 @@ void CLFVHistMaker::SlaveBegin(TTree * /*tree*/)
 
 }
 
+//--------------------------------------------------------------------------------------------------------------
 void CLFVHistMaker::FillAllHistograms(Int_t index) {
   if(fEventSets [index]) {
     FillEventHistogram( fEventHist [index]);
@@ -134,6 +183,7 @@ void CLFVHistMaker::FillAllHistograms(Int_t index) {
     fTrees[index]->Fill();
 }
 
+//--------------------------------------------------------------------------------------------------------------
 void CLFVHistMaker::BookHistograms() {
   BookEventHistograms();
   BookLepHistograms();
@@ -142,6 +192,7 @@ void CLFVHistMaker::BookHistograms() {
   if(fDoSystematics) BookSystematicHistograms();
 }
 
+//--------------------------------------------------------------------------------------------------------------
 void CLFVHistMaker::BookEventHistograms() {
   for(int i = 0; i < fQcdOffset; ++i) {
     if(fEventSets[i]) { //turn on all offset histogram sets
@@ -154,73 +205,59 @@ void CLFVHistMaker::BookEventHistograms() {
     if(fEventSets[i] != 0) {
       char* dirname        = new char[20];
       sprintf(dirname,"event_%i",i);
-      fDirectories[0*fn + i] = fTopDir->mkdir(dirname);
-      fDirectories[0*fn + i]->cd();
+      TDirectory* folder = fTopDir->mkdir(dirname);
+      fDirectories[0*fn + i] = folder;
+      folder->cd();
       fEventHist[i] = new EventHist_t;
-      // fEventHist[i]->hLumiSection            = new TH1D("lumiSection"         , Form("%s: LumiSection"         ,dirname)  , 200,    0, 4e6);
-      // fEventHist[i]->hTriggerStatus          = new TH1D("triggerStatus"       , Form("%s: TriggerStatus"       ,dirname)  ,   3, -1.5, 1.5);
-      fEventHist[i]->hEventWeight            = new TH1F("eventweight"         , Form("%s: EventWeight"         ,dirname)  , 100,   -1,   3);
-      fEventHist[i]->hLogEventWeight         = new TH1F("logeventweight"      , Form("%s: LogEventWeight"      ,dirname)  , 100,  -10,   1);
-      fEventHist[i]->hEventWeightMVA         = new TH1F("eventweightmva"      , Form("%s: EventWeightMVA"      ,dirname)  , 100,   -5,   5);
-      fEventHist[i]->hGenWeight              = new TH1D("genweight"           , Form("%s: GenWeight"           ,dirname)  ,   5, -2.5, 2.5);
-      fEventHist[i]->hFullEventWeightLum     = new TH1F("fulleventweightlum"  , Form("%s: abs(FullEventWeightLum)",dirname)  , 500, 0, 15);
-      fEventHist[i]->hLogFullEventWeightLum  = new TH1F("logfulleventweightlum", Form("%s: log(abs(FullEventWeightLum))",dirname)  , 100, -10, 2);
-      // fEventHist[i]->hGenTauFlavorWeight     = new TH1D("gentauflavorweight"  , Form("%s: GenTauFlavorWeight"  ,dirname)  ,  40,    0,   2);
-      fEventHist[i]->hEmbeddingWeight        = new TH1F("embeddingweight"     , Form("%s: EmbeddingWeight"     ,dirname)  , 100,    0,   0.5);
-      fEventHist[i]->hLogEmbeddingWeight     = new TH1F("logembeddingweight"  , Form("%s: Log10(EmbeddingWeight)" ,dirname), 40,   -9,   1);
-      fEventHist[i]->hEmbeddingUnfoldingWeight = new TH1F("embeddingunfoldingweight", Form("%s: EmbeddingUnfoldingWeight"     ,dirname), 50,    0,   2);
-      // fEventHist[i]->hPhotonIDWeight         = new TH1F("photonidweight"      , Form("%s: PhotonIDWeight"      ,dirname)  ,  40,    0,   2);
-      fEventHist[i]->hJetToTauWeight         = new TH1F("jettotauweight"      , Form("%s: JetToTauWeight"      ,dirname)  ,  40,  0,   2);
+      // fEventHist[i]->hLumiSection            = new TH1F("lumiSection"         , Form("%s: LumiSection"         ,dirname)  , 200,    0, 4e6);
+      Utilities::BookH1F(fEventHist[i]->hEventWeight             , "eventweight"             , Form("%s: EventWeight"                 ,dirname), 100,   -1,   3, folder);
+      Utilities::BookH1F(fEventHist[i]->hLogEventWeight          , "logeventweight"          , Form("%s: LogEventWeight"              ,dirname), 100,  -10,   1, folder);
+      Utilities::BookH1F(fEventHist[i]->hEventWeightMVA          , "eventweightmva"          , Form("%s: EventWeightMVA"              ,dirname), 100,   -5,   5, folder);
+      Utilities::BookH1D(fEventHist[i]->hGenWeight               , "genweight"               , Form("%s: GenWeight"                   ,dirname),   5, -2.5, 2.5, folder);
+      Utilities::BookH1F(fEventHist[i]->hFullEventWeightLum      , "fulleventweightlum"      , Form("%s: abs(FullEventWeightLum)"     ,dirname), 500,    0,  15, folder);
+      Utilities::BookH1F(fEventHist[i]->hLogFullEventWeightLum   , "logfulleventweightlum"   , Form("%s: log(abs(FullEventWeightLum))",dirname), 100,  -10,   2, folder);
+      Utilities::BookH1F(fEventHist[i]->hEmbeddingWeight         , "embeddingweight"         , Form("%s: EmbeddingWeight"             ,dirname), 100,    0, 0.5, folder);
+      Utilities::BookH1F(fEventHist[i]->hLogEmbeddingWeight      , "logembeddingweight"      , Form("%s: Log10(EmbeddingWeight)"      ,dirname),  40,   -9,   1, folder);
+      Utilities::BookH1F(fEventHist[i]->hEmbeddingUnfoldingWeight, "embeddingunfoldingweight", Form("%s: EmbeddingUnfoldingWeight"    ,dirname),  50,    0,   2, folder);
+      Utilities::BookH1F(fEventHist[i]->hJetToTauWeight          , "jettotauweight"          , Form("%s: JetToTauWeight"              ,dirname),  40,    0,   2, folder);
       int jstart = SystematicGrouping::kJetToTau;
-      fEventHist[i]->hJetToTauWeightGroup    = new TH1D("jettotauweightgroup" , Form("%s: JetToTauWeightGroup" ,dirname)  ,  50, jstart, 50+jstart);
-      fEventHist[i]->hJetToTauWeightCorr     = new TH1F("jettotauweightcorr"  , Form("%s: JetToTauWeightCorr"  ,dirname)  ,  50,  0,   5);
+      Utilities::BookH1F(fEventHist[i]->hJetToTauWeightGroup     , "jettotauweightgroup"     , Form("%s: JetToTauWeightGroup"         ,dirname),  50, jstart, 50+jstart, folder);
+      Utilities::BookH1F(fEventHist[i]->hJetToTauWeightCorr      , "jettotauweightcorr"      , Form("%s: JetToTauWeightCorr"          ,dirname),  50,    0,   5, folder);
       for(int ji = 0; ji < JetToTauComposition::kLast; ++ji) {
-        fEventHist[i]->hJetToTauComps[ji] = new TH1F(Form("jettotaucomps_%i", ji), Form("%s: JetToTauComps %i",dirname, ji),  50,  0, 2);
-        fEventHist[i]->hJetToTauWts  [ji] = new TH1F(Form("jettotauwts_%i"  , ji), Form("%s: JetToTauWts %i"  ,dirname, ji),  50,  0, 2);
+        Utilities::BookH1F(fEventHist[i]->hJetToTauComps[ji]     , Form("jettotaucomps_%i", ji), Form("%s: JetToTauComps %i"      ,dirname, ji),  50,    0,   2, folder);
+        Utilities::BookH1F(fEventHist[i]->hJetToTauWts  [ji]     , Form("jettotauwts_%i"  , ji), Form("%s: JetToTauWts %i"        ,dirname, ji),  50,    0,   2, folder);
       }
-      fEventHist[i]->hIsSignal               = new TH1D("issignal"            , Form("%s: IsSignal"            ,dirname)  ,   5, -2,   3);
-      fEventHist[i]->hNPV[0]                 = new TH1F("npv"                 , Form("%s: NPV"                 ,dirname)  , 100,  0, 200);
-      fEventHist[i]->hNPV[1]                 = new TH1F("npv1"                , Form("%s: NPV"                 ,dirname)  , 100,  0, 200);
-      fEventHist[i]->hNPU[0]                 = new TH1F("npu"                 , Form("%s: NPU"                 ,dirname)  ,  50,  0, 100);
-      fEventHist[i]->hNPU[1]                 = new TH1F("npu1"                , Form("%s: NPU"                 ,dirname)  ,  50,  0, 100);
-      fEventHist[i]->hNPartons               = new TH1D("npartons"            , Form("%s: NPartons"            ,dirname)  ,  10,  0,  10);
-      fEventHist[i]->hLHENJets               = new TH1D("lhenjets"            , Form("%s: LHE N(jets)"         ,dirname)  ,  10,  0,  10);
-      fEventHist[i]->hNMuons                 = new TH1D("nmuons"              , Form("%s: NMuons"              ,dirname)  ,  10,  0,  10);
-      // fEventHist[i]->hNSlimMuons             = new TH1D("nslimmuons"          , Form("%s: NSlimMuons"          ,dirname)  ,  10,  0,  10);
-      // for(int icount = 0; icount < kMaxCounts; ++icount)
-      //        fEventHist[i]->hNMuonCounts[icount]  = new TH1D(Form("nmuoncounts%i",icount), Form("%s: NMuonCounts %i",dirname,icount),  10,  0,  10);
-      fEventHist[i]->hNElectrons             = new TH1D("nelectrons"          , Form("%s: NElectrons"          ,dirname)  ,  10,  0,  10);
-      // fEventHist[i]->hNSlimElectrons         = new TH1D("nslimelectrons"      , Form("%s: NSlimElectrons"      ,dirname)  ,  10,  0,  10);
-      // for(int icount = 0; icount < kMaxCounts; ++icount)
-      //        fEventHist[i]->hNElectronCounts[icount]= new TH1D(Form("nelectroncounts%i",icount), Form("%s: NElectronCounts %i",dirname,icount),  10,  0,  10);
-      // fEventHist[i]->hNLowPtElectrons        = new TH1D("nlowptelectrons"     , Form("%s: NLowPtElectrons"     ,dirname)  ,  10,  0,  10);
-      fEventHist[i]->hNTaus                  = new TH1D("ntaus"               , Form("%s: NTaus"               ,dirname)  ,  10,  0,  10);
-      // fEventHist[i]->hNSlimTaus              = new TH1D("nslimtaus"           , Form("%s: NSlimTaus"           ,dirname)  ,  10,  0,  10);
-      // for(int icount = 0; icount < kMaxCounts; ++icount)
-      //        fEventHist[i]->hNTauCounts[icount]   = new TH1D(Form("ntaucounts%i",icount), Form("%s: NTauCounts %i",dirname,icount),  10,  0,  10);
-      // fEventHist[i]->hNSlimPhotons           = new TH1D("nslimphotons"        , Form("%s: NSlimPhotons"        ,dirname)  ,  20,  0,  20);
-      fEventHist[i]->hNPhotons               = new TH1D("nphotons"            , Form("%s: NPhotons"            ,dirname)  ,  10,  0,  10);
-      fEventHist[i]->hNGenTausHad            = new TH1D("ngentaushad"         , Form("%s: NGenTausHad"         ,dirname)  ,  10,  0,  10);
-      fEventHist[i]->hNGenTausLep            = new TH1D("ngentauslep"         , Form("%s: NGenTausLep"         ,dirname)  ,  10,  0,  10);
-      fEventHist[i]->hNGenTaus               = new TH1D("ngentaus"            , Form("%s: NGenTaus"            ,dirname)  ,  10,  0,  10);
-      fEventHist[i]->hNGenElectrons          = new TH1D("ngenelectrons"       , Form("%s: NGenElectrons"       ,dirname)  ,  10,  0,  10);
-      fEventHist[i]->hNGenMuons              = new TH1D("ngenmuons"           , Form("%s: NGenMuons"           ,dirname)  ,  10,  0,  10);
-      // fEventHist[i]->hNSlimJets              = new TH1D("nslimjets"           , Form("%s: NSlimJets"           ,dirname)  ,  30,  0,  30);
-      fEventHist[i]->hNJets                  = new TH1D("njets"               , Form("%s: NJets"               ,dirname)  ,  10,  0,  10);
-      fEventHist[i]->hNJets20[0]             = new TH1D("njets20"             , Form("%s: NJets20"             ,dirname)  ,  10,  0,  10);
-      fEventHist[i]->hNJets20[1]             = new TH1D("njets201"            , Form("%s: NJets20"             ,dirname)  ,  10,  0,  10);
-      fEventHist[i]->hNJets20Rej[0]          = new TH1D("njets20rej"          , Form("%s: NJets20Rej"          ,dirname)  ,  10,  0,  10);
-      fEventHist[i]->hNJets20Rej[1]          = new TH1D("njets20rej1"         , Form("%s: NJets20Rej"          ,dirname)  ,  10,  0,  10);
-      fEventHist[i]->hNFwdJets               = new TH1D("nfwdjets"            , Form("%s: NFwdJets"            ,dirname)  ,  10,  0,  10);
-      fEventHist[i]->hNBJets                 = new TH1D("nbjets"              , Form("%s: NBJets"              ,dirname)  ,  10,  0,  10);
-      fEventHist[i]->hNBJetsM                = new TH1D("nbjetsm"             , Form("%s: NBJetsM"             ,dirname)  ,  10,  0,  10);
-      fEventHist[i]->hNBJetsL                = new TH1D("nbjetsl"             , Form("%s: NBJetsL"             ,dirname)  ,  10,  0,  10);
-      fEventHist[i]->hNBJets20[0]            = new TH1D("nbjets20"            , Form("%s: NBJets20"            ,dirname)  ,  10,  0,  10);
-      fEventHist[i]->hNBJets20M[0]           = new TH1D("nbjets20m"           , Form("%s: NBJets20M"           ,dirname)  ,  10,  0,  10);
-      fEventHist[i]->hNBJets20L[0]           = new TH1D("nbjets20l"           , Form("%s: NBJets20L"           ,dirname)  ,  10,  0,  10);
-      fEventHist[i]->hNBJets20[1]            = new TH1D("nbjets201"           , Form("%s: NBJets20"            ,dirname)  ,  10,  0,  10);
-      fEventHist[i]->hNBJets20M[1]           = new TH1D("nbjets20m1"          , Form("%s: NBJets20M"           ,dirname)  ,  10,  0,  10);
-      fEventHist[i]->hNBJets20L[1]           = new TH1D("nbjets20l1"          , Form("%s: NBJets20L"           ,dirname)  ,  10,  0,  10);
+      Utilities::BookH1D(fEventHist[i]->hIsSignal                , "issignal"                , Form("%s: IsSignal"                    ,dirname),   5,   -2,   3, folder);
+      Utilities::BookH1F(fEventHist[i]->hNPV[0]                  , "npv"                     , Form("%s: NPV"                         ,dirname), 100,    0, 200, folder);
+      Utilities::BookH1F(fEventHist[i]->hNPV[1]                  , "npv1"                    , Form("%s: NPV"                         ,dirname), 100,    0, 200, folder);
+      Utilities::BookH1F(fEventHist[i]->hNPU[0]                  , "npu"                     , Form("%s: NPU"                         ,dirname),  50,    0, 100, folder);
+      Utilities::BookH1F(fEventHist[i]->hNPU[1]                  , "npu1"                    , Form("%s: NPU"                         ,dirname),  50,    0, 100, folder);
+      Utilities::BookH1D(fEventHist[i]->hNPartons                , "npartons"                , Form("%s: NPartons"                    ,dirname),  10,    0,  10, folder);
+      Utilities::BookH1D(fEventHist[i]->hLHENJets                , "lhenjets"                , Form("%s: LHE N(jets)"                 ,dirname),  10,    0,  10, folder);
+      Utilities::BookH1D(fEventHist[i]->hNMuons                  , "nmuons"                  , Form("%s: NMuons"                      ,dirname),  10,    0,  10, folder);
+      Utilities::BookH1D(fEventHist[i]->hNElectrons              , "nelectrons"              , Form("%s: NElectrons"                  ,dirname),  10,    0,  10, folder);
+      Utilities::BookH1D(fEventHist[i]->hNTaus                   , "ntaus"                   , Form("%s: NTaus"                       ,dirname),  10,    0,  10, folder);
+      Utilities::BookH1D(fEventHist[i]->hNPhotons                , "nphotons"                , Form("%s: NPhotons"                    ,dirname),  10,    0,  10, folder);
+      Utilities::BookH1D(fEventHist[i]->hNGenTausHad             , "ngentaushad"             , Form("%s: NGenTausHad"                 ,dirname),  10,    0,  10, folder);
+      Utilities::BookH1D(fEventHist[i]->hNGenTausLep             , "ngentauslep"             , Form("%s: NGenTausLep"                 ,dirname),  10,    0,  10, folder);
+      Utilities::BookH1D(fEventHist[i]->hNGenTaus                , "ngentaus"                , Form("%s: NGenTaus"                    ,dirname),  10,    0,  10, folder);
+      Utilities::BookH1D(fEventHist[i]->hNGenElectrons           , "ngenelectrons"           , Form("%s: NGenElectrons"               ,dirname),  10,    0,  10, folder);
+      Utilities::BookH1D(fEventHist[i]->hNGenMuons               , "ngenmuons"               , Form("%s: NGenMuons"                   ,dirname),  10,    0,  10, folder);
+      Utilities::BookH1D(fEventHist[i]->hNJets                   , "njets"                   , Form("%s: NJets"                       ,dirname),  10,    0,  10, folder);
+      Utilities::BookH1D(fEventHist[i]->hNJets20[0]              , "njets20"                 , Form("%s: NJets20"                     ,dirname),  10,    0,  10, folder);
+      Utilities::BookH1D(fEventHist[i]->hNJets20[1]              , "njets201"                , Form("%s: NJets20"                     ,dirname),  10,    0,  10, folder);
+      Utilities::BookH1D(fEventHist[i]->hNJets20Rej[0]           , "njets20rej"              , Form("%s: NJets20Rej"                  ,dirname),  10,    0,  10, folder);
+      Utilities::BookH1D(fEventHist[i]->hNJets20Rej[1]           , "njets20rej1"             , Form("%s: NJets20Rej"                  ,dirname),  10,    0,  10, folder);
+      Utilities::BookH1D(fEventHist[i]->hNFwdJets                , "nfwdjets"                , Form("%s: NFwdJets"                    ,dirname),  10,    0,  10, folder);
+      Utilities::BookH1D(fEventHist[i]->hNBJets                  , "nbjets"                  , Form("%s: NBJets"                      ,dirname),  10,    0,  10, folder);
+      Utilities::BookH1D(fEventHist[i]->hNBJetsM                 , "nbjetsm"                 , Form("%s: NBJetsM"                     ,dirname),  10,    0,  10, folder);
+      Utilities::BookH1D(fEventHist[i]->hNBJetsL                 , "nbjetsl"                 , Form("%s: NBJetsL"                     ,dirname),  10,    0,  10, folder);
+      Utilities::BookH1D(fEventHist[i]->hNBJets20[0]             , "nbjets20"                , Form("%s: NBJets20"                    ,dirname),  10,    0,  10, folder);
+      Utilities::BookH1D(fEventHist[i]->hNBJets20M[0]            , "nbjets20m"               , Form("%s: NBJets20M"                   ,dirname),  10,    0,  10, folder);
+      Utilities::BookH1D(fEventHist[i]->hNBJets20L[0]            , "nbjets20l"               , Form("%s: NBJets20L"                   ,dirname),  10,    0,  10, folder);
+      Utilities::BookH1D(fEventHist[i]->hNBJets20[1]             , "nbjets201"               , Form("%s: NBJets20"                    ,dirname),  10,    0,  10, folder);
+      Utilities::BookH1D(fEventHist[i]->hNBJets20M[1]            , "nbjets20m1"              , Form("%s: NBJets20M"                   ,dirname),  10,    0,  10, folder);
+      Utilities::BookH1D(fEventHist[i]->hNBJets20L[1]            , "nbjets20l1"              , Form("%s: NBJets20L"                   ,dirname),  10,    0,  10, folder);
 
       // fEventHist[i]->hJetsFlavor             = new TH1D("jetsflavor"          , Form("%s: JetsFlavor"          ,dirname)  ,  60, -10,  50);
       int njetspt = 6;
@@ -233,53 +270,42 @@ void CLFVHistMaker::BookEventHistograms() {
                           2.   ,
                           2.5};
 
-      fEventHist[i]->hJetsPtVsEta[0]         = new TH2F("jetsptvseta0"        , Form("%s: Jet pT vs eta [0]"   ,dirname),  njetseta, jetseta, njetspt, jetspt);
-      fEventHist[i]->hJetsPtVsEta[1]         = new TH2F("jetsptvseta1"        , Form("%s: Jet pT vs eta [1]"   ,dirname),  njetseta, jetseta, njetspt, jetspt);
-      fEventHist[i]->hJetsPtVsEta[2]         = new TH2F("jetsptvseta2"        , Form("%s: Jet pT vs eta [2]"   ,dirname),  njetseta, jetseta, njetspt, jetspt);
-      fEventHist[i]->hBJetsPtVsEta[0]        = new TH2F("bjetsptvseta0"       , Form("%s: Jet pT vs eta [0]"   ,dirname),  njetseta, jetseta, njetspt, jetspt);
-      fEventHist[i]->hBJetsPtVsEta[1]        = new TH2F("bjetsptvseta1"       , Form("%s: Jet pT vs eta [1]"   ,dirname),  njetseta, jetseta, njetspt, jetspt);
-      fEventHist[i]->hBJetsPtVsEta[2]        = new TH2F("bjetsptvseta2"       , Form("%s: Jet pT vs eta [2]"   ,dirname),  njetseta, jetseta, njetspt, jetspt);
-      fEventHist[i]->hBJetsMPtVsEta[0]       = new TH2F("bjetsmptvseta0"      , Form("%s: Jet pT vs eta [0]"   ,dirname),  njetseta, jetseta, njetspt, jetspt);
-      fEventHist[i]->hBJetsMPtVsEta[1]       = new TH2F("bjetsmptvseta1"      , Form("%s: Jet pT vs eta [1]"   ,dirname),  njetseta, jetseta, njetspt, jetspt);
-      fEventHist[i]->hBJetsMPtVsEta[2]       = new TH2F("bjetsmptvseta2"      , Form("%s: Jet pT vs eta [2]"   ,dirname),  njetseta, jetseta, njetspt, jetspt);
-      fEventHist[i]->hBJetsLPtVsEta[0]       = new TH2F("bjetslptvseta0"      , Form("%s: Jet pT vs eta [0]"   ,dirname),  njetseta, jetseta, njetspt, jetspt);
-      fEventHist[i]->hBJetsLPtVsEta[1]       = new TH2F("bjetslptvseta1"      , Form("%s: Jet pT vs eta [1]"   ,dirname),  njetseta, jetseta, njetspt, jetspt);
-      fEventHist[i]->hBJetsLPtVsEta[2]       = new TH2F("bjetslptvseta2"      , Form("%s: Jet pT vs eta [2]"   ,dirname),  njetseta, jetseta, njetspt, jetspt);
+      Utilities::BookH2F(fEventHist[i]->hJetsPtVsEta[0]  , "jetsptvseta0"        , Form("%s: Jet pT vs eta [0]"   ,dirname),  njetseta, jetseta, njetspt, jetspt, folder);
+      Utilities::BookH2F(fEventHist[i]->hJetsPtVsEta[1]  , "jetsptvseta1"        , Form("%s: Jet pT vs eta [1]"   ,dirname),  njetseta, jetseta, njetspt, jetspt, folder);
+      Utilities::BookH2F(fEventHist[i]->hJetsPtVsEta[2]  , "jetsptvseta2"        , Form("%s: Jet pT vs eta [2]"   ,dirname),  njetseta, jetseta, njetspt, jetspt, folder);
+      Utilities::BookH2F(fEventHist[i]->hBJetsPtVsEta[0] , "bjetsptvseta0"       , Form("%s: Jet pT vs eta [0]"   ,dirname),  njetseta, jetseta, njetspt, jetspt, folder);
+      Utilities::BookH2F(fEventHist[i]->hBJetsPtVsEta[1] , "bjetsptvseta1"       , Form("%s: Jet pT vs eta [1]"   ,dirname),  njetseta, jetseta, njetspt, jetspt, folder);
+      Utilities::BookH2F(fEventHist[i]->hBJetsPtVsEta[2] , "bjetsptvseta2"       , Form("%s: Jet pT vs eta [2]"   ,dirname),  njetseta, jetseta, njetspt, jetspt, folder);
+      Utilities::BookH2F(fEventHist[i]->hBJetsMPtVsEta[0], "bjetsmptvseta0"      , Form("%s: Jet pT vs eta [0]"   ,dirname),  njetseta, jetseta, njetspt, jetspt, folder);
+      Utilities::BookH2F(fEventHist[i]->hBJetsMPtVsEta[1], "bjetsmptvseta1"      , Form("%s: Jet pT vs eta [1]"   ,dirname),  njetseta, jetseta, njetspt, jetspt, folder);
+      Utilities::BookH2F(fEventHist[i]->hBJetsMPtVsEta[2], "bjetsmptvseta2"      , Form("%s: Jet pT vs eta [2]"   ,dirname),  njetseta, jetseta, njetspt, jetspt, folder);
+      Utilities::BookH2F(fEventHist[i]->hBJetsLPtVsEta[0], "bjetslptvseta0"      , Form("%s: Jet pT vs eta [0]"   ,dirname),  njetseta, jetseta, njetspt, jetspt, folder);
+      Utilities::BookH2F(fEventHist[i]->hBJetsLPtVsEta[1], "bjetslptvseta1"      , Form("%s: Jet pT vs eta [1]"   ,dirname),  njetseta, jetseta, njetspt, jetspt, folder);
+      Utilities::BookH2F(fEventHist[i]->hBJetsLPtVsEta[2], "bjetslptvseta2"      , Form("%s: Jet pT vs eta [2]"   ,dirname),  njetseta, jetseta, njetspt, jetspt, folder);
 
-      // fEventHist[i]->hMcEra                  = new TH1D("mcera"               , Form("%s: McEra"               ,dirname) ,   5,   0,  5);
-      fEventHist[i]->hTriggerLeptonStatus    = new TH1D("triggerleptonstatus" , Form("%s: TriggerLeptonStatus" ,dirname) ,  10,   0, 10);
-      fEventHist[i]->hMuonTriggerStatus      = new TH1D("muontriggerstatus"   , Form("%s: MuonTriggerStatus"   ,dirname) ,  10,   0, 10);
-      fEventHist[i]->hNTriggered             = new TH1D("ntriggered"          , Form("%s: NTriggered"          ,dirname) ,   5,   0,  5);
-      fEventHist[i]->hPuWeight               = new TH1F("puweight"            , Form("%s: PuWeight"            ,dirname) , 100,   0,  2);
-      fEventHist[i]->hJetPUIDWeight          = new TH1F("jetpuidweight"       , Form("%s: JetPUIDWeight"       ,dirname) ,  50,   0,  2);
-      fEventHist[i]->hPrefireWeight          = new TH1D("prefireweight"       , Form("%s: PrefireWeight"       ,dirname) ,  50,   0,  2);
-      // fEventHist[i]->hTopPtWeight            = new TH1F("topptweight"         , Form("%s: TopPtWeight"         ,dirname) , 200,   0,  2);
-      fEventHist[i]->hBTagWeight             = new TH1F("btagweight"          , Form("%s: BTagWeight"          ,dirname) , 100,   0,  2);
-      fEventHist[i]->hZPtWeight              = new TH1F("zptweight"           , Form("%s: ZPtWeight"           ,dirname) , 100,   0,  2);
-      fEventHist[i]->hTauDecayMode[0]        = new TH1D("taudecaymode"        , Form("%s: TauDecayMode"        ,dirname) ,  15,   0, 15);
-      fEventHist[i]->hTauDecayMode[1]        = new TH1D("taudecaymode1"       , Form("%s: TauDecayMode"        ,dirname) ,  15,   0, 15);
-      // fEventHist[i]->hTauMVA                 = new TH1F("taumva"              , Form("%s: TauMVA"              ,dirname) , 100,   0,  1);
-      fEventHist[i]->hTauGenFlavor           = new TH1D("taugenflavor"        , Form("%s: TauGenFlavor"        ,dirname) ,  50,   0, 50);
-      // fEventHist[i]->hTauGenFlavorHad        = new TH1D("taugenflavorhad"     , Form("%s: TauGenFlavorHad"     ,dirname) ,  50,   0, 50);
-      fEventHist[i]->hTauDeepAntiEle         = new TH1D("taudeepantiele"      , Form("%s: TauDeepAntiEle"      ,dirname) ,   30,  0, 30);
-      fEventHist[i]->hTauDeepAntiMu          = new TH1D("taudeepantimu"       , Form("%s: TauDeepAntiMu"       ,dirname) ,   30,  0, 30);
-      fEventHist[i]->hTauDeepAntiJet         = new TH1D("taudeepantijet"      , Form("%s: TauDeepAntiJet"      ,dirname) ,   30,  0, 30);
-      // fEventHist[i]->hTauVetoedJetPt      = new TH1F("tauvetoedjetpt"      , Form("%s: TauVetoedJetPt"      ,dirname) , 210, -10,200);
-      // fEventHist[i]->hTauVetoedJetPtUnc           = new TH1F("tauvetoedjetptunc"   , Form("%s: TauVetoedJetPtUnc"   ,dirname) , 110,  -1, 10);
+      Utilities::BookH1D(fEventHist[i]->hMcEra              , "mcera"               , Form("%s: McEra"               ,dirname) ,   5,   0,   5, folder);
+      Utilities::BookH1D(fEventHist[i]->hTriggerLeptonStatus, "triggerleptonstatus" , Form("%s: TriggerLeptonStatus" ,dirname),  10,    0,  10, folder);
+      Utilities::BookH1D(fEventHist[i]->hMuonTriggerStatus  , "muontriggerstatus"   , Form("%s: MuonTriggerStatus"   ,dirname),  10,    0,  10, folder);
+      Utilities::BookH1D(fEventHist[i]->hNTriggered         , "ntriggered"          , Form("%s: NTriggered"          ,dirname),   5,    0,   5, folder);
+      Utilities::BookH1F(fEventHist[i]->hPuWeight           , "puweight"            , Form("%s: PuWeight"            ,dirname), 100,    0,   2, folder);
+      Utilities::BookH1F(fEventHist[i]->hJetPUIDWeight      , "jetpuidweight"       , Form("%s: JetPUIDWeight"       ,dirname),  50,    0,   2, folder);
+      Utilities::BookH1D(fEventHist[i]->hPrefireWeight      , "prefireweight"       , Form("%s: PrefireWeight"       ,dirname),  50,    0,   2, folder);
+      Utilities::BookH1F(fEventHist[i]->hBTagWeight         , "btagweight"          , Form("%s: BTagWeight"          ,dirname), 100,    0,   2, folder);
+      Utilities::BookH1F(fEventHist[i]->hZPtWeight          , "zptweight"           , Form("%s: ZPtWeight"           ,dirname), 100,    0,   2, folder);
+      Utilities::BookH1D(fEventHist[i]->hTauDecayMode[0]    , "taudecaymode"        , Form("%s: TauDecayMode"        ,dirname),  15,    0,  15, folder);
+      Utilities::BookH1D(fEventHist[i]->hTauDecayMode[1]    , "taudecaymode1"       , Form("%s: TauDecayMode"        ,dirname),  15,    0,  15, folder);
+      Utilities::BookH1D(fEventHist[i]->hTauGenFlavor       , "taugenflavor"        , Form("%s: TauGenFlavor"        ,dirname),  50,    0,  50, folder);
+      Utilities::BookH1D(fEventHist[i]->hTauDeepAntiEle     , "taudeepantiele"      , Form("%s: TauDeepAntiEle"      ,dirname),  30,    0,  30, folder);
+      Utilities::BookH1D(fEventHist[i]->hTauDeepAntiMu      , "taudeepantimu"       , Form("%s: TauDeepAntiMu"       ,dirname),  30,    0,  30, folder);
+      Utilities::BookH1D(fEventHist[i]->hTauDeepAntiJet     , "taudeepantijet"      , Form("%s: TauDeepAntiJet"      ,dirname),  30,    0,  30, folder);
+      Utilities::BookH1F(fEventHist[i]->hJetPt[0]           , "jetpt"               , Form("%s: JetPt"               ,dirname), 100,    0, 200, folder);
+      Utilities::BookH1F(fEventHist[i]->hJetPt[1]           , "jetpt1"              , Form("%s: JetPt"               ,dirname), 100,    0, 200, folder);
+      Utilities::BookH1F(fEventHist[i]->hJetEta             , "jeteta"              , Form("%s: JetEta"              ,dirname), 100,   -5,   5, folder);
+      Utilities::BookH1F(fEventHist[i]->hTauPt              , "taupt"               , Form("%s: TauPt"               ,dirname), 100,    0, 200, folder);
+      Utilities::BookH1F(fEventHist[i]->hTauEta             , "taueta"              , Form("%s: TauEta"              ,dirname),  50, -2.5, 2.5, folder);
       // fEventHist[i]->hHtSum                  = new TH1F("htsum"               , Form("%s: HtSum"               ,dirname) , 200,   0,800);
       // fEventHist[i]->hHt                     = new TH1F("ht"                  , Form("%s: Ht"                  ,dirname) , 200,   0,800);
       // fEventHist[i]->hHtPhi                  = new TH1F("htphi"               , Form("%s: HtPhi"               ,dirname) , 100,  -4,  4);
-      fEventHist[i]->hJetPt[0]               = new TH1F("jetpt"               , Form("%s: JetPt"               ,dirname) , 100,   0, 200);
-      fEventHist[i]->hJetPt[1]               = new TH1F("jetpt1"              , Form("%s: JetPt"               ,dirname) , 100,   0, 200);
-      // fEventHist[i]->hJetM                   = new TH1F("jetm"                , Form("%s: JetM"                ,dirname)  , 150,   0, 300);
-      fEventHist[i]->hJetEta                 = new TH1F("jeteta"              , Form("%s: JetEta"              ,dirname)  , 100, -5,  5);
-      // fEventHist[i]->hJetPhi                 = new TH1F("jetphi"              , Form("%s: JetPhi"              ,dirname)  , 100,  -4,  4);
-      // fEventHist[i]->hJetBMVA                = new TH1F("jetbmva"             , Form("%s: JetBMVA"             ,dirname)  , 300, -1.,  2.);
-      // fEventHist[i]->hJetBTag                = new TH1D("jetbtag"             , Form("%s: JetBTag"             ,dirname)  ,   2,   0,   2);
-      fEventHist[i]->hTauPt                  = new TH1F("taupt"               , Form("%s: TauPt"               ,dirname)  , 100,   0, 200);
-      // fEventHist[i]->hTauM                   = new TH1F("taum"                , Form("%s: TauM"                ,dirname)  , 100,   0, 4.);
-      fEventHist[i]->hTauEta                 = new TH1F("taueta"              , Form("%s: TauEta"              ,dirname)  ,  50, -2.5,  2.5);
-      // fEventHist[i]->hTauPhi                 = new TH1F("tauphi"              , Form("%s: TauPhi"              ,dirname)  , 100,  -4,  4);
 
       // fEventHist[i]->hPFMet                  = new TH1F("pfmet"               , Form("%s: PF Met"              ,dirname)  , 200,  0, 400);
       // fEventHist[i]->hPFMetPhi               = new TH1F("pfmetphi"            , Form("%s: PF MetPhi"           ,dirname)  ,  80, -4,   4);
@@ -293,10 +319,10 @@ void CLFVHistMaker::BookEventHistograms() {
       // fEventHist[i]->hPuppCovMet11        = new TH1F("puppcovmet11"        , Form("%s: PUPPI CovMet11"      ,dirname) , 1000,    0.,1000.);
       // fEventHist[i]->hTrkMet                 = new TH1F("trkmet"              , Form("%s: Trk Met"             ,dirname)  , 200,  0, 400);
       // fEventHist[i]->hTrkMetPhi              = new TH1F("trkmetphi"           , Form("%s: Trk MetPhi"          ,dirname)  ,  80, -4,   4);
-      fEventHist[i]->hMet                    = new TH1F("met"                 , Form("%s: Met"                 ,dirname)  , 100,  0, 200);
-      fEventHist[i]->hMetPhi                 = new TH1F("metphi"              , Form("%s: MetPhi"              ,dirname)  ,  80, -4,   4);
-      fEventHist[i]->hMetCorr                = new TH1F("metcorr"             , Form("%s: Met Correction"      ,dirname)  , 100,  0, 40);
-      fEventHist[i]->hMetCorrPhi             = new TH1F("metcorrphi"          , Form("%s: MetPhi Correction"   ,dirname)  ,  80, -4,   4);
+      Utilities::BookH1F(fEventHist[i]->hMet                 , "met"                 , Form("%s: Met"                 ,dirname)  , 100,  0, 200, folder);
+      Utilities::BookH1F(fEventHist[i]->hMetPhi              , "metphi"              , Form("%s: MetPhi"              ,dirname)  ,  80, -4,   4, folder);
+      Utilities::BookH1F(fEventHist[i]->hMetCorr             , "metcorr"             , Form("%s: Met Correction"      ,dirname)  , 100,  0,  40, folder);
+      Utilities::BookH1F(fEventHist[i]->hMetCorrPhi          , "metcorrphi"          , Form("%s: MetPhi Correction"   ,dirname)  ,  80, -4,   4, folder);
       // fEventHist[i]->hCovMet00               = new TH1F("covmet00"            , Form("%s: CovMet00"            ,dirname) , 1000,    0.,1000.);
       // fEventHist[i]->hCovMet01               = new TH1F("covmet01"            , Form("%s: CovMet01"            ,dirname) , 1000,-1000.,1000.);
       // fEventHist[i]->hCovMet11               = new TH1F("covmet11"            , Form("%s: CovMet11"            ,dirname) , 1000,    0.,1000.);
@@ -309,21 +335,19 @@ void CLFVHistMaker::BookEventHistograms() {
       // fEventHist[i]->hSVFitStatus            = new TH1D("svfitstatus"         , Form("%s: SVFitStatus"         ,dirname) ,   10,    0.,  10.);
 
 
-      fEventHist[i]->hLepPt[0]      = new TH1F("leppt"         , Form("%s: Lepton Pt"      ,dirname)  , 100,   0, 200);
-      fEventHist[i]->hLepPt[1]      = new TH1F("leppt1"        , Form("%s: Lepton Pt"      ,dirname)  , 100,   0, 200);
-      fEventHist[i]->hLepPt[2]      = new TH1F("leppt2"        , Form("%s: Lepton Pt"      ,dirname)  , 100,   0, 200);
-      // fEventHist[i]->hLepP          = new TH1F("lepp"          , Form("%s: Lepton P"       ,dirname)  , 200,   0, 400);
-      // fEventHist[i]->hLepE          = new TH1F("lepe"          , Form("%s: Lepton E"       ,dirname)  , 200,   0, 400);
-      fEventHist[i]->hLepM[0]       = new TH1F("lepm"          , Form("%s: Lepton M"       ,dirname)  , 200,   0, 200);
-      fEventHist[i]->hLepM[1]       = new TH1F("lepm1"         , Form("%s: Lepton M"       ,dirname)  , 200,   0, 200);
-      fEventHist[i]->hLepM[2]       = new TH1F("lepm2"         , Form("%s: Lepton M"       ,dirname)  , 200,   0, 200);
-      fEventHist[i]->hLepM[3]       = new TH1F("lepm3"         , Form("%s: Lepton M"       ,dirname)  ,  40,  70, 110);
-      fEventHist[i]->hLepM[4]       = new TH1F("lepm4"         , Form("%s: Lepton M"       ,dirname)  ,  40, 105, 145);
-      fEventHist[i]->hLepMt         = new TH1F("lepmt"         , Form("%s: Lepton Mt"      ,dirname)  , 200,   0, 200);
-      fEventHist[i]->hLepEta        = new TH1F("lepeta"        , Form("%s: Lepton Eta"     ,dirname)  , 100, -10,  10);
-      fEventHist[i]->hLepPhi        = new TH1F("lepphi"        , Form("%s: Lepton Phi"     ,dirname)  ,  80,  -4,   4);
-      fEventHist[i]->hLepMVsMVA[0]  = new TH2D("lepmvsmva0"    , Form("%s: Lepton M vs MVA",dirname)  , 100, -1., 1., 50,   50, 150);
-      fEventHist[i]->hLepMVsMVA[1]  = new TH2D("lepmvsmva1"    , Form("%s: Lepton M vs MVA",dirname)  , 100, -1., 1., 50,   50, 150);
+      Utilities::BookH1F(fEventHist[i]->hLepPt[0], "leppt"         , Form("%s: Lepton Pt"      ,dirname)  , 100,   0, 200, folder);
+      Utilities::BookH1F(fEventHist[i]->hLepPt[1], "leppt1"        , Form("%s: Lepton Pt"      ,dirname)  , 100,   0, 200, folder);
+      Utilities::BookH1F(fEventHist[i]->hLepPt[2], "leppt2"        , Form("%s: Lepton Pt"      ,dirname)  , 100,   0, 200, folder);
+      Utilities::BookH1F(fEventHist[i]->hLepM[0] , "lepm"          , Form("%s: Lepton M"       ,dirname)  , 200,   0, 200, folder);
+      Utilities::BookH1F(fEventHist[i]->hLepM[1] , "lepm1"         , Form("%s: Lepton M"       ,dirname)  , 200,   0, 200, folder);
+      Utilities::BookH1F(fEventHist[i]->hLepM[2] , "lepm2"         , Form("%s: Lepton M"       ,dirname)  , 200,   0, 200, folder);
+      Utilities::BookH1F(fEventHist[i]->hLepM[3] , "lepm3"         , Form("%s: Lepton M"       ,dirname)  ,  40,  70, 110, folder);
+      Utilities::BookH1F(fEventHist[i]->hLepM[4] , "lepm4"         , Form("%s: Lepton M"       ,dirname)  ,  40, 105, 145, folder);
+      Utilities::BookH1F(fEventHist[i]->hLepMt   , "lepmt"         , Form("%s: Lepton Mt"      ,dirname)  , 100,   0, 200, folder);
+      Utilities::BookH1F(fEventHist[i]->hLepEta  , "lepeta"        , Form("%s: Lepton Eta"     ,dirname)  ,  50,  -5,   5, folder);
+      Utilities::BookH1F(fEventHist[i]->hLepPhi  , "lepphi"        , Form("%s: Lepton Phi"     ,dirname)  ,  80,  -4,   4, folder);
+      Utilities::BookH2F(fEventHist[i]->hLepMVsMVA[0], "lepmvsmva0"    , Form("%s: Lepton M vs MVA",dirname)  , 100, -1., 1., 50,   50, 150, folder);
+      Utilities::BookH2F(fEventHist[i]->hLepMVsMVA[1], "lepmvsmva1"    , Form("%s: Lepton M vs MVA",dirname)  , 100, -1., 1., 50,   50, 150, folder);
 
       //variable width bins for pT vs mass
       const int nmbins = 12;
@@ -378,84 +402,80 @@ void CLFVHistMaker::BookEventHistograms() {
                                                              << npbins << " size calc = " << sizeof(pbins)/sizeof(*pbins)-1
                                                              << std::endl;
 
-      fEventHist[i]->hLepPtVsM[0]   = new TH2F("lepptvsm0"     , Form("%s: Lepton Pt vs M" ,dirname)  , nmbins, mbins, npbins, pbins);
-      fEventHist[i]->hLepPtVsM[1]   = new TH2F("lepptvsm1"     , Form("%s: Lepton Pt vs M" ,dirname)  , nmbins, mbins, npbins, pbins);
-      fEventHist[i]->hLepPtVsM[2]   = new TH2F("lepptvsm2"     , Form("%s: Lepton Pt vs M" ,dirname)  , nmbins, mbins, npbins, pbins);
-      fEventHist[i]->hLepPtVsM[3]   = new TH2F("lepptvsm3"     , Form("%s: Lepton Pt vs M" ,dirname)  , nmbins, mbins, npbins, pbins);
-      fEventHist[i]->hLepPtVsM[4]   = new TH2F("lepptvsm4"     , Form("%s: Lepton Pt vs M" ,dirname)  , nmbins, mbins, npbins, pbins);
-      fEventHist[i]->hZPtVsM[0]     = new TH2F("zptvsm0"       , Form("%s: Gen Z Pt vs M"  ,dirname)  , nmbins, mbins, npbins, pbins);
-      fEventHist[i]->hZPtVsM[1]     = new TH2F("zptvsm1"       , Form("%s: Gen Z Pt vs M"  ,dirname)  , nmbins, mbins, npbins, pbins);
-      fEventHist[i]->hZPtVsM[2]     = new TH2F("zptvsm2"       , Form("%s: Gen Z Pt vs M"  ,dirname)  , nmbins, mbins, npbins, pbins);
-      fEventHist[i]->hZPtVsM[3]     = new TH2F("zptvsm3"       , Form("%s: Gen Z Pt vs M"  ,dirname)  , nmbins, mbins, npbins, pbins);
-      fEventHist[i]->hZPtVsM[4]     = new TH2F("zptvsm4"       , Form("%s: Gen Z Pt vs M"  ,dirname)  , nmbins, mbins, npbins, pbins);
-      fEventHist[i]->hZPt[0]        = new TH1F("zpt"           , Form("%s: Z Pt"           ,dirname)  , npbins,   pbins);
-      fEventHist[i]->hZPt[1]        = new TH1F("zpt1"          , Form("%s: Z Pt"           ,dirname)  , npbins,   pbins);
-      fEventHist[i]->hZPt[2]        = new TH1F("zpt2"          , Form("%s: Z Pt"           ,dirname)  , npbins,   pbins);
-      fEventHist[i]->hZPt[3]        = new TH1F("zpt3"          , Form("%s: Z Pt"           ,dirname)  , npbins,   pbins);
-      fEventHist[i]->hZPt[4]        = new TH1F("zpt4"          , Form("%s: Z Pt"           ,dirname)  , npbins,   pbins);
-      fEventHist[i]->hZMass[0]      = new TH1F("zmass"         , Form("%s: Z Mass"         ,dirname)  , nmbins,   mbins);
-      fEventHist[i]->hZMass[1]      = new TH1F("zmass1"        , Form("%s: Z Mass"         ,dirname)  , nmbins,   mbins);
-      fEventHist[i]->hZMass[2]      = new TH1F("zmass2"        , Form("%s: Z Mass"         ,dirname)  , nmbins,   mbins);
-      fEventHist[i]->hZMass[3]      = new TH1F("zmass3"        , Form("%s: Z Mass"         ,dirname)  , nmbins,   mbins);
-      fEventHist[i]->hZMass[4]      = new TH1F("zmass4"        , Form("%s: Z Mass"         ,dirname)  , nmbins,   mbins);
+      Utilities::BookH2F(fEventHist[i]->hLepPtVsM[0], "lepptvsm0"     , Form("%s: Lepton Pt vs M" ,dirname)  , nmbins, mbins, npbins, pbins, folder);
+      Utilities::BookH2F(fEventHist[i]->hLepPtVsM[1], "lepptvsm1"     , Form("%s: Lepton Pt vs M" ,dirname)  , nmbins, mbins, npbins, pbins, folder);
+      Utilities::BookH2F(fEventHist[i]->hLepPtVsM[2], "lepptvsm2"     , Form("%s: Lepton Pt vs M" ,dirname)  , nmbins, mbins, npbins, pbins, folder);
+      Utilities::BookH2F(fEventHist[i]->hLepPtVsM[3], "lepptvsm3"     , Form("%s: Lepton Pt vs M" ,dirname)  , nmbins, mbins, npbins, pbins, folder);
+      Utilities::BookH2F(fEventHist[i]->hLepPtVsM[4], "lepptvsm4"     , Form("%s: Lepton Pt vs M" ,dirname)  , nmbins, mbins, npbins, pbins, folder);
+      Utilities::BookH2F(fEventHist[i]->hZPtVsM[0]  , "zptvsm0"       , Form("%s: Gen Z Pt vs M"  ,dirname)  , nmbins, mbins, npbins, pbins, folder);
+      Utilities::BookH2F(fEventHist[i]->hZPtVsM[1]  , "zptvsm1"       , Form("%s: Gen Z Pt vs M"  ,dirname)  , nmbins, mbins, npbins, pbins, folder);
+      Utilities::BookH2F(fEventHist[i]->hZPtVsM[2]  , "zptvsm2"       , Form("%s: Gen Z Pt vs M"  ,dirname)  , nmbins, mbins, npbins, pbins, folder);
+      Utilities::BookH2F(fEventHist[i]->hZPtVsM[3]  , "zptvsm3"       , Form("%s: Gen Z Pt vs M"  ,dirname)  , nmbins, mbins, npbins, pbins, folder);
+      Utilities::BookH2F(fEventHist[i]->hZPtVsM[4]  , "zptvsm4"       , Form("%s: Gen Z Pt vs M"  ,dirname)  , nmbins, mbins, npbins, pbins, folder);
+      Utilities::BookH1F(fEventHist[i]->hZPt[0]     , "zpt"           , Form("%s: Z Pt"           ,dirname)  , npbins,   pbins, folder);
+      Utilities::BookH1F(fEventHist[i]->hZPt[1]     , "zpt1"          , Form("%s: Z Pt"           ,dirname)  , npbins,   pbins, folder);
+      Utilities::BookH1F(fEventHist[i]->hZPt[2]     , "zpt2"          , Form("%s: Z Pt"           ,dirname)  , npbins,   pbins, folder);
+      Utilities::BookH1F(fEventHist[i]->hZPt[3]     , "zpt3"          , Form("%s: Z Pt"           ,dirname)  , npbins,   pbins, folder);
+      Utilities::BookH1F(fEventHist[i]->hZPt[4]     , "zpt4"          , Form("%s: Z Pt"           ,dirname)  , npbins,   pbins, folder);
+      Utilities::BookH1F(fEventHist[i]->hZMass[0]   , "zmass"         , Form("%s: Z Mass"         ,dirname)  , nmbins,   mbins, folder);
+      Utilities::BookH1F(fEventHist[i]->hZMass[1]   , "zmass1"        , Form("%s: Z Mass"         ,dirname)  , nmbins,   mbins, folder);
+      Utilities::BookH1F(fEventHist[i]->hZMass[2]   , "zmass2"        , Form("%s: Z Mass"         ,dirname)  , nmbins,   mbins, folder);
+      Utilities::BookH1F(fEventHist[i]->hZMass[3]   , "zmass3"        , Form("%s: Z Mass"         ,dirname)  , nmbins,   mbins, folder);
+      Utilities::BookH1F(fEventHist[i]->hZMass[4]   , "zmass4"        , Form("%s: Z Mass"         ,dirname)  , nmbins,   mbins, folder);
 
-      fEventHist[i]->hZLepOnePt     = new TH1F("zleponept"     , Form("%s: ZLepOnePt"      ,dirname)  , 100,    0, 200);
-      fEventHist[i]->hZLepTwoPt     = new TH1F("zleptwopt"     , Form("%s: ZLepTwoPt"      ,dirname)  , 100,    0, 200);
-      fEventHist[i]->hZLepOneEta    = new TH1F("zleponeeta"    , Form("%s: ZLepOneEta"     ,dirname)  ,  50, -2.5, 2.5);
-      fEventHist[i]->hZLepTwoEta    = new TH1F("zleptwoeta"    , Form("%s: ZLepTwoEta"     ,dirname)  ,  50, -2.5, 2.5);
+      Utilities::BookH1F(fEventHist[i]->hZLepOnePt  , "zleponept"     , Form("%s: ZLepOnePt"      ,dirname)  , 100,    0, 200, folder);
+      Utilities::BookH1F(fEventHist[i]->hZLepTwoPt  , "zleptwopt"     , Form("%s: ZLepTwoPt"      ,dirname)  , 100,    0, 200, folder);
+      Utilities::BookH1F(fEventHist[i]->hZLepOneEta , "zleponeeta"    , Form("%s: ZLepOneEta"     ,dirname)  ,  50, -2.5, 2.5, folder);
+      Utilities::BookH1F(fEventHist[i]->hZLepTwoEta , "zleptwoeta"    , Form("%s: ZLepTwoEta"     ,dirname)  ,  50, -2.5, 2.5, folder);
 
-      //Jet --> tau_h histograms
-      // fEventHist[i]->hLooseLep      = new TH1F("looselep"      , Form("%s: LooseLep"       ,dirname)  , 15, 0, 15);
 
-      //variable width bins for eta vs pT
-      const int ntetabins = 2;
-      const double tetabins[ntetabins+1] = { 0., 1.5,
-                                             2.3};
+      if(fFolderName != "emu") { //j->tau related histograms
+        //variable width bins for eta vs pT
+        const int ntetabins = 2;
+        const double tetabins[ntetabins+1] = { 0., 1.5,
+                                               2.3};
 
-      if(ntetabins != sizeof(tetabins)/sizeof(*tetabins)-1) std::cout << "WARNING! N(tau eta bins) for 2D histograms is off! nbins = "
-                                                                << ntetabins << " size calc = " << sizeof(tetabins)/sizeof(*tetabins)-1
-                                                                << std::endl;
-      const int ntpbins = 11;
-      const double tpbins[ntpbins+1] = { 20., 22., 24., 26., 29.,
-                                         33., 37., 42., 50., 60.,
-                                         100.,
-                                         200.};
+        if(ntetabins != sizeof(tetabins)/sizeof(*tetabins)-1) std::cout << "WARNING! N(tau eta bins) for 2D histograms is off! nbins = "
+                                                                        << ntetabins << " size calc = " << sizeof(tetabins)/sizeof(*tetabins)-1
+                                                                        << std::endl;
+        const int ntpbins = 11;
+        const double tpbins[ntpbins+1] = { 20., 22., 24., 26., 29.,
+                                           33., 37., 42., 50., 60.,
+                                           100.,
+                                           200.};
 
-      if(ntpbins != sizeof(tpbins)/sizeof(*tpbins)-1) std::cout << "WARNING! N(tau pT bins) for 2D histograms is off! nbins = "
-                                                                << ntpbins << " size calc = " << sizeof(tpbins)/sizeof(*tpbins)-1
-                                                                << std::endl;
-      const int ndms = 4;
-      const int njetsmax = 4;
-      const int nptregions = 5;
-      const int ncats = 3;
-      for(int cat = 0; cat < ncats; ++cat) {
-        for(int dm = 0; dm < ndms; ++dm) {
-          for(int njets = 0; njets <= njetsmax; ++njets) {
-            for(int iptr = 0; iptr < nptregions; ++iptr) {
-              // std::cout << "Initializing iptr = " << iptr << " njets = " << njets << " cat = " << cat << " and dm = " << dm << std::endl;
-              const char* hname = (iptr == 0) ? Form("faketau%ijet%idm_%i", njets, dm, cat) : Form("faketau%ijet%idm_%i_%i", njets, dm, cat, iptr);
-              fEventHist[i]->hFakeTauNJetDMPtEta[iptr][cat][njets][dm]   = new TH2F(hname, Form("%s: Fake tau Eta vs Pt" ,dirname),
-                                                                                  ntpbins, tpbins, ntetabins, tetabins);
-              const char* hmcname = (iptr == 0) ? Form("faketaumc%ijet%idm_%i", njets, dm, cat) : Form("faketaumc%ijet%idm_%i_%i", njets, dm, cat, iptr);
-              fEventHist[i]->hFakeTauMCNJetDMPtEta[iptr][cat][njets][dm] = new TH2F(hmcname, Form("%s: Fake tau MC Eta vs Pt" ,dirname),
-                                                                                    ntpbins, tpbins, ntetabins, tetabins);
+        if(ntpbins != sizeof(tpbins)/sizeof(*tpbins)-1) std::cout << "WARNING! N(tau pT bins) for 2D histograms is off! nbins = "
+                                                                  << ntpbins << " size calc = " << sizeof(tpbins)/sizeof(*tpbins)-1
+                                                                  << std::endl;
+        const int ndms = 4; //decay mode categories
+        const int njetsmax = 2; //N(jets) categories: 0, 1, and >= 2 jets
+        const int ncats = 3; //tau isolation categories: 0 = inclusive; 1 = anti-isolated; 2 = isolated
+        for(int cat = 0; cat < ncats; ++cat) {
+          for(int dm = 0; dm < ndms; ++dm) {
+            for(int njets = 0; njets <= njetsmax; ++njets) {
+              const char* hname = Form("faketau%ijet%idm_%i", njets, dm, cat);
+              Utilities::BookH2F(fEventHist[i]->hFakeTauNJetDMPtEta[cat][njets][dm], hname, Form("%s: Fake tau Eta vs Pt" ,dirname),
+                                 ntpbins, tpbins, ntetabins, tetabins, folder);
+              const char* hmcname = Form("faketaumc%ijet%idm_%i", njets, dm, cat);
+              Utilities::BookH2F(fEventHist[i]->hFakeTauMCNJetDMPtEta[cat][njets][dm], hmcname, Form("%s: Fake tau MC Eta vs Pt" ,dirname),
+                                 ntpbins, tpbins, ntetabins, tetabins, folder);
             }
           }
         }
-      }
 
-      fEventHist[i]->hTausPt        = new TH1F("tauspt"       , Form("%s: TausPt     "  ,dirname), 100,  0., 200.);
-      fEventHist[i]->hTausEta       = new TH1F("tauseta"      , Form("%s: TausEta    "  ,dirname),  50, -2.5, 2.5);
-      fEventHist[i]->hTausDM        = new TH1D("tausdm"       , Form("%s: TausDM     "  ,dirname),  15,  0.,  15.);
-      fEventHist[i]->hTausAntiJet   = new TH1D("tausantijet"  , Form("%s: TausAntiJet"  ,dirname),  30,  0.,  30.);
-      fEventHist[i]->hTausAntiEle   = new TH1D("tausantiele"  , Form("%s: TausAntiEle"  ,dirname),  30,  0.,  30.);
-      fEventHist[i]->hTausAntiMu    = new TH1D("tausantimu"   , Form("%s: TausAntiMu"   ,dirname),  30,  0.,  30.);
-      fEventHist[i]->hTausMVAAntiMu = new TH1D("tausmvaantimu", Form("%s: TausMVAAntiMu",dirname),  30,  0.,  30.);
-      fEventHist[i]->hTausGenFlavor = new TH1D("tausgenflavor", Form("%s: TausGenFlavor",dirname),  40,  0.,  40.);
-      fEventHist[i]->hTausDeltaR    = new TH1F("tausdeltar"   , Form("%s: TausDeltaR"   ,dirname),  50,  0.,   5.);
-      fEventHist[i]->hFakeTausPt    = new TH1F("faketauspt"   , Form("%s: TausPt     "  ,dirname), 100,  0., 200.);
-      fEventHist[i]->hFakeTausEta   = new TH1F("faketauseta"  , Form("%s: TausEta    "  ,dirname),  50, -2.5, 2.5);
-      fEventHist[i]->hFakeTausDM    = new TH1D("faketausdm"   , Form("%s: TausDM     "  ,dirname),  15,  0.,  15.);
+        Utilities::BookH1F(fEventHist[i]->hTausPt       , "tauspt"       , Form("%s: TausPt     "  ,dirname), 100,  0., 200., folder);
+        Utilities::BookH1F(fEventHist[i]->hTausEta      , "tauseta"      , Form("%s: TausEta    "  ,dirname),  50, -2.5, 2.5, folder);
+        Utilities::BookH1D(fEventHist[i]->hTausDM       , "tausdm"       , Form("%s: TausDM     "  ,dirname),  15,  0.,  15., folder);
+        Utilities::BookH1D(fEventHist[i]->hTausAntiJet  , "tausantijet"  , Form("%s: TausAntiJet"  ,dirname),  30,  0.,  30., folder);
+        Utilities::BookH1D(fEventHist[i]->hTausAntiEle  , "tausantiele"  , Form("%s: TausAntiEle"  ,dirname),  30,  0.,  30., folder);
+        Utilities::BookH1D(fEventHist[i]->hTausAntiMu   , "tausantimu"   , Form("%s: TausAntiMu"   ,dirname),  30,  0.,  30., folder);
+        Utilities::BookH1D(fEventHist[i]->hTausMVAAntiMu, "tausmvaantimu", Form("%s: TausMVAAntiMu",dirname),  30,  0.,  30., folder);
+        Utilities::BookH1D(fEventHist[i]->hTausGenFlavor, "tausgenflavor", Form("%s: TausGenFlavor",dirname),  40,  0.,  40., folder);
+        Utilities::BookH1F(fEventHist[i]->hTausDeltaR   , "tausdeltar"   , Form("%s: TausDeltaR"   ,dirname),  50,  0.,   5., folder);
+        Utilities::BookH1F(fEventHist[i]->hFakeTausPt   , "faketauspt"   , Form("%s: TausPt     "  ,dirname), 100,  0., 200., folder);
+        Utilities::BookH1F(fEventHist[i]->hFakeTausEta  , "faketauseta"  , Form("%s: TausEta    "  ,dirname),  50, -2.5, 2.5, folder);
+        Utilities::BookH1D(fEventHist[i]->hFakeTausDM   , "faketausdm"   , Form("%s: TausDM     "  ,dirname),  15,  0.,  15., folder);
+      }
 
       //Jet --> light lep histograms
       //variable width bins for eta vs pT
@@ -474,349 +494,257 @@ void CLFVHistMaker::BookEventHistograms() {
                                                                 << nlpbins << " size calc = " << sizeof(lpbins)/sizeof(*lpbins)-1
                                                                 << std::endl;
 
-      for(int cat = 0; cat < 3; ++cat)
-        fEventHist[i]->hFakeLepPtEta[cat] = new TH2F(Form("fakeleppteta_%i", cat), Form("%s: Fake lepton Eta vs Pt" ,dirname), nlpbins, lpbins, nletabins, letabins);
-
-      fEventHist[i]->hLeptonsPt   = new TH1F("leptonspt"  , Form("%s: LeptonsPt  ",dirname), 100,  0., 200.);
-      fEventHist[i]->hLeptonsEta  = new TH1F("leptonseta" , Form("%s: LeptonsEta ",dirname),  50, -2.5, 2.5);
-      fEventHist[i]->hLeptonsID   = new TH1D("leptonsid"  , Form("%s: LeptonsID  ",dirname),  15,  0.,  15.);
-      fEventHist[i]->hLeptonsIsoID= new TH1D("leptonsisoid",Form("%s: LeptonsIsoID",dirname), 15,  0.,  15.);
-      fEventHist[i]->hLeptonsGenFlavor= new TH1D("leptonsgenflavor",Form("%s: LeptonsGenFlavor",dirname), 50,  0.,  50.);
+      for(int cat = 0; cat < 3; ++cat) {
+        Utilities::BookH2F(fEventHist[i]->hFakeLepPtEta[cat], Form("fakeleppteta_%i", cat), Form("%s: Fake lepton Eta vs Pt" ,dirname), nlpbins, lpbins, nletabins, letabins, folder);
+      }
+      Utilities::BookH1F(fEventHist[i]->hLeptonsPt       , "leptonspt"       , Form("%s: LeptonsPt  "    ,dirname), 100,   0.,  200, folder);
+      Utilities::BookH1F(fEventHist[i]->hLeptonsEta      , "leptonseta"      , Form("%s: LeptonsEta "    ,dirname),  50, -2.5,  2.5, folder);
+      Utilities::BookH1D(fEventHist[i]->hLeptonsID       , "leptonsid"       , Form("%s: LeptonsID  "    ,dirname),  15,   0.,  15., folder);
+      Utilities::BookH1D(fEventHist[i]->hLeptonsIsoID    , "leptonsisoid"    ,Form("%s: LeptonsIsoID"    ,dirname),  15,   0.,  15., folder);
+      Utilities::BookH1D(fEventHist[i]->hLeptonsGenFlavor, "leptonsgenflavor",Form("%s: LeptonsGenFlavor",dirname),  50,   0.,  50., folder);
 
       //end light lep fake histograms
 
-      fEventHist[i]->hLepDeltaPhi[0]= new TH1F("lepdeltaphi"   , Form("%s: Lepton DeltaPhi",dirname)  , 50,   0,   5);
-      fEventHist[i]->hLepDeltaPhi[1]= new TH1F("lepdeltaphi1"  , Form("%s: Lepton DeltaPhi",dirname)  , 50,   0,   5);
-      fEventHist[i]->hLepDeltaEta   = new TH1F("lepdeltaeta"   , Form("%s: Lepton DeltaEta",dirname)  , 50,   0,   5);
-      fEventHist[i]->hLepDeltaR[0]  = new TH1F("lepdeltar"     , Form("%s: Lepton DeltaR"  ,dirname)  , 50,   0,   5);
-      double drbins[] = {0.  , 1.2 , 2.  , 2.5 , 2.8 ,
-                         3.  , 3.2 , 3.4 , 3.6 , 3.8 ,
-                         4.  , 4.3 , 4.6 , 4.9 ,
-                         6.};
+      Utilities::BookH1F(fEventHist[i]->hLepDeltaPhi[0], "lepdeltaphi"   , Form("%s: Lepton DeltaPhi",dirname), 50,   0,   5, folder);
+      Utilities::BookH1F(fEventHist[i]->hLepDeltaPhi[1], "lepdeltaphi1"  , Form("%s: Lepton DeltaPhi",dirname), 50,   0,   5, folder);
+      Utilities::BookH1F(fEventHist[i]->hLepDeltaEta   , "lepdeltaeta"   , Form("%s: Lepton DeltaEta",dirname), 50,   0,   5, folder);
+      Utilities::BookH1F(fEventHist[i]->hLepDeltaR[0]  , "lepdeltar"     , Form("%s: Lepton DeltaR"  ,dirname), 50,   0,   5, folder);
+      const double drbins[] = {0.  , 1.5 , 2.  , 2.5 , 2.8 ,
+                               3.  , 3.2 , 3.4 , 3.6 , 3.8 ,
+                               4.  , 4.3 , 4.6 , 4.9 ,
+                               6.};
       const int ndrbins = (sizeof(drbins)/sizeof(*drbins) - 1);
-      fEventHist[i]->hLepDeltaR[1]  = new TH1F("lepdeltar1"    , Form("%s: Lepton DeltaR"  ,dirname)  , ndrbins, drbins);
-      fEventHist[i]->hLepDeltaR[2]  = new TH1F("lepdeltar2"    , Form("%s: Lepton DeltaR"  ,dirname)  , ndrbins, drbins);
-      fEventHist[i]->hLepDelRVsOneEta[0] = new TH2F("lepdelrvsoneeta" , Form("%s: LepDelRVsOneEta",dirname),  15, 0., 2.5, ndrbins, drbins);
-      fEventHist[i]->hLepDelRVsOneEta[1] = new TH2F("lepdelrvsoneeta1", Form("%s: LepDelRVsOneEta",dirname),  15, 0., 2.5, ndrbins, drbins);
-      fEventHist[i]->hLepDelPhiVsOneEta[0] = new TH2F("lepdelphivsoneeta" , Form("%s: LepDelPhiVsOneEta",dirname), 15, 0., 2.5, 15, 0., 3.5);
-      fEventHist[i]->hLepDelPhiVsOneEta[1] = new TH2F("lepdelphivsoneeta1", Form("%s: LepDelPhiVsOneEta",dirname), 15, 0., 2.5, 15, 0., 3.5);
+      Utilities::BookH1F(fEventHist[i]->hLepDeltaR[1]        , "lepdeltar1"        , Form("%s: Lepton DeltaR"    ,dirname), ndrbins, drbins, folder);
+      Utilities::BookH1F(fEventHist[i]->hLepDeltaR[2]        , "lepdeltar2"        , Form("%s: Lepton DeltaR"    ,dirname), ndrbins, drbins, folder);
+      Utilities::BookH2F(fEventHist[i]->hLepDelRVsOneEta[0]  , "lepdelrvsoneeta"   , Form("%s: LepDelRVsOneEta"  ,dirname),  15, 0., 2.5, ndrbins, drbins, folder);
+      Utilities::BookH2F(fEventHist[i]->hLepDelRVsOneEta[1]  , "lepdelrvsoneeta1"  , Form("%s: LepDelRVsOneEta"  ,dirname),  15, 0., 2.5, ndrbins, drbins, folder);
+      Utilities::BookH2F(fEventHist[i]->hLepDelPhiVsOneEta[0], "lepdelphivsoneeta" , Form("%s: LepDelPhiVsOneEta",dirname), 15, 0., 2.5, 15, 0., 3.5, folder);
+      Utilities::BookH2F(fEventHist[i]->hLepDelPhiVsOneEta[1], "lepdelphivsoneeta1", Form("%s: LepDelPhiVsOneEta",dirname), 15, 0., 2.5, 15, 0., 3.5, folder);
+      Utilities::BookH1F(fEventHist[i]->hQCDDelRJ[0]         , "qcddelrj0"         , Form("%s: Lepton DeltaR"    ,dirname), ndrbins, drbins, folder);
+      Utilities::BookH1F(fEventHist[i]->hQCDDelRJ[1]         , "qcddelrj1"         , Form("%s: Lepton DeltaR"    ,dirname), ndrbins, drbins, folder);
+      Utilities::BookH1F(fEventHist[i]->hQCDDelRJ[2]         , "qcddelrj2"         , Form("%s: Lepton DeltaR"    ,dirname), ndrbins, drbins, folder);
+      const double onebins[] = {10., 20., 30., 40., 150.};
+      const double twobins[] = {10., 20., 30., 40., 150.};
+      const int    nonebins  = sizeof(onebins) / sizeof(*onebins) - 1;
+      const int    ntwobins  = sizeof(twobins) / sizeof(*twobins) - 1;
+      Utilities::BookH2F(fEventHist[i]->hQCDOnePtVsTwoPtJ[0] , "qcdoneptvstwoptj0" , Form("%s: QCD one pt vs two pt",dirname), nonebins, onebins, ntwobins, twobins, folder);
+      Utilities::BookH2F(fEventHist[i]->hQCDOnePtVsTwoPtJ[1] , "qcdoneptvstwoptj1" , Form("%s: QCD one pt vs two pt",dirname), nonebins, onebins, ntwobins, twobins, folder);
+      Utilities::BookH2F(fEventHist[i]->hQCDOnePtVsTwoPtJ[2] , "qcdoneptvstwoptj2" , Form("%s: QCD one pt vs two pt",dirname), nonebins, onebins, ntwobins, twobins, folder);
+      Utilities::BookH2F(fEventHist[i]->hQCDOnePtVsTwoPtJ[3] , "qcdoneptvstwopt"   , Form("%s: QCD one pt vs two pt",dirname), nonebins, onebins, ntwobins, twobins, folder);
+      Utilities::BookH2F(fEventHist[i]->hQCDOnePtVsTwoPtIso[0] , "qcdoneptvstwoptiso", Form("%s: QCD one pt vs two pt",dirname), nonebins, onebins, ntwobins, twobins, folder);
+      Utilities::BookH2F(fEventHist[i]->hQCDOnePtVsTwoPtIso[1] , "qcdoneptvstwoptiso1", Form("%s: QCD one pt vs two pt",dirname), nonebins, onebins, ntwobins, twobins, folder);
 
-      // fEventHist[i]->hLepDelRVsPhi  = new TH2F("lepdelrvsphi"  , Form("%s: LepDelRVsPhi"   ,dirname)  ,  40,  0,   4, 100,  0,   5);
-      fEventHist[i]->hLepPtOverM    = new TH1F("lepptoverm"    , Form("%s: Lepton Pt / M"  ,dirname)  , 100,   0,  10);
-      // fEventHist[i]->hAlpha[0]      = new TH1F("alpha0"        , Form("%s: Alpha (Z) 0"    ,dirname)  , 100,   0,   5);
-      // fEventHist[i]->hAlpha[1]      = new TH1F("alpha1"        , Form("%s: Alpha (H) 0"    ,dirname)  , 100,   0,   5);
-      // fEventHist[i]->hAlpha[2]      = new TH1F("alpha2"        , Form("%s: Alpha 1"        ,dirname)  , 100,   0,   5);
-      // fEventHist[i]->hAlpha[3]      = new TH1F("alpha3"        , Form("%s: Alpha 2"        ,dirname)  , 100,   0,   5);
-      fEventHist[i]->hDeltaAlpha[0] = new TH1F("deltaalpha0"   , Form("%s: Delta Alpha (Z) 0"  ,dirname)  , 100, -10,  10);
-      fEventHist[i]->hDeltaAlpha[1] = new TH1F("deltaalpha1"   , Form("%s: Delta Alpha (Z) 1"  ,dirname)  , 100, -10,  10);
-      fEventHist[i]->hDeltaAlpha[2] = new TH1F("deltaalpha2"   , Form("%s: Delta Alpha (H) 0"  ,dirname)  , 100, -10,  10);
-      fEventHist[i]->hDeltaAlpha[3] = new TH1F("deltaalpha3"   , Form("%s: Delta Alpha (H) 1"  ,dirname)  , 100, -10,  10);
-      fEventHist[i]->hDeltaAlphaM[0]= new TH1F("deltaalpham0"  , Form("%s: Delta Alpha Mass 0" ,dirname)  , 200,   0, 400);
-      fEventHist[i]->hDeltaAlphaM[1]= new TH1F("deltaalpham1"  , Form("%s: Delta Alpha Mass 1" ,dirname)  , 200,   0, 400);
-      fEventHist[i]->hDeltaAlphaMColM[0]= new TH1F("deltaalphamcolm0"  , Form("%s: MCol - Alpha Mass 0" ,dirname)  , 100,   -100, 100);
-      fEventHist[i]->hDeltaAlphaMColM[1]= new TH1F("deltaalphamcolm1"  , Form("%s: MCol - Alpha Mass 1" ,dirname)  , 100,   -100, 100);
+      Utilities::BookH1F(fEventHist[i]->hLepPtOverM        , "lepptoverm"       , Form("%s: Lepton Pt / M"       ,dirname),  40,   0,   4, folder);
+      Utilities::BookH1F(fEventHist[i]->hDeltaAlpha[0]     , "deltaalpha0"      , Form("%s: Delta Alpha (Z) 0"   ,dirname),  80,  -5,  10, folder);
+      Utilities::BookH1F(fEventHist[i]->hDeltaAlpha[1]     , "deltaalpha1"      , Form("%s: Delta Alpha (Z) 1"   ,dirname),  80,  -5,  10, folder);
+      Utilities::BookH1F(fEventHist[i]->hDeltaAlpha[2]     , "deltaalpha2"      , Form("%s: Delta Alpha (H) 0"   ,dirname),  80,  -5,  10, folder);
+      Utilities::BookH1F(fEventHist[i]->hDeltaAlpha[3]     , "deltaalpha3"      , Form("%s: Delta Alpha (H) 1"   ,dirname),  80,  -5,  10, folder);
+      Utilities::BookH1F(fEventHist[i]->hDeltaAlphaM[0]    , "deltaalpham0"     , Form("%s: Delta Alpha Mass 0"  ,dirname), 100,   0, 200, folder);
+      Utilities::BookH1F(fEventHist[i]->hDeltaAlphaM[1]    , "deltaalpham1"     , Form("%s: Delta Alpha Mass 1"  ,dirname), 100,   0, 200, folder);
+      Utilities::BookH1F(fEventHist[i]->hDeltaAlphaMColM[0], "deltaalphamcolm0" , Form("%s: MCol - Alpha Mass 0" ,dirname),  50, -50,  50, folder);
+      Utilities::BookH1F(fEventHist[i]->hDeltaAlphaMColM[1], "deltaalphamcolm1" , Form("%s: MCol - Alpha Mass 1" ,dirname),  50, -50,  50, folder);
 
-      // fEventHist[i]->hHtDeltaPhi    = new TH1F("htdeltaphi"    , Form("%s: Ht Lep Delta Phi",dirname) ,  50,   0,   5);
-      fEventHist[i]->hMetDeltaPhi   = new TH1F("metdeltaphi"   , Form("%s: Met Lep Delta Phi",dirname),  50,   0,   5);
-      // fEventHist[i]->hJetDeltaPhi   = new TH1F("jetdeltaphi"   , Form("%s: Jet Lep Delta Phi",dirname),  50,   0,   5);
-      fEventHist[i]->hLepOneDeltaPhi   = new TH1F("leponedeltaphi"   , Form("%s: Lep One vs Sys Delta Phi",dirname),  50,   0,   5);
-      fEventHist[i]->hLepTwoDeltaPhi   = new TH1F("leptwodeltaphi"   , Form("%s: Lep Two vs Sys Delta Phi",dirname),  50,   0,   5);
+      Utilities::BookH1F(fEventHist[i]->hMetDeltaPhi       , "metdeltaphi"      , Form("%s: Met Lep Delta Phi"       ,dirname),  50,   0,   5, folder);
+      Utilities::BookH1F(fEventHist[i]->hLepOneDeltaPhi    , "leponedeltaphi"   , Form("%s: Lep One vs Sys Delta Phi",dirname),  50,   0,   5, folder);
+      Utilities::BookH1F(fEventHist[i]->hLepTwoDeltaPhi    , "leptwodeltaphi"   , Form("%s: Lep Two vs Sys Delta Phi",dirname),  50,   0,   5, folder);
 
-      // fEventHist[i]->hLepOneJetDeltaR     = new TH1F("leponejetdeltar"     , Form("%s: Lep One vs Jet Delta R"  ,dirname),  60,   0,   6);
-      // fEventHist[i]->hLepOneJetDeltaPhi   = new TH1F("leponejetdeltaphi"   , Form("%s: Lep One vs Jet Delta Phi",dirname),  50,   0,   5);
-      // fEventHist[i]->hLepOneJetDeltaEta   = new TH1F("leponejetdeltaeta"   , Form("%s: Lep One vs Jet Delta Eta",dirname),  60,   0,   6);
-      // fEventHist[i]->hLepTwoJetDeltaR     = new TH1F("leptwojetdeltar"     , Form("%s: Lep One vs Jet Delta R"  ,dirname),  60,   0,   6);
-      // fEventHist[i]->hLepTwoJetDeltaPhi   = new TH1F("leptwojetdeltaphi"   , Form("%s: Lep One vs Jet Delta Phi",dirname),  50,   0,   5);
-      // fEventHist[i]->hLepTwoJetDeltaEta   = new TH1F("leptwojetdeltaeta"   , Form("%s: Lep One vs Jet Delta Eta",dirname),  60,   0,   6);
 
-      // fEventHist[i]->hLepSVPt       = new TH1F("lepsvpt"       , Form("%s: Lepton SVFit Pt"      ,dirname)  , 200,   0, 400);
-      // fEventHist[i]->hLepSVM        = new TH1F("lepsvm"        , Form("%s: Lepton SVFit M"       ,dirname)  , 400,   0, 400);
-      // fEventHist[i]->hLepSVEta      = new TH1F("lepsveta"      , Form("%s: Lepton SVFit Eta"     ,dirname)  , 200, -10,  10);
-      // fEventHist[i]->hLepSVPhi      = new TH1F("lepsvphi"      , Form("%s: Lepton SVFit Phi"     ,dirname)  ,  80,  -4,   4);
-      // fEventHist[i]->hLepSVDeltaPhi = new TH1F("lepsvdeltaphi" , Form("%s: Lepton SVFit DeltaPhi",dirname)  ,  50,   0,   5);
-      // fEventHist[i]->hLepSVDeltaEta = new TH1F("lepsvdeltaeta" , Form("%s: Lepton SVFit DeltaEta",dirname)  , 100,   0,   5);
-      // fEventHist[i]->hLepSVDeltaM   = new TH1F("lepsvdeltam"   , Form("%s: Lepton SVFit DeltaM"  ,dirname)  , 200, -10,  90);
-      // fEventHist[i]->hLepSVDeltaPt  = new TH1F("lepsvdeltapt"  , Form("%s: Lepton SVFit DeltaPt" ,dirname)  , 200, -10,  90);
-      // fEventHist[i]->hLepSVPtOverM  = new TH1F("lepsvptoverm"  , Form("%s: Lepton SVFit Pt / M"  ,dirname)  , 100,   0,  10);
+      Utilities::BookH1F(fEventHist[i]->hMTOne     , "mtone"         , Form("%s: MTOne"         ,dirname)  , 100, 0.,   150., folder);
+      Utilities::BookH1F(fEventHist[i]->hMTTwo     , "mttwo"         , Form("%s: MTTwo"         ,dirname)  , 100, 0.,   150., folder);
+      Utilities::BookH1F(fEventHist[i]->hMTLep     , "mtlep"         , Form("%s: MTLep"         ,dirname)  , 100, 0.,   150., folder);
+      Utilities::BookH1F(fEventHist[i]->hMTOneOverM, "mtoneoverm"    , Form("%s: MTOneOverM"    ,dirname)  , 100, 0.,   10. , folder);
+      Utilities::BookH1F(fEventHist[i]->hMTTwoOverM, "mttwooverm"    , Form("%s: MTTwoOverM"    ,dirname)  , 100, 0.,   10. , folder);
+      Utilities::BookH2F(fEventHist[i]->hMTTwoVsOne, "mttwovsone"    , Form("%s: MTTwoVsOne"    ,dirname)  ,  40, 0.,   100., 40, 0., 100., folder);
 
-      // fEventHist[i]->hSysM          = new TH1F("sysm"          , Form("%s: SysM"          ,dirname)  ,1000,  0, 1e3);
-      // fEventHist[i]->hSysPt         = new TH1F("syspt"         , Form("%s: SysPt"         ,dirname)  , 200,  0, 400);
-      // fEventHist[i]->hSysEta        = new TH1F("syseta"        , Form("%s: SysEta"        ,dirname)  , 100, -5,   5);
-      // fEventHist[i]->hSysMvsLepM    = new TH2F("sysmvslepm"    , Form("%s: SysMvsLepM"    ,dirname)  , 200, 0., 200., 200, 0., 200.);
-
-      fEventHist[i]->hMTOne         = new TH1F("mtone"         , Form("%s: MTOne"         ,dirname)  , 100, 0.,   150.);
-      fEventHist[i]->hMTTwo         = new TH1F("mttwo"         , Form("%s: MTTwo"         ,dirname)  , 100, 0.,   150.);
-      fEventHist[i]->hMTTwoVsOne    = new TH2F("mttwovsone"    , Form("%s: MTTwoVsOne"    ,dirname)  ,  50, 0.,   100., 50, 0., 100.);
-      fEventHist[i]->hMTLep         = new TH1F("mtlep"         , Form("%s: MTLep"         ,dirname)  , 100, 0.,   150.);
-      fEventHist[i]->hMTOneOverM    = new TH1F("mtoneoverm"    , Form("%s: MTOneOverM"    ,dirname)  , 100, 0.,   10.);
-      fEventHist[i]->hMTTwoOverM    = new TH1F("mttwooverm"    , Form("%s: MTTwoOverM"    ,dirname)  , 100, 0.,   10.);
-
-      // fEventHist[i]->hPXiVis[0]        = new TH1F("pxivis0"        , Form("%s: PXiVis     "     ,dirname)  ,1000,  -100.,  900.);
-      // fEventHist[i]->hPXiInv[0]        = new TH1F("pxiinv0"        , Form("%s: PXiInv     "     ,dirname)  ,1000,-500.,   500.);
-      // fEventHist[i]->hPXiVisOverInv[0] = new TH1F("pxivisoverinv0" , Form("%s: PXiVisOverInv"   ,dirname)  ,1000, -10.,    10.);
-      // fEventHist[i]->hPXiInvVsVis[0]   = new TH2F("pxiinvvsvis0"   , Form("%s: PXiInv vs PXiVis",dirname)  , 800, -100., 700., 1000,-500.,   500.);
-      fEventHist[i]->hPXiDiff[0]       = new TH1F("pxidiff0"       , Form("%s: PXiVis - PXiInv" ,dirname)  , 100,-500.,  1500.);
-      fEventHist[i]->hPXiDiff2[0]      = new TH1F("pxidiff20"      , Form("%s: a*PXiVis + b - PXiInv" ,dirname)  ,100,-500.,  1500.);
-      fEventHist[i]->hPXiDiff3[0]      = new TH1F("pxidiff30"      , Form("%s: PXiInv + (1-a)*PXiVis + b" ,dirname)  ,100,-500., 500.);
-      // fEventHist[i]->hPXiVis[1]        = new TH1F("pxivis1"        , Form("%s: PXiVis     "     ,dirname)  ,1000,  -100.,  900.);
-      // fEventHist[i]->hPXiInv[1]        = new TH1F("pxiinv1"        , Form("%s: PXiInv     "     ,dirname)  ,1000,-500.,   500.);
-      // fEventHist[i]->hPXiVisOverInv[1] = new TH1F("pxivisoverinv1" , Form("%s: PXiVisOverInv"   ,dirname)  ,1000, -10.,    10.);
-      // fEventHist[i]->hPXiInvVsVis[1]   = new TH2F("pxiinvvsvis1"   , Form("%s: PXiInv vs PXiVis",dirname)  , 800, -100., 700., 1000,-500.,   500.);
-      // fEventHist[i]->hPXiDiff[1]       = new TH1F("pxidiff1"       , Form("%s: PXiVis - PXiInv" ,dirname)  ,2000,-500.,  1500.);
-      // fEventHist[i]->hPXiDiff2[1]      = new TH1F("pxidiff21"      , Form("%s: a*PXiVis + b - PXiInv" ,dirname)  ,2000,-500.,  1500.);
-      // fEventHist[i]->hPXiDiff3[1]      = new TH1F("pxidiff31"      , Form("%s: PXiInv + (1-a)*PXiVis + b" ,dirname)  ,1000,-500., 500.);
-      // fEventHist[i]->hPXiVis[2]        = new TH1F("pxivis2"        , Form("%s: PXiVis     "     ,dirname)  ,1000,  -100.,  900.);
-      // fEventHist[i]->hPXiInv[2]        = new TH1F("pxiinv2"        , Form("%s: PXiInv     "     ,dirname)  ,1000,-500.,   500.);
-      // fEventHist[i]->hPXiVisOverInv[2] = new TH1F("pxivisoverinv2" , Form("%s: PXiVisOverInv"   ,dirname)  ,1000, -10.,    10.);
-      // fEventHist[i]->hPXiInvVsVis[2]   = new TH2F("pxiinvvsvis2"   , Form("%s: PXiInv vs PXiVis",dirname)  , 800, -100., 700., 1000,-500.,   500.);
-      // fEventHist[i]->hPXiDiff[2]       = new TH1F("pxidiff2"       , Form("%s: PXiVis - PXiInv" ,dirname)  ,2000,-500.,  1500.);
-      // fEventHist[i]->hPXiDiff2[2]      = new TH1F("pxidiff22"      , Form("%s: a*PXiVis + b - PXiInv" ,dirname)  ,2000,-500.,  1500.);
-      // fEventHist[i]->hPXiDiff3[2]      = new TH1F("pxidiff32"      , Form("%s: PXiInv + (1-a)*PXiVis + b" ,dirname)  ,1000,-500., 500.);
-
-      fEventHist[i]->hPTauVisFrac      = new TH1F("ptauvisfrac"    , Form("%s: visible tau pT fraction " ,dirname)  ,100,0.,  1.5);
-      fEventHist[i]->hLepMEstimate     = new TH1F("lepmestimate"   , Form("%s: Estimate di-lepton mass"  ,dirname)  ,100,0.,  200.);
-      fEventHist[i]->hLepMEstimateTwo  = new TH1F("lepmestimatetwo", Form("%s: Estimate di-lepton mass"  ,dirname)  ,100,0.,  200.);
-      fEventHist[i]->hLepDot           = new TH1F("lepdot"         , Form("%s: sqrt(p1 dot p2)"          ,dirname)  ,100,0.,  200.);
+      Utilities::BookH1F(fEventHist[i]->hPTauVisFrac    , "ptauvisfrac"    , Form("%s: visible tau pT fraction " ,dirname)  , 50,0.,  1.5, folder);
+      Utilities::BookH1F(fEventHist[i]->hLepMEstimate   , "lepmestimate"   , Form("%s: Estimate di-lepton mass"  ,dirname)  ,100,0.,  200, folder);
+      Utilities::BookH1F(fEventHist[i]->hLepMEstimateTwo, "lepmestimatetwo", Form("%s: Estimate di-lepton mass"  ,dirname)  ,100,0.,  200, folder);
+      Utilities::BookH1F(fEventHist[i]->hLepDot         , "lepdot"         , Form("%s: sqrt(p1 dot p2)"          ,dirname)  ,100,0.,  200, folder);
 
       for(int mode = 0; mode < 3; ++mode) {
-        fEventHist[i]->hLepOnePrimePx[mode] = new TH1F(Form("leponeprimepx%i", mode), Form("%s: l1 px" , dirname), 100, -200., 200.);
-        fEventHist[i]->hLepTwoPrimePx[mode] = new TH1F(Form("leptwoprimepx%i", mode), Form("%s: l2 px" , dirname), 100, -200., 200.);
-        fEventHist[i]->hMetPrimePx   [mode] = new TH1F(Form("metprimepx%i"   , mode), Form("%s: met px", dirname), 100, -200., 200.);
-        fEventHist[i]->hLepOnePrimePy[mode] = new TH1F(Form("leponeprimepy%i", mode), Form("%s: l1 py" , dirname), 100, -200., 200.);
-        fEventHist[i]->hLepTwoPrimePy[mode] = new TH1F(Form("leptwoprimepy%i", mode), Form("%s: l2 py" , dirname), 100, -200., 200.);
-        fEventHist[i]->hMetPrimePy   [mode] = new TH1F(Form("metprimepy%i"   , mode), Form("%s: met py", dirname), 100, -200., 200.);
-        fEventHist[i]->hLepOnePrimePz[mode] = new TH1F(Form("leponeprimepz%i", mode), Form("%s: l1 pz" , dirname), 100, -200., 200.);
-        fEventHist[i]->hLepTwoPrimePz[mode] = new TH1F(Form("leptwoprimepz%i", mode), Form("%s: l2 pz" , dirname), 100, -200., 200.);
-        fEventHist[i]->hMetPrimePz   [mode] = new TH1F(Form("metprimepz%i"   , mode), Form("%s: met pz", dirname), 100, -200., 200.);
-        fEventHist[i]->hLepOnePrimeE [mode] = new TH1F(Form("leponeprimee%i" , mode), Form("%s: l1 e " , dirname), 100,    0., 200.);
-        fEventHist[i]->hLepTwoPrimeE [mode] = new TH1F(Form("leptwoprimee%i" , mode), Form("%s: l2 e " , dirname), 100,    0., 200.);
-        fEventHist[i]->hMetPrimeE    [mode] = new TH1F(Form("metprimee%i"    , mode), Form("%s: met e ", dirname), 100,    0., 200.);
+        Utilities::BookH1F(fEventHist[i]->hLepOnePrimePx[mode], Form("leponeprimepx%i", mode), Form("%s: l1 px" , dirname),  50, -100., 100., folder);
+        Utilities::BookH1F(fEventHist[i]->hLepTwoPrimePx[mode], Form("leptwoprimepx%i", mode), Form("%s: l2 px" , dirname),  50, -100., 100., folder);
+        Utilities::BookH1F(fEventHist[i]->hMetPrimePx   [mode], Form("metprimepx%i"   , mode), Form("%s: met px", dirname),  50,    0., 100., folder);
+        Utilities::BookH1F(fEventHist[i]->hLepOnePrimePy[mode], Form("leponeprimepy%i", mode), Form("%s: l1 py" , dirname),  50, -200., 200., folder);
+        Utilities::BookH1F(fEventHist[i]->hLepTwoPrimePy[mode], Form("leptwoprimepy%i", mode), Form("%s: l2 py" , dirname),  50, -200., 200., folder);
+        Utilities::BookH1F(fEventHist[i]->hMetPrimePy   [mode], Form("metprimepy%i"   , mode), Form("%s: met py", dirname),  50, -200., 200., folder);
+        Utilities::BookH1F(fEventHist[i]->hLepOnePrimePz[mode], Form("leponeprimepz%i", mode), Form("%s: l1 pz" , dirname), 100, -200., 200., folder);
+        Utilities::BookH1F(fEventHist[i]->hLepTwoPrimePz[mode], Form("leptwoprimepz%i", mode), Form("%s: l2 pz" , dirname), 100, -200., 200., folder);
+        Utilities::BookH1F(fEventHist[i]->hMetPrimePz   [mode], Form("metprimepz%i"   , mode), Form("%s: met pz", dirname), 100, -200., 200., folder);
+        Utilities::BookH1F(fEventHist[i]->hLepOnePrimeE [mode], Form("leponeprimee%i" , mode), Form("%s: l1 e " , dirname), 100,    0., 200., folder);
+        Utilities::BookH1F(fEventHist[i]->hLepTwoPrimeE [mode], Form("leptwoprimee%i" , mode), Form("%s: l2 e " , dirname), 100,    0., 200., folder);
+        Utilities::BookH1F(fEventHist[i]->hMetPrimeE    [mode], Form("metprimee%i"    , mode), Form("%s: met e ", dirname), 100,    0., 200., folder);
       }
 
-      // fEventHist[i]->hPtSum[0]         = new TH1F("ptsum0"         , Form("%s: Scalar Pt sum"                    ,dirname)    ,1000,  0.,  1000.);
-      // fEventHist[i]->hPtSum[1]         = new TH1F("ptsum1"         , Form("%s: Scalar Pt sum"                    ,dirname)    ,1000,  0.,  1000.);
-      // fEventHist[i]->hPt1Sum[0]        = new TH1F("pt1sum0"        , Form("%s: Scalar Pt sum Lepton 1 + MET"     ,dirname)    ,1000,  0.,  1000.);
-      // fEventHist[i]->hPt1Sum[1]        = new TH1F("pt1sum1"        , Form("%s: Scalar Pt sum Lepton 2 + MET"     ,dirname)    ,1000,  0.,  1000.);
-      // fEventHist[i]->hPt1Sum[2]        = new TH1F("pt1sum2"        , Form("%s: Scalar Pt sum Lepton 1 + 2"       ,dirname)    ,1000,  0.,  1000.);
-      // fEventHist[i]->hPt1Sum[3]        = new TH1F("pt1sum3"        , Form("%s: Scalar Pt sum Lepton 1 + 2 - MET" ,dirname)    ,1000,  0.,  1000.);
       for(unsigned j = 0; j < fMVAConfig.names_.size(); ++j)  {
-        fEventHist[i]->hMVA[j][0]     = new TH1D(Form("mva%i",j)   , Form("%s: %s MVA" ,dirname, fMVAConfig.names_[j].Data()) ,
-                                                 fMVAConfig.NBins(j), fMVAConfig.Bins(j).data());
+        Utilities::BookH1D(fEventHist[i]->hMVA[j][0], Form("mva%i",j)   , Form("%s: %s MVA" ,dirname, fMVAConfig.names_[j].Data()) ,
+                           fMVAConfig.NBins(j), fMVAConfig.Bins(j).data(), folder);
         //high mva score binning to improve cdf making
-        fEventHist[i]->hMVA[j][1]     = new TH1F(Form("mva%i_1",j)     , Form("%s: %s MVA" ,dirname, fMVAConfig.names_[j].Data()) , 3000, -1.,  2.);
-        fEventHist[i]->hMVATrain[j]   = new TH1F(Form("mvatrain%i",j), Form("%s: %s MVA (train)" ,dirname, fMVAConfig.names_[j].Data()) ,100, -3.,  2.);
-        fEventHist[i]->hMVATest[j]    = new TH1F(Form("mvatest%i",j) , Form("%s: %s MVA (test)" ,dirname, fMVAConfig.names_[j].Data())  ,100, -3.,  2.);
+        Utilities::BookH1F(fEventHist[i]->hMVA[j][1]  , Form("mva%i_1",j)   , Form("%s: %s MVA"         ,dirname, fMVAConfig.names_[j].Data()), 3000, -1.,  2., folder);
+        Utilities::BookH1F(fEventHist[i]->hMVATrain[j], Form("mvatrain%i",j), Form("%s: %s MVA (train)" ,dirname, fMVAConfig.names_[j].Data()),  100, -3.,  2., folder);
+        Utilities::BookH1F(fEventHist[i]->hMVATest[j] , Form("mvatest%i",j) , Form("%s: %s MVA (test)"  ,dirname, fMVAConfig.names_[j].Data()),  100, -3.,  2., folder);
       }
       delete dirname;
     }
   }
 }
 
+//--------------------------------------------------------------------------------------------------------------
 void CLFVHistMaker::BookPhotonHistograms() {
   if(fDYTesting) return;
   for(int i = 0; i < fn; i++) {
     if(fEventSets[i] > 0) {
       char* dirname        = new char[20];
       sprintf(dirname,"photon_%i",i);
-      fDirectories[1*fn + i] = fTopDir->mkdir(dirname);
+      auto folder = fTopDir->mkdir(dirname);
+      fDirectories[1*fn + i] = folder;
       fDirectories[1*fn + i]->cd();
       fPhotonHist[i] = new PhotonHist_t;
-      fPhotonHist[i]->hPz        = new TH1F("pz"      , Form("%s: Pz"      ,dirname)  , 100,-200, 200);
-      fPhotonHist[i]->hPt        = new TH1F("pt"      , Form("%s: Pt"      ,dirname)  , 100,   0, 200);
-      fPhotonHist[i]->hP         = new TH1F("p"       , Form("%s: P"       ,dirname)  , 100,   0, 200);
-      fPhotonHist[i]->hEta       = new TH1F("eta"     , Form("%s: Eta"     ,dirname)  , 200, -10,  10);
-      fPhotonHist[i]->hPhi       = new TH1F("phi"     , Form("%s: Phi"     ,dirname)  ,  80,  -4,   4);
-      fPhotonHist[i]->hMVA       = new TH1F("mva"     , Form("%s: MVA"     ,dirname)  , 300,  -1,   2);
-      // fPhotonHist[i]->hIso       = new TH1F("iso"     , Form("%s: Iso"     ,dirname)  , 200,   0,  10);
-      // fPhotonHist[i]->hRelIso    = new TH1F("reliso"  , Form("%s: Iso / Pt",dirname)  , 200,   0,   1);
-      // fPhotonHist[i]->hTrigger   = new TH1D("trigger" , Form("%s: Trigger" ,dirname)  ,  10,   0,  10);
+      Utilities::BookH1F(fPhotonHist[i]->hPz , "pz"      , Form("%s: Pz"      ,dirname)  , 100,-200, 200, folder);
+      Utilities::BookH1F(fPhotonHist[i]->hPt , "pt"      , Form("%s: Pt"      ,dirname)  , 100,   0, 200, folder);
+      Utilities::BookH1F(fPhotonHist[i]->hP  , "p"       , Form("%s: P"       ,dirname)  , 100,   0, 200, folder);
+      Utilities::BookH1F(fPhotonHist[i]->hEta, "eta"     , Form("%s: Eta"     ,dirname)  , 200, -10,  10, folder);
+      Utilities::BookH1F(fPhotonHist[i]->hPhi, "phi"     , Form("%s: Phi"     ,dirname)  ,  80,  -4,   4, folder);
+      Utilities::BookH1F(fPhotonHist[i]->hMVA, "mva"     , Form("%s: MVA"     ,dirname)  , 300,  -1,   2, folder);
       delete dirname;
     }
   }
 }
 
+//--------------------------------------------------------------------------------------------------------------
 void CLFVHistMaker::BookLepHistograms() {
   // if(fDYTesting) return;
   for(int i = 0; i < fn; i++) {
     if(fEventSets[i] > 0) {
       char* dirname        = new char[20];
       sprintf(dirname,"lep_%i",i);
-      fDirectories[2*fn + i] = fTopDir->mkdir(dirname);
+      auto folder = fTopDir->mkdir(dirname);
+      fDirectories[2*fn + i] = folder;
       fDirectories[2*fn + i]->cd();
       fLepHist[i] = new LepHist_t;
-      // int nbins_pt = 11; //for correcting jet -> tau scale factors
-      // float pts[] = {0.  , 35. , 40. , 45. , 50. ,
-      //                55. , 60. , 65. , 70. , 80. ,
-      //                95. ,
-      //                200.};
       //for correcting jet -> tau scale factors
-      const float pts[] = {0.  , 20. , 25. , 30. , 35. ,
-                     40. , 45. , 50. , 60. , 70. ,
-                     80. , 90. , 120., 150.,
-                     200.};
+      const double pts[] = {0.  , 20. , 25. , 30. , 35. ,
+                            40. , 45. , 50. , 60. , 70. ,
+                            80. , 90. , 120., 150.,
+                            200.};
       const int nbins_pt = sizeof(pts)/sizeof(*pts) - 1;
 
-      const float rbins[] = {0.  , 1.  , 1.5 , 2.  , 2.5,
-                             3.  , 3.5 ,
-                             5.};
+      const double rbins[] = {0.  , 1.  , 1.5 , 2.  , 2.5,
+                              3.  , 3.5 ,
+                              5.};
       const int nrbins = sizeof(rbins)/sizeof(*rbins) - 1;
-      fLepHist[i]->hOnePz        = new TH1F("onepz"      , Form("%s: Pz"      ,dirname)  , 100,-100, 100);
+      Utilities::BookH1F(fLepHist[i]->hOnePz, "onepz"      , Form("%s: Pz"      ,dirname)  , 100,-100, 100, folder);
       for(int j = 0; j < 12; ++j) {
         TString name = "onept"; if(j > 0) name += j;
-        fLepHist[i]->hOnePt[j]     = new TH1F(name.Data(), Form("%s: Pt"      ,dirname)  , 150,   0, 150);
+        Utilities::BookH1F(fLepHist[i]->hOnePt[j], name.Data(), Form("%s: Pt"      ,dirname)  , 150,   0, 150, folder);
       }
       for(int dmregion = 0; dmregion < 5; ++dmregion) {
         TString name_r = "jettauoneptvsr";
         if(dmregion > 0) {name_r += "_"; name_r += dmregion;}
-        fLepHist[i]->hJetTauOnePtVsR[dmregion] = new TH2F(name_r.Data() , Form("%s: Delta R Vs One Pt"   ,dirname)  , nbins_pt, pts, nrbins, rbins);
+        Utilities::BookH2F(fLepHist[i]->hJetTauOnePtVsR[dmregion], name_r.Data() , Form("%s: Delta R Vs One Pt"   ,dirname)  , nbins_pt, pts, nrbins, rbins, folder);
         for(int ptregion = 0; ptregion < 4; ++ptregion) {
           TString name = "jettauonept";
           if(ptregion > 0) name += ptregion;
           if(dmregion > 0) {name += "_"; name += dmregion;}
-          fLepHist[i]->hJetTauOnePt[dmregion][ptregion] = new TH1F(name.Data() , Form("%s: One Pt"   ,dirname)  , nbins_pt, pts);
+          Utilities::BookH1F(fLepHist[i]->hJetTauOnePt[dmregion][ptregion], name.Data() , Form("%s: One Pt"   ,dirname)  , nbins_pt, pts, folder);
         }
       }
-      fLepHist[i]->hJetTauOneR   = new TH1F("jettauoner" , Form("%s: Delta R" ,dirname)  , nrbins, rbins);
-      fLepHist[i]->hJetTauOneEta = new TH1F("jettauoneeta", Form("%s: |Eta|"  ,dirname)  , 20,    0, 2.5);
+      Utilities::BookH1F(fLepHist[i]->hJetTauOneR  , "jettauoner" , Form("%s: Delta R" ,dirname)  , nrbins, rbins, folder);
+      Utilities::BookH1F(fLepHist[i]->hJetTauOneEta, "jettauoneeta", Form("%s: |Eta|"  ,dirname)  , 20,    0, 2.5, folder);
       double metbins[] = {0., 0.5, 0.9, 1.2, 1.4, 1.6, 1.8, 2., 2.2, 2.4, 2.6, 2.8, 3.0, 3.2, 4., 5.};
       int nmetbins = sizeof(metbins)/sizeof(*metbins) - 1;
       for(int idm = -1; idm < 4; ++idm) {
         TString nm = (idm > -1) ? Form("jettauonemetdeltaphi_%i", idm) : "jettauonemetdeltaphi";
-        fLepHist[i]->hJetTauOneMetDeltaPhi[idm+1] = new TH1F(nm.Data(), Form("%s: OneMetDeltaPhi"  ,dirname), nmetbins, metbins);
+        Utilities::BookH1F(fLepHist[i]->hJetTauOneMetDeltaPhi[idm+1], nm.Data(), Form("%s: OneMetDeltaPhi"  ,dirname), nmetbins, metbins, folder);
       }
 
-      fLepHist[i]->hOneP         = new TH1F("onep"       , Form("%s: P"       ,dirname)  , 100,   0, 200);
-      fLepHist[i]->hOneM         = new TH1F("onem"       , Form("%s: M"       ,dirname)  ,  30,   0, 3);
-      fLepHist[i]->hOnePtOverM   = new TH1F("oneptoverm" , Form("%s: Pt / M_{ll}",dirname) , 100,   0,  10);
-      fLepHist[i]->hOneEta       = new TH1F("oneeta"     , Form("%s: Eta"     ,dirname)  ,  50, -2.5,  2.5);
-      fLepHist[i]->hOnePhi       = new TH1F("onephi"     , Form("%s: Phi"     ,dirname)  ,  80,  -4,   4);
-      fLepHist[i]->hOneD0        = new TH1F("oned0"      , Form("%s: D0"      ,dirname)  , 200,-0.1, 0.1);
-      fLepHist[i]->hOneIso       = new TH1F("oneiso"     , Form("%s: Iso"     ,dirname)  , 100,   0,  10);
-      fLepHist[i]->hOneID1       = new TH1D("oneid1"     , Form("%s: ID1"     ,dirname)  ,  80,  -1,  79);
-      fLepHist[i]->hOneID2       = new TH1D("oneid2"     , Form("%s: ID2"     ,dirname)  ,  80,  -1,  79);
-      fLepHist[i]->hOneRelIso    = new TH1F("onereliso"  , Form("%s: Iso / Pt",dirname)  , 100,   0,   1);
-      fLepHist[i]->hOneFlavor    = new TH1D("oneflavor"  , Form("%s: Flavor"  ,dirname)  ,  20,   0,  20);
-      fLepHist[i]->hOneGenFlavor = new TH1D("onegenflavor", Form("%s: Gen Flavor"  ,dirname),  40,   0,  40);
-      fLepHist[i]->hOneQ         = new TH1D("oneq"       , Form("%s: Q"       ,dirname)  ,   5,  -2,   2);
-      fLepHist[i]->hOneTrigger   = new TH1D("onetrigger" , Form("%s: Trigger" ,dirname)  ,  10,   0,  10);
-      fLepHist[i]->hOneWeight    = new TH1F("oneweight"  , Form("%s: Weight"  ,dirname)  , 100,   0,   2);
-      fLepHist[i]->hOneTrigWeight= new TH1F("onetrigweight", Form("%s: Trig Weight"  ,dirname)  , 100, 0.,  2.);
-      fLepHist[i]->hOneWeight1Group = new TH1D("oneweight1group"  , Form("%s: Weight group"  ,dirname)  , 50, 0,  50);
-      fLepHist[i]->hOneWeight2Group = new TH1D("oneweight2group"  , Form("%s: Weight group"  ,dirname)  , 50, 0,  50);
+      Utilities::BookH1F(fLepHist[i]->hOneEta         , "oneeta"           , Form("%s: Eta"          ,dirname),  50, -2.5,  2.5, folder);
+      Utilities::BookH1F(fLepHist[i]->hOnePhi         , "onephi"           , Form("%s: Phi"          ,dirname),  80,   -4,    4, folder);
+      Utilities::BookH1F(fLepHist[i]->hOneD0          , "oned0"            , Form("%s: D0"           ,dirname),  50,    0,  0.1, folder);
+      Utilities::BookH1F(fLepHist[i]->hOneDXY         , "onedxy"           , Form("%s: DXY"          ,dirname),  50,    0,  0.1, folder);
+      Utilities::BookH1F(fLepHist[i]->hOneDZ          , "onedz"            , Form("%s: DZ"           ,dirname),  50,    0,  0.1, folder);
+      Utilities::BookH1F(fLepHist[i]->hOneIso         , "oneiso"           , Form("%s: Iso"          ,dirname),  50,    0,    5, folder);
+      Utilities::BookH1D(fLepHist[i]->hOneID1         , "oneid1"           , Form("%s: ID1"          ,dirname),  80,   -1,   79, folder);
+      Utilities::BookH1D(fLepHist[i]->hOneID2         , "oneid2"           , Form("%s: ID2"          ,dirname),  80,   -1,   79, folder);
+      Utilities::BookH1F(fLepHist[i]->hOneRelIso      , "onereliso"        , Form("%s: Iso / Pt"     ,dirname),  50,    0,  0.5, folder);
+      Utilities::BookH1D(fLepHist[i]->hOneFlavor      , "oneflavor"        , Form("%s: Flavor"       ,dirname),  20,    0,   20, folder);
+      Utilities::BookH1D(fLepHist[i]->hOneGenFlavor   , "onegenflavor      ", Form("%s: Gen Flavor"  ,dirname),  40,    0,   40, folder);
+      Utilities::BookH1D(fLepHist[i]->hOneQ           , "oneq"             , Form("%s: Q"            ,dirname),   5,   -2,    2, folder);
+      Utilities::BookH1D(fLepHist[i]->hOneTrigger     , "onetrigger"       , Form("%s: Trigger"      ,dirname),  10,    0,   10, folder);
+      Utilities::BookH1F(fLepHist[i]->hOneWeight      , "oneweight"        , Form("%s: Weight"       ,dirname),  50,    0,    2, folder);
+      Utilities::BookH1F(fLepHist[i]->hOneTrigWeight  , "onetrigweight"    , Form("%s: Trig Weight"  ,dirname),  50,    0,    2, folder);
+      Utilities::BookH1D(fLepHist[i]->hOneWeight1Group, "oneweight1group"  , Form("%s: Weight group" ,dirname),  50,    0,   50, folder);
+      Utilities::BookH1D(fLepHist[i]->hOneWeight2Group, "oneweight2group"  , Form("%s: Weight group" ,dirname),  50,    0,   50, folder);
       //Gen Info
-      fLepHist[i]->hOneGenPt     = new TH1F("onegenpt"   , Form("%s: Gen Pt"   ,dirname)  , 150,   0, 150);
-      fLepHist[i]->hOneGenE      = new TH1F("onegene"    , Form("%s: Gen E"    ,dirname)  , 100,   0, 200);
-      fLepHist[i]->hOneGenEta    = new TH1F("onegeneta"  , Form("%s: Gen Eta"  ,dirname)  ,  50, -2.5,  2.5);
-      fLepHist[i]->hOneDeltaPt   = new TH1F("onedeltapt" , Form("%s: Gen Delta Pt"   ,dirname)  , 100,-100, 100);
-      fLepHist[i]->hOneDeltaE    = new TH1F("onedeltae"  , Form("%s: Gen Delta E"    ,dirname)  , 100,-500, 500);
-      fLepHist[i]->hOneDeltaEta  = new TH1F("onedeltaeta", Form("%s: Gen Delta Eta"  ,dirname)  , 100, -5., 5.);
-      fLepHist[i]->hOneMetDeltaPhi  = new TH1F("onemetdeltaphi"   , Form("%s: Met Delta Phi",dirname),  50,   0,   5);
-      //  //SVFit Info
-      // fLepHist[i]->hOneSVPt      = new TH1F("onesvpt"    , Form("%s: SV Pt"   ,dirname)  , 200,   0, 200);
-      // fLepHist[i]->hOneSVM       = new TH1F("onesvm"     , Form("%s: SV M"    ,dirname)  , 200,   0, 1e1);
-      // fLepHist[i]->hOneSVEta     = new TH1F("onesveta"   , Form("%s: SV Eta"  ,dirname)  , 200, -10., 10.);
-      // fLepHist[i]->hOneSVDeltaPt = new TH1F("onesvdeltapt"    , Form("%s: SV Delta Pt"   ,dirname)  , 200,-100, 100);
-      // fLepHist[i]->hOneSVDeltaP  = new TH1F("onesvdeltap"     , Form("%s: SV Delta P"    ,dirname)  , 200,-500, 500);
-      // fLepHist[i]->hOneSVDeltaE  = new TH1F("onesvdeltae"     , Form("%s: SV Delta E"    ,dirname)  , 200,-500, 500);
-      // fLepHist[i]->hOneSVDeltaEta= new TH1F("onesvdeltaeta"   , Form("%s: SV Delta Eta"  ,dirname)  , 200, -10., 10.);
+      Utilities::BookH1F(fLepHist[i]->hOneGenPt       , "onegenpt"         , Form("%s: Gen Pt"       ,dirname), 100,    0,  150, folder);
+      Utilities::BookH1F(fLepHist[i]->hOneGenE        , "onegene"          , Form("%s: Gen E"        ,dirname), 100,    0,  200, folder);
+      Utilities::BookH1F(fLepHist[i]->hOneGenEta      , "onegeneta"        , Form("%s: Gen Eta"      ,dirname),  50, -2.5,  2.5, folder);
+      Utilities::BookH1F(fLepHist[i]->hOneMetDeltaPhi , "onemetdeltaphi"   , Form("%s: Met Delta Phi",dirname),  50,    0,    5, folder);
 
-      // fLepHist[i]->hOneSlimEQ    = new TH1D("oneslimeq"    , Form("%s: OneSlimEQ"    ,dirname),   8,  -4,   4);
-      // fLepHist[i]->hOneSlimMuQ   = new TH1D("oneslimmuq"   , Form("%s: OneSlimMuQ"   ,dirname),   8,  -4,   4);
-      // fLepHist[i]->hOneSlimTauQ  = new TH1D("oneslimtauq"  , Form("%s: OneSlimTauQ"  ,dirname),   8,  -4,   4);
-      // fLepHist[i]->hOneSlimEM    = new TH1F("oneslimem"    , Form("%s: OneSlimEM"    ,dirname), 100,  0.,200.);
-      // fLepHist[i]->hOneSlimEMSS  = new TH1F("oneslimemss"  , Form("%s: OneSlimEMSS"  ,dirname), 100,  0.,200.);
-      // fLepHist[i]->hOneSlimEMOS  = new TH1F("oneslimemos"  , Form("%s: OneSlimEMOS"  ,dirname), 100,  0.,200.);
-      // fLepHist[i]->hOneSlimMuM   = new TH1F("oneslimmum"   , Form("%s: OneSlimMuM"   ,dirname), 100,  0.,200.);
-      // fLepHist[i]->hOneSlimMuMSS = new TH1F("oneslimmumss" , Form("%s: OneSlimMuMSS" ,dirname), 100,  0.,200.);
-      // fLepHist[i]->hOneSlimMuMOS = new TH1F("oneslimmumos" , Form("%s: OneSlimMuMOS" ,dirname), 100,  0.,200.);
-      // fLepHist[i]->hOneSlimTauM  = new TH1F("oneslimtaum"  , Form("%s: OneSlimTauM"  ,dirname), 100,  0.,200.);
-      // fLepHist[i]->hOneSlimTauMSS= new TH1F("oneslimtaumss", Form("%s: OneSlimTauMSS",dirname), 100,  0.,200.);
-      // fLepHist[i]->hOneSlimTauMOS= new TH1F("oneslimtaumos", Form("%s: OneSlimTauMOS",dirname), 100,  0.,200.);
-
-      fLepHist[i]->hTwoPz        = new TH1F("twopz"      , Form("%s: Pz"      ,dirname)  , 100,-100, 100);
+      // Lepton two info //
+      Utilities::BookH1F(fLepHist[i]->hTwoPz          , "twopz"            , Form("%s: Pz"           ,dirname), 100, -100,  100, folder);
       for(int j = 0; j < 12; ++j) {
         TString name = "twopt"; if(j > 0) name += j;
-        fLepHist[i]->hTwoPt[j]     = new TH1F(name.Data(), Form("%s: Pt"      ,dirname)  , 150,   0, 150);
+        Utilities::BookH1F(fLepHist[i]->hTwoPt[j]     , name.Data(), Form("%s: Pt"      ,dirname)  , 150,   0, 150, folder);
       }
       for(int dmregion = 0; dmregion < 5; ++dmregion) {
         TString name_r = "jettautwoptvsr";
         if(dmregion > 0) {name_r += "_"; name_r += dmregion;}
-        fLepHist[i]->hJetTauTwoPtVsR[dmregion] = new TH2F(name_r.Data() , Form("%s: Delta R Vs Two Pt"   ,dirname)  , nbins_pt, pts, nrbins, rbins);
+        Utilities::BookH2F(fLepHist[i]->hJetTauTwoPtVsR[dmregion], name_r.Data() , Form("%s: Delta R Vs Two Pt"   ,dirname)  , nbins_pt, pts, nrbins, rbins, folder);
         for(int ptregion = 0; ptregion < 4; ++ptregion) {
           TString name = "jettautwopt";
           if(ptregion > 0) name += ptregion;
           if(dmregion > 0) {name += "_"; name += dmregion;}
-          fLepHist[i]->hJetTauTwoPt[dmregion][ptregion] = new TH1F(name.Data() , Form("%s: Two Pt"   ,dirname)  , nbins_pt, pts);
+          Utilities::BookH1F(fLepHist[i]->hJetTauTwoPt[dmregion][ptregion], name.Data() , Form("%s: Two Pt"   ,dirname)  , nbins_pt, pts, folder);
         }
       }
-      fLepHist[i]->hJetTauTwoR   = new TH1F("jettautwor" , Form("%s: Delta R" ,dirname)  , nrbins, rbins);
-      fLepHist[i]->hJetTauTwoEta = new TH1F("jettautwoeta", Form("%s: |Eta|"  ,dirname)  , 20,    0, 2.5);
+      Utilities::BookH1F(fLepHist[i]->hJetTauTwoR  , "jettautwor" , Form("%s: Delta R" ,dirname)  , nrbins, rbins, folder);
+      Utilities::BookH1F(fLepHist[i]->hJetTauTwoEta, "jettautwoeta", Form("%s: |Eta|"  ,dirname)  , 20,    0, 2.5, folder);
 
-      fLepHist[i]->hJetTauTwoMetDeltaPhi = new TH1F("jettautwometdeltaphi", Form("%s: TwoMetDeltaPhi"  ,dirname), nmetbins, metbins);
+      Utilities::BookH1F(fLepHist[i]->hJetTauTwoMetDeltaPhi, "jettautwometdeltaphi", Form("%s: TwoMetDeltaPhi"  ,dirname), nmetbins, metbins, folder);
 
-      fLepHist[i]->hTwoP         = new TH1F("twop"       , Form("%s: P"       ,dirname)  , 100,   0, 200);
-      fLepHist[i]->hTwoM         = new TH1F("twom"       , Form("%s: M"       ,dirname)  ,  30,   0, 3);
-      fLepHist[i]->hTwoPtOverM   = new TH1F("twoptoverm" , Form("%s: Pt / M_{ll}",dirname) , 100,   0,  10);
-      fLepHist[i]->hTwoEta       = new TH1F("twoeta"     , Form("%s: Eta"     ,dirname)  ,  50, -2.5,  2.5);
-      fLepHist[i]->hTwoPhi       = new TH1F("twophi"     , Form("%s: Phi"     ,dirname)  ,  80,  -4,   4);
-      fLepHist[i]->hTwoD0        = new TH1F("twod0"      , Form("%s: D0"      ,dirname)  , 200,-0.1, 0.1);
-      fLepHist[i]->hTwoIso       = new TH1F("twoiso"     , Form("%s: Iso"     ,dirname)  , 100,   0,  10);
-      fLepHist[i]->hTwoID1       = new TH1D("twoid1"     , Form("%s: ID1"     ,dirname)  ,  80,  -1,  79);
-      fLepHist[i]->hTwoID2       = new TH1D("twoid2"     , Form("%s: ID2"     ,dirname)  ,  80,  -1,  79);
-      fLepHist[i]->hTwoID3       = new TH1D("twoid3"     , Form("%s: ID3"     ,dirname)  ,  80,  -1,  79);
-      fLepHist[i]->hTwoRelIso    = new TH1F("tworeliso"  , Form("%s: Iso / Pt",dirname)  , 100,   0,   1);
-      fLepHist[i]->hTwoFlavor    = new TH1D("twoflavor"  , Form("%s: Flavor"  ,dirname)  ,  20,   0,  20);
-      fLepHist[i]->hTwoGenFlavor = new TH1D("twogenflavor", Form("%s: Gen Flavor"  ,dirname),  40,   0,  40);
-      fLepHist[i]->hTwoQ         = new TH1D("twoq"       , Form("%s: Q"       ,dirname)  ,   5,  -2,   2);
-      fLepHist[i]->hTwoTrigger   = new TH1D("twotrigger" , Form("%s: Trigger" ,dirname)  ,  10,   0,  10);
-      fLepHist[i]->hTwoWeight    = new TH1F("twoweight"  , Form("%s: Weight"  ,dirname)  , 100,   0,   2);
-      fLepHist[i]->hTwoTrigWeight= new TH1F("twotrigweight", Form("%s: Trig Weight"  ,dirname)  , 100, 0.,  2.);
-      fLepHist[i]->hTwoWeight1Group = new TH1F("twoweight1group"  , Form("%s: Weight group"  ,dirname)  , 50, 0,  50);
-      fLepHist[i]->hTwoWeight2Group = new TH1F("twoweight2group"  , Form("%s: Weight group"  ,dirname)  , 50, 0,  50);
+      Utilities::BookH1F(fLepHist[i]->hTwoEta         , "twoeta"           , Form("%s: Eta"         ,dirname),  50,-2.5,  2.5, folder);
+      Utilities::BookH1F(fLepHist[i]->hTwoPhi         , "twophi"           , Form("%s: Phi"         ,dirname),  80,  -4,    4, folder);
+      Utilities::BookH1F(fLepHist[i]->hTwoD0          , "twod0"            , Form("%s: D0"          ,dirname),  50,   0,  0.1, folder);
+      Utilities::BookH1F(fLepHist[i]->hTwoDXY         , "twodxy"           , Form("%s: DXY"         ,dirname),  50,   0,  0.1, folder);
+      Utilities::BookH1F(fLepHist[i]->hTwoDZ          , "twodz"            , Form("%s: DZ"          ,dirname),  50,   0,  0.1, folder);
+      Utilities::BookH1F(fLepHist[i]->hTwoIso         , "twoiso"           , Form("%s: Iso"         ,dirname),  50,   0,    5, folder);
+      Utilities::BookH1D(fLepHist[i]->hTwoID1         , "twoid1"           , Form("%s: ID1"         ,dirname),  80,  -1,   79, folder);
+      Utilities::BookH1D(fLepHist[i]->hTwoID2         , "twoid2"           , Form("%s: ID2"         ,dirname),  80,  -1,   79, folder);
+      Utilities::BookH1D(fLepHist[i]->hTwoID3         , "twoid3"           , Form("%s: ID3"         ,dirname),  80,  -1,   79, folder);
+      Utilities::BookH1F(fLepHist[i]->hTwoRelIso      , "tworeliso"        , Form("%s: Iso / Pt"    ,dirname),  50,   0,  0.5, folder);
+      Utilities::BookH1D(fLepHist[i]->hTwoFlavor      , "twoflavor"        , Form("%s: Flavor"      ,dirname),  20,   0,   20, folder);
+      Utilities::BookH1D(fLepHist[i]->hTwoGenFlavor   , "twogenflavor"     , Form("%s: Gen Flavor"  ,dirname),  40,   0,   40, folder);
+      Utilities::BookH1D(fLepHist[i]->hTwoQ           , "twoq"             , Form("%s: Q"           ,dirname),   5,  -2,    2, folder);
+      Utilities::BookH1D(fLepHist[i]->hTwoTrigger     , "twotrigger"       , Form("%s: Trigger"     ,dirname),  10,   0,   10, folder);
+      Utilities::BookH1F(fLepHist[i]->hTwoWeight      , "twoweight"        , Form("%s: Weight"      ,dirname),  50,   0,    2, folder);
+      Utilities::BookH1F(fLepHist[i]->hTwoTrigWeight  , "twotrigweight"    , Form("%s: Trig Weight" ,dirname),  50,   0,    2, folder);
+      Utilities::BookH1F(fLepHist[i]->hTwoWeight1Group, "twoweight1group"  , Form("%s: Weight group",dirname),  50,   0,   50, folder);
+      Utilities::BookH1F(fLepHist[i]->hTwoWeight2Group, "twoweight2group"  , Form("%s: Weight group",dirname),  50,   0,   50, folder);
       //Gen Info
-      fLepHist[i]->hTwoGenPt     = new TH1F("twogenpt"   , Form("%s: Gen Pt"   ,dirname)  , 150,   0, 150);
-      fLepHist[i]->hTwoGenE      = new TH1F("twogene"    , Form("%s: Gen E"    ,dirname)  , 100,   0, 200);
-      fLepHist[i]->hTwoGenEta    = new TH1F("twogeneta"  , Form("%s: Gen Eta"  ,dirname)  ,  50, -2.5,  2.5);
-      fLepHist[i]->hTwoDeltaPt   = new TH1F("twodeltapt" , Form("%s: Gen Delta Pt"   ,dirname)  , 100,-100, 100);
-      fLepHist[i]->hTwoDeltaE    = new TH1F("twodeltae"  , Form("%s: Gen Delta E"    ,dirname)  , 100,-500, 500);
-      fLepHist[i]->hTwoDeltaEta  = new TH1F("twodeltaeta", Form("%s: Gen Delta Eta"  ,dirname)  , 100, -5., 5.);
-      fLepHist[i]->hTwoMetDeltaPhi  = new TH1F("twometdeltaphi"   , Form("%s: Met Delta Phi",dirname),  50,   0,   5);
-      // //SVFit Info
-      // fLepHist[i]->hTwoSVPt      = new TH1F("twosvpt"    , Form("%s: SV Pt"   ,dirname)  , 200,   0, 200);
-      // fLepHist[i]->hTwoSVM       = new TH1F("twosvm"     , Form("%s: SV M"    ,dirname)  , 200,   0, 1e1);
-      // fLepHist[i]->hTwoSVEta     = new TH1F("twosveta"   , Form("%s: SV Eta"  ,dirname)  , 200, -10., 10.);
-      // fLepHist[i]->hTwoSVDeltaPt      = new TH1F("twosvdeltapt"    , Form("%s: SV Delta Pt"   ,dirname)  , 200,-100, 100);
-      // fLepHist[i]->hTwoSVDeltaP       = new TH1F("twosvdeltap"     , Form("%s: SV Delta P"    ,dirname)  , 200,-500, 500);
-      // fLepHist[i]->hTwoSVDeltaE       = new TH1F("twosvdeltae"     , Form("%s: SV Delta E"    ,dirname)  , 200,-500, 500);
-      // fLepHist[i]->hTwoSVDeltaEta     = new TH1F("twosvdeltaeta"   , Form("%s: SV Delta Eta"  ,dirname)  , 200, -10., 10.);
-      // fLepHist[i]->hTwoSlimEQ    = new TH1D("twoslimeq"  , Form("%s: TwoSlimEQ"  ,dirname),   8,  -4,   4);
-      // fLepHist[i]->hTwoSlimMuQ   = new TH1D("twoslimmuq" , Form("%s: TwoSlimMuQ" ,dirname),   8,  -4,   4);
-      // fLepHist[i]->hTwoSlimTauQ  = new TH1D("twoslimtauq", Form("%s: TwoSlimTauQ",dirname),   8,  -4,   4);
-      // fLepHist[i]->hTwoSlimEM    = new TH1F("twoslimem"  , Form("%s: TwoSlimEM"  ,dirname), 100,  0.,200.);
-      // fLepHist[i]->hTwoSlimEMSS  = new TH1F("twoslimemss"  , Form("%s: TwoSlimEMSS"  ,dirname), 100,  0.,200.);
-      // fLepHist[i]->hTwoSlimEMOS  = new TH1F("twoslimemos"  , Form("%s: TwoSlimEMOS"  ,dirname), 100,  0.,200.);
-      // fLepHist[i]->hTwoSlimMuM   = new TH1F("twoslimmum" , Form("%s: TwoSlimMuM" ,dirname), 100,  0.,200.);
-      // fLepHist[i]->hTwoSlimMuMSS = new TH1F("twoslimmumss" , Form("%s: TwoSlimMuMSS" ,dirname), 100,  0.,200.);
-      // fLepHist[i]->hTwoSlimMuMOS = new TH1F("twoslimmumos" , Form("%s: TwoSlimMuMOS" ,dirname), 100,  0.,200.);
-      // fLepHist[i]->hTwoSlimTauM  = new TH1F("twoslimtaum", Form("%s: TwoSlimTauM",dirname), 100,  0.,200.);
-      // fLepHist[i]->hTwoSlimTauMSS= new TH1F("twoslimtaumss", Form("%s: TwoSlimTauMSS",dirname), 100,  0.,200.);
-      // fLepHist[i]->hTwoSlimTauMOS= new TH1F("twoslimtaumos", Form("%s: TwoSlimTauMOS",dirname), 100,  0.,200.);
+      Utilities::BookH1F(fLepHist[i]->hTwoGenPt       , "twogenpt"         , Form("%s: Gen Pt"      ,dirname), 100,   0,  150, folder);
+      Utilities::BookH1F(fLepHist[i]->hTwoGenE        , "twogene"          , Form("%s: Gen E"       ,dirname), 100,   0,  200, folder);
+      Utilities::BookH1F(fLepHist[i]->hTwoGenEta      , "twogeneta"        , Form("%s: Gen Eta"     ,dirname),  50,-2.5,  2.5, folder);
+      Utilities::BookH1F(fLepHist[i]->hTwoMetDeltaPhi , "twometdeltaphi"   , Form("%s: Met Delta Phi",dirname), 50,   0,    5, folder);
 
-      fLepHist[i]->hPtDiff        = new TH1F("ptdiff"      , Form("%s: 1 pT - 2 pT"      ,dirname)  , 100,-100., 100.);
-      fLepHist[i]->hD0Diff        = new TH1F("d0diff"      , Form("%s: 2 D0 - 1 D0"      ,dirname)  , 200,-0.2, 0.2);
+      Utilities::BookH1F(fLepHist[i]->hPtDiff         , "ptdiff"           , Form("%s: 1 pT - 2 pT"  ,dirname), 100,  -80,   80, folder);
+      Utilities::BookH1F(fLepHist[i]->hD0Diff         , "d0diff"           , Form("%s: 2 D0 - 1 D0"  ,dirname), 100,-0.08, 0.08, folder);
+      Utilities::BookH1F(fLepHist[i]->hDXYDiff        , "dxydiff"          , Form("%s: 2 DXY - 1 DXY",dirname), 100,-0.08, 0.08, folder);
+      Utilities::BookH1F(fLepHist[i]->hDZDiff         , "dzdiff"           , Form("%s: 2 DZ - 1 DZ"  ,dirname), 100,-0.08, 0.08, folder);
 
       //2D distributions
-      fLepHist[i]->hTwoPtVsOnePt       = new TH2F("twoptvsonept", Form("%s: Two pT vs One pT", dirname), 100, 0, 200, 100, 0, 200);
+      Utilities::BookH2F(fLepHist[i]->hTwoPtVsOnePt   , "twoptvsonept"     , Form("%s: Two pT vs One pT", dirname), 50, 0, 200, 50, 0, 200, folder);
       int nbins_tau_pt = 6;
-      float tau_pts[] = {0., 25., 30., 35., 40.,
-                         50.,
-                         150.};
-      fLepHist[i]->hJetTauTwoPtVsOnePt = new TH2F("jettautwoptvsonept", Form("%s: Two pT vs One pT", dirname), nbins_pt, pts, nbins_tau_pt, tau_pts);
+      const double tau_pts[] = {0., 25., 30., 35., 40.,
+                                50.,
+                                150.};
+      Utilities::BookH2F(fLepHist[i]->hJetTauTwoPtVsOnePt, "jettautwoptvsonept", Form("%s: Two pT vs One pT", dirname), nbins_pt, pts, nbins_tau_pt, tau_pts, folder);
       delete dirname;
     }
   }
 }
 
+//--------------------------------------------------------------------------------------------------------------
 void CLFVHistMaker::BookSystematicHistograms() {
   for(int i = 0; i < fQcdOffset; ++i) {
     if(fSysSets[i]) { //turn on all offset histogram sets
@@ -829,21 +757,21 @@ void CLFVHistMaker::BookSystematicHistograms() {
     if(fEventSets[i] > 0 && fSysSets[i] > 0) {
       char* dirname        = new char[20];
       sprintf(dirname,"systematic_%i",i);
-      fDirectories[4*fn + i] = fTopDir->mkdir(dirname);
+      auto folder = fTopDir->mkdir(dirname);
+      fDirectories[4*fn + i] = folder;
       fDirectories[4*fn + i]->cd();
       fSystematicHist[i] = new SystematicHist_t;
       for(int sys = 0; sys < kMaxSystematics; ++sys) {
-        fSystematicHist[i]->hLepM  [sys] = new TH1F(Form("lepm_%i"  , sys), Form("%s: LepM %i" , dirname, sys) , 400,   0, 200);
-        fSystematicHist[i]->hLepPt [sys] = new TH1F(Form("leppt_%i" , sys), Form("%s: LepPt %i", dirname, sys) ,  50,   0, 200);
-        fSystematicHist[i]->hOnePt [sys] = new TH1F(Form("onept_%i" , sys), Form("%s: Pt %i"   , dirname, sys) ,  50,   0, 200);
-        fSystematicHist[i]->hOneEta[sys] = new TH1F(Form("oneeta_%i", sys), Form("%s: Eta %i"  , dirname, sys) ,  30,  -3,   3);
-        fSystematicHist[i]->hTwoPt [sys] = new TH1F(Form("twopt_%i" , sys), Form("%s: Pt %i"   , dirname, sys) ,  50,   0, 200);
-        fSystematicHist[i]->hTwoEta[sys] = new TH1F(Form("twoeta_%i", sys), Form("%s: Eta %i"  , dirname, sys) ,  30,  -3,   3);
-        fSystematicHist[i]->hWeightChange[sys] = new TH1F(Form("weightchange_%i", sys), Form("%s: Relative weight change %i"  , dirname, sys) ,  50, -2.,  2.);
+        Utilities::BookH1F(fSystematicHist[i]->hLepM        [sys], Form("lepm_%i"        , sys), Form("%s: LepM %i"                   , dirname, sys) , 280,  40, 180, folder);
+        Utilities::BookH1F(fSystematicHist[i]->hLepPt       [sys], Form("leppt_%i"       , sys), Form("%s: LepPt %i"                  , dirname, sys) ,  30,   0, 100, folder);
+        Utilities::BookH1F(fSystematicHist[i]->hOnePt       [sys], Form("onept_%i"       , sys), Form("%s: Pt %i"                     , dirname, sys) ,  40,   0, 100, folder);
+        Utilities::BookH1F(fSystematicHist[i]->hOneEta      [sys], Form("oneeta_%i"      , sys), Form("%s: Eta %i"                    , dirname, sys) ,  30,  -3,   3, folder);
+        Utilities::BookH1F(fSystematicHist[i]->hTwoPt       [sys], Form("twopt_%i"       , sys), Form("%s: Pt %i"                     , dirname, sys) ,  40,   0, 100, folder);
+        Utilities::BookH1F(fSystematicHist[i]->hTwoEta      [sys], Form("twoeta_%i"      , sys), Form("%s: Eta %i"                    , dirname, sys) ,  30,  -3,   3, folder);
+        Utilities::BookH1F(fSystematicHist[i]->hWeightChange[sys], Form("weightchange_%i", sys), Form("%s: Relative weight change %i" , dirname, sys) ,  30, -2.,   2, folder);
         for(unsigned j = 0; j < fMVAConfig.names_.size(); ++j)  {
-          fSystematicHist[i]->hMVA[j][sys] = new TH1D(Form("mva%i_%i",j, sys)     , Form("%s: %s MVA %i" ,dirname, fMVAConfig.names_[j].Data(), sys),
-                                                      fMVAConfig.NBins(j), fMVAConfig.Bins(j).data());
-                                                      // 300, -1.,  2.);
+          Utilities::BookH1D(fSystematicHist[i]->hMVA[j][sys], Form("mva%i_%i",j, sys)     , Form("%s: %s MVA %i" ,dirname, fMVAConfig.names_[j].Data(), sys),
+                             fMVAConfig.NBins(j), fMVAConfig.Bins(j).data(), folder);
         }
       }
       delete dirname;
@@ -851,6 +779,7 @@ void CLFVHistMaker::BookSystematicHistograms() {
   }
 }
 
+//--------------------------------------------------------------------------------------------------------------
 void CLFVHistMaker::BookTrees() {
   for(int i = 0; i < fn; ++i) {
     if(fTreeSets[i] != 0) {
@@ -950,6 +879,7 @@ void CLFVHistMaker::BookTrees() {
   }
 }
 
+//--------------------------------------------------------------------------------------------------------------
 void CLFVHistMaker::DeleteHistograms() {
   for(int i = 0; i < fn; i++) {
     if(fEventSets[i] != 0) {
@@ -961,6 +891,7 @@ void CLFVHistMaker::DeleteHistograms() {
 }
 
 
+//--------------------------------------------------------------------------------------------------------------
 //selections: 1 = mutau, 2 = etau, 5 = emu, 9 = mumu, 18 = ee
 void CLFVHistMaker::InitializeTreeVariables(Int_t selection) {
   //force it to be that nbjets loose >= nbjets medium etc
@@ -977,6 +908,8 @@ void CLFVHistMaker::InitializeTreeVariables(Int_t selection) {
     fJetToTauCompsUp  [proc] = 1.f;
     fJetToTauCompsDown[proc] = 1.f;
   }
+  leptonOneD0 = std::sqrt(leptonOneDXY*leptonOneDXY + leptonOneDZ*leptonOneDZ);
+  leptonTwoD0 = std::sqrt(leptonTwoDXY*leptonTwoDXY + leptonTwoDZ*leptonTwoDZ);
   fTreeVars.leponept  = leptonOneP4->Pt();
   fTreeVars.leponem   = leptonOneP4->M();
   fTreeVars.leponeeta = leptonOneP4->Eta();
@@ -1205,6 +1138,7 @@ void CLFVHistMaker::InitializeTreeVariables(Int_t selection) {
   }
 }
 
+//--------------------------------------------------------------------------------------------------------------
 float CLFVHistMaker::GetTauFakeSF(int genFlavor) {
   float weight = 1.;
   switch(std::abs(genFlavor)) {
@@ -1216,6 +1150,7 @@ float CLFVHistMaker::GetTauFakeSF(int genFlavor) {
   return weight;
 }
 
+//--------------------------------------------------------------------------------------------------------------
 float CLFVHistMaker::CorrectMET(const int selection, const float met) {
   if(selection < 0) return met;
   float corrected = met;
@@ -1228,6 +1163,7 @@ float CLFVHistMaker::CorrectMET(const int selection, const float met) {
   return corrected;
 }
 
+//--------------------------------------------------------------------------------------------------------------
 void CLFVHistMaker::FillEventHistogram(EventHist_t* Hist) {
   // Hist->hLumiSection         ->Fill(lumiSection        , genWeight*eventWeight)      ;
   // Hist->hTriggerStatus       ->Fill(triggerStatus      , genWeight*eventWeight)      ;
@@ -1259,11 +1195,12 @@ void CLFVHistMaker::FillEventHistogram(EventHist_t* Hist) {
   Hist->hNPU[0]              ->Fill(nPU                , genWeight*eventWeight)      ;
   Hist->hNPU[1]              ->Fill(nPU                , genWeight*eventWeight*((puWeight > 0.) ? 1./puWeight : 1.));
   Hist->hLHENJets            ->Fill(LHE_Njets          , genWeight*eventWeight)      ;
+  Hist->hMcEra               ->Fill(mcEra              , genWeight*eventWeight)   ;
+  Hist->hNPartons            ->Fill(nPartons           , genWeight*eventWeight)      ;
+  Hist->hNPhotons            ->Fill(nPhotons           , genWeight*eventWeight)      ;
   if(!fDYTesting && fDoSystematics >= 0) {
-    // Hist->hMcEra               ->Fill(mcEra              , genWeight*eventWeight)   ;
     // Hist->hGenTauFlavorWeight  ->Fill(genTauFlavorWeight );
     // Hist->hPhotonIDWeight      ->Fill(photonIDWeight );
-    Hist->hNPartons            ->Fill(nPartons           , genWeight*eventWeight)      ;
     // Hist->hNSlimMuons          ->Fill(nSlimMuons         , genWeight*eventWeight)      ;
     // for(int icount = 0; icount < kMaxCounts; ++icount)
     //   Hist->hNMuonCounts[icount]->Fill(nMuonCounts[icount], genWeight*eventWeight)     ;
@@ -1274,7 +1211,6 @@ void CLFVHistMaker::FillEventHistogram(EventHist_t* Hist) {
     // Hist->hNSlimTaus           ->Fill(nSlimTaus          , genWeight*eventWeight)      ;
     // for(int icount = 0; icount < kMaxCounts; ++icount)
     //   Hist->hNTauCounts[icount]->Fill(nTauCounts[icount] , genWeight*eventWeight)      ;
-    Hist->hNPhotons            ->Fill(nPhotons           , genWeight*eventWeight)      ;
     // Hist->hNSlimPhotons        ->Fill(nSlimPhotons       , genWeight*eventWeight)      ;
     // Hist->hNSlimJets           ->Fill(nSlimJets          , genWeight*eventWeight)      ;
     Hist->hNGenTausHad         ->Fill(nGenTausHad        , genWeight*eventWeight)      ;
@@ -1511,25 +1447,43 @@ void CLFVHistMaker::FillEventHistogram(EventHist_t* Hist) {
     Hist->hZLepOneEta   ->Fill(zLepOneEta, eventWeight*genWeight);
     Hist->hZLepTwoEta   ->Fill(zLepTwoEta, eventWeight*genWeight);
 
+    const Float_t wt_noqcd     = (qcdWeight > 0.) ? eventWeight*genWeight/qcdWeight : eventWeight*genWeight;
+    const Float_t wt_noqcdcl   = (qcdClosure > 0.) ? eventWeight*genWeight/qcdClosure : eventWeight*genWeight;
+    const Float_t wt_noantiiso = (qcdIsoScale > 0.) ? eventWeight*genWeight/qcdIsoScale : eventWeight*genWeight;
     Hist->hLepDeltaPhi[0]->Fill(lepDelPhi             ,eventWeight*genWeight);
-    Hist->hLepDeltaPhi[1]->Fill(lepDelPhi             ,(qcdWeight > 0.) ? eventWeight*genWeight/qcdWeight : eventWeight*genWeight);
+    Hist->hLepDeltaPhi[1]->Fill(lepDelPhi             ,wt_noqcd);
     Hist->hLepDeltaEta  ->Fill(lepDelEta              ,eventWeight*genWeight);
     Hist->hLepDeltaR[0] ->Fill(lepDelR                ,eventWeight*genWeight);
-    Hist->hLepDeltaR[1] ->Fill(lepDelR                ,(qcdWeight > 0.) ? eventWeight*genWeight/qcdWeight : eventWeight*genWeight);
+    Hist->hLepDeltaR[1] ->Fill(lepDelR                ,wt_noqcd);
     Hist->hLepDeltaR[2] ->Fill(lepDelR                ,eventWeight*genWeight); //same binning as scale factor measurement
     Hist->hLepDelRVsOneEta[0]->Fill(std::fabs(fTreeVars.leponeeta), lepDelR, eventWeight*genWeight);
-    Hist->hLepDelRVsOneEta[1]->Fill(std::fabs(fTreeVars.leponeeta), lepDelR, (qcdWeight > 0.) ? eventWeight*genWeight/qcdWeight : eventWeight*genWeight);
+    Hist->hLepDelRVsOneEta[1]->Fill(std::fabs(fTreeVars.leponeeta), lepDelR, wt_noqcd);
     Hist->hLepDelPhiVsOneEta[0]->Fill(std::fabs(fTreeVars.leponeeta), lepDelPhi, eventWeight*genWeight);
-    Hist->hLepDelPhiVsOneEta[1]->Fill(std::fabs(fTreeVars.leponeeta), lepDelPhi, (qcdWeight > 0.) ? eventWeight*genWeight/qcdWeight : eventWeight*genWeight);
+    Hist->hLepDelPhiVsOneEta[1]->Fill(std::fabs(fTreeVars.leponeeta), lepDelPhi, wt_noqcd);
+    //Jet-binned QCD transfer factor measurement histograms
+    if(nJets == 0) {
+      Hist->hQCDDelRJ[0] ->Fill(lepDelR                ,wt_noqcd);
+      Hist->hQCDOnePtVsTwoPtJ[0]->Fill(leptonOneP4->Pt(), leptonTwoP4->Pt(), wt_noqcdcl);
+    } else if(nJets == 1) {
+      Hist->hQCDDelRJ[1] ->Fill(lepDelR                ,wt_noqcd);
+      Hist->hQCDOnePtVsTwoPtJ[1]->Fill(leptonOneP4->Pt(), leptonTwoP4->Pt(), wt_noqcdcl);
+    } else {
+      Hist->hQCDDelRJ[2] ->Fill(lepDelR                ,wt_noqcd);
+      Hist->hQCDOnePtVsTwoPtJ[2]->Fill(leptonOneP4->Pt(), leptonTwoP4->Pt(), wt_noqcdcl);
+    }
+    Hist->hQCDOnePtVsTwoPtJ[3]->Fill(leptonOneP4->Pt(), leptonTwoP4->Pt(), wt_noqcdcl); //jet-inclusive correction
+    Hist->hQCDOnePtVsTwoPtIso[0]->Fill(leptonOneP4->Pt(), leptonTwoP4->Pt(), wt_noqcd); //no QCD SS-->OS weights
+    Hist->hQCDOnePtVsTwoPtIso[1]->Fill(leptonOneP4->Pt(), leptonTwoP4->Pt(), wt_noantiiso); //no muon anti-iso --> iso weight
 
     // Hist->hLepDelRVsPhi ->Fill(lepDelR , lepDelPhi    ,eventWeight*genWeight);
     Hist->hLepPtOverM   ->Fill(lepSys.Pt()/lepSys.M() ,eventWeight*genWeight);
 
     //Histograms for jet --> tau_h scale factors
     // Hist->hLooseLep     ->Fill(isLooseElectron + 2*isLooseMuon + 4*isLooseTau, eventWeight*genWeight);
-    if(nTaus == 1) {
+    if(nTaus == 1 && fFolderName != "emu") {
       for(UInt_t itau = 0; itau < nTaus; ++itau) {
-        int dm = -1; int njets = std::min(4, (int) nJets);
+        int dm = -1;
+        const int njets = std::min(2, (int) nJets); //0, 1, or >= 2 jets
         bool fakeMC = fIsData == 0 && std::abs(tausGenFlavor[itau]) == 26;
         if(std::fabs(tausEta[itau]) > 2.3) continue;
         if(tausMVAAntiMu[itau] < 2) continue; //ignore ones that fail the old MVA anti-mu tight ID
@@ -1549,7 +1503,7 @@ void CLFVHistMaker::FillEventHistogram(EventHist_t* Hist) {
           Hist->hTausMVAAntiMu->Fill(tausMVAAntiMu[itau]         , tau_wt*eventWeight*genWeight);
           Hist->hTausGenFlavor->Fill(tausGenFlavor[itau], tau_wt*eventWeight*genWeight);
           TLorentzVector tausLV;
-          tausLV.SetPtEtaPhiM(tausPt[itau], tausEta[itau], tausPhi[itau], 1.777);
+          tausLV.SetPtEtaPhiM(tausPt[itau], tausEta[itau], tausPhi[itau], TAUMASS);
           Hist->hTausDeltaR->Fill(std::fabs(tausLV.DeltaR(*leptonOneP4)), tau_wt*eventWeight*genWeight);
         } else {
           Hist->hFakeTausPt->Fill(tausPt[itau], tau_wt*eventWeight*genWeight);
@@ -1564,31 +1518,22 @@ void CLFVHistMaker::FillEventHistogram(EventHist_t* Hist) {
         else if(tausDM[itau] < 0  ) dm = 0; //only happens in tree version with bug --> default to progress until fixed
         else continue; //non-accepted decay mode
 
-        const int nptregions = 5; //to measure scale factor in regions of the lead muon pT as a cross-check
-        bool ptregions[nptregions] = {true,
-                                      fTreeVars.leponept > 55.,
-                                      fTreeVars.leponept > 60.,
-                                      fTreeVars.leponept < 55.,
-                                      fTreeVars.leponept < 60.};
-        for(int iptr = 0; iptr < nptregions; ++iptr) {
-          if(!ptregions[iptr]) continue;
-          if(fakeMC) {
-            Hist->hFakeTauMCNJetDMPtEta[iptr][0][njets][dm]->Fill(tausPt[itau], std::fabs(tausEta[itau]), tau_wt*eventWeight*genWeight); //all taus
+        if(fakeMC) { //MC fake tau
+          Hist->hFakeTauMCNJetDMPtEta[0][njets][dm]->Fill(tausPt[itau], std::fabs(tausEta[itau]), tau_wt*eventWeight*genWeight); //all taus
+        } else { //genuine MC tau or data tau
+          Hist->hFakeTauNJetDMPtEta[0][njets][dm]  ->Fill(tausPt[itau], std::fabs(tausEta[itau]), tau_wt*eventWeight*genWeight); //all taus
+        }
+        if(tausAntiJet[itau] > fFakeTauIsoCut) { //anti-isolated tau
+          if(fakeMC) { //MC fake tau
+            Hist->hFakeTauMCNJetDMPtEta[1][njets][dm]->Fill(tausPt[itau], std::fabs(tausEta[itau]), tau_wt*eventWeight*genWeight); //tight Iso
           } else {
-            Hist->hFakeTauNJetDMPtEta[iptr][0][njets][dm]  ->Fill(tausPt[itau], std::fabs(tausEta[itau]), tau_wt*eventWeight*genWeight); //all taus
+            Hist->hFakeTauNJetDMPtEta[1][njets][dm]  ->Fill(tausPt[itau], std::fabs(tausEta[itau]), tau_wt*eventWeight*genWeight); //tight Iso
           }
-          if(tausAntiJet[itau] > fFakeTauIsoCut) {
-            if(fakeMC) {
-              Hist->hFakeTauMCNJetDMPtEta[iptr][1][njets][dm]->Fill(tausPt[itau], std::fabs(tausEta[itau]), tau_wt*eventWeight*genWeight); //tight Iso
-            } else {
-              Hist->hFakeTauNJetDMPtEta[iptr][1][njets][dm]  ->Fill(tausPt[itau], std::fabs(tausEta[itau]), tau_wt*eventWeight*genWeight); //tight Iso
-            }
-          } else {
-            if(fakeMC) {
-              Hist->hFakeTauMCNJetDMPtEta[iptr][2][njets][dm]->Fill(tausPt[itau], std::fabs(tausEta[itau]), tau_wt*eventWeight*genWeight); //anti-Iso
-            } else {
-              Hist->hFakeTauNJetDMPtEta[iptr][2][njets][dm]  ->Fill(tausPt[itau], std::fabs(tausEta[itau]), tau_wt*eventWeight*genWeight); //anti-Iso
-            }
+        } else { //isolated tau
+          if(fakeMC) { //MC fake tau
+            Hist->hFakeTauMCNJetDMPtEta[2][njets][dm]->Fill(tausPt[itau], std::fabs(tausEta[itau]), tau_wt*eventWeight*genWeight); //anti-Iso
+          } else { //genuine MC tau or data tau
+            Hist->hFakeTauNJetDMPtEta[2][njets][dm]  ->Fill(tausPt[itau], std::fabs(tausEta[itau]), tau_wt*eventWeight*genWeight); //anti-Iso
           }
         }
       }
@@ -1698,21 +1643,22 @@ void CLFVHistMaker::FillEventHistogram(EventHist_t* Hist) {
   // Hist->hPXiInv[0]     ->Fill(pxi_inv0         ,eventWeight*genWeight);
   Hist->hPXiVisOverInv[0]->Fill((pxi_inv0 != 0.) ? pxi_vis0/pxi_inv0 : 1.e6 ,eventWeight*genWeight);
   // Hist->hPXiInvVsVis[0]->Fill(pxi_vis0, pxi_inv0,eventWeight*genWeight);
-  Hist->hPXiDiff[0]    ->Fill(pxi_vis0-pxi_inv0 ,eventWeight*genWeight);
+  // Hist->hPXiDiff[0]    ->Fill(pxi_vis0-pxi_inv0 ,eventWeight*genWeight);
 
   Hist->hPTauVisFrac    ->Fill(1.*fTreeVars.ptauvisfrac , eventWeight*genWeight);
 
-  double coeff = 0.85 - 1.; // match 2016 clfv higgs paper (defined pxi inv = xi dot (lep1 + lep2 + met) = my pxi inv + pxi vis)
-  double offset = -60.;
-  Hist->hPXiDiff3[0]   ->Fill(pxi_inv0 - (coeff*pxi_vis0+offset) ,eventWeight*genWeight);
+  // double coeff = 0.85 - 1.; // match 2016 clfv higgs paper (defined pxi inv = xi dot (lep1 + lep2 + met) = my pxi inv + pxi vis)
+  // double offset = -60.;
+  // Hist->hPXiDiff3[0]   ->Fill(pxi_inv0 - (coeff*pxi_vis0+offset) ,eventWeight*genWeight);
 
-  coeff = 0.6;
-  offset = -40.;
-  Hist->hPXiDiff2[0]   ->Fill(pxi_inv0 - (coeff*pxi_vis0+offset) ,eventWeight*genWeight);
+  // coeff = 0.6;
+  // offset = -40.;
+  // Hist->hPXiDiff2[0]   ->Fill(pxi_inv0 - (coeff*pxi_vis0+offset) ,eventWeight*genWeight);
 
   // Hist->hPtSum[0]      ->Fill(leptonOneP4->Pt()+leptonTwoP4->Pt()+met ,eventWeight*genWeight);
 }
 
+//--------------------------------------------------------------------------------------------------------------
 void CLFVHistMaker::FillPhotonHistogram(PhotonHist_t* Hist) {
   Hist->hPz  ->Fill(photonP4->Pz() , eventWeight*genWeight );
   Hist->hPt  ->Fill(photonP4->Pt() , eventWeight*genWeight );
@@ -1725,6 +1671,7 @@ void CLFVHistMaker::FillPhotonHistogram(PhotonHist_t* Hist) {
   // Hist->hTrigger   ;
 }
 
+//--------------------------------------------------------------------------------------------------------------
 void CLFVHistMaker::FillLepHistogram(LepHist_t* Hist) {
   /////////////
   //  Lep 1  //
@@ -1765,11 +1712,12 @@ void CLFVHistMaker::FillLepHistogram(LepHist_t* Hist) {
       int ptr;
       TLorentzVector taulv;
       if(std::abs(leptonTwoFlavor) == 15) taulv = *leptonTwoP4;
-      else taulv.SetPtEtaPhiM(tausPt[0], tausEta[0], tausPhi[0], 1.777);
+      else taulv.SetPtEtaPhiM(tausPt[0], tausEta[0], tausPhi[0], TAUMASS);
 
       if(taupt < 30.)      ptr = 1;
       else if(taupt < 45.) ptr = 2;
       else                 ptr = 3;
+      //FIXME: Remove tau pT region histograms
       float wt = eventWeight*genWeight;
       if(jetToTauWeightCorr > 0.) wt *= jetToTauWeight / jetToTauWeightCorr; // remove the pT correction
       double dr = std::fabs(leptonOneP4->DeltaR(taulv));
@@ -1796,12 +1744,14 @@ void CLFVHistMaker::FillLepHistogram(LepHist_t* Hist) {
       Hist->hJetTauTwoPtVsOnePt->Fill(leptonOneP4->Pt(), taulv.Pt(), wt);
       Hist->hJetTauTwoMetDeltaPhi->Fill(fTreeVars.twometdeltaphi, wt);
     }
-    Hist->hOneP         ->Fill(leptonOneP4->P()             ,eventWeight*genWeight);
-    Hist->hOneM         ->Fill(leptonOneP4->M()             ,eventWeight*genWeight);
-    Hist->hOnePtOverM   ->Fill(leptonOneP4->Pt() / fTreeVars.lepm, eventWeight*genWeight);
+    // Hist->hOneP         ->Fill(leptonOneP4->P()             ,eventWeight*genWeight);
+    // Hist->hOneM         ->Fill(leptonOneP4->M()             ,eventWeight*genWeight);
+    // Hist->hOnePtOverM   ->Fill(leptonOneP4->Pt() / fTreeVars.lepm, eventWeight*genWeight);
     Hist->hOneEta       ->Fill(leptonOneP4->Eta()           ,eventWeight*genWeight);
     Hist->hOnePhi       ->Fill(leptonOneP4->Phi()           ,eventWeight*genWeight);
     Hist->hOneD0        ->Fill(leptonOneD0                  ,eventWeight*genWeight);
+    Hist->hOneDXY       ->Fill(leptonOneDXY                 ,eventWeight*genWeight);
+    Hist->hOneDZ        ->Fill(leptonOneDZ                  ,eventWeight*genWeight);
     Hist->hOneIso       ->Fill(leptonOneIso                 ,eventWeight*genWeight);
     Hist->hOneID1       ->Fill(leptonOneID1                 ,eventWeight*genWeight);
     Hist->hOneID2       ->Fill(leptonOneID2                 ,eventWeight*genWeight);
@@ -1864,12 +1814,14 @@ void CLFVHistMaker::FillLepHistogram(LepHist_t* Hist) {
     wt = jetToTauWeightCorr/jetToTauWeight;
     Hist->hTwoPt[11]->Fill(leptonTwoP4->Pt(), eventWeight*genWeight/wt);
 
-    Hist->hTwoP         ->Fill(leptonTwoP4->P()             ,eventWeight*genWeight);
-    Hist->hTwoM         ->Fill(leptonTwoP4->M()             ,eventWeight*genWeight);
-    Hist->hTwoPtOverM   ->Fill(leptonTwoP4->Pt() / fTreeVars.lepm, eventWeight*genWeight);
+    // Hist->hTwoP         ->Fill(leptonTwoP4->P()             ,eventWeight*genWeight);
+    // Hist->hTwoM         ->Fill(leptonTwoP4->M()             ,eventWeight*genWeight);
+    // Hist->hTwoPtOverM   ->Fill(leptonTwoP4->Pt() / fTreeVars.lepm, eventWeight*genWeight);
     Hist->hTwoEta       ->Fill(leptonTwoP4->Eta()           ,eventWeight*genWeight);
     Hist->hTwoPhi       ->Fill(leptonTwoP4->Phi()           ,eventWeight*genWeight);
     Hist->hTwoD0        ->Fill(leptonTwoD0                  ,eventWeight*genWeight);
+    Hist->hTwoDXY       ->Fill(leptonTwoDXY                 ,eventWeight*genWeight);
+    Hist->hTwoDZ        ->Fill(leptonTwoDZ                  ,eventWeight*genWeight);
     Hist->hTwoIso       ->Fill(leptonTwoIso                 ,eventWeight*genWeight);
     Hist->hTwoID1       ->Fill(leptonTwoID1                 ,eventWeight*genWeight);
     Hist->hTwoID2       ->Fill(leptonTwoID2                 ,eventWeight*genWeight);
@@ -1902,10 +1854,13 @@ void CLFVHistMaker::FillLepHistogram(LepHist_t* Hist) {
 
     Hist->hPtDiff      ->Fill(leptonOneP4->Pt()-leptonTwoP4->Pt() ,eventWeight*genWeight);
     Hist->hD0Diff      ->Fill(leptonTwoD0-leptonOneD0             ,eventWeight*genWeight);
+    Hist->hDXYDiff     ->Fill(leptonTwoDXY-leptonOneDXY           ,eventWeight*genWeight);
+    Hist->hDZDiff      ->Fill(leptonTwoDZ-leptonOneDZ             ,eventWeight*genWeight);
     Hist->hTwoPtVsOnePt->Fill(leptonOneP4->Pt(), leptonTwoP4->Pt(),eventWeight*genWeight);
   }
 }
 
+//--------------------------------------------------------------------------------------------------------------
 void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
   bool isSameFlavor = fFolderName == "ee" || fFolderName == "mumu";
   bool isMuTau = fFolderName == "mutau";
@@ -2148,6 +2103,7 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
 }
 
 
+//--------------------------------------------------------------------------------------------------------------
 Bool_t CLFVHistMaker::Process(Long64_t entry)
 {
   fentry = entry;
@@ -2258,6 +2214,15 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   //check if super-cluster eta is in the tree
   if(!fChain->GetBranch("leptonOneSCEta")) leptonOneSCEta = leptonOneP4->Eta();
   if(!fChain->GetBranch("leptonTwoSCEta")) leptonTwoSCEta = leptonTwoP4->Eta();
+
+  //Set MC era for embedding samples
+  if(fIsEmbed) {
+    mcEra = 0; //default to first period
+    const TString filename = GetOutputName();
+    if(fYear == 2016) { //only check for 2016 embedding
+      if(filename.Contains("-G") || filename.Contains("-H")) mcEra = 1;
+    }
+  }
 
   /////////////////////////////////
   // Remove weights if requested //
@@ -2389,6 +2354,34 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   if((mutau + etau + emu + mumu + ee) > 1)
     std::cout << "WARNING! Entry " << entry << " passes multiple selections!\n";
 
+  //////////////////////////////////////////////////////////////
+  // Check if anti-iso lepton category
+  //////////////////////////////////////////////////////////////
+
+  isLooseElectron = (ee || emu || etau) && looseQCDSelection;
+  isLooseMuon     = (mumu || emu || mutau) && looseQCDSelection;
+  isLooseTau      = (etau || mutau) && tauDeepAntiJet < 50 && looseQCDSelection;
+
+  if(isLooseElectron) {
+    if(emu || etau) isLooseElectron &= leptonOneID1 < 4; //Not WP80
+    if(ee)          isLooseElectron &= leptonOneID1 < 4 || leptonTwoID1 < 4; //Not WP80
+  }
+  if(isLooseMuon) {
+    if(emu)   isLooseMuon &= leptonTwoID1 <= ParticleCorrections::kTightMuIso; //Not Tight IsoID
+    if(mutau) isLooseMuon &= leptonOneID1 <= ParticleCorrections::kTightMuIso; //Not Tight IsoID
+    if(mumu)  isLooseMuon &= leptonOneID1 <= ParticleCorrections::kTightMuIso || leptonTwoID1 < ParticleCorrections::kTightMuIso; //Not Tight IsoID
+  }
+
+  isFakeElectron  = !fIsData && ((std::abs(leptonOneFlavor) == 11 && leptonOneGenFlavor == 26) ||
+                                 (std::abs(leptonTwoFlavor) == 11 && leptonTwoGenFlavor == 26));
+  isFakeMuon      = !fIsData && ((std::abs(leptonOneFlavor) == 13 && leptonOneGenFlavor == 26) ||
+                                 (std::abs(leptonTwoFlavor) == 13 && leptonTwoGenFlavor == 26));
+
+
+  //////////////////////////////////////////////////////////////
+  // Apply or remove scale factors
+  //////////////////////////////////////////////////////////////
+
   //trigger and object pT thresholds
   float muon_trig_pt(25.), electron_trig_pt(29.), muon_pt(10.), electron_pt(15.), tau_pt(20.);
   if(fYear == 2017) muon_trig_pt = 28.;
@@ -2401,13 +2394,6 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
     leptonOneTrigWeight = 1.; leptonTwoTrigWeight = 1.;
     if(fRemoveTriggerWeights > 1) ApplyTriggerWeights(muon_trig_pt, electron_trig_pt);
   }
-
-
-  // //use locally computed weight
-  // if(fUseTauFakeSF > 1 && fIsData == 0) genTauFlavorWeight = GetTauFakeSF(tauGenFlavor);
-
-  // //apply fake tau SF
-  // if(!fDYTesting && fUseTauFakeSF && fIsData == 0) eventWeight *= genTauFlavorWeight;
 
   //apply embedding unfolding correction to embedded samples
   if(fIsEmbed) {
@@ -2438,13 +2424,13 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
     else if(std::abs(tauGenFlavor) == 11) tauGenID = 1;
     if     (std::abs(leptonOneFlavor) == 11) {
       if(fUseEmbedTnPWeights) {
-        leptonOneWeight1 = fEmbeddingTnPWeight.ElectronIDWeight(leptonOneP4->Pt(), leptonOneSCEta, fYear);
+        leptonOneWeight1 = fEmbeddingTnPWeight.ElectronIDWeight(leptonOneP4->Pt(), leptonOneSCEta, fYear, isLooseElectron, mcEra);
       } else {
         leptonOneWeight1 = fEmbeddingWeight.ElectronIDWeight(leptonOneP4->Pt(), leptonOneSCEta, fYear);
       }
     } else if(std::abs(leptonOneFlavor) == 13) {
       if(fUseEmbedTnPWeights) {
-        leptonOneWeight1 = fEmbeddingTnPWeight.MuonIDWeight(leptonOneP4->Pt(), leptonOneP4->Eta(), fYear);
+        leptonOneWeight1 = fEmbeddingTnPWeight.MuonIDWeight(leptonOneP4->Pt(), leptonOneP4->Eta(), fYear, isLooseMuon, mcEra);
       } else {
         leptonOneWeight1 = fEmbeddingWeight.MuonIDWeight(leptonOneP4->Pt(), leptonOneP4->Eta(), fYear);
       }
@@ -2452,13 +2438,13 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
                                                                                   fYear, leptonOneWeight1_up, leptonOneWeight1_down);
     if     (std::abs(leptonTwoFlavor) == 11) {
       if(fUseEmbedTnPWeights) {
-        leptonTwoWeight1 = fEmbeddingTnPWeight.ElectronIDWeight(leptonTwoP4->Pt(), leptonTwoSCEta, fYear);
+        leptonTwoWeight1 = fEmbeddingTnPWeight.ElectronIDWeight(leptonTwoP4->Pt(), leptonTwoSCEta, fYear, isLooseElectron, mcEra);
       } else {
         leptonTwoWeight1 = fEmbeddingWeight.ElectronIDWeight(leptonTwoP4->Pt(), leptonTwoSCEta, fYear);
       }
     } else if(std::abs(leptonTwoFlavor) == 13) {
       if(fUseEmbedTnPWeights) {
-        leptonTwoWeight1 = fEmbeddingTnPWeight.MuonIDWeight(leptonTwoP4->Pt(), leptonTwoP4->Eta(), fYear);
+        leptonTwoWeight1 = fEmbeddingTnPWeight.MuonIDWeight(leptonTwoP4->Pt(), leptonTwoP4->Eta(), fYear, isLooseMuon, mcEra);
       } else {
         leptonTwoWeight1 = fEmbeddingWeight.MuonIDWeight(leptonTwoP4->Pt(), leptonTwoP4->Eta(), fYear);
       }
@@ -2478,11 +2464,6 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
 
   InitializeTreeVariables(mutau+2*etau+5*emu+9*mumu+18*ee);
 
-  if(std::isnan(eventWeight)) {
-    std::cout << "!!! " << fentry << " Warning! Event weight is NaN: wt = "
-              << eventWeight << " gen_wt = " << genWeight << std::endl;
-    eventWeight = 1.;
-  }
 
   bool chargeTest = leptonOneFlavor*leptonTwoFlavor < 0;
 
@@ -2497,41 +2478,33 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
                              << " etau = " << etau << " emu = " << emu
                              << " mumu = " << mumu << " and ee = " << ee << std::endl;
 
+  if(!std::isfinite(eventWeight) || !std::isfinite(genWeight)) {
+    std::cout << __func__ << ": Warning!!! " << fentry << " point 1: Event weight not defined (" << eventWeight*genWeight << "), setting to 0. Event weights:\n"
+              << " btag = " << btagWeight << "; embedding = " << embeddingWeight << "; embed_unfold = " << embeddingUnfoldingWeight
+              << "; genWeight = " << genWeight << "; zPtWeight = " << zPtWeight << "; jetPUIDWt = " << jetPUIDWeight
+              << "; trig_wt = " << leptonOneTrigWeight*leptonTwoTrigWeight << "; lep1_wt = " << leptonOneWeight1*leptonOneWeight2
+              << "; lep2_wt = " << leptonTwoWeight1*leptonTwoWeight2
+              << std::endl;
+    eventWeight = 0.;
+    genWeight = 1.;
+  }
+
   //////////////////////////////////////////////////////////////
   //
   // Object cuts + selection section
   //
   //////////////////////////////////////////////////////////////
 
-  //////////////////////////////////////////////////////////////
-  // Check if anti-iso lepton category
-  //////////////////////////////////////////////////////////////
-
-  isLooseElectron = (ee || emu || etau) && looseQCDSelection;
-  isLooseMuon     = (mumu || emu || mutau) && looseQCDSelection;
-  isLooseTau      = (etau || mutau) && tauDeepAntiJet < 50 && looseQCDSelection;
   //Ignore loose lepton selection in same flavor category for now
   ee   &= !isLooseElectron;
   mumu &= !isLooseMuon;
 
-  if(isLooseElectron) {
-    if(emu || etau) isLooseElectron &= leptonOneID1 < 4; //Not WP80
-    if(ee)          isLooseElectron &= leptonOneID1 < 4 || leptonTwoID1 < 4; //Not WP80
-  }
-  if(isLooseMuon) {
-    if(emu)   isLooseMuon &= leptonTwoID1 < 4; //Not Tight IsoID
-    if(mutau) isLooseMuon &= leptonOneID1 < 4; //Not Tight IsoID
-    if(mumu)  isLooseMuon &= leptonOneID1 < 4 || leptonTwoID1 < 4; //Not Tight IsoID
-  }
-
-  isFakeElectron  = !fIsData && ((std::abs(leptonOneFlavor) == 11 && leptonOneGenFlavor == 26) ||
-                                 (std::abs(leptonTwoFlavor) == 11 && leptonTwoGenFlavor == 26));
-  isFakeMuon      = !fIsData && ((std::abs(leptonOneFlavor) == 13 && leptonOneGenFlavor == 26) ||
-                                 (std::abs(leptonTwoFlavor) == 13 && leptonTwoGenFlavor == 26));
 
   jetToTauWeight = 1.; jetToTauWeightUp = 1.; jetToTauWeightDown = 1.; jetToTauWeightSys = 1.; jetToTauWeightGroup = 0;
   jetToTauWeightCorr = 1.; jetToTauWeightCorrUp = 1.; jetToTauWeightCorrDown = 1.; jetToTauWeightCorrSys = 1.;
   jetToTauWeight_compUp = 1.; jetToTauWeight_compDown = 1.;
+
+  qcdWeight = 1.; qcdWeightUp = 1.; qcdWeightDown = 1.; qcdWeightSys = 1.; qcdClosure = 1.;
 
 
   ////////////////////////////////////////////////////////////
@@ -2552,7 +2525,8 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   ////////////////////////////////////////////////////////////
   if(!(mutau || etau || emu || mumu || ee)) return kTRUE;
   if(!fDYTesting || fCutFlowTesting) {
-    FillAllHistograms(set_offset + 1);
+    if(!emu || !isLooseElectron)
+      FillAllHistograms(set_offset + 1);
   }
 
   fCutFlow->Fill(icutflow); ++icutflow; //5
@@ -2607,7 +2581,8 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   ////////////////////////////////////////////////////////////
   if(!(mutau || etau || emu || mumu || ee)) return kTRUE;
   if(!fDYTesting || fCutFlowTesting) {
-    FillAllHistograms(set_offset + 2);
+    if(!emu || !isLooseElectron)
+      FillAllHistograms(set_offset + 2);
   }
 
   fCutFlow->Fill(icutflow); ++icutflow; //6
@@ -2644,6 +2619,12 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   mumu  &= mll > 51. && mll < 170.;
   ee    &= mll > 51. && mll < 170.;
 
+  //Remove Mu50 muon trigger if used in the sample
+  //FIXME: For mu-mu this removes events with one firing Mu50 and one firing IsoMu due to overwrite of muonTriggerStatus
+  //--> update to lep(1/2) trigger status variables
+  if(fabs(leptonOneFlavor) == 13 && muonTriggerStatus == 2) leptonOneFired = false;
+  if(fabs(leptonTwoFlavor) == 13 && muonTriggerStatus == 2) leptonTwoFired = false;
+
   //ensure a trigger was fired
   mutau &= leptonOneFired || leptonTwoFired;
   etau  &= leptonOneFired || leptonTwoFired;
@@ -2651,10 +2632,6 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   mumu  &= leptonOneFired || leptonTwoFired;
   ee    &= leptonOneFired || leptonTwoFired;
 
-  // //ignore Mu50 trigger
-  // mutau &= muonTriggerStatus != 2;
-  // emu   &= !(muonTriggerStatus == 2 && triggerLeptonStatus == 2);
-  // mumu  &= muonTriggerStatus != 2;
 
   if(!(mutau || etau || emu || mumu || ee)) return kTRUE;
 
@@ -2666,7 +2643,8 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   ////////////////////////////////////////////////////////////
 
   if(!fDYTesting || fCutFlowTesting) {
-    FillAllHistograms(set_offset + 3);
+    if(!emu || !isLooseElectron)
+      FillAllHistograms(set_offset + 3);
   }
 
   ////////////////////////////////////////////////////////////
@@ -2689,7 +2667,8 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
 
   if(!(mutau || etau || emu || mumu || ee)) return kTRUE;
   if(!fDYTesting || fCutFlowTesting) {
-    FillAllHistograms(set_offset + 4);
+    if(!emu || !isLooseElectron)
+      FillAllHistograms(set_offset + 4);
   }
 
   fCutFlow->Fill(icutflow); ++icutflow; //8
@@ -2779,7 +2758,8 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   const double met_cut   = 60.;
   const double mtlep_cut = 70.;
   if((!fDYTesting || !(mumu || ee)) && nBJetsUse == 0 && met < met_cut && fTreeVars.mtlep < mtlep_cut) {
-    FillAllHistograms(set_offset + 35);
+    if(!emu || !isLooseElectron)
+      FillAllHistograms(set_offset + 35);
   }
 
   ////////////////////////////////////////////////////////////////////////////
@@ -2933,13 +2913,19 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   // SS --> OS weights //
   ///////////////////////
 
-  qcdWeight = 1.; qcdWeightUp = 1.; qcdWeightDown = 1.; qcdWeightSys = 1.;
-  //get scale factor for same sign --> opposite sign
+  //get scale factor for same sign --> opposite sign, apply to MC and Data same-sign events
   if(emu && !chargeTest) {
-    qcdWeight = fQCDWeight.GetWeight(fTreeVars.lepdeltar, fTreeVars.lepdeltaphi, fTreeVars.leponeeta, fYear, qcdWeightUp, qcdWeightDown, qcdWeightSys);
+    qcdWeight = fQCDWeight.GetWeight(fTreeVars.lepdeltar, fTreeVars.lepdeltaphi, fTreeVars.leponeeta, fTreeVars.leponept, fTreeVars.leptwopt,
+                                     fYear, nJets, isLooseMuon, qcdClosure, qcdIsoScale, qcdWeightUp, qcdWeightDown, qcdWeightSys);
   }
 
   eventWeight *= qcdWeight;
+
+  if(!std::isfinite(eventWeight) || !std::isfinite(genWeight)) {
+    std::cout << __func__ << ": Warning!!! " << fentry << "point 2: Event weight not defined, setting to 0...\n";
+    eventWeight = 0.;
+    genWeight = 1.;
+  }
 
   /////////////////////////
   // Jet --> lep weights //
@@ -3020,7 +3006,8 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
         eventWeight *= (jetToTauWeightCorr / prev_jtt_cr);
       }
     }
-    FillAllHistograms(set_offset + 32);
+    if(!emu || !isLooseElectron)
+      FillAllHistograms(set_offset + 32);
     if(etau || mutau) {
       eventWeight        = prev_evt_wt;
       jetToTauWeight     = prev_jtt_wt;
@@ -3045,7 +3032,7 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
       //add loose --> tight tau weight, without leading lepton pT closure correction
       Float_t temp_event_weight = eventWeight;
       TLorentzVector taulv;
-      taulv.SetPtEtaPhiM(tausPt[0], tausEta[0], tausPhi[0], 1.777);
+      taulv.SetPtEtaPhiM(tausPt[0], tausEta[0], tausPhi[0], TAUMASS);
       if(mumu) jetToTauWeight = fMuonJetToTauWeight.GetDataFactor    (tausDM[0], fYear, tausPt[0], tausEta[0],
                                                                       leptonOneP4->Pt(), leptonOneP4->DeltaR(taulv),
                                                                       fTreeVars.onemetdeltaphi, jetToTauWeightCorr);
@@ -3102,7 +3089,25 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
 
   if(!(mutau || etau || emu || mumu || ee)) return kTRUE;
 
-  if(!looseQCDSelection && chargeTest)                                    {fCutFlow->Fill(icutflow);} //15
+
+  //Test selection for QCD using loose electron or both loose leptons
+  if(emu && isLooseElectron) {
+    ////////////////////////////////////////////////////////////////////////////
+    // Set 70 + selection offset: loose electron + tight muon region
+    ////////////////////////////////////////////////////////////////////////////
+    if(!isLooseMuon) FillAllHistograms(set_offset + 70);
+    ////////////////////////////////////////////////////////////////////////////
+    // Set 71 + selection offset: loose electron + loose muon region
+    ////////////////////////////////////////////////////////////////////////////
+    else             FillAllHistograms(set_offset + 71);
+  }
+
+  //Enforce QCD selection only using loose muon ID
+  emu &= !isLooseElectron;
+  if(!(mutau || etau || emu || mumu || ee)) return kTRUE;
+
+
+  if(!looseQCDSelection && chargeTest)                                          {fCutFlow->Fill(icutflow);} //15
   ++icutflow;
   if(!looseQCDSelection && chargeTest && std::fabs(genWeight) > 0.)             {fCutFlow->Fill(icutflow);} //16
   ++icutflow;
@@ -3293,6 +3298,7 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   return kTRUE;
 }
 
+//--------------------------------------------------------------------------------------------------------------
 void CLFVHistMaker::ApplyTriggerWeights(const float muon_trig_pt, const float electron_trig_pt) {
   float data_eff[2] = {0.5f, 0.5f}; //set to 0.5 so no danger in doing the ratio of eff or 1 - eff
   float mc_eff[2]   = {0.5f, 0.5f};
@@ -3305,7 +3311,7 @@ void CLFVHistMaker::ApplyTriggerWeights(const float muon_trig_pt, const float el
   if(std::abs(leptonOneFlavor) == 11) { //lepton 1 is an electron
     if(fIsEmbed) {
       if(fUseEmbedTnPWeights) {
-        fEmbeddingTnPWeight.ElectronTriggerWeight(leptonOneP4->Pt(), leptonOneSCEta, fYear, data_eff[0], mc_eff[0]);
+        fEmbeddingTnPWeight.ElectronTriggerWeight(leptonOneP4->Pt(), leptonOneSCEta, fYear, data_eff[0], mc_eff[0], isLooseElectron, mcEra);
       } else {
         fEmbeddingWeight.ElectronTriggerWeight   (leptonOneP4->Pt(), leptonOneSCEta, fYear, data_eff[0], mc_eff[0]);
       }
@@ -3316,7 +3322,7 @@ void CLFVHistMaker::ApplyTriggerWeights(const float muon_trig_pt, const float el
   if(std::abs(leptonTwoFlavor) == 11) { //lepton 2 is an electron
     if(fIsEmbed) {
       if(fUseEmbedTnPWeights) {
-        fEmbeddingTnPWeight.ElectronTriggerWeight(leptonTwoP4->Pt(), leptonTwoSCEta, fYear, data_eff[1], mc_eff[1]);
+        fEmbeddingTnPWeight.ElectronTriggerWeight(leptonTwoP4->Pt(), leptonTwoSCEta, fYear, data_eff[1], mc_eff[1], isLooseElectron, mcEra);
       } else {
         fEmbeddingWeight.ElectronTriggerWeight   (leptonTwoP4->Pt(), leptonTwoSCEta, fYear, data_eff[1], mc_eff[1]);
       }
@@ -3329,7 +3335,7 @@ void CLFVHistMaker::ApplyTriggerWeights(const float muon_trig_pt, const float el
   if(std::abs(leptonTwoFlavor) == 13) { //lepton 2 is a muon
     if(fIsEmbed) {
       if(fUseEmbedTnPWeights) {
-        fEmbeddingTnPWeight.MuonTriggerWeight(leptonTwoP4->Pt(), leptonTwoP4->Eta(), fYear, data_eff[1], mc_eff[1]);
+        fEmbeddingTnPWeight.MuonTriggerWeight(leptonTwoP4->Pt(), leptonTwoP4->Eta(), fYear, data_eff[1], mc_eff[1], isLooseMuon, mcEra);
       } else {
         fEmbeddingWeight.MuonTriggerWeight   (leptonTwoP4->Pt(), leptonTwoP4->Eta(), fYear, data_eff[1], mc_eff[1]);
       }
@@ -3341,7 +3347,7 @@ void CLFVHistMaker::ApplyTriggerWeights(const float muon_trig_pt, const float el
   if(std::abs(leptonOneFlavor) == 13) { //lepton 1 is a muon
     if(fIsEmbed) {
       if(fUseEmbedTnPWeights) {
-        fEmbeddingTnPWeight.MuonTriggerWeight(leptonOneP4->Pt(), leptonOneP4->Eta(), fYear, data_eff[0], mc_eff[0]);
+        fEmbeddingTnPWeight.MuonTriggerWeight(leptonOneP4->Pt(), leptonOneP4->Eta(), fYear, data_eff[0], mc_eff[0], isLooseMuon, mcEra);
       } else {
         fEmbeddingWeight.MuonTriggerWeight   (leptonOneP4->Pt(), leptonOneP4->Eta(), fYear, data_eff[0], mc_eff[0]);
       }
@@ -3439,6 +3445,7 @@ void CLFVHistMaker::ApplyTriggerWeights(const float muon_trig_pt, const float el
   eventWeight *= leptonOneTrigWeight * leptonTwoTrigWeight;
 }
 
+//--------------------------------------------------------------------------------------------------------------
 void CLFVHistMaker::CountSlimObjects() {
   //reset counters
   for(int index = 0; index < kMaxCounts; ++index) {
@@ -3566,6 +3573,7 @@ void CLFVHistMaker::CountSlimObjects() {
   }
 }
 
+//--------------------------------------------------------------------------------------------------------------
 //determine MVA category
 int CLFVHistMaker::Category(TString selection) {
   int category = 0;
@@ -3580,6 +3588,7 @@ int CLFVHistMaker::Category(TString selection) {
   return category;
 }
 
+//--------------------------------------------------------------------------------------------------------------
 //initialize the randomly assigned systematic shifts
 void CLFVHistMaker::InitializeSystematics() {
   leptonOneWeight1_group = 0; leptonOneWeight2_group = 0;
@@ -3628,10 +3637,12 @@ void CLFVHistMaker::InitializeSystematics() {
   }
 }
 
+//--------------------------------------------------------------------------------------------------------------
 void CLFVHistMaker::ProcessLLGStudy() {
 
 }
 
+//--------------------------------------------------------------------------------------------------------------
 void CLFVHistMaker::SlaveTerminate()
 {
   // The SlaveTerminate() function is called after all entries or objects
@@ -3640,6 +3651,7 @@ void CLFVHistMaker::SlaveTerminate()
 
 }
 
+//--------------------------------------------------------------------------------------------------------------
 void CLFVHistMaker::Terminate()
 {
   // The Terminate() function is the last function to be called during

@@ -5,18 +5,23 @@ using namespace CLFV;
 //-------------------------------------------------------------------------------------------------------------------------
 QCDWeight::QCDWeight(const TString selection, const int Mode, const int seed, const int verbose) : verbose_(verbose) {
 
-  useFits_       = (Mode %     10) /     1 == 1;
-  useDeltaPhi_   = (Mode %    100) /    10 == 1;
-  useEtaClosure_ = (Mode %   1000) /   100 == 1;
-  use2DScale_    = (Mode %  10000) /  1000 == 1;
-  useDeltaRSys_  = (Mode % 100000) / 10000 == 1;
+  useFits_        = (Mode %       10) /       1 == 1;
+  useDeltaPhi_    = (Mode %      100) /      10 == 1;
+  useEtaClosure_  = (Mode %     1000) /     100 == 1;
+  use2DPtClosure_ = (Mode %     1000) /     100 == 2;
+  use2DScale_     = (Mode %    10000) /    1000 == 1;
+  useDeltaRSys_   = (Mode %   100000) /   10000 == 1;
+  useJetBinned_   = (Mode %  1000000) /  100000 == 1;
+  useAntiIso_     = (Mode % 10000000) / 1000000 == 1;
 
   if(verbose > 0) {
     std::cout << __func__ << ": useFits = " << useFits_
               << " useDeltaPhi = " << useDeltaPhi_
               << " useEtaClosure = " << useEtaClosure_
+              << " use2DPtClosure = " << use2DPtClosure_
               << " use2DScale = " << use2DScale_
               << " useDeltaRSys = " << useDeltaRSys_
+              << " useJetBinned = " << useJetBinned_
               << std::endl;
   }
 
@@ -26,8 +31,11 @@ QCDWeight::QCDWeight(const TString selection, const int Mode, const int seed, co
   rnd_ = new TRandom3(seed);
   const TString hist = (useDeltaPhi_) ? "hRatio_lepdeltaphi1" : "hRatio";
   const TString hist_2D = (useDeltaPhi_) ? "hRatio_lepdelphivsoneeta" : "hRatio_lepdelrvsoneeta";
-  const TString hist_closure = "hClosure_oneeta";
+  TString hist_closure = "hClosure_oneeta";
+  if(useEtaClosure_) hist_closure = "hClosure_oneeta";
+  else if(use2DPtClosure_) hist_closure = "hRatio_oneptvstwopt";
   const TString hist_sys = "hClosure_lepdeltar";
+  const TString hist_jb = "hRatio_lepdeltarj";
 
   if(verbose > 1) {
     std::cout << __func__ << ": Histogram name = " << hist.Data()
@@ -46,7 +54,7 @@ QCDWeight::QCDWeight(const TString selection, const int Mode, const int seed, co
       ///////////////////////////////////////////
       //Get Data histogram
       ///////////////////////////////////////////
-      histsData_[year] = (TH1D*) f->Get(hist.Data());
+      histsData_[year] = (TH1*) f->Get(hist.Data());
       if(!histsData_[year]) {
         std::cout << "QCDWeight::QCDWeight: Warning! No Data histogram " << hist.Data() << " found for year = " << year
                   << " selection = " << selection.Data() << std::endl;
@@ -80,7 +88,7 @@ QCDWeight::QCDWeight(const TString selection, const int Mode, const int seed, co
       ///////////////////////////////////////////
       //Get Data Fit Error
       ///////////////////////////////////////////
-      fitErrData_[year] = (TH1D*) f->Get("fit_1s_err");
+      fitErrData_[year] = (TH1*) f->Get("fit_1s_err");
       if(!fitErrData_[year]) {
         std::cout << "QCDWeight::QCDWeight: Warning! No Data fit error found for year = " << year
                   << " selection = " << selection.Data() << std::endl;
@@ -89,22 +97,68 @@ QCDWeight::QCDWeight(const TString selection, const int Mode, const int seed, co
         fitErrData_[year]->SetDirectory(0);
       }
       ///////////////////////////////////////////
+      //Get jet-binned histograms
+      ///////////////////////////////////////////
+      for(int ijet = 0; ijet < 3; ++ijet) {
+        const int index = 10*year + ijet;
+        const char* name = Form("%s%i", hist_jb.Data(), ijet);
+        TH1* h = (TH1*) f->Get(name);
+        jetBinnedHists_[index] = h;
+        if(!h) {
+          std::cout << "QCDWeight::QCDWeight: Warning! No jet-binned histogram " << name << " found for year = " << year
+                    << " selection = " << selection.Data() << std::endl;
+        } else {
+          h->SetName(Form("%s_%s_%i", h->GetName(), selection.Data(), year));
+          h->SetDirectory(0);
+          max_deltar_bins = std::max(h->GetNbinsX(), max_deltar_bins);
+        }
+      }
+
+      ///////////////////////////////////////////
       //Get Closure histogram
       ///////////////////////////////////////////
-      histsClosure_[year] = (TH1D*) f->Get(hist_closure.Data());
-      if(!histsClosure_[year]) {
-        std::cout << "QCDWeight::QCDWeight: Warning! No Closure histogram " << hist_closure.Data() << " found for year = " << year
-                  << " selection = " << selection.Data() << std::endl;
-      } else {
-        histsClosure_[year]->SetName(Form("%s_%s_%i", histsClosure_[year]->GetName(), selection.Data(), year));
-        max_deltar_bins = std::max(histsClosure_[year]->GetNbinsX(), max_deltar_bins);
-        histsClosure_[year]->SetDirectory(0);
+      if(useEtaClosure_) {
+        histsClosure_[year] = (TH1*) f->Get(hist_closure.Data());
+        if(!histsClosure_[year]) {
+          std::cout << "QCDWeight::QCDWeight: Warning! No Closure histogram " << hist_closure.Data() << " found for year = " << year
+                    << " selection = " << selection.Data() << std::endl;
+        } else {
+          histsClosure_[year]->SetName(Form("%s_%s_%i", histsClosure_[year]->GetName(), selection.Data(), year));
+          max_deltar_bins = std::max(histsClosure_[year]->GetNbinsX(), max_deltar_bins);
+          histsClosure_[year]->SetDirectory(0);
+        }
+      } else if(use2DPtClosure_) {
+        TH2* h = (TH2*) f->Get(hist_closure.Data());
+        Pt2DClosure_[year] = h;
+        if(!h) {
+          std::cout << "QCDWeight::QCDWeight: Warning! No Closure histogram " << hist_closure.Data() << " found for year = " << year
+                    << " selection = " << selection.Data() << std::endl;
+        } else {
+          h->SetName(Form("%s_%s_%i", h->GetName(), selection.Data(), year));
+          max_deltar_bins = std::max(h->GetNbinsX(), max_deltar_bins);
+          h->SetDirectory(0);
+        }
+      }
+
+      //Muon Anti-iso --> iso scale factor
+      if(useAntiIso_) {
+        const char* name = "hRatio_oneptvstwopt_antiisoscale";
+        TH2* h = (TH2*) f->Get(name);
+        AntiIsoScale_[year] = h;
+        if(!h) {
+          std::cout << "QCDWeight::QCDWeight: Warning! No Muon anti-iso scale histogram " << name << " found for year = " << year
+                    << " selection = " << selection.Data() << std::endl;
+        } else {
+          h->SetName(Form("%s_%s_%i", h->GetName(), selection.Data(), year));
+          max_deltar_bins = std::max(h->GetNbinsX(), max_deltar_bins);
+          h->SetDirectory(0);
+        }
       }
 
       ///////////////////////////////////////////
       //Get Systematic histogram
       ///////////////////////////////////////////
-      histsSys_[year] = (TH1D*) f->Get(hist_sys.Data());
+      histsSys_[year] = (TH1*) f->Get(hist_sys.Data());
       if(!histsSys_[year]) {
         std::cout << "QCDWeight::QCDWeight: Warning! No systematic histogram " << hist_sys.Data() << " found for year = " << year
                   << " selection = " << selection.Data() << std::endl;
@@ -129,23 +183,31 @@ QCDWeight::QCDWeight(const TString selection, const int Mode, const int seed, co
 //-------------------------------------------------------------------------------------------------------------------------
 QCDWeight::~QCDWeight() {
   if(rnd_) delete rnd_;
-  for(std::pair<int, TH1D*> val : histsData_   ) {if(val.second) delete val.second;}
-  for(std::pair<int, TH2D*> val : hists2DData_ ) {if(val.second) delete val.second;}
-  for(std::pair<int, TF1* > val : fitsData_    ) {if(val.second) delete val.second;}
-  for(std::pair<int, TH1D*> val : fitErrData_  ) {if(val.second) delete val.second;}
-  for(std::pair<int, TH1D*> val : histsClosure_) {if(val.second) delete val.second;}
-  for(std::pair<int, TH1D*> val : histsSys_    ) {if(val.second) delete val.second;}
+  for(std::pair<int, TH1*> val : histsData_     ) {if(val.second) delete val.second;}
+  for(std::pair<int, TH2*> val : hists2DData_   ) {if(val.second) delete val.second;}
+  for(std::pair<int, TF1*> val : fitsData_      ) {if(val.second) delete val.second;}
+  for(std::pair<int, TH1*> val : fitErrData_    ) {if(val.second) delete val.second;}
+  for(std::pair<int, TH1*> val : histsClosure_  ) {if(val.second) delete val.second;}
+  for(std::pair<int, TH1*> val : histsSys_      ) {if(val.second) delete val.second;}
+  for(std::pair<int, TH1*> val : jetBinnedHists_) {if(val.second) delete val.second;}
 }
 
 //-------------------------------------------------------------------------------------------------------------------------
 //Get scale factor for Data
-float QCDWeight::GetWeight(float deltar, float deltaphi, float oneeta, const int year, float& up, float& down, float& sys) {
-  TH1D* h = histsData_[year];
-  TF1*  f = fitsData_ [year];
-  TH1D* fErr = fitErrData_[year];
-  TH1D* hClosure = histsClosure_[year];
-  TH1D* hSys = histsSys_[year];
-  TH2D* h2D = hists2DData_[year];
+float QCDWeight::GetWeight(float deltar, float deltaphi, float oneeta, float onept, float twopt, const int year, int njets, const bool isantiiso,
+                           float& nonclosure, float& antiiso, float& up, float& down, float& sys) {
+  njets = std::max(0, std::min(njets, 2)); //jet-bins: 0, 1, >=2
+  TH1* h          = histsData_[year];
+  TF1* f          = fitsData_ [year];
+  TH1* fErr       = fitErrData_[year];
+  TH1* hClosure   = histsClosure_[year];
+  TH2* h2DClosure = Pt2DClosure_[year];
+  TH1* hSys       = histsSys_[year];
+  TH2* h2D        = hists2DData_[year];
+  TH1* hJbin      = jetBinnedHists_[10*year+njets];
+  TH2* hAntiIso   = AntiIsoScale_[year]; //muon anti-iso --> iso scale
+
+  if(useJetBinned_) h = hJbin; //replace jet inclusive pointer with jet binned if using jet-binned scales
 
   //ensure within kinematic regions
   deltar = std::fabs(deltar);
@@ -153,9 +215,11 @@ float QCDWeight::GetWeight(float deltar, float deltaphi, float oneeta, const int
   deltaphi = std::fabs(deltaphi);
   if(deltaphi > M_PI) deltaphi = M_PI;
   oneeta = std::min(2.49f, std::max(oneeta, -2.49f));
+  onept = std::min(149.f, std::max(onept, 10.f));
+  twopt = std::min(149.f, std::max(twopt, 10.f));
 
   //initialize values
-  up = 1.; down = 1.; sys = 1.;
+  nonclosure = 1.; up = 1.; down = 1.; sys = 1.; antiiso = 1.;
   const float var = (useDeltaPhi_) ? deltaphi : deltar;
   const float closure = oneeta;
 
@@ -176,6 +240,10 @@ float QCDWeight::GetWeight(float deltar, float deltaphi, float oneeta, const int
     std::cout << "QCDWeight::" << __func__ << " Undefined closure histogram for year = "
               << year << std::endl;
     return 1.;
+  } else if(!h2DClosure && use2DPtClosure_) {
+    std::cout << "QCDWeight::" << __func__ << " Undefined closure histogram for year = "
+              << year << std::endl;
+    return 1.;
   } else if(!hSys && useDeltaRSys_) {
     std::cout << "QCDWeight::" << __func__ << " Undefined systematic histogram for year = "
               << year << std::endl;
@@ -184,12 +252,18 @@ float QCDWeight::GetWeight(float deltar, float deltaphi, float oneeta, const int
     std::cout << "QCDWeight::" << __func__ << " Undefined 2D histogram for year = "
               << year << std::endl;
     return 1.;
+  } else if(!hAntiIso && useAntiIso_) {
+    std::cout << "QCDWeight::" << __func__ << " Undefined anti-iso correction histogram for year = "
+              << year << std::endl;
+    return 1.;
   }
 
   if(verbose_ > 9) {
     std::cout << "QCDWeight::" << __func__ << ":\n Getting weight for:"
               << " delta R = " << deltar << " delta phi = " << deltaphi
-              << " one eta = " << oneeta
+              << " one eta = " << oneeta << " one pt = " << onept
+              << " two pt = " << twopt << " njets = " << njets
+              << " anti-iso = " << isantiiso
               << " year = " << year
               << std::endl;
   }
@@ -246,29 +320,68 @@ float QCDWeight::GetWeight(float deltar, float deltaphi, float oneeta, const int
   //Apply a closure correction
   if(useEtaClosure_) {
     const int bin = std::max(1, std::min(hClosure->FindBin(closure), hClosure->GetNbinsX()));
-    const float correction = hClosure->GetBinContent(bin);
-    if(std::isnan(correction) || correction < 0.) {
-      std::cout << "QCDWeight::" << __func__ << " Closure Weight < 0  = " << closure
+    nonclosure = hClosure->GetBinContent(bin);
+    if(!std::isfinite(nonclosure) || nonclosure < 0.) {
+      std::cout << "QCDWeight::" << __func__ << " Closure Weight < 0  = " << nonclosure
                 << " delta R = " << deltar << " delta phi = " << deltaphi
                 << " for year = " << year << std::endl;
-      up = 1.; down = 1.; sys = 1.;
+      up = 1.; down = 1.; sys = 1.; nonclosure = 1.;
       return 1.;
     }
-    eff  *= correction;
-    up   *= correction;
-    down *= correction;
-    sys  *= correction;
+  } else if(use2DPtClosure_) {
+    const int xbin = std::max(1, std::min(h2DClosure->GetXaxis()->FindBin(onept), h2DClosure->GetNbinsX()));
+    const int ybin = std::max(1, std::min(h2DClosure->GetYaxis()->FindBin(twopt), h2DClosure->GetNbinsY()));
+    nonclosure = h2DClosure->GetBinContent(xbin, ybin);
+    if(!std::isfinite(nonclosure) || nonclosure < 0.) {
+      std::cout << "QCDWeight::" << __func__ << " Closure Weight < 0  = " << nonclosure
+                << " delta R = " << deltar << " delta phi = " << deltaphi
+                << " one pt = " << onept << " two pt = " << twopt
+                << " for year = " << year << std::endl;
+      up = 1.; down = 1.; sys = 1.; nonclosure = 1.;
+      return 1.;
+    }
+  } else {
+    nonclosure = 1.;
   }
+
+  //apply non-closure correction
+  eff  *= nonclosure;
+  up   *= nonclosure;
+  down *= nonclosure;
+  sys  *= nonclosure;
+
+  //get anti-iso --> iso correction factor if needed
+  if(useAntiIso_ && !isantiiso) { //only apply to isolated muons since scales measured with anti-isolated muons
+    const int xbin = std::max(1, std::min(hAntiIso->GetXaxis()->FindBin(onept), hAntiIso->GetNbinsX()));
+    const int ybin = std::max(1, std::min(hAntiIso->GetYaxis()->FindBin(twopt), hAntiIso->GetNbinsY()));
+    antiiso = hAntiIso->GetBinContent(xbin, ybin);
+    if(!std::isfinite(antiiso) || antiiso < 0.) {
+      std::cout << "QCDWeight::" << __func__ << " Closure Weight < 0  = " << nonclosure
+                << " delta R = " << deltar << " delta phi = " << deltaphi
+                << " one pt = " << onept << " two pt = " << twopt
+                << " for year = " << year << std::endl;
+      up = 1.; down = 1.; sys = 1.; nonclosure = 1.; antiiso = 1.;
+      return 1.;
+    }
+  } else {
+    antiiso = 1.;
+  }
+
+  //apply anti-iso correction
+  eff  *= antiiso;
+  up   *= antiiso;
+  down *= antiiso;
+  sys  *= antiiso;
 
   //Evaluate systematic by varying a delta R closure
   if(useDeltaRSys_) {
     const int bin = std::max(1, std::min(hSys->FindBin(deltar), hSys->GetNbinsX()));
     const float correction = hSys->GetBinContent(bin);
-    if(std::isnan(correction) || correction < 0.) {
+    if(!std::isfinite(correction) || correction < 0.) {
       std::cout << "QCDWeight::" << __func__ << " Systematic < 0  = " << closure
                 << " delta R = " << deltar << " delta phi = " << deltaphi
                 << " for year = " << year << std::endl;
-      up = 1.; down = 1.; sys = 1.;
+      up = 1.; down = 1.; sys = 1.; nonclosure = 1.; antiiso = 1.;
       return 1.;
     }
     const float eff_sys = eff*correction;
@@ -277,5 +390,18 @@ float QCDWeight::GetWeight(float deltar, float deltaphi, float oneeta, const int
     // sys = eff_sys; leave sys as the statistical variation from the fits
   }
 
+  //Check that the results are reasonable
+  if(!std::isfinite(eff) || eff <= 0.) {
+    std::cout << __func__ << ": Warning! QCD scale value error, scale = " << eff << " err = " << err << " nonclosure = " << nonclosure
+              << " for year = " << year << "; deltar = " << deltar << "; deltaphi = " << deltaphi << "; oneeta = " << oneeta
+              << std::endl;
+    eff = 0.01; //default to a small weight
+    err = 0.99*eff; //99% uncertainty
+    nonclosure = 1.;
+    antiiso = 1.;
+    up = eff + err;
+    down = eff - err;
+    sys = up;
+  }
   return eff;
 }

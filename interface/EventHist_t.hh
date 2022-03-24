@@ -146,8 +146,8 @@ namespace CLFV {
     TH1* hLooseLep;
 
     //Jet --> tau_h histograms
-    TH2* hFakeTauNJetDMPtEta  [5/*leading muon pT regions*/][3/*iso cat*/][5/*njets*/][4/*DM*/];
-    TH2* hFakeTauMCNJetDMPtEta[5/*leading muon pT regions*/][3/*iso cat*/][5/*njets*/][4/*DM*/];
+    TH2* hFakeTauNJetDMPtEta  [3/*iso cat*/][3/*njets*/][4/*DM*/];
+    TH2* hFakeTauMCNJetDMPtEta[3/*iso cat*/][3/*njets*/][4/*DM*/];
     TH1* hTausPt;
     TH1* hTausEta;
     TH1* hTausDM;
@@ -175,6 +175,9 @@ namespace CLFV {
     TH2* hLepDelRVsPhi;
     TH2* hLepDelRVsOneEta[2]; //0: nominal 1: without QCD weights
     TH2* hLepDelPhiVsOneEta[2]; //0: nominal 1: without QCD weights
+    TH1* hQCDDelRJ[3]; //0: 0 jets; 1: 1 jet; 2: >=2 jets (all without QCD weights)
+    TH2* hQCDOnePtVsTwoPtJ[4]; //0: 0 jets; 1: 1 jet; 2: >=2 jets; 3: jet-inclusive (all without QCD closure)
+    TH2* hQCDOnePtVsTwoPtIso[2]; //0: no QCD weights; 1: no muon anti-iso --> iso weights
 
     TH1* hLepPtOverM;
     TH1* hAlpha[4]; //alpha from arXiv:1207.4894

@@ -1,9 +1,16 @@
 //Script to generate Tag and Probe (TnP) electron trigger scale factors
 
-int debug_ = 0;
+int debug_ = 0; //1: print info then exit; 2: process nentries_ and perform fits; 3: 2 + print fit information
 int  nentries_ = 2e6;
+bool single_fit_ = false; //do just one bin of the matrix fit
+int  fit_x_ = 1; //bin of the single fit
+int  fit_y_ = 1; //bin of the single fit
 bool applyScales_ = true; //apply conditioned IDs' scale factors
 bool use_abs_eta_ = false; //use eta or |eta| in the scale factor measurement
+
+enum {kLooseMuon = 1, kMediumMuon, kTightMuon};
+enum {kVVLooseIso = 1, kVLooseIso, kLooseIso, kMediumIso, kTightIso, kVTightIso, kVVTightIso};
+enum {kWPL = 1, kWP90, kWP80};
 
 //Fit the mass distribution with a signal and background function
 double extract_nz(TH1F* hMass, double& nerror, int BkgMode, TString figname = "", TString figtitle = "") {
@@ -33,25 +40,36 @@ double extract_nz(TH1F* hMass, double& nerror, int BkgMode, TString figname = ""
 
   // //DoubleCB signal
   RooRealVar     mean  ("mean"  , "mean"  , 90., 85., 95.); //central RooCBShape
-  RooRealVar     sigma ("sigma" , "sigma" , 2.2, 0.5, 10.);
-  RooRealVar     alpha1("alpha1", "alpha1", 1. , 0.1, 10.);
-  RooRealVar     alpha2("alpha2", "alpha2", 2. , 0.1, 10.);
-  RooRealVar     enne1 ("enne1" , "enne1" , 3.7, 0.5, 10.);
-  RooRealVar     enne2 ("enne2" , "enne2" , 1.9, 0.5, 10.);
+  RooRealVar     sigma ("sigma" , "sigma" , 2.2, 1.0, 6.);
+  RooRealVar     alpha1("alpha1", "alpha1", 1. , 0.5, 5.);
+  RooRealVar     alpha2("alpha2", "alpha2", 2. , 0.5, 5.);
+  RooRealVar     enne1 ("enne1" , "enne1" , 5. , 4.0, 30.);
+  RooRealVar     enne2 ("enne2" , "enne2" , 8.8, 4.0, 30.);
   RooDoubleCrystalBall sigpdf("sigpdf", "sigpdf", mass, mean, sigma, alpha1, enne1, alpha2, enne2);
 
   //Build the background PDF
   RooAbsPdf* bkgpdf;
   vector<RooRealVar*> bkgvars;
-  if(BkgMode == 0) { //exponential PDF
+  if(BkgMode == 0 || hMass->Integral() < 1000) { //exponential PDF
     RooRealVar* tau = new RooRealVar("tau", "tau", -1., -10., 1.); bkgvars.push_back(tau);
     bkgpdf = new RooExponential("bkgpdf", "bkgpdf", mass, *tau);
   } else if(BkgMode == 1) { //Bernstein polynomial
     RooRealVar* a_bkg = new RooRealVar("a_bkg", "a_bkg", 2.e-3, -2., 2.); bkgvars.push_back(a_bkg);
+    RooRealVar* b_bkg = new RooRealVar("b_bkg", "b_bkg", 7.e-3, -2., 2.); bkgvars.push_back(b_bkg);
+    RooRealVar* c_bkg = new RooRealVar("c_bkg", "c_bkg", 5.e-3, -2., 2.); bkgvars.push_back(c_bkg);
+    RooRealVar* d_bkg = new RooRealVar("d_bkg", "d_bkg", 3.e-3, -2., 2.); bkgvars.push_back(d_bkg);
+    // bkgpdf = new RooBernstein("bkgpdf", "bkgpdf", mass, RooArgList(*a_bkg, *b_bkg, *c_bkg));
+    bkgpdf = new RooBernstein("bkgpdf", "bkgpdf", mass, RooArgList(*a_bkg, *b_bkg, *c_bkg, *d_bkg));
+  } else if(BkgMode == 2) { //Chebychev polynomial
+    RooRealVar* a_bkg = new RooRealVar("a_bkg", "a_bkg", 2.e-3, -2., 2.); bkgvars.push_back(a_bkg);
     RooRealVar* b_bkg = new RooRealVar("b_bkg", "b_bkg", 3.e-2, -2., 2.); bkgvars.push_back(b_bkg);
     RooRealVar* c_bkg = new RooRealVar("c_bkg", "c_bkg", 1.e-2, -2., 2.); bkgvars.push_back(c_bkg);
-
-    bkgpdf = new RooBernstein("bkgpdf", "bkgpdf", mass, RooArgList(*a_bkg, *b_bkg, *c_bkg));
+    RooRealVar* d_bkg = new RooRealVar("d_bkg", "d_bkg", 1.e-2, -2., 2.); bkgvars.push_back(d_bkg);
+    bkgpdf = new RooChebychev("bkgpdf", "bkgpdf", mass, RooArgList(*a_bkg, *b_bkg, *c_bkg, *d_bkg));
+  // } else if(BkgMode == 3) { //two exponential PDFs
+  //   RooRealVar* tau_1 = new RooRealVar("tau_1", "tau_2", -1., -10., 1.); bkgvars.push_back(tau_1);
+  //   RooRealVar* tau_2 = new RooRealVar("tau_2", "tau_2", -1., -10., 1.); bkgvars.push_back(tau_2);
+  //   bkgpdf = new RooExponential("bkgpdf", "bkgpdf", mass, *tau_1);
   }
 
   const double rough_sig_frac = hMass->Integral(hMass->FindBin(85.), hMass->FindBin(95.)) / hMass->Integral();
@@ -68,13 +86,17 @@ double extract_nz(TH1F* hMass, double& nerror, int BkgMode, TString figname = ""
   int count = 0;
   do {
     if(debug_ < 3) {
-      totpdf.fitTo(data, RooFit::SumW2Error(1), RooFit::Warnings(0), RooFit::PrintEvalErrors(-1), RooFit::PrintLevel(-1));
+      auto fitres = totpdf.fitTo(data, RooFit::SumW2Error(1), RooFit::Warnings(0), RooFit::PrintEvalErrors(-1), RooFit::PrintLevel(-1), RooFit::Save());
+      refit = fitres != 0 && fitres->status() != 0 && count < 2;
     } else {
       cout << "###### Fit: " << figtitle.Data() << ": " << figname.Data() << endl;
       auto fitres = totpdf.fitTo(data, RooFit::SumW2Error(1), RooFit::Warnings(0), RooFit::PrintEvalErrors(-1), RooFit::Save());
       cout << "#######################################################" << endl << endl
+           << "Fit: " << figtitle.Data() << ": " << figname.Data() << endl
            << "Fit result: status = " << fitres->status() << " covQual = " << fitres->covQual() << endl << endl
            << "#######################################################" << endl;
+      sigpdf.Print("tree");
+      bkgpdf->Print("tree");
       refit = fitres->status() != 0 && count < 2;
     }
     ++count;
@@ -104,7 +126,8 @@ double extract_nz(TH1F* hMass, double& nerror, int BkgMode, TString figname = ""
   label.SetTextAlign(13);
   label.SetTextAngle(0);
   label.DrawLatex(0.12, 0.88, figtitle.Data());
-  label.DrawLatex(0.12, 0.83, Form("N(sig) = %.1f +- %.1f", nsig, nerror));
+  label.DrawLatex(0.12, 0.83, Form("N(data) = %.0f", hMass->Integral()));
+  label.DrawLatex(0.12, 0.78, Form("N(sig)  = %.1f +- %.1f", nsig, nerror));
   if(figname != "")
     c->SaveAs(figname.Data());
   delete c;
@@ -116,38 +139,21 @@ double extract_nz(TH1F* hMass, double& nerror, int BkgMode, TString figname = ""
   return nsig;
 }
 
-// TChain* create_chain(int isMC, bool isMuon, int year) {
-//   TChain* chain = new TChain("Events");
-//   vector<TString> runs;
-//   if(year == 2016)      runs = {"B", "C", "D", "E", "F", "G", "H"};
-//   else if(year == 2017) runs = {"B", "C", "D", "E", "F"};
-//   else if(year == 2018) runs = {"A", "B", "C", "D"};
-//   TString path = "root://cmseos.fnal.gov//store/user/mmackenz/embed_tnp/EmbedTnPAnalysis_";
-//   if(isMC) path += Form("Embed-%s", (isMuon) ? "MuMu" : "ElEl");
-//   else {
-//     // path += Form("Single%s", (isMuon) ? "MuonRun" : "ElectronRun");
-//     //Just return the merged data file since no scale factors are applied by run
-//     chain->Add((path + Form("Single%s_%i.root", (isMuon) ? "Mu" : "Ele", year)).Data());
-//     return chain;
-//   }
-
-//   for(TString run : runs) chain->Add((path + run + Form("_%i.root", year)).Data());
-//   return chain;
-// }
-
 /**
    Mode:
    0 = muon/electron trigger
    1 = muon/electron ID
-   2 = muon Iso ID
+   2 = Tight muon Iso ID
+   3 = Loose + !Tight muon Iso ID / electron ID
+   4 = Muon/electron trigger for Loose + !Tight QCD ID
 
    isMC:
    0 = Data
    1 = Embedding
-   2 = MC
+   2 = MC (not currently implemented)
  **/
 
-void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 2016) {
+void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 2016, int period = -1) {
 
   if(Mode == 2 && !isMuon) {
     cout << "Mode 2 is not defined for electrons!\n";
@@ -158,19 +164,27 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
   TFile* f;
 
   vector<TString> runs;
-  if(year == 2016)      runs = {"B", "C", "D", "E", "F", "G", "H"};
-  else if(year == 2017) runs = {"B", "C", "D", "E", "F"};
-  else if(year == 2018) runs = {"A", "B", "C", "D"};
-  if(!isMC) runs = {""}; //don't do run dependence for data
+  if     (year == 2016) {
+    if     (period == -1)   runs = {"B", "C", "D", "E", "F", "G", "H"};
+    else if(period ==  0)   runs = {"B", "C", "D", "E", "F"};
+    else if(period ==  1)   runs = {"G", "H"};
+  } else if(year == 2017) { runs = {"B", "C", "D", "E", "F"};
+  } else if(year == 2018) { runs = {"A", "B", "C", "D"};
+  }
+  if(!isMC && period < 0) runs = {""}; //use merged run file for data if not doing run-dependence scale factors
   CrossSections xs;
 
   ///////////////////////////////////////
   // Initialize ID correction objects
   ///////////////////////////////////////
 
-  TFile* fSF_1 =            TFile::Open(Form("rootfiles/embedding_eff_%s_mode-1_%i.root", (isMuon) ? "mumu" : "ee", year));
-  TFile* fSF_2 = (isMuon) ? TFile::Open(Form("rootfiles/embedding_eff_%s_mode-2_%i.root", (isMuon) ? "mumu" : "ee", year)) : 0;
-  if((!fSF_1 && Mode != 1) || (!fSF_2 && Mode == 0 && isMuon)) {
+  const bool trig_mode = (Mode == 0 || Mode == 4);
+
+  TFile* fSF_1 =            TFile::Open(Form("rootfiles/embedding_eff_%s_mode-%i_%i%s.root",
+                                             (isMuon) ? "mumu" : "ee", (Mode == 4 && !isMuon) ? 3 : 1, year, (period >= 0) ? Form("_period_%i", period) : ""), "READ")    ;
+  TFile* fSF_2 = (isMuon) ? TFile::Open(Form("rootfiles/embedding_eff_%s_mode-%i_%i%s.root",
+                                             (isMuon) ? "mumu" : "ee", (Mode == 4           ) ? 3 : 2, year, (period >= 0) ? Form("_period_%i", period) : ""), "READ") : 0;
+  if((!fSF_1 && Mode != 1) || (!fSF_2 && trig_mode && isMuon)) {
     cout << "Scale factor files not found for required IDs! "
          << "Mode = " << Mode << " isMC = " << isMC << " isMuon = " << isMuon << " year = " << year << endl;
     return;
@@ -204,24 +218,22 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
 
   vector<double> eta_bins;
   const double gap_low(1.4442), gap_high(1.566);
-  if(isMuon && use_abs_eta_) eta_bins = {0., 0.9, 1.2, 2.1, 2.4}; //muon
-  else if(isMuon)            eta_bins = {-2.4, -2.1, -1.2, -0.9, 0., 0.9, 1.2, 2.1, 2.4}; //muon
+  if(isMuon && use_abs_eta_) eta_bins = {0., 0.9, 1.2, 1.6, 2.1, 2.4}; //muon
+  else if(isMuon)            eta_bins = {-2.4, -2.1, -1.6, -1.2, -0.9, 0., 0.9, 1.2, 1.6, 2.1, 2.4}; //muon
   else if(use_abs_eta_)      eta_bins = {0., 0.2, 0.5, 1., gap_low, gap_high, 2.1, 2.5}; //electron
   else                       eta_bins = {-2.5, -2.1, -gap_high, -gap_low, -1., -0.5, -0.2, 0., 0.2, 0.5, 1., gap_low, gap_high, 2.1, 2.5}; //electron
   // else if(use_abs_eta_)      eta_bins = {0., 1., gap_low, gap_high, 2.1, 2.5}; //electron
   // else                       eta_bins = {-2.5, -2.1, -gap_high, -gap_low, -1., 0., 1., gap_low, gap_high, 2.1, 2.5}; //electron
   vector<double> pt_bins;
   if(isMuon) {
-    if(Mode == 0) pt_bins = {20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 38, 40, 45, 50, 60, 80, 100, 500};
+    if(trig_mode) pt_bins = {20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 38, 40, 45, 50, 60, 80, 100, 500};
     else          pt_bins = {10, 15, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 45, 50, 60, 80, 100, 500};
   } else {
-    if(Mode == 0) pt_bins = {25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 42, 44, 46, 48, 50, 100, 500};
+    if(trig_mode) pt_bins = {25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 42, 44, 46, 48, 50, 100, 500};
     else          pt_bins = {10, 15, 20, 24, 26, 28, 30, 32, 34, 36, 38, 40, 45, 50, 100, 500};
   }
-  // if(Mode == 0) pt_bins = {24,26,28,30,33,36,40,45,50,70,100,500};
-  // else          pt_bins = {10,15,20,25,30,35,40,45,50,70,100,500};
-  int n_eta_bins = eta_bins.size() - 1;
-  int n_pt_bins  = pt_bins .size() - 1;
+  const int n_eta_bins = eta_bins.size() - 1;
+  const int n_pt_bins  = pt_bins .size() - 1;
 
   TH2F* hPass  = new TH2F("hPass" , "Passing events", n_eta_bins, &eta_bins[0], n_pt_bins, &pt_bins[0]);
   TH2F* hFail  = new TH2F("hFail" , "Failing events", n_eta_bins, &eta_bins[0], n_pt_bins, &pt_bins[0]);
@@ -254,9 +266,9 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
 
   ULong64_t nused(0), ntotal(0);
   for(TString run : runs) {
-    if     (isMC == 0) f = TFile::Open(Form("%sdata/EmbedTnPAnalysis_Single%s_%i.root" , path.Data(), (isMuon) ? "Mu"   : "Ele", year), "READ");
+    if     (isMC == 0 && period < 0) f = TFile::Open(Form("%sdata/EmbedTnPAnalysis_Single%s_%i.root" , path.Data(), (isMuon) ? "Mu"   : "Ele", year), "READ");
+    else if(isMC == 0) f = TFile::Open(Form("%sdata/EmbedTnPAnalysis_Single%sRun%i%s_%i.root", path.Data(), (isMuon) ? "Muon"   : "Electron", year, run.Data(), year), "READ");
     else if(isMC == 1) f = TFile::Open(Form("%sMC/EmbedTnPAnalysis_Embed-%s-%s_%i.root", path.Data(), (isMuon) ? "MuMu" : "EE" , run.Data(), year), "READ");
-  // else if(isMC == 2) f = TFile::Open(Form("%sMC/EmbedTnPAnalysis_DY50-amc_%i.root"  , path.Data(), year), "READ");
     else {
       cout << "Undefined isMC value " << isMC << endl;
       return;
@@ -327,14 +339,22 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
     float tag_eta_max = 2.3;
     bool  tag_triggers = true; //whether or not to always require the tag to trigger
     float probe_eta_max = 2.3;
-    float probe_pt_min = (Mode == 0) ? tag_pt_min - 1. : 10.;
+    float probe_pt_min = (trig_mode) ? tag_pt_min - 1. : 10.;
 
     //Define ID selections
-    int id1_min(0), id2_min(0);
-    if(Mode != 1) id1_min = 3; //tight muon ID / WP80 electron ID
-    if(isMuon && Mode == 0) id2_min = 4; //tight muon Iso ID for trigger only
-    const int id1_tag = 3;
-    const int id2_tag = (isMuon) ? 4 : -1; //tight muon Iso ID or no ID for electron
+    int id1_min(0), id2_min(0); //minimum IDs for all leptons
+    int id1_max(999), id2_max(999); //maximum IDs for probe leptons (e.g. Loose + !Tight measurements)
+    const int id1_tag = (isMuon) ? kTightMuon : kWP80;
+    int id2_tag = (isMuon) ? kTightIso : -1; //tight muon Iso ID or no ID for electron
+    if(Mode != 1 && (isMuon || Mode != 3)) id1_min = (isMuon) ? kTightMuon : kWP80;
+    if(isMuon && Mode == 0) id2_min = kTightIso; //tight muon Iso ID for trigger only
+    if(isMuon && Mode == 4) { //Loose + !Tight Muon Iso ID trigger scale
+      id2_min = kVVLooseIso; //measuring VVLoose ID
+      id2_max = kMediumIso; //fails Tight Iso ID
+    } else if(Mode == 4) { //Loose + !Tight Electron ID trigger scale
+      id1_min = kWPL;
+      id1_max = kWP90;
+    }
 
     //Loop through the input tree
     for(ULong64_t entry = 0; entry < nentries; ++entry) {
@@ -363,18 +383,18 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
       if(fabs(lv1.DeltaR(lv2)) < 0.5) continue;
 
       ++nused;
-      if(debug_ && nused > ntotal) {
+      if(debug_ && nused > nentries_) {
         if(debug_ == 1) return; //exit at this level
         break; //continue with a sub-sample
       }
 
       float wt = pu_weight*((isMC > 1) ? ((gen_weight < 0) ? -1. : 1.) : gen_weight)*xs_scale;
 
-      if(applyScales_ && Mode != 1 && isMC && hSF_1) { //Apply the ID1 scale factors for the trigger and ID2 measurements
+      if(applyScales_ && Mode != 1 && (isMuon || Mode != 3) && isMC && hSF_1) { //Apply the ID1 scale factors for the trigger and ID2 measurements
         wt *= hSF_1->GetBinContent(hSF_1->GetXaxis()->FindBin((use_abs_eta_) ? fabs(one_sc_eta) : one_sc_eta), min(hSF_1->GetNbinsY(), hSF_1->GetYaxis()->FindBin(one_pt)));
         wt *= hSF_1->GetBinContent(hSF_1->GetXaxis()->FindBin((use_abs_eta_) ? fabs(two_sc_eta) : two_sc_eta), min(hSF_1->GetNbinsY(), hSF_1->GetYaxis()->FindBin(two_pt)));
       }
-      if(applyScales_ && Mode == 0 && isMC && hSF_2) { //Apply the ID2 scale factors for the trigger measurements
+      if(applyScales_ && trig_mode && isMC && hSF_2) { //Apply the ID2 scale factors for the trigger measurements
         wt *= hSF_2->GetBinContent(hSF_2->GetXaxis()->FindBin((use_abs_eta_) ? fabs(one_sc_eta) : one_sc_eta), min(hSF_2->GetNbinsY(), hSF_2->GetYaxis()->FindBin(one_pt)));
         wt *= hSF_2->GetBinContent(hSF_2->GetXaxis()->FindBin((use_abs_eta_) ? fabs(two_sc_eta) : two_sc_eta), min(hSF_2->GetNbinsY(), hSF_2->GetYaxis()->FindBin(two_pt)));
       }
@@ -393,12 +413,17 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
 
       if(fabs(one_sc_eta) < tag_eta_max && one_pt > tag_pt_min &&
          fabs(two_sc_eta) < probe_eta_max && two_pt > probe_pt_min &&
-         one_id1 >= 3 && one_id2 >= (4 * isMuon) && (Mode != 0 || one_triggered)
-         && (!tag_triggers || one_triggered)) {
+         one_id1 >= id1_tag && one_id2 >= id2_tag && (trig_mode || one_triggered)
+         && (!tag_triggers || one_triggered) && two_id1 <= id1_max && two_id2 <= id2_max) {
         bool test = false;
-        if     (Mode == 0) test = two_triggered;
-        else if(Mode == 1) test = two_id1 >= 3;
-        else if(Mode == 2) test = two_id2 >= 4;
+        if     (trig_mode) test = two_triggered;
+        else if(Mode == 1) test = two_id1 >= ((isMuon) ? kTightMuon : kWP80);
+        else if(Mode == 2) test = two_id2 >= kTightIso;
+        else if(Mode == 3) test = (isMuon) ? (two_id2 >= kVVLooseIso && two_id2 <= kMediumIso) : (two_id1 >= kWPL && two_id1 <= kWP90);
+        else {
+          cout << "Unknown testing mode!\n";
+          return;
+        }
 
         //Fill the (eta,pt) counting histogram for the (eta,pt) point
         if(test) hPass->Fill((use_abs_eta_) ? fabs(two_sc_eta) : two_sc_eta, two_pt, wt);
@@ -421,12 +446,17 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
 
       if(fabs(two_sc_eta) < tag_eta_max && two_pt > tag_pt_min &&
          fabs(one_sc_eta) < probe_eta_max && one_pt > probe_pt_min &&
-         two_id1 >= 3 && two_id2 >= (4 * isMuon) && (Mode != 0 || two_triggered)
-         && (!tag_triggers || two_triggered)) {
+         two_id1 >= id1_tag && two_id2 >= id2_tag && (trig_mode || two_triggered)
+         && (!tag_triggers || two_triggered) && one_id1 <= id1_max && two_id2 <= id2_max) {
         bool test = false;
-        if     (Mode == 0) test = one_triggered;
-        else if(Mode == 1) test = one_id1 >= 3;
-        else if(Mode == 2) test = one_id2 >= 4;
+        if     (trig_mode) test = one_triggered;
+        else if(Mode == 1) test = one_id1 >= ((isMuon) ? kTightMuon : kWP80);
+        else if(Mode == 2) test = one_id2 >= kTightIso;
+        else if(Mode == 3) test = (isMuon) ? (one_id2 >= kVVLooseIso && one_id2 <= kMediumIso) : (one_id1 >= kWPL && one_id1 <= kWP90);
+        else {
+          cout << "Unknown testing mode!\n";
+          return;
+        }
 
         //Fill the (eta,pt) counting histogram for the (eta,pt) point
         if(test) hPass->Fill((use_abs_eta_) ? fabs(one_sc_eta) : one_sc_eta, one_pt, wt);
@@ -485,13 +515,21 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
   pad->SetLeftMargin(0.13);
   pad->SetRightMargin(0.13);
   hRatio->Draw("colz");
-  hRatio->GetZaxis()->SetRangeUser((isMuon) ? 0.5 : 0.2*(Mode != 0), 1.);
+  if(Mode == 3)
+    hRatio->GetZaxis()->SetRangeUser(0., 1.);
+  else
+    hRatio->GetZaxis()->SetRangeUser((isMuon) ? 0.5 : 0.2*(Mode != 0), 1.);
 
   gSystem->Exec("[ ! -d figures ] && mkdir figures");
   gSystem->Exec("[ ! -d rootfiles ] && mkdir rootfiles");
-  c->SaveAs(Form("figures/eff_%s_mode-%i_mc-%i_%i_cc.png", (isMuon) ? "mumu" : "ee", Mode, isMC, year));
+  //Base output name
+  TString outname = Form("%s_mode-%i_mc-%i_%i", (isMuon) ? "mumu" : "ee", Mode, isMC, year);
+  if(period >= 0) outname += Form("_period_%i", period);
+
+  c->SaveAs(Form("figures/eff_%s_cc.png", outname.Data()));
   delete c;
 
+  //Plot some basic kinematics of the tag/probe
   c = new TCanvas("c", "c", 1000, 1200);
   c->Divide(2,2);
   TLegend* leg = new TLegend(0.7, 0.75, 0.9, 0.9);
@@ -521,7 +559,8 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
   hDiffEta->SetLineWidth(2);
   hDiffEta->SetLineColor(kRed);
   hDiffEta->Draw("hist");
-  c->SaveAs(Form("figures/kin_%s_mode-%i_mc-%i_%i.png", (isMuon) ? "mumu" : "ee", Mode, isMC, year));
+
+  c->SaveAs(Form("figures/kin_%s.png", outname.Data()));
 
   ///////////////////////////////////////
   // Generate resonance fit scales
@@ -530,9 +569,9 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
   TH2F* hResPass = (TH2F*) hPass->Clone("hResPass"); hResPass->Reset();
   TH2F* hResFail = (TH2F*) hFail->Clone("hResFail"); hResFail->Reset();
 
-  TString fitdir = Form("figures/fit_%s_%i_mode-%i_%i", (isMuon) ? "mumu" : "ee", year, Mode, isMC);
+  TString fitdir = Form("figures/fit_%s", outname.Data());
   gSystem->Exec(Form("[ ! -d %s ] && mkdir -p %s", fitdir.Data(), fitdir.Data()));
-  const int bkgmode = 0; //(Mode != 2) ? 1 : 0;
+  const int bkgmode = 1; //(Mode != 2) ? 1 : 0;
   for(int xbin = 1; xbin <= hResPass->GetNbinsX(); ++xbin) {
     for(int ybin = 1; ybin <= hResPass->GetNbinsY(); ++ybin) {
       const int mapBin = xbin + 100*ybin;
@@ -541,6 +580,7 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
         hResFail->SetBinContent(xbin, ybin, 0.);
         continue;
       }
+      if(single_fit_ && (xbin != fit_x_ || ybin != fit_y_)) continue;
       TString title = Form("%.2f #leq #eta < %.2f, %.2f #leq p_{T} < %.2f GeV/c",
                            hResPass->GetXaxis()->GetBinLowEdge(xbin), hResPass->GetXaxis()->GetBinLowEdge(xbin) + hResPass->GetXaxis()->GetBinWidth(xbin),
                            hResPass->GetYaxis()->GetBinLowEdge(ybin), hResPass->GetYaxis()->GetBinLowEdge(ybin) + hResPass->GetYaxis()->GetBinWidth(ybin));
@@ -562,6 +602,7 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
   // Plot and save the results
   ///////////////////////////////////////
 
+  //Plot the yields and the efficiencies
   c = new TCanvas("c", "c", 1500, 700);
   c->Divide(3,1);
   pad = c->cd(1);
@@ -580,37 +621,13 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
   hResRatio->Draw("colz");
   hResRatio->GetZaxis()->SetRangeUser((isMuon) ? 0.5 : 0.2*(Mode != 0), 1.);
 
-  c->SaveAs(Form("figures/eff_%s_mode-%i_mc-%i_%i.png", (isMuon) ? "mumu" : "ee", Mode, isMC, year));
+  c->SaveAs(Form("figures/eff_%s.png", outname.Data()));
   delete c;
 
-  TFile* fout = new TFile(Form("rootfiles/efficiencies_%s_mode-%i_mc-%i_%i.root", (isMuon) ? "mumu" : "ee", Mode, isMC, year), "RECREATE");
+  //Write efficiency histogram
+  TFile* fout = new TFile(Form("rootfiles/efficiencies_%s.root", outname.Data()), "RECREATE");
   hRatio->Write();
   hResRatio->Write();
-  // hResPass->Write();
-  // hResFail->Write();
-  // hResTotal->Write();
   fout->Write();
   fout->Close();
-
-  // const double pt  = 15.;
-  // const double eta = 0.1;
-  // const int xbin = hPass->GetXaxis()->FindBin(eta);
-  // const int ybin = hPass->GetYaxis()->FindBin(pt);
-  // const int mapBin = xbin + 100*ybin;
-
-  // TString title = Form("%.2f #leq #eta < %.2f, %.2f #leq p_{T} < %.2f GeV/c",
-  //                      hResPass->GetXaxis()->GetBinLowEdge(xbin), hResPass->GetXaxis()->GetBinLowEdge(xbin) + hResPass->GetXaxis()->GetBinWidth(xbin),
-  //                      hResPass->GetYaxis()->GetBinLowEdge(ybin), hResPass->GetYaxis()->GetBinLowEdge(ybin) + hResPass->GetYaxis()->GetBinWidth(ybin));
-  // const double nsig_pass = extract_nz(massHists_pass[mapBin], bkgmode,
-  //                                     Form("%s/x-%i_y-%i_pass.png", fitdir.Data(), xbin, ybin), title);
-  // const double nsig_fail = extract_nz(massHists_fail[mapBin], bkgmode,
-  //                                     Form("%s/x-%i_y-%i_fail.png", fitdir.Data(), xbin, ybin), title);
-  // cout << "For an example pt = " << pt << " eta = " << eta << ":\n Cut-and-count gets"
-  //      << " N(pass) = " << hPass->GetBinContent(xbin, ybin)
-  //      << " N(fail) = " << hFail->GetBinContent(xbin, ybin)
-  //      << " eff = "     << hRatio->GetBinContent(xbin, ybin) << endl
-  //      << " Resonance fit gets"
-  //      << " N(pass) = " << nsig_pass
-  //      << " N(fail) = " << nsig_fail
-  //      << " eff = "     << nsig_pass/(nsig_pass+nsig_fail) << endl;
 }

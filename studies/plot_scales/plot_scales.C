@@ -331,8 +331,9 @@ TCanvas* plot_electron_trigger_scale(int year, bool error = false) {
 //////////////////////////////////////////////////
 // Plot the embedding scale factors
 //////////////////////////////////////////////////
-TCanvas* plot_embedding_scale(int year, int Mode, bool isMuon) {
-  TString path = Form("../../scale_factors/embedding_eff_%s_mode-%i_%i.root", (isMuon) ? "mumu" : "ee", Mode, year);
+TCanvas* plot_embedding_scale(int year, int Mode, bool isMuon, int period = -1) {
+  TString path = Form("../../scale_factors/embedding_eff_%s_mode-%i_%i%s.root",
+                      (isMuon) ? "mumu" : "ee", Mode, year, (period >= 0) ? Form("_period_%i", period) : "");
   TFile* f = TFile::Open(path.Data(), "READ");
   if(!f) return NULL;
   TH2F* hID = (TH2F*) f->Get("PtVsEtaSF");
@@ -342,11 +343,15 @@ TCanvas* plot_embedding_scale(int year, int Mode, bool isMuon) {
   }
   hID->SetDirectory(0);
   f->Close();
-  TCanvas* c = plot_1D_slices(hID, Form("c_embed_%s_mode-%i_slice_%i", (isMuon) ? "mumu" : "ee", Mode, year), true);
+  hID->SetTitle("Data Efficiency / Embedding Efficiency");
+  TCanvas* c = plot_1D_slices(hID, Form("c_embed_%s_mode-%i_slice_%i",
+                                        (isMuon) ? "mumu" : "ee", Mode, year), true);
   c->SetTitle("");
-  c->Print(Form("figures/embed_%s_mode-%i_slices_%i.png", (isMuon) ? "mumu" : "ee", Mode, year));
+  c->Print(Form("figures/embed_%s_mode-%i_slices_%i%s.png",
+                (isMuon) ? "mumu" : "ee", Mode, year, (period >= 0) ? Form("_period_%i", period) : ""));
   c->SetLogx();
-  c->Print(Form("figures/embed_%s_mode-%i_slices_log_%i.png", (isMuon) ? "mumu" : "ee", Mode, year));
+  c->Print(Form("figures/embed_%s_mode-%i_slices_log_%i%s.png",
+                (isMuon) ? "mumu" : "ee", Mode, year, (period >= 0) ? Form("_period_%i", period) : ""));
   return c;
 }
 
@@ -577,18 +582,25 @@ void plot_scales() {
         delete c;
       }
     }
+
     //Embedding TnP scale factors
-    c = plot_embedding_scale    (year, 0, false); if(c) delete c; //electron trigger
-    c = plot_embedding_scale    (year, 1, false); if(c) delete c; //electron ID
-    c = plot_embedding_scale    (year, 0, true ); if(c) delete c; //muon trigger
-    c = plot_embedding_scale    (year, 1, true ); if(c) delete c; //muon ID
-    c = plot_embedding_scale    (year, 2, true ); if(c) delete c; //muon iso ID
+    for(int period = -1; period < (year == 2016)*2; ++period) { //B-F and G-H specific scale factors for 2016
+      c = plot_embedding_scale    (year, 0, false, period); if(c) delete c; //electron trigger
+      c = plot_embedding_scale    (year, 1, false, period); if(c) delete c; //electron ID
+      c = plot_embedding_scale    (year, 3, false, period); if(c) delete c; //electron Loose + !Tight ID
+      c = plot_embedding_scale    (year, 4, false, period); if(c) delete c; //electron trigger, Loose + !Tight ID
+      c = plot_embedding_scale    (year, 0, true , period); if(c) delete c; //muon trigger
+      c = plot_embedding_scale    (year, 1, true , period); if(c) delete c; //muon ID
+      c = plot_embedding_scale    (year, 2, true , period); if(c) delete c; //muon iso ID
+      c = plot_embedding_scale    (year, 3, true , period); if(c) delete c; //muon Loose + !Tight iso ID
+      c = plot_embedding_scale    (year, 4, true , period); if(c) delete c; //muon trigger, Loose + !Tight iso ID
+    }
     //Embedding KIT scales
-    c = plot_embedding_kit_scale(year, 0, false); if(c) delete c; //electron trigger
-    c = plot_embedding_kit_scale(year, 1, false); if(c) delete c; //electron ID
-    c = plot_embedding_kit_scale(year, 2, false); if(c) delete c; //electron iso ID
-    c = plot_embedding_kit_scale(year, 0, true ); if(c) delete c; //muon trigger
-    c = plot_embedding_kit_scale(year, 1, true ); if(c) delete c; //muon ID
-    c = plot_embedding_kit_scale(year, 2, true ); if(c) delete c; //muon iso ID
+    // c = plot_embedding_kit_scale(year, 0, false); if(c) delete c; //electron trigger
+    // c = plot_embedding_kit_scale(year, 1, false); if(c) delete c; //electron ID
+    // c = plot_embedding_kit_scale(year, 2, false); if(c) delete c; //electron iso ID
+    // c = plot_embedding_kit_scale(year, 0, true ); if(c) delete c; //muon trigger
+    // c = plot_embedding_kit_scale(year, 1, true ); if(c) delete c; //muon ID
+    // c = plot_embedding_kit_scale(year, 2, true ); if(c) delete c; //muon iso ID
   }
 }

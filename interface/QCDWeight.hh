@@ -22,15 +22,20 @@ namespace CLFV {
     ~QCDWeight();
 
     //Get scale factor for Data
-    float GetWeight(float deltar, float deltaphi, float oneeta, const int year, float& up, float& down, float& sys);
+    float GetWeight(float deltar, float deltaphi, float oneeta, float onept, float twopt, const int year, int njets, const bool isantiiso,
+                    float& nonclosure, float& antiiso, float& up, float& down, float& sys);
 
   public:
-    std::map<int, TH1D*> histsData_;
-    std::map<int, TH2D*> hists2DData_;
+    std::map<int, TH1*> histsData_;
+    std::map<int, TH2*> hists2DData_;
     std::map<int, TF1*> fitsData_;
-    std::map<int, TH1D*> fitErrData_;
-    std::map<int, TH1D*> histsClosure_;
-    std::map<int, TH1D*> histsSys_;
+    std::map<int, TH1*> fitErrData_;
+    std::map<int, TH1*> histsClosure_;
+    std::map<int, TH1*> histsSys_;
+    std::map<int, TH1*> jetBinnedHists_;
+    std::map<int, TH2*> Pt2DClosure_;
+    std::map<int, TH2*> AntiIsoScale_;
+
     TRandom3* rnd_; //for generating systematic shifted parameters
     //       year          bin
     std::map<int, std::map<int, bool>> isShiftedUp_; //whether the systematic is shifted up or down
@@ -38,8 +43,11 @@ namespace CLFV {
     bool useFits_;
     bool useDeltaPhi_;
     bool useEtaClosure_;
+    bool use2DPtClosure_;
     bool use2DScale_;
     bool useDeltaRSys_;
+    bool useJetBinned_;
+    bool useAntiIso_;
   };
 }
 #endif

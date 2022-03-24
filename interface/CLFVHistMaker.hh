@@ -25,6 +25,8 @@
 #include "TH2.h"
 #include "TString.h"
 #include "TRandom.h" //for splitting testing/training samples
+#include "TDirectory.h"
+#include "TFolder.h"
 
 // TMVA includes
 #include "TMVA/Tools.h"
@@ -69,6 +71,8 @@
 //define a systematic variation
 #include "interface/SystematicShifts.hh"
 #include "interface/SystematicGrouping.hh"
+//access enums/fields
+#include "interface/ParticleCorrections.hh"
 
 namespace CLFV {
 
@@ -87,7 +91,7 @@ namespace CLFV {
     UInt_t nPV                         ;
     Float_t nPU                        ;
     UInt_t nPartons                    ;
-    UInt_t mcEra                       ;
+    Int_t  mcEra                       ;
     UInt_t triggerLeptonStatus         ;
     UInt_t muonTriggerStatus           ;
     Float_t eventWeight                ;
@@ -111,7 +115,7 @@ namespace CLFV {
     Float_t zLepTwoEta                 ;
     Float_t embeddingWeight = 1.       ;
     Float_t embeddingUnfoldingWeight   ;
-    Bool_t  looseQCDSelection = false  ;
+    Int_t   looseQCDSelection = 0      ;
     Float_t genTauFlavorWeight         ;
     Float_t jetToTauWeight             ;
     Float_t jetToTauWeightUp           ;
@@ -128,6 +132,8 @@ namespace CLFV {
     Float_t qcdWeightUp                ;
     Float_t qcdWeightDown              ;
     Float_t qcdWeightSys               ;
+    Float_t qcdClosure                 ;
+    Float_t qcdIsoScale = 1.           ;
     Int_t tauDecayMode                 ;
     Float_t tauMVA                     ;
     Float_t tauES                      ;
@@ -148,6 +154,10 @@ namespace CLFV {
     Int_t leptonTwoGenFlavor           ;
     Bool_t isFakeElectron = false      ;
     Bool_t isFakeMuon     = false      ;
+    Float_t leptonOneDXY               ;
+    Float_t leptonTwoDXY               ;
+    Float_t leptonOneDZ                ;
+    Float_t leptonTwoDZ                ;
     Float_t leptonOneD0                ;
     Float_t leptonTwoD0                ;
     Float_t leptonOneIso               ;
@@ -439,45 +449,8 @@ namespace CLFV {
       }
     };
 
-    CLFVHistMaker(int seed = 90, TTree * /*tree*/ = 0) : fSystematicSeed(seed),
-                                                            fMuonJetToTauWeight("MuonWeight", "mutau", 31, 1200100, seed, 0),
-                                                            fMuonJetToTauMCWeight("MuonMCWeight", "mutau", 35, 1000002, seed, 0),
-                                                            // fMuonJetToTauWeight("MuonWeight", "mumu", 7, 1100, seed, 1),
-                                                            // fMuonJetToTauMCWeight("MuonMCWeight", "mutau", 35, 1000102, seed, 1),
-                                                            fMuonJetToTauComp("mutau", 2035, 102, 0), fMuonJetToTauSSComp("mutau", 3035, 102, 0),
-                                                            fElectronJetToTauWeight("ElectronWeight", "etau", 31, 1000100, seed),
-                                                            fElectronJetToTauComp("etau", 2035, 102, 0), fElectronJetToTauSSComp("etau", 3035, 102, 0),
-                                                            fJetToMuonWeight("mumu"), fJetToElectronWeight("ee"),
-                                                            fQCDWeight("emu", 11010, seed, 0), fElectronIDWeight(1, seed, 0), fZPtWeight("MuMu", seed),
-                                                            fEmbeddingWeight(), fEmbeddingTnPWeight(1/*interpolate scales or not*/) {
-      fCutFlow = nullptr;
-      for(int i = 0; i < fn; i++) {
-        fEventHist     [i] = nullptr;
-        fLepHist       [i] = nullptr;
-        fSystematicHist[i] = nullptr;
-      }
-      for(int proc = 0; proc < JetToTauComposition::kLast; ++proc) {
-        fMuonJetToTauWeights    [proc] = nullptr;
-        fElectronJetToTauWeights[proc] = nullptr;
-      }
-      fRnd = nullptr;
-      fSystematicShifts = nullptr;
-      for(int i = 0; i <kIds; ++i) fEventId[i] = nullptr;
-    }
-
-    ~CLFVHistMaker() {
-      if(fCutFlow) delete fCutFlow;
-      for(int proc = 0; proc < JetToTauComposition::kLast; ++proc) {
-        if(fMuonJetToTauWeights    [proc]) delete fMuonJetToTauWeights    [proc];
-        if(fElectronJetToTauWeights[proc]) delete fElectronJetToTauWeights[proc];
-      }
-      DeleteHistograms();
-
-      if (fTauIDWeight     ) delete fTauIDWeight     ;
-      if (fSystematicShifts) delete fSystematicShifts;
-      if (fRnd             ) delete fRnd             ;
-      for(int i = 0; i <kIds; ++i) {if(fEventId[i]) delete fEventId[i];}
-    }
+    CLFVHistMaker(int seed = 90, TTree * /*tree*/ = 0);
+    ~CLFVHistMaker();
 
     virtual Int_t   Version() const { return 2; }
     virtual void    Begin(TTree *tree);
@@ -723,8 +696,10 @@ void CLFVHistMaker::Init(TTree *tree)
       tree->SetBranchStatus("leptonTwoGenFlavor"  , 1);
       tree->SetBranchStatus("leptonOneIso"        , 1);
       tree->SetBranchStatus("leptonTwoIso"        , 1);
-      tree->SetBranchStatus("leptonOneD0"         , 1);
-      tree->SetBranchStatus("leptonTwoD0"         , 1);
+      tree->SetBranchStatus("leptonOneDXY"        , 1);
+      tree->SetBranchStatus("leptonTwoDXY"        , 1);
+      tree->SetBranchStatus("leptonOneDZ"         , 1);
+      tree->SetBranchStatus("leptonTwoDZ"         , 1);
       tree->SetBranchStatus("leptonOneIndex"      , 1);
       tree->SetBranchStatus("leptonTwoIndex"      , 1);
       tree->SetBranchStatus("lepOneWeight1"       , 1);
@@ -1047,6 +1022,8 @@ void CLFVHistMaker::Init(TTree *tree)
         fEventSets [kEMu  + 67] = 1; //muon can't trigger
       }
 
+      fEventSets [kEMu  + 70] = 1; //loose ID electron, not muon region
+      fEventSets [kEMu  + 71] = 1; //loose ID electron and muon region
     }
     else if(fFolderName == "mumu") {
       fEventSets [kMuMu + 1] = 1; // all events
@@ -1208,8 +1185,10 @@ void CLFVHistMaker::Init(TTree *tree)
   fChain->SetBranchAddress("leptonTwoGenFlavor"  , &leptonTwoGenFlavor   );
   fChain->SetBranchAddress("leptonOneIso"        , &leptonOneIso         );
   fChain->SetBranchAddress("leptonTwoIso"        , &leptonTwoIso         );
-  fChain->SetBranchAddress("leptonOneD0"         , &leptonOneD0          );
-  fChain->SetBranchAddress("leptonTwoD0"         , &leptonTwoD0          );
+  fChain->SetBranchAddress("leptonOneDXY"        , &leptonOneDXY         );
+  fChain->SetBranchAddress("leptonTwoDXY"        , &leptonTwoDXY         );
+  fChain->SetBranchAddress("leptonOneDZ"         , &leptonOneDZ          );
+  fChain->SetBranchAddress("leptonTwoDZ"         , &leptonTwoDZ          );
   if(!fDYTesting) {
     fChain->SetBranchAddress("leptonOneID2"        , &leptonOneID2         );
     fChain->SetBranchAddress("leptonTwoID3"        , &leptonTwoID3         );

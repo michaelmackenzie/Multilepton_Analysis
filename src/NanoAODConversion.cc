@@ -78,7 +78,7 @@ void NanoAODConversion::Begin(TTree * /*tree*/)
   //initialize object counting parameters for each selection
   //mutau
   fCountMuons       [kMuTau] = true;
-  fMuonIsoCount     [kMuTau] = ParticleCorrections::kVLooseMuIso;
+  fMuonIsoCount     [kMuTau] = ParticleCorrections::kVVLooseMuIso;
   fMuonIDCount      [kMuTau] = 1;
   fCountElectrons   [kMuTau] = true;
   fElectronIDCount  [kMuTau] = 1;
@@ -93,7 +93,7 @@ void NanoAODConversion::Begin(TTree * /*tree*/)
   fPhotonDeltaRCount[kMuTau] = 0.3;
   //etau
   fCountMuons       [kETau]  = true;
-  fMuonIsoCount     [kETau]  = ParticleCorrections::kVLooseMuIso;
+  fMuonIsoCount     [kETau]  = ParticleCorrections::kVVLooseMuIso;
   fMuonIDCount      [kETau]  = 1;
   fCountElectrons   [kETau]  = true;
   fElectronIDCount  [kETau]  = 1;
@@ -108,7 +108,7 @@ void NanoAODConversion::Begin(TTree * /*tree*/)
   fPhotonDeltaRCount[kETau] = 0.3;
   //emu
   fCountMuons       [kEMu]   = true;
-  fMuonIsoCount     [kEMu]   = ParticleCorrections::kVLooseMuIso;
+  fMuonIsoCount     [kEMu]   = ParticleCorrections::kVVLooseMuIso;
   fMuonIDCount      [kEMu]   = 1;
   fCountElectrons   [kEMu]   = true;
   fElectronIDCount  [kEMu]   = 1;
@@ -123,7 +123,7 @@ void NanoAODConversion::Begin(TTree * /*tree*/)
   fPhotonDeltaRCount[kEMu]   = 0.3;
   //mumu
   fCountMuons       [kMuMu]  = true;
-  fMuonIsoCount     [kMuMu]  = ParticleCorrections::kVLooseMuIso;
+  fMuonIsoCount     [kMuMu]  = ParticleCorrections::kVVLooseMuIso;
   fMuonIDCount      [kMuMu]  = 1;
   fCountElectrons   [kMuMu]  = true;
   fElectronIDCount  [kMuMu]  = 1;
@@ -138,7 +138,7 @@ void NanoAODConversion::Begin(TTree * /*tree*/)
   fPhotonDeltaRCount[kMuMu]  = 0.3;
   //ee
   fCountMuons       [kEE]    = true;
-  fMuonIsoCount     [kEE]    = ParticleCorrections::kVLooseMuIso;
+  fMuonIsoCount     [kEE]    = ParticleCorrections::kVVLooseMuIso;
   fMuonIDCount      [kEE]    = 1;
   fCountElectrons   [kEE]    = true;
   fElectronIDCount  [kEE]    = 1;
@@ -376,8 +376,10 @@ void NanoAODConversion::InitializeOutBranchStructure(TTree* tree) {
   tree->Branch("leptonTwoGenFlavor"            , &leptonTwoGenFlavor   );
   tree->Branch("leptonOneGenPt"                , &leptonOneGenPt       );
   tree->Branch("leptonTwoGenPt"                , &leptonTwoGenPt       );
-  tree->Branch("leptonOneD0"                   , &leptonOneD0          );
-  tree->Branch("leptonTwoD0"                   , &leptonTwoD0          );
+  tree->Branch("leptonOneDXY"                  , &leptonOneDXY         );
+  tree->Branch("leptonOneDZ"                   , &leptonOneDZ          );
+  tree->Branch("leptonTwoDXY"                  , &leptonTwoDXY         );
+  tree->Branch("leptonTwoDZ"                   , &leptonTwoDZ          );
   tree->Branch("leptonOneIso"                  , &leptonOneIso         );
   tree->Branch("leptonTwoIso"                  , &leptonTwoIso         );
   tree->Branch("leptonOneID1"                  , &leptonOneID1         );
@@ -731,7 +733,8 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
   leptonOneID1 =  0 ; leptonOneID2 =  0 ;
   leptonTwoID1 =  0 ; leptonTwoID2 =  0 ; leptonTwoID3 = 0;
   leptonOneIso = -1.; leptonTwoIso = -1.;
-  leptonOneD0  =  0.; leptonTwoD0  =  0.;
+  leptonOneDXY =  0.; leptonTwoDXY =  0.;
+  leptonOneDZ  =  0.; leptonTwoDZ  =  0.;
 
   //////////////////////////////
   //      lep 1 = muon        //
@@ -745,7 +748,8 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
     leptonOneID1 = muonIsoId[index];
     leptonOneID2 = 0;
     leptonOneIso = muonRelIso[index]*muonPt[index];
-    leptonOneD0 = sqrt(muondxy[index]*muondxy[index] + muondz[index]*muondz[index]);
+    leptonOneDXY = muondxy[index];
+    leptonOneDZ  = muondz[index];
     leptonOnePtSF = muonRoccoSF[index];
     leptonOneGenFlavor = (!fIsData) ? MuonFlavorFromID(muonGenFlavor[index]) : 0;
     leptonOneIndex = index;
@@ -781,7 +785,8 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
     leptonOneID1 = electronWPL[index] + 2*electronWP90[index] + 4*electronWP80[index];
     leptonOneID2 = 0;
     leptonOneIso = electronRelIso[index]*electronPt[index];
-    leptonOneD0 = sqrt(electrondxy[index]*electrondxy[index] + electrondz[index]*electrondz[index]);
+    leptonOneDXY = electrondxy[index];
+    leptonOneDZ  = electrondz[index];
     leptonOneGenFlavor = (!fIsData) ? ElectronFlavorFromID(electronGenFlavor[index]) : 0;
     leptonOneIndex = index;
     trigMatchOne = GetTriggerMatch(index, false, trigIndexOne);
@@ -837,9 +842,10 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
     leptonTwoID1 = tauAntiEle[index]; //MVA ID
     leptonTwoID2 = tauAntiMu [index]; //MVA ID
     leptonTwoID3 = tauAntiJet[index]; //MVA ID
-    taudxyOut = taudxy[index];
-    taudzOut  = taudz [index];
-    leptonTwoD0 = sqrt(taudxy[index]*taudxy[index] + taudz[index]*taudz[index]);
+    taudxyOut    = taudxy[index];
+    taudzOut     = taudz [index];
+    leptonTwoDXY = taudxy[index];
+    leptonTwoDZ  = taudz[index];
     leptonTwoIndex = index;
     tauDecayModeOut = tauDecayMode[index];
 
@@ -858,7 +864,8 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
     leptonTwoID1 = muonIsoId[index];
     leptonTwoID2 = 0;
     leptonTwoIso = muonRelIso[index]*muonPt[index];
-    leptonTwoD0 = sqrt(muondxy[index]*muondxy[index] + muondz[index]*muondz[index]);
+    leptonTwoDXY = muondxy[index];
+    leptonTwoDZ  = muondz[index];
     leptonTwoPtSF = muonRoccoSF[index];
     leptonTwoGenFlavor = (!fIsData) ? MuonFlavorFromID(muonGenFlavor[index]) : 0;
     leptonTwoIndex = index;
@@ -898,7 +905,8 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
     leptonTwoID1 = muonIsoId[index];
     leptonTwoID2 = 0;
     leptonTwoIso = muonRelIso[index]*muonPt[index];
-    leptonTwoD0 = sqrt(muondxy[index]*muondxy[index] + muondz[index]*muondz[index]);
+    leptonTwoDXY = muondxy[index];
+    leptonTwoDZ  = muondz[index];
     leptonTwoPtSF = muonRoccoSF[index];
     leptonTwoGenFlavor = (!fIsData) ? MuonFlavorFromID(muonGenFlavor[index]) : 0;
     leptonTwoIndex = index;
@@ -934,7 +942,8 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
     leptonTwoID1 = electronWPL[index] + 2*electronWP90[index] + 4*electronWP80[index];
     leptonTwoID2 = 0;
     leptonTwoIso = electronRelIso[index]*electronPt[index];
-    leptonTwoD0 = sqrt(electrondxy[index]*electrondxy[index] + electrondz[index]*electrondz[index]);
+    leptonTwoDXY = electrondxy[index];
+    leptonTwoDZ  = electrondz[index];
     trigMatchTwo = GetTriggerMatch(index, false, trigIndexTwo);
     leptonTwoGenFlavor = (!fIsData) ? ElectronFlavorFromID(electronGenFlavor[index]) : 0;
     leptonTwoIndex = index;
@@ -1037,44 +1046,8 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
   }
 
   //for ee/mumu, ensure lepton one is higher pT
-  if((selection == kEE || selection == kMuMu) && leptonOneP4->Pt() < leptonTwoP4->Pt()) {
-    //swap momenta
-    TLorentzVector ltmp = *leptonOneP4;
-    leptonOneP4->SetPtEtaPhiM(leptonTwoP4->Pt(), leptonTwoP4->Eta(), leptonTwoP4->Phi(), leptonTwoP4->M());
-    leptonTwoP4->SetPtEtaPhiM(ltmp.Pt(), ltmp.Eta(), ltmp.Phi(), ltmp.M());
-    //swap flavor
-    Int_t ftmp = leptonOneFlavor;
-    leptonOneFlavor = leptonTwoFlavor;
-    leptonTwoFlavor = ftmp;
-    //swap weights
-    Float_t wtmp = lepOneWeight1;
-    lepOneWeight1 = lepTwoWeight1;
-    lepTwoWeight1 = wtmp;
-    wtmp = lepOneTrigWeight;
-    lepOneTrigWeight = lepTwoTrigWeight;
-    lepTwoTrigWeight = wtmp;
-    wtmp = lepOneWeight1_up;
-    lepOneWeight1_up = lepTwoWeight1_up;
-    lepTwoWeight1_up = wtmp;
-    wtmp = lepOneWeight1_down;
-    lepOneWeight1_down = lepTwoWeight1_down;
-    lepTwoWeight1_down = wtmp;
-    wtmp = leptonOneSCEta;
-    leptonOneSCEta = leptonTwoSCEta;
-    leptonTwoSCEta = wtmp;
-    //swap trig bools
-    Bool_t ttmp = lepOneFired;
-    lepOneFired = lepTwoFired;
-    lepTwoFired = ttmp;
-    //swap indices
-    Int_t itmp = leptonOneIndex;
-    leptonOneIndex = leptonTwoIndex;
-    leptonTwoIndex = itmp;
-    //swap trigger match
-    itmp = lepOneTrigger;
-    lepOneTrigger = lepTwoTrigger;
-    lepTwoTrigger = itmp;
-  }
+  if((selection == kEE || selection == kMuMu) && leptonOneP4->Pt() < leptonTwoP4->Pt()) SwapLeptons();
+
 
   if((selection == kEE || selection == kMuMu) && leptonOneIndex == leptonTwoIndex)
     std::cout << "!!! Warning! Entry " << fentry << ": Check point 4: Same flavor channel has repeated indices: "
@@ -1485,7 +1458,7 @@ void NanoAODConversion::CountObjects() {
   for(Int_t index = 0; index < std::min(((int)nMuon),((int)kMaxParticles)); ++index) {
     //initialize the muon iso IDs
     muonIsoId[index] = 0; //initially fails all IDs
-    for(int level = ParticleCorrections::kVLooseMuIso; level <= ParticleCorrections::kVVTightMuIso; ++level) {
+    for(int level = ParticleCorrections::kVLooseMuIso; level < ParticleCorrections::kMuonIsos; ++level) {
       const double isoval = particleCorrections->muonIsoValues[level];
       if(muonRelIso[index] < isoval) { //increment the ID value for each cut it passes
         muonIsoId[index] += 1;
@@ -1793,7 +1766,7 @@ bool NanoAODConversion::SelectionID(Int_t selection) {
 
 //-----------------------------------------------------------------------------------------------------------------
 // check if the selected leptons pass most IDs but fail the QCD measurement region tight ID
-bool NanoAODConversion::QCDSelection(Int_t selection) {
+int NanoAODConversion::QCDSelection(Int_t selection) {
   bool passed         = true; //Each lepton must pass Loose ID and least one must fail the Tight ID
   bool lep1_not_tight = true; //Check if leptons fail the Tight ID after passing the Loose ID
   bool lep2_not_tight = true;
@@ -1848,10 +1821,10 @@ bool NanoAODConversion::QCDSelection(Int_t selection) {
   if(!passed) return false;
 
  //at least one lepton must fail the Tight ID check
-  passed = lep1_not_tight || lep2_not_tight;
+  int status = lep1_not_tight + 2*lep2_not_tight;
   if(fVerbose > 2) std::cout << __func__ << ": Lep 1 !Tight = " << lep1_not_tight << "; Lep 2 !Tight = " << lep2_not_tight
-                             << "; status = " << passed << std::endl;
-  return passed;
+                             << "; status = " << status << std::endl;
+  return status;
 }
 
 //-----------------------------------------------------------------------------------------------------------------
@@ -1893,6 +1866,79 @@ float NanoAODConversion::GetZPtWeight(float pt) {
     printf("!!! Warning! Z pT weight < 0: weight = %.3e, pt = %.2f\n", weight, pt);
   }
   return weight;
+}
+
+//-----------------------------------------------------------------------------------------------------------------
+// Swap lepton one and lepton two
+void NanoAODConversion::SwapLeptons() {
+    //swap momenta
+    TLorentzVector ltmp = *leptonOneP4;
+    leptonOneP4->SetPtEtaPhiM(leptonTwoP4->Pt(), leptonTwoP4->Eta(), leptonTwoP4->Phi(), leptonTwoP4->M());
+    leptonTwoP4->SetPtEtaPhiM(ltmp.Pt(), ltmp.Eta(), ltmp.Phi(), ltmp.M());
+
+    //swap weights
+    Float_t ftmp;
+    ftmp = lepOneTrigWeight;
+    lepOneTrigWeight = lepTwoTrigWeight;
+    lepTwoTrigWeight = ftmp;
+
+    ftmp = lepOneWeight1;
+    lepOneWeight1 = lepTwoWeight1;
+    lepTwoWeight1 = ftmp;
+    ftmp = lepOneWeight1_up;
+    lepOneWeight1_up = lepTwoWeight1_up;
+    lepTwoWeight1_up = ftmp;
+    ftmp = lepOneWeight1_down;
+    lepOneWeight1_down = lepTwoWeight1_down;
+    lepTwoWeight1_down = ftmp;
+
+    ftmp = lepOneWeight2;
+    lepOneWeight2 = lepTwoWeight2;
+    lepTwoWeight2 = ftmp;
+    ftmp = lepOneWeight2_up;
+    lepOneWeight2_up = lepTwoWeight2_up;
+    lepTwoWeight2_up = ftmp;
+    ftmp = lepOneWeight2_down;
+    lepOneWeight2_down = lepTwoWeight2_down;
+    lepTwoWeight2_down = ftmp;
+
+    ftmp = leptonOneSCEta;
+    leptonOneSCEta = leptonTwoSCEta;
+    leptonTwoSCEta = ftmp;
+    //dxy/dz
+    ftmp = leptonOneDXY;
+    leptonOneDXY = leptonTwoDXY;
+    leptonTwoDXY = ftmp;
+    ftmp = leptonOneDZ;
+    leptonOneDZ = leptonTwoDZ;
+    leptonTwoDZ = ftmp;
+    //gen pt
+    ftmp = leptonOneGenPt;
+    leptonOneGenPt = leptonTwoGenPt;
+    leptonTwoGenPt = ftmp;
+
+    //swap trig bools
+    Bool_t btmp;
+    btmp = lepOneFired;
+    lepOneFired = lepTwoFired;
+    lepTwoFired = btmp;
+
+    //swap flavor
+    Int_t itmp;
+    itmp = leptonOneFlavor;
+    leptonOneFlavor = leptonTwoFlavor;
+    leptonTwoFlavor = itmp;
+    itmp = leptonOneGenFlavor;
+    leptonOneGenFlavor = leptonTwoGenFlavor;
+    leptonTwoGenFlavor = itmp;
+    //swap indices
+    itmp = leptonOneIndex;
+    leptonOneIndex = leptonTwoIndex;
+    leptonTwoIndex = itmp;
+    //swap trigger match
+    itmp = lepOneTrigger;
+    lepOneTrigger = lepTwoTrigger;
+    lepTwoTrigger = itmp;
 }
 
 //-----------------------------------------------------------------------------------------------------------------
@@ -2132,11 +2178,11 @@ Bool_t NanoAODConversion::Process(Long64_t entry)
     default    : isTight = false      ; break;
     }
     looseQCDSelection = QCDSelection(selection);
-    if(!looseQCDSelection && !isTight) { //remove events passing neither the tight nor the ABCD measurement region selection
+    if(looseQCDSelection == 0 && !isTight) { //remove events passing neither the tight nor the ABCD measurement region selection
       continue;
     }
 
-    if(looseQCDSelection) ++fQCDCounts[selection];
+    if(looseQCDSelection != 0) ++fQCDCounts[selection];
 
 
     if((selection == kMuMu || selection == kEE) && ((int) nElectrons != nElectronsSkim || (int) nMuons != nMuonsSkim))

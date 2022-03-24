@@ -5,17 +5,23 @@ using namespace CLFV;
 //-------------------------------------------------------------------------------------------------------------------------
 EmbeddingTnPWeight::EmbeddingTnPWeight(const int Mode, const int verbose) : verbose_(verbose), rnd_(nullptr) {
   // Check Mode bits
-  interpolate_ = Mode % 10 == 1; //interpolate between pT bin centers
+  interpolate_   = (Mode /  1) % 10 == 1; //interpolate between pT bin centers
+  useRunPeriods_ = (Mode / 10) % 10 == 1; //use run-dependent scale factors
 
   TFile* f = 0;
   const TString cmssw = gSystem->Getenv("CMSSW_BASE");
   const TString path = (cmssw == "") ? "../scale_factors" : cmssw + "/src/CLFVAnalysis/scale_factors";
-  for(int year = k2016; year <= k2018; ++year) {
-    std::vector<TString> files = {Form("%s/embedding_eff_mumu_mode-0_%i.root", path.Data(), year + 2016),
-                                  Form("%s/embedding_eff_mumu_mode-1_%i.root", path.Data(), year + 2016),
-                                  Form("%s/embedding_eff_mumu_mode-2_%i.root", path.Data(), year + 2016),
-                                  Form("%s/embedding_eff_ee_mode-0_%i.root"  , path.Data(), year + 2016),
-                                  Form("%s/embedding_eff_ee_mode-1_%i.root"  , path.Data(), year + 2016)};
+  for(int year = k2016; year < kLast; ++year) {
+    std::vector<TString> files = {Form("%s/embedding_eff_mumu_mode-0_%i%s.root", path.Data(), year*(year <= k2018) + 2016, (year > k2018) ? Form("_period_%i", (year - k2018) % 2) : ""),
+                                  Form("%s/embedding_eff_mumu_mode-1_%i%s.root", path.Data(), year*(year <= k2018) + 2016, (year > k2018) ? Form("_period_%i", (year - k2018) % 2) : ""),
+                                  Form("%s/embedding_eff_mumu_mode-2_%i%s.root", path.Data(), year*(year <= k2018) + 2016, (year > k2018) ? Form("_period_%i", (year - k2018) % 2) : ""),
+                                  Form("%s/embedding_eff_mumu_mode-3_%i%s.root", path.Data(), year*(year <= k2018) + 2016, (year > k2018) ? Form("_period_%i", (year - k2018) % 2) : ""),
+                                  Form("%s/embedding_eff_mumu_mode-4_%i%s.root", path.Data(), year*(year <= k2018) + 2016, (year > k2018) ? Form("_period_%i", (year - k2018) % 2) : ""),
+                                  Form("%s/embedding_eff_ee_mode-0_%i%s.root"  , path.Data(), year*(year <= k2018) + 2016, (year > k2018) ? Form("_period_%i", (year - k2018) % 2) : ""),
+                                  Form("%s/embedding_eff_ee_mode-1_%i%s.root"  , path.Data(), year*(year <= k2018) + 2016, (year > k2018) ? Form("_period_%i", (year - k2018) % 2) : ""),
+                                  Form("%s/embedding_eff_ee_mode-3_%i%s.root"  , path.Data(), year*(year <= k2018) + 2016, (year > k2018) ? Form("_period_%i", (year - k2018) % 2) : ""),
+                                  Form("%s/embedding_eff_ee_mode-4_%i%s.root"  , path.Data(), year*(year <= k2018) + 2016, (year > k2018) ? Form("_period_%i", (year - k2018) % 2) : "")
+    };
     for(TString file : files) {
       //Get muon trigger scale factors
       f = TFile::Open(file.Data(), "READ");
@@ -44,6 +50,12 @@ EmbeddingTnPWeight::EmbeddingTnPWeight(const int Mode, const int verbose) : verb
             } else if(file.Contains("mode-2")) { //Iso ID files
               muonIsoIDDataEff_[year] = hData;
               muonIsoIDMCEff_  [year] = hMC  ;
+            } else if(file.Contains("mode-3")) { //Loose + !Tight Iso ID files
+              muonQCDIsoIDDataEff_[year] = hData;
+              muonQCDIsoIDMCEff_  [year] = hMC  ;
+            } else if(file.Contains("mode-4")) { //Loose + !Tight Iso ID trigger files
+              muonQCDTrigDataEff_[year] = hData;
+              muonQCDTrigMCEff_  [year] = hMC  ;
             }
           } else { //electron files
             if(file.Contains("mode-0")) { //trigger files
@@ -52,6 +64,12 @@ EmbeddingTnPWeight::EmbeddingTnPWeight(const int Mode, const int verbose) : verb
             } else if(file.Contains("mode-1")) { //ID files
               electronIDDataEff_[year] = hData;
               electronIDMCEff_  [year] = hMC  ;
+            } else if(file.Contains("mode-3")) { //Loose + !Tight ID files
+              electronQCDIDDataEff_[year] = hData;
+              electronQCDIDMCEff_  [year] = hMC  ;
+            } else if(file.Contains("mode-4")) { //Loose + !Tight ID trigger files
+              electronQCDTrigDataEff_[year] = hData;
+              electronQCDTrigMCEff_  [year] = hMC  ;
             }
           }
         }
@@ -94,22 +112,23 @@ double EmbeddingTnPWeight::GetScale(const TH2F* data, const TH2F* mc, const doub
 
 //-------------------------------------------------------------------------------------------------------------------------
 // Get Muon ID + Iso ID scale factor
-double EmbeddingTnPWeight::MuonIDWeight(double pt, double eta, int year) {
+double EmbeddingTnPWeight::MuonIDWeight(double pt, double eta, int year, bool qcd, int period) {
   year -= 2016;
   if(year != k2016 && year != k2017 && year != k2018) {
     std::cout << "Warning! Undefined year in EmbeddingTnPWeight::" << __func__ << ", returning 1" << std::endl;
     return 1.;
   }
 
-  const TH2F* hIDMC   = muonIDMCEff_  [year];
-  const TH2F* hIDData = muonIDDataEff_[year];
+  const int index = (year == k2016 && useRunPeriods_) ? k2016BF + period : year;
+  const TH2F* hIDMC   = muonIDMCEff_  [index];
+  const TH2F* hIDData = muonIDDataEff_[index];
   if(!hIDMC || !hIDData) {
     std::cout << "Error! EmbeddingTnPWeight::" << __func__ << ": ID histograms not found!\n";
     return 1.;
   }
 
-  const TH2F* hIsoIDMC   = muonIsoIDMCEff_  [year];
-  const TH2F* hIsoIDData = muonIsoIDDataEff_[year];
+  const TH2F* hIsoIDMC   = (qcd) ? muonQCDIsoIDMCEff_  [index] : muonIsoIDMCEff_  [index];
+  const TH2F* hIsoIDData = (qcd) ? muonQCDIsoIDDataEff_[index] : muonIsoIDDataEff_[index];
   if(!hIsoIDMC || !hIsoIDData) {
     std::cout << "Error! EmbeddingTnPWeight::" << __func__ << ": Iso ID histograms not found!\n";
     return 1.;
@@ -133,8 +152,8 @@ double EmbeddingTnPWeight::MuonIDWeight(double pt, double eta, int year) {
   ///////////////////////////
   scale_factor *= GetScale(hIsoIDData, hIsoIDMC, pt, eta, data_eff, mc_eff);
 
-  if(scale_factor <= 0.) {
-    std::cout << "Warning! Scale factor <= 0 in EmbeddingTnPWeight::" << __func__ << ", returning 1" << std::endl;
+  if(scale_factor <= 0. || !std::isfinite(scale_factor)) {
+    std::cout << "Warning! Scale factor <= 0 or undefined (" << scale_factor << ") in EmbeddingTnPWeight::" << __func__ << ", returning 1" << std::endl;
     return 1.;
   }
   return scale_factor;
@@ -142,7 +161,7 @@ double EmbeddingTnPWeight::MuonIDWeight(double pt, double eta, int year) {
 
 //-------------------------------------------------------------------------------------------------------------------------
 // Get Muon trigger scale factor
-double EmbeddingTnPWeight::MuonTriggerWeight(double pt, double eta, int year, float& data_eff, float& mc_eff) {
+double EmbeddingTnPWeight::MuonTriggerWeight(double pt, double eta, int year, float& data_eff, float& mc_eff, bool qcd, int period) {
   year -= 2016;
   data_eff = 0.5; mc_eff = 0.5;
   if(year != k2016 && year != k2017 && year != k2018) {
@@ -153,8 +172,9 @@ double EmbeddingTnPWeight::MuonTriggerWeight(double pt, double eta, int year, fl
   //If it can't fire the trigger, no correction
   if(pt < 25. || (pt < 28. && year == k2017)) return 1.;
 
-  const TH2F* hMC   = muonTrigMCEff_  [year];
-  const TH2F* hData = muonTrigDataEff_[year];
+  const int index = (year == k2016 && useRunPeriods_) ? k2016BF + period : year;
+  const TH2F* hMC   = (qcd) ? muonQCDTrigMCEff_  [index] : muonTrigMCEff_  [index];
+  const TH2F* hData = (qcd) ? muonQCDTrigDataEff_[index] : muonTrigDataEff_[index];
   if(!hMC || !hData) {
     std::cout << "Error! EmbeddingTnPWeight::" << __func__ << ": Trigger histograms not found!\n";
     return 1.;
@@ -172,7 +192,12 @@ double EmbeddingTnPWeight::MuonTriggerWeight(double pt, double eta, int year, fl
   ///////////////////////////
   scale_factor *= GetScale(hData, hMC, pt, eta, data_eff, mc_eff);
 
-  if(scale_factor <= 0. || data_eff <= 0. || mc_eff <= 0.) {
+  const float max_eff = 0.999; // maximum of 99.9% efficiency
+  data_eff = std::min(data_eff, max_eff);
+  mc_eff   = std::min(mc_eff  , max_eff);
+
+  if(scale_factor <= 0. || data_eff <= 0. || mc_eff <= 0. ||
+     !std::isfinite(scale_factor) || !std::isfinite(data_eff) || !std::isfinite(mc_eff)) {
     std::cout << "Warning! Scale factor <= 0 in EmbeddingTnPWeight::" << __func__
               << ": data_eff = " << data_eff << " mc_eff = " << mc_eff
               << " pt = " << pt << " eta = " << eta << " year = " << year + 2016
@@ -187,15 +212,16 @@ double EmbeddingTnPWeight::MuonTriggerWeight(double pt, double eta, int year, fl
 
 //-------------------------------------------------------------------------------------------------------------------------
 // Get Electron ID scale factor
-double EmbeddingTnPWeight::ElectronIDWeight(double pt, double eta, int year) {
+double EmbeddingTnPWeight::ElectronIDWeight(double pt, double eta, int year, bool qcd, int period) {
   year -= 2016;
   if(year != k2016 && year != k2017 && year != k2018) {
     std::cout << "Warning! Undefined year in EmbeddingTnPWeight::" << __func__ << ", returning 1" << std::endl;
     return 1.;
   }
 
-  const TH2F* hIDMC   = electronIDMCEff_  [year];
-  const TH2F* hIDData = electronIDDataEff_[year];
+  const int index = (year == k2016 && useRunPeriods_) ? k2016BF + period : year;
+  const TH2F* hIDMC   = (qcd) ? electronQCDIDMCEff_  [index] : electronIDMCEff_  [index];
+  const TH2F* hIDData = (qcd) ? electronQCDIDDataEff_[index] : electronIDDataEff_[index];
   if(!hIDMC || !hIDData) {
     std::cout << "Error! EmbeddingTnPWeight::" << __func__ << ": ID histograms not found!\n";
     return 1.;
@@ -214,8 +240,8 @@ double EmbeddingTnPWeight::ElectronIDWeight(double pt, double eta, int year) {
   ///////////////////////////
   scale_factor *= GetScale(hIDData, hIDMC, pt, eta, data_eff, mc_eff);
 
-  if(scale_factor <= 0.) {
-    std::cout << "Warning! Scale factor <= 0 in EmbeddingTnPWeight::" << __func__ << ", returning 1" << std::endl;
+  if(scale_factor <= 0. || !std::isfinite(scale_factor)) {
+    std::cout << "Warning! Scale factor <= 0 or undefined (" << scale_factor << ") in EmbeddingTnPWeight::" << __func__ << ", returning 1" << std::endl;
     return 1.;
   }
   return scale_factor;
@@ -224,7 +250,7 @@ double EmbeddingTnPWeight::ElectronIDWeight(double pt, double eta, int year) {
 
 //-------------------------------------------------------------------------------------------------------------------------
 // Get Electron trigger scale factor
-double EmbeddingTnPWeight::ElectronTriggerWeight(double pt, double eta, int year, float& data_eff, float& mc_eff) {
+double EmbeddingTnPWeight::ElectronTriggerWeight(double pt, double eta, int year, float& data_eff, float& mc_eff, bool qcd, int period) {
   year -= 2016;
   data_eff = 0.5; mc_eff = 0.5;
   if(year != k2016 && year != k2017 && year != k2018) {
@@ -235,8 +261,9 @@ double EmbeddingTnPWeight::ElectronTriggerWeight(double pt, double eta, int year
   //IF it can't fire the trigger, no correction
   if(pt < 28. || (pt < 33. && year != k2016)) return 1.;
 
-  const TH2F* hMC   = electronTrigMCEff_  [year];
-  const TH2F* hData = electronTrigDataEff_[year];
+  const int index = (year == k2016 && useRunPeriods_) ? k2016BF + period : year;
+  const TH2F* hMC   = (qcd) ? electronQCDIDMCEff_  [index] : electronTrigMCEff_  [index];
+  const TH2F* hData = (qcd) ? electronQCDIDDataEff_[index] : electronTrigDataEff_[index];
   if(!hMC || !hData) {
     std::cout << "Error! EmbeddingTnPWeight::" << __func__ << ": Trigger histograms not found!\n";
     return 1.;
@@ -255,7 +282,12 @@ double EmbeddingTnPWeight::ElectronTriggerWeight(double pt, double eta, int year
 
   scale_factor *= GetScale(hData, hMC, pt, eta, data_eff, mc_eff);
 
-  if(scale_factor <= 0. || data_eff <= 0. || mc_eff <= 0.) {
+  const float max_eff = 0.999; // maximum of 99.9% efficiency
+  data_eff = std::min(data_eff, max_eff);
+  mc_eff   = std::min(mc_eff  , max_eff);
+
+  if(scale_factor <= 0. || data_eff <= 0. || mc_eff <= 0. ||
+     !std::isfinite(scale_factor) || !std::isfinite(data_eff) || !std::isfinite(mc_eff)) {
     std::cout << "Warning! Scale factor <= 0 in EmbeddingTnPWeight::" << __func__
               << ": data_eff = " << data_eff << " mc_eff = " << mc_eff
               << " pt = " << pt << " eta = " << eta << " year = " << year + 2016

@@ -31,10 +31,10 @@ void fit_scales(TH2F* h, TString tag) {
   }
 }
 
-void combine_efficiencies(int Mode = 0, bool isMuon = true, int year = 2016, bool doCC = false) {
+void combine_efficiencies(int Mode = 0, bool isMuon = true, int year = 2016, int period = -1, bool doCC = false) {
 
-  TFile* fData = TFile::Open(Form("rootfiles/efficiencies_%s_mode-%i_mc-0_%i.root", (isMuon) ? "mumu" : "ee", Mode, year), "READ");
-  TFile* fMC   = TFile::Open(Form("rootfiles/efficiencies_%s_mode-%i_mc-1_%i.root", (isMuon) ? "mumu" : "ee", Mode, year), "READ");
+  TFile* fData = TFile::Open(Form("rootfiles/efficiencies_%s_mode-%i_mc-0_%i%s.root", (isMuon) ? "mumu" : "ee", Mode, year, (period >= 0) ? Form("_period_%i", period) : ""), "READ");
+  TFile* fMC   = TFile::Open(Form("rootfiles/efficiencies_%s_mode-%i_mc-1_%i%s.root", (isMuon) ? "mumu" : "ee", Mode, year, (period >= 0) ? Form("_period_%i", period) : ""), "READ");
   if(!fData || !fMC) return;
 
   TH2F* hData  = (TH2F*) fData->Get((doCC) ? "hRatio_cc" : "hRatio");
@@ -73,13 +73,19 @@ void combine_efficiencies(int Mode = 0, bool isMuon = true, int year = 2016, boo
   gStyle->SetOptStat(0);
   TCanvas* c = new TCanvas("c", "c", 1000, 700);
   hScale->Draw("colz");
-  hScale->GetZaxis()->SetRangeUser(0.2, 1.5);
+  if(isMuon && Mode == 2)
+    hScale->GetZaxis()->SetRangeUser(0.8, 1.2);
+  else
+    hScale->GetZaxis()->SetRangeUser(0.2, 1.5);
 
-  c->SaveAs(Form("figures/scales_%s_mode-%i_%i%s.png", (isMuon) ? "mumu" : "ee", Mode, year, (doCC) ? "_cc" : ""));
+  TString basename = Form("%s_mode-%i_%i", (isMuon) ? "mumu" : "ee", Mode, year);
+  if(period >= 0) basename += Form("_period_%i", period);
+  if(doCC) basename += "_cc";
+  c->SaveAs(Form("figures/scales_%s.png", basename.Data()));
   c->SetLogy();
-  c->SaveAs(Form("figures/scales_%s_mode-%i_log_%i%s.png", (isMuon) ? "mumu" : "ee", Mode, year, (doCC) ? "_cc" : ""));
+  c->SaveAs(Form("figures/scales_%s_log.png", basename.Data()));
 
-  TFile* fout = new TFile(Form("rootfiles/embedding_eff_%s_mode-%i_%i.root", (isMuon) ? "mumu" : "ee", Mode, year), "RECREATE");
+  TFile* fout = new TFile(Form("rootfiles/embedding_eff_%s.root", basename.Data()), "RECREATE");
   fout->cd();
   hData ->SetTitle(Form("%s_mode-%i", (isMuon) ? "mumu" : "ee", Mode));
   hMC   ->SetTitle(Form("%s_mode-%i", (isMuon) ? "mumu" : "ee", Mode));
@@ -87,9 +93,6 @@ void combine_efficiencies(int Mode = 0, bool isMuon = true, int year = 2016, boo
   hData->Write();
   hMC->Write();
   hScale->Write();
-  // fit_scales(hData , Form("%s_mode-%i_%i", (isMuon) ? "mumu" : "ee", Mode, year));
-  // fit_scales(hMC   , Form("%s_mode-%i_%i", (isMuon) ? "mumu" : "ee", Mode, year));
-  // fit_scales(hScale, Form("%s_mode-%i_%i", (isMuon) ? "mumu" : "ee", Mode, year));
   fout->Write();
   fout->Close();
 }

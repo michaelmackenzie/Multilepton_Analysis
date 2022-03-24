@@ -9,6 +9,9 @@
 #include "TH1.h"
 #include "TH2.h"
 #include "TAxis.h"
+#include "TDirectory.h"
+#include "TFolder.h"
+
 
 namespace CLFV {
 
@@ -17,6 +20,127 @@ namespace CLFV {
     Utilities() {}
     ~Utilities() {}
 
+  private:
+    typedef TDirectory fFolder;
+
+    //------------------------------------------------------------------------------------------------------
+    static void AddHistogram(TH1* h, fFolder* Folder) {
+      if(!Folder) {
+        std::cout << __func__ << ": Folder not defined!\n";
+      } else if(!h) {
+        std::cout << __func__ << ": Histogram not defined!\n";
+      }
+      // else {
+      //   Folder->Add(h);
+      // }
+    }
+
+  public:
+    //------------------------------------------------------------------------------------------------------
+    static void BookH1F(TH1*& h,  const char* Name, const char* Title,
+                        Int_t Nx, Double_t XMin, Double_t XMax,
+                        fFolder* Folder) {
+      h = new TH1F(Name, Title, Nx, XMin, XMax);
+      AddHistogram(h, Folder);
+    }
+
+    //------------------------------------------------------------------------------------------------------
+    static void BookH1F(TH1*& h,  const char* Name, const char* Title,
+                        Int_t Nx, const Double_t* Bins,
+                        fFolder* Folder) {
+      h = new TH1F(Name, Title, Nx, Bins);
+      AddHistogram(h, Folder);
+    }
+
+    //------------------------------------------------------------------------------------------------------
+    static void BookH1D(TH1*& h,  const char* Name, const char* Title,
+                        Int_t Nx, Double_t XMin, Double_t XMax,
+                        fFolder* Folder) {
+      h = new TH1D(Name, Title, Nx, XMin, XMax);
+      AddHistogram(h, Folder);
+    }
+
+    //------------------------------------------------------------------------------------------------------
+    static void BookH1D(TH1*& h,  const char* Name, const char* Title,
+                        Int_t Nx, const Double_t* Bins,
+                        fFolder* Folder) {
+      h = new TH1D(Name, Title, Nx, Bins);
+      AddHistogram(h, Folder);
+    }
+
+    //------------------------------------------------------------------------------------------------------
+    static void BookH2F(TH2*& h,  const char* Name, const char* Title,
+                        Int_t Nx, Double_t XMin, Double_t XMax,
+                        Int_t Ny, Double_t YMin, Double_t YMax,
+                        fFolder* Folder) {
+      h = new TH2F(Name, Title, Nx, XMin, XMax, Ny, YMin, YMax);
+      AddHistogram(h, Folder);
+    }
+
+    //------------------------------------------------------------------------------------------------------
+    static void BookH2F(TH2*& h,  const char* Name, const char* Title,
+                        Int_t Nx, const Double_t* XBins,
+                        Int_t Ny, const Double_t* YBins,
+                        fFolder* Folder) {
+      h = new TH2F(Name, Title, Nx, XBins, Ny, YBins);
+      AddHistogram(h, Folder);
+    }
+
+    //------------------------------------------------------------------------------------------------------
+    static void BookH2F(TH2*& h,  const char* Name, const char* Title,
+                        Int_t Nx, Double_t XMin, Double_t XMax,
+                        Int_t Ny, const Double_t* YBins,
+                        fFolder* Folder) {
+      h = new TH2F(Name, Title, Nx, XMin, XMax, Ny, YBins);
+      AddHistogram(h, Folder);
+    }
+
+    //------------------------------------------------------------------------------------------------------
+    static void BookH2F(TH2*& h,  const char* Name, const char* Title,
+                        Int_t Nx, const Double_t* XBins,
+                        Int_t Ny, Double_t YMin, Double_t YMax,
+                        fFolder* Folder) {
+      h = new TH2F(Name, Title, Nx, XBins, Ny, YMin, YMax);
+      AddHistogram(h, Folder);
+    }
+
+    //------------------------------------------------------------------------------------------------------
+    static void BookH2D(TH2*& h,  const char* Name, const char* Title,
+                        Int_t Nx, Double_t XMin, Double_t XMax,
+                        Int_t Ny, Double_t YMin, Double_t YMax,
+                        fFolder* Folder) {
+      h = new TH2D(Name, Title, Nx, XMin, XMax, Ny, YMin, YMax);
+      AddHistogram(h, Folder);
+    }
+
+    //------------------------------------------------------------------------------------------------------
+    static void BookH2D(TH2*& h,  const char* Name, const char* Title,
+                        Int_t Nx, const Double_t* XBins,
+                        Int_t Ny, const Double_t* YBins,
+                        fFolder* Folder) {
+      h = new TH2D(Name, Title, Nx, XBins, Ny, YBins);
+      AddHistogram(h, Folder);
+    }
+
+    //------------------------------------------------------------------------------------------------------
+    static void BookH2D(TH2*& h,  const char* Name, const char* Title,
+                        Int_t Nx, Double_t XMin, Double_t XMax,
+                        Int_t Ny, const Double_t* YBins,
+                        fFolder* Folder) {
+      h = new TH2D(Name, Title, Nx, XMin, XMax, Ny, YBins);
+      AddHistogram(h, Folder);
+    }
+
+    //------------------------------------------------------------------------------------------------------
+    static void BookH2D(TH2*& h,  const char* Name, const char* Title,
+                        Int_t Nx, const Double_t* XBins,
+                        Int_t Ny, Double_t YMin, Double_t YMax,
+                        fFolder* Folder) {
+      h = new TH2D(Name, Title, Nx, XBins, Ny, YMin, YMax);
+      AddHistogram(h, Folder);
+    }
+
+    //------------------------------------------------------------------------------------------------------
     static double Interpolate(const TH2* h, const double x, const double y, int along, int verbose = 0) {
       const int bin_x = std::max(1, std::min(h->GetXaxis()->GetNbins(), h->GetXaxis()->FindBin(x)));
       const int bin_y = std::max(1, std::min(h->GetYaxis()->GetNbins(), h->GetYaxis()->FindBin(y)));
