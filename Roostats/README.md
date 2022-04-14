@@ -1,7 +1,7 @@
 # Description of RooStats and RooFit based upper limit evaluations
 
 ## Evaluating the upper limit for B->e+mu using an invariant mass fit
-See the currently recommended workflow [here](###e+mu-workflow-recommendation)
+See the currently recommended workflow [here](#e+mu-workflow-recommendation)
 
 The UL calculation uses the Z->e+e and Z->mu+mu data to create a morphed signal template.
 The background in the e+mu channel is then fit using MC estimates.
