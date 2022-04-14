@@ -1,6 +1,8 @@
 # Description of RooStats and RooFit based upper limit evaluations
 
 ## Evaluating the upper limit for B->e+mu using an invariant mass fit
+See the currently recommended workflow [here](###e+mu-workflow-recommendation)
+
 The UL calculation uses the Z->e+e and Z->mu+mu data to create a morphed signal template.
 The background in the e+mu channel is then fit using MC estimates.
 The background fit + signal template is then used to evaluate the expected upper limit, inluding
@@ -248,3 +250,21 @@ Options:
 --noFitAsimov
 --run <both/expected/observed/blind>
 --rule <CLsplusb/CLs>
+
+## Recommeded workflows
+Current workflows to produce upper limits for the various signals
+
+### e+mu workflow recommendation
+```
+HISTSET="{8}"
+HISTSTRING="8"
+SELECTION="zemu"
+HISTPATH="nanoaods_mva"
+YEAR="{2016,2017,2018}"
+YEARSTRING="2016_2017_2018"
+
+root.exe -q -b "get_bemu_histogram.C(${HISTSET}, \"${SELECTION}\", ${YEAR}, \"${HISTPATH}\")"
+root.exe -q -b "convert_bemu_to_combine.C(${HISTSET}, \"${SELECTION}\", ${YEAR})"
+cd datacards/${YEARSTRING}/
+combine -d combine_bemu_${SELECTION}_${HISTSTRING}.txt
+```
