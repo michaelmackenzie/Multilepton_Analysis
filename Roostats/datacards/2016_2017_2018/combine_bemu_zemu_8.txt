@@ -1,0 +1,26 @@
+# -*- mode: tcl -*-
+#Auto generated counting card for CLFVAnalysis 
+#Signal branching fraction used: 1.000e-07 
+
+imax  1 number of channels 
+jmax  * number of backgrounds 
+kmax  * number of nuisance parameters 
+
+----------------------------------------------------------------------------------------------------------- 
+shapes * * combine_bemu_zemu_8.root $CHANNEL:$PROCESS
+----------------------------------------------------------------------------------------------------------- 
+
+bin          lepm_8     
+observation      -1         
+
+bin           lepm_8    lepm_8 
+process        zemu       bkg 
+process           0         1 
+
+rate          273.1  450081.0 
+
+----------------------------------------------------------------------------------------------------------- 
+
+lepm_8   discrete
+ 
+
