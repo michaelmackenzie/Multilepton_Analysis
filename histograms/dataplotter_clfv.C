@@ -1,15 +1,12 @@
 // Script to plot and print distributions using a DataPlotter object for CLFVHistMaker histograms
+#include "datacards.C"
 using namespace CLFV;
-
-typedef DataCard_t dcard;
 
 DataPlotter* dataplotter_ = 0;
 TString selection_ = "emu"; //current options: mutau, etau, emu, mutau_e, etau_mu, mumu, ee
 Int_t verbose_ = 0; //verbosity level
 Int_t useOpenGL_ = 0;
 bool  doStatsLegend_ = false;
-TString hist_path_ = "root://cmseos.fnal.gov//store/user/mmackenz/histograms/"; //where histogram files are
-TString hist_dir_ = "nanoaods_dev"; //which histogram directory to use
 TString folder_ = "nanoaods_dev"; //figures output folder
 bool doAllEMu_ = false; //plot all emu signals (including leptonic decays) on selection_ == "emu"
 bool printCDFs_ = false; //print cdf transform of MVAs
@@ -22,19 +19,10 @@ bool printSlimCounts_ = false;
 bool printBlindSets_ = false; //print sets > MVA score cut without data
 bool printSysPlots_ = false; //print systematic plots
 bool doAllSys_ = false; //print relevant or all systematic plots
-vector<int> years_ = {2016, 2017, 2018}; //list of years of interest
 bool offsetSets_ = true; //offset by selection set from CLFVHistMaker
 int sigOverBkg_ = 0; //plot sig / bkg or data / MC (0 = data/MC, 1 = sig/MC, 2 = sig*sig/MC)
-int doRunPeriod_ = 0; //do a specific run period of data
 int useQCD_ = 0; //use qcd estimate
 int useMisID_ = 1; //use Mis-ID estimate
-int useUL_ = 0; //use UL dataset definitions
-int ZMode_ = 0; //which Z cross-section information to use
-int useAMC_ = 1; //use amc@NLO samples in place of previous LO samples
-int splitDY_ = 1; //split Z->tautau and Z->ee/mumu
-int splitWJ_ = 1; //use N(LHE jets) split W+Jets samples
-int useEmbed_ = 0; //use Z->tautau embedding
-double embedScale_ = -1.; //scale factor to add onto the embedding normalization, < 0 means use defaults
 
 Int_t print_significance_canvases(vector<TString> hists, vector<TString> types, vector<TString> labels, vector<int> sets) {
   TCanvas* c = 0;
@@ -1066,162 +1054,6 @@ Int_t print_standard_canvases(vector<int> sets, vector<double> signal_scales = {
   return status;
 }
 
-//get the data cards needed
-void get_datacards(std::vector<dcard>& cards, bool forStudies = false) {
-  //cross section handler
-  CrossSections xs(useUL_, ZMode_);
-  bool leptonic_tau = (selection_.Contains("tau_")); //mutau_l, etau_l
-  std::vector<bool> combines;
-  bool oneDY = false; //for faster scale factor testing/debugging
-
-  //Initialize the data run by year
-  std::map<int, std::vector<TString>> runs;
-  std::map<int, std::vector<TString>> periods;
-  periods[2016] = {"B", "C", "D", "E", "F", "G", "H"};
-  periods[2017] = {"B", "C", "D", "E", "F"};
-  periods[2018] = {"A", "B", "C", "D"};
-
-  //Names of the different background categories
-  TString top   = "Top";
-  TString dy_tt = (forStudies) ? "ZJets" : "Z->#tau#tau";
-  TString dy_ll = (forStudies) ? "ZJets" : "Z->ee/#mu#mu";
-  TString dy    = (forStudies) ? "ZJets" : "Drell-Yan";
-  TString embed = (forStudies) ? "ZJets" : "#tau#tau Embedding";
-  TString vb    = (forStudies) ? "WJets" : "Other VB";
-
-  for(int year : years_) {
-    bool combineZ = !oneDY && !useUL_ && year != 2018 && (!useAMC_ || year == 2017);
-    TString DYName = (useAMC_ && year != 2017) ? "DY50-amc" : "DY50";
-    //card constructor:    filepath,              name,                  label,      isData,                   xsec               ,  isSignal,year,  color,   combine extension samples
-    cards.push_back(dcard("SingleAntiToptW"    , "SingleAntiToptW"    , top.Data()  , false, xs.GetCrossSection("SingleAntiToptW"    ), false, year, kYellow-7));
-    cards.push_back(dcard("SingleToptW"        , "SingleToptW"        , top.Data()  , false, xs.GetCrossSection("SingleToptW"        ), false, year, kYellow-7));
-    cards.push_back(dcard("ttbarToHadronic"    , "ttbarToHadronic"    , top.Data()  , false, xs.GetCrossSection("ttbarToHadronic")    , false, year, kYellow-7));
-    cards.push_back(dcard("ttbarToSemiLeptonic", "ttbarToSemiLeptonic", top.Data()  , false, xs.GetCrossSection("ttbarToSemiLeptonic"), false, year, kYellow-7));
-    cards.push_back(dcard("ttbarlnu"           , "ttbarlnu"           , top.Data()  , false, xs.GetCrossSection("ttbarlnu"           ), false, year, kYellow-7));
-    if(useUL_ == 0)
-    cards.push_back(dcard("WWW"                , "WWW"                , vb.Data()   , false, xs.GetCrossSection("WWW"                ), false, year, kViolet-9));
-    cards.push_back(dcard("WZ"                 , "WZ"                 , vb.Data()   , false, xs.GetCrossSection("WZ"                 ), false, year, kViolet-9));
-    cards.push_back(dcard("ZZ"                 , "ZZ"                 , vb.Data()   , false, xs.GetCrossSection("ZZ"                 ), false, year, kViolet-9));
-    cards.push_back(dcard("WW"                 , "WW"                 , vb.Data()   , false, xs.GetCrossSection("WW"                 ), false, year, kViolet-9));
-    if(splitWJ_) {
-      cards.push_back(dcard("Wlnu-0"           , "Wlnu-0"             , vb.Data()   , false, xs.GetCrossSection("Wlnu"               ), false, year, kViolet-9, !useUL_&&year!=2018));
-      if(year != 2018 && !useUL_){
-        cards.push_back(dcard("Wlnu-ext-0"     , "Wlnu-ext-0"         , vb.Data()   , false, xs.GetCrossSection("Wlnu"               ), false, year, kViolet-9, true));
-      }
-      cards.push_back(dcard("Wlnu-1J"           , "Wlnu-1J"           , vb.Data()   , false, xs.GetCrossSection("Wlnu-1J"            ), false, year, kViolet-9, false));
-      cards.push_back(dcard("Wlnu-2J"           , "Wlnu-2J"           , vb.Data()   , false, xs.GetCrossSection("Wlnu-2J"            ), false, year, kViolet-9, false));
-      cards.push_back(dcard("Wlnu-3J"           , "Wlnu-3J"           , vb.Data()   , false, xs.GetCrossSection("Wlnu-3J"            ), false, year, kViolet-9, false));
-      if(year != 2017) {
-        cards.push_back(dcard("Wlnu-4J"         , "Wlnu-4J"           , vb.Data()   , false, xs.GetCrossSection("Wlnu-4J"            ), false, year, kViolet-9, false));
-      }
-    } else {
-      cards.push_back(dcard("Wlnu"              , "Wlnu"              , vb.Data()   , false, xs.GetCrossSection("Wlnu"               ), false, year, kViolet-9, !useUL_&&year!=2018));
-      if(year != 2018 && !useUL_){
-        cards.push_back(dcard("Wlnu-ext"        , "Wlnu-ext"          , vb.Data()   , false, xs.GetCrossSection("Wlnu"               ), false, year, kViolet-9, true));
-      }
-    }
-    if(splitDY_ > 0 || useEmbed_) {
-      cards.push_back(dcard((DYName+"-2").Data(), (DYName+"-2").Data(), dy_ll.Data(), false, xs.GetCrossSection("DY50", year), false, year, kRed-2   , combineZ));
-      if(!useEmbed_) {
-        cards.push_back(dcard((DYName+"-1").Data(), (DYName+"-1").Data(), dy_tt.Data(), false, xs.GetCrossSection("DY50", year), false, year, kRed-7   , combineZ));
-      } else {
-        for(int period = 0; period < periods[year].size(); ++period) {
-          TString run = periods[year][period];
-          // if(selection_ == "mutau" || selection_ == "emu") {
-          cards.push_back(dcard(("Embed-MuTau-"+run).Data(), ("Embed-MuTau-"+run).Data(), embed.Data(), false, xs.GetCrossSection("Embed-MuTau-"+run, year), false, year, kRed-7));
-          // }
-          // if(selection_ == "etau") {
-          cards.push_back(dcard(("Embed-ETau-" +run).Data(), ("Embed-ETau-" +run).Data(), embed.Data(), false, xs.GetCrossSection("Embed-ETau-" +run, year), false, year, kRed-7));
-          // }
-          cards.push_back(  dcard(("Embed-EMu-"  +run).Data(), ("Embed-EMu-"  +run).Data(), embed.Data(), false, xs.GetCrossSection("Embed-EMu-"  +run, year), false, year, kRed-7));
-        }
-      }
-    } else if(splitDY_ == 0) {
-      cards.push_back(dcard((DYName+"-1").Data(), (DYName+"-1").Data(), dy.Data(), false, xs.GetCrossSection("DY50", year), false, year, kRed-7   , combineZ));
-      cards.push_back(dcard((DYName+"-2").Data(), (DYName+"-2").Data(), dy.Data(), false, xs.GetCrossSection("DY50", year), false, year, kRed-7   , combineZ));
-    } else { //splitDY_ < 0, assume old dataset that was never split
-      cards.push_back(dcard((DYName).Data(), (DYName).Data(), dy.Data(), false, xs.GetCrossSection("DY50", year), false, year, kRed-7   , combineZ));
-    }
-    if(combineZ) {
-      if(splitDY_ > 0 || useEmbed_) {
-        cards.push_back(dcard((DYName+"-ext-2").Data(), (DYName+"-ext-2").Data(), dy_ll.Data(), false, xs.GetCrossSection("DY50", year), false, year, kRed-2   , true));
-        if(!useEmbed_) {
-          cards.push_back(dcard((DYName+"-ext-1").Data(), (DYName+"-ext-1").Data(), dy_tt.Data(), false, xs.GetCrossSection("DY50", year), false, year, kRed-7   , true));
-        }
-      } else if(splitDY_ == 0) {
-        cards.push_back(dcard((DYName+"-ext-1").Data(), (DYName+"-ext-1").Data(), dy.Data(), false, xs.GetCrossSection("DY50", year), false, year, kRed-7   , true));
-        if(!useEmbed_) {
-          cards.push_back(dcard((DYName+"-ext-2").Data(), (DYName+"-ext-2").Data(), dy.Data(), false, xs.GetCrossSection("DY50", year), false, year, kRed-7   , true));
-        }
-      } else {
-        cards.push_back(dcard((DYName+"-ext").Data(), (DYName+"-ext").Data(), dy.Data(), false, xs.GetCrossSection("DY50", year), false, year, kRed-7   , true));
-      }
-    }
-    if(!forStudies) {
-      if(selection_ == "emu") {
-        cards.push_back(dcard("ZEMu"             , "ZEMu"             , "Z->e#mu"   , false, xs.GetCrossSection("ZEMu"  ), true, year, kBlue   ));
-        cards.push_back(dcard("HEMu"             , "HEMu"             , "H->e#mu"   , false, xs.GetCrossSection("HEMu"  ), true, year, kGreen-1));
-      } else if(selection_.Contains("etau") || selection_ == "ee") {
-        cards.push_back(dcard("ZETau"            , "ZETau"            , "Z->e#tau"  , false, xs.GetCrossSection("ZETau" ), true, year, kBlue   ));
-        cards.push_back(dcard("HETau"            , "HETau"            , "H->e#tau"  , false, xs.GetCrossSection("HETau" ), true, year, kGreen-1));
-      } else if(selection_.Contains("mutau") || selection_ == "mumu") {
-        cards.push_back(dcard("ZMuTau"           , "ZMuTau"           , "Z->#mu#tau", false, xs.GetCrossSection("ZMuTau"), true, year, kBlue   ));
-        cards.push_back(dcard("HMuTau"           , "HMuTau"           , "H->#mu#tau", false, xs.GetCrossSection("HMuTau"), true, year, kGreen-1));
-      }
-    }
-    //Add data
-    if(doRunPeriod_ == 0) {
-      if(selection_ != "etau"  && selection_!="ee"  ) cards.push_back(dcard("SingleMu" , "SingleMu" , "Data", true , 1., false, year));
-      if(selection_ != "mutau" && selection_!="mumu") cards.push_back(dcard("SingleEle", "SingleEle", "Data", true , 1., false, year));
-    } else {
-      for(int period = 0; period < periods[year].size(); ++period) {
-        if(year == 2016 && ((doRunPeriod_ == 1 && period > 4) || (doRunPeriod_ == 2 && period < 5))) continue;
-        if(year == 2017 && ((doRunPeriod_ == 1 && period > 2) || (doRunPeriod_ == 2 && period < 3))) continue;
-        if(year == 2018 && ((doRunPeriod_ == 1 && period > 1) || (doRunPeriod_ == 2 && period < 2))) continue;
-        TString p_name = "Run"; p_name += periods[year][period];
-        TString muon_name = "SingleMuon" + p_name;
-        TString electron_name = "SingleMuon" + p_name;
-        if(selection_ != "etau"  && selection_!="ee"  ) cards.push_back(dcard(muon_name.Data()    , muon_name.Data()    , "Data", true , 1., false, year));
-        if(selection_ != "mutau" && selection_!="mumu") cards.push_back(dcard(electron_name.Data(), electron_name.Data(), "Data", true , 1., false, year));
-      }
-    }
-  } //end years loop
-
-
-  TString selection_dir = (leptonic_tau) ? "emu" : selection_;
-  //add full name to file name
-  for(unsigned index = 0; index < cards.size(); ++index) {
-    cards[index].isembed_ = cards[index].name_.Contains("Embed");
-    //Update Wlnu cross section if combining to account for the two samples
-    if(cards[index].combine_) {
-      TString name = cards[index].name_;
-      bool isext = name.Contains("-ext");
-      name.ReplaceAll("-ext", "");
-      name.ReplaceAll("-0", ""); //remove W+Jets splitting labels if needed
-      name.ReplaceAll("-1", ""); //remove DY splitting labels if needed
-      name.ReplaceAll("-2", "");
-      long num1 = xs.GetGenNumber(name       , cards[index].year_); //get number of events per sample
-      long num2 = xs.GetGenNumber(name+"-ext", cards[index].year_);
-      if(isext && num1 > 0 && num2 > 0) {
-        double frac = (num2*1./(num1+num2));
-        cout << "Multiplying the " << name.Data() << "-ext cross section by " << frac
-             << " to combine the " << cards[index].year_ << " extension samples!\n";
-        cards[index].xsec_ *= frac;
-      } else if(num1 > 0 && num2 > 0){
-        double frac = (num1*1./(num1+num2));
-        cout << "Multiplying the " << name.Data() << " cross section by " << frac
-             << " to combine the " << cards[index].year_ << " extension samples!\n";
-        cards[index].xsec_ *= frac;
-      } else
-        cout << "ERROR: Didn't find generation numbers for combining with sample name " << name.Data() << endl;
-    }
-    //update file path
-    cards[index].filename_ = Form("%s/clfv_%s_clfv_%i_%s.hist", (hist_path_+hist_dir_).Data(), selection_dir.Data(),
-                                  cards[index].year_, (cards[index].filename_).Data());
-  } //end file name loop
-
-
-}
 
 //initialize the dataplotter with data and MC files
 Int_t init_dataplotter() {
@@ -1239,9 +1071,9 @@ Int_t init_dataplotter() {
   if(useEmbed_ && embedScale_ > 0.) dataplotter_->embed_scale_ = embedScale_;
   else if(useEmbed_) {
     dataplotter_->embed_scale_ = 1.;
-    if     (selection_ == "emu"  ) dataplotter_->embed_scale_ = 1.155;
-    else if(selection_ == "etau" ) dataplotter_->embed_scale_ = 1.559;
-    else if(selection_ == "mutau") dataplotter_->embed_scale_ = 1.295;
+    if     (selection_ == "emu"  ) dataplotter_->embed_scale_ = 1.; //1.155;
+    else if(selection_ == "etau" ) dataplotter_->embed_scale_ = 1.; //1.559;
+    else if(selection_ == "mutau") dataplotter_->embed_scale_ = 1.; //1.295;
   }
 
   if(selection_ == "emu")
@@ -1253,13 +1085,15 @@ Int_t init_dataplotter() {
   else if(selection_ == "ee" || selection_ == "mumu")
     dataplotter_->signal_scale_ = 2.e4;
 
+  //ensure the years are sorted
+  std::sort(years_.begin(),years_.end());
 
   ///////////////////////////////////
   // Defining NANO AOD based files //
   ///////////////////////////////////
 
   std::vector<dcard> cards;
-  get_datacards(cards);
+  get_datacards(cards, selection_);
   CrossSections xs(useUL_, ZMode_);
 
   //Calculate luminosity from year(s)
@@ -1664,7 +1498,7 @@ Int_t print_all_misid_plots() {
 }
 
 //print MisID debugging plots
-Int_t print_misid_debug_plots(bool doMC = false) {
+Int_t print_misid_debug_plots(bool doMC = false, bool doSys = false) {
   Int_t status = 0;
   if(!dataplotter_) return 1;
   dataplotter_->include_qcd_ = 0;
@@ -1683,62 +1517,134 @@ Int_t print_misid_debug_plots(bool doMC = false) {
                       8  + offset + CLFVHistMaker::fQcdOffset + CLFVHistMaker::fMisIDOffset,
                       31 + offset, //W+Jets selection
                       31 + offset + CLFVHistMaker::fMisIDOffset,
-                      31 + offset + CLFVHistMaker::fQcdOffset,
-                      31 + offset + CLFVHistMaker::fQcdOffset + CLFVHistMaker::fMisIDOffset,
-                      30 + offset, //QCD selection
-                      30 + offset + CLFVHistMaker::fMisIDOffset,
+                      // 31 + offset + CLFVHistMaker::fQcdOffset,
+                      // 31 + offset + CLFVHistMaker::fQcdOffset + CLFVHistMaker::fMisIDOffset,
+                      // 30 + offset, //QCD selection
+                      // 30 + offset + CLFVHistMaker::fMisIDOffset,
                       30 + offset + CLFVHistMaker::fQcdOffset,
                       30 + offset + CLFVHistMaker::fQcdOffset + CLFVHistMaker::fMisIDOffset,
                       32 + offset, //Top selection
                       32 + offset + CLFVHistMaker::fMisIDOffset,
-                      32 + offset + CLFVHistMaker::fQcdOffset,
-                      32 + offset + CLFVHistMaker::fQcdOffset + CLFVHistMaker::fMisIDOffset
+                      // 32 + offset + CLFVHistMaker::fQcdOffset,
+                      // 32 + offset + CLFVHistMaker::fQcdOffset + CLFVHistMaker::fMisIDOffset
   };
   if(doMC) {
     sets.push_back(35 + offset); //Nominal
     sets.push_back(35 + offset + CLFVHistMaker::fMisIDOffset);
     sets.push_back(35 + offset + CLFVHistMaker::fQcdOffset);
     sets.push_back(35 + offset + CLFVHistMaker::fQcdOffset + CLFVHistMaker::fMisIDOffset);
-    sets.push_back(36 + offset); //QCD
-    sets.push_back(36 + offset + CLFVHistMaker::fMisIDOffset);
+    // sets.push_back(36 + offset); //QCD
+    // sets.push_back(36 + offset + CLFVHistMaker::fMisIDOffset);
     sets.push_back(36 + offset + CLFVHistMaker::fQcdOffset);
     sets.push_back(36 + offset + CLFVHistMaker::fQcdOffset + CLFVHistMaker::fMisIDOffset);
     sets.push_back(37 + offset); //WJets
     sets.push_back(37 + offset + CLFVHistMaker::fMisIDOffset);
-    sets.push_back(37 + offset + CLFVHistMaker::fQcdOffset);
-    sets.push_back(37 + offset + CLFVHistMaker::fQcdOffset + CLFVHistMaker::fMisIDOffset);
+    // sets.push_back(37 + offset + CLFVHistMaker::fQcdOffset);
+    // sets.push_back(37 + offset + CLFVHistMaker::fQcdOffset + CLFVHistMaker::fMisIDOffset);
     sets.push_back(38 + offset); //Top
     sets.push_back(38 + offset + CLFVHistMaker::fMisIDOffset);
-    sets.push_back(38 + offset + CLFVHistMaker::fQcdOffset);
-    sets.push_back(38 + offset + CLFVHistMaker::fQcdOffset + CLFVHistMaker::fMisIDOffset);
+    // sets.push_back(38 + offset + CLFVHistMaker::fQcdOffset);
+    // sets.push_back(38 + offset + CLFVHistMaker::fQcdOffset + CLFVHistMaker::fMisIDOffset);
+    sets.push_back(92 + offset + CLFVHistMaker::fQcdOffset); //QCD full MT(ll, MET) set for MT(ll, MET) bias
+    sets.push_back(92 + offset + CLFVHistMaker::fQcdOffset + CLFVHistMaker::fMisIDOffset);
+    sets.push_back(94 + offset + CLFVHistMaker::fQcdOffset); //QCD loose ID electron set for SS --> OS bias
+    sets.push_back(94 + offset + CLFVHistMaker::fQcdOffset + CLFVHistMaker::fMisIDOffset);
   }
   vector<PlottingCard_t> cards;
-  cards.push_back(PlottingCard_t("lepm"          , "event", 5, 50., 170.));
-  cards.push_back(PlottingCard_t("onept"         , "lep"  , 1, 20., 120.));
-  cards.push_back(PlottingCard_t("oneeta"        , "lep"  , 2, -3.,   5.));
-  cards.push_back(PlottingCard_t("twopt"         , "lep"  , 2, 20., 100.));
-  cards.push_back(PlottingCard_t("twoeta"        , "lep"  , 2, -3.,   5.));
-  cards.push_back(PlottingCard_t("taudecaymode"  , "event", 0,  0.,  15.));
-  cards.push_back(PlottingCard_t("met"           , "event", 2,  0., 100.));
-  cards.push_back(PlottingCard_t("mtone"         , "event", 2,  0., 150.));
-  cards.push_back(PlottingCard_t("mttwo"         , "event", 2,  0., 150.));
-  cards.push_back(PlottingCard_t("mtlep"         , "event", 2,  0., 150.));
-  cards.push_back(PlottingCard_t("lepdeltar"     , "event", 5,  0.,   5.));
-  cards.push_back(PlottingCard_t("njets20"       , "event", 1,  0.,   5.));
-  cards.push_back(PlottingCard_t("onemetdeltaphi", "lep"  , 1,  0.,   5.));
-  cards.push_back(PlottingCard_t("twometdeltaphi", "lep"  , 1,  0.,   5.));
+  cards.push_back(PlottingCard_t("lepm"            , "event", 2, 50., 170.));
+  cards.push_back(PlottingCard_t("lepmestimate"    , "event", 2, 50., 170.));
+  // cards.push_back(PlottingCard_t("lepmestimatetwo" , "event", 2, 50., 170.));
+  cards.push_back(PlottingCard_t("leppt"           , "event", 2,  0., 100.));
+  cards.push_back(PlottingCard_t("onept"           , "lep"  , 2, 20., 120.));
+  cards.push_back(PlottingCard_t("onept11"         , "lep"  , 2, 20., 120.));
+  cards.push_back(PlottingCard_t("oneeta"          , "lep"  , 2, -3.,   5.));
+  cards.push_back(PlottingCard_t("twopt"           , "lep"  , 2, 20., 120.));
+  cards.push_back(PlottingCard_t("twopt11"         , "lep"  , 2, 20., 120.));
+  cards.push_back(PlottingCard_t("twoeta"          , "lep"  , 2,  1.,  -1.));
+  cards.push_back(PlottingCard_t("taudecaymode"    , "event", 0,  0.,  15.));
+  // cards.push_back(PlottingCard_t("ptdiff"          , "lep"  , 2, -80,  80.));
+  cards.push_back(PlottingCard_t("met"             , "event", 2,  0., 100.));
+  cards.push_back(PlottingCard_t("mtone"           , "event", 5,  0., 150.));
+  cards.push_back(PlottingCard_t("mttwo"           , "event", 5,  0., 150.));
+  cards.push_back(PlottingCard_t("mtlep"           , "event", 5,  0., 150.));
+  cards.push_back(PlottingCard_t("lepdeltar"       , "event", 5,  0.,   5.));
+  cards.push_back(PlottingCard_t("lepdeltaphi"     , "event", 1,  0.,   5.));
+  cards.push_back(PlottingCard_t("lepdeltaeta"     , "event", 2,  0.,   5.));
+  cards.push_back(PlottingCard_t("njets20"         , "event", 1,  0.,   5.));
+  cards.push_back(PlottingCard_t("njets"           , "event", 1,  0.,   5.));
+  // cards.push_back(PlottingCard_t("ntriggered"      , "event", 0,  0.,   5.));
+  cards.push_back(PlottingCard_t("onemetdeltaphi"  , "lep"  , 2,  0.,   5.));
+  cards.push_back(PlottingCard_t("twometdeltaphi"  , "lep"  , 2,  0.,   5.));
+  cards.push_back(PlottingCard_t("jetpt"           , "event", 2, 20., 100.));
+  // cards.push_back(PlottingCard_t("npv"             , "event", 0,  0.,  60.));
+  cards.push_back(PlottingCard_t("oned0"           , "lep"  , 2,  0.,  0.1));
+  cards.push_back(PlottingCard_t("twod0"           , "lep"  , 2,  0.,  0.1));
+  // cards.push_back(PlottingCard_t("d0diff"          , "lep"  , 2,-0.1,  0.1));
+  cards.push_back(PlottingCard_t("onereliso"       , "lep"  , 1,  0.,   0.15));
+  // cards.push_back(PlottingCard_t("tworeliso"     , "lep"  , 1,  0., 0.15));
+
+  cards.push_back(PlottingCard_t("jettauonept"           , "lep"  , 0,  1.,  -1.));
+  cards.push_back(PlottingCard_t("jettauonept_1"         , "lep"  , 0,  1.,  -1.));
+  cards.push_back(PlottingCard_t("jettauonept_2"         , "lep"  , 0,  1.,  -1.));
+  cards.push_back(PlottingCard_t("jettauonept_3"         , "lep"  , 0,  1.,  -1.));
+  cards.push_back(PlottingCard_t("jettauonept_4"         , "lep"  , 0,  1.,  -1.));
+  cards.push_back(PlottingCard_t("jettauoneeta"          , "lep"  , 0,  1.,  -1.));
+  cards.push_back(PlottingCard_t("jettauonemetdeltaphi"  , "lep"  , 0,  1.,  -1.));
+  cards.push_back(PlottingCard_t("jettauonemetdeltaphi_0", "lep"  , 0,  1.,  -1.));
+  cards.push_back(PlottingCard_t("jettauonemetdeltaphi_1", "lep"  , 0,  1.,  -1.));
+  cards.push_back(PlottingCard_t("jettauonemetdeltaphi_2", "lep"  , 0,  1.,  -1.));
+  cards.push_back(PlottingCard_t("jettauonemetdeltaphi_3", "lep"  , 0,  1.,  -1.));
+  cards.push_back(PlottingCard_t("jettautwopt"           , "lep"  , 0,  1.,  -1.));
+  cards.push_back(PlottingCard_t("jettautwoeta"          , "lep"  , 0,  1.,  -1.));
+  cards.push_back(PlottingCard_t("jettaumtlep0"          , "event", 0,  1.,  -1.));
+  cards.push_back(PlottingCard_t("jettaumtlep1"          , "event", 0,  1.,  -1.));
+  cards.push_back(PlottingCard_t("jettaumtlep2"          , "event", 0,  1.,  -1.));
+  cards.push_back(PlottingCard_t("jettaulepm0"           , "event", 0,  1.,  -1.));
+  cards.push_back(PlottingCard_t("jettaulepm1"           , "event", 0,  1.,  -1.));
+  cards.push_back(PlottingCard_t("jettaulepm2"           , "event", 0,  1.,  -1.));
+  cards.push_back(PlottingCard_t("jettaudeltar0"         , "event", 0,  1.,  -1.));
+  cards.push_back(PlottingCard_t("jettaudeltar1"         , "event", 0,  1.,  -1.));
+  // cards.push_back(PlottingCard_t("jettaudeltar2"         , "event", 0,  1.,  -1.));
+
+  cards.push_back(PlottingCard_t("eventweight"       , "event", 0,   0.,  1.1));
+  cards.push_back(PlottingCard_t("genweight"         , "event", 0, -2.5,  2.5));
+  cards.push_back(PlottingCard_t("logeventweight"    , "event", 0,  -5.,  1. ));
+  cards.push_back(PlottingCard_t("jettotauweight"    , "event", 0,  0. ,  1. ));
+  cards.push_back(PlottingCard_t("jettotauweightcorr", "event", 0,  0. ,  3. ));
+  // cards.push_back(PlottingCard_t("jettotauweightbias", "event", 0,  0. ,  3. ));
+  // cards.push_back(PlottingCard_t("onetrigweight"     , "lep"  , 0,  0.5,  1.5));
+  // cards.push_back(PlottingCard_t("twotrigweight"     , "lep"  , 0,  0.5,  1.5));
+  // cards.push_back(PlottingCard_t("oneweight"         , "lep"  , 0,  0.5,  1.5));
+  // cards.push_back(PlottingCard_t("twoweight"         , "lep"  , 0,  0.5,  1.5));
 
   for(int set : sets) {
-    if(set % 100 >= 35 && set % 100 <= 38) dataplotter_->include_misid_ = 0;
+    if((set % 100 >= 35 && set % 100 <= 38) || (set % 100 >= 80 && set % 100 <= 84) || set % 100 == 92 || set % 100 == 94) dataplotter_->include_misid_ = 0;
     else dataplotter_->include_misid_ = 1;
     for(PlottingCard_t card : cards) {
       card.set_ = set;
       TCanvas* c;
-      dataplotter_->logY_ = (card.hist_ == "njets");
+      dataplotter_->logY_ = (card.hist_.Contains("njets"));
       c = dataplotter_->print_stack(card);
       if(c) {
         DataPlotter::Empty_Canvas(c);
       } else ++status;
+    }
+  }
+
+  if(doSys) {
+    vector<int> sys_sets = {10, 28, 31, 47};
+    vector<PlottingCard_t> hists = {PlottingCard_t("onept", "sys", 8, 1, 1., -1.),
+                                    PlottingCard_t("twopt", "sys", 8, 1, 1., -1.),
+                                    PlottingCard_t("lepm" , "sys", 8, 5, 1., -1.)
+    };
+    for(int set : sys_sets) {
+      for(PlottingCard_t card : hists) {
+        card.systematic_ = set;
+        auto c = dataplotter_->print_systematic(card);
+        if(c) {
+          DataPlotter::Empty_Canvas(c);
+        } else ++status;
+      }
     }
   }
   return status;
@@ -1748,21 +1654,38 @@ Int_t print_misid_debug_plots(bool doMC = false) {
 Int_t print_qcd_debug_plots() {
   Int_t status = 0;
   if(!dataplotter_) return 1;
-  dataplotter_->include_qcd_ = 1;
-  dataplotter_->include_misid_ = 0;
-  int offset = CLFVHistMaker::kEMu;
-  if(!(selection_ == "emu" || selection_.Contains("_"))) {
-    cout << "QCD debug plots only defined for emu data selections!\n";
-    return -1;
+  const bool is_emu = selection_ == "emu" || selection_.Contains("_");
+  if(is_emu) {
+    dataplotter_->include_qcd_   = 1;
+    dataplotter_->include_misid_ = 0;
+  } else {
+    dataplotter_->include_qcd_   = 0;
+    dataplotter_->include_misid_ = 1;
   }
+  int offset = 0;
+  if     (selection_ == "mutau"  ) offset = CLFVHistMaker::kMuTau;
+  else if(selection_ == "etau"   ) offset = CLFVHistMaker::kETau;
+  else if(is_emu                 ) offset = CLFVHistMaker::kEMu;
+  else if(selection_ == "mumu")    offset = CLFVHistMaker::kMuMu;
+  else if(selection_ == "ee"  )    offset = CLFVHistMaker::kEE;
   vector<int> sets = {
                       8  + offset, //Nominal sets
                       8  + offset + CLFVHistMaker::fMisIDOffset,
                       8  + offset + CLFVHistMaker::fQcdOffset,
-                      8  + offset + CLFVHistMaker::fQcdOffset + CLFVHistMaker::fMisIDOffset,
+                      8  + offset + CLFVHistMaker::fQcdOffset + CLFVHistMaker::fMisIDOffset
   };
+  if(is_emu) {
+    sets.push_back(70 + offset + CLFVHistMaker::fMisIDOffset);
+    sets.push_back(70 + offset + CLFVHistMaker::fQcdOffset + CLFVHistMaker::fMisIDOffset);
+    sets.push_back(71 + offset + CLFVHistMaker::fMisIDOffset);
+    sets.push_back(71 + offset + CLFVHistMaker::fQcdOffset + CLFVHistMaker::fMisIDOffset);
+  }
   vector<PlottingCard_t> cards;
-  cards.push_back(PlottingCard_t("lepm"           , "event", 5, 50., 170., {84., 118.}, {98., 132.}));
+  if(is_emu) {
+    cards.push_back(PlottingCard_t("lepm"           , "event", 2, 50., 170., {84., 118.}, {98., 132.}));
+  } else {
+    cards.push_back(PlottingCard_t("lepm"           , "event", 2, 50., 170.));
+  }
   cards.push_back(PlottingCard_t("leppt"          , "event", 2,  0., 150.));
   cards.push_back(PlottingCard_t("onept"          , "lep"  , 2, 10., 100.));
   cards.push_back(PlottingCard_t("oneeta"         , "lep"  , 2, -3.,   5.));
@@ -1772,29 +1695,42 @@ Int_t print_qcd_debug_plots() {
   cards.push_back(PlottingCard_t("mtone"          , "event", 2,  0., 150.));
   cards.push_back(PlottingCard_t("mttwo"          , "event", 2,  0., 150.));
   cards.push_back(PlottingCard_t("mtlep"          , "event", 2,  0., 150.));
-  cards.push_back(PlottingCard_t("lepdeltar"      , "event", 2,  0.,   5.));
+  cards.push_back(PlottingCard_t("lepdeltar"      , "event", 1,  0.,   5.));
+  cards.push_back(PlottingCard_t("lepdeltar1"     , "event", 1,  0.,   5.));
+  cards.push_back(PlottingCard_t("lepdeltar2"     , "event", 1,  0.,   5.));
   cards.push_back(PlottingCard_t("lepdeltaphi"    , "event", 1,  0.,   5.));
-  cards.push_back(PlottingCard_t("lepdeltaeta"    , "event", 5,  0.,   5.));
+  cards.push_back(PlottingCard_t("lepdeltaeta"    , "event", 2,  0.,   5.));
   cards.push_back(PlottingCard_t("njets20"        , "event", 1,  0.,   5.));
   cards.push_back(PlottingCard_t("jetpt"          , "event", 2, 20., 120.));
   cards.push_back(PlottingCard_t("onemetdeltaphi" , "lep"  , 1,  0.,   5.));
   cards.push_back(PlottingCard_t("twometdeltaphi" , "lep"  , 1,  0.,   5.));
+  cards.push_back(PlottingCard_t("onereliso"      , "lep"  , 1,  0.,  0.5));
+  cards.push_back(PlottingCard_t("tworeliso"      , "lep"  , 1,  0.,  0.5));
+  cards.push_back(PlottingCard_t("oned0"          , "lep"  , 1,  0.,  0.08));
+  cards.push_back(PlottingCard_t("twod0"          , "lep"  , 1,  0.,  0.08));
+  cards.push_back(PlottingCard_t("onedxy"         , "lep"  , 1,  0.,  0.08));
+  cards.push_back(PlottingCard_t("twodxy"         , "lep"  , 1,  0.,  0.08));
+  cards.push_back(PlottingCard_t("onedz"          , "lep"  , 1,  0.,  0.08));
+  cards.push_back(PlottingCard_t("twodz"          , "lep"  , 1,  0.,  0.08));
   cards.push_back(PlottingCard_t("deltaalpha0"    , "event", 2, -3.,   6., -1., 0.5));
   cards.push_back(PlottingCard_t("deltaalpha1"    , "event", 2, -3.,   6., -1., 0.5));
   cards.push_back(PlottingCard_t("lepmestimate"   , "event", 1, 50.,  200., {80., 115.}, {100., 135.}));
   cards.push_back(PlottingCard_t("lepmestimatetwo", "event", 1, 50.,  200., {80., 115.}, {100., 135.}));
-  cards.push_back(PlottingCard_t("mva4"           , "event", 20, -0.6, 0.5 , 0., 1. ));
-  cards.push_back(PlottingCard_t("mva5"           , "event", 20, -0.6, 0.5 , 0., 1. ));
-  cards.push_back(PlottingCard_t("mva6"           , "event", 20, -0.6, 0.5 , 0., 1. ));
-  cards.push_back(PlottingCard_t("mva7"           , "event", 20, -0.6, 0.5 , 0., 1. ));
-  cards.push_back(PlottingCard_t("mva8"           , "event", 20, -0.6, 0.5 , 0., 1. ));
-  cards.push_back(PlottingCard_t("mva9"           , "event", 20, -0.6, 0.5 , 0., 1. ));
+  cards.push_back(PlottingCard_t("genweight"      , "event", 1,-1.5,  2.5));
+  if(is_emu) {
+    cards.push_back(PlottingCard_t("mva4"           , "event", 1, -0.6, 0.5 , 0., 1. ));
+    cards.push_back(PlottingCard_t("mva5"           , "event", 1, -0.6, 0.5 , 0., 1. ));
+    cards.push_back(PlottingCard_t("mva6"           , "event", 1, -0.6, 0.5 , 0., 1. ));
+    cards.push_back(PlottingCard_t("mva7"           , "event", 1, -0.6, 0.5 , 0., 1. ));
+    cards.push_back(PlottingCard_t("mva8"           , "event", 1, -0.6, 0.5 , 0., 1. ));
+    cards.push_back(PlottingCard_t("mva9"           , "event", 1, -0.6, 0.5 , 0., 1. ));
+  }
 
   for(int set : sets) {
     for(PlottingCard_t card : cards) {
       card.set_ = set;
       //Remove blinding after first signal region set
-      if(set > CLFVHistMaker::fQcdOffset) {card.blindmin_ = {1.}; card.blindmax_ = {-1.};}
+      // if(set > CLFVHistMaker::fQcdOffset) {card.blindmin_ = {1.}; card.blindmax_ = {-1.};}
       dataplotter_->logY_ = (card.hist_ == "njets");
       TCanvas* c;
       c = dataplotter_->print_stack(card);

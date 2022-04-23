@@ -1612,16 +1612,27 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
   else if(verbose_ > 0)  std::cout << "Retrieved the data histogram\n";
 
   std::vector<TH1*> hsignal = get_signal(hist,setType,set);
-  if(verbose_ > 0) std::cout << "Retrieved the signals with " << hsignal.size() << " histograms\n";
+  if(verbose_ > 0) {
+    std::cout << "Retrieved the signals with " << hsignal.size() << " histograms\n";
+  }
   {
     auto o = gDirectory->Get(Form("s_%s_%i",hist.Data(),set));
     if(o) delete o;
   }
+
+  ////////////////////////////////////////////////////
+  // Configure the canvas
+  ////////////////////////////////////////////////////
+
   TCanvas* c = new TCanvas(Form("s_%s_%i%s",hist.Data(),set, (density_plot_) ? "_density" : ""),
                            Form("s_%s_%i%s",hist.Data(),set, (density_plot_) ? "_density" : ""),
                            canvas_x_, canvas_y_);
   //split the top into main stack and bottom into Data/MC if plotting data
-  TPad *pad1 = 0, *pad2 = 0;
+  TPad *pad1 = nullptr, *pad2 = nullptr;
+
+  //Add axis tick marks to all sides of the pads
+  gStyle->SetPadTickX(1);
+  gStyle->SetPadTickY(1);
 
   //Normalize to the stack integral if normalizing, for simplicity
   if(d && normalize_1ds_ && d->Integral() > 0.) {
@@ -1634,7 +1645,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
     }
   }
 
-  if((plot_data_ && d) || (plot_data_ == 0 && data_over_mc_ < 0)) {
+  if((plot_data_ && d && data_over_mc_) || (plot_data_ == 0 && data_over_mc_ < 0)) {
     pad1 = new TPad("pad1","pad1",upper_pad_x1_, upper_pad_y1_, upper_pad_x2_, upper_pad_y2_); //xL yL xH xH, (0,0) = bottom left
     pad2 = new TPad("pad2","pad2",lower_pad_x1_, lower_pad_y1_, lower_pad_x2_, lower_pad_y2_);
     pad1->SetTopMargin(upper_pad_topmargin_);
@@ -1665,7 +1676,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
       if(hsignal[i]) hstack->Add(hsignal[i]);
     }
   }
-  TH1* hstack_hist = 0;
+  TH1* hstack_hist = nullptr;
   if(stack_as_hist_) {
     hstack_hist = (TH1*) hstack->GetStack()->Last()->Clone("hBackground");
     hstack_hist->SetFillStyle(3002);
@@ -1673,9 +1684,10 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
     hstack_hist->SetLineColor(total_background_color_);
     hstack_hist->SetTitle("Background");
     hstack_hist->Draw("hist");
-  } else
+  } else {
     //draw stack, preserving style set for each histogram
     hstack->Draw("hist noclear");
+  }
 
   if(!stack_signal_) {
     for(unsigned int i = 0; i < hsignal.size(); ++i) {
@@ -1709,10 +1721,10 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
 
   //blind if needed
   if(blindxmin_.size() > 0 && d && plot_data_) {
-    unsigned nbins = d->GetNbinsX();
+    const unsigned nbins = d->GetNbinsX();
     for(unsigned bin = 1; bin <= nbins; ++bin) {
-      double binlow = d->GetBinLowEdge(bin);
-      double binhigh = binlow + d->GetBinWidth(bin);
+      const double binlow = d->GetBinLowEdge(bin);
+      const double binhigh = binlow + d->GetBinWidth(bin);
       if(isBlind(binlow, binhigh))
         d->SetBinContent(bin, 0.);
     }
@@ -1724,26 +1736,47 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
   m = std::max(std::max(m,hstack->GetMaximum()), (d&&plot_data_ > 0) ? d->GetMaximum() : 1.e-5);
   if(m < 1.e-10) m = 1.e-5;
 
-  pad1->BuildLegend();//0.6, 0.9, 0.9, 0.45, "", "L");
+  // pad1->BuildLegend();//0.6, 0.9, 0.9, 0.45, "", "L");
   pad1->SetGrid();
-  pad1->Update();
   //draw text
   if(draw_statistics_) draw_data(ndata,nmc,nsig);
   draw_luminosity(plot_data_ == 0 && data_over_mc_ >= 0);
   draw_cms_label(plot_data_ == 0 && data_over_mc_ >= 0);
 
-  auto o = pad1->GetPrimitive("TPave");
-  if(o) {
-    auto tl = (TLegend*) o;
-    tl->SetDrawOption("L");
-    tl->SetTextSize(legend_txt_);
-    tl->SetY2NDC(legend_y2_);
-    tl->SetY1NDC(legend_y1_);
-    tl->SetX1NDC(((doStatsLegend_) ? legend_x1_stats_ : legend_x1_));
-    tl->SetX2NDC(legend_x2_);
-    tl->SetEntrySeparation(legend_sep_);
-    pad1->Update();
+  TLegend* leg = new TLegend(legend_x1_, legend_y1_, legend_x2_, legend_y2_);
+  leg->SetTextSize(legend_txt_);
+  leg->SetNColumns(legend_ncol_);
+  if(d) leg->AddEntry(d, d->GetTitle(), "PL");
+  if(stack_uncertainty_) leg->AddEntry(huncertainty, huncertainty->GetTitle(), "F");
+  if(!stack_signal_) {
+    for(unsigned int i = 0; i < hsignal.size(); ++i) {
+      leg->AddEntry(hsignal[i], hsignal[i]->GetTitle(), "FL");
+    }
   }
+  for(int i = 0; i < hstack->GetNhists(); ++i) {
+    TH1* h = (TH1*) hstack->GetHists()->At(i);
+    leg->AddEntry(h, h->GetTitle(), "F");
+  }
+  // leg->SetEntrySeparation(legend_sep_);
+  leg->SetFillStyle(0);
+  leg->SetFillColor(0);
+  leg->SetLineColor(0);
+  leg->SetLineStyle(0);
+  leg->Draw();
+
+  // auto o = pad1->GetPrimitive("TPave");
+  // if(o) {
+  //   auto tl = (TLegend*) o;
+  //   tl->SetDrawOption("L");
+  //   tl->SetTextSize(legend_txt_);
+  //   tl->SetY2NDC(legend_y2_);
+  //   tl->SetY1NDC(legend_y1_);
+  //   tl->SetX1NDC(((doStatsLegend_) ? legend_x1_stats_ : legend_x1_));
+  //   tl->SetX2NDC(legend_x2_);
+  //   tl->SetEntrySeparation(legend_sep_);
+  //   pad1->Update();
+  // }
+  pad1->Update();
 
   ////////////////////////////////////////////////////////////////
   //Make a Data/MC histogram
@@ -1752,12 +1785,12 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
   if(plot_data_ && !d) {
     printf("Warning! Data histogram is Null! Skipping Data/MC plot\n");
   }
-  TH1* hDataMC = 0;
+  TH1* hDataMC = nullptr;
   if(plot_data_ && d && data_over_mc_ > 0)
     hDataMC = (TH1*) d->Clone("hDataMC");
   else if(data_over_mc_ < 0) //make signal/background histograms instead
     hDataMC = (TH1*) hstack->GetStack()->Last()->Clone("hRatio");
-  TGraphErrors* hDataMCErr = 0;
+  TGraphErrors* hDataMCErr = nullptr;
   int nb = (hDataMC) ? hDataMC->GetNbinsX() : -1;
   std::vector<TH1*> hSignalsOverMC;
   if(hDataMC && data_over_mc_ > 0) {
@@ -1802,55 +1835,71 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
     }
   }
 
+  ////////////////////////////////////////////////////////////////
+  // Configure axes and titles
+  ////////////////////////////////////////////////////////////////
 
-  if(plot_data_ && hDataMC)
-    hDataMC->GetXaxis()->SetTitle(xtitle.Data());
-  else if(hstack_hist)
-    hstack_hist->GetXaxis()->SetTitle(xtitle.Data());
-  else
-    hstack->GetXaxis()->SetTitle(xtitle.Data());
-  if(plot_y_title_ && hstack_hist)
-    hstack_hist->GetYaxis()->SetTitle(ytitle.Data());
-  else if(plot_y_title_)
-    hstack->GetYaxis()->SetTitle(ytitle.Data());
-
+  TAxis *top_xaxis(nullptr), *top_yaxis(nullptr), *bot_xaxis(nullptr);
+  if(pad1) {pad1->Modified(); pad1->Update();} if(pad2) {pad2->Modified(); pad2->Update();} c->Modified(); c->Update();
+  if(hDataMC) {
+    bot_xaxis = hDataMC->GetXaxis();
+  }
   if(hstack_hist) {
-    hstack_hist->GetXaxis()->SetTitleSize(axis_font_size_);
-    hstack_hist->GetYaxis()->SetTitleSize(axis_font_size_);
-    if(yMin_ < yMax_) hstack_hist->GetYaxis()->SetRangeUser(yMin_,yMax_);
-    else              hstack_hist->GetYaxis()->SetRangeUser(8.e-1,(logY_) ? m*20. : m*1.2);
-    if(xMin_ < xMax_) hstack_hist->GetXaxis()->SetRangeUser(xMin_,xMax_);
-    if(plot_title_) hstack_hist->SetTitle (title.Data());
-    else hstack_hist->SetTitle("");
-    if(yMin_ < yMax_) {
-      hstack_hist->SetMinimum(yMin_);
-      hstack_hist->SetMaximum(yMax_);
-    } else {
-      hstack_hist->SetMinimum(1.e-1);
-      hstack_hist->SetMaximum((logY_>0 ? 2.*m : 1.1*m));
-    }
+    top_xaxis = hstack_hist->GetXaxis();
+    top_yaxis = hstack_hist->GetYaxis();
   } else {
-    hstack->GetXaxis()->SetTitleSize(axis_font_size_);
-    hstack->GetYaxis()->SetTitleSize(axis_font_size_);
-    if(yMin_ < yMax_) hstack->GetYaxis()->SetRangeUser(yMin_,yMax_);
-    else              hstack->GetYaxis()->SetRangeUser(8.e-1,(logY_) ? m*20. : m*1.1);
-    if(xMin_ < xMax_) hstack->GetXaxis()->SetRangeUser(xMin_,xMax_);
-    if(plot_title_) hstack->SetTitle (title.Data());
-    else hstack->SetTitle("");
-    if(yMin_ < yMax_) {
-      hstack->SetMinimum(yMin_);
-      hstack->SetMaximum(yMax_);
-    } else {
-      hstack->SetMinimum(8.e-1);
-      hstack->SetMaximum((logY_>0 ? 2.*m : 1.1*m));
-    }
+    top_xaxis = hstack->GetXaxis();
+    top_yaxis = hstack->GetYaxis();
+  }
+  if(bot_xaxis) bot_xaxis->SetTitle(xtitle.Data());
+  else if(top_xaxis) top_xaxis->SetTitle(xtitle.Data());
+  else {
+    std::cout << "Stack x-axis not defined to make axis title!\n";
+    return c;
+  }
+  if(top_yaxis) top_yaxis->SetTitle(ytitle.Data());
+  else {
+    std::cout << "Stack y-axis not defined to make axis title!\n";
+    return c;
   }
 
-  if(plot_data_ && xMin_ < xMax_ && hDataMC) hDataMC->GetXaxis()->SetRangeUser(xMin_,xMax_);
+  if(!top_xaxis || !top_yaxis) {
+    std::cout << "Upper pad axes are not defined!\n";
+    return c;
+  }
+
+  top_xaxis->SetTitleSize(axis_font_size_);
+  top_yaxis->SetTitleSize(axis_font_size_);
+  double ymin = yMin_;
+  double ymax = yMax_;
+  if(ymin > ymax) {
+    ymin = 0.8;
+    if(logY_) {
+      ymax = (m < ymin) ? log_buffer_*ymin : ymin*std::pow(10, log_buffer_*std::log10(m/ymin));
+    } else {
+      ymax = linear_buffer_*std::max(m, ymin);
+    }
+  }
+  top_yaxis->SetRangeUser(ymin, ymax);
+  if(xMin_ < xMax_) top_xaxis->SetRangeUser(xMin_,xMax_);
+
+  if(hstack_hist) {
+    if(plot_title_) hstack_hist->SetTitle (title.Data());
+    else hstack_hist->SetTitle("");
+    hstack_hist->SetMinimum(ymin);
+    hstack_hist->SetMaximum(ymax);
+  } else {
+    if(plot_title_) hstack->SetTitle (title.Data());
+    else hstack->SetTitle("");
+    hstack->SetMinimum(ymin);
+    hstack->SetMaximum(ymax);
+  }
+
+  if(xMin_ < xMax_ && hDataMC) hDataMC->GetXaxis()->SetRangeUser(xMin_,xMax_);
 
   if(logY_) {
-    if(plot_data_)pad1->SetLogy();
-    else          c->SetLogy();
+    if(plot_data_) pad1->SetLogy();
+    else           c   ->SetLogy();
   }
   c->SetGrid();
   if(plot_data_ && hDataMC && data_over_mc_ > 0) {
@@ -2070,7 +2119,12 @@ TCanvas* DataPlotter::plot_systematic(TString hist, Int_t set, Int_t systematic)
   //Draw the data
   d->Draw("E same");
 
-  TLegend* leg = new TLegend(legend_x1_, 0.93, legend_x2_, 0.93 - 0.1*(1+signals_b.size()));
+  TLegend* leg = new TLegend(legend_sys_x1_, legend_sys_y1_, legend_sys_x2_, legend_sys_y1_ - 0.1*(1+signals_b.size()));
+  leg->SetTextSize(legend_txt_);
+  leg->SetFillStyle(0);
+  leg->SetFillColor(0);
+  leg->SetLineColor(0);
+  leg->SetLineStyle(0);
   leg->AddEntry(d, "Data");
   leg->AddEntry(g_stack, "Background", "FL");
 
@@ -2133,10 +2187,16 @@ TCanvas* DataPlotter::plot_systematic(TString hist, Int_t set, Int_t systematic)
     r_min = std::min(r_min, r_min_s);
     r_max = std::max(r_max, r_max_s);
   }
-  // g_r_stack->Draw("LE2"); //add background to foreground
+  //calculate data / MC
+  TH1* hdata_ratio = (TH1*) d->Clone(Form("%s_ratio", d->GetName()));
+  hdata_ratio->Divide(h_b);
+  r_max = std::min(2., std::max(r_max, hdata_ratio->GetMaximum()));
   if(verbose_ > 1) printf("%s: Ratio plot min/max = %.3f/%.3f\n", __func__, r_min, r_max);
-  r_min = std::min(0.98, 1. + 1.15*(r_min - 1.));
-  r_max = std::max(1.02, 1. + 1.15*(r_max - 1.));
+  r_min = std::min(0.9, 1. + 1.15*(r_min - 1.));
+  r_max = std::max(1.1, 1. + 1.15*(r_max - 1.));
+  const double r_diff = std::max(1. - r_min, r_max - 1.); //make the plot window symmetric
+  r_min = 1. - r_diff;
+  r_max = 1. + r_diff;
   if(verbose_ > 1) printf("%s: Expanded Ratio plot min/max = %.3f/%.3f\n", __func__, r_min, r_max);
   g_r_stack->GetYaxis()->SetRangeUser(r_min, r_max);
   if(xMin_ < xMax_) g_r_stack->GetXaxis()->SetRangeUser(xMin_, xMax_);
@@ -2149,8 +2209,6 @@ TCanvas* DataPlotter::plot_systematic(TString hist, Int_t set, Int_t systematic)
   g_r_stack->SetTitle(Form(";%s;", xtitle.Data()));
 
   //draw data / MC
-  TH1* hdata_ratio = (TH1*) d->Clone(Form("%s_ratio", d->GetName()));
-  hdata_ratio->Divide(h_b);
   hdata_ratio->Draw("same");
   pad2->SetGrid();
 
@@ -2847,6 +2905,9 @@ Int_t DataPlotter::init_files() {
       ngenerated_.push_back(nevents);
       scale_.push_back(1./(nevents)*xsec_[i]*((lums_.size() > 0) ? lums_[dataYear_[i]] : lum_));
     }
+    if(scale_[i] <= 0.) std::cout << __func__ << ": Warning! Dataset " << i << " ("
+                                  << names_[i].Data() << ") has <= 0 scale = " << scale_[i]
+                                  << std::endl;
   }
 
   gStyle->SetTitleW(0.8f);

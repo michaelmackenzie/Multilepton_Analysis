@@ -126,6 +126,9 @@ namespace CLFV {
     Float_t jetToTauWeightCorrUp       ;
     Float_t jetToTauWeightCorrDown     ;
     Float_t jetToTauWeightCorrSys      ;
+    Float_t jetToTauWeightBias         ;
+    Float_t jetToTauWeightBiasUp       ;
+    Float_t jetToTauWeightBiasDown     ;
     Float_t jetToTauWeight_compUp      ;
     Float_t jetToTauWeight_compDown    ;
     Float_t qcdWeight                  ;
@@ -592,21 +595,27 @@ namespace CLFV {
     Int_t           fUsePrefireWeights = 1; //use pre-fire weights
     PrefireWeight   fPrefireWeight; //object to define pre-fire weights
     Int_t           fAddJetTauWeights = 1; //0: do nothing 1: weight anti-iso tau CR data
-    JetToTauWeight  fMuonJetToTauWeight; //for mutau
-    JetToTauWeight  fMuonJetToTauMCWeight; //for mutau using MC estimated factors
+    // JetToTauWeight  fMuonJetToTauWeight; //for mutau
+    // JetToTauWeight  fMuonJetToTauMCWeight; //for mutau using MC estimated factors
     JetToTauComposition  fMuonJetToTauComp; //for mutau
     JetToTauComposition  fMuonJetToTauSSComp; //for mutau SS systematic test
-    JetToTauWeight* fMuonJetToTauWeights[JetToTauComposition::kLast];
-    JetToTauWeight  fElectronJetToTauWeight; //for etau
+    JetToTauWeight* fMuonJetToTauWeights  [JetToTauComposition::kLast];
+    JetToTauWeight* fMuonJetToTauMCWeights[JetToTauComposition::kLast]; //for measuring DR to AR/SR biases
+    // JetToTauWeight  fElectronJetToTauWeight; //for etau
     JetToTauComposition  fElectronJetToTauComp; //for etau
     JetToTauComposition  fElectronJetToTauSSComp; //for etau SS systematic test
-    JetToTauWeight* fElectronJetToTauWeights[JetToTauComposition::kLast];
+    JetToTauWeight* fElectronJetToTauWeights  [JetToTauComposition::kLast];
+    JetToTauWeight* fElectronJetToTauMCWeights[JetToTauComposition::kLast]; //for measuring DR to AR/SR biases
     Float_t*        fJetToTauWts       = new Float_t[JetToTauComposition::kLast];
     Float_t*        fJetToTauCorrs     = new Float_t[JetToTauComposition::kLast];
+    Float_t*        fJetToTauBiases    = new Float_t[JetToTauComposition::kLast];
     Float_t*        fJetToTauComps     = new Float_t[JetToTauComposition::kLast];
     Float_t*        fJetToTauCompsUp   = new Float_t[JetToTauComposition::kLast];
     Float_t*        fJetToTauCompsDown = new Float_t[JetToTauComposition::kLast];
     Bool_t          fUseJetToTauComposition = false;
+    Float_t*        fJetToTauMCWts     = new Float_t[JetToTauComposition::kLast]; //weights using MC-based scale factors
+    Float_t*        fJetToTauMCCorrs   = new Float_t[JetToTauComposition::kLast];
+    Float_t*        fJetToTauMCBiases  = new Float_t[JetToTauComposition::kLast];
 
     JetToLepWeight  fJetToMuonWeight; //for mutau
     JetToLepWeight  fJetToElectronWeight; //for etau
@@ -794,9 +803,7 @@ void CLFVHistMaker::Init(TTree *tree)
       tree->SetBranchStatus("metCorrPhi"          , 1);
       tree->SetBranchStatus("LHE_Njets"           , 1);
       if(!fReprocessMVAs) {
-        for(unsigned mva_i = 0; mva_i < fMVAConfig.names_.size(); ++mva_i) {
-          tree->SetBranchStatus(Form("mva%i",mva_i), 1);
-        }
+        tree->SetBranchStatus("mva*", 1);
       }
     }
     TMVA::Tools::Instance(); //load the TMVA library
@@ -888,40 +895,56 @@ void CLFVHistMaker::Init(TTree *tree)
 
       // fEventSets [kMuTau + 20] = 1; //
       // fEventSets [kMuTau + 21] = 1; //
-      fEventSets [kMuTau + 22] = 1; // events with nJets = 0
+      // fEventSets [kMuTau + 22] = 1; // events with nJets = 0
       // fSysSets   [kMuTau + 22] = 1;
-      fEventSets [kMuTau + 23] = 1; // events with nJets > 0
+      // fEventSets [kMuTau + 23] = 1; // events with nJets > 0
       // fSysSets   [kMuTau + 23] = 1;
 
-      fEventSets [kMuTau + 24] = 1; // events within mass window
-      fEventSets [kMuTau + 25] = 1; // events within mass window
+      // fEventSets [kMuTau + 24] = 1; // events within mass window
+      // fEventSets [kMuTau + 25] = 1; // events within mass window
 
-      fEventSets [kMuTau + 26] = 1; // events top set
-      fEventSets [kMuTau + 27] = 1; //genuine tau MC
+      // fEventSets [kMuTau + 26] = 1; // events top set
+      // fEventSets [kMuTau + 27] = 1; //genuine tau MC
       // fEventSets [kMuTau + 28] = 1;
       // fEventSets [kMuTau + 29] = 1;
 
-      fEventSets [kMuTau + 30] = 1;
-      fEventSets [kMuTau + 31] = 1;
-      fEventSets [kMuTau + 32] = 1;
+      // jet --> tau DRs
+      fEventSets [kMuTau + 30] = 1; //QCD
+      fEventSets [kMuTau + 31] = 1; //W+Jets
+      fEventSets [kMuTau + 32] = 1; //Top
+      fEventSets [kMuTau + 89] = 1; //W+Jets MC weights
 
-      // fEventSets [kMuTau + 34] = 1;
-      fEventSets [kMuTau + 35] = 1;
-      fEventSets [kMuTau + 36] = 1;
-      fEventSets [kMuTau + 37] = 1;
-      fEventSets [kMuTau + 38] = 1;
+      // jet --> tau DRs with MC taus
+      fEventSets [kMuTau + 35] = 1; //Nominal selection
+      fEventSets [kMuTau + 36] = 1; //QCD
+      fEventSets [kMuTau + 37] = 1; //W+Jets
+      fEventSets [kMuTau + 38] = 1; //Top
+      fEventSets [kMuTau + 88] = 1; //W+Jets MC weights
+      // fEventSets [kMuTau + 90] = 1; //Loose nominal selection
+      fEventSets [kMuTau + 92] = 1; //Loose nominal selection
+      fEventSets [kMuTau + 94] = 1; //Loose nominal selection
 
-      fEventSets [kMuTau + 40] = 1; //Closure j-->tau test, true MC taus
-      fEventSets [kMuTau + 41] = 1; //Closure j-->tau test, fake MC taus + weights
-      fEventSets [kMuTau + 42] = 1; //Closure j-->tau test, fake MC taus without weights
+      // jet --> tau MC taus in nominal selection, different process weights
+      // fEventSets [kMuTau + 80] = 1; //QCD
+      fEventSets [kMuTau + 81] = 1; //W+Jets
+      fEventSets [kMuTau + 82] = 1; //Top
+      // fEventSets [kMuTau + 85] = 1; //QCD, no fake MC
+      fEventSets [kMuTau + 86] = 1; //W+Jets, no fake MC
+      fEventSets [kMuTau + 87] = 1; //Top, no fake MC
+      // fEventSets [kMuTau + 91] = 1; //Loose nominal selection, no fake MC
+      fEventSets [kMuTau + 93] = 1; //Loose nominal selection, no fake MC
+      fEventSets [kMuTau + 95] = 1; //Loose nominal selection, no fake MC
 
-      fEventSets [kMuTau + 45] = 1; //taus in the barrel
-      fEventSets [kMuTau + 46] = 1; //taus in the endcap
+      // fEventSets [kMuTau + 40] = 1; //Closure j-->tau test, true MC taus
+      // fEventSets [kMuTau + 41] = 1; //Closure j-->tau test, fake MC taus + weights
+      fEventSets [kMuTau + 42] = 1; //fake MC taus in the nominal selection
+
+      // fEventSets [kMuTau + 45] = 1; //taus in the barrel
+      // fEventSets [kMuTau + 46] = 1; //taus in the endcap
     }
     else if(fFolderName == "etau") {
       fEventSets [kETau + 1] = 1; // all events
-      fEventSets [kETau + 2] = 1; // events with >= 1 photon
-
+      fEventSets [kETau + 2] = 1;
       fEventSets [kETau + 3] = 1;
       fEventSets [kETau + 4] = 1;
       // fEventSets [kETau + 5] = 1;
@@ -937,35 +960,50 @@ void CLFVHistMaker::Init(TTree *tree)
 
       // fEventSets [kETau + 20] = 1; //
       // fEventSets [kETau + 21] = 1; //
-      fEventSets [kETau + 22] = 1; // events with nJets = 0
+      // fEventSets [kETau + 22] = 1; // events with nJets = 0
       // fSysSets   [kETau + 22] = 1;
-      fEventSets [kETau + 23] = 1; // events with nJets > 0
+      // fEventSets [kETau + 23] = 1; // events with nJets > 0
       // fSysSets   [kETau + 23] = 1;
 
-      fEventSets [kETau + 24] = 1; // events within mass window
-      fEventSets [kETau + 25] = 1; // events within mass window
+      // fEventSets [kETau + 24] = 1; // events within mass window
+      // fEventSets [kETau + 25] = 1; // events within mass window
 
-      fEventSets [kETau + 26] = 1; // events top set
-      fEventSets [kETau + 27] = 1;
-      // fEventSets [kETau + 28] = 1;
-      // fEventSets [kETau + 29] = 1;
+      // fEventSets [kETau + 26] = 1; // events top set
+      // fEventSets [kETau + 27] = 1;
 
-      fEventSets [kETau + 30] = 1;
-      fEventSets [kETau + 31] = 1;
-      fEventSets [kETau + 32] = 1;
+      // jet --> tau DRs
+      fEventSets [kETau + 30] = 1; //QCD
+      fEventSets [kETau + 31] = 1; //W+Jets
+      fEventSets [kETau + 32] = 1; //Top
+      fEventSets [kETau + 89] = 1; //W+Jets MC weights
 
-      // fEventSets [kETau + 34] = 1;
-      fEventSets [kETau + 35] = 1;
-      fEventSets [kETau + 36] = 1;
-      fEventSets [kETau + 37] = 1;
-      fEventSets [kETau + 38] = 1;
+      // jet --> tau DRs with MC taus
+      fEventSets [kETau + 35] = 1; //Nominal selection
+      fEventSets [kETau + 36] = 1; //QCD
+      fEventSets [kETau + 37] = 1; //W+Jets
+      fEventSets [kETau + 38] = 1; //Top
+      fEventSets [kETau + 88] = 1; //W+Jets MC weights
+      // fEventSets [kETau + 90] = 1; //Loose nominal selection
+      fEventSets [kETau + 92] = 1; //Loose nominal selection
+      fEventSets [kETau + 94] = 1; //Loose nominal selection
 
-      fEventSets [kETau + 40] = 1; //Closure j-->tau test, true MC taus
-      fEventSets [kETau + 41] = 1; //Closure j-->tau test, fake MC taus + weights
-      fEventSets [kETau + 42] = 1; //Closure j-->tau test, fake MC taus without weights
+      // jet --> tau MC taus in nominal selection, different process weights
+      // fEventSets [kETau + 80] = 1; //QCD
+      fEventSets [kETau + 81] = 1; //W+Jets
+      fEventSets [kETau + 82] = 1; //Top
+      // fEventSets [kETau + 85] = 1; //QCD, no fake MC
+      fEventSets [kETau + 86] = 1; //W+Jets, no fake MC
+      fEventSets [kETau + 87] = 1; //Top, no fake MC
+      // fEventSets [kETau + 91] = 1; //Loose nominal selection, no fake MC
+      fEventSets [kETau + 93] = 1; //Loose nominal selection, no fake MC
+      fEventSets [kETau + 95] = 1; //Loose nominal selection, no fake MC
 
-      fEventSets [kETau + 45] = 1; //taus in the barrel
-      fEventSets [kETau + 46] = 1; //taus in the endcap
+      // fEventSets [kETau + 40] = 1; //Closure j-->tau test, true MC taus
+      // fEventSets [kETau + 41] = 1; //Closure j-->tau test, fake MC taus + weights
+      fEventSets [kETau + 42] = 1; //fake MC taus in the nominal selection
+
+      // fEventSets [kETau + 45] = 1; //taus in the barrel
+      // fEventSets [kETau + 46] = 1; //taus in the endcap
     }
     else if(fFolderName == "emu") {
       fEventSets [kEMu  + 1] = 1; // all events
@@ -1007,6 +1045,8 @@ void CLFVHistMaker::Init(TTree *tree)
 
       // fEventSets [kEMu  + 34] = 1;
       fEventSets [kEMu  + 35] = 1;
+      fEventSets [kEMu  + 90] = 1; //Loose nominal selection
+      fEventSets [kEMu  + 91] = 1; //Loose nominal selection, no fake MC
       // fEventSets [kEMu  + 36] = 1;
       // fEventSets [kEMu  + 45] = 1; //taus in the barrel, but put all e+mu here
       // fEventSets [kEMu  + 46] = 1; //taus in the endcap, but put no e+mu here

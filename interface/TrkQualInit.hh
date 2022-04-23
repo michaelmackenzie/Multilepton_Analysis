@@ -1,6 +1,6 @@
 #ifndef __TRKQUALINIT__CC
 #define __TRKQUALINIT__CC
-// Class to initialize a TMVA factory
+// Class to initialize a TMVA factory and reader consistently
 
 #if not defined(__CINT__) || defined(__MAKECINT__)
 // needs to be included when makecint runs (ACLIC)
@@ -10,12 +10,25 @@
 #include "TMVA/Reader.h"
 #include "TTree.h"
 #endif
+
+//local includes
 #include "interface/Tree_t.hh"
 
 namespace CLFV {
 
   class TrkQualInit {
   public:
+
+    /**
+       Version information:
+       x+tau:
+       <7: No longer supported
+       7 : lepm, mtone, mttwo, onemetdphi, twometdphi, onept, twopt, leppt, lepdeltaphi, deltaalpha, lepmestimate, jetpt
+       8 : lepm, oneprimepz, oneprimee, twoprimepz, twoprimepx, twoprimee, metprimee   , deltaalpha, lepmestimate
+       9 : lepm, mtone, mttwo, onemetdphi, twometdphi, onept, twopt, leppt, lepdeltaphi, deltaalpha, lepmestimate, jetpt
+       10: lepm, mtone, mttwo, onemetdphi, twometdphi,                      lepdeltaphi, deltaalpha, lepmestimate
+       11: lepm, mtone, mttwo, onemetdphi, twometdphi,               leppt, lepdeltaphi, deltaalpha, lepmestimate, jetpt
+     **/
     TrkQualInit(int version = TrkQualInit::Default, int njets = 0) {
       version_ = version;
       njets_ = njets;
@@ -23,9 +36,9 @@ namespace CLFV {
 
     //information for a variable
     struct Var_t {
-      TString var_;
-      TString desc_;
-      TString unit_;
+      TString var_; //name
+      TString desc_; //description
+      TString unit_; //units, if any
       float* val_; //address
       bool use_; //use or just spectator
       char type_;
@@ -44,9 +57,11 @@ namespace CLFV {
       variables.push_back(Var_t("eventcategory"     ,"eventCategory"     ,"", &tree.eventcategory     , false));
       variables.push_back(Var_t("issignal"          ,"isSignal"          ,"", &tree.issignal          , false));
       variables.push_back(Var_t("type"              ,"type"              ,"", &tree.type              , false));
-      variables.push_back(Var_t("jettotaunonclosure","jet->tau NC"       ,"", &tree.jettotaunonclosure, false));
-      variables.push_back(Var_t("zptup"             ,"Z pT weight up"    ,"", &tree.zptup             , false));
-      variables.push_back(Var_t("zptdown"           ,"Z pT weight down"  ,"", &tree.zptdown           , false));
+      if(version_ > 7) {
+        variables.push_back(Var_t("jettotaunonclosure","jet->tau NC"       ,"", &tree.jettotaunonclosure, false));
+        variables.push_back(Var_t("zptup"             ,"Z pT weight up"    ,"", &tree.zptup             , false));
+        variables.push_back(Var_t("zptdown"           ,"Z pT weight down"  ,"", &tree.zptdown           , false));
+      }
 
       if(version_ == 8 && (selection == "hmutau" || selection == "zmutau" || selection.Contains("etau"))) {
         variables.push_back(Var_t("leponeprimepz0", "l_{1} #tilde{pz}", "GeV", &(tree.leponeprimepz[0]), version_ == 8));

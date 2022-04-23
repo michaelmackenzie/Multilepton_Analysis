@@ -12,6 +12,7 @@ namespace CLFV {
     float leponeeta;
     float leponed0;
     float leponeiso;
+    float leponereliso;
     float leponeidone;
     float leponeidtwo;
     float leponeidthree;
@@ -21,6 +22,7 @@ namespace CLFV {
     float leptwoeta;
     float leptwod0;
     float leptwoiso;
+    float leptworeliso;
     float leptwoidone;
     float leptwoidtwo;
     float leptwoidthree;

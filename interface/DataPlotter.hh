@@ -132,12 +132,19 @@ namespace CLFV {
     Double_t lower_pad_sigbkg_topmargin_ = 0.12;
     Double_t lower_pad_topmargin_ = 0.03;
     Double_t lower_pad_botmargin_ = 0.27;
-    Double_t legend_txt_ = 0.06; //Legend parameters
+    Double_t linear_buffer_ = 1.4; //scale to y-axis maximum for y-axis range (linear-mode)
+    Double_t log_buffer_ = 1.5; //scale to y-axis maximum for y-axis range (log-mode)
+    //Legend parameters
+    Double_t legend_txt_ = 0.05;
     Double_t legend_x1_stats_ = 0.6; //if stats in legend
-    Double_t legend_x1_ = 0.62; //if no stats in legend
-    Double_t legend_x2_ = 0.9;
+    Double_t legend_x1_ = 0.2; //if no stats in legend
+    Double_t legend_x2_ = 0.89;
     Double_t legend_y1_ = 0.93;
-    Double_t legend_y2_ = 0.43;
+    Double_t legend_y2_ = 0.75;
+    Double_t legend_sys_x1_ = 0.6;
+    Double_t legend_sys_x2_ = 0.89;
+    Double_t legend_sys_y1_ = 0.93;
+    Int_t    legend_ncol_ = 3;
     // Double_t legend_y2_split_ = 0.45;
     Double_t legend_sep_ = 2.;
     //luminosity drawing
@@ -146,18 +153,19 @@ namespace CLFV {
     Double_t lum_txt_x_single_ = 0.63;
     Double_t lum_txt_y_single_ = 0.975;
     //CMS prelim drawing
-    Double_t cms_txt_x_ = 0.28;
-    Double_t cms_txt_y_ = 0.9;
-    Double_t cms_txt_x_single_ = 0.29; //text location without data/mc split pad
-    Double_t cms_txt_y_single_ = 0.92;
-    Double_t cms_txt_size_ = 0.08;
-    Double_t cms_txt_size_single_ = 0.06; //text size without data/mc split pad
+    Double_t cms_txt_x_ = 0.23;
+    Double_t cms_txt_y_ = 0.97;
+    Double_t cms_txt_x_single_ = 0.24; //text location without data/mc split pad
+    Double_t cms_txt_y_single_ = 0.97;
+    Double_t cms_txt_size_ = 0.06;
+    Double_t cms_txt_size_single_ = 0.045; //text size without data/mc split pad
+    Bool_t   cms_is_prelim_ = true; //add preliminary label
 
     //data yield drawing
     bool     draw_statistics_ = true;
     bool     draw_signal_yield_ = false;
     Int_t    signal_digits_ = 1;
-    Double_t data_txt_y_ = 0.42;
+    Double_t data_txt_y_ = 0.75;
     Double_t data_txt_x_ = 0.61;
 
     //significance drawing
@@ -184,7 +192,7 @@ namespace CLFV {
       cmslabel -> SetTextAlign(22);
       cmslabel -> SetTextAngle(0);
       cmslabel -> DrawText((single) ? cms_txt_x_single_ : cms_txt_x_,
-                           (single) ? cms_txt_y_single_ : cms_txt_y_, "CMS Preliminary");
+                           (single) ? cms_txt_y_single_ : cms_txt_y_, (cms_is_prelim_) ? "CMS Preliminary" : "CMS");
     }
 
     void draw_luminosity(bool single = false) {

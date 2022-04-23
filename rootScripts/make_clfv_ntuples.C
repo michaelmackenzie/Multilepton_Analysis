@@ -188,7 +188,9 @@ Int_t initialize_tree_vars(int selection) {
   fTreeVars.mtoneoverm = fTreeVars.mtone / fTreeVars.lepm;
   fTreeVars.mttwooverm = fTreeVars.mttwo / fTreeVars.lepm;
 
+  //////////////////////////////////////////////////
   //momentum projections onto bisector
+
   TVector3 lp1 = leptonOneP4->Vect();
   TVector3 lp2 = leptonTwoP4->Vect();
   lp1.SetZ(0.);
@@ -205,8 +207,7 @@ Int_t initialize_tree_vars(int selection) {
   fTreeVars.mestimate    = fTreeVars.lepm/sqrt(fTreeVars.ptauvisfrac);
   fTreeVars.mestimatetwo = fTreeVars.lepm/sqrt(lp1.Mag() / (lp1.Mag() + pnuesttwo));
 
-  //FIXME: Particle information should be global constants
-  double hmass(125.), zmass(91.2), tmass(1.78), lepdot(2.*((*leptonOneP4)*(*leptonTwoP4)));
+  const double hmass(HIGGSMASS), zmass(ZMASS), tmass(TAUMASS), lepdot(2.*((*leptonOneP4)*(*leptonTwoP4)));
   //delta alpha 1 = (m_boson^2 - m_tau^2) / (p(l1)\cdot p(l2))
   //delta alpha 2 = pT(l1) / pT(l2) (l1 = tau)
   //delta alpha 3 = pT(l2) / pT(l1) (l2 = tau)
@@ -221,6 +222,74 @@ Int_t initialize_tree_vars(int selection) {
   //mass from delta alpha equation: m_boson = sqrt(m_tau^2 + pT(lep)/pT(tau) * p(l1) \cdot p(l2))
   fTreeVars.deltaalpham1 = sqrt(tmass*tmass + fTreeVars.alpha2 * lepdot); //lep 1 = tau
   fTreeVars.deltaalpham2 = sqrt(tmass*tmass + fTreeVars.alpha3 * lepdot); //lep 2 = tau
+
+  ////////////////////////////////////////////////////////
+  // Boosted frame variables
+
+  //Perform a transform to the Z/H boson frame
+  //Requires knowledge of which lepton has associated neutrinos (or if none do)
+  TLorentzVector metP4;
+  metP4.SetPtEtaPhiE(missing.Pt(), 0., missing.Phi(), missing.Pt());
+  for(int imode = 0; imode < 3; ++imode) {
+    TLorentzVector system;
+    system = *leptonOneP4 + *leptonTwoP4;
+    if(imode < 2) system += metP4;
+    TVector3 boost = -1*system.BoostVector();
+    boost.SetZ(0.); //only transform pT to 0
+    TLorentzVector lepOnePrime(*leptonOneP4);
+    TLorentzVector lepTwoPrime(*leptonTwoP4);
+    TLorentzVector metPrime(missing, missing.Mag());
+    lepOnePrime.Boost(boost); lepTwoPrime.Boost(boost); metPrime.Boost(boost); //boost so system pT = 0
+    double phiRot;
+    if(imode < 2) { //set MET along x axis
+      phiRot = -metPrime.Phi();
+    } else { //set lepton two pT (muon in emu) along the x-axis
+      phiRot = -lepTwoPrime.Phi();
+    }
+    lepOnePrime.RotateZ(phiRot); lepTwoPrime.RotateZ(phiRot); metPrime.RotateZ(phiRot);
+
+    //if the tau has a negative momentum, rotate about x 180 degrees to make it positive
+    if((imode != 1 && lepTwoPrime.Pz() < 0.) || (imode == 1 && lepOnePrime.Pz() < 0.)) { //for emu, use the muon
+      lepOnePrime.RotateX(M_PI); lepTwoPrime.RotateX(M_PI); metPrime.RotateX(M_PI);
+    }
+    if(!std::isfinite(lepOnePrime.Px()) || !std::isfinite(lepOnePrime.Py()) || !std::isfinite(lepOnePrime.Pz()) || !std::isfinite(lepOnePrime.E())) {
+      std::cout << "!!! Entry " << fentry << " has non-finite boosted lepton p4 components!\n ";
+      leptonOneP4->Print();
+      leptonTwoP4->Print();
+      metP4.Print();
+      system.Print();
+      boost.Print();
+      lepOnePrime.Print();
+      lepTwoPrime.Print();
+      metPrime.Print();
+      fTreeVars.leponeprimepx[imode] = 0.;
+      fTreeVars.leptwoprimepx[imode] = 0.;
+      fTreeVars.metprimepx   [imode] = 0.;
+      fTreeVars.leponeprimepy[imode] = 0.;
+      fTreeVars.leptwoprimepy[imode] = 0.;
+      fTreeVars.metprimepy   [imode] = 0.;
+      fTreeVars.leponeprimepz[imode] = 0.;
+      fTreeVars.leptwoprimepz[imode] = 0.;
+      fTreeVars.metprimepz   [imode] = 0.;
+      fTreeVars.leponeprimee [imode] = 0.;
+      fTreeVars.leptwoprimee [imode] = 0.;
+      fTreeVars.metprimee    [imode] = 0.;
+    } else {
+      fTreeVars.leponeprimepx[imode] = lepOnePrime.Px();
+      fTreeVars.leptwoprimepx[imode] = lepTwoPrime.Px();
+      fTreeVars.metprimepx   [imode] =    metPrime.Px();
+      fTreeVars.leponeprimepy[imode] = lepOnePrime.Py();
+      fTreeVars.leptwoprimepy[imode] = lepTwoPrime.Py();
+      fTreeVars.metprimepy   [imode] =    metPrime.Py();
+      fTreeVars.leponeprimepz[imode] = lepOnePrime.Pz();
+      fTreeVars.leptwoprimepz[imode] = lepTwoPrime.Pz();
+      fTreeVars.metprimepz   [imode] =    metPrime.Pz();
+      fTreeVars.leponeprimee [imode] = lepOnePrime.E();
+      fTreeVars.leptwoprimee [imode] = lepTwoPrime.E();
+      fTreeVars.metprimee    [imode] =    metPrime.E();
+    }
+  }
+
 
   fTreeVars.jetpt = jetP4->Pt();
   fTreeVars.njets = njets;
@@ -476,8 +545,8 @@ Int_t process_standard_nano_trees(int year = 2016, bool doInParts = false, bool 
   int status = 0;
   year_ = year;
   TString grid_path = "root://cmseos.fnal.gov///store/user/mmackenz/clfv_nanoaod_test_trees/";
-  // TString grid_out = "root://cmseos.fnal.gov///store/user/mmackenz/clfv_nanoaod_test_trees/";
-  TString grid_out = "root://cmseos.fnal.gov///store/user/mmackenz/clfv_nanoaod_trees/";
+  TString grid_out = "root://cmseos.fnal.gov///store/user/mmackenz/clfv_nanoaod_test_trees/";
+  // TString grid_out = "root://cmseos.fnal.gov///store/user/mmackenz/clfv_nanoaod_trees/";
   if(copyLocal&&!update) grid_path = "root://cmseos.fnal.gov///store/user/mmackenz/clfv_nanoaod_trees_nomva/";
   TString name = "clfv_";
   name += year;
@@ -513,6 +582,31 @@ Int_t process_standard_nano_trees(int year = 2016, bool doInParts = false, bool 
   cards.push_back(datacard_t(true                 , name+"QCDDoubleEMEnrich40toInf"));
   cards.push_back(datacard_t(true                 , name+"SingleMu"));
   cards.push_back(datacard_t(true                 , name+"SingleEle"));
+  cards.push_back(datacard_t(true  && year == 2018, name+"Embed-MuTau-A" ));
+  cards.push_back(datacard_t(true                 , name+"Embed-MuTau-B" ));
+  cards.push_back(datacard_t(true                 , name+"Embed-MuTau-C" ));
+  cards.push_back(datacard_t(true                 , name+"Embed-MuTau-D" ));
+  cards.push_back(datacard_t(true  && year != 2018, name+"Embed-MuTau-E" ));
+  cards.push_back(datacard_t(true  && year != 2018, name+"Embed-MuTau-F" ));
+  cards.push_back(datacard_t(true  && year == 2016, name+"Embed-MuTau-G" ));
+  cards.push_back(datacard_t(true  && year == 2016, name+"Embed-MuTau-H" ));
+  cards.push_back(datacard_t(true  && year == 2018, name+"Embed-ETau-A"  ));
+  cards.push_back(datacard_t(true                 , name+"Embed-ETau-B"  ));
+  cards.push_back(datacard_t(true                 , name+"Embed-ETau-C"  ));
+  cards.push_back(datacard_t(true                 , name+"Embed-ETau-D"  ));
+  cards.push_back(datacard_t(true  && year != 2018, name+"Embed-ETau-E"  ));
+  cards.push_back(datacard_t(true  && year != 2018, name+"Embed-ETau-F"  ));
+  cards.push_back(datacard_t(true  && year == 2016, name+"Embed-ETau-G"  ));
+  cards.push_back(datacard_t(true  && year == 2016, name+"Embed-ETau-H"  ));
+  cards.push_back(datacard_t(true  && year == 2018, name+"Embed-EMu-A"   ));
+  cards.push_back(datacard_t(true                 , name+"Embed-EMu-B"   ));
+  cards.push_back(datacard_t(true                 , name+"Embed-EMu-C"   ));
+  cards.push_back(datacard_t(true                 , name+"Embed-EMu-D"   ));
+  cards.push_back(datacard_t(true  && year != 2018, name+"Embed-EMu-E"   ));
+  cards.push_back(datacard_t(true  && year != 2018, name+"Embed-EMu-F"   ));
+  cards.push_back(datacard_t(true  && year == 2016, name+"Embed-EMu-G"   ));
+  cards.push_back(datacard_t(true  && year == 2016, name+"Embed-EMu-H"   ));
+
 
   vector<TString> folders = {"ee", "mumu", "mutau", "etau", "emu"};
   status = initialize(); //initialize the MVAs

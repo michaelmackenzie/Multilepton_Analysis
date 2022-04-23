@@ -33,7 +33,7 @@ bin/%: obj/bin/%.o $(LIB)
 
 all: $(LIB)
 
-# .SECONDARY: $(BINOBJS) obj/lib/CLFVAnalysis_xr.cc
+.SECONDARY: $(BINOBJS) obj/lib/CLFVAnalysis_xr.cc
 .PHONY: all clean
 .DEFAULT_GOAL := all
 

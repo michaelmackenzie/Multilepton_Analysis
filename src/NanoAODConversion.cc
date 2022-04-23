@@ -1458,7 +1458,7 @@ void NanoAODConversion::CountObjects() {
   for(Int_t index = 0; index < std::min(((int)nMuon),((int)kMaxParticles)); ++index) {
     //initialize the muon iso IDs
     muonIsoId[index] = 0; //initially fails all IDs
-    for(int level = ParticleCorrections::kVLooseMuIso; level < ParticleCorrections::kMuonIsos; ++level) {
+    for(int level = 0; level < ParticleCorrections::kMuonIsos; ++level) {
       const double isoval = particleCorrections->muonIsoValues[level];
       if(muonRelIso[index] < isoval) { //increment the ID value for each cut it passes
         muonIsoId[index] += 1;

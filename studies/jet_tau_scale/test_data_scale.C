@@ -160,7 +160,7 @@ TCanvas* make_2d_canvas(int set1, int set2, PlottingCard_t card, bool print, TH2
   return c;
 }
 
-  //subtract MC tight estimate from Data
+//subtract MC tight estimate from Data
 TCanvas* make_canvas(int set1, int set2, PlottingCard_t card, bool print, TH1D* &hData, TH1D* &hMisID) {
   dataplotter_->plot_data_ = 0;
   dataplotter_->include_qcd_ = 0;

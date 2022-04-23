@@ -5,14 +5,24 @@
 
 namespace CLFV {
   struct LepHist_t {
-    TH1* hOnePz = 0;
-    TH1* hOnePt[12]; //0: nominal 1: no trigger weight 2-5: trigger weight options 6: no ID1 weight 7: no ID2 weight
     TH1* hJetTauOnePt[5/*tau DM*/][4/*tau pT range*/];
+    TH1* hJetTauOnePtQCD[2]; //0: nominal 1: no non-closure
     TH1* hJetTauOneR = 0;
     TH1* hJetTauOneEta = 0;
     TH2* hJetTauOnePtVsR[5/*tau DM + inclusive*/];
     TH1* hJetTauOneMetDeltaPhi[5/*tau DM + inclusive*/];
-    TH1* hJetTauCompOnePt = 0;
+    TH1* hJetTauOneMetDPhiQCD[2]; //0: nominal 1: no j-->tau correction
+    TH1* hJetTauOneRelIso[2]; //0: nominal 1: no bias correction
+
+    TH1* hJetTauOneMetDPhiComp; //no j-->tau weights for composition
+    TH1* hJetTauTwoMetDPhiComp;
+    TH1* hJetTauOnePtComp;
+    TH1* hJetTauTwoPtComp;
+    TH1* hJetTauMTOneComp;
+    TH1* hJetTauMTTwoComp;
+
+    TH1* hOnePz = 0;
+    TH1* hOnePt[12]; //0: nominal 1: no trigger weight 2-5: trigger weight options 6: no ID1 weight 7: no ID2 weight
     TH1* hOneP = 0;
     TH1* hOneM = 0;
     TH1* hOnePtOverM = 0;
@@ -62,14 +72,16 @@ namespace CLFV {
     TH1* hOneSlimTauMSS = 0;
     TH1* hOneSlimTauMOS = 0;
 
-    TH1* hTwoPz = 0;
-    TH1* hTwoPt[12]; //0: nominal 1: no trigger weight 2-5: trigger weight options 6: no ID1 weight 7: no ID2 weight
     TH1* hJetTauTwoPt[5/*tau DM*/][4/*tau pT range*/];
     TH1* hJetTauTwoR = 0;
-    TH1* hJetTauTwoEta = 0;
+    TH1* hJetTauTwoEta;
+    TH1* hJetTauTwoEtaQCD[2]; //0: nominal 1: no j-->tau correction
     TH2* hJetTauTwoPtVsR[5/*tau DM*/];
     TH1* hJetTauTwoMetDeltaPhi = 0;
-    TH1* hJetTauCompTwoPt = 0;
+    TH1* hJetTauTwoRelIso[2]; //0: nominal 1: no bias correction
+
+    TH1* hTwoPz = 0;
+    TH1* hTwoPt[12]; //0: nominal 1: no trigger weight 2-5: trigger weight options 6: no ID1 weight 7: no ID2 weight
     TH1* hTwoP = 0;
     TH1* hTwoM = 0;
     TH1* hTwoPtOverM = 0;

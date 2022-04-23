@@ -24,6 +24,7 @@ namespace CLFV {
     TH1* hJetToTauWeight;
     TH1* hJetToTauWeightGroup;
     TH1* hJetToTauWeightCorr;
+    TH1* hJetToTauWeightBias;
     TH1* hJetToTauComps[JetToTauComposition::kLast];
     TH1* hJetToTauWts  [JetToTauComposition::kLast];
     TH1* hIsSignal;
@@ -160,6 +161,13 @@ namespace CLFV {
     TH1* hFakeTausPt;
     TH1* hFakeTausEta;
     TH1* hFakeTausDM;
+
+    //Jet --> tau non-Closure histograms
+    TH1* hJetTauDeltaR[3]; //0: nominal; 1: non-closure correction removed; 2: no bias correction
+    TH1* hJetTauLepM[3];   //0: nominal; 1: non-closure correction removed; 2: no bias correction
+    TH1* hJetTauMTLep[3];  //0: nominal; 1: non-closure correction removed; 2: no bias correction
+    TH1* hJetTauMTOne[3];  //0: nominal; 1: non-closure correction removed; 2: no bias correction
+    TH1* hJetTauMTTwo[3];  //0: nominal; 1: non-closure correction removed; 2: no bias correction
 
     //Jet --> electron/muon histograms
     TH2* hFakeLepPtEta[3/*iso cat*/];
