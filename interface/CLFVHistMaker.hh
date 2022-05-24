@@ -695,6 +695,10 @@ void CLFVHistMaker::Init(TTree *tree)
       tree->SetBranchStatus("zLepOneEta"          , 1);
       tree->SetBranchStatus("zLepTwoEta"          , 1);
       tree->SetBranchStatus("embeddingWeight"     , 1);
+      tree->SetBranchStatus("mcEra"               , 1);
+      tree->SetBranchStatus("htSum"               , 1);
+      tree->SetBranchStatus("ht"                  , 1);
+      tree->SetBranchStatus("htPhi"               , 1);
       tree->SetBranchStatus("leptonOneP4"         , 1);
       tree->SetBranchStatus("leptonTwoP4"         , 1);
       tree->SetBranchStatus("leptonOneSCEta"      , 1);
@@ -908,13 +912,16 @@ void CLFVHistMaker::Init(TTree *tree)
       // fEventSets [kMuTau + 28] = 1;
       // fEventSets [kMuTau + 29] = 1;
 
+
       // jet --> tau DRs
       fEventSets [kMuTau + 30] = 1; //QCD
       fEventSets [kMuTau + 31] = 1; //W+Jets
       fEventSets [kMuTau + 32] = 1; //Top
+      fEventSets [kMuTau + 34] = 1; //signal region but W+Jets j-->tau weights (no composition)
       fEventSets [kMuTau + 89] = 1; //W+Jets MC weights
 
       // jet --> tau DRs with MC taus
+      fEventSets [kMuTau + 33] = 1; //Nominal selection without j-->tau weights, loose ID only
       fEventSets [kMuTau + 35] = 1; //Nominal selection
       fEventSets [kMuTau + 36] = 1; //QCD
       fEventSets [kMuTau + 37] = 1; //W+Jets
@@ -975,9 +982,11 @@ void CLFVHistMaker::Init(TTree *tree)
       fEventSets [kETau + 30] = 1; //QCD
       fEventSets [kETau + 31] = 1; //W+Jets
       fEventSets [kETau + 32] = 1; //Top
+      fEventSets [kETau + 34] = 1; //signal region but W+Jets j-->tau weights (no composition)
       fEventSets [kETau + 89] = 1; //W+Jets MC weights
 
       // jet --> tau DRs with MC taus
+      fEventSets [kETau + 33] = 1; //Nominal selection without j-->tau weights, loose ID only
       fEventSets [kETau + 35] = 1; //Nominal selection
       fEventSets [kETau + 36] = 1; //QCD
       fEventSets [kETau + 37] = 1; //W+Jets
@@ -1107,6 +1116,14 @@ void CLFVHistMaker::Init(TTree *tree)
       // fEventSets [kMuMu + 36] = 1;
       fEventSets [kMuMu + 50] = 1;
       fEventSets [kMuMu + 51] = 1;
+
+      if(!fDYTesting || fTriggerTesting) { //testing triggering
+        fEventSets [kMuMu + 60] = 1; //one fired
+        fEventSets [kMuMu + 61] = 1; //two fired
+        fEventSets [kMuMu + 62] = 1; //both fired
+        fEventSets [kMuMu + 63] = 1; //two could trigger
+        fEventSets [kMuMu + 66] = 1; //two can't trigger
+      }
     }
     else if(fFolderName == "ee") {
       fEventSets [kEE   + 1] = 1; // all events
@@ -1150,6 +1167,14 @@ void CLFVHistMaker::Init(TTree *tree)
       // fEventSets [kEE   + 36] = 1;
       fEventSets [kEE   + 50] = 1;
       fEventSets [kEE   + 51] = 1;
+
+      if(!fDYTesting || fTriggerTesting) { //testing triggering
+        fEventSets [kEE  + 60] = 1; //one fired
+        fEventSets [kEE  + 61] = 1; //two fired
+        fEventSets [kEE  + 62] = 1; //both fired
+        fEventSets [kEE  + 63] = 1; //two could trigger
+        fEventSets [kEE  + 66] = 1; //two can't trigger
+      }
     }
     if(fFolderName == "emu") {
       //Leptonic tau channels
@@ -1186,8 +1211,8 @@ void CLFVHistMaker::Init(TTree *tree)
   if(!fDYTesting) {
     fChain->SetBranchAddress("nPartons"            , &nPartons             );
     fChain->SetBranchAddress("topPtWeight"         , &topPtWeight          );
-    fChain->SetBranchAddress("mcEra"               , &mcEra                );
   }
+  fChain->SetBranchAddress("mcEra"               , &mcEra                );
   fChain->SetBranchAddress("triggerLeptonStatus" , &triggerLeptonStatus  );
   fChain->SetBranchAddress("muonTriggerStatus"   , &muonTriggerStatus    );
   fChain->SetBranchAddress("eventWeight"         , &eventWeight          );
@@ -1351,10 +1376,10 @@ void CLFVHistMaker::Init(TTree *tree)
   fChain->SetBranchAddress("leptonsIsoID"         , &leptonsIsoID         );
   fChain->SetBranchAddress("leptonsTriggered"     , &leptonsTriggered     );
   fChain->SetBranchAddress("leptonsGenFlavor"     , &leptonsGenFlavor     );
+  fChain->SetBranchAddress("htSum"                , &htSum                );
+  fChain->SetBranchAddress("ht"                   , &ht                   );
+  fChain->SetBranchAddress("htPhi"                , &htPhi                );
   if(!fDYTesting) {
-    fChain->SetBranchAddress("htSum"               , &htSum                );
-    fChain->SetBranchAddress("ht"                  , &ht                   );
-    fChain->SetBranchAddress("htPhi"               , &htPhi                );
     // fChain->SetBranchAddress("pfMET"               , &pfMET                );
     // fChain->SetBranchAddress("pfMETphi"            , &pfMETphi             );
     // fChain->SetBranchAddress("pfMETCov00"          , &pfMETCov00           );

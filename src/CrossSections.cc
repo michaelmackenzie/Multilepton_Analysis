@@ -13,32 +13,54 @@ CrossSections::CrossSections(int useUL, int ZMode) {
   values_["DY50"                    ][2016] = zll    ;
   values_["DY50"                    ][2017] = (ZMode == 1) ? 6435. : zll;
   values_["DY50"                    ][2018] = (ZMode == 1) ? 6435. : zll;
-  values_["DY10"                    ][2016] = 18610. ;
-  values_["DY10"                    ][2017] = 18610. ;
-  values_["DY10"                    ][2018] = 18610. ;
-  values_["Z"                       ][2016] = zxs    ;
-  values_["Br_Zll"                  ][2016] = br_ll  ;
-  values_["H"                       ][2016] = higgs  ;
-  values_["SingleAntiToptW"         ][2016] = 35.85  ; //34.91  ;
-  values_["SingleToptW"             ][2016] = 35.85  ; //34.91  ;
-  values_["WWW"                     ][2016] = 0.2086 ;
-  values_["WWZ"                     ][2016] = 0.1651 ;
-  values_["WZ"                      ][2016] = 47.13  ; //27.6   ;
-  values_["ZZ"                      ][2016] = 16.523 ; //12.14  ;
-  values_["WW"                      ][2016] = 12.178 ;
-  values_["Wlnu"                    ][2016] = 61526.7; //52850.0;
-  values_["Wlnu-1J"                 ][2016] =  9341.3*1.219; //defined as total * fraction of unbinned with 1J * integral(unbinned 1J) / integral(1J)
-  values_["Wlnu-2J"                 ][2016] =  3195.4*1.219;
-  values_["Wlnu-3J"                 ][2016] =  1110.9*1.219;
-  values_["Wlnu-4J"                 ][2016] =   626.2*1.219;
-  values_["ttbarToSemiLeptonic"     ][2016] = 365.34 ;
-  values_["ttbarlnu"                ][2016] = 87.31  ; //88.29  ;
-  values_["ttbarToHadronic"         ][2016] = 687.1  ;
-  values_["SingleEle"               ][2016] = 1.     ;
-  values_["SingleMu"                ][2016] = 1.     ;
-  values_["QCDDoubleEMEnrich30to40" ][2016] = 22180. ;
-  values_["QCDDoubleEMEnrich30toInf"][2016] = 247000.;
-  values_["QCDDoubleEMEnrich40toInf"][2016] = 113100.;
+  values_["DY10to50"                ][2016] =  21658. ; //18810. ;
+  values_["DY10to50"                ][2017] =  21658. ; //15890. ;
+  values_["DY10to50"                ][2018] =  21658. ; //15890. ;
+  values_["Z"                       ][2016] =  zxs    ;
+  values_["Br_Zll"                  ][2016] =  br_ll  ;
+  values_["H"                       ][2016] =  higgs  ;
+  values_["SingleAntiToptW"         ][2016] =   35.85 ; //34.91  ;
+  values_["SingleToptW"             ][2016] =   35.85 ; //34.91  ;
+  values_["SingleAntiToptChannel"   ][2016] =   80.95 ;
+  values_["SingleToptChannel"       ][2016] =  136.02 ;
+  values_["WWW"                     ][2016] =  0.2086 ;
+  values_["WWZ"                     ][2016] =  0.1651 ;
+  values_["WZ"                      ][2016] =  47.13  ; //27.6   ;
+  values_["ZZ"                      ][2016] =  16.523 ; //12.14  ;
+  values_["WW"                      ][2016] =  12.178 ;
+  values_["EWKWminus"               ][2016] =  23.24  ;
+  values_["EWKWplus"                ][2016] =  29.59  ;
+  values_["EWKZ-M50"                ][2016] =   4.321 ;
+  values_["WGamma"                  ][2016] =    464.4;
+  values_["Wlnu"                    ][2016] =  61526.7; //52850.0;
+  values_["Wlnu-1J"                 ][2016] =  11823.6; //11805.6; //taken from H->tau+tau
+  values_["Wlnu-2J"                 ][2016] =   3907.2; //3891.0;
+  values_["Wlnu-3J"                 ][2016] =   1136.3; //1153.2;
+  values_["Wlnu-4J"                 ][2016] =    616.0; //60.67;
+  values_["Wlnu-1J"                 ][2017] =   9386.3; //9370.5; //taken from H->tau+tau
+  values_["Wlnu-2J"                 ][2017] =   3166.3; //3170.9;
+  values_["Wlnu-3J"                 ][2017] =   1131.2; //1132.5;
+  values_["Wlnu-4J"                 ][2017] =    623.5; //631.5;
+  values_["Wlnu-1J"                 ][2018] =   9341.2; //9328.1; //taken from H->tau+tau
+  values_["Wlnu-2J"                 ][2018] =   3196.0; //3181.5;
+  values_["Wlnu-3J"                 ][2018] =   1110.9; //1116.2;
+  values_["Wlnu-4J"                 ][2018] =    625.3; // 629.3;
+  values_["ttbarToSemiLeptonic"     ][2016] =  365.35 ;
+  values_["ttbarlnu"                ][2016] =  88.29  ; //87.31  ;
+  values_["ttbarToHadronic"         ][2016] =  377.96 ;
+  values_["SingleEle"               ][2016] =  1.     ;
+  values_["SingleMu"                ][2016] =  1.     ;
+  values_["QCDEMEnrich15to20"       ][2016] = 1327000.;
+  values_["QCDEMEnrich20to30"       ][2016] = 4897000.;
+  values_["QCDEMEnrich30to50"       ][2016] = 6379000.;
+  values_["QCDEMEnrich50to80"       ][2016] = 1984000.;
+  values_["QCDEMEnrich80to120"      ][2016] =  366500.;
+  values_["QCDEMEnrich120to170"     ][2016] =   66490.;
+  values_["QCDEMEnrich170to300"     ][2016] =   16480.;
+  values_["QCDEMEnrich300toInf"     ][2016] =    1097.;
+  values_["QCDDoubleEMEnrich30to40" ][2016] =   22180.;
+  values_["QCDDoubleEMEnrich30toInf"][2016] =  247000.;
+  values_["QCDDoubleEMEnrich40toInf"][2016] =  113100.;
 
   //////////////////////////////////////////////////////////////////////////////////
   //Scale factors for embedding due to inefficiencies in processing
@@ -151,14 +173,14 @@ CrossSections::CrossSections(int useUL, int ZMode) {
 
   values_["Embed-ElEl-A"][2018]  = 1.2749;
   values_["Embed-ElEl-B"][2018]  = 1.0317;
-  values_["Embed-ElEl-C"][2018]  = 1.0151;
-  values_["Embed-ElEl-D"][2018]  = 2.8849;
+  values_["Embed-ElEl-C"][2018]  = 1.0161;
+  values_["Embed-ElEl-D"][2018]  = 2.8777;
 
   // --- Total 2018 ElMu  Mini / Nano = 55484067/30962759 = 1.7919
   // --- Total 2018 ElTau Mini / Nano = 48434386/30515756 = 1.5871
   // --- Total 2018 MuTau Mini / Nano = 48428591/31170318 = 1.5536
   // --- Total 2018 MuMu  Mini / Nano = 78733782/39175846 = 2.0097
-  // --- Total 2018 ElEl  Mini / Nano = 59254929/35680605 = 1.6607
+  // --- Total 2018 ElEl  Mini / Nano = 59254929/35680605 = 1.6594
 
   ////////////////////////////////////////////////////////////
   // Signal example branching fractions

@@ -16,13 +16,17 @@
 #include "TSystem.h"
 #include "TF1.h"
 
+//local includes
+#include "interface/ElectronIDWeight.hh"
+#include "interface/TauIDWeight.hh"
+
 namespace CLFV {
 
   class ParticleCorrections {
   public :
     ParticleCorrections(bool isEmbed) : ParticleCorrections(isEmbed, kTightMuIso) {}
-    ParticleCorrections(bool isEmbed, int muIsoLevel) : isEmbed_(isEmbed) {
-      fRnd = new TRandom3(90);
+    ParticleCorrections(bool isEmbed, int muIsoLevel) : isEmbed_(isEmbed), fTauIDWeight(isEmbed) {
+      fRnd = new TRandom3(90); //fixed seed for random number generator
       typedef std::pair<TString,TString> fpair;
       std::map<int, fpair> muonIDFileNames;
       //FIXME: Clone objects and close files after retrieving them
@@ -221,149 +225,6 @@ namespace CLFV {
         fileList.push_back(f);
       }
 
-      //initialize Electron scales
-      std::map<int, fpair> electronIDFileNames;
-      electronIDFileNames[k2016]    = fpair("2016LegacyReReco_ElectronMVAwp80.root","EGamma_SF2D");
-      electronIDFileNames[k2017]    = fpair("2017_ElectronMVA80.root"              ,"EGamma_SF2D");
-      electronIDFileNames[k2018]    = fpair("2018_ElectronMVA80.root"              ,"EGamma_SF2D");
-      std::map<int, fpair> electronRecoFileNames;
-      electronRecoFileNames[k2016]  = fpair("EGM2D_BtoH_GT20GeV_RecoSF_Legacy2016.root"           ,"EGamma_SF2D");
-      electronRecoFileNames[k2017]  = fpair("egammaEffi.txt_EGM2D_runBCDEF_passingRECO_2017.root" ,"EGamma_SF2D");
-      electronRecoFileNames[k2018]  = fpair("egammaEffi.txt_EGM2D_updatedAll_2018.root"           ,"EGamma_SF2D");
-      std::map<int, fpair> electronTrigFileNames;
-      electronTrigFileNames[k2016]  = fpair("egammaTriggerEfficiency_2016.root"                   ,"EGamma_SF2D");
-      electronTrigFileNames[k2017]  = fpair("egammaTriggerEfficiency_2017.root"                   ,"EGamma_SF2D");
-      electronTrigFileNames[k2018]  = fpair("egammaTriggerEfficiency_2018.root"                   ,"EGamma_SF2D");
-      std::map<int, fpair> electronTrigDataEffFileNames;
-      electronTrigDataEffFileNames[k2016]  = fpair("egammaTriggerEfficiency_2016.root"            ,"EGamma_EffData2D");
-      electronTrigDataEffFileNames[k2017]  = fpair("egammaTriggerEfficiency_2017.root"            ,"EGamma_EffData2D");
-      electronTrigDataEffFileNames[k2018]  = fpair("egammaTriggerEfficiency_2018.root"            ,"EGamma_EffData2D");
-      std::map<int, fpair> electronTrigMCEffFileNames;
-      electronTrigMCEffFileNames[k2016]  = fpair("egammaTriggerEfficiency_2016.root"              ,"EGamma_EffMC2D");
-      electronTrigMCEffFileNames[k2017]  = fpair("egammaTriggerEfficiency_2017.root"              ,"EGamma_EffMC2D");
-      electronTrigMCEffFileNames[k2018]  = fpair("egammaTriggerEfficiency_2018.root"              ,"EGamma_EffMC2D");
-      //FIXME: add electron trigger, pre-fire (2016, 2017) scale
-      //https://twiki.cern.ch/twiki/bin/viewauth/CMS/L1ECALPrefiringWeightRecipe
-
-      for(int period = k2016; period <= k2018; ++period) {
-        if(electronIDFileNames[period].first == "") continue;
-        TFile* f = TFile::Open((scaleFactorPath + electronIDFileNames[period].first).Data(),"READ");
-        if(!f) continue;
-        electronIDMap[period] = (TH2F*) f->Get(electronIDFileNames[period].second.Data())->Clone();
-        fileList.push_back(f);
-      }
-      for(int period = k2016; period <= k2018; ++period) {
-        if(electronRecoFileNames[period].first == "") continue;
-        TFile* f = TFile::Open((scaleFactorPath + electronRecoFileNames[period].first).Data(),"READ");
-        if(!f) continue;
-        electronRecoMap[period] = (TH2F*) f->Get(electronRecoFileNames[period].second.Data())->Clone();
-        fileList.push_back(f);
-      }
-      for(int period = k2016; period <= k2018; ++period) {
-        if(electronTrigFileNames[period].first == "") continue;
-        TFile* f = TFile::Open((scaleFactorPath + electronTrigFileNames[period].first).Data(),"READ");
-        if(!f) continue;
-        electronTriggerMap[period] = (TH2F*) f->Get(electronTrigFileNames[period].second.Data())->Clone();
-        fileList.push_back(f);
-      }
-      for(int period = k2016; period <= k2018; ++period) {
-        if(electronTrigDataEffFileNames[period].first == "") continue;
-        TFile* f = TFile::Open((scaleFactorPath + electronTrigDataEffFileNames[period].first).Data(),"READ");
-        if(!f) continue;
-        electronTriggerEffMap[0][period] = (TH2F*) f->Get(electronTrigDataEffFileNames[period].second.Data())->Clone();
-        fileList.push_back(f);
-      }
-      for(int period = k2016; period <= k2018; ++period) {
-        if(electronTrigMCEffFileNames[period].first == "") continue;
-        TFile* f = TFile::Open((scaleFactorPath + electronTrigMCEffFileNames[period].first).Data(),"READ");
-        if(!f) continue;
-        electronTriggerEffMap[1][period] = (TH2F*) f->Get(electronTrigMCEffFileNames[period].second.Data())->Clone();
-        fileList.push_back(f);
-      }
-
-      //vertex corrections
-      //https://twiki.cern.ch/twiki/bin/viewauth/CMS/EgammaRunIIRecommendations#HLT_Zvtx_Scale_Factor
-      electronVertexMap[k2016]   = 1.000; //+-0.000
-      electronVertexMap[k2017]   = 0.991; //+-0.001
-      electronVertexMap[k2018]   = 1.000; //+-0.000
-
-      //initialize Tau scales
-      TString tauScaleFactorPath = gSystem->Getenv("CMSSW_BASE") + fTauScaleFactorPath;
-      std::map<int, fpair> tauJetIDFileNames;
-      tauJetIDFileNames[k2016]    = fpair("TauID_SF_pt_DeepTau2017v2p1VSjet_2016Legacy.root","Medium");
-      tauJetIDFileNames[k2017]    = fpair("TauID_SF_pt_DeepTau2017v2p1VSjet_2017ReReco.root","Medium");
-      tauJetIDFileNames[k2018]    = fpair("TauID_SF_pt_DeepTau2017v2p1VSjet_2018ReReco.root","Medium");
-      for(int period = k2016; period <= k2018; ++period) {
-        if(tauJetIDFileNames[period].first == "") continue;
-        TFile* f = TFile::Open((tauScaleFactorPath + tauJetIDFileNames[period].first).Data(),"READ");
-        if(!f) continue;
-        tauJetIDMap[period] = (TF1*) f->Get((tauJetIDFileNames[period].second+"_cent").Data())->Clone();
-        tauJetUpIDMap[period] = (TF1*) f->Get((tauJetIDFileNames[period].second+"_up").Data())->Clone();
-        tauJetDownIDMap[period] = (TF1*) f->Get((tauJetIDFileNames[period].second+"_down").Data())->Clone();
-        if(!tauJetIDMap[period]) std::cout << "Error! tauJetID " << tauJetIDFileNames[period].second.Data() << " TF1 not found!\n";
-        if(!tauJetUpIDMap[period]) std::cout << "Error! tauJetUpID " << tauJetIDFileNames[period].second.Data() << " TF1 not found!\n";
-        if(!tauJetDownIDMap[period]) std::cout << "Error! tauJetDownID " << tauJetIDFileNames[period].second.Data() << " TF1 not found!\n";
-        fileList.push_back(f);
-      }
-      std::map<int, fpair> tauEleIDFileNames;
-      tauEleIDFileNames[k2016]    = fpair("TauID_SF_eta_DeepTau2017v2p1VSe_2016Legacy.root","Medium");
-      tauEleIDFileNames[k2017]    = fpair("TauID_SF_eta_DeepTau2017v2p1VSe_2017ReReco.root","Medium");
-      tauEleIDFileNames[k2018]    = fpair("TauID_SF_eta_DeepTau2017v2p1VSe_2018ReReco.root","Medium");
-      for(int period = k2016; period <= k2018; ++period) {
-        if(tauEleIDFileNames[period].first == "") continue;
-        TFile* f = TFile::Open((tauScaleFactorPath + tauEleIDFileNames[period].first).Data(),"READ");
-        if(!f) continue;
-        tauEleIDMap[period] = (TH1F*) f->Get((tauEleIDFileNames[period].second).Data())->Clone();
-        fileList.push_back(f);
-      }
-      std::map<int, fpair> tauMuIDFileNames;
-      tauMuIDFileNames[k2016]    = fpair("TauID_SF_eta_DeepTau2017v2p1VSmu_2016Legacy.root","Tight");
-      tauMuIDFileNames[k2017]    = fpair("TauID_SF_eta_DeepTau2017v2p1VSmu_2017ReReco.root","Tight");
-      tauMuIDFileNames[k2018]    = fpair("TauID_SF_eta_DeepTau2017v2p1VSmu_2018ReReco.root","Tight");
-      for(int period = k2016; period <= k2018; ++period) {
-        if(tauMuIDFileNames[period].first == "") continue;
-        TFile* f = TFile::Open((tauScaleFactorPath + tauMuIDFileNames[period].first).Data(),"READ");
-        if(!f) continue;
-        tauMuIDMap[period] = (TH1F*) f->Get((tauMuIDFileNames[period].second).Data())->Clone();
-        fileList.push_back(f);
-      }
-
-      //tau energy scale corrections
-      std::map<int, fpair> tauESLowFileNames;
-      tauESLowFileNames[k2016]    = fpair("TauES_dm_DeepTau2017v2p1VSjet_2016Legacy.root", "tes");
-      tauESLowFileNames[k2017]    = fpair("TauES_dm_DeepTau2017v2p1VSjet_2017ReReco.root", "tes");
-      tauESLowFileNames[k2018]    = fpair("TauES_dm_DeepTau2017v2p1VSjet_2018ReReco.root", "tes");
-      for(int period = k2016; period <= k2018; ++period) {
-        if(tauESLowFileNames[period].first == "") continue;
-        TFile* f = TFile::Open((tauScaleFactorPath + tauESLowFileNames[period].first).Data(),"READ");
-        if(!f) continue;
-        tauESLowMap[period] = (TH1F*) f->Get((tauESLowFileNames[period].second).Data())->Clone();
-        fileList.push_back(f);
-      }
-      std::map<int, fpair> tauESHighFileNames;
-      tauESHighFileNames[k2016]    = fpair("TauES_dm_DeepTau2017v2p1VSjet_2016Legacy_ptgt100.root", "tes");
-      tauESHighFileNames[k2017]    = fpair("TauES_dm_DeepTau2017v2p1VSjet_2017ReReco_ptgt100.root", "tes");
-      tauESHighFileNames[k2018]    = fpair("TauES_dm_DeepTau2017v2p1VSjet_2018ReReco_ptgt100.root", "tes");
-      for(int period = k2016; period <= k2018; ++period) {
-        if(tauESHighFileNames[period].first == "") continue;
-        TFile* f = TFile::Open((tauScaleFactorPath + tauESHighFileNames[period].first).Data(),"READ");
-        if(!f) continue;
-        tauESHighMap[period] = (TH1F*) f->Get((tauESHighFileNames[period].second).Data())->Clone();
-        fileList.push_back(f);
-      }
-
-      std::map<int, fpair> tauFakeESFileNames;
-      tauFakeESFileNames[k2016]    = fpair("TauFES_eta-dm_DeepTau2017v2p1VSe_2016Legacy.root", "fes");
-      tauFakeESFileNames[k2017]    = fpair("TauFES_eta-dm_DeepTau2017v2p1VSe_2017ReReco.root", "fes");
-      tauFakeESFileNames[k2018]    = fpair("TauFES_eta-dm_DeepTau2017v2p1VSe_2018ReReco.root", "fes");
-      for(int period = k2016; period <= k2018; ++period) {
-        if(tauFakeESFileNames[period].first == "") continue;
-        TFile* f = TFile::Open((tauScaleFactorPath + tauFakeESFileNames[period].first).Data(),"READ");
-        if(!f) continue;
-        tauFakeESMap[period] = (TGraphAsymmErrors*) f->Get((tauFakeESFileNames[period].second).Data())->Clone();
-        fileList.push_back(f);
-      }
-
       //photon corrections
       std::map<int, fpair> photonIDFileNames;
       photonIDFileNames[k2016]    = fpair("Fall17V2_2016_MVAwp80_photons.root","EGamma_SF2D");
@@ -406,13 +267,13 @@ namespace CLFV {
       }
     }
 
-    virtual ~ParticleCorrections() {
+    ~ParticleCorrections() {
       for(TFile* f : fileList) {
         if(f) delete f;
       }
     }
 
-    virtual void MuonWeight(double pt, double eta, int trigger, int era, float& trig_scale,
+    void MuonWeight(double pt, double eta, int trigger, int era, float& trig_scale,
                             float& weight_id, float& weight_up_id , float& weight_down_id , int& ibin_id,
                             float& weight_iso, float& weight_up_iso, float& weight_down_iso, int& ibin_iso
                             );
@@ -423,37 +284,48 @@ namespace CLFV {
       MuonWeight(pt, eta, trigger, era, trig_scale, wt1, up, down, ibin, wt2, up2, down2, ibin2);
       return wt1*wt2;
     }
-    virtual double MuonTriggerEff(double pt, double eta, int trigger, int era, float& data_eff, float& mc_eff/*, int& ibin*/);
+    double MuonTriggerEff(double pt, double eta, int trigger, int era, float& data_eff, float& mc_eff/*, int& ibin*/);
 
-    virtual void ElectronWeight(double pt, double eta, int era, float& trigger_scale,
-                                float& weight_id , float& weight_up_id , float& weight_down_id , int& ibin_id,
-                                float& weight_rec, float& weight_up_rec, float& weight_down_rec, int& ibin_rec
-                                );
-    double ElectronWeight(double pt, double eta, int era) {
-      float wt1, wt2;
-      float trig, up, down, up2, down2;
-      int ibin, ibin2;
-      ElectronWeight(pt, eta, era, trig, wt1, up, down, ibin, wt2, up2, down2, ibin2);
-      return wt1*wt2;
+    void ElectronWeight(double pt, double eta, int era,
+                        float& weight_id , float& weight_up_id , float& weight_down_id , int& ibin_id,
+                        float& weight_rec, float& weight_up_rec, float& weight_down_rec, int& ibin_rec
+                        ) {
+      fElectronIDWeight.IDWeight(pt, eta, era, weight_id, weight_up_id, weight_down_id, ibin_id,
+                                 weight_rec, weight_up_rec, weight_down_rec, ibin_rec);
     }
-    double ElectronEnergyScale(double pt, double eta, int year, float& up, float& down);
-    virtual double ElectronTriggerEff(double pt, double eta, int era, float& data_eff, float& mc_eff);
+    double ElectronWeight(double pt, double eta, int year) {
+      return fElectronIDWeight.IDWeight(pt, eta, year);
+    }
 
-    virtual double TauWeight(double pt, double eta, int genID, UChar_t antiJet, int era, float& up, float& down, int& ibin);
+    double ElectronEnergyScale(double pt, double eta, int year, float& up, float& down) {
+      if(!isEmbed_) return 1.;
+      return fElectronIDWeight.EmbedEnergyScale(pt, eta, year, up, down);
+    }
+    double ElectronTriggerEff(double pt, double eta, int year, float& data_eff, float& mc_eff) {
+      return fElectronIDWeight.TriggerEff(pt, eta, year, ElectronIDWeight::kWP80, data_eff, mc_eff);
+    }
+
+    double TauWeight(double pt, double eta, int genID, UChar_t antiJet, int era, float& up, float& down, int& ibin) {
+      ibin = 0; //FIXME: Add tau ID bin setting
+      return fTauIDWeight.IDWeight(pt, eta, genID, antiJet, era, up, down);
+    }
     double TauWeight(double pt, double eta, int genID, UChar_t antiJet, int era) {
       float up, down;
       int ibin;
       return TauWeight(pt, eta, genID, antiJet, era, up, down, ibin);
     }
-    virtual double TauEnergyScale(double pt, double eta, int dm, int genID, UChar_t antiJet, int era, float& up, float& down, int& ibin);
+    double TauEnergyScale(double pt, double eta, int dm, int genID, UChar_t antiJet, int era, float& up, float& down, int& ibin) {
+      ibin = 0; //FIXME: Add tau energy scale bin setting
+      return fTauIDWeight.EnergyScale(pt, eta, dm, genID, antiJet, era, up, down);
+    }
 
-    virtual double PhotonWeight(double pt, double eta, int year);
-    virtual double BTagMCProb(double pt, double eta, int jetFlavor, int year, int WP);
-    virtual double BTagDataProb(double pt, double eta, int jetFlavor, int year, int WP);
-    virtual double ZWeight(double pt, double mass, int year);
+    double PhotonWeight(double pt, double eta, int year);
+    double BTagMCProb(double pt, double eta, int jetFlavor, int year, int WP);
+    double BTagDataProb(double pt, double eta, int jetFlavor, int year, int WP);
+    double ZWeight(double pt, double mass, int year);
 
-    virtual double BTagCut(int wp, int year);
-    virtual float CombineEfficiencies(float data_eff_1, float mc_eff_1, float data_eff_2, float mc_eff_2);
+    double BTagCut(int wp, int year);
+    float CombineEfficiencies(float data_eff_1, float mc_eff_1, float data_eff_2, float mc_eff_2);
 
     enum{k2016, k2017, k2018}; //defined years
     enum{kLowTrigger, kHighTrigger}; //defined triggers
@@ -477,23 +349,23 @@ namespace CLFV {
     std::map<int, TH2F*> muonLowTriggerEffMap[2]; //Data and MC efficiencies
     std::map<int, TH2F*> muonHighTriggerMap;
     std::map<int, TH2F*> muonHighTriggerEffMap[2]; //Data and MC efficiencies
-    //electron corrections
-    std::map<int, TH2F*> electronIDMap     ;
-    std::map<int, TH2F*> electronRecoMap   ;
-    std::map<int, float> electronVertexMap ;
-    std::map<int, TH2F*> electronTriggerMap;
-    std::map<int, TH2F*> electronTriggerEffMap[2]; //Data and MC efficiencies
-    std::map<int, TH2F*> electronPreFireMap;
-    //tau ID corrections
-    std::map<int, TF1*> tauJetIDMap    ;
-    std::map<int, TF1*> tauJetUpIDMap  ;
-    std::map<int, TF1*> tauJetDownIDMap;
-    std::map<int, TH1F*> tauEleIDMap   ;
-    std::map<int, TH1F*> tauMuIDMap    ;
-    //tau ES corrections
-    std::map<int, TH1F*> tauESLowMap; // 34 < pT < 170 GeV/c
-    std::map<int, TH1F*> tauESHighMap; // pT > 170 GeV/c
-    std::map<int, TGraphAsymmErrors*> tauFakeESMap;
+    // //electron corrections
+    // std::map<int, TH2F*> electronIDMap     ;
+    // std::map<int, TH2F*> electronRecoMap   ;
+    // std::map<int, float> electronVertexMap ;
+    // std::map<int, TH2F*> electronTriggerMap;
+    // std::map<int, TH2F*> electronTriggerEffMap[2]; //Data and MC efficiencies
+    // std::map<int, TH2F*> electronPreFireMap;
+    // //tau ID corrections
+    // std::map<int, TF1*> tauJetIDMap    ;
+    // std::map<int, TF1*> tauJetUpIDMap  ;
+    // std::map<int, TF1*> tauJetDownIDMap;
+    // std::map<int, TH1F*> tauEleIDMap   ;
+    // std::map<int, TH1F*> tauMuIDMap    ;
+    // //tau ES corrections
+    // std::map<int, TH1F*> tauESLowMap; // 34 < pT < 170 GeV/c
+    // std::map<int, TH1F*> tauESHighMap; // pT > 170 GeV/c
+    // std::map<int, TGraphAsymmErrors*> tauFakeESMap;
     //photon ID corrections
     std::map<int, TH2F*> photonIDMap;
     //b-jet corrections
@@ -505,6 +377,8 @@ namespace CLFV {
     //Open files, to close when exiting
     std::vector<TFile*> fileList;
     TRandom* fRnd; //for getting random period in year
+    ElectronIDWeight fElectronIDWeight; //for electron scale factors
+    TauIDWeight fTauIDWeight; //for tau scale factors
   };
 }
 #endif // #ifdef ParticleCorrections_cxx

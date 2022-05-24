@@ -1,5 +1,23 @@
 //Combine the Data and MC efficiency measurements into a scale factor file
 
+//set reasonable z-range
+void set_z_range(TH2* h) {
+  double min_z(1.e3), max_z(-1.e3);
+  for(int xbin = 1; xbin <= h->GetNbinsX(); ++xbin) {
+    for(int ybin = 1; ybin <= h->GetNbinsY(); ++ybin) {
+      const double binc = h->GetBinContent(xbin, ybin);
+      if(binc > 1.e-4) min_z = std::min(min_z, binc);
+      max_z = std::max(max_z, binc);
+    }
+  }
+  if(min_z < max_z) {
+    min_z -= 0.1*(max_z - min_z);
+    max_z += 0.1*(max_z - min_z);
+    h->GetZaxis()->SetRangeUser(min_z, max_z);
+  }
+  else h->GetZaxis()->SetRangeUser(0.8, 1.2);
+}
+
 //fit the scale factors in bins of eta as a function of pT
 void fit_scales(TH2F* h, TString tag) {
   //x-axis is the super cluster eta axis
@@ -71,12 +89,25 @@ void combine_efficiencies(int Mode = 0, bool isMuon = true, int year = 2016, int
   }
 
   gStyle->SetOptStat(0);
-  TCanvas* c = new TCanvas("c", "c", 1000, 700);
-  hScale->Draw("colz");
-  if(isMuon && Mode == 2)
-    hScale->GetZaxis()->SetRangeUser(0.8, 1.2);
-  else
-    hScale->GetZaxis()->SetRangeUser(0.2, 1.5);
+  TCanvas* c = new TCanvas("c", "c", 1000, 1300);
+  gStyle->SetPaintTextFormat(".2f");
+  hScale->SetMarkerSize(0.5);
+  hScale->Draw("colz text error");
+  set_z_range(hScale);
+  c->Update();
+  hScale->GetYaxis()->SetMoreLogLabels(kTRUE);
+  // Move the palette
+  TPaletteAxis *palette = (TPaletteAxis*) hScale->GetListOfFunctions()->FindObject("palette");
+  if(palette) {
+    palette->SetX1NDC(0.905);
+    palette->SetX2NDC(0.94 );
+    palette->SetY1NDC(0.1);
+    palette->SetY2NDC(0.9);
+    c->Modified();
+    c->Update();
+  } else {
+    cout << "Z-axis palette not found!\n";
+  }
 
   TString basename = Form("%s_mode-%i_%i", (isMuon) ? "mumu" : "ee", Mode, year);
   if(period >= 0) basename += Form("_period_%i", period);

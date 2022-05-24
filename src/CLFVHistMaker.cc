@@ -7,17 +7,15 @@ using namespace CLFV;
 
 //--------------------------------------------------------------------------------------------------------------
 CLFVHistMaker::CLFVHistMaker(int seed, TTree * /*tree*/) : fSystematicSeed(seed),
-                                                           // fMuonJetToTauWeight("MuonWeight", "mutau", "WJets", 31, 1200100, seed, 0),
-                                                           // fMuonJetToTauMCWeight("MuonMCWeight", "mutau", "WJets", 31, 1000001, seed, 0),
-                                                           // fMuonJetToTauWeight("MuonWeight", "mumu", 7, 1100, seed, 1),
-                                                           // fMuonJetToTauMCWeight("MuonMCWeight", "mutau", 35, 1000102, seed, 1),
                                                            fMuonJetToTauComp("mutau", 2035, 3, 0), fMuonJetToTauSSComp("mutau", 3035, 3, 0),
-                                                           // fElectronJetToTauWeight("ElectronWeight", "etau", 31, 1000100, seed),
                                                            fElectronJetToTauComp("etau", 2035, 3, 0), fElectronJetToTauSSComp("etau", 3035, 3, 0),
                                                            fJetToMuonWeight("mumu"), fJetToElectronWeight("ee"),
                                                            fQCDWeight("emu", /*11010*/ 1100200/*anti-iso, jet binned, no fits*/, seed, 0),
-                                                           fElectronIDWeight(1, seed, 0), fZPtWeight("MuMu", seed),
-                                                           fEmbeddingWeight(), fEmbeddingTnPWeight(11/*10*(use 2016 BF/GH scales) + 1*(interpolate scales or not)*/) {
+                                                           fMuonIDWeight(seed),
+                                                           //FIXME: Turn on or keep off electron trigger interpolation
+                                                           fElectronIDWeight(0, seed), fZPtWeight("MuMu", seed),
+                                                           //FIXME: Turn on or keep off embedding trigger interpolation
+                                                           fEmbeddingWeight(), fEmbeddingTnPWeight(10/*10*(use 2016 BF/GH scales) + 1*(interpolate scales or not)*/) {
 
   //ensure pointers set to null to not attempt to delete if never initialized
   fCutFlow = nullptr;
@@ -60,6 +58,7 @@ void CLFVHistMaker::Begin(TTree * /*tree*/)
   // The tree argument is deprecated (on PROOF 0 is passed).
 
   TString option = GetOption();
+  std::setbuf(stdout, NULL); //don't buffer the stdout stream
   printf("CLFVHistMaker::Begin\n");
   timer->Start();
   fChain = 0;
@@ -78,6 +77,7 @@ void CLFVHistMaker::Begin(TTree * /*tree*/)
   fMuonJetToTauMCWeights    [JetToTauComposition::kTop  ] = new JetToTauWeight("MuonMCTop"      , "mutau", "Top"  ,   82,  1100301, fSystematicSeed, 0); //Normal weights
   fMuonJetToTauMCWeights    [JetToTauComposition::kQCD  ] = new JetToTauWeight("MuonMCQCD"      , "mutau", "QCD"  , 1095,   300300, fSystematicSeed, 0); //high iso weights for SS --> OS bias
 
+  //FIXME: Add back W+Jets MC bias (Mode = 10300300, 60300300 for only MC bias shape)
   fElectronJetToTauWeights  [JetToTauComposition::kWJets] = new JetToTauWeight("ElectronWJets"  , "etau" , "WJets",   31, 10300300, fSystematicSeed, 0);
   fElectronJetToTauWeights  [JetToTauComposition::kZJets] = new JetToTauWeight("ElectronZJets"  , "etau" , "WJets",   31, 10300300, fSystematicSeed, 0);
   fElectronJetToTauWeights  [JetToTauComposition::kTop  ] = new JetToTauWeight("ElectronTop"    , "etau" , "Top"  ,   82,  1100301, fSystematicSeed, 0);
@@ -219,6 +219,7 @@ void CLFVHistMaker::BookEventHistograms() {
         Utilities::BookH1F(fEventHist[i]->hJetToTauComps[ji]     , Form("jettotaucomps_%i", ji), Form("%s: JetToTauComps %i"      ,dirname, ji),  50,    0,   2, folder);
         Utilities::BookH1F(fEventHist[i]->hJetToTauWts  [ji]     , Form("jettotauwts_%i"  , ji), Form("%s: JetToTauWts %i"        ,dirname, ji),  50,    0,   2, folder);
       }
+      Utilities::BookH1F(fEventHist[i]->hJetToTauCompEffect      , "jettotaucompeffect"      , Form("%s: JetToTauCompEffect"          ,dirname),  50,    0,   2, folder);
       Utilities::BookH1D(fEventHist[i]->hIsSignal                , "issignal"                , Form("%s: IsSignal"                    ,dirname),   5,   -2,   3, folder);
       Utilities::BookH1F(fEventHist[i]->hNPV[0]                  , "npv"                     , Form("%s: NPV"                         ,dirname),  50,    0, 100, folder);
       Utilities::BookH1F(fEventHist[i]->hNPV[1]                  , "npv1"                    , Form("%s: NPV"                         ,dirname),  50,    0, 100, folder);
@@ -295,9 +296,9 @@ void CLFVHistMaker::BookEventHistograms() {
       Utilities::BookH1F(fEventHist[i]->hJetEta             , "jeteta"              , Form("%s: JetEta"              ,dirname), 100,   -5,   5, folder);
       Utilities::BookH1F(fEventHist[i]->hTauPt              , "taupt"               , Form("%s: TauPt"               ,dirname), 100,    0, 200, folder);
       Utilities::BookH1F(fEventHist[i]->hTauEta             , "taueta"              , Form("%s: TauEta"              ,dirname),  50, -2.5, 2.5, folder);
-      // fEventHist[i]->hHtSum                  = new TH1F("htsum"               , Form("%s: HtSum"               ,dirname) , 200,   0,800);
-      // fEventHist[i]->hHt                     = new TH1F("ht"                  , Form("%s: Ht"                  ,dirname) , 200,   0,800);
-      // fEventHist[i]->hHtPhi                  = new TH1F("htphi"               , Form("%s: HtPhi"               ,dirname) , 100,  -4,  4);
+      Utilities::BookH1F(fEventHist[i]->hHtSum              , "htsum"               , Form("%s: HtSum"               ,dirname), 100,    0, 400, folder);
+      Utilities::BookH1F(fEventHist[i]->hHt                 , "ht"                  , Form("%s: Ht"                  ,dirname), 100,    0, 200, folder);
+      Utilities::BookH1F(fEventHist[i]->hHtPhi              , "htphi"               , Form("%s: HtPhi"               ,dirname),  50,   -4,   4, folder);
 
       // fEventHist[i]->hPFMet                  = new TH1F("pfmet"               , Form("%s: PF Met"              ,dirname)  , 200,  0, 400);
       // fEventHist[i]->hPFMetPhi               = new TH1F("pfmetphi"            , Form("%s: PF MetPhi"           ,dirname)  ,  80, -4,   4);
@@ -330,9 +331,9 @@ void CLFVHistMaker::BookEventHistograms() {
       Utilities::BookH1F(fEventHist[i]->hLepPt[0], "leppt"         , Form("%s: Lepton Pt"      ,dirname)  , 100,   0, 200, folder);
       Utilities::BookH1F(fEventHist[i]->hLepPt[1], "leppt1"        , Form("%s: Lepton Pt"      ,dirname)  , 100,   0, 200, folder);
       Utilities::BookH1F(fEventHist[i]->hLepPt[2], "leppt2"        , Form("%s: Lepton Pt"      ,dirname)  , 100,   0, 200, folder);
-      Utilities::BookH1F(fEventHist[i]->hLepM[0] , "lepm"          , Form("%s: Lepton M"       ,dirname)  , 160,  40, 200, folder);
-      Utilities::BookH1F(fEventHist[i]->hLepM[1] , "lepm1"         , Form("%s: Lepton M"       ,dirname)  , 160,  40, 200, folder);
-      Utilities::BookH1F(fEventHist[i]->hLepM[2] , "lepm2"         , Form("%s: Lepton M"       ,dirname)  , 160,  40, 200, folder);
+      Utilities::BookH1F(fEventHist[i]->hLepM[0] , "lepm"          , Form("%s: Lepton M"       ,dirname)  , 280,  40, 180, folder);
+      Utilities::BookH1F(fEventHist[i]->hLepM[1] , "lepm1"         , Form("%s: Lepton M"       ,dirname)  , 280,  40, 180, folder);
+      Utilities::BookH1F(fEventHist[i]->hLepM[2] , "lepm2"         , Form("%s: Lepton M"       ,dirname)  , 280,  40, 180, folder);
       Utilities::BookH1F(fEventHist[i]->hLepM[3] , "lepm3"         , Form("%s: Lepton M"       ,dirname)  ,  80,  70, 110, folder);
       Utilities::BookH1F(fEventHist[i]->hLepM[4] , "lepm4"         , Form("%s: Lepton M"       ,dirname)  ,  40, 105, 145, folder);
       Utilities::BookH1F(fEventHist[i]->hLepMt   , "lepmt"         , Form("%s: Lepton Mt"      ,dirname)  , 100,   0, 200, folder);
@@ -342,18 +343,20 @@ void CLFVHistMaker::BookEventHistograms() {
       Utilities::BookH2F(fEventHist[i]->hLepMVsMVA[1], "lepmvsmva1"    , Form("%s: Lepton M vs MVA",dirname)  ,  50, -1., 1., 50,   50, 150, folder);
 
       //variable width bins for pT vs mass
-      const double mbins[] = { 0.   , 70.  , 75.  , 80.  , 85.  ,
-                               90.  , 95.  , 100. , 105. , 110. ,
-                               120. , 140. ,
-                               1000.};
+      // const double mbins[] = { 0.   , 70.  , 75.  , 80.  , 85.  ,
+      //                          90.  , 95.  , 100. , 105. , 110. ,
+      //                          120. , 140. ,
+      //                          1000.};
+      const double mbins[] = {50., 80., 100., 130., 500.}; //modified from H->tautau
       const int nmbins = sizeof(mbins) / sizeof(*mbins) - 1;
-      const double pbins[] = { 0.  , 1.  , 2.  , 3.  , 4.  ,
-                               5.  , 6.  , 7.  , 8.  , 9.  ,
-                               10. , 11. , 12. , 14. , 16. ,
-                               20. , 25. , 30. , 35. , 40. ,
-                               45. , 50. , 60. , 70. , 80. ,
-                               100., 150.,
-                               1000.};
+      // const double pbins[] = { 0.  , 1.  , 2.  , 3.  , 4.  ,
+      //                          5.  , 6.  , 7.  , 8.  , 9.  ,
+      //                          10. , 11. , 12. , 14. , 16. ,
+      //                          20. , 25. , 30. , 35. , 40. ,
+      //                          45. , 50. , 60. , 70. , 80. ,
+      //                          100., 150.,
+      //                          1000.};
+      const double pbins[] = {0., 3., 6., 10., 15., 20., 30., 40., 50., 100., 150., 200., 300., 400., 1000.}; //modified from H->tautau
       const int npbins = sizeof(pbins) / sizeof(*pbins) - 1;
 
       Utilities::BookH2F(fEventHist[i]->hLepPtVsM[0], "lepptvsm0"     , Form("%s: Lepton Pt vs M" ,dirname)  , nmbins, mbins, npbins, pbins, folder);
@@ -425,23 +428,25 @@ void CLFVHistMaker::BookEventHistograms() {
         // jet --> tau non-closure histograms
         const double jt_lepm_bins[] = {50., 60., 70., 80., 100., 120., 140., 200.};
         const int    jt_nlepm_bins  = sizeof(jt_lepm_bins) / sizeof(*jt_lepm_bins) - 1;
-        const double jt_dr_bins[] = {0., 2., 2.5, 3., 3.5, 4., 5.};
-        const int    jt_ndr_bins  = sizeof(jt_dr_bins) / sizeof(*jt_dr_bins) - 1;
+        const double jt_dr_bins[]   = {0., 2., 2.5, 3., 3.5, 4., 5.};
+        const int    jt_ndr_bins    = sizeof(jt_dr_bins) / sizeof(*jt_dr_bins) - 1;
+        const double jt_mt_bins[]   = {0., 20., 35., 45., 55., 65., 75., 85., 150.};
+        const int    jt_nmt_bins    = sizeof(jt_mt_bins) / sizeof(*jt_mt_bins) - 1;
         Utilities::BookH1F(fEventHist[i]->hJetTauDeltaR[0], "jettaudeltar0", Form("%s: JetTauDeltaR",dirname),    jt_ndr_bins,   jt_dr_bins, folder);
         Utilities::BookH1F(fEventHist[i]->hJetTauDeltaR[1], "jettaudeltar1", Form("%s: JetTauDeltaR",dirname),    jt_ndr_bins,   jt_dr_bins, folder);
         Utilities::BookH1F(fEventHist[i]->hJetTauDeltaR[2], "jettaudeltar2", Form("%s: JetTauDeltaR",dirname),    jt_ndr_bins,   jt_dr_bins, folder);
         Utilities::BookH1F(fEventHist[i]->hJetTauLepM  [0], "jettaulepm0"  , Form("%s: JetTauLepM"  ,dirname),  jt_nlepm_bins, jt_lepm_bins, folder);
         Utilities::BookH1F(fEventHist[i]->hJetTauLepM  [1], "jettaulepm1"  , Form("%s: JetTauLepM"  ,dirname),  jt_nlepm_bins, jt_lepm_bins, folder);
         Utilities::BookH1F(fEventHist[i]->hJetTauLepM  [2], "jettaulepm2"  , Form("%s: JetTauLepM"  ,dirname),  jt_nlepm_bins, jt_lepm_bins, folder);
-        Utilities::BookH1F(fEventHist[i]->hJetTauMTLep [0], "jettaumtlep0" , Form("%s: JetTauMTLep" ,dirname),  15, 0.,150., folder);
-        Utilities::BookH1F(fEventHist[i]->hJetTauMTLep [1], "jettaumtlep1" , Form("%s: JetTauMTLep" ,dirname),  15, 0.,150., folder);
-        Utilities::BookH1F(fEventHist[i]->hJetTauMTLep [2], "jettaumtlep2" , Form("%s: JetTauMTLep" ,dirname),  15, 0.,150., folder);
-        Utilities::BookH1F(fEventHist[i]->hJetTauMTOne [0], "jettaumtone0" , Form("%s: JetTauMTOne" ,dirname),  10, 0.,150., folder);
-        Utilities::BookH1F(fEventHist[i]->hJetTauMTOne [1], "jettaumtone1" , Form("%s: JetTauMTOne" ,dirname),  10, 0.,150., folder);
-        Utilities::BookH1F(fEventHist[i]->hJetTauMTOne [2], "jettaumtone2" , Form("%s: JetTauMTOne" ,dirname),  10, 0.,150., folder);
-        Utilities::BookH1F(fEventHist[i]->hJetTauMTTwo [0], "jettaumttwo0" , Form("%s: JetTauMTTwo" ,dirname),  10, 0.,150., folder);
-        Utilities::BookH1F(fEventHist[i]->hJetTauMTTwo [1], "jettaumttwo1" , Form("%s: JetTauMTTwo" ,dirname),  10, 0.,150., folder);
-        Utilities::BookH1F(fEventHist[i]->hJetTauMTTwo [2], "jettaumttwo2" , Form("%s: JetTauMTTwo" ,dirname),  10, 0.,150., folder);
+        Utilities::BookH1F(fEventHist[i]->hJetTauMTLep [0], "jettaumtlep0" , Form("%s: JetTauMTLep" ,dirname),  10, 0.,150., folder);
+        Utilities::BookH1F(fEventHist[i]->hJetTauMTLep [1], "jettaumtlep1" , Form("%s: JetTauMTLep" ,dirname),  10, 0.,150., folder);
+        Utilities::BookH1F(fEventHist[i]->hJetTauMTLep [2], "jettaumtlep2" , Form("%s: JetTauMTLep" ,dirname),  10, 0.,150., folder);
+        Utilities::BookH1F(fEventHist[i]->hJetTauMTOne [0], "jettaumtone0" , Form("%s: JetTauMTOne" ,dirname),  jt_nmt_bins, jt_mt_bins, folder);
+        Utilities::BookH1F(fEventHist[i]->hJetTauMTOne [1], "jettaumtone1" , Form("%s: JetTauMTOne" ,dirname),  jt_nmt_bins, jt_mt_bins, folder);
+        Utilities::BookH1F(fEventHist[i]->hJetTauMTOne [2], "jettaumtone2" , Form("%s: JetTauMTOne" ,dirname),  jt_nmt_bins, jt_mt_bins, folder);
+        Utilities::BookH1F(fEventHist[i]->hJetTauMTTwo [0], "jettaumttwo0" , Form("%s: JetTauMTTwo" ,dirname),  jt_nmt_bins, jt_mt_bins, folder);
+        Utilities::BookH1F(fEventHist[i]->hJetTauMTTwo [1], "jettaumttwo1" , Form("%s: JetTauMTTwo" ,dirname),  jt_nmt_bins, jt_mt_bins, folder);
+        Utilities::BookH1F(fEventHist[i]->hJetTauMTTwo [2], "jettaumttwo2" , Form("%s: JetTauMTTwo" ,dirname),  jt_nmt_bins, jt_mt_bins, folder);
       }
 
       //Jet --> light lep histograms
@@ -597,12 +602,9 @@ void CLFVHistMaker::BookLepHistograms() {
         TString name_r = "jettauoneptvsr";
         if(dmregion > 0) {name_r += "_"; name_r += dmregion;}
         Utilities::BookH2F(fLepHist[i]->hJetTauOnePtVsR[dmregion], name_r.Data() , Form("%s: Delta R Vs One Pt"   ,dirname)  , nbins_pt, pts, nrbins, rbins, folder);
-        for(int ptregion = 0; ptregion < 4; ++ptregion) {
-          TString name = "jettauonept";
-          if(ptregion > 0) name += ptregion;
-          if(dmregion > 0) {name += "_"; name += dmregion;}
-          Utilities::BookH1F(fLepHist[i]->hJetTauOnePt[dmregion][ptregion], name.Data() , Form("%s: One Pt"   ,dirname)  , nbins_pt, pts, folder);
-        }
+        TString name = "jettauonept";
+        if(dmregion > 0) {name += "_"; name += dmregion;}
+        Utilities::BookH1F(fLepHist[i]->hJetTauOnePt[dmregion], name.Data() , Form("%s: One Pt"   ,dirname)  , nbins_pt, pts, folder);
       }
       Utilities::BookH1F(fLepHist[i]->hJetTauOneR  , "jettauoner" , Form("%s: Delta R" ,dirname)  , nrbins, rbins, folder);
 
@@ -679,19 +681,19 @@ void CLFVHistMaker::BookLepHistograms() {
         TString name_r = "jettautwoptvsr";
         if(dmregion > 0) {name_r += "_"; name_r += dmregion;}
         Utilities::BookH2F(fLepHist[i]->hJetTauTwoPtVsR[dmregion], name_r.Data() , Form("%s: Delta R Vs Two Pt"   ,dirname)  , nbins_pt, pts, nrbins, rbins, folder);
-        for(int ptregion = 0; ptregion < 4; ++ptregion) {
-          TString name = "jettautwopt";
-          if(ptregion > 0) name += ptregion;
-          if(dmregion > 0) {name += "_"; name += dmregion;}
-          Utilities::BookH1F(fLepHist[i]->hJetTauTwoPt[dmregion][ptregion], name.Data() , Form("%s: Two Pt"   ,dirname)  , nbins_pt, pts, folder);
-        }
+        TString name = "jettautwopt";
+        if(dmregion > 0) {name += "_"; name += dmregion;}
+        Utilities::BookH1F(fLepHist[i]->hJetTauTwoPt[dmregion], name.Data() , Form("%s: Two Pt"   ,dirname)  , nbins_pt, pts, folder);
       }
-      Utilities::BookH1F(fLepHist[i]->hJetTauTwoR        , "jettautwor"      , Form("%s: Delta R" ,dirname)  , nrbins, rbins, folder);
-      Utilities::BookH1F(fLepHist[i]->hJetTauTwoEta      , "jettautwoeta"    , Form("%s: |Eta|"  ,dirname)  , 20,    0, 2.5, folder);
+      Utilities::BookH1F(fLepHist[i]->hJetTauTwoR[0]     , "jettautwor0"     , Form("%s: Delta R" ,dirname)  , nrbins, rbins, folder);
+      Utilities::BookH1F(fLepHist[i]->hJetTauTwoR[1]     , "jettautwor"      , Form("%s: Delta R" ,dirname)  , nrbins, rbins, folder);
+      Utilities::BookH1F(fLepHist[i]->hJetTauTwoEta[0]   , "jettautwoeta0"   , Form("%s: |Eta|"  ,dirname)  , 20,    0, 2.5, folder);
+      Utilities::BookH1F(fLepHist[i]->hJetTauTwoEta[1]   , "jettautwoeta"    , Form("%s: |Eta|"  ,dirname)  , 20,    0, 2.5, folder);
       Utilities::BookH1F(fLepHist[i]->hJetTauTwoEtaQCD[0], "jettautwoetaqcd0", Form("%s: |Eta|"  ,dirname)  , 10,    0, 2.5, folder);
       Utilities::BookH1F(fLepHist[i]->hJetTauTwoEtaQCD[1], "jettautwoetaqcd1", Form("%s: |Eta|"  ,dirname)  , 10,    0, 2.5, folder);
 
-      Utilities::BookH1F(fLepHist[i]->hJetTauTwoMetDeltaPhi, "jettautwometdeltaphi", Form("%s: TwoMetDeltaPhi"  ,dirname), nmetbins, metbins, folder);
+      Utilities::BookH1F(fLepHist[i]->hJetTauTwoMetDeltaPhi[0], "jettautwometdeltaphi0", Form("%s: TwoMetDeltaPhi"  ,dirname), nmetbins, metbins, folder);
+      Utilities::BookH1F(fLepHist[i]->hJetTauTwoMetDeltaPhi[1], "jettautwometdeltaphi" , Form("%s: TwoMetDeltaPhi"  ,dirname), nmetbins, metbins, folder);
       Utilities::BookH1F(fLepHist[i]->hJetTauTwoRelIso[0], "jettautworeliso_0", Form("%s: TwoRelIso"  ,dirname), nisobins, isobins, folder);
       Utilities::BookH1F(fLepHist[i]->hJetTauTwoRelIso[1], "jettautworeliso_1", Form("%s: TwoRelIso"  ,dirname), nisobins, isobins, folder);
 
@@ -754,7 +756,7 @@ void CLFVHistMaker::BookSystematicHistograms() {
       fDirectories[4*fn + i]->cd();
       fSystematicHist[i] = new SystematicHist_t;
       for(int sys = 0; sys < kMaxSystematics; ++sys) {
-        Utilities::BookH1F(fSystematicHist[i]->hLepM        [sys], Form("lepm_%i"        , sys), Form("%s: LepM %i"                   , dirname, sys) , 240,  50, 170, folder);
+        Utilities::BookH1F(fSystematicHist[i]->hLepM        [sys], Form("lepm_%i"        , sys), Form("%s: LepM %i"                   , dirname, sys) , 280,  40, 180, folder);
         Utilities::BookH1F(fSystematicHist[i]->hLepPt       [sys], Form("leppt_%i"       , sys), Form("%s: LepPt %i"                  , dirname, sys) ,  30,   0, 100, folder);
         Utilities::BookH1F(fSystematicHist[i]->hOnePt       [sys], Form("onept_%i"       , sys), Form("%s: Pt %i"                     , dirname, sys) ,  40,   0, 100, folder);
         Utilities::BookH1F(fSystematicHist[i]->hOneEta      [sys], Form("oneeta_%i"      , sys), Form("%s: Eta %i"                    , dirname, sys) ,  30,  -3,   3, folder);
@@ -896,6 +898,7 @@ void CLFVHistMaker::InitializeTreeVariables(Int_t selection) {
   for(int proc = 0; proc < JetToTauComposition::kLast; ++proc) {
     fJetToTauWts      [proc] = 1.f;
     fJetToTauCorrs    [proc] = 1.f;
+    fJetToTauBiases   [proc] = 1.f;
     fJetToTauComps    [proc] = 1.f;
     fJetToTauCompsUp  [proc] = 1.f;
     fJetToTauCompsDown[proc] = 1.f;
@@ -1173,14 +1176,17 @@ void CLFVHistMaker::FillEventHistogram(EventHist_t* Hist) {
   Hist->hEmbeddingUnfoldingWeight->Fill(embeddingUnfoldingWeight);
   if(fDoSystematics >= 0)
     Hist->hEventWeightMVA      ->Fill(fTreeVars.eventweightMVA);
-  Hist->hJetToTauWeight      ->Fill(jetToTauWeight                            );
+  Hist->hJetToTauWeight      ->Fill(jetToTauWeight, genWeight*eventWeight);
   Hist->hJetToTauWeightGroup ->Fill(jetToTauWeightGroup, genWeight*eventWeight);
-  Hist->hJetToTauWeightCorr  ->Fill((jetToTauWeight     > 0.) ? jetToTauWeightCorr/jetToTauWeight     : -1.);
-  Hist->hJetToTauWeightBias  ->Fill((jetToTauWeightCorr > 0.) ? jetToTauWeightBias/jetToTauWeightCorr : -1.);
+  Hist->hJetToTauWeightCorr  ->Fill((jetToTauWeight     > 0.) ? jetToTauWeightCorr/jetToTauWeight     : -1., genWeight*eventWeight);
+  Hist->hJetToTauWeightBias  ->Fill((jetToTauWeightCorr > 0.) ? jetToTauWeightBias/jetToTauWeightCorr : -1., genWeight*eventWeight);
   for(int ji = 0; ji < JetToTauComposition::kLast; ++ji) {
     Hist->hJetToTauComps[ji]->Fill(fJetToTauComps[ji]);
     Hist->hJetToTauWts  [ji]->Fill(fJetToTauWts  [ji]);
   }
+  //quantify the effect of using composition by the size of the full weight / W+Jets weight alone
+  const float wj_jtau_wt = fJetToTauWts[JetToTauComposition::kWJets]*fJetToTauCorrs[JetToTauComposition::kWJets]*fJetToTauBiases[JetToTauComposition::kWJets];
+  Hist->hJetToTauCompEffect->Fill((wj_jtau_wt > 0.) ? jetToTauWeightBias / wj_jtau_wt : 0., eventWeight*genWeight);
   if(fDoSystematics >= 0) {
     Hist->hIsSignal            ->Fill(fTreeVars.issignal      );
     Hist->hNMuons              ->Fill(nMuons             , genWeight*eventWeight)      ;
@@ -1291,9 +1297,6 @@ void CLFVHistMaker::FillEventHistogram(EventHist_t* Hist) {
 
   // if(!fDYTesting && fDoSystematics >= 0) {
 
-    // Hist->hHtSum             ->Fill(htSum              , genWeight*eventWeight)   ;
-    // Hist->hHt                ->Fill(ht                 , genWeight*eventWeight)   ;
-    // Hist->hHtPhi             ->Fill(htPhi              , genWeight*eventWeight)   ;
 
     // if(jetOneP4 && jetOneP4->Pt() > 0.) { //if 0 then no jet stored
       // Hist->hJetM            ->Fill(jetOneP4->M()         , genWeight*eventWeight)   ;
@@ -1313,6 +1316,9 @@ void CLFVHistMaker::FillEventHistogram(EventHist_t* Hist) {
   // } //end if(!fDYTesting)
 
   if(fDoSystematics >= 0) {
+    Hist->hHtSum             ->Fill(htSum              , genWeight*eventWeight)   ;
+    Hist->hHt                ->Fill(ht                 , genWeight*eventWeight)   ;
+    Hist->hHtPhi             ->Fill(htPhi              , genWeight*eventWeight)   ;
     Hist->hMet               ->Fill(met                , genWeight*eventWeight)      ;
     Hist->hMTOne             ->Fill(fTreeVars.mtone    , eventWeight*genWeight);
     Hist->hMTTwo             ->Fill(fTreeVars.mttwo    , eventWeight*genWeight);
@@ -1343,9 +1349,9 @@ void CLFVHistMaker::FillEventHistogram(EventHist_t* Hist) {
   //     Hist->hMetOverSqrtHtSum  ->Fill(met/sqrt(htSum)    , genWeight*eventWeight)   ;
   // }
 
-  double lepDelR   = std::fabs(leptonOneP4->DeltaR(*leptonTwoP4));
-  double lepDelPhi = std::fabs(leptonOneP4->DeltaPhi(*leptonTwoP4));
-  double lepDelEta = std::fabs(leptonOneP4->Eta() - leptonTwoP4->Eta());
+  const double lepDelR   = std::fabs(leptonOneP4->DeltaR(*leptonTwoP4));
+  const double lepDelPhi = std::fabs(leptonOneP4->DeltaPhi(*leptonTwoP4));
+  const double lepDelEta = std::fabs(leptonOneP4->Eta() - leptonTwoP4->Eta());
   if(fDoSystematics >= 0) {
     TLorentzVector sys    = (*photonP4) + lepSys;
     TLorentzVector svLepSys = (leptonOneSVP4 && leptonTwoSVP4) ? (*leptonOneSVP4) + (*leptonTwoSVP4) : TLorentzVector(0.,0.,0.,0.);
@@ -1394,7 +1400,7 @@ void CLFVHistMaker::FillEventHistogram(EventHist_t* Hist) {
     // }
   }
   //for removing or alternate DY reweighting weights
-  double bareweight = (fIsDY && zPtWeight > 0.) ? eventWeight*genWeight/zPtWeight : eventWeight*genWeight;
+  double bareweight = (fIsDY && zPtWeight > 0.) ? eventWeight*genWeight/zPtWeight : eventWeight*genWeight; //no DY Z pT vs M weights
   float tmp_1, tmp_2, sys_reco_weight(1.);
   double recoweight = (fIsDY) ? bareweight*fZPtWeight.GetWeight(fYear, lepSys.Pt(), lepSys.M(), /*use reco weights*/ true, tmp_1, tmp_2, sys_reco_weight) : bareweight;
   sys_reco_weight *= bareweight;
@@ -1477,7 +1483,7 @@ void CLFVHistMaker::FillEventHistogram(EventHist_t* Hist) {
 
     //Histograms for jet --> tau_h scale factors
     // Hist->hLooseLep     ->Fill(isLooseElectron + 2*isLooseMuon + 4*isLooseTau, eventWeight*genWeight);
-    if(nTaus == 1 && fFolderName != "emu") {
+    if(nTaus == 1 && (fFolderName == "mutau" || fFolderName == "etau") ) {
       for(UInt_t itau = 0; itau < nTaus; ++itau) {
         int dm = -1;
         const int njets = std::min(2, (int) nJets); //0, 1, or >= 2 jets
@@ -1703,15 +1709,15 @@ void CLFVHistMaker::FillLepHistogram(LepHist_t* Hist) {
     Hist->hOnePt[4]->Fill(leptonOneP4->Pt(), eventWeight*genWeight/wt*triggerWeights[2]);
     Hist->hOnePt[5]->Fill(leptonOneP4->Pt(), eventWeight*genWeight/leptonOneTrigWeight);
     //remove ID weights
-    wt = leptonOneWeight1;
+    wt = (leptonOneWeight1 > 0.) ? leptonOneWeight1 : 1.;
     Hist->hOnePt[6]->Fill(leptonOneP4->Pt(), eventWeight*genWeight/wt);
-    wt = leptonOneWeight2;
+    wt = (leptonOneWeight2 > 0.) ? leptonOneWeight2 : 1.;
     Hist->hOnePt[7]->Fill(leptonOneP4->Pt(), eventWeight*genWeight/wt);
     //remove Z pT weight
-    wt = zPtWeight;
+    wt = (zPtWeight > 0.) ? zPtWeight : 1.;
     Hist->hOnePt[8]->Fill(leptonOneP4->Pt(), eventWeight*genWeight/wt);
     //remove b-tag weight
-    wt = btagWeight;
+    wt = (btagWeight > 0.) ? btagWeight : 1.;
     Hist->hOnePt[9]->Fill(leptonOneP4->Pt(), eventWeight*genWeight/wt);
     // //remove j->tau weight
     wt = (jetToTauWeightBias > 0.) ? jetToTauWeightBias : 1.;
@@ -1724,25 +1730,18 @@ void CLFVHistMaker::FillLepHistogram(LepHist_t* Hist) {
       int dmr = (std::abs(leptonTwoFlavor) == 15) ? tauDecayMode : tausDM[0];
       if(dmr > 9) dmr -= (10 - 2); //10,11 --> 2,3
       dmr += 1; //dmr = DM ID + 1, so 0 can be inclusive
-      float taupt = (std::abs(leptonTwoFlavor) == 15) ? leptonTwoP4->Pt() : tausPt[0];
-      int ptr;
       TLorentzVector taulv;
       if(std::abs(leptonTwoFlavor) == 15) taulv = *leptonTwoP4;
       else taulv.SetPtEtaPhiM(tausPt[0], tausEta[0], tausPhi[0], TAUMASS);
 
-      if(taupt < 30.)      ptr = 1;
-      else if(taupt < 45.) ptr = 2;
-      else                 ptr = 3;
       //FIXME: Remove tau pT region histograms
       float wt_nojt(eventWeight*genWeight), wt_nocorr(eventWeight*genWeight), wt_nobias(eventWeight*genWeight);
       if(jetToTauWeightBias > 0.) wt_nojt   *= 1.                 / jetToTauWeightBias; // remove the entire weight
       if(jetToTauWeightBias > 0.) wt_nocorr *= jetToTauWeight     / jetToTauWeightBias; // remove the non-closure and bias corrections
       if(jetToTauWeightBias > 0.) wt_nobias *= jetToTauWeightCorr / jetToTauWeightBias; // remove the bias corrections
       double dr = std::fabs(leptonOneP4->DeltaR(taulv));
-      Hist->hJetTauOnePt[0][0]    ->Fill(leptonOneP4->Pt(), wt_nocorr);
-      Hist->hJetTauOnePt[dmr][0]  ->Fill(leptonOneP4->Pt(), wt_nocorr);
-      Hist->hJetTauOnePt[0][ptr]  ->Fill(leptonOneP4->Pt(), wt_nocorr);
-      Hist->hJetTauOnePt[dmr][ptr]->Fill(leptonOneP4->Pt(), wt_nocorr);
+      Hist->hJetTauOnePt[0]       ->Fill(leptonOneP4->Pt(), wt_nocorr);
+      Hist->hJetTauOnePt[dmr]     ->Fill(leptonOneP4->Pt(), wt_nocorr);
       Hist->hJetTauOnePtQCD[0]    ->Fill(leptonOneP4->Pt(), eventWeight*genWeight);
       Hist->hJetTauOnePtQCD[1]    ->Fill(leptonOneP4->Pt(), wt_nocorr);
       Hist->hJetTauOnePtVsR[0]    ->Fill(leptonOneP4->Pt(), dr, wt_nocorr);
@@ -1764,18 +1763,19 @@ void CLFVHistMaker::FillLepHistogram(LepHist_t* Hist) {
       Hist->hJetTauMTTwoComp     ->Fill(fTreeVars.mttwo         , wt_nojt);
 
       dr = std::fabs(leptonTwoP4->DeltaR(taulv));
-      Hist->hJetTauTwoPt[0][0]    ->Fill(leptonTwoP4->Pt(), wt_nocorr);
-      Hist->hJetTauTwoPt[dmr][0]  ->Fill(leptonTwoP4->Pt(), wt_nocorr);
-      Hist->hJetTauTwoPt[0][ptr]  ->Fill(leptonTwoP4->Pt(), wt_nocorr);
-      Hist->hJetTauTwoPt[dmr][ptr]->Fill(leptonTwoP4->Pt(), wt_nocorr);
+      Hist->hJetTauTwoPt[0]       ->Fill(leptonTwoP4->Pt(), wt_nocorr);
+      Hist->hJetTauTwoPt[dmr]     ->Fill(leptonTwoP4->Pt(), wt_nocorr);
       Hist->hJetTauTwoPtVsR[0]    ->Fill(leptonTwoP4->Pt(), dr, wt_nocorr);
       Hist->hJetTauTwoPtVsR[dmr]  ->Fill(leptonTwoP4->Pt(), dr, wt_nocorr);
-      Hist->hJetTauTwoR->Fill(dr, wt_nocorr);
-      Hist->hJetTauTwoEta->Fill(std::fabs(leptonTwoP4->Eta()), wt_nocorr);
+      Hist->hJetTauTwoR[0]->Fill(dr, eventWeight*genWeight);
+      Hist->hJetTauTwoR[1]->Fill(dr, wt_nocorr);
+      Hist->hJetTauTwoEta[0]->Fill(std::fabs(leptonTwoP4->Eta()), eventWeight*genWeight);
+      Hist->hJetTauTwoEta[1]->Fill(std::fabs(leptonTwoP4->Eta()), wt_nocorr);
       Hist->hJetTauTwoEtaQCD[0]->Fill(std::fabs(leptonTwoP4->Eta()), eventWeight*genWeight);
       Hist->hJetTauTwoEtaQCD[1]->Fill(std::fabs(leptonTwoP4->Eta()), wt_nocorr);
       Hist->hJetTauTwoPtVsOnePt->Fill(leptonOneP4->Pt(), taulv.Pt(), wt_nocorr);
-      Hist->hJetTauTwoMetDeltaPhi->Fill(fTreeVars.twometdeltaphi, wt_nocorr);
+      Hist->hJetTauTwoMetDeltaPhi[0]->Fill(fTreeVars.twometdeltaphi, eventWeight*genWeight);
+      Hist->hJetTauTwoMetDeltaPhi[1]->Fill(fTreeVars.twometdeltaphi, wt_nocorr);
       Hist->hJetTauTwoRelIso[0]->Fill(leptonTwoIso/leptonTwoP4->Pt(), eventWeight*genWeight);
       Hist->hJetTauTwoRelIso[1]->Fill(leptonTwoIso/leptonTwoP4->Pt(), wt_nobias);
     }
@@ -1783,6 +1783,7 @@ void CLFVHistMaker::FillLepHistogram(LepHist_t* Hist) {
     // Hist->hOneM         ->Fill(leptonOneP4->M()             ,eventWeight*genWeight);
     // Hist->hOnePtOverM   ->Fill(leptonOneP4->Pt() / fTreeVars.lepm, eventWeight*genWeight);
     Hist->hOneEta       ->Fill(leptonOneP4->Eta()           ,eventWeight*genWeight);
+    // Hist->hOneSCEta     ->Fill(leptonOneSCEta               ,eventWeight*genWeight);
     Hist->hOnePhi       ->Fill(leptonOneP4->Phi()           ,eventWeight*genWeight);
     Hist->hOneD0        ->Fill(leptonOneD0                  ,eventWeight*genWeight);
     Hist->hOneDXY       ->Fill(leptonOneDXY                 ,eventWeight*genWeight);
@@ -2234,10 +2235,16 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   if(fVerbose > 0 ) std::cout << " MET = " << met << std::endl;
 
   ////////////////////////////////////////////////
+  // Calculate boson recoil variables
+  ////////////////////////////////////////////////
+
+  // TVector3 urecoil = missing - 
+
+  ////////////////////////////////////////////////
   // Consistency checks
   ////////////////////////////////////////////////
 
-  //check if super-cluster eta is in the tree
+  //check if super-cluster eta is in the tree, if not use the lepton eta
   if(!fChain->GetBranch("leptonOneSCEta")) leptonOneSCEta = leptonOneP4->Eta();
   if(!fChain->GetBranch("leptonTwoSCEta")) leptonTwoSCEta = leptonTwoP4->Eta();
 
@@ -2245,16 +2252,23 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   if(fIsEmbed) {
     mcEra = 0; //default to first period
     const TString filename = GetOutputName();
-    if(fYear == 2016) { //only check for 2016 embedding
+    if(fYear == 2016) { //split 2016 into B-F and GH
       if(filename.Contains("-G") || filename.Contains("-H")) mcEra = 1;
+    } else if(fYear == 2018) { //split 2018 into ABC and D
+      if(filename.Contains("-D")) mcEra = 1;
     }
+  }
+  if(fIsData) {
+    mcEra = 0; //default to first period
+    if(fYear == 2016) mcEra = (runNumber > 278808); //split on period B-F and GH
+    if(fYear == 2018) mcEra = (runNumber > 320065); //split on period ABC and D
   }
 
   /////////////////////////////////
   // Remove weights if requested //
   /////////////////////////////////
 
-  bool trigError = nTrigModes > 0 && !fIsData && std::fabs(triggerWeights[0] - leptonOneTrigWeight*leptonTwoTrigWeight) > 0.001;
+  const bool trigError = nTrigModes > 0 && !fIsData && std::fabs(triggerWeights[0] - leptonOneTrigWeight*leptonTwoTrigWeight) > 0.001;
   if(trigError) std::cout << "!!! Warning! Entry " << fentry;
   if(trigError || fVerbose > 0) std::cout << " TriggerWeights[0] = " << triggerWeights[0]
                                           << " vs leptonOneTrigWeight*leptonTwoTrigWeight = "
@@ -2264,12 +2278,6 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
     if(photonIDWeight > 0.) eventWeight /= photonIDWeight;
   }
 
-  //b-tag weights
-  if(fIsEmbed) { //b-tagging are from data
-    btagWeight = 1.;
-    btagWeightUp = 1.;
-    btagWeightDown = 1.;
-  }
   if(fRemoveBTagWeights > 0 && btagWeight > 0. && !fIsData && !fIsEmbed) {
     eventWeight /= btagWeight;
     if(fVerbose > 0) std::cout << " B-tag weight originally: " << btagWeight << std::endl;
@@ -2288,6 +2296,12 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
       btagWeightDown = 1.;
     }
     if(fVerbose > 0) std::cout << " B-tag weight updated: " << btagWeight << std::endl;
+  }
+  //b-tag weights
+  if(fIsEmbed) { //b-tagging are from data
+    btagWeight = 1.;
+    btagWeightUp = 1.;
+    btagWeightDown = 1.;
   }
 
   //pileup weights
@@ -2409,9 +2423,11 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   //////////////////////////////////////////////////////////////
 
   //trigger and object pT thresholds
-  float muon_trig_pt(25.), electron_trig_pt(29.), muon_pt(10.), electron_pt(15.), tau_pt(20.);
+  //Trigger thresholds (mu, ele): 2016 = (24, 27); 2017 = (27, 32); 2018 = (24, 32)
+  //Use 1 GeV/c above muon threshold and 3 GeV/c above electron threshold (except for 2016)
+  float muon_trig_pt(25.), electron_trig_pt(35.), muon_pt(10.), electron_pt(15.), tau_pt(20.);
   if(fYear == 2017) muon_trig_pt = 28.;
-  if(fYear != 2016) electron_trig_pt = 34.;
+  if(fYear == 2016) electron_trig_pt = 29.; //2 GeV/c above threshold, since better behaved near threshold
 
   //trigger weights
   if(fRemoveTriggerWeights > 0 && !fIsData) {
@@ -2475,7 +2491,7 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
         leptonTwoWeight1 = fEmbeddingWeight.MuonIDWeight(leptonTwoP4->Pt(), leptonTwoP4->Eta(), fYear);
       }
     } else if(std::abs(leptonTwoFlavor) == 15) leptonTwoWeight1 = fTauIDWeight->IDWeight(leptonTwoP4->Pt(), leptonTwoP4->Eta(), tauGenID, tauDeepAntiJet,
-                                                                                  fYear, leptonTwoWeight1_up, leptonTwoWeight1_down);
+                                                                                         fYear, leptonTwoWeight1_up, leptonTwoWeight1_down);
 
     eventWeight *= leptonOneWeight1; eventWeight *= leptonOneWeight2;
     eventWeight *= leptonTwoWeight1; eventWeight *= leptonTwoWeight2;
@@ -2769,6 +2785,7 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   // Jet --> tau weights //
   /////////////////////////
 
+
   Float_t tmp_evt_wt = eventWeight; //recored weight before corrections to update all weights at the end
   //weigh anti-iso tau region by anti-iso --> tight iso weight
   if((etau || mutau) && isLooseTau) {
@@ -3008,6 +3025,16 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
     //fake tau only contribution
     if(isfake) FillAllHistograms(set_offset + 42);
 
+    //Nominal mixture, without j-->tau weights
+    if(add_wt) {
+      jetToTauWeight     = 1.f;
+      jetToTauWeightCorr = 1.f;
+      jetToTauWeightBias = 1.f;
+      eventWeight        = evt_wt_bare;
+    }
+    if(isLooseTau) {
+      FillAllHistograms(set_offset + 33); //only fill for loose ID taus, since non-loose already have no j-->tau weights
+    }
     // //QCD weights from DR
     // if(add_wt) {
     //   jetToTauWeight     = fJetToTauWts                      [JetToTauComposition::kQCD];
@@ -3019,6 +3046,17 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
     // if(!isfake) { //no fake MC events
     //   FillAllHistograms(set_offset + 85);
     // }
+
+    //W+Jets data based weights from DR to test W+Jets only vs composition
+    if(add_wt) {
+      jetToTauWeight     = fJetToTauWts                      [JetToTauComposition::kWJets];
+      jetToTauWeightCorr = jetToTauWeight*fJetToTauCorrs     [JetToTauComposition::kWJets];
+      jetToTauWeightBias = jetToTauWeightCorr*fJetToTauBiases[JetToTauComposition::kWJets];
+      eventWeight        = jetToTauWeightBias*evt_wt_bare;
+    }
+    if(!isfake) { //no fake MC events
+      FillAllHistograms(set_offset + 34);
+    }
 
     //W+Jets MC based weights from DR for bias tests
     if(add_wt) {
@@ -3362,57 +3400,98 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   ////////////////////////////////////////////////////////////////////////////
   FillAllHistograms(set_offset + 8);
 
-  if(emu && (!fDYTesting || fTriggerTesting)) {
-    if(leptonOneFired && leptonOneP4->Pt() > electron_trig_pt) {
+  if((emu || mumu || ee) && (!fDYTesting || fTriggerTesting)) {
+    if(emu) { //e+mu trigger testing
       ////////////////////////////////////////////////////////////////////////////
       // Set 60 + selection offset: Electron triggered
       ////////////////////////////////////////////////////////////////////////////
-      FillAllHistograms(set_offset + 60);
-    }
+      if(leptonOneFired && leptonOneP4->Pt() > electron_trig_pt) {
+        FillAllHistograms(set_offset + 60);
+      }
 
-    if(leptonTwoFired && leptonTwoP4->Pt() > muon_trig_pt) {
       ////////////////////////////////////////////////////////////////////////////
       // Set 61 + selection offset: Muon triggered
       ////////////////////////////////////////////////////////////////////////////
-      FillAllHistograms(set_offset + 61);
-    }
+      if(leptonTwoFired && leptonTwoP4->Pt() > muon_trig_pt) {
+        FillAllHistograms(set_offset + 61);
+      }
 
-    if(leptonOneFired && leptonTwoFired) {
       ////////////////////////////////////////////////////////////////////////////
-      // Set 62 + selection offset: Electron and Muon triggered
+      // Set 62 + selection offset: Both leptons triggered
       ////////////////////////////////////////////////////////////////////////////
-      FillAllHistograms(set_offset + 62);
-    }
+      if(leptonOneFired && leptonTwoFired) {
+        FillAllHistograms(set_offset + 62);
+      }
 
-    if(leptonOneP4->Pt() > electron_trig_pt) {
       ////////////////////////////////////////////////////////////////////////////
       // Set 63 + selection offset: Electron triggerable
       ////////////////////////////////////////////////////////////////////////////
-      FillAllHistograms(set_offset + 63);
-    } else {
+      if(leptonOneP4->Pt() > electron_trig_pt) {
+        FillAllHistograms(set_offset + 63);
+      }
       ////////////////////////////////////////////////////////////////////////////
       // Set 66 + selection offset: electron not triggerable
       ////////////////////////////////////////////////////////////////////////////
-      FillAllHistograms(set_offset + 66);
-    }
+      else {
+        FillAllHistograms(set_offset + 66);
+      }
 
-    if(leptonTwoP4->Pt() > muon_trig_pt) {
       ////////////////////////////////////////////////////////////////////////////
       // Set 64 + selection offset: muon triggerable
       ////////////////////////////////////////////////////////////////////////////
-      FillAllHistograms(set_offset + 64);
-    } else {
+      if(leptonTwoP4->Pt() > muon_trig_pt) {
+        FillAllHistograms(set_offset + 64);
+      }
       ////////////////////////////////////////////////////////////////////////////
       // Set 67 + selection offset: muon not triggerable
       ////////////////////////////////////////////////////////////////////////////
-      FillAllHistograms(set_offset + 67);
-    }
+      else {
+        FillAllHistograms(set_offset + 67);
+      }
 
-    if(leptonOneP4->Pt() > electron_trig_pt && leptonTwoP4->Pt() > muon_trig_pt) {
       ////////////////////////////////////////////////////////////////////////////
       // Set 65 + selection offset: Electron+Muon triggerable
       ////////////////////////////////////////////////////////////////////////////
-      FillAllHistograms(set_offset + 65);
+      if(leptonOneP4->Pt() > electron_trig_pt && leptonTwoP4->Pt() > muon_trig_pt) {
+        FillAllHistograms(set_offset + 65);
+      }
+    } else { //ee and mumu trigger testing
+      const double trig_threshold = (ee) ? electron_trig_pt : muon_trig_pt;
+
+      ////////////////////////////////////////////////////////////////////////////
+      // Set 60 + selection offset: lepton one triggered
+      ////////////////////////////////////////////////////////////////////////////
+      if(leptonOneFired && leptonOneP4->Pt() > trig_threshold) {
+        FillAllHistograms(set_offset + 60);
+      }
+
+      ////////////////////////////////////////////////////////////////////////////
+      // Set 61 + selection offset: lepton two triggered
+      ////////////////////////////////////////////////////////////////////////////
+      if(leptonTwoFired && leptonTwoP4->Pt() > trig_threshold) {
+        FillAllHistograms(set_offset + 61);
+      }
+
+      ////////////////////////////////////////////////////////////////////////////
+      // Set 62 + selection offset: both leptons triggered
+      ////////////////////////////////////////////////////////////////////////////
+      if(leptonOneFired && leptonOneP4->Pt() > trig_threshold && leptonTwoFired && leptonTwoP4->Pt() > trig_threshold) {
+        FillAllHistograms(set_offset + 62);
+      }
+
+      ////////////////////////////////////////////////////////////////////////////
+      // Set 63 + selection offset: lepton two triggerable
+      ////////////////////////////////////////////////////////////////////////////
+      if(leptonTwoP4->Pt() > trig_threshold) {
+        FillAllHistograms(set_offset + 63);
+      }
+      ////////////////////////////////////////////////////////////////////////////
+      // Set 66 + selection offset: lepton two not triggerable
+      ////////////////////////////////////////////////////////////////////////////
+      else {
+        FillAllHistograms(set_offset + 66);
+      }
+
     }
   }
 
@@ -3453,7 +3532,7 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   //Set event weight to ignore training sample
   Float_t prev_wt = eventWeight;
   //only use weight if MC or is same sign data
-  eventWeight = (fIsData == 0 || !chargeTest) ? std::fabs(fTreeVars.eventweightMVA) : prev_wt; //use abs to remove gen weight sign
+  eventWeight = (fIsData == 0 || !chargeTest) ? std::fabs(fTreeVars.eventweightMVA) : std::fabs(prev_wt); //use abs to remove gen weight sign
   bool doMVASets = !fDYTesting || fDoMVASets;
   int category = -1; //histogram set to use, based on MVA score
   if(doMVASets) {
@@ -3559,7 +3638,8 @@ void CLFVHistMaker::ApplyTriggerWeights(const float muon_trig_pt, const float el
         fEmbeddingWeight.ElectronTriggerWeight   (leptonOneP4->Pt(), leptonOneSCEta, fYear, data_eff[0], mc_eff[0]);
       }
     } else {
-      fElectronIDWeight.TriggerEff               (leptonOneP4->Pt(), leptonOneSCEta, fYear, data_eff[0], mc_eff[0]);
+      fElectronIDWeight.TriggerEff               (leptonOneP4->Pt(), leptonOneSCEta, fYear,
+                                                  (leptonOneID1 > 1) ? ElectronIDWeight::kWP80 : ElectronIDWeight::kWPLNotWP80, data_eff[0], mc_eff[0]);
     }
   }
   if(std::abs(leptonTwoFlavor) == 11) { //lepton 2 is an electron
@@ -3570,7 +3650,8 @@ void CLFVHistMaker::ApplyTriggerWeights(const float muon_trig_pt, const float el
         fEmbeddingWeight.ElectronTriggerWeight   (leptonTwoP4->Pt(), leptonTwoSCEta, fYear, data_eff[1], mc_eff[1]);
       }
     } else {
-      fElectronIDWeight.TriggerEff               (leptonTwoP4->Pt(), leptonTwoSCEta, fYear, data_eff[1], mc_eff[1]);
+      fElectronIDWeight.TriggerEff               (leptonTwoP4->Pt(), leptonTwoSCEta, fYear,
+                                                  (leptonOneID1 > 1) ? ElectronIDWeight::kWP80 : ElectronIDWeight::kWPLNotWP80, data_eff[1], mc_eff[1]);
     }
   }
 

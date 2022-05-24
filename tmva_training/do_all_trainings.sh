@@ -1,14 +1,23 @@
 #! /bin/bash
 
 YEARS=$1
+SELECTIONS=$2
+SET=$3
+
 if [[ "${YEARS}" == "" ]]
 then
     YEARS="2016_2017_2018"
 fi
 
-SELECTIONS="mutau etau emu mutau_e etau_mu"
+if [[ "${SELECTIONS}" == "" ]]
+then
+    SELECTIONS="mutau etau mutau_e etau_mu emu"
+fi
 
-SET=8
+if [[ "${SET}" == "" ]]
+then
+    SET=8
+fi
 
 echo "Doing training for selections ${SELECTIONS} on set ${SET} in year string ${YEARS}"
 for SELECTION in $SELECTIONS;

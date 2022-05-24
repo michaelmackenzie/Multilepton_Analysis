@@ -13,33 +13,31 @@ void ParticleCorrections::MuonWeight(double pt, double eta, int trigger, int yea
     return;
   }
 
-  if(pt >= 120.) pt = 119.; //maximum pT for corrections
-  else if(pt < 20.) pt = 20.; //minimum pT for corrections
-  if(eta >= 2.4) eta = 2.39; //maximum eta for corrections
-  else if(eta <= -2.4) eta = -2.39; //minimum eta for corrections
-
-  double rand = fRnd->Uniform();
+  //FIXME: run era should be fixed for the entire event, not allowed to change between muons in the same event
+  const double rand = fRnd->Uniform();
   bool firstSection = true; //whether this MC is for the first or second part of the data taking period
   if(year == k2016)
-    firstSection = rand <= 19.72/35.86;
+    firstSection = (rand < 19.72/35.86);
   else if(year == k2018)
-    firstSection = rand <= 8.98/59.59;
+    firstSection = (rand < 8.98/59.59);
 
   TH2F* hID = muonIDMap[2*year + !firstSection];
 
   //axes flip between years for some reason
-  int binx = (year != k2016) ? hID->GetXaxis()->FindBin(pt) : hID->GetXaxis()->FindBin(fabs(eta));
-  int biny = (year != k2016) ? hID->GetYaxis()->FindBin(fabs(eta)) : hID->GetYaxis()->FindBin(pt);
-  double id_scale = hID->GetBinContent(binx, biny);
-  double id_error = hID->GetBinError(binx, biny);
+  const double xvar = (year != 2016) ? pt : eta;
+  const double yvar = (year != 2016) ? std::fabs(eta) : pt;
+  int binx = std::max(1, std::min(hID->GetNbinsX(), hID->GetXaxis()->FindBin(xvar)));
+  int biny = std::max(1, std::min(hID->GetNbinsY(), hID->GetYaxis()->FindBin(yvar)));
+  const double id_scale = hID->GetBinContent(binx, biny);
+  const double id_error = hID->GetBinError(binx, biny);
   ibin_id = 10000 * firstSection + 100*biny + binx; //assumes binx and biny < 100
 
   TH2F* hIso = muonIsoMap[2*year + !firstSection];
 
-  binx = (year != k2016) ? hIso->GetXaxis()->FindBin(pt) : hIso->GetXaxis()->FindBin(fabs(eta));
-  biny = (year != k2016) ? hIso->GetYaxis()->FindBin(fabs(eta)) : hIso->GetYaxis()->FindBin(pt);
-  double iso_scale = hIso->GetBinContent(binx, biny);
-  double iso_error = hIso->GetBinError(binx, biny);
+  binx = std::max(1, std::min(hIso->GetNbinsX(), hIso->GetXaxis()->FindBin(xvar)));
+  biny = std::max(1, std::min(hIso->GetNbinsY(), hIso->GetYaxis()->FindBin(yvar)));
+  const double iso_scale = hIso->GetBinContent(binx, biny);
+  const double iso_error = hIso->GetBinError(binx, biny);
   ibin_iso = 10000*firstSection + 100*biny + binx; //assumes binx and biny < 100
 
   //Trigger weights
@@ -49,19 +47,21 @@ void ParticleCorrections::MuonWeight(double pt, double eta, int trigger, int yea
   else if(trigger == kHighTrigger && pt < 51.) trigger = -1;
 
   if(trigger >= 0) {
-    if(year == k2016) {
-      if(trigger == kLowTrigger && pt < 26.) pt = 26.;
-      else if(trigger == kHighTrigger && pt < 52.) pt = 52.;
-    } else if (year == k2017) {
-      if(trigger == kLowTrigger && pt < 29.) pt = 29.;
-      else if(trigger == kHighTrigger && pt < 52.) pt = 52.;
-    } else if (year == k2018) {
-      if(trigger == kLowTrigger && pt < 26.) pt = 26.;
-      else if(trigger == kHighTrigger && pt < 52.) pt = 52.;
-    }
+    // if(year == k2016) {
+    //   if(trigger == kLowTrigger && pt < 26.) pt = 26.;
+    //   else if(trigger == kHighTrigger && pt < 52.) pt = 52.;
+    // } else if (year == k2017) {
+    //   if(trigger == kLowTrigger && pt < 29.) pt = 29.;
+    //   else if(trigger == kHighTrigger && pt < 52.) pt = 52.;
+    // } else if (year == k2018) {
+    //   if(trigger == kLowTrigger && pt < 26.) pt = 26.;
+    //   else if(trigger == kHighTrigger && pt < 52.) pt = 52.;
+    // }
     TH2F* hTrigger = (trigger == kLowTrigger) ? muonLowTriggerMap[2*year + !firstSection] : muonHighTriggerMap[2*year + !firstSection] ;
     //doesn't flip between years
-    trig_scale = hTrigger->GetBinContent(hTrigger->GetXaxis()->FindBin(fabs(eta)), hTrigger->GetYaxis()->FindBin(pt));
+    binx = std::max(1, std::min(hTrigger->GetNbinsX(), hTrigger->GetXaxis()->FindBin(std::fabs(eta))));
+    biny = std::max(1, std::min(hTrigger->GetNbinsY(), hTrigger->GetYaxis()->FindBin(pt)));
+    trig_scale = hTrigger->GetBinContent(binx, biny);
   }
 
   double scale_factor = id_scale * iso_scale;
@@ -130,8 +130,8 @@ double ParticleCorrections::MuonTriggerEff(double pt, double eta, int trigger, i
   TH2F* hTriggerData = (trigger == kLowTrigger) ? muonLowTriggerEffMap[0][2*year + !firstSection] : muonHighTriggerEffMap[0][2*year + !firstSection];
   TH2F* hTriggerMC   = (trigger == kLowTrigger) ? muonLowTriggerEffMap[1][2*year + !firstSection] : muonHighTriggerEffMap[1][2*year + !firstSection];
   //axes doesn't flip between years
-  data_eff = hTriggerData->GetBinContent(hTriggerData->GetXaxis()->FindBin(fabs(eta)), hTriggerData->GetYaxis()->FindBin(pt));
-  mc_eff = hTriggerMC->GetBinContent(hTriggerMC->GetXaxis()->FindBin(fabs(eta)), hTriggerMC->GetYaxis()->FindBin(pt));
+  data_eff = hTriggerData->GetBinContent(hTriggerData->GetXaxis()->FindBin(std::fabs(eta)), hTriggerData->GetYaxis()->FindBin(pt));
+  mc_eff = hTriggerMC->GetBinContent(hTriggerMC->GetXaxis()->FindBin(std::fabs(eta)), hTriggerMC->GetYaxis()->FindBin(pt));
 
   //return the scale factor applied to MC to match Data
   double scale_factor = (mc_eff > 0.) ? data_eff/mc_eff : 0.;
@@ -150,280 +150,6 @@ double ParticleCorrections::MuonTriggerEff(double pt, double eta, int trigger, i
 
   return scale_factor;
 }
-
-void ParticleCorrections::ElectronWeight(double pt, double eta, int year, float& trigger_scale,
-                                         float& weight_id , float& weight_up_id , float& weight_down_id , int& ibin_id,
-                                         float& weight_rec, float& weight_up_rec, float& weight_down_rec, int& ibin_rec
-                                         ) {
-  weight_id  = 1.; weight_up_id  = 1.; weight_down_id  = 1.; ibin_id  = 0;
-  weight_rec = 1.; weight_up_rec = 1.; weight_down_rec = 1.; ibin_rec = 0;
-  if(year != k2016 && year != k2017 && year != k2018) {
-    std::cout << "Warning! Undefined year in " << __func__ << ", returning -1" << std::endl;
-    return;
-  }
-
-  double trig_pt = pt;
-  if(year == k2016) {
-    if(pt > 499.)     pt = 499.; //maximum pT for corrections
-    else if(pt < 20.) pt = 20.; //minimum pT for corrections
-    if(eta >= 2.5) eta = 2.49; //maximum eta for corrections
-    else if(eta <= -2.5) eta = -2.49; //minimum eta for corrections
-  } else if(year == k2017) {
-    if(pt > 499.)     pt = 499.; //maximum pT for corrections
-    else if(pt < 20.) pt = 20.; //minimum pT for corrections
-    if(eta >= 2.5) eta = 2.49; //maximum eta for corrections
-    else if(eta <= -2.5) eta = -2.49; //minimum eta for corrections
-  } else if(year == k2018) {
-    if(pt > 499.)     pt = 499.; //maximum pT for corrections
-    else if(pt < 20.) pt = 20.; //minimum pT for corrections
-    if(eta >= 2.5) eta = 2.49; //maximum eta for corrections
-    else if(eta <= -2.5) eta = -2.49; //minimum eta for corrections
-  }
-
-  TH2F* hID = electronIDMap[year];
-  int binx = hID->GetXaxis()->FindBin(fabs(eta));
-  int biny = hID->GetYaxis()->FindBin(pt);
-  double id_scale = hID->GetBinContent(binx, biny);
-  double id_error = hID->GetBinError(binx, biny);
-  ibin_id = 100*biny + binx;
-
-  TH2F* hReco = electronRecoMap[year];
-  binx = hReco->GetXaxis()->FindBin(fabs(eta));
-  biny = hReco->GetYaxis()->FindBin(pt);
-  double reco_scale = hReco->GetBinContent(binx, biny);
-  double reco_error = hReco->GetBinError(binx, biny);
-  ibin_rec = 100*biny + binx;
-
-  double eta_trig = eta;
-  if(eta_trig > 2.4) eta_trig = 2.39;
-  else if(eta_trig < -2.4) eta_trig = -2.39;
-  TH2F* hTrig = electronTriggerMap[year];
-  trigger_scale = hTrig->GetBinContent(hTrig->GetXaxis()->FindBin(eta_trig), hTrig->GetYaxis()->FindBin(pt));
-
-  //don't scale if can't fire the trigger
-  if((trig_pt < 28. && year == k2016) || (trig_pt < 33. && year == k2017) || (trig_pt < 33. && year == k2018))
-    trigger_scale = 1.;
-
-
-  //FIXME: add pre-fire for 2017
-  // double prefire_scale = electronPreFireMap[year];
-  double vertex_scale = electronVertexMap[year];
-  //FIXME: add vertex scale uncertainty
-
-  double scale_factor = id_scale * reco_scale * vertex_scale;
-
-  if(scale_factor <= 0. || fVerbose > 0) {
-    if(scale_factor <= 0.) std::cout << "Warning! Scale factor <= 0! ";
-    std::cout << "ParticleCorrections::" << __func__
-              << " year = " << year
-              << " id_scale = " << id_scale
-              << " reco_scale = " << reco_scale
-              << " trig_scale = " << trigger_scale
-              << " vertex_scale = " << vertex_scale
-              << std::endl;
-  }
-  //calculate the +- 1 sigma weights
-  // weight_up   = scale_factor * (1. + sqrt(id_error*id_error/(id_scale*id_scale) + reco_error*id_error/(reco_scale*reco_scale)));
-  // weight_down = scale_factor * (1. - sqrt(id_error*id_error/(id_scale*id_scale) + reco_error*id_error/(reco_scale*reco_scale)));
-  //FIXME: Currently just combining vertex scale and reco scale
-  weight_id = id_scale; weight_rec = vertex_scale * reco_scale;
-  weight_up_id    = id_scale + id_error;
-  weight_down_id  = id_scale - id_error;
-  weight_up_rec   = vertex_scale * (reco_scale + reco_error);
-  weight_down_rec = vertex_scale * (reco_scale - reco_error);
-}
-
-double ParticleCorrections::ElectronEnergyScale(double pt, double eta, int year, float& up, float& down) {
-  up = 1.; down = 1.;
-  double scale_factor = 1.;
-  if(year != k2016 && year != k2017 && year != k2018) {
-    std::cout << "Warning! Undefined year in " << __func__ << ", returning -1" << std::endl;
-    return 1.;
-  }
-  if(!isEmbed_) return 1.;
-
-  pt = std::max(20., pt); //FIXME: should pt < 20 be corrected?
-  bool barrel = abs(eta) < 1.479;
-  if(year == k2016) {
-    if(barrel) { scale_factor -= 0.0024; up = scale_factor + 0.0050; down = scale_factor - 0.0050; }
-    else       { scale_factor -= 0.0070; up = scale_factor + 0.0125; down = scale_factor - 0.0125; }
-  }
-  return scale_factor;
-}
-
-double ParticleCorrections::ElectronTriggerEff(double pt, double eta, int year, float& data_eff, float& mc_eff) {
-  if(year != k2016 && year != k2017 && year != k2018) {
-    std::cout << "Warning! Undefined year in " << __func__ << ", returning -1" << std::endl;
-    return -1.;
-  }
-
-  if(eta >= 2.39) eta = 2.39; //maximum eta for corrections
-  else if(eta <= -2.39) eta = -2.39; //minimum eta for corrections
-  if(pt > 499.)     pt = 499.; //maximum pT for corrections
-  else if(pt < 20.) pt = 20.; //minimum pT for corrections
-
-  TH2F* hTrigData = electronTriggerEffMap[0][year];
-  data_eff = hTrigData->GetBinContent(hTrigData->GetXaxis()->FindBin(eta), hTrigData->GetYaxis()->FindBin(pt));
-  TH2F* hTrigMC = electronTriggerEffMap[1][year];
-  mc_eff = hTrigMC->GetBinContent(hTrigMC->GetXaxis()->FindBin(eta), hTrigMC->GetYaxis()->FindBin(pt));
-
-  //can't fire a trigger if below the threshold
-  if((year == k2016 && pt < 28.) || (year == k2017 && pt < 33.) || (year == k2018 && pt < 33.)) {
-    data_eff = 1.;
-    mc_eff = 1.;
-  }
-  double scale_factor = (mc_eff > 0.) ? data_eff / mc_eff : 0.;
-  if(scale_factor <= 0. || fVerbose > 0) {
-    if(scale_factor <= 0.) std::cout << "Warning! Scale factor <= 0! ";
-    std::cout << "ParticleCorrections::" << __func__
-              << " year = " << year
-              << " data_eff = " << data_eff
-              << " mc_eff = " << mc_eff
-              << std::endl;
-  }
-  return scale_factor;
-}
-
-//correction for the tau ID
-double ParticleCorrections::TauWeight(double pt, double eta, int genID, UChar_t antiJet, int year,
-                                      float& up, float& down, int& ibin
-                                      ) {
-  if(year != k2016 && year != k2017 && year != k2018) {
-    std::cout << "Warning! Undefined year in " << __func__ << ", returning -1" << std::endl;
-    return -1.;
-  }
-  if(pt < 20.001) pt = 20.001; //has to be slightly greater than 20
-  double scale_factor = 1.;
-  up = 1.; down = 1.; ibin = 0;
-  int antiJetIndex = (antiJet >= 50) ? 1 : 0; //tight or loose tau
-
-  if(isEmbed_ && genID != 5) { //don't apply anti-mu and anti-ele corrections
-    return scale_factor;
-  }
-
-  if(genID == 5) { //genuine tau
-    scale_factor *= tauJetIDMap[year]->Eval(pt);
-    up *= tauJetUpIDMap[year]->Eval(pt);
-    down *= tauJetDownIDMap[year]->Eval(pt);
-    ibin = 0; //Only 1 bin since up/down for all pT
-  } else if(genID == 1) { //genuine electron -> tau
-    int bin = tauEleIDMap[year]->FindBin(fabs(eta));
-    scale_factor *= tauEleIDMap[year]->GetBinContent(bin);
-    up = scale_factor + tauEleIDMap[year]->GetBinError(bin);
-    down = scale_factor - tauEleIDMap[year]->GetBinError(bin);
-    ibin = bin - 1;
-  } else if(genID == 2) { //genuine muon -> tau
-    int bin = tauMuIDMap[year]->FindBin(fabs(eta));
-    scale_factor *= tauMuIDMap[year]->GetBinContent(bin);
-    up = scale_factor + tauMuIDMap[year]->GetBinError(bin);
-    down = scale_factor - tauMuIDMap[year]->GetBinError(bin);
-    ibin = bin - 1;
-  }
-  if(scale_factor <= 0. || fVerbose > 0) {
-    if(scale_factor <= 0.) std::cout << "Warning! Scale factor <= 0! ";
-    std::cout << "ParticleCorrections::" << __func__
-              << " year = " << year
-              << " pt = " << pt
-              << " eta = " << eta
-              << " genID = " << genID
-              << " antiJet = " << antiJetIndex
-              << " scale_factor = " << scale_factor
-              << std::endl;
-  }
-  return scale_factor;
-}
-
-//correction to the tau TLorentzVector
-double ParticleCorrections::TauEnergyScale(double pt, double eta, int dm, int genID, UChar_t antiJet, int year, float& up, float& down, int& ibin) {
-  double scale_factor = 1.;
-  up = 1.; down = 1.; ibin = 0;
-  double pt_low = 34.;
-  double pt_high = 170.;
-  //only defined for certain decay modes
-  if(!(dm == 0 || dm == 1 || dm == 10 || dm == 11)) return scale_factor;
-
-  int antiJetIndex = (antiJet >= 50) ? 1 : 0; //tight or loose tau
-
-  //if embedding sample, use fixed corrections
-  if(isEmbed_) {
-    if(year == k2016) {
-      if     (dm == 0) {scale_factor += -0.0020; up = scale_factor + 0.0046; down = scale_factor - 0.0046;}
-      else if(dm == 1) {scale_factor += -0.0022; up = scale_factor + 0.0022; down = scale_factor - 0.0025;}
-      else             {scale_factor += -0.0126; up = scale_factor + 0.0033; down = scale_factor - 0.0051;}
-    }
-    return scale_factor;
-  }
-
-  /////////////////////
-  // Genuine taus
-  /////////////////////
-  if(genID == 5) {
-
-    //Use the low energy scale factor, but uncertainty using high and low
-    int bin_low  = tauESLowMap [year]->FindBin(dm);
-    int bin_high = tauESHighMap[year]->FindBin(dm);
-    scale_factor = tauESLowMap [year]->GetBinContent(bin_low);
-    ibin = bin_low - 1;
-    if(pt < pt_low) { //use only the low uncertainty
-      up   = scale_factor + tauESLowMap[year]->GetBinError(bin_low);
-      down = scale_factor - tauESLowMap[year]->GetBinError(bin_low);
-    } else if(pt < pt_high) { //interpolate the uncertainties
-      double err_low  = tauESLowMap [year]->GetBinError(bin_low );
-      double err_high = tauESHighMap[year]->GetBinError(bin_high);
-      double err = err_low + (err_high - err_low)/(pt_high - pt_low)*(pt-pt_low);
-      up   = scale_factor + err;
-      down = scale_factor - err;
-    } else { //use high pT map
-      up   = scale_factor + tauESHighMap[year]->GetBinError(bin_high);
-      down = scale_factor - tauESHighMap[year]->GetBinError(bin_high);
-    }
-
-  /////////////////////
-  // Genuine electrons
-  /////////////////////
-  } else if(genID == 1 || genID == 3) { //genuine electron -> fake tau or tau -> e -> fake tau
-    if(dm != 0 && dm != 1) return scale_factor;
-
-    eta = fabs(eta);
-    int point = 0;
-    if(eta > 2.5)  return scale_factor;
-    else if(eta < 1.5) point += 0; //barrel region
-    else point += 2; //endcap region
-    if(dm == 0) point += 0;
-    else        point += 1;
-    double x, y;
-    tauFakeESMap[year]->GetPoint(point, x, y);
-    scale_factor = y;
-    ibin = point;
-    up   = scale_factor + tauFakeESMap[year]->GetErrorYhigh(point);
-    down = scale_factor - tauFakeESMap[year]->GetErrorYlow (point);
-
-  /////////////////////
-  // Genuine muons
-  /////////////////////
-  } else if(genID == 2 || genID == 4) { //genuine muon
-    //no correction, +- 1% uncertainty
-    scale_factor = 1.;
-    up = 1.01;
-    down = 0.99;
-    ibin = 0;
-  }
-
-  if(scale_factor <= 0. || fVerbose > 0) {
-    if(scale_factor <= 0.) std::cout << "Warning! Scale factor <= 0! ";
-    std::cout << "ParticleCorrections::" << __func__
-              << " year = " << year
-              << " GenID = " << genID
-              << " dm = " << dm
-              << " pt = " << pt
-              << " eta = " << eta
-              << " tight jet = " << antiJetIndex
-              << " scale_factor = " << scale_factor
-              << std::endl;
-  }
-  return scale_factor;
-}
-
 
 double ParticleCorrections::PhotonWeight(double pt, double eta, int year) {
   if(year != k2016 && year != k2017 && year != k2018) {
@@ -449,7 +175,7 @@ double ParticleCorrections::PhotonWeight(double pt, double eta, int year) {
   }
 
   TH2F* hID = photonIDMap[year];
-  double id_scale = hID->GetBinContent(hID->GetXaxis()->FindBin(fabs(eta)), hID->GetYaxis()->FindBin(pt));
+  double id_scale = hID->GetBinContent(hID->GetXaxis()->FindBin(std::fabs(eta)), hID->GetYaxis()->FindBin(pt));
 
   double scale_factor = id_scale;
    if(scale_factor <= 0. || fVerbose > 0) {
@@ -466,7 +192,7 @@ double ParticleCorrections::PhotonWeight(double pt, double eta, int year) {
 double ParticleCorrections::BTagMCProb(double pt, double eta, int jetFlavor, int year, int WP) {
   if(pt < 20.) pt = 20.;
   else if (pt > 999.) pt = 999.;
-  if(fabs(eta) >= 2.5) return 0.; //can't tag high eta jets
+  if(std::fabs(eta) >= 2.5) return 0.; //can't tag high eta jets
   if(year != k2016 && year != k2017 && year != k2018) {
     std::cout << "WARNING! Unknown year in ParticleCorrections::" << __func__ << ": "
               << year << std::endl;
@@ -508,7 +234,7 @@ double ParticleCorrections::BTagMCProb(double pt, double eta, int jetFlavor, int
 //Probability of passing b-tag WP in data
 double ParticleCorrections::BTagDataProb(double pt, double eta, int jetFlavor, int year, int WP) {
   if(pt < 20.) pt = 20.;
-  if(fabs(eta) >= 2.5) return 1.; //can't tag high eta jets
+  if(std::fabs(eta) >= 2.5) return 1.; //can't tag high eta jets
 
   double scale_factor(1.), x(pt); //use x here, seems like it should be pT?
   if(jetFlavor == 5 || jetFlavor == 4) { //true b-jets and c-jets (since corrections the same)

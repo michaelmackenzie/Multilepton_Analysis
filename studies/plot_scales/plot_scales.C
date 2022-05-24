@@ -4,15 +4,15 @@
 //////////////////////////////////////////////////
 // Plot the scale factors/errors
 //////////////////////////////////////////////////
-TCanvas* plot_1D_slices(TH2* hID, TString cname, bool xaxis = true) {
+TCanvas* plot_1D_slices(TH2* hID, TString cname, bool xaxis, TH1*& haxis) {
   TCanvas* c = new TCanvas(cname.Data(), cname.Data(), 1000, 700);
   const int nbins = (xaxis) ? hID->GetNbinsX() : hID->GetNbinsY();
   TLegend* leg = new TLegend(0.7, 0.13, 0.9, 0.5);
   const int colors[] = {kRed, kBlue, kGreen, kViolet, kOrange, kYellow+2,
                         kAtlantic, kGreen+2, kRed+2, kBlue+2, kViolet-2,
                         kOrange+2,kViolet+2, kBlue-2};
-  TH1* haxis;
   double ymin(1.e9), ymax(-1.e9);
+  haxis = nullptr;
   for(int ibin = 1; ibin <= nbins; ++ibin) {
     TH1* h = (xaxis) ? hID->ProjectionY(Form("_%i", ibin), ibin, ibin) : hID->ProjectionX(Form("_%i", ibin), ibin, ibin);
     h->SetLineColor(colors[ibin-1]);
@@ -42,6 +42,10 @@ TCanvas* plot_1D_slices(TH2* hID, TString cname, bool xaxis = true) {
   return c;
 }
 
+TCanvas* plot_1D_slices(TH2* hID, TString cname, bool xaxis = true) {
+  TH1* h;
+  return plot_1D_slices(hID, cname, xaxis, h);
+}
 //////////////////////////////////////////////////
 // Plot the scale factors/errors from functions
 //////////////////////////////////////////////////
@@ -164,6 +168,14 @@ TCanvas* plot_muon_low_trigger_scale(int year, int period = 0, bool error = fals
   hID->SetXTitle(xname.Data());
   hID->SetYTitle(yname.Data());
   hID->SetZTitle("");
+  TH1* haxis = nullptr;
+  TCanvas* c = plot_1D_slices(hID, Form("c_muon_low_trig_slice_%i", year), true, haxis);
+  if(c) {
+    c->Print(Form("figures/muon_low_trigger_slices_%i.png", year));
+    c->SetLogx();
+    if(haxis) haxis->GetXaxis()->SetMoreLogLabels(kTRUE);
+    c->Print(Form("figures/muon_low_trigger_slices_%i_log.png", year));
+  }
   return plot_scale(hID, Form("c_muon_low_trigger_%i", year), error);
 }
 
@@ -306,9 +318,8 @@ TCanvas* plot_electron_reco_scale(int year, bool error = false) {
 //////////////////////////////////////////////////
 // Plot the electron trigger scale factors/errors
 //////////////////////////////////////////////////
-TCanvas* plot_electron_trigger_scale(int year, bool error = false) {
-  TString path = "../../scale_factors/egamma_trigger_eff_";
-  path += year; path += ".root";
+TCanvas* plot_electron_trigger_scale(int year, int WP = 3, bool error = false) {
+  TString path = Form("../../scale_factors/egamma_trigger_eff_wp%i_%i.root", WP, year);
   TFile* f = TFile::Open(path.Data(), "READ");
   if(!f) return NULL;
   TH2F* hID = (TH2F*) f->Get("EGamma_SF2D");
@@ -319,13 +330,16 @@ TCanvas* plot_electron_trigger_scale(int year, bool error = false) {
   hID->SetDirectory(0);
   f->Close();
   if(!error) {
-    TCanvas* c = plot_1D_slices(hID, Form("c_elec_trig_slice_%i", year), true);
+    TH1* haxis = nullptr;
+    TCanvas* c = plot_1D_slices(hID, Form("c_elec_trig_slice_wp%i_%i", WP, year), true, haxis);
     if(c) {
-      c->Print(Form("figures/electron_trigger_slices_%i.png", year));
+      c->Print(Form("figures/electron_trigger_slices_wp%i_%i.png", WP, year));
       c->SetLogx();
-      c->Print(Form("figures/electron_trigger_slices_log_%i.png", year));    }
+      if(haxis) haxis->GetXaxis()->SetMoreLogLabels(kTRUE);
+      c->Print(Form("figures/electron_trigger_slices_wp%i_%i_log.png", WP, year));
+    }
   }
-  return plot_scale(hID, Form("c_elec_trigger_%i", year), error);
+  return plot_scale(hID, Form("c_elec_trigger_wp%i_%i", WP, year), error);
 }
 
 //////////////////////////////////////////////////
@@ -344,12 +358,14 @@ TCanvas* plot_embedding_scale(int year, int Mode, bool isMuon, int period = -1) 
   hID->SetDirectory(0);
   f->Close();
   hID->SetTitle("Data Efficiency / Embedding Efficiency");
+  TH1* haxis = nullptr;
   TCanvas* c = plot_1D_slices(hID, Form("c_embed_%s_mode-%i_slice_%i",
-                                        (isMuon) ? "mumu" : "ee", Mode, year), true);
+                                        (isMuon) ? "mumu" : "ee", Mode, year), true, haxis);
   c->SetTitle("");
   c->Print(Form("figures/embed_%s_mode-%i_slices_%i%s.png",
                 (isMuon) ? "mumu" : "ee", Mode, year, (period >= 0) ? Form("_period_%i", period) : ""));
   c->SetLogx();
+  haxis->GetXaxis()->SetMoreLogLabels(kTRUE);
   c->Print(Form("figures/embed_%s_mode-%i_slices_log_%i%s.png",
                 (isMuon) ? "mumu" : "ee", Mode, year, (period >= 0) ? Form("_period_%i", period) : ""));
   return c;
@@ -479,6 +495,8 @@ TCanvas* plot_tau_ele_ID_scale(int year) {
 }
 
 void plot_scales() {
+  gStyle->SetPadTickX(1);
+  gStyle->SetPadTickY(1);
   gStyle->SetOptStat(0);
   gSystem->Exec("[ ! -d figures ] && mkdir figures");
   for(int year = 2016; year < 2019; ++year) {
@@ -518,14 +536,14 @@ void plot_scales() {
       c->Print(Form("figures/electron_reco_scale_%i_err.png", year));
       delete c;
     }
-    c = plot_electron_trigger_scale(year, false);
+    c = plot_electron_trigger_scale(year, 3, false);
     if(c) {
-      c->Print(Form("figures/electron_trigger_scale_%i.png", year));
+      c->Print(Form("figures/electron_trigger_scale_wp3_%i.png", year));
       delete c;
     }
-    c = plot_electron_trigger_scale(year, true);
+    c = plot_electron_trigger_scale(year, 3, true);
     if(c) {
-      c->Print(Form("figures/electron_trigger_scale_%i_err.png", year));
+      c->Print(Form("figures/electron_trigger_scale_wp3_%i_err.png", year));
       delete c;
     }
 

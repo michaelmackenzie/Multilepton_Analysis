@@ -181,7 +181,7 @@ rate <n exp in cat 1 process 1> ....
 Standard running:
 ```
 cd datacards/${YEARSTRING}
-combine -d combine_mva_total_${SELECTION}.txt
+combine -d combine_mva_total_${SELECTION}_${HISTSTRING}.txt
 ```
 One can estimate the bin uncertainty impact by commenting out "* autoMCStats 0"
 
@@ -213,6 +213,12 @@ combineTool.py -M Impacts -d ${WORKSPACE} -m 0 --rMin -20 --rMax 20 --robustFit 
 combineTool.py -M Impacts -d ${WORKSPACE} -m 0 --rMin -20 --rMax 20 --robustFit 1 --doFits -t -1
 combineTool.py -M Impacts -d ${WORKSPACE} -m 0 --rMin -20 --rMax 20 --robustFit 1 --output impacts_${CHANNEL}_${HISTSTRING}.json -t -1
 plotImpacts.py -i impacts_${CHANNEL}_${HISTSTRING}.json -o impacts_${CHANNEL}_${HISTSTRING}
+```
+
+Running on all channels + the total search:
+```
+cd datacards/${YEARSTRING}
+../../combine_channel_impacts.sh ${SELECTION} ${HISTSTRING} ${YEARSTRING}
 ```
 
 Running on a selection with control regions:
@@ -267,4 +273,26 @@ root.exe -q -b "get_bemu_histogram.C(${HISTSET}, \"${SELECTION}\", ${YEAR}, \"${
 root.exe -q -b "convert_bemu_to_combine.C(${HISTSET}, \"${SELECTION}\", ${YEAR})"
 cd datacards/${YEARSTRING}/
 combine -d combine_bemu_${SELECTION}_${HISTSTRING}.txt
+```
+
+### x+tau workflow recommendation
+```
+HISTSET="{8}"
+HISTSTRING="8"
+SELECTION="zmutau"
+HISTPATH="nanoaods_mva"
+YEAR="{2016,2017,2018}"
+YEARSTRING="2016_2017_2018"
+
+root.exe -q -b "get_MVA_histogram.C(${HISTSET}, \"${SELECTION}\", ${YEAR}, \"${HISTPATH}\")"
+root.exe -q -b "create_combine_cards.C(${HISTSET}, \"${SELECTION}\", ${YEAR})"
+cd datacards/${YEARSTRING}/
+#run the total combine limit
+combine -d combine_mva_total_${SELECTION}_${HISTSTRING}.txt
+#make a plot of the limit by category
+root.exe -q -b "../../make_combine_limit_plot.C(${HISTSTRING}, \"${SELECTION}\", ${YEAR}, true, false)"
+#make the same plot without systematic uncertainties
+root.exe -q -b "../../make_combine_limit_plot.C(${HISTSTRING}, \"${SELECTION}\", ${YEAR}, true, true)"
+#generate impacts
+../../combine_channel_impacts.sh ${SELECTION} ${HISTSTRING}
 ```

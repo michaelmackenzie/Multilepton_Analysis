@@ -101,12 +101,13 @@ float BTagWeight::GetMCEff(const int WP, const int year, float jetpt, float jete
   const int binx = h->GetXaxis()->FindBin(jeteta);
   const int biny = h->GetYaxis()->FindBin(jetpt);
   float eff = h->GetBinContent(binx, biny);
+  const float min_eff = 1.e-6;
   if(eff < 0.) {
     std::cout << "BTagWeight::" << __func__ << ": Warning! MC Eff < 0 = " << eff
               << " jetpt = " << jetpt << " jeteta = " << jeteta
               << " jetflavor = " << jetflavor << std::endl;
-    eff = 0.000001;
   }
+  eff = std::min(1.f - min_eff, std::max(min_eff, eff)); //ensure efficiency is within reasonable bounds
   return eff;
 }
 
@@ -554,12 +555,12 @@ void BTagWeight::GetSystematic(const int WP, const int year, float jetpt, int je
 //-------------------------------------------------------------------------------------------------------------------------
 // Get the scale factor to apply to MC
 float BTagWeight::GetScaleFactor(const int WP, const int year, float jetpt, int jetFlavor, float& up, float& down) {
-  float scale_factor(1.), x(jetpt); //use x here, seems like it should be pT?
+  float scale_factor(1.), x(jetpt); //use x here, seems like it should be pT
   x = std::max(20.001f, std::min(999.f, x));
   jetFlavor = abs(jetFlavor);
 
   //In CSV file: type 0 is b, type 1 is c, and type 2 is light
-  if(jetFlavor == 5 || jetFlavor == 4) { //true b-jets and c-jets (since corrections the same)
+  if(jetFlavor == 5 || jetFlavor == 4) { //true b-jets and c-jets (since corrections are the same)
     if(year == 2016) {
       if(WP == kLooseBTag)       scale_factor = 0.971065*((1.+(0.0100459*x))/(1.+(0.00975219*x)));
       else if(WP == kMediumBTag) scale_factor = 0.922748*((1.+(0.0241884*x))/(1.+(0.0223119*x)));
@@ -604,39 +605,42 @@ float BTagWeight::GetWeight(const int wp, const int year, const int njets, const
   up = 1.; down = 1.;
   if(verbose_ > 0)
     printf(" BTagWeight::%s: Printing b-tag info for %i jets:\n", __func__, njets);
+  const float max_eta = 2.4;
+  const float min_pt = 20.;
   for(int jet = 0; jet < njets; ++jet) {
-    if(std::fabs(jetseta[jet]) > 2.4) continue; //not in accepted volume
-    if(jetspt[jet] < 20.) continue; //below pT threshold
-    float p_mc = GetMCEff(wp, year, jetspt[jet], jetseta[jet], jetsflavor[jet]);
+    if(std::fabs(jetseta[jet]) >= max_eta) continue; //not in b-tagging region
+    if(jetspt[jet] <= min_pt) continue; //below pT threshold
+    const float p_mc = GetMCEff(wp, year, jetspt[jet], jetseta[jet], jetsflavor[jet]); //efficiency in MC
     float i_up, i_down;
-    float scale_factor = GetScaleFactor(wp, year, jetspt[jet], jetsflavor[jet], i_up, i_down);
-    float p_data = std::max(0., std::min(1., (double) p_mc*scale_factor)); //0 <= probability <= 1
+    const float scale_factor = GetScaleFactor(wp, year, jetspt[jet], jetsflavor[jet], i_up, i_down); //scale factor to match data
+    const float p_data = std::max(0.f, std::min(1.f, p_mc*scale_factor)); //0 <= probability <= 1
     if(jetsbtag[jet] > wp) { //passes this working point
       prob_data *= p_data;
       prob_mc   *= p_mc;
-      up   *= std::max(0., std::min(1., (double) p_mc*i_up  ));
-      down *= std::max(0., std::min(1., (double) p_mc*i_down));
+      up   *= std::max(0.f, std::min(1.f, p_mc*i_up  ));
+      down *= std::max(0.f, std::min(1.f, p_mc*i_down));
     } else { //fails this working point
       prob_data *= 1. - p_data;
       prob_mc   *= 1. - p_mc;
-      up   *= 1. - std::max(0., std::min(1., (double) p_mc*i_up  ));
-      down *= 1. - std::max(0., std::min(1., (double) p_mc*i_down));
+      up   *= 1. - std::max(0.f, std::min(1.f, p_mc*i_up  ));
+      down *= 1. - std::max(0.f, std::min(1.f, p_mc*i_down));
     }
-    if(verbose_ > 0)
+    if(verbose_ > 0) {
       printf(" Jet %2i: pt = %.2f eta = %.2f flavor = %i tagged = %i scale = %.3f up = %.3f down = %.3f\n",
              jet, jetspt[jet], jetseta[jet], jetsflavor[jet], jetsbtag[jet] > wp, scale_factor, i_up, i_down);
+    }
   }
-  if(prob_mc > 0. && !std::isnan(prob_data) && !std::isnan(prob_mc)) {
+  if(prob_mc > 0. && std::isfinite(prob_data) && std::isfinite(prob_mc)) {
     weight = prob_data / prob_mc;
-    up   = (up   > 0.) ? up   / prob_mc : 1.;
-    down = (down > 0.) ? down / prob_mc : 1.;
+    up   = (up   > 0.) ? up   / prob_mc : weight; //if up/down = 0, set to the weight value
+    down = (down > 0.) ? down / prob_mc : weight;
   } else {
     std::cout << "!!! BTagWeight::" << __func__ << ": weight undefined! Returning 1...\n";
     up   = 1.;
     down = 1.;
   }
-  if(std::isnan(up)  ) up   = weight;
-  if(std::isnan(down)) down = weight;
+  if(!std::isfinite(up)  ) up   = weight; //if up/down are undefined, se to the weight value
+  if(!std::isfinite(down)) down = weight;
   if(verbose_ > 0) printf(" weight = %.3f up = %.3f down = %.3f\n", weight, up, down);
   return weight;
 }

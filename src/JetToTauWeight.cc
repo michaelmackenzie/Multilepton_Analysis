@@ -3,7 +3,7 @@
 using namespace CLFV;
 
 //-------------------------------------------------------------------------------------------------------------------------
-// Mode = 10,000,000 * (bias mode (0: none; 1: lepm; 2: mtlep)) + 1,000,000 * (don't use pT corrections)
+// Mode = 10,000,000 * (bias mode (0: none; 1,4,5: lepm; 2,5: mtlep; 3,4: oneiso)) + 1,000,000 * (don't use pT corrections)
 //        + 100,000 * (1*(use tau eta corrections) + 2*(use one met dphi))
 //        + 10,000 * (use 2D pT vs delta R corrections)
 //        + 1,000 * (use DM binned pT corrections) + 100 * (1*(use scale factor fits) + 2*(use fitter errors))
@@ -25,7 +25,16 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
   useMetDPhiCorrections_ = ( Mode %   1000000) /   100000 > 1;
   doPtCorrections_       = ( Mode %  10000000) /  1000000 - 1; //0: don't do -1: nominal selection 1: xtau selection
   const int bias_mode    = ( Mode % 100000000) / 10000000;
-  useLepMBias_           = bias_mode == 1 || bias_mode == 4 || bias_mode == 5; //bias correction in terms of di-lepton mass
+  /*
+    Bias modes:
+    1: lepm (W+Jets)
+    2: mtlep (W+Jets)
+    3: isolation (mutau QCD)
+    4: isolation + lepm (mutau QCD iso + SS biases)
+    5: mtlep + lepm (etau QCD mtlep + SS biases)
+    6: lepm shape (W+Jets)
+  */
+  useLepMBias_           = bias_mode == 1 || bias_mode == 4 || bias_mode == 5 || bias_mode == 6; //bias correction in terms of di-lepton mass
   useMTLepBias_          = bias_mode == 2 || bias_mode == 5; //bias correction in terms of MT(ll, MET)
   useOneIsoBias_         = bias_mode == 3 || bias_mode == 4; //bias correction in terms of one iso / pT
   rnd_ = new TRandom3(seed);
@@ -128,6 +137,7 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
       if     (selection == "mumu") pt_corr_selec = "mutau";
       else if(selection == "ee"  ) pt_corr_selec = "etau";
     }
+
     f = TFile::Open(Form("%s/jet_to_tau_correction_%s_%s%i_%i.root", path.Data(), pt_corr_selec.Data(), process.Data(), set, year), "READ");
     if(f) {
       int dmmodes = (doDMCorrections_) ? 4 : 1;
@@ -170,10 +180,10 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
     //get the corrections based on the tau eta
     ///////////////////////////////////////////////////////////////////
 
-    TString eta_corr_selec = "mutau";
-    if(selection == "ee") eta_corr_selec = "etau";
-    int eta_set = set;
-    // if(eta_set % 100 >= 36 && eta_set % 100 <= 38) eta_set -=6; //use data distributions for non-closure corrections if using MC taus
+    TString eta_corr_selec = selection;
+    if(selection == "mumu") eta_corr_selec = "mutau";
+    if(selection == "ee"  ) eta_corr_selec = "etau";
+    const int eta_set = set;
 
     f = TFile::Open(Form("%s/jet_to_tau_correction_%s_%s%i_%i.root", path.Data(), eta_corr_selec.Data(), process.Data(), eta_set, year), "READ");
     if(!f && (useEtaCorrections_ || useMetDPhiCorrections_)) {
@@ -239,13 +249,19 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
         bias_set = bias_set - remainder + 81;
       }
 
-      f = TFile::Open(Form("%s/jet_to_tau_correction_%s_%s%i_%i.root", path.Data(), selection.Data(), process.Data(), bias_set, year), "READ");
+      //W+Jets bias uses W+Jets MC, whether or not the j-->tau measurement included background process subtraction or not
+      TString bias_proc = process;
+      if(bias_proc == "") {
+        if(bias_set == 81) bias_proc = "WJets_";
+      }
+
+      f = TFile::Open(Form("%s/jet_to_tau_correction_%s_%s%i_%i.root", path.Data(), selection.Data(), bias_proc.Data(), bias_set, year), "READ");
       if(!f) {
         std::cout << "JetToTauWeight::JetToTauWeight: " << name_.Data() << " Warning! No bias correction file found for year = "
-                  << year << " selection = " << selection.Data() << " set = " << bias_set << std::endl;
+                  << year << " selection = " << selection.Data() << " set = " << bias_set << " process = " << bias_proc.Data() << std::endl;
       } else {
         if(useLepMBias_ && bias_mode != 4 && bias_mode != 5) { //mode 4/5 is QCD lepm bias for SS --> OS
-          lepMBias_[year] = (TH1*) f->Get("LepMBias");
+          lepMBias_[year] = (TH1*) f->Get((bias_mode) == 6 ? "LepMBiasShape" : "LepMBias");
           if(!lepMBias_[year]) {
             std::cout << "JetToTauWeight::JetToTauWeight: " << name_.Data() << " Warning! No lepton mass bias hist found for year = "
                       << year << " selection = " << selection.Data() << std::endl;
@@ -278,7 +294,7 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
         delete f;
         if(bias_mode == 4 || bias_mode == 5) { //QCD SS --> OS bias
           const int qcd_ss_bias_set = 95; //fixed set for this correction
-          f = TFile::Open(Form("%s/jet_to_tau_correction_%s_%s%i_%i.root", path.Data(), selection.Data(), process.Data(), qcd_ss_bias_set, year), "READ");
+          f = TFile::Open(Form("%s/jet_to_tau_correction_%s_%s%i_%i.root", path.Data(), selection.Data(), bias_proc.Data(), qcd_ss_bias_set, year), "READ");
           if(f) {
             if(useLepMBias_) { //QCD lepm bias for SS --> OS
               lepMBias_[year] = (TH1*) f->Get("LepMBias");
@@ -296,7 +312,7 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
         }
         if(bias_mode == 5) { //QCD MT(ll, MET) restricted range bias
           const int qcd_mtlep_bias_set = 1093; //fixed set for this correction
-          f = TFile::Open(Form("%s/jet_to_tau_correction_%s_%s%i_%i.root", path.Data(), selection.Data(), process.Data(), qcd_mtlep_bias_set, year), "READ");
+          f = TFile::Open(Form("%s/jet_to_tau_correction_%s_%s%i_%i.root", path.Data(), selection.Data(), bias_proc.Data(), qcd_mtlep_bias_set, year), "READ");
           if(f) {
             mtLepBias_[year] = (TH1*) f->Get("MTLepBias");
             if(!mtLepBias_[year]) {

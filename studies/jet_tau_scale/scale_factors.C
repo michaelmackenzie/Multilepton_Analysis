@@ -12,6 +12,7 @@ bool    usingMCTaus_   = false; //whether or not the histogram set uses MC taus
 TString selection_     = ""   ;
 int     set_offset_    = 0    ; //offset to selection set
 int     override_year_ = -1   ; //use a default year to get initial scales for a different year
+TRandom3 rnd_(90);
 
 //-------------------------------------------------------------------------------------------------------------------------------
 // Standard axis labels
@@ -60,10 +61,67 @@ TString get_title(TString hist, TString type) {
 }
 
 //-------------------------------------------------------------------------------------------------------------------------------
+// Get MC fake tau set corresponding to the given set
+int get_mc_set(int set) {
+  int set_mc = set;
+  int remainder = set % 100;
+  if(remainder >= 30 && remainder < 33) set_mc = set + 6; //For MC fakes, sets 30 - 32 use 36 - 38
+  else if(remainder >= 85 && remainder < 88) set_mc = set - 5; //sets 85 - 87 use 80 - 82
+  else if(remainder == 89) set_mc = set - 1; //set 89 uses set 88
+  else if(remainder == 93) set_mc = set - 1; //set 93 uses set 92
+  else if(remainder == 95) set_mc = set - 1; //set 95 uses set 94
+  return set_mc;
+}
+
+//-------------------------------------------------------------------------------------------------------------------------------
+// Smooth a 1D histogram
+TH1* smooth_hist(TH1* h) {
+  if(!h) return nullptr;
+  TH1* hsmooth = (TH1*) h->Clone(Form("%s_smooth", h->GetName()));
+  const static int nsmooth = 1; //number of times to run the smoothing algorithm
+  hsmooth->Smooth(nsmooth);
+  return hsmooth;
+}
+
+//-------------------------------------------------------------------------------------------------------------------------------
+// Get a 1D QCD histogram
+TH1* get_qcd_1d(TString hist, TString type, int set) {
+  dataplotter_->rebinH_ = 1;
+  int set_mc = get_mc_set(set);
+  TH1* hQCD = dataplotter_->get_qcd(hist, type, set_mc);
+  return hQCD;
+}
+
+//-------------------------------------------------------------------------------------------------------------------------------
+// Get a 2D QCD histogram
+TH1* get_qcd_2d(TString hist, TString type, int set) {
+  dataplotter_->rebinH_ = 1;
+  TH1* hQCD = dataplotter_->get_qcd_2D(hist, type, set);
+  return hQCD;
+}
+
+//-------------------------------------------------------------------------------------------------------------------------------
 //Get the 2D jet pT vs eta histogram
 // isdata: 0 = MC true taus; 1 = data taus; -1 = MC fake taus
 // icat  : 0 = inclusive; 1 = tight taus; 2 = loose taus
 TH2* get_histogram(int setAbs, int ijet, int idm, int isdata, int icat) {
+  /*
+    Algorithm:
+
+    Data (isdata = 1): Retrieve the data distribution with background processes subtracted (if processes is defined)
+    If process is defined, subtract the fake tau distributions for all other processes from the data.
+    FIXME: For non-QCD backgrounds, first get the QCD distribution as the Data - all true and fake processes, then subtract it from the data
+
+    MC (isdata = 0): Retrieve the true MC tau distribution for all processes
+
+    Fake MC (isdata = -1): Retrieve the fake MC tau tau distribution for the process of interest only
+  */
+
+
+  if(verbose_ > 0) cout << __func__ << ": Retrieving histogram for set = " << setAbs
+                        << " jet-bin = " << ijet << " DM-bin = " << idm
+                        << " cat-bin = " << icat << " and isData = " << isdata << endl;
+
   TH2* h = 0;
   TString name = (isdata < 0) ? "faketaumc" : "faketau"; //using MC jet->tau or not
   name += Form("%ijet%idm_%i", ijet, idm, icat);
@@ -79,7 +137,7 @@ TH2* get_histogram(int setAbs, int ijet, int idm, int isdata, int icat) {
     // Check if this histogram should be added
     if(process_ == "") { //not process-specific factors
       if(dataplotter_->isData_[d] != (isdata > 0)) continue; //check if using data or not
-    } else if(isdata <= 0) { //MC taus
+    } else if(isdata <= 0) { //MC taus, fake or real
       if(dataplotter_->isData_[d]) continue; //skip if data
       //check if this is the correct process if getting MC fake taus (always get all true taus, even in process-specific mode)
       if(isdata < 0 && dataplotter_->labels_[d] != process_ && process_ != "QCD") continue; //for QCD MC fake taus get histogram just to have a dummy histogram
@@ -90,11 +148,11 @@ TH2* get_histogram(int setAbs, int ijet, int idm, int isdata, int icat) {
     //////////////////////////////////////////////////////////
     //Histogram is accepted, so add to the final histogram
 
-    int set = setAbs; //offset to the MC fake taus set if subtracting the process specific fake taus
     const bool bkgProcess = isdata == 1 && !dataplotter_->isData_[d]; //MC fake tau to subtract from data (process not interested in)
+    const int set = (bkgProcess) ? get_mc_set(setAbs) : setAbs; //offset to the MC fake taus set if subtracting the process specific fake taus
     //add the fixed offset to the fake tau included set, so removing fake+real for other processes, real for interested one
-    if(bkgProcess && !usingMCTaus_ && set % 100 < 90) set += 6;
-    else if(bkgProcess && !usingMCTaus_) set -= 1; //set 93 uses set 92, 95 uses 94
+    // if(bkgProcess && !usingMCTaus_ && set % 100 < 90) set += 6;
+    // else if(bkgProcess && !usingMCTaus_) set -= 1; //set 93 uses set 92, 95 uses 94
     const TString hpath = Form("event_%i/%s", set, ((bkgProcess) ? faketauname : name).Data());
     if(verbose_ > 1) cout << "Retrieving histogram " << hpath.Data() << " for " << dataplotter_->names_[d].Data()
                           << " with scale = " << dataplotter_->scale_[d] << endl;
@@ -122,7 +180,27 @@ TH2* get_histogram(int setAbs, int ijet, int idm, int isdata, int icat) {
   }
 
   if(!h) return nullptr;
-  if(verbose_ > 1) cout << "--- Histogram " << name.Data() << " set " << setAbs << " integral = " << h->Integral() << endl;
+
+  //if using a non-QCD process and not in the same-sign region, subtract off the QCD with a same-sign selection estimate
+  if(isdata == 1 && process_ != "" && process_ != "QCD" && ((setAbs % 2000) < 1000)) {
+    //QCD ~ Data - true MC - fake MC = (Data - fake MC) - true MC
+    const int set_qcd = setAbs + 1000; //same-sign region, assume transfer factor of 1
+    TString tmp = process_;
+    process_ = "QCD"; //set to QCD to subtract all other processes
+    if(verbose_ > 0) cout << "--> Getting QCD histogram:\n";
+    TH2* hQCD = get_histogram(set_qcd, ijet, idm, 1, icat);
+    hQCD->Add(get_histogram(set_qcd, ijet, idm, 0, icat), -1.);
+    process_ = tmp;
+    //clip off negative bins
+    for(int xbin = 0; xbin <= hQCD->GetNbinsX()+1; ++xbin) {
+      for(int ybin = 0; ybin <= hQCD->GetNbinsY()+1; ++ybin) {
+        if(hQCD->GetBinContent(xbin, ybin) < 0.) hQCD->SetBinContent(xbin, ybin, 0.);
+      }
+    }
+    h->Add(hQCD, -1.);
+  }
+
+  if(verbose_ > 0) cout << "--- Histogram " << name.Data() << " set " << setAbs << " integral = " << h->Integral() << endl;
   //setup the histogram title and axis titles
   h->SetTitle(name.Data());
   h->SetXTitle("pT (GeV/c)");
@@ -131,21 +209,26 @@ TH2* get_histogram(int setAbs, int ijet, int idm, int isdata, int icat) {
 }
 
 //-------------------------------------------------------------------------------------------------------------------------------
-// Smooth a 1D histogram
-TH1* smooth_hist(TH1* h) {
-  if(!h) return nullptr;
-  TH1* hsmooth = (TH1*) h->Clone(Form("%s_smooth", h->GetName()));
-  const static int nsmooth = 1; //number of times to run the smoothing algorithm
-  hsmooth->Smooth(nsmooth);
-  return hsmooth;
-}
-
-//-------------------------------------------------------------------------------------------------------------------------------
 // get a 1D histogram for closure tests
 // isdata: 0 = MC; 1 = data; -1 = MC fake taus
 TH1* get_closure_hist(TString hist, TString type, int set, int isdata) {
-  TH1* h = 0;
 
+  /*
+    Algorithm:
+
+    Data (isdata = 1): Data with other fake hadronic tau processes subtracted (or just all of the data if the process isn't specified)
+    For retrieving the data, subtract off the (real + fake) MC contributions from processes not interested in. For non-QCD
+    processes, the Data - all real + fake MC processes in the same-sign selection are used to estimate QCD and then subtracted from the data
+
+    MC (isdata = 0): True hadronic tau MC distribution for the specified process (or all true taus if the process isn't specified)
+    For retrieving MC true taus (isdata = 0) for the specified process. True taus from other
+    processes are not needed since the data fake taus includes subtracting the fake + real MC taus from data
+
+    Fake MC (isdata = -1): Real + fake hadronic tau MC distribution for the specified process
+    Essentially the same as the true MC, except if no process is specified nothing is returned
+  */
+
+  TH1* h = nullptr;
   const unsigned nfiles = dataplotter_->data_.size();
   //get the histogram for each process added to the dataplotter
   for(unsigned d = 0; d < nfiles; ++d) {
@@ -153,12 +236,12 @@ TH1* get_closure_hist(TString hist, TString type, int set, int isdata) {
     // Check if this histogram should be added
     if(process_ == "") { //not process-specific factors
       if(dataplotter_->isData_[d] != (isdata > 0)) continue; //check if using data or not
-    } else if(isdata <= 0) { //MC taus
+    } else if(isdata <= 0) { //MC taus, both real and fake
       if(dataplotter_->isData_[d]) continue; //skip if data
       //check if this is the correct process if getting MC fake taus (always get all true taus, even in process-specific mode)
-      if(isdata < 0 && dataplotter_->labels_[d] != process_ && process_ != "QCD") continue; //for QCD MC fake taus get histogram just to have a dummy histogram
+      if(isdata < 0  && dataplotter_->labels_[d] != process_ && process_ != "QCD") continue; //for QCD MC fake taus get histogram just to have a dummy histogram
       //NOTE: for MC (isdata == 0), only retrieve the process true taus, NOT LIKE ABOVE WHERE THE HISTOGRAMS FILTER BY MC TRUTH
-      if(isdata == 0 && dataplotter_->labels_[d] != process_ && process_ != "QCD") continue;
+      if(isdata == 0 && process_ != "" && dataplotter_->labels_[d] != process_ && process_ != "QCD") continue;
     } else { //data, with other fake tau processes subtracted
       if(usingMCTaus_ && dataplotter_->labels_[d] == process_) continue; //skip correct process
     }
@@ -170,9 +253,7 @@ TH1* get_closure_hist(TString hist, TString type, int set, int isdata) {
     const bool bkgprocess = isdata == 1 && !dataplotter_->isData_[d]; //MC to subtract from data
     int set_offset = 0;
     if(!usingMCTaus_ && bkgprocess && dataplotter_->labels_[d] != process_) {  //only subtract MC fake taus if in MC true set and from data
-      set_offset = 6;
-      if(set % 100 == 93) set_offset = -1; //set 93 uses set 92
-      if(set % 100 == 95) set_offset = -1; //set 95 uses set 94
+      set_offset = get_mc_set(set) - set;
     }
     const int setAbs = set + set_offset;
     const char* hpath = Form("%s_%i/%s", type.Data(), setAbs, hist.Data());
@@ -180,7 +261,7 @@ TH1* get_closure_hist(TString hist, TString type, int set, int isdata) {
                           << " with scale = " << dataplotter_->scale_[d] << endl;
     TH1* hTmp = (TH1*) dataplotter_->data_[d]->Get(hpath);
     if(!hTmp) {
-      if(noncl_verbose_ >= 0) cout << "!!! Histogram " << hist.Data() << "/" << type.Data() << "/" << set << " for " << dataplotter_->names_[d].Data() << " not found!\n";
+      if(noncl_verbose_ >= 0) cout << "!!! Histogram " << hist.Data() << "/" << type.Data() << "/" << setAbs << " for " << dataplotter_->names_[d].Data() << " not found!\n";
       continue;
     }
     hTmp = (TH1*) hTmp->Clone(Form("hTmp_%s_%i_d%i", hist.Data(), set, isdata));
@@ -204,6 +285,21 @@ TH1* get_closure_hist(TString hist, TString type, int set, int isdata) {
   }
 
   if(!h) return nullptr;
+
+  //Get the QCD contribution to subtract from data
+  if(isdata == 1 && process_ != "" && process_ != "QCD") {
+    // TString tmp = process_;
+    // process_ = "QCD";
+    // const int set_mc = get_mc_set(set);
+    // TH1* hQCD = get_closure_hist(hist, type, set_mc, isdata);
+    // process_ = tmp;
+    // if(!hQCD) return nullptr;
+    TH1* hQCD = get_qcd_1d(hist, type, set);
+    if(hQCD)
+      h->Add(hQCD, -1.);
+    else std::cout << __func__ << ": QCD histogram is undefined for " << hist.Data() << "/" << type.Data() << "/" << set << std::endl;
+  }
+
   if(noncl_verbose_ > 0)
     cout << "  --- Histogram " << hist.Data() << " set " << set << " integral = " << h->Integral() << endl;
   //setup the histogram title and axis titles
@@ -224,6 +320,7 @@ TH1* get_misid_hist(TString hist, TString type, int set) {
   //if using MC fake taus, get MC fake taus for this process, subtracting the MC true taus from the process
   TH1* hMisID = get_closure_hist(hist, type, set, (usingMCTaus_) ? -1 : 1);
   if(!hMisID) return nullptr;
+
   //If using MC taus, subtract the MC true taus from the distribution
   if(usingMCTaus_) {
     int set_nomc = set;
@@ -495,7 +592,7 @@ TCanvas* make_eta_region_canvas(TH2* hnum, TH2* hdnm, TString name, bool iseff,
         hetas[ibin]->SetBinError  (jbin,0.9);
       }
     }
-    TString fit_option = (verbose_ > 0) ? "S" : "q s";
+    TString fit_option = (verbose_ > 0) ? "S 0" : "Q S 0";
     if(!drawFit_) {
       fit_option += " 0";
       hetas[ibin]->Draw("E1");
@@ -537,21 +634,34 @@ TCanvas* make_eta_region_canvas(TH2* hnum, TH2* hdnm, TString name, bool iseff,
       // func->SetParLimits(func->GetParNumber("slope"), -1.e3, 1.e3);  //1
       func->SetParLimits(func->GetParNumber("xoffset"), -19., 1e4);  //2
     }
-    auto fit_res = hetas[ibin]->Fit(func, fit_option.Data());
-    if(!fit_res || fit_res == -1) {
-      cout << "Fit result not returned!\n";
-    } else if(fit_res == 4) {
-      cout << "Fit failed! Repeating with shifted values...\n";
-      if(mode == 4) func->SetParameters(0.1, 1., 2.);
-      fit_res = hetas[ibin]->Fit(func, fit_option.Data());
-    } else if(verbose_ > 0) {
-      try {
-        cout << "Fit address: " << fit_res << endl;
-        fit_res->Print();
-      } catch(exception e) {
-        cout << "Printing the fit result failed: " << e.what() << endl;
+    bool refit = false;
+    int ifit = 0;
+    int max_fits = 5;
+    do {
+      refit = false;
+      auto fit_res = hetas[ibin]->Fit(func, fit_option.Data());
+      const double chi_sq = func->GetChisquare() / hetas[ibin]->GetNbinsX();
+      if(chi_sq > 1.5) {
+        refit = true;
+        ++ifit;
+        cout << "Fit has chi^2 = " << chi_sq << " --> refitting!\n";
+        if(ifit < max_fits && mode == 4) func->SetParameters(2*(0.5 - rnd_.Uniform()), 50.*(0.5 - rnd_.Uniform()), 20.*(0.5 - rnd_.Uniform()));
       }
-    }
+      // if(!fit_res || fit_res == -1) {
+      //   cout << "Fit result not returned!\n";
+      // } else if(fit_res == 4) {
+      //   cout << "Fit failed! Repeating with shifted values...\n";
+      //   if(mode == 4) func->SetParameters(0.1, 1., 2.);
+      //   fit_res = hetas[ibin]->Fit(func, fit_option.Data());
+      // } else if(verbose_ > 0) {
+      //   try {
+      //     cout << "Fit address: " << fit_res << endl;
+      //     fit_res->Print();
+      //   } catch(exception e) {
+      //     cout << "Printing the fit result failed: " << e.what() << endl;
+      //   }
+      // }
+    } while(refit && ifit < max_fits);
     hetas[ibin]->SetLineWidth(2);
     hetas[ibin]->SetMarkerStyle(6);
     TString eta_region = Form("%.1f #leq |#eta| < %.1f, %s", hnum->GetYaxis()->GetBinLowEdge(ibin+1),
@@ -639,6 +749,8 @@ Int_t initialize_plotter(TString base, TString path, int year) {
   dataplotter_->embed_scale_ = embedScale_;
   years_ = {year};
 
+  // splitWJ_ = 0;
+
   std::vector<dcard> cards;
   get_datacards(cards, selection_, true);
 
@@ -656,7 +768,7 @@ Int_t initialize_plotter(TString base, TString path, int year) {
 
 //-------------------------------------------------------------------------------------------------------------------------------
 //Generate the plots and scale factors
-Int_t scale_factors(TString selection = "mumu", TString process = "", int set1 = 8, int set2 = 8, int year = 2016,
+Int_t scale_factors(TString selection = "mutau", TString process = "", int set1 = 31, int set2 = 2031, int year = 2016,
                     TString path = "nanoaods_dev") {
 
   ///////////////////////
@@ -1084,6 +1196,11 @@ Int_t scale_factors(TString selection = "mumu", TString process = "", int set1 =
     hRatio->Divide(hMC); //No integral matching since bias test should include shape + rate
     hRatio->Write();
     c->Print(Form("%sjettau_lepm_bias.png", name.Data()));
+    //Add a bias option that only corrects the shape
+    hRatio = (TH1*) hData->Clone("LepMBiasShape");
+    hMC->Scale(hData->Integral() / hMC->Integral());
+    hRatio->Divide(hMC);
+    hRatio->Write();
   }
 
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettaumtlep2", "event", 0), hData, hMC);
@@ -1131,45 +1248,49 @@ Int_t scale_factors(TString selection = "mumu", TString process = "", int set1 =
   /////////////////////////////////////////////
   // Additional figures / closure tests
 
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettautwometdeltaphi", "lep"  , 0               )); if(c) c->Print(Form("%sjettau_twometdeltaphi.png", name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("onept"               , "lep"  , 0, 2,  20., 100.)); if(c) c->Print(Form("%sonept.png"                , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("onereliso"           , "lep"  , 0, 1,   0.,  0.5)); if(c) c->Print(Form("%sonereliso.png"            , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettauonereliso_0"   , "lep"  , 0, 0,   0.,  0.5)); if(c) c->Print(Form("%sjettau_onereliso.png"     , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettauoneptqcd_0"    , "lep"  , 0, 0,   0., 200.)); if(c) c->Print(Form("%sjettau_oneptqcd_0.png"    , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettauonemetdphiqcd0", "lep"  , 0, 0,   1.,  -1.)); if(c) c->Print(Form("%sjettau_onemetdphiqcd_0.png", name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettautwoetaqcd0"    , "lep"  , 0, 0,   1.,  -1.)); if(c) c->Print(Form("%sjettau_twoetaqcd_0.png"   , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("onept11"             , "lep"  , 0, 2,  20., 100.)); if(c) c->Print(Form("%sonept11.png"              , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("oneeta"              , "lep"  , 0, 2,  -3.,   3.)); if(c) c->Print(Form("%soneeta.png"               , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("twopt"               , "lep"  , 0, 2,  20., 100.)); if(c) c->Print(Form("%stwopt.png"                , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("twopt11"             , "lep"  , 0, 2,  20., 100.)); if(c) c->Print(Form("%stwopt11.png"              , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("twoeta"              , "lep"  , 0, 2,  -3.,   3.)); if(c) c->Print(Form("%stwoeta.png"               , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("tausdm"              , "event", 0, 1,   0.,  12.)); if(c) c->Print(Form("%stausdm.png"               , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("tauspt"              , "event", 0, 1,  20., 100.)); if(c) c->Print(Form("%stauspt.png"               , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("mtone"               , "event", 0, 5,   0., 150.)); if(c) c->Print(Form("%smtone.png"                , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettaumtone0"        , "event", 0               )); if(c) c->Print(Form("%sjettau_mtone0.png"       , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettaumtone1"        , "event", 0               )); if(c) c->Print(Form("%sjettau_mtone1.png"       , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("mttwo"               , "event", 0, 5,   0., 150.)); if(c) c->Print(Form("%smttwo.png"                , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettaumttwo0"        , "event", 0               )); if(c) c->Print(Form("%sjettau_mttwo0.png"       , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettaumttwo1"        , "event", 0               )); if(c) c->Print(Form("%sjettau_mttwo1.png"       , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("mtlep"               , "event", 0, 2,   0., 150.)); if(c) c->Print(Form("%smtlep.png"                , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettaumtlep0"        , "event", 0               )); if(c) c->Print(Form("%sjettau_mtlep0.png"        , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettaumtlep1"        , "event", 0               )); if(c) c->Print(Form("%sjettau_mtlep1.png"        , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("lepm"                , "event", 0, 5,  50., 170.)); if(c) c->Print(Form("%slepm.png"                 , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettaulepm0"         , "event", 0               )); if(c) c->Print(Form("%sjettau_lepm0.png"         , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("lepmestimate"        , "event", 0, 5, 50.,  200.)); if(c) c->Print(Form("%slepmestimate.png"         , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("lepmestimatetwo"     , "event", 0, 5, 50.,  200.)); if(c) c->Print(Form("%slepmestimatetwo.png"      , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettaudeltar0"       , "event", 0               )); if(c) c->Print(Form("%sjettau_deltar0.png"       , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettaudeltar1"       , "event", 0               )); if(c) c->Print(Form("%sjettau_deltar1.png"       , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("ntaus"               , "event", 0, 1,   0.,   7.)); if(c) c->Print(Form("%sntaus.png"                , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("njets"               , "event", 0, 1,   0.,   7.)); if(c) c->Print(Form("%snjets.png"                , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("njets20"             , "event", 0, 1,   0.,   7.)); if(c) c->Print(Form("%snjets20.png"              , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("lepdeltar"           , "event", 0, 2,   0.,   6.)); if(c) c->Print(Form("%slepdeltar.png"            , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("lepdeltaphi"         , "event", 0, 2,   0.,   4.)); if(c) c->Print(Form("%slepdeltaphi.png"          , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettauoner"          , "lep"  , 0               )); if(c) c->Print(Form("%sjettau_oner.png"          , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettautwor"          , "lep"  , 0               )); if(c) c->Print(Form("%sjettau_twor.png"          , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettautwopt"         , "lep"  , 0               )); if(c) c->Print(Form("%sjettau_twopt.png"         , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("onemetdeltaphi"      , "lep"  , 0, 1,  0.,   4. )); if(c) c->Print(Form("%sonemetdeltaphi.png"       , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("twometdeltaphi"      , "lep"  , 0, 1,  0.,   4. )); if(c) c->Print(Form("%stwometdeltaphi.png"       , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettautwometdeltaphi"  , "lep"  , 0               )); if(c) c->Print(Form("%sjettau_twometdeltaphi.png"   , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettautwometdeltaphi0" , "lep"  , 0               )); if(c) c->Print(Form("%sjettau_twometdeltaphi_0.png" , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettauonemetdeltaphi0" , "lep"  , 0               )); if(c) c->Print(Form("%sjettau_onemetdeltaphi_0.png" , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("onept"                 , "lep"  , 0, 2,  20., 100.)); if(c) c->Print(Form("%sonept.png"                   , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("onereliso"             , "lep"  , 0, 1,   0.,  0.5)); if(c) c->Print(Form("%sonereliso.png"               , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettauonereliso_0"     , "lep"  , 0, 0,   0.,  0.5)); if(c) c->Print(Form("%sjettau_onereliso.png"        , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettauoneptqcd_0"      , "lep"  , 0, 0,   0., 200.)); if(c) c->Print(Form("%sjettau_oneptqcd_0.png"       , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettauonemetdphiqcd0"  , "lep"  , 0, 0,   1.,  -1.)); if(c) c->Print(Form("%sjettau_onemetdphiqcd_0.png"  , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettautwoetaqcd0"      , "lep"  , 0, 0,   1.,  -1.)); if(c) c->Print(Form("%sjettau_twoetaqcd_0.png"      , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettautwopt0"          , "lep"  , 0, 0,   1.,  -1.)); if(c) c->Print(Form("%sjettau_twopt_0.png"          , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettauonept0"          , "lep"  , 0, 0,   1.,  -1.)); if(c) c->Print(Form("%sjettau_onept_0.png"          , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("onept11"               , "lep"  , 0, 2,  20., 100.)); if(c) c->Print(Form("%sonept11.png"                 , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("oneeta"                , "lep"  , 0, 2,  -3.,   3.)); if(c) c->Print(Form("%soneeta.png"                  , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("twopt"                 , "lep"  , 0, 2,  20., 100.)); if(c) c->Print(Form("%stwopt.png"                   , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("twopt11"               , "lep"  , 0, 2,  20., 100.)); if(c) c->Print(Form("%stwopt11.png"                 , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("twoeta"                , "lep"  , 0, 2,  -3.,   3.)); if(c) c->Print(Form("%stwoeta.png"                  , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("tausdm"                , "event", 0, 1,   0.,  12.)); if(c) c->Print(Form("%stausdm.png"                  , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("tauspt"                , "event", 0, 1,  20., 100.)); if(c) c->Print(Form("%stauspt.png"                  , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("mtone"                 , "event", 0, 5,   0., 150.)); if(c) c->Print(Form("%smtone.png"                   , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettaumtone0"          , "event", 0               )); if(c) c->Print(Form("%sjettau_mtone0.png"           , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettaumtone1"          , "event", 0               )); if(c) c->Print(Form("%sjettau_mtone1.png"           , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("mttwo"                 , "event", 0, 5,   0., 150.)); if(c) c->Print(Form("%smttwo.png"                   , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettaumttwo0"          , "event", 0               )); if(c) c->Print(Form("%sjettau_mttwo0.png"           , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettaumttwo1"          , "event", 0               )); if(c) c->Print(Form("%sjettau_mttwo1.png"           , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("mtlep"                 , "event", 0, 2,   0., 150.)); if(c) c->Print(Form("%smtlep.png"                   , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettaumtlep0"          , "event", 0               )); if(c) c->Print(Form("%sjettau_mtlep0.png"           , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettaumtlep1"          , "event", 0               )); if(c) c->Print(Form("%sjettau_mtlep1.png"           , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("lepm"                  , "event", 0, 5,  50., 170.)); if(c) c->Print(Form("%slepm.png"                    , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettaulepm0"           , "event", 0               )); if(c) c->Print(Form("%sjettau_lepm0.png"            , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("lepmestimate"          , "event", 0, 5, 50.,  200.)); if(c) c->Print(Form("%slepmestimate.png"            , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("lepmestimatetwo"       , "event", 0, 5, 50.,  200.)); if(c) c->Print(Form("%slepmestimatetwo.png"         , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettaudeltar0"         , "event", 0               )); if(c) c->Print(Form("%sjettau_deltar0.png"          , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettaudeltar1"         , "event", 0               )); if(c) c->Print(Form("%sjettau_deltar1.png"          , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("ntaus"                 , "event", 0, 1,   0.,   7.)); if(c) c->Print(Form("%sntaus.png"                   , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("njets"                 , "event", 0, 1,   0.,   7.)); if(c) c->Print(Form("%snjets.png"                   , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("njets20"               , "event", 0, 1,   0.,   7.)); if(c) c->Print(Form("%snjets20.png"                 , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("lepdeltar"             , "event", 0, 2,   0.,   6.)); if(c) c->Print(Form("%slepdeltar.png"               , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("lepdeltaphi"           , "event", 0, 2,   0.,   4.)); if(c) c->Print(Form("%slepdeltaphi.png"             , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettauoner"            , "lep"  , 0               )); if(c) c->Print(Form("%sjettau_oner.png"             , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettautwor"            , "lep"  , 0               )); if(c) c->Print(Form("%sjettau_twor.png"             , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettautwopt"           , "lep"  , 0               )); if(c) c->Print(Form("%sjettau_twopt.png"            , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("onemetdeltaphi"        , "lep"  , 0, 1,  0.,   4. )); if(c) c->Print(Form("%sonemetdeltaphi.png"          , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("twometdeltaphi"        , "lep"  , 0, 1,  0.,   4. )); if(c) c->Print(Form("%stwometdeltaphi.png"          , name.Data()));
   // make_2d_canvas(setAbs1, setAbs2, PlottingCard_t("jettautwoptvsr", "lep", 0), true);
   // make_2d_canvas(setAbs1, setAbs2, PlottingCard_t("twoptvsonept"  , "lep", 0), true);
 

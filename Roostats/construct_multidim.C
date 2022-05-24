@@ -1,7 +1,7 @@
 #ifndef __CONSTRUCT_MULTIDIM__
 #define __CONSTRUCT_MULTIDIM__
 //Construct multi-dimensional PDF with discrete index
-bool useFrameChiSq_ = false;
+bool useFrameChiSq_ = true;
 bool use_generic_bernstein_ = false;
 bool use_fast_bernstein_ = true;
 
@@ -151,7 +151,7 @@ void add_chebychevs(RooDataHist& data, RooRealVar& obs, RooArgList& list, bool u
   double chi_min = 1.e10;
   const double chi_cutoff = 3.85;
   int num_added = -1;
-  int best_order;
+  int best_order = -1;
   for(int order = 1; order <= max_order; ++order) {
     RooChebychev* pdf = create_chebychev(obs, order, set);
     if(useSideBands)
@@ -187,7 +187,8 @@ void add_bernsteins(RooDataHist& data, RooRealVar& obs, RooArgList& list, bool u
   double chi_min = 1.e10;
   const double chi_cutoff = 3.85;
   int num_added = -1;
-  int best_order;
+  int best_order = -1;
+  const int max_tries = 2; //retry if poor fit to get a better one
   for(int order = 1; order <= max_order; ++order) {
     RooAbsPdf* basePdf;
     if(use_generic_bernstein_)   basePdf = create_generic_bernstein(obs, order, set);
@@ -197,13 +198,20 @@ void add_bernsteins(RooDataHist& data, RooRealVar& obs, RooArgList& list, bool u
     RooRealVar* pdfNorm = new RooRealVar(Form("%s_norm", basePdf->GetName()), Form("%s_norm", basePdf->GetName()),
                                          data.sumEntries(), 0.5*data.sumEntries(), 1.5*data.sumEntries());
     RooAddPdf* pdf = new RooAddPdf(Form("%s_wrapper", basePdf->GetName()), basePdf->GetTitle(), RooArgList(*basePdf), RooArgList(*pdfNorm));
-    if(useSideBands)
-      pdf->fitTo(data, RooFit::Extended(true), RooFit::PrintLevel(-1 + 2*(verbose > 2)), //RooFit::Minimizer("Minuit2", "migrad"),
-                 RooFit::Warnings(0), RooFit::PrintEvalErrors(-1), RooFit::Range("LowSideband,HighSideband"));
-    else
-      pdf->fitTo(data, RooFit::PrintLevel(-1 + 2*(verbose > 2)), RooFit::Warnings(0), RooFit::PrintEvalErrors(-1));
     const int dof = (data.numEntries() - order - 2);  //DOF = number of variables + normalization
-    const double chi_sq = get_chi_squared(obs, pdf, data, useSideBands);
+    double chi_sq = 1e10;
+    int ntries = 0;
+    do {
+      ++ntries;
+      if(useSideBands) {
+        pdf->fitTo(data, RooFit::Extended(true), RooFit::PrintLevel(-1 + 2*(verbose > 2)), //RooFit::Minimizer("Minuit2", "migrad"),
+                   RooFit::Warnings(0), RooFit::PrintEvalErrors(-1), RooFit::Range("LowSideband,HighSideband"));
+      } else {
+        pdf->fitTo(data, RooFit::PrintLevel(-1 + 2*(verbose > 2)), RooFit::Warnings(0), RooFit::PrintEvalErrors(-1));
+      }
+      chi_sq =  get_chi_squared(obs, pdf, data, useSideBands);
+    } while(chi_sq / dof > max_chisq && ntries < max_tries);
+
     if(chi_sq / dof < max_chisq) {
       list.add(*pdf);
       ++num_added;

@@ -8,6 +8,8 @@ TString name_           ; //figures directory
 int     setqcd_         ; //set to estimate QCD background in
 TString selection_      ;
 
+//-----------------------------------------------------------------------------------------------------------------------------------------
+// Estimate the QCD using Data - MC
 TH1* get_qcd(PlottingCard_t card) {
   TString hist = card.hist_;
   TString type = card.type_;
@@ -28,12 +30,14 @@ TH1* get_qcd(PlottingCard_t card) {
   return hQCD;
 }
 
+//-----------------------------------------------------------------------------------------------------------------------------------------
 void make_composition(PlottingCard_t card, bool printHists = false, bool debug = false) {
   TString hist = card.hist_;
   TString type = card.type_;
-  int set = card.set_;
+  const int set = card.set_;
   if(card.rebin_ > 1) dataplotter_->rebinH_ = card.rebin_;
   else dataplotter_->rebinH_ = 1;
+
   //Get MC stack
   THStack* hstack = dataplotter_->get_stack(hist, type, set);
   if(!hstack || hstack->GetNhists() == 0) return;
@@ -119,7 +123,7 @@ void make_composition(PlottingCard_t card, bool printHists = false, bool debug =
   c->Print(Form("%scomp_%s_%s.png", name_.Data(), type.Data(), hist.Data()));
 }
 
-//-------------------------------------------------------------------------------------------------------------------------------
+//-----------------------------------------------------------------------------------------------------------------------------------------
 //initialize the files and scales using a DataPlotter
 Int_t initialize_plotter(TString base, TString path, int year) {
   if(dataplotter_) delete dataplotter_;
@@ -147,6 +151,7 @@ Int_t initialize_plotter(TString base, TString path, int year) {
   return status;
 }
 
+//-----------------------------------------------------------------------------------------------------------------------------------------
 //setup everything
 Int_t init(TString selection = "mutau", int year = 2016, TString path = "nanoaods_dev") {
   selection_ = selection;
@@ -164,8 +169,9 @@ Int_t init(TString selection = "mutau", int year = 2016, TString path = "nanoaod
   return 0;
 }
 
+//-----------------------------------------------------------------------------------------------------------------------------------------
 //Generate the plots and scale factors
-Int_t composition(TString selection = "mutau", int setmc = 2042, int setqcd = 2035, int year = 2016, TString path = "nanoaods_dev") {
+Int_t composition(TString selection = "mutau", int setmc = 2042, int setqcd = 3035, int year = 2016, TString path = "nanoaods_dev") {
   //////////////////////
   // Initialize files //
   //////////////////////
@@ -202,7 +208,7 @@ Int_t composition(TString selection = "mutau", int setmc = 2042, int setqcd = 20
   gSystem->Exec("[ ! -d rootfiles ] && mkdir rootfiles");
 
   //print canvases
-  TFile* fOut = new TFile(Form("rootfiles/jet_to_tau_comp_%s_%i_%i.root", selection.Data(), setqcd, year), "RECREATE");
+  TFile* fOut = new TFile(Form("rootfiles/jet_to_tau_comp_%s_%i_%i_%i.root", selection.Data(), setmc, setqcd, year), "RECREATE");
   make_composition(PlottingCard_t("twopt", "lep", setmcAbs, 2, 20., 150.), false);
   make_composition(PlottingCard_t("jettautwopt", "lep", setmcAbs), false);
   make_composition(PlottingCard_t("jettauonept", "lep", setmcAbs), false);

@@ -214,30 +214,19 @@ MuonIDWeight::~MuonIDWeight() {
 double MuonIDWeight::TriggerEff(double pt, double eta, int year, bool isLow, float& data_eff, float& mc_eff) {
   data_eff = 0.5; //safer default than 0 or 1, as eff and 1-eff are well defined in ratios
   mc_eff = 0.5;
-  year -= 2016;
+  if(year > 2000) year -= 2016;
   if(year != k2016 && year != k2017 && year != k2018) {
     std::cout << "Warning! Undefined year in MuonIDWeight::" << __func__ << ", returning -1" << std::endl;
     return 1.;
   }
   //can't fire a trigger if below the threshold
-  if((year == k2016 && pt < 25.) || (year == k2017 && pt < 28.) || (year == k2018 && pt < 25.)) {
+  if((year == k2016 && pt < 24.) || (year == k2017 && pt < 27.) || (year == k2018 && pt < 24.)) {
     return 1.;
   }
   if(!isLow && pt < 50.) {
     return 1.;
   }
   eta = std::fabs(eta);
-  if(eta >= 2.39)       eta =  2.39; //maximum eta for corrections
-  if(!isLow && pt < 52.) pt = 52.;
-  if(pt > 119.) pt = 119.; //maximum pT for corrections
-
-  if(year == k2016) {
-    if(pt < 26.) pt = 26.;
-  } else if (year == k2017) {
-    if(pt < 29.) pt = 29.;
-  } else if (year == k2018) {
-    if(pt < 26.) pt = 26.;
-  }
 
   const double rand = rnd_->Uniform();
   bool firstSection = true; //whether this MC is for the first or second part of the data taking period
@@ -258,12 +247,16 @@ double MuonIDWeight::TriggerEff(double pt, double eta, int year, bool isLow, flo
               << " low trigger = " << isLow << " first period = " << firstSection << std::endl;
     return 1.;
   }
-  data_eff = hTrigData->GetBinContent(hTrigData->GetXaxis()->FindBin(eta), hTrigData->GetYaxis()->FindBin(pt));
-  mc_eff   = hTrigMC  ->GetBinContent(hTrigMC  ->GetXaxis()->FindBin(eta), hTrigMC  ->GetYaxis()->FindBin(pt));
+  const int data_binx = std::max(1, std::min(hTrigData->GetNbinsX(), hTrigData->GetXaxis()->FindBin(eta)));
+  const int data_biny = std::max(1, std::min(hTrigData->GetNbinsY(), hTrigData->GetYaxis()->FindBin(pt)));
+  data_eff = hTrigData->GetBinContent(data_binx, data_biny);
+  const int mc_binx   = std::max(1, std::min(hTrigMC  ->GetNbinsX(), hTrigMC  ->GetXaxis()->FindBin(eta)));
+  const int mc_biny   = std::max(1, std::min(hTrigMC  ->GetNbinsY(), hTrigMC  ->GetYaxis()->FindBin(pt)));
+  mc_eff   = hTrigMC  ->GetBinContent(mc_binx  , mc_biny  );
 
   const double scale_factor = (mc_eff > 0.) ? data_eff / mc_eff : 1.;
-  if(std::isnan(scale_factor) || scale_factor <= 0. || verbose_ > 0) {
-    if(std::isnan(scale_factor) || scale_factor <= 0.) std::cout << "Warning! Scale factor <= 0 or nan! ";
+  if(!std::isfinite(scale_factor) || scale_factor <= 0. || verbose_ > 0) {
+    if(!std::isfinite(scale_factor) || scale_factor <= 0.) std::cout << "Warning! Scale factor <= 0 or nan! ";
     std::cout << "MuonIDWeight::" << __func__
               << " year = " << year + 2016
               << " period = " << firstSection
@@ -273,7 +266,7 @@ double MuonIDWeight::TriggerEff(double pt, double eta, int year, bool isLow, flo
               << " mc_eff = " << mc_eff
               << " scale = " << scale_factor
               << std::endl;
-    if(std::isnan(scale_factor) || scale_factor <= 0.) return 1.;
+    if(!std::isfinite(scale_factor) || scale_factor <= 0.) return 1.;
   }
   return scale_factor;
 }

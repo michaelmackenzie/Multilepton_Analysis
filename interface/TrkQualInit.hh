@@ -28,6 +28,8 @@ namespace CLFV {
        9 : lepm, mtone, mttwo, onemetdphi, twometdphi, onept, twopt, leppt, lepdeltaphi, deltaalpha, lepmestimate, jetpt
        10: lepm, mtone, mttwo, onemetdphi, twometdphi,                      lepdeltaphi, deltaalpha, lepmestimate
        11: lepm, mtone, mttwo, onemetdphi, twometdphi,               leppt, lepdeltaphi, deltaalpha, lepmestimate, jetpt
+       e+mu:
+       7 : mtoneoverm, mttwooverm, onemetdphi, twometdphi, oneptoverm, twoptoverm, lepptoverm, lepdeltaphi, jetpt
      **/
     TrkQualInit(int version = TrkQualInit::Default, int njets = 0) {
       version_ = version;

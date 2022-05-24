@@ -1,12 +1,26 @@
 #! /bin/bash
 
-root.exe -q -b "scale_factors.C(2016, 0)";
-root.exe -q -b "scale_factors.C(2016, 1)";
-root.exe -q -b "scale_factors.C(2017, 0)";
-root.exe -q -b "scale_factors.C(2017, 1)";
-root.exe -q -b "scale_factors.C(2018, 0)";
-root.exe -q -b "scale_factors.C(2018, 1)";
+YEARS=$1
+WPS=$2
 
-root.exe -q -b "combine_efficiencies.C(2016)";
-root.exe -q -b "combine_efficiencies.C(2017)";
-root.exe -q -b "combine_efficiencies.C(2018)";
+if [[ "${YEARS}" == "" ]]
+then
+    YEARS="2016 2017 2018"
+fi
+
+if [[ "${WPS}" == "" ]]
+then
+    #standard WPs = WPL (1), WP80 (3), and WPL + !WP80 (5)
+    WPS="3 5"
+fi
+
+for YEAR in ${YEARS}
+do
+    for WP in ${WPS}
+    do
+        echo "Performing TnP measurement for year ${YEAR} and WP ${WP}"
+        root.exe -q -b "scale_factors.C(${YEAR}, 0, ${WP})";
+        root.exe -q -b "scale_factors.C(${YEAR}, 1, ${WP})";
+        root.exe -q -b "combine_efficiencies.C(${YEAR}, ${WP})";
+    done
+done

@@ -224,8 +224,9 @@ void NanoAODConversion::InitializeInBranchStructure(TTree* tree) {
   tree->SetBranchAddress("Tau_idDeepTau2017v2p1VSe"        , &tauDeep2017VsE                 ) ;
   tree->SetBranchAddress("Tau_idDeepTau2017v2p1VSmu"       , &tauDeep2017VsMu                ) ;
   tree->SetBranchAddress("Tau_idDeepTau2017v2p1VSjet"      , &tauDeep2017VsJet               ) ;
-  if(fIsData == 0)
-    tree->SetBranchAddress("Tau_genPartFlav"                 , &tauGenID                       ) ;
+  if(fIsData == 0) {
+    tree->SetBranchAddress("Tau_genPartFlav"               , &tauGenID                       ) ;
+  }
 
   //Jet branches
   tree->SetBranchAddress("nJet"                            , &nJet                           ) ;
@@ -651,11 +652,14 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
   //////////////////////////////
 
   //use PUPPI MET by default, update by selection due to any MET corrections after object pT corrections
-  met = puppMET;
+  met    = puppMET;
   metPhi = puppMETphi;
   //set corrected PUPPI MET to be nominal
   puppMETC    = puppMET   ;
   puppMETCphi = puppMETphi;
+  //set correction applied due to updated energy scales to 0
+  metCorr    = 0.;
+  metCorrPhi = 0.;
 
 
   //////////////////////////////
@@ -740,7 +744,7 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
   //      lep 1 = muon        //
   //////////////////////////////
   if(selection == kMuTau || selection == kMuMu) {
-    unsigned index = (selection == kMuMu && nMuons > 2) ? leptonOneIndex : fMuonIndices[selection][0];
+    const unsigned index = (selection == kMuMu && nMuons > 2) ? leptonOneIndex : fMuonIndices[selection][0];
     leptonOneP4->SetPtEtaPhiM(muonPt[index], muonEta[index],
                               muonPhi[index], muonMass[index]);
     leptonOneSCEta = muonEta[index];
@@ -777,7 +781,7 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
   //     lep 1 = electron     //
   //////////////////////////////
   } else if(selection == kETau || selection == kEMu || selection == kEE) {
-    unsigned index = (selection == kEE && nElectrons > 2) ? leptonOneIndex : fElectronIndices[selection][0];
+    const unsigned index = (selection == kEE && nElectrons > 2) ? leptonOneIndex : fElectronIndices[selection][0];
     leptonOneP4->SetPtEtaPhiM(electronPt[index], electronEta[index],
                               electronPhi[index], electronMass[index]);
     leptonOneSCEta = electronEta[index] + electronDeltaEtaSC[index];
@@ -791,7 +795,7 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
     leptonOneIndex = index;
     trigMatchOne = GetTriggerMatch(index, false, trigIndexOne);
     if(!fIsData) {
-      particleCorrections->ElectronWeight(electronPt[index], electronEta[index]+electronDeltaEtaSC[index], fYear, lepOneTrigWeight,
+      particleCorrections->ElectronWeight(electronPt[index], electronEta[index]+electronDeltaEtaSC[index], fYear,
                                           lepOneWeight1, lepOneWeight1_up, lepOneWeight1_down, lepOneWeight1_bin,
                                           lepOneWeight2, lepOneWeight2_up, lepOneWeight2_down, lepOneWeight2_bin
                                           );
@@ -820,7 +824,7 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
   //      lep 2 = tau         //
   //////////////////////////////
   if(selection == kMuTau || selection == kETau) {
-    unsigned index = fTauIndices[selection][0];
+    const unsigned index = fTauIndices[selection][0];
     leptonTwoP4->SetPtEtaPhiM(tauPt[index], tauEta[index],
                               tauPhi[index],tauMass[index]);
     leptonTwoSCEta = tauEta[index];
@@ -856,7 +860,7 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
   //      lep 2 = muon        //
   //////////////////////////////
   } else if(selection == kEMu) {
-    unsigned index = fMuonIndices[selection][0];
+    const unsigned index = fMuonIndices[selection][0];
     leptonTwoP4->SetPtEtaPhiM(muonPt[index], muonEta[index],
                               muonPhi[index],muonMass[index]);
     leptonTwoSCEta = muonEta[index];
@@ -897,7 +901,7 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
   //      lep 2 = muon(2)     //
   //////////////////////////////
   } else if(selection == kMuMu) {
-    unsigned index = (nMuons > 2) ? leptonTwoIndex : fMuonIndices[selection][1];
+    const unsigned index = (nMuons > 2) ? leptonTwoIndex : fMuonIndices[selection][1];
     leptonTwoP4->SetPtEtaPhiM(muonPt[index], muonEta[index],
                               muonPhi[index], muonMass[index]);
     leptonTwoSCEta = muonEta[index];
@@ -934,7 +938,7 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
   //    lep 2 = electron(2)   //
   //////////////////////////////
   } else if(selection == kEE) {
-    unsigned index = (nElectrons > 2) ? leptonTwoIndex : fElectronIndices[selection][1];
+    const unsigned index = (nElectrons > 2) ? leptonTwoIndex : fElectronIndices[selection][1];
     leptonTwoP4->SetPtEtaPhiM(electronPt[index], electronEta[index],
                               electronPhi[index], electronMass[index]);
     leptonTwoSCEta = electronEta[index] + electronDeltaEtaSC[index];
@@ -948,7 +952,7 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
     leptonTwoGenFlavor = (!fIsData) ? ElectronFlavorFromID(electronGenFlavor[index]) : 0;
     leptonTwoIndex = index;
     if(!fIsData) {
-      particleCorrections->ElectronWeight(electronPt[index], electronEta[index]+electronDeltaEtaSC[index], fYear, lepTwoTrigWeight,
+      particleCorrections->ElectronWeight(electronPt[index], electronEta[index]+electronDeltaEtaSC[index], fYear,
                                           lepTwoWeight1, lepTwoWeight1_up, lepTwoWeight1_down, lepTwoWeight1_bin,
                                           lepTwoWeight2, lepTwoWeight2_up, lepTwoWeight2_down, lepTwoWeight2_bin
                                           );

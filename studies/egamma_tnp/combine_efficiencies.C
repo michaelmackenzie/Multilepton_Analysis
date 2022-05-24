@@ -1,9 +1,27 @@
 //Combine the Data and MC efficiency measurements into a scale factor file
 
+//set reasonable z-range
+void set_z_range(TH2* h) {
+  double min_z(1.e3), max_z(-1.e3);
+  for(int xbin = 1; xbin <= h->GetNbinsX(); ++xbin) {
+    for(int ybin = 1; ybin <= h->GetNbinsY(); ++ybin) {
+      const double binc = h->GetBinContent(xbin, ybin);
+      if(binc > 1.e-4) min_z = std::min(min_z, binc);
+      max_z = std::max(max_z, binc);
+    }
+  }
+  if(min_z < max_z) {
+    min_z -= 0.1*(max_z - min_z);
+    max_z += 0.1*(max_z - min_z);
+    h->GetZaxis()->SetRangeUser(min_z, max_z);
+  }
+  else h->GetZaxis()->SetRangeUser(0.8, 1.2);
+}
+
 //fit the scale factors in bins of eta as a function of pT
-void fit_scales(TH2F* h, int year) {
+void fit_scales(TH2F* h, int year, int WP) {
   //x-axis is the super cluster eta axis
-  gSystem->Exec(Form("[ ! -d figures/scale_fits_%i ] && mkdir -p figures/scale_fits_%i", year, year));
+  gSystem->Exec(Form("[ ! -d figures/scale_fits_%i_wp%i ] && mkdir -p figures/scale_fits_%i_wp%i", year, WP, year, WP));
   TVirtualFitter::SetMaxIterations( 1e6 );
   gStyle->SetOptFit(1111);
   for(int xbin = 1; xbin <= h->GetNbinsX(); ++xbin) {
@@ -25,16 +43,16 @@ void fit_scales(TH2F* h, int year) {
     hPt->SetLineWidth(2);
     hPt->Draw("E");
 
-    c->SaveAs(Form("figures/scale_fits_%i/%s_bin_%i.png", year, h->GetName(), xbin));
+    c->SaveAs(Form("figures/scale_fits_%i_wp%i/%s_bin_%i.png", year, WP, h->GetName(), xbin));
     f->Write();
     delete hPt;
   }
 }
 
-void combine_efficiencies(int year) {
+void combine_efficiencies(int year = 2016, int WP = 3) {
 
-  TFile* fData = TFile::Open(Form("rootfiles/efficiencies_0_%i.root", year), "READ");
-  TFile* fMC   = TFile::Open(Form("rootfiles/efficiencies_1_%i.root", year), "READ");
+  TFile* fData = TFile::Open(Form("rootfiles/efficiencies_%i_wp%i_mc0.root", year, WP), "READ");
+  TFile* fMC   = TFile::Open(Form("rootfiles/efficiencies_%i_wp%i_mc1.root", year, WP), "READ");
   TH2F* hData  = (TH2F*) fData->Get("hRatio");
   if(!hData) {
     cout << "Data histogram not found!\n";
@@ -54,14 +72,29 @@ void combine_efficiencies(int year) {
 
   gStyle->SetOptStat(0);
   TCanvas* c = new TCanvas("c", "c", 1000, 700);
-  hScale->Draw("colz");
-  hScale->GetZaxis()->SetRangeUser(0.2, 1.5);
+  gStyle->SetPaintTextFormat(".2f");
+  set_z_range(hScale);
+  hScale->SetMarkerSize(0.8);
+  hScale->Draw("colz text");
+  hScale->GetYaxis()->SetMoreLogLabels(kTRUE);
+  // Move the palette
+  TPaletteAxis *palette = (TPaletteAxis*) hScale->GetListOfFunctions()->FindObject("palette");
+  if(palette) {
+    palette->SetX1NDC(0.905);
+    palette->SetX2NDC(0.94 );
+    palette->SetY1NDC(0.1);
+    palette->SetY2NDC(0.9);
+    c->Modified();
+    c->Update();
+  } else {
+    cout << "Z-axis palette not found!\n";
+  }
 
-  c->SaveAs(Form("figures/scales_%i.png", year));
+  c->SaveAs(Form("figures/scales_wp%i_%i.png", WP, year));
   c->SetLogy();
-  c->SaveAs(Form("figures/scales_log_%i.png", year));
+  c->SaveAs(Form("figures/scales_wp%i_%i_log.png", WP, year));
 
-  TFile* fout = new TFile(Form("rootfiles/egamma_trigger_eff_%i.root", year), "RECREATE");
+  TFile* fout = new TFile(Form("rootfiles/egamma_trigger_eff_wp%i_%i.root", WP, year), "RECREATE");
   fout->cd();
   hData->Write();
   hMC->Write();

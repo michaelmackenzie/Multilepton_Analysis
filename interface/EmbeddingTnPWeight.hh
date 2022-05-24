@@ -33,7 +33,7 @@ namespace CLFV {
     double GetScale(const TH2F* data, const TH2F* mc, const double pt, const double eta, float& data_eff, float& mc_eff);
 
   public:
-    enum {k2016, k2017, k2018, k2016BF, k2016GH, kLast};
+    enum {k2016, k2017, k2018, k2016BF, k2016GH, k2018ABC, k2018D, kLast};
     std::map<int, TH2F*> muonTrigDataEff_;
     std::map<int, TH2F*> muonTrigMCEff_;
     std::map<int, TH2F*> muonQCDTrigDataEff_;

@@ -5,12 +5,30 @@ int  nentries_ = 2e6;
 bool single_fit_ = false; //do just one bin of the matrix fit
 int  fit_x_ = 1; //bin of the single fit
 int  fit_y_ = 1; //bin of the single fit
-bool applyScales_ = true; //apply conditioned IDs' scale factors
+bool applyScales_ = false; //apply conditioned IDs' scale factors
 bool use_abs_eta_ = false; //use eta or |eta| in the scale factor measurement
 
 enum {kLooseMuon = 1, kMediumMuon, kTightMuon};
 enum {kVVLooseIso = 1, kVLooseIso, kLooseIso, kMediumIso, kTightIso, kVTightIso, kVVTightIso};
 enum {kWPL = 1, kWP90, kWP80};
+
+//set reasonable z-range
+void set_z_range(TH2* h, const double min_default = 0.8, const double max_default = 1.2) {
+  double min_z(1.e20), max_z(-1.e20);
+  for(int xbin = 1; xbin <= h->GetNbinsX(); ++xbin) {
+    for(int ybin = 1; ybin <= h->GetNbinsY(); ++ybin) {
+      const double binc = h->GetBinContent(xbin, ybin);
+      if(binc > 1.e-4) min_z = std::min(min_z, binc);
+      max_z = std::max(max_z, binc);
+    }
+  }
+  if(min_z < max_z) {
+    min_z -= 0.1*(max_z - min_z);
+    max_z += 0.1*(max_z - min_z);
+    h->GetZaxis()->SetRangeUser(min_z, max_z);
+  }
+  else h->GetZaxis()->SetRangeUser(min_default, max_default);
+}
 
 //Fit the mass distribution with a signal and background function
 double extract_nz(TH1F* hMass, double& nerror, int BkgMode, TString figname = "", TString figtitle = "") {
@@ -23,22 +41,7 @@ double extract_nz(TH1F* hMass, double& nerror, int BkgMode, TString figname = ""
   RooRealVar mass("mass", "Dilepton mass", 91., min_mass, max_mass, "GeV/c^{2}");
   mass.setBins((max_mass-min_mass)/hMass->GetBinWidth(1));
 
-  //Build the signal PDF
-  // RooRealVar mean ("mean" , "mean" , 91., 85., 95.); //central RooCBShape
-  // RooRealVar width("width", "width", 2.5, 0.1, 5. );
-  // RooRealVar sigma("sigma", "sigma", 2. , 0.1, 5. );
-  // RooRealVar alpha("alpha", "alpha", 1. , 0.1, 10.);
-  // RooRealVar enne ("enne" , "enne" , 5. , 0.01, 30.);
-
-  // RooRealVar mean2 ("mean2" , "mean2" , 91., 70., 100.); //additional Gaussian
-  // RooRealVar sigma2("sigma2", "sigma2", 5. , 0.1, 10. );
-
-  // RooCBShape  sigpdf1("sigpdf1", "sigpdf1", mass, mean, sigma, alpha, enne);
-  // RooGaussian sigpdf2("sigpdf2", "sigpdf2", mass, mean2, sigma2);
-  // RooRealVar  fracsig("fracsig", "fracsig", 0.7, 0., 1.);
-  // RooAddPdf   sigpdf ("sigpdf" , "sigpdf" , sigpdf1, sigpdf2, fracsig);
-
-  // //DoubleCB signal
+  //DoubleCB signal
   RooRealVar     mean  ("mean"  , "mean"  , 90., 85., 95.); //central RooCBShape
   RooRealVar     sigma ("sigma" , "sigma" , 2.2, 1.0, 6.);
   RooRealVar     alpha1("alpha1", "alpha1", 1. , 0.5, 5.);
@@ -58,8 +61,8 @@ double extract_nz(TH1F* hMass, double& nerror, int BkgMode, TString figname = ""
     RooRealVar* b_bkg = new RooRealVar("b_bkg", "b_bkg", 7.e-3, -2., 2.); bkgvars.push_back(b_bkg);
     RooRealVar* c_bkg = new RooRealVar("c_bkg", "c_bkg", 5.e-3, -2., 2.); bkgvars.push_back(c_bkg);
     RooRealVar* d_bkg = new RooRealVar("d_bkg", "d_bkg", 3.e-3, -2., 2.); bkgvars.push_back(d_bkg);
-    // bkgpdf = new RooBernstein("bkgpdf", "bkgpdf", mass, RooArgList(*a_bkg, *b_bkg, *c_bkg));
-    bkgpdf = new RooBernstein("bkgpdf", "bkgpdf", mass, RooArgList(*a_bkg, *b_bkg, *c_bkg, *d_bkg));
+    bkgpdf = new RooBernstein("bkgpdf", "bkgpdf", mass, RooArgList(*a_bkg, *b_bkg, *c_bkg));
+    // bkgpdf = new RooBernstein("bkgpdf", "bkgpdf", mass, RooArgList(*a_bkg, *b_bkg, *c_bkg, *d_bkg));
   } else if(BkgMode == 2) { //Chebychev polynomial
     RooRealVar* a_bkg = new RooRealVar("a_bkg", "a_bkg", 2.e-3, -2., 2.); bkgvars.push_back(a_bkg);
     RooRealVar* b_bkg = new RooRealVar("b_bkg", "b_bkg", 3.e-2, -2., 2.); bkgvars.push_back(b_bkg);
@@ -169,7 +172,10 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
     else if(period ==  0)   runs = {"B", "C", "D", "E", "F"};
     else if(period ==  1)   runs = {"G", "H"};
   } else if(year == 2017) { runs = {"B", "C", "D", "E", "F"};
-  } else if(year == 2018) { runs = {"A", "B", "C", "D"};
+  } else if(year == 2018) {
+    if      (period == -1)  runs = {"A", "B", "C", "D"};
+    else if (period ==  0)  runs = {"A", "B", "C"};
+    else if (period ==  1)  runs = {"D"};
   }
   if(!isMC && period < 0) runs = {""}; //use merged run file for data if not doing run-dependence scale factors
   CrossSections xs;
@@ -187,7 +193,8 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
   if((!fSF_1 && Mode != 1) || (!fSF_2 && trig_mode && isMuon)) {
     cout << "Scale factor files not found for required IDs! "
          << "Mode = " << Mode << " isMC = " << isMC << " isMuon = " << isMuon << " year = " << year << endl;
-    return;
+
+    if(applyScales_) return;
   }
 
   TH2F* hSF_1 = 0;
@@ -229,8 +236,11 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
     if(trig_mode) pt_bins = {20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 38, 40, 45, 50, 60, 80, 100, 500};
     else          pt_bins = {10, 15, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 45, 50, 60, 80, 100, 500};
   } else {
-    if(trig_mode) pt_bins = {25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 42, 44, 46, 48, 50, 100, 500};
-    else          pt_bins = {10, 15, 20, 24, 26, 28, 30, 32, 34, 36, 38, 40, 45, 50, 100, 500};
+    if(!trig_mode) pt_bins = {9., 10, 15, 20, 24, 26, 28, 30, 32, 34, 36, 38, 40, 45, 50, 60., 80., 100, 500};
+    else {
+      if(year == 2016) pt_bins = {25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 42, 44, 46, 48, 50, 60., 80., 100, 500};
+      else             pt_bins = {30, 31, 32, 33, 34, 35, 36, 37, 38, 40, 42, 44, 46, 48, 50, 60., 80., 100, 500};
+    }
   }
   const int n_eta_bins = eta_bins.size() - 1;
   const int n_pt_bins  = pt_bins .size() - 1;
@@ -333,13 +343,13 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
     cout << endl;
 
     //Define the thresholds
-    float trig_pt_min = (isMuon) ? 25. : 33.;
-    if((!isMuon && year == 2016) || (isMuon && year == 2017)) trig_pt_min = 28.;
-    float tag_pt_min = trig_pt_min; //(Mode == 0) ? trig_pt_min : 15.;
-    float tag_eta_max = 2.3;
-    bool  tag_triggers = true; //whether or not to always require the tag to trigger
-    float probe_eta_max = 2.3;
-    float probe_pt_min = (trig_mode) ? tag_pt_min - 1. : 10.;
+    float trig_pt_min = (isMuon) ? 24. : 32.;
+    if((!isMuon && year == 2016) || (isMuon && year == 2017)) trig_pt_min = 27.;
+    const float tag_pt_min = trig_pt_min + 2.;
+    const float tag_eta_max = 2.3;
+    const bool  tag_triggers = true; //whether or not to always require the tag to trigger
+    const float probe_eta_max = 2.3;
+    const float probe_pt_min = (trig_mode) ? trig_pt_min - 2. : 10.;
 
     //Define ID selections
     int id1_min(0), id2_min(0); //minimum IDs for all leptons
@@ -367,8 +377,8 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
       if(one_q*two_q > 0) continue;
       //electron eta veto
       // no need to veto since it's naturally a bin region
-      // if(!isMuon && gap_low <= fabs(one_sc_eta) && fabs(one_sc_eta) <= gap_high) continue;
-      // if(!isMuon && gap_low <= fabs(two_sc_eta) && fabs(two_sc_eta) <= gap_high) continue;
+      if(!isMuon && gap_low <= fabs(one_sc_eta) && fabs(one_sc_eta) <= gap_high) continue;
+      if(!isMuon && gap_low <= fabs(two_sc_eta) && fabs(two_sc_eta) <= gap_high) continue;
       //must fire the trigger
       if(!((one_pt > trig_pt_min && one_triggered) || (two_pt > trig_pt_min && two_triggered))) continue;
       //must satisfy minimum thresholds
@@ -514,11 +524,13 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
   pad = c->cd(3);
   pad->SetLeftMargin(0.13);
   pad->SetRightMargin(0.13);
-  hRatio->Draw("colz");
-  if(Mode == 3)
-    hRatio->GetZaxis()->SetRangeUser(0., 1.);
-  else
-    hRatio->GetZaxis()->SetRangeUser((isMuon) ? 0.5 : 0.2*(Mode != 0), 1.);
+  gStyle->SetPaintTextFormat(".2f");
+  hRatio->Draw("colz text");
+  set_z_range(hRatio, 0., 1.);
+  // if(Mode == 3)
+  //   hRatio->GetZaxis()->SetRangeUser(0., 1.);
+  // else
+  //   hRatio->GetZaxis()->SetRangeUser((isMuon) ? 0.5 : 0.2*(Mode != 0), 1.);
 
   gSystem->Exec("[ ! -d figures ] && mkdir figures");
   gSystem->Exec("[ ! -d rootfiles ] && mkdir rootfiles");
@@ -619,7 +631,8 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
   pad->SetLeftMargin(0.13);
   pad->SetRightMargin(0.13);
   hResRatio->Draw("colz");
-  hResRatio->GetZaxis()->SetRangeUser((isMuon) ? 0.5 : 0.2*(Mode != 0), 1.);
+  set_z_range(hResRatio, 0., 1.);
+  // hResRatio->GetZaxis()->SetRangeUser((isMuon) ? 0.5 : 0.2*(Mode != 0), 1.);
 
   c->SaveAs(Form("figures/eff_%s.png", outname.Data()));
   delete c;

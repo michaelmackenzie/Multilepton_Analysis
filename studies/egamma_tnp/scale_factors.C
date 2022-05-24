@@ -1,44 +1,77 @@
 //Script to generate Tag and Probe (TnP) electron trigger scale factors
+bool useAbsEta_ = true; //use |eta| or signed eta for scales
 
 //Fit the mass distribution with a signal and background function
-double extract_nz(TH1F* hMass, double& nerror, int BkgMode, TString figname = "", TString figtitle = "") {
+double extract_nz(TH1* hMass, double& nerror, int BkgMode, TString figname = "", TString figtitle = "") {
 
-  const double min_mass(60.), max_mass(120.);
+  const double min_mass(70.), max_mass(115.);
 
   //Create the observable
   RooRealVar mass("mass", "Dilepton mass", 91., min_mass, max_mass, "GeV/c^{2}");
   mass.setBins((max_mass-min_mass)/hMass->GetBinWidth(1));
 
   //Build the signal PDF
-  RooRealVar mean ("mean" , "mean" , 91., 85., 95.); //central RooCBShape
-  RooRealVar width("width", "width", 2.5, 0.1, 5. );
-  RooRealVar sigma("sigma", "sigma", 2. , 0.1, 5. );
-  RooRealVar alpha("alpha", "alpha", 1. , 0.1, 10.);
-  RooRealVar enne ("enne" , "enne" , 5. , 0.01, 30.);
+  // RooRealVar mean ("mean" , "mean" , 91., 85., 95.); //central RooCBShape
+  // RooRealVar width("width", "width", 2.5, 0.1, 5. );
+  // RooRealVar sigma("sigma", "sigma", 2. , 0.1, 5. );
+  // RooRealVar alpha("alpha", "alpha", 1. , 0.1, 10.);
+  // RooRealVar enne ("enne" , "enne" , 5. , 0.01, 30.);
 
-  RooRealVar mean2 ("mean2" , "mean2" , 91., 70., 100.); //additional Gaussian
-  RooRealVar sigma2("sigma2", "sigma2", 5. , 0.1, 10. );
+  // RooRealVar mean2 ("mean2" , "mean2" , 91., 70., 100.); //additional Gaussian
+  // RooRealVar sigma2("sigma2", "sigma2", 5. , 0.1, 10. );
 
-  RooCBShape  sigpdf1("sigpdf1", "sigpdf1", mass, mean, sigma, alpha, enne);
-  RooGaussian sigpdf2("sigpdf2", "sigpdf2", mass, mean2, sigma2);
-  RooRealVar  fracsig("fracsig", "fracsig", 0.7, 0., 1.);
-  RooAddPdf   sigpdf ("sigpdf" , "sigpdf" , sigpdf1, sigpdf2, fracsig);
+  // RooCBShape  sigpdf1("sigpdf1", "sigpdf1", mass, mean, sigma, alpha, enne);
+  // RooGaussian sigpdf2("sigpdf2", "sigpdf2", mass, mean2, sigma2);
+  // RooRealVar  fracsig("fracsig", "fracsig", 0.7, 0., 1.);
+  // RooAddPdf   sigpdf ("sigpdf" , "sigpdf" , sigpdf1, sigpdf2, fracsig);
+
+  //DoubleCB signal
+  RooRealVar     mean  ("mean"  , "mean"  , 90., 85., 95.); //central RooCBShape
+  RooRealVar     sigma ("sigma" , "sigma" , 2.2, 1.0, 6.);
+  RooRealVar     alpha1("alpha1", "alpha1", 1. , 0.5, 5.);
+  RooRealVar     alpha2("alpha2", "alpha2", 2. , 0.5, 5.);
+  RooRealVar     enne1 ("enne1" , "enne1" , 5. , 4.0, 30.);
+  RooRealVar     enne2 ("enne2" , "enne2" , 8.8, 4.0, 30.);
+  RooDoubleCrystalBall sigpdf("sigpdf", "sigpdf", mass, mean, sigma, alpha1, enne1, alpha2, enne2);
 
   //Build the background PDF
   RooAbsPdf* bkgpdf;
-  if(BkgMode == 0) { //exponential PDF
-    RooRealVar* tau = new RooRealVar("tau", "tau", 1., 0., 10.);
+  vector<RooRealVar*> bkgvars;
+  if(BkgMode == 0 || hMass->Integral() < 1000) { //exponential PDF
+    RooRealVar* tau = new RooRealVar("tau", "tau", -1., -10., 1.); bkgvars.push_back(tau);
     bkgpdf = new RooExponential("bkgpdf", "bkgpdf", mass, *tau);
   } else if(BkgMode == 1) { //Bernstein polynomial
-    RooRealVar* a_bkg = new RooRealVar("a_bkg", "a_bkg", 0.1, -10., 10.);
-    RooRealVar* b_bkg = new RooRealVar("b_bkg", "b_bkg", 0.1, -10., 10.);
-    RooRealVar* c_bkg = new RooRealVar("c_bkg", "c_bkg", 0. , -10., 10.);
+    RooRealVar* a_bkg = new RooRealVar("a_bkg", "a_bkg", 0.1, -2., 2.);
+    RooRealVar* b_bkg = new RooRealVar("b_bkg", "b_bkg", 0.1, -2., 2.);
+    RooRealVar* c_bkg = new RooRealVar("c_bkg", "c_bkg", 0. , -2., 2.);
 
     bkgpdf = new RooBernstein("bkgpdf", "bkgpdf", mass, RooArgList(*a_bkg, *b_bkg, *c_bkg));
+  } else if(BkgMode == 2) { //Bernstein polynomial
+    RooRealVar* a_bkg = new RooRealVar("a_bkg", "a_bkg", 2.e-3, -2., 2.); bkgvars.push_back(a_bkg);
+    RooRealVar* b_bkg = new RooRealVar("b_bkg", "b_bkg", 7.e-3, -2., 2.); bkgvars.push_back(b_bkg);
+    RooRealVar* c_bkg = new RooRealVar("c_bkg", "c_bkg", 5.e-3, -2., 2.); bkgvars.push_back(c_bkg);
+    RooRealVar* d_bkg = new RooRealVar("d_bkg", "d_bkg", 3.e-3, -2., 2.); bkgvars.push_back(d_bkg);
+    // bkgpdf = new RooBernstein("bkgpdf", "bkgpdf", mass, RooArgList(*a_bkg, *b_bkg, *c_bkg));
+    bkgpdf = new RooBernstein("bkgpdf", "bkgpdf", mass, RooArgList(*a_bkg, *b_bkg, *c_bkg, *d_bkg));
+  } else if(BkgMode == 3) { //Chebychev polynomial
+    RooRealVar* a_bkg = new RooRealVar("a_bkg", "a_bkg", 2.e-3, -2., 2.); bkgvars.push_back(a_bkg);
+    RooRealVar* b_bkg = new RooRealVar("b_bkg", "b_bkg", 3.e-2, -2., 2.); bkgvars.push_back(b_bkg);
+    RooRealVar* c_bkg = new RooRealVar("c_bkg", "c_bkg", 1.e-2, -2., 2.); bkgvars.push_back(c_bkg);
+    RooRealVar* d_bkg = new RooRealVar("d_bkg", "d_bkg", 1.e-2, -2., 2.); bkgvars.push_back(d_bkg);
+    bkgpdf = new RooChebychev("bkgpdf", "bkgpdf", mass, RooArgList(*a_bkg, *b_bkg, *c_bkg, *d_bkg));
+  // } else if(BkgMode == 4) { //two exponential PDFs
+  //   RooRealVar* tau_1 = new RooRealVar("tau_1", "tau_2", -1., -10., 1.); bkgvars.push_back(tau_1);
+  //   RooRealVar* tau_2 = new RooRealVar("tau_2", "tau_2", -1., -10., 1.); bkgvars.push_back(tau_2);
+  //   bkgpdf = new RooExponential("bkgpdf", "bkgpdf", mass, *tau_1);
   }
+  // if(BkgMode == 0) { //exponential PDF
+  //   RooRealVar* tau = new RooRealVar("tau", "tau", 1., 0., 10.);
+  //   bkgpdf = new RooExponential("bkgpdf", "bkgpdf", mass, *tau);
+  // }
 
-  RooRealVar N_sig("N_sig", "N_sig", hMass->Integral()*0.9, hMass->Integral()/200., hMass->Integral()*10.);
-  RooRealVar N_bkg("N_bkg", "N_bkg", hMass->Integral()*0.9, 0., hMass->Integral()*10.);
+  const double rough_sig_frac = hMass->Integral(hMass->FindBin(85.), hMass->FindBin(95.)) / hMass->Integral();
+  RooRealVar N_sig("N_sig", "N_sig", hMass->Integral()*rough_sig_frac*1.1     , hMass->Integral()/200., hMass->Integral()*3.);
+  RooRealVar N_bkg("N_bkg", "N_bkg", hMass->Integral()*(1.-rough_sig_frac)*1.1, 0.                    , hMass->Integral()*3.);
 
   RooAddPdf totpdf("totpdf", "Total PDF", RooArgList(sigpdf,*bkgpdf), RooArgList(N_sig,N_bkg));
 
@@ -46,11 +79,22 @@ double extract_nz(TH1F* hMass, double& nerror, int BkgMode, TString figname = ""
   RooDataHist data("data",  "data", RooArgList(mass), hMass);
 
   //Perform the fit
-  totpdf.fitTo(data, RooFit::SumW2Error(1), RooFit::Warnings(0), RooFit::PrintEvalErrors(-1), RooFit::PrintLevel(-1));
+  bool refit = false;
+  int count = 0;
+  do {
+    auto fitres = totpdf.fitTo(data, RooFit::SumW2Error(1), RooFit::Warnings(0), RooFit::PrintEvalErrors(-1), RooFit::PrintLevel(-1), RooFit::Save());
+    refit = fitres != 0 && fitres->status() != 0 && count < 2;
+    ++count;
+    if(refit) cout << endl << "Refitting the dataset!\n";
+  } while(refit);
   double nsig = N_sig.getVal();
   nerror = N_sig.getError();
   if(nsig < 0.) cout << "N(sig) < 0 for " << figname.Data() << ", " << figtitle.Data() << endl;
-  nsig = max(nsig, 0.);
+  nsig = std::max(nsig, 0.);
+
+  //ensure a somewhat reasonable error
+  if(nerror > 3.*sqrt(nsig) && nerror > 3.*sqrt(rough_sig_frac*hMass->Integral()))
+    nerror = 1.2*sqrt(std::max(nsig, rough_sig_frac*hMass->Integral()));
 
   //Draw the fit and write the figure to disk
   auto xframe = mass.frame(RooFit::Title(" "));
@@ -67,19 +111,25 @@ double extract_nz(TH1F* hMass, double& nerror, int BkgMode, TString figname = ""
   label.SetTextAlign(13);
   label.SetTextAngle(0);
   label.DrawLatex(0.12, 0.88, figtitle.Data());
-  label.DrawLatex(0.12, 0.83, Form("N(sig) = %.1f", nsig));
+  label.DrawLatex(0.12, 0.83, Form("N(data) = %.0f", hMass->Integral()));
+  label.DrawLatex(0.12, 0.78, Form("N(sig) = %.1f +- %.1f", nsig, nerror));
   if(figname != "")
     c->SaveAs(figname.Data());
   delete c;
   delete xframe;
 
   delete bkgpdf;
+  for(auto var : bkgvars) delete var;
 
   return nsig;
 }
 
-
-void scale_factors(int year = 2016, int isMC = 0) {
+/**
+   year: 2016, 2017, or 2018
+   isMC: 0 = Data, 1 = AMC@NLO, 2 = MadGraph
+   WP  : 0 = none, 1 = WPL, 2 = WP90, 3 = WP80, 4 = WPL && !WP90, 5 = WPL && !WP80 (all for probe only, tag = WP80 is always applied)
+ **/
+void scale_factors(int year = 2016, int isMC = 0, int WP = 3) {
 
   TString path = "root://cmseos.fnal.gov//store/user/mmackenz/egamma_tnp/";
   TFile* f;
@@ -106,6 +156,7 @@ void scale_factors(int year = 2016, int isMC = 0) {
   float probe_pt, probe_eta, probe_sc_eta, probe_phi, probe_q;
   float pair_pt, pair_eta, pair_mass;
   bool  probe_triggered;
+  int   tag_id, probe_id;
   float pu_weight(1.), gen_weight(1.);
   t->SetBranchStatus("*", 0);
   t->SetBranchStatus("tag_Ele_pt"     , 1); t->SetBranchAddress("tag_Ele_pt"     , &tag_pt         );
@@ -113,11 +164,13 @@ void scale_factors(int year = 2016, int isMC = 0) {
   t->SetBranchStatus("tag_sc_eta"     , 1); t->SetBranchAddress("tag_sc_eta"     , &tag_sc_eta     );
   t->SetBranchStatus("tag_Ele_phi"    , 1); t->SetBranchAddress("tag_Ele_phi"    , &tag_phi        );
   t->SetBranchStatus("tag_Ele_q"      , 1); t->SetBranchAddress("tag_Ele_q"      , &tag_q          );
+  t->SetBranchStatus("tag_Ele_ID"     , 1); t->SetBranchAddress("tag_Ele_ID"     , &tag_id         );
   t->SetBranchStatus("probe_Ele_pt"   , 1); t->SetBranchAddress("probe_Ele_pt"   , &probe_pt       );
   t->SetBranchStatus("probe_Ele_eta"  , 1); t->SetBranchAddress("probe_Ele_eta"  , &probe_eta      );
   t->SetBranchStatus("probe_sc_eta"   , 1); t->SetBranchAddress("probe_sc_eta"   , &probe_sc_eta   );
   t->SetBranchStatus("probe_Ele_phi"  , 1); t->SetBranchAddress("probe_Ele_phi"  , &probe_phi      );
   t->SetBranchStatus("probe_Ele_q"    , 1); t->SetBranchAddress("probe_Ele_q"    , &probe_q        );
+  t->SetBranchStatus("probe_Ele_ID"   , 1); t->SetBranchAddress("probe_Ele_ID"   , &probe_id       );
   t->SetBranchStatus("probe_triggered", 1); t->SetBranchAddress("probe_triggered", &probe_triggered);
   t->SetBranchStatus("pair_pt"        , 1); t->SetBranchAddress("pair_pt"        , &pair_pt        );
   t->SetBranchStatus("pair_mass"      , 1); t->SetBranchAddress("pair_mass"      , &pair_mass      );
@@ -129,15 +182,24 @@ void scale_factors(int year = 2016, int isMC = 0) {
   // Initialize histograms
   ///////////////////////////////////////
 
-  double eta_bins[] = {-2.5,-2.0,-1.566,-1.4442, -0.8, 0.0, 0.8, 1.4442, 1.566, 2.0, 2.5};
-  double pt_bins [] = {28,30,33,36,40,45,50,70,100,500};
-  // double pt_bins [] = {28,33,38,43,46,50,70,100,150,500};
-  // double eta_bins[] = {-2.4,-2.0,-1.566,-1.4442, -0.8, 0.0, 0.8, 1.4442, 1.566, 2.0, 2.4};  //matching Riccardo's binning
-  // double pt_bins [] = {1,(year == 2016) ? 30. : 33.,40,50,100,200,500}; //matching Riccardo's binning
-  int n_eta_bins = sizeof(eta_bins) / sizeof(*eta_bins) - 1;
-  int n_pt_bins  = sizeof( pt_bins) / sizeof( *pt_bins) - 1;
-  TH2F* hPass  = new TH2F("hPass" , "Passing events", n_eta_bins, eta_bins, n_pt_bins, pt_bins);
-  TH2F* hFail  = new TH2F("hFail" , "Failing events", n_eta_bins, eta_bins, n_pt_bins, pt_bins);
+  // double eta_bins[] = {-2.5,-2.0,-1.566,-1.4442, -0.8, 0.0, 0.8, 1.4442, 1.566, 2.0, 2.5};
+  // double pt_bins [] = {28,30,33,36,40,45,50,70,100,500};
+  // int n_eta_bins = sizeof(eta_bins) / sizeof(*eta_bins) - 1;
+  // int n_pt_bins  = sizeof( pt_bins) / sizeof( *pt_bins) - 1;
+  vector<double> eta_bins, pt_bins;
+  const float gap_low(1.4442), gap_high(1.566); //eta region to ignore
+  if(useAbsEta_) eta_bins = {0.0, 0.8, gap_low, gap_high, 2.1, 2.5};
+  else           eta_bins = {-2.5, -2.1,-gap_high,-gap_low, -0.8, 0.0, 0.8, gap_low, gap_high, 2.1, 2.5};
+  if(year == 2016) {
+    pt_bins  = {25,27,28,29,30,31,32,34,36,40,45,50,55,60,70,85,100,500};
+  } else if(year == 2017 || year == 2018) {
+    pt_bins  = {25,30,32,33,34,35,36,37,39,41,45,50,55,60,70,85,100,500};
+  }
+  const int n_eta_bins = eta_bins.size() - 1;
+  const int n_pt_bins  = pt_bins.size()  - 1;
+
+  TH2F* hPass  = new TH2F("hPass" , "Passing events", n_eta_bins, &eta_bins[0], n_pt_bins, &pt_bins[0]);
+  TH2F* hFail  = new TH2F("hFail" , "Failing events", n_eta_bins, &eta_bins[0], n_pt_bins, &pt_bins[0]);
   hPass->Sumw2(); hFail->Sumw2();
   hPass->SetXTitle("SuperCluster #eta"); hPass->SetYTitle("p_{T} (GeV/c)");
   hFail->SetXTitle("SuperCluster #eta"); hFail->SetYTitle("p_{T} (GeV/c)");
@@ -150,12 +212,12 @@ void scale_factors(int year = 2016, int isMC = 0) {
   // Make a di-lepton resonance histogram per bin
   ///////////////////////////////////////
 
-  std::map<int, TH1F*> massHists_pass, massHists_fail;
+  std::map<int, TH1*> massHists_pass, massHists_fail;
   for(int xbin = 0; xbin <= hPass->GetNbinsX()+1; ++xbin) {
     for(int ybin = 0; ybin <= hPass->GetNbinsY()+1; ++ybin) {
       const int mapBin = xbin + 100*ybin;
-      massHists_pass[mapBin] = new TH1F(Form("zmass_pass_x-%i_y-%i", xbin, ybin), "Dilepton resonance", 60, 60., 120.); massHists_pass[mapBin]->Sumw2();
-      massHists_fail[mapBin] = new TH1F(Form("zmass_fail_x-%i_y-%i", xbin, ybin), "Dilepton resonance", 60, 60., 120.); massHists_fail[mapBin]->Sumw2();
+      massHists_pass[mapBin] = new TH1D(Form("zmass_pass_x-%i_y-%i", xbin, ybin), "Dilepton resonance", 60, 60., 120.); massHists_pass[mapBin]->Sumw2();
+      massHists_fail[mapBin] = new TH1D(Form("zmass_fail_x-%i_y-%i", xbin, ybin), "Dilepton resonance", 60, 60., 120.); massHists_fail[mapBin]->Sumw2();
     }
   }
 
@@ -163,21 +225,27 @@ void scale_factors(int year = 2016, int isMC = 0) {
   // Process the data
   ///////////////////////////////////////
 
-  ULong64_t nentries = t->GetEntriesFast();
+  const ULong64_t nentries = t->GetEntriesFast();
   cout << nentries << " events to process\n";
-  float tag_pt_min = 33.;
-  if(year == 2016) tag_pt_min = 28.;
-  float tag_eta_max = 2.3;//2.17;
-  float probe_pt_min = (year == 2016) ? 28. : 33.;
+  const float trig_pt_min = (year == 2016) ? 27. : 32.;
+  const float tag_pt_min = trig_pt_min + 2.; // 2 GeV/c above threshold
+  const float tag_eta_max = 2.3;//2.17;
+  const float probe_pt_min = trig_pt_min - 2.; //2 GeV/c below threshold
+  const int tag_id_min = 3; //always use WP80 electrons for the tag
+  const int probe_id_min = (WP > 3) ? 1 : WP; //minimum = WP except 4/5 which is WPL=1 + !(WP90/WP80)
+  const int probe_id_max = (WP > 3) ? WP - 3 : -1; //maximum = none except 4/5 which is WPL=1 + !(WP90/WP80)
   for(ULong64_t entry = 0; entry < nentries; ++entry) {
     if(entry % 100000 == 0) printf("Processing entry %12lld (%5.1f%%)...\n", entry, entry*100./nentries);
     t->GetEntry(entry);
     if(pair_mass <= 60. || pair_mass > 120.) continue;
-    if(fabs(tag_sc_eta) > tag_eta_max) continue;
-    if(1.4442 <= fabs(probe_sc_eta) && fabs(probe_sc_eta) <= 1.566) continue;
-    if(1.4442 <= fabs(tag_sc_eta)   && fabs(tag_sc_eta)   <= 1.566) continue;
+    if(std::fabs(tag_sc_eta) > tag_eta_max) continue;
+    if(gap_low <= fabs(probe_sc_eta) && fabs(probe_sc_eta) <= gap_high) continue;
+    if(gap_low <= fabs(tag_sc_eta)   && fabs(tag_sc_eta)   <= gap_high) continue;
     if(tag_pt < tag_pt_min) continue;
     if(probe_pt < probe_pt_min) continue;
+    if(tag_id < tag_id_min) continue;
+    if(probe_id < probe_id_min) continue;
+    if(probe_id_max > 0 && probe_id > probe_id_max) continue;
     float wt = pu_weight; //*((gen_weight < 0) ? -1. : 1.);
     if(probe_triggered) hPass->Fill(probe_sc_eta, probe_pt, wt);
     else                hFail->Fill(probe_sc_eta, probe_pt, wt);
@@ -196,11 +264,11 @@ void scale_factors(int year = 2016, int isMC = 0) {
   hRatio->Divide(hTotal);
   hRatio->SetTitle("Efficiency");
 
-  //ensure efficiency <= 1
+  //ensure 0 <= efficiency <= 1
   for(int xbin = 1; xbin <= hRatio->GetNbinsX(); ++xbin) {
     for(int ybin = 1; ybin <= hRatio->GetNbinsY(); ++ybin) {
-      if     (hRatio->GetBinContent(xbin, ybin) > 1.) hRatio->SetBinContent(xbin, ybin, 0.);
-      else if(hRatio->GetBinContent(xbin, ybin) < 0.) hRatio->SetBinContent(xbin, ybin, 1.);
+      if     (hRatio->GetBinContent(xbin, ybin) > 1.) hRatio->SetBinContent(xbin, ybin, 1.);
+      else if(hRatio->GetBinContent(xbin, ybin) < 0.) hRatio->SetBinContent(xbin, ybin, 0.);
     }
   }
 
@@ -211,7 +279,7 @@ void scale_factors(int year = 2016, int isMC = 0) {
   TH2F* hResPass = (TH2F*) hPass->Clone("hResPass"); hResPass->Reset();
   TH2F* hResFail = (TH2F*) hFail->Clone("hResFail"); hResFail->Reset();
 
-  TString fitdir = Form("figures/fit_%i_%i", year, isMC);
+  TString fitdir = Form("figures/fit_%i_wp%i_mc%i", year, WP, isMC);
   gSystem->Exec(Form("[ ! -d %s ] && mkdir -p %s", fitdir.Data(), fitdir.Data()));
   const int bkgmode = 1; //(Mode != 2) ? 1 : 0;
   for(int xbin = 1; xbin <= hResPass->GetNbinsX(); ++xbin) {
@@ -265,7 +333,7 @@ void scale_factors(int year = 2016, int isMC = 0) {
 
   gSystem->Exec("[ ! -d figures ] && mkdir figures");
   gSystem->Exec("[ ! -d rootfiles ] && mkdir rootfiles");
-  c->SaveAs(Form("figures/eff_%i_%i_cc.png", isMC, year));
+  c->SaveAs(Form("figures/eff_%i_wp%i_mc%i_cc.png", year, WP, isMC));
   delete c;
 
   c = new TCanvas("c", "c", 1500, 700);
@@ -285,7 +353,7 @@ void scale_factors(int year = 2016, int isMC = 0) {
   pad->SetRightMargin(0.13);
   hResRatio->Draw("colz");
   hResRatio->GetZaxis()->SetRangeUser(0., 1.);
-  c->SaveAs(Form("figures/eff_%i_%i.png", isMC, year));
+  c->SaveAs(Form("figures/eff_%i_wp%i_mc%i.png", year, WP, isMC));
   delete c;
 
   c = new TCanvas("c", "c", 1000, 700);
@@ -309,10 +377,10 @@ void scale_factors(int year = 2016, int isMC = 0) {
   hProbeEta->SetLineColor(kBlue);
   hProbeEta->Draw("hist same");
   leg->Draw();
-  c->SaveAs(Form("figures/kin_%i_%i.png", isMC, year));
+  c->SaveAs(Form("figures/kin_%i_wp%i_mc%i.png", year, WP, isMC));
   delete c;
 
-  TFile* fout = new TFile(Form("rootfiles/efficiencies_%i_%i.root", isMC, year), "RECREATE");
+  TFile* fout = new TFile(Form("rootfiles/efficiencies_%i_wp%i_mc%i.root", year, WP, isMC), "RECREATE");
   hRatio->Write();
   hResRatio->Write();
   fout->Write();

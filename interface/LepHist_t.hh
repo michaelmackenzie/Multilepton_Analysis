@@ -5,10 +5,10 @@
 
 namespace CLFV {
   struct LepHist_t {
-    TH1* hJetTauOnePt[5/*tau DM*/][4/*tau pT range*/];
+    TH1* hJetTauOnePt[5/*tau DM*/]; //0: inclusive 1: DM 0 2: DM 1 3: DM 10 4: DM 11
     TH1* hJetTauOnePtQCD[2]; //0: nominal 1: no non-closure
-    TH1* hJetTauOneR = 0;
-    TH1* hJetTauOneEta = 0;
+    TH1* hJetTauOneR;
+    TH1* hJetTauOneEta;
     TH2* hJetTauOnePtVsR[5/*tau DM + inclusive*/];
     TH1* hJetTauOneMetDeltaPhi[5/*tau DM + inclusive*/];
     TH1* hJetTauOneMetDPhiQCD[2]; //0: nominal 1: no j-->tau correction
@@ -21,128 +21,128 @@ namespace CLFV {
     TH1* hJetTauMTOneComp;
     TH1* hJetTauMTTwoComp;
 
-    TH1* hOnePz = 0;
+    TH1* hOnePz;
     TH1* hOnePt[12]; //0: nominal 1: no trigger weight 2-5: trigger weight options 6: no ID1 weight 7: no ID2 weight
-    TH1* hOneP = 0;
-    TH1* hOneM = 0;
-    TH1* hOnePtOverM = 0;
-    TH1* hOneEta = 0;
-    TH1* hOnePhi = 0;
-    TH1* hOneD0 = 0;
-    TH1* hOneDXY = 0;
-    TH1* hOneDZ = 0;
-    TH1* hOneIso = 0;
-    TH1* hOneID1 = 0;
-    TH1* hOneID2 = 0;
-    TH1* hOneRelIso = 0;
-    TH1* hOneFlavor = 0;
-    TH1* hOneGenFlavor = 0;
-    TH1* hOneQ = 0;
-    TH1* hOneTrigger = 0;
-    TH1* hOneWeight = 0;
-    TH1* hOneWeight1Group = 0;
-    TH1* hOneWeight2Group = 0;
-    TH1* hOneTrigWeight = 0;
+    TH1* hOneP;
+    TH1* hOneM;
+    TH1* hOnePtOverM;
+    TH1* hOneEta;
+    TH1* hOnePhi;
+    TH1* hOneD0;
+    TH1* hOneDXY;
+    TH1* hOneDZ;
+    TH1* hOneIso;
+    TH1* hOneID1;
+    TH1* hOneID2;
+    TH1* hOneRelIso;
+    TH1* hOneFlavor;
+    TH1* hOneGenFlavor;
+    TH1* hOneQ;
+    TH1* hOneTrigger;
+    TH1* hOneWeight;
+    TH1* hOneWeight1Group;
+    TH1* hOneWeight2Group;
+    TH1* hOneTrigWeight;
     //Gen Info
-    TH1* hOneGenPt = 0;
-    TH1* hOneGenE = 0;
-    TH1* hOneGenEta = 0;
-    TH1* hOneDeltaPt = 0;
-    TH1* hOneDeltaE = 0;
-    TH1* hOneDeltaEta = 0;
-    TH1* hOneMetDeltaPhi = 0;
+    TH1* hOneGenPt;
+    TH1* hOneGenE;
+    TH1* hOneGenEta;
+    TH1* hOneDeltaPt;
+    TH1* hOneDeltaE;
+    TH1* hOneDeltaEta;
+    TH1* hOneMetDeltaPhi;
     //SVFit Info
-    TH1* hOneSVPt = 0;
-    TH1* hOneSVM = 0;
-    TH1* hOneSVEta = 0;
-    TH1* hOneSVDeltaPt = 0;
-    TH1* hOneSVDeltaP = 0;
-    TH1* hOneSVDeltaE = 0;
-    TH1* hOneSVDeltaEta = 0;
-    TH1* hOneSlimEQ = 0;
-    TH1* hOneSlimMuQ = 0;
-    TH1* hOneSlimTauQ = 0;
-    TH1* hOneSlimEM = 0;
-    TH1* hOneSlimEMSS = 0;
-    TH1* hOneSlimEMOS = 0;
-    TH1* hOneSlimMuM = 0;
-    TH1* hOneSlimMuMSS = 0;
-    TH1* hOneSlimMuMOS = 0;
-    TH1* hOneSlimTauM = 0;
-    TH1* hOneSlimTauMSS = 0;
-    TH1* hOneSlimTauMOS = 0;
+    TH1* hOneSVPt;
+    TH1* hOneSVM;
+    TH1* hOneSVEta;
+    TH1* hOneSVDeltaPt;
+    TH1* hOneSVDeltaP;
+    TH1* hOneSVDeltaE;
+    TH1* hOneSVDeltaEta;
+    TH1* hOneSlimEQ;
+    TH1* hOneSlimMuQ;
+    TH1* hOneSlimTauQ;
+    TH1* hOneSlimEM;
+    TH1* hOneSlimEMSS;
+    TH1* hOneSlimEMOS;
+    TH1* hOneSlimMuM;
+    TH1* hOneSlimMuMSS;
+    TH1* hOneSlimMuMOS;
+    TH1* hOneSlimTauM;
+    TH1* hOneSlimTauMSS;
+    TH1* hOneSlimTauMOS;
 
-    TH1* hJetTauTwoPt[5/*tau DM*/][4/*tau pT range*/];
-    TH1* hJetTauTwoR = 0;
-    TH1* hJetTauTwoEta;
+    TH1* hJetTauTwoPt[5/*tau DM*/];
+    TH1* hJetTauTwoR[2]; //0: nominal 1: no j-->tau correction
+    TH1* hJetTauTwoEta[2]; //0: nominal 1: no j-->tau correction
     TH1* hJetTauTwoEtaQCD[2]; //0: nominal 1: no j-->tau correction
     TH2* hJetTauTwoPtVsR[5/*tau DM*/];
-    TH1* hJetTauTwoMetDeltaPhi = 0;
+    TH1* hJetTauTwoMetDeltaPhi[2]; //0: nominal 1: no j-->tau correction
     TH1* hJetTauTwoRelIso[2]; //0: nominal 1: no bias correction
 
-    TH1* hTwoPz = 0;
+    TH1* hTwoPz;
     TH1* hTwoPt[12]; //0: nominal 1: no trigger weight 2-5: trigger weight options 6: no ID1 weight 7: no ID2 weight
-    TH1* hTwoP = 0;
-    TH1* hTwoM = 0;
-    TH1* hTwoPtOverM = 0;
-    TH1* hTwoEta = 0;
-    TH1* hTwoPhi = 0;
-    TH1* hTwoD0 = 0;
-    TH1* hTwoDXY = 0;
-    TH1* hTwoDZ = 0;
-    TH1* hTwoIso = 0;
-    TH1* hTwoID1 = 0;
-    TH1* hTwoID2 = 0;
-    TH1* hTwoID3 = 0;
-    TH1* hTwoRelIso = 0;
-    TH1* hTwoFlavor = 0;
-    TH1* hTwoGenFlavor = 0;
-    TH1* hTwoQ = 0;
-    TH1* hTwoTrigger = 0;
-    TH1* hTwoWeight = 0;
-    TH1* hTwoWeight1Group = 0;
-    TH1* hTwoWeight2Group = 0;
-    TH1* hTwoTrigWeight = 0;
+    TH1* hTwoP;
+    TH1* hTwoM;
+    TH1* hTwoPtOverM;
+    TH1* hTwoEta;
+    TH1* hTwoPhi;
+    TH1* hTwoD0;
+    TH1* hTwoDXY;
+    TH1* hTwoDZ;
+    TH1* hTwoIso;
+    TH1* hTwoID1;
+    TH1* hTwoID2;
+    TH1* hTwoID3;
+    TH1* hTwoRelIso;
+    TH1* hTwoFlavor;
+    TH1* hTwoGenFlavor;
+    TH1* hTwoQ;
+    TH1* hTwoTrigger;
+    TH1* hTwoWeight;
+    TH1* hTwoWeight1Group;
+    TH1* hTwoWeight2Group;
+    TH1* hTwoTrigWeight;
     //Gen Info
-    TH1* hTwoGenPt = 0;
-    TH1* hTwoGenE = 0;
-    TH1* hTwoGenEta = 0;
-    TH1* hTwoDeltaPt = 0;
-    TH1* hTwoDeltaE = 0;
-    TH1* hTwoDeltaEta = 0;
-    TH1* hTwoMetDeltaPhi = 0;
+    TH1* hTwoGenPt;
+    TH1* hTwoGenE;
+    TH1* hTwoGenEta;
+    TH1* hTwoDeltaPt;
+    TH1* hTwoDeltaE;
+    TH1* hTwoDeltaEta;
+    TH1* hTwoMetDeltaPhi;
 
     //SVFit Info
-    TH1* hTwoSVPt = 0;
-    TH1* hTwoSVM = 0;
-    TH1* hTwoSVEta = 0;
-    TH1* hTwoSVDeltaPt = 0;
-    TH1* hTwoSVDeltaP = 0;
-    TH1* hTwoSVDeltaE = 0;
-    TH1* hTwoSVDeltaEta = 0;
+    TH1* hTwoSVPt;
+    TH1* hTwoSVM;
+    TH1* hTwoSVEta;
+    TH1* hTwoSVDeltaPt;
+    TH1* hTwoSVDeltaP;
+    TH1* hTwoSVDeltaE;
+    TH1* hTwoSVDeltaEta;
 
-    TH1* hTwoSlimEQ = 0;
-    TH1* hTwoSlimMuQ = 0;
-    TH1* hTwoSlimTauQ = 0;
-    TH1* hTwoSlimEM = 0;
-    TH1* hTwoSlimEMSS = 0;
-    TH1* hTwoSlimEMOS = 0;
-    TH1* hTwoSlimMuM = 0;
-    TH1* hTwoSlimMuMSS = 0;
-    TH1* hTwoSlimMuMOS = 0;
-    TH1* hTwoSlimTauM = 0;
-    TH1* hTwoSlimTauMSS = 0;
-    TH1* hTwoSlimTauMOS = 0;
+    TH1* hTwoSlimEQ;
+    TH1* hTwoSlimMuQ;
+    TH1* hTwoSlimTauQ;
+    TH1* hTwoSlimEM;
+    TH1* hTwoSlimEMSS;
+    TH1* hTwoSlimEMOS;
+    TH1* hTwoSlimMuM;
+    TH1* hTwoSlimMuMSS;
+    TH1* hTwoSlimMuMOS;
+    TH1* hTwoSlimTauM;
+    TH1* hTwoSlimTauMSS;
+    TH1* hTwoSlimTauMOS;
 
 
-    TH1* hPtDiff = 0;
-    TH1* hD0Diff = 0;
-    TH1* hDXYDiff = 0;
-    TH1* hDZDiff = 0;
+    TH1* hPtDiff;
+    TH1* hD0Diff;
+    TH1* hDXYDiff;
+    TH1* hDZDiff;
 
     //2D distribution
-    TH2* hTwoPtVsOnePt = 0;
-    TH2* hJetTauTwoPtVsOnePt = 0;
+    TH2* hTwoPtVsOnePt;
+    TH2* hJetTauTwoPtVsOnePt;
 
     // ~LepHist_t() {
     //   // if(hOnePz                          ) delete hOnePz                          ;

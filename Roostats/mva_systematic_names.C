@@ -18,6 +18,7 @@ pair<TString,TString> systematic_name(int sys, TString selection) {
   else if(sys ==  28 || sys ==  29) name = "JetToTauNC";
   else if(sys ==  43 || sys ==  44) {name = "Lumi"; type = "lnN";}
   else if(sys ==  45 || sys ==  46) name = "BTag";
+  else if(sys ==  47 || sys ==  48) name = "JetToTauBias";
   else if(selection.Contains("etau")  && (sys ==  37 || sys ==  38)) name = "TauMuID";
   else if(selection.Contains("mutau") && (sys ==  40 || sys ==  41)) name = "TauEleID";
   else if(sys >= 100 && sys < 106) name = Form("TauJetID%i", (sys-100)/2);

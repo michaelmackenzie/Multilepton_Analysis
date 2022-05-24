@@ -27,6 +27,7 @@ namespace CLFV {
     TH1* hJetToTauWeightBias;
     TH1* hJetToTauComps[JetToTauComposition::kLast];
     TH1* hJetToTauWts  [JetToTauComposition::kLast];
+    TH1* hJetToTauCompEffect;
     TH1* hIsSignal;
     TH1* hNPV[2]; //0: with PU weights 1: without PU weights
     TH1* hNPU[2]; //0: with PU weights 1: without PU weights

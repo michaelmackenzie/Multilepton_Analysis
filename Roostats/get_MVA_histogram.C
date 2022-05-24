@@ -1,15 +1,16 @@
 //Script to retrieve the background and signal MVA histograms
 #include "../histograms/dataplotter_clfv.C"
-#include "../interface/SystematicHist_t.hh"
+// #include "../interface/SystematicHist_t.hh"
+
 int overall_rebin_ = 0;
-TH1D* hbkg_;
-vector<TH1D*> hsigs_;
+TH1* hbkg_;
+vector<TH1*> hsigs_;
 int test_sys_ = -1; //set to systematic number if debugging/inspecting it
 bool blind_data_ = true; //set data bins > MVA score level to 0
 bool ignore_sys_ = false; //don't get systematics
-bool use_dev_mva_ = false; //use the extra MVA hist for development, mvax_1
+bool use_dev_mva_ = false; //use the extra MVA hist for development, mva?_1
 
-int get_same_flavor_systematics(int set, TString hist, TH1D* hdata, TFile* f) {
+int get_same_flavor_systematics(int set, TString hist, TH1* hdata, TFile* f) {
   int status(0);
   f->cd();
   dataplotter_->rebinH_ = 1;
@@ -21,11 +22,11 @@ int get_same_flavor_systematics(int set, TString hist, TH1D* hdata, TFile* f) {
     THStack* hstack = dataplotter_->get_stack(Form("%s_%i", hist.Data(), isys), "systematic", set);
     if(!hstack) {++status; continue;}
     if(!hstack->GetStack()) {++status; continue;}
-    vector<TH1D*> signals = dataplotter_->get_signal(Form("%s_%i", hist.Data(), isys), "systematic", set);
+    vector<TH1*> signals = dataplotter_->get_signal(Form("%s_%i", hist.Data(), isys), "systematic", set);
     if(signals.size() == 0) {++status; continue;}
 
     hstack->SetName(Form("hstack_sys_%i", isys));
-    TH1D* hbkg = (TH1D*) hstack->GetStack()->Last();
+    TH1* hbkg = (TH1*) hstack->GetStack()->Last();
     hbkg->SetName(Form("hbkg_sys_%i", isys));
     hbkg->Write();
     hstack->Write();
@@ -78,13 +79,13 @@ int get_same_flavor_histogram(int set = 8, TString selection = "mumu",
   THStack* hstack = dataplotter_->get_stack(hist, "event", set+set_offset);
   if(!hstack) return 1;
 
-  std::vector<TH1D*> signals = dataplotter_->get_signal(hist, "event", set+set_offset);
+  std::vector<TH1*> signals = dataplotter_->get_signal(hist, "event", set+set_offset);
   if(signals.size() == 0) return 2;
   for(auto h : signals) {
     if(!h) return 2;
   }
 
-  TH1D* hdata = dataplotter_->get_data(hist, "event", set+set_offset);
+  TH1* hdata = dataplotter_->get_data(hist, "event", set+set_offset);
   if(!hdata) return 3;
   hdata->SetName("hdata");
 
@@ -99,7 +100,7 @@ int get_same_flavor_histogram(int set = 8, TString selection = "mumu",
   hdata->Write();
   hstack->SetName("hstack");
   hstack->Write();
-  TH1D* hlast = (TH1D*) hstack->GetStack()->Last();
+  TH1* hlast = (TH1*) hstack->GetStack()->Last();
   hlast->SetName("hbackground");
   hlast->Write();
 
@@ -124,13 +125,13 @@ int get_same_flavor_histogram(int set = 8, TString selection = "mumu",
   return status;
 }
 
-int get_systematics(int set, TString hist, TH1D* hdata, TFile* f, TString canvas_name) {
+int get_systematics(int set, TString hist, TH1* hdata, TFile* f, TString canvas_name) {
   int status(0);
   f->cd();
   dataplotter_->rebinH_ = overall_rebin_;
   hbkg_->SetLineColor(kRed-3);
   hbkg_->SetFillColor(0);
-  TH1D* hdata_ratio = (TH1D*) hdata->Clone("hdata_ratio");
+  TH1* hdata_ratio = (TH1*) hdata->Clone("hdata_ratio");
   hdata_ratio->Divide(hbkg_);
 
   //Loop through each systematic, creating PDFs and example figures
@@ -141,11 +142,11 @@ int get_systematics(int set, TString hist, TH1D* hdata, TFile* f, TString canvas
     if(!hstack) {++status; continue;}
     if(!hstack->GetStack()) {++status; continue;}
     hstack->SetName(Form("hstack_sys_%i", isys));
-    TH1D* hbkg = (TH1D*) hstack->GetStack()->Last();
+    TH1* hbkg = (TH1*) hstack->GetStack()->Last();
     hbkg->SetName(Form("hbkg_sys_%i", isys));
 
     //Get the signals
-    vector<TH1D*> signals = dataplotter_->get_signal(Form("%s_%i", hist.Data(), isys), "systematic", set);
+    vector<TH1*> signals = dataplotter_->get_signal(Form("%s_%i", hist.Data(), isys), "systematic", set);
     if(signals.size() == 0) {++status; continue;}
 
     //Create an example plot with the systematic shift + ratio plot
@@ -245,8 +246,13 @@ int get_individual_MVA_histogram(int set = 8, TString selection = "zmutau",
                                  vector<int> years = {2016, 2017, 2018},
                                  TString base = "nanoaods_dev") {
 
+  ///////////////////////////////////////////////
+  // Initialize setup
+
   hsigs_ = {};
   int status(0);
+
+  //Get the name of the MVA for this selection
   TString hist;
   if     (selection == "hmutau"  ) hist = "mva0";
   else if(selection == "zmutau"  ) hist = "mva1";
@@ -277,16 +283,23 @@ int get_individual_MVA_histogram(int set = 8, TString selection = "zmutau",
   else if(selec == "etau" ) set_offset = CLFVHistMaker::kETau;
 
   dataplotter_->rebinH_ = 10*overall_rebin_;
+
+  ///////////////////////////////////////////////
+  // Get the distributions
+
   //get background distribution
   THStack* hstack = dataplotter_->get_stack(hist, "event", set+set_offset);
-  if(!hstack) return 1;
+  if(!hstack || hstack->GetNhists() == 0) return 1;
 
-  std::vector<TH1D*> signals = dataplotter_->get_signal(hist, "event", set+set_offset);
+  //get the signal vector
+  std::vector<TH1*> signals = dataplotter_->get_signal(hist, "event", set+set_offset);
   for(auto h : signals) {
     if(!h) return 2;
   }
+  if(signals.size() == 0) return 2;
 
-  TH1D* hdata = dataplotter_->get_data(hist, "event", set+set_offset);
+  //get the data
+  TH1* hdata = dataplotter_->get_data(hist, "event", set+set_offset);
   if(!hdata) return 3;
   hdata->SetName("hdata");
   //blind high MVA score region if desired
@@ -299,6 +312,9 @@ int get_individual_MVA_histogram(int set = 8, TString selection = "zmutau",
     }
   }
 
+  ///////////////////////////////////////////////
+  // Make an initial plot of the results
+
   TCanvas* c = new TCanvas();
   hstack->Draw("hist noclear");
   for(auto h : signals) {
@@ -307,6 +323,9 @@ int get_individual_MVA_histogram(int set = 8, TString selection = "zmutau",
   hdata->Draw("same E");
   hstack->GetXaxis()->SetRangeUser(-0.6,0.3);
   hstack->GetYaxis()->SetRangeUser(0.9,1.1*hstack->GetMaximum());
+
+  ///////////////////////////////////////////////
+  // Save the results
 
   TString year_string;
   for(unsigned i = 0; i < years.size(); ++i) {
@@ -326,10 +345,12 @@ int get_individual_MVA_histogram(int set = 8, TString selection = "zmutau",
   hdata->Write();
   hstack->SetName("hstack");
   hstack->Write();
-  TH1D* hlast = (TH1D*) hstack->GetStack()->Last();
+  TH1* hlast = (TH1*) hstack->GetStack()->Last();
   hlast->SetName("hbackground");
   hlast->Write();
-  hbkg_ = (TH1D*) hlast->Clone("hbkg_");
+  hbkg_ = (TH1*) hlast->Clone("hbkg_");
+
+  //write each signal in the standard way (e.g. H->e#mu --> hemu, Z->#mu#tau --> zmutau)
   for(auto h : signals) {
     TString hname = h->GetName();
     hname.ReplaceAll("#", "");
@@ -340,17 +361,22 @@ int get_individual_MVA_histogram(int set = 8, TString selection = "zmutau",
       hname.ReplaceAll(Form("_%s_%i", hist.Data(), set+set_offset), "");
     hname.ToLower();
     h->SetName(hname.Data());
-    hsigs_.push_back((TH1D*) h->Clone(Form("hsig_%s_", hname.Data()))); //store the signal for plotting against systematic
-    if(dataplotter_->signal_scales_.find(hname) != dataplotter_->signal_scales_.end())
+    hsigs_.push_back((TH1*) h->Clone(Form("hsig_%s_", hname.Data()))); //store the signal for plotting against systematic
+    //remove the scale factor applied to the signal
+    if(dataplotter_->signal_scales_.find(hname) != dataplotter_->signal_scales_.end()) {
       h->Scale(1./dataplotter_->signal_scales_[hname]);
-    else
+    } else {
       h->Scale(1./dataplotter_->signal_scale_);
+    }
+    //save each signal
     h->Write();
   }
 
-
+  //get the systematics if needed
   if(!ignore_sys_)
     status += get_systematics(set+set_offset, hist, hdata, fout, canvas_name);
+
+  //save the results
   fout->Write();
   fout->Close();
   return status;

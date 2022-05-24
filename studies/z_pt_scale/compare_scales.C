@@ -2,12 +2,33 @@
 
 int verbose_ = 0;
 
+//----------------------------------------------------------------------------------------------------------------------------------
+//set reasonable z-range
+void set_z_range(TH2* h, const double min_default = 0.8, const double max_default = 1.2) {
+  double min_z(1.e20), max_z(-1.e20);
+  for(int xbin = 1; xbin <= h->GetNbinsX(); ++xbin) {
+    for(int ybin = 1; ybin <= h->GetNbinsY(); ++ybin) {
+      const double binc = h->GetBinContent(xbin, ybin);
+      if(binc > 1.e-4) min_z = std::min(min_z, binc);
+      max_z = std::max(max_z, binc);
+    }
+  }
+  if(min_z < max_z) {
+    min_z -= 0.1*(max_z - min_z);
+    max_z += 0.1*(max_z - min_z);
+    h->GetZaxis()->SetRangeUser(min_z, max_z);
+  }
+  else h->GetZaxis()->SetRangeUser(min_default, max_default);
+}
+
+
 int compare_scales(int year = 2016) {
 
   TFile* fmumu = new TFile(Form("rootfiles/z_pt_vs_m_scales_mumu_%i.root", year), "READ");
   TFile* fee   = new TFile(Form("rootfiles/z_pt_vs_m_scales_ee_%i.root"  , year), "READ");
 
   if(!fmumu || !fee) return 1;
+  gStyle->SetPaintTextFormat(".2f");
 
   TH2D* hmumu = (TH2D*) fmumu->Get("hGenRatio");
   if(!hmumu) {
@@ -34,8 +55,9 @@ int compare_scales(int year = 2016) {
 
   pad = c->cd(1);
   pad->SetRightMargin(0.15);
-  hmumu->Draw("colz");
+  hmumu->Draw("colz text");
   hmumu->SetTitle("#mu#mu weights");
+  hmumu->GetYaxis()->SetMoreLogLabels(kTRUE);
   pad->SetLogy();
   pad->Update();
   palette= (TPaletteAxis*) hmumu->GetListOfFunctions()->FindObject("palette");
@@ -44,8 +66,9 @@ int compare_scales(int year = 2016) {
 
   pad = c->cd(2);
   pad->SetRightMargin(0.15);
-  hee->Draw("colz");
+  hee->Draw("colz text");
   hee->SetTitle("ee weights");
+  hee->GetYaxis()->SetMoreLogLabels(kTRUE);
   pad->SetLogy();
   pad->Update();
   palette= (TPaletteAxis*) hee->GetListOfFunctions()->FindObject("palette");
@@ -54,10 +77,11 @@ int compare_scales(int year = 2016) {
 
   TH2D* hratio = (TH2D*) hmumu->Clone("hratio");
   hratio->Divide(hee);
-  hratio->GetZaxis()->SetRangeUser(0.8, 1.2);
+  set_z_range(hratio);
   pad = c->cd(3);
   pad->SetRightMargin(0.15);
-  hratio->Draw("colz");
+  hratio->Draw("colz text");
+  hratio->GetYaxis()->SetMoreLogLabels(kTRUE);
   hratio->SetTitle("#mu#mu weights / ee weights");
   pad->SetLogy();
 
