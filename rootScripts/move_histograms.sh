@@ -15,8 +15,8 @@ if [ "${indir}" == "" ]
 then
     indir="./clfv_${selection}*${year}*.hist"
 else
-    filehead="root://cmseos.fnal.gov//store/user/mmackenz/histograms/"${indir}"/"
-    indir="/store/user/mmackenz/histograms/"${indir}"/clfv_${selection}*${year}*.hist"
+    filehead="root://cmseos.fnal.gov//store/user/${USER}/histograms/"${indir}"/"
+    indir="/store/user/${USER}/histograms/"${indir}"/clfv_${selection}*${year}*.hist"
     lscommand="eos root://cmseos.fnal.gov ls"
 fi
 
@@ -27,11 +27,11 @@ else
     force="-f "
 fi
 
-outdir="/store/user/mmackenz/histograms/"${outdir}
+outdir="/store/user/${USER}/histograms/"${outdir}
 if [ `eos root://cmseos.fnal.gov ls ${outdir} 2>&1 | grep -v "Unable to stat" | head -n 1 | wc | awk '{print $1}'` -eq 0 ]
 then
     echo "Creating output directory ${outdir}"
-    eos root://cmseos.fnal.gov mkdir ${outdir}
+    eos root://cmseos.fnal.gov mkdir -p ${outdir}
 fi
 outdir="root://cmseos.fnal.gov/"${outdir}
 

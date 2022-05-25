@@ -27,10 +27,10 @@ struct datacard_t {
 
 Int_t process_nanoaods() {
 
-  TString cmssw = gSystem->Getenv("CMSSW_BASE");
+  // TString cmssw = gSystem->Getenv("CMSSW_BASE");
   TString path = "root://cmseos.fnal.gov//store/user/mmackenz/lfvanalysis_rootfiles/";
   // TString path = "root://cmseos.fnal.gov//store/user/mmackenz/lfvanalysis_rootfiles/previous_process/";
-  TString crab_path = cmssw + "/src/StandardModel/ZEMuAnalysis/test/crab_projects/";
+  // TString crab_path = cmssw + "/src/StandardModel/ZEMuAnalysis/test/crab_projects/";
   TStopwatch* timer = new TStopwatch();
   timer->Start();
 
@@ -275,27 +275,27 @@ Int_t process_nanoaods() {
     float events = -1.;
     double frac_neg = cards[index].negfrac_;
     if(isData == 0) {
-      if(!f->Get("events")) {//Try getting normalization parameters via map and crab if no event count histogram
-        TString crab_report;
-        TString crab_command = "crab report -d " + crab_path;
-        crab_command += "samples_MC_";
-        if(year == ParticleCorrections::k2016)      crab_command += "2016/crab_2016_LFVDONE_";
-        else if(year == ParticleCorrections::k2017) crab_command += "2017/crab_2017_LFVDONE_";
-        else if(year == ParticleCorrections::k2018) crab_command += "2018/crab_2018_LFVDONE_";
-        crab_command += name;
-        crab_command += " | grep read | awk '{print $NF}'";
-        cout << "Getting normalization, using command:\n" << crab_command.Data() << endl;
-        FILE* shell_res = gSystem->OpenPipe(crab_command.Data(), "r");
-        crab_report.Gets(shell_res);
-        gSystem->ClosePipe(shell_res);
-        try {
-          events = stof(crab_report.Data());
-        } catch(exception e) {
-          events = 0.;
-        }
-        cout << "Found " << events << " events for the file with "
-             << frac_neg << " fraction negative events" << endl;
-
+      // if(!f->Get("events")) {//Try getting normalization parameters via map and crab if no event count histogram
+      //   TString crab_report;
+      //   TString crab_command = "crab report -d " + crab_path;
+      //   crab_command += "samples_MC_";
+      //   if(year == ParticleCorrections::k2016)      crab_command += "2016/crab_2016_LFVDONE_";
+      //   else if(year == ParticleCorrections::k2017) crab_command += "2017/crab_2017_LFVDONE_";
+      //   else if(year == ParticleCorrections::k2018) crab_command += "2018/crab_2018_LFVDONE_";
+      //   crab_command += name;
+      //   crab_command += " | grep read | awk '{print $NF}'";
+      //   cout << "Getting normalization, using command:\n" << crab_command.Data() << endl;
+      //   FILE* shell_res = gSystem->OpenPipe(crab_command.Data(), "r");
+      //   crab_report.Gets(shell_res);
+      //   gSystem->ClosePipe(shell_res);
+      //   try {
+      //     events = stof(crab_report.Data());
+      //   } catch(exception e) {
+      //     events = 0.;
+      //   }
+      //   cout << "Found " << events << " events for the file with "
+      //        << frac_neg << " fraction negative events" << endl;
+      events = 0;
       } else { //event count histogram is found
         TH1D* hevents = (TH1D*) f->Get("events");
         double nevents = hevents->GetBinContent(1);

@@ -13,7 +13,7 @@ bool TTFakeTau_      = true; //speed up ttbar fake tau scale factor
 bool QCDFakeTau_     = true; //speed up qcd fake tau scale factor
 bool JetTauTesting_  = true; //perform MC closure test
 bool CutFlowTesting_ = false; //test just basic cutflow sets
-bool TriggerTesting_ = true; //make a few extra selections for emu trigger testing
+bool TriggerTesting_ = false; //make a few extra selections for ee/mumu/emu trigger testing
 
 int removeTrigWeights_ = 3; //0: do nothing 1: remove weights 2: replace 3: replace P(event) 4: replace P(at least 1 triggered)
 int removeBTagWeights_ = 2;//2;
@@ -81,7 +81,7 @@ config_t get_config(bool useUL) {
   config.useTauFakeSF_ = 1; //1 = use given scale factors, 2 = override them with local ones
   config.writeTrees_ = writeTrees_;
   config.onlyChannel_ = "";
-  config.skipChannels_ = {/*"mutau", "etau", "emu",*/ "mumu", "ee", "all", "jets", "llg_study"};
+  config.skipChannels_ = {"mutau", "etau", "emu", /*"mumu", "ee",*/ "all", "jets", "llg_study"};
   config.reProcessMVAs_ = false;
   config.signalTrainFraction_ = 0.3;
   config.backgroundTrainFraction_ = 0.3;
