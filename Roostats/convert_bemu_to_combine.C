@@ -303,9 +303,6 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
       bkgPDF->SetName("bkg");
     }
 
-    RooRealVar* N_bkg    = new RooRealVar("bkg_norm", "N(bkg)", data->Integral(low_bin, high_bin), 1e2, 3e6);
-    RooAddPdf* totbkgpdf = new RooAddPdf(Form("toBkgPDF_%i" , set), "Background PDF", RooArgList(*bkgPDF), RooArgList(*N_bkg));
-
     //Generate toy data to stand in for the observed data
     RooDataSet* dataset = bkgPDF->generate(RooArgSet(*lepm), data->Integral(low_bin, high_bin));
     dataset->SetName("data_obs");
@@ -494,8 +491,8 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
     } else {
       ws->import(*bkgPDF, RooFit::RecycleConflictNodes());
     }
-    if(useRateParams_)
-      ws->import(*N_bkg, RooFit::RecycleConflictNodes());
+    // if(useRateParams_)
+    //   ws->import(*N_bkg, RooFit::RecycleConflictNodes());
 
     ws->import(*dataset);
     ws->Write();
@@ -675,6 +672,14 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
   outfile << Form("%s \n\n", proc_c.Data());
   outfile << Form("%s \n\n", rate.Data()  );
   outfile << Form("----------------------------------------------------------------------------------------------------------- \n\n");
+  outfile.close();
+
+  //make a systematic free copy of the data card
+  TString alt_card = filepath; alt_card.ReplaceAll(".txt", "_nosys.txt");
+  gSystem->Exec(Form("cp %s %s", filepath.Data(), alt_card.Data()));
+  gSystem->Exec(Form("echo \"# * autoMCStats 0\n\">> %s", alt_card.Data())); //default to commenting out MC uncertainties
+
+  outfile.open(filepath.Data(), std::ios_base::app); //open again, appending to the file
 
   // gSystem->Exec(Form("echo \"----------------------------------------------------------------------------------------------------------- \n\">> %s", filepath.Data()));
   // gSystem->Exec(Form("echo \"%s \">> %s", bins.Data(), filepath.Data()));

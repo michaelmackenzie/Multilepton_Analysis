@@ -283,8 +283,10 @@ int get_bemu_single_histogram(int set = 8, TString selection = "zemu",
 
   TCanvas* c = new TCanvas();
   hstack->Draw("hist noclear");
+  double max_val = std::max(hdata->GetMaximum(), hstack->GetMaximum());
   for(auto h : signals) {
     h->Draw("hist same");
+    max_val = std::max(max_val, h->GetMaximum());
   }
   TH1* hdata_clone = (TH1*) hdata->Clone("hdata_clone");
   if(blind_data_) {
@@ -303,6 +305,8 @@ int get_bemu_single_histogram(int set = 8, TString selection = "zemu",
   else {xmin_ = 50.; xmax_ = 170.;}
 
   hstack->GetXaxis()->SetRangeUser(xmin_, xmax_);
+  hstack->GetYaxis()->SetRangeUser(0.1, 1.1*max_val);
+  hstack->SetMaximum(1.1*max_val);
   TString year_string;
   for(unsigned i = 0; i < years.size(); ++i) {
     if(i > 0) year_string += "_";

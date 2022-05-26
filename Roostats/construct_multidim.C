@@ -182,11 +182,11 @@ void add_chebychevs(RooDataHist& data, RooRealVar& obs, RooArgList& list, bool u
 
 //Fit Bernstein polynomials and add passing ones
 void add_bernsteins(RooDataHist& data, RooRealVar& obs, RooArgList& list, bool useSideBands, int& index, int set, int verbose) {
-  const int max_order = 4;
-  const double max_chisq = 1.e9; //5.; //per DOF
+  const int max_order = 6;
+  const double max_chisq = 5.; //per DOF
   //for finding the best fitting function
   double chi_min = 1.e10;
-  const double chi_cutoff = 3.85;
+  const double chi_cutoff = 3.85; //minimum difference in chi^2 to consider a higher order function
   int num_added = -1;
   int best_order = -1;
   const int max_tries = 2; //retry if poor fit to get a better one
@@ -196,22 +196,23 @@ void add_bernsteins(RooDataHist& data, RooRealVar& obs, RooArgList& list, bool u
     else if(use_fast_bernstein_) basePdf = create_fast_bernstein   (obs, order, set);
     else                         basePdf = create_bernstein        (obs, order, set);
     //Wrap the bernstein in a RooAddPdf
-    // RooRealVar* pdfNorm = new RooRealVar(Form("%s_norm", basePdf->GetName()), Form("%s_norm", basePdf->GetName()),
-    //                                      data.sumEntries(), 0.5*data.sumEntries(), 1.5*data.sumEntries());
-    // RooAddPdf* pdf = new RooAddPdf(Form("%s_wrapper", basePdf->GetName()), basePdf->GetTitle(), RooArgList(*basePdf), RooArgList(*pdfNorm));
-    RooAbsPdf* pdf = basePdf;
+    RooRealVar* pdfNorm = new RooRealVar(Form("%s_norm", basePdf->GetName()), Form("%s_norm", basePdf->GetName()),
+                                         data.sumEntries(), 0.5*data.sumEntries(), 1.5*data.sumEntries());
+    RooAddPdf* pdf = new RooAddPdf(Form("%s_wrapper", basePdf->GetName()), basePdf->GetTitle(), RooArgList(*basePdf), RooArgList(*pdfNorm));
+    // RooAbsPdf* pdf = basePdf;
     const int dof = (data.numEntries() - order - 2);  //DOF = number of variables + normalization
     double chi_sq = 1e10;
     int ntries = 0;
     do {
       ++ntries;
       if(useSideBands) {
-        pdf->fitTo(data, RooFit::Extended(false), RooFit::PrintLevel((verbose > 2) ? 1 : -1), //RooFit::Minimizer("Minuit2", "migrad"),
+        pdf->fitTo(data, RooFit::Extended(true), RooFit::PrintLevel((verbose > 2) ? 1 : -1), //RooFit::Minimizer("Minuit2", "migrad"),
                    RooFit::Warnings(0), RooFit::PrintEvalErrors(-1), RooFit::Range("LowSideband,HighSideband"));
         // pdf->fitTo(data, RooFit::Extended(true), RooFit::PrintLevel((verbose > 2) ? 1 : -1), //RooFit::Minimizer("Minuit2", "migrad"),
         //            RooFit::Warnings(0), RooFit::PrintEvalErrors(-1), RooFit::Range("LowSideband,HighSideband"));
       } else {
-        pdf->fitTo(data, RooFit::PrintLevel((verbose > 2) ? 1 : -1), RooFit::Warnings(0), RooFit::PrintEvalErrors(-1));
+        pdf->fitTo(data, RooFit::Extended(true), RooFit::PrintLevel((verbose > 2) ? 1 : -1),
+                   RooFit::Warnings(0), RooFit::PrintEvalErrors(-1));
       }
       chi_sq =  get_chi_squared(obs, pdf, data, useSideBands);
     } while(chi_sq / dof > max_chisq && ntries < max_tries);
