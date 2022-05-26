@@ -9,15 +9,16 @@
 
 using namespace CLFV;
 
-bool blindData_ = true;
+bool blindData_     = true;
 bool useRateParams_ = false;
-bool fixSignalPDF_ = true;
-bool useMultiDim_ = true;
+bool fixSignalPDF_  = true;
+bool useMultiDim_   = true;
 bool useSameFlavor_ = false;
-bool includeSys_ = true;
-bool printPlots_ = true;
-bool fitSideBands_ = true;
-bool export_ = true; //if locally run, export the workspace to LPC
+bool includeSys_    = true;
+bool printPlots_    = true;
+bool fitSideBands_  = true;
+bool export_        = false; //if locally run, export the workspace to LPC
+
 
 //Retrieve yields for each relevant systematic
 void get_systematics(TFile* f, TString label, int set, vector<double>& yields, vector<TString>& names, double xmin = 1., double xmax = -1.) {
@@ -44,7 +45,7 @@ void get_systematics(TFile* f, TString label, int set, vector<double>& yields, v
     TString hist_name;
     if(set > CLFVHistMaker::kMuMu) hist_name = Form("%s_sys_%i", (label.Contains("Bkg")) ? "hbkg" : "hDY", isys);
     else                              hist_name = Form("%s_lepm_%i_%i_sys_%i", label.Data(), isys, set, isys);
-    TH1D* h = (TH1D*) f->Get(hist_name.Data());
+    TH1* h = (TH1*) f->Get(hist_name.Data());
     if(!h) {
       cout << "!!! Systematic " << isys << " not found for set " << set << " and label " << label.Data()
            << " hist name = " << hist_name.Data() << endl;
@@ -55,8 +56,8 @@ void get_systematics(TFile* f, TString label, int set, vector<double>& yields, v
       yield = h->Integral();
     } else {
       if(bin1 < 0 || bin2 < 0) {
-        bin1 = max(1, h->FindBin(xmin));
-        bin2 = min(h->GetNbinsX(), h->FindBin(xmax));
+        bin1 = std::max(1, std::min(h->GetNbinsX(), h->FindBin(xmin)));
+        bin2 = std::max(1, std::min(h->GetNbinsX(), h->FindBin(xmax)));
       }
       yield = h->Integral(bin1, bin2);
     }
@@ -113,7 +114,7 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
   // Read in the data
   //////////////////////////////////////////////////////////////////
 
-  vector<TH1D*> sig_hists, bkg_hists, data_hists;
+  vector<TH1*> sig_hists, bkg_hists, data_hists;
   map<int, vector<double>> sig_sys; //only consider systematics on signal and control region yields for now
   vector<TString> sys_names;
   for(int set : sets) {
@@ -123,17 +124,17 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
 
     if(verbose_ > 1) fInput->ls();
 
-    TH1D* bkg = (TH1D*) fInput->Get("hbackground");
+    TH1* bkg = (TH1*) fInput->Get("hbackground");
     if(!bkg) {
       cout << "Background histogram for set " << set << " not found\n";
       return 2;
     }
-    TH1D* sig = (TH1D*) fInput->Get(selection.Data());
+    TH1* sig = (TH1*) fInput->Get(selection.Data());
     if(!sig) {
       cout << "Signal histogram for set " << set << " not found\n";
       return 3;
     }
-    TH1D* data = (TH1D*) fInput->Get("hdata");
+    TH1* data = (TH1*) fInput->Get("hdata");
     if(!bkg) {
       cout << "Data histogram for set " << set << " not found\n";
       return 4;
@@ -151,7 +152,7 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
 
     sig_sys[set] = {};
     if(includeSys_)
-      get_systematics(fInput, selection, set, sig_sys[set], sys_names, xmin, xmax);
+      get_systematics(fInput, selection, set, sig_sys[set], sys_names, xmin+1.e-3, xmax-1.e-3);
     fInput->Close();
   }
 
@@ -225,10 +226,10 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
     // Retrieve the histograms for this set
     //////////////////////////////////////////////////////////////////
 
-    TH1D* data = data_hists[iset];
-    TH1D* bkg  = bkg_hists [iset];
-    TH1D* sig  = sig_hists [iset];
-    TH1D* blindData = (TH1D*) data->Clone("hblind_data");
+    TH1* data = data_hists[iset];
+    TH1* bkg  = bkg_hists [iset];
+    TH1* sig  = sig_hists [iset];
+    TH1* blindData = (TH1*) data->Clone("hblind_data");
     const double blind_min = (isHiggs) ? 120. : 86.;
     const double blind_max = (isHiggs) ? 130. : 96.;
     sig->Scale(sig_scale);
@@ -240,8 +241,8 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
 
     // Create an observable for this category
     RooRealVar* lepm = new RooRealVar(Form("lepm_%i", set), "lepm", (xmin+xmax)/2., xmin, xmax);
-    int low_bin = data->FindBin(xmin+1.e-3);
-    int high_bin = data->FindBin(xmax-1.e-3);
+    int low_bin  = std::max(1, std::min(data->GetNbinsX(), data->FindBin(xmin+1.e-3)));
+    int high_bin = std::max(1, std::min(data->GetNbinsX(), data->FindBin(xmax-1.e-3)));
     lepm->setBins(high_bin - low_bin + 1);
     lepm->setRange("full", xmin, xmax);
     lepm->setRange("LowSideband", xmin, blind_min);
@@ -285,12 +286,14 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
 
     RooCategory* categories = new RooCategory(Form("cat_%i", set), Form("cat_%i", set));
     int index = 0;
-    auto multiPDF = construct_multidim_pdf((fitSideBands_) ? *blindDataHist : *dataData , *lepm, *categories, fitSideBands_, index, set, 2);
+    // auto multiPDF = construct_simultaneous_pdf((fitSideBands_) ? *blindDataHist : *dataData , *lepm, *categories, fitSideBands_, index, set, 2);
+    auto multiPDF = construct_multipdf((fitSideBands_) ? *blindDataHist : *dataData , *lepm, *categories, fitSideBands_, index, set, 2);
+    std::cout << "Finished constructing the multi-PDF background model for set " << set << std::endl;
     if(categories->numTypes() < 1) {
       std::cout << "MultiPDF has no PDFs in set " << set << std::endl;
       return 5;
     }
-    RooAbsPdf* bkgPDF = multiPDF->getPdf(Form("index_%i", index));
+    RooAbsPdf* bkgPDF = multiPDF->getPdf(index); //multiPDF->getPdf(Form("index_%i", index));
     categories->setIndex(index);
     cats += Form("%-8s discrete\n", categories->GetName());
 
@@ -330,14 +333,14 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
       TString name = bkgPDF->GetName();
       TString title = bkgPDF->GetTitle();
       int order = ((title(title.Sizeof() - 2)) - '0');
-      vector<int> colors = {kRed, kYellow, kViolet, kGreen, kOrange+2, kAtlantic, kRed+2, kMagenta};
+      vector<int> colors = {kRed, kYellow-7, kViolet-7, kGreen-7, kOrange+2, kAtlantic, kRed+2, kMagenta};
       vector<double> chi_sqs;
       chi_sqs.push_back(chi_sq / (nentries - order - 2));
 
       if(useMultiDim_) {
         for(int ipdf = 0; ipdf < categories->numTypes(); ++ipdf) {
           if(ipdf == index) continue;
-          auto pdf = multiPDF->getPdf(Form("index_%i", ipdf));
+          auto pdf = multiPDF->getPdf(ipdf); //multiPDF->getPdf(Form("index_%i", ipdf));
           name = pdf->GetName();
           title = pdf->GetTitle();
           chi_sq = get_chi_squared(*lepm, pdf, *dataData, fitSideBands_);
@@ -364,7 +367,7 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
             offset = 0;
             continue;
           }
-          auto pdf = multiPDF->getPdf(Form("index_%i", ipdf));
+          auto pdf = multiPDF->getPdf(ipdf); //multiPDF->getPdf(Form("index_%i", ipdf));
           leg->AddEntry(pdf->GetName(), Form("%s - #chi^{2}/DOF = %.2f", pdf->GetTitle(), chi_sqs[ipdf+offset]), "L");
         }
       }
@@ -374,15 +377,15 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
       pad2->cd();
       //Create data - background fit histogram
       double norm = data->Integral(low_bin,high_bin);
-      TH1D* dataDiff = (blindData_) ? (TH1D*) blindData->Clone("dataDiff") : (TH1D*) data->Clone("dataDiff");
+      TH1* dataDiff = (blindData_) ? (TH1*) blindData->Clone("dataDiff") : (TH1*) data->Clone("dataDiff");
       dataDiff->SetTitle("Data - Background Fit");
-      TH1D* sigDiff = (TH1D*) dataDiff->Clone("sigDiff");
-      vector<TH1D*> pdfDiffs;
+      TH1* sigDiff = (TH1*) dataDiff->Clone("sigDiff");
+      vector<TH1*> pdfDiffs;
       for(int ipdf = 0; ipdf < categories->numTypes(); ++ipdf) {
         if(ipdf == index) {
           continue;
         }
-        pdfDiffs.push_back((TH1D*) dataDiff->Clone(Form("hPdfDiff_%i", ipdf)));
+        pdfDiffs.push_back((TH1*) dataDiff->Clone(Form("hPdfDiff_%i", ipdf)));
       }
       //First make a histogram of the PDF, due to normalization issues
       for(int ibin = low_bin; ibin <= high_bin; ++ibin) {
@@ -394,8 +397,8 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
           if(ipdf == index) {
             continue;
           }
-          TH1D* hPDFDiff = pdfDiffs[ipdf - (ipdf > index)];
-          auto pdf = multiPDF->getPdf(Form("index_%i", ipdf));
+          TH1* hPDFDiff = pdfDiffs[ipdf - (ipdf > index)];
+          auto pdf = multiPDF->getPdf(ipdf); //multiPDF->getPdf(Form("index_%i", ipdf));
           hPDFDiff->SetBinContent(ibin, pdf->getVal());
         }
       }
@@ -405,7 +408,7 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
         if(ipdf == index) {
           continue;
         }
-        TH1D* hPDFDiff = pdfDiffs[ipdf - (ipdf > index)];
+        TH1* hPDFDiff = pdfDiffs[ipdf - (ipdf > index)];
         hPDFDiff->Scale(norm/hPDFDiff->Integral(low_bin, high_bin));
       }
 
@@ -423,8 +426,8 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
           if(ipdf == index) {
             continue;
           }
-          TH1D* hPDFDiff = pdfDiffs[ipdf - (ipdf > index)];
-          auto pdf = multiPDF->getPdf(Form("index_%i", ipdf));
+          TH1* hPDFDiff = pdfDiffs[ipdf - (ipdf > index)];
+          auto pdf = multiPDF->getPdf(ipdf); //multiPDF->getPdf(Form("index_%i", ipdf));
           hPDFDiff->SetBinContent(ibin, hPDFDiff->GetBinContent(ibin) - val);
           hPDFDiff->SetBinError(ibin,0.);
         }
@@ -445,7 +448,7 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
         if(ipdf == index) {
           continue;
         }
-        TH1D* hPDFDiff = pdfDiffs[ipdf - (ipdf > index)];
+        TH1* hPDFDiff = pdfDiffs[ipdf - (ipdf > index)];
         hPDFDiff->SetLineColor(colors[ipdf % colors.size()]);
         hPDFDiff->SetLineStyle(kDashed);
         hPDFDiff->Draw("same hist");
@@ -468,14 +471,14 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
     bins_p += Form("%10s", hist.Data());
     proc_l += Form("%10s", selection.Data());
     proc_c += Form("%10i", 0);
-    double sig_rate = sig->Integral(low_bin, high_bin)*sig_scale;
+    const double sig_rate = sig->Integral(low_bin, high_bin);
     if(useRateParams_)
       rate   += Form("%10i", 1);
     else
       rate   += Form("%10.1f", sig_rate);
     sigPDF->SetName(selection.Data());
     ws->import(*sigPDF, RooFit::RecycleConflictNodes());
-    signorm += Form("nsig_%-3i rateParam   lepm_%-3i %8s %10.1f\n", set, set, selection.Data(), sig->Integral(low_bin, high_bin)*sig_scale);
+    signorm += Form("nsig_%-3i rateParam   lepm_%-3i %8s %10.1f\n", set, set, selection.Data(), sig->Integral(low_bin, high_bin));
 
     //add the background
     bins_p += Form("%10s", hist.Data());
@@ -531,16 +534,16 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
     if(!fee) {
       return 10;
     }
-    TH1D*    hdata  = (TH1D*)    fee->Get("hdata");
+    TH1*     hdata  = (TH1*)     fee->Get("hdata");
     THStack* hstack = (THStack*) fee->Get("hstack");
     if(!hdata || !hstack) {
       cout << "Histograms for ee control region not found!\n";
       return 11;
     }
-    TH1D* hDY = 0;
-    TH1D* hBkg = 0;
+    TH1* hDY = 0;
+    TH1* hBkg = 0;
     for(auto o : *(hstack->GetHists())) {
-      TH1D* h = (TH1D*) o;
+      TH1* h = (TH1*) o;
       if(TString(h->GetName()).Contains("Z->ee/#mu#mu")) {
         if(hDY) hDY->Add(h);
         else   {hDY = h; hDY->SetName("hDY");}
@@ -549,9 +552,9 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
         else    {hBkg = h; hBkg->SetName("hBkg");}
       }
     }
-    TH1D* hZ    = new TH1D("zee" , "Z->ee count"           , 1, low_mass, high_mass);
-    TH1D* hZBkg = new TH1D("zbkg", "Z->ee count backround" , 1, low_mass, high_mass);
-    TH1D* hZObs = new TH1D("data_obs" , "Z->ee observation", 1, low_mass, high_mass);
+    TH1* hZ    = new TH1D("zee" , "Z->ee count"           , 1, low_mass, high_mass);
+    TH1* hZBkg = new TH1D("zbkg", "Z->ee count backround" , 1, low_mass, high_mass);
+    TH1* hZObs = new TH1D("data_obs" , "Z->ee observation", 1, low_mass, high_mass);
     double error;
     hZ->SetBinContent(1, hDY->IntegralAndError(hDY->FindBin(low_mass+1.e-3), hDY->FindBin(high_mass-1.e-3), error));
     hZ->SetBinError(1, error);
@@ -598,7 +601,7 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
     if(!fmumu) {
       return 20;
     }
-    hdata  = (TH1D*)    fmumu->Get("hdata");
+    hdata  = (TH1*)     fmumu->Get("hdata");
     hstack = (THStack*) fmumu->Get("hstack");
     if(!hdata || !hstack) {
       cout << "Histograms for mumu control region not found!\n";
@@ -607,7 +610,7 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
     hDY = 0;
     hBkg = 0;
     for(auto o : *(hstack->GetHists())) {
-      TH1D* h = (TH1D*) o;
+      TH1* h = (TH1*) o;
       if(TString(h->GetName()).Contains("Z->ee/#mu#mu")) {
         if(hDY) hDY->Add(h);
         else   {hDY = h; hDY->SetName("hDY");}

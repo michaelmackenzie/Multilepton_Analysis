@@ -4,18 +4,20 @@ SELECTION=$1
 HISTSTRING=$2
 DONTCLEAN=$3
 
-WORKSPACE=combine_mva_total_${SELECTION}_workspace.root
-# if [ ! -f ${WORKSPACE} ]
-# then
-#     echo "Workspace ${WORKSPACE} not found!"
-#     pwd
-#     ls
-#     exit 1;
-# fi
 
 echo "Creating total search impacts"
 
+WORKSPACE=combine_mva_total_${SELECTION}_workspace.root
 text2workspace.py combine_mva_total_${SELECTION}_${HISTSTRING}.txt -o ${WORKSPACE}
+if [ ! -f ${WORKSPACE} ]
+then
+    echo "Workspace ${WORKSPACE} not found!"
+    pwd
+    ls
+    exit 1;
+fi
+
+
 combineTool.py -M Impacts -d ${WORKSPACE} -m 0 --rMin -20 --rMax 20 --robustFit 1 --doInitialFit -t -1
 combineTool.py -M Impacts -d ${WORKSPACE} -m 0 --rMin -20 --rMax 20 --robustFit 1 --doFits -t -1
 combineTool.py -M Impacts -d ${WORKSPACE} -m 0 --rMin -20 --rMax 20 --robustFit 1 --output impacts_total_${SELECTION}_${HISTSTRING}.json -t -1

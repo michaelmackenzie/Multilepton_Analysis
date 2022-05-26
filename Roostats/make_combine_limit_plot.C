@@ -1,9 +1,11 @@
-//Script to process the individual and combined category limits and plot them
+//Script to process limits for channels/years/etc. and plot the limits
 
-int make_combine_limit_plot(int set = 8, TString selection = "zmutau",
+int make_combine_limit_plot(vector<TString> cards, //combine datacard names to process
+                            vector<TString> labels, //label for each card
+                            TString tag, //tag for the output figure file name
+                            int set = 8, TString selection = "zmutau",
                             vector<int> years = {2016, 2017, 2018},
                             bool processCards = true,
-                            bool doNoSys = false,
                             bool doObs = false) {
   //Move to the proper directory
   TString year_string = Form("%i", years[0]);
@@ -11,73 +13,48 @@ int make_combine_limit_plot(int set = 8, TString selection = "zmutau",
   TString dir = Form("datacards/%s", year_string.Data());
 
   int status(0);
-  TString lep = (selection.Contains("mutau")) ? "e" : "mu";
   if(processCards) {
-    //Run combine on each category
-    gSystem->Exec(Form("combine -d combine_mva_%s_%i%s.txt %s --name _mva_%s_%i%s -t -1 --rMin -20 --rMax 20",
-                       selection.Data(), set,
-                       (doNoSys) ? "_nosys" : "",
-                       (doObs) ? "" : "--run blind", selection.Data(), set,
-                       (doNoSys) ? "_nosys" : ""));
-    gSystem->Exec(Form("combine -d combine_mva_%s_%s_%i%s.txt %s --name _mva_%s_%s_%i%s -t -1 --rMin -20 --rMax 20",
-                       selection.Data(), lep.Data(), set,
-                       (doNoSys) ? "_nosys" : "",
-                       (doObs) ? "" : "--run blind", selection.Data(), lep.Data(), set,
-                       (doNoSys) ? "_nosys" : ""));
-    gSystem->Exec(Form("combine -d combine_mva_total_%s_%i%s.txt %s --name _mva_total_%s_%i%s -t -1 --rMin -20 --rMax 20",
-                       selection.Data(), set,
-                       (doNoSys) ? "_nosys" : "",
-                       (doObs) ? "" : "--run blind", selection.Data(), set,
-                       (doNoSys) ? "_nosys" : ""));
+    //Run combine on each datacard
+    for(TString card : cards) {
+      gSystem->Exec(Form("combine -d combine_mva_%s.txt %s --name _%s -t -1 --rMin -20 --rMax 20",
+                         card.Data(),
+                         (doObs) ? "" : "--run blind",
+                         card.Data()));
+    }
   }
 
   //Extract the results for each
-  TFile* f1 = TFile::Open(Form("higgsCombine_mva_%s_%i%s.AsymptoticLimits.mH120.root"      , selection.Data(), set, (doNoSys) ? "_nosys" : ""), "READ");
-  TFile* f2 = TFile::Open(Form("higgsCombine_mva_%s_%s_%i%s.AsymptoticLimits.mH120.root"   , selection.Data(), lep.Data(), set, (doNoSys) ? "_nosys" : ""), "READ");
-  TFile* f3 = TFile::Open(Form("higgsCombine_mva_total_%s_%i%s.AsymptoticLimits.mH120.root", selection.Data(), set, (doNoSys) ? "_nosys" : ""), "READ");
-
-  if(!f1 || !f2 || !f3) {
-    return 1;
+  vector<TFile*> file_list;
+  vector<TTree*> tree_list;
+  for(TString card : cards) {
+    TFile* f = TFile::Open(Form("higgsCombine_mva_%s.AsymptoticLimits.mH120.root", card.Data()), "READ");
+    if(!f) return 1;
+    file_list.push_back(f);
+    TTree* t = (TTree*) f->Get("limit");
+    if(!t) {
+      cout << "Tree for card name " << card.Data() << " not found\n";
+      return 2;
+    }
+    t->SetName(Form("limits_%s", card.Data()));
+    tree_list.push_back(t);
   }
 
-  TTree* t1 = (TTree*) f1->Get("limit");
-  if(!t1) {
-    cout << "Tree 1 not found!\n";
-    return 2;
-  }
-  t1->SetName("limits_1");
-
-  TTree* t2 = (TTree*) f2->Get("limit");
-  if(!t2) {
-    cout << "Tree 2 not found!\n";
-    return 2;
-  }
-  t2->SetName("limits_2");
-
-  TTree* t3 = (TTree*) f3->Get("limit");
-  if(!t3) {
-    cout << "Tree 3 not found!\n";
-    return 2;
-  }
-  t3->SetName("limits_3");
-
-  double expected[3], up_1[3], down_1[3], up_2[3], down_2[3], obs[3], y[3], yerr[3];
-  double scale = (selection.Contains("h")) ? 1.e-4 : 1.e-6;
-  for(int i = 0; i < 3; ++i) {
-    TTree* t = t1;
-    if     (i == 1) t = t2;
-    else if(i == 2) t = t3;
+  const int nfiles = cards.size();
+  double expected[nfiles], up_1[nfiles], down_1[nfiles], up_2[nfiles], down_2[nfiles], obs[nfiles], y[nfiles], yerr[nfiles];
+  const double scale = (selection.Contains("h")) ? 1.e-4 : 1.e-6; //get the absolute branching fraction from signal strength
+  for(int itree = 0; itree < nfiles; ++itree) {
+    TTree* t = tree_list[itree];
     double val;
     t->SetBranchAddress("limit", &val);
-    t->GetEntry(2); expected[i] = scale*val;
-    t->GetEntry(0); down_2  [i] = expected[i] - scale*val;
-    t->GetEntry(1); down_1  [i] = expected[i] - scale*val;
-    t->GetEntry(3); up_1    [i] = scale*val - expected[i];
-    t->GetEntry(4); up_2    [i] = scale*val - expected[i];
-    t->GetEntry(5); obs     [i] = scale*val;
+    t->GetEntry(2); expected[itree] = scale*val;
+    t->GetEntry(0); down_2  [itree] = expected[itree] - scale*val;
+    t->GetEntry(1); down_1  [itree] = expected[itree] - scale*val;
+    t->GetEntry(3); up_1    [itree] = scale*val       - expected[itree];
+    t->GetEntry(4); up_2    [itree] = scale*val       - expected[itree];
+    t->GetEntry(5); obs     [itree] = scale*val;
 
-    y[i] = 3 - i;
-    yerr[i] = 0.2;
+    y[itree] = nfiles - itree;
+    yerr[itree] = 0.2;
   }
 
   TGraphAsymmErrors* expected_1 = new TGraphAsymmErrors(3, expected, y, down_1, up_1, yerr, yerr);
@@ -91,7 +68,7 @@ int make_combine_limit_plot(int set = 8, TString selection = "zmutau",
   expected_2->SetMarkerStyle(20);
   expected_2->SetMarkerSize(0.8);
   expected_2->SetTitle("CLs Limits");
-  expected_2->GetYaxis()->SetRangeUser(0.5, 4.5);
+  expected_2->GetYaxis()->SetRangeUser(0.5, nfiles*1.3);
   expected_2->GetXaxis()->SetRangeUser(1.e-6, 1.2*max(expected[0]+up_2[0], expected[1]+up_2[1]));
   expected_2->GetXaxis()->SetTitle("Branching fraction");
   expected_2->GetYaxis()->SetLabelOffset(999);
@@ -123,14 +100,15 @@ int make_combine_limit_plot(int set = 8, TString selection = "zmutau",
   label.SetTextSize(0.05);
   label.SetTextAlign(13);
   label.SetTextAngle(25);
-  label.DrawLatex(0.01, 0.55, "Hadronic");
-  label.DrawLatex(0.01, 0.38, "Leptonic");
-  label.DrawLatex(0.01, 0.18, "Combined");
   label.SetTextSize(0.03);
-  label.DrawLatex(0.1, 0.55, Form("%.1e", expected[0]));
-  label.DrawLatex(0.1, 0.38, Form("%.1e", expected[1]));
-  label.DrawLatex(0.1, 0.18, Form("%.1e", expected[2]));
+  for(int icard = 0; icard < nfiles; ++icard) {
+    const double yloc = (nfiles == 1) ? 0.5 : 0.68 - (icard)*(0.68-0.2)/(nfiles-1);
+    label.DrawLatex(0.01, yloc, labels[icard].Data());
+    label.DrawLatex(0.1 , yloc, Form("%.1e", expected[icard]));
+  }
+  // label.DrawLatex(0.1, 0.38, Form("%.1e", expected[1]));
+  // label.DrawLatex(0.1, 0.18, Form("%.1e", expected[2]));
 
-  c->Print(Form("limits_%s_%i%s.png", selection.Data(), set, (doNoSys) ? "_nosys" : ""));
+  c->Print(Form("limits_%s_%i_%s.png", selection.Data(), set, tag.Data()));
   return status;
 }

@@ -290,9 +290,9 @@ cd datacards/${YEARSTRING}/
 #run the total combine limit
 combine -d combine_mva_total_${SELECTION}_${HISTSTRING}.txt
 #make a plot of the limit by category
-root.exe -q -b "../../make_combine_limit_plot.C(${HISTSTRING}, \"${SELECTION}\", ${YEAR}, true, false)"
+root.exe -q -b "../../make_combine_limit_plot_channels.C(${HISTSTRING}, \"${SELECTION}\", ${YEAR}, true, false)"
 #make the same plot without systematic uncertainties
-root.exe -q -b "../../make_combine_limit_plot.C(${HISTSTRING}, \"${SELECTION}\", ${YEAR}, true, true)"
+root.exe -q -b "../../make_combine_limit_plot_channels.C(${HISTSTRING}, \"${SELECTION}\", ${YEAR}, true, true)"
 #generate impacts
 ../../combine_channel_impacts.sh ${SELECTION} ${HISTSTRING}
 ```
