@@ -2338,20 +2338,32 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   if(!fChain->GetBranch("leptonOneSCEta")) leptonOneSCEta = leptonOneP4->Eta();
   if(!fChain->GetBranch("leptonTwoSCEta")) leptonTwoSCEta = leptonTwoP4->Eta();
 
-  //Set MC era for embedding samples
-  if(fIsEmbed) {
-    mcEra = 0; //default to first period
-    const TString filename = GetOutputName();
-    if(fYear == 2016) { //split 2016 into B-F and GH
-      if(filename.Contains("-G") || filename.Contains("-H")) mcEra = 1;
-    } else if(fYear == 2018) { //split 2018 into ABC and D
-      if(filename.Contains("-D")) mcEra = 1;
+  //Set the data/MC era
+  if(fUpdateMCEra) {
+    if(fIsEmbed) {
+      mcEra = 0; //default to first period
+      const TString filename = GetOutputName();
+      if(fYear == 2016) { //split 2016 into B-F and GH
+        if(filename.Contains("-G") || filename.Contains("-H")) mcEra = 1;
+      } else if(fYear == 2018) { //split 2018 into ABC and D
+        if(filename.Contains("-D")) mcEra = 1;
+      }
+    } else if(fIsData) {
+      mcEra = 0; //default to first period
+      if(fYear == 2016) mcEra = (runNumber > 278808); //split on period B-F and GH
+      if(fYear == 2018) mcEra = (runNumber > 320065); //split on period ABC and D
+    } else { //MC
+      mcEra = 0;
+      if(fYear == 2016) {
+        const double rand = fRnd->Uniform();
+        const double frac_first = 19.72 / 35.86;
+        mcEra = rand > frac_first; //0 if first, 1 if second
+      } else if(fYear == 2018) {
+        const double rand = fRnd->Uniform();
+        const double frac_first = 8.98 / 59.59;
+        mcEra = rand > frac_first; //0 if first, 1 if second
+      }
     }
-  }
-  if(fIsData) {
-    mcEra = 0; //default to first period
-    if(fYear == 2016) mcEra = (runNumber > 278808); //split on period B-F and GH
-    if(fYear == 2018) mcEra = (runNumber > 320065); //split on period ABC and D
   }
 
   /////////////////////////////////
@@ -3752,7 +3764,7 @@ void CLFVHistMaker::ApplyTriggerWeights(const float muon_trig_pt, const float el
       }
     } else {
       //use low trigger in case the lepton didn't fire a trigger
-      fMuonIDWeight.TriggerEff               (leptonTwoP4->Pt(), leptonTwoP4->Eta(), fYear, !leptonTwoFired || muonTriggerStatus != 2, data_eff[1], mc_eff[1]);
+      fMuonIDWeight.TriggerEff               (leptonTwoP4->Pt(), leptonTwoP4->Eta(), fYear, mcEra, !leptonTwoFired || muonTriggerStatus != 2, data_eff[1], mc_eff[1]);
     }
   }
   if(std::abs(leptonOneFlavor) == 13) { //lepton 1 is a muon
@@ -3763,7 +3775,7 @@ void CLFVHistMaker::ApplyTriggerWeights(const float muon_trig_pt, const float el
         fEmbeddingWeight.MuonTriggerWeight   (leptonOneP4->Pt(), leptonOneP4->Eta(), fYear, data_eff[0], mc_eff[0]);
       }
     } else {
-      fMuonIDWeight.TriggerEff               (leptonOneP4->Pt(), leptonOneP4->Eta(), fYear, !leptonOneFired || muonTriggerStatus != 2, data_eff[0], mc_eff[0]);
+      fMuonIDWeight.TriggerEff               (leptonOneP4->Pt(), leptonOneP4->Eta(), fYear, mcEra, !leptonOneFired || muonTriggerStatus != 2, data_eff[0], mc_eff[0]);
     }
   }
 

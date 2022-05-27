@@ -764,12 +764,12 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
       else                  trigger = (trigMatchOne == 1 || trigMatchOne == 3) ? ParticleCorrections::kLowTrigger : ParticleCorrections::kHighTrigger;
     }
     if(!fIsData) {
-      particleCorrections->MuonWeight(muonPt[index], muonEta[index], trigger, fYear, lepOneTrigWeight,
+      particleCorrections->MuonWeight(muonPt[index], muonEta[index], trigger, fYear, mcEra, lepOneTrigWeight,
                                       lepOneWeight1, lepOneWeight1_up, lepOneWeight1_down, lepOneWeight1_bin,
                                       lepOneWeight2, lepOneWeight2_up, lepOneWeight2_down, lepOneWeight2_bin
                                       );
       particleCorrections->MuonTriggerEff(muonPt[index], muonEta[index], (trigger < 0) ? ParticleCorrections::kLowTrigger : trigger,
-                                          fYear, data_eff[trigger_index], mc_eff[trigger_index]);
+                                          fYear, mcEra, data_eff[trigger_index], mc_eff[trigger_index]);
       lepOneTrigWeight = (trigMatchOne > 0) ? data_eff[trigger_index] / mc_eff[trigger_index] : (1. - data_eff[trigger_index]) / (1. - mc_eff[trigger_index]);
       if(fVerbose > 2) std::cout << "Lepton 1 has trigger status " << trigger << " and trigger weight " << lepOneTrigWeight << std::endl;
     }
@@ -880,12 +880,12 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
       else                  trigger = (trigMatchTwo == 1 || trigMatchTwo == 3) ? ParticleCorrections::kLowTrigger : ParticleCorrections::kHighTrigger;
     }
     if(!fIsData) {
-      particleCorrections->MuonWeight(muonPt[index], muonEta[index], trigger, fYear, lepTwoTrigWeight,
+      particleCorrections->MuonWeight(muonPt[index], muonEta[index], trigger, fYear, mcEra, lepTwoTrigWeight,
                                       lepTwoWeight1, lepTwoWeight1_up, lepTwoWeight1_down, lepTwoWeight1_bin,
                                       lepTwoWeight2, lepTwoWeight2_up, lepTwoWeight2_down, lepTwoWeight2_bin
                                       );
       particleCorrections->MuonTriggerEff(muonPt[index], muonEta[index], (trigger < 0) ? ParticleCorrections::kLowTrigger : trigger,
-                                          fYear, data_eff[trigger_index], mc_eff[trigger_index]);
+                                          fYear, mcEra, data_eff[trigger_index], mc_eff[trigger_index]);
       lepTwoTrigWeight = (trigMatchTwo) ? data_eff[trigger_index] / mc_eff[trigger_index] : (1. - data_eff[trigger_index]) / (1. - mc_eff[trigger_index]);
       if(fVerbose > 2) std::cout << "Lepton 2 has trigger status " << trigger << " and trigger weight " << lepTwoTrigWeight << std::endl;
     }
@@ -921,12 +921,12 @@ void NanoAODConversion::InitializeTreeVariables(Int_t selection) {
       else                  trigger = (trigMatchTwo == 1 || trigMatchTwo == 3) ? ParticleCorrections::kLowTrigger : ParticleCorrections::kHighTrigger;
     }
     if(!fIsData) {
-      particleCorrections->MuonWeight(muonPt[index], muonEta[index], trigger, fYear, lepTwoTrigWeight,
+      particleCorrections->MuonWeight(muonPt[index], muonEta[index], trigger, fYear, mcEra, lepTwoTrigWeight,
                                       lepTwoWeight1, lepTwoWeight1_up, lepTwoWeight1_down, lepTwoWeight1_bin,
                                       lepTwoWeight2, lepTwoWeight2_up, lepTwoWeight2_down, lepTwoWeight2_bin
                                       );
       particleCorrections->MuonTriggerEff(muonPt[index], muonEta[index], (trigger < 0) ? ParticleCorrections::kLowTrigger : trigger,
-                                          fYear, data_eff[trigger_index], mc_eff[trigger_index]);
+                                          fYear, mcEra, data_eff[trigger_index], mc_eff[trigger_index]);
       lepTwoTrigWeight = (trigMatchTwo) ? data_eff[trigger_index] / mc_eff[trigger_index] : (1. - data_eff[trigger_index]) / (1. - mc_eff[trigger_index]);
       if(fVerbose > 2) std::cout << "Lepton 2 has trigger status " << trigger << " and trigger weight " << lepTwoTrigWeight << std::endl;
     }
@@ -2061,6 +2061,32 @@ Bool_t NanoAODConversion::Process(Long64_t entry)
               << " nTau = " << nTau << " nJet = " << nJet << " nTrigObj = " << nTrigObjs
               << " nPhoton = " << nPhoton
               << std::endl;
+
+  ///////////////////////////////////////////////////////
+  //Set the data era
+  ///////////////////////////////////////////////////////
+
+  if(!fIsData && !fIsEmbed) { // use random numbers for MC not split by era
+    mcEra = 0;
+    if(fYear == ParticleCorrections::k2016) {
+      const double rand = fRnd->Uniform();
+      const double frac_first = 19.72 / 35.86;
+      mcEra = rand > frac_first; //0 if first, 1 if second
+    } else if(fYear == ParticleCorrections::k2018) {
+      const double rand = fRnd->Uniform();
+      const double frac_first = 8.98 / 59.59;
+      mcEra = rand > frac_first; //0 if first, 1 if second
+    }
+  } else if(fIsEmbed) { //decide by run period in the file name
+    if(fYear == ParticleCorrections::k2016) { //split 2016 into B-F and GH
+      if(fFolderName.Contains("-G") || fFolderName.Contains("-H")) mcEra = 1;
+    } else if(fYear == ParticleCorrections::k2018) { //split 2018 into ABC and D
+      if(fFolderName.Contains("-D")) mcEra = 1;
+    }
+  } else if(fIsData) { //decide based on the run number
+    if(fYear == ParticleCorrections::k2016) mcEra = (runNumber > 278808); //split on period B-F and GH
+    if(fYear == ParticleCorrections::k2018) mcEra = (runNumber > 320065); //split on period ABC and D
+  }
 
   //replace pileup weight if requested
   if(fIsData == 0 && fIsEmbed == 0 && fReplacePUWeights > 0) puWeight = fPUWeight.GetWeight(nPU, fYear+2016); //uses absolute year number

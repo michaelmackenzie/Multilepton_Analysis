@@ -2,7 +2,7 @@
 using namespace CLFV;
 
 
-void ParticleCorrections::MuonWeight(double pt, double eta, int trigger, int year, float& trig_scale,
+void ParticleCorrections::MuonWeight(double pt, double eta, int trigger, int year, int mcEra, float& trig_scale,
                                      float& weight_id , float& weight_up_id , float& weight_down_id , int& ibin_id,
                                      float& weight_iso, float& weight_up_iso, float& weight_down_iso, int& ibin_iso
                                      ) {
@@ -13,15 +13,8 @@ void ParticleCorrections::MuonWeight(double pt, double eta, int trigger, int yea
     return;
   }
 
-  //FIXME: run era should be fixed for the entire event, not allowed to change between muons in the same event
-  const double rand = fRnd->Uniform();
-  bool firstSection = true; //whether this MC is for the first or second part of the data taking period
-  if(year == k2016)
-    firstSection = (rand < 19.72/35.86);
-  else if(year == k2018)
-    firstSection = (rand < 8.98/59.59);
-
-  TH2F* hID = muonIDMap[2*year + !firstSection];
+  mcEra = std::min(1, std::max(0, mcEra));
+  TH2F* hID = muonIDMap[2*year + mcEra];
 
   //axes flip between years for some reason
   const double xvar = (year != 2016) ? pt : eta;
@@ -30,15 +23,15 @@ void ParticleCorrections::MuonWeight(double pt, double eta, int trigger, int yea
   int biny = std::max(1, std::min(hID->GetNbinsY(), hID->GetYaxis()->FindBin(yvar)));
   const double id_scale = hID->GetBinContent(binx, biny);
   const double id_error = hID->GetBinError(binx, biny);
-  ibin_id = 10000 * firstSection + 100*biny + binx; //assumes binx and biny < 100
+  ibin_id = 10000 * (1 - mcEra) + 100*biny + binx; //assumes binx and biny < 100
 
-  TH2F* hIso = muonIsoMap[2*year + !firstSection];
+  TH2F* hIso = muonIsoMap[2*year + mcEra];
 
   binx = std::max(1, std::min(hIso->GetNbinsX(), hIso->GetXaxis()->FindBin(xvar)));
   biny = std::max(1, std::min(hIso->GetNbinsY(), hIso->GetYaxis()->FindBin(yvar)));
   const double iso_scale = hIso->GetBinContent(binx, biny);
   const double iso_error = hIso->GetBinError(binx, biny);
-  ibin_iso = 10000*firstSection + 100*biny + binx; //assumes binx and biny < 100
+  ibin_iso = 10000*(1 - mcEra) + 100*biny + binx; //assumes binx and biny < 100
 
   //Trigger weights
   trig_scale = 1.;
@@ -57,7 +50,7 @@ void ParticleCorrections::MuonWeight(double pt, double eta, int trigger, int yea
     //   if(trigger == kLowTrigger && pt < 26.) pt = 26.;
     //   else if(trigger == kHighTrigger && pt < 52.) pt = 52.;
     // }
-    TH2F* hTrigger = (trigger == kLowTrigger) ? muonLowTriggerMap[2*year + !firstSection] : muonHighTriggerMap[2*year + !firstSection] ;
+    TH2F* hTrigger = (trigger == kLowTrigger) ? muonLowTriggerMap[2*year + mcEra] : muonHighTriggerMap[2*year + mcEra] ;
     //doesn't flip between years
     binx = std::max(1, std::min(hTrigger->GetNbinsX(), hTrigger->GetXaxis()->FindBin(std::fabs(eta))));
     biny = std::max(1, std::min(hTrigger->GetNbinsY(), hTrigger->GetYaxis()->FindBin(pt)));
@@ -73,7 +66,7 @@ void ParticleCorrections::MuonWeight(double pt, double eta, int trigger, int yea
               << " iso_scale = " << iso_scale << " +- " << iso_error
               << " trig_scale = " << trig_scale
               << " trigger = " << trigger
-              << " firstSection = " << firstSection << std::endl;
+              << " mcEra = " << mcEra << std::endl;
   }
   //calculate the +- 1 sigma weights
   // weight_up   = scale_factor * (1. + sqrt(iso_error*iso_error/(iso_scale*iso_scale) + id_error*id_error/(id_scale*id_scale)));
@@ -86,7 +79,7 @@ void ParticleCorrections::MuonWeight(double pt, double eta, int trigger, int yea
   weight_down_iso = weight_iso - iso_error;
 }
 
-double ParticleCorrections::MuonTriggerEff(double pt, double eta, int trigger, int year, float& data_eff, float& mc_eff) {
+double ParticleCorrections::MuonTriggerEff(double pt, double eta, int trigger, int year, int mcEra, float& data_eff, float& mc_eff) {
   if(year != k2016 && year != k2017 && year != k2018) {
     std::cout << "Warning! Undefined year in " << __func__ << ", returning -1" << std::endl;
     return -1.;
@@ -107,14 +100,8 @@ double ParticleCorrections::MuonTriggerEff(double pt, double eta, int trigger, i
   else if(pt < 20.) pt = 20.; //minimum pT for corrections
   if(eta >= 2.4) eta = 2.39; //maximum eta for corrections
   else if(eta <= -2.4) eta = -2.39; //minimum eta for corrections
+  mcEra = std::min(1, std::max(0, mcEra));
 
-  double rand = fRnd->Uniform();
-  bool firstSection = true; //whether this MC is for the first or second part of the data taking period
-  mc_eff = 1.; data_eff = 1.;
-  if(year == k2016)
-    firstSection = rand <= 19.72/35.86;
-  else if(year == k2018)
-    firstSection = rand <= 8.98/59.59;
   data_eff = 1.; mc_eff = 1.;
   if(year == k2016) {
     if(trigger == kLowTrigger && pt < 26.) pt = 26.;
@@ -127,8 +114,8 @@ double ParticleCorrections::MuonTriggerEff(double pt, double eta, int trigger, i
     else if(trigger == kHighTrigger && pt < 52.) pt = 52.;
   }
 
-  TH2F* hTriggerData = (trigger == kLowTrigger) ? muonLowTriggerEffMap[0][2*year + !firstSection] : muonHighTriggerEffMap[0][2*year + !firstSection];
-  TH2F* hTriggerMC   = (trigger == kLowTrigger) ? muonLowTriggerEffMap[1][2*year + !firstSection] : muonHighTriggerEffMap[1][2*year + !firstSection];
+  TH2F* hTriggerData = (trigger == kLowTrigger) ? muonLowTriggerEffMap[0][2*year + mcEra] : muonHighTriggerEffMap[0][2*year + mcEra];
+  TH2F* hTriggerMC   = (trigger == kLowTrigger) ? muonLowTriggerEffMap[1][2*year + mcEra] : muonHighTriggerEffMap[1][2*year + mcEra];
   //axes doesn't flip between years
   data_eff = hTriggerData->GetBinContent(hTriggerData->GetXaxis()->FindBin(std::fabs(eta)), hTriggerData->GetYaxis()->FindBin(pt));
   mc_eff = hTriggerMC->GetBinContent(hTriggerMC->GetXaxis()->FindBin(std::fabs(eta)), hTriggerMC->GetYaxis()->FindBin(pt));
@@ -145,13 +132,14 @@ double ParticleCorrections::MuonTriggerEff(double pt, double eta, int trigger, i
               << " mc_eff = " << mc_eff
               << " scale_factor = " << scale_factor
               << " trigger = " << trigger
-              << " firstSection = " << firstSection << std::endl;
+              << " mcEra = " << mcEra << std::endl;
   }
 
   return scale_factor;
 }
 
 double ParticleCorrections::PhotonWeight(double pt, double eta, int year) {
+  if(year > 2000) year -= 2016;
   if(year != k2016 && year != k2017 && year != k2018) {
     std::cout << "Warning! Undefined year in " << __func__ << ", returning -1" << std::endl;
     return -1.;

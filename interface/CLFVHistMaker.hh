@@ -684,6 +684,7 @@ namespace CLFV {
     Int_t           fSystematicSeed; //for systematic variations
 
     Int_t           fRemoveTriggerWeights = 0; // 0: do nothing 1: remove weights 2: replace weights
+    Int_t           fUpdateMCEra = 0; //update the MC era flag
     Int_t           fRemovePhotonIDWeights = 1;
     Int_t           fRemoveBTagWeights = 0; //0: do nothing 1: remove weights 2: replace weights
     BTagWeight      fBTagWeight;

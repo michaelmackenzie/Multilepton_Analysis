@@ -61,6 +61,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TDirectoryFile* fChann
       selec->fTriggerTesting = TriggerTesting_;
       selec->fDoMVASets = DoMVASets_ > 0 && (DoMVASets_ > 2 || (DoMVASets_ == 2 && !(selec->fFolderName.Contains("tau"))) || (selec->fFolderName == "emu"));
       selec->fRemoveTriggerWeights = removeTrigWeights_;
+      selec->fUpdateMCEra = updateMCEra_;
       selec->fRemoveBTagWeights = removeBTagWeights_;
       // selec->fRemovePUWeights = 2*isSignal; //remove for signal, due to unknown issues in skimming NanoAODs
       selec->fUseJetPUIDWeights = useJetPUIDWeights_;

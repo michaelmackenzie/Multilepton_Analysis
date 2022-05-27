@@ -211,7 +211,7 @@ MuonIDWeight::~MuonIDWeight() {
 }
 
 //-------------------------------------------------------------------------------------------------------------------------
-double MuonIDWeight::TriggerEff(double pt, double eta, int year, bool isLow, float& data_eff, float& mc_eff) {
+double MuonIDWeight::TriggerEff(double pt, double eta, int year, bool isLow, int mcEra, float& data_eff, float& mc_eff) {
   data_eff = 0.5; //safer default than 0 or 1, as eff and 1-eff are well defined in ratios
   mc_eff = 0.5;
   if(year > 2000) year -= 2016;
@@ -227,24 +227,18 @@ double MuonIDWeight::TriggerEff(double pt, double eta, int year, bool isLow, flo
     return 1.;
   }
   eta = std::fabs(eta);
+  mcEra = std::min(1, std::max(0, mcEra)); //ensure MC era is 0 or 1
 
-  const double rand = rnd_->Uniform();
-  bool firstSection = true; //whether this MC is for the first or second part of the data taking period
-  if(year == k2016)
-    firstSection = rand <= 19.72/35.86;
-  else if(year == k2018)
-    firstSection = rand <= 8.98/59.59;
-
-  TH2F* hTrigData = (isLow) ? histTriggerLowData_[2*year + !firstSection] : histTriggerHighData_[2*year + !firstSection];
-  TH2F* hTrigMC   = (isLow) ? histTriggerLowMC_  [2*year + !firstSection] : histTriggerHighMC_  [2*year + !firstSection];
+  TH2F* hTrigData = (isLow) ? histTriggerLowData_[2*year + mcEra] : histTriggerHighData_[2*year + mcEra];
+  TH2F* hTrigMC   = (isLow) ? histTriggerLowMC_  [2*year + mcEra] : histTriggerHighMC_  [2*year + mcEra];
   if(!hTrigData) {
     std::cout << "!!! " << __func__ << ": Undefined Data trigger efficiency histogram for " << year
-              << " low trigger = " << isLow << " first period = " << firstSection << std::endl;
+              << " low trigger = " << isLow << " MC era = " << mcEra << std::endl;
     return 1.;
   }
   if(!hTrigMC) {
     std::cout << "!!! " << __func__ << ": Undefined MC trigger efficiency histogram for " << year
-              << " low trigger = " << isLow << " first period = " << firstSection << std::endl;
+              << " low trigger = " << isLow << " MC era = " << mcEra << std::endl;
     return 1.;
   }
   const int data_binx = std::max(1, std::min(hTrigData->GetNbinsX(), hTrigData->GetXaxis()->FindBin(eta)));
@@ -259,7 +253,7 @@ double MuonIDWeight::TriggerEff(double pt, double eta, int year, bool isLow, flo
     if(!std::isfinite(scale_factor) || scale_factor <= 0.) std::cout << "Warning! Scale factor <= 0 or nan! ";
     std::cout << "MuonIDWeight::" << __func__
               << " year = " << year + 2016
-              << " period = " << firstSection
+              << " MC era = " << mcEra
               << " pt = " << pt
               << " eta = " << eta
               << " data_eff = " << data_eff
