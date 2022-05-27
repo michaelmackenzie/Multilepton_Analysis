@@ -25,7 +25,7 @@ namespace CLFV {
     int GetIsoGroup(int bin, int year) {
       return groupIso_[(year-2016) * kYear + bin];
     }
-    double TriggerEff(double pt, double eta, int year, bool isLow, float& data_eff, float& mc_eff);
+    double TriggerEff(double pt, double eta, int year, bool isLow, int mcEra, float& data_eff, float& mc_eff);
 
   public:
     enum { k2016, k2017, k2018};

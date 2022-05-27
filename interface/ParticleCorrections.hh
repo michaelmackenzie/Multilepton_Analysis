@@ -273,24 +273,24 @@ namespace CLFV {
       }
     }
 
-    void MuonWeight(double pt, double eta, int trigger, int era, float& trig_scale,
-                            float& weight_id, float& weight_up_id , float& weight_down_id , int& ibin_id,
-                            float& weight_iso, float& weight_up_iso, float& weight_down_iso, int& ibin_iso
-                            );
-    double MuonWeight(double pt, double eta, int trigger, int era, float& trig_scale) {
+    void MuonWeight(double pt, double eta, int trigger, int year, int mcEra, float& trig_scale,
+                    float& weight_id, float& weight_up_id , float& weight_down_id , int& ibin_id,
+                    float& weight_iso, float& weight_up_iso, float& weight_down_iso, int& ibin_iso
+                    );
+    double MuonWeight(double pt, double eta, int trigger, int year, int mcEra, float& trig_scale) {
       float wt1, wt2;
       float up, down, up2, down2;
       int ibin, ibin2;
-      MuonWeight(pt, eta, trigger, era, trig_scale, wt1, up, down, ibin, wt2, up2, down2, ibin2);
+      MuonWeight(pt, eta, trigger, year, mcEra, trig_scale, wt1, up, down, ibin, wt2, up2, down2, ibin2);
       return wt1*wt2;
     }
-    double MuonTriggerEff(double pt, double eta, int trigger, int era, float& data_eff, float& mc_eff/*, int& ibin*/);
+    double MuonTriggerEff(double pt, double eta, int trigger, int year, int mcEra, float& data_eff, float& mc_eff/*, int& ibin*/);
 
-    void ElectronWeight(double pt, double eta, int era,
+    void ElectronWeight(double pt, double eta, int year,
                         float& weight_id , float& weight_up_id , float& weight_down_id , int& ibin_id,
                         float& weight_rec, float& weight_up_rec, float& weight_down_rec, int& ibin_rec
                         ) {
-      fElectronIDWeight.IDWeight(pt, eta, era, weight_id, weight_up_id, weight_down_id, ibin_id,
+      fElectronIDWeight.IDWeight(pt, eta, year, weight_id, weight_up_id, weight_down_id, ibin_id,
                                  weight_rec, weight_up_rec, weight_down_rec, ibin_rec);
     }
     double ElectronWeight(double pt, double eta, int year) {
