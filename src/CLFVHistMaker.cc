@@ -884,6 +884,93 @@ void CLFVHistMaker::DeleteHistograms() {
   }
 }
 
+//--------------------------------------------------------------------------------------------------------------
+// Initialize branch structure of the input tree
+void CLFVHistMaker::InitializeInputTree(TTree* tree) {
+  tree->SetBranchAddress("nMuon"               , &nMuon               );
+  tree->SetBranchAddress("Muon_pt"             , &Muon_pt             );
+  tree->SetBranchAddress("Muon_eta"            , &Muon_eta            );
+  tree->SetBranchAddress("Muon_phi"            , &Muon_phi            );
+  tree->SetBranchAddress("Muon_charge"         , &Muon_charge         );
+  tree->SetBranchAddress("Muon_looseId"        , &Muon_looseId        );
+  tree->SetBranchAddress("Muon_mediumId"       , &Muon_mediumId       );
+  tree->SetBranchAddress("Muon_tightId"        , &Muon_tightId        );
+  tree->SetBranchAddress("Muon_pfRelIso04_all" , &Muon_pfRelIso04_all );
+  tree->SetBranchAddress("Muon_dxy"            , &Muon_dxy            );
+  tree->SetBranchAddress("Muon_dxyErr"         , &Muon_dxyErr         );
+  tree->SetBranchAddress("Muon_dz"             , &Muon_dz             );
+  tree->SetBranchAddress("Muon_dzErr"          , &Muon_dzErr          );
+  tree->SetBranchAddress("Muon_nTrackerLayers" , &Muon_nTrackerLayers );
+  tree->SetBranchAddress("Muon_genPartFlav"    , &Muon_genPartFlav    );
+  tree->SetBranchAddress("Muon_genPartIdx"     , &Muon_genPartIdx     );
+
+  tree->SetBranchAddress("nElectron"                     , &nElectron                     );
+  tree->SetBranchAddress("Electron_pt"                   , &Electron_pt                   );
+  tree->SetBranchAddress("Electron_eta"                  , &Electron_eta                  );
+  tree->SetBranchAddress("Electron_phi"                  , &Electron_phi                  );
+  tree->SetBranchAddress("Electron_charge"               , &Electron_charge               );
+  tree->SetBranchAddress("Electron_deltaEtaSC"           , &Electron_deltaEtaSC           );
+  tree->SetBranchAddress("Electron_mvaFall17V2Iso_WPL"   , &Electron_mvaFall17V2Iso_WPL   );
+  tree->SetBranchAddress("Electron_mvaFall17V2Iso_WP90"  , &Electron_mvaFall17V2Iso_WP90  );
+  tree->SetBranchAddress("Electron_mvaFall17V2Iso_WP80"  , &Electron_mvaFall17V2Iso_WP80  );
+  tree->SetBranchAddress("Electron_mvaFall17V2noIso_WPL" , &Electron_mvaFall17V2noIso_WPL );
+  tree->SetBranchAddress("Electron_mvaFall17V2noIso_WP90", &Electron_mvaFall17V2noIso_WP90);
+  tree->SetBranchAddress("Electron_mvaFall17V2noIso_WP80", &Electron_mvaFall17V2noIso_WP80);
+  tree->SetBranchAddress("Electron_pfRelIso03_all"       , &Electron_pfRelIso03_all       );
+  tree->SetBranchAddress("Electron_eCorr"                , &Electron_eCorr                );
+  tree->SetBranchAddress("Electron_dxy"                  , &Electron_dxy                  );
+  tree->SetBranchAddress("Electron_dxyErr"               , &Electron_dxyErr               );
+  tree->SetBranchAddress("Electron_dz"                   , &Electron_dz                   );
+  tree->SetBranchAddress("Electron_dzErr"                , &Electron_dzErr                );
+  tree->SetBranchAddress("Electron_genPartFlav"          , &Electron_genPartFlav          );
+  tree->SetBranchAddress("Electron_genPartIdx"           , &Electron_genPartIdx           );
+
+  tree->SetBranchAddress("nTau"                          , &nTau                          );
+  tree->SetBranchAddress("Tau_pt"                        , &Tau_pt                        );
+  tree->SetBranchAddress("Tau_eta"                       , &Tau_eta                       );
+  tree->SetBranchAddress("Tau_phi"                       , &Tau_phi                       );
+  tree->SetBranchAddress("Tau_mass"                      , &Tau_mass                      );
+  tree->SetBranchAddress("Tau_charge"                    , &Tau_charge                    );
+  tree->SetBranchAddress("Tau_idDeepTau2017v2p1VSe"      , &Tau_idDeepTau2017v2p1VSe      );
+  tree->SetBranchAddress("Tau_idDeepTau2017v2p1VSmu"     , &Tau_idDeepTau2017v2p1VSmu     );
+  tree->SetBranchAddress("Tau_idDeepTau2017v2p1VSjet"    , &Tau_idDeepTau2017v2p1VSjet    );
+  tree->SetBranchAddress("Tau_idAntiEle"                 , &Tau_idAntiEle                 );
+  tree->SetBranchAddress("Tau_idAntiEle2018"             , &Tau_idAntiEle2018             );
+  tree->SetBranchAddress("Tau_idAntiMu"                  , &Tau_idAntiMu                  );
+  tree->SetBranchAddress("Tau_idAntiJet"                 , &Tau_idAntiJet                 );
+  tree->SetBranchAddress("Tau_decayMode"                 , &Tau_decayMode                 );
+  tree->SetBranchAddress("Tau_idDecayMode"               , &Tau_idDecayMode               );
+  tree->SetBranchAddress("Tau_idDecayModeNewDMs"         , &Tau_idDecayModeNewDMs         );
+  tree->SetBranchAddress("Tau_pfRelIso03_all"            , &Tau_pfRelIso03_all            );
+  tree->SetBranchAddress("Tau_eCorr"                     , &Tau_eCorr                     );
+  tree->SetBranchAddress("Tau_dxy"                       , &Tau_dxy                       );
+  tree->SetBranchAddress("Tau_dxyErr"                    , &Tau_dxyErr                    );
+  tree->SetBranchAddress("Tau_dz"                        , &Tau_dz                        );
+  tree->SetBranchAddress("Tau_dzErr"                     , &Tau_dzErr                     );
+  tree->SetBranchAddress("Tau_genPartFlav"               , &Tau_genPartFlav               );
+  tree->SetBranchAddress("Tau_genPartIdx"                , &Tau_genPartIdx                );
+}
+
+//--------------------------------------------------------------------------------------------------------------
+// Count objects in the event (leptons, jets, etc.) and initialize base variables
+void CLFVHistMaker::CountObjects() {
+  nMuons = nMuon; nElectrons = nElectron; nTaus = nTau;
+  nJets = nJet; nJets20 = nJet; nJets20Rej = 0; //FIXME: Add the correct jet counts back
+
+  if(nElectron == 1 && nMuon == 1) { //e+mu selection
+    leptonOneP4->SetPtEtaPhiM(Electron_pt[0], Electron_eta[0], Electron_phi[0], ELECMASS);
+    leptonTwoP4->SetPtEtaPhiM(Muon_pt    [0], Muon_eta    [0], Muon_phi    [0], MUONMASS);
+  } else if(nElectron == 1 && nMuon == 0 && nTau == 1) { //e+tau
+    leptonOneP4->SetPtEtaPhiM(Electron_pt[0], Electron_eta[0], Electron_phi[0], ELECMASS);
+    leptonTwoP4->SetPtEtaPhiM(Tau_pt     [0], Tau_eta     [0], Tau_phi     [0], Tau_mass[0]);
+  } else if(nElectron == 0 && nMuon == 1 && nTau == 1) { //mu+tau
+    leptonOneP4->SetPtEtaPhiM(Muon_pt    [0], Muon_eta    [0], Muon_phi    [0], ELECMASS);
+    leptonTwoP4->SetPtEtaPhiM(Tau_pt     [0], Tau_eta     [0], Tau_phi     [0], Tau_mass[0]);
+  }
+  if(nJet > 0) {
+    jetOneP4->SetPtEtaPhiM(Jet_pt[0], Jet_eta[0], Jet_phi[0], Jet_mass[0]);
+  }
+}
 
 //--------------------------------------------------------------------------------------------------------------
 //selections: 1 = mutau, 2 = etau, 5 = emu, 9 = mumu, 18 = ee
@@ -2155,6 +2242,9 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   int icutflow = 0;
   fCutFlow->Fill(icutflow); ++icutflow; //0
 
+  //Initialize base object information
+  CountObjects();
+
   //DY Splitting
   if(fDYType > 0) {
     // 1 = tau, 2 = muon or electron channel
@@ -2371,11 +2461,12 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
 
   //selections
   //use the tree name to choose the selection
-  bool mutau = (fFolderName == "mutau") && nTaus == 1  && nMuons == 1;
-  bool etau  = (fFolderName == "etau")  && nTaus == 1  && nElectrons == 1;
-  bool emu   = (fFolderName == "emu")   && nMuons == 1 && nElectrons == 1;
-  bool mumu  = fFolderName == "mumu" && nMuons == 2;
-  bool ee    = fFolderName == "ee" && nElectrons == 2;
+  bool mutau = nElectron == 0 && nMuon == 1 && nTau == 1; //(fFolderName == "mutau") && nTaus == 1  && nMuons == 1;
+  bool etau  = nElectron == 1 && nMuon == 0 && nTau == 1; //(fFolderName == "etau")  && nTaus == 1  && nElectrons == 1;
+  bool emu   = nElectron == 1 && nMuon == 1; //(fFolderName == "emu")   && nMuons == 1 && nElectrons == 1;
+  bool mumu  = nElectron == 0 && nMuon == 2; //fFolderName == "mumu" && nMuons == 2;
+  bool ee    = nElectron == 2 && nMuon == 0; //fFolderName == "ee" && nElectrons == 2;
+
   //reject overlaps
   if(mutau && etau) {mutau = false; etau = false;}
   if(emu && (mutau || etau)) {mutau = false; etau = false;}
@@ -2430,12 +2521,8 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   if(fYear == 2016) electron_trig_pt = 29.; //2 GeV/c above threshold, since better behaved near threshold
 
   //trigger weights
-  if(fRemoveTriggerWeights > 0 && !fIsData) {
-    if(leptonOneTrigWeight > 0.) eventWeight /= leptonOneTrigWeight;
-    if(leptonTwoTrigWeight > 0.) eventWeight /= leptonTwoTrigWeight;
-    leptonOneTrigWeight = 1.; leptonTwoTrigWeight = 1.;
-    if(fRemoveTriggerWeights > 1) ApplyTriggerWeights(muon_trig_pt, electron_trig_pt);
-  }
+  leptonOneTrigWeight = 1.; leptonTwoTrigWeight = 1.;
+  if(!fIsData) ApplyTriggerWeights(muon_trig_pt, electron_trig_pt);
 
   //apply embedding unfolding correction to embedded samples
   if(fIsEmbed) {
@@ -2507,7 +2594,7 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   InitializeTreeVariables(mutau+2*etau+5*emu+9*mumu+18*ee);
 
 
-  bool chargeTest = leptonOneFlavor*leptonTwoFlavor < 0;
+  const bool chargeTest = leptonOneFlavor*leptonTwoFlavor < 0;
 
   TVector3 lp1 = leptonOneP4->Vect();
   TVector3 lp2 = leptonTwoP4->Vect();

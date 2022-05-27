@@ -80,23 +80,184 @@ namespace CLFV {
   public :
     TTreeReader     fReader;  //!the tree reader
     TTree          *fChain = 0;   //!pointer to the analyzed TTree or TChain
-    enum {kMaxParticles = 50, kMaxCounts = 40};
+    enum {kMaxLeptons = 10, kMaxParticles = 50, kMaxCounts = 40};
     enum {kMuTau = 0, kETau = 100, kEMu = 200, kMuTauE = 300, kETauMu = 400, kMuMu = 500, kEE = 600};
     enum {kMaxMVAs = 80};
 
-    // Readers to access the data (delete the ones you do not need).
+    // Readers to access the data
     UInt_t runNumber                   ;
     ULong64_t eventNumber              ;
     UInt_t lumiSection                 ;
     UInt_t nPV                         ;
     Float_t nPU                        ;
     UInt_t nPartons                    ;
+    Float_t genWeight                  ;
+    Float_t puWeight                   ;
+    Float_t zPt                        ;
+    Float_t zMass                      ;
+    Float_t zLepOnePt                  ;
+    Float_t zLepTwoPt                  ;
+    Float_t zLepOneEta                 ;
+    Float_t zLepTwoEta                 ;
+
+    //lepton information
+    //muons
+    UInt_t  nMuon                                      ;
+    Float_t Muon_pt                       [kMaxLeptons];
+    Float_t Muon_eta                      [kMaxLeptons];
+    Float_t Muon_phi                      [kMaxLeptons];
+    Int_t   Muon_charge                   [kMaxLeptons];
+    Bool_t  Muon_looseId                  [kMaxLeptons];
+    Bool_t  Muon_mediumId                 [kMaxLeptons];
+    Bool_t  Muon_tightId                  [kMaxLeptons];
+    Float_t Muon_pfRelIso04_all           [kMaxLeptons];
+    Float_t Muon_dxy                      [kMaxLeptons];
+    Float_t Muon_dxyErr                   [kMaxLeptons];
+    Float_t Muon_dz                       [kMaxLeptons];
+    Float_t Muon_dzErr                    [kMaxLeptons];
+    Int_t   Muon_nTrackerLayers           [kMaxLeptons];
+    UChar_t Muon_genPartFlav              [kMaxLeptons];
+    Int_t   Muon_genPartIdx               [kMaxLeptons];
+
+    //electrons
+    UInt_t  nElectron                                  ;
+    Float_t Electron_pt                   [kMaxLeptons];
+    Float_t Electron_eta                  [kMaxLeptons];
+    Float_t Electron_phi                  [kMaxLeptons];
+    Int_t   Electron_charge               [kMaxLeptons];
+    Float_t Electron_deltaEtaSC           [kMaxLeptons];
+    Bool_t  Electron_mvaFall17V2Iso_WPL   [kMaxLeptons];
+    Bool_t  Electron_mvaFall17V2Iso_WP90  [kMaxLeptons];
+    Bool_t  Electron_mvaFall17V2Iso_WP80  [kMaxLeptons];
+    Bool_t  Electron_mvaFall17V2noIso_WPL [kMaxLeptons];
+    Bool_t  Electron_mvaFall17V2noIso_WP90[kMaxLeptons];
+    Bool_t  Electron_mvaFall17V2noIso_WP80[kMaxLeptons];
+    Float_t Electron_pfRelIso03_all       [kMaxLeptons];
+    Float_t Electron_eCorr                [kMaxLeptons];
+    Float_t Electron_dxy                  [kMaxLeptons];
+    Float_t Electron_dxyErr               [kMaxLeptons];
+    Float_t Electron_dz                   [kMaxLeptons];
+    Float_t Electron_dzErr                [kMaxLeptons];
+    UChar_t Electron_genPartFlav          [kMaxLeptons];
+    Int_t   Electron_genPartIdx           [kMaxLeptons];
+
+    //taus
+    UInt_t  nTau                                       ;
+    Float_t Tau_pt                        [kMaxLeptons];
+    Float_t Tau_eta                       [kMaxLeptons];
+    Float_t Tau_phi                       [kMaxLeptons];
+    Float_t Tau_mass                      [kMaxLeptons];
+    Int_t   Tau_charge                    [kMaxLeptons];
+    UChar_t Tau_idDeepTau2017v2p1VSe      [kMaxLeptons];
+    UChar_t Tau_idDeepTau2017v2p1VSmu     [kMaxLeptons];
+    UChar_t Tau_idDeepTau2017v2p1VSjet    [kMaxLeptons];
+    UChar_t Tau_idAntiEle                 [kMaxLeptons];
+    UChar_t Tau_idAntiEle2018             [kMaxLeptons];
+    UChar_t Tau_idAntiMu                  [kMaxLeptons];
+    UChar_t Tau_idAntiJet                 [kMaxLeptons];
+    Int_t   Tau_decayMode                 [kMaxLeptons];
+    Bool_t  Tau_idDecayMode               [kMaxLeptons];
+    Bool_t  Tau_idDecayModeNewDMs         [kMaxLeptons];
+    Float_t Tau_pfRelIso03_all            [kMaxLeptons];
+    Float_t Tau_eCorr                     [kMaxLeptons];
+    Float_t Tau_dxy                       [kMaxLeptons];
+    Float_t Tau_dxyErr                    [kMaxLeptons];
+    Float_t Tau_dz                        [kMaxLeptons];
+    Float_t Tau_dzErr                     [kMaxLeptons];
+    UChar_t Tau_genPartFlav               [kMaxLeptons];
+    Int_t   Tau_genPartIdx                [kMaxLeptons];
+
+    //jets
+    UInt_t  nJet                                         ;
+    Float_t Jet_pt                        [kMaxParticles];
+    Float_t Jet_eta                       [kMaxParticles];
+    Float_t Jet_phi                       [kMaxParticles];
+    Float_t Jet_mass                      [kMaxParticles];
+    Int_t   Jet_charge                    [kMaxParticles];
+    Int_t   Jet_jetId                     [kMaxParticles];
+    Int_t   Jet_puId                      [kMaxParticles];
+    Float_t Jet_pfRelIso03_all            [kMaxParticles];
+    Float_t Jet_btagDeepB                 [kMaxParticles];
+    Float_t Jet_btagCMVA                  [kMaxParticles];
+    Float_t Jet_eCorr                     [kMaxParticles];
+    Float_t Jet_dxy                       [kMaxParticles];
+    Float_t Jet_dxyErr                    [kMaxParticles];
+    Float_t Jet_dz                        [kMaxParticles];
+    Float_t Jet_dzErr                     [kMaxParticles];
+    Int_t   Jet_partonFlavour             [kMaxParticles];
+
+
+    Float_t jetsRejPt[kMaxParticles]   ;
+    Float_t jetsRejEta[kMaxParticles]  ;
+    Float_t jetsPt[kMaxParticles]      ;
+    Float_t jetsEta[kMaxParticles]     ;
+    Int_t   jetsFlavor[kMaxParticles]  ;
+    Int_t   jetsBTag[kMaxParticles]    ;
+    Float_t tausPt[kMaxParticles]      ;
+    Float_t tausEta[kMaxParticles]     ;
+    Float_t tausPhi[kMaxParticles]     ;
+    Bool_t  tausIsPositive[kMaxParticles];
+    Int_t   tausDM[kMaxParticles]      ;
+    Int_t   tausGenFlavor[kMaxParticles];
+    UChar_t tausAntiJet[kMaxParticles] ;
+    UChar_t tausMVAAntiMu[kMaxParticles];
+    UChar_t tausAntiMu[kMaxParticles]  ;
+    UChar_t tausAntiEle[kMaxParticles] ;
+    Float_t tausWeight[kMaxParticles]  ;
+    UInt_t nExtraLep = 0               ;
+    Float_t leptonsPt[kMaxParticles]   ;
+    Float_t leptonsEta[kMaxParticles]  ;
+    Bool_t  leptonsIsPositive[kMaxParticles];
+    Bool_t  leptonsIsMuon[kMaxParticles];
+    UChar_t leptonsID[kMaxParticles]   ;
+    UChar_t leptonsIsoID[kMaxParticles];
+    UChar_t leptonsTriggered[kMaxParticles];
+    UChar_t leptonsGenFlavor[kMaxParticles];
+    Float_t htSum                      ;
+    Float_t ht                         ;
+    Float_t htPhi                      ;
+    //Different met definitions
+    Float_t pfMET                      ;
+    Float_t pfMETphi                   ;
+    Float_t pfMETCov00                 ;
+    Float_t pfMETCov01                 ;
+    Float_t pfMETCov11                 ;
+    Float_t pfMETC                     ;
+    Float_t pfMETCphi                  ;
+    Float_t pfMETCCov00                ;
+    Float_t pfMETCCov01                ;
+    Float_t pfMETCCov11                ;
+    Float_t puppMET                    ;
+    Float_t puppMETphi                 ;
+    Float_t puppMETCov00               ;
+    Float_t puppMETCov01               ;
+    Float_t puppMETCov11               ;
+    Float_t puppMETC                   ;
+    Float_t puppMETCphi                ;
+    Float_t puppMETCCov00              ;
+    Float_t puppMETCCov01              ;
+    Float_t puppMETCCov11              ;
+    Float_t alpacaMET                  ;
+    Float_t alpacaMETphi               ;
+    Float_t pcpMET                     ;
+    Float_t pcpMETphi                  ;
+    Float_t trkMET                     ;
+    Float_t trkMETphi                  ;
+    //gen-level info
+    UChar_t LHE_Njets                  ;
+
+
+
+
+
+
+
+
+
     Int_t  mcEra                       ;
     UInt_t triggerLeptonStatus         ;
     UInt_t muonTriggerStatus           ;
     Float_t eventWeight                ;
-    Float_t genWeight                  ;
-    Float_t puWeight                   ;
     Float_t jetPUIDWeight = 1.         ;
     Float_t prefireWeight = 1.         ;
     Float_t topPtWeight                ;
@@ -107,12 +268,6 @@ namespace CLFV {
     Float_t zPtWeightUp                ;
     Float_t zPtWeightDown              ;
     Float_t zPtWeightSys               ;
-    Float_t zPt = -1.                  ;
-    Float_t zMass = -1.                ;
-    Float_t zLepOnePt                  ;
-    Float_t zLepTwoPt                  ;
-    Float_t zLepOneEta                 ;
-    Float_t zLepTwoEta                 ;
     Float_t embeddingWeight = 1.       ;
     Float_t embeddingUnfoldingWeight   ;
     Int_t   looseQCDSelection = 0      ;
@@ -254,32 +409,6 @@ namespace CLFV {
     Bool_t isLooseMuon                 ;
     Bool_t isLooseElectron             ;
     Bool_t isLooseTau                  ;
-    Float_t jetsRejPt[kMaxParticles]   ;
-    Float_t jetsRejEta[kMaxParticles]  ;
-    Float_t jetsPt[kMaxParticles]      ;
-    Float_t jetsEta[kMaxParticles]     ;
-    Int_t   jetsFlavor[kMaxParticles]  ;
-    Int_t   jetsBTag[kMaxParticles]    ;
-    Float_t tausPt[kMaxParticles]      ;
-    Float_t tausEta[kMaxParticles]     ;
-    Float_t tausPhi[kMaxParticles]     ;
-    Bool_t  tausIsPositive[kMaxParticles];
-    Int_t   tausDM[kMaxParticles]      ;
-    Int_t   tausGenFlavor[kMaxParticles];
-    UChar_t tausAntiJet[kMaxParticles] ;
-    UChar_t tausMVAAntiMu[kMaxParticles];
-    UChar_t tausAntiMu[kMaxParticles]  ;
-    UChar_t tausAntiEle[kMaxParticles] ;
-    Float_t tausWeight[kMaxParticles]  ;
-    UInt_t nExtraLep = 0               ;
-    Float_t leptonsPt[kMaxParticles]   ;
-    Float_t leptonsEta[kMaxParticles]  ;
-    Bool_t  leptonsIsPositive[kMaxParticles];
-    Bool_t  leptonsIsMuon[kMaxParticles];
-    UChar_t leptonsID[kMaxParticles]   ;
-    UChar_t leptonsIsoID[kMaxParticles];
-    UChar_t leptonsTriggered[kMaxParticles];
-    UChar_t leptonsGenFlavor[kMaxParticles];
     Int_t  nGenTaus = 0                ; // counting from gen part list matched to electroweak process in skimming stage
     UInt_t nGenTausHad                 ;
     UInt_t nGenTausLep                 ;
@@ -288,36 +417,6 @@ namespace CLFV {
     UInt_t nGenHardTaus                ; //for DY splitting by hard process
     UInt_t nGenHardElectrons           ; //for DY splitting by hard process
     UInt_t nGenHardMuons               ; //for DY splitting by hard process
-    Float_t htSum                      ;
-    Float_t ht                         ;
-    Float_t htPhi                      ;
-    //Different met definitions
-    Float_t pfMET                      ;
-    Float_t pfMETphi                   ;
-    Float_t pfMETCov00                 ;
-    Float_t pfMETCov01                 ;
-    Float_t pfMETCov11                 ;
-    Float_t pfMETC                     ;
-    Float_t pfMETCphi                  ;
-    Float_t pfMETCCov00                ;
-    Float_t pfMETCCov01                ;
-    Float_t pfMETCCov11                ;
-    Float_t puppMET                    ;
-    Float_t puppMETphi                 ;
-    Float_t puppMETCov00               ;
-    Float_t puppMETCov01               ;
-    Float_t puppMETCov11               ;
-    Float_t puppMETC                   ;
-    Float_t puppMETCphi                ;
-    Float_t puppMETCCov00              ;
-    Float_t puppMETCCov01              ;
-    Float_t puppMETCCov11              ;
-    Float_t alpacaMET                  ;
-    Float_t alpacaMETphi               ;
-    Float_t pcpMET                     ;
-    Float_t pcpMETphi                  ;
-    Float_t trkMET                     ;
-    Float_t trkMETphi                  ;
     //used in original SVFit algorithm
     Float_t met                        ;
     Float_t metPhi                     ;
@@ -331,8 +430,6 @@ namespace CLFV {
     Int_t   svFitStatus                ;
     TLorentzVector* leptonOneSVP4 = 0  ;
     TLorentzVector* leptonTwoSVP4 = 0  ;
-    //gen-level info
-    UChar_t LHE_Njets                  ;
 
 
     //define object to apply box cuts
@@ -455,39 +552,41 @@ namespace CLFV {
     CLFVHistMaker(int seed = 90, TTree * /*tree*/ = 0);
     ~CLFVHistMaker();
 
-    virtual Int_t   Version() const { return 2; }
-    virtual void    Begin(TTree *tree);
-    virtual void    SlaveBegin(TTree *tree);
-    virtual void    Init(TTree *tree);
-    virtual Bool_t  Notify();
-    virtual Bool_t  Process(Long64_t entry);
-    virtual Int_t   GetEntry(Long64_t entry, Int_t getall = 0) { return fChain ? fChain->GetTree()->GetEntry(entry, getall) : 0; }
-    virtual void    SetOption(const char *option) { fOption = option; }
-    virtual void    SetObject(TObject *obj) { fObject = obj; }
-    virtual void    SetInputList(TList *input) { fInput = input; }
-    virtual TList  *GetOutputList() const { return fOutput; }
-    virtual void    SlaveTerminate();
-    virtual void    Terminate();
+    Int_t   Version() const { return 2; }
+    void    Begin(TTree *tree);
+    void    SlaveBegin(TTree *tree);
+    void    Init(TTree *tree);
+    Bool_t  Notify();
+    Bool_t  Process(Long64_t entry);
+    Int_t   GetEntry(Long64_t entry, Int_t getall = 0) { return fChain ? fChain->GetTree()->GetEntry(entry, getall) : 0; }
+    void    SetOption(const char *option) { fOption = option; }
+    void    SetObject(TObject *obj) { fObject = obj; }
+    void    SetInputList(TList *input) { fInput = input; }
+    TList  *GetOutputList() const { return fOutput; }
+    void    SlaveTerminate();
+    void    Terminate();
 
-    virtual void    FillAllHistograms(Int_t index);
-    virtual void    BookHistograms();
-    virtual void    BookEventHistograms();
-    virtual void    BookPhotonHistograms();
-    virtual void    BookLepHistograms();
-    virtual void    BookSystematicHistograms();
-    virtual void    BookTrees();
-    virtual void    DeleteHistograms();
-    virtual void    FillEventHistogram(EventHist_t* Hist);
-    virtual void    FillPhotonHistogram(PhotonHist_t* Hist);
-    virtual void    FillLepHistogram(LepHist_t* Hist);
-    virtual void    FillSystematicHistogram(SystematicHist_t* Hist);
-    virtual void    InitializeTreeVariables(Int_t selection);
-    virtual float   GetTauFakeSF(int genFlavor);
-    virtual float   CorrectMET(int selection, float met);
-    virtual void    ApplyTriggerWeights(const float muon_trig_pt, const float electron_trig_pt);
-    virtual void    CountSlimObjects();
-    virtual int     Category(TString selection);
-    virtual void    InitializeSystematics();
+    void    FillAllHistograms(Int_t index);
+    void    BookHistograms();
+    void    BookEventHistograms();
+    void    BookPhotonHistograms();
+    void    BookLepHistograms();
+    void    BookSystematicHistograms();
+    void    BookTrees();
+    void    DeleteHistograms();
+    void    InitializeInputTree(TTree* tree);
+    void    CountObjects();
+    void    FillEventHistogram(EventHist_t* Hist);
+    void    FillPhotonHistogram(PhotonHist_t* Hist);
+    void    FillLepHistogram(LepHist_t* Hist);
+    void    FillSystematicHistogram(SystematicHist_t* Hist);
+    void    InitializeTreeVariables(Int_t selection);
+    float   GetTauFakeSF(int genFlavor);
+    float   CorrectMET(int selection, float met);
+    void    ApplyTriggerWeights(const float muon_trig_pt, const float electron_trig_pt);
+    void    CountSlimObjects();
+    int     Category(TString selection);
+    void    InitializeSystematics();
     TString GetOutputName() {
       return Form("clfv%s_%s%s%s.hist",
                   (fFolderName == "") ? "" : ("_"+fFolderName).Data(),fChain->GetName(),
@@ -662,154 +761,6 @@ void CLFVHistMaker::Init(TTree *tree)
   // (once per file to be processed).
   if(fChain == 0 && tree != 0) {
 
-    if(!fDYTesting)
-      tree->SetBranchStatus("*", 1); //ensure all branches are active
-    else {
-      tree->SetBranchStatus("*", 0); //turn off everything except what is needed (or hard to remove)
-      tree->SetBranchStatus("runNumber"           , 1);
-      tree->SetBranchStatus("evtNumber"           , 1);
-      tree->SetBranchStatus("lumiSection"         , 1);
-      tree->SetBranchStatus("nPV"                 , 1);
-      tree->SetBranchStatus("nPU"                 , 1);
-      // tree->SetBranchStatus("nPartons"            , 1);
-      tree->SetBranchStatus("triggerLeptonStatus" , 1);
-      tree->SetBranchStatus("muonTriggerStatus"   , 1);
-      tree->SetBranchStatus("lepOneTrigWeight"    , 1);
-      tree->SetBranchStatus("lepTwoTrigWeight"    , 1);
-      tree->SetBranchStatus("lepOneTrigger"       , 1);
-      tree->SetBranchStatus("lepTwoTrigger"       , 1);
-      tree->SetBranchStatus("lepOneFired"         , 1);
-      tree->SetBranchStatus("lepTwoFired"         , 1);
-      tree->SetBranchStatus("nTrigModes"          , 1);
-      tree->SetBranchStatus("triggerWeights"      , 1);
-      tree->SetBranchStatus("eventWeight"         , 1);
-      tree->SetBranchStatus("genWeight"           , 1);
-      tree->SetBranchStatus("puWeight"            , 1);
-      // tree->SetBranchStatus("topPtWeight"         , 1);
-      tree->SetBranchStatus("btagWeight"          , 1);
-      tree->SetBranchStatus("zPtWeight"           , 1);
-      tree->SetBranchStatus("zPt"                 , 1);
-      tree->SetBranchStatus("zMass"               , 1);
-      tree->SetBranchStatus("zLepOnePt"           , 1);
-      tree->SetBranchStatus("zLepTwoPt"           , 1);
-      tree->SetBranchStatus("zLepOneEta"          , 1);
-      tree->SetBranchStatus("zLepTwoEta"          , 1);
-      tree->SetBranchStatus("embeddingWeight"     , 1);
-      tree->SetBranchStatus("mcEra"               , 1);
-      tree->SetBranchStatus("htSum"               , 1);
-      tree->SetBranchStatus("ht"                  , 1);
-      tree->SetBranchStatus("htPhi"               , 1);
-      tree->SetBranchStatus("leptonOneP4"         , 1);
-      tree->SetBranchStatus("leptonTwoP4"         , 1);
-      tree->SetBranchStatus("leptonOneSCEta"      , 1);
-      tree->SetBranchStatus("leptonTwoSCEta"      , 1);
-      tree->SetBranchStatus("leptonOneFlavor"     , 1);
-      tree->SetBranchStatus("leptonTwoFlavor"     , 1);
-      tree->SetBranchStatus("leptonOneGenFlavor"  , 1);
-      tree->SetBranchStatus("leptonTwoGenFlavor"  , 1);
-      tree->SetBranchStatus("leptonOneIso"        , 1);
-      tree->SetBranchStatus("leptonTwoIso"        , 1);
-      tree->SetBranchStatus("leptonOneDXY"        , 1);
-      tree->SetBranchStatus("leptonTwoDXY"        , 1);
-      tree->SetBranchStatus("leptonOneDZ"         , 1);
-      tree->SetBranchStatus("leptonTwoDZ"         , 1);
-      tree->SetBranchStatus("leptonOneIndex"      , 1);
-      tree->SetBranchStatus("leptonTwoIndex"      , 1);
-      tree->SetBranchStatus("lepOneWeight1"       , 1);
-      tree->SetBranchStatus("lepOneWeight1_up"    , 1);
-      tree->SetBranchStatus("lepOneWeight1_down"  , 1);
-      tree->SetBranchStatus("lepOneWeight1_bin"   , 1);
-      tree->SetBranchStatus("lepOneWeight2"       , 1);
-      tree->SetBranchStatus("lepOneWeight2_up"    , 1);
-      tree->SetBranchStatus("lepOneWeight2_down"  , 1);
-      tree->SetBranchStatus("lepOneWeight2_bin"   , 1);
-      tree->SetBranchStatus("lepTwoWeight1"       , 1);
-      tree->SetBranchStatus("lepTwoWeight1_up"    , 1);
-      tree->SetBranchStatus("lepTwoWeight1_down"  , 1);
-      tree->SetBranchStatus("lepTwoWeight1_bin"   , 1);
-      tree->SetBranchStatus("lepTwoWeight2"       , 1);
-      tree->SetBranchStatus("lepTwoWeight2_up"    , 1);
-      tree->SetBranchStatus("lepTwoWeight2_down"  , 1);
-      tree->SetBranchStatus("lepTwoWeight2_bin"   , 1);
-      tree->SetBranchStatus("leptonOneID1"        , 1);
-      tree->SetBranchStatus("leptonTwoID1"        , 1);
-      tree->SetBranchStatus("leptonTwoID2"        , 1);
-      tree->SetBranchStatus("photonP4"            , 1);
-      tree->SetBranchStatus("photonIDWeight"      , 1);
-      tree->SetBranchStatus("jetP4"               , 1);
-      tree->SetBranchStatus("jetID"               , 1);
-      tree->SetBranchStatus("jetPUID"             , 1);
-      tree->SetBranchStatus("tauP4"               , 1);
-      tree->SetBranchStatus("tauDeepAntiJet"      , 1);
-      tree->SetBranchStatus("tauDeepAntiEle"      , 1);
-      tree->SetBranchStatus("tauDeepAntiMu"       , 1);
-      tree->SetBranchStatus("tauGenFlavor"        , 1);
-      tree->SetBranchStatus("tauDecayMode"        , 1);
-      tree->SetBranchStatus("tauFlavor"           , 1);
-      tree->SetBranchStatus("tauEnergyScale"      , 1);
-      tree->SetBranchStatus("tauES_up"            , 1);
-      tree->SetBranchStatus("tauES_down"          , 1);
-      tree->SetBranchStatus("looseQCDSelection"   , 1);
-      tree->SetBranchStatus("nMuons"              , 1);
-      tree->SetBranchStatus("nElectrons"          , 1);
-      tree->SetBranchStatus("nTaus"               , 1);
-      tree->SetBranchStatus("nPhotons"            , 1);
-      tree->SetBranchStatus("nJets"               , 1);
-      tree->SetBranchStatus("nJets20"             , 1);
-      tree->SetBranchStatus("nJets20Rej"          , 1);
-      tree->SetBranchStatus("nFwdJets"            , 1);
-      tree->SetBranchStatus("nBJets"              , 1);
-      tree->SetBranchStatus("nBJetsM"             , 1);
-      tree->SetBranchStatus("nBJetsL"             , 1);
-      tree->SetBranchStatus("nBJets20"            , 1);
-      tree->SetBranchStatus("nBJets20M"           , 1);
-      tree->SetBranchStatus("nBJets20L"           , 1);
-      tree->SetBranchStatus("jetsRejPt"           , 1);
-      tree->SetBranchStatus("jetsRejEta"          , 1);
-      tree->SetBranchStatus("jetsPt"              , 1);
-      tree->SetBranchStatus("jetsEta"             , 1);
-      tree->SetBranchStatus("jetsFlavor"          , 1);
-      tree->SetBranchStatus("jetsBTag"            , 1);
-      tree->SetBranchStatus("tausPt"              , 1);
-      tree->SetBranchStatus("tausWeight"          , 1);
-      tree->SetBranchStatus("tausEta"             , 1);
-      tree->SetBranchStatus("tausIsPositive"      , 1);
-      tree->SetBranchStatus("tausDM"              , 1);
-      tree->SetBranchStatus("tausGenFlavor"       , 1);
-      tree->SetBranchStatus("tausAntiJet"         , 1);
-      tree->SetBranchStatus("tausAntiEle"         , 1);
-      tree->SetBranchStatus("tausAntiMu"          , 1);
-      tree->SetBranchStatus("tausMVAAntiMu"       , 1);
-      tree->SetBranchStatus("nExtraLep"           , 1);
-      tree->SetBranchStatus("leptonsPt"           , 1);
-      tree->SetBranchStatus("leptonsEta"          , 1);
-      tree->SetBranchStatus("leptonsIsPositive"   , 1);
-      tree->SetBranchStatus("leptonsIsMuon"       , 1);
-      tree->SetBranchStatus("leptonsID"           , 1);
-      tree->SetBranchStatus("leptonsIsoID"        , 1);
-      tree->SetBranchStatus("leptonsTriggered"    , 1);
-      tree->SetBranchStatus("leptonsGenFlavor"    , 1);
-      tree->SetBranchStatus("nGenTaus"            , 1);
-      tree->SetBranchStatus("nGenTausHad"         , 1);
-      tree->SetBranchStatus("nGenTausLep"         , 1);
-      tree->SetBranchStatus("nGenElectrons"       , 1);
-      tree->SetBranchStatus("nGenMuons"           , 1);
-      tree->SetBranchStatus("nGenPromptTaus"      , 1);
-      tree->SetBranchStatus("nGenPromptElectrons" , 1);
-      tree->SetBranchStatus("nGenPromptMuons"     , 1);
-      tree->SetBranchStatus("puppMET"             , 1);
-      tree->SetBranchStatus("puppMETphi"          , 1);
-      tree->SetBranchStatus("puppMETC"            , 1);
-      tree->SetBranchStatus("puppMETCphi"         , 1);
-      tree->SetBranchStatus("met"                 , 1);
-      tree->SetBranchStatus("metPhi"              , 1);
-      tree->SetBranchStatus("metCorr"             , 1);
-      tree->SetBranchStatus("metCorrPhi"          , 1);
-      tree->SetBranchStatus("LHE_Njets"           , 1);
-      if(!fReprocessMVAs) {
-        tree->SetBranchStatus("mva*", 1);
-      }
-    }
     TMVA::Tools::Instance(); //load the TMVA library
     for(int i = 0; i < kMaxMVAs; ++i) mva[i] = 0; //initially 0s
 
@@ -1191,236 +1142,13 @@ void CLFVHistMaker::Init(TTree *tree)
 
   }
 
-  if(tree != 0) fChain = tree;
+  if(tree) fChain = tree;
   else return;
   printf("CLFVHistMaker::Init fChain = tree ");
   std::cout << tree << std::endl;
-  // //turn off slim vectors, as they're not that slim
-  // fChain->SetBranchStatus("slimElectrons" , 0);
-  // fChain->SetBranchStatus("slimMuons"     , 0);
-  // fChain->SetBranchStatus("slimTaus"      , 0);
-  // fChain->SetBranchStatus("slimJets"      , 0);
-  // fChain->SetBranchStatus("slimPhotons"   , 0);
 
-  fChain->SetBranchAddress("runNumber"           , &runNumber            );
-  fChain->SetBranchAddress("evtNumber"           , &eventNumber          );
-  fChain->SetBranchAddress("lumiSection"         , &lumiSection          );
-  fChain->SetBranchAddress("nPV"                 , &nPV                  );
-  fChain->SetBranchAddress("nPU"                 , &nPU                  );
-  fChain->SetBranchAddress("LHE_Njets"           , &LHE_Njets            );
-  if(!fDYTesting) {
-    fChain->SetBranchAddress("nPartons"            , &nPartons             );
-    fChain->SetBranchAddress("topPtWeight"         , &topPtWeight          );
-  }
-  fChain->SetBranchAddress("mcEra"               , &mcEra                );
-  fChain->SetBranchAddress("triggerLeptonStatus" , &triggerLeptonStatus  );
-  fChain->SetBranchAddress("muonTriggerStatus"   , &muonTriggerStatus    );
-  fChain->SetBranchAddress("eventWeight"         , &eventWeight          );
-  fChain->SetBranchAddress("genWeight"           , &genWeight            );
-  fChain->SetBranchAddress("puWeight"            , &puWeight             );
-  fChain->SetBranchAddress("btagWeight"          , &btagWeight           );
-  fChain->SetBranchAddress("zPtWeight"           , &zPtWeight            );
-  fChain->SetBranchAddress("zPt"                 , &zPt                  );
-  fChain->SetBranchAddress("zMass"               , &zMass                );
-  fChain->SetBranchAddress("zLepOnePt"           , &zLepOnePt            );
-  fChain->SetBranchAddress("zLepTwoPt"           , &zLepTwoPt            );
-  fChain->SetBranchAddress("zLepOneEta"          , &zLepOneEta           );
-  fChain->SetBranchAddress("zLepTwoEta"          , &zLepTwoEta           );
-  fChain->SetBranchAddress("embeddingWeight"     , &embeddingWeight      );
-  fChain->SetBranchAddress("looseQCDSelection"   , &looseQCDSelection    );
-  fChain->SetBranchAddress("tauGenFlavor"        , &tauGenFlavor         );
-  fChain->SetBranchAddress("tauDecayMode"        , &tauDecayMode         );
-  fChain->SetBranchAddress("tauEnergyScale"      , &tauES                );
-  fChain->SetBranchAddress("tauES_up"            , &tauESUp              );
-  fChain->SetBranchAddress("tauES_down"          , &tauESDown            );
-  if(!fDYTesting) {
-    fChain->SetBranchAddress("genTauFlavorWeight"  , &genTauFlavorWeight   );
-    fChain->SetBranchAddress("tauMVA"              , &tauMVA               );
-    fChain->SetBranchAddress("tauGenFlavorHad"     , &tauGenFlavorHad      );
-    fChain->SetBranchAddress("tauVetoedJetPt"      , &tauVetoedJetPt       );
-    fChain->SetBranchAddress("tauVetoedJetPtUnc"   , &tauVetoedJetPtUnc    );
-  }
-  fChain->SetBranchAddress("leptonOneP4"         , &leptonOneP4          );
-  fChain->SetBranchAddress("leptonTwoP4"         , &leptonTwoP4          );
-  fChain->SetBranchAddress("leptonOneSCEta"      , &leptonOneSCEta       );
-  fChain->SetBranchAddress("leptonTwoSCEta"      , &leptonTwoSCEta       );
-  fChain->SetBranchAddress("leptonOneFlavor"     , &leptonOneFlavor      );
-  fChain->SetBranchAddress("leptonTwoFlavor"     , &leptonTwoFlavor      );
-  fChain->SetBranchAddress("leptonOneGenFlavor"  , &leptonOneGenFlavor   );
-  fChain->SetBranchAddress("leptonTwoGenFlavor"  , &leptonTwoGenFlavor   );
-  fChain->SetBranchAddress("leptonOneIso"        , &leptonOneIso         );
-  fChain->SetBranchAddress("leptonTwoIso"        , &leptonTwoIso         );
-  fChain->SetBranchAddress("leptonOneDXY"        , &leptonOneDXY         );
-  fChain->SetBranchAddress("leptonTwoDXY"        , &leptonTwoDXY         );
-  fChain->SetBranchAddress("leptonOneDZ"         , &leptonOneDZ          );
-  fChain->SetBranchAddress("leptonTwoDZ"         , &leptonTwoDZ          );
-  if(!fDYTesting) {
-    fChain->SetBranchAddress("leptonOneID2"        , &leptonOneID2         );
-    fChain->SetBranchAddress("leptonTwoID3"        , &leptonTwoID3         );
-  }
-  fChain->SetBranchAddress("leptonOneID1"        , &leptonOneID1         );
-  fChain->SetBranchAddress("leptonTwoID1"        , &leptonTwoID1         );
-  fChain->SetBranchAddress("leptonTwoID2"        , &leptonTwoID2         );
-  fChain->SetBranchAddress("leptonOneIndex"      , &leptonOneIndex       );
-  fChain->SetBranchAddress("leptonTwoIndex"      , &leptonTwoIndex       );
-
-  fChain->SetBranchAddress("lepOneWeight1"       , &leptonOneWeight1     );
-  fChain->SetBranchAddress("lepOneWeight1_up"    , &leptonOneWeight1_up  );
-  fChain->SetBranchAddress("lepOneWeight1_down"  , &leptonOneWeight1_down);
-  fChain->SetBranchAddress("lepOneWeight1_bin"   , &leptonOneWeight1_bin );
-  fChain->SetBranchAddress("lepOneWeight2"       , &leptonOneWeight2     );
-  fChain->SetBranchAddress("lepOneWeight2_up"    , &leptonOneWeight2_up  );
-  fChain->SetBranchAddress("lepOneWeight2_down"  , &leptonOneWeight2_down);
-  fChain->SetBranchAddress("lepOneWeight2_bin"   , &leptonOneWeight2_bin );
-  fChain->SetBranchAddress("lepTwoWeight1"       , &leptonTwoWeight1     );
-  fChain->SetBranchAddress("lepTwoWeight1_up"    , &leptonTwoWeight1_up  );
-  fChain->SetBranchAddress("lepTwoWeight1_down"  , &leptonTwoWeight1_down);
-  fChain->SetBranchAddress("lepTwoWeight1_bin"   , &leptonTwoWeight1_bin );
-  fChain->SetBranchAddress("lepTwoWeight2"       , &leptonTwoWeight2     );
-  fChain->SetBranchAddress("lepTwoWeight2_up"    , &leptonTwoWeight2_up  );
-  fChain->SetBranchAddress("lepTwoWeight2_down"  , &leptonTwoWeight2_down);
-  fChain->SetBranchAddress("lepTwoWeight2_bin"   , &leptonTwoWeight2_bin );
-
-  fChain->SetBranchAddress("lepOneTrigWeight"    , &leptonOneTrigWeight  );
-  fChain->SetBranchAddress("lepTwoTrigWeight"    , &leptonTwoTrigWeight  );
-  fChain->SetBranchAddress("lepOneTrigger"       , &leptonOneTrigger     );
-  fChain->SetBranchAddress("lepTwoTrigger"       , &leptonTwoTrigger     );
-  fChain->SetBranchAddress("lepOneFired"         , &leptonOneFired       );
-  fChain->SetBranchAddress("lepTwoFired"         , &leptonTwoFired       );
-  fChain->SetBranchAddress("nTrigModes"          , &nTrigModes           );
-  fChain->SetBranchAddress("triggerWeights"      , &triggerWeights       );
-  if(!fDYTesting) {
-    fChain->SetBranchAddress("genLeptonOneP4"    , &genLeptonOneP4       );
-    fChain->SetBranchAddress("genLeptonTwoP4"    , &genLeptonTwoP4       );
-  }
-  fChain->SetBranchAddress("photonP4"            , &photonP4             );
-  if(!fDYTesting) {
-    fChain->SetBranchAddress("photonMVA"         , &photonMVA            );
-    fChain->SetBranchAddress("photonIDWeight"    , &photonIDWeight       );
-  }
-  fChain->SetBranchAddress("jetP4"               , &jetOneP4             );
-  fChain->SetBranchAddress("jetID"               , &jetOneID             );
-  fChain->SetBranchAddress("jetPUID"             , &jetOnePUID           );
-  if(!fDYTesting) {
-    fChain->SetBranchAddress("jetBTag"           , &jetOneBTag           );
-    fChain->SetBranchAddress("jetBMVA"           , &jetOneBMVA           );
-    fChain->SetBranchAddress("nJetsNano"       , &nSlimJets            );
-    if(fFolderName == "llg_study") {
-      fChain->SetBranchAddress("jetTwoP4"        , &jetTwoP4             );
-      fChain->SetBranchAddress("jetTwoBTag"      , &jetTwoBTag           );
-      fChain->SetBranchAddress("jetTwoBMVA"      , &jetTwoBMVA           );
-    }
-  }
-  fChain->SetBranchAddress("tauP4"               , &tauP4                );
-  fChain->SetBranchAddress("tauFlavor"           , &tauFlavor            );
-  fChain->SetBranchAddress("nMuons"              , &nMuons               );
-  fChain->SetBranchAddress("tauDeepAntiJet"    , &tauDeepAntiJet       );
-  fChain->SetBranchAddress("tauDeepAntiEle"    , &tauDeepAntiEle       );
-  fChain->SetBranchAddress("tauDeepAntiMu"     , &tauDeepAntiMu        );
-  if(!fDYTesting) {
-    fChain->SetBranchAddress("nMuonsNano"        , &nSlimMuons           );
-  }
-  fChain->SetBranchAddress("nElectrons"          , &nElectrons           );
-  if(!fDYTesting) {
-    fChain->SetBranchAddress("nElectronsNano"    , &nSlimElectrons       );
-    // fChain->SetBranchAddress("nLowPtElectrons"     , &nLowPtElectrons      );
-  }
-  fChain->SetBranchAddress("nTaus"               , &nTaus                );
-  if(!fDYTesting) {
-    fChain->SetBranchAddress("nTausNano"         , &nSlimTaus            );
-  }
-  fChain->SetBranchAddress("nPhotons"            , &nPhotons             );
-  if(!fDYTesting) {
-    fChain->SetBranchAddress("nPhotonsNano"    , &nSlimPhotons         );
-  }
-  fChain->SetBranchAddress("nJets"               , &nJets                );
-  fChain->SetBranchAddress("nJets20"             , &nJets20              );
-  fChain->SetBranchAddress("nJets20Rej"          , &nJets20Rej           );
-  fChain->SetBranchAddress("nFwdJets"            , &nFwdJets             );
-  fChain->SetBranchAddress("nBJets"              , &nBJets               );
-  fChain->SetBranchAddress("nBJetsM"             , &nBJetsM              );
-  fChain->SetBranchAddress("nBJetsL"             , &nBJetsL              );
-  fChain->SetBranchAddress("nBJets20"            , &nBJets20             );
-  fChain->SetBranchAddress("nBJets20M"           , &nBJets20M            );
-  fChain->SetBranchAddress("nBJets20L"           , &nBJets20L            );
-  fChain->SetBranchAddress("nGenTaus"            , &nGenTaus             );
-  fChain->SetBranchAddress("nGenTausHad"         , &nGenTausHad          );
-  fChain->SetBranchAddress("nGenTausLep"         , &nGenTausLep          );
-  fChain->SetBranchAddress("nGenElectrons"       , &nGenElectrons        );
-  fChain->SetBranchAddress("nGenMuons"           , &nGenMuons            );
-  fChain->SetBranchAddress("nGenPromptTaus"      , &nGenHardTaus         );
-  fChain->SetBranchAddress("nGenPromptElectrons" , &nGenHardElectrons    );
-  fChain->SetBranchAddress("nGenPromptMuons"     , &nGenHardMuons        );
-  fChain->SetBranchAddress("jetsRejPt"           , &jetsRejPt            );
-  fChain->SetBranchAddress("jetsRejEta"          , &jetsRejEta           );
-  fChain->SetBranchAddress("jetsPt"              , &jetsPt               );
-  fChain->SetBranchAddress("jetsEta"             , &jetsEta              );
-  fChain->SetBranchAddress("jetsFlavor"          , &jetsFlavor           );
-  fChain->SetBranchAddress("jetsBTag"            , &jetsBTag             );
-  fChain->SetBranchAddress("tausPt"               , &tausPt               );
-  fChain->SetBranchAddress("tausWeight"           , &tausWeight           );
-  fChain->SetBranchAddress("tausEta"              , &tausEta              );
-  fChain->SetBranchAddress("tausIsPositive"       , &tausIsPositive       );
-  fChain->SetBranchAddress("tausDM"               , &tausDM               );
-  fChain->SetBranchAddress("tausGenFlavor"        , &tausGenFlavor        );
-  fChain->SetBranchAddress("tausAntiJet"          , &tausAntiJet          );
-  fChain->SetBranchAddress("tausAntiEle"          , &tausAntiEle          );
-  fChain->SetBranchAddress("tausAntiMu"           , &tausAntiMu           );
-  fChain->SetBranchAddress("tausMVAAntiMu"        , &tausMVAAntiMu        );
-  fChain->SetBranchAddress("nExtraLep"            , &nExtraLep            );
-  fChain->SetBranchAddress("leptonsPt"            , &leptonsPt            );
-  fChain->SetBranchAddress("leptonsEta"           , &leptonsEta           );
-  fChain->SetBranchAddress("leptonsIsPositive"    , &leptonsIsPositive    );
-  fChain->SetBranchAddress("leptonsIsMuon"        , &leptonsIsMuon        );
-  fChain->SetBranchAddress("leptonsID"            , &leptonsID            );
-  fChain->SetBranchAddress("leptonsIsoID"         , &leptonsIsoID         );
-  fChain->SetBranchAddress("leptonsTriggered"     , &leptonsTriggered     );
-  fChain->SetBranchAddress("leptonsGenFlavor"     , &leptonsGenFlavor     );
-  fChain->SetBranchAddress("htSum"                , &htSum                );
-  fChain->SetBranchAddress("ht"                   , &ht                   );
-  fChain->SetBranchAddress("htPhi"                , &htPhi                );
-  if(!fDYTesting) {
-    // fChain->SetBranchAddress("pfMET"               , &pfMET                );
-    // fChain->SetBranchAddress("pfMETphi"            , &pfMETphi             );
-    // fChain->SetBranchAddress("pfMETCov00"          , &pfMETCov00           );
-    // fChain->SetBranchAddress("pfMETCov01"          , &pfMETCov01           );
-    // fChain->SetBranchAddress("pfMETCov11"          , &pfMETCov11           );
-    fChain->SetBranchAddress("pfMETC"              , &pfMETC               );
-    fChain->SetBranchAddress("pfMETCphi"           , &pfMETCphi            );
-    fChain->SetBranchAddress("pfMETCCov00"         , &pfMETCCov00          );
-    fChain->SetBranchAddress("pfMETCCov01"         , &pfMETCCov01          );
-    fChain->SetBranchAddress("pfMETCCov11"         , &pfMETCCov11          );
-  }
-  fChain->SetBranchAddress("puppMET"             , &puppMET              );
-  fChain->SetBranchAddress("puppMETphi"          , &puppMETphi           );
-  // fChain->SetBranchAddress("puppMETCov00"        , &puppMETCov00         );
-  // fChain->SetBranchAddress("puppMETCov01"        , &puppMETCov01         );
-  // fChain->SetBranchAddress("puppMETCov11"        , &puppMETCov11         );
-  fChain->SetBranchAddress("puppMETC"            , &puppMETC             );
-  fChain->SetBranchAddress("puppMETCphi"         , &puppMETCphi          );
-  // fChain->SetBranchAddress("puppMETCCov00"       , &puppMETCCov00        );
-  // fChain->SetBranchAddress("puppMETCCov01"       , &puppMETCCov01        );
-  // fChain->SetBranchAddress("puppMETCCov11"       , &puppMETCCov11        );
-  // fChain->SetBranchAddress("alpacaMET"           , &alpacaMET            );
-  // fChain->SetBranchAddress("alpacaMETphi"        , &alpacaMETphi         );
-  // fChain->SetBranchAddress("pcpMET"              , &pcpMET               );
-  // fChain->SetBranchAddress("pcpMETphi"           , &pcpMETphi            );
-  // fChain->SetBranchAddress("trkMET"              , &trkMET               );
-  // fChain->SetBranchAddress("trkMETphi"           , &trkMETphi            );
-  fChain->SetBranchAddress("met"                 , &met                  );
-  fChain->SetBranchAddress("metPhi"              , &metPhi               );
-  fChain->SetBranchAddress("metCorr"             , &metCorr              );
-  fChain->SetBranchAddress("metCorrPhi"          , &metCorrPhi           );
-  if(!fDYTesting) {
-    fChain->SetBranchAddress("covMet00"            , &covMet00             );
-    fChain->SetBranchAddress("covMet01"            , &covMet01             );
-    fChain->SetBranchAddress("covMet11"            , &covMet11             );
-    fChain->SetBranchAddress("massSVFit"           , &massSVFit            );
-    fChain->SetBranchAddress("massErrSVFit"        , &massErrSVFit         );
-    fChain->SetBranchAddress("svFitStatus"         , &svFitStatus          );
-    fChain->SetBranchAddress("leptonOneSVP4"     , &leptonOneSVP4        );
-    fChain->SetBranchAddress("leptonTwoSVP4"     , &leptonTwoSVP4        );
-  }
+  //setup the branch addresses
+  InitializeInputTree(tree);
   if(!fReprocessMVAs) {
     for(unsigned mva_i = 0; mva_i < fMVAConfig.names_.size(); ++mva_i) {
       fChain->SetBranchAddress(Form("mva%i",mva_i), &fMvaOutputs[mva_i]);
