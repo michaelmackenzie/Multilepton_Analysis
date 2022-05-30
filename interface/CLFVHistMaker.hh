@@ -36,11 +36,6 @@
 
 //local includes
 #include "interface/GlobalConstants.h"
-#include "interface/SlimElectron_t.hh"
-#include "interface/SlimMuon_t.hh"
-#include "interface/SlimTau_t.hh"
-#include "interface/SlimJet_t.hh"
-#include "interface/SlimPhoton_t.hh"
 #include "interface/Tree_t.hh"
 #include "interface/EventHist_t.hh"
 #include "interface/LepHist_t.hh"
@@ -80,17 +75,17 @@ namespace CLFV {
   public :
     TTreeReader     fReader;  //!the tree reader
     TTree          *fChain = 0;   //!pointer to the analyzed TTree or TChain
-    enum {kMaxLeptons = 10, kMaxParticles = 50, kMaxCounts = 40};
+    enum {kMaxLeptons = 10, kMaxParticles = 50, kMaxTriggers = 100};
     enum {kMuTau = 0, kETau = 100, kEMu = 200, kMuTauE = 300, kETauMu = 400, kMuMu = 500, kEE = 600};
     enum {kMaxMVAs = 80};
 
     // Readers to access the data
-    UInt_t runNumber                   ;
+    UInt_t  runNumber                  ;
     ULong64_t eventNumber              ;
-    UInt_t lumiSection                 ;
-    UInt_t nPV                         ;
+    UInt_t  lumiSection                ;
+    Int_t   nPV                        ;
     Float_t nPU                        ;
-    UInt_t nPartons                    ;
+    UInt_t  nPartons                   ;
     Float_t genWeight                  ;
     Float_t puWeight                   ;
     Float_t zPt                        ;
@@ -99,6 +94,8 @@ namespace CLFV {
     Float_t zLepTwoPt                  ;
     Float_t zLepOneEta                 ;
     Float_t zLepTwoEta                 ;
+    Float_t zLepOneID                  ;
+    Float_t zLepTwoID                  ;
 
     //lepton information
     //muons
@@ -116,6 +113,7 @@ namespace CLFV {
     Float_t Muon_dz                       [kMaxLeptons];
     Float_t Muon_dzErr                    [kMaxLeptons];
     Int_t   Muon_nTrackerLayers           [kMaxLeptons];
+    Bool_t  Muon_TaggedAsRemoved          [kMaxLeptons];
     UChar_t Muon_genPartFlav              [kMaxLeptons];
     Int_t   Muon_genPartIdx               [kMaxLeptons];
 
@@ -138,6 +136,7 @@ namespace CLFV {
     Float_t Electron_dxyErr               [kMaxLeptons];
     Float_t Electron_dz                   [kMaxLeptons];
     Float_t Electron_dzErr                [kMaxLeptons];
+    Bool_t  Electron_TaggedAsRemoved      [kMaxLeptons];
     UChar_t Electron_genPartFlav          [kMaxLeptons];
     Int_t   Electron_genPartIdx           [kMaxLeptons];
 
@@ -161,9 +160,7 @@ namespace CLFV {
     Float_t Tau_pfRelIso03_all            [kMaxLeptons];
     Float_t Tau_eCorr                     [kMaxLeptons];
     Float_t Tau_dxy                       [kMaxLeptons];
-    Float_t Tau_dxyErr                    [kMaxLeptons];
     Float_t Tau_dz                        [kMaxLeptons];
-    Float_t Tau_dzErr                     [kMaxLeptons];
     UChar_t Tau_genPartFlav               [kMaxLeptons];
     Int_t   Tau_genPartIdx                [kMaxLeptons];
 
@@ -185,8 +182,25 @@ namespace CLFV {
     Float_t Jet_dz                        [kMaxParticles];
     Float_t Jet_dzErr                     [kMaxParticles];
     Int_t   Jet_partonFlavour             [kMaxParticles];
+    Bool_t  Jet_TaggedAsRemovedByMuon     [kMaxParticles];
+    Bool_t  Jet_TaggedAsRemovedByElectron [kMaxParticles];
+
+    //Trigger info
+    Bool_t  HLT_IsoMu24                                  ;
+    Bool_t  HLT_IsoMu27                                  ;
+    Bool_t  HLT_Mu50                                     ;
+    Bool_t  HLT_Ele27_WPTight_GsF                        ;
+    Bool_t  HLT_Ele32_WPTight_GsF                        ;
+    Bool_t  HLT_Ele32_WPTight_GsF_L1DoubleEG             ;
+    UInt_t  nTrigObj                                     ;
+    Int_t   TrigObj_filterBits             [kMaxTriggers];
+    Float_t TrigObj_pt                     [kMaxTriggers];
+    Float_t TrigObj_eta                    [kMaxTriggers];
+    Float_t TrigObj_phi                    [kMaxTriggers];
+    Int_t   TrigObj_id                     [kMaxTriggers];
 
 
+    //Calculated values
     Float_t jetsRejPt[kMaxParticles]   ;
     Float_t jetsRejEta[kMaxParticles]  ;
     Float_t jetsPt[kMaxParticles]      ;
@@ -294,22 +308,20 @@ namespace CLFV {
     Float_t qcdIsoScale = 1.           ;
     Int_t tauDecayMode                 ;
     Float_t tauMVA                     ;
-    Float_t tauES                      ;
-    Float_t tauESUp                    ;
-    Float_t tauESDown                  ;
-    Int_t   tauESBin                   ;
     Int_t tauGenFlavor                 ;
     Int_t tauGenFlavorHad              ;
     Float_t tauVetoedJetPt             ;
     Float_t tauVetoedJetPtUnc          ;
-    TLorentzVector* leptonOneP4 = 0    ;
-    TLorentzVector* leptonTwoP4 = 0    ;
+    TLorentzVector* leptonOneP4        ;
+    TLorentzVector* leptonTwoP4        ;
     Float_t leptonOneSCEta = -999      ;
     Float_t leptonTwoSCEta = -999      ;
     Int_t leptonOneFlavor              ;
     Int_t leptonTwoFlavor              ;
     Int_t leptonOneGenFlavor           ;
     Int_t leptonTwoGenFlavor           ;
+    Float_t leptonOnePtSF              ;
+    Float_t leptonTwoPtSF              ;
     Bool_t isFakeElectron = false      ;
     Bool_t isFakeMuon     = false      ;
     Float_t leptonOneDXY               ;
@@ -377,25 +389,19 @@ namespace CLFV {
     UChar_t tauDeepAntiEle             ;
     UChar_t tauDeepAntiMu              ;
     UChar_t tauDeepAntiJet             ;
-    UInt_t nMuons                      ;
-    UInt_t nSlimMuons                  ;
-    SlimMuons_t* slimMuons             ;
-    UInt_t nMuonCounts[kMaxCounts]     ;
-    UInt_t nElectrons                  ;
-    UInt_t nSlimElectrons              ;
-    SlimElectrons_t* slimElectrons     ;
-    UInt_t nElectronCounts[kMaxCounts] ;
+    Float_t tauES                      ;
+    Float_t tauES_up                   ;
+    Float_t tauES_down                 ;
+    Int_t   tauESBin                   ;
+    Float_t eleES                      ;
+    Float_t eleES_up                   ;
+    Float_t eleES_down                 ;
+    UInt_t nElectrons;
     UInt_t nLowPtElectrons             ;
-    UInt_t nTaus                       ;
-    UInt_t nSlimTaus                   ;
-    SlimTaus_t* slimTaus               ;
-    UInt_t nTauCounts[kMaxCounts]      ;
-    UInt_t nPhotons                    ;
-    UInt_t nSlimPhotons                ;
-    SlimPhotons_t* slimPhotons         ;
+    UInt_t nMuons;
+    UInt_t nTaus;
+    UInt_t nPhotons;
     UInt_t nJets                       ;
-    UInt_t nSlimJets                   ;
-    SlimJets_t* slimJets               ;
     UInt_t nJets20                     ;
     UInt_t nJets20Rej                  ;
     UInt_t nFwdJets                    ;
@@ -431,6 +437,9 @@ namespace CLFV {
     TLorentzVector* leptonOneSVP4 = 0  ;
     TLorentzVector* leptonTwoSVP4 = 0  ;
 
+
+    Float_t muon_trig_pt_    ; //lepton trigger thresholds
+    Float_t electron_trig_pt_;
 
     //define object to apply box cuts
     class TEventID {
@@ -566,7 +575,40 @@ namespace CLFV {
     void    SlaveTerminate();
     void    Terminate();
 
-    void    FillAllHistograms(Int_t index);
+    void    InitializeInputTree(TTree* tree);
+    void    InitializeEventWeights();
+    void    CountObjects();
+    void    CountJets();
+    void    MatchTriggers();
+    void    ApplyTriggerWeights();
+
+    int             TauFlavorFromID(int ID) {
+      if(ID == 1 || ID == 3) return 11;
+      if(ID == 2 || ID == 4) return 13;
+      if(ID == 5) return 15;
+      return 26; //unknown
+    }
+    int             MuonFlavorFromID(int ID) {
+      if(ID == 1 || ID == 5 || ID == 4 || ID == 3 || ID == 15) return 13;
+      return 26; //unknown
+    }
+    int             ElectronFlavorFromID(int ID) {
+      if(ID == 1 || ID == 5 || ID == 4 || ID == 3 || ID == 15) return 11;
+      if(ID == 22) return 22;
+      return 26; //unknown
+    }
+    int             MuonRelIsoID(float reliso) {
+      //muon isolation levels
+      //kVVLooseMuIso, kVLooseMuIso, kLooseMuIso, kMediumMuIso, kTightMuIso, kVTightMuIso, kVVTightMuIso, kMuonIsos
+      constexpr double muonIsoValues[] = {0.5, 0.4, 0.25, 0.20, 0.15, 0.10, 0.05}; //corresponding values
+      int id = 0;
+      for(int level = 0; level < ParticleCorrections::kMuonIsos; ++level) {
+        if(reliso < muonIsoValues[level]) ++id;
+        else break;
+      }
+      return id;
+    }
+
     void    BookHistograms();
     void    BookEventHistograms();
     void    BookPhotonHistograms();
@@ -574,8 +616,8 @@ namespace CLFV {
     void    BookSystematicHistograms();
     void    BookTrees();
     void    DeleteHistograms();
-    void    InitializeInputTree(TTree* tree);
-    void    CountObjects();
+
+    void    FillAllHistograms(Int_t index);
     void    FillEventHistogram(EventHist_t* Hist);
     void    FillPhotonHistogram(PhotonHist_t* Hist);
     void    FillLepHistogram(LepHist_t* Hist);
@@ -583,13 +625,11 @@ namespace CLFV {
     void    InitializeTreeVariables(Int_t selection);
     float   GetTauFakeSF(int genFlavor);
     float   CorrectMET(int selection, float met);
-    void    ApplyTriggerWeights(const float muon_trig_pt, const float electron_trig_pt);
-    void    CountSlimObjects();
     int     Category(TString selection);
     void    InitializeSystematics();
     TString GetOutputName() {
       return Form("clfv%s_%s%s%s.hist",
-                  (fFolderName == "") ? "" : ("_"+fFolderName).Data(),fChain->GetName(),
+                  (fSelection == "") ? "" : ("_"+fSelection).Data(),fChain->GetName(),
                   (fDYType >  0) ? Form("-%i",fDYType) : "",
                   (fWNJets >= 0) ? Form("-%i",fWNJets) : ""
                   );
@@ -643,11 +683,10 @@ namespace CLFV {
 
     TEventID*       fEventId[kIds]; //for applying box cuts, 0-9 zmutau, 10-19 zetau, 20-29 zemu, higgs + 30 to z sets
 
-    TString         fFolderName = ""; //name of the folder the tree is from
+    TString         fSelection = ""; //data selection to consider
     Int_t           fYear = 2016;
 
     Bool_t          fIsSignal = false;
-
     Int_t           fDYType = -1; //for splitting Z->ll into 1: tau tau and 2: e/mu e/mu
     Bool_t          fIsDY = false; //for checking if DY --> Z pT weights
     Int_t           fWNJets = -1;  //for splitting w+jets samples
@@ -686,7 +725,7 @@ namespace CLFV {
     Int_t           fRemoveTriggerWeights = 0; // 0: do nothing 1: remove weights 2: replace weights
     Int_t           fUpdateMCEra = 0; //update the MC era flag
     Int_t           fRemovePhotonIDWeights = 1;
-    Int_t           fRemoveBTagWeights = 0; //0: do nothing 1: remove weights 2: replace weights
+    Int_t           fUseBTagWeights = 0; //0: do nothing 1: apply weights
     BTagWeight      fBTagWeight;
     Int_t           fRemovePUWeights = 0; //0: do nothing 1: remove weights 2: replace weights
     PUWeight        fPUWeight; //object to define pu weights
@@ -810,11 +849,6 @@ void CLFVHistMaker::Init(TTree *tree)
         printf("Booked MVA %s with selection %s\n", fMVAConfig.names_[mva_i].Data(), selection.Data());
       }
     }
-    // slimMuons = new SlimMuons_t();
-    // slimElectrons = new SlimElectrons_t();
-    // slimTaus = new SlimTaus_t();
-    // slimPhotons = new SlimPhotons_t();
-    // slimJets = new SlimJets_t();
     fChain = tree;
     fOut = new TFile(GetOutputName(), "RECREATE","CLFVHistMaker output histogram file");
     fTopDir = fOut->mkdir("Data");
@@ -830,9 +864,13 @@ void CLFVHistMaker::Init(TTree *tree)
     }
 
     //Event Sets
-    //currently sets 0-29 are mutau, 30-59 are etau, and 60-89 are emu
     // fEventSets [0] = 0; // all events
-    if(fFolderName == "mutau") {
+    const bool mutau = fSelection == "" || fSelection == "mutau";
+    const bool etau  = fSelection == "" || fSelection == "etau" ;
+    const bool emu   = fSelection == "" || fSelection == "emu"  ;
+    const bool mumu  = fSelection == "" || fSelection == "mumu" ;
+    const bool ee    = fSelection == "" || fSelection == "ee"   ;
+    if(mutau) {
       fEventSets [kMuTau + 1] = 1; // all events
       fEventSets [kMuTau + 2] = 1; //
       fEventSets [kMuTau + 3] = 1;
@@ -901,7 +939,7 @@ void CLFVHistMaker::Init(TTree *tree)
       // fEventSets [kMuTau + 45] = 1; //taus in the barrel
       // fEventSets [kMuTau + 46] = 1; //taus in the endcap
     }
-    else if(fFolderName == "etau") {
+    if(etau) {
       fEventSets [kETau + 1] = 1; // all events
       fEventSets [kETau + 2] = 1;
       fEventSets [kETau + 3] = 1;
@@ -966,7 +1004,7 @@ void CLFVHistMaker::Init(TTree *tree)
       // fEventSets [kETau + 45] = 1; //taus in the barrel
       // fEventSets [kETau + 46] = 1; //taus in the endcap
     }
-    else if(fFolderName == "emu") {
+    if(emu) {
       fEventSets [kEMu  + 1] = 1; // all events
       fEventSets [kEMu  + 2] = 1; // after pT cuts
       fEventSets [kEMu  + 3] = 1; // after eta, mass, trigger cuts
@@ -1026,7 +1064,7 @@ void CLFVHistMaker::Init(TTree *tree)
       fEventSets [kEMu  + 70] = 1; //loose ID electron, not muon region
       fEventSets [kEMu  + 71] = 1; //loose ID electron and muon region
     }
-    else if(fFolderName == "mumu") {
+    if(mumu) {
       fEventSets [kMuMu + 1] = 1; // all events
       fEventSets [kMuMu + 2] = 1; // events with >= 1 photon
 
@@ -1077,7 +1115,7 @@ void CLFVHistMaker::Init(TTree *tree)
         fEventSets [kMuMu + 66] = 1; //two can't trigger
       }
     }
-    else if(fFolderName == "ee") {
+    if(ee) {
       fEventSets [kEE   + 1] = 1; // all events
       fEventSets [kEE   + 2] = 1;
       fEventSets [kEE   + 3] = 1;
@@ -1128,7 +1166,7 @@ void CLFVHistMaker::Init(TTree *tree)
         fEventSets [kEE  + 66] = 1; //two can't trigger
       }
     }
-    if(fFolderName == "emu") {
+    if(emu) {
       //Leptonic tau channels
       //mu+tau_e
       // MVA categories

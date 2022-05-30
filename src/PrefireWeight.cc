@@ -64,5 +64,10 @@ float PrefireWeight::GetWeight(int year, int njets, float* jetspt, float* jetset
     const float prob = GetProbability(year, jetspt[jet], jetseta[jet]);
     weight *= (1. - prob); //re-weight by product of probabilities to not pre-fire
   }
+  if(weight <= 1.e-4) {
+    std::cout << "PrefireWeight::" << __func__ << ": Warning! Very small weight = " << weight
+              << ", returning 1" << std::endl;
+    return 1.f;
+  }
   return weight;
 }
