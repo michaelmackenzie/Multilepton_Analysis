@@ -69,6 +69,10 @@ void CLFVHistMaker::Begin(TTree * /*tree*/)
   printf("CLFVHistMaker::Begin\n");
   timer->Start();
   fChain = 0;
+  TString dir = gSystem->Getenv("CMSSW_BASE");
+  if(dir == "") dir = "../"; //if not in a CMSSW environment, assume in a sub-directory of the package
+  else dir += "/src/CLFVAnalysis/";
+  fRoccoR = new RoccoR(Form("%sscale_factors/RoccoR%i.txt", dir.Data(), fYear));
   fElectronIDWeight.verbose_ = fVerbose;
   fMuonIDWeight.verbose_ = fVerbose;
   fBTagWeight.verbose_ = fVerbose;
@@ -224,6 +228,7 @@ void CLFVHistMaker::BookEventHistograms() {
       Utilities::BookH1F(fEventHist[i]->hEmbeddingWeight         , "embeddingweight"         , Form("%s: EmbeddingWeight"             ,dirname), 100,    0, 0.5, folder);
       Utilities::BookH1F(fEventHist[i]->hLogEmbeddingWeight      , "logembeddingweight"      , Form("%s: Log10(EmbeddingWeight)"      ,dirname),  40,   -9,   1, folder);
       Utilities::BookH1F(fEventHist[i]->hEmbeddingUnfoldingWeight, "embeddingunfoldingweight", Form("%s: EmbeddingUnfoldingWeight"    ,dirname),  50,    0,   2, folder);
+      Utilities::BookH1F(fEventHist[i]->hQCDWeight               , "qcdweight"               , Form("%s: QCDWeight"                   ,dirname),  50,    0,   5, folder);
       Utilities::BookH1F(fEventHist[i]->hJetToTauWeight          , "jettotauweight"          , Form("%s: JetToTauWeight"              ,dirname),  40,    0,   2, folder);
       int jstart = SystematicGrouping::kJetToTau;
       Utilities::BookH1F(fEventHist[i]->hJetToTauWeightGroup     , "jettotauweightgroup"     , Form("%s: JetToTauWeightGroup"         ,dirname),  50, jstart, 50+jstart, folder);
@@ -674,6 +679,7 @@ void CLFVHistMaker::BookLepHistograms() {
       Utilities::BookH1D(fLepHist[i]->hOneFlavor      , "oneflavor"        , Form("%s: Flavor"       ,dirname),  20,    0,   20, folder);
       Utilities::BookH1D(fLepHist[i]->hOneGenFlavor   , "onegenflavor      ", Form("%s: Gen Flavor"  ,dirname),  40,    0,   40, folder);
       Utilities::BookH1D(fLepHist[i]->hOneQ           , "oneq"             , Form("%s: Q"            ,dirname),   5,   -2,    2, folder);
+      Utilities::BookH1D(fLepHist[i]->hOneJetOverlap  , "onejetoverlap"    , Form("%s: OneJetOverlap",dirname),   3,    0,    3, folder);
       Utilities::BookH1D(fLepHist[i]->hOneTrigger     , "onetrigger"       , Form("%s: Trigger"      ,dirname),  10,    0,   10, folder);
       Utilities::BookH1F(fLepHist[i]->hOneWeight      , "oneweight"        , Form("%s: Weight"       ,dirname),  50,    0,    2, folder);
       Utilities::BookH1F(fLepHist[i]->hOneTrigWeight  , "onetrigweight"    , Form("%s: Trig Weight"  ,dirname),  50,    0,    2, folder);
@@ -724,6 +730,7 @@ void CLFVHistMaker::BookLepHistograms() {
       Utilities::BookH1D(fLepHist[i]->hTwoFlavor      , "twoflavor"        , Form("%s: Flavor"      ,dirname),  20,   0,   20, folder);
       Utilities::BookH1D(fLepHist[i]->hTwoGenFlavor   , "twogenflavor"     , Form("%s: Gen Flavor"  ,dirname),  40,   0,   40, folder);
       Utilities::BookH1D(fLepHist[i]->hTwoQ           , "twoq"             , Form("%s: Q"           ,dirname),   5,  -2,    2, folder);
+      Utilities::BookH1D(fLepHist[i]->hTwoJetOverlap  , "twojetoverlap"    , Form("%s: TwoJetOverlap",dirname),  3,   0,    3, folder);
       Utilities::BookH1D(fLepHist[i]->hTwoTrigger     , "twotrigger"       , Form("%s: Trigger"     ,dirname),  10,   0,   10, folder);
       Utilities::BookH1F(fLepHist[i]->hTwoWeight      , "twoweight"        , Form("%s: Weight"      ,dirname),  50,   0,    2, folder);
       Utilities::BookH1F(fLepHist[i]->hTwoTrigWeight  , "twotrigweight"    , Form("%s: Trig Weight" ,dirname),  50,   0,    2, folder);
@@ -901,25 +908,29 @@ void CLFVHistMaker::DeleteHistograms() {
 //--------------------------------------------------------------------------------------------------------------
 // Initialize branch structure of the input tree
 void CLFVHistMaker::InitializeInputTree(TTree* tree) {
-  tree->SetBranchAddress("nMuon"               , &nMuon               );
-  tree->SetBranchAddress("Muon_pt"             , &Muon_pt             );
-  tree->SetBranchAddress("Muon_eta"            , &Muon_eta            );
-  tree->SetBranchAddress("Muon_phi"            , &Muon_phi            );
-  tree->SetBranchAddress("Muon_charge"         , &Muon_charge         );
-  tree->SetBranchAddress("Muon_looseId"        , &Muon_looseId        );
-  tree->SetBranchAddress("Muon_mediumId"       , &Muon_mediumId       );
-  tree->SetBranchAddress("Muon_tightId"        , &Muon_tightId        );
-  tree->SetBranchAddress("Muon_pfRelIso04_all" , &Muon_pfRelIso04_all );
-  tree->SetBranchAddress("Muon_dxy"            , &Muon_dxy            );
-  tree->SetBranchAddress("Muon_dxyErr"         , &Muon_dxyErr         );
-  tree->SetBranchAddress("Muon_dz"             , &Muon_dz             );
-  tree->SetBranchAddress("Muon_dzErr"          , &Muon_dzErr          );
-  tree->SetBranchAddress("Muon_nTrackerLayers" , &Muon_nTrackerLayers );
-  tree->SetBranchAddress("Muon_TaggedAsRemoved", &Muon_TaggedAsRemoved);
-  tree->SetBranchAddress("Muon_genPartFlav"    , &Muon_genPartFlav    );
-  tree->SetBranchAddress("Muon_genPartIdx"     , &Muon_genPartIdx     );
+  tree->SetBranchAddress("nMuon"                    , &nMuon                     );
+  tree->SetBranchAddress("nGenMuon"                 , &nGenMuons                 );
+  tree->SetBranchAddress("Muon_pt"                  , &Muon_pt                   );
+  tree->SetBranchAddress("Muon_eta"                 , &Muon_eta                  );
+  tree->SetBranchAddress("Muon_phi"                 , &Muon_phi                  );
+  tree->SetBranchAddress("Muon_charge"              , &Muon_charge               );
+  tree->SetBranchAddress("Muon_looseId"             , &Muon_looseId              );
+  tree->SetBranchAddress("Muon_mediumId"            , &Muon_mediumId             );
+  tree->SetBranchAddress("Muon_tightId"             , &Muon_tightId              );
+  tree->SetBranchAddress("Muon_pfRelIso04_all"      , &Muon_pfRelIso04_all       );
+  tree->SetBranchAddress("Muon_dxy"                 , &Muon_dxy                  );
+  tree->SetBranchAddress("Muon_dxyErr"              , &Muon_dxyErr               );
+  tree->SetBranchAddress("Muon_dz"                  , &Muon_dz                   );
+  tree->SetBranchAddress("Muon_dzErr"               , &Muon_dzErr                );
+  tree->SetBranchAddress("Muon_nTrackerLayers"      , &Muon_nTrackerLayers       );
+  tree->SetBranchAddress("Muon_TaggedAsRemovedByJet", &Muon_TaggedAsRemovedByJet );
+  if(!fIsData) {
+    tree->SetBranchAddress("Muon_genPartFlav"    , &Muon_genPartFlav    );
+    tree->SetBranchAddress("Muon_genPartIdx"     , &Muon_genPartIdx     );
+  }
 
   tree->SetBranchAddress("nElectron"                     , &nElectron                     );
+  tree->SetBranchAddress("nGenElectron"                  , &nGenElectrons                 );
   tree->SetBranchAddress("Electron_pt"                   , &Electron_pt                   );
   tree->SetBranchAddress("Electron_eta"                  , &Electron_eta                  );
   tree->SetBranchAddress("Electron_phi"                  , &Electron_phi                  );
@@ -937,11 +948,14 @@ void CLFVHistMaker::InitializeInputTree(TTree* tree) {
   tree->SetBranchAddress("Electron_dxyErr"               , &Electron_dxyErr               );
   tree->SetBranchAddress("Electron_dz"                   , &Electron_dz                   );
   tree->SetBranchAddress("Electron_dzErr"                , &Electron_dzErr                );
-  tree->SetBranchAddress("Electron_TaggedAsRemoved"      , &Electron_TaggedAsRemoved      );
-  tree->SetBranchAddress("Electron_genPartFlav"          , &Electron_genPartFlav          );
-  tree->SetBranchAddress("Electron_genPartIdx"           , &Electron_genPartIdx           );
+  tree->SetBranchAddress("Electron_TaggedAsRemovedByJet" , &Electron_TaggedAsRemovedByJet );
+  if(!fIsData) {
+    tree->SetBranchAddress("Electron_genPartFlav"          , &Electron_genPartFlav          );
+    tree->SetBranchAddress("Electron_genPartIdx"           , &Electron_genPartIdx           );
+  }
 
   tree->SetBranchAddress("nTau"                          , &nTau                          );
+  tree->SetBranchAddress("nGenTau"                       , &nGenTaus                      );
   tree->SetBranchAddress("Tau_pt"                        , &Tau_pt                        );
   tree->SetBranchAddress("Tau_eta"                       , &Tau_eta                       );
   tree->SetBranchAddress("Tau_phi"                       , &Tau_phi                       );
@@ -961,8 +975,11 @@ void CLFVHistMaker::InitializeInputTree(TTree* tree) {
   // tree->SetBranchAddress("Tau_dxyErr"                    , &Tau_dxyErr                    );
   tree->SetBranchAddress("Tau_dz"                        , &Tau_dz                        );
   // tree->SetBranchAddress("Tau_dzErr"                     , &Tau_dzErr                     );
-  tree->SetBranchAddress("Tau_genPartFlav"               , &Tau_genPartFlav               );
-  tree->SetBranchAddress("Tau_genPartIdx"                , &Tau_genPartIdx                );
+  tree->SetBranchAddress("Tau_TaggedAsRemovedByJet"      , &Tau_TaggedAsRemovedByJet      );
+  if(!fIsData) {
+    tree->SetBranchAddress("Tau_genPartFlav"               , &Tau_genPartFlav               );
+    tree->SetBranchAddress("Tau_genPartIdx"                , &Tau_genPartIdx                );
+  }
 
   tree->SetBranchAddress("nJet"                          , &nJet                          );
   tree->SetBranchAddress("Jet_pt"                        , &Jet_pt                        );
@@ -980,7 +997,8 @@ void CLFVHistMaker::InitializeInputTree(TTree* tree) {
   // tree->SetBranchAddress("Jet_dxyErr"                    , &Jet_dxyErr                    );
   // tree->SetBranchAddress("Jet_dz"                        , &Jet_dz                        );
   // tree->SetBranchAddress("Jet_dzErr"                     , &Jet_dzErr                     );
-  tree->SetBranchAddress("Jet_partonFlavour"             , &Jet_partonFlavour             );
+  if(!fIsData)
+    tree->SetBranchAddress("Jet_partonFlavour"             , &Jet_partonFlavour             );
   tree->SetBranchAddress("Jet_TaggedAsRemovedByMuon"     , &Jet_TaggedAsRemovedByMuon     );
   tree->SetBranchAddress("Jet_TaggedAsRemovedByElectron" , &Jet_TaggedAsRemovedByElectron );
 
@@ -1001,6 +1019,10 @@ void CLFVHistMaker::InitializeInputTree(TTree* tree) {
   tree->SetBranchAddress("GenZll_LepTwo_pt"              , &zLepTwoPt                     );
   tree->SetBranchAddress("GenZll_LepOne_eta"             , &zLepOneEta                    );
   tree->SetBranchAddress("GenZll_LepTwo_eta"             , &zLepTwoEta                    );
+  tree->SetBranchAddress("GenZll_LepOne_phi"             , &zLepOnePhi                    );
+  tree->SetBranchAddress("GenZll_LepTwo_phi"             , &zLepTwoPhi                    );
+  tree->SetBranchAddress("GenZll_LepOne_mass"            , &zLepOneMass                   );
+  tree->SetBranchAddress("GenZll_LepTwo_mass"            , &zLepTwoMass                   );
 
   // if(tree->GetBranch("GenZMuE_pt")) {
   //   tree->SetBranchAddress("GenZMuE_pt"                    , &zPt                           );
@@ -1011,15 +1033,68 @@ void CLFVHistMaker::InitializeInputTree(TTree* tree) {
   // }
 
   //Event information
-  tree->SetBranchAddress("genWeight"                     , &genWeight                     );
+  if(!fIsData)
+    tree->SetBranchAddress("genWeight"                     , &genWeight                     );
   tree->SetBranchAddress("HT"                            , &ht                            );
   tree->SetBranchAddress("PuppiMET_pt"                   , &puppMET                       );
   tree->SetBranchAddress("PuppiMET_phi"                  , &puppMETphi                    );
   // tree->SetBranchAddress("Pileup_nPU"                    , &nPUAdded                      );
-  tree->SetBranchAddress("Pileup_nTrueInt"               , &nPU                           );
+  if(!fIsData) {
+    tree->SetBranchAddress("Pileup_nTrueInt"               , &nPU                           );
+    tree->SetBranchAddress("LHE_Njets"                     , &LHE_Njets                     ) ;
+  }
   tree->SetBranchAddress("PV_npvsGood"                   , &nPV                           ) ;
 }
 
+//-----------------------------------------------------------------------------------------------------------------
+//apply/replace electron energy scale corrections
+void CLFVHistMaker::ApplyElectronCorrections() {
+  for(UInt_t index = 0; index < nTau; ++index) {
+    float sf = (fIsEmbed) ? 1. : fElectronIDWeight.EmbedEnergyScale(Electron_pt[index], Electron_eta[index],
+                                                                    fYear, eleES_up, eleES_down); //assume 1 electron in event where up/down matter
+    Electron_energyScale[index] = sf;
+    if(fIsEmbed) sf /= Electron_eCorr[index]; //remove the correction applied to embedding electrons
+    Electron_pt  [index] *= sf;
+    // Electron_mass[index] *= sf;
+  }
+}
+
+//-----------------------------------------------------------------------------------------------------------------
+//apply the Rochester corrections to the muon pt for all muons
+void CLFVHistMaker::ApplyMuonCorrections() {
+  const static int s(0), m(0); //error set and member for corrections
+  for(UInt_t index = 0; index < nMuon; ++index) {
+    const double u = fRnd->Uniform();
+    double sf = 1.;
+    if(fIsData) {
+      sf = fRoccoR->kScaleDT(Muon_charge[index], Muon_pt[index], Muon_eta[index], Muon_phi[index], s, m);
+    } else {
+      // //For muons in embedding events not identified as the main leptons, apply typical data corrections
+      // if(fIsEmbed && (abs(leptonOneFlavor) != 13 || (int) index != leptonOneIndex) && (abs(leptonTwoFlavor) != 13 || (int) index != leptonTwoIndex)) {
+      //   sf = fRoccoR->kScaleDT(Muon_charge[index], Muon_pt[index], Muon_eta[index], Muon_phi[index], s, m);
+      // } else {
+      //For simulated muons, both in embedding and standard MC, apply given MC corrections
+      sf = fRoccoR->kSmearMC(Muon_charge[index], Muon_pt[index], Muon_eta[index], Muon_phi[index], Muon_nTrackerLayers[index], u, s, m);
+      // }
+    }
+    Muon_pt[index] *= sf;
+    Muon_RoccoSF[index] = sf;
+  }
+}
+
+//-----------------------------------------------------------------------------------------------------------------
+//apply tau energy scale corrections
+void CLFVHistMaker::ApplyTauCorrections() {
+  tauES = 1.f; tauES_up = 1.f; tauES_down = 1.f;
+  for(UInt_t index = 0; index < nTau; ++index) {
+    float sf = (fIsData) ? 1. : fTauIDWeight->EnergyScale(Tau_pt[index], Tau_eta[index], Tau_decayMode[index],
+                                                          Tau_genPartFlav[index], Tau_idDeepTau2017v2p1VSjet[index],
+                                                          fYear, tauES_up, tauES_down); //assume 1 tau in event where up/down matter
+    Tau_pt  [index] *= sf;
+    Tau_mass[index] *= sf;
+    Tau_energyScale[index] = sf;
+  }
+}
 
 //--------------------------------------------------------------------------------------------------------------
 // Determine and apply the global event weights (i.e. not selection specific)
@@ -1040,11 +1115,6 @@ void CLFVHistMaker::InitializeEventWeights() {
   leptonOneTrigWeight   = 1.; leptonTwoTrigWeight   = 1.;
   leptonOneFired        = 0 ; leptonTwoFired        = 0 ;
 
-  leptonOnePtSF = 1.; leptonTwoPtSF = 1.;
-
-  tauES = 1.; tauES_up = 1.; tauES_down = 1.;
-  eleES = 1.; eleES_up = 1.; eleES_down = 1.;
-
   ////////////////////////////////////////////////////////////////////
   //   Generator/Embedding Weight
   ////////////////////////////////////////////////////////////////////
@@ -1064,7 +1134,7 @@ void CLFVHistMaker::InitializeEventWeights() {
       genWeight = 1.;
     }
     embeddingUnfoldingWeight = fEmbeddingWeight.UnfoldingWeight(zLepOnePt, zLepOneEta, zLepTwoPt, zLepTwoEta, fYear);
-    eventWeight *= embeddingUnfoldingWeight;
+    eventWeight *= embeddingUnfoldingWeight*embeddingWeight;
   } else if(!fIsData) {
     genWeight = (genWeight < 0.) ? -1.f : 1.f;
   } else { //Data
@@ -1083,17 +1153,6 @@ void CLFVHistMaker::InitializeEventWeights() {
     eventWeight *= zPtWeight;
     if(fVerbose > 0) std::cout << " For Z pT = " << zPt << " and Mass = " << zMass << " using Data/MC weight " << zPtWeight
                                << "--> event weight = " << eventWeight << std::endl;
-
-    //store generator level Z->ll lepton ids
-    nGenHardElectrons = 0; nGenHardMuons = 0; nGenHardTaus = 0;
-    //lepton one
-    if(std::abs(zLepOneID) == 11)      ++nGenHardElectrons;
-    else if(std::abs(zLepOneID) == 13) ++nGenHardMuons;
-    else if(std::abs(zLepOneID) == 15) ++nGenHardTaus;
-    //lepton two
-    if(std::abs(zLepTwoID) == 11)      ++nGenHardElectrons;
-    else if(std::abs(zLepTwoID) == 13) ++nGenHardMuons;
-    else if(std::abs(zLepTwoID) == 15) ++nGenHardTaus;
   } else {
     zPtWeight = 1.; zPtWeightUp = 1.; zPtWeightDown = 1.; zPtWeightSys = 1.;
   }
@@ -1155,7 +1214,7 @@ void CLFVHistMaker::InitializeEventWeights() {
   //   B-tag ID weights
   ////////////////////////////////////////////////////////////////////
 
-  btagWeight = 1.f;
+  btagWeight = 1.f; btagWeightUp = 1.f; btagWeightDown = 1.f;
   if(fUseBTagWeights && !fIsData && !fIsEmbed) {
     //FIXME: Add a category with Tight ID b-tag in ee/mumu for Z->x+tau_h normalization?
     int wp = BTagWeight::kLooseBTag; //ee/mumu/emu use loose ID b-tag
@@ -1166,11 +1225,42 @@ void CLFVHistMaker::InitializeEventWeights() {
       std::cout << "!!! Warning: Entry " << fentry << " B-tag weight up/down are on the same side of the weight: Wt = "
                 << btagWeight << " Up = " << btagWeightUp << " Down = " << btagWeightDown << std::endl;
     }
-  } else { //don't apply b-tag weights
-    btagWeight = 1.;
-    btagWeightUp = 1.;
-    btagWeightDown = 1.;
   }
+
+  ////////////////////////////////////////////////////////////////////
+  //   Lepton ID weights
+  ////////////////////////////////////////////////////////////////////
+
+  if(fIsEmbed) {
+    if     (std::abs(leptonOneFlavor) == 11) leptonOneWeight1 = fEmbeddingTnPWeight.ElectronIDWeight(leptonOneP4->Pt(), leptonOneSCEta, fYear, isLooseElectron, mcEra);
+    else if(std::abs(leptonOneFlavor) == 13) leptonOneWeight1 = fEmbeddingTnPWeight.MuonIDWeight    (leptonOneP4->Pt(), leptonOneP4->Eta(), fYear, isLooseMuon, mcEra);
+    else if(std::abs(leptonOneFlavor) == 15) leptonOneWeight1 = fTauIDWeight->IDWeight              (leptonOneP4->Pt(), leptonOneP4->Eta(), tauGenID, tauDeepAntiJet,
+                                                                                                     fYear, leptonOneWeight1_up, leptonOneWeight1_down);
+    if     (std::abs(leptonTwoFlavor) == 11) leptonTwoWeight1 = fEmbeddingTnPWeight.ElectronIDWeight(leptonTwoP4->Pt(), leptonTwoSCEta, fYear, isLooseElectron, mcEra);
+    else if(std::abs(leptonTwoFlavor) == 13) leptonTwoWeight1 = fEmbeddingTnPWeight.MuonIDWeight    (leptonTwoP4->Pt(), leptonTwoP4->Eta(), fYear, isLooseMuon, mcEra);
+    else if(std::abs(leptonTwoFlavor) == 15) leptonTwoWeight1 = fTauIDWeight->IDWeight              (leptonTwoP4->Pt(), leptonTwoP4->Eta(), tauGenID, tauDeepAntiJet,
+                                                                                                     fYear, leptonTwoWeight1_up, leptonTwoWeight1_down);
+  } else if(!fIsData) { //MC simulations
+    if     (std::abs(leptonOneFlavor) == 11) fElectronIDWeight.IDWeight(leptonOneP4->Pt(), leptonOneSCEta, fYear,
+                                                                        leptonOneWeight1 , leptonOneWeight1_up, leptonOneWeight1_down, leptonOneWeight1_bin,
+                                                                        leptonOneWeight2 , leptonOneWeight2_up, leptonOneWeight2_down, leptonOneWeight2_bin);
+    else if(std::abs(leptonOneFlavor) == 13) fMuonIDWeight.IDWeight    (leptonOneP4->Pt(), leptonOneP4->Eta(), fYear, mcEra,
+                                                                        leptonOneWeight1 , leptonOneWeight1_up, leptonOneWeight1_down, leptonOneWeight1_bin,
+                                                                        leptonOneWeight2 , leptonOneWeight2_up, leptonOneWeight2_down, leptonOneWeight2_bin);
+    else if(std::abs(leptonOneFlavor) == 15) leptonOneWeight1 = fTauIDWeight->IDWeight              (leptonOneP4->Pt(), leptonOneP4->Eta(), tauGenID, tauDeepAntiJet,
+                                                                                                     fYear, leptonOneWeight1_up, leptonOneWeight1_down);
+    if     (std::abs(leptonTwoFlavor) == 11) fElectronIDWeight.IDWeight(leptonTwoP4->Pt(), leptonTwoSCEta, fYear,
+                                                                        leptonTwoWeight1 , leptonTwoWeight1_up, leptonTwoWeight1_down, leptonTwoWeight1_bin,
+                                                                        leptonTwoWeight2 , leptonTwoWeight2_up, leptonTwoWeight2_down, leptonTwoWeight2_bin);
+    else if(std::abs(leptonTwoFlavor) == 13) fMuonIDWeight.IDWeight    (leptonTwoP4->Pt(), leptonTwoP4->Eta(), fYear, mcEra,
+                                                                        leptonTwoWeight1 , leptonTwoWeight1_up, leptonTwoWeight1_down, leptonTwoWeight1_bin,
+                                                                        leptonTwoWeight2 , leptonTwoWeight2_up, leptonTwoWeight2_down, leptonTwoWeight2_bin);
+    //FIXME: Add Muon ID weights
+    else if(std::abs(leptonTwoFlavor) == 15) leptonTwoWeight1 = fTauIDWeight->IDWeight              (leptonTwoP4->Pt(), leptonTwoP4->Eta(), tauGenID, tauDeepAntiJet,
+                                                                                                     fYear, leptonTwoWeight1_up, leptonTwoWeight1_down);
+  }
+  eventWeight *= leptonOneWeight1*leptonOneWeight2;
+  eventWeight *= leptonTwoWeight1*leptonTwoWeight2;
 
   //No weights in data
   if(fIsData) {
@@ -1183,141 +1273,13 @@ void CLFVHistMaker::InitializeEventWeights() {
 //--------------------------------------------------------------------------------------------------------------
 // Count objects in the event (leptons, jets, etc.) and initialize base variables
 void CLFVHistMaker::CountObjects() {
-  nMuons = nMuon; nElectrons = nElectron; nTaus = nTau; nPhotons = 0;
-
-  if(nElectron == 1 && nMuon == 1) { //e+mu selection
-    leptonOneP4->SetPtEtaPhiM(Electron_pt[0], Electron_eta[0], Electron_phi[0], ELECMASS);
-    leptonTwoP4->SetPtEtaPhiM(Muon_pt    [0], Muon_eta    [0], Muon_phi    [0], MUONMASS);
-    leptonOneSCEta = Electron_eta[0] + Electron_deltaEtaSC[0];
-    leptonTwoSCEta = Muon_eta[0];
-    leptonOneDXY   = Electron_dxy[0];
-    leptonTwoDXY   = Muon_dxy    [0];
-    leptonOneDZ    = Electron_dz [0];
-    leptonTwoDZ    = Muon_dz     [0];
-    leptonOneIso   = Electron_pfRelIso03_all[0]*Electron_pt[0];
-    leptonTwoIso   = Muon_pfRelIso04_all[0]*Muon_pt[0];
-    leptonOneFlavor = -11*Electron_charge[0];
-    leptonTwoFlavor = -13*Muon_charge[0];
-    leptonOneGenFlavor = ElectronFlavorFromID(Electron_genPartFlav[0]);
-    leptonTwoGenFlavor = MuonFlavorFromID(Muon_genPartFlav[0]);
-    leptonOneID1       = Electron_mvaFall17V2noIso_WPL[0] + Electron_mvaFall17V2noIso_WP90[0] + Electron_mvaFall17V2noIso_WP80[0];
-    leptonOneID2       = 0;
-    leptonTwoID1       = Muon_looseId[0] + Muon_mediumId[0] + Muon_tightId[0];
-    leptonTwoID2       = MuonRelIsoID(Muon_pfRelIso04_all[0]);
-  } else if(nElectron == 1 && nMuon == 0 && nTau == 1) { //e+tau
-    leptonOneP4->SetPtEtaPhiM(Electron_pt[0], Electron_eta[0], Electron_phi[0], ELECMASS);
-    leptonTwoP4->SetPtEtaPhiM(Tau_pt     [0], Tau_eta     [0], Tau_phi     [0], Tau_mass[0]);
-    leptonOneSCEta = Electron_eta[0] + Electron_deltaEtaSC[0];
-    leptonTwoSCEta = Tau_eta[0];
-    leptonOneDXY   = Electron_dxy[0];
-    leptonTwoDXY   = Tau_dxy     [0];
-    leptonOneDZ    = Electron_dz [0];
-    leptonTwoDZ    = Tau_dz      [0];
-    leptonOneIso   = Electron_pfRelIso03_all[0]*Electron_pt[0];
-    leptonTwoIso   = 0.f;
-    leptonOneFlavor = -11*Electron_charge[0];
-    leptonTwoFlavor = -15*Tau_charge[0];
-    leptonOneGenFlavor = ElectronFlavorFromID(Electron_genPartFlav[0]);
-    leptonTwoGenFlavor = TauFlavorFromID(Tau_genPartFlav[0]);
-    leptonOneID1       = Electron_mvaFall17V2noIso_WPL[0] + Electron_mvaFall17V2noIso_WP90[0] + Electron_mvaFall17V2noIso_WP80[0];
-    leptonOneID2       = 0;
-    leptonTwoID1       = Tau_idAntiEle[0];
-    leptonTwoID2       = Tau_idAntiMu[0];
-  } else if(nElectron == 0 && nMuon == 1 && nTau == 1) { //mu+tau
-    leptonOneP4->SetPtEtaPhiM(Muon_pt    [0], Muon_eta    [0], Muon_phi    [0], MUONMASS);
-    leptonTwoP4->SetPtEtaPhiM(Tau_pt     [0], Tau_eta     [0], Tau_phi     [0], Tau_mass[0]);
-    leptonOneSCEta = Muon_eta[0];
-    leptonTwoSCEta = Tau_eta [1];
-    leptonOneDXY   = Muon_dxy    [0];
-    leptonTwoDXY   = Tau_dxy     [0];
-    leptonOneDZ    = Muon_dz     [0];
-    leptonTwoDZ    = Tau_dz      [0];
-    leptonOneIso   = Muon_pfRelIso04_all[0]*Muon_pt[0];
-    leptonTwoIso   = 0.f;
-    leptonOneFlavor = -13*Muon_charge[0];
-    leptonTwoFlavor = -15*Tau_charge[0];
-    leptonOneGenFlavor = MuonFlavorFromID(Muon_genPartFlav[0]);
-    leptonTwoGenFlavor = TauFlavorFromID(Tau_genPartFlav[0]);
-    leptonOneID1       = Muon_looseId[0] + Muon_mediumId[0] + Muon_tightId[0];
-    leptonOneID2       = MuonRelIsoID(Muon_pfRelIso04_all[0]);
-    leptonTwoID1       = Tau_idAntiEle[0];
-    leptonTwoID2       = Tau_idAntiMu[0];
-  } else if(nElectron == 0 && nMuon == 2) { //mu+mu
-    leptonOneP4->SetPtEtaPhiM(Muon_pt    [0], Muon_eta    [0], Muon_phi    [0], MUONMASS);
-    leptonTwoP4->SetPtEtaPhiM(Muon_pt    [1], Muon_eta    [1], Muon_phi    [1], MUONMASS);
-    leptonOneSCEta = Muon_eta[0];
-    leptonTwoSCEta = Muon_eta[1];
-    leptonOneDXY   = Muon_dxy    [0];
-    leptonTwoDXY   = Muon_dxy    [1];
-    leptonOneDZ    = Muon_dz     [0];
-    leptonTwoDZ    = Muon_dz     [1];
-    leptonOneIso   = Muon_pfRelIso04_all[0]*Muon_pt[0];
-    leptonTwoIso   = Muon_pfRelIso04_all[1]*Muon_pt[1];
-    leptonOneFlavor = -13*Muon_charge[0];
-    leptonTwoFlavor = -13*Muon_charge[1];
-    leptonOneGenFlavor = MuonFlavorFromID(Muon_genPartFlav[0]);
-    leptonTwoGenFlavor = MuonFlavorFromID(Muon_genPartFlav[1]);
-    leptonOneID1       = Muon_looseId[0] + Muon_mediumId[0] + Muon_tightId[0];
-    leptonOneID2       = MuonRelIsoID(Muon_pfRelIso04_all[0]);
-    leptonTwoID1       = Muon_looseId[1] + Muon_mediumId[1] + Muon_tightId[1];
-    leptonTwoID2       = MuonRelIsoID(Muon_pfRelIso04_all[1]);
-  } else if(nElectron == 2 && nMuon == 0) { //e+e
-    leptonOneP4->SetPtEtaPhiM(Electron_pt[0], Electron_eta[0], Electron_phi[0], ELECMASS);
-    leptonTwoP4->SetPtEtaPhiM(Electron_pt[1], Electron_eta[1], Electron_phi[1], ELECMASS);
-    leptonOneSCEta  = Electron_eta[0] + Electron_deltaEtaSC[0];
-    leptonTwoSCEta  = Electron_eta[1] + Electron_deltaEtaSC[1];
-    leptonOneDXY    = Electron_dxy[0];
-    leptonTwoDXY    = Electron_dxy[1];
-    leptonOneDZ     = Electron_dz [0];
-    leptonTwoDZ     = Electron_dz [1];
-    leptonOneIso    = Electron_pfRelIso03_all[0]*Electron_pt[0];
-    leptonTwoIso    = Electron_pfRelIso03_all[1]*Electron_pt[1];
-    leptonOneFlavor = -11*Electron_charge[0];
-    leptonTwoFlavor = -11*Electron_charge[1];
-    leptonOneGenFlavor = ElectronFlavorFromID(Electron_genPartFlav[0]);
-    leptonTwoGenFlavor = ElectronFlavorFromID(Electron_genPartFlav[1]);
-    leptonOneID1       = Electron_mvaFall17V2noIso_WPL[0] + Electron_mvaFall17V2noIso_WP90[0] + Electron_mvaFall17V2noIso_WP80[0];
-    leptonOneID2       = 0;
-    leptonTwoID1       = Electron_mvaFall17V2noIso_WPL[1] + Electron_mvaFall17V2noIso_WP90[1] + Electron_mvaFall17V2noIso_WP80[1];
-    leptonTwoID2       = 0;
-  }
-  if(nTau > 0) { //store information of the leading pT tau
-    tauDecayMode = Tau_decayMode[0];
-    tauDeepAntiEle = Tau_idDeepTau2017v2p1VSe  [0];
-    tauDeepAntiMu  = Tau_idDeepTau2017v2p1VSmu [0];
-    tauDeepAntiJet = Tau_idDeepTau2017v2p1VSjet[0];
-  }
-
-  //Add MET information
-  met = puppMET; //use PUPPI MET
-  metPhi = puppMETphi;
-  metCorr = 0.;
-  metCorrPhi = 0.;
-
-  //FIXME: Add actual Z daughter information
-  if(zPt < 0 || zMass < 0) {
-    zPt = ((*leptonOneP4) + (*leptonTwoP4)).Pt();
-    zMass = ((*leptonOneP4) + (*leptonTwoP4)).M();
-  }
-  // zLepOnePt  = leptonOneP4->Pt();
-  // zLepTwoPt  = leptonTwoP4->Pt();
-  // zLepOneEta = leptonOneP4->Eta();
-  // zLepTwoEta = leptonTwoP4->Eta();
-  // zLepOneID  = leptonOneFlavor;
-  // zLepTwoID  = leptonTwoFlavor;
-
-  ///////////////////////////////////////////////////////
-  // Add Jet information
-  ///////////////////////////////////////////////////////
-
-  CountJets();
 
   ///////////////////////////////////////////////////////
   //Set the data era
   ///////////////////////////////////////////////////////
 
+  mcEra = 0;
   if(!fIsData && !fIsEmbed) { // use random numbers for MC not split by era
-    mcEra = 0;
     if(fYear == 2016) {
       const double rand = fRnd->Uniform();
       const double frac_first = 19.72 / 35.86;
@@ -1337,6 +1299,175 @@ void CLFVHistMaker::CountObjects() {
     if(fYear == 2016) mcEra = (runNumber > 278808); //split on period B-F and GH
     if(fYear == 2018) mcEra = (runNumber > 320065); //split on period ABC and D
   }
+
+
+  ///////////////////////////////////////////////////////
+  // Apply object scale corrections
+  ///////////////////////////////////////////////////////
+
+  ApplyMuonCorrections();
+  ApplyTauCorrections();
+
+  ///////////////////////////////////////////////////////
+  // Initialize lepton selection info
+  ///////////////////////////////////////////////////////
+
+  nMuons = nMuon; nElectrons = nElectron; nTaus = nTau; nPhotons = 0;
+
+  if(nElectron == 1 && nMuon == 1) { //e+mu selection
+    leptonOneP4->SetPtEtaPhiM(Electron_pt[0], Electron_eta[0], Electron_phi[0], ELECMASS);
+    leptonTwoP4->SetPtEtaPhiM(Muon_pt    [0], Muon_eta    [0], Muon_phi    [0], MUONMASS);
+    leptonOneSCEta = Electron_eta[0] + Electron_deltaEtaSC[0];
+    leptonTwoSCEta = Muon_eta[0];
+    leptonOneDXY   = Electron_dxy[0];
+    leptonTwoDXY   = Muon_dxy    [0];
+    leptonOneDZ    = Electron_dz [0];
+    leptonTwoDZ    = Muon_dz     [0];
+    leptonOneIso   = Electron_pfRelIso03_all[0]*Electron_pt[0];
+    leptonTwoIso   = Muon_pfRelIso04_all[0]*Muon_pt[0];
+    leptonOneFlavor = -11*Electron_charge[0];
+    leptonTwoFlavor = -13*Muon_charge[0];
+    leptonOneJetOverlap = Electron_TaggedAsRemovedByJet[0];
+    leptonTwoJetOverlap = Muon_TaggedAsRemovedByJet[0];
+    leptonOneGenFlavor = ElectronFlavorFromID(Electron_genPartFlav[0]);
+    leptonTwoGenFlavor = MuonFlavorFromID(Muon_genPartFlav[0]);
+    leptonOneID1       = Electron_mvaFall17V2noIso_WPL[0] + Electron_mvaFall17V2noIso_WP90[0] + Electron_mvaFall17V2noIso_WP80[0];
+    leptonOneID2       = 0;
+    leptonTwoID1       = Muon_looseId[0] + Muon_mediumId[0] + Muon_tightId[0];
+    leptonTwoID2       = MuonRelIsoID(Muon_pfRelIso04_all[0]);
+    eleES              = Electron_energyScale[0];
+  } else if(nElectron == 1 && nMuon == 0 && nTau == 1) { //e+tau
+    leptonOneP4->SetPtEtaPhiM(Electron_pt[0], Electron_eta[0], Electron_phi[0], ELECMASS);
+    leptonTwoP4->SetPtEtaPhiM(Tau_pt     [0], Tau_eta     [0], Tau_phi     [0], Tau_mass[0]);
+    leptonOneSCEta = Electron_eta[0] + Electron_deltaEtaSC[0];
+    leptonTwoSCEta = Tau_eta[0];
+    leptonOneDXY   = Electron_dxy[0];
+    leptonTwoDXY   = Tau_dxy     [0];
+    leptonOneDZ    = Electron_dz [0];
+    leptonTwoDZ    = Tau_dz      [0];
+    leptonOneIso   = Electron_pfRelIso03_all[0]*Electron_pt[0];
+    leptonTwoIso   = 0.f;
+    leptonOneFlavor = -11*Electron_charge[0];
+    leptonTwoFlavor = -15*Tau_charge[0];
+    leptonOneJetOverlap = Electron_TaggedAsRemovedByJet[0];
+    leptonTwoJetOverlap = Tau_TaggedAsRemovedByJet[0];
+    leptonOneGenFlavor = ElectronFlavorFromID(Electron_genPartFlav[0]);
+    leptonTwoGenFlavor = TauFlavorFromID(Tau_genPartFlav[0]);
+    leptonOneID1       = Electron_mvaFall17V2noIso_WPL[0] + Electron_mvaFall17V2noIso_WP90[0] + Electron_mvaFall17V2noIso_WP80[0];
+    leptonOneID2       = 0;
+    leptonTwoID1       = Tau_idAntiEle[0];
+    leptonTwoID2       = Tau_idAntiMu[0];
+    eleES              = Electron_energyScale[0];
+  } else if(nElectron == 0 && nMuon == 1 && nTau == 1) { //mu+tau
+    leptonOneP4->SetPtEtaPhiM(Muon_pt    [0], Muon_eta    [0], Muon_phi    [0], MUONMASS);
+    leptonTwoP4->SetPtEtaPhiM(Tau_pt     [0], Tau_eta     [0], Tau_phi     [0], Tau_mass[0]);
+    leptonOneSCEta = Muon_eta[0];
+    leptonTwoSCEta = Tau_eta [1];
+    leptonOneDXY   = Muon_dxy    [0];
+    leptonTwoDXY   = Tau_dxy     [0];
+    leptonOneDZ    = Muon_dz     [0];
+    leptonTwoDZ    = Tau_dz      [0];
+    leptonOneIso   = Muon_pfRelIso04_all[0]*Muon_pt[0];
+    leptonTwoIso   = 0.f;
+    leptonOneFlavor = -13*Muon_charge[0];
+    leptonTwoFlavor = -15*Tau_charge[0];
+    leptonOneJetOverlap = Muon_TaggedAsRemovedByJet[0];
+    leptonTwoJetOverlap = Tau_TaggedAsRemovedByJet[0];
+    leptonOneGenFlavor = MuonFlavorFromID(Muon_genPartFlav[0]);
+    leptonTwoGenFlavor = TauFlavorFromID(Tau_genPartFlav[0]);
+    leptonOneID1       = Muon_looseId[0] + Muon_mediumId[0] + Muon_tightId[0];
+    leptonOneID2       = MuonRelIsoID(Muon_pfRelIso04_all[0]);
+    leptonTwoID1       = Tau_idAntiEle[0];
+    leptonTwoID2       = Tau_idAntiMu[0];
+  } else if(nElectron < 2 && nMuon == 2) { //mu+mu
+    leptonOneP4->SetPtEtaPhiM(Muon_pt    [0], Muon_eta    [0], Muon_phi    [0], MUONMASS);
+    leptonTwoP4->SetPtEtaPhiM(Muon_pt    [1], Muon_eta    [1], Muon_phi    [1], MUONMASS);
+    leptonOneSCEta = Muon_eta[0];
+    leptonTwoSCEta = Muon_eta[1];
+    leptonOneDXY   = Muon_dxy    [0];
+    leptonTwoDXY   = Muon_dxy    [1];
+    leptonOneDZ    = Muon_dz     [0];
+    leptonTwoDZ    = Muon_dz     [1];
+    leptonOneIso   = Muon_pfRelIso04_all[0]*Muon_pt[0];
+    leptonTwoIso   = Muon_pfRelIso04_all[1]*Muon_pt[1];
+    leptonOneFlavor = -13*Muon_charge[0];
+    leptonTwoFlavor = -13*Muon_charge[1];
+    leptonOneJetOverlap = Muon_TaggedAsRemovedByJet[0];
+    leptonTwoJetOverlap = Muon_TaggedAsRemovedByJet[1];
+    leptonOneGenFlavor = MuonFlavorFromID(Muon_genPartFlav[0]);
+    leptonTwoGenFlavor = MuonFlavorFromID(Muon_genPartFlav[1]);
+    leptonOneID1       = Muon_looseId[0] + Muon_mediumId[0] + Muon_tightId[0];
+    leptonOneID2       = MuonRelIsoID(Muon_pfRelIso04_all[0]);
+    leptonTwoID1       = Muon_looseId[1] + Muon_mediumId[1] + Muon_tightId[1];
+    leptonTwoID2       = MuonRelIsoID(Muon_pfRelIso04_all[1]);
+  } else if(nElectron == 2 && nMuon < 2) { //e+e
+    leptonOneP4->SetPtEtaPhiM(Electron_pt[0], Electron_eta[0], Electron_phi[0], ELECMASS);
+    leptonTwoP4->SetPtEtaPhiM(Electron_pt[1], Electron_eta[1], Electron_phi[1], ELECMASS);
+    leptonOneSCEta  = Electron_eta[0] + Electron_deltaEtaSC[0];
+    leptonTwoSCEta  = Electron_eta[1] + Electron_deltaEtaSC[1];
+    leptonOneDXY    = Electron_dxy[0];
+    leptonTwoDXY    = Electron_dxy[1];
+    leptonOneDZ     = Electron_dz [0];
+    leptonTwoDZ     = Electron_dz [1];
+    leptonOneIso    = Electron_pfRelIso03_all[0]*Electron_pt[0];
+    leptonTwoIso    = Electron_pfRelIso03_all[1]*Electron_pt[1];
+    leptonOneFlavor = -11*Electron_charge[0];
+    leptonTwoFlavor = -11*Electron_charge[1];
+    leptonOneJetOverlap = Electron_TaggedAsRemovedByJet[0];
+    leptonTwoJetOverlap = Electron_TaggedAsRemovedByJet[1];
+    leptonOneGenFlavor = ElectronFlavorFromID(Electron_genPartFlav[0]);
+    leptonTwoGenFlavor = ElectronFlavorFromID(Electron_genPartFlav[1]);
+    leptonOneID1       = Electron_mvaFall17V2noIso_WPL[0] + Electron_mvaFall17V2noIso_WP90[0] + Electron_mvaFall17V2noIso_WP80[0];
+    leptonOneID2       = 0;
+    leptonTwoID1       = Electron_mvaFall17V2noIso_WPL[1] + Electron_mvaFall17V2noIso_WP90[1] + Electron_mvaFall17V2noIso_WP80[1];
+    leptonTwoID2       = 0;
+    eleES              = Electron_energyScale[0];
+  }
+  if(nTau > 0) { //store information of the leading pT tau
+    tauDecayMode   = Tau_decayMode[0];
+    tauDeepAntiEle = Tau_idDeepTau2017v2p1VSe  [0];
+    tauDeepAntiMu  = Tau_idDeepTau2017v2p1VSmu [0];
+    tauDeepAntiJet = Tau_idDeepTau2017v2p1VSjet[0];
+    tauES          = Tau_energyScale[0];
+    tauGenID       = Tau_genPartFlav[0];
+    tauGenFlavor   = TauFlavorFromID(tauGenID);
+  }
+
+  //Add MET information
+  met        = puppMET; //use PUPPI MET
+  metPhi     = puppMETphi;
+  metCorr    = 0.;
+  metCorrPhi = 0.;
+
+  //If no Z information is found, approximate it with the lepton info
+  if(zPt < 0 || zMass < 0) {
+    if(zLepOnePt < 0 || zLepTwoPt < 0) { //no generator-level leptons
+      zPt = ((*leptonOneP4) + (*leptonTwoP4)).Pt();
+      zMass = ((*leptonOneP4) + (*leptonTwoP4)).M();
+    } else { //generator-level leptons found
+      TLorentzVector zlepone, zleptwo;
+      zlepone.SetPtEtaPhiM(zLepOnePt, zLepOneEta, zLepOnePhi, zLepOneMass);
+      zleptwo.SetPtEtaPhiM(zLepTwoPt, zLepTwoEta, zLepTwoPhi, zLepTwoMass);
+      zPt   = (zlepone + zleptwo).Pt();
+      zMass = (zlepone + zleptwo).M();
+    }
+  }
+  //store generator level Z->ll lepton ids
+  nGenHardElectrons = 0; nGenHardMuons = 0; nGenHardTaus = 0;
+  //lepton one
+  if(std::abs(zLepOneID) == 11)      ++nGenHardElectrons;
+  else if(std::abs(zLepOneID) == 13) ++nGenHardMuons;
+  else if(std::abs(zLepOneID) == 15) ++nGenHardTaus;
+  //lepton two
+  if(std::abs(zLepTwoID) == 11)      ++nGenHardElectrons;
+  else if(std::abs(zLepTwoID) == 13) ++nGenHardMuons;
+  else if(std::abs(zLepTwoID) == 15) ++nGenHardTaus;
+
+  ///////////////////////////////////////////////////////
+  // Add Jet information
+  ///////////////////////////////////////////////////////
+
+  CountJets();
 
 }
 
@@ -1706,6 +1837,7 @@ void CLFVHistMaker::FillEventHistogram(EventHist_t* Hist) {
   Hist->hEmbeddingUnfoldingWeight->Fill(embeddingUnfoldingWeight);
   if(fDoSystematics >= 0)
     Hist->hEventWeightMVA      ->Fill(fTreeVars.eventweightMVA);
+  Hist->hQCDWeight           ->Fill(qcdWeight     , genWeight*eventWeight);
   Hist->hJetToTauWeight      ->Fill(jetToTauWeight, genWeight*eventWeight);
   Hist->hJetToTauWeightGroup ->Fill(jetToTauWeightGroup, genWeight*eventWeight);
   Hist->hJetToTauWeightCorr  ->Fill((jetToTauWeight     > 0.) ? jetToTauWeightCorr/jetToTauWeight     : -1., genWeight*eventWeight);
@@ -1737,9 +1869,9 @@ void CLFVHistMaker::FillEventHistogram(EventHist_t* Hist) {
     Hist->hNGenTausHad         ->Fill(nGenTausHad        , genWeight*eventWeight)      ;
     Hist->hNGenTausLep         ->Fill(nGenTausLep        , genWeight*eventWeight)      ;
   }
-  Hist->hNGenTaus            ->Fill(nGenHardTaus       , genWeight*eventWeight)      ;
-  Hist->hNGenElectrons       ->Fill(nGenHardElectrons  , genWeight*eventWeight)      ;
-  Hist->hNGenMuons           ->Fill(nGenHardMuons      , genWeight*eventWeight)      ;
+  Hist->hNGenTaus            ->Fill(nGenTaus             , genWeight*eventWeight)      ;
+  Hist->hNGenElectrons       ->Fill(nGenElectrons        , genWeight*eventWeight)      ;
+  Hist->hNGenMuons           ->Fill(nGenMuons            , genWeight*eventWeight)      ;
   if(fDoSystematics >= 0) {
     Hist->hNJets               ->Fill(nJets              , genWeight*eventWeight)      ;
     Hist->hNJets20[0]          ->Fill(nJets20            , genWeight*eventWeight)      ;
@@ -2308,9 +2440,10 @@ void CLFVHistMaker::FillLepHistogram(LepHist_t* Hist) {
     Hist->hOneID1       ->Fill(leptonOneID1                 ,eventWeight*genWeight);
     Hist->hOneID2       ->Fill(leptonOneID2                 ,eventWeight*genWeight);
     Hist->hOneRelIso    ->Fill(fTreeVars.leponereliso       ,eventWeight*genWeight);
-    Hist->hOneFlavor    ->Fill(std::abs(leptonOneFlavor)        ,eventWeight*genWeight);
+    Hist->hOneFlavor    ->Fill(std::abs(leptonOneFlavor)    ,eventWeight*genWeight);
     Hist->hOneGenFlavor ->Fill(leptonOneGenFlavor           ,eventWeight*genWeight);
     Hist->hOneQ         ->Fill(leptonOneFlavor < 0 ? -1 : 1 ,eventWeight*genWeight);
+    Hist->hOneJetOverlap->Fill(leptonOneJetOverlap          ,eventWeight*genWeight);
   }
   Hist->hOneTrigger   ->Fill(leptonOneTrigger               ,eventWeight*genWeight);
   int offset_1(0), offset_2(0);
@@ -2381,6 +2514,7 @@ void CLFVHistMaker::FillLepHistogram(LepHist_t* Hist) {
     Hist->hTwoFlavor    ->Fill(std::abs(leptonTwoFlavor)        ,eventWeight*genWeight);
     Hist->hTwoGenFlavor ->Fill(leptonTwoGenFlavor           ,eventWeight*genWeight);
     Hist->hTwoQ         ->Fill(leptonTwoFlavor < 0 ? -1 : 1 ,eventWeight*genWeight);
+    Hist->hTwoJetOverlap->Fill(leptonTwoJetOverlap          ,eventWeight*genWeight);
   }
   Hist->hTwoTrigger   ->Fill(leptonTwoTrigger               ,eventWeight*genWeight);
   offset_1 = 0; offset_2 = 0;
@@ -2672,10 +2806,11 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   //DY Splitting
   if(fDYType > 0) {
     // 1 = tau, 2 = muon or electron channel
-    if(fDYType == 1 && nGenHardTaus < 2) return kTRUE; // gen counting currently odd, so ask at least 2
-    else if(fDYType == 2 && ((nGenHardMuons + nGenHardElectrons) < 2
-                             || nGenHardTaus >= 2)) return kTRUE;  //add not tau condition, to avoid double counting
-    else if(nGenHardMuons + nGenHardElectrons < 2 && nGenHardTaus < 2) {
+    if(nGenHardTaus == 0) { //Z->ee/mumu
+      if(fDYType == 1) return kTRUE;
+    } else if(nGenHardTaus == 2) { //Z->tautau
+      if(fDYType == 2) return kTRUE;
+    } else {
       std::cout << "Warning! Unable to identify type of DY event!" << std::endl
            << "nGenHardTaus = " << nGenHardTaus << std::endl
            << "nGenHardMuons = " << nGenHardMuons << std::endl
@@ -2767,11 +2902,11 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
 
   //selections
   //use the tree name to choose the selection
-  bool mutau = nElectron == 0 && nMuon == 1 && nTau == 1 && (fSelection == "" || fSelection == "mutau");
-  bool etau  = nElectron == 1 && nMuon == 0 && nTau == 1 && (fSelection == "" || fSelection == "etau" );
-  bool emu   = nElectron == 1 && nMuon == 1              && (fSelection == "" || fSelection == "emu"  );
-  bool mumu  = nElectron == 0 && nMuon == 2              && (fSelection == "" || fSelection == "mumu" );
-  bool ee    = nElectron == 2 && nMuon == 0              && (fSelection == "" || fSelection == "ee"   );
+  bool mutau =                    nMuons == 1 && nTaus == 1 && (fSelection == "" || fSelection == "mutau");
+  bool etau  = nElectrons == 1 &&                nTaus == 1 && (fSelection == "" || fSelection == "etau" );
+  bool emu   = nElectrons == 1 && nMuons == 1               && (fSelection == "" || fSelection == "emu"  );
+  bool mumu  = nElectrons <  2 && nMuons == 2               && (fSelection == "" || fSelection == "mumu" );
+  bool ee    = nElectrons == 2 && nMuons <  2               && (fSelection == "" || fSelection == "ee"   );
 
 
   //reject overlaps
@@ -2793,23 +2928,15 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   if((mutau + etau + emu + mumu + ee) > 1)
     std::cout << "WARNING! Entry " << entry << " passes multiple selections!\n";
 
-  //////////////////////////////////////////////////////////////
-  // Check if anti-iso lepton category
-  //////////////////////////////////////////////////////////////
-
-  isLooseElectron = (ee || emu || etau) && looseQCDSelection;
-  isLooseMuon     = (mumu || emu || mutau) && looseQCDSelection;
-  isLooseTau      = (etau || mutau) && tauDeepAntiJet < 50 && looseQCDSelection;
-
-  if(isLooseElectron) {
-    if(emu || etau) isLooseElectron &= leptonOneID1 < 4; //Not WP80
-    if(ee)          isLooseElectron &= leptonOneID1 < 4 || leptonTwoID1 < 4; //Not WP80
-  }
-  if(isLooseMuon) {
-    if(emu)   isLooseMuon &= leptonTwoID1 <= ParticleCorrections::kTightMuIso; //Not Tight IsoID
-    if(mutau) isLooseMuon &= leptonOneID1 <= ParticleCorrections::kTightMuIso; //Not Tight IsoID
-    if(mumu)  isLooseMuon &= leptonOneID1 <= ParticleCorrections::kTightMuIso || leptonTwoID1 < ParticleCorrections::kTightMuIso; //Not Tight IsoID
-  }
+  // if(isLooseElectron) {
+  //   if(emu || etau) isLooseElectron &= leptonOneID1 < 4; //Not WP80
+  //   if(ee)          isLooseElectron &= leptonOneID1 < 4 || leptonTwoID1 < 4; //Not WP80
+  // }
+  // if(isLooseMuon) {
+  //   if(emu)   isLooseMuon &= leptonTwoID1 <= ParticleCorrections::kTightMuIso; //Not Tight IsoID
+  //   if(mutau) isLooseMuon &= leptonOneID1 <= ParticleCorrections::kTightMuIso; //Not Tight IsoID
+  //   if(mumu)  isLooseMuon &= leptonOneID1 <= ParticleCorrections::kTightMuIso || leptonTwoID1 < ParticleCorrections::kTightMuIso; //Not Tight IsoID
+  // }
 
   isFakeElectron  = !fIsData && ((std::abs(leptonOneFlavor) == 11 && leptonOneGenFlavor == 26) ||
                                  (std::abs(leptonTwoFlavor) == 11 && leptonTwoGenFlavor == 26));
@@ -2826,27 +2953,6 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
 
   //apply embedding unfolding correction to embedded samples
   if(fIsEmbed) {
-    if(fIsEmbed && embeddingWeight > 0.9) { //as branching fraction is in the weight, should never be this large
-      if(std::fabs(genWeight) > 0.5) {
-        std::cout << "!!! Warning! Event " << fentry << ": Embedding generation weight is large but gen-weight non-zero! Embedding weight = "
-                  << embeddingWeight << " genWeight = " << genWeight
-                  << " event = " << eventNumber << " lumi = " << lumiSection << " run = " << runNumber
-                  << std::endl;
-      }
-      eventWeight /= embeddingWeight; //remove the previous weight
-      embeddingWeight = 1.;
-      genWeight = 0.; //remove the event by using the gen weight
-    }
-    embeddingUnfoldingWeight = fEmbeddingWeight.UnfoldingWeight(zLepOnePt, zLepOneEta, zLepTwoPt, zLepTwoEta, fYear);
-    eventWeight *= embeddingUnfoldingWeight;
-    eventWeight /= leptonOneWeight1; eventWeight /= leptonOneWeight2;
-    eventWeight /= leptonTwoWeight1; eventWeight /= leptonTwoWeight2;
-    leptonOneWeight1      = 1.; leptonOneWeight2      = 1.;
-    leptonOneWeight1_up   = 1.; leptonOneWeight2_up   = 1.;
-    leptonOneWeight1_down = 1.; leptonOneWeight2_down = 1.;
-    leptonTwoWeight1      = 1.; leptonTwoWeight2      = 1.;
-    leptonTwoWeight1_up   = 1.; leptonTwoWeight2_up   = 1.;
-    leptonTwoWeight1_down = 1.; leptonTwoWeight2_down = 1.;
     int tauGenID = 0;
     if     (std::abs(tauGenFlavor) == 15) tauGenID = 5;
     else if(std::abs(tauGenFlavor) == 13) tauGenID = 2;
@@ -2892,6 +2998,16 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
 
 
   InitializeTreeVariables(mutau+2*etau+5*emu+9*mumu+18*ee);
+
+  //////////////////////////////////////////////////////////////
+  // Check if anti-iso/same-sign lepton category
+  //////////////////////////////////////////////////////////////
+
+  isLooseElectron = (ee || emu || etau) && fTreeVars.leponereliso >= 0.15;
+  isLooseMuon     = (mutau || mumu)     && fTreeVars.leponereliso >= 0.15;
+  isLooseMuon    |= (emu   || mumu)     && fTreeVars.leptworeliso >= 0.15;
+  isLooseTau      = (etau  || mutau) && tauDeepAntiJet < 50;
+  looseQCDSelection = isLooseElectron || isLooseMuon || isLooseTau;
 
 
   const bool chargeTest = leptonOneFlavor*leptonTwoFlavor < 0;
@@ -3005,6 +3121,13 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   //don't allow multiple muons/electrons in mumu/ee selections
   mumu &= nMuons     == 2;
   ee   &= nElectrons == 2;
+
+  //reject electrons in the barrel/endcap gap region
+  const float elec_gap_low(1.4442), elec_gap_high(1.566);
+  etau &= elec_gap_low > std::fabs(leptonOneSCEta) || std::fabs(leptonOneSCEta) > elec_gap_high;
+  emu  &= elec_gap_low > std::fabs(leptonOneSCEta) || std::fabs(leptonOneSCEta) > elec_gap_high;
+  ee   &= elec_gap_low > std::fabs(leptonOneSCEta) || std::fabs(leptonOneSCEta) > elec_gap_high;
+  ee   &= elec_gap_low > std::fabs(leptonTwoSCEta) || std::fabs(leptonTwoSCEta) > elec_gap_high;
 
   ////////////////////////////////////////////////////////////
   // Set 2 + selection offset: object pT cuts
@@ -3277,7 +3400,7 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   ///////////////////////
 
   //get scale factor for same sign --> opposite sign, apply to MC and Data same-sign events
-  if(emu && !chargeTest) {
+  if(emu && !chargeTest && fUseQCDWeights) {
     qcdWeight = fQCDWeight.GetWeight(fTreeVars.lepdeltar, fTreeVars.lepdeltaphi, fTreeVars.leponeeta, fTreeVars.leponept, fTreeVars.leptwopt,
                                      fYear, nJets, isLooseMuon, qcdClosure, qcdIsoScale, qcdWeightUp, qcdWeightDown, qcdWeightSys);
   }
@@ -3323,7 +3446,7 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   const bool looseQCDRegion    = fTreeVars.mtlep < mtlep_cut && met < met_cut && nBJetsUse == 0; // no isolation cut (mutau, 0 - 0.5 allowed) and electron WPL + tight ID
   const bool qcdSelection      = looseQCDRegion && fTreeVars.mtlep < qcd_mtlep_cut && (etau || (mutau && fTreeVars.leponereliso > 0.05)) && !(isLooseMuon || isLooseElectron);
   const bool wjetsSelection    = (etau || mutau) && fTreeVars.mtlep > 70. && nBJetsUse == 0 && !(isLooseMuon || isLooseElectron);
-  const bool topSelection      = (etau || mutau) && nBJetsUse >= 1 && !(isLooseMuon || isLooseElectron);
+  const bool topSelection      = (etau || mutau || emu) && nBJetsUse >= 1 && !(isLooseMuon || isLooseElectron);
   const bool nominalSelection  = nBJetsUse == 0 && met < met_cut && fTreeVars.mtlep < mtlep_cut && !(isLooseMuon || isLooseElectron);
   // const bool looseNominal      = nBJetsUse == 0 && !(isLooseMuon || isLooseElectron); //no MET or MT(ll, MET) cuts
 
@@ -4029,7 +4152,7 @@ void CLFVHistMaker::ApplyTriggerWeights() {
   ////////////////////////////////
 
   // Electrons
-  if(std::abs(leptonOneFlavor) == 11) { //lepton 1 is an electron
+  if(std::abs(leptonOneFlavor) == 11 && leptonOneP4->Pt() > electron_trig_pt_) { //lepton 1 is an electron
     if(fIsEmbed) {
       if(fUseEmbedTnPWeights) {
         fEmbeddingTnPWeight.ElectronTriggerWeight(leptonOneP4->Pt(), leptonOneSCEta, fYear, data_eff[0], mc_eff[0], isLooseElectron, mcEra);
@@ -4038,10 +4161,12 @@ void CLFVHistMaker::ApplyTriggerWeights() {
       }
     } else {
       fElectronIDWeight.TriggerEff               (leptonOneP4->Pt(), leptonOneSCEta, fYear,
-                                                  (leptonOneID1 > 1) ? ElectronIDWeight::kWP80 : ElectronIDWeight::kWPLNotWP80, data_eff[0], mc_eff[0]);
+                                                  ElectronIDWeight::kWP80,
+                                                  // (leptonOneID1 > 1) ? ElectronIDWeight::kWP80 : ElectronIDWeight::kWPLNotWP80,
+                                                  data_eff[0], mc_eff[0]);
     }
   }
-  if(std::abs(leptonTwoFlavor) == 11) { //lepton 2 is an electron
+  if(std::abs(leptonTwoFlavor) == 11 && leptonTwoP4->Pt() > electron_trig_pt_) { //lepton 2 is an electron
     if(fIsEmbed) {
       if(fUseEmbedTnPWeights) {
         fEmbeddingTnPWeight.ElectronTriggerWeight(leptonTwoP4->Pt(), leptonTwoSCEta, fYear, data_eff[1], mc_eff[1], isLooseElectron, mcEra);
@@ -4050,12 +4175,25 @@ void CLFVHistMaker::ApplyTriggerWeights() {
       }
     } else {
       fElectronIDWeight.TriggerEff               (leptonTwoP4->Pt(), leptonTwoSCEta, fYear,
-                                                  (leptonOneID1 > 1) ? ElectronIDWeight::kWP80 : ElectronIDWeight::kWPLNotWP80, data_eff[1], mc_eff[1]);
+                                                  ElectronIDWeight::kWP80,
+                                                  // (leptonOneID1 > 1) ? ElectronIDWeight::kWP80 : ElectronIDWeight::kWPLNotWP80,
+                                                  data_eff[1], mc_eff[1]);
     }
   }
 
   // Muons
-  if(std::abs(leptonTwoFlavor) == 13) { //lepton 2 is a muon
+  if(std::abs(leptonOneFlavor) == 13 && leptonOneP4->Pt() > muon_trig_pt_) { //lepton 1 is a muon
+    if(fIsEmbed) {
+      if(fUseEmbedTnPWeights) {
+        fEmbeddingTnPWeight.MuonTriggerWeight(leptonOneP4->Pt(), leptonOneP4->Eta(), fYear, data_eff[0], mc_eff[0], isLooseMuon, mcEra);
+      } else {
+        fEmbeddingWeight.MuonTriggerWeight   (leptonOneP4->Pt(), leptonOneP4->Eta(), fYear, data_eff[0], mc_eff[0]);
+      }
+    } else {
+      fMuonIDWeight.TriggerEff               (leptonOneP4->Pt(), leptonOneP4->Eta(), fYear, mcEra, !leptonOneFired || muonTriggerStatus != 2, data_eff[0], mc_eff[0]);
+    }
+  }
+  if(std::abs(leptonTwoFlavor) == 13 && leptonTwoP4->Pt() > muon_trig_pt_) { //lepton 2 is a muon
     if(fIsEmbed) {
       if(fUseEmbedTnPWeights) {
         fEmbeddingTnPWeight.MuonTriggerWeight(leptonTwoP4->Pt(), leptonTwoP4->Eta(), fYear, data_eff[1], mc_eff[1], isLooseMuon, mcEra);
@@ -4065,17 +4203,6 @@ void CLFVHistMaker::ApplyTriggerWeights() {
     } else {
       //use low trigger in case the lepton didn't fire a trigger
       fMuonIDWeight.TriggerEff               (leptonTwoP4->Pt(), leptonTwoP4->Eta(), fYear, mcEra, !leptonTwoFired || muonTriggerStatus != 2, data_eff[1], mc_eff[1]);
-    }
-  }
-  if(std::abs(leptonOneFlavor) == 13) { //lepton 1 is a muon
-    if(fIsEmbed) {
-      if(fUseEmbedTnPWeights) {
-        fEmbeddingTnPWeight.MuonTriggerWeight(leptonOneP4->Pt(), leptonOneP4->Eta(), fYear, data_eff[0], mc_eff[0], isLooseMuon, mcEra);
-      } else {
-        fEmbeddingWeight.MuonTriggerWeight   (leptonOneP4->Pt(), leptonOneP4->Eta(), fYear, data_eff[0], mc_eff[0]);
-      }
-    } else {
-      fMuonIDWeight.TriggerEff               (leptonOneP4->Pt(), leptonOneP4->Eta(), fYear, mcEra, !leptonOneFired || muonTriggerStatus != 2, data_eff[0], mc_eff[0]);
     }
   }
 

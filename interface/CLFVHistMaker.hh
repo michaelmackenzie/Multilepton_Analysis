@@ -45,6 +45,7 @@
 #include "interface/TrkQualInit.hh"
 #include "interface/MVAConfig.hh"
 #include "interface/PUWeight.hh"
+#include "interface/RoccoR.h"
 #include "interface/JetPUWeight.hh"
 #include "interface/PrefireWeight.hh"
 #include "interface/BTagWeight.hh"
@@ -86,20 +87,25 @@ namespace CLFV {
     Int_t   nPV                        ;
     Float_t nPU                        ;
     UInt_t  nPartons                   ;
-    Float_t genWeight                  ;
-    Float_t puWeight                   ;
+    Float_t genWeight = 1.             ;
+    Float_t puWeight = 1.              ;
     Float_t zPt                        ;
     Float_t zMass                      ;
     Float_t zLepOnePt                  ;
     Float_t zLepTwoPt                  ;
     Float_t zLepOneEta                 ;
     Float_t zLepTwoEta                 ;
+    Float_t zLepOnePhi                 ;
+    Float_t zLepTwoPhi                 ;
+    Float_t zLepOneMass                ;
+    Float_t zLepTwoMass                ;
     Float_t zLepOneID                  ;
     Float_t zLepTwoID                  ;
 
     //lepton information
     //muons
     UInt_t  nMuon                                      ;
+    Int_t   nGenMuons = 0                              ; // counting from gen part list matched to electroweak process in skimming stage
     Float_t Muon_pt                       [kMaxLeptons];
     Float_t Muon_eta                      [kMaxLeptons];
     Float_t Muon_phi                      [kMaxLeptons];
@@ -113,12 +119,14 @@ namespace CLFV {
     Float_t Muon_dz                       [kMaxLeptons];
     Float_t Muon_dzErr                    [kMaxLeptons];
     Int_t   Muon_nTrackerLayers           [kMaxLeptons];
-    Bool_t  Muon_TaggedAsRemoved          [kMaxLeptons];
+    Bool_t  Muon_TaggedAsRemovedByJet     [kMaxLeptons];
     UChar_t Muon_genPartFlav              [kMaxLeptons];
     Int_t   Muon_genPartIdx               [kMaxLeptons];
+    Float_t Muon_RoccoSF                  [kMaxLeptons]; //calculated momentum scale
 
     //electrons
     UInt_t  nElectron                                  ;
+    Int_t   nGenElectrons = 0                          ; // counting from gen part list matched to electroweak process in skimming stage
     Float_t Electron_pt                   [kMaxLeptons];
     Float_t Electron_eta                  [kMaxLeptons];
     Float_t Electron_phi                  [kMaxLeptons];
@@ -136,12 +144,14 @@ namespace CLFV {
     Float_t Electron_dxyErr               [kMaxLeptons];
     Float_t Electron_dz                   [kMaxLeptons];
     Float_t Electron_dzErr                [kMaxLeptons];
-    Bool_t  Electron_TaggedAsRemoved      [kMaxLeptons];
+    Bool_t  Electron_TaggedAsRemovedByJet [kMaxLeptons];
     UChar_t Electron_genPartFlav          [kMaxLeptons];
     Int_t   Electron_genPartIdx           [kMaxLeptons];
+    Float_t Electron_energyScale          [kMaxLeptons]; //energy scale replacing given one
 
     //taus
     UInt_t  nTau                                       ;
+    Int_t   nGenTaus = 0                               ; // counting from gen part list matched to electroweak process in skimming stage
     Float_t Tau_pt                        [kMaxLeptons];
     Float_t Tau_eta                       [kMaxLeptons];
     Float_t Tau_phi                       [kMaxLeptons];
@@ -161,8 +171,10 @@ namespace CLFV {
     Float_t Tau_eCorr                     [kMaxLeptons];
     Float_t Tau_dxy                       [kMaxLeptons];
     Float_t Tau_dz                        [kMaxLeptons];
+    Bool_t  Tau_TaggedAsRemovedByJet      [kMaxLeptons];
     UChar_t Tau_genPartFlav               [kMaxLeptons];
     Int_t   Tau_genPartIdx                [kMaxLeptons];
+    Float_t Tau_energyScale               [kMaxLeptons]; //calculated enery scale
 
     //jets
     UInt_t  nJet                                         ;
@@ -309,6 +321,7 @@ namespace CLFV {
     Int_t tauDecayMode                 ;
     Float_t tauMVA                     ;
     Int_t tauGenFlavor                 ;
+    Int_t tauGenID                     ;
     Int_t tauGenFlavorHad              ;
     Float_t tauVetoedJetPt             ;
     Float_t tauVetoedJetPtUnc          ;
@@ -322,6 +335,8 @@ namespace CLFV {
     Int_t leptonTwoGenFlavor           ;
     Float_t leptonOnePtSF              ;
     Float_t leptonTwoPtSF              ;
+    Bool_t leptonOneJetOverlap         ;
+    Bool_t leptonTwoJetOverlap         ;
     Bool_t isFakeElectron = false      ;
     Bool_t isFakeMuon     = false      ;
     Float_t leptonOneDXY               ;
@@ -415,11 +430,8 @@ namespace CLFV {
     Bool_t isLooseMuon                 ;
     Bool_t isLooseElectron             ;
     Bool_t isLooseTau                  ;
-    Int_t  nGenTaus = 0                ; // counting from gen part list matched to electroweak process in skimming stage
     UInt_t nGenTausHad                 ;
     UInt_t nGenTausLep                 ;
-    UInt_t nGenElectrons               ;
-    UInt_t nGenMuons                   ;
     UInt_t nGenHardTaus                ; //for DY splitting by hard process
     UInt_t nGenHardElectrons           ; //for DY splitting by hard process
     UInt_t nGenHardMuons               ; //for DY splitting by hard process
@@ -577,6 +589,9 @@ namespace CLFV {
 
     void    InitializeInputTree(TTree* tree);
     void    InitializeEventWeights();
+    void    ApplyElectronCorrections();
+    void    ApplyMuonCorrections();
+    void    ApplyTauCorrections();
     void    CountObjects();
     void    CountJets();
     void    MatchTriggers();
@@ -729,10 +744,12 @@ namespace CLFV {
     BTagWeight      fBTagWeight;
     Int_t           fRemovePUWeights = 0; //0: do nothing 1: remove weights 2: replace weights
     PUWeight        fPUWeight; //object to define pu weights
+    RoccoR*         fRoccoR; //Rochester muon momentum corrections
     Int_t           fUseJetPUIDWeights = 1; //use jet PU ID weights
     JetPUWeight     fJetPUWeight; //object to define jet PU ID weights
     Int_t           fUsePrefireWeights = 1; //use pre-fire weights
     PrefireWeight   fPrefireWeight; //object to define pre-fire weights
+    Int_t           fUseQCDWeights = 1; //use QCD SS --> OS transfer weights
     Int_t           fAddJetTauWeights = 1; //0: do nothing 1: weight anti-iso tau CR data
     // JetToTauWeight  fMuonJetToTauWeight; //for mutau
     // JetToTauWeight  fMuonJetToTauMCWeight; //for mutau using MC estimated factors

@@ -130,14 +130,16 @@ double EmbeddingTnPWeight::MuonIDWeight(double pt, double eta, int year, bool qc
   const TH2F* hIDMC   = muonIDMCEff_  [index];
   const TH2F* hIDData = muonIDDataEff_[index];
   if(!hIDMC || !hIDData) {
-    std::cout << "Error! EmbeddingTnPWeight::" << __func__ << ": ID histograms not found!\n";
+    std::cout << "Error! EmbeddingTnPWeight::" << __func__ << ": ID histograms not found! year = "
+              << year + 2016 << ", period = " << period << std::endl;
     return 1.;
   }
 
   const TH2F* hIsoIDMC   = (qcd) ? muonQCDIsoIDMCEff_  [index] : muonIsoIDMCEff_  [index];
   const TH2F* hIsoIDData = (qcd) ? muonQCDIsoIDDataEff_[index] : muonIsoIDDataEff_[index];
   if(!hIsoIDMC || !hIsoIDData) {
-    std::cout << "Error! EmbeddingTnPWeight::" << __func__ << ": Iso ID histograms not found!\n";
+    std::cout << "Error! EmbeddingTnPWeight::" << __func__ << ": Iso ID histograms not found! year = "
+              << year + 2016 << ", period = " << period << std::endl;
     return 1.;
   }
 
@@ -183,7 +185,8 @@ double EmbeddingTnPWeight::MuonTriggerWeight(double pt, double eta, int year, fl
   const TH2F* hMC   = (qcd) ? muonQCDTrigMCEff_  [index] : muonTrigMCEff_  [index];
   const TH2F* hData = (qcd) ? muonQCDTrigDataEff_[index] : muonTrigDataEff_[index];
   if(!hMC || !hData) {
-    std::cout << "Error! EmbeddingTnPWeight::" << __func__ << ": Trigger histograms not found!\n";
+    std::cout << "Error! EmbeddingTnPWeight::" << __func__ << ": Trigger histograms not found! year = "
+              << year + 2016 << ", period = " << period << std::endl;
     return 1.;
   }
 
@@ -231,7 +234,8 @@ double EmbeddingTnPWeight::ElectronIDWeight(double pt, double eta, int year, boo
   const TH2F* hIDMC   = (qcd) ? electronQCDIDMCEff_  [index] : electronIDMCEff_  [index];
   const TH2F* hIDData = (qcd) ? electronQCDIDDataEff_[index] : electronIDDataEff_[index];
   if(!hIDMC || !hIDData) {
-    std::cout << "Error! EmbeddingTnPWeight::" << __func__ << ": ID histograms not found!\n";
+    std::cout << "Error! EmbeddingTnPWeight::" << __func__ << ": ID histograms not found! year = "
+              << year + 2016 << ", period = " << period << std::endl;
     return 1.;
   }
 
@@ -273,7 +277,8 @@ double EmbeddingTnPWeight::ElectronTriggerWeight(double pt, double eta, int year
   const TH2F* hMC   = (qcd) ? electronQCDIDMCEff_  [index] : electronTrigMCEff_  [index];
   const TH2F* hData = (qcd) ? electronQCDIDDataEff_[index] : electronTrigDataEff_[index];
   if(!hMC || !hData) {
-    std::cout << "Error! EmbeddingTnPWeight::" << __func__ << ": Trigger histograms not found!\n";
+    std::cout << "Error! EmbeddingTnPWeight::" << __func__ << ": Trigger histograms not found! year = "
+              << year + 2016 << ", period = " << period << std::endl;
     return 1.;
   }
 

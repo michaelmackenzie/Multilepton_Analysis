@@ -19,8 +19,7 @@ Int_t process_clfv() {
   TString nanoaod_path;
   vector<datacard_t> nanocards = get_data_cards(nanoaod_path);
   //cross section handler
-  bool useUL = nanoaod_path.Contains("_UL");
-  CrossSections xs(useUL);
+  CrossSections xs(useUL_);
 
   TStopwatch* timer = new TStopwatch();
   const int copy_num_ = (copyConfig_) ? count_processes() : -1;
@@ -44,11 +43,10 @@ Int_t process_clfv() {
     nanocards[i].year_ = year;
     if(nanocards[i].combine_) { //only for 2016, 2017 Wlnu samples
       TString name = nanocards[i].fname_;
-      name.ReplaceAll("clfv_", "");
-      name.ReplaceAll("2016_", "");
-      name.ReplaceAll("2017_", "");
-      name.ReplaceAll("2018_", "");
-      name.ReplaceAll(".tree", "");
+      name.ReplaceAll("LFVAnalysis_", "");
+      name.ReplaceAll("2016.root", "");
+      name.ReplaceAll("2017.root", "");
+      name.ReplaceAll("2018.root", "");
       bool isext = name.Contains("-ext");
       name.ReplaceAll("-ext", "");
       long num1 = xs.GetGenNumber(name       , year); //get number of events per sample
@@ -67,15 +65,15 @@ Int_t process_clfv() {
         cout << "ERROR: Didn't find generation numbers for combining with sample name " << name.Data() << endl;
     } //end combine extension samples
     if(newProcess_) {
-      gSystem->Exec(Form("root.exe -q -b -l \"process_card.C(\\\"%s\\\", \\\"%s\\\", %f, %i, %i, %i, %i)\"",
+      gSystem->Exec(Form("root.exe -q -b -l \"process_card.C(\\\"%s\\\", \\\"%s\\\", %f, %i, %i, %i)\"",
                          nanoaod_path.Data(), nanocards[i].fname_.Data(), nanocards[i].xsec_,
-                         nanocards[i].isData_, nanocards[i].combine_, useUL, category
+                         nanocards[i].isData_, nanocards[i].combine_, category
                          )
                     );
       sleep(2); //add 2 sec buffer between loops
     } else { //process within this process
       process_card(nanoaod_path.Data(), nanocards[i].fname_.Data(), nanocards[i].xsec_,
-                   nanocards[i].isData_, nanocards[i].combine_, useUL, category
+                   nanocards[i].isData_, nanocards[i].combine_, category
                    );
     }
   } //end file loop

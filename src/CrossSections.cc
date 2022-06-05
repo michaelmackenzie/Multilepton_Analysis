@@ -27,7 +27,8 @@ CrossSections::CrossSections(int useUL, int ZMode) {
   values_["WWZ"                     ][2016] =  0.1651 ;
   values_["WZ"                      ][2016] =  47.13  ; //27.6   ;
   values_["ZZ"                      ][2016] =  16.523 ; //12.14  ;
-  values_["WW"                      ][2016] =  12.178 ;
+  values_["WW"                      ][2016] =  12.178 ; //WW->2l2nu
+  values_["WWToLNuQQ"               ][2016] =  43.53  ;
   values_["EWKWminus"               ][2016] =  23.24  ;
   values_["EWKWplus"                ][2016] =  29.59  ;
   values_["EWKZ-M50"                ][2016] =   4.321 ;
@@ -198,6 +199,21 @@ CrossSections::CrossSections(int useUL, int ZMode) {
   values_["QCD_mutau"][2016] = 0.918;
   values_["QCD_etau" ][2016] = 0.935;
   values_["QCD_emu"  ][2016] = 0.342;
+
+
+
+
+  ////////////////////////////////////////////////////////////
+  // Fraction of negative events
+
+  neg_frac_["DY50-amc"           ][2016] = 0.1367 ;
+  neg_frac_["SingleToptW"        ][2016] = 0.003708;
+  neg_frac_["SingleAntiToptW"    ][2016] = 0.00369;
+  neg_frac_["ttbarToHadronic"    ][2016] = 0.00406;
+  neg_frac_["ttbarToSemiLeptonic"][2016] = 0.003979;
+  neg_frac_["ttbarlnu"           ][2016] = 0.00402;
+  neg_frac_["WWW"                ][2016] = 0.06054;
+  neg_frac_["WGamma"             ][2016] = 0.1799;
 
   ///////////////////////
   // generated numbers //

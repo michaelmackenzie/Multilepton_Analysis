@@ -69,7 +69,7 @@ MuonIDWeight::MuonIDWeight(const int seed, const int verbose) : verbose_(verbose
     if(verbose_ > 1) printf("--- %s: Initializing %i scale factors\n", __func__, period/2+2016);
     f = TFile::Open((path + "/" + muonIDFileNames[period].first).Data(), "READ");
     if(f) {
-      TH2F* h = (TH2F*) f->Get(muonIDFileNames[period].second.Data());
+      TH2* h = (TH2*) f->Get(muonIDFileNames[period].second.Data());
       if(!h) {
         printf("!!! %s: Muon ID histogram not found for %i!\n", __func__, period/2+2016);
       } else {
@@ -111,7 +111,7 @@ MuonIDWeight::MuonIDWeight(const int seed, const int verbose) : verbose_(verbose
 
     f = TFile::Open((path + "/" + muonIsoFileNames[period].first).Data(), "READ");
     if(f) {
-      TH2F* h = (TH2F*) f->Get(muonIsoFileNames[period].second.Data());
+      TH2* h = (TH2*) f->Get(muonIsoFileNames[period].second.Data());
       if(!h) {
         printf("!!! %s: Muon Iso ID histogram not found for %i!\n", __func__, period/2+2016);
       } else {
@@ -153,7 +153,7 @@ MuonIDWeight::MuonIDWeight(const int seed, const int verbose) : verbose_(verbose
 
     f = TFile::Open((path + "/" + muonTriggerLowFileNames[period].first).Data(), "READ");
     if(f) {
-      TH2F* h = (TH2F*) f->Get((muonTriggerLowFileNames[period].second + "/efficienciesDATA/abseta_pt_DATA").Data());
+      TH2* h = (TH2*) f->Get((muonTriggerLowFileNames[period].second + "/efficienciesDATA/abseta_pt_DATA").Data());
       if(!h) {
         printf("!!! %s: Muon low trigger data histogram not found for %i!\n", __func__, period/2+2016);
       } else {
@@ -161,7 +161,7 @@ MuonIDWeight::MuonIDWeight(const int seed, const int verbose) : verbose_(verbose
         h->SetName(Form("%s_period_%i", h->GetName(), period));
         histTriggerLowData_[period] = h;
       }
-      h = (TH2F*) f->Get((muonTriggerLowFileNames[period].second + "/efficienciesMC/abseta_pt_MC").Data());
+      h = (TH2*) f->Get((muonTriggerLowFileNames[period].second + "/efficienciesMC/abseta_pt_MC").Data());
       if(!h) {
         printf("!!! %s: Muon low trigger MC histogram not found for %i!\n", __func__, period/2+2016);
       } else {
@@ -178,7 +178,7 @@ MuonIDWeight::MuonIDWeight(const int seed, const int verbose) : verbose_(verbose
 
     f = TFile::Open((path + "/" + muonTriggerHighFileNames[period].first).Data(), "READ");
     if(f) {
-      TH2F* h = (TH2F*) f->Get((muonTriggerHighFileNames[period].second + "/efficienciesDATA/abseta_pt_DATA").Data());
+      TH2* h = (TH2*) f->Get((muonTriggerHighFileNames[period].second + "/efficienciesDATA/abseta_pt_DATA").Data());
       if(!h) {
         printf("!!! %s: Muon high trigger data histogram not found for %i!\n", __func__, period/2+2016);
       } else {
@@ -186,7 +186,7 @@ MuonIDWeight::MuonIDWeight(const int seed, const int verbose) : verbose_(verbose
         h->SetName(Form("%s_period_%i", h->GetName(), period));
         histTriggerHighData_[period] = h;
       }
-      h = (TH2F*) f->Get((muonTriggerHighFileNames[period].second + "/efficienciesMC/abseta_pt_MC").Data());
+      h = (TH2*) f->Get((muonTriggerHighFileNames[period].second + "/efficienciesMC/abseta_pt_MC").Data());
       if(!h) {
         printf("!!! %s: Muon high trigger MC histogram not found for %i!\n", __func__, period/2+2016);
       } else {
@@ -202,12 +202,64 @@ MuonIDWeight::MuonIDWeight(const int seed, const int verbose) : verbose_(verbose
 //-------------------------------------------------------------------------------------------------------------------------
 MuonIDWeight::~MuonIDWeight() {
   if(rnd_) delete rnd_;
-  for(std::pair<int, TH2F*> val : histIDData_         ) {if(val.second) delete val.second;}
-  for(std::pair<int, TH2F*> val : histIsoData_        ) {if(val.second) delete val.second;}
-  for(std::pair<int, TH2F*> val : histTriggerLowData_ ) {if(val.second) delete val.second;}
-  for(std::pair<int, TH2F*> val : histTriggerLowMC_   ) {if(val.second) delete val.second;}
-  for(std::pair<int, TH2F*> val : histTriggerHighData_) {if(val.second) delete val.second;}
-  for(std::pair<int, TH2F*> val : histTriggerHighMC_  ) {if(val.second) delete val.second;}
+  for(std::pair<int, TH2*> val : histIDData_         ) {if(val.second) delete val.second;}
+  for(std::pair<int, TH2*> val : histIsoData_        ) {if(val.second) delete val.second;}
+  for(std::pair<int, TH2*> val : histTriggerLowData_ ) {if(val.second) delete val.second;}
+  for(std::pair<int, TH2*> val : histTriggerLowMC_   ) {if(val.second) delete val.second;}
+  for(std::pair<int, TH2*> val : histTriggerHighData_) {if(val.second) delete val.second;}
+  for(std::pair<int, TH2*> val : histTriggerHighMC_  ) {if(val.second) delete val.second;}
+}
+
+
+//-------------------------------------------------------------------------------------------------------------------------
+void MuonIDWeight::IDWeight(double pt, double eta, int year, int mcEra,
+                            float& weight_id , float& weight_up_id , float& weight_down_id , int& ibin_id,
+                            float& weight_iso, float& weight_up_iso, float& weight_down_iso, int& ibin_iso
+                            ) {
+  if(year > 2000) year -= 2016;
+  weight_id  = 1.; weight_up_id  = 1.; weight_down_id  = 1.; ibin_id  = 0;
+  weight_iso = 1.; weight_up_iso = 1.; weight_down_iso = 1.; ibin_iso = 0;
+  if(year != k2016 && year != k2017 && year != k2018) {
+    std::cout << "Warning! Undefined year in MuonIDWeight::" << __func__ << ", returning -1" << std::endl;
+    return;
+  }
+
+  mcEra = std::min(1, std::max(0, mcEra));
+  TH2* hID = histIDData_[2*year + mcEra];
+
+  //axes flip between years for some reason
+  const double xvar = (year != 2016) ? pt : eta;
+  const double yvar = (year != 2016) ? std::fabs(eta) : pt;
+  int binx = std::max(1, std::min(hID->GetNbinsX(), hID->GetXaxis()->FindBin(xvar)));
+  int biny = std::max(1, std::min(hID->GetNbinsY(), hID->GetYaxis()->FindBin(yvar)));
+  const double id_scale = hID->GetBinContent(binx, biny);
+  const double id_error = hID->GetBinError(binx, biny);
+  ibin_id = 10000 * (1 - mcEra) + 100*biny + binx; //assumes binx and biny < 100
+
+  TH2* hIso = histIsoData_[2*year + mcEra];
+
+  binx = std::max(1, std::min(hIso->GetNbinsX(), hIso->GetXaxis()->FindBin(xvar)));
+  biny = std::max(1, std::min(hIso->GetNbinsY(), hIso->GetYaxis()->FindBin(yvar)));
+  const double iso_scale = hIso->GetBinContent(binx, biny);
+  const double iso_error = hIso->GetBinError(binx, biny);
+  ibin_iso = 10000*(1 - mcEra) + 100*biny + binx; //assumes binx and biny < 100
+
+
+  double scale_factor = id_scale * iso_scale;
+  if(scale_factor <= 0. || verbose_ > 0) {
+    if(scale_factor <= 0.) std::cout << "Warning! Scale factor <= 0! ";
+    std::cout << "MuonIDWeight::" << __func__
+              << " year = " << year
+              << " id_scale = " << id_scale << " +- " << id_error
+              << " iso_scale = " << iso_scale << " +- " << iso_error
+              << " mcEra = " << mcEra << std::endl;
+  }
+  weight_id = id_scale; weight_iso = iso_scale;
+
+  weight_up_id    = weight_id  +  id_error;
+  weight_down_id  = weight_id  -  id_error;
+  weight_up_iso   = weight_iso + iso_error;
+  weight_down_iso = weight_iso - iso_error;
 }
 
 //-------------------------------------------------------------------------------------------------------------------------
@@ -229,8 +281,8 @@ double MuonIDWeight::TriggerEff(double pt, double eta, int year, bool isLow, int
   eta = std::fabs(eta);
   mcEra = std::min(1, std::max(0, mcEra)); //ensure MC era is 0 or 1
 
-  TH2F* hTrigData = (isLow) ? histTriggerLowData_[2*year + mcEra] : histTriggerHighData_[2*year + mcEra];
-  TH2F* hTrigMC   = (isLow) ? histTriggerLowMC_  [2*year + mcEra] : histTriggerHighMC_  [2*year + mcEra];
+  TH2* hTrigData = (isLow) ? histTriggerLowData_[2*year + mcEra] : histTriggerHighData_[2*year + mcEra];
+  TH2* hTrigMC   = (isLow) ? histTriggerLowMC_  [2*year + mcEra] : histTriggerHighMC_  [2*year + mcEra];
   if(!hTrigData) {
     std::cout << "!!! " << __func__ << ": Undefined Data trigger efficiency histogram for " << year
               << " low trigger = " << isLow << " MC era = " << mcEra << std::endl;

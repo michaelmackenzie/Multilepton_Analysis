@@ -3,10 +3,11 @@
 
 typedef DataCard_t dcard;
 
-vector<int> years_ = {2016, 2017, 2018}; //list of years of interest
-int doRunPeriod_   = 0; //do a specific run period of data
-TString hist_path_ = "root://cmseos.fnal.gov//store/user/mmackenz/histograms/"; //where histogram files are
-TString hist_dir_  = "nanoaods_dev"; //which histogram directory to use
+vector<int> years_    = {2016, 2017, 2018}; //list of years of interest
+int useRunPeriodData_ = 1; //use run periods of data
+int doRunPeriod_      = 0; //use predefined set of run periods of data (e.g. 2016 B-F)
+TString hist_path_    = "root://cmseos.fnal.gov//store/user/mmackenz/histograms/"; //where histogram files are
+TString hist_dir_     = "nanoaods_dev"; //which histogram directory to use
 
 int    useUL_        =  0 ; //use UL dataset definitions
 int    ZMode_        =  0 ; //which Z cross-section information to use
@@ -65,10 +66,10 @@ void get_datacards(std::vector<dcard>& cards, TString selection, bool forStudies
     cards.push_back(dcard("WZ"                 , "WZ"                 , vb.Data()   , false, xs.GetCrossSection("WZ"                 ), false, year, vb_c));
     cards.push_back(dcard("ZZ"                 , "ZZ"                 , vb.Data()   , false, xs.GetCrossSection("ZZ"                 ), false, year, vb_c));
     cards.push_back(dcard("WW"                 , "WW"                 , vb.Data()   , false, xs.GetCrossSection("WW"                 ), false, year, vb_c));
-    cards.push_back(dcard("EWKWplus"         , "EWKWplus"           , vb.Data()   , false, xs.GetCrossSection("EWKWplus"           ), false, year, vb_c));
-    cards.push_back(dcard("EWKWminus"        , "EWKWminus"          , vb.Data()   , false, xs.GetCrossSection("EWKWminus"          ), false, year, vb_c));
-    cards.push_back(dcard("EWKZ-M50"         , "EWKZ-M50"           , vb.Data()   , false, xs.GetCrossSection("EWKZ-M50"           ), false, year, vb_c));
-    cards.push_back(dcard("WGamma"           , "WGamma"             , wj.Data()   , false, xs.GetCrossSection("WGamma"             ), false, year, wj_c));
+    cards.push_back(dcard("EWKWplus"           , "EWKWplus"           , vb.Data()   , false, xs.GetCrossSection("EWKWplus"           ), false, year, vb_c));
+    cards.push_back(dcard("EWKWminus"          , "EWKWminus"          , vb.Data()   , false, xs.GetCrossSection("EWKWminus"          ), false, year, vb_c));
+    cards.push_back(dcard("EWKZ-M50"           , "EWKZ-M50"           , vb.Data()   , false, xs.GetCrossSection("EWKZ-M50"           ), false, year, vb_c));
+    cards.push_back(dcard("WGamma"             , "WGamma"             , wj.Data()   , false, xs.GetCrossSection("WGamma"             ), false, year, wj_c));
     //if splitting W+Jets into jet-binned samples, use W+Jets inclusive 0-j for 0-j, then jet-binned samples for the rest
     if(splitWJ_) {
       cards.push_back(dcard("Wlnu-0"           , "Wlnu-0"             , wj.Data()   , false, xs.GetCrossSection("Wlnu"               ), false, year, wj_c, !useUL_&&year!=2018));
@@ -149,17 +150,16 @@ void get_datacards(std::vector<dcard>& cards, TString selection, bool forStudies
       }
     }
     //Add data
-    if(doRunPeriod_ == 0) {
+    if(useRunPeriodData_ == 0) { //use merged data samples
       if(selection != "etau"  && selection !="ee"  ) cards.push_back(dcard("SingleMu" , "SingleMu" , "Data", true , 1., false, year));
       if(selection != "mutau" && selection !="mumu") cards.push_back(dcard("SingleEle", "SingleEle", "Data", true , 1., false, year));
-    } else {
+    } else { //use run-period-specific data samples
       for(int period = 0; period < periods[year].size(); ++period) {
         if(year == 2016 && ((doRunPeriod_ == 1 && period > 4) || (doRunPeriod_ == 2 && period < 5))) continue;
         if(year == 2017 && ((doRunPeriod_ == 1 && period > 2) || (doRunPeriod_ == 2 && period < 3))) continue;
         if(year == 2018 && ((doRunPeriod_ == 1 && period > 1) || (doRunPeriod_ == 2 && period < 2))) continue;
-        TString p_name = "Run"; p_name += periods[year][period];
-        TString muon_name = "SingleMuon" + p_name;
-        TString electron_name = "SingleMuon" + p_name;
+        TString muon_name = "SingleMuon-" + periods[year][period];
+        TString electron_name = "SingleElectron-" + periods[year][period];
         if(selection != "etau"  && selection!="ee"  ) cards.push_back(dcard(muon_name.Data()    , muon_name.Data()    , "Data", true , 1., false, year));
         if(selection != "mutau" && selection!="mumu") cards.push_back(dcard(electron_name.Data(), electron_name.Data(), "Data", true , 1., false, year));
       }
@@ -197,7 +197,7 @@ void get_datacards(std::vector<dcard>& cards, TString selection, bool forStudies
       // std::cout << "--> New cross section = " << cards[index].xsec_ << std::endl;
     }
     //update file path
-    cards[index].filename_ = Form("%s/clfv_%s_clfv_%i_%s.hist", (hist_path_+hist_dir_).Data(), selection_dir.Data(),
+    cards[index].filename_ = Form("%s/clfv_%s_%i_%s.hist", (hist_path_+hist_dir_).Data(), selection_dir.Data(),
                                   cards[index].year_, (cards[index].filename_).Data());
   } //end file name loop
 }

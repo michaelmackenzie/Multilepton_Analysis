@@ -43,6 +43,7 @@ namespace CLFV {
     TH1* hOneWeight1Group;
     TH1* hOneWeight2Group;
     TH1* hOneTrigWeight;
+    TH1* hOneJetOverlap;
     //Gen Info
     TH1* hOneGenPt;
     TH1* hOneGenE;
@@ -103,6 +104,7 @@ namespace CLFV {
     TH1* hTwoWeight1Group;
     TH1* hTwoWeight2Group;
     TH1* hTwoTrigWeight;
+    TH1* hTwoJetOverlap;
     //Gen Info
     TH1* hTwoGenPt;
     TH1* hTwoGenE;

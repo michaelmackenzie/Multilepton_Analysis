@@ -24,6 +24,8 @@ int sigOverBkg_ = 0; //plot sig / bkg or data / MC (0 = data/MC, 1 = sig/MC, 2 =
 int useQCD_ = 0; //use qcd estimate
 int useMisID_ = 1; //use Mis-ID estimate
 
+int debug_ = 0;
+
 Int_t print_significance_canvases(vector<TString> hists, vector<TString> types, vector<TString> labels, vector<int> sets) {
   TCanvas* c = 0;
   if(!dataplotter_) return -2;
@@ -1059,6 +1061,7 @@ Int_t print_standard_canvases(vector<int> sets, vector<double> signal_scales = {
 Int_t init_dataplotter() {
   if(dataplotter_) delete dataplotter_;
   dataplotter_ = new DataPlotter();
+  dataplotter_->debug_ = debug_;
   if(sigOverBkg_) dataplotter_->data_over_mc_ = -sigOverBkg_;
   dataplotter_->selection_ = selection_;
   dataplotter_->folder_ = folder_;
@@ -1938,14 +1941,14 @@ Int_t print_basic_debug_plots(bool test_trigger = false, bool doMC = false, bool
     cards.push_back(PlottingCard_t("lepm2"           , "event", 5, 50., 170.));
     cards.push_back(PlottingCard_t("leppt1"          , "event", 2,  0., 100.));
     cards.push_back(PlottingCard_t("leppt2"          , "event", 2,  0., 100.));
-    cards.push_back(PlottingCard_t("onept8"          , "lep"  , (same_flavor) ? 1 : 2, 10., 120.)); //no Z pT vs M weight
+    cards.push_back(PlottingCard_t("onept8"          , "lep"  , (same_flavor) ? 1 : 2, (tau_set) ? 20. : 10., 120.)); //no Z pT vs M weight
   }
   cards.push_back(PlottingCard_t("lepmestimate"    , "event", 2, 50., 170.));
   cards.push_back(PlottingCard_t("lepmestimatetwo" , "event", 2, 50., 170.));
-  cards.push_back(PlottingCard_t("onept"           , "lep"  , (same_flavor) ? 1 : 2, 10., 120.));
-  cards.push_back(PlottingCard_t("onept1"          , "lep"  , (same_flavor) ? 1 : 2, 10., 120.)); //no trigger weight
+  cards.push_back(PlottingCard_t("onept"           , "lep"  , (same_flavor) ? 1 : 2, (tau_set) ? 20. : 10., 120.));
+  cards.push_back(PlottingCard_t("onept1"          , "lep"  , (same_flavor) ? 1 : 2, (tau_set) ? 20. : 10., 120.)); //no trigger weight
   cards.push_back(PlottingCard_t("oneeta"          , "lep"  , 2, -3.,   5.));
-  cards.push_back(PlottingCard_t("twopt"           , "lep"  , 2, 10., 120.));
+  cards.push_back(PlottingCard_t("twopt"           , "lep"  , 2, (tau_set) ? 20. : 10., 120.));
   cards.push_back(PlottingCard_t("twoeta"          , "lep"  , 2,  1.,  -1.));
   cards.push_back(PlottingCard_t("ptdiff"          , "lep"  , 2, (same_flavor) ? 0 : -50,  (same_flavor) ? 75. : 50.));
   if(tau_set) {
@@ -1963,16 +1966,19 @@ Int_t print_basic_debug_plots(bool test_trigger = false, bool doMC = false, bool
   cards.push_back(PlottingCard_t("njets20"         , "event", 1,  0.,   5.));
   cards.push_back(PlottingCard_t("njets"           , "event", 1,  0.,   5.));
   // cards.push_back(PlottingCard_t("lhenjets"        , "event", 0,  0  ,  6  ));
+  cards.push_back(PlottingCard_t("jetpt"           , "event", 2, 20., 100.));
   cards.push_back(PlottingCard_t("ntriggered"      , "event", 0,  0.,   5.));
+  cards.push_back(PlottingCard_t("nelectrons"      , "event", 0,  0.,   5.));
+  cards.push_back(PlottingCard_t("nmuons"          , "event", 0,  0.,   5.));
+  cards.push_back(PlottingCard_t("ntaus"           , "event", 0,  0.,   5.));
   cards.push_back(PlottingCard_t("onemetdeltaphi"  , "lep"  , 2,  0.,   5.));
   cards.push_back(PlottingCard_t("twometdeltaphi"  , "lep"  , 2,  0.,   5.));
-  cards.push_back(PlottingCard_t("jetpt"           , "event", 2, 20., 100.));
   // cards.push_back(PlottingCard_t("npv"             , "event", 0,  0.,  60.));
   cards.push_back(PlottingCard_t("oned0"           , "lep"  , 2,  0.,  0.1));
   cards.push_back(PlottingCard_t("twod0"           , "lep"  , 2,  0.,  0.1));
   // cards.push_back(PlottingCard_t("d0diff"          , "lep"  , 2,-0.1,  0.1));
   cards.push_back(PlottingCard_t("onereliso"       , "lep"  , 1,  0.,   0.15));
-  cards.push_back(PlottingCard_t("tworeliso"     , "lep"  , 1,  0., 0.15));
+  cards.push_back(PlottingCard_t("tworeliso"       , "lep"  , 1,  0., 0.15));
 
   cards.push_back(PlottingCard_t("eventweight"       , "event", 0,   0.,  1.1));
   cards.push_back(PlottingCard_t("genweight"         , "event", 0, -2.5,  2.5));

@@ -21,6 +21,7 @@ namespace CLFV {
     TH1* hEmbeddingUnfoldingWeight;
     TH1* hGenTauFlavorWeight;
     TH1* hPhotonIDWeight;
+    TH1* hQCDWeight;
     TH1* hJetToTauWeight;
     TH1* hJetToTauWeightGroup;
     TH1* hJetToTauWeightCorr;

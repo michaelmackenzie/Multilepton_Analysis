@@ -32,6 +32,22 @@ namespace CLFV {
       return xsec;
     }
 
+    double GetNegativeFraction(TString name, int year = 2016) {
+      double frac(0.);
+      auto itr = neg_frac_.find(name);
+      if(itr != neg_frac_.end()) {
+        auto itr_2 = itr->second.find(year);
+        if(itr_2 != itr->second.end()) {
+          frac = itr->second[year];
+        } else {
+          std::cout << "Negative fraction for year " << year << " for sample " << name.Data() << " not found! Returning 1...\n";
+        }
+      } else {
+        std::cout << "Negative fraction for " << name.Data() << " not found! Returning 1...\n";
+      }
+      return frac;
+    }
+
     //if combining files, may want number of generated events
     long GetGenNumber(TString name, int year) {
       long gen(0);
@@ -58,6 +74,7 @@ namespace CLFV {
 
   private:
     std::map<TString, std::map<int, double>> values_ ; //cross sections
+    std::map<TString, std::map<int, double>> neg_frac_ ; //fraction of events with negative weights
     std::map<int, std::map<TString, long>>   numbers_; // generated numbers
     std::map<int, double> lum_; //luminosity
   };
