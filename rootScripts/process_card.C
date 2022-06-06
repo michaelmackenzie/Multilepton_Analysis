@@ -68,6 +68,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TTr
       selec->fIsData = card.isData_;
       selec->fIsEmbed = card.fname_.Contains("Embed-");
       selec->fYear = card.year_;
+      selec->fDataset = card.dataset_;
       selec->fIsSignal = isSignal;
 
       selec->fDoSystematics = config.doSystematics_;
@@ -174,6 +175,10 @@ Int_t process_single_card(datacard_t& card, config_t& config, TFile* file) {
   }
 
   //Loop throught the file looking for all selection channels
+  name.ReplaceAll("Run2016", "-"); //shorten data names
+  name.ReplaceAll("Run2017", "-");
+  name.ReplaceAll("Run2018", "-");
+  card.dataset_ = name;
   vector<TString> selections = {"mutau", "etau", "emu", "mumu", "ee"};
   for(TString selection : selections) {
     //check if only suppose to do 1 channel, and if this is that channel
@@ -204,18 +209,12 @@ Int_t process_single_card(datacard_t& card, config_t& config, TFile* file) {
       cout << "Selection tree " << selection.Data() << " not found!\n";
       continue;
     }
-    name.ReplaceAll("Run2016", "-"); //shorten data names
-    name.ReplaceAll("Run2017", "-");
-    name.ReplaceAll("Run2018", "-");
-    name = Form("%i_%s", card.year_, name.Data());
-    tree->SetName(name.Data());
     // //skip if a signal in an irrelevant channel
     // if(card.fname_.Contains("EMu.tree"  ) && (currentChannel != "emu")) continue;
     // if(card.fname_.Contains("ETau.tree" ) && (currentChannel == "mutau" || currentChannel == "mumu")) continue;
     // if(card.fname_.Contains("MuTau.tree") && (currentChannel == "etau"  || currentChannel == "ee"  )) continue;
 
     process_channel(card, config, selection, tree);
-    tree->SetName(selection.Data());
   }
 
   return 0;

@@ -134,6 +134,14 @@ current code where there are likely memory leaks in the histogramming code, the 
 a new job calling `process_card.C` to histogram a given dataset so the memory is cleared at the end of
 execution of the job.
 
+To add a histogram selection, add an entry in `interface/CLFVHistMaker.hh:Init` with `fEventSets [<selection enum> + <base set>] = 1;`
+and then add in the `interface/CLFVHistMaker.cc:Process` function the call `FillAllHistograms(set_offset + <base set>)`, with
+the desired selection cuts.
+
+To add a histogram to the standard histogramming, add a field for it to `interface/<EventHist/LepHist>.hh`, then iniitialize
+the histogram for each selection set in `src/CLFVHistMaker.cc:Book<Event/Lep>Histograms`, and the corresponding `Fill` call
+in `src/CLFVHistMaker.cc:Fill<Event/Lep>Histogram`.
+
 For example:
 ```
 cd rootScripts/

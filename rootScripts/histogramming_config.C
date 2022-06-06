@@ -51,6 +51,7 @@ struct datacard_t {
   TH1* events_;
   int year_;
   double lum_;
+  TString dataset_;
   datacard_t(bool process, double xsec, TString fname,
              int isData = 0,  bool combine = false,
              TString filepath = "",
@@ -58,7 +59,7 @@ struct datacard_t {
              int year = 2016) :
     process_(process), xsec_(xsec), fname_(fname), combine_(combine),
     filepath_(filepath), isData_(isData), category_(category),
-    events_(events), year_(year), lum_(0.) {}
+    events_(events), year_(year), lum_(0.), dataset_("") {}
 };
 
 
@@ -108,7 +109,7 @@ vector<datacard_t> get_data_cards(TString& nanoaod_path) {
   // 2016 samples //
   //////////////////
   nanocards.push_back(datacard_t(false, xs.GetCrossSection("DY10to50"                ), "LFVAnalysis_DY10to50_2016.root"                , 0));
-  nanocards.push_back(datacard_t(false, xs.GetCrossSection("DY50"                    ), "LFVAnalysis_DY50-amc_2016.root"                , 0));
+  nanocards.push_back(datacard_t(true , xs.GetCrossSection("DY50"                    ), "LFVAnalysis_DY50-amc_2016.root"                , 0));
   nanocards.push_back(datacard_t(false, xs.GetCrossSection("ttbarToSemiLeptonic"     ), "LFVAnalysis_ttbarToSemiLeptonic_2016.root"     , 0));
   nanocards.push_back(datacard_t(false, xs.GetCrossSection("ttbarlnu"                ), "LFVAnalysis_ttbarlnu_2016.root"                , 0));
   nanocards.push_back(datacard_t(false, xs.GetCrossSection("ttbarToHadronic"         ), "LFVAnalysis_ttbarToHadronic_2016.root"         , 0));

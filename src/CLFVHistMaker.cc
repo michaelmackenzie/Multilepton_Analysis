@@ -30,7 +30,6 @@ CLFVHistMaker::CLFVHistMaker(int seed, TTree * /*tree*/) : fSystematicSeed(seed)
   }
   fRnd = nullptr;
   fSystematicShifts = nullptr;
-  for(int i = 0; i <kIds; ++i) fEventId[i] = nullptr;
 
   leptonOneP4 = new TLorentzVector();
   leptonTwoP4 = new TLorentzVector();
@@ -51,7 +50,6 @@ CLFVHistMaker::~CLFVHistMaker() {
   if (fTauIDWeight     ) delete fTauIDWeight     ;
   if (fSystematicShifts) delete fSystematicShifts;
   if (fRnd             ) delete fRnd             ;
-  for(int i = 0; i <kIds; ++i) {if(fEventId[i]) delete fEventId[i];}
   if(leptonOneP4) delete leptonOneP4;
   if(leptonTwoP4) delete leptonTwoP4;
   if(jetOneP4)    delete jetOneP4;
@@ -104,47 +102,6 @@ void CLFVHistMaker::Begin(TTree * /*tree*/)
   for(int itrig = 0; itrig < 3; ++itrig) triggerWeights[itrig] = 1.f;
 
   fSystematicShifts = new SystematicShifts(fSystematicSeed);
-  for(int i = 0; i < kIds; ++i) fEventId[i] = 0;
-
-  fEventId[20] = new TEventID(); //zemu
-  // cutstring 10/05/2020:
-  // mtone>1.7541851387703586&&mtone<66.508243311050904&&mttwo<68.67656032242067&&met>1.8312383752068708&&met<31.529109883214133&&
-  // lepdeltaphi>2.7438808940798096&&leponept>37.357014171774139&&leponept<51.988274780189428&&leptwopt>37.402735145255065&&
-  // leptwopt<52.441135442770928&&leppt<18.547911483828408&&njets<1.9999796524643898&&jetpt<41.90139627456665
-  // limit gain: 1.83934 sig_eff: 0.256185 bkg_rej: 0.994083
-  fEventId[20]->fMinLepm = 60.;        fEventId[20]->fMaxLepm = 170.;
-  fEventId[20]->fMaxMtone = 66.508;    fEventId[20]->fMaxMttwo = 68.677;
-  fEventId[20]->fMinMtone = 1.754;     fEventId[20]->fMinMttwo = 1.831;
-  fEventId[20]->fMaxLeppt = 18.548;    fEventId[20]->fMinLepdeltaphi = 2.744;
-  fEventId[20]->fMinLeponept = 37.357; fEventId[20]->fMaxLeponept = 51.988;
-  fEventId[20]->fMinLeptwopt = 37.402; fEventId[20]->fMaxLeptwopt = 52.441;
-  fEventId[20]->fMaxNJets = 1;         fEventId[20]->fMaxJetpt = 41.901;
-  fEventId[20]->fMaxMet = 31.529;      fEventId[20]->fMinMet = 1.831;
-
-  fEventId[21] = new TEventID(); //zemu
-  // cutstring 10/05/2020:
-  //mtone>1.7541851387703586&&mtone<75.511866527441413&&mttwo<78.35751427777079&&met>0.99635845329502015&&
-  //met<38.003302896347222&&lepdeltaphi>2.458847083857167&&leponept>34.64483731089453&&leponept<55.055144350598191&&
-  //leptwopt>35.279645242822426&&leptwopt<57.063637382693173&&leppt<31.93547906614549&&njets<1.9999796524643898&&
-  //jetpt<41.90139627456665
-  //limit gain: 1.57032 sig_eff: 0.409239 bkg_rej: 0.978983
-
-  fEventId[21]->fMinLepm = 60.;        fEventId[21]->fMaxLepm = 170.;
-  fEventId[21]->fMaxMtone = 75.512;    fEventId[21]->fMaxMttwo = 78.357;
-  fEventId[21]->fMinMtone = 1.754;
-  fEventId[21]->fMaxLeppt = 31.935;    fEventId[21]->fMinLepdeltaphi = 2.459;
-  fEventId[21]->fMinLeponept = 34.645; fEventId[21]->fMaxLeponept = 55.055;
-  fEventId[21]->fMinLeptwopt = 35.280; fEventId[21]->fMaxLeptwopt = 57.063;
-  fEventId[21]->fMaxNJets = 1;         fEventId[21]->fMaxJetpt = 41.901;
-  fEventId[21]->fMaxMet = 38.003;      fEventId[21]->fMinMet = 0.996;
-
-  fEventId[50] = new TEventID(); //hemu
-  // cutstring lepm>121.98691899130384&&lepm<127.1750722802732&&mtone<88.949126707707563&&mttwo<80.913400356866262
-  // &&leponept>35.854765333337127&&leptwopt>30.543996519263601
-  // limit gain: 2.5026 sig_eff: 0.448063 bkg_rej: 0.996876
-  fEventId[50]->fMinLepm = 121.98692;    fEventId[50]->fMaxLepm = 127.17507;
-  fEventId[50]->fMaxMtone = 88.94913;    fEventId[50]->fMaxMttwo = 80.91340;
-  fEventId[50]->fMinLeponept = 35.85477; fEventId[50]->fMinLeptwopt = 30.54400;
 
   fRnd = new TRandom(fRndSeed);
   fTreeVars.type = -1;
@@ -1255,7 +1212,6 @@ void CLFVHistMaker::InitializeEventWeights() {
     else if(std::abs(leptonTwoFlavor) == 13) fMuonIDWeight.IDWeight    (leptonTwoP4->Pt(), leptonTwoP4->Eta(), fYear, mcEra,
                                                                         leptonTwoWeight1 , leptonTwoWeight1_up, leptonTwoWeight1_down, leptonTwoWeight1_bin,
                                                                         leptonTwoWeight2 , leptonTwoWeight2_up, leptonTwoWeight2_down, leptonTwoWeight2_bin);
-    //FIXME: Add Muon ID weights
     else if(std::abs(leptonTwoFlavor) == 15) leptonTwoWeight1 = fTauIDWeight->IDWeight              (leptonTwoP4->Pt(), leptonTwoP4->Eta(), tauGenID, tauDeepAntiJet,
                                                                                                      fYear, leptonTwoWeight1_up, leptonTwoWeight1_down);
   }
@@ -2776,25 +2732,10 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
 
 
 //--------------------------------------------------------------------------------------------------------------
+// Main function, process each event in the chain
 Bool_t CLFVHistMaker::Process(Long64_t entry)
 {
   fentry = entry;
-  // The Process() function is called for each entry in the tree (or possibly
-  // keyed object in the case of PROOF) to be processed. The entry argument
-  // specifies which entry in the currently loaded tree is to be processed.
-  // When processing keyed objects with PROOF, the object is already loaded
-  // and is available via the fObject pointer.
-  //
-  // This function should contain the \"body\" of the analysis. It can contain
-  // simple or elaborate selection criteria, run algorithms on the data
-  // of the event and typically fill histograms.
-  //
-  // The processing can be stopped by calling Abort().
-  //
-  // Use fStatus to set the return value of TTree::Process().
-  //
-  // The return value is currently not used.
-
   fChain->GetEntry(entry,0);
   if(fVerbose > 0 || entry%50000 == 0) std::cout << Form("Processing event: %12lld (%5.1f%%)\n", entry, entry*100./fChain->GetEntriesFast());
   int icutflow = 0;
@@ -2822,7 +2763,7 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   }
 
   fCutFlow->Fill(icutflow); ++icutflow; //1
-  //split W+Jets into N(jets) generated for binned sample combination
+  //split W+Jets into N(LHE jets) generated for binned sample combination
   if(fWNJets > -1 && LHE_Njets != fWNJets) {
     return kTRUE;
   }
@@ -2876,26 +2817,6 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
     std::cout << " lep_2: pdg_id = " << leptonTwoFlavor << " p4 = "; leptonTwoP4->Print();
   }
 
-  // /////////////////
-  // // Correct MET //
-  // /////////////////
-
-  // //add the met correction to the met
-  // TVector3 missing(met*cos(metPhi), met*sin(metPhi), 0.);
-  // TVector3 missingPUPPI(puppMETC*cos(puppMETCphi), puppMETC*sin(puppMETCphi), 0.);
-  // TVector3 missingCorr(metCorr*cos(metCorrPhi), metCorr*sin(metCorrPhi), 0.);
-  // missing = missing + missingCorr;
-  // missingPUPPI = missingPUPPI + missingCorr;
-  // puppMETC = missingPUPPI.Mag();
-  // if(fMETType == 0) {
-  //   met = missing.Mag();
-  //   metPhi = missing.Phi();
-  // } else if(fMETType == 1) {
-  //   met = missingPUPPI.Mag();
-  //   metPhi = missingPUPPI.Phi();
-  // }
-  // if(fVerbose > 0 ) std::cout << " MET = " << met << std::endl;
-
   //Initialize systematic variation weights
   InitializeSystematics();
 
@@ -2928,20 +2849,16 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   if((mutau + etau + emu + mumu + ee) > 1)
     std::cout << "WARNING! Entry " << entry << " passes multiple selections!\n";
 
-  // if(isLooseElectron) {
-  //   if(emu || etau) isLooseElectron &= leptonOneID1 < 4; //Not WP80
-  //   if(ee)          isLooseElectron &= leptonOneID1 < 4 || leptonTwoID1 < 4; //Not WP80
-  // }
-  // if(isLooseMuon) {
-  //   if(emu)   isLooseMuon &= leptonTwoID1 <= ParticleCorrections::kTightMuIso; //Not Tight IsoID
-  //   if(mutau) isLooseMuon &= leptonOneID1 <= ParticleCorrections::kTightMuIso; //Not Tight IsoID
-  //   if(mumu)  isLooseMuon &= leptonOneID1 <= ParticleCorrections::kTightMuIso || leptonTwoID1 < ParticleCorrections::kTightMuIso; //Not Tight IsoID
-  // }
-
   isFakeElectron  = !fIsData && ((std::abs(leptonOneFlavor) == 11 && leptonOneGenFlavor == 26) ||
                                  (std::abs(leptonTwoFlavor) == 11 && leptonTwoGenFlavor == 26));
   isFakeMuon      = !fIsData && ((std::abs(leptonOneFlavor) == 13 && leptonOneGenFlavor == 26) ||
                                  (std::abs(leptonTwoFlavor) == 13 && leptonTwoGenFlavor == 26));
+
+  isLooseElectron = (ee || emu || etau) && leptonOneIso / leptonOneP4->Pt() >= 0.15;
+  isLooseMuon     = (mutau || mumu)     && leptonOneIso / leptonOneP4->Pt() >= 0.15;
+  isLooseMuon    |= (emu   || mumu)     && leptonTwoIso / leptonTwoP4->Pt() >= 0.15;
+  isLooseTau      = (etau  || mutau) && tauDeepAntiJet < 50;
+  looseQCDSelection = isLooseElectron || isLooseMuon || isLooseTau;
 
 
   //////////////////////////////////////////////////////////////
@@ -2950,45 +2867,6 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
 
   //object pT thresholds
   float muon_pt(10.), electron_pt(15.), tau_pt(20.);
-
-  //apply embedding unfolding correction to embedded samples
-  if(fIsEmbed) {
-    int tauGenID = 0;
-    if     (std::abs(tauGenFlavor) == 15) tauGenID = 5;
-    else if(std::abs(tauGenFlavor) == 13) tauGenID = 2;
-    else if(std::abs(tauGenFlavor) == 11) tauGenID = 1;
-    if     (std::abs(leptonOneFlavor) == 11) {
-      if(fUseEmbedTnPWeights) {
-        leptonOneWeight1 = fEmbeddingTnPWeight.ElectronIDWeight(leptonOneP4->Pt(), leptonOneSCEta, fYear, isLooseElectron, mcEra);
-      } else {
-        leptonOneWeight1 = fEmbeddingWeight.ElectronIDWeight(leptonOneP4->Pt(), leptonOneSCEta, fYear);
-      }
-    } else if(std::abs(leptonOneFlavor) == 13) {
-      if(fUseEmbedTnPWeights) {
-        leptonOneWeight1 = fEmbeddingTnPWeight.MuonIDWeight(leptonOneP4->Pt(), leptonOneP4->Eta(), fYear, isLooseMuon, mcEra);
-      } else {
-        leptonOneWeight1 = fEmbeddingWeight.MuonIDWeight(leptonOneP4->Pt(), leptonOneP4->Eta(), fYear);
-      }
-    } else if(std::abs(leptonOneFlavor) == 15) leptonOneWeight1 = fTauIDWeight->IDWeight(leptonOneP4->Pt(), leptonOneP4->Eta(), tauGenID, tauDeepAntiJet,
-                                                                                  fYear, leptonOneWeight1_up, leptonOneWeight1_down);
-    if     (std::abs(leptonTwoFlavor) == 11) {
-      if(fUseEmbedTnPWeights) {
-        leptonTwoWeight1 = fEmbeddingTnPWeight.ElectronIDWeight(leptonTwoP4->Pt(), leptonTwoSCEta, fYear, isLooseElectron, mcEra);
-      } else {
-        leptonTwoWeight1 = fEmbeddingWeight.ElectronIDWeight(leptonTwoP4->Pt(), leptonTwoSCEta, fYear);
-      }
-    } else if(std::abs(leptonTwoFlavor) == 13) {
-      if(fUseEmbedTnPWeights) {
-        leptonTwoWeight1 = fEmbeddingTnPWeight.MuonIDWeight(leptonTwoP4->Pt(), leptonTwoP4->Eta(), fYear, isLooseMuon, mcEra);
-      } else {
-        leptonTwoWeight1 = fEmbeddingWeight.MuonIDWeight(leptonTwoP4->Pt(), leptonTwoP4->Eta(), fYear);
-      }
-    } else if(std::abs(leptonTwoFlavor) == 15) leptonTwoWeight1 = fTauIDWeight->IDWeight(leptonTwoP4->Pt(), leptonTwoP4->Eta(), tauGenID, tauDeepAntiJet,
-                                                                                         fYear, leptonTwoWeight1_up, leptonTwoWeight1_down);
-
-    eventWeight *= leptonOneWeight1; eventWeight *= leptonOneWeight2;
-    eventWeight *= leptonTwoWeight1; eventWeight *= leptonTwoWeight2;
-  }
 
   //No weights in data
   if(fIsData) {
@@ -3002,12 +2880,6 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   //////////////////////////////////////////////////////////////
   // Check if anti-iso/same-sign lepton category
   //////////////////////////////////////////////////////////////
-
-  isLooseElectron = (ee || emu || etau) && fTreeVars.leponereliso >= 0.15;
-  isLooseMuon     = (mutau || mumu)     && fTreeVars.leponereliso >= 0.15;
-  isLooseMuon    |= (emu   || mumu)     && fTreeVars.leptworeliso >= 0.15;
-  isLooseTau      = (etau  || mutau) && tauDeepAntiJet < 50;
-  looseQCDSelection = isLooseElectron || isLooseMuon || isLooseTau;
 
 
   const bool chargeTest = leptonOneFlavor*leptonTwoFlavor < 0;
@@ -3165,18 +3037,12 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   ee    = ee    && std::fabs(electron->DeltaR(*electron_2)) > 0.3;
 
   //mass cuts, due to generation ranges need > 50 GeV for all sets
-  double mll = (*leptonOneP4+*leptonTwoP4).M();
+  const double mll = (*leptonOneP4+*leptonTwoP4).M();
   mutau &= mll > 51. && mll < 170.;
   etau  &= mll > 51. && mll < 170.;
   emu   &= mll > 51. && mll < 170.;
   mumu  &= mll > 51. && mll < 170.;
   ee    &= mll > 51. && mll < 170.;
-
-  //Remove Mu50 muon trigger if used in the sample
-  //FIXME: For mu-mu this removes events with one firing Mu50 and one firing IsoMu due to overwrite of muonTriggerStatus
-  //--> update to lep(1/2) trigger status variables
-  if(fabs(leptonOneFlavor) == 13 && muonTriggerStatus == 2) leptonOneFired = false;
-  if(fabs(leptonTwoFlavor) == 13 && muonTriggerStatus == 2) leptonTwoFired = false;
 
   //ensure a trigger was fired
   mutau &= leptonOneFired || leptonTwoFired;
@@ -3241,11 +3107,6 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
     }
   }
   ++icutflow;
-  ////////////////////////////////////////////////////////////
-  // Set 34 + selection offset: High pT lepton one region
-  ////////////////////////////////////////////////////////////
-  // if((!fDYTesting || mutau || etau) && fTreeVars.leponept > 60.)
-  //   FillAllHistograms(set_offset + 34);
 
   //////////////////////////////////////////////////////////////
   //
@@ -3253,19 +3114,6 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   //
   //////////////////////////////////////////////////////////////
 
-
-  ////////////////////////////////////////////////////////////////////////////
-  // Set 29 + selection offset: Z mass + Jets selection
-  ////////////////////////////////////////////////////////////////////////////
-  // bool isZRegion = mll > 70. && mll < 110. && nJets > 0;
-  // if(ee || etau || emu) isZRegion &= electron->Pt() > 28.;
-  // if(mumu || mutau || emu) isZRegion &= muon->Pt() > 25.;
-  // if(mumu) isZRegion &= muon_2->Pt() > 25.;
-  // if(ee) isZRegion &= electron_2->Pt() > 28.;
-  // if(isZRegion&&(fDYFakeTauTesting || !fDYTesting))
-  //   FillAllHistograms(set_offset + 29);
-
-  // if(fDYFakeTauTesting&&!fQCDFakeTauTesting&&!fWJFakeTauTesting&&!fTTFakeTauTesting) return kTRUE;
 
 
   //configure bjet counting based on selection
@@ -3366,22 +3214,6 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
       jetToTauWeightCorrSys  = jetToTauWeight;
       jetToTauWeightBiasUp   = jetToTauWeightCorr; //set correction up to be ignoring the correction
       jetToTauWeightBiasDown = 2.*jetToTauWeightBias - jetToTauWeightCorr; //size of the weight in the other direction from 1
-    // } else if(mutau) { //don't use j->tau composition
-    //   jetToTauWeight = fMuonJetToTauWeight.GetDataFactor(tauDecayMode, fYear, tau->Pt(), tau->Eta(), muon->Pt(), muon->DeltaR(*tau),
-    //                                                      fTreeVars.onemetdeltaphi, fTreeVars.lepm, fTreeVars.mtlep, leptonOneIso/leptonOneP4->Pt(),
-    //                                                      jetToTauWeightUp, jetToTauWeightDown, jetToTauWeightSys, jetToTauWeightGroup,
-    //                                                      jetToTauWeightCorr, jetToTauWeightCorrUp, jetToTauWeightCorrDown,
-    //                                                      jetToTauWeightCorrSys, jetToTauWeightBias);
-    //   jetToTauWeightCorr *= jetToTauWeight;
-    //   jetToTauWeightBias *= jetToTauWeightCorr;
-    // } else if(etau) { //don't use j->tau composition
-    //   jetToTauWeight = fElectronJetToTauWeight.GetDataFactor(tauDecayMode, fYear, tau->Pt(), tau->Eta(), electron->Pt(), electron->DeltaR(*tau),
-    //                                                          fTreeVars.onemetdeltaphi, fTreeVars.lepm, fTreeVars.mtlep, leptonOneIso/leptonOneP4->Pt(),
-    //                                                          jetToTauWeightUp, jetToTauWeightDown, jetToTauWeightSys, jetToTauWeightGroup,
-    //                                                          jetToTauWeightCorr, jetToTauWeightCorrUp, jetToTauWeightCorrDown,
-    //                                                          jetToTauWeightCorrSys, jetToTauWeightBias);
-    //   jetToTauWeightCorr *= jetToTauWeight;
-    //   jetToTauWeightBias *= jetToTauWeightCorr;
     } else {
       std::cout << "Error! Jet to Tau weight without composition no longer supported!\n";
       throw 20;
@@ -3413,18 +3245,6 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
     genWeight = 1.;
   }
 
-
-  // /////////////////////////
-  // // Jet --> lep weights //
-  // /////////////////////////
-
-  // if(mutau && isLooseMuon) {
-  //   //use data factor for MC and Data, since not using MC estimated fake tau rates
-  //   eventWeight *= fJetToMuonWeight.GetDataFactor(fYear, muon->Pt(), muon->Eta());
-  // } else if(etau && isLooseElectron) {
-  //   //use data factor for MC and Data, since not using MC estimated fake tau rates
-  //   eventWeight *= fJetToElectronWeight.GetDataFactor(fYear, electron->Pt(), electron->Eta());
-  // }
 
   if(eventWeight != tmp_evt_wt) { //update tree var weights if needed
     fTreeVars.eventweight        *= eventWeight/tmp_evt_wt;
@@ -3507,15 +3327,6 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   if(!looseQCDSelection && chargeTest) {fCutFlow->Fill(icutflow);} //12
   ++icutflow;
 
-  // ////////////////////////////////////////////////////////////
-  // // Set 90 (91) + selection offset: loose nominal selection with (without) MC fake taus
-  // ////////////////////////////////////////////////////////////
-
-  // if((emu || etau || mutau) && looseNominal) {
-  //   const bool isfake = !fIsData && (((mutau || etau) && std::abs(tauGenFlavor) == 26) || isFakeElectron || isFakeMuon);
-  //   FillAllHistograms(set_offset + 90);
-  //   if(!isfake) FillAllHistograms(set_offset + 91);
-  // }
 
   ////////////////////////////////////////////////////////////
   // Set 35 + selection offset: last set with MC estimated taus and leptons
@@ -3545,17 +3356,6 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
     if(isLooseTau) {
       FillAllHistograms(set_offset + 33); //only fill for loose ID taus, since non-loose already have no j-->tau weights
     }
-    // //QCD weights from DR
-    // if(add_wt) {
-    //   jetToTauWeight     = fJetToTauWts                      [JetToTauComposition::kQCD];
-    //   jetToTauWeightCorr = jetToTauWeight*fJetToTauCorrs     [JetToTauComposition::kQCD];
-    //   jetToTauWeightBias = jetToTauWeightCorr*fJetToTauBiases[JetToTauComposition::kQCD];
-    //   eventWeight        = jetToTauWeightBias*evt_wt_bare;
-    // }
-    // FillAllHistograms(set_offset + 80);
-    // if(!isfake) { //no fake MC events
-    //   FillAllHistograms(set_offset + 85);
-    // }
 
     //W+Jets data based weights from DR to test W+Jets only vs composition
     if(add_wt) {
@@ -3677,44 +3477,6 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
     jetToTauWeightBias = prev_jtt_bs;
   }
 
-  // ////////////////////////////////////////////////////////////
-  // // Set 38 + selection offset: MC estimated j->tau only
-  // ////////////////////////////////////////////////////////////
-
-  // if((!fDYTesting || !(mumu || ee || emu)) && (fIsData || tauGenFlavor == 26) && nBJetsUse == 0) {
-  //   FillAllHistograms(set_offset + 38);
-  // }
-
-  // ////////////////////////////////////////////////////////////
-  // // Set 40-41 + selection offset: Fake taus estimated with MC estimated scale factors
-  // ////////////////////////////////////////////////////////////
-
-  // if((!fDYTesting || fJetTauTesting) && (mutau || etau) && nBJetsUse == 0) {
-  //   //don't care about the MC uncertainties in MC study
-  //   Float_t tmp_jwt(jetToTauWeight), tmp_jcr(jetToTauWeightCorr), tmp_jbs(jetToTauWeightBias);
-  //   if(isLooseTau && mutau) {
-  //     jetToTauWeight = fMuonJetToTauMCWeight.GetDataFactor(tauDecayMode, fYear, tau->Pt(), tau->Eta(), muon->Pt(), muon->DeltaR(*tau),
-  //                                                          fTreeVars.onemetdeltaphi, fTreeVars.lepm, fTreeVars.mtlep,
-  //                                                          jetToTauWeightUp, jetToTauWeightDown, jetToTauWeightSys, jetToTauWeightGroup,
-  //                                                          jetToTauWeightCorr, jetToTauWeightCorrUp, jetToTauWeightCorrDown,
-  //                                                          jetToTauWeightCorrSys, jetToTauWeightBias);
-  //     jetToTauWeightCorr *= jetToTauWeight;
-  //     jetToTauWeightBias *= jetToTauWeightCorr;
-  //     eventWeight *= jetToTauWeightBias;
-  //   } else {
-  //     jetToTauWeight = 1.;
-  //     jetToTauWeightCorr = 1.;
-  //   }
-  //   if(tauGenFlavor != 26) {
-  //     FillAllHistograms(set_offset + 40); //true tight taus or loose taus
-  //   } else {
-  //     FillAllHistograms(set_offset + 41); //fake tight taus or loose taus
-  //   }
-  //   jetToTauWeight     = tmp_jwt;
-  //   jetToTauWeightCorr = tmp_jcr;
-  //   jetToTauWeightBias = tmp_jbs;
-  // }
-  // eventWeight = tmp_evt_wt; //restore the proper event weight
 
   //remove MC jet -> light lepton contribution
   if(!fUseMCEstimatedFakeLep && !fIsData) {
@@ -3974,32 +3736,11 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   }
 
   ////////////////////////////////////////////////////////////////////////////
-  // Set 45-46 + selection offset: Tau eta region categories
-  ////////////////////////////////////////////////////////////////////////////
-  // if((emu || ((mutau || etau) && fabs(tau->Eta()) < 1.5))) //no tau in emu, put all with barrel category
-  //   FillAllHistograms(set_offset + 45);
-  // else if((mutau || etau) && fabs(tau->Eta()) >= 1.5)
-  //   FillAllHistograms(set_offset + 46);
-
-  ////////////////////////////////////////////////////////////////////////////
-  // Set 22-23 + selection offset: Jet categories 0, > 0
-  ////////////////////////////////////////////////////////////////////////////
-  // if((mutau || etau || emu || mumu || ee) && nJets == 0)
-  //   FillAllHistograms(set_offset + 22);
-  // else if((mutau || etau || emu || mumu || ee) && nJets > 0)
-  //   FillAllHistograms(set_offset + 23);
-
-
-  ////////////////////////////////////////////////////////////////////////////
   // Set 24-25 : Mass window sets
   ////////////////////////////////////////////////////////////////////////////
   //Z0 window
-  // if(mutau && mll < 95. && mll > 60.)  FillAllHistograms(set_offset + 24);
-  // if(etau && mll < 95. && mll > 60.)   FillAllHistograms(set_offset + 24);
   if(emu && mll < 96. && mll > 85.)    FillAllHistograms(set_offset + 24);
   //higgs window
-  // if(mutau && mll < 130. && mll > 75.) FillAllHistograms(set_offset + 25);
-  // if(etau && mll < 130. && mll > 75.)  FillAllHistograms(set_offset + 25);
   if(emu && mll < 130. && mll > 120.)  FillAllHistograms(set_offset + 25);
 
   if(fDYTesting && !fDoMVASets) return kTRUE;
@@ -4064,36 +3805,6 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
 
   if(fDYTesting) return kTRUE;
 
-  ////////////////////////////////////////////////////////////////////////////
-  // Set 20-21 + selection offset: Box cuts
-  ////////////////////////////////////////////////////////////////////////////
-  //z ids
-  // if(mutau && fEventId[0] && fEventId[0]->IDWord(fTreeVars) == 0)   FillAllHistograms(set_offset + 20);
-  // if(etau && fEventId[10] && fEventId[10]->IDWord(fTreeVars) == 0)  FillAllHistograms(set_offset + 20);
-  // if(emu && fEventId[20] && fEventId[20]->IDWord(fTreeVars) == 0)   FillAllHistograms(set_offset + 20);
-  // if(mumu && fEventId[20] && fEventId[20]->IDWord(fTreeVars) == 0)  FillAllHistograms(set_offset + 20);
-  // if(ee && fEventId[20] && fEventId[20]->IDWord(fTreeVars) == 0)    FillAllHistograms(set_offset + 20);
-  // //higgs ids
-  // if(emu && fEventId[50] && fEventId[50]->IDWord(fTreeVars) == 0)   FillAllHistograms(set_offset + 21);
-
-
-
-  // ////////////////////////////////////////////////////////////////////////////
-  // // Set 27 + selection offset: Genuine hadronic taus
-  // ////////////////////////////////////////////////////////////////////////////
-  // bool genuineTau = fIsData != 0 || std::abs(tauGenFlavor) == 15;
-  // genuineTau &= mutau || etau;
-  // if(genuineTau)
-  //   FillAllHistograms(set_offset + 27);
-
-  ////////////////////////////////////////////////////////////////////////////
-  // Set 28 + selection offset: Non-jet based hadronic taus
-  ////////////////////////////////////////////////////////////////////////////
-  // bool nonJetTau = fIsData != 0 || std::abs(tauGenFlavor) != 26;
-  // nonJetTau &= mutau || etau;
-  // if(nonJetTau)
-  //   FillAllHistograms(set_offset + 28);
-
 
   return kTRUE;
 }
@@ -4132,11 +3843,11 @@ void CLFVHistMaker::MatchTriggers() {
   }
 
   triggerLeptonStatus = 0;
-  if((std::abs(leptonOneFlavor) == 11 && leptonOneFired) ||
+  if((std::abs(leptonOneFlavor) == 11 && leptonOneFired) || //electron triggered
      (std::abs(leptonTwoFlavor) == 11 && leptonTwoFired)) {
     triggerLeptonStatus += 1;
   }
-  if((std::abs(leptonOneFlavor) == 13 && leptonOneFired) ||
+  if((std::abs(leptonOneFlavor) == 13 && leptonOneFired) || //muon triggered
      (std::abs(leptonTwoFlavor) == 13 && leptonTwoFired)) {
     triggerLeptonStatus += 2;
   }
@@ -4360,11 +4071,6 @@ void CLFVHistMaker::InitializeSystematics() {
 }
 
 //--------------------------------------------------------------------------------------------------------------
-void CLFVHistMaker::ProcessLLGStudy() {
-
-}
-
-//--------------------------------------------------------------------------------------------------------------
 void CLFVHistMaker::SlaveTerminate()
 {
   // The SlaveTerminate() function is called after all entries or objects
@@ -4386,10 +4092,8 @@ void CLFVHistMaker::Terminate()
   fOut->Close();
   delete fOut;
   // timer->Stop();
-  Double_t cpuTime = timer->CpuTime();
-  Double_t realTime = timer->RealTime();
+  const Double_t cpuTime = timer->CpuTime();
+  const Double_t realTime = timer->RealTime();
   printf("Processing time: %7.2fs CPU time %7.2fs Wall time\n",cpuTime,realTime);
   if(realTime > 600. ) printf("Processing time: %7.2fmin CPU time %7.2fmin Wall time\n",cpuTime/60.,realTime/60.);
-
-
 }

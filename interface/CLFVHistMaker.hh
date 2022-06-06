@@ -453,123 +453,6 @@ namespace CLFV {
     Float_t muon_trig_pt_    ; //lepton trigger thresholds
     Float_t electron_trig_pt_;
 
-    //define object to apply box cuts
-    class TEventID {
-    public:
-      enum {
-            kLepm           = 0x1 <<0,
-            kLepmestimate   = 0x1 <<1,
-            kLeppt          = 0x1 <<2,
-            kMtone          = 0x1 <<3,
-            kMttwo          = 0x1 <<4,
-            kLeponept       = 0x1 <<5,
-            kLeptwopt       = 0x1 <<6,
-            kOnemetdeltaphi = 0x1 <<7,
-            kTwometdeltaphi = 0x1 <<8,
-            kLeponedeltaphi = 0x1 <<9,
-            kLeptwodeltaphi = 0x1 <<10,
-            kHt             = 0x1 <<11,
-            kNJets          = 0x1 <<12,
-            kJetpt          = 0x1 <<13,
-            kLepdeltaphi    = 0x1 <<14,
-            kMet            = 0x1 <<15
-      };
-      Float_t fMinLepm          ;
-      Float_t fMinLepmestimate  ;
-      Float_t fMinLeppt         ;
-      Float_t fMinMtone         ;
-      Float_t fMinMttwo         ;
-      Float_t fMinLeponept      ;
-      Float_t fMinLeptwopt      ;
-      Float_t fMinOnemetdeltaphi;
-      Float_t fMinTwometdeltaphi;
-      Float_t fMinLeponedeltaphi;
-      Float_t fMinLeptwodeltaphi;
-      Float_t fMinHt            ;
-      Float_t fMinNJets         ;
-      Float_t fMinJetpt         ;
-      Float_t fMinLepdeltaphi   ;
-      Float_t fMinMet           ;
-
-      Float_t fMaxLepm          ;
-      Float_t fMaxLepmestimate  ;
-      Float_t fMaxLeppt         ;
-      Float_t fMaxMtone         ;
-      Float_t fMaxMttwo         ;
-      Float_t fMaxLeponept      ;
-      Float_t fMaxLeptwopt      ;
-      Float_t fMaxOnemetdeltaphi;
-      Float_t fMaxTwometdeltaphi;
-      Float_t fMaxLeponedeltaphi;
-      Float_t fMaxLeptwodeltaphi;
-      Float_t fMaxHt            ;
-      Float_t fMaxNJets         ;
-      Float_t fMaxJetpt         ;
-      Float_t fMaxLepdeltaphi   ;
-      Float_t fMaxMet           ;
-
-      Int_t fUseMask;
-
-      TEventID() {
-        fUseMask  = 0xffffffff; //id mask to select which cuts to use
-
-        fMinLepm           = -1.e9;
-        fMinLepmestimate   = -1.e9;
-        fMinLeppt          = -1.e9;
-        fMinMtone          = -1.e9;
-        fMinMttwo          = -1.e9;
-        fMinLeponept       = -1.e9;
-        fMinLeptwopt       = -1.e9;
-        fMinOnemetdeltaphi = -1.e9;
-        fMinTwometdeltaphi = -1.e9;
-        fMinLeponedeltaphi = -1.e9;
-        fMinLeptwodeltaphi = -1.e9;
-        fMinHt             = -1.e9;
-        fMinNJets          = -1.e9;
-        fMinJetpt          = -1.e9;
-        fMinMet            = -1.e9;
-        fMinLepdeltaphi    = -1.e9;
-
-        fMaxLepm           =  1.e9;
-        fMaxLepmestimate   =  1.e9;
-        fMaxLeppt          =  1.e9;
-        fMaxMtone          =  1.e9;
-        fMaxMttwo          =  1.e9;
-        fMaxLeponept       =  1.e9;
-        fMaxLeptwopt       =  1.e9;
-        fMaxOnemetdeltaphi =  1.e9;
-        fMaxTwometdeltaphi =  1.e9;
-        fMaxLeponedeltaphi =  1.e9;
-        fMaxLeptwodeltaphi =  1.e9;
-        fMaxHt             =  1.e9;
-        fMaxNJets          =  1.e9;
-        fMaxJetpt          =  1.e9;
-        fMaxMet            =  1.e9;
-        fMaxLepdeltaphi    =  1.e9;
-      }
-
-      Int_t IDWord (Tree_t variables) {
-        Int_t id_word(0);
-        if(variables.lepm           < fMinLepm           || variables.lepm            > fMaxLepm           ) id_word |= kLepm           ;
-        if(variables.mestimate      < fMinLepmestimate   || variables.mestimate       > fMaxLepmestimate   ) id_word |= kLepmestimate   ;
-        if(variables.leppt          < fMinLeppt          || variables.leppt           > fMaxLeppt          ) id_word |= kLeppt          ;
-        if(variables.mtone          < fMinMtone          || variables.mtone           > fMaxMtone          ) id_word |= kMtone          ;
-        if(variables.mttwo          < fMinMttwo          || variables.mttwo           > fMaxMttwo          ) id_word |= kMttwo          ;
-        if(variables.leponept       < fMinLeponept       || variables.leponept        > fMaxLeponept       ) id_word |= kLeponept       ;
-        if(variables.leptwopt       < fMinLeptwopt       || variables.leptwopt        > fMaxLeptwopt       ) id_word |= kLeptwopt       ;
-        if(variables.onemetdeltaphi < fMinOnemetdeltaphi || variables.onemetdeltaphi  > fMaxOnemetdeltaphi ) id_word |= kOnemetdeltaphi ;
-        if(variables.twometdeltaphi < fMinTwometdeltaphi || variables.twometdeltaphi  > fMaxTwometdeltaphi ) id_word |= kTwometdeltaphi ;
-        if(variables.leponedeltaphi < fMinLeponedeltaphi || variables.leponedeltaphi  > fMaxLeponedeltaphi ) id_word |= kLeponedeltaphi ;
-        if(variables.leptwodeltaphi < fMinLeptwodeltaphi || variables.leptwodeltaphi  > fMaxLeptwodeltaphi ) id_word |= kLeptwodeltaphi ;
-        if(variables.ht             < fMinHt             || variables.ht              > fMaxHt             ) id_word |= kHt             ;
-        if(variables.njets          < fMinNJets          || variables.njets           > fMaxNJets          ) id_word |= kNJets          ;
-        if(variables.jetpt          < fMinJetpt          || variables.jetpt           > fMaxJetpt          ) id_word |= kJetpt          ;
-        if(variables.lepdeltaphi    < fMinLepdeltaphi    || variables.lepdeltaphi     > fMaxLepdeltaphi    ) id_word |= kLepdeltaphi    ;
-        if(variables.met            < fMinMet            || variables.met             > fMaxMet            ) id_word |= kMet            ;
-        return (id_word & fUseMask);
-      }
-    };
-
     CLFVHistMaker(int seed = 90, TTree * /*tree*/ = 0);
     ~CLFVHistMaker();
 
@@ -643,14 +526,12 @@ namespace CLFV {
     int     Category(TString selection);
     void    InitializeSystematics();
     TString GetOutputName() {
-      return Form("clfv%s_%s%s%s.hist",
-                  (fSelection == "") ? "" : ("_"+fSelection).Data(),fChain->GetName(),
+      return Form("clfv%s_%i_%s%s%s.hist",
+                  (fSelection == "") ? "" : ("_"+fSelection).Data(),fYear, fDataset.Data(),
                   (fDYType >  0) ? Form("-%i",fDYType) : "",
                   (fWNJets >= 0) ? Form("-%i",fWNJets) : ""
                   );
     }
-
-    virtual void    ProcessLLGStudy();
 
 
     Long64_t fentry; //for tracking entry in functions
@@ -679,7 +560,6 @@ namespace CLFV {
 
     //Histograms:
     const static Int_t fn = 4000; //max histogram sets: 0 - 999 typical, 1000 - 1999 QCD, 2000 - 2999 MisID, 3000 - 3999 QCD+MisID
-    const static Int_t kIds = 60; //max box cut ID sets
     const static Int_t fQcdOffset = 1000; //histogram set + offset = set with same sign selection
     const static Int_t fMisIDOffset = 2000; //histogram set + offset = set with loose ID selection
     Int_t fEventSets[fn];  //indicates which sets to create
@@ -696,10 +576,9 @@ namespace CLFV {
     TTree*          fTrees[fn];
     TH1D*           fCutFlow; //cut-flow
 
-    TEventID*       fEventId[kIds]; //for applying box cuts, 0-9 zmutau, 10-19 zetau, 20-29 zemu, higgs + 30 to z sets
-
     TString         fSelection = ""; //data selection to consider
     Int_t           fYear = 2016;
+    TString         fDataset = ""; //data set being analyzed
 
     Bool_t          fIsSignal = false;
     Int_t           fDYType = -1; //for splitting Z->ll into 1: tau tau and 2: e/mu e/mu
