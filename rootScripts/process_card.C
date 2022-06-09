@@ -33,19 +33,40 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TTr
 
   for(int wjloop = -1; wjloop < nwloops; ++wjloop) { //start from -1 to also do unsplit histogram
     for(int dyloop = 1; dyloop <= ndyloops; ++dyloop) {
-      CLFVHistMaker* selec = new CLFVHistMaker(systematicSeed_); //selector
+      auto selec = new HISTOGRAMMER(systematicSeed_); //selector
       selec->fSelection = selection;
 
-      selec->fDYTesting         = DYTesting_;
-      selec->fDYFakeTauTesting  = DYFakeTau_;
-      selec->fWJFakeTauTesting  = WJFakeTau_;
-      selec->fTTFakeTauTesting  = TTFakeTau_;
-      selec->fQCDFakeTauTesting = QCDFakeTau_;
-      selec->fJetTauTesting     = JetTauTesting_;
-      selec->fCutFlowTesting    = CutFlowTesting_;
-      selec->fTriggerTesting    = TriggerTesting_;
+      if(dynamic_cast<CLFVHistMaker*> (selec)) {
+        auto clfv_selec = (CLFVHistMaker*) selec;
+        clfv_selec->fDYTesting         = DYTesting_;
+        clfv_selec->fDYFakeTauTesting  = DYFakeTau_;
+        clfv_selec->fWJFakeTauTesting  = WJFakeTau_;
+        clfv_selec->fTTFakeTauTesting  = TTFakeTau_;
+        clfv_selec->fQCDFakeTauTesting = QCDFakeTau_;
+        clfv_selec->fJetTauTesting     = JetTauTesting_;
+        clfv_selec->fCutFlowTesting    = CutFlowTesting_;
+        clfv_selec->fTriggerTesting    = TriggerTesting_;
 
-      selec->fDoMVASets = DoMVASets_ > 0 && (DoMVASets_ > 2 || (DoMVASets_ == 2 && !(selection.Contains("tau"))) || (selection == "emu"));
+        clfv_selec->fDoMVASets = DoMVASets_ > 0 && (DoMVASets_ > 2 || (DoMVASets_ == 2 && !(selection.Contains("tau"))) || (selection == "emu"));
+      }
+      if(dynamic_cast<CLFVHistMaker*> (selec)) {
+        auto clfv_selec = (CLFVTmpHistMaker*) selec;
+        clfv_selec->fDYTesting         = DYTesting_;
+        clfv_selec->fDYFakeTauTesting  = DYFakeTau_;
+        clfv_selec->fWJFakeTauTesting  = WJFakeTau_;
+        clfv_selec->fTTFakeTauTesting  = TTFakeTau_;
+        clfv_selec->fQCDFakeTauTesting = QCDFakeTau_;
+        clfv_selec->fJetTauTesting     = JetTauTesting_;
+        clfv_selec->fCutFlowTesting    = CutFlowTesting_;
+        clfv_selec->fTriggerTesting    = TriggerTesting_;
+        clfv_selec->fDoMVASets = DoMVASets_ > 0 && (DoMVASets_ > 2 || (DoMVASets_ == 2 && !(selection.Contains("tau"))) || (selection == "emu"));
+
+        clfv_selec->fPrintTime = 2; //Print detailed summary of processing
+      }
+      if(dynamic_cast<HistMaker*> (selec)) {
+        auto hist_selec = (HistMaker*) selec;
+        hist_selec->fPrintTime = 2; //Print detailed summary of processing
+      }
 
       selec->fRemoveTriggerWeights = removeTrigWeights_;
       selec->fUpdateMCEra          = updateMCEra_;
@@ -95,6 +116,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TTr
       if(debug_ && nEvents_ < 20) selec->fVerbose = 1;
       else                        selec->fVerbose = 0;
       selector_ = selec;
+      selec->Init(tree);
       if(!debug_)
         tree->Process(selec,""); //run the selector over the tree
       else

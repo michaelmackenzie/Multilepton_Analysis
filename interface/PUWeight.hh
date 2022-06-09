@@ -13,7 +13,8 @@ namespace CLFV {
 
   class PUWeight {
   public:
-    PUWeight() {
+    PUWeight(int verbose = 0) {
+      verbose_ = verbose;
       const TString cmssw = gSystem->Getenv("CMSSW_BASE");
       const TString path = (cmssw == "") ? "../scale_factors" : cmssw + "/src/PhysicsTools/NanoAODTools/python/postprocessing/data/pileup";
       TFile* f = 0;
@@ -31,7 +32,7 @@ namespace CLFV {
         //data
         f = TFile::Open((path+fnames_data[year]).Data(), "READ");
         if(f) {
-          dataHists_[year] = (TH1F*) f->Get("pileup");
+          dataHists_[year] = (TH1*) f->Get("pileup");
           if(!dataHists_[year]) {
             std::cout << "!!! Warning: " << __func__ << ": No pileup histogram found for " << year << " Data!\n";
           } else {
@@ -44,7 +45,7 @@ namespace CLFV {
         //MC
         f = TFile::Open((path+fnames_mc[year]).Data(), "READ");
         if(f) {
-          mcHists_[year] = (TH1F*) f->Get("pu_mc");
+          mcHists_[year] = (TH1*) f->Get("pu_mc");
           if(!mcHists_[year]) {
             std::cout << "!!! Warning: " << __func__ << ": No pileup histogram found for " << year << " MC!\n";
           } else {
@@ -62,32 +63,36 @@ namespace CLFV {
     }
 
     ~PUWeight() {
-      for(std::pair<int, TH1F*> val : dataHists_) {if(val.second) delete val.second;}
-      for(std::pair<int, TH1F*> val : mcHists_  ) {if(val.second) delete val.second;}
+      for(std::pair<int, TH1*> val : dataHists_) {if(val.second) delete val.second;}
+      for(std::pair<int, TH1*> val : mcHists_  ) {if(val.second) delete val.second;}
     }
 
     float GetWeight(float nint, int year) {
       float weight(1.), ndata(1.), nmc(1.);
-      TH1F* hdata = dataHists_[year];
-      TH1F* hMC   = mcHists_  [year];
+      TH1* hdata = dataHists_[year];
+      TH1* hMC   = mcHists_  [year];
       //exit if no histograms
       if(!hdata || !hMC) {std::cout << "No histograms found in PUWeight::" << __func__ << std::endl; return weight;}
       //exit if nint > number of bins in histograms --> no number stored
       if(hdata->GetNbinsX() <= nint || hMC->GetNbinsX() <= nint) return weight;
       //assume binning is 0 - N, width = 1
       //round nint to integer, which it should be
-      int n = nint;
+      const int n = nint;
       ndata = hdata->GetBinContent(n);
       nmc   = hMC  ->GetBinContent(n);
       if(ndata > 0. && nmc > 0.) weight = ndata/nmc;
-      if(weight > 3.) std::cout << "Warning in PUWeight::" << __func__ << ": weight = "
-                                << weight << " > 3 with nInt = " << nint << " and year = "
-                                << year << " ndata = " << ndata << " nmc = " << nmc << std::endl;
+      if(weight > 3.) {
+        if(verbose_) std::cout << "Warning in PUWeight::" << __func__ << ": weight = "
+                               << weight << " > 3 with nInt = " << nint << " and year = "
+                               << year << " ndata = " << ndata << " nmc = " << nmc << std::endl;
+        weight = 3.;
+      }
       return weight;
     }
 
-    std::map<int, TH1F*> dataHists_;
-    std::map<int, TH1F*> mcHists_;
+    int verbose_;
+    std::map<int, TH1*> dataHists_;
+    std::map<int, TH1*> mcHists_;
   };
 }
 #endif

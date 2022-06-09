@@ -2,7 +2,7 @@
 #include "histogramming_config.C"
 #include "process_card.C"
 bool copyConfig_ = true; //create a new config file to use to prevent changes
-bool newProcess_ = true; //run card processing in a new process to avoid memory issues
+bool newProcess_ = false; //run card processing in a new process to avoid memory issues
 
 using namespace CLFV;
 

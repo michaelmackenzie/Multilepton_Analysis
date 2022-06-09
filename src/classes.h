@@ -26,21 +26,17 @@
 #include "interface/EmbeddingTnPWeight.hh"
 #include "interface/TauIDWeight.hh"
 #include "interface/ElectronIDWeight.hh"
-#include "interface/SlimObject_t.hh"
-#include "interface/SlimElectron_t.hh"
-#include "interface/SlimMuon_t.hh"
-#include "interface/SlimTau_t.hh"
-#include "interface/SlimJet_t.hh"
-#include "interface/SlimPhoton_t.hh"
 #include "interface/RoccoR.h"
 #include "interface/MVAConfig.hh"
 #include "interface/TrkQualInit.hh"
+#include "interface/HistMaker.hh"
 #include "interface/CLFVHistMaker.hh"
+#include "interface/SparseHistMaker.hh"
+#include "interface/CLFVTmpHistMaker.hh"
 #include "interface/DataCard_t.hh"
 #include "interface/PlottingCard_t.hh"
 #include "interface/DataPlotter.hh"
 #include "interface/ParticleCorrections.hh"
-#include "interface/NanoAODConversion.hh"
 #include "interface/Fitter.hh"
 
 using namespace CLFV;
@@ -68,21 +64,17 @@ namespace CLFV {
     ZPtWeight dummy6e;
     EmbeddingWeight dummy6f;
     EmbeddingTnPWeight dummy6f2;
-    SlimObject_t dummy7;
-    SlimElectron_t dummy8;
-    SlimMuon_t dummy9;
-    SlimTau_t dummy10;
-    SlimJet_t dummy11;
-    SlimPhoton_t dummy12;
     RoccoR dummy12b;
     MVAConfig dummy13;
     TrkQualInit dummy14;
-    CLFVHistMaker dummy15;
-    DataCard_t dummy15b;
-    PlottingCard_t dummy15c;
+    HistMaker dummy15a;
+    CLFVHistMaker dummy15b;
+    SparseHistMaker dummy15b2;
+    CLFVTmpHistMaker dummy15b3;
+    DataCard_t dummy15c;
+    PlottingCard_t dummy15d;
     DataPlotter dummy16;
     ParticleCorrections dummy17;
-    NanoAODConversion dummy18;
     Fitter dummy19;
   };
 }

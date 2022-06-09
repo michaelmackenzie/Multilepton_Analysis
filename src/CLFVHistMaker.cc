@@ -103,7 +103,7 @@ void CLFVHistMaker::Begin(TTree * /*tree*/)
 
   fSystematicShifts = new SystematicShifts(fSystematicSeed);
 
-  fRnd = new TRandom(fRndSeed);
+  fRnd = new TRandom3(fRndSeed);
   fTreeVars.type = -1;
 
 }
@@ -123,28 +123,26 @@ void CLFVHistMaker::SlaveBegin(TTree * /*tree*/)
 //--------------------------------------------------------------------------------------------------------------
 void CLFVHistMaker::FillAllHistograms(Int_t index) {
   if(eventWeight < 0. || !std::isfinite(eventWeight*genWeight)) {
-    std::cout << "WARNING! Event " << fentry << " set " << index << " has negative bare event weight or undefined total weight:\n"
+    std::cout << "WARNING! Event " << fentry << ": Set " << index << " has negative bare event weight or undefined total weight:\n"
               << " eventWeight = " << eventWeight << "; genWeight = " << genWeight << "; puWeight = " << puWeight
               << "; btagWeight = " << btagWeight << "; triggerWeight = " << leptonOneTrigWeight*leptonTwoTrigWeight
               << "; jetPUIDWeight = " << jetPUIDWeight << "; zPtWeight = " << zPtWeight
               << std::endl;
   }
   if(!std::isfinite(eventWeight*genWeight)) {
-    // std::cout << fentry << ": Warning! Set " << index << " has non-finited event weight = " << eventWeight*genWeight
-    //           << ", setting to 0" << std::endl;
     eventWeight = 0.;
     genWeight = 1.;
   }
   if(fEventSets [index]) {
-    FillEventHistogram( fEventHist [index]);
     if(fVerbose > 0) std::cout << "Filling histograms for set " << index
                                << " with event weight = " << eventWeight
                                << " and gen weight = " << genWeight << " !\n";
+    FillEventHistogram( fEventHist [index]);
     FillLepHistogram(   fLepHist   [index]);
     if(fDoSystematics && fSysSets[index]) FillSystematicHistogram(fSystematicHist[index]);
     // if(!fDYTesting) FillPhotonHistogram(fPhotonHist[index]);
   } else
-    printf("WARNING! Entry %lld, attempted to fill un-initialized histogram set %i!\n", fentry, index);
+    printf("WARNING! Entry %lld: Attempted to fill un-initialized histogram set %i!\n", fentry, index);
   if(fDoSystematics >= 0 && fWriteTrees && fTreeSets[index])
     fTrees[index]->Fill();
 }

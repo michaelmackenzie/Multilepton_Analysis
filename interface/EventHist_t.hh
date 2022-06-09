@@ -35,18 +35,13 @@ namespace CLFV {
     TH1* hNPartons;
     TH1* hLHENJets;
     TH1* hNMuons;
-    TH1* hNSlimMuons;
     TH1* hNMuonCounts[kMaxCounts];
     TH1* hNElectrons;
-    TH1* hNSlimElectrons;
     TH1* hNElectronCounts[kMaxCounts];
     TH1* hNLowPtElectrons;
     TH1* hNTaus;
-    TH1* hNSlimTaus;
     TH1* hNTauCounts[kMaxCounts];
     TH1* hNPhotons;
-    TH1* hNSlimPhotons;
-    TH1* hNSlimJets;
     TH1* hNGenTausHad;
     TH1* hNGenTausLep;
     TH1* hNGenTaus;

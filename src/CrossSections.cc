@@ -28,7 +28,7 @@ CrossSections::CrossSections(int useUL, int ZMode) {
   values_["WZ"                      ][2016] =  47.13  ; //27.6   ;
   values_["ZZ"                      ][2016] =  16.523 ; //12.14  ;
   values_["WW"                      ][2016] =  12.178 ; //WW->2l2nu
-  values_["WWToLNuQQ"               ][2016] =  43.53  ;
+  values_["WWLNuQQ"                 ][2016] =  43.53  ;
   values_["EWKWminus"               ][2016] =  23.24  ;
   values_["EWKWplus"                ][2016] =  29.59  ;
   values_["EWKZ-M50"                ][2016] =   4.321 ;
@@ -214,6 +214,17 @@ CrossSections::CrossSections(int useUL, int ZMode) {
   neg_frac_["ttbarlnu"           ][2016] = 0.00402;
   neg_frac_["WWW"                ][2016] = 0.06054;
   neg_frac_["WGamma"             ][2016] = 0.1799;
+
+  neg_frac_["DY50-amc"           ][2018] = 0.163  ;
+  neg_frac_["SingleToptW"        ][2018] = 0.003758;
+  neg_frac_["SingleAntiToptW"    ][2018] = 0.03002;
+  neg_frac_["ttbarToHadronic"    ][2018] = 0.00388;
+  neg_frac_["ttbarToSemiLeptonic"][2018] = 0.003887;
+  neg_frac_["ttbarlnu"           ][2018] = 0.00379;
+  neg_frac_["WW "                ][2018] = 0.001916;
+  neg_frac_["WWLNuQQ"            ][2018] = 0.001895;
+  neg_frac_["WWW"                ][2018] = 0.06197;
+  neg_frac_["WGamma"             ][2018] = 2.986e-05;
 
   ///////////////////////
   // generated numbers //

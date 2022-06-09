@@ -33,6 +33,10 @@ namespace CLFV {
   public:
     enum { k2016, k2017, k2018};
     enum { kYear = 100000, kRunSection = 10000, kBinY = 100};
+    //muon isolation levels
+    enum{kVVLooseMuIso, kVLooseMuIso, kLooseMuIso, kMediumMuIso, kTightMuIso, kVTightMuIso, kVVTightMuIso, kMuonIsos}; //define iso scale factor sets
+    const double muonIsoValues[kMuonIsos] = {0.5, 0.4, 0.25, 0.20, 0.15, 0.10, 0.05}; //corresponding values
+
     std::map<int, TH2*> histIDData_         ;
     std::map<int, TH2*> histIsoData_        ;
     std::map<int, TH2*> histTriggerLowData_ ;
