@@ -32,6 +32,5 @@
   <class name="DataCard_t"/>
   <class name="PlottingCard_t"/>
   <class name="DataPlotter"/>
-  <class name="ParticleCorrections"/>
   <class name="Fitter"/>
 </lcgdict>

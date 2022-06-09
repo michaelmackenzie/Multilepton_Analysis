@@ -36,7 +36,6 @@
 #include "interface/DataCard_t.hh"
 #include "interface/PlottingCard_t.hh"
 #include "interface/DataPlotter.hh"
-#include "interface/ParticleCorrections.hh"
 #include "interface/Fitter.hh"
 
 using namespace CLFV;
@@ -74,7 +73,6 @@ namespace CLFV {
     DataCard_t dummy15c;
     PlottingCard_t dummy15d;
     DataPlotter dummy16;
-    ParticleCorrections dummy17;
     Fitter dummy19;
   };
 }
