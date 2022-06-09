@@ -37,21 +37,26 @@ void SparseHistMaker::InitHistogramFlags() {
 
   if(mutau) {
     fEventSets [kMuTau + 1] = 1; // all events
+    fEventSets [kMuTau + 8] = 1; // preselection
   }
   if(etau) {
     fEventSets [kETau + 1] = 1; // all events
+    fEventSets [kETau + 8] = 1; // preselection
   }
   if(emu) {
     fEventSets [kEMu  + 1] = 1; // all events
+    fEventSets [kEMu  + 8] = 1; // preselection
     //Leptonic tau channels
     fEventSets[kMuTauE + 1] = 1;
     fEventSets[kETauMu + 1] = 1;
   }
   if(mumu) {
     fEventSets [kMuMu + 1] = 1; // all events
+    fEventSets [kMuMu + 8] = 1; // preselection
   }
   if(ee) {
     fEventSets [kEE   + 1] = 1; // all events
+    fEventSets [kEE   + 8] = 1; // preselection
   }
 }
 
@@ -260,183 +265,7 @@ void SparseHistMaker::FillLepHistogram(LepHist_t* Hist) {
 // Main function, process each event in the chain
 Bool_t SparseHistMaker::Process(Long64_t entry)
 {
-  if(!fChain) {
-    printf("HistMaker::%s: Error! TChain not found\n", __func__);
-    throw 1;
-  }
-  fentry = entry;
-  fChain->GetEntry(entry,0);
-  if(fVerbose > 0 || entry%50000 == 0) std::cout << Form("Processing event: %12lld (%5.1f%%)\n", entry, entry*100./fChain->GetEntriesFast());
-  int icutflow = 0;
-  fCutFlow->Fill(icutflow); ++icutflow; //0
-
-  //Initialize base object information
-  CountObjects();
-
-  //DY Splitting
-  if(fDYType > 0) {
-    // 1 = tau, 2 = muon or electron channel
-    if(nGenHardTaus == 0) { //Z->ee/mumu
-      if(fDYType == 1) return kTRUE;
-    } else if(nGenHardTaus == 2) { //Z->tautau
-      if(fDYType == 2) return kTRUE;
-    } else {
-      std::cout << "Warning! Unable to identify type of DY event!" << std::endl
-           << "nGenHardTaus = " << nGenHardTaus << std::endl
-           << "nGenHardMuons = " << nGenHardMuons << std::endl
-           << "nGenHardElectrons = " << nGenHardElectrons << std::endl
-           << "fDYType = " << fDYType << std::endl
-           << "Entry " << fentry << std::endl;
-      return kTRUE;
-    }
-  }
-
-  fCutFlow->Fill(icutflow); ++icutflow; //1
-  //split W+Jets into N(LHE jets) generated for binned sample combination
-  if(fWNJets > -1 && LHE_Njets != fWNJets) {
-    return kTRUE;
-  }
-
-  //If running embedding, reject di-tau production from non-embedding MC (except tau-tau DY MC, which is already separated by histogram files)
-  if(fDYType != 1 && fUseEmbedCuts && !fIsEmbed && !fIsData && nGenTaus == 2) {
-    return kTRUE;
-  }
-
-  fCutFlow->Fill(icutflow); ++icutflow; //2
-
-  /////////////////////////
-  // Apply event weights //
-  /////////////////////////
-
-  InitializeEventWeights();
-  if(eventWeight < 0. || !std::isfinite(eventWeight*genWeight)) {
-    std::cout << "WARNING! Skipping event " << fentry << ", as it has negative bare event weight or undefined total weight:\n"
-              << " eventWeight = " << eventWeight << "; genWeight = " << genWeight << "; puWeight = " << puWeight
-              << "; btagWeight = " << btagWeight << "; triggerWeight = " << leptonOneTrigWeight*leptonTwoTrigWeight
-              << "; jetPUIDWeight = " << jetPUIDWeight << std::endl;
-    return kTRUE;
-  }
-
-  ////////////////////////
-  // Data overlap check //
-  ////////////////////////
-
-  //skip if it's data and lepton status doesn't match data set ( 1 = electron 2 = muon) unless allowing overlap and it passes both
-  if(fIsData > 0) {
-    int pdgid = (fIsData == 1) ? 11 : 13; //pdg ID for the data stream
-    //if no selected lepton fired this trigger, continue
-    if(!((std::abs(leptonOneFlavor) == pdgid && leptonOneFired) || (std::abs(leptonTwoFlavor) == pdgid && leptonTwoFired)))
-      return kTRUE;
-
-    if(triggerLeptonStatus != ((UInt_t) fIsData)) { //trigger doesn't match data stream
-      if(triggerLeptonStatus != 3) return kTRUE; //triggered only for the other stream
-      if(fSkipDoubleTrigger) { //don't allow double triggers
-        int other_pdgid = (fIsData == 1) ? 13 : 11; //pdg ID for the other data stream
-        //only skip if the selected lepton actually fired the trigger
-        if((std::abs(leptonOneFlavor) == other_pdgid && leptonOneFired) ||(std::abs(leptonTwoFlavor) == other_pdgid && leptonTwoFired)) return kTRUE;
-      }
-    }
-  }
-
-  fCutFlow->Fill(icutflow); ++icutflow; //3
-
-  //Print debug info
-  if(fVerbose > 0 ) {
-    std::cout << " lep_1: pdg_id = " << leptonOneFlavor << " p4 = "; leptonOneP4->Print();
-    std::cout << " lep_2: pdg_id = " << leptonTwoFlavor << " p4 = "; leptonTwoP4->Print();
-  }
-
-  //Initialize systematic variation weights
-  InitializeSystematics();
-
-
-  //selections
-  //use the tree name to choose the selection
-  bool mutau =                    nMuons == 1 && nTaus == 1 && (fSelection == "" || fSelection == "mutau");
-  bool etau  = nElectrons == 1 &&                nTaus == 1 && (fSelection == "" || fSelection == "etau" );
-  bool emu   = nElectrons == 1 && nMuons == 1               && (fSelection == "" || fSelection == "emu"  );
-  bool mumu  = nElectrons <  2 && nMuons == 2               && (fSelection == "" || fSelection == "mumu" );
-  bool ee    = nElectrons == 2 && nMuons <  2               && (fSelection == "" || fSelection == "ee"   );
-
-
-  //reject overlaps
-  if(mutau && etau) {mutau = false; etau = false;}
-  if(emu && (mutau || etau)) {mutau = false; etau = false;}
-  if(fVerbose > 0) std::cout << " Event has selection statuses: mutau = " << mutau
-                             << " etau = " << etau << " emu = " << emu
-                             << " mumu = " << mumu << " and ee = " << ee << std::endl
-                             << " eventWeight*genWeight = " << eventWeight*genWeight << std::endl;
-
-  if(!(mutau || etau || emu || mumu || ee)) {
-    std::cout << "WARNING! Entry " << entry << " passes no selections! N(e) = " << nElectron
-              << " N(mu) = " << nMuon << " N(tau) = " << nTau << std::endl;
-    return kTRUE;
-  }
-
-  fCutFlow->Fill(icutflow); ++icutflow; //4
-
-  if((mutau + etau + emu + mumu + ee) > 1)
-    std::cout << "WARNING! Entry " << entry << " passes multiple selections!\n";
-
-  isFakeElectron  = !fIsData && ((std::abs(leptonOneFlavor) == 11 && leptonOneGenFlavor == 26) ||
-                                 (std::abs(leptonTwoFlavor) == 11 && leptonTwoGenFlavor == 26));
-  isFakeMuon      = !fIsData && ((std::abs(leptonOneFlavor) == 13 && leptonOneGenFlavor == 26) ||
-                                 (std::abs(leptonTwoFlavor) == 13 && leptonTwoGenFlavor == 26));
-
-  isLooseElectron = (ee || emu || etau) && leptonOneIso / leptonOneP4->Pt() >= 0.15;
-  isLooseMuon     = (mutau || mumu)     && leptonOneIso / leptonOneP4->Pt() >= 0.15;
-  isLooseMuon    |= (emu   || mumu)     && leptonTwoIso / leptonTwoP4->Pt() >= 0.15;
-  isLooseTau      = (etau  || mutau) && tauDeepAntiJet < 50;
-  looseQCDSelection = isLooseElectron || isLooseMuon || isLooseTau;
-
-
-  //////////////////////////////////////////////////////////////
-  // Apply or remove scale factors
-  //////////////////////////////////////////////////////////////
-
-  //No weights in data
-  if(fIsData) {
-    eventWeight = 1.; puWeight = 1.; genWeight = 1.; zPtWeight = 1.;
-    jetPUIDWeight = 1.; btagWeight = 1.; embeddingWeight = 1.; embeddingUnfoldingWeight = 1.;
-  }
-
-
-  InitializeTreeVariables();
-
-  //////////////////////////////////////////////////////////////
-  // Check if anti-iso/same-sign lepton category
-  //////////////////////////////////////////////////////////////
-
-
-  const bool chargeTest = leptonOneFlavor*leptonTwoFlavor < 0;
-
-  if(fVerbose > 0) std::cout << " Event has selection statuses: mutau = " << mutau
-                             << " etau = " << etau << " emu = " << emu
-                             << " mumu = " << mumu << " and ee = " << ee << std::endl;
-
-  if(!std::isfinite(eventWeight) || !std::isfinite(genWeight)) {
-    std::cout << __func__ << ": Warning!!! " << fentry << " point 1: Event weight not defined (" << eventWeight*genWeight << "), setting to 0. Event weights:\n"
-              << " btag = " << btagWeight << "; embedding = " << embeddingWeight << "; embed_unfold = " << embeddingUnfoldingWeight
-              << "; genWeight = " << genWeight << "; zPtWeight = " << zPtWeight << "; jetPUIDWt = " << jetPUIDWeight
-              << "; trig_wt = " << leptonOneTrigWeight*leptonTwoTrigWeight << "; lep1_wt = " << leptonOneWeight1*leptonOneWeight2
-              << "; lep2_wt = " << leptonTwoWeight1*leptonTwoWeight2
-              << std::endl;
-    eventWeight = 0.;
-    genWeight = 1.;
-  }
-
-  ////////////////////////////////////////////////////////////
-  // Define the selection set for typical histogramming
-  ////////////////////////////////////////////////////////////
-  int set_offset = 0;
-  if(mutau)     set_offset = kMuTau;
-  else if(etau) set_offset = kETau;
-  else if(emu ) set_offset = kEMu;
-  else if(mumu) set_offset = kMuMu;
-  else if(ee  ) set_offset = kEE;
-
-  if(!chargeTest) set_offset += fQcdOffset;
-  if(looseQCDSelection) set_offset += fMisIDOffset;
+  if(InitializeEvent(entry)) return kTRUE;
 
   ////////////////////////////////////////////////////////////
   // Set 1 + selection offset: base selection
@@ -445,5 +274,91 @@ Bool_t SparseHistMaker::Process(Long64_t entry)
   FillAllHistograms(set_offset + 1);
 
   fCutFlow->Fill(icutflow); ++icutflow; //5
+
+  //object pT thresholds
+  float muon_pt(10.), electron_pt(15.), tau_pt(20.);
+
+  if(std::abs(leptonOneFlavor) == 11 && leptonOneP4->Pt() <= electron_pt) return kTRUE;
+  if(std::abs(leptonTwoFlavor) == 11 && leptonTwoP4->Pt() <= electron_pt) return kTRUE;
+  if(std::abs(leptonOneFlavor) == 13 && leptonOneP4->Pt() <= muon_pt    ) return kTRUE;
+  if(std::abs(leptonTwoFlavor) == 13 && leptonTwoP4->Pt() <= muon_pt    ) return kTRUE;
+  if(std::abs(leptonOneFlavor) == 15 && leptonOneP4->Pt() <= tau_pt     ) return kTRUE;
+  if(std::abs(leptonTwoFlavor) == 15 && leptonTwoP4->Pt() <= tau_pt     ) return kTRUE;
+
+  //eta region cuts
+  const double electron_eta_max = (fUseEmbedCuts) ? 2.2 : 2.5;
+  const double muon_eta_max     = (fUseEmbedCuts) ? 2.2 : 2.4;
+  const double tau_eta_max      = (fUseEmbedCuts) ? 2.2 : 2.3;
+  if(std::abs(leptonOneFlavor) == 11 && std::fabs(leptonOneP4->Eta()) >= electron_eta_max) return kTRUE;
+  if(std::abs(leptonTwoFlavor) == 11 && std::fabs(leptonTwoP4->Eta()) >= electron_eta_max) return kTRUE;
+  if(std::abs(leptonOneFlavor) == 13 && std::fabs(leptonOneP4->Eta()) >= muon_eta_max    ) return kTRUE;
+  if(std::abs(leptonTwoFlavor) == 13 && std::fabs(leptonTwoP4->Eta()) >= muon_eta_max    ) return kTRUE;
+  if(std::abs(leptonOneFlavor) == 15 && std::fabs(leptonOneP4->Eta()) >= tau_eta_max     ) return kTRUE;
+  if(std::abs(leptonTwoFlavor) == 15 && std::fabs(leptonTwoP4->Eta()) >= tau_eta_max     ) return kTRUE;
+
+  if(std::fabs(leptonOneP4->DeltaR(*leptonTwoP4)) < 0.3) return kTRUE;
+
+  const double mll = (*leptonOneP4+*leptonTwoP4).M();
+  if(mll <= 51. || mll >= 170.) return kTRUE;
+
+  if(!(leptonOneFired || leptonTwoFired)) return kTRUE;
+
+  ee   &= !isLooseElectron && nElectrons == 2;
+  mumu &= !isLooseMuon && nMuons == 2;
+  mutau &= !isLooseMuon;
+  etau  &= !isLooseElectron;
+  emu &= !isLooseElectron; //QCD loose ID is only loose muon region
+
+  //remove MC jet -> light lepton contribution
+  if(!fUseMCEstimatedFakeLep && !fIsData) {
+    emu   &= !isFakeMuon;
+    emu   &= !isFakeElectron;
+    mumu  &= !isFakeMuon;
+    ee    &= !isFakeElectron;
+    mutau &= !isFakeMuon;
+    etau  &= !isFakeElectron;
+  }
+
+  //remove MC estimated jet --> tau component
+  mutau &= fIsData > 0 || std::abs(tauGenFlavor) != 26;
+  etau  &= fIsData > 0 || std::abs(tauGenFlavor) != 26;
+
+
+  //reject electrons in the barrel/endcap gap region
+  const float elec_gap_low(1.4442), elec_gap_high(1.566);
+  etau &= elec_gap_low > std::fabs(leptonOneSCEta) || std::fabs(leptonOneSCEta) > elec_gap_high;
+  emu  &= elec_gap_low > std::fabs(leptonOneSCEta) || std::fabs(leptonOneSCEta) > elec_gap_high;
+  ee   &= elec_gap_low > std::fabs(leptonOneSCEta) || std::fabs(leptonOneSCEta) > elec_gap_high;
+  ee   &= elec_gap_low > std::fabs(leptonTwoSCEta) || std::fabs(leptonTwoSCEta) > elec_gap_high;
+
+  if(!(mutau || etau || emu || mumu || ee)) return kTRUE;
+
+  //Tau ID selections
+  mutau &= leptonTwoID2 >= 2;
+  etau  &= tauDeepAntiEle >= 50;
+  etau  &= leptonTwoID2 >= 2;
+
+  mutau &= tauDecayMode != 5 && tauDecayMode != 6;
+  etau  &= tauDecayMode != 5 && tauDecayMode != 6;
+
+  if(!(mutau || etau || emu || mumu || ee)) return kTRUE;
+
+  //b-jet veto
+  if(emu && nBJets20L > 0) return kTRUE;
+  if(nBJets20 > 0) return kTRUE;
+
+
+  //MET cuts
+  const double met_cut       = 60.;
+  const double mtlep_cut     = 70.;
+
+  if(met >= met_cut) return kTRUE;
+  if(fTreeVars.mtlep >= mtlep_cut) return kTRUE;
+
+  ////////////////////////////////////////////////////////////
+  // Set 8 + selection offset: preselection
+  ////////////////////////////////////////////////////////////
+  FillAllHistograms(set_offset + 8);
+
   return kTRUE;
 }

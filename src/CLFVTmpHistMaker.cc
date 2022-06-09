@@ -1314,184 +1314,10 @@ void CLFVTmpHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
 // Main function, process each event in the chain
 Bool_t CLFVTmpHistMaker::Process(Long64_t entry)
 {
-  IncrementTimer(1, false); //timer for Process method
-  fentry = entry;
-  fTimes[2] = std::chrono::steady_clock::now(); //timer for reading from the tree
-  fChain->GetEntry(entry);
-  IncrementTimer(2, true);
-
-  if(fVerbose > 0 || entry%fNotifyCount == 0)
-    printf("%s: Processing event: %12lld (%5.1f%%) overall rate = %.1f Hz\n", __func__, entry,
-           entry*100./fChain->GetEntriesFast(),
-           (fDurations[1] > 0.) ? fTimeCounts[1]*1.e6/fDurations[1] : 0.);
-
-  int icutflow = 0;
-  fCutFlow->Fill(icutflow); ++icutflow; //0
-
-  //Initialize base object information
-  CountObjects();
-
-  //DY Splitting
-  if(fDYType > 0) {
-    // 1 = tau, 2 = muon or electron channel
-    if(nGenHardTaus == 0) { //Z->ee/mumu
-      if(fDYType == 1) return kTRUE;
-    } else if(nGenHardTaus == 2) { //Z->tautau
-      if(fDYType == 2) return kTRUE;
-    } else {
-      std::cout << "Warning! Unable to identify type of DY event!" << std::endl
-           << "nGenHardTaus = " << nGenHardTaus << std::endl
-           << "nGenHardMuons = " << nGenHardMuons << std::endl
-           << "nGenHardElectrons = " << nGenHardElectrons << std::endl
-           << "fDYType = " << fDYType << std::endl
-           << "Entry " << fentry << std::endl;
-      return kTRUE;
-    }
-  }
-
-  fCutFlow->Fill(icutflow); ++icutflow; //1
-  //split W+Jets into N(LHE jets) generated for binned sample combination
-  if(fWNJets > -1 && LHE_Njets != fWNJets) {
-    return kTRUE;
-  }
-
-  //If running embedding, reject di-tau production from non-embedding MC (except tau-tau DY MC, which is already separated by histogram files)
-  if(fDYType != 1 && fUseEmbedCuts && !fIsEmbed && !fIsData && nGenTaus == 2) {
-    return kTRUE;
-  }
-
-  fCutFlow->Fill(icutflow); ++icutflow; //2
-
-  /////////////////////////
-  // Apply event weights //
-  /////////////////////////
-
-  InitializeEventWeights();
-  if(eventWeight < 0. || !std::isfinite(eventWeight*genWeight)) {
-    std::cout << "WARNING! Skipping event " << fentry << ", as it has negative bare event weight or undefined total weight:\n"
-              << " eventWeight = " << eventWeight << "; genWeight = " << genWeight << "; puWeight = " << puWeight
-              << "; btagWeight = " << btagWeight << "; triggerWeight = " << leptonOneTrigWeight*leptonTwoTrigWeight
-              << "; jetPUIDWeight = " << jetPUIDWeight << std::endl;
-    return kTRUE;
-  }
-
-  ////////////////////////
-  // Data overlap check //
-  ////////////////////////
-
-  //skip if it's data and lepton status doesn't match data set ( 1 = electron 2 = muon) unless allowing overlap and it passes both
-  if(fIsData > 0) {
-    int pdgid = (fIsData == 1) ? 11 : 13; //pdg ID for the data stream
-    //if no selected lepton fired this trigger, continue
-    if(!((std::abs(leptonOneFlavor) == pdgid && leptonOneFired) || (std::abs(leptonTwoFlavor) == pdgid && leptonTwoFired)))
-      return kTRUE;
-
-    if(triggerLeptonStatus != ((UInt_t) fIsData)) { //trigger doesn't match data stream
-      if(triggerLeptonStatus != 3) return kTRUE; //triggered only for the other stream
-      if(fSkipDoubleTrigger) { //don't allow double triggers
-        int other_pdgid = (fIsData == 1) ? 13 : 11; //pdg ID for the other data stream
-        //only skip if the selected lepton actually fired the trigger
-        if((std::abs(leptonOneFlavor) == other_pdgid && leptonOneFired) ||(std::abs(leptonTwoFlavor) == other_pdgid && leptonTwoFired)) return kTRUE;
-      }
-    }
-  }
-
-  fCutFlow->Fill(icutflow); ++icutflow; //3
-
-  //Print debug info
-  if(fVerbose > 0 ) {
-    std::cout << " lep_1: pdg_id = " << leptonOneFlavor << " p4 = "; leptonOneP4->Print();
-    std::cout << " lep_2: pdg_id = " << leptonTwoFlavor << " p4 = "; leptonTwoP4->Print();
-  }
-
-  //Initialize systematic variation weights
-  InitializeSystematics();
-
-
-  //selections
-  //use the tree name to choose the selection
-  bool mutau =                    nMuons == 1 && nTaus == 1 && (fSelection == "" || fSelection == "mutau");
-  bool etau  = nElectrons == 1 &&                nTaus == 1 && (fSelection == "" || fSelection == "etau" );
-  bool emu   = nElectrons == 1 && nMuons == 1               && (fSelection == "" || fSelection == "emu"  );
-  bool mumu  = nElectrons <  2 && nMuons == 2               && (fSelection == "" || fSelection == "mumu" );
-  bool ee    = nElectrons == 2 && nMuons <  2               && (fSelection == "" || fSelection == "ee"   );
-
-
-  //reject overlaps
-  if(mutau && etau) {mutau = false; etau = false;}
-  if(emu && (mutau || etau)) {mutau = false; etau = false;}
-  if(fVerbose > 0) std::cout << " Event has selection statuses: mutau = " << mutau
-                             << " etau = " << etau << " emu = " << emu
-                             << " mumu = " << mumu << " and ee = " << ee << std::endl
-                             << " eventWeight*genWeight = " << eventWeight*genWeight << std::endl;
-
-  if(!(mutau || etau || emu || mumu || ee)) {
-    std::cout << "WARNING! Entry " << entry << " passes no selections! N(e) = " << nElectron
-              << " N(mu) = " << nMuon << " N(tau) = " << nTau << std::endl;
-    return kTRUE;
-  }
-
-  fCutFlow->Fill(icutflow); ++icutflow; //4
-
-  if((mutau + etau + emu + mumu + ee) > 1)
-    std::cout << "WARNING! Entry " << entry << " passes multiple selections!\n";
-
-  isFakeElectron  = !fIsData && ((std::abs(leptonOneFlavor) == 11 && leptonOneGenFlavor == 26) ||
-                                 (std::abs(leptonTwoFlavor) == 11 && leptonTwoGenFlavor == 26));
-  isFakeMuon      = !fIsData && ((std::abs(leptonOneFlavor) == 13 && leptonOneGenFlavor == 26) ||
-                                 (std::abs(leptonTwoFlavor) == 13 && leptonTwoGenFlavor == 26));
-
-  isLooseElectron = (ee || emu || etau) && leptonOneIso / leptonOneP4->Pt() >= 0.15;
-  isLooseMuon     = (mutau || mumu)     && leptonOneIso / leptonOneP4->Pt() >= 0.15;
-  isLooseMuon    |= (emu   || mumu)     && leptonTwoIso / leptonTwoP4->Pt() >= 0.15;
-  isLooseTau      = (etau  || mutau) && tauDeepAntiJet < 50;
-  looseQCDSelection = isLooseElectron || isLooseMuon || isLooseTau;
-
-
-  //////////////////////////////////////////////////////////////
-  // Apply or remove scale factors
-  //////////////////////////////////////////////////////////////
+  if(InitializeEvent(entry)) return kTRUE;
 
   //object pT thresholds
   float muon_pt(10.), electron_pt(15.), tau_pt(20.);
-
-  //No weights in data
-  if(fIsData) {
-    eventWeight = 1.; puWeight = 1.; genWeight = 1.; zPtWeight = 1.;
-    jetPUIDWeight = 1.; btagWeight = 1.; embeddingWeight = 1.; embeddingUnfoldingWeight = 1.;
-  }
-
-
-  InitializeTreeVariables();
-
-  //////////////////////////////////////////////////////////////
-  // Check if anti-iso/same-sign lepton category
-  //////////////////////////////////////////////////////////////
-
-
-  const bool chargeTest = leptonOneFlavor*leptonTwoFlavor < 0;
-
-  TVector3 lp1 = leptonOneP4->Vect();
-  TVector3 lp2 = leptonTwoP4->Vect();
-  lp1.SetZ(0.);
-  lp2.SetZ(0.);
-  TVector3 bisector = (lp1.Mag()*lp2 + lp2.Mag()*lp1);
-  if(bisector.Mag() > 0.) bisector.SetMag(1.);
-
-  if(fVerbose > 0) std::cout << " Event has selection statuses: mutau = " << mutau
-                             << " etau = " << etau << " emu = " << emu
-                             << " mumu = " << mumu << " and ee = " << ee << std::endl;
-
-  if(!std::isfinite(eventWeight) || !std::isfinite(genWeight)) {
-    std::cout << __func__ << ": Warning!!! " << fentry << " point 1: Event weight not defined (" << eventWeight*genWeight << "), setting to 0. Event weights:\n"
-              << " btag = " << btagWeight << "; embedding = " << embeddingWeight << "; embed_unfold = " << embeddingUnfoldingWeight
-              << "; genWeight = " << genWeight << "; zPtWeight = " << zPtWeight << "; jetPUIDWt = " << jetPUIDWeight
-              << "; trig_wt = " << leptonOneTrigWeight*leptonTwoTrigWeight << "; lep1_wt = " << leptonOneWeight1*leptonOneWeight2
-              << "; lep2_wt = " << leptonTwoWeight1*leptonTwoWeight2
-              << std::endl;
-    eventWeight = 0.;
-    genWeight = 1.;
-  }
 
   //////////////////////////////////////////////////////////////
   //
@@ -1502,28 +1328,6 @@ Bool_t CLFVTmpHistMaker::Process(Long64_t entry)
   //Ignore loose lepton selection in same flavor category for now
   ee   &= !isLooseElectron;
   mumu &= !isLooseMuon;
-
-
-  jetToTauWeight = 1.; jetToTauWeightUp = 1.; jetToTauWeightDown = 1.; jetToTauWeightSys = 1.; jetToTauWeightGroup = 0;
-  jetToTauWeightCorr = 1.; jetToTauWeightCorrUp = 1.; jetToTauWeightCorrDown = 1.; jetToTauWeightCorrSys = 1.;
-  jetToTauWeightBias = 1.; jetToTauWeightBiasUp = 1.; jetToTauWeightBiasDown = 1.;
-  jetToTauWeight_compUp = 1.; jetToTauWeight_compDown = 1.;
-
-  qcdWeight = 1.; qcdWeightUp = 1.; qcdWeightDown = 1.; qcdWeightSys = 1.; qcdClosure = 1.;
-
-
-  ////////////////////////////////////////////////////////////
-  // Define the selection set for typical histogramming
-  ////////////////////////////////////////////////////////////
-  int set_offset = 0;
-  if(mutau)     set_offset = kMuTau;
-  else if(etau) set_offset = kETau;
-  else if(emu ) set_offset = kEMu;
-  else if(mumu) set_offset = kMuMu;
-  else if(ee  ) set_offset = kEE;
-
-  if(!chargeTest) set_offset += fQcdOffset;
-  if(looseQCDSelection) set_offset += fMisIDOffset;
 
   ////////////////////////////////////////////////////////////
   // Set 1 + selection offset: base selection
@@ -1700,147 +1504,6 @@ Bool_t CLFVTmpHistMaker::Process(Long64_t entry)
   // Analysis cut section
   //
   //////////////////////////////////////////////////////////////
-
-
-
-  //configure bjet counting based on selection
-  fBJetCounting = 2; //use pT > 20 GeV/c
-  if(emu)       fBJetTightness = 2; //loose b-jets
-  else if(etau) fBJetTightness = 0; //-1; //no cut on b-jets
-  else if(mutau)fBJetTightness = 0; //-1; //no cut on b-jets
-  else if(mumu) fBJetTightness = 2; //loose b-jets
-  else if(ee)   fBJetTightness = 2; //loose b-jets
-
-  //define how we're counting bjets, ID and pT threshold
-  if(fBJetCounting == 0) {
-    if(fBJetTightness == 0) nBJetsUse = nBJets;
-    else if(fBJetTightness == 1) nBJetsUse = nBJetsM;
-    else if(fBJetTightness == 2) nBJetsUse = nBJetsL;
-  } else if(fBJetCounting == 2) {
-    if(fBJetTightness == 0) nBJetsUse = nBJets20;
-    else if(fBJetTightness == 1) nBJetsUse = nBJets20M;
-    else if(fBJetTightness == 2) nBJetsUse = nBJets20L;
-  } else if(fBJetTightness == -1) //no b-jet cut
-    nBJetsUse = 0;
-  else {
-    if(entry % fNotifyCount == 0) printf("Bad bJetUse definition, Count = %i Tight = %i!\n", fBJetCounting, fBJetTightness);
-  }
-
-  /////////////////////////
-  // Jet --> tau weights //
-  /////////////////////////
-
-
-  Float_t tmp_evt_wt = eventWeight; //recored weight before corrections to update all weights at the end
-  //weigh anti-iso tau region by anti-iso --> tight iso weight
-  if((etau || mutau) && isLooseTau) {
-    //use data factor for MC and Data, since not using MC estimated fake tau rates
-    if(fUseJetToTauComposition) {
-      jetToTauWeight = 0.;
-      jetToTauWeightCorr = 0.;
-      jetToTauWeightBias = 0.;
-      jetToTauWeight_compUp = 0.;
-      jetToTauWeight_compDown = 0.;
-      Float_t jttUp(0.), jttDown(0.), jttSys(0.);
-      if(mutau) {
-        if(chargeTest) {
-          fMuonJetToTauComp.GetComposition(tau->Pt(), fTreeVars.twometdeltaphi, fTreeVars.mttwo, tauDecayMode,
-                                           muon->Pt(), fTreeVars.onemetdeltaphi, fTreeVars.mtone,
-                                           fYear, fJetToTauComps, fJetToTauCompsUp, fJetToTauCompsDown);
-        } else {
-          fMuonJetToTauSSComp.GetComposition(tau->Pt(), fTreeVars.twometdeltaphi, fTreeVars.mttwo, tauDecayMode,
-                                             muon->Pt(), fTreeVars.onemetdeltaphi, fTreeVars.mtone,
-                                             fYear, fJetToTauComps, fJetToTauCompsUp, fJetToTauCompsDown);
-        }
-      } else {
-        if(chargeTest) {
-          fElectronJetToTauComp.GetComposition(tau->Pt(), fTreeVars.twometdeltaphi, fTreeVars.mttwo, tauDecayMode,
-                                               electron->Pt(), fTreeVars.onemetdeltaphi, fTreeVars.mtone,
-                                               fYear, fJetToTauComps, fJetToTauCompsUp, fJetToTauCompsDown);
-        } else {
-          fElectronJetToTauSSComp.GetComposition(tau->Pt(), fTreeVars.twometdeltaphi, fTreeVars.mttwo, tauDecayMode,
-                                                 electron->Pt(), fTreeVars.onemetdeltaphi, fTreeVars.mtone,
-                                                 fYear, fJetToTauComps, fJetToTauCompsUp, fJetToTauCompsDown);
-        }
-      }
-      for(int proc = 0; proc < JetToTauComposition::kLast; ++proc) {
-        if(mutau) {
-          fJetToTauWts[proc]   = (fMuonJetToTauWeights[proc]->GetDataFactor(tauDecayMode, fYear, tau->Pt(), tau->Eta(), muon->Pt(), muon->DeltaR(*tau),
-                                                                            fTreeVars.onemetdeltaphi, fTreeVars.lepm, fTreeVars.mtlep, leptonOneIso/leptonOneP4->Pt(),
-                                                                            jetToTauWeightUp, jetToTauWeightDown, jetToTauWeightSys, jetToTauWeightGroup,
-                                                                            fJetToTauCorrs[proc], jetToTauWeightCorrUp, jetToTauWeightCorrDown,
-                                                                            jetToTauWeightCorrSys, fJetToTauBiases[proc]));
-          fJetToTauMCWts[proc] = (fMuonJetToTauMCWeights[proc]->GetDataFactor(tauDecayMode, fYear, tau->Pt(), tau->Eta(), muon->Pt(), muon->DeltaR(*tau),
-                                                                              fTreeVars.onemetdeltaphi, fTreeVars.lepm, fTreeVars.mtlep, leptonOneIso/leptonOneP4->Pt(),
-                                                                              fJetToTauMCCorrs[proc], fJetToTauMCBiases[proc]));
-        } else {
-          fJetToTauWts[proc]   = (fElectronJetToTauWeights[proc]->GetDataFactor(tauDecayMode, fYear, tau->Pt(), tau->Eta(), electron->Pt(), electron->DeltaR(*tau),
-                                                                                fTreeVars.onemetdeltaphi, fTreeVars.lepm, fTreeVars.mtlep, leptonOneIso/leptonOneP4->Pt(),
-                                                                                jetToTauWeightUp, jetToTauWeightDown, jetToTauWeightSys, jetToTauWeightGroup,
-                                                                                fJetToTauCorrs[proc], jetToTauWeightCorrUp, jetToTauWeightCorrDown,
-                                                                                jetToTauWeightCorrSys, fJetToTauBiases[proc]));
-          fJetToTauMCWts[proc] = (fElectronJetToTauMCWeights[proc]->GetDataFactor(tauDecayMode, fYear, tau->Pt(), tau->Eta(), electron->Pt(), electron->DeltaR(*tau),
-                                                                                  fTreeVars.onemetdeltaphi, fTreeVars.lepm, fTreeVars.mtlep, leptonOneIso/leptonOneP4->Pt(),
-                                                                                  fJetToTauMCCorrs[proc], fJetToTauMCBiases[proc]));
-        }
-        jetToTauWeight     += fJetToTauComps[proc] * fJetToTauWts[proc];
-        jetToTauWeightCorr += fJetToTauComps[proc] * fJetToTauWts[proc] * fJetToTauCorrs[proc]; //weight with the correction for this process
-        jetToTauWeightBias += fJetToTauComps[proc] * fJetToTauWts[proc] * fJetToTauCorrs[proc] * fJetToTauBiases[proc]; //weight with the correction and bias for this process
-        //store systematic effects
-        jttUp   += fJetToTauComps[proc] * jetToTauWeightUp  ;
-        jttDown += fJetToTauComps[proc] * jetToTauWeightDown;
-        jttSys  += fJetToTauComps[proc] * jetToTauWeightSys ;
-        jetToTauWeight_compUp   += fJetToTauCompsUp  [proc] * fJetToTauWts[proc] * fJetToTauCorrs[proc] * fJetToTauBiases[proc];
-        jetToTauWeight_compDown += fJetToTauCompsDown[proc] * fJetToTauWts[proc] * fJetToTauCorrs[proc] * fJetToTauBiases[proc];
-      }
-      jetToTauWeightUp   = jttUp  ;
-      jetToTauWeightDown = jttDown;
-      jetToTauWeightSys  = jttSys ;
-      jetToTauWeightCorrUp   = jetToTauWeight; //set correction up to be ignoring the correction
-      jetToTauWeightCorrDown = 2.*jetToTauWeightCorr - jetToTauWeight; //size of the weight in the other direction from 1
-      jetToTauWeightCorrSys  = jetToTauWeight;
-      jetToTauWeightBiasUp   = jetToTauWeightCorr; //set correction up to be ignoring the correction
-      jetToTauWeightBiasDown = 2.*jetToTauWeightBias - jetToTauWeightCorr; //size of the weight in the other direction from 1
-    } else {
-      std::cout << "Error! Jet to Tau weight without composition no longer supported!\n";
-      throw 20;
-    }
-    //set j-->tau bias uncertainty to its size
-    const Float_t bias_size = jetToTauWeightBias / jetToTauWeightCorr;
-    jetToTauWeightBiasUp = jetToTauWeightCorr;
-    jetToTauWeightBiasDown = (2.*bias_size - 1.)*jetToTauWeightCorr;
-    jetToTauWeightGroup += SystematicGrouping::kJetToTau;
-  }
-
-  eventWeight *= jetToTauWeightBias;
-
-  ///////////////////////
-  // SS --> OS weights //
-  ///////////////////////
-
-  //get scale factor for same sign --> opposite sign, apply to MC and Data same-sign events
-  if(emu && !chargeTest && fUseQCDWeights) {
-    qcdWeight = fQCDWeight.GetWeight(fTreeVars.lepdeltar, fTreeVars.lepdeltaphi, fTreeVars.leponeeta, fTreeVars.leponept, fTreeVars.leptwopt,
-                                     fYear, nJets, isLooseMuon, qcdClosure, qcdIsoScale, qcdWeightUp, qcdWeightDown, qcdWeightSys);
-  }
-
-  eventWeight *= qcdWeight;
-
-  if(!std::isfinite(eventWeight) || !std::isfinite(genWeight)) {
-    std::cout << __func__ << ": Warning!!! " << fentry << "point 2: Event weight not defined, setting to 0...\n";
-    eventWeight = 0.;
-    genWeight = 1.;
-  }
-
-
-  if(eventWeight != tmp_evt_wt) { //update tree var weights if needed
-    fTreeVars.eventweight        *= eventWeight/tmp_evt_wt;
-    fTreeVars.fulleventweight    *= eventWeight/tmp_evt_wt;
-    fTreeVars.fulleventweightlum *= eventWeight/tmp_evt_wt;
-    fTreeVars.eventweightMVA     *= eventWeight/tmp_evt_wt;
-  }
-  tmp_evt_wt = eventWeight;
-
 
   ////////////////////////////////////////////////////////////
   // jet --> tau cuts and region definitions
@@ -2081,11 +1744,6 @@ Bool_t CLFVTmpHistMaker::Process(Long64_t entry)
 
   if(!(mutau || etau || emu || mumu || ee)) return kTRUE;
 
-  //initialize systematic weights for TMVA systematic testing, remove non-closure correction as an estimate
-  fTreeVars.jettotaunonclosure = (jetToTauWeight / jetToTauWeightCorr) * (jetToTauWeightBias / jetToTauWeightCorr);
-  fTreeVars.zptup = zPtWeightUp / zPtWeight;
-  fTreeVars.zptdown = zPtWeightDown / zPtWeight;
-
   if(!looseQCDSelection && chargeTest) {fCutFlow->Fill(icutflow);} //13
   ++icutflow;
 
@@ -2162,15 +1820,11 @@ Bool_t CLFVTmpHistMaker::Process(Long64_t entry)
   mutau &= met < met_cut;
   etau  &= met < met_cut;
   emu   &= met < met_cut;
-  // mumu  &= met < 60.;
-  // ee    &= met < 60.;
 
   //Add W+Jets selection orthogonality condition
   mutau &= fTreeVars.mtlep < mtlep_cut;
   etau  &= fTreeVars.mtlep < mtlep_cut;
   emu   &= fTreeVars.mtlep < mtlep_cut;
-  // mumu  &= fTreeVars.mtlep < 70.;
-  // ee    &= fTreeVars.mtlep < 70.;
 
   if(!(mutau || etau || emu || mumu || ee)) return kTRUE;
 

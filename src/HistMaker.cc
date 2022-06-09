@@ -865,6 +865,12 @@ void HistMaker::InitializeEventWeights() {
   leptonOneTrigWeight   = 1.; leptonTwoTrigWeight   = 1.;
   leptonOneFired        = 0 ; leptonTwoFired        = 0 ;
 
+  jetToTauWeight = 1.; jetToTauWeightUp = 1.; jetToTauWeightDown = 1.; jetToTauWeightSys = 1.; jetToTauWeightGroup = 0;
+  jetToTauWeightCorr = 1.; jetToTauWeightCorrUp = 1.; jetToTauWeightCorrDown = 1.; jetToTauWeightCorrSys = 1.;
+  jetToTauWeightBias = 1.; jetToTauWeightBiasUp = 1.; jetToTauWeightBiasDown = 1.;
+  jetToTauWeight_compUp = 1.; jetToTauWeight_compDown = 1.;
+  qcdWeight = 1.; qcdWeightUp = 1.; qcdWeightDown = 1.; qcdWeightSys = 1.; qcdClosure = 1.;
+
   ////////////////////////////////////////////////////////////////////
   //   Generator/Embedding Weight
   ////////////////////////////////////////////////////////////////////
@@ -1010,6 +1016,108 @@ void HistMaker::InitializeEventWeights() {
   }
   eventWeight *= leptonOneWeight1*leptonOneWeight2;
   eventWeight *= leptonTwoWeight1*leptonTwoWeight2;
+
+  /////////////////////////
+  // Jet --> tau weights //
+  /////////////////////////
+
+
+  //weigh anti-iso tau region by anti-iso --> tight iso weight
+  if((etau || mutau) && isLooseTau) {
+    //use data factor for MC and Data, since not using MC estimated fake tau rates
+    if(fUseJetToTauComposition) {
+      jetToTauWeight = 0.;
+      jetToTauWeightCorr = 0.;
+      jetToTauWeightBias = 0.;
+      jetToTauWeight_compUp = 0.;
+      jetToTauWeight_compDown = 0.;
+      Float_t jttUp(0.), jttDown(0.), jttSys(0.);
+      if(mutau) {
+        if(chargeTest) {
+          fMuonJetToTauComp.GetComposition(leptonTwoP4->Pt(), fTreeVars.twometdeltaphi, fTreeVars.mttwo, tauDecayMode,
+                                           leptonOneP4->Pt(), fTreeVars.onemetdeltaphi, fTreeVars.mtone,
+                                           fYear, fJetToTauComps, fJetToTauCompsUp, fJetToTauCompsDown);
+        } else {
+          fMuonJetToTauSSComp.GetComposition(leptonTwoP4->Pt(), fTreeVars.twometdeltaphi, fTreeVars.mttwo, tauDecayMode,
+                                             leptonOneP4->Pt(), fTreeVars.onemetdeltaphi, fTreeVars.mtone,
+                                             fYear, fJetToTauComps, fJetToTauCompsUp, fJetToTauCompsDown);
+        }
+      } else {
+        if(chargeTest) {
+          fElectronJetToTauComp.GetComposition(leptonTwoP4->Pt(), fTreeVars.twometdeltaphi, fTreeVars.mttwo, tauDecayMode,
+                                               leptonOneP4->Pt(), fTreeVars.onemetdeltaphi, fTreeVars.mtone,
+                                               fYear, fJetToTauComps, fJetToTauCompsUp, fJetToTauCompsDown);
+        } else {
+          fElectronJetToTauSSComp.GetComposition(leptonTwoP4->Pt(), fTreeVars.twometdeltaphi, fTreeVars.mttwo, tauDecayMode,
+                                                 leptonOneP4->Pt(), fTreeVars.onemetdeltaphi, fTreeVars.mtone,
+                                                 fYear, fJetToTauComps, fJetToTauCompsUp, fJetToTauCompsDown);
+        }
+      }
+      for(int proc = 0; proc < JetToTauComposition::kLast; ++proc) {
+        if(mutau) {
+          fJetToTauWts[proc]   = (fMuonJetToTauWeights[proc]->GetDataFactor(tauDecayMode, fYear, leptonTwoP4->Pt(), leptonTwoP4->Eta(), leptonOneP4->Pt(),
+                                                                            leptonOneP4->DeltaR(*leptonTwoP4),
+                                                                            fTreeVars.onemetdeltaphi, fTreeVars.lepm, fTreeVars.mtlep, leptonOneIso/leptonOneP4->Pt(),
+                                                                            jetToTauWeightUp, jetToTauWeightDown, jetToTauWeightSys, jetToTauWeightGroup,
+                                                                            fJetToTauCorrs[proc], jetToTauWeightCorrUp, jetToTauWeightCorrDown,
+                                                                            jetToTauWeightCorrSys, fJetToTauBiases[proc]));
+          fJetToTauMCWts[proc] = (fMuonJetToTauMCWeights[proc]->GetDataFactor(tauDecayMode, fYear, leptonTwoP4->Pt(), leptonTwoP4->Eta(), leptonOneP4->Pt(),
+                                                                              leptonOneP4->DeltaR(*leptonTwoP4),
+                                                                              fTreeVars.onemetdeltaphi, fTreeVars.lepm, fTreeVars.mtlep, leptonOneIso/leptonOneP4->Pt(),
+                                                                              fJetToTauMCCorrs[proc], fJetToTauMCBiases[proc]));
+        } else {
+          fJetToTauWts[proc]   = (fElectronJetToTauWeights[proc]->GetDataFactor(tauDecayMode, fYear, leptonTwoP4->Pt(), leptonTwoP4->Eta(), leptonOneP4->Pt(),
+                                                                                leptonOneP4->DeltaR(*leptonTwoP4),
+                                                                                fTreeVars.onemetdeltaphi, fTreeVars.lepm, fTreeVars.mtlep, leptonOneIso/leptonOneP4->Pt(),
+                                                                                jetToTauWeightUp, jetToTauWeightDown, jetToTauWeightSys, jetToTauWeightGroup,
+                                                                                fJetToTauCorrs[proc], jetToTauWeightCorrUp, jetToTauWeightCorrDown,
+                                                                                jetToTauWeightCorrSys, fJetToTauBiases[proc]));
+          fJetToTauMCWts[proc] = (fElectronJetToTauMCWeights[proc]->GetDataFactor(tauDecayMode, fYear, leptonTwoP4->Pt(), leptonTwoP4->Eta(), leptonOneP4->Pt(),
+                                                                                  leptonOneP4->DeltaR(*leptonTwoP4),
+                                                                                  fTreeVars.onemetdeltaphi, fTreeVars.lepm, fTreeVars.mtlep, leptonOneIso/leptonOneP4->Pt(),
+                                                                                  fJetToTauMCCorrs[proc], fJetToTauMCBiases[proc]));
+        }
+        jetToTauWeight     += fJetToTauComps[proc] * fJetToTauWts[proc];
+        jetToTauWeightCorr += fJetToTauComps[proc] * fJetToTauWts[proc] * fJetToTauCorrs[proc]; //weight with the correction for this process
+        jetToTauWeightBias += fJetToTauComps[proc] * fJetToTauWts[proc] * fJetToTauCorrs[proc] * fJetToTauBiases[proc]; //weight with the correction and bias for this process
+        //store systematic effects
+        jttUp   += fJetToTauComps[proc] * jetToTauWeightUp  ;
+        jttDown += fJetToTauComps[proc] * jetToTauWeightDown;
+        jttSys  += fJetToTauComps[proc] * jetToTauWeightSys ;
+        jetToTauWeight_compUp   += fJetToTauCompsUp  [proc] * fJetToTauWts[proc] * fJetToTauCorrs[proc] * fJetToTauBiases[proc];
+        jetToTauWeight_compDown += fJetToTauCompsDown[proc] * fJetToTauWts[proc] * fJetToTauCorrs[proc] * fJetToTauBiases[proc];
+      }
+      jetToTauWeightUp   = jttUp  ;
+      jetToTauWeightDown = jttDown;
+      jetToTauWeightSys  = jttSys ;
+      jetToTauWeightCorrUp   = jetToTauWeight; //set correction up to be ignoring the correction
+      jetToTauWeightCorrDown = 2.*jetToTauWeightCorr - jetToTauWeight; //size of the weight in the other direction from 1
+      jetToTauWeightCorrSys  = jetToTauWeight;
+      jetToTauWeightBiasUp   = jetToTauWeightCorr; //set correction up to be ignoring the correction
+      jetToTauWeightBiasDown = 2.*jetToTauWeightBias - jetToTauWeightCorr; //size of the weight in the other direction from 1
+    } else {
+      std::cout << "Error! Jet to Tau weight without composition no longer supported!\n";
+      throw 20;
+    }
+    //set j-->tau bias uncertainty to its size
+    const Float_t bias_size = jetToTauWeightBias / jetToTauWeightCorr;
+    jetToTauWeightBiasUp = jetToTauWeightCorr;
+    jetToTauWeightBiasDown = (2.*bias_size - 1.)*jetToTauWeightCorr;
+    jetToTauWeightGroup += SystematicGrouping::kJetToTau;
+  }
+  eventWeight *= jetToTauWeightBias;
+
+  ///////////////////////
+  // SS --> OS weights //
+  ///////////////////////
+
+  //get scale factor for same sign --> opposite sign, apply to MC and Data same-sign events
+  if(emu && !chargeTest && fUseQCDWeights) {
+    qcdWeight = fQCDWeight.GetWeight(fTreeVars.lepdeltar, fTreeVars.lepdeltaphi, fTreeVars.leponeeta, fTreeVars.leponept, fTreeVars.leptwopt,
+                                     fYear, nJets, isLooseMuon, qcdClosure, qcdIsoScale, qcdWeightUp, qcdWeightDown, qcdWeightSys);
+  }
+
+  eventWeight *= qcdWeight;
 
   //No weights in data
   if(fIsData) {
@@ -1513,6 +1621,11 @@ void HistMaker::InitializeTreeVariables() {
     }
   }
 
+  //initialize systematic weights for TMVA systematic testing, remove non-closure correction as an estimate
+  fTreeVars.jettotaunonclosure = (jetToTauWeight / jetToTauWeightCorr) * (jetToTauWeightBias / jetToTauWeightCorr);
+  fTreeVars.zptup = zPtWeightUp / zPtWeight;
+  fTreeVars.zptdown = zPtWeightDown / zPtWeight;
+
   fTreeVars.eventcategory = fEventCategory;
   if(fFractionMVA > 0.) fTreeVars.train = (fRnd->Uniform() < fFractionMVA) ? 1. : -1.; //whether or not it is in the training sample
   fTreeVars.issignal = (fIsData == 0) ? (2.*(fIsSignal) - 1.) : 0.; //signal = 1, background = -1, data = 0
@@ -1989,10 +2102,9 @@ void HistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
   }
 }
 
-
 //--------------------------------------------------------------------------------------------------------------
-// Main function, process each event in the chain
-Bool_t HistMaker::Process(Long64_t entry)
+// Setup the event for processes
+Bool_t HistMaker::InitializeEvent(Long64_t entry)
 {
   IncrementTimer(1, false); //timer for Process method
   if(!fChain) {
@@ -2004,15 +2116,16 @@ Bool_t HistMaker::Process(Long64_t entry)
   fChain->GetEntry(entry);
   IncrementTimer(2, true);
 
-  //FIXME: Make 50k a field
-  if(fVerbose > 0 || entry%50000 == 0) std::cout << Form("Processing event: %12lld (%5.1f%%)\n", entry, entry*100./fChain->GetEntriesFast());
-  int icutflow = 0;
+  if(fVerbose > 0 || entry%fNotifyCount == 0)
+    printf("%s: Processing event: %12lld (%5.1f%%) overall rate = %.1f Hz\n", __func__, entry,
+           entry*100./fChain->GetEntriesFast(),
+           (fDurations[1] > 0.) ? fTimeCounts[1]*1.e6/fDurations[1] : 0.);
+
+  icutflow = 0;
   fCutFlow->Fill(icutflow); ++icutflow; //0
 
   //Initialize base object information
-  fTimes[3] = std::chrono::steady_clock::now(); //timer for initializing base objects
   CountObjects();
-  IncrementTimer(3, true);
 
   //MC sample splitting
   if(SplitSampleEvent()) return kTRUE;
@@ -2023,9 +2136,8 @@ Bool_t HistMaker::Process(Long64_t entry)
   // Apply event weights //
   /////////////////////////
 
-  fTimes[4] = std::chrono::steady_clock::now(); //timer for initializing event weights
   InitializeEventWeights();
-  IncrementTimer(4, true);
+
   if(eventWeight < 0. || !std::isfinite(eventWeight*genWeight)) {
     std::cout << "WARNING! Skipping event " << fentry << ", as it has negative bare event weight or undefined total weight:\n"
               << " eventWeight = " << eventWeight << "; genWeight = " << genWeight << "; puWeight = " << puWeight
@@ -2064,18 +2176,15 @@ Bool_t HistMaker::Process(Long64_t entry)
   }
 
   //Initialize systematic variation weights
-  fTimes[5] = std::chrono::steady_clock::now(); //timer for initializing systematic configuration
   InitializeSystematics();
-  IncrementTimer(5, true);
 
-
-  //selections
-  //use the tree name to choose the selection
-  bool mutau =                    nMuons == 1 && nTaus == 1 && (fSelection == "" || fSelection == "mutau");
-  bool etau  = nElectrons == 1 &&                nTaus == 1 && (fSelection == "" || fSelection == "etau" );
-  bool emu   = nElectrons == 1 && nMuons == 1               && (fSelection == "" || fSelection == "emu"  );
-  bool mumu  = nElectrons <  2 && nMuons == 2               && (fSelection == "" || fSelection == "mumu" );
-  bool ee    = nElectrons == 2 && nMuons <  2               && (fSelection == "" || fSelection == "ee"   );
+  /////////////////////////////////////
+  // Base selections
+  mutau =                    nMuons == 1 && nTaus == 1 && (fSelection == "" || fSelection == "mutau");
+  etau  = nElectrons == 1 &&                nTaus == 1 && (fSelection == "" || fSelection == "etau" );
+  emu   = nElectrons == 1 && nMuons == 1               && (fSelection == "" || fSelection == "emu"  );
+  mumu  = nElectrons <  2 && nMuons == 2               && (fSelection == "" || fSelection == "mumu" );
+  ee    = nElectrons == 2 && nMuons <  2               && (fSelection == "" || fSelection == "ee"   );
 
 
   //reject overlaps
@@ -2102,11 +2211,30 @@ Bool_t HistMaker::Process(Long64_t entry)
   // Apply or remove scale factors
   //////////////////////////////////////////////////////////////
 
-
-
-  fTimes[6] = std::chrono::steady_clock::now(); //timer for initializing event variables
   InitializeTreeVariables();
-  IncrementTimer(6, true);
+
+  //configure bjet counting based on selection
+  fBJetCounting = 2; //use pT > 20 GeV/c
+  if(emu)       fBJetTightness = 2; //loose b-jets
+  else if(etau) fBJetTightness = 0; //-1; //no cut on b-jets
+  else if(mutau)fBJetTightness = 0; //-1; //no cut on b-jets
+  else if(mumu) fBJetTightness = 2; //loose b-jets
+  else if(ee)   fBJetTightness = 2; //loose b-jets
+
+  //define how we're counting bjets, ID and pT threshold
+  if(fBJetCounting == 0) {
+    if(fBJetTightness == 0) nBJetsUse = nBJets;
+    else if(fBJetTightness == 1) nBJetsUse = nBJetsM;
+    else if(fBJetTightness == 2) nBJetsUse = nBJetsL;
+  } else if(fBJetCounting == 2) {
+    if(fBJetTightness == 0) nBJetsUse = nBJets20;
+    else if(fBJetTightness == 1) nBJetsUse = nBJets20M;
+    else if(fBJetTightness == 2) nBJetsUse = nBJets20L;
+  } else if(fBJetTightness == -1) //no b-jet cut
+    nBJetsUse = 0;
+  else {
+    if(entry % fNotifyCount == 0) printf("Bad bJetUse definition, Count = %i Tight = %i!\n", fBJetCounting, fBJetTightness);
+  }
 
   if(fVerbose > 0) std::cout << " Event has selection statuses: mutau = " << mutau
                              << " etau = " << etau << " emu = " << emu
@@ -2126,7 +2254,7 @@ Bool_t HistMaker::Process(Long64_t entry)
   ////////////////////////////////////////////////////////////
   // Define the selection set for typical histogramming
   ////////////////////////////////////////////////////////////
-  int set_offset = 0;
+  set_offset = 0;
   if(mutau)     set_offset = kMuTau;
   else if(etau) set_offset = kETau;
   else if(emu ) set_offset = kEMu;
@@ -2135,19 +2263,8 @@ Bool_t HistMaker::Process(Long64_t entry)
 
   if(!chargeTest) set_offset += fQcdOffset;
   if(looseQCDSelection) set_offset += fMisIDOffset;
-
-  ////////////////////////////////////////////////////////////
-  // Set 1 + selection offset: base selection
-  ////////////////////////////////////////////////////////////
-  if(!(mutau || etau || emu || mumu || ee)) return kTRUE;
-  fTimes[7] = std::chrono::steady_clock::now(); //timer for filling all histograms
-  FillAllHistograms(set_offset + 1);
-  IncrementTimer(7, true);
-
-  fCutFlow->Fill(icutflow); ++icutflow; //5
-  return kTRUE;
+  return kFALSE;
 }
-
 
 //--------------------------------------------------------------------------------------------------------------
 // Match trigger objects to selected leptons
@@ -2439,4 +2556,24 @@ void HistMaker::Terminate()
   }
   if(fPrintTime > 1) PrintTimerInfo();
   printf("HistMaker::%s: Finished processing!\n", __func__);
+}
+
+
+//--------------------------------------------------------------------------------------------------------------
+// Main function, process each event in the chain
+Bool_t HistMaker::Process(Long64_t entry)
+{
+
+  if(InitializeEvent(entry)) return kTRUE;
+
+  ////////////////////////////////////////////////////////////
+  // Set 1 + selection offset: base selection
+  ////////////////////////////////////////////////////////////
+  if(!(mutau || etau || emu || mumu || ee)) return kTRUE;
+  fTimes[3] = std::chrono::steady_clock::now(); //timer for filling all histograms
+  FillAllHistograms(set_offset + 1);
+  IncrementTimer(3, true);
+
+  fCutFlow->Fill(icutflow); ++icutflow; //5
+  return kTRUE;
 }

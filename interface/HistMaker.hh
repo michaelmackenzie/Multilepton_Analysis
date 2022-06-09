@@ -510,6 +510,7 @@ namespace CLFV {
     void            FillBaseEventHistogram(EventHist_t* Hist);
     void            FillBaseLepHistogram(LepHist_t* Hist);
 
+    Bool_t  InitializeEvent(Long64_t entry);
     void    InitializeTreeVariables();
     int     Category(TString selection);
     void    InitializeSystematics();
@@ -689,12 +690,25 @@ namespace CLFV {
 
     Int_t           fVerbose = 0; //verbosity level
 
+    Long64_t        fCacheSize = 10000000U; //10MB cache by default
+    Bool_t          fLoadBaskets = false;
+
     int                                   fNotifyCount = 50000;
     const static int                      fNTimes = 10;
     std::chrono::steady_clock::time_point fTimes[fNTimes]; //for tracking processing time
     long                                  fDurations[fNTimes];
     int                                   fTimeCounts[fNTimes];
     int                                   fPrintTime = 1;
+
+    ///////////////////////////////////////////
+    // Histogramming helper fields
+    int set_offset;
+    bool mutau;
+    bool etau;
+    bool emu;
+    bool mumu;
+    bool ee;
+    int icutflow;
 
     ClassDef(HistMaker,0);
 
@@ -718,17 +732,15 @@ void HistMaker::Init(TTree *tree)
     printf("HistMaker::%s: Error! Tree not found to initialize\n", __func__);
     throw 1;
   }
-  std::cout << "HistMaker::Init: Setting new tree address ("
-            << fChain << ")" << std::endl;
 
   //setup the branch addresses
   InitializeInputTree(fChain);
 
   //Load more data into memory to compensate for slow XROOTD processing
-  auto cachesize = 500000000U;
-  fChain->SetCacheSize(cachesize);
+  printf("HistMaker::%s Loading baskets\n", __func__);
+  fChain->SetCacheSize(fCacheSize);
   fChain->AddBranchToCache("*",true);
-  fChain->LoadBaskets();
+  if(fLoadBaskets) fChain->LoadBaskets(fCacheSize);
   printf("Total number of entries is %lld\n",fChain->GetEntriesFast());
 }
 
