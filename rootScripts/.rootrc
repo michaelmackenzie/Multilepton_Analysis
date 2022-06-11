@@ -16,3 +16,6 @@ Root.ObjectStat:  1
 # Gui.IconPath:  $(PWD)/Stntuple/icons
 # Record session commands, set to "-" to turn off command recording
 Rint.History:            $(PWD)/.root_hist
+
+#enable pre-fetching of TTree cache
+TFile.AsyncPrefetching: 1

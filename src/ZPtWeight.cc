@@ -8,28 +8,32 @@ ZPtWeight::ZPtWeight(TString Name, int Mode, int seed) {
   Mode_ = Mode;
   TFile* f = 0;
   TFile* fsys = 0;
-  std::vector<int> years = {2016, 2017, 2018};
+  const std::vector<int> years = {2016, 2017, 2018};
   rnd_ = new TRandom3(seed);
   const TString cmssw = gSystem->Getenv("CMSSW_BASE");
   const TString path = (cmssw == "") ? "../scale_factors" : cmssw + "/src/CLFVAnalysis/scale_factors";
   for(int year : years) {
+    hZPtScales_       [year] = nullptr;
+    hZPtRecoScales_   [year] = nullptr;
+    hZPtSysScales_    [year] = nullptr;
+    hZPtSysRecoScales_[year] = nullptr;
     f = TFile::Open(Form("%s/z_pt_vs_m_scales_mumu_%i.root", path.Data(), year), "READ");
     fsys = TFile::Open(Form("%s/z_pt_vs_m_scales_ee_%i.root", path.Data(), year), "READ");
     if(!f) continue;
     hZPtScales_[year] = (TH2*) f->Get("hGenRatio");
-    hZPtScales_[year]->SetName(Form("%s_mumu_%i", hZPtScales_[year]->GetName(), year));
+    hZPtScales_[year]->SetName(Form("%s_%s_mumu_%i", Name.Data(), hZPtScales_[year]->GetName(), year));
     hZPtScales_[year]->SetDirectory(0);
     hZPtRecoScales_[year] = (TH2*) f->Get("hRatioNorm");
-    hZPtRecoScales_[year]->SetName(Form("%s_mumu_%i", hZPtRecoScales_[year]->GetName(), year));
+    hZPtRecoScales_[year]->SetName(Form("%s_%s_mumu_%i", Name.Data(), hZPtRecoScales_[year]->GetName(), year));
     hZPtRecoScales_[year]->SetDirectory(0);
     f->Close();
     delete f;
     if(fsys) {
       hZPtSysScales_[year] = (TH2*) fsys->Get("hGenRatio");
-      hZPtSysScales_[year]->SetName(Form("%s_ee_%i", hZPtSysScales_[year]->GetName(), year));
+      hZPtSysScales_[year]->SetName(Form("%s_%s_ee_%i", Name.Data(), hZPtSysScales_[year]->GetName(), year));
       hZPtSysScales_[year]->SetDirectory(0);
       hZPtSysRecoScales_[year] = (TH2*) fsys->Get("hRatioNorm");
-      hZPtSysRecoScales_[year]->SetName(Form("%s_ee_%i", hZPtSysRecoScales_[year]->GetName(), year));
+      hZPtSysRecoScales_[year]->SetName(Form("%s_%s_ee_%i", Name.Data(), hZPtSysRecoScales_[year]->GetName(), year));
       hZPtSysRecoScales_[year]->SetDirectory(0);
       fsys->Close();
       delete fsys;
@@ -50,21 +54,32 @@ ZPtWeight::ZPtWeight(TString Name, int Mode, int seed) {
 //--------------------------------------------------------------------------------------------------------------------------------------
 ZPtWeight::~ZPtWeight() {
   if(rnd_) delete rnd_;
-  for(std::pair<int, TH2*> val : hZPtScales_       ) {if(val.second) delete val.second;}
-  for(std::pair<int, TH2*> val : hZPtRecoScales_   ) {if(val.second) delete val.second;}
-  for(std::pair<int, TH2*> val : hZPtSysScales_    ) {if(val.second) delete val.second;}
-  for(std::pair<int, TH2*> val : hZPtSysRecoScales_) {if(val.second) delete val.second;}
+  for(std::pair<int, TH2*> val : hZPtScales_       ) {if(val.second) {delete val.second;}}
+  for(std::pair<int, TH2*> val : hZPtRecoScales_   ) {if(val.second) {delete val.second;}}
+  for(std::pair<int, TH2*> val : hZPtSysScales_    ) {if(val.second) {delete val.second;}}
+  for(std::pair<int, TH2*> val : hZPtSysScales_    ) {if(val.second) {delete val.second;}}
+  for(std::pair<int, TH2*> val : hZPtSysRecoScales_) {if(val.second) {delete val.second;}}
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------------
 float ZPtWeight::GetWeight(int year, float pt, float mass, bool doReco, float& up, float& down, float& sys) {
   float weight = 1.; up = 1.; down = 1.; sys = 1.;
-  TH2* h = (doReco > 0) ? hZPtRecoScales_[year] : hZPtScales_[year];
-  TH2* hsys = (doReco > 0) ? hZPtSysRecoScales_[year] : hZPtSysScales_[year];
+  auto scales = (doReco) ? hZPtRecoScales_ : hZPtScales_;
+  if(scales.find(year) == scales.end()) {
+    std::cout << Name_.Data() << " ZPtWeight::" << __func__ << " WARNING! Z pT weights not defined for year = " << year
+              << " and doReco = " << doReco << std::endl;
+    return weight;
+  }
+  TH2* h    = scales[year];
   if(!h) {
     std::cout << Name_.Data() << " ZPtWeight::" << __func__ << " WARNING! Z pT weights not defined for year = " << year
               << " and doReco = " << doReco << std::endl;
     return weight;
+  }
+  TH2* hsys = nullptr;
+  auto sys_scales = (doReco) ? hZPtSysRecoScales_ : hZPtSysScales_;
+  if(sys_scales.find(year) != sys_scales.end()) {
+    hsys = sys_scales[year];
   }
   //ensure the values are within the bounds
   const int binx = std::max(1, std::min(h->GetNbinsX(), h->GetXaxis()->FindBin(mass)));

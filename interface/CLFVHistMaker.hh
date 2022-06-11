@@ -54,7 +54,7 @@
 #include "interface/TauIDWeight.hh"
 #include "interface/JetToTauWeight.hh"
 #include "interface/JetToTauComposition.hh"
-#include "interface/JetToLepWeight.hh"
+// #include "interface/JetToLepWeight.hh"
 #include "interface/QCDWeight.hh"
 #include "interface/MuonIDWeight.hh"
 #include "interface/ElectronIDWeight.hh"
@@ -447,7 +447,7 @@ namespace CLFV {
     Float_t electron_trig_pt_;
 
     CLFVHistMaker(int seed = 90, TTree * /*tree*/ = 0);
-    ~CLFVHistMaker();
+    ~CLFVHistMaker() {}
 
     Int_t   Version() const { return 2; }
     void    Begin(TTree *tree);
@@ -634,19 +634,19 @@ namespace CLFV {
     JetToTauComposition  fElectronJetToTauSSComp; //for etau SS systematic test
     JetToTauWeight* fElectronJetToTauWeights  [JetToTauComposition::kLast];
     JetToTauWeight* fElectronJetToTauMCWeights[JetToTauComposition::kLast]; //for measuring DR to AR/SR biases
+    Bool_t          fUseJetToTauComposition = false;
     Float_t*        fJetToTauWts       = new Float_t[JetToTauComposition::kLast];
     Float_t*        fJetToTauCorrs     = new Float_t[JetToTauComposition::kLast];
     Float_t*        fJetToTauBiases    = new Float_t[JetToTauComposition::kLast];
     Float_t*        fJetToTauComps     = new Float_t[JetToTauComposition::kLast];
     Float_t*        fJetToTauCompsUp   = new Float_t[JetToTauComposition::kLast];
     Float_t*        fJetToTauCompsDown = new Float_t[JetToTauComposition::kLast];
-    Bool_t          fUseJetToTauComposition = false;
     Float_t*        fJetToTauMCWts     = new Float_t[JetToTauComposition::kLast]; //weights using MC-based scale factors
     Float_t*        fJetToTauMCCorrs   = new Float_t[JetToTauComposition::kLast];
     Float_t*        fJetToTauMCBiases  = new Float_t[JetToTauComposition::kLast];
 
-    JetToLepWeight  fJetToMuonWeight; //for mutau
-    JetToLepWeight  fJetToElectronWeight; //for etau
+    // JetToLepWeight  fJetToMuonWeight; //for mutau
+    // JetToLepWeight  fJetToElectronWeight; //for etau
     QCDWeight       fQCDWeight; //for emu
     MuonIDWeight    fMuonIDWeight;
     ElectronIDWeight fElectronIDWeight;
@@ -678,7 +678,7 @@ namespace CLFV {
 }
 #endif
 
-#ifdef CLFVHistMaker_cxx
+#ifdef CLFVHISTMAKER_CXX
 using namespace CLFV;
 void CLFVHistMaker::Init(TTree *tree)
 {
@@ -1103,4 +1103,4 @@ Bool_t CLFVHistMaker::Notify()
 }
 
 
-#endif // #ifdef CLFVHistMaker_cxx
+#endif // #ifdef CLFVHISTMAKER_CXX

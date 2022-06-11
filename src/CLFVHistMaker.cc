@@ -1,4 +1,4 @@
-#define CLFVHistMaker_cxx
+#define CLFVHISTMAKER_CXX
 
 #include "interface/CLFVHistMaker.hh"
 #include <TStyle.h>
@@ -9,51 +9,68 @@ using namespace CLFV;
 CLFVHistMaker::CLFVHistMaker(int seed, TTree * /*tree*/) : fSystematicSeed(seed),
                                                            fMuonJetToTauComp("mutau", 2035, 3, 0), fMuonJetToTauSSComp("mutau", 3035, 3, 0),
                                                            fElectronJetToTauComp("etau", 2035, 3, 0), fElectronJetToTauSSComp("etau", 3035, 3, 0),
-                                                           fJetToMuonWeight("mumu"), fJetToElectronWeight("ee"),
+                                                           // fJetToMuonWeight("mumu"), fJetToElectronWeight("ee"),
                                                            fQCDWeight("emu", /*11010*/ 1100200/*anti-iso, jet binned, no fits*/, seed, 0),
                                                            fMuonIDWeight(seed),
                                                            //FIXME: Turn on or keep off electron trigger interpolation
-                                                           fElectronIDWeight(0, seed), fZPtWeight("MuMu", seed),
+                                                           fElectronIDWeight(0, seed),
+                                                           //FIXME: Set Z pT weight systematic mode to 1 when Z->ee weights added
+                                                           fZPtWeight("MuMu", 0, seed),
                                                            //FIXME: Turn on or keep off embedding trigger interpolation
                                                            fEmbeddingWeight(), fEmbeddingTnPWeight(10/*10*(use 2016 BF/GH scales) + 1*(interpolate scales or not)*/) {
 
   //ensure pointers set to null to not attempt to delete if never initialized
-  fCutFlow = nullptr;
+  fChain = nullptr;
   for(int i = 0; i < fn; i++) {
     fEventHist     [i] = nullptr;
     fLepHist       [i] = nullptr;
     fSystematicHist[i] = nullptr;
   }
   for(int proc = 0; proc < JetToTauComposition::kLast; ++proc) {
-    fMuonJetToTauWeights    [proc] = nullptr;
-    fElectronJetToTauWeights[proc] = nullptr;
+    fMuonJetToTauWeights      [proc] = nullptr;
+    fMuonJetToTauMCWeights    [proc] = nullptr;
+    fElectronJetToTauWeights  [proc] = nullptr;
+    fElectronJetToTauMCWeights[proc] = nullptr;
   }
-  fRnd = nullptr;
+  fCutFlow = nullptr;
+  fTauIDWeight = nullptr;
   fSystematicShifts = nullptr;
+  fRnd = nullptr;
 
   leptonOneP4 = new TLorentzVector();
   leptonTwoP4 = new TLorentzVector();
   jetOneP4    = new TLorentzVector();
+  photonP4    = nullptr;
 }
 
-//--------------------------------------------------------------------------------------------------------------
-CLFVHistMaker::~CLFVHistMaker() {
-  if(fCutFlow) delete fCutFlow;
-  for(int proc = 0; proc < JetToTauComposition::kLast; ++proc) {
-    if(fMuonJetToTauWeights      [proc]) {delete fMuonJetToTauWeights      [proc];}
-    if(fMuonJetToTauMCWeights    [proc]) {delete fMuonJetToTauMCWeights    [proc];}
-    if(fElectronJetToTauWeights  [proc]) {delete fElectronJetToTauWeights  [proc];}
-    if(fElectronJetToTauMCWeights[proc]) {delete fElectronJetToTauMCWeights[proc];}
-  }
-  DeleteHistograms();
+// //--------------------------------------------------------------------------------------------------------------
+// CLFVHistMaker::~CLFVHistMaker() {
+//   DeleteHistograms();
+//   if(fJetToTauWts      ) {delete fJetToTauWts      ; fJetToTauWts       = nullptr;}
+//   if(fJetToTauCorrs    ) {delete fJetToTauCorrs    ; fJetToTauCorrs     = nullptr;}
+//   if(fJetToTauBiases   ) {delete fJetToTauBiases   ; fJetToTauBiases    = nullptr;}
+//   if(fJetToTauComps    ) {delete fJetToTauComps    ; fJetToTauComps     = nullptr;}
+//   if(fJetToTauCompsUp  ) {delete fJetToTauCompsUp  ; fJetToTauCompsUp   = nullptr;}
+//   if(fJetToTauCompsDown) {delete fJetToTauCompsDown; fJetToTauCompsDown = nullptr;}
+//   if(fJetToTauMCWts    ) {delete fJetToTauMCWts    ; fJetToTauMCWts     = nullptr;}
+//   if(fJetToTauMCCorrs  ) {delete fJetToTauMCCorrs  ; fJetToTauMCCorrs   = nullptr;}
+//   if(fJetToTauMCBiases ) {delete fJetToTauMCBiases ; fJetToTauMCBiases  = nullptr;}
+//   // for(int proc = 0; proc < JetToTauComposition::kLast; ++proc) {
+//   //   if(fMuonJetToTauWeights      [proc]) {delete fMuonJetToTauWeights      [proc]; fMuonJetToTauWeights      [proc] = nullptr;}
+//   //   if(fMuonJetToTauMCWeights    [proc]) {delete fMuonJetToTauMCWeights    [proc]; fMuonJetToTauMCWeights    [proc] = nullptr;}
+//   //   if(fElectronJetToTauWeights  [proc]) {delete fElectronJetToTauWeights  [proc]; fElectronJetToTauWeights  [proc] = nullptr;}
+//   //   if(fElectronJetToTauMCWeights[proc]) {delete fElectronJetToTauMCWeights[proc]; fElectronJetToTauMCWeights[proc] = nullptr;}
+//   // }
 
-  if (fTauIDWeight     ) delete fTauIDWeight     ;
-  if (fSystematicShifts) delete fSystematicShifts;
-  if (fRnd             ) delete fRnd             ;
-  if(leptonOneP4) delete leptonOneP4;
-  if(leptonTwoP4) delete leptonTwoP4;
-  if(jetOneP4)    delete jetOneP4;
-}
+//   if(fCutFlow          ) {delete fCutFlow         ; fCutFlow          = nullptr;}
+//   if(fTauIDWeight      ) {delete fTauIDWeight     ; fTauIDWeight      = nullptr;}
+//   if(fSystematicShifts ) {delete fSystematicShifts; fSystematicShifts = nullptr;}
+//   if(fRnd              ) {delete fRnd             ; fRnd              = nullptr;}
+//   if(leptonOneP4       ) {delete leptonOneP4      ; leptonOneP4       = nullptr;}
+//   if(leptonTwoP4       ) {delete leptonTwoP4      ; leptonTwoP4       = nullptr;}
+//   if(jetOneP4          ) {delete jetOneP4         ; jetOneP4          = nullptr;}
+//   if(photonP4          ) {delete photonP4         ; photonP4          = nullptr;}
+// }
 
 //--------------------------------------------------------------------------------------------------------------
 void CLFVHistMaker::Begin(TTree * /*tree*/)
@@ -1101,15 +1118,18 @@ void CLFVHistMaker::InitializeEventWeights() {
   ////////////////////////////////////////////////////////////////////
 
   //Z pT/mass info (DY and Z signals only)
-  zPtWeight = 1.f;
-  if(fIsDY && !fIsEmbed) {
+  zPtWeight = 1.f; zPtWeightUp = 1.; zPtWeightDown = 1.; zPtWeightSys = 1.;
+  if(fIsDY && !fIsEmbed && fRemoveZPtWeights == 0) {
     //re-weight the Z pt vs mass spectrum
-    zPtWeight = fZPtWeight.GetWeight(fYear, zPt, zMass, false /*Use Gen level weights*/, zPtWeightUp, zPtWeightDown, zPtWeightSys);
-    eventWeight *= zPtWeight;
+    if(zPt < 0. || zMass <= 0.) {
+      printf("CLFVHistMaker::%s: Entry %lld: Warning! Z pT/mass variables not properly defined fo DY weights, setting weight to 1\n",
+             __func__, fentry);
+    } else {
+      zPtWeight = fZPtWeight.GetWeight(fYear, zPt, zMass, false /*Use Gen level weights*/, zPtWeightUp, zPtWeightDown, zPtWeightSys);
+      eventWeight *= zPtWeight;
+    }
     if(fVerbose > 0) std::cout << " For Z pT = " << zPt << " and Mass = " << zMass << " using Data/MC weight " << zPtWeight
                                << "--> event weight = " << eventWeight << std::endl;
-  } else {
-    zPtWeight = 1.; zPtWeightUp = 1.; zPtWeightDown = 1.; zPtWeightSys = 1.;
   }
 
   ////////////////////////////////////////////////////////////////////
@@ -1394,7 +1414,7 @@ void CLFVHistMaker::CountObjects() {
   metCorrPhi = 0.;
 
   //If no Z information is found, approximate it with the lepton info
-  if(zPt < 0 || zMass < 0) {
+  if(zPt < 0 || zMass <= 0) {
     if(zLepOnePt < 0 || zLepTwoPt < 0) { //no generator-level leptons
       zPt = ((*leptonOneP4) + (*leptonTwoP4)).Pt();
       zMass = ((*leptonOneP4) + (*leptonTwoP4)).M();

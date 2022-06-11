@@ -3,13 +3,22 @@ LD       := g++
 CXXFLAGS := -Wall -Wextra -Werror -O2 -std=c++1y -g -I./ $(shell root-config --cflags) -lTMVA
 LDFLAGS  := -shared -Wall -Wextra $(shell root-config --libs) -lTMVA
 SRC 	 := $(wildcard src/*.cc)
+BINSRC 	 := $(wildcard test/*.cpp)
 OBJS     := $(SRC:src/%.cc=obj/lib/%.o)
+BINOBJS  := $(BINSRC:src/%.cpp=obj/bin/%.o)
+BINS 	 := $(BINSRC:src/%.cpp=bin/%)
 LIB 	 := lib/libCLFVAnalysis.so
 
 -include $(OBJS:.o=.d)
+-include $(BINOBJS:.o=.d)
 
 obj/lib/%.o: src/%.cc
 	if [[ ! -d obj/lib ]]; then mkdir -p obj/lib; fi; if [[ ! -d lib ]]; then mkdir lib; fi;
+	$(CXX) $(CXXFLAGS) -fPIC -c $< -o $@
+	$(CXX) $(CXXFLAGS) -MM -MP -MT $@ $< -o $(@:.o=.d)
+
+obj/bin/%.o: src/%.cpp
+	if [[ ! -d obj/bin ]]; then mkdir -p obj/bin; fi; if [[ ! -d bin ]]; then mkdir bin; fi;
 	$(CXX) $(CXXFLAGS) -fPIC -c $< -o $@
 	$(CXX) $(CXXFLAGS) -MM -MP -MT $@ $< -o $(@:.o=.d)
 
@@ -29,9 +38,15 @@ $(LIB): $(OBJS) lib/CLFVAnalysis_xr.cc.o
 	$(LD) $(LDFLAGS) -o $@ $^
 
 bin/%: obj/bin/%.o $(LIB)
-	$(CXX) -o $@ $^ $(shell root-config --libs)
+	$(CXX) -o $@ $^ $(LDFLAGS)
 
 all: $(LIB)
+
+test: $(LIB) $(BINS)
+
+# $(CXX) $(CXXFLAGS) -fPIC -c src/test.cpp -o obj/lib/test.o
+# $(CXX) -o test.exe $(OBJS) test.o $(LDFLAGS) $(LIB)
+# $(CXX) $(CXXFLAGS) $(shell root-config --libs) -L$(LIB) -pedantic test.cpp -o test.exe
 
 .SECONDARY: $(BINOBJS) obj/lib/CLFVAnalysis_xr.cc
 .PHONY: all clean

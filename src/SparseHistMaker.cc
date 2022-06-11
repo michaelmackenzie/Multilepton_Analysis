@@ -271,7 +271,9 @@ Bool_t SparseHistMaker::Process(Long64_t entry)
   // Set 1 + selection offset: base selection
   ////////////////////////////////////////////////////////////
   if(!(mutau || etau || emu || mumu || ee)) return kTRUE;
+  fTimes[3] = std::chrono::steady_clock::now(); //timer for filling all histograms
   FillAllHistograms(set_offset + 1);
+  IncrementTimer(3, true);
 
   fCutFlow->Fill(icutflow); ++icutflow; //5
 
@@ -284,6 +286,8 @@ Bool_t SparseHistMaker::Process(Long64_t entry)
   if(std::abs(leptonTwoFlavor) == 13 && leptonTwoP4->Pt() <= muon_pt    ) return kTRUE;
   if(std::abs(leptonOneFlavor) == 15 && leptonOneP4->Pt() <= tau_pt     ) return kTRUE;
   if(std::abs(leptonTwoFlavor) == 15 && leptonTwoP4->Pt() <= tau_pt     ) return kTRUE;
+
+  fCutFlow->Fill(icutflow); ++icutflow; //6
 
   //eta region cuts
   const double electron_eta_max = (fUseEmbedCuts) ? 2.2 : 2.5;
@@ -298,8 +302,12 @@ Bool_t SparseHistMaker::Process(Long64_t entry)
 
   if(std::fabs(leptonOneP4->DeltaR(*leptonTwoP4)) < 0.3) return kTRUE;
 
+  fCutFlow->Fill(icutflow); ++icutflow; //7
+
   const double mll = (*leptonOneP4+*leptonTwoP4).M();
   if(mll <= 51. || mll >= 170.) return kTRUE;
+
+  fCutFlow->Fill(icutflow); ++icutflow; //8
 
   if(!(leptonOneFired || leptonTwoFired)) return kTRUE;
 
@@ -331,6 +339,8 @@ Bool_t SparseHistMaker::Process(Long64_t entry)
   ee   &= elec_gap_low > std::fabs(leptonOneSCEta) || std::fabs(leptonOneSCEta) > elec_gap_high;
   ee   &= elec_gap_low > std::fabs(leptonTwoSCEta) || std::fabs(leptonTwoSCEta) > elec_gap_high;
 
+  fCutFlow->Fill(icutflow); ++icutflow; //9
+
   if(!(mutau || etau || emu || mumu || ee)) return kTRUE;
 
   //Tau ID selections
@@ -341,7 +351,11 @@ Bool_t SparseHistMaker::Process(Long64_t entry)
   mutau &= tauDecayMode != 5 && tauDecayMode != 6;
   etau  &= tauDecayMode != 5 && tauDecayMode != 6;
 
+  fCutFlow->Fill(icutflow); ++icutflow; //10
+
   if(!(mutau || etau || emu || mumu || ee)) return kTRUE;
+
+  fCutFlow->Fill(icutflow); ++icutflow; //11
 
   //b-jet veto
   if(emu && nBJets20L > 0) return kTRUE;
@@ -352,6 +366,8 @@ Bool_t SparseHistMaker::Process(Long64_t entry)
   const double met_cut       = 60.;
   const double mtlep_cut     = 70.;
 
+  fCutFlow->Fill(icutflow); ++icutflow; //12
+
   if(met >= met_cut) return kTRUE;
   if(fTreeVars.mtlep >= mtlep_cut) return kTRUE;
 
@@ -359,6 +375,8 @@ Bool_t SparseHistMaker::Process(Long64_t entry)
   // Set 8 + selection offset: preselection
   ////////////////////////////////////////////////////////////
   FillAllHistograms(set_offset + 8);
+
+  fCutFlow->Fill(icutflow); ++icutflow; //13
 
   return kTRUE;
 }

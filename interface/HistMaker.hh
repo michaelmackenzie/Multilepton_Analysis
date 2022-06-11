@@ -54,7 +54,6 @@
 #include "interface/TauIDWeight.hh"
 #include "interface/JetToTauWeight.hh"
 #include "interface/JetToTauComposition.hh"
-#include "interface/JetToLepWeight.hh"
 #include "interface/QCDWeight.hh"
 #include "interface/MuonIDWeight.hh"
 #include "interface/ElectronIDWeight.hh"
@@ -631,14 +630,14 @@ namespace CLFV {
     Int_t           fUpdateMCEra = 0; //update the MC era flag
     Int_t           fRemovePhotonIDWeights = 1;
     Int_t           fUseBTagWeights = 0; //0: do nothing 1: apply weights
-    BTagWeight      fBTagWeight;
+    BTagWeight*     fBTagWeight;
     Int_t           fRemovePUWeights = 0; //0: do nothing 1: remove weights 2: replace weights
-    PUWeight        fPUWeight; //object to define pu weights
+    PUWeight*       fPUWeight; //object to define pu weights
     RoccoR*         fRoccoR; //Rochester muon momentum corrections
     Int_t           fUseJetPUIDWeights = 1; //use jet PU ID weights
-    JetPUWeight     fJetPUWeight; //object to define jet PU ID weights
+    JetPUWeight*    fJetPUWeight; //object to define jet PU ID weights
     Int_t           fUsePrefireWeights = 1; //use pre-fire weights
-    PrefireWeight   fPrefireWeight; //object to define pre-fire weights
+    PrefireWeight*  fPrefireWeight; //object to define pre-fire weights
     Int_t           fUseQCDWeights = 1; //use QCD SS --> OS transfer weights
     Int_t           fAddJetTauWeights = 1; //0: do nothing 1: weight anti-iso tau CR data
     // JetToTauWeight  fMuonJetToTauWeight; //for mutau
@@ -663,14 +662,12 @@ namespace CLFV {
     Float_t*        fJetToTauMCCorrs   = new Float_t[JetToTauComposition::kLast];
     Float_t*        fJetToTauMCBiases  = new Float_t[JetToTauComposition::kLast];
 
-    JetToLepWeight  fJetToMuonWeight; //for mutau
-    JetToLepWeight  fJetToElectronWeight; //for etau
     QCDWeight       fQCDWeight; //for emu
     MuonIDWeight    fMuonIDWeight;
     ElectronIDWeight fElectronIDWeight;
 
     Int_t           fRemoveZPtWeights = 0; // 0 use given weights, 1 remove z pT weight, 2 remove and re-evaluate weights locally
-    ZPtWeight       fZPtWeight; //re-weight Drell-Yan pT vs Mass
+    ZPtWeight*      fZPtWeight; //re-weight Drell-Yan pT vs Mass
     EmbeddingWeight fEmbeddingWeight; //correct di-muon embedding selection unfolding
     EmbeddingTnPWeight fEmbeddingTnPWeight; //correct lepton ID/trigger efficiencies in embedding simulation
     Int_t           fEmbeddedTesting = 0; //play with embedding configurations/weights

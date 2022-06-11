@@ -16,7 +16,6 @@
 #include "interface/PUWeight.hh"
 #include "interface/JetPUWeight.hh"
 #include "interface/PrefireWeight.hh"
-#include "interface/JetToLepWeight.hh"
 #include "interface/JetToTauWeight.hh"
 #include "interface/JetToTauComposition.hh"
 #include "interface/QCDWeight.hh"
@@ -55,7 +54,6 @@ namespace CLFV {
     PrefireWeight dummy5c;
     JetToTauWeight dummy6;
     JetToTauComposition dummy6b;
-    JetToLepWeight dummy6b2;
     QCDWeight dummy6b3;
     ElectronIDWeight dummy6c2;
     MuonIDWeight dummy6c;

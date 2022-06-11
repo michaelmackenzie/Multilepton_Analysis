@@ -9,17 +9,16 @@ using namespace CLFV;
 HistMaker::HistMaker(int seed, TTree * /*tree*/) : fSystematicSeed(seed),
                                                    fMuonJetToTauComp("mutau", 2035, 3, 0), fMuonJetToTauSSComp("mutau", 3035, 3, 0),
                                                    fElectronJetToTauComp("etau", 2035, 3, 0), fElectronJetToTauSSComp("etau", 3035, 3, 0),
-                                                   fJetToMuonWeight("mumu"), fJetToElectronWeight("ee"),
                                                    fQCDWeight("emu", /*11010*/ 1100200/*anti-iso, jet binned, no fits*/, seed, 0),
                                                    fMuonIDWeight(seed),
                                                    //FIXME: Turn on or keep off electron trigger interpolation
-                                                   fElectronIDWeight(0, seed), fZPtWeight("MuMu", seed),
+                                                   fElectronIDWeight(0, seed),
+                                                   // fZPtWeight("MuMu", 1, seed),
                                                    //FIXME: Turn on or keep off embedding trigger interpolation
                                                    fEmbeddingWeight(), fEmbeddingTnPWeight(10/*10*(use 2016 BF/GH scales) + 1*(interpolate scales or not)*/) {
 
   //ensure pointers set to null to not attempt to delete if never initialized
   fChain = nullptr;
-  fCutFlow = nullptr;
   for(int i = 0; i < fn; i++) {
     fEventHist     [i] = nullptr;
     fLepHist       [i] = nullptr;
@@ -27,11 +26,19 @@ HistMaker::HistMaker(int seed, TTree * /*tree*/) : fSystematicSeed(seed),
     fSystematicHist[i] = nullptr;
   }
   for(int proc = 0; proc < JetToTauComposition::kLast; ++proc) {
-    fMuonJetToTauWeights    [proc] = nullptr;
-    fElectronJetToTauWeights[proc] = nullptr;
+    fMuonJetToTauWeights      [proc] = nullptr;
+    fMuonJetToTauMCWeights    [proc] = nullptr;
+    fElectronJetToTauWeights  [proc] = nullptr;
+    fElectronJetToTauMCWeights[proc] = nullptr;
   }
-  fRnd = nullptr;
+  fCutFlow = nullptr;
+  fBTagWeight = nullptr;
+  fPUWeight = nullptr;
+  fJetPUWeight = nullptr;
+  fPrefireWeight = nullptr;
+  fTauIDWeight = nullptr;
   fSystematicShifts = nullptr;
+  fRnd = nullptr;
 
   leptonOneP4 = new TLorentzVector();
   leptonTwoP4 = new TLorentzVector();
@@ -42,6 +49,15 @@ HistMaker::HistMaker(int seed, TTree * /*tree*/) : fSystematicSeed(seed),
 //--------------------------------------------------------------------------------------------------------------
 HistMaker::~HistMaker() {
   DeleteHistograms();
+  if(fJetToTauWts      ) {delete fJetToTauWts      ; fJetToTauWts       = nullptr;}
+  if(fJetToTauCorrs    ) {delete fJetToTauCorrs    ; fJetToTauCorrs     = nullptr;}
+  if(fJetToTauBiases   ) {delete fJetToTauBiases   ; fJetToTauBiases    = nullptr;}
+  if(fJetToTauComps    ) {delete fJetToTauComps    ; fJetToTauComps     = nullptr;}
+  if(fJetToTauCompsUp  ) {delete fJetToTauCompsUp  ; fJetToTauCompsUp   = nullptr;}
+  if(fJetToTauCompsDown) {delete fJetToTauCompsDown; fJetToTauCompsDown = nullptr;}
+  if(fJetToTauMCWts    ) {delete fJetToTauMCWts    ; fJetToTauMCWts     = nullptr;}
+  if(fJetToTauMCCorrs  ) {delete fJetToTauMCCorrs  ; fJetToTauMCCorrs   = nullptr;}
+  if(fJetToTauMCBiases ) {delete fJetToTauMCBiases ; fJetToTauMCBiases  = nullptr;}
   for(int proc = 0; proc < JetToTauComposition::kLast; ++proc) {
     if(fMuonJetToTauWeights      [proc]) {delete fMuonJetToTauWeights      [proc]; fMuonJetToTauWeights      [proc] = nullptr;}
     if(fMuonJetToTauMCWeights    [proc]) {delete fMuonJetToTauMCWeights    [proc]; fMuonJetToTauMCWeights    [proc] = nullptr;}
@@ -50,6 +66,10 @@ HistMaker::~HistMaker() {
   }
 
   if(fCutFlow          ) {delete fCutFlow         ; fCutFlow          = nullptr;}
+  if(fBTagWeight       ) {delete fBTagWeight      ; fBTagWeight       = nullptr;}
+  if(fPUWeight         ) {delete fPUWeight        ; fPUWeight         = nullptr;}
+  if(fJetPUWeight      ) {delete fJetPUWeight     ; fJetPUWeight      = nullptr;}
+  if(fPrefireWeight    ) {delete fPrefireWeight   ; fPrefireWeight    = nullptr;}
   if(fTauIDWeight      ) {delete fTauIDWeight     ; fTauIDWeight      = nullptr;}
   if(fSystematicShifts ) {delete fSystematicShifts; fSystematicShifts = nullptr;}
   if(fRnd              ) {delete fRnd             ; fRnd              = nullptr;}
@@ -83,7 +103,12 @@ void HistMaker::Begin(TTree * /*tree*/)
   fRoccoR = new RoccoR(Form("%sscale_factors/RoccoR%i.txt", dir.Data(), fYear));
   fElectronIDWeight.verbose_ = fVerbose;
   fMuonIDWeight.verbose_ = fVerbose;
-  fBTagWeight.verbose_ = fVerbose;
+  fBTagWeight = new BTagWeight();
+  fBTagWeight->verbose_ = fVerbose;
+  fPUWeight = new PUWeight();
+  fJetPUWeight = new JetPUWeight();
+  fPrefireWeight = new PrefireWeight();
+  fZPtWeight = new ZPtWeight("MuMu", 1, fSystematicSeed);
   fCutFlow = new TH1D("hcutflow", "Cut-flow", 100, 0, 100);
 
   fMuonJetToTauWeights      [JetToTauComposition::kWJets] = new JetToTauWeight("MuonWJets"      , "mutau", "WJets",   31, 20300300, fSystematicSeed, 0);
@@ -863,7 +888,12 @@ void HistMaker::InitializeEventWeights() {
   leptonOneWeight2_bin  = 0 ; leptonTwoWeight2_bin  = 0 ;
 
   leptonOneTrigWeight   = 1.; leptonTwoTrigWeight   = 1.;
-  leptonOneFired        = 0 ; leptonTwoFired        = 0 ;
+  const int ntrig = sizeof(triggerWeights)/sizeof(*triggerWeights);
+  for(int itrig = 0; itrig < ntrig; ++itrig) triggerWeights[itrig] = 1.;
+
+  jetPUIDWeight = 1.; btagWeight = 1.; embeddingWeight = 1.; embeddingUnfoldingWeight = 1.;
+  zPtWeight = 1.; zPtWeightUp = 1.; zPtWeightDown = 1.; zPtWeightSys = 1.;
+
 
   jetToTauWeight = 1.; jetToTauWeightUp = 1.; jetToTauWeightDown = 1.; jetToTauWeightSys = 1.; jetToTauWeightGroup = 0;
   jetToTauWeightCorr = 1.; jetToTauWeightCorrUp = 1.; jetToTauWeightCorrDown = 1.; jetToTauWeightCorrSys = 1.;
@@ -905,7 +935,7 @@ void HistMaker::InitializeEventWeights() {
   zPtWeight = 1.f;
   if(fIsDY && !fIsEmbed) {
     //re-weight the Z pt vs mass spectrum
-    zPtWeight = fZPtWeight.GetWeight(fYear, zPt, zMass, false /*Use Gen level weights*/, zPtWeightUp, zPtWeightDown, zPtWeightSys);
+    zPtWeight = fZPtWeight->GetWeight(fYear, zPt, zMass, false /*Use Gen level weights*/, zPtWeightUp, zPtWeightDown, zPtWeightSys);
     eventWeight *= zPtWeight;
     if(fVerbose > 0) std::cout << " For Z pT = " << zPt << " and Mass = " << zMass << " using Data/MC weight " << zPtWeight
                                << "--> event weight = " << eventWeight << std::endl;
@@ -917,13 +947,6 @@ void HistMaker::InitializeEventWeights() {
   //   Trigger weights
   ////////////////////////////////////////////////////////////////////
 
-  //Trigger thresholds (mu, ele): 2016 = (24, 27); 2017 = (27, 32); 2018 = (24, 32)
-  //Use 1 GeV/c above muon threshold and 3 GeV/c above electron threshold (except for 2016)
-  muon_trig_pt_ = 25.; electron_trig_pt_ = 35.;
-  if(fYear == 2017) muon_trig_pt_ = 28.;
-  if(fYear == 2016) electron_trig_pt_ = 29.; //2 GeV/c above threshold, since better behaved near threshold
-
-  MatchTriggers();
   if(!fIsData) ApplyTriggerWeights();
 
   ////////////////////////////////////////////////////////////////////
@@ -940,7 +963,7 @@ void HistMaker::InitializeEventWeights() {
       puWeight = 1.f;
       //replace weight
       if(fRemovePUWeights > 1) {
-        puWeight = fPUWeight.GetWeight(nPU, fYear);
+        puWeight = fPUWeight->GetWeight(nPU, fYear);
       }
     }
     eventWeight *= puWeight;
@@ -952,7 +975,7 @@ void HistMaker::InitializeEventWeights() {
 
   prefireWeight = 1.f;
   if(fUsePrefireWeights > 0 && !fIsData && !fIsEmbed) {
-    prefireWeight = fPrefireWeight.GetWeight(fYear, nJets20, jetsPt, jetsEta);
+    prefireWeight = fPrefireWeight->GetWeight(fYear, nJets20, jetsPt, jetsEta);
   }
   eventWeight *= prefireWeight;
 
@@ -962,7 +985,7 @@ void HistMaker::InitializeEventWeights() {
 
   jetPUIDWeight = 1.f;
   if(fUseJetPUIDWeights > 0 && !fIsData && !fIsEmbed) {
-    jetPUIDWeight = fJetPUWeight.GetWeight(fYear, nJets20, jetsPt, jetsEta, nJets20Rej, jetsRejPt, jetsRejEta);
+    jetPUIDWeight = fJetPUWeight->GetWeight(fYear, nJets20, jetsPt, jetsEta, nJets20Rej, jetsRejPt, jetsRejEta);
   }
   eventWeight *= jetPUIDWeight;
 
@@ -975,7 +998,7 @@ void HistMaker::InitializeEventWeights() {
     //FIXME: Add a category with Tight ID b-tag in ee/mumu for Z->x+tau_h normalization?
     int wp = BTagWeight::kLooseBTag; //ee/mumu/emu use loose ID b-tag
     if(std::fabs(leptonTwoFlavor) == 15) wp = BTagWeight::kTightBTag;
-    btagWeight = fBTagWeight.GetWeight(wp, fYear, nJets20, jetsPt, jetsEta, jetsFlavor, jetsBTag, btagWeightUp, btagWeightDown);
+    btagWeight = fBTagWeight->GetWeight(wp, fYear, nJets20, jetsPt, jetsEta, jetsFlavor, jetsBTag, btagWeightUp, btagWeightDown);
     eventWeight *= btagWeight;
     if((btagWeight - btagWeightUp) * (btagWeight - btagWeightDown) > 1.e-3 && fVerbose > 0) {
       std::cout << "!!! Warning: Entry " << fentry << " B-tag weight up/down are on the same side of the weight: Wt = "
@@ -1119,13 +1142,19 @@ void HistMaker::InitializeEventWeights() {
 
   eventWeight *= qcdWeight;
 
-  //No weights in data
-  if(fIsData) {
-    eventWeight = 1.; puWeight = 1.; genWeight = 1.; zPtWeight = 1.; zPtWeightUp = 1.; zPtWeightDown = 1.;
-    jetPUIDWeight = 1.; btagWeight = 1.; embeddingWeight = 1.; embeddingUnfoldingWeight = 1.;
-    const int ntrig = sizeof(triggerWeights)/sizeof(*triggerWeights);
-    for(int itrig = 0; itrig < ntrig; ++itrig) triggerWeights[itrig] = 1.;
-  }
+  //initialize weights for the tree variables
+  fTreeVars.eventweight = genWeight*eventWeight;
+  fTreeVars.eventweightMVA = genWeight*eventWeight;
+  fTreeVars.fulleventweight = genWeight*eventWeight*fXsec;
+  fTreeVars.fulleventweightlum = fTreeVars.fulleventweight*fLum;
+
+  //initialize systematic weights for TMVA systematic testing, remove non-closure correction as an estimate
+  fTreeVars.jettotaunonclosure = (jetToTauWeight / jetToTauWeightCorr) * (jetToTauWeightBias / jetToTauWeightCorr);
+  fTreeVars.zptup = zPtWeightUp / zPtWeight;
+  fTreeVars.zptdown = zPtWeightDown / zPtWeight;
+
+  //if splitting testing/training samples
+  fTreeVars.eventweightMVA *= (fTreeVars.train > 0.) ? 0. : 1./(1.-fFractionMVA); //if training, ignore, else rescale to account for training sample removed
 }
 
 //--------------------------------------------------------------------------------------------------------------
@@ -1338,10 +1367,38 @@ void HistMaker::CountObjects() {
   chargeTest = leptonOneFlavor*leptonTwoFlavor < 0;
 
   ///////////////////////////////////////////////////////
+  // Add Trigger information
+  ///////////////////////////////////////////////////////
+
+  //Trigger thresholds (mu, ele): 2016 = (24, 27); 2017 = (27, 32); 2018 = (24, 32)
+  //Use 1 GeV/c above muon threshold and 3 GeV/c above electron threshold (except for 2016)
+  muon_trig_pt_ = 25.; electron_trig_pt_ = 35.;
+  if(fYear == 2017) muon_trig_pt_ = 28.;
+  if(fYear == 2016) electron_trig_pt_ = 29.; //2 GeV/c above threshold, since better behaved near threshold
+
+  MatchTriggers();
+
+  ///////////////////////////////////////////////////////
   // Add Jet information
   ///////////////////////////////////////////////////////
 
   CountJets();
+
+  /////////////////////////////////////
+  // Base selections
+  mutau =                    nMuons == 1 && nTaus == 1 && (fSelection == "" || fSelection == "mutau");
+  etau  = nElectrons == 1 &&                nTaus == 1 && (fSelection == "" || fSelection == "etau" );
+  emu   = nElectrons == 1 && nMuons == 1               && (fSelection == "" || fSelection == "emu"  );
+  mumu  = nElectrons <  2 && nMuons == 2               && (fSelection == "" || fSelection == "mumu" );
+  ee    = nElectrons == 2 && nMuons <  2               && (fSelection == "" || fSelection == "ee"   );
+
+  //reject overlaps
+  if(mutau && etau) {mutau = false; etau = false;}
+  if(emu && (mutau || etau)) {mutau = false; etau = false;}
+  if(fVerbose > 0) std::cout << " Event has selection statuses: mutau = " << mutau
+                             << " etau = " << etau << " emu = " << emu
+                             << " mumu = " << mumu << " and ee = " << ee << std::endl
+                             << " eventWeight*genWeight = " << eventWeight*genWeight << std::endl;
 
 }
 
@@ -1396,11 +1453,11 @@ void HistMaker::CountJets() {
         int jetBTag = 0;
         //check if b-tagged, must have eta < 2.4
         if(std::fabs(jeteta) < 2.4) {
-          if(Jet_btagDeepB[ijet] > fBTagWeight.BTagCut(BTagWeight::kLooseBTag, fYear)) {
+          if(Jet_btagDeepB[ijet] > fBTagWeight->BTagCut(BTagWeight::kLooseBTag, fYear)) {
             ++jetBTag; ++nBJets20L; if(jetpt > 25.) ++nBJetsL;
-            if(Jet_btagDeepB[ijet] > fBTagWeight.BTagCut(BTagWeight::kMediumBTag, fYear)) {
+            if(Jet_btagDeepB[ijet] > fBTagWeight->BTagCut(BTagWeight::kMediumBTag, fYear)) {
               ++jetBTag; ++nBJets20M; if(jetpt > 25.) ++nBJetsM;
-              if(Jet_btagDeepB[ijet] > fBTagWeight.BTagCut(BTagWeight::kTightBTag, fYear)) {
+              if(Jet_btagDeepB[ijet] > fBTagWeight->BTagCut(BTagWeight::kTightBTag, fYear)) {
                 ++jetBTag; ++nBJets20; if(jetpt > 25.) ++nBJets;
               }
             }
@@ -1552,10 +1609,6 @@ void HistMaker::InitializeTreeVariables() {
   fTreeVars.nbjets20m  = nBJets20M;
   fTreeVars.nbjets20l  = nBJets20L;
   fTreeVars.nphotons = nPhotons;
-  fTreeVars.eventweight = genWeight*eventWeight;
-  fTreeVars.eventweightMVA = genWeight*eventWeight;
-  fTreeVars.fulleventweight = genWeight*eventWeight*fXsec;
-  fTreeVars.fulleventweightlum = fTreeVars.fulleventweight*fLum;
 
   //Perform a transform to the Z/H boson frame
   //Requires knowledge of which lepton has associated neutrinos (or if none do)
@@ -1621,11 +1674,6 @@ void HistMaker::InitializeTreeVariables() {
     }
   }
 
-  //initialize systematic weights for TMVA systematic testing, remove non-closure correction as an estimate
-  fTreeVars.jettotaunonclosure = (jetToTauWeight / jetToTauWeightCorr) * (jetToTauWeightBias / jetToTauWeightCorr);
-  fTreeVars.zptup = zPtWeightUp / zPtWeight;
-  fTreeVars.zptdown = zPtWeightDown / zPtWeight;
-
   fTreeVars.eventcategory = fEventCategory;
   if(fFractionMVA > 0.) fTreeVars.train = (fRnd->Uniform() < fFractionMVA) ? 1. : -1.; //whether or not it is in the training sample
   fTreeVars.issignal = (fIsData == 0) ? (2.*(fIsSignal) - 1.) : 0.; //signal = 1, background = -1, data = 0
@@ -1642,8 +1690,6 @@ void HistMaker::InitializeTreeVariables() {
       else fTreeVars.type = 6; //Di-boson/whatever is leftover
     }
   }
-  //if splitting testing/training samples
-  fTreeVars.eventweightMVA *= (fTreeVars.train > 0.) ? 0. : 1./(1.-fFractionMVA); //if training, ignore, else rescale to account for training sample removed
 
   TString selecName = "";
   if(std::abs(leptonOneFlavor) == 13 && std::abs(leptonTwoFlavor) == 15)      { fTreeVars.category = 1; selecName = "mutau"; }
@@ -2132,27 +2178,13 @@ Bool_t HistMaker::InitializeEvent(Long64_t entry)
 
   fCutFlow->Fill(icutflow); ++icutflow; //1
 
-  /////////////////////////
-  // Apply event weights //
-  /////////////////////////
-
-  InitializeEventWeights();
-
-  if(eventWeight < 0. || !std::isfinite(eventWeight*genWeight)) {
-    std::cout << "WARNING! Skipping event " << fentry << ", as it has negative bare event weight or undefined total weight:\n"
-              << " eventWeight = " << eventWeight << "; genWeight = " << genWeight << "; puWeight = " << puWeight
-              << "; btagWeight = " << btagWeight << "; triggerWeight = " << leptonOneTrigWeight*leptonTwoTrigWeight
-              << "; jetPUIDWeight = " << jetPUIDWeight << std::endl;
-    return kTRUE;
-  }
-
   ////////////////////////
   // Data overlap check //
   ////////////////////////
 
   //skip if it's data and lepton status doesn't match data set ( 1 = electron 2 = muon) unless allowing overlap and it passes both
   if(fIsData > 0) {
-    int pdgid = (fIsData == 1) ? 11 : 13; //pdg ID for the data stream
+    const int pdgid = (fIsData == 1) ? 11 : 13; //pdg ID for the data stream
     //if no selected lepton fired this trigger, continue
     if(!((std::abs(leptonOneFlavor) == pdgid && leptonOneFired) || (std::abs(leptonTwoFlavor) == pdgid && leptonTwoFired)))
       return kTRUE;
@@ -2175,25 +2207,6 @@ Bool_t HistMaker::InitializeEvent(Long64_t entry)
     std::cout << " lep_2: pdg_id = " << leptonTwoFlavor << " p4 = "; leptonTwoP4->Print();
   }
 
-  //Initialize systematic variation weights
-  InitializeSystematics();
-
-  /////////////////////////////////////
-  // Base selections
-  mutau =                    nMuons == 1 && nTaus == 1 && (fSelection == "" || fSelection == "mutau");
-  etau  = nElectrons == 1 &&                nTaus == 1 && (fSelection == "" || fSelection == "etau" );
-  emu   = nElectrons == 1 && nMuons == 1               && (fSelection == "" || fSelection == "emu"  );
-  mumu  = nElectrons <  2 && nMuons == 2               && (fSelection == "" || fSelection == "mumu" );
-  ee    = nElectrons == 2 && nMuons <  2               && (fSelection == "" || fSelection == "ee"   );
-
-
-  //reject overlaps
-  if(mutau && etau) {mutau = false; etau = false;}
-  if(emu && (mutau || etau)) {mutau = false; etau = false;}
-  if(fVerbose > 0) std::cout << " Event has selection statuses: mutau = " << mutau
-                             << " etau = " << etau << " emu = " << emu
-                             << " mumu = " << mumu << " and ee = " << ee << std::endl
-                             << " eventWeight*genWeight = " << eventWeight*genWeight << std::endl;
 
   if(!(mutau || etau || emu || mumu || ee)) {
     std::cout << "WARNING! Entry " << entry << " passes no selections! N(e) = " << nElectron
@@ -2207,11 +2220,28 @@ Bool_t HistMaker::InitializeEvent(Long64_t entry)
     std::cout << "WARNING! Entry " << entry << " passes multiple selections!\n";
 
 
-  //////////////////////////////////////////////////////////////
-  // Apply or remove scale factors
-  //////////////////////////////////////////////////////////////
+  //////////////////////////
+  // Initialize variables //
+  //////////////////////////
 
   InitializeTreeVariables();
+
+  /////////////////////////
+  // Apply event weights //
+  /////////////////////////
+
+  InitializeEventWeights();
+
+  if(eventWeight < 0. || !std::isfinite(eventWeight*genWeight)) {
+    std::cout << "WARNING! Skipping event " << fentry << ", as it has negative bare event weight or undefined total weight:\n"
+              << " eventWeight = " << eventWeight << "; genWeight = " << genWeight << "; puWeight = " << puWeight
+              << "; btagWeight = " << btagWeight << "; triggerWeight = " << leptonOneTrigWeight*leptonTwoTrigWeight
+              << "; jetPUIDWeight = " << jetPUIDWeight << std::endl;
+    return kTRUE;
+  }
+
+  //Initialize systematic variation weights
+  InitializeSystematics();
 
   //configure bjet counting based on selection
   fBJetCounting = 2; //use pT > 20 GeV/c
@@ -2269,6 +2299,7 @@ Bool_t HistMaker::InitializeEvent(Long64_t entry)
 //--------------------------------------------------------------------------------------------------------------
 // Match trigger objects to selected leptons
 void HistMaker::MatchTriggers() {
+  leptonOneFired = false; leptonTwoFired = false;
   // int trigMatchOne =  0; //trigger matching result
   // int trigMatchTwo =  0; //trigger matching result
   // int trigIndexOne = -1;

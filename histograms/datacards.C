@@ -8,6 +8,7 @@ int useRunPeriodData_ = 1; //use run periods of data
 int doRunPeriod_      = 0; //use predefined set of run periods of data (e.g. 2016 B-F)
 TString hist_path_    = "root://cmseos.fnal.gov//store/user/mmackenz/histograms/"; //where histogram files are
 TString hist_dir_     = "nanoaods_dev"; //which histogram directory to use
+TString hist_tag_     = "clfv"; //leading tag from HistMaker, e.g. "clfv", "hist", or "sparse"
 
 int    useUL_        =  0 ; //use UL dataset definitions
 int    ZMode_        =  0 ; //which Z cross-section information to use
@@ -197,7 +198,7 @@ void get_datacards(std::vector<dcard>& cards, TString selection, bool forStudies
       // std::cout << "--> New cross section = " << cards[index].xsec_ << std::endl;
     }
     //update file path
-    cards[index].filename_ = Form("%s/clfv_%s_%i_%s.hist", (hist_path_+hist_dir_).Data(), selection_dir.Data(),
+    cards[index].filename_ = Form("%s/%s_%s_%i_%s.hist", (hist_path_+hist_dir_).Data(), hist_tag_.Data(), selection_dir.Data(),
                                   cards[index].year_, (cards[index].filename_).Data());
   } //end file name loop
 }

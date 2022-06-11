@@ -70,7 +70,7 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
     if(f) {
       for(int dm = 0; dm < 4; ++dm) {
         //Get Data histogram
-        histsData_[year][dm] = (TH2D*) f->Get(Form("h%s_eff_%idm", (useMCFits_) ? "mc" : "data", dm));
+        histsData_[year][dm] = (TH2*) f->Get(Form("h%s_eff_%idm", (useMCFits_) ? "mc" : "data", dm));
         if(!histsData_[year][dm]) {
           std::cout << "JetToTauWeight::JetToTauWeight: " << name.Data() << " Warning! No Data histogram found for dm = "
                     << dm << " year = " << year
@@ -159,7 +159,7 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
           corrections_[dm][year]->SetDirectory(0);
           max_corr_bins = std::max(max_corr_bins, corrections_[dm][year]->GetNbinsX());
         }
-        corrections2D_[dm][year] = (TH2D*) f->Get(hist2D.Data());
+        corrections2D_[dm][year] = (TH2*) f->Get(hist2D.Data());
         if(!corrections2D_[dm][year]) {
           if(use2DCorrections_) {
             std::cout << "JetToTauWeight::JetToTauWeight: " << name_.Data() << " Warning! No 2D lead pt correction histogram found for year = "
@@ -168,7 +168,7 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
             std::cout << std::endl;
           }
         } else {
-          corrections2D_[dm][year] = (TH2D*) corrections2D_[dm][year]->Clone(Form("%s-correction2d_%s_%i_%i", name_.Data(), pt_corr_selec.Data(), dm, year));
+          corrections2D_[dm][year] = (TH2*) corrections2D_[dm][year]->Clone(Form("%s-correction2d_%s_%i_%i", name_.Data(), pt_corr_selec.Data(), dm, year));
           corrections2D_[dm][year]->SetDirectory(0);
         }
       }
@@ -351,15 +351,15 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
 
 //-------------------------------------------------------------------------------------------------------------------------
 JetToTauWeight::~JetToTauWeight() {
-  if(rnd_) delete rnd_;
-  for(std::pair<int, std::map<int, TH2D*>> val_1 : histsData_) {
-    for(std::pair<int, TH2D*> val_2 : val_1.second) {if(val_2.second) delete val_2.second;}
+  if(rnd_) {delete rnd_; rnd_ = nullptr;}
+  for(std::pair<int, std::map<int, TH2*>> val_1 : histsData_) {
+    for(std::pair<int, TH2*> val_2 : val_1.second) {if(val_2.second) delete val_2.second;}
   }
   for(std::pair<int, std::map<int, TH1*>> val_1 : corrections_) {
     for(std::pair<int, TH1*> val_2 : val_1.second) {if(val_2.second) delete val_2.second;}
   }
-  for(std::pair<int, std::map<int, TH2D*>> val_1 : corrections2D_) {
-    for(std::pair<int, TH2D*> val_2 : val_1.second) {if(val_2.second) delete val_2.second;}
+  for(std::pair<int, std::map<int, TH2*>> val_1 : corrections2D_) {
+    for(std::pair<int, TH2*> val_2 : val_1.second) {if(val_2.second) delete val_2.second;}
   }
   for(std::pair<int, TH1*> val : etaCorrections_) {if(val.second) delete val.second;}
   for(std::pair<int, std::map<int, TH1*>> val_1 : metDPhiCorrections_) {
@@ -387,7 +387,7 @@ float JetToTauWeight::GetDataFactor(int DM, int year, float pt, float eta,
                                     float& up, float& down, float& sys, int& group,
                                     float& pt_wt, float& pt_up, float& pt_down, float& pt_sys, float& bias) {
   pt_wt = 1.f; pt_up = 1.f; pt_down = 1.f; pt_sys = 1.f; bias = 1.f;
-  TH2D* h = 0;
+  TH2* h = 0;
   //get correct decay mode histogram
   int idm = 0;
   if(DM == 0)
@@ -474,7 +474,7 @@ float JetToTauWeight::GetDataFactor(int DM, int year, float pt, float eta, float
 
 //-------------------------------------------------------------------------------------------------------------------------------
 // interal function to calculate the transfer factor
-float JetToTauWeight::GetFactor(TH2D* h, TF1* func, TH1* hCorrection, TH1* hFitterErrors,
+float JetToTauWeight::GetFactor(TH2* h, TF1* func, TH1* hCorrection, TH1* hFitterErrors,
                                 float pt, float eta, int DM,
                                 float pt_lead, float deltar, float metdphi, float lepm, float mtlep, float oneiso,
                                 int year,
@@ -559,7 +559,7 @@ float JetToTauWeight::GetFactor(TH2D* h, TF1* func, TH1* hCorrection, TH1* hFitt
   if(pt_lead < 0.f || !doPtCorrections_) {
     pt_wt = 1.f;
   } else if(use2DCorrections_) {
-    TH2D* hcorr2D = corrections2D_[(doDMCorrections_) ? idm : 0][year];
+    TH2* hcorr2D = corrections2D_[(doDMCorrections_) ? idm : 0][year];
     if(!hcorr2D) {
       std::cout << "JetToTauWeight::" << __func__ << ": " << name_.Data() << " Warning! 2D pT correction histogram not found!"
                 << " pt = " << pt << " eta = " << eta << " pt_lead = " << pt_lead

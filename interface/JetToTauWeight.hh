@@ -42,18 +42,18 @@ namespace CLFV {
     }
 
   private:
-    float GetFactor(TH2D* h, TF1* func, TH1* hCorrection, TH1* hFitterErrors,
+    float GetFactor(TH2* h, TF1* func, TH1* hCorrection, TH1* hFitterErrors,
                     float pt, float eta, int DM,
                     float pt_lead, float deltar, float metdphi, float lepm, float mtlep, float oneiso,
                     int year,
                     float& up, float& down, float& sys, int& group,
                     float& pt_wt, float& pt_up, float& pt_down, float& pt_sys, float& bias);
 
-  public:
+  private:
     enum { kYear = 10000, kDM = 1000, kEta = 100};
-    std::map<int, std::map<int, TH2D*>> histsData_;
+    std::map<int, std::map<int, TH2*>> histsData_;
     std::map<int, std::map<int, TH1*>> corrections_;
-    std::map<int, std::map<int, TH2D*>> corrections2D_;
+    std::map<int, std::map<int, TH2*>> corrections2D_;
     std::map<int, TH1*> etaCorrections_;
     std::map<int, std::map<int, TH1*>> metDPhiCorrections_;
     std::map<int, TH1*> lepMBias_;

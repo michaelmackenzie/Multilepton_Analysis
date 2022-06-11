@@ -49,7 +49,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TTr
 
         clfv_selec->fDoMVASets = DoMVASets_ > 0 && (DoMVASets_ > 2 || (DoMVASets_ == 2 && !(selection.Contains("tau"))) || (selection == "emu"));
       }
-      if(dynamic_cast<CLFVHistMaker*> (selec)) {
+      if(dynamic_cast<CLFVTmpHistMaker*> (selec)) {
         auto clfv_selec = (CLFVTmpHistMaker*) selec;
         clfv_selec->fDYTesting         = DYTesting_;
         clfv_selec->fDYFakeTauTesting  = DYFakeTau_;
@@ -116,7 +116,10 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TTr
       if(debug_ && nEvents_ < 20) selec->fVerbose = 1;
       else                        selec->fVerbose = 0;
       selector_ = selec;
-      selec->Init(tree);
+      //FIXME: This isn't being called by default for some reason, only for HistMaker type objects
+      if(dynamic_cast<HistMaker*> (selec)) {
+        selec->Init(tree);
+      }
       if(!debug_)
         tree->Process(selec,""); //run the selector over the tree
       else

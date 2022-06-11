@@ -23,7 +23,7 @@ namespace CLFV {
 
     float GetWeight(int year, float pt, float mass, bool doReco, float& up, float& down, float& sys);
 
-  public:
+  private:
     std::map<int, TH2*> hZPtScales_; //scales using generator level quantities
     std::map<int, TH2*> hZPtRecoScales_; //scales using reconstructed quantities
     std::map<int, TH2*> hZPtSysScales_; //scales from a different data region

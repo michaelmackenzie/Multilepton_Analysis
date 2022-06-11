@@ -798,7 +798,7 @@ void CLFVTmpHistMaker::FillEventHistogram(EventHist_t* Hist) {
   //for removing or alternate DY reweighting weights
   double bareweight = (fIsDY && zPtWeight > 0.) ? eventWeight*genWeight/zPtWeight : eventWeight*genWeight; //no DY Z pT vs M weights
   float tmp_1, tmp_2, sys_reco_weight(1.);
-  double recoweight = (fIsDY) ? bareweight*fZPtWeight.GetWeight(fYear, lepSys.Pt(), lepSys.M(), /*use reco weights*/ true, tmp_1, tmp_2, sys_reco_weight) : bareweight;
+  double recoweight = (fIsDY) ? bareweight*fZPtWeight->GetWeight(fYear, lepSys.Pt(), lepSys.M(), /*use reco weights*/ true, tmp_1, tmp_2, sys_reco_weight) : bareweight;
   sys_reco_weight *= bareweight;
   double zpt   = (!fIsDY || zPt <  0.  ) ? lepSys.Pt() : zPt; //for DY to use given Z pT and Mass
   double zmass = (!fIsDY || zMass <  0.) ? lepSys.M()  : zMass;
@@ -1317,7 +1317,7 @@ Bool_t CLFVTmpHistMaker::Process(Long64_t entry)
   if(InitializeEvent(entry)) return kTRUE;
 
   //object pT thresholds
-  float muon_pt(10.), electron_pt(15.), tau_pt(20.);
+  const float muon_pt(10.), electron_pt(15.), tau_pt(20.);
 
   //////////////////////////////////////////////////////////////
   //
@@ -1338,7 +1338,7 @@ Bool_t CLFVTmpHistMaker::Process(Long64_t entry)
       FillAllHistograms(set_offset + 1);
   }
 
-  fCutFlow->Fill(icutflow); ++icutflow; //5
+  fCutFlow->Fill(icutflow); ++icutflow; //4
 
   TLorentzVector* tau = 0;
   TLorentzVector* muon = 0;
@@ -1369,6 +1369,8 @@ Bool_t CLFVTmpHistMaker::Process(Long64_t entry)
   emu   = emu   && (muon != 0) && (electron != 0);
   mumu  = mumu  && (muon != 0) && (muon_2 != 0);
   ee    = ee    && (electron != 0) && (electron_2 != 0);
+  if(!(mutau || etau || emu || mumu || ee)) return kTRUE;
+  fCutFlow->Fill(icutflow); ++icutflow; //5
 
 
   //leptons must satisfy the pt requirements and fire a trigger
@@ -1380,28 +1382,31 @@ Bool_t CLFVTmpHistMaker::Process(Long64_t entry)
                     (muon->Pt() > muon_pt  && muon_2->Pt() > muon_trig_pt_ && leptonTwoFired));
   ee    = ee    && ((electron->Pt() > electron_trig_pt_ && electron_2->Pt() > electron_pt && leptonOneFired) ||
                     (electron->Pt() > electron_pt && electron_2->Pt() > electron_trig_pt_ && leptonTwoFired));
+  if(!(mutau || etau || emu || mumu || ee)) return kTRUE;
+  fCutFlow->Fill(icutflow); ++icutflow; //6
 
   //don't allow multiple muons/electrons in mumu/ee selections
   mumu &= nMuons     == 2;
   ee   &= nElectrons == 2;
+  if(!(mutau || etau || emu || mumu || ee)) return kTRUE;
+  fCutFlow->Fill(icutflow); ++icutflow; //7
 
   //reject electrons in the barrel/endcap gap region
   const float elec_gap_low(1.4442), elec_gap_high(1.566);
-  etau &= elec_gap_low > std::fabs(leptonOneSCEta) || std::fabs(leptonOneSCEta) > elec_gap_high;
-  emu  &= elec_gap_low > std::fabs(leptonOneSCEta) || std::fabs(leptonOneSCEta) > elec_gap_high;
-  ee   &= elec_gap_low > std::fabs(leptonOneSCEta) || std::fabs(leptonOneSCEta) > elec_gap_high;
-  ee   &= elec_gap_low > std::fabs(leptonTwoSCEta) || std::fabs(leptonTwoSCEta) > elec_gap_high;
+  etau &= std::fabs(leptonOneSCEta) < elec_gap_low || std::fabs(leptonOneSCEta) > elec_gap_high;
+  emu  &= std::fabs(leptonOneSCEta) < elec_gap_low || std::fabs(leptonOneSCEta) > elec_gap_high;
+  ee   &= std::fabs(leptonOneSCEta) < elec_gap_low || std::fabs(leptonOneSCEta) > elec_gap_high;
+  ee   &= std::fabs(leptonTwoSCEta) < elec_gap_low || std::fabs(leptonTwoSCEta) > elec_gap_high;
+  if(!(mutau || etau || emu || mumu  || ee)) return kTRUE;
+  fCutFlow->Fill(icutflow); ++icutflow; //8
 
   ////////////////////////////////////////////////////////////
   // Set 2 + selection offset: object pT cuts
   ////////////////////////////////////////////////////////////
-  if(!(mutau || etau || emu || mumu || ee)) return kTRUE;
   if(!fDYTesting || fCutFlowTesting) {
     if(!emu || !isLooseElectron)
       FillAllHistograms(set_offset + 2);
   }
-
-  fCutFlow->Fill(icutflow); ++icutflow; //6
 
   const double electron_eta_max = (fUseEmbedCuts) ? 2.2 : 2.5;
   const double muon_eta_max     = (fUseEmbedCuts) ? 2.2 : 2.4;
