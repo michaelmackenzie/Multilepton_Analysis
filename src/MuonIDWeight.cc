@@ -3,7 +3,7 @@
 using namespace CLFV;
 
 //-------------------------------------------------------------------------------------------------------------------------
-MuonIDWeight::MuonIDWeight(const int seed, const int verbose) : verbose_(verbose) {
+MuonIDWeight::MuonIDWeight(const int Mode, const int seed, const int verbose) : Mode_(Mode), verbose_(verbose) {
   TFile* f = 0;
   std::vector<TString> file_regions;
   rnd_ = new TRandom3(seed);
@@ -15,31 +15,22 @@ MuonIDWeight::MuonIDWeight(const int seed, const int verbose) : verbose_(verbose
   std::map<int, fpair> muonIDFileNames;
   std::map<int, fpair> muonIsoFileNames;
 
-  muonIDFileNames[2*k2016]    = fpair("RunBCDEF_SF_ID_muon_2016.root",
-                                      "NUM_TightID_DEN_genTracks_eta_pt");
-  muonIDFileNames[2*k2016+1]  = fpair("RunGH_SF_ID_muon_2016.root"   ,
-                                      "NUM_TightID_DEN_genTracks_eta_pt");
-  muonIDFileNames[2*k2017]    = fpair("2017_Mu_RunBCDEF_SF_ID.root"  ,
-                                      "NUM_TightID_DEN_genTracks_pt_abseta");
-  muonIDFileNames[2*k2017+1]  = fpair("2017_Mu_RunBCDEF_SF_ID.root"  ,
-                                      "NUM_TightID_DEN_genTracks_pt_abseta");
-  muonIDFileNames[2*k2018]    = fpair("RunABCD_SF_ID_muon_2018.root" ,
-                                      "NUM_TightID_DEN_TrackerMuons_pt_abseta");
-  muonIDFileNames[2*k2018+1]  = fpair("RunABCD_SF_ID_muon_2018.root" ,
-                                      "NUM_TightID_DEN_TrackerMuons_pt_abseta");
+  const bool useMediumID = Mode % 10 == 1;
+  const TString idName  = (useMediumID) ? "MediumID" : "TightID";
+  const TString isoName = (useMediumID) ? "MediumID" : "TightIDandIPCut";
+  muonIDFileNames[2*k2016]    = fpair("RunBCDEF_SF_ID_muon_2016.root", Form("NUM_%s_DEN_genTracks_eta_pt"      , idName.Data()));
+  muonIDFileNames[2*k2016+1]  = fpair("RunGH_SF_ID_muon_2016.root"   , Form("NUM_%s_DEN_genTracks_eta_pt"      , idName.Data()));
+  muonIDFileNames[2*k2017]    = fpair("2017_Mu_RunBCDEF_SF_ID.root"  , Form("NUM_%s_DEN_genTracks_pt_abseta"   , idName.Data()));
+  muonIDFileNames[2*k2017+1]  = fpair("2017_Mu_RunBCDEF_SF_ID.root"  , Form("NUM_%s_DEN_genTracks_pt_abseta"   , idName.Data()));
+  muonIDFileNames[2*k2018]    = fpair("RunABCD_SF_ID_muon_2018.root" , Form("NUM_%s_DEN_TrackerMuons_pt_abseta", idName.Data()));
+  muonIDFileNames[2*k2018+1]  = fpair("RunABCD_SF_ID_muon_2018.root" , Form("NUM_%s_DEN_TrackerMuons_pt_abseta", idName.Data()));
 
-  muonIsoFileNames[2*k2016]   = fpair("RunBCDEF_SF_ISO_muon_2016.root",
-                                      "NUM_TightRelIso_DEN_TightIDandIPCut_eta_pt");
-  muonIsoFileNames[2*k2016+1] = fpair("RunGH_SF_ISO_muon_2016.root"   ,
-                                      "NUM_TightRelIso_DEN_TightIDandIPCut_eta_pt");
-  muonIsoFileNames[2*k2017]   = fpair("2017_Mu_RunBCDEF_SF_ISO.root"  ,
-                                      "NUM_TightRelIso_DEN_TightIDandIPCut_pt_abseta");
-  muonIsoFileNames[2*k2017+1] = fpair("2017_Mu_RunBCDEF_SF_ISO.root"  ,
-                                      "NUM_TightRelIso_DEN_TightIDandIPCut_pt_abseta");
-  muonIsoFileNames[2*k2018]   = fpair("RunABCD_SF_ISO_muon_2018.root" ,
-                                      "NUM_TightRelIso_DEN_TightIDandIPCut_pt_abseta");
-  muonIsoFileNames[2*k2018+1] = fpair("RunABCD_SF_ISO_muon_2018.root" ,
-                                      "NUM_TightRelIso_DEN_TightIDandIPCut_pt_abseta");
+  muonIsoFileNames[2*k2016]   = fpair("RunBCDEF_SF_ISO_muon_2016.root", Form("NUM_TightRelIso_DEN_%s_eta_pt"   , isoName.Data()));
+  muonIsoFileNames[2*k2016+1] = fpair("RunGH_SF_ISO_muon_2016.root"   , Form("NUM_TightRelIso_DEN_%s_eta_pt"   , isoName.Data()));
+  muonIsoFileNames[2*k2017]   = fpair("2017_Mu_RunBCDEF_SF_ISO.root"  , Form("NUM_TightRelIso_DEN_%s_pt_abseta", isoName.Data()));
+  muonIsoFileNames[2*k2017+1] = fpair("2017_Mu_RunBCDEF_SF_ISO.root"  , Form("NUM_TightRelIso_DEN_%s_pt_abseta", isoName.Data()));
+  muonIsoFileNames[2*k2018]   = fpair("RunABCD_SF_ISO_muon_2018.root" , Form("NUM_TightRelIso_DEN_%s_pt_abseta", isoName.Data()));
+  muonIsoFileNames[2*k2018+1] = fpair("RunABCD_SF_ISO_muon_2018.root" , Form("NUM_TightRelIso_DEN_%s_pt_abseta", isoName.Data()));
 
   //Trigger info
   std::map<int, fpair> muonTriggerLowFileNames;

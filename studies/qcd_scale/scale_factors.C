@@ -200,6 +200,15 @@ TCanvas* make_2D_ratio_canvas(TH2* hnum, TH2* hdnm,
   TH2* hRatio = (TH2*) hnum->Clone(Form("hRatio_%s", hnum->GetName()));
   hRatio->Divide(hdnm);
 
+  for(int xbin = 1; xbin <= hRatio->GetNbinsX(); ++xbin) {
+    for(int ybin = 1; ybin <= hRatio->GetNbinsY(); ++ybin) {
+      if(hRatio->GetBinContent(xbin, ybin) > 3.) {
+        cout << __func__ << ": Ratio bin (" << xbin << ", " << ybin << ") is "
+             << hRatio->GetBinContent(xbin, ybin) << ", setting to 3\n";
+        hRatio->SetBinContent(xbin, ybin, 3.);
+      }
+    }
+  }
   hRatio->GetXaxis()->SetRangeUser(xmin, xmax);
   hRatio->GetYaxis()->SetRangeUser(ymin, ymax);
   hRatio->SetTitle("OS/SS");
@@ -207,8 +216,8 @@ TCanvas* make_2D_ratio_canvas(TH2* hnum, TH2* hdnm,
     hRatio->Draw("colz text");
   else
     hRatio->Draw("colz");
-  if(hRatio->GetMaximum() > 5.)
-    hRatio->GetZaxis()->SetRangeUser(0.01, 5.);
+  if(hRatio->GetMaximum() > 3.)
+    hRatio->GetZaxis()->SetRangeUser(0.01, 3.);
   if(xl != "") hRatio->SetXTitle(xl.Data());
   if(yl != "") hRatio->SetYTitle(yl.Data());
   return c;
@@ -281,10 +290,12 @@ Int_t scale_factors(TString selection = "emu", int set = 8, int year = 2016,
   // hist_path_  = "root://cmseos.fnal.gov//store/user/mmackenz/histograms/";
   hist_dir_   = hist_dir;
   selection_  = selection;
-  useEmbed_   = 1;
+  useEmbed_   = 0; //FIXME: Add back embedding once scale factors are measured
   embedScale_ = 1.;
   years_      = {year};
   useUL_      = (hist_dir_.Contains("_UL")) ? 1 : 0;
+
+  if(!useEmbed_) cout << "WARNING! Not using embedding samples!\n";
 
   //get the absolute value of the set, offsetting by the selection and using a loose selection
   int setAbs = set + CLFVHistMaker::fMisIDOffset;
@@ -297,9 +308,7 @@ Int_t scale_factors(TString selection = "emu", int set = 8, int year = 2016,
   const int setLsELsMu = (setAbs - set + 71); //loose electron, loose muon
 
   //construct the general name of each file, not including the sample name
-  TString baseName = "clfv_" + selection + "_clfv_";
-  baseName += year;
-  baseName += "_";
+  TString baseName = Form("clfv_%s_%i_", selection.Data(), year);
 
   //initialize the data files
   if(verbose_ > 0) std::cout << "Initializing the dataplotter" << std::endl;
@@ -347,6 +356,10 @@ Int_t scale_factors(TString selection = "emu", int set = 8, int year = 2016,
   //////////////////////
   gStyle->SetOptStat(0);
 
+  //ensure directories exist
+  gSystem->Exec("[ ! -d figures ] && mkdir figures");
+  gSystem->Exec("[ ! -d rootfiles ] && mkdir rootfiles");
+
   const char* fname = Form("rootfiles/qcd_scale_%s_%i.root", selection.Data(), year);
   TFile* fOut = new TFile(fname, "RECREATE");
 
@@ -358,10 +371,6 @@ Int_t scale_factors(TString selection = "emu", int set = 8, int year = 2016,
   //////////////////////
   //  Print results   //
   //////////////////////
-
-  //ensure directories exist
-  gSystem->Exec("[ ! -d figures ] && mkdir figures");
-  gSystem->Exec("[ ! -d rootfiles ] && mkdir rootfiles");
 
   //construct general figure name
   TString name = "figures/qcd_";

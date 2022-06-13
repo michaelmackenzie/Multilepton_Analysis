@@ -16,8 +16,10 @@
 namespace CLFV {
   class MuonIDWeight {
   public:
-    MuonIDWeight(const int seed = 90, const int verbose = 0);
+    MuonIDWeight(const int Mode = 0, const int seed = 90, const int verbose = 0);
     ~MuonIDWeight();
+
+    void SetVerbose(int verbose) {verbose_ = verbose;}
 
     int GetIDGroup(int bin, int year) {
       return groupID_[(year-2016) * kYear + bin];
@@ -37,12 +39,15 @@ namespace CLFV {
     enum{kVVLooseMuIso, kVLooseMuIso, kLooseMuIso, kMediumMuIso, kTightMuIso, kVTightMuIso, kVVTightMuIso, kMuonIsos}; //define iso scale factor sets
     const double muonIsoValues[kMuonIsos] = {0.5, 0.4, 0.25, 0.20, 0.15, 0.10, 0.05}; //corresponding values
 
+  private:
     std::map<int, TH2*> histIDData_         ;
     std::map<int, TH2*> histIsoData_        ;
     std::map<int, TH2*> histTriggerLowData_ ;
     std::map<int, TH2*> histTriggerLowMC_   ;
     std::map<int, TH2*> histTriggerHighData_;
     std::map<int, TH2*> histTriggerHighMC_  ;
+
+    int Mode_   ;
     int verbose_;
     TRandom3* rnd_; //for generating systematic shifted parameters
     std::map<int, int> groupID_; //correction groups for systematics

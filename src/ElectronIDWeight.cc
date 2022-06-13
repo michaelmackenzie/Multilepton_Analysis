@@ -9,12 +9,19 @@ ElectronIDWeight::ElectronIDWeight(int Mode, int seed, int verbose) : verbose_(v
   rnd_ = new TRandom3(seed);
 
   interpolate_ = Mode % 10 == 1;
+  const bool useMediumID = (Mode % 100) / 10 == 1;
 
   typedef std::pair<TString,TString> fpair;
   std::map<int, fpair> electronIDFileNames;
-  electronIDFileNames[k2016]      = fpair("2016LegacyReReco_ElectronMVAwp80.root","EGamma_SF2D");
-  electronIDFileNames[k2017]      = fpair("2017_ElectronMVA80.root"              ,"EGamma_SF2D");
-  electronIDFileNames[k2018]      = fpair("2018_ElectronMVA80.root"              ,"EGamma_SF2D");
+  if(useMediumID) {
+    electronIDFileNames[k2016]      = fpair("2016LegacyReReco_ElectronMVA90noiso_Fall17V2.root" ,"EGamma_SF2D");
+    electronIDFileNames[k2017]      = fpair("2017_ElectronMVA90noiso.root"                      ,"EGamma_SF2D");
+    electronIDFileNames[k2018]      = fpair("2018_ElectronMVA90noiso.root"                      ,"EGamma_SF2D");
+  } else {
+    electronIDFileNames[k2016]      = fpair("2016LegacyReReco_ElectronMVAwp80.root"             ,"EGamma_SF2D");
+    electronIDFileNames[k2017]      = fpair("2017_ElectronMVA80.root"                           ,"EGamma_SF2D");
+    electronIDFileNames[k2018]      = fpair("2018_ElectronMVA80.root"                           ,"EGamma_SF2D");
+  }
   std::map<int, fpair> electronRecoFileNames;
   electronRecoFileNames[k2016]    = fpair("EGM2D_BtoH_GT20GeV_RecoSF_Legacy2016.root"           ,"EGamma_SF2D");
   electronRecoFileNames[k2017]    = fpair("egammaEffi.txt_EGM2D_runBCDEF_passingRECO_2017.root" ,"EGamma_SF2D");

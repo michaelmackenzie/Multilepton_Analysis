@@ -129,7 +129,7 @@ double extract_nz(TH1* hMass, double& nerror, int BkgMode, TString figname = "",
    isMC: 0 = Data, 1 = AMC@NLO, 2 = MadGraph
    WP  : 0 = none, 1 = WPL, 2 = WP90, 3 = WP80, 4 = WPL && !WP90, 5 = WPL && !WP80 (all for probe only, tag = WP80 is always applied)
  **/
-void scale_factors(int year = 2016, int isMC = 0, int WP = 3) {
+void scale_factors(int year = 2016, int isMC = 0, int WP = 0) {
 
   TString path = "root://cmseos.fnal.gov//store/user/mmackenz/egamma_tnp/";
   TFile* f;
@@ -152,28 +152,32 @@ void scale_factors(int year = 2016, int isMC = 0, int WP = 3) {
   // Initialize tree branch addresses
   ///////////////////////////////////////
 
-  float tag_pt, tag_eta, tag_sc_eta, tag_phi, tag_q;
-  float probe_pt, probe_eta, probe_sc_eta, probe_phi, probe_q;
+  float one_pt, one_eta, one_sc_eta, one_phi, one_q;
+  float two_pt, two_eta, two_sc_eta, two_phi, two_q;
   float pair_pt, pair_eta, pair_mass;
-  bool  probe_triggered;
-  int   tag_id, probe_id;
+  bool  one_triggered, two_triggered;
+  int   one_id1, one_id2, two_id1, two_id2;
   float pu_weight(1.), gen_weight(1.);
-  t->SetBranchStatus("*", 0);
-  t->SetBranchStatus("tag_Ele_pt"     , 1); t->SetBranchAddress("tag_Ele_pt"     , &tag_pt         );
-  t->SetBranchStatus("tag_Ele_eta"    , 1); t->SetBranchAddress("tag_Ele_eta"    , &tag_eta        );
-  t->SetBranchStatus("tag_sc_eta"     , 1); t->SetBranchAddress("tag_sc_eta"     , &tag_sc_eta     );
-  t->SetBranchStatus("tag_Ele_phi"    , 1); t->SetBranchAddress("tag_Ele_phi"    , &tag_phi        );
-  t->SetBranchStatus("tag_Ele_q"      , 1); t->SetBranchAddress("tag_Ele_q"      , &tag_q          );
-  t->SetBranchStatus("tag_Ele_ID"     , 1); t->SetBranchAddress("tag_Ele_ID"     , &tag_id         );
-  t->SetBranchStatus("probe_Ele_pt"   , 1); t->SetBranchAddress("probe_Ele_pt"   , &probe_pt       );
-  t->SetBranchStatus("probe_Ele_eta"  , 1); t->SetBranchAddress("probe_Ele_eta"  , &probe_eta      );
-  t->SetBranchStatus("probe_sc_eta"   , 1); t->SetBranchAddress("probe_sc_eta"   , &probe_sc_eta   );
-  t->SetBranchStatus("probe_Ele_phi"  , 1); t->SetBranchAddress("probe_Ele_phi"  , &probe_phi      );
-  t->SetBranchStatus("probe_Ele_q"    , 1); t->SetBranchAddress("probe_Ele_q"    , &probe_q        );
-  t->SetBranchStatus("probe_Ele_ID"   , 1); t->SetBranchAddress("probe_Ele_ID"   , &probe_id       );
-  t->SetBranchStatus("probe_triggered", 1); t->SetBranchAddress("probe_triggered", &probe_triggered);
-  t->SetBranchStatus("pair_pt"        , 1); t->SetBranchAddress("pair_pt"        , &pair_pt        );
-  t->SetBranchStatus("pair_mass"      , 1); t->SetBranchAddress("pair_mass"      , &pair_mass      );
+  // t->SetBranchStatus("*", 0);
+  t->SetBranchAddress("one_pt"       , &one_pt       );
+  t->SetBranchAddress("one_eta"      , &one_eta      );
+  t->SetBranchAddress("one_sc_eta"   , &one_sc_eta   );
+  t->SetBranchAddress("one_phi"      , &one_phi      );
+  t->SetBranchAddress("one_q"        , &one_q        );
+  t->SetBranchAddress("one_id1"      , &one_id1      );
+  t->SetBranchAddress("one_id2"      , &one_id2      );
+  t->SetBranchAddress("two_pt"       , &two_pt       );
+  t->SetBranchAddress("two_eta"      , &two_eta      );
+  t->SetBranchAddress("two_sc_eta"   , &two_sc_eta   );
+  t->SetBranchAddress("two_phi"      , &two_phi      );
+  t->SetBranchAddress("two_q"        , &two_q        );
+  t->SetBranchAddress("two_id1"      , &two_id1      );
+  t->SetBranchAddress("two_id2"      , &two_id2      );
+  t->SetBranchAddress("one_triggered", &one_triggered);
+  t->SetBranchAddress("two_triggered", &two_triggered);
+  t->SetBranchAddress("pair_pt"      , &pair_pt      );
+  t->SetBranchAddress("pair_eta"     , &pair_eta     );
+  t->SetBranchAddress("pair_mass"    , &pair_mass    );
   if(isMC) {
     t->SetBranchStatus("puWeight" , 1); t->SetBranchAddress("puWeight" , &pu_weight );
     t->SetBranchStatus("genWeight", 1); t->SetBranchAddress("genWeight", &gen_weight);
@@ -231,32 +235,64 @@ void scale_factors(int year = 2016, int isMC = 0, int WP = 3) {
   const float tag_pt_min = trig_pt_min + 2.; // 2 GeV/c above threshold
   const float tag_eta_max = 2.3;//2.17;
   const float probe_pt_min = trig_pt_min - 2.; //2 GeV/c below threshold
-  const int tag_id_min = 3; //always use WP80 electrons for the tag
-  const int probe_id_min = (WP > 3) ? 1 : WP; //minimum = WP except 4/5 which is WPL=1 + !(WP90/WP80)
-  const int probe_id_max = (WP > 3) ? WP - 3 : -1; //maximum = none except 4/5 which is WPL=1 + !(WP90/WP80)
+  const int tag_id1_min = 0; //FIXME
+  const int tag_id2_min = 0; //FIXME
+  const int probe_id1_min = 0; //FIXME
+  const int probe_id1_max = -1; //FIXME
+  const int probe_id2_min = 0; //FIXME
+  const int probe_id2_max = -1; //FIXME
   for(ULong64_t entry = 0; entry < nentries; ++entry) {
     if(entry % 100000 == 0) printf("Processing entry %12lld (%5.1f%%)...\n", entry, entry*100./nentries);
     t->GetEntry(entry);
+    //filter events
     if(pair_mass <= 60. || pair_mass > 120.) continue;
-    if(std::fabs(tag_sc_eta) > tag_eta_max) continue;
-    if(gap_low <= fabs(probe_sc_eta) && fabs(probe_sc_eta) <= gap_high) continue;
-    if(gap_low <= fabs(tag_sc_eta)   && fabs(tag_sc_eta)   <= gap_high) continue;
-    if(tag_pt < tag_pt_min) continue;
-    if(probe_pt < probe_pt_min) continue;
-    if(tag_id < tag_id_min) continue;
-    if(probe_id < probe_id_min) continue;
-    if(probe_id_max > 0 && probe_id > probe_id_max) continue;
     float wt = pu_weight; //*((gen_weight < 0) ? -1. : 1.);
-    if(probe_triggered) hPass->Fill(probe_sc_eta, probe_pt, wt);
-    else                hFail->Fill(probe_sc_eta, probe_pt, wt);
-    hTagPt  ->Fill(tag_pt  , wt); hTagEta  ->Fill(tag_sc_eta  , wt);
-    hProbePt->Fill(probe_pt, wt); hProbeEta->Fill(probe_sc_eta, wt);
-    const int xbin = hPass->GetXaxis()->FindBin(probe_sc_eta);
-    const int ybin = hPass->GetYaxis()->FindBin(probe_pt);
-    const int mapBin = xbin + 100*ybin;
-    if(probe_triggered) massHists_pass[mapBin]->Fill(pair_mass, wt);
-    else                massHists_fail[mapBin]->Fill(pair_mass, wt);
-  }
+    //first consider lepton 1 as the tag
+    if(one_triggered &&
+       std::fabs(one_sc_eta) < tag_eta_max &&
+       (gap_low > fabs(one_sc_eta) || fabs(one_sc_eta) > gap_high) &&
+       one_pt > tag_pt_min &&
+       two_pt > probe_pt_min &&
+       one_id1 >= tag_id1_min &&
+       two_id1 >= probe_id1_min &&
+       (probe_id1_max < 0 || two_id1 <= probe_id1_max) &&
+       one_id2 >= tag_id2_min &&
+       two_id2 >= probe_id2_min &&
+       (probe_id2_max < 0 || two_id2 <= probe_id2_max)) { //Passes cuts to perform probe check
+      if(two_triggered) hPass->Fill(two_sc_eta, two_pt, wt);
+      else              hFail->Fill(two_sc_eta, two_pt, wt);
+      hTagPt  ->Fill(one_pt, wt); hTagEta  ->Fill(one_sc_eta, wt);
+      hProbePt->Fill(two_pt, wt); hProbeEta->Fill(two_sc_eta, wt);
+      const int xbin = hPass->GetXaxis()->FindBin(two_sc_eta);
+      const int ybin = hPass->GetYaxis()->FindBin(two_pt);
+      const int mapBin = xbin + 100*ybin;
+      if(two_triggered) massHists_pass[mapBin]->Fill(pair_mass, wt);
+      else              massHists_fail[mapBin]->Fill(pair_mass, wt);
+    } //end lepton one tag
+
+    //next consider lepton 2 as the tag
+    if(two_triggered &&
+       std::fabs(two_sc_eta) < tag_eta_max &&
+       (gap_low > fabs(two_sc_eta) || fabs(two_sc_eta) > gap_high) &&
+       two_pt > tag_pt_min &&
+       one_pt > probe_pt_min &&
+       two_id1 >= tag_id1_min &&
+       one_id1 >= probe_id1_min &&
+       (probe_id1_max < 0 || one_id1 <= probe_id1_max) &&
+       two_id2 >= tag_id2_min &&
+       one_id2 >= probe_id2_min &&
+       (probe_id2_max < 0 || one_id2 <= probe_id2_max)) { //Passes cuts to perform probe check
+      if(one_triggered) hPass->Fill(one_sc_eta, one_pt, wt);
+      else              hFail->Fill(one_sc_eta, one_pt, wt);
+      hTagPt  ->Fill(two_pt, wt); hTagEta  ->Fill(two_sc_eta, wt);
+      hProbePt->Fill(one_pt, wt); hProbeEta->Fill(one_sc_eta, wt);
+      const int xbin = hPass->GetXaxis()->FindBin(one_sc_eta);
+      const int ybin = hPass->GetYaxis()->FindBin(one_pt);
+      const int mapBin = xbin + 100*ybin;
+      if(one_triggered) massHists_pass[mapBin]->Fill(pair_mass, wt);
+      else              massHists_fail[mapBin]->Fill(pair_mass, wt);
+    } //end lepton one tag
+  } //end event loop
 
   TH2F* hRatio = (TH2F*) hPass->Clone("hRatio_cc");
   TH2F* hTotal = (TH2F*) hPass->Clone("hTotal_cc");

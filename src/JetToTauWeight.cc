@@ -595,9 +595,9 @@ float JetToTauWeight::GetFactor(TH2* h, TF1* func, TH1* hCorrection, TH1* hFitte
     } else {
       float eta_wt = heta->GetBinContent(heta->FindBin(eta));
       if(eta_wt <= 0.f) {
-        std::cout << "JetToTauWeight::" << __func__ << ": " << name_.Data() << " Warning! Eta correction <= 0! Eta = " << eta
-                  << " eta correction weight = " << eta_wt
-                  << " year = " << year << std::endl;
+        if(verbose_) std::cout << "JetToTauWeight::" << __func__ << ": " << name_.Data() << " Warning! Eta correction <= 0! Eta = " << eta
+                               << " eta correction weight = " << eta_wt
+                               << " year = " << year << std::endl;
         eta_wt = 1.f;
       }
       pt_wt *= eta_wt;
@@ -614,9 +614,9 @@ float JetToTauWeight::GetFactor(TH2* h, TF1* func, TH1* hCorrection, TH1* hFitte
     } else {
       float met_wt = hmet->GetBinContent(hmet->FindBin(metdphi));
       if(met_wt <= 0.) {
-        std::cout << "JetToTauWeight::" << __func__ << ": " << name_.Data() << " Warning! metdphi correction <= 0! metdphi = " << metdphi
-                  << " met correction weight = " << met_wt
-                  << " year = " << year << std::endl;
+        if(verbose_) std::cout << "JetToTauWeight::" << __func__ << ": " << name_.Data() << " Warning! metdphi correction <= 0! metdphi = " << metdphi
+                               << " met correction weight = " << met_wt
+                               << " year = " << year << std::endl;
         met_wt = 1.f;
       }
       pt_wt *= met_wt;

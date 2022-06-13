@@ -1451,7 +1451,7 @@ Bool_t CLFVTmpHistMaker::Process(Long64_t entry)
   if(!(mutau || etau || emu || mumu || ee)) return kTRUE;
 
 
-  fCutFlow->Fill(icutflow); ++icutflow; //7
+  fCutFlow->Fill(icutflow); ++icutflow; //9
 
   ////////////////////////////////////////////////////////////
   // Set 3 + selection offset: eta, mass, and trigger cuts
@@ -1486,16 +1486,16 @@ Bool_t CLFVTmpHistMaker::Process(Long64_t entry)
       FillAllHistograms(set_offset + 4);
   }
 
-  fCutFlow->Fill(icutflow); ++icutflow; //8
+  fCutFlow->Fill(icutflow); ++icutflow; //10
 
   //cut-flow for not loose lepton/QCD
-  if(!looseQCDSelection)               {fCutFlow->Fill(icutflow);} //9
+  if(!looseQCDSelection)               {fCutFlow->Fill(icutflow);} //11
   ++icutflow;
-  if(!looseQCDSelection && chargeTest) {fCutFlow->Fill(icutflow);} //10
+  if(!looseQCDSelection && chargeTest) {fCutFlow->Fill(icutflow);} //12
   ++icutflow;
 
   //cut-flow for fake leptons
-  if(fIsData) fCutFlow->Fill(icutflow); //11
+  if(fIsData) fCutFlow->Fill(icutflow); //13
   else if(emu) {
     if((std::abs(leptonOneFlavor) == std::abs(leptonOneGenFlavor))
        && (std::abs(leptonTwoFlavor) == std::abs(leptonTwoGenFlavor))) {
@@ -1579,7 +1579,7 @@ Bool_t CLFVTmpHistMaker::Process(Long64_t entry)
 
   if(!(mutau || etau || emu || mumu || ee)) return kTRUE;
 
-  if(!looseQCDSelection && chargeTest) {fCutFlow->Fill(icutflow);} //12
+  if(!looseQCDSelection && chargeTest) {fCutFlow->Fill(icutflow);} //14
   ++icutflow;
 
 
@@ -1749,7 +1749,7 @@ Bool_t CLFVTmpHistMaker::Process(Long64_t entry)
 
   if(!(mutau || etau || emu || mumu || ee)) return kTRUE;
 
-  if(!looseQCDSelection && chargeTest) {fCutFlow->Fill(icutflow);} //13
+  if(!looseQCDSelection && chargeTest) {fCutFlow->Fill(icutflow);} //15
   ++icutflow;
 
   ////////////////////////////////////////////////////////////////////////////
@@ -1841,7 +1841,7 @@ Bool_t CLFVTmpHistMaker::Process(Long64_t entry)
 
   if(fCutFlowTesting) return kTRUE;
 
-  if(!looseQCDSelection && chargeTest) {fCutFlow->Fill(icutflow);} //14
+  if(!looseQCDSelection && chargeTest) {fCutFlow->Fill(icutflow);} //16
   ++icutflow;
 
   //////////////////////////
@@ -1856,6 +1856,11 @@ Bool_t CLFVTmpHistMaker::Process(Long64_t entry)
 
   if(!(mutau || etau || emu || mumu || ee)) return kTRUE;
 
+
+  if(isLooseElectron)               {fCutFlow->Fill(icutflow);} //17
+  ++icutflow;
+  if(isLooseElectron && chargeTest) {fCutFlow->Fill(icutflow);} //18
+  ++icutflow;
 
   //Test selection for QCD using loose electron or both loose leptons
   if(emu && isLooseElectron) {
@@ -1874,11 +1879,11 @@ Bool_t CLFVTmpHistMaker::Process(Long64_t entry)
   if(!(mutau || etau || emu || mumu || ee)) return kTRUE;
 
 
-  if(!looseQCDSelection && chargeTest)                                          {fCutFlow->Fill(icutflow);} //15
+  if(!looseQCDSelection && chargeTest)                                          {fCutFlow->Fill(icutflow);} //19
   ++icutflow;
-  if(!looseQCDSelection && chargeTest && std::fabs(genWeight) > 0.)             {fCutFlow->Fill(icutflow);} //16
+  if(!looseQCDSelection && chargeTest && std::fabs(genWeight) > 0.)             {fCutFlow->Fill(icutflow);} //20
   ++icutflow;
-  if(!looseQCDSelection && chargeTest && std::fabs(genWeight*eventWeight) > 0.) {fCutFlow->Fill(icutflow);} //17
+  if(!looseQCDSelection && chargeTest && std::fabs(genWeight*eventWeight) > 0.) {fCutFlow->Fill(icutflow);} //21
   ++icutflow;
 
   ////////////////////////////////////////////////////////////////////////////

@@ -89,7 +89,7 @@ void CLFVHistMaker::Begin(TTree * /*tree*/)
   else dir += "/src/CLFVAnalysis/";
   fRoccoR = new RoccoR(Form("%sscale_factors/RoccoR%i.txt", dir.Data(), fYear));
   fElectronIDWeight.verbose_ = fVerbose;
-  fMuonIDWeight.verbose_ = fVerbose;
+  fMuonIDWeight.SetVerbose(fVerbose);
   fBTagWeight.verbose_ = fVerbose;
   fCutFlow = new TH1D("hcutflow", "Cut-flow", 100, 0, 100);
 

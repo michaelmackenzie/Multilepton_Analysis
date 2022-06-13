@@ -38,6 +38,15 @@ git clone https://github.com/cms-tau-pog/TauIDSFs TauPOG/TauIDSFs
 scram b -j4
 ```
 
+Higgs Combine tools:
+```
+git clone https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit.git HiggsAnalysis/CombinedLimit
+cd HiggsAnalysis/CombinedLimit
+git checkout v8.1.0
+cd -
+scram b -j4
+```
+
 Remainder of the analysis:
 ```
 git clone https://github.com/michaelmackenzie/Multilepton_Analysis.git CLFVAnalysis #no second level to avoid CMSSW scram compiling

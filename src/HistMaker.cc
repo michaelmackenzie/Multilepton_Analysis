@@ -10,7 +10,7 @@ HistMaker::HistMaker(int seed, TTree * /*tree*/) : fSystematicSeed(seed),
                                                    fMuonJetToTauComp("mutau", 2035, 3, 0), fMuonJetToTauSSComp("mutau", 3035, 3, 0),
                                                    fElectronJetToTauComp("etau", 2035, 3, 0), fElectronJetToTauSSComp("etau", 3035, 3, 0),
                                                    fQCDWeight("emu", /*11010*/ 1100200/*anti-iso, jet binned, no fits*/, seed, 0),
-                                                   fMuonIDWeight(seed),
+                                                   fMuonIDWeight(1 /*use medium muon ID*/,seed),
                                                    //FIXME: Turn on or keep off electron trigger interpolation
                                                    fElectronIDWeight(0, seed),
                                                    // fZPtWeight("MuMu", 1, seed),
@@ -102,7 +102,7 @@ void HistMaker::Begin(TTree * /*tree*/)
   else dir += "/src/CLFVAnalysis/";
   fRoccoR = new RoccoR(Form("%sscale_factors/RoccoR%i.txt", dir.Data(), fYear));
   fElectronIDWeight.verbose_ = fVerbose;
-  fMuonIDWeight.verbose_ = fVerbose;
+  fMuonIDWeight.SetVerbose(fVerbose);
   fBTagWeight = new BTagWeight();
   fBTagWeight->verbose_ = fVerbose;
   fPUWeight = new PUWeight();

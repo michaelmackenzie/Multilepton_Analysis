@@ -1,13 +1,14 @@
 //information for debugging
 #include "histogramming_config.C"
 #include "process_card.C"
-bool copyConfig_ = true; //create a new config file to use to prevent changes
-bool newProcess_ = true; //run card processing in a new process to avoid memory issues
+bool copyConfig_   = true; //create a new config file to use to prevent changes
+bool newProcess_   = true; //run card processing in a new process to avoid memory issues
+int  maxProcesses_ = 4; //maximum number of new processes to run at once
 
 using namespace CLFV;
 
 Int_t count_processes() {
-  TString res = gSystem->GetFromPipe("ps -elf | grep process_clfv.C | grep -v grep | awk '{++count}END{print count}'");
+  TString res = gSystem->GetFromPipe("ps -elf | grep ${USER} | grep process_card.C | grep -v grep | awk '{++count}END{print count}'");
   return res.Atoi();
 }
 
@@ -22,8 +23,9 @@ Int_t process_clfv() {
   CrossSections xs(useUL_);
 
   TStopwatch* timer = new TStopwatch();
-  const int copy_num_ = (copyConfig_) ? count_processes() : -1;
-  // if(copy_num_ >= 0) gSystem->Exec(Form("cp histogramming_config.C histogramming_config_%i.C", copy_num_));
+
+  //ensure the log directory exists
+  gSystem->Exec("[ ! -d log ] && mkdir log");
 
   //loop over data formats, 0 = bltTrees from CLFVAnalyzer, 1 = trees from converting Nano AODS
   Int_t category = 0;
@@ -65,9 +67,12 @@ Int_t process_clfv() {
         cout << "ERROR: Didn't find generation numbers for combining with sample name " << name.Data() << endl;
     } //end combine extension samples
     if(newProcess_) {
-      gSystem->Exec(Form("root.exe -q -b -l \"process_card.C(\\\"%s\\\", \\\"%s\\\", %f, %i, %i, %i)\"",
+      while(count_processes() >= maxProcesses_) {
+        sleep(10); //wait to submit until fewer than the maximum are running
+      }
+      gSystem->Exec(Form("root.exe -q -b -l \"process_card.C(\\\"%s\\\", \\\"%s\\\", %f, %i, %i, %i)\" >| log/out_%i.log 2>&1 &",
                          nanoaod_path.Data(), nanocards[i].fname_.Data(), nanocards[i].xsec_,
-                         nanocards[i].isData_, nanocards[i].combine_, category
+                         nanocards[i].isData_, nanocards[i].combine_, category, category
                          )
                     );
       sleep(2); //add 2 sec buffer between loops
@@ -77,10 +82,13 @@ Int_t process_clfv() {
                    );
     }
   } //end file loop
+  while(count_processes() > 0) { //wait for all jobs to finish
+    sleep(10);
+  }
   //report the time spent histogramming
-  Double_t realTime = timer->RealTime();
-  printf("Processing time: %7.2fs Wall time\n",realTime);
-  if(realTime > 600. ) printf("Processing time: %7.2fmin Wall time\n",realTime/60.);
+  const Double_t realTime = timer->RealTime();
+  if(realTime > 180. ) printf("Processing time: %7.2fmin Wall time\n",realTime/60.);
+  else                 printf("Processing time: %7.2fs Wall time\n"  ,realTime);
 
   return 0;
 }

@@ -737,7 +737,7 @@ void HistMaker::Init(TTree *tree)
   printf("HistMaker::%s Loading baskets\n", __func__);
   fChain->SetCacheSize(fCacheSize);
   fChain->AddBranchToCache("*",true);
-  if(fLoadBaskets) fChain->LoadBaskets(fCacheSize);
+  if(fLoadBaskets) fChain->LoadBaskets(2.*fCacheSize);
   printf("Total number of entries is %lld\n",fChain->GetEntriesFast());
 }
 
