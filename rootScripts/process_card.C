@@ -66,6 +66,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TTr
       if(dynamic_cast<HistMaker*> (selec)) {
         auto hist_selec = (HistMaker*) selec;
         hist_selec->fPrintTime = 2; //Print detailed summary of processing
+        hist_selec->fDoTriggerMatching = doTriggerMatching_;
       }
 
       selec->fRemoveTriggerWeights = removeTrigWeights_;

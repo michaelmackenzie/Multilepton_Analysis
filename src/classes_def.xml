@@ -31,6 +31,7 @@
   <class name="HistMaker"/>
   <class name="SparseHistMaker"/>
   <class name="CLFVTmpHistMaker"/>
+  <class name="JTTHistMaker"/>
   <class name="DataCard_t"/>
   <class name="PlottingCard_t"/>
   <class name="DataPlotter"/>

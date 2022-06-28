@@ -3,7 +3,7 @@
 #include "process_card.C"
 bool copyConfig_   = true; //create a new config file to use to prevent changes
 bool newProcess_   = true; //run card processing in a new process to avoid memory issues
-int  maxProcesses_ = 4; //maximum number of new processes to run at once
+int  maxProcesses_ = 6; //maximum number of new processes to run at once
 
 using namespace CLFV;
 
@@ -46,9 +46,9 @@ Int_t process_clfv() {
     if(nanocards[i].combine_) { //only for 2016, 2017 Wlnu samples
       TString name = nanocards[i].fname_;
       name.ReplaceAll("LFVAnalysis_", "");
-      name.ReplaceAll("2016.root", "");
-      name.ReplaceAll("2017.root", "");
-      name.ReplaceAll("2018.root", "");
+      name.ReplaceAll("_2016.root", "");
+      name.ReplaceAll("_2017.root", "");
+      name.ReplaceAll("_2018.root", "");
       bool isext = name.Contains("-ext");
       name.ReplaceAll("-ext", "");
       long num1 = xs.GetGenNumber(name       , year); //get number of events per sample
@@ -82,7 +82,7 @@ Int_t process_clfv() {
                    );
     }
   } //end file loop
-  while(count_processes() > 0) { //wait for all jobs to finish
+  while(newProcess_ && count_processes() > 0) { //wait for all jobs to finish
     sleep(10);
   }
   //report the time spent histogramming

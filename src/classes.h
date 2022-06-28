@@ -32,6 +32,7 @@
 #include "interface/CLFVHistMaker.hh"
 #include "interface/SparseHistMaker.hh"
 #include "interface/CLFVTmpHistMaker.hh"
+#include "interface/JTTHistMaker.hh"
 #include "interface/DataCard_t.hh"
 #include "interface/PlottingCard_t.hh"
 #include "interface/DataPlotter.hh"
@@ -68,6 +69,7 @@ namespace CLFV {
     CLFVHistMaker dummy15b;
     SparseHistMaker dummy15b2;
     CLFVTmpHistMaker dummy15b3;
+    JTTHistMaker dummy15b4;
     DataCard_t dummy15c;
     PlottingCard_t dummy15d;
     DataPlotter dummy16;
