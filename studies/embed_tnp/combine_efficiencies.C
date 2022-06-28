@@ -91,8 +91,8 @@ void combine_efficiencies(int Mode = 0, bool isMuon = true, int year = 2016, int
   gStyle->SetOptStat(0);
   TCanvas* c = new TCanvas("c", "c", 1000, 1300);
   gStyle->SetPaintTextFormat(".2f");
-  hScale->SetMarkerSize(0.5);
-  hScale->Draw("colz text error");
+  hScale->SetMarkerSize(0.7);
+  hScale->Draw("colz text");
   set_z_range(hScale);
   c->Update();
   hScale->GetYaxis()->SetMoreLogLabels(kTRUE);

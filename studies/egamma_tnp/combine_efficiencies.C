@@ -49,7 +49,7 @@ void fit_scales(TH2F* h, int year, int WP) {
   }
 }
 
-void combine_efficiencies(int year = 2016, int WP = 3) {
+void combine_efficiencies(int year = 2016, int WP = 0) {
 
   TFile* fData = TFile::Open(Form("rootfiles/efficiencies_%i_wp%i_mc0.root", year, WP), "READ");
   TFile* fMC   = TFile::Open(Form("rootfiles/efficiencies_%i_wp%i_mc1.root", year, WP), "READ");

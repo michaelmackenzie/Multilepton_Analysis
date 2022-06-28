@@ -157,7 +157,7 @@ TCanvas* plot_muon_low_trigger_scale(int year, int period = 0, bool error = fals
   yname = "p_{T}"; xname = "#eta";
   TFile* f = TFile::Open(path.Data(), "READ");
   if(!f) return NULL;
-  TH2F* hID = (TH2F*) f->Get(hname.Data());
+  TH2* hID = (TH2*) f->Get(hname.Data());
   if(!hID) {
     cout << "ID histogram not found!\n";
     return NULL;
@@ -207,7 +207,7 @@ TCanvas* plot_muon_ID_scale(int year, int period = 0, bool error = false) {
   }
   TFile* f = TFile::Open(path.Data(), "READ");
   if(!f) return NULL;
-  TH2F* hID = (TH2F*) f->Get(hname.Data());
+  TH2* hID = (TH2*) f->Get(hname.Data());
   if(!hID) {
     cout << "ID histogram not found!\n";
     return NULL;
@@ -248,7 +248,7 @@ TCanvas* plot_muon_iso_scale(int year, int period = 0, bool error = false) {
   }
   TFile* f = TFile::Open(path.Data(), "READ");
   if(!f) return NULL;
-  TH2F* hID = (TH2F*) f->Get(hname.Data());
+  TH2* hID = (TH2*) f->Get(hname.Data());
   if(!hID) {
     cout << "ID histogram not found!\n";
     return NULL;
@@ -278,7 +278,7 @@ TCanvas* plot_electron_scale(int year, bool error = false) {
   }
   TFile* f = TFile::Open(path.Data(), "READ");
   if(!f) return NULL;
-  TH2F* hID = (TH2F*) f->Get("EGamma_SF2D");
+  TH2* hID = (TH2*) f->Get("EGamma_SF2D");
   if(!hID) {
     cout << "ID histogram not found!\n";
     return NULL;
@@ -305,7 +305,7 @@ TCanvas* plot_electron_reco_scale(int year, bool error = false) {
   }
   TFile* f = TFile::Open(path.Data(), "READ");
   if(!f) return NULL;
-  TH2F* hID = (TH2F*) f->Get("EGamma_SF2D");
+  TH2* hID = (TH2*) f->Get("EGamma_SF2D");
   if(!hID) {
     cout << "ID histogram not found!\n";
     return NULL;
@@ -322,7 +322,7 @@ TCanvas* plot_electron_trigger_scale(int year, int WP = 3, bool error = false) {
   TString path = Form("../../scale_factors/egamma_trigger_eff_wp%i_%i.root", WP, year);
   TFile* f = TFile::Open(path.Data(), "READ");
   if(!f) return NULL;
-  TH2F* hID = (TH2F*) f->Get("EGamma_SF2D");
+  TH2* hID = (TH2*) f->Get("EGamma_SF2D");
   if(!hID) {
     cout << "ID histogram not found!\n";
     return NULL;
@@ -350,7 +350,7 @@ TCanvas* plot_embedding_scale(int year, int Mode, bool isMuon, int period = -1) 
                       (isMuon) ? "mumu" : "ee", Mode, year, (period >= 0) ? Form("_period_%i", period) : "");
   TFile* f = TFile::Open(path.Data(), "READ");
   if(!f) return NULL;
-  TH2F* hID = (TH2F*) f->Get("PtVsEtaSF");
+  TH2* hID = (TH2*) f->Get("PtVsEtaSF");
   if(!hID) {
     cout << "Embedding histogram for " << year << " Mode = " << Mode << " isMuon = " << isMuon << " not found!\n";
     return NULL;
@@ -602,9 +602,10 @@ void plot_scales() {
     }
 
     //Embedding TnP scale factors
-    for(int period = -1; period < (year == 2016)*2; ++period) { //B-F and G-H specific scale factors for 2016
+    for(int period = -1; period < (year != 2017)*2; ++period) { //B-F and G-H specific scale factors for 2016
       c = plot_embedding_scale    (year, 0, false, period); if(c) delete c; //electron trigger
       c = plot_embedding_scale    (year, 1, false, period); if(c) delete c; //electron ID
+      c = plot_embedding_scale    (year, 2, false, period); if(c) delete c; //electron Iso ID
       c = plot_embedding_scale    (year, 3, false, period); if(c) delete c; //electron Loose + !Tight ID
       c = plot_embedding_scale    (year, 4, false, period); if(c) delete c; //electron trigger, Loose + !Tight ID
       c = plot_embedding_scale    (year, 0, true , period); if(c) delete c; //muon trigger

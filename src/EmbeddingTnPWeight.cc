@@ -22,6 +22,7 @@ EmbeddingTnPWeight::EmbeddingTnPWeight(const int Mode, const int verbose) : verb
                                   Form("%s/embedding_eff_mumu_mode-4_%i%s.root", path.Data(), year_v, (year > k2018) ? Form("_period_%i", (year - k2018) % 2) : ""),
                                   Form("%s/embedding_eff_ee_mode-0_%i%s.root"  , path.Data(), year_v, (year > k2018) ? Form("_period_%i", (year - k2018) % 2) : ""),
                                   Form("%s/embedding_eff_ee_mode-1_%i%s.root"  , path.Data(), year_v, (year > k2018) ? Form("_period_%i", (year - k2018) % 2) : ""),
+                                  Form("%s/embedding_eff_ee_mode-2_%i%s.root"  , path.Data(), year_v, (year > k2018) ? Form("_period_%i", (year - k2018) % 2) : ""),
                                   Form("%s/embedding_eff_ee_mode-3_%i%s.root"  , path.Data(), year_v, (year > k2018) ? Form("_period_%i", (year - k2018) % 2) : ""),
                                   Form("%s/embedding_eff_ee_mode-4_%i%s.root"  , path.Data(), year_v, (year > k2018) ? Form("_period_%i", (year - k2018) % 2) : "")
     };
@@ -31,9 +32,9 @@ EmbeddingTnPWeight::EmbeddingTnPWeight(const int Mode, const int verbose) : verb
       if(!f) {
         std::cout << "!!! Embedding corrections file " << file.Data() << " for " << year_v << " not found!\n";
       } else {
-        TH2F* hData = (TH2F*) f->Get("PtVsEtaData");
-        TH2F* hMC   = (TH2F*) f->Get("PtVsEtaMC"  );
-        TH2F* hSF   = (TH2F*) f->Get("PtVsEtaSF"  );
+        TH2* hData = (TH2*) f->Get("PtVsEtaData");
+        TH2* hMC   = (TH2*) f->Get("PtVsEtaMC"  );
+        TH2* hSF   = (TH2*) f->Get("PtVsEtaSF"  );
         if(!hData || !hMC || !hSF) {
           std::cout << "!!! Efficiency histograms not found in " << file.Data() << std::endl;
         } else {
@@ -67,9 +68,12 @@ EmbeddingTnPWeight::EmbeddingTnPWeight(const int Mode, const int verbose) : verb
             } else if(file.Contains("mode-1")) { //ID files
               electronIDDataEff_[year] = hData;
               electronIDMCEff_  [year] = hMC  ;
+            } else if(file.Contains("mode-2")) { //Iso ID files
+              electronIsoIDDataEff_[year] = hData;
+              electronIsoIDMCEff_  [year] = hMC  ;
             } else if(file.Contains("mode-3")) { //Loose + !Tight ID files
-              electronQCDIDDataEff_[year] = hData;
-              electronQCDIDMCEff_  [year] = hMC  ;
+              electronQCDIsoIDDataEff_[year] = hData;
+              electronQCDIsoIDMCEff_  [year] = hMC  ;
             } else if(file.Contains("mode-4")) { //Loose + !Tight ID trigger files
               electronQCDTrigDataEff_[year] = hData;
               electronQCDTrigMCEff_  [year] = hMC  ;
@@ -86,21 +90,21 @@ EmbeddingTnPWeight::EmbeddingTnPWeight(const int Mode, const int verbose) : verb
 //-------------------------------------------------------------------------------------------------------------------------
 EmbeddingTnPWeight::~EmbeddingTnPWeight() {
   if(rnd_) delete rnd_;
-  for(std::pair<int, TH2F*> val : muonTrigDataEff_    ) {if(val.second) delete val.second;}
-  for(std::pair<int, TH2F*> val : muonTrigMCEff_      ) {if(val.second) delete val.second;}
-  for(std::pair<int, TH2F*> val : muonIDDataEff_      ) {if(val.second) delete val.second;}
-  for(std::pair<int, TH2F*> val : muonIDMCEff_        ) {if(val.second) delete val.second;}
-  for(std::pair<int, TH2F*> val : muonIsoIDDataEff_   ) {if(val.second) delete val.second;}
-  for(std::pair<int, TH2F*> val : muonIsoIDMCEff_     ) {if(val.second) delete val.second;}
-  for(std::pair<int, TH2F*> val : electronTrigDataEff_) {if(val.second) delete val.second;}
-  for(std::pair<int, TH2F*> val : electronTrigMCEff_  ) {if(val.second) delete val.second;}
-  for(std::pair<int, TH2F*> val : electronIDDataEff_  ) {if(val.second) delete val.second;}
-  for(std::pair<int, TH2F*> val : electronIDMCEff_    ) {if(val.second) delete val.second;}
+  for(std::pair<int, TH2*> val : muonTrigDataEff_    ) {if(val.second) delete val.second;}
+  for(std::pair<int, TH2*> val : muonTrigMCEff_      ) {if(val.second) delete val.second;}
+  for(std::pair<int, TH2*> val : muonIDDataEff_      ) {if(val.second) delete val.second;}
+  for(std::pair<int, TH2*> val : muonIDMCEff_        ) {if(val.second) delete val.second;}
+  for(std::pair<int, TH2*> val : muonIsoIDDataEff_   ) {if(val.second) delete val.second;}
+  for(std::pair<int, TH2*> val : muonIsoIDMCEff_     ) {if(val.second) delete val.second;}
+  for(std::pair<int, TH2*> val : electronTrigDataEff_) {if(val.second) delete val.second;}
+  for(std::pair<int, TH2*> val : electronTrigMCEff_  ) {if(val.second) delete val.second;}
+  for(std::pair<int, TH2*> val : electronIDDataEff_  ) {if(val.second) delete val.second;}
+  for(std::pair<int, TH2*> val : electronIDMCEff_    ) {if(val.second) delete val.second;}
 }
 
 //-------------------------------------------------------------------------------------------------------------------------
 // For a given (pt, eta) point and Data/MC histograms, evaluate the scale factor
-double EmbeddingTnPWeight::GetScale(const TH2F* data, const TH2F* mc, const double pt, const double eta, float& data_eff, float& mc_eff) {
+double EmbeddingTnPWeight::GetScale(const TH2* data, const TH2* mc, const double pt, const double eta, float& data_eff, float& mc_eff) {
   if(interpolate_) {
     //Perform a linear interpolation
     data_eff = Utilities::Interpolate(data, eta, pt, Utilities::kYAxis);
@@ -127,16 +131,16 @@ double EmbeddingTnPWeight::MuonIDWeight(double pt, double eta, int year, bool qc
   }
 
   const int index = ((year == k2016 || year == k2018) && useRunPeriods_) ? ((year == k2016) ? k2016BF : k2018ABC) + period : year;
-  const TH2F* hIDMC   = muonIDMCEff_  [index];
-  const TH2F* hIDData = muonIDDataEff_[index];
+  const TH2* hIDMC   = muonIDMCEff_  [index];
+  const TH2* hIDData = muonIDDataEff_[index];
   if(!hIDMC || !hIDData) {
     std::cout << "Error! EmbeddingTnPWeight::" << __func__ << ": ID histograms not found! year = "
               << year + 2016 << ", period = " << period << std::endl;
     return 1.;
   }
 
-  const TH2F* hIsoIDMC   = (qcd) ? muonQCDIsoIDMCEff_  [index] : muonIsoIDMCEff_  [index];
-  const TH2F* hIsoIDData = (qcd) ? muonQCDIsoIDDataEff_[index] : muonIsoIDDataEff_[index];
+  const TH2* hIsoIDMC   = (qcd) ? muonQCDIsoIDMCEff_  [index] : muonIsoIDMCEff_  [index];
+  const TH2* hIsoIDData = (qcd) ? muonQCDIsoIDDataEff_[index] : muonIsoIDDataEff_[index];
   if(!hIsoIDMC || !hIsoIDData) {
     std::cout << "Error! EmbeddingTnPWeight::" << __func__ << ": Iso ID histograms not found! year = "
               << year + 2016 << ", period = " << period << std::endl;
@@ -182,8 +186,8 @@ double EmbeddingTnPWeight::MuonTriggerWeight(double pt, double eta, int year, fl
   if(pt < 25. || (pt < 28. && year == k2017)) return 1.;
 
   const int index = ((year == k2016 || year == k2018) && useRunPeriods_) ? ((year == k2016) ? k2016BF : k2018ABC) + period : year;
-  const TH2F* hMC   = (qcd) ? muonQCDTrigMCEff_  [index] : muonTrigMCEff_  [index];
-  const TH2F* hData = (qcd) ? muonQCDTrigDataEff_[index] : muonTrigDataEff_[index];
+  const TH2* hMC   = (qcd) ? muonQCDTrigMCEff_  [index] : muonTrigMCEff_  [index];
+  const TH2* hData = (qcd) ? muonQCDTrigDataEff_[index] : muonTrigDataEff_[index];
   if(!hMC || !hData) {
     std::cout << "Error! EmbeddingTnPWeight::" << __func__ << ": Trigger histograms not found! year = "
               << year + 2016 << ", period = " << period << std::endl;
@@ -231,10 +235,18 @@ double EmbeddingTnPWeight::ElectronIDWeight(double pt, double eta, int year, boo
   }
 
   const int index = ((year == k2016 || year == k2018) && useRunPeriods_) ? ((year == k2016) ? k2016BF : k2018ABC) + period : year;
-  const TH2F* hIDMC   = (qcd) ? electronQCDIDMCEff_  [index] : electronIDMCEff_  [index];
-  const TH2F* hIDData = (qcd) ? electronQCDIDDataEff_[index] : electronIDDataEff_[index];
+  const TH2* hIDMC   = electronIDMCEff_  [index];
+  const TH2* hIDData = electronIDDataEff_[index];
   if(!hIDMC || !hIDData) {
     std::cout << "Error! EmbeddingTnPWeight::" << __func__ << ": ID histograms not found! year = "
+              << year + 2016 << ", period = " << period << std::endl;
+    return 1.;
+  }
+
+  const TH2* hIsoIDMC   = (qcd) ? electronQCDIsoIDMCEff_  [index] : electronIsoIDMCEff_  [index];
+  const TH2* hIsoIDData = (qcd) ? electronQCDIsoIDDataEff_[index] : electronIsoIDDataEff_[index];
+  if(!hIsoIDMC || !hIsoIDData) {
+    std::cout << "Error! EmbeddingTnPWeight::" << __func__ << ": Iso ID histograms not found! year = "
               << year + 2016 << ", period = " << period << std::endl;
     return 1.;
   }
@@ -251,6 +263,11 @@ double EmbeddingTnPWeight::ElectronIDWeight(double pt, double eta, int year, boo
   // Apply ID weight
   ///////////////////////////
   scale_factor *= GetScale(hIDData, hIDMC, pt, eta, data_eff, mc_eff);
+
+  ///////////////////////////
+  // Apply IsoID weight
+  ///////////////////////////
+  scale_factor *= GetScale(hIsoIDData, hIsoIDMC, pt, eta, data_eff, mc_eff);
 
   if(scale_factor <= 0. || !std::isfinite(scale_factor)) {
     std::cout << "Warning! Scale factor <= 0 or undefined (" << scale_factor << ") in EmbeddingTnPWeight::" << __func__ << ", returning 1" << std::endl;
@@ -274,8 +291,8 @@ double EmbeddingTnPWeight::ElectronTriggerWeight(double pt, double eta, int year
   if(pt < 28. || (pt < 33. && year != k2016)) return 1.;
 
   const int index = ((year == k2016 || year == k2018) && useRunPeriods_) ? ((year == k2016) ? k2016BF : k2018ABC) + period : year;
-  const TH2F* hMC   = (qcd) ? electronQCDIDMCEff_  [index] : electronTrigMCEff_  [index];
-  const TH2F* hData = (qcd) ? electronQCDIDDataEff_[index] : electronTrigDataEff_[index];
+  const TH2* hMC   = (qcd) ? electronQCDTrigMCEff_  [index] : electronTrigMCEff_  [index];
+  const TH2* hData = (qcd) ? electronQCDTrigDataEff_[index] : electronTrigDataEff_[index];
   if(!hMC || !hData) {
     std::cout << "Error! EmbeddingTnPWeight::" << __func__ << ": Trigger histograms not found! year = "
               << year + 2016 << ", period = " << period << std::endl;
@@ -303,7 +320,8 @@ double EmbeddingTnPWeight::ElectronTriggerWeight(double pt, double eta, int year
      !std::isfinite(scale_factor) || !std::isfinite(data_eff) || !std::isfinite(mc_eff)) {
     std::cout << "Warning! Scale factor <= 0 in EmbeddingTnPWeight::" << __func__
               << ": data_eff = " << data_eff << " mc_eff = " << mc_eff
-              << " pt = " << pt << " eta = " << eta << " year = " << year + 2016
+              << " pt = " << pt << " eta = " << eta << " qcd = " << qcd
+              << " year = " << year + 2016 << " period = " << period
               << ", returning 1" << std::endl;
     //0.5 is safest for efficiencies, so no 0/0 in eff/eff or (1-eff)/(1-eff)
     mc_eff = 0.5;

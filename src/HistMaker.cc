@@ -15,7 +15,7 @@ HistMaker::HistMaker(int seed, TTree * /*tree*/) : fSystematicSeed(seed),
                                                    fElectronIDWeight(0, seed),
                                                    // fZPtWeight("MuMu", 1, seed),
                                                    //FIXME: Turn on or keep off embedding trigger interpolation
-                                                   fEmbeddingWeight(), fEmbeddingTnPWeight(10/*10*(use 2016 BF/GH scales) + 1*(interpolate scales or not)*/) {
+                                                   fEmbeddingWeight(), fEmbeddingTnPWeight(10/*10*(use 2016 BF/GH and 2018 ABC/D scales) + 1*(interpolate scales or not)*/) {
 
   //ensure pointers set to null to not attempt to delete if never initialized
   fChain = nullptr;
@@ -320,6 +320,7 @@ void HistMaker::BookBaseEventHistograms(Int_t i, const char* dirname) {
       Utilities::BookH1D(fEventHist[i]->hNPartons                , "npartons"                , Form("%s: NPartons"                    ,dirname),  10,    0,  10, folder);
       Utilities::BookH1D(fEventHist[i]->hLHENJets                , "lhenjets"                , Form("%s: LHE N(jets)"                 ,dirname),  10,    0,  10, folder);
       Utilities::BookH1D(fEventHist[i]->hMcEra                   , "mcera"                   , Form("%s: MCEra + 2*(year-2016)"       ,dirname),   8,    0,   8, folder);
+      Utilities::BookH1F(fEventHist[i]->hDataRun                 , "datarun"                 , Form("%s: DataRun"                     ,dirname), 100, 2.3e5, 3.3e5, folder);
       Utilities::BookH1D(fEventHist[i]->hNPhotons                , "nphotons"                , Form("%s: NPhotons"                    ,dirname),  10,    0,  10, folder);
       Utilities::BookH1D(fEventHist[i]->hNGenTaus                , "ngentaus"                , Form("%s: NGenTaus"                    ,dirname),  10,    0,  10, folder);
       Utilities::BookH1D(fEventHist[i]->hNGenElectrons           , "ngenelectrons"           , Form("%s: NGenElectrons"               ,dirname),  10,    0,  10, folder);
@@ -683,6 +684,10 @@ void HistMaker::DeleteHistograms() {
 //--------------------------------------------------------------------------------------------------------------
 // Initialize branch structure of the input tree
 void HistMaker::InitializeInputTree(TTree* tree) {
+  tree->SetBranchAddress("run"                      , &runNumber                 );
+  tree->SetBranchAddress("luminosityBlock"          , &lumiSection               );
+  tree->SetBranchAddress("event"                    , &eventNumber               );
+
   tree->SetBranchAddress("nMuon"                    , &nMuon                     );
   tree->SetBranchAddress("nGenMuon"                 , &nGenMuons                 );
   tree->SetBranchAddress("Muon_pt"                  , &Muon_pt                   );
@@ -824,7 +829,7 @@ void HistMaker::InitializeInputTree(TTree* tree) {
 //-----------------------------------------------------------------------------------------------------------------
 //apply/replace electron energy scale corrections
 void HistMaker::ApplyElectronCorrections() {
-  for(UInt_t index = 0; index < nTau; ++index) {
+  for(UInt_t index = 0; index < nElectron; ++index) {
     float sf = (fIsEmbed) ? 1. : fElectronIDWeight.EmbedEnergyScale(Electron_pt[index], Electron_eta[index],
                                                                     fYear, eleES_up, eleES_down); //assume 1 electron in event where up/down matter
     Electron_energyScale[index] = sf;
@@ -1165,7 +1170,7 @@ void HistMaker::CountObjects() {
   //Set the data era
   ///////////////////////////////////////////////////////
 
-  mcEra = 0;
+  mcEra   = 0;
   if(!fIsData && !fIsEmbed) { // use random numbers for MC not split by era
     if(fYear == 2016) {
       const double rand = fRnd->Uniform();
@@ -1173,18 +1178,25 @@ void HistMaker::CountObjects() {
       mcEra = rand > frac_first; //0 if first, 1 if second
     } else if(fYear == 2018) {
       const double rand = fRnd->Uniform();
-      const double frac_first = 8.98 / 59.59;
+      const double frac_first = 1. -  31.93/59.59;
       mcEra = rand > frac_first; //0 if first, 1 if second
     }
   } else if(fIsEmbed) { //decide by run period in the file name
-    if(fYear == 2016) { //split 2016 into B-F and GH
-      if(TString(fChain->GetName()).Contains("-G") || TString(fChain->GetName()).Contains("-H")) mcEra = 1;
+    TString name = GetOutputName();
+    if(fYear == 2016) {
+      if(name.Contains("-G") || name.Contains("-H")) mcEra = 1;
     } else if(fYear == 2018) { //split 2018 into ABC and D
-      if(TString(fChain->GetName()).Contains("-D")) mcEra = 1;
+      if(name.Contains("-D")) mcEra = 1;
     }
   } else if(fIsData) { //decide based on the run number
-    if(fYear == 2016) mcEra = (runNumber > 278808); //split on period B-F and GH
-    if(fYear == 2018) mcEra = (runNumber > 320065); //split on period ABC and D
+    // if(fYear == 2016) mcEra = (runNumber > 278808); //split on period B-F and GH
+    // if(fYear == 2018) mcEra = (runNumber > 320065); //split on period ABC and D
+    TString name = GetOutputName();
+    if(fYear == 2016) {
+      if(name.Contains("-G") || name.Contains("-H")) mcEra = 1;
+    } else if(fYear == 2018) { //split 2018 into ABC and D
+      if(name.Contains("-D")) mcEra = 1;
+    }
   }
 
 
@@ -1192,6 +1204,7 @@ void HistMaker::CountObjects() {
   // Apply object scale corrections
   ///////////////////////////////////////////////////////
 
+  ApplyElectronCorrections();
   ApplyMuonCorrections();
   ApplyTauCorrections();
 
@@ -1748,11 +1761,12 @@ void HistMaker::FillBaseEventHistogram(EventHist_t* Hist) {
   Hist->hNPU[0]              ->Fill(nPU                , genWeight*eventWeight)      ;
   Hist->hNPartons            ->Fill(nPartons           , genWeight*eventWeight)      ;
   Hist->hLHENJets            ->Fill(LHE_Njets          , genWeight*eventWeight)      ;
-  Hist->hMcEra               ->Fill(mcEra + 2*(fYear - 2016), genWeight*eventWeight)   ;
+  Hist->hMcEra               ->Fill(mcEra + 2*(fYear - 2016), genWeight*eventWeight) ;
+  Hist->hDataRun             ->Fill(runNumber          , genWeight*eventWeight)      ;
   Hist->hNPhotons            ->Fill(nPhotons           , genWeight*eventWeight)      ;
-  Hist->hNGenTaus            ->Fill(nGenTaus             , genWeight*eventWeight)      ;
-  Hist->hNGenElectrons       ->Fill(nGenElectrons        , genWeight*eventWeight)      ;
-  Hist->hNGenMuons           ->Fill(nGenMuons            , genWeight*eventWeight)      ;
+  Hist->hNGenTaus            ->Fill(nGenTaus           , genWeight*eventWeight)      ;
+  Hist->hNGenElectrons       ->Fill(nGenElectrons      , genWeight*eventWeight)      ;
+  Hist->hNGenMuons           ->Fill(nGenMuons          , genWeight*eventWeight)      ;
   Hist->hNJets               ->Fill(nJets              , genWeight*eventWeight)      ;
   Hist->hNJets20[0]          ->Fill(nJets20            , genWeight*eventWeight)      ;
   Hist->hNJets20Rej[0]       ->Fill(nJets20Rej         , genWeight*eventWeight)      ;
@@ -2296,14 +2310,85 @@ Bool_t HistMaker::InitializeEvent(Long64_t entry)
   return kFALSE;
 }
 
+//-----------------------------------------------------------------------------------------------------------------
+//Check if lepton matches to a trigger
+int HistMaker::GetTriggerMatch(TLorentzVector* lv, bool isMuon, Int_t& trigIndex) {
+  float pt(lv->Pt()), eta(lv->Eta()), phi(lv->Phi()), min_pt_1, min_pt_2;
+  int bit_1, bit_2, id; //trigger bits to use and pdgID
+  bool flag_1, flag_2;
+  if(isMuon) {
+    bit_1 = 1; //IsoMu24/IsoMu27
+    min_pt_1 = muon_trig_pt_;
+    bit_2 = bit_1; //10; //Mu50
+    min_pt_2 = min_pt_1; //50.;
+    id = 13;
+    flag_1 = (fYear == 2017) ? HLT_IsoMu27 : HLT_IsoMu24;
+    flag_2 = flag_1; //HLT_Mu50;
+  } else { //electron
+    id = 11;
+    if(fYear == 2017) {
+      bit_1 = 10; //different trigger in 2017 to correct for Ele32 issues
+      bit_2 = 10;
+    } else {
+      bit_1 = 1;
+      bit_2 = 1;
+    }
+    min_pt_1 = electron_trig_pt_;
+    min_pt_2 = min_pt_1;
+    flag_1 = ((fYear == 2016 && HLT_Ele27_WPTight_GsF) ||
+              (fYear == 2017 && HLT_Ele32_WPTight_GsF_L1DoubleEG) ||
+              (fYear == 2018 && HLT_Ele32_WPTight_GsF));
+    flag_2 = flag_1;
+  }
+
+
+  if(fVerbose > 2) std::cout << "Doing trigger match with isMuon = " << isMuon
+                             << " and bits " << (1<<bit_1) << " and " << (1<<bit_2) << std::endl
+                             << "Given lepton pt, eta, phi = " << pt << ", " << eta << ", " << phi << std::endl;
+  if(pt < min_pt_1 && pt < min_pt_2) {
+    if(fVerbose > 2) std::cout << " lepton pT below trigger thresholds\n";
+    return 0; //pT below threshold considered
+  }
+
+  const float deltar_match = 0.1;
+  const float deltapt_match = 10; //fractional match, > ~10 means don't use
+  bool passedBit1 = false;
+  bool passedBit2 = false;
+  trigIndex = -1;
+  for(unsigned trig_i = 0; trig_i < nTrigObj; ++trig_i) {
+    if(std::abs(TrigObj_id[trig_i]) != id) continue;
+    //check if passes correct bit and the considered pT threshold for that trigger
+    bool passBit1 = ((TrigObj_filterBits[trig_i] & (1<<bit_1)) != 0) && (pt > min_pt_1 && TrigObj_pt[trig_i] > min_pt_1);
+    bool passBit2 = ((TrigObj_filterBits[trig_i] & (1<<bit_2)) != 0) && (pt > min_pt_2 && TrigObj_pt[trig_i] > min_pt_2);
+    if(fVerbose > 2) std::cout << " TrigObj " << trig_i << " has bits " << TrigObj_filterBits[trig_i] << std::endl;
+    if(!passBit1 && !passBit2) continue;
+    if(fVerbose > 2) std::cout << " TrigObj " << trig_i << " passed bits check, has pt, eta, phi "
+                               << TrigObj_pt[trig_i] <<  ", "
+                               << TrigObj_eta[trig_i] <<  ", "
+                               << TrigObj_phi[trig_i] << std::endl;
+    passBit1 &= flag_1;
+    passBit2 &= flag_2;
+    if(!passBit1 && !passBit2) continue;
+    if(fVerbose > 2) std::cout << " TrigObj " << trig_i << " passed global flag test\n";
+    if(std::fabs(pt - TrigObj_pt[trig_i]) > pt*deltapt_match) continue;
+    const float deltaeta = std::fabs(eta - TrigObj_eta[trig_i]);
+    float deltaphi = std::fabs(phi - TrigObj_phi[trig_i]);
+    if(deltaphi > M_PI) deltaphi = std::fabs(2.*M_PI - deltaphi);
+    if(fVerbose > 2) std::cout << "  TrigObj " << trig_i << " passed pt check\n";
+    if(sqrt(deltaeta*deltaeta + deltaphi*deltaphi) > deltar_match) continue;
+    if(fVerbose > 2) std::cout << "   TrigObj " << trig_i << " passed delta r xcheck\n";
+    trigIndex = trig_i;
+    if(fVerbose > 2) std::cout << "--- Found a matching trigger object! Continuing search for additional matches...\n";
+    passedBit1 |= passBit1;
+    passedBit2 |= passBit2;
+  }
+  return (passedBit1+2*passedBit2);//no matching trigger object found = 0
+}
+
 //--------------------------------------------------------------------------------------------------------------
 // Match trigger objects to selected leptons
 void HistMaker::MatchTriggers() {
   leptonOneFired = false; leptonTwoFired = false;
-  // int trigMatchOne =  0; //trigger matching result
-  // int trigMatchTwo =  0; //trigger matching result
-  // int trigIndexOne = -1;
-  // int trigIndexTwo = -1;
 
   //FIXME: Do actual trigger matching
   const bool mu_trig  = ((fYear == 2016 && HLT_IsoMu24) ||
@@ -2316,17 +2401,17 @@ void HistMaker::MatchTriggers() {
   if(std::abs(leptonOneFlavor) == 15) {
     leptonOneFired = false;
   } else if(std::abs(leptonOneFlavor) == 13) {
-    leptonOneFired = mu_trig && leptonOneP4->Pt() > muon_trig_pt_;
+    leptonOneFired = (fDoTriggerMatching) ? GetTriggerMatch(leptonOneP4, true , leptonOneTrigger) : mu_trig && leptonOneP4->Pt() > muon_trig_pt_;
   } else if(std::abs(leptonOneFlavor) == 11) {
-    leptonOneFired = ele_trig && leptonOneP4->Pt() > electron_trig_pt_;
+    leptonOneFired = (fDoTriggerMatching) ? GetTriggerMatch(leptonOneP4, false, leptonOneTrigger) : ele_trig && leptonOneP4->Pt() > electron_trig_pt_;
   }
 
   if(std::abs(leptonTwoFlavor) == 15) {
     leptonTwoFired = false;
   } else if(std::abs(leptonTwoFlavor) == 13) {
-    leptonTwoFired = mu_trig && leptonTwoP4->Pt() > muon_trig_pt_;
+    leptonTwoFired = (fDoTriggerMatching) ? GetTriggerMatch(leptonTwoP4, true , leptonTwoTrigger) : mu_trig && leptonTwoP4->Pt() > muon_trig_pt_;
   } else if(std::abs(leptonTwoFlavor) == 11) {
-    leptonTwoFired = ele_trig && leptonTwoP4->Pt() > electron_trig_pt_;
+    leptonTwoFired = (fDoTriggerMatching) ? GetTriggerMatch(leptonTwoP4, false, leptonTwoTrigger) : ele_trig && leptonTwoP4->Pt() > electron_trig_pt_;
   }
 
   triggerLeptonStatus = 0;

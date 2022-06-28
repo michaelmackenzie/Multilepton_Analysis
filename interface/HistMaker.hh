@@ -435,6 +435,7 @@ namespace CLFV {
     void    ApplyTauCorrections();
     void    CountObjects();
     void    CountJets();
+    int     GetTriggerMatch(TLorentzVector* lv, bool isMuon, Int_t& trigIndex);
     void    MatchTriggers();
     void    ApplyTriggerWeights();
 
@@ -623,6 +624,7 @@ namespace CLFV {
     bool            fSkipDoubleTrigger = false; //skip events with both triggers (to avoid double counting), only count this lepton status events
     Int_t           fMETWeights = 0; //re-weight events based on the MET
     Int_t           fUseMCEstimatedFakeLep = 0;
+    Int_t           fDoTriggerMatching = 1; //match trigger objects to selected leptons
 
     Int_t           fSystematicSeed; //for systematic variations
 

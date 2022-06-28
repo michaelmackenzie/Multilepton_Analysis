@@ -67,6 +67,7 @@ namespace CLFV {
     TH2* hBJetsLPtVsEta[3]; //0: gen-level light jet 1: gen-level c-jet 2: gen-level b-jet
     TH2* hJetsPtVsEtaPU[2]; //jet pT vs eta for PU ID MC efficiency calculation
     TH1* hMcEra;
+    TH1* hDataRun;
     TH1* hTriggerLeptonStatus;
     TH1* hMuonTriggerStatus;
     TH1* hPuWeight;

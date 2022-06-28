@@ -1987,7 +1987,12 @@ Int_t print_basic_debug_plots(bool test_trigger = false, bool doMC = false, bool
   cards.push_back(PlottingCard_t("twotrigweight"     , "lep"  , 0,  0.5,  1.5));
   cards.push_back(PlottingCard_t("oneweight"         , "lep"  , 0,  0.5,  1.5));
   cards.push_back(PlottingCard_t("twoweight"         , "lep"  , 0,  0.5,  1.5));
-  cards.push_back(PlottingCard_t("mcera"             , "event", 0,  0  ,  3  ));
+  cards.push_back(PlottingCard_t("mcera"             , "event", 0,  0  ,  8  ));
+  if(useEmbed_) {
+    cards.push_back(PlottingCard_t("datarun"                 , "event", 0,   1 , -1 ));
+    cards.push_back(PlottingCard_t("embeddingweight"         , "event", 0,   0., 0.4));
+    cards.push_back(PlottingCard_t("embeddingunfoldingweight", "event", 0,  0.5, 1.5));
+  }
 
   if(mvas) {
     if(selection_ == "mutau") {

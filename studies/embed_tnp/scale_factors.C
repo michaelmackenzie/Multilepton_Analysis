@@ -8,7 +8,7 @@ int  fit_y_ = 1; //bin of the single fit
 bool applyScales_ = false; //apply conditioned IDs' scale factors
 bool use_abs_eta_ = false; //use eta or |eta| in the scale factor measurement
 
-enum {kLooseMuon = 1, kMediumMuon, kTightMuon};
+enum {kIDTest = 1};
 enum {kVVLooseIso = 1, kVLooseIso, kLooseIso, kMediumIso, kTightIso, kVTightIso, kVVTightIso};
 enum {kWPL = 1, kWP90, kWP80};
 
@@ -31,7 +31,7 @@ void set_z_range(TH2* h, const double min_default = 0.8, const double max_defaul
 }
 
 //Fit the mass distribution with a signal and background function
-double extract_nz(TH1F* hMass, double& nerror, int BkgMode, TString figname = "", TString figtitle = "") {
+double extract_nz(TH1* hMass, double& nerror, int BkgMode, TString figname = "", TString figtitle = "") {
   nerror = 0.;
   if(hMass->Integral() <= 0.) return 0.;
 
@@ -146,8 +146,8 @@ double extract_nz(TH1F* hMass, double& nerror, int BkgMode, TString figname = ""
    Mode:
    0 = muon/electron trigger
    1 = muon/electron ID
-   2 = Tight muon Iso ID
-   3 = Loose + !Tight muon Iso ID / electron ID
+   2 = Tight muon/electron Iso ID
+   3 = Loose + !Tight muon / electron Iso ID
    4 = Muon/electron trigger for Loose + !Tight QCD ID
 
    isMC:
@@ -157,11 +157,6 @@ double extract_nz(TH1F* hMass, double& nerror, int BkgMode, TString figname = ""
  **/
 
 void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 2016, int period = -1) {
-
-  if(Mode == 2 && !isMuon) {
-    cout << "Mode 2 is not defined for electrons!\n";
-    return;
-  }
 
   TString path = "root://cmseos.fnal.gov//store/user/mmackenz/embed_tnp/";
   TFile* f;
@@ -177,7 +172,6 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
     else if (period ==  0)  runs = {"A", "B", "C"};
     else if (period ==  1)  runs = {"D"};
   }
-  if(!isMC && period < 0) runs = {""}; //use merged run file for data if not doing run-dependence scale factors
   CrossSections xs;
 
   ///////////////////////////////////////
@@ -186,22 +180,22 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
 
   const bool trig_mode = (Mode == 0 || Mode == 4);
 
-  TFile* fSF_1 =            TFile::Open(Form("rootfiles/embedding_eff_%s_mode-%i_%i%s.root",
-                                             (isMuon) ? "mumu" : "ee", (Mode == 4 && !isMuon) ? 3 : 1, year, (period >= 0) ? Form("_period_%i", period) : ""), "READ")    ;
-  TFile* fSF_2 = (isMuon) ? TFile::Open(Form("rootfiles/embedding_eff_%s_mode-%i_%i%s.root",
-                                             (isMuon) ? "mumu" : "ee", (Mode == 4           ) ? 3 : 2, year, (period >= 0) ? Form("_period_%i", period) : ""), "READ") : 0;
-  if((!fSF_1 && Mode != 1) || (!fSF_2 && trig_mode && isMuon)) {
-    cout << "Scale factor files not found for required IDs! "
+  TFile* fSF_1 = TFile::Open(Form("rootfiles/embedding_eff_%s_mode-%i_%i%s.root",
+                                  (isMuon) ? "mumu" : "ee", 1, year, (period >= 0) ? Form("_period_%i", period) : ""), "READ");
+  TFile* fSF_2 = TFile::Open(Form("rootfiles/embedding_eff_%s_mode-%i_%i%s.root",
+                                  (isMuon) ? "mumu" : "ee", (Mode == 4) ? 3 : 2, year, (period >= 0) ? Form("_period_%i", period) : ""), "READ");
+  if((!fSF_1 && Mode != 1) || (!fSF_2 && trig_mode)) {
+    cout << "Scale factor files not found for prerequisite IDs! "
          << "Mode = " << Mode << " isMC = " << isMC << " isMuon = " << isMuon << " year = " << year << endl;
 
     if(applyScales_) return;
   }
 
-  TH2F* hSF_1 = 0;
-  TH2F* hSF_2 = 0;
+  TH2* hSF_1 = 0;
+  TH2* hSF_2 = 0;
 
   if(fSF_1) {
-    hSF_1 = (TH2F*) fSF_1->Get("PtVsEtaSF");
+    hSF_1 = (TH2*) fSF_1->Get("PtVsEtaSF");
     if(hSF_1) hSF_1->SetName("scales_1");
     else {
       cout << "Scale factor histogram for ID 1 not found! "
@@ -210,7 +204,7 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
     }
   }
   if(fSF_2) {
-    hSF_2 = (TH2F*) fSF_2->Get("PtVsEtaSF");
+    hSF_2 = (TH2*) fSF_2->Get("PtVsEtaSF");
     if(hSF_2) hSF_2->SetName("scales_2");
     else {
       cout << "Scale factor histogram for ID 2 not found! "
@@ -245,23 +239,23 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
   const int n_eta_bins = eta_bins.size() - 1;
   const int n_pt_bins  = pt_bins .size() - 1;
 
-  TH2F* hPass  = new TH2F("hPass" , "Passing events", n_eta_bins, &eta_bins[0], n_pt_bins, &pt_bins[0]);
-  TH2F* hFail  = new TH2F("hFail" , "Failing events", n_eta_bins, &eta_bins[0], n_pt_bins, &pt_bins[0]);
+  TH2* hPass  = new TH2F("hPass" , "Passing events", n_eta_bins, &eta_bins[0], n_pt_bins, &pt_bins[0]);
+  TH2* hFail  = new TH2F("hFail" , "Failing events", n_eta_bins, &eta_bins[0], n_pt_bins, &pt_bins[0]);
   hPass->Sumw2(); hFail->Sumw2();
   hPass->SetXTitle((isMuon) ? "#eta" : "SuperCluster #eta"); hPass->SetYTitle("p_{T} (GeV/c)");
   hFail->SetXTitle((isMuon) ? "#eta" : "SuperCluster #eta"); hFail->SetYTitle("p_{T} (GeV/c)");
-  TH1F* hTagPt    = new TH1F("htagpt"   , (isMuon) ? "Muon p_{T}" : "Electron p_{T}", 100,  0  , 100);
-  TH1F* hTagEta   = new TH1F("htageta"  , (isMuon) ? "Muon #eta"  : "Electron #eta" ,  50, -2.5, 2.5);
-  TH1F* hProbePt  = new TH1F("hprobept" , (isMuon) ? "Muon p_{T}" : "Electron p_{T}", 100,  0  , 100);
-  TH1F* hProbeEta = new TH1F("hprobeeta", (isMuon) ? "Muon #eta"  : "Electron #eta" ,  50, -2.5, 2.5);
-  TH1F* hDiffPt   = new TH1F("hdiffpt"  , (isMuon) ? "Muon #Deltap_{T}" : "Electron #Deltap_{T}", 100,  -50  , 50);
-  TH1F* hDiffEta  = new TH1F("hdiffeta" , (isMuon) ? "Muon #Delta#eta"  : "Electron #Delta#eta" ,  50, -5, 5);
+  TH1* hTagPt    = new TH1F("htagpt"   , (isMuon) ? "Muon p_{T}" : "Electron p_{T}", 100,  0  , 100);
+  TH1* hTagEta   = new TH1F("htageta"  , (isMuon) ? "Muon #eta"  : "Electron #eta" ,  50, -2.5, 2.5);
+  TH1* hProbePt  = new TH1F("hprobept" , (isMuon) ? "Muon p_{T}" : "Electron p_{T}", 100,  0  , 100);
+  TH1* hProbeEta = new TH1F("hprobeeta", (isMuon) ? "Muon #eta"  : "Electron #eta" ,  50, -2.5, 2.5);
+  TH1* hDiffPt   = new TH1F("hdiffpt"  , (isMuon) ? "Muon #Deltap_{T}" : "Electron #Deltap_{T}", 100,  -50  , 50);
+  TH1* hDiffEta  = new TH1F("hdiffeta" , (isMuon) ? "Muon #Delta#eta"  : "Electron #Delta#eta" ,  50, -5, 5);
 
   ///////////////////////////////////////
   // Make a di-lepton resonance histogram per bin
   ///////////////////////////////////////
 
-  std::map<int, TH1F*> massHists_pass, massHists_fail;
+  std::map<int, TH1*> massHists_pass, massHists_fail;
   for(int xbin = 0; xbin <= hPass->GetNbinsX()+1; ++xbin) {
     for(int ybin = 0; ybin <= hPass->GetNbinsY()+1; ++ybin) {
       const int mapBin = xbin + 100*ybin;
@@ -276,9 +270,8 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
 
   ULong64_t nused(0), ntotal(0);
   for(TString run : runs) {
-    if     (isMC == 0 && period < 0) f = TFile::Open(Form("%sdata/EmbedTnPAnalysis_Single%s_%i.root" , path.Data(), (isMuon) ? "Mu"   : "Ele", year), "READ");
-    else if(isMC == 0) f = TFile::Open(Form("%sdata/EmbedTnPAnalysis_Single%sRun%i%s_%i.root", path.Data(), (isMuon) ? "Muon"   : "Electron", year, run.Data(), year), "READ");
-    else if(isMC == 1) f = TFile::Open(Form("%sMC/EmbedTnPAnalysis_Embed-%s-%s_%i.root", path.Data(), (isMuon) ? "MuMu" : "EE" , run.Data(), year), "READ");
+    if     (isMC == 0) f = TFile::Open(Form("%sfiles/EmbedTnPAnalysis_Single%sRun%i%s_%i.root", path.Data(), (isMuon) ? "Muon"   : "Electron", year, run.Data(), year), "READ");
+    else if(isMC == 1) f = TFile::Open(Form("%sfiles/EmbedTnPAnalysis_Embed-%s-%s_%i.root", path.Data(), (isMuon) ? "MuMu" : "EE" , run.Data(), year), "READ");
     else {
       cout << "Undefined isMC value " << isMC << endl;
       return;
@@ -346,24 +339,24 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
     float trig_pt_min = (isMuon) ? 24. : 32.;
     if((!isMuon && year == 2016) || (isMuon && year == 2017)) trig_pt_min = 27.;
     const float tag_pt_min = trig_pt_min + 2.;
-    const float tag_eta_max = 2.3;
+    const float tag_eta_max = 2.2;
     const bool  tag_triggers = true; //whether or not to always require the tag to trigger
     const float probe_eta_max = 2.3;
     const float probe_pt_min = (trig_mode) ? trig_pt_min - 2. : 10.;
 
     //Define ID selections
-    int id1_min(0), id2_min(0); //minimum IDs for all leptons
+    int id1_min(0), id2_min(0); //minimum IDs for all leptons, id1 = ID, id2 = Iso ID
     int id1_max(999), id2_max(999); //maximum IDs for probe leptons (e.g. Loose + !Tight measurements)
-    const int id1_tag = (isMuon) ? kTightMuon : kWP80;
-    int id2_tag = (isMuon) ? kTightIso : -1; //tight muon Iso ID or no ID for electron
-    if(Mode != 1 && (isMuon || Mode != 3)) id1_min = (isMuon) ? kTightMuon : kWP80;
-    if(isMuon && Mode == 0) id2_min = kTightIso; //tight muon Iso ID for trigger only
-    if(isMuon && Mode == 4) { //Loose + !Tight Muon Iso ID trigger scale
+
+    const int id1_tag = kIDTest; //just a boolean check
+    const int id2_tag = kTightIso; //tight muon or electron Iso ID
+
+    //probe IDs
+    if(Mode != 1) id1_min = kIDTest; //pass ID test for all but ID scale measurement
+    if(Mode == 0) id2_min = kTightIso; //tight Iso ID for trigger only
+    if(Mode == 4) { //Loose + !Tight Iso ID trigger scale
       id2_min = kVVLooseIso; //measuring VVLoose ID
       id2_max = kMediumIso; //fails Tight Iso ID
-    } else if(Mode == 4) { //Loose + !Tight Electron ID trigger scale
-      id1_min = kWPL;
-      id1_max = kWP90;
     }
 
     //Loop through the input tree
@@ -376,9 +369,9 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
       //opposite flavor
       if(one_q*two_q > 0) continue;
       //electron eta veto
-      // no need to veto since it's naturally a bin region
-      if(!isMuon && gap_low <= fabs(one_sc_eta) && fabs(one_sc_eta) <= gap_high) continue;
-      if(!isMuon && gap_low <= fabs(two_sc_eta) && fabs(two_sc_eta) <= gap_high) continue;
+      // // no need to veto since it's naturally a bin region
+      // if(!isMuon && gap_low <= fabs(one_sc_eta) && fabs(one_sc_eta) <= gap_high) continue;
+      // if(!isMuon && gap_low <= fabs(two_sc_eta) && fabs(two_sc_eta) <= gap_high) continue;
       //must fire the trigger
       if(!((one_pt > trig_pt_min && one_triggered) || (two_pt > trig_pt_min && two_triggered))) continue;
       //must satisfy minimum thresholds
@@ -400,7 +393,7 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
 
       float wt = pu_weight*((isMC > 1) ? ((gen_weight < 0) ? -1. : 1.) : gen_weight)*xs_scale;
 
-      if(applyScales_ && Mode != 1 && (isMuon || Mode != 3) && isMC && hSF_1) { //Apply the ID1 scale factors for the trigger and ID2 measurements
+      if(applyScales_ && Mode != 1 && isMC && hSF_1) { //Apply the ID1 scale factors for the trigger and ID2 measurements
         wt *= hSF_1->GetBinContent(hSF_1->GetXaxis()->FindBin((use_abs_eta_) ? fabs(one_sc_eta) : one_sc_eta), min(hSF_1->GetNbinsY(), hSF_1->GetYaxis()->FindBin(one_pt)));
         wt *= hSF_1->GetBinContent(hSF_1->GetXaxis()->FindBin((use_abs_eta_) ? fabs(two_sc_eta) : two_sc_eta), min(hSF_1->GetNbinsY(), hSF_1->GetYaxis()->FindBin(two_pt)));
       }
@@ -424,12 +417,13 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
       if(fabs(one_sc_eta) < tag_eta_max && one_pt > tag_pt_min &&
          fabs(two_sc_eta) < probe_eta_max && two_pt > probe_pt_min &&
          one_id1 >= id1_tag && one_id2 >= id2_tag && (trig_mode || one_triggered)
+         && (isMuon || std::fabs(one_sc_eta) < gap_low || std::fabs(one_sc_eta) > gap_high)
          && (!tag_triggers || one_triggered) && two_id1 <= id1_max && two_id2 <= id2_max) {
         bool test = false;
         if     (trig_mode) test = two_triggered;
-        else if(Mode == 1) test = two_id1 >= ((isMuon) ? kTightMuon : kWP80);
+        else if(Mode == 1) test = two_id1 >= kIDTest;
         else if(Mode == 2) test = two_id2 >= kTightIso;
-        else if(Mode == 3) test = (isMuon) ? (two_id2 >= kVVLooseIso && two_id2 <= kMediumIso) : (two_id1 >= kWPL && two_id1 <= kWP90);
+        else if(Mode == 3) test = (two_id2 >= kVVLooseIso && two_id2 <= kMediumIso);
         else {
           cout << "Unknown testing mode!\n";
           return;
@@ -457,12 +451,13 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
       if(fabs(two_sc_eta) < tag_eta_max && two_pt > tag_pt_min &&
          fabs(one_sc_eta) < probe_eta_max && one_pt > probe_pt_min &&
          two_id1 >= id1_tag && two_id2 >= id2_tag && (trig_mode || two_triggered)
+         && (isMuon || std::fabs(two_sc_eta) < gap_low || std::fabs(two_sc_eta) > gap_high)
          && (!tag_triggers || two_triggered) && one_id1 <= id1_max && two_id2 <= id2_max) {
         bool test = false;
         if     (trig_mode) test = one_triggered;
-        else if(Mode == 1) test = one_id1 >= ((isMuon) ? kTightMuon : kWP80);
+        else if(Mode == 1) test = one_id1 >= kIDTest;
         else if(Mode == 2) test = one_id2 >= kTightIso;
-        else if(Mode == 3) test = (isMuon) ? (one_id2 >= kVVLooseIso && one_id2 <= kMediumIso) : (one_id1 >= kWPL && one_id1 <= kWP90);
+        else if(Mode == 3) test = (one_id2 >= kVVLooseIso && one_id2 <= kMediumIso);
         else {
           cout << "Unknown testing mode!\n";
           return;
@@ -489,8 +484,8 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
     cout << "Closed completed file " << f->GetName() << endl;
   }
   cout << "Used " << nused << " of the " << ntotal << " entries (" << (100.*nused)/ntotal << "%)\n";
-  TH2F* hRatio = (TH2F*) hPass->Clone("hRatio_cc");
-  TH2F* hTotal = (TH2F*) hPass->Clone("hTotal_cc");
+  TH2* hRatio = (TH2*) hPass->Clone("hRatio_cc");
+  TH2* hTotal = (TH2*) hPass->Clone("hTotal_cc");
   hTotal->Add(hFail);
   hRatio->Divide(hTotal);
   hRatio->SetTitle("Efficiency");
@@ -578,8 +573,8 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
   // Generate resonance fit scales
   ///////////////////////////////////////
 
-  TH2F* hResPass = (TH2F*) hPass->Clone("hResPass"); hResPass->Reset();
-  TH2F* hResFail = (TH2F*) hFail->Clone("hResFail"); hResFail->Reset();
+  TH2* hResPass = (TH2*) hPass->Clone("hResPass"); hResPass->Reset();
+  TH2* hResFail = (TH2*) hFail->Clone("hResFail"); hResFail->Reset();
 
   TString fitdir = Form("figures/fit_%s", outname.Data());
   gSystem->Exec(Form("[ ! -d %s ] && mkdir -p %s", fitdir.Data(), fitdir.Data()));
@@ -604,8 +599,8 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
     }
   }
 
-  TH2F* hResRatio = (TH2F*) hResPass->Clone("hRatio");
-  TH2F* hResTotal = (TH2F*) hResPass->Clone("hTotal");
+  TH2* hResRatio = (TH2*) hResPass->Clone("hRatio");
+  TH2* hResTotal = (TH2*) hResPass->Clone("hTotal");
   hResTotal->Add(hResFail);
   hResRatio->Divide(hResTotal);
   hResRatio->SetTitle("Efficiency");

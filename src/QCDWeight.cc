@@ -332,13 +332,12 @@ float QCDWeight::GetWeight(float deltar, float deltaphi, float oneeta, float one
     const int xbin = std::max(1, std::min(h2DClosure->GetXaxis()->FindBin(onept), h2DClosure->GetNbinsX()));
     const int ybin = std::max(1, std::min(h2DClosure->GetYaxis()->FindBin(twopt), h2DClosure->GetNbinsY()));
     nonclosure = h2DClosure->GetBinContent(xbin, ybin);
-    if(!std::isfinite(nonclosure) || nonclosure < 0.) {
-      std::cout << "QCDWeight::" << __func__ << " Closure Weight < 0  = " << nonclosure
-                << " delta R = " << deltar << " delta phi = " << deltaphi
-                << " one pt = " << onept << " two pt = " << twopt
-                << " for year = " << year << std::endl;
-      up = 1.; down = 1.; sys = 1.; nonclosure = 1.;
-      return 1.;
+    if(!std::isfinite(nonclosure) || nonclosure <= 0.) {
+      if(verbose_) std::cout << "QCDWeight::" << __func__ << " Closure Weight <= 0  = " << nonclosure
+                             << " delta R = " << deltar << " delta phi = " << deltaphi
+                             << " one pt = " << onept << " two pt = " << twopt
+                             << " for year = " << year << std::endl;
+      nonclosure = 1.;
     }
   } else {
     nonclosure = 1.;
@@ -355,13 +354,12 @@ float QCDWeight::GetWeight(float deltar, float deltaphi, float oneeta, float one
     const int xbin = std::max(1, std::min(hAntiIso->GetXaxis()->FindBin(onept), hAntiIso->GetNbinsX()));
     const int ybin = std::max(1, std::min(hAntiIso->GetYaxis()->FindBin(twopt), hAntiIso->GetNbinsY()));
     antiiso = hAntiIso->GetBinContent(xbin, ybin);
-    if(!std::isfinite(antiiso) || antiiso < 0.) {
-      std::cout << "QCDWeight::" << __func__ << " Closure Weight < 0  = " << nonclosure
-                << " delta R = " << deltar << " delta phi = " << deltaphi
-                << " one pt = " << onept << " two pt = " << twopt
-                << " for year = " << year << std::endl;
-      up = 1.; down = 1.; sys = 1.; nonclosure = 1.; antiiso = 1.;
-      return 1.;
+    if(!std::isfinite(antiiso) || antiiso <= 0.) {
+      if(verbose_) std::cout << "QCDWeight::" << __func__ << " Closure Weight < 0  = " << nonclosure
+                             << " delta R = " << deltar << " delta phi = " << deltaphi
+                             << " one pt = " << onept << " two pt = " << twopt
+                             << " for year = " << year << std::endl;
+      antiiso = 1.;
     }
   } else {
     antiiso = 1.;
