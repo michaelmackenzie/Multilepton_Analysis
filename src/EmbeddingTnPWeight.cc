@@ -6,7 +6,7 @@ using namespace CLFV;
 EmbeddingTnPWeight::EmbeddingTnPWeight(const int Mode, const int verbose) : verbose_(verbose), rnd_(nullptr) {
   // Check Mode bits
   interpolate_   = (Mode /  1) % 10 == 1; //interpolate between pT bin centers
-  useRunPeriods_ = (Mode / 10) % 10 == 1; //use run-dependent scale factors
+  useRunPeriods_ = (Mode / 10) % 10; //use run-dependent scale factors: 0 = full year scales; 1 = 2016 B-F/GH; 2 = 2016 B-F/GH and 2018 A-C/D
 
   TFile* f = 0;
   const TString cmssw = gSystem->Getenv("CMSSW_BASE");
@@ -130,7 +130,7 @@ double EmbeddingTnPWeight::MuonIDWeight(double pt, double eta, int year, bool qc
     return 1.;
   }
 
-  const int index = ((year == k2016 || year == k2018) && useRunPeriods_) ? ((year == k2016) ? k2016BF : k2018ABC) + period : year;
+  const int index = ((year == k2016 && useRunPeriods_) || (year == k2018 && useRunPeriods_ > 1)) ? ((year == k2016) ? k2016BF : k2018ABC) + period : year;
   const TH2* hIDMC   = muonIDMCEff_  [index];
   const TH2* hIDData = muonIDDataEff_[index];
   if(!hIDMC || !hIDData) {
@@ -185,7 +185,7 @@ double EmbeddingTnPWeight::MuonTriggerWeight(double pt, double eta, int year, fl
   //If it can't fire the trigger, no correction
   if(pt < 25. || (pt < 28. && year == k2017)) return 1.;
 
-  const int index = ((year == k2016 || year == k2018) && useRunPeriods_) ? ((year == k2016) ? k2016BF : k2018ABC) + period : year;
+  const int index = ((year == k2016 && useRunPeriods_) || (year == k2018 && useRunPeriods_ > 1)) ? ((year == k2016) ? k2016BF : k2018ABC) + period : year;
   const TH2* hMC   = (qcd) ? muonQCDTrigMCEff_  [index] : muonTrigMCEff_  [index];
   const TH2* hData = (qcd) ? muonQCDTrigDataEff_[index] : muonTrigDataEff_[index];
   if(!hMC || !hData) {
@@ -234,7 +234,7 @@ double EmbeddingTnPWeight::ElectronIDWeight(double pt, double eta, int year, boo
     return 1.;
   }
 
-  const int index = ((year == k2016 || year == k2018) && useRunPeriods_) ? ((year == k2016) ? k2016BF : k2018ABC) + period : year;
+  const int index = ((year == k2016 && useRunPeriods_) || (year == k2018 && useRunPeriods_ > 1)) ? ((year == k2016) ? k2016BF : k2018ABC) + period : year;
   const TH2* hIDMC   = electronIDMCEff_  [index];
   const TH2* hIDData = electronIDDataEff_[index];
   if(!hIDMC || !hIDData) {
@@ -290,7 +290,7 @@ double EmbeddingTnPWeight::ElectronTriggerWeight(double pt, double eta, int year
   //IF it can't fire the trigger, no correction
   if(pt < 28. || (pt < 33. && year != k2016)) return 1.;
 
-  const int index = ((year == k2016 || year == k2018) && useRunPeriods_) ? ((year == k2016) ? k2016BF : k2018ABC) + period : year;
+  const int index = ((year == k2016 && useRunPeriods_) || (year == k2018 && useRunPeriods_ > 1)) ? ((year == k2016) ? k2016BF : k2018ABC) + period : year;
   const TH2* hMC   = (qcd) ? electronQCDTrigMCEff_  [index] : electronTrigMCEff_  [index];
   const TH2* hData = (qcd) ? electronQCDTrigDataEff_[index] : electronTrigDataEff_[index];
   if(!hMC || !hData) {

@@ -219,22 +219,24 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
 
   vector<double> eta_bins;
   const double gap_low(1.4442), gap_high(1.566);
-  if(isMuon && use_abs_eta_) eta_bins = {0., 0.9, 1.2, 1.6, 2.1, 2.4}; //muon
-  else if(isMuon)            eta_bins = {-2.4, -2.1, -1.6, -1.2, -0.9, 0., 0.9, 1.2, 1.6, 2.1, 2.4}; //muon
-  else if(use_abs_eta_)      eta_bins = {0., 0.2, 0.5, 1., gap_low, gap_high, 2.1, 2.5}; //electron
-  else                       eta_bins = {-2.5, -2.1, -gap_high, -gap_low, -1., -0.5, -0.2, 0., 0.2, 0.5, 1., gap_low, gap_high, 2.1, 2.5}; //electron
+  if(isMuon && use_abs_eta_) eta_bins = {0., 0.9, 1.2, 1.6, 2.2, 2.4}; //muon
+  else if(isMuon)            eta_bins = {-2.4, -2.2, -1.6, -1.2, -0.9, 0., 0.9, 1.2, 1.6, 2.2, 2.4}; //muon
+  else if(use_abs_eta_)      eta_bins = {0., 0.2, 0.5, 1., gap_low, gap_high, 2.2, 2.5}; //electron
+  else                       eta_bins = {-2.5, -2.2, -gap_high, -gap_low, -1., -0.5, -0.2, 0., 0.2, 0.5, 1., gap_low, gap_high, 2.2, 2.5}; //electron
   // else if(use_abs_eta_)      eta_bins = {0., 1., gap_low, gap_high, 2.1, 2.5}; //electron
   // else                       eta_bins = {-2.5, -2.1, -gap_high, -gap_low, -1., 0., 1., gap_low, gap_high, 2.1, 2.5}; //electron
   vector<double> pt_bins;
   if(isMuon) {
-    if(trig_mode) pt_bins = {20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 38, 40, 45, 50, 60, 80, 100, 500};
-    else          pt_bins = {10, 15, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 45, 50, 60, 80, 100, 500};
+    if(trig_mode) {
+      if(year == 2017) pt_bins = {22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 38, 40, 45, 50, 60, 80, 100, 500};
+      else             pt_bins = {            25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 38, 40, 45, 50, 60, 80, 100, 500};
+    } else             pt_bins = {10, 15, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 45, 50, 60, 80, 100, 500};
   } else {
-    if(!trig_mode) pt_bins = {9., 10, 15, 20, 24, 26, 28, 30, 32, 34, 36, 38, 40, 45, 50, 60., 80., 100, 500};
-    else {
+    if(trig_mode) {
       if(year == 2016) pt_bins = {25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 42, 44, 46, 48, 50, 60., 80., 100, 500};
-      else             pt_bins = {30, 31, 32, 33, 34, 35, 36, 37, 38, 40, 42, 44, 46, 48, 50, 60., 80., 100, 500};
-    }
+      else             pt_bins = {                    30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 42, 44, 46, 48, 50, 60., 80., 100, 500};
+    } else             pt_bins = { 9, 10, 15, 20, 24, 26, 28, 30, 32, 34, 36, 38, 40, 45, 50, 60., 80., 100, 500};
+
   }
   const int n_eta_bins = eta_bins.size() - 1;
   const int n_pt_bins  = pt_bins .size() - 1;
@@ -383,7 +385,7 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
       //make sure they're separated
       TLorentzVector lv1; lv1.SetPtEtaPhiM(one_pt, one_eta, one_phi, (isMuon) ? 0.10566 : 5.11e-3);
       TLorentzVector lv2; lv2.SetPtEtaPhiM(two_pt, two_eta, two_phi, (isMuon) ? 0.10566 : 5.11e-3);
-      if(fabs(lv1.DeltaR(lv2)) < 0.5) continue;
+      if(std::fabs(lv1.DeltaR(lv2)) < 0.5) continue;
 
       ++nused;
       if(debug_ && nused > nentries_) {
@@ -394,12 +396,12 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
       float wt = pu_weight*((isMC > 1) ? ((gen_weight < 0) ? -1. : 1.) : gen_weight)*xs_scale;
 
       if(applyScales_ && Mode != 1 && isMC && hSF_1) { //Apply the ID1 scale factors for the trigger and ID2 measurements
-        wt *= hSF_1->GetBinContent(hSF_1->GetXaxis()->FindBin((use_abs_eta_) ? fabs(one_sc_eta) : one_sc_eta), min(hSF_1->GetNbinsY(), hSF_1->GetYaxis()->FindBin(one_pt)));
-        wt *= hSF_1->GetBinContent(hSF_1->GetXaxis()->FindBin((use_abs_eta_) ? fabs(two_sc_eta) : two_sc_eta), min(hSF_1->GetNbinsY(), hSF_1->GetYaxis()->FindBin(two_pt)));
+        wt *= hSF_1->GetBinContent(hSF_1->GetXaxis()->FindBin((use_abs_eta_) ? std::fabs(one_sc_eta) : one_sc_eta), min(hSF_1->GetNbinsY(), hSF_1->GetYaxis()->FindBin(one_pt)));
+        wt *= hSF_1->GetBinContent(hSF_1->GetXaxis()->FindBin((use_abs_eta_) ? std::fabs(two_sc_eta) : two_sc_eta), min(hSF_1->GetNbinsY(), hSF_1->GetYaxis()->FindBin(two_pt)));
       }
       if(applyScales_ && trig_mode && isMC && hSF_2) { //Apply the ID2 scale factors for the trigger measurements
-        wt *= hSF_2->GetBinContent(hSF_2->GetXaxis()->FindBin((use_abs_eta_) ? fabs(one_sc_eta) : one_sc_eta), min(hSF_2->GetNbinsY(), hSF_2->GetYaxis()->FindBin(one_pt)));
-        wt *= hSF_2->GetBinContent(hSF_2->GetXaxis()->FindBin((use_abs_eta_) ? fabs(two_sc_eta) : two_sc_eta), min(hSF_2->GetNbinsY(), hSF_2->GetYaxis()->FindBin(two_pt)));
+        wt *= hSF_2->GetBinContent(hSF_2->GetXaxis()->FindBin((use_abs_eta_) ? std::fabs(one_sc_eta) : one_sc_eta), min(hSF_2->GetNbinsY(), hSF_2->GetYaxis()->FindBin(one_pt)));
+        wt *= hSF_2->GetBinContent(hSF_2->GetXaxis()->FindBin((use_abs_eta_) ? std::fabs(two_sc_eta) : two_sc_eta), min(hSF_2->GetNbinsY(), hSF_2->GetYaxis()->FindBin(two_pt)));
       }
       if(wt <= 0.) {
         cout << "!!! Warning! Weight <= 0: Entry " << entry << ", nused " << nused << ", gen weight = " << gen_weight << ", weight = " << wt << endl
@@ -411,11 +413,12 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
              << " one: pt = " << one_pt << " eta = " << one_eta << " id1 = " << one_id1 << " id2 = " << one_id2 << " triggered = " << one_triggered << endl
              << " two: pt = " << two_pt << " eta = " << two_eta << " id1 = " << two_id1 << " id2 = " << two_id2 << " triggered = " << two_triggered << endl;
       }
+
       ////////////////////////////////////////////////////////////
       //First consider one the tag, two the probe
 
-      if(fabs(one_sc_eta) < tag_eta_max && one_pt > tag_pt_min &&
-         fabs(two_sc_eta) < probe_eta_max && two_pt > probe_pt_min &&
+      if(std::fabs(one_sc_eta) < tag_eta_max && one_pt > tag_pt_min &&
+         std::fabs(two_sc_eta) < probe_eta_max && two_pt > probe_pt_min &&
          one_id1 >= id1_tag && one_id2 >= id2_tag && (trig_mode || one_triggered)
          && (isMuon || std::fabs(one_sc_eta) < gap_low || std::fabs(one_sc_eta) > gap_high)
          && (!tag_triggers || one_triggered) && two_id1 <= id1_max && two_id2 <= id2_max) {
@@ -430,11 +433,11 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
         }
 
         //Fill the (eta,pt) counting histogram for the (eta,pt) point
-        if(test) hPass->Fill((use_abs_eta_) ? fabs(two_sc_eta) : two_sc_eta, two_pt, wt);
-        else     hFail->Fill((use_abs_eta_) ? fabs(two_sc_eta) : two_sc_eta, two_pt, wt);
+        if(test) hPass->Fill((use_abs_eta_) ? std::fabs(two_sc_eta) : two_sc_eta, two_pt, wt);
+        else     hFail->Fill((use_abs_eta_) ? std::fabs(two_sc_eta) : two_sc_eta, two_pt, wt);
 
         //Fill the mass histogram for the (eta,pt) point
-        const int mapBin = hPass->GetXaxis()->FindBin((use_abs_eta_) ? fabs(two_sc_eta) : two_sc_eta) + 100*hPass->GetYaxis()->FindBin(two_pt);
+        const int mapBin = hPass->GetXaxis()->FindBin((use_abs_eta_) ? std::fabs(two_sc_eta) : two_sc_eta) + 100*hPass->GetYaxis()->FindBin(two_pt);
         if(test) massHists_pass[mapBin]->Fill(pair_mass, wt);
         else     massHists_fail[mapBin]->Fill(pair_mass, wt);
 
@@ -448,8 +451,8 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
       ////////////////////////////////////////////////////////////
       //Next consider two the tag, one the probe
 
-      if(fabs(two_sc_eta) < tag_eta_max && two_pt > tag_pt_min &&
-         fabs(one_sc_eta) < probe_eta_max && one_pt > probe_pt_min &&
+      if(std::fabs(two_sc_eta) < tag_eta_max && two_pt > tag_pt_min &&
+         std::fabs(one_sc_eta) < probe_eta_max && one_pt > probe_pt_min &&
          two_id1 >= id1_tag && two_id2 >= id2_tag && (trig_mode || two_triggered)
          && (isMuon || std::fabs(two_sc_eta) < gap_low || std::fabs(two_sc_eta) > gap_high)
          && (!tag_triggers || two_triggered) && one_id1 <= id1_max && two_id2 <= id2_max) {
@@ -464,11 +467,11 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
         }
 
         //Fill the (eta,pt) counting histogram for the (eta,pt) point
-        if(test) hPass->Fill((use_abs_eta_) ? fabs(one_sc_eta) : one_sc_eta, one_pt, wt);
-        else     hFail->Fill((use_abs_eta_) ? fabs(one_sc_eta) : one_sc_eta, one_pt, wt);
+        if(test) hPass->Fill((use_abs_eta_) ? std::fabs(one_sc_eta) : one_sc_eta, one_pt, wt);
+        else     hFail->Fill((use_abs_eta_) ? std::fabs(one_sc_eta) : one_sc_eta, one_pt, wt);
 
         //Fill the mass histogram for the (eta,pt) point
-        const int mapBin = hPass->GetXaxis()->FindBin((use_abs_eta_) ? fabs(one_sc_eta) : one_sc_eta) + 100* hPass->GetYaxis()->FindBin(one_pt);
+        const int mapBin = hPass->GetXaxis()->FindBin((use_abs_eta_) ? std::fabs(one_sc_eta) : one_sc_eta) + 100* hPass->GetYaxis()->FindBin(one_pt);
         if(test) massHists_pass[mapBin]->Fill(pair_mass, wt);
         else     massHists_fail[mapBin]->Fill(pair_mass, wt);
 
@@ -511,17 +514,20 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
   pad->SetRightMargin(0.13);
   hPass->Draw("colz");
   pad->SetLogz();
+  pad->SetLogy();
   pad = c->cd(2);
   pad->SetLeftMargin(0.13);
   pad->SetRightMargin(0.13);
   hFail->Draw("colz");
   pad->SetLogz();
+  pad->SetLogy();
   pad = c->cd(3);
   pad->SetLeftMargin(0.13);
   pad->SetRightMargin(0.13);
   gStyle->SetPaintTextFormat(".2f");
   hRatio->Draw("colz text");
   set_z_range(hRatio, 0., 1.);
+  pad->SetLogy();
   // if(Mode == 3)
   //   hRatio->GetZaxis()->SetRangeUser(0., 1.);
   // else
@@ -617,16 +623,19 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
   pad->SetRightMargin(0.13);
   hResPass->Draw("colz");
   pad->SetLogz();
+  pad->SetLogy();
   pad = c->cd(2);
   pad->SetLeftMargin(0.13);
   pad->SetRightMargin(0.13);
   hResFail->Draw("colz");
   pad->SetLogz();
+  pad->SetLogy();
   pad = c->cd(3);
   pad->SetLeftMargin(0.13);
   pad->SetRightMargin(0.13);
-  hResRatio->Draw("colz");
+  hResRatio->Draw("colz text");
   set_z_range(hResRatio, 0., 1.);
+  pad->SetLogy();
   // hResRatio->GetZaxis()->SetRangeUser((isMuon) ? 0.5 : 0.2*(Mode != 0), 1.);
 
   c->SaveAs(Form("figures/eff_%s.png", outname.Data()));

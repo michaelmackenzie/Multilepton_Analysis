@@ -57,7 +57,7 @@ namespace CLFV {
     int verbose_;
     TRandom3* rnd_; //for generating systematic shifted parameters
     bool interpolate_;
-    bool useRunPeriods_;
+    int  useRunPeriods_;
   };
 }
 #endif

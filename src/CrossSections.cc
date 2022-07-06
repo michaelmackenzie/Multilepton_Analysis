@@ -242,6 +242,68 @@ CrossSections::CrossSections(int useUL, int ZMode) {
   numbers_[2017]["DY50-ext"] = 186217773;
   numbers_[2018]["DY50"    ] = 100194597;
 
+  //Embedding generation numbers (NANO, not MINI)
+
+  //2016
+  numbers_[2016]["Embed-EMu-B"] = 4508465;
+  numbers_[2016]["Embed-EMu-C"] = 1962513;
+  numbers_[2016]["Embed-EMu-D"] = 3324740;
+  numbers_[2016]["Embed-EMu-E"] = 2726153;
+  numbers_[2016]["Embed-EMu-F"] = 1988278;
+  numbers_[2016]["Embed-EMu-G"] = 6047364;
+  numbers_[2016]["Embed-EMu-H"] = 6760901;
+
+  numbers_[2016]["Embed-ETau-B"] = 3966702;
+  numbers_[2016]["Embed-ETau-C"] = 1817674;
+  numbers_[2016]["Embed-ETau-D"] = 2966135;
+  numbers_[2016]["Embed-ETau-E"] = 2466026;
+  numbers_[2016]["Embed-ETau-F"] = 1785747;
+  numbers_[2016]["Embed-ETau-G"] = 5216000;
+  numbers_[2016]["Embed-ETau-H"] = 5830791;
+
+  numbers_[2016]["Embed-MuTau-B"] = 3906285;
+  numbers_[2016]["Embed-MuTau-C"] = 1374478;
+  numbers_[2016]["Embed-MuTau-D"] = 2915000;
+  numbers_[2016]["Embed-MuTau-E"] = 2274690;
+  numbers_[2016]["Embed-MuTau-F"] = 1760599;
+  numbers_[2016]["Embed-MuTau-G"] = 5114478;
+  numbers_[2016]["Embed-MuTau-H"] = 6052270;
+
+  //2017
+  numbers_[2017]["Embed-EMu-B"] = 2012635;
+  numbers_[2017]["Embed-EMu-C"] = 2068587;
+  numbers_[2017]["Embed-EMu-D"] = 3533197;
+  numbers_[2017]["Embed-EMu-E"] = 3290180;
+  numbers_[2017]["Embed-EMu-F"] = 1928686;
+
+  numbers_[2017]["Embed-ETau-B"] = 1532529;
+  numbers_[2017]["Embed-ETau-C"] = 2457960;
+  numbers_[2017]["Embed-ETau-D"] = 3278083;
+  numbers_[2017]["Embed-ETau-E"] = 3023027;
+  numbers_[2017]["Embed-ETau-F"] = 2449996;
+
+  numbers_[2017]["Embed-MuTau-B"] = 1755514;
+  numbers_[2017]["Embed-MuTau-C"] = 1714208;
+  numbers_[2017]["Embed-MuTau-D"] = 3206086;
+  numbers_[2017]["Embed-MuTau-E"] = 2894406;
+  numbers_[2017]["Embed-MuTau-F"] = 1900026;
+
+  //2018
+  numbers_[2018]["Embed-EMu-A"] = 12744399;
+  numbers_[2018]["Embed-EMu-B"] = 6603834 ;
+  numbers_[2018]["Embed-EMu-C"] = 5394411 ;
+  numbers_[2018]["Embed-EMu-D"] = 6220115 ;
+
+  numbers_[2018]["Embed-ETau-A"] = 10607520;
+  numbers_[2018]["Embed-ETau-B"] = 4769019 ;
+  numbers_[2018]["Embed-ETau-C"] = 4795833 ;
+  numbers_[2018]["Embed-ETau-D"] = 10343384;
+
+  numbers_[2018]["Embed-MuTau-A"] = 10902486;
+  numbers_[2018]["Embed-MuTau-B"] = 5563063 ;
+  numbers_[2018]["Embed-MuTau-C"] = 5408863 ;
+  numbers_[2018]["Embed-MuTau-D"] = 9295906 ;
+
   //Signal gen numbers
   numbers_[2016]["ZEMu"    ] =  40000;
   numbers_[2017]["ZEMu"    ] =  80000;

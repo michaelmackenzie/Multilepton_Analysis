@@ -312,7 +312,7 @@ void CLFVTmpHistMaker::BookEventHistograms() {
       Utilities::BookH1D(fEventHist[i]->hNBJets20M[1]            , "nbjets20m1"              , Form("%s: NBJets20M"                   ,dirname),  10,    0,  10, folder);
       Utilities::BookH1D(fEventHist[i]->hNBJets20L[1]            , "nbjets20l1"              , Form("%s: NBJets20L"                   ,dirname),  10,    0,  10, folder);
 
-      //j-->tau measurement histograms
+      //b-jet ID measurement histograms
       int njetspt = 6;
       double jetspt[] = {0.  , 30. , 40. , 50.  , 70.,
                          100.,
@@ -1447,6 +1447,28 @@ Bool_t CLFVTmpHistMaker::Process(Long64_t entry)
   mumu  &= leptonOneFired || leptonTwoFired;
   ee    &= leptonOneFired || leptonTwoFired;
 
+  //ensure reasonable dxy/dz cuts
+  const float max_dz(0.5), max_dxy(0.2);
+  mutau &= std::fabs(leptonOneDXY) < max_dxy;
+  mutau &= std::fabs(leptonOneDZ ) < max_dz ;
+  etau  &= std::fabs(leptonOneDXY) < max_dxy;
+  etau  &= std::fabs(leptonOneDZ ) < max_dz ;
+  emu   &= std::fabs(leptonOneDXY) < max_dxy;
+  emu   &= std::fabs(leptonOneDZ ) < max_dz ;
+  emu   &= std::fabs(leptonTwoDXY) < max_dxy;
+  emu   &= std::fabs(leptonTwoDZ ) < max_dz ;
+  mumu  &= std::fabs(leptonOneDXY) < max_dxy;
+  mumu  &= std::fabs(leptonOneDZ ) < max_dz ;
+  mumu  &= std::fabs(leptonTwoDXY) < max_dxy;
+  mumu  &= std::fabs(leptonTwoDZ ) < max_dz ;
+  ee    &= std::fabs(leptonOneDXY) < max_dxy;
+  ee    &= std::fabs(leptonOneDZ ) < max_dz ;
+  ee    &= std::fabs(leptonTwoDXY) < max_dxy;
+  ee    &= std::fabs(leptonTwoDZ ) < max_dz ;
+
+  //remove additional leptons in tau categories
+  mutau &= nElectrons == 0;
+  etau  &= nMuons     == 0;
 
   if(!(mutau || etau || emu || mumu || ee)) return kTRUE;
 

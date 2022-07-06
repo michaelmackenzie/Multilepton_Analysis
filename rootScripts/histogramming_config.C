@@ -92,7 +92,7 @@ config_t get_config() {
 
   config.useTauFakeSF_ = 1; //1 = use given scale factors, 2 = override them with local ones
   config.writeTrees_ = writeTrees_;
-  config.onlyChannel_ = "emu";
+  config.onlyChannel_ = "";
   config.skipChannels_ = {/*"mutau", "etau", "emu",*/ "mumu", "ee", "all", "jets", "llg_study"};
   config.reProcessMVAs_ = false;
   config.signalTrainFraction_ = 0.3;

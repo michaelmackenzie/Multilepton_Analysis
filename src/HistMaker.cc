@@ -15,6 +15,7 @@ HistMaker::HistMaker(int seed, TTree * /*tree*/) : fSystematicSeed(seed),
                                                    fElectronIDWeight(0, seed),
                                                    // fZPtWeight("MuMu", 1, seed),
                                                    //FIXME: Turn on or keep off embedding trigger interpolation
+                                                   //FIXME: Turn on run-dependent scale factors
                                                    fEmbeddingWeight(), fEmbeddingTnPWeight(10/*10*(use 2016 BF/GH and 2018 ABC/D scales) + 1*(interpolate scales or not)*/) {
 
   //ensure pointers set to null to not attempt to delete if never initialized
@@ -320,7 +321,7 @@ void HistMaker::BookBaseEventHistograms(Int_t i, const char* dirname) {
       Utilities::BookH1D(fEventHist[i]->hNPartons                , "npartons"                , Form("%s: NPartons"                    ,dirname),  10,    0,  10, folder);
       Utilities::BookH1D(fEventHist[i]->hLHENJets                , "lhenjets"                , Form("%s: LHE N(jets)"                 ,dirname),  10,    0,  10, folder);
       Utilities::BookH1D(fEventHist[i]->hMcEra                   , "mcera"                   , Form("%s: MCEra + 2*(year-2016)"       ,dirname),   8,    0,   8, folder);
-      Utilities::BookH1F(fEventHist[i]->hDataRun                 , "datarun"                 , Form("%s: DataRun"                     ,dirname), 100, 2.3e5, 3.3e5, folder);
+      Utilities::BookH1F(fEventHist[i]->hDataRun                 , "datarun"                 , Form("%s: DataRun"                     ,dirname), 100, 2.6e5, 3.3e5, folder);
       Utilities::BookH1D(fEventHist[i]->hNPhotons                , "nphotons"                , Form("%s: NPhotons"                    ,dirname),  10,    0,  10, folder);
       Utilities::BookH1D(fEventHist[i]->hNGenTaus                , "ngentaus"                , Form("%s: NGenTaus"                    ,dirname),  10,    0,  10, folder);
       Utilities::BookH1D(fEventHist[i]->hNGenElectrons           , "ngenelectrons"           , Form("%s: NGenElectrons"               ,dirname),  10,    0,  10, folder);
@@ -1166,6 +1167,24 @@ void HistMaker::InitializeEventWeights() {
 // Count objects in the event (leptons, jets, etc.) and initialize base variables
 void HistMaker::CountObjects() {
 
+  /////////////////////////////////////
+  // Base selections
+  mutau =                   nMuon == 1 && nTau == 1 && (fSelection == "" || fSelection == "mutau");
+  etau  = nElectron == 1 &&               nTau == 1 && (fSelection == "" || fSelection == "etau" );
+  emu   = nElectron == 1 && nMuon == 1              && (fSelection == "" || fSelection == "emu"  );
+  mumu  = nElectron <  2 && nMuon == 2              && (fSelection == "" || fSelection == "mumu" );
+  ee    = nElectron == 2 && nMuon <  2              && (fSelection == "" || fSelection == "ee"   );
+
+  //enforce exclusive channels
+  if((mutau and etau) or emu) {
+    mutau = false;
+    etau  = false;
+  }
+  if((mumu and ee) or mutau or etau or emu) {
+    mumu  = false;
+    ee    = false;
+  }
+
   ///////////////////////////////////////////////////////
   //Set the data era
   ///////////////////////////////////////////////////////
@@ -1214,7 +1233,7 @@ void HistMaker::CountObjects() {
 
   nMuons = nMuon; nElectrons = nElectron; nTaus = nTau; nPhotons = 0;
 
-  if(nElectron == 1 && nMuon == 1) { //e+mu selection
+  if(emu) {
     leptonOneP4->SetPtEtaPhiM(Electron_pt[0], Electron_eta[0], Electron_phi[0], ELECMASS);
     leptonTwoP4->SetPtEtaPhiM(Muon_pt    [0], Muon_eta    [0], Muon_phi    [0], MUONMASS);
     leptonOneSCEta = Electron_eta[0] + Electron_deltaEtaSC[0];
@@ -1236,7 +1255,7 @@ void HistMaker::CountObjects() {
     leptonTwoID1       = Muon_looseId[0] + Muon_mediumId[0] + Muon_tightId[0];
     leptonTwoID2       = MuonRelIsoID(Muon_pfRelIso04_all[0]);
     eleES              = Electron_energyScale[0];
-  } else if(nElectron == 1 && nMuon == 0 && nTau == 1) { //e+tau
+  } else if(etau) {
     leptonOneP4->SetPtEtaPhiM(Electron_pt[0], Electron_eta[0], Electron_phi[0], ELECMASS);
     leptonTwoP4->SetPtEtaPhiM(Tau_pt     [0], Tau_eta     [0], Tau_phi     [0], Tau_mass[0]);
     leptonOneSCEta = Electron_eta[0] + Electron_deltaEtaSC[0];
@@ -1258,7 +1277,7 @@ void HistMaker::CountObjects() {
     leptonTwoID1       = Tau_idAntiEle[0];
     leptonTwoID2       = Tau_idAntiMu[0];
     eleES              = Electron_energyScale[0];
-  } else if(nElectron == 0 && nMuon == 1 && nTau == 1) { //mu+tau
+  } else if(mutau) {
     leptonOneP4->SetPtEtaPhiM(Muon_pt    [0], Muon_eta    [0], Muon_phi    [0], MUONMASS);
     leptonTwoP4->SetPtEtaPhiM(Tau_pt     [0], Tau_eta     [0], Tau_phi     [0], Tau_mass[0]);
     leptonOneSCEta = Muon_eta[0];
@@ -1279,7 +1298,7 @@ void HistMaker::CountObjects() {
     leptonOneID2       = MuonRelIsoID(Muon_pfRelIso04_all[0]);
     leptonTwoID1       = Tau_idAntiEle[0];
     leptonTwoID2       = Tau_idAntiMu[0];
-  } else if(nElectron < 2 && nMuon == 2) { //mu+mu
+  } else if(mumu) {
     leptonOneP4->SetPtEtaPhiM(Muon_pt    [0], Muon_eta    [0], Muon_phi    [0], MUONMASS);
     leptonTwoP4->SetPtEtaPhiM(Muon_pt    [1], Muon_eta    [1], Muon_phi    [1], MUONMASS);
     leptonOneSCEta = Muon_eta[0];
@@ -1300,7 +1319,7 @@ void HistMaker::CountObjects() {
     leptonOneID2       = MuonRelIsoID(Muon_pfRelIso04_all[0]);
     leptonTwoID1       = Muon_looseId[1] + Muon_mediumId[1] + Muon_tightId[1];
     leptonTwoID2       = MuonRelIsoID(Muon_pfRelIso04_all[1]);
-  } else if(nElectron == 2 && nMuon < 2) { //e+e
+  } else if(ee) { //e+e
     leptonOneP4->SetPtEtaPhiM(Electron_pt[0], Electron_eta[0], Electron_phi[0], ELECMASS);
     leptonTwoP4->SetPtEtaPhiM(Electron_pt[1], Electron_eta[1], Electron_phi[1], ELECMASS);
     leptonOneSCEta  = Electron_eta[0] + Electron_deltaEtaSC[0];
@@ -1322,6 +1341,11 @@ void HistMaker::CountObjects() {
     leptonTwoID1       = Electron_mvaFall17V2noIso_WPL[1] + Electron_mvaFall17V2noIso_WP90[1] + Electron_mvaFall17V2noIso_WP80[1];
     leptonTwoID2       = 0;
     eleES              = Electron_energyScale[0];
+  } else {
+    std::cout << "HistMaker::" << __func__ << ": Entry " << fentry
+              << ": Warning! No event selection identified: N(e) = " << nElectron
+              << " N(mu) = " << nMuon << " N(tau) = " << nTau << std::endl;
+      return;
   }
   if(nTau > 0) { //store information of the leading pT tau
     tauDecayMode   = Tau_decayMode[0];
@@ -1397,17 +1421,6 @@ void HistMaker::CountObjects() {
 
   CountJets();
 
-  /////////////////////////////////////
-  // Base selections
-  mutau =                    nMuons == 1 && nTaus == 1 && (fSelection == "" || fSelection == "mutau");
-  etau  = nElectrons == 1 &&                nTaus == 1 && (fSelection == "" || fSelection == "etau" );
-  emu   = nElectrons == 1 && nMuons == 1               && (fSelection == "" || fSelection == "emu"  );
-  mumu  = nElectrons <  2 && nMuons == 2               && (fSelection == "" || fSelection == "mumu" );
-  ee    = nElectrons == 2 && nMuons <  2               && (fSelection == "" || fSelection == "ee"   );
-
-  //reject overlaps
-  if(mutau && etau) {mutau = false; etau = false;}
-  if(emu && (mutau || etau)) {mutau = false; etau = false;}
   if(fVerbose > 0) std::cout << " Event has selection statuses: mutau = " << mutau
                              << " etau = " << etau << " emu = " << emu
                              << " mumu = " << mumu << " and ee = " << ee << std::endl
@@ -2186,6 +2199,7 @@ Bool_t HistMaker::InitializeEvent(Long64_t entry)
 
   //Initialize base object information
   CountObjects();
+  if(!(mutau or etau or emu or mumu or ee)) return kTRUE;
 
   //MC sample splitting
   if(SplitSampleEvent()) return kTRUE;
@@ -2219,13 +2233,6 @@ Bool_t HistMaker::InitializeEvent(Long64_t entry)
   if(fVerbose > 0 ) {
     std::cout << " lep_1: pdg_id = " << leptonOneFlavor << " p4 = "; leptonOneP4->Print();
     std::cout << " lep_2: pdg_id = " << leptonTwoFlavor << " p4 = "; leptonTwoP4->Print();
-  }
-
-
-  if(!(mutau || etau || emu || mumu || ee)) {
-    std::cout << "WARNING! Entry " << entry << " passes no selections! N(e) = " << nElectron
-              << " N(mu) = " << nMuon << " N(tau) = " << nTau << std::endl;
-    return kTRUE;
   }
 
   fCutFlow->Fill(icutflow); ++icutflow; //3

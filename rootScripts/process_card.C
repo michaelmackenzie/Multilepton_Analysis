@@ -163,8 +163,17 @@ Int_t process_single_card(datacard_t& card, config_t& config, TFile* file) {
   if(runs) {
     Long64_t runs_count = 0;
     Long64_t runs_count_loop = 0;
+    Long64_t runs_neg_count = 0;
+    Long64_t runs_neg_count_loop = 0;
     bool replace = true;
-    if(runs->GetBranch("genEventCount")) {
+    if(file->Get("Norm")) { //check for an added normalization tree
+      runs = (TTree*) file->Get("Norm");
+      runs->SetBranchAddress("NEvents"  , &runs_count_loop);
+      runs->SetBranchAddress("NNegative", &runs_neg_count_loop);
+    // if(runs->GetBranch("NEvents")) {
+    //   runs->SetBranchAddress("NEvents"  , &runs_count_loop);
+    //   runs->SetBranchAddress("NNegative", &runs_neg_count_loop);
+    } else if(runs->GetBranch("genEventCount")) {
       runs->SetBranchAddress("genEventCount", &runs_count_loop);
     } else if(runs->GetBranch("genEventCount_")) {
       runs->SetBranchAddress("genEventCount_", &runs_count_loop);
@@ -175,10 +184,11 @@ Int_t process_single_card(datacard_t& card, config_t& config, TFile* file) {
     if(replace) {
       for(int ientry = 0; ientry < runs->GetEntriesFast(); ++ientry) {
         runs->GetEntry(ientry);
-        runs_count += runs_count_loop;
+        runs_count     += runs_count_loop;
+        runs_neg_count += runs_neg_count_loop;
       }
       const int events_count = events->GetBinContent(1);
-      double neg_frac = xs.GetNegativeFraction(name, card.year_);
+      double neg_frac = (runs_neg_count > 0) ? (runs_neg_count*1.)/(runs_count) : xs.GetNegativeFraction(name, card.year_);
       if(neg_frac < 1.e-6) neg_frac = events->GetBinContent(10)/events_count;
       cout << "Runs tree N(events): " << runs_count << ", event hist: " << events_count
            << " (neg frac = " << neg_frac << ") --> Difference = " << runs_count - events_count << endl;

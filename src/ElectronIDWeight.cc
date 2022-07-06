@@ -30,6 +30,7 @@ ElectronIDWeight::ElectronIDWeight(int Mode, int seed, int verbose) : verbose_(v
   electronLowRecoFileNames[k2016] = fpair("EGM2D_BtoH_low_RecoSF_Legacy2016.root"                ,"EGamma_SF2D");
   electronLowRecoFileNames[k2017] = fpair("egammaEffi.txt_EGM2D_runBCDEF_passingRECO_lowEt.root" ,"EGamma_SF2D");
 
+  //Trigger scale working points
   const std::vector<int> working_points = {kWPL, kWP80, kWPLNotWP80};
 
   //vertex corrections

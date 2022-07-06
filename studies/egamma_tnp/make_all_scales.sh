@@ -3,15 +3,21 @@
 YEARS=$1
 WPS=$2
 
+
 if [[ "${YEARS}" == "" ]]
 then
     YEARS="2016 2017 2018"
+elif [[ "${YEARS}" == "" ]]
+then
+    echo "1: Years (default = \"2016 2017 2018\")"
+    echo "2: Working points (default = \"0\")"
+    exit
 fi
 
 if [[ "${WPS}" == "" ]]
 then
     #standard WPs = WPL (1), WP80 (3), and WPL + !WP80 (5)
-    WPS="3 5"
+    WPS="0"
 fi
 
 for YEAR in ${YEARS}

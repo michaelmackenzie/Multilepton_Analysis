@@ -3,7 +3,7 @@
 Help() {
     echo "Process all Embedding muon and electron ID/trigger TnP scale factors"
     echo "Options:"
-    echo " 1: List of years to process, default = \"2016 2016_BF 2016_GH 2017 2018 2018_ABC 2018_D\""
+    echo " 1: List of years to process, default = \"2016 2016_BF 2016_GH 2017 2018\""
     echo " 2: Specific flavor to process, e.g. \"muon\" or \"electron\", default = \"\""
     echo " 3: Scale factor modes to process, e.g. \"1 0\", default = \"1 2 3 0 4\""
 }
@@ -14,7 +14,7 @@ MODES=$3 #space separated list of scale factor modes to process
 
 if [[ "${YEARS}" == "" ]]
 then
-    YEARS="2016 2016_BF 2016_GH 2017 2018 2018_ABC 2018_D"
+    YEARS="2016 2016_BF 2016_GH 2017 2018"
 elif [[ "${YEARS}" == "-h" ]]
 then
     Help

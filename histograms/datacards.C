@@ -20,6 +20,7 @@ double embedScale_   =  1.; //scale factor to add onto the embedding normalizati
 int    useQCDMC_     =  0 ; //use MC QCD background estimates
 int    combineVB_    =  1 ; //combine W+Jets with other vector boson processes
 int    includeHiggs_ =  1 ; //include the higgs signals in the plots
+int    correctEmbed_ =  0 ; //check the event histogram vs gen numbers to correct for missing events
 
 //get the data cards needed
 void get_datacards(std::vector<dcard>& cards, TString selection, bool forStudies = false) {
@@ -200,6 +201,24 @@ void get_datacards(std::vector<dcard>& cards, TString selection, bool forStudies
     //update file path
     cards[index].filename_ = Form("%s/%s_%s_%i_%s.hist", (hist_path_+hist_dir_).Data(), hist_tag_.Data(), selection_dir.Data(),
                                   cards[index].year_, (cards[index].filename_).Data());
+    //check if it's an embedding file and correcting for lost events
+    if(correctEmbed_ && cards[index].name_.Contains("Embed")) {
+      //Open the file to access the event count histogram
+      TFile* f = TFile::Open(cards[index].filename_.Data(), "READ");
+      if(!f) continue;
+      TH1* events = (TH1*) f->Get("events");
+      if(!events) {std::cout << "Event histogram not found in " << f->GetName() << std::endl; f->Close(); continue;}
+      const double nevt = events->GetBinContent(1);
+      const double ngen = xs.GetGenNumber(cards[index].name_, cards[index].year_);
+      if(ngen < 1) {f->Close(); continue;}
+      if(ngen > nevt) { //only apply a correction if ngen/nevt make sense
+        //notify if more than a 5% correction
+        if(ngen/nevt > 1.05) std::cout << "Dataset " << cards[index].name_.Data() << ", " << cards[index].year_ << ", has gen = "
+                                       << ngen << " and event count = " << nevt << " --> applying " << ngen/nevt << " correction\n";
+        cards[index].xsec_ *= ngen/nevt;
+      }
+      f->Close();
+    }
   } //end file name loop
 }
 

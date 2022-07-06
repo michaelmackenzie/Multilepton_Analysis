@@ -143,8 +143,8 @@ void scale_factors(int year = 2016, int isMC = 0, int WP = 0) {
   // int n_pt_bins  = sizeof( pt_bins) / sizeof( *pt_bins) - 1;
   vector<double> eta_bins, pt_bins;
   const float gap_low(1.4442), gap_high(1.566); //eta region to ignore
-  if(useAbsEta_) eta_bins = {0.0, 0.8, gap_low, gap_high, 2.1, 2.5};
-  else           eta_bins = {-2.5, -2.1,-gap_high,-gap_low, -0.8, 0.0, 0.8, gap_low, gap_high, 2.1, 2.5};
+  if(useAbsEta_) eta_bins = {0.0, 0.8, gap_low, gap_high, 2.2, 2.5};
+  else           eta_bins = {-2.5, -2.2,-gap_high,-gap_low, -0.8, 0.0, 0.8, gap_low, gap_high, 2.2, 2.5};
   if(year == 2016) {
     pt_bins  = {25,27,28,29,30,31,32,34,36,40,45,50,55,60,70,85,100,500};
   } else if(year == 2017 || year == 2018) {
@@ -362,6 +362,7 @@ void scale_factors(int year = 2016, int isMC = 0, int WP = 0) {
   ///////////////////////////////////////
 
   gStyle->SetOptStat(0);
+  gStyle->SetPaintTextFormat(".2f");
   TCanvas* c = new TCanvas("c", "c", 1500, 700);
   c->Divide(3,1);
   TVirtualPad* pad;
@@ -370,16 +371,19 @@ void scale_factors(int year = 2016, int isMC = 0, int WP = 0) {
   pad->SetRightMargin(0.13);
   hPass->Draw("colz");
   pad->SetLogz();
+  pad->SetLogy();
   pad = c->cd(2);
   pad->SetLeftMargin(0.13);
   pad->SetRightMargin(0.13);
   hFail->Draw("colz");
   pad->SetLogz();
+  pad->SetLogy();
   pad = c->cd(3);
   pad->SetLeftMargin(0.13);
   pad->SetRightMargin(0.13);
-  hRatio->Draw("colz");
+  hRatio->Draw("colz text");
   hRatio->GetZaxis()->SetRangeUser(0., 1.);
+  pad->SetLogy();
 
   gSystem->Exec("[ ! -d figures ] && mkdir figures");
   gSystem->Exec("[ ! -d rootfiles ] && mkdir rootfiles");
@@ -393,16 +397,19 @@ void scale_factors(int year = 2016, int isMC = 0, int WP = 0) {
   pad->SetRightMargin(0.13);
   hResPass->Draw("colz");
   pad->SetLogz();
+  pad->SetLogy();
   pad = c->cd(2);
   pad->SetLeftMargin(0.13);
   pad->SetRightMargin(0.13);
   hResFail->Draw("colz");
   pad->SetLogz();
+  pad->SetLogy();
   pad = c->cd(3);
   pad->SetLeftMargin(0.13);
   pad->SetRightMargin(0.13);
-  hResRatio->Draw("colz");
+  hResRatio->Draw("colz text");
   hResRatio->GetZaxis()->SetRangeUser(0., 1.);
+  pad->SetLogy();
   c->SaveAs(Form("figures/eff_%i_wp%i_mc%i.png", year, WP, isMC));
   delete c;
 

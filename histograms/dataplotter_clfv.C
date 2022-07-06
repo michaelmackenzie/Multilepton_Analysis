@@ -1877,6 +1877,8 @@ Int_t print_basic_debug_plots(bool test_trigger = false, bool doMC = false, bool
   else if(selection_ == "emu"    ) offset = CLFVHistMaker::kEMu;
   else if(selection_ == "mumu"   ) offset = CLFVHistMaker::kMuMu;
   else if(selection_ == "ee"     ) offset = CLFVHistMaker::kEE;
+  if     (selection_ == "mutau_e") offset = CLFVHistMaker::kEMu;
+  else if(selection_ == "etau_mu") offset = CLFVHistMaker::kEMu;
   else {
     cout << "Debugging only defined for mutau, etau, emu, mumu, or ee!\n";
     return 2;
