@@ -60,37 +60,39 @@ Dataset skimming is done using a separate repository, based on the NANOAOD Tools
 `https://github.com/michaelmackenzie/Z_LFV_Analysis.git/`
 
 
-The main dataset skimming is done by the `python/LFVAnalyzer.py`
+The main dataset skimming is done by the `python/analyzers/LFVAnalyzer.py`
 
 LFVAnalyzer takes several command line arguments:
-`python python/LFVAnalyzer.py [input file] [data for Data, MC for MC, Embedded for Embedding sampled] [year]
+`python python/LFVAnalyzer.py [comma separated input file list] [data for Data, MC for MC, Embedded for Embedding sampled] [year]
 
 An example for local testing:
 ```
 cd ${CMSSW_BASE}/src/PhysicsTools/NanoAODTools/
 DATASET="/DYJetsToLL_M-50_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/RunIISummer16NanoAODv7-PUMoriond17_Nano02Apr2020_102X_mcRun2_asymptotic_v8_ext2-v1/NANOAODSIM"
-voms-proxy-init --rfc --voms cms
+voms-proxy-init --rfc --voms cms --hours 36
 xrdcp -f "root://cmseos.fnal.gov/"`das_client -query="file dataset=${DATASET}" | head -n 1` ./NANO.root
 python python/LFVAnalyzer.py ./NANO.root MC 2016
-ls -l tree.root #results
+ls -lh tree.root #results
+root.exe -q -b "condor/split_output_tree.C(\"tree.root\", \"tree-split.root\")" #split output ntuple into 5 ntuples
+root.exe -q -b "condor/add_norm.C(\"NANO.root\", \"tree-split.root\")" #add normalization event count info
 ```
 
-Grid jobs are submitted using LPC condor in the condor/submitBatch_Legacy.py, which uses the python/BatchMaster.py object.
+Grid jobs are submitted using LPC condor in the condor/submitBatch_Legacy.py, which uses the python/condor/BatchMaster.py object.
 The datasets are configured in a `samplesDict` dictionary and the `samplesToSubmit` list indicates which to submit.
 
 An example for grid submission:
 ```
-voms-proxy-init --rfc --voms cms
+voms-proxy-init --rfc --voms cms --hours 36
 cd condor
 ./submitBatch_Legacy.py
-./query_grid.sh #monitor jobs
+./query_grid.sh [-s for just an overall summary] #monitor jobs
 ```
 
 When the jobs are finished, failed jobs can be investigated and resubmitted by:
 ```
-./check_batch_job.sh [path to job] ["d" to open each output root file or ""] ["d" to resubmit failed jobs or ""] ["[tag string]" or ""]
+./check_batch_job.sh [path to job] [-h for options]
 #e.g.
-./check_batch_job.sh batch/LFVAnalyzer_20220516_125456/ "" d
+./check_batch_job.sh batch/LFVAnalyzer_20220516_125456/ --ignorerunning
 ```
 
 Merging output datasets:
@@ -98,7 +100,7 @@ Merging output datasets:
 Datasets are read over XROOTD, merged locally, and then copied back to eos:
 ```
 cd condor
-python prepare_batch.py [output directory, e.g. "nano_batchout/LFVAnalyzer_20220516_125456/"]
+python prepare_batch.py [output directory, e.g. "nano_batchout/LFVAnalyzer_20220516_125456/"] [-h for options]
 ```
 
 After this, merged output files should be in `/eos/uscms/store/user/${USER}/lfvanalysis_rootfiles/`
@@ -130,18 +132,18 @@ a new job calling `process_card.C` to histogram a given dataset so the memory is
 execution of the job. The histogram object can be changed to the desired one by changing the `typedef` statement
 at the top of the `histogramming_config.C` configuration file.
 
-To add a histogram selection set to an existing histogrammer HISTMAKER, add an entry in `src/HISTMAKER.cc:InitHistogramFlags` with
+To add a histogram selection set to an existing histogrammer <HISTMAKER>, add an entry in `src/<HISTMAKER>.cc:InitHistogramFlags` with
  `fEventSets [<selection enum> + <base set>] = 1;` to tell the histogrammer to initialize these histograms.
-Then add in the `src/HISTMAKER.cc:Process` function the call `FillAllHistograms(set_offset + <base set>)`, with
+Then add in the `src/<HISTMAKER>.cc:Process` function the call `FillAllHistograms(set_offset + <base set>)`, with
 the desired selection cuts.
 
 To add a histogram to the standard histogramming of an existing histogrammer HISTMAKER, add a field for it to
-`interface/<EventHist/LepHist>.hh`, then iniitialize the histogram for each selection set in `src/HISTMAKER.cc:Book<Event/Lep>Histograms`,
-and add the corresponding `Fill` call in `src/HISTMAKER.cc:Fill<Event/Lep>Histogram`.
+`interface/<EventHist/LepHist>.hh`, then iniitialize the histogram for each selection set in `src/<HISTMAKER>.cc:Book<Event/Lep>Histograms`,
+and add the corresponding `Fill` call in `src/<HISTMAKER>.cc:Fill<Event/Lep>Histogram`.
 
 To create a new histogrammer, simply add a new histogramming object extending HistMaker, implement any updates/overrides,
 and then add the object to the class lists: `src/classes.h` and `src/classes_def.xml`. See `interface/SparseHistMaker.hh`
-for an example of this.
+and `interface/CLFVHistMaker.hh` for examples of this.
 
 Histogramming example:
 ```
@@ -149,6 +151,7 @@ cd rootScripts/
 #set the dataset processing flags to true for each dataset of interest in histogramming_config.C
 #set the config.onlyChannel_ flag to a specific channel to process (e.g. "emu") or "" to process all channels
 #set the config.skipChannels_ list to specify channels to ignore when histogramming
+#set typedef <HistMaker of interest> HISTOGRAMMER
 # update   nanoaod_path = "root://cmseos.fnal.gov//store/user/mmackenz/clfv_nanoaod_test_trees/"; to your area if needed
 root.exe -q -b process_clfv.C
 ./move_histograms.sh [output directory, e.g. "nanoaods/"] "" d
@@ -157,15 +160,16 @@ rm *.hist
 
 ## Plotting
 
-Plotting is done using pre-made histogram files from the CLFVHistMaker object, using the `src/DataPlotter.cc` object.
+Plotting is done using pre-made histogram files from an HistMaker object, using the `src/DataPlotter.cc` object.
 
-This is primarily done using the `histograms/dataplotter_clfv.C` script, which dataset configured in `histograms/datacards.C`.
+This is primarily done using the `histograms/dataplotter_clfv.C` script, with dataset configured in `histograms/datacards.C`.
 
 For example:
 ```
 cd histograms
 root.exe dataplotter_clfv.C
-root> years_=[vector of years to plot, e.g. {2016,2017,2018}];
+root> //years_=[vector of years to plot, e.g. {2016,2017,2018}];
+root> years_={2016,2017,2018};
 root> //nanoaod_init([channel], [histogram dir], [output dir]);
 root> //e.g.
 root> nanoaod_init("emu", "nanoaods_dev", "nanoaods_dev");
@@ -184,14 +188,14 @@ root> //PlottingCard_t card([name], [type], [set], [rebinning], [xmin], [xmax], 
 root> PlottingCard_t card("lepm", "event", 208, 2, 50, 170, {84., 118.}, {98., 132.})
 root> dataplotter_->print_stack(card);
 root> //print many plots, ranges/rebinning may need updating as histograms change
-root> print_standard_plots({8}/*no offset needed unless offsetSets_ = false*/); //may be slow due to xrootd reading and memory filling from histograms
+root> print_basic_debug_plots(); //may be slow due to xrootd reading and memory filling from histograms
 root> .qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq
 ```
 
 
 ## Standard histogram sets:
 
-Histogram sets have a base number of 1-99. They then have a final state selection offset of:
+Histogram sets have a base number of 1-99. They then have a final state selection offset (defined in `interface/HistMaker.hh`) of:
 
 - mu+tau: 0
 - e+tau: 100
@@ -205,7 +209,7 @@ They then additionally have an offset of 1000 for same-sign events and 2000 for 
 (e.g. loose tau anti-jet ID or anti-isolated muon ID)
 All histograms for a selection set are then stored in `Data/<event/lep>_<set number>/`
 
-Standard selection set base numbers:
+Standard selection set base numbers used by CLFVHistMaker:
 - 1: All events
 - 7: Preselection events without a b-jet veto
 - 8: Standard preselection events
@@ -216,3 +220,4 @@ Standard selection set base numbers:
 - 36: QCD j-->tau control region, including MC fake taus
 - 37: W+Jets j-->tau control region, including MC fake taus
 - 38: ttbar j-->tau control region, including MC fake taus
+- 82: ttbar j-->tau weights in the nominal selection, including MC fake taus
