@@ -170,6 +170,8 @@ cd histograms
 root.exe dataplotter_clfv.C
 root> //years_=[vector of years to plot, e.g. {2016,2017,2018}];
 root> years_={2016,2017,2018};
+root> //hist_tag_ = [proper tag, e.g. "clfv" for CLFVHistMaker or "sparse" for SparseHistMaker]
+root> //see more options in datacards.C, such as useEmbed_ = 0 or 1
 root> //nanoaod_init([channel], [histogram dir], [output dir]);
 root> //e.g.
 root> nanoaod_init("emu", "nanoaods_dev", "nanoaods_dev");
