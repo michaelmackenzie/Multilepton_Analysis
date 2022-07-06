@@ -2,9 +2,8 @@
 #define __HISTOGRAMMING_CONFIG__
 
 //Define which histogrammer to use
-typedef CLFVTmpHistMaker HISTOGRAMMER;
+typedef CLFVHistMaker HISTOGRAMMER;
 // typedef HistMaker HISTOGRAMMER;
-// typedef CLFVTmpHistMaker HISTOGRAMMER;
 // typedef SparseHistMaker HISTOGRAMMER;
 
 bool debug_ = false;

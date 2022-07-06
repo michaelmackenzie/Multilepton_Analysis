@@ -313,8 +313,8 @@ Bool_t SparseHistMaker::Process(Long64_t entry)
 
   ee   &= !isLooseElectron && nElectrons == 2;
   mumu &= !isLooseMuon && nMuons == 2;
-  mutau &= !isLooseMuon;
-  etau  &= !isLooseElectron;
+  mutau &= !isLooseMuon && nElectrons == 0;
+  etau  &= !isLooseElectron && nMuons == 0;
   emu &= !isLooseElectron; //QCD loose ID is only loose muon region
 
   //remove MC jet -> light lepton contribution

@@ -36,8 +36,8 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
     year_string += years[i];
   }
   int set_offset = 0;
-  if     (selection.Contains("_")) set_offset = CLFVHistMaker::kEMu;
-  else if(selection.Contains("etau")) set_offset = CLFVHistMaker::kETau;
+  if     (selection.Contains("_")) set_offset = HistMaker::kEMu;
+  else if(selection.Contains("etau")) set_offset = HistMaker::kETau;
 
   TRandom3* rnd = new TRandom3(seed); //for generating mock data
   bool isHiggs = selection.Contains("h");

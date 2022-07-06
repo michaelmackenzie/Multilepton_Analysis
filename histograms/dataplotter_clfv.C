@@ -35,13 +35,13 @@ Int_t print_significance_canvases(vector<TString> hists, vector<TString> types, 
   int n = hists.size();
   for(int set : sets) {
     if(offsetSets_) {
-      if(selection_ == "mutau"  ) set += CLFVHistMaker::kMuTau;
-      if(selection_ == "etau"   ) set += CLFVHistMaker::kETau;
-      if(selection_ == "emu"    ) set += CLFVHistMaker::kEMu;
-      if(selection_ == "mutau_e") set += CLFVHistMaker::kMuTauE;
-      if(selection_ == "etau_mu") set += CLFVHistMaker::kETauMu;
-      if(selection_ == "mumu")    set += CLFVHistMaker::kMuMu;
-      if(selection_ == "ee")      set += CLFVHistMaker::kEE;
+      if(selection_ == "mutau"  ) set += HistMaker::kMuTau;
+      if(selection_ == "etau"   ) set += HistMaker::kETau;
+      if(selection_ == "emu"    ) set += HistMaker::kEMu;
+      if(selection_ == "mutau_e") set += HistMaker::kMuTauE;
+      if(selection_ == "etau_mu") set += HistMaker::kETauMu;
+      if(selection_ == "mumu")    set += HistMaker::kMuMu;
+      if(selection_ == "ee")      set += HistMaker::kEE;
     }
     for(int i = 0; i < n; ++i) {
       TString filename = Form("sig_vsEff_%s_%s_set_%i.root", labels[i].Data(), hists[i].Data(), set);
@@ -65,11 +65,11 @@ Int_t print_significance_canvases(vector<TString> hists, vector<TString> types, 
 Int_t create_categories(TString hist, TString type, Int_t set, TString signal = "Z->e#mu", Int_t ncat = 1, Int_t verbose = 0) {
   if(!dataplotter_) return -1;
   if(offsetSets_) {
-    if(selection_ == "mutau"  ) set += CLFVHistMaker::kMuTau;
-    if(selection_ == "etau"   ) set += CLFVHistMaker::kETau;
-    if(selection_ == "emu"    ) set += CLFVHistMaker::kEMu;
-    if(selection_ == "mutau_e") set += CLFVHistMaker::kMuTauE;
-    if(selection_ == "etau_mu") set += CLFVHistMaker::kETauMu;
+    if(selection_ == "mutau"  ) set += HistMaker::kMuTau;
+    if(selection_ == "etau"   ) set += HistMaker::kETau;
+    if(selection_ == "emu"    ) set += HistMaker::kEMu;
+    if(selection_ == "mutau_e") set += HistMaker::kMuTauE;
+    if(selection_ == "etau_mu") set += HistMaker::kETauMu;
   }
   vector<double> cut_values;
   for(int icat = 0; icat < ncat; ++icat) {
@@ -98,11 +98,11 @@ Int_t create_categories(TString hist, TString type, Int_t set, TString signal = 
 Int_t print_statistics(TString hist, TString type, int set, double xmin = 1., double xmax = -1.) {
   if(!dataplotter_) return -1;
   if(offsetSets_) {
-    if(selection_ == "mutau"  ) set += CLFVHistMaker::kMuTau;
-    if(selection_ == "etau"   ) set += CLFVHistMaker::kETau;
-    if(selection_ == "emu"    ) set += CLFVHistMaker::kEMu;
-    if(selection_ == "mutau_e") set += CLFVHistMaker::kMuTauE;
-    if(selection_ == "etau_mu") set += CLFVHistMaker::kETauMu;
+    if(selection_ == "mutau"  ) set += HistMaker::kMuTau;
+    if(selection_ == "etau"   ) set += HistMaker::kETau;
+    if(selection_ == "emu"    ) set += HistMaker::kEMu;
+    if(selection_ == "mutau_e") set += HistMaker::kMuTauE;
+    if(selection_ == "etau_mu") set += HistMaker::kETauMu;
   }
 
   TCanvas* c = dataplotter_->plot_stack(hist, type, set);
@@ -184,11 +184,11 @@ Int_t print_combine_card(TString hist, TString type, TString label, double xmin 
   bool isHiggs = label.Contains("H->");
   int base_set = (isHiggs) ? 14 : 9; //FIXME: Get from HistMaker
   int max_sets = 5;
-  if(selection_ == "mutau"  ) base_set += CLFVHistMaker::kMuTau;
-  if(selection_ == "etau"   ) base_set += CLFVHistMaker::kETau;
-  if(selection_ == "emu"    ) base_set += CLFVHistMaker::kEMu;
-  if(selection_ == "mutau_e") base_set += CLFVHistMaker::kMuTauE;
-  if(selection_ == "etau_mu") base_set += CLFVHistMaker::kETauMu;
+  if(selection_ == "mutau"  ) base_set += HistMaker::kMuTau;
+  if(selection_ == "etau"   ) base_set += HistMaker::kETau;
+  if(selection_ == "emu"    ) base_set += HistMaker::kEMu;
+  if(selection_ == "mutau_e") base_set += HistMaker::kMuTauE;
+  if(selection_ == "etau_mu") base_set += HistMaker::kETauMu;
 
   vector<double> bkgs, sigs;
   for(int curr_set = base_set; curr_set < base_set + max_sets; ++curr_set) {
@@ -300,13 +300,13 @@ TCanvas* print_canvas(TString hist, TString type, int set, bool stacks = true, T
     return NULL;
   }
   if(offsetSets_) {
-    if(selection_ == "mutau"  ) set += CLFVHistMaker::kMuTau;
-    if(selection_ == "etau"   ) set += CLFVHistMaker::kETau;
-    if(selection_ == "emu"    ) set += CLFVHistMaker::kEMu;
-    if(selection_ == "mutau_e") set += CLFVHistMaker::kMuTauE;
-    if(selection_ == "etau_mu") set += CLFVHistMaker::kETauMu;
-    if(selection_ == "mumu")    set += CLFVHistMaker::kMuMu;
-    if(selection_ == "ee")      set += CLFVHistMaker::kEE;
+    if(selection_ == "mutau"  ) set += HistMaker::kMuTau;
+    if(selection_ == "etau"   ) set += HistMaker::kETau;
+    if(selection_ == "emu"    ) set += HistMaker::kEMu;
+    if(selection_ == "mutau_e") set += HistMaker::kMuTauE;
+    if(selection_ == "etau_mu") set += HistMaker::kETauMu;
+    if(selection_ == "mumu")    set += HistMaker::kMuMu;
+    if(selection_ == "ee")      set += HistMaker::kEE;
   }
 
   TCanvas* c = (stacks) ? dataplotter_->plot_stack(hist, type, set) : dataplotter_->plot_hist(hist, type, set);
@@ -331,13 +331,13 @@ TCanvas* print_canvas(TString hist, TString type, int set, double xmin, double x
   dataplotter_->xMin_ = xmin;
   dataplotter_->xMax_ = xmax;
   if(offsetSets_) {
-    if(selection_ == "mutau"  ) set += CLFVHistMaker::kMuTau;
-    if(selection_ == "etau"   ) set += CLFVHistMaker::kETau;
-    if(selection_ == "emu"    ) set += CLFVHistMaker::kEMu;
-    if(selection_ == "mutau_e") set += CLFVHistMaker::kMuTauE;
-    if(selection_ == "etau_mu") set += CLFVHistMaker::kETauMu;
-    if(selection_ == "mumu")    set += CLFVHistMaker::kMuMu;
-    if(selection_ == "ee")      set += CLFVHistMaker::kEE;
+    if(selection_ == "mutau"  ) set += HistMaker::kMuTau;
+    if(selection_ == "etau"   ) set += HistMaker::kETau;
+    if(selection_ == "emu"    ) set += HistMaker::kEMu;
+    if(selection_ == "mutau_e") set += HistMaker::kMuTauE;
+    if(selection_ == "etau_mu") set += HistMaker::kETauMu;
+    if(selection_ == "mumu")    set += HistMaker::kMuMu;
+    if(selection_ == "ee")      set += HistMaker::kEE;
   }
   auto c = print_canvas(hist, type, set, stacks, name);
   dataplotter_->reset_axes();
@@ -362,13 +362,13 @@ Int_t print_test(vector<int> sets, vector<double> signal_scales = {},
   int status = 0;
   if(offsetSets_) {
     for(unsigned i = 0; i < sets.size(); ++ i) {
-      if(selection_ == "mutau"  ) sets[i] += CLFVHistMaker::kMuTau;
-      if(selection_ == "etau"   ) sets[i] += CLFVHistMaker::kETau;
-      if(selection_ == "emu"    ) sets[i] += CLFVHistMaker::kEMu;
-      if(selection_ == "mutau_e") sets[i] += CLFVHistMaker::kMuTauE;
-      if(selection_ == "etau_mu") sets[i] += CLFVHistMaker::kETauMu;
-      if(selection_ == "mumu")    sets[i] += CLFVHistMaker::kMuMu;
-      if(selection_ == "ee")      sets[i] += CLFVHistMaker::kEE;
+      if(selection_ == "mutau"  ) sets[i] += HistMaker::kMuTau;
+      if(selection_ == "etau"   ) sets[i] += HistMaker::kETau;
+      if(selection_ == "emu"    ) sets[i] += HistMaker::kEMu;
+      if(selection_ == "mutau_e") sets[i] += HistMaker::kMuTauE;
+      if(selection_ == "etau_mu") sets[i] += HistMaker::kETauMu;
+      if(selection_ == "mumu")    sets[i] += HistMaker::kMuMu;
+      if(selection_ == "ee")      sets[i] += HistMaker::kEE;
     }
   }
   status = dataplotter_->print_stacks(plottingcards, sets, signal_scales, base_rebins);
@@ -381,13 +381,13 @@ Int_t print_slim_counts(vector<int> sets) {
   if(!dataplotter_) return 1;
   if(offsetSets_) {
     for(unsigned i = 0; i < sets.size(); ++ i) {
-      if(selection_ == "mutau"  ) sets[i] += CLFVHistMaker::kMuTau;
-      if(selection_ == "etau"   ) sets[i] += CLFVHistMaker::kETau;
-      if(selection_ == "emu"    ) sets[i] += CLFVHistMaker::kEMu;
-      if(selection_ == "mutau_e") sets[i] += CLFVHistMaker::kMuTauE;
-      if(selection_ == "etau_mu") sets[i] += CLFVHistMaker::kETauMu;
-      if(selection_ == "mumu")    sets[i] += CLFVHistMaker::kMuMu;
-      if(selection_ == "ee")      sets[i] += CLFVHistMaker::kEE;
+      if(selection_ == "mutau"  ) sets[i] += HistMaker::kMuTau;
+      if(selection_ == "etau"   ) sets[i] += HistMaker::kETau;
+      if(selection_ == "emu"    ) sets[i] += HistMaker::kEMu;
+      if(selection_ == "mutau_e") sets[i] += HistMaker::kMuTauE;
+      if(selection_ == "etau_mu") sets[i] += HistMaker::kETauMu;
+      if(selection_ == "mumu")    sets[i] += HistMaker::kMuMu;
+      if(selection_ == "ee")      sets[i] += HistMaker::kEE;
     }
   }
   Int_t status = 0;
@@ -742,13 +742,13 @@ Int_t print_sys_cards(vector<int> sets, bool offset = true) {
   int status = 0;
   if(offset && offsetSets_) {
     for(unsigned i = 0; i < sets.size(); ++ i) {
-      if(selection_ == "mutau"  ) sets[i] += CLFVHistMaker::kMuTau;
-      if(selection_ == "etau"   ) sets[i] += CLFVHistMaker::kETau;
-      if(selection_ == "emu"    ) sets[i] += CLFVHistMaker::kEMu;
-      if(selection_ == "mutau_e") sets[i] += CLFVHistMaker::kMuTauE;
-      if(selection_ == "etau_mu") sets[i] += CLFVHistMaker::kETauMu;
-      if(selection_ == "mumu")    sets[i] += CLFVHistMaker::kMuMu;
-      if(selection_ == "ee")      sets[i] += CLFVHistMaker::kEE;
+      if(selection_ == "mutau"  ) sets[i] += HistMaker::kMuTau;
+      if(selection_ == "etau"   ) sets[i] += HistMaker::kETau;
+      if(selection_ == "emu"    ) sets[i] += HistMaker::kEMu;
+      if(selection_ == "mutau_e") sets[i] += HistMaker::kMuTauE;
+      if(selection_ == "etau_mu") sets[i] += HistMaker::kETauMu;
+      if(selection_ == "mumu")    sets[i] += HistMaker::kMuMu;
+      if(selection_ == "ee")      sets[i] += HistMaker::kEE;
     }
   }
   for(int iset : sets) {
@@ -772,13 +772,13 @@ Int_t print_tau_plots(vector<int> sets) {
   get_tau_cards(cards);
   if(offsetSets_) {
     for(unsigned i = 0; i < sets.size(); ++ i) {
-      if(selection_ == "mutau"  ) sets[i] += CLFVHistMaker::kMuTau;
-      if(selection_ == "etau"   ) sets[i] += CLFVHistMaker::kETau;
-      if(selection_ == "emu"    ) sets[i] += CLFVHistMaker::kEMu;
-      if(selection_ == "mutau_e") sets[i] += CLFVHistMaker::kMuTauE;
-      if(selection_ == "etau_mu") sets[i] += CLFVHistMaker::kETauMu;
-      if(selection_ == "mumu")    sets[i] += CLFVHistMaker::kMuMu;
-      if(selection_ == "ee")      sets[i] += CLFVHistMaker::kEE;
+      if(selection_ == "mutau"  ) sets[i] += HistMaker::kMuTau;
+      if(selection_ == "etau"   ) sets[i] += HistMaker::kETau;
+      if(selection_ == "emu"    ) sets[i] += HistMaker::kEMu;
+      if(selection_ == "mutau_e") sets[i] += HistMaker::kMuTauE;
+      if(selection_ == "etau_mu") sets[i] += HistMaker::kETauMu;
+      if(selection_ == "mumu")    sets[i] += HistMaker::kMuMu;
+      if(selection_ == "ee")      sets[i] += HistMaker::kEE;
     }
   }
   int status(0);
@@ -795,13 +795,13 @@ Int_t print_standard_plots(vector<int> sets, vector<double> signal_scales = {},
   if(!dataplotter_) return -1;
   if(offsetSets_) {
     for(unsigned i = 0; i < sets.size(); ++ i) {
-      if(selection_ == "mutau"  ) sets[i] += CLFVHistMaker::kMuTau;
-      if(selection_ == "etau"   ) sets[i] += CLFVHistMaker::kETau;
-      if(selection_ == "emu"    ) sets[i] += CLFVHistMaker::kEMu;
-      if(selection_ == "mutau_e") sets[i] += CLFVHistMaker::kMuTauE;
-      if(selection_ == "etau_mu") sets[i] += CLFVHistMaker::kETauMu;
-      if(selection_ == "mumu")    sets[i] += CLFVHistMaker::kMuMu;
-      if(selection_ == "ee")      sets[i] += CLFVHistMaker::kEE;
+      if(selection_ == "mutau"  ) sets[i] += HistMaker::kMuTau;
+      if(selection_ == "etau"   ) sets[i] += HistMaker::kETau;
+      if(selection_ == "emu"    ) sets[i] += HistMaker::kEMu;
+      if(selection_ == "mutau_e") sets[i] += HistMaker::kMuTauE;
+      if(selection_ == "etau_mu") sets[i] += HistMaker::kETauMu;
+      if(selection_ == "mumu")    sets[i] += HistMaker::kMuMu;
+      if(selection_ == "ee")      sets[i] += HistMaker::kEE;
     }
   }
   vector<PlottingCard_t> plottingcards;
@@ -1013,13 +1013,13 @@ Int_t print_standard_canvases(vector<int> sets, vector<double> signal_scales = {
   if(!dataplotter_) return -1;
   if(offsetSets_) {
     for(unsigned i = 0; i < sets.size(); ++ i) {
-      if(selection_ == "mutau"  ) sets[i] += CLFVHistMaker::kMuTau;
-      if(selection_ == "etau"   ) sets[i] += CLFVHistMaker::kETau;
-      if(selection_ == "emu"    ) sets[i] += CLFVHistMaker::kEMu;
-      if(selection_ == "mutau_e") sets[i] += CLFVHistMaker::kMuTauE;
-      if(selection_ == "etau_mu") sets[i] += CLFVHistMaker::kETauMu;
-      if(selection_ == "mumu")    sets[i] += CLFVHistMaker::kMuMu;
-      if(selection_ == "ee")      sets[i] += CLFVHistMaker::kEE;
+      if(selection_ == "mutau"  ) sets[i] += HistMaker::kMuTau;
+      if(selection_ == "etau"   ) sets[i] += HistMaker::kETau;
+      if(selection_ == "emu"    ) sets[i] += HistMaker::kEMu;
+      if(selection_ == "mutau_e") sets[i] += HistMaker::kMuTauE;
+      if(selection_ == "etau_mu") sets[i] += HistMaker::kETauMu;
+      if(selection_ == "mumu")    sets[i] += HistMaker::kMuMu;
+      if(selection_ == "ee")      sets[i] += HistMaker::kEE;
     }
   }
   vector<TString> hnames;
@@ -1159,13 +1159,13 @@ Int_t print_mva_selections(TString histDir = "", TString figureDir = "") {
     vector<PlottingCard_t> cards;
     get_mva_cards(cards);
     int offset = 0;
-    if     (selection == "mutau"  ) offset = CLFVHistMaker::kMuTau;
-    else if(selection == "etau"   ) offset = CLFVHistMaker::kETau;
-    else if(selection == "emu"    ) offset = CLFVHistMaker::kEMu;
-    else if(selection == "etau_mu") offset = CLFVHistMaker::kEMu;
-    else if(selection == "mutau_e") offset = CLFVHistMaker::kEMu;
-    else if(selection == "ee"     ) offset = CLFVHistMaker::kEE;
-    else if(selection == "mumu"   ) offset = CLFVHistMaker::kMuMu;
+    if     (selection == "mutau"  ) offset = HistMaker::kMuTau;
+    else if(selection == "etau"   ) offset = HistMaker::kETau;
+    else if(selection == "emu"    ) offset = HistMaker::kEMu;
+    else if(selection == "etau_mu") offset = HistMaker::kEMu;
+    else if(selection == "mutau_e") offset = HistMaker::kEMu;
+    else if(selection == "ee"     ) offset = HistMaker::kEE;
+    else if(selection == "mumu"   ) offset = HistMaker::kMuMu;
     dataplotter_->print_stacks(cards,{7+offset,8+offset},{},{});
   }
   return status;
@@ -1224,7 +1224,7 @@ Int_t print_emu_cutsets() {
   plottingcards.push_back(PlottingCard_t("lepm", "event", 1, 75.,   110., {84, 118}, {98, 132.} ));
   // plottingcards.push_back(PlottingCard_t("met" , "event", 1, 0., 45.));
   // plottingcards.push_back(PlottingCard_t("puppmet" , "event", 1, 0., 45.));
-  vector<Int_t> sets = {7+CLFVHistMaker::kEMu,8+CLFVHistMaker::kEMu};
+  vector<Int_t> sets = {7+HistMaker::kEMu,8+HistMaker::kEMu};
   vector<Double_t> scales = {50.,50.};
   vector<Int_t> rebins = {1,1};
   dataplotter_->logY_ = 1;
@@ -1244,13 +1244,13 @@ Int_t print_cards_standard_sets(vector<PlottingCard_t> cards, bool doSameFlavor 
     status += nanoaod_init(selection, "", "");
     for(int index = 0; index < sets.size(); ++index) {
       int set = sets[index];
-      if     (selection_ == "mutau"  ) set += CLFVHistMaker::kMuTau;
-      else if(selection_ == "etau"   ) set += CLFVHistMaker::kETau;
-      else if(selection_ == "emu"    ) set += CLFVHistMaker::kEMu;
-      else if(selection_ == "mutau_e") set += CLFVHistMaker::kEMu;
-      else if(selection_ == "etau_mu") set += CLFVHistMaker::kEMu;
-      else if(selection_ == "mumu")    set += CLFVHistMaker::kMuMu;
-      else if(selection_ == "ee"  )    set += CLFVHistMaker::kEE;
+      if     (selection_ == "mutau"  ) set += HistMaker::kMuTau;
+      else if(selection_ == "etau"   ) set += HistMaker::kETau;
+      else if(selection_ == "emu"    ) set += HistMaker::kEMu;
+      else if(selection_ == "mutau_e") set += HistMaker::kEMu;
+      else if(selection_ == "etau_mu") set += HistMaker::kEMu;
+      else if(selection_ == "mumu")    set += HistMaker::kMuMu;
+      else if(selection_ == "ee"  )    set += HistMaker::kEE;
       for(auto card : cards) {
         card.set_ = set;
         auto c = dataplotter_->print_stack(card);
@@ -1279,13 +1279,13 @@ Int_t print_card_standard_years(PlottingCard_t card) {
     for(int index = 0; index < sets.size(); ++index) {
       card.set_ = sets[index];
       double scale = 150.;
-      if     (selection_ == "mutau"  ) card.set_ += CLFVHistMaker::kMuTau;
-      else if(selection_ == "etau"   ) card.set_ += CLFVHistMaker::kETau;
-      else if(selection_ == "emu"    ) {scale = 100.; card.set_ += CLFVHistMaker::kEMu;}
-      else if(selection_ == "mutau_e") {scale = 100.; card.set_ += CLFVHistMaker::kEMu;}
-      else if(selection_ == "etau_mu") {scale = 100.; card.set_ += CLFVHistMaker::kEMu;}
-      else if(selection_ == "mumu") {scale = 1.e4; card.set_ += CLFVHistMaker::kMuMu;}
-      else if(selection_ == "ee"  ) {scale = 1.e4; card.set_ += CLFVHistMaker::kEE;}
+      if     (selection_ == "mutau"  ) card.set_ += HistMaker::kMuTau;
+      else if(selection_ == "etau"   ) card.set_ += HistMaker::kETau;
+      else if(selection_ == "emu"    ) {scale = 100.; card.set_ += HistMaker::kEMu;}
+      else if(selection_ == "mutau_e") {scale = 100.; card.set_ += HistMaker::kEMu;}
+      else if(selection_ == "etau_mu") {scale = 100.; card.set_ += HistMaker::kEMu;}
+      else if(selection_ == "mumu") {scale = 1.e4; card.set_ += HistMaker::kMuMu;}
+      else if(selection_ == "ee"  ) {scale = 1.e4; card.set_ += HistMaker::kEE;}
       // dataplotter_->signal_scale_ = scale;
       auto c = dataplotter_->print_stack(card);
       status += (c) ? 0 : 1;
@@ -1350,15 +1350,15 @@ Int_t print_qcd_plots() {
   if(!dataplotter_) return 1;
   int prev = dataplotter_->include_qcd_;
   int offset = 0;
-  if     (selection_ == "mutau"  ) offset = CLFVHistMaker::kMuTau;
-  else if(selection_ == "etau"   ) offset = CLFVHistMaker::kETau;
-  else if(selection_ == "emu"    ) offset = CLFVHistMaker::kEMu;
-  else if(selection_ == "mutau_e") offset = CLFVHistMaker::kEMu;
-  else if(selection_ == "etau_mu") offset = CLFVHistMaker::kEMu;
-  else if(selection_ == "mumu")    offset = CLFVHistMaker::kMuMu;
-  else if(selection_ == "ee"  )    offset = CLFVHistMaker::kEE;
-  vector<int> sets = {8+offset+CLFVHistMaker::fMisIDOffset, 8+offset+CLFVHistMaker::fQcdOffset+CLFVHistMaker::fMisIDOffset,
-                      8+offset, 8+offset+CLFVHistMaker::fQcdOffset};
+  if     (selection_ == "mutau"  ) offset = HistMaker::kMuTau;
+  else if(selection_ == "etau"   ) offset = HistMaker::kETau;
+  else if(selection_ == "emu"    ) offset = HistMaker::kEMu;
+  else if(selection_ == "mutau_e") offset = HistMaker::kEMu;
+  else if(selection_ == "etau_mu") offset = HistMaker::kEMu;
+  else if(selection_ == "mumu")    offset = HistMaker::kMuMu;
+  else if(selection_ == "ee"  )    offset = HistMaker::kEE;
+  vector<int> sets = {8+offset+HistMaker::fMisIDOffset, 8+offset+HistMaker::fQcdOffset+HistMaker::fMisIDOffset,
+                      8+offset, 8+offset+HistMaker::fQcdOffset};
   vector<PlottingCard_t> cards;
   cards.push_back(PlottingCard_t("leppt", "event", 2,  0., 170.));
   cards.push_back(PlottingCard_t("lepm" , "event", 2, 50., 170.));
@@ -1366,7 +1366,7 @@ Int_t print_qcd_plots() {
   bool evenodd = true; //for alternating
   double nss, nos, erros, errss;
   for(int set : sets) {
-    if(set > CLFVHistMaker::fQcdOffset || set > CLFVHistMaker::fMisIDOffset)
+    if(set > HistMaker::fQcdOffset || set > HistMaker::fMisIDOffset)
       dataplotter_->include_qcd_ = 0;
     else
       dataplotter_->include_qcd_ = 1;
@@ -1411,26 +1411,26 @@ Int_t print_misid_plots() {
   if(!dataplotter_) return 1;
   dataplotter_->include_qcd_ = 0;
   int offset = 0;
-  if     (selection_ == "mutau"  ) offset = CLFVHistMaker::kMuTau;
-  else if(selection_ == "etau"   ) offset = CLFVHistMaker::kETau;
-  else if(selection_ == "emu"    ) offset = CLFVHistMaker::kEMu;
-  else if(selection_ == "mutau_e") offset = CLFVHistMaker::kEMu;
-  else if(selection_ == "etau_mu") offset = CLFVHistMaker::kEMu;
-  else if(selection_ == "mumu")    offset = CLFVHistMaker::kMuMu;
-  else if(selection_ == "ee"  )    offset = CLFVHistMaker::kEE;
+  if     (selection_ == "mutau"  ) offset = HistMaker::kMuTau;
+  else if(selection_ == "etau"   ) offset = HistMaker::kETau;
+  else if(selection_ == "emu"    ) offset = HistMaker::kEMu;
+  else if(selection_ == "mutau_e") offset = HistMaker::kEMu;
+  else if(selection_ == "etau_mu") offset = HistMaker::kEMu;
+  else if(selection_ == "mumu")    offset = HistMaker::kMuMu;
+  else if(selection_ == "ee"  )    offset = HistMaker::kEE;
   vector<int> sets = {
                       35+offset,
                       8+offset,
                       // 34+offset,
                       // 36+offset,
-                      // 34+offset+CLFVHistMaker::fQcdOffset,
-                      // 36+offset+CLFVHistMaker::fMisIDOffset,
-                      35+offset+CLFVHistMaker::fMisIDOffset,
-                      8 +offset+CLFVHistMaker::fMisIDOffset,
-                      35+offset+CLFVHistMaker::fQcdOffset,
-                      8 +offset+CLFVHistMaker::fQcdOffset,
-                      35+offset+CLFVHistMaker::fQcdOffset+CLFVHistMaker::fMisIDOffset,
-                      8 +offset+CLFVHistMaker::fQcdOffset+CLFVHistMaker::fMisIDOffset
+                      // 34+offset+HistMaker::fQcdOffset,
+                      // 36+offset+HistMaker::fMisIDOffset,
+                      35+offset+HistMaker::fMisIDOffset,
+                      8 +offset+HistMaker::fMisIDOffset,
+                      35+offset+HistMaker::fQcdOffset,
+                      8 +offset+HistMaker::fQcdOffset,
+                      35+offset+HistMaker::fQcdOffset+HistMaker::fMisIDOffset,
+                      8 +offset+HistMaker::fQcdOffset+HistMaker::fMisIDOffset
   };
 
   vector<PlottingCard_t> cards;
@@ -1507,49 +1507,49 @@ Int_t print_misid_debug_plots(bool doMC = false, bool doSys = false) {
   dataplotter_->include_qcd_ = 0;
   dataplotter_->include_misid_ = 1;
   int offset = 0;
-  if     (selection_ == "mutau"  ) offset = CLFVHistMaker::kMuTau;
-  else if(selection_ == "etau"   ) offset = CLFVHistMaker::kETau;
+  if     (selection_ == "mutau"  ) offset = HistMaker::kMuTau;
+  else if(selection_ == "etau"   ) offset = HistMaker::kETau;
   else {
     cout << "MisID debugging only defined for mutau and etau!\n";
     return 2;
   }
   vector<int> sets = {
                       8  + offset, //Nominal sets
-                      8  + offset + CLFVHistMaker::fMisIDOffset,
-                      8  + offset + CLFVHistMaker::fQcdOffset,
-                      8  + offset + CLFVHistMaker::fQcdOffset + CLFVHistMaker::fMisIDOffset,
+                      8  + offset + HistMaker::fMisIDOffset,
+                      8  + offset + HistMaker::fQcdOffset,
+                      8  + offset + HistMaker::fQcdOffset + HistMaker::fMisIDOffset,
                       31 + offset, //W+Jets selection
-                      31 + offset + CLFVHistMaker::fMisIDOffset,
-                      // 31 + offset + CLFVHistMaker::fQcdOffset,
-                      // 31 + offset + CLFVHistMaker::fQcdOffset + CLFVHistMaker::fMisIDOffset,
+                      31 + offset + HistMaker::fMisIDOffset,
+                      // 31 + offset + HistMaker::fQcdOffset,
+                      // 31 + offset + HistMaker::fQcdOffset + HistMaker::fMisIDOffset,
                       // 30 + offset, //QCD selection
-                      // 30 + offset + CLFVHistMaker::fMisIDOffset,
-                      30 + offset + CLFVHistMaker::fQcdOffset,
-                      30 + offset + CLFVHistMaker::fQcdOffset + CLFVHistMaker::fMisIDOffset,
+                      // 30 + offset + HistMaker::fMisIDOffset,
+                      30 + offset + HistMaker::fQcdOffset,
+                      30 + offset + HistMaker::fQcdOffset + HistMaker::fMisIDOffset,
                       32 + offset, //Top selection
-                      32 + offset + CLFVHistMaker::fMisIDOffset,
-                      // 32 + offset + CLFVHistMaker::fQcdOffset,
-                      // 32 + offset + CLFVHistMaker::fQcdOffset + CLFVHistMaker::fMisIDOffset
+                      32 + offset + HistMaker::fMisIDOffset,
+                      // 32 + offset + HistMaker::fQcdOffset,
+                      // 32 + offset + HistMaker::fQcdOffset + HistMaker::fMisIDOffset
                       34 + offset, //W+Jets scales in nominal selection
-                      34 + offset + CLFVHistMaker::fQcdOffset,
+                      34 + offset + HistMaker::fQcdOffset,
   };
   if(doMC) {
     sets.push_back(35 + offset); //Nominal
-    sets.push_back(35 + offset + CLFVHistMaker::fMisIDOffset);
-    sets.push_back(35 + offset + CLFVHistMaker::fQcdOffset);
-    sets.push_back(35 + offset + CLFVHistMaker::fQcdOffset + CLFVHistMaker::fMisIDOffset);
-    sets.push_back(33 + offset + CLFVHistMaker::fMisIDOffset); //no j-->tau weights
-    sets.push_back(33 + offset + CLFVHistMaker::fQcdOffset + CLFVHistMaker::fMisIDOffset);
-    sets.push_back(36 + offset + CLFVHistMaker::fQcdOffset); //QCD DR
-    sets.push_back(36 + offset + CLFVHistMaker::fQcdOffset + CLFVHistMaker::fMisIDOffset);
+    sets.push_back(35 + offset + HistMaker::fMisIDOffset);
+    sets.push_back(35 + offset + HistMaker::fQcdOffset);
+    sets.push_back(35 + offset + HistMaker::fQcdOffset + HistMaker::fMisIDOffset);
+    sets.push_back(33 + offset + HistMaker::fMisIDOffset); //no j-->tau weights
+    sets.push_back(33 + offset + HistMaker::fQcdOffset + HistMaker::fMisIDOffset);
+    sets.push_back(36 + offset + HistMaker::fQcdOffset); //QCD DR
+    sets.push_back(36 + offset + HistMaker::fQcdOffset + HistMaker::fMisIDOffset);
     sets.push_back(37 + offset); //WJets DR
-    sets.push_back(37 + offset + CLFVHistMaker::fMisIDOffset);
+    sets.push_back(37 + offset + HistMaker::fMisIDOffset);
     sets.push_back(38 + offset); //Top DR
-    sets.push_back(38 + offset + CLFVHistMaker::fMisIDOffset);
-    sets.push_back(92 + offset + CLFVHistMaker::fQcdOffset); //QCD full MT(ll, MET) set for MT(ll, MET) bias
-    sets.push_back(92 + offset + CLFVHistMaker::fQcdOffset + CLFVHistMaker::fMisIDOffset);
-    sets.push_back(94 + offset + CLFVHistMaker::fQcdOffset); //QCD loose ID electron set for SS --> OS bias
-    sets.push_back(94 + offset + CLFVHistMaker::fQcdOffset + CLFVHistMaker::fMisIDOffset);
+    sets.push_back(38 + offset + HistMaker::fMisIDOffset);
+    sets.push_back(92 + offset + HistMaker::fQcdOffset); //QCD full MT(ll, MET) set for MT(ll, MET) bias
+    sets.push_back(92 + offset + HistMaker::fQcdOffset + HistMaker::fMisIDOffset);
+    sets.push_back(94 + offset + HistMaker::fQcdOffset); //QCD loose ID electron set for SS --> OS bias
+    sets.push_back(94 + offset + HistMaker::fQcdOffset + HistMaker::fMisIDOffset);
   }
   vector<PlottingCard_t> cards;
   cards.push_back(PlottingCard_t("lepm"            , "event", 5, 50., 170.));
@@ -1681,22 +1681,22 @@ Int_t print_qcd_debug_plots() {
     dataplotter_->include_misid_ = 1;
   }
   int offset = 0;
-  if     (selection_ == "mutau"  ) offset = CLFVHistMaker::kMuTau;
-  else if(selection_ == "etau"   ) offset = CLFVHistMaker::kETau;
-  else if(is_emu                 ) offset = CLFVHistMaker::kEMu;
-  else if(selection_ == "mumu")    offset = CLFVHistMaker::kMuMu;
-  else if(selection_ == "ee"  )    offset = CLFVHistMaker::kEE;
+  if     (selection_ == "mutau"  ) offset = HistMaker::kMuTau;
+  else if(selection_ == "etau"   ) offset = HistMaker::kETau;
+  else if(is_emu                 ) offset = HistMaker::kEMu;
+  else if(selection_ == "mumu")    offset = HistMaker::kMuMu;
+  else if(selection_ == "ee"  )    offset = HistMaker::kEE;
   vector<int> sets = {
                       8  + offset, //Nominal sets
-                      8  + offset + CLFVHistMaker::fMisIDOffset,
-                      8  + offset + CLFVHistMaker::fQcdOffset,
-                      8  + offset + CLFVHistMaker::fQcdOffset + CLFVHistMaker::fMisIDOffset
+                      8  + offset + HistMaker::fMisIDOffset,
+                      8  + offset + HistMaker::fQcdOffset,
+                      8  + offset + HistMaker::fQcdOffset + HistMaker::fMisIDOffset
   };
   if(is_emu) {
-    sets.push_back(70 + offset + CLFVHistMaker::fMisIDOffset);
-    sets.push_back(70 + offset + CLFVHistMaker::fQcdOffset + CLFVHistMaker::fMisIDOffset);
-    sets.push_back(71 + offset + CLFVHistMaker::fMisIDOffset);
-    sets.push_back(71 + offset + CLFVHistMaker::fQcdOffset + CLFVHistMaker::fMisIDOffset);
+    sets.push_back(70 + offset + HistMaker::fMisIDOffset);
+    sets.push_back(70 + offset + HistMaker::fQcdOffset + HistMaker::fMisIDOffset);
+    sets.push_back(71 + offset + HistMaker::fMisIDOffset);
+    sets.push_back(71 + offset + HistMaker::fQcdOffset + HistMaker::fMisIDOffset);
   }
   vector<PlottingCard_t> cards;
   if(is_emu) {
@@ -1748,7 +1748,7 @@ Int_t print_qcd_debug_plots() {
     for(PlottingCard_t card : cards) {
       card.set_ = set;
       //Remove blinding after first signal region set
-      // if(set > CLFVHistMaker::fQcdOffset) {card.blindmin_ = {1.}; card.blindmax_ = {-1.};}
+      // if(set > HistMaker::fQcdOffset) {card.blindmin_ = {1.}; card.blindmax_ = {-1.};}
       dataplotter_->logY_ = (card.hist_ == "njets");
       TCanvas* c;
       c = dataplotter_->print_stack(card);
@@ -1767,9 +1767,9 @@ Int_t print_embedding_debug_plots(bool doMC = false, bool doExtraEMu = false) {
   dataplotter_->include_qcd_ = 0;
   dataplotter_->include_misid_ = 1;
   int offset = 0;
-  if     (selection_ == "mutau"  ) offset = CLFVHistMaker::kMuTau;
-  else if(selection_ == "etau"   ) offset = CLFVHistMaker::kETau;
-  else if(selection_ == "emu"    ) offset = CLFVHistMaker::kEMu;
+  if     (selection_ == "mutau"  ) offset = HistMaker::kMuTau;
+  else if(selection_ == "etau"   ) offset = HistMaker::kETau;
+  else if(selection_ == "emu"    ) offset = HistMaker::kEMu;
   else {
     cout << "Embedding debugging only defined for mutau, etau, and emu!\n";
     return 2;
@@ -1777,16 +1777,16 @@ Int_t print_embedding_debug_plots(bool doMC = false, bool doExtraEMu = false) {
   vector<int> sets = {
                       8  + offset,
                       32 + offset//,
-                      // 8  + offset + CLFVHistMaker::fMisIDOffset,
-                      // 8  + offset + CLFVHistMaker::fQcdOffset,
-                      // 8  + offset + CLFVHistMaker::fQcdOffset + CLFVHistMaker::fMisIDOffset
+                      // 8  + offset + HistMaker::fMisIDOffset,
+                      // 8  + offset + HistMaker::fQcdOffset,
+                      // 8  + offset + HistMaker::fQcdOffset + HistMaker::fMisIDOffset
   };
   if(doMC && selection_.Contains("tau")) { //fake tau MC not relevant for emu selection
     sets.push_back(35 + offset);
     if(selection_ == "etau" || selection_ == "mutau") sets.push_back(38 + offset);
-    // sets.push_back(35 + offset + CLFVHistMaker::fMisIDOffset);
-    // sets.push_back(35 + offset + CLFVHistMaker::fQcdOffset);
-    // sets.push_back(35 + offset + CLFVHistMaker::fQcdOffset + CLFVHistMaker::fMisIDOffset);
+    // sets.push_back(35 + offset + HistMaker::fMisIDOffset);
+    // sets.push_back(35 + offset + HistMaker::fQcdOffset);
+    // sets.push_back(35 + offset + HistMaker::fQcdOffset + HistMaker::fMisIDOffset);
   }
   if(doExtraEMu && selection_ == "emu") {
     sets.push_back(60 + offset);
@@ -1872,13 +1872,13 @@ Int_t print_basic_debug_plots(bool test_trigger = false, bool doMC = false, bool
   Int_t status = 0;
   if(!dataplotter_) return 1;
   int offset = 0;
-  if     (selection_ == "mutau"  ) offset = CLFVHistMaker::kMuTau;
-  else if(selection_ == "etau"   ) offset = CLFVHistMaker::kETau;
-  else if(selection_ == "emu"    ) offset = CLFVHistMaker::kEMu;
-  else if(selection_ == "mumu"   ) offset = CLFVHistMaker::kMuMu;
-  else if(selection_ == "ee"     ) offset = CLFVHistMaker::kEE;
-  if     (selection_ == "mutau_e") offset = CLFVHistMaker::kEMu;
-  else if(selection_ == "etau_mu") offset = CLFVHistMaker::kEMu;
+  if     (selection_ == "mutau"  ) offset = HistMaker::kMuTau;
+  else if(selection_ == "etau"   ) offset = HistMaker::kETau;
+  else if(selection_ == "emu"    ) offset = HistMaker::kEMu;
+  else if(selection_ == "mumu"   ) offset = HistMaker::kMuMu;
+  else if(selection_ == "ee"     ) offset = HistMaker::kEE;
+  if     (selection_ == "mutau_e") offset = HistMaker::kEMu;
+  else if(selection_ == "etau_mu") offset = HistMaker::kEMu;
   else {
     cout << "Debugging only defined for mutau, etau, emu, mumu, or ee!\n";
     return 2;
@@ -1891,9 +1891,9 @@ Int_t print_basic_debug_plots(bool test_trigger = false, bool doMC = false, bool
   }
   vector<int> sets = {8  + offset}; //Nominal set
   if(!same_flavor) {
-    sets.push_back(8  + offset + CLFVHistMaker::fMisIDOffset);
-    sets.push_back(8  + offset + CLFVHistMaker::fQcdOffset);
-    // sets.push_back(8  + offset + CLFVHistMaker::fQcdOffset + CLFVHistMaker::fMisIDOffset);
+    sets.push_back(8  + offset + HistMaker::fMisIDOffset);
+    sets.push_back(8  + offset + HistMaker::fQcdOffset);
+    // sets.push_back(8  + offset + HistMaker::fQcdOffset + HistMaker::fMisIDOffset);
   };
   if(test_trigger && !tau_set) {
     sets.push_back(60 + offset);
@@ -1907,21 +1907,21 @@ Int_t print_basic_debug_plots(bool test_trigger = false, bool doMC = false, bool
       sets.push_back(67 + offset);
     }
   } else if(tau_set) {
-    sets.push_back(30 + offset + CLFVHistMaker::fQcdOffset);
+    sets.push_back(30 + offset + HistMaker::fQcdOffset);
     sets.push_back(31 + offset);
     sets.push_back(32 + offset);
   }
   if(doMC) {
     sets.push_back(35 + offset); //Nominal
     if(!same_flavor) {
-      sets.push_back(35 + offset + CLFVHistMaker::fMisIDOffset);
-      // sets.push_back(35 + offset + CLFVHistMaker::fQcdOffset);
-      // sets.push_back(35 + offset + CLFVHistMaker::fQcdOffset + CLFVHistMaker::fMisIDOffset);
+      sets.push_back(35 + offset + HistMaker::fMisIDOffset);
+      // sets.push_back(35 + offset + HistMaker::fQcdOffset);
+      // sets.push_back(35 + offset + HistMaker::fQcdOffset + HistMaker::fMisIDOffset);
     }
     if(tau_set) {
-      sets.push_back(33 + offset + CLFVHistMaker::fMisIDOffset); //no j-->tau weights
-      // sets.push_back(33 + offset + CLFVHistMaker::fQcdOffset + CLFVHistMaker::fMisIDOffset);
-      // sets.push_back(36 + offset + CLFVHistMaker::fQcdOffset);
+      sets.push_back(33 + offset + HistMaker::fMisIDOffset); //no j-->tau weights
+      // sets.push_back(33 + offset + HistMaker::fQcdOffset + HistMaker::fMisIDOffset);
+      // sets.push_back(36 + offset + HistMaker::fQcdOffset);
       sets.push_back(37 + offset);
       sets.push_back(38 + offset);
     }
@@ -2209,21 +2209,21 @@ Int_t print_hist_all_selections(PlottingCard_t card, bool offset_lep_tau = false
   TCanvas* c = 0;
   selection_ = "mutau";
   status += init_dataplotter();
-  card.set_ = orig_set + CLFVHistMaker::kMuTau;
+  card.set_ = orig_set + HistMaker::kMuTau;
   c = dataplotter_->print_stack(card);
   status += c == 0;
   // if(c) DataPlotter::Empty_Canvas(c);
 
   selection_ = "etau";
   status += init_dataplotter();
-  card.set_ = orig_set + CLFVHistMaker::kETau;
+  card.set_ = orig_set + HistMaker::kETau;
   dataplotter_->print_stack(card);
   status += c == 0;
   // if(c) DataPlotter::Empty_Canvas(c);
 
   selection_ = "emu";
   status += init_dataplotter();
-  card.set_ = orig_set + CLFVHistMaker::kEMu;
+  card.set_ = orig_set + HistMaker::kEMu;
   dataplotter_->print_stack(card);
   status += c == 0;
   // if(c) DataPlotter::Empty_Canvas(c);
@@ -2231,9 +2231,9 @@ Int_t print_hist_all_selections(PlottingCard_t card, bool offset_lep_tau = false
   selection_ = "mutau_e";
   status += init_dataplotter();
   if(offset_lep_tau)
-    card.set_ = orig_set + CLFVHistMaker::kMuTauE;
+    card.set_ = orig_set + HistMaker::kMuTauE;
   else
-    card.set_ = orig_set + CLFVHistMaker::kEMu;
+    card.set_ = orig_set + HistMaker::kEMu;
   dataplotter_->print_stack(card);
   status += c == 0;
   // if(c) DataPlotter::Empty_Canvas(c);
@@ -2241,23 +2241,23 @@ Int_t print_hist_all_selections(PlottingCard_t card, bool offset_lep_tau = false
   selection_ = "etau_mu";
   status += init_dataplotter();
   if(offset_lep_tau)
-    card.set_ = orig_set + CLFVHistMaker::kETauMu;
+    card.set_ = orig_set + HistMaker::kETauMu;
   else
-    card.set_ = orig_set + CLFVHistMaker::kEMu;
+    card.set_ = orig_set + HistMaker::kEMu;
   dataplotter_->print_stack(card);
   status += c == 0;
   // if(c) DataPlotter::Empty_Canvas(c);
 
   // selection_ = "mumu";
   // status += init_dataplotter();
-  // card.set_ = orig_set + CLFVHistMaker::kMuMu;
+  // card.set_ = orig_set + HistMaker::kMuMu;
   // dataplotter_->print_stack(card);
   // status += c == 0;
   // // if(c) DataPlotter::Empty_Canvas(c);
 
   // selection_ = "ee";
   // status += init_dataplotter();
-  // card.set_ = orig_set + CLFVHistMaker::kEE;
+  // card.set_ = orig_set + HistMaker::kEE;
   // dataplotter_->print_stack(card);
   // status += c == 0;
   // // if(c) DataPlotter::Empty_Canvas(c);

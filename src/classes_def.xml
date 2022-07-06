@@ -27,10 +27,9 @@
   <class name="RoccoR"/>
   <class name="MVAConfig"/>
   <class name="TrkQualInit"/>
-  <class name="CLFVHistMaker"/>
   <class name="HistMaker"/>
+  <class name="CLFVHistMaker"/>
   <class name="SparseHistMaker"/>
-  <class name="CLFVTmpHistMaker"/>
   <class name="JTTHistMaker"/>
   <class name="DataCard_t"/>
   <class name="PlottingCard_t"/>

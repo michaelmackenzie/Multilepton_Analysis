@@ -22,12 +22,12 @@ Int_t combine_trees(vector<TString> in_files, TString selection, int file_set, T
   Int_t filecount = 0;
   int nfiles = in_files.size();
   int set_offset = 0;
-  if     (selection == "mutau"   ) set_offset = CLFVHistMaker::kMuTau;
-  else if(selection == "etau"    ) set_offset = CLFVHistMaker::kETau;
-  else if(selection == "emu"     ) set_offset = CLFVHistMaker::kEMu;
-  else if(selection.Contains("_")) set_offset = CLFVHistMaker::kEMu;
-  else if(selection == "mumu"    ) set_offset = CLFVHistMaker::kMuMu;
-  else if(selection == "ee"      ) set_offset = CLFVHistMaker::kEE;
+  if     (selection == "mutau"   ) set_offset = HistMaker::kMuTau;
+  else if(selection == "etau"    ) set_offset = HistMaker::kETau;
+  else if(selection == "emu"     ) set_offset = HistMaker::kEMu;
+  else if(selection.Contains("_")) set_offset = HistMaker::kEMu;
+  else if(selection == "mumu"    ) set_offset = HistMaker::kMuMu;
+  else if(selection == "ee"      ) set_offset = HistMaker::kEE;
 
   for(int index = 0; index < nfiles; ++index) {
     fDList[filecount] = 0;
@@ -44,13 +44,13 @@ Int_t combine_trees(vector<TString> in_files, TString selection, int file_set, T
     //if QCD, offset set to same sign selection
     int set_use = file_set + set_offset;
     if(combineLepTau_ && selection.Contains("tau") && !selection.Contains("_") && TString(file_path).Contains("_emu_"))
-      set_use = file_set + CLFVHistMaker::kEMu;
+      set_use = file_set + HistMaker::kEMu;
     TString fname = fList[filecount]->GetName();
     if((fname.Contains("SingleMu") || fname.Contains("SingleEle")) && !dataOnly_) {//check if data-driven background
       if(selection == "mutau" || selection == "etau") //jet --> tau backgrounds
-        set_use += CLFVHistMaker::fMisIDOffset;
+        set_use += HistMaker::fMisIDOffset;
       else                                            //QCD SS -> OS backgrounds
-        set_use += CLFVHistMaker::fQcdOffset;
+        set_use += HistMaker::fQcdOffset;
     }
     if(verbose_ > 1) cout << "Using file set " << set_use << endl;
     tList[filecount] = (TTree*) fList[filecount]->Get(Form("Data/tree_%i/tree_%i", set_use, set_use));

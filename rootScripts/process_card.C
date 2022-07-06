@@ -46,22 +46,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TTr
         clfv_selec->fJetTauTesting     = JetTauTesting_;
         clfv_selec->fCutFlowTesting    = CutFlowTesting_;
         clfv_selec->fTriggerTesting    = TriggerTesting_;
-
         clfv_selec->fDoMVASets = DoMVASets_ > 0 && (DoMVASets_ > 2 || (DoMVASets_ == 2 && !(selection.Contains("tau"))) || (selection == "emu"));
-      }
-      if(dynamic_cast<CLFVTmpHistMaker*> (selec)) {
-        auto clfv_selec = (CLFVTmpHistMaker*) selec;
-        clfv_selec->fDYTesting         = DYTesting_;
-        clfv_selec->fDYFakeTauTesting  = DYFakeTau_;
-        clfv_selec->fWJFakeTauTesting  = WJFakeTau_;
-        clfv_selec->fTTFakeTauTesting  = TTFakeTau_;
-        clfv_selec->fQCDFakeTauTesting = QCDFakeTau_;
-        clfv_selec->fJetTauTesting     = JetTauTesting_;
-        clfv_selec->fCutFlowTesting    = CutFlowTesting_;
-        clfv_selec->fTriggerTesting    = TriggerTesting_;
-        clfv_selec->fDoMVASets = DoMVASets_ > 0 && (DoMVASets_ > 2 || (DoMVASets_ == 2 && !(selection.Contains("tau"))) || (selection == "emu"));
-
-        clfv_selec->fPrintTime = 2; //Print detailed summary of processing
       }
       if(dynamic_cast<HistMaker*> (selec)) {
         auto hist_selec = (HistMaker*) selec;

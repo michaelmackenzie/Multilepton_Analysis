@@ -71,8 +71,8 @@ int get_same_flavor_histogram(int set = 8, TString selection = "mumu",
     return status;
   }
 
-  int set_offset = CLFVHistMaker::kMuMu;
-  if     (selection == "ee") set_offset = CLFVHistMaker::kEE;
+  int set_offset = HistMaker::kMuMu;
+  if     (selection == "ee") set_offset = HistMaker::kEE;
 
   dataplotter_->rebinH_ = 1;
   //get background distribution
@@ -278,9 +278,9 @@ int get_individual_MVA_histogram(int set = 8, TString selection = "zmutau",
     cout << "DataPlotter initialization script returned " << status << ", exiting!\n";
     return status;
   }
-  int set_offset = CLFVHistMaker::kEMu;
-  if     (selec == "mutau") set_offset = CLFVHistMaker::kMuTau;
-  else if(selec == "etau" ) set_offset = CLFVHistMaker::kETau;
+  int set_offset = HistMaker::kEMu;
+  if     (selec == "mutau") set_offset = HistMaker::kMuTau;
+  else if(selec == "etau" ) set_offset = HistMaker::kETau;
 
   dataplotter_->rebinH_ = 10*overall_rebin_;
 

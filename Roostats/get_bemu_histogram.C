@@ -192,7 +192,7 @@ int get_same_flavor_histogram(int set, TString selection, vector<int> years, TSt
     cout << "DataPlotter initialization script returned " << status << ", exiting!\n";
     return status;
   }
-  int set_offset = (selection == "mumu") ? CLFVHistMaker::kMuMu : CLFVHistMaker::kEE;
+  int set_offset = (selection == "mumu") ? HistMaker::kMuMu : CLFVHistMaker::kEE;
 
   dataplotter_->rebinH_ = overall_rebin_;
 
@@ -260,7 +260,7 @@ int get_bemu_single_histogram(int set = 8, TString selection = "zemu",
     cout << "DataPlotter initialization script returned " << status << ", exiting!\n";
     return status;
   }
-  int set_offset = CLFVHistMaker::kEMu;
+  int set_offset = HistMaker::kEMu;
 
   dataplotter_->rebinH_ = overall_rebin_;
 

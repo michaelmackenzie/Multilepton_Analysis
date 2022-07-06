@@ -14,7 +14,7 @@ Int_t create_same_flavor_histograms(int set = 8, vector<int> years = {2016}, TSt
   ///////////////////
   
   TH1D* h_muon = 0;
-  TString muon_out_name = Form("histograms/mumu_%s_%i", hist.Data(), set+CLFVHistMaker::kMuMu);
+  TString muon_out_name = Form("histograms/mumu_%s_%i", hist.Data(), set+HistMaker::kMuMu);
   for(int year : years) {
     //get mu+mu file
     TString muon_name = path + "clfv_mumu_clfv_";
@@ -26,7 +26,7 @@ Int_t create_same_flavor_histograms(int set = 8, vector<int> years = {2016}, TSt
       return 1;
     }
     //get di-lepton mass
-    TH1D* h = (TH1D*) f_muon->Get(Form("Data/%s_%i/%s", type.Data(), set+CLFVHistMaker::kMuMu, hist.Data()));
+    TH1D* h = (TH1D*) f_muon->Get(Form("Data/%s_%i/%s", type.Data(), set+HistMaker::kMuMu, hist.Data()));
     if(!h) {
       cout << "No muon histogram found for year " << year << " and set " << set << endl;
       return 2;
@@ -49,7 +49,7 @@ Int_t create_same_flavor_histograms(int set = 8, vector<int> years = {2016}, TSt
   ///////////////////////
 
   TH1D* h_electron = 0;
-  TString electron_out_name = Form("histograms/ee_%s_%i", hist.Data(), set+CLFVHistMaker::kEE);
+  TString electron_out_name = Form("histograms/ee_%s_%i", hist.Data(), set+HistMaker::kEE);
   for(int year : years) {
     //get mu+mu file
     TString electron_name = path + "clfv_ee_clfv_";
@@ -61,7 +61,7 @@ Int_t create_same_flavor_histograms(int set = 8, vector<int> years = {2016}, TSt
       return 1;
     }
     //get di-lepton mass
-    TH1D* h = (TH1D*) f_electron->Get(Form("Data/%s_%i/%s", type.Data(), set+CLFVHistMaker::kEE, hist.Data()));
+    TH1D* h = (TH1D*) f_electron->Get(Form("Data/%s_%i/%s", type.Data(), set+HistMaker::kEE, hist.Data()));
     if(!h) {
       cout << "No electron histogram found for year " << year << " and set " << set << endl;
       return 2;

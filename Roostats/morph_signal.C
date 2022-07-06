@@ -62,14 +62,14 @@ Int_t morph_signal(int set = 8, vector<int> years = {2016}, TString base = "../h
     }
 
     t_list[i] = (TTree*) f_zemus[i]->Get(Form("Data/tree_%i/tree_%i",
-					     set+CLFVHistMaker::kEMu,
-					     set+CLFVHistMaker::kEMu));
+					     set+HistMaker::kEMu,
+					     set+HistMaker::kEMu));
     if(!t_list[i]) {
       cout << "Signal tree in file " << zemu_name.Data() << " for set " << set << " not found\n";
       return 4;
     }
     ftmp->cd();
-    t_list[i]->SetName(Form("tree_%i_%i", year, set+CLFVHistMaker::kEMu));
+    t_list[i]->SetName(Form("tree_%i_%i", year, set+HistMaker::kEMu));
     t_list[i]->Write();
     list->Add(t_list[i]);
     //save weighted N(signal) count

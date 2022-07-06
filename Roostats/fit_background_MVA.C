@@ -29,9 +29,9 @@ Int_t fit_background_MVA(int set = 8, TString selection = "zmutau",
   TString signame = selection; signame.ReplaceAll("z", "Z"); signame.ReplaceAll("h", "H");
   signame.ReplaceAll("_e", ""); signame.ReplaceAll("_mu",""); signame.ReplaceAll("m", "M");
   signame.ReplaceAll("e", "E"); signame.ReplaceAll("t", "T");
-  int set_offset = CLFVHistMaker::kEMu;
-  if     (selec == "mutau") set_offset = CLFVHistMaker::kMuTau;
-  else if(selec == "etau" ) set_offset = CLFVHistMaker::kETau;
+  int set_offset = HistMaker::kEMu;
+  if     (selec == "mutau") set_offset = HistMaker::kMuTau;
+  else if(selec == "etau" ) set_offset = HistMaker::kETau;
 
   TString year_string = "";
   for(unsigned i = 0; i < years.size(); ++i) {

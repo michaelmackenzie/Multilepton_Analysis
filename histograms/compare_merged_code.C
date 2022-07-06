@@ -136,9 +136,9 @@ int compare_merged_code(TString selection = "emu", int year = 2016) {
   gStyle->SetOptStat(0);
   int status = 0;
   int offset = 0;
-  if     (selection_ == "emu"  ) offset = CLFVHistMaker::kEMu;
-  else if(selection_ == "etau" ) offset = CLFVHistMaker::kETau;
-  else if(selection_ == "mutau") offset = CLFVHistMaker::kMuTau;
+  if     (selection_ == "emu"  ) offset = HistMaker::kEMu;
+  else if(selection_ == "etau" ) offset = HistMaker::kETau;
+  else if(selection_ == "mutau") offset = HistMaker::kMuTau;
 
   status += compare_data_hists("onept"  , "lep"  , offset + 8, 2, 10., 100., "", "p_{T}^{1}"        , old_data, new_data);
   status += compare_data_hists("twopt"  , "lep"  , offset + 8, 2, 10., 100., "", "p_{T}^{2}"        , old_data, new_data);

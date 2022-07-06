@@ -324,7 +324,7 @@ Int_t fit_background(int set = 8, vector<int> years = {2016, 2017, 2018},
   TString bkg_name = "background_trees/background_clfv_bkg_nano_emu_";
   bkg_name += year_string;
   bkg_name += "_";
-  bkg_name += set+CLFVHistMaker::kEMu;
+  bkg_name += set+HistMaker::kEMu;
   bkg_name += ".tree";
   TFile* f_bkg = TFile::Open(bkg_name.Data(), "READ");
   if(!f_bkg) return 1;

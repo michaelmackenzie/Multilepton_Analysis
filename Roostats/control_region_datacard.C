@@ -22,8 +22,8 @@ Int_t control_region_datacard(int set = 8, TString selection = "mumu",
     if(i > 0) year_string += "_";
     year_string += years[i];
   }
-  int set_offset = CLFVHistMaker::kMuMu;
-  if     (selection == "ee") set_offset = CLFVHistMaker::kEE;
+  int set_offset = HistMaker::kMuMu;
+  if     (selection == "ee") set_offset = HistMaker::kEE;
 
   bool isHiggs = signal.Contains("h");
 
