@@ -45,6 +45,11 @@ HistMaker::HistMaker(int seed, TTree * /*tree*/) : fSystematicSeed(seed),
   leptonTwoP4 = new TLorentzVector();
   jetOneP4    = new TLorentzVector();
   photonP4    = nullptr;
+
+  for(int itime = 0; itime < fNTimes; ++itime) {
+    fDurations[itime] = 0;
+    fTimeNames[itime] = "";
+  }
 }
 
 //--------------------------------------------------------------------------------------------------------------
@@ -96,7 +101,7 @@ void HistMaker::Begin(TTree * /*tree*/)
   for(int itime = 0; itime < fNTimes; ++itime) {
     fDurations[itime] = 0.; fTimeCounts[itime] = 0;
   }
-  fTimes[0] = std::chrono::steady_clock::now();
+  fTimes[GetTimerNumber("Overall")] = std::chrono::steady_clock::now();
 
   TString dir = gSystem->Getenv("CMSSW_BASE");
   if(dir == "") dir = "../"; //if not in a CMSSW environment, assume in a sub-directory of the package
@@ -186,7 +191,7 @@ void HistMaker::Begin(TTree * /*tree*/)
       TrkQualInit trkQualInit(fTrkQualVersion, isJetBinned);
       trkQualInit.InitializeVariables(*(mva[mva_i]), selection, fTreeVars);
       //Initialize MVA weight file
-      const char* f = Form("weights/%s.weights.xml",fMVAConfig.names_[mva_i].Data());
+      const char* f = Form("weights/%s.2016_2017_2018.weights.xml",fMVAConfig.names_[mva_i].Data());
       mva[mva_i]->BookMVA(fMVAConfig.names_[mva_i].Data(),f);
       printf("Booked MVA %s with selection %s\n", fMVAConfig.names_[mva_i].Data(), selection.Data());
     }
@@ -239,10 +244,12 @@ void HistMaker::FillAllHistograms(Int_t index) {
     if(fVerbose > 0) std::cout << "Filling histograms for set " << index
                                << " with event weight = " << eventWeight
                                << " and gen weight = " << genWeight << " !\n";
+    fTimes[GetTimerNumber("Filling")] = std::chrono::steady_clock::now(); //timer for reading from the tree
     FillEventHistogram( fEventHist [index]);
     FillLepHistogram(   fLepHist   [index]);
     if(fDoSystematics && fSysSets[index]) FillSystematicHistogram(fSystematicHist[index]);
     // if(fFillPhotonHists) FillPhotonHistogram(fPhotonHist[index]);
+    IncrementTimer("Filling", true);
   } else
     printf("WARNING! Entry %lld: Attempted to fill un-initialized histogram set %i!\n", fentry, index);
   if(fDoSystematics >= 0 && fWriteTrees && fTreeSets[index])
@@ -1702,6 +1709,7 @@ void HistMaker::InitializeTreeVariables() {
 
   fTreeVars.eventcategory = fEventCategory;
   if(fFractionMVA > 0.) fTreeVars.train = (fRnd->Uniform() < fFractionMVA) ? 1. : -1.; //whether or not it is in the training sample
+  else                  fTreeVars.train = 0.;
   fTreeVars.issignal = (fIsData == 0) ? (2.*(fIsSignal) - 1.) : 0.; //signal = 1, background = -1, data = 0
   if(fTreeVars.type < -0.5) { //doesn't change for a given file
     if(fIsSignal) fTreeVars.type = 0;
@@ -1731,6 +1739,7 @@ void HistMaker::InitializeTreeVariables() {
   }
 
   if(fReprocessMVAs) {
+    fTimes[GetTimerNumber("MVAs")] = std::chrono::steady_clock::now(); //timer for evaluating the MVAs
     for(unsigned i = 0; i < fMVAConfig.names_.size(); ++i) {
       if((fMVAConfig.names_[i].Contains(selecName.Data()) || //is this selection
           (selecName == "emu" && (fMVAConfig.names_[i].Contains("_e") || fMVAConfig.names_[i].Contains("_mu")))) && //or leptonic tau category
@@ -1743,6 +1752,7 @@ void HistMaker::InitializeTreeVariables() {
         std::cout << "Error value returned for MVA " << fMVAConfig.names_[i].Data()
              << " evaluation, Entry = " << fentry << std::endl;
     }
+    IncrementTimer("MVAs", true);
   }
 }
 
@@ -2179,20 +2189,20 @@ void HistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
 // Setup the event for processes
 Bool_t HistMaker::InitializeEvent(Long64_t entry)
 {
-  IncrementTimer(1, false); //timer for Process method
+  IncrementTimer("Total", false); //timer for Process method
   if(!fChain) {
     printf("HistMaker::%s: Error! TChain not found\n", __func__);
     throw 1;
   }
   fentry = entry;
-  fTimes[2] = std::chrono::steady_clock::now(); //timer for reading from the tree
+  fTimes[GetTimerNumber("Reading")] = std::chrono::steady_clock::now(); //timer for reading from the tree
   fChain->GetEntry(entry);
-  IncrementTimer(2, true);
+  IncrementTimer("Reading", true);
 
   if(fVerbose > 0 || entry%fNotifyCount == 0)
     printf("%s: Processing event: %12lld (%5.1f%%) overall rate = %.1f Hz\n", __func__, entry,
            entry*100./fChain->GetEntriesFast(),
-           (fDurations[1] > 0.) ? fTimeCounts[1]*1.e6/fDurations[1] : 0.);
+           (fDurations[GetTimerNumber("Total")] > 0.) ? fTimeCounts[GetTimerNumber("Total")]*1.e6/fDurations[GetTimerNumber("Total")] : 0.);
 
   icutflow = 0;
   fCutFlow->Fill(icutflow); ++icutflow; //0
@@ -2693,9 +2703,9 @@ Bool_t HistMaker::Process(Long64_t entry)
   // Set 1 + selection offset: base selection
   ////////////////////////////////////////////////////////////
   if(!(mutau || etau || emu || mumu || ee)) return kTRUE;
-  fTimes[3] = std::chrono::steady_clock::now(); //timer for filling all histograms
+  fTimes[GetTimerNumber("Filling")] = std::chrono::steady_clock::now(); //timer for filling all histograms
   FillAllHistograms(set_offset + 1);
-  IncrementTimer(3, true);
+  IncrementTimer("Filling", true);
 
   fCutFlow->Fill(icutflow); ++icutflow; //5
   return kTRUE;

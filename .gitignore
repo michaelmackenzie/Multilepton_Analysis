@@ -11,6 +11,7 @@
 *.xml
 *Weights*
 lib/
+histograms/figures/*
 studies/*/rootfiles/
 tmva_training/plots/*
 tmva_training/*.root

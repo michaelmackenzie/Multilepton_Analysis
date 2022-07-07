@@ -1911,9 +1911,9 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   ////////////////////////////////////////////////////////////////////////////
   // Set 8 + selection offset: nBJets = 0
   ////////////////////////////////////////////////////////////////////////////
-  fTimes[3] = std::chrono::steady_clock::now(); //timer for initializing base objects
+  fTimes[GetTimerNumber("SingleFill")] = std::chrono::steady_clock::now(); //timer for filling all histograms
   FillAllHistograms(set_offset + 8);
-  IncrementTimer(3, true);
+  IncrementTimer("SingleFill", true);
 
   if((emu || mumu || ee) && (!fDYTesting || fTriggerTesting)) {
     if(emu) { //e+mu trigger testing

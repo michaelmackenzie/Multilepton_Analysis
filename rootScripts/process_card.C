@@ -50,8 +50,9 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TTr
       }
       if(dynamic_cast<HistMaker*> (selec)) {
         auto hist_selec = (HistMaker*) selec;
-        hist_selec->fPrintTime = 2; //Print detailed summary of processing
+        hist_selec->fPrintTime         = 2; //Print detailed summary of processing times
         hist_selec->fDoTriggerMatching = doTriggerMatching_;
+        hist_selec->fReprocessMVAs     = ReprocessMVAs_; //reevaluate MVA scores on the fly
       }
 
       selec->fRemoveTriggerWeights = removeTrigWeights_;
@@ -97,7 +98,6 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TTr
       selec->fFractionMVA = (isSignal) ? config.signalTrainFraction_ : config.backgroundTrainFraction_; //fraction of events to use for MVA training
       if(selection == "mumu" || selection == "ee") selec->fFractionMVA = 0.; //don't split off same flavor data
       if((isMuonData || isElectronData) && selection != "emu") selec->fFractionMVA = 0.; //don't split off data for training
-      selec->fReprocessMVAs = config.reProcessMVAs_; //whether to evaluate the MVAs or use defined ones from the trees
       selec->fIsNano = true;
       if(debug_ && nEvents_ < 20) selec->fVerbose = 1;
       else                        selec->fVerbose = 0;

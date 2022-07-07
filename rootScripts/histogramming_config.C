@@ -2,9 +2,9 @@
 #define __HISTOGRAMMING_CONFIG__
 
 //Define which histogrammer to use
-typedef CLFVHistMaker HISTOGRAMMER;
+// typedef CLFVHistMaker HISTOGRAMMER;
 // typedef HistMaker HISTOGRAMMER;
-// typedef SparseHistMaker HISTOGRAMMER;
+typedef CLFVHistMaker HISTOGRAMMER;
 
 bool debug_ = false;
 Long64_t startEvent_ = 0;
@@ -38,7 +38,8 @@ int embeddedTesting_   = 0; //test embedding options: 3 = use KIT measured scale
 int systematicSeed_    = 90; //seed for systematic random shifts
 int doSystematics_     = 0;//1;
 bool writeTrees_       = false; //true
-int  DoMVASets_        = 0; //Fill sets with MVA cuts: 1 = emu; 2 = emu/ee/mumu; 3 = all sets
+int  DoMVASets_        = 1; //Fill sets with MVA cuts: 1 = emu; 2 = emu/ee/mumu; 3 = all sets
+int  ReprocessMVAs_    = 1; //Re-evaluate MVA scores on the fly
 
 int splitWJets_        = true; //split w+jets sample based on N(LHE jets)
 bool splitDY_          = true; //split z+jets sample based on gen-level lepton pair flavor
@@ -74,13 +75,11 @@ struct config_t {
   Bool_t writeTrees_;
   TString onlyChannel_;
   vector<TString> skipChannels_;
-  Bool_t reProcessMVAs_;
   float signalTrainFraction_;
   float backgroundTrainFraction_;
   Int_t useTauFakeSF_;
   Int_t doSystematics_;
   config_t() : writeTrees_(true), onlyChannel_(""), skipChannels_(),
-               reProcessMVAs_(false),
                signalTrainFraction_(0.),
                backgroundTrainFraction_(0.), useTauFakeSF_(1),
                doSystematics_(0){}
@@ -91,9 +90,8 @@ config_t get_config() {
 
   config.useTauFakeSF_ = 1; //1 = use given scale factors, 2 = override them with local ones
   config.writeTrees_ = writeTrees_;
-  config.onlyChannel_ = "";
+  config.onlyChannel_ = "mutau";
   config.skipChannels_ = {/*"mutau", "etau", "emu",*/ "mumu", "ee", "all", "jets", "llg_study"};
-  config.reProcessMVAs_ = false;
   config.signalTrainFraction_ = 0.3;
   config.backgroundTrainFraction_ = 0.3;
   config.doSystematics_ = doSystematics_;

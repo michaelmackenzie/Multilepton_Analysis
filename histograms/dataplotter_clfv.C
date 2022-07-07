@@ -1877,10 +1877,10 @@ Int_t print_basic_debug_plots(bool test_trigger = false, bool doMC = false, bool
   else if(selection_ == "emu"    ) offset = HistMaker::kEMu;
   else if(selection_ == "mumu"   ) offset = HistMaker::kMuMu;
   else if(selection_ == "ee"     ) offset = HistMaker::kEE;
-  if     (selection_ == "mutau_e") offset = HistMaker::kEMu;
+  else if(selection_ == "mutau_e") offset = HistMaker::kEMu;
   else if(selection_ == "etau_mu") offset = HistMaker::kEMu;
   else {
-    cout << "Debugging only defined for mutau, etau, emu, mumu, or ee!\n";
+    cout << "Debugging only defined for mutau, etau, emu, etau_mu, mutau_e, mumu, or ee!\n";
     return 2;
   }
   const bool tau_set = (selection_ == "etau" || selection_ == "mutau");

@@ -61,6 +61,23 @@ void SparseHistMaker::InitHistogramFlags() {
 }
 
 //--------------------------------------------------------------------------------------------------------------
+void SparseHistMaker::InitializeInputTree(TTree* tree) {
+  HistMaker::InitializeInputTree(tree);
+  //turn off branches not being used
+  tree->SetBranchStatus("*BJet*", 0);
+  tree->SetBranchStatus("Flag_*", 0);
+  tree->SetBranchStatus("*_raw*", 0);
+  tree->SetBranchStatus("*photon*", 0);
+  tree->SetBranchStatus("*Photon*", 0);
+  tree->SetBranchStatus("MET_*", 0);
+  tree->SetBranchStatus("GenMET_*", 0);
+  tree->SetBranchStatus("*GenVisTau*", 0);
+  tree->SetBranchStatus("Generator_*", 0);
+  tree->SetBranchStatus("*GenPart*", 0);
+  tree->SetBranchStatus("GenPart", 0);
+ }
+
+//--------------------------------------------------------------------------------------------------------------
 void SparseHistMaker::BookHistograms() {
   BookEventHistograms();
   BookLepHistograms();
@@ -271,9 +288,7 @@ Bool_t SparseHistMaker::Process(Long64_t entry)
   // Set 1 + selection offset: base selection
   ////////////////////////////////////////////////////////////
   if(!(mutau || etau || emu || mumu || ee)) return kTRUE;
-  fTimes[3] = std::chrono::steady_clock::now(); //timer for filling all histograms
   FillAllHistograms(set_offset + 1);
-  IncrementTimer(3, true);
 
   fCutFlow->Fill(icutflow); ++icutflow; //5
 

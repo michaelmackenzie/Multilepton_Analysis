@@ -439,9 +439,28 @@ namespace CLFV {
     void    MatchTriggers();
     void    ApplyTriggerWeights();
 
+    //get the index for a timer, adding it if not already in the list
+    int     GetTimerNumber(TString name) {
+      if(name == "") {
+        std::cout << "HistMaker::" << __func__ << ": Timer name empty!\n";
+        throw 20;
+      }
+      for(int i = 0; i < fNTimes; ++i) {
+        if(name == fTimeNames[i]) return i;
+        //Add the timer in the first empty slot
+        if(fTimeNames[i] == "") {
+          fTimeNames[i] = name;
+          return i;
+        }
+      }
+      return -1;
+    }
+    void    IncrementTimer(TString name, bool isinitialized) {
+      IncrementTimer(GetTimerNumber(name), isinitialized);
+    }
     void    IncrementTimer(int itime, bool isinitialized) {
       if(itime >= fNTimes) {
-        printf("HistMaker::%s: Attempting to increment timer %i, beyond maximum of %i\n", __func__, itime, fNTimes);
+        printf("HistMaker::%s: Attempting to increment timer %i (%s), beyond maximum of %i\n", __func__, itime, fTimeNames[itime].Data(), fNTimes);
         throw 10;
       }
       if(fTimeCounts[itime] > 0 || isinitialized) {
@@ -457,8 +476,8 @@ namespace CLFV {
       printf("HistMaker processing time information:\n");
       for(int itime = 0; itime < fNTimes; ++itime) {
         if(fTimeCounts[itime] <= 0 || fDurations[itime] <= 0) continue;
-        printf(" Timer %2i: Total processing time %10.3f s, %10.1f Hz\n",
-               itime, fDurations[itime]/1.e6, fTimeCounts[itime]*1.e6/fDurations[itime]);
+        printf(" Timer %15s (%2i): Total processing time %10.3f s, %10.1f Hz\n",
+               fTimeNames[itime].Data(), itime, fDurations[itime]/1.e6, fTimeCounts[itime]*1.e6/fDurations[itime]);
       }
     }
 
@@ -466,7 +485,7 @@ namespace CLFV {
       if(ID == 1 || ID == 3) return 11;
       if(ID == 2 || ID == 4) return 13;
       if(ID == 5) return 15;
-      return 26; //unknown
+     return 26; //unknown
     }
     int             MuonFlavorFromID(int ID) {
       if(ID == 1 || ID == 5 || ID == 4 || ID == 3 || ID == 15) return 13;
@@ -559,19 +578,6 @@ namespace CLFV {
     TStopwatch* timer = new TStopwatch();
     // TStopwatch timer_funcs; //for measuring time taken in each function
     TMVA::Reader* mva[kMaxMVAs]; //read and apply mva weight files
-    std::vector<TString> fMvaNames = { //mva names for getting weights
-                                      "mutau_BDT_8.higgs","mutau_BDT_8.Z0", //0 - 9: total mvas
-                                      "etau_BDT_38.higgs","etau_BDT_38.Z0",
-                                      "emu_BDT_68.higgs","emu_BDT_68.Z0",
-                                      "mutau_e_BDT_68.higgs","mutau_e_BDT_68.Z0",
-                                      "etau_mu_BDT_68.higgs","etau_mu_BDT_68.Z0",
-                                      "mutau_TMlpANN_8.higgs","mutau_TMlpANN_8.Z0", //10 - 19: alternate mvas
-                                      "etau_TMlpANN_8.higgs","etau_TMlpANN_8.Z0",
-                                      "emu_BDT_68.higgs","emu_BDT_68.Z0",
-                                      "mutau_e_TMlpANN_8.higgs","mutau_e_TMlpANN_8.Z0",
-                                      "etau_mu_TMlpANN_8.higgs","etau_mu_TMlpANN_8.Z0"
-    };
-    std::map<TString, std::vector<double>> fMVACutsByCategory;
     MVAConfig fMVAConfig; //contains MVA names and categories
 
     Int_t   fIsJetBinnedMVAs[kMaxMVAs]; //storing number of jets for MVA, < 0 if not binned
@@ -693,10 +699,11 @@ namespace CLFV {
     Bool_t          fLoadBaskets = false;
 
     int                                   fNotifyCount = 50000;
-    const static int                      fNTimes = 10;
+    const static int                      fNTimes = 20;
     std::chrono::steady_clock::time_point fTimes[fNTimes]; //for tracking processing time
     long                                  fDurations[fNTimes];
     int                                   fTimeCounts[fNTimes];
+    TString                               fTimeNames[fNTimes]; //name of the specific timer
     int                                   fPrintTime = 1;
 
     ///////////////////////////////////////////

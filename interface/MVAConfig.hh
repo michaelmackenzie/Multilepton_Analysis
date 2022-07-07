@@ -14,11 +14,11 @@ namespace CLFV {
     MVAConfig() {
       //initialize MVA names
       names_ = {
-                "mutau_BDT_8.higgs","mutau_BDT_8.Z0", //0 - 9: total mvas
-                "etau_BDT_38.higgs","etau_BDT_38.Z0",
-                "emu_BDT_68.higgs","emu_BDT_68.Z0",
-                "mutau_e_BDT_68.higgs","mutau_e_BDT_68.Z0",
-                "etau_mu_BDT_68.higgs","etau_mu_BDT_68.Z0"//,
+                "mutau_BDT_MM_8.higgs","mutau_BDT_MM_8.Z0", //0 - 9: total mvas
+                "etau_BDT_MM_8.higgs","etau_BDT_MM_8.Z0",
+                "emu_BDT_MM_8.higgs","emu_BDT_MM_8.Z0",
+                "mutau_e_BDT_MM_8.higgs","mutau_e_BDT_MM_8.Z0",
+                "etau_mu_BDT_MM_8.higgs","etau_mu_BDT_MM_8.Z0"//,
                 // "mutau_TMlpANN_8.higgs","mutau_TMlpANN_8.Z0", //10 - 19: alternate mvas
                 // "etau_TMlpANN_8.higgs","etau_TMlpANN_8.Z0",
                 // "emu_BDT_68.higgs","emu_BDT_68.Z0",
