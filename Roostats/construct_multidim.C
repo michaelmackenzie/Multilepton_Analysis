@@ -44,7 +44,10 @@ RooAbsPdf* create_exponential(RooRealVar& obs, int order, int set) {
     coeffs.push_back(new RooRealVar(Form("exp_%i_order_%i_n_%i", set, order, i), Form("exp_%i_order_%i_%i norm" , set, order, i), 1.e3, -1.e6, 1.e6));
     coefficients.add(*coeffs[i]);
   }
-  if(order == 0) return ((RooAbsPdf*) pdfs.at(0));
+  if(order == 0) {
+    pdfs.at(0)->SetTitle(Form("Exponential PDF, order %i", order));
+    return ((RooAbsPdf*) pdfs.at(0));
+  }
   return new RooAddPdf(Form("exp_%i_pdf_order_%i", set, order), Form("Exponential PDF, order %i", order), pdfs, coefficients, false);
 }
 
@@ -120,9 +123,11 @@ RooAbsPdf* create_bernstein(RooAbsReal& obs, const int order, int set) {
 }
 
 //Fit exponentials and add passing ones
-void add_exponentials(RooDataHist& data, RooRealVar& obs, RooArgList& list, bool useSideBands, int set, int verbose) {
+std::pair<int,double> add_exponentials(RooDataHist& data, RooRealVar& obs, RooArgList& list, bool useSideBands, int set, int verbose) {
   const int max_order = 5;
   const double max_chisq = 5.; //per DOF
+  double min_chi = 1.e10;
+  int min_index = -1;
   for(int order = 0; order <= max_order; ++order) {
     RooAbsPdf* basePdf = create_exponential(obs, order, set);
     //Wrap the exponential in a RooAddPdf
@@ -140,8 +145,10 @@ void add_exponentials(RooDataHist& data, RooRealVar& obs, RooArgList& list, bool
     } else {
       delete pdf;
     }
+    if(chi_sq < min_chi) {min_chi = chi_sq; min_index = list.getSize() - 1;}
     if(verbose > 1) cout << "### Exponential order " << order << " has chisq = " << chi_sq << " / " << dof << " = " << chi_sq/dof << endl;
   }
+  return std::pair<int, double>(min_index, min_chi);
 }
 
 //Fit Chebychev polynomials and add passing ones
@@ -181,9 +188,9 @@ void add_chebychevs(RooDataHist& data, RooRealVar& obs, RooArgList& list, bool u
 }
 
 //Fit Bernstein polynomials and add passing ones
-void add_bernsteins(RooDataHist& data, RooRealVar& obs, RooArgList& list, bool useSideBands, int& index, int set, int verbose) {
+std::pair<int, double> add_bernsteins(RooDataHist& data, RooRealVar& obs, RooArgList& list, bool useSideBands, int& index, int set, int verbose) {
   const int max_order = 6;
-  const double max_chisq = 5.; //per DOF
+  const double max_chisq = 50.; //per DOF
   //for finding the best fitting function
   double chi_min = 1.e10;
   const double chi_cutoff = 3.85; //minimum difference in chi^2 to consider a higher order function
@@ -233,6 +240,7 @@ void add_bernsteins(RooDataHist& data, RooRealVar& obs, RooArgList& list, bool u
     if(verbose > 1) cout << "### Bernstein order " << order << " has chisq = " << chi_sq << " / " << dof << " = " << chi_sq/dof << endl;
   }
   if(verbose > 0) cout << "### Best fit Bernstein order is " << best_order << " with chisq = " << chi_min << endl;
+  return std::pair<int, double>(index, chi_min);
 }
 
 RooSimultaneous* construct_simultaneous_pdf(RooDataHist& data, RooRealVar& obs, RooCategory& categories, bool useSideBands, int& index, int set, int verbose = 0) {
@@ -251,9 +259,13 @@ RooSimultaneous* construct_simultaneous_pdf(RooDataHist& data, RooRealVar& obs, 
 
 RooMultiPdf* construct_multipdf(RooDataHist& data, RooRealVar& obs, RooCategory& categories, bool useSideBands, int& index, int set, int verbose = 0) {
   RooArgList pdfList;
-  add_bernsteins(data, obs, pdfList, useSideBands, index, set, verbose);
+  std::pair<int, double> result;
+  double chi_min = 1e10;
+  result = add_bernsteins(data, obs, pdfList, useSideBands, index, set, verbose);
+  if(result.second < chi_min) {chi_min = result.second; index = result.first;}
   // add_chebychevs(data, obs, pdfList, useSideBands, index, set, verbose);
-  // add_exponentials(data, obs, pdfList, useSideBands, set, verbose);
+  result = add_exponentials(data, obs, pdfList, useSideBands, set, verbose);
+  if(result.second < chi_min) {chi_min = result.second; index = result.first;}
   RooMultiPdf* pdfs =  new RooMultiPdf("bkg_multi", "Background function PDF choice", categories, pdfList);
   return pdfs;
 }

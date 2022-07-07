@@ -3,20 +3,28 @@
 int make_combine_limit_plot(vector<TString> cards, //combine datacard names to process
                             vector<TString> labels, //label for each card
                             TString tag, //tag for the output figure file name
-                            int set = 8, TString selection = "zmutau",
+                            vector<int> sets = {8},
+                            TString selection = "zemu",
                             vector<int> years = {2016, 2017, 2018},
                             bool processCards = true,
                             bool doObs = false) {
+
   //Move to the proper directory
+  if(years.size() == 0) { cout << "No years given!\n"; return 1; }
   TString year_string = Form("%i", years[0]);
   for(int i = 1; i < years.size(); ++i) year_string += Form("_%i", years[i]);
   TString dir = Form("datacards/%s", year_string.Data());
+  gSystem->cd(dir.Data());
+
+  if(sets.size() == 0) { cout << "No sets given!\n"; return 1; }
+  TString set_string = Form("%i", sets[0]);
+  for(int i = 1; i < sets.size(); ++i) set_string += Form("_%i", sets[i]);
 
   int status(0);
   if(processCards) {
     //Run combine on each datacard
     for(TString card : cards) {
-      gSystem->Exec(Form("combine -d combine_mva_%s.txt %s --name _%s -t -1 --rMin -20 --rMax 20",
+      gSystem->Exec(Form("combine -d combine_%s.txt %s --name _%s -t -1 --rMin -20 --rMax 20",
                          card.Data(),
                          (doObs) ? "" : "--run blind",
                          card.Data()));
@@ -27,7 +35,7 @@ int make_combine_limit_plot(vector<TString> cards, //combine datacard names to p
   vector<TFile*> file_list;
   vector<TTree*> tree_list;
   for(TString card : cards) {
-    TFile* f = TFile::Open(Form("higgsCombine_mva_%s.AsymptoticLimits.mH120.root", card.Data()), "READ");
+    TFile* f = TFile::Open(Form("higgsCombine_%s.AsymptoticLimits.mH120.root", card.Data()), "READ");
     if(!f) return 1;
     file_list.push_back(f);
     TTree* t = (TTree*) f->Get("limit");
@@ -109,6 +117,6 @@ int make_combine_limit_plot(vector<TString> cards, //combine datacard names to p
   // label.DrawLatex(0.1, 0.38, Form("%.1e", expected[1]));
   // label.DrawLatex(0.1, 0.18, Form("%.1e", expected[2]));
 
-  c->Print(Form("limits_%s_%i_%s.png", selection.Data(), set, tag.Data()));
+  c->Print(Form("limits_%s_%s_%s.png", selection.Data(), set_string.Data(), tag.Data()));
   return status;
 }

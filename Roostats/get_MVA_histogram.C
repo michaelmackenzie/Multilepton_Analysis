@@ -7,8 +7,9 @@ TH1* hbkg_;
 vector<TH1*> hsigs_;
 int test_sys_ = -1; //set to systematic number if debugging/inspecting it
 bool blind_data_ = true; //set data bins > MVA score level to 0
-bool ignore_sys_ = false; //don't get systematics
+bool ignore_sys_ = true; //don't get systematics
 bool use_dev_mva_ = false; //use the extra MVA hist for development, mva?_1
+bool do_same_flavor_ = false; //retrieve Z->ll control region data
 
 int get_same_flavor_systematics(int set, TString hist, TH1* hdata, TFile* f) {
   int status(0);
@@ -394,10 +395,12 @@ int get_MVA_histogram(vector<int> sets = {8}, TString selection = "zmutau",
       else if(selection.Contains("etau"))
         status += get_individual_MVA_histogram(set, selection+"_mu", years, base);
     }
-    cout << "Getting mumu histograms for set " << set << endl;
-    status += get_same_flavor_histogram(set, "mumu", years, base);
-    cout << "Getting ee histograms for set " << set << endl;
-    status += get_same_flavor_histogram(set, "ee"  , years, base);
+    if(do_same_flavor_) {
+      cout << "Getting mumu histograms for set " << set << endl;
+      status += get_same_flavor_histogram(set, "mumu", years, base);
+      cout << "Getting ee histograms for set " << set << endl;
+      status += get_same_flavor_histogram(set, "ee"  , years, base);
+    }
   }
   return status;
 }

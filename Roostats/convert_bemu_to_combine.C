@@ -14,7 +14,7 @@ bool useRateParams_ = false;
 bool fixSignalPDF_  = true;
 bool useMultiDim_   = true;
 bool useSameFlavor_ = false;
-bool includeSys_    = true;
+bool includeSys_    = false;
 bool printPlots_    = true;
 bool fitSideBands_  = true;
 bool export_        = false; //if locally run, export the workspace to LPC
@@ -185,17 +185,6 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
     outfile << Form("shapes * * %s $CHANNEL:$PROCESS\n", outName.Data());
   }
 
-  // gSystem->Exec(Form("echo \"# -*- mode: tcl -*-\">| %s", filepath.Data()));
-  // gSystem->Exec(Form("echo \"#Auto generated counting card for CLFVAnalysis \">> %s", filepath.Data()));
-  // gSystem->Exec(Form("echo \"#Signal branching fraction used: %.3e \n\">> %s", br_sig, filepath.Data()));
-  // gSystem->Exec(Form("echo \"imax %2i number of channels \">> %s", (int) sets.size() + 2*useSameFlavor_, filepath.Data()));
-  // gSystem->Exec(Form("echo \"jmax  * number of backgrounds \">> %s", filepath.Data()));
-  // gSystem->Exec(Form("echo \"kmax  * number of nuisance parameters \n\">> %s", filepath.Data()));
-  // gSystem->Exec(Form("echo \"----------------------------------------------------------------------------------------------------------- \">> %s", filepath.Data()));
-  // if(!useSameFlavor_) {
-  //   gSystem->Exec(Form("echo \"shapes * * %s \\$CHANNEL:\\$PROCESS\">> %s", outName.Data(), filepath.Data()));
-  // }
-
   //Start each line, building for each background process
   TString bins   = "bin          "; //channel definition, 1 per channel
   TString bins_p = "bin       "    ; //per process per channel channel listing
@@ -220,7 +209,6 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
 
     if(useSameFlavor_) {
       outfile << Form("shapes * %-10s %s $CHANNEL:$PROCESS\n", hist.Data(), outName.Data());
-      // gSystem->Exec(Form("echo \"shapes * %-10s %s \\$CHANNEL:\\$PROCESS\">> %s", hist.Data(), outName.Data(), filepath.Data()));
     }
     //////////////////////////////////////////////////////////////////
     // Retrieve the histograms for this set
@@ -520,8 +508,6 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
   if(useSameFlavor_) {
     outfile << Form("shapes * %-10s %s $CHANNEL/$PROCESS\n", "ee"  , outName.Data());
     outfile << Form("shapes * %-10s %s $CHANNEL/$PROCESS\n", "mumu", outName.Data());
-    // gSystem->Exec(Form("echo \"shapes * %-10s %s \\$CHANNEL/\\$PROCESS\">> %s", "ee"  , outName.Data(), filepath.Data()));
-    // gSystem->Exec(Form("echo \"shapes * %-10s %s \\$CHANNEL/\\$PROCESS\">> %s", "mumu", outName.Data(), filepath.Data()));
     const int cr_set = 8;
     const double low_mass = 70.;
     const double high_mass = 110.;
@@ -677,26 +663,15 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
   //make a systematic free copy of the data card
   TString alt_card = filepath; alt_card.ReplaceAll(".txt", "_nosys.txt");
   gSystem->Exec(Form("cp %s %s", filepath.Data(), alt_card.Data()));
-  gSystem->Exec(Form("echo \"# * autoMCStats 0\n\">> %s", alt_card.Data())); //default to commenting out MC uncertainties
 
   outfile.open(filepath.Data(), std::ios_base::app); //open again, appending to the file
 
-  // gSystem->Exec(Form("echo \"----------------------------------------------------------------------------------------------------------- \n\">> %s", filepath.Data()));
-  // gSystem->Exec(Form("echo \"%s \">> %s", bins.Data(), filepath.Data()));
-  // gSystem->Exec(Form("echo \"%s \n\">> %s", obs.Data() , filepath.Data()));
-  // gSystem->Exec(Form("echo \"%s \">> %s", bins_p.Data() , filepath.Data()));
-  // gSystem->Exec(Form("echo \"%s \">> %s", proc_l.Data() , filepath.Data()));
-  // gSystem->Exec(Form("echo \"%s \n\">> %s", proc_c.Data() , filepath.Data()));
-  // gSystem->Exec(Form("echo \"%s \n\">> %s", rate.Data() , filepath.Data()));
-  // gSystem->Exec(Form("echo \"----------------------------------------------------------------------------------------------------------- \n\">> %s", filepath.Data()));
   for(int index = 0; index < systematics.size(); ++index) {
     TString sys = sys_names[index];
     TString line = systematics[sys];
     outfile << Form("%s \n", line.Data());
-    // gSystem->Exec(Form("echo \"%s \">> %s", line.Data() , filepath.Data()));
   }
   outfile << "\n----------------------------------------------------------------------------------------------------------- \n\n";
-  // gSystem->Exec(Form("echo \"\n----------------------------------------------------------------------------------------------------------- \n\">> %s", filepath.Data()));
   //Add same flavor constraint rateParams
   if(useSameFlavor_) {
     outfile << Form("%-15s rateParam %-6s %-8s 1 [0.9,1.1]\n",  "zmumu_scale", "mumu", "zmumu");
@@ -707,24 +682,13 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
     outfile << Form("ee   autoMCStats 0\n"); //default to including MC uncertainties
     outfile << Form("mumu autoMCStats 0\n"); //default to including MC uncertainties
     outfile << Form("\n----------------------------------------------------------------------------------------------------------- \n\n");
-
-    // gSystem->Exec(Form("echo \"%-15s rateParam %-6s %-8s 1 [0.9,1.1]\">> %s",  "zmumu_scale", "mumu", "zmumu", filepath.Data()));
-    // gSystem->Exec(Form("echo \"%-15s rateParam %-6s %-8s 1 [0.9,1.1]\">> %s",  "zee_scale"  , "ee"  , "zee"  , filepath.Data()));
-    // gSystem->Exec(Form("echo \"%-15s rateParam %-6s %-8s sqrt(@0*@1) zmumu_scale,zee_scale\">> %s", "zll_scale", "*", selection.Data(), filepath.Data()));
-    // gSystem->Exec(Form("echo \"# %-15s rateParam %-6s %-8s 1 [-10,20]\">> %s",  "sig_over_zll"  , "*"  , selection.Data()  , filepath.Data()));
-    // gSystem->Exec(Form("echo \"\n----------------------------------------------------------------------------------------------------------- \n\">> %s", filepath.Data()));
-    // gSystem->Exec(Form("echo \"ee   autoMCStats 0\">> %s", filepath.Data())); //default to including MC uncertainties
-    // gSystem->Exec(Form("echo \"mumu autoMCStats 0\">> %s", filepath.Data())); //default to including MC uncertainties
-    // gSystem->Exec(Form("echo \"\n----------------------------------------------------------------------------------------------------------- \n\">> %s", filepath.Data()));
   }
 
   if(useRateParams_) {
     outfile << Form("%s \n\n", signorm.Data());
-    // gSystem->Exec(Form("echo \"%s \n\">> %s", signorm.Data(), filepath.Data()));
   }
   if(useMultiDim_) {
     outfile << Form("%s \n\n", cats.Data());
-    // gSystem->Exec(Form("echo \"%s \n\">> %s", cats.Data(), filepath.Data()));
   }
   outfile.close();
 

@@ -5,7 +5,7 @@
 #include <fstream>
 
 bool use_fake_bkg_norm_ = false; //add a large uncertainty on j->tau/qcd norm to be fit by data
-bool use_sys_ = true; //add systematic uncertainties
+bool use_sys_ = false; //add systematic uncertainties
 
 Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
                              vector<int> years = {2016, 2017, 2018},

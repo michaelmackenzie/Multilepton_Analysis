@@ -8,8 +8,9 @@ int test_sys_ = -1; //set to systematic number if debugging/inspecting it
 double xmin_;
 double xmax_;
 bool blind_data_ = true;
-bool do_systematics_ = true;
+bool do_systematics_ = false;
 bool allow_sys_errors_ = true; //if there are missing systematic histograms, clone the default for now
+bool do_same_flavor_ = false; //get information for Z->ll control regions
 TH1* hDefault_; //store the default histogram in case of missing systematics
 TH1* hDY_;
 
@@ -362,14 +363,13 @@ int get_bemu_single_histogram(int set = 8, TString selection = "zemu",
 
 int get_bemu_histogram(vector<int> sets, TString selection = "zemu",
                        vector<int> years = {2016, 2017, 2018},
-                       TString base = "nanoaods_dev",
-                       bool get_same_flavor = true) {
+                       TString base = "nanoaods_dev") {
   int status(0);
   for(int set : sets) {
     cout << "Getting signal region histograms for set " << set << "...\n";
     status += get_bemu_single_histogram(set, selection, years, base);
   }
-  if(get_same_flavor) {
+  if(do_same_flavor_) {
     int set = 8; //normalization set
     cout << "Getting mumu region histograms for set " << set << "...\n";
     status += get_same_flavor_histogram(set, "mumu", years, base);
