@@ -7,7 +7,7 @@ TH1* hbkg_;
 vector<TH1*> hsigs_;
 int test_sys_ = -1; //set to systematic number if debugging/inspecting it
 bool blind_data_ = true; //set data bins > MVA score level to 0
-bool ignore_sys_ = true; //don't get systematics
+bool ignore_sys_ = false; //don't get systematics
 bool use_dev_mva_ = false; //use the extra MVA hist for development, mva?_1
 bool do_same_flavor_ = false; //retrieve Z->ll control region data
 
@@ -216,7 +216,7 @@ int get_systematics(int set, TString hist, TH1* hdata, TFile* f, TString canvas_
     g_r_bkg->GetXaxis()->SetRangeUser(-0.6,0.3);
     g_r_bkg->GetXaxis()->SetLabelSize(0.08);
     g_r_bkg->GetYaxis()->SetLabelSize(0.08);
-    g_r_bkg->GetYaxis()->SetRangeUser(min(0.995, 1. + 1.15*(r_min - 1.)), max(1.005, 1. + 1.15*(r_max - 1.)));
+    g_r_bkg->GetYaxis()->SetRangeUser(min(0.95, 1. + 1.15*(r_min - 1.)), max(1.05, 1. + 1.15*(r_max - 1.)));
     g_r_bkg->SetTitle("");
 
     if(isys == 0) gSystem->Exec(Form("mkdir -p %s_sys", canvas_name.Data()));

@@ -124,7 +124,7 @@ RooAbsPdf* create_bernstein(RooAbsReal& obs, const int order, int set) {
 
 //Fit exponentials and add passing ones
 std::pair<int,double> add_exponentials(RooDataHist& data, RooRealVar& obs, RooArgList& list, bool useSideBands, int set, int verbose) {
-  const int max_order = 5;
+  const int max_order = 3;
   const double max_chisq = 5.; //per DOF
   double min_chi = 1.e10;
   int min_index = -1;
@@ -190,7 +190,7 @@ void add_chebychevs(RooDataHist& data, RooRealVar& obs, RooArgList& list, bool u
 //Fit Bernstein polynomials and add passing ones
 std::pair<int, double> add_bernsteins(RooDataHist& data, RooRealVar& obs, RooArgList& list, bool useSideBands, int& index, int set, int verbose) {
   const int max_order = 6;
-  const double max_chisq = 50.; //per DOF
+  const double max_chisq = 5.; //per DOF
   //for finding the best fitting function
   double chi_min = 1.e10;
   const double chi_cutoff = 3.85; //minimum difference in chi^2 to consider a higher order function
