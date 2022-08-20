@@ -125,7 +125,7 @@ void make_composition(PlottingCard_t card, bool printHists = false, bool debug =
 
 //-----------------------------------------------------------------------------------------------------------------------------------------
 //initialize the files and scales using a DataPlotter
-Int_t initialize_plotter(TString base, TString path, int year) {
+Int_t initialize_plotter(int year) {
   if(dataplotter_) delete dataplotter_;
   dataplotter_ = new DataPlotter();
   dataplotter_->include_qcd_   = 0;
@@ -135,6 +135,7 @@ Int_t initialize_plotter(TString base, TString path, int year) {
   dataplotter_->embed_scale_   = embedScale_;
   dataplotter_->doStatsLegend_ = false;
   years_ = {year};
+  useEmbed_ = 0;
 
   std::vector<dcard> cards;
   get_datacards(cards, selection_, true);
@@ -155,14 +156,11 @@ Int_t initialize_plotter(TString base, TString path, int year) {
 //setup everything
 Int_t init(TString selection = "mutau", int year = 2016, TString path = "nanoaods_dev") {
   selection_ = selection;
-  path = "root://cmseos.fnal.gov//store/user/mmackenz/histograms/" + path + "/";
-  //construct the general name of each file, not including the sample name
-  TString baseName = "clfv_" + selection + "_clfv_";
-  baseName += year;
-  baseName += "_";
+  hist_dir_ = path;
+  hist_tag_ = "jtt";
   //initialize the data files
   if(verbose_ > 0) std::cout << "Initializing the dataplotter" << std::endl;
-  if(initialize_plotter(baseName, path, year)) {
+  if(initialize_plotter(year)) {
     cout << "Dataplotter initialization failed!\n";
     return 1;
   }

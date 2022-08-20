@@ -739,7 +739,7 @@ TCanvas* make_canvas(TH2* h[4], TString name, bool iseff = false) {
 
 //-------------------------------------------------------------------------------------------------------------------------------
 //initialize the files and scales using a DataPlotter
-Int_t initialize_plotter(TString base, TString path, int year) {
+Int_t initialize_plotter(TString base, int year) {
   if(dataplotter_) delete dataplotter_;
   dataplotter_ = new DataPlotter();
   dataplotter_->include_qcd_ = 0;
@@ -748,7 +748,8 @@ Int_t initialize_plotter(TString base, TString path, int year) {
   dataplotter_->qcd_scale_ = 1.;
   dataplotter_->embed_scale_ = embedScale_;
   years_ = {year};
-
+  hist_tag_ = "jtt";
+  useEmbed_ = 0; //FIXME: Investigate using embedding for j-->tau measurements
   // splitWJ_ = 0;
 
   std::vector<dcard> cards;
@@ -788,7 +789,9 @@ Int_t scale_factors(TString selection = "mutau", TString process = "", int set1 
   //////////////////////
   // Initialize files //
   //////////////////////
-  path = "root://cmseos.fnal.gov//store/user/mmackenz/histograms/" + path + "/";
+
+  //set the histogram directory
+  hist_dir_ = path;
 
   //get the absolute value of the set, offsetting by the selection
   set_offset_ = 0;
@@ -807,7 +810,7 @@ Int_t scale_factors(TString selection = "mutau", TString process = "", int set1 
 
   //initialize the data files
   if(verbose_ > 0) std::cout << "Initializing the dataplotter" << std::endl;
-  if(initialize_plotter(baseName, path, (override_year_ > 0) ? override_year_ : year)) {
+  if(initialize_plotter(baseName, (override_year_ > 0) ? override_year_ : year)) {
     cout << "Dataplotter initialization failed!\n";
     return 1;
   }
@@ -1249,16 +1252,15 @@ Int_t scale_factors(TString selection = "mutau", TString process = "", int set1 
   // Additional figures / closure tests
 
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettautwometdeltaphi"  , "lep"  , 0               )); if(c) c->Print(Form("%sjettau_twometdeltaphi.png"   , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettautwometdeltaphi0" , "lep"  , 0               )); if(c) c->Print(Form("%sjettau_twometdeltaphi_0.png" , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettauonemetdeltaphi0" , "lep"  , 0               )); if(c) c->Print(Form("%sjettau_onemetdeltaphi_0.png" , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettauonemetdeltaphi"  , "lep"  , 0               )); if(c) c->Print(Form("%sjettau_onemetdeltaphi.png"   , name.Data()));
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("onept"                 , "lep"  , 0, 2,  20., 100.)); if(c) c->Print(Form("%sonept.png"                   , name.Data()));
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("onereliso"             , "lep"  , 0, 1,   0.,  0.5)); if(c) c->Print(Form("%sonereliso.png"               , name.Data()));
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettauonereliso_0"     , "lep"  , 0, 0,   0.,  0.5)); if(c) c->Print(Form("%sjettau_onereliso.png"        , name.Data()));
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettauoneptqcd_0"      , "lep"  , 0, 0,   0., 200.)); if(c) c->Print(Form("%sjettau_oneptqcd_0.png"       , name.Data()));
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettauonemetdphiqcd0"  , "lep"  , 0, 0,   1.,  -1.)); if(c) c->Print(Form("%sjettau_onemetdphiqcd_0.png"  , name.Data()));
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettautwoetaqcd0"      , "lep"  , 0, 0,   1.,  -1.)); if(c) c->Print(Form("%sjettau_twoetaqcd_0.png"      , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettautwopt0"          , "lep"  , 0, 0,   1.,  -1.)); if(c) c->Print(Form("%sjettau_twopt_0.png"          , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettauonept0"          , "lep"  , 0, 0,   1.,  -1.)); if(c) c->Print(Form("%sjettau_onept_0.png"          , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettautwopt"           , "lep"  , 0, 0,   1.,  -1.)); if(c) c->Print(Form("%sjettau_twopt_0.png"          , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettauonept"           , "lep"  , 0, 0,   1.,  -1.)); if(c) c->Print(Form("%sjettau_onept_0.png"          , name.Data()));
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("onept11"               , "lep"  , 0, 2,  20., 100.)); if(c) c->Print(Form("%sonept11.png"                 , name.Data()));
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("oneeta"                , "lep"  , 0, 2,  -3.,   3.)); if(c) c->Print(Form("%soneeta.png"                  , name.Data()));
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("twopt"                 , "lep"  , 0, 2,  20., 100.)); if(c) c->Print(Form("%stwopt.png"                   , name.Data()));
@@ -1282,7 +1284,6 @@ Int_t scale_factors(TString selection = "mutau", TString process = "", int set1 
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettaudeltar0"         , "event", 0               )); if(c) c->Print(Form("%sjettau_deltar0.png"          , name.Data()));
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettaudeltar1"         , "event", 0               )); if(c) c->Print(Form("%sjettau_deltar1.png"          , name.Data()));
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("ntaus"                 , "event", 0, 1,   0.,   7.)); if(c) c->Print(Form("%sntaus.png"                   , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("njets"                 , "event", 0, 1,   0.,   7.)); if(c) c->Print(Form("%snjets.png"                   , name.Data()));
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("njets20"               , "event", 0, 1,   0.,   7.)); if(c) c->Print(Form("%snjets20.png"                 , name.Data()));
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("lepdeltar"             , "event", 0, 2,   0.,   6.)); if(c) c->Print(Form("%slepdeltar.png"               , name.Data()));
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("lepdeltaphi"           , "event", 0, 2,   0.,   4.)); if(c) c->Print(Form("%slepdeltaphi.png"             , name.Data()));

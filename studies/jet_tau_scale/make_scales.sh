@@ -1,5 +1,22 @@
 #! /bin/bash
 
+
+Help() {
+    echo "Process all j-->tau transfer/closure/bias factors"
+    echo "Options:"
+    echo " 1: Selection to process, default = \"mutau\""
+    echo " 2: Histogram directory, default = \"nanoaods_jtt\""
+    echo " 3: List of years to process, default = \"2016 2017 2018\""
+    echo " 4: Processes to process, default = \"QCD QCD2 QCD3 QCD4 WJets WJets3 WJets4 Top3 ZJets\""
+    echo " 5: Skip composition, default = \"\", pass anything to skip"
+}
+
+if [[ "$1" == "-h" ]]
+then
+    Help
+    exit
+fi
+
 SELECTION=$1
 HISTS=$2
 YEARS=$3
@@ -13,7 +30,7 @@ fi
 
 if [[ "${HISTS}" == "" ]]
 then
-    HISTS="nanoaods"
+    HISTS="nanoaods_jtt"
 fi
 
 if [[ "${YEARS}" == "" ]]
