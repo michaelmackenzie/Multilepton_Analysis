@@ -325,6 +325,7 @@ c = d->print_hist("[histogram name e.g. lepm]", "[histogram folder e.g. event]",
 ```c++
 .L train_tmva.C;
 train_tmva("[make_background.C out file]", {[list of process IDs to ignore]}");
+```
 
 
 ### Studies (mostly scale factors)
