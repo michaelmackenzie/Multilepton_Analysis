@@ -147,10 +147,9 @@ double EmbeddingTnPWeight::MuonIDWeight(double pt, double eta, int year, bool qc
     return 1.;
   }
 
-  const bool use_abs_eta = hIDMC->GetXaxis()->GetBinLowEdge(1) > -1.; //test if |eta| or eta on x-axis
-  if(use_abs_eta) eta = std::fabs(eta);
   pt = std::max(10.01, std::min(pt, 499.));
   eta = std::min(2.39, std::max(-2.39, eta));
+  float eta_var = eta;
 
   double scale_factor(1.);
   float data_eff(1.), mc_eff(1.);
@@ -158,12 +157,16 @@ double EmbeddingTnPWeight::MuonIDWeight(double pt, double eta, int year, bool qc
   ///////////////////////////
   // Apply ID weight
   ///////////////////////////
-  scale_factor *= GetScale(hIDData, hIDMC, pt, eta, data_eff, mc_eff);
+  bool use_abs_eta = hIDMC->GetXaxis()->GetBinLowEdge(1) > -1.; //test if |eta| or eta on x-axis
+  eta_var = (use_abs_eta) ? std::fabs(eta) : eta;
+  scale_factor *= GetScale(hIDData, hIDMC, pt, eta_var, data_eff, mc_eff);
 
   ///////////////////////////
   // Apply Iso ID weight
   ///////////////////////////
-  scale_factor *= GetScale(hIsoIDData, hIsoIDMC, pt, eta, data_eff, mc_eff);
+  use_abs_eta = hIDMC->GetXaxis()->GetBinLowEdge(1) > -1.; //test if |eta| or eta on x-axis
+  eta_var = (use_abs_eta) ? std::fabs(eta) : eta;
+  scale_factor *= GetScale(hIsoIDData, hIsoIDMC, pt, eta_var, data_eff, mc_eff);
 
   if(scale_factor <= 0. || !std::isfinite(scale_factor)) {
     std::cout << "Warning! Scale factor <= 0 or undefined (" << scale_factor << ") in EmbeddingTnPWeight::" << __func__ << ", returning 1" << std::endl;
@@ -251,10 +254,10 @@ double EmbeddingTnPWeight::ElectronIDWeight(double pt, double eta, int year, boo
     return 1.;
   }
 
-  const bool use_abs_eta = hIDMC->GetXaxis()->GetBinLowEdge(1) > -1.; //test if |eta| or eta on x-axis
-  if(use_abs_eta) eta = std::fabs(eta);
   pt = std::max(10.01, std::min(pt, 499.));
   eta = std::min(2.49, std::max(-2.49, eta));
+
+  float eta_var = eta;
 
   double scale_factor(1.);
   float data_eff(1.), mc_eff(1.);
@@ -262,12 +265,16 @@ double EmbeddingTnPWeight::ElectronIDWeight(double pt, double eta, int year, boo
   ///////////////////////////
   // Apply ID weight
   ///////////////////////////
-  scale_factor *= GetScale(hIDData, hIDMC, pt, eta, data_eff, mc_eff);
+  bool use_abs_eta = hIDMC->GetXaxis()->GetBinLowEdge(1) > -1.; //test if |eta| or eta on x-axis
+  eta_var = (use_abs_eta) ? std::fabs(eta) : eta;
+  scale_factor *= GetScale(hIDData, hIDMC, pt, eta_var, data_eff, mc_eff);
 
   ///////////////////////////
   // Apply IsoID weight
   ///////////////////////////
-  scale_factor *= GetScale(hIsoIDData, hIsoIDMC, pt, eta, data_eff, mc_eff);
+  use_abs_eta = hIsoIDMC->GetXaxis()->GetBinLowEdge(1) > -1.; //test if |eta| or eta on x-axis
+  eta_var = (use_abs_eta) ? std::fabs(eta) : eta;
+  scale_factor *= GetScale(hIsoIDData, hIsoIDMC, pt, eta_var, data_eff, mc_eff);
 
   if(scale_factor <= 0. || !std::isfinite(scale_factor)) {
     std::cout << "Warning! Scale factor <= 0 or undefined (" << scale_factor << ") in EmbeddingTnPWeight::" << __func__ << ", returning 1" << std::endl;

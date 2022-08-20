@@ -76,6 +76,7 @@ namespace CLFV {
     TH1* hTopPtWeight;
     TH1* hBTagWeight;
     TH1* hZPtWeight;
+    TH1* hSignalZWeight;
     TH1* hTauDecayMode[2]; //with and without event weights
     TH1* hTauMVA;
     TH1* hTauGenFlavor;
@@ -137,6 +138,7 @@ namespace CLFV {
     TH2* hZPtVsM[5]; //0: normal 1: remove Z pT weight 2: apply weights using reco scales if DY 3: using systematic gen-level weights 4: using systematic reco-level weights
     TH1* hZPt[5];
     TH1* hZMass[5];
+    TH1* hZEta;
     TH1* hZLepOnePt;
     TH1* hZLepTwoPt;
     TH1* hZLepOneEta;

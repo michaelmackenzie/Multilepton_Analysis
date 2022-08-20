@@ -51,211 +51,211 @@ void CLFVHistMaker::InitHistogramFlags() {
   const bool mumu  = fSelection == "" || fSelection == "mumu" ;
   const bool ee    = fSelection == "" || fSelection == "ee"   ;
 
-    if(mutau) {
-      fEventSets [kMuTau + 1] = 1; // all events
-      fEventSets [kMuTau + 2] = 1; //
-      fEventSets [kMuTau + 3] = 1;
-      fEventSets [kMuTau + 4] = 1;
+  if(mutau) {
+    fEventSets [kMuTau + 1] = 1; // all events
+    fEventSets [kMuTau + 2] = 1; //
+    fEventSets [kMuTau + 3] = 1;
+    fEventSets [kMuTau + 4] = 1;
 
-      fEventSets [kMuTau + 7] = 1;
-      fEventSets [kMuTau + 8] = 1;
-      fTreeSets  [kMuTau + 8] = 1;
-      fTreeSets  [kMuTau + 8+fMisIDOffset] = fIsData != 0; //save Loose ID data for MVA training
-      fSysSets   [kMuTau + 8] = 1;
+    fEventSets [kMuTau + 7] = 1;
+    fEventSets [kMuTau + 8] = 1;
+    fTreeSets  [kMuTau + 8] = 1;
+    fTreeSets  [kMuTau + 8+fMisIDOffset] = fIsData != 0; //save Loose ID data for MVA training
+    fSysSets   [kMuTau + 8] = 1;
 
-      // jet --> tau DRs
-      fEventSets [kMuTau + 30] = 1; //QCD
-      fEventSets [kMuTau + 31] = 1; //W+Jets
-      fEventSets [kMuTau + 32] = 1; //Top
-      fEventSets [kMuTau + 34] = 1; //signal region but W+Jets j-->tau weights (no composition)
-      fEventSets [kMuTau + 89] = 1; //W+Jets MC weights
+    // jet --> tau DRs
+    fEventSets [kMuTau + 30] = 1; //QCD
+    fEventSets [kMuTau + 31] = 1; //W+Jets
+    fEventSets [kMuTau + 32] = 1; //Top
+    // fEventSets [kMuTau + 34] = 1; //signal region but W+Jets j-->tau weights (no composition)
+    // fEventSets [kMuTau + 89] = 1; //W+Jets MC weights
 
-      // jet --> tau DRs with MC taus
-      fEventSets [kMuTau + 33] = 1; //Nominal selection without j-->tau weights, loose ID only
-      fEventSets [kMuTau + 35] = 1; //Nominal selection
-      fEventSets [kMuTau + 36] = 1; //QCD
-      fEventSets [kMuTau + 37] = 1; //W+Jets
-      fEventSets [kMuTau + 38] = 1; //Top
-      fEventSets [kMuTau + 88] = 1; //W+Jets MC weights
-      fEventSets [kMuTau + 92] = 1; //Loose nominal selection
-      fEventSets [kMuTau + 94] = 1; //Loose nominal selection
+    // jet --> tau DRs with MC taus
+    fEventSets [kMuTau + 33] = 1; //Nominal selection without j-->tau weights, loose ID only
+    fEventSets [kMuTau + 35] = 1; //Nominal selection
+    fEventSets [kMuTau + 36] = 1; //QCD
+    fEventSets [kMuTau + 37] = 1; //W+Jets
+    fEventSets [kMuTau + 38] = 1; //Top
+    // fEventSets [kMuTau + 88] = 1; //W+Jets MC weights
+    // fEventSets [kMuTau + 92] = 1; //Loose nominal selection
+    // fEventSets [kMuTau + 94] = 1; //Loose nominal selection
 
-      // jet --> tau MC taus in nominal selection, different process weights
-      fEventSets [kMuTau + 81] = 1; //W+Jets
-      fEventSets [kMuTau + 82] = 1; //Top
-      fEventSets [kMuTau + 86] = 1; //W+Jets, no fake MC
-      fEventSets [kMuTau + 87] = 1; //Top, no fake MC
-      fEventSets [kMuTau + 93] = 1; //Loose nominal selection, no fake MC
-      fEventSets [kMuTau + 95] = 1; //Loose nominal selection, no fake MC
+    // // jet --> tau MC taus in nominal selection, different process weights
+    // fEventSets [kMuTau + 81] = 1; //W+Jets
+    // fEventSets [kMuTau + 82] = 1; //Top
+    // fEventSets [kMuTau + 86] = 1; //W+Jets, no fake MC
+    // fEventSets [kMuTau + 87] = 1; //Top, no fake MC
+    // fEventSets [kMuTau + 93] = 1; //Loose nominal selection, no fake MC
+    // fEventSets [kMuTau + 95] = 1; //Loose nominal selection, no fake MC
 
-      fEventSets [kMuTau + 42] = 1; //fake MC taus in the nominal selection
+    // fEventSets [kMuTau + 42] = 1; //fake MC taus in the nominal selection
+  }
+  if(etau) {
+    fEventSets [kETau + 1] = 1; // all events
+    fEventSets [kETau + 2] = 1;
+    fEventSets [kETau + 3] = 1;
+    fEventSets [kETau + 4] = 1;
+
+    fEventSets [kETau + 7] = 1;
+    fEventSets [kETau + 8] = 1;
+    fTreeSets  [kETau + 8] = 1;
+    fTreeSets  [kETau + 8+fMisIDOffset] = fIsData != 0; //save Loose ID data for MVA training
+    fSysSets   [kETau + 8] = 1;
+
+    // jet --> tau DRs
+    fEventSets [kETau + 30] = 1; //QCD
+    fEventSets [kETau + 31] = 1; //W+Jets
+    fEventSets [kETau + 32] = 1; //Top
+    // fEventSets [kETau + 34] = 1; //signal region but W+Jets j-->tau weights (no composition)
+    // fEventSets [kETau + 89] = 1; //W+Jets MC weights
+
+    // jet --> tau DRs with MC taus
+    fEventSets [kETau + 33] = 1; //Nominal selection without j-->tau weights, loose ID only
+    fEventSets [kETau + 35] = 1; //Nominal selection
+    fEventSets [kETau + 36] = 1; //QCD
+    fEventSets [kETau + 37] = 1; //W+Jets
+    fEventSets [kETau + 38] = 1; //Top
+    // fEventSets [kETau + 88] = 1; //W+Jets MC weights
+    // fEventSets [kETau + 92] = 1; //Loose nominal selection
+    // fEventSets [kETau + 94] = 1; //Loose nominal selection
+
+    // // jet --> tau MC taus in nominal selection, different process weights
+    // fEventSets [kETau + 81] = 1; //W+Jets
+    // fEventSets [kETau + 82] = 1; //Top
+    // fEventSets [kETau + 86] = 1; //W+Jets, no fake MC
+    // fEventSets [kETau + 87] = 1; //Top, no fake MC
+    // fEventSets [kETau + 93] = 1; //Loose nominal selection, no fake MC
+    // fEventSets [kETau + 95] = 1; //Loose nominal selection, no fake MC
+
+    // fEventSets [kETau + 42] = 1; //fake MC taus in the nominal selection
+  }
+  if(emu) {
+    fEventSets [kEMu  + 1] = 1; // all events
+    fEventSets [kEMu  + 2] = 1; // after pT cuts
+    fEventSets [kEMu  + 3] = 1; // after eta, mass, trigger cuts
+    fEventSets [kEMu  + 4] = 1; // after additional IDs
+
+    fEventSets [kEMu  + 7] = 1;
+    fEventSets [kEMu  + 8] = 1;
+    fTreeSets  [kEMu  + 8] = 1;
+    fTreeSets  [kEMu  + 8+fQcdOffset] = fIsData != 0; //save SS data for QCD training
+    fSysSets   [kEMu  + 8] = 1;
+
+    // MVA categories
+    for(int i = 9; i < 19; ++i) fEventSets[kEMu  + i] = 1;
+    fSysSets[kEMu  + 9  + fMVAConfig.categories_["zemu"].size()] = 1; //start with most significant category
+    fSysSets[kEMu  + 8  + fMVAConfig.categories_["zemu"].size()] = 1; //second most significant category
+    fSysSets[kEMu  + 14 + fMVAConfig.categories_["hemu"].size()] = 1; //start with most significant category
+    fSysSets[kEMu  + 13 + fMVAConfig.categories_["hemu"].size()] = 1; //second most significant category
+
+    fEventSets [kEMu  + 24] = 1; // events within mass window
+    fEventSets [kEMu  + 25] = 1; // events within mass window
+
+    fEventSets [kEMu  + 32] = 1; // > 0 b-jets (top selection)
+
+    fEventSets [kEMu  + 35] = 1;
+    fEventSets [kEMu  + 90] = 1; //Loose nominal selection
+    fEventSets [kEMu  + 91] = 1; //Loose nominal selection, no fake MC
+
+    if(!fDYTesting || fTriggerTesting) { //testing e+mu triggering
+      // fEventSets [kEMu  + 60] = 1; //electron fired
+      // fEventSets [kEMu  + 61] = 1; //muon fired
+      // fEventSets [kEMu  + 62] = 1; //both fired
+      fEventSets [kEMu  + 63] = 1; //electron could trigger
+      fEventSets [kEMu  + 64] = 1; //muon could trigger
+      fEventSets [kEMu  + 65] = 1; //both could trigger
+      fEventSets [kEMu  + 66] = 1; //electron can't trigger
+      fEventSets [kEMu  + 67] = 1; //muon can't trigger
     }
-    if(etau) {
-      fEventSets [kETau + 1] = 1; // all events
-      fEventSets [kETau + 2] = 1;
-      fEventSets [kETau + 3] = 1;
-      fEventSets [kETau + 4] = 1;
 
-      fEventSets [kETau + 7] = 1;
-      fEventSets [kETau + 8] = 1;
-      fTreeSets  [kETau + 8] = 1;
-      fTreeSets  [kETau + 8+fMisIDOffset] = fIsData != 0; //save Loose ID data for MVA training
-      fSysSets   [kETau + 8] = 1;
+    fEventSets [kEMu  + 70] = 1; //loose ID electron, not muon region
+    fEventSets [kEMu  + 71] = 1; //loose ID electron and muon region
+  }
+  if(mumu) {
+    fEventSets [kMuMu + 1] = 1; // all events
+    fEventSets [kMuMu + 2] = 1; // events with >= 1 photon
 
-      // jet --> tau DRs
-      fEventSets [kETau + 30] = 1; //QCD
-      fEventSets [kETau + 31] = 1; //W+Jets
-      fEventSets [kETau + 32] = 1; //Top
-      fEventSets [kETau + 34] = 1; //signal region but W+Jets j-->tau weights (no composition)
-      fEventSets [kETau + 89] = 1; //W+Jets MC weights
+    fEventSets [kMuMu + 3] = 1;
+    fEventSets [kMuMu + 4] = 1;
+    fEventSets [kMuMu + 7] = 1;
+    fEventSets [kMuMu + 8] = 1;
+    fSysSets   [kMuMu + 8] = 1;
 
-      // jet --> tau DRs with MC taus
-      fEventSets [kETau + 33] = 1; //Nominal selection without j-->tau weights, loose ID only
-      fEventSets [kETau + 35] = 1; //Nominal selection
-      fEventSets [kETau + 36] = 1; //QCD
-      fEventSets [kETau + 37] = 1; //W+Jets
-      fEventSets [kETau + 38] = 1; //Top
-      fEventSets [kETau + 88] = 1; //W+Jets MC weights
-      fEventSets [kETau + 92] = 1; //Loose nominal selection
-      fEventSets [kETau + 94] = 1; //Loose nominal selection
+    // MVA categories
+    for(int i = 9; i < 19; ++i) fEventSets[kMuMu + i] = 1;
+    fSysSets[kMuMu  + 9  + fMVAConfig.categories_["zemu"].size()] = 1; //start with most significant category
+    fSysSets[kMuMu  + 8  + fMVAConfig.categories_["zemu"].size()] = 1; //second most significant category
+    fSysSets[kMuMu  + 14 + fMVAConfig.categories_["hemu"].size()] = 1; //start with most significant category
+    fSysSets[kMuMu  + 13 + fMVAConfig.categories_["hemu"].size()] = 1; //second most significant category
 
-      // jet --> tau MC taus in nominal selection, different process weights
-      fEventSets [kETau + 81] = 1; //W+Jets
-      fEventSets [kETau + 82] = 1; //Top
-      fEventSets [kETau + 86] = 1; //W+Jets, no fake MC
-      fEventSets [kETau + 87] = 1; //Top, no fake MC
-      fEventSets [kETau + 93] = 1; //Loose nominal selection, no fake MC
-      fEventSets [kETau + 95] = 1; //Loose nominal selection, no fake MC
+    fEventSets [kMuMu + 22] = 1; // events with nJets = 0
+    fEventSets [kMuMu + 23] = 1; // events with nJets > 0
 
-      fEventSets [kETau + 42] = 1; //fake MC taus in the nominal selection
+    fEventSets [kMuMu + 24] = 1; // events within mass window
+    fEventSets [kMuMu + 25] = 1; // events within mass window
+
+    fEventSets [kMuMu + 26] = 1; // events top set
+    fEventSets [kMuMu + 27] = 1;
+
+    fEventSets [kMuMu + 35] = 1;
+    fEventSets [kMuMu + 50] = 1;
+    fEventSets [kMuMu + 51] = 1;
+
+    if(!fDYTesting || fTriggerTesting) { //testing triggering
+      // fEventSets [kMuMu + 60] = 1; //one fired
+      // fEventSets [kMuMu + 61] = 1; //two fired
+      // fEventSets [kMuMu + 62] = 1; //both fired
+      fEventSets [kMuMu + 63] = 1; //two could trigger
+      fEventSets [kMuMu + 66] = 1; //two can't trigger
     }
-    if(emu) {
-      fEventSets [kEMu  + 1] = 1; // all events
-      fEventSets [kEMu  + 2] = 1; // after pT cuts
-      fEventSets [kEMu  + 3] = 1; // after eta, mass, trigger cuts
-      fEventSets [kEMu  + 4] = 1; // after additional IDs
+  }
+  if(ee) {
+    fEventSets [kEE   + 1] = 1; // all events
+    fEventSets [kEE   + 2] = 1;
+    fEventSets [kEE   + 3] = 1;
+    fEventSets [kEE   + 4] = 1;
 
-      fEventSets [kEMu  + 7] = 1;
-      fEventSets [kEMu  + 8] = 1;
-      fTreeSets  [kEMu  + 8] = 1;
-      fTreeSets  [kEMu  + 8+fQcdOffset] = fIsData != 0; //save SS data for QCD training
-      fSysSets   [kEMu  + 8] = 1;
+    fEventSets [kEE   + 7] = 1;
+    fEventSets [kEE   + 8] = 1;
+    fSysSets   [kEE   + 8] = 1;
 
-      // MVA categories
-      for(int i = 9; i < 19; ++i) fEventSets[kEMu  + i] = 1;
-      fSysSets[kEMu  + 9  + fMVAConfig.categories_["zemu"].size()] = 1; //start with most significant category
-      fSysSets[kEMu  + 8  + fMVAConfig.categories_["zemu"].size()] = 1; //second most significant category
-      fSysSets[kEMu  + 14 + fMVAConfig.categories_["hemu"].size()] = 1; //start with most significant category
-      fSysSets[kEMu  + 13 + fMVAConfig.categories_["hemu"].size()] = 1; //second most significant category
+    // MVA categories
+    for(int i = 9; i < 19; ++i) fEventSets[kEE + i] = 1;
+    fSysSets[kEE    + 9  + fMVAConfig.categories_["zemu"].size()] = 1; //start with most significant category
+    fSysSets[kEE    + 8  + fMVAConfig.categories_["zemu"].size()] = 1; //second most significant category
+    fSysSets[kEE    + 14 + fMVAConfig.categories_["hemu"].size()] = 1; //start with most significant category
+    fSysSets[kEE    + 13 + fMVAConfig.categories_["hemu"].size()] = 1; //second most significant category
 
-      fEventSets [kEMu  + 24] = 1; // events within mass window
-      fEventSets [kEMu  + 25] = 1; // events within mass window
+    fEventSets [kEE   + 22] = 1; // events with nJets = 0
+    fEventSets [kEE   + 23] = 1; // events with nJets > 0
 
-      fEventSets [kEMu  + 32] = 1; // > 0 b-jets (top selection)
+    fEventSets [kEE   + 24] = 1; // events within mass window
+    fEventSets [kEE   + 25] = 1; // events within mass window
 
-      fEventSets [kEMu  + 35] = 1;
-      fEventSets [kEMu  + 90] = 1; //Loose nominal selection
-      fEventSets [kEMu  + 91] = 1; //Loose nominal selection, no fake MC
+    fEventSets [kEE   + 26] = 1; // events top set
+    fEventSets [kEE   + 27] = 1;
 
-      if(!fDYTesting || fTriggerTesting) { //testing e+mu triggering
-        fEventSets [kEMu  + 60] = 1; //electron fired
-        fEventSets [kEMu  + 61] = 1; //muon fired
-        fEventSets [kEMu  + 62] = 1; //both fired
-        fEventSets [kEMu  + 63] = 1; //electron could trigger
-        fEventSets [kEMu  + 64] = 1; //muon could trigger
-        fEventSets [kEMu  + 65] = 1; //both could trigger
-        fEventSets [kEMu  + 66] = 1; //electron can't trigger
-        fEventSets [kEMu  + 67] = 1; //muon can't trigger
-      }
+    fEventSets [kEE   + 35] = 1;
+    fEventSets [kEE   + 50] = 1;
+    fEventSets [kEE   + 51] = 1;
 
-      fEventSets [kEMu  + 70] = 1; //loose ID electron, not muon region
-      fEventSets [kEMu  + 71] = 1; //loose ID electron and muon region
+    if(!fDYTesting || fTriggerTesting) { //testing triggering
+      // fEventSets [kEE  + 60] = 1; //one fired
+      // fEventSets [kEE  + 61] = 1; //two fired
+      // fEventSets [kEE  + 62] = 1; //both fired
+      fEventSets [kEE  + 63] = 1; //two could trigger
+      fEventSets [kEE  + 66] = 1; //two can't trigger
     }
-    if(mumu) {
-      fEventSets [kMuMu + 1] = 1; // all events
-      fEventSets [kMuMu + 2] = 1; // events with >= 1 photon
-
-      fEventSets [kMuMu + 3] = 1;
-      fEventSets [kMuMu + 4] = 1;
-      fEventSets [kMuMu + 7] = 1;
-      fEventSets [kMuMu + 8] = 1;
-      fSysSets   [kMuMu + 8] = 1;
-
-      // MVA categories
-      for(int i = 9; i < 19; ++i) fEventSets[kMuMu + i] = 1;
-      fSysSets[kMuMu  + 9  + fMVAConfig.categories_["zemu"].size()] = 1; //start with most significant category
-      fSysSets[kMuMu  + 8  + fMVAConfig.categories_["zemu"].size()] = 1; //second most significant category
-      fSysSets[kMuMu  + 14 + fMVAConfig.categories_["hemu"].size()] = 1; //start with most significant category
-      fSysSets[kMuMu  + 13 + fMVAConfig.categories_["hemu"].size()] = 1; //second most significant category
-
-      fEventSets [kMuMu + 22] = 1; // events with nJets = 0
-      fEventSets [kMuMu + 23] = 1; // events with nJets > 0
-
-      fEventSets [kMuMu + 24] = 1; // events within mass window
-      fEventSets [kMuMu + 25] = 1; // events within mass window
-
-      fEventSets [kMuMu + 26] = 1; // events top set
-      fEventSets [kMuMu + 27] = 1;
-
-      fEventSets [kMuMu + 35] = 1;
-      fEventSets [kMuMu + 50] = 1;
-      fEventSets [kMuMu + 51] = 1;
-
-      if(!fDYTesting || fTriggerTesting) { //testing triggering
-        fEventSets [kMuMu + 60] = 1; //one fired
-        fEventSets [kMuMu + 61] = 1; //two fired
-        fEventSets [kMuMu + 62] = 1; //both fired
-        fEventSets [kMuMu + 63] = 1; //two could trigger
-        fEventSets [kMuMu + 66] = 1; //two can't trigger
-      }
-    }
-    if(ee) {
-      fEventSets [kEE   + 1] = 1; // all events
-      fEventSets [kEE   + 2] = 1;
-      fEventSets [kEE   + 3] = 1;
-      fEventSets [kEE   + 4] = 1;
-
-      fEventSets [kEE   + 7] = 1;
-      fEventSets [kEE   + 8] = 1;
-      fSysSets   [kEE   + 8] = 1;
-
-      // MVA categories
-      for(int i = 9; i < 19; ++i) fEventSets[kEE + i] = 1;
-      fSysSets[kEE    + 9  + fMVAConfig.categories_["zemu"].size()] = 1; //start with most significant category
-      fSysSets[kEE    + 8  + fMVAConfig.categories_["zemu"].size()] = 1; //second most significant category
-      fSysSets[kEE    + 14 + fMVAConfig.categories_["hemu"].size()] = 1; //start with most significant category
-      fSysSets[kEE    + 13 + fMVAConfig.categories_["hemu"].size()] = 1; //second most significant category
-
-      fEventSets [kEE   + 22] = 1; // events with nJets = 0
-      fEventSets [kEE   + 23] = 1; // events with nJets > 0
-
-      fEventSets [kEE   + 24] = 1; // events within mass window
-      fEventSets [kEE   + 25] = 1; // events within mass window
-
-      fEventSets [kEE   + 26] = 1; // events top set
-      fEventSets [kEE   + 27] = 1;
-
-      fEventSets [kEE   + 35] = 1;
-      fEventSets [kEE   + 50] = 1;
-      fEventSets [kEE   + 51] = 1;
-
-      if(!fDYTesting || fTriggerTesting) { //testing triggering
-        fEventSets [kEE  + 60] = 1; //one fired
-        fEventSets [kEE  + 61] = 1; //two fired
-        fEventSets [kEE  + 62] = 1; //both fired
-        fEventSets [kEE  + 63] = 1; //two could trigger
-        fEventSets [kEE  + 66] = 1; //two can't trigger
-      }
-    }
-    if(emu) {
-      //Leptonic tau channels
-      //mu+tau_e
-      // MVA categories
-      for(int i = 9; i < 19; ++i) fEventSets[kMuTauE + i] = 1;
-      //e+tau_mu
-      // MVA categories
-      for(int i = 9; i < 19; ++i) fEventSets[kETauMu + i] = 1;
-    }
+  }
+  if(emu) {
+    //Leptonic tau channels
+    //mu+tau_e
+    // MVA categories
+    for(int i = 9; i < 19; ++i) fEventSets[kMuTauE + i] = 1;
+    //e+tau_mu
+    // MVA categories
+    for(int i = 9; i < 19; ++i) fEventSets[kETauMu + i] = 1;
+  }
 }
 
 //--------------------------------------------------------------------------------------------------------------
@@ -515,62 +515,6 @@ void CLFVHistMaker::BookLepHistograms() {
 
       BookBaseLepHistograms(i, dirname);
 
-      //for correcting jet -> tau scale factors
-      const double pts[] = {0.  , 20. , 25. , 30. , 35. ,
-                            40. , 45. , 50. , 55. , 65. ,
-                            80. , 100. , 120.,
-                            200.};
-      const int nbins_pt = sizeof(pts)/sizeof(*pts) - 1;
-
-      const double rbins[] = {0.  , 1.  , 1.5 , 2.  , 2.5,
-                              3.  , 3.5 ,
-                              5.};
-      const int nrbins = sizeof(rbins)/sizeof(*rbins) - 1;
-      for(int dmregion = 0; dmregion < 5; ++dmregion) {
-        TString name_r = "jettauoneptvsr";
-        if(dmregion > 0) {name_r += "_"; name_r += dmregion;}
-        Utilities::BookH2F(fLepHist[i]->hJetTauOnePtVsR[dmregion], name_r.Data() , Form("%s: Delta R Vs One Pt"   ,dirname)  , nbins_pt, pts, nrbins, rbins, folder);
-        TString name = "jettauonept";
-        if(dmregion > 0) {name += "_"; name += dmregion;}
-        Utilities::BookH1F(fLepHist[i]->hJetTauOnePt[dmregion], name.Data() , Form("%s: One Pt"   ,dirname)  , nbins_pt, pts, folder);
-      }
-      Utilities::BookH1F(fLepHist[i]->hJetTauOneR  , "jettauoner" , Form("%s: Delta R" ,dirname)  , nrbins, rbins, folder);
-
-      const double pts_qcd[] = {0.  , 20. , 25. , 30. , 35. ,
-                                40. , 50. , 60. ,
-                                200.};
-      const int nbins_pt_qcd = sizeof(pts_qcd)/sizeof(*pts_qcd) - 1;
-      Utilities::BookH1F(fLepHist[i]->hJetTauOnePtQCD[0], "jettauoneptqcd_0" , Form("%s: One Pt"   ,dirname)  , nbins_pt_qcd, pts_qcd, folder);
-      Utilities::BookH1F(fLepHist[i]->hJetTauOnePtQCD[1], "jettauoneptqcd_1" , Form("%s: One Pt"   ,dirname)  , nbins_pt_qcd, pts_qcd, folder);
-
-      Utilities::BookH1F(fLepHist[i]->hJetTauOneEta, "jettauoneeta", Form("%s: |Eta|"  ,dirname)  , 20,    0, 2.5, folder);
-      const double metbins[] = {0., 0.5, 0.9, 1.2, 1.4, 1.6, 1.8, 2., 2.2, 2.4, 2.6, 2.8, 3.0, 3.2, 4., 5.};
-      const int nmetbins = sizeof(metbins)/sizeof(*metbins) - 1;
-      for(int idm = -1; idm < 4; ++idm) {
-        TString nm = (idm > -1) ? Form("jettauonemetdeltaphi_%i", idm) : "jettauonemetdeltaphi";
-        Utilities::BookH1F(fLepHist[i]->hJetTauOneMetDeltaPhi[idm+1], nm.Data(), Form("%s: OneMetDeltaPhi"  ,dirname), nmetbins, metbins, folder);
-      }
-      const double metqcdbins[] = {0., 0.3, 0.6, 0.9, 1.3, 1.8, 2.5, 3.2, 4.};
-      const int nmetqcdbins = sizeof(metqcdbins)/sizeof(*metqcdbins) - 1;
-      Utilities::BookH1F(fLepHist[i]->hJetTauOneMetDPhiQCD[0], "jettauonemetdphiqcd0", Form("%s: OneMetDeltaPhi"  ,dirname), nmetqcdbins, metqcdbins, folder);
-      Utilities::BookH1F(fLepHist[i]->hJetTauOneMetDPhiQCD[1], "jettauonemetdphiqcd1", Form("%s: OneMetDeltaPhi"  ,dirname), nmetqcdbins, metqcdbins, folder);
-      const double isobins[] = {0., 0.02, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.40, 0.50};
-      const int nisobins = sizeof(isobins)/sizeof(*isobins) - 1;
-      Utilities::BookH1F(fLepHist[i]->hJetTauOneRelIso[0], "jettauonereliso_0", Form("%s: OneRelIso"  ,dirname), nisobins, isobins, folder);
-      Utilities::BookH1F(fLepHist[i]->hJetTauOneRelIso[1], "jettauonereliso_1", Form("%s: OneRelIso"  ,dirname), nisobins, isobins, folder);
-
-      //j-->tau compositions
-      const double mtbins[] = {0., 10., 20., 30., 40., 50., 65., 90., 150.};
-      const int    nmtbins  = sizeof(mtbins) / sizeof(*mtbins) - 1;
-      Utilities::BookH1F(fLepHist[i]->hJetTauOneMetDPhiComp, "jettauonemetdphicomp", Form("%s: OneMetDeltaPhi"  ,dirname), nmetbins    , metbins, folder);
-      Utilities::BookH1F(fLepHist[i]->hJetTauTwoMetDPhiComp, "jettautwometdphicomp", Form("%s: TwoMetDeltaPhi"  ,dirname), nmetbins    , metbins, folder);
-      Utilities::BookH1F(fLepHist[i]->hJetTauOnePtComp     , "jettauoneptcomp"     , Form("%s: OnePt"           ,dirname), nbins_pt_qcd, pts_qcd, folder);
-      Utilities::BookH1F(fLepHist[i]->hJetTauTwoPtComp     , "jettautwoptcomp"     , Form("%s: TwoPt"           ,dirname), nbins_pt_qcd, pts_qcd, folder);
-      Utilities::BookH1F(fLepHist[i]->hJetTauMTOneComp     , "jettaumtonecomp"     , Form("%s: MTOne"           ,dirname), nmtbins     , mtbins , folder);
-      Utilities::BookH1F(fLepHist[i]->hJetTauMTTwoComp     , "jettaumttwocomp"     , Form("%s: MTTwo"           ,dirname), nmtbins     , mtbins , folder);
-
-      //end j-->tau histograms
-
       for(int j = 1; j < 12; ++j) { //lepton pT with/without various weights
         TString name = Form("onept%i", j);
         Utilities::BookH1F(fLepHist[i]->hOnePt[j], name.Data(), Form("%s: Pt"      ,dirname)  , 150,   0, 150, folder);
@@ -581,33 +525,91 @@ void CLFVHistMaker::BookLepHistograms() {
         TString name = Form("twopt%i", j);
         Utilities::BookH1F(fLepHist[i]->hTwoPt[j]     , name.Data(), Form("%s: Pt"      ,dirname)  , 150,   0, 150, folder);
       }
-      for(int dmregion = 0; dmregion < 5; ++dmregion) {
-        TString name_r = "jettautwoptvsr";
-        if(dmregion > 0) {name_r += "_"; name_r += dmregion;}
-        Utilities::BookH2F(fLepHist[i]->hJetTauTwoPtVsR[dmregion], name_r.Data() , Form("%s: Delta R Vs Two Pt"   ,dirname)  , nbins_pt, pts, nrbins, rbins, folder);
-        TString name = "jettautwopt";
-        if(dmregion > 0) {name += "_"; name += dmregion;}
-        Utilities::BookH1F(fLepHist[i]->hJetTauTwoPt[dmregion], name.Data() , Form("%s: Two Pt"   ,dirname)  , nbins_pt, pts, folder);
-      }
-      Utilities::BookH1F(fLepHist[i]->hJetTauTwoR[0]     , "jettautwor0"     , Form("%s: Delta R" ,dirname)  , nrbins, rbins, folder);
-      Utilities::BookH1F(fLepHist[i]->hJetTauTwoR[1]     , "jettautwor"      , Form("%s: Delta R" ,dirname)  , nrbins, rbins, folder);
-      Utilities::BookH1F(fLepHist[i]->hJetTauTwoEta[0]   , "jettautwoeta0"   , Form("%s: |Eta|"  ,dirname)  , 20,    0, 2.5, folder);
-      Utilities::BookH1F(fLepHist[i]->hJetTauTwoEta[1]   , "jettautwoeta"    , Form("%s: |Eta|"  ,dirname)  , 20,    0, 2.5, folder);
-      Utilities::BookH1F(fLepHist[i]->hJetTauTwoEtaQCD[0], "jettautwoetaqcd0", Form("%s: |Eta|"  ,dirname)  , 10,    0, 2.5, folder);
-      Utilities::BookH1F(fLepHist[i]->hJetTauTwoEtaQCD[1], "jettautwoetaqcd1", Form("%s: |Eta|"  ,dirname)  , 10,    0, 2.5, folder);
 
-      Utilities::BookH1F(fLepHist[i]->hJetTauTwoMetDeltaPhi[0], "jettautwometdeltaphi0", Form("%s: TwoMetDeltaPhi"  ,dirname), nmetbins, metbins, folder);
-      Utilities::BookH1F(fLepHist[i]->hJetTauTwoMetDeltaPhi[1], "jettautwometdeltaphi" , Form("%s: TwoMetDeltaPhi"  ,dirname), nmetbins, metbins, folder);
-      Utilities::BookH1F(fLepHist[i]->hJetTauTwoRelIso[0], "jettautworeliso_0", Form("%s: TwoRelIso"  ,dirname), nisobins, isobins, folder);
-      Utilities::BookH1F(fLepHist[i]->hJetTauTwoRelIso[1], "jettautworeliso_1", Form("%s: TwoRelIso"  ,dirname), nisobins, isobins, folder);
+      // //for correcting jet -> tau scale factors
+      // const double pts[] = {0.  , 20. , 25. , 30. , 35. ,
+      //                       40. , 45. , 50. , 55. , 65. ,
+      //                       80. , 100. , 120.,
+      //                       200.};
+      // const int nbins_pt = sizeof(pts)/sizeof(*pts) - 1;
+
+      // const double rbins[] = {0.  , 1.  , 1.5 , 2.  , 2.5,
+      //                         3.  , 3.5 ,
+      //                         5.};
+      // const int nrbins = sizeof(rbins)/sizeof(*rbins) - 1;
+      // for(int dmregion = 0; dmregion < 5; ++dmregion) {
+      //   TString name_r = "jettauoneptvsr";
+      //   if(dmregion > 0) {name_r += "_"; name_r += dmregion;}
+      //   Utilities::BookH2F(fLepHist[i]->hJetTauOnePtVsR[dmregion], name_r.Data() , Form("%s: Delta R Vs One Pt"   ,dirname)  , nbins_pt, pts, nrbins, rbins, folder);
+      //   TString name = "jettauonept";
+      //   if(dmregion > 0) {name += "_"; name += dmregion;}
+      //   Utilities::BookH1F(fLepHist[i]->hJetTauOnePt[dmregion], name.Data() , Form("%s: One Pt"   ,dirname)  , nbins_pt, pts, folder);
+      // }
+      // Utilities::BookH1F(fLepHist[i]->hJetTauOneR  , "jettauoner" , Form("%s: Delta R" ,dirname)  , nrbins, rbins, folder);
+
+      // const double pts_qcd[] = {0.  , 20. , 25. , 30. , 35. ,
+      //                           40. , 50. , 60. ,
+      //                           200.};
+      // const int nbins_pt_qcd = sizeof(pts_qcd)/sizeof(*pts_qcd) - 1;
+      // Utilities::BookH1F(fLepHist[i]->hJetTauOnePtQCD[0], "jettauoneptqcd_0" , Form("%s: One Pt"   ,dirname)  , nbins_pt_qcd, pts_qcd, folder);
+      // Utilities::BookH1F(fLepHist[i]->hJetTauOnePtQCD[1], "jettauoneptqcd_1" , Form("%s: One Pt"   ,dirname)  , nbins_pt_qcd, pts_qcd, folder);
+
+      // Utilities::BookH1F(fLepHist[i]->hJetTauOneEta, "jettauoneeta", Form("%s: |Eta|"  ,dirname)  , 20,    0, 2.5, folder);
+      // const double metbins[] = {0., 0.5, 0.9, 1.2, 1.4, 1.6, 1.8, 2., 2.2, 2.4, 2.6, 2.8, 3.0, 3.2, 4., 5.};
+      // const int nmetbins = sizeof(metbins)/sizeof(*metbins) - 1;
+      // for(int idm = -1; idm < 4; ++idm) {
+      //   TString nm = (idm > -1) ? Form("jettauonemetdeltaphi_%i", idm) : "jettauonemetdeltaphi";
+      //   Utilities::BookH1F(fLepHist[i]->hJetTauOneMetDeltaPhi[idm+1], nm.Data(), Form("%s: OneMetDeltaPhi"  ,dirname), nmetbins, metbins, folder);
+      // }
+      // const double metqcdbins[] = {0., 0.3, 0.6, 0.9, 1.3, 1.8, 2.5, 3.2, 4.};
+      // const int nmetqcdbins = sizeof(metqcdbins)/sizeof(*metqcdbins) - 1;
+      // Utilities::BookH1F(fLepHist[i]->hJetTauOneMetDPhiQCD[0], "jettauonemetdphiqcd0", Form("%s: OneMetDeltaPhi"  ,dirname), nmetqcdbins, metqcdbins, folder);
+      // Utilities::BookH1F(fLepHist[i]->hJetTauOneMetDPhiQCD[1], "jettauonemetdphiqcd1", Form("%s: OneMetDeltaPhi"  ,dirname), nmetqcdbins, metqcdbins, folder);
+      // const double isobins[] = {0., 0.02, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30, 0.40, 0.50};
+      // const int nisobins = sizeof(isobins)/sizeof(*isobins) - 1;
+      // Utilities::BookH1F(fLepHist[i]->hJetTauOneRelIso[0], "jettauonereliso_0", Form("%s: OneRelIso"  ,dirname), nisobins, isobins, folder);
+      // Utilities::BookH1F(fLepHist[i]->hJetTauOneRelIso[1], "jettauonereliso_1", Form("%s: OneRelIso"  ,dirname), nisobins, isobins, folder);
+
+      // //j-->tau compositions
+      // const double mtbins[] = {0., 10., 20., 30., 40., 50., 65., 90., 150.};
+      // const int    nmtbins  = sizeof(mtbins) / sizeof(*mtbins) - 1;
+      // Utilities::BookH1F(fLepHist[i]->hJetTauOneMetDPhiComp, "jettauonemetdphicomp", Form("%s: OneMetDeltaPhi"  ,dirname), nmetbins    , metbins, folder);
+      // Utilities::BookH1F(fLepHist[i]->hJetTauTwoMetDPhiComp, "jettautwometdphicomp", Form("%s: TwoMetDeltaPhi"  ,dirname), nmetbins    , metbins, folder);
+      // Utilities::BookH1F(fLepHist[i]->hJetTauOnePtComp     , "jettauoneptcomp"     , Form("%s: OnePt"           ,dirname), nbins_pt_qcd, pts_qcd, folder);
+      // Utilities::BookH1F(fLepHist[i]->hJetTauTwoPtComp     , "jettautwoptcomp"     , Form("%s: TwoPt"           ,dirname), nbins_pt_qcd, pts_qcd, folder);
+      // Utilities::BookH1F(fLepHist[i]->hJetTauMTOneComp     , "jettaumtonecomp"     , Form("%s: MTOne"           ,dirname), nmtbins     , mtbins , folder);
+      // Utilities::BookH1F(fLepHist[i]->hJetTauMTTwoComp     , "jettaumttwocomp"     , Form("%s: MTTwo"           ,dirname), nmtbins     , mtbins , folder);
+
+      // for(int dmregion = 0; dmregion < 5; ++dmregion) {
+      //   TString name_r = "jettautwoptvsr";
+      //   if(dmregion > 0) {name_r += "_"; name_r += dmregion;}
+      //   Utilities::BookH2F(fLepHist[i]->hJetTauTwoPtVsR[dmregion], name_r.Data() , Form("%s: Delta R Vs Two Pt"   ,dirname)  , nbins_pt, pts, nrbins, rbins, folder);
+      //   TString name = "jettautwopt";
+      //   if(dmregion > 0) {name += "_"; name += dmregion;}
+      //   Utilities::BookH1F(fLepHist[i]->hJetTauTwoPt[dmregion], name.Data() , Form("%s: Two Pt"   ,dirname)  , nbins_pt, pts, folder);
+      // }
+      // Utilities::BookH1F(fLepHist[i]->hJetTauTwoR[0]     , "jettautwor0"     , Form("%s: Delta R" ,dirname)  , nrbins, rbins, folder);
+      // Utilities::BookH1F(fLepHist[i]->hJetTauTwoR[1]     , "jettautwor"      , Form("%s: Delta R" ,dirname)  , nrbins, rbins, folder);
+      // Utilities::BookH1F(fLepHist[i]->hJetTauTwoEta[0]   , "jettautwoeta0"   , Form("%s: |Eta|"  ,dirname)  , 20,    0, 2.5, folder);
+      // Utilities::BookH1F(fLepHist[i]->hJetTauTwoEta[1]   , "jettautwoeta"    , Form("%s: |Eta|"  ,dirname)  , 20,    0, 2.5, folder);
+      // Utilities::BookH1F(fLepHist[i]->hJetTauTwoEtaQCD[0], "jettautwoetaqcd0", Form("%s: |Eta|"  ,dirname)  , 10,    0, 2.5, folder);
+      // Utilities::BookH1F(fLepHist[i]->hJetTauTwoEtaQCD[1], "jettautwoetaqcd1", Form("%s: |Eta|"  ,dirname)  , 10,    0, 2.5, folder);
+
+      // Utilities::BookH1F(fLepHist[i]->hJetTauTwoMetDeltaPhi[0], "jettautwometdeltaphi0", Form("%s: TwoMetDeltaPhi"  ,dirname), nmetbins, metbins, folder);
+      // Utilities::BookH1F(fLepHist[i]->hJetTauTwoMetDeltaPhi[1], "jettautwometdeltaphi" , Form("%s: TwoMetDeltaPhi"  ,dirname), nmetbins, metbins, folder);
+      // Utilities::BookH1F(fLepHist[i]->hJetTauTwoRelIso[0], "jettautworeliso_0", Form("%s: TwoRelIso"  ,dirname), nisobins, isobins, folder);
+      // Utilities::BookH1F(fLepHist[i]->hJetTauTwoRelIso[1], "jettautworeliso_1", Form("%s: TwoRelIso"  ,dirname), nisobins, isobins, folder);
 
 
-      //2D distributions
-      const double tau_pts[] = {0., 25., 30., 35., 40.,
-                                50.,
-                                150.};
-      const int nbins_tau_pt = sizeof(tau_pts) / sizeof(*tau_pts) - 1;
-      Utilities::BookH2F(fLepHist[i]->hJetTauTwoPtVsOnePt, "jettautwoptvsonept", Form("%s: Two pT vs One pT", dirname), nbins_pt, pts, nbins_tau_pt, tau_pts, folder);
+      // //2D distributions
+      // const double tau_pts[] = {0., 25., 30., 35., 40.,
+      //                           50.,
+      //                           150.};
+      // const int nbins_tau_pt = sizeof(tau_pts) / sizeof(*tau_pts) - 1;
+      // Utilities::BookH2F(fLepHist[i]->hJetTauTwoPtVsOnePt, "jettautwoptvsonept", Form("%s: Two pT vs One pT", dirname), nbins_pt, pts, nbins_tau_pt, tau_pts, folder);
+
+      //end j-->tau histograms
+
       delete dirname;
     }
   }
@@ -993,60 +995,60 @@ void CLFVHistMaker::FillLepHistogram(LepHist_t* Hist) {
   wt = (jetToTauWeight > 0. && jetToTauWeightBias > 0.) ? jetToTauWeightBias/jetToTauWeight : 1.;
   Hist->hOnePt[11]->Fill(fTreeVars.leponept, eventWeight*genWeight/wt);
 
-  if(nTaus == 1 && ((std::abs(leptonTwoFlavor) == 15 && tauDecayMode%10 < 2) || (Tau_decayMode[0]%10 < 2))) {
-    int dmr = (std::abs(leptonTwoFlavor) == 15) ? tauDecayMode : Tau_decayMode[0];
-    if(dmr > 9) dmr -= (10 - 2); //10,11 --> 2,3
-    dmr += 1; //dmr = DM ID + 1, so 0 can be inclusive
-    dmr = std::min(4, dmr); //ensure it's not out of bounds
-    TLorentzVector taulv;
-    if(std::abs(leptonTwoFlavor) == 15) taulv = *leptonTwoP4;
-    else taulv.SetPtEtaPhiM(Tau_pt[0], Tau_eta[0], Tau_phi[0], Tau_mass[0]);
+  // if(nTaus == 1 && ((std::abs(leptonTwoFlavor) == 15 && tauDecayMode%10 < 2) || (Tau_decayMode[0]%10 < 2))) {
+  //   int dmr = (std::abs(leptonTwoFlavor) == 15) ? tauDecayMode : Tau_decayMode[0];
+  //   if(dmr > 9) dmr -= (10 - 2); //10,11 --> 2,3
+  //   dmr += 1; //dmr = DM ID + 1, so 0 can be inclusive
+  //   dmr = std::min(4, dmr); //ensure it's not out of bounds
+  //   TLorentzVector taulv;
+  //   if(std::abs(leptonTwoFlavor) == 15) taulv = *leptonTwoP4;
+  //   else taulv.SetPtEtaPhiM(Tau_pt[0], Tau_eta[0], Tau_phi[0], Tau_mass[0]);
 
-    //FIXME: Remove tau pT region histograms
-    float wt_nojt(eventWeight*genWeight), wt_nocorr(eventWeight*genWeight), wt_nobias(eventWeight*genWeight);
-    if(jetToTauWeightBias > 0.) wt_nojt   *= 1.                 / jetToTauWeightBias; // remove the entire weight
-    if(jetToTauWeightBias > 0.) wt_nocorr *= jetToTauWeight     / jetToTauWeightBias; // remove the non-closure and bias corrections
-    if(jetToTauWeightBias > 0.) wt_nobias *= jetToTauWeightCorr / jetToTauWeightBias; // remove the bias corrections
-    double dr = std::fabs(leptonOneP4->DeltaR(taulv));
-    Hist->hJetTauOnePt[0]       ->Fill(fTreeVars.leponept, wt_nocorr);
-    Hist->hJetTauOnePt[dmr]     ->Fill(fTreeVars.leponept, wt_nocorr);
-    Hist->hJetTauOnePtQCD[0]    ->Fill(fTreeVars.leponept, eventWeight*genWeight);
-    Hist->hJetTauOnePtQCD[1]    ->Fill(fTreeVars.leponept, wt_nocorr);
-    Hist->hJetTauOnePtVsR[0]    ->Fill(fTreeVars.leponept, dr, wt_nocorr);
-    Hist->hJetTauOnePtVsR[dmr]  ->Fill(fTreeVars.leponept, dr, wt_nocorr);
-    Hist->hJetTauOneR->Fill(dr, wt_nocorr);
-    Hist->hJetTauOneEta->Fill(std::fabs(leptonOneP4->Eta()), wt_nocorr);
-    Hist->hJetTauOneMetDeltaPhi[0]->Fill(fTreeVars.onemetdeltaphi, wt_nocorr); //inclusive
-    Hist->hJetTauOneMetDeltaPhi[dmr]->Fill(fTreeVars.onemetdeltaphi, wt_nocorr);
-    Hist->hJetTauOneMetDPhiQCD[0]->Fill(fTreeVars.onemetdeltaphi, eventWeight*genWeight); //inclusive
-    Hist->hJetTauOneMetDPhiQCD[1]->Fill(fTreeVars.onemetdeltaphi, wt_nocorr); //inclusive
-    Hist->hJetTauOneRelIso[0]->Fill(fTreeVars.leponereliso, eventWeight*genWeight);
-    Hist->hJetTauOneRelIso[1]->Fill(fTreeVars.leponereliso, wt_nobias);
+  //   //FIXME: Remove tau pT region histograms
+  //   float wt_nojt(eventWeight*genWeight), wt_nocorr(eventWeight*genWeight), wt_nobias(eventWeight*genWeight);
+  //   if(jetToTauWeightBias > 0.) wt_nojt   *= 1.                 / jetToTauWeightBias; // remove the entire weight
+  //   if(jetToTauWeightBias > 0.) wt_nocorr *= jetToTauWeight     / jetToTauWeightBias; // remove the non-closure and bias corrections
+  //   if(jetToTauWeightBias > 0.) wt_nobias *= jetToTauWeightCorr / jetToTauWeightBias; // remove the bias corrections
+  //   double dr = std::fabs(leptonOneP4->DeltaR(taulv));
+  //   Hist->hJetTauOnePt[0]       ->Fill(fTreeVars.leponept, wt_nocorr);
+  //   Hist->hJetTauOnePt[dmr]     ->Fill(fTreeVars.leponept, wt_nocorr);
+  //   Hist->hJetTauOnePtQCD[0]    ->Fill(fTreeVars.leponept, eventWeight*genWeight);
+  //   Hist->hJetTauOnePtQCD[1]    ->Fill(fTreeVars.leponept, wt_nocorr);
+  //   Hist->hJetTauOnePtVsR[0]    ->Fill(fTreeVars.leponept, dr, wt_nocorr);
+  //   Hist->hJetTauOnePtVsR[dmr]  ->Fill(fTreeVars.leponept, dr, wt_nocorr);
+  //   Hist->hJetTauOneR->Fill(dr, wt_nocorr);
+  //   Hist->hJetTauOneEta->Fill(std::fabs(leptonOneP4->Eta()), wt_nocorr);
+  //   Hist->hJetTauOneMetDeltaPhi[0]->Fill(fTreeVars.onemetdeltaphi, wt_nocorr); //inclusive
+  //   Hist->hJetTauOneMetDeltaPhi[dmr]->Fill(fTreeVars.onemetdeltaphi, wt_nocorr);
+  //   Hist->hJetTauOneMetDPhiQCD[0]->Fill(fTreeVars.onemetdeltaphi, eventWeight*genWeight); //inclusive
+  //   Hist->hJetTauOneMetDPhiQCD[1]->Fill(fTreeVars.onemetdeltaphi, wt_nocorr); //inclusive
+  //   Hist->hJetTauOneRelIso[0]->Fill(fTreeVars.leponereliso, eventWeight*genWeight);
+  //   Hist->hJetTauOneRelIso[1]->Fill(fTreeVars.leponereliso, wt_nobias);
 
-    Hist->hJetTauOneMetDPhiComp->Fill(fTreeVars.onemetdeltaphi, wt_nojt); //compositions
-    Hist->hJetTauTwoMetDPhiComp->Fill(fTreeVars.twometdeltaphi, wt_nojt);
-    Hist->hJetTauOnePtComp     ->Fill(fTreeVars.leponept       , wt_nojt);
-    Hist->hJetTauTwoPtComp     ->Fill(fTreeVars.leptwopt       , wt_nojt);
-    Hist->hJetTauMTOneComp     ->Fill(fTreeVars.mtone         , wt_nojt);
-    Hist->hJetTauMTTwoComp     ->Fill(fTreeVars.mttwo         , wt_nojt);
+  //   Hist->hJetTauOneMetDPhiComp->Fill(fTreeVars.onemetdeltaphi, wt_nojt); //compositions
+  //   Hist->hJetTauTwoMetDPhiComp->Fill(fTreeVars.twometdeltaphi, wt_nojt);
+  //   Hist->hJetTauOnePtComp     ->Fill(fTreeVars.leponept       , wt_nojt);
+  //   Hist->hJetTauTwoPtComp     ->Fill(fTreeVars.leptwopt       , wt_nojt);
+  //   Hist->hJetTauMTOneComp     ->Fill(fTreeVars.mtone         , wt_nojt);
+  //   Hist->hJetTauMTTwoComp     ->Fill(fTreeVars.mttwo         , wt_nojt);
 
-    dr = std::fabs(leptonTwoP4->DeltaR(taulv));
-    Hist->hJetTauTwoPt[0]       ->Fill(fTreeVars.leptwopt, wt_nocorr);
-    Hist->hJetTauTwoPt[dmr]     ->Fill(fTreeVars.leptwopt, wt_nocorr);
-    Hist->hJetTauTwoPtVsR[0]    ->Fill(fTreeVars.leptwopt, dr, wt_nocorr);
-    Hist->hJetTauTwoPtVsR[dmr]  ->Fill(fTreeVars.leptwopt, dr, wt_nocorr);
-    Hist->hJetTauTwoR[0]->Fill(dr, eventWeight*genWeight);
-    Hist->hJetTauTwoR[1]->Fill(dr, wt_nocorr);
-    Hist->hJetTauTwoEta[0]->Fill(std::fabs(leptonTwoP4->Eta()), eventWeight*genWeight);
-    Hist->hJetTauTwoEta[1]->Fill(std::fabs(leptonTwoP4->Eta()), wt_nocorr);
-    Hist->hJetTauTwoEtaQCD[0]->Fill(std::fabs(leptonTwoP4->Eta()), eventWeight*genWeight);
-    Hist->hJetTauTwoEtaQCD[1]->Fill(std::fabs(leptonTwoP4->Eta()), wt_nocorr);
-    Hist->hJetTauTwoPtVsOnePt->Fill(fTreeVars.leponept, taulv.Pt(), wt_nocorr);
-    Hist->hJetTauTwoMetDeltaPhi[0]->Fill(fTreeVars.twometdeltaphi, eventWeight*genWeight);
-    Hist->hJetTauTwoMetDeltaPhi[1]->Fill(fTreeVars.twometdeltaphi, wt_nocorr);
-    Hist->hJetTauTwoRelIso[0]->Fill(fTreeVars.leptworeliso, eventWeight*genWeight);
-    Hist->hJetTauTwoRelIso[1]->Fill(fTreeVars.leptworeliso, wt_nobias);
-  }
+  //   dr = std::fabs(leptonTwoP4->DeltaR(taulv));
+  //   Hist->hJetTauTwoPt[0]       ->Fill(fTreeVars.leptwopt, wt_nocorr);
+  //   Hist->hJetTauTwoPt[dmr]     ->Fill(fTreeVars.leptwopt, wt_nocorr);
+  //   Hist->hJetTauTwoPtVsR[0]    ->Fill(fTreeVars.leptwopt, dr, wt_nocorr);
+  //   Hist->hJetTauTwoPtVsR[dmr]  ->Fill(fTreeVars.leptwopt, dr, wt_nocorr);
+  //   Hist->hJetTauTwoR[0]->Fill(dr, eventWeight*genWeight);
+  //   Hist->hJetTauTwoR[1]->Fill(dr, wt_nocorr);
+  //   Hist->hJetTauTwoEta[0]->Fill(std::fabs(leptonTwoP4->Eta()), eventWeight*genWeight);
+  //   Hist->hJetTauTwoEta[1]->Fill(std::fabs(leptonTwoP4->Eta()), wt_nocorr);
+  //   Hist->hJetTauTwoEtaQCD[0]->Fill(std::fabs(leptonTwoP4->Eta()), eventWeight*genWeight);
+  //   Hist->hJetTauTwoEtaQCD[1]->Fill(std::fabs(leptonTwoP4->Eta()), wt_nocorr);
+  //   Hist->hJetTauTwoPtVsOnePt->Fill(fTreeVars.leponept, taulv.Pt(), wt_nocorr);
+  //   Hist->hJetTauTwoMetDeltaPhi[0]->Fill(fTreeVars.twometdeltaphi, eventWeight*genWeight);
+  //   Hist->hJetTauTwoMetDeltaPhi[1]->Fill(fTreeVars.twometdeltaphi, wt_nocorr);
+  //   Hist->hJetTauTwoRelIso[0]->Fill(fTreeVars.leptworeliso, eventWeight*genWeight);
+  //   Hist->hJetTauTwoRelIso[1]->Fill(fTreeVars.leptworeliso, wt_nobias);
+  // }
 
   /////////////
   //  Lep 2  //
@@ -1089,6 +1091,7 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
     if(weight == 0.) continue; //no way to re-scale 0, contributes nothing to histograms so can just skip
     TLorentzVector lv1 = *leptonOneP4;
     TLorentzVector lv2 = *leptonTwoP4;
+    bool reeval = false;
     if(sys == 0) weight = weight;                                          //do nothing
     else if  (sys ==  1) {                                                 //electron ID scale factors
       if(std::abs(leptonOneFlavor) == 11) weight *= leptonOneWeight1_up / leptonOneWeight1;
@@ -1146,10 +1149,12 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
     else if  (sys == 22) {                                                 //Tau ES
       if(std::abs(leptonTwoFlavor) == 15 && tauES > 0. && tauES_up > 0.) {
         lv2 *= (tauES_up / tauES);
+        reeval = true;
       }
     } else if(sys == 23) {
       if(std::abs(leptonTwoFlavor) == 15 && tauES > 0. && tauES_down > 0.) {
         lv2 *= (tauES_down / tauES);
+        reeval = true;
       }
     }
     else if  (sys == 25) weight *= (qcdWeight > 0.) ? qcdWeightUp  / qcdWeight : 0.; //SS --> OS weights
@@ -1190,11 +1195,11 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
     } else if  (sys == 48) { weight *= jetToTauWeightBiasDown   / jetToTauWeightBias   ;
 
       //Removed j->tau groupings since now using fitter errors uncorrelated by years
-    } else if  (sys >= SystematicGrouping::kJetToTau && sys < 100) { //Jet --> tau systematic groupings, (4 DM)*(2 eta)*(3 years)*(2 up/down) = 48 histograms
-      if(std::abs(leptonOneFlavor) == std::abs(leptonTwoFlavor)) continue;
-      int offset = SystematicGrouping::kJetToTau;
-      if(2*(jetToTauWeightGroup) - offset     == sys) weight *= jetToTauWeightUp   / jetToTauWeight;
-      if(2*(jetToTauWeightGroup) - offset + 1 == sys) weight *= jetToTauWeightDown / jetToTauWeight;
+    // } else if  (sys >= SystematicGrouping::kJetToTau && sys < 100) { //Jet --> tau systematic groupings, (4 DM)*(2 eta)*(3 years)*(2 up/down) = 48 histograms
+    //   if(std::abs(leptonOneFlavor) == std::abs(leptonTwoFlavor)) continue;
+    //   int offset = SystematicGrouping::kJetToTau;
+    //   if(2*(jetToTauWeightGroup) - offset     == sys) weight *= jetToTauWeightUp   / jetToTauWeight;
+    //   if(2*(jetToTauWeightGroup) - offset + 1 == sys) weight *= jetToTauWeightDown / jetToTauWeight;
       //Removed muon ID groupings since it appears to be small enough to treat correlated
     // } else if  (sys >= SystematicGrouping::kMuonID && sys < 150) { //Muon ID
     //   int offset = SystematicGrouping::kMuonID;
@@ -1276,13 +1281,16 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
       weight = 0.;
     }
 
+    float lepm  = (reeval) ? (lv1+lv2).M() : fTreeVars.lepm;
+    float onept = (reeval) ? lv1.Pt() : fTreeVars.leponept;
+    float twopt = (reeval) ? lv2.Pt() : fTreeVars.leptwopt;
     TLorentzVector lepSys = lv1 + lv2;
 
-    Hist->hLepM  [sys]->Fill(lepSys.M()  , weight);
+    Hist->hLepM  [sys]->Fill(lepm  , weight);
     //skip all other histograms in same-flavor selection, only using the M_{ll} histogram
     if(isSameFlavor) continue;
-    Hist->hOnePt [sys]->Fill(lv1.Pt()    , weight);
-    Hist->hTwoPt [sys]->Fill(lv2.Pt()    , weight);
+    Hist->hOnePt [sys]->Fill(onept  , weight);
+    Hist->hTwoPt [sys]->Fill(twopt  , weight);
     if(!fIsData)
       Hist->hWeightChange[sys]->Fill((eventWeight*genWeight != 0.) ? (eventWeight*genWeight - weight) / (eventWeight*genWeight) : 0.);
     //MVA outputs
@@ -1299,7 +1307,7 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
            (category == 2 && isETau) ||
            (category == 0 && !(isMuTau || isETau)))
          ) continue;
-      float mvascore = fMvaOutputs[i];
+      float mvascore = (reeval && (fDoHiggs || !fMVAConfig.names_[i].Contains("higgs"))) ? mva[i]->EvaluateMVA(fMVAConfig.names_[i].Data()) : fMvaOutputs[i];
       if(!std::isfinite(mvascore) && fVerbose > 0) {
         std::cout << "CLFVHistMaker::" << __func__ << ": Entry " << fentry << " MVA " << i << " score is not finite = " << mvascore << "! Setting to -2...\n";
         mvascore = -2.;
@@ -1397,6 +1405,7 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   emu  &= std::fabs(leptonOneSCEta) < elec_gap_low || std::fabs(leptonOneSCEta) > elec_gap_high;
   ee   &= std::fabs(leptonOneSCEta) < elec_gap_low || std::fabs(leptonOneSCEta) > elec_gap_high;
   ee   &= std::fabs(leptonTwoSCEta) < elec_gap_low || std::fabs(leptonTwoSCEta) > elec_gap_high;
+
   if(!(mutau || etau || emu || mumu  || ee)) return kTRUE;
   fCutFlow->Fill(icutflow); ++icutflow; //8
 
@@ -1551,44 +1560,44 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   // Set 92 (93) + selection offset: QCD selection without iso/mtlep cut with (without) MC taus
   ////////////////////////////////////////////////////////////
 
-  if((etau || mutau) && looseQCDRegion) {
-    int qcd_set_offset = set_offset;
-    if(looseQCDSelection && !isLooseTau && (isLooseMuon || isLooseElectron)) qcd_set_offset -= fMisIDOffset; //remove offset if the loose lepton isn't the tau
-    const Float_t prev_evt_wt = eventWeight;
-    const Float_t prev_jtt_wt = jetToTauWeight;
-    const Float_t prev_jtt_cr = jetToTauWeightCorr;
-    const Float_t prev_jtt_bs = jetToTauWeightBias;
-    const Float_t evt_wt_bare = (prev_jtt_bs > 0.) ? prev_evt_wt / prev_jtt_bs : 0.; //no j->tau weight
-    const bool add_wt = fUseJetToTauComposition && isLooseTau;
-    const bool isfake = !fIsData && (std::abs(tauGenFlavor) == 26 || isFakeElectron || isFakeMuon);
-    //QCD weights from DR
-    if(add_wt) {
-      jetToTauWeight     = fJetToTauWts                      [JetToTauComposition::kQCD];
-      jetToTauWeightCorr = jetToTauWeight*fJetToTauCorrs     [JetToTauComposition::kQCD];
-      jetToTauWeightBias = jetToTauWeightCorr;//*fJetToTauBiases[JetToTauComposition::kQCD];
-      eventWeight        = jetToTauWeightBias*evt_wt_bare;
-    }
-    if(mutau || (etau && !isLooseElectron)) { //full isolation/mtlep region for isolation/mtlep bias measurement, no bias corrections
-      FillAllHistograms(qcd_set_offset + 92);
-      if(!isfake) FillAllHistograms(qcd_set_offset + 93);
-    }
-    if(fTreeVars.mtlep < qcd_mtlep_cut && ((mutau && fTreeVars.leponereliso > 0.15) || (etau && isLooseElectron))) { //high isolation/loose ID region for SS --> OS bias measurement
-      //QCD weights from high iso region, no bias corrections (stored in MC weights, but high iso weights)
-      if(add_wt) {
-        jetToTauWeight     = fJetToTauMCWts                      [JetToTauComposition::kQCD];
-        jetToTauWeightCorr = jetToTauWeight*fJetToTauMCCorrs     [JetToTauComposition::kQCD];
-        jetToTauWeightBias = jetToTauWeightCorr;//*fJetToTauMCBiases[JetToTauComposition::kQCD];
-        eventWeight        = jetToTauWeightBias*evt_wt_bare;
-      }
-      FillAllHistograms(qcd_set_offset + 94);
-      if(!isfake) FillAllHistograms(qcd_set_offset + 95);
-    }
-    //Restore the previous weights
-    eventWeight        = prev_evt_wt;
-    jetToTauWeight     = prev_jtt_wt;
-    jetToTauWeightCorr = prev_jtt_cr;
-    jetToTauWeightBias = prev_jtt_bs;
-  }
+  // if((etau || mutau) && looseQCDRegion) {
+  //   int qcd_set_offset = set_offset;
+  //   if(looseQCDSelection && !isLooseTau && (isLooseMuon || isLooseElectron)) qcd_set_offset -= fMisIDOffset; //remove offset if the loose lepton isn't the tau
+  //   const Float_t prev_evt_wt = eventWeight;
+  //   const Float_t prev_jtt_wt = jetToTauWeight;
+  //   const Float_t prev_jtt_cr = jetToTauWeightCorr;
+  //   const Float_t prev_jtt_bs = jetToTauWeightBias;
+  //   const Float_t evt_wt_bare = (prev_jtt_bs > 0.) ? prev_evt_wt / prev_jtt_bs : 0.; //no j->tau weight
+  //   const bool add_wt = fUseJetToTauComposition && isLooseTau;
+  //   const bool isfake = !fIsData && (std::abs(tauGenFlavor) == 26 || isFakeElectron || isFakeMuon);
+  //   //QCD weights from DR
+  //   if(add_wt) {
+  //     jetToTauWeight     = fJetToTauWts                      [JetToTauComposition::kQCD];
+  //     jetToTauWeightCorr = jetToTauWeight*fJetToTauCorrs     [JetToTauComposition::kQCD];
+  //     jetToTauWeightBias = jetToTauWeightCorr;//*fJetToTauBiases[JetToTauComposition::kQCD];
+  //     eventWeight        = jetToTauWeightBias*evt_wt_bare;
+  //   }
+  //   if(mutau || (etau && !isLooseElectron)) { //full isolation/mtlep region for isolation/mtlep bias measurement, no bias corrections
+  //     FillAllHistograms(qcd_set_offset + 92);
+  //     if(!isfake) FillAllHistograms(qcd_set_offset + 93);
+  //   }
+  //   if(fTreeVars.mtlep < qcd_mtlep_cut && ((mutau && fTreeVars.leponereliso > 0.15) || (etau && isLooseElectron))) { //high isolation/loose ID region for SS --> OS bias measurement
+  //     //QCD weights from high iso region, no bias corrections (stored in MC weights, but high iso weights)
+  //     if(add_wt) {
+  //       jetToTauWeight     = fJetToTauMCWts                      [JetToTauComposition::kQCD];
+  //       jetToTauWeightCorr = jetToTauWeight*fJetToTauMCCorrs     [JetToTauComposition::kQCD];
+  //       jetToTauWeightBias = jetToTauWeightCorr;//*fJetToTauMCBiases[JetToTauComposition::kQCD];
+  //       eventWeight        = jetToTauWeightBias*evt_wt_bare;
+  //     }
+  //     FillAllHistograms(qcd_set_offset + 94);
+  //     if(!isfake) FillAllHistograms(qcd_set_offset + 95);
+  //   }
+  //   //Restore the previous weights
+  //   eventWeight        = prev_evt_wt;
+  //   jetToTauWeight     = prev_jtt_wt;
+  //   jetToTauWeightCorr = prev_jtt_cr;
+  //   jetToTauWeightBias = prev_jtt_bs;
+  // }
 
 
   //////////////////////////
@@ -1616,12 +1625,12 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
     const Float_t prev_jtt_bs = jetToTauWeightBias;
     const Float_t evt_wt_bare = (prev_jtt_bs > 0.) ? prev_evt_wt / prev_jtt_bs : 0.; //no j->tau weight
     const bool add_wt = fUseJetToTauComposition && isLooseTau;
-    const bool isfake = !fIsData && (std::abs(tauGenFlavor) == 26 || isFakeElectron || isFakeMuon);
+    // const bool isfake = !fIsData && (std::abs(tauGenFlavor) == 26 || isFakeElectron || isFakeMuon);
 
     //Nominal mixture
     FillAllHistograms(set_offset + 35);
     //fake tau only contribution
-    if(isfake) FillAllHistograms(set_offset + 42);
+    // if(isfake) FillAllHistograms(set_offset + 42);
 
     //Nominal mixture, without j-->tau weights
     if(add_wt) {
@@ -1634,39 +1643,39 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
       FillAllHistograms(set_offset + 33); //only fill for loose ID taus, since non-loose already have no j-->tau weights
     }
 
-    //W+Jets data based weights from DR to test W+Jets only vs composition
-    if(add_wt) {
-      jetToTauWeight     = fJetToTauWts                      [JetToTauComposition::kWJets];
-      jetToTauWeightCorr = jetToTauWeight*fJetToTauCorrs     [JetToTauComposition::kWJets];
-      jetToTauWeightBias = jetToTauWeightCorr*fJetToTauBiases[JetToTauComposition::kWJets];
-      eventWeight        = jetToTauWeightBias*evt_wt_bare;
-    }
-    if(!isfake) { //no fake MC events
-      FillAllHistograms(set_offset + 34);
-    }
+    // //W+Jets data based weights from DR to test W+Jets only vs composition
+    // if(add_wt) {
+    //   jetToTauWeight     = fJetToTauWts                      [JetToTauComposition::kWJets];
+    //   jetToTauWeightCorr = jetToTauWeight*fJetToTauCorrs     [JetToTauComposition::kWJets];
+    //   jetToTauWeightBias = jetToTauWeightCorr*fJetToTauBiases[JetToTauComposition::kWJets];
+    //   eventWeight        = jetToTauWeightBias*evt_wt_bare;
+    // }
+    // if(!isfake) { //no fake MC events
+    //   FillAllHistograms(set_offset + 34);
+    // }
 
-    //W+Jets MC based weights from DR for bias tests
-    if(add_wt) {
-      jetToTauWeight     = fJetToTauMCWts                      [JetToTauComposition::kWJets];
-      jetToTauWeightCorr = jetToTauWeight*fJetToTauMCCorrs     [JetToTauComposition::kWJets];
-      jetToTauWeightBias = jetToTauWeightCorr*fJetToTauMCBiases[JetToTauComposition::kWJets];
-      eventWeight        = jetToTauWeightBias*evt_wt_bare;
-    }
-    FillAllHistograms(set_offset + 81);
-    if(!isfake) { //no fake MC events
-      FillAllHistograms(set_offset + 86);
-    }
-    //Top MC based weights from DR (nominal weights are MC in this region anyway)
-    if(add_wt) {
-      jetToTauWeight     = fJetToTauMCWts                      [JetToTauComposition::kTop];
-      jetToTauWeightCorr = jetToTauWeight*fJetToTauMCCorrs     [JetToTauComposition::kTop];
-      jetToTauWeightBias = jetToTauWeightCorr*fJetToTauMCBiases[JetToTauComposition::kTop];
-      eventWeight        = jetToTauWeightBias*evt_wt_bare;
-    }
-    FillAllHistograms(set_offset + 82);
-    if(!isfake) { //no fake MC events
-      FillAllHistograms(set_offset + 87);
-    }
+    // //W+Jets MC based weights from DR for bias tests
+    // if(add_wt) {
+    //   jetToTauWeight     = fJetToTauMCWts                      [JetToTauComposition::kWJets];
+    //   jetToTauWeightCorr = jetToTauWeight*fJetToTauMCCorrs     [JetToTauComposition::kWJets];
+    //   jetToTauWeightBias = jetToTauWeightCorr*fJetToTauMCBiases[JetToTauComposition::kWJets];
+    //   eventWeight        = jetToTauWeightBias*evt_wt_bare;
+    // }
+    // FillAllHistograms(set_offset + 81);
+    // if(!isfake) { //no fake MC events
+    //   FillAllHistograms(set_offset + 86);
+    // }
+    // //Top MC based weights from DR (nominal weights are MC in this region anyway)
+    // if(add_wt) {
+    //   jetToTauWeight     = fJetToTauMCWts                      [JetToTauComposition::kTop];
+    //   jetToTauWeightCorr = jetToTauWeight*fJetToTauMCCorrs     [JetToTauComposition::kTop];
+    //   jetToTauWeightBias = jetToTauWeightCorr*fJetToTauMCBiases[JetToTauComposition::kTop];
+    //   eventWeight        = jetToTauWeightBias*evt_wt_bare;
+    // }
+    // FillAllHistograms(set_offset + 82);
+    // if(!isfake) { //no fake MC events
+    //   FillAllHistograms(set_offset + 87);
+    // }
     //Restore the previous weights
     eventWeight        = prev_evt_wt;
     jetToTauWeight     = prev_jtt_wt;
@@ -1706,7 +1715,7 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
     const Float_t prev_jtt_bs = jetToTauWeightBias;
     const Float_t evt_wt_bare = (prev_jtt_bs > 0.) ? prev_evt_wt / prev_jtt_bs : 0.; //no j->tau weight
     const bool    add_wt      = fUseJetToTauComposition && isLooseTau;
-    const bool    isfake      = !fIsData && (std::abs(tauGenFlavor) == 26 || isFakeElectron || isFakeMuon);
+    // const bool    isfake      = !fIsData && (std::abs(tauGenFlavor) == 26 || isFakeElectron || isFakeMuon);
     //Data measured weights
     if(add_wt) {
       jetToTauWeight     = fJetToTauWts                      [JetToTauComposition::kWJets];
@@ -1715,17 +1724,17 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
       eventWeight        = jetToTauWeightBias*evt_wt_bare;
     }
     FillAllHistograms(set_offset + 37);
-    //MC measured weights
-    if(add_wt) {
-      jetToTauWeight     = fJetToTauMCWts                 [JetToTauComposition::kWJets];
-      jetToTauWeightCorr = jetToTauWeight*fJetToTauMCCorrs[JetToTauComposition::kWJets];
-      jetToTauWeightBias = jetToTauWeightCorr; //no bias in DR
-      eventWeight        = jetToTauWeightBias*evt_wt_bare;
-    }
-    FillAllHistograms(set_offset + 88);
-    if(!isfake) { //no fake MC events
-      FillAllHistograms(set_offset + 89);
-    }
+    // //MC measured weights
+    // if(add_wt) {
+    //   jetToTauWeight     = fJetToTauMCWts                 [JetToTauComposition::kWJets];
+    //   jetToTauWeightCorr = jetToTauWeight*fJetToTauMCCorrs[JetToTauComposition::kWJets];
+    //   jetToTauWeightBias = jetToTauWeightCorr; //no bias in DR
+    //   eventWeight        = jetToTauWeightBias*evt_wt_bare;
+    // }
+    // FillAllHistograms(set_offset + 88);
+    // if(!isfake) { //no fake MC events
+    //   FillAllHistograms(set_offset + 89);
+    // }
     eventWeight        = prev_evt_wt;
     jetToTauWeight     = prev_jtt_wt;
     jetToTauWeightCorr = prev_jtt_cr;
@@ -1917,26 +1926,26 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
 
   if((emu || mumu || ee) && (!fDYTesting || fTriggerTesting)) {
     if(emu) { //e+mu trigger testing
-      ////////////////////////////////////////////////////////////////////////////
-      // Set 60 + selection offset: Electron triggered
-      ////////////////////////////////////////////////////////////////////////////
-      if(leptonOneFired && leptonOneP4->Pt() > electron_trig_pt_) {
-        FillAllHistograms(set_offset + 60);
-      }
+      // ////////////////////////////////////////////////////////////////////////////
+      // // Set 60 + selection offset: Electron triggered
+      // ////////////////////////////////////////////////////////////////////////////
+      // if(leptonOneFired && leptonOneP4->Pt() > electron_trig_pt_) {
+      //   FillAllHistograms(set_offset + 60);
+      // }
 
-      ////////////////////////////////////////////////////////////////////////////
-      // Set 61 + selection offset: Muon triggered
-      ////////////////////////////////////////////////////////////////////////////
-      if(leptonTwoFired && leptonTwoP4->Pt() > muon_trig_pt_) {
-        FillAllHistograms(set_offset + 61);
-      }
+      // ////////////////////////////////////////////////////////////////////////////
+      // // Set 61 + selection offset: Muon triggered
+      // ////////////////////////////////////////////////////////////////////////////
+      // if(leptonTwoFired && leptonTwoP4->Pt() > muon_trig_pt_) {
+      //   FillAllHistograms(set_offset + 61);
+      // }
 
-      ////////////////////////////////////////////////////////////////////////////
-      // Set 62 + selection offset: Both leptons triggered
-      ////////////////////////////////////////////////////////////////////////////
-      if(leptonOneFired && leptonTwoFired) {
-        FillAllHistograms(set_offset + 62);
-      }
+      // ////////////////////////////////////////////////////////////////////////////
+      // // Set 62 + selection offset: Both leptons triggered
+      // ////////////////////////////////////////////////////////////////////////////
+      // if(leptonOneFired && leptonTwoFired) {
+      //   FillAllHistograms(set_offset + 62);
+      // }
 
       ////////////////////////////////////////////////////////////////////////////
       // Set 63 + selection offset: Electron triggerable
@@ -1973,26 +1982,26 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
     } else { //ee and mumu trigger testing
       const double trig_threshold = (ee) ? electron_trig_pt_ : muon_trig_pt_;
 
-      ////////////////////////////////////////////////////////////////////////////
-      // Set 60 + selection offset: lepton one triggered
-      ////////////////////////////////////////////////////////////////////////////
-      if(leptonOneFired && leptonOneP4->Pt() > trig_threshold) {
-        FillAllHistograms(set_offset + 60);
-      }
+      // ////////////////////////////////////////////////////////////////////////////
+      // // Set 60 + selection offset: lepton one triggered
+      // ////////////////////////////////////////////////////////////////////////////
+      // if(leptonOneFired && leptonOneP4->Pt() > trig_threshold) {
+      //   FillAllHistograms(set_offset + 60);
+      // }
 
-      ////////////////////////////////////////////////////////////////////////////
-      // Set 61 + selection offset: lepton two triggered
-      ////////////////////////////////////////////////////////////////////////////
-      if(leptonTwoFired && leptonTwoP4->Pt() > trig_threshold) {
-        FillAllHistograms(set_offset + 61);
-      }
+      // ////////////////////////////////////////////////////////////////////////////
+      // // Set 61 + selection offset: lepton two triggered
+      // ////////////////////////////////////////////////////////////////////////////
+      // if(leptonTwoFired && leptonTwoP4->Pt() > trig_threshold) {
+      //   FillAllHistograms(set_offset + 61);
+      // }
 
-      ////////////////////////////////////////////////////////////////////////////
-      // Set 62 + selection offset: both leptons triggered
-      ////////////////////////////////////////////////////////////////////////////
-      if(leptonOneFired && leptonOneP4->Pt() > trig_threshold && leptonTwoFired && leptonTwoP4->Pt() > trig_threshold) {
-        FillAllHistograms(set_offset + 62);
-      }
+      // ////////////////////////////////////////////////////////////////////////////
+      // // Set 62 + selection offset: both leptons triggered
+      // ////////////////////////////////////////////////////////////////////////////
+      // if(leptonOneFired && leptonOneP4->Pt() > trig_threshold && leptonTwoFired && leptonTwoP4->Pt() > trig_threshold) {
+      //   FillAllHistograms(set_offset + 62);
+      // }
 
       ////////////////////////////////////////////////////////////////////////////
       // Set 63 + selection offset: lepton two triggerable
@@ -2016,7 +2025,7 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   //Z0 window
   if(emu && mll < 96. && mll > 85.)    FillAllHistograms(set_offset + 24);
   //higgs window
-  if(emu && mll < 130. && mll > 120.)  FillAllHistograms(set_offset + 25);
+  if(fDoHiggs && emu && mll < 130. && mll > 120.)  FillAllHistograms(set_offset + 25);
 
   if(fDYTesting && !fDoMVASets) return kTRUE;
 
@@ -2053,7 +2062,7 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
 
   //Total background higgs MVAs 14 - 18
   category = -1;
-  if(doMVASets) {
+  if(fDoHiggs && doMVASets) {
     if(mutau) {
       category = Category("hmutau");
     } else if(etau) {
@@ -2072,7 +2081,7 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
     }
   }
 
-  if(category >= 0 && !emu) //do emu separately, rest do here
+  if(fDoHiggs && category >= 0 && !emu) //do emu separately, rest do here
     FillAllHistograms(set_offset + 14 + category);
 
   //restore event weight

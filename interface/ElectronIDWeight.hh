@@ -56,6 +56,7 @@ namespace CLFV {
     std::map<int, int> groupID_; //correction groups for systematics
     std::map<int, int> groupReco_;
     bool interpolate_;
+    bool use_embed_tnp_;
   };
 }
 #endif

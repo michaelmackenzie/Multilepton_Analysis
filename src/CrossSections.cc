@@ -99,13 +99,13 @@ CrossSections::CrossSections(int useUL, int ZMode) {
   values_["Embed-MuMu-G"][2016]  = 1.0557;
   values_["Embed-MuMu-H"][2016]  = 1.0611;
 
-  values_["Embed-ElEl-B"][2016]  = 1.0280;
-  values_["Embed-ElEl-C"][2016]  = 1.0329;
-  values_["Embed-ElEl-D"][2016]  = 1.0198;
-  values_["Embed-ElEl-E"][2016]  = 1.0517;
-  values_["Embed-ElEl-F"][2016]  = 1.0390;
-  values_["Embed-ElEl-G"][2016]  = 1.1005;
-  values_["Embed-ElEl-H"][2016]  = 1.0498;
+  values_["Embed-EE-B"][2016]  = 1.0280;
+  values_["Embed-EE-C"][2016]  = 1.0329;
+  values_["Embed-EE-D"][2016]  = 1.0198;
+  values_["Embed-EE-E"][2016]  = 1.0517;
+  values_["Embed-EE-F"][2016]  = 1.0390;
+  values_["Embed-EE-G"][2016]  = 1.1005;
+  values_["Embed-EE-H"][2016]  = 1.0498;
 
   // *** Total 2016 ElMu : Total Mini / Nano = 29697000/27318414 = 1.0870
   // *** Total 2016 ElTau: Total Mini / Nano = 26477000/24049075 = 1.1009
@@ -138,11 +138,11 @@ CrossSections::CrossSections(int useUL, int ZMode) {
   values_["Embed-MuMu-E"][2017]  = 2.8647;
   values_["Embed-MuMu-F"][2017]  = 6.8001;
 
-  values_["Embed-ElEl-B"][2017]  = 1.5825;
-  values_["Embed-ElEl-C"][2017]  = 2.7471;
-  values_["Embed-ElEl-D"][2017]  = 1.1859;
-  values_["Embed-ElEl-E"][2017]  = 2.5760;
-  values_["Embed-ElEl-F"][2017]  = 5.4018;
+  values_["Embed-EE-B"][2017]  = 1.5825;
+  values_["Embed-EE-C"][2017]  = 2.7471;
+  values_["Embed-EE-D"][2017]  = 1.1859;
+  values_["Embed-EE-E"][2017]  = 2.5760;
+  values_["Embed-EE-F"][2017]  = 5.4018;
 
 
   // *** Total 2017 ElMu  Mini / Nano = 37713920/12833285 = 2.9387
@@ -152,10 +152,10 @@ CrossSections::CrossSections(int useUL, int ZMode) {
   // *** Total 2017 ElEl  Mini / Nano = 45398261/17827258 = 2.5465
 
   //2018
-  values_["Embed-EMu-A"][2018] = 1.0832;
-  values_["Embed-EMu-B"][2018] = 1.0118;
-  values_["Embed-EMu-C"][2018] = 1.1415;
-  values_["Embed-EMu-D"][2018] = 4.6364;
+  values_["Embed-EMu-A"][2018] = 1.0832; //1.0667; //commented out is lumi ratios
+  values_["Embed-EMu-B"][2018] = 1.0118; //1.0112; //
+  values_["Embed-EMu-C"][2018] = 1.1415; //1.1261; //
+  values_["Embed-EMu-D"][2018] = 4.6364; //3.9906; //
 
   values_["Embed-ETau-A"][2018] = 1.1062;
   values_["Embed-ETau-B"][2018] = 1.2357;
@@ -172,12 +172,12 @@ CrossSections::CrossSections(int useUL, int ZMode) {
   values_["Embed-MuMu-C"][2018]  = 1.0580;
   values_["Embed-MuMu-D"][2018]  = 7.5245;
 
-  values_["Embed-ElEl-A"][2018]  = 1.2749;
-  values_["Embed-ElEl-B"][2018]  = 1.0317;
-  values_["Embed-ElEl-C"][2018]  = 1.0161;
-  values_["Embed-ElEl-D"][2018]  = 2.8777;
+  values_["Embed-EE-A"][2018]  = 1.2749;
+  values_["Embed-EE-B"][2018]  = 1.0317;
+  values_["Embed-EE-C"][2018]  = 1.0161;
+  values_["Embed-EE-D"][2018]  = 2.8777;
 
-  // --- Total 2018 ElMu  Mini / Nano = 55484067/30962759 = 1.7919
+  // --- Total 2018 ElMu  Mini / Nano = 55484067/30962759 = 1.7919; lumi ratio = 1.7473
   // --- Total 2018 ElTau Mini / Nano = 48434386/30515756 = 1.5871
   // --- Total 2018 MuTau Mini / Nano = 48428591/31170318 = 1.5536
   // --- Total 2018 MuMu  Mini / Nano = 78733782/39175846 = 2.0097
@@ -214,6 +214,8 @@ CrossSections::CrossSections(int useUL, int ZMode) {
   neg_frac_["ttbarlnu"           ][2016] = 0.00402;
   neg_frac_["WWW"                ][2016] = 0.06054;
   neg_frac_["WGamma"             ][2016] = 0.1799;
+
+  neg_frac_["DY50-ext"           ][2017] = 0.1611 ;
 
   neg_frac_["DY50-amc"           ][2018] = 0.163  ;
   neg_frac_["SingleToptW"        ][2018] = 0.003758;
@@ -269,6 +271,22 @@ CrossSections::CrossSections(int useUL, int ZMode) {
   numbers_[2016]["Embed-MuTau-G"] = 5114478;
   numbers_[2016]["Embed-MuTau-H"] = 6052270;
 
+  numbers_[2016]["Embed-MuMu-B"] = 5705922;
+  numbers_[2016]["Embed-MuMu-C"] = 2580632;
+  numbers_[2016]["Embed-MuMu-D"] = 4225463;
+  numbers_[2016]["Embed-MuMu-E"] = 3749169;
+  numbers_[2016]["Embed-MuMu-F"] = 2650658;
+  numbers_[2016]["Embed-MuMu-G"] = 8068896;
+  numbers_[2016]["Embed-MuMu-H"] = 9400736;
+
+  numbers_[2016]["Embed-EE-B"] = 5348889;
+  numbers_[2016]["Embed-EE-C"] = 2300273;
+  numbers_[2016]["Embed-EE-D"] = 3804598;
+  numbers_[2016]["Embed-EE-E"] = 3396152;
+  numbers_[2016]["Embed-EE-F"] = 2580135;
+  numbers_[2016]["Embed-EE-G"] = 6961897;
+  numbers_[2016]["Embed-EE-H"] = 8541470;
+
   //2017
   numbers_[2017]["Embed-EMu-B"] = 2012635;
   numbers_[2017]["Embed-EMu-C"] = 2068587;
@@ -288,6 +306,18 @@ CrossSections::CrossSections(int useUL, int ZMode) {
   numbers_[2017]["Embed-MuTau-E"] = 2894406;
   numbers_[2017]["Embed-MuTau-F"] = 1900026;
 
+  numbers_[2017]["Embed-MuMu-B"] = 2932147;
+  numbers_[2017]["Embed-MuMu-C"] = 5091845;
+  numbers_[2017]["Embed-MuMu-D"] = 5356676;
+  numbers_[2017]["Embed-MuMu-E"] = 5293627;
+  numbers_[2017]["Embed-MuMu-F"] = 2973048;
+
+  numbers_[2017]["Embed-EE-B"] = 2873517;
+  numbers_[2017]["Embed-EE-C"] = 4142193;
+  numbers_[2017]["Embed-EE-D"] = 4133793;
+  numbers_[2017]["Embed-EE-E"] = 4070691;
+  numbers_[2017]["Embed-EE-F"] = 2607064;
+
   //2018
   numbers_[2018]["Embed-EMu-A"] = 12744399;
   numbers_[2018]["Embed-EMu-B"] = 6603834 ;
@@ -303,6 +333,16 @@ CrossSections::CrossSections(int useUL, int ZMode) {
   numbers_[2018]["Embed-MuTau-B"] = 5563063 ;
   numbers_[2018]["Embed-MuTau-C"] = 5408863 ;
   numbers_[2018]["Embed-MuTau-D"] = 9295906 ;
+
+  numbers_[2018]["Embed-MuMu-A"] = 18589871;
+  numbers_[2018]["Embed-MuMu-B"] = 7161023 ;
+  numbers_[2018]["Embed-MuMu-C"] = 8097542 ;
+  numbers_[2018]["Embed-MuMu-D"] = 5327410 ;
+
+  numbers_[2018]["Embed-EE-A"] = 11737292;
+  numbers_[2018]["Embed-EE-B"] = 6881988 ;
+  numbers_[2018]["Embed-EE-C"] = 6438308 ;
+  numbers_[2018]["Embed-EE-D"] = 10649806;
 
   //Signal gen numbers
   numbers_[2016]["ZEMu"    ] =  40000;

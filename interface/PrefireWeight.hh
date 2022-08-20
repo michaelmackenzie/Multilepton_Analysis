@@ -9,21 +9,21 @@
 //ROOT includes
 #include "TFile.h"
 #include "TH2.h"
-#include "TRandom3.h"
 #include "TSystem.h"
 
 namespace CLFV {
 
   class PrefireWeight {
   public:
-    PrefireWeight(int seed = 90);
+    PrefireWeight();
     ~PrefireWeight();
 
-    float GetProbability(const int year, float jetpt, float jeteta);
-    float GetWeight(int year, int njets, float* jetspt, float* jetseta);
+    float GetProbability(const int year, float jetpt, float jeteta, int base);
+    float GetJetWeight(int year, int njets, float* jetspt, float* jetseta);
+    float GetPhotonWeight(int year, int njets, float* jetspt, float* jetseta);
 
-    std::map<int, TH2F*> hists_; //MC efficiencies
-    TRandom3* rnd_; //for generating systematic shifted parameters
+    enum {kJet = 0, kPhoton = 100};
+    std::map<int, TH2*> hists_; //MC efficiencies
   };
 }
 #endif

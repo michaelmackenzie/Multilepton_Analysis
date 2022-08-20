@@ -11,12 +11,8 @@ HistMaker::HistMaker(int seed, TTree * /*tree*/) : fSystematicSeed(seed),
                                                    fElectronJetToTauComp("etau", 2035, 3, 0), fElectronJetToTauSSComp("etau", 3035, 3, 0),
                                                    fQCDWeight("emu", /*11010*/ 1100200/*anti-iso, jet binned, no fits*/, seed, 0),
                                                    fMuonIDWeight(1 /*use medium muon ID*/,seed),
-                                                   //FIXME: Turn on or keep off electron trigger interpolation
-                                                   fElectronIDWeight(0, seed),
-                                                   // fZPtWeight("MuMu", 1, seed),
-                                                   //FIXME: Turn on or keep off embedding trigger interpolation
-                                                   //FIXME: Turn on run-dependent scale factors
-                                                   fEmbeddingWeight(), fEmbeddingTnPWeight(10/*10*(use 2016 BF/GH and 2018 ABC/D scales) + 1*(interpolate scales or not)*/) {
+                                                   fElectronIDWeight(110 /*use WP90 electron ID and embed TnP trigger*/, seed),
+                                                   fEmbeddingTnPWeight(10/*10*(use 2016 BF/GH and 2018 ABC/D scales) + 1*(interpolate scales or not)*/) {
 
   //ensure pointers set to null to not attempt to delete if never initialized
   fChain = nullptr;
@@ -38,6 +34,7 @@ HistMaker::HistMaker(int seed, TTree * /*tree*/) : fSystematicSeed(seed),
   fJetPUWeight = nullptr;
   fPrefireWeight = nullptr;
   fTauIDWeight = nullptr;
+  fEmbeddingWeight = nullptr;
   fSystematicShifts = nullptr;
   fRnd = nullptr;
 
@@ -46,9 +43,11 @@ HistMaker::HistMaker(int seed, TTree * /*tree*/) : fSystematicSeed(seed),
   jetOneP4    = new TLorentzVector();
   photonP4    = nullptr;
 
+  //Initialize time analysis fields
   for(int itime = 0; itime < fNTimes; ++itime) {
     fDurations[itime] = 0;
     fTimeNames[itime] = "";
+    fTimeCounts[itime] = 0;
   }
 }
 
@@ -97,12 +96,6 @@ void HistMaker::Begin(TTree * /*tree*/)
   printf("HistMaker::Begin\n");
   timer->Start();
 
-  //Initialize time analysis fields
-  for(int itime = 0; itime < fNTimes; ++itime) {
-    fDurations[itime] = 0.; fTimeCounts[itime] = 0;
-  }
-  fTimes[GetTimerNumber("Overall")] = std::chrono::steady_clock::now();
-
   TString dir = gSystem->Getenv("CMSSW_BASE");
   if(dir == "") dir = "../"; //if not in a CMSSW environment, assume in a sub-directory of the package
   else dir += "/src/CLFVAnalysis/";
@@ -117,21 +110,21 @@ void HistMaker::Begin(TTree * /*tree*/)
   fZPtWeight = new ZPtWeight("MuMu", 1, fSystematicSeed);
   fCutFlow = new TH1D("hcutflow", "Cut-flow", 100, 0, 100);
 
-  fMuonJetToTauWeights      [JetToTauComposition::kWJets] = new JetToTauWeight("MuonWJets"      , "mutau", "WJets",   31, 20300300, fSystematicSeed, 0);
-  fMuonJetToTauWeights      [JetToTauComposition::kZJets] = new JetToTauWeight("MuonZJets"      , "mutau", "WJets",   31, 20300300, fSystematicSeed, 0);
+  fMuonJetToTauWeights      [JetToTauComposition::kWJets] = new JetToTauWeight("MuonWJets"      , "mutau", "WJets",   31, 60300300, fSystematicSeed, 0);
+  fMuonJetToTauWeights      [JetToTauComposition::kZJets] = new JetToTauWeight("MuonZJets"      , "mutau", "WJets",   31, 60300300, fSystematicSeed, 0);
   fMuonJetToTauWeights      [JetToTauComposition::kTop  ] = new JetToTauWeight("MuonTop"        , "mutau", "Top"  ,   82,  1100301, fSystematicSeed, 0);
   fMuonJetToTauWeights      [JetToTauComposition::kQCD  ] = new JetToTauWeight("MuonQCD"        , "mutau", "QCD"  , 1030, 40300300, fSystematicSeed, 0);
 
-  fMuonJetToTauMCWeights    [JetToTauComposition::kWJets] = new JetToTauWeight("MuonMCWJets"    , "mutau", "WJets",   88, 20300301, fSystematicSeed, 0); //MC weights with MC non-closure + bias
-  fMuonJetToTauMCWeights    [JetToTauComposition::kZJets] = new JetToTauWeight("MuonMCZJets"    , "mutau", "WJets",   88, 20300301, fSystematicSeed, 0);
+  fMuonJetToTauMCWeights    [JetToTauComposition::kWJets] = new JetToTauWeight("MuonMCWJets"    , "mutau", "WJets",   88, 10300301, fSystematicSeed, 0); //MC weights with MC non-closure + bias
+  fMuonJetToTauMCWeights    [JetToTauComposition::kZJets] = new JetToTauWeight("MuonMCZJets"    , "mutau", "WJets",   88, 10300301, fSystematicSeed, 0);
   fMuonJetToTauMCWeights    [JetToTauComposition::kTop  ] = new JetToTauWeight("MuonMCTop"      , "mutau", "Top"  ,   82,  1100301, fSystematicSeed, 0); //Normal weights
   fMuonJetToTauMCWeights    [JetToTauComposition::kQCD  ] = new JetToTauWeight("MuonMCQCD"      , "mutau", "QCD"  , 1095,   300300, fSystematicSeed, 0); //high iso weights for SS --> OS bias
 
   //FIXME: Add back W+Jets MC bias (Mode = 10300300, 60300300 for only MC bias shape)
-  fElectronJetToTauWeights  [JetToTauComposition::kWJets] = new JetToTauWeight("ElectronWJets"  , "etau" , "WJets",   31, 10300300, fSystematicSeed, 0);
-  fElectronJetToTauWeights  [JetToTauComposition::kZJets] = new JetToTauWeight("ElectronZJets"  , "etau" , "WJets",   31, 10300300, fSystematicSeed, 0);
+  fElectronJetToTauWeights  [JetToTauComposition::kWJets] = new JetToTauWeight("ElectronWJets"  , "etau" , "WJets",   31, 60300300, fSystematicSeed, 0);
+  fElectronJetToTauWeights  [JetToTauComposition::kZJets] = new JetToTauWeight("ElectronZJets"  , "etau" , "WJets",   31, 60300300, fSystematicSeed, 0);
   fElectronJetToTauWeights  [JetToTauComposition::kTop  ] = new JetToTauWeight("ElectronTop"    , "etau" , "Top"  ,   82,  1100301, fSystematicSeed, 0);
-  fElectronJetToTauWeights  [JetToTauComposition::kQCD  ] = new JetToTauWeight("ElectronQCD"    , "etau" , "QCD"  , 1030, 50300300, fSystematicSeed, 0);
+  fElectronJetToTauWeights  [JetToTauComposition::kQCD  ] = new JetToTauWeight("ElectronQCD"    , "etau" , "QCD"  , 1030, 40300300, fSystematicSeed, 0);
 
   fElectronJetToTauMCWeights[JetToTauComposition::kWJets] = new JetToTauWeight("ElectronMCWJets", "etau" , "WJets",   88, 10300301, fSystematicSeed, 0); //MC weights with MC non-closure + bias
   fElectronJetToTauMCWeights[JetToTauComposition::kZJets] = new JetToTauWeight("ElectronMCZJets", "etau" , "WJets",   88, 10300301, fSystematicSeed, 0);
@@ -139,6 +132,9 @@ void HistMaker::Begin(TTree * /*tree*/)
   fElectronJetToTauMCWeights[JetToTauComposition::kQCD  ] = new JetToTauWeight("ElectronMCQCD"  , "etau" , "QCD"  , 1095,   300300, fSystematicSeed, 0); //loose electron ID weights for SS --> OS bias
 
   fTauIDWeight = new TauIDWeight(fIsEmbed, fVerbose);
+
+  //0: normal unfolding; 1: use z eta unfolding; 2: use z (eta, pt) unfolding
+  fEmbeddingWeight = new EmbeddingWeight((fIsEmbed && fYear == 2018 && GetOutputName().Contains("EMu")) ? 2 : 0);
 
   for(int itrig = 0; itrig < 3; ++itrig) triggerWeights[itrig] = 1.f;
 
@@ -325,29 +321,30 @@ void HistMaker::BookBaseEventHistograms(Int_t i, const char* dirname) {
       Utilities::BookH1D(fEventHist[i]->hNTaus                   , "ntaus"                   , Form("%s: NTaus"                       ,dirname),  10,    0,  10, folder);
       Utilities::BookH1F(fEventHist[i]->hNPV[0]                  , "npv"                     , Form("%s: NPV"                         ,dirname),  50,    0, 100, folder);
       Utilities::BookH1F(fEventHist[i]->hNPU[0]                  , "npu"                     , Form("%s: NPU"                         ,dirname),  50,    0, 100, folder);
-      Utilities::BookH1D(fEventHist[i]->hNPartons                , "npartons"                , Form("%s: NPartons"                    ,dirname),  10,    0,  10, folder);
+      // Utilities::BookH1D(fEventHist[i]->hNPartons                , "npartons"                , Form("%s: NPartons"                    ,dirname),  10,    0,  10, folder);
       Utilities::BookH1D(fEventHist[i]->hLHENJets                , "lhenjets"                , Form("%s: LHE N(jets)"                 ,dirname),  10,    0,  10, folder);
       Utilities::BookH1D(fEventHist[i]->hMcEra                   , "mcera"                   , Form("%s: MCEra + 2*(year-2016)"       ,dirname),   8,    0,   8, folder);
       Utilities::BookH1F(fEventHist[i]->hDataRun                 , "datarun"                 , Form("%s: DataRun"                     ,dirname), 100, 2.6e5, 3.3e5, folder);
-      Utilities::BookH1D(fEventHist[i]->hNPhotons                , "nphotons"                , Form("%s: NPhotons"                    ,dirname),  10,    0,  10, folder);
+      // Utilities::BookH1D(fEventHist[i]->hNPhotons                , "nphotons"                , Form("%s: NPhotons"                    ,dirname),  10,    0,  10, folder);
       Utilities::BookH1D(fEventHist[i]->hNGenTaus                , "ngentaus"                , Form("%s: NGenTaus"                    ,dirname),  10,    0,  10, folder);
       Utilities::BookH1D(fEventHist[i]->hNGenElectrons           , "ngenelectrons"           , Form("%s: NGenElectrons"               ,dirname),  10,    0,  10, folder);
       Utilities::BookH1D(fEventHist[i]->hNGenMuons               , "ngenmuons"               , Form("%s: NGenMuons"                   ,dirname),  10,    0,  10, folder);
       Utilities::BookH1D(fEventHist[i]->hNJets                   , "njets"                   , Form("%s: NJets"                       ,dirname),  10,    0,  10, folder);
       Utilities::BookH1D(fEventHist[i]->hNJets20[0]              , "njets20"                 , Form("%s: NJets20"                     ,dirname),  10,    0,  10, folder);
-      Utilities::BookH1D(fEventHist[i]->hNJets20Rej[0]           , "njets20rej"              , Form("%s: NJets20Rej"                  ,dirname),  10,    0,  10, folder);
+      // Utilities::BookH1D(fEventHist[i]->hNJets20Rej[0]           , "njets20rej"              , Form("%s: NJets20Rej"                  ,dirname),  10,    0,  10, folder);
       Utilities::BookH1D(fEventHist[i]->hNFwdJets                , "nfwdjets"                , Form("%s: NFwdJets"                    ,dirname),  10,    0,  10, folder);
       Utilities::BookH1D(fEventHist[i]->hNBJets20[0]             , "nbjets20"                , Form("%s: NBJets20"                    ,dirname),  10,    0,  10, folder);
       Utilities::BookH1D(fEventHist[i]->hNBJets20L[0]            , "nbjets20l"               , Form("%s: NBJets20L"                   ,dirname),  10,    0,  10, folder);
 
 
-      Utilities::BookH1D(fEventHist[i]->hTriggerLeptonStatus, "triggerleptonstatus" , Form("%s: TriggerLeptonStatus" ,dirname),  10,    0,  10, folder);
+      // Utilities::BookH1D(fEventHist[i]->hTriggerLeptonStatus, "triggerleptonstatus" , Form("%s: TriggerLeptonStatus" ,dirname),  10,    0,  10, folder);
       Utilities::BookH1D(fEventHist[i]->hNTriggered         , "ntriggered"          , Form("%s: NTriggered"          ,dirname),   5,    0,   5, folder);
-      Utilities::BookH1F(fEventHist[i]->hPuWeight           , "puweight"            , Form("%s: PuWeight"            ,dirname),  50,    0,   2, folder);
+      Utilities::BookH1F(fEventHist[i]->hPuWeight           , "puweight"            , Form("%s: PUWeight"            ,dirname),  50,    0,   2, folder);
       Utilities::BookH1F(fEventHist[i]->hJetPUIDWeight      , "jetpuidweight"       , Form("%s: JetPUIDWeight"       ,dirname),  50,    0,   2, folder);
       Utilities::BookH1D(fEventHist[i]->hPrefireWeight      , "prefireweight"       , Form("%s: PrefireWeight"       ,dirname),  50,    0,   2, folder);
       Utilities::BookH1F(fEventHist[i]->hBTagWeight         , "btagweight"          , Form("%s: BTagWeight"          ,dirname),  50,    0,   2, folder);
       Utilities::BookH1F(fEventHist[i]->hZPtWeight          , "zptweight"           , Form("%s: ZPtWeight"           ,dirname),  50,    0,   2, folder);
+      Utilities::BookH1F(fEventHist[i]->hSignalZWeight      , "signalzweight"       , Form("%s: SignalZWeight"       ,dirname),  50,    0,   2, folder);
 
       Utilities::BookH1F(fEventHist[i]->hTauPt              , "taupt"               , Form("%s: TauPt"               ,dirname),  50,    0, 200, folder);
       Utilities::BookH1F(fEventHist[i]->hTauEta             , "taueta"              , Form("%s: TauEta"              ,dirname),  30, -2.5, 2.5, folder);
@@ -361,12 +358,12 @@ void HistMaker::BookBaseEventHistograms(Int_t i, const char* dirname) {
       Utilities::BookH1F(fEventHist[i]->hJetEta             , "jeteta"              , Form("%s: JetEta"              ,dirname), 100,   -5,   5, folder);
       Utilities::BookH1F(fEventHist[i]->hHtSum              , "htsum"               , Form("%s: HtSum"               ,dirname), 100,    0, 400, folder);
       Utilities::BookH1F(fEventHist[i]->hHt                 , "ht"                  , Form("%s: Ht"                  ,dirname), 100,    0, 200, folder);
-      Utilities::BookH1F(fEventHist[i]->hHtPhi              , "htphi"               , Form("%s: HtPhi"               ,dirname),  50,   -4,   4, folder);
+      // Utilities::BookH1F(fEventHist[i]->hHtPhi              , "htphi"               , Form("%s: HtPhi"               ,dirname),  50,   -4,   4, folder);
 
       Utilities::BookH1F(fEventHist[i]->hMet                 , "met"                 , Form("%s: Met"                     ,dirname)  , 100,  0, 200, folder);
       Utilities::BookH1F(fEventHist[i]->hMetPhi              , "metphi"              , Form("%s: MetPhi"                  ,dirname)  ,  40, -4,   4, folder);
-      Utilities::BookH1F(fEventHist[i]->hMetCorr             , "metcorr"             , Form("%s: Met Correction"          ,dirname)  ,  50,  0,  25, folder);
-      Utilities::BookH1F(fEventHist[i]->hMetCorrPhi          , "metcorrphi"          , Form("%s: MetPhi Correction"       ,dirname)  ,  40, -4,   4, folder);
+      // Utilities::BookH1F(fEventHist[i]->hMetCorr             , "metcorr"             , Form("%s: Met Correction"          ,dirname)  ,  50,  0,  25, folder);
+      // Utilities::BookH1F(fEventHist[i]->hMetCorrPhi          , "metcorrphi"          , Form("%s: MetPhi Correction"       ,dirname)  ,  40, -4,   4, folder);
 
       Utilities::BookH1F(fEventHist[i]->hMTOne               , "mtone"               , Form("%s: MTOne"                   ,dirname)  , 100, 0.,   150., folder);
       Utilities::BookH1F(fEventHist[i]->hMTTwo               , "mttwo"               , Form("%s: MTTwo"                   ,dirname)  , 100, 0.,   150., folder);
@@ -383,7 +380,7 @@ void HistMaker::BookBaseEventHistograms(Int_t i, const char* dirname) {
       Utilities::BookH1F(fEventHist[i]->hLepM[0] , "lepm"          , Form("%s: Lepton M"       ,dirname)  , 280,  40, 180, folder);
       Utilities::BookH1F(fEventHist[i]->hLepMt   , "lepmt"         , Form("%s: Lepton Mt"      ,dirname)  , 100,   0, 200, folder);
       Utilities::BookH1F(fEventHist[i]->hLepEta  , "lepeta"        , Form("%s: Lepton Eta"     ,dirname)  ,  50,  -5,   5, folder);
-      Utilities::BookH1F(fEventHist[i]->hLepPhi  , "lepphi"        , Form("%s: Lepton Phi"     ,dirname)  ,  40,  -4,   4, folder);
+      // Utilities::BookH1F(fEventHist[i]->hLepPhi  , "lepphi"        , Form("%s: Lepton Phi"     ,dirname)  ,  40,  -4,   4, folder);
       Utilities::BookH1F(fEventHist[i]->hLepMEstimate   , "lepmestimate"   , Form("%s: Estimate di-lepton mass"  ,dirname)  ,100,0.,  200, folder);
       Utilities::BookH1F(fEventHist[i]->hLepMEstimateTwo, "lepmestimatetwo", Form("%s: Estimate di-lepton mass"  ,dirname)  ,100,0.,  200, folder);
       Utilities::BookH1F(fEventHist[i]->hLepPtOverM        , "lepptoverm"       , Form("%s: Lepton Pt / M"       ,dirname),  40,   0,   4, folder);
@@ -391,6 +388,7 @@ void HistMaker::BookBaseEventHistograms(Int_t i, const char* dirname) {
       Utilities::BookH1F(fEventHist[i]->hLepDeltaEta   , "lepdeltaeta"   , Form("%s: Lepton DeltaEta",dirname), 50,   0,   5, folder);
       Utilities::BookH1F(fEventHist[i]->hLepDeltaR[0]  , "lepdeltar"     , Form("%s: Lepton DeltaR"  ,dirname), 50,   0,   5, folder);
 
+      Utilities::BookH1F(fEventHist[i]->hZEta       , "zeta"          , Form("%s: ZEta"           ,dirname)  ,  50,  -10,  10, folder);
       Utilities::BookH1F(fEventHist[i]->hZLepOnePt  , "zleponept"     , Form("%s: ZLepOnePt"      ,dirname)  ,  60,    0, 120, folder);
       Utilities::BookH1F(fEventHist[i]->hZLepTwoPt  , "zleptwopt"     , Form("%s: ZLepTwoPt"      ,dirname)  ,  60,    0, 120, folder);
       Utilities::BookH1F(fEventHist[i]->hZLepOneEta , "zleponeeta"    , Form("%s: ZLepOneEta"     ,dirname)  ,  50, -2.5, 2.5, folder);
@@ -404,10 +402,10 @@ void HistMaker::BookBaseEventHistograms(Int_t i, const char* dirname) {
       Utilities::BookH1F(fEventHist[i]->hDeltaAlpha[1]     , "deltaalpha1"      , Form("%s: Delta Alpha (Z) 1"   ,dirname),  80,  -5,  10, folder);
       Utilities::BookH1F(fEventHist[i]->hDeltaAlpha[2]     , "deltaalpha2"      , Form("%s: Delta Alpha (H) 0"   ,dirname),  80,  -5,  10, folder);
       Utilities::BookH1F(fEventHist[i]->hDeltaAlpha[3]     , "deltaalpha3"      , Form("%s: Delta Alpha (H) 1"   ,dirname),  80,  -5,  10, folder);
-      Utilities::BookH1F(fEventHist[i]->hDeltaAlphaM[0]    , "deltaalpham0"     , Form("%s: Delta Alpha Mass 0"  ,dirname), 100,   0, 200, folder);
-      Utilities::BookH1F(fEventHist[i]->hDeltaAlphaM[1]    , "deltaalpham1"     , Form("%s: Delta Alpha Mass 1"  ,dirname), 100,   0, 200, folder);
-      Utilities::BookH1F(fEventHist[i]->hDeltaAlphaMColM[0], "deltaalphamcolm0" , Form("%s: MCol - Alpha Mass 0" ,dirname),  50, -50,  50, folder);
-      Utilities::BookH1F(fEventHist[i]->hDeltaAlphaMColM[1], "deltaalphamcolm1" , Form("%s: MCol - Alpha Mass 1" ,dirname),  50, -50,  50, folder);
+      // Utilities::BookH1F(fEventHist[i]->hDeltaAlphaM[0]    , "deltaalpham0"     , Form("%s: Delta Alpha Mass 0"  ,dirname), 100,   0, 200, folder);
+      // Utilities::BookH1F(fEventHist[i]->hDeltaAlphaM[1]    , "deltaalpham1"     , Form("%s: Delta Alpha Mass 1"  ,dirname), 100,   0, 200, folder);
+      // Utilities::BookH1F(fEventHist[i]->hDeltaAlphaMColM[0], "deltaalphamcolm0" , Form("%s: MCol - Alpha Mass 0" ,dirname),  50, -50,  50, folder);
+      // Utilities::BookH1F(fEventHist[i]->hDeltaAlphaMColM[1], "deltaalphamcolm1" , Form("%s: MCol - Alpha Mass 1" ,dirname),  50, -50,  50, folder);
 
       Utilities::BookH1F(fEventHist[i]->hPTauVisFrac    , "ptauvisfrac"    , Form("%s: visible tau pT fraction " ,dirname)  , 50,0.,  1.5, folder);
 
@@ -490,10 +488,13 @@ void HistMaker::BookBaseLepHistograms(Int_t i, const char* dirname) {
       Utilities::BookH1F(fLepHist[i]->hOnePt[0]       , "onept"            , Form("%s: Pt"           ,dirname)  , 150,   0, 150, folder);
       Utilities::BookH1F(fLepHist[i]->hOnePz          , "onepz"            , Form("%s: Pz"           ,dirname), 100, -100,  100, folder);
       Utilities::BookH1F(fLepHist[i]->hOneEta         , "oneeta"           , Form("%s: Eta"          ,dirname),  50, -2.5,  2.5, folder);
+      Utilities::BookH1F(fLepHist[i]->hOneSCEta       , "onesceta"         , Form("%s: SC Eta"       ,dirname),  50, -2.5,  2.5, folder);
       Utilities::BookH1F(fLepHist[i]->hOnePhi         , "onephi"           , Form("%s: Phi"          ,dirname),  80,   -4,    4, folder);
       Utilities::BookH1F(fLepHist[i]->hOneD0          , "oned0"            , Form("%s: D0"           ,dirname),  50,    0,  0.1, folder);
       Utilities::BookH1F(fLepHist[i]->hOneDXY         , "onedxy"           , Form("%s: DXY"          ,dirname),  50,    0,  0.1, folder);
       Utilities::BookH1F(fLepHist[i]->hOneDZ          , "onedz"            , Form("%s: DZ"           ,dirname),  50,    0,  0.1, folder);
+      Utilities::BookH1F(fLepHist[i]->hOneDXYSig      , "onedxysig"        , Form("%s: DXY/err"      ,dirname),  30,    0,    5, folder);
+      Utilities::BookH1F(fLepHist[i]->hOneDZSig       , "onedzsig"         , Form("%s: DZ/err"       ,dirname),  30,    0,    5, folder);
       Utilities::BookH1F(fLepHist[i]->hOneIso         , "oneiso"           , Form("%s: Iso"          ,dirname),  50,    0,    5, folder);
       Utilities::BookH1D(fLepHist[i]->hOneID1         , "oneid1"           , Form("%s: ID1"          ,dirname),  80,   -1,   79, folder);
       Utilities::BookH1D(fLepHist[i]->hOneID2         , "oneid2"           , Form("%s: ID2"          ,dirname),  80,   -1,   79, folder);
@@ -515,10 +516,13 @@ void HistMaker::BookBaseLepHistograms(Int_t i, const char* dirname) {
       Utilities::BookH1F(fLepHist[i]->hTwoPt[0]       , "twopt"            , Form("%s: Pt"          ,dirname)  , 150,   0, 150, folder);
       Utilities::BookH1F(fLepHist[i]->hTwoPz          , "twopz"            , Form("%s: Pz"          ,dirname), 100, -100,  100, folder);
       Utilities::BookH1F(fLepHist[i]->hTwoEta         , "twoeta"           , Form("%s: Eta"         ,dirname),  50,-2.5,  2.5, folder);
+      Utilities::BookH1F(fLepHist[i]->hTwoSCEta       , "twosceta"         , Form("%s: SC Eta"      ,dirname),  50,-2.5,  2.5, folder);
       Utilities::BookH1F(fLepHist[i]->hTwoPhi         , "twophi"           , Form("%s: Phi"         ,dirname),  80,  -4,    4, folder);
       Utilities::BookH1F(fLepHist[i]->hTwoD0          , "twod0"            , Form("%s: D0"          ,dirname),  50,   0,  0.1, folder);
       Utilities::BookH1F(fLepHist[i]->hTwoDXY         , "twodxy"           , Form("%s: DXY"         ,dirname),  50,   0,  0.1, folder);
       Utilities::BookH1F(fLepHist[i]->hTwoDZ          , "twodz"            , Form("%s: DZ"          ,dirname),  50,   0,  0.1, folder);
+      Utilities::BookH1F(fLepHist[i]->hTwoDXYSig      , "twodxysig"        , Form("%s: DXY/err"     ,dirname),  30,   0,    5, folder);
+      Utilities::BookH1F(fLepHist[i]->hTwoDZSig       , "twodzsig"         , Form("%s: DZ/err"      ,dirname),  30,   0,    5, folder);
       Utilities::BookH1F(fLepHist[i]->hTwoIso         , "twoiso"           , Form("%s: Iso"         ,dirname),  50,   0,    5, folder);
       Utilities::BookH1D(fLepHist[i]->hTwoID1         , "twoid1"           , Form("%s: ID1"         ,dirname),  80,  -1,   79, folder);
       Utilities::BookH1D(fLepHist[i]->hTwoID2         , "twoid2"           , Form("%s: ID2"         ,dirname),  80,  -1,   79, folder);
@@ -543,7 +547,7 @@ void HistMaker::BookBaseLepHistograms(Int_t i, const char* dirname) {
       Utilities::BookH1F(fLepHist[i]->hDZDiff         , "dzdiff"           , Form("%s: 2 DZ - 1 DZ"  ,dirname), 100,-0.08, 0.08, folder);
 
       //2D distributions
-      Utilities::BookH2F(fLepHist[i]->hTwoPtVsOnePt   , "twoptvsonept"     , Form("%s: Two pT vs One pT", dirname), 30, 0, 150, 30, 0, 150, folder);
+      // Utilities::BookH2F(fLepHist[i]->hTwoPtVsOnePt   , "twoptvsonept"     , Form("%s: Two pT vs One pT", dirname), 30, 0, 150, 30, 0, 150, folder);
 }
 //--------------------------------------------------------------------------------------------------------------
 void HistMaker::BookLepHistograms() {
@@ -690,146 +694,196 @@ void HistMaker::DeleteHistograms() {
 }
 
 //--------------------------------------------------------------------------------------------------------------
+// Initialize an event list for the tree to only process a subset of events
+void HistMaker::SetEventList(TTree* tree) {
+  tree->SetBranchStatus("*", 1); //ensure all potentially needed branches are active
+  if(tree->GetEventList()) tree->SetEventList(nullptr); //remove any previously applied event list
+
+  TString cut = "";
+  if(fDYType > 0) { //Split DY into tautau and ee/mumu
+    if(fDYType == 1) { //only process Z->tautau
+      cut = "std::abs(GenZll_LepOne_pdgId) == 15 && std::abs(GenZll_LepTwo_pdgId) == 15";
+    } else if(fDYType == 2) { //only process Z->ee/mumu
+      cut = ""; //"std::abs(GenZll_LepOne_pdgId) != 15 && std::abs(GenZll_LepTwo_pdgId) != 15";
+    } else {
+      std::cout << "HistMaker::" << __func__
+                << ": Warning! Unable to identify type of DY event to process!" << std::endl
+                << "fDYType = " << fDYType << std::endl;
+      return;
+    }
+  } else if(fWNJets > -1) { //split W+Jets into N(LHE jets) generated for binned sample combination
+    cut = Form("LHE_Njets == %i", fWNJets);
+  }
+
+  if(fProcessSSSF == 0 && (fSelection == "ee" || fSelection == "mumu")) { //skip same-sign, same-flavor data
+    cut = Form("%sn%s == 2 && %s_charge[0] != %s_charge[1]", (cut == "") ? "" : (cut + " && ").Data(),
+               (fSelection == "ee") ? "Electron" : "Muon",
+               (fSelection == "ee") ? "Electron" : "Muon",
+               (fSelection == "ee") ? "Electron" : "Muon");
+  }
+
+  if(cut == "") return;
+  //Attempt to set the desired event list
+  tree->Draw(">>elist", cut.Data());
+  auto elist = (TEventList*) gDirectory->Get("elist");
+  if(!elist) {
+    std::cout << "HistMaker::" << __func__ << ": Failed to generate event list!\n";
+    return;
+  }
+  printf("HistMaker::%s: Selected event list has %i entries (%.2f%%)\n",
+         __func__, elist->GetN(), elist->GetN()*100./fChain->GetEntriesFast());
+  tree->SetEventList(elist);
+}
+
+//--------------------------------------------------------------------------------------------------------------
 // Initialize branch structure of the input tree
 void HistMaker::InitializeInputTree(TTree* tree) {
-  tree->SetBranchAddress("run"                      , &runNumber                 );
-  tree->SetBranchAddress("luminosityBlock"          , &lumiSection               );
-  tree->SetBranchAddress("event"                    , &eventNumber               );
+  if(fDoEventList) SetEventList(tree);
 
-  tree->SetBranchAddress("nMuon"                    , &nMuon                     );
-  tree->SetBranchAddress("nGenMuon"                 , &nGenMuons                 );
-  tree->SetBranchAddress("Muon_pt"                  , &Muon_pt                   );
-  tree->SetBranchAddress("Muon_eta"                 , &Muon_eta                  );
-  tree->SetBranchAddress("Muon_phi"                 , &Muon_phi                  );
-  tree->SetBranchAddress("Muon_charge"              , &Muon_charge               );
-  tree->SetBranchAddress("Muon_looseId"             , &Muon_looseId              );
-  tree->SetBranchAddress("Muon_mediumId"            , &Muon_mediumId             );
-  tree->SetBranchAddress("Muon_tightId"             , &Muon_tightId              );
-  tree->SetBranchAddress("Muon_pfRelIso04_all"      , &Muon_pfRelIso04_all       );
-  tree->SetBranchAddress("Muon_dxy"                 , &Muon_dxy                  );
-  tree->SetBranchAddress("Muon_dxyErr"              , &Muon_dxyErr               );
-  tree->SetBranchAddress("Muon_dz"                  , &Muon_dz                   );
-  tree->SetBranchAddress("Muon_dzErr"               , &Muon_dzErr                );
-  tree->SetBranchAddress("Muon_nTrackerLayers"      , &Muon_nTrackerLayers       );
-  tree->SetBranchAddress("Muon_TaggedAsRemovedByJet", &Muon_TaggedAsRemovedByJet );
+  tree->SetBranchStatus("*", 0); //turn off all branches by default, ones with addresses set are turned on
+  Utilities::SetBranchAddress(tree, "run"                      , &runNumber                 );
+  Utilities::SetBranchAddress(tree, "luminosityBlock"          , &lumiSection               );
+  Utilities::SetBranchAddress(tree, "event"                    , &eventNumber               );
+
+  Utilities::SetBranchAddress(tree, "nMuon"                    , &nMuon                     );
+  Utilities::SetBranchAddress(tree, "nGenMuon"                 , &nGenMuons                 );
+  Utilities::SetBranchAddress(tree, "Muon_pt"                  , &Muon_pt                   );
+  Utilities::SetBranchAddress(tree, "Muon_eta"                 , &Muon_eta                  );
+  Utilities::SetBranchAddress(tree, "Muon_phi"                 , &Muon_phi                  );
+  Utilities::SetBranchAddress(tree, "Muon_charge"              , &Muon_charge               );
+  Utilities::SetBranchAddress(tree, "Muon_looseId"             , &Muon_looseId              );
+  Utilities::SetBranchAddress(tree, "Muon_mediumId"            , &Muon_mediumId             );
+  Utilities::SetBranchAddress(tree, "Muon_tightId"             , &Muon_tightId              );
+  Utilities::SetBranchAddress(tree, "Muon_pfRelIso04_all"      , &Muon_pfRelIso04_all       );
+  Utilities::SetBranchAddress(tree, "Muon_dxy"                 , &Muon_dxy                  );
+  Utilities::SetBranchAddress(tree, "Muon_dxyErr"              , &Muon_dxyErr               );
+  Utilities::SetBranchAddress(tree, "Muon_dz"                  , &Muon_dz                   );
+  Utilities::SetBranchAddress(tree, "Muon_dzErr"               , &Muon_dzErr                );
+  Utilities::SetBranchAddress(tree, "Muon_nTrackerLayers"      , &Muon_nTrackerLayers       );
+  Utilities::SetBranchAddress(tree, "Muon_TaggedAsRemovedByJet", &Muon_TaggedAsRemovedByJet );
   if(!fIsData) {
-    tree->SetBranchAddress("Muon_genPartFlav"    , &Muon_genPartFlav    );
-    tree->SetBranchAddress("Muon_genPartIdx"     , &Muon_genPartIdx     );
+    Utilities::SetBranchAddress(tree, "Muon_genPartFlav"    , &Muon_genPartFlav    );
+    Utilities::SetBranchAddress(tree, "Muon_genPartIdx"     , &Muon_genPartIdx     );
   }
 
-  tree->SetBranchAddress("nElectron"                     , &nElectron                     );
-  tree->SetBranchAddress("nGenElectron"                  , &nGenElectrons                 );
-  tree->SetBranchAddress("Electron_pt"                   , &Electron_pt                   );
-  tree->SetBranchAddress("Electron_eta"                  , &Electron_eta                  );
-  tree->SetBranchAddress("Electron_phi"                  , &Electron_phi                  );
-  tree->SetBranchAddress("Electron_charge"               , &Electron_charge               );
-  tree->SetBranchAddress("Electron_deltaEtaSC"           , &Electron_deltaEtaSC           );
-  tree->SetBranchAddress("Electron_mvaFall17V2Iso_WPL"   , &Electron_mvaFall17V2Iso_WPL   );
-  tree->SetBranchAddress("Electron_mvaFall17V2Iso_WP90"  , &Electron_mvaFall17V2Iso_WP90  );
-  tree->SetBranchAddress("Electron_mvaFall17V2Iso_WP80"  , &Electron_mvaFall17V2Iso_WP80  );
-  tree->SetBranchAddress("Electron_mvaFall17V2noIso_WPL" , &Electron_mvaFall17V2noIso_WPL );
-  tree->SetBranchAddress("Electron_mvaFall17V2noIso_WP90", &Electron_mvaFall17V2noIso_WP90);
-  tree->SetBranchAddress("Electron_mvaFall17V2noIso_WP80", &Electron_mvaFall17V2noIso_WP80);
-  tree->SetBranchAddress("Electron_pfRelIso03_all"       , &Electron_pfRelIso03_all       );
-  tree->SetBranchAddress("Electron_eCorr"                , &Electron_eCorr                );
-  tree->SetBranchAddress("Electron_dxy"                  , &Electron_dxy                  );
-  tree->SetBranchAddress("Electron_dxyErr"               , &Electron_dxyErr               );
-  tree->SetBranchAddress("Electron_dz"                   , &Electron_dz                   );
-  tree->SetBranchAddress("Electron_dzErr"                , &Electron_dzErr                );
-  tree->SetBranchAddress("Electron_TaggedAsRemovedByJet" , &Electron_TaggedAsRemovedByJet );
+  Utilities::SetBranchAddress(tree, "nElectron"                     , &nElectron                     );
+  Utilities::SetBranchAddress(tree, "nGenElectron"                  , &nGenElectrons                 );
+  Utilities::SetBranchAddress(tree, "Electron_pt"                   , &Electron_pt                   );
+  Utilities::SetBranchAddress(tree, "Electron_eta"                  , &Electron_eta                  );
+  Utilities::SetBranchAddress(tree, "Electron_phi"                  , &Electron_phi                  );
+  Utilities::SetBranchAddress(tree, "Electron_charge"               , &Electron_charge               );
+  Utilities::SetBranchAddress(tree, "Electron_deltaEtaSC"           , &Electron_deltaEtaSC           );
+  Utilities::SetBranchAddress(tree, "Electron_mvaFall17V2Iso_WPL"   , &Electron_mvaFall17V2Iso_WPL   );
+  Utilities::SetBranchAddress(tree, "Electron_mvaFall17V2Iso_WP90"  , &Electron_mvaFall17V2Iso_WP90  );
+  Utilities::SetBranchAddress(tree, "Electron_mvaFall17V2Iso_WP80"  , &Electron_mvaFall17V2Iso_WP80  );
+  Utilities::SetBranchAddress(tree, "Electron_mvaFall17V2noIso_WPL" , &Electron_mvaFall17V2noIso_WPL );
+  Utilities::SetBranchAddress(tree, "Electron_mvaFall17V2noIso_WP90", &Electron_mvaFall17V2noIso_WP90);
+  Utilities::SetBranchAddress(tree, "Electron_mvaFall17V2noIso_WP80", &Electron_mvaFall17V2noIso_WP80);
+  Utilities::SetBranchAddress(tree, "Electron_pfRelIso03_all"       , &Electron_pfRelIso03_all       );
+  Utilities::SetBranchAddress(tree, "Electron_eCorr"                , &Electron_eCorr                );
+  Utilities::SetBranchAddress(tree, "Electron_dxy"                  , &Electron_dxy                  );
+  Utilities::SetBranchAddress(tree, "Electron_dxyErr"               , &Electron_dxyErr               );
+  Utilities::SetBranchAddress(tree, "Electron_dz"                   , &Electron_dz                   );
+  Utilities::SetBranchAddress(tree, "Electron_dzErr"                , &Electron_dzErr                );
+  Utilities::SetBranchAddress(tree, "Electron_TaggedAsRemovedByJet" , &Electron_TaggedAsRemovedByJet );
   if(!fIsData) {
-    tree->SetBranchAddress("Electron_genPartFlav"          , &Electron_genPartFlav          );
-    tree->SetBranchAddress("Electron_genPartIdx"           , &Electron_genPartIdx           );
+    Utilities::SetBranchAddress(tree, "Electron_genPartFlav"          , &Electron_genPartFlav          );
+    Utilities::SetBranchAddress(tree, "Electron_genPartIdx"           , &Electron_genPartIdx           );
   }
 
-  tree->SetBranchAddress("nTau"                          , &nTau                          );
-  tree->SetBranchAddress("nGenTau"                       , &nGenTaus                      );
-  tree->SetBranchAddress("Tau_pt"                        , &Tau_pt                        );
-  tree->SetBranchAddress("Tau_eta"                       , &Tau_eta                       );
-  tree->SetBranchAddress("Tau_phi"                       , &Tau_phi                       );
-  tree->SetBranchAddress("Tau_mass"                      , &Tau_mass                      );
-  tree->SetBranchAddress("Tau_charge"                    , &Tau_charge                    );
-  tree->SetBranchAddress("Tau_idDeepTau2017v2p1VSe"      , &Tau_idDeepTau2017v2p1VSe      );
-  tree->SetBranchAddress("Tau_idDeepTau2017v2p1VSmu"     , &Tau_idDeepTau2017v2p1VSmu     );
-  tree->SetBranchAddress("Tau_idDeepTau2017v2p1VSjet"    , &Tau_idDeepTau2017v2p1VSjet    );
-  tree->SetBranchAddress("Tau_idAntiEle"                 , &Tau_idAntiEle                 );
-  tree->SetBranchAddress("Tau_idAntiEle2018"             , &Tau_idAntiEle2018             );
-  tree->SetBranchAddress("Tau_idAntiMu"                  , &Tau_idAntiMu                  );
-  tree->SetBranchAddress("Tau_idMVAnewDM2017v2"          , &Tau_idAntiJet                 );
-  tree->SetBranchAddress("Tau_decayMode"                 , &Tau_decayMode                 );
-  tree->SetBranchAddress("Tau_idDecayMode"               , &Tau_idDecayMode               );
-  tree->SetBranchAddress("Tau_idDecayModeNewDMs"         , &Tau_idDecayModeNewDMs         );
-  tree->SetBranchAddress("Tau_dxy"                       , &Tau_dxy                       );
-  // tree->SetBranchAddress("Tau_dxyErr"                    , &Tau_dxyErr                    );
-  tree->SetBranchAddress("Tau_dz"                        , &Tau_dz                        );
-  // tree->SetBranchAddress("Tau_dzErr"                     , &Tau_dzErr                     );
-  tree->SetBranchAddress("Tau_TaggedAsRemovedByJet"      , &Tau_TaggedAsRemovedByJet      );
+  Utilities::SetBranchAddress(tree, "nTau"                          , &nTau                          );
+  Utilities::SetBranchAddress(tree, "nGenTau"                       , &nGenTaus                      );
+  Utilities::SetBranchAddress(tree, "Tau_pt"                        , &Tau_pt                        );
+  Utilities::SetBranchAddress(tree, "Tau_eta"                       , &Tau_eta                       );
+  Utilities::SetBranchAddress(tree, "Tau_phi"                       , &Tau_phi                       );
+  Utilities::SetBranchAddress(tree, "Tau_mass"                      , &Tau_mass                      );
+  Utilities::SetBranchAddress(tree, "Tau_charge"                    , &Tau_charge                    );
+  Utilities::SetBranchAddress(tree, "Tau_idDeepTau2017v2p1VSe"      , &Tau_idDeepTau2017v2p1VSe      );
+  Utilities::SetBranchAddress(tree, "Tau_idDeepTau2017v2p1VSmu"     , &Tau_idDeepTau2017v2p1VSmu     );
+  Utilities::SetBranchAddress(tree, "Tau_idDeepTau2017v2p1VSjet"    , &Tau_idDeepTau2017v2p1VSjet    );
+  Utilities::SetBranchAddress(tree, "Tau_idAntiEle"                 , &Tau_idAntiEle                 );
+  Utilities::SetBranchAddress(tree, "Tau_idAntiEle2018"             , &Tau_idAntiEle2018             );
+  Utilities::SetBranchAddress(tree, "Tau_idAntiMu"                  , &Tau_idAntiMu                  );
+  Utilities::SetBranchAddress(tree, "Tau_idMVAnewDM2017v2"          , &Tau_idAntiJet                 );
+  Utilities::SetBranchAddress(tree, "Tau_decayMode"                 , &Tau_decayMode                 );
+  Utilities::SetBranchAddress(tree, "Tau_idDecayMode"               , &Tau_idDecayMode               );
+  Utilities::SetBranchAddress(tree, "Tau_idDecayModeNewDMs"         , &Tau_idDecayModeNewDMs         );
+  Utilities::SetBranchAddress(tree, "Tau_dxy"                       , &Tau_dxy                       );
+  // Utilities::SetBranchAddress(tree, "Tau_dxyErr"                    , &Tau_dxyErr                    );
+  Utilities::SetBranchAddress(tree, "Tau_dz"                        , &Tau_dz                        );
+  // Utilities::SetBranchAddress(tree, "Tau_dzErr"                     , &Tau_dzErr                     );
+  Utilities::SetBranchAddress(tree, "Tau_TaggedAsRemovedByJet"      , &Tau_TaggedAsRemovedByJet      );
   if(!fIsData) {
-    tree->SetBranchAddress("Tau_genPartFlav"               , &Tau_genPartFlav               );
-    tree->SetBranchAddress("Tau_genPartIdx"                , &Tau_genPartIdx                );
+    Utilities::SetBranchAddress(tree, "Tau_genPartFlav"               , &Tau_genPartFlav               );
+    Utilities::SetBranchAddress(tree, "Tau_genPartIdx"                , &Tau_genPartIdx                );
   }
 
-  tree->SetBranchAddress("nJet"                          , &nJet                          );
-  tree->SetBranchAddress("Jet_pt"                        , &Jet_pt                        );
-  tree->SetBranchAddress("Jet_eta"                       , &Jet_eta                       );
-  tree->SetBranchAddress("Jet_phi"                       , &Jet_phi                       );
-  tree->SetBranchAddress("Jet_mass"                      , &Jet_mass                      );
-  // tree->SetBranchAddress("Jet_charge"                    , &Jet_charge                    );
-  tree->SetBranchAddress("Jet_jetId"                     , &Jet_jetId                     );
-  tree->SetBranchAddress("Jet_puId"                      , &Jet_puId                      );
-  // tree->SetBranchAddress("Jet_pfRelIso03_all"            , &Jet_pfRelIso03_al           l );
-  tree->SetBranchAddress("Jet_btagDeepB"                 , &Jet_btagDeepB                 );
-  tree->SetBranchAddress("Jet_btagCMVA"                  , &Jet_btagCMVA                  );
-  // tree->SetBranchAddress("Jet_eCorr"                     , &Jet_eCorr                     );
-  // tree->SetBranchAddress("Jet_dxy"                       , &Jet_dxy                       );
-  // tree->SetBranchAddress("Jet_dxyErr"                    , &Jet_dxyErr                    );
-  // tree->SetBranchAddress("Jet_dz"                        , &Jet_dz                        );
-  // tree->SetBranchAddress("Jet_dzErr"                     , &Jet_dzErr                     );
+  Utilities::SetBranchAddress(tree, "nJet"                          , &nJet                          );
+  Utilities::SetBranchAddress(tree, "Jet_pt"                        , &Jet_pt                        );
+  Utilities::SetBranchAddress(tree, "Jet_eta"                       , &Jet_eta                       );
+  Utilities::SetBranchAddress(tree, "Jet_phi"                       , &Jet_phi                       );
+  Utilities::SetBranchAddress(tree, "Jet_mass"                      , &Jet_mass                      );
+  // Utilities::SetBranchAddress(tree, "Jet_charge"                    , &Jet_charge                    );
+  Utilities::SetBranchAddress(tree, "Jet_jetId"                     , &Jet_jetId                     );
+  Utilities::SetBranchAddress(tree, "Jet_puId"                      , &Jet_puId                      );
+  // Utilities::SetBranchAddress(tree, "Jet_pfRelIso03_all"            , &Jet_pfRelIso03_al           l );
+  Utilities::SetBranchAddress(tree, "Jet_btagDeepB"                 , &Jet_btagDeepB                 );
+  Utilities::SetBranchAddress(tree, "Jet_btagCMVA"                  , &Jet_btagCMVA                  );
+  // Utilities::SetBranchAddress(tree, "Jet_eCorr"                     , &Jet_eCorr                     );
+  // Utilities::SetBranchAddress(tree, "Jet_dxy"                       , &Jet_dxy                       );
+  // Utilities::SetBranchAddress(tree, "Jet_dxyErr"                    , &Jet_dxyErr                    );
+  // Utilities::SetBranchAddress(tree, "Jet_dz"                        , &Jet_dz                        );
+  // Utilities::SetBranchAddress(tree, "Jet_dzErr"                     , &Jet_dzErr                     );
   if(!fIsData)
-    tree->SetBranchAddress("Jet_partonFlavour"             , &Jet_partonFlavour             );
-  tree->SetBranchAddress("Jet_TaggedAsRemovedByMuon"     , &Jet_TaggedAsRemovedByMuon     );
-  tree->SetBranchAddress("Jet_TaggedAsRemovedByElectron" , &Jet_TaggedAsRemovedByElectron );
+    Utilities::SetBranchAddress(tree, "Jet_partonFlavour"             , &Jet_partonFlavour             );
+  Utilities::SetBranchAddress(tree, "Jet_TaggedAsRemovedByMuon"     , &Jet_TaggedAsRemovedByMuon     );
+  Utilities::SetBranchAddress(tree, "Jet_TaggedAsRemovedByElectron" , &Jet_TaggedAsRemovedByElectron );
 
-  tree->SetBranchAddress("nTrigObj"                      , &nTrigObj                      );
-  tree->SetBranchAddress("TrigObj_pt"                    , &TrigObj_pt                    );
-  tree->SetBranchAddress("TrigObj_eta"                   , &TrigObj_eta                   );
-  tree->SetBranchAddress("TrigObj_phi"                   , &TrigObj_phi                   );
-  tree->SetBranchAddress("TrigObj_id"                    , &TrigObj_id                    );
-  tree->SetBranchAddress("TrigObj_filterBits"            , &TrigObj_filterBits            );
+  Utilities::SetBranchAddress(tree, "nTrigObj"                      , &nTrigObj                      );
+  Utilities::SetBranchAddress(tree, "TrigObj_pt"                    , &TrigObj_pt                    );
+  Utilities::SetBranchAddress(tree, "TrigObj_eta"                   , &TrigObj_eta                   );
+  Utilities::SetBranchAddress(tree, "TrigObj_phi"                   , &TrigObj_phi                   );
+  Utilities::SetBranchAddress(tree, "TrigObj_id"                    , &TrigObj_id                    );
+  Utilities::SetBranchAddress(tree, "TrigObj_filterBits"            , &TrigObj_filterBits            );
 
   //Z information
   if(!fIsData) {
-    tree->SetBranchAddress("GenZll_pt"                     , &zPt                           );
-    tree->SetBranchAddress("GenZll_mass"                   , &zMass                         );
-    tree->SetBranchAddress("GenZll_LepOne_pdgId"           , &zLepOneID                     );
-    tree->SetBranchAddress("GenZll_LepTwo_pdgId"           , &zLepTwoID                     );
-    tree->SetBranchAddress("GenZll_LepOne_pt"              , &zLepOnePt                     );
-    tree->SetBranchAddress("GenZll_LepTwo_pt"              , &zLepTwoPt                     );
-    tree->SetBranchAddress("GenZll_LepOne_eta"             , &zLepOneEta                    );
-    tree->SetBranchAddress("GenZll_LepTwo_eta"             , &zLepTwoEta                    );
-    tree->SetBranchAddress("GenZll_LepOne_phi"             , &zLepOnePhi                    );
-    tree->SetBranchAddress("GenZll_LepTwo_phi"             , &zLepTwoPhi                    );
-    tree->SetBranchAddress("GenZll_LepOne_mass"            , &zLepOneMass                   );
-    tree->SetBranchAddress("GenZll_LepTwo_mass"            , &zLepTwoMass                   );
+    Utilities::SetBranchAddress(tree, "GenZll_pt"                     , &zPt                           );
+    Utilities::SetBranchAddress(tree, "GenZll_mass"                   , &zMass                         );
+    Utilities::SetBranchAddress(tree, "GenZll_eta"                    , &zEta                          );
+    Utilities::SetBranchAddress(tree, "GenZll_LepOne_pdgId"           , &zLepOneID                     );
+    Utilities::SetBranchAddress(tree, "GenZll_LepTwo_pdgId"           , &zLepTwoID                     );
+    Utilities::SetBranchAddress(tree, "GenZll_LepOne_pt"              , &zLepOnePt                     );
+    Utilities::SetBranchAddress(tree, "GenZll_LepTwo_pt"              , &zLepTwoPt                     );
+    Utilities::SetBranchAddress(tree, "GenZll_LepOne_eta"             , &zLepOneEta                    );
+    Utilities::SetBranchAddress(tree, "GenZll_LepTwo_eta"             , &zLepTwoEta                    );
+    Utilities::SetBranchAddress(tree, "GenZll_LepOne_phi"             , &zLepOnePhi                    );
+    Utilities::SetBranchAddress(tree, "GenZll_LepTwo_phi"             , &zLepTwoPhi                    );
+    Utilities::SetBranchAddress(tree, "GenZll_LepOne_mass"            , &zLepOneMass                   );
+    Utilities::SetBranchAddress(tree, "GenZll_LepTwo_mass"            , &zLepTwoMass                   );
   }
 
   //Event information
-  if(!fIsData)
-    tree->SetBranchAddress("genWeight"                     , &genWeight                     );
-  tree->SetBranchAddress("HT"                            , &ht                            );
-  tree->SetBranchAddress("PuppiMET_pt"                   , &puppMET                       );
-  tree->SetBranchAddress("PuppiMET_phi"                  , &puppMETphi                    );
-  // tree->SetBranchAddress("Pileup_nPU"                    , &nPUAdded                      );
   if(!fIsData) {
-    tree->SetBranchAddress("Pileup_nTrueInt"               , &nPU                           );
-    tree->SetBranchAddress("LHE_Njets"                     , &LHE_Njets                     ) ;
+    Utilities::SetBranchAddress(tree, "genWeight"                     , &genWeight                     );
+    Utilities::SetBranchAddress(tree, "Pileup_nTrueInt"               , &nPU                           );
+    Utilities::SetBranchAddress(tree, "LHE_Njets"                     , &LHE_Njets                     );
+    if(!fIsEmbed) {
+      Utilities::SetBranchAddress(tree, "PrefireWeight"               , &prefireWeight                 );
+      Utilities::SetBranchAddress(tree, "PrefireWeight_Up"            , &prefireWeight_up              );
+      Utilities::SetBranchAddress(tree, "PrefireWeight_Down"          , &prefireWeight_down            );
+    }
   }
-  tree->SetBranchAddress("PV_npvsGood"                   , &nPV                           ) ;
+  Utilities::SetBranchAddress(tree, "PV_npvsGood"                   , &nPV                           ) ;
+  Utilities::SetBranchAddress(tree, "HT"                            , &ht                            );
+  Utilities::SetBranchAddress(tree, "PuppiMET_pt"                   , &puppMET                       );
+  Utilities::SetBranchAddress(tree, "PuppiMET_phi"                  , &puppMETphi                    );
+  // Utilities::SetBranchAddress(tree, "Pileup_nPU"                    , &nPUAdded                      );
 
   //MVA information
   if(!fReprocessMVAs) {
     for(unsigned mva_i = 0; mva_i < fMVAConfig.names_.size(); ++mva_i) {
-      fChain->SetBranchAddress(Form("mva%i",mva_i), &fMvaOutputs[mva_i]);
+      Utilities::SetBranchAddress(tree, Form("mva%i",mva_i), &fMvaOutputs[mva_i]);
     }
   }
 }
@@ -838,8 +892,8 @@ void HistMaker::InitializeInputTree(TTree* tree) {
 //apply/replace electron energy scale corrections
 void HistMaker::ApplyElectronCorrections() {
   for(UInt_t index = 0; index < nElectron; ++index) {
-    float sf = (fIsEmbed) ? 1. : fElectronIDWeight.EmbedEnergyScale(Electron_pt[index], Electron_eta[index],
-                                                                    fYear, eleES_up, eleES_down); //assume 1 electron in event where up/down matter
+    float sf = (fIsEmbed) ? fElectronIDWeight.EmbedEnergyScale(Electron_pt[index], Electron_eta[index],
+                                                               fYear, eleES_up, eleES_down) : 1.; //assume 1 electron in event where up/down matter
     Electron_energyScale[index] = sf;
     if(fIsEmbed) sf /= Electron_eCorr[index]; //remove the correction applied to embedding electrons
     Electron_pt  [index] *= sf;
@@ -850,6 +904,7 @@ void HistMaker::ApplyElectronCorrections() {
 //-----------------------------------------------------------------------------------------------------------------
 //apply the Rochester corrections to the muon pt for all muons
 void HistMaker::ApplyMuonCorrections() {
+  // if(fIsEmbed) return;
   const static int s(0), m(0); //error set and member for corrections
   for(UInt_t index = 0; index < nMuon; ++index) {
     const double u = fRnd->Uniform();
@@ -863,6 +918,7 @@ void HistMaker::ApplyMuonCorrections() {
       // } else {
       //For simulated muons, both in embedding and standard MC, apply given MC corrections
       sf = fRoccoR->kSmearMC(Muon_charge[index], Muon_pt[index], Muon_eta[index], Muon_phi[index], Muon_nTrackerLayers[index], u, s, m);
+      //FIXME: use kSpreadMC with the gen-level muon info (see RoccoR.h:L242)
       // }
     }
     Muon_pt[index] *= sf;
@@ -881,6 +937,54 @@ void HistMaker::ApplyTauCorrections() {
     Tau_pt  [index] *= sf;
     Tau_mass[index] *= sf;
     Tau_energyScale[index] = sf;
+  }
+}
+
+//--------------------------------------------------------------------------------------------------------------
+// If the same flavor leptons are not in increasing pT order, swap them
+// FIXME: Add a more generic method, e.g. a Muon/Electron object with fields, loop through fields to swap
+void HistMaker::SwapSameFlavor() {
+  if(nMuon == 2 && Muon_pt[0] < Muon_pt[1]) {
+    std::swap(Muon_pt                       [0], Muon_pt                       [1]);
+    std::swap(Muon_eta                      [0], Muon_eta                      [1]);
+    std::swap(Muon_phi                      [0], Muon_phi                      [1]);
+    std::swap(Muon_charge                   [0], Muon_charge                   [1]);
+    std::swap(Muon_looseId                  [0], Muon_looseId                  [1]);
+    std::swap(Muon_mediumId                 [0], Muon_mediumId                 [1]);
+    std::swap(Muon_tightId                  [0], Muon_tightId                  [1]);
+    std::swap(Muon_pfRelIso04_all           [0], Muon_pfRelIso04_all           [1]);
+    std::swap(Muon_dxy                      [0], Muon_dxy                      [1]);
+    std::swap(Muon_dxyErr                   [0], Muon_dxyErr                   [1]);
+    std::swap(Muon_dz                       [0], Muon_dz                       [1]);
+    std::swap(Muon_dzErr                    [0], Muon_dzErr                    [1]);
+    std::swap(Muon_nTrackerLayers           [0], Muon_nTrackerLayers           [1]);
+    std::swap(Muon_TaggedAsRemovedByJet     [0], Muon_TaggedAsRemovedByJet     [1]);
+    std::swap(Muon_genPartFlav              [0], Muon_genPartFlav              [1]);
+    std::swap(Muon_genPartIdx               [0], Muon_genPartIdx               [1]);
+    std::swap(Muon_RoccoSF                  [0], Muon_RoccoSF                  [1]);
+  }
+  if(nElectron == 2 && Electron_pt[0] < Electron_pt[1]) {
+    std::swap(Electron_pt                   [0], Electron_pt                   [1]);
+    std::swap(Electron_eta                  [0], Electron_eta                  [1]);
+    std::swap(Electron_phi                  [0], Electron_phi                  [1]);
+    std::swap(Electron_charge               [0], Electron_charge               [1]);
+    std::swap(Electron_deltaEtaSC           [0], Electron_deltaEtaSC           [1]);
+    std::swap(Electron_mvaFall17V2Iso_WPL   [0], Electron_mvaFall17V2Iso_WPL   [1]);
+    std::swap(Electron_mvaFall17V2Iso_WP90  [0], Electron_mvaFall17V2Iso_WP90  [1]);
+    std::swap(Electron_mvaFall17V2Iso_WP80  [0], Electron_mvaFall17V2Iso_WP80  [1]);
+    std::swap(Electron_mvaFall17V2noIso_WPL [0], Electron_mvaFall17V2noIso_WPL [1]);
+    std::swap(Electron_mvaFall17V2noIso_WP90[0], Electron_mvaFall17V2noIso_WP90[1]);
+    std::swap(Electron_mvaFall17V2noIso_WP80[0], Electron_mvaFall17V2noIso_WP80[1]);
+    std::swap(Electron_pfRelIso03_all       [0], Electron_pfRelIso03_all       [1]);
+    std::swap(Electron_eCorr                [0], Electron_eCorr                [1]);
+    std::swap(Electron_dxy                  [0], Electron_dxy                  [1]);
+    std::swap(Electron_dxyErr               [0], Electron_dxyErr               [1]);
+    std::swap(Electron_dz                   [0], Electron_dz                   [1]);
+    std::swap(Electron_dzErr                [0], Electron_dzErr                [1]);
+    std::swap(Electron_TaggedAsRemovedByJet [0], Electron_TaggedAsRemovedByJet [1]);
+    std::swap(Electron_genPartFlav          [0], Electron_genPartFlav          [1]);
+    std::swap(Electron_genPartIdx           [0], Electron_genPartIdx           [1]);
+    std::swap(Electron_energyScale          [0], Electron_energyScale          [1]);
   }
 }
 
@@ -906,6 +1010,7 @@ void HistMaker::InitializeEventWeights() {
 
   jetPUIDWeight = 1.; btagWeight = 1.; embeddingWeight = 1.; embeddingUnfoldingWeight = 1.;
   zPtWeight = 1.; zPtWeightUp = 1.; zPtWeightDown = 1.; zPtWeightSys = 1.;
+  signalZWeight = 1.;
 
 
   jetToTauWeight = 1.; jetToTauWeightUp = 1.; jetToTauWeightDown = 1.; jetToTauWeightSys = 1.; jetToTauWeightGroup = 0;
@@ -921,7 +1026,10 @@ void HistMaker::InitializeEventWeights() {
   embeddingWeight = 1.f; embeddingUnfoldingWeight = 1.f;
   if(fIsEmbed) {
     genWeight = std::fabs(genWeight);
-    if(genWeight > 1.) { //undefined generation weight (must be < 1) --> remove the event
+    if(fIsLLEmbed) {
+      embeddingWeight = 1.f;
+      genWeight = 1.f;
+    } else if(genWeight > 1.) { //undefined generation weight (must be < 1) --> remove the event
       genWeight = 0.f;
     } else if(genWeight == 1.f) {
       std::cout << "!!! Warning! Entry = " << fentry << ": Unit input embedding weight = " << genWeight
@@ -932,12 +1040,27 @@ void HistMaker::InitializeEventWeights() {
       embeddingWeight = genWeight; //move the embedding weight from genWeight to embeddingWeight
       genWeight = 1.;
     }
-    embeddingUnfoldingWeight = fEmbeddingWeight.UnfoldingWeight(zLepOnePt, zLepOneEta, zLepTwoPt, zLepTwoEta, fYear);
+    embeddingUnfoldingWeight = fEmbeddingWeight->UnfoldingWeight(zLepOnePt, zLepOneEta, zLepTwoPt, zLepTwoEta, zEta, zPt, fYear);
     eventWeight *= embeddingUnfoldingWeight*embeddingWeight;
-  } else if(!fIsData) {
+  } else if(!fIsData) { //standard MC --> store only the sign of the generator weight
     genWeight = (genWeight < 0.) ? -1.f : 1.f;
-  } else { //Data
+  } else { //Data --> no weight
     genWeight = 1.f;
+  }
+
+  ////////////////////////////////////////////////////////////////////
+  //   Signal Z info + re-weight
+  ////////////////////////////////////////////////////////////////////
+
+  if(fIsSignal && fDataset.Contains("Z")) {
+    //re-weight to MC spectrum
+    signalZWeight = (fUseSignalZWeights) ? fSignalZWeight.GetWeight(fYear, zPt, zMass) : 1.f;
+    //re-weight MC spectrum to data spectrum
+    zPtWeight = fZPtWeight->GetWeight(fYear, zPt, zMass, false /*Use Gen level weights*/, zPtWeightUp, zPtWeightDown, zPtWeightSys);
+    eventWeight *= zPtWeight*signalZWeight;
+    if(fVerbose > 0) std::cout << " For Z pT = " << zPt << " and Mass = " << zMass << " using Data/MC weight " << zPtWeight
+                               << " and signal Z weight " << signalZWeight
+                               << "--> event weight = " << eventWeight << std::endl;
   }
 
   ////////////////////////////////////////////////////////////////////
@@ -945,15 +1068,12 @@ void HistMaker::InitializeEventWeights() {
   ////////////////////////////////////////////////////////////////////
 
   //Z pT/mass info (DY and Z signals only)
-  zPtWeight = 1.f;
   if(fIsDY && !fIsEmbed) {
     //re-weight the Z pt vs mass spectrum
     zPtWeight = fZPtWeight->GetWeight(fYear, zPt, zMass, false /*Use Gen level weights*/, zPtWeightUp, zPtWeightDown, zPtWeightSys);
     eventWeight *= zPtWeight;
     if(fVerbose > 0) std::cout << " For Z pT = " << zPt << " and Mass = " << zMass << " using Data/MC weight " << zPtWeight
                                << "--> event weight = " << eventWeight << std::endl;
-  } else {
-    zPtWeight = 1.; zPtWeightUp = 1.; zPtWeightDown = 1.; zPtWeightSys = 1.;
   }
 
   ////////////////////////////////////////////////////////////////////
@@ -986,9 +1106,31 @@ void HistMaker::InitializeEventWeights() {
   //   Pre-fire weights
   ////////////////////////////////////////////////////////////////////
 
-  prefireWeight = 1.f;
-  if(fUsePrefireWeights > 0 && !fIsData && !fIsEmbed) {
-    prefireWeight = fPrefireWeight->GetWeight(fYear, nJets20, jetsPt, jetsEta);
+  //weights are defined in the ntupling stage, remove if flag is > 1
+  if(fUsePrefireWeights > 1 && !fIsData && !fIsEmbed) {
+    prefireWeight = 1.f;
+    prefireWeight = fPrefireWeight->GetJetWeight(fYear, nJets20, jetsPt, jetsEta);
+  } else if(fUsePrefireWeights && fIsEmbed) {
+    //for embedding consider the probability from the jets already included in the data
+    //only consider the effect from the reconstructed electrons
+    float pt[2], eta[2];
+    int nelec = 0;
+    if(std::fabs(leptonOneFlavor) == 11) {
+      pt [nelec] = leptonOneP4->Pt();
+      eta[nelec] = leptonOneP4->Eta();
+      ++nelec;
+    }
+    if(std::fabs(leptonTwoFlavor) == 11) {
+      pt [nelec] = leptonTwoP4->Pt();
+      eta[nelec] = leptonTwoP4->Eta();
+      ++nelec;
+    }
+    prefireWeight = fPrefireWeight->GetPhotonWeight(fYear, nelec, pt, eta);
+    //take the systematic as the size of the weight
+    prefireWeight_up   = std::max(0.f, 2.f*prefireWeight - 1.f);
+    prefireWeight_down = 1.f;
+  } else if(fUsePrefireWeights == 0 || fIsData) { //remove the weights
+    prefireWeight = 1.f; prefireWeight_up = 1.f; prefireWeight_down = 1.f;
   }
   eventWeight *= prefireWeight;
 
@@ -1056,7 +1198,6 @@ void HistMaker::InitializeEventWeights() {
   /////////////////////////
   // Jet --> tau weights //
   /////////////////////////
-
 
   //weigh anti-iso tau region by anti-iso --> tight iso weight
   if((etau || mutau) && isLooseTau) {
@@ -1233,6 +1374,8 @@ void HistMaker::CountObjects() {
   ApplyElectronCorrections();
   ApplyMuonCorrections();
   ApplyTauCorrections();
+  //Re-sort muon/electron collections in the case where the corrections change the pT order
+  SwapSameFlavor();
 
   ///////////////////////////////////////////////////////
   // Initialize lepton selection info
@@ -1243,14 +1386,18 @@ void HistMaker::CountObjects() {
   if(emu) {
     leptonOneP4->SetPtEtaPhiM(Electron_pt[0], Electron_eta[0], Electron_phi[0], ELECMASS);
     leptonTwoP4->SetPtEtaPhiM(Muon_pt    [0], Muon_eta    [0], Muon_phi    [0], MUONMASS);
-    leptonOneSCEta = Electron_eta[0] + Electron_deltaEtaSC[0];
-    leptonTwoSCEta = Muon_eta[0];
-    leptonOneDXY   = Electron_dxy[0];
-    leptonTwoDXY   = Muon_dxy    [0];
-    leptonOneDZ    = Electron_dz [0];
-    leptonTwoDZ    = Muon_dz     [0];
-    leptonOneIso   = Electron_pfRelIso03_all[0]*Electron_pt[0];
-    leptonTwoIso   = Muon_pfRelIso04_all[0]*Muon_pt[0];
+    leptonOneSCEta  = Electron_eta[0] + Electron_deltaEtaSC[0];
+    leptonTwoSCEta  = Muon_eta[0];
+    leptonOneDXY    = Electron_dxy[0];
+    leptonTwoDXY    = Muon_dxy    [0];
+    leptonOneDZ     = Electron_dz [0];
+    leptonTwoDZ     = Muon_dz     [0];
+    leptonOneDXYSig = Electron_dxy[0] / Electron_dxyErr[0];
+    leptonTwoDXYSig = Muon_dxy    [0] / Muon_dxyErr    [0];
+    leptonOneDZSig  = Electron_dz [0] / Electron_dzErr [0];
+    leptonTwoDZSig  = Muon_dz     [0] / Muon_dzErr     [0];
+    leptonOneIso    = Electron_pfRelIso03_all[0]*Electron_pt[0];
+    leptonTwoIso    = Muon_pfRelIso04_all[0]*Muon_pt[0];
     leptonOneFlavor = -11*Electron_charge[0];
     leptonTwoFlavor = -13*Muon_charge[0];
     leptonOneJetOverlap = Electron_TaggedAsRemovedByJet[0];
@@ -1265,14 +1412,18 @@ void HistMaker::CountObjects() {
   } else if(etau) {
     leptonOneP4->SetPtEtaPhiM(Electron_pt[0], Electron_eta[0], Electron_phi[0], ELECMASS);
     leptonTwoP4->SetPtEtaPhiM(Tau_pt     [0], Tau_eta     [0], Tau_phi     [0], Tau_mass[0]);
-    leptonOneSCEta = Electron_eta[0] + Electron_deltaEtaSC[0];
-    leptonTwoSCEta = Tau_eta[0];
-    leptonOneDXY   = Electron_dxy[0];
-    leptonTwoDXY   = Tau_dxy     [0];
-    leptonOneDZ    = Electron_dz [0];
-    leptonTwoDZ    = Tau_dz      [0];
-    leptonOneIso   = Electron_pfRelIso03_all[0]*Electron_pt[0];
-    leptonTwoIso   = 0.f;
+    leptonOneSCEta  = Electron_eta[0] + Electron_deltaEtaSC[0];
+    leptonTwoSCEta  = Tau_eta[0];
+    leptonOneDXY    = Electron_dxy[0];
+    leptonTwoDXY    = Tau_dxy     [0];
+    leptonOneDZ     = Electron_dz [0];
+    leptonTwoDZ     = Tau_dz      [0];
+    leptonOneDXYSig = Electron_dxy[0] / Electron_dxyErr[0];
+    leptonTwoDXYSig = 0.f;
+    leptonOneDZSig  = Electron_dz [0] / Electron_dzErr [0];
+    leptonTwoDZSig  = 0.f;
+    leptonOneIso    = Electron_pfRelIso03_all[0]*Electron_pt[0];
+    leptonTwoIso    = 0.f;
     leptonOneFlavor = -11*Electron_charge[0];
     leptonTwoFlavor = -15*Tau_charge[0];
     leptonOneJetOverlap = Electron_TaggedAsRemovedByJet[0];
@@ -1287,14 +1438,18 @@ void HistMaker::CountObjects() {
   } else if(mutau) {
     leptonOneP4->SetPtEtaPhiM(Muon_pt    [0], Muon_eta    [0], Muon_phi    [0], MUONMASS);
     leptonTwoP4->SetPtEtaPhiM(Tau_pt     [0], Tau_eta     [0], Tau_phi     [0], Tau_mass[0]);
-    leptonOneSCEta = Muon_eta[0];
-    leptonTwoSCEta = Tau_eta [1];
-    leptonOneDXY   = Muon_dxy    [0];
-    leptonTwoDXY   = Tau_dxy     [0];
-    leptonOneDZ    = Muon_dz     [0];
-    leptonTwoDZ    = Tau_dz      [0];
-    leptonOneIso   = Muon_pfRelIso04_all[0]*Muon_pt[0];
-    leptonTwoIso   = 0.f;
+    leptonOneSCEta  = Muon_eta[0];
+    leptonTwoSCEta  = Tau_eta [1];
+    leptonOneDXY    = Muon_dxy    [0];
+    leptonTwoDXY    = Tau_dxy     [0];
+    leptonOneDZ     = Muon_dz     [0];
+    leptonTwoDZ     = Tau_dz      [0];
+    leptonOneDXYSig = Muon_dxy    [0] / Muon_dxyErr    [0];
+    leptonTwoDXYSig = 0.f;
+    leptonOneDZSig  = Muon_dz     [0] / Muon_dzErr     [0];
+    leptonTwoDZSig  = 0.f;
+    leptonOneIso    = Muon_pfRelIso04_all[0]*Muon_pt[0];
+    leptonTwoIso    = 0.f;
     leptonOneFlavor = -13*Muon_charge[0];
     leptonTwoFlavor = -15*Tau_charge[0];
     leptonOneJetOverlap = Muon_TaggedAsRemovedByJet[0];
@@ -1308,14 +1463,18 @@ void HistMaker::CountObjects() {
   } else if(mumu) {
     leptonOneP4->SetPtEtaPhiM(Muon_pt    [0], Muon_eta    [0], Muon_phi    [0], MUONMASS);
     leptonTwoP4->SetPtEtaPhiM(Muon_pt    [1], Muon_eta    [1], Muon_phi    [1], MUONMASS);
-    leptonOneSCEta = Muon_eta[0];
-    leptonTwoSCEta = Muon_eta[1];
-    leptonOneDXY   = Muon_dxy    [0];
-    leptonTwoDXY   = Muon_dxy    [1];
-    leptonOneDZ    = Muon_dz     [0];
-    leptonTwoDZ    = Muon_dz     [1];
-    leptonOneIso   = Muon_pfRelIso04_all[0]*Muon_pt[0];
-    leptonTwoIso   = Muon_pfRelIso04_all[1]*Muon_pt[1];
+    leptonOneSCEta  = Muon_eta[0];
+    leptonTwoSCEta  = Muon_eta[1];
+    leptonOneDXY    = Muon_dxy    [0];
+    leptonTwoDXY    = Muon_dxy    [1];
+    leptonOneDZ     = Muon_dz     [0];
+    leptonTwoDZ     = Muon_dz     [1];
+    leptonOneDXYSig = Muon_dxy    [0] / Muon_dxyErr    [0];
+    leptonTwoDXYSig = Muon_dxy    [1] / Muon_dxyErr    [1];
+    leptonOneDZSig  = Muon_dz     [0] / Muon_dzErr     [0];
+    leptonTwoDZSig  = Muon_dz     [1] / Muon_dzErr     [1];
+    leptonOneIso    = Muon_pfRelIso04_all[0]*Muon_pt[0];
+    leptonTwoIso    = Muon_pfRelIso04_all[1]*Muon_pt[1];
     leptonOneFlavor = -13*Muon_charge[0];
     leptonTwoFlavor = -13*Muon_charge[1];
     leptonOneJetOverlap = Muon_TaggedAsRemovedByJet[0];
@@ -1326,7 +1485,7 @@ void HistMaker::CountObjects() {
     leptonOneID2       = MuonRelIsoID(Muon_pfRelIso04_all[0]);
     leptonTwoID1       = Muon_looseId[1] + Muon_mediumId[1] + Muon_tightId[1];
     leptonTwoID2       = MuonRelIsoID(Muon_pfRelIso04_all[1]);
-  } else if(ee) { //e+e
+  } else if(ee) {
     leptonOneP4->SetPtEtaPhiM(Electron_pt[0], Electron_eta[0], Electron_phi[0], ELECMASS);
     leptonTwoP4->SetPtEtaPhiM(Electron_pt[1], Electron_eta[1], Electron_phi[1], ELECMASS);
     leptonOneSCEta  = Electron_eta[0] + Electron_deltaEtaSC[0];
@@ -1335,6 +1494,10 @@ void HistMaker::CountObjects() {
     leptonTwoDXY    = Electron_dxy[1];
     leptonOneDZ     = Electron_dz [0];
     leptonTwoDZ     = Electron_dz [1];
+    leptonOneDXYSig = Electron_dxy[0] / Electron_dxyErr[0];
+    leptonTwoDXYSig = Electron_dxy[1] / Electron_dxyErr[1];
+    leptonOneDZSig  = Electron_dz [0] / Electron_dzErr [0];
+    leptonTwoDZSig  = Electron_dz [1] / Electron_dzErr [1];
     leptonOneIso    = Electron_pfRelIso03_all[0]*Electron_pt[0];
     leptonTwoIso    = Electron_pfRelIso03_all[1]*Electron_pt[1];
     leptonOneFlavor = -11*Electron_charge[0];
@@ -1371,26 +1534,28 @@ void HistMaker::CountObjects() {
   metCorrPhi = 0.;
 
   //If no Z information is found, approximate it with the lepton info
-  if(zPt < 0 || zMass < 0) {
-    if(zLepOnePt < 0 || zLepTwoPt < 0) { //no generator-level leptons
+  if(fIsData || zPt < 0 || zMass < 0) {
+    if(fIsData || zLepOnePt < 0 || zLepTwoPt < 0) { //no generator-level leptons
       zPt = ((*leptonOneP4) + (*leptonTwoP4)).Pt();
       zMass = ((*leptonOneP4) + (*leptonTwoP4)).M();
+      zEta = ((*leptonOneP4) + (*leptonTwoP4)).Eta();
     } else { //generator-level leptons found
       TLorentzVector zlepone, zleptwo;
       zlepone.SetPtEtaPhiM(zLepOnePt, zLepOneEta, zLepOnePhi, zLepOneMass);
       zleptwo.SetPtEtaPhiM(zLepTwoPt, zLepTwoEta, zLepTwoPhi, zLepTwoMass);
       zPt   = (zlepone + zleptwo).Pt();
       zMass = (zlepone + zleptwo).M();
+      zEta  = (zlepone + zleptwo).Eta();
     }
   }
   //store generator level Z->ll lepton ids
   nGenHardElectrons = 0; nGenHardMuons = 0; nGenHardTaus = 0;
   //lepton one
-  if(std::abs(zLepOneID) == 11)      ++nGenHardElectrons;
+  if     (std::abs(zLepOneID) == 11) ++nGenHardElectrons;
   else if(std::abs(zLepOneID) == 13) ++nGenHardMuons;
   else if(std::abs(zLepOneID) == 15) ++nGenHardTaus;
   //lepton two
-  if(std::abs(zLepTwoID) == 11)      ++nGenHardElectrons;
+  if     (std::abs(zLepTwoID) == 11) ++nGenHardElectrons;
   else if(std::abs(zLepTwoID) == 13) ++nGenHardMuons;
   else if(std::abs(zLepTwoID) == 15) ++nGenHardTaus;
 
@@ -1415,8 +1580,8 @@ void HistMaker::CountObjects() {
   ///////////////////////////////////////////////////////
 
   //Trigger thresholds (mu, ele): 2016 = (24, 27); 2017 = (27, 32); 2018 = (24, 32)
-  //Use 1 GeV/c above muon threshold and 3 GeV/c above electron threshold (except for 2016)
-  muon_trig_pt_ = 25.; electron_trig_pt_ = 35.;
+  //Use 1 GeV/c above muon threshold and 4 GeV/c above electron threshold (except for 2016)
+  muon_trig_pt_ = 25.; electron_trig_pt_ = 34.;
   if(fYear == 2017) muon_trig_pt_ = 28.;
   if(fYear == 2016) electron_trig_pt_ = 29.; //2 GeV/c above threshold, since better behaved near threshold
 
@@ -1726,7 +1891,7 @@ void HistMaker::InitializeTreeVariables() {
   }
 
   TString selecName = "";
-  if(std::abs(leptonOneFlavor) == 13 && std::abs(leptonTwoFlavor) == 15)      { fTreeVars.category = 1; selecName = "mutau"; }
+  if     (std::abs(leptonOneFlavor) == 13 && std::abs(leptonTwoFlavor) == 15) { fTreeVars.category = 1; selecName = "mutau"; }
   else if(std::abs(leptonOneFlavor) == 11 && std::abs(leptonTwoFlavor) == 15) { fTreeVars.category = 2; selecName = "etau" ; }
   else if(std::abs(leptonOneFlavor) == 11 && std::abs(leptonTwoFlavor) == 13) { fTreeVars.category = 3; selecName = "emu"  ; }
   else if(std::abs(leptonOneFlavor) == 13 && std::abs(leptonTwoFlavor) == 13) { fTreeVars.category = 4; selecName = "mumu" ; }
@@ -1742,15 +1907,20 @@ void HistMaker::InitializeTreeVariables() {
     fTimes[GetTimerNumber("MVAs")] = std::chrono::steady_clock::now(); //timer for evaluating the MVAs
     for(unsigned i = 0; i < fMVAConfig.names_.size(); ++i) {
       if((fMVAConfig.names_[i].Contains(selecName.Data()) || //is this selection
-          (selecName == "emu" && (fMVAConfig.names_[i].Contains("_e") || fMVAConfig.names_[i].Contains("_mu")))) && //or leptonic tau category
-         (fIsJetBinnedMVAs[i] < 0 || fIsJetBinnedMVAs[i] == std::min((int) nJets,2))) //and either not jet binned or right number of jets
+          (selecName == "emu" && (fMVAConfig.names_[i].Contains("_e") || fMVAConfig.names_[i].Contains("_mu"))) || //or leptonic tau category
+          ((selecName == "mumu" || selecName == "ee") && fMVAConfig.names_[i].Contains("emu")) //or is emu MVA in ee/mumu region
+          )
+         ) {
+        if(!fDoHiggs && fMVAConfig.names_[i].Contains("higgs")) {fMvaOutputs[i] = -2.f; continue;}
         fMvaOutputs[i] = mva[i]->EvaluateMVA(fMVAConfig.names_[i].Data());
-      else
+      } else {
         fMvaOutputs[i] = -2.;
+      }
 
-      if(fMvaOutputs[i] < -2.1)
+      if(fMvaOutputs[i] < -2.1) {
         std::cout << "Error value returned for MVA " << fMVAConfig.names_[i].Data()
              << " evaluation, Entry = " << fentry << std::endl;
+      }
     }
     IncrementTimer("MVAs", true);
   }
@@ -1782,28 +1952,29 @@ void HistMaker::FillBaseEventHistogram(EventHist_t* Hist) {
   Hist->hNTaus               ->Fill(nTaus              , genWeight*eventWeight)      ;
   Hist->hNPV[0]              ->Fill(nPV                , genWeight*eventWeight)      ;
   Hist->hNPU[0]              ->Fill(nPU                , genWeight*eventWeight)      ;
-  Hist->hNPartons            ->Fill(nPartons           , genWeight*eventWeight)      ;
+  // Hist->hNPartons            ->Fill(nPartons           , genWeight*eventWeight)      ;
   Hist->hLHENJets            ->Fill(LHE_Njets          , genWeight*eventWeight)      ;
   Hist->hMcEra               ->Fill(mcEra + 2*(fYear - 2016), genWeight*eventWeight) ;
   Hist->hDataRun             ->Fill(runNumber          , genWeight*eventWeight)      ;
-  Hist->hNPhotons            ->Fill(nPhotons           , genWeight*eventWeight)      ;
+  // Hist->hNPhotons            ->Fill(nPhotons           , genWeight*eventWeight)      ;
   Hist->hNGenTaus            ->Fill(nGenTaus           , genWeight*eventWeight)      ;
   Hist->hNGenElectrons       ->Fill(nGenElectrons      , genWeight*eventWeight)      ;
   Hist->hNGenMuons           ->Fill(nGenMuons          , genWeight*eventWeight)      ;
   Hist->hNJets               ->Fill(nJets              , genWeight*eventWeight)      ;
   Hist->hNJets20[0]          ->Fill(nJets20            , genWeight*eventWeight)      ;
-  Hist->hNJets20Rej[0]       ->Fill(nJets20Rej         , genWeight*eventWeight)      ;
+  // Hist->hNJets20Rej[0]       ->Fill(nJets20Rej         , genWeight*eventWeight)      ;
   Hist->hNFwdJets            ->Fill(nFwdJets           , genWeight*eventWeight)      ;
   Hist->hNBJets20[0]         ->Fill(nBJets20           , genWeight*eventWeight)      ;
   Hist->hNBJets20L[0]        ->Fill(nBJets20L          , genWeight*eventWeight)      ;
 
-  Hist->hTriggerLeptonStatus ->Fill(triggerLeptonStatus, genWeight*eventWeight)   ;
+  // Hist->hTriggerLeptonStatus ->Fill(triggerLeptonStatus, genWeight*eventWeight)   ;
   Hist->hNTriggered          ->Fill(leptonOneFired+leptonTwoFired, genWeight*eventWeight)   ;
   Hist->hPuWeight            ->Fill(puWeight)     ;
   Hist->hJetPUIDWeight       ->Fill(jetPUIDWeight);
   Hist->hPrefireWeight       ->Fill(prefireWeight);
   Hist->hBTagWeight          ->Fill(btagWeight)   ;
   Hist->hZPtWeight           ->Fill(zPtWeight)    ;
+  Hist->hSignalZWeight       ->Fill(signalZWeight);
 
   if(tauP4 && tauP4->Pt() > 0.) { //if 0 then no additional tau stored
     Hist->hTauPt           ->Fill(tauP4->Pt()        , genWeight*eventWeight)   ;
@@ -1821,12 +1992,12 @@ void HistMaker::FillBaseEventHistogram(EventHist_t* Hist) {
   }
   Hist->hHtSum             ->Fill(htSum              , genWeight*eventWeight)   ;
   Hist->hHt                ->Fill(ht                 , genWeight*eventWeight)   ;
-  Hist->hHtPhi             ->Fill(htPhi              , genWeight*eventWeight)   ;
+  // Hist->hHtPhi             ->Fill(htPhi              , genWeight*eventWeight)   ;
 
   Hist->hMet               ->Fill(met                , genWeight*eventWeight)      ;
   Hist->hMetPhi            ->Fill(metPhi             , genWeight*eventWeight)      ;
-  Hist->hMetCorr           ->Fill(metCorr            , genWeight*eventWeight)      ;
-  Hist->hMetCorrPhi        ->Fill(metCorrPhi         , genWeight*eventWeight)      ;
+  // Hist->hMetCorr           ->Fill(metCorr            , genWeight*eventWeight)      ;
+  // Hist->hMetCorrPhi        ->Fill(metCorrPhi         , genWeight*eventWeight)      ;
 
   Hist->hMTOne             ->Fill(fTreeVars.mtone    , eventWeight*genWeight);
   Hist->hMTTwo             ->Fill(fTreeVars.mttwo    , eventWeight*genWeight);
@@ -1862,7 +2033,7 @@ void HistMaker::FillBaseEventHistogram(EventHist_t* Hist) {
   Hist->hLepM[0]      ->Fill(lepSys.M()             ,eventWeight*genWeight);
   Hist->hLepMt        ->Fill(lepSys.Mt()            ,eventWeight*genWeight);
   Hist->hLepEta       ->Fill(lepSys.Eta()           ,eventWeight*genWeight);
-  Hist->hLepPhi       ->Fill(lepSys.Phi()           ,eventWeight*genWeight);
+  // Hist->hLepPhi       ->Fill(lepSys.Phi()           ,eventWeight*genWeight);
   Hist->hLepMEstimate   ->Fill(fTreeVars.mestimate   , eventWeight*genWeight);
   Hist->hLepMEstimateTwo->Fill(fTreeVars.mestimatetwo, eventWeight*genWeight);
 
@@ -1871,20 +2042,21 @@ void HistMaker::FillBaseEventHistogram(EventHist_t* Hist) {
   Hist->hLepDeltaR[0] ->Fill(lepDelR                ,eventWeight*genWeight);
   Hist->hLepPtOverM   ->Fill(lepSys.Pt()/lepSys.M() ,eventWeight*genWeight);
 
+  Hist->hZEta         ->Fill(zEta      , eventWeight*genWeight);
   Hist->hZLepOnePt    ->Fill(zLepOnePt , eventWeight*genWeight);
   Hist->hZLepTwoPt    ->Fill(zLepTwoPt , eventWeight*genWeight);
   Hist->hZLepOneEta   ->Fill(zLepOneEta, eventWeight*genWeight);
   Hist->hZLepTwoEta   ->Fill(zLepTwoEta, eventWeight*genWeight);
 
-  Hist->hPTauVisFrac    ->Fill(fTreeVars.ptauvisfrac , eventWeight*genWeight);
+  Hist->hPTauVisFrac  ->Fill(fTreeVars.ptauvisfrac , eventWeight*genWeight);
   Hist->hDeltaAlpha[0]->Fill(fTreeVars.deltaalphaz1, eventWeight*genWeight);
   Hist->hDeltaAlpha[1]->Fill(fTreeVars.deltaalphaz2, eventWeight*genWeight);
   Hist->hDeltaAlpha[2]->Fill(fTreeVars.deltaalphah1, eventWeight*genWeight);
   Hist->hDeltaAlpha[3]->Fill(fTreeVars.deltaalphah2, eventWeight*genWeight);
-  Hist->hDeltaAlphaM[0]->Fill(fTreeVars.deltaalpham1, eventWeight*genWeight);
-  Hist->hDeltaAlphaM[1]->Fill(fTreeVars.deltaalpham2, eventWeight*genWeight);
-  Hist->hDeltaAlphaMColM[0]->Fill(fTreeVars.mestimate    - fTreeVars.deltaalpham2, eventWeight*genWeight);
-  Hist->hDeltaAlphaMColM[1]->Fill(fTreeVars.mestimatetwo - fTreeVars.deltaalpham1, eventWeight*genWeight);
+  // Hist->hDeltaAlphaM[0]->Fill(fTreeVars.deltaalpham1, eventWeight*genWeight);
+  // Hist->hDeltaAlphaM[1]->Fill(fTreeVars.deltaalpham2, eventWeight*genWeight);
+  // Hist->hDeltaAlphaMColM[0]->Fill(fTreeVars.mestimate    - fTreeVars.deltaalpham2, eventWeight*genWeight);
+  // Hist->hDeltaAlphaMColM[1]->Fill(fTreeVars.mestimatetwo - fTreeVars.deltaalpham1, eventWeight*genWeight);
 
   //MVA outputs
   for(unsigned i = 0; i < fMVAConfig.names_.size(); ++i) {
@@ -1929,12 +2101,15 @@ void HistMaker::FillBaseLepHistogram(LepHist_t* Hist) {
   //  Lep 1  //
   /////////////
   Hist->hOnePz        ->Fill(leptonOneP4->Pz()            ,eventWeight*genWeight);
-  Hist->hOnePt[0]     ->Fill(fTreeVars.leponept            ,eventWeight*genWeight);
+  Hist->hOnePt[0]     ->Fill(fTreeVars.leponept           ,eventWeight*genWeight);
   Hist->hOneEta       ->Fill(leptonOneP4->Eta()           ,eventWeight*genWeight);
+  Hist->hOneSCEta     ->Fill(leptonOneSCEta               ,eventWeight*genWeight);
   Hist->hOnePhi       ->Fill(leptonOneP4->Phi()           ,eventWeight*genWeight);
   Hist->hOneD0        ->Fill(leptonOneD0                  ,eventWeight*genWeight);
   Hist->hOneDXY       ->Fill(leptonOneDXY                 ,eventWeight*genWeight);
   Hist->hOneDZ        ->Fill(leptonOneDZ                  ,eventWeight*genWeight);
+  Hist->hOneDXYSig    ->Fill(leptonOneDXYSig              ,eventWeight*genWeight);
+  Hist->hOneDZSig     ->Fill(leptonOneDZSig               ,eventWeight*genWeight);
   Hist->hOneIso       ->Fill(leptonOneIso                 ,eventWeight*genWeight);
   Hist->hOneID1       ->Fill(leptonOneID1                 ,eventWeight*genWeight);
   Hist->hOneID2       ->Fill(leptonOneID2                 ,eventWeight*genWeight);
@@ -1943,7 +2118,7 @@ void HistMaker::FillBaseLepHistogram(LepHist_t* Hist) {
   Hist->hOneGenFlavor ->Fill(leptonOneGenFlavor           ,eventWeight*genWeight);
   Hist->hOneQ         ->Fill(leptonOneFlavor < 0 ? -1 : 1 ,eventWeight*genWeight);
   Hist->hOneJetOverlap->Fill(leptonOneJetOverlap          ,eventWeight*genWeight);
-  Hist->hOneTrigger   ->Fill(leptonOneTrigger               ,eventWeight*genWeight);
+  Hist->hOneTrigger   ->Fill(leptonOneTrigger             ,eventWeight*genWeight);
   Hist->hOneWeight    ->Fill(leptonOneWeight1*leptonOneWeight2,eventWeight*genWeight);
   Hist->hOneTrigWeight->Fill(leptonOneTrigWeight          ,eventWeight*genWeight);
 
@@ -1958,10 +2133,13 @@ void HistMaker::FillBaseLepHistogram(LepHist_t* Hist) {
   Hist->hTwoPz        ->Fill(leptonTwoP4->Pz()            ,eventWeight*genWeight);
   Hist->hTwoPt[0]     ->Fill(fTreeVars.leptwopt            ,eventWeight*genWeight);
   Hist->hTwoEta       ->Fill(leptonTwoP4->Eta()           ,eventWeight*genWeight);
+  Hist->hTwoSCEta     ->Fill(leptonTwoSCEta               ,eventWeight*genWeight);
   Hist->hTwoPhi       ->Fill(leptonTwoP4->Phi()           ,eventWeight*genWeight);
   Hist->hTwoD0        ->Fill(leptonTwoD0                  ,eventWeight*genWeight);
   Hist->hTwoDXY       ->Fill(leptonTwoDXY                 ,eventWeight*genWeight);
   Hist->hTwoDZ        ->Fill(leptonTwoDZ                  ,eventWeight*genWeight);
+  Hist->hTwoDXYSig    ->Fill(leptonTwoDXYSig              ,eventWeight*genWeight);
+  Hist->hTwoDZSig     ->Fill(leptonTwoDZSig               ,eventWeight*genWeight);
   Hist->hTwoIso       ->Fill(leptonTwoIso                 ,eventWeight*genWeight);
   Hist->hTwoID1       ->Fill(leptonTwoID1                 ,eventWeight*genWeight);
   Hist->hTwoID2       ->Fill(leptonTwoID2                 ,eventWeight*genWeight);
@@ -1986,7 +2164,7 @@ void HistMaker::FillBaseLepHistogram(LepHist_t* Hist) {
   Hist->hD0Diff      ->Fill(leptonTwoD0-leptonOneD0             ,eventWeight*genWeight);
   Hist->hDXYDiff     ->Fill(leptonTwoDXY-leptonOneDXY           ,eventWeight*genWeight);
   Hist->hDZDiff      ->Fill(leptonTwoDZ-leptonOneDZ             ,eventWeight*genWeight);
-  Hist->hTwoPtVsOnePt->Fill(fTreeVars.leponept, fTreeVars.leptwopt,eventWeight*genWeight);
+  // Hist->hTwoPtVsOnePt->Fill(fTreeVars.leponept, fTreeVars.leptwopt,eventWeight*genWeight);
 }
 
 //--------------------------------------------------------------------------------------------------------------
@@ -2111,14 +2289,14 @@ void HistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
       //Removed j->tau groupings since now using fitter errors uncorrelated by years
     } else if  (sys >= SystematicGrouping::kJetToTau && sys < 100) { //Jet --> tau systematic groupings, (4 DM)*(2 eta)*(3 years)*(2 up/down) = 48 histograms
       if(std::abs(leptonOneFlavor) == std::abs(leptonTwoFlavor)) continue;
-      int offset = SystematicGrouping::kJetToTau;
+      const int offset = SystematicGrouping::kJetToTau;
       if(2*(jetToTauWeightGroup) - offset     == sys) weight *= jetToTauWeightUp   / jetToTauWeight;
       if(2*(jetToTauWeightGroup) - offset + 1 == sys) weight *= jetToTauWeightDown / jetToTauWeight;
     } else if  (sys >= 100 && sys < 106) { //tau anti-jet ID, separated by years
       if(std::abs(leptonOneFlavor) == std::abs(leptonTwoFlavor)) continue;
-      int base = 100;
+      const int base = 100;
       if(std::abs(leptonTwoFlavor) == 15) {
-        int bin = 2*(fYear - 2016); //uncorrelated between years
+        const int bin = 2*(fYear - 2016); //uncorrelated between years
         if((sys == base + bin) && std::abs(tauGenFlavor) == 15)
           weight *= leptonTwoWeight1_up / leptonTwoWeight1;
         else if((sys == base + 1 + bin) && std::abs(tauGenFlavor) == 15)
@@ -2126,9 +2304,9 @@ void HistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
       }
     } else if  (sys >= 110 && sys < 140) { //tau anti-mu ID, separated by 5 bins per year --> 15 histograms per up/down
       if(std::abs(leptonOneFlavor) == std::abs(leptonTwoFlavor)) continue;
-      int base = 110;
+      const int base = 110;
       if(std::abs(leptonTwoFlavor) == 15) {
-        int bin = 5*(fYear - 2016) + leptonTwoWeight1_bin; //uncorrelated between years and bins
+        const int bin = 5*(fYear - 2016) + leptonTwoWeight1_bin; //uncorrelated between years and bins
         if((sys == base + 2*bin) && std::abs(tauGenFlavor) == 13)
           weight *= leptonTwoWeight1_up / leptonTwoWeight1;
         else if((sys == base + 1 + 2*bin) && std::abs(tauGenFlavor) == 13)
@@ -2136,9 +2314,9 @@ void HistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
       }
     } else if  (sys >= 140 && sys < 158) { //tau anti-ele ID, separated by 3 bins per year --> 9 histograms per up/down
       if(std::abs(leptonOneFlavor) == std::abs(leptonTwoFlavor)) continue;
-      int base = 140;
+      const int base = 140;
       if(std::abs(leptonTwoFlavor) == 15) {
-        int bin = 3*(fYear - 2016) + leptonTwoWeight1_bin; //uncorrelated between years and bins
+        const int bin = 3*(fYear - 2016) + leptonTwoWeight1_bin; //uncorrelated between years and bins
         if((sys == base + 2*bin) && std::abs(tauGenFlavor) == 11)
           weight *= leptonTwoWeight1_up / leptonTwoWeight1;
         else if((sys == base + 1 + 2*bin) && std::abs(tauGenFlavor) == 11)
@@ -2199,7 +2377,7 @@ Bool_t HistMaker::InitializeEvent(Long64_t entry)
   fChain->GetEntry(entry);
   IncrementTimer("Reading", true);
 
-  if(fVerbose > 0 || entry%fNotifyCount == 0)
+  if(fVerbose > 0 || (fTimeCounts[GetTimerNumber("Total")]-1)%fNotifyCount == 0)
     printf("%s: Processing event: %12lld (%5.1f%%) overall rate = %.1f Hz\n", __func__, entry,
            entry*100./fChain->GetEntriesFast(),
            (fDurations[GetTimerNumber("Total")] > 0.) ? fTimeCounts[GetTimerNumber("Total")]*1.e6/fDurations[GetTimerNumber("Total")] : 0.);
@@ -2335,7 +2513,7 @@ int HistMaker::GetTriggerMatch(TLorentzVector* lv, bool isMuon, Int_t& trigIndex
   bool flag_1, flag_2;
   if(isMuon) {
     bit_1 = 1; //IsoMu24/IsoMu27
-    min_pt_1 = muon_trig_pt_;
+    min_pt_1 = (fYear == 2017) ? 27. : 24.; //muon_trig_pt_;
     bit_2 = bit_1; //10; //Mu50
     min_pt_2 = min_pt_1; //50.;
     id = 13;
@@ -2350,7 +2528,7 @@ int HistMaker::GetTriggerMatch(TLorentzVector* lv, bool isMuon, Int_t& trigIndex
       bit_1 = 1;
       bit_2 = 1;
     }
-    min_pt_1 = electron_trig_pt_;
+    min_pt_1 = (fYear == 2016) ? 27. : 32.; //electron_trig_pt_;
     min_pt_2 = min_pt_1;
     flag_1 = ((fYear == 2016 && HLT_Ele27_WPTight_GsF) ||
               (fYear == 2017 && HLT_Ele32_WPTight_GsF_L1DoubleEG) ||
@@ -2374,6 +2552,7 @@ int HistMaker::GetTriggerMatch(TLorentzVector* lv, bool isMuon, Int_t& trigIndex
   trigIndex = -1;
   for(unsigned trig_i = 0; trig_i < nTrigObj; ++trig_i) {
     if(std::abs(TrigObj_id[trig_i]) != id) continue;
+
     //check if passes correct bit and the considered pT threshold for that trigger
     bool passBit1 = ((TrigObj_filterBits[trig_i] & (1<<bit_1)) != 0) && (pt > min_pt_1 && TrigObj_pt[trig_i] > min_pt_1);
     bool passBit2 = ((TrigObj_filterBits[trig_i] & (1<<bit_2)) != 0) && (pt > min_pt_2 && TrigObj_pt[trig_i] > min_pt_2);
@@ -2383,22 +2562,28 @@ int HistMaker::GetTriggerMatch(TLorentzVector* lv, bool isMuon, Int_t& trigIndex
                                << TrigObj_pt[trig_i] <<  ", "
                                << TrigObj_eta[trig_i] <<  ", "
                                << TrigObj_phi[trig_i] << std::endl;
+
     passBit1 &= flag_1;
     passBit2 &= flag_2;
     if(!passBit1 && !passBit2) continue;
     if(fVerbose > 2) std::cout << " TrigObj " << trig_i << " passed global flag test\n";
+
     if(std::fabs(pt - TrigObj_pt[trig_i]) > pt*deltapt_match) continue;
+    if(fVerbose > 2) std::cout << "  TrigObj " << trig_i << " passed pt check\n";
+
     const float deltaeta = std::fabs(eta - TrigObj_eta[trig_i]);
     float deltaphi = std::fabs(phi - TrigObj_phi[trig_i]);
     if(deltaphi > M_PI) deltaphi = std::fabs(2.*M_PI - deltaphi);
-    if(fVerbose > 2) std::cout << "  TrigObj " << trig_i << " passed pt check\n";
     if(sqrt(deltaeta*deltaeta + deltaphi*deltaphi) > deltar_match) continue;
     if(fVerbose > 2) std::cout << "   TrigObj " << trig_i << " passed delta r xcheck\n";
+
     trigIndex = trig_i;
     if(fVerbose > 2) std::cout << "--- Found a matching trigger object! Continuing search for additional matches...\n";
     passedBit1 |= passBit1;
     passedBit2 |= passBit2;
+    if(passedBit1 || passedBit2) break;
   }
+
   return (passedBit1+2*passedBit2);//no matching trigger object found = 0
 }
 
@@ -2418,17 +2603,17 @@ void HistMaker::MatchTriggers() {
   if(std::abs(leptonOneFlavor) == 15) {
     leptonOneFired = false;
   } else if(std::abs(leptonOneFlavor) == 13) {
-    leptonOneFired = (fDoTriggerMatching) ? GetTriggerMatch(leptonOneP4, true , leptonOneTrigger) : mu_trig && leptonOneP4->Pt() > muon_trig_pt_;
+    leptonOneFired = mu_trig  && leptonOneP4->Pt() > muon_trig_pt_     && (!fDoTriggerMatching || GetTriggerMatch(leptonOneP4, true , leptonOneTrigger));
   } else if(std::abs(leptonOneFlavor) == 11) {
-    leptonOneFired = (fDoTriggerMatching) ? GetTriggerMatch(leptonOneP4, false, leptonOneTrigger) : ele_trig && leptonOneP4->Pt() > electron_trig_pt_;
+    leptonOneFired = ele_trig && leptonOneP4->Pt() > electron_trig_pt_ && (!fDoTriggerMatching || GetTriggerMatch(leptonOneP4, false, leptonOneTrigger));
   }
 
   if(std::abs(leptonTwoFlavor) == 15) {
     leptonTwoFired = false;
   } else if(std::abs(leptonTwoFlavor) == 13) {
-    leptonTwoFired = (fDoTriggerMatching) ? GetTriggerMatch(leptonTwoP4, true , leptonTwoTrigger) : mu_trig && leptonTwoP4->Pt() > muon_trig_pt_;
+    leptonTwoFired = mu_trig  && leptonTwoP4->Pt() > muon_trig_pt_     && (!fDoTriggerMatching || GetTriggerMatch(leptonTwoP4, true , leptonTwoTrigger));
   } else if(std::abs(leptonTwoFlavor) == 11) {
-    leptonTwoFired = (fDoTriggerMatching) ? GetTriggerMatch(leptonTwoP4, false, leptonTwoTrigger) : ele_trig && leptonTwoP4->Pt() > electron_trig_pt_;
+    leptonTwoFired = ele_trig && leptonTwoP4->Pt() > electron_trig_pt_ && (!fDoTriggerMatching || GetTriggerMatch(leptonTwoP4, false, leptonTwoTrigger));
   }
 
   triggerLeptonStatus = 0;
@@ -2440,10 +2625,15 @@ void HistMaker::MatchTriggers() {
      (std::abs(leptonTwoFlavor) == 13 && leptonTwoFired)) {
     triggerLeptonStatus += 2;
   }
+  //matches are within 0.1 delta R, so both to be matched must be within 0.2 and therefore will be rejected
+  if(fVerbose > 0 && leptonOneTrigger == leptonTwoTrigger) {
+    printf("HistMaker::%s: Entry %lld: Warning! Both leptons were matched to the same trigger index!\n", __func__, fentry);
+  }
 }
 
 //--------------------------------------------------------------------------------------------------------------
 void HistMaker::ApplyTriggerWeights() {
+  if(fIsData) return; //not defined for data
   float data_eff[2] = {0.5f, 0.5f}; //set to 0.5 so no danger in doing the ratio of eff or 1 - eff
   float mc_eff[2]   = {0.5f, 0.5f};
 
@@ -2457,7 +2647,7 @@ void HistMaker::ApplyTriggerWeights() {
       if(fUseEmbedTnPWeights) {
         fEmbeddingTnPWeight.ElectronTriggerWeight(leptonOneP4->Pt(), leptonOneSCEta, fYear, data_eff[0], mc_eff[0], isLooseElectron, mcEra);
       } else {
-        fEmbeddingWeight.ElectronTriggerWeight   (leptonOneP4->Pt(), leptonOneSCEta, fYear, data_eff[0], mc_eff[0]);
+        fEmbeddingWeight->ElectronTriggerWeight   (leptonOneP4->Pt(), leptonOneSCEta, fYear, data_eff[0], mc_eff[0]);
       }
     } else {
       fElectronIDWeight.TriggerEff               (leptonOneP4->Pt(), leptonOneSCEta, fYear,
@@ -2471,7 +2661,7 @@ void HistMaker::ApplyTriggerWeights() {
       if(fUseEmbedTnPWeights) {
         fEmbeddingTnPWeight.ElectronTriggerWeight(leptonTwoP4->Pt(), leptonTwoSCEta, fYear, data_eff[1], mc_eff[1], isLooseElectron, mcEra);
       } else {
-        fEmbeddingWeight.ElectronTriggerWeight   (leptonTwoP4->Pt(), leptonTwoSCEta, fYear, data_eff[1], mc_eff[1]);
+        fEmbeddingWeight->ElectronTriggerWeight   (leptonTwoP4->Pt(), leptonTwoSCEta, fYear, data_eff[1], mc_eff[1]);
       }
     } else {
       fElectronIDWeight.TriggerEff               (leptonTwoP4->Pt(), leptonTwoSCEta, fYear,
@@ -2487,7 +2677,7 @@ void HistMaker::ApplyTriggerWeights() {
       if(fUseEmbedTnPWeights) {
         fEmbeddingTnPWeight.MuonTriggerWeight(leptonOneP4->Pt(), leptonOneP4->Eta(), fYear, data_eff[0], mc_eff[0], isLooseMuon, mcEra);
       } else {
-        fEmbeddingWeight.MuonTriggerWeight   (leptonOneP4->Pt(), leptonOneP4->Eta(), fYear, data_eff[0], mc_eff[0]);
+        fEmbeddingWeight->MuonTriggerWeight   (leptonOneP4->Pt(), leptonOneP4->Eta(), fYear, data_eff[0], mc_eff[0]);
       }
     } else {
       fMuonIDWeight.TriggerEff               (leptonOneP4->Pt(), leptonOneP4->Eta(), fYear, mcEra, !leptonOneFired || muonTriggerStatus != 2, data_eff[0], mc_eff[0]);
@@ -2498,7 +2688,7 @@ void HistMaker::ApplyTriggerWeights() {
       if(fUseEmbedTnPWeights) {
         fEmbeddingTnPWeight.MuonTriggerWeight(leptonTwoP4->Pt(), leptonTwoP4->Eta(), fYear, data_eff[1], mc_eff[1], isLooseMuon, mcEra);
       } else {
-        fEmbeddingWeight.MuonTriggerWeight   (leptonTwoP4->Pt(), leptonTwoP4->Eta(), fYear, data_eff[1], mc_eff[1]);
+        fEmbeddingWeight->MuonTriggerWeight   (leptonTwoP4->Pt(), leptonTwoP4->Eta(), fYear, data_eff[1], mc_eff[1]);
       }
     } else {
       //use low trigger in case the lepton didn't fire a trigger
@@ -2588,7 +2778,7 @@ void HistMaker::ApplyTriggerWeights() {
               << " fired(l1) = " << leptonOneFired
               << " fired(l2) = " << leptonTwoFired
               << std::endl;
-    leptonOneTrigWeight = 1.; leptonTwoTrigWeight = 1.;
+    leptonOneTrigWeight = 1.f; leptonTwoTrigWeight = 1.f;
   }
   //keep this the same for now, to see the comparison plot using this trigger weight array
   // triggerWeights[0] = leptonOneTrigWeight * leptonTwoTrigWeight;

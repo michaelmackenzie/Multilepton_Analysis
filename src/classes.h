@@ -21,6 +21,7 @@
 #include "interface/QCDWeight.hh"
 #include "interface/MuonIDWeight.hh"
 #include "interface/ZPtWeight.hh"
+#include "interface/SignalZWeight.hh"
 #include "interface/EmbeddingWeight.hh"
 #include "interface/EmbeddingTnPWeight.hh"
 #include "interface/TauIDWeight.hh"
@@ -59,6 +60,7 @@ namespace CLFV {
     MuonIDWeight dummy6c;
     TauIDWeight dummy6d;
     ZPtWeight dummy6e;
+    SignalZWeight dummy6e2;
     EmbeddingWeight dummy6f;
     EmbeddingTnPWeight dummy6f2;
     RoccoR dummy12b;

@@ -27,10 +27,13 @@ namespace CLFV {
     TH1* hOneM;
     TH1* hOnePtOverM;
     TH1* hOneEta;
+    TH1* hOneSCEta;
     TH1* hOnePhi;
     TH1* hOneD0;
     TH1* hOneDXY;
     TH1* hOneDZ;
+    TH1* hOneDXYSig;
+    TH1* hOneDZSig;
     TH1* hOneIso;
     TH1* hOneID1;
     TH1* hOneID2;
@@ -75,10 +78,13 @@ namespace CLFV {
     TH1* hTwoM;
     TH1* hTwoPtOverM;
     TH1* hTwoEta;
+    TH1* hTwoSCEta;
     TH1* hTwoPhi;
     TH1* hTwoD0;
     TH1* hTwoDXY;
     TH1* hTwoDZ;
+    TH1* hTwoDXYSig;
+    TH1* hTwoDZSig;
     TH1* hTwoIso;
     TH1* hTwoID1;
     TH1* hTwoID2;

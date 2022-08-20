@@ -3,28 +3,54 @@
 using namespace CLFV;
 
 //-------------------------------------------------------------------------------------------------------------------------
-PrefireWeight::PrefireWeight(int seed) {
-  rnd_ = new TRandom3(seed);
+PrefireWeight::PrefireWeight() {
   const TString cmssw = gSystem->Getenv("CMSSW_BASE");
   const TString path = (cmssw == "") ? "../scale_factors" : cmssw + "/src/CLFVAnalysis/scale_factors";
-  TFile* f = TFile::Open(Form("%s/L1prefiring_jetpt_2016BtoH.root", path.Data()), "READ"); //measured efficiencies
+  TFile* f;
+
+  //Get jet maps
+  f = TFile::Open(Form("%s/L1prefiring_jetpt_2016BtoH.root", path.Data()), "READ"); //measured efficiencies
   if(f) {
-    hists_[2016] = (TH2F*) f->Get("L1prefiring_jetpt_2016BtoH");
-    if(!hists_[2016]) {
-      printf("!!! %s: Pileup weight MC Efficiencies for 2016 not found!\n", __func__);
+    hists_[kJet + 2016] = (TH2*) f->Get("L1prefiring_jetpt_2016BtoH");
+    if(!hists_[kJet + 2016]) {
+      printf("!!! %s: Prefire jet probability map for 2016 not found!\n", __func__);
     } else {
-      hists_[2016]->SetDirectory(0);
+      hists_[kJet + 2016]->SetDirectory(0);
     }
     f->Close();
     delete f;
   }
   f = TFile::Open(Form("%s/L1prefiring_jetpt_2017BtoF.root", path.Data()), "READ"); //measured efficiencies
   if(f) {
-    hists_[2017] = (TH2F*) f->Get("L1prefiring_jetpt_2017BtoF");
-    if(!hists_[2017]) {
-      printf("!!! %s: Pileup weight MC Efficiencies for 2017 not found!\n", __func__);
+    hists_[kJet + 2017] = (TH2*) f->Get("L1prefiring_jetpt_2017BtoF");
+    if(!hists_[kJet + 2017]) {
+      printf("!!! %s: Prefire jet probability map for 2017 not found!\n", __func__);
     } else {
-      hists_[2017]->SetDirectory(0);
+      hists_[kJet + 2017]->SetDirectory(0);
+    }
+    f->Close();
+    delete f;
+  }
+
+  //Get photon maps
+  f = TFile::Open(Form("%s/L1prefiring_photonpt_2016BtoH.root", path.Data()), "READ"); //measured efficiencies
+  if(f) {
+    hists_[kPhoton + 2016] = (TH2*) f->Get("L1prefiring_photonpt_2016BtoH");
+    if(!hists_[kPhoton + 2016]) {
+      printf("!!! %s: Prefire photon probability map for 2016 not found!\n", __func__);
+    } else {
+      hists_[kPhoton + 2016]->SetDirectory(0);
+    }
+    f->Close();
+    delete f;
+  }
+  f = TFile::Open(Form("%s/L1prefiring_photonpt_2017BtoF.root", path.Data()), "READ"); //measured efficiencies
+  if(f) {
+    hists_[kPhoton + 2017] = (TH2*) f->Get("L1prefiring_photonpt_2017BtoF");
+    if(!hists_[kPhoton + 2017]) {
+      printf("!!! %s: Prefire photon probability map for 2017 not found!\n", __func__);
+    } else {
+      hists_[kPhoton + 2017]->SetDirectory(0);
     }
     f->Close();
     delete f;
@@ -33,18 +59,17 @@ PrefireWeight::PrefireWeight(int seed) {
 
 //-------------------------------------------------------------------------------------------------------------------------
 PrefireWeight::~PrefireWeight() {
-  if(rnd_) delete rnd_;
-  for(std::pair<int, TH2F*> val : hists_) {if(val.second) delete val.second;}
+  for(std::pair<int, TH2*> val : hists_) {if(val.second) delete val.second;}
 }
 
 //-------------------------------------------------------------------------------------------------------------------------
-float PrefireWeight::GetProbability(const int year, float jetpt, float jeteta) {
+float PrefireWeight::GetProbability(const int year, float jetpt, float jeteta, int base) {
   float prob(0.);
-  if(jetpt > 499.99) jetpt = 499.99; //maximum pT
-  else if(jetpt < 30.) jetpt = 30.;
-  TH2F* h = hists_[year];
-  const int binx = h->GetYaxis()->FindBin(jetpt);
-  const int biny = h->GetXaxis()->FindBin(jeteta);
+  jetpt = std::max(20.f, std::min(499.9f, jetpt));
+  jeteta = std::max(-4.9f, std::min(4.9f, jeteta));
+  TH2* h = hists_[base + year];
+  const int binx = std::max(1, std::min(h->GetNbinsX(), h->GetXaxis()->FindBin(jeteta)));
+  const int biny = std::max(1, std::min(h->GetNbinsY(), h->GetYaxis()->FindBin(jetpt )));
   prob = h->GetBinContent(binx, biny);
   if(prob < 0. || prob > 1.) {
     std::cout << "!!! PrefireWeight::" << __func__ << ": Warning! Probability not between 0 and 1 = " << prob
@@ -55,13 +80,31 @@ float PrefireWeight::GetProbability(const int year, float jetpt, float jeteta) {
 }
 
 //-------------------------------------------------------------------------------------------------------------------------
-float PrefireWeight::GetWeight(int year, int njets, float* jetspt, float* jetseta) {
+float PrefireWeight::GetJetWeight(int year, int njets, float* jetspt, float* jetseta) {
   float weight(1.);
   if(year == 2018) return 1.; //no correction in 2018
   //accepted jets
   for(int jet = 0; jet < njets; ++jet) {
     if(jetspt[jet] < 20.) continue; //below pT threshold
-    const float prob = GetProbability(year, jetspt[jet], jetseta[jet]);
+    const float prob = GetProbability(year, jetspt[jet], jetseta[jet], kJet);
+    weight *= (1. - prob); //re-weight by product of probabilities to not pre-fire
+  }
+  if(weight <= 1.e-4) {
+    std::cout << "PrefireWeight::" << __func__ << ": Warning! Very small weight = " << weight
+              << ", returning 1" << std::endl;
+    return 1.f;
+  }
+  return weight;
+}
+
+//-------------------------------------------------------------------------------------------------------------------------
+float PrefireWeight::GetPhotonWeight(int year, int nphotons, float* photonspt, float* photonseta) {
+  float weight(1.);
+  if(year == 2018) return 1.; //no correction in 2018
+  //accepted photons
+  for(int photon = 0; photon < nphotons; ++photon) {
+    if(photonspt[photon] < 20.) continue; //below pT threshold
+    const float prob = GetProbability(year, photonspt[photon], photonseta[photon], kPhoton);
     weight *= (1. - prob); //re-weight by product of probabilities to not pre-fire
   }
   if(weight <= 1.e-4) {

@@ -5,7 +5,9 @@
 
 
 #include <TROOT.h>
+#include <TTree.h>
 #include <TChain.h>
+#include <TEventList.h>
 #include <TFile.h>
 #include <TSelector.h>
 #include <TTreeReader.h>
@@ -49,6 +51,7 @@
 #include "interface/PrefireWeight.hh"
 #include "interface/BTagWeight.hh"
 #include "interface/ZPtWeight.hh"
+#include "interface/SignalZWeight.hh"
 #include "interface/EmbeddingWeight.hh"
 #include "interface/EmbeddingTnPWeight.hh"
 #include "interface/TauIDWeight.hh"
@@ -83,6 +86,7 @@ namespace CLFV {
     Float_t   puWeight = 1.              ;
     Float_t   zPt                        ;
     Float_t   zMass                      ;
+    Float_t   zEta                       ;
     Float_t   zLepOnePt                  ;
     Float_t   zLepTwoPt                  ;
     Float_t   zLepOneEta                 ;
@@ -205,9 +209,9 @@ namespace CLFV {
 
 
     //Calculated values
-    Float_t jetsRejPt   [kMaxParticles];
+    Float_t jetsRejPt   [kMaxParticles]; //fail PU ID
     Float_t jetsRejEta  [kMaxParticles];
-    Float_t jetsPt      [kMaxParticles];
+    Float_t jetsPt      [kMaxParticles]; //accepted jets
     Float_t jetsEta     [kMaxParticles];
     Int_t   jetsFlavor  [kMaxParticles];
     Int_t   jetsBTag    [kMaxParticles];
@@ -217,64 +221,41 @@ namespace CLFV {
     Float_t htPhi                      ;
 
     //Different met definitions
-    Float_t pfMET                      ;
-    Float_t pfMETphi                   ;
-    Float_t pfMETCov00                 ;
-    Float_t pfMETCov01                 ;
-    Float_t pfMETCov11                 ;
-    Float_t pfMETC                     ;
-    Float_t pfMETCphi                  ;
-    Float_t pfMETCCov00                ;
-    Float_t pfMETCCov01                ;
-    Float_t pfMETCCov11                ;
     Float_t puppMET                    ;
     Float_t puppMETphi                 ;
-    Float_t puppMETCov00               ;
-    Float_t puppMETCov01               ;
-    Float_t puppMETCov11               ;
-    Float_t puppMETC                   ;
-    Float_t puppMETCphi                ;
-    Float_t puppMETCCov00              ;
-    Float_t puppMETCCov01              ;
-    Float_t puppMETCCov11              ;
-    Float_t alpacaMET                  ;
-    Float_t alpacaMETphi               ;
-    Float_t pcpMET                     ;
-    Float_t pcpMETphi                  ;
-    Float_t trkMET                     ;
-    Float_t trkMETphi                  ;
+
     //MET field to use
     Float_t met                        ;
     Float_t metPhi                     ;
     Float_t metCorr                    ;
     Float_t metCorrPhi                 ;
-    Float_t covMet00                   ;
-    Float_t covMet01                   ;
-    Float_t covMet11                   ;
 
-
+    //event information
     Int_t   mcEra                      ;
-    UInt_t  triggerLeptonStatus        ;
-    UInt_t  muonTriggerStatus          ;
-    Bool_t isFakeElectron = false      ;
-    Bool_t isFakeMuon     = false      ;
+    UInt_t  triggerLeptonStatus        ; //which triggers fired (muon, electron, or both)
+    UInt_t  muonTriggerStatus          ; //which muon trigger was fired
+    Bool_t  isFakeElectron = false     ;
+    Bool_t  isFakeMuon     = false     ;
+    Int_t   looseQCDSelection = 0      ;
+    Bool_t  chargeTest = true          ;
 
     //Event weights
     Float_t eventWeight = 1.           ;
     Float_t jetPUIDWeight = 1.         ;
     Float_t prefireWeight = 1.         ;
+    Float_t prefireWeight_up = 1.      ;
+    Float_t prefireWeight_down = 1.    ;
     Float_t topPtWeight = 1.           ;
     Float_t btagWeight = 1.            ;
     Float_t btagWeightUp = 1.          ;
     Float_t btagWeightDown = 1.        ;
+    Float_t signalZWeight = 1.         ;
     Float_t zPtWeight = 1.             ;
     Float_t zPtWeightUp = 1.           ;
     Float_t zPtWeightDown = 1.         ;
     Float_t zPtWeightSys = 1.          ;
     Float_t embeddingWeight = 1.       ;
     Float_t embeddingUnfoldingWeight = 1.;
-    Int_t   looseQCDSelection = 0      ;
-    Bool_t  chargeTest = true          ;
 
     Float_t jetToTauWeight             ;
     Float_t jetToTauWeightUp           ;
@@ -328,6 +309,10 @@ namespace CLFV {
     Float_t leptonTwoDXY               ;
     Float_t leptonOneDZ                ;
     Float_t leptonTwoDZ                ;
+    Float_t leptonOneDXYSig            ;
+    Float_t leptonTwoDXYSig            ;
+    Float_t leptonOneDZSig             ;
+    Float_t leptonTwoDZSig             ;
     Float_t leptonOneD0                ;
     Float_t leptonTwoD0                ;
     Float_t leptonOneIso               ;
@@ -373,6 +358,13 @@ namespace CLFV {
     Float_t leptonTwoTrigWeight        ;
     Float_t triggerWeights[3]          ;
 
+    Float_t leptonOneES                ;
+    Float_t leptonOneES_up             ;
+    Float_t leptonOneES_down           ;
+    Float_t leptonTwoES                ;
+    Float_t leptonTwoES_up             ;
+    Float_t leptonTwoES_down           ;
+
     //Additional event object information
     TLorentzVector* photonP4 = 0       ;
     Float_t         photonMVA          ;
@@ -382,11 +374,11 @@ namespace CLFV {
     Int_t jetOnePUID                   ;
     Bool_t jetOneBTag                  ;
     Float_t jetOneBMVA                 ;
+
     Float_t eleES                      ;
     Float_t eleES_up                   ;
     Float_t eleES_down                 ;
     UInt_t nElectrons                  ;
-    UInt_t nLowPtElectrons             ;
     UInt_t nMuons                      ;
     UInt_t nTaus                       ;
     UInt_t nPhotons                    ;
@@ -429,6 +421,7 @@ namespace CLFV {
     void    Terminate();
 
     void    InitializeInputTree(TTree* tree);
+    void    SetEventList(TTree* tree);
     void    InitializeEventWeights();
     void    ApplyElectronCorrections();
     void    ApplyMuonCorrections();
@@ -530,6 +523,7 @@ namespace CLFV {
     void            FillBaseLepHistogram(LepHist_t* Hist);
 
     Bool_t  InitializeEvent(Long64_t entry);
+    void    SwapSameFlavor();
     void    InitializeTreeVariables();
     int     Category(TString selection);
     void    InitializeSystematics();
@@ -619,18 +613,23 @@ namespace CLFV {
     Tree_t          fTreeVars; //for filling the ttrees/mva evaluation
     Int_t           fEventCategory; //for identifying the process in mva trainings
 
+    Int_t           fDoHiggs = 1; //include Higgs-centered analysis
     Int_t           fUseTauFakeSF = 0; //add in fake tau scale factor weight to event weights (2 to use ones defined here)
     Int_t           fFakeElectronIsoCut = 3; //fake electron tight ID category definition
     Int_t           fFakeMuonIsoCut = 3; //fake muon tight Iso ID category definition
     Int_t           fFakeTauIsoCut = 50; //fake tau tight Iso category definition
     Int_t           fIsData = 0; //0 if MC, 1 if electron data, 2 if muon data
     Int_t           fIsEmbed = 0; //whether or not this is an embeded sample
+    Int_t           fIsLLEmbed = 0; //whether or not this is an ll -> ll embedding (mumu/ee)
     Int_t           fUseEmbedCuts = 0; //whether or not to use the kinematic restrictions for embedded sample generation
     Int_t           fUseEmbedTnPWeights = 1; //whether or not to use the locally calculated lepton ID/trigger weights
     bool            fSkipDoubleTrigger = false; //skip events with both triggers (to avoid double counting), only count this lepton status events
     Int_t           fMETWeights = 0; //re-weight events based on the MET
     Int_t           fUseMCEstimatedFakeLep = 0;
     Int_t           fDoTriggerMatching = 1; //match trigger objects to selected leptons
+
+    Int_t           fProcessSSSF = 1; //process same-sign, same-flavor data
+    Int_t           fDoEventList = 1;
 
     Int_t           fSystematicSeed; //for systematic variations
 
@@ -644,7 +643,7 @@ namespace CLFV {
     RoccoR*         fRoccoR; //Rochester muon momentum corrections
     Int_t           fUseJetPUIDWeights = 1; //use jet PU ID weights
     JetPUWeight*    fJetPUWeight; //object to define jet PU ID weights
-    Int_t           fUsePrefireWeights = 1; //use pre-fire weights
+    Int_t           fUsePrefireWeights = 1; //use pre-fire weights, 0 = none, 1 = use predefined weights, 2 = replace with local weights
     PrefireWeight*  fPrefireWeight; //object to define pre-fire weights
     Int_t           fUseQCDWeights = 1; //use QCD SS --> OS transfer weights
     Int_t           fAddJetTauWeights = 1; //0: do nothing 1: weight anti-iso tau CR data
@@ -676,7 +675,9 @@ namespace CLFV {
 
     Int_t           fRemoveZPtWeights = 0; // 0 use given weights, 1 remove z pT weight, 2 remove and re-evaluate weights locally
     ZPtWeight*      fZPtWeight; //re-weight Drell-Yan pT vs Mass
-    EmbeddingWeight fEmbeddingWeight; //correct di-muon embedding selection unfolding
+    SignalZWeight   fSignalZWeight; //re-weight signal to match Drell-Yan MC
+    Int_t           fUseSignalZWeights = 1; //whether or not to match the signal to the Drell-Yan MC
+    EmbeddingWeight* fEmbeddingWeight; //correct di-muon embedding selection unfolding
     EmbeddingTnPWeight fEmbeddingTnPWeight; //correct lepton ID/trigger efficiencies in embedding simulation
     Int_t           fEmbeddedTesting = 0; //play with embedding configurations/weights
     TauIDWeight*    fTauIDWeight; //tau ID/ES corrections
@@ -695,7 +696,7 @@ namespace CLFV {
 
     Int_t           fVerbose = 0; //verbosity level
 
-    Long64_t        fCacheSize = 10000000U; //10MB cache by default
+    Long64_t        fCacheSize = 20000000U; //20MB cache by default
     Bool_t          fLoadBaskets = false;
 
     int                                   fNotifyCount = 50000;
@@ -733,6 +734,7 @@ void HistMaker::Init(TTree *tree)
   // Init() will be called many times when running on PROOF
   // (once per file to be processed).
   printf("HistMaker::%s\n", __func__);
+  fTimes[GetTimerNumber("Initialization")] = std::chrono::steady_clock::now();
   fChain = tree;
   if(!fChain) {
     printf("HistMaker::%s: Error! Tree not found to initialize\n", __func__);
@@ -740,14 +742,14 @@ void HistMaker::Init(TTree *tree)
   }
 
   //setup the branch addresses
+  fChain->SetCacheSize(fCacheSize);
   InitializeInputTree(fChain);
 
   //Load more data into memory to compensate for slow XROOTD processing
   printf("HistMaker::%s Loading baskets\n", __func__);
-  fChain->SetCacheSize(fCacheSize);
-  fChain->AddBranchToCache("*",true);
   if(fLoadBaskets) fChain->LoadBaskets(2.*fCacheSize);
   printf("Total number of entries is %lld\n",fChain->GetEntriesFast());
+  IncrementTimer("Initialization", true);
 }
 
 

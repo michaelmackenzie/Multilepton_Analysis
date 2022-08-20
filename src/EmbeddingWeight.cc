@@ -3,9 +3,10 @@
 using namespace CLFV;
 
 //-------------------------------------------------------------------------------------------------------------------------
-EmbeddingWeight::EmbeddingWeight(int seed, int verbose) : verbose_(verbose) {
+EmbeddingWeight::EmbeddingWeight(int Mode, int seed, int verbose) : verbose_(verbose) {
   TFile* f = 0;
   rnd_ = new TRandom3(seed);
+  useFF_ = (Mode % 10) / 1; //0: none; 1: eta unfolding; 2: (eta, pT) unfolding
 
   const TString cmssw = gSystem->Getenv("CMSSW_BASE");
   const TString path = (cmssw == "") ? "../scale_factors" : cmssw + "/src/CLFVAnalysis/scale_factors";
@@ -37,11 +38,20 @@ EmbeddingWeight::EmbeddingWeight(int seed, int verbose) : verbose_(verbose) {
         electronTrig   [year][0] = (RooFormulaVar*) w->obj((year == k2017) ? "e_trg32_kit_data"  : "e_trg_data");
         electronTrig   [year][1] = (RooFormulaVar*) w->obj((year == k2017) ? "e_trg32_kit_embed" : "e_trg_mc");
         electronID     [year]    = (RooFormulaVar*) w->obj((year == k2017) ? "e_id80_kit_ratio" : "e_id_ratio");
-        electronIso    [year]    = (RooFormulaVar*) w->obj((year == k2017) ? "e_iso_binned_embed_kit_ratio" : "e_iso_ratio"); //the KIT ID is without iso, so apply this as well
+        electronIso    [year]    = (RooFormulaVar*) w->obj((year == k2017) ? "e_iso_binned_embed_kit_ratio" : "e_iso_ratio"); //the ID is without iso, so apply this as well
         electronPt     [year]    = (RooRealVar*) w->var("e_pt");
         electronEta    [year]    = (RooRealVar*) w->var("e_eta");
       }
       files_.push_back(f);
+    }
+    //Get FF
+    f = TFile::Open(Form("%s/embedding_unfolding_%i.root", path.Data(), year + 2016), "READ");
+    if(f) {
+      zetaFF[year] = (TH1*) f->Get("ZEtaUnfolding");
+      zetavptFF[year] = (TH2*) f->Get("ZEtaVsPtUnfolding");
+      files_.push_back(f);
+    } else if(useFF_) {
+      printf("%s: Z eta unfolding factors not found for year %i\n", __func__, year+2016);
     }
   }
 }
@@ -51,8 +61,8 @@ EmbeddingWeight::~EmbeddingWeight() { for(unsigned i = 0; i < files_.size(); ++i
 
 
 //-------------------------------------------------------------------------------------------------------------------------
-double EmbeddingWeight::UnfoldingWeight(double pt_1, double eta_1, double pt_2, double eta_2, int year) {
-  year -= 2016;
+double EmbeddingWeight::UnfoldingWeight(double pt_1, double eta_1, double pt_2, double eta_2, double zeta, double zpt, int year) {
+  if(year > 2000) year -= 2016;
   if(year != k2016 && year != k2017 && year != k2018) {
     std::cout << "Warning! Undefined year in EmbeddingWeight::" << __func__ << ", returning 1" << std::endl;
     return 1.;
@@ -74,7 +84,7 @@ double EmbeddingWeight::UnfoldingWeight(double pt_1, double eta_1, double pt_2, 
   genTauPt [year][1]->setVal(pt_2);
   genTauEta[year][0]->setVal(eta_1);
   genTauEta[year][1]->setVal(eta_2);
-  double scale_factor(trigUnfold[year]->evaluate());
+  const double trigger(trigUnfold[year]->evaluate());
 
   ///////////////////////////
   // Apply each ID unfolding
@@ -82,10 +92,42 @@ double EmbeddingWeight::UnfoldingWeight(double pt_1, double eta_1, double pt_2, 
 
   genTauPt [year][2]->setVal(pt_1);
   genTauEta[year][2]->setVal(eta_1);
-  scale_factor *= idUnfold[year]->evaluate();
+  const double id_1 = idUnfold[year]->evaluate();
   genTauPt [year][2]->setVal(pt_2);
   genTauEta[year][2]->setVal(eta_2);
-  scale_factor *= idUnfold[year]->evaluate();
+  const double id_2 = idUnfold[year]->evaluate();
+
+  //unfolding corrections should be greater than 1 as they account for inefficiencies
+  if(trigger < 1. || id_1 < 1. || id_2 < 1.) {
+    printf("EmbeddingWeight::%s: Warning! Some unfolding corrections are below 1! trig = %.3f, id(1) = %.3f, id(2) = %.3f",
+           __func__, trigger, id_1, id_2);
+    printf("; pt(1) = %.1f, eta(1) = %.2f, pt(2) = %.1f, eta(2) = %.2f\n", pt_1, eta_1, pt_2, eta_2);
+  }
+  double scale_factor = std::max(1., trigger)*std::max(1., id_1)*std::max(1., id_2);
+
+  ///////////////////////////
+  // Apply Z eta unfolding
+  ///////////////////////////
+
+  if(useFF_ == 1) {
+    TH1* hzeta = zetaFF[year];
+    if(!hzeta) {
+      printf("EmbeddingWeight::%s: Z eta unfolding correction not found for year %i\n",
+             __func__, year + 2016);
+    } else {
+      scale_factor *= std::min(2., hzeta->GetBinContent(std::max(1, std::min(hzeta->GetNbinsX(), hzeta->FindBin(zeta)))));
+    }
+  } else if(useFF_ == 2) {
+    TH2* hzetavspt = zetavptFF[year];
+    if(!hzetavspt) {
+      printf("EmbeddingWeight::%s: Z eta vs pT unfolding correction not found for year %i\n",
+             __func__, year + 2016);
+    } else {
+      double ff = std::min(2., hzetavspt->GetBinContent(hzetavspt->FindBin(std::fabs(zeta), zpt)));
+      if(ff <= 0.) ff = 1.;
+      scale_factor *= ff;
+    }
+  }
 
   if(scale_factor <= 0.) {
     std::cout << "Warning! Scale factor <= 0 in EmbeddingWeight::" << __func__ << ", returning 1" << std::endl;

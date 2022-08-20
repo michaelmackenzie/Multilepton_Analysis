@@ -11,6 +11,8 @@
 #include "TAxis.h"
 #include "TDirectory.h"
 #include "TFolder.h"
+#include "TTree.h"
+#include "TBranch.h"
 
 
 namespace CLFV {
@@ -138,6 +140,20 @@ namespace CLFV {
                         fFolder* Folder) {
       h = new TH2D(Name, Title, Nx, XBins, Ny, YMin, YMax);
       AddHistogram(h, Folder);
+    }
+
+    //------------------------------------------------------------------------------------------------------
+    static int SetBranchAddress(TTree*& tree,  const char* branch, void* val, TBranch** br = nullptr) {
+      if(!tree->GetBranch(branch)) {
+        std::cout << "Utilities::" << __func__ << ": Unknown branch " << branch << std::endl;
+        return -1;
+      }
+      tree->SetBranchStatus(branch, 1);
+      tree->AddBranchToCache(branch, 1);
+      if(br != nullptr) {
+        return tree->SetBranchAddress(branch, val, br);
+      }
+      return tree->SetBranchAddress(branch, val);
     }
 
     //------------------------------------------------------------------------------------------------------

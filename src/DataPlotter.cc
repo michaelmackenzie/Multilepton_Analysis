@@ -450,6 +450,11 @@ void DataPlotter::get_titles(TString hist, TString setType, TString* xtitle, TSt
     *ytitle = "";
     *title  = Form("pT_{#tau} + pT_{l} - MET");
   }
+  else if(hist == "jetpt") {
+    *xtitle = "Leading jet p_{T}";
+    *ytitle = "";
+    *title  = Form("Leading jet p_{T}");
+  }
   else if(hist == "ht") {
     *xtitle = "p_{T} of (#Sigma #vec{P}_{Jet})";
     *ytitle = "";
@@ -535,10 +540,50 @@ void DataPlotter::get_titles(TString hist, TString setType, TString* xtitle, TSt
     *ytitle = "";
     *title  = "l_{1} D0";
   }
+  else if(hist == "onedxy") {
+    *xtitle = Form("%s d_{xy}", lep1.Data());
+    *ytitle = "";
+    *title  = "l_{1} d_{xy}";
+  }
+  else if(hist == "onedz") {
+    *xtitle = Form("%s d_{z}", lep1.Data());
+    *ytitle = "";
+    *title  = "l_{1} d_{z}";
+  }
+  else if(hist == "onedxysig") {
+    *xtitle = Form("%s d_{xy}/#sigma_{xy}", lep1.Data());
+    *ytitle = "";
+    *title  = "l_{1} d_{xy}/#sigma_{xy}";
+  }
+  else if(hist == "onedzsig") {
+    *xtitle = Form("%s d_{z}/#sigma_{z}", lep1.Data());
+    *ytitle = "";
+    *title  = "l_{1} d_{xy}/#sigma_{z}";
+  }
   else if(hist == "twod0") {
     *xtitle = Form("%s D0", lep2.Data());
     *ytitle = "";
     *title  = "l_{2} D0";
+  }
+  else if(hist == "twodxy") {
+    *xtitle = Form("%s d_{xy}", lep2.Data());
+    *ytitle = "";
+    *title  = "l_{2} d_{xy}";
+  }
+  else if(hist == "twodz") {
+    *xtitle = Form("%s d_{z}", lep2.Data());
+    *ytitle = "";
+    *title  = "l_{2} d_{z}";
+  }
+  else if(hist == "twodxysig") {
+    *xtitle = Form("%s d_{xy}/#sigma_{xy}", lep2.Data());
+    *ytitle = "";
+    *title  = "l_{2} d_{xy}/#sigma_{xy}";
+  }
+  else if(hist == "twodzsig") {
+    *xtitle = Form("%s d_{z}/#sigma_{z}", lep2.Data());
+    *ytitle = "";
+    *title  = "l_{2} d_{xy}/#sigma_{z}";
   }
   else if(hist == "metvspt") {
     *xtitle = "p_{T}^{ll}";

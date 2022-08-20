@@ -22,6 +22,7 @@
   <class name="MuonIDWeight"/>
   <class name="TauIDWeight"/>
   <class name="ZPtWeight"/>
+  <class name="SignalZWeight"/>
   <class name="EmbeddingWeight"/>
   <class name="EmbeddingTnPWeight"/>
   <class name="RoccoR"/>

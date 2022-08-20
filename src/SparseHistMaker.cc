@@ -63,19 +63,7 @@ void SparseHistMaker::InitHistogramFlags() {
 //--------------------------------------------------------------------------------------------------------------
 void SparseHistMaker::InitializeInputTree(TTree* tree) {
   HistMaker::InitializeInputTree(tree);
-  //turn off branches not being used
-  tree->SetBranchStatus("*BJet*", 0);
-  tree->SetBranchStatus("Flag_*", 0);
-  tree->SetBranchStatus("*_raw*", 0);
-  tree->SetBranchStatus("*photon*", 0);
-  tree->SetBranchStatus("*Photon*", 0);
-  tree->SetBranchStatus("MET_*", 0);
-  tree->SetBranchStatus("GenMET_*", 0);
-  tree->SetBranchStatus("*GenVisTau*", 0);
-  tree->SetBranchStatus("Generator_*", 0);
-  tree->SetBranchStatus("*GenPart*", 0);
-  tree->SetBranchStatus("GenPart", 0);
- }
+}
 
 //--------------------------------------------------------------------------------------------------------------
 void SparseHistMaker::BookHistograms() {
@@ -189,46 +177,45 @@ void SparseHistMaker::FillEventHistogram(EventHist_t* Hist) {
     printf("HistMaker::%s: Attempting to fill histograms for an uninitialized book\n", __func__);
     throw 2;
   }
-  Hist->hEventWeight              ->Fill(eventWeight);
-  Hist->hLogEventWeight           ->Fill((eventWeight > 1.e-10) ? std::log10(eventWeight) : -999.);
-  Hist->hGenWeight                ->Fill(genWeight                   , eventWeight          );
-  Hist->hNMuons              ->Fill(nMuons             , genWeight*eventWeight)      ;
-  Hist->hNElectrons          ->Fill(nElectrons         , genWeight*eventWeight)      ;
-  Hist->hNTaus               ->Fill(nTaus              , genWeight*eventWeight)      ;
-  Hist->hNPV[0]              ->Fill(nPV                , genWeight*eventWeight)      ;
-  Hist->hMcEra               ->Fill(mcEra + 2*(fYear - 2016), genWeight*eventWeight)   ;
-  Hist->hNGenTaus            ->Fill(nGenTaus             , genWeight*eventWeight)      ;
-  Hist->hNGenElectrons       ->Fill(nGenElectrons        , genWeight*eventWeight)      ;
-  Hist->hNGenMuons           ->Fill(nGenMuons            , genWeight*eventWeight)      ;
-  Hist->hNJets20[0]          ->Fill(nJets20            , genWeight*eventWeight)      ;
-  Hist->hNFwdJets            ->Fill(nFwdJets           , genWeight*eventWeight)      ;
-  Hist->hNBJets20[0]         ->Fill(nBJets20           , genWeight*eventWeight)      ;
-  Hist->hNBJets20L[0]        ->Fill(nBJets20L          , genWeight*eventWeight)      ;
+  Hist->hEventWeight         ->Fill(eventWeight);
+  Hist->hLogEventWeight      ->Fill((eventWeight > 1.e-10) ? std::log10(eventWeight) : -999.);
+  Hist->hGenWeight           ->Fill(genWeight               , eventWeight          );
+  Hist->hNMuons              ->Fill(nMuons                  , genWeight*eventWeight);
+  Hist->hNElectrons          ->Fill(nElectrons              , genWeight*eventWeight);
+  Hist->hNTaus               ->Fill(nTaus                   , genWeight*eventWeight);
+  Hist->hNPV[0]              ->Fill(nPV                     , genWeight*eventWeight);
+  Hist->hMcEra               ->Fill(mcEra + 2*(fYear - 2016), genWeight*eventWeight);
+  Hist->hNGenTaus            ->Fill(nGenTaus                , genWeight*eventWeight);
+  Hist->hNGenElectrons       ->Fill(nGenElectrons           , genWeight*eventWeight);
+  Hist->hNGenMuons           ->Fill(nGenMuons               , genWeight*eventWeight);
+  Hist->hNJets20[0]          ->Fill(nJets20                 , genWeight*eventWeight);
+  Hist->hNFwdJets            ->Fill(nFwdJets                , genWeight*eventWeight);
+  Hist->hNBJets20[0]         ->Fill(nBJets20                , genWeight*eventWeight);
+  Hist->hNBJets20L[0]        ->Fill(nBJets20L               , genWeight*eventWeight);
 
 
   if(jetOneP4 && jetOneP4->Pt() > 0.) { //if 0 then no jet stored
-    Hist->hJetPt[0]        ->Fill(jetOneP4->Pt()             , genWeight*eventWeight)   ;
+    Hist->hJetPt[0]        ->Fill(jetOneP4->Pt()            , genWeight*eventWeight);
   }
-  Hist->hHt                ->Fill(ht                 , genWeight*eventWeight)   ;
+  Hist->hHt                ->Fill(ht                        , genWeight*eventWeight);
 
-  Hist->hMet               ->Fill(met                , genWeight*eventWeight)      ;
-  Hist->hMTOne             ->Fill(fTreeVars.mtone    , eventWeight*genWeight);
-  Hist->hMTTwo             ->Fill(fTreeVars.mttwo    , eventWeight*genWeight);
-  Hist->hMTLep             ->Fill(fTreeVars.mtlep    , eventWeight*genWeight);
+  Hist->hMet               ->Fill(met                       , genWeight*eventWeight);
+  Hist->hMTOne             ->Fill(fTreeVars.mtone           , eventWeight*genWeight);
+  Hist->hMTTwo             ->Fill(fTreeVars.mttwo           , eventWeight*genWeight);
+  Hist->hMTLep             ->Fill(fTreeVars.mtlep           , eventWeight*genWeight);
 
   TLorentzVector lepSys = (*leptonOneP4) + (*leptonTwoP4);
-  TLorentzVector sys    = (photonP4) ? (*photonP4) + lepSys : lepSys;
 
-  Hist->hLepPt[0]     ->Fill(lepSys.Pt()            ,eventWeight*genWeight);
-  Hist->hLepM[0]      ->Fill(lepSys.M()             ,eventWeight*genWeight);
-  Hist->hLepMt        ->Fill(lepSys.Mt()            ,eventWeight*genWeight);
-  Hist->hLepMEstimate   ->Fill(fTreeVars.mestimate   , eventWeight*genWeight);
-  Hist->hLepMEstimateTwo->Fill(fTreeVars.mestimatetwo, eventWeight*genWeight);
+  Hist->hLepPt[0]          ->Fill(lepSys.Pt()               , eventWeight*genWeight);
+  Hist->hLepM[0]           ->Fill(lepSys.M()                , eventWeight*genWeight);
+  Hist->hLepMt             ->Fill(lepSys.Mt()               , eventWeight*genWeight);
+  Hist->hLepMEstimate      ->Fill(fTreeVars.mestimate       , eventWeight*genWeight);
+  Hist->hLepMEstimateTwo   ->Fill(fTreeVars.mestimatetwo    , eventWeight*genWeight);
 
-  Hist->hDeltaAlpha[0]->Fill(fTreeVars.deltaalphaz1, eventWeight*genWeight);
-  Hist->hDeltaAlpha[1]->Fill(fTreeVars.deltaalphaz2, eventWeight*genWeight);
-  Hist->hDeltaAlpha[2]->Fill(fTreeVars.deltaalphah1, eventWeight*genWeight);
-  Hist->hDeltaAlpha[3]->Fill(fTreeVars.deltaalphah2, eventWeight*genWeight);
+  Hist->hDeltaAlpha[0]     ->Fill(fTreeVars.deltaalphaz1    , eventWeight*genWeight);
+  Hist->hDeltaAlpha[1]     ->Fill(fTreeVars.deltaalphaz2    , eventWeight*genWeight);
+  Hist->hDeltaAlpha[2]     ->Fill(fTreeVars.deltaalphah1    , eventWeight*genWeight);
+  Hist->hDeltaAlpha[3]     ->Fill(fTreeVars.deltaalphah2    , eventWeight*genWeight);
 
   //MVA outputs
   for(unsigned i = 0; i < fMVAConfig.names_.size(); ++i) {
@@ -247,34 +234,34 @@ void SparseHistMaker::FillLepHistogram(LepHist_t* Hist) {
   /////////////
   //  Lep 1  //
   /////////////
-  Hist->hOnePt[0]     ->Fill(fTreeVars.leponept            ,eventWeight*genWeight);
-  Hist->hOneEta       ->Fill(leptonOneP4->Eta()           ,eventWeight*genWeight);
-  Hist->hOneDXY       ->Fill(leptonOneDXY                 ,eventWeight*genWeight);
-  Hist->hOneDZ        ->Fill(leptonOneDZ                  ,eventWeight*genWeight);
-  Hist->hOneRelIso    ->Fill(fTreeVars.leponereliso       ,eventWeight*genWeight);
-  Hist->hOneTrigger   ->Fill(leptonOneTrigger               ,eventWeight*genWeight);
+  Hist->hOnePt[0]          ->Fill(fTreeVars.leponept        , eventWeight*genWeight);
+  Hist->hOneEta            ->Fill(leptonOneP4->Eta()        , eventWeight*genWeight);
+  Hist->hOneDXY            ->Fill(leptonOneDXY              , eventWeight*genWeight);
+  Hist->hOneDZ             ->Fill(leptonOneDZ               , eventWeight*genWeight);
+  Hist->hOneRelIso         ->Fill(fTreeVars.leponereliso    , eventWeight*genWeight);
+  Hist->hOneTrigger        ->Fill(leptonOneTrigger          , eventWeight*genWeight);
   double oneMetDelPhi  = std::fabs(leptonOneP4->Phi() - metPhi);
   if(oneMetDelPhi > M_PI) oneMetDelPhi = std::fabs(2.*M_PI - oneMetDelPhi);
-  Hist->hOneMetDeltaPhi   ->Fill(oneMetDelPhi   ,eventWeight*genWeight);
+  Hist->hOneMetDeltaPhi    ->Fill(oneMetDelPhi              , eventWeight*genWeight);
 
   /////////////
   //  Lep 2  //
   /////////////
 
-  Hist->hTwoPt[0]     ->Fill(fTreeVars.leptwopt            ,eventWeight*genWeight);
-  Hist->hTwoEta       ->Fill(leptonTwoP4->Eta()           ,eventWeight*genWeight);
-  Hist->hTwoDXY       ->Fill(leptonTwoDXY                 ,eventWeight*genWeight);
-  Hist->hTwoDZ        ->Fill(leptonTwoDZ                  ,eventWeight*genWeight);
-  Hist->hTwoRelIso    ->Fill(fTreeVars.leptworeliso       ,eventWeight*genWeight);
-  Hist->hTwoTrigger   ->Fill(leptonTwoTrigger               ,eventWeight*genWeight);
+  Hist->hTwoPt[0]          ->Fill(fTreeVars.leptwopt        , eventWeight*genWeight);
+  Hist->hTwoEta            ->Fill(leptonTwoP4->Eta()        , eventWeight*genWeight);
+  Hist->hTwoDXY            ->Fill(leptonTwoDXY              , eventWeight*genWeight);
+  Hist->hTwoDZ             ->Fill(leptonTwoDZ               , eventWeight*genWeight);
+  Hist->hTwoRelIso         ->Fill(fTreeVars.leptworeliso    , eventWeight*genWeight);
+  Hist->hTwoTrigger        ->Fill(leptonTwoTrigger          , eventWeight*genWeight);
   double twoMetDelPhi  = std::fabs(leptonTwoP4->Phi() - metPhi);
   if(twoMetDelPhi > M_PI) twoMetDelPhi = std::fabs(2.*M_PI - twoMetDelPhi);
-  Hist->hTwoMetDeltaPhi   ->Fill(twoMetDelPhi   ,eventWeight*genWeight);
+  Hist->hTwoMetDeltaPhi    ->Fill(twoMetDelPhi              , eventWeight*genWeight);
 
   ////////////////////////////////////////////////
   // Lepton comparisons/2D distributions
 
-  Hist->hPtDiff      ->Fill(fTreeVars.leponept-fTreeVars.leptwopt ,eventWeight*genWeight);
+  Hist->hPtDiff            ->Fill(fTreeVars.leponept-fTreeVars.leptwopt, eventWeight*genWeight);
 }
 
 
@@ -326,11 +313,11 @@ Bool_t SparseHistMaker::Process(Long64_t entry)
 
   if(!(leptonOneFired || leptonTwoFired)) return kTRUE;
 
-  ee   &= !isLooseElectron && nElectrons == 2;
-  mumu &= !isLooseMuon && nMuons == 2;
+  ee    &= !isLooseElectron && nElectrons == 2 && nMuons != 2;
+  mumu  &= !isLooseMuon && nMuons == 2 && nElectrons != 2;
   mutau &= !isLooseMuon && nElectrons == 0;
   etau  &= !isLooseElectron && nMuons == 0;
-  emu &= !isLooseElectron; //QCD loose ID is only loose muon region
+  emu   &= !isLooseElectron; //QCD loose ID is only loose muon region
 
   //remove MC jet -> light lepton contribution
   if(!fUseMCEstimatedFakeLep && !fIsData) {
@@ -373,8 +360,7 @@ Bool_t SparseHistMaker::Process(Long64_t entry)
   fCutFlow->Fill(icutflow); ++icutflow; //11
 
   //b-jet veto
-  if(emu && nBJets20L > 0) return kTRUE;
-  if(nBJets20 > 0) return kTRUE;
+  if(nBJetsUse > 0) return kTRUE;
 
 
   //MET cuts
@@ -383,8 +369,10 @@ Bool_t SparseHistMaker::Process(Long64_t entry)
 
   fCutFlow->Fill(icutflow); ++icutflow; //12
 
-  if(met >= met_cut) return kTRUE;
-  if(fTreeVars.mtlep >= mtlep_cut) return kTRUE;
+  if(emu || mutau || etau) {
+    if(met >= met_cut) return kTRUE;
+    if(fTreeVars.mtlep >= mtlep_cut) return kTRUE;
+  }
 
   ////////////////////////////////////////////////////////////
   // Set 8 + selection offset: preselection

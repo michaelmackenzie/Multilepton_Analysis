@@ -53,10 +53,9 @@ ZPtWeight::ZPtWeight(TString Name, int Mode, int seed) {
 
 //--------------------------------------------------------------------------------------------------------------------------------------
 ZPtWeight::~ZPtWeight() {
-  if(rnd_) delete rnd_;
+  if(rnd_) {delete rnd_; rnd_ = nullptr;}
   for(std::pair<int, TH2*> val : hZPtScales_       ) {if(val.second) {delete val.second;}}
   for(std::pair<int, TH2*> val : hZPtRecoScales_   ) {if(val.second) {delete val.second;}}
-  for(std::pair<int, TH2*> val : hZPtSysScales_    ) {if(val.second) {delete val.second;}}
   for(std::pair<int, TH2*> val : hZPtSysScales_    ) {if(val.second) {delete val.second;}}
   for(std::pair<int, TH2*> val : hZPtSysRecoScales_) {if(val.second) {delete val.second;}}
 }

@@ -22,6 +22,10 @@ namespace CLFV {
     ~ZPtWeight();
 
     float GetWeight(int year, float pt, float mass, bool doReco, float& up, float& down, float& sys);
+    float GetWeight(int year, float pt, float mass, bool doReco) {
+      float up, down, sys;
+      return GetWeight(year, pt, mass, doReco, up, down, sys);
+    }
 
   private:
     std::map<int, TH2*> hZPtScales_; //scales using generator level quantities
