@@ -50,12 +50,11 @@
       gInterpreter->ProcessLine(".! ps | grep root");
       printf("Loading lib/libCLFVAnalysis.so!\n");
       TString cmssw = gSystem->Getenv("CMSSW_BASE");
-      TString path = (hostname.Contains("cmslpc")) ? "/src/BLT/BLTAnalysis/" : gSystem->Getenv("PWD");
+      TString path = (hostname.Contains("cmslpc")) ? "/src/CLFVAnalysis/" : gSystem->Getenv("PWD");
       if(!hostname.Contains("cmslpc")) path += "/../";
 
       //add check for NanoAOD working area, no BLT repository
       if(TString(gSystem->Getenv("PWD")).Contains("CLFVAnalysis_dev"))  path = "/src/CLFVAnalysis_dev/";
-      else if(TString(gSystem->Getenv("PWD")).Contains("CLFVAnalysis")) path = "/src/CLFVAnalysis/";
 
       // gSystem->Load((cmssw + path + "AsciiPlotter/AsciiPlotter_cc.so").Data());
 

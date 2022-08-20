@@ -1,9 +1,6 @@
 //information for debugging
 #include "histogramming_config.C"
 #include "process_card.C"
-bool copyConfig_   = true; //create a new config file to use to prevent changes
-bool newProcess_   = true; //run card processing in a new process to avoid memory issues
-int  maxProcesses_ = 6; //maximum number of new processes to run at once
 
 using namespace CLFV;
 
@@ -67,14 +64,14 @@ Int_t process_clfv() {
         cout << "ERROR: Didn't find generation numbers for combining with sample name " << name.Data() << endl;
     } //end combine extension samples
     if(newProcess_) {
-      while(count_processes() >= maxProcesses_) {
-        sleep(10); //wait to submit until fewer than the maximum are running
-      }
       gSystem->Exec(Form("root.exe -q -b -l \"process_card.C(\\\"%s\\\", \\\"%s\\\", %f, %i, %i, %i)\" >| log/out_%i.log 2>&1 &",
                          nanoaod_path.Data(), nanocards[i].fname_.Data(), nanocards[i].xsec_,
                          nanocards[i].isData_, nanocards[i].combine_, category, category
                          )
                     );
+      while(count_processes() >= maxProcesses_) {
+        sleep(10); //wait to submit until fewer than the maximum are running
+      }
       sleep(2); //add 2 sec buffer between loops
     } else { //process within this process
       process_card(nanoaod_path.Data(), nanocards[i].fname_.Data(), nanocards[i].xsec_,

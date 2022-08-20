@@ -53,12 +53,16 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TTr
         hist_selec->fPrintTime         = 2; //Print detailed summary of processing times
         hist_selec->fDoTriggerMatching = doTriggerMatching_;
         hist_selec->fReprocessMVAs     = ReprocessMVAs_; //reevaluate MVA scores on the fly
+        hist_selec->fProcessSSSF       = doSSSF_;
+        hist_selec->fDoEventList       = selection == "ee" || selection == "mumu";
+        hist_selec->fDoHiggs           = doHiggs_;
+        hist_selec->fUseSignalZWeights = useSignalZWeights_;
       }
 
       selec->fRemoveTriggerWeights = removeTrigWeights_;
       selec->fUpdateMCEra          = updateMCEra_;
       selec->fUseBTagWeights       = useBTagWeights_;
-      selec->fRemovePUWeights      = removePUWeights_ ; //remove for signal, due to unknown issues in skimming NanoAODs
+      selec->fRemovePUWeights      = (isSignal) ? removePUWeights_ : 0 ; //remove for signal, due to module issues (likely weights measured per file too low stats)
       selec->fUseJetPUIDWeights    = useJetPUIDWeights_;
       selec->fUsePrefireWeights    = usePrefireWeights_;
       selec->fRemoveZPtWeights     = removeZPtWeights_; //whether or not to re-weight Z pT
@@ -75,6 +79,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TTr
       selec->fIsDY = isDY;
       selec->fIsData = card.isData_;
       selec->fIsEmbed = card.fname_.Contains("Embed-");
+      selec->fIsLLEmbed = card.fname_.Contains("Embed-MuMu-") || card.fname_.Contains("Embed-EE-");
       selec->fYear = card.year_;
       selec->fDataset = card.dataset_;
       selec->fIsSignal = isSignal;
@@ -204,14 +209,14 @@ Int_t process_single_card(datacard_t& card, config_t& config, TFile* file) {
   for(TString selection : selections) {
     //check if only suppose to do 1 channel, and if this is that channel
     if(config.onlyChannel_ != "") {
-      if(config.onlyChannel_ != selection) { cout << "Continuing!\n"; continue;}
-      else cout << "Found correct channel --> processing!\n";
+      if(config.onlyChannel_ != selection) continue;
+      else cout << "Found correct channel " << selection.Data() << " --> processing!\n";
     }
     //check if this channel is part of the skip list
     if(config.skipChannels_.size() > 0) {
       bool skip = false;
       for(TString channel : config.skipChannels_) {
-        if(channel == selection) {cout << "Skipping channel!\n"; skip=true; break;}
+        if(channel == selection) {skip=true; break;}
       }
       if(skip) continue;
     }
@@ -222,7 +227,14 @@ Int_t process_single_card(datacard_t& card, config_t& config, TFile* file) {
     if(isMuonData && (selection == "etau" || selection == "ee")) {
       cout << "Muon data on electron only channel, continuing!\n"; continue;
     }
-
+    if(name.Contains("Embed-MuMu-") && selection != "mumu") {
+      cout << "MuMu embedding is only relevant to the mumu channel, skipping!\n";
+      continue;
+    }
+    if(name.Contains("Embed-EE-") && selection != "ee") {
+      cout << "EE embedding is only relevant to the ee channel, skipping!\n";
+      continue;
+    }
     //Process this selection
     //Retrieve the data
     TTree* tree = (TTree*) file->Get(selection.Data());

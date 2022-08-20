@@ -16,7 +16,7 @@ then
     indir="./*${selection}*${year}*.hist"
 else
     filehead="root://cmseos.fnal.gov//store/user/${USER}/histograms/"${indir}"/"
-    indir="/store/user/${USER}/histograms/"${indir}"/*${selection}*${year}*.hist"
+    indir="/store/user/${USER}/histograms/${indir}/*${selection}*${year}*.hist"
     lscommand="eos root://cmseos.fnal.gov ls"
 fi
 

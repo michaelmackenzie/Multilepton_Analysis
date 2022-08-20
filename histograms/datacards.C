@@ -91,45 +91,52 @@ void get_datacards(std::vector<dcard>& cards, TString selection, bool forStudies
       }
     }
     if(splitDY_ > 0 || useEmbed_) {
-      cards.push_back(dcard((DYName+"-2").Data(), (DYName+"-2").Data(), dy_ll.Data(), false, xs.GetCrossSection("DY50", year), false, year, dy_ll_c   , combineZ));
-      if(!useEmbed_ || selection == "ee" || selection == "mumu") { //use MC Z->tautau for ee/mumu selections
-        cards.push_back(dcard((DYName+"-1").Data(), (DYName+"-1").Data(), dy_tt.Data(), false, xs.GetCrossSection("DY50", year), false, year, dy_tt_c   , combineZ));
-      } else {
+      if(!(selection == "ee" || selection == "mumu") || !useEmbed_) { //use DY MC ee/mumu for non-ee/mumu categories or if using DY MC in general
+        cards.push_back(dcard((DYName+"-2").Data(), (DYName+"-2").Data(), dy_ll.Data(), false, xs.GetCrossSection("DY50", year), false, year, dy_ll_c, combineZ));
+      }
+      if((selection == "ee" || selection == "mumu") || !useEmbed_) {//either ee/mumu or using DY MC, in both cases need MC Z->tau tau
+        cards.push_back(dcard((DYName+"-1").Data(), (DYName+"-1").Data(), dy_tt.Data(), false, xs.GetCrossSection("DY50", year), false, year, dy_tt_c, combineZ));
+      }
+      if(useEmbed_) {
         for(int period = 0; period < periods[year].size(); ++period) {
           TString run = periods[year][period];
-          cards.push_back(dcard(("Embed-MuTau-"+run).Data(), ("Embed-MuTau-"+run).Data(), embed.Data(), false, xs.GetCrossSection("Embed-MuTau-"+run, year), false, year, dy_tt_c));
-          cards.push_back(dcard(("Embed-ETau-" +run).Data(), ("Embed-ETau-" +run).Data(), embed.Data(), false, xs.GetCrossSection("Embed-ETau-" +run, year), false, year, dy_tt_c));
-          cards.push_back(dcard(("Embed-EMu-"  +run).Data(), ("Embed-EMu-"  +run).Data(), embed.Data(), false, xs.GetCrossSection("Embed-EMu-"  +run, year), false, year, dy_tt_c));
+          if(!(selection == "ee" || selection == "mumu")) {
+            cards.push_back(dcard(("Embed-MuTau-"+run).Data(), ("Embed-MuTau-"+run).Data(), embed.Data(), false, xs.GetCrossSection("Embed-MuTau-"+run, year), false, year, dy_tt_c));
+            cards.push_back(dcard(("Embed-ETau-" +run).Data(), ("Embed-ETau-" +run).Data(), embed.Data(), false, xs.GetCrossSection("Embed-ETau-" +run, year), false, year, dy_tt_c));
+            cards.push_back(dcard(("Embed-EMu-"  +run).Data(), ("Embed-EMu-"  +run).Data(), embed.Data(), false, xs.GetCrossSection("Embed-EMu-"  +run, year), false, year, dy_tt_c));
+          } else if(selection == "mumu") {
+            cards.push_back(dcard(("Embed-MuMu-"+run).Data(), ("Embed-MuMu-"+run).Data(), "#mu#mu Embedding", false, xs.GetCrossSection("Embed-MuMu-"+run, year), false, year, dy_ll_c));
+          } else if(selection == "ee") {
+            cards.push_back(dcard(("Embed-EE-"  +run).Data(), ("Embed-EE-"  +run).Data(), "ee Embedding"    , false, xs.GetCrossSection("Embed-EE-"  +run, year), false, year, dy_ll_c));
+          }
         }
       }
     } else if(splitDY_ == 0) {
-      cards.push_back(dcard((DYName+"-1").Data(), (DYName+"-1").Data(), dy.Data(), false, xs.GetCrossSection("DY50", year), false, year, dy_tt_c   , combineZ));
-      cards.push_back(dcard((DYName+"-2").Data(), (DYName+"-2").Data(), dy.Data(), false, xs.GetCrossSection("DY50", year), false, year, dy_tt_c   , combineZ));
+      cards.push_back(dcard((DYName+"-1").Data(), (DYName+"-1").Data(), dy.Data(), false, xs.GetCrossSection("DY50", year), false, year, dy_tt_c, combineZ));
+      cards.push_back(dcard((DYName+"-2").Data(), (DYName+"-2").Data(), dy.Data(), false, xs.GetCrossSection("DY50", year), false, year, dy_tt_c, combineZ));
     } else { //splitDY_ < 0, assume old dataset that was never separated into tautau and ee/mumu output files
-      cards.push_back(dcard((DYName).Data(), (DYName).Data(), dy.Data(), false, xs.GetCrossSection("DY50", year), false, year, dy_tt_c   , combineZ));
+      cards.push_back(dcard(DYName.Data(), DYName.Data(), dy.Data(), false, xs.GetCrossSection("DY50", year), false, year, dy_tt_c, combineZ));
     }
     if(combineZ) {
       if(splitDY_ > 0 || useEmbed_) {
-        cards.push_back(dcard((DYName+"-ext-2").Data(), (DYName+"-ext-2").Data(), dy_ll.Data(), false, xs.GetCrossSection("DY50", year), false, year, dy_ll_c   , true));
+        if(!(selection == "ee" || selection == "mumu") || !useEmbed_) {
+          cards.push_back(dcard((DYName+"-ext-2").Data(), (DYName+"-ext-2").Data(), dy_ll.Data(), false, xs.GetCrossSection("DY50", year), false, year, dy_ll_c   , true));
+        }
         if(!useEmbed_ || selection == "ee" || selection == "mumu") {
           cards.push_back(dcard((DYName+"-ext-1").Data(), (DYName+"-ext-1").Data(), dy_tt.Data(), false, xs.GetCrossSection("DY50", year), false, year, dy_tt_c   , true));
         }
       } else if(splitDY_ == 0) {
         cards.push_back(dcard((DYName+"-ext-1").Data(), (DYName+"-ext-1").Data(), dy.Data(), false, xs.GetCrossSection("DY50", year), false, year, dy_tt_c   , true));
-        if(!useEmbed_) {
-          cards.push_back(dcard((DYName+"-ext-2").Data(), (DYName+"-ext-2").Data(), dy.Data(), false, xs.GetCrossSection("DY50", year), false, year, dy_tt_c   , true));
-        }
+        cards.push_back(dcard((DYName+"-ext-2").Data(), (DYName+"-ext-2").Data(), dy.Data(), false, xs.GetCrossSection("DY50", year), false, year, dy_tt_c   , true));
       } else {
         cards.push_back(dcard((DYName+"-ext").Data(), (DYName+"-ext").Data(), dy.Data(), false, xs.GetCrossSection("DY50", year), false, year, dy_tt_c   , true));
       }
     }
     if(useQCDMC_) {
-      if(year != 2018) {
-        cards.push_back(dcard("QCDDoubleEMEnrich30to40" , "QCDDoubleEMEnrich30to40" , "QCD", false, xs.GetCrossSection("QCDDoubleEMEnrich30to40" ), false, year, kOrange+6));
-        cards.push_back(dcard("QCDDoubleEMEnrich30toInf", "QCDDoubleEMEnrich30toInf", "QCD", false, xs.GetCrossSection("QCDDoubleEMEnrich30toInf"), false, year, kOrange+6));
-        cards.push_back(dcard("QCDDoubleEMEnrich40toInf", "QCDDoubleEMEnrich40toInf", "QCD", false, xs.GetCrossSection("QCDDoubleEMEnrich40toInf"), false, year, kOrange+6));
-      } else {
-        cards.push_back(dcard("QCDEMEnrich15to20"       , "QCDEMEnrich15to20"       , "QCD", false, xs.GetCrossSection("QCDEMEnrich15to20"       ), false, year, kOrange+6));
+      if(year != 2017) { //FIXME: Add in 2017 QCD datasets
+        if(year == 2018) {
+          cards.push_back(dcard("QCDEMEnrich15to20"       , "QCDEMEnrich15to20"       , "QCD", false, xs.GetCrossSection("QCDEMEnrich15to20"       ), false, year, kOrange+6));
+        }
         cards.push_back(dcard("QCDEMEnrich20to30"       , "QCDEMEnrich20to30"       , "QCD", false, xs.GetCrossSection("QCDEMEnrich20to30"       ), false, year, kOrange+6));
         cards.push_back(dcard("QCDEMEnrich30to50"       , "QCDEMEnrich30to50"       , "QCD", false, xs.GetCrossSection("QCDEMEnrich30to50"       ), false, year, kOrange+6));
         cards.push_back(dcard("QCDEMEnrich50to80"       , "QCDEMEnrich50to80"       , "QCD", false, xs.GetCrossSection("QCDEMEnrich50to80"       ), false, year, kOrange+6));
@@ -213,8 +220,8 @@ void get_datacards(std::vector<dcard>& cards, TString selection, bool forStudies
       if(ngen < 1) {f->Close(); continue;}
       if(ngen > nevt) { //only apply a correction if ngen/nevt make sense
         //notify if more than a 5% correction
-        if(ngen/nevt > 1.05) std::cout << "Dataset " << cards[index].name_.Data() << ", " << cards[index].year_ << ", has gen = "
-                                       << ngen << " and event count = " << nevt << " --> applying " << ngen/nevt << " correction\n";
+        std::cout << "Dataset " << cards[index].name_.Data() << ", " << cards[index].year_ << ", has gen = "
+                  << ngen << " and event count = " << nevt << " --> applying " << ngen/nevt << " correction\n";
         cards[index].xsec_ *= ngen/nevt;
       }
       f->Close();

@@ -1868,7 +1868,7 @@ Int_t print_embedding_debug_plots(bool doMC = false, bool doExtraEMu = false) {
 
 
 //print standard  debugging plots
-Int_t print_basic_debug_plots(bool test_trigger = false, bool doMC = false, bool mvas = false) {
+Int_t print_basic_debug_plots(bool test_trigger = false, bool doMC = false, bool mvas = false, bool dosys = false) {
   Int_t status = 0;
   if(!dataplotter_) return 1;
   int offset = 0;
@@ -1896,9 +1896,6 @@ Int_t print_basic_debug_plots(bool test_trigger = false, bool doMC = false, bool
     // sets.push_back(8  + offset + HistMaker::fQcdOffset + HistMaker::fMisIDOffset);
   };
   if(test_trigger && !tau_set) {
-    sets.push_back(60 + offset);
-    sets.push_back(61 + offset);
-    sets.push_back(62 + offset);
     sets.push_back(63 + offset);
     sets.push_back(66 + offset);
     if(selection_ == "emu") {
@@ -1945,26 +1942,32 @@ Int_t print_basic_debug_plots(bool test_trigger = false, bool doMC = false, bool
     cards.push_back(PlottingCard_t("leppt2"          , "event", 2,  0., 100.));
     cards.push_back(PlottingCard_t("onept8"          , "lep"  , (same_flavor) ? 1 : 2, (tau_set) ? 20. : 10., 120.)); //no Z pT vs M weight
   }
-  cards.push_back(PlottingCard_t("lepmestimate"    , "event", 2, 50., 170.));
-  cards.push_back(PlottingCard_t("lepmestimatetwo" , "event", 2, 50., 170.));
   cards.push_back(PlottingCard_t("onept"           , "lep"  , (same_flavor) ? 1 : 2, (tau_set) ? 20. : 10., 120.));
   cards.push_back(PlottingCard_t("onept1"          , "lep"  , (same_flavor) ? 1 : 2, (tau_set) ? 20. : 10., 120.)); //no trigger weight
-  cards.push_back(PlottingCard_t("oneeta"          , "lep"  , 2, -3.,   5.));
+  cards.push_back(PlottingCard_t("oneeta"          , "lep"  , 2, 1, -1));
   cards.push_back(PlottingCard_t("twopt"           , "lep"  , 2, (tau_set) ? 20. : 10., 120.));
   cards.push_back(PlottingCard_t("twoeta"          , "lep"  , 2,  1.,  -1.));
-  cards.push_back(PlottingCard_t("ptdiff"          , "lep"  , 2, (same_flavor) ? 0 : -50,  (same_flavor) ? 75. : 50.));
+  cards.push_back(PlottingCard_t("ptdiff"          , "lep"  , 2, (same_flavor) ? -5. : -50,  (same_flavor) ? 75. : 50.));
+  cards.push_back(PlottingCard_t("deltaalpha0"     , "event", 2, -3.,   6., -1., 0.5));
+  cards.push_back(PlottingCard_t("deltaalpha1"     , "event", 2, -3.,   6., -1., 0.5));
   if(tau_set) {
     cards.push_back(PlottingCard_t("taudecaymode"    , "event", 0,  0.,  15.));
+    cards.push_back(PlottingCard_t("lepmestimate"   , "event", 1, 50., 170., {80., 115.}, {100., 135.}));
+  } else {
+    cards.push_back(PlottingCard_t("lepmestimate"   , "event", 1, 50., 170., {86., 120.}, {96., 130.}));
+    cards.push_back(PlottingCard_t("lepmestimatetwo", "event", 1, 50., 170., {86., 120.}, {96., 130.}));
   }
   cards.push_back(PlottingCard_t("met"             , "event", 2,  0., 100.));
   cards.push_back(PlottingCard_t("mtone"           , "event", 5,  0., 150.));
   cards.push_back(PlottingCard_t("mttwo"           , "event", 5,  0., 150.));
   cards.push_back(PlottingCard_t("mtlep"           , "event", 5,  0., 150.));
-  cards.push_back(PlottingCard_t("ht"              , "event", 1,  1.,  -1.));
-  cards.push_back(PlottingCard_t("htsum"           , "event", 1,  1.,  -1.));
+  cards.push_back(PlottingCard_t("ht"              , "event", 2,  1.,  -1.));
+  cards.push_back(PlottingCard_t("htsum"           , "event", 2,  1.,  -1.));
   cards.push_back(PlottingCard_t("lepdeltar"       , "event", 5,  0.,   5.));
   cards.push_back(PlottingCard_t("lepdeltaphi"     , "event", 1,  0.,   5.));
   cards.push_back(PlottingCard_t("lepdeltaeta"     , "event", 2,  0.,   5.));
+  cards.push_back(PlottingCard_t("lepeta"          , "event", 2,  1., -1.));
+  cards.push_back(PlottingCard_t("zeta"            , "event", 2,  1., -1.));
   cards.push_back(PlottingCard_t("njets20"         , "event", 1,  0.,   5.));
   cards.push_back(PlottingCard_t("njets"           , "event", 1,  0.,   5.));
   // cards.push_back(PlottingCard_t("lhenjets"        , "event", 0,  0  ,  6  ));
@@ -1976,13 +1979,15 @@ Int_t print_basic_debug_plots(bool test_trigger = false, bool doMC = false, bool
   cards.push_back(PlottingCard_t("onemetdeltaphi"  , "lep"  , 2,  0.,   5.));
   cards.push_back(PlottingCard_t("twometdeltaphi"  , "lep"  , 2,  0.,   5.));
   // cards.push_back(PlottingCard_t("npv"             , "event", 0,  0.,  60.));
-  cards.push_back(PlottingCard_t("oned0"           , "lep"  , 2,  0.,  0.1));
-  cards.push_back(PlottingCard_t("twod0"           , "lep"  , 2,  0.,  0.1));
+  cards.push_back(PlottingCard_t("onedxysig"       , "lep"  , 1,  0.,  5));
+  cards.push_back(PlottingCard_t("twodxysig"       , "lep"  , 1,  0.,  5));
+  cards.push_back(PlottingCard_t("onedzsig"        , "lep"  , 1,  0.,  5));
+  cards.push_back(PlottingCard_t("twodzsig"        , "lep"  , 1,  0.,  5));
   // cards.push_back(PlottingCard_t("d0diff"          , "lep"  , 2,-0.1,  0.1));
   cards.push_back(PlottingCard_t("onereliso"       , "lep"  , 1,  0.,   0.15));
   cards.push_back(PlottingCard_t("tworeliso"       , "lep"  , 1,  0., 0.15));
 
-  cards.push_back(PlottingCard_t("eventweight"       , "event", 0,   0.,  1.1));
+  cards.push_back(PlottingCard_t("eventweight"       , "event", 0,   0.,  2.));
   cards.push_back(PlottingCard_t("genweight"         , "event", 0, -2.5,  2.5));
   cards.push_back(PlottingCard_t("logeventweight"    , "event", 0,  -5.,  1. ));
   cards.push_back(PlottingCard_t("onetrigweight"     , "lep"  , 0,  0.5,  1.5));
@@ -2042,7 +2047,10 @@ Int_t print_basic_debug_plots(bool test_trigger = false, bool doMC = false, bool
     }
     for(PlottingCard_t card : cards) {
       card.set_ = set;
-      dataplotter_->logY_ = (card.hist_.Contains("njets") || card.hist_.Contains("reliso"));
+      dataplotter_->logY_ = (card.hist_.Contains("njets") || card.hist_.Contains("reliso")
+                             || card.hist_ == "ht" || card.hist_ == "htsum"
+                             || card.hist_.Contains("ntaus") || card.hist_.Contains("nmuons")
+                             || card.hist_.Contains("nelectrons") || card.hist_.Contains("d0"));
       if(card.hist_.Contains("mva")) {
         if(set > 1000 || ((set % 100) >= 30 && (set % 100) <= 32)) {//control region histogram, don't blind
           card.blindmin_ = {};
@@ -2096,6 +2104,35 @@ Int_t print_basic_debug_plots(bool test_trigger = false, bool doMC = false, bool
       c = dataplotter_->print_significance("mva9_1", "event", 8 + offset, "Z->e#tau", -1., 0.5);
       if(c) DataPlotter::Empty_Canvas(c);
     }
+  }
+
+  //print systematic plots
+  if(dosys) {
+    PlottingCard_t card("", "systematic", 8+offset, 0, 1, -1., 0., 1.);
+    if     (selection_ == "mutau"  ) card.hist_ = "mva1";
+    else if(selection_ == "etau"   ) card.hist_ = "mva3";
+    else if(selection_ == "emu"    ) card.hist_ = "mva5";
+    else if(selection_ == "mutau_e") card.hist_ = "mva7";
+    else if(selection_ == "etau_mu") card.hist_ = "mva9";
+    if(selection_.Contains("e")) {
+      card.systematic_ =  1; dataplotter_->print_systematic(card); //EleID
+      card.systematic_ =  1; dataplotter_->print_systematic(card); //EleRecoID
+    }
+    if(selection_.Contains("mu")) {
+      card.systematic_ =  4; dataplotter_->print_systematic(card); //MuonID
+      card.systematic_ = 19; dataplotter_->print_systematic(card); //MuonIsoID
+    }
+    if(selection_ == "mutau" || selection_ == "etau") {
+      card.systematic_ = 22; dataplotter_->print_systematic(card); //TauES
+      card.systematic_ = 10; dataplotter_->print_systematic(card); //j-->tau
+      card.systematic_ = 28; dataplotter_->print_systematic(card); //j-->tau closure
+      card.systematic_ = 47; dataplotter_->print_systematic(card); //j-->tau bias
+    }
+    if(selection_ == "emu" || selection_.Contains("_")) {
+      card.systematic_ = 25; dataplotter_->print_systematic(card); //QCD
+    }
+    card.systematic_ = 13; dataplotter_->print_systematic(card); //ZpT
+    card.systematic_ = 45; dataplotter_->print_systematic(card); //b-tag
   }
 
   return status;

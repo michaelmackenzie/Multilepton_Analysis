@@ -2,6 +2,124 @@
 
 
 //////////////////////////////////////////////////
+// Plot the efficiencies and scale factors
+//////////////////////////////////////////////////
+int plot_1D_efficiencies(vector<TH2*> hists, TString path, TString name, bool xaxis = true, bool logx = false) {
+
+  // For each bin in the histograms, make a figure of the efficiencies and the ratios
+  const int nhists = hists.size();
+  if(nhists == 0) {cout << __func__ << ": No histograms given!\n"; return 1;}
+
+  gSystem->Exec(Form("[ ! -d %s ] && mkdir -p %s", path.Data(), path.Data()));
+  if(!hists[0]) {cout << __func__ << ": First histogram is not defined!\n"; return 2;}
+  const int nbins = (xaxis) ? hists[0]->GetNbinsX() : hists[0]->GetNbinsY();
+  const int colors[] = {kRed, kBlue, kGreen, kViolet, kOrange, kYellow+2,
+                        kAtlantic, kGreen+2, kRed+2, kBlue+2, kViolet-2,
+                        kOrange+2,kViolet+2, kBlue-2};
+  const int ncolors = sizeof(colors) / sizeof(*colors);
+
+  TLatex label;
+  label.SetNDC();
+  label.SetTextFont(72);
+  label.SetTextSize(0.03);
+  label.SetTextAlign(13);
+  label.SetTextAngle(0);
+  TString bin_title = "";
+  for(int ibin = 1; ibin <= nbins; ++ibin) {
+    double ymin(1.e9), ymax(-1.e9), ymin_r(0.6), ymax_r(1.4);
+    TH1* haxis = nullptr;
+    TH1* haxis_r = nullptr;
+    double xmin, xmax;
+
+    TCanvas* c = new TCanvas("c_1D_tmp", "c_1D_tmp", 1000, 1100);
+    TPad* pad1 = new TPad("pad1", "pad1", 0., 0.3, 1., 1.0); pad1->Draw();
+    TPad* pad2 = new TPad("pad2", "pad2", 0., 0.0, 1., 0.3); pad2->Draw();
+    pad1->SetBottomMargin(0.05); pad2->SetTopMargin(0.03);
+    pad1->SetGrid(); pad2->SetGrid();
+    pad1->cd();
+
+    TLegend* leg = new TLegend(0.6, 0.7, 0.9, 0.9);
+    leg->SetFillStyle(0);
+    leg->SetFillColor(0);
+    leg->SetLineWidth(0);
+    leg->SetLineColor(0);
+    vector<TH1*> hists_1D, hratios;
+    for(int ihist = 0; ihist < nhists; ++ihist) {
+      auto h2D = hists[ihist];
+      if(!h2D) {
+        cout << __func__ << ": Histogram " << ihist << " not defined for name " << name.Data() << endl;
+        return 2;
+      }
+      TH1* h = (xaxis) ? h2D->ProjectionY(Form("_%i_%i", ihist, ibin), ibin, ibin) : h2D->ProjectionX(Form("_%i_%i", ihist, ibin), ibin, ibin);
+      h->SetLineColor(colors[ihist % ncolors]);
+      h->SetLineWidth(2);
+      h->SetMarkerSize(0.8);
+      h->SetMarkerStyle(20);
+      h->SetMarkerColor(colors[ihist % ncolors]);
+      pad1->cd();
+      if(ihist == 0) {
+        h->Draw("E");
+        haxis = h;
+        xmin = (xaxis) ? h2D->GetXaxis()->GetBinLowEdge(ibin) : h2D->GetYaxis()->GetBinLowEdge(ibin);
+        xmax = (xaxis) ? xmin + h2D->GetXaxis()->GetBinWidth(ibin) : xmin + h2D->GetYaxis()->GetBinWidth(ibin);
+        if(bin_title == "") bin_title = (xaxis) ? h2D->GetXaxis()->GetTitle() : h2D->GetYaxis()->GetTitle();
+      } else {
+        h->Draw("E same");
+        TH1* hratio = (TH1*) haxis->Clone(Form("hratio_%i_%i", ihist, ibin));
+        hratio->Divide(h);
+        hratio->SetLineColor(h->GetLineColor());
+        hratio->SetMarkerColor(h->GetMarkerColor());
+        hratios.push_back(hratio);
+        pad2->cd();
+        if(ihist == 1) {
+          haxis_r = hratio;
+          hratio->Draw("E");
+          hratio->GetXaxis()->SetMoreLogLabels(kTRUE);
+          hratio->SetTitle("");
+          hratio->GetYaxis()->SetTitle("Ratio");
+          hratio->GetXaxis()->SetTitleSize(0.13);
+          hratio->GetYaxis()->SetTitleSize(0.13);
+          hratio->GetYaxis()->SetTitleOffset(0.30);
+          hratio->GetYaxis()->SetLabelSize(0.08);
+          hratio->GetXaxis()->SetLabelSize(0.08);
+        }
+        else hratio->Draw("E same");
+      }
+      hists_1D.push_back(h);
+      leg->AddEntry(h);
+      for(int jbin = 1; jbin <= h->GetNbinsX(); ++jbin) {
+        const double binc = h->GetBinContent(jbin);
+        ymin = std::min(ymin, binc);
+        ymax = std::max(ymax, binc);
+      }
+    }
+    pad1->cd();
+    leg->Draw();
+    haxis->GetXaxis()->SetTitleSize(0.05);
+    haxis->GetYaxis()->SetTitleSize(0.05);
+    haxis->GetYaxis()->SetTitleOffset(1.);
+    haxis->GetYaxis()->SetRangeUser(0.9*ymin, 1.25*ymax);
+    haxis->SetTitle("");
+    haxis->SetXTitle("");
+    haxis->SetYTitle("Efficiency");
+    label.DrawLatex(0.12, 0.88, Form("%s [%.2f - %.2f]", bin_title.Data(), xmin, xmax));
+    if(logx) {pad1->SetLogx(); pad2->SetLogx(); haxis->GetXaxis()->SetMoreLogLabels(kTRUE);}
+
+    pad2->cd();
+    haxis_r->GetYaxis()->SetRangeUser(0.5, 1.5);
+
+    c->SaveAs(Form("%s/%s_%i.png", path.Data(), name.Data(), ibin));
+    for(auto h : hists_1D) delete h;
+    for(auto h : hratios ) delete h;
+    delete pad1;
+    delete pad2;
+    delete c;
+  }
+  return 0;
+}
+
+
+//////////////////////////////////////////////////
 // Plot the scale factors/errors
 //////////////////////////////////////////////////
 TCanvas* plot_1D_slices(TH2* hID, TString cname, bool xaxis, TH1*& haxis) {
@@ -106,18 +224,19 @@ TCanvas* plot_scale(TH1* hID, TString cname) {
 // Plot the scale factors/errors
 //////////////////////////////////////////////////
 TCanvas* plot_scale(TH2* hID, TString cname, bool error) {
-  if(error) {
-    double min_err(1.e5), max_err(-1.);
-    for(int xbin = 1; xbin <= hID->GetNbinsX(); ++xbin) {
-      for(int ybin = 1; ybin <= hID->GetNbinsY(); ++ybin) {
-        double err = hID->GetBinError(xbin, ybin);
-        max_err = max(max_err, err);
-        min_err = min(min_err, err);
+  double min_val(1.e10), max_val(-1.);
+  for(int xbin = 1; xbin <= hID->GetNbinsX(); ++xbin) {
+    for(int ybin = 1; ybin <= hID->GetNbinsY(); ++ybin) {
+      if(error) {
+        const double err = hID->GetBinError(xbin, ybin);
         hID->SetBinContent(xbin, ybin, err);
       }
+      const double val = hID->GetBinContent(xbin, ybin);
+      max_val = max(max_val, val);
+      min_val = min(min_val, val);
     }
-    hID->GetZaxis()->SetRangeUser(0.95*min_err, 1.05*max_err);
   }
+  hID->GetZaxis()->SetRangeUser(0.95*min_val, 1.05*max_val);
   if(error) cname += "_err";
   TCanvas* c = new TCanvas(cname.Data(), cname.Data(), 1000, 700);
   hID->Draw("colz");
@@ -161,6 +280,31 @@ TCanvas* plot_muon_low_trigger_scale(int year, int period = 0, bool error = fals
   if(!hID) {
     cout << "ID histogram not found!\n";
     return NULL;
+  }
+  if(!error) {
+    hname.ReplaceAll("abseta_pt_ratio", "efficienciesDATA/abseta_pt_DATA");
+    TH2* hData = (TH2*) f->Get(hname.Data());
+    if(hData) {
+      TCanvas* c = plot_scale(hData, Form("c_muon_low_trigger_data_%i", year), false);
+      if(c) {
+        hData->GetYaxis()->SetMoreLogLabels(kTRUE);
+        c->SetLogy();
+        c->SaveAs(Form("figures/muon_low_trigger_data_%i%s.png", year, (period > -1) ? Form("_period_%i", period) : ""));
+        delete c;
+      }
+    }
+    hname.ReplaceAll("efficienciesDATA/abseta_pt_DATA", "efficienciesMC/abseta_pt_MC");
+    TH2* hMC = (TH2*) f->Get(hname.Data());
+    if(hMC) {
+      TCanvas* c = plot_scale(hMC, Form("c_muon_low_trigger_mc_%i", year), false);
+      c->SetLogy();
+      if(c) {
+        hMC->GetYaxis()->SetMoreLogLabels(kTRUE);
+        c->SetLogy();
+        c->SaveAs(Form("figures/muon_low_trigger_mc_%i%s.png", year, (period > -1) ? Form("_period_%i", period) : ""));
+        delete c;
+      }
+    }
   }
   hID->SetDirectory(0);
   f->Close();
@@ -267,11 +411,11 @@ TCanvas* plot_muon_iso_scale(int year, int period = 0, bool error = false) {
 TCanvas* plot_electron_scale(int year, bool error = false) {
   TString path = "../../scale_factors/";
   if(year == 2016) {
-    path += "2016LegacyReReco_ElectronMVAwp80.root";
+    path += "2016LegacyReReco_ElectronMVA90noiso_Fall17V2.root";
   } else if(year == 2017) {
-    path += "2017_ElectronMVA80.root";
+    path += "2017_ElectronMVA90noiso.root";
   } else if(year == 2018) {
-    path += "2018_ElectronMVA80.root";
+    path += "2018_ElectronMVA90noiso.root";
   } else {
     cout << "Unknown year!\n";
     return NULL;
@@ -356,7 +500,6 @@ TCanvas* plot_embedding_scale(int year, int Mode, bool isMuon, int period = -1) 
     return NULL;
   }
   hID->SetDirectory(0);
-  f->Close();
   hID->SetTitle("Data Efficiency / Embedding Efficiency");
   TH1* haxis = nullptr;
   TCanvas* c = plot_1D_slices(hID, Form("c_embed_%s_mode-%i_slice_%i",
@@ -368,6 +511,23 @@ TCanvas* plot_embedding_scale(int year, int Mode, bool isMuon, int period = -1) 
   haxis->GetXaxis()->SetMoreLogLabels(kTRUE);
   c->Print(Form("figures/embed_%s_mode-%i_slices_log_%i%s.png",
                 (isMuon) ? "mumu" : "ee", Mode, year, (period >= 0) ? Form("_period_%i", period) : ""));
+
+  vector<TH2*> hists;
+  TH2* hData = (TH2*) f->Get("PtVsEtaData");
+  TH2* hMC   = (TH2*) f->Get("PtVsEtaMC"  );
+  TH2* hDYMC = (TH2*) f->Get("PtVsEtaDYMC");
+  hData->SetTitle("Data");
+  hMC->SetTitle("Embedding");
+  hists.push_back(hData);
+  hists.push_back(hMC  );
+  if(hDYMC) {
+    hDYMC->SetTitle("MC");
+    hists.push_back(hDYMC);
+  }
+  TString dir = Form("figures/embed_%s_mode-%i_effs_%i%s", (isMuon) ? "mumu" : "ee", Mode, year,
+                     (period >= 0) ? Form("_period_%i", period) : "");
+  plot_1D_efficiencies(hists, dir.Data(), "eff", true, true);
+  f->Close();
   return c;
 }
 
@@ -388,7 +548,13 @@ TCanvas* plot_embedding_kit_scale(int year, int Mode, bool isMuon) {
     if(Mode == 1) scale = (RooFormulaVar*) w->obj((isMuon) ? "m_id_embed_kit_ratio" : "e_id80_kit_ratio");
     if(Mode == 2 && isMuon) return NULL; //iso binned drawing is broken
     if(Mode == 2) scale = (RooFormulaVar*) w->obj((isMuon) ? "m_iso_binned_embed_kit_ratio" : "e_iso_kit_ratio");
+  } else {
+    if(Mode == 0) scale = (RooFormulaVar*) w->obj((isMuon) ? "m_trg_ratio" : "e_trg_ratio");
+    if(Mode == 1) scale = (RooFormulaVar*) w->obj((isMuon) ? "m_id_ratio" : "e_id_ratio");
+    if(Mode == 2 && isMuon) return NULL; //iso binned drawing is broken
+    if(Mode == 2) scale = (RooFormulaVar*) w->obj((isMuon) ? "m_iso_ratio" : "e_iso_ratio");
   }
+
   if(!scale || !pt || !eta) return NULL;
 
   vector<double> eta_bins;
@@ -418,6 +584,7 @@ TCanvas* plot_embedding_kit_scale(int year, int Mode, bool isMuon) {
   c->SetRightMargin(0.1);
   c->Print(Form("figures/%s.png", cname.Data()));
   c->SetLogx();
+  frame->GetXaxis()->SetMoreLogLabels(kTRUE);
   c->Print(Form("figures/%s_log.png", cname.Data()));
   f->Close();
   return c;
@@ -494,12 +661,14 @@ TCanvas* plot_tau_ele_ID_scale(int year) {
   return plot_scale(hID, Form("c_tau_ele_id_%i", year));
 }
 
-void plot_scales() {
+void plot_scales(int only_year = -1) {
   gStyle->SetPadTickX(1);
   gStyle->SetPadTickY(1);
   gStyle->SetOptStat(0);
   gSystem->Exec("[ ! -d figures ] && mkdir figures");
-  for(int year = 2016; year < 2019; ++year) {
+  const int year_min = (only_year > 0) ? only_year : 2016;
+  const int year_max = (only_year > 0) ? only_year : 2018;
+  for(int year = year_min; year <= year_max; ++year) {
     TCanvas* c;
     c = plot_tau_jet_ID_scale(year);
     if(c) {
@@ -558,6 +727,13 @@ void plot_scales() {
       c->Print(Form("figures/muon_low_trigger_scale_%i_err.png", year));
       delete c;
     }
+    if(year == 2016) {
+      c = plot_muon_low_trigger_scale(year, 1, false);
+      if(c) {
+        c->Print(Form("figures/muon_low_trigger_scale_%i_period_1.png", year));
+        delete c;
+      }
+    }
     c = plot_muon_ID_scale(year, 0, false);
     if(c) {
       c->Print(Form("figures/muon_ID_scale_%i.png", year));
@@ -615,11 +791,11 @@ void plot_scales() {
       c = plot_embedding_scale    (year, 4, true , period); if(c) delete c; //muon trigger, Loose + !Tight iso ID
     }
     //Embedding KIT scales
-    // c = plot_embedding_kit_scale(year, 0, false); if(c) delete c; //electron trigger
-    // c = plot_embedding_kit_scale(year, 1, false); if(c) delete c; //electron ID
-    // c = plot_embedding_kit_scale(year, 2, false); if(c) delete c; //electron iso ID
-    // c = plot_embedding_kit_scale(year, 0, true ); if(c) delete c; //muon trigger
-    // c = plot_embedding_kit_scale(year, 1, true ); if(c) delete c; //muon ID
-    // c = plot_embedding_kit_scale(year, 2, true ); if(c) delete c; //muon iso ID
+    c = plot_embedding_kit_scale(year, 0, false); if(c) delete c; //electron trigger
+    c = plot_embedding_kit_scale(year, 1, false); if(c) delete c; //electron ID
+    c = plot_embedding_kit_scale(year, 2, false); if(c) delete c; //electron iso ID
+    c = plot_embedding_kit_scale(year, 0, true ); if(c) delete c; //muon trigger
+    c = plot_embedding_kit_scale(year, 1, true ); if(c) delete c; //muon ID
+    c = plot_embedding_kit_scale(year, 2, true ); if(c) delete c; //muon iso ID
   }
 }
