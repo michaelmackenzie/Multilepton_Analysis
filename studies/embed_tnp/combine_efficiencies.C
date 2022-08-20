@@ -53,6 +53,7 @@ void combine_efficiencies(int Mode = 0, bool isMuon = true, int year = 2016, int
 
   TFile* fData = TFile::Open(Form("rootfiles/efficiencies_%s_mode-%i_mc-0_%i%s.root", (isMuon) ? "mumu" : "ee", Mode, year, (period >= 0) ? Form("_period_%i", period) : ""), "READ");
   TFile* fMC   = TFile::Open(Form("rootfiles/efficiencies_%s_mode-%i_mc-1_%i%s.root", (isMuon) ? "mumu" : "ee", Mode, year, (period >= 0) ? Form("_period_%i", period) : ""), "READ");
+  TFile* fDYMC = TFile::Open(Form("rootfiles/efficiencies_%s_mode-%i_mc-2_%i.root", (isMuon) ? "mumu" : "ee", Mode, year), "READ");
   if(!fData || !fMC) return;
 
   TH2F* hData  = (TH2F*) fData->Get((doCC) ? "hRatio_cc" : "hRatio");
@@ -112,7 +113,7 @@ void combine_efficiencies(int Mode = 0, bool isMuon = true, int year = 2016, int
   TString basename = Form("%s_mode-%i_%i", (isMuon) ? "mumu" : "ee", Mode, year);
   if(period >= 0) basename += Form("_period_%i", period);
   if(doCC) basename += "_cc";
-  c->SaveAs(Form("figures/scales_%s.png", basename.Data()));
+  // c->SaveAs(Form("figures/scales_%s.png", basename.Data()));
   c->SetLogy();
   c->SaveAs(Form("figures/scales_%s_log.png", basename.Data()));
 
@@ -124,6 +125,16 @@ void combine_efficiencies(int Mode = 0, bool isMuon = true, int year = 2016, int
   hData->Write();
   hMC->Write();
   hScale->Write();
+  if(fDYMC) {
+    TH2F* hDYMC = (TH2F*) fDYMC->Get((doCC) ? "hRatio_cc" : "hRatio");
+    if(!hDYMC) {
+      cout << "DY MC histogram not found!\n";
+    } else {
+      hDYMC->SetName("PtVsEtaDYMC");
+      hDYMC->SetTitle(Form("%s_mode-%i", (isMuon) ? "mumu" : "ee", Mode));
+      hDYMC->Write();
+    }
+  }
   fout->Write();
   fout->Close();
 }

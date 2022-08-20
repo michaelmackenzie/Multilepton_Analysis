@@ -129,7 +129,7 @@ double extract_nz(TH1* hMass, double& nerror, int BkgMode, TString figname = "",
    isMC: 0 = Data, 1 = AMC@NLO, 2 = MadGraph
    WP  : 0 = none, 1 = WPL, 2 = WP90, 3 = WP80, 4 = WPL && !WP90, 5 = WPL && !WP80 (all for probe only, tag = WP80 is always applied)
  **/
-void scale_factors(int year = 2016, int isMC = 0, int WP = 0) {
+void scale_factors(int year = 2016, int isMC = 0, int WP = 0, int period = -1) {
 
   TString path = "root://cmseos.fnal.gov//store/user/mmackenz/egamma_tnp/files/";
 
@@ -177,7 +177,11 @@ void scale_factors(int year = 2016, int isMC = 0, int WP = 0) {
   }
 
   vector<TString> runs = {""}; //default is no runs for MC
-  if     (isMC == 0 && year == 2016) runs = {"B", "C", "D", "E", "F", "G", "H"};
+  if     (isMC == 0 && year == 2016) {
+    if(period < 0)                   runs = {"B", "C", "D", "E", "F", "G", "H"};
+    else if(period == 0)             runs = {"B", "C", "D", "E", "F"};
+    else if(period == 1)             runs = {"G", "H"};
+  }
   else if(isMC == 0 && year == 2017) runs = {"B", "C", "D", "E", "F"};
   else if(isMC == 0 && year == 2018) runs = {"A", "B", "C", "D"};
 
@@ -237,11 +241,11 @@ void scale_factors(int year = 2016, int isMC = 0, int WP = 0) {
     ///////////////////////////////////////
 
     const ULong64_t nentries = t->GetEntriesFast();
-    if(isMC == 0) cout << "Data run " << run.Data() << " ";
+    if(isMC == 0) cout << "Data run " << run.Data() << ": ";
     cout << nentries << " events to process\n";
     const float trig_pt_min = (year == 2016) ? 27. : 32.;
     const float tag_pt_min = trig_pt_min + 2.; // 2 GeV/c above threshold
-    const float tag_eta_max = 2.3;//2.17;
+    const float tag_eta_max = 2.1;//2.17;
     const float probe_pt_min = trig_pt_min - 2.; //2 GeV/c below threshold
     const int tag_id1_min = 0; //FIXME
     const int tag_id2_min = 0; //FIXME
@@ -258,7 +262,7 @@ void scale_factors(int year = 2016, int isMC = 0, int WP = 0) {
       //first consider lepton 1 as the tag
       if(one_triggered &&
          std::fabs(one_sc_eta) < tag_eta_max &&
-         (gap_low > fabs(one_sc_eta) || fabs(one_sc_eta) > gap_high) &&
+         (gap_low > std::fabs(one_sc_eta) || std::fabs(one_sc_eta) > gap_high) &&
          one_pt > tag_pt_min &&
          two_pt > probe_pt_min &&
          one_id1 >= tag_id1_min &&
@@ -281,7 +285,7 @@ void scale_factors(int year = 2016, int isMC = 0, int WP = 0) {
       //next consider lepton 2 as the tag
       if(two_triggered &&
          std::fabs(two_sc_eta) < tag_eta_max &&
-         (gap_low > fabs(two_sc_eta) || fabs(two_sc_eta) > gap_high) &&
+         (gap_low > std::fabs(two_sc_eta) || std::fabs(two_sc_eta) > gap_high) &&
          two_pt > tag_pt_min &&
          one_pt > probe_pt_min &&
          two_id1 >= tag_id1_min &&
@@ -329,7 +333,7 @@ void scale_factors(int year = 2016, int isMC = 0, int WP = 0) {
   TH2F* hResPass = (TH2F*) hPass->Clone("hResPass"); hResPass->Reset();
   TH2F* hResFail = (TH2F*) hFail->Clone("hResFail"); hResFail->Reset();
 
-  TString fitdir = Form("figures/fit_%i_wp%i_mc%i", year, WP, isMC);
+  TString fitdir = Form("figures/fit_%i%s_wp%i_mc%i", year, (period > -1) ? Form("_period_%i", period) : "", WP, isMC);
   gSystem->Exec(Form("[ ! -d %s ] && mkdir -p %s", fitdir.Data(), fitdir.Data()));
   const int bkgmode = 1; //(Mode != 2) ? 1 : 0;
   for(int xbin = 1; xbin <= hResPass->GetNbinsX(); ++xbin) {
@@ -387,7 +391,7 @@ void scale_factors(int year = 2016, int isMC = 0, int WP = 0) {
 
   gSystem->Exec("[ ! -d figures ] && mkdir figures");
   gSystem->Exec("[ ! -d rootfiles ] && mkdir rootfiles");
-  c->SaveAs(Form("figures/eff_%i_wp%i_mc%i_cc.png", year, WP, isMC));
+  c->SaveAs(Form("figures/eff_%i%s_wp%i_mc%i_cc.png", year, (period > -1) ? Form("_period_%i", period) : "", WP, isMC));
   delete c;
 
   c = new TCanvas("c", "c", 1500, 700);
@@ -410,7 +414,7 @@ void scale_factors(int year = 2016, int isMC = 0, int WP = 0) {
   hResRatio->Draw("colz text");
   hResRatio->GetZaxis()->SetRangeUser(0., 1.);
   pad->SetLogy();
-  c->SaveAs(Form("figures/eff_%i_wp%i_mc%i.png", year, WP, isMC));
+  c->SaveAs(Form("figures/eff_%i%s_wp%i_mc%i.png", year, (period > -1) ? Form("_period_%i", period) : "", WP, isMC));
   delete c;
 
   c = new TCanvas("c", "c", 1000, 700);
@@ -434,10 +438,10 @@ void scale_factors(int year = 2016, int isMC = 0, int WP = 0) {
   hProbeEta->SetLineColor(kBlue);
   hProbeEta->Draw("hist same");
   leg->Draw();
-  c->SaveAs(Form("figures/kin_%i_wp%i_mc%i.png", year, WP, isMC));
+  c->SaveAs(Form("figures/kin_%i%s_wp%i_mc%i.png", year, (period > -1) ? Form("_period_%i", period) : "", WP, isMC));
   delete c;
 
-  TFile* fout = new TFile(Form("rootfiles/efficiencies_%i_wp%i_mc%i.root", year, WP, isMC), "RECREATE");
+  TFile* fout = new TFile(Form("rootfiles/efficiencies_%i%s_wp%i_mc%i.root", year, (period > -1) ? Form("_period_%i", period) : "", WP, isMC), "RECREATE");
   hRatio->Write();
   hResRatio->Write();
   fout->Write();

@@ -61,6 +61,8 @@ do
             echo "Creating muon scale factor for ${YEAR}, period ${PERIOD}, mode ${MODE}"
             root.exe -q -b "scale_factors.C(${MODE}, 1, true, ${YEAR}, ${PERIOD})";
             root.exe -q -b "scale_factors.C(${MODE}, 0, true, ${YEAR}, ${PERIOD})";
+            # No period dependent MC
+            root.exe -q -b "scale_factors.C(${MODE}, 2, true, ${YEAR})";
             root.exe -q -b "combine_efficiencies.C(${MODE}, true, ${YEAR}, ${PERIOD})";
         fi
         if [[ "${FLAVOR}" != "muon" ]]
@@ -68,9 +70,20 @@ do
             echo "Creating electron scale factors for ${YEAR}, period ${PERIOD}, mode ${MODE}"
             root.exe -q -b "scale_factors.C(${MODE}, 1, false, ${YEAR}, ${PERIOD})";
             root.exe -q -b "scale_factors.C(${MODE}, 0, false, ${YEAR}, ${PERIOD})";
+            # No period dependent MC
+            root.exe -q -b "scale_factors.C(${MODE}, 2, false, ${YEAR})";
             root.exe -q -b "combine_efficiencies.C(${MODE}, false, ${YEAR}, ${PERIOD})";
         fi
     done
+    #perform validation checks
+    if [[ "${FLAVOR}" != "electron" ]]
+    then
+        root.exe -q -b "validation.C(true, ${YEAR}, ${PERIOD})"
+    fi
+    if [[ "${FLAVOR}" != "muon" ]]
+    then
+        root.exe -q -b "validation.C(false, ${YEAR}, ${PERIOD})"
+    fi
 done
 
 echo "Finished creating scale factor files"

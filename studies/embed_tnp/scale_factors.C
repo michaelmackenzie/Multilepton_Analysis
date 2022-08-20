@@ -5,12 +5,31 @@ int  nentries_ = 2e6;
 bool single_fit_ = false; //do just one bin of the matrix fit
 int  fit_x_ = 1; //bin of the single fit
 int  fit_y_ = 1; //bin of the single fit
-bool applyScales_ = false; //apply conditioned IDs' scale factors
+bool applyScales_ = true; //apply conditioned IDs' scale factors
 bool use_abs_eta_ = false; //use eta or |eta| in the scale factor measurement
 
 enum {kIDTest = 1};
 enum {kVVLooseIso = 1, kVLooseIso, kLooseIso, kMediumIso, kTightIso, kVTightIso, kVVTightIso};
 enum {kWPL = 1, kWP90, kWP80};
+
+struct lepdata_t {
+  float pt;
+  float eta;
+  float sc_eta;
+  float phi;
+  float q;
+  int   id1;
+  int   id2;
+  bool  triggered;
+};
+
+struct eventdata_t {
+  float pair_pt;
+  float pair_eta;
+  float pair_mass;
+  float pu_weight;
+  float gen_weight;
+};
 
 //set reasonable z-range
 void set_z_range(TH2* h, const double min_default = 0.8, const double max_default = 1.2) {
@@ -29,6 +48,26 @@ void set_z_range(TH2* h, const double min_default = 0.8, const double max_defaul
   }
   else h->GetZaxis()->SetRangeUser(min_default, max_default);
 }
+
+// //perform tag and probe check
+// bool perform_check(lepdata_t& tag, lepdata_t& probe, int Mode) {
+//   if(std::fabs(tag.sc_eta) < tag_eta_max && tag.pt > tag_pt_min &&
+//      std::fabs(probe.sc_eta) < probe_eta_max && probe.pt > probe_pt_min &&
+//      tag.id1 >= id1_tag && tag.id2 >= id2_tag && (trig_mode || tag.triggered)
+//      && (isMuon || std::fabs(tag.sc_eta) < gap_low || std::fabs(tag.sc_eta) > gap_high)
+//      && (!tag_triggers || tag.triggered)/* && probe.id1 <= id1_max && probe.id2 <= id2_max*/) {
+//     bool test = false;
+//     if     (trig_mode) test = probe.triggered;
+//     else if(Mode == 1) test = probe.id1 >= kIDTest;
+//     else if(Mode == 2) test = probe.id2 >= kTightIso;
+//     else if(Mode == 3) test = (probe.id2 >= kVVLooseIso && probe.id2 <= kMediumIso);
+//     else {
+//       cout << "Unknown testing mode!\n";
+//       return;
+//     }
+
+//   return true;
+// }
 
 //Fit the mass distribution with a signal and background function
 double extract_nz(TH1* hMass, double& nerror, int BkgMode, TString figname = "", TString figtitle = "") {
@@ -172,6 +211,7 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
     else if (period ==  0)  runs = {"A", "B", "C"};
     else if (period ==  1)  runs = {"D"};
   }
+  if(isMC == 2) runs = {""}; //no run-dependent MC files
   CrossSections xs;
 
   ///////////////////////////////////////
@@ -217,26 +257,26 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
   // Initialize histograms
   ///////////////////////////////////////
 
+  //eta sign only matters for the electron ID correction
+  use_abs_eta_ = isMuon || Mode != 1;
+
   vector<double> eta_bins;
   const double gap_low(1.4442), gap_high(1.566);
-  if(isMuon && use_abs_eta_) eta_bins = {0., 0.9, 1.2, 1.6, 2.2, 2.4}; //muon
-  else if(isMuon)            eta_bins = {-2.4, -2.2, -1.6, -1.2, -0.9, 0., 0.9, 1.2, 1.6, 2.2, 2.4}; //muon
-  else if(use_abs_eta_)      eta_bins = {0., 0.2, 0.5, 1., gap_low, gap_high, 2.2, 2.5}; //electron
-  else                       eta_bins = {-2.5, -2.2, -gap_high, -gap_low, -1., -0.5, -0.2, 0., 0.2, 0.5, 1., gap_low, gap_high, 2.2, 2.5}; //electron
-  // else if(use_abs_eta_)      eta_bins = {0., 1., gap_low, gap_high, 2.1, 2.5}; //electron
-  // else                       eta_bins = {-2.5, -2.1, -gap_high, -gap_low, -1., 0., 1., gap_low, gap_high, 2.1, 2.5}; //electron
+  if(isMuon && use_abs_eta_) eta_bins = {0., 0.9, 1.2, 1.6, 2.2}; //muon
+  else if(isMuon)            eta_bins = {-2.2, -1.6, -1.2, -0.9, 0., 0.9, 1.2, 1.6, 2.2}; //muon
+  else if(use_abs_eta_)      eta_bins = {0., 0.2, 0.5, 1., gap_low, gap_high, 1.9, 2.2}; //electron
+  else                       eta_bins = {-2.2, -1.9, -gap_high, -gap_low, -1., -0.5, -0.2, 0., 0.2, 0.5, 1., gap_low, gap_high, 1.9, 2.2}; //electron
   vector<double> pt_bins;
   if(isMuon) {
     if(trig_mode) {
-      if(year == 2017) pt_bins = {22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 38, 40, 45, 50, 60, 80, 100, 500};
+      if(year != 2017) pt_bins = {22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 38, 40, 45, 50, 60, 80, 100, 500};
       else             pt_bins = {            25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 38, 40, 45, 50, 60, 80, 100, 500};
     } else             pt_bins = {10, 15, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 45, 50, 60, 80, 100, 500};
   } else {
     if(trig_mode) {
-      if(year == 2016) pt_bins = {25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 42, 44, 46, 48, 50, 60., 80., 100, 500};
-      else             pt_bins = {                    30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 42, 44, 46, 48, 50, 60., 80., 100, 500};
-    } else             pt_bins = { 9, 10, 15, 20, 24, 26, 28, 30, 32, 34, 36, 38, 40, 45, 50, 60., 80., 100, 500};
-
+      if(year == 2016) pt_bins = {25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 44, 48, 52, 60, 80, 100, 500};
+      else             pt_bins = {                    30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 44, 48, 52, 60, 80, 100, 500};
+    } else             pt_bins = {10, 15, 20, 22, 24, 26, 28, 30, 32, 34, 36, 38, 40, 45, 50, 60, 80, 100, 500};
   }
   const int n_eta_bins = eta_bins.size() - 1;
   const int n_pt_bins  = pt_bins .size() - 1;
@@ -274,6 +314,7 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
   for(TString run : runs) {
     if     (isMC == 0) f = TFile::Open(Form("%sfiles/EmbedTnPAnalysis_Single%sRun%i%s_%i.root", path.Data(), (isMuon) ? "Muon"   : "Electron", year, run.Data(), year), "READ");
     else if(isMC == 1) f = TFile::Open(Form("%sfiles/EmbedTnPAnalysis_Embed-%s-%s_%i.root", path.Data(), (isMuon) ? "MuMu" : "EE" , run.Data(), year), "READ");
+    else if(isMC == 2) f = TFile::Open(Form("%sfiles/EmbedTnPAnalysis_DY50_%i.root", path.Data(), year), "READ");
     else {
       cout << "Undefined isMC value " << isMC << endl;
       return;
@@ -297,8 +338,10 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
     int   one_id1, one_id2;
     int   two_id1, two_id2;
     float pair_pt, pair_eta, pair_mass;
+    bool  pair_ismuon;
     bool  one_triggered, two_triggered;
     float pu_weight(1.), gen_weight(1.);
+    const bool has_muon_flag = t->GetBranch("pair_ismuon");
     t->SetBranchStatus("*", 0);
     t->SetBranchStatus("one_pt"         , 1); t->SetBranchAddress("one_pt"         , &one_pt         );
     t->SetBranchStatus("one_eta"        , 1); t->SetBranchAddress("one_eta"        , &one_eta        );
@@ -324,8 +367,11 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
       }
       t->SetBranchStatus("genWeight", 1); t->SetBranchAddress("genWeight", &gen_weight);
     }
+    if(has_muon_flag) {
+      t->SetBranchStatus("pair_ismuon"  , 1); t->SetBranchAddress("pair_ismuon"    , &pair_ismuon    );
+    }
 
-    const double xs_scale = (isMC == 1) ? xs.GetCrossSection(Form("Embed-%s-%s", (isMuon) ? "MuMu" : "ElEl", run.Data()), year) : 1.;
+    const double xs_scale = (isMC == 1) ? xs.GetCrossSection(Form("Embed-%s-%s", (isMuon) ? "MuMu" : "EE", run.Data()), year) : 1.;
 
     ///////////////////////////////////////
     // Process the data
@@ -340,10 +386,10 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
     //Define the thresholds
     float trig_pt_min = (isMuon) ? 24. : 32.;
     if((!isMuon && year == 2016) || (isMuon && year == 2017)) trig_pt_min = 27.;
-    const float tag_pt_min = trig_pt_min + 2.;
-    const float tag_eta_max = 2.2;
+    const float tag_pt_min = trig_pt_min + 3.;
+    const float tag_eta_max = 2.1;
     const bool  tag_triggers = true; //whether or not to always require the tag to trigger
-    const float probe_eta_max = 2.3;
+    const float probe_eta_max = 2.2;
     const float probe_pt_min = (trig_mode) ? trig_pt_min - 2. : 10.;
 
     //Define ID selections
@@ -366,22 +412,36 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
       if(entry % 100000 == 0) printf("Processing entry %12lld (%5.1f%%)...\n", entry, entry*100./nentries);
       t->GetEntry(entry);
       if(isMC == 1 && gen_weight > 1.) continue;
+      if(!has_muon_flag) { //approximate with eta vs eta_sc
+        pair_ismuon = std::fabs(one_eta - one_sc_eta) < 1.e-5 && std::fabs(two_eta - two_sc_eta) < 1.e-5;
+      }
+      if(pair_ismuon != isMuon) continue;
+
       //Z mass peak
       if(pair_mass < 60. || pair_mass > 120.) continue;
+
       //opposite flavor
       if(one_q*two_q > 0) continue;
+
       //electron eta veto
       // // no need to veto since it's naturally a bin region
       // if(!isMuon && gap_low <= fabs(one_sc_eta) && fabs(one_sc_eta) <= gap_high) continue;
       // if(!isMuon && gap_low <= fabs(two_sc_eta) && fabs(two_sc_eta) <= gap_high) continue;
+
       //must fire the trigger
       if(!((one_pt > trig_pt_min && one_triggered) || (two_pt > trig_pt_min && two_triggered))) continue;
+
       //must satisfy minimum thresholds
       if(one_pt < probe_pt_min && two_pt < probe_pt_min) continue;
       if(one_pt < tag_pt_min && two_pt < tag_pt_min) continue;
+
       //ensure each passes base IDs
       if(one_id1 < id1_min || one_id2 < id2_min ||
          two_id1 < id1_min || two_id2 < id2_min) continue;
+
+      //ensure they're within the accepted volume
+      if(std::fabs(one_sc_eta) >= probe_eta_max || std::fabs(two_sc_eta) >= probe_eta_max) continue;
+
       //make sure they're separated
       TLorentzVector lv1; lv1.SetPtEtaPhiM(one_pt, one_eta, one_phi, (isMuon) ? 0.10566 : 5.11e-3);
       TLorentzVector lv2; lv2.SetPtEtaPhiM(two_pt, two_eta, two_phi, (isMuon) ? 0.10566 : 5.11e-3);
@@ -395,18 +455,18 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
 
       float wt = pu_weight*((isMC > 1) ? ((gen_weight < 0) ? -1. : 1.) : gen_weight)*xs_scale;
 
-      if(applyScales_ && Mode != 1 && isMC && hSF_1) { //Apply the ID1 scale factors for the trigger and ID2 measurements
+      if(applyScales_ && Mode != 1 && isMC == 1 && hSF_1) { //Apply the ID1 scale factors for the trigger and ID2 measurements
         wt *= hSF_1->GetBinContent(hSF_1->GetXaxis()->FindBin((use_abs_eta_) ? std::fabs(one_sc_eta) : one_sc_eta), min(hSF_1->GetNbinsY(), hSF_1->GetYaxis()->FindBin(one_pt)));
         wt *= hSF_1->GetBinContent(hSF_1->GetXaxis()->FindBin((use_abs_eta_) ? std::fabs(two_sc_eta) : two_sc_eta), min(hSF_1->GetNbinsY(), hSF_1->GetYaxis()->FindBin(two_pt)));
       }
-      if(applyScales_ && trig_mode && isMC && hSF_2) { //Apply the ID2 scale factors for the trigger measurements
+      if(applyScales_ && trig_mode && isMC == 1 && hSF_2) { //Apply the ID2 scale factors for the trigger measurements
         wt *= hSF_2->GetBinContent(hSF_2->GetXaxis()->FindBin((use_abs_eta_) ? std::fabs(one_sc_eta) : one_sc_eta), min(hSF_2->GetNbinsY(), hSF_2->GetYaxis()->FindBin(one_pt)));
         wt *= hSF_2->GetBinContent(hSF_2->GetXaxis()->FindBin((use_abs_eta_) ? std::fabs(two_sc_eta) : two_sc_eta), min(hSF_2->GetNbinsY(), hSF_2->GetYaxis()->FindBin(two_pt)));
       }
-      if(wt <= 0.) {
+      if(isMC == 1 && wt <= 0.) {
         cout << "!!! Warning! Weight <= 0: Entry " << entry << ", nused " << nused << ", gen weight = " << gen_weight << ", weight = " << wt << endl
-             << " one: pt = " << one_pt << " eta = " << one_eta << " id1 = " << one_id1 << " id2 = " << one_id2 << " triggered = " << one_triggered << endl
-             << " two: pt = " << two_pt << " eta = " << two_eta << " id1 = " << two_id1 << " id2 = " << two_id2 << " triggered = " << two_triggered << endl;
+             << " one: pt = " << one_pt << " eta = " << one_sc_eta << " id1 = " << one_id1 << " id2 = " << one_id2 << " triggered = " << one_triggered << endl
+             << " two: pt = " << two_pt << " eta = " << two_sc_eta << " id1 = " << two_id1 << " id2 = " << two_id2 << " triggered = " << two_triggered << endl;
       }
       if(debug_ == 1) {
         cout << "Entry " << entry << ", nused " << nused << ", gen weight = " << gen_weight << ", weight = " << wt << endl
@@ -421,7 +481,7 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
          std::fabs(two_sc_eta) < probe_eta_max && two_pt > probe_pt_min &&
          one_id1 >= id1_tag && one_id2 >= id2_tag && (trig_mode || one_triggered)
          && (isMuon || std::fabs(one_sc_eta) < gap_low || std::fabs(one_sc_eta) > gap_high)
-         && (!tag_triggers || one_triggered) && two_id1 <= id1_max && two_id2 <= id2_max) {
+         && (!tag_triggers || one_triggered)/* && two_id1 <= id1_max && two_id2 <= id2_max*/) {
         bool test = false;
         if     (trig_mode) test = two_triggered;
         else if(Mode == 1) test = two_id1 >= kIDTest;
@@ -455,7 +515,7 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
          std::fabs(one_sc_eta) < probe_eta_max && one_pt > probe_pt_min &&
          two_id1 >= id1_tag && two_id2 >= id2_tag && (trig_mode || two_triggered)
          && (isMuon || std::fabs(two_sc_eta) < gap_low || std::fabs(two_sc_eta) > gap_high)
-         && (!tag_triggers || two_triggered) && one_id1 <= id1_max && two_id2 <= id2_max) {
+         && (!tag_triggers || two_triggered)/* && one_id1 <= id1_max && two_id2 <= id2_max*/) {
         bool test = false;
         if     (trig_mode) test = one_triggered;
         else if(Mode == 1) test = one_id1 >= kIDTest;

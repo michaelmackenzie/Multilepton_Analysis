@@ -10,6 +10,7 @@ ElectronIDWeight::ElectronIDWeight(int Mode, int seed, int verbose) : verbose_(v
 
   interpolate_ = Mode % 10 == 1;
   const bool useMediumID = (Mode % 100) / 10 == 1;
+  use_embed_tnp_ = (Mode % 1000) / 100 == 1; //use embedding TnP measurement of the data and MC trigger efficiencies
 
   typedef std::pair<TString,TString> fpair;
   std::map<int, fpair> electronIDFileNames;
@@ -144,26 +145,53 @@ ElectronIDWeight::ElectronIDWeight(int Mode, int seed, int verbose) : verbose_(v
     //Electron Trigger files
     //////////////////////////////////////////
 
-    //loop through all working points considered
-    for(int WP : working_points) {
-      TString fname = Form("egamma_trigger_eff_wp%i_%i.root", WP, period+2016);
-      f = TFile::Open((path + "/" + fname).Data(), "READ");
-      if(f) {
-        TH2* h = (TH2*) f->Get("EGamma_EffData2D");
-        if(!h) {
-          printf("!!! %s: Electron Trigger Data Eff histogram not found for year %i WP %i!\n", __func__, period+2016, WP);
-        } else {
-          h->SetName(Form("%s_%i_wp%i", h->GetName(), period+2016, WP));
-          histTrigDataEff_[period][WP] = h;
+    if(use_embed_tnp_) {
+      for(int region = 0; region < 2; ++region) {
+        //FIXME: Add B-F and G-H electron trigger scale factors
+        TString fname = Form("embedding_eff_ee_mode-%i_%i%s.root", region*4, period+2016, (period == 0) ? "_period_0" : "");
+        f = TFile::Open((path + "/" + fname).Data(), "READ");
+        if(f) {
+          TH2* hMC = (TH2*) f->Get("PtVsEtaDYMC");
+          if(hMC) {
+            hMC->SetName(Form("EGamma_MC_%i_%i", period+2016, region));
+            histTrigMCEff_[period][(region == 0) ? kWP80 : kWPLNotWP80] = hMC;
+          } else {
+            std::cout << __func__ << ": MC trigger efficiency histogram for year " << period+2016
+                      << " and loose isolation flag = " << region << " not found!\n";
+          }
+          TH2* hData = (TH2*) f->Get("PtVsEtaData");
+          if(hData) {
+            hData->SetName(Form("EGamma_Data_%i_%i", period+2016, region));
+            histTrigDataEff_[period][(region == 0) ? kWP80 : kWPLNotWP80] = hData;
+          } else {
+            std::cout << __func__ << ": Data trigger efficiency histogram for year " << period+2016
+                      << " and loose isolation flag = " << region << " not found!\n";
+          }
+          files_.push_back(f);
         }
-        h = (TH2*) f->Get("EGamma_EffMC2D");
-        if(!h) {
-          printf("!!! %s: Electron Trigger MC Eff histogram not found for %i WP %i!\n", __func__, period+2016, WP);
-        } else {
-          h->SetName(Form("%s_%i_%i", h->GetName(), period+2016, WP));
-          histTrigMCEff_[period][WP] = h;
+      }
+    } else { //use egamma_tnp results
+      //loop through all working points considered
+      for(int WP : working_points) {
+        TString fname = Form("egamma_trigger_eff_wp%i_%i.root", WP, period+2016);
+        f = TFile::Open((path + "/" + fname).Data(), "READ");
+        if(f) {
+          TH2* h = (TH2*) f->Get("EGamma_EffData2D");
+          if(!h) {
+            printf("!!! %s: Electron Trigger Data Eff histogram not found for year %i WP %i!\n", __func__, period+2016, WP);
+          } else {
+            h->SetName(Form("%s_%i_wp%i", h->GetName(), period+2016, WP));
+            histTrigDataEff_[period][WP] = h;
+          }
+          h = (TH2*) f->Get("EGamma_EffMC2D");
+          if(!h) {
+            printf("!!! %s: Electron Trigger MC Eff histogram not found for %i WP %i!\n", __func__, period+2016, WP);
+          } else {
+            h->SetName(Form("%s_%i_%i", h->GetName(), period+2016, WP));
+            histTrigMCEff_[period][WP] = h;
+          }
+          files_.push_back(f);
         }
-        files_.push_back(f);
       }
     }
   }
