@@ -28,7 +28,7 @@ cmsenv
 
 Dataset skimming:
 ```
-git clone https://github.com/michaelmackenzie/Z_LFV_Analysis.git PhysicsTools/NanoAODTools #or use https://github.com/ --> git@github.com:
+git clone https://github.com/michaelmackenzie/Z_LFV_Analysis.git PhysicsTools #or use https://github.com/ --> git@github.com:
 scram b -j4
 ```
 
@@ -57,7 +57,7 @@ make -j4
 ## Skimming
 
 Dataset skimming is done using a separate repository, based on the NANOAOD Tools package:
-`https://github.com/michaelmackenzie/Z_LFV_Analysis.git/`
+`https://github.com/michaelmackenzie/Z_LFV_Analysis.git/`, under `src/PhyscisTools/NanoAODTools/`
 
 
 The main dataset skimming is done by the `python/analyzers/LFVAnalyzer.py`
@@ -148,10 +148,10 @@ and `interface/CLFVHistMaker.hh` for examples of this.
 Histogramming example:
 ```
 cd rootScripts/
-#set the dataset processing flags to true for each dataset of interest in histogramming_config.C
-#set the config.onlyChannel_ flag to a specific channel to process (e.g. "emu") or "" to process all channels
-#set the config.skipChannels_ list to specify channels to ignore when histogramming
-#set typedef <HistMaker of interest> HISTOGRAMMER
+# set the dataset processing flags to true for each dataset of interest in histogramming_config.C
+# set the config.onlyChannel_ flag to a specific channel to process (e.g. "emu") or "" to process all channels
+# set the config.skipChannels_ list to specify channels to ignore when histogramming
+# set typedef <HistMaker of interest> HISTOGRAMMER
 # update   nanoaod_path = "root://cmseos.fnal.gov//store/user/mmackenz/clfv_nanoaod_test_trees/"; to your area if needed
 root.exe -q -b process_clfv.C
 ./move_histograms.sh [output directory, e.g. "nanoaods/"] "" d
