@@ -1,0 +1,26 @@
+diff --git a/interface/RooBernsteinFast.h b/interface/RooBernsteinFast.h
+index c0c40e0..3f9f36a 100644
+--- a/interface/RooBernsteinFast.h
++++ b/interface/RooBernsteinFast.h
+@@ -72,6 +72,8 @@ public:
+   Int_t getAnalyticalIntegral(RooArgSet& allVars, RooArgSet& analVars, const char* rangeName=0) const
+     {
+       
++      // Hack for fitting subranges - never calculate analytic integrals
++      return 0;
+       // No analytical calculation available (yet) of integrals over subranges (as for standard RooBernstein)
+       if (rangeName && strlen(rangeName)) {
+         return 0 ;
+@@ -127,9 +129,9 @@ protected:
+       if (changed) {
+         _powvector = _cmatrix*_bernvector;   
+       }
+-      
+-      double xmin = _x.min();
+-      double xmax = _x.max();
++      // Hack for fitting subranges - use full mass range
++      double xmin = _x.min("full");
++      double xmax = _x.max("full");
+       double x = (_x - xmin) / (xmax - xmin); // rescale to [0,1]
+       _xvector[0] = 1.;
+       for (int ipow=1; ipow<=N; ++ipow) {
