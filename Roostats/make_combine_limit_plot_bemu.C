@@ -6,6 +6,7 @@ int make_combine_limit_plot_bemu(vector<int> sets = {8}, TString selection = "ze
                                  bool processCards = true,
                                  bool doBkgSys = true,
                                  bool doObs = false) {
+  scale_ = (selection.Contains("h")) ? 1.e-4 : 1.e-7;
   int status = 0;
   vector<TString> cards, labels;
   int index = 0;

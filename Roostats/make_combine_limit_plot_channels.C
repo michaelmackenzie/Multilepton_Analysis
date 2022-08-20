@@ -6,7 +6,7 @@ int make_combine_limit_plot_channels(vector<int> sets = {8}, TString selection =
                                      bool processCards = true,
                                      bool doNoSys = false,
                                      bool doObs = false) {
-
+  scale_ = (selection.Contains("h")) ? 1.e-4 : 1.e-6;
   TString set_string = Form("%i", sets[0]);
   for(int i = 1; i < sets.size(); ++i) set_string += Form("_%i", sets[i]);
   TString lep = (selection.Contains("mutau")) ? "e" : "mu";

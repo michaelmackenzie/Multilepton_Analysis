@@ -13,7 +13,7 @@ bool blindData_     = true;
 bool useRateParams_ = false;
 bool fixSignalPDF_  = true;
 bool useMultiDim_   = true;
-bool useSameFlavor_ = false;
+bool useSameFlavor_ = true;
 bool includeSys_    = false;
 bool printPlots_    = true;
 bool fitSideBands_  = true;
@@ -228,7 +228,7 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
     }
 
     // Create an observable for this category
-    RooRealVar* lepm = new RooRealVar(Form("lepm_%i", set), "lepm", (xmin+xmax)/2., xmin, xmax);
+    RooRealVar* lepm = new RooRealVar(Form("lepm_%i", set), "M_{ll}", (xmin+xmax)/2., xmin, xmax);
     int low_bin  = std::max(1, std::min(data->GetNbinsX(), data->FindBin(xmin+1.e-3)));
     int high_bin = std::max(1, std::min(data->GetNbinsX(), data->FindBin(xmax-1.e-3)));
     lepm->setBins(high_bin - low_bin + 1);
@@ -300,6 +300,8 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
       TCanvas* c = new TCanvas(Form("c_%i", set), Form("c_%i", set), 1000, 1000);
       TPad* pad1 = new TPad("pad1", "pad1", 0., 0.3, 1., 1. ); pad1->Draw();
       TPad* pad2 = new TPad("pad2", "pad2", 0., 0. , 1., 0.3); pad2->Draw();
+      pad2->SetBottomMargin(0.13); pad2->SetTopMargin(0.02);
+
       pad1->cd();
       TLegend* leg = new TLegend(0.4, 0.7, 0.9, 0.9);
       const int nentries = 40;
@@ -357,75 +359,106 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
         }
       }
       leg->Draw();
-
+      /////////////////////////////////////////////
       //Add Data - Fit plot
+
       pad2->cd();
-      //Create data - background fit histogram
-      double norm = data->Integral(low_bin,high_bin);
-      TH1* dataDiff = (blindData_) ? (TH1*) blindData->Clone("dataDiff") : (TH1*) data->Clone("dataDiff");
-      dataDiff->SetTitle("Data - Background Fit");
-      TH1* sigDiff = (TH1*) dataDiff->Clone("sigDiff");
+
+      //Create data - background fit histograms
+      double norm = data->Integral(low_bin,high_bin); //N(data) in fit region
+      cout << "Data: xlow = " << data->GetBinLowEdge(low_bin)
+           << " xhigh = " << data->GetBinLowEdge(high_bin) + data->GetBinWidth(high_bin)
+           << " nbins = " << high_bin - low_bin + 1 << " integral = " << norm << endl;
+
+      TH1* dataDiff = bkgPDF->createHistogram("dataDiff", *lepm);
+      // TH1* dataDiff = (blindData_) ? (TH1*) blindData->Clone("dataDiff") : (TH1*) data->Clone("dataDiff");
+      dataDiff->SetTitle("");
+      dataDiff->SetLineColor(data->GetLineColor());
+      dataDiff->SetLineWidth(data->GetLineWidth());
+      dataDiff->SetMarkerStyle(data->GetMarkerStyle());
+      dataDiff->SetMarkerSize(data->GetMarkerSize());
+      cout << "Bkg histogram: xlow = " << dataDiff->GetBinLowEdge(1)
+           << " xhigh = " << dataDiff->GetBinLowEdge(dataDiff->GetNbinsX()) + dataDiff->GetBinWidth(dataDiff->GetNbinsX())
+           << " nbins = " << dataDiff->GetNbinsX() << " integral = " << dataDiff->Integral() << endl;
+      TH1* sigDiff = sigPDF->createHistogram("sigDiff", *lepm);
+      // TH1* sigDiff = (TH1*) dataDiff->Clone("sigDiff");
       vector<TH1*> pdfDiffs;
       for(int ipdf = 0; ipdf < categories->numTypes(); ++ipdf) {
         if(ipdf == index) {
           continue;
         }
-        pdfDiffs.push_back((TH1*) dataDiff->Clone(Form("hPdfDiff_%i", ipdf)));
+        // pdfDiffs.push_back((TH1*) dataDiff->Clone(Form("hPdfDiff_%i", ipdf)));
+        auto pdf = multiPDF->getPdf(ipdf); //multiPDF->getPdf(Form("index_%i", ipdf));
+        auto h = pdf->createHistogram(Form("hPdfDiff_%i", ipdf), *lepm);
+        h->SetLineWidth(2);
+        pdfDiffs.push_back(h);
+        cout << "PDF: " << pdf->GetTitle() << " xlow = " << h->GetBinLowEdge(1)
+             << " xhigh = " << h->GetBinLowEdge(h->GetNbinsX()) + h->GetBinWidth(h->GetNbinsX())
+             << " nbins = " << h->GetNbinsX() << " integral = " << h->Integral() << endl;
+        // pdfDiffs.push_back((TH1*) dataDiff->Clone(Form("hPdfDiff_%i", ipdf)));
       }
-      //First make a histogram of the PDF, due to normalization issues
-      for(int ibin = low_bin; ibin <= high_bin; ++ibin) {
-        double x = dataDiff->GetBinCenter(ibin);
-        lepm->setVal(x);
-        dataDiff->SetBinContent(ibin, bkgPDF->getVal());
-        sigDiff ->SetBinContent(ibin, sigPDF->getVal());
-        for(int ipdf = 0; ipdf < categories->numTypes(); ++ipdf) {
-          if(ipdf == index) {
-            continue;
-          }
-          TH1* hPDFDiff = pdfDiffs[ipdf - (ipdf > index)];
-          auto pdf = multiPDF->getPdf(ipdf); //multiPDF->getPdf(Form("index_%i", ipdf));
-          hPDFDiff->SetBinContent(ibin, pdf->getVal());
-        }
-      }
-      dataDiff->Scale(norm/dataDiff->Integral(low_bin, high_bin)); //set the norms equal
-      sigDiff->Scale(sig->Integral(low_bin, high_bin) / sigDiff->Integral(low_bin, high_bin));
+      // //First make a histogram of the PDF, due to normalization issues
+      // for(int ibin = 1; ibin <= dataDiff->GetNbinsX(); ++ibin) {
+      //   const double x = dataDiff->GetBinCenter(ibin);
+      //   lepm->setVal(x);
+      //   dataDiff->SetBinContent(ibin, bkgPDF->getVal());
+      //   sigDiff ->SetBinContent(ibin, sigPDF->getVal());
+      //   // for(int ipdf = 0; ipdf < categories->numTypes(); ++ipdf) {
+      //   //   if(ipdf == index) {
+      //   //     continue;
+      //   //   }
+      //   //   TH1* hPDFDiff = pdfDiffs[ipdf - (ipdf > index)];
+      //   //   auto pdf = multiPDF->getPdf(ipdf); //multiPDF->getPdf(Form("index_%i", ipdf));
+      //   //   hPDFDiff->SetBinContent(ibin, pdf->getVal());
+      //   // }
+      // }
+      dataDiff->Scale(norm/dataDiff->Integral()); //set the norms equal
+      sigDiff->Scale(sig->Integral(low_bin, high_bin) / sigDiff->Integral());
       for(int ipdf = 0; ipdf < categories->numTypes(); ++ipdf) {
         if(ipdf == index) {
           continue;
         }
+        auto pdf = multiPDF->getPdf(ipdf); //multiPDF->getPdf(Form("index_%i", ipdf));
         TH1* hPDFDiff = pdfDiffs[ipdf - (ipdf > index)];
-        hPDFDiff->Scale(norm/hPDFDiff->Integral(low_bin, high_bin));
+        hPDFDiff->Scale(norm/hPDFDiff->Integral());
       }
 
-      for(int ibin = low_bin; ibin <= high_bin; ++ibin) {
-        double x = dataDiff->GetBinCenter(ibin);
+      //Set histograms to Value - Bkg PDF Value
+      for(int ibin = 0; ibin <= dataDiff->GetNbinsX(); ++ibin) {
+        const double x = dataDiff->GetBinCenter(ibin);
         lepm->setVal(x);
-        double val = dataDiff->GetBinContent(ibin);
-        if((blindData_ && x > blind_min && x < blind_max) || (data->GetBinContent(ibin) < 1)) {
+        const double val = dataDiff->GetBinContent(ibin); //Bkg PDF estimate
+        const int data_bin = data->FindBin(x);
+        const double data_val = data->GetBinContent(data_bin);
+        if((blindData_ && x > blind_min && x < blind_max) || (data_val < 1)) {
           dataDiff->SetBinContent(ibin, 0.);
+          dataDiff->SetBinError  (ibin, 0.);
         } else {
-          dataDiff->SetBinContent(ibin, data->GetBinContent(ibin) - val);
-          dataDiff->SetBinError(ibin, data->GetBinError(ibin));
+          dataDiff->SetBinContent(ibin, data_val - val);
+          dataDiff->SetBinError(ibin, data->GetBinError(data_bin));
         }
         for(int ipdf = 0; ipdf < categories->numTypes(); ++ipdf) {
           if(ipdf == index) {
             continue;
           }
           TH1* hPDFDiff = pdfDiffs[ipdf - (ipdf > index)];
-          auto pdf = multiPDF->getPdf(ipdf); //multiPDF->getPdf(Form("index_%i", ipdf));
+          // auto pdf = multiPDF->getPdf(ipdf); //multiPDF->getPdf(Form("index_%i", ipdf));
           hPDFDiff->SetBinContent(ibin, hPDFDiff->GetBinContent(ibin) - val);
           hPDFDiff->SetBinError(ibin,0.);
         }
       }
-      lepm->setVal((xmin+xmax)/2.);
+      lepm->setVal((xmin+xmax)/2.); //set to a normal value
 
       //Draw difference histogram
       dataDiff->Draw("E1");
       dataDiff->GetXaxis()->SetRangeUser(xmin+1.e-3, xmax-1.e-3);
-      TLine* line = new TLine(xmin, 0., xmax, 0.);
-      line->SetLineColor(kBlue);
-      line->SetLineWidth(2);
-      line->Draw("same");
+      dataDiff->GetXaxis()->SetLabelSize(0.08);
+      dataDiff->GetXaxis()->SetTitle("");
+      dataDiff->GetYaxis()->SetLabelSize(0.08);
+      dataDiff->GetYaxis()->SetTitleSize(0.08);
+      dataDiff->GetYaxis()->SetTitleOffset(0.5);
+      dataDiff->GetYaxis()->SetTitle("Data - Fit");
+      // dataDiff->GetYaxis()->SetRangeUser(-900, 900);
       sigDiff->SetLineColor(kRed);
       sigDiff->SetLineWidth(2);
       sigDiff->Draw("hist same");
@@ -438,6 +471,10 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
         hPDFDiff->SetLineStyle(kDashed);
         hPDFDiff->Draw("same hist");
       }
+      TLine* line = new TLine(xmin, 0., xmax, 0.);
+      line->SetLineColor(kBlue);
+      line->SetLineWidth(2);
+      line->Draw("same");
       //print the results
       c->SaveAs(Form("plots/latest_production/%s/convert_bemu_%s_%i_bkg_pdfs.png", year_string.Data(), selection.Data(), set));
       delete xframe;

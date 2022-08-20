@@ -10,7 +10,7 @@ double xmax_;
 bool blind_data_ = true;
 bool do_systematics_ = false;
 bool allow_sys_errors_ = true; //if there are missing systematic histograms, clone the default for now
-bool do_same_flavor_ = false; //get information for Z->ll control regions
+bool do_same_flavor_ = true; //get information for Z->ll control regions
 TH1* hDefault_; //store the default histogram in case of missing systematics
 TH1* hDY_;
 
@@ -370,6 +370,7 @@ int get_bemu_histogram(vector<int> sets, TString selection = "zemu",
     status += get_bemu_single_histogram(set, selection, years, base);
   }
   if(do_same_flavor_) {
+    useEmbed_ = 0;
     int set = 8; //normalization set
     cout << "Getting mumu region histograms for set " << set << "...\n";
     status += get_same_flavor_histogram(set, "mumu", years, base);

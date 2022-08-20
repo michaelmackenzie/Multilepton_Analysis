@@ -6,6 +6,7 @@ int make_combine_limit_plot_years(int set = 8, TString selection = "zmutau",
                                     bool doNoSys = false,
                                     bool doObs = false) {
   cout << __func__ << ": Not yet implemented!\n";
+  scale_ = (selection.Contains("h")) ? 1.e-4 : 1.e-6;
   // vector<TString> cards = {Form("%s_%i%s"      , selection.Data(),             set, (doNoSys) ? "_nosys" : ""),
   //                          Form("%s_%s_%i%s"   , selection.Data(), lep.Data(), set, (doNoSys) ? "_nosys" : ""),
   //                          Form("total_%s_%i%s", selection.Data(),             set, (doNoSys) ? "_nosys" : "")};

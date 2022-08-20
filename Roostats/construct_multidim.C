@@ -2,7 +2,7 @@
 #define __CONSTRUCT_MULTIDIM__
 
 //Construct multi-dimensional PDF with discrete index
-bool useFrameChiSq_ = true;
+bool useFrameChiSq_ = false;
 bool use_generic_bernstein_ = false;
 bool use_fast_bernstein_ = true;
 
@@ -14,7 +14,19 @@ double get_subrange_chisquare(RooRealVar& obs, RooAbsPdf* pdf, RooDataHist& data
 
 //Evaluate the chi-squared
 double get_chi_squared(RooRealVar& obs, RooAbsPdf* pdf, RooDataHist& data, bool useSideBands) {
-  if(useFrameChiSq_) {
+  if(useFrameChiSq_ || TString(pdf->GetTitle()).Contains("Exponential")) {
+    // if(useSideBands) {
+    //   double chi_sq = 0.;
+    //   auto xframe = obs.frame();
+    //   data.plotOn(xframe, RooFit::Range("LowSideband"));
+    //   pdf->plotOn(xframe, RooFit::Range("LowSideband"), , RooFit::NormRange("LowSideband"));
+    //   chi_sq += xframe->chiSquare() * data.numEntries(); //returns chi squared / entries
+    //   data.plotOn(xframe, RooFit::Range("HighSideband"));
+    //   pdf->plotOn(xframe, RooFit::Range("HighSideband"), , RooFit::NormRange("HighSideband"));
+    //   chi_sq += xframe->chiSquare() * data.numEntries(); //returns chi squared / entries
+    //   delete xframe;
+    //   return chi_sq;
+    // } else {
     auto xframe = obs.frame();
     data.plotOn(xframe);
     pdf->plotOn(xframe);

@@ -1,4 +1,5 @@
 //Script to process limits for channels/years/etc. and plot the limits
+double scale_ = 1.;
 
 int make_combine_limit_plot(vector<TString> cards, //combine datacard names to process
                             vector<TString> labels, //label for each card
@@ -49,17 +50,16 @@ int make_combine_limit_plot(vector<TString> cards, //combine datacard names to p
 
   const int nfiles = cards.size();
   double expected[nfiles], up_1[nfiles], down_1[nfiles], up_2[nfiles], down_2[nfiles], obs[nfiles], y[nfiles], yerr[nfiles];
-  const double scale = (selection.Contains("h")) ? 1.e-4 : 1.e-6; //get the absolute branching fraction from signal strength
   for(int itree = 0; itree < nfiles; ++itree) {
     TTree* t = tree_list[itree];
     double val;
     t->SetBranchAddress("limit", &val);
-    t->GetEntry(2); expected[itree] = scale*val;
-    t->GetEntry(0); down_2  [itree] = expected[itree] - scale*val;
-    t->GetEntry(1); down_1  [itree] = expected[itree] - scale*val;
-    t->GetEntry(3); up_1    [itree] = scale*val       - expected[itree];
-    t->GetEntry(4); up_2    [itree] = scale*val       - expected[itree];
-    t->GetEntry(5); obs     [itree] = scale*val;
+    t->GetEntry(2); expected[itree] = scale_*val;
+    t->GetEntry(0); down_2  [itree] = expected[itree] - scale_*val;
+    t->GetEntry(1); down_1  [itree] = expected[itree] - scale_*val;
+    t->GetEntry(3); up_1    [itree] = scale_*val       - expected[itree];
+    t->GetEntry(4); up_2    [itree] = scale_*val       - expected[itree];
+    t->GetEntry(5); obs     [itree] = scale_*val;
 
     y[itree] = nfiles - itree;
     yerr[itree] = 0.2;
