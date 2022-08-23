@@ -791,11 +791,11 @@ void CLFVHistMaker::FillEventHistogram(EventHist_t* Hist) {
   Hist->hTauDecayMode[1]   ->Fill(tauDecayMode);
 
 
-  TLorentzVector lepSys = (*leptonOneP4) + (*leptonTwoP4);
+  TLorentzVector lepSys = (*leptonOne.p4) + (*leptonTwo.p4);
   TLorentzVector sys    = (photonP4) ? (*photonP4) + lepSys : lepSys;
 
-  const double lepDelR   = std::fabs(leptonOneP4->DeltaR(*leptonTwoP4));
-  const double lepDelPhi = std::fabs(leptonOneP4->DeltaPhi(*leptonTwoP4));
+  const double lepDelR   = std::fabs(leptonOne.p4->DeltaR(*leptonTwo.p4));
+  const double lepDelPhi = std::fabs(leptonOne.p4->DeltaPhi(*leptonTwo.p4));
 
   //for removing or alternate DY reweighting weights
   double bareweight = (fIsDY && zPtWeight > 0.) ? eventWeight*genWeight/zPtWeight : eventWeight*genWeight; //no DY Z pT vs M weights
@@ -850,21 +850,21 @@ void CLFVHistMaker::FillEventHistogram(EventHist_t* Hist) {
   //Jet-binned QCD transfer factor measurement histograms
   if(nJets == 0) {
     Hist->hQCDDelRJ[0] ->Fill(lepDelR                ,wt_noqcd);
-    Hist->hQCDOnePtVsTwoPtJ[0]->Fill(leptonOneP4->Pt(), leptonTwoP4->Pt(), wt_noqcdcl);
+    Hist->hQCDOnePtVsTwoPtJ[0]->Fill(leptonOne.p4->Pt(), leptonTwo.p4->Pt(), wt_noqcdcl);
   } else if(nJets == 1) {
     Hist->hQCDDelRJ[1] ->Fill(lepDelR                ,wt_noqcd);
-    Hist->hQCDOnePtVsTwoPtJ[1]->Fill(leptonOneP4->Pt(), leptonTwoP4->Pt(), wt_noqcdcl);
+    Hist->hQCDOnePtVsTwoPtJ[1]->Fill(leptonOne.p4->Pt(), leptonTwo.p4->Pt(), wt_noqcdcl);
   } else {
     Hist->hQCDDelRJ[2] ->Fill(lepDelR                ,wt_noqcd);
-    Hist->hQCDOnePtVsTwoPtJ[2]->Fill(leptonOneP4->Pt(), leptonTwoP4->Pt(), wt_noqcdcl);
+    Hist->hQCDOnePtVsTwoPtJ[2]->Fill(leptonOne.p4->Pt(), leptonTwo.p4->Pt(), wt_noqcdcl);
   }
-  Hist->hQCDOnePtVsTwoPtJ[3]->Fill(leptonOneP4->Pt(), leptonTwoP4->Pt(), wt_noqcdcl); //jet-inclusive correction
-  Hist->hQCDOnePtVsTwoPtIso[0]->Fill(leptonOneP4->Pt(), leptonTwoP4->Pt(), wt_noqcd); //no QCD SS-->OS weights
-  Hist->hQCDOnePtVsTwoPtIso[1]->Fill(leptonOneP4->Pt(), leptonTwoP4->Pt(), wt_noantiiso); //no muon anti-iso --> iso weight
+  Hist->hQCDOnePtVsTwoPtJ[3]->Fill(leptonOne.p4->Pt(), leptonTwo.p4->Pt(), wt_noqcdcl); //jet-inclusive correction
+  Hist->hQCDOnePtVsTwoPtIso[0]->Fill(leptonOne.p4->Pt(), leptonTwo.p4->Pt(), wt_noqcd); //no QCD SS-->OS weights
+  Hist->hQCDOnePtVsTwoPtIso[1]->Fill(leptonOne.p4->Pt(), leptonTwo.p4->Pt(), wt_noantiiso); //no muon anti-iso --> iso weight
 
   //Histograms for jet --> tau_h scale factors
   // Hist->hLooseLep     ->Fill(isLooseElectron + 2*isLooseMuon + 4*isLooseTau, eventWeight*genWeight);
-  if(nTaus == 1 && (std::abs(leptonTwoFlavor) == 15) ) {
+  if(nTaus == 1 && (leptonTwo.isTau     ()) ) {
     for(UInt_t itau = 0; itau < nTaus; ++itau) {
       int dm = -1;
       const int njets = std::min(2, (int) nJets); //0, 1, or >= 2 jets
@@ -886,7 +886,7 @@ void CLFVHistMaker::FillEventHistogram(EventHist_t* Hist) {
         Hist->hTausGenFlavor->Fill(TauFlavorFromID(Tau_genPartFlav[itau]), tau_wt*eventWeight*genWeight);
         TLorentzVector tausLV;
         tausLV.SetPtEtaPhiM(Tau_pt[itau], Tau_eta[itau], Tau_phi[itau], Tau_mass[itau]);
-        Hist->hTausDeltaR->Fill(std::fabs(tausLV.DeltaR(*leptonOneP4)), tau_wt*eventWeight*genWeight);
+        Hist->hTausDeltaR->Fill(std::fabs(tausLV.DeltaR(*leptonOne.p4)), tau_wt*eventWeight*genWeight);
       } else {
         Hist->hFakeTausPt->Fill(Tau_pt[itau], tau_wt*eventWeight*genWeight);
         Hist->hFakeTausEta->Fill(Tau_eta[itau], tau_wt*eventWeight*genWeight);
@@ -971,16 +971,16 @@ void CLFVHistMaker::FillLepHistogram(LepHist_t* Hist) {
   //  Lep 1  //
   /////////////
   //trigger weight variations
-  float wt = (fIsData) ? 1.f : std::max(0.001f, leptonOneTrigWeight * leptonTwoTrigWeight);
+  float wt = (fIsData) ? 1.f : std::max(0.001f, leptonOne.trig_wt * leptonTwo.trig_wt);
   Hist->hOnePt[1]->Fill(fTreeVars.leponept, eventWeight*genWeight/wt);
   Hist->hOnePt[2]->Fill(fTreeVars.leponept, eventWeight*genWeight/wt*triggerWeights[0]);
   Hist->hOnePt[3]->Fill(fTreeVars.leponept, eventWeight*genWeight/wt*triggerWeights[1]);
   Hist->hOnePt[4]->Fill(fTreeVars.leponept, eventWeight*genWeight/wt*triggerWeights[2]);
-  Hist->hOnePt[5]->Fill(fTreeVars.leponept, eventWeight*genWeight/leptonOneTrigWeight);
+  Hist->hOnePt[5]->Fill(fTreeVars.leponept, eventWeight*genWeight/leptonOne.trig_wt);
   //remove ID weights
-  wt = (leptonOneWeight1 > 0.) ? leptonOneWeight1 : 1.;
+  wt = (leptonOne.wt1[0] > 0.) ? leptonOne.wt1[0] : 1.;
   Hist->hOnePt[6]->Fill(fTreeVars.leponept, eventWeight*genWeight/wt);
-  wt = (leptonOneWeight2 > 0.) ? leptonOneWeight2 : 1.;
+  wt = (leptonOne.wt2[0] > 0.) ? leptonOne.wt2[0] : 1.;
   Hist->hOnePt[7]->Fill(fTreeVars.leponept, eventWeight*genWeight/wt);
   //remove Z pT weight
   wt = (zPtWeight > 0.) ? zPtWeight : 1.;
@@ -995,13 +995,13 @@ void CLFVHistMaker::FillLepHistogram(LepHist_t* Hist) {
   wt = (jetToTauWeight > 0. && jetToTauWeightBias > 0.) ? jetToTauWeightBias/jetToTauWeight : 1.;
   Hist->hOnePt[11]->Fill(fTreeVars.leponept, eventWeight*genWeight/wt);
 
-  // if(nTaus == 1 && ((std::abs(leptonTwoFlavor) == 15 && tauDecayMode%10 < 2) || (Tau_decayMode[0]%10 < 2))) {
-  //   int dmr = (std::abs(leptonTwoFlavor) == 15) ? tauDecayMode : Tau_decayMode[0];
+  // if(nTaus == 1 && ((leptonTwo.isTau     () && tauDecayMode%10 < 2) || (Tau_decayMode[0]%10 < 2))) {
+  //   int dmr = (leptonTwo.isTau     ()) ? tauDecayMode : Tau_decayMode[0];
   //   if(dmr > 9) dmr -= (10 - 2); //10,11 --> 2,3
   //   dmr += 1; //dmr = DM ID + 1, so 0 can be inclusive
   //   dmr = std::min(4, dmr); //ensure it's not out of bounds
   //   TLorentzVector taulv;
-  //   if(std::abs(leptonTwoFlavor) == 15) taulv = *leptonTwoP4;
+  //   if(leptonTwo.isTau     ()) taulv = *leptonTwo.p4;
   //   else taulv.SetPtEtaPhiM(Tau_pt[0], Tau_eta[0], Tau_phi[0], Tau_mass[0]);
 
   //   //FIXME: Remove tau pT region histograms
@@ -1009,7 +1009,7 @@ void CLFVHistMaker::FillLepHistogram(LepHist_t* Hist) {
   //   if(jetToTauWeightBias > 0.) wt_nojt   *= 1.                 / jetToTauWeightBias; // remove the entire weight
   //   if(jetToTauWeightBias > 0.) wt_nocorr *= jetToTauWeight     / jetToTauWeightBias; // remove the non-closure and bias corrections
   //   if(jetToTauWeightBias > 0.) wt_nobias *= jetToTauWeightCorr / jetToTauWeightBias; // remove the bias corrections
-  //   double dr = std::fabs(leptonOneP4->DeltaR(taulv));
+  //   double dr = std::fabs(leptonOne.p4->DeltaR(taulv));
   //   Hist->hJetTauOnePt[0]       ->Fill(fTreeVars.leponept, wt_nocorr);
   //   Hist->hJetTauOnePt[dmr]     ->Fill(fTreeVars.leponept, wt_nocorr);
   //   Hist->hJetTauOnePtQCD[0]    ->Fill(fTreeVars.leponept, eventWeight*genWeight);
@@ -1017,7 +1017,7 @@ void CLFVHistMaker::FillLepHistogram(LepHist_t* Hist) {
   //   Hist->hJetTauOnePtVsR[0]    ->Fill(fTreeVars.leponept, dr, wt_nocorr);
   //   Hist->hJetTauOnePtVsR[dmr]  ->Fill(fTreeVars.leponept, dr, wt_nocorr);
   //   Hist->hJetTauOneR->Fill(dr, wt_nocorr);
-  //   Hist->hJetTauOneEta->Fill(std::fabs(leptonOneP4->Eta()), wt_nocorr);
+  //   Hist->hJetTauOneEta->Fill(std::fabs(leptonOne.p4->Eta()), wt_nocorr);
   //   Hist->hJetTauOneMetDeltaPhi[0]->Fill(fTreeVars.onemetdeltaphi, wt_nocorr); //inclusive
   //   Hist->hJetTauOneMetDeltaPhi[dmr]->Fill(fTreeVars.onemetdeltaphi, wt_nocorr);
   //   Hist->hJetTauOneMetDPhiQCD[0]->Fill(fTreeVars.onemetdeltaphi, eventWeight*genWeight); //inclusive
@@ -1032,17 +1032,17 @@ void CLFVHistMaker::FillLepHistogram(LepHist_t* Hist) {
   //   Hist->hJetTauMTOneComp     ->Fill(fTreeVars.mtone         , wt_nojt);
   //   Hist->hJetTauMTTwoComp     ->Fill(fTreeVars.mttwo         , wt_nojt);
 
-  //   dr = std::fabs(leptonTwoP4->DeltaR(taulv));
+  //   dr = std::fabs(leptonTwo.p4->DeltaR(taulv));
   //   Hist->hJetTauTwoPt[0]       ->Fill(fTreeVars.leptwopt, wt_nocorr);
   //   Hist->hJetTauTwoPt[dmr]     ->Fill(fTreeVars.leptwopt, wt_nocorr);
   //   Hist->hJetTauTwoPtVsR[0]    ->Fill(fTreeVars.leptwopt, dr, wt_nocorr);
   //   Hist->hJetTauTwoPtVsR[dmr]  ->Fill(fTreeVars.leptwopt, dr, wt_nocorr);
   //   Hist->hJetTauTwoR[0]->Fill(dr, eventWeight*genWeight);
   //   Hist->hJetTauTwoR[1]->Fill(dr, wt_nocorr);
-  //   Hist->hJetTauTwoEta[0]->Fill(std::fabs(leptonTwoP4->Eta()), eventWeight*genWeight);
-  //   Hist->hJetTauTwoEta[1]->Fill(std::fabs(leptonTwoP4->Eta()), wt_nocorr);
-  //   Hist->hJetTauTwoEtaQCD[0]->Fill(std::fabs(leptonTwoP4->Eta()), eventWeight*genWeight);
-  //   Hist->hJetTauTwoEtaQCD[1]->Fill(std::fabs(leptonTwoP4->Eta()), wt_nocorr);
+  //   Hist->hJetTauTwoEta[0]->Fill(std::fabs(leptonTwo.p4->Eta()), eventWeight*genWeight);
+  //   Hist->hJetTauTwoEta[1]->Fill(std::fabs(leptonTwo.p4->Eta()), wt_nocorr);
+  //   Hist->hJetTauTwoEtaQCD[0]->Fill(std::fabs(leptonTwo.p4->Eta()), eventWeight*genWeight);
+  //   Hist->hJetTauTwoEtaQCD[1]->Fill(std::fabs(leptonTwo.p4->Eta()), wt_nocorr);
   //   Hist->hJetTauTwoPtVsOnePt->Fill(fTreeVars.leponept, taulv.Pt(), wt_nocorr);
   //   Hist->hJetTauTwoMetDeltaPhi[0]->Fill(fTreeVars.twometdeltaphi, eventWeight*genWeight);
   //   Hist->hJetTauTwoMetDeltaPhi[1]->Fill(fTreeVars.twometdeltaphi, wt_nocorr);
@@ -1055,16 +1055,16 @@ void CLFVHistMaker::FillLepHistogram(LepHist_t* Hist) {
   /////////////
 
   //trigger weight variations
-  wt = (fIsData) ? 1.f : std::max(0.001f, leptonOneTrigWeight * leptonTwoTrigWeight);
+  wt = (fIsData) ? 1.f : std::max(0.001f, leptonOne.trig_wt * leptonTwo.trig_wt);
   Hist->hTwoPt[1]->Fill(fTreeVars.leptwopt, eventWeight*genWeight/wt);
   Hist->hTwoPt[2]->Fill(fTreeVars.leptwopt, eventWeight*genWeight/wt*triggerWeights[0]);
   Hist->hTwoPt[3]->Fill(fTreeVars.leptwopt, eventWeight*genWeight/wt*triggerWeights[1]);
   Hist->hTwoPt[4]->Fill(fTreeVars.leptwopt, eventWeight*genWeight/wt*triggerWeights[2]);
-  Hist->hTwoPt[5]->Fill(fTreeVars.leptwopt, eventWeight*genWeight/leptonTwoTrigWeight);
+  Hist->hTwoPt[5]->Fill(fTreeVars.leptwopt, eventWeight*genWeight/leptonTwo.trig_wt);
   //remove ID weights
-  wt = leptonTwoWeight1;
+  wt = leptonTwo.wt1[0];
   Hist->hTwoPt[6]->Fill(fTreeVars.leptwopt, eventWeight*genWeight/wt);
-  wt = leptonTwoWeight2;
+  wt = leptonTwo.wt2[0];
   Hist->hTwoPt[7]->Fill(fTreeVars.leptwopt, eventWeight*genWeight/wt);
   //remove Z pT weight
   wt = zPtWeight;
@@ -1083,43 +1083,43 @@ void CLFVHistMaker::FillLepHistogram(LepHist_t* Hist) {
 
 //--------------------------------------------------------------------------------------------------------------
 void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
-  bool isSameFlavor = std::abs(leptonOneFlavor) == std::abs(leptonTwoFlavor);
-  bool isMuTau = std::abs(leptonOneFlavor) == 13 && std::abs(leptonTwoFlavor) == 15;
-  bool isETau  = std::abs(leptonOneFlavor) == 13 && std::abs(leptonTwoFlavor) == 15;
+  bool isSameFlavor = std::abs(leptonOne.flavor) == std::abs(leptonTwo.flavor);
+  bool isMuTau = leptonOne.isMuon    () && leptonTwo.isTau     ();
+  bool isETau  = leptonOne.isMuon    () && leptonTwo.isTau     ();
   for(int sys = 0; sys < kMaxSystematics; ++sys) {
     float weight = eventWeight*genWeight;
     if(weight == 0.) continue; //no way to re-scale 0, contributes nothing to histograms so can just skip
-    TLorentzVector lv1 = *leptonOneP4;
-    TLorentzVector lv2 = *leptonTwoP4;
+    TLorentzVector lv1 = *leptonOne.p4;
+    TLorentzVector lv2 = *leptonTwo.p4;
     bool reeval = false;
     if(sys == 0) weight = weight;                                          //do nothing
     else if  (sys ==  1) {                                                 //electron ID scale factors
-      if(std::abs(leptonOneFlavor) == 11) weight *= leptonOneWeight1_up / leptonOneWeight1;
-      if(std::abs(leptonTwoFlavor) == 11) weight *= leptonTwoWeight1_up / leptonTwoWeight1;
+      if(leptonOne.isElectron()) weight *= leptonOne.wt1[1] / leptonOne.wt1[0];
+      if(leptonTwo.isElectron()) weight *= leptonTwo.wt1[1] / leptonTwo.wt1[0];
     } else if(sys ==  2) {
-      if(std::abs(leptonOneFlavor) == 11) weight *= leptonOneWeight1_down / leptonOneWeight1;
-      if(std::abs(leptonTwoFlavor) == 11) weight *= leptonTwoWeight1_down / leptonTwoWeight1;
-    } else if(sys ==  3) {
-      if(std::abs(leptonOneFlavor) == 11) weight *= leptonOneWeight1_sys / leptonOneWeight1;
-      if(std::abs(leptonTwoFlavor) == 11) weight *= leptonTwoWeight1_sys / leptonTwoWeight1;
+      if(leptonOne.isElectron()) weight *= leptonOne.wt1[2] / leptonOne.wt1[0];
+      if(leptonTwo.isElectron()) weight *= leptonTwo.wt1[2] / leptonTwo.wt1[0];
+    // } else if(sys ==  3) {
+    //   if(leptonOne.isElectron()) weight *= leptonOne.wt1[3] / leptonOne.wt1[0];
+    //   if(leptonTwo.isElectron()) weight *= leptonTwo.wt1[3] / leptonTwo.wt1[0];
     } else if(sys ==  4) {                                                 //muon ID scale factors
-      if(std::abs(leptonOneFlavor) == 13) weight *= leptonOneWeight1_up / leptonOneWeight1;
-      if(std::abs(leptonTwoFlavor) == 13) weight *= leptonTwoWeight1_up / leptonTwoWeight1;
+      if(leptonOne.isMuon    ()) weight *= leptonOne.wt1[1] / leptonOne.wt1[0];
+      if(leptonTwo.isMuon    ()) weight *= leptonTwo.wt1[1] / leptonTwo.wt1[0];
     } else if(sys ==  5) {
-      if(std::abs(leptonOneFlavor) == 13) weight *= leptonOneWeight1_down / leptonOneWeight1;
-      if(std::abs(leptonTwoFlavor) == 13) weight *= leptonTwoWeight1_down / leptonTwoWeight1;
-    } else if(sys ==  6) {
-      if(std::abs(leptonOneFlavor) == 13) weight *= leptonOneWeight1_sys  / leptonOneWeight1;
-      if(std::abs(leptonTwoFlavor) == 13) weight *= leptonTwoWeight1_sys  / leptonTwoWeight1;
+      if(leptonOne.isMuon    ()) weight *= leptonOne.wt1[2] / leptonOne.wt1[0];
+      if(leptonTwo.isMuon    ()) weight *= leptonTwo.wt1[2] / leptonTwo.wt1[0];
+    // } else if(sys ==  6) {
+    //   if(leptonOne.isMuon    ()) weight *= leptonOne.wt1[3]  / leptonOneWeight1;
+    //   if(leptonTwo.isMuon    ()) weight *= leptonTwo.wt1[3]  / leptonTwoWeight1;
     } else if(sys ==  7) {                                                 //tau ID scale factors
-      if(std::abs(leptonOneFlavor) == 15) weight *= leptonOneWeight1_up / leptonOneWeight1;
-      if(std::abs(leptonTwoFlavor) == 15) weight *= leptonTwoWeight1_up / leptonTwoWeight1;
+      if(leptonOne.isTau     ()) weight *= leptonOne.wt1[1] / leptonOne.wt1[0];
+      if(leptonTwo.isTau     ()) weight *= leptonTwo.wt1[1] / leptonTwo.wt1[0];
     } else if(sys ==  8) {
-      if(std::abs(leptonOneFlavor) == 15) weight *= leptonOneWeight1_down / leptonOneWeight1;
-      if(std::abs(leptonTwoFlavor) == 15) weight *= leptonTwoWeight1_down / leptonTwoWeight1;
-    } else if(sys ==  9) {
-      if(std::abs(leptonOneFlavor) == 15) weight *= leptonOneWeight1_sys  / leptonOneWeight1;
-      if(std::abs(leptonTwoFlavor) == 15) weight *= leptonTwoWeight1_sys  / leptonTwoWeight1;
+      if(leptonOne.isTau     ()) weight *= leptonOne.wt1[2] / leptonOne.wt1[0];
+      if(leptonTwo.isTau     ()) weight *= leptonTwo.wt1[2] / leptonTwo.wt1[0];
+    // } else if(sys ==  9) {
+    //   if(leptonOne.isTau     ()) weight *= leptonOne.wt1[3]  / leptonOne.wt1[0];
+    //   if(leptonTwo.isTau     ()) weight *= leptonTwo.wt1[3]  / leptonTwo.wt1[0];
     } else if(sys == 10) weight *= jetToTauWeightUp     / jetToTauWeight ; //Jet --> tau weights
     else if  (sys == 11) weight *= jetToTauWeightDown   / jetToTauWeight ;
     else if  (sys == 12) weight *= jetToTauWeightSys    / jetToTauWeight ;
@@ -1127,33 +1127,33 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
     else if  (sys == 14) weight *= zPtWeightDown        / zPtWeight      ;
     else if  (sys == 15) weight *= zPtWeightSys         / zPtWeight      ;
     else if  (sys == 16) {                                                 //electron reco ID scale factors
-      if(std::abs(leptonOneFlavor) == 11) weight *= leptonOneWeight2_up / leptonOneWeight2;
-      if(std::abs(leptonTwoFlavor) == 11) weight *= leptonTwoWeight2_up / leptonTwoWeight2;
+      if(leptonOne.isElectron()) weight *= leptonOne.wt2[1] / leptonOne.wt2[0];
+      if(leptonTwo.isElectron()) weight *= leptonTwo.wt2[1] / leptonTwo.wt2[0];
     } else if(sys == 17) {
-      if(std::abs(leptonOneFlavor) == 11) weight *= leptonOneWeight2_down / leptonOneWeight2;
-      if(std::abs(leptonTwoFlavor) == 11) weight *= leptonTwoWeight2_down / leptonTwoWeight2;
-    } else if(sys == 18) {
-      if(std::abs(leptonOneFlavor) == 11) weight *= leptonOneWeight2_sys / leptonOneWeight2;
-      if(std::abs(leptonTwoFlavor) == 11) weight *= leptonTwoWeight2_sys / leptonTwoWeight2;
+      if(leptonOne.isElectron()) weight *= leptonOne.wt2[2] / leptonOne.wt2[0];
+      if(leptonTwo.isElectron()) weight *= leptonTwo.wt2[2] / leptonTwo.wt2[0];
+    // } else if(sys == 18) {
+    //   if(leptonOne.isElectron()) weight *= leptonOne.wt2[3] / leptonOneWeight2;
+    //   if(leptonTwo.isElectron()) weight *= leptonTwo.wt2[3] / leptonTwoWeight2;
     } else if(sys == 19) {                                                 //muon iso ID scale factors
-      if(std::abs(leptonOneFlavor) == 13) weight *= leptonOneWeight2_up / leptonOneWeight2;
-      if(std::abs(leptonTwoFlavor) == 13) weight *= leptonTwoWeight2_up / leptonTwoWeight2;
+      if(leptonOne.isMuon    ()) weight *= leptonOne.wt2[1] / leptonOne.wt2[0];
+      if(leptonTwo.isMuon    ()) weight *= leptonTwo.wt2[1] / leptonTwo.wt2[0];
     } else if(sys == 20) {
-      if(std::abs(leptonOneFlavor) == 13) weight *= leptonOneWeight2_down / leptonOneWeight2;
-      if(std::abs(leptonTwoFlavor) == 13) weight *= leptonTwoWeight2_down / leptonTwoWeight2;
-    } else if(sys == 21) {
-      if(std::abs(leptonOneFlavor) == 13) weight *= leptonOneWeight2_sys  / leptonOneWeight2;
-      if(std::abs(leptonTwoFlavor) == 13) weight *= leptonTwoWeight2_sys  / leptonTwoWeight2;
+      if(leptonOne.isMuon    ()) weight *= leptonOne.wt2[2] / leptonOne.wt2[0];
+      if(leptonTwo.isMuon    ()) weight *= leptonTwo.wt2[2] / leptonTwo.wt2[0];
+    // } else if(sys == 21) {
+    //   if(leptonOne.isMuon    ()) weight *= leptonOne.wt2[3]  / leptonOneWeight2;
+    //   if(leptonTwo.isMuon    ()) weight *= leptonTwo.wt2[3]  / leptonTwoWeight2;
     }
     //FIXME: Need to re-evaluate variables using the updated tau four momentum
     else if  (sys == 22) {                                                 //Tau ES
-      if(std::abs(leptonTwoFlavor) == 15 && tauES > 0. && tauES_up > 0.) {
-        lv2 *= (tauES_up / tauES);
+      if(leptonTwo.isTau     () && leptonTwo.ES[0] > 0. && leptonTwo.ES[1] > 0.) {
+        lv2 *= (leptonTwo.ES[1] / leptonTwo.ES[0]);
         reeval = true;
       }
     } else if(sys == 23) {
-      if(std::abs(leptonTwoFlavor) == 15 && tauES > 0. && tauES_down > 0.) {
-        lv2 *= (tauES_down / tauES);
+      if(leptonTwo.isTau     () && leptonTwo.ES[0] > 0. && leptonTwo.ES[2] > 0.) {
+        lv2 *= (leptonTwo.ES[2] / leptonTwo.ES[0]);
         reeval = true;
       }
     }
@@ -1167,25 +1167,25 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
     else if  (sys == 32) weight *= jetToTauWeight_compDown  / jetToTauWeightBias   ;
     else if  (sys == 33) weight *= jetToTauWeight_compUp    / jetToTauWeightBias   ;
     else if(sys > 33 && sys < 43) {                                                // tau IDs by PDG ID
-      if(std::abs(leptonTwoFlavor) == 15) {
+      if(leptonTwo.isTau     ()) {
         if(sys == 34 && std::abs(tauGenFlavor) == 15)       //tau anti-jet ID scale factors
-          weight *= leptonTwoWeight1_up / leptonTwoWeight1;
+          weight *= leptonTwo.wt1[1] / leptonTwo.wt1[0];
         else if(sys == 35 && std::abs(tauGenFlavor) == 15)
-          weight *= leptonTwoWeight1_down / leptonTwoWeight1;
-        else if(sys == 36 && std::abs(tauGenFlavor) == 15)
-          weight *= leptonTwoWeight1_sys / leptonTwoWeight1;
+          weight *= leptonTwo.wt1[2] / leptonTwo.wt1[0];
+        // else if(sys == 36 && std::abs(tauGenFlavor) == 15)
+        //   weight *= leptonTwo.wt1[3] / leptonTwoWeight1;
         else if(sys == 37 && std::abs(tauGenFlavor) == 13)  //tau anti-mu ID scale factors
-          weight *= leptonTwoWeight1_up / leptonTwoWeight1;
+          weight *= leptonTwo.wt1[1] / leptonTwo.wt1[0];
         else if(sys == 38 && std::abs(tauGenFlavor) == 13)
-          weight *= leptonTwoWeight1_down / leptonTwoWeight1;
-        else if(sys == 39 && std::abs(tauGenFlavor) == 13)
-          weight *= leptonTwoWeight1_sys / leptonTwoWeight1;
+          weight *= leptonTwo.wt1[2] / leptonTwo.wt1[0];
+        // else if(sys == 39 && std::abs(tauGenFlavor) == 13)
+        //   weight *= leptonTwo.wt1[3] / leptonTwo.wt1[0];
         else if(sys == 40 && std::abs(tauGenFlavor) == 11)  //tau anti-ele ID scale factors
-          weight *= leptonTwoWeight1_up / leptonTwoWeight1;
+          weight *= leptonTwo.wt1[1] / leptonTwo.wt1[0];
         else if(sys == 41 && std::abs(tauGenFlavor) == 11)
-          weight *= leptonTwoWeight1_down / leptonTwoWeight1;
-        else if(sys == 42 && std::abs(tauGenFlavor) == 11)
-          weight *= leptonTwoWeight1_sys / leptonTwoWeight1;
+          weight *= leptonTwo.wt1[2] / leptonTwo.wt1[0];
+        // else if(sys == 42 && std::abs(tauGenFlavor) == 11)
+        //   weight *= leptonTwo.wt1[3] / leptonTwo.wt1[0];
       }
     } else if  (sys == 43) { weight *= (fIsData || fIsEmbed) ? 1. : 1. + 0.016; //luminosity uncertainty
     } else if  (sys == 44) { weight *= (fIsData || fIsEmbed) ? 1. : 1. - 0.016;
@@ -1196,82 +1196,82 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
 
       //Removed j->tau groupings since now using fitter errors uncorrelated by years
     // } else if  (sys >= SystematicGrouping::kJetToTau && sys < 100) { //Jet --> tau systematic groupings, (4 DM)*(2 eta)*(3 years)*(2 up/down) = 48 histograms
-    //   if(std::abs(leptonOneFlavor) == std::abs(leptonTwoFlavor)) continue;
+    //   if(std::abs(leptonOne.flavor) == std::abs(leptonTwo.flavor)) continue;
     //   int offset = SystematicGrouping::kJetToTau;
     //   if(2*(jetToTauWeightGroup) - offset     == sys) weight *= jetToTauWeightUp   / jetToTauWeight;
     //   if(2*(jetToTauWeightGroup) - offset + 1 == sys) weight *= jetToTauWeightDown / jetToTauWeight;
       //Removed muon ID groupings since it appears to be small enough to treat correlated
     // } else if  (sys >= SystematicGrouping::kMuonID && sys < 150) { //Muon ID
     //   int offset = SystematicGrouping::kMuonID;
-    //   if(std::abs(leptonOneFlavor) == 13) {
-    //     if(2*(leptonOneWeight1_group) - offset     == sys) weight *= leptonOneWeight1_up   / leptonOneWeight1;
-    //     if(2*(leptonOneWeight1_group) - offset + 1 == sys) weight *= leptonOneWeight1_down / leptonOneWeight1;
+    //   if(leptonOne.isMuon    ()) {
+    //     if(2*(leptonOne.wt1_group) - offset     == sys) weight *= leptonOne.wt1[1]   / leptonOne.wt1[0];
+    //     if(2*(leptonOne.wt1_group) - offset + 1 == sys) weight *= leptonOne.wt1[2] / leptonOne.wt1[0];
     //   }
-    //   if(std::abs(leptonTwoFlavor) == 13) {
-    //     if(2*(leptonTwoWeight1_group) - offset     == sys) weight *= leptonTwoWeight1_up   / leptonTwoWeight1;
-    //     if(2*(leptonTwoWeight1_group) - offset + 1 == sys) weight *= leptonTwoWeight1_down / leptonTwoWeight1;
+    //   if(leptonTwo.isMuon    ()) {
+    //     if(2*(leptonTwo.wt1_group) - offset     == sys) weight *= leptonTwo.wt1[1]   / leptonTwo.wt1[0];
+    //     if(2*(leptonTwo.wt1_group) - offset + 1 == sys) weight *= leptonTwo.wt1[2] / leptonTwo.wt1[0];
     //   }
       //Removed muon iso ID groupings since it appears to be small enough to treat correlated
     // } else if  (sys >= SystematicGrouping::kMuonIsoID && sys < 200) { //Muon ID
     //   int offset = SystematicGrouping::kMuonIsoID;
-    //   if(std::abs(leptonOneFlavor) == 13) {
-    //     if(2*(leptonOneWeight2_group) - offset     == sys) weight *= leptonOneWeight2_up   / leptonOneWeight2;
-    //     if(2*(leptonOneWeight2_group) - offset + 1 == sys) weight *= leptonOneWeight2_down / leptonOneWeight2;
+    //   if(leptonOne.isMuon    ()) {
+    //     if(2*(leptonOne.wt2_group) - offset     == sys) weight *= leptonOne.wt2[1]   / leptonOne.wt2[0];
+    //     if(2*(leptonOne.wt2_group) - offset + 1 == sys) weight *= leptonOne.wt2[2] / leptonOne.wt2[0];
     //   }
-    //   if(std::abs(leptonTwoFlavor) == 13) {
-    //     if(2*(leptonTwoWeight2_group) - offset     == sys) weight *= leptonTwoWeight2_up   / leptonTwoWeight2;
-    //     if(2*(leptonTwoWeight2_group) - offset + 1 == sys) weight *= leptonTwoWeight2_down / leptonTwoWeight2;
+    //   if(leptonTwo.isMuon    ()) {
+    //     if(2*(leptonTwo.wt2_group) - offset     == sys) weight *= leptonTwo.wt2[1]   / leptonTwo.wt2[0];
+    //     if(2*(leptonTwo.wt2_group) - offset + 1 == sys) weight *= leptonTwo.wt2[2] / leptonTwo.wt2[0];
     //   }
     } else if  (sys >= 100 && sys < 106) { //tau anti-jet ID, separated by years
-      if(std::abs(leptonOneFlavor) == std::abs(leptonTwoFlavor)) continue;
+      if(std::abs(leptonOne.flavor) == std::abs(leptonTwo.flavor)) continue;
       int base = 100;
-      if(std::abs(leptonTwoFlavor) == 15) {
+      if(leptonTwo.isTau     ()) {
         int bin = 2*(fYear - 2016); //uncorrelated between years
         if((sys == base + bin) && std::abs(tauGenFlavor) == 15)
-          weight *= leptonTwoWeight1_up / leptonTwoWeight1;
+          weight *= leptonTwo.wt1[1] / leptonTwo.wt1[0];
         else if((sys == base + 1 + bin) && std::abs(tauGenFlavor) == 15)
-          weight *= leptonTwoWeight1_down / leptonTwoWeight1;
+          weight *= leptonTwo.wt1[2] / leptonTwo.wt1[0];
       }
     } else if  (sys >= 110 && sys < 140) { //tau anti-mu ID, separated by 5 bins per year --> 15 histograms per up/down
-      if(std::abs(leptonOneFlavor) == std::abs(leptonTwoFlavor)) continue;
+      if(std::abs(leptonOne.flavor) == std::abs(leptonTwo.flavor)) continue;
       int base = 110;
-      if(std::abs(leptonTwoFlavor) == 15) {
-        int bin = 5*(fYear - 2016) + leptonTwoWeight1_bin; //uncorrelated between years and bins
+      if(leptonTwo.isTau     ()) {
+        int bin = 5*(fYear - 2016) + leptonTwo.wt1_bin; //uncorrelated between years and bins
         if((sys == base + 2*bin) && std::abs(tauGenFlavor) == 13)
-          weight *= leptonTwoWeight1_up / leptonTwoWeight1;
+          weight *= leptonTwo.wt1[1] / leptonTwo.wt1[0];
         else if((sys == base + 1 + 2*bin) && std::abs(tauGenFlavor) == 13)
-          weight *= leptonTwoWeight1_down / leptonTwoWeight1;
+          weight *= leptonTwo.wt1[2] / leptonTwo.wt1[0];
       }
     } else if  (sys >= 140 && sys < 158) { //tau anti-ele ID, separated by 3 bins per year --> 9 histograms per up/down
-      if(std::abs(leptonOneFlavor) == std::abs(leptonTwoFlavor)) continue;
+      if(std::abs(leptonOne.flavor) == std::abs(leptonTwo.flavor)) continue;
       int base = 140;
-      if(std::abs(leptonTwoFlavor) == 15) {
-        int bin = 3*(fYear - 2016) + leptonTwoWeight1_bin; //uncorrelated between years and bins
+      if(leptonTwo.isTau     ()) {
+        int bin = 3*(fYear - 2016) + leptonTwo.wt1_bin; //uncorrelated between years and bins
         if((sys == base + 2*bin) && std::abs(tauGenFlavor) == 11)
-          weight *= leptonTwoWeight1_up / leptonTwoWeight1;
+          weight *= leptonTwo.wt1[1] / leptonTwo.wt1[0];
         else if((sys == base + 1 + 2*bin) && std::abs(tauGenFlavor) == 11)
-          weight *= leptonTwoWeight1_down / leptonTwoWeight1;
+          weight *= leptonTwo.wt1[2] / leptonTwo.wt1[0];
       }
     //  //Remove electron ID and Reco ID groupings, as generally systematically correlated errors
     // } else if  (sys >= SystematicGrouping::kElectronID && sys < 250) { //Electron ID
     //   int offset = SystematicGrouping::kElectronID;
-    //   if(std::abs(leptonOneFlavor) == 11) {
-    //     if(2*(leptonOneWeight1_group) - offset     == sys) weight *= leptonOneWeight1_up   / leptonOneWeight1;
-    //     if(2*(leptonOneWeight1_group) - offset + 1 == sys) weight *= leptonOneWeight1_down / leptonOneWeight1;
+    //   if(leptonOne.isElectron()) {
+    //     if(2*(leptonOne.wt1_group) - offset     == sys) weight *= leptonOne.wt1[1]   / leptonOne.wt1[0];
+    //     if(2*(leptonOne.wt1_group) - offset + 1 == sys) weight *= leptonOne.wt1[2] / leptonOne.wt1[0];
     //   }
-    //   if(std::abs(leptonTwoFlavor) == 11) {
-    //     if(2*(leptonTwoWeight1_group) - offset     == sys) weight *= leptonTwoWeight1_up   / leptonTwoWeight1;
-    //     if(2*(leptonTwoWeight1_group) - offset + 1 == sys) weight *= leptonTwoWeight1_down / leptonTwoWeight1;
+    //   if(leptonTwo.isElectron()) {
+    //     if(2*(leptonTwo.wt1_group) - offset     == sys) weight *= leptonTwo.wt1[1]   / leptonTwo.wt1[0];
+    //     if(2*(leptonTwo.wt1_group) - offset + 1 == sys) weight *= leptonTwo.wt1[2] / leptonTwo.wt1[0];
     //   }
     // } else if  (sys >= SystematicGrouping::kElectronRecoID && sys < 300) { //Electron Reco ID
     //   int offset = SystematicGrouping::kElectronRecoID;
-    //   if(std::abs(leptonOneFlavor) == 11) {
-    //     if(2*(leptonOneWeight2_group) - offset     == sys) weight *= leptonOneWeight2_up   / leptonOneWeight2;
-    //     if(2*(leptonOneWeight2_group) - offset + 1 == sys) weight *= leptonOneWeight2_down / leptonOneWeight2;
+    //   if(leptonOne.isElectron()) {
+    //     if(2*(leptonOne.wt2_group) - offset     == sys) weight *= leptonOne.wt2[1]   / leptonOne.wt2[0];
+    //     if(2*(leptonOne.wt2_group) - offset + 1 == sys) weight *= leptonOne.wt2[2] / leptonOne.wt2[0];
     //   }
-    //   if(std::abs(leptonTwoFlavor) == 11) {
-    //     if(2*(leptonTwoWeight2_group) - offset     == sys) weight *= leptonTwoWeight2_up   / leptonTwoWeight2;
-    //     if(2*(leptonTwoWeight2_group) - offset + 1 == sys) weight *= leptonTwoWeight2_down / leptonTwoWeight2;
+    //   if(leptonTwo.isElectron()) {
+    //     if(2*(leptonTwo.wt2_group) - offset     == sys) weight *= leptonTwo.wt2[1]   / leptonTwo.wt2[0];
+    //     if(2*(leptonTwo.wt2_group) - offset + 1 == sys) weight *= leptonTwo.wt2[2] / leptonTwo.wt2[0];
     //   }
     } else continue; //no need to fill undefined systematics
 
@@ -1354,21 +1354,21 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   TLorentzVector* muon_2 = 0;
   TLorentzVector* electron_2 = 0;
   //same flavor categories
-  if(std::abs(leptonOneFlavor) == std::abs(leptonTwoFlavor)) {
-    if(std::abs(leptonOneFlavor) == 13) { //mumu
-      muon = leptonOneP4;
-      muon_2 = leptonTwoP4;
-    } else if(std::abs(leptonOneFlavor) == 11) { //ee
-      electron = leptonOneP4;
-      electron_2 = leptonTwoP4;
+  if(std::abs(leptonOne.flavor) == std::abs(leptonTwo.flavor)) {
+    if(leptonOne.isMuon    ()) { //mumu
+      muon = leptonOne.p4;
+      muon_2 = leptonTwo.p4;
+    } else if(leptonOne.isElectron()) { //ee
+      electron = leptonOne.p4;
+      electron_2 = leptonTwo.p4;
     }
   } else {
-    if(std::abs(leptonOneFlavor) == 15)      tau = leptonOneP4;
-    else if(std::abs(leptonTwoFlavor) == 15) tau = leptonTwoP4;
-    if(std::abs(leptonOneFlavor) == 13)      muon = leptonOneP4;
-    else if(std::abs(leptonTwoFlavor) == 13) muon = leptonTwoP4;
-    if(std::abs(leptonOneFlavor) == 11)      electron = leptonOneP4;
-    else if(std::abs(leptonTwoFlavor) == 11) electron = leptonTwoP4;
+    if(leptonOne.isTau     ())      tau = leptonOne.p4;
+    else if(leptonTwo.isTau     ()) tau = leptonTwo.p4;
+    if(leptonOne.isMuon    ())      muon = leptonOne.p4;
+    else if(leptonTwo.isMuon    ()) muon = leptonTwo.p4;
+    if(leptonOne.isElectron())      electron = leptonOne.p4;
+    else if(leptonTwo.isElectron()) electron = leptonTwo.p4;
   }
 
   //lepton vectors must be found
@@ -1382,14 +1382,14 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
 
 
   //leptons must satisfy the pt requirements and fire a trigger
-  mutau = mutau && muon->Pt() > muon_trig_pt_ && tau->Pt() > tau_pt && leptonOneFired;
-  etau  = etau  && electron->Pt() > electron_trig_pt_ && tau->Pt() > tau_pt && leptonOneFired;
-  emu   = emu   && ((electron->Pt() > electron_trig_pt_ && muon->Pt() > muon_pt && leptonOneFired) ||
-                    (electron->Pt() > electron_pt && muon->Pt() > muon_trig_pt_ && leptonTwoFired));
-  mumu  = mumu  && ((muon->Pt() > muon_trig_pt_ && muon_2->Pt() > muon_pt && leptonOneFired) ||
-                    (muon->Pt() > muon_pt  && muon_2->Pt() > muon_trig_pt_ && leptonTwoFired));
-  ee    = ee    && ((electron->Pt() > electron_trig_pt_ && electron_2->Pt() > electron_pt && leptonOneFired) ||
-                    (electron->Pt() > electron_pt && electron_2->Pt() > electron_trig_pt_ && leptonTwoFired));
+  mutau = mutau && muon->Pt() > muon_trig_pt_ && tau->Pt() > tau_pt && leptonOne.fired;
+  etau  = etau  && electron->Pt() > electron_trig_pt_ && tau->Pt() > tau_pt && leptonOne.fired;
+  emu   = emu   && ((electron->Pt() > electron_trig_pt_ && muon->Pt() > muon_pt && leptonOne.fired) ||
+                    (electron->Pt() > electron_pt && muon->Pt() > muon_trig_pt_ && leptonTwo.fired));
+  mumu  = mumu  && ((muon->Pt() > muon_trig_pt_ && muon_2->Pt() > muon_pt && leptonOne.fired) ||
+                    (muon->Pt() > muon_pt  && muon_2->Pt() > muon_trig_pt_ && leptonTwo.fired));
+  ee    = ee    && ((electron->Pt() > electron_trig_pt_ && electron_2->Pt() > electron_pt && leptonOne.fired) ||
+                    (electron->Pt() > electron_pt && electron_2->Pt() > electron_trig_pt_ && leptonTwo.fired));
   if(!(mutau || etau || emu || mumu || ee)) return kTRUE;
   fCutFlow->Fill(icutflow); ++icutflow; //6
 
@@ -1401,10 +1401,10 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
 
   //reject electrons in the barrel/endcap gap region
   const float elec_gap_low(1.4442), elec_gap_high(1.566);
-  etau &= std::fabs(leptonOneSCEta) < elec_gap_low || std::fabs(leptonOneSCEta) > elec_gap_high;
-  emu  &= std::fabs(leptonOneSCEta) < elec_gap_low || std::fabs(leptonOneSCEta) > elec_gap_high;
-  ee   &= std::fabs(leptonOneSCEta) < elec_gap_low || std::fabs(leptonOneSCEta) > elec_gap_high;
-  ee   &= std::fabs(leptonTwoSCEta) < elec_gap_low || std::fabs(leptonTwoSCEta) > elec_gap_high;
+  etau &= std::fabs(leptonOne.scEta) < elec_gap_low || std::fabs(leptonOne.scEta) > elec_gap_high;
+  emu  &= std::fabs(leptonOne.scEta) < elec_gap_low || std::fabs(leptonOne.scEta) > elec_gap_high;
+  ee   &= std::fabs(leptonOne.scEta) < elec_gap_low || std::fabs(leptonOne.scEta) > elec_gap_high;
+  ee   &= std::fabs(leptonTwo.scEta) < elec_gap_low || std::fabs(leptonTwo.scEta) > elec_gap_high;
 
   if(!(mutau || etau || emu || mumu  || ee)) return kTRUE;
   fCutFlow->Fill(icutflow); ++icutflow; //8
@@ -1442,7 +1442,7 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   ee    = ee    && std::fabs(electron->DeltaR(*electron_2)) > 0.3;
 
   //mass cuts, due to generation ranges need > 50 GeV for all sets
-  const double mll = (*leptonOneP4+*leptonTwoP4).M();
+  const double mll = (*leptonOne.p4+*leptonTwo.p4).M();
   mutau &= mll > 51. && mll < 170.;
   etau  &= mll > 51. && mll < 170.;
   emu   &= mll > 51. && mll < 170.;
@@ -1450,30 +1450,30 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   ee    &= mll > 51. && mll < 170.;
 
   //ensure a trigger was fired
-  mutau &= leptonOneFired || leptonTwoFired;
-  etau  &= leptonOneFired || leptonTwoFired;
-  emu   &= leptonOneFired || leptonTwoFired;
-  mumu  &= leptonOneFired || leptonTwoFired;
-  ee    &= leptonOneFired || leptonTwoFired;
+  mutau &= leptonOne.fired || leptonTwo.fired;
+  etau  &= leptonOne.fired || leptonTwo.fired;
+  emu   &= leptonOne.fired || leptonTwo.fired;
+  mumu  &= leptonOne.fired || leptonTwo.fired;
+  ee    &= leptonOne.fired || leptonTwo.fired;
 
   //ensure reasonable dxy/dz cuts
   const float max_dz(0.5), max_dxy(0.2);
-  mutau &= std::fabs(leptonOneDXY) < max_dxy;
-  mutau &= std::fabs(leptonOneDZ ) < max_dz ;
-  etau  &= std::fabs(leptonOneDXY) < max_dxy;
-  etau  &= std::fabs(leptonOneDZ ) < max_dz ;
-  emu   &= std::fabs(leptonOneDXY) < max_dxy;
-  emu   &= std::fabs(leptonOneDZ ) < max_dz ;
-  emu   &= std::fabs(leptonTwoDXY) < max_dxy;
-  emu   &= std::fabs(leptonTwoDZ ) < max_dz ;
-  mumu  &= std::fabs(leptonOneDXY) < max_dxy;
-  mumu  &= std::fabs(leptonOneDZ ) < max_dz ;
-  mumu  &= std::fabs(leptonTwoDXY) < max_dxy;
-  mumu  &= std::fabs(leptonTwoDZ ) < max_dz ;
-  ee    &= std::fabs(leptonOneDXY) < max_dxy;
-  ee    &= std::fabs(leptonOneDZ ) < max_dz ;
-  ee    &= std::fabs(leptonTwoDXY) < max_dxy;
-  ee    &= std::fabs(leptonTwoDZ ) < max_dz ;
+  mutau &= std::fabs(leptonOne.dxy) < max_dxy;
+  mutau &= std::fabs(leptonOne.dz ) < max_dz ;
+  etau  &= std::fabs(leptonOne.dxy) < max_dxy;
+  etau  &= std::fabs(leptonOne.dz ) < max_dz ;
+  emu   &= std::fabs(leptonOne.dxy) < max_dxy;
+  emu   &= std::fabs(leptonOne.dz ) < max_dz ;
+  emu   &= std::fabs(leptonTwo.dxy) < max_dxy;
+  emu   &= std::fabs(leptonTwo.dz ) < max_dz ;
+  mumu  &= std::fabs(leptonOne.dxy) < max_dxy;
+  mumu  &= std::fabs(leptonOne.dz ) < max_dz ;
+  mumu  &= std::fabs(leptonTwo.dxy) < max_dxy;
+  mumu  &= std::fabs(leptonTwo.dz ) < max_dz ;
+  ee    &= std::fabs(leptonOne.dxy) < max_dxy;
+  ee    &= std::fabs(leptonOne.dz ) < max_dz ;
+  ee    &= std::fabs(leptonTwo.dxy) < max_dxy;
+  ee    &= std::fabs(leptonTwo.dz ) < max_dz ;
 
   //remove additional leptons in tau categories
   mutau &= nElectrons == 0;
@@ -1500,12 +1500,12 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   mutau &= isLooseTau || tauDeepAntiJet >= 50; //63 = tight
   mutau &= tauDeepAntiMu  >= 10; //15 = tight
   mutau &= tauDeepAntiEle >= 10; //15 = loose
-  mutau &= leptonTwoID2   >=  2; //1 = loose, 3 = tight tau MVA anti-muon ID
+  mutau &= leptonTwo.id2  >=  2; //1 = loose, 3 = tight tau MVA anti-muon ID
 
   etau  &= isLooseTau || tauDeepAntiJet >= 50; //
   etau  &= tauDeepAntiMu  >= 10; //15 = tight
   etau  &= tauDeepAntiEle >= 50; //63 = tight
-  etau  &= leptonTwoID2   >=  2; //1 = loose, 3 = tight tau MVA anti-muon ID
+  etau  &= leptonTwo.id2  >=  2; //1 = loose, 3 = tight tau MVA anti-muon ID
 
   //remove tau decay modes not interested in
   mutau &= tauDecayMode != 5 && tauDecayMode != 6;
@@ -1528,8 +1528,8 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   //cut-flow for fake leptons
   if(fIsData) fCutFlow->Fill(icutflow); //13
   else if(emu) {
-    if((std::abs(leptonOneFlavor) == std::abs(leptonOneGenFlavor))
-       && (std::abs(leptonTwoFlavor) == std::abs(leptonTwoGenFlavor))) {
+    if((std::abs(leptonOne.flavor) == std::abs(leptonOne.genFlavor))
+       && (std::abs(leptonTwo.flavor) == std::abs(leptonTwo.genFlavor))) {
       fCutFlow->Fill(icutflow);
     }
   }
@@ -1548,7 +1548,7 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   const double met_cut       = 60.;
   const double mtlep_cut     = 70.;
   const double qcd_mtlep_cut = (etau) ? 45. : mtlep_cut;
-  // const bool qcdSelection     = (etau || (mutau && leptonOneIso/fTreeVars.leponept > 0.05)) && fTreeVars.mtlep < 40. && met < met_cut && nBJetsUse == 0;
+  // const bool qcdSelection     = (etau || (mutau && leptonOne.relIso > 0.05)) && fTreeVars.mtlep < 40. && met < met_cut && nBJetsUse == 0;
   const bool looseQCDRegion    = fTreeVars.mtlep < mtlep_cut && met < met_cut && nBJetsUse == 0; // no isolation cut (mutau, 0 - 0.5 allowed) and electron WPL + tight ID
   const bool qcdSelection      = looseQCDRegion && fTreeVars.mtlep < qcd_mtlep_cut && (etau || (mutau && fTreeVars.leponereliso > 0.05)) && !(isLooseMuon || isLooseElectron);
   const bool wjetsSelection    = (etau || mutau) && fTreeVars.mtlep > 70. && nBJetsUse == 0 && !(isLooseMuon || isLooseElectron);
@@ -1929,28 +1929,28 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
       // ////////////////////////////////////////////////////////////////////////////
       // // Set 60 + selection offset: Electron triggered
       // ////////////////////////////////////////////////////////////////////////////
-      // if(leptonOneFired && leptonOneP4->Pt() > electron_trig_pt_) {
+      // if(leptonOne.fired && leptonOne.p4->Pt() > electron_trig_pt_) {
       //   FillAllHistograms(set_offset + 60);
       // }
 
       // ////////////////////////////////////////////////////////////////////////////
       // // Set 61 + selection offset: Muon triggered
       // ////////////////////////////////////////////////////////////////////////////
-      // if(leptonTwoFired && leptonTwoP4->Pt() > muon_trig_pt_) {
+      // if(leptonTwo.fired && leptonTwo.p4->Pt() > muon_trig_pt_) {
       //   FillAllHistograms(set_offset + 61);
       // }
 
       // ////////////////////////////////////////////////////////////////////////////
       // // Set 62 + selection offset: Both leptons triggered
       // ////////////////////////////////////////////////////////////////////////////
-      // if(leptonOneFired && leptonTwoFired) {
+      // if(leptonOne.fired && leptonTwo.fired) {
       //   FillAllHistograms(set_offset + 62);
       // }
 
       ////////////////////////////////////////////////////////////////////////////
       // Set 63 + selection offset: Electron triggerable
       ////////////////////////////////////////////////////////////////////////////
-      if(leptonOneP4->Pt() > electron_trig_pt_) {
+      if(leptonOne.p4->Pt() > electron_trig_pt_) {
         FillAllHistograms(set_offset + 63);
       }
       ////////////////////////////////////////////////////////////////////////////
@@ -1963,7 +1963,7 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
       ////////////////////////////////////////////////////////////////////////////
       // Set 64 + selection offset: muon triggerable
       ////////////////////////////////////////////////////////////////////////////
-      if(leptonTwoP4->Pt() > muon_trig_pt_) {
+      if(leptonTwo.p4->Pt() > muon_trig_pt_) {
         FillAllHistograms(set_offset + 64);
       }
       ////////////////////////////////////////////////////////////////////////////
@@ -1976,7 +1976,7 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
       ////////////////////////////////////////////////////////////////////////////
       // Set 65 + selection offset: Electron+Muon triggerable
       ////////////////////////////////////////////////////////////////////////////
-      if(leptonOneP4->Pt() > electron_trig_pt_ && leptonTwoP4->Pt() > muon_trig_pt_) {
+      if(leptonOne.p4->Pt() > electron_trig_pt_ && leptonTwo.p4->Pt() > muon_trig_pt_) {
         FillAllHistograms(set_offset + 65);
       }
     } else { //ee and mumu trigger testing
@@ -1985,28 +1985,28 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
       // ////////////////////////////////////////////////////////////////////////////
       // // Set 60 + selection offset: lepton one triggered
       // ////////////////////////////////////////////////////////////////////////////
-      // if(leptonOneFired && leptonOneP4->Pt() > trig_threshold) {
+      // if(leptonOne.fired && leptonOne.p4->Pt() > trig_threshold) {
       //   FillAllHistograms(set_offset + 60);
       // }
 
       // ////////////////////////////////////////////////////////////////////////////
       // // Set 61 + selection offset: lepton two triggered
       // ////////////////////////////////////////////////////////////////////////////
-      // if(leptonTwoFired && leptonTwoP4->Pt() > trig_threshold) {
+      // if(leptonTwo.fired && leptonTwo.p4->Pt() > trig_threshold) {
       //   FillAllHistograms(set_offset + 61);
       // }
 
       // ////////////////////////////////////////////////////////////////////////////
       // // Set 62 + selection offset: both leptons triggered
       // ////////////////////////////////////////////////////////////////////////////
-      // if(leptonOneFired && leptonOneP4->Pt() > trig_threshold && leptonTwoFired && leptonTwoP4->Pt() > trig_threshold) {
+      // if(leptonOne.fired && leptonOne.p4->Pt() > trig_threshold && leptonTwo.fired && leptonTwo.p4->Pt() > trig_threshold) {
       //   FillAllHistograms(set_offset + 62);
       // }
 
       ////////////////////////////////////////////////////////////////////////////
       // Set 63 + selection offset: lepton two triggerable
       ////////////////////////////////////////////////////////////////////////////
-      if(leptonTwoP4->Pt() > trig_threshold) {
+      if(leptonTwo.p4->Pt() > trig_threshold) {
         FillAllHistograms(set_offset + 63);
       }
       ////////////////////////////////////////////////////////////////////////////

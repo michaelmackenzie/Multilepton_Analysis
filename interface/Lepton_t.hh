@@ -13,28 +13,38 @@ namespace CLFV {
     float scEta;
     int   flavor;
     float iso;
+    float relIso;
     float dxy;
     float dz;
+    float d0;
     float dxySig;
     float dzSig;
 
-    int   ID1;
-    int   ID2;
-    int   ID3;
-    float wt1[3];
-    float wt2[3];
+    UChar_t id1;
+    UChar_t id2;
+    UChar_t id3;
+    float wt1[4] = {1.f, 1.f, 1.f, 1.f}; //weight, up, down, sys
+    float wt2[4] = {1.f, 1.f, 1.f, 1.f}; //weight, up, down, sys
     int   wt1_bin;
     int   wt2_bin;
-    float trig_wt;
+    int   wt1_group;
+    int   wt2_group;
+    float trig_wt = 1.f;
 
     int   trigger;
     bool  fired;
 
     int   genFlavor;
-    float ptSF[3];
-    float ES[3];
+    int   genID;
+    float ptSF[3] = {1.f, 1.f, 1.f};
+    float ES[3] = {1.f, 1.f, 1.f};
 
     bool  jetOverlap;
+
+    bool isElectron() {return std::abs(flavor) == 11;}
+    bool isMuon    () {return std::abs(flavor) == 13;}
+    bool isTau     () {return std::abs(flavor) == 15;}
+    int  charge    () {return (flavor != 0) ? flavor/std::abs(flavor) : 0;}
   };
 }
 #endif

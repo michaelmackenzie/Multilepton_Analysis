@@ -204,7 +204,7 @@ void SparseHistMaker::FillEventHistogram(EventHist_t* Hist) {
   Hist->hMTTwo             ->Fill(fTreeVars.mttwo           , eventWeight*genWeight);
   Hist->hMTLep             ->Fill(fTreeVars.mtlep           , eventWeight*genWeight);
 
-  TLorentzVector lepSys = (*leptonOneP4) + (*leptonTwoP4);
+  TLorentzVector lepSys = (*leptonOne.p4) + (*leptonTwo.p4);
 
   Hist->hLepPt[0]          ->Fill(lepSys.Pt()               , eventWeight*genWeight);
   Hist->hLepM[0]           ->Fill(lepSys.M()                , eventWeight*genWeight);
@@ -235,12 +235,12 @@ void SparseHistMaker::FillLepHistogram(LepHist_t* Hist) {
   //  Lep 1  //
   /////////////
   Hist->hOnePt[0]          ->Fill(fTreeVars.leponept        , eventWeight*genWeight);
-  Hist->hOneEta            ->Fill(leptonOneP4->Eta()        , eventWeight*genWeight);
-  Hist->hOneDXY            ->Fill(leptonOneDXY              , eventWeight*genWeight);
-  Hist->hOneDZ             ->Fill(leptonOneDZ               , eventWeight*genWeight);
+  Hist->hOneEta            ->Fill(leptonOne.p4->Eta()        , eventWeight*genWeight);
+  Hist->hOneDXY            ->Fill(leptonOne.dxy              , eventWeight*genWeight);
+  Hist->hOneDZ             ->Fill(leptonOne.dz               , eventWeight*genWeight);
   Hist->hOneRelIso         ->Fill(fTreeVars.leponereliso    , eventWeight*genWeight);
-  Hist->hOneTrigger        ->Fill(leptonOneTrigger          , eventWeight*genWeight);
-  double oneMetDelPhi  = std::fabs(leptonOneP4->Phi() - metPhi);
+  Hist->hOneTrigger        ->Fill(leptonOne.trigger          , eventWeight*genWeight);
+  double oneMetDelPhi  = std::fabs(leptonOne.p4->Phi() - metPhi);
   if(oneMetDelPhi > M_PI) oneMetDelPhi = std::fabs(2.*M_PI - oneMetDelPhi);
   Hist->hOneMetDeltaPhi    ->Fill(oneMetDelPhi              , eventWeight*genWeight);
 
@@ -249,12 +249,12 @@ void SparseHistMaker::FillLepHistogram(LepHist_t* Hist) {
   /////////////
 
   Hist->hTwoPt[0]          ->Fill(fTreeVars.leptwopt        , eventWeight*genWeight);
-  Hist->hTwoEta            ->Fill(leptonTwoP4->Eta()        , eventWeight*genWeight);
-  Hist->hTwoDXY            ->Fill(leptonTwoDXY              , eventWeight*genWeight);
-  Hist->hTwoDZ             ->Fill(leptonTwoDZ               , eventWeight*genWeight);
+  Hist->hTwoEta            ->Fill(leptonTwo.p4->Eta()        , eventWeight*genWeight);
+  Hist->hTwoDXY            ->Fill(leptonTwo.dxy              , eventWeight*genWeight);
+  Hist->hTwoDZ             ->Fill(leptonTwo.dz               , eventWeight*genWeight);
   Hist->hTwoRelIso         ->Fill(fTreeVars.leptworeliso    , eventWeight*genWeight);
-  Hist->hTwoTrigger        ->Fill(leptonTwoTrigger          , eventWeight*genWeight);
-  double twoMetDelPhi  = std::fabs(leptonTwoP4->Phi() - metPhi);
+  Hist->hTwoTrigger        ->Fill(leptonTwo.trigger          , eventWeight*genWeight);
+  double twoMetDelPhi  = std::fabs(leptonTwo.p4->Phi() - metPhi);
   if(twoMetDelPhi > M_PI) twoMetDelPhi = std::fabs(2.*M_PI - twoMetDelPhi);
   Hist->hTwoMetDeltaPhi    ->Fill(twoMetDelPhi              , eventWeight*genWeight);
 
@@ -282,12 +282,12 @@ Bool_t SparseHistMaker::Process(Long64_t entry)
   //object pT thresholds
   float muon_pt(10.), electron_pt(15.), tau_pt(20.);
 
-  if(std::abs(leptonOneFlavor) == 11 && leptonOneP4->Pt() <= electron_pt) return kTRUE;
-  if(std::abs(leptonTwoFlavor) == 11 && leptonTwoP4->Pt() <= electron_pt) return kTRUE;
-  if(std::abs(leptonOneFlavor) == 13 && leptonOneP4->Pt() <= muon_pt    ) return kTRUE;
-  if(std::abs(leptonTwoFlavor) == 13 && leptonTwoP4->Pt() <= muon_pt    ) return kTRUE;
-  if(std::abs(leptonOneFlavor) == 15 && leptonOneP4->Pt() <= tau_pt     ) return kTRUE;
-  if(std::abs(leptonTwoFlavor) == 15 && leptonTwoP4->Pt() <= tau_pt     ) return kTRUE;
+  if(leptonOne.isElectron() && leptonOne.p4->Pt() <= electron_pt) return kTRUE;
+  if(leptonTwo.isElectron() && leptonTwo.p4->Pt() <= electron_pt) return kTRUE;
+  if(leptonOne.isMuon    () && leptonOne.p4->Pt() <= muon_pt    ) return kTRUE;
+  if(leptonTwo.isMuon    () && leptonTwo.p4->Pt() <= muon_pt    ) return kTRUE;
+  if(leptonOne.isTau     () && leptonOne.p4->Pt() <= tau_pt     ) return kTRUE;
+  if(leptonTwo.isTau     () && leptonTwo.p4->Pt() <= tau_pt     ) return kTRUE;
 
   fCutFlow->Fill(icutflow); ++icutflow; //6
 
@@ -295,23 +295,23 @@ Bool_t SparseHistMaker::Process(Long64_t entry)
   const double electron_eta_max = (fUseEmbedCuts) ? 2.2 : 2.5;
   const double muon_eta_max     = (fUseEmbedCuts) ? 2.2 : 2.4;
   const double tau_eta_max      = (fUseEmbedCuts) ? 2.2 : 2.3;
-  if(std::abs(leptonOneFlavor) == 11 && std::fabs(leptonOneP4->Eta()) >= electron_eta_max) return kTRUE;
-  if(std::abs(leptonTwoFlavor) == 11 && std::fabs(leptonTwoP4->Eta()) >= electron_eta_max) return kTRUE;
-  if(std::abs(leptonOneFlavor) == 13 && std::fabs(leptonOneP4->Eta()) >= muon_eta_max    ) return kTRUE;
-  if(std::abs(leptonTwoFlavor) == 13 && std::fabs(leptonTwoP4->Eta()) >= muon_eta_max    ) return kTRUE;
-  if(std::abs(leptonOneFlavor) == 15 && std::fabs(leptonOneP4->Eta()) >= tau_eta_max     ) return kTRUE;
-  if(std::abs(leptonTwoFlavor) == 15 && std::fabs(leptonTwoP4->Eta()) >= tau_eta_max     ) return kTRUE;
+  if(leptonOne.isElectron() && std::fabs(leptonOne.p4->Eta()) >= electron_eta_max) return kTRUE;
+  if(leptonTwo.isElectron() && std::fabs(leptonTwo.p4->Eta()) >= electron_eta_max) return kTRUE;
+  if(leptonOne.isMuon    () && std::fabs(leptonOne.p4->Eta()) >= muon_eta_max    ) return kTRUE;
+  if(leptonTwo.isMuon    () && std::fabs(leptonTwo.p4->Eta()) >= muon_eta_max    ) return kTRUE;
+  if(leptonOne.isTau     () && std::fabs(leptonOne.p4->Eta()) >= tau_eta_max     ) return kTRUE;
+  if(leptonTwo.isTau     () && std::fabs(leptonTwo.p4->Eta()) >= tau_eta_max     ) return kTRUE;
 
-  if(std::fabs(leptonOneP4->DeltaR(*leptonTwoP4)) < 0.3) return kTRUE;
+  if(std::fabs(leptonOne.p4->DeltaR(*leptonTwo.p4)) < 0.3) return kTRUE;
 
   fCutFlow->Fill(icutflow); ++icutflow; //7
 
-  const double mll = (*leptonOneP4+*leptonTwoP4).M();
+  const double mll = (*leptonOne.p4+*leptonTwo.p4).M();
   if(mll <= 51. || mll >= 170.) return kTRUE;
 
   fCutFlow->Fill(icutflow); ++icutflow; //8
 
-  if(!(leptonOneFired || leptonTwoFired)) return kTRUE;
+  if(!(leptonOne.fired || leptonTwo.fired)) return kTRUE;
 
   ee    &= !isLooseElectron && nElectrons == 2 && nMuons != 2;
   mumu  &= !isLooseMuon && nMuons == 2 && nElectrons != 2;
@@ -336,19 +336,19 @@ Bool_t SparseHistMaker::Process(Long64_t entry)
 
   //reject electrons in the barrel/endcap gap region
   const float elec_gap_low(1.4442), elec_gap_high(1.566);
-  etau &= elec_gap_low > std::fabs(leptonOneSCEta) || std::fabs(leptonOneSCEta) > elec_gap_high;
-  emu  &= elec_gap_low > std::fabs(leptonOneSCEta) || std::fabs(leptonOneSCEta) > elec_gap_high;
-  ee   &= elec_gap_low > std::fabs(leptonOneSCEta) || std::fabs(leptonOneSCEta) > elec_gap_high;
-  ee   &= elec_gap_low > std::fabs(leptonTwoSCEta) || std::fabs(leptonTwoSCEta) > elec_gap_high;
+  etau &= elec_gap_low > std::fabs(leptonOne.scEta) || std::fabs(leptonOne.scEta) > elec_gap_high;
+  emu  &= elec_gap_low > std::fabs(leptonOne.scEta) || std::fabs(leptonOne.scEta) > elec_gap_high;
+  ee   &= elec_gap_low > std::fabs(leptonOne.scEta) || std::fabs(leptonOne.scEta) > elec_gap_high;
+  ee   &= elec_gap_low > std::fabs(leptonTwo.scEta) || std::fabs(leptonTwo.scEta) > elec_gap_high;
 
   fCutFlow->Fill(icutflow); ++icutflow; //9
 
   if(!(mutau || etau || emu || mumu || ee)) return kTRUE;
 
   //Tau ID selections
-  mutau &= leptonTwoID2 >= 2;
+  mutau &= leptonTwo.id2 >= 2;
   etau  &= tauDeepAntiEle >= 50;
-  etau  &= leptonTwoID2 >= 2;
+  etau  &= leptonTwo.id2 >= 2;
 
   mutau &= tauDecayMode != 5 && tauDecayMode != 6;
   etau  &= tauDecayMode != 5 && tauDecayMode != 6;

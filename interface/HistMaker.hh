@@ -39,6 +39,7 @@
 #include "interface/LepHist_t.hh"
 #include "interface/PhotonHist_t.hh"
 #include "interface/SystematicHist_t.hh"
+#include "interface/Lepton_t.hh"
 
 //initialize local MVA weight files
 #include "interface/TrkQualInit.hh"
@@ -144,6 +145,8 @@ namespace CLFV {
     UChar_t Electron_genPartFlav          [kMaxLeptons];
     Int_t   Electron_genPartIdx           [kMaxLeptons];
     Float_t Electron_energyScale          [kMaxLeptons]; //energy scale replacing given one
+    Float_t Electron_energyScaleUp        [kMaxLeptons];
+    Float_t Electron_energyScaleDown      [kMaxLeptons];
 
     //taus
     UInt_t  nTau                                       ;
@@ -171,6 +174,8 @@ namespace CLFV {
     UChar_t Tau_genPartFlav               [kMaxLeptons];
     Int_t   Tau_genPartIdx                [kMaxLeptons];
     Float_t Tau_energyScale               [kMaxLeptons]; //calculated enery scale
+    Float_t Tau_energyScaleUp             [kMaxLeptons]; //calculated enery scale
+    Float_t Tau_energyScaleDown           [kMaxLeptons]; //calculated enery scale
 
     //jets
     UInt_t  nJet                                         ;
@@ -290,80 +295,15 @@ namespace CLFV {
     Float_t tauES                      ;
     Float_t tauES_up                   ;
     Float_t tauES_down                 ;
-    Int_t   tauESBin                   ;
+    // Int_t   tauESBin                   ;
 
     //Selected lepton info
-    TLorentzVector* leptonOneP4        ;
-    TLorentzVector* leptonTwoP4        ;
-    Float_t leptonOneSCEta             ;
-    Float_t leptonTwoSCEta             ;
-    Int_t leptonOneFlavor              ;
-    Int_t leptonTwoFlavor              ;
-    Int_t leptonOneGenFlavor           ;
-    Int_t leptonTwoGenFlavor           ;
-    Float_t leptonOnePtSF              ;
-    Float_t leptonTwoPtSF              ;
-    Bool_t leptonOneJetOverlap         ;
-    Bool_t leptonTwoJetOverlap         ;
-    Float_t leptonOneDXY               ;
-    Float_t leptonTwoDXY               ;
-    Float_t leptonOneDZ                ;
-    Float_t leptonTwoDZ                ;
-    Float_t leptonOneDXYSig            ;
-    Float_t leptonTwoDXYSig            ;
-    Float_t leptonOneDZSig             ;
-    Float_t leptonTwoDZSig             ;
-    Float_t leptonOneD0                ;
-    Float_t leptonTwoD0                ;
-    Float_t leptonOneIso               ;
-    Float_t leptonTwoIso               ;
-    UChar_t leptonOneID1               ;
-    UChar_t leptonOneID2               ;
-    UChar_t leptonTwoID1               ;
-    UChar_t leptonTwoID2               ;
-    UChar_t leptonTwoID3               ;
-    Int_t   leptonOneTrigger           ;
-    Int_t   leptonTwoTrigger           ;
-    Bool_t  leptonOneFired             ;
-    Bool_t  leptonTwoFired             ;
+    Lepton_t leptonOne                 ;
+    Lepton_t leptonTwo                 ;
     TLorentzVector* genLeptonOneP4 = 0 ;
     TLorentzVector* genLeptonTwoP4 = 0 ;
 
-    //Lepton ID/trigger weights
-    Float_t leptonOneWeight1 = 1.      ;
-    Float_t leptonOneWeight1_up = 1.   ;
-    Float_t leptonOneWeight1_down = 1. ;
-    Int_t   leptonOneWeight1_bin = 0   ;
-    Int_t   leptonOneWeight1_group = 0 ;
-    Float_t leptonOneWeight1_sys       ;
-    Float_t leptonOneWeight2 = 1.      ;
-    Float_t leptonOneWeight2_up = 1.   ;
-    Float_t leptonOneWeight2_down = 1. ;
-    Int_t   leptonOneWeight2_bin = 0   ;
-    Float_t leptonOneWeight2_sys       ;
-    Int_t   leptonOneWeight2_group = 0 ;
-    Float_t leptonTwoWeight1 = 1.      ;
-    Float_t leptonTwoWeight1_up = 1.   ;
-    Float_t leptonTwoWeight1_down = 1. ;
-    Int_t   leptonTwoWeight1_bin = 0   ;
-    Int_t   leptonTwoWeight1_group = 0 ;
-    Float_t leptonTwoWeight1_sys       ;
-    Float_t leptonTwoWeight2 = 1.      ;
-    Float_t leptonTwoWeight2_up = 1.   ;
-    Float_t leptonTwoWeight2_down = 1. ;
-    Int_t   leptonTwoWeight2_bin = 0   ;
-    Int_t   leptonTwoWeight2_group = 0 ;
-    Float_t leptonTwoWeight2_sys       ;
-    Float_t leptonOneTrigWeight        ;
-    Float_t leptonTwoTrigWeight        ;
     Float_t triggerWeights[3]          ;
-
-    Float_t leptonOneES                ;
-    Float_t leptonOneES_up             ;
-    Float_t leptonOneES_down           ;
-    Float_t leptonTwoES                ;
-    Float_t leptonTwoES_up             ;
-    Float_t leptonTwoES_down           ;
 
     //Additional event object information
     TLorentzVector* photonP4 = 0       ;
@@ -375,9 +315,6 @@ namespace CLFV {
     Bool_t jetOneBTag                  ;
     Float_t jetOneBMVA                 ;
 
-    Float_t eleES                      ;
-    Float_t eleES_up                   ;
-    Float_t eleES_down                 ;
     UInt_t nElectrons                  ;
     UInt_t nMuons                      ;
     UInt_t nTaus                       ;
@@ -478,7 +415,7 @@ namespace CLFV {
       if(ID == 1 || ID == 3) return 11;
       if(ID == 2 || ID == 4) return 13;
       if(ID == 5) return 15;
-     return 26; //unknown
+      return 26; //unknown
     }
     int             MuonFlavorFromID(int ID) {
       if(ID == 1 || ID == 5 || ID == 4 || ID == 3 || ID == 15) return 13;
