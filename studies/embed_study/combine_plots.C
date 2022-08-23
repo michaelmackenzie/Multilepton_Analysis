@@ -159,6 +159,7 @@ int combine_plots(const TString selec = "emu", const int year = 2018, const bool
   make_figure("hdileppt"  , fEmbed, fDY);
   make_figure("hdilepmass", fEmbed, fDY);
   make_figure("hdilepeta" , fEmbed, fDY);
+  make_figure("hlogweight", fEmbed, fDY);
   make_2d_figure("hzetavspt", fEmbed, fDY);
 
   gSystem->Exec("[ ! -d rootfiles ] && mkdir rootfiles");

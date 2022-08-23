@@ -103,8 +103,9 @@ int make_hists(const TString selec = "emu", const bool isEmbed = true, const int
   const int n_eta_bins = sizeof(eta_bins) / sizeof(*eta_bins) - 1;
   TH2* hZEtaVsPt  = new TH2D("hzetavspt" , "Z |#eta| vs p_{T}",  n_eta_bins, eta_bins, n_pt_bins, pt_bins);
 
-  TH1* hWeight    = new TH1D("hweight"   , "Total weight"   , 100,0.,  2);
-  TH1* hUnfold    = new TH1D("hunfold"   , "Unfolding weight", 50,0.,  2);
+  TH1* hWeight    = new TH1D("hweight"   , "Total weight"         , 100, 0., 2);
+  TH1* hLogWeight = new TH1D("hlogweight", "Log10(|Total weight|)",  50,-8., 2);
+  TH1* hUnfold    = new TH1D("hunfold"   , "Unfolding weight"     , 50, 0., 2);
 
   //Normalization info to output
   Long64_t nseen(0), nnorm(0);
@@ -116,8 +117,8 @@ int make_hists(const TString selec = "emu", const bool isEmbed = true, const int
   const float min_electron_pt   = 15.;
   const float min_muon_pt       = 10.;
   const float min_tau_pt        = 20.;
-  const float min_electron_trig = (year == 2016) ? 29. : 35.;
-  const float min_muon_trig     = (year == 2017) ? 28. : 25.;
+  const float min_electron_trig = 29.; //(year == 2016) ? 29. : 35.;
+  const float min_muon_trig     = 25.; //(year == 2017) ? 28. : 25.;
   const float max_eta           = 2.2;
   const float min_lepm          = 50.;
 
@@ -316,6 +317,7 @@ int make_hists(const TString selec = "emu", const bool isEmbed = true, const int
 
       hUnfold->Fill(unfold);
       hWeight->Fill(wt);
+      hLogWeight->Fill((std::fabs(wt) > 0.) ? std::log10(std::fabs(wt)) : -99.);
     }
 
     cout << "N(test) events = " << ntest << endl;
@@ -359,6 +361,7 @@ int make_hists(const TString selec = "emu", const bool isEmbed = true, const int
   hDiLepMass  ->Write();
   hDiLepPt    ->Write();
   hDiLepEta   ->Write();
+  hLogWeight  ->Write();
   hZEtaVsPt   ->Write();
   fout->Close();
 
