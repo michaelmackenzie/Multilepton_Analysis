@@ -25,15 +25,33 @@
 
 #include "interface/PlottingCard_t.hh"
 #include "interface/DataCard_t.hh"
-
+#include "interface/Titles.hh"
 
 namespace CLFV {
   class DataPlotter : public TObject {
   public :
 
+    //Data stored per file
+    struct Data_t {
+      Double_t scale_     ; //scale for the dataset
+      Int_t    process_   ; //indicates which backgrounds to use
+      TString  name_      ; //to get event histograms
+      TString  label_     ; //to label tlegend and group datasets
+      Double_t xsec_      ; //cross section
+      TString  fileName_  ; //input file name
+      TFile*   file_      ; //histogram files opened
+      TFile*   data_      ; //background data files
+      bool     isData_    ; //flag to check if is data
+      bool     isEmbed_   ; //flag to check if is embedded
+      bool     isSignal_  ; //flag to check if is signal file
+      Int_t    dataYear_  ; //list of years it's associated with (2016, 2017, or 2018)
+      Int_t    ngenerated_; //generation number for datasets
+    };
+
     TString selection_ = "mutau"; //selection category
     std::vector<Int_t> years_ = {2016};
     Int_t verbose_ = 0;
+    std::vector<Data_t>   inputs_; //list of input data to plot
     std::vector<Double_t> scale_; //scales for datasets
     std::vector<Int_t>    process_; //indicates which backgrounds to use
     std::vector<TString> names_; //to get event histograms
@@ -272,23 +290,21 @@ namespace CLFV {
       }
     }
 
-    void get_titles(TString hist, TString setType, TString* xtitle, TString* ytitle, TString* title);
-
     std::vector<TH1*> get_signal(TString hist, TString setType, Int_t set);
-    TH2D* get_signal_2D(TString hist, TString setType, Int_t set);
+    TH2* get_signal_2D(TString hist, TString setType, Int_t set);
 
     TH1* get_data(TString hist, TString setType, Int_t set);
-    TH2D* get_data_2D(TString hist, TString setType, Int_t set);
+    TH2* get_data_2D(TString hist, TString setType, Int_t set);
 
     TH1* get_qcd(TString hist, TString setType, Int_t set);
-    TH2D* get_qcd_2D(TString hist, TString setType, Int_t set);
+    TH2* get_qcd_2D(TString hist, TString setType, Int_t set);
 
     TH1* get_misid(TString hist, TString setType, Int_t set);
-    TH2D* get_misid_2D(TString hist, TString setType, Int_t set);
+    TH2* get_misid_2D(TString hist, TString setType, Int_t set);
 
     TH1* get_stack_uncertainty(THStack* hstack, TString hname);
     THStack* get_stack(TString hist, TString setType, Int_t set);
-    TH2D* get_background_2D(TString hist, TString setType, Int_t set);
+    TH2* get_background_2D(TString hist, TString setType, Int_t set);
 
     TCanvas* plot_single_2Dhist(TString hist, TString setType, Int_t set, TString label);
     TCanvas* plot_single_2Dhist(TString hist, TString setType, Int_t set, TString label,

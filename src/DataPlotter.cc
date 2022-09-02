@@ -1,628 +1,7 @@
 #include "interface/DataPlotter.hh"
 using namespace CLFV;
 
-void DataPlotter::get_titles(TString hist, TString setType, TString* xtitle, TString* ytitle, TString* title) {
-  TString lep1("l1"), lep2("l2");
-  if     (selection_ == "mutau"   ) {lep1 = "#mu" ; lep2 = "#tau";}
-  else if(selection_ == "etau"    ) {lep1 = "e"   ; lep2 = "#tau";}
-  else if(selection_ == "emu"     ) {lep1 = "e"   ; lep2 = "#mu" ;}
-  else if(selection_.Contains("_")) {lep1 = "e"   ; lep2 = "#mu" ;}
-  else if(selection_ == "ee"      ) {lep1 = "e1"  ; lep2 = "e2"  ;}
-  else if(selection_ == "mumu"    ) {lep1 = "#mu1"; lep2 = "#mu2";}
-  if(hist == "lepdelrvsphi") {
-    *xtitle = Form("#DeltaR / %.1f",0.1*rebinH_);
-    *ytitle = Form("#Delta#phi / %.1f",0.1*rebinH_);
-    *title  = Form("#DeltaR vs #Delta#phi Between Leptons %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
-  }
-  else if(hist.Contains("prime")) {
-    *xtitle = hist;
-    xtitle->ReplaceAll("prime", " #tilde{");
-    xtitle->ReplaceAll("met", "MET");
-    xtitle->ReplaceAll("lepone", lep1.Data());
-    xtitle->ReplaceAll("leptwo", lep2.Data());
-    xtitle->ReplaceAll("0", "");
-    xtitle->ReplaceAll("1", "");
-    xtitle->ReplaceAll("2", "");
-    if(xtitle->Contains("p")) {
-      xtitle->ReplaceAll("p", "p_{");
-      *xtitle = *xtitle + "}";
-    }
-    xtitle->ReplaceAll("{e", "{E");
-    *xtitle = *xtitle + "}";
-  }
-  else if(hist == "sysm" && setType == "event") {
-    *xtitle = "M_{ll#gamma} (GeV/c^{2})";
-    *ytitle = Form("Events / %.0f GeV/c^{2}",1.*rebinH_);
-    *title  = Form("Mass of the Photon + Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
-  }
-  else if(hist == "ntriggered") {
-    *xtitle = "N(triggering leptons)";
-    *ytitle = Form("Events / %.0f GeV",2.*rebinH_);
-    *title  = Form("N(leptons) that fired a trigger %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
-  }
-  else if(hist == "met") {
-    *xtitle = "Missing Transverse Energy (GeV)";
-    *ytitle = Form("Events / %.0f GeV",2.*rebinH_);
-    *title  = Form("Missing Transverse Energy %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
-  }
-  else if(hist == "pfmet") {
-    *xtitle = "PF Missing Transverse Energy (GeV)";
-    *ytitle = Form("Events / %.0f GeV",2.*rebinH_);
-    *title  = Form("Missing Transverse Energy %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
-  }
-  else if(hist == "puppmet") {
-    *xtitle = "PUPPI Missing Transverse Energy (GeV)";
-    *ytitle = Form("Events / %.0f GeV",2.*rebinH_);
-    *title  = Form("Missing Transverse Energy %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
-  }
-  else if(hist == "lepptoverm") {
-    *xtitle = "p_{T}^{ll} / M_{ll}";
-    *ytitle = Form("Events / %.1f GeV/c^{2}",0.2*rebinH_);
-    *title  = Form("pT Over Mass of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
-  }
-  else if(hist == "lepm") {
-    *xtitle = "M_{ll} (GeV/c^{2})";
-    *ytitle = Form("Events / %.0f GeV/c^{2}",1.*rebinH_);
-    *title  = Form("Mass of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
-  }
-  else if(hist == "lepmestimate") {
-    *xtitle = "M_{ll}^{Col} (GeV/c^{2})";
-    *ytitle = Form("Events / %.0f GeV/c^{2}",1.*rebinH_);
-    *title  = Form("Mass Estimate of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
-  }
-  else if(hist == "lepmestimatetwo") {
-    *xtitle = "M_{ll}^{Col} (GeV/c^{2})";
-    *ytitle = Form("Events / %.0f GeV/c^{2}",1.*rebinH_);
-    *title  = Form("Mass Estimate of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
-  }
-  else if(hist == "lepe") {
-    *xtitle = "E_{ll} (GeV)";
-    *ytitle = Form("Events / %.0f GeV",1.*rebinH_);
-    *title  = Form("Energy of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
-  }
-  else if(hist == "lepp") {
-    *xtitle = "P_{ll} (GeV)";
-    *ytitle = Form("Events / %.0f GeV",1.*rebinH_);
-    *title  = Form("Momentum of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
-  }
-  else if(hist == "leppt") {
-    *xtitle = "p_{T}^{ll} (GeV/c)";
-    *ytitle = Form("Events / %.0f GeV/c",2.*rebinH_);
-    *title  = Form("pT of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
-  }
-  else if(hist == "lepsvptoverm") {
-    *xtitle = "SVfit pT / M_{ll}";
-    *ytitle = Form("Events / %.1f GeV/c^{2}",0.2*rebinH_);
-    *title  = Form("SVfit pT Over Mass of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
-  }
-  else if(hist == "lepsvm") {
-    *xtitle = "SVfit M_{ll} (GeV/c^{2})";
-    *ytitle = Form("Events / %.0f GeV/c^{2}",1.*rebinH_);
-    *title  = Form("SVfit Mass of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
-  }
-  else if(hist == "lepsve") {
-    *xtitle = "SVfit E_{ll} (GeV)";
-    *ytitle = Form("Events / %.0f GeV",1.*rebinH_);
-    *title  = Form("SVfit Energy of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
-  }
-  else if(hist == "lepsvp") {
-    *xtitle = "SVfit P_{ll} (GeV)";
-    *ytitle = Form("Events / %.0f GeV",1.*rebinH_);
-    *title  = Form("SVfit Momentum of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
-  }
-  else if(hist == "lepsvpt") {
-    *xtitle = "SVfit pT (GeV/c)";
-    *ytitle = Form("Events / %.0f GeV/c",2.*rebinH_);
-    *title  = Form("SVfit pT of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
-  }
-  else if(hist == "pt" && setType == "photon") {
-    *xtitle = "p_{T}^{#gamma} (GeV/c)";
-    *ytitle = Form("Events / %.0f GeV/c",2.*rebinH_);
-    *title  = Form("pT of the Photon");
-  }
-  else if(hist == "onept") {
-    *xtitle = Form("p_{T}^{%s} (GeV/c)", lep1.Data());
-    *ytitle = Form("Events / %.0f GeV/c",1.*rebinH_);
-    *title  = Form("pT of the First Lepton %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
-  }
-  else if(hist == "twopt") {
-    *xtitle = Form("p_{T}^{%s} (GeV/c)", lep2.Data());
-    *ytitle = Form("Events / %.0f GeV/c",1.*rebinH_);
-    *title  = Form("pT of the Second Lepton %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
-  }
-  else if(hist == "ptdiff") {
-    *xtitle = Form("p_{T}^{%s} - p_{T}^{%s} (GeV/c)", lep1.Data(), lep2.Data());
-    *ytitle = Form("Events / %.0f GeV/c",1.*rebinH_);
-    *title  = Form("Lepton pT difference %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
-  }
-  else if(hist == "onesvpt") {
-    *xtitle = "SVFit p_{T}^{1} (GeV/c)";
-    *ytitle = Form("Events / %.0f GeV/c",1.*rebinH_);
-    *title  = Form("SVFit pT of the Leading Lepton %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
-  }
-  else if(hist == "onesvdeltapt") {
-    *xtitle = Form("SVFit p_{T}^{%s} - pT_{%s} (GeV/c)", lep1.Data(), lep1.Data());
-    *ytitle = Form("Events / %.0f GeV/c",1.*rebinH_);
-    *title  = Form("SVFit pT Change of the Leading Lepton %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
-  }
-  else if(hist == "twosvpt") {
-    *xtitle = "SVFit p_{T}^{l2} (GeV/c)";
-    *ytitle = Form("Events / %.0f GeV/c",1.*rebinH_);
-    *title  = Form("SVFit pT of the Trailing Lepton %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
-  }
-  else if(hist == "twosvdeltapt") {
-    *xtitle = "SVFit p_{T}^{l2} - pT_{l2} (GeV/c)";
-    *ytitle = Form("Events / %.0f GeV/c",1.*rebinH_);
-    *title  = Form("SVFit pT Change of the Trailing Lepton %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
-  }
-  else if(hist == "onem") {
-    *xtitle = Form("M_{%s} (GeV/c^{2})", lep1.Data());
-    *ytitle = Form("Events / %.0f GeV/c",1.*rebinH_);
-    *title  = Form("Mass of the Leading Lepton %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
-  }
-  else if(hist == "twom") {
-    *xtitle = Form("M_{%s} (GeV/c^{2})", lep2.Data());
-    *ytitle = Form("Events / %.0f GeV/c",1.*rebinH_);
-    *title  = Form("Mass of the Trailing Lepton %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
-  }
-  else if(hist == "onesvm") {
-    *xtitle = "SVFit M_{l} (GeV/c^{2})";
-    *ytitle = Form("Events / %.0f GeV/c",1.*rebinH_);
-    *title  = Form("SVFit Mass of the Leading Lepton %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
-  }
-  else if(hist == "twosvm") {
-    *xtitle = "SVFit M_{#tau} (GeV/c^{2})";
-    *ytitle = Form("Events / %.0f GeV/c",1.*rebinH_);
-    *title  = Form("SVFit Mass of the Trailing Lepton %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
-  }
-  else if(hist == "oneiso") {
-    *xtitle = Form("%s Isolation", lep1.Data());
-    *ytitle = Form("Events / %.2f",.05*rebinH_);
-    *title  = Form("Isolation of the Leading Lepton %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
-  }
-  else if(hist == "twoiso") {
-    *xtitle = Form("%s Isolation", lep2.Data());
-    *ytitle = Form("Events / %.2f",.05*rebinH_);
-    *title  = Form("Isolation of the Trailing Lepton %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
-  }
-  else if(hist == "twoid1" && (selection_ == "mutau" || selection_ == "etau")) {
-    *xtitle = "tau MVA anti-ele ID";
-    *ytitle = "";
-    *title  = "";
-  }
-  else if(hist == "twoid2" && (selection_ == "mutau" || selection_ == "etau")) {
-    *xtitle = "tau MVA anti-mu ID";
-    *ytitle = "";
-    *title  = "";
-  }
-  else if(hist == "lepdeltar") {
-    *xtitle = "#DeltaR_{ll}";
-    *ytitle = Form("Events / %.1f",0.1*rebinH_);
-    *title  = Form("#Delta R of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
-  }
-  else if(hist == "lepdeltaeta") {
-    *xtitle = "#Delta#eta_{ll}";
-    *ytitle = Form("Events / %.1f",0.1*rebinH_);
-    *title  = Form("#Delta#eta of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
-  }
-  else if(hist == "lepdeltaphi") {
-    *xtitle = "#Delta#phi_{ll}";
-    *ytitle = Form("Events / %.1f",0.1*rebinH_);
-    *title  = Form("#Delta#phi of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
-  }
-  else if(hist == "lepeta") {
-    *xtitle = "#eta_{ll}";
-    *ytitle = Form("Events / %.1f",0.1*rebinH_);
-    *title  = Form("#eta of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
-  }
-  else if(hist == "lepphi") {
-    *xtitle = "#phi_{ll}";
-    *ytitle = Form("Events / %.1f",0.1*rebinH_);
-    *title  = Form("#phi of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
-  }
-  else if(hist == "lepsveta") {
-    *xtitle = "SVfit #eta_{ll}";
-    *ytitle = Form("Events / %.1f",0.1*rebinH_);
-    *title  = Form("SVfit #eta of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
-  }
-  else if(hist == "lepsvphi") {
-    *xtitle = "SVfit #phi_{ll}";
-    *ytitle = Form("Events / %.1f",0.1*rebinH_);
-    *title  = Form("SVfit #phi of the Lepton System %.1ffb^{-1} (#sqrt{#it{s}} = %.0f TeV)",lum_/1e3,rootS_);
-  }
-  else if(hist == "pxivis0") {
-    *xtitle = "#vec{P}_{T}^{vis}#bullet#hat{#zeta}";
-    *ytitle = "";
-    *title  = Form("Visible P_{T} projected onto the lepton bisector");
-  }
-  else if(hist == "pxiinv0") {
-    *xtitle = "#vec{P}_{T}^{inv}#bullet#hat{#zeta}";
-    *ytitle = "";
-    *title  = Form("Invisible P_{T} projected onto the lepton bisector");
-  }
-  else if(hist == "pxidiff0") {
-    *xtitle = "#vec{P}_{T}^{vis}#bullet#hat{#zeta} - #vec{P}_{T}^{inv}#bullet#hat{#zeta}";
-    *ytitle = "";
-    *title  = Form("Visible - invisible P_{T} projected onto the lepton bisector");
-  }
-  else if(hist == "pxidiff20") {
-    *xtitle = "#vec{P}_{T}^{inv}#bullet#hat{#zeta} - f(#vec{P}_{T}^{vis}#bullet#hat{#zeta})";
-    *ytitle = "";
-    *title  = Form("Invisible - f(visible) P_{T} projected onto the lepton bisector");
-  }
-  else if(hist == "pxivisoverinv0") {
-    *xtitle = "#vec{P}_{T}^{vis}#bullet#hat{#zeta} / #vec{P}_{T}^{inv}#bullet#hat{#zeta} ";
-    *ytitle = "";
-    *title  = Form("Visible P_{T} / invisible P_{T} projected onto the lepton bisector");
-  }
-  else if(hist == "pxiinvvsvis0") {
-    *xtitle = "#vec{P}_{T}^{vis}#bullet#hat{#zeta}";
-    *ytitle = Form("#vec{P}_{T}^{inv}#bullet#hat{#zeta} ");
-    *title  = Form("Invisible P_{T} vs visible P_{T} projected onto the lepton bisector");
-  }
-  else if(hist == "pxivis1") {
-    *xtitle = "#vec{P}_{T}^{vis}#bullet#hat{#zeta}";
-    *ytitle = "";
-    *title  = Form("Visible P_{T} projected onto the lepton, lepton+#gamma bisector");
-  }
-  else if(hist == "pxiinv1") {
-    *xtitle = "#vec{P}_{T}^{inv}#bullet#hat{#zeta}";
-    *ytitle = "";
-    *title  = Form("Invisible P_{T} projected onto the lepton, lepton+#gamma bisector");
-  }
-  else if(hist == "pxidiff1") {
-    *xtitle = "#vec{P}_{T}^{vis}#bullet#hat{#zeta} - #vec{P}_{T}^{inv}#bullet#hat{#zeta}";
-    *ytitle = "";
-    *title  = Form("Visible - invisible P_{T} projected onto the lepton, lepton+#gamma bisector");
-  }
-  else if(hist == "pxidiff21") {
-    *xtitle = "#vec{P}_{T}^{inv}#bullet#hat{#zeta} - f(#vec{P}_{T}^{vis}#bullet#hat{#zeta})";
-    *ytitle = "";
-    *title  = Form("Invisible - f(visible) P_{T} projected onto the lepton, lepton+#gamma bisector");
-  }
-  else if(hist == "pxivisoverinv1") {
-    *xtitle = "#vec{P}_{T}^{vis}#bullet#hat{#zeta} / #vec{P}_{T}^{inv}#bullet#hat{#zeta} ";
-    *ytitle = "";
-    *title  = Form("Visible P_{T} / invisible P_{T} projected onto the lepton, lepton+#gamma bisector");
-  }
-  else if(hist == "pxiinvvsvis1") {
-    *xtitle = "#vec{P}_{T}^{vis}#bullet#hat{#zeta}";
-    *ytitle = Form("#vec{P}_{T}^{inv}#bullet#hat{#zeta} ");
-    *title  = Form("Invisible P_{T} vs visible P_{T} projected onto the lepton, lepton+#gamma bisector");
-  }
-  else if(hist == "pxivis2") {
-    *xtitle = "#vec{P}_{T}^{vis}#bullet#hat{#zeta}";
-    *ytitle = "";
-    *title  = Form("Visible P_{T} projected onto the di-lepton, #gamma bisector");
-  }
-  else if(hist == "pxiinv2") {
-    *xtitle = "#vec{P}_{T}^{inv}#bullet#hat{#zeta}";
-    *ytitle = "";
-    *title  = Form("Invisible P_{T} projected onto the di-lepton, #gamma bisector");
-  }
-  else if(hist == "pxidiff2") {
-    *xtitle = "#vec{P}_{T}^{vis}#bullet#hat{#zeta} - #vec{P}_{T}^{inv}#bullet#hat{#zeta}";
-    *ytitle = "";
-    *title  = Form("Visible - invisible P_{T} projected onto the di-lepton, #gamma bisector");
-  }
-  else if(hist == "pxidiff22") {
-    *xtitle = "#vec{P}_{T}^{inv}#bullet#hat{#zeta} - f(#vec{P}_{T}^{vis}#bullet#hat{#zeta})";
-    *ytitle = "";
-    *title  = Form("Invisible - f(visible) P_{T} projected onto the di-lepton, #gamma bisector");
-  }
-  else if(hist == "pxivisoverinv2") {
-    *xtitle = "#vec{P}_{T}^{vis}#bullet#hat{#zeta} / #vec{P}_{T}^{inv}#bullet#hat{#zeta} ";
-    *ytitle = "";
-    *title  = Form("Visible P_{T} / invisible P_{T} projected onto the di-lepton, #gamma bisector");
-  }
-  else if(hist == "pxiinvvsvis2") {
-    *xtitle = "#vec{P}_{T}^{vis}#bullet#hat{#zeta}";
-    *ytitle = Form("#vec{P}_{T}^{inv}#bullet#hat{#zeta} ");
-    *title  = Form("Invisible P_{T} vs visible P_{T} projected onto the di-lepton, #gamma bisector");
-  }
-  else if(hist == "masssvfit") {
-    *xtitle = "M_{#tau#tau} (GeV/c^{2})";
-    *ytitle = "";
-    *title  = Form("SVFit di-tau mass");
-  }
-  else if(hist == "masserrsvfit") {
-    *xtitle = "M_{#tau#tau} Predicted Error (GeV/c^{2})";
-    *ytitle = "";
-    *title  = Form("SVFit di-tau mass error");
-  }
-  else if(hist == "njets") {
-    *xtitle = "Number of Jets";
-    *ytitle = "";
-    *title  = Form("Number of Jets");
-  }
-  else if(hist == "njets20") {
-    *xtitle = "Number of Jets";
-    *ytitle = "";
-    *title  = Form("Number of Jets");
-  }
-  else if(hist == "nbjets") {
-    *xtitle = "Number of tight ID b-Jets";
-    *ytitle = "";
-    *title  = Form("Number of tight ID b-Jets");
-  }
-  else if(hist == "nbjetsm") {
-    *xtitle = "Number of medium ID b-Jets";
-    *ytitle = "";
-    *title  = Form("Number of medium ID b-Jets");
-  }
-  else if(hist == "nbjetsl") {
-    *xtitle = "Number of loose ID b-Jets";
-    *ytitle = "";
-    *title  = Form("Number of loose ID b-Jets");
-  }
-  else if(hist == "nbjets20") {
-    *xtitle = "Number of tight ID b-Jets";
-    *ytitle = "";
-    *title  = Form("Number of tight ID b-Jets");
-  }
-  else if(hist == "nbjets20m") {
-    *xtitle = "Number of medium ID b-Jets";
-    *ytitle = "";
-    *title  = Form("Number of medium ID b-Jets");
-  }
-  else if(hist == "nbjets20l") {
-    *xtitle = "Number of loose ID b-Jets";
-    *ytitle = "";
-    *title  = Form("Number of loose ID b-Jets");
-  }
-  else if(hist == "nfwdjets") {
-    *xtitle = "Number of Forward Jets";
-    *ytitle = "";
-    *title  = Form("Number of Forward Jets");
-  }
-  else if(hist == "nphotons") {
-    *xtitle = "Number of Photons";
-    *ytitle = "";
-    *title  = Form("Number of Photons");
-  }
-  else if(hist == "mtmu") {
-    *xtitle = "MT(MET,#mu)";
-    *ytitle = "";
-    *title  = Form("MT(MET,#mu)");
-  }
-  else if(hist == "mte") {
-    *xtitle = "MT(MET,e)";
-    *ytitle = "";
-    *title  = Form("MT(MET,e)");
-  }
-  else if(hist == "mttau") {
-    *xtitle = "MT(MET,#tau)";
-    *ytitle = "";
-    *title  = Form("MT(MET,#tau)");
-  }
-  else if(hist == "mtone") {
-    *xtitle = Form("MT(%s,MET)", lep1.Data());
-    *ytitle = "";
-    *title  = "";
-  }
-  else if(hist == "mttwo") {
-    *xtitle = Form("MT(%s,MET)", lep2.Data());
-    *ytitle = "";
-    *title  = "";
-  }
-  else if(hist == "mtlep") {
-    *xtitle = "MT(ll,MET)";
-    *ytitle = "";
-    *title  = "";
-  }
-  else if(hist == "oneeta") {
-    *xtitle = Form("#eta^{%s}", lep1.Data());
-    *ytitle = "";
-    *title  = "";
-  }
-  else if(hist == "twoeta") {
-    *xtitle = Form("#eta^{%s}", lep2.Data());
-    *ytitle = "";
-    *title  = "";
-  }
-  else if(hist == "ptsum0") {
-    *xtitle = "pT_{l} + pT_{#tau} + MET";
-    *ytitle = "";
-    *title  = Form("pT_{l} + pT_{#tau} + MET");
-  }
-  else if(hist == "ptsum1") {
-    *xtitle = "pT_{l} + pT_{#tau} + pT_{#gamma} + MET";
-    *ytitle = "";
-    *title  = Form("pT_{l} + pT_{#tau} + pT_{#gamma} + MET");
-  }
-  else if(hist == "pt1sum0") {
-    *xtitle = "pT_{l} + MET";
-    *ytitle = "";
-    *title  = Form("pT_{l} + MET");
-  }
-  else if(hist == "pt1sum1") {
-    *xtitle = "pT_{#tau} + MET";
-    *ytitle = "";
-    *title  = Form("pT_{#tau} + MET");
-  }
-  else if(hist == "pt1sum2") {
-    *xtitle = "pT_{#tau} + pT_{l}";
-    *ytitle = "";
-    *title  = Form("pT_{#tau} + pT_{l}");
-  }
-  else if(hist == "pt1sum3") {
-    *xtitle = "pT_{#tau} + pT_{l} - MET";
-    *ytitle = "";
-    *title  = Form("pT_{#tau} + pT_{l} - MET");
-  }
-  else if(hist == "jetpt") {
-    *xtitle = "Leading jet p_{T}";
-    *ytitle = "";
-    *title  = Form("Leading jet p_{T}");
-  }
-  else if(hist == "ht") {
-    *xtitle = "p_{T} of (#Sigma #vec{P}_{Jet})";
-    *ytitle = "";
-    *title  = Form("Jet vector pT sum");
-  }
-  else if(hist == "htphi") {
-    *xtitle = "#phi of (#Sigma #vec{P}_{Jet})";
-    *ytitle = "";
-    *title  = Form("Jet vector sum #phi");
-  }
-  else if(hist == "htsum") {
-    *xtitle = " #Sigma (p_{T} of #vec{P}_{Jet})";
-    *ytitle = "";
-    *title  = Form("Jet scalar pT sum");
-  }
-  else if(hist.Contains("mva")) {
-    *xtitle = "MVA score";
-    *ytitle = "";
-    *title  = "MVA Score";
-  }
-  else if(hist.Contains("prob")) {
-    *xtitle = "MVA score probability";
-    *ytitle = "";
-    *title  = "MVA Score Probability";
-  }
-  else if(hist.Contains("cdf")) {
-    *xtitle = "MVA score CDF";
-    *ytitle = "";
-    *title  = "MVA Score CDF";
-  }
-  else if(hist == "metdeltaphi") {
-    *xtitle = "#Delta#phi(MET,ll)";
-    *ytitle = "";
-    *title  = "#Delta#phi between MET and di-lepton";
-  }
-  else if(hist == "htdeltaphi") {
-    *xtitle = "#Delta#phi(#SigmaJets,ll)";
-    *ytitle = "";
-    *title  = "#Delta#phi between Jet sum and di-lepton";
-  }
-  else if(hist == "leponedeltaphi") {
-    *xtitle = Form("#Delta#phi(%s,ll)", lep1.Data());
-    *ytitle = "";
-    *title  = "#Delta#phi between lepton 1 and di-lepton";
-  }
-  else if(hist == "leptwodeltaphi") {
-    *xtitle = Form("#Delta#phi(%s,ll)", lep2.Data());
-    *ytitle = "";
-    *title  = "#Delta#phi between lepton 2 and di-lepton";
-  }
-  else if(hist == "onemetdeltaphi") {
-    *xtitle = Form("#Delta#phi(%s,MET)", lep1.Data());
-    *ytitle = "";
-    *title  = "#Delta#phi between MET and lepton 1";
-  }
-  else if(hist == "twometdeltaphi") {
-    *xtitle = Form("#Delta#phi(%s,MET)", lep2.Data());
-    *ytitle = "";
-    *title  = "#Delta#phi between MET and lepton 2";
-  }
-  else if(hist == "oneiso") {
-    *xtitle = Form("%s Iso", lep1.Data());
-    *ytitle = "";
-    *title  = "l_{1} Iso";
-  }
-  else if(hist == "onereliso") {
-    *xtitle = Form("%s Iso/p_{T}", lep1.Data());
-    *ytitle = "";
-    *title  = "l_{1} Iso/p_{T}";
-  }
-  else if(hist == "twoiso") {
-    *xtitle = Form("%s Iso", lep2.Data());
-    *ytitle = "";
-    *title  = "l_{2} Iso";
-  }
-  else if(hist == "tworeliso") {
-    *xtitle = Form("%s Iso/p_{T}", lep2.Data());
-    *ytitle = "";
-    *title  = "l_{2} Iso/p_{T}";
-  }
-  else if(hist == "oned0") {
-    *xtitle = Form("%s D0", lep1.Data());
-    *ytitle = "";
-    *title  = "l_{1} D0";
-  }
-  else if(hist == "onedxy") {
-    *xtitle = Form("%s d_{xy}", lep1.Data());
-    *ytitle = "";
-    *title  = "l_{1} d_{xy}";
-  }
-  else if(hist == "onedz") {
-    *xtitle = Form("%s d_{z}", lep1.Data());
-    *ytitle = "";
-    *title  = "l_{1} d_{z}";
-  }
-  else if(hist == "onedxysig") {
-    *xtitle = Form("%s d_{xy}/#sigma_{xy}", lep1.Data());
-    *ytitle = "";
-    *title  = "l_{1} d_{xy}/#sigma_{xy}";
-  }
-  else if(hist == "onedzsig") {
-    *xtitle = Form("%s d_{z}/#sigma_{z}", lep1.Data());
-    *ytitle = "";
-    *title  = "l_{1} d_{xy}/#sigma_{z}";
-  }
-  else if(hist == "twod0") {
-    *xtitle = Form("%s D0", lep2.Data());
-    *ytitle = "";
-    *title  = "l_{2} D0";
-  }
-  else if(hist == "twodxy") {
-    *xtitle = Form("%s d_{xy}", lep2.Data());
-    *ytitle = "";
-    *title  = "l_{2} d_{xy}";
-  }
-  else if(hist == "twodz") {
-    *xtitle = Form("%s d_{z}", lep2.Data());
-    *ytitle = "";
-    *title  = "l_{2} d_{z}";
-  }
-  else if(hist == "twodxysig") {
-    *xtitle = Form("%s d_{xy}/#sigma_{xy}", lep2.Data());
-    *ytitle = "";
-    *title  = "l_{2} d_{xy}/#sigma_{xy}";
-  }
-  else if(hist == "twodzsig") {
-    *xtitle = Form("%s d_{z}/#sigma_{z}", lep2.Data());
-    *ytitle = "";
-    *title  = "l_{2} d_{xy}/#sigma_{z}";
-  }
-  else if(hist == "metvspt") {
-    *xtitle = "p_{T}^{ll}";
-    *ytitle = "MET";
-    *title  = "MET vs di-lepton pT";
-  }
-  else if(hist == "twoptvsonept") {
-    *xtitle = "p_{T}^{l1}";
-    *ytitle = "p_{T}^{l2}";
-    *title  = "Lepton 2 pT vs Lepton 1 pT";
-  }
-  else if(hist.Contains("deltaalpham")) { //Mass estimated using alpha formulas
-    *xtitle = "M_{#alpha}";
-    *ytitle = "";
-    *title  = "M_{#alpha}";
-  }
-  else if(hist.Contains("deltaalpha")) {
-    *xtitle = "#Delta#alpha";
-    *ytitle = "";
-    *title  = "#Delta#alpha";
-  }
-  else if(hist.Contains("taudeepantimu")) {
-    *xtitle = "#tau anti-#mu ID";
-    *ytitle = "";
-    *title  = "#tau anti-#mu ID";
-  }
-  else if(hist.Contains("taudeepantiele")) {
-    *xtitle = "log_{2}(#tau anti-e ID + 1)";
-    *ytitle = "";
-    *title  = "log_{2}(#tau anti-e ID + 1)";
-  }
-  else if(hist.Contains("taudeepantijet")) {
-    *xtitle = "log_{2}(#tau anti-Jet ID + 1)";
-    *ytitle = "";
-    *title  = "log_{2}(#tau anti-Jet ID + 1)";
-  }
-
-}
-
+//--------------------------------------------------------------------------------------------------------------------
 std::vector<TH1*> DataPlotter::get_signal(TString hist, TString setType, Int_t set) {
   std::vector<TH1*> h;
 
@@ -696,16 +75,17 @@ std::vector<TH1*> DataPlotter::get_signal(TString hist, TString setType, Int_t s
   return hsignals;
 }
 
-TH2D* DataPlotter::get_signal_2D(TString hist, TString setType, Int_t set) {
+//--------------------------------------------------------------------------------------------------------------------
+TH2* DataPlotter::get_signal_2D(TString hist, TString setType, Int_t set) {
   {
     auto o = gDirectory->Get("hSignal");
     if(o) delete o;
   }
-  TH2D* h = 0;
+  TH2* h = 0;
   for(UInt_t i = 0; i < data_.size(); ++i) {
     if(isData_[i]) continue;
     if(!isSignal_[i]) continue;
-    TH2D* tmp = (TH2D*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set, hist.Data()));
+    TH2* tmp = (TH2*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set, hist.Data()));
     if(!tmp) continue;
     if(!h) h = tmp;
     else h->Add(tmp);
@@ -729,6 +109,7 @@ TH2D* DataPlotter::get_signal_2D(TString hist, TString setType, Int_t set) {
   return h;
 }
 
+//--------------------------------------------------------------------------------------------------------------------
 TH1* DataPlotter::get_data(TString hist, TString setType, Int_t set) {
   TString hname = Form("hData_%s_%i", hist.Data(), set);
   if(density_plot_) hname += "_density";
@@ -766,15 +147,16 @@ TH1* DataPlotter::get_data(TString hist, TString setType, Int_t set) {
   return d;
 }
 
-TH2D* DataPlotter::get_data_2D(TString hist, TString setType, Int_t set) {
+//--------------------------------------------------------------------------------------------------------------------
+TH2* DataPlotter::get_data_2D(TString hist, TString setType, Int_t set) {
   {
     auto o = gDirectory->Get("hData");
     if(o) delete o;
   }
-  TH2D* d = 0;
+  TH2* d = 0;
   for(UInt_t i = 0; i < data_.size(); ++i) {
     if(!isData_[i]) continue;
-    TH2D* tmp = (TH2D*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set, hist.Data()));
+    TH2* tmp = (TH2*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set, hist.Data()));
     if(!tmp) continue;
     if(!d) d = tmp;
     else d->Add(tmp);
@@ -794,6 +176,7 @@ TH2D* DataPlotter::get_data_2D(TString hist, TString setType, Int_t set) {
   return d;
 }
 
+//--------------------------------------------------------------------------------------------------------------------
 TH1* DataPlotter::get_qcd(TString hist, TString setType, Int_t set) {
   {
     auto o = gDirectory->Get(Form("qcd_%s_%i", hist.Data(), set));
@@ -863,7 +246,8 @@ TH1* DataPlotter::get_qcd(TString hist, TString setType, Int_t set) {
   return hData;
 }
 
-TH2D* DataPlotter::get_qcd_2D(TString hist, TString setType, Int_t set) {
+//--------------------------------------------------------------------------------------------------------------------
+TH2* DataPlotter::get_qcd_2D(TString hist, TString setType, Int_t set) {
   {
     auto o = gDirectory->Get(Form("qcd_%s_%s_%i", hist.Data(), setType.Data(), set));
     if(o) delete o;
@@ -874,17 +258,17 @@ TH2D* DataPlotter::get_qcd_2D(TString hist, TString setType, Int_t set) {
 
   const Int_t set_qcd = set + qcd_offset_;
 
-  TH2D* hData = get_data_2D(hist, setType, set_qcd);
+  TH2* hData = get_data_2D(hist, setType, set_qcd);
   if(!hData) return hData;
   hData->SetName(Form("qcd_%s_%s_%i",hist.Data(), setType.Data(), set));
   const double ndata = hData->Integral((density_plot_ > 0) ? "width" : ""); // FIXME: Add overflow to integral
-  TH2D* hMC = 0;
+  TH2* hMC = 0;
   for(UInt_t i = 0; i < data_.size(); ++i) {
     if(isData_[i]) continue; //skip data for MC histogram
     if(isSignal_[i]) continue; //skip signals for MC histogram
-    TH2D* htmp = (TH2D*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set_qcd, hist.Data()));
+    TH2* htmp = (TH2*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set_qcd, hist.Data()));
     if(!htmp) continue;
-    htmp = (TH2D*) htmp->Clone("tmp");
+    htmp = (TH2*) htmp->Clone("tmp");
     // htmp->SetBit(kCanDelete);
     htmp->Scale(scale_[i]);
     if(rebinH_ > 0) {
@@ -892,10 +276,10 @@ TH2D* DataPlotter::get_qcd_2D(TString hist, TString setType, Int_t set) {
       htmp->RebinY(rebinH_);
     }
     if(hMC) hMC->Add(htmp);
-    else hMC = (TH2D*) htmp->Clone(Form("qcd_%s_%s_%i", hist.Data(), setType.Data(), set));
+    else hMC = (TH2*) htmp->Clone(Form("qcd_%s_%s_%i", hist.Data(), setType.Data(), set));
     delete htmp;
   }
-  TH2D* hMisID = (include_misid_) ? get_misid_2D(hist, setType, set_qcd) : 0;
+  TH2* hMisID = (include_misid_) ? get_misid_2D(hist, setType, set_qcd) : 0;
   if(!hMC) hMC = hMisID;
   else if(hMisID) hMC->Add(hMisID);
 
@@ -925,6 +309,7 @@ TH2D* DataPlotter::get_qcd_2D(TString hist, TString setType, Int_t set) {
   return hData;
 }
 
+//--------------------------------------------------------------------------------------------------------------------
 TH1* DataPlotter::get_misid(TString hist, TString setType, Int_t set) {
   {
     auto o = gDirectory->Get(Form("misid_%s_%i", hist.Data(), set));
@@ -992,7 +377,8 @@ TH1* DataPlotter::get_misid(TString hist, TString setType, Int_t set) {
   return hData;
 }
 
-TH2D* DataPlotter::get_misid_2D(TString hist, TString setType, Int_t set) {
+//--------------------------------------------------------------------------------------------------------------------
+TH2* DataPlotter::get_misid_2D(TString hist, TString setType, Int_t set) {
   {
     auto o = gDirectory->Get(Form("misid_%s_%s_%i", hist.Data(), setType.Data(), set));
     if(o) delete o;
@@ -1001,17 +387,17 @@ TH2D* DataPlotter::get_misid_2D(TString hist, TString setType, Int_t set) {
   Int_t set_misid = set + misid_offset_;
   if(set_misid < 0) return NULL;
 
-  TH2D* hData = get_data_2D(hist, setType, set_misid);
+  TH2* hData = get_data_2D(hist, setType, set_misid);
   if(!hData) return hData;
   hData->SetName(Form("misid_%s_%s_%i",hist.Data(), setType.Data(), set));
   double ndata = hData->Integral((density_plot_ > 0) ? "width" : ""); //FIXME: Add overflow to integral
-  TH2D* hMC = 0;
+  TH2* hMC = 0;
   for(UInt_t i = 0; i < data_.size(); ++i) {
     if(isData_[i]) continue; //skip data for MC histogram
     if(isSignal_[i]) continue; //skip signals for MC histogram
-    TH2D* htmp = (TH2D*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set_misid, hist.Data()));
+    TH2* htmp = (TH2*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set_misid, hist.Data()));
     if(!htmp) continue;
-    htmp = (TH2D*) htmp->Clone("tmp");
+    htmp = (TH2*) htmp->Clone("tmp");
     // htmp->SetBit(kCanDelete);
     htmp->Scale(scale_[i]);
     if(rebinH_ > 0) {
@@ -1020,7 +406,7 @@ TH2D* DataPlotter::get_misid_2D(TString hist, TString setType, Int_t set) {
     }
     // if(rebinH_ > 0) htmp->Rebin(rebinH_);
     if(hMC) hMC->Add(htmp);
-    else hMC = (TH2D*) htmp->Clone(Form("misid_%s_%s_%i", hist.Data(), setType.Data(), set));
+    else hMC = (TH2*) htmp->Clone(Form("misid_%s_%s_%i", hist.Data(), setType.Data(), set));
     delete htmp;
   }
   if(!hMC) {
@@ -1049,6 +435,7 @@ TH2D* DataPlotter::get_misid_2D(TString hist, TString setType, Int_t set) {
   return hData;
 }
 
+//--------------------------------------------------------------------------------------------------------------------
 TH1* DataPlotter::get_stack_uncertainty(THStack* hstack, TString hname) {
   if(!hstack || hstack->GetNhists() == 0)
     return nullptr;
@@ -1074,6 +461,7 @@ TH1* DataPlotter::get_stack_uncertainty(THStack* hstack, TString hname) {
   return huncertainty;
 }
 
+//--------------------------------------------------------------------------------------------------------------------
 THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set) {
   std::vector<TH1*> h;
   TH1* hQCD   = (include_qcd_)   ? get_qcd  (hist,setType,set) : nullptr;
@@ -1164,10 +552,11 @@ THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set) {
   return hstack;
 }
 
-TH2D* DataPlotter::get_background_2D(TString hist, TString setType, Int_t set) {
-  TH2D* hBkg = 0;
-  TH2D* hQCD = (include_qcd_) ? get_qcd_2D(hist,setType,set) : NULL;
-  TH2D* hMisID = (include_misid_) ? get_misid_2D(hist,setType,set) : NULL;
+//--------------------------------------------------------------------------------------------------------------------
+TH2* DataPlotter::get_background_2D(TString hist, TString setType, Int_t set) {
+  TH2* hBkg = 0;
+  TH2* hQCD = (include_qcd_) ? get_qcd_2D(hist,setType,set) : NULL;
+  TH2* hMisID = (include_misid_) ? get_misid_2D(hist,setType,set) : NULL;
   if(hQCD && verbose_ > 0) std::cout << "QCD histogram has integral " << hQCD->Integral() << std::endl;
   if(hMisID && verbose_ > 0) std::cout << "MisID histogram has integral " << hMisID->Integral() << std::endl;
   {
@@ -1185,7 +574,7 @@ TH2D* DataPlotter::get_background_2D(TString hist, TString setType, Int_t set) {
     if(isData_[i]) continue;
     if(isSignal_[i]) continue;
 
-    TH2D* h = (TH2D*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set, hist.Data()));
+    TH2* h = (TH2*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set, hist.Data()));
     if(!h) {
       printf("%s: Histogram %s/%s/%i for %s (%s) %i not found! Continuing...\n",
              __func__, hist.Data(), setType.Data(), set, names_[i].Data(), labels_[i].Data(), dataYear_[i]);
@@ -1193,7 +582,7 @@ TH2D* DataPlotter::get_background_2D(TString hist, TString setType, Int_t set) {
     }
     auto o = gDirectory->Get("tmp");
     if(o) delete o;
-    h = (TH2D*) h->Clone("tmp");
+    h = (TH2*) h->Clone("tmp");
     h->Scale(scale_[i]);
     // if(rebinH_ > 0) h->Rebin(rebinH_);
     if(!hBkg) {
@@ -1210,9 +599,10 @@ TH2D* DataPlotter::get_background_2D(TString hist, TString setType, Int_t set) {
   return hBkg;
 }
 
+//--------------------------------------------------------------------------------------------------------------------
 TCanvas* DataPlotter::plot_single_2Dhist(TString hist, TString setType, Int_t set, TString label) {
 
-  TH2D* h = 0; //histogram
+  TH2* h = 0; //histogram
 
   {
     auto o = gDirectory->Get(Form("h2d_%s_%i",hist.Data(),set));
@@ -1236,9 +626,9 @@ TCanvas* DataPlotter::plot_single_2Dhist(TString hist, TString setType, Int_t se
       if(label != labels_[i]) continue;
 
       //get histogram
-      TH2D* htmp = (TH2D*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set, hist.Data()));
+      TH2* htmp = (TH2*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set, hist.Data()));
       if(!htmp) {printf("No hist %s in %s, continuing\n",hist.Data(), fileNames_[i].Data());continue;}
-      htmp = (TH2D*) htmp->Clone("tmp");
+      htmp = (TH2*) htmp->Clone("tmp");
       //scale to cross section and luminosity
       htmp->Scale(scale_[i]);
       if(rebinH_ > 1) {
@@ -1260,7 +650,7 @@ TCanvas* DataPlotter::plot_single_2Dhist(TString hist, TString setType, Int_t se
   // h->SetBit(kCanDelete);
   const char* stats = (doStatsLegend_) ? Form(": #scale[0.8]{%.2e}", h->Integral()
                                               +h->GetBinContent(0)+h->GetBinContent(h->GetNbinsX()+1)) : "";
-  TH2D* data = 0;
+  TH2* data = 0;
   if(plot_data_) {
     data = get_data_2D(hist, setType, set);
     if(!data) {
@@ -1295,7 +685,7 @@ TCanvas* DataPlotter::plot_single_2Dhist(TString hist, TString setType, Int_t se
   }
 
   // if(data) data->SetBit(kCanDelete);
-  TH2D* hAxis = (plot_data_ && data) ? data : h;
+  TH2* hAxis = (plot_data_ && data) ? data : h;
   h->SetTitle(Form("%s%s", label.Data(),stats));
   if(plot_data_) {
     h->SetLineColor(single_2d_color_);
@@ -1317,7 +707,7 @@ TCanvas* DataPlotter::plot_single_2Dhist(TString hist, TString setType, Int_t se
   TString xtitle;
   TString ytitle;
   TString title;
-  get_titles(hist,setType,&xtitle,&ytitle,&title);
+  Titles::get_titles(hist,setType,selection_,&xtitle,&ytitle,&title);
 
   c->SetGrid();
   if(single_2d_legend_) c->BuildLegend(); //0.6, 0.9, 0.9, 0.45, "", "L");
@@ -1340,11 +730,12 @@ TCanvas* DataPlotter::plot_single_2Dhist(TString hist, TString setType, Int_t se
 
 }
 
+//--------------------------------------------------------------------------------------------------------------------
 TCanvas* DataPlotter::plot_2Dhist(TString hist, TString setType, Int_t set) {
 
-  std::vector<TH2D*> h; //list of histograms
+  std::vector<TH2*> h; //list of histograms
   //check if QCD is defined for this set
-  //  TH2D* hQCD = (include_qcd_) ? get_qcd(hist,setType,set) : NULL;
+  //  TH2* hQCD = (include_qcd_) ? get_qcd(hist,setType,set) : NULL;
 
   //array of colors and fills for each label
   Int_t color[] = {kRed+1, kYellow+1,kYellow+3,kBlue+1, kRed+3, kViolet-2, kGreen-2, kOrange-9};
@@ -1374,9 +765,9 @@ TCanvas* DataPlotter::plot_2Dhist(TString hist, TString setType, Int_t set) {
     if(isData_[i]) {h.push_back(NULL);continue;}
 
     //get histogram
-    TH2D* htmp = (TH2D*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set, hist.Data()));
+    TH2* htmp = (TH2*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set, hist.Data()));
     if(!htmp) {printf("No hist %s in %s, continuing\n",hist.Data(), fileNames_[i].Data());continue;}
-    h.push_back((TH2D*) htmp->Clone("tmp"));
+    h.push_back((TH2*) htmp->Clone("tmp"));
     //scale to cross section and luminosity
     h[i]->Scale(scale_[i]);
 
@@ -1433,7 +824,7 @@ TCanvas* DataPlotter::plot_2Dhist(TString hist, TString setType, Int_t set) {
   TString xtitle;
   TString ytitle;
   TString title;
-  get_titles(hist,setType,&xtitle,&ytitle,&title);
+  Titles::get_titles(hist,setType,selection_,&xtitle,&ytitle,&title);
 
   c->SetGrid();
   c->BuildLegend();//0.6, 0.9, 0.9, 0.45, "", "L");
@@ -1452,7 +843,7 @@ TCanvas* DataPlotter::plot_2Dhist(TString hist, TString setType, Int_t set) {
     c->Update();
   }
 
-  TH2D* hAxis = (h.size() > 0) ? h[ind] : 0;
+  TH2* hAxis = (h.size() > 0) ? h[ind] : 0;
   if(!hAxis) return NULL;
 
   if(yMin_ <= yMax_)hAxis->GetYaxis()->SetRangeUser(yMin_,yMax_);
@@ -1472,6 +863,7 @@ TCanvas* DataPlotter::plot_2Dhist(TString hist, TString setType, Int_t set) {
 
 }
 
+//--------------------------------------------------------------------------------------------------------------------
 TCanvas* DataPlotter::plot_hist(TString hist, TString setType, Int_t set) {
 
   std::vector<TH1*> h; //list of histograms
@@ -1615,7 +1007,7 @@ TCanvas* DataPlotter::plot_hist(TString hist, TString setType, Int_t set) {
   TString xtitle;
   TString ytitle;
   TString title;
-  get_titles(hist,setType,&xtitle,&ytitle,&title);
+  Titles::get_titles(hist,setType,selection_,&xtitle,&ytitle,&title);
 
   c->SetGrid();
   c->SetTopMargin(0.06);
@@ -1661,6 +1053,7 @@ TCanvas* DataPlotter::plot_hist(TString hist, TString setType, Int_t set) {
 
 }
 
+//--------------------------------------------------------------------------------------------------------------------
 TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
   if(verbose_ > 0) std::cout << "Plotting stack with hist = " << hist.Data()
                              << " type = " << setType.Data() << " and set = "
@@ -1711,6 +1104,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
         hsig->Scale(((TH1*)hstack->GetStack()->Last())->Integral((density_plot_ > 0) ? "width" : "") / hsig->Integral((density_plot_ > 0) ? "width" : ""));
     }
   }
+  const bool plot_single = plot_data_ == 0 && data_over_mc_ >= 0; //single plot canvas
 
   if((plot_data_ && d && data_over_mc_) || (plot_data_ == 0 && data_over_mc_ < 0)) {
     pad1 = new TPad("pad1","pad1",upper_pad_x1_, upper_pad_y1_, upper_pad_x2_, upper_pad_y2_); //xL yL xH xH, (0,0) = bottom left
@@ -1724,8 +1118,9 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
     pad2->SetBottomMargin(lower_pad_botmargin_);
     pad1->Draw();
     pad2->Draw();
-  } else {
+  } else { //only plot the stack, no ratio plot
     pad1 = new TPad("pad1","pad1",0.0,0.0,1,1); //xL yL xH xH, (0,0) = bottom left
+    pad1->SetTopMargin(upper_pad_topmargin_);
     pad1->Draw();
   }
   pad1->cd();
@@ -1737,7 +1132,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
   TString xtitle;
   TString ytitle;
   TString title;
-  get_titles(hist,setType,&xtitle,&ytitle,&title);
+  Titles::get_titles(hist,setType,selection_,&xtitle,&ytitle,&title);
   if(stack_signal_) {
     for(unsigned int i = 0; i < hsignal.size(); ++i) {
       if(hsignal[i]) hstack->Add(hsignal[i]);
@@ -1808,11 +1203,11 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
   pad1->SetGrid();
   //draw text
   if(draw_statistics_) draw_data(ndata,nmc,nsig);
-  draw_luminosity(plot_data_ == 0 && data_over_mc_ >= 0);
-  draw_cms_label(plot_data_ == 0 && data_over_mc_ >= 0);
+  draw_luminosity(plot_single);
+  draw_cms_label(plot_single);
 
-  TLegend* leg = new TLegend((doStatsLegend_) ? legend_x1_stats_ : legend_x1_, legend_y1_, legend_x2_, legend_y2_);
-  leg->SetTextSize((doStatsLegend_) ? 0.75*legend_txt_ : legend_txt_);
+  TLegend* leg = new TLegend((doStatsLegend_ || plot_single) ? legend_x1_stats_ : legend_x1_, legend_y1_, legend_x2_, legend_y2_);
+  leg->SetTextSize((doStatsLegend_ || plot_single) ? 0.75*legend_txt_ : legend_txt_);
   leg->SetNColumns(legend_ncol_);
   if(d) leg->AddEntry(d, d->GetTitle(), "PL");
   if(stack_uncertainty_) leg->AddEntry(huncertainty, huncertainty->GetTitle(), "F");
@@ -1969,8 +1364,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
   if(xMin_ < xMax_ && hDataMC) hDataMC->GetXaxis()->SetRangeUser(xMin_,xMax_);
 
   if(logY_) {
-    if(plot_data_) pad1->SetLogy();
-    else           c   ->SetLogy();
+    pad1->SetLogy();
   }
   c->SetGrid();
   if(plot_data_ && hDataMC && data_over_mc_ > 0) {
@@ -2047,6 +1441,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
 
 }
 
+//--------------------------------------------------------------------------------------------------------------------
 //Get a TGraph to represent the errors of a histogram represented in other histogrms
 TGraphAsymmErrors* DataPlotter::get_errors(TH1* h, TH1* h_p, TH1* h_m, bool ratio, double& r_min, double& r_max) {
 
@@ -2083,6 +1478,7 @@ TGraphAsymmErrors* DataPlotter::get_errors(TH1* h, TH1* h_p, TH1* h_m, bool rati
   return g;
 }
 
+//--------------------------------------------------------------------------------------------------------------------
 TCanvas* DataPlotter::plot_systematic(TString hist, Int_t set, Int_t systematic) {
   TString c_name = Form("sys_%s_%i_%i", hist.Data(), systematic, set);
   while(TObject* o = gDirectory->Get(c_name.Data())) delete o;
@@ -2092,11 +1488,11 @@ TCanvas* DataPlotter::plot_systematic(TString hist, Int_t set, Int_t systematic)
   THStack* hstack_p = get_stack(Form("%s_%i", hist.Data(), systematic  ), "systematic", set);
   THStack* hstack_m = (single_systematic_) ? 0 : get_stack(Form("%s_%i", hist.Data(), systematic+1), "systematic", set);
 
-  if(!hstack_b || !hstack_p || !(single_systematic_ || hstack_m)) return NULL;
+  if(!hstack_b || !hstack_p || !(single_systematic_ || hstack_m)) return nullptr;
 
   //Get data if needed
   TH1* d = (plot_data_ > 0) ? get_data(hist+"_0", "systematic", set) : 0;
-  if(plot_data_ > 0 && !d) return NULL;
+  if(plot_data_ > 0 && !d) return nullptr;
 
   //Normalize to the stack integral if normalizing, for simplicity
   if(d && normalize_1ds_ && d->Integral() > 0.) {
@@ -2188,7 +1584,7 @@ TCanvas* DataPlotter::plot_systematic(TString hist, Int_t set, Int_t systematic)
   g_stack->Draw("P2");
 
   //Draw the data
-  d->Draw("E same");
+  if(d) d->Draw("E same");
 
   TLegend* leg = new TLegend(legend_sys_x1_, legend_sys_y1_, legend_sys_x2_, legend_sys_y1_ - 0.1*(1+signals_b.size()));
   leg->SetTextSize(legend_txt_);
@@ -2196,7 +1592,7 @@ TCanvas* DataPlotter::plot_systematic(TString hist, Int_t set, Int_t systematic)
   leg->SetFillColor(0);
   leg->SetLineColor(0);
   leg->SetLineStyle(0);
-  leg->AddEntry(d, "Data");
+  if(d) leg->AddEntry(d, "Data");
   leg->AddEntry(g_stack, "Background", "FL");
 
   double m = std::max((!h_m) ? 0. : h_m->GetMaximum(), h_p->GetMaximum());
@@ -2221,8 +1617,8 @@ TCanvas* DataPlotter::plot_systematic(TString hist, Int_t set, Int_t systematic)
   if(xMin_ < xMax_) g_stack->GetXaxis()->SetRangeUser(xMin_, xMax_);
 
   TString xtitle, ytitle, title;
-  get_titles(hist, "event", &xtitle, &ytitle, &title);
-  if(xtitle == "") get_titles(hist, "lep", &xtitle, &ytitle, &title);
+  Titles::get_titles(hist, "event", selection_, &xtitle, &ytitle, &title);
+  if(xtitle == "") Titles::get_titles(hist, "lep", selection_, &xtitle, &ytitle, &title);
 
   g_stack->SetTitle("");
   draw_cms_label(false);
@@ -2287,6 +1683,7 @@ TCanvas* DataPlotter::plot_systematic(TString hist, Int_t set, Int_t systematic)
   return c;
 }
 
+//--------------------------------------------------------------------------------------------------------------------
 TCanvas* DataPlotter::plot_cdf(TString hist, TString setType, Int_t set, TString label) {
 
   TH1* hCDF = 0;
@@ -2479,7 +1876,7 @@ TCanvas* DataPlotter::plot_cdf(TString hist, TString setType, Int_t set, TString
   TString xtitle;
   TString ytitle;
   TString title;
-  get_titles(hist,setType,&xtitle,&ytitle,&title);
+  Titles::get_titles(hist,setType,selection_,&xtitle,&ytitle,&title);
 
   //draw text
   draw_luminosity();
@@ -2547,6 +1944,7 @@ TCanvas* DataPlotter::plot_cdf(TString hist, TString setType, Int_t set, TString
   return c;
 }
 
+//--------------------------------------------------------------------------------------------------------------------
 TCanvas* DataPlotter::plot_significance(TString hist, TString setType, Int_t set, TString label,
                                         bool dir = true, Double_t line_val = -1., bool doVsEff = false,
                                         TString label1 = "", TString label2 = "") {
@@ -2686,7 +2084,7 @@ TCanvas* DataPlotter::plot_significance(TString hist, TString setType, Int_t set
   TString xtitle;
   TString ytitle;
   TString title;
-  get_titles(hist,setType,&xtitle,&ytitle,&title);
+  Titles::get_titles(hist,setType,selection_,&xtitle,&ytitle,&title);
 
   TString lim_name = Form("hSig_limits_%s_%s_%i", hist.Data(), setType.Data(), set);
   {
@@ -2779,6 +2177,7 @@ TCanvas* DataPlotter::plot_significance(TString hist, TString setType, Int_t set
   return c;
 }
 
+//--------------------------------------------------------------------------------------------------------------------
 TCanvas* DataPlotter::print_stack(TString hist, TString setType, Int_t set, TString tag) {
   TCanvas* c = plot_stack(hist,setType,set);
   if(!c) return c;
@@ -2786,6 +2185,7 @@ TCanvas* DataPlotter::print_stack(TString hist, TString setType, Int_t set, TStr
   return c;
 }
 
+//--------------------------------------------------------------------------------------------------------------------
 TCanvas* DataPlotter::print_systematic(TString hist, Int_t set, Int_t systematic, TString tag) {
   TCanvas* c = plot_systematic(hist,set,systematic);
   if(!c) return c;
@@ -2803,6 +2203,7 @@ TCanvas* DataPlotter::print_systematic(TString hist, Int_t set, Int_t systematic
   return c;
 }
 
+//--------------------------------------------------------------------------------------------------------------------
 TCanvas* DataPlotter::print_hist(TString hist, TString setType, Int_t set, TString tag) {
   TCanvas* c = plot_hist(hist,setType,set);
   if(!c) return c;
@@ -2811,6 +2212,7 @@ TCanvas* DataPlotter::print_hist(TString hist, TString setType, Int_t set, TStri
   return c;
 }
 
+//--------------------------------------------------------------------------------------------------------------------
 TCanvas* DataPlotter::print_2Dhist(TString hist, TString setType, Int_t set, TString tag) {
   TCanvas* c = plot_2Dhist(hist,setType,set);
   if(!c) return c;
@@ -2818,6 +2220,7 @@ TCanvas* DataPlotter::print_2Dhist(TString hist, TString setType, Int_t set, TSt
   return c;
 }
 
+//--------------------------------------------------------------------------------------------------------------------
 TCanvas* DataPlotter::print_single_2Dhist(TString hist, TString setType, Int_t set, TString label, TString tag) {
   TCanvas* c = plot_single_2Dhist(hist,setType,set,label);
   if(!c) return c;
@@ -2828,6 +2231,7 @@ TCanvas* DataPlotter::print_single_2Dhist(TString hist, TString setType, Int_t s
   return c;
 }
 
+//--------------------------------------------------------------------------------------------------------------------
 TCanvas* DataPlotter::print_cdf(TString hist, TString setType, Int_t set, TString label, TString tag) {
   TCanvas* c = plot_cdf(hist,setType,set,label);
   if(!c) return c;
@@ -2838,6 +2242,7 @@ TCanvas* DataPlotter::print_cdf(TString hist, TString setType, Int_t set, TStrin
   return c;
 }
 
+//--------------------------------------------------------------------------------------------------------------------
 TCanvas* DataPlotter::print_significance(TString hist, TString setType, Int_t set, TString label,
                                          bool dir, Double_t line_val, bool doVsEff,
                                          TString label1, TString label2, TString tag) {
@@ -2851,6 +2256,7 @@ TCanvas* DataPlotter::print_significance(TString hist, TString setType, Int_t se
   return c;
 }
 
+//--------------------------------------------------------------------------------------------------------------------
 Int_t DataPlotter::print_stacks(std::vector<TString> hists, std::vector<TString> setTypes, std::vector<Int_t> sets
                                 , std::vector<Double_t> xMaxs, std::vector<Double_t> xMins, std::vector<Int_t> rebins
                                 , std::vector<Double_t> signal_scales = {}, std::vector<Int_t> base_rebins = {}) {
@@ -2899,6 +2305,7 @@ Int_t DataPlotter::print_stacks(std::vector<TString> hists, std::vector<TString>
   return 0;
 }
 
+//--------------------------------------------------------------------------------------------------------------------
 Int_t DataPlotter::print_hists(std::vector<TString> hists, std::vector<TString> setTypes, std::vector<Int_t> sets
                                , std::vector<Double_t> xMaxs, std::vector<Double_t> xMins, std::vector<Int_t> rebins
                                , std::vector<Double_t> signal_scales = {}, std::vector<Int_t> base_rebins = {}) {
@@ -2949,6 +2356,7 @@ Int_t DataPlotter::print_hists(std::vector<TString> hists, std::vector<TString> 
 }
 
 
+//--------------------------------------------------------------------------------------------------------------------
 Int_t DataPlotter::init_files() {
 
   UInt_t nFiles = fileNames_.size();
@@ -3011,6 +2419,7 @@ Int_t DataPlotter::init_files() {
   return 0;
 }
 
+//--------------------------------------------------------------------------------------------------------------------
 Int_t DataPlotter::add_dataset(TString filepath, TString name, TString label, bool isData, double xsec, bool isSignal, bool isEmbed) {
   fileNames_.push_back(filepath);
   names_.push_back(name);
