@@ -52,20 +52,20 @@ namespace CLFV {
     std::vector<Int_t> years_ = {2016};
     Int_t verbose_ = 0;
     std::vector<Data_t>   inputs_; //list of input data to plot
-    std::vector<Double_t> scale_; //scales for datasets
-    std::vector<Int_t>    process_; //indicates which backgrounds to use
-    std::vector<TString> names_; //to get event histograms
-    std::vector<TString> labels_; //to label tlegend and group datasets
-    std::vector<Double_t> xsec_;
-    std::vector<TString> fileNames_;
-    std::vector<TFile*> files_;  //histogram files opened
-    std::vector<TFile*> data_;  //background data files
-    std::vector<bool> isData_; //flag to check if is data
-    std::vector<bool> isEmbed_; //flag to check if is embedded
-    std::vector<bool> isSignal_; //flag to check if is signal file
-    std::vector<Int_t> dataYear_; //list of years it's associated with (2016, 2017, or 2018)
-    std::vector<Int_t> ngenerated_; //generation number for datasets
-    // std::map<TString, double> systematicMap_; //map of background label to a systematic uncertainty
+    // std::vector<Double_t> scale_; //scales for datasets
+    // std::vector<Int_t>    process_; //indicates which backgrounds to use
+    // std::vector<TString> names_; //to get event histograms
+    // std::vector<TString> labels_; //to label tlegend and group datasets
+    // std::vector<Double_t> xsec_;
+    // std::vector<TString> fileNames_;
+    // std::vector<TFile*> files_;  //histogram files opened
+    // std::vector<TFile*> data_;  //background data files
+    // std::vector<bool> isData_; //flag to check if is data
+    // std::vector<bool> isEmbed_; //flag to check if is embedded
+    // std::vector<bool> isSignal_; //flag to check if is signal file
+    // std::vector<Int_t> dataYear_; //list of years it's associated with (2016, 2017, or 2018)
+    // std::vector<Int_t> ngenerated_; //generation number for datasets
+    // // std::map<TString, double> systematicMap_; //map of background label to a systematic uncertainty
 
     Double_t embed_scale_ = 1.; //additional scale factor for embedding
 
@@ -197,18 +197,13 @@ namespace CLFV {
     Bool_t single_systematic_ = false;
 
     ~DataPlotter() {
-      for(auto f : files_) {
-        if(f && f->TestBit(TObject::kNotDeleted)) {
-          f->Close();
-          delete f;
+      for(Data_t& input : inputs_) {
+        if(input.file_ && input.file_->TestBit(TObject::kNotDeleted)) {
+          input.file_->Close();
+          delete input.file_;
+          input.file_ = nullptr;
         }
       }
-      // for(auto d : data_) {
-      //   if(d && d->TestBit(TObject::kNotDeleted)) {
-      //     d->Close();
-      //     delete d;
-      //   }
-      // }
     }
 
     void draw_cms_label(bool single = false) {
@@ -291,58 +286,58 @@ namespace CLFV {
     }
 
     std::vector<TH1*> get_signal(TString hist, TString setType, Int_t set);
-    TH2* get_signal_2D(TString hist, TString setType, Int_t set);
+    // TH2* get_signal_2D(TString hist, TString setType, Int_t set);
 
     TH1* get_data(TString hist, TString setType, Int_t set);
-    TH2* get_data_2D(TString hist, TString setType, Int_t set);
+    // TH2* get_data_2D(TString hist, TString setType, Int_t set);
 
     TH1* get_qcd(TString hist, TString setType, Int_t set);
-    TH2* get_qcd_2D(TString hist, TString setType, Int_t set);
+    // TH2* get_qcd_2D(TString hist, TString setType, Int_t set);
 
     TH1* get_misid(TString hist, TString setType, Int_t set);
-    TH2* get_misid_2D(TString hist, TString setType, Int_t set);
+    // TH2* get_misid_2D(TString hist, TString setType, Int_t set);
 
     TH1* get_stack_uncertainty(THStack* hstack, TString hname);
     THStack* get_stack(TString hist, TString setType, Int_t set);
-    TH2* get_background_2D(TString hist, TString setType, Int_t set);
+    // TH2* get_background_2D(TString hist, TString setType, Int_t set);
 
-    TCanvas* plot_single_2Dhist(TString hist, TString setType, Int_t set, TString label);
-    TCanvas* plot_single_2Dhist(TString hist, TString setType, Int_t set, TString label,
-                                Double_t xmin, Double_t xmax, Double_t ymin, Double_t ymax) {
-      xMin_ = xmin; xMax_=xmax; yMin_ = ymin; yMax_=ymax; auto c =  plot_single_2Dhist(hist, setType, set, label);
-      reset_axes(); return c;
-    }
-    TCanvas* plot_single_2Dhist(PlottingCard_t card) {
-      rebinH_ = card.rebin_;
-      return plot_single_2Dhist(card.hist_, card.type_, card.set_, card.label_, card.xmin_, card.xmax_, card.ymin_, card.ymax_);
-    }
+    // TCanvas* plot_single_2Dhist(TString hist, TString setType, Int_t set, TString label);
+    // TCanvas* plot_single_2Dhist(TString hist, TString setType, Int_t set, TString label,
+    //                             Double_t xmin, Double_t xmax, Double_t ymin, Double_t ymax) {
+    //   xMin_ = xmin; xMax_=xmax; yMin_ = ymin; yMax_=ymax; auto c =  plot_single_2Dhist(hist, setType, set, label);
+    //   reset_axes(); return c;
+    // }
+    // TCanvas* plot_single_2Dhist(PlottingCard_t card) {
+    //   rebinH_ = card.rebin_;
+    //   return plot_single_2Dhist(card.hist_, card.type_, card.set_, card.label_, card.xmin_, card.xmax_, card.ymin_, card.ymax_);
+    // }
 
-    TCanvas* plot_2Dhist(TString hist, TString setType, Int_t set);
-    TCanvas* plot_2Dhist(TString hist, TString setType, Int_t set,
-                         Double_t xmin, Double_t xmax, Double_t ymin, Double_t ymax) {
-      xMin_ = xmin; xMax_=xmax; yMin_ = ymin; yMax_=ymax; auto c = plot_2Dhist(hist, setType, set);
-      reset_axes(); return c;
-    }
-    TCanvas* plot_2Dhist(PlottingCard_t card) {
-      rebinH_ = card.rebin_;
-      return plot_2Dhist(card.hist_, card.type_, card.set_, card.xmin_, card.xmax_, card.ymin_, card.ymax_);
-    }
+    // TCanvas* plot_2Dhist(TString hist, TString setType, Int_t set);
+    // TCanvas* plot_2Dhist(TString hist, TString setType, Int_t set,
+    //                      Double_t xmin, Double_t xmax, Double_t ymin, Double_t ymax) {
+    //   xMin_ = xmin; xMax_=xmax; yMin_ = ymin; yMax_=ymax; auto c = plot_2Dhist(hist, setType, set);
+    //   reset_axes(); return c;
+    // }
+    // TCanvas* plot_2Dhist(PlottingCard_t card) {
+    //   rebinH_ = card.rebin_;
+    //   return plot_2Dhist(card.hist_, card.type_, card.set_, card.xmin_, card.xmax_, card.ymin_, card.ymax_);
+    // }
 
 
-    TCanvas* plot_hist(TString hist, TString setType, Int_t set);
-    TCanvas* plot_hist(TString hist, TString setType, Int_t set, Double_t xmin, Double_t xmax) {
-      xMin_ = xmin; xMax_=xmax; auto c = plot_hist(hist, setType, set); reset_axes(); return c;
-    }
-    TCanvas* plot_hist(PlottingCard_t card) {
-      rebinH_ = card.rebin_;
-      blindxmin_ = card.blindmin_;
-      blindxmax_ = card.blindmax_;
-      if(card.plot_data_ < 100)
-        plot_data_ = card.plot_data_;
-      if(card.data_over_mc_ < 100)
-        data_over_mc_ = card.data_over_mc_;
-      return plot_hist(card.hist_, card.type_, card.set_, card.xmin_, card.xmax_);
-    }
+    // TCanvas* plot_hist(TString hist, TString setType, Int_t set);
+    // TCanvas* plot_hist(TString hist, TString setType, Int_t set, Double_t xmin, Double_t xmax) {
+    //   xMin_ = xmin; xMax_=xmax; auto c = plot_hist(hist, setType, set); reset_axes(); return c;
+    // }
+    // TCanvas* plot_hist(PlottingCard_t card) {
+    //   rebinH_ = card.rebin_;
+    //   blindxmin_ = card.blindmin_;
+    //   blindxmax_ = card.blindmax_;
+    //   if(card.plot_data_ < 100)
+    //     plot_data_ = card.plot_data_;
+    //   if(card.data_over_mc_ < 100)
+    //     data_over_mc_ = card.data_over_mc_;
+    //   return plot_hist(card.hist_, card.type_, card.set_, card.xmin_, card.xmax_);
+    // }
 
     TCanvas* plot_stack(TString hist, TString setType, Int_t set);
     TCanvas* plot_stack(TString hist, TString setType, Int_t set, Double_t xmin, Double_t xmax) {
@@ -446,42 +441,42 @@ namespace CLFV {
       return print_systematic(card.hist_, card.set_, card.systematic_, card.xmin_, card.xmax_, card.tag_);
     }
 
-    TCanvas* print_hist(TString hist, TString setType, Int_t set, TString tag = "");
-    TCanvas* print_hist(TString hist, TString setType, Int_t set, Double_t xmin, Double_t xmax, TString tag = "") {
-      xMin_ = xmin; xMax_=xmax; auto c = print_hist(hist, setType, set, tag); reset_axes(); return c;
-    }
-    TCanvas* print_hist(PlottingCard_t card) {
-      rebinH_ = card.rebin_;
-      blindxmin_ = card.blindmin_;
-      blindxmax_ = card.blindmax_;
-      if(card.plot_data_ < 100)
-        plot_data_ = card.plot_data_;
-      if(card.data_over_mc_ < 100)
-        data_over_mc_ = card.data_over_mc_;
-      return print_hist(card.hist_, card.type_, card.set_, card.xmin_, card.xmax_, card.tag_);
-    }
+    // TCanvas* print_hist(TString hist, TString setType, Int_t set, TString tag = "");
+    // TCanvas* print_hist(TString hist, TString setType, Int_t set, Double_t xmin, Double_t xmax, TString tag = "") {
+    //   xMin_ = xmin; xMax_=xmax; auto c = print_hist(hist, setType, set, tag); reset_axes(); return c;
+    // }
+    // TCanvas* print_hist(PlottingCard_t card) {
+    //   rebinH_ = card.rebin_;
+    //   blindxmin_ = card.blindmin_;
+    //   blindxmax_ = card.blindmax_;
+    //   if(card.plot_data_ < 100)
+    //     plot_data_ = card.plot_data_;
+    //   if(card.data_over_mc_ < 100)
+    //     data_over_mc_ = card.data_over_mc_;
+    //   return print_hist(card.hist_, card.type_, card.set_, card.xmin_, card.xmax_, card.tag_);
+    // }
 
-    TCanvas* print_2Dhist(TString hist, TString setType, Int_t set, TString tag = "");
-    TCanvas* print_2Dhist(TString hist, TString setType, Int_t set,
-                          Double_t xmin, Double_t xmax, Double_t ymin, Double_t ymax, TString tag = "") {
-      xMin_ = xmin; xMax_=xmax; yMin_ = ymin; yMax_=ymax; auto c = print_2Dhist(hist, setType, set, tag); reset_axes(); return c;
-    }
-    TCanvas* print_2Dhist(PlottingCard_t card) {
-      rebinH_ = card.rebin_;
-      return print_2Dhist(card.hist_, card.type_, card.set_, card.xmin_, card.xmax_, card.ymin_, card.ymax_, card.tag_);
-    }
+    // TCanvas* print_2Dhist(TString hist, TString setType, Int_t set, TString tag = "");
+    // TCanvas* print_2Dhist(TString hist, TString setType, Int_t set,
+    //                       Double_t xmin, Double_t xmax, Double_t ymin, Double_t ymax, TString tag = "") {
+    //   xMin_ = xmin; xMax_=xmax; yMin_ = ymin; yMax_=ymax; auto c = print_2Dhist(hist, setType, set, tag); reset_axes(); return c;
+    // }
+    // TCanvas* print_2Dhist(PlottingCard_t card) {
+    //   rebinH_ = card.rebin_;
+    //   return print_2Dhist(card.hist_, card.type_, card.set_, card.xmin_, card.xmax_, card.ymin_, card.ymax_, card.tag_);
+    // }
 
-    TCanvas* print_single_2Dhist(TString hist, TString setType, Int_t set, TString label, TString tag = "");
-    TCanvas* print_single_2Dhist(TString hist, TString setType, Int_t set, TString label,
-                                 Double_t xmin, Double_t xmax, Double_t ymin, Double_t ymax, TString tag = "") {
-      xMin_ = xmin; xMax_=xmax; yMin_ = ymin; yMax_=ymax; auto c = print_single_2Dhist(hist, setType, set, label, tag); reset_axes(); return c;
-    }
-    TCanvas* print_single_2Dhist(PlottingCard_t card) {
-      rebinH_ = card.rebin_;
-      if(card.plot_data_ < 100)
-        plot_data_ = card.plot_data_;
-      return print_single_2Dhist(card.hist_, card.type_, card.set_, card.label_, card.xmin_, card.xmax_, card.ymin_, card.ymax_, card.tag_);
-    }
+    // TCanvas* print_single_2Dhist(TString hist, TString setType, Int_t set, TString label, TString tag = "");
+    // TCanvas* print_single_2Dhist(TString hist, TString setType, Int_t set, TString label,
+    //                              Double_t xmin, Double_t xmax, Double_t ymin, Double_t ymax, TString tag = "") {
+    //   xMin_ = xmin; xMax_=xmax; yMin_ = ymin; yMax_=ymax; auto c = print_single_2Dhist(hist, setType, set, label, tag); reset_axes(); return c;
+    // }
+    // TCanvas* print_single_2Dhist(PlottingCard_t card) {
+    //   rebinH_ = card.rebin_;
+    //   if(card.plot_data_ < 100)
+    //     plot_data_ = card.plot_data_;
+    //   return print_single_2Dhist(card.hist_, card.type_, card.set_, card.label_, card.xmin_, card.xmax_, card.ymin_, card.ymax_, card.tag_);
+    // }
 
     TCanvas* print_cdf(TString hist, TString setType, Int_t set, TString label, TString tag = "");
     TCanvas* print_cdf(TString hist, TString setType, Int_t set, TString label, Double_t xmin, Double_t xmax, TString tag = "") {
@@ -527,24 +522,24 @@ namespace CLFV {
       return status;
     }
 
-    Int_t print_hists(std::vector<TString> hists, std::vector<TString> setTypes, std::vector<Int_t> sets,
-                              std::vector<Double_t> xMaxs, std::vector<Double_t> xMins, std::vector<Int_t> rebins
-                              , std::vector<Double_t> signal_scales, std::vector<Int_t> base_rebins);
+    // Int_t print_hists(std::vector<TString> hists, std::vector<TString> setTypes, std::vector<Int_t> sets,
+    //                           std::vector<Double_t> xMaxs, std::vector<Double_t> xMins, std::vector<Int_t> rebins
+    //                           , std::vector<Double_t> signal_scales, std::vector<Int_t> base_rebins);
 
-    Int_t print_hists(std::vector<PlottingCard_t> cards, std::vector<Int_t> sets, std::vector<Double_t> signal_scales, std::vector<Int_t> base_rebins) {
-      Int_t status = 0;
-      for(unsigned index = 0; index < sets.size(); ++index) {
-        if(signal_scales.size() == sets.size()) signal_scale_ = signal_scales[index];
-        for(PlottingCard_t card : cards) {
-          if(base_rebins.size() == sets.size()) card.rebin_ *= base_rebins[index];
-          card.set_ = sets[index];
-          auto c = print_hist(card);
-          status += (c) ? 0 : 1;
-          Empty_Canvas(c);
-        }
-      }
-      return status;
-    }
+    // Int_t print_hists(std::vector<PlottingCard_t> cards, std::vector<Int_t> sets, std::vector<Double_t> signal_scales, std::vector<Int_t> base_rebins) {
+    //   Int_t status = 0;
+    //   for(unsigned index = 0; index < sets.size(); ++index) {
+    //     if(signal_scales.size() == sets.size()) signal_scale_ = signal_scales[index];
+    //     for(PlottingCard_t card : cards) {
+    //       if(base_rebins.size() == sets.size()) card.rebin_ *= base_rebins[index];
+    //       card.set_ = sets[index];
+    //       auto c = print_hist(card);
+    //       status += (c) ? 0 : 1;
+    //       Empty_Canvas(c);
+    //     }
+    //   }
+    //   return status;
+    // }
 
     //get the default figure name
     TString GetFigureName(TString type, TString hist, int set, TString figureType, TString tag = "", bool noDataDefined = false) {
@@ -610,10 +605,11 @@ namespace CLFV {
         //set color
         unsigned entrynumber = 0;
         std::map<TString, bool> foundLabels; //record which labels have been found, as unique is what matters
-        for(unsigned index = 0; index < labels_.size(); ++index) {
-          if(labels_[index] == card.label_) break; //if found the label, save this entry number and exit
-          if(isSignal_[index] == card.issignal_ && !foundLabels[labels_[index]]) {
-            foundLabels[labels_[index]] = true; //label has appeared (only count unique labels)
+        for(unsigned index = 0; index < inputs_.size(); ++index) {
+          Data_t& input = inputs_[index];
+          if(input.label_ == card.label_) break; //if found the label, save this entry number and exit
+          if(input.isSignal_ == card.issignal_ && !foundLabels[input.label_]) {
+            foundLabels[input.label_] = true; //label has appeared (only count unique labels)
             ++entrynumber; //if is signal matches, increment
           }
         }
