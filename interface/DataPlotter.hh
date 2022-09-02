@@ -285,6 +285,9 @@ namespace CLFV {
       }
     }
 
+    std::vector<TH1*> get_histograms(TString hist, TString setType, Int_t set, Int_t Mode);
+    enum{kBackground, kSignal, kData};
+
     std::vector<TH1*> get_signal(TString hist, TString setType, Int_t set);
     // TH2* get_signal_2D(TString hist, TString setType, Int_t set);
 
