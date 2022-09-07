@@ -3,7 +3,7 @@
 Help() {
     echo "Process all QCD transfer factors"
     echo "Options:"
-    echo " 1: histogram path from //store/user/${USER}/histograms/, default = nanoaods"
+    echo " 1: histogram path from /store/user/${USER}/histograms/, default = nanoaods_qcd"
     echo " 2: list of years to process, default = \"2016 2017 2018\""
     echo " 3: data selection, default = emu"
 }
@@ -11,7 +11,7 @@ Help() {
 HISTPATH=$1
 if [[ "${HISTPATH}" == "" ]]
 then
-    HISTPATH="nanoaods"
+    HISTPATH="nanoaods_qcd"
 elif [[ "${HISTPATH}" == "-h" ]]
 then
     Help

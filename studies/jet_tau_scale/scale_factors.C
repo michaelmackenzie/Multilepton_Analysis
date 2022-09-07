@@ -130,39 +130,40 @@ TH2* get_histogram(int setAbs, int ijet, int idm, int isdata, int icat) {
   TString faketauname = name;
   if(isdata >= 0) faketauname.ReplaceAll("faketau", "faketaumc");
 
-  unsigned nfiles = dataplotter_->data_.size();
+  unsigned nfiles = dataplotter_->inputs_.size();
   //get the histogram for each process added to the dataplotter
   for(unsigned d = 0; d < nfiles; ++d) {
+    auto input = dataplotter_->inputs_[d];
     //////////////////////////////////////////////////////////
     // Check if this histogram should be added
     if(process_ == "") { //not process-specific factors
-      if(dataplotter_->isData_[d] != (isdata > 0)) continue; //check if using data or not
+      if(input.isData_ != (isdata > 0)) continue; //check if using data or not
     } else if(isdata <= 0) { //MC taus, fake or real
-      if(dataplotter_->isData_[d]) continue; //skip if data
+      if(input.isData_) continue; //skip if data
       //check if this is the correct process if getting MC fake taus (always get all true taus, even in process-specific mode)
-      if(isdata < 0 && dataplotter_->labels_[d] != process_ && process_ != "QCD") continue; //for QCD MC fake taus get histogram just to have a dummy histogram
+      if(isdata < 0 && input.label_ != process_ && process_ != "QCD") continue; //for QCD MC fake taus get histogram just to have a dummy histogram
     } else { //data, with other fake tau processes subtracted
-      if(dataplotter_->labels_[d] == process_) continue; //skip correct process
+      if(input.label_ == process_) continue; //skip correct process
     }
 
     //////////////////////////////////////////////////////////
     //Histogram is accepted, so add to the final histogram
 
-    const bool bkgProcess = isdata == 1 && !dataplotter_->isData_[d]; //MC fake tau to subtract from data (process not interested in)
+    const bool bkgProcess = isdata == 1 && !input.isData_; //MC fake tau to subtract from data (process not interested in)
     const int set = (bkgProcess) ? get_mc_set(setAbs) : setAbs; //offset to the MC fake taus set if subtracting the process specific fake taus
     //add the fixed offset to the fake tau included set, so removing fake+real for other processes, real for interested one
     // if(bkgProcess && !usingMCTaus_ && set % 100 < 90) set += 6;
     // else if(bkgProcess && !usingMCTaus_) set -= 1; //set 93 uses set 92, 95 uses 94
     const TString hpath = Form("event_%i/%s", set, ((bkgProcess) ? faketauname : name).Data());
-    if(verbose_ > 1) cout << "Retrieving histogram " << hpath.Data() << " for " << dataplotter_->names_[d].Data()
-                          << " with scale = " << dataplotter_->scale_[d] << endl;
-    TH2* hTmp = (TH2*) dataplotter_->data_[d]->Get(hpath.Data());
+    if(verbose_ > 1) cout << "Retrieving histogram " << hpath.Data() << " for " << input.name_.Data()
+                          << " with scale = " << input.scale_ << endl;
+    TH2* hTmp = (TH2*) input.data_->Get(hpath.Data());
     if(!hTmp) {
-      if(verbose_ >= 0) cout << "Histogram " << name.Data() << "/event/" << set << " for " << dataplotter_->names_[d].Data() << " not found!\n";
+      if(verbose_ >= 0) cout << "Histogram " << name.Data() << "/event/" << set << " for " << input.name_.Data() << " not found!\n";
       continue;
     }
     hTmp = (TH2*) hTmp->Clone(Form("hTmp_%s", name.Data()));
-    if(!dataplotter_->isData_[d]) hTmp->Scale(dataplotter_->scale_[d]);
+    if(!input.isData_) hTmp->Scale(input.scale_);
 
     //for MC fake taus for QCD, just return an empty histogram since no MC fake QCD taus
     if(isdata < 0 && process_ == "QCD") {
@@ -229,43 +230,44 @@ TH1* get_closure_hist(TString hist, TString type, int set, int isdata) {
   */
 
   TH1* h = nullptr;
-  const unsigned nfiles = dataplotter_->data_.size();
+  const unsigned nfiles = dataplotter_->inputs_.size();
   //get the histogram for each process added to the dataplotter
   for(unsigned d = 0; d < nfiles; ++d) {
+    auto input = dataplotter_->inputs_[d];
     //////////////////////////////////////////////////////////
     // Check if this histogram should be added
     if(process_ == "") { //not process-specific factors
-      if(dataplotter_->isData_[d] != (isdata > 0)) continue; //check if using data or not
+      if(input.isData_ != (isdata > 0)) continue; //check if using data or not
     } else if(isdata <= 0) { //MC taus, both real and fake
-      if(dataplotter_->isData_[d]) continue; //skip if data
+      if(input.isData_) continue; //skip if data
       //check if this is the correct process if getting MC fake taus (always get all true taus, even in process-specific mode)
-      if(isdata < 0  && dataplotter_->labels_[d] != process_ && process_ != "QCD") continue; //for QCD MC fake taus get histogram just to have a dummy histogram
+      if(isdata < 0  && input.label_ != process_ && process_ != "QCD") continue; //for QCD MC fake taus get histogram just to have a dummy histogram
       //NOTE: for MC (isdata == 0), only retrieve the process true taus, NOT LIKE ABOVE WHERE THE HISTOGRAMS FILTER BY MC TRUTH
-      if(isdata == 0 && process_ != "" && dataplotter_->labels_[d] != process_ && process_ != "QCD") continue;
+      if(isdata == 0 && process_ != "" && input.label_ != process_ && process_ != "QCD") continue;
     } else { //data, with other fake tau processes subtracted
-      if(usingMCTaus_ && dataplotter_->labels_[d] == process_) continue; //skip correct process
+      if(usingMCTaus_ && input.label_ == process_) continue; //skip correct process
     }
 
     //////////////////////////////////////////////////////////
     //Histogram is accepted, so add to the final histogram
 
     //if not the process of interest, offset to the set with MC fake taus to remove these as well from data
-    const bool bkgprocess = isdata == 1 && !dataplotter_->isData_[d]; //MC to subtract from data
+    const bool bkgprocess = isdata == 1 && !input.isData_; //MC to subtract from data
     int set_offset = 0;
-    if(!usingMCTaus_ && bkgprocess && dataplotter_->labels_[d] != process_) {  //only subtract MC fake taus if in MC true set and from data
+    if(!usingMCTaus_ && bkgprocess && input.label_ != process_) {  //only subtract MC fake taus if in MC true set and from data
       set_offset = get_mc_set(set) - set;
     }
     const int setAbs = set + set_offset;
     const char* hpath = Form("%s_%i/%s", type.Data(), setAbs, hist.Data());
-    if(noncl_verbose_ > 2) cout << "  Retrieving histogram " << hpath << " for " << dataplotter_->names_[d].Data()
-                          << " with scale = " << dataplotter_->scale_[d] << endl;
-    TH1* hTmp = (TH1*) dataplotter_->data_[d]->Get(hpath);
+    if(noncl_verbose_ > 2) cout << "  Retrieving histogram " << hpath << " for " << input.name_.Data()
+                          << " with scale = " << input.scale_ << endl;
+    TH1* hTmp = (TH1*) input.data_->Get(hpath);
     if(!hTmp) {
-      if(noncl_verbose_ >= 0) cout << "!!! Histogram " << hist.Data() << "/" << type.Data() << "/" << setAbs << " for " << dataplotter_->names_[d].Data() << " not found!\n";
+      if(noncl_verbose_ >= 0) cout << "!!! Histogram " << hist.Data() << "/" << type.Data() << "/" << setAbs << " for " << input.name_.Data() << " not found!\n";
       continue;
     }
     hTmp = (TH1*) hTmp->Clone(Form("hTmp_%s_%i_d%i", hist.Data(), set, isdata));
-    if(!dataplotter_->isData_[d]) hTmp->Scale(dataplotter_->scale_[d]);
+    if(!input.isData_) hTmp->Scale(input.scale_);
 
     //for MC fake taus for QCD, just return an empty histogram since no MC fake QCD taus
     if(isdata < 0 && process_ == "QCD") {
@@ -275,7 +277,7 @@ TH1* get_closure_hist(TString hist, TString type, int set, int isdata) {
     }
 
     if(noncl_verbose_ > 1)
-      cout << "  File name " << dataplotter_->names_[d].Data() << ": Histogram " << hpath << " has integral " << hTmp->Integral() << endl;
+      cout << "  File name " << input.name_.Data() << ": Histogram " << hpath << " has integral " << hTmp->Integral() << endl;
 
     //subtract MC processes (true + fakes not interested in) from data
     if(bkgprocess) hTmp->Scale(-1.);
@@ -304,7 +306,7 @@ TH1* get_closure_hist(TString hist, TString type, int set, int isdata) {
     cout << "  --- Histogram " << hist.Data() << " set " << set << " integral = " << h->Integral() << endl;
   //setup the histogram title and axis titles
   TString title, xtitle, ytitle;
-  dataplotter_->get_titles(hist, type, &xtitle, &ytitle, &title);
+  Titles::get_titles(hist, type, selection_, &xtitle, &ytitle, &title);
   h->SetTitle("");
   h->SetXTitle(xtitle.Data());
   h->SetYTitle("");

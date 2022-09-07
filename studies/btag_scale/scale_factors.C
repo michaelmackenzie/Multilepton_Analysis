@@ -6,8 +6,8 @@ DataPlotter* dataplotter_ = 0;
 int verbose_ = 0;
 
 //Get the 2D jet pT vs eta histogram
-TH2D* get_histogram(int set, int quark, bool useBTag, int WP) {
-  TH2D* h = 0;
+TH2* get_histogram(int set, int quark, bool useBTag, int WP) {
+  TH2* h = 0;
   //get the histogram name, depending on if requiring a b-tag
   TString name = "jetsptvseta";
   if(useBTag) {
@@ -28,23 +28,24 @@ TH2D* get_histogram(int set, int quark, bool useBTag, int WP) {
   }
   //add the generator-level quark category
   name += quark;
-  unsigned nfiles = dataplotter_->data_.size();
+  unsigned nfiles = dataplotter_->inputs_.size();
   //get the histogram for each process added to the dataplotter
   for(unsigned d = 0; d < nfiles; ++d) {
+    auto input = dataplotter_->inputs_[d];
     TString hpath = Form("event_%i/%s", set, name.Data());
-    if(verbose_ > 0) cout << "Retrieving histogram " << hpath.Data() << " for " << dataplotter_->names_[d].Data() << endl;
-    TH2D* hTmp = (TH2D*) dataplotter_->data_[d]->Get(hpath.Data());
+    if(verbose_ > 0) cout << "Retrieving histogram " << hpath.Data() << " for " << input.name_.Data() << endl;
+    TH2* hTmp = (TH2*) input.data_->Get(hpath.Data());
     if(!hTmp) {
-      if(verbose_ > 0) cout << "MC Histogram " << name.Data() << " for " << dataplotter_->names_[d].Data() << " not found!\n";
+      if(verbose_ > 0) cout << "MC Histogram " << name.Data() << " for " << input.name_.Data() << " not found!\n";
       continue;
     }
     // ignore luminosity/normalization scaling --> 1 entry ~ weight of 1
-    // hTmp->Scale(dataplotter_->scale_[d]);
+    // hTmp->Scale(input.scale_);
     if(!h) h = hTmp;
     else h->Add(hTmp);
   }
 
-  if(!h) return NULL;
+  if(!h) return nullptr;
 
   //setup the histogram title and axis titles
   if(useBTag) {
@@ -131,13 +132,13 @@ TCanvas* scale_factors(TString selection = "mumu", int set = 7, int year = 2016,
   //////////////////////
 
   //Histograms without b-tag requirement
-  TH2D* hLJets = get_histogram(setAbs, 0, false, WP); //light jets
-  TH2D* hCJets = get_histogram(setAbs, 1, false, WP); //c-jets
-  TH2D* hBJets = get_histogram(setAbs, 2, false, WP); //b-jets
+  TH2* hLJets = get_histogram(setAbs, 0, false, WP); //light jets
+  TH2* hCJets = get_histogram(setAbs, 1, false, WP); //c-jets
+  TH2* hBJets = get_histogram(setAbs, 2, false, WP); //b-jets
   //Histograms with b-tag requirement
-  TH2D* hLBJets = get_histogram(setAbs, 0, true, WP); //light jets
-  TH2D* hCBJets = get_histogram(setAbs, 1, true, WP); //c-jets
-  TH2D* hBBJets = get_histogram(setAbs, 2, true, WP); //b-jets
+  TH2* hLBJets = get_histogram(setAbs, 0, true, WP); //light jets
+  TH2* hCBJets = get_histogram(setAbs, 1, true, WP); //c-jets
+  TH2* hBBJets = get_histogram(setAbs, 2, true, WP); //b-jets
 
   if(!hLJets || !hCJets || !hBJets || !hLBJets || !hCBJets || !hBBJets) {
     cout << "Not all histograms found!\n";
@@ -179,7 +180,7 @@ TCanvas* scale_factors(TString selection = "mumu", int set = 7, int year = 2016,
   else if(WP == 2) wp = "Tight";
   c2->Divide(3,1);
   pad = c2->cd(1);
-  TH2D* hLRatio = (TH2D*) hLBJets->Clone("hLRatio");
+  TH2* hLRatio = (TH2*) hLBJets->Clone("hLRatio");
   hLRatio->Divide(hLJets);
   hLRatio->Draw("colz");
   hLRatio->GetZaxis()->SetRangeUser(hLRatio->GetMinimum()*0.9, min(1.2, hLRatio->GetMaximum()*1.1));
@@ -189,7 +190,7 @@ TCanvas* scale_factors(TString selection = "mumu", int set = 7, int year = 2016,
   pad->SetRightMargin(0.15);
   pad->SetLeftMargin(0.1);
   pad = c2->cd(2);
-  TH2D* hCRatio = (TH2D*) hCBJets->Clone("hCRatio");
+  TH2* hCRatio = (TH2*) hCBJets->Clone("hCRatio");
   hCRatio->Divide(hCJets);
   hCRatio->Draw("colz");
   hCRatio->GetZaxis()->SetRangeUser(hCRatio->GetMinimum()*0.9, min(1.2, hCRatio->GetMaximum()*1.1));
@@ -199,7 +200,7 @@ TCanvas* scale_factors(TString selection = "mumu", int set = 7, int year = 2016,
   pad->SetRightMargin(0.15);
   pad->SetLeftMargin(0.1);
   pad = c2->cd(3);
-  TH2D* hBRatio = (TH2D*) hBBJets->Clone("hBRatio");
+  TH2* hBRatio = (TH2*) hBBJets->Clone("hBRatio");
   hBRatio->Divide(hBJets);
   hBRatio->Draw("colz");
   hBRatio->GetZaxis()->SetRangeUser(hBRatio->GetMinimum()*0.9, min(1.2, hBRatio->GetMaximum()*1.1));

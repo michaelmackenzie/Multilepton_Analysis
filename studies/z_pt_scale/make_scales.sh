@@ -6,11 +6,11 @@ YEARS=$3
 
 if [[ "${HISTSET}" == "" ]]
 then
-    HISTSET=8
+    HISTSET=7
 fi
 if [[ "${HISTPATH}" == "" ]]
 then
-    HISTPATH="nanoaods_dev"
+    HISTPATH="nanoaods_zpt"
 fi
 if [[ "${YEARS}" == "" ]]
 then

@@ -246,7 +246,7 @@ void get_mass_binning(double* binning, int &nbins, int type = 0) {
 //----------------------------------------------------------------------------------------------------------------------------------
 TH2* get_histogram(int set, int type = 0, bool isdata = false) {
   TH2* h = 0;
-  unsigned nfiles = dataplotter_->data_.size();
+  unsigned nfiles = dataplotter_->inputs_.size();
   TString hname;
 
   bool bkg = false;
@@ -265,19 +265,20 @@ TH2* get_histogram(int set, int type = 0, bool isdata = false) {
   if(verbose_ > 0) cout << "Getting 2D MC histograms named " << hname.Data() << " with bkg = " << bkg << endl;
 
   for(unsigned d = 0; d < nfiles; ++d) {
-    if(dataplotter_->isData_[d] && !isdata) continue; //get data separately
-    else if(!dataplotter_->isData_[d] && isdata) continue;
+    auto input = dataplotter_->inputs_[d];
+    if(input.isData_ && !isdata) continue; //get data separately
+    else if(!input.isData_ && isdata) continue;
     TString hpath = Form("event_%i/%s", set, hname.Data());
-    const bool isDY = dataplotter_->names_[d].Contains("DY");
+    const bool isDY = input.name_.Contains("DY");
     if(!isdata && ((bkg && isDY) || (!bkg && !isDY))) continue; //if getting background, skip DY, else skip non-DY
-    if(verbose_ > 0) cout << "Retrieving histogram " << hpath.Data() << " for " << dataplotter_->names_[d].Data()
+    if(verbose_ > 0) cout << "Retrieving histogram " << hpath.Data() << " for " << input.name_.Data()
                           << " with bkg = " << bkg << ", isDY = " << isDY << " and isdata = " << isdata << endl;
-    TH2* hTmp = (TH2*) dataplotter_->data_[d]->Get(hpath.Data());
+    TH2* hTmp = (TH2*) input.data_->Get(hpath.Data());
     if(!hTmp) {
-      if(verbose_ > 0) cout << "Histogram " << hname.Data() << " for " << dataplotter_->names_[d].Data() << " not found!\n";
+      if(verbose_ > 0) cout << "Histogram " << hname.Data() << " for " << input.name_.Data() << " not found!\n";
       continue;
     }
-    hTmp->Scale(dataplotter_->scale_[d]);
+    hTmp->Scale(input.scale_);
     if(!h) h = hTmp;
     else h->Add(hTmp);
   }
@@ -303,6 +304,7 @@ Int_t initialize_plotter(TString base, int year) {
   years_ = {year};
 
   useEmbed_ = 0; //correction factors for DY MC, not embedding
+  hist_tag_ = "zpt"; //tag for the ZPtHistMaker
 
   std::vector<dcard> cards;
   get_datacards(cards, selection_, true);
@@ -320,7 +322,7 @@ Int_t initialize_plotter(TString base, int year) {
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------
-TCanvas* scale_factors(bool useMuon = true, int set = 8, int year = 2016, TString path = "nanoaods_dev") {
+TCanvas* scale_factors(bool useMuon = true, int set = 7, int year = 2016, TString path = "nanoaods_zpt") {
   hist_dir_ = path;
   selection_ = (useMuon) ? "mumu" : "ee";
 

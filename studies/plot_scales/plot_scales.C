@@ -558,8 +558,8 @@ TCanvas* plot_embedding_kit_scale(int year, int Mode, bool isMuon) {
   if(!scale || !pt || !eta) return NULL;
 
   vector<double> eta_bins;
-  if(isMuon) eta_bins = {0., 1., 1.4442, 1.566, 2.1, 2.5}; //{-2.4,-2.0,-1.5,-0.8, 0.0, 0.8, 1.5, 2.0, 2.4};
-  else       eta_bins = {0., 0.9, 1.2, 2.1, 2.4}; //{-2.5,-2.0,-1.566,-1.4442, -0.8, 0.0, 0.8, 1.4442, 1.566, 2.0, 2.5};
+  if(!isMuon) eta_bins = {0., 1., 1.4442, 1.566, 2.1, 2.5}; //{-2.4,-2.0,-1.5,-0.8, 0.0, 0.8, 1.5, 2.0, 2.4};
+  else        eta_bins = {0., 0.9, 1.2, 2.1, 2.4}; //{-2.5,-2.0,-1.566,-1.4442, -0.8, 0.0, 0.8, 1.4442, 1.566, 2.0, 2.5};
 
   TString cname = Form("embed_kit_scale_%s_mode-%i_%i", (isMuon) ? "mumu" : "ee", Mode, year);
   TCanvas* c = new TCanvas(cname.Data(), cname.Data(), 1000, 700);
@@ -590,16 +590,63 @@ TCanvas* plot_embedding_kit_scale(int year, int Mode, bool isMuon) {
   return c;
 }
 
+TCanvas* plot_embedding_unfold_scale(int year, int Mode) {
+  TString path = Form("../../scale_factors/htt_scalefactors_legacy_%i.root", year);
+  TFile* f = TFile::Open(path.Data(), "READ");
+  if(!f) return NULL;
+  RooWorkspace* w = (RooWorkspace*) f->Get("w");
+  if(!w) return NULL;
+  RooRealVar* pt_1  = (RooRealVar*) w->obj("gt1_pt" );
+  RooRealVar* eta_1 = (RooRealVar*) w->obj("gt1_eta");
+  // RooRealVar* pt_2  = (RooRealVar*) w->obj("gt2_pt" );
+  // RooRealVar* eta_2 = (RooRealVar*) w->obj("gt2_eta");
+  RooHistFunc* hist = (RooHistFunc*) w->obj(Form("m_sel_trg%i_1_%sdata", (Mode == 0) ? 17 : 8, (year == 2016) ? "kit_" : ""));
+
+  if(!hist || !pt_1 || !eta_1 /*|| !pt_2 || !eta_2*/) return NULL;
+
+  TString cname = Form("embed_kit_unfold_%i_%i", year, Mode);
+  TCanvas* c = new TCanvas(cname.Data(), cname.Data(), 1000, 700);
+
+  vector<double> eta_bins = {0., 0.9, 1.2, 2.1, 2.4};
+
+  TLegend* leg = new TLegend(0.75, 0.6, 0.9, 0.9);
+  int colors[] = {kRed, kBlue, kGreen, kViolet, kOrange, kYellow+2,
+                  kAtlantic, kGreen+2, kRed+2, kBlue+2, kViolet-2};
+  auto frame = pt_1->frame(8., 500.);
+  if(!frame) return NULL;
+  for(int ibin = 1; ibin < eta_bins.size(); ++ibin) {
+    eta_1->setVal((eta_bins[ibin - 1] + eta_bins[ibin])/2.);
+    hist->plotOn(frame, RooFit::LineColor(colors[ibin-1]), RooFit::Name(Form("bin_%i", ibin)));
+  }
+  frame->Draw();
+  for(int ibin = 1; ibin < eta_bins.size(); ++ibin) {
+    leg->AddEntry(Form("bin_%i", ibin), Form("#eta = %.2f", (eta_bins[ibin - 1] + eta_bins[ibin])/2.));
+  }
+  frame->SetMinimum(0.8);
+  frame->SetMaximum(1.1);
+  leg->Draw();
+  c->SetBottomMargin(0.13);
+  c->SetLeftMargin(0.1);
+  c->SetRightMargin(0.1);
+  c->SetLogx();
+  frame->GetXaxis()->SetMoreLogLabels(true);
+  c->Print(Form("figures/%s.png", cname.Data()));
+
+  f->Close();
+  return c;
+}
+
 
 //////////////////////////////////////////////////
 // Plot the tau anti-jet ID scale factors/errors
 //////////////////////////////////////////////////
-TCanvas* plot_tau_jet_ID_scale(int year) {
+TCanvas* plot_tau_jet_ID_scale(int year, bool isembed = false) {
   TString path = gSystem->Getenv("CMSSW_BASE");
   path += "/src/TauPOG/TauIDSFs/data/TauID_SF_pt_DeepTau2017v2p1VSjet_";
   path += year;
   if(year == 2016) path += "Legacy";
   else             path += "ReReco";
+  if(isembed) path += "_EMB";
   path += ".root";
   TFile* f = TFile::Open(path.Data(), "READ");
   if(!f) return NULL;
@@ -610,10 +657,6 @@ TCanvas* plot_tau_jet_ID_scale(int year) {
     cout << __func__ << ": ID scale functions not found!\n";
     return NULL;
   }
-  // fID->SetDirectory(0);
-  // fID_up->SetDirectory(0);
-  // fID_down->SetDirectory(0);
-  // f->Close();
   return plot_scale(fID, Form("c_tau_jet_id_%i", year), fID_up, fID_down);
 }
 
@@ -673,6 +716,11 @@ void plot_scales(int only_year = -1) {
     c = plot_tau_jet_ID_scale(year);
     if(c) {
       c->Print(Form("figures/tau_jet_id_%i.png", year));
+      delete c;
+    }
+    c = plot_tau_jet_ID_scale(year, true);
+    if(c) {
+      c->Print(Form("figures/tau_jet_id_emb_%i.png", year));
       delete c;
     }
     c = plot_tau_mu_ID_scale(year);
@@ -797,5 +845,10 @@ void plot_scales(int only_year = -1) {
     c = plot_embedding_kit_scale(year, 0, true ); if(c) delete c; //muon trigger
     c = plot_embedding_kit_scale(year, 1, true ); if(c) delete c; //muon ID
     c = plot_embedding_kit_scale(year, 2, true ); if(c) delete c; //muon iso ID
+
+    //Embedding unfolding corrections
+    c = plot_embedding_unfold_scale(year, 0); if(c) delete c; //Mu17 leg
+    c = plot_embedding_unfold_scale(year, 1); if(c) delete c; //Mu8  leg
+
   }
 }

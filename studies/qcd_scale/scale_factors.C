@@ -43,19 +43,20 @@ TH1* get_histogram(TString name, int setAbs, int isdata, TString type = "event")
 //Get 2D histograms
 TH2* get_2D_histogram(TString name, int setAbs, int isdata, TString type = "event") {
   TH2* h = 0;
-  unsigned nfiles = dataplotter_->data_.size();
+  const unsigned nfiles = dataplotter_->inputs_.size();
   //get the histogram for each process added to the dataplotter
   for(unsigned d = 0; d < nfiles; ++d) {
-    if(dataplotter_->isData_[d] != (isdata > 0)) continue;
+    auto input = dataplotter_->inputs_[d];
+    if(input.isData_ != (isdata > 0)) continue;
     TString hpath = Form("%s_%i/%s", type.Data(), setAbs, name.Data());
-    if(verbose_ > 0) cout << "Retrieving histogram " << hpath.Data() << " for " << dataplotter_->names_[d].Data() << endl;
-    TH2* hTmp = (TH2*) dataplotter_->data_[d]->Get(hpath.Data());
+    if(verbose_ > 0) cout << "Retrieving histogram " << hpath.Data() << " for " << input.name_.Data() << endl;
+    TH2* hTmp = (TH2*) input.data_->Get(hpath.Data());
     if(!hTmp) {
-      if(verbose_ > 0) cout << "Histogram " << name.Data() << " for " << dataplotter_->names_[d].Data() << " not found!\n";
+      if(verbose_ > 0) cout << "Histogram " << name.Data() << " for " << input.name_.Data() << " not found!\n";
       continue;
     }
     // ignore luminosity/normalization scaling --> 1 entry ~ weight of 1
-    if(!isdata) hTmp->Scale(dataplotter_->scale_[d]);
+    if(!isdata) hTmp->Scale(input.scale_);
     if(!h) h = hTmp;
     else h->Add(hTmp);
   }
@@ -87,7 +88,7 @@ TH1* get_qcd_histogram(TString name, int setAbs, TString type = "event") {
   const double norm = hQCD->Integral();
   for(int ibin = 1; ibin <= hQCD->GetNbinsX(); ++ibin) {
     if(hQCD->GetBinContent(ibin) < 0.) {
-      std::cout << __func__ << ": Warning! QCD bin " << ibin << " < 0, setting to 0!\n";
+      std::cout << __func__ << ": Warning! " << name.Data() << ": QCD bin " << ibin << " < 0, setting to 0!\n";
       hQCD->SetBinContent(ibin, 0.);
     }
   }
@@ -158,7 +159,7 @@ TCanvas* make_ratio_canvas(TH1* hnum, TH1* hdnm, TF1 *&f1, bool print = false, b
   hRatio->SetLineColor(kBlue);
   hRatio->SetMarkerStyle(20);
   hRatio->GetXaxis()->SetRangeUser(xmin, xmax);
-  // hRatio->GetYaxis()->SetRangeUser(0., 5.);
+  hRatio->GetYaxis()->SetRangeUser(0., min(5., 1.5*hRatio->GetMaximum()));
   hRatio->SetYTitle("OS/SS");
   f1 = f;
   if(f1 && drawFit_ && doFit) {
@@ -194,7 +195,7 @@ TCanvas* make_ratio_canvas(TH1* hnum, TH1* hdnm, TF1 *&f1, bool print = false, b
 TCanvas* make_2D_ratio_canvas(TH2* hnum, TH2* hdnm,
                               double xmin = 0., double xmax = 2.5,
                               double ymin = 0., double ymax = 5.,
-                              bool binc = false, TString xl = "", TString yl = "") {
+                              bool binc = true, TString xl = "", TString yl = "") {
   TCanvas* c = new TCanvas("c_2D_ratio", "c_2D_ratio", 800, 600);
   TVirtualPad* pad;
   TH2* hRatio = (TH2*) hnum->Clone(Form("hRatio_%s", hnum->GetName()));
@@ -203,7 +204,7 @@ TCanvas* make_2D_ratio_canvas(TH2* hnum, TH2* hdnm,
   for(int xbin = 1; xbin <= hRatio->GetNbinsX(); ++xbin) {
     for(int ybin = 1; ybin <= hRatio->GetNbinsY(); ++ybin) {
       if(hRatio->GetBinContent(xbin, ybin) > 3.) {
-        cout << __func__ << ": Ratio bin (" << xbin << ", " << ybin << ") is "
+        cout << __func__ << ": " << hnum->GetName() << ": Ratio bin (" << xbin << ", " << ybin << ") is "
              << hRatio->GetBinContent(xbin, ybin) << ", setting to 3\n";
         hRatio->SetBinContent(xbin, ybin, 3.);
       }
@@ -224,7 +225,7 @@ TCanvas* make_2D_ratio_canvas(TH2* hnum, TH2* hdnm,
 }
 
 //make 1D plots
-TCanvas* make_canvas(TH1* hData, TH1* hMC, TH1* hQCD, TString name) {
+TCanvas* make_canvas(TH1* hData, TH1* hMC, TH1* hQCD, TString name, bool logy = false) {
   TCanvas* c = new TCanvas(("c_"+name).Data(), ("c_"+name).Data(), 800, 600);
   TVirtualPad* pad;
   hMC->Draw("hist");
@@ -240,7 +241,7 @@ TCanvas* make_canvas(TH1* hData, TH1* hMC, TH1* hQCD, TString name) {
   hQCD->SetLineWidth(2);
   hQCD->SetFillStyle(3005);
   hQCD->SetFillColor(kRed);
-  hMC->GetYaxis()->SetRangeUser(0.1, 1.1*max(hData->GetMaximum(), hMC->GetMaximum()));
+  hMC->GetYaxis()->SetRangeUser(0.1, ((logy) ? 5. : 1.2)*max(hData->GetMaximum(), hMC->GetMaximum()));
 
   TLegend* leg = new TLegend(0.7, 0.7, 0.9, 0.9);
   leg->AddEntry(hData, "Data");
@@ -294,6 +295,7 @@ Int_t scale_factors(TString selection = "emu", int set = 8, int year = 2016,
   embedScale_ = 1.;
   years_      = {year};
   useUL_      = (hist_dir_.Contains("_UL")) ? 1 : 0;
+  hist_tag_   = "qcd"; //tag for the QCDHistMaker
 
   if(!useEmbed_) cout << "WARNING! Not using embedding samples!\n";
 
@@ -356,8 +358,10 @@ Int_t scale_factors(TString selection = "emu", int set = 8, int year = 2016,
   //////////////////////
   gStyle->SetOptStat(0);
 
+  //construct general figure name
+  TString name = Form("figures/%s_%i/", selection.Data(), year);
   //ensure directories exist
-  gSystem->Exec("[ ! -d figures ] && mkdir figures");
+  gSystem->Exec(Form("[ ! -d %s ] && mkdir -p %s", name.Data(), name.Data()));
   gSystem->Exec("[ ! -d rootfiles ] && mkdir rootfiles");
 
   const char* fname = Form("rootfiles/qcd_scale_%s_%i.root", selection.Data(), year);
@@ -372,19 +376,14 @@ Int_t scale_factors(TString selection = "emu", int set = 8, int year = 2016,
   //  Print results   //
   //////////////////////
 
-  //construct general figure name
-  TString name = "figures/qcd_";
-  name += selection + "_";
-  name += year;
-
   //print canvases
-  c1->Print((name+"_SS.png").Data());
+  c1->Print((name+"SS.png").Data());
   c1->SetLogy();
-  c1->Print((name+"_SS_log.png").Data());
-  c2->Print((name+"_OS.png").Data());
+  c1->Print((name+"SS_log.png").Data());
+  c2->Print((name+"OS.png").Data());
   c2->SetLogy();
-  c2->Print((name+"_OS_log.png").Data());
-  c3->Print((name+"_scale.png").Data());
+  c2->Print((name+"OS_log.png").Data());
+  c3->Print((name+"scale.png").Data());
 
   TH1* hQCDScale = (TH1*) hQCD[1]->Clone("hRatio");
   hQCDScale->Divide(hQCD[0]);
@@ -403,7 +402,7 @@ Int_t scale_factors(TString selection = "emu", int set = 8, int year = 2016,
   hOS = get_qcd_histogram("lepdeltaphi1", setAbs);
   hSS = get_qcd_histogram("lepdeltaphi1", setAbs+CLFVHistMaker::fQcdOffset);
   c = make_ratio_canvas(hOS, hSS, f, false, false, 0, 3.2);
-  if(c) c->Print((name + "_lepdeltaphi1_ratio.png").Data());
+  if(c) {c->Print((name + "lepdeltaphi1_ratio.png").Data()); delete c;}
   if(hOS && hSS) {
     hRatio = (TH1*) hOS->Clone("hRatio_lepdeltaphi1");
     hRatio->Divide(hSS);
@@ -413,7 +412,7 @@ Int_t scale_factors(TString selection = "emu", int set = 8, int year = 2016,
   hOS = get_qcd_histogram("lepdeltaphi", setAbs);
   hSS = get_qcd_histogram("lepdeltaphi", setAbs+CLFVHistMaker::fQcdOffset);
   c = make_ratio_canvas(hOS, hSS, f, false, false, 0, 3.2);
-  if(c) c->Print((name + "_lepdeltaphi_ratio.png").Data());
+  if(c) {c->Print((name + "lepdeltaphi_ratio.png").Data()); delete c;}
   if(hOS && hSS) {
     hSS->Scale(hOS->Integral() / hSS->Integral());
     hRatio = (TH1*) hOS->Clone("hClosure_lepdeltaphi");
@@ -424,7 +423,7 @@ Int_t scale_factors(TString selection = "emu", int set = 8, int year = 2016,
   hOS = get_qcd_histogram("oneeta", setAbs, "lep");
   hSS = get_qcd_histogram("oneeta", setAbs+CLFVHistMaker::fQcdOffset, "lep");
   c = make_ratio_canvas(hOS, hSS, f, false, false, -2.5, 2.5);
-  if(c) c->Print((name + "_oneeta_ratio.png").Data());
+  if(c) {c->Print((name + "oneeta_ratio.png").Data()); delete c;}
   if(hOS && hSS) {
     hSS->Scale(hOS->Integral() / hSS->Integral());
     hRatio = (TH1*) hOS->Clone("hClosure_oneeta");
@@ -435,7 +434,7 @@ Int_t scale_factors(TString selection = "emu", int set = 8, int year = 2016,
   hOS = get_qcd_histogram("lepdeltar2", setAbs);
   hSS = get_qcd_histogram("lepdeltar2", setAbs+CLFVHistMaker::fQcdOffset);
   c = make_ratio_canvas(hOS, hSS, f, false, false);
-  if(c) c->Print((name + "_lepdeltar2_ratio.png").Data());
+  if(c) {c->Print((name + "lepdeltar2_ratio.png").Data()); delete c;}
   if(hOS && hSS) {
     hSS->Scale(hOS->Integral() / hSS->Integral());
     hRatio = (TH1*) hOS->Clone("hClosure_lepdeltar");
@@ -447,13 +446,13 @@ Int_t scale_factors(TString selection = "emu", int set = 8, int year = 2016,
   hOS = get_qcd_histogram("qcddelrj0", setAbs);
   hSS = get_qcd_histogram("qcddelrj0", setAbs+CLFVHistMaker::fQcdOffset);
   c = make_canvas(get_histogram("qcddelrj0", setAbs+CLFVHistMaker::fQcdOffset, 1),
-                  get_histogram("qcddelrj0", setAbs+CLFVHistMaker::fQcdOffset, 0), hSS, "SS");
-  if(c) {c->SetLogy(); c->Print((name + "_lepdeltarj0_SS.png").Data()); delete c;}
+                  get_histogram("qcddelrj0", setAbs+CLFVHistMaker::fQcdOffset, 0), hSS, "SS", true);
+  if(c) {c->SetLogy(); c->Print((name + "lepdeltarj0_SS.png").Data()); delete c;}
   c = make_canvas(get_histogram("qcddelrj0", setAbs, 1),
-                  get_histogram("qcddelrj0", setAbs, 0), hOS, "OS");
-  if(c) {c->SetLogy(); c->Print((name + "_lepdeltarj0_OS.png").Data()); delete c;}
+                  get_histogram("qcddelrj0", setAbs, 0), hOS, "OS", true);
+  if(c) {c->SetLogy(); c->Print((name + "lepdeltarj0_OS.png").Data()); delete c;}
   c = make_ratio_canvas(hOS, hSS, f, false, true);
-  if(c) c->Print((name + "_lepdeltarj0_ratio.png").Data());
+  if(c) {c->Print((name + "lepdeltarj0_ratio.png").Data()); delete c;}
   if(hOS && hSS) {
     hRatio = (TH1*) hOS->Clone("hRatio_lepdeltarj0");
     hRatio->Divide(hSS);
@@ -465,13 +464,13 @@ Int_t scale_factors(TString selection = "emu", int set = 8, int year = 2016,
   hOS = get_qcd_histogram("qcddelrj1", setAbs);
   hSS = get_qcd_histogram("qcddelrj1", setAbs+CLFVHistMaker::fQcdOffset);
   c = make_canvas(get_histogram("qcddelrj1", setAbs+CLFVHistMaker::fQcdOffset, 1),
-                  get_histogram("qcddelrj1", setAbs+CLFVHistMaker::fQcdOffset, 0), hSS, "SS");
-  if(c) {c->SetLogy(); c->Print((name + "_lepdeltarj1_SS.png").Data()); delete c;}
+                  get_histogram("qcddelrj1", setAbs+CLFVHistMaker::fQcdOffset, 0), hSS, "SS", true);
+  if(c) {c->SetLogy(); c->Print((name + "lepdeltarj1_SS.png").Data()); delete c;}
   c = make_canvas(get_histogram("qcddelrj1", setAbs, 1),
-                  get_histogram("qcddelrj1", setAbs, 0), hOS, "OS");
-  if(c) {c->SetLogy(); c->Print((name + "_lepdeltarj1_OS.png").Data()); delete c;}
+                  get_histogram("qcddelrj1", setAbs, 0), hOS, "OS", true);
+  if(c) {c->SetLogy(); c->Print((name + "lepdeltarj1_OS.png").Data()); delete c;}
   c = make_ratio_canvas(hOS, hSS, f, false, true);
-  if(c) c->Print((name + "_lepdeltarj1_ratio.png").Data());
+  if(c) {c->Print((name + "lepdeltarj1_ratio.png").Data()); delete c;}
   if(hOS && hSS) {
     hRatio = (TH1*) hOS->Clone("hRatio_lepdeltarj1");
     hRatio->Divide(hSS);
@@ -483,13 +482,13 @@ Int_t scale_factors(TString selection = "emu", int set = 8, int year = 2016,
   hOS = get_qcd_histogram("qcddelrj2", setAbs);
   hSS = get_qcd_histogram("qcddelrj2", setAbs+CLFVHistMaker::fQcdOffset);
   c = make_canvas(get_histogram("qcddelrj2", setAbs+CLFVHistMaker::fQcdOffset, 1),
-                  get_histogram("qcddelrj2", setAbs+CLFVHistMaker::fQcdOffset, 0), hSS, "SS");
-  if(c) {c->SetLogy(); c->Print((name + "_lepdeltarj2_SS.png").Data()); delete c;}
+                  get_histogram("qcddelrj2", setAbs+CLFVHistMaker::fQcdOffset, 0), hSS, "SS", true);
+  if(c) {c->SetLogy(); c->Print((name + "lepdeltarj2_SS.png").Data()); delete c;}
   c = make_canvas(get_histogram("qcddelrj2", setAbs, 1),
-                  get_histogram("qcddelrj2", setAbs, 0), hOS, "OS");
-  if(c) {c->SetLogy(); c->Print((name + "_lepdeltarj2_OS.png").Data()); delete c;}
+                  get_histogram("qcddelrj2", setAbs, 0), hOS, "OS", true);
+  if(c) {c->SetLogy(); c->Print((name + "lepdeltarj2_OS.png").Data()); delete c;}
   c = make_ratio_canvas(hOS, hSS, f, false, true);
-  if(c) c->Print((name + "_lepdeltarj2_ratio.png").Data());
+  if(c) {c->Print((name + "lepdeltarj2_ratio.png").Data()); delete c;}
   if(hOS && hSS) {
     hRatio = (TH1*) hOS->Clone("hRatio_lepdeltarj2");
     hRatio->Divide(hSS);
@@ -500,12 +499,13 @@ Int_t scale_factors(TString selection = "emu", int set = 8, int year = 2016,
 
   /////////////////////////////////////
   // 2D ratios
+  gStyle->SetPaintTextFormat(".2f");
 
   TH2 *h2DOS, *h2DSS, *h2DRatio;
   h2DOS = get_2D_qcd_histogram("lepdelrvsoneeta1", setAbs);
   h2DSS = get_2D_qcd_histogram("lepdelrvsoneeta1", setAbs+CLFVHistMaker::fQcdOffset);
   c = make_2D_ratio_canvas(h2DOS, h2DSS, 0., 2.5, 0., 5.);
-  if(c) c->Print((name + "_lepdelrvsoneeta1_ratio.png").Data());
+  if(c) {c->Print((name + "lepdelrvsoneeta1_ratio.png").Data()); delete c;}
   if(h2DOS && h2DSS) {
     h2DRatio = (TH2*) h2DOS->Clone("hRatio_lepdelrvsoneeta");
     h2DRatio->Divide(h2DSS);
@@ -515,12 +515,12 @@ Int_t scale_factors(TString selection = "emu", int set = 8, int year = 2016,
   h2DOS = get_2D_qcd_histogram("lepdelrvsoneeta", setAbs);
   h2DSS = get_2D_qcd_histogram("lepdelrvsoneeta", setAbs+CLFVHistMaker::fQcdOffset);
   c = make_2D_ratio_canvas(h2DOS, h2DSS, 0., 2.5, 0., 5.);
-  if(c) c->Print((name + "_lepdelrvsoneeta_ratio.png").Data());
+  if(c) {c->Print((name + "lepdelrvsoneeta_ratio.png").Data()); delete c;}
 
   h2DOS = get_2D_qcd_histogram("lepdelphivsoneeta1", setAbs);
   h2DSS = get_2D_qcd_histogram("lepdelphivsoneeta1", setAbs+CLFVHistMaker::fQcdOffset);
   c = make_2D_ratio_canvas(h2DOS, h2DSS, 0., 2.5, 0., 3.2);
-  if(c) c->Print((name + "_lepdelphivsoneeta1_ratio.png").Data());
+  if(c) {c->Print((name + "lepdelphivsoneeta1_ratio.png").Data()); delete c;}
   if(h2DOS && h2DSS) {
     h2DRatio = (TH2*) h2DOS->Clone("hRatio_lepdelphivsoneeta");
     h2DRatio->Divide(h2DSS);
@@ -528,12 +528,10 @@ Int_t scale_factors(TString selection = "emu", int set = 8, int year = 2016,
   }
 
   //Jet-binned one pt vs two pt non-closure test
-  gStyle->SetPaintTextFormat(".2f");
   h2DOS = get_2D_qcd_histogram("qcdoneptvstwoptj0", setAbs);
   h2DSS = get_2D_qcd_histogram("qcdoneptvstwoptj0", setAbs+CLFVHistMaker::fQcdOffset);
   c = make_2D_ratio_canvas(h2DOS, h2DSS, 10., 150, 10., 150, true, "p_{T}^{e} (GeV/c)", "p_{T}^{#mu} (GeV/c)");
-  if(c) c->Print((name + "_oneptvstwoptj0_ratio.png").Data());
-  if(h2DOS && h2DSS) {
+  if(c) {c->Print((name + "oneptvstwoptj0_ratio.png").Data()); delete c;}  if(h2DOS && h2DSS) {
     h2DRatio = (TH2*) h2DOS->Clone("hRatio_oneptvstwoptj0");
     h2DRatio->Divide(h2DSS);
     h2DRatio->Write();
@@ -542,7 +540,7 @@ Int_t scale_factors(TString selection = "emu", int set = 8, int year = 2016,
   h2DOS = get_2D_qcd_histogram("qcdoneptvstwoptj1", setAbs);
   h2DSS = get_2D_qcd_histogram("qcdoneptvstwoptj1", setAbs+CLFVHistMaker::fQcdOffset);
   c = make_2D_ratio_canvas(h2DOS, h2DSS, 10., 150, 10., 150, true, "p_{T}^{e} (GeV/c)", "p_{T}^{#mu} (GeV/c)");
-  if(c) c->Print((name + "_oneptvstwoptj1_ratio.png").Data());
+  if(c) {c->Print((name + "oneptvstwoptj1_ratio.png").Data()); delete c;}
   if(h2DOS && h2DSS) {
     h2DRatio = (TH2*) h2DOS->Clone("hRatio_oneptvstwoptj1");
     h2DRatio->Divide(h2DSS);
@@ -552,7 +550,7 @@ Int_t scale_factors(TString selection = "emu", int set = 8, int year = 2016,
   h2DOS = get_2D_qcd_histogram("qcdoneptvstwoptj2", setAbs);
   h2DSS = get_2D_qcd_histogram("qcdoneptvstwoptj2", setAbs+CLFVHistMaker::fQcdOffset);
   c = make_2D_ratio_canvas(h2DOS, h2DSS, 10., 150, 10., 150, true, "p_{T}^{e} (GeV/c)", "p_{T}^{#mu} (GeV/c)");
-  if(c) c->Print((name + "_oneptvstwoptj2_ratio.png").Data());
+  if(c) {c->Print((name + "oneptvstwoptj2_ratio.png").Data()); delete c;}
   if(h2DOS && h2DSS) {
     h2DRatio = (TH2*) h2DOS->Clone("hRatio_oneptvstwoptj2");
     h2DRatio->Divide(h2DSS);
@@ -562,18 +560,18 @@ Int_t scale_factors(TString selection = "emu", int set = 8, int year = 2016,
   h2DOS = get_2D_qcd_histogram("qcdoneptvstwopt", setAbs);
   h2DSS = get_2D_qcd_histogram("qcdoneptvstwopt", setAbs+CLFVHistMaker::fQcdOffset);
   c = make_2D_ratio_canvas(h2DOS, h2DSS, 10., 150, 10., 150, true, "p_{T}^{e} (GeV/c)", "p_{T}^{#mu} (GeV/c)");
-  if(c) c->Print((name + "_oneptvstwopt_ratio.png").Data());
+  if(c) {c->Print((name + "oneptvstwopt_ratio.png").Data()); delete c;}
   if(h2DOS && h2DSS) {
     h2DRatio = (TH2*) h2DOS->Clone("hRatio_oneptvstwopt");
     h2DRatio->Divide(h2DSS);
     h2DRatio->Write();
   }
 
-  //loose electron region 2D scales
+  //loose electron, tight muon region 2D scales
   h2DOS = get_2D_qcd_histogram("qcdoneptvstwoptiso", setLsETtMu);
   h2DSS = get_2D_qcd_histogram("qcdoneptvstwoptiso", setLsETtMu+CLFVHistMaker::fQcdOffset);
   c = make_2D_ratio_canvas(h2DOS, h2DSS, 10., 150, 10., 150, true, "p_{T}^{e} (GeV/c)", "p_{T}^{#mu} (GeV/c)");
-  if(c) c->Print((name + "_oneptvstwopt_letm_ratio.png").Data());
+  if(c) {c->Print((name + "oneptvstwopt_letm_ratio.png").Data()); delete c;}
   if(h2DOS && h2DSS) {
     h2DRatio = (TH2*) h2DOS->Clone("hRatio_oneptvstwopt_letm");
     h2DRatio->Divide(h2DSS);
@@ -582,20 +580,22 @@ Int_t scale_factors(TString selection = "emu", int set = 8, int year = 2016,
   //Save the ratio histogram to make muon anti-iso --> iso scale factors
   TH2* hIso = (TH2*) h2DRatio->Clone("hIso");
 
+  //loose electron, loose muon region 2D scales
   h2DOS = get_2D_qcd_histogram("qcdoneptvstwoptiso", setLsELsMu);
   h2DSS = get_2D_qcd_histogram("qcdoneptvstwoptiso", setLsELsMu+CLFVHistMaker::fQcdOffset);
   c = make_2D_ratio_canvas(h2DOS, h2DSS, 10., 150, 10., 150, true, "p_{T}^{e} (GeV/c)", "p_{T}^{#mu} (GeV/c)");
-  if(c) c->Print((name + "_oneptvstwopt_lelm_ratio.png").Data());
+  if(c) {c->Print((name + "oneptvstwopt_lelm_ratio.png").Data()); delete c;}
   if(h2DOS && h2DSS) {
     h2DRatio = (TH2*) h2DOS->Clone("hRatio_oneptvstwopt_lelm");
     h2DRatio->Divide(h2DSS);
     h2DRatio->Write();
   }
+  //Save the ratio histogram to make muon anti-iso --> iso scale factors
   TH2* hAntiIso = (TH2*) h2DRatio->Clone("hAntiIso");
 
   //Make the scale factors for muon anti-iso --> iso
   c = make_2D_ratio_canvas(hIso, hAntiIso, 10., 150, 10., 150, true, "p_{T}^{e} (GeV/c)", "p_{T}^{#mu} (GeV/c)");
-  if(c) c->Print((name + "_oneptvstwopt_iso_to_antiiso_scale.png").Data());
+  if(c) {c->Print((name + "oneptvstwopt_iso_to_antiiso_scale.png").Data()); delete c;}
   if(h2DOS && h2DSS) {
     h2DRatio = (TH2*) hIso->Clone("hRatio_oneptvstwopt_antiisoscale");
     h2DRatio->Divide(hAntiIso);
@@ -605,7 +605,7 @@ Int_t scale_factors(TString selection = "emu", int set = 8, int year = 2016,
   h2DOS = get_2D_qcd_histogram("lepdelphivsoneeta", setAbs);
   h2DSS = get_2D_qcd_histogram("lepdelphivsoneeta", setAbs+CLFVHistMaker::fQcdOffset);
   c = make_2D_ratio_canvas(h2DOS, h2DSS, 0., 2.5, 0., 3.2);
-  if(c) c->Print((name + "_lepdelphivsoneeta_ratio.png").Data());
+  if(c) {c->Print((name + "lepdelphivsoneeta_ratio.png").Data()); delete c;}
 
   fOut->Close();
   delete fOut;

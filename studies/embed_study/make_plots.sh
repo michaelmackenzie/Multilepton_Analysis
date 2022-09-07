@@ -4,6 +4,8 @@ YEARS=$1
 SELECS=$2
 TIGHT=$3
 HISTDIR=$4
+#process only histogram, combine, or reco step
+SINGLESTEP=$5
 
 if [[ "${YEARS}" == "" ]]
 then
@@ -33,9 +35,18 @@ do
     for SELEC in $SELECS
     do
         echo "Processing ${SELEC} ${YEAR}"
-        root.exe -q -b "make_hists.C(\"${SELEC}\", false, ${YEAR}, ${TIGHT})"
-        root.exe -q -b "make_hists.C(\"${SELEC}\", true , ${YEAR}, ${TIGHT})"
-        root.exe -q -b "combine_plots.C(\"${SELEC}\", ${YEAR}, ${TIGHT})"
-        root.exe -q -b "reco_plots.C(\"${SELEC}\", ${YEAR}, \"${HISTDIR}\")"
+        if [[ "${SINGLESTEP}" == "histogram" ]] || [[ "${SINGLESTEP}" == "" ]]
+        then
+            root.exe -q -b "make_hists.C(\"${SELEC}\", false, ${YEAR}, ${TIGHT})"
+            root.exe -q -b "make_hists.C(\"${SELEC}\", true , ${YEAR}, ${TIGHT})"
+        fi
+        if [[ "${SINGLESTEP}" == "combine" ]] || [[ "${SINGLESTEP}" == "" ]]
+        then
+            root.exe -q -b "combine_plots.C(\"${SELEC}\", ${YEAR}, ${TIGHT})"
+        fi
+        if [[ "${SINGLESTEP}" == "reco" ]] || [[ "${SINGLESTEP}" == "" ]]
+        then
+            root.exe -q -b "reco_plots.C(\"${SELEC}\", ${YEAR}, \"${HISTDIR}\")"
+        fi
     done
 done
