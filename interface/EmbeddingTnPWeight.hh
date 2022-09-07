@@ -24,13 +24,20 @@ namespace CLFV {
 
     ~EmbeddingTnPWeight();
 
-    double MuonIDWeight(double pt, double eta, int year, bool qcd = false, int period = 0);
+    double MuonIDWeight(double pt, double eta, int year,
+                        float& id_wt, float& id_up, float& id_down,
+                        float& iso_wt, float& iso_up, float& iso_down,
+                        bool qcd = false, int period = 0);
     double MuonTriggerWeight(double pt, double eta, int year, float& data_eff, float& mc_eff, bool qcd = false, int period = 0);
-    double ElectronIDWeight(double pt, double eta, int year, bool qcd = false, int period = 0);
+    double ElectronIDWeight(double pt, double eta, int year,
+                            float& id_wt, float& id_up, float& id_down,
+                            float& iso_wt, float& iso_up, float& iso_down,
+                            bool qcd = false, int period = 0
+                            );
     double ElectronTriggerWeight(double pt, double eta, int year, float& data_eff, float& mc_eff, bool qcd = false, int period = 0);
 
   private:
-    double GetScale(const TH2* data, const TH2* mc, const double pt, const double eta, float& data_eff, float& mc_eff);
+    double GetScale(const TH2* data, const TH2* mc, const double pt, const double eta, float& data_eff, float& mc_eff, float* data_var = nullptr, float* mc_var = nullptr);
 
   public:
     enum {k2016, k2017, k2018, k2016BF, k2016GH, k2018ABC, k2018D, kLast};

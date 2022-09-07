@@ -204,8 +204,8 @@ ElectronIDWeight::~ElectronIDWeight() { for(unsigned i = 0; i < files_.size(); +
 double ElectronIDWeight::IDWeight(double pt, double eta, int year,
                                   float& weight_id , float& weight_up_id , float& weight_down_id , int& ibin_id,
                                   float& weight_rec, float& weight_up_rec, float& weight_down_rec, int& ibin_rec) {
-  weight_id  = 1.; weight_up_id  = 1.; weight_down_id  = 1.; ibin_id  = 0;
-  weight_rec = 1.; weight_up_rec = 1.; weight_down_rec = 1.; ibin_rec = 0;
+  weight_id  = 1.f; weight_up_id  = 1.f; weight_down_id  = 1.f; ibin_id  = 0;
+  weight_rec = 1.f; weight_up_rec = 1.f; weight_down_rec = 1.f; ibin_rec = 0;
   if(year > 2000) year -= 2016;
   if(year != k2016 && year != k2017 && year != k2018) {
     std::cout << "Warning! Undefined year in ElectronIDWeight::" << __func__ << ", returning -1" << std::endl;

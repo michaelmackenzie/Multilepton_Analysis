@@ -34,6 +34,8 @@ namespace CLFV {
     int   trigger;
     bool  fired;
 
+    bool  isLoose;
+
     int   genFlavor;
     int   genID;
     float ptSF[3] = {1.f, 1.f, 1.f};
@@ -41,10 +43,16 @@ namespace CLFV {
 
     bool  jetOverlap;
 
-    bool isElectron() {return std::abs(flavor) == 11;}
-    bool isMuon    () {return std::abs(flavor) == 13;}
-    bool isTau     () {return std::abs(flavor) == 15;}
-    int  charge    () {return (flavor != 0) ? flavor/std::abs(flavor) : 0;}
+    bool  isElectron() {return std::abs(flavor) == 11;}
+    bool  isMuon    () {return std::abs(flavor) == 13;}
+    bool  isTau     () {return std::abs(flavor) == 15;}
+    int   charge    () {return (flavor != 0) ? flavor/std::abs(flavor) : 0;}
+    float absEta    () {return std::fabs(eta);}
+
+    void setPtEtaPhiM(const float vpt, const float veta, const float vphi, const float vmass) {
+      if(p4) p4->SetPtEtaPhiM(vpt, veta, vphi, vmass);
+      pt = vpt; eta = veta; phi = vphi; mass = vmass;
+    }
   };
 }
 #endif

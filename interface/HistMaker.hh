@@ -71,7 +71,7 @@ namespace CLFV {
   public :
     TTreeReader     fReader;  //!the tree reader
     TTree          *fChain = 0;   //!pointer to the analyzed TTree or TChain
-    enum {kMaxLeptons = 10, kMaxParticles = 50, kMaxTriggers = 100};
+    enum {kMaxLeptons = 10, kMaxParticles = 50, kMaxTriggers = 100, kMaxGenPart = 200};
     enum {kMuTau = 0, kETau = 100, kEMu = 200, kMuTauE = 300, kETauMu = 400, kMuMu = 500, kEE = 600};
     enum {kMaxMVAs = 80};
 
@@ -98,6 +98,13 @@ namespace CLFV {
     Float_t   zLepTwoMass                ;
     Float_t   zLepOneID                  ;
     Float_t   zLepTwoID                  ;
+    Int_t     zLepOneDecayIdx  = -99     ;
+    Int_t     zLepTwoDecayIdx  = -99     ;
+
+    //gen-level info
+    UInt_t nGenPart                                    ;
+    Int_t  GenPart_pdgId                [kMaxGenPart];
+    Int_t  GenPart_genPartIdxMother     [kMaxGenPart];
 
     //lepton information
     //muons
@@ -197,6 +204,7 @@ namespace CLFV {
     Int_t   Jet_partonFlavour             [kMaxParticles];
     Bool_t  Jet_TaggedAsRemovedByMuon     [kMaxParticles];
     Bool_t  Jet_TaggedAsRemovedByElectron [kMaxParticles];
+    Bool_t  Jet_TaggedAsRemovedByTau      [kMaxParticles];
 
     //Trigger info
     Bool_t  HLT_IsoMu24                                  ;
@@ -339,6 +347,8 @@ namespace CLFV {
 
     Float_t muon_trig_pt_    ; //lepton trigger thresholds
     Float_t electron_trig_pt_;
+
+    Float_t tmpFloats[10]; //fields for debugging uses
 
     HistMaker(int seed = 90, TTree * /*tree*/ = 0);
     virtual ~HistMaker();

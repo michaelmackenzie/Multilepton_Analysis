@@ -104,18 +104,31 @@ EmbeddingTnPWeight::~EmbeddingTnPWeight() {
 
 //-------------------------------------------------------------------------------------------------------------------------
 // For a given (pt, eta) point and Data/MC histograms, evaluate the scale factor
-double EmbeddingTnPWeight::GetScale(const TH2* data, const TH2* mc, const double pt, const double eta, float& data_eff, float& mc_eff) {
+double EmbeddingTnPWeight::GetScale(const TH2* data, const TH2* mc, const double pt, const double eta, float& data_eff, float& mc_eff,
+                                    float* data_var, float* mc_var) {
   if(interpolate_) {
     //Perform a linear interpolation
     data_eff = Utilities::Interpolate(data, eta, pt, Utilities::kYAxis);
     mc_eff   = Utilities::Interpolate(mc  , eta, pt, Utilities::kYAxis);
+    if(data_var && mc_var) { //FIXME: Implement uncertainties on interpolation
+      data_var[0] = data_eff; data_var[1] = data_eff;
+      mc_var  [0] = mc_eff  ; mc_var  [1] = mc_eff;
+    }
   } else {
     const int xbin_data = std::max(1, std::min(data->GetNbinsX(), data->GetXaxis()->FindBin(eta)));
     const int ybin_data = std::max(1, std::min(data->GetNbinsY(), data->GetYaxis()->FindBin(pt )));
     data_eff = data->GetBinContent(xbin_data, ybin_data);
+    if(data_var) {
+      const double err = data->GetBinError(xbin_data, ybin_data);
+      data_var[0] = err; data_var[1] = err;
+    }
     const int xbin_mc   = std::max(1, std::min(mc  ->GetNbinsX(), mc  ->GetXaxis()->FindBin(eta)));
     const int ybin_mc   = std::max(1, std::min(mc  ->GetNbinsY(), mc  ->GetYaxis()->FindBin(pt )));
     mc_eff   = mc  ->GetBinContent(xbin_mc  , ybin_mc  );
+    if(mc_var) {
+      const double err = data->GetBinError(xbin_data, ybin_data);
+      data_var[0] = err; data_var[1] = err;
+    }
   }
   const double scale_factor = (mc_eff > 0.) ? data_eff / mc_eff : 1.;
   return scale_factor;
@@ -123,7 +136,10 @@ double EmbeddingTnPWeight::GetScale(const TH2* data, const TH2* mc, const double
 
 //-------------------------------------------------------------------------------------------------------------------------
 // Get Muon ID + Iso ID scale factor
-double EmbeddingTnPWeight::MuonIDWeight(double pt, double eta, int year, bool qcd, int period) {
+double EmbeddingTnPWeight::MuonIDWeight(double pt, double eta, int year,
+                                        float& id_wt, float& id_up, float& id_down,
+                                        float& iso_wt, float& iso_up, float& iso_down,
+                                        bool qcd, int period) {
   if(year > 2000) year -= 2016;
   if(year != k2016 && year != k2017 && year != k2018) {
     std::cout << "Warning! Undefined year in EmbeddingTnPWeight::" << __func__ << ", returning 1" << std::endl;
@@ -153,25 +169,44 @@ double EmbeddingTnPWeight::MuonIDWeight(double pt, double eta, int year, bool qc
 
   double scale_factor(1.);
   float data_eff(1.), mc_eff(1.);
+  float data_unc[2], mc_unc[2]; //for retrieving uncertainties
 
   ///////////////////////////
   // Apply ID weight
   ///////////////////////////
   bool use_abs_eta = hIDMC->GetXaxis()->GetBinLowEdge(1) > -1.; //test if |eta| or eta on x-axis
   eta_var = (use_abs_eta) ? std::fabs(eta) : eta;
-  scale_factor *= GetScale(hIDData, hIDMC, pt, eta_var, data_eff, mc_eff);
+  id_wt = GetScale(hIDData, hIDMC, pt, eta_var, data_eff, mc_eff, data_unc, mc_unc);
+  float err = data_eff/mc_eff * std::sqrt(std::pow(mc_unc[0]/mc_eff, 2) + std::pow(data_unc[0]/data_eff, 2));
+  id_up   = std::max(0.f, id_wt + err);
+  id_down = std::max(0.f, id_wt - err);
+  scale_factor *= id_wt;
+
+  if(verbose_) {
+    printf(" ID weight = %.2f + %.2f - %.2f\n", id_wt, id_up, id_down);
+  }
 
   ///////////////////////////
   // Apply Iso ID weight
   ///////////////////////////
-  use_abs_eta = hIDMC->GetXaxis()->GetBinLowEdge(1) > -1.; //test if |eta| or eta on x-axis
+  use_abs_eta = hIsoIDMC->GetXaxis()->GetBinLowEdge(1) > -1.; //test if |eta| or eta on x-axis
   eta_var = (use_abs_eta) ? std::fabs(eta) : eta;
-  scale_factor *= GetScale(hIsoIDData, hIsoIDMC, pt, eta_var, data_eff, mc_eff);
+  iso_wt = GetScale(hIsoIDData, hIsoIDMC, pt, eta_var, data_eff, mc_eff, data_unc, mc_unc);
+  err = data_eff/mc_eff * std::sqrt(std::pow(mc_unc[0]/mc_eff, 2) + std::pow(data_unc[0]/data_eff, 2));
+  iso_up   = std::max(0.f, iso_wt + err);
+  iso_down = std::max(0.f, iso_wt - err);
+  scale_factor *= iso_wt;
+
+  if(verbose_) {
+    printf(" Iso weight = %.2f + %.2f - %.2f\n", iso_wt, iso_up, iso_down);
+  }
 
   if(scale_factor <= 0. || !std::isfinite(scale_factor)) {
     std::cout << "Warning! Scale factor <= 0 or undefined (" << scale_factor << ") in EmbeddingTnPWeight::" << __func__ << ", returning 1" << std::endl;
+    iso_wt = 1.f; id_wt = 1.f;
     return 1.;
   }
+
   return scale_factor;
 }
 
@@ -230,13 +265,20 @@ double EmbeddingTnPWeight::MuonTriggerWeight(double pt, double eta, int year, fl
 
 //-------------------------------------------------------------------------------------------------------------------------
 // Get Electron ID scale factor
-double EmbeddingTnPWeight::ElectronIDWeight(double pt, double eta, int year, bool qcd, int period) {
+double EmbeddingTnPWeight::ElectronIDWeight(double pt, double eta, int year,
+                                            float& id_wt, float& id_up, float& id_down,
+                                            float& iso_wt, float& iso_up, float& iso_down,
+                                            bool qcd, int period
+                                            ) {
+  id_wt = 1.f; id_up = 1.f; id_down = 1.f;
+  iso_wt = 1.f; iso_up = 1.f; iso_down = 1.f;
   if(year > 2000) year -= 2016;
   if(year != k2016 && year != k2017 && year != k2018) {
     std::cout << "Warning! Undefined year in EmbeddingTnPWeight::" << __func__ << ", returning 1" << std::endl;
     return 1.;
   }
 
+  // x / y
   const int index = ((year == k2016 && useRunPeriods_) || (year == k2018 && useRunPeriods_ > 1)) ? ((year == k2016) ? k2016BF : k2018ABC) + period : year;
   const TH2* hIDMC   = electronIDMCEff_  [index];
   const TH2* hIDData = electronIDDataEff_[index];
@@ -261,23 +303,42 @@ double EmbeddingTnPWeight::ElectronIDWeight(double pt, double eta, int year, boo
 
   double scale_factor(1.);
   float data_eff(1.), mc_eff(1.);
+  float data_unc[2], mc_unc[2]; //for retrieving uncertainties
 
   ///////////////////////////
   // Apply ID weight
   ///////////////////////////
+
   bool use_abs_eta = hIDMC->GetXaxis()->GetBinLowEdge(1) > -1.; //test if |eta| or eta on x-axis
   eta_var = (use_abs_eta) ? std::fabs(eta) : eta;
-  scale_factor *= GetScale(hIDData, hIDMC, pt, eta_var, data_eff, mc_eff);
+  id_wt = GetScale(hIDData, hIDMC, pt, eta_var, data_eff, mc_eff, data_unc, mc_unc);
+  float err = data_eff/mc_eff * std::sqrt(std::pow(mc_unc[0]/mc_eff, 2) + std::pow(data_unc[0]/data_eff, 2));
+  id_up   = std::max(0.f, id_wt + err);
+  id_down = std::max(0.f, id_wt - err);
+  scale_factor *= id_wt;
+
+  if(verbose_) {
+    printf(" ID weight = %.2f + %.2f - %.2f\n", id_wt, id_up, id_down);
+  }
 
   ///////////////////////////
   // Apply IsoID weight
   ///////////////////////////
   use_abs_eta = hIsoIDMC->GetXaxis()->GetBinLowEdge(1) > -1.; //test if |eta| or eta on x-axis
   eta_var = (use_abs_eta) ? std::fabs(eta) : eta;
-  scale_factor *= GetScale(hIsoIDData, hIsoIDMC, pt, eta_var, data_eff, mc_eff);
+  iso_wt = GetScale(hIsoIDData, hIsoIDMC, pt, eta_var, data_eff, mc_eff, data_unc, mc_unc);
+  err = data_eff/mc_eff * std::sqrt(std::pow(mc_unc[0]/mc_eff, 2) + std::pow(data_unc[0]/data_eff, 2));
+  iso_up   = std::max(0.f, iso_wt + err);
+  iso_down = std::max(0.f, iso_wt - err);
+  scale_factor *= iso_wt;
+
+  if(verbose_) {
+    printf(" Iso weight = %.2f + %.2f - %.2f\n", iso_wt, iso_up, iso_down);
+  }
 
   if(scale_factor <= 0. || !std::isfinite(scale_factor)) {
     std::cout << "Warning! Scale factor <= 0 or undefined (" << scale_factor << ") in EmbeddingTnPWeight::" << __func__ << ", returning 1" << std::endl;
+    iso_wt = 1.f; id_wt = 1.f;
     return 1.;
   }
   return scale_factor;

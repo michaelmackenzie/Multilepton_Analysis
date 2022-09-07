@@ -149,11 +149,28 @@ namespace CLFV {
         return -1;
       }
       tree->SetBranchStatus(branch, 1);
+      //FIXME: add check for available cache
+      // auto f = GetCurrentFile();
+      // if(GetReadCache(f,kTRUE)) {
       tree->AddBranchToCache(branch, 1);
+      // }
       if(br != nullptr) {
         return tree->SetBranchAddress(branch, val, br);
       }
       return tree->SetBranchAddress(branch, val);
+    }
+
+    //------------------------------------------------------------------------------------------------------
+    // Delta Phi in [-phi, phi)
+    static double DeltaPhi(const double phi_1, const double phi_2) {
+      if(!std::isfinite(phi_1) || !std::isfinite(phi_2)) {
+        std::cout << "Utilities::" << __func__ << ": Input phi values are not finite!\n";
+        return 0.;
+      }
+      double val = phi_1 - phi_2;
+      if(val >= M_PI) val -= 2.*M_PI;
+      if(val < -M_PI) val += 2.*M_PI;
+      return val;
     }
 
     //------------------------------------------------------------------------------------------------------

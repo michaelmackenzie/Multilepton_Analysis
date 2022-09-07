@@ -136,13 +136,14 @@ namespace CLFV {
 
     //Gen-level Z info
     TH2* hZPtVsM[5]; //0: normal 1: remove Z pT weight 2: apply weights using reco scales if DY 3: using systematic gen-level weights 4: using systematic reco-level weights
-    TH1* hZPt[5];
-    TH1* hZMass[5];
-    TH1* hZEta;
+    TH1* hZPt[6]; //5: normal binning, normal weights
+    TH1* hZMass[6]; //5: normal binning, normal weights
+    TH1* hZEta[2]; //0: nominal; 1: remove Z pT weight
     TH1* hZLepOnePt;
     TH1* hZLepTwoPt;
     TH1* hZLepOneEta;
     TH1* hZLepTwoEta;
+    TH1* hZDecayMode; //0: unknown; 1: ee; 2: mumu; 3: tau_e tau_e; 4: tau_mu tau_mu; 5: tau_e tau_mu; 6: tau_e tau_h; 7: tau_mu tau_h; 8: tau_h tau_h
 
     TH1* hLooseLep;
 
@@ -231,14 +232,16 @@ namespace CLFV {
     TH1* hMTOneOverM;
     TH1* hMTTwoOverM;
 
-    //three sets for combining photon with a lepton or leptons vs photon
-    TH1* hPXiVis[3];
-    TH1* hPXiInv[3];
-    TH1* hPXiVisOverInv[3];
-    TH2* hPXiInvVsVis[3];
-    TH1* hPXiDiff[3];
-    TH1* hPXiDiff2[3];//difference with coeffecients and offset
-    TH1* hPXiDiff3[3];
+    //Momentum projections onto the lepton bisector
+    TH1* hPZetaVis;
+    TH1* hPZetaInv;
+    TH2* hPZetaInvVsVis;
+    TH1* hPZetaDiff;
+    TH1* hDZeta; //difference with coeffecients based on ttbar rejection
+
+    //MET projections with respect to di-lepton system
+    TH1* hMETU1[2];
+    TH1* hMETU2[2];
 
     //For assuming MET along tau is tau neutrino, only makes sense for e/mu + tau
     TH1* hPTauVisFrac;

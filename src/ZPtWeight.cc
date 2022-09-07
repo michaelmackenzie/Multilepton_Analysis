@@ -3,6 +3,9 @@
 using namespace CLFV;
 
 //--------------------------------------------------------------------------------------------------------------------------------------
+// Mode options:
+// 0: Use bin errors as the systematic uncertainty
+// 1: Use the ee region measurement as the systematic uncertainty
 ZPtWeight::ZPtWeight(TString Name, int Mode, int seed) {
   Name_ = Name;
   Mode_ = Mode;
@@ -87,8 +90,9 @@ float ZPtWeight::GetWeight(int year, float pt, float mass, bool doReco, float& u
   float sys_weight = (hsys) ? hsys->GetBinContent(binx, biny) : weight;
 
   const float min_weight = 1.e-6; //minimum weight allowed
-  weight     = std::max(min_weight, weight);
-  sys_weight = std::max(min_weight, sys_weight);
+  const float max_weight = 10.; //maximum weight allowed
+  weight     = std::min(max_weight, std::max(min_weight, weight));
+  sys_weight = std::min(max_weight, std::max(min_weight, sys_weight));
 
   //if using systematic weight set, set up to that weight, down to the same difference but in the opposite direction
   up     = (Mode_ > 0) ? sys_weight             : weight + h->GetBinError(binx, biny);

@@ -32,6 +32,9 @@
   <class name="CLFVHistMaker"/>
   <class name="SparseHistMaker"/>
   <class name="JTTHistMaker"/>
+  <class name="QCDHistMaker"/>
+  <class name="ZPtHistMaker"/>
+  <class name="RecoilHistMaker"/>
   <class name="DataCard_t"/>
   <class name="PlottingCard_t"/>
   <class name="DataPlotter"/>

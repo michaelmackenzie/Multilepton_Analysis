@@ -6,7 +6,15 @@ using namespace CLFV;
 EmbeddingWeight::EmbeddingWeight(int Mode, int seed, int verbose) : verbose_(verbose) {
   TFile* f = 0;
   rnd_ = new TRandom3(seed);
-  useFF_ = (Mode % 10) / 1; //0: none; 1: eta unfolding; 2: (eta, pT) unfolding
+
+
+  //useFF modes:
+  //0: none
+  //1: eta unfolding
+  //2: (eta, pT) unfolding with loose cuts
+  //3: (eta, pT) unfolding with tight cuts
+  //4: 2016 trigger efficiencies in 2018
+  useFF_ = (Mode % 10) / 1;
 
   const TString cmssw = gSystem->Getenv("CMSSW_BASE");
   const TString path = (cmssw == "") ? "../scale_factors" : cmssw + "/src/CLFVAnalysis/scale_factors";
@@ -45,7 +53,7 @@ EmbeddingWeight::EmbeddingWeight(int Mode, int seed, int verbose) : verbose_(ver
       files_.push_back(f);
     }
     //Get FF
-    f = TFile::Open(Form("%s/embedding_unfolding_%i.root", path.Data(), year + 2016), "READ");
+    f = TFile::Open(Form("%s/embedding_unfolding_emu_%s%i.root", path.Data(), (useFF_ == 3) ? "tight_" : "", year + 2016), "READ");
     if(f) {
       zetaFF[year] = (TH1*) f->Get("ZEtaUnfolding");
       zetavptFF[year] = (TH2*) f->Get("ZEtaVsPtUnfolding");
@@ -80,11 +88,12 @@ double EmbeddingWeight::UnfoldingWeight(double pt_1, double eta_1, double pt_2, 
   // Apply trigger unfolding
   ///////////////////////////
 
-  genTauPt [year][0]->setVal(pt_1);
-  genTauPt [year][1]->setVal(pt_2);
-  genTauEta[year][0]->setVal(eta_1);
-  genTauEta[year][1]->setVal(eta_2);
-  const double trigger(trigUnfold[year]->evaluate());
+  const int year_unfold = (useFF_ == 4 && year == k2018) ? k2016 : year;
+  genTauPt [year_unfold][0]->setVal(pt_1);
+  genTauPt [year_unfold][1]->setVal(pt_2);
+  genTauEta[year_unfold][0]->setVal(eta_1);
+  genTauEta[year_unfold][1]->setVal(eta_2);
+  const double trigger(trigUnfold[year_unfold]->evaluate());
 
   ///////////////////////////
   // Apply each ID unfolding
@@ -115,17 +124,17 @@ double EmbeddingWeight::UnfoldingWeight(double pt_1, double eta_1, double pt_2, 
       printf("EmbeddingWeight::%s: Z eta unfolding correction not found for year %i\n",
              __func__, year + 2016);
     } else {
-      scale_factor *= std::min(2., hzeta->GetBinContent(std::max(1, std::min(hzeta->GetNbinsX(), hzeta->FindBin(zeta)))));
+      const double ff = std::min(5., hzeta->GetBinContent(std::max(1, std::min(hzeta->GetNbinsX(), hzeta->FindBin(zeta)))));
+      if(ff > 0.) scale_factor *= ff;
     }
-  } else if(useFF_ == 2) {
+  } else if(useFF_ == 2 || useFF_ == 3) {
     TH2* hzetavspt = zetavptFF[year];
     if(!hzetavspt) {
       printf("EmbeddingWeight::%s: Z eta vs pT unfolding correction not found for year %i\n",
              __func__, year + 2016);
     } else {
-      double ff = std::min(2., hzetavspt->GetBinContent(hzetavspt->FindBin(std::fabs(zeta), zpt)));
-      if(ff <= 0.) ff = 1.;
-      scale_factor *= ff;
+      const double ff = std::min(5., hzetavspt->GetBinContent(hzetavspt->FindBin(std::fabs(zeta), zpt)));
+      if(ff > 0.) scale_factor *= ff;
     }
   }
 

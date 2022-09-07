@@ -53,11 +53,13 @@ namespace CLFV {
     float mtlep;
     float mtoneoverm;
     float mttwooverm;
-    float pxivis;
-    float pxiinv;
+    float pzetavis;
+    float pzetainv;
     float ptauvisfrac;
     float mestimate;
     float mestimatetwo;
+    float met_u1;
+    float met_u2;
 
     //transformed frame variables
     //index 0: include met, lep 2 = tau; index 1: include met, lep 1 = tau; index 2: no met, lep 2 = defines x axis and z direction
@@ -118,6 +120,8 @@ namespace CLFV {
     float issignal;
     float category; //selection category e.g. mutau_h, mutau_e
     float type; //background type, signal, data, Z->ll, Z->tautau, Top, WJets, or Diboson
+
+    int   zdecaymode; //unknown; 1: ee; 2: mumu; 3: tau_e tau_e; 4: tau_mu tau_mu; 5: tau_e tau_mu; 6: tau_e tau_h; 7: tau_mu tau_h; 8: tau_h tau_h
 
     //large systematics we may want to reduce impact of within TMVA training
     //these are fractions to multiply to the full event weight
