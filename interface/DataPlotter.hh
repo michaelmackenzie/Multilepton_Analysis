@@ -291,18 +291,20 @@ namespace CLFV {
     std::vector<TH1*> get_signal(TString hist, TString setType, Int_t set);
     // TH2* get_signal_2D(TString hist, TString setType, Int_t set);
 
+    TH1* get_data_mc_diff(TString hist, TString setType, Int_t set);
+
     TH1* get_data(TString hist, TString setType, Int_t set);
-    // TH2* get_data_2D(TString hist, TString setType, Int_t set);
+    TH2* get_data_2D(TString hist, TString setType, Int_t set);
 
     TH1* get_qcd(TString hist, TString setType, Int_t set);
-    // TH2* get_qcd_2D(TString hist, TString setType, Int_t set);
+    TH2* get_qcd_2D(TString hist, TString setType, Int_t set);
 
     TH1* get_misid(TString hist, TString setType, Int_t set);
-    // TH2* get_misid_2D(TString hist, TString setType, Int_t set);
+    TH2* get_misid_2D(TString hist, TString setType, Int_t set);
 
     TH1* get_stack_uncertainty(THStack* hstack, TString hname);
     THStack* get_stack(TString hist, TString setType, Int_t set);
-    // TH2* get_background_2D(TString hist, TString setType, Int_t set);
+    TH2* get_background_2D(TString hist, TString setType, Int_t set);
 
     // TCanvas* plot_single_2Dhist(TString hist, TString setType, Int_t set, TString label);
     // TCanvas* plot_single_2Dhist(TString hist, TString setType, Int_t set, TString label,
