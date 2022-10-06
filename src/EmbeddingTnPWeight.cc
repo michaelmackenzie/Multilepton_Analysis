@@ -126,8 +126,8 @@ double EmbeddingTnPWeight::GetScale(const TH2* data, const TH2* mc, const double
     const int ybin_mc   = std::max(1, std::min(mc  ->GetNbinsY(), mc  ->GetYaxis()->FindBin(pt )));
     mc_eff   = mc  ->GetBinContent(xbin_mc  , ybin_mc  );
     if(mc_var) {
-      const double err = data->GetBinError(xbin_data, ybin_data);
-      data_var[0] = err; data_var[1] = err;
+      const double err = mc->GetBinError(xbin_mc, ybin_mc);
+      mc_var[0] = err; mc_var[1] = err;
     }
   }
   const double scale_factor = (mc_eff > 0.) ? data_eff / mc_eff : 1.;
@@ -141,6 +141,8 @@ double EmbeddingTnPWeight::MuonIDWeight(double pt, double eta, int year,
                                         float& iso_wt, float& iso_up, float& iso_down,
                                         bool qcd, int period) {
   if(year > 2000) year -= 2016;
+  id_wt = 1.f; id_up = 1.f; id_down = 1.f;
+  iso_wt = 1.f; iso_up = 1.f; iso_down = 1.f;
   if(year != k2016 && year != k2017 && year != k2018) {
     std::cout << "Warning! Undefined year in EmbeddingTnPWeight::" << __func__ << ", returning 1" << std::endl;
     return 1.;
@@ -168,8 +170,8 @@ double EmbeddingTnPWeight::MuonIDWeight(double pt, double eta, int year,
   float eta_var = eta;
 
   double scale_factor(1.);
-  float data_eff(1.), mc_eff(1.);
-  float data_unc[2], mc_unc[2]; //for retrieving uncertainties
+  float data_eff(1.f), mc_eff(1.f);
+  float data_unc[2] = {1.f, 1.f}, mc_unc[2] = {1.f, 1.f}; //for retrieving uncertainties
 
   ///////////////////////////
   // Apply ID weight
@@ -212,9 +214,11 @@ double EmbeddingTnPWeight::MuonIDWeight(double pt, double eta, int year,
 
 //-------------------------------------------------------------------------------------------------------------------------
 // Get Muon trigger scale factor
-double EmbeddingTnPWeight::MuonTriggerWeight(double pt, double eta, int year, float& data_eff, float& mc_eff, bool qcd, int period) {
+double EmbeddingTnPWeight::MuonTriggerWeight(double pt, double eta, int year, float& data_eff, float& mc_eff,
+                                             float& data_up, float& mc_up, float& data_down, float& mc_down,
+                                             bool qcd, int period) {
   if(year > 2000) year -= 2016;
-  data_eff = 0.5; mc_eff = 0.5;
+  data_eff = 0.5f; mc_eff = 0.5f; data_up = 0.5f; mc_up = 0.5f; data_down = 0.5f; mc_down = 0.5f;
   if(year != k2016 && year != k2017 && year != k2018) {
     std::cout << "Warning! Undefined year in EmbeddingTnPWeight::" << __func__ << ", returning 1" << std::endl;
     return 1.;
@@ -237,18 +241,13 @@ double EmbeddingTnPWeight::MuonTriggerWeight(double pt, double eta, int year, fl
   pt = std::max(10.01, std::min(pt, 499.));
   eta = std::min(2.39, std::max(-2.39, eta));
 
-  double scale_factor(1.);
-
   ///////////////////////////
   // Apply trigger weight
   ///////////////////////////
-  scale_factor *= GetScale(hData, hMC, pt, eta, data_eff, mc_eff);
+  float data_unc[2], mc_unc[2];
+  double scale_factor = GetScale(hData, hMC, pt, eta, data_eff, mc_eff, data_unc, mc_unc);
 
-  const float max_eff = 0.999; // maximum of 99.9% efficiency
-  data_eff = std::min(data_eff, max_eff);
-  mc_eff   = std::min(mc_eff  , max_eff);
-
-  if(scale_factor <= 0. || data_eff <= 0. || mc_eff <= 0. ||
+  if(data_eff <= 0. || mc_eff <= 0. ||
      !std::isfinite(scale_factor) || !std::isfinite(data_eff) || !std::isfinite(mc_eff)) {
     std::cout << "Warning! Scale factor <= 0 in EmbeddingTnPWeight::" << __func__
               << ": data_eff = " << data_eff << " mc_eff = " << mc_eff
@@ -260,6 +259,22 @@ double EmbeddingTnPWeight::MuonTriggerWeight(double pt, double eta, int year, fl
     data_eff = 0.5;
     return 1.;
   }
+
+  data_up   = data_eff + data_unc[0];
+  mc_up     = mc_eff   + mc_unc  [0];
+  data_down = data_eff - data_unc[1];
+  mc_down   = mc_eff   - mc_unc  [1];
+
+  const float max_eff(0.999), min_eff(0.001); // maximum of 99.9% efficiency, minimum of 0.1%
+  data_eff  = std::max(min_eff, std::min(max_eff, data_eff ));
+  mc_eff    = std::max(min_eff, std::min(max_eff, mc_eff   ));
+  data_up   = std::max(min_eff, std::min(max_eff, data_up  ));
+  mc_up     = std::max(min_eff, std::min(max_eff, mc_up    ));
+  data_down = std::max(min_eff, std::min(max_eff, data_down));
+  mc_down   = std::max(min_eff, std::min(max_eff, mc_down  ));
+
+  scale_factor = data_eff / mc_eff;
+
   return scale_factor;
 }
 
@@ -302,8 +317,8 @@ double EmbeddingTnPWeight::ElectronIDWeight(double pt, double eta, int year,
   float eta_var = eta;
 
   double scale_factor(1.);
-  float data_eff(1.), mc_eff(1.);
-  float data_unc[2], mc_unc[2]; //for retrieving uncertainties
+  float data_eff(1.f), mc_eff(1.f);
+  float data_unc[2] = {1.f, 1.f}, mc_unc[2] = {1.f, 1.f}; //for retrieving uncertainties
 
   ///////////////////////////
   // Apply ID weight
@@ -347,9 +362,11 @@ double EmbeddingTnPWeight::ElectronIDWeight(double pt, double eta, int year,
 
 //-------------------------------------------------------------------------------------------------------------------------
 // Get Electron trigger scale factor
-double EmbeddingTnPWeight::ElectronTriggerWeight(double pt, double eta, int year, float& data_eff, float& mc_eff, bool qcd, int period) {
+double EmbeddingTnPWeight::ElectronTriggerWeight(double pt, double eta, int year, float& data_eff, float& mc_eff,
+                                                 float& data_up, float& mc_up, float& data_down, float& mc_down,
+                                                 bool qcd, int period) {
   if(year > 2000) year -= 2016;
-  data_eff = 0.5; mc_eff = 0.5;
+  data_eff = 0.5f; mc_eff = 0.5f; data_up = 0.5f; mc_up = 0.5f; data_down = 0.5f; mc_down = 0.5f;
   if(year != k2016 && year != k2017 && year != k2018) {
     std::cout << "Warning! Undefined year in EmbeddingTnPWeight::" << __func__ << ", returning 1" << std::endl;
     return 1.;
@@ -372,19 +389,13 @@ double EmbeddingTnPWeight::ElectronTriggerWeight(double pt, double eta, int year
   pt = std::max(10.01, std::min(pt, 499.));
   eta = std::min(2.49, std::max(-2.49, eta));
 
-  double scale_factor(1.);
-
   ///////////////////////////
   // Apply trigger weight
   ///////////////////////////
+  float data_unc[2], mc_unc[2];
+  double scale_factor = GetScale(hData, hMC, pt, eta, data_eff, mc_eff, data_unc, mc_unc);
 
-  scale_factor *= GetScale(hData, hMC, pt, eta, data_eff, mc_eff);
-
-  const float max_eff = 0.999; // maximum of 99.9% efficiency
-  data_eff = std::min(data_eff, max_eff);
-  mc_eff   = std::min(mc_eff  , max_eff);
-
-  if(scale_factor <= 0. || data_eff <= 0. || mc_eff <= 0. ||
+  if(data_eff <= 0. || mc_eff <= 0. ||
      !std::isfinite(scale_factor) || !std::isfinite(data_eff) || !std::isfinite(mc_eff)) {
     std::cout << "Warning! Scale factor <= 0 in EmbeddingTnPWeight::" << __func__
               << ": data_eff = " << data_eff << " mc_eff = " << mc_eff
@@ -396,5 +407,21 @@ double EmbeddingTnPWeight::ElectronTriggerWeight(double pt, double eta, int year
     data_eff = 0.5;
     return 1.;
   }
+
+  data_up   = data_eff + data_unc[0];
+  mc_up     = mc_eff   + mc_unc  [0];
+  data_down = data_eff - data_unc[1];
+  mc_down   = mc_eff   - mc_unc  [1];
+
+  const float max_eff(0.999), min_eff(0.001); // maximum of 99.9% efficiency, minimum of 0.1%
+  data_eff  = std::max(min_eff, std::min(max_eff, data_eff ));
+  mc_eff    = std::max(min_eff, std::min(max_eff, mc_eff   ));
+  data_up   = std::max(min_eff, std::min(max_eff, data_up  ));
+  mc_up     = std::max(min_eff, std::min(max_eff, mc_up    ));
+  data_down = std::max(min_eff, std::min(max_eff, data_down));
+  mc_down   = std::max(min_eff, std::min(max_eff, mc_down  ));
+
+  scale_factor = data_eff / mc_eff;
+
   return scale_factor;
 }
