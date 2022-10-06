@@ -16,11 +16,16 @@ EmbeddingWeight::EmbeddingWeight(int Mode, int seed, int verbose) : verbose_(ver
   //4: 2016 trigger efficiencies in 2018
   useFF_ = (Mode % 10) / 1;
 
+  const bool use_ic = (Mode % 100) / 10 == 1; //use Imperial College unfolding measurements
+
   const TString cmssw = gSystem->Getenv("CMSSW_BASE");
   const TString path = (cmssw == "") ? "../scale_factors" : cmssw + "/src/CLFVAnalysis/scale_factors";
   for(int year = k2016; year <= k2018; ++year) {
     //Get variables
-    f = TFile::Open(Form("%s/htt_scalefactors_legacy_%i.root", path.Data(), year + 2016), "READ");
+    if(use_ic)
+      f = TFile::Open(Form("%s/htt_ic_scalefactors_legacy_%i.root", path.Data(), year + 2016), "READ");
+    else
+      f = TFile::Open(Form("%s/htt_scalefactors_legacy_%i.root", path.Data(), year + 2016), "READ");
     if(!f) {
       std::cout << "Embedding corrections file for " << year + 2016 << " not found!\n";
     } else {
@@ -29,8 +34,8 @@ EmbeddingWeight::EmbeddingWeight(int Mode, int seed, int verbose) : verbose_(ver
         std::cout << "Embedding workspace for " << year + 2016 << " not found!\n";
       } else {
         ws             [year]    = w;
-        trigUnfold     [year]    = (RooFormulaVar*) w->obj(Form("m_sel_trg_%sratio", (year == k2016) ? "kit_" : ""));
-        idUnfold       [year]    = (RooFormulaVar*) w->obj("m_sel_idEmb_ratio");
+        trigUnfold     [year]    = (RooFormulaVar*) w->obj(Form("m_sel_trg_%s%sratio", (use_ic) ? "ic_" : "", (year == k2016 && !use_ic) ? "kit_" : ""));
+        idUnfold       [year]    = (RooFormulaVar*) w->obj((use_ic) ? "m_sel_id_ic_ratio" : "m_sel_idEmb_ratio");
         genTauPt       [year][0] = (RooRealVar*) w->var("gt1_pt");
         genTauPt       [year][1] = (RooRealVar*) w->var("gt2_pt");
         genTauPt       [year][2] = (RooRealVar*) w->var("gt_pt");
