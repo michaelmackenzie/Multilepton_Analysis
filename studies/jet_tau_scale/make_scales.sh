@@ -52,17 +52,17 @@ do
     then
         SET1=1030
         SET2=3030
-    elif [[ "${PROCESS}" == "QCD2" ]] #QCD SS region but wider muon iso allowed (0 - 0.5) for mutau or full MT(ll, MET) allowed for etau
+    elif [[ "${PROCESS}" == "QCD2" ]] #QCD SS region but wider lepton iso allowed (0 - 0.5)
     then
         SET1=1093
         SET2=3093
         PROCESS="QCD"
-    elif [[ "${PROCESS}" == "QCD3" ]] #QCD SS region but high muon iso (0.15 - 0.5) for mutau, or Loose + !Tight electron ID for etau
+    elif [[ "${PROCESS}" == "QCD3" ]] #QCD SS region but high lepton iso (0.15 - 0.5)
     then
         SET1=1095
         SET2=3095
         PROCESS="QCD"
-    elif [[ "${PROCESS}" == "QCD4" ]] #QCD OS region but high muon iso (0.15 - 0.5) for mutau, or Loose + !Tight electron ID for etau
+    elif [[ "${PROCESS}" == "QCD4" ]] #QCD OS region but high lepton iso (0.15 - 0.5)
     then
         SET1=95
         SET2=2095

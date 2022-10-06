@@ -199,7 +199,7 @@ void JTTHistMaker::BookEventHistograms() {
       //j->tau measurement histograms
       if(fSelection == "" || fSelection == "mutau" || fSelection == "etau") {
         //variable width bins for eta vs pT
-        const double tetabins[] = { 0., 1.5, 2.3};
+        const double tetabins[] = {0., 2.3}; //{ 0., 1.5, 2.3};
         const int ntetabins = sizeof(tetabins) / sizeof(*tetabins) - 1;
         const double tpbins[] = { 20., 22., 24., 26., 29.,
                                   33., 37., 42., 50., 60.,
@@ -304,7 +304,7 @@ void JTTHistMaker::BookLepHistograms() {
       //for correcting jet -> tau scale factors
       const double pts[] = {0.  , 20. , 25. , 30. , 35. ,
                             40. , 45. , 50. , 55. , 65. ,
-                            80. , 100. , 120.,
+                            80. , 100.,
                             200.};
       const int nbins_pt = sizeof(pts)/sizeof(*pts) - 1;
 
@@ -322,8 +322,8 @@ void JTTHistMaker::BookLepHistograms() {
       }
       Utilities::BookH1F(fLepHist[i]->hJetTauOneR  , "jettauoner" , Form("%s: Delta R" ,dirname)  , nrbins, rbins, folder);
 
-      const double pts_qcd[] = {0.  , 20. , 25. , 30. , 35. ,
-                                40. , 50. , 60. ,
+      const double pts_qcd[] = {0.  , 20. , 25. , 30. , 40. ,
+                                50. ,
                                 200.};
       const int nbins_pt_qcd = sizeof(pts_qcd)/sizeof(*pts_qcd) - 1;
       Utilities::BookH1F(fLepHist[i]->hJetTauOnePtQCD[0], "jettauoneptqcd_0" , Form("%s: One Pt"   ,dirname)  , nbins_pt_qcd, pts_qcd, folder);
@@ -363,12 +363,15 @@ void JTTHistMaker::BookLepHistograms() {
         if(dmregion > 0) {name += "_"; name += dmregion;}
         Utilities::BookH1F(fLepHist[i]->hJetTauTwoPt[dmregion], name.Data() , Form("%s: Two Pt"   ,dirname)  , nbins_pt, pts, folder);
       }
+
+      const double etabins[] = {0., 0.5, 1., 1.5, 1.7, 1.9, 2.1, 2.3};
+      const int    netabins  = sizeof(etabins) / sizeof(*etabins) - 1;
       Utilities::BookH1F(fLepHist[i]->hJetTauTwoR[0]     , "jettautwor0"     , Form("%s: Delta R" ,dirname)  , nrbins, rbins, folder);
       Utilities::BookH1F(fLepHist[i]->hJetTauTwoR[1]     , "jettautwor"      , Form("%s: Delta R" ,dirname)  , nrbins, rbins, folder);
-      Utilities::BookH1F(fLepHist[i]->hJetTauTwoEta[0]   , "jettautwoeta0"   , Form("%s: |Eta|"  ,dirname)  , 20,    0, 2.5, folder);
-      Utilities::BookH1F(fLepHist[i]->hJetTauTwoEta[1]   , "jettautwoeta"    , Form("%s: |Eta|"  ,dirname)  , 20,    0, 2.5, folder);
-      Utilities::BookH1F(fLepHist[i]->hJetTauTwoEtaQCD[0], "jettautwoetaqcd0", Form("%s: |Eta|"  ,dirname)  , 10,    0, 2.5, folder);
-      Utilities::BookH1F(fLepHist[i]->hJetTauTwoEtaQCD[1], "jettautwoetaqcd1", Form("%s: |Eta|"  ,dirname)  , 10,    0, 2.5, folder);
+      Utilities::BookH1F(fLepHist[i]->hJetTauTwoEta[0]   , "jettautwoeta0"   , Form("%s: |Eta|"  ,dirname)  , netabins, etabins, folder);
+      Utilities::BookH1F(fLepHist[i]->hJetTauTwoEta[1]   , "jettautwoeta"    , Form("%s: |Eta|"  ,dirname)  , netabins, etabins, folder);
+      Utilities::BookH1F(fLepHist[i]->hJetTauTwoEtaQCD[0], "jettautwoetaqcd0", Form("%s: |Eta|"  ,dirname)  , netabins, etabins, folder);
+      Utilities::BookH1F(fLepHist[i]->hJetTauTwoEtaQCD[1], "jettautwoetaqcd1", Form("%s: |Eta|"  ,dirname)  , netabins, etabins, folder);
 
       Utilities::BookH1F(fLepHist[i]->hJetTauTwoMetDeltaPhi[0], "jettautwometdeltaphi0", Form("%s: TwoMetDeltaPhi"  ,dirname), nmetbins, metbins, folder);
       Utilities::BookH1F(fLepHist[i]->hJetTauTwoMetDeltaPhi[1], "jettautwometdeltaphi" , Form("%s: TwoMetDeltaPhi"  ,dirname), nmetbins, metbins, folder);

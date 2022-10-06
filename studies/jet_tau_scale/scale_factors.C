@@ -567,7 +567,7 @@ TCanvas* make_jet_canvas(TH2* h[5][4], TString name) {
 //-------------------------------------------------------------------------------------------------------------------------------
 //make 1D plots in eta regions
 TCanvas* make_eta_region_canvas(TH2* hnum, TH2* hdnm, TString name, bool iseff,
-                                TF1 *&f1, TF1 *&f2, bool print_unc = false, TString tag = "") {
+                                TF1** funcs, bool print_unc = false, TString tag = "") {
   int nbins = hnum->GetNbinsY();
   TH1* hetas[nbins];
   TCanvas* c = new TCanvas(name.Data(), name.Data(), 500*nbins, 450);
@@ -594,9 +594,8 @@ TCanvas* make_eta_region_canvas(TH2* hnum, TH2* hdnm, TString name, bool iseff,
         hetas[ibin]->SetBinError  (jbin,0.9);
       }
     }
-    TString fit_option = (verbose_ > 0) ? "S 0" : "Q S 0";
+    TString fit_option = (verbose_ > 0) ? "S 0 R" : "Q S 0 R";
     if(!drawFit_) {
-      fit_option += " 0";
       hetas[ibin]->Draw("E1");
     }
     TF1* func;
@@ -638,16 +637,18 @@ TCanvas* make_eta_region_canvas(TH2* hnum, TH2* hdnm, TString name, bool iseff,
     }
     bool refit = false;
     int ifit = 0;
-    int max_fits = 5;
+    int max_fits = 6;
     do {
       refit = false;
       auto fit_res = hetas[ibin]->Fit(func, fit_option.Data());
       const double chi_sq = func->GetChisquare() / hetas[ibin]->GetNbinsX();
-      if(chi_sq > 1.5) {
+      cout << "bin " << ibin << ": Fit has chi^2 = " << chi_sq << " and fit result " << fit_res;
+      cout << " Hist: " << hetas[ibin]->GetName() << ", I = " << hetas[ibin]->Integral() << endl;
+      if((chi_sq > 1.5 || fit_res != 0) && hetas[ibin]->Integral() > 1.e-5*hetas[ibin]->GetNbinsX()) {
+        cout << "--> Refitting!\n";
         refit = true;
         ++ifit;
-        cout << "Fit has chi^2 = " << chi_sq << " --> refitting!\n";
-        if(ifit < max_fits && mode == 4) func->SetParameters(2*(0.5 - rnd_.Uniform()), 50.*(0.5 - rnd_.Uniform()), 20.*(0.5 - rnd_.Uniform()));
+        if(ifit < max_fits - 1 && mode == 4) func->SetParameters(2*(0.5 - rnd_.Uniform()), 50.*(0.5 - rnd_.Uniform()), 20.*(0.5 - rnd_.Uniform()));
       }
       // if(!fit_res || fit_res == -1) {
       //   cout << "Fit result not returned!\n";
@@ -663,6 +664,18 @@ TCanvas* make_eta_region_canvas(TH2* hnum, TH2* hdnm, TString name, bool iseff,
       //     cout << "Printing the fit result failed: " << e.what() << endl;
       //   }
       // }
+      if(refit && ifit == max_fits - 1) {
+        cout << "--> Final fit after " << ifit << " attempts, using a simple polynomial instead\n";
+        delete func;
+        auto tmp = hetas[ibin]->GetListOfFunctions()->FindObject("func");
+        if(tmp) delete tmp;
+        func = new TF1("func_poly", "[offset] + [slope]*x", 0., 999.);
+        func->SetParameters(0.1, 0.1);
+        func->SetParLimits(func->GetParNumber("offset"), -1000., 1000.);//0
+        func->SetParLimits(func->GetParNumber("slope" ),   -10.,   10.);//1
+      } else if(refit && ifit == max_fits) {
+        cout << "--> Final fit after " << ifit << " attempts, failed to find a good fit!\n";
+      }
     } while(refit && ifit < max_fits);
     hetas[ibin]->SetLineWidth(2);
     hetas[ibin]->SetMarkerStyle(6);
@@ -696,12 +709,23 @@ TCanvas* make_eta_region_canvas(TH2* hnum, TH2* hdnm, TString name, bool iseff,
         herr_1s->SetName(Form("fit_1s_error_%s_%ieta", tag.Data(), ibin));
         herr_1s->Write();
       }
+      //Draw the fit parameter results
+      TLatex label;
+      label.SetNDC();
+      label.SetTextFont(72);
+      label.SetTextSize(0.04);
+      label.SetTextAlign(13);
+      label.SetTextAngle(0);
+      label.DrawLatex(0.15, 0.89, Form("#chi^{2}/NDF  %.3f / %i", f->GetChisquare(), hetas[ibin]->GetNbinsX() - f->GetNpar()));
+      for(int ipar = 0; ipar < f->GetNpar(); ++ipar) {
+        label.DrawLatex(0.15, 0.89-0.05*(ipar+1), Form("%-10s %.4g +- %.5g\n", f->GetParName(ipar), f->GetParameter(ipar), f->GetParError(ipar)));
+      }
+      gStyle->SetOptFit(0);
     } else {
       if(!drawFit_) gStyle->SetOptFit(0);
       if(!f) cout << "!!! " << __func__ << ": Fit function not found! Eta region " << eta_region.Data() << endl;
     }
-    if(ibin == 0) f1 = f;
-    else f2 = f;
+    funcs[ibin] = f;
   }
   return c;
 }
@@ -979,40 +1003,52 @@ Int_t scale_factors(TString selection = "mutau", TString process = "", int set1 
   const char* fname = Form("rootfiles/jet_to_tau_%s_%s%i_%i.root", selection.Data(), (process_ == "") ? "" : (process_+"_").Data(), set1, year);
   TFile* fOut = new TFile(fname, "RECREATE");
 
-  TF1 *funcs[8], *mcfuncs[8];
+  const int neta_bins = hDataFakeTauRates_j[0][0]->GetNbinsY();
+  TF1 *funcs[4*neta_bins], *mcfuncs[4*neta_bins];
   for(int idm = 0; idm < ndm; ++idm) {
     //Make data factors
+    TF1 *tmp_funcs[neta_bins];
     TCanvas* c = make_eta_region_canvas(hDataFakeTauRates_j[1][idm], hDataFakeTauRates_j[0][idm], Form("c_eta_dm%i_eff_data", idm), true,
-                                        funcs[2*idm], funcs[2*idm+1], true, Form("%idm", idm));
-    if(!funcs[2*idm] || !funcs[2*idm+1]) cout << "Error gettting fit functions for DM = " << idm << endl;
-    else {
-      funcs[2*idm]  ->SetName(Form("fit_func_%idm_0eta", idm));
-      funcs[2*idm+1]->SetName(Form("fit_func_%idm_1eta", idm));
+                                        tmp_funcs, true, Form("%idm", idm));
+    for(int ifunc = 0; ifunc < neta_bins; ++ifunc) {
+      if(!tmp_funcs[ifunc]) cout << "Error getting fit function eta bin " << ifunc << " and DM bin " << idm << endl;
+      else {
+        tmp_funcs[ifunc]->SetName(Form("fit_func_%idm_%ieta", idm, ifunc));
+        funcs[neta_bins*idm + ifunc] = tmp_funcs[ifunc];
+      }
     }
     c->Print(Form("%sdata_dm%i_eff.png", name.Data(), idm));
-    c->cd(1)->SetLogx(1); c->cd(2)->SetLogx(1); c->Update();
+    for(int ieta = 0; ieta < neta_bins; ++ieta) {
+      c->cd(ieta + 1)->SetLogx(1);
+    }
+    c->Update();
     c->Print(Form("%sdata_dm%i_eff_log.png", name.Data(), idm));
 
     //Make MC fake estimated factors
     c = make_eta_region_canvas(hMCFakeTauRates_j[1][idm], hMCFakeTauRates_j[0][idm], Form("c_eta_dm%i_eff_fake_mc", idm), true,
-                               mcfuncs[2*idm], mcfuncs[2*idm+1], true, Form("mc_%idm", idm));
-    if(!mcfuncs[2*idm] || !mcfuncs[2*idm+1]) cout << "Error gettting fit functions for DM = " << idm << endl;
-    else {
-      mcfuncs[2*idm]  ->SetName(Form("fit_mc_func_%idm_0eta", idm));
-      mcfuncs[2*idm+1]->SetName(Form("fit_mc_func_%idm_1eta", idm));
+                               tmp_funcs, true, Form("mc_%idm", idm));
+    for(int ifunc = 0; ifunc < neta_bins; ++ifunc) {
+      if(!tmp_funcs[ifunc]) cout << "Error getting fit function eta bin " << ifunc << " and DM bin " << idm << endl;
+      else {
+        tmp_funcs[ifunc]->SetName(Form("fit_mc_func_%idm_%ieta", idm, ifunc));
+        mcfuncs[neta_bins*idm + ifunc] = tmp_funcs[ifunc];
+      }
     }
     c->Print(Form("%sfake_mc_dm%i_eff.png", name.Data(), idm));
-    c->cd(1)->SetLogx(1); c->cd(2)->SetLogx(1); c->Update();
+    for(int ieta = 0; ieta < neta_bins; ++ieta) {
+      c->cd(ieta + 1)->SetLogx(1);
+    }
+    c->Update();
     c->Print(Form("%sfake_mc_dm%i_eff_log.png", name.Data(), idm));
   }
 
   for(int i = 0; i < 4; ++i) {
     hDataFakeTauEffs_j[i]->Write();
     if(hMCFakeTauEffs_j[i]) hMCFakeTauEffs_j[i]->Write();
-    funcs[2*i]->Write();
-    funcs[2*i+1]->Write();
-    if(mcfuncs[2*i]  ) mcfuncs[2*i]  ->Write();
-    if(mcfuncs[2*i+1]) mcfuncs[2*i+1]->Write();
+    for(int ieta = 0; ieta < neta_bins; ++ieta) {
+      funcs[neta_bins*i + ieta]->Write();
+      if(mcfuncs[neta_bins*i + ieta]) mcfuncs[neta_bins*i + ieta]  ->Write();
+    }
   }
 
   fOut->Close();

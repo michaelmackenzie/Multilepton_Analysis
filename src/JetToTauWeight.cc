@@ -37,6 +37,8 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
   useLepMBias_           = bias_mode == 1 || bias_mode == 4 || bias_mode == 5 || bias_mode == 6; //bias correction in terms of di-lepton mass
   useMTLepBias_          = bias_mode == 2 || bias_mode == 5; //bias correction in terms of MT(ll, MET)
   useOneIsoBias_         = bias_mode == 3 || bias_mode == 4; //bias correction in terms of one iso / pT
+
+
   rnd_ = new TRandom3(seed);
   if(verbose_ > 0) {
     std::cout << __func__ << ": " << name.Data() << ", process: " << process.Data()
@@ -71,6 +73,7 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
       for(int dm = 0; dm < 4; ++dm) {
         //Get Data histogram
         histsData_[year][dm] = (TH2*) f->Get(Form("h%s_eff_%idm", (useMCFits_) ? "mc" : "data", dm));
+        int nptbins(0), netabins(0);
         if(!histsData_[year][dm]) {
           std::cout << "JetToTauWeight::JetToTauWeight: " << name.Data() << " Warning! No Data histogram found for dm = "
                     << dm << " year = " << year
@@ -78,8 +81,8 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
         } else {
           histsData_[year][dm]->SetName(Form("%s-%s_%s_%i", name_.Data(), histsData_[year][dm]->GetName(), selection.Data(), year));
           histsData_[year][dm]->SetDirectory(0);
-          int nptbins  = histsData_[year][dm]->GetNbinsX();
-          int netabins = histsData_[year][dm]->GetNbinsY();
+          nptbins  = histsData_[year][dm]->GetNbinsX();
+          netabins = histsData_[year][dm]->GetNbinsY();
           max_pt_bins  = std::max(nptbins, max_pt_bins);
           max_eta_bins = std::max(netabins, max_eta_bins);
           //split into high and low eta regions
@@ -97,7 +100,7 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
           }
         }
         //Get Data fits and errors
-        for(int ieta = 0; ieta < 2; ++ieta) {
+        for(int ieta = 0; ieta < netabins; ++ieta) {
           const char* fname   = (useMCFits_) ? Form("fit_mc_func_%idm_%ieta", dm, ieta) : Form("fit_func_%idm_%ieta", dm, ieta);
           const char* errname = (useMCFits_) ? Form("fit_1s_error_mc_%idm_%ieta", dm, ieta) : Form("fit_1s_error_%idm_%ieta", dm, ieta);
           funcsData_[year][dm][ieta] = (TF1*) f->Get(fname);
@@ -111,6 +114,7 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
                                                      selection.Data(), year));
             funcsData_[year][dm][ieta]->AddToGlobalList();
           }
+
           errorsData_[year][dm][ieta] = (TH1*) f->Get(errname);
           if(!errorsData_[year][dm][ieta]) {
             if(useFitterErrors_)
@@ -122,8 +126,8 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
                                                       selection.Data(), year));
             errorsData_[year][dm][ieta]->SetDirectory(0);
           }
-        }
-      }
+        } //end fit function retrieval loop
+      } //end year loop
       f->Close();
       delete f;
     }
@@ -523,23 +527,26 @@ float JetToTauWeight::GetFactor(TH2* h, TF1* func, TH1* hCorrection, TH1* hFitte
       delete[] params;
     }
     sys = up; //FIXME: sys set to just up for fits
+    //ensure up/down encloses the fit value
+    up   = std::max(up  , eff);
+    down = std::min(down, eff);
   } else { //use the binned values
     //get bin value
-    int binx = h->GetXaxis()->FindBin(pt);
-    int biny = h->GetYaxis()->FindBin(eta);
+    const int binx = h->GetXaxis()->FindBin(pt);
+    const int biny = h->GetYaxis()->FindBin(eta);
     group = GetGroup(idm, year, biny, binx); //get systematic group
 
     float eff_bin = h->GetBinContent(binx, biny);
     float err_bin = h->GetBinError  (binx, biny);
     if(doInterpolation_) {
-      double pt_bin = h->GetXaxis()->GetBinCenter(binx);
+      const double pt_bin = h->GetXaxis()->GetBinCenter(binx);
       bool leftofcenter = h->GetXaxis()->GetBinCenter(binx) > pt; //check which side of bin center we are
       //if at boundary, use interpolation from bin inside hist
       if(binx == 1)  leftofcenter = false;
       if(binx == h->GetNbinsX())  leftofcenter = true;
-      int binx_off = binx-(2*leftofcenter-1);
-      float eff_off = h->GetBinContent(binx_off, biny);
-      double pt_off = h->GetXaxis()->GetBinCenter(binx_off);
+      const int binx_off = binx-(2*leftofcenter-1);
+      const float eff_off = h->GetBinContent(binx_off, biny);
+      const double pt_off = h->GetXaxis()->GetBinCenter(binx_off);
       //linear interpolation between the bin centers
       eff = eff_bin + (eff_off - eff_bin)*(pt - pt_bin)/(pt_off - pt_bin);
     } else {
@@ -555,7 +562,6 @@ float JetToTauWeight::GetFactor(TH2* h, TF1* func, TH1* hCorrection, TH1* hFitte
   // Get closure test correction
   ///////////////////////////////////////////////////////////
 
-  int corr_bin = (hCorrection && pt_lead > 0.) ? std::min(hCorrection->GetNbinsX(), hCorrection->FindBin(pt_lead)) : 1;
   if(pt_lead < 0.f || !doPtCorrections_) {
     pt_wt = 1.f;
   } else if(use2DCorrections_) {
@@ -568,12 +574,13 @@ float JetToTauWeight::GetFactor(TH2* h, TF1* func, TH1* hCorrection, TH1* hFitte
       pt_wt = 1.f;
       corr_error = 0.f;
     } else {
-      int binx_c = std::min(hcorr2D->GetXaxis()->FindBin((use2DCorrections_ > 1) ? pt_lead : pt_lead), hcorr2D->GetNbinsX());
-      int biny_c = std::min(hcorr2D->GetYaxis()->FindBin((use2DCorrections_ > 1) ? pt      : deltar ), hcorr2D->GetNbinsY());
+      const int binx_c = std::max(1, std::min(hcorr2D->GetXaxis()->FindBin((use2DCorrections_ > 1) ? pt_lead : pt_lead), hcorr2D->GetNbinsX()));
+      const int biny_c = std::max(1, std::min(hcorr2D->GetYaxis()->FindBin((use2DCorrections_ > 1) ? pt      : deltar ), hcorr2D->GetNbinsY()));
       pt_wt = hcorr2D->GetBinContent(binx_c, biny_c);
       corr_error = hcorr2D->GetBinError(binx_c, biny_c);
     }
   } else {
+    const int corr_bin = (hCorrection && pt_lead > 0.) ? std::max(1, std::min(hCorrection->GetNbinsX(), hCorrection->FindBin(pt_lead))) : 1;
     pt_wt = hCorrection->GetBinContent(corr_bin);
     corr_error = hCorrection->GetBinError(corr_bin);
   }
