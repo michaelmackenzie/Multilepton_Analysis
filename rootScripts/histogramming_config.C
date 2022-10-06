@@ -5,24 +5,29 @@
 // typedef HistMaker HISTOGRAMMER;
 typedef CLFVHistMaker HISTOGRAMMER;
 // typedef JTTHistMaker HISTOGRAMMER;
+// typedef QCDHistMaker HISTOGRAMMER;
+// typedef ZPtHistMaker HISTOGRAMMER;
+// typedef METHistMaker HISTOGRAMMER;
+// typedef SparseHistMaker HISTOGRAMMER;
 
 //Process multiple cards in parallel
 bool newProcess_   = true; //run card processing in a new process to avoid memory issues
 int  maxProcesses_ = 4; //maximum number of new processes to run at once
+bool preFetch_     = false; //check for the sample on /tmp, and copy it there if it isn't there
 
 bool debug_ = false;
 Long64_t startEvent_ = 0;
-Long64_t nEvents_ = 1; //at 20, verbosity returns to normal
+Long64_t nEvents_ = 50; //at 20, verbosity returns to normal
 HISTOGRAMMER* selector_ = 0;
 
 bool DYTesting_      = true; //speed up running for scale factor calculation/debugging
 bool DYFakeTau_      = false; //speed up dy fake tau scale factor
-bool WJFakeTau_      = true; //speed up w+jets fake tau scale factor
-bool TTFakeTau_      = true; //speed up ttbar fake tau scale factor
-bool QCDFakeTau_     = true; //speed up qcd fake tau scale factor
-bool JetTauTesting_  = true; //perform MC closure test
+bool WJFakeTau_      = false; //speed up w+jets fake tau scale factor
+bool TTFakeTau_      = false; //speed up ttbar fake tau scale factor
+bool QCDFakeTau_     = false; //speed up qcd fake tau scale factor
+bool JetTauTesting_  = false; //perform MC closure test
 bool CutFlowTesting_ = false; //test just basic cutflow sets
-bool TriggerTesting_ = true; //make a few extra selections for ee/mumu/emu trigger testing
+bool TriggerTesting_ = false; //make a few extra selections for ee/mumu/emu trigger testing
 
 int removeTrigWeights_ = 4; //0: do nothing 1: remove weights 2: replace 3: replace P(event) 4: replace P(at least 1 triggered)
 int updateMCEra_       = 1; //0: do nothing 1: throw random number for MC era (data/embedding not random)
@@ -99,7 +104,7 @@ config_t get_config() {
   config.writeTrees_ = writeTrees_;
   config.onlyChannel_ = "emu";
   config.skipChannels_ = {/*"mutau", "etau", "emu", "mumu", "ee"*/};
-  config.signalTrainFraction_ = 0.3;
+  config.signalTrainFraction_ = 0.5;
   config.backgroundTrainFraction_ = 0.3;
   config.doSystematics_ = doSystematics_;
 
@@ -128,8 +133,8 @@ vector<datacard_t> get_data_cards(TString& nanoaod_path) {
   nanocards.push_back(datacard_t(false, xs.GetCrossSection("SingleToptW"             ), "LFVAnalysis_SingleToptW_2016.root"             , 0));
   nanocards.push_back(datacard_t(false, xs.GetCrossSection("SingleAntiToptChannel"   ), "LFVAnalysis_SingleAntiToptChannel_2016.root"   , 0));
   nanocards.push_back(datacard_t(false, xs.GetCrossSection("SingleToptChannel"       ), "LFVAnalysis_SingleToptChannel_2016.root"       , 0));
-  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Wlnu"                    ), "LFVAnalysis_Wlnu_2016.root"                    , 0, useUL_));
-  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Wlnu"                    ), "LFVAnalysis_Wlnu-ext_2016.root"                , 0, useUL_));
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Wlnu"                    ), "LFVAnalysis_Wlnu_2016.root"                    , 0, true));
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Wlnu"                    ), "LFVAnalysis_Wlnu-ext_2016.root"                , 0, true));
   nanocards.push_back(datacard_t(false, xs.GetCrossSection("Wlnu-1J"           , 2016), "LFVAnalysis_Wlnu-1J_2016.root"                 , 0));
   nanocards.push_back(datacard_t(false, xs.GetCrossSection("Wlnu-2J"           , 2016), "LFVAnalysis_Wlnu-2J_2016.root"                 , 0));
   nanocards.push_back(datacard_t(false, xs.GetCrossSection("Wlnu-3J"           , 2016), "LFVAnalysis_Wlnu-3J_2016.root"                 , 0));
@@ -208,8 +213,6 @@ vector<datacard_t> get_data_cards(TString& nanoaod_path) {
   nanocards.push_back(datacard_t(false, xs.GetCrossSection("HETau"                   ), "LFVAnalysis_HETau_2016.root"                   , 0));
   nanocards.push_back(datacard_t(false, xs.GetCrossSection("HMuTau"                  ), "LFVAnalysis_HMuTau_2016.root"                  , 0));
   nanocards.push_back(datacard_t(false, xs.GetCrossSection("HEMu"                    ), "LFVAnalysis_HEMu_2016.root"                    , 0));
-  // nanocards.push_back(datacard_t(true , 1.                                            , "LFVAnalysis_SingleMu_2016.root"                , 2));
-  // nanocards.push_back(datacard_t(true , 1.                                            , "LFVAnalysis_SingleEle_2016.root"               , 1));
   // nanocards.push_back(datacard_t(false, xs.GetCrossSection("DY50"                    ), "LFVAnalysis_DY50_2016.root"                    , 0, useUL_));
   // nanocards.push_back(datacard_t(false, xs.GetCrossSection("DY50"                    ), "LFVAnalysis_DY50-ext_2016.root"                , 0, useUL_));
 
@@ -281,9 +284,9 @@ vector<datacard_t> get_data_cards(TString& nanoaod_path) {
   nanocards.push_back(datacard_t(false, xs.GetCrossSection("HETau"                   ), "LFVAnalysis_HETau_2017.root"                   , 0));
   nanocards.push_back(datacard_t(false, xs.GetCrossSection("HMuTau"                  ), "LFVAnalysis_HMuTau_2017.root"                  , 0));
   nanocards.push_back(datacard_t(false, xs.GetCrossSection("HEMu"                    ), "LFVAnalysis_HEMu_2017.root"                    , 0));
-  // nanocards.push_back(datacard_t(true , xs.GetCrossSection("QCDDoubleEMEnrich30to40" ), "LFVAnalysis_QCDDoubleEMEnrich30to40_2017.root" , 0));
-  // nanocards.push_back(datacard_t(true , xs.GetCrossSection("QCDDoubleEMEnrich30toInf"), "LFVAnalysis_QCDDoubleEMEnrich30toInf_2017.root", 0));
-  // nanocards.push_back(datacard_t(true , xs.GetCrossSection("QCDDoubleEMEnrich40toInf"), "LFVAnalysis_QCDDoubleEMEnrich40toInf_2017.root", 0));
+  // nanocards.push_back(datacard_t(false, xs.GetCrossSection("QCDDoubleEMEnrich30to40" ), "LFVAnalysis_QCDDoubleEMEnrich30to40_2017.root" , 0));
+  // nanocards.push_back(datacard_t(false, xs.GetCrossSection("QCDDoubleEMEnrich30toInf"), "LFVAnalysis_QCDDoubleEMEnrich30toInf_2017.root", 0));
+  // nanocards.push_back(datacard_t(false, xs.GetCrossSection("QCDDoubleEMEnrich40toInf"), "LFVAnalysis_QCDDoubleEMEnrich40toInf_2017.root", 0));
 
   //////////////////
   // 2018 samples //
@@ -329,10 +332,10 @@ vector<datacard_t> get_data_cards(TString& nanoaod_path) {
   nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-ETau-B"      , 2018), "LFVAnalysis_Embed-ETau-B_2018.root"            , 0));
   nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-ETau-C"      , 2018), "LFVAnalysis_Embed-ETau-C_2018.root"            , 0));
   nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-ETau-D"      , 2018), "LFVAnalysis_Embed-ETau-D_2018.root"            , 0));
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-EMu-A"       , 2018), "LFVAnalysis_Embed-EMu-A_2018.root"             , 0));
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-EMu-B"       , 2018), "LFVAnalysis_Embed-EMu-B_2018.root"             , 0));
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-EMu-C"       , 2018), "LFVAnalysis_Embed-EMu-C_2018.root"             , 0));
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-EMu-D"       , 2018), "LFVAnalysis_Embed-EMu-D_2018.root"             , 0));
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-EMu-A"       , 2018), "LFVAnalysis_Embed-EMu-A_2018.root"             , 0));
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-EMu-B"       , 2018), "LFVAnalysis_Embed-EMu-B_2018.root"             , 0));
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-EMu-C"       , 2018), "LFVAnalysis_Embed-EMu-C_2018.root"             , 0));
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-EMu-D"       , 2018), "LFVAnalysis_Embed-EMu-D_2018.root"             , 0));
   nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-EE-A"        , 2018), "LFVAnalysis_Embed-EE-A_2018.root"              , 0));
   nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-EE-B"        , 2018), "LFVAnalysis_Embed-EE-B_2018.root"              , 0));
   nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-EE-C"        , 2018), "LFVAnalysis_Embed-EE-C_2018.root"              , 0));
@@ -355,9 +358,7 @@ vector<datacard_t> get_data_cards(TString& nanoaod_path) {
   nanocards.push_back(datacard_t(false, xs.GetCrossSection("HETau"                   ), "LFVAnalysis_HETau_2018.root"                   , 0));
   nanocards.push_back(datacard_t(false, xs.GetCrossSection("HMuTau"                  ), "LFVAnalysis_HMuTau_2018.root"                  , 0));
   nanocards.push_back(datacard_t(false, xs.GetCrossSection("HEMu"                    ), "LFVAnalysis_HEMu_2018.root"                    , 0));
-  // nanocards.push_back(datacard_t(false, 1.                                            , "clfv_2018_SingleMu.root"                , 2));
-  // nanocards.push_back(datacard_t(false, 1.                                            , "clfv_2018_SingleEle.root"               , 1));
-  // nanocards.push_back(datacard_t(true , xs.GetCrossSection("QCDDoubleEMEnrich30to40" ), "clfv_2018_QCDDoubleEMEnrich30to40.root" , 0));
+  // nanocards.push_back(datacard_t(false, xs.GetCrossSection("QCDDoubleEMEnrich30to40" ), "clfv_2018_QCDDoubleEMEnrich30to40.root" , 0));
   // nanocards.push_back(datacard_t(false, xs.GetCrossSection("DY50"                    ), "clfv_2018_DY50.root"                    , 0));
 
   return nanocards;

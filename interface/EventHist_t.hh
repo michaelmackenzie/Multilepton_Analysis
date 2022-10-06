@@ -231,10 +231,12 @@ namespace CLFV {
     TH1* hMTLep;
     TH1* hMTOneOverM;
     TH1* hMTTwoOverM;
+    TH1* hMTLepOverM;
 
     //Momentum projections onto the lepton bisector
     TH1* hPZetaVis;
     TH1* hPZetaInv;
+    TH1* hPZetaAll;
     TH2* hPZetaInvVsVis;
     TH1* hPZetaDiff;
     TH1* hDZeta; //difference with coeffecients based on ttbar rejection
@@ -247,6 +249,8 @@ namespace CLFV {
     TH1* hPTauVisFrac;
     TH1* hLepMEstimate;
     TH1* hLepMEstimateTwo;
+    TH1* hLepTrkM;
+    TH1* hLepTrkDeltaM;
     TH1* hLepDot;
 
     //Transformed frame variables

@@ -20,6 +20,7 @@ HistMaker::HistMaker(int seed, TTree * /*tree*/) : fSystematicSeed(seed),
     fEventHist     [i] = nullptr;
     fLepHist       [i] = nullptr;
     fPhotonHist    [i] = nullptr;
+    fTrees         [i] = nullptr;
     fSystematicHist[i] = nullptr;
   }
   for(int proc = 0; proc < JetToTauComposition::kLast; ++proc) {
@@ -143,10 +144,11 @@ void HistMaker::Begin(TTree * /*tree*/)
   fElectronJetToTauMCWeights[JetToTauComposition::kTop  ] = new JetToTauWeight("ElectronMCTop"  , "etau" , "Top"  ,   82,  1100301, fSystematicSeed, 0); //Normal weights
   fElectronJetToTauMCWeights[JetToTauComposition::kQCD  ] = new JetToTauWeight("ElectronMCQCD"  , "etau" , "QCD"  , 1095,   300300, fSystematicSeed, 0); //loose electron ID weights for SS --> OS bias
 
-  fTauIDWeight = new TauIDWeight(fIsEmbed, fVerbose);
+  fTauIDWeight = new TauIDWeight(fIsEmbed, (fSelection == "etau" || fSelection == "mutau") ? fSelection : "etau", fVerbose); //default to etau IDs
 
-  //0: normal unfolding; 1: use z eta unfolding; 2: use z (eta, pt) unfolding; 3: mode 2 with tight cuts
-  fEmbeddingWeight = new EmbeddingWeight((true && fIsEmbed && fYear == 2018 && fSelection == "emu") ? 4 : 0);
+  //0: normal unfolding; 1: use z eta unfolding; 2: use z (eta, pt) unfolding; 3: mode 2 with tight cuts; 4: 2016 unfolding; 10: IC measured unfolding
+  //FIXME: Settle on an embedding unfolding configuration
+  fEmbeddingWeight = new EmbeddingWeight((fIsEmbed /*&& fSelection == "emu"*/) ? 10 : 0);
 
   for(int itrig = 0; itrig < 3; ++itrig) triggerWeights[itrig] = 1.f;
 
@@ -164,7 +166,7 @@ void HistMaker::Begin(TTree * /*tree*/)
 
       mva[mva_i] = new TMVA::Reader("!Color:!Silent");
       TString selection = "";
-      if(fMVAConfig.names_[mva_i].Contains("higgs")) selection += "h";
+      if(fMVAConfig.names_[mva_i].Contains("higgs")) {if(!fDoHiggs) continue; else selection += "h";}
       else selection += "z";
       if(fMVAConfig.names_[mva_i].Contains("mutau")) selection += "mutau";
       else if(fMVAConfig.names_[mva_i].Contains("etau")) selection += "etau";
@@ -255,13 +257,23 @@ void HistMaker::FillAllHistograms(Int_t index) {
     fTimes[GetTimerNumber("Filling")] = std::chrono::steady_clock::now(); //timer for reading from the tree
     FillEventHistogram( fEventHist [index]);
     FillLepHistogram(   fLepHist   [index]);
-    if(fDoSystematics && fSysSets[index]) FillSystematicHistogram(fSystematicHist[index]);
+    if(fDoSystematics && fSysSets[index]) {
+      fTimes[GetTimerNumber("SystFill")] = std::chrono::steady_clock::now(); //timer for reading from the tree
+      FillSystematicHistogram(fSystematicHist[index]);
+      IncrementTimer("SystFill", true);
+    }
     // if(fFillPhotonHists) FillPhotonHistogram(fPhotonHist[index]);
     IncrementTimer("Filling", true);
-  } else
+  } else {
     printf("WARNING! Entry %lld: Attempted to fill un-initialized histogram set %i!\n", fentry, index);
-  if(fDoSystematics >= 0 && fWriteTrees && fTreeSets[index])
+  }
+  if(fDoSystematics >= 0 && fWriteTrees && fTreeSets[index]) {
+    if(fVerbose > 0) {
+      printf("HistMaker::%s: Filling tree %i\n", __func__, index);
+    }
+    fDirectories[3*fn + index]->cd();
     fTrees[index]->Fill();
+  }
 }
 
 //--------------------------------------------------------------------------------------------------------------
@@ -269,8 +281,6 @@ void HistMaker::InitHistogramFlags() {
   for(int i = 0; i < fn; ++i) {
     fEventSets[i]  = 0;
     fSysSets[i] = 0;
-  }
-  for(int i = 0; i < fn; ++i) {
     fTreeSets[i]  = 0;
   }
 
@@ -283,12 +293,15 @@ void HistMaker::InitHistogramFlags() {
 
   if(mutau) {
     fEventSets [kMuTau + 1] = 1; // all events
+    fTreeSets  [kMuTau + 1] = 1;
   }
   if(etau) {
     fEventSets [kETau + 1] = 1; // all events
+    fTreeSets  [kETau + 1] = 1;
   }
   if(emu) {
     fEventSets [kEMu  + 1] = 1; // all events
+    fTreeSets  [kEMu  + 1] = 1;
     //Leptonic tau channels
     fEventSets[kMuTauE + 1] = 1;
     fEventSets[kETauMu + 1] = 1;
@@ -382,6 +395,7 @@ void HistMaker::BookBaseEventHistograms(Int_t i, const char* dirname) {
       Utilities::BookH1F(fEventHist[i]->hMTLep               , "mtlep"               , Form("%s: MTLep"                   ,dirname)  , 100, 0.,   150., folder);
       Utilities::BookH1F(fEventHist[i]->hMTOneOverM          , "mtoneoverm"          , Form("%s: MTOneOverM"              ,dirname)  , 100, 0.,   10. , folder);
       Utilities::BookH1F(fEventHist[i]->hMTTwoOverM          , "mttwooverm"          , Form("%s: MTTwoOverM"              ,dirname)  , 100, 0.,   10. , folder);
+      Utilities::BookH1F(fEventHist[i]->hMTLepOverM          , "mtlepoverm"          , Form("%s: MTLepOverM"              ,dirname)  , 100, 0.,   10. , folder);
 
       Utilities::BookH1F(fEventHist[i]->hMetDeltaPhi         , "metdeltaphi"         , Form("%s: Met Lep Delta Phi"       ,dirname)  ,  50,  0,   5, folder);
       Utilities::BookH1F(fEventHist[i]->hLepOneDeltaPhi      , "leponedeltaphi"      , Form("%s: Lep One vs Sys Delta Phi",dirname)  ,  50,  0,   5, folder);
@@ -395,10 +409,13 @@ void HistMaker::BookBaseEventHistograms(Int_t i, const char* dirname) {
       // Utilities::BookH1F(fEventHist[i]->hLepPhi  , "lepphi"        , Form("%s: Lepton Phi"     ,dirname)  ,  40,  -4,   4, folder);
       Utilities::BookH1F(fEventHist[i]->hLepMEstimate   , "lepmestimate"   , Form("%s: Estimate di-lepton mass"  ,dirname)  ,100,0.,  200, folder);
       Utilities::BookH1F(fEventHist[i]->hLepMEstimateTwo, "lepmestimatetwo", Form("%s: Estimate di-lepton mass"  ,dirname)  ,100,0.,  200, folder);
-      Utilities::BookH1F(fEventHist[i]->hLepPtOverM        , "lepptoverm"       , Form("%s: Lepton Pt / M"       ,dirname),  40,   0,   4, folder);
+      Utilities::BookH1F(fEventHist[i]->hLepPtOverM     , "lepptoverm"     , Form("%s: Lepton Pt / M"       ,dirname),  40,   0,   4, folder);
+      Utilities::BookH1F(fEventHist[i]->hLepTrkM        , "leptrkm"        , Form("%s: lep+trk mass"  ,dirname)  ,100,0.,  200, folder);
+      Utilities::BookH1F(fEventHist[i]->hLepTrkDeltaM   , "leptrkdeltam"   , Form("%s: lepm - lep+trk mass"  ,dirname)  ,50,0., 100, folder);
 
       Utilities::BookH1F(fEventHist[i]->hPZetaVis       , "pzetavis"      , Form("%s: Dilepton pT dot #zeta",dirname), 50, 0., 200, folder);
       Utilities::BookH1F(fEventHist[i]->hPZetaInv       , "pzetainv"      , Form("%s: MET dot #zeta"        ,dirname), 50, -200., 200, folder);
+      Utilities::BookH1F(fEventHist[i]->hPZetaAll       , "pzetaall"      , Form("%s: (l1 + l2 + MET) dot #zeta",dirname), 50, -200., 200, folder);
       Utilities::BookH1F(fEventHist[i]->hPZetaDiff      , "pzetadiff"     , Form("%s: (MET - Dilepton pT) dot #zeta",dirname), 50, -150., 100, folder);
       Utilities::BookH1F(fEventHist[i]->hDZeta          , "dzeta"         , Form("%s: (MET - 0.85*Dilepton pT) dot #zeta",dirname), 50, -150., 100, folder);
 
@@ -520,6 +537,9 @@ void HistMaker::BookBaseLepHistograms(Int_t i, const char* dirname) {
       Utilities::BookH1D(fLepHist[i]->hOneID1         , "oneid1"           , Form("%s: ID1"          ,dirname),  80,   -1,   79, folder);
       Utilities::BookH1D(fLepHist[i]->hOneID2         , "oneid2"           , Form("%s: ID2"          ,dirname),  80,   -1,   79, folder);
       Utilities::BookH1F(fLepHist[i]->hOneRelIso      , "onereliso"        , Form("%s: Iso / Pt"     ,dirname),  50,    0,  0.5, folder);
+      Utilities::BookH1F(fLepHist[i]->hOneTrkPtOverPt , "onetrkptoverpt"   , Form("%s: Trk Pt / Pt"  ,dirname),  40,    0,  1.2, folder);
+      Utilities::BookH1F(fLepHist[i]->hOneTrkDeltaEta , "onetrkdeltaeta"   , Form("%s: Trk Eta - Eta",dirname),  20,    0,  0.2, folder);
+      Utilities::BookH1F(fLepHist[i]->hOneTrkDeltaPhi , "onetrkdeltaphi"   , Form("%s: Trk Phi - Phi",dirname),  20,    0,  0.2, folder);
       Utilities::BookH1D(fLepHist[i]->hOneFlavor      , "oneflavor"        , Form("%s: Flavor"       ,dirname),  20,    0,   20, folder);
       Utilities::BookH1D(fLepHist[i]->hOneGenFlavor   , "onegenflavor      ", Form("%s: Gen Flavor"  ,dirname),  40,    0,   40, folder);
       Utilities::BookH1D(fLepHist[i]->hOneQ           , "oneq"             , Form("%s: Q"            ,dirname),   5,   -2,    2, folder);
@@ -549,6 +569,9 @@ void HistMaker::BookBaseLepHistograms(Int_t i, const char* dirname) {
       Utilities::BookH1D(fLepHist[i]->hTwoID2         , "twoid2"           , Form("%s: ID2"         ,dirname),  80,  -1,   79, folder);
       Utilities::BookH1D(fLepHist[i]->hTwoID3         , "twoid3"           , Form("%s: ID3"         ,dirname),  80,  -1,   79, folder);
       Utilities::BookH1F(fLepHist[i]->hTwoRelIso      , "tworeliso"        , Form("%s: Iso / Pt"    ,dirname),  50,   0,  0.5, folder);
+      Utilities::BookH1F(fLepHist[i]->hTwoTrkPtOverPt , "twotrkptoverpt"   , Form("%s: Trk Pt / Pt"  ,dirname),  40,    0,  1.2, folder);
+      Utilities::BookH1F(fLepHist[i]->hTwoTrkDeltaEta , "twotrkdeltaeta"   , Form("%s: Trk Eta - Eta",dirname),  20,    0,  0.2, folder);
+      Utilities::BookH1F(fLepHist[i]->hTwoTrkDeltaPhi , "twotrkdeltaphi"   , Form("%s: Trk Phi - Phi",dirname),  20,    0,  0.2, folder);
       Utilities::BookH1D(fLepHist[i]->hTwoFlavor      , "twoflavor"        , Form("%s: Flavor"      ,dirname),  20,   0,   20, folder);
       Utilities::BookH1D(fLepHist[i]->hTwoGenFlavor   , "twogenflavor"     , Form("%s: Gen Flavor"  ,dirname),  40,   0,   40, folder);
       Utilities::BookH1D(fLepHist[i]->hTwoQ           , "twoq"             , Form("%s: Q"           ,dirname),   5,  -2,    2, folder);
@@ -629,76 +652,97 @@ void HistMaker::BookTrees() {
       sprintf(dirname,"tree_%i",i);
       fDirectories[3*fn + i] = fTopDir->mkdir(dirname);
       fDirectories[3*fn + i]->cd();
-      delete dirname;
       fTrees[i] = new TTree(Form("tree_%i",i),Form("HistMaker TTree %i",i));
-      fTrees[i]->Branch("leponept",           &fTreeVars.leponept          );
-      fTrees[i]->Branch("leponeptoverm",      &fTreeVars.leponeptoverm     );
-      fTrees[i]->Branch("leptwopt",           &fTreeVars.leptwopt          );
-      fTrees[i]->Branch("leptwoptoverm",      &fTreeVars.leptwoptoverm     );
-      fTrees[i]->Branch("leptwod0",           &fTreeVars.leptwod0          );
-      fTrees[i]->Branch("leppt",              &fTreeVars.leppt             );
-      fTrees[i]->Branch("lepm",               &fTreeVars.lepm              );
-      fTrees[i]->Branch("lepptoverm",         &fTreeVars.lepptoverm        );
-      fTrees[i]->Branch("lepeta",             &fTreeVars.lepeta            );
-      fTrees[i]->Branch("lepdeltaeta",        &fTreeVars.lepdeltaeta       );
-      fTrees[i]->Branch("lepdeltar",          &fTreeVars.lepdeltar         );
-      fTrees[i]->Branch("lepdeltaphi",        &fTreeVars.lepdeltaphi       );
-      fTrees[i]->Branch("deltaalphaz1",       &fTreeVars.deltaalphaz1      );
-      fTrees[i]->Branch("deltaalphaz2",       &fTreeVars.deltaalphaz2      );
-      fTrees[i]->Branch("deltaalphah1",       &fTreeVars.deltaalphah1      );
-      fTrees[i]->Branch("deltaalphah2",       &fTreeVars.deltaalphah2      );
-      fTrees[i]->Branch("deltaalpham1",       &fTreeVars.deltaalpham1      );
-      fTrees[i]->Branch("deltaalpham2",       &fTreeVars.deltaalpham2      );
-      fTrees[i]->Branch("metdeltaphi",        &fTreeVars.metdeltaphi       );
-      fTrees[i]->Branch("leponedeltaphi",     &fTreeVars.leponedeltaphi    );
-      fTrees[i]->Branch("leptwodeltaphi",     &fTreeVars.leptwodeltaphi    );
-      fTrees[i]->Branch("onemetdeltaphi",     &fTreeVars.onemetdeltaphi    );
-      fTrees[i]->Branch("twometdeltaphi",     &fTreeVars.twometdeltaphi    );
-      fTrees[i]->Branch("lepmestimate",       &fTreeVars.mestimate         );
-      fTrees[i]->Branch("lepmestimatetwo",    &fTreeVars.mestimatetwo      );
-      fTrees[i]->Branch("met",                &fTreeVars.met               );
-      fTrees[i]->Branch("mtone",              &fTreeVars.mtone             );
-      fTrees[i]->Branch("mttwo",              &fTreeVars.mttwo             );
-      fTrees[i]->Branch("mtoneoverm",         &fTreeVars.mtoneoverm        );
-      fTrees[i]->Branch("mttwooverm",         &fTreeVars.mttwooverm        );
-      fTrees[i]->Branch("jetpt",              &fTreeVars.jetpt             );
-      fTrees[i]->Branch("njets",              &fTreeVars.njets             );
-
-      //boosted frame variables
-      for(int mode = 0; mode < 3; ++mode) {
-        fTrees[i]->Branch(Form("leponeprimepx%i", mode), &fTreeVars.leponeprimepx[mode]);
-        fTrees[i]->Branch(Form("leptwoprimepx%i", mode), &fTreeVars.leptwoprimepx[mode]);
-        fTrees[i]->Branch(Form("metprimepx%i"   , mode), &fTreeVars.metprimepx   [mode]);
-        fTrees[i]->Branch(Form("leponeprimepy%i", mode), &fTreeVars.leponeprimepy[mode]);
-        fTrees[i]->Branch(Form("leptwoprimepy%i", mode), &fTreeVars.leptwoprimepy[mode]);
-        fTrees[i]->Branch(Form("metprimepy%i"   , mode), &fTreeVars.metprimepy   [mode]);
-        fTrees[i]->Branch(Form("leponeprimepz%i", mode), &fTreeVars.leponeprimepz[mode]);
-        fTrees[i]->Branch(Form("leptwoprimepz%i", mode), &fTreeVars.leptwoprimepz[mode]);
-        fTrees[i]->Branch(Form("metprimepz%i"   , mode), &fTreeVars.metprimepz   [mode]);
-        fTrees[i]->Branch(Form("leponeprimee%i" , mode), &fTreeVars.leponeprimee [mode]);
-        fTrees[i]->Branch(Form("leptwoprimee%i" , mode), &fTreeVars.leptwoprimee [mode]);
-        fTrees[i]->Branch(Form("metprimee%i"    , mode), &fTreeVars.metprimee    [mode]);
-      }
-
-      fTrees[i]->Branch("eventweight",        &fTreeVars.eventweightMVA    );
-      fTrees[i]->Branch("fulleventweight",    &fTreeVars.fulleventweight   );
-      fTrees[i]->Branch("fulleventweightlum", &fTreeVars.fulleventweightlum);
-      fTrees[i]->Branch("eventcategory",      &fTreeVars.eventcategory     );
-      fTrees[i]->Branch("category",           &fTreeVars.category          );
-      fTrees[i]->Branch("train",              &fTreeVars.train             );
-      fTrees[i]->Branch("issignal",           &fTreeVars.issignal          );
-      fTrees[i]->Branch("type",               &fTreeVars.type              );
-
-      fTrees[i]->Branch("jettotaunonclosure", &fTreeVars.jettotaunonclosure);
-      fTrees[i]->Branch("zptup"             , &fTreeVars.zptup             );
-      fTrees[i]->Branch("zptdown"           , &fTreeVars.zptdown           );
-
-      //add MVA score branches
-      for(unsigned index = 0; index < fMVAConfig.names_.size(); ++index) {
-        fTrees[i]->Branch(Form("mva%i", index), &fMvaOutputs[index]);
-      }
+      BookBaseTree(i);
       delete dirname;
     }
+  }
+}
+
+//--------------------------------------------------------------------------------------------------------------
+void HistMaker::BookBaseTree(Int_t index) {
+  fTrees[index]->Branch("leponept"           , &fTreeVars.leponept          );
+  fTrees[index]->Branch("leponeptoverm"      , &fTreeVars.leponeptoverm     );
+  fTrees[index]->Branch("leptwopt"           , &fTreeVars.leptwopt          );
+  fTrees[index]->Branch("leptwoptoverm"      , &fTreeVars.leptwoptoverm     );
+  fTrees[index]->Branch("leptwod0"           , &fTreeVars.leptwod0          ); //FIXME: Remove
+  fTrees[index]->Branch("leppt"              , &fTreeVars.leppt             );
+  fTrees[index]->Branch("lepm"               , &fTreeVars.lepm              );
+  fTrees[index]->Branch("lepptoverm"         , &fTreeVars.lepptoverm        );
+  fTrees[index]->Branch("lepeta"             , &fTreeVars.lepeta            );
+  fTrees[index]->Branch("lepdeltaeta"        , &fTreeVars.lepdeltaeta       );
+  fTrees[index]->Branch("lepdeltar"          , &fTreeVars.lepdeltar         );
+  fTrees[index]->Branch("lepdeltaphi"        , &fTreeVars.lepdeltaphi       );
+  fTrees[index]->Branch("ptdiff"             , &fTreeVars.ptdiff            );
+  fTrees[index]->Branch("ptdiffoverm"        , &fTreeVars.ptdiffoverm       );
+  fTrees[index]->Branch("deltaalphaz1"       , &fTreeVars.deltaalphaz1      );
+  fTrees[index]->Branch("deltaalphaz2"       , &fTreeVars.deltaalphaz2      );
+  fTrees[index]->Branch("deltaalphah1"       , &fTreeVars.deltaalphah1      );
+  fTrees[index]->Branch("deltaalphah2"       , &fTreeVars.deltaalphah2      );
+  fTrees[index]->Branch("deltaalpham1"       , &fTreeVars.deltaalpham1      );
+  fTrees[index]->Branch("deltaalpham2"       , &fTreeVars.deltaalpham2      );
+  fTrees[index]->Branch("metdeltaphi"        , &fTreeVars.metdeltaphi       );
+  fTrees[index]->Branch("leponedeltaphi"     , &fTreeVars.leponedeltaphi    );
+  fTrees[index]->Branch("leptwodeltaphi"     , &fTreeVars.leptwodeltaphi    );
+  fTrees[index]->Branch("onemetdeltaphi"     , &fTreeVars.onemetdeltaphi    );
+  fTrees[index]->Branch("twometdeltaphi"     , &fTreeVars.twometdeltaphi    );
+  fTrees[index]->Branch("lepmestimate"       , &fTreeVars.mestimate         );
+  fTrees[index]->Branch("lepmestimatetwo"    , &fTreeVars.mestimatetwo      );
+  fTrees[index]->Branch("met"                , &fTreeVars.met               );
+  fTrees[index]->Branch("mtone"              , &fTreeVars.mtone             );
+  fTrees[index]->Branch("mttwo"              , &fTreeVars.mttwo             );
+  fTrees[index]->Branch("mtlep"              , &fTreeVars.mtlep             );
+  fTrees[index]->Branch("mtoneoverm"         , &fTreeVars.mtoneoverm        );
+  fTrees[index]->Branch("mttwooverm"         , &fTreeVars.mttwooverm        );
+  fTrees[index]->Branch("mtlepoverm"         , &fTreeVars.mtlepoverm        );
+  fTrees[index]->Branch("jetpt"              , &fTreeVars.jetpt             );
+  fTrees[index]->Branch("njets"              , &fTreeVars.njets             );
+  fTrees[index]->Branch("ht"                 , &fTreeVars.ht                );
+  fTrees[index]->Branch("htsum"              , &fTreeVars.htsum             );
+  fTrees[index]->Branch("pzetavis"           , &fTreeVars.pzetavis          );
+  fTrees[index]->Branch("pzetainv"           , &fTreeVars.pzetainv          );
+  fTrees[index]->Branch("pzetaall"           , &fTreeVars.pzetaall          );
+  fTrees[index]->Branch("dzeta"              , &fTreeVars.dzeta             );
+  fTrees[index]->Branch("leptrkdeltam"       , &fTreeVars.leptrkdeltam      );
+  fTrees[index]->Branch("trkptoverpt"        , &fTreeVars.trkptoverpt       );
+
+  //boosted frame variables
+  for(int mode = 0; mode < 3; ++mode) {
+    fTrees[index]->Branch(Form("leponeprimepx%i", mode), &fTreeVars.leponeprimepx[mode]);
+    fTrees[index]->Branch(Form("leptwoprimepx%i", mode), &fTreeVars.leptwoprimepx[mode]);
+    // fTrees[index]->Branch(Form("metprimepx%i"   , mode), &fTreeVars.metprimepx   [mode]);
+    // fTrees[index]->Branch(Form("leponeprimepy%i", mode), &fTreeVars.leponeprimepy[mode]);
+    // fTrees[index]->Branch(Form("leptwoprimepy%i", mode), &fTreeVars.leptwoprimepy[mode]);
+    // fTrees[index]->Branch(Form("metprimepy%i"   , mode), &fTreeVars.metprimepy   [mode]);
+    fTrees[index]->Branch(Form("leponeprimepz%i", mode), &fTreeVars.leponeprimepz[mode]);
+    fTrees[index]->Branch(Form("leptwoprimepz%i", mode), &fTreeVars.leptwoprimepz[mode]);
+    // fTrees[index]->Branch(Form("metprimepz%i"   , mode), &fTreeVars.metprimepz   [mode]);
+    fTrees[index]->Branch(Form("leponeprimee%i" , mode), &fTreeVars.leponeprimee [mode]);
+    fTrees[index]->Branch(Form("leptwoprimee%i" , mode), &fTreeVars.leptwoprimee [mode]);
+    fTrees[index]->Branch(Form("metprimee%i"    , mode), &fTreeVars.metprimee    [mode]);
+  }
+
+  fTrees[index]->Branch("eventweight"       , &fTreeVars.eventweightMVA    );
+  fTrees[index]->Branch("fulleventweight"   , &fTreeVars.fulleventweight   );
+  fTrees[index]->Branch("fulleventweightlum", &fTreeVars.fulleventweightlum);
+  fTrees[index]->Branch("eventcategory"     , &fTreeVars.eventcategory     );
+  fTrees[index]->Branch("category"          , &fTreeVars.category          );
+  fTrees[index]->Branch("train"             , &fTreeVars.train             );
+  fTrees[index]->Branch("issignal"          , &fTreeVars.issignal          );
+  fTrees[index]->Branch("type"              , &fTreeVars.type              );
+
+  //FIXME: Add a few more important effects
+  fTrees[index]->Branch("jettotaunonclosure", &fTreeVars.jettotaunonclosure);
+  fTrees[index]->Branch("zptup"             , &fTreeVars.zptup             );
+  fTrees[index]->Branch("zptdown"           , &fTreeVars.zptdown           );
+  fTrees[index]->Branch("jetantimu"         , &fTreeVars.jetantimu         );
+  fTrees[index]->Branch("jetantiele"        , &fTreeVars.jetantiele        );
+  fTrees[index]->Branch("btagsys"           , &fTreeVars.btagsys           );
+  fTrees[index]->Branch("qcdsys"            , &fTreeVars.qcdsys            );
+
+  //add MVA score branches
+  for(unsigned imva = 0; imva < fMVAConfig.names_.size(); ++imva) {
+    fTrees[index]->Branch(Form("mva%i", imva), &fMvaOutputs[imva]);
   }
 }
 
@@ -830,9 +874,10 @@ void HistMaker::InitializeInputTree(TTree* tree) {
   Utilities::SetBranchAddress(tree, "Tau_idDecayMode"               , &Tau_idDecayMode               );
   Utilities::SetBranchAddress(tree, "Tau_idDecayModeNewDMs"         , &Tau_idDecayModeNewDMs         );
   Utilities::SetBranchAddress(tree, "Tau_dxy"                       , &Tau_dxy                       );
-  // Utilities::SetBranchAddress(tree, "Tau_dxyErr"                    , &Tau_dxyErr                    );
   Utilities::SetBranchAddress(tree, "Tau_dz"                        , &Tau_dz                        );
-  // Utilities::SetBranchAddress(tree, "Tau_dzErr"                     , &Tau_dzErr                     );
+  Utilities::SetBranchAddress(tree, "Tau_leadTkPtOverTauPt"         , &Tau_leadTrkPtOverTauPt        );
+  Utilities::SetBranchAddress(tree, "Tau_leadTkDeltaEta"            , &Tau_leadTrkDeltaEta           );
+  Utilities::SetBranchAddress(tree, "Tau_leadTkDeltaPhi"            , &Tau_leadTrkDeltaPhi           );
   Utilities::SetBranchAddress(tree, "Tau_TaggedAsRemovedByJet"      , &Tau_TaggedAsRemovedByJet      );
   if(!fIsData) {
     Utilities::SetBranchAddress(tree, "Tau_genPartFlav"               , &Tau_genPartFlav               );
@@ -904,10 +949,14 @@ void HistMaker::InitializeInputTree(TTree* tree) {
     }
   }
   Utilities::SetBranchAddress(tree, "PV_npvsGood"                   , &nPV                           ) ;
+  // Utilities::SetBranchAddress(tree, "Pileup_nPU"                    , &nPUAdded                      );
   Utilities::SetBranchAddress(tree, "HT"                            , &ht                            );
   Utilities::SetBranchAddress(tree, "PuppiMET_pt"                   , &puppMET                       );
   Utilities::SetBranchAddress(tree, "PuppiMET_phi"                  , &puppMETphi                    );
-  // Utilities::SetBranchAddress(tree, "Pileup_nPU"                    , &nPUAdded                      );
+  Utilities::SetBranchAddress(tree, "PuppiMET_ptJERUp"              , &puppMETJERUp                  );
+  Utilities::SetBranchAddress(tree, "PuppiMET_ptJESUp"              , &puppMETJESUp                  );
+  Utilities::SetBranchAddress(tree, "PuppiMET_phiJERUp"             , &puppMETphiJERUp               );
+  Utilities::SetBranchAddress(tree, "PuppiMET_phiJESUp"             , &puppMETphiJESUp               );
 
   //MVA information
   if(!fReprocessMVAs) {
@@ -1038,6 +1087,8 @@ void HistMaker::InitializeEventWeights() {
   leptonOne.trig_wt = 1.f; leptonTwo.trig_wt = 1.f;
   const int ntrig = sizeof(triggerWeights)/sizeof(*triggerWeights);
   for(int itrig = 0; itrig < ntrig; ++itrig) triggerWeights[itrig] = 1.f;
+  const int ntrig_sys = sizeof(triggerWeightsSys)/sizeof(*triggerWeightsSys);
+  for(int itrig = 0; itrig < ntrig_sys; ++itrig) triggerWeightsSys[itrig] = 1.f;
 
   jetPUIDWeight = 1.f; btagWeight = 1.f; embeddingWeight = 1.f; embeddingUnfoldingWeight = 1.f;
   zPtWeight = 1.f; zPtWeightUp = 1.f; zPtWeightDown = 1.f; zPtWeightSys = 1.f;
@@ -1207,7 +1258,7 @@ void HistMaker::InitializeEventWeights() {
                                                                      leptonOne.wt2[0], leptonOne.wt2[1], leptonOne.wt2[2],
                                                                      leptonOne.isLoose, mcEra);
     else if(leptonOne.isTau     ()) leptonOne.wt1[0] = fTauIDWeight->IDWeight(leptonOne.p4->Pt(), leptonOne.p4->Eta(), tauGenID, tauDeepAntiJet,
-                                                                              fYear, leptonOne.wt1[1], leptonOne.wt1[2]);
+                                                                              fYear, leptonOne.wt1[1], leptonOne.wt1[2], leptonOne.wt1_bin);
     //Lepton 2
     if     (leptonTwo.isElectron()) fEmbeddingTnPWeight.ElectronIDWeight(leptonTwo.p4->Pt(), leptonTwo.scEta, fYear,
                                                                          leptonTwo.wt1[0], leptonTwo.wt1[1], leptonTwo.wt1[2],
@@ -1218,7 +1269,7 @@ void HistMaker::InitializeEventWeights() {
                                                                      leptonTwo.wt2[0], leptonTwo.wt2[1], leptonTwo.wt2[2],
                                                                      leptonTwo.isLoose, mcEra);
     else if(leptonTwo.isTau     ()) leptonTwo.wt1[0] = fTauIDWeight->IDWeight(leptonTwo.p4->Pt(), leptonTwo.p4->Eta(), tauGenID, tauDeepAntiJet,
-                                                                              fYear, leptonTwo.wt1[1], leptonTwo.wt1[2]);
+                                                                              fYear, leptonTwo.wt1[1], leptonTwo.wt1[2], leptonTwo.wt1_bin);
 
   } else if(!fIsData) { //MC simulations
     //Lepton 1
@@ -1229,7 +1280,7 @@ void HistMaker::InitializeEventWeights() {
                                                                leptonOne.wt1[0] , leptonOne.wt1[1], leptonOne.wt1[2], leptonOne.wt1_bin,
                                                                leptonOne.wt2[0] , leptonOne.wt2[1], leptonOne.wt2[2], leptonOne.wt2_bin);
     else if(leptonOne.isTau     ()) leptonOne.wt1[0] = fTauIDWeight->IDWeight(leptonOne.p4->Pt(), leptonOne.p4->Eta(), tauGenID, tauDeepAntiJet,
-                                                                              fYear, leptonOne.wt1[1], leptonOne.wt1[2]);
+                                                                              fYear, leptonOne.wt1[1], leptonOne.wt1[2], leptonOne.wt1_bin);
     //Lepton 2
     if     (leptonTwo.isElectron()) fElectronIDWeight.IDWeight(leptonTwo.p4->Pt(), leptonTwo.scEta, fYear,
                                                                leptonTwo.wt1[0] , leptonTwo.wt1[1], leptonTwo.wt1[2], leptonTwo.wt1_bin,
@@ -1238,7 +1289,7 @@ void HistMaker::InitializeEventWeights() {
                                                                leptonTwo.wt1[0] , leptonTwo.wt1[1], leptonTwo.wt1[2], leptonTwo.wt1_bin,
                                                                leptonTwo.wt2[0] , leptonTwo.wt2[1], leptonTwo.wt2[2], leptonTwo.wt2_bin);
     else if(leptonTwo.isTau     ()) leptonTwo.wt1[0] = fTauIDWeight->IDWeight(leptonTwo.p4->Pt(), leptonTwo.p4->Eta(), tauGenID, tauDeepAntiJet,
-                                                                              fYear, leptonTwo.wt1[1], leptonTwo.wt1[2]);
+                                                                              fYear, leptonTwo.wt1[1], leptonTwo.wt1[2], leptonTwo.wt1_bin);
   }
   eventWeight *= leptonOne.wt1[0]*leptonOne.wt2[0];
   eventWeight *= leptonTwo.wt1[0]*leptonTwo.wt2[0];
@@ -1302,10 +1353,20 @@ void HistMaker::InitializeEventWeights() {
                                                                                   fTreeVars.onemetdeltaphi, fTreeVars.lepm, fTreeVars.mtlep, leptonOne.iso/leptonOne.p4->Pt(),
                                                                                   fJetToTauMCCorrs[proc], fJetToTauMCBiases[proc]));
         }
+        if(jetToTauWeightUp < fJetToTauWts[proc]) {
+          if(fVerbose > -1) printf("HistMaker::%s: j-->tau weight up for proc %i below nominal, setting to nominal! tau: pt = %.2f, eta = %.2f, DM = %i; lead: pt = %.2f, eta = %.2f\n",
+                                   __func__, proc, leptonTwo.p4->Pt(), leptonTwo.p4->Eta(), tauDecayMode, leptonOne.p4->Pt(), leptonOne.p4->Eta());
+          jetToTauWeightUp = fJetToTauWts[proc];
+        }
+        if(jetToTauWeightDown > fJetToTauWts[proc]) {
+          if(fVerbose > -1) printf("HistMaker::%s: j-->tau weight down for proc %i above nominal, setting to nominal! tau: pt = %.2f, eta = %.2f, DM = %i; lead: pt = %.2f, eta = %.2f\n",
+                                   __func__, proc, leptonTwo.p4->Pt(), leptonTwo.p4->Eta(), tauDecayMode, leptonOne.p4->Pt(), leptonOne.p4->Eta());
+          jetToTauWeightDown = fJetToTauWts[proc];
+        }
         jetToTauWeight     += fJetToTauComps[proc] * fJetToTauWts[proc];
         jetToTauWeightCorr += fJetToTauComps[proc] * fJetToTauWts[proc] * fJetToTauCorrs[proc]; //weight with the correction for this process
         jetToTauWeightBias += fJetToTauComps[proc] * fJetToTauWts[proc] * fJetToTauCorrs[proc] * fJetToTauBiases[proc]; //weight with the correction and bias for this process
-        //store systematic effects
+        //store systematic effects, added linearly across all processes
         jttUp   += fJetToTauComps[proc] * jetToTauWeightUp  ;
         jttDown += fJetToTauComps[proc] * jetToTauWeightDown;
         jttSys  += fJetToTauComps[proc] * jetToTauWeightSys ;
@@ -1316,10 +1377,20 @@ void HistMaker::InitializeEventWeights() {
       jetToTauWeightDown = jttDown;
       jetToTauWeightSys  = jttSys ;
       jetToTauWeightCorrUp   = jetToTauWeight; //set correction up to be ignoring the correction
-      jetToTauWeightCorrDown = 2.f*jetToTauWeightCorr - jetToTauWeight; //size of the weight in the other direction from 1
+      jetToTauWeightCorrDown = std::max(0.f, 2.f*jetToTauWeightCorr - jetToTauWeight); //size of the weight in the other direction from 1
       jetToTauWeightCorrSys  = jetToTauWeight;
       jetToTauWeightBiasUp   = jetToTauWeightCorr; //set correction up to be ignoring the correction
-      jetToTauWeightBiasDown = 2.f*jetToTauWeightBias - jetToTauWeightCorr; //size of the weight in the other direction from 1
+      jetToTauWeightBiasDown = std::max(0.f, 2.f*jetToTauWeightBias - jetToTauWeightCorr); //size of the weight in the other direction from 1
+      if(jetToTauWeightUp < jetToTauWeight) {
+        if(fVerbose > -1) printf("HistMaker::%s: j-->tau weight up below nominal, setting to nominal! tau: pt = %.2f, eta = %.2f, DM = %i; lead: pt = %.2f, eta = %.2f\n",
+                                 __func__, leptonTwo.p4->Pt(), leptonTwo.p4->Eta(), tauDecayMode, leptonOne.p4->Pt(), leptonOne.p4->Eta());
+        jetToTauWeightUp = jetToTauWeight;
+      }
+      if(jetToTauWeightDown > jetToTauWeight) {
+        if(fVerbose > -1) printf("HistMaker::%s: j-->tau weight down above nominal, setting to nominal! tau: pt = %.2f, eta = %.2f, DM = %i; lead: pt = %.2f, eta = %.2f\n",
+                                 __func__, leptonTwo.p4->Pt(), leptonTwo.p4->Eta(), tauDecayMode, leptonOne.p4->Pt(), leptonOne.p4->Eta());
+        jetToTauWeightDown = jetToTauWeight;
+      }
     } else {
       std::cout << "Error! Jet --> Tau weight without composition no longer supported!\n";
       throw 20;
@@ -1350,13 +1421,196 @@ void HistMaker::InitializeEventWeights() {
   fTreeVars.fulleventweight = genWeight*eventWeight*fXsec;
   fTreeVars.fulleventweightlum = fTreeVars.fulleventweight*fLum;
 
-  //initialize systematic weights for TMVA systematic testing, remove non-closure correction as an estimate
-  fTreeVars.jettotaunonclosure = (jetToTauWeight / jetToTauWeightCorr) * (jetToTauWeightBias / jetToTauWeightCorr);
-  fTreeVars.zptup = zPtWeightUp / zPtWeight;
-  fTreeVars.zptdown = zPtWeightDown / zPtWeight;
+  //initialize systematic weights for TMVA systematic testing, remove non-closure and bis corrections as an estimate
+  fTreeVars.jettotaunonclosure = jetToTauWeight / jetToTauWeightBias; //weight without the non-closure or bias corrections
+  fTreeVars.zptup              = zPtWeightUp / zPtWeight;
+  fTreeVars.zptdown            = zPtWeightDown / zPtWeight;
+  fTreeVars.jetantimu          = (leptonTwo.isTau() && std::abs(tauGenFlavor) == 13) ? leptonTwo.wt1[1] / leptonTwo.wt1[0] : 1.f;
+  fTreeVars.jetantiele         = (leptonTwo.isTau() && std::abs(tauGenFlavor) == 11) ? leptonTwo.wt1[1] / leptonTwo.wt1[0] : 1.f;
+  fTreeVars.qcdsys             = (qcdWeight > 0.) ? qcdWeightUp / qcdWeight : 0.f;
+  fTreeVars.btagsys            = btagWeightUp / btagWeight;
 
   //if splitting testing/training samples
   fTreeVars.eventweightMVA *= (fTreeVars.train > 0.f) ? 0.f : 1.f/(1.f-fFractionMVA); //if training, ignore, else rescale to account for training sample removed
+}
+
+//--------------------------------------------------------------------------------------------------------------
+// Set kinematics relevant to MVAs, to re-evaluate scores after shifted values etc.
+void HistMaker::SetKinematics() {
+  leptonOne.d0 = std::sqrt(leptonOne.dxy*leptonOne.dxy + leptonOne.dz*leptonOne.dz);
+  leptonTwo.d0 = std::sqrt(leptonTwo.dxy*leptonTwo.dxy + leptonTwo.dz*leptonTwo.dz);
+  fTreeVars.leponept     = leptonOne.p4->Pt();
+  fTreeVars.leponem      = leptonOne.p4->M();
+  fTreeVars.leponeeta    = leptonOne.p4->Eta();
+  fTreeVars.leponed0     = leptonOne.d0;
+  fTreeVars.leponeiso    = leptonOne.iso;
+  fTreeVars.leponereliso = leptonOne.relIso;
+
+  fTreeVars.leptwopt     = leptonTwo.p4->Pt();
+  fTreeVars.leptwom      = leptonTwo.p4->M();
+  fTreeVars.leptwoeta    = leptonTwo.p4->Eta();
+  fTreeVars.leptwod0     = leptonTwo.d0;
+  fTreeVars.leptwoiso    = leptonTwo.iso;
+  fTreeVars.leptworeliso = leptonTwo.relIso;
+
+  TLorentzVector lep = *leptonOne.p4 + *leptonTwo.p4;
+
+  fTreeVars.lepp          = lep.P();
+  fTreeVars.leppt         = lep.Pt();
+  fTreeVars.lepm          = lep.M();
+  fTreeVars.lepmt         = lep.Mt();
+  fTreeVars.lepptoverm    = fTreeVars.leppt   /fTreeVars.lepm;
+  fTreeVars.leponeptoverm = fTreeVars.leponept/fTreeVars.lepm;
+  fTreeVars.leptwoptoverm = fTreeVars.leptwopt/fTreeVars.lepm;
+  fTreeVars.lepeta        = lep.Eta();
+  fTreeVars.lepdeltar     = leptonOne.p4->DeltaR(*leptonTwo.p4);
+  fTreeVars.lepdeltaphi   = std::fabs(leptonOne.p4->DeltaPhi(*leptonTwo.p4));
+  fTreeVars.lepdeltaeta   = std::fabs(leptonOne.p4->Eta() - leptonTwo.p4->Eta());
+  fTreeVars.ptdiff        = leptonOne.p4->Pt() - leptonTwo.p4->Pt();
+  fTreeVars.ptdiffoverm   = fTreeVars.ptdiff / fTreeVars.lepm;
+
+  //Tau trk variables
+  TLorentzVector trk;
+  if(leptonTwo.isTau()) trk.SetPtEtaPhiM(leptonTwo.trkpt, leptonTwo.trketa, leptonTwo.trkphi, TAUMASS);
+  else                  trk = *leptonTwo.p4;
+  fTreeVars.trkpt   = trk.Pt();
+  fTreeVars.trketa  = trk.Eta();
+  fTreeVars.trkphi  = trk.Phi();
+  fTreeVars.leptrkm = (*leptonOne.p4 + trk).M();
+  fTreeVars.leptrkdeltam = fTreeVars.lepm - fTreeVars.leptrkm;
+  fTreeVars.trkptoverpt  = fTreeVars.trkpt / leptonTwo.p4->Pt();
+
+  //phi differences
+  fTreeVars.htdeltaphi     = std::fabs(Utilities::DeltaPhi(lep.Phi(), htPhi));
+  fTreeVars.metdeltaphi    = std::fabs(Utilities::DeltaPhi(lep.Phi(), metPhi));
+  fTreeVars.leponedeltaphi = std::fabs(Utilities::DeltaPhi(leptonOne.p4->Phi(), lep.Phi()));
+  fTreeVars.leptwodeltaphi = std::fabs(Utilities::DeltaPhi(leptonTwo.p4->Phi(), lep.Phi()));
+  fTreeVars.onemetdeltaphi = std::fabs(Utilities::DeltaPhi(leptonOne.p4->Phi(), metPhi));
+  fTreeVars.twometdeltaphi = std::fabs(Utilities::DeltaPhi(leptonTwo.p4->Phi(), metPhi));
+
+  //MET variables
+  fTreeVars.met = met;
+  fTreeVars.mtone = sqrt(2.*met*leptonOne.p4->Pt()*(1.-cos(leptonOne.p4->Phi() - metPhi)));
+  fTreeVars.mttwo = sqrt(2.*met*leptonTwo.p4->Pt()*(1.-cos(leptonTwo.p4->Phi() - metPhi)));
+  fTreeVars.mtlep = sqrt(2.*met*lep.Pt()*(1.-cos(lep.Phi() - metPhi)));
+  fTreeVars.mtoneoverm = fTreeVars.mtone / fTreeVars.lepm;
+  fTreeVars.mttwooverm = fTreeVars.mttwo / fTreeVars.lepm;
+  fTreeVars.mtlepoverm = fTreeVars.mtlep / fTreeVars.lepm;
+
+  //momentum projections onto bisector
+  TVector3 lp1 = leptonOne.p4->Vect();
+  TVector3 lp2 = leptonTwo.p4->Vect();
+  TVector3 missing(met*cos(metPhi), met*sin(metPhi), 0.);
+  lp1.SetZ(0.);
+  lp2.SetZ(0.);
+  TVector3 bisector = (lp1.Mag()*lp2 + lp2.Mag()*lp1); //divides leptons
+  if(bisector.Mag() > 0.) bisector.SetMag(1.);
+
+  //project onto the bisectors
+  fTreeVars.pzetavis     = (lp1+lp2)*bisector;
+  fTreeVars.pzetainv     = missing*bisector;
+  fTreeVars.pzetaall     = (lp1 + lp2 + missing)*bisector;
+  fTreeVars.dzeta        = fTreeVars.pzetaall - 0.85*fTreeVars.pzetavis;
+  const double pnuest    = std::max(1.e-8,lp2*missing/lp2.Mag()); //inv pT along tau = lep 2 pt unit vector dot missing
+  const double pnuesttwo = std::max(1.e-8,lp1*missing/lp1.Mag()); //inv pT along tau = lep 1 (for emu case with tau decay)
+  fTreeVars.ptauvisfrac  = lp2.Mag() / (lp2.Mag() + pnuest);
+  fTreeVars.mestimate    = fTreeVars.lepm/sqrt(fTreeVars.ptauvisfrac);
+  fTreeVars.mestimatetwo = fTreeVars.lepm/sqrt(lp1.Mag() / (lp1.Mag() + pnuesttwo));
+
+
+  //definition from (14) and (16) of arxiv:1207.4894
+  const double hmass(HIGGSMASS), zmass(ZMASS), tmass(TAUMASS), lepdot(2.*((*leptonOne.p4)*(*leptonTwo.p4)));
+  //delta alpha 1 = (m_boson^2 - m_tau^2) / (p(l1)\cdot p(l2))
+  //delta alpha 2 = pT(l1) / pT(l2) (l1 = tau)
+  //delta alpha 3 = pT(l2) / pT(l1) (l2 = tau)
+  fTreeVars.alphaz1 = (zmass*zmass-tmass*tmass)/(lepdot);
+  fTreeVars.alphah1 = (hmass*hmass-tmass*tmass)/(lepdot);
+  fTreeVars.alpha2 = leptonTwo.p4->Pt()/leptonOne.p4->Pt(); //for lep 1 = tau, lep 2 = non-tau
+  fTreeVars.alpha3 = leptonOne.p4->Pt()/leptonTwo.p4->Pt(); //for lep 2 = non-tau, lep 1 = tau
+  fTreeVars.deltaalphaz1 = fTreeVars.alphaz1 - fTreeVars.alpha2;
+  fTreeVars.deltaalphaz2 = fTreeVars.alphaz1 - fTreeVars.alpha3;
+  fTreeVars.deltaalphah1 = fTreeVars.alphah1 - fTreeVars.alpha2;
+  fTreeVars.deltaalphah2 = fTreeVars.alphah1 - fTreeVars.alpha3;
+  //mass from delta alpha equation: m_boson = sqrt(m_tau^2 + pT(lep)/pT(tau) * p(l1) \cdot p(l2))
+  fTreeVars.deltaalpham1 = std::sqrt(tmass*tmass + fTreeVars.alpha2 * lepdot); //lep 1 = tau
+  fTreeVars.deltaalpham2 = std::sqrt(tmass*tmass + fTreeVars.alpha3 * lepdot); //lep 2 = tau
+
+  //event variables
+  fTreeVars.ht       = ht;
+  fTreeVars.htsum    = htSum;
+  fTreeVars.jetpt    = jetOneP4->Pt();
+
+  //Perform a transform to the Z/H boson frame
+  //Requires knowledge of which lepton has associated neutrinos (or if none do)
+  //modes:
+  // 0: MET defines x-axis, lepton two has positive Pz (mutau_h, etau_h,etau_mu)
+  // 1: MET defines x-axis, lepton one has positive Pz (mutau_e);
+  // 2: lepton 2 defines x-axis, lepton one has positive Pz (emu)
+  TLorentzVector metP4;
+  metP4.SetPtEtaPhiE(missing.Pt(), 0., missing.Phi(), missing.Pt());
+  for(int imode = 0; imode < 3; ++imode) {
+    TLorentzVector system;
+    system = *leptonOne.p4 + *leptonTwo.p4;
+    if(imode < 2) system += metP4;
+    TVector3 boost = -1*system.BoostVector(); //boost to the center of mass system
+    boost.SetZ(0.); //only transform pT to 0, since MET is only in pT
+    TLorentzVector lepOnePrime(*leptonOne.p4);
+    TLorentzVector lepTwoPrime(*leptonTwo.p4);
+    TLorentzVector metPrime(missing, missing.Mag());
+    lepOnePrime.Boost(boost); lepTwoPrime.Boost(boost); metPrime.Boost(boost); //boost so system pT = 0
+    double phiRot;
+    if(imode < 2) { //set MET along x axis
+      phiRot = -metPrime.Phi();
+    } else { //set lepton two pT (muon in emu) along the x-axis
+      phiRot = -lepTwoPrime.Phi();
+    }
+    lepOnePrime.RotateZ(phiRot); lepTwoPrime.RotateZ(phiRot); metPrime.RotateZ(phiRot);
+
+    //if the tau (or electron in Z->e+mu mode) has a negative momentum, rotate about x 180 degrees to make it positive
+    if((imode == 0 && lepTwoPrime.Pz() < 0.) || (imode != 0 && lepOnePrime.Pz() < 0.)) { //for emu, set electron in positive Pz
+      lepOnePrime.RotateX(M_PI); lepTwoPrime.RotateX(M_PI); metPrime.RotateX(M_PI);
+    }
+    if(!std::isfinite(lepOnePrime.Px()) || !std::isfinite(lepOnePrime.Py()) || !std::isfinite(lepOnePrime.Pz()) || !std::isfinite(lepOnePrime.E())) {
+      printf("!!! HistMaker::%s: Entry %lld : Non-finite boosted lepton p4 components!\n", __func__, fentry);
+      printf("lepone: (pt, eta, phi, E, M^2) = (%.2f, %.3f, %.3f, %.2f, %.3e)\n",
+             leptonOne.p4->Pt(), leptonOne.p4->Eta(), leptonOne.p4->Phi(), leptonOne.p4->E(), leptonOne.p4->M2());
+      printf("leptwo: (pt, eta, phi, E, M^2) = (%.2f, %.3f, %.3f, %.2f, %.3e)\n",
+             leptonTwo.p4->Pt(), leptonTwo.p4->Eta(), leptonTwo.p4->Phi(), leptonTwo.p4->E(), leptonTwo.p4->M2());
+      printf("met   : (pt, eta, phi, E, M^2) = (%.2f, %.3f, %.3f, %.2f, %.3e), met = %.2f, metPhi = %.3f\n",
+             metP4.Pt(), metP4.Eta(), metP4.Phi(), metP4.E(), metP4.M2(), met, metPhi);
+      printf("system: (pt, eta, phi, E, M^2) = (%.2f, %.3f, %.3f, %.2f, %.3e)\n",
+             system.Pt(), system.Eta(), system.Phi(), system.E(), system.M2());
+      boost.Print();
+      lepOnePrime.Print();
+      lepTwoPrime.Print();
+      metPrime.Print();
+      fTreeVars.leponeprimepx[imode] = 0.;
+      fTreeVars.leptwoprimepx[imode] = 0.;
+      fTreeVars.metprimepx   [imode] = 0.;
+      fTreeVars.leponeprimepy[imode] = 0.;
+      fTreeVars.leptwoprimepy[imode] = 0.;
+      fTreeVars.metprimepy   [imode] = 0.;
+      fTreeVars.leponeprimepz[imode] = 0.;
+      fTreeVars.leptwoprimepz[imode] = 0.;
+      fTreeVars.metprimepz   [imode] = 0.;
+      fTreeVars.leponeprimee [imode] = 0.;
+      fTreeVars.leptwoprimee [imode] = 0.;
+      fTreeVars.metprimee    [imode] = 0.;
+    } else {
+      fTreeVars.leponeprimepx[imode] = lepOnePrime.Px();
+      fTreeVars.leptwoprimepx[imode] = lepTwoPrime.Px();
+      fTreeVars.metprimepx   [imode] =    metPrime.Px();
+      fTreeVars.leponeprimepy[imode] = lepOnePrime.Py();
+      fTreeVars.leptwoprimepy[imode] = lepTwoPrime.Py();
+      fTreeVars.metprimepy   [imode] =    metPrime.Py();
+      fTreeVars.leponeprimepz[imode] = lepOnePrime.Pz();
+      fTreeVars.leptwoprimepz[imode] = lepTwoPrime.Pz();
+      fTreeVars.metprimepz   [imode] =    metPrime.Pz();
+      fTreeVars.leponeprimee [imode] = lepOnePrime.E();
+      fTreeVars.leptwoprimee [imode] = lepTwoPrime.E();
+      fTreeVars.metprimee    [imode] =    metPrime.E();
+    }
+  }
 }
 
 //--------------------------------------------------------------------------------------------------------------
@@ -1449,6 +1703,10 @@ void HistMaker::CountObjects() {
 
   nMuons = nMuon; nElectrons = nElectron; nTaus = nTau; nPhotons = 0;
 
+  //associated track variables not relevant for all leptons, so reset if not used
+  leptonOne.trkpt = 0.f; leptonOne.trketa = 0.f; leptonOne.trkphi = 0.f;
+  leptonTwo.trkpt = 0.f; leptonTwo.trketa = 0.f; leptonTwo.trkphi = 0.f;
+
   if(emu) {
     leptonOne.setPtEtaPhiM(Electron_pt[0], Electron_eta[0], Electron_phi[0], ELECMASS);
     leptonTwo.setPtEtaPhiM(Muon_pt    [0], Muon_eta    [0], Muon_phi    [0], MUONMASS);
@@ -1520,6 +1778,9 @@ void HistMaker::CountObjects() {
     leptonTwo.ES[0]     = Tau_energyScale[0];
     leptonTwo.ES[1]     = Tau_energyScaleUp[0];
     leptonTwo.ES[2]     = Tau_energyScaleDown[0];
+    leptonTwo.trkpt     = Tau_leadTrkPtOverTauPt[0]*leptonTwo.p4->Pt();
+    leptonTwo.trketa    = Tau_leadTrkDeltaEta[0] + leptonTwo.p4->Eta();
+    leptonTwo.trkphi    = Tau_leadTrkDeltaPhi[0] + leptonTwo.p4->Phi();
   } else if(mutau) {
     leptonOne.setPtEtaPhiM(Muon_pt    [0], Muon_eta    [0], Muon_phi    [0], MUONMASS);
     leptonTwo.setPtEtaPhiM(Tau_pt     [0], Tau_eta     [0], Tau_phi     [0], Tau_mass[0]);
@@ -1556,6 +1817,9 @@ void HistMaker::CountObjects() {
     leptonTwo.ES[0]     = Tau_energyScale[0];
     leptonTwo.ES[1]     = Tau_energyScaleUp[0];
     leptonTwo.ES[2]     = Tau_energyScaleDown[0];
+    leptonTwo.trkpt     = Tau_leadTrkPtOverTauPt[0]*leptonTwo.p4->Pt();
+    leptonTwo.trketa    = Tau_leadTrkDeltaEta[0] + leptonTwo.p4->Eta();
+    leptonTwo.trkphi    = Tau_leadTrkDeltaPhi[0] + leptonTwo.p4->Phi();
   } else if(mumu) {
     leptonOne.setPtEtaPhiM(Muon_pt    [0], Muon_eta    [0], Muon_phi    [0], MUONMASS);
     leptonTwo.setPtEtaPhiM(Muon_pt    [1], Muon_eta    [1], Muon_phi    [1], MUONMASS);
@@ -1650,6 +1914,16 @@ void HistMaker::CountObjects() {
   metCorr    = 0.;
   metCorrPhi = 0.;
 
+  if(!std::isfinite(puppMETJERUp) || !std::isfinite(puppMETphiJERUp)) {
+    if(fVerbose) printf("HistMaker::%s: Entry %lld: MET JER Up not defined\n", __func__, fentry);
+    puppMETJERUp    = puppMET;
+    puppMETphiJERUp = puppMETphi;
+  }
+  if(!std::isfinite(puppMETJESUp) || !std::isfinite(puppMETphiJESUp)) {
+    if(fVerbose) printf("HistMaker::%s: Entry %lld: MET JES Up not defined\n", __func__, fentry);
+    puppMETJESUp    = puppMET;
+    puppMETphiJESUp = puppMETphi;
+  }
   //If no Z information is found, approximate it with the lepton info
   if(fIsData || zPt < 0.f || zMass < 0.f) {
     if(fIsData || zLepOnePt < 0.f || zLepTwoPt < 0.f) { //no generator-level leptons
@@ -1824,14 +2098,11 @@ void HistMaker::InitializeTreeVariables() {
     fJetToTauMCWts    [proc] = 1.f;
     fJetToTauMCCorrs  [proc] = 1.f;
   }
-  leptonOne.d0 = std::sqrt(leptonOne.dxy*leptonOne.dxy + leptonOne.dz*leptonOne.dz);
-  leptonTwo.d0 = std::sqrt(leptonTwo.dxy*leptonTwo.dxy + leptonTwo.dz*leptonTwo.dz);
-  fTreeVars.leponept  = leptonOne.p4->Pt();
-  fTreeVars.leponem   = leptonOne.p4->M();
-  fTreeVars.leponeeta = leptonOne.p4->Eta();
-  fTreeVars.leponed0  = leptonOne.d0;
-  fTreeVars.leponeiso = leptonOne.iso;
-  fTreeVars.leponereliso = leptonOne.relIso;
+
+  //Initialize variables that can be systematically varied
+  SetKinematics();
+
+  //Initialize variables not varied
   fTreeVars.leponeidone   = 0.;
   fTreeVars.leponeidtwo   = 0.;
   fTreeVars.leponeidthree = 0.;
@@ -1844,86 +2115,16 @@ void HistMaker::InitializeTreeVariables() {
     fTreeVars.leptwoidtwo   = 0.;
     fTreeVars.leptwoidthree = 0.;
   }
-  fTreeVars.leptwopt  = leptonTwo.p4->Pt();
-  fTreeVars.leptwom   = leptonTwo.p4->M();
-  fTreeVars.leptwoeta = leptonTwo.p4->Eta();
-  fTreeVars.leptwod0  = leptonTwo.d0;
-  fTreeVars.leptwoiso = leptonTwo.iso;
-  fTreeVars.leptworeliso = leptonTwo.relIso;
-  TLorentzVector lep = *leptonOne.p4 + *leptonTwo.p4;
-  fTreeVars.lepp   = lep.P();
-  fTreeVars.leppt  = lep.Pt();
-  fTreeVars.lepm   = lep.M();
-  fTreeVars.lepmt  = lep.Mt();
-  fTreeVars.lepptoverm    = fTreeVars.leppt   /fTreeVars.lepm;
-  fTreeVars.leponeptoverm = fTreeVars.leponept/fTreeVars.lepm;
-  fTreeVars.leptwoptoverm = fTreeVars.leptwopt/fTreeVars.lepm;
-  fTreeVars.lepeta = lep.Eta();
-  fTreeVars.lepdeltar   = leptonOne.p4->DeltaR(*leptonTwo.p4);
-  fTreeVars.lepdeltaphi = std::fabs(leptonOne.p4->DeltaPhi(*leptonTwo.p4));
-  fTreeVars.lepdeltaeta = std::fabs(leptonOne.p4->Eta() - leptonTwo.p4->Eta());
-
-  //phi differences
-  fTreeVars.htdeltaphi     = std::fabs(Utilities::DeltaPhi(lep.Phi(), htPhi));
-  fTreeVars.metdeltaphi    = std::fabs(Utilities::DeltaPhi(lep.Phi(), metPhi));
-  fTreeVars.leponedeltaphi = std::fabs(Utilities::DeltaPhi(leptonOne.p4->Phi(), lep.Phi()));
-  fTreeVars.leptwodeltaphi = std::fabs(Utilities::DeltaPhi(leptonTwo.p4->Phi(), lep.Phi()));
-  fTreeVars.onemetdeltaphi = std::fabs(Utilities::DeltaPhi(leptonOne.p4->Phi(), metPhi));
-  fTreeVars.twometdeltaphi = std::fabs(Utilities::DeltaPhi(leptonTwo.p4->Phi(), metPhi));
-
-  //MET variables
-  fTreeVars.met = met;
-  fTreeVars.mtone = sqrt(2.*met*leptonOne.p4->Pt()*(1.-cos(leptonOne.p4->Phi() - metPhi)));
-  fTreeVars.mttwo = sqrt(2.*met*leptonTwo.p4->Pt()*(1.-cos(leptonTwo.p4->Phi() - metPhi)));
-  fTreeVars.mtlep = sqrt(2.*met*lep.Pt()*(1.-cos(lep.Phi() - metPhi)));
-  fTreeVars.mtoneoverm = fTreeVars.mtone / fTreeVars.lepm;
-  fTreeVars.mttwooverm = fTreeVars.mttwo / fTreeVars.lepm;
-
-  //momentum projections onto bisector
-  TVector3 lp1 = leptonOne.p4->Vect();
-  TVector3 lp2 = leptonTwo.p4->Vect();
-  TVector3 missing(met*cos(metPhi), met*sin(metPhi), 0.);
-  lp1.SetZ(0.);
-  lp2.SetZ(0.);
-  TVector3 bisector = (lp1.Mag()*lp2 + lp2.Mag()*lp1); //divides leptons
-  if(bisector.Mag() > 0.) bisector.SetMag(1.);
-
-  //project onto the bisectors
-  fTreeVars.pzetavis = (lp1+lp2)*bisector;
-  fTreeVars.pzetainv = missing*bisector;
-  double pnuest    = std::max(1.e-8,lp2*missing/lp2.Mag()); //inv pT along tau = lep 2 pt unit vector dot missing
-  double pnuesttwo = std::max(1.e-8,lp1*missing/lp1.Mag()); //inv pT along tau = lep 1 (for emu case with tau decay)
-  fTreeVars.ptauvisfrac  = lp2.Mag() / (lp2.Mag() + pnuest);
-  fTreeVars.mestimate    = fTreeVars.lepm/sqrt(fTreeVars.ptauvisfrac);
-  fTreeVars.mestimatetwo = fTreeVars.lepm/sqrt(lp1.Mag() / (lp1.Mag() + pnuesttwo));
 
   //Project the MET onto the di-lepton pT system direction for recoil definitions
+  TVector3 missing(met*cos(metPhi), met*sin(metPhi), 0.);
   TVector3 sys_pt_dir = (*leptonOne.p4 + *leptonTwo.p4).Vect();
   sys_pt_dir.SetZ(0.);
   sys_pt_dir.SetMag(1.); //unit vector
   fTreeVars.met_u1 = missing*sys_pt_dir; //MET projected onto di-lepton system
   fTreeVars.met_u2 = (met*met - fTreeVars.met_u1*fTreeVars.met_u1)*((sys_pt_dir.DeltaPhi(missing) > 0.) ? 1. : -1.); //MET perpendicular to di-lepton system
 
-  //definition from (14) and (16) of arxiv:1207.4894
-  double hmass(HIGGSMASS), zmass(ZMASS), tmass(TAUMASS), lepdot(2.*((*leptonOne.p4)*(*leptonTwo.p4)));
-  //delta alpha 1 = (m_boson^2 - m_tau^2) / (p(l1)\cdot p(l2))
-  //delta alpha 2 = pT(l1) / pT(l2) (l1 = tau)
-  //delta alpha 3 = pT(l2) / pT(l1) (l2 = tau)
-  fTreeVars.alphaz1 = (zmass*zmass-tmass*tmass)/(lepdot);
-  fTreeVars.alphah1 = (hmass*hmass-tmass*tmass)/(lepdot);
-  fTreeVars.alpha2 = leptonTwo.p4->Pt()/leptonOne.p4->Pt(); //for lep 1 = tau, lep 2 = non-tau
-  fTreeVars.alpha3 = leptonOne.p4->Pt()/leptonTwo.p4->Pt(); //for lep 2 = non-tau, lep 1 = tau
-  fTreeVars.deltaalphaz1 = fTreeVars.alphaz1 - fTreeVars.alpha2;
-  fTreeVars.deltaalphaz2 = fTreeVars.alphaz1 - fTreeVars.alpha3;
-  fTreeVars.deltaalphah1 = fTreeVars.alphah1 - fTreeVars.alpha2;
-  fTreeVars.deltaalphah2 = fTreeVars.alphah1 - fTreeVars.alpha3;
-  //mass from delta alpha equation: m_boson = sqrt(m_tau^2 + pT(lep)/pT(tau) * p(l1) \cdot p(l2))
-  fTreeVars.deltaalpham1 = std::sqrt(tmass*tmass + fTreeVars.alpha2 * lepdot); //lep 1 = tau
-  fTreeVars.deltaalpham2 = std::sqrt(tmass*tmass + fTreeVars.alpha3 * lepdot); //lep 2 = tau
   //event variables
-  fTreeVars.ht       = ht;
-  fTreeVars.htsum    = htSum;
-  fTreeVars.jetpt    = jetOneP4->Pt();
   fTreeVars.njets    = nJets;
   fTreeVars.nbjets   = nBJets;
   fTreeVars.nbjetsm  = nBJetsM;
@@ -1933,85 +2134,18 @@ void HistMaker::InitializeTreeVariables() {
   fTreeVars.nbjets20l  = nBJets20L;
   fTreeVars.nphotons = nPhotons;
 
-  //Perform a transform to the Z/H boson frame
-  //Requires knowledge of which lepton has associated neutrinos (or if none do)
-  //modes:
-  // 0: MET defines x-axis, lepton two has positive Pz (mutau_h, etau_h,etau_mu)
-  // 1: MET defines x-axis, lepton one has positive Pz (mutau_e);
-  // 2: lepton 2 defines x-axis, lepton one has positive Pz (emu)
-  TLorentzVector metP4;
-  metP4.SetPtEtaPhiE(missing.Pt(), 0., missing.Phi(), missing.Pt());
-  for(int imode = 0; imode < 3; ++imode) {
-    TLorentzVector system;
-    system = *leptonOne.p4 + *leptonTwo.p4;
-    if(imode < 2) system += metP4;
-    TVector3 boost = -1*system.BoostVector(); //boost to the center of mass system
-    // boost.SetZ(0.); //only transform pT to 0
-    TLorentzVector lepOnePrime(*leptonOne.p4);
-    TLorentzVector lepTwoPrime(*leptonTwo.p4);
-    TLorentzVector metPrime(missing, missing.Mag());
-    lepOnePrime.Boost(boost); lepTwoPrime.Boost(boost); metPrime.Boost(boost); //boost so system pT = 0
-    double phiRot;
-    if(imode < 2) { //set MET along x axis
-      phiRot = -metPrime.Phi();
-    } else { //set lepton two pT (muon in emu) along the x-axis
-      phiRot = -lepTwoPrime.Phi();
-    }
-    lepOnePrime.RotateZ(phiRot); lepTwoPrime.RotateZ(phiRot); metPrime.RotateZ(phiRot);
-
-    //if the tau (or electron in Z->e+mu mode) has a negative momentum, rotate about x 180 degrees to make it positive
-    if((imode == 0 && lepTwoPrime.Pz() < 0.) || (imode != 0 && lepOnePrime.Pz() < 0.)) { //for emu, set electron in positive Pz
-      lepOnePrime.RotateX(M_PI); lepTwoPrime.RotateX(M_PI); metPrime.RotateX(M_PI);
-    }
-    if(!std::isfinite(lepOnePrime.Px()) || !std::isfinite(lepOnePrime.Py()) || !std::isfinite(lepOnePrime.Pz()) || !std::isfinite(lepOnePrime.E())) {
-      std::cout << "!!! Entry " << fentry << " has non-finite boosted lepton p4 components!\n ";
-      leptonOne.p4->Print();
-      leptonTwo.p4->Print();
-      metP4.Print();
-      system.Print();
-      boost.Print();
-      lepOnePrime.Print();
-      lepTwoPrime.Print();
-      metPrime.Print();
-      fTreeVars.leponeprimepx[imode] = 0.;
-      fTreeVars.leptwoprimepx[imode] = 0.;
-      fTreeVars.metprimepx   [imode] = 0.;
-      fTreeVars.leponeprimepy[imode] = 0.;
-      fTreeVars.leptwoprimepy[imode] = 0.;
-      fTreeVars.metprimepy   [imode] = 0.;
-      fTreeVars.leponeprimepz[imode] = 0.;
-      fTreeVars.leptwoprimepz[imode] = 0.;
-      fTreeVars.metprimepz   [imode] = 0.;
-      fTreeVars.leponeprimee [imode] = 0.;
-      fTreeVars.leptwoprimee [imode] = 0.;
-      fTreeVars.metprimee    [imode] = 0.;
-    } else {
-      fTreeVars.leponeprimepx[imode] = lepOnePrime.Px();
-      fTreeVars.leptwoprimepx[imode] = lepTwoPrime.Px();
-      fTreeVars.metprimepx   [imode] =    metPrime.Px();
-      fTreeVars.leponeprimepy[imode] = lepOnePrime.Py();
-      fTreeVars.leptwoprimepy[imode] = lepTwoPrime.Py();
-      fTreeVars.metprimepy   [imode] =    metPrime.Py();
-      fTreeVars.leponeprimepz[imode] = lepOnePrime.Pz();
-      fTreeVars.leptwoprimepz[imode] = lepTwoPrime.Pz();
-      fTreeVars.metprimepz   [imode] =    metPrime.Pz();
-      fTreeVars.leponeprimee [imode] = lepOnePrime.E();
-      fTreeVars.leptwoprimee [imode] = lepTwoPrime.E();
-      fTreeVars.metprimee    [imode] =    metPrime.E();
-    }
-  }
-
+  //dataset/event information
   fTreeVars.eventcategory = fEventCategory;
   if(fFractionMVA > 0.) fTreeVars.train = (fRnd->Uniform() < fFractionMVA) ? 1. : -1.; //whether or not it is in the training sample
   else                  fTreeVars.train = 0.;
   fTreeVars.issignal = (fIsData == 0) ? (2.*(fIsSignal) - 1.) : 0.; //signal = 1, background = -1, data = 0
-  if(fTreeVars.type < -0.5) { //doesn't change for a given file
+  if(fTreeVars.type < -0.5) { //doesn't change for a given file, so only set once
     if(fIsSignal) fTreeVars.type = 0;
     else if(fIsData) fTreeVars.type = 1;
     else {
       TString filename = GetOutputName();
       if(filename.Contains("DY") || filename.Contains("Embed")) {
-        if(fDYType == 2 || !filename.Contains("Embed")) fTreeVars.type = 2; //Z->ll
+        if(fDYType == 2 && !filename.Contains("Embed")) fTreeVars.type = 2; //Z->ll
         else                                            fTreeVars.type = 3; //Z->tautau or inclusive or Z->tautau embedded
       } else if(filename.Contains("Top") || filename.Contains("ttbar")) fTreeVars.type = 4;
       else if(filename.Contains("Wlnu")) fTreeVars.type = 5; //W+(n)Jets
@@ -2181,6 +2315,7 @@ void HistMaker::FillBaseEventHistogram(EventHist_t* Hist) {
   Hist->hMTLep             ->Fill(fTreeVars.mtlep    , eventWeight*genWeight);
   Hist->hMTOneOverM        ->Fill(fTreeVars.mtoneoverm  ,eventWeight*genWeight);
   Hist->hMTTwoOverM        ->Fill(fTreeVars.mttwooverm  ,eventWeight*genWeight);
+  Hist->hMTLepOverM        ->Fill(fTreeVars.mtlepoverm  ,eventWeight*genWeight);
 
   TLorentzVector lepSys = (*leptonOne.p4) + (*leptonTwo.p4);
   const double lepDelR   = std::fabs(leptonOne.p4->DeltaR(*leptonTwo.p4));
@@ -2199,10 +2334,13 @@ void HistMaker::FillBaseEventHistogram(EventHist_t* Hist) {
   // Hist->hLepPhi       ->Fill(lepSys.Phi()           ,eventWeight*genWeight);
   Hist->hLepMEstimate   ->Fill(fTreeVars.mestimate   , eventWeight*genWeight);
   Hist->hLepMEstimateTwo->Fill(fTreeVars.mestimatetwo, eventWeight*genWeight);
+  Hist->hLepTrkM        ->Fill(fTreeVars.leptrkm     , eventWeight*genWeight);
+  Hist->hLepTrkDeltaM   ->Fill(fTreeVars.lepm - fTreeVars.leptrkm, eventWeight*genWeight);
   Hist->hPZetaVis       ->Fill(fTreeVars.pzetavis    , eventWeight*genWeight);
   Hist->hPZetaInv       ->Fill(fTreeVars.pzetainv    , eventWeight*genWeight);
+  Hist->hPZetaAll       ->Fill(fTreeVars.pzetaall    , eventWeight*genWeight);
   Hist->hPZetaDiff      ->Fill(fTreeVars.pzetainv - fTreeVars.pzetavis     , eventWeight*genWeight);
-  Hist->hDZeta          ->Fill(fTreeVars.pzetainv - 0.85*fTreeVars.pzetavis, eventWeight*genWeight);
+  Hist->hDZeta          ->Fill(fTreeVars.dzeta       , eventWeight*genWeight);
 
   Hist->hMETU1[0]       ->Fill(fTreeVars.met_u1      , eventWeight*genWeight);
   Hist->hMETU2[0]       ->Fill(fTreeVars.met_u2      , eventWeight*genWeight);
@@ -2285,6 +2423,9 @@ void HistMaker::FillBaseLepHistogram(LepHist_t* Hist) {
   Hist->hOneID1       ->Fill(leptonOne.id1                 ,eventWeight*genWeight);
   Hist->hOneID2       ->Fill(leptonOne.id2                 ,eventWeight*genWeight);
   Hist->hOneRelIso    ->Fill(fTreeVars.leponereliso       ,eventWeight*genWeight);
+  Hist->hOneTrkPtOverPt->Fill(leptonOne.trkpt / leptonOne.p4->Pt() ,eventWeight*genWeight);
+  Hist->hOneTrkDeltaEta->Fill(std::fabs(leptonOne.trketa - leptonOne.p4->Eta()) ,eventWeight*genWeight);
+  Hist->hOneTrkDeltaPhi->Fill(std::fabs(Utilities::DeltaPhi(leptonOne.trkphi, leptonOne.p4->Phi())) ,eventWeight*genWeight);
   Hist->hOneFlavor    ->Fill(std::abs(leptonOne.flavor)    ,eventWeight*genWeight);
   Hist->hOneGenFlavor ->Fill(leptonOne.genFlavor           ,eventWeight*genWeight);
   Hist->hOneQ         ->Fill(leptonOne.flavor < 0 ? -1 : 1 ,eventWeight*genWeight);
@@ -2313,6 +2454,9 @@ void HistMaker::FillBaseLepHistogram(LepHist_t* Hist) {
   Hist->hTwoID1       ->Fill(leptonTwo.id1                 ,eventWeight*genWeight);
   Hist->hTwoID2       ->Fill(leptonTwo.id2                 ,eventWeight*genWeight);
   Hist->hTwoID3       ->Fill(leptonTwo.id3                 ,eventWeight*genWeight);
+  Hist->hTwoTrkPtOverPt->Fill(leptonTwo.trkpt / leptonTwo.p4->Pt() ,eventWeight*genWeight);
+  Hist->hTwoTrkDeltaEta->Fill(std::fabs(leptonTwo.trketa - leptonTwo.p4->Eta()) ,eventWeight*genWeight);
+  Hist->hTwoTrkDeltaPhi->Fill(std::fabs(Utilities::DeltaPhi(leptonTwo.trkphi, leptonTwo.p4->Phi())) ,eventWeight*genWeight);
   Hist->hTwoRelIso    ->Fill(fTreeVars.leptworeliso       ,eventWeight*genWeight);
   Hist->hTwoFlavor    ->Fill(std::abs(leptonTwo.flavor)        ,eventWeight*genWeight);
   Hist->hTwoGenFlavor ->Fill(leptonTwo.genFlavor           ,eventWeight*genWeight);
@@ -2452,7 +2596,9 @@ Bool_t HistMaker::InitializeEvent(Long64_t entry)
   fCutFlow->Fill(icutflow); ++icutflow; //0
 
   //Initialize base object information
+  fTimes[GetTimerNumber("CountObjects")] = std::chrono::steady_clock::now(); //timer for initializing object info
   CountObjects();
+  IncrementTimer("CountObjects", true);
   if(!(mutau or etau or emu or mumu or ee)) {
     IncrementTimer("EventInit", true);
     return kTRUE;
@@ -2513,13 +2659,17 @@ Bool_t HistMaker::InitializeEvent(Long64_t entry)
   // Initialize variables //
   //////////////////////////
 
+  fTimes[GetTimerNumber("InitVars")] = std::chrono::steady_clock::now(); //timer for initializing object info
   InitializeTreeVariables();
+  IncrementTimer("InitVars", true);
 
   /////////////////////////
   // Apply event weights //
   /////////////////////////
 
+  fTimes[GetTimerNumber("InitWeights")] = std::chrono::steady_clock::now(); //timer for initializing object info
   InitializeEventWeights();
+  IncrementTimer("InitWeights", true);
 
   if(eventWeight < 0. || !std::isfinite(eventWeight*genWeight)) {
     std::cout << "WARNING! Skipping event " << fentry << ", as it has negative bare event weight or undefined total weight:\n"
@@ -2717,8 +2867,12 @@ void HistMaker::MatchTriggers() {
 //--------------------------------------------------------------------------------------------------------------
 void HistMaker::ApplyTriggerWeights() {
   if(fIsData) return; //not defined for data
-  float data_eff[2] = {0.5f, 0.5f}; //set to 0.5 so no danger in doing the ratio of eff or 1 - eff
-  float mc_eff[2]   = {0.5f, 0.5f};
+  float data_eff[2]  = {0.5f, 0.5f}; //set to 0.5 so no danger in doing the ratio of eff or 1 - eff
+  float mc_eff[2]    = {0.5f, 0.5f};
+  float data_up[2]   = {0.5f, 0.5f};
+  float mc_up[2]     = {0.5f, 0.5f};
+  float data_down[2] = {0.5f, 0.5f};
+  float mc_down[2]   = {0.5f, 0.5f};
 
   ////////////////////////////////
   // Get the efficiencies
@@ -2728,7 +2882,9 @@ void HistMaker::ApplyTriggerWeights() {
   if(leptonOne.isElectron() && leptonOne.p4->Pt() > electron_trig_pt_) { //lepton 1 is an electron
     if(fIsEmbed) {
       if(fUseEmbedTnPWeights) {
-        fEmbeddingTnPWeight.ElectronTriggerWeight(leptonOne.p4->Pt(), leptonOne.scEta, fYear, data_eff[0], mc_eff[0], leptonOne.isLoose, mcEra);
+        fEmbeddingTnPWeight.ElectronTriggerWeight(leptonOne.p4->Pt(), leptonOne.scEta, fYear, data_eff[0], mc_eff[0],
+                                                  data_up[0], mc_up[0], data_down[0], mc_down[0],
+                                                  leptonOne.isLoose, mcEra);
       } else {
         fEmbeddingWeight->ElectronTriggerWeight   (leptonOne.p4->Pt(), leptonOne.scEta, fYear, data_eff[0], mc_eff[0]);
       }
@@ -2736,13 +2892,15 @@ void HistMaker::ApplyTriggerWeights() {
       fElectronIDWeight.TriggerEff               (leptonOne.p4->Pt(), leptonOne.scEta, fYear,
                                                   ElectronIDWeight::kWP80,
                                                   // (leptonOne.id1 > 1) ? ElectronIDWeight::kWP80 : ElectronIDWeight::kWPLNotWP80,
-                                                  data_eff[0], mc_eff[0]);
+                                                  data_eff[0], mc_eff[0], data_up[0], mc_up[0], data_down[0], mc_down[0]);
     }
   }
   if(leptonTwo.isElectron() && leptonTwo.p4->Pt() > electron_trig_pt_) { //lepton 2 is an electron
     if(fIsEmbed) {
       if(fUseEmbedTnPWeights) {
-        fEmbeddingTnPWeight.ElectronTriggerWeight(leptonTwo.p4->Pt(), leptonTwo.scEta, fYear, data_eff[1], mc_eff[1], leptonTwo.isLoose, mcEra);
+        fEmbeddingTnPWeight.ElectronTriggerWeight(leptonTwo.p4->Pt(), leptonTwo.scEta, fYear, data_eff[1], mc_eff[1],
+                                                  data_up[1], mc_up[1], data_down[1], mc_down[1],
+                                                  leptonTwo.isLoose, mcEra);
       } else {
         fEmbeddingWeight->ElectronTriggerWeight   (leptonTwo.p4->Pt(), leptonTwo.scEta, fYear, data_eff[1], mc_eff[1]);
       }
@@ -2750,7 +2908,7 @@ void HistMaker::ApplyTriggerWeights() {
       fElectronIDWeight.TriggerEff               (leptonTwo.p4->Pt(), leptonTwo.scEta, fYear,
                                                   ElectronIDWeight::kWP80,
                                                   // (leptonOne.id1 > 1) ? ElectronIDWeight::kWP80 : ElectronIDWeight::kWPLNotWP80,
-                                                  data_eff[1], mc_eff[1]);
+                                                  data_eff[1], mc_eff[1], data_up[1], mc_up[1], data_down[1], mc_down[1]);
     }
   }
 
@@ -2758,30 +2916,39 @@ void HistMaker::ApplyTriggerWeights() {
   if(leptonOne.isMuon    () && leptonOne.p4->Pt() > muon_trig_pt_) { //lepton 1 is a muon
     if(fIsEmbed) {
       if(fUseEmbedTnPWeights) {
-        fEmbeddingTnPWeight.MuonTriggerWeight(leptonOne.p4->Pt(), leptonOne.p4->Eta(), fYear, data_eff[0], mc_eff[0], leptonOne.isLoose, mcEra);
+        fEmbeddingTnPWeight.MuonTriggerWeight(leptonOne.p4->Pt(), leptonOne.p4->Eta(), fYear, data_eff[0], mc_eff[0],
+                                              data_up[0], mc_up[0], data_down[0], mc_down[0],
+                                              leptonOne.isLoose, mcEra);
       } else {
         fEmbeddingWeight->MuonTriggerWeight   (leptonOne.p4->Pt(), leptonOne.p4->Eta(), fYear, data_eff[0], mc_eff[0]);
       }
     } else {
-      fMuonIDWeight.TriggerEff               (leptonOne.p4->Pt(), leptonOne.p4->Eta(), fYear, mcEra, !leptonOne.fired || muonTriggerStatus != 2, data_eff[0], mc_eff[0]);
+      fMuonIDWeight.TriggerEff               (leptonOne.p4->Pt(), leptonOne.p4->Eta(), fYear, mcEra, !leptonOne.fired || muonTriggerStatus != 2,
+                                              data_eff[0], mc_eff[0], data_up[0], mc_up[0], data_down[0], mc_down[0]);
     }
   }
   if(leptonTwo.isMuon    () && leptonTwo.p4->Pt() > muon_trig_pt_) { //lepton 2 is a muon
     if(fIsEmbed) {
       if(fUseEmbedTnPWeights) {
-        fEmbeddingTnPWeight.MuonTriggerWeight(leptonTwo.p4->Pt(), leptonTwo.p4->Eta(), fYear, data_eff[1], mc_eff[1], leptonTwo.isLoose, mcEra);
+        fEmbeddingTnPWeight.MuonTriggerWeight(leptonTwo.p4->Pt(), leptonTwo.p4->Eta(), fYear, data_eff[1], mc_eff[1],
+                                              data_up[1], mc_up[1], data_down[1], mc_down[1],
+                                              leptonTwo.isLoose, mcEra);
       } else {
         fEmbeddingWeight->MuonTriggerWeight   (leptonTwo.p4->Pt(), leptonTwo.p4->Eta(), fYear, data_eff[1], mc_eff[1]);
       }
     } else {
       //use low trigger in case the lepton didn't fire a trigger
-      fMuonIDWeight.TriggerEff               (leptonTwo.p4->Pt(), leptonTwo.p4->Eta(), fYear, mcEra, !leptonTwo.fired || muonTriggerStatus != 2, data_eff[1], mc_eff[1]);
+      fMuonIDWeight.TriggerEff               (leptonTwo.p4->Pt(), leptonTwo.p4->Eta(), fYear, mcEra, !leptonTwo.fired || muonTriggerStatus != 2,
+                                              data_eff[1], mc_eff[1], data_up[1], mc_up[1], data_down[1], mc_down[1]);
     }
   }
 
   // Taus
   if(leptonTwo.isTau     ()) {
     data_eff[1] = 0.f; mc_eff[1] = 0.f; //tau can't trigger
+    data_up[1] = 0.f; mc_up[1] = 0.f;
+    data_down[1] = 0.f; mc_down[1] = 0.f;
+
   }
 
   ////////////////////////////////
@@ -2823,14 +2990,44 @@ void HistMaker::ApplyTriggerWeights() {
   else if(fRemoveTriggerWeights == 4) {
     // P(at least 1 fires) = 1 - P(neither fires) = 1 - Product of P(doesn't fire)
     float prob_data(1.f), prob_mc(1.f);
+    float prob_data_sys[6] = {1.f, 1.f, 1.f, 1.f, 1.f, 1.f}; //l_1 up, l_1 down, l_2 up, l_2 down, l_1 and l_2 up, l_1 and l_2 down
+    float prob_mc_sys  [6] = {1.f, 1.f, 1.f, 1.f, 1.f, 1.f};
     //check if each is triggerable, and if so apply the P(!fire) for MC and Data
     if(pt_1 > min_pt_1) {
       prob_data *= (1.f - data_eff[0]);
       prob_mc   *= (1.f - mc_eff[0]  );
+
+      prob_data_sys[0] *= (1.f - data_up  [0]);
+      prob_data_sys[1] *= (1.f - data_down[0]);
+      prob_data_sys[2] *= (1.f - data_eff [0]);
+      prob_data_sys[3] *= (1.f - data_eff [0]);
+      prob_data_sys[4] *= (1.f - data_up  [0]);
+      prob_data_sys[5] *= (1.f - data_down[0]);
+
+      prob_mc_sys  [0] *= (1.f - mc_down  [0]); // flip up/down for MC since ~ 1 / p(MC)
+      prob_mc_sys  [1] *= (1.f - mc_up    [0]);
+      prob_mc_sys  [2] *= (1.f - mc_eff   [0]);
+      prob_mc_sys  [3] *= (1.f - mc_eff   [0]);
+      prob_mc_sys  [4] *= (1.f - mc_down  [0]);
+      prob_mc_sys  [5] *= (1.f - mc_up    [0]);
     }
-    if(pt_2 > min_pt_2 && std::abs(leptonTwo.flavor) != 15) {
+    if(pt_2 > min_pt_2 && !leptonTwo.isTau()) {
       prob_data *= (1.f - data_eff[1]);
       prob_mc   *= (1.f - mc_eff[1]  );
+
+      prob_data_sys[0] *= (1.f - data_eff [1]);
+      prob_data_sys[1] *= (1.f - data_eff [1]);
+      prob_data_sys[2] *= (1.f - data_up  [1]);
+      prob_data_sys[3] *= (1.f - data_down[1]);
+      prob_data_sys[4] *= (1.f - data_up  [1]);
+      prob_data_sys[5] *= (1.f - data_down[1]);
+
+      prob_mc_sys  [0] *= (1.f - mc_eff   [1]);
+      prob_mc_sys  [1] *= (1.f - mc_eff   [1]);
+      prob_mc_sys  [2] *= (1.f - mc_down  [1]); // flip up/down for MC since ~ 1 / p(MC)
+      prob_mc_sys  [3] *= (1.f - mc_up    [1]);
+      prob_mc_sys  [4] *= (1.f - mc_down  [1]);
+      prob_mc_sys  [5] *= (1.f - mc_up    [1]);
     }
     if(prob_data >= 1.f || prob_mc >= 1.f) {
       if(fVerbose > 0) { //often due to changed trigger thresholds, so only warn if debugging
@@ -2840,8 +3037,9 @@ void HistMaker::ApplyTriggerWeights() {
                   << std::endl;
       }
     }
-    prob_data = std::max(0.f, std::min(0.9999f, prob_data)); //avoid a ~1/0  or sqrt(negative) situation
-    prob_mc   = std::max(0.f, std::min(0.9999f, prob_mc  ));
+    const float max_prob = 0.9999f;
+    prob_data = std::max(0.f, std::min(max_prob, prob_data)); //avoid a ~1/0  or sqrt(negative) situation
+    prob_mc   = std::max(0.f, std::min(max_prob, prob_mc  ));
     const float trig_wt = (1.f - prob_data) / (1.f - prob_mc);
     if(leptonTwo.isTau     () || pt_2 < min_pt_2) { //no need to split if other lepton can't fire
       leptonOne.trig_wt = trig_wt;
@@ -2851,6 +3049,12 @@ void HistMaker::ApplyTriggerWeights() {
       leptonOne.trig_wt = std::sqrt(trig_wt);
       leptonTwo.trig_wt = std::sqrt(trig_wt);
     }
+    triggerWeightsSys[0] = (1.f - std::max(0.f, std::min(max_prob, prob_data_sys[0]))) / (1.f - std::max(0.f, std::min(max_prob, prob_mc_sys[0])));
+    triggerWeightsSys[1] = (1.f - std::max(0.f, std::min(max_prob, prob_data_sys[1]))) / (1.f - std::max(0.f, std::min(max_prob, prob_mc_sys[1])));
+    triggerWeightsSys[2] = (1.f - std::max(0.f, std::min(max_prob, prob_data_sys[2]))) / (1.f - std::max(0.f, std::min(max_prob, prob_mc_sys[2])));
+    triggerWeightsSys[3] = (1.f - std::max(0.f, std::min(max_prob, prob_data_sys[3]))) / (1.f - std::max(0.f, std::min(max_prob, prob_mc_sys[3])));
+    triggerWeightsSys[4] = (1.f - std::max(0.f, std::min(max_prob, prob_data_sys[4]))) / (1.f - std::max(0.f, std::min(max_prob, prob_mc_sys[4])));
+    triggerWeightsSys[5] = (1.f - std::max(0.f, std::min(max_prob, prob_data_sys[5]))) / (1.f - std::max(0.f, std::min(max_prob, prob_mc_sys[5])));
   }
 
   if(leptonOne.trig_wt < 0. || leptonTwo.trig_wt < 0. || !std::isfinite(leptonOne.trig_wt) || !std::isfinite(leptonTwo.trig_wt)) {
@@ -2951,7 +3155,16 @@ void HistMaker::Terminate()
   printf("Writing output file into %s\n",fOut->GetName());
   fTopDir->cd();
   fCutFlow->Write(); //add the cut-flow histogram to the output
-  fOut->Write();//Form("%s_OutFile.root",fChain->GetName()));
+  // if(fWriteTrees) {
+  //   for(int i = 0; i < fn; ++i) {
+  //     if(fTrees[i]) {
+  //       fDirectories[3*fn + i]->cd();
+  //       fTrees[i]->Write();
+  //     }
+  //   }
+  //   fTopDir->cd();
+  // }
+  fOut->Write();
   fOut->Close();
   delete fOut;
   // timer->Stop();

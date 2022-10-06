@@ -254,9 +254,11 @@ void MuonIDWeight::IDWeight(double pt, double eta, int year, int mcEra,
 }
 
 //-------------------------------------------------------------------------------------------------------------------------
-double MuonIDWeight::TriggerEff(double pt, double eta, int year, bool isLow, int mcEra, float& data_eff, float& mc_eff) {
-  data_eff = 0.5; //safer default than 0 or 1, as eff and 1-eff are well defined in ratios
-  mc_eff = 0.5;
+double MuonIDWeight::TriggerEff(double pt, double eta, int year, bool isLow, int mcEra, float& data_eff, float& mc_eff,
+                                float& data_up, float& mc_up, float& data_down, float& mc_down) {
+  data_eff = 0.5f; //safer default than 0 or 1, as eff and 1-eff are well defined in ratios
+  mc_eff = 0.5f;
+  data_up = 0.5f; mc_up = 0.5f; data_down = 0.5f; mc_down = 0.5f;
   if(year > 2000) year -= 2016;
   if(year != k2016 && year != k2017 && year != k2018) {
     std::cout << "Warning! Undefined year in MuonIDWeight::" << __func__ << ", returning -1" << std::endl;
@@ -284,14 +286,19 @@ double MuonIDWeight::TriggerEff(double pt, double eta, int year, bool isLow, int
               << " low trigger = " << isLow << " MC era = " << mcEra << std::endl;
     return 1.;
   }
+  const double max_eff = 0.9999;
   const int data_binx = std::max(1, std::min(hTrigData->GetNbinsX(), hTrigData->GetXaxis()->FindBin(eta)));
   const int data_biny = std::max(1, std::min(hTrigData->GetNbinsY(), hTrigData->GetYaxis()->FindBin(pt)));
-  data_eff = hTrigData->GetBinContent(data_binx, data_biny);
+  data_eff   = hTrigData->GetBinContent(data_binx, data_biny);
+  data_up    = std::min(max_eff, data_eff + hTrigData->GetBinError(data_binx, data_biny));
+  data_down  = std::max(1. - max_eff, data_eff - hTrigData->GetBinError(data_binx, data_biny));
   const int mc_binx   = std::max(1, std::min(hTrigMC  ->GetNbinsX(), hTrigMC  ->GetXaxis()->FindBin(eta)));
   const int mc_biny   = std::max(1, std::min(hTrigMC  ->GetNbinsY(), hTrigMC  ->GetYaxis()->FindBin(pt)));
   mc_eff   = hTrigMC  ->GetBinContent(mc_binx  , mc_biny  );
+  mc_up    = std::min(max_eff, mc_eff + hTrigMC->GetBinError(mc_binx, mc_biny));
+  mc_down  = std::max(1. - max_eff, mc_eff - hTrigMC->GetBinError(mc_binx, mc_biny));
 
-  const double scale_factor = (mc_eff > 0.) ? data_eff / mc_eff : 1.;
+  double scale_factor = (mc_eff > 0.) ? data_eff / mc_eff : 1.;
   if(!std::isfinite(scale_factor) || scale_factor <= 0. || verbose_ > 0) {
     if(!std::isfinite(scale_factor) || scale_factor <= 0.) std::cout << "Warning! Scale factor <= 0 or nan! ";
     std::cout << "MuonIDWeight::" << __func__
@@ -305,5 +312,8 @@ double MuonIDWeight::TriggerEff(double pt, double eta, int year, bool isLow, int
               << std::endl;
     if(!std::isfinite(scale_factor) || scale_factor <= 0.) return 1.;
   }
+  data_eff = std::max(1. - max_eff, std::min(max_eff, (double) data_eff));
+  mc_eff   = std::max(1. - max_eff, std::min(max_eff, (double) mc_eff  ));
+  scale_factor = data_eff / mc_eff;
   return scale_factor;
 }

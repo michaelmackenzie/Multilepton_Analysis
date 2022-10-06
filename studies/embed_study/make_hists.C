@@ -1,7 +1,7 @@
 //make plots of the base gen-level selection, to compare DY MC and Embedding
 
 int ndebug_ = -1;
-bool overRide_ = false; //override 2018 unfolding with 2016
+bool overRide_ = false; //override 2018 unfolding with 2016 or IC weights
 
 //-------------------------------------------------------------------------------------------------------------------
 void print_figure(TH1* h, TString path) {
@@ -68,7 +68,7 @@ int make_hists(const TString selec = "emu", const bool isEmbed = true, const int
   }
 
   //unfolding weight
-  CLFV::EmbeddingWeight embed_wt((overRide_) ? 4 : 0); //mode 4: override 2018 trigger efficiencies with 2016 values
+  CLFV::EmbeddingWeight embed_wt((overRide_) ? 10 : 0); //mode 4: override 2018 trigger efficiencies with 2016 values, mode 10: use IC weights for 2018
   //MC DY Z spectrum correction
   CLFV::ZPtWeight zptweight("MuMu", 1, 90);
   //Cross section information (including missing embedding events)

@@ -19,7 +19,7 @@ namespace CLFV {
 
   class TauIDWeight {
   public:
-    TauIDWeight(bool isEmbed = false, int verbose = 0);
+    TauIDWeight(bool isEmbed = false, TString selection = "etau", int verbose = 0);
 
     ~TauIDWeight();
 
@@ -33,7 +33,7 @@ namespace CLFV {
     }
 
     double IDWeight(double pt, double eta, int genID, UChar_t antiJet, int year,
-                    float& up, float& down
+                    float& up, float& down, int& bin
                     );
     double EnergyScale(double pt, double eta, int dm, int genID, UChar_t antiJet, int year, float& up, float& down);
 
@@ -43,13 +43,11 @@ namespace CLFV {
     enum { kFailed, kVVVLoose, kVVLoose, kVLoose, kLoose, kMedium, kTight, kVTight, kVVTight}; //ID categories
     std::vector<TFile*> files_;
     bool isEmbed_;
+    TString selection_;
     int verbose_;
     std::map<int, std::map<int, TF1*>> tauJetIDMap    ; //map<year, <ID, scale>>
     std::map<int, std::map<int, TF1*>> tauJetUpIDMap  ;
     std::map<int, std::map<int, TF1*>> tauJetDownIDMap;
-    // std::map<int, TF1*> tauJetIDMap    ; //map<year, <ID, scale>>
-    // std::map<int, TF1*> tauJetUpIDMap  ;
-    // std::map<int, TF1*> tauJetDownIDMap;
     std::map<int, TH1*> tauEleIDMap    ;
     std::map<int, TH1*> tauMuIDMap     ;
     std::map<int, TH1*> tauESLowMap    ; // 34 < pT < 170 GeV/c

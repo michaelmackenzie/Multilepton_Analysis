@@ -177,6 +177,9 @@ namespace CLFV {
     Float_t Tau_eCorr                     [kMaxLeptons];
     Float_t Tau_dxy                       [kMaxLeptons];
     Float_t Tau_dz                        [kMaxLeptons];
+    Float_t Tau_leadTrkPtOverTauPt        [kMaxLeptons];
+    Float_t Tau_leadTrkDeltaEta           [kMaxLeptons];
+    Float_t Tau_leadTrkDeltaPhi           [kMaxLeptons];
     Bool_t  Tau_TaggedAsRemovedByJet      [kMaxLeptons];
     UChar_t Tau_genPartFlav               [kMaxLeptons];
     Int_t   Tau_genPartIdx                [kMaxLeptons];
@@ -236,6 +239,10 @@ namespace CLFV {
     //Different met definitions
     Float_t puppMET                    ;
     Float_t puppMETphi                 ;
+    Float_t puppMETJERUp               ;
+    Float_t puppMETJESUp               ;
+    Float_t puppMETphiJERUp            ;
+    Float_t puppMETphiJESUp            ;
 
     //MET field to use
     Float_t met                        ;
@@ -312,6 +319,7 @@ namespace CLFV {
     TLorentzVector* genLeptonTwoP4 = 0 ;
 
     Float_t triggerWeights[3]          ;
+    Float_t triggerWeightsSys[6]       ;
 
     //Additional event object information
     TLorentzVector* photonP4 = 0       ;
@@ -375,6 +383,7 @@ namespace CLFV {
     void    ApplyTauCorrections();
     void    CountObjects();
     void    CountJets();
+    void    SetKinematics();
     int     GetTriggerMatch(TLorentzVector* lv, bool isMuon, Int_t& trigIndex);
     void    MatchTriggers();
     void    ApplyTriggerWeights();
@@ -459,6 +468,7 @@ namespace CLFV {
 
     void            BookBaseEventHistograms(Int_t index, const char* dirname);
     void            BookBaseLepHistograms(Int_t index, const char* dirname);
+    void            BookBaseTree(Int_t index);
 
     virtual void    FillAllHistograms(Int_t index);
     virtual void    FillEventHistogram(EventHist_t* Hist);

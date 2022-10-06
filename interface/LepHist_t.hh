@@ -38,6 +38,9 @@ namespace CLFV {
     TH1* hOneID1;
     TH1* hOneID2;
     TH1* hOneRelIso;
+    TH1* hOneTrkPtOverPt;
+    TH1* hOneTrkDeltaEta;
+    TH1* hOneTrkDeltaPhi;
     TH1* hOneFlavor;
     TH1* hOneGenFlavor;
     TH1* hOneQ;
@@ -90,6 +93,9 @@ namespace CLFV {
     TH1* hTwoID2;
     TH1* hTwoID3;
     TH1* hTwoRelIso;
+    TH1* hTwoTrkPtOverPt;
+    TH1* hTwoTrkDeltaEta;
+    TH1* hTwoTrkDeltaPhi;
     TH1* hTwoFlavor;
     TH1* hTwoGenFlavor;
     TH1* hTwoQ;

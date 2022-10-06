@@ -39,8 +39,6 @@ void CLFVHistMaker::InitHistogramFlags() {
   for(int i = 0; i < fn; ++i) {
     fEventSets[i]  = 0;
     fSysSets[i] = 0;
-  }
-  for(int i = 0; i < fn; ++i) {
     fTreeSets[i]  = 0;
   }
 
@@ -665,93 +663,8 @@ void CLFVHistMaker::BookTrees() {
       sprintf(dirname,"tree_%i",i);
       fDirectories[3*fn + i] = fTopDir->mkdir(dirname);
       fDirectories[3*fn + i]->cd();
-      delete dirname;
       fTrees[i] = new TTree(Form("tree_%i",i),Form("CLFVHistMaker TTree %i",i));
-      fTrees[i]->Branch("leponept",           &fTreeVars.leponept          );
-      fTrees[i]->Branch("leponeptoverm",      &fTreeVars.leponeptoverm     );
-      // fTrees[i]->Branch("leponem",            &fTreeVars.leponem           );
-      // fTrees[i]->Branch("leponeeta",          &fTreeVars.leponeeta         );
-      // fTrees[i]->Branch("leponed0",           &fTreeVars.leponed0          );
-      // fTrees[i]->Branch("leponeiso",          &fTreeVars.leponeiso         );
-      // fTrees[i]->Branch("leponeidone",        &fTreeVars.leponeidone       );
-      // fTrees[i]->Branch("leponeidtwo",        &fTreeVars.leponeidtwo       );
-      // fTrees[i]->Branch("leponeidthree",      &fTreeVars.leponeidthree     );
-      fTrees[i]->Branch("leptwopt",           &fTreeVars.leptwopt          );
-      fTrees[i]->Branch("leptwoptoverm",      &fTreeVars.leptwoptoverm     );
-      // fTrees[i]->Branch("leptwom",            &fTreeVars.leptwom           );
-      // fTrees[i]->Branch("leptwoeta",          &fTreeVars.leptwoeta         );
-      fTrees[i]->Branch("leptwod0",           &fTreeVars.leptwod0          );
-      // fTrees[i]->Branch("leptwoiso",          &fTreeVars.leptwoiso         );
-      // fTrees[i]->Branch("leptwoidone",        &fTreeVars.leptwoidone       );
-      // fTrees[i]->Branch("leptwoidtwo",        &fTreeVars.leptwoidtwo       );
-      // fTrees[i]->Branch("leptwoidthree",      &fTreeVars.leptwoidthree     );
-      // fTrees[i]->Branch("lepp",               &fTreeVars.lepp              );
-      fTrees[i]->Branch("leppt",              &fTreeVars.leppt             );
-      fTrees[i]->Branch("lepm",               &fTreeVars.lepm              );
-      fTrees[i]->Branch("lepptoverm",         &fTreeVars.lepptoverm        );
-      fTrees[i]->Branch("lepeta",             &fTreeVars.lepeta            );
-      fTrees[i]->Branch("lepdeltaeta",        &fTreeVars.lepdeltaeta       );
-      fTrees[i]->Branch("lepdeltar",          &fTreeVars.lepdeltar         );
-      fTrees[i]->Branch("lepdeltaphi",        &fTreeVars.lepdeltaphi       );
-      fTrees[i]->Branch("deltaalphaz1",       &fTreeVars.deltaalphaz1      );
-      fTrees[i]->Branch("deltaalphaz2",       &fTreeVars.deltaalphaz2      );
-      fTrees[i]->Branch("deltaalphah1",       &fTreeVars.deltaalphah1      );
-      fTrees[i]->Branch("deltaalphah2",       &fTreeVars.deltaalphah2      );
-      fTrees[i]->Branch("deltaalpham1",       &fTreeVars.deltaalpham1      );
-      fTrees[i]->Branch("deltaalpham2",       &fTreeVars.deltaalpham2      );
-      // fTrees[i]->Branch("htdeltaphi",         &fTreeVars.htdeltaphi        );
-      fTrees[i]->Branch("metdeltaphi",        &fTreeVars.metdeltaphi       );
-      fTrees[i]->Branch("leponedeltaphi",     &fTreeVars.leponedeltaphi    );
-      fTrees[i]->Branch("leptwodeltaphi",     &fTreeVars.leptwodeltaphi    );
-      fTrees[i]->Branch("onemetdeltaphi",     &fTreeVars.onemetdeltaphi    );
-      fTrees[i]->Branch("twometdeltaphi",     &fTreeVars.twometdeltaphi    );
-      fTrees[i]->Branch("lepmestimate",       &fTreeVars.mestimate         );
-      fTrees[i]->Branch("lepmestimatetwo",    &fTreeVars.mestimatetwo      );
-      fTrees[i]->Branch("met",                &fTreeVars.met               );
-      fTrees[i]->Branch("mtone",              &fTreeVars.mtone             );
-      fTrees[i]->Branch("mttwo",              &fTreeVars.mttwo             );
-      fTrees[i]->Branch("mtoneoverm",         &fTreeVars.mtoneoverm        );
-      fTrees[i]->Branch("mttwooverm",         &fTreeVars.mttwooverm        );
-      // fTrees[i]->Branch("pzetavis",             &fTreeVars.pzetavis            );
-      // fTrees[i]->Branch("pzetainv",             &fTreeVars.pzetainv            );
-      // fTrees[i]->Branch("ht",                 &fTreeVars.ht                );
-      // fTrees[i]->Branch("htsum",              &fTreeVars.htsum             );
-      fTrees[i]->Branch("jetpt",              &fTreeVars.jetpt             );
-      fTrees[i]->Branch("njets",              &fTreeVars.njets             );
-
-      //boosted frame variables
-      for(int mode = 0; mode < 3; ++mode) {
-        fTrees[i]->Branch(Form("leponeprimepx%i", mode), &fTreeVars.leponeprimepx[mode]);
-        fTrees[i]->Branch(Form("leptwoprimepx%i", mode), &fTreeVars.leptwoprimepx[mode]);
-        fTrees[i]->Branch(Form("metprimepx%i"   , mode), &fTreeVars.metprimepx   [mode]);
-        fTrees[i]->Branch(Form("leponeprimepy%i", mode), &fTreeVars.leponeprimepy[mode]);
-        fTrees[i]->Branch(Form("leptwoprimepy%i", mode), &fTreeVars.leptwoprimepy[mode]);
-        fTrees[i]->Branch(Form("metprimepy%i"   , mode), &fTreeVars.metprimepy   [mode]);
-        fTrees[i]->Branch(Form("leponeprimepz%i", mode), &fTreeVars.leponeprimepz[mode]);
-        fTrees[i]->Branch(Form("leptwoprimepz%i", mode), &fTreeVars.leptwoprimepz[mode]);
-        fTrees[i]->Branch(Form("metprimepz%i"   , mode), &fTreeVars.metprimepz   [mode]);
-        fTrees[i]->Branch(Form("leponeprimee%i" , mode), &fTreeVars.leponeprimee [mode]);
-        fTrees[i]->Branch(Form("leptwoprimee%i" , mode), &fTreeVars.leptwoprimee [mode]);
-        fTrees[i]->Branch(Form("metprimee%i"    , mode), &fTreeVars.metprimee    [mode]);
-      }
-
-      fTrees[i]->Branch("eventweight",        &fTreeVars.eventweightMVA    );
-      fTrees[i]->Branch("fulleventweight",    &fTreeVars.fulleventweight   );
-      fTrees[i]->Branch("fulleventweightlum", &fTreeVars.fulleventweightlum);
-      fTrees[i]->Branch("eventcategory",      &fTreeVars.eventcategory     );
-      fTrees[i]->Branch("category",           &fTreeVars.category          );
-      fTrees[i]->Branch("train",              &fTreeVars.train             );
-      fTrees[i]->Branch("issignal",           &fTreeVars.issignal          );
-      fTrees[i]->Branch("type",               &fTreeVars.type              );
-
-      fTrees[i]->Branch("jettotaunonclosure", &fTreeVars.jettotaunonclosure);
-      fTrees[i]->Branch("zptup"             , &fTreeVars.zptup             );
-      fTrees[i]->Branch("zptdown"           , &fTreeVars.zptdown           );
-
-      //add MVA score branches
-      for(unsigned index = 0; index < fMVAConfig.names_.size(); ++index) {
-        fTrees[i]->Branch(Form("mva%i", index), &fMvaOutputs[index]);
-      }
+      BookBaseTree(i);
       delete dirname;
     }
   }
@@ -809,9 +722,8 @@ void CLFVHistMaker::FillEventHistogram(EventHist_t* Hist) {
   float tmp_1, tmp_2, sys_reco_weight(1.);
   double recoweight = (fIsDY) ? bareweight*fZPtWeight->GetWeight(fYear, lepSys.Pt(), lepSys.M(), /*use reco weights*/ true, tmp_1, tmp_2, sys_reco_weight) : bareweight;
   sys_reco_weight *= bareweight;
-  const double zpt   = (zPt   <  0.f) ? lepSys.Pt() : zPt;
-  const double zmass = (zMass <  0.f) ? lepSys.M()  : zMass;
 
+  //test Drell-Yan reweighting
   Hist->hLepPt[1]     ->Fill(lepSys.Pt()            ,bareweight);
   Hist->hLepPt[2]     ->Fill(lepSys.Pt()            ,recoweight);
   Hist->hLepM[1]      ->Fill(lepSys.M()             ,bareweight);
@@ -819,135 +731,11 @@ void CLFVHistMaker::FillEventHistogram(EventHist_t* Hist) {
   Hist->hLepM[3]      ->Fill(lepSys.M()             ,eventWeight*genWeight);
   Hist->hLepM[4]      ->Fill(lepSys.M()             ,eventWeight*genWeight);
 
-  // //2D histograms for DY reweighting
-  // Hist->hLepPtVsM[0]  ->Fill(lepSys.M(), lepSys.Pt(), eventWeight*genWeight);
-  // Hist->hLepPtVsM[1]  ->Fill(lepSys.M(), lepSys.Pt(), bareweight);
-  // Hist->hLepPtVsM[2]  ->Fill(lepSys.M(), lepSys.Pt(), recoweight);
-  // Hist->hLepPtVsM[3]  ->Fill(lepSys.M(), lepSys.Pt(), bareweight*zPtWeightSys);
-  // Hist->hLepPtVsM[4]  ->Fill(lepSys.M(), lepSys.Pt(), sys_reco_weight);
-  // Hist->hZPtVsM[0]    ->Fill(zmass, zpt, eventWeight*genWeight);
-  // Hist->hZPtVsM[1]    ->Fill(zmass, zpt, bareweight);
-  // Hist->hZPtVsM[2]    ->Fill(zmass, zpt, recoweight);
-  // Hist->hZPtVsM[3]    ->Fill(zmass, zpt, bareweight*zPtWeightSys);
-  // Hist->hZPtVsM[4]    ->Fill(zmass, zpt, sys_reco_weight);
-  // Hist->hZPt[0]       ->Fill(zpt  , eventWeight*genWeight);
-  // Hist->hZPt[1]       ->Fill(zpt  , bareweight);
-  // Hist->hZPt[2]       ->Fill(zpt  , recoweight);
-  // Hist->hZPt[3]       ->Fill(zpt  , bareweight*zPtWeightSys);
-  // Hist->hZPt[4]       ->Fill(zpt  , sys_reco_weight);
+  const double zpt   = (zPt   <  0.f) ? lepSys.Pt()  : zPt;
+  const double zmass = (zMass <  0.f) ? lepSys.M()   : zMass;
   Hist->hZPt[5]       ->Fill(zpt  , eventWeight*genWeight);
-  // Hist->hZMass[0]     ->Fill(zmass, eventWeight*genWeight);
-  // Hist->hZMass[1]     ->Fill(zmass, bareweight);
-  // Hist->hZMass[2]     ->Fill(zmass, recoweight);
-  // Hist->hZMass[3]     ->Fill(zmass, bareweight*zPtWeightSys);
-  // Hist->hZMass[4]     ->Fill(zmass, sys_reco_weight);
   Hist->hZMass[5]     ->Fill(zmass, eventWeight*genWeight);
-  Hist->hZEta [1]     ->Fill(zEta , bareweight);
-
-  //QCD studies
-  // const Float_t wt_noqcd     = (qcdWeight > 0.) ? eventWeight*genWeight/qcdWeight : eventWeight*genWeight;
-  // const Float_t wt_noqcdcl   = (qcdClosure > 0.) ? eventWeight*genWeight/qcdClosure : eventWeight*genWeight;
-  // const Float_t wt_noantiiso = (qcdIsoScale > 0.) ? eventWeight*genWeight/qcdIsoScale : eventWeight*genWeight;
-  // Hist->hLepDeltaPhi[1]->Fill(lepDelPhi             ,wt_noqcd);
-  // Hist->hLepDeltaR[1] ->Fill(lepDelR                ,wt_noqcd);
-  // Hist->hLepDeltaR[2] ->Fill(lepDelR                ,eventWeight*genWeight); //same binning as scale factor measurement
-  // Hist->hLepDelRVsOneEta[0]->Fill(std::fabs(fTreeVars.leponeeta), lepDelR, eventWeight*genWeight);
-  // Hist->hLepDelRVsOneEta[1]->Fill(std::fabs(fTreeVars.leponeeta), lepDelR, wt_noqcd);
-  // Hist->hLepDelPhiVsOneEta[0]->Fill(std::fabs(fTreeVars.leponeeta), lepDelPhi, eventWeight*genWeight);
-  // Hist->hLepDelPhiVsOneEta[1]->Fill(std::fabs(fTreeVars.leponeeta), lepDelPhi, wt_noqcd);
-  // //Jet-binned QCD transfer factor measurement histograms
-  // if(nJets == 0) {
-  //   Hist->hQCDDelRJ[0] ->Fill(lepDelR                ,wt_noqcd);
-  //   Hist->hQCDOnePtVsTwoPtJ[0]->Fill(leptonOne.p4->Pt(), leptonTwo.p4->Pt(), wt_noqcdcl);
-  // } else if(nJets == 1) {
-  //   Hist->hQCDDelRJ[1] ->Fill(lepDelR                ,wt_noqcd);
-  //   Hist->hQCDOnePtVsTwoPtJ[1]->Fill(leptonOne.p4->Pt(), leptonTwo.p4->Pt(), wt_noqcdcl);
-  // } else {
-  //   Hist->hQCDDelRJ[2] ->Fill(lepDelR                ,wt_noqcd);
-  //   Hist->hQCDOnePtVsTwoPtJ[2]->Fill(leptonOne.p4->Pt(), leptonTwo.p4->Pt(), wt_noqcdcl);
-  // }
-  // Hist->hQCDOnePtVsTwoPtJ[3]->Fill(leptonOne.p4->Pt(), leptonTwo.p4->Pt(), wt_noqcdcl); //jet-inclusive correction
-  // Hist->hQCDOnePtVsTwoPtIso[0]->Fill(leptonOne.p4->Pt(), leptonTwo.p4->Pt(), wt_noqcd); //no QCD SS-->OS weights
-  // Hist->hQCDOnePtVsTwoPtIso[1]->Fill(leptonOne.p4->Pt(), leptonTwo.p4->Pt(), wt_noantiiso); //no muon anti-iso --> iso weight
-
-  //Histograms for jet --> tau_h scale factors
-  // Hist->hLooseLep     ->Fill(isLooseElectron + 2*isLooseMuon + 4*isLooseTau, eventWeight*genWeight);
-  // if(nTaus == 1 && (leptonTwo.isTau     ()) ) {
-  //   for(UInt_t itau = 0; itau < nTaus; ++itau) {
-  //     int dm = -1;
-  //     const int njets = std::min(2, (int) nJets); //0, 1, or >= 2 jets
-  //     bool fakeMC = fIsData == 0 && std::abs(TauFlavorFromID(Tau_genPartFlav[itau])) == 26;
-  //     if(std::fabs(Tau_eta[itau]) > 2.3) continue;
-  //     if(Tau_idAntiMu[itau] < 2) continue; //ignore ones that fail the old MVA anti-mu tight ID
-  //     float tau_wt = 1.; //FIXME: Add an array of tau specific weights
-  //     if(fIsData || tau_wt <= 0.) tau_wt = 1.;
-  //     //remove j->tau weights if set
-  //     if(jetToTauWeightBias > 0.) tau_wt *= 1./jetToTauWeightBias;
-  //     if(!fakeMC) {
-  //       Hist->hTausPt->Fill(Tau_pt[itau], tau_wt*eventWeight*genWeight);
-  //       Hist->hTausEta->Fill(Tau_eta[itau], tau_wt*eventWeight*genWeight);
-  //       Hist->hTausDM->Fill(Tau_decayMode[itau], tau_wt*eventWeight*genWeight);
-  //       Hist->hTausAntiJet->Fill(std::log2(Tau_idDeepTau2017v2p1VSjet[itau]+1), tau_wt*eventWeight*genWeight);
-  //       Hist->hTausAntiEle->Fill(std::log2(Tau_idDeepTau2017v2p1VSe[itau]+1), tau_wt*eventWeight*genWeight);
-  //       Hist->hTausAntiMu ->Fill(Tau_idDeepTau2017v2p1VSmu[itau]              , tau_wt*eventWeight*genWeight);
-  //       Hist->hTausMVAAntiMu->Fill(Tau_idAntiMu[itau]         , tau_wt*eventWeight*genWeight);
-  //       Hist->hTausGenFlavor->Fill(TauFlavorFromID(Tau_genPartFlav[itau]), tau_wt*eventWeight*genWeight);
-  //       TLorentzVector tausLV;
-  //       tausLV.SetPtEtaPhiM(Tau_pt[itau], Tau_eta[itau], Tau_phi[itau], Tau_mass[itau]);
-  //       Hist->hTausDeltaR->Fill(std::fabs(tausLV.DeltaR(*leptonOne.p4)), tau_wt*eventWeight*genWeight);
-  //     } else {
-  //       Hist->hFakeTausPt->Fill(Tau_pt[itau], tau_wt*eventWeight*genWeight);
-  //       Hist->hFakeTausEta->Fill(Tau_eta[itau], tau_wt*eventWeight*genWeight);
-  //       Hist->hFakeTausDM->Fill(Tau_decayMode[itau], tau_wt*eventWeight*genWeight);
-  //     }
-
-  //     if     (Tau_decayMode[itau] == 0 ) dm = 0;
-  //     else if(Tau_decayMode[itau] == 1 ) dm = 1;
-  //     else if(Tau_decayMode[itau] == 10) dm = 2;
-  //     else if(Tau_decayMode[itau] == 11) dm = 3;
-  //     else if(Tau_decayMode[itau] < 0  ) dm = 0; //only happens in tree version with bug --> default to progress until fixed
-  //     else continue; //non-accepted decay mode
-
-  //     if(fakeMC) { //MC fake tau
-  //       Hist->hFakeTauMCNJetDMPtEta[0][njets][dm]->Fill(Tau_pt[itau], std::fabs(Tau_eta[itau]), tau_wt*eventWeight*genWeight); //all taus
-  //     } else { //genuine MC tau or data tau
-  //       Hist->hFakeTauNJetDMPtEta[0][njets][dm]  ->Fill(Tau_pt[itau], std::fabs(Tau_eta[itau]), tau_wt*eventWeight*genWeight); //all taus
-  //     }
-  //     if(Tau_idDeepTau2017v2p1VSjet[itau] > fFakeTauIsoCut) { //isolated tau
-  //       if(fakeMC) { //MC fake tau
-  //         Hist->hFakeTauMCNJetDMPtEta[1][njets][dm]->Fill(Tau_pt[itau], std::fabs(Tau_eta[itau]), tau_wt*eventWeight*genWeight); //tight Iso
-  //       } else {
-  //         Hist->hFakeTauNJetDMPtEta[1][njets][dm]  ->Fill(Tau_pt[itau], std::fabs(Tau_eta[itau]), tau_wt*eventWeight*genWeight); //tight Iso
-  //       }
-  //     } else { //anti-isolated tau
-  //       if(fakeMC) { //MC fake tau
-  //         Hist->hFakeTauMCNJetDMPtEta[2][njets][dm]->Fill(Tau_pt[itau], std::fabs(Tau_eta[itau]), tau_wt*eventWeight*genWeight); //anti-Iso
-  //       } else { //genuine MC tau or data tau
-  //         Hist->hFakeTauNJetDMPtEta[2][njets][dm]  ->Fill(Tau_pt[itau], std::fabs(Tau_eta[itau]), tau_wt*eventWeight*genWeight); //anti-Iso
-  //       }
-  //     }
-  //     // jet --> tau non-closure histograms
-  //     Float_t wt_no_nonclosure(eventWeight*genWeight), wt_no_biascorr(eventWeight*genWeight);
-  //     if(jetToTauWeightCorr > 0.) wt_no_nonclosure *= jetToTauWeight / jetToTauWeightBias; //remove non-closure and bias corrections
-  //     if(jetToTauWeightBias > 0.) wt_no_biascorr   *= jetToTauWeightCorr / jetToTauWeightBias; //remove the bias correction
-
-  //     Hist->hJetTauDeltaR[0]->Fill(fTreeVars.lepdeltar, eventWeight*genWeight);
-  //     Hist->hJetTauDeltaR[1]->Fill(fTreeVars.lepdeltar, wt_no_nonclosure     );
-  //     Hist->hJetTauDeltaR[2]->Fill(fTreeVars.lepdeltar, wt_no_biascorr       );
-  //     Hist->hJetTauLepM  [0]->Fill(fTreeVars.lepm     , eventWeight*genWeight);
-  //     Hist->hJetTauLepM  [1]->Fill(fTreeVars.lepm     , wt_no_nonclosure     );
-  //     Hist->hJetTauLepM  [2]->Fill(fTreeVars.lepm     , wt_no_biascorr       );
-  //     Hist->hJetTauMTLep [0]->Fill(fTreeVars.mtlep    , eventWeight*genWeight);
-  //     Hist->hJetTauMTLep [1]->Fill(fTreeVars.mtlep    , wt_no_nonclosure     );
-  //     Hist->hJetTauMTLep [2]->Fill(fTreeVars.mtlep    , wt_no_biascorr       );
-  //     Hist->hJetTauMTOne [0]->Fill(fTreeVars.mtone    , eventWeight*genWeight);
-  //     Hist->hJetTauMTOne [1]->Fill(fTreeVars.mtone    , wt_no_nonclosure     );
-  //     Hist->hJetTauMTOne [2]->Fill(fTreeVars.mtone    , wt_no_biascorr       );
-  //     Hist->hJetTauMTTwo [0]->Fill(fTreeVars.mttwo    , eventWeight*genWeight);
-  //     Hist->hJetTauMTTwo [1]->Fill(fTreeVars.mttwo    , wt_no_nonclosure     );
-  //     Hist->hJetTauMTTwo [2]->Fill(fTreeVars.mttwo    , wt_no_biascorr       );
-  //   }
-  // } //end j-->tau scale factor section
+  Hist->hZEta [1]     ->Fill(zEta , bareweight           );
 
   //ATLAS boosted frame variables
   for(int mode = 0; mode < 3; ++mode) {
@@ -1094,11 +882,14 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
   bool isSameFlavor = std::abs(leptonOne.flavor) == std::abs(leptonTwo.flavor);
   bool isMuTau = leptonOne.isMuon    () && leptonTwo.isTau     ();
   bool isETau  = leptonOne.isElectron() && leptonTwo.isTau     ();
+
+  //Event information that may be altered, to restore the event information after a systematic shift
+  TLorentzVector o_lv1(*leptonOne.p4), o_lv2(*leptonTwo.p4), o_jet(*jetOneP4);
+  Float_t o_met(met), o_metPhi(metPhi);
+
   for(int sys = 0; sys < kMaxSystematics; ++sys) {
     float weight = eventWeight*genWeight;
     if(weight == 0.) continue; //no way to re-scale 0, contributes nothing to histograms so can just skip
-    TLorentzVector lv1 = *leptonOne.p4;
-    TLorentzVector lv2 = *leptonTwo.p4;
     bool reeval = false;
     if(sys == 0) weight = weight;                                          //do nothing
     else if  (sys ==  1) {                                                 //electron ID scale factors
@@ -1155,12 +946,14 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
     }
     else if  (sys == 22) {                                                 //Tau ES
       if(leptonTwo.isTau     () && leptonTwo.ES[0] > 0. && leptonTwo.ES[1] > 0.) {
-        lv2 *= (leptonTwo.ES[1] / leptonTwo.ES[0]);
+        *(leptonTwo.p4) *= (leptonTwo.ES[1] / leptonTwo.ES[0]);
+        if(leptonTwo.p4->M2() < 0.) leptonTwo.p4->SetE(leptonTwo.p4->P());
         reeval = true;
       }
     } else if(sys == 23) {
       if(leptonTwo.isTau     () && leptonTwo.ES[0] > 0. && leptonTwo.ES[2] > 0.) {
-        lv2 *= (leptonTwo.ES[2] / leptonTwo.ES[0]);
+        *(leptonTwo.p4) *= (leptonTwo.ES[2] / leptonTwo.ES[0]);
+        if(leptonTwo.p4->M2() < 0.) leptonTwo.p4->SetE(leptonTwo.p4->P());
         reeval = true;
       }
     }
@@ -1200,7 +993,76 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
     } else if  (sys == 46) { weight *= (btagWeight > 0.) ? btagWeightDown / btagWeight : 1.;
     } else if  (sys == 47) { weight *= jetToTauWeightBiasUp     / jetToTauWeightBias   ; //Jet --> tau weight bias corrections
     } else if  (sys == 48) { weight *= jetToTauWeightBiasDown   / jetToTauWeightBias   ;
-
+    } else if  (sys == 49) { weight *= (fIsEmbed) ? 1.04f : 1.f   ; //Embedding unfolding norm, +- 4% uncertainty
+    } else if  (sys == 50) { weight *= (fIsEmbed) ? 0.96f : 1.f   ;
+    } else if  (sys == 51) {                                        //MC electron trigger, up
+      const float trig_wt = leptonOne.trig_wt * leptonTwo.trig_wt;
+      if(fIsEmbed) { weight *= 1.f; }
+      else if(leptonOne.isElectron() && leptonTwo.isElectron()) { weight *= triggerWeightsSys[4] / trig_wt; }
+      else if(leptonOne.isElectron())                           { weight *= triggerWeightsSys[0] / trig_wt; }
+      else if(leptonTwo.isElectron())                           { weight *= triggerWeightsSys[2] / trig_wt; }
+    } else if  (sys == 52) {                                        //MC electron trigger, down
+      const float trig_wt = leptonOne.trig_wt * leptonTwo.trig_wt;
+      if(fIsEmbed) { weight *= 1.f; }
+      else if(leptonOne.isElectron() && leptonTwo.isElectron()) { weight *= triggerWeightsSys[5] / trig_wt; }
+      else if(leptonOne.isElectron())                           { weight *= triggerWeightsSys[1] / trig_wt; }
+      else if(leptonTwo.isElectron())                           { weight *= triggerWeightsSys[3] / trig_wt; }
+    } else if  (sys == 53) {                                        //MC muon trigger, up
+      const float trig_wt = leptonOne.trig_wt * leptonTwo.trig_wt;
+      if(fIsEmbed) { weight *= 1.f; }
+      else if(leptonOne.isMuon() && leptonTwo.isMuon())         { weight *= triggerWeightsSys[4] / trig_wt; }
+      else if(leptonOne.isMuon())                               { weight *= triggerWeightsSys[0] / trig_wt; }
+      else if(leptonTwo.isMuon())                               { weight *= triggerWeightsSys[2] / trig_wt; }
+    } else if  (sys == 54) {                                        //MC muon trigger, down
+      const float trig_wt = leptonOne.trig_wt * leptonTwo.trig_wt;
+      if(fIsEmbed) { weight *= 1.f; }
+      else if(leptonOne.isMuon() && leptonTwo.isMuon())         { weight *= triggerWeightsSys[5] / trig_wt; }
+      else if(leptonOne.isMuon())                               { weight *= triggerWeightsSys[1] / trig_wt; }
+      else if(leptonTwo.isMuon())                               { weight *= triggerWeightsSys[3] / trig_wt; }
+    } else if  (sys == 55) {                                        //Embedding electron trigger, up
+      const float trig_wt = leptonOne.trig_wt * leptonTwo.trig_wt;
+      if(!fIsEmbed) { weight *= 1.f; }
+      else if(leptonOne.isElectron() && leptonTwo.isElectron()) { weight *= triggerWeightsSys[4] / trig_wt; }
+      else if(leptonOne.isElectron())                           { weight *= triggerWeightsSys[0] / trig_wt; }
+      else if(leptonTwo.isElectron())                           { weight *= triggerWeightsSys[2] / trig_wt; }
+    } else if  (sys == 56) {                                        //Embedding electron trigger, down
+      const float trig_wt = leptonOne.trig_wt * leptonTwo.trig_wt;
+      if(!fIsEmbed) { weight *= 1.f; }
+      else if(leptonOne.isElectron() && leptonTwo.isElectron()) { weight *= triggerWeightsSys[5] / trig_wt; }
+      else if(leptonOne.isElectron())                           { weight *= triggerWeightsSys[1] / trig_wt; }
+      else if(leptonTwo.isElectron())                           { weight *= triggerWeightsSys[3] / trig_wt; }
+    } else if  (sys == 57) {                                        //Embedding muon trigger, up
+      const float trig_wt = leptonOne.trig_wt * leptonTwo.trig_wt;
+      if(!fIsEmbed) { weight *= 1.f; }
+      else if(leptonOne.isMuon() && leptonTwo.isMuon())         { weight *= triggerWeightsSys[4] / trig_wt; }
+      else if(leptonOne.isMuon())                               { weight *= triggerWeightsSys[0] / trig_wt; }
+      else if(leptonTwo.isMuon())                               { weight *= triggerWeightsSys[2] / trig_wt; }
+    } else if  (sys == 58) {                                        //Embedding muon trigger, down
+      const float trig_wt = leptonOne.trig_wt * leptonTwo.trig_wt;
+      if(!fIsEmbed) { weight *= 1.f; }
+      else if(leptonOne.isMuon() && leptonTwo.isMuon())         { weight *= triggerWeightsSys[5] / trig_wt; }
+      else if(leptonOne.isMuon())                               { weight *= triggerWeightsSys[1] / trig_wt; }
+      else if(leptonTwo.isMuon())                               { weight *= triggerWeightsSys[3] / trig_wt; }
+    } else if  (sys == 59) {                                        //MET JER, up
+      met    = puppMETJERUp;
+      metPhi = puppMETphiJERUp;
+      reeval = true;
+    } else if  (sys == 60) {                                        //MET JER, down
+      met    -= std::max(0.f, puppMETJERUp - met);
+      metPhi -= puppMETphiJERUp - metPhi;
+      if(metPhi > 2.*M_PI)       metPhi -= 2*M_PI;
+      else if(metPhi < -2.*M_PI) metPhi += 2*M_PI;
+      reeval = true;
+    } else if  (sys == 61) {                                        //MET JES, up
+      met    = puppMETJESUp;
+      metPhi = puppMETphiJESUp;
+      reeval = true;
+    } else if  (sys == 62) {                                        //MET JES, down
+      met    -= std::max(0.f, puppMETJESUp - met);
+      metPhi -= puppMETphiJESUp - metPhi;
+      if(metPhi > 2.*M_PI)       metPhi -= 2*M_PI;
+      else if(metPhi < -2.*M_PI) metPhi += 2*M_PI;
+      reeval = true;
       //Removed j->tau groupings since now using fitter errors uncorrelated by years
     // } else if  (sys >= SystematicGrouping::kJetToTau && sys < 100) { //Jet --> tau systematic groupings, (4 DM)*(2 eta)*(3 years)*(2 up/down) = 48 histograms
     //   if(std::abs(leptonOne.flavor) == std::abs(leptonTwo.flavor)) continue;
@@ -1229,7 +1091,7 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
     //     if(2*(leptonTwo.wt2_group) - offset     == sys) weight *= leptonTwo.wt2[1]   / leptonTwo.wt2[0];
     //     if(2*(leptonTwo.wt2_group) - offset + 1 == sys) weight *= leptonTwo.wt2[2] / leptonTwo.wt2[0];
     //   }
-    } else if  (sys >= 100 && sys < 106) { //tau anti-jet ID, separated by years
+    } else if  (sys >= 100 && sys < 106) { //tau anti-jet ID, separated by years FIXME: should also be separated by pT bins
       if(std::abs(leptonOne.flavor) == std::abs(leptonTwo.flavor)) continue;
       int base = 100;
       if(leptonTwo.isTau     ()) {
@@ -1240,10 +1102,10 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
           weight *= leptonTwo.wt1[2] / leptonTwo.wt1[0];
       }
     } else if  (sys >= 110 && sys < 140) { //tau anti-mu ID, separated by 5 bins per year --> 15 histograms per up/down
-      if(std::abs(leptonOne.flavor) == std::abs(leptonTwo.flavor)) continue;
+      if(std::abs(leptonOne.flavor) == std::abs(leptonTwo.flavor)) continue; //don't need in the ee/mumu region
       int base = 110;
       if(leptonTwo.isTau     ()) {
-        int bin = 5*(fYear - 2016) + leptonTwo.wt1_bin; //uncorrelated between years and bins
+        const int bin = 5*(fYear - 2016) + leptonTwo.wt1_bin; //uncorrelated between years and bins
         if((sys == base + 2*bin) && std::abs(tauGenFlavor) == 13)
           weight *= leptonTwo.wt1[1] / leptonTwo.wt1[0];
         else if((sys == base + 1 + 2*bin) && std::abs(tauGenFlavor) == 13)
@@ -1288,10 +1150,10 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
       weight = 0.;
     }
 
-    float lepm  = (reeval) ? (lv1+lv2).M() : fTreeVars.lepm;
-    float onept = (reeval) ? lv1.Pt() : fTreeVars.leponept;
-    float twopt = (reeval) ? lv2.Pt() : fTreeVars.leptwopt;
-    TLorentzVector lepSys = lv1 + lv2;
+    if(reeval) SetKinematics(); //re-evaluate variables with shifted values
+    float lepm  = fTreeVars.lepm;
+    float onept = fTreeVars.leponept;
+    float twopt = fTreeVars.leptwopt;
 
     Hist->hLepM  [sys]->Fill(lepm  , weight);
     //skip all other histograms in same-flavor selection, only using the M_{ll} histogram
@@ -1323,6 +1185,14 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
         mvascore = -2.;
       }
       Hist->hMVA[i][sys]->Fill(mvascore, mvaweight);
+    }
+    if(reeval) {
+      *(leptonOne.p4) = o_lv1;
+      *(leptonTwo.p4) = o_lv2;
+      *(jetOneP4) = o_jet;
+      met = o_met;
+      metPhi = o_metPhi;
+      SetKinematics();
     }
   }
 }
@@ -1418,7 +1288,7 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   fCutFlow->Fill(icutflow); ++icutflow; //7
 
   //reject electrons in the barrel/endcap gap region
-  const float elec_gap_low(1.4442), elec_gap_high(1.566);
+  const float elec_gap_low(1.444), elec_gap_high(1.566);
   etau &= std::fabs(leptonOne.scEta) < elec_gap_low || std::fabs(leptonOne.scEta) > elec_gap_high;
   emu  &= std::fabs(leptonOne.scEta) < elec_gap_low || std::fabs(leptonOne.scEta) > elec_gap_high;
   ee   &= std::fabs(leptonOne.scEta) < elec_gap_low || std::fabs(leptonOne.scEta) > elec_gap_high;
@@ -1517,17 +1387,17 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
 
   mutau &= isLooseTau || tauDeepAntiJet >= 50; //63 = tight
   mutau &= tauDeepAntiMu  >= 10; //15 = tight
-  mutau &= tauDeepAntiEle >= 10; //15 = loose
+  mutau &= tauDeepAntiEle >= 10; //7 = VLoose, 15 = Loose, 31 = Medium
   mutau &= leptonTwo.id2  >=  2; //1 = loose, 3 = tight tau MVA anti-muon ID
 
   etau  &= isLooseTau || tauDeepAntiJet >= 50; //
   etau  &= tauDeepAntiMu  >= 10; //15 = tight
-  etau  &= tauDeepAntiEle >= 50; //63 = tight
+  etau  &= tauDeepAntiEle >= 100; //tauDeepAntiEle >= 50; //63 = tight, 127 = VTight, 255 = VVTight
   etau  &= leptonTwo.id2  >=  2; //1 = loose, 3 = tight tau MVA anti-muon ID
 
-  //remove tau decay modes not interested in
-  mutau &= tauDecayMode != 5 && tauDecayMode != 6;
-  etau  &= tauDecayMode != 5 && tauDecayMode != 6;
+  //remove tau decay modes not interested in (keep only 0, 1, 10, 11)
+  mutau &= tauDecayMode % 10 < 2; //tauDecayMode != 5 && tauDecayMode != 6;
+  etau  &= tauDecayMode % 10 < 2; //tauDecayMode != 5 && tauDecayMode != 6;
 
   if(!(mutau || etau || emu || mumu || ee)) return kTRUE;
   if(!fDYTesting || fCutFlowTesting) {
@@ -1563,14 +1433,14 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   // jet --> tau cuts and region definitions
   ////////////////////////////////////////////////////////////
 
-  const double met_cut       = 60.;
-  const double mtlep_cut     = 70.;
+  const double met_cut         = -1.; //60.;
+  const double mtlep_cut       = 70.;
   const double qcd_mtlep_cut   = mtlep_cut; //(etau) ? 45. : mtlep_cut;
-  const bool looseQCDRegion    = (mutau || etau) && nBJetsUse == 0 && fTreeVars.mtlep < mtlep_cut && met < met_cut; // no isolation cut (0 - 0.5 allowed)
+  const bool looseQCDRegion    = (mutau || etau) && nBJetsUse == 0 && fTreeVars.mtlep < mtlep_cut && (met_cut < 0 || met < met_cut); // no isolation cut (0 - 0.5 allowed)
   const bool qcdSelection      = looseQCDRegion && fTreeVars.mtlep < qcd_mtlep_cut && (fTreeVars.leponereliso > 0.05) && !(isLooseMuon || isLooseElectron);
   const bool wjetsSelection    = (mutau || etau) && fTreeVars.mtlep > mtlep_cut && nBJetsUse == 0 && !(isLooseMuon || isLooseElectron);
   const bool topSelection      = (emu || etau || mutau) && nBJetsUse >= 1 && !(isLooseMuon || isLooseElectron);
-  const bool nominalSelection  = nBJetsUse == 0 && met < met_cut && fTreeVars.mtlep < mtlep_cut && !(isLooseMuon || isLooseElectron);
+  const bool nominalSelection  = nBJetsUse == 0 && (met_cut < 0 ||met < met_cut) && fTreeVars.mtlep < mtlep_cut && !(isLooseMuon || isLooseElectron);
 
   ////////////////////////////////////////////////////////////
   // Set 92 (93) + selection offset: QCD selection without iso/mtlep cut with (without) MC taus
@@ -1633,6 +1503,9 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   ////////////////////////////////////////////////////////////
   // Set 35 + selection offset: last set with MC estimated taus and leptons
   ////////////////////////////////////////////////////////////
+
+  //Nominal mixture, with fake e/mu included
+  if(emu) FillAllHistograms(set_offset + 35);
 
   if(!(mumu || ee || emu) && nominalSelection) {
     const Float_t prev_evt_wt = eventWeight;
@@ -1869,9 +1742,9 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   //    Add MET cuts      //
   //////////////////////////
 
-  mutau &= met < met_cut;
-  etau  &= met < met_cut;
-  emu   &= met < met_cut;
+  mutau &= met_cut < 0 || met < met_cut;
+  etau  &= met_cut < 0 || met < met_cut;
+  emu   &= met_cut < 0 || met < met_cut;
 
   //Add W+Jets selection orthogonality condition
   mutau &= fTreeVars.mtlep < mtlep_cut;

@@ -38,7 +38,9 @@ namespace CLFV {
       return IDWeight(pt, eta, year, wt_id, wt_up_id, wt_down_id, ibin_id, wt_rec, wt_up_rec, wt_down_rec, ibin_rec);
     }
     double EmbedEnergyScale(double pt, double eta, int year, float& up, float& down);
-    double TriggerEff(double pt, double eta, int year, int WP, float& data_eff, float& mc_eff);
+    double TriggerEff(double pt, double eta, int year, int WP, float& data_eff, float& mc_eff,
+                      float& data_up, float& mc_up, float& data_down, float& mc_down
+                      );
 
   public:
     enum { k2016, k2017, k2018};

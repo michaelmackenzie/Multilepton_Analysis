@@ -2,16 +2,17 @@
 using namespace CLFV;
 
 bool  backgroundOnly_ = false; //no signal tree
-bool  dataOnly_ = false; //only data trees
-bool  doHiggsDecays_ = false; //Z or H0 CLFV decay sets
-bool  combineLepTau_ = false; //Combine emu and xtau categories into single tree
-bool  doDY_ = true; //include Drell-Yan
-bool  doWJets_ = true; //include W+Jets
-bool  doTop_ = true; //include Top
-bool  doDiboson_ = true; //include di-boson
-bool  debug_ = false; //debug the merging
-Int_t verbose_ = 1; //how verbose the output should be
-vector<int> years_ = {2016, 2017, 2018}; //years to merge
+bool  dataOnly_       = false; //only data trees
+bool  doHiggsDecays_  = false; //Z or H0 CLFV decay sets
+bool  combineLepTau_  = false; //Combine emu and xtau categories into single tree
+bool  doDY_           = true; //include Drell-Yan
+bool  doWJets_        = true; //include W+Jets
+bool  doTop_          = true; //include Top
+bool  doDiboson_      = true; //include di-boson
+bool  debug_          = false; //debug the merging
+Int_t verbose_        = 1; //how verbose the output should be
+vector<int> years_    = {2016, 2017, 2018}; //years to merge
+TString hist_tag_     = "clfv"; //CLFVHistMaker tag
 
 //Combine the trees in a given file list
 Int_t combine_trees(vector<TString> in_files, TString selection, int file_set, TString out_name) {
@@ -38,15 +39,17 @@ Int_t combine_trees(vector<TString> in_files, TString selection, int file_set, T
       printf("File %s not found, continuing\n", file_path);
       continue;
     }
+    if(verbose_ > 1) cout << "Index " << index << ": Using input filepath " << file_path << endl;
     fList[filecount] = TFile::Open(file_path, "READ");
     if(verbose_)
       printf("Getting tree %i for merging, using %s\n", filecount, file_path);
+    if(!fList[filecount]) return 10;
     //if QCD, offset set to same sign selection
     int set_use = file_set + set_offset;
     if(combineLepTau_ && selection.Contains("tau") && !selection.Contains("_") && TString(file_path).Contains("_emu_"))
       set_use = file_set + HistMaker::kEMu;
     TString fname = fList[filecount]->GetName();
-    if((fname.Contains("SingleMu") || fname.Contains("SingleEle")) && !dataOnly_) {//check if data-driven background
+    if((fname.Contains("SingleMuon") || fname.Contains("SingleElectron")) && !dataOnly_) {//check if data-driven background
       if(selection == "mutau" || selection == "etau") //jet --> tau backgrounds
         set_use += HistMaker::fMisIDOffset;
       else                                            //QCD SS -> OS backgrounds
@@ -112,69 +115,88 @@ Int_t make_background(int set = 8, TString selection = "mutau", TString base = "
   if(fileSelec.Contains("_")) //leptonic tau
     fileSelec = "emu";
   for(int year : years_) {
-    const char* nano_names[] = {"DY50"               ,
-                                "DY50-ext"           ,
-                                "DY50-amc"           ,
-                                "SingleAntiToptW"    ,
-                                "SingleToptW"        ,
-                                "WW"               ,
-                                "WZ"                 ,
-                                "ZZ"                 ,
-                                "WWW"                ,
-                                "Wlnu"               ,
-                                "Wlnu-ext"           ,
-                                "ttbarToSemiLeptonic",
-                                "ttbarlnu"           ,
-                                "ZMuTau"             ,
-                                "ZETau"              ,
-                                "ZEMu"               ,
-                                "HMuTau"             ,
-                                "HETau"              ,
-                                "HEMu"               ,
-                                "SingleMu"           ,
-                                "SingleEle"          ,
-                                "QCD_SingleMu"       , //use same sign data
-                                "QCD_SingleEle"
-
+    vector<TString> nano_names = {"DY50"               ,
+                                  "DY50-ext"           ,
+                                  "DY50-amc"           ,
+                                  "SingleAntiToptW"    ,
+                                  "SingleToptW"        ,
+                                  "WW"                 ,
+                                  "WZ"                 ,
+                                  "ZZ"                 ,
+                                  "WWW"                ,
+                                  "Wlnu-0"             ,
+                                  "Wlnu-ext-0"         ,
+                                  "Wlnu-1J"            ,
+                                  "Wlnu-2J"            ,
+                                  "Wlnu-3J"            ,
+                                  "Wlnu-4J"            ,
+                                  "ttbarToSemiLeptonic",
+                                  "ttbarlnu"           ,
+                                  "ZMuTau"             ,
+                                  "ZETau"              ,
+                                  "ZEMu"               ,
+                                  "HMuTau"             ,
+                                  "HETau"              ,
+                                  "HEMu"
     };
 
-    int doNanoProcess[] = {!dataOnly_   && doDY_ && year == 2017 //DY50
-                           , !dataOnly_ && doDY_ && year == 2017 //DY50-ext
-                           , !dataOnly_ && doDY_ && year != 2017 //DY50-amc
-                           , !dataOnly_ && doTop_ //tbar_tw
-                           , !dataOnly_ && doTop_ //t_tw
-                           , !dataOnly_ && doDiboson_ //WW
-                           , !dataOnly_ && doDiboson_ //WZ
-                           , !dataOnly_ && doDiboson_ //ZZ
-                           , !dataOnly_ && doDiboson_ //WWW
-                           , !dataOnly_ && doWJets_ //WJets
-                           , !dataOnly_ && doWJets_ && year != 2018 //WJets-ext
-                           , !dataOnly_ && doTop_ //ttbar
-                           , !dataOnly_ && doTop_ //ttbar
-                           , !dataOnly_ && (!backgroundOnly_ && !doHiggsDecays_ && (selection.Contains("mutau"))) //zmutau
-                           , !dataOnly_ && (!backgroundOnly_ && !doHiggsDecays_ && (selection.Contains("etau") )) //zetau
-                           , !dataOnly_ && (!backgroundOnly_ && !doHiggsDecays_ && (selection == "emu")  ) //zetau
-                           , !dataOnly_ && (!backgroundOnly_ && doHiggsDecays_  && (selection.Contains("mutau"))) //hmutau
-                           , !dataOnly_ && (!backgroundOnly_ && doHiggsDecays_  && (selection.Contains("etau") )) //hetau
-                           , !dataOnly_ && (!backgroundOnly_ && doHiggsDecays_  && (selection == "emu")  ) //hetau
-                           , dataOnly_ //SingleMu
-                           , dataOnly_ //SingleEle
-                           , !dataOnly_ && !fileSelec.Contains("etau")  //SingleMu QCD
-                           , !dataOnly_ && !fileSelec.Contains("mutau") //SingleEle QCD
+    vector<int> doNanoProcess = {!dataOnly_   && doDY_ && year == 2017 //DY50
+                                 , !dataOnly_ && doDY_ && year == 2017 //DY50-ext
+                                 , !dataOnly_ && doDY_ && year != 2017 //DY50-amc
+                                 , !dataOnly_ && doTop_ //tbar_tw
+                                 , !dataOnly_ && doTop_ //t_tw
+                                 , !dataOnly_ && doDiboson_ //WW
+                                 , !dataOnly_ && doDiboson_ //WZ
+                                 , !dataOnly_ && doDiboson_ //ZZ
+                                 , !dataOnly_ && doDiboson_ //WWW
+                                 , !dataOnly_ && doWJets_ //WJets
+                                 , !dataOnly_ && doWJets_ && year != 2018 //WJets-ext
+                                 , !dataOnly_ && doWJets_ //WJets-1J
+                                 , !dataOnly_ && doWJets_ //WJets-2J
+                                 , !dataOnly_ && doWJets_ //WJets-3J
+                                 , !dataOnly_ && doWJets_ && year != 2017 //WJets-4J
+                                 , !dataOnly_ && doTop_ //ttbar
+                                 , !dataOnly_ && doTop_ //ttbar
+                                 , !dataOnly_ && (!backgroundOnly_ && !doHiggsDecays_ && (selection.Contains("mutau"))) //zmutau
+                                 , !dataOnly_ && (!backgroundOnly_ && !doHiggsDecays_ && (selection.Contains("etau") )) //zetau
+                                 , !dataOnly_ && (!backgroundOnly_ && !doHiggsDecays_ && (selection == "emu")  ) //zetau
+                                 , !dataOnly_ && (!backgroundOnly_ && doHiggsDecays_  && (selection.Contains("mutau"))) //hmutau
+                                 , !dataOnly_ && (!backgroundOnly_ && doHiggsDecays_  && (selection.Contains("etau") )) //hetau
+                                 , !dataOnly_ && (!backgroundOnly_ && doHiggsDecays_  && (selection == "emu")  ) //hetau
     };
-    int nfiles = sizeof(nano_names)/sizeof(*nano_names);
+
+    vector<TString> runs;
+    if     (year == 2016) runs = {"B", "C", "D", "E", "F", "G", "H"};
+    else if(year == 2017) runs = {"B", "C", "D", "E", "F"};
+    else if(year == 2018) runs = {"A", "B", "C", "D"};
+    else return 20;
+
+    for(TString run : runs) {
+      nano_names.push_back(Form("SingleMuon-%s"    , run.Data()));
+      nano_names.push_back(Form("SingleElectron-%s", run.Data()));
+      doNanoProcess.push_back(dataOnly_);
+      doNanoProcess.push_back(dataOnly_);
+      nano_names.push_back(Form("QCD_SingleMuon-%s"    , run.Data()));
+      nano_names.push_back(Form("QCD_SingleElectron-%s", run.Data()));
+      doNanoProcess.push_back(!dataOnly_ && !fileSelec.EndsWith("etau")); //QCD/Loose ID
+      doNanoProcess.push_back(!dataOnly_ && !fileSelec.EndsWith("mutau")); //QCD/Loose ID
+    }
+
+    const int nfiles = nano_names.size();
     for(int i = 0; i < nfiles; ++i) {
-      if(!doNanoProcess[i]) continue;
       TString name = nano_names[i];
+      if(verbose_ > 2) cout << "Index " << i << ": Input name " << name.Data() << endl;
+      if(!doNanoProcess[i]) continue;
+      if(verbose_ == 2) cout << "Index " << i << ": Input name " << name.Data() << endl;
       if(name.Contains("Single") && name.Contains("QCD")) name.ReplaceAll("QCD_", "");
       if(name.Contains("DY50")) {
-        file_list.push_back(Form("%sclfv_%s_clfv_%i_%s-1.hist",base.Data(),fileSelec.Data(),year,name.Data()));
-        file_list.push_back(Form("%sclfv_%s_clfv_%i_%s-2.hist",base.Data(),fileSelec.Data(),year,name.Data()));
+        file_list.push_back(Form("%s%s_%s_%i_%s-1.hist",base.Data(),hist_tag_.Data(),fileSelec.Data(),year,name.Data()));
+        file_list.push_back(Form("%s%s_%s_%i_%s-2.hist",base.Data(),hist_tag_.Data(),fileSelec.Data(),year,name.Data()));
       } else {
-        file_list.push_back(Form("%sclfv_%s_clfv_%i_%s.hist",base.Data(),fileSelec.Data(),year,name.Data()));
+        file_list.push_back(Form("%s%s_%s_%i_%s.hist",base.Data(),hist_tag_.Data(),fileSelec.Data(),year,name.Data()));
       }
       if(combineLepTau_ && fileSelec.Contains("tau") && !fileSelec.Contains("_"))
-        file_list.push_back(Form("%sclfv_emu_clfv_%i_%s.hist",base.Data(),year,name.Data()));
+        file_list.push_back(Form("%s%s_emu_%i_%s.hist",base.Data(),hist_tag_.Data(),year,name.Data()));
     }
   }
 
@@ -203,13 +225,13 @@ Int_t make_background(int set = 8, TString selection = "mutau", TString base = "
     if(i > 0) year_string += "_";
     year_string += years_[i];
   }
-  TString file_out = Form("background_clfv_%s%s_%s_%i.tree",
-                              type.Data(), selection.Data(), year_string.Data(), set);
+  TString file_out = Form("background_%s_%s%s_%s_%i.tree",
+                          hist_tag_.Data(), type.Data(), selection.Data(), year_string.Data(), set);
   return combine_trees(file_list, fileSelec, set, file_out);
 }
 
 //Create TTrees for training MVAs against each decay in all categories
-Int_t make_all_backgrounds(TString base = "nanoaods_dev") {
+Int_t make_all_backgrounds(TString base = "nanoaods_trees") {
   Int_t status = 0;
   verbose_ = 0;
   combineLepTau_ = false;
@@ -233,7 +255,7 @@ Int_t make_all_backgrounds(TString base = "nanoaods_dev") {
 }
 
 //Create TTrees for all samples for all years
-Int_t make_all_years(TString base = "nanoaods_dev") {
+Int_t make_all_years(TString base = "nanoaods_trees") {
   Int_t status = 0;
   // cout << "Making 2016 backgrounds...\n";
   // years_ = {2016};

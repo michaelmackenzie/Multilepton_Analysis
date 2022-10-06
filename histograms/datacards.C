@@ -90,14 +90,15 @@ void get_datacards(std::vector<dcard>& cards, TString selection, bool forStudies
         cards.push_back(dcard("Wlnu-ext"        , "Wlnu-ext"          , wj.Data()   , false, xs.GetCrossSection("Wlnu"               ), false, year, wj_c, true));
       }
     }
-    if(splitDY_ > 0 || useEmbed_) {
-      if(!(selection == "ee" || selection == "mumu") || !useEmbed_) { //use DY MC ee/mumu for non-ee/mumu categories or if using DY MC in general
+    if(splitDY_ > 0 || (useEmbed_ == 2 || (useEmbed_ && selection != "ee" && selection != "mumu"))) {
+      //useEmbed_: 0 = use DY MC; 1 = use embedding in emu/etau/mutau; 2 = use embedding in all categories (including ee/mumu)
+      if(!(selection == "ee" || selection == "mumu") || useEmbed_ < 2) { //use DY MC ee/mumu for non-ee/mumu categories or if using DY MC in general
         cards.push_back(dcard((DYName+"-2").Data(), (DYName+"-2").Data(), dy_ll.Data(), false, xs.GetCrossSection("DY50", year), false, year, dy_ll_c, combineZ));
       }
-      if((selection == "ee" || selection == "mumu") || !useEmbed_) {//either ee/mumu or using DY MC, in both cases need MC Z->tau tau
+      if((selection == "ee" || selection == "mumu") || useEmbed_ == 0) {//either ee/mumu or using DY MC, in both cases need MC Z->tau tau
         cards.push_back(dcard((DYName+"-1").Data(), (DYName+"-1").Data(), dy_tt.Data(), false, xs.GetCrossSection("DY50", year), false, year, dy_tt_c, combineZ));
       }
-      if(useEmbed_) {
+      if(useEmbed_ == 2 || (useEmbed_ && selection != "ee" && selection != "mumu")) {
         for(int period = 0; period < periods[year].size(); ++period) {
           TString run = periods[year][period];
           if(!(selection == "ee" || selection == "mumu")) {
@@ -119,7 +120,7 @@ void get_datacards(std::vector<dcard>& cards, TString selection, bool forStudies
     }
     if(combineZ) {
       if(splitDY_ > 0 || useEmbed_) {
-        if(!(selection == "ee" || selection == "mumu") || !useEmbed_) {
+        if(!(selection == "ee" || selection == "mumu") || useEmbed_ < 2) {
           cards.push_back(dcard((DYName+"-ext-2").Data(), (DYName+"-ext-2").Data(), dy_ll.Data(), false, xs.GetCrossSection("DY50", year), false, year, dy_ll_c   , true));
         }
         if(!useEmbed_ || selection == "ee" || selection == "mumu") {
@@ -219,7 +220,6 @@ void get_datacards(std::vector<dcard>& cards, TString selection, bool forStudies
       const double ngen = xs.GetGenNumber(cards[index].name_, cards[index].year_);
       if(ngen < 1) {f->Close(); continue;}
       if(ngen > nevt) { //only apply a correction if ngen/nevt make sense
-        //notify if more than a 5% correction
         std::cout << "Dataset " << cards[index].name_.Data() << ", " << cards[index].year_ << ", has gen = "
                   << ngen << " and event count = " << nevt << " --> applying " << ngen/nevt << " correction\n";
         cards[index].xsec_ *= ngen/nevt;

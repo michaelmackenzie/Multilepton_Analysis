@@ -118,6 +118,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TTr
 
       //open back up the file
       TString outname = selec->GetOutputName();
+      printf("Re-opening output file %s to append the events histogram\n", outname.Data());
       TFile* out = TFile::Open(outname.Data(),"UPDATE");
       if(!out) {
         printf("!!! Unable to find output hist file %s, continuing\n", outname.Data());
@@ -302,7 +303,17 @@ Int_t process_card(TString treepath, TString filename, double xsec, int isdata, 
   card.category_ = category;
   card.lum_ = xs.GetLuminosity(year);
   TString filepath = treepath + card.fname_;
-  TFile* f = TFile::Open(filepath.Data(),"READ");
+  TFile* f = nullptr;
+  TString tmp_dir = "/tmp/clfv_tmp_prefetch"; //FIXME: should this include the user in the name?
+  if(preFetch_) {
+    gSystem->Exec(Form("[ ! -d %s ] && mkdir %s", tmp_dir.Data(), tmp_dir.Data()));
+    TString copy_command = Form("[ ! -f %s/%s ] && xrdcp -f %s %s/%s", tmp_dir.Data(), card.fname_.Data(),
+                                filepath.Data(), tmp_dir.Data(), card.fname_.Data());
+    gSystem->Exec(copy_command.Data());
+    f = TFile::Open(Form("%s/%s", tmp_dir.Data(), card.fname_.Data()), "READ");
+  } else {
+    f = TFile::Open(filepath.Data(),"READ");
+  }
   if(!f) {
     printf("File %s not found, returning\n",filepath.Data());
     return 1;
@@ -311,6 +322,10 @@ Int_t process_card(TString treepath, TString filename, double xsec, int isdata, 
   card.filepath_ = filepath;
   int status = process_single_card(card, config, f);
   f->Close();
-
+  if(preFetch_) {
+    TString rm_command = Form("[ ! -f %s/%s ] && rm %s/%s", tmp_dir.Data(), card.fname_.Data(),
+                              tmp_dir.Data(), card.fname_.Data());
+    gSystem->Exec(rm_command.Data());
+  }
   return 0;
 }

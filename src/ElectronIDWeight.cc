@@ -238,24 +238,25 @@ double ElectronIDWeight::IDWeight(double pt, double eta, int year,
   const double vertex_scale = vertexMap_[year];
   //FIXME: add vertex scale uncertainty (0.1% on 2017, so not large)
 
-  const double scale_factor = id_scale * reco_scale * vertex_scale;
+  double scale_factor = id_scale * reco_scale * vertex_scale;
 
   if(scale_factor <= 0. || verbose_ > 0) {
     if(scale_factor <= 0.) std::cout << "Warning! Scale factor <= 0! ";
     std::cout << "ElectronIDWeight::" << __func__
               << " year = " << year
-              << " id_scale = " << id_scale
-              << " reco_scale = " << reco_scale
-              << " vertex_scale = " << vertex_scale
+              << "; id_scale = " << id_scale << " +- " << id_error
+              << "; reco_scale = " << reco_scale << " +- " << reco_error
+              << "; vertex_scale = " << vertex_scale
               << std::endl;
   }
   //calculate the +- 1 sigma weights
   //FIXME: Currently just combining vertex scale and reco scale
-  weight_id = id_scale; weight_rec = vertex_scale * reco_scale;
-  weight_up_id    = id_scale + id_error;
-  weight_down_id  = id_scale - id_error;
-  weight_up_rec   = vertex_scale * (reco_scale + reco_error);
-  weight_down_rec = vertex_scale * (reco_scale - reco_error);
+  weight_id = std::max(0., id_scale); weight_rec = std::max(0., vertex_scale * reco_scale);
+  weight_up_id    = std::max(0., id_scale + id_error);
+  weight_down_id  = std::max(0., id_scale - id_error);
+  weight_up_rec   = vertex_scale * std::max(0., reco_scale + reco_error);
+  weight_down_rec = vertex_scale * std::max(0., reco_scale - reco_error);
+  scale_factor = weight_id * weight_rec;
 
   return scale_factor;
 }
@@ -289,9 +290,11 @@ double ElectronIDWeight::EmbedEnergyScale(double pt, double eta, int year, float
 }
 
 //-------------------------------------------------------------------------------------------------------------------------
-double ElectronIDWeight::TriggerEff(double pt, double eta, int year, int WP, float& data_eff, float& mc_eff) {
-  data_eff = 0.5; //safer default than 0 or 1, as eff and 1-eff are well defined in ratios
-  mc_eff = 0.5;
+double ElectronIDWeight::TriggerEff(double pt, double eta, int year, int WP, float& data_eff, float& mc_eff,
+                      float& data_up, float& mc_up, float& data_down, float& mc_down) {
+  data_eff = 0.5f; //safer default than 0 or 1, as eff and 1-eff are well defined in ratios
+  mc_eff = 0.5f;
+  data_up = 0.5f; mc_up = 0.5f; data_down = 0.5f; mc_down = 0.5f;
   if(year > 2000) year -= 2016;
   if(year != k2016 && year != k2017 && year != k2018) {
     std::cout << "Warning! Undefined year in " << __func__ << ", returning -1" << std::endl;
@@ -324,19 +327,29 @@ double ElectronIDWeight::TriggerEff(double pt, double eta, int year, int WP, flo
   if(interpolate_) {
     data_eff = Utilities::Interpolate(hTrigData, eta, pt, Utilities::kYAxis);
     mc_eff   = Utilities::Interpolate(hTrigMC  , eta, pt, Utilities::kYAxis);
+    data_up = data_eff; data_down = data_eff;
+    mc_up = mc_eff; mc_down = mc_eff;
   } else {
     const int data_bin_x = std::max(1, std::min(hTrigData->GetNbinsX(), hTrigData->GetXaxis()->FindBin(eta)));
     const int data_bin_y = std::max(1, std::min(hTrigData->GetNbinsY(), hTrigData->GetYaxis()->FindBin(pt )));
-    data_eff = hTrigData->GetBinContent(data_bin_x, data_bin_y);
+    data_eff  = hTrigData->GetBinContent(data_bin_x, data_bin_y);
+    data_up   = data_eff + hTrigData->GetBinError(data_bin_x, data_bin_y);
+    data_down = data_eff - hTrigData->GetBinError(data_bin_x, data_bin_y);
     const int mc_bin_x   = std::max(1, std::min(hTrigMC  ->GetNbinsX(), hTrigMC  ->GetXaxis()->FindBin(eta)));
     const int mc_bin_y   = std::max(1, std::min(hTrigMC  ->GetNbinsY(), hTrigMC  ->GetYaxis()->FindBin(pt )));
-    mc_eff   = hTrigMC  ->GetBinContent(mc_bin_x  , mc_bin_y  );
+    mc_eff  = hTrigMC->GetBinContent(mc_bin_x  , mc_bin_y  );
+    mc_up   = mc_eff + hTrigMC->GetBinError(mc_bin_x  , mc_bin_y  );
+    mc_down = mc_eff - hTrigMC->GetBinError(mc_bin_x  , mc_bin_y  );
   }
 
   //ensure reasonable efficiencies
   const float min_eff = 1.e-4;
-  data_eff = std::min(1.f - min_eff, std::max(min_eff, data_eff));
-  mc_eff   = std::min(1.f - min_eff, std::max(min_eff, mc_eff  ));
+  data_eff  = std::min(1.f - min_eff, std::max(min_eff, data_eff ));
+  mc_eff    = std::min(1.f - min_eff, std::max(min_eff, mc_eff   ));
+  data_up   = std::min(1.f - min_eff, std::max(min_eff, data_up  ));
+  mc_up     = std::min(1.f - min_eff, std::max(min_eff, mc_up    ));
+  data_down = std::min(1.f - min_eff, std::max(min_eff, data_down));
+  mc_down   = std::min(1.f - min_eff, std::max(min_eff, mc_down  ));
 
   const double scale_factor = (mc_eff > 0.) ? data_eff / mc_eff : 1.;
   if(scale_factor <= 0. || verbose_ > 0) {

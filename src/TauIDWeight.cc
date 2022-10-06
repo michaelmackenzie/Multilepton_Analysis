@@ -3,7 +3,7 @@
 using namespace CLFV;
 
 //-------------------------------------------------------------------------------------------------------------
-TauIDWeight::TauIDWeight(bool isEmbed, int verbose) : isEmbed_(isEmbed), verbose_(verbose) {
+TauIDWeight::TauIDWeight(bool isEmbed, TString selection, int verbose) : isEmbed_(isEmbed), selection_(selection), verbose_(verbose) {
   std::vector<TString> file_regions;
 
   typedef std::pair<TString,TString> fpair;
@@ -39,9 +39,9 @@ TauIDWeight::TauIDWeight(bool isEmbed, int verbose) : isEmbed_(isEmbed), verbose
   /////////////////////////////////
 
   std::map<int, fpair> tauEleIDFileNames;
-  tauEleIDFileNames[k2016]    = fpair("TauID_SF_eta_DeepTau2017v2p1VSe_2016Legacy.root","Tight"); //use etau selection ID
-  tauEleIDFileNames[k2017]    = fpair("TauID_SF_eta_DeepTau2017v2p1VSe_2017ReReco.root","Tight");
-  tauEleIDFileNames[k2018]    = fpair("TauID_SF_eta_DeepTau2017v2p1VSe_2018ReReco.root","Tight");
+  tauEleIDFileNames[k2016]    = fpair("TauID_SF_eta_DeepTau2017v2p1VSe_2016Legacy.root", (selection_ == "etau") ? "VTight"/*"Tight"*/ : "Loose"); //Tighter ID in etau selection
+  tauEleIDFileNames[k2017]    = fpair("TauID_SF_eta_DeepTau2017v2p1VSe_2017ReReco.root", (selection_ == "etau") ? "VTight"/*"Tight"*/ : "Loose");
+  tauEleIDFileNames[k2018]    = fpair("TauID_SF_eta_DeepTau2017v2p1VSe_2018ReReco.root", (selection_ == "etau") ? "VTight"/*"Tight"*/ : "Loose");
   for(int period = k2016; period <= k2018; ++period) {
     if(tauEleIDFileNames[period].first == "") continue;
     TFile* f = TFile::Open((tauScaleFactorPath + tauEleIDFileNames[period].first).Data(),"READ");
@@ -123,7 +123,7 @@ TauIDWeight::~TauIDWeight() {
 //-------------------------------------------------------------------------------------------------------------
 //correction for the tau ID
 double TauIDWeight::IDWeight(double pt, double eta, int genID, UChar_t antiJet, int year,
-                             float& up, float& down
+                             float& up, float& down, int& bin
                              ) {
   if(year > 2000) year -= 2016;
   if(year != k2016 && year != k2017 && year != k2018) {
@@ -135,21 +135,27 @@ double TauIDWeight::IDWeight(double pt, double eta, int genID, UChar_t antiJet, 
   up = 1.; down = 1.;
   const int antiJetBit = BitFromID(antiJet);
   const int antiJetIndex = (antiJetBit >= kTight) ? kTight : kVLoose; //tight or loose tau
+  bin = 1;
   if(genID == 5) { //genuine tau
     scale_factor  = tauJetIDMap[year][antiJetIndex]->Eval(pt);
     up            = tauJetUpIDMap[year][antiJetIndex]->Eval(pt);
     down          = tauJetDownIDMap[year][antiJetIndex]->Eval(pt);
+    //Binning set by TF1 function definition, converted here
+    bin = (pt>20.) + (pt>25.) + (pt>30.) + (pt>35.) + (pt>40.); //5 bins / year
   } else if(genID == 1) { //genuine electron -> tau
-    const int bin = std::max(1, std::min(tauEleIDMap[year]->GetNbinsX(), tauEleIDMap[year]->FindBin(std::fabs(eta))));
+    bin           = std::max(1, std::min(tauEleIDMap[year]->GetNbinsX(), tauEleIDMap[year]->FindBin(std::fabs(eta))));
     scale_factor  = tauEleIDMap[year]->GetBinContent(bin);
     up            = scale_factor + tauEleIDMap[year]->GetBinError(bin);
     down          = scale_factor - tauEleIDMap[year]->GetBinError(bin);
   } else if(genID == 2) { //genuine muon -> tau
-    const int bin = std::max(1, std::min(tauMuIDMap[year]->GetNbinsX(), tauMuIDMap[year]->FindBin(std::fabs(eta))));
+    bin           = std::max(1, std::min(tauMuIDMap[year]->GetNbinsX(), tauMuIDMap[year]->FindBin(std::fabs(eta))));
     scale_factor  = tauMuIDMap[year]->GetBinContent(bin);
     up            = scale_factor + tauMuIDMap[year]->GetBinError(bin);
     down          = scale_factor - tauMuIDMap[year]->GetBinError(bin);
   }
+
+  //reset bin to be 0-x
+  bin -= 1;
 
   if(scale_factor <= 0. || verbose_ > 0) {
     if(scale_factor <= 0.) std::cout << "Warning! Scale factor <= 0! ";
@@ -171,7 +177,7 @@ double TauIDWeight::IDWeight(double pt, double eta, int genID, UChar_t antiJet, 
 double TauIDWeight::EnergyScale(double pt, double eta, int dm, int genID, UChar_t antiJet, int year, float& up, float& down) {
   if(year > 2000) year -= 2016;
   double scale_factor = 1.;
-  up = 1.; down = 1.;
+  up = 1.f; down = 1.f;
   const double pt_low = 34.;
   const double pt_high = 170.;
   //only defined for certain decay modes

@@ -110,7 +110,10 @@ TH1* DataPlotter::get_data_mc_diff(TString hist, TString setType, Int_t set) {
   }
 
   //get the data histogram
+  const Int_t tmpRebin = rebinH_;
+  rebinH_ = 1; //don't rebin the data yet
   TH1* hData = get_data(hist, setType, set);
+  rebinH_ = tmpRebin;
   if(!hData) return nullptr;
 
   //redefine the data histogram as the Difference histogram
@@ -530,156 +533,6 @@ TH2* DataPlotter::get_background_2D(TString hist, TString setType, Int_t set) {
 //   return h;
 // }
 
-// //--------------------------------------------------------------------------------------------------------------------
-// TH2* DataPlotter::get_data_2D(TString hist, TString setType, Int_t set) {
-//   {
-//     auto o = gDirectory->Get("hData");
-//     if(o) delete o;
-//   }
-//   TH2* d = 0;
-//   for(UInt_t i = 0; i < data_.size(); ++i) {
-//     if(!isData_[i]) continue;
-//     TH2* tmp = (TH2*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set, hist.Data()));
-//     if(!tmp) continue;
-//     if(!d) d = tmp;
-//     else d->Add(tmp);
-//   }
-//   if(!d) return nullptr;
-//   d->SetLineWidth(2);
-//   d->SetMarkerStyle(20);
-//   const char* stats = (doStatsLegend_) ? Form(": #scale[0.8]{%.2e}", d->Integral((density_plot_ > 0) ? "width" : "")
-//                                               +d->GetBinContent(0)+d->GetBinContent(d->GetNbinsX()+1)) : "";
-//   d->SetTitle(Form("Data%s",stats));
-//   d->SetName("hData");
-//   if(rebinH_ > 0) {
-//     d->RebinX(rebinH_);
-//     d->RebinY(rebinH_);
-//   }
-
-//   return d;
-// }
-
-// //--------------------------------------------------------------------------------------------------------------------
-// TH2* DataPlotter::get_qcd_2D(TString hist, TString setType, Int_t set) {
-//   {
-//     auto o = gDirectory->Get(Form("qcd_%s_%s_%i", hist.Data(), setType.Data(), set));
-//     if(o) delete o;
-//   }
-
-//   //check if already doing qcd histogram, and if so return nothing
-//   if((set >= qcd_offset_ && set < misid_offset_) || set >= misid_offset_ + qcd_offset_) return nullptr;
-
-//   const Int_t set_qcd = set + qcd_offset_;
-
-//   TH2* hData = get_data_2D(hist, setType, set_qcd);
-//   if(!hData) return hData;
-//   hData->SetName(Form("qcd_%s_%s_%i",hist.Data(), setType.Data(), set));
-//   const double ndata = hData->Integral((density_plot_ > 0) ? "width" : ""); // FIXME: Add overflow to integral
-//   TH2* hMC = 0;
-//   for(UInt_t i = 0; i < data_.size(); ++i) {
-//     if(isData_[i]) continue; //skip data for MC histogram
-//     if(isSignal_[i]) continue; //skip signals for MC histogram
-//     TH2* htmp = (TH2*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set_qcd, hist.Data()));
-//     if(!htmp) continue;
-//     htmp = (TH2*) htmp->Clone("tmp");
-//     // htmp->SetBit(kCanDelete);
-//     htmp->Scale(scale_[i]);
-//     if(rebinH_ > 0) {
-//       htmp->RebinX(rebinH_);
-//       htmp->RebinY(rebinH_);
-//     }
-//     if(hMC) hMC->Add(htmp);
-//     else hMC = (TH2*) htmp->Clone(Form("qcd_%s_%s_%i", hist.Data(), setType.Data(), set));
-//     delete htmp;
-//   }
-//   TH2* hMisID = (include_misid_) ? get_misid_2D(hist, setType, set_qcd) : 0;
-//   if(!hMC) hMC = hMisID;
-//   else if(hMisID) hMC->Add(hMisID);
-
-//   if(!hMC) {
-//     std::cout << "Warning! No 2D MC histogram found when calculating QCD histogram in set "
-//               << set_qcd << std::endl;
-//     return nullptr;
-//   }
-//   hData->Add(hMC, -1.);
-//   double nmc = hMC->Integral((density_plot_ > 0) ? "width" : ""); //FIXME: Add overflow to integral
-
-//   delete hMC;
-
-//   //set all bins >= 0, including over/underflow
-//   for(int xbin = 0; xbin <= hData->GetNbinsX()+1; ++xbin) {
-//     for(int ybin = 0; ybin <= hData->GetNbinsY()+1; ++ybin) {
-//       if(hData->GetBinContent(xbin, ybin) < 0.)
-//         hData->SetBinContent(xbin, ybin,0.);
-//     }
-//   }
-//   // hData->SetBit(kCanDelete);
-//   double nqcd = hData->Integral((density_plot_ > 0) ? "width" : ""); //FIXME: Add overflow to integral
-//   if(nqcd > 0.)
-//     hData->Scale(qcd_scale_*(ndata-nmc)/nqcd); //ensure N(QCD) doesn't change from cutting off negative value bins, so not hist dependent
-//   nqcd = hData->Integral((density_plot_ > 0) ? "width" : ""); //FIXME: Add overflow to integral
-
-//   return hData;
-// }
-
-// //--------------------------------------------------------------------------------------------------------------------
-// TH2* DataPlotter::get_misid_2D(TString hist, TString setType, Int_t set) {
-//   {
-//     auto o = gDirectory->Get(Form("misid_%s_%s_%i", hist.Data(), setType.Data(), set));
-//     if(o) delete o;
-//   }
-
-//   Int_t set_misid = set + misid_offset_;
-//   if(set_misid < 0) return nullptr;
-
-//   TH2* hData = get_data_2D(hist, setType, set_misid);
-//   if(!hData) return hData;
-//   hData->SetName(Form("misid_%s_%s_%i",hist.Data(), setType.Data(), set));
-//   double ndata = hData->Integral((density_plot_ > 0) ? "width" : ""); //FIXME: Add overflow to integral
-//   TH2* hMC = 0;
-//   for(UInt_t i = 0; i < data_.size(); ++i) {
-//     if(isData_[i]) continue; //skip data for MC histogram
-//     if(isSignal_[i]) continue; //skip signals for MC histogram
-//     TH2* htmp = (TH2*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set_misid, hist.Data()));
-//     if(!htmp) continue;
-//     htmp = (TH2*) htmp->Clone("tmp");
-//     // htmp->SetBit(kCanDelete);
-//     htmp->Scale(scale_[i]);
-//     if(rebinH_ > 0) {
-//       htmp->RebinX(rebinH_);
-//       htmp->RebinY(rebinH_);
-//     }
-//     // if(rebinH_ > 0) htmp->Rebin(rebinH_);
-//     if(hMC) hMC->Add(htmp);
-//     else hMC = (TH2*) htmp->Clone(Form("misid_%s_%s_%i", hist.Data(), setType.Data(), set));
-//     delete htmp;
-//   }
-//   if(!hMC) {
-//     std::cout << "Warning! No 2D MC histogram found when calculating Anti-Iso histogram in set "
-//               << set_misid << std::endl;
-//     return nullptr;
-//   }
-//   hData->Add(hMC, -1.);
-//   double nmc = hMC->Integral((density_plot_ > 0) ? "width" : ""); //FIXME: Add overflow to integral
-
-//   delete hMC;
-
-//   //set all bins >= 0, including over/underflow
-//   for(int xbin = 0; xbin <= hData->GetNbinsX()+1; ++xbin) {
-//     for(int ybin = 0; ybin <= hData->GetNbinsY()+1; ++ybin) {
-//       if(hData->GetBinContent(xbin, ybin) < 0.)
-//         hData->SetBinContent(xbin, ybin, 0.);
-//     }
-//   }
-//   // hData->SetBit(kCanDelete);
-//   double nmisid = hData->Integral((density_plot_ > 0) ? "width" : ""); //FIXME: Add overflow to integral
-//   if(nmisid > 0.)
-//     hData->Scale((ndata-nmc)/nmisid); //ensure N(Anit-Iso) doesn't change from cutting off negative value bins, so not hist dependent
-//   nmisid = hData->Integral((density_plot_ > 0) ? "width" : ""); //FIXME: Add overflow to integral
-
-//   return hData;
-// }
-
 //--------------------------------------------------------------------------------------------------------------------
 TH1* DataPlotter::get_stack_uncertainty(THStack* hstack, TString hname) {
   if(!hstack || hstack->GetNhists() == 0)
@@ -705,53 +558,6 @@ TH1* DataPlotter::get_stack_uncertainty(THStack* hstack, TString hname) {
   }
   return huncertainty;
 }
-
-// //--------------------------------------------------------------------------------------------------------------------
-// TH2* DataPlotter::get_background_2D(TString hist, TString setType, Int_t set) {
-//   TH2* hBkg = 0;
-//   TH2* hQCD = (include_qcd_) ? get_qcd_2D(hist,setType,set) : nullptr;
-//   TH2* hMisID = (include_misid_) ? get_misid_2D(hist,setType,set) : nullptr;
-//   if(hQCD && verbose_ > 0) std::cout << "QCD histogram has integral " << hQCD->Integral() << std::endl;
-//   if(hMisID && verbose_ > 0) std::cout << "MisID histogram has integral " << hMisID->Integral() << std::endl;
-//   {
-//     auto o = gDirectory->Get(Form("%s",hist.Data()));
-//     if(o) delete o;
-//   }
-
-//   if(debug_ || verbose_ > 0)
-//     printf("%s: entry name label scale\n", __func__);
-//   for(UInt_t i = 0; i < data_.size(); ++i) {
-//     if(debug_ || verbose_ > 0)
-//       printf("%s: index = %i name = %s label = %s scale = %.4f\n", __func__,
-//              i, names_[i].Data(), labels_[i].Data(), scale_[i]);
-
-//     if(isData_[i]) continue;
-//     if(isSignal_[i]) continue;
-
-//     TH2* h = (TH2*) data_[i]->Get(Form("%s_%i/%s",setType.Data(), set, hist.Data()));
-//     if(!h) {
-//       printf("%s: Histogram %s/%s/%i for %s (%s) %i not found! Continuing...\n",
-//              __func__, hist.Data(), setType.Data(), set, names_[i].Data(), labels_[i].Data(), dataYear_[i]);
-//       continue;
-//     }
-//     auto o = gDirectory->Get("tmp");
-//     if(o) delete o;
-//     h = (TH2*) h->Clone("tmp");
-//     h->Scale(scale_[i]);
-//     // if(rebinH_ > 0) h->Rebin(rebinH_);
-//     if(!hBkg) {
-//       hBkg = h;
-//       hBkg->SetName(Form("%s_%s_%i", hist.Data(), setType.Data(), set));
-//     } else {
-//       hBkg->Add(h);
-//       delete h;
-//     }
-//   }
-//   if(hMisID) hBkg->Add(hMisID);
-//   if(hQCD) hBkg->Add(hQCD);
-//   // hBkg->SetBit(kCanDelete);
-//   return hBkg;
-// }
 
 // //--------------------------------------------------------------------------------------------------------------------
 // TCanvas* DataPlotter::plot_single_2Dhist(TString hist, TString setType, Int_t set, TString label) {

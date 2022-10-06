@@ -30,7 +30,8 @@ namespace CLFV {
     void IDWeight(double pt, double eta, int year, int mcEra,
                   float& weight_id , float& weight_up_id , float& weight_down_id , int& ibin_id,
                   float& weight_iso, float& weight_up_iso, float& weight_down_iso, int& ibin_iso);
-    double TriggerEff(double pt, double eta, int year, bool isLow, int mcEra, float& data_eff, float& mc_eff);
+    double TriggerEff(double pt, double eta, int year, bool isLow, int mcEra, float& data_eff, float& mc_eff,
+                      float& data_up, float& mc_up, float& data_down, float& mc_down);
 
   public:
     enum { k2016, k2017, k2018};

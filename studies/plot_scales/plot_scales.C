@@ -223,7 +223,8 @@ TCanvas* plot_scale(TH1* hID, TString cname) {
 //////////////////////////////////////////////////
 // Plot the scale factors/errors
 //////////////////////////////////////////////////
-TCanvas* plot_scale(TH2* hID, TString cname, bool error) {
+TCanvas* plot_scale(TH2* hID, TString cname, bool error, bool dotext = false) {
+  gStyle->SetPaintTextFormat(".2f");
   double min_val(1.e10), max_val(-1.);
   for(int xbin = 1; xbin <= hID->GetNbinsX(); ++xbin) {
     for(int ybin = 1; ybin <= hID->GetNbinsY(); ++ybin) {
@@ -239,7 +240,7 @@ TCanvas* plot_scale(TH2* hID, TString cname, bool error) {
   hID->GetZaxis()->SetRangeUser(0.95*min_val, 1.05*max_val);
   if(error) cname += "_err";
   TCanvas* c = new TCanvas(cname.Data(), cname.Data(), 1000, 700);
-  hID->Draw("colz");
+  hID->Draw((dotext) ? "colz text" : "colz");
   hID->GetXaxis()->SetTitleSize(0.05);
   hID->GetYaxis()->SetTitleSize(0.05);
   if(error) hID->SetTitle(Form("%s errors", hID->GetTitle()));
@@ -429,7 +430,7 @@ TCanvas* plot_electron_scale(int year, bool error = false) {
   }
   hID->SetDirectory(0);
   f->Close();
-  return plot_scale(hID, Form("c_elec_id_%i", year), error);
+  return plot_scale(hID, Form("c_elec_id_%i", year), error, true);
 }
 
 //////////////////////////////////////////////////
@@ -591,20 +592,26 @@ TCanvas* plot_embedding_kit_scale(int year, int Mode, bool isMuon) {
 }
 
 TCanvas* plot_embedding_unfold_scale(int year, int Mode) {
-  TString path = Form("../../scale_factors/htt_scalefactors_legacy_%i.root", year);
+  const bool use_ic = (Mode %  100) /  10 == 1;
+  const bool use_2  = (Mode % 1000) / 100 == 1;
+  Mode %= 10;
+  TString path = Form("../../scale_factors/htt_%sscalefactors_legacy_%i.root", (use_ic) ? "ic_" : "", year);
   TFile* f = TFile::Open(path.Data(), "READ");
   if(!f) return NULL;
   RooWorkspace* w = (RooWorkspace*) f->Get("w");
   if(!w) return NULL;
-  RooRealVar* pt_1  = (RooRealVar*) w->obj("gt1_pt" );
-  RooRealVar* eta_1 = (RooRealVar*) w->obj("gt1_eta");
-  // RooRealVar* pt_2  = (RooRealVar*) w->obj("gt2_pt" );
-  // RooRealVar* eta_2 = (RooRealVar*) w->obj("gt2_eta");
-  RooHistFunc* hist = (RooHistFunc*) w->obj(Form("m_sel_trg%i_1_%sdata", (Mode == 0) ? 17 : 8, (year == 2016) ? "kit_" : ""));
+  RooRealVar* pt    = (RooRealVar*) w->obj(Form("gt%i_pt" , (use_2) ? 2 : 1));
+  RooRealVar* eta   = (RooRealVar*) w->obj(Form("gt%i_eta", (use_2) ? 2 : 1));
+  RooHistFunc* hist = (RooHistFunc*) w->obj(Form("m_sel_trg%s%i_%s%i_%sdata",
+                                                 (use_ic) ? "_" : "",
+                                                 (Mode == 0) ? 17 : 8,
+                                                 (use_ic) ? "ic_" : "",
+                                                 (use_2) ? 2 : 1,
+                                                 (year == 2016 && !use_ic) ? "kit_" : ""));
 
-  if(!hist || !pt_1 || !eta_1 /*|| !pt_2 || !eta_2*/) return NULL;
+  if(!hist || !pt || !eta) return NULL;
 
-  TString cname = Form("embed_kit_unfold_%i_%i", year, Mode);
+  TString cname = Form("embed_%s_unfold_%i_%i%s", (use_ic) ? "ic" : "kit", year, Mode, (use_2) ? "_tau-2" : "");
   TCanvas* c = new TCanvas(cname.Data(), cname.Data(), 1000, 700);
 
   vector<double> eta_bins = {0., 0.9, 1.2, 2.1, 2.4};
@@ -612,10 +619,10 @@ TCanvas* plot_embedding_unfold_scale(int year, int Mode) {
   TLegend* leg = new TLegend(0.75, 0.6, 0.9, 0.9);
   int colors[] = {kRed, kBlue, kGreen, kViolet, kOrange, kYellow+2,
                   kAtlantic, kGreen+2, kRed+2, kBlue+2, kViolet-2};
-  auto frame = pt_1->frame(8., 500.);
+  auto frame = pt->frame(8., 500.);
   if(!frame) return NULL;
   for(int ibin = 1; ibin < eta_bins.size(); ++ibin) {
-    eta_1->setVal((eta_bins[ibin - 1] + eta_bins[ibin])/2.);
+    eta->setVal((eta_bins[ibin - 1] + eta_bins[ibin])/2.);
     hist->plotOn(frame, RooFit::LineColor(colors[ibin-1]), RooFit::Name(Form("bin_%i", ibin)));
   }
   frame->Draw();
@@ -826,7 +833,7 @@ void plot_scales(int only_year = -1) {
     }
 
     //Embedding TnP scale factors
-    for(int period = -1; period < (year != 2017)*2; ++period) { //B-F and G-H specific scale factors for 2016
+    for(int period = -1; period < (year == 2016)*2; ++period) { //B-F and G-H specific scale factors for 2016
       c = plot_embedding_scale    (year, 0, false, period); if(c) delete c; //electron trigger
       c = plot_embedding_scale    (year, 1, false, period); if(c) delete c; //electron ID
       c = plot_embedding_scale    (year, 2, false, period); if(c) delete c; //electron Iso ID
@@ -838,6 +845,7 @@ void plot_scales(int only_year = -1) {
       c = plot_embedding_scale    (year, 3, true , period); if(c) delete c; //muon Loose + !Tight iso ID
       c = plot_embedding_scale    (year, 4, true , period); if(c) delete c; //muon trigger, Loose + !Tight iso ID
     }
+
     //Embedding KIT scales
     c = plot_embedding_kit_scale(year, 0, false); if(c) delete c; //electron trigger
     c = plot_embedding_kit_scale(year, 1, false); if(c) delete c; //electron ID
@@ -847,8 +855,14 @@ void plot_scales(int only_year = -1) {
     c = plot_embedding_kit_scale(year, 2, true ); if(c) delete c; //muon iso ID
 
     //Embedding unfolding corrections
-    c = plot_embedding_unfold_scale(year, 0); if(c) delete c; //Mu17 leg
-    c = plot_embedding_unfold_scale(year, 1); if(c) delete c; //Mu8  leg
-
+    c = plot_embedding_unfold_scale(year,   0); if(c) delete c; //Mu17 leg
+    c = plot_embedding_unfold_scale(year,   1); if(c) delete c; //Mu8  leg
+    // c = plot_embedding_unfold_scale(year, 100); if(c) delete c; //Mu17-2 leg
+    // c = plot_embedding_unfold_scale(year, 101); if(c) delete c; //Mu8-2  leg
+    //Imperial college version
+    c = plot_embedding_unfold_scale(year,  10); if(c) delete c; //Mu17 leg
+    c = plot_embedding_unfold_scale(year,  11); if(c) delete c; //Mu8  leg
+    // c = plot_embedding_unfold_scale(year, 110); if(c) delete c; //Mu17-2 leg
+    // c = plot_embedding_unfold_scale(year, 111); if(c) delete c; //Mu8-2  leg
   }
 }

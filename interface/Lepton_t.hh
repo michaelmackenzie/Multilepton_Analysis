@@ -19,6 +19,10 @@ namespace CLFV {
     float d0;
     float dxySig;
     float dzSig;
+    //associated track info
+    float trkpt;
+    float trketa;
+    float trkphi;
 
     UChar_t id1;
     UChar_t id2;

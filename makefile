@@ -1,3 +1,4 @@
+CC       := c++
 CXX      := g++
 LD       := g++
 CXXFLAGS := -Wall -Wextra -Werror -O2 -std=c++1y -g -I./ $(shell root-config --cflags) -lTMVA
@@ -8,17 +9,29 @@ OBJS     := $(SRC:src/%.cc=obj/lib/%.o)
 BINOBJS  := $(BINSRC:src/%.cpp=obj/bin/%.o)
 BINS 	 := $(BINSRC:src/%.cpp=bin/%)
 LIB 	 := lib/libCLFVAnalysis.so
+LIBNAME  := CLFVAnalysis
+PARENT_DIR := $(shell pwd)/../
+SRC_DIR    := src
+INC_DIR    := interface
+LIB_DIR    := lib
+PROG_DIR   := bin
+EXE_DIR    := exe
+OBJ_DIR    := obj
 
 -include $(OBJS:.o=.d)
 -include $(BINOBJS:.o=.d)
 
+dirs:
+	@mkdir -p obj/lib
+	@mkdir -p lib
+	@mkdir -p obj/bin
+	@mkdir -p bin
+
 obj/lib/%.o: src/%.cc
-	if [[ ! -d obj/lib ]]; then mkdir -p obj/lib; fi; if [[ ! -d lib ]]; then mkdir lib; fi;
 	$(CXX) $(CXXFLAGS) -fPIC -c $< -o $@
 	$(CXX) $(CXXFLAGS) -MM -MP -MT $@ $< -o $(@:.o=.d)
 
 obj/bin/%.o: src/%.cpp
-	if [[ ! -d obj/bin ]]; then mkdir -p obj/bin; fi; if [[ ! -d bin ]]; then mkdir bin; fi;
 	$(CXX) $(CXXFLAGS) -fPIC -c $< -o $@
 	$(CXX) $(CXXFLAGS) -MM -MP -MT $@ $< -o $(@:.o=.d)
 
@@ -27,10 +40,10 @@ lib/CLFVAnalysis_xr.cc:
 	genreflex src/classes.h -s src/classes_def.xml -o lib/CLFVAnalysis_xr.cc --deep --fail_on_warnings \
 	--rootmap=lib/CLFVAnalysis_xr.rootmap --rootmap-lib=lib/libCLFVAnalysis.so --capabilities=lib/CLFVAnalysis_xi.cc \
 	-DCMS_DICT_IMPL -D_REENTRANT -DGNUSOURCE -D__STRICT_ANSI__ -DGNU_GCC -D_GNU_SOURCE \
-	-I../../ -DCMSSW_REFLEX_DICT
+	-I$(PARENT_DIR) -DCMSSW_REFLEX_DICT
 
 lib/CLFVAnalysis_xr.cc.o: lib/CLFVAnalysis_xr.cc
-	c++ -MMD -MF lib/CLFVAnalysis_xr.cc.d -c -I../../ -I./ -DGNU_GCC -D_GNU_SOURCE $(shell root-config --cflags)  \
+	$(CC) -MMD -MF lib/CLFVAnalysis_xr.cc.d -c -I$(PARENT_DIR) -I./ -DGNU_GCC -D_GNU_SOURCE $(shell root-config --cflags)  \
 	-DCMSSW_REFLEX_DICT -pthread -Os -Wno-unused-variable -g -fPIC lib/CLFVAnalysis_xr.cc -o lib/CLFVAnalysis_xr.cc.o
 
 
@@ -40,7 +53,12 @@ $(LIB): $(OBJS) lib/CLFVAnalysis_xr.cc.o
 bin/%: obj/bin/%.o $(LIB)
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-all: $(LIB)
+exe: $(addprefix $(EXE_DIR)/,$(EXES))
+	@echo "*** Compiling executables..."
+$(EXE_DIR)/% : $(PROG_DIR)/%.cpp lib
+	$(CC) $< -o $@ $(CCFLAGS) -L $(LIB_DIR) -l $(LIBNAME) -I $(INC_DIR) -I $(SRC_DIR) -I $(PARENT_DIR) $(LIB)
+
+all: dirs $(LIB)
 
 test: $(LIB) $(BINS)
 
@@ -53,4 +71,8 @@ test: $(LIB) $(BINS)
 .DEFAULT_GOAL := all
 
 clean:
-	rm obj/lib/* lib/* src/*~ interface/*~
+	@rm -rf $(OBJ_DIR)
+	@rm -rf $(EXE_DIR)
+	@rm -rf $(LIB_DIR)
+	@rm src/*~
+	@rm interface/*~
