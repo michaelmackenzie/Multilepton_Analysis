@@ -9,7 +9,10 @@ int test_sys_ = -1; //set to systematic number if debugging/inspecting it
 bool blind_data_ = true; //set data bins > MVA score level to 0
 bool ignore_sys_ = false; //don't get systematics
 bool use_dev_mva_ = false; //use the extra MVA hist for development, mva?_1
-bool do_same_flavor_ = false; //retrieve Z->ll control region data
+bool do_same_flavor_ = true; //retrieve Z->ll control region data
+bool separate_years_ = true; //retrieve and store histograms by year
+
+int embed_mode_ = 1; //Nominal: 1; Definitions: 0: use DY MC; 1: use Embedding; 2: use Embedding except DY MC in emu
 
 int get_same_flavor_systematics(int set, TString hist, TH1* hdata, TFile* f) {
   int status(0);
@@ -136,10 +139,10 @@ int get_systematics(int set, TString hist, TH1* hdata, TFile* f, TString canvas_
   hdata_ratio->Divide(hbkg_);
 
   //Loop through each systematic, creating PDFs and example figures
-  for(int isys = (test_sys_ >= 0 ? test_sys_ : 0); isys < (test_sys_ >= 0 ? test_sys_ + 1 : kMaxSystematics); ++isys) {
+  for(int isys = (test_sys_ >= 0 ? test_sys_ : -2); isys < (test_sys_ >= 0 ? test_sys_ + 1 : kMaxSystematics); ++isys) {
 
     //Get background for the systematic
-    THStack* hstack = dataplotter_->get_stack(Form("%s_%i", hist.Data(), isys), "systematic", set);
+    THStack* hstack = dataplotter_->get_stack(Form("%s_%i", hist.Data(), max(0, isys)), "systematic", set);
     if(!hstack) {++status; continue;}
     if(!hstack->GetStack()) {++status; continue;}
     hstack->SetName(Form("hstack_sys_%i", isys));
@@ -147,7 +150,7 @@ int get_systematics(int set, TString hist, TH1* hdata, TFile* f, TString canvas_
     hbkg->SetName(Form("hbkg_sys_%i", isys));
 
     //Get the signals
-    vector<TH1*> signals = dataplotter_->get_signal(Form("%s_%i", hist.Data(), isys), "systematic", set);
+    vector<TH1*> signals = dataplotter_->get_signal(Form("%s_%i", hist.Data(), max(0, isys)), "systematic", set);
     if(signals.size() == 0) {++status; continue;}
 
     //Create an example plot with the systematic shift + ratio plot
@@ -156,6 +159,20 @@ int get_systematics(int set, TString hist, TH1* hdata, TFile* f, TString canvas_
     TPad* pad2 = new TPad("pad2", "pad2", 0., 0. , 1., 0.3);
     pad1->Draw(); pad2->Draw();
     pad1->cd();
+
+    //if isys < 0, plot the statistical uncertainty
+    if(isys < 0) {
+      for(int ibin = 1; ibin <= hbkg->GetNbinsX(); ++ibin) {
+        double bin_val = hbkg->GetBinContent(ibin);
+        double bin_err = hbkg->GetBinError(ibin);
+        hbkg->SetBinContent(ibin, (isys == -2) ? bin_val + bin_err : bin_val - bin_err);
+        for(TH1* signal : signals) {
+          bin_val = signal->GetBinContent(ibin);
+          bin_err = signal->GetBinError(ibin);
+          signal->SetBinContent(ibin, (isys == -2) ? bin_val + bin_err : bin_val - bin_err);
+        }
+      }
+    }
 
     //Get the systematic shift as a TGraph
     TGraph* g_bkg = dataplotter_->get_errors(hbkg_, hbkg, 0);
@@ -274,6 +291,7 @@ int get_individual_MVA_histogram(int set = 8, TString selection = "zmutau",
   //define parameters for dataplotter script
   TString selec = selection; selec.ReplaceAll("z", ""); selec.ReplaceAll("h", "");
   years_ = years;
+  useEmbed_ = (embed_mode_ == 2) ? !selection.Contains("_") : embed_mode_; //whether or not to use embedding
   status = nanoaod_init(selec, base, base);
   if(status) {
     cout << "DataPlotter initialization script returned " << status << ", exiting!\n";
@@ -385,21 +403,31 @@ int get_individual_MVA_histogram(int set = 8, TString selection = "zmutau",
 
 int get_MVA_histogram(vector<int> sets = {8}, TString selection = "zmutau",
                       vector<int> years = {2016, 2017, 2018},
-                      TString base = "nanoaods_dev") {
+                      TString base = "nanoaods_dev", int had_only = 0) {
   int status(0);
-  for(int set : sets) {
-    status += get_individual_MVA_histogram(set, selection, years, base);
-    if(test_sys_ < 0) { //only do one selection if debugging
-      if(selection.Contains("mutau"))
-        status += get_individual_MVA_histogram(set, selection+"_e", years, base);
-      else if(selection.Contains("etau"))
-        status += get_individual_MVA_histogram(set, selection+"_mu", years, base);
-    }
-    if(do_same_flavor_) {
-      cout << "Getting mumu histograms for set " << set << endl;
-      status += get_same_flavor_histogram(set, "mumu", years, base);
-      cout << "Getting ee histograms for set " << set << endl;
-      status += get_same_flavor_histogram(set, "ee"  , years, base);
+  //loop through the year list if separating years
+  for(int iyear = 0; iyear < ((separate_years_) ? years.size() : 1); ++iyear) {
+    vector<int> years_use;
+    if(separate_years_) years_use = {years[iyear]}; //do a single year at a time
+    else                years_use = years;
+    //loop through the histogram set list for fitting in categories
+    for(int set : sets) {
+      //get the hadronic tau region
+      if(had_only != -1) status += get_individual_MVA_histogram(set, selection, years_use, base);
+      //get the leptonic tau region
+      if(test_sys_ < 0 && had_only != 1) { //only do one selection if debugging
+        if(selection.Contains("mutau"))
+          status += get_individual_MVA_histogram(set, selection+"_e", years_use, base);
+        else if(selection.Contains("etau"))
+          status += get_individual_MVA_histogram(set, selection+"_mu", years_use, base);
+      }
+      //get the same-flavor control regions
+      if(do_same_flavor_ && had_only == 0) {
+        cout << "Getting mumu histograms for set " << set << endl;
+        status += get_same_flavor_histogram(set, "mumu", years_use, base);
+        cout << "Getting ee histograms for set " << set << endl;
+        status += get_same_flavor_histogram(set, "ee"  , years_use, base);
+      }
     }
   }
   return status;

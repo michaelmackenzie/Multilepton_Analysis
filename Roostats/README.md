@@ -195,12 +195,12 @@ root.exe -q -b "make_limit_plot.C(${HISTSTRING}, \"${SELECTION}\", ${YEAR})"
 Running on the combined search:
 ```
 cd datacards/${YEARSTRING}
-WORKSPACE=combine_mva_total_${SELECTION}_workspace.root
-text2workspace.py combine_mva_total_${SELECTION}_${HISTSTRING}.txt -o ${WORKSPACE}
+WORKSPACE=combine_mva_total_${SELECTION}_${YEARSTRING}_workspace.root
+text2workspace.py combine_mva_total_${SELECTION}_${HISTSTRING}_${YEARSTRING}.txt -o ${WORKSPACE}
 combineTool.py -M Impacts -d ${WORKSPACE} -m 0 --rMin -20 --rMax 20 --robustFit 1 --doInitialFit -t -1
 combineTool.py -M Impacts -d ${WORKSPACE} -m 0 --rMin -20 --rMax 20 --robustFit 1 --doFits -t -1
-combineTool.py -M Impacts -d ${WORKSPACE} -m 0 --rMin -20 --rMax 20 --robustFit 1 --output impacts_total_${SELECTION}_${HISTSTRING}.json -t -1
-plotImpacts.py -i impacts_total_${SELECTION}_${HISTSTRING}.json -o impacts_total_${SELECTION}_${HISTSTRING}
+combineTool.py -M Impacts -d ${WORKSPACE} -m 0 --rMin -20 --rMax 20 --robustFit 1 --output impacts_total_${SELECTION}_${HISTSTRING}_${YEARSTRING}.json -t -1
+plotImpacts.py -i impacts_total_${SELECTION}_${HISTSTRING}_${YEARSTRING}.json -o impacts_total_${SELECTION}_${HISTSTRING}_${YEARSTRING}
 ```
 
 Running on a single category:
@@ -295,4 +295,94 @@ root.exe -q -b "../../make_combine_limit_plot_channels.C(${HISTSTRING}, \"${SELE
 root.exe -q -b "../../make_combine_limit_plot_channels.C(${HISTSTRING}, \"${SELECTION}\", ${YEAR}, true, true)"
 #generate impacts
 ../../combine_channel_impacts.sh ${SELECTION} ${HISTSTRING}
+```
+
+## Higgs Combine notes
+
+Algorithm information:
+http://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/part3/commonstatsmethods/
+
+### AsymptoticLimits
+
+Options:
+
+--noFitAsimov: Don't fit the data before Asimov generation
+
+--run blind: don't use the observed data at all (including for nuisance parameter fits)
+
+### HybridNew
+
+Calculate limits using toys
+
+Options:
+
+--LHCmode: Standard test statistic/nuisance parameter treatment options, such as
+LHC-limits and LHC-sigificance for standard LHC CLs calculations
+
+--testStat: Set the test statistic (e.g. LEP, TeV, LHC)
+
+--generateNuisances=<0/1>
+
+--generateExternalMeasurements=<0/1>
+
+--fitNuisances=<0/1>
+
+LEP limits: --testStat LEP --generateNuisances=1 --fitNuisances=0
+
+TeV Limits: --testStat TEV --generateNuisances=0 --generateExternalMeasurements=1 --fitNuisances=1
+
+LHC limits: --testStat LHC --generateNuisances=0 --generateExternalMeasurements=1 --fitNuisances=1 (--LHCmode LHC-limits)
+
+Hybrid-Bayesian: --testStat [non-profiling test statistic] --generateNuisances=1 --generateExternalMeasurements=0 --fitNuisances=0
+
+-H: Method to use to get a hint of the limit to improve convergence time
+
+--rAbsAcc: accuracy on r for the limit
+
+--rRelAcc: relative accuracy on r for the limit
+
+--clsAcc: accuracy on the CLs value when finding the limit
+
+--singlePoint: study a single r value point
+
+--saveToys
+
+--saveHybridResults: save results for grid-running
+
+--readHybridResults: read results from grid-running
+
+--grid: merged output from grid point calculations
+
+grid-point example:
+`combine -d <card> -M HybridNew --LHCmode LHC-limits --singlePoint X --saveToys --saveHybridResults -T 500 --clsAcc 0`
+
+### Significance
+Calculate the asymptotic signinificance
+
+Options:
+
+--pval: return p-values instead of significances
+
+--expectSignal: expected significance assuming signal
+e.g.: `combine -d <card> -M Significance -t -1 --expectSignal=1` (a-priori) or add `--toysFreq` for a-posteriori
+
+### FitDiagnostics
+
+Options:
+
+--forceRecreateNLL
+
+example:
+`combine -d card -M FitDiagnostics --foreRecreateNLL`
+
+### FeldmanCousins
+
+Use the Roostats::FeldmanCousins interval construction
+
+
+### General tools
+
+Generate workspace:
+```
+text2workspace.py <card> -o <workspace>
 ```

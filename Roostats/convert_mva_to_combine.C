@@ -1,15 +1,31 @@
 //Script to prepare a rootfile and datacard for Higgs Combine tools
+#ifndef __MVA_CARDS__
+#define __MVA_CARDS__
+
 #include "mva_systematic_names.C"
+#include "mva_process_values.C"
 
 #include <iostream>
 #include <fstream>
 
-bool use_fake_bkg_norm_ = false; //add a large uncertainty on j->tau/qcd norm to be fit by data
-bool use_sys_ = true; //add systematic uncertainties
+bool   use_fake_bkg_norm_ = false; //add a large uncertainty on j->tau/qcd norm to be fit by data
+bool   use_sys_           =  true; //add systematic uncertainties
+bool   separate_years_    =  true; //separate each year of data
+int    blind_data_        =     2; //0: no blinding; 1: kill high BDT score regions; 2: use ~Asimov instead of data
+double blind_cut_         =    0.;
 
 Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
                              vector<int> years = {2016, 2017, 2018},
                              int seed = 90) {
+
+  //check if separating by year, and if so call this function for each year
+  if(separate_years_ && years.size() > 1) {
+    int status = 0;
+    for(int year : years) {
+      status += convert_mva_to_combine(set, selection, {year}, seed);
+    }
+    return status;
+  }
 
   //////////////////////////////////////////////////////////////////
   // Initialize relevant variables
@@ -17,18 +33,19 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
 
   int status(0);
   TString hist;
-  if     (selection == "hmutau"  ) hist = "mva0";
-  else if(selection == "zmutau"  ) hist = "mva1";
-  else if(selection == "hetau"   ) hist = "mva2";
-  else if(selection == "zetau"   ) hist = "mva3";
-  else if(selection == "hmutau_e") hist = "mva6";
-  else if(selection == "zmutau_e") hist = "mva7";
-  else if(selection == "hetau_mu") hist = "mva8";
-  else if(selection == "zetau_mu") hist = "mva9";
+  if     (selection == "hmutau"  ) {hist = "mva0"; blind_cut_ =  0.00;}
+  else if(selection == "zmutau"  ) {hist = "mva1"; blind_cut_ =  0.00;}
+  else if(selection == "hetau"   ) {hist = "mva2"; blind_cut_ =  0.00;}
+  else if(selection == "zetau"   ) {hist = "mva3"; blind_cut_ =  0.00;}
+  else if(selection == "hmutau_e") {hist = "mva6"; blind_cut_ =  0.00;}
+  else if(selection == "zmutau_e") {hist = "mva7"; blind_cut_ = -0.05;}
+  else if(selection == "hetau_mu") {hist = "mva8"; blind_cut_ =  0.00;}
+  else if(selection == "zetau_mu") {hist = "mva9"; blind_cut_ = -0.05;}
   else {
     cout << "Unidentified selection " << selection.Data() << endl;
     return -1;
   }
+
 
   TString year_string = "";
   for(unsigned i = 0; i < years.size(); ++i) {
@@ -73,6 +90,8 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
   TH1* hsig = (TH1*) fInput->Get(selec.Data());
   if(!hsig) {cout << "Signal histogram not found!\n"; return 4;}
   hsig->Scale(sig_scale);
+  TH1* hdata = (TH1*) fInput->Get("hdata");
+  if(!hdata) {cout << "Data histogram not found!\n"; return 5;}
 
   //////////////////////////////////////////////////////////////////
   // Read in the systematic histograms
@@ -84,7 +103,8 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
     for(int isys = 1; isys < kMaxSystematics; isys += 2) {
       //take only the up/down systematics from the sets < 50, skipping the _sys set. Above 50, only up/down
       if(isys < 43 && (isys % 3) == 0) isys +=1;
-      if(isys == 49) isys = 50; //skip to get to set 50
+      // if(isys == 49) isys = 50; //skip to get to set 50
+      if(isys == 99) isys = 100; //skip to get to 100
       auto sys_info = systematic_name(isys, selection);
       TString name = sys_info.first;
       TString type = sys_info.second;
@@ -117,24 +137,47 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
   // Configure the output file
   //////////////////////////////////////////////////////////////////
 
-  TString outName = Form("combine_mva_%s_%i.root", selection.Data(), set);
+  TString outName = Form("combine_mva_%s_%i_%s.root", selection.Data(), set, year_string.Data());
   TFile* fOut = new TFile(("datacards/"+year_string+"/"+outName).Data(), "RECREATE");
   auto dir = fOut->mkdir(hist.Data());
   dir->cd();
 
 
   //////////////////////////////////////////////////////////////////
-  // Generate toy data
+  // Generate toy data, if requested
   //////////////////////////////////////////////////////////////////
 
-  TH1* hdata = (TH1*) hbkg->Clone("data_obs");
-  hdata->SetTitle("Asimov Data");
-  for(int ibin = 1; ibin <= hdata->GetNbinsX(); ++ibin) {
-    double nentries = std::max(0., hdata->GetBinContent(ibin));
-    hdata->SetBinContent(ibin, nentries);
-    hdata->SetBinError(ibin, sqrt(nentries));
+  TH1* hdata_obs;
+  if(blind_data_ == 2) {
+    hdata_obs = (TH1*) hbkg->Clone("data_obs");
+    hdata_obs->SetTitle("Asimov Data");
+    for(int ibin = 1; ibin <= hdata_obs->GetNbinsX(); ++ibin) {
+      const double nentries = std::max(0., hdata_obs->GetBinContent(ibin));
+      hdata_obs->SetBinContent(ibin, nentries);
+      hdata_obs->SetBinError(ibin, sqrt(nentries));
+    }
+  } else {
+    hdata_obs = (TH1*) hdata->Clone("data_obs");
+    hdata_obs->SetTitle("Observed data");
+    if(blind_data_ == 1) {
+      for(int ibin = hdata_obs->FindBin(blind_cut_); ibin <= hdata_obs->GetNbinsX(); ++ibin) {
+        //kill data
+        hdata_obs->SetBinContent(ibin, 0.);
+        hdata_obs->SetBinError  (ibin, 0.);
+      }
+      for(int ibin = hsig->FindBin(blind_cut_); ibin <= hsig->GetNbinsX(); ++ibin) {
+        //kill signal
+        hsig->SetBinContent(ibin, 0.);
+        hsig->SetBinError  (ibin, 0.);
+      }
+      for(int ibin = hbkg->FindBin(blind_cut_); ibin <= hbkg->GetNbinsX(); ++ibin) {
+        //kill background
+        hbkg->SetBinContent(ibin, 0.);
+        hbkg->SetBinError  (ibin, 0.);
+      }
+    }
   }
-  hdata->Write();
+  hdata_obs->Write();
 
   //////////////////////////////////////////////////////////////////
   // Configure the data card
@@ -142,7 +185,7 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
 
   //Create directory for the data cards if needed
   gSystem->Exec(Form("[ ! -d datacards/%s ] && mkdir -p datacards/%s", year_string.Data(), year_string.Data()));
-  TString filepath = Form("datacards/%s/combine_mva_%s_%i.txt", year_string.Data(), selection.Data(), set);
+  TString filepath = Form("datacards/%s/combine_mva_%s_%i_%s.txt", year_string.Data(), selection.Data(), set, year_string.Data());
   std::ofstream outfile;
   outfile.open(filepath.Data());
   if(!outfile.is_open()) return 10;
@@ -164,22 +207,34 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
   TString proc_c = "process      ";                   //process class per channel
   TString rate   = "rate         ";                   //process rate per channel
   TString obs    = Form("observation  %15.0f",        //data observations, 1 per channel
-                        hdata->Integral());
+                        hdata_obs->Integral());
 
   //////////////////////////////////////////////////////////////////
   // Print the MC values to the card
   //////////////////////////////////////////////////////////////////
 
   //Add signal first
+  TString selec_name = selection;
+  selec_name.ReplaceAll("_e", "");
+  selec_name.ReplaceAll("_mu", "");
   bins_p += Form("%15s", hist.Data());
-  proc_l += Form("%15s", selection.Data());
+  proc_l += Form("%15s", selec_name.Data());
   proc_c +=      "            0   ";
   rate   += Form("%15.1f", hsig->Integral());
-  hsig->SetName(selection.Data());
+  hsig->SetName(selec_name.Data());
   hsig->Write(); //add to the output file
   for(int ihist = 0; ihist < hstack->GetNhists(); ++ihist) {
     TH1* hbkg_i = (TH1*) hstack->GetHists()->At(ihist);
     if(!hbkg_i) {cout << "Background hist " << ihist << " not retrieved!\n"; continue;}
+    //kill sensitive region if requested
+    if(blind_data_ == 1) {
+      for(int ibin = hbkg_i->FindBin(blind_cut_); ibin <= hbkg_i->GetNbinsX(); ++ibin) {
+        //kill background
+        hbkg_i->SetBinContent(ibin, 0.);
+        hbkg_i->SetBinError  (ibin, 0.);
+      }
+    }
+
     TString hname = hbkg_i->GetName();
     hname.ReplaceAll(Form("_%s_%i", hist.Data(), set+set_offset), "");
     hname.ReplaceAll(Form("_%s_1_%i", hist.Data(), set+set_offset), "");
@@ -193,7 +248,7 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
     hname.ReplaceAll("tautauEmbedding", "Embedding"); //shorten  the embedding name
     bins_p += Form("%15s", hist.Data());
     proc_l += Form("%15s", hname.Data());
-    proc_c +=      "           1   ";
+    proc_c += Form("          %2i   ", process_value(hname));
     rate   += Form("%15.1f", hbkg_i->Integral());
     hbkg_i->SetName(hname.Data());
     hbkg_i->Write(); //add to the output file
@@ -207,17 +262,6 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
   outfile << Form("%s \n\n", proc_c.Data());
   outfile << Form("%s \n\n", rate.Data());
   outfile << "----------------------------------------------------------------------------------------------------------- \n\n";
-  outfile.close();
-
-  //make a systematic free copy of the data card
-  TString alt_card = filepath; alt_card.ReplaceAll(".txt", "_nosys.txt");
-  gSystem->Exec(Form("cp %s %s", filepath.Data(), alt_card.Data()));
-  gSystem->Exec(Form("echo \"# * autoMCStats 0\n\">> %s", alt_card.Data())); //default to commenting out MC uncertainties
-  alt_card = filepath; alt_card.ReplaceAll(".txt", "_mcstat.txt");
-  gSystem->Exec(Form("cp %s %s", filepath.Data(), alt_card.Data()));
-  gSystem->Exec(Form("echo \"* autoMCStats 0\n\">> %s", alt_card.Data())); //default to including MC uncertainties
-
-  outfile.open(filepath.Data(), std::ios_base::app); //open again, appending to the file
 
   //////////////////////////////////////////////////////////////////
   // Print the systematics to the card
@@ -235,10 +279,22 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
     TString type = hsig_up->GetTitle();
     if(name == "") continue; //systematic we don't care about
     if(verbose_ > 0) cout << "Processing systematic " << name.Data() << endl;
+
+    //kill sensitive region if requested
+    if(blind_data_ == 1) {
+      for(int ibin = hsig_up->FindBin(blind_cut_); ibin <= hsig_up->GetNbinsX(); ++ibin) {
+        //kill region
+        hsig_up  ->SetBinContent(ibin, 0.);
+        hsig_up  ->SetBinError  (ibin, 0.);
+        hsig_down->SetBinContent(ibin, 0.);
+        hsig_down->SetBinError  (ibin, 0.);
+      }
+    }
+
     TString sys = Form("%-13s %5s ", name.Data(), type.Data());
-    hsig_up->SetName(Form("%s_%sUp", selection.Data(), name.Data()));
+    hsig_up->SetName(Form("%s_%sUp", selec_name.Data(), name.Data()));
     hsig_up->Write();
-    hsig_down->SetName(Form("%s_%sDown", selection.Data(), name.Data()));
+    hsig_down->SetName(Form("%s_%sDown", selec_name.Data(), name.Data()));
     hsig_down->Write();
     bool do_fake_bkg_line = (qcd_bkg_line == "");
     if(do_fake_bkg_line) {
@@ -260,6 +316,18 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
       if(!hbkg_i_down) {cout << "Systematic " << isys << " Background (down) hist " << ihist << " not retrieved!\n"; continue;}
       TH1* hbkg_i = (TH1*) hstack->GetHists()->At(ihist);
       if(!hbkg_i) {cout << "Background hist " << ihist << " not retrieved! Exiting...\n"; break;}
+
+      //kill sensitive region if requested
+      if(blind_data_ == 1) {
+        for(int ibin = hbkg_i_up->FindBin(blind_cut_); ibin <= hbkg_i_up->GetNbinsX(); ++ibin) {
+          //kill region
+          hbkg_i_up  ->SetBinContent(ibin, 0.);
+          hbkg_i_up  ->SetBinError  (ibin, 0.);
+          hbkg_i_down->SetBinContent(ibin, 0.);
+          hbkg_i_down->SetBinError  (ibin, 0.);
+        }
+      }
+
       TString hname = hbkg_i_up->GetName();
       TString isys_set = hstack_down->GetTitle();
       isys_set.ReplaceAll("sys_", "");
@@ -307,3 +375,5 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
   fOut->Close();
   return status;
 }
+
+#endif

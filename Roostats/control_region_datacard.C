@@ -1,10 +1,21 @@
 //Script to prepare a rootfile and datacard for Higgs Combine tools
+
 #include "mva_systematic_names.C"
+#include "convert_mva_to_combine.C"
 
 Int_t control_region_datacard(int set = 8, TString selection = "mumu",
                               TString signal = "zmutau",
                               vector<int> years = {2016, 2017, 2018},
                               int seed = 90) {
+
+  //check if separating by year, and if so call this function for each year
+  if(separate_years_ && years.size() > 1) {
+    int status = 0;
+    for(int year : years) {
+      status += control_region_datacard(set, selection, signal, {year}, seed);
+    }
+    return status;
+  }
 
   //////////////////////////////////////////////////////////////////
   // Initialize relevant variables
@@ -22,10 +33,9 @@ Int_t control_region_datacard(int set = 8, TString selection = "mumu",
     if(i > 0) year_string += "_";
     year_string += years[i];
   }
-  int set_offset = HistMaker::kMuMu;
-  if     (selection == "ee") set_offset = HistMaker::kEE;
 
-  bool isHiggs = signal.Contains("h");
+  const int set_offset = (selection == "ee") ? HistMaker::kEE : HistMaker::kMuMu;
+  const bool isHiggs = signal.Contains("h");
 
   //determine the signal name and branching ratio
   TString selec = signal;  selec.ReplaceAll("_e", ""); selec.ReplaceAll("_mu", "");
@@ -33,12 +43,12 @@ Int_t control_region_datacard(int set = 8, TString selection = "mumu",
   signame.ReplaceAll("z", "Z"); signame.ReplaceAll("h", "H");
   signame.ReplaceAll("m", "M"); signame.ReplaceAll("e", "E"); signame.ReplaceAll("t", "T");
   CrossSections xs;
-  double bxs = xs.GetCrossSection(isHiggs ? "H" : "Z");
-  double xs_sig = xs.GetCrossSection(signame.Data());
+  const double bxs = xs.GetCrossSection(isHiggs ? "H" : "Z");
+  const double xs_sig = xs.GetCrossSection(signame.Data());
   double br_sig = xs_sig / bxs;
   double sig_scale = 1.;
   if(!useDefaultBr_) { //use fixed example branching fraction
-    double example_br = (isHiggs) ? 1.e-3 : 1.e-6;
+    const double example_br = (isHiggs) ? 1.e-3 : 1.e-6;
     sig_scale = example_br / br_sig;
     br_sig = example_br;
   }
@@ -53,9 +63,9 @@ Int_t control_region_datacard(int set = 8, TString selection = "mumu",
 
   THStack* hstack = (THStack*) fInput->Get("hstack");
   if(!hstack) {cout << "Background stack not found!\n"; return 2;}
-  TH1D* hbkg = (TH1D*) fInput->Get("hbackground");
+  TH1* hbkg = (TH1*) fInput->Get("hbackground");
   if(!hbkg) {cout << "Background histogram not found!\n"; return 3;}
-  TH1D* hsig = (TH1D*) fInput->Get(selec.Data());
+  TH1* hsig = (TH1*) fInput->Get(selec.Data());
   if(!hsig) {
     cout << "Signal histogram not found! Continuing by setting its rate to 0...\n";
   }
@@ -67,11 +77,12 @@ Int_t control_region_datacard(int set = 8, TString selection = "mumu",
   //////////////////////////////////////////////////////////////////
 
   vector<THStack*> hsys_stacks;
-  vector<TH1D*> hsys_signals;
+  vector<TH1*> hsys_signals;
   for(int isys = 1; isys < 300; isys += 2) {
      //take only the up/down systematics from the sets < 50, skipping the _sys set. Above 50, only up/down
     if(isys < 43 && (isys % 3) == 0) isys +=1;
-    if(isys == 49) isys = 50; //skip to get to set 50
+    // if(isys == 49) isys = 50; //skip to get to set 50
+    if(isys == 99) isys = 100; //skip to get to 100
     auto sys_info = systematic_name(isys, signal);
     TString name = sys_info.first;
     TString type = sys_info.second;
@@ -80,8 +91,8 @@ Int_t control_region_datacard(int set = 8, TString selection = "mumu",
     if(name != systematic_name(isys+1, signal).first) cout << "!!! Sys " << isys << ", " << isys+1 << " have different names!\n";
     THStack* hstack_up   = (THStack*) fInput->Get(Form("hstack_sys_%i", isys));
     THStack* hstack_down = (THStack*) fInput->Get(Form("hstack_sys_%i", isys+1));
-    TH1D* hsig_up        = (TH1D*)    fInput->Get(Form("%s_sys_%i", selec.Data(), isys));
-    TH1D* hsig_down      = (TH1D*)    fInput->Get(Form("%s_sys_%i", selec.Data(), isys+1));
+    TH1* hsig_up        = (TH1*)    fInput->Get(Form("%s_sys_%i", selec.Data(), isys));
+    TH1* hsig_down      = (TH1*)    fInput->Get(Form("%s_sys_%i", selec.Data(), isys+1));
     if(!hstack_up || !hstack_down) {
       cout << "Systematic histograms for " << name.Data() << " not found!\n"
            << "stack up = " << hstack_up << " stack down = " << hstack_down
@@ -108,7 +119,7 @@ Int_t control_region_datacard(int set = 8, TString selection = "mumu",
   // Configure the output file
   //////////////////////////////////////////////////////////////////
 
-  TString outName = Form("combine_mva_%s_cr_%s_%i.root", signal.Data(), selection.Data(), set);
+  TString outName = Form("combine_mva_%s_cr_%s_%i_%s.root", signal.Data(), selection.Data(), set, year_string.Data());
   TFile* fOut = new TFile(("datacards/"+year_string+"/"+outName).Data(), "RECREATE");
   auto dir = fOut->mkdir(Form("%sCount", selection.Data()));
   dir->cd();
@@ -133,7 +144,7 @@ Int_t control_region_datacard(int set = 8, TString selection = "mumu",
 
   //Create directory for the data cards if needed
   gSystem->Exec(Form("[ ! -d datacards/%s ] && mkdir -p datacards/%s", year_string.Data(), year_string.Data()));
-  TString filepath = Form("datacards/%s/combine_mva_%s_cr_%s_%i.txt", year_string.Data(), signal.Data(), selection.Data(), set);
+  TString filepath = Form("datacards/%s/combine_mva_%s_cr_%s_%i_%s.txt", year_string.Data(), signal.Data(), selection.Data(), set, year_string.Data());
   gSystem->Exec(Form("echo \"# -*- mode: tcl -*-\">| %s", filepath.Data()));
   gSystem->Exec(Form("echo \"#Auto generated counting card for CLFVAnalysis \">> %s", filepath.Data()));
   gSystem->Exec(Form("echo \"#Signal branching fraction used: %.3e \n\">> %s", br_sig, filepath.Data()));
@@ -176,7 +187,7 @@ Int_t control_region_datacard(int set = 8, TString selection = "mumu",
   hsig->SetName(signal.Data());
   hsig->Write(); //add to the output file
   for(int ihist = 0; ihist < hstack->GetNhists(); ++ihist) {
-    TH1D* hbkg_i = (TH1D*) hstack->GetHists()->At(ihist);
+    TH1* hbkg_i = (TH1*) hstack->GetHists()->At(ihist);
     if(!hbkg_i) {cout << "Background hist " << ihist << " not retrieved!\n"; continue;}
     TString hname = hbkg_i->GetName();
     hname.ReplaceAll(Form("_%s_%i", hist.Data(), set+set_offset), "");
@@ -186,14 +197,15 @@ Int_t control_region_datacard(int set = 8, TString selection = "mumu",
     hname.ReplaceAll("#", "");
     hname.ReplaceAll("/", "");
     hname.ReplaceAll("->", "To");
-    double nbkg = hbkg_i->IntegralAndError(hbkg_i->FindBin(mass_min), hbkg_i->FindBin(mass_max), error);
+    hname.ReplaceAll("tautauEmbedding", "Embedding"); //shorten  the embedding name
+    const double nbkg = hbkg_i->IntegralAndError(hbkg_i->FindBin(mass_min), hbkg_i->FindBin(mass_max), error);
     hbkg_i = new TH1D(hname.Data(), hbkg_i->GetTitle(), 1, 0, 1);
     hbkg_i->SetBinContent(1, nbkg);
     hbkg_i->SetBinError(1, error);
     nominal_bkgs.push_back(nbkg);
     bins_p += Form("%15s", (selection+"Count").Data());
     proc_l += Form("%15s", hname.Data());
-    proc_c +=      "           1   ";
+    proc_c += Form("          %2i   ", process_value(hname));
     rate   += Form("%15.1f", hbkg_i->Integral());
     hbkg_i->Write(); //add to the output file
     if(nominal_bkgs[ihist] <= 0.) cout << "Nominal backgroud count for " << hname.Data() << " is <= 0 = " << nominal_bkgs[ihist] << endl;
@@ -208,10 +220,6 @@ Int_t control_region_datacard(int set = 8, TString selection = "mumu",
   gSystem->Exec(Form("echo \"%s \n\">> %s", rate.Data() , filepath.Data()));
   gSystem->Exec(Form("echo \"----------------------------------------------------------------------------------------------------------- \n\">> %s", filepath.Data()));
 
-  //make a systematic free copy of the data card
-  TString alt_card = filepath; alt_card.ReplaceAll(".txt", "_nosys.txt");
-  gSystem->Exec(Form("cp %s %s", filepath.Data(), alt_card.Data()));
-  gSystem->Exec(Form("echo \"# * autoMCStats 0\n\">> %s", alt_card.Data())); //default to commenting out MC uncertainties
 
   //////////////////////////////////////////////////////////////////
   // Print the systematics to the card
@@ -221,8 +229,8 @@ Int_t control_region_datacard(int set = 8, TString selection = "mumu",
   for(int isys = 0; isys < nsys; ++isys) {
     THStack* hstack_up   = hsys_stacks [2*isys  ];
     THStack* hstack_down = hsys_stacks [2*isys+1];
-    TH1D*    hsig_up     = hsys_signals[2*isys  ];
-    TH1D*    hsig_down   = hsys_signals[2*isys+1];
+    TH1*     hsig_up     = hsys_signals[2*isys  ];
+    TH1*     hsig_down   = hsys_signals[2*isys+1];
     TString name = hstack_up->GetTitle();
     TString type = hsig_up->GetTitle();
     if(name == "") continue; //systematic we don't care about
@@ -259,9 +267,9 @@ Int_t control_region_datacard(int set = 8, TString selection = "mumu",
     for(int ihist = 0; ihist < hstack_up->GetNhists(); ++ihist) {
       TH1D* hbkg_i_up = (TH1D*) hstack_up->GetHists()->At(ihist);
       if(!hbkg_i_up) {cout << "Systematic " << isys << " Background (up) hist " << ihist << " not retrieved!\n"; continue;}
-      TH1D* hbkg_i_down = (TH1D*) hstack_down->GetHists()->At(ihist);
+      TH1* hbkg_i_down = (TH1*) hstack_down->GetHists()->At(ihist);
       if(!hbkg_i_down) {cout << "Systematic " << isys << " Background (down) hist " << ihist << " not retrieved!\n"; continue;}
-      TH1D* hbkg_i = (TH1D*) hstack->GetHists()->At(ihist);
+      TH1* hbkg_i = (TH1*) hstack->GetHists()->At(ihist);
       if(!hbkg_i) {cout << "Background hist " << ihist << " not retrieved! Exiting...\n"; break;}
       double nbkg = hbkg_i_up->IntegralAndError(hbkg_i_up->FindBin(mass_min), hbkg_i_up->FindBin(mass_max), error);
       hbkg_i_up = new TH1D(hbkg_i_up->GetName(), hbkg_i_up->GetTitle(), 1, 0, 1);
