@@ -12,8 +12,8 @@ There is a map of strings to integers, that turns on/off different MVAs to be tr
 By default, only the standard BDT is trained.
 
 Depending on the name of the tree, the selection/boson of interest in the training is identified.
-The script then adds variables to be trained using, or spectators to simply carry along, corresponding
-to these selections/boson identified.
+The script then uses the `TrkQualInit` object to add variables to be trained using, or spectators to simply carry along, corresponding
+to these selections/boson identified and the `TrkQualInit` version given.
 
 The fraction of events to train are either decided by the script, or are passed from the CLFVHistMaker pre-defined.
 
@@ -23,7 +23,7 @@ Example:
 ```
 $> root -l
 root> .L train_tmva.C
-root> train_tmva("[path/to/tree.tree]", {[list of signal IDs]}, {[list of IDs to ignore]}, [integer flag of which bjet count to use])
+root> train_tmva("[path/to/tree.tree]", {[list of dataset IDs to ignore]}, [TrkQualInit variable version])
 ```
 
 ## Testing

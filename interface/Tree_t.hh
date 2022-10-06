@@ -27,6 +27,14 @@ namespace CLFV {
     float leptwoidtwo;
     float leptwoidthree;
 
+    //associated track variables (for tau info)
+    float trkpt;
+    float trketa;
+    float trkphi;
+    float leptrkm;
+    float leptrkdeltam;
+    float trkptoverpt;
+
     //di-lepton variables
     float lepp;
     float leppt;
@@ -37,6 +45,8 @@ namespace CLFV {
     float lepdeltaeta;
     float lepdeltar;
     float lepdeltaphi;
+    float ptdiff;
+    float ptdiffoverm;
 
     //extra angles
     float htdeltaphi;
@@ -53,8 +63,11 @@ namespace CLFV {
     float mtlep;
     float mtoneoverm;
     float mttwooverm;
-    float pzetavis;
-    float pzetainv;
+    float mtlepoverm;
+    float pzetavis; //(l1 + l2) dot zeta
+    float pzetainv; //(MET) dot zeta
+    float pzetaall; //(l1 + l2 + MET) dot zeta
+    float dzeta;
     float ptauvisfrac;
     float mestimate;
     float mestimatetwo;
@@ -128,6 +141,10 @@ namespace CLFV {
     float jettotaunonclosure; //event weight change without non-closure
     float zptup; //event weight change using up for z pT weights
     float zptdown; //event weight change using down for z pT weights
+    float jetantimu;
+    float jetantiele;
+    float qcdsys;
+    float btagsys;
 
     //identify whether or not to use in training
     float train; //  < 0 --> testing, > 0 --> training sample

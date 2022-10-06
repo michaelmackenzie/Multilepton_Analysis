@@ -54,10 +54,167 @@ TString selection_ = "zmutau";
 Int_t split_trees_ = 0; //split training/testing using tree defined samples
 Int_t trkqual_version_ = -1; //version of variables used in trkqual training, < 0 is use default
 Int_t use_njets_ = 1; //whether or not to train using njets, don't use if jet binned categories
+bool use_mass_window_ = true; //train B->e+mu MVAs in the relevant mass window
+Double_t scale_zll_ = 3.; //increase the impact of Z->ll due to the systematic impact
 
 bool dryrun_ = false; //don't actually train
+bool plotOnly_ = false; //read and plot pre-existing training results
 bool inTrainDir_ = false; //track if we've gone into a training directory
 bool multiTrainings_ = false; //if doing multiple trainings, leave directory at the end of the training
+
+//print a spectator comparison canvas
+int print_spectator(TString var, TTree* TestTree, TTree* TrainTree, TString dir) {
+  TCanvas* c = new TCanvas();
+  TH1 *hsig_test, *hbkg_test, *hsig_train, *hbkg_train;
+  //first get the initial distributions
+  TestTree->Draw(Form("%s >> hsig_test", var.Data()), Form("(issignal > 0.5)*fulleventweightlum"));
+  hsig_test = (TH1*) gDirectory->Get("hsig_test");
+  TestTree->Draw(Form("%s >> hbkg_test", var.Data()), Form("(issignal < 0.5)*fulleventweightlum"));
+  hbkg_test = (TH1*) gDirectory->Get("hbkg_test");
+  TrainTree->Draw(Form("%s >> hsig_train", var.Data()), Form("(issignal > 0.5)*fulleventweightlum"));
+  hsig_train = (TH1*) gDirectory->Get("hsig_train");
+  TrainTree->Draw(Form("%s >> hbkg_train", var.Data()), Form("(issignal < 0.5)*fulleventweightlum"));
+  hbkg_train = (TH1*) gDirectory->Get("hbkg_train");
+
+  if(!hsig_test || !hsig_train || !hbkg_test || !hbkg_train) {
+    delete c;
+    return 1;
+  }
+
+  //next create more reasonable histograms
+  double xmin =    max(hsig_test ->GetXaxis()->GetBinLowEdge(1), hsig_test ->GetMean() - 3.5*hsig_test ->GetStdDev());
+  xmin = min(xmin, max(hbkg_test ->GetXaxis()->GetBinLowEdge(1), hbkg_test ->GetMean() - 3.5*hbkg_test ->GetStdDev()));
+  xmin = min(xmin, max(hsig_train->GetXaxis()->GetBinLowEdge(1), hsig_train->GetMean() - 3.5*hsig_train->GetStdDev()));
+  xmin = min(xmin, max(hbkg_train->GetXaxis()->GetBinLowEdge(1), hbkg_train->GetMean() - 3.5*hbkg_train->GetStdDev()));
+  double xmax =    min(hsig_test ->GetBinLowEdge(hsig_test ->GetNbinsX()) + hsig_test ->GetBinWidth(1), hsig_test ->GetMean() + 3.5*hsig_test ->GetStdDev());
+  xmax = max(xmax, min(hbkg_test ->GetBinLowEdge(hbkg_test ->GetNbinsX()) + hbkg_test ->GetBinWidth(1), hbkg_test ->GetMean() + 3.5*hbkg_test ->GetStdDev()));
+  xmax = max(xmax, min(hsig_train->GetBinLowEdge(hsig_train->GetNbinsX()) + hsig_train->GetBinWidth(1), hsig_train->GetMean() + 3.5*hsig_train->GetStdDev()));
+  xmax = max(xmax, min(hbkg_train->GetBinLowEdge(hbkg_train->GetNbinsX()) + hbkg_train->GetBinWidth(1), hbkg_train->GetMean() + 3.5*hbkg_train->GetStdDev()));
+  const int nbins = 40;
+  delete hsig_test;
+  delete hbkg_test;
+  delete hsig_train;
+  delete hbkg_train;
+  hsig_test  = new TH1D("hsig_test" , var.Data(), nbins, xmin, xmax);
+  hbkg_test  = new TH1D("hbkg_test" , var.Data(), nbins, xmin, xmax);
+  hsig_train = new TH1D("hsig_train", var.Data(), nbins, xmin, xmax);
+  hbkg_train = new TH1D("hbkg_train", var.Data(), nbins, xmin, xmax);
+  TestTree ->Draw(Form("%s >> hsig_test" , var.Data()), Form("(issignal > 0.5)*fulleventweightlum"));
+  TestTree ->Draw(Form("%s >> hbkg_test" , var.Data()), Form("(issignal < 0.5)*fulleventweightlum"));
+  TrainTree->Draw(Form("%s >> hsig_train", var.Data()), Form("(issignal > 0.5)*fulleventweightlum"));
+  TrainTree->Draw(Form("%s >> hbkg_train", var.Data()), Form("(issignal < 0.5)*fulleventweightlum"));
+
+  const double nbkg = hbkg_test->Integral(); //for making the stacked results
+
+  hsig_test ->Scale(1./hsig_test ->Integral());
+  hbkg_test ->Scale(1./hbkg_test ->Integral());
+  hsig_train->Scale(1./hsig_train->Integral());
+  hbkg_train->Scale(1./hbkg_train->Integral());
+  hsig_test ->SetLineColor(kBlue); hsig_test ->SetFillStyle(1001); hsig_test ->SetMarkerColor(kBlue); hsig_test ->SetFillColor(kAzure+1); hsig_test ->SetLineWidth(2);
+  hbkg_test ->SetLineColor(kRed ); hbkg_test ->SetFillStyle(3004); hbkg_test ->SetMarkerColor(kRed ); hbkg_test ->SetFillColor(kRed   ); hbkg_test ->SetLineWidth(2);
+  hsig_train->SetLineColor(kBlue); hsig_train->SetFillStyle(1001); hsig_train->SetMarkerColor(kBlue); hsig_train->SetFillColor(kAzure+1); hsig_train->SetLineWidth(2);
+  hbkg_train->SetLineColor(kRed ); hbkg_train->SetFillStyle(3004); hbkg_train->SetMarkerColor(kRed ); hbkg_train->SetFillColor(kRed   ); hbkg_train->SetLineWidth(2);
+  double max_val = max(hsig_test->GetMaximum(), hbkg_test->GetMaximum());
+  max_val = max(max_val, max(hsig_test->GetMaximum(), hbkg_test->GetMaximum()));
+  double min_val = max_val / 1.e5;
+  //if < 3 bins within 25% of maximum, do log scale
+  int nhigh = 0;
+  for(int ibin = 1; ibin <= nbins; ++ibin) {
+    if(hsig_test->GetBinContent(ibin) > 0.25*hsig_test->GetMaximum()) ++nhigh;
+  }
+  bool dology = nhigh < 4;
+  hsig_test->Draw("hist"); hsig_train->Draw("PL same"); hbkg_test->Draw("hist same"); hbkg_train->Draw("PL same");
+  hsig_test->GetYaxis()->SetRangeUser(min_val, ((dology) ? 5. : 1.2)*max_val);
+  if(dology) c->SetLogy();
+
+  TLegend* leg = new TLegend(0.6, 0.75, 0.9, 0.9);
+  leg->SetNColumns(2);
+  leg->AddEntry(hsig_test, "Signal (test)");
+  leg->AddEntry(hsig_train, "Signal (train)", "PL");
+  leg->AddEntry(hbkg_test, "Background (test)");
+  leg->AddEntry(hbkg_train, "Background (train)", "PL");
+  leg->Draw();
+  c->SaveAs(Form("%s/plots/spectator_%s.png", dir.Data(), var.Data()));
+
+  //Next make a stack of the test backgrounds
+  const bool isemu = (selection_.EndsWith("emu") || selection_.Contains("_")); //QCD or j-->tau backgrounds
+  TH1* hdy_tt = (TH1*) hbkg_test->Clone("hdy_tt");
+  TH1* hdy_ll = (TH1*) hbkg_test->Clone("hdy_ll");
+  TH1* hww    = (TH1*) hbkg_test->Clone("hww");
+  TH1* httbar = (TH1*) hbkg_test->Clone("httbar");
+  TH1* hqcd   = (TH1*) hbkg_test->Clone("hqcd");
+  TH1* hwlnu  = (TH1*) hbkg_test->Clone("hwlnu");
+  const int top_c   = kYellow - 7;
+  const int dy_tt_c = kRed - 7;
+  const int dy_ll_c = kRed - 2;
+  const int wj_c    = kViolet - 9;
+  const int vb_c    = kMagenta - 9;
+  const int qcd_c   = (isemu) ? kOrange + 6 : kGreen - 7;
+  hdy_tt->Reset(); hdy_tt->SetLineColor(dy_tt_c); hdy_tt->SetFillColor(dy_tt_c); hdy_tt->SetFillStyle(1001);
+  hdy_ll->Reset(); hdy_ll->SetLineColor(dy_ll_c); hdy_ll->SetFillColor(dy_ll_c); hdy_ll->SetFillStyle(1001);
+  hww   ->Reset(); hww   ->SetLineColor(   vb_c); hww   ->SetFillColor(   vb_c); hww   ->SetFillStyle(1001);
+  httbar->Reset(); httbar->SetLineColor(  top_c); httbar->SetFillColor(  top_c); httbar->SetFillStyle(1001);
+  hqcd  ->Reset(); hqcd  ->SetLineColor(  qcd_c); hqcd  ->SetFillColor(  qcd_c); hqcd  ->SetFillStyle(1001);
+  hwlnu ->Reset(); hwlnu ->SetLineColor(   wj_c); hwlnu ->SetFillColor(   wj_c); hwlnu ->SetFillStyle(1001);
+  TestTree ->Draw(Form("%s >> hdy_tt", var.Data()), Form("(type == 3)*fulleventweightlum"));
+  TestTree ->Draw(Form("%s >> hdy_ll", var.Data()), Form("(type == 2)*fulleventweightlum"));
+  TestTree ->Draw(Form("%s >> hww"   , var.Data()), Form("(type == 6)*fulleventweightlum"));
+  TestTree ->Draw(Form("%s >> httbar", var.Data()), Form("(type == 4)*fulleventweightlum"));
+  TestTree ->Draw(Form("%s >> hqcd"  , var.Data()), Form("(type == 1)*fulleventweightlum"));
+  TestTree ->Draw(Form("%s >> hwlnu" , var.Data()), Form("(type == 5)*fulleventweightlum"));
+
+  hdy_tt->Scale(1./nbkg);
+  hdy_ll->Scale(1./nbkg);
+  hww   ->Scale(1./nbkg);
+  httbar->Scale(1./nbkg);
+  hqcd  ->Scale(1./nbkg);
+  hwlnu ->Scale(1./nbkg);
+
+  THStack* hbkg = new THStack("hstack", var.Data());
+  hbkg->Add(hww);
+  hbkg->Add(httbar);
+  hbkg->Add(hdy_ll);
+  hbkg->Add(hdy_tt);
+  hbkg->Add(hwlnu);
+  hbkg->Add(hqcd);
+
+  hbkg->SetMaximum(((dology) ? 5. : 1.2)*max_val);
+  hbkg->SetMinimum(min_val);
+
+  hbkg->Draw("hist noclear");
+  hsig_test->SetFillStyle(3005);
+  hsig_test->Draw("hist same");
+  hsig_train->Draw("PL same");
+
+  leg = new TLegend(0.65, 0.6, 0.9, 0.9);
+  leg->SetNColumns(2);
+  leg->AddEntry(hsig_test, "Signal (test)");
+  leg->AddEntry(hsig_train, "Signal (train)", "PL");
+  leg->AddEntry(hdy_tt, "Z->#tau#tau");
+  leg->AddEntry(hdy_ll, "Z->ll");
+  leg->AddEntry(httbar, "Top");
+  leg->AddEntry(hww, "WW/Other");
+  leg->AddEntry(hwlnu, "W+Jets");
+  leg->AddEntry(hqcd, (isemu) ? "QCD" : "j-->#tau");
+  leg->Draw();
+
+  c->SaveAs(Form("%s/plots/spectator_%s_stack.png", dir.Data(), var.Data()));
+
+  delete c;
+  delete hsig_test;
+  delete hbkg_test;
+  delete hsig_train;
+  delete hbkg_train;
+  delete hdy_tt;
+  delete hdy_ll;
+  delete hww   ;
+  delete httbar;
+  delete hqcd  ;
+  delete hwlnu ;
+  delete hbkg  ;
+
+  return 0;
+}
 
 //Train MVA to separate the given signal from the given background
 int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual",
@@ -82,6 +239,23 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
   //---------------------------------------------------------------
   // This loads the library
   TMVA::Tools::Instance();
+
+  // --- Here the preparation phase begins
+  //if in a past training directory, leave it
+  if(inTrainDir_) {
+    gSystem->cd("..");
+    inTrainDir_ = false;
+  }
+  // Define the ROOT output file name where TMVA will store ntuples, histograms, etc.
+  TString outfilename(tname);
+  gSystem->Exec(Form("[ ! -d %s ] && mkdir %s", outfilename.Data(), outfilename.Data()));
+  gSystem->cd(outfilename.Data());
+  inTrainDir_ = true;
+  outfilename += ".root";
+
+  TString outFolder;
+  outFolder = "tmva_";
+  outFolder += tname;
 
   // Default MVA methods to be trained + tested
   std::map<std::string,int> Use;
@@ -149,391 +323,392 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
   // ---------------------------------------------------------------
 
   std::cout << std::endl;
-  std::cout << "==> Start TMVAClassification" << std::endl;
 
-  // --------------------------------------------------------------------------------------------------
-
-  // --- Here the preparation phase begins
-  //if in a past training directory, leave it
-  if(inTrainDir_) {
-    gSystem->cd("..");
-    inTrainDir_ = false;
-  }
-  // Create a ROOT output file where TMVA will store ntuples, histograms, etc.
-  TString outfilename(tname);
-  gSystem->Exec(Form("[ ! -d %s ] && mkdir %s", outfilename.Data(), outfilename.Data()));
-  gSystem->cd(outfilename.Data());
-  inTrainDir_ = true;
-
-  outfilename += ".root";
-  TFile* outputFile = TFile::Open( outfilename, "RECREATE" );
-
-  // Create the factory object. Later you can choose the methods
-  // whose performance you'd like to investigate. The factory is
-  // the only TMVA object you have to interact with
-  //
-  // The first argument is the base of the name of all the
-  // weightfiles in the directory weight/
-  //
-  // The second argument is the output file for the training results
-  // All TMVA output can be suppressed by removing the "!" (not) in
-  // front of the "Silent" argument in the option string
-  // TMVA::Factory *factory = new TMVA::Factory( "TMVAClassification", outputFile,
-  //     "!V:!Silent:Color:DrawProgressBar:Transformations=I;D;P;G,D:AnalysisType=Classification" );
-
-  TMVA::Factory *factory = new TMVA::Factory( "TMVAClassification", outputFile,
-      "!V:!Silent:Color:DrawProgressBar:Transformations=I:AnalysisType=Classification" );
-
-
-  //data loader to handle the variables, spectators, signal trees, and background trees
-  TString outFolder;
-  outFolder = "tmva_";
-  outFolder += tname;
-  TMVA::DataLoader* dataloader = new TMVA::DataLoader(outFolder);
-
-
-  dataloader->SetBackgroundWeightExpression("fulleventweightlum");
-  dataloader->SetSignalWeightExpression("fulleventweightlum");
-  // If you wish to modify default settings
-  // (please check "src/Config.h" to see all available global options)
-  //    (TMVA::gConfig().GetVariablePlotting()).fTimesRMS = 8.0;
-
-  TString dirname(tname);
-  dirname += "_Weights";
-  (TMVA::gConfig().GetIONames()).fWeightFileDir = dirname.Data();
-  cout << "--- Set weight directory " << dirname.Data() << endl;
-
-  // Define the input variables that shall be used for the MVA training
-  // note that you may also use variable expressions, such as: "3*var1/var2*abs(var3)"
-  // [all types of expressions that can also be parsed by TTree::Draw( "expression" )]
-
+  TFile* outputFile = nullptr;
   TrkQualInit trkqualinit((trkqual_version_ >= 0) ? trkqual_version_ : TrkQualInit::Default, use_njets_); //version number input
-  trkqualinit.InitializeVariables(*dataloader,selection_);
 
-  Double_t signalWeight     = 1.0;
-  Double_t backgroundWeight = 1.0;
+  if(!plotOnly_) {
+    std::cout << "==> Start TMVAClassification" << std::endl;
 
-  if(split_trees_) {
-    TTree* signal_train = signal->CopyTree("train>0.");
-    signal_train->SetName("signal_train");
-    TTree* signal_test  = signal->CopyTree("train<0.");
-    signal_test->SetName("signal_test");
-    TTree* bkgd_train = background->CopyTree("train>0.");
-    bkgd_train->SetName("bkgd_train");
-    TTree* bkgd_test  = background->CopyTree("train<0.");
-    bkgd_test->SetName("bkgd_test");
-    dataloader->AddSignalTree    ( signal_train, signalWeight,     "Training" );
-    dataloader->AddSignalTree    ( signal_test,  signalWeight,     "Test" );
-    dataloader->AddBackgroundTree( bkgd_train,   backgroundWeight, "Training" );
-    dataloader->AddBackgroundTree( bkgd_test,    backgroundWeight, "Test" );
-  } else {
-    dataloader->AddSignalTree    ( signal, signalWeight);
-    dataloader->AddBackgroundTree( background, backgroundWeight );
-  }
+    // --------------------------------------------------------------------------------------------------
+
+    // --- Here the preparation phase begins
+
+    // Create a ROOT output file where TMVA will store ntuples, histograms, etc.
+    outputFile = TFile::Open( outfilename, "RECREATE" );
+
+    // Create the factory object. Later you can choose the methods
+    // whose performance you'd like to investigate. The factory is
+    // the only TMVA object you have to interact with
+    //
+    // The first argument is the base of the name of all the
+    // weightfiles in the directory weight/
+    //
+    // The second argument is the output file for the training results
+    // All TMVA output can be suppressed by removing the "!" (not) in
+    // front of the "Silent" argument in the option string
+    // TMVA::Factory *factory = new TMVA::Factory( "TMVAClassification", outputFile,
+    //     "!V:!Silent:Color:DrawProgressBar:Transformations=I;D;P;G,D:AnalysisType=Classification" );
+
+    TMVA::Factory *factory = new TMVA::Factory( "TMVAClassification", outputFile,
+                                                "!V:!Silent:Color:DrawProgressBar:Transformations=I:AnalysisType=Classification" );
 
 
-  // Tell the factory how to use the training and testing events
-  //
-  // If no numbers of events are given, half of the events in the tree are used
-  // for training, and the other half for testing:
-  //    factory->PrepareTrainingAndTestTree( mycut, "SplitMode=random:!V" );
-  // To also specify the number of testing events, use:
-  //    factory->PrepareTrainingAndTestTree( mycut,
-  //                                         "NSigTrain=3000:NBkgTrain=3000:NSigTest=3000:NBkgTest=3000:SplitMode=Random:!V" );
+    //data loader to handle the variables, spectators, signal trees, and background trees
+    TMVA::DataLoader* dataloader = new TMVA::DataLoader(outFolder);
 
-  TString sig_cut, bkg_cut;
-  //  nm = tname;
-  for(int i = 0; i < ignore.size(); ++i) {
-    if(i > 0) {
-      sig_cut += Form("&&(eventcategory != %i.)", ignore[i]);
-      bkg_cut += Form("&&(eventcategory != %i.)", ignore[i]);
+    if(scale_zll_ > 1. && selection_.EndsWith("tau"))
+      dataloader->SetBackgroundWeightExpression(Form("fulleventweightlum*(1 + %.2f*(type == 2))", scale_zll_ - 1.));
+    else
+      dataloader->SetBackgroundWeightExpression("fulleventweightlum");
+    dataloader->SetSignalWeightExpression("fulleventweightlum");
+    // If you wish to modify default settings
+    // (please check "src/Config.h" to see all available global options)
+    //    (TMVA::gConfig().GetVariablePlotting()).fTimesRMS = 8.0;
+
+    TString dirname(tname);
+    dirname += "_Weights";
+    (TMVA::gConfig().GetIONames()).fWeightFileDir = dirname.Data();
+    cout << "--- Set weight directory " << dirname.Data() << endl;
+
+    // Define the input variables that shall be used for the MVA training
+    // note that you may also use variable expressions, such as: "3*var1/var2*abs(var3)"
+    // [all types of expressions that can also be parsed by TTree::Draw( "expression" )]
+
+    trkqualinit.InitializeVariables(*dataloader,selection_);
+
+    Double_t signalWeight     = 1.0;
+    Double_t backgroundWeight = 1.0;
+
+    if(split_trees_) {
+      TTree* signal_train = signal->CopyTree("train>0.");
+      signal_train->SetName("signal_train");
+      TTree* signal_test  = signal->CopyTree("train<0.");
+      signal_test->SetName("signal_test");
+      TTree* bkgd_train = background->CopyTree("train>0.");
+      bkgd_train->SetName("bkgd_train");
+      TTree* bkgd_test  = background->CopyTree("train<0.");
+      bkgd_test->SetName("bkgd_test");
+      dataloader->AddSignalTree    ( signal_train, signalWeight,     "Training" );
+      dataloader->AddSignalTree    ( signal_test,  signalWeight,     "Test" );
+      dataloader->AddBackgroundTree( bkgd_train,   backgroundWeight, "Training" );
+      dataloader->AddBackgroundTree( bkgd_test,    backgroundWeight, "Test" );
     } else {
-      sig_cut = Form("(eventcategory != %i.)", ignore[i]);
-      bkg_cut = Form("(eventcategory != %i.)", ignore[i]);
-
+      dataloader->AddSignalTree    ( signal, signalWeight);
+      dataloader->AddBackgroundTree( background, backgroundWeight );
     }
-  }
-  if(ignore.size() > 0) {
-    sig_cut += "&&";
-    bkg_cut += "&&";
-  }
-  sig_cut = "(issignal >  0.5)"; //&&fulleventweightlum<50&&fulleventweight>-10";
-  bkg_cut = "(issignal <  0.5)"; //&&fulleventweightlum<50&&fulleventweight>-10"; //use background MC and SS data
-
-  printf("\033[32m--- Using signal identification cut %s\033[0m\n", sig_cut.Data());
-  printf("\033[32m--- Using background identification cut %s\033[0m\n", bkg_cut.Data());
-  TCut signal_cuts(sig_cut);
-  TCut bkg_cuts(bkg_cut);
 
 
-  Double_t nSigFrac =  0.5;//0.2; //only use if trees aren't pre-split
-  Double_t nBkgFrac =  0.3;//0.043;//0.2;
-  Long64_t nSig = signal->CopyTree(signal_cuts)->GetEntriesFast();
-  Long64_t nBkg = background->CopyTree(bkg_cuts)->GetEntriesFast();
-  TString options = "";
-  if(!split_trees_) {
-    options +=  "nTrain_Signal=";
-    options += ((Int_t) nSig*nSigFrac);
-    options += ":nTrain_Background=";
-    options += ((Int_t) nBkg*nBkgFrac);
-  }
+    // Tell the factory how to use the training and testing events
+    //
+    // If no numbers of events are given, half of the events in the tree are used
+    // for training, and the other half for testing:
+    //    factory->PrepareTrainingAndTestTree( mycut, "SplitMode=random:!V" );
+    // To also specify the number of testing events, use:
+    //    factory->PrepareTrainingAndTestTree( mycut,
+    //                                         "NSigTrain=3000:NBkgTrain=3000:NSigTest=3000:NBkgTest=3000:SplitMode=Random:!V" );
 
-  if(split_trees_)
-    options += "nTrain_Signal=0:nTrain_Background=0:nTest_Signal=0:nTest_Background=0";
-  else
-    options += ":nTest_Signal=0:nTest_Background=0:SplitMode=Random:!V:SplitSeed=89281";
-  dataloader->PrepareTrainingAndTestTree(signal_cuts, bkg_cuts, options.Data() );
-  if(!split_trees_) {
-    printf("\033[32m--- Using signal fraction %.2f\033[0m\n", nSigFrac);
-    printf("\033[32m--- Using background fraction %.2f\033[0m\n", nBkgFrac);
-  }
+    TString sig_cut, bkg_cut;
+    //  nm = tname;
+    for(int i = 0; i < ignore.size(); ++i) {
+      if(i > 0) {
+        sig_cut += Form("&&(eventcategory != %i.)", ignore[i]);
+        bkg_cut += Form("&&(eventcategory != %i.)", ignore[i]);
+      } else {
+        sig_cut = Form("(eventcategory != %i.)", ignore[i]);
+        bkg_cut = Form("(eventcategory != %i.)", ignore[i]);
+
+      }
+    }
+    if(ignore.size() > 0) {
+      sig_cut += "&&";
+      bkg_cut += "&&";
+    }
+    sig_cut = "(issignal >  0.5)"; //&&fulleventweightlum<50&&fulleventweight>-10";
+    bkg_cut = "(issignal <  0.5)"; //&&fulleventweightlum<50&&fulleventweight>-10"; //use background MC and SS data
+
+    if(use_mass_window_ && selection_.Contains("emu")) {
+      const double xmin = (selection_.Contains("h")) ? 115. : 80.;
+      const double xmax = (selection_.Contains("h")) ? 135. : 100.;
+      sig_cut += Form(" && (lepm > %.1f) && (lepm < %.1f)", xmin, xmax);
+      bkg_cut += Form(" && (lepm > %.1f) && (lepm < %.1f)", xmin, xmax);
+    }
+
+    printf("\033[32m--- Using signal identification cut %s\033[0m\n", sig_cut.Data());
+    printf("\033[32m--- Using background identification cut %s\033[0m\n", bkg_cut.Data());
+    TCut signal_cuts(sig_cut);
+    TCut bkg_cuts(bkg_cut);
 
 
-  // ---- Book MVA methods
-  //
-  // Please lookup the various method configuration options in the corresponding cxx files, eg:
-  // src/MethoCuts.cxx, etc, or here: http://tmva.sourceforge.net/optionRef.html
-  // it is possible to preset ranges in the option string in which the cut optimisation should be done:
-  // "...:CutRangeMin[2]=-1:CutRangeMax[2]=1"...", where [2] is the third input variable
+    Double_t nSigFrac =  0.5;//0.2; //only use if trees aren't pre-split
+    Double_t nBkgFrac =  0.3;//0.043;//0.2;
+    Long64_t nSig = signal->CopyTree(signal_cuts)->GetEntriesFast();
+    Long64_t nBkg = background->CopyTree(bkg_cuts)->GetEntriesFast();
+    TString options = "";
+    if(!split_trees_) {
+      options +=  "nTrain_Signal=";
+      options += ((Int_t) nSig*nSigFrac);
+      options += ":nTrain_Background=";
+      options += ((Int_t) nBkg*nBkgFrac);
+    }
 
-  // TMVA::CrossValidation cv{ "TMVAClassification", dataloader, outputFile,
-  //     "!V:!Silent:Color:DrawProgressBar:Transformations=I:AnalysisType=Classification" };
+    if(split_trees_)
+      options += "nTrain_Signal=0:nTrain_Background=0:nTest_Signal=0:nTest_Background=0";
+    else
+      options += ":nTest_Signal=0:nTest_Background=0:SplitMode=Random:!V:SplitSeed=89281";
+    dataloader->PrepareTrainingAndTestTree(signal_cuts, bkg_cuts, options.Data() );
+    if(!split_trees_) {
+      printf("\033[32m--- Using signal fraction %.2f\033[0m\n", nSigFrac);
+      printf("\033[32m--- Using background fraction %.2f\033[0m\n", nBkgFrac);
+    }
 
-  // Cut optimisation
-  if (Use["Cuts"])
-    factory->BookMethod(dataloader, TMVA::Types::kCuts, "Cuts",
-        "" );
+
+    // ---- Book MVA methods
+    //
+    // Please lookup the various method configuration options in the corresponding cxx files, eg:
+    // src/MethoCuts.cxx, etc, or here: http://tmva.sourceforge.net/optionRef.html
+    // it is possible to preset ranges in the option string in which the cut optimisation should be done:
+    // "...:CutRangeMin[2]=-1:CutRangeMax[2]=1"...", where [2] is the third input variable
+
+    // TMVA::CrossValidation cv{ "TMVAClassification", dataloader, outputFile,
+    //     "!V:!Silent:Color:DrawProgressBar:Transformations=I:AnalysisType=Classification" };
+
+    // Cut optimisation
+    if (Use["Cuts"])
+      factory->BookMethod(dataloader, TMVA::Types::kCuts, "Cuts",
+                          "" );
     // factory->BookMethod( TMVA::Types::kCuts, "Cuts",
     //  "!H:!V:FitMethod=MC:EffSel:SampleSize=200000:VarProp=FSmart" );
 
-  if (Use["CutsD"])
-    factory->BookMethod(dataloader, TMVA::Types::kCuts, "CutsD",
-        "!H:!V:FitMethod=MC:EffSel:SampleSize=200000:VarProp=FSmart:VarTransform=Decorrelate" );
+    if (Use["CutsD"])
+      factory->BookMethod(dataloader, TMVA::Types::kCuts, "CutsD",
+                          "!H:!V:FitMethod=MC:EffSel:SampleSize=200000:VarProp=FSmart:VarTransform=Decorrelate" );
 
-  if (Use["CutsPCA"])
-    factory->BookMethod(dataloader, TMVA::Types::kCuts, "CutsPCA",
-        "!H:!V:FitMethod=MC:EffSel:SampleSize=200000:VarProp=FSmart:VarTransform=PCA" );
+    if (Use["CutsPCA"])
+      factory->BookMethod(dataloader, TMVA::Types::kCuts, "CutsPCA",
+                          "!H:!V:FitMethod=MC:EffSel:SampleSize=200000:VarProp=FSmart:VarTransform=PCA" );
 
-  if (Use["CutsGA"])
-    factory->BookMethod(dataloader, TMVA::Types::kCuts, "CutsGA",
-        "H:!V:FitMethod=GA:CutRangeMin[0]=-10:CutRangeMax[0]=10:VarProp[1]=FMax:EffSel:Steps=30:Cycles=3:PopSize=400:SC_steps=10:SC_rate=5:SC_factor=0.95" );
+    if (Use["CutsGA"])
+      factory->BookMethod(dataloader, TMVA::Types::kCuts, "CutsGA",
+                          "H:!V:FitMethod=GA:CutRangeMin[0]=-10:CutRangeMax[0]=10:VarProp[1]=FMax:EffSel:Steps=30:Cycles=3:PopSize=400:SC_steps=10:SC_rate=5:SC_factor=0.95" );
 
-  if (Use["CutsSA"])
-    factory->BookMethod(dataloader, TMVA::Types::kCuts, "CutsSA",
-        "!H:!V:FitMethod=SA:EffSel:MaxCalls=150000:KernelTemp=IncAdaptive:InitialTemp=1e+6:MinTemp=1e-6:Eps=1e-10:UseDefaultScale" );
+    if (Use["CutsSA"])
+      factory->BookMethod(dataloader, TMVA::Types::kCuts, "CutsSA",
+                          "!H:!V:FitMethod=SA:EffSel:MaxCalls=150000:KernelTemp=IncAdaptive:InitialTemp=1e+6:MinTemp=1e-6:Eps=1e-10:UseDefaultScale" );
 
-  // Likelihood ("naive Bayes estimator")
-  if (Use["Likelihood"])
-    factory->BookMethod(dataloader, TMVA::Types::kLikelihood, "Likelihood",
-        "H:!V:TransformOutput:PDFInterpol=Spline2:NSmoothSig[0]=20:NSmoothBkg[0]=20:NSmoothBkg[1]=10:NSmooth=1:NAvEvtPerBin=50" );
+    // Likelihood ("naive Bayes estimator")
+    if (Use["Likelihood"])
+      factory->BookMethod(dataloader, TMVA::Types::kLikelihood, "Likelihood",
+                          "H:!V:TransformOutput:PDFInterpol=Spline2:NSmoothSig[0]=20:NSmoothBkg[0]=20:NSmoothBkg[1]=10:NSmooth=1:NAvEvtPerBin=50" );
 
-  // Decorrelated likelihood
-  if (Use["LikelihoodD"])
-    factory->BookMethod(dataloader, TMVA::Types::kLikelihood, "LikelihoodD",
-        "!H:!V:TransformOutput:PDFInterpol=Spline2:NSmoothSig[0]=20:NSmoothBkg[0]=20:NSmooth=5:NAvEvtPerBin=50:VarTransform=Decorrelate" );
+    // Decorrelated likelihood
+    if (Use["LikelihoodD"])
+      factory->BookMethod(dataloader, TMVA::Types::kLikelihood, "LikelihoodD",
+                          "!H:!V:TransformOutput:PDFInterpol=Spline2:NSmoothSig[0]=20:NSmoothBkg[0]=20:NSmooth=5:NAvEvtPerBin=50:VarTransform=Decorrelate" );
 
-  // PCA-transformed likelihood
-  if (Use["LikelihoodPCA"])
-    factory->BookMethod(dataloader, TMVA::Types::kLikelihood, "LikelihoodPCA",
-        "!H:!V:!TransformOutput:PDFInterpol=Spline2:NSmoothSig[0]=20:NSmoothBkg[0]=20:NSmooth=5:NAvEvtPerBin=50:VarTransform=PCA" );
+    // PCA-transformed likelihood
+    if (Use["LikelihoodPCA"])
+      factory->BookMethod(dataloader, TMVA::Types::kLikelihood, "LikelihoodPCA",
+                          "!H:!V:!TransformOutput:PDFInterpol=Spline2:NSmoothSig[0]=20:NSmoothBkg[0]=20:NSmooth=5:NAvEvtPerBin=50:VarTransform=PCA" );
 
-  // Use a kernel density estimator to approximate the PDFs
-  if (Use["LikelihoodKDE"])
-    factory->BookMethod(dataloader, TMVA::Types::kLikelihood, "LikelihoodKDE",
-        "!H:!V:!TransformOutput:PDFInterpol=KDE:KDEtype=Gauss:KDEiter=Adaptive:KDEFineFactor=0.3:KDEborder=None:NAvEvtPerBin=50" );
+    // Use a kernel density estimator to approximate the PDFs
+    if (Use["LikelihoodKDE"])
+      factory->BookMethod(dataloader, TMVA::Types::kLikelihood, "LikelihoodKDE",
+                          "!H:!V:!TransformOutput:PDFInterpol=KDE:KDEtype=Gauss:KDEiter=Adaptive:KDEFineFactor=0.3:KDEborder=None:NAvEvtPerBin=50" );
 
-  // Use a variable-dependent mix of splines and kernel density estimator
-  if (Use["LikelihoodMIX"])
-    factory->BookMethod(dataloader, TMVA::Types::kLikelihood, "LikelihoodMIX",
-        "!H:!V:!TransformOutput:PDFInterpolSig[0]=KDE:PDFInterpolBkg[0]=KDE:PDFInterpolSig[1]=KDE:PDFInterpolBkg[1]=KDE:PDFInterpolSig[2]=Spline2:PDFInterpolBkg[2]=Spline2:PDFInterpolSig[3]=Spline2:PDFInterpolBkg[3]=Spline2:KDEtype=Gauss:KDEiter=Nonadaptive:KDEborder=None:NAvEvtPerBin=50" );
+    // Use a variable-dependent mix of splines and kernel density estimator
+    if (Use["LikelihoodMIX"])
+      factory->BookMethod(dataloader, TMVA::Types::kLikelihood, "LikelihoodMIX",
+                          "!H:!V:!TransformOutput:PDFInterpolSig[0]=KDE:PDFInterpolBkg[0]=KDE:PDFInterpolSig[1]=KDE:PDFInterpolBkg[1]=KDE:PDFInterpolSig[2]=Spline2:PDFInterpolBkg[2]=Spline2:PDFInterpolSig[3]=Spline2:PDFInterpolBkg[3]=Spline2:KDEtype=Gauss:KDEiter=Nonadaptive:KDEborder=None:NAvEvtPerBin=50" );
 
-  // Test the multi-dimensional probability density estimator
-  // here are the options strings for the MinMax and RMS methods, respectively:
-  //      "!H:!V:VolumeRangeMode=MinMax:DeltaFrac=0.2:KernelEstimator=Gauss:GaussSigma=0.3" );
-  //      "!H:!V:VolumeRangeMode=RMS:DeltaFrac=3:KernelEstimator=Gauss:GaussSigma=0.3" );
-  if (Use["PDERS"])
-    factory->BookMethod(dataloader, TMVA::Types::kPDERS, "PDERS",
-        "!H:!V:NormTree=T:VolumeRangeMode=Adaptive:KernelEstimator=Gauss:GaussSigma=0.3:NEventsMin=400:NEventsMax=600" );
+    // Test the multi-dimensional probability density estimator
+    // here are the options strings for the MinMax and RMS methods, respectively:
+    //      "!H:!V:VolumeRangeMode=MinMax:DeltaFrac=0.2:KernelEstimator=Gauss:GaussSigma=0.3" );
+    //      "!H:!V:VolumeRangeMode=RMS:DeltaFrac=3:KernelEstimator=Gauss:GaussSigma=0.3" );
+    if (Use["PDERS"])
+      factory->BookMethod(dataloader, TMVA::Types::kPDERS, "PDERS",
+                          "!H:!V:NormTree=T:VolumeRangeMode=Adaptive:KernelEstimator=Gauss:GaussSigma=0.3:NEventsMin=400:NEventsMax=600" );
 
-  if (Use["PDERSD"])
-    factory->BookMethod(dataloader, TMVA::Types::kPDERS, "PDERSD",
-        "!H:!V:VolumeRangeMode=Adaptive:KernelEstimator=Gauss:GaussSigma=0.3:NEventsMin=400:NEventsMax=600:VarTransform=Decorrelate" );
+    if (Use["PDERSD"])
+      factory->BookMethod(dataloader, TMVA::Types::kPDERS, "PDERSD",
+                          "!H:!V:VolumeRangeMode=Adaptive:KernelEstimator=Gauss:GaussSigma=0.3:NEventsMin=400:NEventsMax=600:VarTransform=Decorrelate" );
 
-  if (Use["PDERSPCA"])
-    factory->BookMethod(dataloader, TMVA::Types::kPDERS, "PDERSPCA",
-        "!H:!V:VolumeRangeMode=Adaptive:KernelEstimator=Gauss:GaussSigma=0.3:NEventsMin=400:NEventsMax=600:VarTransform=PCA" );
+    if (Use["PDERSPCA"])
+      factory->BookMethod(dataloader, TMVA::Types::kPDERS, "PDERSPCA",
+                          "!H:!V:VolumeRangeMode=Adaptive:KernelEstimator=Gauss:GaussSigma=0.3:NEventsMin=400:NEventsMax=600:VarTransform=PCA" );
 
-  // Multi-dimensional likelihood estimator using self-adapting phase-space binning
-  if (Use["PDEFoam"])
-    factory->BookMethod(dataloader, TMVA::Types::kPDEFoam, "PDEFoam",
-        "!H:!V:SigBgSeparate=F:TailCut=0.001:VolFrac=0.0666:nActiveCells=500:nSampl=2000:nBin=5:Nmin=100:Kernel=None:Compress=T" );
+    // Multi-dimensional likelihood estimator using self-adapting phase-space binning
+    if (Use["PDEFoam"])
+      factory->BookMethod(dataloader, TMVA::Types::kPDEFoam, "PDEFoam",
+                          "!H:!V:SigBgSeparate=F:TailCut=0.001:VolFrac=0.0666:nActiveCells=500:nSampl=2000:nBin=5:Nmin=100:Kernel=None:Compress=T" );
 
-  if (Use["PDEFoamBoost"])
-    factory->BookMethod(dataloader, TMVA::Types::kPDEFoam, "PDEFoamBoost",
-        "!H:!V:Boost_Num=30:Boost_Transform=linear:SigBgSeparate=F:MaxDepth=4:UseYesNoCell=T:DTLogic=MisClassificationError:FillFoamWithOrigWeights=F:TailCut=0:nActiveCells=500:nBin=20:Nmin=400:Kernel=None:Compress=T" );
+    if (Use["PDEFoamBoost"])
+      factory->BookMethod(dataloader, TMVA::Types::kPDEFoam, "PDEFoamBoost",
+                          "!H:!V:Boost_Num=30:Boost_Transform=linear:SigBgSeparate=F:MaxDepth=4:UseYesNoCell=T:DTLogic=MisClassificationError:FillFoamWithOrigWeights=F:TailCut=0:nActiveCells=500:nBin=20:Nmin=400:Kernel=None:Compress=T" );
 
-  // K-Nearest Neighbour classifier (KNN)
-  if (Use["KNN"])
-    factory->BookMethod(dataloader, TMVA::Types::kKNN, "KNN",
-        "!H:!V:nkNN=70:ScaleFrac=.8:SigmaFact=1.0:Kernel=Gaus:UseKernel=F:UseWeight=T:!Trim" );
+    // K-Nearest Neighbour classifier (KNN)
+    if (Use["KNN"])
+      factory->BookMethod(dataloader, TMVA::Types::kKNN, "KNN",
+                          "!H:!V:nkNN=70:ScaleFrac=.8:SigmaFact=1.0:Kernel=Gaus:UseKernel=F:UseWeight=T:!Trim" );
 
-  // H-Matrix (chi2-squared) method
-  if (Use["HMatrix"])
-    factory->BookMethod(dataloader, TMVA::Types::kHMatrix, "HMatrix", "!H:!V:VarTransform=None" );
+    // H-Matrix (chi2-squared) method
+    if (Use["HMatrix"])
+      factory->BookMethod(dataloader, TMVA::Types::kHMatrix, "HMatrix", "!H:!V:VarTransform=None" );
 
-  // Linear discriminant (same as Fisher discriminant)
-  if (Use["LD"])
-    factory->BookMethod(dataloader, TMVA::Types::kLD, "LD", "H:!V:VarTransform=None:CreateMVAPdfs:PDFInterpolMVAPdf=Spline2:NbinsMVAPdf=50:NsmoothMVAPdf=10" );
+    // Linear discriminant (same as Fisher discriminant)
+    if (Use["LD"])
+      factory->BookMethod(dataloader, TMVA::Types::kLD, "LD", "H:!V:VarTransform=None:CreateMVAPdfs:PDFInterpolMVAPdf=Spline2:NbinsMVAPdf=50:NsmoothMVAPdf=10" );
 
-  // Fisher discriminant (same as LD)
-  if (Use["Fisher"])
-    factory->BookMethod(dataloader, TMVA::Types::kFisher, "Fisher", "H:!V:Fisher:VarTransform=None:CreateMVAPdfs:PDFInterpolMVAPdf=Spline2:NbinsMVAPdf=50:NsmoothMVAPdf=10" );
+    // Fisher discriminant (same as LD)
+    if (Use["Fisher"])
+      factory->BookMethod(dataloader, TMVA::Types::kFisher, "Fisher", "H:!V:Fisher:VarTransform=None:CreateMVAPdfs:PDFInterpolMVAPdf=Spline2:NbinsMVAPdf=50:NsmoothMVAPdf=10" );
 
-  // Fisher with Gauss-transformed input variables
-  if (Use["FisherG"])
-    factory->BookMethod(dataloader, TMVA::Types::kFisher, "FisherG", "H:!V:VarTransform=Gauss" );
+    // Fisher with Gauss-transformed input variables
+    if (Use["FisherG"])
+      factory->BookMethod(dataloader, TMVA::Types::kFisher, "FisherG", "H:!V:VarTransform=Gauss" );
 
-  // Composite classifier: ensemble (tree) of boosted Fisher classifiers
-  if (Use["BoostedFisher"])
-    factory->BookMethod(dataloader, TMVA::Types::kFisher, "BoostedFisher",
-        "H:!V:Boost_Num=20:Boost_Transform=log:Boost_Type=AdaBoost:Boost_AdaBoostBeta=0.2:!Boost_DetailedMonitoring" );
+    // Composite classifier: ensemble (tree) of boosted Fisher classifiers
+    if (Use["BoostedFisher"])
+      factory->BookMethod(dataloader, TMVA::Types::kFisher, "BoostedFisher",
+                          "H:!V:Boost_Num=20:Boost_Transform=log:Boost_Type=AdaBoost:Boost_AdaBoostBeta=0.2:!Boost_DetailedMonitoring" );
 
-  // Function discrimination analysis (FDA) -- test of various fitters - the recommended one is Minuit (or GA or SA)
-  if (Use["FDA_MC"])
-    factory->BookMethod(dataloader, TMVA::Types::kFDA, "FDA_MC",
-        "H:!V:Formula=(0)+(1)*x0+(2)*x1+(3)*x2+(4)*x3:ParRanges=(-1,1);(-10,10);(-10,10);(-10,10);(-10,10):FitMethod=MC:SampleSize=100000:Sigma=0.1" );
+    // Function discrimination analysis (FDA) -- test of various fitters - the recommended one is Minuit (or GA or SA)
+    if (Use["FDA_MC"])
+      factory->BookMethod(dataloader, TMVA::Types::kFDA, "FDA_MC",
+                          "H:!V:Formula=(0)+(1)*x0+(2)*x1+(3)*x2+(4)*x3:ParRanges=(-1,1);(-10,10);(-10,10);(-10,10);(-10,10):FitMethod=MC:SampleSize=100000:Sigma=0.1" );
 
-  if (Use["FDA_GA"]) // can also use Simulated Annealing (SA) algorithm (see Cuts_SA options])
-    factory->BookMethod(dataloader, TMVA::Types::kFDA, "FDA_GA",
-        "H:!V:Formula=(0)+(1)*x0+(2)*x1+(3)*x2+(4)*x3:ParRanges=(-1,1);(-10,10);(-10,10);(-10,10);(-10,10):FitMethod=GA:PopSize=300:Cycles=3:Steps=20:Trim=True:SaveBestGen=1" );
+    if (Use["FDA_GA"]) // can also use Simulated Annealing (SA) algorithm (see Cuts_SA options])
+      factory->BookMethod(dataloader, TMVA::Types::kFDA, "FDA_GA",
+                          "H:!V:Formula=(0)+(1)*x0+(2)*x1+(3)*x2+(4)*x3:ParRanges=(-1,1);(-10,10);(-10,10);(-10,10);(-10,10):FitMethod=GA:PopSize=300:Cycles=3:Steps=20:Trim=True:SaveBestGen=1" );
 
-  if (Use["FDA_SA"]) // can also use Simulated Annealing (SA) algorithm (see Cuts_SA options])
-    factory->BookMethod(dataloader, TMVA::Types::kFDA, "FDA_SA",
-        "H:!V:Formula=(0)+(1)*x0+(2)*x1+(3)*x2+(4)*x3:ParRanges=(-1,1);(-10,10);(-10,10);(-10,10);(-10,10):FitMethod=SA:MaxCalls=15000:KernelTemp=IncAdaptive:InitialTemp=1e+6:MinTemp=1e-6:Eps=1e-10:UseDefaultScale" );
+    if (Use["FDA_SA"]) // can also use Simulated Annealing (SA) algorithm (see Cuts_SA options])
+      factory->BookMethod(dataloader, TMVA::Types::kFDA, "FDA_SA",
+                          "H:!V:Formula=(0)+(1)*x0+(2)*x1+(3)*x2+(4)*x3:ParRanges=(-1,1);(-10,10);(-10,10);(-10,10);(-10,10):FitMethod=SA:MaxCalls=15000:KernelTemp=IncAdaptive:InitialTemp=1e+6:MinTemp=1e-6:Eps=1e-10:UseDefaultScale" );
 
-  if (Use["FDA_MT"])
-    factory->BookMethod(dataloader, TMVA::Types::kFDA, "FDA_MT",
-        "H:!V:Formula=(0)+(1)*x0+(2)*x1+(3)*x2+(4)*x3:ParRanges=(-1,1);(-10,10);(-10,10);(-10,10);(-10,10):FitMethod=MINUIT:ErrorLevel=1:PrintLevel=-1:FitStrategy=2:UseImprove:UseMinos:SetBatch" );
+    if (Use["FDA_MT"])
+      factory->BookMethod(dataloader, TMVA::Types::kFDA, "FDA_MT",
+                          "H:!V:Formula=(0)+(1)*x0+(2)*x1+(3)*x2+(4)*x3:ParRanges=(-1,1);(-10,10);(-10,10);(-10,10);(-10,10):FitMethod=MINUIT:ErrorLevel=1:PrintLevel=-1:FitStrategy=2:UseImprove:UseMinos:SetBatch" );
 
-  if (Use["FDA_GAMT"])
-    factory->BookMethod(dataloader, TMVA::Types::kFDA, "FDA_GAMT",
-        "H:!V:Formula=(0)+(1)*x0+(2)*x1+(3)*x2+(4)*x3:ParRanges=(-1,1);(-10,10);(-10,10);(-10,10);(-10,10):FitMethod=GA:Converger=MINUIT:ErrorLevel=1:PrintLevel=-1:FitStrategy=0:!UseImprove:!UseMinos:SetBatch:Cycles=1:PopSize=5:Steps=5:Trim" );
+    if (Use["FDA_GAMT"])
+      factory->BookMethod(dataloader, TMVA::Types::kFDA, "FDA_GAMT",
+                          "H:!V:Formula=(0)+(1)*x0+(2)*x1+(3)*x2+(4)*x3:ParRanges=(-1,1);(-10,10);(-10,10);(-10,10);(-10,10):FitMethod=GA:Converger=MINUIT:ErrorLevel=1:PrintLevel=-1:FitStrategy=0:!UseImprove:!UseMinos:SetBatch:Cycles=1:PopSize=5:Steps=5:Trim" );
 
-  if (Use["FDA_MCMT"])
-    factory->BookMethod(dataloader, TMVA::Types::kFDA, "FDA_MCMT",
-        "H:!V:Formula=(0)+(1)*x0+(2)*x1+(3)*x2+(4)*x3:ParRanges=(-1,1);(-10,10);(-10,10);(-10,10);(-10,10):FitMethod=MC:Converger=MINUIT:ErrorLevel=1:PrintLevel=-1:FitStrategy=0:!UseImprove:!UseMinos:SetBatch:SampleSize=20" );
+    if (Use["FDA_MCMT"])
+      factory->BookMethod(dataloader, TMVA::Types::kFDA, "FDA_MCMT",
+                          "H:!V:Formula=(0)+(1)*x0+(2)*x1+(3)*x2+(4)*x3:ParRanges=(-1,1);(-10,10);(-10,10);(-10,10);(-10,10):FitMethod=MC:Converger=MINUIT:ErrorLevel=1:PrintLevel=-1:FitStrategy=0:!UseImprove:!UseMinos:SetBatch:SampleSize=20" );
 
-  // TMVA ANN: MLP (recommended ANN) -- all ANNs in TMVA are Multilayer Perceptrons
-  if (Use["MLP"])
-    factory->BookMethod(dataloader, TMVA::Types::kMLP, "MLP", "!H:!V:NeuronType=tanh:VarTransform=N:NCycles=600:HiddenLayers=N+5:TestRate=5:!UseRegulator");
-  //"!H:!V:VarTransform=N" );
+    // TMVA ANN: MLP (recommended ANN) -- all ANNs in TMVA are Multilayer Perceptrons
+    if (Use["MLP"])
+      factory->BookMethod(dataloader, TMVA::Types::kMLP, "MLP", "!H:!V:NeuronType=tanh:VarTransform=N:NCycles=600:HiddenLayers=N+5:TestRate=5:!UseRegulator");
+    //"!H:!V:VarTransform=N" );
 
-  if (Use["MLP_MM"]) {
-    TString network;
-    network = "20,10"; //"N,5,5"; //10,5,5
-    factory->BookMethod(dataloader, TMVA::Types::kMLP, "MLP_MM",
-                         Form("!H:!V:VarTransform=N:NCycles=600:HiddenLayers=%s:TestRate=5:!UseRegulator",
-                              network.Data()));
-    //:BPMode=batch:BatchSize=3e4:SamplingEpoch=1:TestRate=5:TrainingMethod=BFGS:!UseRegulator:CreateMVAPdfs=False
-    //:LearningRate=1e-2:EstimatorType=MSE:NeuronType=sigmoid" );
-  }
-  if (Use["MLPBFGS"])
-    factory->BookMethod(dataloader, TMVA::Types::kMLP, "MLPBFGS", "H:!V:NeuronType=tanh:VarTransform=N:NCycles=600:HiddenLayers=N+5:TestRate=5:TrainingMethod=BFGS:!UseRegulator" );
+    if (Use["MLP_MM"]) {
+      TString network;
+      network = "20,10"; //"N,5,5"; //10,5,5
+      factory->BookMethod(dataloader, TMVA::Types::kMLP, "MLP_MM",
+                          Form("!H:!V:VarTransform=N:NCycles=600:HiddenLayers=%s:TestRate=5:!UseRegulator",
+                               network.Data()));
+      //:BPMode=batch:BatchSize=3e4:SamplingEpoch=1:TestRate=5:TrainingMethod=BFGS:!UseRegulator:CreateMVAPdfs=False
+      //:LearningRate=1e-2:EstimatorType=MSE:NeuronType=sigmoid" );
+    }
+    if (Use["MLPBFGS"])
+      factory->BookMethod(dataloader, TMVA::Types::kMLP, "MLPBFGS", "H:!V:NeuronType=tanh:VarTransform=N:NCycles=600:HiddenLayers=N+5:TestRate=5:TrainingMethod=BFGS:!UseRegulator" );
 
-  if (Use["MLPBNN"])
-    factory->BookMethod(dataloader, TMVA::Types::kMLP, "MLPBNN", "H:!V:NeuronType=tanh:VarTransform=N:NCycles=600:HiddenLayers=N+5:TestRate=5:TrainingMethod=BFGS:UseRegulator" ); // BFGS training with bayesian regulators
+    if (Use["MLPBNN"])
+      factory->BookMethod(dataloader, TMVA::Types::kMLP, "MLPBNN", "H:!V:NeuronType=tanh:VarTransform=N:NCycles=600:HiddenLayers=N+5:TestRate=5:TrainingMethod=BFGS:UseRegulator" ); // BFGS training with bayesian regulators
 
-  // CF(Clermont-Ferrand)ANN
-  if (Use["CFMlpANN"])
-    factory->BookMethod(dataloader, TMVA::Types::kCFMlpANN, "CFMlpANN", "!H:!V:NCycles=2000:HiddenLayers=N+1,N"  ); // n_cycles:#nodes:#nodes:...
+    // CF(Clermont-Ferrand)ANN
+    if (Use["CFMlpANN"])
+      factory->BookMethod(dataloader, TMVA::Types::kCFMlpANN, "CFMlpANN", "!H:!V:NCycles=2000:HiddenLayers=N+1,N"  ); // n_cycles:#nodes:#nodes:...
 
-  // Tmlp(Root)ANN
-  if (Use["TMlpANN"])
+    // Tmlp(Root)ANN
+    if (Use["TMlpANN"])
       factory->BookMethod( dataloader, TMVA::Types::kTMlpANN, "TMlpANN", "!H:!V:NCycles=200:HiddenLayers=N+1,N:LearningMethod=BFGS:ValidationFraction=0.3"  ); // n_cycles:#nodes:#nodes:...
 
-  // Support Vector Machine
-  if (Use["SVM"])
-    factory->BookMethod(dataloader, TMVA::Types::kSVM, "SVM", "Gamma=.5:Tol=0.001:C=1:VarTransform=Norm" );
+    // Support Vector Machine
+    if (Use["SVM"])
+      factory->BookMethod(dataloader, TMVA::Types::kSVM, "SVM", "Gamma=.5:Tol=0.001:C=1:VarTransform=Norm" );
 
-  // Boosted Decision Trees
-  if (Use["BDT"])  // Adaptive Boost
-    factory->BookMethod(dataloader, TMVA::Types::kBDT,"BDT",
-        "!H:!V:NTrees=850:nEventsMin=150:MaxDepth=3:BoostType=AdaBoost:AdaBoostBeta=0.5:SeparationType=GiniIndex:nCuts=20:PruneMethod=NoPruning:CreateMVAPdfs=False" );
+    // Boosted Decision Trees
+    if (Use["BDT"])  // Adaptive Boost
+      factory->BookMethod(dataloader, TMVA::Types::kBDT,"BDT",
+                          "!H:!V:NTrees=850:nEventsMin=150:MaxDepth=3:BoostType=AdaBoost:AdaBoostBeta=0.5:SeparationType=GiniIndex:nCuts=20:PruneMethod=NoPruning:CreateMVAPdfs=False" );
 
-  if (Use["BDT_MM"])  // Adaptive Boost
-    factory->BookMethod(dataloader, TMVA::Types::kBDT,"BDT_MM",
-                        "!H:!V:NTrees=400:MinNodeSize=1.5%:MaxDepth=3:BoostType=AdaBoost:AdaBoostBeta=0.5:UseBaggedBoost:BaggedSampleFraction=0.5:SeparationType=GiniIndex:nCuts=20" );
+    if (Use["BDT_MM"])  // Adaptive Boost
+      factory->BookMethod(dataloader, TMVA::Types::kBDT,"BDT_MM",
+                          "!H:!V:NTrees=400:MinNodeSize=1.5%:MaxDepth=3:BoostType=AdaBoost:AdaBoostBeta=0.5:UseBaggedBoost:BaggedSampleFraction=0.5:SeparationType=GiniIndex:nCuts=20" );
 
-  if (Use["BDTRT"]) {  // Bagging Boost Random Trees
-    TString bdtSetup = "!H:!V";
-    bdtSetup += ":NTrees=1000:MinNodeSize=1%:MaxDepth=5:nCuts=100:UseNVars=5:UseRandomisedTrees=True";
-    bdtSetup += ":BoostType=Bagging:BaggedSampleFraction=0.6:CreateMVAPdfs=False";
-    // bdtSetup += ":PruneMethod=ExpectedError:PruneStrength=0.2";
-    factory->BookMethod(dataloader, TMVA::Types::kBDT, "BDTRT",bdtSetup.Data());
-  }
+    if (Use["BDTRT"]) {  // Bagging Boost Random Trees
+      TString bdtSetup = "!H:!V";
+      bdtSetup += ":NTrees=1000:MinNodeSize=1%:MaxDepth=5:nCuts=100:UseNVars=5:UseRandomisedTrees=True";
+      bdtSetup += ":BoostType=Bagging:BaggedSampleFraction=0.6:CreateMVAPdfs=False";
+      // bdtSetup += ":PruneMethod=ExpectedError:PruneStrength=0.2";
+      factory->BookMethod(dataloader, TMVA::Types::kBDT, "BDTRT",bdtSetup.Data());
+    }
 
-  if (Use["BDTG"]) // Gradient Boost
-    factory->BookMethod(dataloader, TMVA::Types::kBDT, "BDTG",
-        "!H:!V:NTrees=1000:BoostType=Grad:Shrinkage=0.10:UseBaggedGrad:GradBaggingFraction=0.5:nCuts=20:NNodesMax=5" );
+    if (Use["BDTG"]) // Gradient Boost
+      factory->BookMethod(dataloader, TMVA::Types::kBDT, "BDTG",
+                          "!H:!V:NTrees=1000:BoostType=Grad:Shrinkage=0.10:UseBaggedGrad:GradBaggingFraction=0.5:nCuts=20:NNodesMax=5" );
 
-  if (Use["BDTB"]) // Bagging
-    factory->BookMethod(dataloader, TMVA::Types::kBDT, "BDTB",
-        "!H:!V:NTrees=1000:MinNodeSize=1%:BoostType=Bagging:MaxDepth=4:SeparationType=GiniIndex:nCuts=50:PruneMethod=NoPruning" );
+    if (Use["BDTB"]) // Bagging
+      factory->BookMethod(dataloader, TMVA::Types::kBDT, "BDTB",
+                          "!H:!V:NTrees=1000:MinNodeSize=1%:BoostType=Bagging:MaxDepth=4:SeparationType=GiniIndex:nCuts=50:PruneMethod=NoPruning" );
 
-  if (Use["BDTD"]) // Decorrelation + Adaptive Boost
-   factory->BookMethod(dataloader, TMVA::Types::kBDT, "BDTD",
-        "!H:!V:NTrees=400:nEventsMin=400:MaxDepth=3:BoostType=AdaBoost:SeparationType=GiniIndex:nCuts=20:PruneMethod=NoPruning:VarTransform=Decorrelate" );
+    if (Use["BDTD"]) // Decorrelation + Adaptive Boost
+      factory->BookMethod(dataloader, TMVA::Types::kBDT, "BDTD",
+                          "!H:!V:NTrees=400:nEventsMin=400:MaxDepth=3:BoostType=AdaBoost:SeparationType=GiniIndex:nCuts=20:PruneMethod=NoPruning:VarTransform=Decorrelate" );
 
-  if (Use["BDTF"])  // Allow Using Fisher discriminant in node splitting for (strong) linearly correlated variables
-    factory->BookMethod(dataloader, TMVA::Types::kBDT, "BDTMitFisher",
-        "!H:!V:NTrees=50:nEventsMin=150:UseFisherCuts:MaxDepth=3:BoostType=AdaBoost:AdaBoostBeta=0.5:SeparationType=GiniIndex:nCuts=20:PruneMethod=NoPruning" );
+    if (Use["BDTF"])  // Allow Using Fisher discriminant in node splitting for (strong) linearly correlated variables
+      factory->BookMethod(dataloader, TMVA::Types::kBDT, "BDTMitFisher",
+                          "!H:!V:NTrees=50:nEventsMin=150:UseFisherCuts:MaxDepth=3:BoostType=AdaBoost:AdaBoostBeta=0.5:SeparationType=GiniIndex:nCuts=20:PruneMethod=NoPruning" );
 
-  // RuleFit -- TMVA implementation of Friedman's method
-  if (Use["RuleFit"])
-    factory->BookMethod(dataloader, TMVA::Types::kRuleFit, "RuleFit",
-        "H:!V:RuleFitModule=RFTMVA:Model=ModRuleLinear:MinImp=0.001:RuleMinDist=0.001:NTrees=20:fEventsMin=0.01:fEventsMax=0.5:GDTau=-1.0:GDTauPrec=0.01:GDStep=0.01:GDNSteps=10000:GDErrScale=1.02" );
+    // RuleFit -- TMVA implementation of Friedman's method
+    if (Use["RuleFit"])
+      factory->BookMethod(dataloader, TMVA::Types::kRuleFit, "RuleFit",
+                          "H:!V:RuleFitModule=RFTMVA:Model=ModRuleLinear:MinImp=0.001:RuleMinDist=0.001:NTrees=20:fEventsMin=0.01:fEventsMax=0.5:GDTau=-1.0:GDTauPrec=0.01:GDStep=0.01:GDNSteps=10000:GDErrScale=1.02" );
 
-  // For an example of the category classifier usage, see: TMVAClassificationCategory
+    // For an example of the category classifier usage, see: TMVAClassificationCategory
 
-  // --------------------------------------------------------------------------------------------------
+    // --------------------------------------------------------------------------------------------------
 
-  // ---- Now you can optimize the setting (configuration) of the MVAs using the set of training events
+    // ---- Now you can optimize the setting (configuration) of the MVAs using the set of training events
 
-  // factory->OptimizeAllMethods("SigEffAt001","Scan");
-  // factory->OptimizeAllMethods("ROCIntegral","GA");
+    // factory->OptimizeAllMethods("SigEffAt001","Scan");
+    // factory->OptimizeAllMethods("ROCIntegral","GA");
 
-  // --------------------------------------------------------------------------------------------------
+    // --------------------------------------------------------------------------------------------------
 
-  // ---- Now you can tell the factory to train, test, and evaluate the MVAs
+    // ---- Now you can tell the factory to train, test, and evaluate the MVAs
 
-//  factory->PrintHelpMessage();
-//  factory->EvaluateAllVariables();
-  factory->SetVerbose();
+    //  factory->PrintHelpMessage();
+    //  factory->EvaluateAllVariables();
+    factory->SetVerbose();
 
-  if(!dryrun_) {
+    if(!dryrun_) {
 
-    // Train MVAs using the set of training events
-    factory->TrainAllMethods();
+      // Train MVAs using the set of training events
+      factory->TrainAllMethods();
 
-    // ---- Evaluate all MVAs using the set of test events
-    factory->TestAllMethods();
+      // ---- Evaluate all MVAs using the set of test events
+      factory->TestAllMethods();
 
-    // ----- Evaluate and compare performance of all configured MVAs
-    factory->EvaluateAllMethods();
+      // ----- Evaluate and compare performance of all configured MVAs
+      factory->EvaluateAllMethods();
 
-    // --------------------------------------------------------------
+      // --------------------------------------------------------------
 
-    // Save the output
-    outputFile->Write();
-    outputFile->Close();
+      // Save the output
+      outputFile->Write();
+      outputFile->Close();
 
-    std::cout << "==> Wrote root file: " << outputFile->GetName() << std::endl;
-    std::cout << "==> TMVAClassification is done!" << std::endl;
-  } else
-    cout << "Completed dry run!\n";
+      std::cout << "==> Wrote root file: " << outputFile->GetName() << std::endl;
+      std::cout << "==> TMVAClassification is done!" << std::endl;
+    } else
+      cout << "Completed dry run!\n";
 
-  delete factory;
-  delete dataloader;
+    delete factory;
+    delete dataloader;
+  } //end plotOnly_
 
    // Launch the GUI for the root macros
   if (!dryrun_&&!gROOT->IsBatch()) TMVA::TMVAGui( outfilename );
@@ -545,8 +720,19 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
     //make scatter plots for all variables
     Tree_t tmp_tree_t; //not used
     auto vars = trkqualinit.GetVariables(selection_, tmp_tree_t);
+    outputFile = TFile::Open( outfilename, "READ" );
+    TTree* TestTree  = (outputFile) ? (TTree*) outputFile->Get(Form("tmva_%s/TestTree" , tname)) : nullptr;
+    TTree* TrainTree = (outputFile) ? (TTree*) outputFile->Get(Form("tmva_%s/TrainTree", tname)) : nullptr;
     for(auto var : vars) {
       if(var.use_) TMVA::correlationscatters(outFolder.Data(), outfilename.Data(), var.var_.Data()); //2D correlations
+      if(TestTree && TrainTree) { //make 1-D histograms of spectators and variables
+        print_spectator(var.var_, TestTree, TrainTree, outFolder);
+      } else {
+        cout << "Can't plot variable " << var.var_.Data() << " due to missing trees!\n";
+      }
+    }
+    for(auto mva : Use) {
+      if(Use[mva.first]) print_spectator(mva.first, TestTree, TrainTree, outFolder);
     }
   }
   if(multiTrainings_) {gSystem->cd(".."); inTrainDir_ = false;}

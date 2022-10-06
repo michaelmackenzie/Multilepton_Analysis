@@ -60,6 +60,8 @@ int train_tmva(const char* tree_name = "trees/background_clfv_Z0_nano_mutau_2016
     }
   }
 
+  if(x.Contains("_emu_") && use_mass_window_) tmvaName += "_mass_window";
+
   //if the version is non-default, add to the name
   if(trkqual_version_ > -1 && trkqual_version_ != TrkQualInit::Default) tmvaName += Form("_v%i", trkqual_version_);
 

@@ -25,11 +25,11 @@ namespace CLFV {
        <7: No longer supported
        7 : lepm, mtone, mttwo, onemetdphi, twometdphi, onept, twopt, leppt, lepdeltaphi, deltaalpha, lepmestimate, jetpt
        8 : lepm, oneprimepz, oneprimee, twoprimepz, twoprimepx, twoprimee, metprimee   , deltaalpha, lepmestimate
-       9 : lepm, mtone, mttwo, onemetdphi, twometdphi, onept, twopt, leppt, lepdeltaphi, deltaalpha, lepmestimate, jetpt
-       10: lepm, mtone, mttwo, onemetdphi, twometdphi,                      lepdeltaphi, deltaalpha, lepmestimate
-       11: lepm, mtone, mttwo, onemetdphi, twometdphi,               leppt, lepdeltaphi, deltaalpha, lepmestimate, jetpt
+       9 : development version
        e+mu:
        7 : mtoneoverm, mttwooverm, onemetdphi, twometdphi, oneptoverm, twoptoverm, lepptoverm, lepdeltaphi, jetpt
+       8 : 7 but with updated spectators
+       9 : development version
      **/
     TrkQualInit(int version = TrkQualInit::Default, int njets = 0) {
       version_ = version;
@@ -44,119 +44,193 @@ namespace CLFV {
       float* val_; //address
       bool use_; //use or just spectator
       char type_;
-      Var_t(TString var, TString desc, TString unit, float* val, bool use) : var_(var), desc_(desc),
-                                                                             unit_(unit), val_(val),
-                                                                             use_(use), type_('F') {}
+      Var_t(TString var, TString desc, TString unit, float* val, bool use = false) : var_(var), desc_(desc),
+                                                                                     unit_(unit), val_(val),
+                                                                                     use_(use), type_('F') {}
     };
 
     //get list of variables for training/evaluating MVAs
     std::vector<Var_t> GetVariables(TString selection, Tree_t& tree) {
       std::vector<Var_t> variables;
+      const bool emu      = selection.EndsWith("emu");
+      const bool tau      = selection.Contains("tau");
+      const bool emu_data = emu || selection.Contains("_");
+      const bool tau_data = selection.EndsWith("tau");
+
+      std::vector<TString> train_var;
+      if(tau) {
+        if(version_ ==  7) train_var = {"lepm", "lepmestimate", "deltaalpha", "mtone", "mttwo", "onemetdeltaphi", "twometdeltaphi",
+                                        "leponept", "leptwopt", "lepdeltaphi", "leppt", "jetpt"};
+        if(version_ ==  8) train_var = {"lepm", "lepmestimate", "deltaalpha", "leponeprimepz", "leponeprimee", "leptwoprimepz",
+                                        "leptwoprimepx", "leptwoprimee", "metprimee"};
+        if(version_ ==  9) train_var = {"lepm", "lepmestimate", "deltaalpha", "mtone", "mttwo", "mtlep", "dzeta",
+                                        "ptdiff", "lepdeltaeta", "lepdeltaphi", "leppt", "jetpt"};
+        if(version_ == 10) train_var = {"lepm", "lepmestimate", "deltaalpha", "mtone", "mttwo", "onemetdeltaphi", "twometdeltaphi",
+                                        "leponept", "leptwopt", "lepdeltaphi", "leppt", "jetpt"};
+        if(version_ == 11) train_var = {"lepm", "lepmestimate", "deltaalpha", "mtone", "mttwo", "mtlep", "dzeta",
+                                        "ptdiff", "lepdeltaphi", "lepdeltaeta"};
+        if(version_ == 12) train_var = {"lepm", "lepmestimate", "deltaalpha", "mtone", "mttwo", "mtlep",
+                                        "leponept", "leptwopt", "lepdeltaphi", "leppt", "jetpt"};
+        if(version_ == 13) train_var = {"lepm", "lepmestimate", "deltaalpha", "mtone", "mttwo", "mtlep", "onemetdeltaphi", "twometdeltaphi",
+                                        "leponept", "leptwopt", "lepdeltaphi", "leppt", "jetpt"};
+        if(version_ == 14) train_var = {"lepm", "lepmestimate", "deltaalpha", "leptrkdeltam", "mtone", "mttwo", "mtlep",
+                                        "leponept", "leptwopt", "lepdeltaphi", "lepdeltaphi", "leppt", "jetpt"};
+      } else {
+        if(version_ ==  7) train_var = {"mtoneoverm", "mttwooverm", "onemetdeltaphi", "twometdeltaphi",
+                                        "leponeptoverm", "leptwoptoverm", "lepptoverm", "lepdeltaphi", "jetpt"};
+        if(version_ ==  8) train_var = {"mtoneoverm", "mttwooverm", "onemetdeltaphi", "twometdeltaphi",
+                                        "leponeptoverm", "leptwoptoverm", "lepptoverm", "lepdeltaphi", "jetpt"};
+        if(version_ ==  9) train_var = {"mtoneoverm", "mttwooverm", "mtlepoverm", "lepptoverm",
+                                        "ptdiff", "lepdeltaphi", "lepdeltaeta", "dzeta"};
+        if(version_ == 11) train_var = {"mtoneoverm", "mttwooverm", "lepptoverm", "leponeptoverm", "lepptwoptoverm",
+                                        "ptdiff", "lepdeltaphi", "jetpt", "dzeta"};
+
+      }
+
+      if(train_var.size() == 0) {
+        std::cout << "TrkQualInit::" << __func__ << ": No training variables defined for selection "
+                  << selection.Data() << " and version " << version_ << std::endl;
+        throw 20;
+      }
+
       //necessary event information
-      variables.push_back(Var_t("fulleventweight"   ,"fullEventWeight"   ,"", &tree.fulleventweight   , false));
-      variables.push_back(Var_t("fulleventweightlum","fullEventWeightLum","", &tree.fulleventweightlum, false));
-      variables.push_back(Var_t("eventweight"       ,"eventWeight"       ,"", &tree.eventweight       , false));
-      variables.push_back(Var_t("eventcategory"     ,"eventCategory"     ,"", &tree.eventcategory     , false));
-      variables.push_back(Var_t("issignal"          ,"isSignal"          ,"", &tree.issignal          , false));
-      variables.push_back(Var_t("type"              ,"type"              ,"", &tree.type              , false));
+      variables.push_back(Var_t("fulleventweight"   ,"fullEventWeight"   ,"", &tree.fulleventweight   ));
+      variables.push_back(Var_t("fulleventweightlum","fullEventWeightLum","", &tree.fulleventweightlum));
+      variables.push_back(Var_t("eventweight"       ,"eventWeight"       ,"", &tree.eventweight       ));
+      variables.push_back(Var_t("eventcategory"     ,"eventCategory"     ,"", &tree.eventcategory     ));
+      variables.push_back(Var_t("issignal"          ,"isSignal"          ,"", &tree.issignal          ));
+      variables.push_back(Var_t("type"              ,"type"              ,"", &tree.type              ));
       if(version_ > 7) {
-        variables.push_back(Var_t("jettotaunonclosure","jet->tau NC"       ,"", &tree.jettotaunonclosure, false));
-        variables.push_back(Var_t("zptup"             ,"Z pT weight up"    ,"", &tree.zptup             , false));
-        variables.push_back(Var_t("zptdown"           ,"Z pT weight down"  ,"", &tree.zptdown           , false));
+        if(tau_data)
+          variables.push_back(Var_t("jettotaunonclosure","jet->tau NC"     ,"", &tree.jettotaunonclosure));
+        variables.push_back(Var_t("zptup"             ,"Z pT weight up"    ,"", &tree.zptup             ));
+        variables.push_back(Var_t("zptdown"           ,"Z pT weight down"  ,"", &tree.zptdown           ));
+        variables.push_back(Var_t("jetantimu"         ,"#mu->#tau unc."    ,"", &tree.jetantimu         ));
+        variables.push_back(Var_t("jetantiele"        ,"e->#tau unc."      ,"", &tree.jetantiele        ));
+        variables.push_back(Var_t("btagsys"           ,"b-Tag systematic"  ,"", &tree.btagsys           ));
+        variables.push_back(Var_t("qcdsys"            ,"QCD systematic"    ,"", &tree.qcdsys            ));
       }
 
-      if(version_ == 8 && (selection == "hmutau" || selection == "zmutau" || selection.Contains("etau"))) {
-        variables.push_back(Var_t("leponeprimepz0", "l_{1} #tilde{pz}", "GeV", &(tree.leponeprimepz[0]), version_ == 8));
-        variables.push_back(Var_t("leponeprimee0" , "l_{1} #tilde{E}" , "GeV", &(tree.leponeprimee [0]), version_ == 8));
-        variables.push_back(Var_t("leptwoprimepz0", "l_{2} #tilde{pz}", "GeV", &(tree.leptwoprimepz[0]), version_ == 8));
-        variables.push_back(Var_t("leptwoprimepx0", "l_{2} #tilde{px}", "GeV", &(tree.leptwoprimepx[0]), version_ == 8));
-        variables.push_back(Var_t("leptwoprimee0" , "l_{2} #tilde{E}" , "GeV", &(tree.leptwoprimee [0]), version_ == 8));
-        variables.push_back(Var_t("metprimee0"    , "MET #tilde{E}"   , "GeV", &(tree.metprimee    [0]), version_ == 8));
-        // variables.push_back(Var_t("leponeprimepz0", "leponeprimepz0", "GeV", &(tree.leponeprimepzt), version_ == 8));
-        // variables.push_back(Var_t("leponeprimee0" , "leponeprimee0" , "GeV", &(tree.leponeprimeet ), version_ == 8));
-        // variables.push_back(Var_t("leptwoprimepz0", "leptwoprimepz0", "GeV", &(tree.leptwoprimepzt), version_ == 8));
-        // variables.push_back(Var_t("leptwoprimepx0", "leptwoprimepx0", "GeV", &(tree.leptwoprimepxt), version_ == 8));
-        // variables.push_back(Var_t("leptwoprimee0" , "leptwoprimee0" , "GeV", &(tree.leptwoprimeet ), version_ == 8));
-        // variables.push_back(Var_t("metprimee0"    , "metprimee0"    , "GeV", &(tree.metprimeet    ), version_ == 8));
-      } else if(version_ == 8 && selection.Contains("mutau_e")) {
-        variables.push_back(Var_t("leptwoprimepz1", "l_{2} #tilde{pz}", "GeV", &(tree.leponeprimepz[1]), version_ == 8));
-        variables.push_back(Var_t("leptwoprimee1" , "l_{2} #tilde{E}" , "GeV", &(tree.leponeprimee [1]), version_ == 8));
-        variables.push_back(Var_t("leponeprimepz1", "l_{1} #tilde{pz}", "GeV", &(tree.leptwoprimepz[1]), version_ == 8));
-        variables.push_back(Var_t("leponeprimepx1", "l_{1} #tilde{px}", "GeV", &(tree.leptwoprimepx[1]), version_ == 8));
-        variables.push_back(Var_t("leponeprimee1" , "l_{1} #tilde{E}" , "GeV", &(tree.leptwoprimee [1]), version_ == 8));
-        variables.push_back(Var_t("metprimee1"    , "MET #tilde{E}"   , "GeV", &(tree.metprimee    [1]), version_ == 8));
+      if(version_ == 8 && tau && !selection.Contains("mutau_e")) {
+        variables.push_back(Var_t("leponeprimepz0", "l_{1} #tilde{pz}", "GeV", &(tree.leponeprimepz[0])));
+        variables.push_back(Var_t("leponeprimee0" , "l_{1} #tilde{E}" , "GeV", &(tree.leponeprimee [0])));
+        variables.push_back(Var_t("leptwoprimepz0", "l_{2} #tilde{pz}", "GeV", &(tree.leptwoprimepz[0])));
+        variables.push_back(Var_t("leptwoprimepx0", "l_{2} #tilde{px}", "GeV", &(tree.leptwoprimepx[0])));
+        variables.push_back(Var_t("leptwoprimee0" , "l_{2} #tilde{E}" , "GeV", &(tree.leptwoprimee [0])));
+        variables.push_back(Var_t("metprimee0"    , "MET #tilde{E}"   , "GeV", &(tree.metprimee    [0])));
+      } else if(version_ == 8 && tau) { //selections hmutau_e and zmutau_e
+        variables.push_back(Var_t("leptwoprimepz1", "l_{2} #tilde{pz}", "GeV", &(tree.leponeprimepz[1])));
+        variables.push_back(Var_t("leptwoprimee1" , "l_{2} #tilde{E}" , "GeV", &(tree.leponeprimee [1])));
+        variables.push_back(Var_t("leponeprimepz1", "l_{1} #tilde{pz}", "GeV", &(tree.leptwoprimepz[1])));
+        variables.push_back(Var_t("leponeprimepx1", "l_{1} #tilde{px}", "GeV", &(tree.leptwoprimepx[1])));
+        variables.push_back(Var_t("leponeprimee1" , "l_{1} #tilde{E}" , "GeV", &(tree.leptwoprimee [1])));
+        variables.push_back(Var_t("metprimee1"    , "MET #tilde{E}"   , "GeV", &(tree.metprimee    [1])));
       }
 
-      if(!selection.Contains("emu")) {
-        variables.push_back(Var_t("lepm" , "M_{ll}"    , "GeV", &tree.lepm , true));
-        variables.push_back(Var_t("mtone", "MT(MET,l1)", ""   , &tree.mtone, version_ != 8));
-        variables.push_back(Var_t("mttwo", "MT(MET,l2)", ""   , &tree.mttwo, version_ != 8));
+      if(tau) {
+        variables.push_back(Var_t("lepm" , "M_{ll}"    , "GeV", &tree.lepm ));
+        variables.push_back(Var_t("mtone", "MT(MET,l1)", ""   , &tree.mtone));
+        variables.push_back(Var_t("mttwo", "MT(MET,l2)", ""   , &tree.mttwo));
+        if(version_ >= 8) {
+          variables.push_back(Var_t("mtlep", "MT(MET,ll)", ""   , &tree.mtlep));
+          variables.push_back(Var_t("leptrkdeltam", "#DeltaM_{trk}", "", &tree.leptrkdeltam));
+          variables.push_back(Var_t("leptrkdeltam", "pT_{trk}/pT", "", &tree.trkptoverpt));
+        }
+      } else { //B->e+mu
+        variables.push_back(Var_t("lepm"      , "M_{ll}"           , "GeV", &tree.lepm      ));
+        variables.push_back(Var_t("mtoneoverm", "MT(MET,l1)/M_{ll}", ""   , &tree.mtoneoverm));
+        variables.push_back(Var_t("mttwooverm", "MT(MET,l2)/M_{ll}", ""   , &tree.mttwooverm));
+        if(version_ >= 8) {
+          variables.push_back(Var_t("mtlepoverm", "MT(MET,ll)/M_{ll}", ""   , &tree.mtlepoverm));
+        }
+      }
+
+
+      variables.push_back(Var_t("onemetdeltaphi","#Delta#phi_{MET,l1}","", &tree.onemetdeltaphi));
+      variables.push_back(Var_t("twometdeltaphi","#Delta#phi_{MET,l2}","", &tree.twometdeltaphi));
+
+      if(!emu) {
+        variables.push_back(Var_t("leponept","pT_{l1}","GeV", &tree.leponept));
+        variables.push_back(Var_t("leptwopt","pT_{l2}","GeV", &tree.leptwopt));
+        variables.push_back(Var_t("leppt"   ,"pT_{ll}","GeV", &tree.leppt   ));
       } else {
-        variables.push_back(Var_t("lepm"      , "M_{ll}"           , "GeV", &tree.lepm      , false));
-        variables.push_back(Var_t("mtoneoverm", "MT(MET,l1)/M_{ll}", ""   , &tree.mtoneoverm, true));
-        variables.push_back(Var_t("mttwooverm", "MT(MET,l2)/M_{ll}", ""   , &tree.mttwooverm, true));
+        variables.push_back(Var_t("leponeptoverm","pT_{l1}/M_{ll}","", &tree.leponeptoverm));
+        variables.push_back(Var_t("leptwoptoverm","pT_{l2}/M_{ll}","", &tree.leptwoptoverm));
+        variables.push_back(Var_t("lepptoverm"   ,"pT_{ll}/M_{ll}","", &tree.lepptoverm   ));
       }
+      variables.push_back(Var_t("lepdeltaphi","#Delta#phi_{ll}"    ,"", &tree.lepdeltaphi));
+      variables.push_back(Var_t("lepdeltaeta","#Delta#eta_{ll}"    ,"", &tree.lepdeltaeta));
+      variables.push_back(Var_t("metdeltaphi","#Delta#phi_{MET,ll}","", &tree.metdeltaphi));
 
-
-      variables.push_back(Var_t("onemetdeltaphi","#Delta#phi_{MET,l1}","", &tree.onemetdeltaphi, version_ != 8));
-      variables.push_back(Var_t("twometdeltaphi","#Delta#phi_{MET,l2}","", &tree.twometdeltaphi, version_ != 8));
-
-      if(!selection.Contains("emu")) {
-        variables.push_back(Var_t("leponept","pT_{l1}","GeV", &tree.leponept, version_ != 8 && (version_ != 10) && (version_ != 11 || selection.Contains("_"))));
-        variables.push_back(Var_t("leptwopt","pT_{l2}","GeV", &tree.leptwopt, version_ != 8 && (version_ != 10 || !selection.Contains("_"))));
-        variables.push_back(Var_t("leppt"   ,"pT_{ll}","GeV", &tree.leppt   , version_ != 8 && version_ != 10));
-      } else {
-        variables.push_back(Var_t("leponeptoverm","pT_{l1}/M_{ll}","", &tree.leponeptoverm, version_ != 8));
-        variables.push_back(Var_t("leptwoptoverm","pT_{l2}/M_{ll}","", &tree.leptwoptoverm, version_ != 8));
-        variables.push_back(Var_t("lepptoverm"   ,"pT_{ll}/M_{ll}","", &tree.lepptoverm   , version_ != 8));
-      }
-      variables.push_back(Var_t("lepdeltaphi","#Delta#phi_{ll}"    ,"", &tree.lepdeltaphi, version_ != 8));
-      variables.push_back(Var_t("lepdeltaeta","#Delta#eta_{ll}"    ,"", &tree.lepdeltaeta, false));
-      variables.push_back(Var_t("metdeltaphi","#Delta#phi_{MET,ll}","", &tree.metdeltaphi, false));
-
-      // variables.push_back(Var_t("pxivis","p^{vis}_{#xi}","", &tree.pxivis, false));
-      // variables.push_back(Var_t("pxiinv","p^{inv}_{#xi}","", &tree.pxiinv, false));
+      // variables.push_back(Var_t("pxivis","p^{vis}_{#xi}","", &tree.pxivis));
+      // variables.push_back(Var_t("pxiinv","p^{inv}_{#xi}","", &tree.pxiinv));
 
       //tau specific
-      if(selection.Contains("tau")) {
+      if(tau) {
         //Delta alpha, difference between loss estimate using ~mass and pT ratio
         if(selection.Contains("z")) {
           if(selection.Contains("_e"))
-            variables.push_back(Var_t("deltaalphaz1","#Delta#alpha","",&tree.deltaalphaz1, true));
+            variables.push_back(Var_t("deltaalphaz1","#Delta#alpha","",&tree.deltaalphaz1));
           else
-            variables.push_back(Var_t("deltaalphaz2","#Delta#alpha","",&tree.deltaalphaz2, true));
+            variables.push_back(Var_t("deltaalphaz2","#Delta#alpha","",&tree.deltaalphaz2));
         } else {
           if(selection.Contains("_e"))
-            variables.push_back(Var_t("deltaalphah1","#Delta#alpha","",&tree.deltaalphah1, true));
+            variables.push_back(Var_t("deltaalphah1","#Delta#alpha","",&tree.deltaalphah1));
           else
-            variables.push_back(Var_t("deltaalphah2","#Delta#alpha","",&tree.deltaalphah2, true));
+            variables.push_back(Var_t("deltaalphah2","#Delta#alpha","",&tree.deltaalphah2));
         }
         if((!selection.Contains("mutau_e")))
-          variables.push_back(Var_t("lepmestimate","M_{ll}^{Coll}","GeV", &tree.mestimate, true));
+          variables.push_back(Var_t("lepmestimate","M_{ll}^{Coll}","GeV", &tree.mestimate));
         else
-          variables.push_back(Var_t("lepmestimatetwo","M_{ll}^{Coll}","GeV", &tree.mestimatetwo, true));
+          variables.push_back(Var_t("lepmestimatetwo","M_{ll}^{Coll}","GeV", &tree.mestimatetwo));
 
-        // variables.push_back(Var_t("leptwoidone"  ,"#tau anti-electron ID","", &tree.leptwoidone  , false));
-        // variables.push_back(Var_t("leptwoidtwo"  ,"#tau anti-muon ID"    ,"", &tree.leptwoidtwo  , false));
-        // variables.push_back(Var_t("leptwoidthree","#tau anti-jet ID"     ,"", &tree.leptwoidthree, false));
       } else { //end tau specific
-        variables.push_back(Var_t("lepmestimate","M_{ll}^{Coll}","GeV", &tree.mestimate, false));
-        // variables.push_back(Var_t("onemetdeltaphi","#Delta#phi_{MET,l1}","", &tree.onemetdeltaphi, false)); //FIXME: Remove
-        // variables.push_back(Var_t("twometdeltaphi","#Delta#phi_{MET,l2}","", &tree.onemetdeltaphi, false));
+        variables.push_back(Var_t("lepmestimate","M_{ll}^{Coll}","GeV", &tree.mestimate));
       }
 
-      variables.push_back(Var_t("leponedeltaphi","#Delta#phi_{l1,ll}","", &tree.leponedeltaphi, false));
-      variables.push_back(Var_t("leptwodeltaphi","#Delta#phi_{l2,ll}","", &tree.leptwodeltaphi, false));
-      // variables.push_back(Var_t("leponed0"      ,"D0_{l1}"           ,"", &tree.leponed0      , false));
-      variables.push_back(Var_t("leptwod0"      ,"D0_{l2}"           ,"", &tree.leptwod0      , false));
+      variables.push_back(Var_t("leponedeltaphi","#Delta#phi_{l1,ll}","", &tree.leponedeltaphi));
+      variables.push_back(Var_t("leptwodeltaphi","#Delta#phi_{l2,ll}","", &tree.leptwodeltaphi));
+      if(version_ < 8 || !emu)
+        variables.push_back(Var_t("leptwod0"    ,"D0_{l2}"           ,"", &tree.leptwod0      ));
 
-      // variables.push_back(Var_t("htdeltaphi","#Delta#phi_{hT,ll}"      ,"", &tree.htdeltaphi, false));
-      // variables.push_back(Var_t("ht"        ,"pT(#Sigma #vec{P}_{Jet})","", &tree.ht        , false));
-      // variables.push_back(Var_t("htsum"     ,"#Sigma pT_{Jet}"         ,"", &tree.htsum     , false));
+      // variables.push_back(Var_t("htdeltaphi","#Delta#phi_{hT,ll}"      ,"", &tree.htdeltaphi));
+      if(version_ >= 8) {
+        variables.push_back(Var_t("ht"        ,"pT(#Sigma #vec{P}_{Jet})","", &tree.ht        ));
+        variables.push_back(Var_t("htsum"     ,"#Sigma pT_{Jet}"         ,"", &tree.htsum     ));
+        variables.push_back(Var_t("jetpt"     ,"pT_{Jet}"                ,"", &tree.jetpt     ));
+        variables.push_back(Var_t("met"       , "MET"                    , "GeV", &tree.met   ));
+      } else {
+        variables.push_back(Var_t("jetpt","pT_{Jet}","", &tree.jetpt, true));
+      }
 
-      variables.push_back(Var_t("jetpt","pT_{Jet}","", &tree.jetpt, version_ < 8 || (version_ == 11)));
+      variables.push_back(Var_t("lepdeltar" ,"#DeltaR_{ll}"      ,"", &tree.lepdeltar        ));
 
-      variables.push_back(Var_t("lepdeltar" ,"#DeltaR_{ll}"      ,"", &tree.lepdeltar        , false));
+      if(version_ >= 8) {
+        variables.push_back(Var_t("dzeta","#Delta#zeta","", &tree.dzeta));
+        variables.push_back(Var_t("pzetavis","#zeta vis","", &tree.pzetavis));
+        variables.push_back(Var_t("pzetainv","#zeta inv","", &tree.pzetainv));
+        variables.push_back(Var_t("ptdiff","pT_{1} - pT_{2}","", &tree.ptdiff));
+        if(emu) variables.push_back(Var_t("ptdiffoverm","#DeltapT / M","", &tree.ptdiffoverm));
+      }
+
+      //Set flags for variables identified as training variables
+      for(TString name : train_var) {
+        bool found = false;
+        if(name.Contains("trk") && emu_data) continue; //only relevant for hadronic taus
+        for(Var_t& var : variables) {
+          if(var.var_ == name) var.use_ = true;
+          else if(name.Contains("lepmestimate") && var.var_.Contains(name)) var.use_ = true; //assume only correct version added
+          else if(name.Contains("deltaalpha") && var.var_.Contains(name)) var.use_ = true; //assume only correct version added
+          else if(name.Contains("prime") && var.var_.Contains(name)) var.use_ = true; //assume only correct version added
+          else continue;
+          found = true;
+          break; //if found, continue to the next training variable name
+        }
+        if(!found) {
+          std::cout << "TrkQualInit::" << __func__ << ": WARNING! Failed to find training variable named: "
+                    << name.Data() << std::endl;
+        }
+      }
 
       return variables;
     }
