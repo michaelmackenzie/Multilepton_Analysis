@@ -10,8 +10,8 @@ HistMaker::HistMaker(int seed, TTree * /*tree*/) : fSystematicSeed(seed),
                                                    fMuonJetToTauComp("mutau", 2035, 3, 0), fMuonJetToTauSSComp("mutau", 3035, 3, 0),
                                                    fElectronJetToTauComp("etau", 2035, 3, 0), fElectronJetToTauSSComp("etau", 3035, 3, 0),
                                                    fQCDWeight("emu", /*11010*/ 1100200/*anti-iso, jet binned, no fits*/, seed, 0),
-                                                   fMuonIDWeight(1 /*use medium muon ID*/,seed),
-                                                   fElectronIDWeight(110 /*use WP90 electron ID and embed TnP trigger*/, seed),
+                                                   fMuonIDWeight(1 /*use medium muon ID*/),
+                                                   fElectronIDWeight(110 /*use WP90 electron ID and embed TnP trigger*/),
                                                    fEmbeddingTnPWeight(10/*10*(use 2016 BF/GH and 2018 ABC/D scales) + 1*(interpolate scales or not)*/) {
 
   //ensure pointers set to null to not attempt to delete if never initialized
@@ -1274,20 +1274,20 @@ void HistMaker::InitializeEventWeights() {
   } else if(!fIsData) { //MC simulations
     //Lepton 1
     if     (leptonOne.isElectron()) fElectronIDWeight.IDWeight(leptonOne.p4->Pt(), leptonOne.scEta, fYear,
-                                                               leptonOne.wt1[0] , leptonOne.wt1[1], leptonOne.wt1[2], leptonOne.wt1_bin,
-                                                               leptonOne.wt2[0] , leptonOne.wt2[1], leptonOne.wt2[2], leptonOne.wt2_bin);
+                                                               leptonOne.wt1[0] , leptonOne.wt1[1], leptonOne.wt1[2],
+                                                               leptonOne.wt2[0] , leptonOne.wt2[1], leptonOne.wt2[2]);
     else if(leptonOne.isMuon    ()) fMuonIDWeight.IDWeight    (leptonOne.p4->Pt(), leptonOne.p4->Eta(), fYear, mcEra,
-                                                               leptonOne.wt1[0] , leptonOne.wt1[1], leptonOne.wt1[2], leptonOne.wt1_bin,
-                                                               leptonOne.wt2[0] , leptonOne.wt2[1], leptonOne.wt2[2], leptonOne.wt2_bin);
+                                                               leptonOne.wt1[0] , leptonOne.wt1[1], leptonOne.wt1[2],
+                                                               leptonOne.wt2[0] , leptonOne.wt2[1], leptonOne.wt2[2]);
     else if(leptonOne.isTau     ()) leptonOne.wt1[0] = fTauIDWeight->IDWeight(leptonOne.p4->Pt(), leptonOne.p4->Eta(), tauGenID, tauDeepAntiJet,
                                                                               fYear, leptonOne.wt1[1], leptonOne.wt1[2], leptonOne.wt1_bin);
     //Lepton 2
     if     (leptonTwo.isElectron()) fElectronIDWeight.IDWeight(leptonTwo.p4->Pt(), leptonTwo.scEta, fYear,
-                                                               leptonTwo.wt1[0] , leptonTwo.wt1[1], leptonTwo.wt1[2], leptonTwo.wt1_bin,
-                                                               leptonTwo.wt2[0] , leptonTwo.wt2[1], leptonTwo.wt2[2], leptonTwo.wt2_bin);
+                                                               leptonTwo.wt1[0] , leptonTwo.wt1[1], leptonTwo.wt1[2],
+                                                               leptonTwo.wt2[0] , leptonTwo.wt2[1], leptonTwo.wt2[2]);
     else if(leptonTwo.isMuon    ()) fMuonIDWeight.IDWeight    (leptonTwo.p4->Pt(), leptonTwo.p4->Eta(), fYear, mcEra,
-                                                               leptonTwo.wt1[0] , leptonTwo.wt1[1], leptonTwo.wt1[2], leptonTwo.wt1_bin,
-                                                               leptonTwo.wt2[0] , leptonTwo.wt2[1], leptonTwo.wt2[2], leptonTwo.wt2_bin);
+                                                               leptonTwo.wt1[0] , leptonTwo.wt1[1], leptonTwo.wt1[2],
+                                                               leptonTwo.wt2[0] , leptonTwo.wt2[1], leptonTwo.wt2[2]);
     else if(leptonTwo.isTau     ()) leptonTwo.wt1[0] = fTauIDWeight->IDWeight(leptonTwo.p4->Pt(), leptonTwo.p4->Eta(), tauGenID, tauDeepAntiJet,
                                                                               fYear, leptonTwo.wt1[1], leptonTwo.wt1[2], leptonTwo.wt1_bin);
   }
@@ -2596,9 +2596,7 @@ Bool_t HistMaker::InitializeEvent(Long64_t entry)
   fCutFlow->Fill(icutflow); ++icutflow; //0
 
   //Initialize base object information
-  fTimes[GetTimerNumber("CountObjects")] = std::chrono::steady_clock::now(); //timer for initializing object info
-  CountObjects();
-  IncrementTimer("CountObjects", true);
+  CountObjects(); //> 100 kHz processing speed
   if(!(mutau or etau or emu or mumu or ee)) {
     IncrementTimer("EventInit", true);
     return kTRUE;
@@ -3092,23 +3090,7 @@ int HistMaker::Category(TString selection) {
 void HistMaker::InitializeSystematics() {
   leptonOne.wt1_group = 0; leptonOne.wt2_group = 0;
   leptonTwo.wt1_group = 0; leptonTwo.wt2_group = 0;
-  if(leptonOne.isElectron()) {
-    leptonOne.wt1[3] = fSystematicShifts->ElectronID    (fYear, leptonOne.wt1_bin) ? leptonOne.wt1[1] : leptonOne.wt1[2];
-    leptonOne.wt2[3] = fSystematicShifts->ElectronRecoID(fYear, leptonOne.wt2_bin) ? leptonOne.wt2[1] : leptonOne.wt2[2];
-    leptonOne.wt1_group = fElectronIDWeight.GetIDGroup(leptonOne.wt1_bin, fYear) + SystematicGrouping::kElectronID;
-    leptonOne.wt2_group = fElectronIDWeight.GetRecoGroup(leptonOne.wt2_bin, fYear) + SystematicGrouping::kElectronRecoID;
-  } else if(leptonOne.isMuon    ()) {
-    if(fYear == 2018) { //remove the period dependence for 2018, as it is using inclusive weights
-      leptonOne.wt1_bin %= 10000;
-      leptonTwo.wt1_bin %= 10000;
-      leptonOne.wt2_bin %= 10000;
-      leptonTwo.wt2_bin %= 10000;
-    }
-    leptonOne.wt1[3] = fSystematicShifts->MuonID   (fYear, leptonOne.wt1_bin) ? leptonOne.wt1[1] : leptonOne.wt1[2];
-    leptonOne.wt2[3] = fSystematicShifts->MuonIsoID(fYear, leptonOne.wt2_bin) ? leptonOne.wt2[1] : leptonOne.wt2[2];
-    leptonOne.wt1_group = fMuonIDWeight.GetIDGroup(leptonOne.wt1_bin, fYear) + SystematicGrouping::kMuonID;
-    leptonOne.wt2_group = fMuonIDWeight.GetIsoGroup(leptonOne.wt2_bin, fYear) + SystematicGrouping::kMuonIsoID;
-  } else if(leptonOne.isTau     ()) {
+  if(leptonOne.isTau     ()) {
     int tauGenID = 0;
     //bin by flavor, not separating tau_e and e for example
     if     (std::abs(leptonOne.genFlavor) == 15) tauGenID = 5;
@@ -3117,17 +3099,7 @@ void HistMaker::InitializeSystematics() {
     leptonOne.wt1[3] = fSystematicShifts->TauID(fYear, tauGenID, leptonOne.wt1_bin) ? leptonOne.wt1[1] : leptonOne.wt1[2];
     leptonOne.wt2[3] = leptonOne.wt2[0]; //not defined
   }
-  if(leptonTwo.isElectron()) {
-    leptonTwo.wt1[3] = fSystematicShifts->ElectronID    (fYear, leptonTwo.wt1_bin) ? leptonTwo.wt1[1] : leptonTwo.wt1[2];
-    leptonTwo.wt2[3] = fSystematicShifts->ElectronRecoID(fYear, leptonTwo.wt2_bin) ? leptonTwo.wt2[1] : leptonTwo.wt2[2];
-    leptonTwo.wt1_group = fElectronIDWeight.GetIDGroup(leptonTwo.wt1_bin, fYear) + SystematicGrouping::kElectronID;
-    leptonTwo.wt2_group = fElectronIDWeight.GetRecoGroup(leptonTwo.wt2_bin, fYear) + SystematicGrouping::kElectronRecoID;
-  } else if(leptonTwo.isMuon    ()) {
-    leptonTwo.wt1[3] = fSystematicShifts->MuonID   (fYear, leptonTwo.wt1_bin) ? leptonTwo.wt1[1] : leptonTwo.wt1[2];
-    leptonTwo.wt2[3] = fSystematicShifts->MuonIsoID(fYear, leptonTwo.wt2_bin) ? leptonTwo.wt2[1] : leptonTwo.wt2[2];
-    leptonTwo.wt1_group = fMuonIDWeight.GetIDGroup(leptonOne.wt1_bin, fYear) + SystematicGrouping::kMuonID;
-    leptonTwo.wt2_group = fMuonIDWeight.GetIsoGroup(leptonOne.wt2_bin, fYear) + SystematicGrouping::kMuonIsoID;
-  } else if(leptonTwo.isTau     ()) {
+  if(leptonTwo.isTau     ()) {
     int tauGenID = 0;
     if     (std::abs(leptonTwo.genFlavor) == 15) tauGenID = 5;
     else if(std::abs(leptonTwo.genFlavor) == 13) tauGenID = 2;

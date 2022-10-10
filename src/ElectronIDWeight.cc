@@ -3,10 +3,9 @@
 using namespace CLFV;
 
 //-------------------------------------------------------------------------------------------------------------------------
-ElectronIDWeight::ElectronIDWeight(int Mode, int seed, int verbose) : verbose_(verbose) {
+ElectronIDWeight::ElectronIDWeight(const int Mode, const int verbose) : verbose_(verbose) {
   TFile* f = 0;
   std::vector<TString> file_regions;
-  rnd_ = new TRandom3(seed);
 
   interpolate_ = Mode % 10 == 1;
   const bool useMediumID = (Mode % 100) / 10 == 1;
@@ -40,8 +39,6 @@ ElectronIDWeight::ElectronIDWeight(int Mode, int seed, int verbose) : verbose_(v
   vertexMap_[k2017]   = 0.991; //+-0.001
   vertexMap_[k2018]   = 1.000; //+-0.000
 
-  int groupID  = 0; //for systematic grouping
-  int groupReco = 0;
   const TString cmssw = gSystem->Getenv("CMSSW_BASE");
   const TString path = (cmssw == "") ? "../scale_factors" : cmssw + "/src/CLFVAnalysis/scale_factors";
   for(int period = k2016; period <= k2018; ++period) {
@@ -58,31 +55,6 @@ ElectronIDWeight::ElectronIDWeight(int Mode, int seed, int verbose) : verbose_(v
         printf("!!! %s: Electron ID histogram not found for %i!\n", __func__, period+2016);
       } else {
         histID_[period] = h;
-        //determine which axis is pT axis
-        const bool ptIsX = h->GetXaxis()->GetBinLowEdge(h->GetNbinsX()) > 10.;
-        const int netagroups = 2;
-        const int nptgroups = 4;
-        //loop through the histogram, determining the bin groupings
-        for(int binx = 1; binx <= h->GetNbinsX(); ++binx) {
-          for(int biny = 1; biny <= h->GetNbinsY(); ++biny) {
-            int ptgroup(0), etagroup(0);
-            const double ptmin  = ((ptIsX) ? h->GetXaxis()->GetBinLowEdge(binx) :
-                                   h->GetYaxis()->GetBinLowEdge(biny));
-            const double etamin = ((!ptIsX) ? h->GetXaxis()->GetBinLowEdge(binx) :
-                                   h->GetYaxis()->GetBinLowEdge(biny));
-            // etamin = abs(etamin);
-            if(etamin > 1.39 || etamin < -1.39) etagroup = 1;
-            if(ptmin > 49.99) ptgroup = 3;
-            else if(ptmin > 34.99) ptgroup = 2;
-            else if(ptmin > 19.99) ptgroup = 1;
-            const int totgroup = groupID + (etagroup*nptgroups) + ptgroup;
-            groupID_[kYear*(period) + kBinY*biny + binx] = totgroup;
-            if(verbose_ > 1)
-              printf("--- %s ID bin (%i,%i) with min (%.1f,%.1f) has group (pt,eta) + offset = (%i, %i) + %i = %i\n",
-                     __func__, binx, biny, ptmin, etamin, ptgroup, etagroup, groupID, totgroup);
-          }
-        }
-        groupID += (netagroups)*(nptgroups);
       }
       files_.push_back(f);
     }
@@ -98,31 +70,6 @@ ElectronIDWeight::ElectronIDWeight(int Mode, int seed, int verbose) : verbose_(v
         printf("!!! %s: Electron Reco ID histogram not found for %i!\n", __func__, period+2016);
       } else {
         histReco_[period] = h;
-        //determine which axis is pT axis
-        const bool ptIsX = h->GetXaxis()->GetBinLowEdge(h->GetNbinsX()) > 10.;
-        const int netagroups = 2;
-        const int nptgroups = 3;
-        //loop through the histogram, determining the bin groupings
-        for(int binx = 1; binx <= h->GetNbinsX(); ++binx) {
-          for(int biny = 1; biny <= h->GetNbinsY(); ++biny) {
-            int ptgroup(0), etagroup(0);
-            const double ptmin  = ((ptIsX) ? h->GetXaxis()->GetBinLowEdge(binx) :
-                                   h->GetYaxis()->GetBinLowEdge(biny));
-            const double etamin = ((!ptIsX) ? h->GetXaxis()->GetBinLowEdge(binx) :
-                                   h->GetYaxis()->GetBinLowEdge(biny));
-            // etamin = abs(etamin);
-            if(etamin > 1.39 || etamin < -1.39) etagroup = 1;
-            // if(ptmin > 49.99) ptgroup = 3;
-            if(ptmin > 44.99) ptgroup = 2;
-            else if(ptmin > 19.99) ptgroup = 1;
-            int totgroup = groupReco + (etagroup*nptgroups) + ptgroup;
-            groupReco_[kYear*(period) + kBinY*biny + binx] = totgroup;
-            if(verbose_ > 1)
-              printf("--- %s Reco bin (%i,%i) with min (%.1f,%.1f) has group (pt,eta) + offset = (%i, %i) + %i = %i\n",
-                     __func__, binx, biny, ptmin, etamin, ptgroup, etagroup, groupReco, totgroup);
-          }
-        }
-        groupReco += (netagroups)*(nptgroups);
       }
       files_.push_back(f);
     }
@@ -202,10 +149,10 @@ ElectronIDWeight::~ElectronIDWeight() { for(unsigned i = 0; i < files_.size(); +
 
 //-------------------------------------------------------------------------------------------------------------------------
 double ElectronIDWeight::IDWeight(double pt, double eta, int year,
-                                  float& weight_id , float& weight_up_id , float& weight_down_id , int& ibin_id,
-                                  float& weight_rec, float& weight_up_rec, float& weight_down_rec, int& ibin_rec) {
-  weight_id  = 1.f; weight_up_id  = 1.f; weight_down_id  = 1.f; ibin_id  = 0;
-  weight_rec = 1.f; weight_up_rec = 1.f; weight_down_rec = 1.f; ibin_rec = 0;
+                                  float& weight_id , float& weight_up_id , float& weight_down_id ,
+                                  float& weight_rec, float& weight_up_rec, float& weight_down_rec) {
+  weight_id  = 1.f; weight_up_id  = 1.f; weight_down_id  = 1.f;
+  weight_rec = 1.f; weight_up_rec = 1.f; weight_down_rec = 1.f;
   if(year > 2000) year -= 2016;
   if(year != k2016 && year != k2017 && year != k2018) {
     std::cout << "Warning! Undefined year in ElectronIDWeight::" << __func__ << ", returning -1" << std::endl;
@@ -224,19 +171,15 @@ double ElectronIDWeight::IDWeight(double pt, double eta, int year,
   int biny = std::max(1, std::min(hID->GetNbinsY(), hID->GetYaxis()->FindBin(pt)));
   const double id_scale = hID->GetBinContent(binx, biny);
   const double id_error = hID->GetBinError(binx, biny);
-  ibin_id = 100*biny + binx;
 
   //Get the reco ID weight
   binx = std::max(1, std::min(hReco->GetNbinsX(), hReco->GetXaxis()->FindBin(eta)));
   biny = std::max(1, std::min(hReco->GetNbinsY(), hReco->GetYaxis()->FindBin(pt)));
   const double reco_scale = hReco->GetBinContent(binx, biny);
   const double reco_error = hReco->GetBinError(binx, biny);
-  ibin_rec = 100*biny + binx;
 
-  //FIXME: add pre-fire for 2017
-  // double prefire_scale = electronPreFireMap[year];
   const double vertex_scale = vertexMap_[year];
-  //FIXME: add vertex scale uncertainty (0.1% on 2017, so not large)
+  const double vertex_unc   = (year == k2017) ? 0.001 : 0.; //0.1% uncertainty in 2017
 
   double scale_factor = id_scale * reco_scale * vertex_scale;
 
@@ -254,8 +197,8 @@ double ElectronIDWeight::IDWeight(double pt, double eta, int year,
   weight_id = std::max(0., id_scale); weight_rec = std::max(0., vertex_scale * reco_scale);
   weight_up_id    = std::max(0., id_scale + id_error);
   weight_down_id  = std::max(0., id_scale - id_error);
-  weight_up_rec   = vertex_scale * std::max(0., reco_scale + reco_error);
-  weight_down_rec = vertex_scale * std::max(0., reco_scale - reco_error);
+  weight_up_rec   = weight_rec * std::max(0., 1. - std::sqrt(vertex_unc*vertex_unc + (reco_error/reco_scale)*(reco_error/reco_scale)));
+  weight_down_rec = weight_rec * std::max(0., 1. + std::sqrt(vertex_unc*vertex_unc + (reco_error/reco_scale)*(reco_error/reco_scale)));
   scale_factor = weight_id * weight_rec;
 
   return scale_factor;
@@ -265,7 +208,7 @@ double ElectronIDWeight::IDWeight(double pt, double eta, int year,
 double ElectronIDWeight::EmbedEnergyScale(double pt, double eta, int year, float& up, float& down) {
   up = 1.; down = 1.;
   double scale_factor = 1.;
-  if(year > 2000) year -= 2016;
+  if(year > 2000) year -= (2016-k2016);
   if(year != k2016 && year != k2017 && year != k2018) {
     std::cout << "Warning! Undefined year in ElectronIDWeight::" << __func__ << ", returning 1" << std::endl;
     return 1.;

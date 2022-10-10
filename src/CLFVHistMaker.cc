@@ -879,6 +879,7 @@ void CLFVHistMaker::FillLepHistogram(LepHist_t* Hist) {
 
 //--------------------------------------------------------------------------------------------------------------
 void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
+  if(eventWeight*genWeight == 0.) return; //no way to re-scale 0, contributes nothing to histograms so can just skip filling
   bool isSameFlavor = std::abs(leptonOne.flavor) == std::abs(leptonTwo.flavor);
   bool isMuTau = leptonOne.isMuon    () && leptonTwo.isTau     ();
   bool isETau  = leptonOne.isElectron() && leptonTwo.isTau     ();
@@ -889,8 +890,10 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
 
   for(int sys = 0; sys < kMaxSystematics; ++sys) {
     float weight = eventWeight*genWeight;
-    if(weight == 0.) continue; //no way to re-scale 0, contributes nothing to histograms so can just skip
     bool reeval = false;
+    // TString name = fSystematics.GetName(sys);
+    // if(name == "") continue; //only process defined systematics
+
     if(sys == 0) weight = weight;                                          //do nothing
     else if  (sys ==  1) {                                                 //electron ID scale factors
       if(leptonOne.isElectron()) weight *= leptonOne.wt1[1] / leptonOne.wt1[0];
@@ -898,27 +901,18 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
     } else if(sys ==  2) {
       if(leptonOne.isElectron()) weight *= leptonOne.wt1[2] / leptonOne.wt1[0];
       if(leptonTwo.isElectron()) weight *= leptonTwo.wt1[2] / leptonTwo.wt1[0];
-    // } else if(sys ==  3) {
-    //   if(leptonOne.isElectron()) weight *= leptonOne.wt1[3] / leptonOne.wt1[0];
-    //   if(leptonTwo.isElectron()) weight *= leptonTwo.wt1[3] / leptonTwo.wt1[0];
     } else if(sys ==  4) {                                                 //muon ID scale factors
       if(leptonOne.isMuon    ()) weight *= leptonOne.wt1[1] / leptonOne.wt1[0];
       if(leptonTwo.isMuon    ()) weight *= leptonTwo.wt1[1] / leptonTwo.wt1[0];
     } else if(sys ==  5) {
       if(leptonOne.isMuon    ()) weight *= leptonOne.wt1[2] / leptonOne.wt1[0];
       if(leptonTwo.isMuon    ()) weight *= leptonTwo.wt1[2] / leptonTwo.wt1[0];
-    // } else if(sys ==  6) {
-    //   if(leptonOne.isMuon    ()) weight *= leptonOne.wt1[3]  / leptonOneWeight1;
-    //   if(leptonTwo.isMuon    ()) weight *= leptonTwo.wt1[3]  / leptonTwoWeight1;
     } else if(sys ==  7) {                                                 //tau ID scale factors
       if(leptonOne.isTau     ()) weight *= leptonOne.wt1[1] / leptonOne.wt1[0];
       if(leptonTwo.isTau     ()) weight *= leptonTwo.wt1[1] / leptonTwo.wt1[0];
     } else if(sys ==  8) {
       if(leptonOne.isTau     ()) weight *= leptonOne.wt1[2] / leptonOne.wt1[0];
       if(leptonTwo.isTau     ()) weight *= leptonTwo.wt1[2] / leptonTwo.wt1[0];
-    // } else if(sys ==  9) {
-    //   if(leptonOne.isTau     ()) weight *= leptonOne.wt1[3]  / leptonOne.wt1[0];
-    //   if(leptonTwo.isTau     ()) weight *= leptonTwo.wt1[3]  / leptonTwo.wt1[0];
     } else if(sys == 10) weight *= jetToTauWeightUp     / jetToTauWeight ; //Jet --> tau weights
     else if  (sys == 11) weight *= jetToTauWeightDown   / jetToTauWeight ;
     else if  (sys == 12) weight *= jetToTauWeightSys    / jetToTauWeight ;
@@ -931,18 +925,12 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
     } else if(sys == 17) {
       if(leptonOne.isElectron()) weight *= leptonOne.wt2[2] / leptonOne.wt2[0];
       if(leptonTwo.isElectron()) weight *= leptonTwo.wt2[2] / leptonTwo.wt2[0];
-    // } else if(sys == 18) {
-    //   if(leptonOne.isElectron()) weight *= leptonOne.wt2[3] / leptonOneWeight2;
-    //   if(leptonTwo.isElectron()) weight *= leptonTwo.wt2[3] / leptonTwoWeight2;
     } else if(sys == 19) {                                                 //muon iso ID scale factors
       if(leptonOne.isMuon    ()) weight *= leptonOne.wt2[1] / leptonOne.wt2[0];
       if(leptonTwo.isMuon    ()) weight *= leptonTwo.wt2[1] / leptonTwo.wt2[0];
     } else if(sys == 20) {
       if(leptonOne.isMuon    ()) weight *= leptonOne.wt2[2] / leptonOne.wt2[0];
       if(leptonTwo.isMuon    ()) weight *= leptonTwo.wt2[2] / leptonTwo.wt2[0];
-    // } else if(sys == 21) {
-    //   if(leptonOne.isMuon    ()) weight *= leptonOne.wt2[3]  / leptonOneWeight2;
-    //   if(leptonTwo.isMuon    ()) weight *= leptonTwo.wt2[3]  / leptonTwoWeight2;
     }
     else if  (sys == 22) {                                                 //Tau ES
       if(leptonTwo.isTau     () && leptonTwo.ES[0] > 0. && leptonTwo.ES[1] > 0.) {
@@ -960,7 +948,7 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
     else if  (sys == 25) weight *= (qcdWeight > 0.) ? qcdWeightUp  / qcdWeight : 0.; //SS --> OS weights
     else if  (sys == 26) weight *= (qcdWeight > 0.) ? qcdWeightDown/ qcdWeight : 0.;
     else if  (sys == 27) weight *= (qcdWeight > 0.) ? qcdWeightSys / qcdWeight : 0.;
-    else if  (sys == 28) weight *= jetToTauWeightCorrUp     / jetToTauWeightCorr   ; //Jet --> tau weight pT corrections
+    else if  (sys == 28) weight *= jetToTauWeightCorrUp     / jetToTauWeightCorr   ; //Jet --> tau weight non-closure corrections
     else if  (sys == 29) weight *= jetToTauWeightCorrDown   / jetToTauWeightCorr   ;
     else if  (sys == 30) weight *= jetToTauWeightCorrSys    / jetToTauWeightCorr   ;
     else if  (sys == 31) weight *= jetToTauWeight_compUp    / jetToTauWeightBias   ; //Jet --> tau weight composition
@@ -972,20 +960,14 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
           weight *= leptonTwo.wt1[1] / leptonTwo.wt1[0];
         else if(sys == 35 && std::abs(tauGenFlavor) == 15)
           weight *= leptonTwo.wt1[2] / leptonTwo.wt1[0];
-        // else if(sys == 36 && std::abs(tauGenFlavor) == 15)
-        //   weight *= leptonTwo.wt1[3] / leptonTwoWeight1;
         else if(sys == 37 && std::abs(tauGenFlavor) == 13)  //tau anti-mu ID scale factors
           weight *= leptonTwo.wt1[1] / leptonTwo.wt1[0];
         else if(sys == 38 && std::abs(tauGenFlavor) == 13)
           weight *= leptonTwo.wt1[2] / leptonTwo.wt1[0];
-        // else if(sys == 39 && std::abs(tauGenFlavor) == 13)
-        //   weight *= leptonTwo.wt1[3] / leptonTwo.wt1[0];
         else if(sys == 40 && std::abs(tauGenFlavor) == 11)  //tau anti-ele ID scale factors
           weight *= leptonTwo.wt1[1] / leptonTwo.wt1[0];
         else if(sys == 41 && std::abs(tauGenFlavor) == 11)
           weight *= leptonTwo.wt1[2] / leptonTwo.wt1[0];
-        // else if(sys == 42 && std::abs(tauGenFlavor) == 11)
-        //   weight *= leptonTwo.wt1[3] / leptonTwo.wt1[0];
       }
     } else if  (sys == 43) { weight *= (fIsData || fIsEmbed) ? 1. : 1. + 0.016; //luminosity uncertainty
     } else if  (sys == 44) { weight *= (fIsData || fIsEmbed) ? 1. : 1. - 0.016;
@@ -1063,34 +1045,6 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
       if(metPhi > 2.*M_PI)       metPhi -= 2*M_PI;
       else if(metPhi < -2.*M_PI) metPhi += 2*M_PI;
       reeval = true;
-      //Removed j->tau groupings since now using fitter errors uncorrelated by years
-    // } else if  (sys >= SystematicGrouping::kJetToTau && sys < 100) { //Jet --> tau systematic groupings, (4 DM)*(2 eta)*(3 years)*(2 up/down) = 48 histograms
-    //   if(std::abs(leptonOne.flavor) == std::abs(leptonTwo.flavor)) continue;
-    //   int offset = SystematicGrouping::kJetToTau;
-    //   if(2*(jetToTauWeightGroup) - offset     == sys) weight *= jetToTauWeightUp   / jetToTauWeight;
-    //   if(2*(jetToTauWeightGroup) - offset + 1 == sys) weight *= jetToTauWeightDown / jetToTauWeight;
-      //Removed muon ID groupings since it appears to be small enough to treat correlated
-    // } else if  (sys >= SystematicGrouping::kMuonID && sys < 150) { //Muon ID
-    //   int offset = SystematicGrouping::kMuonID;
-    //   if(leptonOne.isMuon    ()) {
-    //     if(2*(leptonOne.wt1_group) - offset     == sys) weight *= leptonOne.wt1[1]   / leptonOne.wt1[0];
-    //     if(2*(leptonOne.wt1_group) - offset + 1 == sys) weight *= leptonOne.wt1[2] / leptonOne.wt1[0];
-    //   }
-    //   if(leptonTwo.isMuon    ()) {
-    //     if(2*(leptonTwo.wt1_group) - offset     == sys) weight *= leptonTwo.wt1[1]   / leptonTwo.wt1[0];
-    //     if(2*(leptonTwo.wt1_group) - offset + 1 == sys) weight *= leptonTwo.wt1[2] / leptonTwo.wt1[0];
-    //   }
-      //Removed muon iso ID groupings since it appears to be small enough to treat correlated
-    // } else if  (sys >= SystematicGrouping::kMuonIsoID && sys < 200) { //Muon ID
-    //   int offset = SystematicGrouping::kMuonIsoID;
-    //   if(leptonOne.isMuon    ()) {
-    //     if(2*(leptonOne.wt2_group) - offset     == sys) weight *= leptonOne.wt2[1]   / leptonOne.wt2[0];
-    //     if(2*(leptonOne.wt2_group) - offset + 1 == sys) weight *= leptonOne.wt2[2] / leptonOne.wt2[0];
-    //   }
-    //   if(leptonTwo.isMuon    ()) {
-    //     if(2*(leptonTwo.wt2_group) - offset     == sys) weight *= leptonTwo.wt2[1]   / leptonTwo.wt2[0];
-    //     if(2*(leptonTwo.wt2_group) - offset + 1 == sys) weight *= leptonTwo.wt2[2] / leptonTwo.wt2[0];
-    //   }
     } else if  (sys >= 100 && sys < 106) { //tau anti-jet ID, separated by years FIXME: should also be separated by pT bins
       if(std::abs(leptonOne.flavor) == std::abs(leptonTwo.flavor)) continue;
       int base = 100;
@@ -1121,27 +1075,6 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
         else if((sys == base + 1 + 2*bin) && std::abs(tauGenFlavor) == 11)
           weight *= leptonTwo.wt1[2] / leptonTwo.wt1[0];
       }
-    //  //Remove electron ID and Reco ID groupings, as generally systematically correlated errors
-    // } else if  (sys >= SystematicGrouping::kElectronID && sys < 250) { //Electron ID
-    //   int offset = SystematicGrouping::kElectronID;
-    //   if(leptonOne.isElectron()) {
-    //     if(2*(leptonOne.wt1_group) - offset     == sys) weight *= leptonOne.wt1[1]   / leptonOne.wt1[0];
-    //     if(2*(leptonOne.wt1_group) - offset + 1 == sys) weight *= leptonOne.wt1[2] / leptonOne.wt1[0];
-    //   }
-    //   if(leptonTwo.isElectron()) {
-    //     if(2*(leptonTwo.wt1_group) - offset     == sys) weight *= leptonTwo.wt1[1]   / leptonTwo.wt1[0];
-    //     if(2*(leptonTwo.wt1_group) - offset + 1 == sys) weight *= leptonTwo.wt1[2] / leptonTwo.wt1[0];
-    //   }
-    // } else if  (sys >= SystematicGrouping::kElectronRecoID && sys < 300) { //Electron Reco ID
-    //   int offset = SystematicGrouping::kElectronRecoID;
-    //   if(leptonOne.isElectron()) {
-    //     if(2*(leptonOne.wt2_group) - offset     == sys) weight *= leptonOne.wt2[1]   / leptonOne.wt2[0];
-    //     if(2*(leptonOne.wt2_group) - offset + 1 == sys) weight *= leptonOne.wt2[2] / leptonOne.wt2[0];
-    //   }
-    //   if(leptonTwo.isElectron()) {
-    //     if(2*(leptonTwo.wt2_group) - offset     == sys) weight *= leptonTwo.wt2[1]   / leptonTwo.wt2[0];
-    //     if(2*(leptonTwo.wt2_group) - offset + 1 == sys) weight *= leptonTwo.wt2[2] / leptonTwo.wt2[0];
-    //   }
     } else continue; //no need to fill undefined systematics
 
     if(!std::isfinite(weight)) {

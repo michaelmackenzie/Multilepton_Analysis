@@ -3,10 +3,9 @@
 using namespace CLFV;
 
 //-------------------------------------------------------------------------------------------------------------------------
-MuonIDWeight::MuonIDWeight(const int Mode, const int seed, const int verbose) : Mode_(Mode), verbose_(verbose) {
+MuonIDWeight::MuonIDWeight(const int Mode, const int verbose) : Mode_(Mode), verbose_(verbose) {
   TFile* f = 0;
   std::vector<TString> file_regions;
-  rnd_ = new TRandom3(seed);
 
   const TString cmssw = gSystem->Getenv("CMSSW_BASE");
   const TString path = (cmssw == "") ? "../scale_factors" : cmssw + "/src/CLFVAnalysis/scale_factors";
@@ -49,8 +48,6 @@ MuonIDWeight::MuonIDWeight(const int Mode, const int seed, const int verbose) : 
   muonTriggerHighFileNames[2*k2018]   = fpair("EfficienciesAndSF_2018Data_BeforeMuonHLTUpdate.root","Mu50_OR_OldMu100_OR_TkMu100_PtEtaBins");
   muonTriggerHighFileNames[2*k2018+1] = fpair("EfficienciesAndSF_2018Data_AfterMuonHLTUpdate.root" ,"Mu50_OR_OldMu100_OR_TkMu100_PtEtaBins");
 
-  int groupID  = 0; //for systematic grouping
-  int groupIso = 0;
   for(int period = k2016; period < 2*(k2018 + 1); ++period) {
 
     ///////////////////////////////////
@@ -67,31 +64,6 @@ MuonIDWeight::MuonIDWeight(const int Mode, const int seed, const int verbose) : 
         h->SetDirectory(0);
         h->SetName(Form("%s_period_%i", h->GetName(), period));
         histIDData_[period] = h;
-        //determine which axis is pT axis
-        const bool ptIsX = h->GetXaxis()->GetBinLowEdge(h->GetNbinsX()) > 10.;
-        const int netagroups = 2;
-        const int nptgroups = 4;
-        //loop through the histogram, determining the bin groupings
-        for(int binx = 1; binx <= h->GetNbinsX(); ++binx) {
-          for(int biny = 1; biny <= h->GetNbinsY(); ++biny) {
-            int ptgroup(0), etagroup(0);
-            const double ptmin  = ((ptIsX) ? h->GetXaxis()->GetBinLowEdge(binx) :
-                                   h->GetYaxis()->GetBinLowEdge(biny));
-            const double etamin = std::fabs(((!ptIsX) ? h->GetXaxis()->GetBinLowEdge(binx) :
-                                             h->GetYaxis()->GetBinLowEdge(biny)));
-            if(etamin > 1.15) etagroup = 1;
-            if(ptmin > 49.99) ptgroup = 3;
-            else if(ptmin > 39.99) ptgroup = 2;
-            else if(ptmin > 24.99) ptgroup = 1;
-            const int totgroup = groupID + (etagroup*nptgroups) + ptgroup;
-            groupID_[kYear*(period/2) + kRunSection*(period % 2 == 0) + kBinY*biny + binx] = totgroup;
-            if(verbose_ > 1)
-              printf("--- %s ID bin (%i,%i) with min (%.1f,%.1f) has group (pt,eta) + offset = (%i, %i) + %i = %i\n",
-                     __func__, binx, biny, ptmin, etamin, ptgroup, etagroup, groupID, totgroup);
-          }
-        }
-        if(period % 2 == 1)
-          groupID += (netagroups)*(nptgroups);
       }
       f->Close();
     }
@@ -109,31 +81,6 @@ MuonIDWeight::MuonIDWeight(const int Mode, const int seed, const int verbose) : 
         h->SetDirectory(0);
         h->SetName(Form("%s_period_%i", h->GetName(), period));
         histIsoData_[period] = h;
-        //determine which axis is pT axis
-        const bool ptIsX = h->GetXaxis()->GetBinLowEdge(h->GetNbinsX()) > 10.;
-        const int netagroups = 2;
-        const int nptgroups = 4;
-        //loop through the histogram, determining the bin groupings
-        for(int binx = 1; binx <= h->GetNbinsX(); ++binx) {
-          for(int biny = 1; biny <= h->GetNbinsY(); ++biny) {
-            int ptgroup(0), etagroup(0);
-            const double ptmin  = ((ptIsX) ? h->GetXaxis()->GetBinLowEdge(binx) :
-                                   h->GetYaxis()->GetBinLowEdge(biny));
-            const double etamin = std::fabs(((!ptIsX) ? h->GetXaxis()->GetBinLowEdge(binx) :
-                                             h->GetYaxis()->GetBinLowEdge(biny)));
-            if(etamin > 1.15) etagroup = 1;
-            if(ptmin > 49.99) ptgroup = 3;
-            else if(ptmin > 39.99) ptgroup = 2;
-            else if(ptmin > 24.99) ptgroup = 1;
-            const int totgroup = groupIso + (etagroup*nptgroups) + ptgroup;
-            groupIso_[kYear*(period/2) + kRunSection*(period % 2 == 0) + kBinY*biny + binx] = totgroup;
-            if(verbose_ > 1)
-              printf("--- %s Iso bin (%i,%i) with min (%.1f,%.1f) has group (pt,eta) + offset = (%i, %i) + %i = %i\n",
-                     __func__, binx, biny, ptmin, etamin, ptgroup, etagroup, groupIso, totgroup);
-          }
-        }
-        if(period % 2 == 1)
-          groupIso += (netagroups)*(nptgroups);
       }
       f->Close();
     }
@@ -192,7 +139,6 @@ MuonIDWeight::MuonIDWeight(const int Mode, const int seed, const int verbose) : 
 
 //-------------------------------------------------------------------------------------------------------------------------
 MuonIDWeight::~MuonIDWeight() {
-  if(rnd_) delete rnd_;
   for(std::pair<int, TH2*> val : histIDData_         ) {if(val.second) delete val.second;}
   for(std::pair<int, TH2*> val : histIsoData_        ) {if(val.second) delete val.second;}
   for(std::pair<int, TH2*> val : histTriggerLowData_ ) {if(val.second) delete val.second;}
@@ -204,12 +150,12 @@ MuonIDWeight::~MuonIDWeight() {
 
 //-------------------------------------------------------------------------------------------------------------------------
 void MuonIDWeight::IDWeight(double pt, double eta, int year, int mcEra,
-                            float& weight_id , float& weight_up_id , float& weight_down_id , int& ibin_id,
-                            float& weight_iso, float& weight_up_iso, float& weight_down_iso, int& ibin_iso
+                            float& weight_id , float& weight_up_id , float& weight_down_id ,
+                            float& weight_iso, float& weight_up_iso, float& weight_down_iso
                             ) {
   if(year > 2000) year -= 2016;
-  weight_id  = 1.; weight_up_id  = 1.; weight_down_id  = 1.; ibin_id  = 0;
-  weight_iso = 1.; weight_up_iso = 1.; weight_down_iso = 1.; ibin_iso = 0;
+  weight_id  = 1.; weight_up_id  = 1.; weight_down_id  = 1.;
+  weight_iso = 1.; weight_up_iso = 1.; weight_down_iso = 1.;
   if(year != k2016 && year != k2017 && year != k2018) {
     std::cout << "Warning! Undefined year in MuonIDWeight::" << __func__ << ", returning -1" << std::endl;
     return;
@@ -225,7 +171,6 @@ void MuonIDWeight::IDWeight(double pt, double eta, int year, int mcEra,
   int biny = std::max(1, std::min(hID->GetNbinsY(), hID->GetYaxis()->FindBin(yvar)));
   const double id_scale = hID->GetBinContent(binx, biny);
   const double id_error = hID->GetBinError(binx, biny);
-  ibin_id = 10000 * (1 - mcEra) + 100*biny + binx; //assumes binx and biny < 100
 
   TH2* hIso = histIsoData_[2*year + mcEra];
 
@@ -233,7 +178,6 @@ void MuonIDWeight::IDWeight(double pt, double eta, int year, int mcEra,
   biny = std::max(1, std::min(hIso->GetNbinsY(), hIso->GetYaxis()->FindBin(yvar)));
   const double iso_scale = hIso->GetBinContent(binx, biny);
   const double iso_error = hIso->GetBinError(binx, biny);
-  ibin_iso = 10000*(1 - mcEra) + 100*biny + binx; //assumes binx and biny < 100
 
 
   double scale_factor = id_scale * iso_scale;

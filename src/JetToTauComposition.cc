@@ -118,7 +118,10 @@ void JetToTauComposition::GetComposition(float pt, float dphi, float mt, const i
               << " year = " << year << " DM = " << DM
               << std::endl;
 
-  float tot_neg = 0.f; //negative composition
+  float tot_neg  = 0.f; //negative composition
+  float tot_up   = 0.f;
+  float tot_down = 0.f;
+  const float mc_yield_sys = 0.10; //yield uncertainty on MC j-->tau FIXME: Decide on a reasonable value
   for(int proc = 0; proc < kLast; ++proc) {
     float comp(0.f), up(0.f), down(0.f);
     auto h = histsData_[year][idm][proc];
@@ -127,8 +130,13 @@ void JetToTauComposition::GetComposition(float pt, float dphi, float mt, const i
     } else {
       const int bin = std::max(1, std::min(h->GetNbinsX(), h->FindBin(var)));
       comp = h->GetBinContent(bin);
-      up   = std::max(0., std::min(1., comp + h->GetBinError(bin)));
-      down = std::max(0., std::min(1., comp - h->GetBinError(bin)));
+      //pQCD = (Data - MC) / Data = 1 - pMC, pMC = MC / Data
+      //pMC+ = (1+sys)*pMC = x*pMC
+      //pQCD+ = 1 - pMC+ = 1 - x*pMC = 1 - x*(1 - pQCD) = x*pQCD + (1-x) = (1+sys)*pQCD - sys
+      up   = std::max(0.f, (proc == kQCD) ?( 1.f + mc_yield_sys)*comp - mc_yield_sys : (1.f + mc_yield_sys)*comp); //std::max(0., std::min(1., comp + h->GetBinError(bin)));
+      down = std::max(0.f, (proc == kQCD) ? (1.f - mc_yield_sys)*comp + mc_yield_sys : (1.f - mc_yield_sys)*comp); //std::max(0., std::min(1., comp - h->GetBinError(bin)));
+      tot_up += up;
+      tot_down += down;
     }
     if(verbose_ > 1) std::cout << __func__ << ": Composition fraction for process " << proc << " = " << comp << std::endl;
     if(comp < 0.f) tot_neg += std::fabs(comp);
@@ -157,6 +165,19 @@ void JetToTauComposition::GetComposition(float pt, float dphi, float mt, const i
     }
     tot                  *= scale;
   }
+  //ensure up/down add up to 1
+  if(tot_up > 0.f && tot_down > 0.f) {
+    for(int proc = 0; proc < kLast; ++proc) {
+      comp_up  [proc] /= tot_up;
+      comp_down[proc] /= tot_down;
+    }
+  } else {
+    std::cout << "!!! " << __func__ << ": Total composition up/down out of tolerance, up = " << tot_up << " down = " << tot_down
+              << "; tau pt = " << pt << " tau met dphi = " << dphi << " tau MT = " << mt
+              << " lead pt = " << pt_lead << " lead met dPhi = " << lead_dphi << " lead MT = " << lead_mt
+              << std::endl;
+  }
+
   if(tot == 0.f) { //no composition values found, assume W+Jets
     compositions[kWJets] = 1.f;
     comp_up     [kWJets] = 1.f;
