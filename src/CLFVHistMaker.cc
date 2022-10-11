@@ -1793,7 +1793,7 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   bool test_set = (emu || mutau || etau);
   test_set &= mll < 100.f;
   // test_set &= fTreeVars.lepdeltaeta < 2.f;
-  if((test_set) {
+  if(test_set) {
     FillAllHistograms(set_offset + 20);
   }
 
