@@ -61,6 +61,9 @@ void CLFVHistMaker::InitHistogramFlags() {
     fTreeSets  [kMuTau + 8+fMisIDOffset] = fIsData != 0; //save Loose ID data for MVA training
     fSysSets   [kMuTau + 8] = 1;
 
+    fEventSets [kMuTau + 20] = 1; //test set
+    fSysSets   [kMuTau + 20] = 1;
+
     // jet --> tau DRs
     fEventSets [kMuTau + 30] = 1; //QCD
     fEventSets [kMuTau + 31] = 1; //W+Jets
@@ -100,6 +103,9 @@ void CLFVHistMaker::InitHistogramFlags() {
     fTreeSets  [kETau + 8+fMisIDOffset] = fIsData != 0; //save Loose ID data for MVA training
     fSysSets   [kETau + 8] = 1;
 
+    fEventSets [kETau + 20] = 1; //test set
+    fSysSets   [kETau + 20] = 1;
+
     // jet --> tau DRs
     fEventSets [kETau + 30] = 1; //QCD
     fEventSets [kETau + 31] = 1; //W+Jets
@@ -138,6 +144,9 @@ void CLFVHistMaker::InitHistogramFlags() {
     fTreeSets  [kEMu  + 8] = 1;
     fTreeSets  [kEMu  + 8+fQcdOffset] = fIsData != 0; //save SS data for QCD training
     fSysSets   [kEMu  + 8] = 1;
+
+    fEventSets [kEMu  + 20] = 1; //test set
+    fSysSets   [kEMu  + 20] = 1;
 
     // MVA categories
     for(int i = 9; i < ((fDoHiggs) ? 19 : 15); ++i) fEventSets[kEMu  + i] = 1;
@@ -891,202 +900,234 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
   for(int sys = 0; sys < kMaxSystematics; ++sys) {
     float weight = eventWeight*genWeight;
     bool reeval = false;
-    // TString name = fSystematics.GetName(sys);
-    // if(name == "") continue; //only process defined systematics
+    TString name = fSystematics.GetName(sys);
+    if(name == "") continue; //only process defined systematics
 
-    if(sys == 0) weight = weight;                                          //do nothing
-    else if  (sys ==  1) {                                                 //electron ID scale factors
-      if(leptonOne.isElectron()) weight *= leptonOne.wt1[1] / leptonOne.wt1[0];
-      if(leptonTwo.isElectron()) weight *= leptonTwo.wt1[1] / leptonTwo.wt1[0];
-    } else if(sys ==  2) {
-      if(leptonOne.isElectron()) weight *= leptonOne.wt1[2] / leptonOne.wt1[0];
-      if(leptonTwo.isElectron()) weight *= leptonTwo.wt1[2] / leptonTwo.wt1[0];
-    } else if(sys ==  4) {                                                 //muon ID scale factors
-      if(leptonOne.isMuon    ()) weight *= leptonOne.wt1[1] / leptonOne.wt1[0];
-      if(leptonTwo.isMuon    ()) weight *= leptonTwo.wt1[1] / leptonTwo.wt1[0];
-    } else if(sys ==  5) {
-      if(leptonOne.isMuon    ()) weight *= leptonOne.wt1[2] / leptonOne.wt1[0];
-      if(leptonTwo.isMuon    ()) weight *= leptonTwo.wt1[2] / leptonTwo.wt1[0];
-    } else if(sys ==  7) {                                                 //tau ID scale factors
-      if(leptonOne.isTau     ()) weight *= leptonOne.wt1[1] / leptonOne.wt1[0];
-      if(leptonTwo.isTau     ()) weight *= leptonTwo.wt1[1] / leptonTwo.wt1[0];
-    } else if(sys ==  8) {
-      if(leptonOne.isTau     ()) weight *= leptonOne.wt1[2] / leptonOne.wt1[0];
-      if(leptonTwo.isTau     ()) weight *= leptonTwo.wt1[2] / leptonTwo.wt1[0];
-    } else if(sys == 10) weight *= jetToTauWeightUp     / jetToTauWeight ; //Jet --> tau weights
-    else if  (sys == 11) weight *= jetToTauWeightDown   / jetToTauWeight ;
-    else if  (sys == 12) weight *= jetToTauWeightSys    / jetToTauWeight ;
-    else if  (sys == 13) weight *= zPtWeightUp          / zPtWeight      ; //Drell-Yan pT weights
-    else if  (sys == 14) weight *= zPtWeightDown        / zPtWeight      ;
-    else if  (sys == 15) weight *= zPtWeightSys         / zPtWeight      ;
-    else if  (sys == 16) {                                                 //electron reco ID scale factors
-      if(leptonOne.isElectron()) weight *= leptonOne.wt2[1] / leptonOne.wt2[0];
-      if(leptonTwo.isElectron()) weight *= leptonTwo.wt2[1] / leptonTwo.wt2[0];
-    } else if(sys == 17) {
-      if(leptonOne.isElectron()) weight *= leptonOne.wt2[2] / leptonOne.wt2[0];
-      if(leptonTwo.isElectron()) weight *= leptonTwo.wt2[2] / leptonTwo.wt2[0];
-    } else if(sys == 19) {                                                 //muon iso ID scale factors
-      if(leptonOne.isMuon    ()) weight *= leptonOne.wt2[1] / leptonOne.wt2[0];
-      if(leptonTwo.isMuon    ()) weight *= leptonTwo.wt2[1] / leptonTwo.wt2[0];
-    } else if(sys == 20) {
-      if(leptonOne.isMuon    ()) weight *= leptonOne.wt2[2] / leptonOne.wt2[0];
-      if(leptonTwo.isMuon    ()) weight *= leptonTwo.wt2[2] / leptonTwo.wt2[0];
-    }
-    else if  (sys == 22) {                                                 //Tau ES
-      if(leptonTwo.isTau     () && leptonTwo.ES[0] > 0. && leptonTwo.ES[1] > 0.) {
-        *(leptonTwo.p4) *= (leptonTwo.ES[1] / leptonTwo.ES[0]);
-        if(leptonTwo.p4->M2() < 0.) leptonTwo.p4->SetE(leptonTwo.p4->P());
-        reeval = true;
+    if(name == "Nominal")  weight = weight;                                //do nothing
+    else if  (name == "EleID") {
+      if(fSystematics.IsUp(sys)) {
+        if(leptonOne.isElectron()) weight *= leptonOne.wt1[1] / leptonOne.wt1[0];
+        if(leptonTwo.isElectron()) weight *= leptonTwo.wt1[1] / leptonTwo.wt1[0];
+      } else {
+        if(leptonOne.isElectron()) weight *= leptonOne.wt1[2] / leptonOne.wt1[0];
+        if(leptonTwo.isElectron()) weight *= leptonTwo.wt1[2] / leptonTwo.wt1[0];
       }
-    } else if(sys == 23) {
-      if(leptonTwo.isTau     () && leptonTwo.ES[0] > 0. && leptonTwo.ES[2] > 0.) {
-        *(leptonTwo.p4) *= (leptonTwo.ES[2] / leptonTwo.ES[0]);
-        if(leptonTwo.p4->M2() < 0.) leptonTwo.p4->SetE(leptonTwo.p4->P());
-        reeval = true;
+    } else if(name == "MuonID") {
+      if(fSystematics.IsUp(sys)) {
+        if(leptonOne.isMuon    ()) weight *= leptonOne.wt1[1] / leptonOne.wt1[0];
+        if(leptonTwo.isMuon    ()) weight *= leptonTwo.wt1[1] / leptonTwo.wt1[0];
+      } else {
+        if(leptonOne.isMuon    ()) weight *= leptonOne.wt1[2] / leptonOne.wt1[0];
+        if(leptonTwo.isMuon    ()) weight *= leptonTwo.wt1[2] / leptonTwo.wt1[0];
       }
-    }
-    else if  (sys == 25) weight *= (qcdWeight > 0.) ? qcdWeightUp  / qcdWeight : 0.; //SS --> OS weights
-    else if  (sys == 26) weight *= (qcdWeight > 0.) ? qcdWeightDown/ qcdWeight : 0.;
-    else if  (sys == 27) weight *= (qcdWeight > 0.) ? qcdWeightSys / qcdWeight : 0.;
-    else if  (sys == 28) weight *= jetToTauWeightCorrUp     / jetToTauWeightCorr   ; //Jet --> tau weight non-closure corrections
-    else if  (sys == 29) weight *= jetToTauWeightCorrDown   / jetToTauWeightCorr   ;
-    else if  (sys == 30) weight *= jetToTauWeightCorrSys    / jetToTauWeightCorr   ;
-    else if  (sys == 31) weight *= jetToTauWeight_compUp    / jetToTauWeightBias   ; //Jet --> tau weight composition
-    else if  (sys == 32) weight *= jetToTauWeight_compDown  / jetToTauWeightBias   ;
-    else if  (sys == 33) weight *= jetToTauWeight_compUp    / jetToTauWeightBias   ;
-    else if(sys > 33 && sys < 43) {                                                // tau IDs by PDG ID
-      if(leptonTwo.isTau     ()) {
-        if(sys == 34 && std::abs(tauGenFlavor) == 15)       //tau anti-jet ID scale factors
-          weight *= leptonTwo.wt1[1] / leptonTwo.wt1[0];
-        else if(sys == 35 && std::abs(tauGenFlavor) == 15)
-          weight *= leptonTwo.wt1[2] / leptonTwo.wt1[0];
-        else if(sys == 37 && std::abs(tauGenFlavor) == 13)  //tau anti-mu ID scale factors
-          weight *= leptonTwo.wt1[1] / leptonTwo.wt1[0];
-        else if(sys == 38 && std::abs(tauGenFlavor) == 13)
-          weight *= leptonTwo.wt1[2] / leptonTwo.wt1[0];
-        else if(sys == 40 && std::abs(tauGenFlavor) == 11)  //tau anti-ele ID scale factors
-          weight *= leptonTwo.wt1[1] / leptonTwo.wt1[0];
-        else if(sys == 41 && std::abs(tauGenFlavor) == 11)
-          weight *= leptonTwo.wt1[2] / leptonTwo.wt1[0];
+    } else if(name == "TauID") {
+      if(fSystematics.IsUp(sys)) {
+        if(leptonOne.isTau     ()) weight *= leptonOne.wt1[1] / leptonOne.wt1[0];
+        if(leptonTwo.isTau     ()) weight *= leptonTwo.wt1[1] / leptonTwo.wt1[0];
+      } else {
+        if(leptonOne.isTau     ()) weight *= leptonOne.wt1[2] / leptonOne.wt1[0];
+        if(leptonTwo.isTau     ()) weight *= leptonTwo.wt1[2] / leptonTwo.wt1[0];
       }
-    } else if  (sys == 43) { weight *= (fIsData || fIsEmbed) ? 1. : 1. + 0.016; //luminosity uncertainty
-    } else if  (sys == 44) { weight *= (fIsData || fIsEmbed) ? 1. : 1. - 0.016;
-    } else if  (sys == 45) { weight *= (btagWeight > 0.) ? btagWeightUp   / btagWeight : 1.; //btag uncertainty
-    } else if  (sys == 46) { weight *= (btagWeight > 0.) ? btagWeightDown / btagWeight : 1.;
-    } else if  (sys == 47) { weight *= jetToTauWeightBiasUp     / jetToTauWeightBias   ; //Jet --> tau weight bias corrections
-    } else if  (sys == 48) { weight *= jetToTauWeightBiasDown   / jetToTauWeightBias   ;
-    } else if  (sys == 49) { weight *= (fIsEmbed) ? 1.04f : 1.f   ; //Embedding unfolding norm, +- 4% uncertainty
-    } else if  (sys == 50) { weight *= (fIsEmbed) ? 0.96f : 1.f   ;
-    } else if  (sys == 51) {                                        //MC electron trigger, up
-      const float trig_wt = leptonOne.trig_wt * leptonTwo.trig_wt;
-      if(fIsEmbed) { weight *= 1.f; }
-      else if(leptonOne.isElectron() && leptonTwo.isElectron()) { weight *= triggerWeightsSys[4] / trig_wt; }
-      else if(leptonOne.isElectron())                           { weight *= triggerWeightsSys[0] / trig_wt; }
-      else if(leptonTwo.isElectron())                           { weight *= triggerWeightsSys[2] / trig_wt; }
-    } else if  (sys == 52) {                                        //MC electron trigger, down
-      const float trig_wt = leptonOne.trig_wt * leptonTwo.trig_wt;
-      if(fIsEmbed) { weight *= 1.f; }
-      else if(leptonOne.isElectron() && leptonTwo.isElectron()) { weight *= triggerWeightsSys[5] / trig_wt; }
-      else if(leptonOne.isElectron())                           { weight *= triggerWeightsSys[1] / trig_wt; }
-      else if(leptonTwo.isElectron())                           { weight *= triggerWeightsSys[3] / trig_wt; }
-    } else if  (sys == 53) {                                        //MC muon trigger, up
-      const float trig_wt = leptonOne.trig_wt * leptonTwo.trig_wt;
-      if(fIsEmbed) { weight *= 1.f; }
-      else if(leptonOne.isMuon() && leptonTwo.isMuon())         { weight *= triggerWeightsSys[4] / trig_wt; }
-      else if(leptonOne.isMuon())                               { weight *= triggerWeightsSys[0] / trig_wt; }
-      else if(leptonTwo.isMuon())                               { weight *= triggerWeightsSys[2] / trig_wt; }
-    } else if  (sys == 54) {                                        //MC muon trigger, down
-      const float trig_wt = leptonOne.trig_wt * leptonTwo.trig_wt;
-      if(fIsEmbed) { weight *= 1.f; }
-      else if(leptonOne.isMuon() && leptonTwo.isMuon())         { weight *= triggerWeightsSys[5] / trig_wt; }
-      else if(leptonOne.isMuon())                               { weight *= triggerWeightsSys[1] / trig_wt; }
-      else if(leptonTwo.isMuon())                               { weight *= triggerWeightsSys[3] / trig_wt; }
-    } else if  (sys == 55) {                                        //Embedding electron trigger, up
-      const float trig_wt = leptonOne.trig_wt * leptonTwo.trig_wt;
-      if(!fIsEmbed) { weight *= 1.f; }
-      else if(leptonOne.isElectron() && leptonTwo.isElectron()) { weight *= triggerWeightsSys[4] / trig_wt; }
-      else if(leptonOne.isElectron())                           { weight *= triggerWeightsSys[0] / trig_wt; }
-      else if(leptonTwo.isElectron())                           { weight *= triggerWeightsSys[2] / trig_wt; }
-    } else if  (sys == 56) {                                        //Embedding electron trigger, down
-      const float trig_wt = leptonOne.trig_wt * leptonTwo.trig_wt;
-      if(!fIsEmbed) { weight *= 1.f; }
-      else if(leptonOne.isElectron() && leptonTwo.isElectron()) { weight *= triggerWeightsSys[5] / trig_wt; }
-      else if(leptonOne.isElectron())                           { weight *= triggerWeightsSys[1] / trig_wt; }
-      else if(leptonTwo.isElectron())                           { weight *= triggerWeightsSys[3] / trig_wt; }
-    } else if  (sys == 57) {                                        //Embedding muon trigger, up
-      const float trig_wt = leptonOne.trig_wt * leptonTwo.trig_wt;
-      if(!fIsEmbed) { weight *= 1.f; }
-      else if(leptonOne.isMuon() && leptonTwo.isMuon())         { weight *= triggerWeightsSys[4] / trig_wt; }
-      else if(leptonOne.isMuon())                               { weight *= triggerWeightsSys[0] / trig_wt; }
-      else if(leptonTwo.isMuon())                               { weight *= triggerWeightsSys[2] / trig_wt; }
-    } else if  (sys == 58) {                                        //Embedding muon trigger, down
-      const float trig_wt = leptonOne.trig_wt * leptonTwo.trig_wt;
-      if(!fIsEmbed) { weight *= 1.f; }
-      else if(leptonOne.isMuon() && leptonTwo.isMuon())         { weight *= triggerWeightsSys[5] / trig_wt; }
-      else if(leptonOne.isMuon())                               { weight *= triggerWeightsSys[1] / trig_wt; }
-      else if(leptonTwo.isMuon())                               { weight *= triggerWeightsSys[3] / trig_wt; }
-    } else if  (sys == 59) {                                        //MET JER, up
-      met    = puppMETJERUp;
-      metPhi = puppMETphiJERUp;
+    } else if(name == "JetToTauStat") {
+      if(fSystematics.IsUp(sys)) weight *= jetToTauWeightUp     / jetToTauWeight ;
+      else                       weight *= jetToTauWeightDown   / jetToTauWeight ;
+    } else if(name == "ZPt") {
+      if(fSystematics.IsUp(sys)) weight *= zPtWeightUp          / zPtWeight      ;
+      else                       weight *= zPtWeightDown        / zPtWeight      ;
+    } else if(name == "EleRecoID") {
+      if(fSystematics.IsUp(sys)) {
+        if(leptonOne.isElectron()) weight *= leptonOne.wt2[1] / leptonOne.wt2[0];
+        if(leptonTwo.isElectron()) weight *= leptonTwo.wt2[1] / leptonTwo.wt2[0];
+      } else {
+        if(leptonOne.isElectron()) weight *= leptonOne.wt2[2] / leptonOne.wt2[0];
+        if(leptonTwo.isElectron()) weight *= leptonTwo.wt2[2] / leptonTwo.wt2[0];
+      }
+    } else if(name == "MuonIsoID") {
+      if(fSystematics.IsUp(sys)) {
+        if(leptonOne.isMuon    ()) weight *= leptonOne.wt2[1] / leptonOne.wt2[0];
+        if(leptonTwo.isMuon    ()) weight *= leptonTwo.wt2[1] / leptonTwo.wt2[0];
+      } else {
+        if(leptonOne.isMuon    ()) weight *= leptonOne.wt2[2] / leptonOne.wt2[0];
+        if(leptonTwo.isMuon    ()) weight *= leptonTwo.wt2[2] / leptonTwo.wt2[0];
+      }
+    } else if(name == "TauES") {
       reeval = true;
-    } else if  (sys == 60) {                                        //MET JER, down
-      met    -= std::max(0.f, puppMETJERUp - met);
-      metPhi -= puppMETphiJERUp - metPhi;
-      if(metPhi > 2.*M_PI)       metPhi -= 2*M_PI;
-      else if(metPhi < -2.*M_PI) metPhi += 2*M_PI;
-      reeval = true;
-    } else if  (sys == 61) {                                        //MET JES, up
-      met    = puppMETJESUp;
-      metPhi = puppMETphiJESUp;
-      reeval = true;
-    } else if  (sys == 62) {                                        //MET JES, down
-      met    -= std::max(0.f, puppMETJESUp - met);
-      metPhi -= puppMETphiJESUp - metPhi;
-      if(metPhi > 2.*M_PI)       metPhi -= 2*M_PI;
-      else if(metPhi < -2.*M_PI) metPhi += 2*M_PI;
-      reeval = true;
-    } else if  (sys >= 100 && sys < 106) { //tau anti-jet ID, separated by years FIXME: should also be separated by pT bins
-      if(std::abs(leptonOne.flavor) == std::abs(leptonTwo.flavor)) continue;
-      int base = 100;
-      if(leptonTwo.isTau     ()) {
-        int bin = 2*(fYear - 2016); //uncorrelated between years
-        if((sys == base + bin) && std::abs(tauGenFlavor) == 15)
-          weight *= leptonTwo.wt1[1] / leptonTwo.wt1[0];
-        else if((sys == base + 1 + bin) && std::abs(tauGenFlavor) == 15)
-          weight *= leptonTwo.wt1[2] / leptonTwo.wt1[0];
+      if(fSystematics.IsUp(sys)) {
+        if(leptonTwo.isTau     () && leptonTwo.ES[0] > 0. && leptonTwo.ES[1] > 0.) {
+          *(leptonTwo.p4) *= (leptonTwo.ES[1] / leptonTwo.ES[0]);
+          if(leptonTwo.p4->M2() < 0.) leptonTwo.p4->SetE(leptonTwo.p4->P());
+        }
+      } else {
+        if(leptonTwo.isTau     () && leptonTwo.ES[0] > 0. && leptonTwo.ES[2] > 0.) {
+          *(leptonTwo.p4) *= (leptonTwo.ES[2] / leptonTwo.ES[0]);
+          if(leptonTwo.p4->M2() < 0.) leptonTwo.p4->SetE(leptonTwo.p4->P());
+        }
       }
-    } else if  (sys >= 110 && sys < 140) { //tau anti-mu ID, separated by 5 bins per year --> 15 histograms per up/down
-      if(std::abs(leptonOne.flavor) == std::abs(leptonTwo.flavor)) continue; //don't need in the ee/mumu region
-      int base = 110;
-      if(leptonTwo.isTau     ()) {
-        const int bin = 5*(fYear - 2016) + leptonTwo.wt1_bin; //uncorrelated between years and bins
-        if((sys == base + 2*bin) && std::abs(tauGenFlavor) == 13)
-          weight *= leptonTwo.wt1[1] / leptonTwo.wt1[0];
-        else if((sys == base + 1 + 2*bin) && std::abs(tauGenFlavor) == 13)
-          weight *= leptonTwo.wt1[2] / leptonTwo.wt1[0];
+    } else if(name == "QCDStat") {
+      if(fSystematics.IsUp(sys)) weight *= (qcdWeight > 0.) ? qcdWeightUp   / qcdWeight : 0.;
+      else                       weight *= (qcdWeight > 0.) ? qcdWeightDown / qcdWeight : 0.;
+    } else if(name == "QCDNC") {
+      if(fSystematics.IsUp(sys)) weight *= (qcdClosure > 0.) ? 1. / qcdClosure : 0.; //remove / apply twice as uncertainty
+      else                       weight *= (qcdClosure > 0.) ? 1. * qcdClosure : 0.;
+    } else if(name == "QCDBias") {
+      if(fSystematics.IsUp(sys)) weight *= (qcdIsoScale > 0.) ? 1. / qcdIsoScale : 0.; //remove / apply twice as uncertainty
+      else                       weight *= (qcdIsoScale > 0.) ? 1. * qcdIsoScale : 0.;
+    } else if(name == "JetToTauNC") {
+      if(fSystematics.IsUp(sys)) weight *= jetToTauWeightCorrUp     / jetToTauWeightCorr   ;
+      else                       weight *= jetToTauWeightCorrDown   / jetToTauWeightCorr   ;
+    } else if(name == "JetToTauComp") {
+      if(fSystematics.IsUp(sys)) weight *= jetToTauWeight_compUp    / jetToTauWeightBias   ;
+      else                       weight *= jetToTauWeight_compDown  / jetToTauWeightBias   ;
+    } else if(name == "TauJetID") {
+      if(leptonTwo.isTau() && std::abs(tauGenFlavor) == 15) { //only evaluate for true hadronic taus
+        if(fSystematics.IsUp(sys)) weight *= leptonTwo.wt1[1] / leptonTwo.wt1[0];
+        else                       weight *= leptonTwo.wt1[2] / leptonTwo.wt1[0];
       }
-    } else if  (sys >= 140 && sys < 158) { //tau anti-ele ID, separated by 3 bins per year --> 9 histograms per up/down
-      if(std::abs(leptonOne.flavor) == std::abs(leptonTwo.flavor)) continue;
-      int base = 140;
-      if(leptonTwo.isTau     ()) {
-        int bin = 3*(fYear - 2016) + leptonTwo.wt1_bin; //uncorrelated between years and bins
-        if((sys == base + 2*bin) && std::abs(tauGenFlavor) == 11)
-          weight *= leptonTwo.wt1[1] / leptonTwo.wt1[0];
-        else if((sys == base + 1 + 2*bin) && std::abs(tauGenFlavor) == 11)
-          weight *= leptonTwo.wt1[2] / leptonTwo.wt1[0];
+    } else if(name == "TauMuID") {
+      if(leptonTwo.isTau() && std::abs(tauGenFlavor) == 13) { //only evaluate for mu --> hadronic tau
+        if(fSystematics.IsUp(sys)) weight *= leptonTwo.wt1[1] / leptonTwo.wt1[0];
+        else                       weight *= leptonTwo.wt1[2] / leptonTwo.wt1[0];
       }
+    } else if(name == "TauEleID") {
+      if(leptonTwo.isTau() && std::abs(tauGenFlavor) == 11) {  //only evaluate for e --> hadronic tau
+        if(fSystematics.IsUp(sys)) weight *= leptonTwo.wt1[1] / leptonTwo.wt1[0];
+        else                       weight *= leptonTwo.wt1[2] / leptonTwo.wt1[0];
+      }
+    } else if(name == "Lumi") {
+      const double unc = (fYear == 2016) ? 0.012 : (fYear == 2017) ? 0.023 : 0.025;
+      if(fSystematics.IsUp(sys))  weight *= (fIsData || fIsEmbed) ? 1. : 1. + unc;
+      else                        weight *= (fIsData || fIsEmbed) ? 1. : 1. - unc;
+    } else if(name == "BTag") {
+      if(fSystematics.IsUp(sys)) weight *= (btagWeight > 0.) ? btagWeightUp   / btagWeight : 1.;
+      else                       weight *= (btagWeight > 0.) ? btagWeightDown / btagWeight : 1.;
+    } else if(name == "JetToTauBias") {
+      if(fSystematics.IsUp(sys)) weight *= jetToTauWeightBiasUp     / jetToTauWeightBias   ;
+      else                       weight *= jetToTauWeightBiasDown   / jetToTauWeightBias   ;
+    } else if(name == "EmbedUnfold") {
+      if(fSystematics.IsUp(sys)) weight *= (fIsEmbed) ? 1.04f : 1.f   ;
+      else                       weight *= (fIsEmbed) ? 0.96f : 1.f   ;
+    } else if(name == "MCEleTrig") {
+      if(!fIsEmbed && !fIsData) {
+        const float trig_wt = leptonOne.trig_wt * leptonTwo.trig_wt;
+        if(fSystematics.IsUp(sys)) {
+          if(leptonOne.isElectron() && leptonTwo.isElectron()) { weight *= triggerWeightsSys[4] / trig_wt; }
+          else if(leptonOne.isElectron())                      { weight *= triggerWeightsSys[0] / trig_wt; }
+          else if(leptonTwo.isElectron())                      { weight *= triggerWeightsSys[2] / trig_wt; }
+        } else {
+          if(leptonOne.isElectron() && leptonTwo.isElectron()) { weight *= triggerWeightsSys[5] / trig_wt; }
+          else if(leptonOne.isElectron())                      { weight *= triggerWeightsSys[1] / trig_wt; }
+          else if(leptonTwo.isElectron())                      { weight *= triggerWeightsSys[3] / trig_wt; }
+        }
+      }
+    } else if(name == "MCMuonTrig") {
+      if(!fIsEmbed && !fIsData) {
+        const float trig_wt = leptonOne.trig_wt * leptonTwo.trig_wt;
+        if(fSystematics.IsUp(sys)) {
+          if(leptonOne.isMuon() && leptonTwo.isMuon())         { weight *= triggerWeightsSys[4] / trig_wt; }
+          else if(leptonOne.isMuon())                          { weight *= triggerWeightsSys[0] / trig_wt; }
+          else if(leptonTwo.isMuon())                          { weight *= triggerWeightsSys[2] / trig_wt; }
+        } else {
+          if(leptonOne.isMuon() && leptonTwo.isMuon())         { weight *= triggerWeightsSys[5] / trig_wt; }
+          else if(leptonOne.isMuon())                          { weight *= triggerWeightsSys[1] / trig_wt; }
+          else if(leptonTwo.isMuon())                          { weight *= triggerWeightsSys[3] / trig_wt; }
+        }
+      }
+    } else if(name == "EmbEleTrig") {
+      if(fIsEmbed) {
+        const float trig_wt = leptonOne.trig_wt * leptonTwo.trig_wt;
+        if(fSystematics.IsUp(sys)) {
+          if(leptonOne.isElectron() && leptonTwo.isElectron()) { weight *= triggerWeightsSys[4] / trig_wt; }
+          else if(leptonOne.isElectron())                      { weight *= triggerWeightsSys[0] / trig_wt; }
+          else if(leptonTwo.isElectron())                      { weight *= triggerWeightsSys[2] / trig_wt; }
+        } else {
+          if(leptonOne.isElectron() && leptonTwo.isElectron()) { weight *= triggerWeightsSys[5] / trig_wt; }
+          else if(leptonOne.isElectron())                      { weight *= triggerWeightsSys[1] / trig_wt; }
+          else if(leptonTwo.isElectron())                      { weight *= triggerWeightsSys[3] / trig_wt; }
+        }
+      }
+    } else if(name == "EmbMuonTrig") {
+      if(fIsEmbed) {
+        const float trig_wt = leptonOne.trig_wt * leptonTwo.trig_wt;
+        if(fSystematics.IsUp(sys)) {
+          if(leptonOne.isMuon() && leptonTwo.isMuon())         { weight *= triggerWeightsSys[4] / trig_wt; }
+          else if(leptonOne.isMuon())                          { weight *= triggerWeightsSys[0] / trig_wt; }
+          else if(leptonTwo.isMuon())                          { weight *= triggerWeightsSys[2] / trig_wt; }
+        } else {
+          if(leptonOne.isMuon() && leptonTwo.isMuon())         { weight *= triggerWeightsSys[5] / trig_wt; }
+          else if(leptonOne.isMuon())                          { weight *= triggerWeightsSys[1] / trig_wt; }
+          else if(leptonTwo.isMuon())                          { weight *= triggerWeightsSys[3] / trig_wt; }
+        }
+      }
+    } else if(name == "METJER") {
+      reeval = true;
+      if(fSystematics.IsUp(sys)) {
+        met    = puppMETJERUp;
+        metPhi = puppMETphiJERUp;
+      } else {
+        met    -= std::max(0.f, puppMETJERUp - met);
+        metPhi -= puppMETphiJERUp - metPhi;
+        if(metPhi > 2.*M_PI)       metPhi -= 2*M_PI;
+        else if(metPhi < -2.*M_PI) metPhi += 2*M_PI;
+      }
+    } else if(name == "METJES") {
+      reeval = true;
+      if(fSystematics.IsUp(sys)) {
+        met    = puppMETJESUp;
+        metPhi = puppMETphiJESUp;
+      } else {
+        met    -= std::max(0.f, puppMETJESUp - met);
+        metPhi -= puppMETphiJESUp - metPhi;
+        if(metPhi > 2.*M_PI)       metPhi -= 2*M_PI;
+        else if(metPhi < -2.*M_PI) metPhi += 2*M_PI;
+      }
+    } else if(name.Contains("TauJetID")) { //a tau anti-jet ID bin FIXME: should also be separated by pT bins
+      if(leptonTwo.isTau()) {
+        if(std::abs(tauGenFlavor) == 15) {
+          //Currently only 1 bin implemented
+          if(fSystematics.IsUp(sys)) weight *= leptonTwo.wt1[1] / leptonTwo.wt1[0];
+          else                       weight *= leptonTwo.wt1[2] / leptonTwo.wt1[0];
+        }
+      } else continue; //non-tau channels are not relevant here
+    } else if(name.Contains("TauMuID")) {
+      if(leptonTwo.isTau()) {
+        if(std::abs(tauGenFlavor) == 13) {
+          TString bin_s = name;
+          bin_s.ReplaceAll("TauMuID", "");
+          const int bin = std::stoi(bin_s.Data());
+          if(bin == leptonTwo.wt1_bin) { //uncorrelated between bins
+            if(fSystematics.IsUp(sys)) weight *= leptonTwo.wt1[1] / leptonTwo.wt1[0];
+            else                       weight *= leptonTwo.wt1[2] / leptonTwo.wt1[0];
+          }
+        }
+      } else continue; //non-tau channels are not relevant here
+    } else if(name.Contains("TauEleID")) {
+      if(leptonTwo.isTau()) {
+        if(std::abs(tauGenFlavor) == 11) {
+          TString bin_s = name;
+          bin_s.ReplaceAll("TauEleID", "");
+          const int bin = std::stoi(bin_s.Data());
+          if(bin == leptonTwo.wt1_bin) { //uncorrelated between bins
+            if(fSystematics.IsUp(sys)) weight *= leptonTwo.wt1[1] / leptonTwo.wt1[0];
+            else                       weight *= leptonTwo.wt1[2] / leptonTwo.wt1[0];
+          }
+        }
+      } else continue; //non-tau channels are not relevant here
+    } else if(name != "") {
+      std::cout << "Sytematic " << name.Data() << " defined but no uncertainty implemented!\n";
+      //fill with unshifted values for now
     } else continue; //no need to fill undefined systematics
 
     if(!std::isfinite(weight)) {
-      std::cout << "CLFVHistMaker::" << __func__ << ": Entry " << fentry << " Systematic " << sys << ": Weight is not finite! weight = " << weight << " event weight = "
-                << eventWeight << ", setting to 0...\n";
+      std::cout << "CLFVHistMaker::" << __func__ << ": Entry " << fentry << " Systematic " << name.Data() << "(" << sys
+                << "): Weight is not finite! weight = " << weight << " event weight = " << eventWeight
+                << ", setting to 0...\n";
       weight = 0.;
     }
 
     if(reeval) SetKinematics(); //re-evaluate variables with shifted values
-    float lepm  = fTreeVars.lepm;
-    float onept = fTreeVars.leponept;
-    float twopt = fTreeVars.leptwopt;
+    const float lepm  = fTreeVars.lepm;
+    const float onept = fTreeVars.leponept;
+    const float twopt = fTreeVars.leptwopt;
 
     Hist->hLepM  [sys]->Fill(lepm  , weight);
     //skip all other histograms in same-flavor selection, only using the M_{ll} histogram
@@ -1745,6 +1786,16 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   fTimes[GetTimerNumber("SingleFill")] = std::chrono::steady_clock::now(); //timer for filling all histograms
   FillAllHistograms(set_offset + 8);
   IncrementTimer("SingleFill", true);
+
+  ////////////////////////////////////////////////////////////////////////////
+  // Set 20 + selection offset: Test set
+  ////////////////////////////////////////////////////////////////////////////
+  bool test_set = (emu || mutau || etau);
+  test_set &= mll < 100.f;
+  // test_set &= fTreeVars.lepdeltaeta < 2.f;
+  if((test_set) {
+    FillAllHistograms(set_offset + 20);
+  }
 
   if((emu || mumu || ee) && (!fDYTesting || fTriggerTesting)) {
     if(emu) { //e+mu trigger testing

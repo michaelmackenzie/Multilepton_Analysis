@@ -11,6 +11,7 @@
 #include "interface/CrossSections.hh"
 #include "interface/Significances.hh"
 #include "interface/Utilities.hh"
+#include "interface/Systematics.hh"
 #include "interface/CreateCategories.hh"
 #include "interface/BTagWeight.hh"
 #include "interface/PUWeight.hh"
@@ -51,6 +52,7 @@ namespace CLFV {
     CrossSections dummy2;
     Significances dummy3;
     Utilities dummy3a;
+    Systematics dummy3a2;
     CreateCategories dummy3b;
     BTagWeight dummy4;
     PUWeight dummy5;

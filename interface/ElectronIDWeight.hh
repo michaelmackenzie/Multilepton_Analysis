@@ -10,7 +10,6 @@
 #include "TFile.h"
 #include "TH2.h"
 #include "TF1.h"
-#include "TRandom3.h"
 #include "TSystem.h"
 
 //local includes
@@ -19,28 +18,19 @@
 namespace CLFV {
   class ElectronIDWeight {
   public:
-    ElectronIDWeight(int Mode = 0, int seed = 90, int verbose = 0);
+    ElectronIDWeight(const int Mode = 0, const int verbose = 0);
     ~ElectronIDWeight();
 
-    int GetIDGroup(int bin, int year) {
-      return groupID_[(year-2016) * kYear + bin];
-    }
-    int GetRecoGroup(int bin, int year) {
-      return groupReco_[(year-2016) * kYear + bin];
-    }
-
     double IDWeight(double pt, double eta, int year,
-                    float& weight_id , float& weight_up_id , float& weight_down_id , int& ibin_id,
-                    float& weight_rec, float& weight_up_rec, float& weight_down_rec, int& ibin_rec);
+                    float& weight_id , float& weight_up_id , float& weight_down_id ,
+                    float& weight_rec, float& weight_up_rec, float& weight_down_rec);
     double IDWeight(double pt, double eta, int year) {
       float wt_id, wt_up_id, wt_down_id, wt_rec, wt_up_rec, wt_down_rec;
-      int ibin_id, ibin_rec;
-      return IDWeight(pt, eta, year, wt_id, wt_up_id, wt_down_id, ibin_id, wt_rec, wt_up_rec, wt_down_rec, ibin_rec);
+      return IDWeight(pt, eta, year, wt_id, wt_up_id, wt_down_id, wt_rec, wt_up_rec, wt_down_rec);
     }
     double EmbedEnergyScale(double pt, double eta, int year, float& up, float& down);
     double TriggerEff(double pt, double eta, int year, int WP, float& data_eff, float& mc_eff,
-                      float& data_up, float& mc_up, float& data_down, float& mc_down
-                      );
+                      float& data_up, float& mc_up, float& data_down, float& mc_down);
 
   public:
     enum { k2016, k2017, k2018};
@@ -54,7 +44,6 @@ namespace CLFV {
     std::map<int, std::map<int, TH2*>> histTrigDataEff_;
     std::vector<TFile*> files_;
     int verbose_;
-    TRandom3* rnd_; //for generating systematic shifted parameters
     std::map<int, int> groupID_; //correction groups for systematics
     std::map<int, int> groupReco_;
     bool interpolate_;

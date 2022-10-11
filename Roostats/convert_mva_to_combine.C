@@ -11,7 +11,7 @@
 bool   use_fake_bkg_norm_ = false; //add a large uncertainty on j->tau/qcd norm to be fit by data
 bool   use_sys_           =  true; //add systematic uncertainties
 bool   separate_years_    =  true; //separate each year of data
-int    blind_data_        =     2; //0: no blinding; 1: kill high BDT score regions; 2: use ~Asimov instead of data
+int    blind_data_        =    2 ; //0: no blinding; 1: kill high BDT score regions; 2: use ~Asimov instead of data
 double blind_cut_         =    0.;
 
 Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
@@ -100,17 +100,24 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
   vector<THStack*> hsys_stacks;
   vector<TH1*> hsys_signals;
   if(use_sys_) {
-    for(int isys = 1; isys < kMaxSystematics; isys += 2) {
+    TString prev = "";
+    for(int isys = 1; isys < kMaxSystematics; ++isys) {
       //take only the up/down systematics from the sets < 50, skipping the _sys set. Above 50, only up/down
-      if(isys < 43 && (isys % 3) == 0) isys +=1;
-      // if(isys == 49) isys = 50; //skip to get to set 50
-      if(isys == 99) isys = 100; //skip to get to 100
-      auto sys_info = systematic_name(isys, selection);
+      // if(isys < 43 && (isys % 3) == 0) isys +=1;
+      // // if(isys == 49) isys = 50; //skip to get to set 50
+      // if(isys == 99) isys = 100; //skip to get to 100
+      auto sys_info = systematic_name(isys, selection, years[0]); //FIXME: take the first year in the list for now
       TString name = sys_info.first;
-      TString type = sys_info.second;
       if(name == "") continue;
+      if(name == prev) continue; //ensure no repetition
+      prev = name;
+      TString type = sys_info.second;
+      TString down_name = systematic_name(isys+1, selection, years[0]).first;
+      if(name != down_name) {
+        cout << "!!! Sys " << isys << " (" << name.Data() << "), " << isys+1 << " (" << down_name.Data() << ") have different names! Skipping...\n";
+        continue;
+      }
       if(verbose_ > 0) cout << "Using sys " << isys << ", " << isys+1 << " as systematic " << name.Data() << endl;
-      if(name != systematic_name(isys+1, selection).first) cout << "!!! Sys " << isys << ", " << isys+1 << " have different names!\n";
       THStack* hstack_up   = (THStack*) fInput->Get(Form("hstack_sys_%i", isys));
       THStack* hstack_down = (THStack*) fInput->Get(Form("hstack_sys_%i", isys+1));
       TH1* hsig_up        = (TH1*)    fInput->Get(Form("%s_sys_%i", selec.Data(), isys));

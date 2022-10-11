@@ -3,7 +3,7 @@
 #include "control_region_datacard.C"
 // #include "combine_channels.C"
 
-bool use_control_regions_ = true; //use mumu/ee control regions
+bool use_control_regions_ = false; //use mumu/ee control regions
 
 int combine_channels(int set, TString selection, vector<int> years) {
   TString had = selection;
@@ -54,7 +54,7 @@ int create_combine_cards(int set = 8, TString selection = "zmutau",
   }
 
   //FIXME: Combine years using combineCards.py instead of a merged fit!
-  if(separate_years_) {
+  if(separate_years_ && years.size() > 1) {
     TString command_2 = "combineCards.py"; //hadronic+leptonic fit
     TString command_3 = "combineCards.py"; //hadronic fit
     TString command_4 = "combineCards.py"; //leptonic fit

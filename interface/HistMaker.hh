@@ -62,6 +62,7 @@
 #include "interface/MuonIDWeight.hh"
 #include "interface/ElectronIDWeight.hh"
 
+#include "interface/Systematics.hh"
 #include "interface/SystematicShifts.hh"
 #include "interface/SystematicGrouping.hh"
 
@@ -589,6 +590,8 @@ namespace CLFV {
     Int_t           fDoEventList = 1;
 
     Int_t           fSystematicSeed; //for systematic variations
+
+    Systematics     fSystematics; //systematics information
 
     Int_t           fRemoveTriggerWeights = 0; // 0: do nothing 1: remove weights 2: replace weights
     Int_t           fUpdateMCEra = 0; //update the MC era flag

@@ -83,12 +83,12 @@ Int_t control_region_datacard(int set = 8, TString selection = "mumu",
     if(isys < 43 && (isys % 3) == 0) isys +=1;
     // if(isys == 49) isys = 50; //skip to get to set 50
     if(isys == 99) isys = 100; //skip to get to 100
-    auto sys_info = systematic_name(isys, signal);
+    auto sys_info = systematic_name(isys, signal, years[0]); //FIXME: take the first year for now
     TString name = sys_info.first;
     TString type = sys_info.second;
     if(name == "" || name.Contains("Tau")) continue;
     if(verbose_ > 0) cout << "Using sys " << isys << ", " << isys+1 << " as systematic " << name.Data() << endl;
-    if(name != systematic_name(isys+1, signal).first) cout << "!!! Sys " << isys << ", " << isys+1 << " have different names!\n";
+    if(name != systematic_name(isys+1, signal, years[0]).first) cout << "!!! Sys " << isys << ", " << isys+1 << " have different names!\n";
     THStack* hstack_up   = (THStack*) fInput->Get(Form("hstack_sys_%i", isys));
     THStack* hstack_down = (THStack*) fInput->Get(Form("hstack_sys_%i", isys+1));
     TH1* hsig_up        = (TH1*)    fInput->Get(Form("%s_sys_%i", selec.Data(), isys));

@@ -125,6 +125,8 @@ TauIDWeight::~TauIDWeight() {
 double TauIDWeight::IDWeight(double pt, double eta, int genID, UChar_t antiJet, int year,
                              float& up, float& down, int& bin
                              ) {
+  up = 1.f; down = 1.f;
+  bin = 0;
   if(year > 2000) year -= 2016;
   if(year != k2016 && year != k2017 && year != k2018) {
     std::cout << "Warning! Undefined year in TauIDWeight::" << __func__ << ", returning -1" << std::endl;
@@ -132,7 +134,6 @@ double TauIDWeight::IDWeight(double pt, double eta, int genID, UChar_t antiJet, 
   }
   pt = std::max(pt, 20.001); //has to be slightly greater than 20
   double scale_factor = 1.;
-  up = 1.; down = 1.;
   const int antiJetBit = BitFromID(antiJet);
   const int antiJetIndex = (antiJetBit >= kTight) ? kTight : kVLoose; //tight or loose tau
   bin = 1;

@@ -1099,7 +1099,7 @@ void HistMaker::InitializeEventWeights() {
   jetToTauWeightCorr = 1.f; jetToTauWeightCorrUp = 1.f; jetToTauWeightCorrDown = 1.f; jetToTauWeightCorrSys = 1.f;
   jetToTauWeightBias = 1.f; jetToTauWeightBiasUp = 1.f; jetToTauWeightBiasDown = 1.f;
   jetToTauWeight_compUp = 1.f; jetToTauWeight_compDown = 1.f;
-  qcdWeight = 1.f; qcdWeightUp = 1.f; qcdWeightDown = 1.f; qcdWeightSys = 1.f; qcdClosure = 1.f;
+  qcdWeight = 1.f; qcdWeightUp = 1.f; qcdWeightDown = 1.f; qcdWeightSys = 1.f; qcdClosure = 1.f; qcdIsoScale = 1.f;
 
   ////////////////////////////////////////////////////////////////////
   //   Generator/Embedding Weight
