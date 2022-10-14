@@ -8,12 +8,11 @@ using namespace CLFV;
 //        + 10,000 * (use 2D pT vs delta R corrections)
 //        + 1,000 * (use DM binned pT corrections) + 100 * (1*(use scale factor fits) + 2*(use fitter errors))
 //        + 10 * (interpolate bins) + 1 * (use MC Fits)
-JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TString process, const int set, const int Mode, const int seed, const int verbose)
+JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TString process, const int set, const int Mode, const int verbose)
   : name_(name), Mode_(Mode), verbose_(verbose) {
 
   TFile* f = 0;
   std::vector<int> years = {2016, 2017, 2018};
-  int max_pt_bins(0), max_eta_bins(0), max_corr_bins(0);
   useMCFits_             = ( Mode %        10) == 1;
   doInterpolation_       = ( Mode %       100) /       10 == 1;
   useFits_               = ((Mode %      1000) /      100) % 2 == 1;
@@ -39,7 +38,6 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
   useOneIsoBias_         = bias_mode == 3 || bias_mode == 4; //bias correction in terms of one iso / pT
 
 
-  rnd_ = new TRandom3(seed);
   if(verbose_ > 0) {
     std::cout << __func__ << ": " << name.Data() << ", process: " << process.Data()
               << "\n Mode = " << Mode
@@ -64,7 +62,6 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
   const TString path = (cmssw == "") ? "../scale_factors" : cmssw + "/src/CLFVAnalysis/scale_factors";
   if(process != "") process += "_";
 
-  int group   = 0; //for systematic grouping
   for(int year : years) {
     if(verbose_ > 1) printf("%s: Initializing %i scale factors\n", __func__, year);
     //get the jet --> tau scale factors measured
@@ -73,7 +70,7 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
       for(int dm = 0; dm < 4; ++dm) {
         //Get Data histogram
         histsData_[year][dm] = (TH2*) f->Get(Form("h%s_eff_%idm", (useMCFits_) ? "mc" : "data", dm));
-        int nptbins(0), netabins(0);
+        int netabins(0);
         if(!histsData_[year][dm]) {
           std::cout << "JetToTauWeight::JetToTauWeight: " << name.Data() << " Warning! No Data histogram found for dm = "
                     << dm << " year = " << year
@@ -81,23 +78,7 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
         } else {
           histsData_[year][dm]->SetName(Form("%s-%s_%s_%i", name_.Data(), histsData_[year][dm]->GetName(), selection.Data(), year));
           histsData_[year][dm]->SetDirectory(0);
-          nptbins  = histsData_[year][dm]->GetNbinsX();
           netabins = histsData_[year][dm]->GetNbinsY();
-          max_pt_bins  = std::max(nptbins, max_pt_bins);
-          max_eta_bins = std::max(netabins, max_eta_bins);
-          //split into high and low eta regions
-          for(int ietabin = 1; ietabin <= netabins; ++ietabin) {
-            //combine pT regions in systematic groups
-            int nptgroups = 1;
-            for(int iptbin = 1; iptbin <= nptbins; ++iptbin) {
-              int ptgroup = 0;
-              //split pT into high and low pT regions
-              if(nptgroups > 1 && histsData_[year][dm]->GetXaxis()->GetBinLowEdge(iptbin) > 39.99) ptgroup = 1;
-              group_[(year-2016)*kYear + dm*kDM + ietabin*kEta + iptbin] = ptgroup + group;
-            }
-            group += (nptgroups - 1); //add the ptgroup assigned above
-            ++group; //each eta bin is a different group
-          }
         }
         //Get Data fits and errors
         for(int ieta = 0; ieta < netabins; ++ieta) {
@@ -161,7 +142,6 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
         } else {
           corrections_[dm][year] = (TH1*) corrections_[dm][year]->Clone(Form("%s-correction_%s_%i_%i", name_.Data(), pt_corr_selec.Data(), dm, year));
           corrections_[dm][year]->SetDirectory(0);
-          max_corr_bins = std::max(max_corr_bins, corrections_[dm][year]->GetNbinsX());
         }
         corrections2D_[dm][year] = (TH2*) f->Get(hist2D.Data());
         if(!corrections2D_[dm][year]) {
@@ -333,29 +313,10 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
       }
     } //end bias correction
   }
-
-  //Define shifted systematic weights as up or down
-  for(int year : years) {
-    isShiftedUp_[year] = {};
-    isShiftedUpPt_[year] = {};
-    for(int dm = 0; dm < 4; ++dm) {
-      isShiftedUp_[year][dm] = {};
-      for(int eta = 0; eta < max_eta_bins; ++eta) {
-        isShiftedUp_[year][dm][eta] = {};
-        for(int pt = 0; pt < max_pt_bins; ++pt) {
-          isShiftedUp_[year][dm][eta][pt] = rnd_->Uniform() > 0.5;
-        }
-      }
-    }
-    for(int ibin = 0; ibin < max_corr_bins; ++ibin) {
-      isShiftedUpPt_[year][ibin] = rnd_->Uniform() > 0.5;
-    }
-  }
 }
 
 //-------------------------------------------------------------------------------------------------------------------------
 JetToTauWeight::~JetToTauWeight() {
-  if(rnd_) {delete rnd_; rnd_ = nullptr;}
   for(std::pair<int, std::map<int, TH2*>> val_1 : histsData_) {
     for(std::pair<int, TH2*> val_2 : val_1.second) {if(val_2.second) delete val_2.second;}
   }
@@ -388,9 +349,9 @@ JetToTauWeight::~JetToTauWeight() {
 // Get factor to apply to data
 float JetToTauWeight::GetDataFactor(int DM, int year, float pt, float eta,
                                     float pt_lead, float deltar, float metdphi, float lepm, float mtlep, float oneiso,
-                                    float& up, float& down, float& sys, int& group,
-                                    float& pt_wt, float& pt_up, float& pt_down, float& pt_sys, float& bias) {
-  pt_wt = 1.f; pt_up = 1.f; pt_down = 1.f; pt_sys = 1.f; bias = 1.f;
+                                    float& up, float& down,
+                                    float& pt_wt, float& pt_up, float& pt_down, float& bias) {
+  pt_wt = 1.f; pt_up = 1.f; pt_down = 1.f; bias = 1.f;
   TH2* h = 0;
   //get correct decay mode histogram
   int idm = 0;
@@ -420,13 +381,13 @@ float JetToTauWeight::GetDataFactor(int DM, int year, float pt, float eta,
   if(!h) {
     std::cout << "JetToTauWeight::" << __func__ << ": " << name_.Data() << " Undefined histogram for DM = "
               << DM << " year = " << year << std::endl;
-    up = 1.f; down = 1.f; sys = 1.f; group = -1;
+    up = 1.f; down = 1.f;
     return 1.f;
   }
   if(!hCorrection && doPtCorrections_) {
     std::cout << "JetToTauWeight::" << __func__ << ": " << name_.Data() << " Undefined correction histogram for DM = "
               << DM << " year = " << year << std::endl;
-    up = 1.f; down = 1.f; sys = 1.f; group = -1;
+    up = 1.f; down = 1.f;
     return 1.f;
   }
   //get the fit function
@@ -437,7 +398,7 @@ float JetToTauWeight::GetDataFactor(int DM, int year, float pt, float eta,
   if(!func && useFits_) {
     std::cout << "JetToTauWeight::" << __func__ << ": " << name_.Data() << " Undefined function for DM = "
               << DM << " eta = " << eta << " year = " << year << std::endl;
-    up = 1.f; down = 1.f; sys = 1.f;
+    up = 1.f; down = 1.f;
     return 1.f;
   }
 
@@ -446,21 +407,20 @@ float JetToTauWeight::GetDataFactor(int DM, int year, float pt, float eta,
   if(!hFitterErrors && useFitterErrors_) {
     std::cout << "JetToTauWeight::" << __func__ << ": " << name_.Data() << " Undefined fitter errors for DM = "
               << DM << " eta = " << eta << " year = " << year << std::endl;
-    up = 1.f; down = 1.f; sys = 1.f;
+    up = 1.f; down = 1.f;
     return 1.f;
   }
 
   return GetFactor(h, func, hCorrection, hFitterErrors, pt, eta, DM, pt_lead, deltar, metdphi, lepm, mtlep, oneiso,
-                   year, up, down, sys, group, pt_wt, pt_up, pt_down, pt_sys, bias);
+                   year, up, down, pt_wt, pt_up, pt_down, bias);
 }
 
 //-------------------------------------------------------------------------------------------------------------------------------
 //Get weight without any systematics or corrections carried
 float JetToTauWeight::GetDataFactor(int DM, int year, float pt, float eta, float pt_lead, float deltar, float metdphi, float lepm, float mtlep, float oneiso) {
-  float up, down, sys, pt_wt, pt_up, pt_down, pt_sys, bias;
-  int group;
+  float up, down, pt_wt, pt_up, pt_down, bias;
   float weight = GetDataFactor(DM, year, pt, eta, pt_lead, deltar, metdphi, lepm, mtlep, oneiso,
-                               up, down, sys, group, pt_wt, pt_up, pt_down, pt_sys, bias);
+                               up, down, pt_wt, pt_up, pt_down, bias);
   weight *= pt_wt*bias;
   return weight;
 }
@@ -469,10 +429,9 @@ float JetToTauWeight::GetDataFactor(int DM, int year, float pt, float eta, float
 //Get weight without any systematics carried but pT correction also stored
 float JetToTauWeight::GetDataFactor(int DM, int year, float pt, float eta, float pt_lead, float deltar, float metdphi, float lepm, float mtlep, float oneiso,
                                     float& pt_wt, float& bias) {
-  float up, down, sys, pt_up, pt_down, pt_sys;
-  int group;
+  float up, down, pt_up, pt_down;
   const float weight = GetDataFactor(DM, year, pt, eta, pt_lead, deltar, metdphi, lepm, mtlep, oneiso,
-                                     up, down, sys, group, pt_wt, pt_up, pt_down, pt_sys, bias);
+                                     up, down, pt_wt, pt_up, pt_down, bias);
   return weight;
 }
 
@@ -482,24 +441,20 @@ float JetToTauWeight::GetFactor(TH2* h, TF1* func, TH1* hCorrection, TH1* hFitte
                                 float pt, float eta, int DM,
                                 float pt_lead, float deltar, float metdphi, float lepm, float mtlep, float oneiso,
                                 int year,
-                                float& up, float& down, float& sys, int& group,
-                                float& pt_wt, float& pt_up, float& pt_down, float& pt_sys, float& bias) {
+                                float& up, float& down,
+                                float& pt_wt, float& pt_up, float& pt_down, float& bias) {
   //ensure within kinematic regions
   eta = std::fabs(eta);
   if(pt > 199.) pt = 199.;
   else if(pt < 20.f) pt = 20.f;
   if(eta > 2.29) eta = 2.29;
 
-  //For grouping
-  int idm = 0;
-  if(DM == 0)
-    idm = 0;
-  else if(DM == 1)
-    idm = 1;
-  else if(DM == 10)
-    idm = 2;
-  else if(DM == 11)
-    idm = 3;
+  //For DM binned factors
+  int idm = 0; //default in case of undefined decay modes
+  if     (DM ==  0) idm = 0;
+  else if(DM ==  1) idm = 1;
+  else if(DM == 10) idm = 2;
+  else if(DM == 11) idm = 3;
 
   float eff = -1.f;
   float corr_error = 0.f;
@@ -526,7 +481,6 @@ float JetToTauWeight::GetFactor(TH2* h, TF1* func, TH1* hCorrection, TH1* hFitte
       func->SetParameters(params);
       delete[] params;
     }
-    sys = up; //FIXME: sys set to just up for fits
     //ensure up/down encloses the fit value
     up   = std::max(up  , eff);
     down = std::min(down, eff);
@@ -534,7 +488,6 @@ float JetToTauWeight::GetFactor(TH2* h, TF1* func, TH1* hCorrection, TH1* hFitte
     //get bin value
     const int binx = h->GetXaxis()->FindBin(pt);
     const int biny = h->GetYaxis()->FindBin(eta);
-    group = GetGroup(idm, year, biny, binx); //get systematic group
 
     float eff_bin = h->GetBinContent(binx, biny);
     float err_bin = h->GetBinError  (binx, biny);
@@ -554,8 +507,6 @@ float JetToTauWeight::GetFactor(TH2* h, TF1* func, TH1* hCorrection, TH1* hFitte
       up   = eff + err_bin;
       down = eff - err_bin;
     }
-    //Systematic shifted weight
-    sys  = (isShiftedUp_[year][idm][biny-1][binx-1]) ? up : down;
   }
 
   ///////////////////////////////////////////////////////////
@@ -704,7 +655,6 @@ float JetToTauWeight::GetFactor(TH2* h, TF1* func, TH1* hCorrection, TH1* hFitte
   down = std::max(min_eff, std::min(max_eff, down));
   up   = up   / (1.f - up  );
   down = down / (1.f - down);
-  sys  = sys  / (1.f - sys );
 
   //calculate pt correction uncertainties
   //Set systematic to be the correction size
@@ -713,7 +663,6 @@ float JetToTauWeight::GetFactor(TH2* h, TF1* func, TH1* hCorrection, TH1* hFitte
   const float sigma = (1 - 2*(pt_dev < 0.f)) * std::sqrt(pt_dev*pt_dev + corr_error*corr_error); //sign it with pt_dev sign
   pt_up   = std::max(0.f, pt_wt + sigma);
   pt_down = std::max(0.f, pt_wt - sigma);
-  pt_sys = 1.f; //Set systematic to be without the correction
 
   return eff;
 }

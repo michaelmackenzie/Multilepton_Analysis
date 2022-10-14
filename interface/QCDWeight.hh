@@ -11,14 +11,13 @@
 #include "TH1.h"
 #include "TH2.h"
 #include "TF1.h"
-#include "TRandom3.h"
 #include "TSystem.h"
 
 namespace CLFV {
 
   class QCDWeight {
   public:
-    QCDWeight(TString selection, int Mode = 0, int seed = 90, int verbose = 0);
+    QCDWeight(TString selection, int Mode = 0, int verbose = 0);
     ~QCDWeight();
 
     //Get scale factor for Data
@@ -33,12 +32,11 @@ namespace CLFV {
     std::map<int, TH1*> histsClosure_;
     std::map<int, TH1*> histsSys_;
     std::map<int, TH1*> jetBinnedHists_;
+    std::map<int, TF1*> jetBinnedFits_;
+    std::map<int, TH1*> jetBinnedFitErrs_;
     std::map<int, TH2*> Pt2DClosure_;
     std::map<int, TH2*> AntiIsoScale_;
 
-    TRandom3* rnd_; //for generating systematic shifted parameters
-    //       year          bin
-    std::map<int, std::map<int, bool>> isShiftedUp_; //whether the systematic is shifted up or down
     int verbose_;
     bool useFits_;
     bool useDeltaPhi_;

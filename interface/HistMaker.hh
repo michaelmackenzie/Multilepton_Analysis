@@ -281,12 +281,9 @@ namespace CLFV {
     Float_t jetToTauWeight             ;
     Float_t jetToTauWeightUp           ;
     Float_t jetToTauWeightDown         ;
-    Float_t jetToTauWeightSys          ;
-    Int_t   jetToTauWeightGroup        ;
     Float_t jetToTauWeightCorr         ;
     Float_t jetToTauWeightCorrUp       ;
     Float_t jetToTauWeightCorrDown     ;
-    Float_t jetToTauWeightCorrSys      ;
     Float_t jetToTauWeightBias         ;
     Float_t jetToTauWeightBiasUp       ;
     Float_t jetToTauWeightBiasDown     ;
@@ -619,6 +616,8 @@ namespace CLFV {
     JetToTauWeight* fElectronJetToTauWeights  [JetToTauComposition::kLast];
     JetToTauWeight* fElectronJetToTauMCWeights[JetToTauComposition::kLast]; //for measuring DR to AR/SR biases
     Float_t*        fJetToTauWts       = new Float_t[JetToTauComposition::kLast];
+    Float_t*        fJetToTauWtsUp     = new Float_t[JetToTauComposition::kLast];
+    Float_t*        fJetToTauWtsDown   = new Float_t[JetToTauComposition::kLast];
     Float_t*        fJetToTauCorrs     = new Float_t[JetToTauComposition::kLast];
     Float_t*        fJetToTauBiases    = new Float_t[JetToTauComposition::kLast];
     Float_t*        fJetToTauComps     = new Float_t[JetToTauComposition::kLast];

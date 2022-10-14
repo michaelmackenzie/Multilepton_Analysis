@@ -3,7 +3,7 @@
 using namespace CLFV;
 
 //-------------------------------------------------------------------------------------------------------------------------
-QCDWeight::QCDWeight(const TString selection, const int Mode, const int seed, const int verbose) : verbose_(verbose) {
+QCDWeight::QCDWeight(const TString selection, const int Mode, const int verbose) : verbose_(verbose) {
 
   useFits_        = (Mode %       10) /       1 == 1;
   useDeltaPhi_    = (Mode %      100) /      10 == 1;
@@ -27,8 +27,6 @@ QCDWeight::QCDWeight(const TString selection, const int Mode, const int seed, co
 
   TFile* f = 0;
   std::vector<int> years = {2016, 2017, 2018};
-  int max_deltar_bins(0);
-  rnd_ = new TRandom3(seed);
   const TString hist = (useDeltaPhi_) ? "hRatio_lepdeltaphi1" : "hRatio";
   const TString hist_2D = (useDeltaPhi_) ? "hRatio_lepdelphivsoneeta" : "hRatio_lepdelrvsoneeta";
   TString hist_closure = "hClosure_oneeta";
@@ -61,7 +59,6 @@ QCDWeight::QCDWeight(const TString selection, const int Mode, const int seed, co
       } else {
         histsData_[year]->SetName(Form("%s_%s_%i", histsData_[year]->GetName(), selection.Data(), year));
         histsData_[year]->SetDirectory(0);
-        max_deltar_bins = std::max(histsData_[year]->GetNbinsX(), max_deltar_bins);
       }
       ///////////////////////////////////////////
       //Get 2D Data histogram
@@ -74,6 +71,7 @@ QCDWeight::QCDWeight(const TString selection, const int Mode, const int seed, co
         hists2DData_[year]->SetName(Form("%s_%s_%i", hists2DData_[year]->GetName(), selection.Data(), year));
         hists2DData_[year]->SetDirectory(0);
       }
+
       ///////////////////////////////////////////
       //Get Data Fit
       ///////////////////////////////////////////
@@ -85,6 +83,7 @@ QCDWeight::QCDWeight(const TString selection, const int Mode, const int seed, co
         fitsData_[year]->SetName(Form("%s_%s_%i", fitsData_[year]->GetName(), selection.Data(), year));
         fitsData_[year]->AddToGlobalList();
       }
+
       ///////////////////////////////////////////
       //Get Data Fit Error
       ///////////////////////////////////////////
@@ -96,21 +95,49 @@ QCDWeight::QCDWeight(const TString selection, const int Mode, const int seed, co
         fitErrData_[year]->SetName(Form("%s_%s_%i", fitErrData_[year]->GetName(), selection.Data(), year));
         fitErrData_[year]->SetDirectory(0);
       }
+
       ///////////////////////////////////////////
-      //Get jet-binned histograms
+      //Get jet-binned results
       ///////////////////////////////////////////
+
+      //binned in: 0 jets, 1 jet, >= 2 jets
       for(int ijet = 0; ijet < 3; ++ijet) {
         const int index = 10*year + ijet;
-        const char* name = Form("%s%i", hist_jb.Data(), ijet);
-        TH1* h = (TH1*) f->Get(name);
-        jetBinnedHists_[index] = h;
-        if(!h) {
-          std::cout << "QCDWeight::QCDWeight: Warning! No jet-binned histogram " << name << " found for year = " << year
-                    << " selection = " << selection.Data() << std::endl;
-        } else {
-          h->SetName(Form("%s_%s_%i", h->GetName(), selection.Data(), year));
-          h->SetDirectory(0);
-          max_deltar_bins = std::max(h->GetNbinsX(), max_deltar_bins);
+        {
+          const char* name = Form("%s%i", hist_jb.Data(), ijet);
+          TH1* h = (TH1*) f->Get(name);
+          jetBinnedHists_[index] = h;
+          if(!h) {
+            std::cout << "QCDWeight::QCDWeight: Warning! No jet-binned histogram " << name << " found for year = " << year
+                      << " selection = " << selection.Data() << std::endl;
+          } else {
+            h->SetName(Form("%s_%s_%i", h->GetName(), selection.Data(), year));
+            h->SetDirectory(0);
+          }
+        }
+        {
+          const char* name = Form("fRatioJ%i", ijet);
+          TF1* fit = (TF1*) f->Get(name);
+          jetBinnedFits_[index] = fit;
+          if(!fit) {
+            std::cout << "QCDWeight::QCDWeight: Warning! No jet-binned fit " << name << " found for year = " << year
+                      << " selection = " << selection.Data() << std::endl;
+          } else {
+            fit->SetName(Form("%s_%s_%i", fit->GetName(), selection.Data(), year));
+            fit->AddToGlobalList();
+          }
+        }
+        {
+          const char* name = Form("fit_j%i_1s_err", ijet);
+          TH1* h = (TH1*) f->Get(name);
+          jetBinnedFitErrs_[index] = h;
+          if(!h) {
+            std::cout << "QCDWeight::QCDWeight: Warning! No jet-binned fit error " << name << " found for year = " << year
+                      << " selection = " << selection.Data() << std::endl;
+          } else {
+            h->SetName(Form("%s_%s_%i", h->GetName(), selection.Data(), year));
+            h->SetDirectory(0);
+          }
         }
       }
 
@@ -124,7 +151,6 @@ QCDWeight::QCDWeight(const TString selection, const int Mode, const int seed, co
                     << " selection = " << selection.Data() << std::endl;
         } else {
           histsClosure_[year]->SetName(Form("%s_%s_%i", histsClosure_[year]->GetName(), selection.Data(), year));
-          max_deltar_bins = std::max(histsClosure_[year]->GetNbinsX(), max_deltar_bins);
           histsClosure_[year]->SetDirectory(0);
         }
       } else if(use2DPtClosure_) {
@@ -135,7 +161,6 @@ QCDWeight::QCDWeight(const TString selection, const int Mode, const int seed, co
                     << " selection = " << selection.Data() << std::endl;
         } else {
           h->SetName(Form("%s_%s_%i", h->GetName(), selection.Data(), year));
-          max_deltar_bins = std::max(h->GetNbinsX(), max_deltar_bins);
           h->SetDirectory(0);
         }
       }
@@ -150,7 +175,6 @@ QCDWeight::QCDWeight(const TString selection, const int Mode, const int seed, co
                     << " selection = " << selection.Data() << std::endl;
         } else {
           h->SetName(Form("%s_%s_%i", h->GetName(), selection.Data(), year));
-          max_deltar_bins = std::max(h->GetNbinsX(), max_deltar_bins);
           h->SetDirectory(0);
         }
       }
@@ -171,18 +195,10 @@ QCDWeight::QCDWeight(const TString selection, const int Mode, const int seed, co
     }
   }
 
-  //Define shifted systematic weights as up or down
-  for(int year : years) {
-    isShiftedUp_[year] = {};
-    for(int ibin = 0; ibin < max_deltar_bins; ++ibin) {
-      isShiftedUp_[year][ibin] = rnd_->Uniform() > 0.5;
-    }
-  }
 }
 
 //-------------------------------------------------------------------------------------------------------------------------
 QCDWeight::~QCDWeight() {
-  if(rnd_) delete rnd_;
   for(std::pair<int, TH1*> val : histsData_     ) {if(val.second) delete val.second;}
   for(std::pair<int, TH2*> val : hists2DData_   ) {if(val.second) delete val.second;}
   for(std::pair<int, TF1*> val : fitsData_      ) {if(val.second) delete val.second;}
@@ -197,17 +213,15 @@ QCDWeight::~QCDWeight() {
 float QCDWeight::GetWeight(float deltar, float deltaphi, float oneeta, float onept, float twopt, const int year, int njets, const bool isantiiso,
                            float& nonclosure, float& antiiso, float& up, float& down, float& sys) {
   njets = std::max(0, std::min(njets, 2)); //jet-bins: 0, 1, >=2
-  TH1* h          = histsData_[year];
-  TF1* f          = fitsData_ [year];
-  TH1* fErr       = fitErrData_[year];
+  TH1* h          = (useJetBinned_) ? jetBinnedHists_  [10*year + njets] : histsData_ [year];
+  TF1* f          = (useJetBinned_) ? jetBinnedFits_   [10*year + njets] : fitsData_  [year];
+  TH1* fErr       = (useJetBinned_) ? jetBinnedFitErrs_[10*year + njets] : fitErrData_[year];
   TH1* hClosure   = histsClosure_[year];
   TH2* h2DClosure = Pt2DClosure_[year];
   TH1* hSys       = histsSys_[year];
   TH2* h2D        = hists2DData_[year];
-  TH1* hJbin      = jetBinnedHists_[10*year+njets];
   TH2* hAntiIso   = AntiIsoScale_[year]; //muon anti-iso --> iso scale
 
-  if(useJetBinned_) h = hJbin; //replace jet inclusive pointer with jet binned if using jet-binned scales
 
   //ensure within kinematic regions
   deltar = std::fabs(deltar);
@@ -311,11 +325,7 @@ float QCDWeight::GetWeight(float deltar, float deltaphi, float oneeta, float one
   eff = std::max(min_eff, std::min(eff, max_eff));
   up   = eff + err;
   down = std::max(eff - err, 0.f);
-  if(!useFits_) {
-    sys  = (isShiftedUp_[year][bin-1]) ? up : down;
-  } else {
-    sys = up;
-  }
+  sys = up;
 
   //Apply a closure correction
   if(useEtaClosure_) {

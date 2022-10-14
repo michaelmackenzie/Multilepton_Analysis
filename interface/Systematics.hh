@@ -18,7 +18,7 @@ namespace CLFV {
       //initialize the defined systematics information
       for(int isys = 0; isys < kMaxSystematics; ++isys) {
         Data data = getData(isys);
-        if(data.name_ == "") continue; //store defined systematics
+        if(data.name_ == "") continue; //only store defined systematics
         idToData_[isys] = data;
         if(data.up_) nameToData_[data.name_] = data; //map to the up value
       }
@@ -100,23 +100,32 @@ namespace CLFV {
       case  46: return Data(isys, "METJER"        , false);
       case  47: return Data(isys, "METJES"        , true );
       case  48: return Data(isys, "METJES"        , false);
-      case  70: return Data(isys, "QCDBias"       , true );
-      case  71: return Data(isys, "QCDBias"       , false);
+      case  49: return Data(isys, "QCDBias"       , true );
+      case  50: return Data(isys, "QCDBias"       , false);
       default: break;
       }
 
-      int base(50), nbin(0);
+      int base(70), nbin(0);
       //tau anti-jet ID, uncorrelated over years and 5 pT bins (for now use 5 bins, assume year dealt with downstream)
-      base += 2*nbin; nbin = 5;
+      base += 2*nbin; nbin = 5; //70 - 79
       if(isys >= base && isys < base+2*nbin) return Data(isys, Form("TauJetID%i", (isys-base)/2), (isys-base)%2 == 0);
       //tau anti-muon ID, uncorrelated over years and 5 bins / year (15 bins, for now use 5 bins, assume year dealt with downstream)
-      base += 2*nbin; nbin = 5;
+      base += 2*nbin; nbin = 5; //80 - 89
       if(isys >= base && isys < base+2*nbin) return Data(isys, Form("TauMuID%i", (isys-base)/2), (isys-base)%2 == 0);
       //tau anti-ele ID, uncorrelated over years and 3 bins / year (9 bins, for now use 3 bins, assume year dealt with downstream)
-      base += 2*nbin; nbin = 3;
+      base += 2*nbin; nbin = 3; //90 - 95
       if(isys >= base && isys < base+2*nbin) return Data(isys, Form("TauEleID%i", (isys-base)/2), (isys-base)%2 == 0);
+      //j-->tau process/DM binned fit uncertainty
+      base += 2*nbin; nbin = 3*4; //96 - 119
+      if(isys >= base && isys < base+2*nbin) return Data(isys, Form("JetToTauStat%i", (isys-base)/2), (isys-base)%2 == 0);
+      //j-->tau process binned bias uncertainty
+      base += 2*nbin; nbin = 3; //120 - 125
+      if(isys >= base && isys < base+2*nbin) return Data(isys, Form("JetToTauBias%i", (isys-base)/2), (isys-base)%2 == 0);
+      //jet binned QCD fit uncertainty
+      base += 2*nbin; nbin = 3; //126 - 131
+      if(isys >= base && isys < base+2*nbin) return Data(isys, Form("QCDStat%i", (isys-base)/2), (isys-base)%2 == 0);
 
-      //return the default value
+      //return the default result if no systematic is defined
       return Data();
     }
 

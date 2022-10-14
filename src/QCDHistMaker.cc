@@ -268,10 +268,10 @@ void QCDHistMaker::FillEventHistogram(EventHist_t* Hist) {
   Hist->hLepDelPhiVsOneEta[0]->Fill(std::fabs(fTreeVars.leponeeta), lepDelPhi, eventWeight*genWeight);
   Hist->hLepDelPhiVsOneEta[1]->Fill(std::fabs(fTreeVars.leponeeta), lepDelPhi, wt_noqcd);
   //Jet-binned QCD transfer factor measurement histograms
-  if(nJets == 0) {
+  if(nJets20 == 0) {
     Hist->hQCDDelRJ[0] ->Fill(lepDelR                ,wt_noqcd);
     Hist->hQCDOnePtVsTwoPtJ[0]->Fill(leptonOne.p4->Pt(), leptonTwo.p4->Pt(), wt_noqcdcl);
-  } else if(nJets == 1) {
+  } else if(nJets20 == 1) {
     Hist->hQCDDelRJ[1] ->Fill(lepDelR                ,wt_noqcd);
     Hist->hQCDOnePtVsTwoPtJ[1]->Fill(leptonOne.p4->Pt(), leptonTwo.p4->Pt(), wt_noqcdcl);
   } else {

@@ -61,8 +61,8 @@ void CLFVHistMaker::InitHistogramFlags() {
     fTreeSets  [kMuTau + 8+fMisIDOffset] = fIsData != 0; //save Loose ID data for MVA training
     fSysSets   [kMuTau + 8] = 1;
 
-    fEventSets [kMuTau + 20] = 1; //test set
-    fSysSets   [kMuTau + 20] = 1;
+    // fEventSets [kMuTau + 20] = 1; //test set
+    // fSysSets   [kMuTau + 20] = 1;
 
     // jet --> tau DRs
     fEventSets [kMuTau + 30] = 1; //QCD
@@ -103,8 +103,8 @@ void CLFVHistMaker::InitHistogramFlags() {
     fTreeSets  [kETau + 8+fMisIDOffset] = fIsData != 0; //save Loose ID data for MVA training
     fSysSets   [kETau + 8] = 1;
 
-    fEventSets [kETau + 20] = 1; //test set
-    fSysSets   [kETau + 20] = 1;
+    // fEventSets [kETau + 20] = 1; //test set
+    // fSysSets   [kETau + 20] = 1;
 
     // jet --> tau DRs
     fEventSets [kETau + 30] = 1; //QCD
@@ -145,8 +145,8 @@ void CLFVHistMaker::InitHistogramFlags() {
     fTreeSets  [kEMu  + 8+fQcdOffset] = fIsData != 0; //save SS data for QCD training
     fSysSets   [kEMu  + 8] = 1;
 
-    fEventSets [kEMu  + 20] = 1; //test set
-    fSysSets   [kEMu  + 20] = 1;
+    // fEventSets [kEMu  + 20] = 1; //test set
+    // fSysSets   [kEMu  + 20] = 1;
 
     // MVA categories
     for(int i = 9; i < ((fDoHiggs) ? 19 : 15); ++i) fEventSets[kEMu  + i] = 1;
@@ -633,9 +633,9 @@ void CLFVHistMaker::BookLepHistograms() {
 void CLFVHistMaker::BookSystematicHistograms() {
   for(int i = 0; i < fQcdOffset; ++i) {
     if(fSysSets[i]) { //turn on all offset histogram sets
-      fSysSets[i+fQcdOffset] = 1;
-      fSysSets[i+fMisIDOffset] = 1;
-      fSysSets[i+fQcdOffset+fMisIDOffset] = 1;
+      fSysSets[i+fQcdOffset] = 1; //FIXME: Is this needed in etau/mutau?
+      fSysSets[i+fMisIDOffset] = 1; //FIXME: Is this needed in emu/ee/mumu?
+      fSysSets[i+fQcdOffset+fMisIDOffset] = 1; //FIXME: Is this histogram set needed?
     }
   }
   for(int i = 0; i < fn; i++) {
@@ -688,7 +688,6 @@ void CLFVHistMaker::FillEventHistogram(EventHist_t* Hist) {
   FillBaseEventHistogram(Hist);
 
   //Additional j-->tau info
-  Hist->hJetToTauWeightGroup ->Fill(jetToTauWeightGroup, genWeight*eventWeight);
   for(int ji = 0; ji < JetToTauComposition::kLast; ++ji) {
     Hist->hJetToTauComps[ji]->Fill(fJetToTauComps[ji]);
     Hist->hJetToTauWts  [ji]->Fill(fJetToTauWts  [ji]);
@@ -889,19 +888,22 @@ void CLFVHistMaker::FillLepHistogram(LepHist_t* Hist) {
 //--------------------------------------------------------------------------------------------------------------
 void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
   if(eventWeight*genWeight == 0.) return; //no way to re-scale 0, contributes nothing to histograms so can just skip filling
-  bool isSameFlavor = std::abs(leptonOne.flavor) == std::abs(leptonTwo.flavor);
-  bool isMuTau = leptonOne.isMuon    () && leptonTwo.isTau     ();
-  bool isETau  = leptonOne.isElectron() && leptonTwo.isTau     ();
+  const bool isSameFlavor = std::abs(leptonOne.flavor) == std::abs(leptonTwo.flavor);
+  const bool isMuTau = leptonOne.isMuon    () && leptonTwo.isTau     ();
+  const bool isETau  = leptonOne.isElectron() && leptonTwo.isTau     ();
 
   //Event information that may be altered, to restore the event information after a systematic shift
-  TLorentzVector o_lv1(*leptonOne.p4), o_lv2(*leptonTwo.p4), o_jet(*jetOneP4);
-  Float_t o_met(met), o_metPhi(metPhi);
+  const TLorentzVector o_lv1(*leptonOne.p4), o_lv2(*leptonTwo.p4), o_jet(*jetOneP4);
+  const Float_t o_met(met), o_metPhi(metPhi);
 
   for(int sys = 0; sys < kMaxSystematics; ++sys) {
     float weight = eventWeight*genWeight;
     bool reeval = false;
-    TString name = fSystematics.GetName(sys);
+    const TString name = fSystematics.GetName(sys);
     if(name == "") continue; //only process defined systematics
+
+    if( (isMuTau || isETau || isSameFlavor) && name.Contains("QCD")) continue; //only relevant to e+mu category
+    if(!(isMuTau || isETau) && name.Contains("Tau")) continue; //only relevant to tau categories
 
     if(name == "Nominal")  weight = weight;                                //do nothing
     else if  (name == "EleID") {
@@ -929,8 +931,39 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
         if(leptonTwo.isTau     ()) weight *= leptonTwo.wt1[2] / leptonTwo.wt1[0];
       }
     } else if(name == "JetToTauStat") {
-      if(fSystematics.IsUp(sys)) weight *= jetToTauWeightUp     / jetToTauWeight ;
-      else                       weight *= jetToTauWeightDown   / jetToTauWeight ;
+      if(isLooseTau) { //only shift the weight for loose tau ID region events
+        if(fSystematics.IsUp(sys)) weight *= jetToTauWeightUp     / jetToTauWeight ;
+        else                       weight *= jetToTauWeightDown   / jetToTauWeight ;
+      }
+    } else if(name.Contains("JetToTauStat")) { //process (3) and DM (4) binned stat. uncertainty
+      if(isLooseTau) { //only shift the weight for loose tau ID region events
+        //recreate the weight with shifted process bias
+        TString id_s = name; id_s.ReplaceAll("JetToTauStat", "");
+        //bins 0,1,2,3 = W+Jets, 4,5,6,7 = Top, 8,9,10,11 = QCD
+        const int id = std::abs(std::stoi(id_s.Data()));
+        const int dm_bin = id % 4; //0->0, 1->1, 10->2, 11->3
+        int proc = id / 4;
+        if     (proc == 0) proc = JetToTauComposition::kWJets;
+        else if(proc == 1) proc = JetToTauComposition::kTop;
+        else if(proc == 2) proc = JetToTauComposition::kQCD;
+        else {
+          printf("CLFVHistMaker::%s: Unknown jet-->tau stat systematic bin %s\n", __func__, name.Data());
+          continue;
+        }
+        float wt_jtt = 0.f;
+        for(int iproc = 0; iproc < JetToTauComposition::kLast; ++iproc) {
+          const bool test = (iproc == proc) && (tauDecayMode % 10 == 0 || tauDecayMode % 10 == 1) && ((tauDecayMode%10 + 2*(tauDecayMode/10)) == dm_bin);
+          const float comp = fJetToTauComps[iproc] * fJetToTauCorrs[iproc] * fJetToTauBiases[iproc] * ((test) ?
+                                                                                                       (fSystematics.IsUp(sys)) ? fJetToTauWtsUp[iproc] : fJetToTauWtsDown[iproc]
+                                                                                                       : fJetToTauWts[iproc]);
+          wt_jtt += comp;
+        }
+        if(wt_jtt <= 0.f || (fVerbose && std::abs(wt_jtt-jetToTauWeightBias)/wt_jtt > 2.f)) {
+          printf("CLFVHistMaker::%s: Unexpected j-->tau weight variation! wt = %.3f, nominal = %.3f, proc = %i, dm_bin = %i, dm = %i\n",
+                 __func__, wt_jtt, jetToTauWeightBias, proc, dm_bin, tauDecayMode);
+        }
+        weight *= wt_jtt / jetToTauWeightBias;
+      }
     } else if(name == "ZPt") {
       if(fSystematics.IsUp(sys)) weight *= zPtWeightUp          / zPtWeight      ;
       else                       weight *= zPtWeightDown        / zPtWeight      ;
@@ -964,20 +997,41 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
         }
       }
     } else if(name == "QCDStat") {
-      if(fSystematics.IsUp(sys)) weight *= (qcdWeight > 0.) ? qcdWeightUp   / qcdWeight : 0.;
-      else                       weight *= (qcdWeight > 0.) ? qcdWeightDown / qcdWeight : 0.;
+      if(!chargeTest) { //only shift for same-sign events
+        if(fSystematics.IsUp(sys)) weight *= (qcdWeight > 0.) ? qcdWeightUp   / qcdWeight : 0.;
+        else                       weight *= (qcdWeight > 0.) ? qcdWeightDown / qcdWeight : 0.;
+      }
+    } else if(name.Contains("QCDStat")) { //jet binned QCD fit uncertainty
+      if(!chargeTest) { //only shift for same-sign events
+        int jet_bin(0);
+        if     (name == "QCDStat0") jet_bin = 0;
+        else if(name == "QCDStat1") jet_bin = 1;
+        else if(name == "QCDStat2") jet_bin = 2;
+        if(std::min(2, (int) nJets20) == jet_bin) {
+          if(fSystematics.IsUp(sys)) weight *= (qcdWeight > 0.) ? qcdWeightUp   / qcdWeight : 0.;
+          else                       weight *= (qcdWeight > 0.) ? qcdWeightDown / qcdWeight : 0.;
+        }
+      }
     } else if(name == "QCDNC") {
-      if(fSystematics.IsUp(sys)) weight *= (qcdClosure > 0.) ? 1. / qcdClosure : 0.; //remove / apply twice as uncertainty
-      else                       weight *= (qcdClosure > 0.) ? 1. * qcdClosure : 0.;
+      if(!chargeTest) { //only shift for same-sign events
+        if(fSystematics.IsUp(sys)) weight *= (qcdClosure > 0.) ? 1. / qcdClosure : 0.; //remove / apply twice as uncertainty
+        else                       weight *= (qcdClosure > 0.) ? 1. * qcdClosure : 0.;
+      }
     } else if(name == "QCDBias") {
-      if(fSystematics.IsUp(sys)) weight *= (qcdIsoScale > 0.) ? 1. / qcdIsoScale : 0.; //remove / apply twice as uncertainty
-      else                       weight *= (qcdIsoScale > 0.) ? 1. * qcdIsoScale : 0.;
+      if(!chargeTest) { //only shift for same-sign events
+        if(fSystematics.IsUp(sys)) weight *= (qcdIsoScale > 0.) ? 1. / qcdIsoScale : 0.; //remove / apply twice as uncertainty
+        else                       weight *= (qcdIsoScale > 0.) ? 1. * qcdIsoScale : 0.;
+      }
     } else if(name == "JetToTauNC") {
-      if(fSystematics.IsUp(sys)) weight *= jetToTauWeightCorrUp     / jetToTauWeightCorr   ;
-      else                       weight *= jetToTauWeightCorrDown   / jetToTauWeightCorr   ;
+      if(isLooseTau) { //only shift the weight for loose tau ID region events
+        if(fSystematics.IsUp(sys)) weight *= jetToTauWeightCorrUp     / jetToTauWeightCorr   ;
+        else                       weight *= jetToTauWeightCorrDown   / jetToTauWeightCorr   ;
+      }
     } else if(name == "JetToTauComp") {
-      if(fSystematics.IsUp(sys)) weight *= jetToTauWeight_compUp    / jetToTauWeightBias   ;
-      else                       weight *= jetToTauWeight_compDown  / jetToTauWeightBias   ;
+      if(isLooseTau) { //only shift the weight for loose tau ID region events
+        if(fSystematics.IsUp(sys)) weight *= jetToTauWeight_compUp    / jetToTauWeightBias   ;
+        else                       weight *= jetToTauWeight_compDown  / jetToTauWeightBias   ;
+      }
     } else if(name == "TauJetID") {
       if(leptonTwo.isTau() && std::abs(tauGenFlavor) == 15) { //only evaluate for true hadronic taus
         if(fSystematics.IsUp(sys)) weight *= leptonTwo.wt1[1] / leptonTwo.wt1[0];
@@ -994,15 +1048,36 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
         else                       weight *= leptonTwo.wt1[2] / leptonTwo.wt1[0];
       }
     } else if(name == "Lumi") {
-      const double unc = (fYear == 2016) ? 0.012 : (fYear == 2017) ? 0.023 : 0.025;
-      if(fSystematics.IsUp(sys))  weight *= (fIsData || fIsEmbed) ? 1. : 1. + unc;
-      else                        weight *= (fIsData || fIsEmbed) ? 1. : 1. - unc;
+      const float unc = (fYear == 2016) ? 0.012 : (fYear == 2017) ? 0.023 : 0.025;
+      if(fSystematics.IsUp(sys))  weight *= (fIsData || fIsEmbed) ? 1.f : 1.f + unc;
+      else                        weight *= (fIsData || fIsEmbed) ? 1.f : 1.f - unc;
     } else if(name == "BTag") {
-      if(fSystematics.IsUp(sys)) weight *= (btagWeight > 0.) ? btagWeightUp   / btagWeight : 1.;
-      else                       weight *= (btagWeight > 0.) ? btagWeightDown / btagWeight : 1.;
+      if(fSystematics.IsUp(sys)) weight *= (btagWeight > 0.) ? btagWeightUp   / btagWeight : 1.f;
+      else                       weight *= (btagWeight > 0.) ? btagWeightDown / btagWeight : 1.f;
     } else if(name == "JetToTauBias") {
-      if(fSystematics.IsUp(sys)) weight *= jetToTauWeightBiasUp     / jetToTauWeightBias   ;
-      else                       weight *= jetToTauWeightBiasDown   / jetToTauWeightBias   ;
+      if(isLooseTau) { //only shift the weight for loose tau ID region events
+        if(fSystematics.IsUp(sys)) weight *= jetToTauWeightBiasUp     / jetToTauWeightBias   ;
+        else                       weight *= jetToTauWeightBiasDown   / jetToTauWeightBias   ;
+      }
+    } else if(name.Contains("JetToTauBias")) { //process binned bias uncertainty
+      if(isLooseTau) { //only shift the weight for loose tau ID region events
+        //recreate the weight with shifted process bias
+        float wt_jtt = 0.f;
+        int proc;
+        if     (name == "JetToTauBias0") proc = JetToTauComposition::kWJets;
+        else if(name == "JetToTauBias1") proc = JetToTauComposition::kTop;
+        else if(name == "JetToTauBias2") proc = JetToTauComposition::kQCD;
+        else {
+          printf("CLFVHistMaker::%s: Unknown jet-->tau bias systematic bin %s\n", __func__, name.Data());
+          continue;
+        }
+        for(int iproc = 0; iproc < JetToTauComposition::kLast; ++iproc) {
+          //take up as apply correction twice, down as no correction
+          wt_jtt += fJetToTauComps[iproc] * fJetToTauWts[iproc] * fJetToTauCorrs[iproc] * ((iproc != proc) ? fJetToTauBiases[iproc] :
+                                                                                           (fSystematics.IsUp(sys)) ? fJetToTauBiases[iproc]*fJetToTauBiases[iproc] : 1.f);
+        }
+        weight *= wt_jtt / jetToTauWeightBias;
+      }
     } else if(name == "EmbedUnfold") {
       if(fSystematics.IsUp(sys)) weight *= (fIsEmbed) ? 1.04f : 1.f   ;
       else                       weight *= (fIsEmbed) ? 0.96f : 1.f   ;
@@ -1064,7 +1139,7 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
         met    = puppMETJERUp;
         metPhi = puppMETphiJERUp;
       } else {
-        met    -= std::max(0.f, puppMETJERUp - met);
+        met    -= std::max(0.f, puppMETJERUp - met); //FIXME: set to -= min(met, puppMETJERUp - met)
         metPhi -= puppMETphiJERUp - metPhi;
         if(metPhi > 2.*M_PI)       metPhi -= 2*M_PI;
         else if(metPhi < -2.*M_PI) metPhi += 2*M_PI;
@@ -1075,7 +1150,7 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
         met    = puppMETJESUp;
         metPhi = puppMETphiJESUp;
       } else {
-        met    -= std::max(0.f, puppMETJESUp - met);
+        met    -= std::max(0.f, puppMETJESUp - met); //FIXME: set to -= min(met, puppMETJESUp - met)
         metPhi -= puppMETphiJESUp - metPhi;
         if(metPhi > 2.*M_PI)       metPhi -= 2*M_PI;
         else if(metPhi < -2.*M_PI) metPhi += 2*M_PI;
@@ -1787,15 +1862,15 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   FillAllHistograms(set_offset + 8);
   IncrementTimer("SingleFill", true);
 
-  ////////////////////////////////////////////////////////////////////////////
-  // Set 20 + selection offset: Test set
-  ////////////////////////////////////////////////////////////////////////////
-  bool test_set = (emu || mutau || etau);
-  test_set &= mll < 100.f;
-  // test_set &= fTreeVars.lepdeltaeta < 2.f;
-  if(test_set) {
-    FillAllHistograms(set_offset + 20);
-  }
+  // ////////////////////////////////////////////////////////////////////////////
+  // // Set 20 + selection offset: Test set
+  // ////////////////////////////////////////////////////////////////////////////
+  // bool test_set = (emu || mutau || etau);
+  // test_set &= mll < 100.f;
+  // // if(mutau || etau) test_set &= fTreeVars.lepdeltaeta < 2.f;
+  // if(test_set) {
+  //   FillAllHistograms(set_offset + 20);
+  // }
 
   if((emu || mumu || ee) && (!fDYTesting || fTriggerTesting)) {
     if(emu) { //e+mu trigger testing
