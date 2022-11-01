@@ -2,22 +2,54 @@
 using namespace CLFV;
 #include "histogramming_config.C"
 
+//retrieve the histogram of event counting from each file in a chain, returning the sum of the inputs
+TH1* events_from_chain(vector<TString> files) {
+  TH1* events = nullptr;
+  for(TString file_name : files) {
+    TFile* file = TFile::Open(file_name.Data(), "READ");
+    if(!file) continue;
+    TH1* h = (TH1*) file->Get("events");
+    if(!h) {
+      cout << "Events histogram not found in file " << file->GetName() << endl;
+      continue;
+    }
+    if(events) events->Add(h);
+    else {events = h; events->SetDirectory(0);}
+  }
+  return events;
+}
+
+TH1* events_from_chain(vector<TFile*> files) {
+  TH1* events = nullptr;
+  for(auto file : files) {
+    if(!file) continue;
+    TH1* h = (TH1*) file->Get("events");
+    if(!h) {
+      cout << "Events histogram not found in file " << file->GetName() << endl;
+      continue;
+    }
+    if(events) events->Add(h);
+    else {events = h; events->SetDirectory(0);}
+  }
+  return events;
+}
+
 //run the histogrammer over a specific channel
-Int_t process_channel(datacard_t& card, config_t& config, TString selection, TTree* tree) {
+Int_t process_channel(datacard_t& card, config_t& config, TString selection, TChain* chain) {
   //for splitting DY lepton decays and Z pT vs mass weights
   const bool isDY = card.fname_.Contains("DY");
   const bool isWJ = card.fname_.Contains("Wlnu_") || card.fname_.Contains("Wlnu-ext_");
 
   const bool isSignal = (card.fname_.Contains("MuTau") || card.fname_.Contains("ETau")
-                   || card.fname_.Contains("EMu") || card.fname_.Contains("Signal")) && !card.fname_.Contains("Embed");
+                         || card.fname_.Contains("EMu")) && !card.fname_.Contains("Embed");
 
   //for avoiding double counting data events
   const bool isElectronData = card.isData_ == 1;
   const bool isMuonData     = card.isData_ == 2;
 
-  //check that the tree is defined
-  if(tree == 0) {
-    printf("Tree in %s/%s not found, continuing\n",card.filepath_.Data(), selection.Data());
+  //check that the chain is defined
+  if(!chain || chain->GetNtrees() <= 0) {
+    printf("Chain in %s/%s not found, continuing\n",card.filepath_.Data(), selection.Data());
     return 1;
   }
 
@@ -57,6 +89,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TTr
         hist_selec->fDoEventList       = selection == "ee" || selection == "mumu";
         hist_selec->fDoHiggs           = doHiggs_;
         hist_selec->fUseSignalZWeights = useSignalZWeights_;
+        hist_selec->fNotifyCount       = notify_;
       }
 
       selec->fRemoveTriggerWeights = removeTrigWeights_;
@@ -109,12 +142,12 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TTr
       selector_ = selec;
       //FIXME: This isn't being called by default for some reason, only for HistMaker type objects
       if(dynamic_cast<HistMaker*> (selec)) {
-        selec->Init(tree);
+        selec->Init(chain);
       }
       if(!debug_)
-        tree->Process(selec,""); //run the selector over the tree
+        chain->Process(selec,""); //run the selector over the chain
       else
-        tree->Process(selec,"", nEvents_, startEvent_); //process specific event range
+        chain->Process(selec,"", nEvents_, startEvent_); //process specific event range
 
       //open back up the file
       TString outname = selec->GetOutputName();
@@ -136,31 +169,39 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TTr
 }
 
 //run the histogrammer over a data file
-Int_t process_single_card(datacard_t& card, config_t& config, TFile* file) {
+Int_t process_single_card(datacard_t& card, config_t& config, vector<TString> file_names) {
   CrossSections xs(useUL_); //cross check gen number and negative fraction
   TString name = card.fname_;
+  name.ReplaceAll("*", "");
   name.ReplaceAll("LFVAnalysis_", "");
   name.ReplaceAll("_2016.root", "");
   name.ReplaceAll("_2017.root", "");
   name.ReplaceAll("_2018.root", "");
+  name.ReplaceAll("_", "");
 
   //Get the normalization event count
-  TH1* events = (TH1*) file->Get("events");
+  TH1* events = events_from_chain(file_names); //(TH1*) file->Get("events");
   if(!events) {
-    printf("Events Histogram in %s not found, continuing\n",card.filepath_.Data());
+    printf("Events Histogram for %s not found, continuing\n",card.fname_.Data());
     return 1;
   }
-  TTree* runs = (TTree*) file->Get("Runs");
-  if(runs) {
+
+  //Get the normalization information from TChains
+  TChain* runs = new TChain("Runs");
+  TChain* norm = new TChain("Norm");
+  for(auto file_name : file_names) {runs->AddFile(file_name.Data()); norm->AddFile(file_name.Data());}
+
+  {
+    TChain* chain_norm = runs;
     Long64_t runs_count = 0;
     Long64_t runs_count_loop = 0;
     Long64_t runs_neg_count = 0;
     Long64_t runs_neg_count_loop = 0;
     bool replace = true;
-    if(file->Get("Norm")) { //check for an added normalization tree
-      runs = (TTree*) file->Get("Norm");
-      runs->SetBranchAddress("NEvents"  , &runs_count_loop);
-      runs->SetBranchAddress("NNegative", &runs_neg_count_loop);
+    if(norm->GetEntries() > 0) { //check for an added normalization tree
+      chain_norm = norm;
+      norm->SetBranchAddress("NEvents"  , &runs_count_loop);
+      norm->SetBranchAddress("NNegative", &runs_neg_count_loop);
     // if(runs->GetBranch("NEvents")) {
     //   runs->SetBranchAddress("NEvents"  , &runs_count_loop);
     //   runs->SetBranchAddress("NNegative", &runs_neg_count_loop);
@@ -173,8 +214,8 @@ Int_t process_single_card(datacard_t& card, config_t& config, TFile* file) {
       replace = false;
     }
     if(replace) {
-      for(int ientry = 0; ientry < runs->GetEntriesFast(); ++ientry) {
-        runs->GetEntry(ientry);
+      for(int ientry = 0; ientry < chain_norm->GetEntries(); ++ientry) {
+        chain_norm->GetEntry(ientry);
         runs_count     += runs_count_loop;
         runs_neg_count += runs_neg_count_loop;
       }
@@ -186,13 +227,11 @@ Int_t process_single_card(datacard_t& card, config_t& config, TFile* file) {
       events->SetBinContent(1 , runs_count);
       events->SetBinContent(10, runs_count*neg_frac);
     }
-  } else {
-    cout << "Runs tree not found!\n";
   }
 
   //for avoiding double counting data events in muon+electron data files
   const bool isElectronData = card.isData_ == 1;
-  const bool isMuonData = card.isData_ == 2;
+  const bool isMuonData     = card.isData_ == 2;
 
   card.events_ = events;
   if(xs.GetGenNumber(name, card.year_) > 0) {
@@ -201,11 +240,15 @@ Int_t process_single_card(datacard_t& card, config_t& config, TFile* file) {
     cout << "*** Data set generated with " << ngen << " events and skimming shows " << nevt << " events ***\n";
   }
 
-  //Loop throught the file looking for all selection channels
-  name.ReplaceAll("Run2016", "-"); //shorten data names
+  //Set the dataset name
+  name.ReplaceAll("Run2016", "-"); // shorten data sample names
   name.ReplaceAll("Run2017", "-");
   name.ReplaceAll("Run2018", "-");
+  name.ReplaceAll("-v2", ""); //replace signal versioning in output
+  name.ReplaceAll("-v3", "");
   card.dataset_ = name;
+
+  //Loop throught the file looking for all selection channels
   vector<TString> selections = {"mutau", "etau", "emu", "mumu", "ee"};
   for(TString selection : selections) {
     //check if only suppose to do 1 channel, and if this is that channel
@@ -236,10 +279,13 @@ Int_t process_single_card(datacard_t& card, config_t& config, TFile* file) {
       cout << "EE embedding is only relevant to the ee channel, skipping!\n";
       continue;
     }
+    ///////////////////////////////
     //Process this selection
-    //Retrieve the data
-    TTree* tree = (TTree*) file->Get(selection.Data());
-    if(!tree) {
+
+    //Retreive the correct ntuple
+    TChain* chain = new TChain(selection.Data()); //(TTree*) file->Get(selection.Data());
+    for(TString file_name : file_names) chain->AddFile(file_name.Data());
+    if(chain->GetNtrees() <= 0) {
       cout << "Selection tree " << selection.Data() << " not found!\n";
       continue;
     }
@@ -248,8 +294,11 @@ Int_t process_single_card(datacard_t& card, config_t& config, TFile* file) {
     // if(card.fname_.Contains("ETau.tree" ) && (currentChannel == "mutau" || currentChannel == "mumu")) continue;
     // if(card.fname_.Contains("MuTau.tree") && (currentChannel == "etau"  || currentChannel == "ee"  )) continue;
 
-    process_channel(card, config, selection, tree);
+    process_channel(card, config, selection, chain);
+    delete chain;
   }
+  delete runs;
+  delete norm;
 
   return 0;
 }
@@ -283,10 +332,12 @@ Int_t process_card(TString treepath, TString filename, double xsec, int isdata, 
   //if combining samples, weight each by the number of generated over total generated
   if(card.combine_) {
     TString name = card.fname_;
+    name.ReplaceAll("*", "");
     name.ReplaceAll("LFVAnalysis_", "");
     name.ReplaceAll("_2016.root", "");
     name.ReplaceAll("_2017.root", "");
     name.ReplaceAll("_2018.root", "");
+
     const bool isext = name.Contains("-ext");
     name.ReplaceAll("-ext", "");
     long num1 = xs.GetGenNumber(name       , year); //get number of events per sample
@@ -302,30 +353,29 @@ Int_t process_card(TString treepath, TString filename, double xsec, int isdata, 
   } //end combine extension samples
   card.category_ = category;
   card.lum_ = xs.GetLuminosity(year);
-  TString filepath = treepath + card.fname_;
-  TFile* f = nullptr;
-  TString tmp_dir = "/tmp/clfv_tmp_prefetch"; //FIXME: should this include the user in the name?
-  if(preFetch_) {
-    gSystem->Exec(Form("[ ! -d %s ] && mkdir %s", tmp_dir.Data(), tmp_dir.Data()));
-    TString copy_command = Form("[ ! -f %s/%s ] && xrdcp -f %s %s/%s", tmp_dir.Data(), card.fname_.Data(),
-                                filepath.Data(), tmp_dir.Data(), card.fname_.Data());
-    gSystem->Exec(copy_command.Data());
-    f = TFile::Open(Form("%s/%s", tmp_dir.Data(), card.fname_.Data()), "READ");
+  vector<TString> file_names;
+  if(useTChain_) {
+    TString redir = (TString(gSystem->Getenv("HOSTNAME")).Contains("lpc")) ? "root://cmseos.fnal.gov/" : "root://eoscms.cern.ch/";
+    TString base_loc = treepath;
+    base_loc.ReplaceAll(redir.Data(), "");
+    TString ls_command = Form("eos %s ls %s%s >| input_%s.txt", redir.Data(), base_loc.Data(), card.fname_.Data(), card.fname_.Data());
+    cout << "ls command: " << ls_command.Data() << endl;
+    gSystem->Exec(ls_command.Data());
+    std::ifstream input_list(Form("input_%s.txt", card.fname_.Data()));
+    if(!input_list.is_open()) {
+      cout << "Couldn't retrieve file list for " << card.fname_.Data() << endl;
+      return 10;
+    }
+    std::string line;
+    while(std::getline(input_list, line)) {
+      file_names.push_back(Form("%s%s", treepath.Data(), line.c_str()));
+      cout << "File: " << file_names.back().Data() << endl;
+    }
+    input_list.close();
+    gSystem->Exec(Form("rm input_%s.txt", card.fname_.Data()));
   } else {
-    f = TFile::Open(filepath.Data(),"READ");
+    file_names.push_back(treepath + card.fname_);
   }
-  if(!f) {
-    printf("File %s not found, returning\n",filepath.Data());
-    return 1;
-  }
-  printf("Using %s\n",filepath.Data());
-  card.filepath_ = filepath;
-  int status = process_single_card(card, config, f);
-  f->Close();
-  if(preFetch_) {
-    TString rm_command = Form("[ ! -f %s/%s ] && rm %s/%s", tmp_dir.Data(), card.fname_.Data(),
-                              tmp_dir.Data(), card.fname_.Data());
-    gSystem->Exec(rm_command.Data());
-  }
-  return 0;
+  const int status = process_single_card(card, config, file_names);
+  return status;
 }

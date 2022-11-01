@@ -152,36 +152,64 @@ CrossSections::CrossSections(int useUL, int ZMode) {
   // *** Total 2017 ElEl  Mini / Nano = 45398261/17827258 = 2.5465
 
   //2018
-  values_["Embed-EMu-A"][2018] = 1.0832; //1.0667; //commented out is lumi ratios
-  values_["Embed-EMu-B"][2018] = 1.0118; //1.0112; //
-  values_["Embed-EMu-C"][2018] = 1.1415; //1.1261; //
-  values_["Embed-EMu-D"][2018] = 4.6364; //3.9906; //
+  values_["Embed-EMu-A"][2018] = 1.0721; //V1: 1.0832; //V1 lumi: 1.0667;
+  values_["Embed-EMu-B"][2018] = 1.0746; //V1: 1.0118; //V1 lumi: 1.0112;
+  values_["Embed-EMu-C"][2018] = 1.0965; //V1: 1.1415; //V1 lumi: 1.1261;
+  values_["Embed-EMu-D"][2018] = 1.6477; //V1: 4.6364; //V1 lumi: 3.9906;
 
-  values_["Embed-ETau-A"][2018] = 1.1062;
-  values_["Embed-ETau-B"][2018] = 1.2357;
-  values_["Embed-ETau-C"][2018] = 1.1306;
-  values_["Embed-ETau-D"][2018] = 2.4541;
+  values_["Embed-ETau-A"][2018] = 1.0253; //V1: 1.1062;
+  values_["Embed-ETau-B"][2018] = 1.0936; //V1: 1.2357;
+  values_["Embed-ETau-C"][2018] = 1.0488; //V1: 1.1306;
+  values_["Embed-ETau-D"][2018] = 1.6371; //V1: 2.4541;
 
-  values_["Embed-MuTau-A"][2018] = 1.0764;
-  values_["Embed-MuTau-B"][2018] = 1.0591;
-  values_["Embed-MuTau-C"][2018] = 1.0022;
-  values_["Embed-MuTau-D"][2018] = 2.7302;
+  values_["Embed-MuTau-A"][2018] = 1.0608; //V1: 1.0764;
+  values_["Embed-MuTau-B"][2018] = 1.0862; //V1: 1.0591;
+  values_["Embed-MuTau-C"][2018] = 1.0572; //V1: 1.0022;
+  values_["Embed-MuTau-D"][2018] = 1.7141; //V1: 2.7302;
 
-  values_["Embed-MuMu-A"][2018]  = 1.1174;
-  values_["Embed-MuMu-B"][2018]  = 1.2995;
-  values_["Embed-MuMu-C"][2018]  = 1.0580;
-  values_["Embed-MuMu-D"][2018]  = 7.5245;
+  values_["Embed-MuMu-A"][2018]  = 1.0645; //V1: 1.1174;
+  values_["Embed-MuMu-B"][2018]  = 1.0655; //V1: 1.2995;
+  values_["Embed-MuMu-C"][2018]  = 1.0580; //V1: 1.0580;
+  values_["Embed-MuMu-D"][2018]  = 1.8219; //V1: 7.5245;
 
-  values_["Embed-EE-A"][2018]  = 1.2749;
-  values_["Embed-EE-B"][2018]  = 1.0317;
-  values_["Embed-EE-C"][2018]  = 1.0161;
-  values_["Embed-EE-D"][2018]  = 2.8777;
+  values_["Embed-EE-A"][2018]  = 1.0555; //V1: 1.2749;
+  values_["Embed-EE-B"][2018]  = 1.0752; //V1: 1.0317;
+  values_["Embed-EE-C"][2018]  = 1.0595; //V1: 1.0161;
+  values_["Embed-EE-D"][2018]  = 1.8352; //V1: 2.8777;
 
+  // V1:
   // --- Total 2018 ElMu  Mini / Nano = 55484067/30962759 = 1.7919; lumi ratio = 1.7473
   // --- Total 2018 ElTau Mini / Nano = 48434386/30515756 = 1.5871
   // --- Total 2018 MuTau Mini / Nano = 48428591/31170318 = 1.5536
   // --- Total 2018 MuMu  Mini / Nano = 78733782/39175846 = 2.0097
   // --- Total 2018 ElEl  Mini / Nano = 59254929/35680605 = 1.6594
+
+  // V2/V3 numbers as of 10/20/22
+  // Run 2018A Final State ElMu: Mini / Nano = 13805200/12876101 = 1.0721
+  // Run 2018B Final State ElMu: Mini / Nano = 6681860/6217664 = 1.0746
+  // Run 2018C Final State ElMu: Mini / Nano = 6157928/5615620 = 1.0965
+  // Run 2018D Final State ElMu: Mini / Nano = 28839079/17502614 = 1.6477
+  // --- Total 2018 ElMu Mini / Nano = 55484067/42211999 = 1.3144
+  // Run 2018A Final State ElTau: Mini / Nano = 11735088/11444847 = 1.0253
+  // Run 2018B Final State ElTau: Mini / Nano = 5893097/5388352 = 1.0936
+  // Run 2018C Final State ElTau: Mini / Nano = 5422423/5170023 = 1.0488
+  // Run 2018D Final State ElTau: Mini / Nano = 25383778/15505269 = 1.6371
+  // --- Total 2018 ElTau Mini / Nano = 48434386/37508491 = 1.2912
+  // Run 2018A Final State MuTau: Mini / Nano = 11735808/11062612 = 1.0608
+  // Run 2018B Final State MuTau: Mini / Nano = 5892212/5424379 = 1.0862
+  // Run 2018C Final State MuTau: Mini / Nano = 5420887/5127190 = 1.0572
+  // Run 2018D Final State MuTau: Mini / Nano = 25379684/14806053 = 1.7141
+  // --- Total 2018 MuTau Mini / Nano = 48428591/36420234 = 1.3297
+  // Run 2018A Final State MuMu: Mini / Nano = 20773432/19513759 = 1.0645
+  // Run 2018B Final State MuMu: Mini / Nano = 9306339/8733948 = 1.0655
+  // Run 2018C Final State MuMu: Mini / Nano = 8567883/8097542 = 1.0580
+  // Run 2018D Final State MuMu: Mini / Nano = 40086128/22001647 = 1.8219
+  // --- Total 2018 MuMu Mini / Nano = 78733782/58346896 = 1.3494
+  // Run 2018A Final State ElEl: Mini / Nano = 14964725/14176978 = 1.0555
+  // Run 2018B Final State ElEl: Mini / Nano = 7100628/6603513 = 1.0752
+  // Run 2018C Final State ElEl: Mini / Nano = 6542211/6174469 = 1.0595
+  // Run 2018D Final State ElEl: Mini / Nano = 30647365/16699616 = 1.8352
+  // --- Total 2018 ElEl Mini / Nano = 59254929/43654576 = 1.3573
 
   ////////////////////////////////////////////////////////////
   // Signal example branching fractions
@@ -320,50 +348,54 @@ CrossSections::CrossSections(int useUL, int ZMode) {
   numbers_[2017]["Embed-EE-F"] = 2607064;
 
   //2018
-  numbers_[2018]["Embed-EMu-A"] = 12744399;
-  numbers_[2018]["Embed-EMu-B"] = 6603834 ;
-  numbers_[2018]["Embed-EMu-C"] = 5394411 ;
-  numbers_[2018]["Embed-EMu-D"] = 6220115 ;
+  numbers_[2018]["Embed-EMu-A"] = 12876101; //V1: 12744399;
+  numbers_[2018]["Embed-EMu-B"] =  6217664; //V1: 6603834 ;
+  numbers_[2018]["Embed-EMu-C"] =  5615620; //V1: 5394411 ;
+  numbers_[2018]["Embed-EMu-D"] = 17502614; //V1: 6220115 ;
 
-  numbers_[2018]["Embed-ETau-A"] = 10607520;
-  numbers_[2018]["Embed-ETau-B"] = 4769019 ;
-  numbers_[2018]["Embed-ETau-C"] = 4795833 ;
-  numbers_[2018]["Embed-ETau-D"] = 10343384;
+  numbers_[2018]["Embed-ETau-A"] = 11444847; //V1: 10607520;
+  numbers_[2018]["Embed-ETau-B"] =  5388352; //V1: 4769019 ;
+  numbers_[2018]["Embed-ETau-C"] =  5170023; //V1: 4795833 ;
+  numbers_[2018]["Embed-ETau-D"] = 15505269; //V1: 10343384;
 
-  numbers_[2018]["Embed-MuTau-A"] = 10902486;
-  numbers_[2018]["Embed-MuTau-B"] = 5563063 ;
-  numbers_[2018]["Embed-MuTau-C"] = 5408863 ;
-  numbers_[2018]["Embed-MuTau-D"] = 9295906 ;
+  numbers_[2018]["Embed-MuTau-A"] = 11062612; //V1: 10902486;
+  numbers_[2018]["Embed-MuTau-B"] =  5424379; //V1: 5563063 ;
+  numbers_[2018]["Embed-MuTau-C"] =  5127190; //V1: 5408863 ;
+  numbers_[2018]["Embed-MuTau-D"] = 14806053; //V1: 9295906 ;
 
-  numbers_[2018]["Embed-MuMu-A"] = 18589871;
-  numbers_[2018]["Embed-MuMu-B"] = 7161023 ;
-  numbers_[2018]["Embed-MuMu-C"] = 8097542 ;
-  numbers_[2018]["Embed-MuMu-D"] = 5327410 ;
+  numbers_[2018]["Embed-MuMu-A"] = 19513759; //V1: 18589871;
+  numbers_[2018]["Embed-MuMu-B"] =  8733948; //V1: 7161023 ;
+  numbers_[2018]["Embed-MuMu-C"] =  8097542; //V1: 8097542 ;
+  numbers_[2018]["Embed-MuMu-D"] = 22001647; //V1: 5327410 ;
 
-  numbers_[2018]["Embed-EE-A"] = 11737292;
-  numbers_[2018]["Embed-EE-B"] = 6881988 ;
-  numbers_[2018]["Embed-EE-C"] = 6438308 ;
-  numbers_[2018]["Embed-EE-D"] = 10649806;
+  numbers_[2018]["Embed-EE-A"] = 14176978; //V1: 11737292;
+  numbers_[2018]["Embed-EE-B"] =  6603513; //V1: 6881988 ;
+  numbers_[2018]["Embed-EE-C"] =  6174469; //V1: 6438308 ;
+  numbers_[2018]["Embed-EE-D"] = 16699616; //V1: 10649806;
 
   //Signal gen numbers
-  numbers_[2016]["ZEMu"    ] =  40000;
-  numbers_[2017]["ZEMu"    ] =  80000;
-  numbers_[2018]["ZEMu"    ] =  40000;
-  numbers_[2016]["ZMuTau"  ] =  40000;
-  numbers_[2017]["ZMuTau"  ] =  80000;
-  numbers_[2018]["ZMuTau"  ] =  40000;
-  numbers_[2016]["ZETau"   ] =  40000;
-  numbers_[2017]["ZETau"   ] =  80000;
-  numbers_[2018]["ZETau"   ] =  40000;
-  numbers_[2016]["HEMu"    ] =  40000;
-  numbers_[2017]["HEMu"    ] =  80000;
-  numbers_[2018]["HEMu"    ] =  40000;
-  numbers_[2016]["HMuTau"  ] =  40000;
-  numbers_[2017]["HMuTau"  ] =  80000;
-  numbers_[2018]["HMuTau"  ] =  40000;
-  numbers_[2016]["HETau"   ] =  40000;
-  numbers_[2017]["HETau"   ] =  80000;
-  numbers_[2018]["HETau"   ] =  40000;
+  numbers_[2016]["ZEMu"     ] =   40000;
+  numbers_[2017]["ZEMu"     ] =   80000;
+  numbers_[2018]["ZEMu"     ] =   40000;
+  numbers_[2016]["ZMuTau"   ] =   40000;
+  numbers_[2017]["ZMuTau"   ] =   80000;
+  numbers_[2018]["ZMuTau"   ] =   40000;
+  numbers_[2016]["ZETau"    ] =   40000;
+  numbers_[2017]["ZETau"    ] =   80000;
+  numbers_[2018]["ZETau"    ] =   40000;
+  numbers_[2016]["ZEMu-v2"  ] =  180400;
+  numbers_[2016]["ZETau-v2" ] =  163000;
+  numbers_[2016]["ZMuTau-v2"] =  178800;
+
+  numbers_[2016]["HEMu"     ] =   40000;
+  numbers_[2017]["HEMu"     ] =   80000;
+  numbers_[2018]["HEMu"     ] =   40000;
+  numbers_[2016]["HMuTau"   ] =   40000;
+  numbers_[2017]["HMuTau"   ] =   80000;
+  numbers_[2018]["HMuTau"   ] =   40000;
+  numbers_[2016]["HETau"    ] =   40000;
+  numbers_[2017]["HETau"    ] =   80000;
+  numbers_[2018]["HETau"    ] =   40000;
 
   //Luminosity by year
   lum_[2016] = 36.33e3;

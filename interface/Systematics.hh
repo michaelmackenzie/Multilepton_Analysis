@@ -102,6 +102,8 @@ namespace CLFV {
       case  48: return Data(isys, "METJES"        , false);
       case  49: return Data(isys, "QCDBias"       , true );
       case  50: return Data(isys, "QCDBias"       , false);
+      case  51: return Data(isys, "METCorr"       , true );
+      case  52: return Data(isys, "METCorr"       , false);
       default: break;
       }
 

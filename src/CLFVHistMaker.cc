@@ -61,7 +61,7 @@ void CLFVHistMaker::InitHistogramFlags() {
     fTreeSets  [kMuTau + 8+fMisIDOffset] = fIsData != 0; //save Loose ID data for MVA training
     fSysSets   [kMuTau + 8] = 1;
 
-    // fEventSets [kMuTau + 20] = 1; //test set
+    fEventSets [kMuTau + 20] = 1; //test set
     // fSysSets   [kMuTau + 20] = 1;
 
     // jet --> tau DRs
@@ -1155,6 +1155,18 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
         if(metPhi > 2.*M_PI)       metPhi -= 2*M_PI;
         else if(metPhi < -2.*M_PI) metPhi += 2*M_PI;
       }
+    } else if(name == "METCorr") {
+      reeval = true;
+      const double met_c_x(metCorr*std::cos(metCorrPhi)), met_c_y(metCorr*std::sin(metCorrPhi));
+      if(fSystematics.IsUp(sys)) {
+        const double met_x(met*std::cos(metPhi) - met_c_x), met_y(met*std::sin(metPhi) - met_c_y);
+        met    = std::sqrt(met_x*met_x + met_y*met_y);
+        metPhi = (met > 0.f) ? std::acos(met_x/met)*(met_y < 0.f ? -1 : 1) : 0.f;
+      } else {
+        const double met_x(met*std::cos(metPhi) + met_c_x), met_y(met*std::sin(metPhi) + met_c_y);
+        met    = std::sqrt(met_x*met_x + met_y*met_y);
+        metPhi = (met > 0.f) ? std::acos(met_x/met)*(met_y < 0.f ? -1 : 1) : 0.f;
+      }
     } else if(name.Contains("TauJetID")) { //a tau anti-jet ID bin FIXME: should also be separated by pT bins
       if(leptonTwo.isTau()) {
         if(std::abs(tauGenFlavor) == 15) {
@@ -1862,38 +1874,18 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   FillAllHistograms(set_offset + 8);
   IncrementTimer("SingleFill", true);
 
-  // ////////////////////////////////////////////////////////////////////////////
-  // // Set 20 + selection offset: Test set
-  // ////////////////////////////////////////////////////////////////////////////
-  // bool test_set = (emu || mutau || etau);
-  // test_set &= mll < 100.f;
-  // // if(mutau || etau) test_set &= fTreeVars.lepdeltaeta < 2.f;
-  // if(test_set) {
-  //   FillAllHistograms(set_offset + 20);
-  // }
+  ////////////////////////////////////////////////////////////////////////////
+  // Set 20 + selection offset: Test set
+  ////////////////////////////////////////////////////////////////////////////
+  bool test_set = mutau;
+  test_set &= fMvaOutputs[1] < -0.4f && fMvaOutputs[1] > -1.5f; //low score region where Embedding is having issues
+
+  if(test_set) {
+    FillAllHistograms(set_offset + 20);
+  }
 
   if((emu || mumu || ee) && (!fDYTesting || fTriggerTesting)) {
     if(emu) { //e+mu trigger testing
-      // ////////////////////////////////////////////////////////////////////////////
-      // // Set 60 + selection offset: Electron triggered
-      // ////////////////////////////////////////////////////////////////////////////
-      // if(leptonOne.fired && leptonOne.p4->Pt() > electron_trig_pt_) {
-      //   FillAllHistograms(set_offset + 60);
-      // }
-
-      // ////////////////////////////////////////////////////////////////////////////
-      // // Set 61 + selection offset: Muon triggered
-      // ////////////////////////////////////////////////////////////////////////////
-      // if(leptonTwo.fired && leptonTwo.p4->Pt() > muon_trig_pt_) {
-      //   FillAllHistograms(set_offset + 61);
-      // }
-
-      // ////////////////////////////////////////////////////////////////////////////
-      // // Set 62 + selection offset: Both leptons triggered
-      // ////////////////////////////////////////////////////////////////////////////
-      // if(leptonOne.fired && leptonTwo.fired) {
-      //   FillAllHistograms(set_offset + 62);
-      // }
 
       ////////////////////////////////////////////////////////////////////////////
       // Set 63 + selection offset: Electron triggerable
@@ -1929,27 +1921,6 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
       }
     } else { //ee and mumu trigger testing
       const double trig_threshold = (ee) ? electron_trig_pt_ : muon_trig_pt_;
-
-      // ////////////////////////////////////////////////////////////////////////////
-      // // Set 60 + selection offset: lepton one triggered
-      // ////////////////////////////////////////////////////////////////////////////
-      // if(leptonOne.fired && leptonOne.p4->Pt() > trig_threshold) {
-      //   FillAllHistograms(set_offset + 60);
-      // }
-
-      // ////////////////////////////////////////////////////////////////////////////
-      // // Set 61 + selection offset: lepton two triggered
-      // ////////////////////////////////////////////////////////////////////////////
-      // if(leptonTwo.fired && leptonTwo.p4->Pt() > trig_threshold) {
-      //   FillAllHistograms(set_offset + 61);
-      // }
-
-      // ////////////////////////////////////////////////////////////////////////////
-      // // Set 62 + selection offset: both leptons triggered
-      // ////////////////////////////////////////////////////////////////////////////
-      // if(leptonOne.fired && leptonOne.p4->Pt() > trig_threshold && leptonTwo.fired && leptonTwo.p4->Pt() > trig_threshold) {
-      //   FillAllHistograms(set_offset + 62);
-      // }
 
       ////////////////////////////////////////////////////////////////////////////
       // Set 63 + selection offset: lepton two triggerable

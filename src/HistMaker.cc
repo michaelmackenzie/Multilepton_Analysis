@@ -389,7 +389,7 @@ void HistMaker::BookBaseEventHistograms(Int_t i, const char* dirname) {
 
       Utilities::BookH1F(fEventHist[i]->hMet                 , "met"                 , Form("%s: Met"                     ,dirname)  , 100,  0, 200, folder);
       Utilities::BookH1F(fEventHist[i]->hMetPhi              , "metphi"              , Form("%s: MetPhi"                  ,dirname)  ,  40, -4,   4, folder);
-      // Utilities::BookH1F(fEventHist[i]->hMetCorr             , "metcorr"             , Form("%s: Met Correction"          ,dirname)  ,  50,  0,  25, folder);
+      Utilities::BookH1F(fEventHist[i]->hMetCorr             , "metcorr"             , Form("%s: Met Correction"          ,dirname)  ,  40,  0,   5, folder);
       // Utilities::BookH1F(fEventHist[i]->hMetCorrPhi          , "metcorrphi"          , Form("%s: MetPhi Correction"       ,dirname)  ,  40, -4,   4, folder);
 
       Utilities::BookH1F(fEventHist[i]->hMTOne               , "mtone"               , Form("%s: MTOne"                   ,dirname)  , 100, 0.,   150., folder);
@@ -971,13 +971,27 @@ void HistMaker::InitializeInputTree(TTree* tree) {
 //-----------------------------------------------------------------------------------------------------------------
 //apply/replace electron energy scale corrections
 void HistMaker::ApplyElectronCorrections() {
+  float delta_x(metCorr*std::cos(metCorrPhi)), delta_y(metCorr*std::sin(metCorrPhi));
   for(UInt_t index = 0; index < nElectron; ++index) {
     float sf = (fIsEmbed) ? fElectronIDWeight.EmbedEnergyScale(Electron_pt[index], Electron_eta[index],
                                                                fYear, Electron_energyScaleUp[index], Electron_energyScaleDown[index]) : 1.;
     Electron_energyScale[index] = sf;
     if(fIsEmbed) sf /= Electron_eCorr[index]; //remove the correction applied to embedding electrons
+    double pt_diff = Electron_pt[index];
     Electron_pt  [index] *= sf;
     // Electron_mass[index] *= sf;
+    pt_diff = Electron_pt[index] - pt_diff; //New - Old
+    //subtract the change from the MET
+    delta_x -= pt_diff*std::cos(Electron_phi[index]);
+    delta_y -= pt_diff*std::sin(Electron_phi[index]);
+  }
+  metCorr = std::sqrt(delta_x*delta_x + delta_y*delta_y);
+  metCorrPhi = (metCorr > 0.f) ? std::acos(std::max(-1.f, std::min(1.f, delta_x/metCorr)))*(delta_y < 0.f ? -1 : 1) : 0.f;
+  if(!std::isfinite(metCorr) || !std::isfinite(metCorrPhi)) {
+    printf("HistMaker::%s: Entry %12lld: MET correction undefined! corr = %.2f, phi = %.3f, dx = %.2f, dy = %.2f\n",
+           __func__, fentry, metCorr, metCorrPhi, delta_x, delta_y);
+    metCorr = 0.f;
+    metCorrPhi = 0.f;
   }
 }
 
@@ -985,6 +999,7 @@ void HistMaker::ApplyElectronCorrections() {
 //apply the Rochester corrections to the muon pt for all muons
 void HistMaker::ApplyMuonCorrections() {
   // if(fIsEmbed) return;
+  float delta_x(metCorr*std::cos(metCorrPhi)), delta_y(metCorr*std::sin(metCorrPhi));
   const static int s(0), m(0); //error set and member for corrections
   for(UInt_t index = 0; index < nMuon; ++index) {
     const double u = fRnd->Uniform();
@@ -1001,8 +1016,21 @@ void HistMaker::ApplyMuonCorrections() {
       //FIXME: use kSpreadMC with the gen-level muon info (see RoccoR.h:L242)
       // }
     }
+    double pt_diff = Muon_pt[index];
     Muon_pt[index] *= sf;
     Muon_RoccoSF[index] = sf;
+    pt_diff = Muon_pt[index] - pt_diff;
+    //subtract the change from the MET
+    delta_x -= pt_diff*std::cos(Muon_phi[index]);
+    delta_y -= pt_diff*std::sin(Muon_phi[index]);
+  }
+  metCorr = std::sqrt(delta_x*delta_x + delta_y*delta_y);
+  metCorrPhi = (metCorr > 0.f) ? std::acos(std::max(-1.f, std::min(1.f, delta_x/metCorr)))*(delta_y < 0.f ? -1 : 1) : 0.f;
+  if(!std::isfinite(metCorr) || !std::isfinite(metCorrPhi)) {
+    printf("HistMaker::%s: Entry %12lld: MET correction undefined! corr = %.2f, phi = %.3f, dx = %.2f, dy = %.2f\n",
+           __func__, fentry, metCorr, metCorrPhi, delta_x, delta_y);
+    metCorr = 0.f;
+    metCorrPhi = 0.f;
   }
 }
 
@@ -1010,13 +1038,27 @@ void HistMaker::ApplyMuonCorrections() {
 //apply tau energy scale corrections
 void HistMaker::ApplyTauCorrections() {
   tauES = 1.f; tauES_up = 1.f; tauES_down = 1.f;
+  float delta_x(metCorr*std::cos(metCorrPhi)), delta_y(metCorr*std::sin(metCorrPhi));
   for(UInt_t index = 0; index < nTau; ++index) {
     const float sf = (fIsData) ? 1. : fTauIDWeight->EnergyScale(Tau_pt[index], Tau_eta[index], Tau_decayMode[index],
                                                                 Tau_genPartFlav[index], Tau_idDeepTau2017v2p1VSjet[index],
                                                                 fYear, Tau_energyScaleUp[index], Tau_energyScaleDown[index]);
+    double pt_diff = Tau_pt[index];
     Tau_pt  [index] *= sf;
     Tau_mass[index] *= sf;
     Tau_energyScale[index] = sf;
+    pt_diff = Tau_pt[index] - pt_diff;
+    //subtract the change from the MET
+    delta_x -= pt_diff*std::cos(Tau_phi[index]);
+    delta_y -= pt_diff*std::sin(Tau_phi[index]);
+  }
+  metCorr = std::sqrt(delta_x*delta_x + delta_y*delta_y);
+  metCorrPhi = (metCorr > 0.f) ? std::acos(std::max(-1.f, std::min(1.f, delta_x/metCorr)))*(delta_y < 0.f ? -1 : 1) : 0.f;
+  if(!std::isfinite(metCorr) || !std::isfinite(metCorrPhi)) {
+    printf("HistMaker::%s: Entry %12lld: MET correction undefined! corr = %.2f, phi = %.3f, dx = %.2f, dy = %.2f\n",
+           __func__, fentry, metCorr, metCorrPhi, delta_x, delta_y);
+    metCorr = 0.f;
+    metCorrPhi = 0.f;
   }
 }
 
@@ -1130,7 +1172,7 @@ void HistMaker::InitializeEventWeights() {
     } else if(genWeight > 1.) { //undefined generation weight (must be < 1) --> remove the event
       genWeight = 0.f;
     } else if(genWeight == 1.f) {
-      std::cout << "!!! Warning! Entry = " << fentry << ": Unit input embedding weight = " << genWeight
+      std::cout << "!!! HistMaker::" << __func__ << ": Entry = " << fentry << ": Unit input embedding weight = " << genWeight
                 << " in event = " << eventNumber << " lumi = " << lumiSection << " run = " << runNumber
                 << std::endl;
       genWeight = 0.f;
@@ -1513,6 +1555,10 @@ void HistMaker::SetKinematics() {
   TVector3 lp1 = leptonOne.p4->Vect();
   TVector3 lp2 = leptonTwo.p4->Vect();
   TVector3 missing(met*cos(metPhi), met*sin(metPhi), 0.);
+  if(!std::isfinite(missing.Pt()) || !std::isfinite(met)) {
+    printf("!!! HistMaker::%s: Entry: %12lld: MET vector is undefined! met = %.2f, phi = %.3f, metCorr = %.2f, phiCorr = %.3f\n",
+           __func__, fentry, met, metPhi, metCorr, metCorrPhi);
+  }
   lp1.SetZ(0.);
   lp2.SetZ(0.);
   TVector3 bisector = (lp1.Mag()*lp2 + lp2.Mag()*lp1); //divides leptons
@@ -1703,11 +1749,22 @@ void HistMaker::CountObjects() {
   // Apply object scale corrections
   ///////////////////////////////////////////////////////
 
+  //Add MET information
+  met        = puppMET; //use PUPPI MET
+  metPhi     = puppMETphi;
+  metCorr    = 0.; //record the changes to the MET due to changes in object energies
+  metCorrPhi = 0.;
+
   ApplyElectronCorrections();
   ApplyMuonCorrections();
   ApplyTauCorrections();
   //Re-sort muon/electron collections in the case where the corrections change the pT order
   SwapSameFlavor();
+
+  //Apply the MET changes
+  const double met_x(met*std::cos(metPhi) + metCorr*std::cos(metCorrPhi)), met_y(met*std::sin(metPhi) + metCorr*std::sin(metCorrPhi));
+  met = std::sqrt(met_x*met_x + met_y*met_y);
+  metPhi = (met > 0.f) ? std::acos(met_x/met)*(met_y < 0.f ? -1 : 1) : 0.f;
 
   ///////////////////////////////////////////////////////
   // Initialize lepton selection info
@@ -1920,11 +1977,6 @@ void HistMaker::CountObjects() {
     tauGenFlavor   = TauFlavorFromID(tauGenID);
   }
 
-  //Add MET information
-  met        = puppMET; //use PUPPI MET
-  metPhi     = puppMETphi;
-  metCorr    = 0.;
-  metCorrPhi = 0.;
 
   if(!std::isfinite(puppMETJERUp) || !std::isfinite(puppMETphiJERUp)) {
     if(fVerbose) printf("HistMaker::%s: Entry %lld: MET JER Up not defined\n", __func__, fentry);
@@ -2036,13 +2088,13 @@ void HistMaker::CountJets() {
   float jetptmax = -1; //track highest pt jet
   jetOneP4->SetPtEtaPhiM(0.,0.,0.,0.); //reset to no jet found
   for(UInt_t ijet = 0; ijet < nJet; ++ijet) {
-    const float jetpt  = Jet_pt [ijet];
-    const float jeteta = Jet_eta[ijet];
-    if(jetpt < min_jet_pt) continue; //too low of jet pt
     if(Jet_jetId[ijet] < min_jet_id) continue; //bad jet
     if(Jet_TaggedAsRemovedByMuon[ijet]) continue; //overlapping a muon
     if(Jet_TaggedAsRemovedByElectron[ijet]) continue; //overlapping a electron
     if(Jet_TaggedAsRemovedByTau[ijet]) continue; //overlapping a hadronic tau
+    const float jetpt  = Jet_pt [ijet];
+    const float jeteta = Jet_eta[ijet];
+    if(jetpt < min_jet_pt) continue; //too low of jet pt
 
     //Restrict to less-forward jets
     if(std::fabs(jeteta) < 3.) {
@@ -2124,7 +2176,7 @@ void HistMaker::InitializeTreeVariables() {
   sys_pt_dir.SetZ(0.);
   sys_pt_dir.SetMag(1.); //unit vector
   fTreeVars.met_u1 = missing*sys_pt_dir; //MET projected onto di-lepton system
-  fTreeVars.met_u2 = (met*met - fTreeVars.met_u1*fTreeVars.met_u1)*((sys_pt_dir.DeltaPhi(missing) > 0.) ? 1. : -1.); //MET perpendicular to di-lepton system
+  fTreeVars.met_u2 = std::sqrt(met*met - fTreeVars.met_u1*fTreeVars.met_u1)*((sys_pt_dir.DeltaPhi(missing) > 0.) ? 1. : -1.); //MET perpendicular to di-lepton system
 
   //event variables
   fTreeVars.njets    = nJets;
@@ -2309,7 +2361,7 @@ void HistMaker::FillBaseEventHistogram(EventHist_t* Hist) {
 
   Hist->hMet               ->Fill(met                , genWeight*eventWeight)      ;
   Hist->hMetPhi            ->Fill(metPhi             , genWeight*eventWeight)      ;
-  // Hist->hMetCorr           ->Fill(metCorr            , genWeight*eventWeight)      ;
+  Hist->hMetCorr           ->Fill(metCorr            , genWeight*eventWeight)      ;
   // Hist->hMetCorrPhi        ->Fill(metCorrPhi         , genWeight*eventWeight)      ;
 
   Hist->hMTOne             ->Fill(fTreeVars.mtone    , eventWeight*genWeight);
@@ -2584,13 +2636,15 @@ Bool_t HistMaker::InitializeEvent(Long64_t entry)
   }
   fentry = entry;
   fTimes[GetTimerNumber("Reading")] = std::chrono::steady_clock::now(); //timer for reading from the tree
-  fChain->GetEntry(entry);
+  fChain->GetTree()->GetEntry(entry);
   IncrementTimer("Reading", true);
 
   fTimes[GetTimerNumber("EventInit")] = std::chrono::steady_clock::now(); //timer for initializing event info
   if(fVerbose > 0 || (fTimeCounts[GetTimerNumber("Total")]-1)%fNotifyCount == 0) {
-    printf("%s: Processing event: %12lld (%5.1f%%) overall rate = %9.1f Hz\n", __func__, entry,
-           entry*100./fChain->GetEntriesFast(),
+    printf("%s: Processing event: %12i (%5.1f%%), entry %12lld, overall rate = %9.1f Hz\n", __func__,
+           fTimeCounts[GetTimerNumber("Total")]-1,
+           (fTimeCounts[GetTimerNumber("Total")]-1)*100./fChain->GetEntriesFast(),
+           entry,
            (fDurations[GetTimerNumber("Total")] > 0.) ? fTimeCounts[GetTimerNumber("Total")]*1.e6/fDurations[GetTimerNumber("Total")] : 0.);
   }
 
@@ -2598,7 +2652,7 @@ Bool_t HistMaker::InitializeEvent(Long64_t entry)
   fCutFlow->Fill(icutflow); ++icutflow; //0
 
   //Initialize base object information
-  CountObjects(); //> 100 kHz processing speed
+  CountObjects(); // > 100 kHz
   if(!(mutau or etau or emu or mumu or ee)) {
     IncrementTimer("EventInit", true);
     return kTRUE;
@@ -2631,7 +2685,7 @@ Bool_t HistMaker::InitializeEvent(Long64_t entry)
         return kTRUE; //triggered only for the other stream
       }
       if(fSkipDoubleTrigger) { //don't allow double triggers
-        int other_pdgid = (fIsData == 1) ? 13 : 11; //pdg ID for the other data stream
+        const int other_pdgid = (fIsData == 1) ? 13 : 11; //pdg ID for the other data stream
         //only skip if the selected lepton actually fired the trigger
         if((std::abs(leptonOne.flavor) == other_pdgid && leptonOne.fired) ||(std::abs(leptonTwo.flavor) == other_pdgid && leptonTwo.fired)) {
           IncrementTimer("EventInit", true);

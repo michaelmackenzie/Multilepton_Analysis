@@ -1,4 +1,4 @@
-//TSelector to process TTrees output by Z_LFV_Analysis.git ntupling in NanoAOD format
+//TSelector to process TTrees output by Z_LFV_Analysis.git ntupling in (mostly) NanoAOD format
 
 #ifndef HISTMAKER_HH
 #define HISTMAKER_HH
@@ -21,7 +21,7 @@
 #include "TH1.h"
 #include "TH2.h"
 #include "TString.h"
-#include "TRandom3.h" //for splitting testing/training samples
+#include "TRandom3.h"
 #include "TDirectory.h"
 #include "TFolder.h"
 
@@ -29,9 +29,10 @@
 #include "TMVA/Tools.h"
 #include "TMVA/Reader.h"
 
+// c++ includes
 #include <iostream>
 
-//local includes
+// local includes
 #include "interface/GlobalConstants.h"
 
 #include "interface/Tree_t.hh"
@@ -41,11 +42,11 @@
 #include "interface/SystematicHist_t.hh"
 #include "interface/Lepton_t.hh"
 
-//initialize local MVA weight files
+// initialize local MVA weight files
 #include "interface/TrkQualInit.hh"
 #include "interface/MVAConfig.hh"
 
-//Correction objects
+// Correction objects
 #include "interface/PUWeight.hh"
 #include "interface/RoccoR.h"
 #include "interface/JetPUWeight.hh"
@@ -423,8 +424,8 @@ namespace CLFV {
       printf("HistMaker processing time information:\n");
       for(int itime = 0; itime < fNTimes; ++itime) {
         if(fTimeCounts[itime] <= 0 || fDurations[itime] <= 0) continue;
-        printf(" Timer %15s (%2i): Total processing time %10.3f s, %10.1f Hz\n",
-               fTimeNames[itime].Data(), itime, fDurations[itime]/1.e6, fTimeCounts[itime]*1.e6/fDurations[itime]);
+        printf(" Timer %15s (%2i): Total processing time %10.3f s, %10i evt, %10.1f Hz\n",
+               fTimeNames[itime].Data(), itime, fDurations[itime]/1.e6, fTimeCounts[itime], fTimeCounts[itime]*1.e6/fDurations[itime]);
       }
     }
 
@@ -492,6 +493,7 @@ namespace CLFV {
 
     //Check if this event is being split to a different output/run
     Bool_t SplitSampleEvent() {
+      if(fIsData) return kFALSE;
       //DY Splitting
       if(fDYType > 0) {
         // 1 = tau, 2 = muon or electron channel
@@ -684,6 +686,7 @@ namespace CLFV {
 
 #ifdef HISTMAKER_CXX
 using namespace CLFV;
+
 void HistMaker::Init(TTree *tree)
 {
   // The Init() function is called when the selector needs to initialize
@@ -707,7 +710,7 @@ void HistMaker::Init(TTree *tree)
   //Load more data into memory to compensate for slow XROOTD processing
   printf("HistMaker::%s Loading baskets\n", __func__);
   if(fLoadBaskets) fChain->LoadBaskets(2.*fCacheSize);
-  printf("Total number of entries is %lld\n",fChain->GetEntriesFast());
+  printf("Total number of entries is %lld\n",fChain->GetEntries());
   IncrementTimer("Initialization", true);
 }
 
