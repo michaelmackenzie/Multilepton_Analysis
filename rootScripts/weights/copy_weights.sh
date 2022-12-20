@@ -85,10 +85,7 @@ do
         a=$a"UNKNOWN_";
     fi
 
-    echo $f;
-    if [[ "${DRYRUN}" != "" ]]; then
-        continue
-    fi
+    # echo $f;
 
     # Find the decaying boson
     a=$a$set
@@ -112,5 +109,8 @@ do
     # Copy the file
     a=$a".weights.xml"
     echo "cp "$f" "$a;
+    if [[ "${DRYRUN}" != "" ]]; then
+        continue
+    fi
     cp $f $a
 done
