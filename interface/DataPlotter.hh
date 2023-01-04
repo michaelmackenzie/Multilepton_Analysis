@@ -194,7 +194,8 @@ namespace CLFV {
     Double_t limit_xmin_ =  1.; // range to define limit within
 
     //systematic plotting
-    Bool_t single_systematic_ = false;
+    Bool_t single_systematic_   = false;
+    Bool_t replace_missing_sys_ = true; //if a systematic histogram has 0 entries, replace with the nominal histogram
 
     ~DataPlotter() {
       for(Data_t& input : inputs_) {

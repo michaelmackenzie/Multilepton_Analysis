@@ -3,7 +3,7 @@
 using namespace CLFV;
 
 //-------------------------------------------------------------------------------------------------------------------------
-// Mode = 10,000,000 * (bias mode (0: none; 1,4,5: lepm; 2,5: mtlep; 3,4: oneiso)) + 1,000,000 * (don't use pT corrections)
+// Mode = 10,000,000 * (bias mode (0: none; 1,4,5,6(shape only): lepm; 2,5: mtlep; 3,4: oneiso)) + 1,000,000 * (don't use pT corrections)
 //        + 100,000 * (1*(use tau eta corrections) + 2*(use one met dphi))
 //        + 10,000 * (use 2D pT vs delta R corrections)
 //        + 1,000 * (use DM binned pT corrections) + 100 * (1*(use scale factor fits) + 2*(use fitter errors))
@@ -29,9 +29,9 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
     1: lepm (W+Jets)
     2: mtlep (W+Jets)
     3: isolation (mutau QCD)
-    4: isolation + lepm (mutau QCD iso + SS biases)
-    5: mtlep + lepm (etau QCD mtlep + SS biases)
-    6: lepm shape (W+Jets)
+    4: isolation + lepm (QCD iso + SS biases)
+    5: mtlep + lepm (legacy etau QCD mtlep + SS biases)
+    6: lepm, shape only (W+Jets)
   */
   useLepMBias_           = bias_mode == 1 || bias_mode == 4 || bias_mode == 5 || bias_mode == 6; //bias correction in terms of di-lepton mass
   useMTLepBias_          = bias_mode == 2 || bias_mode == 5; //bias correction in terms of MT(ll, MET)
@@ -530,8 +530,8 @@ float JetToTauWeight::GetFactor(TH2* h, TF1* func, TH1* hCorrection, TH1* hFitte
       pt_wt = hcorr2D->GetBinContent(binx_c, biny_c);
       corr_error = hcorr2D->GetBinError(binx_c, biny_c);
     }
-  } else {
-    const int corr_bin = (hCorrection && pt_lead > 0.) ? std::max(1, std::min(hCorrection->GetNbinsX(), hCorrection->FindBin(pt_lead))) : 1;
+  } else { //1D pT corrections
+    const int corr_bin = (pt_lead > 0.f) ? std::max(1, std::min(hCorrection->GetNbinsX(), hCorrection->FindBin(pt_lead))) : 1;
     pt_wt = hCorrection->GetBinContent(corr_bin);
     corr_error = hCorrection->GetBinError(corr_bin);
   }
@@ -634,7 +634,7 @@ float JetToTauWeight::GetFactor(TH2* h, TF1* func, TH1* hCorrection, TH1* hFitte
   ///////////////////////////////////////////////////////////
 
   const static float min_eff = 0.000001;
-  const static float max_eff = 0.75    ; //force weight < 0.75 / (1 - 0.75) = 3
+  const static float max_eff = 0.75    ; //force weight <= 0.75 / (1 - 0.75) = 3
   //check if allowed value
   if(eff < min_eff) {
     std::cout << "JetToTauWeight::" << __func__ << ": " << name_.Data() << " Warning! Eff < " << min_eff << " = " << eff

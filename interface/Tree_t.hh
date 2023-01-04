@@ -35,6 +35,10 @@ namespace CLFV {
     float leptrkdeltam;
     float trkptoverpt;
 
+    //tau info
+    float taudecaymode;
+    float taugenflavor;
+
     //di-lepton variables
     float lepp;
     float leppt;
@@ -118,12 +122,7 @@ namespace CLFV {
     float htsum;
     float jetpt;
     float njets;
-    float nbjets; //pt > 30
-    float nbjetsm;
-    float nbjetsl;
-    float nbjets20; //pt > 20
-    float nbjets20m;
-    float nbjets20l;
+    float nbjets;
     float nphotons;
     float eventweight;
     float eventweightMVA; //for MVA categories/histograms, remove training samples
@@ -133,18 +132,32 @@ namespace CLFV {
     float issignal;
     float category; //selection category e.g. mutau_h, mutau_e
     float type; //background type, signal, data, Z->ll, Z->tautau, Top, WJets, or Diboson
+    float year;
 
     int   zdecaymode; //unknown; 1: ee; 2: mumu; 3: tau_e tau_e; 4: tau_mu tau_mu; 5: tau_e tau_mu; 6: tau_e tau_h; 7: tau_mu tau_h; 8: tau_h tau_h
 
     //large systematics we may want to reduce impact of within TMVA training
     //these are fractions to multiply to the full event weight
-    float jettotaunonclosure; //event weight change without non-closure
-    float zptup; //event weight change using up for z pT weights
-    float zptdown; //event weight change using down for z pT weights
-    float jetantimu;
-    float jetantiele;
-    float qcdsys;
-    float btagsys;
+    float jettotaustatup  [4]; //event weight varying j-->tau statistical uncertainty
+    float jettotaustatdown[4];
+    float jettotaunoncl   [4]; //event weight change without non-closure
+    float jettotaubias    [4]; //event weight change without bias
+    float jettotaucomp       ; //event weight change with composition variation
+    float zptsys; //event weight change using up for z pT weights
+    float jetantimusys;
+    float jetantielesys;
+    float qcdstat; //QCD SS --> OS systematics
+    float qcdnc;
+    float qcdbias;
+    float btagsys; //b-tag ID
+    float lumisys; //luminosity
+
+    float leponeid1sys;
+    float leponeid2sys;
+    float leptwoid1sys;
+    float leptwoid2sys;
+    float leponeid1bin;
+    float leptwoid1bin;
 
     //identify whether or not to use in training
     float train; //  < 0 --> testing, > 0 --> training sample

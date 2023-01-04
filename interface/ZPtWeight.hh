@@ -10,14 +10,13 @@
 #include "TFile.h"
 #include "TH2.h"
 #include "TF1.h"
-#include "TRandom3.h"
 #include "TSystem.h"
 
 namespace CLFV {
 
   class ZPtWeight {
   public:
-    ZPtWeight(TString Name, int Mode = 1, int seed = 90);
+    ZPtWeight(TString Name, int Mode = 1);
 
     ~ZPtWeight();
 
@@ -35,9 +34,6 @@ namespace CLFV {
     // std::vector<TFile*> files_;
     TString Name_;
     int Mode_;
-    TRandom3* rnd_; //for generating systematic shifted parameters
-    //       year          eta           pt
-    std::map<int, std::map<int, std::map<int, bool>>> isShiftedUp_; //whether the systematic is shifted up or down
   };
 }
 #endif

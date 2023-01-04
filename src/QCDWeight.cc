@@ -225,7 +225,7 @@ float QCDWeight::GetWeight(float deltar, float deltaphi, float oneeta, float one
 
   //ensure within kinematic regions
   deltar = std::fabs(deltar);
-  if(deltar > 4.99) deltar = 4.99;
+  if(deltar > 4.99f) deltar = 4.99f;
   deltaphi = std::fabs(deltaphi);
   if(deltaphi > M_PI) deltaphi = M_PI;
   oneeta = std::min(2.49f, std::max(oneeta, -2.49f));
@@ -233,7 +233,7 @@ float QCDWeight::GetWeight(float deltar, float deltaphi, float oneeta, float one
   twopt = std::min(149.f, std::max(twopt, 10.f));
 
   //initialize values
-  nonclosure = 1.; up = 1.; down = 1.; sys = 1.; antiiso = 1.;
+  nonclosure = 1.f; up = 1.f; down = 1.f; sys = 1.f; antiiso = 1.f;
   const float var = (useDeltaPhi_) ? deltaphi : deltar;
   const float closure = oneeta;
 
@@ -286,9 +286,7 @@ float QCDWeight::GetWeight(float deltar, float deltaphi, float oneeta, float one
   int bin(1);
   if(useFits_) {
     //get bin value
-    bin = fErr->FindBin(var);
-    if(bin == 0) bin = 1;
-    else if(bin > fErr->GetNbinsX()) bin = fErr->GetNbinsX();
+    bin = std::max(1, std::min(fErr->GetNbinsX(), fErr->FindBin(var)));
 
     eff = f->Eval(deltar);
     err = fErr->GetBinError(bin); //68% confidence band from virtual fitter
@@ -306,36 +304,36 @@ float QCDWeight::GetWeight(float deltar, float deltaphi, float oneeta, float one
     }
   } else {
     //get bin value
-    bin = h->FindBin(var);
-    if(bin == 0) bin = 1;
-    else if(bin > h->GetNbinsX()) bin = h->GetNbinsX();
+    bin = std::max(1, std::min(h->GetNbinsX(), h->FindBin(var)));
 
     eff = h->GetBinContent(bin);
     err = h->GetBinError(bin); //use bin error for now
   }
-  const float max_eff = 5.;
+
+  //ensure reasonable values on the SS --> OS scale
+  const float max_eff = 5.f;
   const float min_eff = 1.e-5;
-  if(std::isnan(eff) || eff < 0.) {
+  if(std::isnan(eff) || eff < 0.f) {
     std::cout << "QCDWeight::" << __func__ << " Weight < 0  = " << eff
               << " delta R = " << deltar << " delta phi = " << deltaphi
               << " for year = " << year << std::endl;
-    up = 1.; down = 1.; sys = 1.;
+    nonclosure = 1.f; up = 1.f; down = 1.f; sys = 1.f; antiiso = 1.f;
     return 1.;
   }
-  eff = std::max(min_eff, std::min(eff, max_eff));
-  up   = eff + err;
-  down = std::max(eff - err, 0.f);
-  sys = up;
+  eff  = std::max(min_eff, std::min(eff, max_eff));
+  up   = std::max(min_eff, std::max(max_eff, eff + err));
+  down = std::max(min_eff, std::max(max_eff, eff - err));
+  sys  = up;
 
   //Apply a closure correction
   if(useEtaClosure_) {
     const int bin = std::max(1, std::min(hClosure->FindBin(closure), hClosure->GetNbinsX()));
     nonclosure = hClosure->GetBinContent(bin);
-    if(!std::isfinite(nonclosure) || nonclosure < 0.) {
+    if(!std::isfinite(nonclosure) || nonclosure < 0.f) {
       std::cout << "QCDWeight::" << __func__ << " Closure Weight < 0  = " << nonclosure
                 << " delta R = " << deltar << " delta phi = " << deltaphi
                 << " for year = " << year << std::endl;
-      up = 1.; down = 1.; sys = 1.; nonclosure = 1.;
+      nonclosure = 1.f; up = 1.f; down = 1.f; sys = 1.f; antiiso = 1.f;
       return 1.;
     }
   } else if(use2DPtClosure_) {
@@ -347,10 +345,10 @@ float QCDWeight::GetWeight(float deltar, float deltaphi, float oneeta, float one
                              << " delta R = " << deltar << " delta phi = " << deltaphi
                              << " one pt = " << onept << " two pt = " << twopt
                              << " for year = " << year << std::endl;
-      nonclosure = 1.;
+      nonclosure = 1.f;
     }
   } else {
-    nonclosure = 1.;
+    nonclosure = 1.f;
   }
 
   //apply non-closure correction
@@ -364,15 +362,15 @@ float QCDWeight::GetWeight(float deltar, float deltaphi, float oneeta, float one
     const int xbin = std::max(1, std::min(hAntiIso->GetXaxis()->FindBin(onept), hAntiIso->GetNbinsX()));
     const int ybin = std::max(1, std::min(hAntiIso->GetYaxis()->FindBin(twopt), hAntiIso->GetNbinsY()));
     antiiso = hAntiIso->GetBinContent(xbin, ybin);
-    if(!std::isfinite(antiiso) || antiiso <= 0.) {
+    if(!std::isfinite(antiiso) || antiiso <= 0.f) {
       if(verbose_) std::cout << "QCDWeight::" << __func__ << " Closure Weight < 0  = " << nonclosure
                              << " delta R = " << deltar << " delta phi = " << deltaphi
                              << " one pt = " << onept << " two pt = " << twopt
                              << " for year = " << year << std::endl;
-      antiiso = 1.;
+      antiiso = 1.f;
     }
   } else {
-    antiiso = 1.;
+    antiiso = 1.f;
   }
 
   //apply anti-iso correction
@@ -385,28 +383,28 @@ float QCDWeight::GetWeight(float deltar, float deltaphi, float oneeta, float one
   if(useDeltaRSys_) {
     const int bin = std::max(1, std::min(hSys->FindBin(deltar), hSys->GetNbinsX()));
     const float correction = hSys->GetBinContent(bin);
-    if(!std::isfinite(correction) || correction < 0.) {
+    if(!std::isfinite(correction) || correction < 0.f) {
       std::cout << "QCDWeight::" << __func__ << " Systematic < 0  = " << closure
                 << " delta R = " << deltar << " delta phi = " << deltaphi
                 << " for year = " << year << std::endl;
-      up = 1.; down = 1.; sys = 1.; nonclosure = 1.; antiiso = 1.;
+      nonclosure = 1.f; up = 1.f; down = 1.f; sys = 1.f; antiiso = 1.f;
       return 1.;
     }
     const float eff_sys = eff*correction;
     up = eff_sys;
-    down = 2.*eff - eff_sys; //eff - (sys - eff) = 2*eff - sys
+    down = std::max(min_eff, 2.f*eff - eff_sys); //eff - (sys - eff) = 2*eff - sys
     // sys = eff_sys; leave sys as the statistical variation from the fits
   }
 
   //Check that the results are reasonable
-  if(!std::isfinite(eff) || eff <= 0.) {
+  if(!std::isfinite(eff) || eff <= 0.f) {
     std::cout << __func__ << ": Warning! QCD scale value error, scale = " << eff << " err = " << err << " nonclosure = " << nonclosure
               << " for year = " << year << "; deltar = " << deltar << "; deltaphi = " << deltaphi << "; oneeta = " << oneeta
               << std::endl;
-    eff = 0.01; //default to a small weight
-    err = 0.99*eff; //99% uncertainty
-    nonclosure = 1.;
-    antiiso = 1.;
+    eff = min_eff; //default to a small weight
+    err = 0.99f*eff; //99% uncertainty
+    nonclosure = 1.f;
+    antiiso = 1.f;
     up = eff + err;
     down = eff - err;
     sys = up;

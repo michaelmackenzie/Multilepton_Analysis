@@ -25,7 +25,7 @@ namespace CLFV {
        <7: No longer supported
        7 : lepm, mtone, mttwo, onemetdphi, twometdphi, onept, twopt, leppt, lepdeltaphi, deltaalpha, lepmestimate, jetpt
        8 : lepm, oneprimepz, oneprimee, twoprimepz, twoprimepx, twoprimee, metprimee   , deltaalpha, lepmestimate
-       9 : development version
+       10: v7 with additional spectators
        e+mu:
        7 : mtoneoverm, mttwooverm, onemetdphi, twometdphi, oneptoverm, twoptoverm, lepptoverm, lepdeltaphi, jetpt
        8 : 7 but with updated spectators
@@ -59,6 +59,10 @@ namespace CLFV {
 
       std::vector<TString> train_var;
       if(tau) {
+        //v0 = current without spectators; current version is v12
+        if(version_ == 0 ) train_var = {"lepm", "lepmestimate", "deltaalpha", "mtone", "mttwo", "mtlep",
+                                        "leponept", "leptwopt", "lepdeltaphi", "leppt", "jetpt"};
+
         if(version_ ==  7) train_var = {"lepm", "lepmestimate", "deltaalpha", "mtone", "mttwo", "onemetdeltaphi", "twometdeltaphi",
                                         "leponept", "leptwopt", "lepdeltaphi", "leppt", "jetpt"};
         if(version_ ==  8) train_var = {"lepm", "lepmestimate", "deltaalpha", "leponeprimepz", "leponeprimee", "leptwoprimepz",
@@ -69,22 +73,29 @@ namespace CLFV {
                                         "leponept", "leptwopt", "lepdeltaphi", "leppt", "jetpt"};
         if(version_ == 11) train_var = {"lepm", "lepmestimate", "deltaalpha", "mtone", "mttwo", "mtlep", "dzeta",
                                         "ptdiff", "lepdeltaphi", "lepdeltaeta"};
-        if(version_ == 12) train_var = {"lepm", "lepmestimate", "deltaalpha", "mtone", "mttwo", "mtlep",
+        if(version_ == 12) train_var = {"lepm", "lepmestimate", "deltaalpha", "mtone", "mttwo", "mtlep", //v10 - (one/two)metdphi + mtlep
                                         "leponept", "leptwopt", "lepdeltaphi", "leppt", "jetpt"};
         if(version_ == 13) train_var = {"lepm", "lepmestimate", "deltaalpha", "mtone", "mttwo", "mtlep", "onemetdeltaphi", "twometdeltaphi",
-                                        "leponept", "leptwopt", "lepdeltaphi", "leppt", "jetpt"};
+                                        "leponept", "leptwopt", "lepdeltaphi", "leppt", "jetpt"}; //v10 + mtlep
         if(version_ == 14) train_var = {"lepm", "lepmestimate", "deltaalpha", "leptrkdeltam", "mtone", "mttwo", "mtlep",
-                                        "leponept", "leptwopt", "lepdeltaphi", "lepdeltaphi", "leppt", "jetpt"};
+                                        "leponept", "leptwopt", "lepdeltaphi", "lepdeltaphi", "leppt", "jetpt"}; //v12 + leptrkdeltam
+        if(version_ == 15) train_var = {"lepm", "lepmestimate", "deltaalpha", "mtone", "mttwo", //v10 - (one/two)metdeltaphi
+                                        "leponept", "leptwopt", "lepdeltaphi", "leppt", "jetpt"};
+        if(version_ == 16) train_var = {"lepm", "lepmestimate", "deltaalpha", "mtone", "mttwo", "mtlep", //v10/v8 combination
+                                        "leponept", "leptwopt", "lepdeltaphi", "dzeta",
+                                        "leptwoprimepx", "leptwoprimepz", "leptwoprimee", "leponeprimepz", "leponeprimee", "metprimee"};
+        if(version_ == 17) train_var = {"lepm", "lepmestimate", "deltaalpha", "mtone", "mttwo", "mtlep", //v12 - jetpt
+                                        "leponept", "leptwopt", "lepdeltaphi", "leppt"};
       } else {
-        if(version_ ==  7) train_var = {"mtoneoverm", "mttwooverm", "onemetdeltaphi", "twometdeltaphi",
+        //v0 = current version without spectators; current version is v7
+        if(version_ ==  0) train_var = {"mtoneoverm", "mttwooverm", "onemetdeltaphi", "twometdeltaphi",
                                         "leponeptoverm", "leptwoptoverm", "lepptoverm", "lepdeltaphi", "jetpt"};
-        if(version_ ==  8) train_var = {"mtoneoverm", "mttwooverm", "onemetdeltaphi", "twometdeltaphi",
+        if(version_ ==  7) train_var = {"mtoneoverm", "mttwooverm", "onemetdeltaphi", "twometdeltaphi",
                                         "leponeptoverm", "leptwoptoverm", "lepptoverm", "lepdeltaphi", "jetpt"};
         if(version_ ==  9) train_var = {"mtoneoverm", "mttwooverm", "mtlepoverm", "lepptoverm",
                                         "ptdiff", "lepdeltaphi", "lepdeltaeta", "dzeta"};
         if(version_ == 11) train_var = {"mtoneoverm", "mttwooverm", "lepptoverm", "leponeptoverm", "lepptwoptoverm",
                                         "ptdiff", "lepdeltaphi", "jetpt", "dzeta"};
-
       }
 
       if(train_var.size() == 0) {
@@ -97,28 +108,55 @@ namespace CLFV {
       variables.push_back(Var_t("fulleventweight"   ,"fullEventWeight"   ,"", &tree.fulleventweight   ));
       variables.push_back(Var_t("fulleventweightlum","fullEventWeightLum","", &tree.fulleventweightlum));
       variables.push_back(Var_t("eventweight"       ,"eventWeight"       ,"", &tree.eventweight       ));
-      variables.push_back(Var_t("eventcategory"     ,"eventCategory"     ,"", &tree.eventcategory     ));
+      if(version_ == 7)
+        variables.push_back(Var_t("eventcategory"     ,"eventCategory"     ,"", &tree.eventcategory     ));
       variables.push_back(Var_t("issignal"          ,"isSignal"          ,"", &tree.issignal          ));
       variables.push_back(Var_t("type"              ,"type"              ,"", &tree.type              ));
-      if(version_ > 7) {
-        if(tau_data)
-          variables.push_back(Var_t("jettotaunonclosure","jet->tau NC"     ,"", &tree.jettotaunonclosure));
-        variables.push_back(Var_t("zptup"             ,"Z pT weight up"    ,"", &tree.zptup             ));
-        variables.push_back(Var_t("zptdown"           ,"Z pT weight down"  ,"", &tree.zptdown           ));
-        variables.push_back(Var_t("jetantimu"         ,"#mu->#tau unc."    ,"", &tree.jetantimu         ));
-        variables.push_back(Var_t("jetantiele"        ,"e->#tau unc."      ,"", &tree.jetantiele        ));
-        variables.push_back(Var_t("btagsys"           ,"b-Tag systematic"  ,"", &tree.btagsys           ));
-        variables.push_back(Var_t("qcdsys"            ,"QCD systematic"    ,"", &tree.qcdsys            ));
+
+      //systematic uncertainties
+      if(version_ != 7) {
+        if(tau_data) {
+          variables.push_back(Var_t("jettotaustatup0"   ,"jet->tau Stat"     ,"", &tree.jettotaustatup  [0])); //W+Jets
+          variables.push_back(Var_t("jettotaustatdown0" ,"jet->tau Stat"     ,"", &tree.jettotaustatdown[0]));
+          variables.push_back(Var_t("jettotaunoncl0"    ,"jet->tau NC"       ,"", &tree.jettotaunoncl   [0]));
+          variables.push_back(Var_t("jettotaubias0"     ,"jet->tau Bias"     ,"", &tree.jettotaubias    [0]));
+          // variables.push_back(Var_t("jettotaustatup1"   ,"jet->tau Stat"     ,"", &tree.jettotaustatup  [1]));
+          // variables.push_back(Var_t("jettotaustatdown1" ,"jet->tau Stat"     ,"", &tree.jettotaustatdown[1]));
+          // variables.push_back(Var_t("jettotaunoncl1"    ,"jet->tau NC"       ,"", &tree.jettotaunoncl   [1]));
+          // variables.push_back(Var_t("jettotaubias1"     ,"jet->tau Bias"     ,"", &tree.jettotaubias    [1]));
+          variables.push_back(Var_t("jettotaustatup2"   ,"jet->tau Stat"     ,"", &tree.jettotaustatup  [2])); //Top
+          variables.push_back(Var_t("jettotaustatdown2" ,"jet->tau Stat"     ,"", &tree.jettotaustatdown[2]));
+          variables.push_back(Var_t("jettotaunoncl2"    ,"jet->tau NC"       ,"", &tree.jettotaunoncl   [2]));
+          variables.push_back(Var_t("jettotaubias2"     ,"jet->tau Bias"     ,"", &tree.jettotaubias    [2]));
+          variables.push_back(Var_t("jettotaustatup3"   ,"jet->tau Stat"     ,"", &tree.jettotaustatup  [3])); //QCD
+          variables.push_back(Var_t("jettotaustatdown3" ,"jet->tau Stat"     ,"", &tree.jettotaustatdown[3]));
+          variables.push_back(Var_t("jettotaunoncl3"    ,"jet->tau NC"       ,"", &tree.jettotaunoncl   [3]));
+          variables.push_back(Var_t("jettotaubias3"     ,"jet->tau Bias"     ,"", &tree.jettotaubias    [3]));
+          variables.push_back(Var_t("jetantimusys"      ,"#mu->#tau unc."    ,"", &tree.jetantimusys    ));
+          variables.push_back(Var_t("jetantielesys"     ,"e->#tau unc."      ,"", &tree.jetantielesys   ));
+        }
+        // variables.push_back(Var_t("zptsys"            ,"Z pT weight sys"   ,"", &tree.zptsys        ));
+        variables.push_back(Var_t("btagsys"           ,"b-Tag systematic"  ,"", &tree.btagsys       ));
+        variables.push_back(Var_t("qcdstat"           ,"QCD stat"          ,"", &tree.qcdstat       ));
+        variables.push_back(Var_t("qcdnc"             ,"QCD NC"            ,"", &tree.qcdnc         ));
+        variables.push_back(Var_t("qcdbias"           ,"QCD bias"          ,"", &tree.qcdbias       ));
+
+        variables.push_back(Var_t("leponeid1sys"      ,"l1 ID1 sys"        ,"", &tree.leponeid1sys  ));
+        variables.push_back(Var_t("leponeid2sys"      ,"l1 ID2 sys"        ,"", &tree.leponeid2sys  ));
+        variables.push_back(Var_t("leptwoid1sys"      ,"l2 ID1 sys"        ,"", &tree.leptwoid1sys  ));
+        variables.push_back(Var_t("leptwoid2sys"      ,"l2 ID2 sys"        ,"", &tree.leptwoid2sys  ));
+        variables.push_back(Var_t("leponeid1bin"      ,"l1 ID1 bin"        ,"", &tree.leponeid1bin  ));
+        variables.push_back(Var_t("leptwoid1bin"      ,"l2 ID1 bin"        ,"", &tree.leptwoid1bin  ));
       }
 
-      if(version_ == 8 && tau && !selection.Contains("mutau_e")) {
+      if(version_ != 7 && tau && !selection.Contains("mutau_e")) {
         variables.push_back(Var_t("leponeprimepz0", "l_{1} #tilde{pz}", "GeV", &(tree.leponeprimepz[0])));
         variables.push_back(Var_t("leponeprimee0" , "l_{1} #tilde{E}" , "GeV", &(tree.leponeprimee [0])));
         variables.push_back(Var_t("leptwoprimepz0", "l_{2} #tilde{pz}", "GeV", &(tree.leptwoprimepz[0])));
         variables.push_back(Var_t("leptwoprimepx0", "l_{2} #tilde{px}", "GeV", &(tree.leptwoprimepx[0])));
         variables.push_back(Var_t("leptwoprimee0" , "l_{2} #tilde{E}" , "GeV", &(tree.leptwoprimee [0])));
         variables.push_back(Var_t("metprimee0"    , "MET #tilde{E}"   , "GeV", &(tree.metprimee    [0])));
-      } else if(version_ == 8 && tau) { //selections hmutau_e and zmutau_e
+      } else if(version_ != 7 && tau) { //selections hmutau_e and zmutau_e
         variables.push_back(Var_t("leptwoprimepz1", "l_{2} #tilde{pz}", "GeV", &(tree.leponeprimepz[1])));
         variables.push_back(Var_t("leptwoprimee1" , "l_{2} #tilde{E}" , "GeV", &(tree.leponeprimee [1])));
         variables.push_back(Var_t("leponeprimepz1", "l_{1} #tilde{pz}", "GeV", &(tree.leptwoprimepz[1])));
@@ -131,7 +169,7 @@ namespace CLFV {
         variables.push_back(Var_t("lepm" , "M_{ll}"    , "GeV", &tree.lepm ));
         variables.push_back(Var_t("mtone", "MT(MET,l1)", ""   , &tree.mtone));
         variables.push_back(Var_t("mttwo", "MT(MET,l2)", ""   , &tree.mttwo));
-        if(version_ >= 8) {
+        if(version_ != 7) {
           variables.push_back(Var_t("mtlep", "MT(MET,ll)", ""   , &tree.mtlep));
           variables.push_back(Var_t("leptrkdeltam", "#DeltaM_{trk}", "", &tree.leptrkdeltam));
           variables.push_back(Var_t("leptrkdeltam", "pT_{trk}/pT", "", &tree.trkptoverpt));
@@ -140,7 +178,7 @@ namespace CLFV {
         variables.push_back(Var_t("lepm"      , "M_{ll}"           , "GeV", &tree.lepm      ));
         variables.push_back(Var_t("mtoneoverm", "MT(MET,l1)/M_{ll}", ""   , &tree.mtoneoverm));
         variables.push_back(Var_t("mttwooverm", "MT(MET,l2)/M_{ll}", ""   , &tree.mttwooverm));
-        if(version_ >= 8) {
+        if(version_ != 7) {
           variables.push_back(Var_t("mtlepoverm", "MT(MET,ll)/M_{ll}", ""   , &tree.mtlepoverm));
         }
       }
@@ -188,13 +226,14 @@ namespace CLFV {
         variables.push_back(Var_t("lepmestimate","M_{ll}^{Coll}","GeV", &tree.mestimate));
       }
 
-      variables.push_back(Var_t("leponedeltaphi","#Delta#phi_{l1,ll}","", &tree.leponedeltaphi));
-      variables.push_back(Var_t("leptwodeltaphi","#Delta#phi_{l2,ll}","", &tree.leptwodeltaphi));
-      if(version_ < 8 || !emu)
-        variables.push_back(Var_t("leptwod0"    ,"D0_{l2}"           ,"", &tree.leptwod0      ));
+      if(version_ == 7) {
+        variables.push_back(Var_t("leponedeltaphi","#Delta#phi_{l1,ll}","", &tree.leponedeltaphi));
+        variables.push_back(Var_t("leptwodeltaphi","#Delta#phi_{l2,ll}","", &tree.leptwodeltaphi));
+        variables.push_back(Var_t("leptwod0"      ,"D0_{l2}"           ,"", &tree.leptwod0      ));
+      }
 
       // variables.push_back(Var_t("htdeltaphi","#Delta#phi_{hT,ll}"      ,"", &tree.htdeltaphi));
-      if(version_ >= 8) {
+      if(version_ != 7) {
         variables.push_back(Var_t("ht"        ,"pT(#Sigma #vec{P}_{Jet})","", &tree.ht        ));
         variables.push_back(Var_t("htsum"     ,"#Sigma pT_{Jet}"         ,"", &tree.htsum     ));
         variables.push_back(Var_t("jetpt"     ,"pT_{Jet}"                ,"", &tree.jetpt     ));
@@ -205,7 +244,7 @@ namespace CLFV {
 
       variables.push_back(Var_t("lepdeltar" ,"#DeltaR_{ll}"      ,"", &tree.lepdeltar        ));
 
-      if(version_ >= 8) {
+      if(version_ != 7) {
         variables.push_back(Var_t("dzeta","#Delta#zeta","", &tree.dzeta));
         variables.push_back(Var_t("pzetavis","#zeta vis","", &tree.pzetavis));
         variables.push_back(Var_t("pzetainv","#zeta inv","", &tree.pzetainv));
@@ -241,8 +280,8 @@ namespace CLFV {
       std::vector<Var_t> variables = GetVariables(selection, tree);
       for(unsigned index = 0; index < variables.size(); ++index) {
         Var_t& var = variables[index];
-        if(var.use_) loader.AddVariable (var.var_.Data(), var.desc_.Data(), var.unit_.Data(), var.type_);
-        else         loader.AddSpectator(var.var_.Data(), var.desc_.Data(), var.unit_.Data(), var.type_);
+        if(var.use_)           loader.AddVariable (var.var_.Data(), var.desc_.Data(), var.unit_.Data(), var.type_);
+        else if(version_ != 0) loader.AddSpectator(var.var_.Data(), var.desc_.Data(), var.unit_.Data(), var.type_);
       }
       return status;
     }
@@ -252,8 +291,8 @@ namespace CLFV {
       std::vector<Var_t> variables = GetVariables(selection, tree);
       for(unsigned index = 0; index < variables.size(); ++index) {
         Var_t& var = variables[index];
-        if(var.use_) reader.AddVariable (var.var_.Data(), var.val_);
-        else         reader.AddSpectator(var.var_.Data(), var.val_);
+        if(var.use_)           reader.AddVariable (var.var_.Data(), var.val_/*, var.unit_.Data(), var.type_*/);
+        else if(version_ != 0) reader.AddSpectator(var.var_.Data(), var.val_/*, var.unit_.Data(), var.type_*/);
       }
       return status;
     }
@@ -275,13 +314,13 @@ namespace CLFV {
       for(unsigned index = 0; index < variables.size(); ++index) {
         Var_t& var = variables[index];
         printf("%20s (%30s) = %12.5f", var.var_.Data(), var.desc_.Data(), *(var.val_));
-        if(var.use_) printf(" (Variable)\n");
-        else         printf(" (Spectator)\n");
+        if(var.use_)           printf(" (Variable)\n");
+        else if(version_ != 0) printf(" (Spectator)\n");
         if(TMath::IsNaN(*(var.val_)) || !TMath::Finite(*(var.val_))) printf("!!! Variable %s is nan/not finite!\n", var.var_.Data());
       }
     }
     //default version
-    const static int Default = 7;
+    const static int Default = 0;
     //fields
     int version_;
     int njets_; //flag for jet binned categories

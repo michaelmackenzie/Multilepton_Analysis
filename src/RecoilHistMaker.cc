@@ -21,11 +21,10 @@ void RecoilHistMaker::Begin(TTree * /*tree*/)
 //--------------------------------------------------------------------------------------------------------------
 void RecoilHistMaker::InitHistogramFlags() {
   for(int i = 0; i < fn; ++i) {
-    fEventSets[i]  = 0;
-    fSysSets[i] = 0;
-  }
-  for(int i = 0; i < fn; ++i) {
+    fEventSets[i] = 0;
+    fSysSets[i]   = 0;
     fTreeSets[i]  = 0;
+    fSetFills [i] = 0;
   }
 
   //Event Sets

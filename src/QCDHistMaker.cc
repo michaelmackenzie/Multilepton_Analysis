@@ -21,11 +21,10 @@ void QCDHistMaker::Begin(TTree * /*tree*/)
 //--------------------------------------------------------------------------------------------------------------
 void QCDHistMaker::InitHistogramFlags() {
   for(int i = 0; i < fn; ++i) {
-    fEventSets[i]  = 0;
-    fSysSets[i] = 0;
-  }
-  for(int i = 0; i < fn; ++i) {
+    fEventSets[i] = 0;
+    fSysSets[i]   = 0;
     fTreeSets[i]  = 0;
+    fSetFills [i] = 0;
   }
 
   //Event Sets
@@ -360,9 +359,11 @@ Bool_t QCDHistMaker::Process(Long64_t entry)
   fCutFlow->Fill(icutflow); ++icutflow; //6
 
   //eta region cuts
-  const double electron_eta_max = (fUseEmbedCuts) ? 2.2 : 2.5;
-  const double muon_eta_max     = (fUseEmbedCuts) ? 2.2 : 2.4;
-  const double tau_eta_max      = (fUseEmbedCuts) ? 2.2 : 2.3;
+  const double electron_eta_max = (fUseEmbedCuts) ? (emu) ? 2.4 : 2.2 : 2.5;
+  const double muon_eta_max     = (fUseEmbedCuts) ? (emu) ? 2.4 : 2.2 : 2.4;
+  const double tau_eta_max      = (fUseEmbedCuts) ? 2.3 : 2.3; //tau eta doesn't change
+  const double min_delta_r      = 0.3;
+
   if(leptonOne.isElectron() && std::fabs(leptonOne.p4->Eta()) >= electron_eta_max) return kTRUE;
   if(leptonTwo.isElectron() && std::fabs(leptonTwo.p4->Eta()) >= electron_eta_max) return kTRUE;
   if(leptonOne.isMuon    () && std::fabs(leptonOne.p4->Eta()) >= muon_eta_max    ) return kTRUE;
@@ -371,12 +372,12 @@ Bool_t QCDHistMaker::Process(Long64_t entry)
   if(leptonTwo.isTau     () && std::fabs(leptonTwo.p4->Eta()) >= tau_eta_max     ) return kTRUE;
 
   //reject electrons in the barrel/endcap gap region
-  const float elec_gap_low(1.4442), elec_gap_high(1.566);
+  const float elec_gap_low(1.444), elec_gap_high(1.566);
   if(leptonOne.isElectron() && std::fabs(leptonOne.scEta) >= elec_gap_low && std::fabs(leptonOne.scEta) <= elec_gap_high) return kTRUE;
   if(leptonTwo.isElectron() && std::fabs(leptonTwo.scEta) >= elec_gap_low && std::fabs(leptonTwo.scEta) <= elec_gap_high) return kTRUE;
 
   //enforce the leptons are separated
-  if(std::fabs(leptonOne.p4->DeltaR(*leptonTwo.p4)) < 0.3) return kTRUE;
+  if(std::fabs(leptonOne.p4->DeltaR(*leptonTwo.p4)) < min_delta_r) return kTRUE;
 
   //apply reasonable lepton isolation cuts
   if(leptonOne.isElectron() && leptonOne.relIso >= 0.5) return kTRUE;
@@ -386,8 +387,9 @@ Bool_t QCDHistMaker::Process(Long64_t entry)
 
   fCutFlow->Fill(icutflow); ++icutflow; //7
 
+  //FIXME: Confirm mass cut region needed
   const double mll = (*leptonOne.p4+*leptonTwo.p4).M();
-  if(mll <= 51. || mll >= 170.) return kTRUE;
+  if(mll <= 50. || mll >= 170.) return kTRUE;
 
   fCutFlow->Fill(icutflow); ++icutflow; //8
 
@@ -443,13 +445,12 @@ Bool_t QCDHistMaker::Process(Long64_t entry)
   //    Add MET cuts      //
   //////////////////////////
 
-  const double met_cut         = 60.;
-  const double mtlep_cut       = 70.;
+  const float met_cut         = -1.f;//60.;
+  //FIXME: Confirm mtlep cut needed
+  const float mtlep_cut       = 70.f;
 
-  emu   &= met < met_cut;
-
-  //Add W+Jets selection orthogonality condition
-  emu   &= fTreeVars.mtlep < mtlep_cut;
+  emu   &= met_cut < 0.f || met < met_cut;
+  emu   &= mtlep_cut < 0.f || fTreeVars.mtlep < mtlep_cut;
 
   if(!emu) return kTRUE;
 

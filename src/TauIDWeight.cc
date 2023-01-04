@@ -138,28 +138,35 @@ double TauIDWeight::IDWeight(double pt, double eta, int genID, UChar_t antiJet, 
   const int antiJetIndex = (antiJetBit >= kTight) ? kTight : kVLoose; //tight or loose tau
   bin = 1;
   if(genID == 5) { //genuine tau
-    scale_factor  = tauJetIDMap[year][antiJetIndex]->Eval(pt);
-    up            = tauJetUpIDMap[year][antiJetIndex]->Eval(pt);
+    scale_factor  = tauJetIDMap    [year][antiJetIndex]->Eval(pt);
+    up            = tauJetUpIDMap  [year][antiJetIndex]->Eval(pt);
     down          = tauJetDownIDMap[year][antiJetIndex]->Eval(pt);
     //Binning set by TF1 function definition, converted here
     bin = (pt>20.) + (pt>25.) + (pt>30.) + (pt>35.) + (pt>40.); //5 bins / year
-  } else if(genID == 1) { //genuine electron -> tau
+  } else if(genID == 1 || genID == 3) { //genuine electron -> tau
     bin           = std::max(1, std::min(tauEleIDMap[year]->GetNbinsX(), tauEleIDMap[year]->FindBin(std::fabs(eta))));
     scale_factor  = tauEleIDMap[year]->GetBinContent(bin);
     up            = scale_factor + tauEleIDMap[year]->GetBinError(bin);
     down          = scale_factor - tauEleIDMap[year]->GetBinError(bin);
-  } else if(genID == 2) { //genuine muon -> tau
+  } else if(genID == 2 || genID == 4) { //genuine muon -> tau
     bin           = std::max(1, std::min(tauMuIDMap[year]->GetNbinsX(), tauMuIDMap[year]->FindBin(std::fabs(eta))));
     scale_factor  = tauMuIDMap[year]->GetBinContent(bin);
     up            = scale_factor + tauMuIDMap[year]->GetBinError(bin);
     down          = scale_factor - tauMuIDMap[year]->GetBinError(bin);
+  } else { //unmatched, likely j --> tau
+    return 1.;
   }
 
-  //reset bin to be 0-x
+  if((up - scale_factor)*(down - scale_factor) > 1.e-10) {
+    printf("!!! TauIDWeight::%s: Warning! up/down scales are not opposite: scale = %.3f, up = %.3f, down = %.3f; pt = %.2f, eta = %.3f, genID = %i\n",
+           __func__, scale_factor, up, down, pt, eta, genID);
+  }
+
+  //reset bin to be 0-n
   bin -= 1;
 
   if(scale_factor <= 0. || verbose_ > 0) {
-    if(scale_factor <= 0.) std::cout << "Warning! Scale factor <= 0! ";
+    if(scale_factor <= 0.) std::cout << "!!! Scale factor <= 0! ";
     std::cout << "TauIDWeight::" << __func__
               << " year = " << year
               << " pt = " << pt
@@ -170,6 +177,8 @@ double TauIDWeight::IDWeight(double pt, double eta, int genID, UChar_t antiJet, 
               << " scale_factor = " << scale_factor
               << std::endl;
   }
+  scale_factor = std::max(0., scale_factor);
+
   return scale_factor;
 }
 

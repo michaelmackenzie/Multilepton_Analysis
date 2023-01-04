@@ -31,6 +31,19 @@ std::vector<TH1*> DataPlotter::get_histograms(TString hist, TString setType, Int
              __func__, hist.Data(), setType.Data(), set, input.name_.Data(), input.label_.Data(), input.dataYear_);
       continue;
     }
+    //check if the systematic has been filled
+    if(replace_missing_sys_ && tmp->GetEntries() == 0 && setType == "systematic") {
+      TString base_name(hist(0,hist.Last('_')));
+      base_name += "_0";
+      TH1* tmp_base = (TH1*) input.data_->Get(Form("%s_%i/%s", setType.Data(), set, base_name.Data()));
+      if(tmp_base && tmp_base->GetEntries() > 0) {
+        if(verbose_ > 1) printf("%s: Replacing missing systematic %s in input %s with the base histogram\n", __func__, hist.Data(), input.label_.Data());
+        tmp = tmp_base;
+      } else if(!tmp_base) {
+        printf("%s: Replacement for missing systematic %s in input %s not found!\n", __func__, hist.Data(), input.label_.Data());
+      }
+    }
+
     // tmp->SetBit(kCanDelete);
     tmp = (TH1*) tmp->Clone("htmp");
     tmp->SetDirectory(0);
@@ -222,8 +235,9 @@ TH1* DataPlotter::get_qcd(TString hist, TString setType, Int_t set) {
 
   //set all bins >= 0, including over/underflow
   for(int i = 0; i <= hData->GetNbinsX()+1; ++i) {
-    if(hData->GetBinContent(i) < 0.)
+    if(hData->GetBinContent(i) < 0.) {
       hData->SetBinContent(i,0.);
+    }
   }
 
   //ensure the normalization doesn't change

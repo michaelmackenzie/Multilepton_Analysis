@@ -21,11 +21,10 @@ void JTTHistMaker::Begin(TTree * /*tree*/)
 //--------------------------------------------------------------------------------------------------------------
 void JTTHistMaker::InitHistogramFlags() {
   for(int i = 0; i < fn; ++i) {
-    fEventSets[i]  = 0;
-    fSysSets[i] = 0;
-  }
-  for(int i = 0; i < fn; ++i) {
-    fTreeSets[i]  = 0;
+    fEventSets[i] = 0;
+    fSysSets  [i] = 0;
+    fTreeSets [i] = 0;
+    fSetFills [i] = 0;
   }
 
   //Event Sets
@@ -237,7 +236,7 @@ void JTTHistMaker::BookEventHistograms() {
         Utilities::BookH1D(fEventHist[i]->hFakeTausDM   , "faketausdm"   , Form("%s: TausDM     "  ,dirname),  15,  0.,  15., folder);
 
         // jet --> tau non-closure histograms
-        const double jt_lepm_bins[] = {50., 60., 70., 80., 100., 120., 140., 200.};
+        const double jt_lepm_bins[] = {50., 70., 85., 120., 170.};
         const int    jt_nlepm_bins  = sizeof(jt_lepm_bins) / sizeof(*jt_lepm_bins) - 1;
         const double jt_dr_bins[]   = {0., 2., 2.5, 3., 3.5, 4., 5.};
         const int    jt_ndr_bins    = sizeof(jt_dr_bins) / sizeof(*jt_dr_bins) - 1;
@@ -302,9 +301,8 @@ void JTTHistMaker::BookLepHistograms() {
       Utilities::BookH1F(fLepHist[i]->hTwoPt[11], "twopt11", Form("%s: Pt"      ,dirname)  , 150,   0, 150, folder);
 
       //for correcting jet -> tau scale factors
-      const double pts[] = {0.  , 20. , 25. , 30. , 35. ,
-                            40. , 45. , 50. , 55. , 65. ,
-                            80. , 100.,
+      const double pts[] = {0.  , 20. , 25. , 33. , 40. ,
+                            50. , 60. , 80. ,
                             200.};
       const int nbins_pt = sizeof(pts)/sizeof(*pts) - 1;
 
@@ -322,8 +320,8 @@ void JTTHistMaker::BookLepHistograms() {
       }
       Utilities::BookH1F(fLepHist[i]->hJetTauOneR  , "jettauoner" , Form("%s: Delta R" ,dirname)  , nrbins, rbins, folder);
 
-      const double pts_qcd[] = {0.  , 20. , 25. , 30. , 40. ,
-                                50. ,
+      const double pts_qcd[] = {0.  , 20. , 25. , 32. , 40. ,
+                                55. ,
                                 200.};
       const int nbins_pt_qcd = sizeof(pts_qcd)/sizeof(*pts_qcd) - 1;
       Utilities::BookH1F(fLepHist[i]->hJetTauOnePtQCD[0], "jettauoneptqcd_0" , Form("%s: One Pt"   ,dirname)  , nbins_pt_qcd, pts_qcd, folder);
@@ -364,7 +362,7 @@ void JTTHistMaker::BookLepHistograms() {
         Utilities::BookH1F(fLepHist[i]->hJetTauTwoPt[dmregion], name.Data() , Form("%s: Two Pt"   ,dirname)  , nbins_pt, pts, folder);
       }
 
-      const double etabins[] = {0., 0.5, 1., 1.5, 1.7, 1.9, 2.1, 2.3};
+      const double etabins[] = {0., 0.75, 1.5, 1.9, 2.3};
       const int    netabins  = sizeof(etabins) / sizeof(*etabins) - 1;
       Utilities::BookH1F(fLepHist[i]->hJetTauTwoR[0]     , "jettautwor0"     , Form("%s: Delta R" ,dirname)  , nrbins, rbins, folder);
       Utilities::BookH1F(fLepHist[i]->hJetTauTwoR[1]     , "jettautwor"      , Form("%s: Delta R" ,dirname)  , nrbins, rbins, folder);
@@ -684,7 +682,7 @@ Bool_t JTTHistMaker::Process(Long64_t entry)
   //eta region cuts
   const double electron_eta_max = (fUseEmbedCuts) ? 2.2 : 2.5;
   const double muon_eta_max     = (fUseEmbedCuts) ? 2.2 : 2.4;
-  const double tau_eta_max      = (fUseEmbedCuts) ? 2.2 : 2.3;
+  const double tau_eta_max      = (fUseEmbedCuts) ? 2.3 : 2.3;
   if(leptonOne.isElectron() && std::fabs(leptonOne.p4->Eta()) >= electron_eta_max) return kTRUE;
   if(leptonTwo.isElectron() && std::fabs(leptonTwo.p4->Eta()) >= electron_eta_max) return kTRUE;
   if(leptonOne.isMuon    () && std::fabs(leptonOne.p4->Eta()) >= muon_eta_max    ) return kTRUE;
@@ -708,7 +706,7 @@ Bool_t JTTHistMaker::Process(Long64_t entry)
   fCutFlow->Fill(icutflow); ++icutflow; //7
 
   const double mll = (*leptonOne.p4+*leptonTwo.p4).M();
-  if(mll <= 51. || mll >= 170.) return kTRUE;
+  if(mll <= 50. || mll >= 170.) return kTRUE;
 
   fCutFlow->Fill(icutflow); ++icutflow; //8
 
@@ -744,7 +742,7 @@ Bool_t JTTHistMaker::Process(Long64_t entry)
 
   etau  &= isLooseTau || tauDeepAntiJet >= 50; //
   etau  &= tauDeepAntiMu  >= 10; //15 = tight
-  etau  &= tauDeepAntiEle >= 50; //63 = tight
+  etau  &= tauDeepAntiEle >= 100; //63 = tight, 127 = vtight
   etau  &= leptonTwo.id2  >=  2; //1 = loose, 3 = tight tau MVA anti-muon ID
 
   //remove tau decay modes not interested in
@@ -764,14 +762,14 @@ Bool_t JTTHistMaker::Process(Long64_t entry)
   // jet --> tau cuts and region definitions
   ////////////////////////////////////////////////////////////
 
-  const double met_cut         = 60.;
+  const double met_cut         = -1.;
   const double mtlep_cut       = 70.;
   const double qcd_mtlep_cut   = mtlep_cut; //(etau) ? 45. : mtlep_cut;
-  const bool looseQCDRegion    = nBJetsUse == 0 && fTreeVars.mtlep < mtlep_cut && met < met_cut; // no isolation cut (0 - 0.5 allowed)
+  const bool looseQCDRegion    = nBJetsUse == 0 && fTreeVars.mtlep < mtlep_cut && (met_cut < 0. || met < met_cut); // no isolation cut (0 - 0.5 allowed)
   const bool qcdSelection      = looseQCDRegion && fTreeVars.mtlep < qcd_mtlep_cut && (fTreeVars.leponereliso > 0.05) && !(isLooseMuon || isLooseElectron);
-  const bool wjetsSelection    = fTreeVars.mtlep > mtlep_cut && nBJetsUse == 0 && !(isLooseMuon || isLooseElectron);
-  const bool topSelection      = nBJetsUse >= 1 && !(isLooseMuon || isLooseElectron);
-  const bool nominalSelection  = nBJetsUse == 0 && met < met_cut && fTreeVars.mtlep < mtlep_cut && !(isLooseMuon || isLooseElectron);
+  const bool wjetsSelection    = fTreeVars.mtlep > mtlep_cut && nBJetsUse == 0 && !(isLooseMuon || isLooseElectron) && chargeTest;
+  const bool topSelection      = nBJetsUse >= 1 && !(isLooseMuon || isLooseElectron) && chargeTest;
+  const bool nominalSelection  = nBJetsUse == 0 && (met_cut < 0. || met < met_cut) && fTreeVars.mtlep < mtlep_cut && !(isLooseMuon || isLooseElectron);
 
   /**
      SR = Signal Region, AR = Application Region, DR = Determination Region, BR = Bias Region
@@ -817,8 +815,10 @@ Bool_t JTTHistMaker::Process(Long64_t entry)
       eventWeight        = jetToTauWeightBias*evt_wt_bare;
     }
     //full isolation region for isolation bias measurement, no bias corrections
-    FillAllHistograms(qcd_set_offset + 92);
-    if(!isfake) FillAllHistograms(qcd_set_offset + 93);
+    if(!chargeTest) {
+      FillAllHistograms(qcd_set_offset + 92);
+      if(!isfake) FillAllHistograms(qcd_set_offset + 93);
+    }
 
     if(fTreeVars.mtlep < qcd_mtlep_cut && fTreeVars.leponereliso > 0.15) { //high isolation region for SS --> OS bias measurement
       //QCD weights from high iso region, no bias corrections (stored in MC weights, but high iso weights)
@@ -885,8 +885,10 @@ Bool_t JTTHistMaker::Process(Long64_t entry)
       jetToTauWeightBias = jetToTauWeightCorr*fJetToTauBiases[JetToTauComposition::kWJets];
       eventWeight        = jetToTauWeightBias*evt_wt_bare;
     }
-    if(!isfake) { //no fake MC events
-      FillAllHistograms(set_offset + 34);
+    if(chargeTest) {
+      if(!isfake) { //no fake MC events
+        FillAllHistograms(set_offset + 34);
+      }
     }
 
     //W+Jets MC based weights from DR for bias tests
@@ -896,9 +898,11 @@ Bool_t JTTHistMaker::Process(Long64_t entry)
       jetToTauWeightBias = jetToTauWeightCorr*fJetToTauMCBiases[JetToTauComposition::kWJets];
       eventWeight        = jetToTauWeightBias*evt_wt_bare;
     }
-    FillAllHistograms(set_offset + 81);
-    if(!isfake) { //no fake MC events
-      FillAllHistograms(set_offset + 86);
+    if(chargeTest) {
+      FillAllHistograms(set_offset + 81);
+      if(!isfake) { //no fake MC events
+        FillAllHistograms(set_offset + 86);
+      }
     }
 
     //Top MC based weights from DR (nominal weights are MC in this region anyway)
@@ -908,9 +912,11 @@ Bool_t JTTHistMaker::Process(Long64_t entry)
       jetToTauWeightBias = jetToTauWeightCorr*fJetToTauMCBiases[JetToTauComposition::kTop];
       eventWeight        = jetToTauWeightBias*evt_wt_bare;
     }
-    FillAllHistograms(set_offset + 82);
-    if(!isfake) { //no fake MC events
-      FillAllHistograms(set_offset + 87);
+    if(chargeTest) {
+      FillAllHistograms(set_offset + 82);
+      if(!isfake) { //no fake MC events
+        FillAllHistograms(set_offset + 87);
+      }
     }
 
     //Restore the previous weights
@@ -923,7 +929,7 @@ Bool_t JTTHistMaker::Process(Long64_t entry)
   ////////////////////////////////////////////////////////////////////////////
   // Set 36 + selection offset: QCD selection with MC estimate taus and leptons
   ////////////////////////////////////////////////////////////////////////////
-  if((mutau || etau) && qcdSelection) {
+  if((mutau || etau) && qcdSelection && !chargeTest) {
     const Float_t prev_evt_wt = eventWeight;
     const Float_t prev_jtt_wt = jetToTauWeight;
     const Float_t prev_jtt_cr = jetToTauWeightCorr;
@@ -1019,7 +1025,7 @@ Bool_t JTTHistMaker::Process(Long64_t entry)
   ////////////////////////////////////////////////////////////////////////////
   // Set 30 + selection offset: QCD selection
   ////////////////////////////////////////////////////////////////////////////
-  if((mutau || etau) && qcdSelection) {
+  if((mutau || etau) && qcdSelection && !chargeTest) {
     const Float_t prev_evt_wt = eventWeight;
     const Float_t prev_jtt_wt = jetToTauWeight;
     const Float_t prev_jtt_cr = jetToTauWeightCorr;
@@ -1086,8 +1092,8 @@ Bool_t JTTHistMaker::Process(Long64_t entry)
   //    Add MET cuts      //
   //////////////////////////
 
-  mutau &= met < met_cut;
-  etau  &= met < met_cut;
+  mutau &= met_cut < 0. || met < met_cut;
+  etau  &= met_cut < 0. || met < met_cut;
 
   //Add W+Jets selection orthogonality condition
   mutau &= fTreeVars.mtlep < mtlep_cut;

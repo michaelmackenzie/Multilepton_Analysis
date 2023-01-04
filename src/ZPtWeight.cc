@@ -6,13 +6,12 @@ using namespace CLFV;
 // Mode options:
 // 0: Use bin errors as the systematic uncertainty
 // 1: Use the ee region measurement as the systematic uncertainty
-ZPtWeight::ZPtWeight(TString Name, int Mode, int seed) {
+ZPtWeight::ZPtWeight(TString Name, int Mode) {
   Name_ = Name;
   Mode_ = Mode;
   TFile* f = 0;
   TFile* fsys = 0;
   const std::vector<int> years = {2016, 2017, 2018};
-  rnd_ = new TRandom3(seed);
   const TString cmssw = gSystem->Getenv("CMSSW_BASE");
   const TString path = (cmssw == "") ? "../scale_factors" : cmssw + "/src/CLFVAnalysis/scale_factors";
   for(int year : years) {
@@ -41,22 +40,11 @@ ZPtWeight::ZPtWeight(TString Name, int Mode, int seed) {
       fsys->Close();
       delete fsys;
     }
-    //initialize random systematic uncertainty map
-    if(hZPtScales_[year]) {
-      isShiftedUp_[year] = {};
-      for(int xbin = 1; xbin <= hZPtScales_[year]->GetNbinsX(); ++xbin) {
-        isShiftedUp_[year][xbin-1] = {};
-        for(int ybin = 1; ybin <= hZPtScales_[year]->GetNbinsY(); ++ybin) {
-          isShiftedUp_[year][xbin-1][ybin-1] = 0.5 < rnd_->Uniform();
-        }
-      }
-    }
   }
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------------
 ZPtWeight::~ZPtWeight() {
-  if(rnd_) {delete rnd_; rnd_ = nullptr;}
   for(std::pair<int, TH2*> val : hZPtScales_       ) {if(val.second) {delete val.second;}}
   for(std::pair<int, TH2*> val : hZPtRecoScales_   ) {if(val.second) {delete val.second;}}
   for(std::pair<int, TH2*> val : hZPtSysScales_    ) {if(val.second) {delete val.second;}}
@@ -65,7 +53,7 @@ ZPtWeight::~ZPtWeight() {
 
 //--------------------------------------------------------------------------------------------------------------------------------------
 float ZPtWeight::GetWeight(int year, float pt, float mass, bool doReco, float& up, float& down, float& sys) {
-  float weight = 1.; up = 1.; down = 1.; sys = 1.;
+  float weight = 1.f; up = 1.f; down = 1.f; sys = 1.f;
   auto scales = (doReco) ? hZPtRecoScales_ : hZPtScales_;
   if(scales.find(year) == scales.end()) {
     std::cout << Name_.Data() << " ZPtWeight::" << __func__ << " WARNING! Z pT weights not defined for year = " << year
@@ -97,9 +85,9 @@ float ZPtWeight::GetWeight(int year, float pt, float mass, bool doReco, float& u
   //if using systematic weight set, set up to that weight, down to the same difference but in the opposite direction
   up     = (Mode_ > 0) ? sys_weight             : weight + h->GetBinError(binx, biny);
   down   = (Mode_ > 0) ? 2.*weight - sys_weight : weight - h->GetBinError(binx, biny);
-  down   = std::max(min_weight, down);
-  if(Mode_ > 0) sys = sys_weight;
-  else sys = (isShiftedUp_[year][binx-1][biny-1]) ? up : down;
+  up     = std::min(max_weight, std::max(min_weight, up  ));
+  down   = std::min(max_weight, std::max(min_weight, down));
+  sys    = (Mode_ > 0) ? sys_weight : up; //just set to up if using bin errors
 
   if(!std::isfinite(weight) || weight <= 0.) {
     std::cout << Name_.Data() << " ZPtWeight::" << __func__ << " WARNING! Z pT weight undefined or <= 0 = " << weight << " (pt, mass) = ("

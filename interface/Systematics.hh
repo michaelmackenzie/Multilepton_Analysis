@@ -104,6 +104,10 @@ namespace CLFV {
       case  50: return Data(isys, "QCDBias"       , false);
       case  51: return Data(isys, "METCorr"       , true );
       case  52: return Data(isys, "METCorr"       , false);
+      case  53: return Data(isys, "Prefire"       , true );
+      case  54: return Data(isys, "Prefire"       , false);
+      case  55: return Data(isys, "Pileup"        , true );
+      case  56: return Data(isys, "Pileup"        , false);
       default: break;
       }
 
@@ -126,6 +130,9 @@ namespace CLFV {
       //jet binned QCD fit uncertainty
       base += 2*nbin; nbin = 3; //126 - 131
       if(isys >= base && isys < base+2*nbin) return Data(isys, Form("QCDStat%i", (isys-base)/2), (isys-base)%2 == 0);
+      //j-->tau process binned non-closure uncertainty
+      base += 2*nbin; nbin = 3; //132 - 137
+      if(isys >= base && isys < base+2*nbin) return Data(isys, Form("JetToTauNC%i", (isys-base)/2), (isys-base)%2 == 0);
 
       //return the default result if no systematic is defined
       return Data();

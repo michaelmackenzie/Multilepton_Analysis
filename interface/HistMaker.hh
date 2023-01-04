@@ -64,8 +64,6 @@
 #include "interface/ElectronIDWeight.hh"
 
 #include "interface/Systematics.hh"
-#include "interface/SystematicShifts.hh"
-#include "interface/SystematicGrouping.hh"
 
 namespace CLFV {
 
@@ -87,6 +85,8 @@ namespace CLFV {
     UInt_t    nPartons                   ;
     Float_t   genWeight = 1.             ;
     Float_t   puWeight = 1.              ;
+    Float_t   puWeight_up = 1.           ;
+    Float_t   puWeight_down = 1.         ;
     Float_t   zPt                        ;
     Float_t   zMass                      ;
     Float_t   zEta                       ;
@@ -386,6 +386,7 @@ namespace CLFV {
     int     GetTriggerMatch(TLorentzVector* lv, bool isMuon, Int_t& trigIndex);
     void    MatchTriggers();
     void    ApplyTriggerWeights();
+    void    EvalJetToTauWeights(float& wt, float& wtcorr, float& wtbias);
 
     //get the index for a timer, adding it if not already in the list
     int     GetTimerNumber(TString name) {
@@ -518,8 +519,15 @@ namespace CLFV {
       }
 
       //If running embedding, reject di-tau production from non-embedding MC (except tau-tau DY MC, which is already separated by histogram files)
-      if(fDYType != 1 && fUseEmbedCuts && !fIsEmbed && !fIsData && nGenTaus == 2) {
-        return kTRUE;
+      //If testing ee/mumu with embedding, reject ee/mumu events instead
+      if(fUseEmbedCuts && !fIsEmbed && !fIsData) {
+        if(fDYType != 1 && nGenTaus == 2 && !(fSelection == "ee" || fSelection == "mumu")) {
+          return kTRUE;
+        } else if(fDYType != 2 && fUseEmbedCuts == 2 && nGenMuons == 2 && fSelection == "mumu") {
+          return kTRUE;
+        } else if(fDYType != 2 && fUseEmbedCuts == 2 && nGenElectrons == 2 && fSelection == "ee") {
+          return kTRUE;
+        }
       }
       return kFALSE;
     }
@@ -542,6 +550,7 @@ namespace CLFV {
     Int_t fEventSets[fn];  //indicates which sets to create
     Int_t fSysSets[fn];  //indicates which systematic sets to create
     Int_t fTreeSets[fn];   //indicates which trees to create
+    Int_t fSetFills[fn]; //number of times a histogram set is filled
 
     TFile*          fOut;
     TDirectory*     fTopDir;
@@ -558,7 +567,7 @@ namespace CLFV {
     TString         fDataset = ""; //data set being analyzed
 
     Bool_t          fIsSignal = false;
-    Int_t           fDYType = -1; //for splitting Z->ll into 1: tau tau and 2: e/mu e/mu
+    Int_t           fDYType = -1; //for splitting Z->ll into 1: tau tau and 2: ee/mumu
     Bool_t          fIsDY = false; //for checking if DY --> Z pT weights
     Int_t           fWNJets = -1;  //for splitting w+jets samples
 
@@ -571,9 +580,6 @@ namespace CLFV {
     Int_t           fEventCategory; //for identifying the process in mva trainings
 
     Int_t           fDoHiggs = 1; //include Higgs-centered analysis
-    Int_t           fUseTauFakeSF = 0; //add in fake tau scale factor weight to event weights (2 to use ones defined here)
-    Int_t           fFakeElectronIsoCut = 3; //fake electron tight ID category definition
-    Int_t           fFakeMuonIsoCut = 3; //fake muon tight Iso ID category definition
     Int_t           fFakeTauIsoCut = 50; //fake tau tight Iso category definition
     Int_t           fIsData = 0; //0 if MC, 1 if electron data, 2 if muon data
     Int_t           fIsEmbed = 0; //whether or not this is an embeded sample
@@ -634,7 +640,6 @@ namespace CLFV {
     MuonIDWeight    fMuonIDWeight;
     ElectronIDWeight fElectronIDWeight;
 
-    Int_t           fRemoveZPtWeights = 0; // 0 use given weights, 1 remove z pT weight, 2 remove and re-evaluate weights locally
     ZPtWeight*      fZPtWeight; //re-weight Drell-Yan pT vs Mass
     SignalZWeight   fSignalZWeight; //re-weight signal to match Drell-Yan MC
     Int_t           fUseSignalZWeights = 1; //whether or not to match the signal to the Drell-Yan MC
@@ -646,8 +651,6 @@ namespace CLFV {
     float           fFractionMVA = 0.; //fraction of events used to train. Ignore these events in histogram filling, reweight the rest to compensate
     TRandom3*       fRnd = 0; //for splitting MVA testing/training
     Int_t           fRndSeed = 90; //random number generator seed (not the same as systematics, as want fixed even for systematic studies)
-    SystematicShifts* fSystematicShifts; //decides if a systematic is shifted up or down
-    SystematicGrouping fSystematicGrouping; //Groups systematics together
     bool            fReprocessMVAs = false; //whether or not to use the tree given MVA values
     Int_t           fBJetCounting = 1; // 0: pT > 30 1: pT > 25 2: pT > 20
     Int_t           fBJetTightness = 1; // 0: tight 1: medium 2: loose
@@ -667,6 +670,7 @@ namespace CLFV {
     int                                   fTimeCounts[fNTimes];
     TString                               fTimeNames[fNTimes]; //name of the specific timer
     int                                   fPrintTime = 1;
+    int                                   fPrintFilling = 0; //print histogram filling information
 
     ///////////////////////////////////////////
     // Histogramming helper fields
@@ -676,6 +680,10 @@ namespace CLFV {
     bool emu;
     bool mumu;
     bool ee;
+    bool etau_mu;
+    bool mutau_e;
+    int  lep_tau = 0; //flag for processing e+mu as leptonic tau decays
+
     int icutflow;
 
     ClassDef(HistMaker,0);
