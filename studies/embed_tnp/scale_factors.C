@@ -198,7 +198,6 @@ double extract_nz(TH1* hMass, double& nerror, int BkgMode, TString figname = "",
 void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 2016, int period = -1) {
 
   TString path = "root://cmseos.fnal.gov//store/user/mmackenz/embed_tnp/";
-  TFile* f;
 
   vector<TString> runs;
   if     (year == 2016) {
@@ -262,10 +261,10 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
 
   vector<double> eta_bins;
   const double gap_low(1.4442), gap_high(1.566);
-  if(isMuon && use_abs_eta_) eta_bins = {0., 0.9, 1.2, 1.6, 2.2}; //muon
-  else if(isMuon)            eta_bins = {-2.2, -1.6, -1.2, -0.9, 0., 0.9, 1.2, 1.6, 2.2}; //muon
-  else if(use_abs_eta_)      eta_bins = {0., 0.2, 0.5, 1., gap_low, gap_high, 1.9, 2.2}; //electron
-  else                       eta_bins = {-2.2, -1.9, -gap_high, -gap_low, -1., -0.5, -0.2, 0., 0.2, 0.5, 1., gap_low, gap_high, 1.9, 2.2}; //electron
+  if(isMuon && use_abs_eta_) eta_bins = {0., 0.9, 1.2, 1.6, 2.4}; //muon
+  else if(isMuon)            eta_bins = {-2.4, -1.6, -1.2, -0.9, 0., 0.9, 1.2, 1.6, 2.4}; //muon
+  else if(use_abs_eta_)      eta_bins = {0., 0.2, 0.5, 1., gap_low, gap_high, 1.9, 2.4}; //electron
+  else                       eta_bins = {-2.4, -1.9, -gap_high, -gap_low, -1., -0.5, -0.2, 0., 0.2, 0.5, 1., gap_low, gap_high, 1.9, 2.4}; //electron
   vector<double> pt_bins;
   if(isMuon) {
     if(trig_mode) {
@@ -311,8 +310,9 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
   ///////////////////////////////////////
 
   ULong64_t nused(0), ntotal(0);
+  TFile* f;
   for(TString run : runs) {
-    if     (isMC == 0) f = TFile::Open(Form("%sfiles/EmbedTnPAnalysis_Single%sRun%i%s_%i.root", path.Data(), (isMuon) ? "Muon"   : "Electron", year, run.Data(), year), "READ");
+    if     (isMC == 0) f = TFile::Open(Form("%sfiles/EmbedTnPAnalysis_Single%sRun%i%s_%i.root", path.Data(), (isMuon) ? "Muon" : "Electron", year, run.Data(), year), "READ");
     else if(isMC == 1) f = TFile::Open(Form("%sfiles/EmbedTnPAnalysis_Embed-%s-%s_%i.root", path.Data(), (isMuon) ? "MuMu" : "EE" , run.Data(), year), "READ");
     else if(isMC == 2) f = TFile::Open(Form("%sfiles/EmbedTnPAnalysis_DY50_%i.root", path.Data(), year), "READ");
     else {
@@ -423,7 +423,7 @@ void scale_factors(int Mode = 0, int isMC = 1, bool isMuon = true, int year = 20
       //opposite flavor
       if(one_q*two_q > 0) continue;
 
-      //electron eta veto
+      // // electron eta veto
       // // no need to veto since it's naturally a bin region
       // if(!isMuon && gap_low <= fabs(one_sc_eta) && fabs(one_sc_eta) <= gap_high) continue;
       // if(!isMuon && gap_low <= fabs(two_sc_eta) && fabs(two_sc_eta) <= gap_high) continue;

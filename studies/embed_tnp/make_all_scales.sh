@@ -6,11 +6,13 @@ Help() {
     echo " 1: List of years to process, default = \"2016 2016_BF 2016_GH 2017 2018\""
     echo " 2: Specific flavor to process, e.g. \"muon\" or \"electron\", default = \"\""
     echo " 3: Scale factor modes to process, e.g. \"1 0\", default = \"1 2 3 0 4\""
+    echo " 4: Data/Embed/MC flag, default = \"\""
 }
 
 YEARS=$1 #space separated list of years to process
 FLAVOR=$2 #electron, muon, or nothing for both
 MODES=$3 #space separated list of scale factor modes to process
+DATA=$4
 
 if [[ "${YEARS}" == "" ]]
 then
@@ -31,6 +33,11 @@ fi
 if [[ "${MODES}" == "" ]]
 then
     MODES="1 2 3 0 4"
+fi
+
+if [[ "${DATA}" != "" ]]
+then
+    echo "Using data processing flag ${DATA}"
 fi
 
 #For each year, make ID1, ID2 (if it exists), then trigger scales due to the conditional probabilities
@@ -59,19 +66,19 @@ do
         if [[ "${FLAVOR}" != "electron" ]]
         then
             echo "Creating muon scale factor for ${YEAR}, period ${PERIOD}, mode ${MODE}"
-            root.exe -q -b "scale_factors.C(${MODE}, 1, true, ${YEAR}, ${PERIOD})";
-            root.exe -q -b "scale_factors.C(${MODE}, 0, true, ${YEAR}, ${PERIOD})";
+            if [[ "${DATA}" == "" ]] || [[ "${DATA}" == "Embed" ]]; then root.exe -q -b "scale_factors.C(${MODE}, 1, true, ${YEAR}, ${PERIOD})"; fi
+            if [[ "${DATA}" == "" ]] || [[ "${DATA}" == "Data"  ]]; then root.exe -q -b "scale_factors.C(${MODE}, 0, true, ${YEAR}, ${PERIOD})"; fi
             # No period dependent MC
-            root.exe -q -b "scale_factors.C(${MODE}, 2, true, ${YEAR})";
+            if [[ "${DATA}" == "" ]] || [[ "${DATA}" == "MC"    ]]; then root.exe -q -b "scale_factors.C(${MODE}, 2, true, ${YEAR})"; fi
             root.exe -q -b "combine_efficiencies.C(${MODE}, true, ${YEAR}, ${PERIOD})";
         fi
         if [[ "${FLAVOR}" != "muon" ]]
         then
             echo "Creating electron scale factors for ${YEAR}, period ${PERIOD}, mode ${MODE}"
-            root.exe -q -b "scale_factors.C(${MODE}, 1, false, ${YEAR}, ${PERIOD})";
-            root.exe -q -b "scale_factors.C(${MODE}, 0, false, ${YEAR}, ${PERIOD})";
+            if [[ "${DATA}" == "" ]] || [[ "${DATA}" == "Embed" ]]; then root.exe -q -b "scale_factors.C(${MODE}, 1, false, ${YEAR}, ${PERIOD})"; fi
+            if [[ "${DATA}" == "" ]] || [[ "${DATA}" == "Data"  ]]; then root.exe -q -b "scale_factors.C(${MODE}, 0, false, ${YEAR}, ${PERIOD})"; fi
             # No period dependent MC
-            root.exe -q -b "scale_factors.C(${MODE}, 2, false, ${YEAR})";
+            if [[ "${DATA}" == "" ]] || [[ "${DATA}" == "MC"    ]]; then root.exe -q -b "scale_factors.C(${MODE}, 2, false, ${YEAR})"; fi
             root.exe -q -b "combine_efficiencies.C(${MODE}, false, ${YEAR}, ${PERIOD})";
         fi
     done

@@ -195,7 +195,7 @@ int validation(bool isMuon = true, int year = 2016, int period = -1, int max_ent
     else if (period ==  1)  runs = {"D"};
   }
   CrossSections xs;
-  EmbeddingWeight embed_wt; //to apply the embedding unfolding corrections
+  EmbeddingWeight embed_wt(10); //to apply the embedding unfolding corrections
 
   ///////////////////////////////////////
   // Initialize ID correction objects
@@ -266,12 +266,12 @@ int validation(bool isMuon = true, int year = 2016, int period = -1, int max_ent
   // Define the thresholds
   ///////////////////////////////////////
 
-  float trig_pt_min = (isMuon) ? 24. : 32.;
-  if((!isMuon && year == 2016) || (isMuon && year == 2017)) trig_pt_min = 27.;
-  trig_pt_min += (isMuon) ? 1. : 2.; //enforce the event is above the threshold
-  const float min_pt = (isMuon) ? 10. : 15.;
-  const float max_eta = 2.2;
-  const double gap_low(1.4442), gap_high(1.566);
+  float trig_pt_min = (isMuon) ? 24.f : 32.f;
+  if((!isMuon && year == 2016) || (isMuon && year == 2017)) trig_pt_min = 27.f;
+  trig_pt_min += (isMuon) ? 1.f : 2.f; //enforce the event is above the threshold
+  const float min_pt = (isMuon) ? 10.f : 15.f;
+  const float max_eta = 2.4f;
+  const double gap_low(1.444), gap_high(1.566);
 
 
   ///////////////////////////////////////
@@ -338,7 +338,7 @@ int validation(bool isMuon = true, int year = 2016, int period = -1, int max_ent
         t->SetBranchStatus("GenZll_LepTwo_pt" , 1); t->SetBranchAddress("GenZll_LepTwo_pt" , &gen_two_pt );
         t->SetBranchStatus("GenZll_LepTwo_eta", 1); t->SetBranchAddress("GenZll_LepTwo_eta", &gen_two_eta);
       }
-      const bool has_ecorr = t->GetBranch("one_ecorr");
+      const bool has_ecorr = isMC && t->GetBranch("one_ecorr");
       if(has_ecorr) {
         t->SetBranchStatus("one_ecorr", 1); t->SetBranchAddress("one_ecorr", &one_ecorr);
         t->SetBranchStatus("two_ecorr", 1); t->SetBranchAddress("two_ecorr", &two_ecorr);
@@ -443,9 +443,9 @@ int validation(bool isMuon = true, int year = 2016, int period = -1, int max_ent
 
           //apply unfolding corrections
           if(gen_one_pt >= 0. && gen_two_pt >= 0.) { //only do if gen-level info is defined
-            wt *= embed_wt.UnfoldingWeight(gen_one_pt, gen_one_eta, gen_two_pt, gen_two_eta, year);
+            wt *= embed_wt.UnfoldingWeight(gen_one_pt, gen_one_eta, gen_two_pt, gen_two_eta, pair_eta, pair_pt, year);
           } else if(isMuon) { //approximate with the reco values if not defined
-            wt *= embed_wt.UnfoldingWeight(one_pt, one_eta, two_pt, two_eta, year);
+            wt *= embed_wt.UnfoldingWeight(one_pt, one_eta, two_pt, two_eta, pair_eta, pair_pt, year);
           }
         }
 
@@ -513,6 +513,11 @@ int validation(bool isMuon = true, int year = 2016, int period = -1, int max_ent
   if(c) { c->SaveAs(Form("%s/onept_vs_twopt.png", dir.Data())); delete c; }
 
   //plot energy scale variation
+  //normalize to the data for this plot
+  const double embed_scale = hPairMass[0]->Integral() / hPairMass[1]->Integral();
+  hPairMass    [1]->Scale(embed_scale);
+  hPairMassUp  [1]->Scale(embed_scale);
+  hPairMassDown[1]->Scale(embed_scale);
   std::vector<TH1*> mass_hists = {hPairMass[0], hPairMass[1], hPairMassUp[1], hPairMassDown[1]};
   c = plot_hists(mass_hists);
   if(c) { c->SaveAs(Form("%s/pairmass_variations.png", dir.Data())); delete c; }
