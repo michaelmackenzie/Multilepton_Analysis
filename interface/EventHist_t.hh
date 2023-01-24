@@ -193,6 +193,7 @@ namespace CLFV {
     TH1* hDeltaAlpha[4]; //delta alpha from arXiv:1207.4894
     TH1* hDeltaAlphaM[2]; //mass found by solving delta alpha equations (flipping with lepton is tau for each)
     TH1* hDeltaAlphaMColM[2]; //Collimated mass - delta alpha mass
+    TH1* hBeta[2]; //visible --> true tau scales
 
     TH1* hHtDeltaPhi;
     TH1* hMetDeltaPhi;
@@ -228,10 +229,13 @@ namespace CLFV {
     TH1* hMTOne;
     TH1* hMTTwo;
     TH2* hMTTwoVsOne;
+    TH1* hMTDiff;
     TH1* hMTLep;
     TH1* hMTOneOverM;
     TH1* hMTTwoOverM;
     TH1* hMTLepOverM;
+    TH1* hMETDotOne;
+    TH1* hMETDotTwo;
 
     //Momentum projections onto the lepton bisector
     TH1* hPZetaVis;
@@ -249,6 +253,11 @@ namespace CLFV {
     TH1* hPTauVisFrac;
     TH1* hLepMEstimate;
     TH1* hLepMEstimateTwo;
+    TH1* hLepMEstimateThree;
+    TH1* hLepMEstimateFour;
+    TH1* hLepMEstimateCut[2];
+    TH1* hLepMBalance;
+    TH1* hLepMBalanceTwo;
     TH1* hLepTrkM;
     TH1* hLepTrkDeltaM;
     TH1* hLepDot;

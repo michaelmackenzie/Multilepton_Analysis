@@ -29,6 +29,7 @@ namespace CLFV {
     UChar_t id3;
     float wt1[4] = {1.f, 1.f, 1.f, 1.f}; //weight, up, down, sys
     float wt2[4] = {1.f, 1.f, 1.f, 1.f}; //weight, up, down, sys
+    float wt3[4] = {1.f, 1.f, 1.f, 1.f}; //weight, up, down, sys
     int   wt1_bin;
     int   wt2_bin;
     int   wt1_group;
@@ -36,6 +37,7 @@ namespace CLFV {
     float trig_wt = 1.f;
 
     int   trigger;
+    bool  matched;
     bool  fired;
 
     bool  isLoose;

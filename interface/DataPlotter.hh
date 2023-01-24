@@ -21,6 +21,7 @@
 #include "TLegend.h"
 #include "TGaxis.h"
 #include "interface/Significances.hh"
+#include "interface/Utilities.hh"
 #include "Math/ProbFuncMathCore.h"
 
 #include "interface/PlottingCard_t.hh"

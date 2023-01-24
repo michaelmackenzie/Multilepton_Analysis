@@ -14,16 +14,17 @@ namespace CLFV {
     MVAConfig() {
       //initialize MVA names
       names_ = {
-                "mutau_BDT_MM_8.higgs","mutau_BDT_MM_8.Z0", //0 - 9: total mvas
+                //0 - 9: nominal mvas
+                "mutau_BDT_MM_8.higgs","mutau_BDT_MM_8.Z0",
                 "etau_BDT_MM_8.higgs","etau_BDT_MM_8.Z0",
                 "emu_BDT_MM_8.higgs","emu_BDT_MM_8.Z0",
-                "mutau_e_BDT_MM_8.higgs","mutau_e_BDT_MM_8.Z0",
+                "mutau_e_BDT_MM_8.higgs","mutau_e_BDT_MM_8.Z0" //,
                 "etau_mu_BDT_MM_8.higgs","etau_mu_BDT_MM_8.Z0"//,
-                // "mutau_TMlpANN_8.higgs","mutau_TMlpANN_8.Z0", //10 - 19: alternate mvas
-                // "etau_TMlpANN_8.higgs","etau_TMlpANN_8.Z0",
-                // "emu_BDT_68.higgs","emu_BDT_68.Z0",
-                // "mutau_e_TMlpANN_8.higgs","mutau_e_TMlpANN_8.Z0",
-                // "etau_mu_TMlpANN_8.higgs","etau_mu_TMlpANN_8.Z0"
+                // // "mutau_TMlpANN_8.higgs","mutau_TMlpANN_8.Z0", //10 - 19: alternate mvas
+                // // "etau_TMlpANN_8.higgs","etau_TMlpANN_8.Z0",
+                // // "emu_BDT_68.higgs","emu_BDT_68.Z0",
+                // // "mutau_e_TMlpANN_8.higgs","mutau_e_TMlpANN_8.Z0",
+                // // "etau_mu_TMlpANN_8.higgs","etau_mu_TMlpANN_8.Z0"
       };
 
       //initialize MVA output categories
@@ -85,22 +86,7 @@ namespace CLFV {
           bins.push_back(edges[bin]);
         }
       } else if(selection == "zmutau") {
-        // double edges[] = {-1.00, -0.80,
-        //                   -0.45, -0.30, -0.25, -0.20, -0.15,
-        //                   -0.10, -0.07, -0.04, -0.01,  0.02,
-        //                   +0.05, +0.08,  0.11,  0.15,  0.40,
-        //                   +0.50,  2.00};
-
-        // //v7 binning, as of 11/18/22
-        // double edges[] = {-1.00, -0.80,
-        //                   -0.50, -0.45, -0.40, -0.35, -0.30,
-        //                   -0.25, -0.20, -0.18, -0.16, -0.14,
-        //                   -0.12, -0.10, -0.08, -0.06, -0.04,
-        //                   -0.02, +0.00, +0.02, +0.04, +0.06,
-        //                   +0.08, +0.10, +0.12, +0.14, +0.16,
-        //                   +0.40,
-        //                   +0.50, +2.00};
-        //dev binning, 11/18/22
+        //v12 binning, 11/18/22-01/13/23
         double edges[] = {-1.00, -0.80, -0.55,
                           -0.50, -0.45, -0.40, -0.35, -0.30,
                           -0.25, -0.20, -0.18, -0.16, -0.14,
@@ -110,6 +96,16 @@ namespace CLFV {
                           +0.18, +0.20, +0.25,
                           +0.40,
                           +0.50, +2.00};
+        // //v17 dev binning, 01/13/23
+        // double edges[] = {-1.00, -0.80,
+        //                   -0.40, -0.30,
+        //                   -0.24, -0.18, -0.14,
+        //                   -0.10, -0.06,
+        //                   -0.02, +0.02, +0.06,
+        //                   +0.10, +0.14,
+        //                   +0.18,
+        //                   +0.40,
+        //                   +0.50, +2.00};
         for(unsigned bin = 0; bin < sizeof(edges)/sizeof(*edges); ++bin) {
           bins.push_back(edges[bin]);
         }

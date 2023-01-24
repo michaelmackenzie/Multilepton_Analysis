@@ -51,6 +51,7 @@ namespace CLFV {
     float lepdeltaphi;
     float ptdiff;
     float ptdiffoverm;
+    float ptratio;
 
     //extra angles
     float htdeltaphi;
@@ -64,6 +65,7 @@ namespace CLFV {
     float met;
     float mtone;
     float mttwo;
+    float mtdiff;
     float mtlep;
     float mtoneoverm;
     float mttwooverm;
@@ -75,6 +77,25 @@ namespace CLFV {
     float ptauvisfrac;
     float mestimate;
     float mestimatetwo;
+    float mestimatethree;
+    float mbalance;
+    float mbalancetwo;
+    float mestimatefour;
+    float mestimate_cut_1;
+    float mestimate_cut_2;
+    float mestimate_avg_1;
+    float mestimate_avg_2;
+
+    //neutrino variables
+    float p_nu_col_1;
+    float p_nu_col_2;
+    float p_nu_bal_1;
+    float p_nu_bal_2;
+    float p_nu_avg_1;
+    float p_nu_avg_2;
+
+    float metdotl1;
+    float metdotl2;
     float met_u1;
     float met_u2;
 
@@ -110,6 +131,8 @@ namespace CLFV {
     float alphah1;
     float alpha2;
     float alpha3;
+    float beta1;
+    float beta2;
     float deltaalphaz1;
     float deltaalphaz2;
     float deltaalphah1;

@@ -1099,7 +1099,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
   }
   pad1->cd();
   //store maximum of stack/Data
-  double m = 0.;
+  double max_val(1.e-5), min_val(1.e20);
 
 
   //get axis titles
@@ -1130,7 +1130,8 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
     for(unsigned int i = 0; i < hsignal.size(); ++i) {
       if(hsignal[i] && hsignal[i]->GetEntries() > 0) {
         hsignal[i]->Draw("hist same");
-        m = std::max(m, hsignal[i]->GetMaximum());
+        max_val = std::max(max_val, Utilities::H1Max(hsignal[i], xMin_, xMax_));
+        min_val = std::min(min_val, Utilities::H1Min(hsignal[i], xMin_, xMax_));
       }
     }
   }
@@ -1170,8 +1171,12 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
   //draw the data with error bars
   if(plot_data_ && d) d->Draw("E same");
 
-  m = std::max(std::max(m,hstack->GetMaximum()), (d&&plot_data_ > 0) ? d->GetMaximum() : 1.e-5);
-  if(m < 1.e-10) m = 1.e-5;
+  if(d && plot_data_ > 0) {
+    max_val = std::max(max_val, Utilities::H1Max(d, xMin_, xMax_));
+    min_val = std::min(min_val, Utilities::H1Min(d, xMin_, xMax_));
+  }
+  max_val = std::max(max_val, Utilities::H1Max((TH1*) hstack->GetStack()->Last(), xMin_, xMax_));
+  min_val = std::min(min_val, Utilities::H1Min((TH1*) hstack->GetStack()->Last(), xMin_, xMax_));
 
   // pad1->BuildLegend();//0.6, 0.9, 0.9, 0.45, "", "L");
   pad1->SetGrid();
@@ -1301,11 +1306,11 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
   double ymin = yMin_;
   double ymax = yMax_;
   if(ymin > ymax) {
-    ymin = 0.8;
+    ymin = std::max(0.8, min_val*((logY_) ? 1./log_buffer_ : 1./linear_buffer_));
     if(logY_) {
-      ymax = (m < ymin) ? log_buffer_*ymin : ymin*std::pow(10, log_buffer_*std::log10(m/ymin));
+      ymax = (max_val < ymin) ? log_buffer_*ymin : ymin*std::pow(10, log_buffer_*std::log10(max_val/ymin));
     } else {
-      ymax = linear_buffer_*std::max(m, ymin);
+      ymax = linear_buffer_*std::max(max_val, ymin);
     }
   }
   top_yaxis->SetRangeUser(ymin, ymax);
@@ -1346,11 +1351,11 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
     hDataMC->GetYaxis()->SetTitleSize(axis_font_size_);
     hDataMC->GetYaxis()->SetTitleOffset(y_title_offset_);
     hDataMC->GetYaxis()->SetLabelSize(y_label_size_);
-    m = hDataMC->GetMaximum();
+    max_val = hDataMC->GetMaximum();
     double mn = hDataMC->GetMinimum();
     mn = std::max(0.2*mn,5e-1);
-    m = 1.2*m;
-    m = std::min(m, 2.0);
+    max_val = 1.2*max_val;
+    max_val = std::min(max_val, 2.0);
     // hDataMC->GetYaxis()->SetRangeUser(mn,m);
     hDataMC->GetYaxis()->SetRangeUser(0.6, 1.4);
     //  hDataMC->GetXaxis()->SetLabelOffset(0.5);
@@ -1363,7 +1368,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
     pad2->cd();
     pad2->SetGrid();
     c->SetGrid();
-    m = 0.;
+    max_val = 0.;
     for(unsigned index = 0; index < hSignalsOverMC.size(); ++index) {
       Double_t signal_scale = signal_scale_;
       TString label = hSignalsOverMC[index]->GetName();
@@ -1375,7 +1380,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
       }
       if(index == 0) hSignalsOverMC[index]->Draw("hist E1");
       else           hSignalsOverMC[index]->Draw("hist E1 same");
-      m = std::max(m, hSignalsOverMC[index]->GetMaximum());
+      max_val = std::max(max_val, hSignalsOverMC[index]->GetMaximum());
     }
     if(hSignalsOverMC.size() > 0) {
       hSignalsOverMC[0]->GetXaxis()->SetTitle(xtitle.Data());
@@ -1387,7 +1392,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
       hSignalsOverMC[0]->GetYaxis()->SetTitleSize(axis_font_size_);
       hSignalsOverMC[0]->GetYaxis()->SetTitleOffset(y_title_offset_);
       hSignalsOverMC[0]->GetYaxis()->SetLabelSize(y_label_size_);
-      hSignalsOverMC[0]->SetAxisRange(m/1.e4,m*5., "Y");
+      hSignalsOverMC[0]->SetAxisRange(max_val/1.e4,max_val*5., "Y");
       hSignalsOverMC[0]->SetTitle("");
       if(xMin_ < xMax_) hSignalsOverMC[0]->GetXaxis()->SetRangeUser(xMin_,xMax_);
       pad2->SetLogy();

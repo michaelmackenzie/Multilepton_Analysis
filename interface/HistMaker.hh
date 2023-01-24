@@ -103,6 +103,9 @@ namespace CLFV {
     Int_t     zLepOneDecayIdx  = -99     ;
     Int_t     zLepTwoDecayIdx  = -99     ;
 
+    //selection filter info
+    Float_t   SelectionFilter_LepM = -1.f;
+
     //gen-level info
     UInt_t nGenPart                                    ;
     Int_t  GenPart_pdgId                [kMaxGenPart];
@@ -129,6 +132,7 @@ namespace CLFV {
     UChar_t Muon_genPartFlav              [kMaxLeptons];
     Int_t   Muon_genPartIdx               [kMaxLeptons];
     Float_t Muon_RoccoSF                  [kMaxLeptons]; //calculated momentum scale
+    Float_t Muon_ESErr                    [kMaxLeptons]; //momentum scale uncertainty
 
     //electrons
     UInt_t  nElectron                                  ;
@@ -153,6 +157,7 @@ namespace CLFV {
     Bool_t  Electron_TaggedAsRemovedByJet [kMaxLeptons];
     UChar_t Electron_genPartFlav          [kMaxLeptons];
     Int_t   Electron_genPartIdx           [kMaxLeptons];
+    Float_t Electron_energyErr            [kMaxLeptons]; //provided energy scale uncertainty
     Float_t Electron_energyScale          [kMaxLeptons]; //energy scale replacing given one
     Float_t Electron_energyScaleUp        [kMaxLeptons];
     Float_t Electron_energyScaleDown      [kMaxLeptons];
@@ -269,8 +274,10 @@ namespace CLFV {
     Float_t prefireWeight_down = 1.    ;
     Float_t topPtWeight = 1.           ;
     Float_t btagWeight = 1.            ;
-    Float_t btagWeightUp = 1.          ;
-    Float_t btagWeightDown = 1.        ;
+    Float_t btagWeightUpBC = 1.        ;
+    Float_t btagWeightDownBC = 1.      ;
+    Float_t btagWeightUpL = 1.         ;
+    Float_t btagWeightDownL = 1.       ;
     Float_t signalZWeight = 1.         ;
     Float_t zPtWeight = 1.             ;
     Float_t zPtWeightUp = 1.           ;
@@ -354,6 +361,11 @@ namespace CLFV {
 
     Float_t muon_trig_pt_    ; //lepton trigger thresholds
     Float_t electron_trig_pt_;
+    Float_t one_pt_min_ = 0.f; //threshold cuts
+    Float_t two_pt_min_ = 0.f;
+    Float_t met_max_ = -1.f  ;
+    Float_t min_mass_ =  0.f ;
+    Float_t max_mass_ = -1.f ;
 
     Float_t tmpFloats[10]; //fields for debugging uses
 
@@ -377,12 +389,15 @@ namespace CLFV {
     void    InitializeInputTree(TTree* tree);
     void    SetEventList(TTree* tree);
     void    InitializeEventWeights();
+    void    EnergyScale(const float scale, Lepton_t& lep, float* MET = nullptr, float* METPhi = nullptr);
+    void    EnergyScale(const float scale, TLorentzVector& lv, float* MET = nullptr, float* METPhi = nullptr);
     void    ApplyElectronCorrections();
     void    ApplyMuonCorrections();
     void    ApplyTauCorrections();
     void    CountObjects();
     void    CountJets();
     void    SetKinematics();
+    void    EvalMVAs(TString TimerName = "");
     int     GetTriggerMatch(TLorentzVector* lv, bool isMuon, Int_t& trigIndex);
     void    MatchTriggers();
     void    ApplyTriggerWeights();
@@ -591,8 +606,13 @@ namespace CLFV {
     Int_t           fUseMCEstimatedFakeLep = 0;
     Int_t           fDoTriggerMatching = 1; //match trigger objects to selected leptons
 
+    Bool_t          fSparseHists = false; //only fill/init more basic histograms
+
     Int_t           fProcessSSSF = 1; //process same-sign, same-flavor data
     Int_t           fDoEventList = 1;
+
+    Float_t         fMaxLepM = -1.f; //for filtering on the ntuple-level di-lepton mass
+    Float_t         fMinLepM = -1.f; //for filtering on the ntuple-level di-lepton mass
 
     Int_t           fSystematicSeed; //for systematic variations
 

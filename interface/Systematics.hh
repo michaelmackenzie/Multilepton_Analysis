@@ -56,8 +56,8 @@ namespace CLFV {
       case   2: return Data(isys, "EleID"         , false);
       case   3: return Data(isys, "MuonID"        , true );
       case   4: return Data(isys, "MuonID"        , false);
-      case   5: return Data(isys, "TauID"         , true );
-      case   6: return Data(isys, "TauID"         , false);
+      // case   5: return Data(isys, "TauID"         , true );
+      // case   6: return Data(isys, "TauID"         , false);
       case   7: return Data(isys, "EleRecoID"     , true );
       case   8: return Data(isys, "EleRecoID"     , false);
       case   9: return Data(isys, "MuonIsoID"     , true );
@@ -88,51 +88,92 @@ namespace CLFV {
       case  34: return Data(isys, "Lumi"          , false);
       case  35: return Data(isys, "EmbedUnfold"   , true );
       case  36: return Data(isys, "EmbedUnfold"   , false);
-      case  37: return Data(isys, "MCEleTrig"     , true );
-      case  38: return Data(isys, "MCEleTrig"     , false);
-      case  39: return Data(isys, "MCMuonTrig"    , true );
-      case  40: return Data(isys, "MCMuonTrig"    , false);
-      case  41: return Data(isys, "EmbEleTrig"    , true );
-      case  42: return Data(isys, "EmbEleTrig"    , false);
-      case  43: return Data(isys, "EmbMuonTrig"   , true );
-      case  44: return Data(isys, "EmbMuonTrig"   , false);
-      case  45: return Data(isys, "METJER"        , true );
-      case  46: return Data(isys, "METJER"        , false);
-      case  47: return Data(isys, "METJES"        , true );
-      case  48: return Data(isys, "METJES"        , false);
-      case  49: return Data(isys, "QCDBias"       , true );
-      case  50: return Data(isys, "QCDBias"       , false);
-      case  51: return Data(isys, "METCorr"       , true );
-      case  52: return Data(isys, "METCorr"       , false);
-      case  53: return Data(isys, "Prefire"       , true );
-      case  54: return Data(isys, "Prefire"       , false);
-      case  55: return Data(isys, "Pileup"        , true );
-      case  56: return Data(isys, "Pileup"        , false);
+      case  37: return Data(isys, "EleTrig"       , true );
+      case  38: return Data(isys, "EleTrig"       , false);
+      case  39: return Data(isys, "MuonTrig"      , true );
+      case  40: return Data(isys, "MuonTrig"      , false);
+      case  41: return Data(isys, "METJER"        , true );
+      case  42: return Data(isys, "METJER"        , false);
+      case  43: return Data(isys, "METJES"        , true );
+      case  44: return Data(isys, "METJES"        , false);
+      case  45: return Data(isys, "QCDBias"       , true );
+      case  46: return Data(isys, "QCDBias"       , false);
+      case  47: return Data(isys, "METCorr"       , true ); //FIXME: Remove
+      case  48: return Data(isys, "METCorr"       , false);
+      case  49: return Data(isys, "Prefire"       , true );
+      case  50: return Data(isys, "Prefire"       , false);
+      case  51: return Data(isys, "Pileup"        , true );
+      case  52: return Data(isys, "Pileup"        , false);
+      case  53: return Data(isys, "ZPt"           , true );
+      case  54: return Data(isys, "ZPt"           , false);
+      case  55: return Data(isys, "EleIsoID"     , true );
+      case  56: return Data(isys, "EleIsoID"     , false);
+      case  57: return Data(isys, "EleES"         , true );
+      case  58: return Data(isys, "EleES"         , false);
+      case  59: return Data(isys, "MuonES"        , true );
+      case  60: return Data(isys, "MuonES"        , false);
+      // case  61: return Data(isys, "BTagLight"     , true ); //FIXME: Turn on
+      // case  62: return Data(isys, "BTagLight"     , false);
+      // case  63: return Data(isys, "BTagHeavy"     , true );
+      // case  64: return Data(isys, "BTagHeavy"     , false);
+
+      case  70: return Data(isys, "EmbTauJetID"   , true );
+      case  71: return Data(isys, "EmbTauJetID"   , false);
+      case  72: return Data(isys, "EmbTauMuID"    , true );
+      case  73: return Data(isys, "EmbTauMuID"    , false);
+      case  74: return Data(isys, "EmbTauEleID"   , true );
+      case  75: return Data(isys, "EmbTauEleID"   , false);
+      case  76: return Data(isys, "EmbEleTrig"    , true );
+      case  77: return Data(isys, "EmbEleTrig"    , false);
+      case  78: return Data(isys, "EmbMuonTrig"   , true );
+      case  79: return Data(isys, "EmbMuonTrig"   , false);
+      case  80: return Data(isys, "EmbEleIsoID"   , true );
+      case  81: return Data(isys, "EmbEleIsoID"   , false);
+      case  82: return Data(isys, "EmbEleES"      , true );
+      case  83: return Data(isys, "EmbEleES"      , false);
+      // case  84: return Data(isys, "EmbMuonES"     , true );
+      // case  85: return Data(isys, "EmbMuonES"     , false);
+      case  86: return Data(isys, "EmbTauES"      , true );
+      case  87: return Data(isys, "EmbTauES"      , false);
       default: break;
       }
 
-      int base(70), nbin(0);
+      int base(100), nbin(0);
       //tau anti-jet ID, uncorrelated over years and 5 pT bins (for now use 5 bins, assume year dealt with downstream)
-      base += 2*nbin; nbin = 5; //70 - 79
+      base += 2*nbin; nbin = 5; //100 - 109
       if(isys >= base && isys < base+2*nbin) return Data(isys, Form("TauJetID%i", (isys-base)/2), (isys-base)%2 == 0);
       //tau anti-muon ID, uncorrelated over years and 5 bins / year (15 bins, for now use 5 bins, assume year dealt with downstream)
-      base += 2*nbin; nbin = 5; //80 - 89
+      base += 2*nbin; nbin = 5; //110 - 119
       if(isys >= base && isys < base+2*nbin) return Data(isys, Form("TauMuID%i", (isys-base)/2), (isys-base)%2 == 0);
       //tau anti-ele ID, uncorrelated over years and 3 bins / year (9 bins, for now use 3 bins, assume year dealt with downstream)
-      base += 2*nbin; nbin = 3; //90 - 95
+      base += 2*nbin; nbin = 3; //120 - 125
       if(isys >= base && isys < base+2*nbin) return Data(isys, Form("TauEleID%i", (isys-base)/2), (isys-base)%2 == 0);
       //j-->tau process/DM binned fit uncertainty
-      base += 2*nbin; nbin = 3*4; //96 - 119
+      base += 2*nbin; nbin = 3*4; //126 - 149
       if(isys >= base && isys < base+2*nbin) return Data(isys, Form("JetToTauStat%i", (isys-base)/2), (isys-base)%2 == 0);
       //j-->tau process binned bias uncertainty
-      base += 2*nbin; nbin = 3; //120 - 125
+      base += 2*nbin; nbin = 3; //150 - 155
       if(isys >= base && isys < base+2*nbin) return Data(isys, Form("JetToTauBias%i", (isys-base)/2), (isys-base)%2 == 0);
       //jet binned QCD fit uncertainty
-      base += 2*nbin; nbin = 3; //126 - 131
+      base += 2*nbin; nbin = 3; //156 - 161
       if(isys >= base && isys < base+2*nbin) return Data(isys, Form("QCDStat%i", (isys-base)/2), (isys-base)%2 == 0);
       //j-->tau process binned non-closure uncertainty
-      base += 2*nbin; nbin = 3; //132 - 137
+      base += 2*nbin; nbin = 3; //162 - 167
       if(isys >= base && isys < base+2*nbin) return Data(isys, Form("JetToTauNC%i", (isys-base)/2), (isys-base)%2 == 0);
+
+      //embedding uncorrelated with MC
+      //tau anti-jet ID, uncorrelated over years and 5 pT bins (for now use 5 bins, assume year dealt with downstream)
+      base += 2*nbin; nbin = 5; //168 - 177
+      if(isys >= base && isys < base+2*nbin) return Data(isys, Form("EmbTauJetID%i", (isys-base)/2), (isys-base)%2 == 0);
+      //tau anti-muon ID, uncorrelated over years and 5 bins / year (15 bins, for now use 5 bins, assume year dealt with downstream)
+      base += 2*nbin; nbin = 5; //178 - 187
+      if(isys >= base && isys < base+2*nbin) return Data(isys, Form("EmbTauMuID%i", (isys-base)/2), (isys-base)%2 == 0);
+      //tau anti-ele ID, uncorrelated over years and 3 bins / year (9 bins, for now use 3 bins, assume year dealt with downstream)
+      base += 2*nbin; nbin = 3; //188 - 193
+      if(isys >= base && isys < base+2*nbin) return Data(isys, Form("EmbTauEleID%i", (isys-base)/2), (isys-base)%2 == 0);
+      //embedding muon ES, 3 bins / year
+      base += 2*nbin; nbin = 3; //194 - 199
+      if(isys >= base && isys < base+2*nbin) return Data(isys, Form("EmbMuonES%i", (isys-base)/2), (isys-base)%2 == 0);
 
       //return the default result if no systematic is defined
       return Data();

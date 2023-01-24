@@ -80,12 +80,12 @@ BTagWeight::~BTagWeight() {
 // Get the b-tag efficiency in MC
 float BTagWeight::GetMCEff(const int WP, const int year, float jetpt, float jeteta, int jetflavor) {
   TH2D* h = 0;
-  jetflavor = abs(jetflavor);
-  if(jetpt > 999.) jetpt = 999.;
-  else if(jetpt < 20.) jetpt = 20.;
-  if(std::fabs(jeteta) > 2.4) {
+  jetflavor = std::abs(jetflavor);
+  if(jetpt > 999.f) jetpt = 999.f;
+  else if(jetpt < 20.f) jetpt = 20.f;
+  if(std::fabs(jeteta) > 2.4f) {
     std::cout << "!!! BTagWeight::" << __func__ << " jet |eta| > 2.4!\n";
-    jeteta = 2.39*jeteta/std::fabs(jeteta);
+    jeteta = (jeteta < 0.f) ? -2.39f : 2.39f;
   }
   if(jetflavor == 4) //c-quark
     h = histsC_[year][WP];
@@ -600,47 +600,58 @@ float BTagWeight::GetScaleFactor(const int WP, const int year, float jetpt, int 
 // Get the overall weight for the event to apply to MC
 float BTagWeight::GetWeight(const int wp, const int year, const int njets, const float* jetspt,
                             const float* jetseta, const int* jetsflavor, const int* jetsbtag,
-                            float& up, float& down) {
-  float weight(1.), prob_data(1.), prob_mc(1.);
-  up = 1.; down = 1.;
+                            float& up_bc, float& down_bc, float& up_l, float& down_l) {
+  float weight(1.f), prob_data(1.f), prob_mc(1.f);
+  up_bc = 1.f; down_bc = 1.f; up_l = 1.f; down_l = 1.f;
   if(verbose_ > 0)
     printf(" BTagWeight::%s: Printing b-tag info for %i jets:\n", __func__, njets);
-  const float max_eta = 2.4;
-  const float min_pt = 20.;
+  const float max_eta = 2.4f;
+  const float min_pt = 20.f;
   for(int jet = 0; jet < njets; ++jet) {
     if(std::fabs(jetseta[jet]) >= max_eta) continue; //not in b-tagging region
     if(jetspt[jet] <= min_pt) continue; //below pT threshold
     const float p_mc = GetMCEff(wp, year, jetspt[jet], jetseta[jet], jetsflavor[jet]); //efficiency in MC
-    float i_up, i_down;
-    const float scale_factor = GetScaleFactor(wp, year, jetspt[jet], jetsflavor[jet], i_up, i_down); //scale factor to match data
+    float sf_up, sf_down;
+    const float scale_factor = GetScaleFactor(wp, year, jetspt[jet], jetsflavor[jet], sf_up, sf_down); //scale factor to match data
     const float p_data = std::max(0.f, std::min(1.f, p_mc*scale_factor)); //0 <= probability <= 1
+    const bool isbc = std::abs(jetsflavor[jet]) == 4 || std::abs(jetsflavor[jet]) == 5; //is a b/c jet
     if(jetsbtag[jet] > wp) { //passes this working point
       prob_data *= p_data;
       prob_mc   *= p_mc;
-      up   *= std::max(0.f, std::min(1.f, p_mc*i_up  ));
-      down *= std::max(0.f, std::min(1.f, p_mc*i_down));
+      up_bc   *= std::max(0.f, std::min(1.f, p_mc*(( isbc) ? sf_up   : 1.f))); //b/c jet up/down scale
+      down_bc *= std::max(0.f, std::min(1.f, p_mc*(( isbc) ? sf_down : 1.f)));
+      up_l    *= std::max(0.f, std::min(1.f, p_mc*((!isbc) ? sf_up   : 1.f))); //light parton up/down scale
+      down_l  *= std::max(0.f, std::min(1.f, p_mc*((!isbc) ? sf_down : 1.f)));
     } else { //fails this working point
-      prob_data *= 1. - p_data;
-      prob_mc   *= 1. - p_mc;
-      up   *= 1. - std::max(0.f, std::min(1.f, p_mc*i_up  ));
-      down *= 1. - std::max(0.f, std::min(1.f, p_mc*i_down));
+      prob_data *= 1.f - p_data;
+      prob_mc   *= 1.f - p_mc;
+      up_bc   *= 1.f - std::max(0.f, std::min(1.f, p_mc*(( isbc) ? sf_up   : 1.f))); //b/c jet up/down scale
+      down_bc *= 1.f - std::max(0.f, std::min(1.f, p_mc*(( isbc) ? sf_down : 1.f)));
+      up_l    *= 1.f - std::max(0.f, std::min(1.f, p_mc*((!isbc) ? sf_up   : 1.f))); //light parton up/down scale
+      down_l  *= 1.f - std::max(0.f, std::min(1.f, p_mc*((!isbc) ? sf_down : 1.f)));
     }
     if(verbose_ > 0) {
       printf(" Jet %2i: pt = %.2f eta = %.2f flavor = %i tagged = %i scale = %.3f up = %.3f down = %.3f\n",
-             jet, jetspt[jet], jetseta[jet], jetsflavor[jet], jetsbtag[jet] > wp, scale_factor, i_up, i_down);
+             jet, jetspt[jet], jetseta[jet], jetsflavor[jet], jetsbtag[jet] > wp, scale_factor, sf_up, sf_down);
     }
   }
   if(prob_mc > 0. && std::isfinite(prob_data) && std::isfinite(prob_mc)) {
     weight = prob_data / prob_mc;
-    up   = (up   > 0.) ? up   / prob_mc : weight; //if up/down = 0, set to the weight value
-    down = (down > 0.) ? down / prob_mc : weight;
+    up_bc   = (up_bc   > 0.f) ? up_bc   / prob_mc : weight; //if up/down = 0, set to the nominal weight value
+    down_bc = (down_bc > 0.f) ? down_bc / prob_mc : weight;
+    up_l    = (up_l    > 0.f) ? up_l    / prob_mc : weight;
+    down_l  = (down_l  > 0.f) ? down_l  / prob_mc : weight;
   } else {
     std::cout << "!!! BTagWeight::" << __func__ << ": weight undefined! Returning 1...\n";
-    up   = 1.;
-    down = 1.;
+    up_bc   = 1.f;
+    down_bc = 1.f;
+    up_l    = 1.f;
+    down_l  = 1.f;
   }
-  if(!std::isfinite(up)  ) up   = weight; //if up/down are undefined, se to the weight value
-  if(!std::isfinite(down)) down = weight;
-  if(verbose_ > 0) printf(" weight = %.3f up = %.3f down = %.3f\n", weight, up, down);
+  if(!std::isfinite(up_bc)  ) up_bc   = weight; //if up/down are undefined, set to the nominal weight value
+  if(!std::isfinite(down_bc)) down_bc = weight;
+  if(!std::isfinite(up_l )  ) up_l    = weight;
+  if(!std::isfinite(down_l )) down_l  = weight;
+  if(verbose_ > 0) printf(" weight = %.3f (B/C): up = %.3f down = %.3f (else): up = %.3f down = %.3f\n", weight, up_bc, down_bc, up_l, down_l);
   return weight;
 }

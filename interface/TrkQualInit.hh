@@ -60,8 +60,24 @@ namespace CLFV {
       std::vector<TString> train_var;
       if(tau) {
         //v0 = current without spectators; current version is v12
-        if(version_ == 0 ) train_var = {"lepm", "lepmestimate", "deltaalpha", "mtone", "mttwo", "mtlep",
-                                        "leponept", "leptwopt", "lepdeltaphi", "leppt", "jetpt"};
+        // if(version_ == 0 ) train_var = {"lepm", "lepmestimate", "deltaalpha", "mtone", "mttwo", "mtlep",
+        //                                 "leponept", "leptwopt", "lepdeltaphi", "leppt", "jetpt"};
+        //FIXME: Decide on BDT variables
+        if(version_ == 0 ) train_var = {"lepm",
+                                        "lepmestimate", "beta1", "beta2",
+                                        "mtone", "mttwo", "mtlep",
+                                        "ptratio",
+                                        "lepdeltaphi", "leppt", "jetpt"};
+        // if(version_ ==  0) train_var = {"lepm", "lepmestimate-nu", "deltaalpha",
+        //                                 "leponeprimepz", "leponeprimee", "leptwoprimepz",
+        //                                 "leptwoprimepx", "leptwoprimee", "metprimee"};
+        // if(emu_data) {
+        //   if(version_ == 0 ) train_var = {"lepm", "lepmestimate", "deltaalpha", "onemetdeltaphi", "twometdeltaphi",
+        //                                   "ptratio", "lepdeltaphi", "leppt", "jetpt"};
+        // } else {
+        //   if(version_ == 0 ) train_var = {"lepm", "lepmestimate", "deltaalpha", "onemetdeltaphi", "twometdeltaphi",
+        //                                   "ptratio", "lepdeltaphi", "leppt", "jetpt"};
+        // }
 
         if(version_ ==  7) train_var = {"lepm", "lepmestimate", "deltaalpha", "mtone", "mttwo", "onemetdeltaphi", "twometdeltaphi",
                                         "leponept", "leptwopt", "lepdeltaphi", "leppt", "jetpt"};
@@ -152,6 +168,7 @@ namespace CLFV {
       if(version_ != 7 && tau && !selection.Contains("mutau_e")) {
         variables.push_back(Var_t("leponeprimepz0", "l_{1} #tilde{pz}", "GeV", &(tree.leponeprimepz[0])));
         variables.push_back(Var_t("leponeprimee0" , "l_{1} #tilde{E}" , "GeV", &(tree.leponeprimee [0])));
+        variables.push_back(Var_t("leponeprimepx0", "l_{1} #tilde{px}", "GeV", &(tree.leponeprimepx[0])));
         variables.push_back(Var_t("leptwoprimepz0", "l_{2} #tilde{pz}", "GeV", &(tree.leptwoprimepz[0])));
         variables.push_back(Var_t("leptwoprimepx0", "l_{2} #tilde{px}", "GeV", &(tree.leptwoprimepx[0])));
         variables.push_back(Var_t("leptwoprimee0" , "l_{2} #tilde{E}" , "GeV", &(tree.leptwoprimee [0])));
@@ -165,46 +182,42 @@ namespace CLFV {
         variables.push_back(Var_t("metprimee1"    , "MET #tilde{E}"   , "GeV", &(tree.metprimee    [1])));
       }
 
+      variables.push_back(Var_t("lepm" , "M_{ll}"    , "GeV", &tree.lepm ));
+      variables.push_back(Var_t("mtone", "MT(MET,l1)", ""   , &tree.mtone));
+      variables.push_back(Var_t("mttwo", "MT(MET,l2)", ""   , &tree.mttwo));
+      variables.push_back(Var_t("mtlep", "MT(MET,ll)", ""   , &tree.mtlep));
+      variables.push_back(Var_t("mtdiff", "#DeltaMT(MET,l)", ""   , &tree.mtdiff));
+      variables.push_back(Var_t("mtoneoverm", "MT(MET,l1)/M_{ll}", ""   , &tree.mtoneoverm));
+      variables.push_back(Var_t("mttwooverm", "MT(MET,l2)/M_{ll}", ""   , &tree.mttwooverm));
+      variables.push_back(Var_t("mtlepoverm", "MT(MET,ll)/M_{ll}", ""   , &tree.mtlepoverm));
+
       if(tau) {
-        variables.push_back(Var_t("lepm" , "M_{ll}"    , "GeV", &tree.lepm ));
-        variables.push_back(Var_t("mtone", "MT(MET,l1)", ""   , &tree.mtone));
-        variables.push_back(Var_t("mttwo", "MT(MET,l2)", ""   , &tree.mttwo));
         if(version_ != 7) {
-          variables.push_back(Var_t("mtlep", "MT(MET,ll)", ""   , &tree.mtlep));
           variables.push_back(Var_t("leptrkdeltam", "#DeltaM_{trk}", "", &tree.leptrkdeltam));
           variables.push_back(Var_t("leptrkdeltam", "pT_{trk}/pT", "", &tree.trkptoverpt));
         }
-      } else { //B->e+mu
-        variables.push_back(Var_t("lepm"      , "M_{ll}"           , "GeV", &tree.lepm      ));
-        variables.push_back(Var_t("mtoneoverm", "MT(MET,l1)/M_{ll}", ""   , &tree.mtoneoverm));
-        variables.push_back(Var_t("mttwooverm", "MT(MET,l2)/M_{ll}", ""   , &tree.mttwooverm));
-        if(version_ != 7) {
-          variables.push_back(Var_t("mtlepoverm", "MT(MET,ll)/M_{ll}", ""   , &tree.mtlepoverm));
-        }
       }
-
 
       variables.push_back(Var_t("onemetdeltaphi","#Delta#phi_{MET,l1}","", &tree.onemetdeltaphi));
       variables.push_back(Var_t("twometdeltaphi","#Delta#phi_{MET,l2}","", &tree.twometdeltaphi));
 
-      if(!emu) {
-        variables.push_back(Var_t("leponept","pT_{l1}","GeV", &tree.leponept));
-        variables.push_back(Var_t("leptwopt","pT_{l2}","GeV", &tree.leptwopt));
-        variables.push_back(Var_t("leppt"   ,"pT_{ll}","GeV", &tree.leppt   ));
-      } else {
-        variables.push_back(Var_t("leponeptoverm","pT_{l1}/M_{ll}","", &tree.leponeptoverm));
-        variables.push_back(Var_t("leptwoptoverm","pT_{l2}/M_{ll}","", &tree.leptwoptoverm));
-        variables.push_back(Var_t("lepptoverm"   ,"pT_{ll}/M_{ll}","", &tree.lepptoverm   ));
-      }
+      variables.push_back(Var_t("leponept","pT_{l1}","GeV", &tree.leponept));
+      variables.push_back(Var_t("leptwopt","pT_{l2}","GeV", &tree.leptwopt));
+      variables.push_back(Var_t("leppt"   ,"pT_{ll}","GeV", &tree.leppt   ));
+      variables.push_back(Var_t("leponeptoverm","pT_{l1}/M_{ll}","", &tree.leponeptoverm));
+      variables.push_back(Var_t("leptwoptoverm","pT_{l2}/M_{ll}","", &tree.leptwoptoverm));
+      variables.push_back(Var_t("lepptoverm"   ,"pT_{ll}/M_{ll}","", &tree.lepptoverm   ));
+
       variables.push_back(Var_t("lepdeltaphi","#Delta#phi_{ll}"    ,"", &tree.lepdeltaphi));
       variables.push_back(Var_t("lepdeltaeta","#Delta#eta_{ll}"    ,"", &tree.lepdeltaeta));
       variables.push_back(Var_t("metdeltaphi","#Delta#phi_{MET,ll}","", &tree.metdeltaphi));
 
-      // variables.push_back(Var_t("pxivis","p^{vis}_{#xi}","", &tree.pxivis));
-      // variables.push_back(Var_t("pxiinv","p^{inv}_{#xi}","", &tree.pxiinv));
-
       //tau specific
       if(tau) {
+        //visible --> tau scaling values, assuming Z mass and 0 tau mass
+        variables.push_back(Var_t("beta1","#beta_{1}","",&tree.beta1));
+        variables.push_back(Var_t("beta2","#beta_{2}","",&tree.beta2));
+
         //Delta alpha, difference between loss estimate using ~mass and pT ratio
         if(selection.Contains("z")) {
           if(selection.Contains("_e"))
@@ -217,15 +230,26 @@ namespace CLFV {
           else
             variables.push_back(Var_t("deltaalphah2","#Delta#alpha","",&tree.deltaalphah2));
         }
-        if((!selection.Contains("mutau_e")))
-          variables.push_back(Var_t("lepmestimate","M_{ll}^{Coll}","GeV", &tree.mestimate));
+        if(selection.EndsWith("_e"))
+          variables.push_back(Var_t("deltaalpham1","M(#Delta#alpha)","",&tree.deltaalpham1));
         else
+          variables.push_back(Var_t("deltaalpham2","M(#Delta#alpha)","",&tree.deltaalpham2));
+        if((!selection.Contains("mutau_e"))) {
+          variables.push_back(Var_t("lepmestimate","M_{ll}^{Coll}","GeV", &tree.mestimate));
+          variables.push_back(Var_t("lepmestimatethree","M_{ll}^{Coll-nu}","GeV", &tree.mestimatethree));
+          variables.push_back(Var_t("lepmbalance","M_{ll}^{Bal}","GeV", &tree.mbalance));
+          variables.push_back(Var_t("lepmestimatecut1","M_{ll}^{Coll}","GeV", &tree.mestimate_cut_1));
+        } else {
           variables.push_back(Var_t("lepmestimatetwo","M_{ll}^{Coll}","GeV", &tree.mestimatetwo));
-
+          variables.push_back(Var_t("lepmestimatefour","M_{ll}^{Coll-nu}","GeV", &tree.mestimatefour));
+          variables.push_back(Var_t("lepmbalancetwo","M_{ll}^{Bal}","GeV", &tree.mbalancetwo));
+          variables.push_back(Var_t("lepmestimatecut2","M_{ll}^{Coll}","GeV", &tree.mestimate_cut_2));
+        }
+        variables.push_back(Var_t("ptauvisfrac","p_#tau frac","", &tree.ptauvisfrac));
       } else { //end tau specific
         variables.push_back(Var_t("lepmestimate","M_{ll}^{Coll}","GeV", &tree.mestimate));
       }
-
+        variables.push_back(Var_t("lepmestimate","M_{ll}^{Coll}","GeV", &tree.mestimate));
       if(version_ == 7) {
         variables.push_back(Var_t("leponedeltaphi","#Delta#phi_{l1,ll}","", &tree.leponedeltaphi));
         variables.push_back(Var_t("leptwodeltaphi","#Delta#phi_{l2,ll}","", &tree.leptwodeltaphi));
@@ -249,6 +273,7 @@ namespace CLFV {
         variables.push_back(Var_t("pzetavis","#zeta vis","", &tree.pzetavis));
         variables.push_back(Var_t("pzetainv","#zeta inv","", &tree.pzetainv));
         variables.push_back(Var_t("ptdiff","pT_{1} - pT_{2}","", &tree.ptdiff));
+        variables.push_back(Var_t("ptratio","pT_{1} / pT_{2}","", &tree.ptratio));
         if(emu) variables.push_back(Var_t("ptdiffoverm","#DeltapT / M","", &tree.ptdiffoverm));
       }
 
@@ -258,7 +283,10 @@ namespace CLFV {
         if(name.Contains("trk") && emu_data) continue; //only relevant for hadronic taus
         for(Var_t& var : variables) {
           if(var.var_ == name) var.use_ = true;
-          else if(name.Contains("lepmestimate") && var.var_.Contains(name)) var.use_ = true; //assume only correct version added
+          else if(name == "lepmestimate" && (var.var_ == "lepmestimate" || var.var_ == "lepmestimatetwo")) var.use_ = true; //assume only correct version added
+          else if(name == "lepmestimate-nu" && (var.var_ == "lepmestimatethree" || var.var_ == "lepmestimatefour")) var.use_ = true; //assume only correct version added
+          else if(name == "lepmestimatecut" && (var.var_ == "lepmestimatecut1" || var.var_ == "lepmestimatecut2")) var.use_ = true; //assume only correct version added
+          else if(name == "lepmbalance" && (var.var_ == "lepmbalance" || var.var_ == "lepmbalancetwo")) var.use_ = true; //assume only correct version added
           else if(name.Contains("deltaalpha") && var.var_.Contains(name)) var.use_ = true; //assume only correct version added
           else if(name.Contains("prime") && var.var_.Contains(name)) var.use_ = true; //assume only correct version added
           else continue;
@@ -280,8 +308,11 @@ namespace CLFV {
       std::vector<Var_t> variables = GetVariables(selection, tree);
       for(unsigned index = 0; index < variables.size(); ++index) {
         Var_t& var = variables[index];
-        if(var.use_)           loader.AddVariable (var.var_.Data(), var.desc_.Data(), var.unit_.Data(), var.type_);
-        else if(version_ != 0) loader.AddSpectator(var.var_.Data(), var.desc_.Data(), var.unit_.Data(), var.type_);
+        if(var.use_)                    loader.AddVariable (var.var_.Data(), var.desc_.Data(), var.unit_.Data(), var.type_);
+        else if(version_ != 0)          loader.AddSpectator(var.var_.Data(), var.desc_.Data(), var.unit_.Data(), var.type_);
+        else if(var.var_ == "issignal") loader.AddSpectator(var.var_.Data(), var.desc_.Data(), var.unit_.Data(), var.type_);
+        else if(var.var_ == "fulleventweightlum") loader.AddSpectator(var.var_.Data(), var.desc_.Data(), var.unit_.Data(), var.type_);
+        else if(var.var_ == "type") loader.AddSpectator(var.var_.Data(), var.desc_.Data(), var.unit_.Data(), var.type_);
       }
       return status;
     }
@@ -291,8 +322,11 @@ namespace CLFV {
       std::vector<Var_t> variables = GetVariables(selection, tree);
       for(unsigned index = 0; index < variables.size(); ++index) {
         Var_t& var = variables[index];
-        if(var.use_)           reader.AddVariable (var.var_.Data(), var.val_/*, var.unit_.Data(), var.type_*/);
-        else if(version_ != 0) reader.AddSpectator(var.var_.Data(), var.val_/*, var.unit_.Data(), var.type_*/);
+        if(var.use_)                    reader.AddVariable (var.var_.Data(), var.val_/*, var.unit_.Data(), var.type_*/);
+        else if(version_ != 0)          reader.AddSpectator(var.var_.Data(), var.val_/*, var.unit_.Data(), var.type_*/);
+        else if(var.var_ == "issignal") reader.AddSpectator(var.var_.Data(), var.val_);
+        else if(var.var_ == "fulleventweightlum") reader.AddSpectator(var.var_.Data(), var.val_);
+        else if(var.var_ == "type") reader.AddSpectator(var.var_.Data(), var.val_);
       }
       return status;
     }

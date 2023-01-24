@@ -143,6 +143,34 @@ namespace CLFV {
     }
 
     //------------------------------------------------------------------------------------------------------
+    // minimum in histogram for a given range
+    static double H1Min(TH1* h, const double xmin = 1., const double xmax = -1.) {
+      if(!h) {
+        printf("Utilities::%s: Undefined histogram!\n", __func__);
+        return -1.;
+      }
+      const int bin_lo = (xmin < xmax) ? std::max(1, h->FindBin(xmin)) : 1;
+      const int bin_hi = (xmin < xmax) ? std::min(h->GetNbinsX(), h->FindBin(xmax)) : h->GetNbinsX();
+      double min_val = h->GetBinContent(bin_lo);
+      for(int ibin = bin_lo+1; ibin <= bin_hi; ++ibin) min_val = std::min(min_val, h->GetBinContent(ibin));
+      return min_val;
+    }
+
+    //------------------------------------------------------------------------------------------------------
+    // maximum in histogram for a given range
+    static double H1Max(TH1* h, const double xmin = 1., const double xmax = -1.) {
+      if(!h) {
+        printf("Utilities::%s: Undefined histogram!\n", __func__);
+        return -1.;
+      }
+      const int bin_lo = (xmin < xmax) ? std::max(1, h->FindBin(xmin)) : 1;
+      const int bin_hi = (xmin < xmax) ? std::min(h->GetNbinsX(), h->FindBin(xmax)) : h->GetNbinsX();
+      double max_val = h->GetBinContent(bin_lo);
+      for(int ibin = bin_lo+1; ibin <= bin_hi; ++ibin) max_val = std::max(max_val, h->GetBinContent(ibin));
+      return max_val;
+    }
+
+    //------------------------------------------------------------------------------------------------------
     static int SetBranchAddress(TTree*& tree,  const char* branch, void* val, TBranch** br = nullptr) {
       if(!tree->GetBranch(branch)) {
         std::cout << "Utilities::" << __func__ << ": Unknown branch " << branch << std::endl;
@@ -161,7 +189,7 @@ namespace CLFV {
     }
 
     //------------------------------------------------------------------------------------------------------
-    // Delta Phi in [-phi, phi)
+    // Delta Phi in [-pi, pi)
     static double DeltaPhi(const double phi_1, const double phi_2) {
       if(!std::isfinite(phi_1) || !std::isfinite(phi_2)) {
         std::cout << "Utilities::" << __func__ << ": Input phi values are not finite!\n";

@@ -25,7 +25,7 @@ namespace CLFV {
     float GetScaleFactor(const int WP, const int year, float jetpt, int jetFlavor, float& up, float& down);
     float GetWeight(const int wp, const int year, const int njets, const float* jetspt,
                     const float* jetseta, const int* jetsflavor, const int* jetsbtag,
-                    float& up, float& down);
+                    float& up_bc, float& down_bc, float& up_l, float& down_l);
 
     float BTagCut(int wp, int year) {
       double val = -1.;
