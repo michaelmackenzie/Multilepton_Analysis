@@ -51,6 +51,8 @@ namespace CLFV {
     Bool_t          fTriggerTesting = false; //add emu histograms for electron/muon triggered events
     Bool_t          fDoMVASets = false; //for filling MVA cut sets even in DYTesting mode
 
+    Bool_t          fDebugBit = false;
+
     ClassDef(CLFVHistMaker,0);
 
   };

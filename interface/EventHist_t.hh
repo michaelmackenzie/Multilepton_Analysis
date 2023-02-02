@@ -256,6 +256,7 @@ namespace CLFV {
     TH1* hLepMEstimateThree;
     TH1* hLepMEstimateFour;
     TH1* hLepMEstimateCut[2];
+    TH1* hLepMEstimateAvg[2];
     TH1* hLepMBalance;
     TH1* hLepMBalanceTwo;
     TH1* hLepTrkM;

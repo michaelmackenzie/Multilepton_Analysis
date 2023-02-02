@@ -158,14 +158,16 @@ void HistMaker::Begin(TTree * /*tree*/)
 
   //Initialize MVA tools
   TMVA::Tools::Instance(); //load the TMVA library
-  for(int i = 0; i < kMaxMVAs; ++i) mva[i] = 0; //initially 0s
+  for(int i = 0; i < kMaxMVAs; ++i) mva[i] = nullptr; //initially 0s
 
   if(fReprocessMVAs) {
     for(unsigned mva_i = 0; mva_i < fMVAConfig.names_.size(); ++mva_i) {
-      mva[mva_i] = nullptr;
       //only initialize necessary MVAs
-      if(fSelection != "" && fSelection.Contains("tau") && !fMVAConfig.names_[mva_i].Contains(fSelection.Data())) continue;
-      mva[mva_i] = new TMVA::Reader("!Color:!Silent");
+      if(fSelection != "" && !fMVAConfig.names_[mva_i].Contains(fSelection.Data())) continue;
+      //ignore leptonic tau MVAs in hadronic channels
+      if(fSelection.EndsWith("tau") && (fMVAConfig.names_[mva_i].Contains("tau_e") || fMVAConfig.names_[mva_i].Contains("tau_mu"))) continue;
+
+      //determine the selection for defining the variables
       TString selection = "";
       if(fMVAConfig.names_[mva_i].Contains("higgs")) {if(!fDoHiggs) continue; else selection += "h";}
       else selection += "z";
@@ -175,11 +177,14 @@ void HistMaker::Begin(TTree * /*tree*/)
       else {
         printf ("Warning! Didn't determine mva weight file %s corresponding selection!\n",
                 fMVAConfig.names_[mva_i].Data());
-        selection += "mutau"; //just to default to something
+        continue;
       }
       //add for leptonic tau channels FIXME: Put as part of original check
       if(fMVAConfig.names_[mva_i].Contains("mutau_e")) selection += "_e";
       else if(fMVAConfig.names_[mva_i].Contains("etau_mu")) selection += "_mu";
+
+      //initialize the reader
+      mva[mva_i] = new TMVA::Reader("!Color:!Silent");
 
       Int_t isJetBinned = -1; // -1 is not binned, 0 = 0 jets, 1 = 1 jet, 2 = >1 jets
       if(fMVAConfig.names_[mva_i].Contains("_18") || //0 jet
@@ -431,6 +436,8 @@ void HistMaker::BookBaseEventHistograms(Int_t i, const char* dirname) {
       Utilities::BookH1F(fEventHist[i]->hLepMEstimateFour, "lepmestimatefour", Form("%s: Estimate di-lepton mass"  ,dirname)  ,100,0.,  200, folder);
       Utilities::BookH1F(fEventHist[i]->hLepMEstimateCut[0], "lepmestimatecut0"   , Form("%s: Estimate di-lepton mass"  ,dirname)  ,100,0.,  200, folder);
       Utilities::BookH1F(fEventHist[i]->hLepMEstimateCut[1], "lepmestimatecut1"   , Form("%s: Estimate di-lepton mass"  ,dirname)  ,100,0.,  200, folder);
+      Utilities::BookH1F(fEventHist[i]->hLepMEstimateAvg[0], "lepmestimateavg0"   , Form("%s: Estimate di-lepton mass"  ,dirname)  ,100,0.,  200, folder);
+      Utilities::BookH1F(fEventHist[i]->hLepMEstimateAvg[1], "lepmestimateavg1"   , Form("%s: Estimate di-lepton mass"  ,dirname)  ,100,0.,  200, folder);
       Utilities::BookH1F(fEventHist[i]->hLepMBalance    , "lepmbalance"    , Form("%s: Estimate di-lepton mass"  ,dirname)  ,100,0.,  200, folder);
       Utilities::BookH1F(fEventHist[i]->hLepMBalanceTwo , "lepmbalancetwo" , Form("%s: Estimate di-lepton mass"  ,dirname)  ,100,0.,  200, folder);
       Utilities::BookH1F(fEventHist[i]->hLepPtOverM     , "lepptoverm"     , Form("%s: Lepton Pt / M"       ,dirname),  40,   0,   4, folder);
@@ -708,6 +715,8 @@ void HistMaker::BookBaseTree(Int_t index) {
   fTrees[index]->Branch("lepmestimatefour"   , &fTreeVars.mestimatefour     );
   fTrees[index]->Branch("lepmestimatecut1"   , &fTreeVars.mestimate_cut_1   );
   fTrees[index]->Branch("lepmestimatecut2"   , &fTreeVars.mestimate_cut_2   );
+  fTrees[index]->Branch("lepmestimateavg1"   , &fTreeVars.mestimate_avg_1   );
+  fTrees[index]->Branch("lepmestimateavg2"   , &fTreeVars.mestimate_avg_2   );
   fTrees[index]->Branch("lepmbalance"        , &fTreeVars.mbalance          );
   fTrees[index]->Branch("lepmbalancetwo"     , &fTreeVars.mbalancetwo       );
   fTrees[index]->Branch("ptauvisfrac"        , &fTreeVars.ptauvisfrac       );
@@ -978,6 +987,7 @@ void HistMaker::InitializeInputTree(TTree* tree) {
 
     Utilities::SetBranchAddress(tree, "nGenPart"                      , &nGenPart                      );
     Utilities::SetBranchAddress(tree, "GenPart_pdgId"                 , &GenPart_pdgId                 );
+    Utilities::SetBranchAddress(tree, "GenPart_pt"                    , &GenPart_pt                    );
     Utilities::SetBranchAddress(tree, "GenPart_genPartIdxMother"      , &GenPart_genPartIdxMother      );
   }
 
@@ -1049,28 +1059,38 @@ void HistMaker::ApplyElectronCorrections() {
 //-----------------------------------------------------------------------------------------------------------------
 //apply the Rochester corrections to the muon pt for all muons
 void HistMaker::ApplyMuonCorrections() {
+  //FIXME: Update to using the Rochester correction uncertainty instead of size
+  const static bool use_size(true); //use Rochester size or evaluated uncertainty
   float delta_x(metCorr*std::cos(metCorrPhi)), delta_y(metCorr*std::sin(metCorrPhi));
   const static int s(0), m(0); //error set and member for corrections
+  const static int sys_s(2), sys_m(0); //FIXME: Decide on a systematic correction set, currently using Zpt
   for(UInt_t index = 0; index < nMuon; ++index) {
-    if(fIsEmbed) {  //don't correct embedding muons
+    if(fIsEmbed && !fUseEmbedRocco) {  //don't correct embedding muons
       Muon_RoccoSF[index] = 1.f;
       const float abs_eta = std::fabs(Muon_eta[index]);
       Muon_ESErr[index] = (abs_eta < 1.2) ? 0.004 : (abs_eta < 2.1) ? 0.009 : 0.027;
       continue;
     }
     const double u = fRnd->Uniform();
-    double sf = 1.;
+    double sf(1.), err(0.);
     if(fIsData) {
       sf = fRoccoR->kScaleDT(Muon_charge[index], Muon_pt[index], Muon_eta[index], Muon_phi[index], s, m);
-    } else {
-      // //For muons in embedding events not identified as the main leptons, apply typical data corrections
-      // if(fIsEmbed && (abs(leptonOne.flavor) != 13 || (int) index != leptonOneIndex) && (abs(leptonTwo.flavor) != 13 || (int) index != leptonTwoIndex)) {
-      //   sf = fRoccoR->kScaleDT(Muon_charge[index], Muon_pt[index], Muon_eta[index], Muon_phi[index], s, m);
-      // } else {
+      err = 0.; //ignore error on data
+    } else { //MC or Embedding if using Rochester corrections
       //For simulated muons, both in embedding and standard MC, apply given MC corrections
-      sf = fRoccoR->kSmearMC(Muon_charge[index], Muon_pt[index], Muon_eta[index], Muon_phi[index], Muon_nTrackerLayers[index], u, s, m);
-      //FIXME: use kSpreadMC with the gen-level muon info (see RoccoR.h:L242)
-      // }
+      if(Muon_genPartIdx[index] >= 0) { //matched to a gen particle
+        sf   = fRoccoR->kSpreadMC(Muon_charge[index], Muon_pt[index], Muon_eta[index], Muon_phi[index], GenPart_pt[Muon_genPartIdx[index]], s, m);
+        err  = fRoccoR->kSpreadMC(Muon_charge[index], Muon_pt[index], Muon_eta[index], Muon_phi[index], GenPart_pt[Muon_genPartIdx[index]], sys_s, sys_m);
+        err *= fRoccoR->kScaleDT (Muon_charge[index], Muon_pt[index], Muon_eta[index], Muon_phi[index], s, m);
+        err /= fRoccoR->kScaleDT (Muon_charge[index], Muon_pt[index], Muon_eta[index], Muon_phi[index], sys_s, sys_m);
+        err = std::fabs(sf - err);
+      } else { //not matched
+        sf   = fRoccoR->kSmearMC(Muon_charge[index], Muon_pt[index], Muon_eta[index], Muon_phi[index], Muon_nTrackerLayers[index], u, s, m);
+        err  = fRoccoR->kSmearMC(Muon_charge[index], Muon_pt[index], Muon_eta[index], Muon_phi[index], Muon_nTrackerLayers[index], u, sys_s, sys_m);
+        err *= fRoccoR->kScaleDT(Muon_charge[index], Muon_pt[index], Muon_eta[index], Muon_phi[index], s, m);
+        err /= fRoccoR->kScaleDT(Muon_charge[index], Muon_pt[index], Muon_eta[index], Muon_phi[index], sys_s, sys_m);
+        err = std::fabs(sf - err);
+      }
     }
     double pt_diff = Muon_pt[index];
     Muon_pt[index] *= sf;
@@ -1079,9 +1099,8 @@ void HistMaker::ApplyMuonCorrections() {
     //subtract the change from the MET
     delta_x -= pt_diff*std::cos(Muon_phi[index]);
     delta_y -= pt_diff*std::sin(Muon_phi[index]);
-    //FIXME: implement rocco errors
-    Muon_ESErr[index] = std::fabs(1. - sf); //size of the correction for now
-
+    if(use_size) Muon_ESErr[index] = std::fabs(1. - sf); //size of the correction
+    else         Muon_ESErr[index] = err; //evaluated uncertainty
   }
   metCorr = std::sqrt(delta_x*delta_x + delta_y*delta_y);
   metCorrPhi = (metCorr > 0.f) ? std::acos(std::max(-1.f, std::min(1.f, delta_x/metCorr)))*(delta_y < 0.f ? -1 : 1) : 0.f;
@@ -1707,40 +1726,59 @@ void HistMaker::SetKinematics() {
   TVector3 bisector = (lp1.Mag()*lp2 + lp2.Mag()*lp1); //divides leptons
   if(bisector.Mag() > 0.) bisector.SetMag(1.);
 
+  //////////////////////////////////////////////
+  // MET projections and neutrino estimates
+
   //project onto the bisectors
   fTreeVars.pzetavis     = (lp1+lp2)*bisector;
   fTreeVars.pzetainv     = missing*bisector;
   fTreeVars.pzetaall     = (lp1 + lp2 + missing)*bisector;
   fTreeVars.dzeta        = fTreeVars.pzetaall - 0.85*fTreeVars.pzetavis;
-  //FIXME: Should the neutrino momentum be allowed to be negative?
-  // const double pnuest    = std::max(1.e-8,lp2*missing/lp2.Mag()); //inv pT along tau = lep 2 pt unit vector dot missing
-  // const double pnuesttwo = std::max(1.e-8,lp1*missing/lp1.Mag()); //inv pT along tau = lep 1 (for emu case with tau decay)
-  const double pnuest    = std::max(-0.999*lp2.Mag(),lp2*missing/lp2.Mag()); //inv pT along tau = lep 2 pt unit vector dot missing
-  // const double pnuesttwo = std::max(-0.999*lp2.Mag(),lp1*missing/lp1.Mag()); //inv pT along tau = lep 1 (for emu case with tau decay)
-  fTreeVars.ptauvisfrac  = lp2.Mag() / (std::max(1.e-5, lp2.Mag() + pnuest));
+
+  //project MET onto leptons
   fTreeVars.metdotl1 = missing*lp1/lp1.Mag(); //MET along lep 1
   fTreeVars.metdotl2 = missing*lp2/lp2.Mag(); //MET along lep 2
+  const double pnuest    = std::max(-0.999*lp2.Mag(),(double) fTreeVars.metdotl2); //inv pT along tau = lep 2 pt unit vector dot missing
+  fTreeVars.ptauvisfrac  = lp2.Mag() / (std::max(1.e-5, lp2.Mag() + pnuest));
 
-  //FIXME: Confirm the M(Z) collinear estimate strategy
   //M(collinear), only using >= 0 MET along tau
   fTreeVars.mestimate_cut_1 = fTreeVars.lepm*((fTreeVars.metdotl2 > 0.f) ? sqrt((fTreeVars.metdotl2 + lp2.Mag())/lp2.Mag()) : 1.f); //tau = lep 2
   fTreeVars.mestimate_cut_2 = fTreeVars.lepm*((fTreeVars.metdotl1 > 0.f) ? sqrt((fTreeVars.metdotl1 + lp1.Mag())/lp1.Mag()) : 1.f); //tau = lep 1
-  //M(collinear), using neutrino = MET along tau, including larger pT than tau
-  TLorentzVector nu_coll; //take the neutrino
-  float nu_pt = (missing*lp2)/lp2.Mag();
-  nu_coll.SetPtEtaPhiM(std::fabs(nu_pt), leptonTwo.eta, leptonTwo.phi + ((nu_pt < 0.f) ? M_PI : 0.f), 0.);
+
+  //M(collinear), using neutrino = MET along tau, including larger pT than tau in opposite direction
+  //if pT neutrino is negative, make it anti-parallel instead
+  TLorentzVector nu_coll;
+  TVector3 nu_avg_1_p, nu_avg_2_p; //neutrino 3-vector estimates
+  float nu_pt = fTreeVars.metdotl2; //test lepton 2 as the tau
+  nu_coll.SetPtEtaPhiM(std::fabs(nu_pt), leptonTwo.eta*((nu_pt < 0.f) ? -1.f : 1.f), leptonTwo.phi + ((nu_pt < 0.f) ? M_PI : 0.f), 0.);
   fTreeVars.mestimate = (lep + nu_coll).M();
   fTreeVars.p_nu_col_1 = nu_pt;
-  nu_pt = (missing*lp1)/lp1.Mag();
-  nu_coll.SetPtEtaPhiM(std::fabs(nu_pt), leptonOne.eta, leptonOne.phi + ((nu_pt < 0.f) ? M_PI : 0.f), 0.);
+  nu_avg_1_p = nu_coll.Vect();
+  nu_pt = fTreeVars.metdotl1; //test lepton 1 as the tau
+  nu_coll.SetPtEtaPhiM(std::fabs(nu_pt), leptonOne.eta*((nu_pt < 0.f) ? -1.f : 1.f), leptonOne.phi + ((nu_pt < 0.f) ? M_PI : 0.f), 0.);
   fTreeVars.mestimatetwo = (lep + nu_coll).M();
   fTreeVars.p_nu_col_2 = nu_pt;
+  nu_avg_2_p = nu_coll.Vect();
 
   //get the neutrino momentum by assuming the light lepton and tau had the same pT to begin with, and it's collinear
-  nu_coll.SetPtEtaPhiM(std::fabs(leptonOne.pt - leptonTwo.pt), leptonTwo.eta, leptonTwo.phi + (leptonOne.pt < leptonTwo.pt) ? M_PI : 0.f, 0.f);
+  //if pT neutrino is negative, make it anti-parallel instead
+  nu_coll.SetPtEtaPhiM(std::fabs(leptonOne.pt - leptonTwo.pt), leptonTwo.eta*((leptonOne.pt < leptonTwo.pt) ? -1.f : 1.f), leptonTwo.phi + (leptonOne.pt < leptonTwo.pt) ? M_PI : 0.f, 0.f);
   fTreeVars.mbalance = (nu_coll + lep).M();
-  nu_coll.SetPtEtaPhiM(std::fabs(leptonTwo.pt - leptonOne.pt), leptonOne.eta, leptonOne.phi + (leptonTwo.pt < leptonOne.pt) ? M_PI : 0.f, 0.f);
+  fTreeVars.p_nu_bal_1 = nu_coll.Pt();
+  nu_avg_1_p += nu_coll.Vect();
+  nu_coll.SetPtEtaPhiM(std::fabs(leptonTwo.pt - leptonOne.pt), leptonOne.eta*((leptonTwo.pt < leptonOne.pt) ? -1.f : 1.f), leptonOne.phi + (leptonTwo.pt < leptonOne.pt) ? M_PI : 0.f, 0.f);
   fTreeVars.mbalancetwo = (nu_coll + lep).M();
+  fTreeVars.p_nu_bal_2 = nu_coll.Pt();
+  nu_avg_2_p += nu_coll.Vect();
+
+  //average the neutrino estimates from the pT balancing and MET projection strategies
+  nu_avg_1_p *= 0.5;
+  nu_avg_2_p *= 0.5;
+  TLorentzVector nu_avg_1(nu_avg_1_p, nu_avg_1_p.Mag()), nu_avg_2(nu_avg_2_p, nu_avg_2_p.Mag());
+  fTreeVars.mestimate_avg_1 = (nu_avg_1 + lep).M();
+  fTreeVars.p_nu_avg_1 = nu_avg_1.Pt();
+  fTreeVars.mestimate_avg_2 = (nu_avg_2 + lep).M();
+  fTreeVars.p_nu_avg_2 = nu_avg_2.Pt();
 
   //get the neutrino eta from the tau eta, but the pT/phi from the MET
   TLorentzVector nu_est;
@@ -1780,11 +1818,6 @@ void HistMaker::SetKinematics() {
   //mass from delta alpha equation: m_boson = sqrt(m_tau^2 + pT(lep)/pT(tau) * (p(l1) dot p(l2)))
   fTreeVars.deltaalpham1 = std::sqrt(tmass*tmass + fTreeVars.alpha2 * lepdot); //lep 1 = tau
   fTreeVars.deltaalpham2 = std::sqrt(tmass*tmass + fTreeVars.alpha3 * lepdot); //lep 2 = tau
-
-  //event variables
-  fTreeVars.ht       = ht;
-  fTreeVars.htsum    = htSum;
-  fTreeVars.jetpt    = jetOneP4->Pt();
 
   //Perform a transform to the Z/H boson frame
   //Requires knowledge of which lepton has associated neutrinos (or if none do)
@@ -1857,6 +1890,13 @@ void HistMaker::SetKinematics() {
       fTreeVars.metprimee    [imode] =    metPrime.E();
     }
   }
+
+  ////////////////////////////////////////
+  // Additional Event Variables
+
+  fTreeVars.ht       = ht;
+  fTreeVars.htsum    = htSum;
+  fTreeVars.jetpt    = jetOneP4->Pt();
 }
 
 //--------------------------------------------------------------------------------------------------------------
@@ -1878,17 +1918,21 @@ void HistMaker::EvalMVAs(TString TimerName) {
     selecName = "unknown";
   }
   for(unsigned i = 0; i < fMVAConfig.names_.size(); ++i) {
-    if((fMVAConfig.names_[i].Contains(selecName.Data()) || //is this selection
-        (selecName == "emu" && (fMVAConfig.names_[i].Contains("_e") || fMVAConfig.names_[i].Contains("_mu"))) || //or leptonic tau category
-        ((selecName == "mumu" || selecName == "ee") && fMVAConfig.names_[i].Contains("emu")) //or is emu MVA in ee/mumu region
-        )
-       ) {
-      if(!fDoHiggs && fMVAConfig.names_[i].Contains("higgs")) {fMvaOutputs[i] = -2.f; continue;} //skip Higgs MVAs if not processing Higgs selections
-      if(lep_tau > 0 && fMVAConfig.names_[i].Contains("emu")) {fMvaOutputs[i] = -2.f; continue;} //skip B->emu MVAs if doing leptonic tau processing
-      fMvaOutputs[i] = mva[i]->EvaluateMVA(fMVAConfig.names_[i].Data());
-    } else {
-      fMvaOutputs[i] = -2.f;
-    }
+    //assume only relevant MVAs are configured
+    fMvaOutputs[i] = -2.f;
+    if(!mva[i]) continue;
+    fMvaOutputs[i] = mva[i]->EvaluateMVA(fMVAConfig.names_[i].Data());
+    // if((fMVAConfig.names_[i].Contains(selecName.Data()) || //is this selection
+    //     (selecName == "emu" && (fMVAConfig.names_[i].Contains("_e") || fMVAConfig.names_[i].Contains("_mu"))) || //or leptonic tau category
+    //     ((selecName == "mumu" || selecName == "ee") && fMVAConfig.names_[i].Contains("emu")) //or is emu MVA in ee/mumu region
+    //     )
+    //    ) {
+    //   if(!fDoHiggs && fMVAConfig.names_[i].Contains("higgs")) {fMvaOutputs[i] = -2.f; continue;} //skip Higgs MVAs if not processing Higgs selections
+    //   if(lep_tau > 0 && fMVAConfig.names_[i].Contains("emu")) {fMvaOutputs[i] = -2.f; continue;} //skip B->emu MVAs if doing leptonic tau processing
+    //   fMvaOutputs[i] = mva[i]->EvaluateMVA(fMVAConfig.names_[i].Data());
+    // } else {
+    //   fMvaOutputs[i] = -2.f;
+    // }
 
     if(fMvaOutputs[i] < -2.1f) {
       std::cout << "Error value returned for MVA " << fMVAConfig.names_[i].Data()
@@ -2610,6 +2654,8 @@ void HistMaker::FillBaseEventHistogram(EventHist_t* Hist) {
   Hist->hLepMEstimateFour->Fill(fTreeVars.mestimatefour, eventWeight*genWeight);
   Hist->hLepMEstimateCut[0]->Fill(fTreeVars.mestimate_cut_1, eventWeight*genWeight);
   Hist->hLepMEstimateCut[1]->Fill(fTreeVars.mestimate_cut_2, eventWeight*genWeight);
+  Hist->hLepMEstimateAvg[0]->Fill(fTreeVars.mestimate_avg_1, eventWeight*genWeight);
+  Hist->hLepMEstimateAvg[1]->Fill(fTreeVars.mestimate_avg_2, eventWeight*genWeight);
   Hist->hLepMBalance    ->Fill(fTreeVars.mbalance    , eventWeight*genWeight);
   Hist->hLepMBalanceTwo ->Fill(fTreeVars.mbalancetwo , eventWeight*genWeight);
   Hist->hLepTrkM        ->Fill(fTreeVars.leptrkm     , eventWeight*genWeight);

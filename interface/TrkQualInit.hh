@@ -63,11 +63,54 @@ namespace CLFV {
         // if(version_ == 0 ) train_var = {"lepm", "lepmestimate", "deltaalpha", "mtone", "mttwo", "mtlep",
         //                                 "leponept", "leptwopt", "lepdeltaphi", "leppt", "jetpt"};
         //FIXME: Decide on BDT variables
-        if(version_ == 0 ) train_var = {"lepm",
-                                        "lepmestimate", "beta1", "beta2",
-                                        "mtone", "mttwo", "mtlep",
-                                        "ptratio",
-                                        "lepdeltaphi", "leppt", "jetpt"};
+        if(emu_data) {
+          if(selection.Contains("etau")) {
+            if(version_ == 0 ) train_var = {"lepm",
+                                            "lepmestimate",
+                                            // "lepmestimateavg",
+                                            "beta1", "beta2",
+                                            // "mtone", "mttwo", "mtlep",
+                                            // "onemetdeltaphi", "twometdeltaphi", "metdeltaphi",
+                                            "mtone", "twometdeltaphi",
+                                            "ptratio",
+                                            "lepdeltaphi", "leppt", "jetpt"};
+          } else { //mutau_e
+            if(version_ == 0 ) train_var = {"lepm",
+                                            "lepmestimate",
+                                            // "lepmestimateavg",
+                                            "beta1", "beta2",
+                                            // "mtone", "mttwo", "mtlep",
+                                            // "onemetdeltaphi", "twometdeltaphi", "metdeltaphi",
+                                            "mttwo", "onemetdeltaphi",
+                                            "ptratio",
+                                            "lepdeltaphi", "leppt", "jetpt"};
+          }
+        } else if(selection.EndsWith("etau")) {
+          if(version_ == 0 ) train_var = {"lepm",
+                                          "lepmestimate",
+                                          // "lepmestimateavg",
+                                          "beta1", "beta2",
+                                          // "mtone", "mttwo", "mtlep",
+                                          // "onemetdeltaphi", "twometdeltaphi", "metdeltaphi",
+                                          "mtone", "twometdeltaphi",
+                                          "ptratio",
+                                          "lepdeltaphi",
+                                          "leppt",
+                                          // "lepptoverm",
+                                          "jetpt"};
+        } else { //mutau
+          if(version_ == 0 ) train_var = {"lepm",
+                                          "lepmestimate",
+                                          // "lepmestimateavg",
+                                          "beta1", "beta2",
+                                          // "mtone", "mttwo", "mtlep",
+                                          // "onemetdeltaphi", "twometdeltaphi", "metdeltaphi",
+                                          "mtone", "twometdeltaphi",
+                                          "ptratio",
+                                          "lepdeltaphi",
+                                          "leppt",
+                                          "jetpt"};
+        }
         // if(version_ ==  0) train_var = {"lepm", "lepmestimate-nu", "deltaalpha",
         //                                 "leponeprimepz", "leponeprimee", "leptwoprimepz",
         //                                 "leptwoprimepx", "leptwoprimee", "metprimee"};
@@ -239,11 +282,13 @@ namespace CLFV {
           variables.push_back(Var_t("lepmestimatethree","M_{ll}^{Coll-nu}","GeV", &tree.mestimatethree));
           variables.push_back(Var_t("lepmbalance","M_{ll}^{Bal}","GeV", &tree.mbalance));
           variables.push_back(Var_t("lepmestimatecut1","M_{ll}^{Coll}","GeV", &tree.mestimate_cut_1));
+          variables.push_back(Var_t("lepmestimateavg1","M_{ll}^{Coll}","GeV", &tree.mestimate_avg_1));
         } else {
           variables.push_back(Var_t("lepmestimatetwo","M_{ll}^{Coll}","GeV", &tree.mestimatetwo));
           variables.push_back(Var_t("lepmestimatefour","M_{ll}^{Coll-nu}","GeV", &tree.mestimatefour));
           variables.push_back(Var_t("lepmbalancetwo","M_{ll}^{Bal}","GeV", &tree.mbalancetwo));
           variables.push_back(Var_t("lepmestimatecut2","M_{ll}^{Coll}","GeV", &tree.mestimate_cut_2));
+          variables.push_back(Var_t("lepmestimateavg2","M_{ll}^{Coll}","GeV", &tree.mestimate_avg_2));
         }
         variables.push_back(Var_t("ptauvisfrac","p_#tau frac","", &tree.ptauvisfrac));
       } else { //end tau specific
@@ -286,6 +331,7 @@ namespace CLFV {
           else if(name == "lepmestimate" && (var.var_ == "lepmestimate" || var.var_ == "lepmestimatetwo")) var.use_ = true; //assume only correct version added
           else if(name == "lepmestimate-nu" && (var.var_ == "lepmestimatethree" || var.var_ == "lepmestimatefour")) var.use_ = true; //assume only correct version added
           else if(name == "lepmestimatecut" && (var.var_ == "lepmestimatecut1" || var.var_ == "lepmestimatecut2")) var.use_ = true; //assume only correct version added
+          else if(name == "lepmestimateavg" && (var.var_ == "lepmestimateavg1" || var.var_ == "lepmestimateavg2")) var.use_ = true; //assume only correct version added
           else if(name == "lepmbalance" && (var.var_ == "lepmbalance" || var.var_ == "lepmbalancetwo")) var.use_ = true; //assume only correct version added
           else if(name.Contains("deltaalpha") && var.var_.Contains(name)) var.use_ = true; //assume only correct version added
           else if(name.Contains("prime") && var.var_.Contains(name)) var.use_ = true; //assume only correct version added

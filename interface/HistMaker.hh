@@ -110,6 +110,7 @@ namespace CLFV {
     UInt_t nGenPart                                    ;
     Int_t  GenPart_pdgId                [kMaxGenPart];
     Int_t  GenPart_genPartIdxMother     [kMaxGenPart];
+    Float_t GenPart_pt                  [kMaxGenPart];
 
     //lepton information
     //muons
@@ -600,6 +601,7 @@ namespace CLFV {
     Int_t           fIsEmbed = 0; //whether or not this is an embeded sample
     Int_t           fIsLLEmbed = 0; //whether or not this is an ll -> ll embedding (mumu/ee)
     Int_t           fUseEmbedCuts = 0; //whether or not to use the kinematic restrictions for embedded sample generation
+    Int_t           fUseEmbedRocco = 1; //whether or not to use Rochester corrections + uncertainties with Embedded muons
     Int_t           fUseEmbedTnPWeights = 1; //whether or not to use the locally calculated lepton ID/trigger weights
     bool            fSkipDoubleTrigger = false; //skip events with both triggers (to avoid double counting), only count this lepton status events
     Int_t           fMETWeights = 0; //re-weight events based on the MET

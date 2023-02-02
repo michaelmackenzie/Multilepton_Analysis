@@ -65,7 +65,7 @@ void CLFVHistMaker::InitHistogramFlags() {
     fEventSets [kMuTau + 8] = 1;
     fTreeSets  [kMuTau + 8] = 1;
     fTreeSets  [kMuTau + 8+fMisIDOffset] = fIsData != 0; //save Loose ID data for MVA training
-    fSysSets   [kMuTau + 8] = 1;
+    // fSysSets   [kMuTau + 8] = 1;
 
     // fEventSets [kMuTau + 20] = 1; //test set
     // fSysSets   [kMuTau + 20] = 1;
@@ -73,6 +73,13 @@ void CLFVHistMaker::InitHistogramFlags() {
     // fSysSets   [kMuTau + 21] = 1;
     // fEventSets [kMuTau + 22] = 1; //3-prong taus
     // fSysSets   [kMuTau + 22] = 1;
+
+    fEventSets [kMuTau + 25] = 1; //nominal mass
+    fSysSets   [kMuTau + 25] = 1;
+    fEventSets [kMuTau + 26] = 1; //high mass
+    fSysSets   [kMuTau + 26] = 1;
+    fEventSets [kMuTau + 27] = 1; //low mass
+    fSysSets   [kMuTau + 27] = 1;
 
     // jet --> tau DRs
     fEventSets [kMuTau + 30] = fQCDFakeTauTesting; //QCD
@@ -101,7 +108,7 @@ void CLFVHistMaker::InitHistogramFlags() {
     fEventSets [kETau + 8] = 1;
     fTreeSets  [kETau + 8] = 1;
     fTreeSets  [kETau + 8+fMisIDOffset] = fIsData != 0; //save Loose ID data for MVA training
-    fSysSets   [kETau + 8] = 1;
+    // fSysSets   [kETau + 8] = 1;
 
     // fEventSets [kETau + 20] = 1; //test set
     // fSysSets   [kETau + 20] = 1;
@@ -109,6 +116,13 @@ void CLFVHistMaker::InitHistogramFlags() {
     // fSysSets   [kETau + 21] = 1;
     // fEventSets [kETau + 22] = 1; //3-prong taus
     // fSysSets   [kETau + 22] = 1;
+
+    fEventSets [kETau + 25] = 1; //nominal mass
+    fSysSets   [kETau + 25] = 1;
+    fEventSets [kETau + 26] = 1; //high mass
+    fSysSets   [kETau + 26] = 1;
+    fEventSets [kETau + 27] = 1; //low mass
+    fSysSets   [kETau + 27] = 1;
 
     // jet --> tau DRs
     fEventSets [kETau + 30] = fQCDFakeTauTesting; //QCD
@@ -233,6 +247,13 @@ void CLFVHistMaker::InitHistogramFlags() {
       fSysSets  [kMuTauE + 8] = 1;
       fTreeSets [kMuTauE + 8] = 1;
       fTreeSets [kMuTauE + 8+fQcdOffset] = fIsData != 0; //save SS data for QCD training
+
+      fEventSets[kMuTauE + 25] = 1; //nominal mass
+      fSysSets  [kMuTauE + 25] = 1;
+      fEventSets[kMuTauE + 26] = 1; //high mass
+      fSysSets  [kMuTauE + 26] = 1;
+      fEventSets[kMuTauE + 27] = 1; //low mass
+      fSysSets  [kMuTauE + 27] = 1;
       // // MVA categories
       // for(int i = 9; i < ((fDoHiggs) ? 19 : 15); ++i) fEventSets[kMuTauE + i] = 1;
     }
@@ -242,6 +263,13 @@ void CLFVHistMaker::InitHistogramFlags() {
       fSysSets  [kETauMu + 8] = 1;
       fTreeSets [kETauMu + 8] = 1;
       fTreeSets [kETauMu + 8+fQcdOffset] = fIsData != 0; //save SS data for QCD training
+
+      fEventSets[kETauMu + 25] = 1; //nominal mass
+      fSysSets  [kETauMu + 25] = 1;
+      fEventSets[kETauMu + 26] = 1; //high mass
+      fSysSets  [kETauMu + 26] = 1;
+      fEventSets[kETauMu + 27] = 1; //low mass
+      fSysSets  [kETauMu + 27] = 1;
       // // MVA categories
       // for(int i = 9; i < ((fDoHiggs) ? 19 : 15); ++i) fEventSets[kETauMu + i] = 1;
     }
@@ -819,7 +847,7 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
           EnergyScale(leptonTwo.ES[2] / leptonTwo.ES[0], leptonTwo, &met, &metPhi);
       }
     } else if(name == "EmbMuonES") {
-      if(!fIsEmbed || !isMData) continue;
+      if(!fIsEmbed || !isMData || !fUseEmbedRocco) continue; //only process for embedding, and only if using Rocco systematics
       reeval = true;
       if(fSystematics.IsUp(sys)) {
         if(leptonOne.isMuon() && leptonOne.ES[0] > 0. && leptonOne.ES[1] > 0.)
@@ -833,7 +861,7 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
           EnergyScale(leptonTwo.ES[2] / leptonTwo.ES[0], leptonTwo, &met, &metPhi);
       }
     } else if(name.Contains("EmbMuonES")) { //bins of energy scale uncertainty
-      if(!fIsEmbed || !isMData) continue;
+      if(!fIsEmbed || !isMData || fUseEmbedRocco) continue; //don't do binned ES if using Rocco systematics
       TString bin_s = name; bin_s.ReplaceAll("EmbMuonES", "");
       const int bin = std::abs(std::stoi(bin_s.Data()));
       if(bin < 0 || bin > 2) {printf("CLFVHistMaker::%s: Unknown sys bin %s\n", __func__, name.Data()); continue;}
@@ -1171,11 +1199,12 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
 
     if(reeval) {SetKinematics(); EvalMVAs("SystMVAs");} //re-evaluate variables with shifted values
     const float lepm  = fTreeVars.lepm;
-    const float onept = fTreeVars.leponept;
-    const float twopt = fTreeVars.leptwopt;
+    const float onept = leptonOne.pt;
+    const float twopt = leptonTwo.pt;
 
-    if(onept > one_pt_min_ && twopt > two_pt_min_ && (met_max_ < 0.f || met < met_max_)
-       && lepm > min_mass_ && (max_mass_ < 0.f || lepm < max_mass_)) {
+    const bool pass = (leptonOne.pt > one_pt_min_ && leptonTwo.pt > two_pt_min_ && (met_max_ < 0.f || met < met_max_)
+                       && fTreeVars.lepm > min_mass_ && (max_mass_ < 0.f || fTreeVars.lepm < max_mass_));
+    if(pass) {
       Hist->hLepM  [sys]->Fill(lepm  , weight);
       //skip all other histograms in same-flavor selection, only using the M_{ll} histogram
       if(isSameFlavor) continue;
@@ -1194,16 +1223,17 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
         mvaweight = 0.;
       }
       for(unsigned i = 0; i < fMVAConfig.names_.size(); ++i) {
-        const int category = fMVAConfig.data_cat_[i];
         //Only fill relevant MVA histograms for the datset
-        if(!((category == 1 && isMuTau) ||
-             (category == 2 && isETau) ||
-             (category == 0 && lep_tau == 0 && !(isMuTau || isETau)) ||
-             (category == 0 && lep_tau == 1 && fMVAConfig.names_[i].BeginsWith("mutau_e")) ||
-             (category == 0 && lep_tau == 2 && fMVAConfig.names_[i].BeginsWith("etau_mu"))
-             )
-           ) continue;
-        if(!fDoHiggs && fMVAConfig.names_[i].EndsWith("higgs")) continue;
+        // const int category = fMVAConfig.data_cat_[i];
+        // if(!((category == 1 && isMuTau) ||
+        //      (category == 2 && isETau) ||
+        //      (category == 0 && lep_tau == 0 && !(isMuTau || isETau) && (mva[i])) ||
+        //      (category == 0 && lep_tau == 1 && fMVAConfig.names_[i].BeginsWith("mutau_e")) ||
+        //      (category == 0 && lep_tau == 2 && fMVAConfig.names_[i].BeginsWith("etau_mu"))
+        //      )
+        //    ) continue;
+        // if(!fDoHiggs && fMVAConfig.names_[i].EndsWith("higgs")) continue;
+        if(!mva[i]) continue;
         float mvascore = fMvaOutputs[i];
         if(!std::isfinite(mvascore) && fVerbose > 0) {
           std::cout << "CLFVHistMaker::" << __func__ << ": Entry " << fentry << ", sys " << sys <<", MVA " << i << ": score is not finite = " << mvascore << "! Setting to -2...\n";
@@ -1215,7 +1245,7 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
         Hist->hMVA[i][sys]->Fill(mvascore, mvaweight);
         if(reeval) Hist->hMVADiff[i][sys]->Fill(mvascore-o_mvas[i], mvaweight);
       }
-    } //end pt/MET check
+    } //end pt/mass/MET check
 
     //restore the nominal results
     if(reeval) {
@@ -1391,13 +1421,13 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
 
   //di-lepton mass cuts
   const float mll = fTreeVars.lepm;
-  float min_mass =  (etau || mutau || ee || mumu) ? 50.f : 40.f;
-  float max_mass = (etau || mutau) ? 170.f : 170.f;
+  float min_mass = (etau || mutau || ee || mumu) ?  40.f :  40.f;
+  float max_mass = (etau || mutau)               ? 170.f : 170.f;
   min_mass_ = min_mass; max_mass_ = max_mass;
 
   //loosen the mass cuts for energy scale uncertainties
   if(fDoSystematics) {
-    min_mass -= 0.1f; max_mass_ += 0.1f;
+    min_mass -= 1.0; max_mass += 1.0f;
   }
 
   mutau &= mll > min_mass && mll < max_mass;
@@ -1434,6 +1464,15 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   ee    &= std::fabs(leptonOne.dz ) < max_dz ;
   ee    &= std::fabs(leptonTwo.dxy) < max_dxy;
   ee    &= std::fabs(leptonTwo.dz ) < max_dz ;
+
+  //FIXME: Decide dxy/dz significance cuts
+  const int use_dxyz_sig = 0; //0: None; 1: Z->e+mu only; 2: All channels
+  if(use_dxyz_sig > 1) {
+    mutau &= std::fabs(leptonOne.dxySig) < 2.5;
+    mutau &= std::fabs(leptonOne.dzSig ) < 2.5;
+    etau  &= std::fabs(leptonOne.dxySig) < 2.5;
+    etau  &= std::fabs(leptonOne.dzSig ) < 2.5;
+  }
 
   //remove additional leptons in tau categories
   mutau &= nElectrons == 0;
@@ -1788,15 +1827,27 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   etau_mu &= leptonOne.pt > 20.f;
   etau_mu &= leptonOne.pt - leptonTwo.pt > -20.f; //lepton pT - leptonic tau pT
   mutau_e &= leptonTwo.pt - leptonOne.pt > -20.f;
-  mutau_e &= mll < 100.f; //di-lepton mass
-  etau_mu &= mll < 100.f;
+  //FIXME: Decide where to put these
+  // mutau_e &= mll < max_mass; //di-lepton mass
+  // etau_mu &= mll < max_mass;
   mutau_e &= fTreeVars.mtlep < 100.f; //di-lepton MT
   etau_mu &= fTreeVars.mtlep < 100.f;
   mutau_e &= fTreeVars.mtone < 60.f; //leptonic tau MT
   etau_mu &= fTreeVars.mttwo < 60.f;
 
-  // etau    &= fTreeVars.lepm < 110.f; //di-lepton mass
-  // mutau   &= fTreeVars.lepm < 110.f; //di-lepton mass
+  //FIXME: Decide dxy/dz significance cuts
+  if(use_dxyz_sig > 1) {
+    mutau_e &= std::fabs(leptonTwo.dxySig) < 2.5;
+    mutau_e &= std::fabs(leptonTwo.dzSig ) < 2.5;
+    etau_mu &= std::fabs(leptonOne.dxySig) < 2.5;
+    etau_mu &= std::fabs(leptonOne.dzSig ) < 2.5;
+  }
+  if(use_dxyz_sig > 0) {
+    emu     &= std::fabs(leptonTwo.dxySig) < 2.5;
+    emu     &= std::fabs(leptonOne.dxySig) < 2.5;
+    emu     &= std::fabs(leptonTwo.dzSig ) < 2.5;
+    emu     &= std::fabs(leptonOne.dzSig ) < 2.5;
+  }
 
   //Z/H->e+mu only
   emu     &= leptonOne.pt > 20.f;
@@ -1809,10 +1860,13 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   // Set 8 + selection offset: nBJets = 0
   ////////////////////////////////////////////////////////////////////////////
   if(!lep_tau) {
-    fTimes[GetTimerNumber("SingleFill")] = std::chrono::steady_clock::now(); //timer for filling all histograms
-    FillAllHistograms(set_offset + 8);
-    IncrementTimer("SingleFill", true);
-  } else {
+    min_mass_ = 50.f; min_mass = min_mass_ + 1.f;
+    if(mll > min_mass) {
+      fTimes[GetTimerNumber("SingleFill")] = std::chrono::steady_clock::now(); //timer for filling all histograms
+      FillAllHistograms(set_offset + 8);
+      IncrementTimer("SingleFill", true);
+    }
+  } else if((mutau_e || etau_mu) && mll < max_mass) { //single mass category search for leptonic taus
     if(lep_tau == 1 && mutau_e) {
       fTimes[GetTimerNumber("SingleFill")] = std::chrono::steady_clock::now(); //timer for filling all histograms
       FillAllHistograms(set_offset + (kMuTauE - kEMu) + 8);
@@ -1823,6 +1877,24 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
       FillAllHistograms(set_offset + (kETauMu - kEMu) + 8);
       IncrementTimer("SingleFill", true);
     }
+  }
+
+  ////////////////////////////////////////////////////////////////////////////
+  // Set 25/26/27 + selection offset: Mass regions testing
+  ////////////////////////////////////////////////////////////////////////////
+
+  if(mutau_e || etau_mu) {max_mass_ = 170.f; max_mass = max_mass_ + 1.f;}
+
+  if(mutau || etau || mutau_e || etau_mu) {
+    float prev_min(min_mass_), prev_max(max_mass_), jtt_region((mutau_e || etau_mu) ? 100.f : 110.f), z_region((mutau_e || etau_mu) ? 50.f : 60.f);
+    const int loc_set_offset = (mutau_e) ? set_offset + (kMuTauE-kEMu) : (etau_mu) ? set_offset + (kETauMu - kEMu) : set_offset;
+    //nominal
+    if(fTreeVars.lepm > z_region   - 1.f && fTreeVars.lepm < jtt_region + 1.f) {min_mass_ = z_region  ; max_mass_ = jtt_region; FillAllHistograms(loc_set_offset + 25);}
+    //j-->tau control
+    if(fTreeVars.lepm > jtt_region - 1.f)                                      {min_mass_ = jtt_region; max_mass_ = prev_max  ; FillAllHistograms(loc_set_offset + 26);}
+    //Z->tau tau control
+    if(fTreeVars.lepm < z_region   + 1.f)                                      {min_mass_ = prev_min  ; max_mass_ = z_region  ; FillAllHistograms(loc_set_offset + 27);}
+    min_mass_ = prev_min; max_mass_ = prev_max;
   }
 
   // ////////////////////////////////////////////////////////////////////////////

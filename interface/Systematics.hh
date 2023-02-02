@@ -98,8 +98,8 @@ namespace CLFV {
       case  44: return Data(isys, "METJES"        , false);
       case  45: return Data(isys, "QCDBias"       , true );
       case  46: return Data(isys, "QCDBias"       , false);
-      case  47: return Data(isys, "METCorr"       , true ); //FIXME: Remove
-      case  48: return Data(isys, "METCorr"       , false);
+      // case  47: return Data(isys, "METCorr"       , true ); //FIXME: Remove
+      // case  48: return Data(isys, "METCorr"       , false);
       case  49: return Data(isys, "Prefire"       , true );
       case  50: return Data(isys, "Prefire"       , false);
       case  51: return Data(isys, "Pileup"        , true );
@@ -131,8 +131,8 @@ namespace CLFV {
       case  81: return Data(isys, "EmbEleIsoID"   , false);
       case  82: return Data(isys, "EmbEleES"      , true );
       case  83: return Data(isys, "EmbEleES"      , false);
-      // case  84: return Data(isys, "EmbMuonES"     , true );
-      // case  85: return Data(isys, "EmbMuonES"     , false);
+      case  84: return Data(isys, "EmbMuonES"     , true );
+      case  85: return Data(isys, "EmbMuonES"     , false);
       case  86: return Data(isys, "EmbTauES"      , true );
       case  87: return Data(isys, "EmbTauES"      , false);
       default: break;

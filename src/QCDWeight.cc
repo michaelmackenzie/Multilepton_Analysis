@@ -282,12 +282,12 @@ float QCDWeight::GetWeight(float deltar, float deltaphi, float oneeta, float one
               << std::endl;
   }
 
-  float eff, err;
+  float eff(1.f), err(0.f);
   int bin(1);
   if(useFits_) {
     //get bin value
     bin = std::max(1, std::min(fErr->GetNbinsX(), fErr->FindBin(var)));
-
+    //get efficiency from fit function
     eff = f->Eval(deltar);
     err = fErr->GetBinError(bin); //68% confidence band from virtual fitter
   } else if(use2DScale_) {
@@ -310,9 +310,13 @@ float QCDWeight::GetWeight(float deltar, float deltaphi, float oneeta, float one
     err = h->GetBinError(bin); //use bin error for now
   }
 
+  if(verbose_ > 9) {
+    std::cout << " bare weight = " << eff << " +- " << err << std::endl;
+  }
+
   //ensure reasonable values on the SS --> OS scale
   const float max_eff = 5.f;
-  const float min_eff = 1.e-5;
+  const float min_eff = 1.e-5f;
   if(std::isnan(eff) || eff < 0.f) {
     std::cout << "QCDWeight::" << __func__ << " Weight < 0  = " << eff
               << " delta R = " << deltar << " delta phi = " << deltaphi
@@ -320,9 +324,10 @@ float QCDWeight::GetWeight(float deltar, float deltaphi, float oneeta, float one
     nonclosure = 1.f; up = 1.f; down = 1.f; sys = 1.f; antiiso = 1.f;
     return 1.;
   }
-  eff  = std::max(min_eff, std::min(eff, max_eff));
-  up   = std::max(min_eff, std::max(max_eff, eff + err));
-  down = std::max(min_eff, std::max(max_eff, eff - err));
+
+  eff  = std::max(min_eff, std::min(max_eff, eff      ));
+  up   = std::max(min_eff, std::min(max_eff, eff + err));
+  down = std::max(min_eff, std::min(max_eff, eff - err));
   sys  = up;
 
   //Apply a closure correction
@@ -357,6 +362,10 @@ float QCDWeight::GetWeight(float deltar, float deltaphi, float oneeta, float one
   down *= nonclosure;
   sys  *= nonclosure;
 
+  if(verbose_ > 9) {
+    std::cout << " closure = " << nonclosure << ", weight = " << eff << " (" << up << "/" << down << ")" << std::endl;
+  }
+
   //get anti-iso --> iso correction factor if needed
   if(useAntiIso_ && !isantiiso) { //only apply to isolated muons since scales measured with anti-isolated muons
     const int xbin = std::max(1, std::min(hAntiIso->GetXaxis()->FindBin(onept), hAntiIso->GetNbinsX()));
@@ -378,6 +387,10 @@ float QCDWeight::GetWeight(float deltar, float deltaphi, float oneeta, float one
   up   *= antiiso;
   down *= antiiso;
   sys  *= antiiso;
+
+  if(verbose_ > 9) {
+    std::cout << " iso = " << antiiso << ", weight = " << eff << " (" << up << "/" << down << ")" << std::endl;
+  }
 
   //Evaluate systematic by varying a delta R closure
   if(useDeltaRSys_) {
@@ -409,5 +422,10 @@ float QCDWeight::GetWeight(float deltar, float deltaphi, float oneeta, float one
     down = eff - err;
     sys = up;
   }
+
+  if(verbose_ > 9) {
+    std::cout << " final weight = " << eff << " (" << up << "/" << down << ")" << std::endl;
+  }
+
   return eff;
 }

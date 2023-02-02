@@ -148,6 +148,11 @@ namespace CLFV {
         *ytitle = "";
         *title  = Form("Lepton pT difference");
       }
+      else if(hist == "ptratio") {
+        *xtitle = Form("p_{T}^{%s} / p_{T}^{%s} (GeV/c)", lep1.Data(), lep2.Data());
+        *ytitle = "";
+        *title  = Form("Lepton pT ratio");
+      }
       else if(hist == "onesvpt") {
         *xtitle = "SVFit p_{T}^{1} (GeV/c)";
         *ytitle = "";
@@ -617,6 +622,16 @@ namespace CLFV {
         *xtitle = "#Delta#alpha";
         *ytitle = "";
         *title  = "#Delta#alpha";
+      }
+      else if(hist == "beta0") {
+        *xtitle = Form("#alpha(%s)", lep2.Data()); //indices are inverted
+        *ytitle = "";
+        *title  = "#alpha";
+      }
+      else if(hist == "beta1") {
+        *xtitle = Form("#alpha(%s)", lep1.Data()); //indices are inverted
+        *ytitle = "";
+        *title  = "#alpha";
       }
       else if(hist.Contains("taudeepantimu")) {
         *xtitle = "#tau anti-#mu ID";
