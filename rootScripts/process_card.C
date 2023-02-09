@@ -5,7 +5,10 @@ using namespace CLFV;
 //retrieve the histogram of event counting from each file in a chain, returning the sum of the inputs
 TH1* events_from_chain(vector<TString> files) {
   TH1* events = nullptr;
+  int counter(0), nfiles(files.size());
   for(TString file_name : files) {
+    std::cout << "Events histogram progress:  " << Form("%3i/%3i", counter, nfiles) << "\r";
+    std::cout.flush();
     TFile* file = TFile::Open(file_name.Data(), "READ");
     if(!file) continue;
     TH1* h = (TH1*) file->Get("events");
@@ -15,7 +18,11 @@ TH1* events_from_chain(vector<TString> files) {
     }
     if(events) events->Add(h);
     else {events = h; events->SetDirectory(0);}
+    file->Close();
+    ++counter;
   }
+  std::cout << "Events histogram progress:  " << Form("%3i/%3i", counter, nfiles) << "\n";
+  std::cout.flush();
   return events;
 }
 
@@ -48,7 +55,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
   const bool isMuonData     = card.isData_ == 2;
 
   //check that the chain is defined
-  if(!chain || chain->GetNtrees() <= 0) {
+  if(!chain /*|| chain->GetNtrees() <= 0*/) {
     printf("Chain in %s/%s not found, continuing\n",card.filepath_.Data(), selection.Data());
     return 1;
   }
@@ -66,7 +73,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
   for(int wjloop = -1; wjloop < nwloops; ++wjloop) { //start from -1 to also do unsplit histogram
     for(int dyloop = 1; dyloop <= ndyloops; ++dyloop) {
       auto selec = new HISTOGRAMMER(systematicSeed_); //selector
-      selec->fSelection = selection;
+      selec->fSelection = (lep_tau_ && selection == "emu") ? (lep_tau_ == 1) ? "mutau_e" : "etau_mu" : selection;
 
       if(dynamic_cast<CLFVHistMaker*> (selec)) {
         auto clfv_selec = (CLFVHistMaker*) selec;
@@ -83,13 +90,20 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
       if(dynamic_cast<HistMaker*> (selec)) {
         auto hist_selec = (HistMaker*) selec;
         hist_selec->fPrintTime         = 2; //Print detailed summary of processing times
+        hist_selec->fPrintFilling      = 1; //print detailed histogram set filling
         hist_selec->fDoTriggerMatching = doTriggerMatching_;
         hist_selec->fReprocessMVAs     = ReprocessMVAs_; //reevaluate MVA scores on the fly
         hist_selec->fProcessSSSF       = doSSSF_;
         hist_selec->fDoEventList       = selection == "ee" || selection == "mumu";
         hist_selec->fDoHiggs           = doHiggs_;
+        hist_selec->fSparseHists       = sparseHists_;
         hist_selec->fUseSignalZWeights = useSignalZWeights_;
+        hist_selec->fUseEmbedRocco     = useEmbedRocco_;
+        hist_selec->fUseRoccoCorr      = useRoccoCorr_;
         hist_selec->fNotifyCount       = notify_;
+        hist_selec->fLoadBaskets       = false;
+        hist_selec->fMinLepM           = (selection == "emu") ?  65.f : 35.f;
+        hist_selec->fMaxLepM           = (selection == "emu") ? 115.f : (selection.EndsWith("tau")) ? 175.f : 175.f;
       }
 
       selec->fRemoveTriggerWeights = removeTrigWeights_;
@@ -98,7 +112,6 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
       selec->fRemovePUWeights      = (isSignal) ? removePUWeights_ : 0 ; //remove for signal, due to module issues (likely weights measured per file too low stats)
       selec->fUseJetPUIDWeights    = useJetPUIDWeights_;
       selec->fUsePrefireWeights    = usePrefireWeights_;
-      selec->fRemoveZPtWeights     = removeZPtWeights_; //whether or not to re-weight Z pT
       selec->fUseQCDWeights        = useQCDWeights_;
 
       selec->fUseEmbedCuts         = useEmbedCuts_;
@@ -123,7 +136,6 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
       //store a label for this dataset
       selec->fEventCategory = card.category_;
       selec->fWriteTrees = selection != "mumu" && selection != "ee" && config.writeTrees_; //don't write trees for data
-      selec->fUseTauFakeSF = config.useTauFakeSF_; //whether or not to use fake tau weights from analyzer/locally re-defined
       if(card.isData_ == 0) {
         selec->fXsec = card.xsec_;
         selec->fXsec /= (selec->fIsEmbed) ? 1. : (card.events_->GetBinContent(1) - 2.*card.events_->GetBinContent(10));; //for writing trees with correct normalization
@@ -135,7 +147,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
       }
       selec->fFractionMVA = (isSignal) ? config.signalTrainFraction_ : config.backgroundTrainFraction_; //fraction of events to use for MVA training
       if(selection == "mumu" || selection == "ee") selec->fFractionMVA = 0.; //don't split off same flavor data
-      if((isMuonData || isElectronData) && selection != "emu") selec->fFractionMVA = 0.; //don't split off data for training
+      // if((isMuonData || isElectronData) && selection != "emu") selec->fFractionMVA = 0.; //don't split off data for training
       selec->fIsNano = true;
       if(debug_ && nEvents_ < 20) selec->fVerbose = 1;
       else                        selec->fVerbose = 0;
@@ -170,17 +182,23 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
 
 //run the histogrammer over a data file
 Int_t process_single_card(datacard_t& card, config_t& config, vector<TString> file_names) {
+  if(file_names.size() == 0) {
+    cout << "Card " << card.fname_.Data() << " has no files defined!\n";
+    return 10;
+  }
+
   CrossSections xs(useUL_); //cross check gen number and negative fraction
   TString name = card.fname_;
   name.ReplaceAll("*", "");
   name.ReplaceAll("LFVAnalysis_", "");
-  name.ReplaceAll("_2016.root", "");
-  name.ReplaceAll("_2017.root", "");
-  name.ReplaceAll("_2018.root", "");
+  name.ReplaceAll(".root", "");
+  name.ReplaceAll("_2016", "");
+  name.ReplaceAll("_2017", "");
+  name.ReplaceAll("_2018", "");
   name.ReplaceAll("_", "");
 
   //Get the normalization event count
-  TH1* events = events_from_chain(file_names); //(TH1*) file->Get("events");
+  TH1* events = events_from_chain(file_names);
   if(!events) {
     printf("Events Histogram for %s not found, continuing\n",card.fname_.Data());
     return 1;
@@ -189,7 +207,16 @@ Int_t process_single_card(datacard_t& card, config_t& config, vector<TString> fi
   //Get the normalization information from TChains
   TChain* runs = new TChain("Runs");
   TChain* norm = new TChain("Norm");
-  for(auto file_name : file_names) {runs->AddFile(file_name.Data()); norm->AddFile(file_name.Data());}
+  int counter(0), nfiles(file_names.size());
+  for(auto file_name : file_names) {
+    std::cout << "Normalizing chain progress:  " << Form("%3i/%3i", counter, nfiles) << "\r";
+    std::cout.flush();
+
+    runs->AddFile(file_name.Data());
+    norm->AddFile(file_name.Data(), -1);
+    ++counter;
+  }
+  std::cout << "Normalizing chain progress:  " << Form("%3i/%3i", counter, nfiles) << "\n";
 
   {
     TChain* chain_norm = runs;
@@ -198,6 +225,7 @@ Int_t process_single_card(datacard_t& card, config_t& config, vector<TString> fi
     Long64_t runs_neg_count = 0;
     Long64_t runs_neg_count_loop = 0;
     bool replace = true;
+    cout << "Processing normalization trees...\n";
     if(norm->GetEntries() > 0) { //check for an added normalization tree
       chain_norm = norm;
       norm->SetBranchAddress("NEvents"  , &runs_count_loop);
@@ -244,7 +272,8 @@ Int_t process_single_card(datacard_t& card, config_t& config, vector<TString> fi
   name.ReplaceAll("Run2016", "-"); // shorten data sample names
   name.ReplaceAll("Run2017", "-");
   name.ReplaceAll("Run2018", "-");
-  name.ReplaceAll("-v2", ""); //replace signal versioning in output
+  name.ReplaceAll("-v1", ""); //replace signal versioning in output
+  name.ReplaceAll("-v2", "");
   name.ReplaceAll("-v3", "");
   card.dataset_ = name;
 
@@ -272,7 +301,7 @@ Int_t process_single_card(datacard_t& card, config_t& config, vector<TString> fi
       cout << "Muon data on electron only channel, continuing!\n"; continue;
     }
     if(name.Contains("Embed-MuMu-") && selection != "mumu") {
-      cout << "MuMu embedding is only relevant to the mumu channel, skipping!\n";
+      cout << "MuMu embedding is only relevant to the mumu channel, skipping " << selection.Data() << endl;
       continue;
     }
     if(name.Contains("Embed-EE-") && selection != "ee") {
@@ -284,11 +313,19 @@ Int_t process_single_card(datacard_t& card, config_t& config, vector<TString> fi
 
     //Retreive the correct ntuple
     TChain* chain = new TChain(selection.Data()); //(TTree*) file->Get(selection.Data());
-    for(TString file_name : file_names) chain->AddFile(file_name.Data());
-    if(chain->GetNtrees() <= 0) {
-      cout << "Selection tree " << selection.Data() << " not found!\n";
-      continue;
+    counter = 0;
+    for(TString file_name : file_names) {
+      std::cout << "Selection chain progress:  " << Form("%3i/%3i", counter, nfiles) << "\r";
+      std::cout.flush();
+      chain->AddFile(file_name.Data(), -1);
+    ++counter;
     }
+    std::cout << "Normalizing chain progress:  " << Form("%3i/%3i", counter, nfiles) << "\n";
+
+    // if(chain->GetNtrees() <= 0) {
+    //   cout << "Selection tree " << selection.Data() << " not found!\n";
+    //   continue;
+    // }
     // //skip if a signal in an irrelevant channel
     // if(card.fname_.Contains("EMu.tree"  ) && (currentChannel != "emu")) continue;
     // if(card.fname_.Contains("ETau.tree" ) && (currentChannel == "mutau" || currentChannel == "mumu")) continue;
@@ -309,9 +346,7 @@ Int_t process_card(TString treepath, TString filename, double xsec, int isdata, 
   config_t config(get_config());
   CrossSections xs(useUL_);
 
-  cout << "--- Fake Tau SF mode: " << config.useTauFakeSF_
-       << ", Write Trees mode: " << config.writeTrees_
-       << ", Remove z pt weights: " << removeZPtWeights_
+  cout << "---  Write Trees mode: " << config.writeTrees_
        << ", training fractions: signal = " << config.signalTrainFraction_
        << ", background = " << config.backgroundTrainFraction_
        << ", doSystematics = " << config.doSystematics_
@@ -324,6 +359,14 @@ Int_t process_card(TString treepath, TString filename, double xsec, int isdata, 
   }
   if(config.onlyChannel_ != "")
     cout << "--- WARNING! Only processing " << config.onlyChannel_.Data() << " channel!\n";
+
+  if(config.onlyChannel_ == "etau_mu") {
+    lep_tau_ = 2;
+    config.onlyChannel_ = "emu";
+  } else if(config.onlyChannel_ == "mutau_e") {
+    lep_tau_ = 1;
+    config.onlyChannel_ = "emu";
+  }
 
   int year = 2016;
   if(card.fname_.Contains("_2017"))      year = 2017;
@@ -354,25 +397,27 @@ Int_t process_card(TString treepath, TString filename, double xsec, int isdata, 
   card.category_ = category;
   card.lum_ = xs.GetLuminosity(year);
   vector<TString> file_names;
-  if(useTChain_) {
-    TString redir = (TString(gSystem->Getenv("HOSTNAME")).Contains("lpc")) ? "root://cmseos.fnal.gov/" : "root://eoscms.cern.ch/";
+  if(useTChain_ && !(card.fname_.Contains(".root") && !card.fname_.Contains("*"))) {
+    TString redir = (treepath.Contains("cern.ch")) ? "root://eoscms.cern.ch/" : "root://cmseos.fnal.gov/";
     TString base_loc = treepath;
     base_loc.ReplaceAll(redir.Data(), "");
-    TString ls_command = Form("eos %s ls %s%s >| input_%s.txt", redir.Data(), base_loc.Data(), card.fname_.Data(), card.fname_.Data());
+    TString txt_name = "input_" + card.fname_; txt_name.ReplaceAll("/", "_"); txt_name += ".txt";
+    TString ls_command = Form("eos %s ls %s%s >| %s", redir.Data(), base_loc.Data(), card.fname_.Data(), txt_name.Data());
     cout << "ls command: " << ls_command.Data() << endl;
     gSystem->Exec(ls_command.Data());
-    std::ifstream input_list(Form("input_%s.txt", card.fname_.Data()));
+    std::ifstream input_list(txt_name.Data());
     if(!input_list.is_open()) {
       cout << "Couldn't retrieve file list for " << card.fname_.Data() << endl;
       return 10;
     }
     std::string line;
     while(std::getline(input_list, line)) {
-      file_names.push_back(Form("%s%s", treepath.Data(), line.c_str()));
+      file_names.push_back(Form("%s%s/%s", treepath.Data(), card.fname_.Data(), line.c_str()));
       cout << "File: " << file_names.back().Data() << endl;
     }
     input_list.close();
-    gSystem->Exec(Form("rm input_%s.txt", card.fname_.Data()));
+    if(!debug_)
+      gSystem->Exec(Form("rm %s", txt_name.Data()));
   } else {
     file_names.push_back(treepath + card.fname_);
   }

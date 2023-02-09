@@ -51,16 +51,14 @@ void CLFVHistMaker::InitHistogramFlags() {
   const bool ee    = fSelection == "" || fSelection == "ee"   ;
 
   if(mutau) {
-    if(!fDYTesting || fCutFlowTesting) {
+    if(fCutFlowTesting) {
       fEventSets [kMuTau + 1] = 1; // all events
       fEventSets [kMuTau + 2] = 1; //
       fEventSets [kMuTau + 3] = 1;
       fEventSets [kMuTau + 4] = 1;
     }
 
-    if(!fDYTesting) {
-      fEventSets [kMuTau + 7] = 1;
-    }
+    // fEventSets [kMuTau + 7] = 1;
 
     fEventSets [kMuTau + 8] = 1;
     fTreeSets  [kMuTau + 8] = 1;
@@ -95,16 +93,15 @@ void CLFVHistMaker::InitHistogramFlags() {
 
   }
   if(etau) {
-    if(!fDYTesting || fCutFlowTesting) {
+    if(fCutFlowTesting) {
       fEventSets [kETau + 1] = 1; // all events
       fEventSets [kETau + 2] = 1;
       fEventSets [kETau + 3] = 1;
       fEventSets [kETau + 4] = 1;
     }
 
-    if(!fDYTesting) {
-      fEventSets [kETau + 7] = 1;
-    }
+    // fEventSets [kETau + 7] = 1;
+
     fEventSets [kETau + 8] = 1;
     fTreeSets  [kETau + 8] = 1;
     fTreeSets  [kETau + 8+fMisIDOffset] = fIsData != 0; //save Loose ID data for MVA training
@@ -138,7 +135,7 @@ void CLFVHistMaker::InitHistogramFlags() {
 
   }
   if(emu) {
-    if(!fDYTesting || fCutFlowTesting) {
+    if(fCutFlowTesting) {
       fEventSets [kEMu  + 1] = 1; // all events
       fEventSets [kEMu  + 2] = 1; // after pT cuts
       fEventSets [kEMu  + 3] = 1; // after eta, mass, trigger cuts
@@ -146,9 +143,7 @@ void CLFVHistMaker::InitHistogramFlags() {
     }
 
     if(!lep_tau) {
-      if(!fDYTesting) {
-        fEventSets [kEMu  + 7] = 1;
-      }
+      // fEventSets [kEMu  + 7] = 1;
       fEventSets [kEMu  + 8] = 1;
       fTreeSets  [kEMu  + 8] = 1;
       fTreeSets  [kEMu  + 8+fQcdOffset] = fIsData != 0; //save SS data for QCD training
@@ -175,7 +170,7 @@ void CLFVHistMaker::InitHistogramFlags() {
 
       fEventSets [kEMu  + 35] = 1;
 
-      if(!fDYTesting || fTriggerTesting) { //testing e+mu triggering
+      if(fTriggerTesting) { //testing e+mu triggering
         // fEventSets [kEMu  + 60] = 1; //electron fired
         // fEventSets [kEMu  + 61] = 1; //muon fired
         // fEventSets [kEMu  + 62] = 1; //both fired
@@ -189,7 +184,7 @@ void CLFVHistMaker::InitHistogramFlags() {
     }
   }
   if(mumu) {
-    if(!fDYTesting || fCutFlowTesting) {
+    if(fCutFlowTesting) {
       fEventSets [kMuMu + 1] = 1; // all events
       fEventSets [kMuMu + 2] = 1; // events with >= 1 photon
       fEventSets [kMuMu + 3] = 1;
@@ -205,7 +200,7 @@ void CLFVHistMaker::InitHistogramFlags() {
       for(int i = 9; i < ((fDoHiggs) ? 19 : 15); ++i) fEventSets[kMuMu + i] = 1;
     }
 
-    if(!fDYTesting || fTriggerTesting) { //testing triggering
+    if(fTriggerTesting) { //testing triggering
       // fEventSets [kMuMu + 60] = 1; //one fired
       // fEventSets [kMuMu + 61] = 1; //two fired
       // fEventSets [kMuMu + 62] = 1; //both fired
@@ -214,7 +209,7 @@ void CLFVHistMaker::InitHistogramFlags() {
     }
   }
   if(ee) {
-    if(!fDYTesting || fCutFlowTesting) {
+    if(fCutFlowTesting) {
       fEventSets [kEE   + 1] = 1; // all events
       fEventSets [kEE   + 2] = 1;
       fEventSets [kEE   + 3] = 1;
@@ -230,7 +225,7 @@ void CLFVHistMaker::InitHistogramFlags() {
       for(int i = 9; i < ((fDoHiggs) ? 19 : 15); ++i) fEventSets[kEE + i] = 1;
     }
 
-    if(!fDYTesting || fTriggerTesting) { //testing triggering
+    if(fTriggerTesting) { //testing triggering
       // fEventSets [kEE  + 60] = 1; //one fired
       // fEventSets [kEE  + 61] = 1; //two fired
       // fEventSets [kEE  + 62] = 1; //both fired
@@ -415,13 +410,13 @@ void CLFVHistMaker::BookLepHistograms() {
 
       BookBaseLepHistograms(i, dirname);
 
-      for(int j = 1; j < 12; ++j) { //lepton pT with/without various weights
+      for(int j = 1; j < 14; ++j) { //lepton pT with/without various weights
         TString name = Form("onept%i", j);
         Utilities::BookH1F(fLepHist[i]->hOnePt[j], name.Data(), Form("%s: Pt"      ,dirname)  , 150,   0, 150, folder);
       }
 
       // Lepton two info //
-      for(int j = 1; j < 12; ++j) {
+      for(int j = 1; j < 14; ++j) {
         TString name = Form("twopt%i", j);
         Utilities::BookH1F(fLepHist[i]->hTwoPt[j]     , name.Data(), Form("%s: Pt"      ,dirname)  , 150,   0, 150, folder);
       }
@@ -607,6 +602,10 @@ void CLFVHistMaker::FillLepHistogram(LepHist_t* Hist) {
   wt = (jetToTauWeight > 0. && jetToTauWeightBias > 0.) ? jetToTauWeightBias/jetToTauWeight : 1.;
   Hist->hOnePt[11]->Fill(fTreeVars.leponept, eventWeight*genWeight/wt);
 
+  //energy scale uncertainty shifted pT
+  Hist->hOnePt[12]->Fill(leptonOne.pt*((fIsData) ? 1.f : leptonOne.ES[1]/leptonOne.ES[0]), eventWeight*genWeight);
+  Hist->hOnePt[13]->Fill(leptonOne.pt*((fIsData) ? 1.f : leptonOne.ES[2]/leptonOne.ES[0]), eventWeight*genWeight);
+
 
   /////////////
   //  Lep 2  //
@@ -637,6 +636,10 @@ void CLFVHistMaker::FillLepHistogram(LepHist_t* Hist) {
   wt = (jetToTauWeight > 0. && jetToTauWeightBias > 0.) ? jetToTauWeightBias/jetToTauWeight : 1.;
   Hist->hTwoPt[11]->Fill(fTreeVars.leptwopt, eventWeight*genWeight/wt);
 
+  //energy scale uncertainty shifted pT
+  Hist->hTwoPt[12]->Fill(leptonTwo.pt*((fIsData) ? 1.f : leptonTwo.ES[1]/leptonTwo.ES[0]), eventWeight*genWeight);
+  Hist->hTwoPt[13]->Fill(leptonTwo.pt*((fIsData) ? 1.f : leptonTwo.ES[2]/leptonTwo.ES[0]), eventWeight*genWeight);
+
 }
 
 //--------------------------------------------------------------------------------------------------------------
@@ -649,7 +652,7 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
   const bool isMData = leptonOne.isMuon()     || leptonTwo.isMuon    ();
 
   //Event information that may be altered, to restore the event information after a systematic shift
-  const TLorentzVector o_lv1(*leptonOne.p4), o_lv2(*leptonTwo.p4), o_jet(*jetOneP4);
+  const TLorentzVector o_lv1(*leptonOne.p4), o_lv2(*leptonTwo.p4), o_jet(*jetOne.p4);
   const float o_met(met), o_metPhi(metPhi);
   float o_mvas[fMVAConfig.names_.size()];
   for(unsigned i = 0; i < fMVAConfig.names_.size(); ++i) o_mvas[i] = fMvaOutputs[i];
@@ -849,6 +852,11 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
     } else if(name == "EmbMuonES") {
       if(!fIsEmbed || !isMData || !fUseEmbedRocco) continue; //only process for embedding, and only if using Rocco systematics
       reeval = true;
+      if(std::fabs(std::fabs(1.f - leptonOne.ES[1]/leptonOne.ES[0]) - std::fabs(1.f - leptonOne.ES[2]/leptonOne.ES[0])) > 1.e3f) {
+        printf("%s: Energy scales disagree! ES = %.4f, up = %.4f, down = %.4f, pt = %.1f, eta = %.2f\n",
+               __func__, leptonOne.ES[0], leptonOne.ES[1], leptonOne.ES[2], leptonOne.pt, leptonOne.eta);
+        throw 20;
+      }
       if(fSystematics.IsUp(sys)) {
         if(leptonOne.isMuon() && leptonOne.ES[0] > 0. && leptonOne.ES[1] > 0.)
           EnergyScale(leptonOne.ES[1] / leptonOne.ES[0], leptonOne, &met, &metPhi);
@@ -1082,29 +1090,41 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
         else if(leptonOne.isMuon())                          { weight *= (1.f-rho_t) + rho_t*triggerWeightsSys[1] / trig_wt; }
         else if(leptonTwo.isMuon())                          { weight *= (1.f-rho_t) + rho_t*triggerWeightsSys[3] / trig_wt; }
       }
-    } else if(name == "METJER") {
+    } else if(name == "JER") {
       if(fIsData || fIsEmbed) continue;
       reeval = true;
       if(fSystematics.IsUp(sys)) {
         met    = puppMETJERUp;
         metPhi = puppMETphiJERUp;
+        if(jetOne.pt > 5.f && jetOne.jer_pt_up > 5.f) { //if there's a jet and defined uncertainties
+          jetOne.setPtEtaPhiM(jetOne.jer_pt_up, jetOne.eta, jetOne.phi, jetOne.mass);
+        }
       } else {
         const float dx(met*std::cos(metPhi) - puppMETJERUp*std::cos(puppMETphiJERUp)), dy(met*std::sin(metPhi) - puppMETJERUp*std::sin(puppMETphiJERUp));
         const float new_x(met*std::cos(metPhi)+dx), new_y(met*std::sin(metPhi)+dy);
         met    = std::sqrt(std::pow(new_x, 2) + std::pow(new_y, 2));
         metPhi = (met > 0.f) ? std::acos(std::max(-1.f, std::min(1.f, new_x/met)))*(new_y < 0.f ? -1.f : 1.f) : 0.f;
+        if(jetOne.pt > 5.f && jetOne.jer_pt_down > 5.f) { //if there's a jet and defined uncertainties
+          jetOne.setPtEtaPhiM(jetOne.jer_pt_down, jetOne.eta, jetOne.phi, jetOne.mass);
+        }
       }
-    } else if(name == "METJES") {
+    } else if(name == "JES") {
       if(fIsData || fIsEmbed) continue;
       reeval = true;
       if(fSystematics.IsUp(sys)) {
         met    = puppMETJESUp;
         metPhi = puppMETphiJESUp;
+        if(jetOne.pt > 5.f && jetOne.jes_pt_up > 5.f) { //if there's a jet and defined uncertainties
+          jetOne.setPtEtaPhiM(jetOne.jes_pt_up, jetOne.eta, jetOne.phi, jetOne.mass);
+        }
       } else {
         float dx(met*std::cos(metPhi) - puppMETJESUp*std::cos(puppMETphiJESUp)), dy(met*std::sin(metPhi) - puppMETJESUp*std::sin(puppMETphiJESUp));
         float new_x(met*std::cos(metPhi)+dx), new_y(met*std::sin(metPhi)+dy);
         met    = std::sqrt(std::pow(new_x, 2) + std::pow(new_y, 2));
         metPhi = (met > 0.f) ? std::acos(std::max(-1.f, std::min(1.f, new_x/met)))*(new_y < 0.f ? -1.f : 1.f) : 0.f;
+        if(jetOne.pt > 5.f && jetOne.jes_pt_down > 5.f) { //if there's a jet and defined uncertainties
+          jetOne.setPtEtaPhiM(jetOne.jes_pt_down, jetOne.eta, jetOne.phi, jetOne.mass);
+        }
       }
     } else if(name == "METCorr") { //FIXME: Remove
       if(fIsData) continue;
@@ -1202,12 +1222,12 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
     const float onept = leptonOne.pt;
     const float twopt = leptonTwo.pt;
 
-    const bool pass = (leptonOne.pt > one_pt_min_ && leptonTwo.pt > two_pt_min_ && (met_max_ < 0.f || met < met_max_)
-                       && fTreeVars.lepm > min_mass_ && (max_mass_ < 0.f || fTreeVars.lepm < max_mass_));
+    //apply event window cuts with (possibly) shifted kinematics
+    const bool pass = PassesCuts();
+
     if(pass) {
       Hist->hLepM  [sys]->Fill(lepm  , weight);
       //skip all other histograms in same-flavor selection, only using the M_{ll} histogram
-      if(isSameFlavor) continue;
       if(!fSparseHists) {
         Hist->hOnePt [sys]->Fill(onept  , weight);
         Hist->hTwoPt [sys]->Fill(twopt  , weight);
@@ -1215,6 +1235,7 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
           Hist->hWeightChange[sys]->Fill((eventWeight*genWeight != 0.) ? (eventWeight*genWeight - weight) / (eventWeight*genWeight) : 0.);
         }
       }
+      if(isSameFlavor) continue;
       //MVA outputs
       float mvaweight = fTreeVars.eventweightMVA*(weight/(eventWeight*genWeight)); //apply the fractional weight change to the MVA weight accounting for test/train splitting
       if(!std::isfinite(mvaweight)) {
@@ -1223,16 +1244,7 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
         mvaweight = 0.;
       }
       for(unsigned i = 0; i < fMVAConfig.names_.size(); ++i) {
-        //Only fill relevant MVA histograms for the datset
-        // const int category = fMVAConfig.data_cat_[i];
-        // if(!((category == 1 && isMuTau) ||
-        //      (category == 2 && isETau) ||
-        //      (category == 0 && lep_tau == 0 && !(isMuTau || isETau) && (mva[i])) ||
-        //      (category == 0 && lep_tau == 1 && fMVAConfig.names_[i].BeginsWith("mutau_e")) ||
-        //      (category == 0 && lep_tau == 2 && fMVAConfig.names_[i].BeginsWith("etau_mu"))
-        //      )
-        //    ) continue;
-        // if(!fDoHiggs && fMVAConfig.names_[i].EndsWith("higgs")) continue;
+        //assume only relevant MVAs are initialized
         if(!mva[i]) continue;
         float mvascore = fMvaOutputs[i];
         if(!std::isfinite(mvascore) && fVerbose > 0) {
@@ -1245,13 +1257,13 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
         Hist->hMVA[i][sys]->Fill(mvascore, mvaweight);
         if(reeval) Hist->hMVADiff[i][sys]->Fill(mvascore-o_mvas[i], mvaweight);
       }
-    } //end pt/mass/MET check
+    } //end kinematic event selection check
 
     //restore the nominal results
     if(reeval) {
-      *(leptonOne.p4) = o_lv1;
-      *(leptonTwo.p4) = o_lv2;
-      *(jetOneP4) = o_jet;
+      leptonOne.setP(o_lv1);
+      leptonTwo.setP(o_lv2);
+      jetOne.setP(o_jet);
       met = o_met;
       metPhi = o_metPhi;
       SetKinematics();
@@ -1268,7 +1280,8 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   if(InitializeEvent(entry)) return kTRUE;
 
   //object pT thresholds
-  const float muon_pt(10.), electron_pt(15.), tau_pt(20.);
+  const float muon_pt(10.f), electron_pt(15.f), tau_pt(20.f);
+  const float sys_buffer((fDoSystematics) ? 1.f : 0.f); //window widening for event migration checks, in GeV
 
   if(leptonOne.isElectron()) one_pt_min_ = electron_pt;
   if(leptonTwo.isElectron()) two_pt_min_ = electron_pt;
@@ -1276,13 +1289,6 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   if(leptonTwo.isMuon    ()) two_pt_min_ = muon_pt;
   if(leptonOne.isTau     ()) one_pt_min_ = tau_pt;
   if(leptonTwo.isTau     ()) two_pt_min_ = tau_pt;
-  met_max_ = -1.f; //not MET cut applied
-  if(mutau && fDoSystematics) {one_pt_min_ = muon_trig_pt_;}
-  if(etau  && fDoSystematics) {one_pt_min_ = electron_trig_pt_;}
-
-  //FIXME: Probably do this with a local variable
-  if(mutau && fDoSystematics) muon_trig_pt_ -= 0.1f; //lower slightly below threshold
-  if(etau  && fDoSystematics) electron_trig_pt_ -= 0.1f;
 
   //////////////////////////////////////////////////////////////
   //
@@ -1290,13 +1296,13 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   //
   //////////////////////////////////////////////////////////////
 
-  //Skip Drell-Yan events with gen-level decay mode inconsistent with the one of interest
-  //Warning: Only use for gen-level studies!
-  if(false && fIsDY && fTreeVars.zdecaymode != 0) {
-    if(fSelection == "emu"   && fTreeVars.zdecaymode != 5) return kTRUE;
-    if(fSelection == "etau"  && fTreeVars.zdecaymode != 6) return kTRUE;
-    if(fSelection == "mutau" && fTreeVars.zdecaymode != 7) return kTRUE;
-  }
+  // //Skip Drell-Yan events with gen-level decay mode inconsistent with the one of interest
+  // //Warning: Only use for gen-level studies!
+  // if(false && fIsDY && fTreeVars.zdecaymode != 0) {
+  //   if(fSelection == "emu"   && fTreeVars.zdecaymode != 5) return kTRUE;
+  //   if(fSelection == "etau"  && fTreeVars.zdecaymode != 6) return kTRUE;
+  //   if(fSelection == "mutau" && fTreeVars.zdecaymode != 7) return kTRUE;
+  // }
 
   //Ignore loose lepton selection in same flavor category for now
   ee   &= !isLooseElectron;
@@ -1315,66 +1321,56 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   // Set 1 + selection offset: base selection
   ////////////////////////////////////////////////////////////
   if(!(mutau || etau || emu || mumu || ee)) return kTRUE;
-  if(!fDYTesting || fCutFlowTesting) {
+  if(fCutFlowTesting) {
     if(!emu || !isLooseElectron)
       FillAllHistograms(set_offset + 1);
   }
 
   fCutFlow->Fill(icutflow); ++icutflow; //4
 
-  TLorentzVector* tau = 0;
-  TLorentzVector* muon = 0;
-  TLorentzVector* electron = 0;
-  TLorentzVector* muon_2 = 0;
-  TLorentzVector* electron_2 = 0;
-  //same flavor categories
-  if(std::abs(leptonOne.flavor) == std::abs(leptonTwo.flavor)) {
-    if(leptonOne.isMuon    ()) { //mumu
-      muon = leptonOne.p4;
-      muon_2 = leptonTwo.p4;
-    } else if(leptonOne.isElectron()) { //ee
-      electron = leptonOne.p4;
-      electron_2 = leptonTwo.p4;
-    }
-  } else {
-    if(leptonOne.isTau          ()) tau = leptonOne.p4;
-    else if(leptonTwo.isTau     ()) tau = leptonTwo.p4;
-    if(leptonOne.isMuon         ()) muon = leptonOne.p4;
-    else if(leptonTwo.isMuon    ()) muon = leptonTwo.p4;
-    if(leptonOne.isElectron     ()) electron = leptonOne.p4;
-    else if(leptonTwo.isElectron()) electron = leptonTwo.p4;
-  }
+  ///////////////////////////////////////////////////////////////////
+  //ensure the objects PDG IDs make sense
 
-  //lepton vectors must be found
-  mutau = mutau && (tau != 0) && (muon != 0);
-  etau  = etau  && (tau != 0) && (electron != 0);
-  emu   = emu   && (muon != 0) && (electron != 0);
-  mumu  = mumu  && (muon != 0) && (muon_2 != 0);
-  ee    = ee    && (electron != 0) && (electron_2 != 0);
+  mutau &= leptonOne.isMuon    () && leptonTwo.isTau     ();
+  etau  &= leptonOne.isElectron() && leptonTwo.isTau     ();
+  emu   &= leptonOne.isElectron() && leptonTwo.isMuon    ();
+  mumu  &= leptonOne.isMuon    () && leptonTwo.isMuon    ();
+  ee    &= leptonOne.isElectron() && leptonTwo.isElectron();
+
   if(!(mutau || etau || emu || mumu || ee)) return kTRUE;
   fCutFlow->Fill(icutflow); ++icutflow; //5
 
 
+  ///////////////////////////////////////////////////////////////////
   //leptons must satisfy the pt requirements and fire a trigger
-  //FIXME: figure out trigger cut matched vs. fired for di-lepton triggering with energy scale sys
-  mutau = mutau && muon->Pt() > muon_trig_pt_ && tau->Pt() > tau_pt && leptonOne.matched;
-  etau  = etau  && electron->Pt() > electron_trig_pt_ && tau->Pt() > tau_pt && leptonOne.matched;
-  emu   = emu   && ((electron->Pt() > electron_trig_pt_ && muon->Pt() > muon_pt && leptonOne.fired) ||
-                    (electron->Pt() > electron_pt && muon->Pt() > muon_trig_pt_ && leptonTwo.fired));
-  mumu  = mumu  && ((muon->Pt() > muon_trig_pt_ && muon_2->Pt() > muon_pt && leptonOne.fired) ||
-                    (muon->Pt() > muon_pt  && muon_2->Pt() > muon_trig_pt_ && leptonTwo.fired));
-  ee    = ee    && ((electron->Pt() > electron_trig_pt_ && electron_2->Pt() > electron_pt && leptonOne.fired) ||
-                    (electron->Pt() > electron_pt && electron_2->Pt() > electron_trig_pt_ && leptonTwo.fired));
+
+  mutau &= leptonOne.pt > muon_trig_pt_     - sys_buffer && leptonTwo.pt > tau_pt && leptonOne.matched;
+  etau  &= leptonOne.pt > electron_trig_pt_ - sys_buffer && leptonTwo.pt > tau_pt && leptonOne.matched;
+  emu   &= (leptonOne.pt > electron_pt && leptonTwo.pt > muon_pt &&
+            ((leptonOne.pt > electron_trig_pt_ - sys_buffer && leptonOne.matched) ||
+             (leptonTwo.pt > muon_trig_pt_     - sys_buffer && leptonTwo.matched)));
+  mumu  &= (leptonOne.pt > muon_pt && leptonTwo.pt > muon_pt &&
+            ((leptonOne.pt > muon_trig_pt_ - sys_buffer && leptonOne.matched) ||
+             (leptonTwo.pt > muon_trig_pt_ - sys_buffer && leptonTwo.matched)));
+  ee    &= (leptonOne.pt > electron_pt && leptonTwo.pt > electron_pt &&
+            ((leptonOne.pt > electron_trig_pt_ - sys_buffer && leptonOne.matched) ||
+             (leptonTwo.pt > electron_trig_pt_ - sys_buffer && leptonTwo.matched)));
+
   if(!(mutau || etau || emu || mumu || ee)) return kTRUE;
   fCutFlow->Fill(icutflow); ++icutflow; //6
 
+  ///////////////////////////////////////////////////////////////////
   //don't allow multiple muons/electrons in mumu/ee selections
+
   mumu &= nMuons     == 2;
   ee   &= nElectrons == 2;
+
   if(!(mutau || etau || emu || mumu || ee)) return kTRUE;
   fCutFlow->Fill(icutflow); ++icutflow; //7
 
+  ///////////////////////////////////////////////////////////////////
   //reject electrons in the barrel/endcap gap region
+
   const float elec_gap_low(1.444), elec_gap_high(1.566);
   etau &= std::fabs(leptonOne.scEta) < elec_gap_low || std::fabs(leptonOne.scEta) > elec_gap_high;
   emu  &= std::fabs(leptonOne.scEta) < elec_gap_low || std::fabs(leptonOne.scEta) > elec_gap_high;
@@ -1387,66 +1383,57 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   ////////////////////////////////////////////////////////////
   // Set 2 + selection offset: object pT cuts
   ////////////////////////////////////////////////////////////
-  if(!fDYTesting || fCutFlowTesting) {
+  if(fCutFlowTesting) {
     if(!emu || !isLooseElectron)
       FillAllHistograms(set_offset + 2);
   }
+
+  ///////////////////////////////////////////////////////////////////
+  //Apply eta region cuts
 
   //in tau_l tau_h embedding, gen-level cut with |eta_l| < 2.2 and |eta_had| < 2.4
   //in tau_e tau_mu/ee/mumu embedding, no gen-level |eta| cut, but muons go up to 2.4 so cut there
   const double electron_eta_max = (fUseEmbedCuts) ? (emu || ee || mumu) ? 2.4 : 2.2 : 2.5;
   const double muon_eta_max     = (fUseEmbedCuts) ? (emu || ee || mumu) ? 2.4 : 2.2 : 2.4;
-  const double tau_eta_max      = (fUseEmbedCuts) ? 2.3 : 2.3; //tau eta doesn't change
-  const double min_delta_r      = 0.3;
+  const double tau_eta_max      = 2.3; //tau eta doesn't change for selections or simulation datasets
+  const double min_delta_r      = 0.3; //separation between leptons
 
-  mutau = mutau && std::fabs(muon->Eta()) < muon_eta_max;
-  mutau = mutau && std::fabs(tau->Eta()) < tau_eta_max;
-  mutau = mutau && std::fabs(tau->DeltaR(*muon)) > min_delta_r;
+  mutau &= std::fabs(leptonOne.eta) < muon_eta_max;
+  mutau &= std::fabs(leptonTwo.eta) < tau_eta_max ;
+  mutau &= std::fabs(leptonOne.p4->DeltaR(*leptonTwo.p4)) > min_delta_r;
 
-  etau  = etau  && std::fabs(electron->Eta()) < electron_eta_max;
-  etau  = etau  && std::fabs(tau->Eta()) < tau_eta_max;
-  etau  = etau  && std::fabs(tau->DeltaR(*electron)) > min_delta_r;
+  etau  &= std::fabs(leptonOne.eta) < electron_eta_max;
+  etau  &= std::fabs(leptonTwo.eta) < tau_eta_max      ;
+  etau  &= std::fabs(leptonOne.p4->DeltaR(*leptonTwo.p4)) > min_delta_r;
 
-  emu   = emu   && std::fabs(electron->Eta()) < electron_eta_max;
-  emu   = emu   && std::fabs(muon->Eta()) < muon_eta_max;
-  emu   = emu   && std::fabs(muon->DeltaR(*electron)) > min_delta_r;
+  emu   &= std::fabs(leptonOne.eta) < electron_eta_max;
+  emu   &= std::fabs(leptonTwo.eta) < muon_eta_max    ;
+  emu   &= std::fabs(leptonOne.p4->DeltaR(*leptonTwo.p4)) > min_delta_r;
 
-  mumu  = mumu  && std::fabs(muon->Eta()) < muon_eta_max;
-  mumu  = mumu  && std::fabs(muon_2->Eta()) < muon_eta_max;
-  mumu  = mumu  && std::fabs(muon->DeltaR(*muon_2)) > min_delta_r;
+  mumu  &= std::fabs(leptonOne.eta) < muon_eta_max;
+  mumu  &= std::fabs(leptonTwo.eta) < muon_eta_max;
+  mumu  &= std::fabs(leptonOne.p4->DeltaR(*leptonTwo.p4)) > min_delta_r;
 
-  ee    = ee    && std::fabs(electron->Eta()) < electron_eta_max;
-  ee    = ee    && std::fabs(electron_2->Eta()) < electron_eta_max;
-  ee    = ee    && std::fabs(electron->DeltaR(*electron_2)) > min_delta_r;
+  ee    &= std::fabs(leptonOne.eta) < electron_eta_max;
+  ee    &= std::fabs(leptonTwo.eta) < electron_eta_max;
+  ee    &= std::fabs(leptonOne.p4->DeltaR(*leptonTwo.p4)) > min_delta_r;
 
-  //di-lepton mass cuts
+  ///////////////////////////////////////////////////////////////////
+  //Apply di-lepton mass cuts
+
   const float mll = fTreeVars.lepm;
-  float min_mass = (etau || mutau || ee || mumu) ?  40.f :  40.f;
-  float max_mass = (etau || mutau)               ? 170.f : 170.f;
-  min_mass_ = min_mass; max_mass_ = max_mass;
+  min_mass_ = (etau || mutau || ee || mumu) ?  40.f :  40.f;
+  max_mass_ = (etau || mutau)               ? 170.f : 170.f;
 
-  //loosen the mass cuts for energy scale uncertainties
-  if(fDoSystematics) {
-    min_mass -= 1.0; max_mass += 1.0f;
-  }
+  mutau &= mll > min_mass_ - sys_buffer && mll < max_mass_ + sys_buffer;
+  etau  &= mll > min_mass_ - sys_buffer && mll < max_mass_ + sys_buffer;
+  emu   &= mll > min_mass_ - sys_buffer && mll < max_mass_ + sys_buffer;
+  mumu  &= mll > min_mass_ - sys_buffer && mll < max_mass_ + sys_buffer;
+  ee    &= mll > min_mass_ - sys_buffer && mll < max_mass_ + sys_buffer;
 
-  mutau &= mll > min_mass && mll < max_mass;
-  etau  &= mll > min_mass && mll < max_mass;
-  emu   &= mll > min_mass && mll < max_mass;
-  mumu  &= mll > min_mass && mll < max_mass;
-  ee    &= mll > min_mass && mll < max_mass;
-
-  //FIXME: Add back in after deciding about ES sys with trigger match vs fired
-  //ensure a trigger was fired
-  if(!fDoSystematics) {
-    mutau &= leptonOne.fired || leptonTwo.fired;
-    etau  &= leptonOne.fired || leptonTwo.fired;
-    emu   &= leptonOne.fired || leptonTwo.fired;
-    mumu  &= leptonOne.fired || leptonTwo.fired;
-    ee    &= leptonOne.fired || leptonTwo.fired;
-  }
-
+  ///////////////////////////////////////////////////////////////////
   //ensure reasonable dxy/dz cuts for electrons/muons
+
   const float max_dz(0.5), max_dxy(0.2);
   mutau &= std::fabs(leptonOne.dxy) < max_dxy;
   mutau &= std::fabs(leptonOne.dz ) < max_dz ;
@@ -1474,7 +1461,9 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
     etau  &= std::fabs(leptonOne.dzSig ) < 2.5;
   }
 
+  ///////////////////////////////////////////////////////////////////
   //remove additional leptons in tau categories
+
   mutau &= nElectrons == 0;
   etau  &= nMuons     == 0;
 
@@ -1487,14 +1476,13 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   // Set 3 + selection offset: eta, mass, and trigger cuts
   ////////////////////////////////////////////////////////////
 
-  if(!fDYTesting || fCutFlowTesting) {
+  if(fCutFlowTesting) {
     if(!emu || !isLooseElectron)
       FillAllHistograms(set_offset + 3);
   }
 
-  ////////////////////////////////////////////////////////////
-  // Set 4 + selection offset: add tau IDs
-  ////////////////////////////////////////////////////////////
+  ///////////////////////////////////////////////////////////////////
+  // Apply additional hadronic tau IDs
 
   mutau &= isLooseTau || tauDeepAntiJet >= 50; //63 = tight
   mutau &= tauDeepAntiMu  >= 10; //15 = tight
@@ -1507,11 +1495,16 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   etau  &= leptonTwo.id2  >=  2; //1 = loose, 3 = tight tau MVA anti-muon ID
 
   //remove tau decay modes not interested in (keep only 0, 1, 10, 11)
-  mutau &= tauDecayMode % 10 < 2; //tauDecayMode != 5 && tauDecayMode != 6;
-  etau  &= tauDecayMode % 10 < 2; //tauDecayMode != 5 && tauDecayMode != 6;
+  mutau &= tauDecayMode % 10 < 2;
+  etau  &= tauDecayMode % 10 < 2;
 
   if(!(mutau || etau || emu || mumu || ee)) return kTRUE;
-  if(!fDYTesting || fCutFlowTesting) {
+
+  ////////////////////////////////////////////////////////////
+  // Set 4 + selection offset: Tau ID cuts
+  ////////////////////////////////////////////////////////////
+
+  if(fCutFlowTesting) {
     if(!emu || !isLooseElectron)
       FillAllHistograms(set_offset + 4);
   }
@@ -1551,13 +1544,13 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   const bool qcdSelection      = looseQCDRegion && fTreeVars.mtlep < qcd_mtlep_cut && (fTreeVars.leponereliso > 0.05) && !(isLooseMuon || isLooseElectron);
   const bool wjetsSelection    = (mutau || etau) && fTreeVars.mtlep > mtlep_cut && nBJetsUse == 0 && !(isLooseMuon || isLooseElectron);
   const bool topSelection      = (emu || etau || mutau) && nBJetsUse >= 1 && !(isLooseMuon || isLooseElectron);
-  const bool nominalSelection  = nBJetsUse == 0 && (met_cut < 0 ||met < met_cut) && fTreeVars.mtlep < mtlep_cut && !(isLooseMuon || isLooseElectron);
+  const bool nominalSelection  = nBJetsUse == 0 && (met_cut < 0 ||met < met_cut) && fTreeVars.mtlep < mtlep_cut + sys_buffer && !(isLooseMuon || isLooseElectron);
+  mtlep_max_ = mtlep_cut;
+  met_max_   = met_cut;
 
-  //////////////////////////
-  // Handle loose leptons //
-  //////////////////////////
+  ///////////////////////////////////////////////////////////////////
+  // Handle anti-isolated light leptons
 
-  //FIXME: add back in loose light leptons
   mutau &= !isLooseMuon;
   etau  &= !isLooseElectron;
 
@@ -1606,7 +1599,7 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   ////////////////////////////////////////////////////////////////////////////
   // Set 36 + selection offset: QCD selection with MC estimate taus and leptons
   ////////////////////////////////////////////////////////////////////////////
-  if((fQCDFakeTauTesting || !fDYTesting) && qcdSelection) {
+  if(fQCDFakeTauTesting && qcdSelection) {
     const Float_t prev_evt_wt = eventWeight;
     const Float_t prev_jtt_wt = jetToTauWeight;
     const Float_t prev_jtt_cr = jetToTauWeightCorr;
@@ -1628,7 +1621,7 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   ////////////////////////////////////////////////////////////////////////////
   // Set 37 + selection offset: W+Jets selection with MC estimate taus and leptons
   ////////////////////////////////////////////////////////////////////////////
-  if((fWJFakeTauTesting || !fDYTesting) && wjetsSelection) {
+  if(fWJFakeTauTesting && wjetsSelection) {
     const Float_t prev_evt_wt = eventWeight;
     const Float_t prev_jtt_wt = jetToTauWeight;
     const Float_t prev_jtt_cr = jetToTauWeightCorr;
@@ -1654,7 +1647,7 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   ////////////////////////////////////////////////////////////////////////////
   // Set 38 + selection offset: ttbar selection with MC estimate taus and leptons
   ////////////////////////////////////////////////////////////////////////////
-  if((fTTFakeTauTesting || !fDYTesting) && (mutau || etau) && topSelection) {
+  if(fTTFakeTauTesting && (mutau || etau) && topSelection) {
     const Float_t prev_evt_wt = eventWeight;
     const Float_t prev_jtt_wt = jetToTauWeight;
     const Float_t prev_jtt_cr = jetToTauWeightCorr;
@@ -1676,7 +1669,9 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   }
 
 
+  ///////////////////////////////////////////////////////////////////
   //remove MC jet -> light lepton contribution
+
   if(!fUseMCEstimatedFakeLep && !fIsData) {
     emu   &= !isFakeMuon;
     emu   &= !isFakeElectron;
@@ -1686,7 +1681,9 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
     etau  &= !isFakeElectron;
   }
 
+  ///////////////////////////////////////////////////////////////////
   //remove MC estimated jet --> tau component
+
   mutau &= fIsData > 0 || std::abs(tauGenFlavor) != 26;
   etau  &= fIsData > 0 || std::abs(tauGenFlavor) != 26;
 
@@ -1698,7 +1695,7 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   ////////////////////////////////////////////////////////////////////////////
   // Set 30 + selection offset: QCD selection
   ////////////////////////////////////////////////////////////////////////////
-  if((fQCDFakeTauTesting || !fDYTesting) && qcdSelection) {
+  if(fQCDFakeTauTesting && qcdSelection) {
     const Float_t prev_evt_wt = eventWeight;
     const Float_t prev_jtt_wt = jetToTauWeight;
     const Float_t prev_jtt_cr = jetToTauWeightCorr;
@@ -1720,7 +1717,7 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   ////////////////////////////////////////////////////////////////////////////
   // Set 31 + selection offset: W+Jets selection
   ////////////////////////////////////////////////////////////////////////////
-  if((fWJFakeTauTesting || !fDYTesting) && wjetsSelection) {
+  if(fWJFakeTauTesting && wjetsSelection) {
     const Float_t prev_evt_wt = eventWeight;
     const Float_t prev_jtt_wt = jetToTauWeight;
     const Float_t prev_jtt_cr = jetToTauWeightCorr;
@@ -1742,7 +1739,7 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   ////////////////////////////////////////////////////////////////////////////
   // Set 32 + selection offset: Top selection
   ////////////////////////////////////////////////////////////////////////////
-  if((fTTFakeTauTesting || !fDYTesting) && topSelection && !lep_tau) {
+  if(fTTFakeTauTesting && topSelection && !lep_tau) {
     const Float_t prev_evt_wt = eventWeight;
     const Float_t prev_jtt_wt = jetToTauWeight;
     const Float_t prev_jtt_cr = jetToTauWeightCorr;
@@ -1765,21 +1762,20 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   //    Add MET cuts      //
   //////////////////////////
 
-  mutau &= met_cut < 0 || met < met_cut;
-  etau  &= met_cut < 0 || met < met_cut;
-  emu   &= met_cut < 0 || met < met_cut;
+  mutau &= met_cut < 0.f || met < met_cut + sys_buffer;
+  etau  &= met_cut < 0.f || met < met_cut + sys_buffer;
+  emu   &= met_cut < 0.f || met < met_cut + sys_buffer;
 
-  //Add W+Jets selection orthogonality condition
-  mutau &= mtlep_cut < 0. || fTreeVars.mtlep < mtlep_cut;
-  etau  &= mtlep_cut < 0. || fTreeVars.mtlep < mtlep_cut;
-  emu   &= mtlep_cut < 0. || fTreeVars.mtlep < mtlep_cut;
+  mutau &= mtlep_cut < 0.f || fTreeVars.mtlep < mtlep_cut + sys_buffer;
+  etau  &= mtlep_cut < 0.f || fTreeVars.mtlep < mtlep_cut + sys_buffer;
+  emu   &= mtlep_cut < 0.f || fTreeVars.mtlep < mtlep_cut + sys_buffer;
 
   if(!(mutau || etau || emu || mumu || ee)) return kTRUE;
 
   ////////////////////////////////////////////////////////////////////////////
   // Set 7 + selection offset: No MC estimated fake taus, no b-jet cut
   ////////////////////////////////////////////////////////////////////////////
-  if(!lep_tau && (!fDYTesting || (mumu || ee)) && fDoSystematics >= 0)
+  if(!lep_tau && (mumu || ee) && fDoSystematics >= 0)
     FillAllHistograms(set_offset + 7);
 
   if(fCutFlowTesting) return kTRUE;
@@ -1822,18 +1818,18 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
 
   mutau_e = lep_tau == 1 && emu; //must be doing a leptonic tau selection
   etau_mu = lep_tau == 2 && emu;
+  emu    &= lep_tau == 0;
 
-  mutau_e &= leptonTwo.pt > 20.f; //lepton pT
-  etau_mu &= leptonOne.pt > 20.f;
-  etau_mu &= leptonOne.pt - leptonTwo.pt > -20.f; //lepton pT - leptonic tau pT
-  mutau_e &= leptonTwo.pt - leptonOne.pt > -20.f;
-  //FIXME: Decide where to put these
-  // mutau_e &= mll < max_mass; //di-lepton mass
-  // etau_mu &= mll < max_mass;
-  mutau_e &= fTreeVars.mtlep < 100.f; //di-lepton MT
-  etau_mu &= fTreeVars.mtlep < 100.f;
-  mutau_e &= fTreeVars.mtone < 60.f; //leptonic tau MT
-  etau_mu &= fTreeVars.mttwo < 60.f;
+  if(mutau_e) {two_pt_min_ = 20.f; ptdiff_min_ = -1.e10; ptdiff_max_ =   20.f; mtlep_max_ = 100.f; mtone_max_ = 60.f;} //lep 2 = prompt, lep 1 = tau_l
+  if(etau_mu) {one_pt_min_ = 20.f; ptdiff_min_ =   20.f; ptdiff_max_ = +1.e10; mtlep_max_ = 100.f; mttwo_max_ = 60.f;} //lep 1 = prompt, lep 2 = tau_l
+  mutau_e &= leptonTwo.pt > two_pt_min_ - sys_buffer; //lepton pT,
+  etau_mu &= leptonOne.pt > one_pt_min_ - sys_buffer;
+  mutau_e &= fTreeVars.ptdiff > ptdiff_min_ - sys_buffer && fTreeVars.ptdiff < ptdiff_max_ + sys_buffer; //lepton pT - leptonic tau pT
+  etau_mu &= fTreeVars.ptdiff > ptdiff_min_ - sys_buffer && fTreeVars.ptdiff < ptdiff_max_ + sys_buffer;
+  mutau_e &= fTreeVars.mtlep < mtlep_max_ + sys_buffer; //di-lepton MT
+  etau_mu &= fTreeVars.mtlep < mtlep_max_ + sys_buffer;
+  mutau_e &= fTreeVars.mtone < mtone_max_ + sys_buffer; //leptonic tau MT (should be very collimated, so small MT)
+  etau_mu &= fTreeVars.mttwo < mttwo_max_ + sys_buffer;
 
   //FIXME: Decide dxy/dz significance cuts
   if(use_dxyz_sig > 1) {
@@ -1850,9 +1846,10 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   }
 
   //Z/H->e+mu only
-  emu     &= leptonOne.pt > 20.f;
-  emu     &= leptonTwo.pt > 20.f;
-  emu     &= mll > 70.f && mll < 110.f;
+  if(emu) {one_pt_min_ = 20.f; two_pt_min_ = 20.f; min_mass_ = 70.f; max_mass_ = 110.f;}
+  emu     &= leptonOne.pt > one_pt_min_ - sys_buffer;
+  emu     &= leptonTwo.pt > two_pt_min_ - sys_buffer;
+  emu     &= mll > min_mass_ - sys_buffer && mll < max_mass_ + sys_buffer;
 
   if(!(mutau || etau || emu || mumu || ee || mutau_e || etau_mu)) return kTRUE;
 
@@ -1860,52 +1857,45 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   // Set 8 + selection offset: nBJets = 0
   ////////////////////////////////////////////////////////////////////////////
   if(!lep_tau) {
-    min_mass_ = 50.f; min_mass = min_mass_ + 1.f;
-    if(mll > min_mass) {
+    const float prev_min(min_mass_), prev_max(max_mass_);
+    min_mass_ = 50.f;
+    if(mll > min_mass_ - sys_buffer) {
       fTimes[GetTimerNumber("SingleFill")] = std::chrono::steady_clock::now(); //timer for filling all histograms
       FillAllHistograms(set_offset + 8);
       IncrementTimer("SingleFill", true);
     }
-  } else if((mutau_e || etau_mu) && mll < max_mass) { //single mass category search for leptonic taus
-    if(lep_tau == 1 && mutau_e) {
+    min_mass_ = prev_min; max_mass_ = prev_max;
+  } else if(mutau_e || etau_mu) { //single mass category search for leptonic taus
+    const float prev_min(min_mass_), prev_max(max_mass_);
+    max_mass_ = 100.f;
+    if(lep_tau == 1 && mutau_e && mll > min_mass_ - sys_buffer && mll < max_mass_ + sys_buffer ) {
       fTimes[GetTimerNumber("SingleFill")] = std::chrono::steady_clock::now(); //timer for filling all histograms
       FillAllHistograms(set_offset + (kMuTauE - kEMu) + 8);
       IncrementTimer("SingleFill", true);
     }
-    if(lep_tau == 2 && etau_mu) {
+    if(lep_tau == 2 && etau_mu && mll > min_mass_ - sys_buffer && mll < max_mass_ + sys_buffer) {
       fTimes[GetTimerNumber("SingleFill")] = std::chrono::steady_clock::now(); //timer for filling all histograms
       FillAllHistograms(set_offset + (kETauMu - kEMu) + 8);
       IncrementTimer("SingleFill", true);
     }
+    min_mass_ = prev_min; max_mass_ = prev_max;
   }
 
   ////////////////////////////////////////////////////////////////////////////
   // Set 25/26/27 + selection offset: Mass regions testing
   ////////////////////////////////////////////////////////////////////////////
 
-  if(mutau_e || etau_mu) {max_mass_ = 170.f; max_mass = max_mass_ + 1.f;}
-
   if(mutau || etau || mutau_e || etau_mu) {
     float prev_min(min_mass_), prev_max(max_mass_), jtt_region((mutau_e || etau_mu) ? 100.f : 110.f), z_region((mutau_e || etau_mu) ? 50.f : 60.f);
     const int loc_set_offset = (mutau_e) ? set_offset + (kMuTauE-kEMu) : (etau_mu) ? set_offset + (kETauMu - kEMu) : set_offset;
     //nominal
-    if(fTreeVars.lepm > z_region   - 1.f && fTreeVars.lepm < jtt_region + 1.f) {min_mass_ = z_region  ; max_mass_ = jtt_region; FillAllHistograms(loc_set_offset + 25);}
+    if(fTreeVars.lepm > z_region   - sys_buffer && fTreeVars.lepm < jtt_region + sys_buffer) {min_mass_ = z_region  ; max_mass_ = jtt_region; FillAllHistograms(loc_set_offset + 25);}
     //j-->tau control
-    if(fTreeVars.lepm > jtt_region - 1.f)                                      {min_mass_ = jtt_region; max_mass_ = prev_max  ; FillAllHistograms(loc_set_offset + 26);}
+    if(fTreeVars.lepm > jtt_region - sys_buffer)                                             {min_mass_ = jtt_region; max_mass_ = prev_max  ; FillAllHistograms(loc_set_offset + 26);}
     //Z->tau tau control
-    if(fTreeVars.lepm < z_region   + 1.f)                                      {min_mass_ = prev_min  ; max_mass_ = z_region  ; FillAllHistograms(loc_set_offset + 27);}
+    if(fTreeVars.lepm < z_region   + sys_buffer)                                             {min_mass_ = prev_min  ; max_mass_ = z_region  ; FillAllHistograms(loc_set_offset + 27);}
     min_mass_ = prev_min; max_mass_ = prev_max;
   }
-
-  // ////////////////////////////////////////////////////////////////////////////
-  // // Set 20 + selection offset: Test set
-  // ////////////////////////////////////////////////////////////////////////////
-  // bool test_set = mutau;
-  // test_set &= fMvaOutputs[1] < -0.4f && fMvaOutputs[1] > -1.5f; //low score region where Embedding is having issues
-
-  // if(test_set) {
-  //   FillAllHistograms(set_offset + 20);
-  // }
 
   // ////////////////////////////////////////////////////////////////////////////
   // // Set 21 + selection offset: 1-prong taus
@@ -1923,13 +1913,13 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   //   FillAllHistograms(set_offset + 22);
   // }
 
-  if(!lep_tau && (emu || mumu || ee) && (!fDYTesting || fTriggerTesting)) {
+  if(fTriggerTesting && !lep_tau && (emu || mumu || ee)) {
     if(emu) { //e+mu trigger testing
 
       ////////////////////////////////////////////////////////////////////////////
       // Set 63 + selection offset: Electron triggerable
       ////////////////////////////////////////////////////////////////////////////
-      if(leptonOne.p4->Pt() > electron_trig_pt_) {
+      if(leptonOne.pt > electron_trig_pt_) {
         FillAllHistograms(set_offset + 63);
       }
       ////////////////////////////////////////////////////////////////////////////
@@ -1942,7 +1932,7 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
       ////////////////////////////////////////////////////////////////////////////
       // Set 64 + selection offset: muon triggerable
       ////////////////////////////////////////////////////////////////////////////
-      if(leptonTwo.p4->Pt() > muon_trig_pt_) {
+      if(leptonTwo.pt > muon_trig_pt_) {
         FillAllHistograms(set_offset + 64);
       }
       ////////////////////////////////////////////////////////////////////////////
@@ -1955,7 +1945,7 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
       ////////////////////////////////////////////////////////////////////////////
       // Set 65 + selection offset: Electron+Muon triggerable
       ////////////////////////////////////////////////////////////////////////////
-      if(leptonOne.p4->Pt() > electron_trig_pt_ && leptonTwo.p4->Pt() > muon_trig_pt_) {
+      if(leptonOne.pt > electron_trig_pt_ && leptonTwo.pt > muon_trig_pt_) {
         FillAllHistograms(set_offset + 65);
       }
     } else { //ee and mumu trigger testing
@@ -1964,7 +1954,7 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
       ////////////////////////////////////////////////////////////////////////////
       // Set 63 + selection offset: lepton two triggerable
       ////////////////////////////////////////////////////////////////////////////
-      if(leptonTwo.p4->Pt() > trig_threshold) {
+      if(leptonTwo.pt > trig_threshold) {
         FillAllHistograms(set_offset + 63);
       }
       ////////////////////////////////////////////////////////////////////////////
@@ -1987,7 +1977,7 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
     if(fDoHiggs && emu && mll < 130.f && mll > 120.f)  FillAllHistograms(set_offset + 25);
   }
 
-  if(fDYTesting && !fDoMVASets) return kTRUE;
+  if(!fDoMVASets) return kTRUE;
 
   if(!lep_tau) {
     ////////////////////////////////////////////////////////////////////////////
@@ -1997,7 +1987,7 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
     Float_t prev_wt = eventWeight;
     //only use weight if MC or is same sign data
     eventWeight = (fIsData == 0 || !chargeTest) ? std::fabs(fTreeVars.eventweightMVA) : std::fabs(prev_wt); //use abs to remove gen weight sign
-    bool doMVASets = !fDYTesting || fDoMVASets;
+    bool doMVASets = fDoMVASets;
     int category = -1; //histogram set to use, based on MVA score
     if(doMVASets) {
       //Total background Z0 MVAs: 9 - 13

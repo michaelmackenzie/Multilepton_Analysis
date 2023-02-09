@@ -40,7 +40,7 @@ HistMaker::HistMaker(int seed, TTree * /*tree*/) : fSystematicSeed(seed),
 
   leptonOne.p4 = new TLorentzVector();
   leptonTwo.p4 = new TLorentzVector();
-  jetOneP4     = new TLorentzVector();
+  jetOne.p4    = new TLorentzVector();
   photonP4     = nullptr;
 
   //Initialize time analysis fields
@@ -93,7 +93,7 @@ HistMaker::~HistMaker() {
   if(fRnd              ) {delete fRnd             ; fRnd              = nullptr;}
   if(leptonOne.p4      ) {delete leptonOne.p4     ; leptonOne.p4      = nullptr;}
   if(leptonTwo.p4      ) {delete leptonTwo.p4     ; leptonTwo.p4      = nullptr;}
-  if(jetOneP4          ) {delete jetOneP4         ; jetOneP4          = nullptr;}
+  if(jetOne.p4         ) {delete jetOne.p4        ; jetOne.p4         = nullptr;}
   if(photonP4          ) {delete photonP4         ; photonP4          = nullptr;}
 }
 
@@ -228,6 +228,20 @@ void HistMaker::Begin(TTree * /*tree*/)
 
   lep_tau = fSelection.EndsWith("tau_e") + 2*fSelection.EndsWith("tau_mu");
 
+  //Check that flags agree with the available branches in the tree
+  if(fUseBTagWeights == 2 && !fChain->GetBranch("Jet_btagSF_deepcsv_L")) {
+    printf("%s: Warning! B-tag SFs not available in tree, will re-calculate on the fly\n", __func__);
+    fUseBTagWeights = 1;
+  }
+  if(fUseRoccoCorr == 2 && !fChain->GetBranch("Muon_corrected_pt")) {
+    printf("%s: Warning! Rochester corrections not available in tree, will re-calculate on the fly\n", __func__);
+    fUseRoccoCorr = 1;
+  }
+  if(fUseJetPUIDWeights == 2 && !fChain->GetBranch("JetPUIDWeight")) {
+    printf("%s: Warning! Jet PU ID weight not available in tree, will re-calculate on the fly\n", __func__);
+    fUseJetPUIDWeights = 1;
+  }
+
   //Setup output histograms
   InitHistogramFlags();
   BookHistograms();
@@ -261,8 +275,7 @@ void HistMaker::FillAllHistograms(Int_t index) {
     genWeight = 1.;
   }
   //check the event passes the correct cuts
-  const bool pass = (leptonOne.pt > one_pt_min_ && leptonTwo.pt > two_pt_min_ && (met_max_ < 0.f || met < met_max_)
-                     && fTreeVars.lepm > min_mass_ && (max_mass_ < 0.f || fTreeVars.lepm < max_mass_));
+  const bool pass = PassesCuts();
   if(fEventSets [index]) {
     if(fVerbose > 0) std::cout << "Filling histograms for set " << index
                                << " with event weight = " << eventWeight
@@ -274,7 +287,7 @@ void HistMaker::FillAllHistograms(Int_t index) {
       FillEventHistogram( fEventHist [index]);
       FillLepHistogram(   fLepHist   [index]);
     }
-    //allow events outside the window to the systematics, to account for shifted events
+    //allow events outside the window to the systematics filling, to account for shifted events migrating in/out
     if(fDoSystematics && fSysSets[index]) {
       fTimes[GetTimerNumber("SystFill")] = std::chrono::steady_clock::now(); //timer for reading from the tree
       FillSystematicHistogram(fSystematicHist[index]);
@@ -407,6 +420,8 @@ void HistMaker::BookBaseEventHistograms(Int_t i, const char* dirname) {
       Utilities::BookH1F(fEventHist[i]->hMet                 , "met"                 , Form("%s: Met"                     ,dirname)  , 100,  0, 200, folder);
       Utilities::BookH1F(fEventHist[i]->hMetPhi              , "metphi"              , Form("%s: MetPhi"                  ,dirname)  ,  40, -4,   4, folder);
       Utilities::BookH1F(fEventHist[i]->hMetCorr             , "metcorr"             , Form("%s: Met Correction"          ,dirname)  ,  40,  0,   5, folder);
+      Utilities::BookH1F(fEventHist[i]->hMetUp               , "metup"               , Form("%s: Met up"                  ,dirname)  , 100,  0, 200, folder);
+      Utilities::BookH1F(fEventHist[i]->hMetDown             , "metdown"             , Form("%s: Met down"                ,dirname)  , 100,  0, 200, folder);
 
       Utilities::BookH1F(fEventHist[i]->hMTOne               , "mtone"               , Form("%s: MTOne"                   ,dirname)  , 100, 0.,   150., folder);
       Utilities::BookH1F(fEventHist[i]->hMTTwo               , "mttwo"               , Form("%s: MTTwo"                   ,dirname)  , 100, 0.,   150., folder);
@@ -867,6 +882,9 @@ void HistMaker::InitializeInputTree(TTree* tree) {
   Utilities::SetBranchAddress(tree, "Muon_pt"                  , &Muon_pt                   );
   Utilities::SetBranchAddress(tree, "Muon_eta"                 , &Muon_eta                  );
   Utilities::SetBranchAddress(tree, "Muon_phi"                 , &Muon_phi                  );
+  Utilities::SetBranchAddress(tree, "Muon_corrected_pt"        , &Muon_corrected_pt         );
+  Utilities::SetBranchAddress(tree, "Muon_correctedUp_pt"      , &Muon_correctedUp_pt       );
+  Utilities::SetBranchAddress(tree, "Muon_correctedDown_pt"    , &Muon_correctedDown_pt     );
   Utilities::SetBranchAddress(tree, "Muon_charge"              , &Muon_charge               );
   Utilities::SetBranchAddress(tree, "Muon_looseId"             , &Muon_looseId              );
   Utilities::SetBranchAddress(tree, "Muon_mediumId"            , &Muon_mediumId             );
@@ -942,6 +960,16 @@ void HistMaker::InitializeInputTree(TTree* tree) {
   Utilities::SetBranchAddress(tree, "Jet_eta"                       , &Jet_eta                       );
   Utilities::SetBranchAddress(tree, "Jet_phi"                       , &Jet_phi                       );
   Utilities::SetBranchAddress(tree, "Jet_mass"                      , &Jet_mass                      );
+  Utilities::SetBranchAddress(tree, "Jet_pt_jerUp"                  , &Jet_pt_jerUp                  );
+  Utilities::SetBranchAddress(tree, "Jet_pt_jerDown"                , &Jet_pt_jerDown                );
+  Utilities::SetBranchAddress(tree, "Jet_pt_jesTotalUp"             , &Jet_pt_jesTotalUp             );
+  Utilities::SetBranchAddress(tree, "Jet_pt_jesTotalDown"           , &Jet_pt_jesTotalDown           );
+  Utilities::SetBranchAddress(tree, "Jet_btagSF_deepscv_L"          , &Jet_btagSF_L                  );
+  Utilities::SetBranchAddress(tree, "Jet_btagSF_deepscv_L_up"       , &Jet_btagSF_L_up               );
+  Utilities::SetBranchAddress(tree, "Jet_btagSF_deepscv_L_down"     , &Jet_btagSF_L_down             );
+  Utilities::SetBranchAddress(tree, "Jet_btagSF_deepscv_T"          , &Jet_btagSF_T                  );
+  Utilities::SetBranchAddress(tree, "Jet_btagSF_deepscv_T_up"       , &Jet_btagSF_T_up               );
+  Utilities::SetBranchAddress(tree, "Jet_btagSF_deepscv_T_down"     , &Jet_btagSF_T_down             );
   // Utilities::SetBranchAddress(tree, "Jet_charge"                    , &Jet_charge                    );
   Utilities::SetBranchAddress(tree, "Jet_jetId"                     , &Jet_jetId                     );
   Utilities::SetBranchAddress(tree, "Jet_puId"                      , &Jet_puId                      );
@@ -954,7 +982,8 @@ void HistMaker::InitializeInputTree(TTree* tree) {
   // Utilities::SetBranchAddress(tree, "Jet_dz"                        , &Jet_dz                        );
   // Utilities::SetBranchAddress(tree, "Jet_dzErr"                     , &Jet_dzErr                     );
   if(!fIsData && !fIsEmbed) {
-    Utilities::SetBranchAddress(tree, "Jet_partonFlavour"             , &Jet_partonFlavour             );
+    Utilities::SetBranchAddress(tree, "Jet_partonFlavour"             , &Jet_partonFlavour           );
+    Utilities::SetBranchAddress(tree, "JetPUIDWeight"                 , &jetPUIDWeight               );
   }
   Utilities::SetBranchAddress(tree, "Jet_TaggedAsRemovedByMuon"     , &Jet_TaggedAsRemovedByMuon     );
   Utilities::SetBranchAddress(tree, "Jet_TaggedAsRemovedByElectron" , &Jet_TaggedAsRemovedByElectron );
@@ -1060,47 +1089,58 @@ void HistMaker::ApplyElectronCorrections() {
 //apply the Rochester corrections to the muon pt for all muons
 void HistMaker::ApplyMuonCorrections() {
   //FIXME: Update to using the Rochester correction uncertainty instead of size
-  const static bool use_size(true); //use Rochester size or evaluated uncertainty
+  const static bool use_size(true && fUseRoccoCorr != 0); //use Rochester size or evaluated uncertainty
   float delta_x(metCorr*std::cos(metCorrPhi)), delta_y(metCorr*std::sin(metCorrPhi));
   const static int s(0), m(0); //error set and member for corrections
   const static int sys_s(2), sys_m(0); //FIXME: Decide on a systematic correction set, currently using Zpt
   for(UInt_t index = 0; index < nMuon; ++index) {
-    if(fIsEmbed && !fUseEmbedRocco) {  //don't correct embedding muons
+    if((fIsEmbed && !fUseEmbedRocco) || fUseRoccoCorr == 0) {  //don't correct embedding (or any, if selected) to muons
       Muon_RoccoSF[index] = 1.f;
       const float abs_eta = std::fabs(Muon_eta[index]);
-      Muon_ESErr[index] = (abs_eta < 1.2) ? 0.004 : (abs_eta < 2.1) ? 0.009 : 0.027;
+      Muon_ESErr[index] = (fIsEmbed) ? (abs_eta < 1.2) ? 0.004 : (abs_eta < 2.1) ? 0.009 : 0.027 : 0.002;
       continue;
     }
-    const double u = fRnd->Uniform();
-    double sf(1.), err(0.);
-    if(fIsData) {
-      sf = fRoccoR->kScaleDT(Muon_charge[index], Muon_pt[index], Muon_eta[index], Muon_phi[index], s, m);
-      err = 0.; //ignore error on data
-    } else { //MC or Embedding if using Rochester corrections
-      //For simulated muons, both in embedding and standard MC, apply given MC corrections
-      if(Muon_genPartIdx[index] >= 0) { //matched to a gen particle
-        sf   = fRoccoR->kSpreadMC(Muon_charge[index], Muon_pt[index], Muon_eta[index], Muon_phi[index], GenPart_pt[Muon_genPartIdx[index]], s, m);
-        err  = fRoccoR->kSpreadMC(Muon_charge[index], Muon_pt[index], Muon_eta[index], Muon_phi[index], GenPart_pt[Muon_genPartIdx[index]], sys_s, sys_m);
-        err *= fRoccoR->kScaleDT (Muon_charge[index], Muon_pt[index], Muon_eta[index], Muon_phi[index], s, m);
-        err /= fRoccoR->kScaleDT (Muon_charge[index], Muon_pt[index], Muon_eta[index], Muon_phi[index], sys_s, sys_m);
-        err = std::fabs(sf - err);
-      } else { //not matched
-        sf   = fRoccoR->kSmearMC(Muon_charge[index], Muon_pt[index], Muon_eta[index], Muon_phi[index], Muon_nTrackerLayers[index], u, s, m);
-        err  = fRoccoR->kSmearMC(Muon_charge[index], Muon_pt[index], Muon_eta[index], Muon_phi[index], Muon_nTrackerLayers[index], u, sys_s, sys_m);
-        err *= fRoccoR->kScaleDT(Muon_charge[index], Muon_pt[index], Muon_eta[index], Muon_phi[index], s, m);
-        err /= fRoccoR->kScaleDT(Muon_charge[index], Muon_pt[index], Muon_eta[index], Muon_phi[index], sys_s, sys_m);
-        err = std::fabs(sf - err);
+    if(fUseRoccoCorr == 1) { //apply locally-evaluated corrections
+      const double u = fRnd->Uniform();
+      double sf(1.), err(0.);
+      if(fIsData) {
+        sf = fRoccoR->kScaleDT(Muon_charge[index], Muon_pt[index], Muon_eta[index], Muon_phi[index], s, m);
+        err = 0.; //ignore error on data
+      } else { //MC or Embedding if using Rochester corrections
+        //For simulated muons, both in embedding and standard MC, apply given MC corrections
+        if(Muon_genPartIdx[index] >= 0) { //matched to a gen particle
+          sf   = fRoccoR->kSpreadMC(Muon_charge[index], Muon_pt[index], Muon_eta[index], Muon_phi[index], GenPart_pt[Muon_genPartIdx[index]], s, m);
+          err  = fRoccoR->kSpreadMC(Muon_charge[index], Muon_pt[index], Muon_eta[index], Muon_phi[index], GenPart_pt[Muon_genPartIdx[index]], sys_s, sys_m);
+          err *= fRoccoR->kScaleDT (Muon_charge[index], Muon_pt[index], Muon_eta[index], Muon_phi[index], s, m);
+          err /= fRoccoR->kScaleDT (Muon_charge[index], Muon_pt[index], Muon_eta[index], Muon_phi[index], sys_s, sys_m);
+          err = std::fabs(sf - err);
+        } else { //not matched
+          sf   = fRoccoR->kSmearMC(Muon_charge[index], Muon_pt[index], Muon_eta[index], Muon_phi[index], Muon_nTrackerLayers[index], u, s, m);
+          err  = fRoccoR->kSmearMC(Muon_charge[index], Muon_pt[index], Muon_eta[index], Muon_phi[index], Muon_nTrackerLayers[index], u, sys_s, sys_m);
+          err *= fRoccoR->kScaleDT(Muon_charge[index], Muon_pt[index], Muon_eta[index], Muon_phi[index], s, m);
+          err /= fRoccoR->kScaleDT(Muon_charge[index], Muon_pt[index], Muon_eta[index], Muon_phi[index], sys_s, sys_m);
+          err = std::fabs(sf - err);
+        }
       }
+      double pt_diff = Muon_pt[index];
+      Muon_pt[index] *= sf;
+      Muon_RoccoSF[index] = sf;
+      pt_diff = Muon_pt[index] - pt_diff;
+      //subtract the change from the MET
+      delta_x -= pt_diff*std::cos(Muon_phi[index]);
+      delta_y -= pt_diff*std::sin(Muon_phi[index]);
+      if(use_size) Muon_ESErr[index] = std::fabs(1.f - sf); //size of the correction
+      else         Muon_ESErr[index] = err; //evaluated uncertainty
+    } else if(fUseRoccoCorr == 2) { //apply ntuple-level corrections
+      Muon_RoccoSF[index] = Muon_corrected_pt[index] / Muon_pt[index];
+      const double pt_diff = Muon_corrected_pt[index] - Muon_pt[index];
+      Muon_pt[index] = Muon_corrected_pt[index];
+      delta_x -= pt_diff*std::cos(Muon_phi[index]);
+      delta_y -= pt_diff*std::sin(Muon_phi[index]);
+      if(use_size) Muon_ESErr[index] = std::fabs(1.f - Muon_RoccoSF[index]); //size of the correction
+      else         Muon_ESErr[index] = std::max(std::fabs(1.f - Muon_correctedUp_pt[index]/Muon_pt[index]),
+                                                std::fabs(1.f - Muon_correctedDown_pt[index]/Muon_pt[index])); //take the larger fractional uncertainty of the two
     }
-    double pt_diff = Muon_pt[index];
-    Muon_pt[index] *= sf;
-    Muon_RoccoSF[index] = sf;
-    pt_diff = Muon_pt[index] - pt_diff;
-    //subtract the change from the MET
-    delta_x -= pt_diff*std::cos(Muon_phi[index]);
-    delta_y -= pt_diff*std::sin(Muon_phi[index]);
-    if(use_size) Muon_ESErr[index] = std::fabs(1. - sf); //size of the correction
-    else         Muon_ESErr[index] = err; //evaluated uncertainty
   }
   metCorr = std::sqrt(delta_x*delta_x + delta_y*delta_y);
   metCorrPhi = (metCorr > 0.f) ? std::acos(std::max(-1.f, std::min(1.f, delta_x/metCorr)))*(delta_y < 0.f ? -1 : 1) : 0.f;
@@ -1247,7 +1287,7 @@ void HistMaker::InitializeEventWeights() {
   const int ntrig_sys = sizeof(triggerWeightsSys)/sizeof(*triggerWeightsSys);
   for(int itrig = 0; itrig < ntrig_sys; ++itrig) triggerWeightsSys[itrig] = 1.f;
 
-  jetPUIDWeight = 1.f; embeddingWeight = 1.f; embeddingUnfoldingWeight = 1.f;
+  embeddingWeight = 1.f; embeddingUnfoldingWeight = 1.f;
   zPtWeight = 1.f; zPtWeightUp = 1.f; zPtWeightDown = 1.f; zPtWeightSys = 1.f;
   signalZWeight = 1.f;
 
@@ -1394,10 +1434,14 @@ void HistMaker::InitializeEventWeights() {
   //   Jet PU ID weights
   ////////////////////////////////////////////////////////////////////
 
-  jetPUIDWeight = 1.f;
   if(fUseJetPUIDWeights > 0 && !fIsData && !fIsEmbed) {
-    jetPUIDWeight = fJetPUWeight->GetWeight(fYear, nJets20, jetsPt, jetsEta, nJets20Rej, jetsRejPt, jetsRejEta);
+    if(fUseJetPUIDWeights == 1) { //calculate the PU ID weight
+      jetPUIDWeight = fJetPUWeight->GetWeight(fYear, nJets20, jetsPt, jetsEta, nJets20Rej, jetsRejPt, jetsRejEta);
+    }
+  } else {
+    jetPUIDWeight = 1.f;
   }
+
   eventWeight *= jetPUIDWeight;
 
   ////////////////////////////////////////////////////////////////////
@@ -1406,14 +1450,31 @@ void HistMaker::InitializeEventWeights() {
 
   btagWeight = 1.f; btagWeightUpBC = 1.f; btagWeightDownBC = 1.f; btagWeightUpL = 1.f; btagWeightDownL = 1.f;
   if(fUseBTagWeights && !fIsData && !fIsEmbed) {
-    //FIXME: Add a category with Tight ID b-tag in ee/mumu for Z->x+tau_h normalization?
     int wp = BTagWeight::kLooseBTag; //ee/mumu/emu use loose ID b-tag
     if(leptonTwo.isTau()) wp = BTagWeight::kTightBTag;
-    btagWeight = fBTagWeight->GetWeight(wp, fYear, nJets20, jetsPt, jetsEta, jetsFlavor, jetsBTag, btagWeightUpBC, btagWeightDownBC, btagWeightUpL, btagWeightDownL);
-    eventWeight *= btagWeight;
-    if((btagWeight - btagWeightUpBC) * (btagWeight - btagWeightDownBC) > 1.e-3 && fVerbose > 0) {
-      std::cout << "!!! Warning: Entry " << fentry << " B-tag weight up/down are on the same side of the weight: Wt = "
-                << btagWeight << " Up = " << btagWeightUpBC << " Down = " << btagWeightDownBC << std::endl;
+    if(fUseBTagWeights == 1) { //calculate the weight
+      //FIXME: Add a category with Tight ID b-tag in ee/mumu for Z->x+tau_h normalization?
+      btagWeight = fBTagWeight->GetWeight(wp, fYear, nJets20, jetsPt, jetsEta, jetsFlavor, jetsBTag, btagWeightUpBC, btagWeightDownBC, btagWeightUpL, btagWeightDownL);
+      eventWeight *= btagWeight;
+      if((btagWeight - btagWeightUpBC) * (btagWeight - btagWeightDownBC) > 1.e-3 && fVerbose > 0) {
+        std::cout << "!!! Warning: Entry " << fentry << " B-tag weight up/down are on the same side of the weight: Wt = "
+                  << btagWeight << " Up = " << btagWeightUpBC << " Down = " << btagWeightDownBC << std::endl;
+      }
+    } else if(fUseBTagWeights == 2) { //loop over the jet collection with the ntuple-level weights
+      for(unsigned ijet = 0; ijet < nJets20; ++ijet) {
+        if(std::fabs(Jet_eta[ijet]) >= 2.4f) continue; //b-tagging region
+        if(std::fabs(Jet_pt [ijet]) <= 20.f) continue; //b-tag jet pt cut
+        const float wt      = (wp == BTagWeight::kLooseBTag) ? Jet_btagSF_L     [ijet] : Jet_btagSF_T     [ijet];
+        const float wt_up   = (wp == BTagWeight::kLooseBTag) ? Jet_btagSF_L_up  [ijet] : Jet_btagSF_T_up  [ijet];
+        const float wt_down = (wp == BTagWeight::kLooseBTag) ? Jet_btagSF_L_down[ijet] : Jet_btagSF_T_down[ijet];
+        //split uncertainties by gen-level parton flavor
+        const bool  isbc    = std::fabs(Jet_partonFlavour[ijet]) == 4 || std::fabs(Jet_partonFlavour[ijet]) == 5;
+        btagWeight       *= wt;
+        btagWeightUpBC   *= ( isbc) ? wt_up   : wt;
+        btagWeightDownBC *= ( isbc) ? wt_down : wt;
+        btagWeightUpL    *= (!isbc) ? wt_up   : wt;
+        btagWeightDownL  *= (!isbc) ? wt_down : wt;
+      }
     }
   }
 
@@ -1679,7 +1740,7 @@ void HistMaker::SetKinematics() {
   fTreeVars.lepdeltar     = leptonOne.p4->DeltaR(*leptonTwo.p4);
   fTreeVars.lepdeltaphi   = std::fabs(leptonOne.p4->DeltaPhi(*leptonTwo.p4));
   fTreeVars.lepdeltaeta   = std::fabs(leptonOne.p4->Eta() - leptonTwo.p4->Eta());
-  fTreeVars.ptdiff        = leptonOne.p4->Pt() - leptonTwo.p4->Pt();
+  fTreeVars.ptdiff        = leptonOne.pt - leptonTwo.pt;
   fTreeVars.ptdiffoverm   = fTreeVars.ptdiff / fTreeVars.lepm;
   fTreeVars.ptratio       = leptonOne.p4->Pt() / leptonTwo.p4->Pt();
 
@@ -1729,95 +1790,17 @@ void HistMaker::SetKinematics() {
   //////////////////////////////////////////////
   // MET projections and neutrino estimates
 
+  //project MET onto leptons
+  fTreeVars.metdotl1 = missing*lp1/lp1.Mag(); //MET along lep 1
+  fTreeVars.metdotl2 = missing*lp2/lp2.Mag(); //MET along lep 2
+
   //project onto the bisectors
   fTreeVars.pzetavis     = (lp1+lp2)*bisector;
   fTreeVars.pzetainv     = missing*bisector;
   fTreeVars.pzetaall     = (lp1 + lp2 + missing)*bisector;
   fTreeVars.dzeta        = fTreeVars.pzetaall - 0.85*fTreeVars.pzetavis;
 
-  //project MET onto leptons
-  fTreeVars.metdotl1 = missing*lp1/lp1.Mag(); //MET along lep 1
-  fTreeVars.metdotl2 = missing*lp2/lp2.Mag(); //MET along lep 2
-  const double pnuest    = std::max(-0.999*lp2.Mag(),(double) fTreeVars.metdotl2); //inv pT along tau = lep 2 pt unit vector dot missing
-  fTreeVars.ptauvisfrac  = lp2.Mag() / (std::max(1.e-5, lp2.Mag() + pnuest));
-
-  //M(collinear), only using >= 0 MET along tau
-  fTreeVars.mestimate_cut_1 = fTreeVars.lepm*((fTreeVars.metdotl2 > 0.f) ? sqrt((fTreeVars.metdotl2 + lp2.Mag())/lp2.Mag()) : 1.f); //tau = lep 2
-  fTreeVars.mestimate_cut_2 = fTreeVars.lepm*((fTreeVars.metdotl1 > 0.f) ? sqrt((fTreeVars.metdotl1 + lp1.Mag())/lp1.Mag()) : 1.f); //tau = lep 1
-
-  //M(collinear), using neutrino = MET along tau, including larger pT than tau in opposite direction
-  //if pT neutrino is negative, make it anti-parallel instead
-  TLorentzVector nu_coll;
-  TVector3 nu_avg_1_p, nu_avg_2_p; //neutrino 3-vector estimates
-  float nu_pt = fTreeVars.metdotl2; //test lepton 2 as the tau
-  nu_coll.SetPtEtaPhiM(std::fabs(nu_pt), leptonTwo.eta*((nu_pt < 0.f) ? -1.f : 1.f), leptonTwo.phi + ((nu_pt < 0.f) ? M_PI : 0.f), 0.);
-  fTreeVars.mestimate = (lep + nu_coll).M();
-  fTreeVars.p_nu_col_1 = nu_pt;
-  nu_avg_1_p = nu_coll.Vect();
-  nu_pt = fTreeVars.metdotl1; //test lepton 1 as the tau
-  nu_coll.SetPtEtaPhiM(std::fabs(nu_pt), leptonOne.eta*((nu_pt < 0.f) ? -1.f : 1.f), leptonOne.phi + ((nu_pt < 0.f) ? M_PI : 0.f), 0.);
-  fTreeVars.mestimatetwo = (lep + nu_coll).M();
-  fTreeVars.p_nu_col_2 = nu_pt;
-  nu_avg_2_p = nu_coll.Vect();
-
-  //get the neutrino momentum by assuming the light lepton and tau had the same pT to begin with, and it's collinear
-  //if pT neutrino is negative, make it anti-parallel instead
-  nu_coll.SetPtEtaPhiM(std::fabs(leptonOne.pt - leptonTwo.pt), leptonTwo.eta*((leptonOne.pt < leptonTwo.pt) ? -1.f : 1.f), leptonTwo.phi + (leptonOne.pt < leptonTwo.pt) ? M_PI : 0.f, 0.f);
-  fTreeVars.mbalance = (nu_coll + lep).M();
-  fTreeVars.p_nu_bal_1 = nu_coll.Pt();
-  nu_avg_1_p += nu_coll.Vect();
-  nu_coll.SetPtEtaPhiM(std::fabs(leptonTwo.pt - leptonOne.pt), leptonOne.eta*((leptonTwo.pt < leptonOne.pt) ? -1.f : 1.f), leptonOne.phi + (leptonTwo.pt < leptonOne.pt) ? M_PI : 0.f, 0.f);
-  fTreeVars.mbalancetwo = (nu_coll + lep).M();
-  fTreeVars.p_nu_bal_2 = nu_coll.Pt();
-  nu_avg_2_p += nu_coll.Vect();
-
-  //average the neutrino estimates from the pT balancing and MET projection strategies
-  nu_avg_1_p *= 0.5;
-  nu_avg_2_p *= 0.5;
-  TLorentzVector nu_avg_1(nu_avg_1_p, nu_avg_1_p.Mag()), nu_avg_2(nu_avg_2_p, nu_avg_2_p.Mag());
-  fTreeVars.mestimate_avg_1 = (nu_avg_1 + lep).M();
-  fTreeVars.p_nu_avg_1 = nu_avg_1.Pt();
-  fTreeVars.mestimate_avg_2 = (nu_avg_2 + lep).M();
-  fTreeVars.p_nu_avg_2 = nu_avg_2.Pt();
-
-  //get the neutrino eta from the tau eta, but the pT/phi from the MET
-  TLorentzVector nu_est;
-  nu_est.SetPtEtaPhiM(met, leptonTwo.eta, metPhi, 0.);
-  fTreeVars.mestimatethree = (nu_est + lep).M();
-  nu_est.SetPtEtaPhiM(met, leptonOne.eta, metPhi, 0.);
-  fTreeVars.mestimatefour = (nu_est + lep).M();
-
-
-  /////////////////////////////
-  // delta alpha calculations
-  //definition from (14) and (16) of arxiv:1207.4894
-
-  //alpha * pT(vis-tau) = beta * pT(vis-lep) (For signal, beta = 1, alpha = pT(lep) / pT(tau))
-  //(M^2(boson) - (1 for signal, 2 for DY)*M^2(tau)) ~ M^2(boson) = 2*alpha*beta*(p1.p2)
-  // --> for signal, alpha = pT(lep)/pT(tau) = (M^2(boson) - M^2(tau))/(2*p1.p2)
-  //alpha 1 = (m_boson^2 - m_tau^2) / (p(l1)\cdot p(l2))
-  //alpha 2 = pT(l2) / pT(l1) (l1 = tau)
-  //alpha 3 = pT(l1) / pT(l2) (l2 = tau)
-
-  //if beta != 0
-  // alpha = beta * pT(vis-lep)/pT(vis-tau)
-  // M^2(boson) - 2*M^2(tau) = 2*beta^2*(pT(vis-lep)/pT(vis-tau))*(p1.p2)
-  //--> beta = ~M(boson)*sqrt(pT(vis-tau)/pT(vis-lep)/p1.p2)
-
-  const double hmass(HIGGSMASS), zmass(ZMASS), tmass(TAUMASS), lepdot(2.*((*leptonOne.p4)*(*leptonTwo.p4)));
-  fTreeVars.alphaz1 = (zmass*zmass-tmass*tmass)/(lepdot);
-  fTreeVars.alphah1 = (hmass*hmass-tmass*tmass)/(lepdot);
-  fTreeVars.alpha2 = leptonTwo.p4->Pt()/leptonOne.p4->Pt(); //for lep 1 = tau, lep 2 = non-tau
-  fTreeVars.alpha3 = leptonOne.p4->Pt()/leptonTwo.p4->Pt(); //for lep 2 = non-tau, lep 1 = tau
-  fTreeVars.beta1  = zmass*(std::sqrt(leptonOne.pt/leptonTwo.pt/lepdot)); //for lep 1 = tau, lep 2 = non-tau
-  fTreeVars.beta2  = zmass*(std::sqrt(leptonTwo.pt/leptonOne.pt/lepdot)); //for lep 2 = non-tau, lep 1 = tau
-  fTreeVars.deltaalphaz1 = fTreeVars.alphaz1 - fTreeVars.alpha2;
-  fTreeVars.deltaalphaz2 = fTreeVars.alphaz1 - fTreeVars.alpha3;
-  fTreeVars.deltaalphah1 = fTreeVars.alphah1 - fTreeVars.alpha2;
-  fTreeVars.deltaalphah2 = fTreeVars.alphah1 - fTreeVars.alpha3;
-  //mass from delta alpha equation: m_boson = sqrt(m_tau^2 + pT(lep)/pT(tau) * (p(l1) dot p(l2)))
-  fTreeVars.deltaalpham1 = std::sqrt(tmass*tmass + fTreeVars.alpha2 * lepdot); //lep 1 = tau
-  fTreeVars.deltaalpham2 = std::sqrt(tmass*tmass + fTreeVars.alpha3 * lepdot); //lep 2 = tau
+  EstimateNeutrinos();
 
   //Perform a transform to the Z/H boson frame
   //Requires knowledge of which lepton has associated neutrinos (or if none do)
@@ -1896,7 +1879,100 @@ void HistMaker::SetKinematics() {
 
   fTreeVars.ht       = ht;
   fTreeVars.htsum    = htSum;
-  fTreeVars.jetpt    = jetOneP4->Pt();
+  fTreeVars.jetpt    = jetOne.p4->Pt();
+}
+
+//--------------------------------------------------------------------------------------------------------------
+// Estimate the neutrino contributions with different methods/hypotheses
+void HistMaker::EstimateNeutrinos() {
+  //Get pT vectors for leptons and MET
+  TLorentzVector lep = *leptonOne.p4 + *leptonTwo.p4;
+  TVector3 lp1 = leptonOne.p4->Vect();
+  TVector3 lp2 = leptonTwo.p4->Vect();
+  TVector3 missing(met*std::cos(metPhi), met*std::sin(metPhi), 0.);
+  if(!std::isfinite(missing.Pt()) || !std::isfinite(met) || !std::isfinite(metPhi)) {
+    printf("!!! HistMaker::%s: Entry: %12lld: MET vector is undefined! met = %.2f, phi = %.3f, metCorr = %.2f, phiCorr = %.3f\n",
+           __func__, fentry, met, metPhi, metCorr, metCorrPhi);
+  }
+  lp1.SetZ(0.);
+  lp2.SetZ(0.);
+
+  const double pnuest    = std::max(-0.999*lp2.Mag(),(double) fTreeVars.metdotl2); //inv pT along tau = lep 2 pt unit vector dot missing
+  fTreeVars.ptauvisfrac  = lp2.Mag() / (std::max(1.e-5, lp2.Mag() + pnuest));
+
+  //M(collinear), only using >= 0 MET along tau
+  fTreeVars.mestimate_cut_1 = fTreeVars.lepm*((fTreeVars.metdotl2 > 0.f) ? std::sqrt((fTreeVars.metdotl2 + lp2.Mag())/lp2.Mag()) : 1.f); //tau = lep 2
+  fTreeVars.mestimate_cut_2 = fTreeVars.lepm*((fTreeVars.metdotl1 > 0.f) ? std::sqrt((fTreeVars.metdotl1 + lp1.Mag())/lp1.Mag()) : 1.f); //tau = lep 1
+
+  //M(collinear), using neutrino = MET along tau, including larger pT than tau in opposite direction
+  //if pT neutrino is negative, make it anti-parallel instead
+  float nu_coll_pt_1(fTreeVars.metdotl2), nu_coll_pt_2(fTreeVars.metdotl1); //1 = tau cand. is lep 2, 2 = tau cand. is lep 1 (mutau_e only)
+  fTreeVars.p_nu_col_1 = nu_coll_pt_1;
+  fTreeVars.p_nu_col_2 = nu_coll_pt_2;
+  TLorentzVector nu_coll_1, nu_coll_2;
+  nu_coll_1.SetPtEtaPhiM(std::fabs(nu_coll_pt_1), leptonTwo.eta*((nu_coll_pt_1 < 0.f) ? -1.f : 1.f), leptonTwo.phi + ((nu_coll_pt_1 < 0.f) ? M_PI : 0.f), 0.);
+  nu_coll_2.SetPtEtaPhiM(std::fabs(nu_coll_pt_2), leptonOne.eta*((nu_coll_pt_2 < 0.f) ? -1.f : 1.f), leptonOne.phi + ((nu_coll_pt_2 < 0.f) ? M_PI : 0.f), 0.);
+  fTreeVars.mestimate    = (lep + nu_coll_1).M();
+  fTreeVars.mestimatetwo = (lep + nu_coll_2).M();
+
+  //get the neutrino momentum by assuming the light lepton and tau had the same pT to begin with, and it's collinear
+  //if pT neutrino is negative, make it anti-parallel instead
+  TLorentzVector nu_bal_1, nu_bal_2;
+  nu_bal_1.SetPtEtaPhiM(std::fabs(leptonOne.pt - leptonTwo.pt), leptonTwo.eta*((leptonOne.pt < leptonTwo.pt) ? -1.f : 1.f), leptonTwo.phi + (leptonOne.pt < leptonTwo.pt) ? M_PI : 0.f, 0.f);
+  nu_bal_2.SetPtEtaPhiM(std::fabs(leptonTwo.pt - leptonOne.pt), leptonOne.eta*((leptonTwo.pt < leptonOne.pt) ? -1.f : 1.f), leptonOne.phi + (leptonTwo.pt < leptonOne.pt) ? M_PI : 0.f, 0.f);
+  fTreeVars.mbalance    = (nu_bal_1 + lep).M();
+  fTreeVars.mbalancetwo = (nu_bal_2 + lep).M();
+  fTreeVars.p_nu_bal_1 = nu_bal_1.Pt();
+  fTreeVars.p_nu_bal_2 = nu_bal_2.Pt();
+
+  //average the neutrino estimates from the pT balancing and MET projection strategies
+  TVector3 nu_avg_1_p = 0.5*(nu_coll_1.Vect() + nu_bal_1.Vect());
+  TVector3 nu_avg_2_p = 0.5*(nu_coll_2.Vect() + nu_bal_2.Vect());
+  TLorentzVector nu_avg_1(nu_avg_1_p, nu_avg_1_p.Mag()), nu_avg_2(nu_avg_2_p, nu_avg_2_p.Mag());
+  fTreeVars.mestimate_avg_1 = (nu_avg_1 + lep).M();
+  fTreeVars.mestimate_avg_2 = (nu_avg_2 + lep).M();
+  fTreeVars.p_nu_avg_1 = nu_avg_1.Pt();
+  fTreeVars.p_nu_avg_2 = nu_avg_2.Pt();
+
+  //get the neutrino eta from the tau eta, but the pT/phi from the MET
+  TLorentzVector nu_met_1, nu_met_2;
+  nu_met_1.SetPtEtaPhiM(met, leptonTwo.eta, metPhi, 0.);
+  nu_met_2.SetPtEtaPhiM(met, leptonOne.eta, metPhi, 0.);
+  fTreeVars.mestimatethree = (nu_met_1 + lep).M();
+  fTreeVars.mestimatefour  = (nu_met_2 + lep).M();
+
+
+  /////////////////////////////
+  // delta alpha calculations
+  //definition from (14) and (16) of arxiv:1207.4894
+
+  //alpha * pT(vis-tau) = beta * pT(vis-lep) (For signal, beta = 1, alpha = pT(lep) / pT(tau))
+  //(M^2(boson) - (1 for signal, 2 for DY)*M^2(tau)) ~ M^2(boson) = 2*alpha*beta*(p1.p2)
+  // --> for signal, alpha = pT(lep)/pT(tau) = (M^2(boson) - M^2(tau))/(2*p1.p2)
+  //alpha 1 = (m_boson^2 - m_tau^2) / (p(l1)\cdot p(l2))
+  //alpha 2 = pT(l2) / pT(l1) (l1 = tau)
+  //alpha 3 = pT(l1) / pT(l2) (l2 = tau)
+
+  //if beta != 0
+  // alpha = beta * pT(vis-lep)/pT(vis-tau)
+  // M^2(boson) - 2*M^2(tau) = 2*beta^2*(pT(vis-lep)/pT(vis-tau))*(p1.p2)
+  //--> beta = ~M(boson)*sqrt(pT(vis-tau)/pT(vis-lep)/p1.p2)
+
+  const double hmass(HIGGSMASS), zmass(ZMASS), tmass(TAUMASS), lepdot(2.*((*leptonOne.p4)*(*leptonTwo.p4)));
+  fTreeVars.alphaz1 = (zmass*zmass-tmass*tmass)/(lepdot);
+  fTreeVars.alphah1 = (hmass*hmass-tmass*tmass)/(lepdot);
+  fTreeVars.alpha2 = leptonTwo.pt/leptonOne.pt; //for lep 1 = tau, lep 2 = non-tau
+  fTreeVars.alpha3 = leptonOne.pt/leptonTwo.pt; //for lep 2 = non-tau, lep 1 = tau
+  fTreeVars.beta1  = zmass*(std::sqrt(leptonOne.pt/leptonTwo.pt/lepdot)); //for lep 1 = tau, lep 2 = non-tau
+  fTreeVars.beta2  = zmass*(std::sqrt(leptonTwo.pt/leptonOne.pt/lepdot)); //for lep 2 = non-tau, lep 1 = tau
+  fTreeVars.deltaalphaz1 = fTreeVars.alphaz1 - fTreeVars.alpha2;
+  fTreeVars.deltaalphaz2 = fTreeVars.alphaz1 - fTreeVars.alpha3;
+  fTreeVars.deltaalphah1 = fTreeVars.alphah1 - fTreeVars.alpha2;
+  fTreeVars.deltaalphah2 = fTreeVars.alphah1 - fTreeVars.alpha3;
+  //mass from delta alpha equation: m_boson = sqrt(m_tau^2 + pT(lep)/pT(tau) * (p(l1) dot p(l2)))
+  fTreeVars.deltaalpham1 = std::sqrt(tmass*tmass + fTreeVars.alpha2 * lepdot); //lep 1 = tau
+  fTreeVars.deltaalpham2 = std::sqrt(tmass*tmass + fTreeVars.alpha3 * lepdot); //lep 2 = tau
+
 }
 
 //--------------------------------------------------------------------------------------------------------------
@@ -1922,17 +1998,6 @@ void HistMaker::EvalMVAs(TString TimerName) {
     fMvaOutputs[i] = -2.f;
     if(!mva[i]) continue;
     fMvaOutputs[i] = mva[i]->EvaluateMVA(fMVAConfig.names_[i].Data());
-    // if((fMVAConfig.names_[i].Contains(selecName.Data()) || //is this selection
-    //     (selecName == "emu" && (fMVAConfig.names_[i].Contains("_e") || fMVAConfig.names_[i].Contains("_mu"))) || //or leptonic tau category
-    //     ((selecName == "mumu" || selecName == "ee") && fMVAConfig.names_[i].Contains("emu")) //or is emu MVA in ee/mumu region
-    //     )
-    //    ) {
-    //   if(!fDoHiggs && fMVAConfig.names_[i].Contains("higgs")) {fMvaOutputs[i] = -2.f; continue;} //skip Higgs MVAs if not processing Higgs selections
-    //   if(lep_tau > 0 && fMVAConfig.names_[i].Contains("emu")) {fMvaOutputs[i] = -2.f; continue;} //skip B->emu MVAs if doing leptonic tau processing
-    //   fMvaOutputs[i] = mva[i]->EvaluateMVA(fMVAConfig.names_[i].Data());
-    // } else {
-    //   fMvaOutputs[i] = -2.f;
-    // }
 
     if(fMvaOutputs[i] < -2.1f) {
       std::cout << "Error value returned for MVA " << fMVAConfig.names_[i].Data()
@@ -2365,7 +2430,7 @@ void HistMaker::CountJets() {
   TLorentzVector htLV;
   TLorentzVector jetLoop; //for checking delta R
   float jetptmax = -1; //track highest pt jet
-  jetOneP4->SetPtEtaPhiM(0.,0.,0.,0.); //reset to no jet found
+  jetOne.setPtEtaPhiM(0.,0.,0.,0.); //reset to no jet found
   for(UInt_t ijet = 0; ijet < nJet; ++ijet) {
     if(Jet_jetId[ijet] < min_jet_id) continue; //bad jet
     if(Jet_TaggedAsRemovedByMuon[ijet]) continue; //overlapping a muon
@@ -2393,7 +2458,14 @@ void HistMaker::CountJets() {
         htSum += jetpt;
 
         //store the highest pT jet
-        if(jetpt > jetptmax) {*jetOneP4 = jetLoop; jetptmax = jetpt;}
+        if(jetpt > jetptmax) {
+          jetOne.setP(jetLoop); jetptmax = jetpt;
+          //jet systematic uncertainties
+          jetOne.jer_pt_up   = Jet_pt_jerUp       [ijet];
+          jetOne.jer_pt_down = Jet_pt_jerDown     [ijet];
+          jetOne.jes_pt_up   = Jet_pt_jesTotalUp  [ijet];
+          jetOne.jes_pt_down = Jet_pt_jesTotalDown[ijet];
+        }
 
         int jetBTag = 0;
         //check if b-tagged, must have eta < 2.4
@@ -2610,9 +2682,9 @@ void HistMaker::FillBaseEventHistogram(EventHist_t* Hist) {
   Hist->hTauDeepAntiMu     ->Fill(tauDeepAntiMu              , genWeight*eventWeight)   ;
   Hist->hTauDeepAntiJet    ->Fill(std::log2(tauDeepAntiJet+1), genWeight*eventWeight)   ;
 
-  if(jetOneP4 && jetOneP4->Pt() > 0.) { //if 0 then no jet stored
-    Hist->hJetPt[0]        ->Fill(jetOneP4->Pt()             , genWeight*eventWeight)   ;
-    Hist->hJetEta          ->Fill(jetOneP4->Eta()            , genWeight*eventWeight)   ;
+  if(jetOne.p4 && jetOne.p4->Pt() > 0.) { //if 0 then no jet stored
+    Hist->hJetPt[0]        ->Fill(jetOne.p4->Pt()            , genWeight*eventWeight)   ;
+    Hist->hJetEta          ->Fill(jetOne.p4->Eta()           , genWeight*eventWeight)   ;
   }
   Hist->hHtSum             ->Fill(htSum              , genWeight*eventWeight)   ;
   Hist->hHt                ->Fill(ht                 , genWeight*eventWeight)   ;
@@ -2620,6 +2692,10 @@ void HistMaker::FillBaseEventHistogram(EventHist_t* Hist) {
   Hist->hMet               ->Fill(met                , genWeight*eventWeight)      ;
   Hist->hMetPhi            ->Fill(metPhi             , genWeight*eventWeight)      ;
   Hist->hMetCorr           ->Fill(metCorr            , genWeight*eventWeight)      ;
+  //approximate met uncertainty
+  const float met_err   = (fIsData) ? 0.f : std::sqrt(std::pow(puppMETJERUp - puppMET, 2) + std::pow(puppMETJESUp - puppMET, 2))/puppMET;
+  Hist->hMetUp             ->Fill(met*(1.f+met_err)  , genWeight*eventWeight);
+  Hist->hMetDown           ->Fill(met*(1.f-met_err)  , genWeight*eventWeight);
 
   Hist->hMTOne             ->Fill(fTreeVars.mtone    , eventWeight*genWeight);
   Hist->hMTTwo             ->Fill(fTreeVars.mttwo    , eventWeight*genWeight);
@@ -2938,7 +3014,10 @@ Bool_t HistMaker::InitializeEvent(Long64_t entry)
   }
 
   //reset the event cuts
-  one_pt_min_ = 0.f; two_pt_min_ = 0.f; met_max_ = -1.f; min_mass_ = 0.f; max_mass_ = -1.f;
+  one_pt_min_ = 0.f; two_pt_min_ = 0.f;
+  ptdiff_min_ = -1.e10f; ptdiff_max_ = +1.e10f;
+  min_mass_ = 0.f; max_mass_ = -1.f;
+  met_max_ = -1.f; mtone_max_ = -1.f; mttwo_max_ = -1.f; mtlep_max_ = -1.f;
 
   //Initialize base object information
   CountObjects(); // > 100 kHz

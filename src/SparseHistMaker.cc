@@ -193,8 +193,8 @@ void SparseHistMaker::FillEventHistogram(EventHist_t* Hist) {
   Hist->hNBJets20L[0]        ->Fill(nBJets20L               , genWeight*eventWeight);
 
 
-  if(jetOneP4 && jetOneP4->Pt() > 0.) { //if 0 then no jet stored
-    Hist->hJetPt[0]        ->Fill(jetOneP4->Pt()            , genWeight*eventWeight);
+  if(jetOne.p4 && jetOne.p4->Pt() > 0.) { //if 0 then no jet stored
+    Hist->hJetPt[0]        ->Fill(jetOne.p4->Pt()            , genWeight*eventWeight);
   }
   Hist->hHt                ->Fill(ht                        , genWeight*eventWeight);
 

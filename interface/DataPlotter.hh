@@ -47,6 +47,7 @@ namespace CLFV {
       bool     isSignal_  ; //flag to check if is signal file
       Int_t    dataYear_  ; //list of years it's associated with (2016, 2017, or 2018)
       Int_t    ngenerated_; //generation number for datasets
+      Int_t    color_     ; //color for plotting
     };
 
     TString selection_ = "mutau"; //selection category
@@ -90,6 +91,8 @@ namespace CLFV {
     Int_t plot_data_ = 1; //only MC or include data
     Int_t rebinH_ = 1; //rebinning of histograms
     Int_t data_over_mc_ = 1; //do data/MC or data-MC: 0 = none, 1 = data/MC, -1 = signal/bkg, -2 = signal/sqrt(bkg)
+    Float_t ratio_plot_min_ = 0.6; //Data/MC Y-axis range
+    Float_t ratio_plot_max_ = 1.4;
     Int_t stack_uncertainty_ = 1; //whether or not to add gray shading for uncertainty
     Int_t add_bkg_hists_manually_ = 0; //whether to use Stacks given uncertainty or add them by hand
     Int_t density_plot_ = 0; //divide by bin width
@@ -606,7 +609,7 @@ namespace CLFV {
     Int_t init_files();
 
     //Add file to be read and plotted
-    Int_t add_dataset(TString filepath, TString name, TString label, bool isData, double xsec, bool isSignal, bool isEmbed);
+    Int_t add_dataset(TString filepath, TString name, TString label, bool isData, double xsec, bool isSignal, bool isEmbed, int color);
     Int_t add_dataset(DataCard_t card) {
       if(card.color_ > 0 && !card.isdata_) {
         //set color
@@ -623,7 +626,7 @@ namespace CLFV {
         if(card.issignal_) signal_colors_    [entrynumber] = card.color_;
         else               background_colors_[entrynumber] = card.color_;
       }
-      return add_dataset(card.filename_, card.name_, card.label_, card.isdata_, card.xsec_, card.issignal_, card.isembed_);
+      return add_dataset(card.filename_, card.name_, card.label_, card.isdata_, card.xsec_, card.issignal_, card.isembed_, card.color_);
     }
 
     void set_luminosity(double lum) { lum_ = lum;}

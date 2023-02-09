@@ -48,6 +48,9 @@ std::vector<TH1*> DataPlotter::get_histograms(TString hist, TString setType, Int
     tmp = (TH1*) tmp->Clone("htmp");
     tmp->SetDirectory(0);
     tmp->Scale(input.scale_);
+    tmp->SetLineColor(input.color_);
+    tmp->SetFillColor(input.color_);
+    tmp->SetMarkerColor(input.color_);
     histograms[i] = tmp;
     if(density_plot_) density(histograms[i]);
     unsigned int index = i;
@@ -89,11 +92,11 @@ std::vector<TH1*> DataPlotter::get_histograms(TString hist, TString setType, Int
 std::vector<TH1*> DataPlotter::get_signal(TString hist, TString setType, Int_t set) {
   std::vector<TH1*> histograms = get_histograms(hist, setType, set, kSignal);
   for(unsigned index = 0; index < histograms.size(); ++index) {
-    const int i_color = index % (sizeof(signal_colors_) / sizeof(*signal_colors_));
+    // const int i_color = index % (sizeof(signal_colors_) / sizeof(*signal_colors_));
     histograms[index]->SetFillStyle(signal_fill_style_);
-    histograms[index]->SetFillColor(signal_colors_[i_color]);
-    histograms[index]->SetLineColor(signal_colors_[i_color]);
-    histograms[index]->SetMarkerColor(signal_colors_[i_color]);
+    // histograms[index]->SetFillColor(signal_colors_[i_color]);
+    // histograms[index]->SetLineColor(signal_colors_[i_color]);
+    // histograms[index]->SetMarkerColor(signal_colors_[i_color]);
     histograms[index]->SetLineWidth(3);
     if(rebinH_ > 1) histograms[index]->Rebin(rebinH_);
     const Double_t integral = (histograms[index]->Integral((density_plot_ > 0) ? "width" : "")
@@ -449,14 +452,14 @@ THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set) {
 
   //Loop through the histograms and add them to the stack
   for(unsigned index = 0; index < histograms.size(); ++index) {
-    const int i_color = index % (sizeof(background_colors_) / sizeof(*background_colors_));
-    if(fill_alpha_ < 1.) {
-      histograms[index]->SetFillColorAlpha(background_colors_[i_color],fill_alpha_);
-      histograms[index]->SetLineColorAlpha(background_colors_[i_color],fill_alpha_);
-    } else {
-      histograms[index]->SetFillColor(background_colors_[i_color]);
-      histograms[index]->SetLineColor(background_colors_[i_color]);
-    }
+    // const int i_color = index % (sizeof(background_colors_) / sizeof(*background_colors_));
+    // if(fill_alpha_ < 1.) {
+    //   histograms[index]->SetFillColorAlpha(background_colors_[i_color],fill_alpha_);
+    //   histograms[index]->SetLineColorAlpha(background_colors_[i_color],fill_alpha_);
+    // } else {
+    //   histograms[index]->SetFillColor(background_colors_[i_color]);
+    //   histograms[index]->SetLineColor(background_colors_[i_color]);
+    // }
     histograms[index]->SetLineWidth(2);
     histograms[index]->SetMarkerStyle(20);
     if(rebinH_ > 1) histograms[index]->Rebin(rebinH_);
@@ -1357,7 +1360,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
     max_val = 1.2*max_val;
     max_val = std::min(max_val, 2.0);
     // hDataMC->GetYaxis()->SetRangeUser(mn,m);
-    hDataMC->GetYaxis()->SetRangeUser(0.6, 1.4);
+    hDataMC->GetYaxis()->SetRangeUser(ratio_plot_min_, ratio_plot_max_);
     //  hDataMC->GetXaxis()->SetLabelOffset(0.5);
 
     hDataMC->SetMarkerStyle(20);
@@ -2399,7 +2402,7 @@ Int_t DataPlotter::init_files() {
 }
 
 //--------------------------------------------------------------------------------------------------------------------
-Int_t DataPlotter::add_dataset(TString filepath, TString name, TString label, bool isData, double xsec, bool isSignal, bool isEmbed) {
+Int_t DataPlotter::add_dataset(TString filepath, TString name, TString label, bool isData, double xsec, bool isSignal, bool isEmbed, int color) {
   Data_t input;
   input.fileName_ = filepath;
   input.name_ = name;
@@ -2408,6 +2411,7 @@ Int_t DataPlotter::add_dataset(TString filepath, TString name, TString label, bo
   input.isEmbed_ = isEmbed;
   input.xsec_ = (isData) ? 1. : xsec;
   input.isSignal_ = isSignal;
+  input.color_ = color;
   int dataYear = 0;
   if(filepath.Contains("2016"))      dataYear = 2016;
   else if(filepath.Contains("2017")) dataYear = 2017;

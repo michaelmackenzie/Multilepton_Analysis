@@ -92,10 +92,10 @@ namespace CLFV {
       case  38: return Data(isys, "EleTrig"       , false);
       case  39: return Data(isys, "MuonTrig"      , true );
       case  40: return Data(isys, "MuonTrig"      , false);
-      case  41: return Data(isys, "METJER"        , true );
-      case  42: return Data(isys, "METJER"        , false);
-      case  43: return Data(isys, "METJES"        , true );
-      case  44: return Data(isys, "METJES"        , false);
+      case  41: return Data(isys, "JER"           , true );
+      case  42: return Data(isys, "JER"           , false);
+      case  43: return Data(isys, "JES"           , true );
+      case  44: return Data(isys, "JES"           , false);
       case  45: return Data(isys, "QCDBias"       , true );
       case  46: return Data(isys, "QCDBias"       , false);
       // case  47: return Data(isys, "METCorr"       , true ); //FIXME: Remove

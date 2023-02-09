@@ -59,6 +59,7 @@ namespace CLFV {
       if(p4) p4->SetPtEtaPhiM(vpt, veta, vphi, vmass);
       pt = vpt; eta = veta; phi = vphi; mass = vmass;
     }
+    void setP(TLorentzVector p) { setPtEtaPhiM(p.Pt(), p.Eta(), p.Phi(), p.M()); }
   };
 }
 #endif

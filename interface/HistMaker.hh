@@ -41,6 +41,7 @@
 #include "interface/PhotonHist_t.hh"
 #include "interface/SystematicHist_t.hh"
 #include "interface/Lepton_t.hh"
+#include "interface/Jet_t.hh"
 
 // initialize local MVA weight files
 #include "interface/TrkQualInit.hh"
@@ -119,6 +120,9 @@ namespace CLFV {
     Float_t Muon_pt                       [kMaxLeptons];
     Float_t Muon_eta                      [kMaxLeptons];
     Float_t Muon_phi                      [kMaxLeptons];
+    Float_t Muon_corrected_pt             [kMaxLeptons]; //ntuple-level Rochester corrections
+    Float_t Muon_correctedUp_pt           [kMaxLeptons];
+    Float_t Muon_correctedDown_pt         [kMaxLeptons];
     Int_t   Muon_charge                   [kMaxLeptons];
     Bool_t  Muon_looseId                  [kMaxLeptons];
     Bool_t  Muon_mediumId                 [kMaxLeptons];
@@ -201,6 +205,16 @@ namespace CLFV {
     Float_t Jet_eta                       [kMaxParticles];
     Float_t Jet_phi                       [kMaxParticles];
     Float_t Jet_mass                      [kMaxParticles];
+    Float_t Jet_pt_jerUp                  [kMaxParticles];
+    Float_t Jet_pt_jerDown                [kMaxParticles];
+    Float_t Jet_pt_jesTotalUp             [kMaxParticles];
+    Float_t Jet_pt_jesTotalDown           [kMaxParticles];
+    Float_t Jet_btagSF_L                  [kMaxParticles];
+    Float_t Jet_btagSF_L_up               [kMaxParticles];
+    Float_t Jet_btagSF_L_down             [kMaxParticles];
+    Float_t Jet_btagSF_T                  [kMaxParticles];
+    Float_t Jet_btagSF_T_up               [kMaxParticles];
+    Float_t Jet_btagSF_T_down             [kMaxParticles];
     Int_t   Jet_charge                    [kMaxParticles];
     Int_t   Jet_jetId                     [kMaxParticles];
     Int_t   Jet_puId                      [kMaxParticles];
@@ -332,11 +346,7 @@ namespace CLFV {
     TLorentzVector* photonP4 = 0       ;
     Float_t         photonMVA          ;
     Float_t         photonIDWeight     ;
-    TLorentzVector* jetOneP4 = 0       ;
-    Int_t jetOneID                     ;
-    Int_t jetOnePUID                   ;
-    Bool_t jetOneBTag                  ;
-    Float_t jetOneBMVA                 ;
+    Jet_t           jetOne             ;
 
     UInt_t nElectrons                  ;
     UInt_t nMuons                      ;
@@ -362,13 +372,16 @@ namespace CLFV {
 
     Float_t muon_trig_pt_    ; //lepton trigger thresholds
     Float_t electron_trig_pt_;
-    Float_t one_pt_min_ = 0.f; //threshold cuts
-    Float_t two_pt_min_ = 0.f;
-    Float_t met_max_ = -1.f  ;
-    Float_t min_mass_ =  0.f ;
-    Float_t max_mass_ = -1.f ;
-
-    Float_t tmpFloats[10]; //fields for debugging uses
+    Float_t one_pt_min_ =  0.f; //threshold cuts
+    Float_t two_pt_min_ =  0.f;
+    Float_t ptdiff_min_ = -1.e10f; //one pt - two pt
+    Float_t ptdiff_max_ = +1.e10f; //one pt - two pt
+    Float_t met_max_    = -1.f;
+    Float_t mtone_max_  = -1.f;
+    Float_t mttwo_max_  = -1.f;
+    Float_t mtlep_max_  = -1.f;
+    Float_t min_mass_   =  0.f;
+    Float_t max_mass_   = -1.f;
 
     HistMaker(int seed = 90, TTree * /*tree*/ = 0);
     virtual ~HistMaker();
@@ -398,11 +411,37 @@ namespace CLFV {
     void    CountObjects();
     void    CountJets();
     void    SetKinematics();
+    void    EstimateNeutrinos();
     void    EvalMVAs(TString TimerName = "");
     int     GetTriggerMatch(TLorentzVector* lv, bool isMuon, Int_t& trigIndex);
     void    MatchTriggers();
     void    ApplyTriggerWeights();
     void    EvalJetToTauWeights(float& wt, float& wtcorr, float& wtbias);
+
+    //Apply event selection cuts
+    bool    PassesCuts() {
+      //apply kinematic cuts
+      bool pass(true);
+      pass &= leptonOne.pt > one_pt_min_;
+      pass &= leptonTwo.pt > two_pt_min_;
+      pass &= fTreeVars.ptdiff > ptdiff_min_;
+      pass &= fTreeVars.ptdiff < ptdiff_max_;
+      pass &= min_mass_  < 0.f || fTreeVars.lepm > min_mass_;
+      pass &= max_mass_  < 0.f || fTreeVars.lepm < max_mass_;
+      pass &= met_max_   < 0.f || met < met_max_;
+      pass &= mtone_max_ < 0.f || fTreeVars.mtone < mtone_max_;
+      pass &= mttwo_max_ < 0.f || fTreeVars.mttwo < mttwo_max_;
+      pass &= mtlep_max_ < 0.f || fTreeVars.mtlep < mtlep_max_;
+      if(!pass) return false;
+
+      //apply trigger cuts
+      bool triggered(false);
+      triggered |= leptonOne.isMuon    () && leptonOne.matched && leptonOne.pt > muon_trig_pt_    ;
+      triggered |= leptonTwo.isMuon    () && leptonTwo.matched && leptonTwo.pt > muon_trig_pt_    ;
+      triggered |= leptonOne.isElectron() && leptonOne.matched && leptonOne.pt > electron_trig_pt_;
+      triggered |= leptonTwo.isElectron() && leptonTwo.matched && leptonTwo.pt > electron_trig_pt_;
+      return triggered;
+    }
 
     //get the index for a timer, adding it if not already in the list
     int     GetTimerNumber(TString name) {
@@ -601,8 +640,9 @@ namespace CLFV {
     Int_t           fIsEmbed = 0; //whether or not this is an embeded sample
     Int_t           fIsLLEmbed = 0; //whether or not this is an ll -> ll embedding (mumu/ee)
     Int_t           fUseEmbedCuts = 0; //whether or not to use the kinematic restrictions for embedded sample generation
-    Int_t           fUseEmbedRocco = 1; //whether or not to use Rochester corrections + uncertainties with Embedded muons
     Int_t           fUseEmbedTnPWeights = 1; //whether or not to use the locally calculated lepton ID/trigger weights
+    Int_t           fUseEmbedRocco = 1; //whether or not to use Rochester corrections + uncertainties with Embedded muons
+    Int_t           fUseRoccoCorr = 1; //use Rochester corrections, 0 = none, 1 = local, 2 = ntuple-level
     bool            fSkipDoubleTrigger = false; //skip events with both triggers (to avoid double counting), only count this lepton status events
     Int_t           fMETWeights = 0; //re-weight events based on the MET
     Int_t           fUseMCEstimatedFakeLep = 0;
@@ -623,19 +663,17 @@ namespace CLFV {
     Int_t           fRemoveTriggerWeights = 0; // 0: do nothing 1: remove weights 2: replace weights
     Int_t           fUpdateMCEra = 0; //update the MC era flag
     Int_t           fRemovePhotonIDWeights = 1;
-    Int_t           fUseBTagWeights = 0; //0: do nothing 1: apply weights
+    Int_t           fUseBTagWeights = 1; //0: do nothing; 1: apply local weights; 2: use ntuple-level weights
     BTagWeight*     fBTagWeight;
     Int_t           fRemovePUWeights = 0; //0: do nothing 1: remove weights 2: replace weights
     PUWeight*       fPUWeight; //object to define pu weights
     RoccoR*         fRoccoR; //Rochester muon momentum corrections
-    Int_t           fUseJetPUIDWeights = 1; //use jet PU ID weights
+    Int_t           fUseJetPUIDWeights = 1; //0: do nothing; 1: use local jet PU ID weight; 2: use ntuple-level jet PU ID weight
     JetPUWeight*    fJetPUWeight; //object to define jet PU ID weights
     Int_t           fUsePrefireWeights = 1; //use pre-fire weights, 0 = none, 1 = use predefined weights, 2 = replace with local weights
     PrefireWeight*  fPrefireWeight; //object to define pre-fire weights
     Int_t           fUseQCDWeights = 1; //use QCD SS --> OS transfer weights
     Int_t           fAddJetTauWeights = 1; //0: do nothing 1: weight anti-iso tau CR data
-    // JetToTauWeight  fMuonJetToTauWeight; //for mutau
-    // JetToTauWeight  fMuonJetToTauMCWeight; //for mutau using MC estimated factors
     JetToTauComposition  fMuonJetToTauComp; //for mutau
     JetToTauComposition  fMuonJetToTauSSComp; //for mutau SS systematic test
     JetToTauWeight* fMuonJetToTauWeights  [JetToTauComposition::kLast];

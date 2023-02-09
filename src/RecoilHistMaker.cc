@@ -187,8 +187,8 @@ void RecoilHistMaker::FillEventHistogram(EventHist_t* Hist) {
   Hist->hNPV[0]              ->Fill(nPV                , genWeight*eventWeight)      ;
   Hist->hMcEra               ->Fill(mcEra + 2*(fYear - 2016), genWeight*eventWeight)   ;
   Hist->hNJets20[0]          ->Fill(nJets20            , genWeight*eventWeight)      ;
-  if(jetOneP4 && jetOneP4->Pt() > 0.) { //if 0 then no jet stored
-    Hist->hJetPt[0]        ->Fill(jetOneP4->Pt()             , genWeight*eventWeight)   ;
+  if(jetOne.p4 && jetOne.p4->Pt() > 0.) { //if 0 then no jet stored
+    Hist->hJetPt[0]        ->Fill(jetOne.p4->Pt()             , genWeight*eventWeight)   ;
   }
   Hist->hNBJets20[0]         ->Fill(nBJets20           , genWeight*eventWeight)      ;
   Hist->hNBJets20L[0]        ->Fill(nBJets20L          , genWeight*eventWeight)      ;

@@ -114,35 +114,35 @@ CrossSections::CrossSections(int useUL, int ZMode) {
   // *** Total 2016 ElEl : Total Mini / Nano = 34637000/32933414 = 1.0517
 
   //2017
-  values_["Embed-EMu-B"][2017] = 1.0269; //V1: 2.0244;
-  values_["Embed-EMu-C"][2017] = 1.7036; //V1: 4.5268;
-  values_["Embed-EMu-D"][2017] = 1.3926; //V1: 1.1387;
-  values_["Embed-EMu-E"][2017] = 2.9324; //V1: 2.6201;
-  values_["Embed-EMu-F"][2017] = 2.1986; //V1: 6.0306;
+  values_["Embed-EMu-B"][2017] =  4.7939 /  4.6903; //current: V3 lumi; V2 N(events): 1.0269; //V1: 2.0244;
+  values_["Embed-EMu-C"][2017] =  9.6312 /  7.5853; //current: V3 lumi; V2 N(events): 1.7036; //V1: 4.5268;
+  values_["Embed-EMu-D"][2017] =  4.2477 /  4.1056; //current: V3 lumi; V2 N(events): 1.3926; //V1: 1.1387;
+  values_["Embed-EMu-E"][2017] =  9.3133 /  9.1364; //current: V3 lumi; V2 N(events): 2.9324; //V1: 2.6201;
+  values_["Embed-EMu-F"][2017] = 13.5390 / 11.6842; //current: V3 lumi; V2 N(events): 2.1986; //V1: 6.0306;
 
-  values_["Embed-ETau-B"][2017] = 1.0761; //V1: 2.4139;
-  values_["Embed-ETau-C"][2017] = 1.5662; //V1: 3.2928;
-  values_["Embed-ETau-D"][2017] = 1.1924; //V1: 1.0589;
-  values_["Embed-ETau-E"][2017] = 2.1550; //V1: 2.4626;
-  values_["Embed-ETau-F"][2017] = 1.7933; //V1: 4.1141;
+  values_["Embed-ETau-B"][2017] =  4.7939 /  4.5193; //current: V3 lumi; V2 N(events): 1.0761; //V1: 2.4139;
+  values_["Embed-ETau-C"][2017] =  9.6312 /  8.9456; //current: V3 lumi; V2 N(events): 1.5662; //V1: 3.2928;
+  values_["Embed-ETau-D"][2017] =  4.2477 /  4.1807; //current: V3 lumi; V2 N(events): 1.1924; //V1: 1.0589;
+  values_["Embed-ETau-E"][2017] =  9.3136 /  9.2119; //current: V3 lumi; V2 N(events): 2.1550; //V1: 2.4626;
+  values_["Embed-ETau-F"][2017] = 13.5390 / 12.7366; //current: V3 lumi; V2 N(events): 1.7933; //V1: 4.1141;
 
-  values_["Embed-MuTau-B"][2017] = 1.0210; //V1: 2.2020;
-  values_["Embed-MuTau-C"][2017] = 1.8336; //V1: 5.0035;
-  values_["Embed-MuTau-D"][2017] = 1.1342; //V1: 1.1480;
-  values_["Embed-MuTau-E"][2017] = 2.0557; //V1: 2.7259;
-  values_["Embed-MuTau-F"][2017] = 1.5287; //V1: 5.6159;
+  values_["Embed-MuTau-B"][2017] =  4.7939 /  4.7175; //current: V3 lumi; V2 N(events): 1.0210; //V1: 2.2020;
+  values_["Embed-MuTau-C"][2017] =  9.6312 /  7.9460; //current: V3 lumi; V2 N(events): 1.8336; //V1: 5.0035;
+  values_["Embed-MuTau-D"][2017] =  4.2477 /  4.1262; //current: V3 lumi; V2 N(events): 1.1342; //V1: 1.1480;
+  values_["Embed-MuTau-E"][2017] =  9.3136 /  9.1610; //current: V3 lumi; V2 N(events): 2.0557; //V1: 2.7259;
+  values_["Embed-MuTau-F"][2017] = 13.5390 / 11.9807; //current: V3 lumi; V2 N(events): 1.5287; //V1: 5.6159;
 
-  values_["Embed-MuMu-B"][2017]  = 1.9039; //V1: 1.9039;
-  values_["Embed-MuMu-C"][2017]  = 1.5831; //V1: 3.2283;
-  values_["Embed-MuMu-D"][2017]  = 1.1873; //V1: 1.3284;
-  values_["Embed-MuMu-E"][2017]  = 1.3037; //V1: 2.8647;
-  values_["Embed-MuMu-F"][2017]  = 6.8001; //V1: 6.8001;
+  values_["Embed-MuMu-B"][2017]  =  4.7939 /  2.7802; //current: V3 lumi; V2 N(events): 1.9039; //V1: 1.9039;
+  values_["Embed-MuMu-C"][2017]  =  9.6312 /  6.1608; //current: V3 lumi; V2 N(events): 1.5831; //V1: 3.2283;
+  values_["Embed-MuMu-D"][2017]  =  4.2477 /  3.6894; //current: V3 lumi; V2 N(events): 1.1873; //V1: 1.3284;
+  values_["Embed-MuMu-E"][2017]  =  9.3136 /  9.0347; //current: V3 lumi; V2 N(events): 1.3037; //V1: 2.8647;
+  values_["Embed-MuMu-F"][2017]  = 13.5375 /  3.8110; //current: V3 lumi; V2 N(events): 6.8001; //V1: 6.8001;
 
-  values_["Embed-EE-B"][2017]  = 1.0799; //V1: 1.5825;
-  values_["Embed-EE-C"][2017]  = 1.2635; //V1: 2.7471;
-  values_["Embed-EE-D"][2017]  = 1.1826; //V1: 1.1859;
-  values_["Embed-EE-E"][2017]  = 1.3515; //V1: 2.5760;
-  values_["Embed-EE-F"][2017]  = 2.4550; //V1: 5.4018;
+  values_["Embed-EE-B"][2017]  =  4.7939 /  4.4775; //current: V3 lumi; V2 N(events): 1.0799; //V1: 1.5825;
+  values_["Embed-EE-C"][2017]  =  9.6307 /  7.6495; //current: V3 lumi; V2 N(events): 1.2635; //V1: 2.7471;
+  values_["Embed-EE-D"][2017]  =  4.2477 /  4.0178; //current: V3 lumi; V2 N(events): 1.1826; //V1: 1.1859;
+  values_["Embed-EE-E"][2017]  =  9.3136 /  9.1016; //current: V3 lumi; V2 N(events): 1.3515; //V1: 2.5760;
+  values_["Embed-EE-F"][2017]  = 13.5382 / 10.9579; //current: V3 lumi; V2 N(events): 2.4550; //V1: 5.4018;
 
   // V1:
   // *** Total 2017 ElMu  Mini / Nano = 37713920/12833285 = 2.9387
@@ -349,35 +349,35 @@ CrossSections::CrossSections(int useUL, int ZMode) {
   numbers_[2016]["Embed-EE-H"] = 8541470;
 
   //2017
-  numbers_[2017]["Embed-EMu-B"] = 3967571; //V1: 2012635;
-  numbers_[2017]["Embed-EMu-C"] = 5496437; //V1: 2068587;
-  numbers_[2017]["Embed-EMu-D"] = 2889168; //V1: 3533197;
-  numbers_[2017]["Embed-EMu-E"] = 2939770; //V1: 3290180;
-  numbers_[2017]["Embed-EMu-F"] = 5290113; //V1: 1928686;
+  numbers_[2017]["Embed-EMu-B"] = 3967571; //V2: 3967571; //V1: 2012635;
+  numbers_[2017]["Embed-EMu-C"] = 6353673; //V2: 5496437; //V1: 2068587;
+  numbers_[2017]["Embed-EMu-D"] = 3633999; //V2: 2889168; //V1: 3533197;
+  numbers_[2017]["Embed-EMu-E"] = 7931888; //V2: 2939770; //V1: 3290180;
+  numbers_[2017]["Embed-EMu-F"] = 7621097; //V2: 5290113; //V1: 1928686;
 
-  numbers_[2017]["Embed-ETau-B"] = 3437675; //V1: 1532529;
-  numbers_[2017]["Embed-ETau-C"] = 5167654; //V1: 2457960;
-  numbers_[2017]["Embed-ETau-D"] = 2911094; //V1: 3278083;
-  numbers_[2017]["Embed-ETau-E"] = 3454565; //V1: 3023027;
-  numbers_[2017]["Embed-ETau-F"] = 5620450; //V1: 2449996;
+  numbers_[2017]["Embed-ETau-B"] = 3437675; //V2: 3437675; //V1: 1532529;
+  numbers_[2017]["Embed-ETau-C"] = 6797815; //V2: 5167654; //V1: 2457960;
+  numbers_[2017]["Embed-ETau-D"] = 3258607; //V2: 2911094; //V1: 3278083;
+  numbers_[2017]["Embed-ETau-E"] = 6992531; //V2: 3454565; //V1: 3023027;
+  numbers_[2017]["Embed-ETau-F"] = 7986753; //V2: 5620450; //V1: 2449996;
 
-  numbers_[2017]["Embed-MuTau-B"] = 3786021; //V1: 1755514;
-  numbers_[2017]["Embed-MuTau-C"] = 4677691; //V1: 1714208;
-  numbers_[2017]["Embed-MuTau-D"] = 3245024; //V1: 3206086;
-  numbers_[2017]["Embed-MuTau-E"] = 3838042; //V1: 2894406;
-  numbers_[2017]["Embed-MuTau-F"] = 6979700; //V1: 1900026;
+  numbers_[2017]["Embed-MuTau-B"] = 3786021; //V2: 3786021; //V1: 1755514;
+  numbers_[2017]["Embed-MuTau-C"] = 6168667; //V2: 4677691; //V1: 1714208;
+  numbers_[2017]["Embed-MuTau-D"] = 3364291; //V2: 3245024; //V1: 3206086;
+  numbers_[2017]["Embed-MuTau-E"] = 7307243; //V2: 3838042; //V1: 2894406;
+  numbers_[2017]["Embed-MuTau-F"] = 7352399; //V2: 6979700; //V1: 1900026;
 
-  numbers_[2017]["Embed-MuMu-B"] =  2932147; //V1: 2932147;
-  numbers_[2017]["Embed-MuMu-C"] = 10383013; //V1: 5091845;
-  numbers_[2017]["Embed-MuMu-D"] =  5993575; //V1: 5356676;
-  numbers_[2017]["Embed-MuMu-E"] = 11631502; //V1: 5293627;
-  numbers_[2017]["Embed-MuMu-F"] =  2973048; //V1: 2973048;
+  numbers_[2017]["Embed-MuMu-B"] =  2932147; //V2:  2932147; //V1: 2932147;
+  numbers_[2017]["Embed-MuMu-C"] = 10383013; //V2: 10383013; //V1: 5091845;
+  numbers_[2017]["Embed-MuMu-D"] =  5993575; //V2:  5993575; //V1: 5356676;
+  numbers_[2017]["Embed-MuMu-E"] = 13513003; //V2: 11631502; //V1: 5293627;
+  numbers_[2017]["Embed-MuMu-F"] =  2973048; //V2:  2973048; //V1: 2973048;
 
-  numbers_[2017]["Embed-EE-B"] = 4210771; //V1: 2873517;
-  numbers_[2017]["Embed-EE-C"] = 9005580; //V1: 4142193;
-  numbers_[2017]["Embed-EE-D"] = 4145049; //V1: 4133793;
-  numbers_[2017]["Embed-EE-E"] = 7758876; //V1: 4070691;
-  numbers_[2017]["Embed-EE-F"] = 5736202; //V1: 2607064;
+  numbers_[2017]["Embed-EE-B"] = 4210771; //V2: 4210771; //V1: 2873517;
+  numbers_[2017]["Embed-EE-C"] = 9005580; //V2: 9005580; //V1: 4142193;
+  numbers_[2017]["Embed-EE-D"] = 4246906; //V2: 4145049; //V1: 4133793;
+  numbers_[2017]["Embed-EE-E"] = 9531727; //V2: 7758876; //V1: 4070691;
+  numbers_[2017]["Embed-EE-F"] = 8148666; //V2: 5736202; //V1: 2607064;
 
   //2018
   numbers_[2018]["Embed-EMu-A"] = 12876101; //V1: 12744399;

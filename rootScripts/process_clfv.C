@@ -29,12 +29,11 @@ Int_t process_clfv() {
   unsigned nfiles = nanocards.size();
   for(unsigned i = 0; i < nfiles; ++i) {
     ++category; // could have just used i + 1?
-    if(nanocards[i].process_)
-      cout << "Loop " << i << ", category " << category
-           << ", file " << nanocards[i].fname_.Data()
-           << ", xsec " << nanocards[i].xsec_
-           << ", doProcess " << nanocards[i].process_ << endl;
-    if(!nanocards[i].process_) continue;
+    if(!nanocards[i].process_ || (tag_ != "" && !nanocards[i].fname_.Contains(tag_.Data()))) continue;
+    cout << "Loop " << i << ", category " << category
+         << ", file " << nanocards[i].fname_.Data()
+         << ", xsec " << nanocards[i].xsec_
+         << endl;
     //if combining Wlnu samples, weight each by the number of generated over total generated
     int year = 2016;
     if(nanocards[i].fname_.Contains("2017"))      year = 2017;
@@ -69,6 +68,8 @@ Int_t process_clfv() {
                          nanocards[i].isData_, nanocards[i].combine_, category, category
                          )
                     );
+      // TString return_val = gSystem->GetFromPipe(Form("grep \"(int) \" log/out_%i.log| tail -n 1", category));
+      // if(return_val != "(int) 0") printf("--> File %s (category %i) didn't pass processing!\n", nanocards[i].fname_.Data(), category);
       while(count_processes() >= maxProcesses_) {
         sleep(10); //wait to submit until fewer than the maximum are running
       }
