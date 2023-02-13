@@ -30,6 +30,8 @@
 #include "interface/RoccoR.h"
 #include "interface/MVAConfig.hh"
 #include "interface/TrkQualInit.hh"
+#include "interface/BaseSelector.hh"
+#include "interface/HistSelector.hh"
 #include "interface/HistMaker.hh"
 #include "interface/CLFVHistMaker.hh"
 #include "interface/SparseHistMaker.hh"
@@ -71,6 +73,8 @@ namespace CLFV {
     RoccoR dummy12b;
     MVAConfig dummy13;
     TrkQualInit dummy14;
+    BaseSelector dummy15sela;
+    HistSelector dummy15selb;
     HistMaker dummy15a;
     CLFVHistMaker dummy15b;
     SparseHistMaker dummy15b2;

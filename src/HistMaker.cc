@@ -995,6 +995,11 @@ void HistMaker::InitializeInputTree(TTree* tree) {
   Utilities::SetBranchAddress(tree, "TrigObj_phi"                   , &TrigObj_phi                   );
   Utilities::SetBranchAddress(tree, "TrigObj_id"                    , &TrigObj_id                    );
   Utilities::SetBranchAddress(tree, "TrigObj_filterBits"            , &TrigObj_filterBits            );
+  Utilities::SetBranchAddress(tree, "HLT_IsoMu24"                   , &HLT_IsoMu24                   );
+  Utilities::SetBranchAddress(tree, "HLT_IsoMu27"                   , &HLT_IsoMu27                   );
+  Utilities::SetBranchAddress(tree, "HLT_Ele27_WPTight_Gsf"         , &HLT_Ele27_WPTight_GsF         );
+  Utilities::SetBranchAddress(tree, "HLT_Ele32_WPTight_Gsf"         , &HLT_Ele32_WPTight_GsF         );
+  Utilities::SetBranchAddress(tree, "HLT_Ele32_WPTight_Gsf_L1DoubleEG", &HLT_Ele32_WPTight_GsF_L1DoubleEG);
 
   //Z information
   if(!fIsData) {

@@ -1,29 +1,19 @@
-//TSelector to process TTrees output by Z_LFV_Analysis.git ntupling in (mostly) NanoAOD format
+#ifndef HistSelector_h
+#define HistSelector_h
 
-#ifndef HISTMAKER_HH
-#define HISTMAKER_HH
+#include "interface/BaseSelector.hh"
 
-
-#include <TROOT.h>
-#include <TTree.h>
-#include <TChain.h>
 #include <TEventList.h>
-#include <TFile.h>
-#include <TSelector.h>
-#include <TTreeReader.h>
-#include <TTreeReaderValue.h>
-#include <TTreeReaderArray.h>
 #include <TSystem.h>
 
-// Headers needed by this particular selector
-#include "TLorentzVector.h"
-#include "TStopwatch.h"
-#include "TH1.h"
-#include "TH2.h"
-#include "TString.h"
-#include "TRandom3.h"
-#include "TDirectory.h"
-#include "TFolder.h"
+#include <TLorentzVector.h>
+#include <TStopwatch.h>
+#include <TH1.h>
+#include <TH2.h>
+#include <TString.h>
+#include <TRandom3.h>
+#include <TDirectory.h>
+#include <TFolder.h>
 
 // TMVA includes
 #include "TMVA/Tools.h"
@@ -66,187 +56,30 @@
 
 #include "interface/Systematics.hh"
 
-namespace CLFV {
 
-  class HistMaker : public TSelector {
+namespace CLFV {
+  using namespace CLFV;
+
+  class HistSelector : public BaseSelector {
   public :
-    TTreeReader     fReader;  //!the tree reader
-    TTree          *fChain = 0;   //!pointer to the analyzed TTree or TChain
+
     enum {kMaxLeptons = 10, kMaxParticles = 50, kMaxTriggers = 100, kMaxGenPart = 200};
     enum {kMuTau = 0, kETau = 100, kEMu = 200, kMuTauE = 300, kETauMu = 400, kMuMu = 500, kEE = 600};
     enum {kMaxMVAs = 80};
 
-    // Readers to access the data
-    UInt_t    runNumber                  ;
-    ULong64_t eventNumber                ;
-    UInt_t    lumiSection                ;
-    UChar_t   LHE_Njets                  ;
-    Int_t     nPV                        ;
-    Float_t   nPU                        ;
-    UInt_t    nPartons                   ;
-    Float_t   genWeight = 1.             ;
-    Float_t   puWeight = 1.              ;
-    Float_t   puWeight_up = 1.           ;
-    Float_t   puWeight_down = 1.         ;
-    Float_t   zPt                        ;
-    Float_t   zMass                      ;
-    Float_t   zEta                       ;
-    Float_t   zLepOnePt                  ;
-    Float_t   zLepTwoPt                  ;
-    Float_t   zLepOneEta                 ;
-    Float_t   zLepTwoEta                 ;
-    Float_t   zLepOnePhi                 ;
-    Float_t   zLepTwoPhi                 ;
-    Float_t   zLepOneMass                ;
-    Float_t   zLepTwoMass                ;
-    Float_t   zLepOneID                  ;
-    Float_t   zLepTwoID                  ;
-    Int_t     zLepOneDecayIdx  = -99     ;
-    Int_t     zLepTwoDecayIdx  = -99     ;
+    //Additional info calculated for input objects
 
-    //selection filter info
-    Float_t   SelectionFilter_LepM = -1.f;
-
-    //gen-level info
-    UInt_t nGenPart                                    ;
-    Int_t  GenPart_pdgId                [kMaxGenPart];
-    Int_t  GenPart_genPartIdxMother     [kMaxGenPart];
-    Float_t GenPart_pt                  [kMaxGenPart];
-
-    //lepton information
-    //muons
-    UInt_t  nMuon                                      ;
-    Int_t   nGenMuons = 0                              ; // counting from gen part list matched to electroweak process in skimming stage
-    Float_t Muon_pt                       [kMaxLeptons];
-    Float_t Muon_eta                      [kMaxLeptons];
-    Float_t Muon_phi                      [kMaxLeptons];
-    Float_t Muon_corrected_pt             [kMaxLeptons]; //ntuple-level Rochester corrections
-    Float_t Muon_correctedUp_pt           [kMaxLeptons];
-    Float_t Muon_correctedDown_pt         [kMaxLeptons];
-    Int_t   Muon_charge                   [kMaxLeptons];
-    Bool_t  Muon_looseId                  [kMaxLeptons];
-    Bool_t  Muon_mediumId                 [kMaxLeptons];
-    Bool_t  Muon_tightId                  [kMaxLeptons];
-    Float_t Muon_pfRelIso04_all           [kMaxLeptons];
-    Float_t Muon_dxy                      [kMaxLeptons];
-    Float_t Muon_dxyErr                   [kMaxLeptons];
-    Float_t Muon_dz                       [kMaxLeptons];
-    Float_t Muon_dzErr                    [kMaxLeptons];
-    Int_t   Muon_nTrackerLayers           [kMaxLeptons];
-    Bool_t  Muon_TaggedAsRemovedByJet     [kMaxLeptons];
-    UChar_t Muon_genPartFlav              [kMaxLeptons];
-    Int_t   Muon_genPartIdx               [kMaxLeptons];
     Float_t Muon_RoccoSF                  [kMaxLeptons]; //calculated momentum scale
     Float_t Muon_ESErr                    [kMaxLeptons]; //momentum scale uncertainty
 
-    //electrons
-    UInt_t  nElectron                                  ;
-    Int_t   nGenElectrons = 0                          ; // counting from gen part list matched to electroweak process in skimming stage
-    Float_t Electron_pt                   [kMaxLeptons];
-    Float_t Electron_eta                  [kMaxLeptons];
-    Float_t Electron_phi                  [kMaxLeptons];
-    Int_t   Electron_charge               [kMaxLeptons];
-    Float_t Electron_deltaEtaSC           [kMaxLeptons];
-    Bool_t  Electron_mvaFall17V2Iso_WPL   [kMaxLeptons];
-    Bool_t  Electron_mvaFall17V2Iso_WP90  [kMaxLeptons];
-    Bool_t  Electron_mvaFall17V2Iso_WP80  [kMaxLeptons];
-    Bool_t  Electron_mvaFall17V2noIso_WPL [kMaxLeptons];
-    Bool_t  Electron_mvaFall17V2noIso_WP90[kMaxLeptons];
-    Bool_t  Electron_mvaFall17V2noIso_WP80[kMaxLeptons];
-    Float_t Electron_pfRelIso03_all       [kMaxLeptons];
-    Float_t Electron_eCorr                [kMaxLeptons];
-    Float_t Electron_dxy                  [kMaxLeptons];
-    Float_t Electron_dxyErr               [kMaxLeptons];
-    Float_t Electron_dz                   [kMaxLeptons];
-    Float_t Electron_dzErr                [kMaxLeptons];
-    Bool_t  Electron_TaggedAsRemovedByJet [kMaxLeptons];
-    UChar_t Electron_genPartFlav          [kMaxLeptons];
-    Int_t   Electron_genPartIdx           [kMaxLeptons];
-    Float_t Electron_energyErr            [kMaxLeptons]; //provided energy scale uncertainty
     Float_t Electron_energyScale          [kMaxLeptons]; //energy scale replacing given one
     Float_t Electron_energyScaleUp        [kMaxLeptons];
     Float_t Electron_energyScaleDown      [kMaxLeptons];
 
-    //taus
-    UInt_t  nTau                                       ;
-    Int_t   nGenTaus = 0                               ; // counting from gen part list matched to electroweak process in skimming stage
-    Float_t Tau_pt                        [kMaxLeptons];
-    Float_t Tau_eta                       [kMaxLeptons];
-    Float_t Tau_phi                       [kMaxLeptons];
-    Float_t Tau_mass                      [kMaxLeptons];
-    Int_t   Tau_charge                    [kMaxLeptons];
-    UChar_t Tau_idDeepTau2017v2p1VSe      [kMaxLeptons];
-    UChar_t Tau_idDeepTau2017v2p1VSmu     [kMaxLeptons];
-    UChar_t Tau_idDeepTau2017v2p1VSjet    [kMaxLeptons];
-    UChar_t Tau_idAntiEle                 [kMaxLeptons];
-    UChar_t Tau_idAntiEle2018             [kMaxLeptons];
-    UChar_t Tau_idAntiMu                  [kMaxLeptons];
-    UChar_t Tau_idAntiJet                 [kMaxLeptons];
-    Int_t   Tau_decayMode                 [kMaxLeptons];
-    Bool_t  Tau_idDecayMode               [kMaxLeptons];
-    Bool_t  Tau_idDecayModeNewDMs         [kMaxLeptons];
-    Float_t Tau_pfRelIso03_all            [kMaxLeptons];
-    Float_t Tau_eCorr                     [kMaxLeptons];
-    Float_t Tau_dxy                       [kMaxLeptons];
-    Float_t Tau_dz                        [kMaxLeptons];
-    Float_t Tau_leadTrkPtOverTauPt        [kMaxLeptons];
-    Float_t Tau_leadTrkDeltaEta           [kMaxLeptons];
-    Float_t Tau_leadTrkDeltaPhi           [kMaxLeptons];
-    Bool_t  Tau_TaggedAsRemovedByJet      [kMaxLeptons];
-    UChar_t Tau_genPartFlav               [kMaxLeptons];
-    Int_t   Tau_genPartIdx                [kMaxLeptons];
     Float_t Tau_energyScale               [kMaxLeptons]; //calculated enery scale
     Float_t Tau_energyScaleUp             [kMaxLeptons]; //calculated enery scale
     Float_t Tau_energyScaleDown           [kMaxLeptons]; //calculated enery scale
 
-    //jets
-    UInt_t  nJet                                         ;
-    Float_t Jet_pt                        [kMaxParticles];
-    Float_t Jet_eta                       [kMaxParticles];
-    Float_t Jet_phi                       [kMaxParticles];
-    Float_t Jet_mass                      [kMaxParticles];
-    Float_t Jet_pt_jerUp                  [kMaxParticles];
-    Float_t Jet_pt_jerDown                [kMaxParticles];
-    Float_t Jet_pt_jesTotalUp             [kMaxParticles];
-    Float_t Jet_pt_jesTotalDown           [kMaxParticles];
-    Float_t Jet_btagSF_L                  [kMaxParticles];
-    Float_t Jet_btagSF_L_up               [kMaxParticles];
-    Float_t Jet_btagSF_L_down             [kMaxParticles];
-    Float_t Jet_btagSF_T                  [kMaxParticles];
-    Float_t Jet_btagSF_T_up               [kMaxParticles];
-    Float_t Jet_btagSF_T_down             [kMaxParticles];
-    Int_t   Jet_charge                    [kMaxParticles];
-    Int_t   Jet_jetId                     [kMaxParticles];
-    Int_t   Jet_puId                      [kMaxParticles];
-    Float_t Jet_pfRelIso03_all            [kMaxParticles];
-    Float_t Jet_btagDeepB                 [kMaxParticles];
-    Float_t Jet_btagCMVA                  [kMaxParticles];
-    Float_t Jet_eCorr                     [kMaxParticles];
-    Float_t Jet_dxy                       [kMaxParticles];
-    Float_t Jet_dxyErr                    [kMaxParticles];
-    Float_t Jet_dz                        [kMaxParticles];
-    Float_t Jet_dzErr                     [kMaxParticles];
-    Int_t   Jet_partonFlavour             [kMaxParticles];
-    Bool_t  Jet_TaggedAsRemovedByMuon     [kMaxParticles];
-    Bool_t  Jet_TaggedAsRemovedByElectron [kMaxParticles];
-    Bool_t  Jet_TaggedAsRemovedByTau      [kMaxParticles];
-
-    //Trigger info
-    Bool_t  HLT_IsoMu24                                  ;
-    Bool_t  HLT_IsoMu27                                  ;
-    Bool_t  HLT_Mu50                                     ;
-    Bool_t  HLT_Ele27_WPTight_GsF                        ;
-    Bool_t  HLT_Ele32_WPTight_GsF                        ;
-    Bool_t  HLT_Ele32_WPTight_GsF_L1DoubleEG             ;
-    UInt_t  nTrigObj                                     ;
-    Int_t   TrigObj_filterBits             [kMaxTriggers];
-    Float_t TrigObj_pt                     [kMaxTriggers];
-    Float_t TrigObj_eta                    [kMaxTriggers];
-    Float_t TrigObj_phi                    [kMaxTriggers];
-    Int_t   TrigObj_id                     [kMaxTriggers];
-
-
-    //Calculated values
     Float_t jetsRejPt   [kMaxParticles]; //fail PU ID
     Float_t jetsRejEta  [kMaxParticles];
     Float_t jetsPt      [kMaxParticles]; //accepted jets
@@ -257,14 +90,6 @@ namespace CLFV {
     Float_t htSum                      ;
     Float_t ht                         ;
     Float_t htPhi                      ;
-
-    //Different met definitions
-    Float_t puppMET                    ;
-    Float_t puppMETphi                 ;
-    Float_t puppMETJERUp               ;
-    Float_t puppMETJESUp               ;
-    Float_t puppMETphiJERUp            ;
-    Float_t puppMETphiJESUp            ;
 
     //MET field to use
     Float_t met                        ;
@@ -280,6 +105,14 @@ namespace CLFV {
     Bool_t  isFakeMuon     = false     ;
     Int_t   looseQCDSelection = 0      ;
     Bool_t  chargeTest = true          ;
+
+    Int_t     nPV                      ;
+    Float_t   nPU                      ;
+    UInt_t    nPartons                 ;
+    UInt_t    runNumber                ;
+    ULong64_t eventNumber              ;
+    UInt_t    lumiSection              ;
+    UChar_t   LHE_Njets                ;
 
     //Event weights
     Float_t eventWeight = 1.           ;
@@ -366,9 +199,28 @@ namespace CLFV {
     Bool_t isLooseMuon                 ;
     Bool_t isLooseElectron             ;
     Bool_t isLooseTau                  ;
+    Int_t  nGenMuons = 0               ; // counting from gen part list matched to electroweak process in skimming stage
+    Int_t  nGenElectrons = 0           ; // counting from gen part list matched to electroweak process in skimming stage
+    Int_t  nGenTaus = 0                ; // counting from gen part list matched to electroweak process in skimming stage
     UInt_t nGenHardTaus                ; //for DY splitting by hard process
     UInt_t nGenHardElectrons           ; //for DY splitting by hard process
     UInt_t nGenHardMuons               ; //for DY splitting by hard process
+
+    Float_t   zPt                        ;
+    Float_t   zMass                      ;
+    Float_t   zEta                       ;
+    Float_t   zLepOnePt                  ;
+    Float_t   zLepTwoPt                  ;
+    Float_t   zLepOneEta                 ;
+    Float_t   zLepTwoEta                 ;
+    Float_t   zLepOnePhi                 ;
+    Float_t   zLepTwoPhi                 ;
+    Float_t   zLepOneMass                ;
+    Float_t   zLepTwoMass                ;
+    Float_t   zLepOneID                  ;
+    Float_t   zLepTwoID                  ;
+    Int_t     zLepOneDecayIdx  = -99     ;
+    Int_t     zLepTwoDecayIdx  = -99     ;
 
     Float_t muon_trig_pt_    ; //lepton trigger thresholds
     Float_t electron_trig_pt_;
@@ -383,40 +235,14 @@ namespace CLFV {
     Float_t min_mass_   =  0.f;
     Float_t max_mass_   = -1.f;
 
-    HistMaker(int seed = 90, TTree * /*tree*/ = 0);
-    virtual ~HistMaker();
+    HistSelector(int seed = 90, TTree * /*tree*/ = 0);
+    virtual ~HistSelector();
+    virtual void    Begin(TTree *tree);
+    virtual void    Terminate();
 
     Int_t   Version() const { return 1; }
-    virtual void    Begin(TTree *tree);
-    void    SlaveBegin(TTree *tree);
-    void    Init(TTree *tree);
-    Bool_t  Notify();
-    virtual Bool_t  Process(Long64_t entry);
-    Int_t   GetEntry(Long64_t entry, Int_t getall = 0) { return fChain ? fChain->GetTree()->GetEntry(entry, getall) : 0; }
-    void    SetOption(const char *option) { fOption = option; }
-    void    SetObject(TObject *obj) { fObject = obj; }
-    void    SetInputList(TList *input) { fInput = input; }
-    TList  *GetOutputList() const { return fOutput; }
-    void    SlaveTerminate();
-    void    Terminate();
 
-    void    InitializeInputTree(TTree* tree);
-    void    SetEventList(TTree* tree);
-    void    InitializeEventWeights();
-    void    EnergyScale(const float scale, Lepton_t& lep, float* MET = nullptr, float* METPhi = nullptr);
-    void    EnergyScale(const float scale, TLorentzVector& lv, float* MET = nullptr, float* METPhi = nullptr);
-    void    ApplyElectronCorrections();
-    void    ApplyMuonCorrections();
-    void    ApplyTauCorrections();
-    void    CountObjects();
-    void    CountJets();
-    void    SetKinematics();
-    void    EstimateNeutrinos();
-    void    EvalMVAs(TString TimerName = "");
-    int     GetTriggerMatch(TLorentzVector* lv, bool isMuon, Int_t& trigIndex);
-    void    MatchTriggers();
-    void    ApplyTriggerWeights();
-    void    EvalJetToTauWeights(float& wt, float& wtcorr, float& wtbias);
+    virtual Bool_t  Process(Long64_t entry);
 
     //Apply event selection cuts
     bool    PassesCuts() {
@@ -443,102 +269,6 @@ namespace CLFV {
       return triggered;
     }
 
-    //get the index for a timer, adding it if not already in the list
-    int     GetTimerNumber(TString name) {
-      if(name == "") {
-        std::cout << "HistMaker::" << __func__ << ": Timer name empty!\n";
-        throw 20;
-      }
-      for(int i = 0; i < fNTimes; ++i) {
-        if(name == fTimeNames[i]) return i;
-        //Add the timer in the first empty slot
-        if(fTimeNames[i] == "") {
-          fTimeNames[i] = name;
-          return i;
-        }
-      }
-      return -1;
-    }
-    void    IncrementTimer(TString name, bool isinitialized) {
-      IncrementTimer(GetTimerNumber(name), isinitialized);
-    }
-    void    IncrementTimer(int itime, bool isinitialized) {
-      if(itime >= fNTimes) {
-        printf("HistMaker::%s: Attempting to increment timer %i (%s), beyond maximum of %i\n", __func__, itime, fTimeNames[itime].Data(), fNTimes);
-        throw 10;
-      }
-      if(fTimeCounts[itime] > 0 || isinitialized) {
-        auto t = std::chrono::steady_clock::now();
-        fDurations[itime] += std::chrono::duration_cast<std::chrono::microseconds>(t-fTimes[itime]).count();
-        fTimes[itime] = t;
-      } else {
-        fTimes[itime] = std::chrono::steady_clock::now();
-      }
-      ++fTimeCounts[itime];
-    }
-    void    PrintTimerInfo() {
-      printf("HistMaker processing time information:\n");
-      for(int itime = 0; itime < fNTimes; ++itime) {
-        if(fTimeCounts[itime] <= 0 || fDurations[itime] <= 0) continue;
-        printf(" Timer %15s (%2i): Total processing time %10.3f s, %10i evt, %10.1f Hz\n",
-               fTimeNames[itime].Data(), itime, fDurations[itime]/1.e6, fTimeCounts[itime], fTimeCounts[itime]*1.e6/fDurations[itime]);
-      }
-    }
-
-    int             TauFlavorFromID(int ID) {
-      if(ID == 1 || ID == 3) return 11;
-      if(ID == 2 || ID == 4) return 13;
-      if(ID == 5) return 15;
-      return 26; //unknown
-    }
-    int             MuonFlavorFromID(int ID) {
-      if(ID == 1 || ID == 5 || ID == 4 || ID == 3 || ID == 15) return 13;
-      return 26; //unknown
-    }
-    int             ElectronFlavorFromID(int ID) {
-      if(ID == 1 || ID == 5 || ID == 4 || ID == 3 || ID == 15) return 11;
-      if(ID == 22) return 22;
-      return 26; //unknown
-    }
-    int             MuonRelIsoID(float reliso) {
-      //muon isolation levels
-      //kVVLooseMuIso, kVLooseMuIso, kLooseMuIso, kMediumMuIso, kTightMuIso, kVTightMuIso, kVVTightMuIso, kMuonIsos
-      constexpr double muonIsoValues[] = {0.5, 0.4, 0.25, 0.20, 0.15, 0.10, 0.05}; //corresponding values
-      int id = 0;
-      for(int level = 0; level < MuonIDWeight::kMuonIsos; ++level) {
-        if(reliso < muonIsoValues[level]) ++id;
-        else break;
-      }
-      return id;
-    }
-
-    virtual void    InitHistogramFlags();
-    virtual void    BookHistograms();
-    virtual void    BookEventHistograms();
-    virtual void    BookPhotonHistograms();
-    virtual void    BookLepHistograms();
-    virtual void    BookSystematicHistograms();
-    virtual void    BookTrees();
-    virtual void    DeleteHistograms();
-
-    void            BookBaseEventHistograms(Int_t index, const char* dirname);
-    void            BookBaseLepHistograms(Int_t index, const char* dirname);
-    void            BookBaseTree(Int_t index);
-
-    virtual void    FillAllHistograms(Int_t index);
-    virtual void    FillEventHistogram(EventHist_t* Hist);
-    virtual void    FillPhotonHistogram(PhotonHist_t* Hist);
-    virtual void    FillLepHistogram(LepHist_t* Hist);
-    virtual void    FillSystematicHistogram(SystematicHist_t* Hist);
-
-    void            FillBaseEventHistogram(EventHist_t* Hist);
-    void            FillBaseLepHistogram(LepHist_t* Hist);
-
-    Bool_t  InitializeEvent(Long64_t entry);
-    void    SwapSameFlavor();
-    void    InitializeTreeVariables();
-    int     Category(TString selection);
-    void    InitializeSystematics();
     virtual TString GetOutputName() {
       return Form("hist%s_%i_%s%s%s.hist",
                   (fSelection == "") ? "" : ("_"+fSelection).Data(),fYear, fDataset.Data(),
@@ -546,7 +276,6 @@ namespace CLFV {
                   (fWNJets >= 0) ? Form("-%i",fWNJets) : ""
                   );
     }
-
     //Check if this event is being split to a different output/run
     Bool_t SplitSampleEvent() {
       if(fIsData) return kFALSE;
@@ -586,6 +315,116 @@ namespace CLFV {
       }
       return kFALSE;
     }
+
+    //get the index for a timer, adding it if not already in the list
+    int     GetTimerNumber(TString name) {
+      if(name == "") {
+        std::cout << "HistMaker::" << __func__ << ": Timer name empty!\n";
+        throw 20;
+      }
+      for(int i = 0; i < fNTimes; ++i) {
+        if(name == fTimeNames[i]) return i;
+        //Add the timer in the first empty slot
+        if(fTimeNames[i] == "") {
+          fTimeNames[i] = name;
+          return i;
+        }
+      }
+      return -1;
+    }
+    void    IncrementTimer(TString name, bool isinitialized) {
+      IncrementTimer(GetTimerNumber(name), isinitialized);
+    }
+    void    IncrementTimer(int itime, bool isinitialized) {
+      if(itime >= fNTimes) {
+        printf("HistMaker::%s: Attempting to increment timer %i (%s), beyond maximum of %i\n", __func__, itime, fTimeNames[itime].Data(), fNTimes);
+        throw 10;
+      }
+      if(fTimeCounts[itime] > 0 || isinitialized) {
+        auto t = std::chrono::steady_clock::now();
+        fDurations[itime] += std::chrono::duration_cast<std::chrono::microseconds>(t-fTimes[itime]).count();
+        fTimes[itime] = t;
+      } else {
+        fTimes[itime] = std::chrono::steady_clock::now();
+      }
+      ++fTimeCounts[itime];
+    }
+
+    void    PrintTimerInfo() {
+      printf("HistMaker processing time information:\n");
+      for(int itime = 0; itime < fNTimes; ++itime) {
+        if(fTimeCounts[itime] <= 0 || fDurations[itime] <= 0) continue;
+        printf(" Timer %15s (%2i): Total processing time %10.3f s, %10i evt, %10.1f Hz\n",
+               fTimeNames[itime].Data(), itime, fDurations[itime]/1.e6, fTimeCounts[itime], fTimeCounts[itime]*1.e6/fDurations[itime]);
+      }
+    }
+    int             TauFlavorFromID(int ID) {
+      if(ID == 1 || ID == 3) return 11;
+      if(ID == 2 || ID == 4) return 13;
+      if(ID == 5) return 15;
+      return 26; //unknown
+    }
+    int             MuonFlavorFromID(int ID) {
+      if(ID == 1 || ID == 5 || ID == 4 || ID == 3 || ID == 15) return 13;
+      return 26; //unknown
+    }
+    int             ElectronFlavorFromID(int ID) {
+      if(ID == 1 || ID == 5 || ID == 4 || ID == 3 || ID == 15) return 11;
+      if(ID == 22) return 22;
+      return 26; //unknown
+    }
+    int             MuonRelIsoID(float reliso) {
+      //muon isolation levels
+      //kVVLooseMuIso, kVLooseMuIso, kLooseMuIso, kMediumMuIso, kTightMuIso, kVTightMuIso, kVVTightMuIso, kMuonIsos
+      constexpr double muonIsoValues[] = {0.5, 0.4, 0.25, 0.20, 0.15, 0.10, 0.05}; //corresponding values
+      int id = 0;
+      for(int level = 0; level < MuonIDWeight::kMuonIsos; ++level) {
+        if(reliso < muonIsoValues[level]) ++id;
+        else break;
+      }
+      return id;
+    }
+
+    virtual void    InitHistogramFlags();
+    virtual void    BookHistograms();
+    virtual void    BookEventHistograms();
+    virtual void    BookPhotonHistograms();
+    virtual void    BookLepHistograms();
+    virtual void    BookSystematicHistograms();
+    virtual void    BookTrees();
+    virtual void    DeleteHistograms();
+    void            BookBaseEventHistograms(Int_t index, const char* dirname);
+    void            BookBaseLepHistograms(Int_t index, const char* dirname);
+    void            BookBaseTree(Int_t index);
+
+    virtual void    FillAllHistograms(Int_t index);
+    virtual void    FillEventHistogram(EventHist_t* Hist);
+    virtual void    FillLepHistogram(LepHist_t* Hist);
+
+    void            FillBaseEventHistogram(EventHist_t* Hist);
+    void            FillBaseLepHistogram(LepHist_t* Hist);
+
+    Bool_t  InitializeEvent(Long64_t entry);
+    void    SwapSameFlavor();
+    void    InitializeTreeVariables();
+    int     Category(TString selection);
+    void    InitializeSystematics();
+
+    void    InitializeEventWeights();
+    void    EnergyScale(const float scale, Lepton_t& lep, float* MET = nullptr, float* METPhi = nullptr);
+    void    EnergyScale(const float scale, TLorentzVector& lv, float* MET = nullptr, float* METPhi = nullptr);
+    void    ApplyElectronCorrections();
+    void    ApplyMuonCorrections();
+    void    ApplyTauCorrections();
+    void    CountObjects();
+    void    CountJets();
+    void    SetKinematics();
+    void    EstimateNeutrinos();
+    void    EvalMVAs(TString TimerName = "");
+    int     GetTriggerMatch(TLorentzVector* lv, bool isMuon, Int_t& trigIndex);
+    void    MatchTriggers();
+    void    ApplyTriggerWeights();
+    void    EvalJetToTauWeights(float& wt, float& wtcorr, float& wtbias);
 
     Long64_t fentry; //for tracking entry in functions
     //Define relevant fields
@@ -671,7 +510,7 @@ namespace CLFV {
     Int_t           fUseJetPUIDWeights = 1; //0: do nothing; 1: use local jet PU ID weight; 2: use ntuple-level jet PU ID weight
     JetPUWeight*    fJetPUWeight; //object to define jet PU ID weights
     Int_t           fUsePrefireWeights = 1; //use pre-fire weights, 0 = none, 1 = use predefined weights, 2 = replace with local weights
-    PrefireWeight*  fPrefireWeight; //object to define pre-fire weights
+    CLFV::PrefireWeight*  fPrefireWeight; //object to define pre-fire weights
     Int_t           fUseQCDWeights = 1; //use QCD SS --> OS transfer weights
     Int_t           fAddJetTauWeights = 1; //0: do nothing 1: weight anti-iso tau CR data
     JetToTauComposition  fMuonJetToTauComp; //for mutau
@@ -746,53 +585,7 @@ namespace CLFV {
 
     int icutflow;
 
-    ClassDef(HistMaker,0);
-
+    ClassDef(HistSelector,0);
   };
 }
 #endif
-
-#ifdef HISTMAKER_CXX
-using namespace CLFV;
-
-void HistMaker::Init(TTree *tree)
-{
-  // The Init() function is called when the selector needs to initialize
-  // a new tree or chain. Typically here the reader is initialized.
-  // It is normally not necessary to make changes to the generated
-  // code, but the routine can be extended by the user if needed.
-  // Init() will be called many times when running on PROOF
-  // (once per file to be processed).
-  printf("HistMaker::%s\n", __func__);
-  fTimes[GetTimerNumber("Initialization")] = std::chrono::steady_clock::now();
-  fChain = tree;
-  if(!fChain) {
-    printf("HistMaker::%s: Error! Tree not found to initialize\n", __func__);
-    throw 1;
-  }
-
-  //setup the branch addresses
-  fChain->SetCacheSize(fCacheSize);
-  InitializeInputTree(fChain);
-
-  //Load more data into memory to compensate for slow XROOTD processing
-  printf("HistMaker::%s Loading baskets\n", __func__);
-  if(fLoadBaskets) fChain->LoadBaskets(2.*fCacheSize);
-  printf("Total number of entries is %lld\n",fChain->GetEntries());
-  IncrementTimer("Initialization", true);
-}
-
-
-Bool_t HistMaker::Notify()
-{
-  // The Notify() function is called when a new file is opened. This
-  // can be either for a new TTree in a TChain or when when a new TTree
-  // is started when using PROOF. It is normally not necessary to make changes
-  // to the generated code, but the routine can be extended by the
-  // user if needed. The return value is currently not used.
-
-  return kTRUE;
-}
-
-
-#endif // #ifdef HISTMAKER_CXX

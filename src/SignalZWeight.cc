@@ -13,7 +13,8 @@ SignalZWeight::SignalZWeight() {
 
   for(int year : years) {
     hScales_       [year] = nullptr;
-    f = TFile::Open(Form("%s/signal_z_correction_%i.root", path.Data(), year), "READ");
+    //s4 = 4th (current) signal iteration
+    f = TFile::Open(Form("%s/signal_z_correction_s4_%i.root", path.Data(), year), "READ");
     if(!f) continue;
     hScales_[year] = (TH2*) f->Get("hratio");
     if(!hScales_[year]) {
