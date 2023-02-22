@@ -382,6 +382,7 @@ void HistMaker::BookBaseEventHistograms(Int_t i, const char* dirname) {
         Utilities::BookH1D(fEventHist[i]->hLHENJets                , "lhenjets"                , Form("%s: LHE N(jets)"                 ,dirname),  10,    0,  10, folder);
       }
       Utilities::BookH1D(fEventHist[i]->hMcEra                   , "mcera"                   , Form("%s: MCEra + 2*(year-2016)"       ,dirname),   8,    0,   8, folder);
+      Utilities::BookH1D(fEventHist[i]->hRunEra                  , "runera"                  , Form("%s: Run era"                     ,dirname),  20,    0,  20, folder);
       Utilities::BookH1F(fEventHist[i]->hDataRun                 , "datarun"                 , Form("%s: DataRun"                     ,dirname), 100, 2.6e5, 3.3e5, folder);
       // Utilities::BookH1D(fEventHist[i]->hNPhotons                , "nphotons"                , Form("%s: NPhotons"                    ,dirname),  10,    0,  10, folder);
       Utilities::BookH1D(fEventHist[i]->hNGenTaus                , "ngentaus"                , Form("%s: NGenTaus"                    ,dirname),  10,    0,  10, folder);
@@ -2069,6 +2070,7 @@ void HistMaker::CountObjects() {
   ///////////////////////////////////////////////////////
 
   mcEra   = 0;
+  runEra  = 0;
   if(!fIsData && !fIsEmbed) { // use random numbers for MC not split by era
     if(fYear == 2016) {
       const double rand = fRnd->Uniform();
@@ -2078,9 +2080,28 @@ void HistMaker::CountObjects() {
       const double rand = fRnd->Uniform();
       const double frac_first = 1. -  31.93/59.59;
       mcEra = rand > frac_first; //0 if first, 1 if second
+    } else if(fYear == 2017) { //approximate run eras in 2017
+      const double rand = fRnd->Uniform();
+      const double lums[] = {4.7294,9.6312,4.2477,9.3136,13.5387};
+      const int nlums = sizeof(lums)/sizeof(*lums);
+      runEra = 9; //starts at B, add 2016 B-H runs
+      double tot = 0.f; //total luminosity
+      for(int index = 0; index < nlums; ++index) {
+        tot += lums[index];
+      }
+      double running = 0.f; //running luminosity
+      for(int index = 0; index < nlums; ++index) {
+        running += lums[index];
+        if(rand > running/tot) ++runEra;
+        else break;
+      }
     }
   } else if(fIsEmbed || fIsData) { //decide by run period in the file name
     TString name = GetOutputName();
+    name.ReplaceAll(".hist", "");
+    const char Run = name[name.Length()-1];
+    runEra = Run - 'A';
+    runEra += (fYear > 2016)*8 + (fYear > 2017)*6;
     if(fYear == 2016) {
       if(name.Contains("-G") || name.Contains("-H")) mcEra = 1;
     } else if(fYear == 2018) { //split 2018 into ABC and D
@@ -2656,6 +2677,7 @@ void HistMaker::FillBaseEventHistogram(EventHist_t* Hist) {
     Hist->hLHENJets            ->Fill(LHE_Njets          , genWeight*eventWeight)      ;
   }
   Hist->hMcEra               ->Fill(mcEra + 2*(fYear - 2016), genWeight*eventWeight) ;
+  Hist->hRunEra              ->Fill(runEra             , genWeight*eventWeight) ;
   Hist->hDataRun             ->Fill(runNumber          , genWeight*eventWeight)      ;
   // Hist->hNPhotons            ->Fill(nPhotons           , genWeight*eventWeight)      ;
   Hist->hNGenTaus            ->Fill(nGenTaus           , genWeight*eventWeight)      ;

@@ -114,23 +114,23 @@ CrossSections::CrossSections(int useUL, int ZMode) {
   // *** Total 2016 ElEl : Total Mini / Nano = 34637000/32933414 = 1.0517
 
   //2017
-  values_["Embed-EMu-B"][2017] =  4.7939 /  4.6903; //current: V3 lumi; V2 N(events): 1.0269; //V1: 2.0244;
-  values_["Embed-EMu-C"][2017] =  9.6312 /  7.5853; //current: V3 lumi; V2 N(events): 1.7036; //V1: 4.5268;
-  values_["Embed-EMu-D"][2017] =  4.2477 /  4.1056; //current: V3 lumi; V2 N(events): 1.3926; //V1: 1.1387;
-  values_["Embed-EMu-E"][2017] =  9.3133 /  9.1364; //current: V3 lumi; V2 N(events): 2.9324; //V1: 2.6201;
-  values_["Embed-EMu-F"][2017] = 13.5390 / 11.6842; //current: V3 lumi; V2 N(events): 2.1986; //V1: 6.0306;
+  values_["Embed-EMu-B"][2017] = 1.0269; // current V4: masked N(events); V3 lumi  4.7939 /  4.6903; //current: V3 lumi; V2 N(events): 1.0269; //V1: 2.0244;
+  values_["Embed-EMu-C"][2017] = 1.3816; // current V4: masked N(events); V3 lumi  9.6312 /  7.5853; //current: V3 lumi; V2 N(events): 1.7036; //V1: 4.5268;
+  values_["Embed-EMu-D"][2017] = 1.0799; // current V4: masked N(events); V3 lumi  4.2477 /  4.1056; //current: V3 lumi; V2 N(events): 1.3926; //V1: 1.1387;
+  values_["Embed-EMu-E"][2017] = 1.0659; // current V4: masked N(events); V3 lumi  9.3133 /  9.1364; //current: V3 lumi; V2 N(events): 2.9324; //V1: 2.6201;
+  values_["Embed-EMu-F"][2017] = 1.5009; // current V4: masked N(events); V3 lumi 13.5390 / 11.6842; //current: V3 lumi; V2 N(events): 2.1986; //V1: 6.0306;
 
-  values_["Embed-ETau-B"][2017] =  4.7939 /  4.5193; //current: V3 lumi; V2 N(events): 1.0761; //V1: 2.4139;
-  values_["Embed-ETau-C"][2017] =  9.6312 /  8.9456; //current: V3 lumi; V2 N(events): 1.5662; //V1: 3.2928;
-  values_["Embed-ETau-D"][2017] =  4.2477 /  4.1807; //current: V3 lumi; V2 N(events): 1.1924; //V1: 1.0589;
-  values_["Embed-ETau-E"][2017] =  9.3136 /  9.2119; //current: V3 lumi; V2 N(events): 2.1550; //V1: 2.4626;
-  values_["Embed-ETau-F"][2017] = 13.5390 / 12.7366; //current: V3 lumi; V2 N(events): 1.7933; //V1: 4.1141;
+  values_["Embed-ETau-B"][2017] = 1.0761; // current V4: masked N(events); V3 lumi  4.7939 /  4.5193; //current: V3 lumi; V2 N(events): 1.0761; //V1: 2.4139;
+  values_["Embed-ETau-C"][2017] = 1.1159; // current V4: masked N(events); V3 lumi  9.6312 /  8.9456; //current: V3 lumi; V2 N(events): 1.5662; //V1: 3.2928;
+  values_["Embed-ETau-D"][2017] = 1.0388; // current V4: masked N(events); V3 lumi  4.2477 /  4.1807; //current: V3 lumi; V2 N(events): 1.1924; //V1: 1.0589;
+  values_["Embed-ETau-E"][2017] = 1.0442; // current V4: masked N(events); V3 lumi  9.3136 /  9.2119; //current: V3 lumi; V2 N(events): 2.1550; //V1: 2.4626;
+  values_["Embed-ETau-F"][2017] = 1.2411; // current V4: masked N(events); V3 lumi 13.5390 / 12.7366; //current: V3 lumi; V2 N(events): 1.7933; //V1: 4.1141;
 
-  values_["Embed-MuTau-B"][2017] =  4.7939 /  4.7175; //current: V3 lumi; V2 N(events): 1.0210; //V1: 2.2020;
-  values_["Embed-MuTau-C"][2017] =  9.6312 /  7.9460; //current: V3 lumi; V2 N(events): 1.8336; //V1: 5.0035;
-  values_["Embed-MuTau-D"][2017] =  4.2477 /  4.1262; //current: V3 lumi; V2 N(events): 1.1342; //V1: 1.1480;
-  values_["Embed-MuTau-E"][2017] =  9.3136 /  9.1610; //current: V3 lumi; V2 N(events): 2.0557; //V1: 2.7259;
-  values_["Embed-MuTau-F"][2017] = 13.5390 / 11.9807; //current: V3 lumi; V2 N(events): 1.5287; //V1: 5.6159;
+  values_["Embed-MuTau-B"][2017] = 1.0210; // current V4: masked N(events); V3 lumi  4.7939 /  4.7175; V2 N(events): 1.0210; //V1: 2.2020;
+  values_["Embed-MuTau-C"][2017] = 1.3032; // current V4: masked N(events); V3 lumi  9.6312 /  7.9460; V2 N(events): 1.8336; //V1: 5.0035;
+  values_["Embed-MuTau-D"][2017] = 1.0669; // current V4: masked N(events); V3 lumi  4.2477 /  4.1262; V2 N(events): 1.1342; //V1: 1.1480;
+  values_["Embed-MuTau-E"][2017] = 1.0590; // current V4: masked N(events); V3 lumi  9.3136 /  9.1610; V2 N(events): 2.0557; //V1: 2.7259;
+  values_["Embed-MuTau-F"][2017] = 1.4272; // current V4: masked N(events); V3 lumi 13.5390 / 11.9807; V2 N(events): 1.5287; //V1: 5.6159;
 
   values_["Embed-MuMu-B"][2017]  =  4.7939 /  2.7802; //current: V3 lumi; V2 N(events): 1.9039; //V1: 1.9039;
   values_["Embed-MuMu-C"][2017]  =  9.6312 /  6.1608; //current: V3 lumi; V2 N(events): 1.5831; //V1: 3.2283;

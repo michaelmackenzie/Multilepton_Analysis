@@ -274,6 +274,7 @@ namespace CLFV {
 
     //event information
     Int_t   mcEra                      ;
+    Int_t   runEra                     ;
     UInt_t  triggerLeptonStatus        ; //which triggers fired (muon, electron, or both)
     UInt_t  muonTriggerStatus          ; //which muon trigger was fired
     Bool_t  isFakeElectron = false     ;

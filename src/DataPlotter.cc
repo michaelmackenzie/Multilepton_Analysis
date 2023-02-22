@@ -3,12 +3,12 @@ using namespace CLFV;
 
 //--------------------------------------------------------------------------------------------------------------------
 // general method to get a list of histograms, either for data, signal, or backgrounds
-std::vector<TH1*> DataPlotter::get_histograms(TString hist, TString setType, Int_t set, Int_t Mode) {
+std::vector<TH1*> DataPlotter::get_histograms(TString hist, TString setType, Int_t set, Int_t Mode, TString process) {
   //list of histograms to return
   std::vector<TH1*> histograms;
 
   //ensure the histogram mode is defined
-  if(Mode != kData && Mode != kSignal && Mode != kBackground) {
+  if(Mode != kData && Mode != kSignal && Mode != kBackground && Mode != kAny) {
     std::cout << __func__ << ": Unknown histogram list mode: " << Mode << std::endl;
     return histograms;
   }
@@ -22,9 +22,12 @@ std::vector<TH1*> DataPlotter::get_histograms(TString hist, TString setType, Int
     const bool isData = input.isData_;
     const bool isSignal = input.isSignal_;
     const bool isBackground = !(isData || isSignal);
-    if(Mode != kData && isData) continue;
-    if(Mode != kSignal && isSignal) continue;
-    if(Mode != kBackground && isBackground) continue;
+    if(Mode != kAny) {
+      if(Mode != kData && isData) continue;
+      if(Mode != kSignal && isSignal) continue;
+      if(Mode != kBackground && isBackground) continue;
+    }
+    if(process != "" && input.label_ != process) continue;
     TH1* tmp = (TH1*) input.data_->Get(Form("%s_%i/%s", setType.Data(), set, hist.Data()));
     if(!tmp) {
       printf("%s: Histogram %s/%s/%i for %s (%s) %i not found! Continuing...\n",
@@ -515,6 +518,32 @@ TH2* DataPlotter::get_background_2D(TString hist, TString setType, Int_t set) {
   return hBackground;
 }
 
+//--------------------------------------------------------------------------------------------------------------------
+TH1* DataPlotter::get_process(TString process, TString hist, TString setType, Int_t set) {
+  std::vector<TH1*> histograms = get_histograms(hist, setType, set, kAny, process);
+  if(histograms.size() == 0) {
+    printf("DataPlotter:%s: No histogram with process label \"%s\" found!\n", __func__, process.Data());
+    return nullptr;
+  }
+  if(histograms.size() != 1) {
+    printf("DataPlotter:%s: Several histograms (%i) with process label \"%s\" found!\n", __func__, (int) histograms.size(), process.Data());
+    return nullptr;
+  }
+  TH1* h = histograms[0];
+  h->SetLineWidth(3);
+  h->SetFillStyle(0);
+  if(rebinH_ > 1) h->Rebin(rebinH_);
+  const Double_t integral = (h->Integral((density_plot_ > 0) ? "width" : "")
+                             + h->GetBinContent(0)
+                             + h->GetBinContent(h->GetNbinsX()+1));
+  const char* stats = (doStatsLegend_) ? Form(": #scale[0.8]{%.2e}", integral) : "";
+  const TString label = h->GetTitle();
+  h->SetTitle(Form("%s%s", label.Data(), stats));
+  if(verbose_ > 0) std::cout << h->GetTitle() << " process histogram has integral "
+                             << integral << std::endl;
+
+  return h;
+}
 
 // //--------------------------------------------------------------------------------------------------------------------
 // TH2* DataPlotter::get_signal_2D(TString hist, TString setType, Int_t set) {
