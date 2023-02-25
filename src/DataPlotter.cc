@@ -7,6 +7,8 @@ std::vector<TH1*> DataPlotter::get_histograms(TString hist, TString setType, Int
   //list of histograms to return
   std::vector<TH1*> histograms;
 
+  if(verbose_ > 5) printf("%s: Retrieving histograms for %s/%s/%i, Mode %i, and process %s\n",
+                          __func__, hist.Data(), setType.Data(), set, Mode, process.Data());
   //ensure the histogram mode is defined
   if(Mode != kData && Mode != kSignal && Mode != kBackground && Mode != kAny) {
     std::cout << __func__ << ": Unknown histogram list mode: " << Mode << std::endl;
@@ -34,6 +36,7 @@ std::vector<TH1*> DataPlotter::get_histograms(TString hist, TString setType, Int
              __func__, hist.Data(), setType.Data(), set, input.name_.Data(), input.label_.Data(), input.dataYear_);
       continue;
     }
+    if(verbose_ > 7) printf(" retrieved histogram from input %i (%i %s)\n", i, input.dataYear_, input.name_.Data());
     //check if the systematic has been filled
     if(replace_missing_sys_ && tmp->GetEntries() == 0 && setType == "systematic") {
       TString base_name(hist(0,hist.Last('_')));
@@ -75,12 +78,20 @@ std::vector<TH1*> DataPlotter::get_histograms(TString hist, TString setType, Int
       histograms[index]->SetTitle(input.label_.Data()); //store the label in the histogram title
     }
   }
-  //scale return only meaningful histograms
+  //return only meaningful histograms
   std::vector<TH1*> hresults;
   for(unsigned int i = 0; i < inputs_.size(); ++i) {
     TH1* h = histograms[i];
     if(h) {
-      if(h->Integral() >= 0.) {
+      if(h->Integral() >= 0. || include_empty_) {
+        if(h->Integral() <= 0.) h->Scale(0.); //set to be 0 if < 0
+        else if(clip_negative_) { //remove negative bin edges, rescale the positive bins to conserve the rate
+          const double rate = h->Integral();
+          for(int ibin = 1; ibin <= h->GetNbinsX(); ++ibin) {
+            if(h->GetBinContent(ibin) < 0.) h->SetBinContent(ibin, 0.);
+          }
+          h->Scale(rate/h->Integral());
+        }
         hresults.push_back(h);
       } else {
         delete h;
@@ -94,7 +105,9 @@ std::vector<TH1*> DataPlotter::get_histograms(TString hist, TString setType, Int
 //--------------------------------------------------------------------------------------------------------------------
 std::vector<TH1*> DataPlotter::get_signal(TString hist, TString setType, Int_t set) {
   std::vector<TH1*> histograms = get_histograms(hist, setType, set, kSignal);
+  if(verbose_ > 2) printf("%s: Retrieved the list of %i signal histograms\n", __func__, (int) histograms.size());
   for(unsigned index = 0; index < histograms.size(); ++index) {
+    if(verbose_ > 7) printf(" Updating drawing settings for signal %i (%s)\n", (int) index, histograms[index]->GetTitle());
     // const int i_color = index % (sizeof(signal_colors_) / sizeof(*signal_colors_));
     histograms[index]->SetFillStyle(signal_fill_style_);
     // histograms[index]->SetFillColor(signal_colors_[i_color]);
@@ -102,20 +115,25 @@ std::vector<TH1*> DataPlotter::get_signal(TString hist, TString setType, Int_t s
     // histograms[index]->SetMarkerColor(signal_colors_[i_color]);
     histograms[index]->SetLineWidth(3);
     if(rebinH_ > 1) histograms[index]->Rebin(rebinH_);
+    if(verbose_ > 8) printf(" Getting stats info for signal %i (%s)\n", (int) index, histograms[index]->GetTitle());
     const Double_t integral = (histograms[index]->Integral((density_plot_ > 0) ? "width" : "")
                                + histograms[index]->GetBinContent(0)
                                + histograms[index]->GetBinContent(histograms[index]->GetNbinsX()+1));
     const char* stats = (doStatsLegend_) ? Form(": #scale[0.8]{%.2e}", integral) : "";
     const TString label = histograms[index]->GetTitle();
     Double_t signal_scale = signal_scale_;
-    if(signal_scales_.find(label) != signal_scales_.end()) signal_scale = signal_scales_[label];
+    if(signal_scales_.find(label) != signal_scales_.end()) {
+      signal_scale = signal_scales_[label];
+    }
+    if(verbose_ > 8) printf(" Setting stats info for signal %i (%s)\n", (int) index, histograms[index]->GetTitle());
     histograms[index]->SetTitle(Form("%s%s%s", label.Data(),
                                      (signal_scale == 1.) ? "" : Form(" (x%.0f)",signal_scale), stats));
+    if(verbose_ > 8) printf(" Scaling signal %i (%s) by %.3f\n", (int) index, histograms[index]->GetTitle(), signal_scale);
     histograms[index]->Scale(signal_scale);
     if(verbose_ > 0) std::cout << histograms[index]->GetTitle() << " signal histogram has integral "
                                << integral << std::endl;
   }
-
+  if(verbose_ > 5) printf(" Returning the list of %i signal histograms\n", (int) histograms.size());
   return histograms;
 }
 
@@ -1803,6 +1821,8 @@ TCanvas* DataPlotter::plot_cdf(TString hist, TString setType, Int_t set, TString
   hcdfstack->Draw("hist noclear");
   std::vector<TH1*> hsignal = get_signal(hist,setType,set);
   std::vector<TH1*> hsignalcdf;
+  //store the y-axis range info
+  double max_val(1.e-5), min_val(1.e20);
   for(TH1* signal : hsignal) {
     auto o = gDirectory->Get(Form("%s_trans", signal->GetName()));
     if(o) delete o;
@@ -1823,10 +1843,23 @@ TCanvas* DataPlotter::plot_cdf(TString hist, TString setType, Int_t set, TString
     htrans->SetLineWidth(signal->GetLineWidth());
     htrans->SetMarkerStyle(signal->GetMarkerStyle());
     htrans->Draw("hist same");
+    max_val = std::max(max_val, Utilities::H1Max(htrans, xMin_, xMax_));
+    min_val = std::min(min_val, Utilities::H1Min(htrans, xMin_, xMax_));
+    if(verbose_ > 3) std::cout << " " << htrans->GetTitle() << ": min = " << min_val << " max = " << max_val << std::endl;
     hsignalcdf.push_back(htrans);
   }
-  data_cdf->Draw("same");
+  if(plot_data_) data_cdf->Draw("same");
   delete hCDF; //done with the CDF
+
+  if(data_cdf && plot_data_ > 0) {
+    max_val = std::max(max_val, Utilities::H1Max(data_cdf, xMin_, xMax_));
+    //FIXME: Include data minimum, accounting for blinding
+    // min_val = std::min(min_val, Utilities::H1Min(data_cdf, xMin_, xMax_));
+    if(verbose_ > 3) std::cout << " " << data_cdf->GetTitle() << ": min = " << min_val << " max = " << max_val << std::endl;
+  }
+  max_val = std::max(max_val, Utilities::H1Max((TH1*) hcdfstack->GetStack()->Last(), xMin_, xMax_));
+  min_val = std::min(min_val, Utilities::H1Min((TH1*) hcdfstack->GetStack()->Last(), xMin_, xMax_));
+  if(verbose_ > 3) std::cout << " stack: min = " << min_val << " max = " << max_val << std::endl;
 
   TH1* hDataMC = (plot_data_) ? (TH1*) data_cdf->Clone("hDataMC") : 0;
   // TGraphErrors* hDataMCErr = 0;
@@ -1859,21 +1892,30 @@ TCanvas* DataPlotter::plot_cdf(TString hist, TString setType, Int_t set, TString
     }
   }
 
-  pad1->BuildLegend();//0.6, 0.9, 0.9, 0.45, "", "L");
+  TLegend* leg = new TLegend((doStatsLegend_/* || plot_single*/) ? legend_x1_stats_ : legend_x1_, legend_y1_, legend_x2_, legend_y2_);
+  leg->SetTextSize((doStatsLegend_/* || plot_single*/) ? 0.75*legend_txt_ : legend_txt_);
+  leg->SetNColumns(legend_ncol_);
+  if(plot_data_) leg->AddEntry(data_cdf, data_cdf->GetTitle(), "PL");
+  // if(stack_uncertainty_) leg->AddEntry(huncertainty, huncertainty->GetTitle(), "F");
+  if(!stack_signal_) {
+    for(unsigned int i = 0; i < hsignalcdf.size(); ++i) {
+      leg->AddEntry(hsignalcdf[i], hsignalcdf[i]->GetTitle(), "FL");
+    }
+  }
+  for(int i = 0; i < hcdfstack->GetNhists(); ++i) {
+    TH1* h = (TH1*) hcdfstack->GetHists()->At(i);
+    leg->AddEntry(h, h->GetTitle(), "F");
+  }
+  // leg->SetEntrySeparation(legend_sep_);
+  leg->SetFillStyle(0);
+  leg->SetFillColor(0);
+  leg->SetLineColor(0);
+  leg->SetLineStyle(0);
+  leg->Draw();
+
   pad1->SetGrid();
   pad1->Update();
-  auto o = pad1->GetPrimitive("TPave");
-  if(o) {
-    auto tl = (TLegend*) o;
-    tl->SetDrawOption("L");
-    tl->SetTextSize(legend_txt_);
-    tl->SetY2NDC(legend_y2_);
-    tl->SetY1NDC(legend_y1_);
-    tl->SetX1NDC(((doStatsLegend_) ? legend_x1_stats_ : legend_x1_));
-    tl->SetX2NDC(legend_x2_);
-    tl->SetEntrySeparation(legend_sep_);
-    pad1->Update();
-  }
+
   //get axis titles
   TString xtitle;
   TString ytitle;
@@ -1889,24 +1931,29 @@ TCanvas* DataPlotter::plot_cdf(TString hist, TString setType, Int_t set, TString
   if(plot_y_title_) hcdfstack->GetYaxis()->SetTitle(ytitle.Data());
   hcdfstack->GetXaxis()->SetTitleSize(axis_font_size_);
   hcdfstack->GetYaxis()->SetTitleSize(axis_font_size_);
-  double m = std::max(std::max(m,hcdfstack->GetMaximum()), (data_cdf) ? data_cdf->GetMaximum() : 0.);
 
-  if(yMin_ < yMax_) hcdfstack->GetYaxis()->SetRangeUser(yMin_,yMax_);
-  else              hcdfstack->GetYaxis()->SetRangeUser(1.e-1,m*1.2);
+  double ymin = yMin_;
+  double ymax = yMax_;
+  if(verbose_ > 2) std::cout << "Min val = " << min_val << " max val = " << max_val << std::endl;
+  if(ymin > ymax) {
+    ymin = std::max(0.8, min_val*((logY_) ? 1./log_buffer_ : 1./linear_buffer_));
+    if(logY_) {
+      ymax = (max_val < ymin) ? log_buffer_*ymin : ymin*std::pow(10, log_buffer_*std::log10(max_val/ymin));
+    } else {
+      ymax = linear_buffer_*std::max(max_val, ymin);
+    }
+  }
+  if(verbose_ > 2) std::cout << "Y min = " << ymin << " y max = " << ymax << std::endl;
+
+  hcdfstack->GetYaxis()->SetRangeUser(ymin,ymax);
+  hcdfstack->SetMinimum(ymin);
+  hcdfstack->SetMaximum(ymax);
   if(plot_data_ && xMin_ < xMax_ && hDataMC) hDataMC->GetXaxis()->SetRangeUser(xMin_,xMax_);
   if(xMin_ < xMax_) hcdfstack->GetXaxis()->SetRangeUser(xMin_,xMax_);
 
   if(plot_title_) hcdfstack->SetTitle (title.Data());
   else hcdfstack->SetTitle("");
 
-  if(yMin_ < yMax_) {
-    hcdfstack->SetMinimum(yMin_);
-    hcdfstack->SetMaximum(yMax_);
-  }
-  else {
-    hcdfstack->SetMinimum(1.e-1);
-    hcdfstack->SetMaximum((logY_>0 ? 2.*m : 1.2*m));
-  }
   if(logY_) {
     if(plot_data_)pad1->SetLogy();
     else          c->SetLogy();

@@ -168,11 +168,11 @@ void JTTHistMaker::BookEventHistograms() {
       Utilities::BookH1F(fEventHist[i]->hDeltaAlpha[2]     , "deltaalpha2"      , Form("%s: Delta Alpha (H) 0"   ,dirname),  80,  -5,  10, folder);
       Utilities::BookH1F(fEventHist[i]->hDeltaAlpha[3]     , "deltaalpha3"      , Form("%s: Delta Alpha (H) 1"   ,dirname),  80,  -5,  10, folder);
 
-      for(unsigned j = 0; j < fMVAConfig.names_.size(); ++j)  {
-        Utilities::BookH1D(fEventHist[i]->hMVA[j][0], Form("mva%i",j)   , Form("%s: %s MVA" ,dirname, fMVAConfig.names_[j].Data()) ,
-                           fMVAConfig.NBins(j), fMVAConfig.Bins(j).data(), folder);
+      for(unsigned j = 0; j < fMVAConfig->names_.size(); ++j)  {
+        Utilities::BookH1D(fEventHist[i]->hMVA[j][0], Form("mva%i",j)   , Form("%s: %s MVA" ,dirname, fMVAConfig->names_[j].Data()) ,
+                           fMVAConfig->NBins(j), fMVAConfig->Bins(j).data(), folder);
         //high mva score binning to improve cdf making
-        Utilities::BookH1F(fEventHist[i]->hMVA[j][1]  , Form("mva%i_1",j)   , Form("%s: %s MVA"         ,dirname, fMVAConfig.names_[j].Data()), 3000, -1.,  2., folder);
+        Utilities::BookH1F(fEventHist[i]->hMVA[j][1]  , Form("mva%i_1",j)   , Form("%s: %s MVA"         ,dirname, fMVAConfig->names_[j].Data()), 3000, -1.,  2., folder);
       }
 
       /////////////////////////////////////
@@ -454,7 +454,7 @@ void JTTHistMaker::FillEventHistogram(EventHist_t* Hist) {
   Hist->hDeltaAlpha[3]->Fill(fTreeVars.deltaalphah2, eventWeight*genWeight);
 
   //MVA outputs
-  for(unsigned i = 0; i < fMVAConfig.names_.size(); ++i) {
+  for(unsigned i = 0; i < fMVAConfig->names_.size(); ++i) {
     Hist->hMVA[i][0]->Fill(fMvaOutputs[i], fTreeVars.eventweightMVA); //remove training samples
     Hist->hMVA[i][1]->Fill(fMvaOutputs[i], fTreeVars.eventweightMVA); //remove training samples
   }

@@ -7,11 +7,13 @@
 #include <iostream>
 //ROOT includes
 #include "TString.h"
+#include "TH1.h"
+#include "TSystem.h"
 
 namespace CLFV {
   class MVAConfig {
   public:
-    MVAConfig() {
+    MVAConfig(bool useCDF = false) {
       //initialize MVA names
       names_ = {
                 //0 - 9: nominal mvas
@@ -28,16 +30,29 @@ namespace CLFV {
       };
 
       //initialize MVA output categories
-      categories_["hmutau"  ] = {-0.05680,  0.02900,  0.13370,  0.26540};
-      categories_["zmutau"  ] = {-0.28180, -0.15400, -0.04330,  0.12920};
-      categories_["hetau"   ] = {-0.06700,  0.04130,  0.15380,  0.33350};
-      categories_["zetau"   ] = {-0.25540, -0.11290, -0.03850,  0.05990};
-      categories_["hemu"    ] = {-0.05770, -0.015  , -0.015  ,  0.085  }; //defined with cut-and-count in M in [M_B - 5, M_B + 5]
-      categories_["zemu"    ] = {-0.21800, -0.080  , -0.005  ,  0.060  }; //defined with cut-and-count in M in [M_B - 5, M_B + 5]
-      categories_["hmutau_e"] = {-0.10660,  0.00650,  0.08600,  0.15860};
-      categories_["zmutau_e"] = {-0.12310, -0.09790, -0.05830,  0.07190};
-      categories_["hetau_mu"] = {-0.12820, -0.00400,  0.08060,  0.16160};
-      categories_["zetau_mu"] = {-0.32500, -0.15460, -0.02680,  0.09410};
+      if(useCDF) {
+        categories_["hmutau"  ] = {0.05, 0.10, 0.25, 0.50};
+        categories_["zmutau"  ] = {0.05, 0.10, 0.25, 0.50};
+        categories_["hetau"   ] = {0.05, 0.10, 0.25, 0.50};
+        categories_["zetau"   ] = {0.05, 0.10, 0.25, 0.50};
+        categories_["hemu"    ] = {0.05, 0.10, 0.25, 0.50};
+        categories_["zemu"    ] = {0.05, 0.10, 0.325, 0.700}; //defined with cut-and-count sqrt(S)/B quadrature sum in M in 86 - 96 GeV/c^2
+        categories_["hmutau_e"] = {0.05, 0.10, 0.25, 0.50};
+        categories_["zmutau_e"] = {0.05, 0.10, 0.25, 0.50};
+        categories_["hetau_mu"] = {0.05, 0.10, 0.25, 0.50};
+        categories_["zetau_mu"] = {0.05, 0.10, 0.25, 0.50};
+      } else {
+        categories_["hmutau"  ] = {-0.05680,  0.02900,  0.13370,  0.26540};
+        categories_["zmutau"  ] = {-0.28180, -0.15400, -0.04330,  0.12920};
+        categories_["hetau"   ] = {-0.06700,  0.04130,  0.15380,  0.33350};
+        categories_["zetau"   ] = {-0.25540, -0.11290, -0.03850,  0.05990};
+        categories_["hemu"    ] = {-0.05770, -0.015  , -0.015  ,  0.085  }; //defined with cut-and-count in M in [M_B - 5, M_B + 5]
+        categories_["zemu"    ] = {-0.21800, -0.080  , -0.005  ,  0.060  }; //defined with cut-and-count in M in [M_B - 5, M_B + 5]
+        categories_["hmutau_e"] = {-0.10660,  0.00650,  0.08600,  0.15860};
+        categories_["zmutau_e"] = {-0.12310, -0.09790, -0.05830,  0.07190};
+        categories_["hetau_mu"] = {-0.12820, -0.00400,  0.08060,  0.16160};
+        categories_["zetau_mu"] = {-0.32500, -0.15460, -0.02680,  0.09410};
+      }
 
       for(unsigned imva = 0; imva < names_.size(); ++imva) {
         TString name = names_[imva];
@@ -47,6 +62,42 @@ namespace CLFV {
         else if(name.Contains("etau")) cat = 2; //etau data
         data_cat_.push_back(cat);
       }
+
+      //initialize signal CDF transform histograms
+      const TString cmssw = gSystem->Getenv("CMSSW_BASE");
+      const TString path = (cmssw == "") ? "../scale_factors" : cmssw + "/src/CLFVAnalysis/scale_factors";
+      std::vector<TString> selections = {"zmutau", "zetau", "zmutau_e", "zetau_mu", "zemu"};
+      for(TString selection : selections) {
+        TFile* fcdf = TFile::Open(Form("%s/cdf_transform_%s.root", path.Data(), selection.Data()), "READ");
+        if(!fcdf) continue;
+        TH1* hcdf = (TH1*) fcdf->Get("CDF");
+        if(!hcdf) {
+          printf("MVAConfig: Failed to find %s CDF histogram\n", selection.Data());
+          fcdf->Close();
+          continue;
+        }
+        hcdf =  (TH1*) hcdf->Clone(Form("CDF_%s", selection.Data()));
+        hcdf->SetDirectory(0);
+        fcdf->Close();
+        cdf_[selection] = hcdf;
+      }
+    }
+
+    ~MVAConfig() {
+      for(auto cdf : cdf_) {
+        if(cdf.second) {delete cdf.second; cdf_[cdf.first] = nullptr;}
+      }
+    }
+
+    //apply the cdf transform to the BDT score for a given selection
+    float CDFTransform(const float score, const TString selection) {
+      if(cdf_.find(selection) == cdf_.end()) return score; //don't transform if not defined
+      TH1* hcdf = cdf_[selection];
+      if(!hcdf) return score;
+      const float max_p = 0.9999f; //no 100% p-value for binning overflow
+      const int bin = std::max(1, std::min(hcdf->GetNbinsX(), hcdf->FindBin(score)));
+      const float p = std::min(max_p, (float) hcdf->GetBinContent(bin));
+      return p;
     }
 
     //get MVA output selection name
@@ -243,6 +294,7 @@ namespace CLFV {
     std::vector<TString> names_; //MVA names
     std::vector<int> data_cat_; //relevant data category
     std::map<TString, std::vector<double>> categories_; //MVA categories by selection
+    std::map<TString, TH1*> cdf_;
   };
 }
 #endif

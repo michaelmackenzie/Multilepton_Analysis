@@ -593,11 +593,14 @@ namespace CLFV {
     TStopwatch* timer = new TStopwatch();
     // TStopwatch timer_funcs; //for measuring time taken in each function
     TMVA::Reader* mva[kMaxMVAs]; //read and apply mva weight files
-    MVAConfig fMVAConfig; //contains MVA names and categories
+    MVAConfig* fMVAConfig = nullptr; //contains MVA names and categories
 
     Int_t   fIsJetBinnedMVAs[kMaxMVAs]; //storing number of jets for MVA, < 0 if not binned
     Float_t fMvaOutputs[kMaxMVAs];
+    Float_t fMvaCDFs[kMaxMVAs]; //CDF transformed BDT score
     Int_t   fTrkQualVersion = TrkQualInit::Default; //for updating which variables are used
+    Bool_t  fUseCDFBDTs = true;
+    Int_t   fNCDFBins = 20; //CDF transformed BDT binning
 
     //Histograms:
     const static Int_t fn = 4000; //max histogram sets: 0 - 999 typical, 1000 - 1999 QCD, 2000 - 2999 MisID, 3000 - 3999 QCD+MisID

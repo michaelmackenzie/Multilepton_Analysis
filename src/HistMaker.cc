@@ -37,6 +37,7 @@ HistMaker::HistMaker(int seed, TTree * /*tree*/) : fSystematicSeed(seed),
   fTauIDWeight = nullptr;
   fEmbeddingWeight = nullptr;
   fRnd = nullptr;
+  fMVAConfig = nullptr;
 
   leptonOne.p4 = new TLorentzVector();
   leptonTwo.p4 = new TLorentzVector();
@@ -91,6 +92,7 @@ HistMaker::~HistMaker() {
   if(fPrefireWeight    ) {delete fPrefireWeight   ; fPrefireWeight    = nullptr;}
   if(fTauIDWeight      ) {delete fTauIDWeight     ; fTauIDWeight      = nullptr;}
   if(fRnd              ) {delete fRnd             ; fRnd              = nullptr;}
+  if(fMVAConfig        ) {delete fMVAConfig       ; fMVAConfig        = nullptr;}
   if(leptonOne.p4      ) {delete leptonOne.p4     ; leptonOne.p4      = nullptr;}
   if(leptonTwo.p4      ) {delete leptonTwo.p4     ; leptonTwo.p4      = nullptr;}
   if(jetOne.p4         ) {delete jetOne.p4        ; jetOne.p4         = nullptr;}
@@ -154,6 +156,7 @@ void HistMaker::Begin(TTree * /*tree*/)
 
 
   fRnd = new TRandom3(fRndSeed);
+  fMVAConfig = new MVAConfig(fUseCDFBDTs);
   fTreeVars.type = -1;
 
   //Initialize MVA tools
@@ -161,43 +164,43 @@ void HistMaker::Begin(TTree * /*tree*/)
   for(int i = 0; i < kMaxMVAs; ++i) mva[i] = nullptr; //initially 0s
 
   if(fReprocessMVAs) {
-    for(unsigned mva_i = 0; mva_i < fMVAConfig.names_.size(); ++mva_i) {
+    for(unsigned mva_i = 0; mva_i < fMVAConfig->names_.size(); ++mva_i) {
       //only initialize necessary MVAs
-      if(fSelection != "" && !fMVAConfig.names_[mva_i].Contains(fSelection.Data())) continue;
+      if(fSelection != "" && !fMVAConfig->names_[mva_i].Contains(fSelection.Data())) continue;
       //ignore leptonic tau MVAs in hadronic channels
-      if(fSelection.EndsWith("tau") && (fMVAConfig.names_[mva_i].Contains("tau_e") || fMVAConfig.names_[mva_i].Contains("tau_mu"))) continue;
+      if(fSelection.EndsWith("tau") && (fMVAConfig->names_[mva_i].Contains("tau_e") || fMVAConfig->names_[mva_i].Contains("tau_mu"))) continue;
 
       //determine the selection for defining the variables
       TString selection = "";
-      if(fMVAConfig.names_[mva_i].Contains("higgs")) {if(!fDoHiggs) continue; else selection += "h";}
+      if(fMVAConfig->names_[mva_i].Contains("higgs")) {if(!fDoHiggs) continue; else selection += "h";}
       else selection += "z";
-      if(fMVAConfig.names_[mva_i].Contains("mutau")) selection += "mutau";
-      else if(fMVAConfig.names_[mva_i].Contains("etau")) selection += "etau";
-      else if(fMVAConfig.names_[mva_i].Contains("emu")) selection += "emu";
+      if(fMVAConfig->names_[mva_i].Contains("mutau")) selection += "mutau";
+      else if(fMVAConfig->names_[mva_i].Contains("etau")) selection += "etau";
+      else if(fMVAConfig->names_[mva_i].Contains("emu")) selection += "emu";
       else {
         printf ("Warning! Didn't determine mva weight file %s corresponding selection!\n",
-                fMVAConfig.names_[mva_i].Data());
+                fMVAConfig->names_[mva_i].Data());
         continue;
       }
       //add for leptonic tau channels FIXME: Put as part of original check
-      if(fMVAConfig.names_[mva_i].Contains("mutau_e")) selection += "_e";
-      else if(fMVAConfig.names_[mva_i].Contains("etau_mu")) selection += "_mu";
+      if(fMVAConfig->names_[mva_i].Contains("mutau_e")) selection += "_e";
+      else if(fMVAConfig->names_[mva_i].Contains("etau_mu")) selection += "_mu";
 
       //initialize the reader
       mva[mva_i] = new TMVA::Reader("!Color:!Silent");
 
       Int_t isJetBinned = -1; // -1 is not binned, 0 = 0 jets, 1 = 1 jet, 2 = >1 jets
-      if(fMVAConfig.names_[mva_i].Contains("_18") || //0 jet
-         fMVAConfig.names_[mva_i].Contains("_48") ||
-         fMVAConfig.names_[mva_i].Contains("_78"))
+      if(fMVAConfig->names_[mva_i].Contains("_18") || //0 jet
+         fMVAConfig->names_[mva_i].Contains("_48") ||
+         fMVAConfig->names_[mva_i].Contains("_78"))
         isJetBinned = 0;
-      else if(fMVAConfig.names_[mva_i].Contains("_19") || //1 jet
-              fMVAConfig.names_[mva_i].Contains("_49") ||
-              fMVAConfig.names_[mva_i].Contains("_79"))
+      else if(fMVAConfig->names_[mva_i].Contains("_19") || //1 jet
+              fMVAConfig->names_[mva_i].Contains("_49") ||
+              fMVAConfig->names_[mva_i].Contains("_79"))
         isJetBinned = 1;
-      else if(fMVAConfig.names_[mva_i].Contains("_20") || //>1 jet
-              fMVAConfig.names_[mva_i].Contains("_50") ||
-              fMVAConfig.names_[mva_i].Contains("_80"))
+      else if(fMVAConfig->names_[mva_i].Contains("_20") || //>1 jet
+              fMVAConfig->names_[mva_i].Contains("_50") ||
+              fMVAConfig->names_[mva_i].Contains("_80"))
         isJetBinned = 2;
 
       fIsJetBinnedMVAs[mva_i] = isJetBinned; //store for checking when filling
@@ -207,9 +210,9 @@ void HistMaker::Begin(TTree * /*tree*/)
       TrkQualInit trkQualInit(fTrkQualVersion, isJetBinned);
       trkQualInit.InitializeVariables(*(mva[mva_i]), selection, fTreeVars);
       //Initialize MVA weight file
-      const char* f = Form("weights/%s.2016_2017_2018.weights.xml",fMVAConfig.names_[mva_i].Data());
-      mva[mva_i]->BookMVA(fMVAConfig.names_[mva_i].Data(),f);
-      printf("Booked MVA %s with selection %s\n", fMVAConfig.names_[mva_i].Data(), selection.Data());
+      const char* f = Form("weights/%s.2016_2017_2018.weights.xml",fMVAConfig->names_[mva_i].Data());
+      mva[mva_i]->BookMVA(fMVAConfig->names_[mva_i].Data(),f);
+      printf("Booked MVA %s with selection %s\n", fMVAConfig->names_[mva_i].Data(), selection.Data());
     }
   }
 
@@ -481,8 +484,13 @@ void HistMaker::BookBaseEventHistograms(Int_t i, const char* dirname) {
       Utilities::BookH1D(fEventHist[i]->hZDecayMode , "zdecaymode"    , Form("%s: ZDecayMode"     ,dirname)  ,  20,    0,  20, folder);
 
       if(!fSparseHists) {
-        Utilities::BookH2F(fEventHist[i]->hLepMVsMVA[0], "lepmvsmva0"    , Form("%s: Lepton M vs MVA",dirname)  ,  50, -1., 1., 50,   50, 150, folder);
-        Utilities::BookH2F(fEventHist[i]->hLepMVsMVA[1], "lepmvsmva1"    , Form("%s: Lepton M vs MVA",dirname)  ,  50, -1., 1., 50,   50, 150, folder);
+        if(fUseCDFBDTs) {
+          Utilities::BookH2F(fEventHist[i]->hLepMVsMVA[0], "lepmvsmva0"    , Form("%s: Lepton M vs MVA",dirname)  ,  40, 0., 1., 20, 70, 110, folder);
+          Utilities::BookH2F(fEventHist[i]->hLepMVsMVA[1], "lepmvsmva1"    , Form("%s: Lepton M vs MVA",dirname)  ,  40, 0., 1., 20, 70, 110, folder);
+        } else {
+          Utilities::BookH2F(fEventHist[i]->hLepMVsMVA[0], "lepmvsmva0"    , Form("%s: Lepton M vs MVA",dirname)  ,  50, -1., 1., 50,   50, 150, folder);
+          Utilities::BookH2F(fEventHist[i]->hLepMVsMVA[1], "lepmvsmva1"    , Form("%s: Lepton M vs MVA",dirname)  ,  50, -1., 1., 50,   50, 150, folder);
+        }
       }
 
       Utilities::BookH1F(fEventHist[i]->hDeltaAlpha[0]     , "deltaalpha0"      , Form("%s: Delta Alpha (Z) 0"   ,dirname),  80,  -5,  10, folder);
@@ -496,13 +504,19 @@ void HistMaker::BookBaseEventHistograms(Int_t i, const char* dirname) {
 
       Utilities::BookH1F(fEventHist[i]->hPTauVisFrac    , "ptauvisfrac"    , Form("%s: visible tau pT fraction " ,dirname)  , 50,0.,  1.5, folder);
 
-      for(unsigned j = 0; j < fMVAConfig.names_.size(); ++j)  {
-        Utilities::BookH1D(fEventHist[i]->hMVA[j][0], Form("mva%i",j)   , Form("%s: %s MVA" ,dirname, fMVAConfig.names_[j].Data()) ,
-                           fMVAConfig.NBins(j), fMVAConfig.Bins(j).data(), folder);
+      for(unsigned j = 0; j < fMVAConfig->names_.size(); ++j)  {
+        if(fUseCDFBDTs) {
+          Utilities::BookH1D(fEventHist[i]->hMVA[j][0], Form("mva%i",j)   , Form("%s: %s MVA" ,dirname, fMVAConfig->names_[j].Data()) ,
+                             fNCDFBins, 0., 1., folder);
+        } else {
+          Utilities::BookH1D(fEventHist[i]->hMVA[j][0], Form("mva%i",j)   , Form("%s: %s MVA" ,dirname, fMVAConfig->names_[j].Data()) ,
+                             fMVAConfig->NBins(j), fMVAConfig->Bins(j).data(), folder);
+        }
         //high mva score binning to improve cdf making
-        Utilities::BookH1F(fEventHist[i]->hMVA[j][1]  , Form("mva%i_1",j)   , Form("%s: %s MVA"         ,dirname, fMVAConfig.names_[j].Data()), 3000, -1.,  2., folder);
-        Utilities::BookH1F(fEventHist[i]->hMVATrain[j], Form("mvatrain%i",j), Form("%s: %s MVA (train)" ,dirname, fMVAConfig.names_[j].Data()),  100, -3.,  2., folder);
-        Utilities::BookH1F(fEventHist[i]->hMVATest[j] , Form("mvatest%i",j) , Form("%s: %s MVA (test)"  ,dirname, fMVAConfig.names_[j].Data()),  100, -3.,  2., folder);
+        Utilities::BookH1F(fEventHist[i]->hMVA[j][1]  , Form("mva%i_1",j)   , Form("%s: %s MVA"         ,dirname, fMVAConfig->names_[j].Data()), 2000, -1.,  1., folder);
+        Utilities::BookH1F(fEventHist[i]->hMVA[j][2]  , Form("mva%i_2",j)   , Form("%s: %s MVA"         ,dirname, fMVAConfig->names_[j].Data()), fNCDFBins,  0.,  1., folder);
+        Utilities::BookH1F(fEventHist[i]->hMVATrain[j], Form("mvatrain%i",j), Form("%s: %s MVA (train)" ,dirname, fMVAConfig->names_[j].Data()),  100, -3.,  2., folder);
+        Utilities::BookH1F(fEventHist[i]->hMVATest[j] , Form("mvatest%i",j) , Form("%s: %s MVA (test)"  ,dirname, fMVAConfig->names_[j].Data()),  100, -3.,  2., folder);
       }
 
 }
@@ -672,9 +686,14 @@ void HistMaker::BookSystematicHistograms() {
         Utilities::BookH1F(fSystematicHist[i]->hTwoPt       [sys], Form("twopt_%i"       , sys), Form("%s: Pt %i"                     , dirname, sys) ,  40,   0, 100, folder);
         Utilities::BookH1F(fSystematicHist[i]->hTwoEta      [sys], Form("twoeta_%i"      , sys), Form("%s: Eta %i"                    , dirname, sys) ,  30,  -3,   3, folder);
         Utilities::BookH1F(fSystematicHist[i]->hWeightChange[sys], Form("weightchange_%i", sys), Form("%s: Relative weight change %i" , dirname, sys) ,  30, -2.,   2, folder);
-        for(unsigned j = 0; j < fMVAConfig.names_.size(); ++j)  {
-          Utilities::BookH1D(fSystematicHist[i]->hMVA[j][sys], Form("mva%i_%i",j, sys)     , Form("%s: %s MVA %i" ,dirname, fMVAConfig.names_[j].Data(), sys),
-                             fMVAConfig.NBins(j), fMVAConfig.Bins(j).data(), folder);
+        for(unsigned j = 0; j < fMVAConfig->names_.size(); ++j)  {
+          if(fUseCDFBDTs) {
+            Utilities::BookH1D(fSystematicHist[i]->hMVA[j][sys], Form("mva%i_%i",j, sys), Form("%s: %s MVA %i" ,dirname, fMVAConfig->names_[j].Data(), sys),
+                               fNCDFBins, 0., 1., folder);
+          } else {
+            Utilities::BookH1D(fSystematicHist[i]->hMVA[j][sys], Form("mva%i_%i",j, sys), Form("%s: %s MVA %i" ,dirname, fMVAConfig->names_[j].Data(), sys),
+                               fMVAConfig->NBins(j), fMVAConfig->Bins(j).data(), folder);
+          }
         }
       }
       delete dirname;
@@ -809,7 +828,7 @@ void HistMaker::BookBaseTree(Int_t index) {
   fTrees[index]->Branch("leptwoid1bin"       , &fTreeVars.leptwoid1bin         );
 
   //add MVA score branches
-  for(unsigned imva = 0; imva < fMVAConfig.names_.size(); ++imva) {
+  for(unsigned imva = 0; imva < fMVAConfig->names_.size(); ++imva) {
     fTrees[index]->Branch(Form("mva%i", imva), &fMvaOutputs[imva]);
   }
 }
@@ -1053,7 +1072,7 @@ void HistMaker::InitializeInputTree(TTree* tree) {
 
   //MVA information
   if(!fReprocessMVAs) {
-    for(unsigned mva_i = 0; mva_i < fMVAConfig.names_.size(); ++mva_i) {
+    for(unsigned mva_i = 0; mva_i < fMVAConfig->names_.size(); ++mva_i) {
       Utilities::SetBranchAddress(tree, Form("mva%i",mva_i), &fMvaOutputs[mva_i]);
     }
   }
@@ -1459,7 +1478,6 @@ void HistMaker::InitializeEventWeights() {
     int wp = BTagWeight::kLooseBTag; //ee/mumu/emu use loose ID b-tag
     if(leptonTwo.isTau()) wp = BTagWeight::kTightBTag;
     if(fUseBTagWeights == 1) { //calculate the weight
-      //FIXME: Add a category with Tight ID b-tag in ee/mumu for Z->x+tau_h normalization?
       btagWeight = fBTagWeight->GetWeight(wp, fYear, nJets20, jetsPt, jetsEta, jetsFlavor, jetsBTag, btagWeightUpBC, btagWeightDownBC, btagWeightUpL, btagWeightDownL);
       eventWeight *= btagWeight;
       if((btagWeight - btagWeightUpBC) * (btagWeight - btagWeightDownBC) > 1.e-3 && fVerbose > 0) {
@@ -1999,15 +2017,19 @@ void HistMaker::EvalMVAs(TString TimerName) {
               << " has undentified selection in " << __func__ << "!\n";
     selecName = "unknown";
   }
-  for(unsigned i = 0; i < fMVAConfig.names_.size(); ++i) {
+  for(unsigned i = 0; i < fMVAConfig->names_.size(); ++i) {
     //assume only relevant MVAs are configured
     fMvaOutputs[i] = -2.f;
+    fMvaCDFs[i] = 0.f;
     if(!mva[i]) continue;
-    fMvaOutputs[i] = mva[i]->EvaluateMVA(fMVAConfig.names_[i].Data());
+    fMvaOutputs[i] = mva[i]->EvaluateMVA(fMVAConfig->names_[i].Data());
 
     if(fMvaOutputs[i] < -2.1f) {
-      std::cout << "Error value returned for MVA " << fMVAConfig.names_[i].Data()
+      std::cout << "Error value returned for MVA " << fMVAConfig->names_[i].Data()
                 << " evaluation, Entry = " << fentry << std::endl;
+    } else {
+      const TString selection = fMVAConfig->GetSelectionByIndex(i);
+      fMvaCDFs[i] = fMVAConfig->CDFTransform(fMvaOutputs[i], selection);
     }
   }
   if(eval_timer) IncrementTimer(TimerName.Data(), true);
@@ -2797,16 +2819,18 @@ void HistMaker::FillBaseEventHistogram(EventHist_t* Hist) {
   // Hist->hDeltaAlphaMColM[1]->Fill(fTreeVars.mestimatetwo - fTreeVars.deltaalpham1, eventWeight*genWeight);
 
   //MVA outputs
-  for(unsigned i = 0; i < fMVAConfig.names_.size(); ++i) {
-    Hist->hMVA[i][0]->Fill(fMvaOutputs[i], fTreeVars.eventweightMVA); //remove training samples
+  for(unsigned i = 0; i < fMVAConfig->names_.size(); ++i) {
+    const float score = (fUseCDFBDTs) ? fMvaCDFs[i] : fMvaOutputs[i];
+    Hist->hMVA[i][0]->Fill(score, fTreeVars.eventweightMVA); //remove training samples
     //MVA score vs mass for MVAs not correlated with mass
     if(!fSparseHists) {
-      if(fMVAConfig.names_[i].Contains("emu")) {
-        if(fMVAConfig.names_[i].Contains("Z0")) Hist->hLepMVsMVA[0]->Fill(fMvaOutputs[i], fTreeVars.lepm, fTreeVars.eventweightMVA); //remove training samples
-        else                                    Hist->hLepMVsMVA[1]->Fill(fMvaOutputs[i], fTreeVars.lepm, fTreeVars.eventweightMVA); //remove training samples
+      if(fMVAConfig->names_[i].Contains("emu")) {
+        if(fMVAConfig->names_[i].Contains("Z0")) Hist->hLepMVsMVA[0]->Fill(score, fTreeVars.lepm, fTreeVars.eventweightMVA); //remove training samples
+        else                                     Hist->hLepMVsMVA[1]->Fill(score, fTreeVars.lepm, fTreeVars.eventweightMVA); //remove training samples
       }
     }
     Hist->hMVA[i][1]->Fill(fMvaOutputs[i], fTreeVars.eventweightMVA); //remove training samples
+    Hist->hMVA[i][2]->Fill(fMvaCDFs   [i], fTreeVars.eventweightMVA); //remove training samples
     if (fTreeVars.train > 0) Hist->hMVATrain[i]->Fill(fMvaOutputs[i], fTreeVars.eventweight*((fFractionMVA > 0.f) ? 1.f/fFractionMVA : 1.f));
     if (fTreeVars.train < 0) Hist->hMVATest[i] ->Fill(fMvaOutputs[i], fTreeVars.eventweightMVA);
   }
@@ -2979,8 +3003,8 @@ void HistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
                 << fTreeVars.eventweightMVA << ", setting to 0...\n";
       mvaweight = 0.;
     }
-    for(unsigned i = 0; i < fMVAConfig.names_.size(); ++i) {
-      const int category = fMVAConfig.data_cat_[i];
+    for(unsigned i = 0; i < fMVAConfig->names_.size(); ++i) {
+      const int category = fMVAConfig->data_cat_[i];
       //Only fill relevant MVA histograms for the datset
       if(!((category == 1 && isMuTau) ||
            (category == 2 && isETau) ||
@@ -3544,11 +3568,12 @@ void HistMaker::EvalJetToTauWeights(float& wt, float& wtcorr, float& wtbias) {
 int HistMaker::Category(TString selection) {
   int category = 0;
   //get MVA output index by selection
-  int mva_i = fMVAConfig.GetIndexBySelection(selection);
+  int mva_i = fMVAConfig->GetIndexBySelection(selection);
   if(mva_i < 0) return category;
-  std::vector<double> mvaCuts = fMVAConfig.categories_[selection];
+  std::vector<double> mvaCuts = fMVAConfig->categories_[selection];
+  const float score = (fUseCDFBDTs) ? fMvaCDFs[mva_i] : fMvaOutputs[mva_i];
   for(unsigned index = 0; index < mvaCuts.size(); ++index) {
-    if(fMvaOutputs[mva_i] > mvaCuts[index]) ++category; //passes category
+    if(score > mvaCuts[index]) ++category; //passes category
     else break; //fails
   }
   return category;

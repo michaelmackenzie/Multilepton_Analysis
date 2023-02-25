@@ -76,6 +76,8 @@ namespace CLFV {
     Double_t rootS_ = 13.; //sqrt(S)
     Int_t seed_ = 90; //random number generator seed
     TRandom* rnd_;
+    Bool_t include_empty_ = 0; //include empty histograms in the stack
+    Bool_t clip_negative_ = 0; //clip negative histogram bins for all processes
 
     Double_t xMin_ =  1e6; //plotting ranges
     Double_t xMax_ = -1e6;

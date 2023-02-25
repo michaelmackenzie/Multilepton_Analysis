@@ -283,7 +283,7 @@ namespace CLFV {
     TH1* hPtSum[2]; //scalar sum of lepton Pt and Met, and photon for one
     TH1* hPt1Sum[4]; //scalar sum of 1 lepton Pt and Met, both leptons, then both minus met
     //MVA values
-    TH1* hMVA[kMaxMVAs][2]; //0: high binning score for CDF 1: distribution for fitting
+    TH1* hMVA[kMaxMVAs][3]; //0: distribution for search; 1: high binning score for CDF; 2: CDF transformed distribution
     TH1* hMVATrain[kMaxMVAs];
     TH1* hMVATest[kMaxMVAs];
 

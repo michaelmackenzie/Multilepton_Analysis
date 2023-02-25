@@ -112,9 +112,9 @@ namespace CLFV {
       case  58: return Data(isys, "EleES"         , false);
       case  59: return Data(isys, "MuonES"        , true );
       case  60: return Data(isys, "MuonES"        , false);
-      // case  61: return Data(isys, "BTagLight"     , true ); //FIXME: Turn on
-      // case  62: return Data(isys, "BTagLight"     , false);
-      // case  63: return Data(isys, "BTagHeavy"     , true );
+      case  61: return Data(isys, "BTagLight"     , true );
+      case  62: return Data(isys, "BTagLight"     , false);
+      // case  63: return Data(isys, "BTagHeavy"     , true ); //FIXME: Turn on and turn off just "BTag"
       // case  64: return Data(isys, "BTagHeavy"     , false);
 
       case  70: return Data(isys, "EmbTauJetID"   , true );
@@ -135,6 +135,8 @@ namespace CLFV {
       case  85: return Data(isys, "EmbMuonES"     , false);
       case  86: return Data(isys, "EmbTauES"      , true );
       case  87: return Data(isys, "EmbTauES"      , false);
+      case  88: return Data(isys, "EmbEleES1"     , true );
+      case  89: return Data(isys, "EmbEleES1"     , false);
       default: break;
       }
 
