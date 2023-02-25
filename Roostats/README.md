@@ -59,7 +59,7 @@ default: nanoaods_dev
 
 ### Retrieve the binned distributions
 ```
-root.exe -q -b "get_bemu_histogram.C($HISTSET, \"$SELECTION\", $YEAR, \"$HISTPATH\")"
+root.exe -q -b "get_bemu_histogram.C(${HISTSET}, \"${SELECTION}\", ${YEAR}, \"${HISTPATH}\")"
 ```
 
 ### Create background and signal PDFs
@@ -269,31 +269,41 @@ HISTPATH="nanoaods_mva"
 YEAR="{2016,2017,2018}"
 YEARSTRING="2016_2017_2018"
 
+#Individually:
 root.exe -q -b "get_bemu_histogram.C(${HISTSET}, \"${SELECTION}\", ${YEAR}, \"${HISTPATH}\")"
 root.exe -q -b "convert_bemu_to_combine.C(${HISTSET}, \"${SELECTION}\", ${YEAR})"
 cd datacards/${YEARSTRING}/
 combine -d combine_bemu_${SELECTION}_${HISTSTRING}.txt
+
+#Process all steps:
+./process_bemu.sh "${SELECTION}" "${YEAR}" "${HISTPATH}" "${HISTSET}" ["d" to skip retrieval] ["d" to skip card creation] ["d" for dry run]
 ```
 
 ### x+tau workflow recommendation
 ```
-HISTSET="{8}"
-HISTSTRING="8"
-SELECTION="zmutau"
-HISTPATH="nanoaods_mva"
-YEAR="{2016,2017,2018}"
-YEARSTRING="2016_2017_2018"
+HISTSET="{8}"; HISTSTRING="8"; SELECTION="zmutau"; HISTPATH="nanoaods_merged_mva"; YEAR="{2016,2017,2018}"; YEARSTRING="2016_2017_2018"
 
+#Individually:
 root.exe -q -b "get_MVA_histogram.C(${HISTSET}, \"${SELECTION}\", ${YEAR}, \"${HISTPATH}\")"
 root.exe -q -b "create_combine_cards.C(${HISTSET}, \"${SELECTION}\", ${YEAR})"
+
+#Process all steps:
+./process_mva.sh "${SELECTION}" "${YEAR}" "${HISTPATH}" "${HADHISTSET}" "${LEPHISTSETS}" ["d" to skip retrieval] ["d" to skip card creation] ["d" for dry run]
+
 cd datacards/${YEARSTRING}/
 #run the total combine limit
 combine -d combine_mva_total_${SELECTION}_${HISTSTRING}.txt
-#make a plot of the limit by category
-root.exe -q -b "../../make_combine_limit_plot_channels.C(${HISTSTRING}, \"${SELECTION}\", ${YEAR}, true, false)"
-#make the same plot without systematic uncertainties
-root.exe -q -b "../../make_combine_limit_plot_channels.C(${HISTSTRING}, \"${SELECTION}\", ${YEAR}, true, true)"
+#make a plot of the limit by category/year
+cd ../..
+root.exe -q -b "make_combine_limit_plot_channels.C(${HISTSTRING}, \"${SELECTION}\", ${YEAR}, true, false)"
+root.exe -q -b "make_combine_limit_plot_years.C(${HISTSTRING}, \"${SELECTION}\", true, false)"
+root.exe -q -b "make_combine_limit_plot_years_cats.C(${HISTSTRING}, \"${SELECTION}\", true, false)"
+#make the same plots without systematic uncertainties
+root.exe -q -b "make_combine_limit_plot_channels.C(${HISTSTRING}, \"${SELECTION}\", ${YEAR}, true, true)"
+root.exe -q -b "make_combine_limit_plot_years.C(${HISTSTRING}, \"${SELECTION}\", true, false)"
+root.exe -q -b "make_combine_limit_plot_years_cats.C(${HISTSTRING}, \"${SELECTION}\", true, false)"
 #generate impacts
+cd datacards/${YEARSTRING}/
 ../../combine_channel_impacts.sh ${SELECTION} ${HISTSTRING}
 ```
 
@@ -374,6 +384,12 @@ Options:
 
 example:
 `combine -d card -M FitDiagnostics --foreRecreateNLL`
+
+### GoodnessOfFit
+
+Evaluate the goodness of fit, using different algorithms
+
+saturated:
 
 ### FeldmanCousins
 

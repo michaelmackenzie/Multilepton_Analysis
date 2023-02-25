@@ -1,5 +1,6 @@
 //Script to prepare a rootfile and datacard for Higgs Combine tools
 #include "mva_systematic_names.C"
+#include "bemu_defaults.C"
 #include "../interface/GlobalConstants.h"
 #include "perform_f_test.C"
 #include "construct_multidim.C"
@@ -13,8 +14,7 @@ bool blindData_     = true;
 bool useRateParams_ = false;
 bool fixSignalPDF_  = true;
 bool useMultiDim_   = true;
-bool useSameFlavor_ = true;
-bool includeSys_    = false;
+bool includeSys_    = false; //FIXME: turn on systematics
 bool printPlots_    = true;
 bool fitSideBands_  = true;
 bool export_        = false; //if locally run, export the workspace to LPC
@@ -35,7 +35,7 @@ void get_systematics(TFile* f, TString label, int set, vector<double>& yields, v
   //only add the first occurence of each systematic for now
   int bin1(-1), bin2(-1);
   for(int isys = 1; isys < kMaxSystematics; ++isys) {
-    auto sys_info = systematic_name(isys, "emu");
+    auto sys_info = systematic_name(isys, "emu", 2016); //FIXME: Get actual year
     TString sys_name = sys_info.first;
     if(sys_name == "" || sys_name.Contains("Tau") || sys_name == prev_name) {
       prev_name = "";
@@ -67,9 +67,9 @@ void get_systematics(TFile* f, TString label, int set, vector<double>& yields, v
 }
 
 //Main conversion function
-Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu",
-                             vector<int> years = {2016, 2017, 2018},
-                             int seed = 90) {
+Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu",
+                                         vector<int> years = {2016, 2017, 2018},
+                                         int seed = 90) {
 
   //////////////////////////////////////////////////////////////////
   // Initialize relevant variables
@@ -84,11 +84,7 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
     if(i > 0) year_string += "_";
     year_string += years[i];
   }
-  TString set_string = "";
-  for(unsigned i = 0; i < sets.size(); ++i) {
-    if(i > 0) set_string += "_";
-    set_string += sets[i];
-  }
+  TString set_string = Form("%i", set);
 
   bool isHiggs = selection.Contains("h");
   const double xmin = (isHiggs) ? 110. :  70.;
@@ -114,47 +110,40 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
   // Read in the data
   //////////////////////////////////////////////////////////////////
 
-  vector<TH1*> sig_hists, bkg_hists, data_hists;
-  map<int, vector<double>> sig_sys; //only consider systematics on signal and control region yields for now
+  vector<double> sig_sys; //only consider systematics on signal and control region yields for now
   vector<TString> sys_names;
-  for(int set : sets) {
-    TFile* fInput = TFile::Open(Form("histograms/%s_lepm_%i_%s.hist",
+  TFile* fInput = TFile::Open(Form("histograms/%s_lepm_%i_%s.hist",
                                    selection.Data(), set, year_string.Data()), "READ");
-    if(!fInput) return 1;
+  if(!fInput) return 1;
 
-    if(verbose_ > 1) fInput->ls();
+  if(verbose_ > 1) fInput->ls();
 
-    TH1* bkg = (TH1*) fInput->Get("hbackground");
-    if(!bkg) {
-      cout << "Background histogram for set " << set << " not found\n";
-      return 2;
-    }
-    TH1* sig = (TH1*) fInput->Get(selection.Data());
-    if(!sig) {
-      cout << "Signal histogram for set " << set << " not found\n";
-      return 3;
-    }
-    TH1* data = (TH1*) fInput->Get("hdata");
-    if(!bkg) {
-      cout << "Data histogram for set " << set << " not found\n";
-      return 4;
-    }
-
-    bkg->SetDirectory(0);
-    bkg->SetName(Form("bkg_%i", set));
-    bkg_hists.push_back(bkg);
-    sig->SetDirectory(0);
-    sig->SetName(Form("%s_%i", selection.Data(), set));
-    sig_hists.push_back(sig);
-    data->SetDirectory(0);
-    data->SetName(Form("data_obs_%i", set));
-    data_hists.push_back(data);
-
-    sig_sys[set] = {};
-    if(includeSys_)
-      get_systematics(fInput, selection, set, sig_sys[set], sys_names, xmin+1.e-3, xmax-1.e-3);
-    fInput->Close();
+  TH1* bkg = (TH1*) fInput->Get("hbackground");
+  if(!bkg) {
+    cout << "Background histogram for set " << set << " not found\n";
+    return 2;
   }
+  TH1* sig = (TH1*) fInput->Get(selection.Data());
+  if(!sig) {
+    cout << "Signal histogram for set " << set << " not found\n";
+    return 3;
+  }
+  TH1* data = (TH1*) fInput->Get("hdata");
+  if(!bkg) {
+    cout << "Data histogram for set " << set << " not found\n";
+    return 4;
+  }
+
+  bkg->SetDirectory(0);
+  bkg->SetName(Form("bkg_%i", set));
+  sig->SetDirectory(0);
+  sig->SetName(Form("%s_%i", selection.Data(), set));
+  data->SetDirectory(0);
+  data->SetName(Form("data_obs_%i", set));
+
+  if(includeSys_)
+    get_systematics(fInput, selection, set, sig_sys, sys_names, xmin+1.e-3, xmax-1.e-3);
+  fInput->Close();
 
   //////////////////////////////////////////////////////////////////
   // Configure the output file
@@ -177,11 +166,11 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
   outfile << "# -*- mode: tcl -*-\n";
   outfile << "#Auto generated counting card for CLFVAnalysis \n";
   outfile << Form("#Signal branching fraction used: %.3e \n\n", br_sig);
-  outfile << Form("imax %2i number of channels \n", (int) sets.size() + 2*useSameFlavor_);
+  outfile << Form("imax %2i number of channels \n", 1 + 2*use_same_flavor_);
   outfile << "jmax  * number of backgrounds \n";
   outfile << "kmax  * number of nuisance parameters \n\n";
   outfile << "----------------------------------------------------------------------------------------------------------- \n";
-  if(!useSameFlavor_) {
+  if(!use_same_flavor_) {
     outfile << Form("shapes * * %s $CHANNEL:$PROCESS\n", outName.Data());
   }
 
@@ -200,349 +189,360 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
   // Add datacard info for each set
   //////////////////////////////////////////////////////////////////
 
-  for(unsigned iset = 0; iset < sets.size(); ++iset) {
-    int set = sets[iset];
-    TString hist = Form("lepm_%i", set);
-    RooWorkspace* ws = new RooWorkspace(hist.Data());
-    // auto dir = fOut->mkdir(hist.Data());
-    // dir->cd();
+  int ncat = 1; //for tracking background process IDs
 
-    if(useSameFlavor_) {
-      outfile << Form("shapes * %-10s %s $CHANNEL:$PROCESS\n", hist.Data(), outName.Data());
+  TString hist = Form("lepm_%i", set);
+  RooWorkspace* ws = new RooWorkspace(hist.Data());
+  // auto dir = fOut->mkdir(hist.Data());
+  // dir->cd();
+
+  if(use_same_flavor_) {
+    outfile << Form("shapes * %-10s %s $CHANNEL:$PROCESS\n", hist.Data(), outName.Data());
+  }
+  //////////////////////////////////////////////////////////////////
+  // Retrieve the histograms for this set
+  //////////////////////////////////////////////////////////////////
+
+  TH1* blindData = (TH1*) data->Clone("hblind_data");
+  const double blind_min = (isHiggs) ? 120. : 86.;
+  const double blind_max = (isHiggs) ? 130. : 96.;
+  sig->Scale(sig_scale);
+
+  for(int ibin = blindData->FindBin(blind_min); ibin <= blindData->FindBin(blind_max); ++ibin) {
+    blindData->SetBinContent(ibin, 0.);
+    blindData->SetBinError  (ibin, 0.);
+  }
+
+  // Create an observable for this category
+  RooRealVar* lepm = new RooRealVar(Form("lepm_%i", set), "M_{ll}", (xmin+xmax)/2., xmin, xmax);
+  int low_bin  = std::max(1, std::min(data->GetNbinsX(), data->FindBin(xmin+1.e-3)));
+  int high_bin = std::max(1, std::min(data->GetNbinsX(), data->FindBin(xmax-1.e-3)));
+  lepm->setBins(high_bin - low_bin + 1);
+  lepm->setRange("full", xmin, xmax);
+  lepm->setRange("LowSideband", xmin, blind_min);
+  lepm->setRange("HighSideband", blind_max, xmax);
+  lepm->setRange("BlindRegion", blind_min, blind_max);
+
+  //create RooDataHist from histograms
+  RooDataHist* bkgData  = new RooDataHist("bkg_data" ,  "Background Data", RooArgList(*lepm), bkg );
+  RooDataHist* sigData  = new RooDataHist("sig_data" ,  "Signal Data"    , RooArgList(*lepm), sig );
+  RooDataHist* dataData = new RooDataHist("data_data",  "Data Data"      , RooArgList(*lepm), data);
+  RooDataHist* blindDataHist = new RooDataHist("blind_data_hist",  "Blind Data Hist", RooArgList(*lepm), blindData);
+
+  //////////////////////////////////////////////////////////////////
+  // Fit the signal distribution
+  //////////////////////////////////////////////////////////////////
+
+  cout << "--- Performing the signal fit for set " << set << endl;
+
+  RooRealVar* mean     = new RooRealVar(Form("mean_%i"     , set), "mean", (isHiggs) ? 125. : 91., (isHiggs) ? 120. : 85., (isHiggs) ? 130. : 95.);
+  RooRealVar* sigma    = new RooRealVar(Form("sigma_%i"    , set), "sigma", 2., 0.1, 5.);
+  RooRealVar* alpha    = new RooRealVar(Form("alpha_%i"    , set), "alpha", 1., 0.1, 10.);
+  RooRealVar* enne     = new RooRealVar(Form("enne_%i"     , set), "enne", 5., 0.1, 30.);
+  RooRealVar* mean2    = new RooRealVar(Form("mean2_%i"    , set), "mean2", lepm->getVal(), lepm->getMin(), lepm->getMax());
+  RooRealVar* sigma2   = new RooRealVar(Form("sigma2_%i"   , set), "sigma2", 5., 0.1, 10.);
+  RooCBShape* sigpdf1  = new RooCBShape(Form("sigpdf1_%i"  , set), "sigpdf1", *lepm, *mean, *sigma, *alpha, *enne);
+  RooGaussian* sigpdf2 = new RooGaussian(Form("sigpdf2_%i" , set), "sigpdf2", *lepm, *mean2, *sigma2);
+  RooRealVar* fracsig  = new RooRealVar(Form("fracsig_%i"  , set), "fracsig", 0.7, 0., 1.);
+  RooAddPdf* sigPDF    = new RooAddPdf(Form("sigPDF_%i"    , set), "signal PDF", *sigpdf1, *sigpdf2, *fracsig);
+  RooRealVar* N_sig    = new RooRealVar(Form("N_sig_%i"    , set), "N_sig", 2e5, 1e2, 3e6);
+  RooAddPdf* totsigpdf = new RooAddPdf(Form("totSigPDF_%i" , set), "Signal PDF", RooArgList(*sigPDF), RooArgList(*N_sig));
+
+  totsigpdf->fitTo(*sigData, RooFit::SumW2Error(1), RooFit::Extended(1));
+  if(fixSignalPDF_) {
+    fracsig->setConstant(1); mean->setConstant(1); sigma->setConstant(1);
+    enne->setConstant(1); alpha->setConstant(1); mean2->setConstant(1); sigma2->setConstant(1);
+  }
+
+  if(printPlots_) {
+    TCanvas* c = new TCanvas(Form("c_sig_%i", set), Form("c_sig_%i", set), 1000, 1000);
+    auto xframe = lepm->frame();
+    sigData->plotOn(xframe);
+    sigPDF->plotOn(xframe);
+    sigPDF->plotOn(xframe, RooFit::Components(Form("sigpdf1_%i", set)), RooFit::LineColor(kRed), RooFit::LineStyle(kDashed));
+    sigPDF->plotOn(xframe, RooFit::Components(Form("sigpdf2_%i", set)), RooFit::LineColor(kRed), RooFit::LineStyle(kDashed));
+    xframe->Draw();
+    c->SaveAs(Form("plots/latest_production/%s/convert_bemu_%s_%i_sig_pdf.png", year_string.Data(), selection.Data(), set));
+    delete xframe;
+    delete c;
+  }
+
+  //////////////////////////////////////////////////////////////////
+  // Fit the background distribution
+  //////////////////////////////////////////////////////////////////
+
+  RooCategory* categories = new RooCategory(Form("cat_%i", set), Form("cat_%i", set));
+  int index = 0;
+  // auto multiPDF = construct_simultaneous_pdf((fitSideBands_) ? *blindDataHist : *dataData , *lepm, *categories, fitSideBands_, index, set, 2);
+  auto multiPDF = construct_multipdf((fitSideBands_) ? *blindDataHist : *dataData , *lepm, *categories, fitSideBands_, index, set, 2);
+  std::cout << "Finished constructing the multi-PDF background model for set " << set << std::endl;
+  if(categories->numTypes() < 1) {
+    std::cout << "MultiPDF has no PDFs in set " << set << std::endl;
+    return 5;
+  }
+  RooAbsPdf* bkgPDF = multiPDF->getPdf(index); //multiPDF->getPdf(Form("index_%i", index));
+  categories->setIndex(index);
+  cats += Form("%-8s discrete\n", categories->GetName());
+
+  if(useMultiDim_) {
+    multiPDF->SetName("bkg");
+  } else {
+    bkgPDF->SetName("bkg");
+  }
+
+  //Generate toy data to stand in for the observed data
+  RooDataSet* dataset = bkgPDF->generate(RooArgSet(*lepm), data->Integral(low_bin, high_bin));
+  dataset->SetName("data_obs");
+
+  //Plot the results of the background fits
+  if(printPlots_) {
+    TCanvas* c = new TCanvas(Form("c_%i", set), Form("c_%i", set), 1000, 1000);
+    TPad* pad1 = new TPad("pad1", "pad1", 0., 0.3, 1., 1. ); pad1->Draw();
+    TPad* pad2 = new TPad("pad2", "pad2", 0., 0. , 1., 0.3); pad2->Draw();
+    pad2->SetBottomMargin(0.13); pad2->SetTopMargin(0.02);
+
+    pad1->cd();
+    TLegend* leg = new TLegend(0.4, 0.7, 0.9, 0.9);
+    const int nentries = 40;
+    auto xframe = lepm->frame(nentries);
+    xframe->SetTitle("");
+    sigData->plotOn(xframe, RooFit::Invisible());
+    sigPDF->plotOn(xframe, RooFit::Name("sigPDF"), RooFit::LineColor(kRed), RooFit::NormRange("BlindRegion"), RooFit::Range("full"));
+    if(blindData_) {
+      dataData->plotOn(xframe, RooFit::Invisible());
+      // dataset->plotOn(xframe, RooFit::Name("toy_data"));
     }
-    //////////////////////////////////////////////////////////////////
-    // Retrieve the histograms for this set
-    //////////////////////////////////////////////////////////////////
+    else           dataData->plotOn(xframe);
+    double chi_sq = get_chi_squared(*lepm, bkgPDF, *dataData, fitSideBands_);
+    bkgPDF->plotOn(xframe, RooFit::Name(bkgPDF->GetName()), RooFit::LineColor(kBlue), RooFit::NormRange("full"), RooFit::Range("full"));
 
-    TH1* data = data_hists[iset];
-    TH1* bkg  = bkg_hists [iset];
-    TH1* sig  = sig_hists [iset];
-    TH1* blindData = (TH1*) data->Clone("hblind_data");
-    const double blind_min = (isHiggs) ? 120. : 86.;
-    const double blind_max = (isHiggs) ? 130. : 96.;
-    sig->Scale(sig_scale);
-
-    for(int ibin = blindData->FindBin(blind_min); ibin <= blindData->FindBin(blind_max); ++ibin) {
-      blindData->SetBinContent(ibin, 0.);
-      blindData->SetBinError  (ibin, 0.);
-    }
-
-    // Create an observable for this category
-    RooRealVar* lepm = new RooRealVar(Form("lepm_%i", set), "M_{ll}", (xmin+xmax)/2., xmin, xmax);
-    int low_bin  = std::max(1, std::min(data->GetNbinsX(), data->FindBin(xmin+1.e-3)));
-    int high_bin = std::max(1, std::min(data->GetNbinsX(), data->FindBin(xmax-1.e-3)));
-    lepm->setBins(high_bin - low_bin + 1);
-    lepm->setRange("full", xmin, xmax);
-    lepm->setRange("LowSideband", xmin, blind_min);
-    lepm->setRange("HighSideband", blind_max, xmax);
-    lepm->setRange("BlindRegion", blind_min, blind_max);
-
-    //create RooDataHist from histograms
-    RooDataHist* bkgData  = new RooDataHist("bkg_data" ,  "Background Data", RooArgList(*lepm), bkg );
-    RooDataHist* sigData  = new RooDataHist("sig_data" ,  "Signal Data"    , RooArgList(*lepm), sig );
-    RooDataHist* dataData = new RooDataHist("data_data",  "Data Data"      , RooArgList(*lepm), data);
-    RooDataHist* blindDataHist = new RooDataHist("blind_data_hist",  "Blind Data Hist", RooArgList(*lepm), blindData);
-
-    //////////////////////////////////////////////////////////////////
-    // Fit the signal distribution
-    //////////////////////////////////////////////////////////////////
-
-    cout << "--- Performing the signal fit for set " << set << endl;
-
-    RooRealVar* mean     = new RooRealVar(Form("mean_%i"     , set), "mean", (isHiggs) ? 125. : 91., (isHiggs) ? 120. : 85., (isHiggs) ? 130. : 95.);
-    RooRealVar* sigma    = new RooRealVar(Form("sigma_%i"    , set), "sigma", 2., 0.1, 5.);
-    RooRealVar* alpha    = new RooRealVar(Form("alpha_%i"    , set), "alpha", 1., 0.1, 10.);
-    RooRealVar* enne     = new RooRealVar(Form("enne_%i"     , set), "enne", 5., 0.1, 30.);
-    RooRealVar* mean2    = new RooRealVar(Form("mean2_%i"    , set), "mean2", lepm->getVal(), lepm->getMin(), lepm->getMax());
-    RooRealVar* sigma2   = new RooRealVar(Form("sigma2_%i"   , set), "sigma2", 5., 0.1, 10.);
-    RooCBShape* sigpdf1  = new RooCBShape(Form("sigpdf1_%i"  , set), "sigpdf1", *lepm, *mean, *sigma, *alpha, *enne);
-    RooGaussian* sigpdf2 = new RooGaussian(Form("sigpdf2_%i" , set), "sigpdf2", *lepm, *mean2, *sigma2);
-    RooRealVar* fracsig  = new RooRealVar(Form("fracsig_%i"  , set), "fracsig", 0.7, 0., 1.);
-    RooAddPdf* sigPDF    = new RooAddPdf(Form("sigPDF_%i"    , set), "signal PDF", *sigpdf1, *sigpdf2, *fracsig);
-    RooRealVar* N_sig    = new RooRealVar(Form("N_sig_%i"    , set), "N_sig", 2e5, 1e2, 3e6);
-    RooAddPdf* totsigpdf = new RooAddPdf(Form("totSigPDF_%i" , set), "Signal PDF", RooArgList(*sigPDF), RooArgList(*N_sig));
-
-    totsigpdf->fitTo(*sigData, RooFit::SumW2Error(1), RooFit::Extended(1));
-    if(fixSignalPDF_) {
-      fracsig->setConstant(1); mean->setConstant(1); sigma->setConstant(1);
-      enne->setConstant(1); alpha->setConstant(1); mean2->setConstant(1); sigma2->setConstant(1);
-    }
-
-    //////////////////////////////////////////////////////////////////
-    // Fit the background distribution
-    //////////////////////////////////////////////////////////////////
-
-    RooCategory* categories = new RooCategory(Form("cat_%i", set), Form("cat_%i", set));
-    int index = 0;
-    // auto multiPDF = construct_simultaneous_pdf((fitSideBands_) ? *blindDataHist : *dataData , *lepm, *categories, fitSideBands_, index, set, 2);
-    auto multiPDF = construct_multipdf((fitSideBands_) ? *blindDataHist : *dataData , *lepm, *categories, fitSideBands_, index, set, 2);
-    std::cout << "Finished constructing the multi-PDF background model for set " << set << std::endl;
-    if(categories->numTypes() < 1) {
-      std::cout << "MultiPDF has no PDFs in set " << set << std::endl;
-      return 5;
-    }
-    RooAbsPdf* bkgPDF = multiPDF->getPdf(index); //multiPDF->getPdf(Form("index_%i", index));
-    categories->setIndex(index);
-    cats += Form("%-8s discrete\n", categories->GetName());
+    TString name = bkgPDF->GetName();
+    TString title = bkgPDF->GetTitle();
+    int order = ((title(title.Sizeof() - 2)) - '0');
+    vector<int> colors = {kRed, kYellow-7, kViolet-7, kGreen-7, kOrange+2, kAtlantic, kRed+2, kMagenta};
+    vector<double> chi_sqs;
+    chi_sqs.push_back(chi_sq / (nentries - order - 2));
 
     if(useMultiDim_) {
-      multiPDF->SetName("bkg");
+      for(int ipdf = 0; ipdf < categories->numTypes(); ++ipdf) {
+        if(ipdf == index) continue;
+        auto pdf = multiPDF->getPdf(ipdf); //multiPDF->getPdf(Form("index_%i", ipdf));
+        name = pdf->GetName();
+        title = pdf->GetTitle();
+        chi_sq = get_chi_squared(*lepm, pdf, *dataData, fitSideBands_);
+        pdf->plotOn(xframe, RooFit::Name(pdf->GetName()), RooFit::LineColor(colors[ipdf % colors.size()]), RooFit::LineStyle(kDashed),
+                    RooFit::NormRange("full"), RooFit::Range("full"));
+        order = ((title(title.Sizeof() - 2)) - '0');
+        if(title.Contains("Exponential")) order *= 2;
+        chi_sqs.push_back(chi_sq / (nentries - order - 1));
+      }
+    }
+    xframe->Draw();
+    if(blindData_) {
+      blindData->Draw("same E1");
+      leg->AddEntry(blindData, Form("Data, N(entries) = %.0f", data->Integral(low_bin, high_bin)), "PL");
     } else {
-      bkgPDF->SetName("bkg");
+      leg->AddEntry("data", Form("Data, N(entries) = %.0f", data->Integral(low_bin, high_bin)), "PL");
+    }
+    leg->AddEntry("sigPDF", Form("Signal, BR = %.1e, N(sig) = %.1f", br_sig, sig->Integral(low_bin, high_bin)), "L");
+    leg->AddEntry(bkgPDF->GetName(), Form("%s - #chi^{2}/DOF = %.2f", bkgPDF->GetTitle(), chi_sqs[0]), "L");
+    if(useMultiDim_) {
+      int offset = 1;
+      for(int ipdf = 0; ipdf < categories->numTypes(); ++ipdf) {
+        if(ipdf == index) {
+          offset = 0;
+          continue;
+        }
+        auto pdf = multiPDF->getPdf(ipdf); //multiPDF->getPdf(Form("index_%i", ipdf));
+        leg->AddEntry(pdf->GetName(), Form("%s - #chi^{2}/DOF = %.2f", pdf->GetTitle(), chi_sqs[ipdf+offset]), "L");
+      }
+    }
+    leg->Draw();
+    /////////////////////////////////////////////
+    //Add Data - Fit plot
+
+    pad2->cd();
+
+    //Create data - background fit histograms
+    double norm = data->Integral(low_bin,high_bin); //N(data) in fit region
+    cout << "Data: xlow = " << data->GetBinLowEdge(low_bin)
+         << " xhigh = " << data->GetBinLowEdge(high_bin) + data->GetBinWidth(high_bin)
+         << " nbins = " << high_bin - low_bin + 1 << " integral = " << norm << endl;
+
+    TH1* dataDiff = bkgPDF->createHistogram("dataDiff", *lepm);
+    // TH1* dataDiff = (blindData_) ? (TH1*) blindData->Clone("dataDiff") : (TH1*) data->Clone("dataDiff");
+    dataDiff->SetTitle("");
+    dataDiff->SetLineColor(data->GetLineColor());
+    dataDiff->SetLineWidth(data->GetLineWidth());
+    dataDiff->SetMarkerStyle(data->GetMarkerStyle());
+    dataDiff->SetMarkerSize(data->GetMarkerSize());
+    cout << "Bkg histogram: xlow = " << dataDiff->GetBinLowEdge(1)
+         << " xhigh = " << dataDiff->GetBinLowEdge(dataDiff->GetNbinsX()) + dataDiff->GetBinWidth(dataDiff->GetNbinsX())
+         << " nbins = " << dataDiff->GetNbinsX() << " integral = " << dataDiff->Integral() << endl;
+    TH1* sigDiff = sigPDF->createHistogram("sigDiff", *lepm);
+    // TH1* sigDiff = (TH1*) dataDiff->Clone("sigDiff");
+    vector<TH1*> pdfDiffs;
+    for(int ipdf = 0; ipdf < categories->numTypes(); ++ipdf) {
+      if(ipdf == index) {
+        continue;
+      }
+      // pdfDiffs.push_back((TH1*) dataDiff->Clone(Form("hPdfDiff_%i", ipdf)));
+      auto pdf = multiPDF->getPdf(ipdf); //multiPDF->getPdf(Form("index_%i", ipdf));
+      auto h = pdf->createHistogram(Form("hPdfDiff_%i", ipdf), *lepm);
+      h->SetLineWidth(2);
+      pdfDiffs.push_back(h);
+      cout << "PDF: " << pdf->GetTitle() << " xlow = " << h->GetBinLowEdge(1)
+           << " xhigh = " << h->GetBinLowEdge(h->GetNbinsX()) + h->GetBinWidth(h->GetNbinsX())
+           << " nbins = " << h->GetNbinsX() << " integral = " << h->Integral() << endl;
+      // pdfDiffs.push_back((TH1*) dataDiff->Clone(Form("hPdfDiff_%i", ipdf)));
+    }
+    // //First make a histogram of the PDF, due to normalization issues
+    // for(int ibin = 1; ibin <= dataDiff->GetNbinsX(); ++ibin) {
+    //   const double x = dataDiff->GetBinCenter(ibin);
+    //   lepm->setVal(x);
+    //   dataDiff->SetBinContent(ibin, bkgPDF->getVal());
+    //   sigDiff ->SetBinContent(ibin, sigPDF->getVal());
+    //   // for(int ipdf = 0; ipdf < categories->numTypes(); ++ipdf) {
+    //   //   if(ipdf == index) {
+    //   //     continue;
+    //   //   }
+    //   //   TH1* hPDFDiff = pdfDiffs[ipdf - (ipdf > index)];
+    //   //   auto pdf = multiPDF->getPdf(ipdf); //multiPDF->getPdf(Form("index_%i", ipdf));
+    //   //   hPDFDiff->SetBinContent(ibin, pdf->getVal());
+    //   // }
+    // }
+    dataDiff->Scale(norm/dataDiff->Integral()); //set the norms equal
+    sigDiff->Scale(sig->Integral(low_bin, high_bin) / sigDiff->Integral());
+    for(int ipdf = 0; ipdf < categories->numTypes(); ++ipdf) {
+      if(ipdf == index) {
+        continue;
+      }
+      auto pdf = multiPDF->getPdf(ipdf); //multiPDF->getPdf(Form("index_%i", ipdf));
+      TH1* hPDFDiff = pdfDiffs[ipdf - (ipdf > index)];
+      hPDFDiff->Scale(norm/hPDFDiff->Integral());
     }
 
-    //Generate toy data to stand in for the observed data
-    RooDataSet* dataset = bkgPDF->generate(RooArgSet(*lepm), data->Integral(low_bin, high_bin));
-    dataset->SetName("data_obs");
-
-    //Plot the results of the background fits
-    if(printPlots_) {
-      TCanvas* c = new TCanvas(Form("c_%i", set), Form("c_%i", set), 1000, 1000);
-      TPad* pad1 = new TPad("pad1", "pad1", 0., 0.3, 1., 1. ); pad1->Draw();
-      TPad* pad2 = new TPad("pad2", "pad2", 0., 0. , 1., 0.3); pad2->Draw();
-      pad2->SetBottomMargin(0.13); pad2->SetTopMargin(0.02);
-
-      pad1->cd();
-      TLegend* leg = new TLegend(0.4, 0.7, 0.9, 0.9);
-      const int nentries = 40;
-      auto xframe = lepm->frame(nentries);
-      xframe->SetTitle("");
-      sigData->plotOn(xframe, RooFit::Invisible());
-      sigPDF->plotOn(xframe, RooFit::Name("sigPDF"), RooFit::LineColor(kRed), RooFit::NormRange("BlindRegion"), RooFit::Range("full"));
-      if(blindData_) {
-        dataData->plotOn(xframe, RooFit::Invisible());
-        // dataset->plotOn(xframe, RooFit::Name("toy_data"));
-      }
-      else           dataData->plotOn(xframe);
-      double chi_sq = get_chi_squared(*lepm, bkgPDF, *dataData, fitSideBands_);
-      bkgPDF->plotOn(xframe, RooFit::Name(bkgPDF->GetName()), RooFit::LineColor(kBlue), RooFit::NormRange("full"), RooFit::Range("full"));
-
-      TString name = bkgPDF->GetName();
-      TString title = bkgPDF->GetTitle();
-      int order = ((title(title.Sizeof() - 2)) - '0');
-      vector<int> colors = {kRed, kYellow-7, kViolet-7, kGreen-7, kOrange+2, kAtlantic, kRed+2, kMagenta};
-      vector<double> chi_sqs;
-      chi_sqs.push_back(chi_sq / (nentries - order - 2));
-
-      if(useMultiDim_) {
-        for(int ipdf = 0; ipdf < categories->numTypes(); ++ipdf) {
-          if(ipdf == index) continue;
-          auto pdf = multiPDF->getPdf(ipdf); //multiPDF->getPdf(Form("index_%i", ipdf));
-          name = pdf->GetName();
-          title = pdf->GetTitle();
-          chi_sq = get_chi_squared(*lepm, pdf, *dataData, fitSideBands_);
-          pdf->plotOn(xframe, RooFit::Name(pdf->GetName()), RooFit::LineColor(colors[ipdf % colors.size()]), RooFit::LineStyle(kDashed),
-                      RooFit::NormRange("full"), RooFit::Range("full"));
-          order = ((title(title.Sizeof() - 2)) - '0');
-          if(title.Contains("Exponential")) order *= 2;
-          chi_sqs.push_back(chi_sq / (nentries - order - 1));
-        }
-      }
-      xframe->Draw();
-      if(blindData_) {
-        blindData->Draw("same E1");
-        leg->AddEntry(blindData, Form("Data, N(entries) = %.0f", data->Integral(low_bin, high_bin)), "PL");
+    //Set histograms to Value - Bkg PDF Value
+    for(int ibin = 0; ibin <= dataDiff->GetNbinsX(); ++ibin) {
+      const double x = dataDiff->GetBinCenter(ibin);
+      lepm->setVal(x);
+      const double val = dataDiff->GetBinContent(ibin); //Bkg PDF estimate
+      const int data_bin = data->FindBin(x);
+      const double data_val = data->GetBinContent(data_bin);
+      if((blindData_ && x > blind_min && x < blind_max) || (data_val < 1)) {
+        dataDiff->SetBinContent(ibin, 0.);
+        dataDiff->SetBinError  (ibin, 0.);
       } else {
-        leg->AddEntry("data", Form("Data, N(entries) = %.0f", data->Integral(low_bin, high_bin)), "PL");
+        dataDiff->SetBinContent(ibin, data_val - val);
+        dataDiff->SetBinError(ibin, data->GetBinError(data_bin));
       }
-      leg->AddEntry("sigPDF", Form("Signal, BR = %.1e, N(sig) = %.1f", br_sig, sig->Integral(low_bin, high_bin)), "L");
-      leg->AddEntry(bkgPDF->GetName(), Form("%s - #chi^{2}/DOF = %.2f", bkgPDF->GetTitle(), chi_sqs[0]), "L");
-      if(useMultiDim_) {
-        int offset = 1;
-        for(int ipdf = 0; ipdf < categories->numTypes(); ++ipdf) {
-          if(ipdf == index) {
-            offset = 0;
-            continue;
-          }
-          auto pdf = multiPDF->getPdf(ipdf); //multiPDF->getPdf(Form("index_%i", ipdf));
-          leg->AddEntry(pdf->GetName(), Form("%s - #chi^{2}/DOF = %.2f", pdf->GetTitle(), chi_sqs[ipdf+offset]), "L");
-        }
-      }
-      leg->Draw();
-      /////////////////////////////////////////////
-      //Add Data - Fit plot
-
-      pad2->cd();
-
-      //Create data - background fit histograms
-      double norm = data->Integral(low_bin,high_bin); //N(data) in fit region
-      cout << "Data: xlow = " << data->GetBinLowEdge(low_bin)
-           << " xhigh = " << data->GetBinLowEdge(high_bin) + data->GetBinWidth(high_bin)
-           << " nbins = " << high_bin - low_bin + 1 << " integral = " << norm << endl;
-
-      TH1* dataDiff = bkgPDF->createHistogram("dataDiff", *lepm);
-      // TH1* dataDiff = (blindData_) ? (TH1*) blindData->Clone("dataDiff") : (TH1*) data->Clone("dataDiff");
-      dataDiff->SetTitle("");
-      dataDiff->SetLineColor(data->GetLineColor());
-      dataDiff->SetLineWidth(data->GetLineWidth());
-      dataDiff->SetMarkerStyle(data->GetMarkerStyle());
-      dataDiff->SetMarkerSize(data->GetMarkerSize());
-      cout << "Bkg histogram: xlow = " << dataDiff->GetBinLowEdge(1)
-           << " xhigh = " << dataDiff->GetBinLowEdge(dataDiff->GetNbinsX()) + dataDiff->GetBinWidth(dataDiff->GetNbinsX())
-           << " nbins = " << dataDiff->GetNbinsX() << " integral = " << dataDiff->Integral() << endl;
-      TH1* sigDiff = sigPDF->createHistogram("sigDiff", *lepm);
-      // TH1* sigDiff = (TH1*) dataDiff->Clone("sigDiff");
-      vector<TH1*> pdfDiffs;
-      for(int ipdf = 0; ipdf < categories->numTypes(); ++ipdf) {
-        if(ipdf == index) {
-          continue;
-        }
-        // pdfDiffs.push_back((TH1*) dataDiff->Clone(Form("hPdfDiff_%i", ipdf)));
-        auto pdf = multiPDF->getPdf(ipdf); //multiPDF->getPdf(Form("index_%i", ipdf));
-        auto h = pdf->createHistogram(Form("hPdfDiff_%i", ipdf), *lepm);
-        h->SetLineWidth(2);
-        pdfDiffs.push_back(h);
-        cout << "PDF: " << pdf->GetTitle() << " xlow = " << h->GetBinLowEdge(1)
-             << " xhigh = " << h->GetBinLowEdge(h->GetNbinsX()) + h->GetBinWidth(h->GetNbinsX())
-             << " nbins = " << h->GetNbinsX() << " integral = " << h->Integral() << endl;
-        // pdfDiffs.push_back((TH1*) dataDiff->Clone(Form("hPdfDiff_%i", ipdf)));
-      }
-      // //First make a histogram of the PDF, due to normalization issues
-      // for(int ibin = 1; ibin <= dataDiff->GetNbinsX(); ++ibin) {
-      //   const double x = dataDiff->GetBinCenter(ibin);
-      //   lepm->setVal(x);
-      //   dataDiff->SetBinContent(ibin, bkgPDF->getVal());
-      //   sigDiff ->SetBinContent(ibin, sigPDF->getVal());
-      //   // for(int ipdf = 0; ipdf < categories->numTypes(); ++ipdf) {
-      //   //   if(ipdf == index) {
-      //   //     continue;
-      //   //   }
-      //   //   TH1* hPDFDiff = pdfDiffs[ipdf - (ipdf > index)];
-      //   //   auto pdf = multiPDF->getPdf(ipdf); //multiPDF->getPdf(Form("index_%i", ipdf));
-      //   //   hPDFDiff->SetBinContent(ibin, pdf->getVal());
-      //   // }
-      // }
-      dataDiff->Scale(norm/dataDiff->Integral()); //set the norms equal
-      sigDiff->Scale(sig->Integral(low_bin, high_bin) / sigDiff->Integral());
-      for(int ipdf = 0; ipdf < categories->numTypes(); ++ipdf) {
-        if(ipdf == index) {
-          continue;
-        }
-        auto pdf = multiPDF->getPdf(ipdf); //multiPDF->getPdf(Form("index_%i", ipdf));
-        TH1* hPDFDiff = pdfDiffs[ipdf - (ipdf > index)];
-        hPDFDiff->Scale(norm/hPDFDiff->Integral());
-      }
-
-      //Set histograms to Value - Bkg PDF Value
-      for(int ibin = 0; ibin <= dataDiff->GetNbinsX(); ++ibin) {
-        const double x = dataDiff->GetBinCenter(ibin);
-        lepm->setVal(x);
-        const double val = dataDiff->GetBinContent(ibin); //Bkg PDF estimate
-        const int data_bin = data->FindBin(x);
-        const double data_val = data->GetBinContent(data_bin);
-        if((blindData_ && x > blind_min && x < blind_max) || (data_val < 1)) {
-          dataDiff->SetBinContent(ibin, 0.);
-          dataDiff->SetBinError  (ibin, 0.);
-        } else {
-          dataDiff->SetBinContent(ibin, data_val - val);
-          dataDiff->SetBinError(ibin, data->GetBinError(data_bin));
-        }
-        for(int ipdf = 0; ipdf < categories->numTypes(); ++ipdf) {
-          if(ipdf == index) {
-            continue;
-          }
-          TH1* hPDFDiff = pdfDiffs[ipdf - (ipdf > index)];
-          // auto pdf = multiPDF->getPdf(ipdf); //multiPDF->getPdf(Form("index_%i", ipdf));
-          hPDFDiff->SetBinContent(ibin, hPDFDiff->GetBinContent(ibin) - val);
-          hPDFDiff->SetBinError(ibin,0.);
-        }
-      }
-      lepm->setVal((xmin+xmax)/2.); //set to a normal value
-
-      //Draw difference histogram
-      dataDiff->Draw("E1");
-      dataDiff->GetXaxis()->SetRangeUser(xmin+1.e-3, xmax-1.e-3);
-      dataDiff->GetXaxis()->SetLabelSize(0.08);
-      dataDiff->GetXaxis()->SetTitle("");
-      dataDiff->GetYaxis()->SetLabelSize(0.08);
-      dataDiff->GetYaxis()->SetTitleSize(0.08);
-      dataDiff->GetYaxis()->SetTitleOffset(0.5);
-      dataDiff->GetYaxis()->SetTitle("Data - Fit");
-      // dataDiff->GetYaxis()->SetRangeUser(-900, 900);
-      sigDiff->SetLineColor(kRed);
-      sigDiff->SetLineWidth(2);
-      sigDiff->Draw("hist same");
       for(int ipdf = 0; ipdf < categories->numTypes(); ++ipdf) {
         if(ipdf == index) {
           continue;
         }
         TH1* hPDFDiff = pdfDiffs[ipdf - (ipdf > index)];
-        hPDFDiff->SetLineColor(colors[ipdf % colors.size()]);
-        hPDFDiff->SetLineStyle(kDashed);
-        hPDFDiff->Draw("same hist");
+        // auto pdf = multiPDF->getPdf(ipdf); //multiPDF->getPdf(Form("index_%i", ipdf));
+        hPDFDiff->SetBinContent(ibin, hPDFDiff->GetBinContent(ibin) - val);
+        hPDFDiff->SetBinError(ibin,0.);
       }
-      TLine* line = new TLine(xmin, 0., xmax, 0.);
-      line->SetLineColor(kBlue);
-      line->SetLineWidth(2);
-      line->Draw("same");
-      //print the results
-      c->SaveAs(Form("plots/latest_production/%s/convert_bemu_%s_%i_bkg_pdfs.png", year_string.Data(), selection.Data(), set));
-      delete xframe;
-      delete c;
-      delete blindData;
     }
+    lepm->setVal((xmin+xmax)/2.); //set to a normal value
 
-    //////////////////////////////////////////////////////////////////
-    // Write the results
-    //////////////////////////////////////////////////////////////////
+    //Draw difference histogram
+    dataDiff->Draw("E1");
+    dataDiff->GetXaxis()->SetRangeUser(xmin+1.e-3, xmax-1.e-3);
+    dataDiff->GetXaxis()->SetLabelSize(0.08);
+    dataDiff->GetXaxis()->SetTitle("");
+    dataDiff->GetYaxis()->SetLabelSize(0.08);
+    dataDiff->GetYaxis()->SetTitleSize(0.08);
+    dataDiff->GetYaxis()->SetTitleOffset(0.5);
+    dataDiff->GetYaxis()->SetTitle("Data - Fit");
+    // dataDiff->GetYaxis()->SetRangeUser(-900, 900);
+    sigDiff->SetLineColor(kRed);
+    sigDiff->SetLineWidth(2);
+    sigDiff->Draw("hist same");
+    for(int ipdf = 0; ipdf < categories->numTypes(); ++ipdf) {
+      if(ipdf == index) {
+        continue;
+      }
+      TH1* hPDFDiff = pdfDiffs[ipdf - (ipdf > index)];
+      hPDFDiff->SetLineColor(colors[ipdf % colors.size()]);
+      hPDFDiff->SetLineStyle(kDashed);
+      hPDFDiff->Draw("same hist");
+    }
+    TLine* line = new TLine(xmin, 0., xmax, 0.);
+    line->SetLineColor(kBlue);
+    line->SetLineWidth(2);
+    line->Draw("same");
+    //print the results
+    c->SaveAs(Form("plots/latest_production/%s/convert_bemu_%s_%i_bkg_pdfs.png", year_string.Data(), selection.Data(), set));
+    delete xframe;
+    delete c;
+    delete blindData;
+  }
 
-    bins += Form("lepm_%-5i", set);
-    obs  += Form("%-10i", -1);
+  //////////////////////////////////////////////////////////////////
+  // Write the results
+  //////////////////////////////////////////////////////////////////
 
-    //Add the signal first
-    bins_p += Form("%10s", hist.Data());
-    proc_l += Form("%10s", selection.Data());
-    proc_c += Form("%10i", 0);
-    const double sig_rate = sig->Integral(low_bin, high_bin);
-    if(useRateParams_)
-      rate   += Form("%10i", 1);
-    else
-      rate   += Form("%10.1f", sig_rate);
-    sigPDF->SetName(selection.Data());
-    ws->import(*sigPDF, RooFit::RecycleConflictNodes());
-    signorm += Form("nsig_%-3i rateParam   lepm_%-3i %8s %10.1f\n", set, set, selection.Data(), sig->Integral(low_bin, high_bin));
+  bins += Form("lepm_%-5i", set);
+  obs  += Form("%-10i", -1);
 
-    //add the background
-    bins_p += Form("%10s", hist.Data());
-    proc_l += Form("%10s", "bkg");
-    proc_c += Form("%10i", 1);
-    if(useRateParams_)
-      rate   += Form("%10i", 1);
-    else
-      rate   += Form("%10.1f", data->Integral(low_bin, high_bin));
-    if(useMultiDim_) {
-      ws->import(*multiPDF, RooFit::RecycleConflictNodes());
-      ws->import(*categories, RooFit::RecycleConflictNodes());
+  //Add the signal first
+  bins_p += Form("%10s", hist.Data());
+  proc_l += Form("%10s", selection.Data());
+  proc_c += Form("%10i", 0);
+  const double sig_rate = sig->Integral(low_bin, high_bin);
+  if(useRateParams_)
+    rate   += Form("%10i", 1);
+  else
+    rate   += Form("%10.1f", sig_rate);
+  sigPDF->SetName(selection.Data());
+  ws->import(*sigPDF, RooFit::RecycleConflictNodes());
+  signorm += Form("nsig_%-3i rateParam   lepm_%-3i %8s %10.1f\n", set, set, selection.Data(), sig->Integral(low_bin, high_bin));
+
+  //add the background
+  bins_p += Form("%10s", hist.Data());
+  proc_l += Form("%10s", "bkg");
+  proc_c += Form("%10i", ncat);
+  ++ncat;
+  if(useRateParams_)
+    rate   += Form("%10i", 1);
+  else
+    rate   += Form("%10.1f", data->Integral(low_bin, high_bin));
+  if(useMultiDim_) {
+    ws->import(*multiPDF, RooFit::RecycleConflictNodes());
+    ws->import(*categories, RooFit::RecycleConflictNodes());
+  } else {
+    ws->import(*bkgPDF, RooFit::RecycleConflictNodes());
+  }
+  // if(useRateParams_)
+  //   ws->import(*N_bkg, RooFit::RecycleConflictNodes());
+
+  ws->import(*dataset);
+  ws->Write();
+  cout << "Best fit bkgPDF is index " << index << " (" << bkgPDF->GetTitle() << ")\n";
+
+  //add systematic information
+  for(int index = 0; index < sys_names.size(); ++index) {
+    TString sys = sys_names[index];
+    TString line;
+    if(systematics.find(sys) == systematics.end()) {
+      line = Form("%-12s lnN", sys.Data());
     } else {
-      ws->import(*bkgPDF, RooFit::RecycleConflictNodes());
+      line = systematics[sys];
     }
-    // if(useRateParams_)
-    //   ws->import(*N_bkg, RooFit::RecycleConflictNodes());
-
-    ws->import(*dataset);
-    ws->Write();
-    cout << "Best fit bkgPDF is index " << index << " (" << bkgPDF->GetTitle() << ")\n";
-
-    //add systematic information
-    for(int index = 0; index < sys_names.size(); ++index) {
-      TString sys = sys_names[index];
-      TString line;
-      if(systematics.find(sys) == systematics.end()) {
-        line = Form("%-9s lnN", sys.Data());
-      } else {
-        line = systematics[sys];
-      }
-      double yield = sig_sys[set][index]*sig_scale;
-      line += Form("%9.4f     -     ", 1. + (yield - sig_rate)/sig_rate);
-      systematics[sys] = line;
-    }
+    double yield = sig_sys[index]*sig_scale;
+    line += Form("%9.4f     -     ", 1. + (yield - sig_rate)/sig_rate);
+    systematics[sys] = line;
   }
 
   //////////////////////////////////////////
   // Add Z->ll control regions
   //////////////////////////////////////////
 
-  if(useSameFlavor_) {
+  //FIXME: Only do this once, not per individual set
+  if(use_same_flavor_) {
     outfile << Form("shapes * %-10s %s $CHANNEL/$PROCESS\n", "ee"  , outName.Data());
     outfile << Form("shapes * %-10s %s $CHANNEL/$PROCESS\n", "mumu", outName.Data());
     const int cr_set = 8;
@@ -588,8 +588,9 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
     obs         += Form(" %10.0f", hZObs->Integral());
     bins_p      += Form("%10s %10s", "ee", "ee");
     proc_l      += Form(" %10s %10s", "zee", "zbkg");
-    proc_c      += Form(" %10i %10i", 1, 1);
+    proc_c      += Form(" %10i %10i", ncat, ncat + 1);
     rate        += Form(" %10.1f %10.1f", zrate, zbkg);
+    ncat += 2;
     if(includeSys_) {
       get_systematics(fee, "zee"  , cr_set, ee_sys    , sys_names, low_mass+1.e-3, high_mass-1.e-3);
       get_systematics(fee, "eeBkg", cr_set, ee_bkg_sys, sys_names, low_mass+1.e-3, high_mass-1.e-3);
@@ -654,8 +655,9 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
     obs         += Form(" %10.0f", hZObs->Integral());
     bins_p      += Form(" %10s %10s", "mumu", "mumu");
     proc_l      += Form(" %10s %10s", "zmumu", "zbkg");
-    proc_c      += Form(" %10i %10i", 1, 1);
+    proc_c      += Form(" %10i %10i", ncat, ncat + 1);
     rate        += Form(" %10.1f %10.1f", zrate, zbkg);
+    ncat += 2;
     if(includeSys_) {
       get_systematics(fmumu, "zmumu"  , cr_set, mumu_sys    , sys_names, low_mass+1.e-3, high_mass-1.e-3);
       get_systematics(fmumu, "mumuBkg", cr_set, mumu_bkg_sys, sys_names, low_mass+1.e-3, high_mass-1.e-3);
@@ -710,7 +712,7 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
   }
   outfile << "\n----------------------------------------------------------------------------------------------------------- \n\n";
   //Add same flavor constraint rateParams
-  if(useSameFlavor_) {
+  if(use_same_flavor_) {
     outfile << Form("%-15s rateParam %-6s %-8s 1 [0.9,1.1]\n",  "zmumu_scale", "mumu", "zmumu");
     outfile << Form("%-15s rateParam %-6s %-8s 1 [0.9,1.1]\n",  "zee_scale"  , "ee"  , "zee"  );
     outfile << Form("%-15s rateParam %-6s %-8s sqrt(@0*@1) zmumu_scale,zee_scale\n", "zll_scale", "*", selection.Data());
@@ -739,5 +741,13 @@ Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu"
     cout << "Exporting file " << filepath.Data() << " to " << outpath.Data() << endl;
     gSystem->Exec(Form("scp %s %s", filepath.Data(), outpath.Data()));
   }
+  return status;
+}
+
+Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu",
+                              vector<int> years = {2016, 2017, 2018},
+                              int seed = 90) {
+  Int_t status(0);
+  for(int set : sets) status += convert_individual_bemu_to_combine(set, selection, years, seed);
   return status;
 }

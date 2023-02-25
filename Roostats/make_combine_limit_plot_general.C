@@ -49,9 +49,9 @@ int make_combine_limit_plot_general(vector<config_t> configs, //info for each en
     int status(0);
     if(processCards) {
       //Run combine on each datacard
-      gSystem->Exec(Form("combine -d combine_%s.txt %s --name _%s -t -1 --rMin -20 --rMax 20 %s",
+      gSystem->Exec(Form("combine -d combine_%s.txt %s --name _%s --rMin -20 --rMax 20 %s",
                          card.Data(),
-                         (doObs) ? "" : "--run blind",
+                         (doObs) ? "" : "-t -1 --run blind",
                          card.Data(),
                          (doNoSys) ? "--freezeParameters allConstrainedNuisances" : ""));
     }
@@ -97,21 +97,25 @@ int make_combine_limit_plot_general(vector<config_t> configs, //info for each en
   expected_1->SetMarkerStyle(20);
   expected_1->SetMarkerSize(1.5);
 
+  const double ymax = 1.3*nfiles;
+  const double ymin = 0.5;
   TGraphAsymmErrors* expected_2 = new TGraphAsymmErrors(nfiles, expected, y, down_2, up_2, yerr, yerr);
   expected_2->SetName("2_sigma_exp");
   expected_2->SetFillColor(kYellow);
   expected_2->SetMarkerStyle(20);
   expected_2->SetMarkerSize(0.8);
   expected_2->SetTitle("CLs Limits");
-  expected_2->GetYaxis()->SetRangeUser(0.5, nfiles*1.3);
-  expected_2->GetXaxis()->SetRangeUser(0.8*max(1.e-15, min_val), 1.2*max_val);
   expected_2->GetXaxis()->SetTitle("Branching fraction");
-  expected_2->GetYaxis()->SetLabelOffset(999);
-  expected_2->GetYaxis()->SetLabelSize(0);
 
   TCanvas* c = new TCanvas("c", "c", 800, 800);
   expected_2->Draw("AE2");
   expected_1->Draw("PE2 SAME");
+  c->SetLogx();
+  expected_2->GetYaxis()->SetRangeUser(ymin, ymax);
+  expected_2->GetXaxis()->SetRangeUser(0.05*max(1.e-15, min_val), 1.2*max_val);
+  expected_2->GetXaxis()->SetMoreLogLabels(true);
+  expected_2->GetYaxis()->SetLabelOffset(1e10);
+  expected_2->GetYaxis()->SetLabelSize(0);
 
   TGaxis::SetMaxDigits(3);
   TGraph* g_obs = new TGraph(nfiles, obs, y);
@@ -120,7 +124,7 @@ int make_combine_limit_plot_general(vector<config_t> configs, //info for each en
   g_obs->SetMarkerSize(2);
   if(doObs) g_obs->Draw("P SAME");
 
-  TLegend* leg = new TLegend(0.6, 0.7, 0.9, 0.9);
+  TLegend* leg = new TLegend(0.6, 0.75, 0.9, 0.9);
   if(doObs) leg->AddEntry(g_obs, "Observed", "P");
   leg->AddEntry(expected_1, "Expected", "P");
   leg->AddEntry(expected_1, "#pm1#sigma", "F");
@@ -137,9 +141,10 @@ int make_combine_limit_plot_general(vector<config_t> configs, //info for each en
   label.SetTextAngle(25);
   label.SetTextSize(0.03);
   for(int icard = 0; icard < nfiles; ++icard) {
-    const double yloc = (nfiles == 1) ? 0.5 : 0.68 - (icard)*(0.68-0.2)/(nfiles-1);
-    label.DrawLatex(0.01, yloc, configs[icard].label_.Data());
-    label.DrawLatex(0.1 , yloc, Form("%.1e", expected[icard]));
+    double ystart  = ((nfiles/ymax) - 0.1);
+    double yfinish = (ymin/ymax) + 0.1;
+    const double yloc = (nfiles == 1) ? 0.5 : ystart - (icard)*(ystart - yfinish)/(nfiles-1);
+    label.DrawLatex(0.01, yloc, Form("%s: %.2e", configs[icard].label_.Data(), expected[icard]));
   }
   // label.DrawLatex(0.1, 0.38, Form("%.1e", expected[1]));
   // label.DrawLatex(0.1, 0.18, Form("%.1e", expected[2]));

@@ -99,6 +99,8 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
 
   vector<THStack*> hsys_stacks;
   vector<TH1*> hsys_signals;
+  map<TString, vector<TString>> sys_groups; //define groups in the cards for convenience
+
   if(use_sys_) {
     TString prev = "";
     for(int isys = 1; isys < kMaxSystematics; ++isys) {
@@ -227,7 +229,7 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
   bins_p += Form("%15s", hist.Data());
   proc_l += Form("%15s", selec_name.Data());
   proc_c +=      "            0   ";
-  rate   += Form("%15.1f", hsig->Integral());
+  rate   += Form("%15.3f", hsig->Integral());
   hsig->SetName(selec_name.Data());
   hsig->Write(); //add to the output file
   for(int ihist = 0; ihist < hstack->GetNhists(); ++ihist) {
@@ -244,9 +246,23 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
 
     TString hname = hbkg_i->GetName();
     hname.ReplaceAll(Form("_%s_%i", hist.Data(), set+set_offset), "");
+    hname.ReplaceAll(Form("_%s_%i", hist.Data(), set+set_offset+100), "");
+    hname.ReplaceAll(Form("_%s_%i", hist.Data(), set+set_offset+200), "");
     hname.ReplaceAll(Form("_%s_1_%i", hist.Data(), set+set_offset), "");
+    hname.ReplaceAll(Form("_%s_1_%i", hist.Data(), set+set_offset+100), "");
+    hname.ReplaceAll(Form("_%s_1_%i", hist.Data(), set+set_offset+200), "");
+    hname.ReplaceAll(Form("_%s_2_%i", hist.Data(), set+set_offset), "");
+    hname.ReplaceAll(Form("_%s_2_%i", hist.Data(), set+set_offset+100), "");
+    hname.ReplaceAll(Form("_%s_2_%i", hist.Data(), set+set_offset+200), "");
     hname.ReplaceAll(Form("_%s_event_%i", hist.Data(), set+set_offset), "");
+    hname.ReplaceAll(Form("_%s_event_%i", hist.Data(), set+set_offset+100), "");
+    hname.ReplaceAll(Form("_%s_event_%i", hist.Data(), set+set_offset+200), "");
     hname.ReplaceAll(Form("_%s_1_event_%i", hist.Data(), set+set_offset), "");
+    hname.ReplaceAll(Form("_%s_1_event_%i", hist.Data(), set+set_offset+100), "");
+    hname.ReplaceAll(Form("_%s_1_event_%i", hist.Data(), set+set_offset+200), "");
+    hname.ReplaceAll(Form("_%s_2_event_%i", hist.Data(), set+set_offset), "");
+    hname.ReplaceAll(Form("_%s_2_event_%i", hist.Data(), set+set_offset+100), "");
+    hname.ReplaceAll(Form("_%s_2_event_%i", hist.Data(), set+set_offset+200), "");
     hname.ReplaceAll("s_", "");
     hname.ReplaceAll(" ", "");
     hname.ReplaceAll("#", "");
@@ -256,7 +272,7 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
     bins_p += Form("%15s", hist.Data());
     proc_l += Form("%15s", hname.Data());
     proc_c += Form("          %2i   ", process_value(hname));
-    rate   += Form("%15.1f", hbkg_i->Integral());
+    rate   += Form("%15.3f", hbkg_i->Integral());
     hbkg_i->SetName(hname.Data());
     hbkg_i->Write(); //add to the output file
   }
@@ -277,6 +293,8 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
   int nsys = hsys_stacks.size()/2;
   TString qcd_bkg_line = "";
   TString jtt_bkg_line = "";
+  const int nbkg_proc = hstack->GetNhists();
+
   for(int isys = 0; isys < nsys; ++isys) {
     THStack* hstack_up   = hsys_stacks [2*isys  ];
     THStack* hstack_down = hsys_stacks [2*isys+1];
@@ -287,6 +305,10 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
     if(name == "") continue; //systematic we don't care about
     if(verbose_ > 0) cout << "Processing systematic " << name.Data() << endl;
 
+    if(hstack_up->GetNhists() != nbkg_proc || hstack_down->GetNhists() != nbkg_proc) {
+      cout << "!!! Systematic " << name.Data() << " up/down stacks don't match the expected number of processes!\n";
+      // continue;
+    }
     //kill sensitive region if requested
     if(blind_data_ == 1) {
       for(int ibin = hsig_up->FindBin(blind_cut_); ibin <= hsig_up->GetNbinsX(); ++ibin) {
@@ -316,13 +338,21 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
       double val = sys_up; //max((sys_up < 1.) ? 1./sys_up : sys_up, (sys_down < 1.) ? 1./sys_down : sys_down);
       sys += Form("%6.3f", val);
     }
-    for(int ihist = 0; ihist < hstack_up->GetNhists(); ++ihist) {
-      TH1* hbkg_i_up = (TH1*) hstack_up->GetHists()->At(ihist);
-      if(!hbkg_i_up) {cout << "Systematic " << isys << " Background (up) hist " << ihist << " not retrieved!\n"; continue;}
-      TH1* hbkg_i_down = (TH1*) hstack_down->GetHists()->At(ihist);
-      if(!hbkg_i_down) {cout << "Systematic " << isys << " Background (down) hist " << ihist << " not retrieved!\n"; continue;}
+    for(int ihist = 0; ihist < nbkg_proc; ++ihist) {
       TH1* hbkg_i = (TH1*) hstack->GetHists()->At(ihist);
       if(!hbkg_i) {cout << "Background hist " << ihist << " not retrieved! Exiting...\n"; break;}
+      TH1* hbkg_i_up = (TH1*) hstack_up->GetHists()->At(ihist);
+      if(!hbkg_i_up) {
+        cout << "Systematic " << isys << " (" << name.Data() << ") Background (up) hist "
+                           << hbkg_i->GetTitle() << " not retrieved!\n";
+        sys += Form("%6s", "-"); continue;
+      }
+      TH1* hbkg_i_down = (TH1*) hstack_down->GetHists()->At(ihist);
+      if(!hbkg_i_down) {
+        cout << "Systematic " << isys << " (" << name.Data() << ") Background (down) hist "
+                           << hbkg_i->GetTitle() << " not retrieved!\n";
+        sys += Form("%6s", "-"); continue;
+      }
 
       //kill sensitive region if requested
       if(blind_data_ == 1) {
@@ -334,14 +364,25 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
           hbkg_i_down->SetBinError  (ibin, 0.);
         }
       }
+      //Hack to allow 0 rate histograms
+      if(hbkg_i_up  ->Integral() == 0.) hbkg_i_up  ->SetBinContent(1, 1.e-5);
+      if(hbkg_i_down->Integral() == 0.) hbkg_i_down->SetBinContent(1, 1.e-5);
 
       TString hname = hbkg_i_up->GetName();
       TString isys_set = hstack_down->GetTitle();
       isys_set.ReplaceAll("sys_", "");
       hname.ReplaceAll(Form("_%s_%s_%i", hist.Data(), isys_set.Data(), set+set_offset), "");
+      hname.ReplaceAll(Form("_%s_%s_%i", hist.Data(), isys_set.Data(), set+set_offset+100), "");
+      hname.ReplaceAll(Form("_%s_%s_%i", hist.Data(), isys_set.Data(), set+set_offset+200), "");
       hname.ReplaceAll(Form("_%s_%s_systematic_%i", hist.Data(), isys_set.Data(), set+set_offset), "");
+      hname.ReplaceAll(Form("_%s_%s_systematic_%i", hist.Data(), isys_set.Data(), set+set_offset+100), "");
+      hname.ReplaceAll(Form("_%s_%s_systematic_%i", hist.Data(), isys_set.Data(), set+set_offset+200), "");
       hname.ReplaceAll(Form("_%s_systematic_%i", hist.Data(), set+set_offset), "");
+      hname.ReplaceAll(Form("_%s_systematic_%i", hist.Data(), set+set_offset+100), "");
+      hname.ReplaceAll(Form("_%s_systematic_%i", hist.Data(), set+set_offset+200), "");
       hname.ReplaceAll(Form("_%s_1_systematic_%i", hist.Data(), set+set_offset), "");
+      hname.ReplaceAll(Form("_%s_1_systematic_%i", hist.Data(), set+set_offset+100), "");
+      hname.ReplaceAll(Form("_%s_1_systematic_%i", hist.Data(), set+set_offset+200), "");
       // hname.ReplaceAll(Form("_%s_%s_systematic_%i", hist.Data(), isys_set.Data(), set+set_offset), "");
       // hname.ReplaceAll(Form("_%s_1_systematic_%i", hist.Data(), set+set_offset), "");
       hname.ReplaceAll("s_", "");
@@ -376,7 +417,7 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
     outfile << Form("%s \n", qcd_bkg_line.Data());
     outfile << Form("%s \n", jtt_bkg_line.Data());
   }
-  outfile << "\n* autoMCStats 0\n\n";
+  outfile << "\n* autoMCStats 0 1 1\n\n";
   outfile.close();
 
   fOut->Close();

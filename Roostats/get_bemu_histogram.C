@@ -1,6 +1,8 @@
 //Script to retrieve the background and signal di-lepton mass histograms
-#include "../histograms/dataplotter_clfv.C"
-#include "../interface/GlobalConstants.h"
+#include "histograms/datacards.C"
+// #include "../interface/GlobalConstants.h"
+#include "bemu_defaults.C"
+
 int overall_rebin_ = 1;
 TH1* hbkg_;
 vector<TH1*> hsigs_;
@@ -10,9 +12,63 @@ double xmax_;
 bool blind_data_ = true;
 bool do_systematics_ = false;
 bool allow_sys_errors_ = true; //if there are missing systematic histograms, clone the default for now
-bool do_same_flavor_ = true; //get information for Z->ll control regions
 TH1* hDefault_; //store the default histogram in case of missing systematics
 TH1* hDY_;
+
+CLFV::DataPlotter* dataplotter_ = nullptr;
+
+//initialize the datasets using a DataPlotter
+Int_t initialize_plotter(TString selection, TString base) {
+  if(dataplotter_) delete dataplotter_;
+  dataplotter_ = new DataPlotter();
+
+  dataplotter_->include_misid_ = selection == "mutau" || selection == "etau";
+  dataplotter_->include_qcd_   = !dataplotter_->include_misid_ && selection != "mumu" && selection != "ee";
+  dataplotter_->verbose_       = max(0, verbose_ - 1);
+  dataplotter_->debug_         = max(0, verbose_ - 1);
+  dataplotter_->qcd_scale_     = 1.;
+  dataplotter_->embed_scale_   = embedScale_;
+  dataplotter_->selection_     = selection;
+  dataplotter_->folder_        = "";
+
+
+  if(selection == "emu")
+    {dataplotter_->signal_scale_ = 100.; dataplotter_->signal_scales_["H->e#mu"] = 400.;}
+  else if(selection.Contains("_"))
+    {dataplotter_->signal_scale_ = 250.; dataplotter_->signal_scales_["H->#mu#tau"] = 300.; dataplotter_->signal_scales_["H->e#tau"] = 300.;}
+  else if(selection.Contains("tau"))
+    {dataplotter_->signal_scale_ = 150.; dataplotter_->signal_scales_["H->#mu#tau"] = 250.; dataplotter_->signal_scales_["H->e#tau"] = 250.;}
+  else if(selection == "ee" || selection == "mumu")
+    dataplotter_->signal_scale_ = 2.e4;
+
+  //ensure the years are sorted
+  std::sort(years_.begin(),years_.end());
+  dataplotter_->years_ = years_;
+
+  hist_tag_  = "clfv";
+  hist_dir_  = base;
+
+  std::vector<dcard> cards;
+  get_datacards(cards, selection, 2); //get datacards with signal, but without scaling for visibility at x-sec level
+
+  CrossSections xs(useUL_, ZMode_); //cross section handler
+
+  //Calculate luminosity from year(s)
+  double lum = 0.;
+  for(int year : years_) {
+    const double currLum = xs.GetLuminosity(year); //pb^-1
+    dataplotter_->lums_[year] = currLum; //store the luminosity for the year
+    lum += currLum; //add to the total luminosity
+  }
+  dataplotter_->set_luminosity(lum);
+
+  int status(0);
+  for(auto card : cards)
+    status += dataplotter_->add_dataset(card);
+
+  status += dataplotter_->init_files();
+  return status;
+}
 
 int get_same_flavor_systematics(int set, TString hist, TFile* f) {
   int status(0);
@@ -138,6 +194,11 @@ int get_systematics(int set, TString hist, TFile* f, TString canvas_name) {
     for(unsigned index = 0; index < signals.size(); ++index) {
       auto h = signals[index];
       auto hnom = hsigs_[index];
+      TString hname = h->GetName();
+      if(dataplotter_->signal_scales_.find(hname) != dataplotter_->signal_scales_.end())
+        h->Scale(1./dataplotter_->signal_scales_[hname]);
+      else
+        h->Scale(1./dataplotter_->signal_scale_);
       double r_min_s, r_max_s;
       TGraph* g_sig = dataplotter_->get_errors(hnom, h, 0, true, r_min_s, r_max_s);
       r_min = min(r_min, r_min_s);
@@ -162,10 +223,6 @@ int get_systematics(int set, TString hist, TFile* f, TString canvas_name) {
     c->Print(Form("%s_sys/sys_%i.png", canvas_name.Data(), isys));
     for(auto h : signals) {
       TString hname = h->GetName();
-      if(dataplotter_->signal_scales_.find(hname) != dataplotter_->signal_scales_.end())
-        h->Scale(1./dataplotter_->signal_scales_[hname]);
-      else
-        h->Scale(1./dataplotter_->signal_scale_);
       hname.ReplaceAll("#", "");
       hname.ReplaceAll("->", "");
       hname.ReplaceAll(Form("_%s_%i", hist.Data(), set), "");
@@ -186,13 +243,14 @@ int get_same_flavor_histogram(int set, TString selection, vector<int> years, TSt
   int status(0);
   TString hist = "lepm";
 
-  //define parameters for dataplotter script
+  //initialize the dataplotter
   years_ = years;
-  status = nanoaod_init(selection, base, base);
+  status = initialize_plotter(selection, base);
   if(status) {
-    cout << "DataPlotter initialization script returned " << status << ", exiting!\n";
+    cout << "DataPlotter initialization returned " << status << ", exiting!\n";
     return status;
   }
+
   int set_offset = (selection == "mumu") ? HistMaker::kMuMu : CLFVHistMaker::kEE;
 
   dataplotter_->rebinH_ = overall_rebin_;
@@ -210,9 +268,12 @@ int get_same_flavor_histogram(int set, TString selection, vector<int> years, TSt
   /////////////////////////////////////////////////
 
   TCanvas* c = new TCanvas();
-  hstack->Draw("hist noclear");
+  hdata->Draw("E");
+  hstack->Draw("same hist noclear");
   hdata->Draw("same E");
-  hstack->GetXaxis()->SetRangeUser(70., 150.);
+  hdata->Draw("same E");
+  hdata->GetXaxis()->SetRangeUser(xmin_,xmax_);
+  hdata->GetYaxis()->SetRangeUser(0.9,1.1*hstack->GetMaximum());
 
   TString year_string;
   for(unsigned i = 0; i < years.size(); ++i) {
@@ -253,12 +314,12 @@ int get_bemu_single_histogram(int set = 8, TString selection = "zemu",
   int status(0);
   TString hist = "lepm";
 
-  //define parameters for dataplotter script
+  //initialize the dataplotter
   TString selec = selection; selec.ReplaceAll("z", ""); selec.ReplaceAll("h", "");
   years_ = years;
-  status = nanoaod_init(selec, base, base);
+  status = initialize_plotter(selec, base);
   if(status) {
-    cout << "DataPlotter initialization script returned " << status << ", exiting!\n";
+    cout << "DataPlotter initialization returned " << status << ", exiting!\n";
     return status;
   }
   int set_offset = HistMaker::kEMu;
@@ -281,14 +342,6 @@ int get_bemu_single_histogram(int set = 8, TString selection = "zemu",
   //get data
   TH1* hdata = dataplotter_->get_data(hist, "event", set+set_offset);
   if(!hdata) return 3;
-
-  TCanvas* c = new TCanvas();
-  hstack->Draw("hist noclear");
-  double max_val = std::max(hdata->GetMaximum(), hstack->GetMaximum());
-  for(auto h : signals) {
-    h->Draw("hist same");
-    max_val = std::max(max_val, h->GetMaximum());
-  }
   TH1* hdata_clone = (TH1*) hdata->Clone("hdata_clone");
   if(blind_data_) {
     int bin_lo, bin_hi;
@@ -301,13 +354,23 @@ int get_bemu_single_histogram(int set = 8, TString selection = "zemu",
   }
   hdata_clone->Draw("same E");
 
+  TCanvas* c = new TCanvas();
+  hdata_clone->Draw("E");
+  hstack->Draw("hist noclear");
+  hdata_clone->Draw("same E");
+  double max_val = std::max(hdata->GetMaximum(), hstack->GetMaximum());
+  for(auto h : signals) {
+    h->Draw("hist same");
+    max_val = std::max(max_val, h->GetMaximum());
+  }
+
   if(selection == "zemu") {xmin_ = 70.; xmax_ = 110.;}
   else if(selection == "hemu") {xmin_ = 110.; xmax_ = 150.;}
   else {xmin_ = 50.; xmax_ = 170.;}
 
-  hstack->GetXaxis()->SetRangeUser(xmin_, xmax_);
-  hstack->GetYaxis()->SetRangeUser(0.1, 1.1*max_val);
-  hstack->SetMaximum(1.1*max_val);
+  hdata_clone->GetXaxis()->SetRangeUser(xmin_, xmax_);
+  hdata_clone->GetYaxis()->SetRangeUser(0.1, 1.1*max_val);
+  // hstack->SetMaximum(1.1*max_val);
   TString year_string;
   for(unsigned i = 0; i < years.size(); ++i) {
     if(i > 0) year_string += "_";
@@ -363,15 +426,17 @@ int get_bemu_single_histogram(int set = 8, TString selection = "zemu",
 
 int get_bemu_histogram(vector<int> sets, TString selection = "zemu",
                        vector<int> years = {2016, 2017, 2018},
-                       TString base = "nanoaods_dev") {
+                       TString base = "nanoaods_dev",
+                       bool do_same_flavor = true) {
+  useEmbed_ = 0; //FIXME: make this global
   int status(0);
   for(int set : sets) {
     cout << "Getting signal region histograms for set " << set << "...\n";
     status += get_bemu_single_histogram(set, selection, years, base);
   }
-  if(do_same_flavor_) {
+  if(do_same_flavor && use_same_flavor_) {
     useEmbed_ = 0;
-    int set = 8; //normalization set
+    const int set = 8; //normalization set
     cout << "Getting mumu region histograms for set " << set << "...\n";
     status += get_same_flavor_histogram(set, "mumu", years, base);
     cout << "Getting ee region histograms for set " << set << "...\n";

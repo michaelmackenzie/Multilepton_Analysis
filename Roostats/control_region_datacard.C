@@ -78,17 +78,20 @@ Int_t control_region_datacard(int set = 8, TString selection = "mumu",
 
   vector<THStack*> hsys_stacks;
   vector<TH1*> hsys_signals;
-  for(int isys = 1; isys < 300; isys += 2) {
+  for(int isys = 1; isys < kMaxSystematics; ++isys) {
      //take only the up/down systematics from the sets < 50, skipping the _sys set. Above 50, only up/down
-    if(isys < 43 && (isys % 3) == 0) isys +=1;
-    // if(isys == 49) isys = 50; //skip to get to set 50
-    if(isys == 99) isys = 100; //skip to get to 100
+    // if(isys < 43 && (isys % 3) == 0) isys +=1;
+    // // if(isys == 49) isys = 50; //skip to get to set 50
+    // if(isys == 99) isys = 100; //skip to get to 100
     auto sys_info = systematic_name(isys, signal, years[0]); //FIXME: take the first year for now
     TString name = sys_info.first;
     TString type = sys_info.second;
-    if(name == "" || name.Contains("Tau")) continue;
+    if(name == "" || name.Contains("Tau") || name.Contains("QCD")) continue;
     if(verbose_ > 0) cout << "Using sys " << isys << ", " << isys+1 << " as systematic " << name.Data() << endl;
-    if(name != systematic_name(isys+1, signal, years[0]).first) cout << "!!! Sys " << isys << ", " << isys+1 << " have different names!\n";
+    if(name != systematic_name(isys+1, signal, years[0]).first) {
+      cout << "!!! Sys " << isys << ", " << isys+1 << " have different names!\n";
+      continue;
+    }
     THStack* hstack_up   = (THStack*) fInput->Get(Form("hstack_sys_%i", isys));
     THStack* hstack_down = (THStack*) fInput->Get(Form("hstack_sys_%i", isys+1));
     TH1* hsig_up        = (TH1*)    fInput->Get(Form("%s_sys_%i", selec.Data(), isys));
@@ -113,6 +116,7 @@ Int_t control_region_datacard(int set = 8, TString selection = "mumu",
     hsys_stacks.push_back(hstack_down);
     hsys_signals.push_back(hsig_up);
     hsys_signals.push_back(hsig_down);
+    ++isys;
   }
 
   //////////////////////////////////////////////////////////////////

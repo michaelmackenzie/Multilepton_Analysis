@@ -1,5 +1,6 @@
 #ifndef __CONSTRUCT_MULTIDIM__
 #define __CONSTRUCT_MULTIDIM__
+#include "bemu_defaults.C"
 
 //Construct multi-dimensional PDF with discrete index
 bool useFrameChiSq_ = false;
@@ -114,11 +115,23 @@ RooAbsPdf* create_fast_bernstein(RooAbsReal& obs, const int order, int set) {
   case 5 : pdf = new RooBernsteinFast<5 >(Form("bst_%i_order_%i", set, order), Form("Bernstein PDF, order %i", order), obs, list); break;
   case 6 : pdf = new RooBernsteinFast<6 >(Form("bst_%i_order_%i", set, order), Form("Bernstein PDF, order %i", order), obs, list); break;
   case 7 : pdf = new RooBernsteinFast<7 >(Form("bst_%i_order_%i", set, order), Form("Bernstein PDF, order %i", order), obs, list); break;
-  case 8 : pdf = new RooBernsteinFast<8 >(Form("bst_%i_order_%i", set, order), Form("Bernstein PDF, order %i", order), obs, list); break;
-  case 9 : pdf = new RooBernsteinFast<9 >(Form("bst_%i_order_%i", set, order), Form("Bernstein PDF, order %i", order), obs, list); break;
-  case 10: pdf = new RooBernsteinFast<10>(Form("bst_%i_order_%i", set, order), Form("Bernstein PDF, order %i", order), obs, list); break;
+  // case 8 : pdf = new RooBernsteinFast<8 >(Form("bst_%i_order_%i", set, order), Form("Bernstein PDF, order %i", order), obs, list); break;
+  // case 9 : pdf = new RooBernsteinFast<9 >(Form("bst_%i_order_%i", set, order), Form("Bernstein PDF, order %i", order), obs, list); break;
+  // case 10: pdf = new RooBernsteinFast<10>(Form("bst_%i_order_%i", set, order), Form("Bernstein PDF, order %i", order), obs, list); break;
   default: return nullptr;
   }
+  if(!pdf) return nullptr;
+  switch(order) {
+  case 1 : ((RooBernsteinFast<1 >*) pdf)->protectSubRange(true); break;
+  case 2 : ((RooBernsteinFast<2 >*) pdf)->protectSubRange(true); break;
+  case 3 : ((RooBernsteinFast<3 >*) pdf)->protectSubRange(true); break;
+  case 4 : ((RooBernsteinFast<4 >*) pdf)->protectSubRange(true); break;
+  case 5 : ((RooBernsteinFast<5 >*) pdf)->protectSubRange(true); break;
+  case 6 : ((RooBernsteinFast<6 >*) pdf)->protectSubRange(true); break;
+  case 7 : ((RooBernsteinFast<7 >*) pdf)->protectSubRange(true); break;
+  default: break;
+  }
+
   return pdf;
 }
 

@@ -2,55 +2,66 @@
 #ifndef __SYSNAMES__
 #define __SYSNAMES__
 
-bool useDefaultBr_ = false; //use given branching fraction instead of fixed example
-int verbose_ = 1;
+#include "mva_defaults.C"
+
 CLFV::Systematics systematics_; //names of the systematics
 
 std::pair<TString,TString> systematic_name(int sys, TString selection, int year) {
   year -= 2016; //reduce needed characters
   TString name(systematics_.GetName(sys)), type("shape");
 
+  // if(name == "Pileup") {cout << "FIXME: Removing Pileup\n"; name = "";}
+
+  if(embed_mode_ == 0) { //not using embedding samples
+    if(name.BeginsWith("Emb")) name = "";
+    if(name.Contains("Embed")) name = "";
+  }
+
+  //define which to ignore
+  if     (name == "TauID"       ) name = ""; //fully correlated versions, for plotting only
+  else if(name == "TauJetID"    ) name = "";
+  else if(name == "JetToTauStat") name = "";
+  else if(name == "JetToTauNC"  ) name = "";
+  else if(name == "JetToTauBias") name = "";
+  else if(name == "QCDStat"     ) name = "";
+  else if(name == "EmbMuonES"   ) { //1 correlated bin
+    if(embed_muon_scale_mode_ != 1) name = "";
+  } else if(name.BeginsWith("EmbMuonES")) { //3 uncorrelated bins
+    if(embed_muon_scale_mode_ != 0) name = "";
+  }
+
+  if(name == "Prefire" && year == 2018) name = ""; //not defined for 2018
+  if(name == "METCorr") name = ""; //not a real uncertainty
+
+  if(selection.EndsWith("etau")) {
+    if(name.Contains("TauMuID") && name != "TauMuID") name = ""; //don't use finely binned nuisance parameters
+    else if(name == "TauEleID") name = ""; //ignore coarse binned version
+    else if(name.Contains("Muon") && !name.Contains("Tau")) name = ""; //ignore muon uncertainties in etau
+  } else if(selection.EndsWith("mutau")) {
+    if(name.Contains("TauEleID") && name != "TauEleID") name = ""; //don't use finely binned nuisance parameters
+    else if(name == "TauMuID") name = ""; //ignore coarse binned version
+    else if(name.Contains("Ele") && !name.Contains("Tau")) name = ""; //ignore electron uncertainties in mutau
+  }
+
   //define which are relevant for a given channel
-  if(selection.EndsWith("tau")) {
+  if(selection.EndsWith("tau")) { //hadronic tau channels
     if(name.Contains("QCD")) name = ""; //QCD SS --> OS only in emu
-  } else {
+  } else { //non-hadronic tau channels
     if(name.Contains("Tau")) name = "";
   }
 
   //define which are uncorrelated between years
-  if     (name == "JetToTauStat"   ) name = Form("%sY%i", name.Data(), year);
-  else if(name == "QCDStat"        ) name = Form("%sY%i", name.Data(), year);
-  else if(name == "Lumi"           ) name = Form("%sY%i", name.Data(), year);
-  else if(name == "EmbedUnfold"    ) name = Form("%sY%i", name.Data(), year);
-  else if(name.Contains("TauJetID")) name = Form("%sY%i", name.Data(), year);
-  else if(name.Contains("TauMuID" )) name = Form("%sY%i", name.Data(), year);
-  else if(name.Contains("TauEleID")) name = Form("%sY%i", name.Data(), year);
+  if     (name.Contains("JetToTauStat")) name = Form("%sY%i", name.Data(), year);
+  else if(name.Contains("QCDStat")     ) name = Form("%sY%i", name.Data(), year);
+  else if(name == "Lumi"               ) name = Form("%sY%i", name.Data(), year);
+  else if(name == "EmbedUnfold"        ) name = Form("%sY%i", name.Data(), year);
+  else if(name.Contains("TauJetID")    ) name = Form("%sY%i", name.Data(), year);
+  else if(name.Contains("TauMuID" )    ) name = Form("%sY%i", name.Data(), year);
+  else if(name.Contains("TauEleID")    ) name = Form("%sY%i", name.Data(), year);
+  else if(name.Contains("TauES")       ) name = Form("%sY%i", name.Data(), year);
+  else if(name.Contains("BTag")        ) name = Form("%s-%s", name.Data(), (selection.EndsWith("tau")) ? "had" : "lep"); //FIXME: Decide correlation between years, and tight/loose ID
 
   return std::pair<TString,TString>(name,type);
-
-  // if     (sys ==   1 || sys ==   2) name = "EleID";
-  // else if(sys ==   4 || sys ==   5) name = "MuonID";
-  // else if(sys ==  10 || sys ==  11) name = Form("JetToTau%i", year); //statistical uncertainty, uncorrelated between years
-  // else if(sys ==  13 || sys ==  14) name = "ZpT";
-  // else if(sys ==  16 || sys ==  17) name = "EleRecoID";
-  // else if(sys ==  19 || sys ==  20) name = "MuonIsoID";
-  // else if(sys ==  22 || sys ==  23) name = "TauES";
-  // else if(sys ==  25 || sys ==  26) name = "QCDScale";
-  // else if(sys ==  28 || sys ==  29) name = "JetToTauNC";
-  // else if(sys ==  43 || sys ==  44) name = Form("Lumi%i", year);
-  // // else if(sys ==  43 || sys ==  44) {name = Form("Lumi%i", year); type = "lnN";}
-  // else if(sys ==  45 || sys ==  46) name = "BTag";
-  // else if(sys ==  47 || sys ==  48) name = "JetToTauBias";
-  // else if(sys ==  51 || sys ==  52) name = "MCEleTrig";
-  // else if(sys ==  53 || sys ==  54) name = "MCMuonTrig";
-  // else if(selection.Contains("tau") && (sys ==  49 || sys ==  50)) name = Form("EmbedUnfold%i", year); //uncorrelated between years
-  // else if(selection.Contains("tau") && (sys ==  55 || sys ==  56)) name = "EmbedEleTrig";
-  // else if(selection.Contains("tau") && (sys ==  57 || sys ==  58)) name = "EmbedMuonTrig";
-  // else if(selection.Contains("etau")  && (sys ==  37 || sys ==  38)) name = "TauMuID"; //combine all into 1 for non-sensitive cat
-  // else if(selection.Contains("mutau") && (sys ==  40 || sys ==  41)) name = "TauEleID";  //combine all into 1 for non-sensitive cat
-  // else if(sys >= 100 && sys < 106) name = Form("TauJetID%i", (sys-100)/2);
-  // else if(selection.Contains("mutau") && sys >= 110 && sys < 140) name = Form("TauMuID%i", (sys-110)/2);
-  // else if(selection.Contains("etau")  && sys >= 140 && sys < 158) name = Form("TauEleID%i", (sys-140)/2);
 }
 
 #endif

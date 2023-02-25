@@ -1,6 +1,15 @@
 //Script to process limits for channels/years/etc. and plot the limits
 double scale_ = 1.;
 
+struct config_t {
+  TString name_;
+  TString label_;
+  vector<int> sets_;
+  vector<int> years_;
+
+  config_t(TString name, TString label, vector<int> sets, vector<int> years): name_(name), label_(label), sets_(sets), years_(years) {}
+};
+
 int make_combine_limit_plot(vector<TString> cards, //combine datacard names to process
                             vector<TString> labels, //label for each card
                             TString tag, //tag for the output figure file name
@@ -15,6 +24,7 @@ int make_combine_limit_plot(vector<TString> cards, //combine datacard names to p
   TString year_string = Form("%i", years[0]);
   for(int i = 1; i < years.size(); ++i) year_string += Form("_%i", years[i]);
   TString dir = Form("datacards/%s", year_string.Data());
+  cout << "Moving to " << dir.Data() << endl;
   gSystem->cd(dir.Data());
 
   if(sets.size() == 0) { cout << "No sets given!\n"; return 1; }

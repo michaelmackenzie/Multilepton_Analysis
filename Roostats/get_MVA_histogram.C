@@ -1,26 +1,90 @@
 //Script to retrieve the background and signal MVA histograms
-#include "../histograms/dataplotter_clfv.C"
-// #include "../interface/SystematicHist_t.hh"
+#include "histograms/datacards.C"
+
+#include "mva_defaults.C"
 
 int overall_rebin_ = 0;
 TH1* hbkg_;
 vector<TH1*> hsigs_;
-int test_sys_ = -1; //set to systematic number if debugging/inspecting it
-bool blind_data_ = true; //set data bins > MVA score level to 0
-bool ignore_sys_ = false; //don't get systematics
-bool use_dev_mva_ = false; //use the extra MVA hist for development, mva?_1
-bool do_same_flavor_ = true; //retrieve Z->ll control region data
-bool separate_years_ = true; //retrieve and store histograms by year
+int  test_sys_        = -1; //set to systematic number if debugging/inspecting it
+bool blind_data_      = true; //set data bins > MVA score level to 0
+bool ignore_sys_      = false; //don't get systematics
+int  use_dev_mva_     = 0; //1: use the extra MVA hist for development, mvaX_1; 2: use the CDF transformed hist, mvaX_2
+bool do_same_flavor_  = false; //retrieve Z->ll control region data
+bool separate_years_  = true; //retrieve and store histograms by year
+bool use_lep_tau_set_ = true; //use kETauMu/kMuTauE offsets instead of kEMu
 
-int embed_mode_ = 1; //Nominal: 1; Definitions: 0: use DY MC; 1: use Embedding; 2: use Embedding except DY MC in emu
+//plotting parameters
+double xmin_ = -1.;
+double xmax_ =  1.;
+bool   logy_ = false;
+
+CLFV::DataPlotter* dataplotter_ = nullptr;
+
+//initialize the datasets using a DataPlotter
+Int_t initialize_plotter(TString selection, TString base) {
+  if(dataplotter_) delete dataplotter_;
+  dataplotter_ = new DataPlotter();
+
+  dataplotter_->include_misid_ = selection == "mutau" || selection == "etau";
+  dataplotter_->include_qcd_   = !dataplotter_->include_misid_ && selection != "mumu" && selection != "ee";
+  dataplotter_->verbose_       = max(0, verbose_ - 1);
+  dataplotter_->debug_         = max(0, verbose_ - 1);
+  dataplotter_->qcd_scale_     = 1.;
+  dataplotter_->embed_scale_   = embedScale_;
+  dataplotter_->selection_     = selection;
+  dataplotter_->folder_        = "";
+  dataplotter_->include_empty_ = 1; //ensure even an empty histogram is included in the stacks
+  dataplotter_->clip_negative_ = 1; //ensure no negative process rate bins
+
+  if(selection == "emu")
+    {dataplotter_->signal_scale_ = 100.; dataplotter_->signal_scales_["H->e#mu"] = 400.;}
+  else if(selection.Contains("_"))
+    {dataplotter_->signal_scale_ = 250.; dataplotter_->signal_scales_["H->#mu#tau"] = 300.; dataplotter_->signal_scales_["H->e#tau"] = 300.;}
+  else if(selection.Contains("tau"))
+    {dataplotter_->signal_scale_ = 150.; dataplotter_->signal_scales_["H->#mu#tau"] = 250.; dataplotter_->signal_scales_["H->e#tau"] = 250.;}
+  else if(selection == "ee" || selection == "mumu")
+    dataplotter_->signal_scale_ = 2.e4;
+
+  //ensure the years are sorted
+  std::sort(years_.begin(),years_.end());
+  dataplotter_->years_ = years_;
+
+  hist_tag_  = "clfv";
+  hist_dir_  = base;
+
+  std::vector<dcard> cards;
+  get_datacards(cards, selection, 2); //get datacards with signal, but without scaling for visibility at x-sec level
+
+  CrossSections xs(useUL_, ZMode_); //cross section handler
+
+  //Calculate luminosity from year(s)
+  double lum = 0.;
+  for(int year : years_) {
+    const double currLum = xs.GetLuminosity(year); //pb^-1
+    dataplotter_->lums_[year] = currLum; //store the luminosity for the year
+    lum += currLum; //add to the total luminosity
+  }
+  dataplotter_->set_luminosity(lum);
+
+  int status(0);
+  for(auto card : cards)
+    status += dataplotter_->add_dataset(card);
+
+  status += dataplotter_->init_files();
+  return status;
+}
 
 int get_same_flavor_systematics(int set, TString hist, TH1* hdata, TFile* f) {
   int status(0);
   f->cd();
   dataplotter_->rebinH_ = 1;
+  CLFV::Systematics systematics;
 
   //Loop through each systematic, creating PDFs and example figures
   for(int isys = (test_sys_ >= 0 ? test_sys_ : 0); isys < (test_sys_ >= 0 ? test_sys_ + 1 : kMaxSystematics); ++isys) {
+    if(systematics.GetName(isys) == "") continue; //only retrieve defined systematics
+
     cout << "Getting same flavor systematic " << isys << " for set " << set << endl;
     //Get background for the systematic
     THStack* hstack = dataplotter_->get_stack(Form("%s_%i", hist.Data(), isys), "systematic", set);
@@ -67,11 +131,11 @@ int get_same_flavor_histogram(int set = 8, TString selection = "mumu",
     return 1;
   }
 
-  //define parameters for dataplotter script
+  //initialize the dataplotter
   years_ = years;
-  status = nanoaod_init(selection, base, base);
+  status = initialize_plotter(selection, base);
   if(status) {
-    cout << "DataPlotter initialization script returned " << status << ", exiting!\n";
+    cout << "DataPlotter initialization returned " << status << ", exiting!\n";
     return status;
   }
 
@@ -138,8 +202,12 @@ int get_systematics(int set, TString hist, TH1* hdata, TFile* f, TString canvas_
   TH1* hdata_ratio = (TH1*) hdata->Clone("hdata_ratio");
   hdata_ratio->Divide(hbkg_);
 
+  CLFV::Systematics systematics;
+
+  gSystem->Exec(Form("mkdir -p %s_sys", canvas_name.Data()));
   //Loop through each systematic, creating PDFs and example figures
   for(int isys = (test_sys_ >= 0 ? test_sys_ : -2); isys < (test_sys_ >= 0 ? test_sys_ + 1 : kMaxSystematics); ++isys) {
+    if(isys > 0 && systematics.GetName(isys) == "") continue; //only retrieve defined systematics
 
     //Get background for the systematic
     THStack* hstack = dataplotter_->get_stack(Form("%s_%i", hist.Data(), max(0, isys)), "systematic", set);
@@ -198,8 +266,9 @@ int get_systematics(int set, TString hist, TH1* hdata, TFile* f, TString canvas_
       g_sig->Draw("P2");
     }
     hdata->Draw("same E");
-    g_bkg->GetXaxis()->SetRangeUser(-0.6,0.3);
+    g_bkg->GetXaxis()->SetRangeUser(xmin_,xmax_);
     g_bkg->SetTitle("");
+    if(logy_) pad1->SetLogy();
 
     //Draw the ratio plot
     pad2->cd();
@@ -230,13 +299,12 @@ int get_systematics(int set, TString hist, TH1* hdata, TFile* f, TString canvas_
       }
     }
     hdata_ratio->Draw("same E");
-    g_r_bkg->GetXaxis()->SetRangeUser(-0.6,0.3);
+    g_r_bkg->GetXaxis()->SetRangeUser(xmin_,xmax_);
     g_r_bkg->GetXaxis()->SetLabelSize(0.08);
     g_r_bkg->GetYaxis()->SetLabelSize(0.08);
-    g_r_bkg->GetYaxis()->SetRangeUser(min(0.95, 1. + 1.15*(r_min - 1.)), max(1.05, 1. + 1.15*(r_max - 1.)));
+    g_r_bkg->GetYaxis()->SetRangeUser(max(0.5, min(0.95, 1. + 1.15*(r_min - 1.))), min(1.5, max(1.05, 1. + 1.15*(r_max - 1.))));
     g_r_bkg->SetTitle("");
 
-    if(isys == 0) gSystem->Exec(Form("mkdir -p %s_sys", canvas_name.Data()));
     c->Print(Form("%s_sys/sys_%i.png", canvas_name.Data(), isys));
     for(auto h : signals) {
       TString hname = h->GetName();
@@ -286,22 +354,23 @@ int get_individual_MVA_histogram(int set = 8, TString selection = "zmutau",
     cout << "Unidentified selection " << selection.Data() << endl;
     return -1;
   }
-  if(use_dev_mva_) hist += "_1";
+  if(use_dev_mva_ > 0) hist += Form("_%i", use_dev_mva_);
 
   //define parameters for dataplotter script
   TString selec = selection; selec.ReplaceAll("z", ""); selec.ReplaceAll("h", "");
-  years_ = years;
   useEmbed_ = (embed_mode_ == 2) ? !selection.Contains("_") : embed_mode_; //whether or not to use embedding
-  status = nanoaod_init(selec, base, base);
+  years_ = years;
+  status = initialize_plotter(selec, base);
   if(status) {
-    cout << "DataPlotter initialization script returned " << status << ", exiting!\n";
+    cout << "DataPlotter initialization returned " << status << ", exiting!\n";
     return status;
   }
-  int set_offset = HistMaker::kEMu;
+
+  int set_offset = (use_lep_tau_set_) ? (selec.Contains("mutau")) ? HistMaker::kMuTauE : HistMaker::kETauMu : HistMaker::kEMu;
   if     (selec == "mutau") set_offset = HistMaker::kMuTau;
   else if(selec == "etau" ) set_offset = HistMaker::kETau;
 
-  dataplotter_->rebinH_ = 10*overall_rebin_;
+  dataplotter_->rebinH_ = overall_rebin_;
 
   ///////////////////////////////////////////////
   // Get the distributions
@@ -321,11 +390,27 @@ int get_individual_MVA_histogram(int set = 8, TString selection = "zmutau",
   TH1* hdata = dataplotter_->get_data(hist, "event", set+set_offset);
   if(!hdata) return 3;
   hdata->SetName("hdata");
+
+  //determine an appropriate plotting range
+  TH1* hlast = (TH1*) hstack->GetStack()->Last()->Clone("hbackground");
+  const int nbins = hlast->GetNbinsX();
+  xmin_ = hlast->GetBinLowEdge(1);
+  xmax_ = hlast->GetBinLowEdge(1) - 1.;
+  logy_ = false;
+  for(int ibin = 1; ibin <= nbins; ++ibin) {
+    //if haven't found a non-zero bin yet, update xmin, else update xmax
+    if(hlast->GetBinContent(ibin) <= 0. && xmax_ < xmin_) xmin_ = hlast->GetBinLowEdge(ibin);
+    else if(hlast->GetBinContent(ibin) > 0.) xmax_ = hlast->GetBinLowEdge(ibin) + hlast->GetBinWidth(ibin);
+    //check for logy by comparing sequential bins
+    if(ibin < nbins && hlast->GetBinContent(ibin) > 100. && hlast->GetBinContent(ibin+1) > 100.)
+      logy_ |= hlast->GetBinContent(ibin+1) / hlast->GetBinContent(ibin) < 0.5; //significant drop
+  }
+
   //blind high MVA score region if desired
   if(blind_data_) {
-    double mva_cut = 0.;
+    double mva_cut = (xmin_ > -0.1) ? 0.5 : 0.;
     int bin_start = hdata->FindBin(mva_cut);
-    for(int bin = bin_start; bin <= hdata->GetNbinsX(); ++bin) {
+    for(int bin = bin_start; bin <= hdata->GetNbinsX() + 1; ++bin) {
       hdata->SetBinContent(bin, 0.);
       hdata->SetBinError(bin, 0.5);
     }
@@ -335,13 +420,23 @@ int get_individual_MVA_histogram(int set = 8, TString selection = "zmutau",
   // Make an initial plot of the results
 
   TCanvas* c = new TCanvas();
-  hstack->Draw("hist noclear");
+
+  cout << "Plotting parameters: xmin = " << xmin_ << " xmax = " << xmax_ << " logy = " << logy_ << endl;
+  hdata->Draw("E");
+  hstack->Draw("same hist noclear");
   for(auto h : signals) {
     h->Draw("hist same");
   }
   hdata->Draw("same E");
-  hstack->GetXaxis()->SetRangeUser(-0.6,0.3);
-  hstack->GetYaxis()->SetRangeUser(0.9,1.1*hstack->GetMaximum());
+
+  hdata->GetXaxis()->SetRangeUser(xmin_,xmax_);
+  logy_ |= use_dev_mva_ == 2;
+  if(logy_) {
+    hdata->GetYaxis()->SetRangeUser(0.5,2*hstack->GetMaximum());
+    c->SetLogy();
+  } else {
+    hdata->GetYaxis()->SetRangeUser(0.9,1.1*hstack->GetMaximum());
+  }
 
   ///////////////////////////////////////////////
   // Save the results
@@ -353,7 +448,7 @@ int get_individual_MVA_histogram(int set = 8, TString selection = "zmutau",
   }
 
   //remove dev label for systematics/naming, since they're not defined
-  if(use_dev_mva_) hist.ReplaceAll("_1", "");
+  if(use_dev_mva_ > 0) hist.ReplaceAll(Form("_%i", use_dev_mva_), "");
 
   gSystem->Exec(Form("[ ! -d plots/latest_production/%s ] && mkdir -p plots/latest_production/%s", year_string.Data(), year_string.Data()));
   TString canvas_name = Form("plots/latest_production/%s/hist_%s_%s_%i", year_string.Data(), hist.Data(), selection.Data(), set);
@@ -364,8 +459,6 @@ int get_individual_MVA_histogram(int set = 8, TString selection = "zmutau",
   hdata->Write();
   hstack->SetName("hstack");
   hstack->Write();
-  TH1* hlast = (TH1*) hstack->GetStack()->Last();
-  hlast->SetName("hbackground");
   hlast->Write();
   hbkg_ = (TH1*) hlast->Clone("hbkg_");
 
@@ -374,8 +467,8 @@ int get_individual_MVA_histogram(int set = 8, TString selection = "zmutau",
     TString hname = h->GetName();
     hname.ReplaceAll("#", "");
     hname.ReplaceAll("->", "");
-    if(use_dev_mva_)
-      hname.ReplaceAll(Form("_%s_1_%i", hist.Data(), set+set_offset), "");
+    if(use_dev_mva_ > 0)
+      hname.ReplaceAll(Form("_%s_%i_%i", hist.Data(), use_dev_mva_, set+set_offset), "");
     else
       hname.ReplaceAll(Form("_%s_%i", hist.Data(), set+set_offset), "");
     hname.ToLower();
@@ -403,8 +496,16 @@ int get_individual_MVA_histogram(int set = 8, TString selection = "zmutau",
 
 int get_MVA_histogram(vector<int> sets = {8}, TString selection = "zmutau",
                       vector<int> years = {2016, 2017, 2018},
-                      TString base = "nanoaods_dev", int had_only = 0) {
+                      TString base = "nanoaods_dev",
+                      int had_only = 0 /*0: all; 1: hadronic; -1: leptonic; -2: same-flavor*/) {
   int status(0);
+  if(use_dev_mva_ == 1) overall_rebin_ = 50;
+  if(use_dev_mva_ == 2) overall_rebin_ = 4;
+  useLepTauSet_ = use_lep_tau_set_;
+  includeHiggs_ = selection.BeginsWith("h");
+
+  if(embed_mode_ != 1) cout << "!!! Warning! Using non-nominal embedding mode " << embed_mode_ << endl;
+
   //loop through the year list if separating years
   for(int iyear = 0; iyear < ((separate_years_) ? years.size() : 1); ++iyear) {
     vector<int> years_use;
@@ -413,16 +514,16 @@ int get_MVA_histogram(vector<int> sets = {8}, TString selection = "zmutau",
     //loop through the histogram set list for fitting in categories
     for(int set : sets) {
       //get the hadronic tau region
-      if(had_only != -1) status += get_individual_MVA_histogram(set, selection, years_use, base);
+      if(had_only >= 0) status += get_individual_MVA_histogram(set, selection, years_use, base);
       //get the leptonic tau region
-      if(test_sys_ < 0 && had_only != 1) { //only do one selection if debugging
+      if(test_sys_ < 0 && (had_only == 0 || had_only == -1)) { //only do one selection if debugging
         if(selection.Contains("mutau"))
           status += get_individual_MVA_histogram(set, selection+"_e", years_use, base);
         else if(selection.Contains("etau"))
           status += get_individual_MVA_histogram(set, selection+"_mu", years_use, base);
       }
       //get the same-flavor control regions
-      if(do_same_flavor_ && had_only == 0) {
+      if(do_same_flavor_ && (had_only == 0 || had_only == -2)) {
         cout << "Getting mumu histograms for set " << set << endl;
         status += get_same_flavor_histogram(set, "mumu", years_use, base);
         cout << "Getting ee histograms for set " << set << endl;
