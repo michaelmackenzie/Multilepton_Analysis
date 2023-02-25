@@ -1,4 +1,7 @@
 // Script to plot and print distributions using a DataPlotter object for CLFVHistMaker histograms
+#ifndef __DATAPLOTTER_CLFV__
+#define __DATAPLOTTER_CLFV__
+
 #include "datacards.C"
 using namespace CLFV;
 
@@ -1082,14 +1085,14 @@ Int_t init_dataplotter() {
     else if(selection_ == "mutau") dataplotter_->embed_scale_ = 1.; //1.295;
   }
 
-  if(selection_ == "emu")
-    {dataplotter_->signal_scale_ = 100.; dataplotter_->signal_scales_["H->e#mu"] = 400.;}
-  else if(selection_.Contains("_"))
-    {dataplotter_->signal_scale_ = 250.; dataplotter_->signal_scales_["H->#mu#tau"] = 300.; dataplotter_->signal_scales_["H->e#tau"] = 300.;}
-  else if(selection_.Contains("tau"))
-    {dataplotter_->signal_scale_ = 150.; dataplotter_->signal_scales_["H->#mu#tau"] = 250.; dataplotter_->signal_scales_["H->e#tau"] = 250.;}
-  else if(selection_ == "ee" || selection_ == "mumu")
-    dataplotter_->signal_scale_ = 2.e4;
+  // if(selection_ == "emu")
+  //   {dataplotter_->signal_scale_ = 100.; dataplotter_->signal_scales_["H->e#mu"] = 400.;}
+  // else if(selection_.Contains("_"))
+  //   {dataplotter_->signal_scale_ = 250.; dataplotter_->signal_scales_["H->#mu#tau"] = 300.; dataplotter_->signal_scales_["H->e#tau"] = 300.;}
+  // else if(selection_.Contains("tau"))
+  //   {dataplotter_->signal_scale_ = 150.; dataplotter_->signal_scales_["H->#mu#tau"] = 250.; dataplotter_->signal_scales_["H->e#tau"] = 250.;}
+  // else if(selection_ == "ee" || selection_ == "mumu")
+  //   dataplotter_->signal_scale_ = 2.e4;
 
   //ensure the years are sorted
   std::sort(years_.begin(),years_.end());
@@ -1198,7 +1201,7 @@ Int_t print_emu_dataset_plots(TString histDir = "", TString figureDir = "") {
   plottingcards.push_back(PlottingCard_t("mva9", "event", 200, -1.,   1. , 0.01, 1. ));
 
   for(unsigned i = 0; i < sets.size(); ++i) {
-    dataplotter_->signal_scale_ = scales[i];
+    // dataplotter_->signal_scale_ = scales[i];
     for(PlottingCard_t card : plottingcards) {
       card.set_ = sets[i];
       TCanvas* c = dataplotter_->plot_stack(card);
@@ -1281,14 +1284,14 @@ Int_t print_card_standard_years(PlottingCard_t card) {
     status += init_dataplotter();
     for(int index = 0; index < sets.size(); ++index) {
       card.set_ = sets[index];
-      double scale = 150.;
+      double scale = 1.;//150.;
       if     (selection_ == "mutau"  ) card.set_ += HistMaker::kMuTau;
       else if(selection_ == "etau"   ) card.set_ += HistMaker::kETau;
-      else if(selection_ == "emu"    ) {scale = 100.; card.set_ += HistMaker::kEMu;}
-      else if(selection_ == "mutau_e") {scale = 100.; card.set_ += HistMaker::kEMu;}
-      else if(selection_ == "etau_mu") {scale = 100.; card.set_ += HistMaker::kEMu;}
-      else if(selection_ == "mumu") {scale = 1.e4; card.set_ += HistMaker::kMuMu;}
-      else if(selection_ == "ee"  ) {scale = 1.e4; card.set_ += HistMaker::kEE;}
+      else if(selection_ == "emu"    ) {scale = 1.; card.set_ += HistMaker::kEMu;}
+      else if(selection_ == "mutau_e") {scale = 1.; card.set_ += HistMaker::kEMu;}
+      else if(selection_ == "etau_mu") {scale = 1.; card.set_ += HistMaker::kEMu;}
+      else if(selection_ == "mumu") {scale = 1.; card.set_ += HistMaker::kMuMu;}
+      else if(selection_ == "ee"  ) {scale = 1.; card.set_ += HistMaker::kEE;}
       // dataplotter_->signal_scale_ = scale;
       auto c = dataplotter_->print_stack(card);
       status += (c) ? 0 : 1;
@@ -1567,6 +1570,7 @@ Int_t print_misid_debug_plots(bool doMC = false, bool doSys = false) {
   cards.push_back(PlottingCard_t("twoeta"          , "lep"  , 2,  1.,  -1.));
   cards.push_back(PlottingCard_t("taudecaymode"    , "event", 0,  0.,  15.));
   // cards.push_back(PlottingCard_t("ptdiff"          , "lep"  , 2, -80,  80.));
+  cards.push_back(PlottingCard_t("ptratio"         , "lep"  , 1,  0,  (selection_.EndsWith("_mu") ? 5. : 3.)));
   cards.push_back(PlottingCard_t("met"             , "event", 2,  0., 100.));
   cards.push_back(PlottingCard_t("mtone"           , "event", 5,  0., 150.));
   cards.push_back(PlottingCard_t("mttwo"           , "event", 5,  0., 150.));
@@ -1882,8 +1886,8 @@ Int_t print_basic_debug_plots(bool test_trigger = false, bool doMC = false,
   else if(selection_ == "emu"    ) offset = HistMaker::kEMu;
   else if(selection_ == "mumu"   ) offset = HistMaker::kMuMu;
   else if(selection_ == "ee"     ) offset = HistMaker::kEE;
-  else if(selection_ == "mutau_e") offset = HistMaker::kEMu;
-  else if(selection_ == "etau_mu") offset = HistMaker::kEMu;
+  else if(selection_ == "mutau_e") offset = (useLepTauSet_) ? HistMaker::kMuTauE : HistMaker::kEMu;
+  else if(selection_ == "etau_mu") offset = (useLepTauSet_) ? HistMaker::kETauMu : HistMaker::kEMu;
   else {
     cout << "Debugging only defined for mutau, etau, emu, etau_mu, mutau_e, mumu, or ee!\n";
     return 2;
@@ -1945,16 +1949,18 @@ Int_t print_basic_debug_plots(bool test_trigger = false, bool doMC = false,
     for(unsigned index = 0; index < sets.size(); ++index) sets[index] += offset;
   }
 
+  const float mass_min = (selection_.EndsWith("tau")) ? 40. : (selection_.Contains("_")) ? 40. : 70.;
+  const float mass_max = (selection_ == "emu") ? 110. : 170.;
   vector<PlottingCard_t> cards;
   if(selection_ != "emu" && !selection_.Contains("_")) {
-    cards.push_back(PlottingCard_t("lepm"            , "event", 5, 50., 170.));
+    cards.push_back(PlottingCard_t("lepm"            , "event", 5, mass_min, mass_max));
   } else {
-    cards.push_back(PlottingCard_t("lepm"            , "event", 5, 50., 170., {84., 118.}, {98., 132.}));
+    cards.push_back(PlottingCard_t("lepm"            , "event", 5, mass_min, mass_max, 84., 98.));
   }
   cards.push_back(PlottingCard_t("leppt"           , "event", 2,  0., 100.));
   if(same_flavor) {
-    cards.push_back(PlottingCard_t("lepm1"           , "event", 5, 50., 170.));
-    cards.push_back(PlottingCard_t("lepm2"           , "event", 5, 50., 170.));
+    cards.push_back(PlottingCard_t("lepm1"           , "event", 5, mass_min, mass_max));
+    cards.push_back(PlottingCard_t("lepm2"           , "event", 5, mass_min, mass_max));
     cards.push_back(PlottingCard_t("leppt1"          , "event", 2,  0., 100.));
     cards.push_back(PlottingCard_t("leppt2"          , "event", 2,  0., 100.));
     cards.push_back(PlottingCard_t("onept8"          , "lep"  , 1, 10., 120.)); //no Z pT vs M weight
@@ -1969,20 +1975,23 @@ Int_t print_basic_debug_plots(bool test_trigger = false, bool doMC = false,
   cards.push_back(PlottingCard_t("twopt"           , "lep"  , 2, (tau_set) ? 20. : 10., 120.));
   cards.push_back(PlottingCard_t("twoeta"          , "lep"  , 2,  1.,  -1.));
   cards.push_back(PlottingCard_t("ptdiff"          , "lep"  , 2, (same_flavor) ? -5. : -50,  (same_flavor) ? 75. : 50.));
+  cards.push_back(PlottingCard_t("ptratio"         , "lep"  , 1, 0., 2.5));
 
   //MET, di-lepton projection variables
   if(tau_set) {
     cards.push_back(PlottingCard_t("taudecaymode"    , "event", 0,  0.,  15.));
-    cards.push_back(PlottingCard_t("lepmestimate"   , "event", 1, 50., 170., {80., 115.}, {100., 135.}));
+    cards.push_back(PlottingCard_t("lepmestimate"   , "event", 1, mass_min, mass_max, 80., 100.));
   } else if(selection_ == "emu" || selection_.Contains("_")) {
-    cards.push_back(PlottingCard_t("lepmestimate"   , "event", 1, 50., 170., {86., 120.}, {96., 130.}));
-    cards.push_back(PlottingCard_t("lepmestimatetwo", "event", 1, 50., 170., {86., 120.}, {96., 130.}));
+    cards.push_back(PlottingCard_t("lepmestimate"   , "event", 1, mass_min, mass_max, 86., 96.));
+    cards.push_back(PlottingCard_t("lepmestimatetwo", "event", 1, mass_min, mass_max, 86., 96.));
   } else {
-    cards.push_back(PlottingCard_t("lepmestimate"   , "event", 1, 50., 170.));
-    cards.push_back(PlottingCard_t("lepmestimatetwo", "event", 1, 50., 170.));
+    cards.push_back(PlottingCard_t("lepmestimate"   , "event", 1, mass_min, mass_max));
+    cards.push_back(PlottingCard_t("lepmestimatetwo", "event", 1, mass_min, mass_max));
   }
-  cards.push_back(PlottingCard_t("deltaalpha0"     , "event", 2, -3.,   6., -1., 0.5)); //lep_1 = tau
-  cards.push_back(PlottingCard_t("deltaalpha1"     , "event", 2, -3.,   6., -1., 0.5)); //lep_2 = tau
+  cards.push_back(PlottingCard_t("deltaalpha0"     , "event", 1, -3.,   3., -0.8, 0.5)); //lep_1 = tau
+  cards.push_back(PlottingCard_t("deltaalpha1"     , "event", 1, -3.,   3., -0.8, 0.5)); //lep_2 = tau
+  cards.push_back(PlottingCard_t("beta0"           , "event", 1,  0.,   3., (selection_.EndsWith("_e")) ? 0.8 : 1.0, (selection_.EndsWith("_e")) ?  1.2 : -1.0));
+  cards.push_back(PlottingCard_t("beta1"           , "event", 1,  0.,   3., (selection_.EndsWith("_e")) ? 1.0 : 0.8, (selection_.EndsWith("_e")) ? -1.0 :  1.2));
 
   //ttbar rejection variables
   cards.push_back(PlottingCard_t("pzetavis"        , "event", 1,  1., -1.));
@@ -2027,6 +2036,7 @@ Int_t print_basic_debug_plots(bool test_trigger = false, bool doMC = false,
   cards.push_back(PlottingCard_t("mtone"           , "event", 5,  0., 150.));
   cards.push_back(PlottingCard_t("mttwo"           , "event", 5,  0., 150.));
   cards.push_back(PlottingCard_t("mtlep"           , "event", 5,  0., 150.));
+  cards.push_back(PlottingCard_t("metdeltaphi"     , "event", 2,  0.,   5.));
 
   //jet variables
   cards.push_back(PlottingCard_t("ht"              , "event", 2,  1.,  -1.));
@@ -2041,19 +2051,20 @@ Int_t print_basic_debug_plots(bool test_trigger = false, bool doMC = false,
   cards.push_back(PlottingCard_t("lepdeltaeta"     , "event", 2,  0.,   5.));
   cards.push_back(PlottingCard_t("lepeta"          , "event", 2,  1., -1.));
 
-  // //gen-level Z info
-  // cards.push_back(PlottingCard_t("zeta"            , "event", 2,  1., -1.));
+  //gen-level Z info
+  cards.push_back(PlottingCard_t("zeta"            , "event", 2,  1., -1.));
   // cards.push_back(PlottingCard_t("zpt5"            , "event", 2,  0., 100.));
-  // cards.push_back(PlottingCard_t("zmass5"          , "event", 2, 50., 170., {86., 120.}, {96., 130.})));
+  // cards.push_back(PlottingCard_t("zmass5"          , "event", 2, 50., 170., 86., 96.));
 
   //event info
   // cards.push_back(PlottingCard_t("lhenjets"        , "event", 0,  0  ,  6  ));
-  cards.push_back(PlottingCard_t("ntriggered"      , "event", 0,  0.,   5.));
-  cards.push_back(PlottingCard_t("nelectrons"      , "event", 0,  0.,   5.));
-  cards.push_back(PlottingCard_t("nmuons"          , "event", 0,  0.,   5.));
-  cards.push_back(PlottingCard_t("ntaus"           , "event", 0,  0.,   5.));
+  // cards.push_back(PlottingCard_t("ntriggered"      , "event", 0,  0.,   5.));
+  // cards.push_back(PlottingCard_t("nelectrons"      , "event", 0,  0.,   5.));
+  // cards.push_back(PlottingCard_t("nmuons"          , "event", 0,  0.,   5.));
+  // cards.push_back(PlottingCard_t("ntaus"           , "event", 0,  0.,   5.));
   // cards.push_back(PlottingCard_t("npv"             , "event", 0,  0.,  60.));
-  cards.push_back(PlottingCard_t("mcera"             , "event", 0,  0  ,  8  ));
+  if(same_flavor) cards.push_back(PlottingCard_t("npv1"             , "event", 0,  0.,  60.));
+  cards.push_back(PlottingCard_t("mcera"           , "event", 0,  0 ,   8 ));
 
   //lepton info
   cards.push_back(PlottingCard_t("onemetdeltaphi"  , "lep"  , 2,  0.,   5.));
@@ -2073,7 +2084,7 @@ Int_t print_basic_debug_plots(bool test_trigger = false, bool doMC = false,
 
   //weight info
   cards.push_back(PlottingCard_t("eventweight"       , "event", 0,   0.,  2.));
-  cards.push_back(PlottingCard_t("genweight"         , "event", 0, -2.5,  2.5));
+  // cards.push_back(PlottingCard_t("genweight"         , "event", 0, -2.5,  2.5));
   cards.push_back(PlottingCard_t("logeventweight"    , "event", 0,  -5.,  1. ));
   cards.push_back(PlottingCard_t("onetrigweight"     , "lep"  , 0,  0.5,  1.5));
   cards.push_back(PlottingCard_t("twotrigweight"     , "lep"  , 0,  0.5,  1.5));
@@ -2088,27 +2099,38 @@ Int_t print_basic_debug_plots(bool test_trigger = false, bool doMC = false,
   if(mvas) {
     if(selection_ == "mutau") {
       // cards.push_back(PlottingCard_t("mva0"            , "event", 0,  -0.8, 0.4, 0., 0.6));
-      cards.push_back(PlottingCard_t("mva1"            , "event", 0,  -0.8, 0.4, 0., 0.6));
       // cards.push_back(PlottingCard_t("mva0_1"          , "event",20,  -0.8, 0.5, 0., 0.6));
-      cards.push_back(PlottingCard_t("mva1_1"          , "event",20,  -0.8, 0.5, 0., 0.6));
+      cards.push_back(PlottingCard_t("mva1"            , "event", 1,  0,  -0.8, 0.4, 0., 0.6));
+      cards.push_back(PlottingCard_t("mva1"            , "event", 1,  0,  -0.8, 0.4, 0., 0.6, true)); //density plot
+      cards.push_back(PlottingCard_t("mva1_1"          , "event", 1, 20,  -0.8, 0.5, 0., 0.6));
+      cards.push_back(PlottingCard_t("mva1_2"          , "event", 1,  2,   0.0, 1.0, 0.5, 1.));
     } else if(selection_ == "etau") {
       // cards.push_back(PlottingCard_t("mva2"            , "event", 0,  -0.8, 0.4, 0., 0.6));
-      cards.push_back(PlottingCard_t("mva3"            , "event", 0,  -0.8, 0.4, 0., 0.6));
       // cards.push_back(PlottingCard_t("mva2_1"          , "event",20,  -0.8, 0.5, 0., 0.6));
-      cards.push_back(PlottingCard_t("mva3_1"          , "event",20,  -0.8, 0.5, 0., 0.6));
-    } else {
-      // cards.push_back(PlottingCard_t("mva4"            , "event", 0,  -0.8, 0.4, 0., 0.6));
-      cards.push_back(PlottingCard_t("mva5"            , "event", 0,  -0.8, 0.4, 0., 0.6));
-      // cards.push_back(PlottingCard_t("mva6"            , "event", 0,  -0.8, 0.4, 0., 0.6));
-      cards.push_back(PlottingCard_t("mva7"            , "event", 0,  -0.8, 0.4, 0., 0.6));
-      // cards.push_back(PlottingCard_t("mva8"            , "event", 0,  -0.8, 0.4, 0., 0.6));
-      cards.push_back(PlottingCard_t("mva9"            , "event", 0,  -0.8, 0.4, 0., 0.6));
-      // cards.push_back(PlottingCard_t("mva4_1"          , "event",20,  -0.8, 0.5, 0., 0.6));
-      cards.push_back(PlottingCard_t("mva5_1"          , "event",20,  -0.8, 0.5, 0., 0.6));
-      // cards.push_back(PlottingCard_t("mva6_1"          , "event",20,  -0.8, 0.5, 0., 0.6));
-      cards.push_back(PlottingCard_t("mva7_1"          , "event",20,  -0.8, 0.5, 0., 0.6));
-      // cards.push_back(PlottingCard_t("mva8_1"          , "event",20,  -0.8, 0.5, 0., 0.6));
-      cards.push_back(PlottingCard_t("mva9_1"          , "event",20,  -0.8, 0.5, 0., 0.6));
+      cards.push_back(PlottingCard_t("mva3"            , "event", 1,  0,  -0.8, 0.4, 0., 0.6));
+      cards.push_back(PlottingCard_t("mva3"            , "event", 1,  0,  -0.8, 0.4, 0., 0.6, true)); //density plot
+      cards.push_back(PlottingCard_t("mva3_1"          , "event", 1, 20,  -0.8, 0.5, 0., 0.6));
+      cards.push_back(PlottingCard_t("mva3_2"          , "event", 1,  2,   0.0, 1.0, 0.5, 1.));
+    } else if(same_flavor) {
+      cards.push_back(PlottingCard_t("mva5"            , "event", 1,  0,  -0.8, 0.4, 1., -1.));
+      cards.push_back(PlottingCard_t("mva5"            , "event", 1,  0,  -0.8, 0.4, 1., -1., true)); //density plot
+      cards.push_back(PlottingCard_t("mva5_1"          , "event", 1, 20,  -0.8, 0.5, 1., -1.));
+      cards.push_back(PlottingCard_t("mva5_2"          , "event", 1,  2,   0.0, 1.0, 0.5, 1.));
+    } else if(selection_ == "emu") {
+      cards.push_back(PlottingCard_t("mva5"            , "event", 1,  0,  -0.8, 0.4, 0., 0.6));
+      cards.push_back(PlottingCard_t("mva5"            , "event", 1,  0,  -0.8, 0.4, 0., 0.6, true)); //density plot
+      cards.push_back(PlottingCard_t("mva5_1"          , "event", 1, 20,  -0.8, 0.5, 0., 0.6));
+      cards.push_back(PlottingCard_t("mva5_2"          , "event", 1,  2,   0.0, 1.0, 0.5, 1.));
+    } else if(selection_ == "mutau_e") {
+      cards.push_back(PlottingCard_t("mva7"            , "event", 1,  0,  -0.8, 0.4, 0., 0.6));
+      cards.push_back(PlottingCard_t("mva7"            , "event", 1,  0,  -0.8, 0.4, 0., 0.6, true)); //density plot
+      cards.push_back(PlottingCard_t("mva7_1"          , "event", 1, 20,  -0.8, 0.5, 0., 0.6));
+      cards.push_back(PlottingCard_t("mva7_2"          , "event", 1,  2,   0.0, 1.0, 0.5, 1.));
+    } else if(selection_ == "etau_mu") {
+      cards.push_back(PlottingCard_t("mva9"            , "event", 1,  0,  -0.8, 0.4, 0., 0.6));
+      cards.push_back(PlottingCard_t("mva9"            , "event", 1,  0,  -0.8, 0.4, 0., 0.6, true)); //density plot
+      cards.push_back(PlottingCard_t("mva9_1"          , "event", 1, 20,  -0.8, 0.5, 0., 0.6));
+      cards.push_back(PlottingCard_t("mva9_2"          , "event", 1,  2,   0.0, 1.0, 0.5, 1.));
     }
   }
 
@@ -2125,39 +2147,43 @@ Int_t print_basic_debug_plots(bool test_trigger = false, bool doMC = false,
       }
     }
     //Adjust the signal scale if needed
-    if(selection_ == "emu") {
-      if(set % 100 == 24 || set % 100 == 25) {
-        dataplotter_->signal_scale_ = 10.; dataplotter_->signal_scales_["H->e#mu"] = 40.;
-      } else {
-        dataplotter_->signal_scale_ = 100.; dataplotter_->signal_scales_["H->e#mu"] = 400.;
-      }
-    }
+    // if(selection_ == "emu") {
+    //   if(set % 100 == 24 || set % 100 == 25) {
+    //     dataplotter_->signal_scale_ = 10.; dataplotter_->signal_scales_["H->e#mu"] = 40.;
+    //   } else {
+    //     dataplotter_->signal_scale_ = 100.; dataplotter_->signal_scales_["H->e#mu"] = 400.;
+    //   }
+    // }
     //Don't plot data in MVA categories or mass window sets
-    if(selection_ == "emu" && (set % 100 == 13 || set % 100 == 12 || set % 100 == 24 || set % 100 == 25)) {
-      dataplotter_->plot_data_ = 0;
-    } else {
-      dataplotter_->plot_data_ = 1;
-    }
+    const int plot_data = (selection_ == "emu" && (set % 100 == 13 || set % 100 == 12 || set % 100 == 24 || set % 100 == 25)) ? 0 : 1;
     for(PlottingCard_t card : cards) {
       card.set_ = set;
+      if(selection_ != "emu" || card.hist_ != "lepm") dataplotter_->plot_data_ = plot_data;
+      else                                            dataplotter_->plot_data_ = 1; //naturally blinding the data region of interest
       dataplotter_->logY_ = (card.hist_.Contains("njets") || card.hist_.Contains("reliso")
                              || card.hist_ == "ht" || card.hist_ == "htsum"
                              || card.hist_.Contains("ntaus") || card.hist_.Contains("nmuons")
-                             || card.hist_.Contains("nelectrons") || card.hist_.Contains("d0"));
-      if(card.hist_.Contains("mva")) {
+                             || card.hist_.Contains("nelectrons") || card.hist_.Contains("d0")
+                             || (card.hist_.BeginsWith("mva") && card.hist_.EndsWith("_2")));
+      auto tmp_blind_min = card.blindmin_;
+      auto tmp_blind_max = card.blindmax_;
+      if(card.hist_.Contains("mva") && !same_flavor) {
         if(set > 1000 || ((set % 100) >= 30 && (set % 100) <= 32)) {//control region histogram, don't blind
           card.blindmin_ = {};
           card.blindmax_ = {};
-        } else { //blind singal region high score MVA region
-          card.blindmin_ = {0.};
-          card.blindmax_ = {1.};
         }
+        // else { //blind singal region high score MVA region
+        //   card.blindmin_ = {0.};
+        //   card.blindmax_ = {1.};
+        // }
       }
       c = dataplotter_->print_stack(card);
       if(c) {
         DataPlotter::Empty_Canvas(c);
       } else ++status;
       c = nullptr;
+      card.blindmin_ = tmp_blind_min;
+      card.blindmax_ = tmp_blind_max;
     }
   }
   dataplotter_->plot_data_ = 1;
@@ -2165,18 +2191,20 @@ Int_t print_basic_debug_plots(bool test_trigger = false, bool doMC = false,
   //Print limit gain plots
   if(mvas) {
     if(selection_ == "mutau") {
-      c = dataplotter_->print_significance("mva0_1", "event", 8 + offset, "H->#mu#tau", -1., 0.5);
-      if(c) DataPlotter::Empty_Canvas(c);
+      // c = dataplotter_->print_significance("mva0_1", "event", 8 + offset, "H->#mu#tau", -1., 0.5);
+      // if(c) DataPlotter::Empty_Canvas(c);
       c = dataplotter_->print_significance("mva1_1", "event", 8 + offset, "Z->#mu#tau", -1., 0.5);
       if(c) DataPlotter::Empty_Canvas(c);
-    } else if(selection_ == "etau") {
-      c = dataplotter_->print_significance("mva2_1", "event", 8 + offset, "H->e#tau", -1., 0.5);
+      c = dataplotter_->print_cdf("mva1_1", "event", 8 + offset, "Z->#mu#tau", -1., 0.5);
       if(c) DataPlotter::Empty_Canvas(c);
+    } else if(selection_ == "etau") {
+      // c = dataplotter_->print_significance("mva2_1", "event", 8 + offset, "H->e#tau", -1., 0.5);
+      // if(c) DataPlotter::Empty_Canvas(c);
       c = dataplotter_->print_significance("mva3_1", "event", 8 + offset, "Z->e#tau", -1., 0.5);
       if(c) DataPlotter::Empty_Canvas(c);
     } else if(selection_ == "emu") {
-      c = dataplotter_->print_significance("mva4_1", "event", 8 + offset, "H->e#mu", -1., 0.5);
-      if(c) DataPlotter::Empty_Canvas(c);
+      // c = dataplotter_->print_significance("mva4_1", "event", 8 + offset, "H->e#mu", -1., 0.5);
+      // if(c) DataPlotter::Empty_Canvas(c);
       c = dataplotter_->print_significance("mva5_1", "event", 8 + offset, "Z->e#mu", -1., 0.5);
       if(c) DataPlotter::Empty_Canvas(c);
       dataplotter_->limit_xmax_ = 95.; dataplotter_->limit_xmin_ = 0.;
@@ -2188,13 +2216,13 @@ Int_t print_basic_debug_plots(bool test_trigger = false, bool doMC = false,
       if(c) DataPlotter::Empty_Canvas(c);
       dataplotter_->limit_xmax_ = -1.; dataplotter_->limit_xmin_ = 1.;
     } else if(selection_ == "mutau_e") {
-      c = dataplotter_->print_significance("mva6_1", "event", 8 + offset, "H->#mu#tau", -1., 0.5);
-      if(c) DataPlotter::Empty_Canvas(c);
+      // c = dataplotter_->print_significance("mva6_1", "event", 8 + offset, "H->#mu#tau", -1., 0.5);
+      // if(c) DataPlotter::Empty_Canvas(c);
       c = dataplotter_->print_significance("mva7_1", "event", 8 + offset, "Z->#mu#tau", -1., 0.5);
       if(c) DataPlotter::Empty_Canvas(c);
     } else if(selection_ == "etau_mu") {
-      c = dataplotter_->print_significance("mva8_1", "event", 8 + offset, "H->e#tau", -1., 0.5);
-      if(c) DataPlotter::Empty_Canvas(c);
+      // c = dataplotter_->print_significance("mva8_1", "event", 8 + offset, "H->e#tau", -1., 0.5);
+      // if(c) DataPlotter::Empty_Canvas(c);
       c = dataplotter_->print_significance("mva9_1", "event", 8 + offset, "Z->e#tau", -1., 0.5);
       if(c) DataPlotter::Empty_Canvas(c);
     }
@@ -2467,3 +2495,5 @@ Int_t print_combine_cards() {
 
   return status;
 }
+
+#endif

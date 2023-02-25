@@ -13,17 +13,19 @@ TString hist_tag_     = "clfv"; //leading tag from HistMaker, e.g. "clfv", "hist
 int    useUL_        =  0 ; //use UL dataset definitions
 int    ZMode_        =  0 ; //which Z cross-section information to use
 int    useAMC_       =  1 ; //use amc@NLO samples in place of previous LO samples
+int    useWG_        =  0 ; //use the W+gamma dataset
 int    splitDY_      =  1 ; //split Z->tautau and Z->ee/mumu
 int    splitWJ_      =  1 ; //use N(LHE jets) split W+Jets samples
 int    useEmbed_     =  1 ; //use Z->tautau embedding
 double embedScale_   =  1.; //scale factor to add onto the embedding normalization, < 0 means use defaults
 int    useQCDMC_     =  0 ; //use MC QCD background estimates
 int    combineVB_    =  1 ; //combine W+Jets with other vector boson processes
-int    includeHiggs_ =  1 ; //include the higgs signals in the plots
-int    correctEmbed_ =  0 ; //check the event histogram vs gen numbers to correct for missing events
+int    includeHiggs_ =  0 ; //include the higgs signals in the plots
+int    correctEmbed_ =  1 ; //check the event histogram vs gen numbers to correct for missing events
+bool   useLepTauSet_ =  1 ; //use leptonic tau files for leptonic tau selections
 
 //get the data cards needed
-void get_datacards(std::vector<dcard>& cards, TString selection, bool forStudies = false) {
+void get_datacards(std::vector<dcard>& cards, TString selection, int forStudies = 0 /*0: plotting; 1: studies; 2: fits*/) {
   //cross section handler
   CrossSections xs(useUL_, ZMode_);
   bool leptonic_tau = (selection.Contains("tau_")); //mutau_l, etau_l
@@ -39,12 +41,12 @@ void get_datacards(std::vector<dcard>& cards, TString selection, bool forStudies
 
   //Names of the different background categories
   TString top   = "Top";
-  TString dy_tt = (forStudies) ? "ZJets" : "Z->#tau#tau";
-  TString dy_ll = (forStudies) ? "ZJets" : "Z->ee/#mu#mu";
-  TString dy    = (forStudies) ? "ZJets" : "Drell-Yan";
-  TString embed = (forStudies) ? "ZJets" : "#tau#tau Embedding";
-  TString wj    = (forStudies) ? "WJets" : (combineVB_) ? "Other VB" : "W+Jets";
-  TString vb    = (forStudies) ? "WJets" : "Other VB";
+  TString dy_tt = (forStudies == 1) ? "ZJets" : "Z->#tau#tau";
+  TString dy_ll = (forStudies == 1) ? "ZJets" : "Z->ee/#mu#mu";
+  TString dy    = (forStudies == 1) ? "ZJets" : "Drell-Yan";
+  TString embed = (forStudies == 1) ? "ZJets" : "#tau#tau Embedding";
+  TString wj    = (forStudies == 1) ? "WJets" : (combineVB_) ? "Other VB" : "W+Jets";
+  TString vb    = (forStudies == 1) ? "WJets" : "Other VB";
 
   const int top_c = kYellow - 7;
   const int dy_ll_c = (forStudies) ? kRed - 7 : kRed - 2;
@@ -71,7 +73,7 @@ void get_datacards(std::vector<dcard>& cards, TString selection, bool forStudies
     cards.push_back(dcard("EWKWplus"           , "EWKWplus"           , vb.Data()   , false, xs.GetCrossSection("EWKWplus"           ), false, year, vb_c));
     cards.push_back(dcard("EWKWminus"          , "EWKWminus"          , vb.Data()   , false, xs.GetCrossSection("EWKWminus"          ), false, year, vb_c));
     cards.push_back(dcard("EWKZ-M50"           , "EWKZ-M50"           , vb.Data()   , false, xs.GetCrossSection("EWKZ-M50"           ), false, year, vb_c));
-    cards.push_back(dcard("WGamma"             , "WGamma"             , wj.Data()   , false, xs.GetCrossSection("WGamma"             ), false, year, wj_c));
+    if(useWG_) cards.push_back(dcard("WGamma"             , "WGamma"             , wj.Data()   , false, xs.GetCrossSection("WGamma"             ), false, year, wj_c));
     //if splitting W+Jets into jet-binned samples, use W+Jets inclusive 0-j for 0-j, then jet-binned samples for the rest
     if(splitWJ_) {
       cards.push_back(dcard("Wlnu-0"           , "Wlnu-0"             , wj.Data()   , false, xs.GetCrossSection("Wlnu"               ), false, year, wj_c, !useUL_&&year!=2018));
@@ -102,8 +104,10 @@ void get_datacards(std::vector<dcard>& cards, TString selection, bool forStudies
         for(int period = 0; period < periods[year].size(); ++period) {
           TString run = periods[year][period];
           if(!(selection == "ee" || selection == "mumu")) {
-            cards.push_back(dcard(("Embed-MuTau-"+run).Data(), ("Embed-MuTau-"+run).Data(), embed.Data(), false, xs.GetCrossSection("Embed-MuTau-"+run, year), false, year, dy_tt_c));
-            cards.push_back(dcard(("Embed-ETau-" +run).Data(), ("Embed-ETau-" +run).Data(), embed.Data(), false, xs.GetCrossSection("Embed-ETau-" +run, year), false, year, dy_tt_c));
+            if(selection != "etau")
+              cards.push_back(dcard(("Embed-MuTau-"+run).Data(), ("Embed-MuTau-"+run).Data(), embed.Data(), false, xs.GetCrossSection("Embed-MuTau-"+run, year), false, year, dy_tt_c));
+            if(selection != "mutau")
+              cards.push_back(dcard(("Embed-ETau-" +run).Data(), ("Embed-ETau-" +run).Data(), embed.Data(), false, xs.GetCrossSection("Embed-ETau-" +run, year), false, year, dy_tt_c));
             cards.push_back(dcard(("Embed-EMu-"  +run).Data(), ("Embed-EMu-"  +run).Data(), embed.Data(), false, xs.GetCrossSection("Embed-EMu-"  +run, year), false, year, dy_tt_c));
           } else if(selection == "mumu") {
             cards.push_back(dcard(("Embed-MuMu-"+run).Data(), ("Embed-MuMu-"+run).Data(), "#mu#mu Embedding", false, xs.GetCrossSection("Embed-MuMu-"+run, year), false, year, dy_ll_c));
@@ -147,7 +151,20 @@ void get_datacards(std::vector<dcard>& cards, TString selection, bool forStudies
         cards.push_back(dcard("QCDEMEnrich300toInf"     , "QCDEMEnrich300toInf"     , "QCD", false, xs.GetCrossSection("QCDEMEnrich300toInf"     ), false, year, kOrange+6));
       }
     }
-    if(!forStudies) {
+    if(forStudies == 0) {
+      const double zxs = xs.GetCrossSection("Z");
+      const double hxs = xs.GetCrossSection("H");
+      if(selection == "emu") {
+        cards.push_back(                  dcard("ZEMu"             , "ZEMu"             , "Z->e#mu (10^{-5})"   , false, 1.e-5*zxs, true, year, kBlue   ));
+        if(includeHiggs_) cards.push_back(dcard("HEMu"             , "HEMu"             , "H->e#mu (10^{-2})"   , false, 1.e-2*hxs, true, year, kGreen-1));
+      } else if(selection.Contains("etau") || selection == "ee") {
+        cards.push_back(                  dcard("ZETau"            , "ZETau"            , "Z->e#tau (10^{-3})"  , false, 1.e-3*zxs, true, year, kBlue   ));
+        if(includeHiggs_) cards.push_back(dcard("HETau"            , "HETau"            , "H->e#tau (10^{-1})"  , false, 1.e-1*hxs, true, year, kGreen-1));
+      } else if(selection.Contains("mutau") || selection == "mumu") {
+        cards.push_back(                  dcard("ZMuTau"           , "ZMuTau"           , "Z->#mu#tau (10^{-3})", false, 1.e-3*zxs, true, year, kBlue   ));
+        if(includeHiggs_) cards.push_back(dcard("HMuTau"           , "HMuTau"           , "H->#mu#tau (10^{-1})", false, 1.e-1*hxs, true, year, kGreen-1));
+      }
+    } else if(forStudies == 2) { //include signal in a study
       if(selection == "emu") {
         cards.push_back(                  dcard("ZEMu"             , "ZEMu"             , "Z->e#mu"   , false, xs.GetCrossSection("ZEMu"  ), true, year, kBlue   ));
         if(includeHiggs_) cards.push_back(dcard("HEMu"             , "HEMu"             , "H->e#mu"   , false, xs.GetCrossSection("HEMu"  ), true, year, kGreen-1));
@@ -159,7 +176,7 @@ void get_datacards(std::vector<dcard>& cards, TString selection, bool forStudies
         if(includeHiggs_) cards.push_back(dcard("HMuTau"           , "HMuTau"           , "H->#mu#tau", false, xs.GetCrossSection("HMuTau"), true, year, kGreen-1));
       }
     }
-    //Add data
+    //add data
     if(useRunPeriodData_ == 0) { //use merged data samples
       if(selection != "etau"  && selection !="ee"  ) cards.push_back(dcard("SingleMu" , "SingleMu" , "Data", true , 1., false, year));
       if(selection != "mutau" && selection !="mumu") cards.push_back(dcard("SingleEle", "SingleEle", "Data", true , 1., false, year));
@@ -177,7 +194,7 @@ void get_datacards(std::vector<dcard>& cards, TString selection, bool forStudies
   } //end years loop
 
 
-  TString selection_dir = (leptonic_tau) ? "emu" : selection;
+  TString selection_dir = (leptonic_tau && !useLepTauSet_) ? "emu" : selection;
   //add full name to file name
   for(unsigned index = 0; index < cards.size(); ++index) {
     cards[index].isembed_ = cards[index].name_.Contains("Embed");
