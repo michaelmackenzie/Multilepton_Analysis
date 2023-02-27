@@ -41,7 +41,7 @@ namespace CLFV {
     }
 
 
-    Bool_t          fDYTesting = false; //for speeding up histogramming to only do DY weight related aspects
+    Bool_t          fFakeLeptonTesting = false; //fill histograms with MC fake leptons included
     Bool_t          fDYFakeTauTesting = false; //for speeding up histogramming to only do DY jet --> fake tau scale factor aspects
     Bool_t          fWJFakeTauTesting = false; //for speeding up histogramming to only do W+jet --> fake tau scale factor aspects
     Bool_t          fTTFakeTauTesting = false; //for speeding up histogramming to only do ttbar jet --> fake tau scale factor aspects

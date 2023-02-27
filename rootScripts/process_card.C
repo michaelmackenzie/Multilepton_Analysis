@@ -55,8 +55,9 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
   const bool isMuonData     = card.isData_ == 2;
 
   //check that the chain is defined
-  if(!chain /*|| chain->GetNtrees() <= 0*/) {
-    printf("Chain in %s/%s not found, continuing\n",card.filepath_.Data(), selection.Data());
+  TString tree_name = (selection.Contains("_")) ? "emu" : selection;
+  if(!chain) {
+    printf("Chain in %s/%s not found, continuing\n",card.filepath_.Data(), tree_name.Data());
     return 1;
   }
 
@@ -73,37 +74,41 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
   for(int wjloop = -1; wjloop < nwloops; ++wjloop) { //start from -1 to also do unsplit histogram
     for(int dyloop = 1; dyloop <= ndyloops; ++dyloop) {
       auto selec = new HISTOGRAMMER(systematicSeed_); //selector
-      selec->fSelection = (lep_tau_ && selection == "emu") ? (lep_tau_ == 1) ? "mutau_e" : "etau_mu" : selection;
+      selec->fSelection = selection;
 
       if(dynamic_cast<CLFVHistMaker*> (selec)) {
         auto clfv_selec = (CLFVHistMaker*) selec;
-        clfv_selec->fDYTesting         = DYTesting_;
         clfv_selec->fDYFakeTauTesting  = DYFakeTau_;
         clfv_selec->fWJFakeTauTesting  = WJFakeTau_;
         clfv_selec->fTTFakeTauTesting  = TTFakeTau_;
         clfv_selec->fQCDFakeTauTesting = QCDFakeTau_;
         clfv_selec->fJetTauTesting     = JetTauTesting_;
+        clfv_selec->fFakeLeptonTesting = FakeLeptonTesting_;
         clfv_selec->fCutFlowTesting    = CutFlowTesting_;
         clfv_selec->fTriggerTesting    = TriggerTesting_;
         clfv_selec->fDoMVASets = DoMVASets_ > 0 && (DoMVASets_ > 2 || (DoMVASets_ == 2 && !(selection.Contains("tau"))) || (selection == "emu"));
       }
       if(dynamic_cast<HistMaker*> (selec)) {
         auto hist_selec = (HistMaker*) selec;
-        hist_selec->fPrintTime         = 2; //Print detailed summary of processing times
-        hist_selec->fPrintFilling      = 1; //print detailed histogram set filling
-        hist_selec->fDoTriggerMatching = doTriggerMatching_;
-        hist_selec->fReprocessMVAs     = ReprocessMVAs_; //reevaluate MVA scores on the fly
-        hist_selec->fProcessSSSF       = doSSSF_;
-        hist_selec->fDoEventList       = selection == "ee" || selection == "mumu";
-        hist_selec->fDoHiggs           = doHiggs_;
-        hist_selec->fSparseHists       = sparseHists_;
-        hist_selec->fUseSignalZWeights = useSignalZWeights_;
-        hist_selec->fUseEmbedRocco     = useEmbedRocco_;
-        hist_selec->fUseRoccoCorr      = useRoccoCorr_;
-        hist_selec->fNotifyCount       = notify_;
-        hist_selec->fLoadBaskets       = false;
-        hist_selec->fMinLepM           = (selection == "emu") ?  65.f : 35.f;
-        hist_selec->fMaxLepM           = (selection == "emu") ? 115.f : (selection.EndsWith("tau")) ? 175.f : 175.f;
+        hist_selec->fPrintTime          = 2; //Print detailed summary of processing times
+        hist_selec->fPrintFilling       = 1; //print detailed histogram set filling
+        hist_selec->fDoTriggerMatching  = doTriggerMatching_;
+        hist_selec->fReprocessMVAs      = ReprocessMVAs_; //reevaluate MVA scores on the fly
+        hist_selec->fProcessSSSF        = doSSSF_;
+        hist_selec->fDoEventList        = selection == "ee" || selection == "mumu";
+        hist_selec->fDoHiggs            = doHiggs_;
+        hist_selec->fSparseHists        = sparseHists_;
+        hist_selec->fUseSignalZWeights  = useSignalZWeights_;
+        hist_selec->fUseEmbedRocco      = useEmbedRocco_;
+        hist_selec->fUseRoccoCorr       = useRoccoCorr_;
+        hist_selec->fUseRoccoSize       = useRoccoSize_;
+        hist_selec->fUseCDFBDTs         = useCDFBDTs_;
+        hist_selec->fNotifyCount        = notify_;
+        hist_selec->fLoadBaskets        = false;
+        hist_selec->fMinLepM            = (selection == "emu") ?  65.f : 35.f;
+        hist_selec->fMaxLepM            = (selection == "emu") ? 115.f : (selection.EndsWith("tau")) ? 175.f : 175.f;
+        hist_selec->fDoSSSystematics    = selection == "emu" || selection.Contains("_");
+        hist_selec->fDoLooseSystematics = selection.EndsWith("tau");
       }
 
       selec->fRemoveTriggerWeights = removeTrigWeights_;
@@ -132,7 +137,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
 
       selec->fDoSystematics = config.doSystematics_;
       //skip electron data events with both triggers for e+mu channel, to not double count
-      selec->fSkipDoubleTrigger = isElectronData && (selection == "emu");
+      selec->fSkipDoubleTrigger = isElectronData && (tree_name == "emu");
       //store a label for this dataset
       selec->fEventCategory = card.category_;
       selec->fWriteTrees = selection != "mumu" && selection != "ee" && config.writeTrees_; //don't write trees for data
@@ -142,12 +147,11 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
         selec->fLum = (selec->fIsEmbed) ? 1. : card.lum_; //for adding lum to tree weights
       } else {
         CrossSections xs(useUL_);
-        selec->fXsec = xs.GetCrossSection(Form("QCD_%s", selection.Data()));
+        selec->fXsec = xs.GetCrossSection(Form("QCD_%s", tree_name.Data()));
         selec->fLum = 1.; //no luminosity needed for data
       }
       selec->fFractionMVA = (isSignal) ? config.signalTrainFraction_ : config.backgroundTrainFraction_; //fraction of events to use for MVA training
       if(selection == "mumu" || selection == "ee") selec->fFractionMVA = 0.; //don't split off same flavor data
-      // if((isMuonData || isElectronData) && selection != "emu") selec->fFractionMVA = 0.; //don't split off data for training
       selec->fIsNano = true;
       if(debug_ && nEvents_ < 20) selec->fVerbose = 1;
       else                        selec->fVerbose = 0;
@@ -278,21 +282,8 @@ Int_t process_single_card(datacard_t& card, config_t& config, vector<TString> fi
   card.dataset_ = name;
 
   //Loop throught the file looking for all selection channels
-  vector<TString> selections = {"mutau", "etau", "emu", "mumu", "ee"};
+  vector<TString> selections = config.selections_;
   for(TString selection : selections) {
-    //check if only suppose to do 1 channel, and if this is that channel
-    if(config.onlyChannel_ != "") {
-      if(config.onlyChannel_ != selection) continue;
-      else cout << "Found correct channel " << selection.Data() << " --> processing!\n";
-    }
-    //check if this channel is part of the skip list
-    if(config.skipChannels_.size() > 0) {
-      bool skip = false;
-      for(TString channel : config.skipChannels_) {
-        if(channel == selection) {skip=true; break;}
-      }
-      if(skip) continue;
-    }
     //skip if data on a channel without that trigger used
     if(isElectronData && (selection == "mutau" || selection == "mumu")) {
       cout << "Electron data on muon only channel, continuing!\n"; continue;
@@ -311,25 +302,17 @@ Int_t process_single_card(datacard_t& card, config_t& config, vector<TString> fi
     ///////////////////////////////
     //Process this selection
 
+    TString tree_name = (selection.Contains("_")) ? "emu" : selection;
     //Retreive the correct ntuple
-    TChain* chain = new TChain(selection.Data()); //(TTree*) file->Get(selection.Data());
+    TChain* chain = new TChain(tree_name.Data());
     counter = 0;
     for(TString file_name : file_names) {
       std::cout << "Selection chain progress:  " << Form("%3i/%3i", counter, nfiles) << "\r";
       std::cout.flush();
       chain->AddFile(file_name.Data(), -1);
-    ++counter;
+      ++counter;
     }
-    std::cout << "Normalizing chain progress:  " << Form("%3i/%3i", counter, nfiles) << "\n";
-
-    // if(chain->GetNtrees() <= 0) {
-    //   cout << "Selection tree " << selection.Data() << " not found!\n";
-    //   continue;
-    // }
-    // //skip if a signal in an irrelevant channel
-    // if(card.fname_.Contains("EMu.tree"  ) && (currentChannel != "emu")) continue;
-    // if(card.fname_.Contains("ETau.tree" ) && (currentChannel == "mutau" || currentChannel == "mumu")) continue;
-    // if(card.fname_.Contains("MuTau.tree") && (currentChannel == "etau"  || currentChannel == "ee"  )) continue;
+    std::cout << "Selection chain progress:  " << Form("%3i/%3i", counter, nfiles) << "\n";
 
     process_channel(card, config, selection, chain);
     delete chain;
@@ -351,22 +334,10 @@ Int_t process_card(TString treepath, TString filename, double xsec, int isdata, 
        << ", background = " << config.backgroundTrainFraction_
        << ", doSystematics = " << config.doSystematics_
        << endl;
-  if(config.skipChannels_.size() > 0) {
-    cout << "--- Skipping channels: ";
-    for(TString channel : config.skipChannels_)
-      cout << channel.Data() << ", ";
-    cout << endl;
-  }
-  if(config.onlyChannel_ != "")
-    cout << "--- WARNING! Only processing " << config.onlyChannel_.Data() << " channel!\n";
-
-  if(config.onlyChannel_ == "etau_mu") {
-    lep_tau_ = 2;
-    config.onlyChannel_ = "emu";
-  } else if(config.onlyChannel_ == "mutau_e") {
-    lep_tau_ = 1;
-    config.onlyChannel_ = "emu";
-  }
+  cout << "--- Processing channels: ";
+  for(TString channel : config.selections_)
+    cout << channel.Data() << ", ";
+  cout << endl;
 
   int year = 2016;
   if(card.fname_.Contains("_2017"))      year = 2017;

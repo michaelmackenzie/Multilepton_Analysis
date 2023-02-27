@@ -1114,7 +1114,7 @@ void HistMaker::ApplyElectronCorrections() {
 //apply the Rochester corrections to the muon pt for all muons
 void HistMaker::ApplyMuonCorrections() {
   //FIXME: Update to using the Rochester correction uncertainty instead of size
-  const static bool use_size(true && fUseRoccoCorr != 0); //use Rochester size or evaluated uncertainty
+  const static bool use_size(fUseRoccoSize != 0 && fUseRoccoCorr != 0); //use Rochester size or evaluated uncertainty
   float delta_x(metCorr*std::cos(metCorrPhi)), delta_y(metCorr*std::sin(metCorrPhi));
   const static int s(0), m(0); //error set and member for corrections
   const static int sys_s(2), sys_m(0); //FIXME: Decide on a systematic correction set, currently using Zpt
@@ -1771,8 +1771,11 @@ void HistMaker::SetKinematics() {
   //Tau trk variables
   TLorentzVector trk;
   if(leptonTwo.isTau()) trk.SetPtEtaPhiM(leptonTwo.trkpt, leptonTwo.trketa, leptonTwo.trkphi, TAUMASS);
-  else                  trk = *leptonTwo.p4;
-  if(trk.M2() < 0.)     trk.SetE(trk.P());
+  else                  trk.SetPtEtaPhiM(leptonTwo.pt, leptonTwo.eta, leptonTwo.phi, leptonTwo.mass);
+  // ROOT::Math::PtEtaPhiM trk;
+  // if(leptonTwo.isTau()) trk.SetCoordinates(leptonTwo.trkpt, leptonTwo.trketa, leptonTwo.trkphi, TAUMASS);
+  // else                  trk.SetCoordinates(leptonTwo.pt, leptonTwo.eta, leptonTwo.phi, leptonTwo.mass);
+  // if(trk.M2() < 0.)     trk.SetE(trk.P());
   fTreeVars.trkpt   = trk.Pt();
   fTreeVars.trketa  = trk.Eta();
   fTreeVars.trkphi  = trk.Phi();
@@ -2947,6 +2950,10 @@ void HistMaker::FillLepHistogram(LepHist_t* Hist) {
 
 //--------------------------------------------------------------------------------------------------------------
 void HistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
+  if(!fDoSSSystematics && !chargeTest) return;
+  if(!fDoLooseSystematics && looseQCDSelection) return;
+  if(eventWeight*genWeight == 0.) return; //no way to re-scale 0, contributes nothing to histograms so can just skip filling
+
   bool isSameFlavor = std::abs(leptonOne.flavor) == std::abs(leptonTwo.flavor);
   bool isMuTau = leptonOne.isMuon    () && leptonTwo.isTau     ();
   bool isETau  = leptonOne.isMuon    () && leptonTwo.isTau     ();

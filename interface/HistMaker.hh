@@ -17,6 +17,7 @@
 
 // Headers needed by this particular selector
 #include "TLorentzVector.h"
+#include "Math/LorentzVector.h"
 #include "TStopwatch.h"
 #include "TH1.h"
 #include "TH2.h"
@@ -631,6 +632,8 @@ namespace CLFV {
     Int_t           fWNJets = -1;  //for splitting w+jets samples
 
     Int_t           fDoSystematics = 0; //0: ignore systematic histograms 1: fill them -1: only fill them
+    Int_t           fDoSSSystematics = 1; //whether or not to histogram systematics for same-sign events
+    Int_t           fDoLooseSystematics = 1; //whether or not to histogram systematics for loose ID events
 
     Int_t           fWriteTrees = 0; //write out ttrees for the events
     Double_t        fXsec = 0.; //cross-section for full event weight with trees
@@ -647,6 +650,7 @@ namespace CLFV {
     Int_t           fUseEmbedTnPWeights = 1; //whether or not to use the locally calculated lepton ID/trigger weights
     Int_t           fUseEmbedRocco = 1; //whether or not to use Rochester corrections + uncertainties with Embedded muons
     Int_t           fUseRoccoCorr = 1; //use Rochester corrections, 0 = none, 1 = local, 2 = ntuple-level
+    Int_t           fUseRoccoSize = 1; //use the size of the Rochester corrections as the uncertainty
     bool            fSkipDoubleTrigger = false; //skip events with both triggers (to avoid double counting), only count this lepton status events
     Int_t           fMETWeights = 0; //re-weight events based on the MET
     Int_t           fUseMCEstimatedFakeLep = 0;

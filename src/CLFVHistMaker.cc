@@ -27,6 +27,7 @@ void CLFVHistMaker::Begin(TTree * /*tree*/)
   // When running with PROOF Begin() is only called on the client.
   // The tree argument is deprecated (on PROOF 0 is passed).
   HistMaker::Begin(nullptr);
+
 }
 
 //--------------------------------------------------------------------------------------------------------------
@@ -85,8 +86,8 @@ void CLFVHistMaker::InitHistogramFlags() {
     fEventSets [kMuTau + 32] = fTTFakeTauTesting; //Top
 
     // jet --> tau DRs with MC taus
-    fEventSets [kMuTau + 33] = 1; //Nominal selection without j-->tau weights, loose ID only
-    fEventSets [kMuTau + 35] = 1; //Nominal selection
+    fEventSets [kMuTau + 33] = fJetTauTesting; //Nominal selection without j-->tau weights, loose ID only
+    fEventSets [kMuTau + 35] = fFakeLeptonTesting; //Nominal selection, MC fake leptons
     fEventSets [kMuTau + 36] = fQCDFakeTauTesting; //QCD
     fEventSets [kMuTau + 37] = fWJFakeTauTesting; //W+Jets
     fEventSets [kMuTau + 38] = fTTFakeTauTesting; //Top
@@ -127,8 +128,8 @@ void CLFVHistMaker::InitHistogramFlags() {
     fEventSets [kETau + 32] = fTTFakeTauTesting; //Top
 
     // jet --> tau DRs with MC taus
-    fEventSets [kETau + 33] = 1; //Nominal selection without j-->tau weights, loose ID only
-    fEventSets [kETau + 35] = 1; //Nominal selection
+    fEventSets [kETau + 33] = fJetTauTesting; //Nominal selection without j-->tau weights, loose ID only
+    fEventSets [kETau + 35] = fFakeLeptonTesting; //Nominal selection
     fEventSets [kETau + 36] = fQCDFakeTauTesting; //QCD
     fEventSets [kETau + 37] = fWJFakeTauTesting; //W+Jets
     fEventSets [kETau + 38] = fTTFakeTauTesting; //Top
@@ -168,7 +169,7 @@ void CLFVHistMaker::InitHistogramFlags() {
 
       fEventSets [kEMu  + 32] = fTTFakeTauTesting; // > 0 b-jets (top selection)
 
-      fEventSets [kEMu  + 35] = 1;
+      fEventSets [kEMu  + 35] = fFakeLeptonTesting;
 
       if(fTriggerTesting) { //testing e+mu triggering
         // fEventSets [kEMu  + 60] = 1; //electron fired
@@ -465,6 +466,9 @@ void CLFVHistMaker::BookSystematicHistograms() {
                              25, -0.25, 0.25, folder);
         }
       }
+      //Per book histograms
+      Utilities::BookH1F(fSystematicHist[i]->hNFills, "nfills", Form("%s: NFills", dirname) , kMaxSystematics+1, 0, kMaxSystematics+1, folder);
+
       delete dirname;
     }
   }
@@ -649,7 +653,10 @@ void CLFVHistMaker::FillLepHistogram(LepHist_t* Hist) {
 
 //--------------------------------------------------------------------------------------------------------------
 void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
+  if(!fDoSSSystematics && !chargeTest) return;
+  if(!fDoLooseSystematics && looseQCDSelection) return;
   if(eventWeight*genWeight == 0.) return; //no way to re-scale 0, contributes nothing to histograms so can just skip filling
+
   const bool isSameFlavor = std::abs(leptonOne.flavor) == std::abs(leptonTwo.flavor);
   const bool isMuTau = leptonOne.isMuon    () && leptonTwo.isTau     ();
   const bool isETau  = leptonOne.isElectron() && leptonTwo.isTau     ();
@@ -668,6 +675,9 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
   const float rho = (fIsEmbed) ? 0.5f : 1.f; //for embedding correlation
   const float rho_t = (rho < 1.f) ? std::sqrt(1.f*1.f - rho*rho) : 0.f;
   //wt = 1 + delta --> = 1 + rho*delta = 1 + rho*(wt - 1) = rho*wt + (1-rho)
+
+  //count number of systematics filled
+  int nfilled = 0;
   for(int sys = 0; sys < kMaxSystematics; ++sys) {
     float weight = eventWeight*genWeight;
     bool reeval = false;
@@ -1228,7 +1238,12 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
       weight = 0.;
     }
 
-    if(reeval) {SetKinematics(); EvalMVAs("SystMVAs");} //re-evaluate variables with shifted values
+    if(reeval) {
+      fTimes[GetTimerNumber("SystKin")] = std::chrono::steady_clock::now(); //timer for evaluating the MVAs
+      SetKinematics();
+      IncrementTimer("SystKin", true);
+      EvalMVAs("SystMVAs");
+    } //re-evaluate variables with shifted values
     const float lepm  = fTreeVars.lepm;
     const float onept = leptonOne.pt;
     const float twopt = leptonTwo.pt;
@@ -1237,6 +1252,7 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
     const bool pass = PassesCuts();
 
     if(pass) {
+      ++nfilled;
       Hist->hLepM  [sys]->Fill(lepm  , weight);
       //skip all other histograms in same-flavor selection, only using the M_{ll} histogram
       if(!fSparseHists) {
@@ -1284,6 +1300,8 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
       }
     }
   }
+  //Per event histograms
+  Hist->hNFills->Fill(nfilled, eventWeight*genWeight);
 }
 
 
@@ -1579,9 +1597,9 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   ////////////////////////////////////////////////////////////
 
   //Nominal mixture, with fake e/mu included
-  if(emu && !lep_tau) FillAllHistograms(set_offset + 35);
+  if(fFakeLeptonTesting && emu && !lep_tau) FillAllHistograms(set_offset + 35);
 
-  if(!(mumu || ee || emu) && nominalSelection) {
+  if((fFakeLeptonTesting || fJetTauTesting) && !(mumu || ee || emu) && nominalSelection) {
     const Float_t prev_evt_wt = eventWeight;
     const Float_t prev_jtt_wt = jetToTauWeight;
     const Float_t prev_jtt_cr = jetToTauWeightCorr;
@@ -1590,24 +1608,26 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
     const bool add_wt = isLooseTau;
 
     //Nominal mixture
-    FillAllHistograms(set_offset + 35);
+    if(fFakeLeptonTesting) FillAllHistograms(set_offset + 35);
 
     //Nominal mixture, without j-->tau weights
-    if(add_wt) {
-      jetToTauWeight     = 1.f;
-      jetToTauWeightCorr = 1.f;
-      jetToTauWeightBias = 1.f;
-      eventWeight        = evt_wt_bare;
-    }
-    if(isLooseTau) {
-      FillAllHistograms(set_offset + 33); //only fill for loose ID taus, since non-loose already have no j-->tau weights
-    }
+    if(fJetTauTesting) {
+      if(add_wt) {
+        jetToTauWeight     = 1.f;
+        jetToTauWeightCorr = 1.f;
+        jetToTauWeightBias = 1.f;
+        eventWeight        = evt_wt_bare;
+      }
+      if(isLooseTau) {
+        FillAllHistograms(set_offset + 33); //only fill for loose ID taus, since non-loose already have no j-->tau weights
+      }
 
-    //Restore the previous weights
-    eventWeight        = prev_evt_wt;
-    jetToTauWeight     = prev_jtt_wt;
-    jetToTauWeightCorr = prev_jtt_cr;
-    jetToTauWeightBias = prev_jtt_bs;
+      //Restore the previous weights
+      eventWeight        = prev_evt_wt;
+      jetToTauWeight     = prev_jtt_wt;
+      jetToTauWeightCorr = prev_jtt_cr;
+      jetToTauWeightBias = prev_jtt_bs;
+    }
   }
 
   ////////////////////////////////////////////////////////////////////////////
@@ -1866,6 +1886,27 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   emu     &= mll > min_mass_ - sys_buffer && mll < max_mass_ + sys_buffer;
 
   if(!(mutau || etau || emu || mumu || ee || mutau_e || etau_mu)) return kTRUE;
+
+  fCutFlow->Fill(icutflow); //22
+  ++icutflow;
+  if(!looseQCDSelection && chargeTest) fCutFlow->Fill(icutflow); //23
+  ++icutflow;
+
+  //Remove loose ID + same-sign events
+  mutau   &= !looseQCDSelection || chargeTest;
+  etau    &= !looseQCDSelection || chargeTest;
+  emu     &= !looseQCDSelection || chargeTest;
+  mutau_e &= !looseQCDSelection || chargeTest;
+  etau_mu &= !looseQCDSelection || chargeTest;
+  mumu    &= !looseQCDSelection || chargeTest;
+  ee      &= !looseQCDSelection || chargeTest;
+
+  if(!(mutau || etau || emu || mumu || ee || mutau_e || etau_mu)) return kTRUE;
+
+  fCutFlow->Fill(icutflow); //24
+  ++icutflow;
+  if(!looseQCDSelection && chargeTest) fCutFlow->Fill(icutflow); //25
+  ++icutflow;
 
   ////////////////////////////////////////////////////////////////////////////
   // Set 8 + selection offset: nBJets = 0

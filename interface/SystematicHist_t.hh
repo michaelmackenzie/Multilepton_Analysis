@@ -87,6 +87,9 @@ namespace CLFV {
     TH1* hMVA[kMaxMVAs][kMaxSystematics];
     TH1* hMVADiff[kMaxMVAs][kMaxSystematics]; //for re-evaluated scores
 
+    //Total histograms
+    TH1* hNFills; //N(fills) for a given event
+
   };
 }
 #endif
