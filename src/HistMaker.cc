@@ -159,6 +159,8 @@ void HistMaker::Begin(TTree * /*tree*/)
   fMVAConfig = new MVAConfig(fUseCDFBDTs);
   fTreeVars.type = -1;
 
+  fMigrationBuffer = (fAllowMigration) ? 1.f : 0.f; //FIXME: Settle on an event migration buffer allowance
+
   //Initialize MVA tools
   TMVA::Tools::Instance(); //load the TMVA library
   for(int i = 0; i < kMaxMVAs; ++i) mva[i] = nullptr; //initially 0s
@@ -1072,8 +1074,8 @@ void HistMaker::InitializeInputTree(TTree* tree) {
 
   //MVA information
   if(!fReprocessMVAs) {
-    for(unsigned mva_i = 0; mva_i < fMVAConfig->names_.size(); ++mva_i) {
-      Utilities::SetBranchAddress(tree, Form("mva%i",mva_i), &fMvaOutputs[mva_i]);
+    for(unsigned mva_i = 0; mva_i < 10; ++mva_i) {
+      Utilities::SetBranchAddress(tree, Form("mva%i", (int) mva_i), &fMvaOutputs[mva_i]);
     }
   }
 }
@@ -2474,7 +2476,7 @@ void HistMaker::CountJets() {
   ht = 0.f; htPhi = 0.f; htSum = 0.f;
 
   //jet ids
-  const int min_jet_id    = 2;
+  const int min_jet_id    = 6; //7 = tight lep veto in 2016, 6 in 2017/2018, so >=6 for either
   const int min_jet_pu_id = 6;
   const float min_jet_pt = 20.;
 
@@ -3409,7 +3411,7 @@ void HistMaker::ApplyTriggerWeights() {
         fEmbeddingWeight->MuonTriggerWeight   (leptonOne.p4->Pt(), leptonOne.p4->Eta(), fYear, data_eff[0], mc_eff[0]);
       }
     } else {
-      fMuonIDWeight.TriggerEff               (leptonOne.p4->Pt(), leptonOne.p4->Eta(), fYear, mcEra, !leptonOne.fired || muonTriggerStatus != 2,
+      fMuonIDWeight.TriggerEff               (leptonOne.p4->Pt(), leptonOne.p4->Eta(), fYear, !leptonOne.fired || muonTriggerStatus != 2, mcEra,
                                               data_eff[0], mc_eff[0], data_up[0], mc_up[0], data_down[0], mc_down[0]);
     }
   }
@@ -3424,7 +3426,7 @@ void HistMaker::ApplyTriggerWeights() {
       }
     } else {
       //use low trigger in case the lepton didn't fire a trigger
-      fMuonIDWeight.TriggerEff               (leptonTwo.p4->Pt(), leptonTwo.p4->Eta(), fYear, mcEra, !leptonTwo.fired || muonTriggerStatus != 2,
+      fMuonIDWeight.TriggerEff               (leptonTwo.p4->Pt(), leptonTwo.p4->Eta(), fYear, !leptonTwo.fired || muonTriggerStatus != 2, mcEra,
                                               data_eff[1], mc_eff[1], data_up[1], mc_up[1], data_down[1], mc_down[1]);
     }
   }

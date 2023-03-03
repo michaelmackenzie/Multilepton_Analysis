@@ -634,6 +634,8 @@ namespace CLFV {
     Int_t           fDoSystematics = 0; //0: ignore systematic histograms 1: fill them -1: only fill them
     Int_t           fDoSSSystematics = 1; //whether or not to histogram systematics for same-sign events
     Int_t           fDoLooseSystematics = 1; //whether or not to histogram systematics for loose ID events
+    Int_t           fAllowMigration = 0; //whether or not to allow events to migrate with systematic shifts
+    Float_t         fMigrationBuffer = 0.f; //scale to allow events to migrate over
 
     Int_t           fWriteTrees = 0; //write out ttrees for the events
     Double_t        fXsec = 0.; //cross-section for full event weight with trees

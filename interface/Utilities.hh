@@ -177,11 +177,10 @@ namespace CLFV {
         return -1;
       }
       tree->SetBranchStatus(branch, 1);
-      //FIXME: add check for available cache
-      // auto f = GetCurrentFile();
-      // if(GetReadCache(f,kTRUE)) {
-      tree->AddBranchToCache(branch, 1);
-      // }
+      auto f = tree->GetCurrentFile();
+      if(tree->GetReadCache(f)) {
+        tree->AddBranchToCache(branch, 1);
+      }
       if(br != nullptr) {
         return tree->SetBranchAddress(branch, val, br);
       }

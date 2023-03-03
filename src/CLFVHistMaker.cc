@@ -676,6 +676,8 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
   const float rho_t = (rho < 1.f) ? std::sqrt(1.f*1.f - rho*rho) : 0.f;
   //wt = 1 + delta --> = 1 + rho*delta = 1 + rho*(wt - 1) = rho*wt + (1-rho)
 
+  const bool o_pass = PassesCuts();
+
   //count number of systematics filled
   int nfilled = 0;
   for(int sys = 0; sys < kMaxSystematics; ++sys) {
@@ -1249,7 +1251,7 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
     const float twopt = leptonTwo.pt;
 
     //apply event window cuts with (possibly) shifted kinematics
-    const bool pass = PassesCuts();
+    const bool pass = (fAllowMigration) ? PassesCuts() : o_pass;
 
     if(pass) {
       ++nfilled;
@@ -1313,7 +1315,7 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
 
   //object pT thresholds
   const float muon_pt(10.f), electron_pt(15.f), tau_pt(20.f);
-  const float sys_buffer((fDoSystematics) ? 1.f : 0.f); //window widening for event migration checks, in GeV
+  const float sys_buffer(fMigrationBuffer); //window widening for event migration checks, in GeV
 
   if(leptonOne.isElectron()) one_pt_min_ = electron_pt;
   if(leptonTwo.isElectron()) two_pt_min_ = electron_pt;
