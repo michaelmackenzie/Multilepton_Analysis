@@ -151,9 +151,9 @@ int fill_hist(TTree* tree, const int index) {
   TFile* f = TFile::Open(Form("rootfiles/signal_z_correction_s%i_%i.root", sig_mode_, year_));
   TH2* hcorr = (f) ? (TH2*) f->Get("hratio") : nullptr;
   cout << " Input chain has " << nentries << " entries\n";
+  nentries = (max_entries_ > 0 && max_entries_ < nentries) ? max_entries_ : nentries;
   for(Long64_t entry = 0; entry < nentries; ++entry) {
-    if(max_entries_ > 0 && entry >= max_entries_) break;
-    if(entry % 500000 == 0) printf(" Processing entry %12lld (%6.2f%%)\n", entry, entry*100./((max_entries_ > 0) ? max_entries_ : nentries));
+    if(entry % 500000 == 0) printf(" Processing entry %12lld (%6.2f%%)\n", entry, entry*100./nentries);
     tree->GetEntry(entry);
     lv1.SetPtEtaPhiM(pt1, eta1, phi1, mass1);
     lv2.SetPtEtaPhiM(pt2, eta2, phi2, mass2);
@@ -239,6 +239,9 @@ int fill_hist(TTree* tree, const int index) {
     hleta_[2]->SetLineColor(kGreen-7); hleta_[2]->SetLineWidth(2); hleta_[2]->SetMarkerStyle(20); hleta_[2]->SetMarkerSize(0.8);
     hwt_  [2]->SetLineColor(kGreen-7); hwt_  [2]->SetLineWidth(2); hwt_  [2]->SetMarkerStyle(20); hwt_  [2]->SetMarkerSize(0.8);
   }
+
+  printf("Sample index %i: Mass fraction below 75 GeV: %.5f\n",
+         index, hmass_[index]->Integral(0, hmass_[index]->FindBin(75.))/hmass_[index]->Integral(0, hmass_[index]->GetNbinsX()+1));
   return 0;
 }
 
@@ -249,8 +252,9 @@ int fill_hist(TTree* tree, const int index) {
    1: V2 LFV Z samples
    2: EXO centrally produced LFV Z samples
    3: V3 LFV Z samples, processing EXO sample with Legacy
+   4: Higher statistics Z samples
  **/
-int signal_scale(int year, const int sig_mode = 0) {
+int signal_scale(int year, const int sig_mode = 4) {
   year_ = year;
   sig_mode_ = sig_mode;
   TChain* bkg_chain = new TChain("Events", "DY TChain"    );
@@ -269,6 +273,10 @@ int signal_scale(int year, const int sig_mode = 0) {
     sig_chain->Add(Form("root://cmseos.fnal.gov//store/user/mmackenz/gen_z/files/GenZAnalysis_UL-LFVZ_%i.root", year));
   } else if(sig_mode == 3) {
     sig_chain->Add(Form("root://cmseos.fnal.gov//store/user/mmackenz/gen_z/files/GenZAnalysis_LFVZ-v2_%i.root", year));
+  } else if(sig_mode == 4) {
+    sig_chain->Add(Form("root://cmseos.fnal.gov//store/user/mmackenz/gen_z/files/GenZAnalysis_ZEMu-v3_%i.root"  , year));
+    sig_chain->Add(Form("root://cmseos.fnal.gov//store/user/mmackenz/gen_z/files/GenZAnalysis_ZETau-v3_%i.root" , year));
+    sig_chain->Add(Form("root://cmseos.fnal.gov//store/user/mmackenz/gen_z/files/GenZAnalysis_ZMuTau-v3_%i.root", year));
   } else {
     cout << "Unknown signal mode " << sig_mode << endl;
     return -1;
@@ -287,7 +295,7 @@ int signal_scale(int year, const int sig_mode = 0) {
   //   return 2;
   // }
 
-  const double pt[] = {0., 2., 4., 6., 8., 10., 15., 20., 25., 30., 40., 50., 100., 500.};
+  const double pt[] = {0., 2., 4., 6., 8., 10., 15., 20., 23., 26., 30., 35., 40., 50., 70., 100., 500.};
   const double mass[] = {50., 500.}; //{50., 70., 80., 100., 500.};
   const int npt = sizeof(pt)/sizeof(*pt) - 1;
   const int nmass = sizeof(mass)/sizeof(*mass) - 1;
@@ -334,6 +342,41 @@ int signal_scale(int year, const int sig_mode = 0) {
   hratio->GetXaxis()->SetMoreLogLabels(kTRUE);
   hratio->GetYaxis()->SetMoreLogLabels(kTRUE);
   c->SaveAs(Form("figures/signal_z_ratio_s%i_%i.png", sig_mode, year));
+
+  TH1* hdy  = h_[0]->ProjectionY("_py", 1, h_[0]->GetNbinsX());
+  TH1* hsig = h_[1]->ProjectionY("_py", 1, h_[1]->GetNbinsX());
+  hdy->SetLineColor(kRed);
+  hdy->SetMarkerColor(kRed);
+  hdy->SetMarkerStyle(6);
+  hsig->SetLineColor(kBlue);
+  hsig->SetMarkerColor(kBlue);
+  hsig->SetMarkerStyle(6);
+  hdy->Draw("E1");
+  hsig->Draw("E1 same");
+  hdy->GetYaxis()->SetRangeUser(0., 1.1*max(hdy->GetMaximum(), hsig->GetMaximum()));
+  c->SetLogx(true);
+  c->SetLogy(false);
+  c->SetLogz(false);
+  hdy->GetXaxis()->SetMoreLogLabels(true);
+  hdy->GetYaxis()->SetMoreLogLabels(true);
+  c->SaveAs(Form("figures/signal_z_pt_s%i_%i.png", sig_mode, year));
+
+  TH1* hprojy = hratio->ProjectionY("_py", 1, hratio->GetNbinsX());
+  hprojy->Scale(1./hratio->GetNbinsX());
+  hprojy->SetTitle("Signal p_{T}^{Z} corrections");
+  hprojy->SetXTitle("p_{T}^{Z}");
+  hprojy->SetYTitle("Drell-Yan / Signal");
+  hprojy->SetLineWidth(2);
+  hprojy->SetMarkerStyle(6);
+  hprojy->Draw("E1");
+  c->SetLogx(true);
+  c->SetLogy(false);
+  c->SetLogz(false);
+  hprojy->GetXaxis()->SetMoreLogLabels(true);
+  hprojy->GetYaxis()->SetMoreLogLabels(true);
+  hprojy->GetXaxis()->SetRangeUser(0.5, hprojy->GetBinCenter(hprojy->GetNbinsX()));
+  c->SaveAs(Form("figures/signal_z_pt_ratio_s%i_%i.png", sig_mode, year));
+
   delete c;
 
   TFile* fout = new TFile(Form("rootfiles/signal_z_correction_s%i_%i.root", sig_mode, year), "RECREATE");
