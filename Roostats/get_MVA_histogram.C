@@ -9,11 +9,12 @@ vector<TH1*> hsigs_;
 int  test_sys_        = -1; //set to systematic number if debugging/inspecting it
 bool blind_data_      = true; //set data bins > MVA score level to 0
 bool ignore_sys_      = false; //don't get systematics
+bool get_scale_sys_   = false; //get normalization uncertainty histograms
 int  use_dev_mva_     = 0; //1: use the extra MVA hist for development, mvaX_1; 2: use the CDF transformed hist, mvaX_2
 bool do_same_flavor_  = false; //retrieve Z->ll control region data
 bool separate_years_  = true; //retrieve and store histograms by year
 bool use_lep_tau_set_ = true; //use kETauMu/kMuTauE offsets instead of kEMu
-
+bool print_sys_plots_ = true; //print systematic figures
 //plotting parameters
 double xmin_ = -1.;
 double xmax_ =  1.;
@@ -204,108 +205,133 @@ int get_systematics(int set, TString hist, TH1* hdata, TFile* f, TString canvas_
 
   CLFV::Systematics systematics;
 
-  gSystem->Exec(Form("mkdir -p %s_sys", canvas_name.Data()));
+  if(print_sys_plots_) gSystem->Exec(Form("mkdir -p %s_sys", canvas_name.Data()));
+
   //Loop through each systematic, creating PDFs and example figures
-  for(int isys = (test_sys_ >= 0 ? test_sys_ : -2); isys < (test_sys_ >= 0 ? test_sys_ + 1 : kMaxSystematics); ++isys) {
+  int sys_max = (get_scale_sys_) ? kMaxSystematics + kMaxScaleSystematics : kMaxSystematics;
+  if(test_sys_ >= 0) sys_max = test_sys_ + 1;
+  for(int isys = (test_sys_ >= 0 ? test_sys_ : -2); isys < sys_max; ++isys) {
     if(isys > 0 && systematics.GetName(isys) == "") continue; //only retrieve defined systematics
 
-    //Get background for the systematic
-    THStack* hstack = dataplotter_->get_stack(Form("%s_%i", hist.Data(), max(0, isys)), "systematic", set);
+    THStack* hstack = nullptr;
+    vector<TH1*> signals;
+    if(isys >= kMaxSystematics) { //normalization systematics
+      //retrieve the systematic scale factor
+      CLFV::SystematicScale_t sys_scale = systematics.GetScale(isys);
+      if(sys_scale.name_ == "") { //not implemented
+        cout << __func__ << " Systematic " << isys << " (" << systematics.GetName(isys).Data() << ") not implemented\n";
+        continue;
+      }
+      if(sys_scale.scale_ <= 0.) {
+        cout << __func__ << ": Warning! Scale uncertainty " << isys << "(" << sys_scale.name_.Data() << ") is <= 0 (" << scale << ")\n";
+      }
+      //Get background for the systematic
+      hstack = dataplotter_->get_stack(Form("%s_0", hist.Data()), "systematic", set, &sys_scale);
+      //Get the signals
+      signals = dataplotter_->get_signal(Form("%s_0", hist.Data()), "systematic", set, &sys_scale);
+    } else {
+      //Get background for the systematic
+      hstack = dataplotter_->get_stack(Form("%s_%i", hist.Data(), max(0, isys)), "systematic", set);
+      //Get the signals
+      signals = dataplotter_->get_signal(Form("%s_%i", hist.Data(), max(0, isys)), "systematic", set);
+    }
     if(!hstack) {++status; continue;}
     if(!hstack->GetStack()) {++status; continue;}
     hstack->SetName(Form("hstack_sys_%i", isys));
     TH1* hbkg = (TH1*) hstack->GetStack()->Last();
     hbkg->SetName(Form("hbkg_sys_%i", isys));
-
-    //Get the signals
-    vector<TH1*> signals = dataplotter_->get_signal(Form("%s_%i", hist.Data(), max(0, isys)), "systematic", set);
     if(signals.size() == 0) {++status; continue;}
 
-    //Create an example plot with the systematic shift + ratio plot
-    TCanvas* c = new TCanvas(Form("c_sys_%i", isys), Form("c_sys_%i", isys), 1200, 900);
-    TPad* pad1 = new TPad("pad1", "pad1", 0., 0.3, 1., 1. );
-    TPad* pad2 = new TPad("pad2", "pad2", 0., 0. , 1., 0.3);
-    pad1->Draw(); pad2->Draw();
-    pad1->cd();
 
-    //if isys < 0, plot the statistical uncertainty
-    if(isys < 0) {
-      for(int ibin = 1; ibin <= hbkg->GetNbinsX(); ++ibin) {
-        double bin_val = hbkg->GetBinContent(ibin);
-        double bin_err = hbkg->GetBinError(ibin);
-        hbkg->SetBinContent(ibin, (isys == -2) ? bin_val + bin_err : bin_val - bin_err);
-        for(TH1* signal : signals) {
-          bin_val = signal->GetBinContent(ibin);
-          bin_err = signal->GetBinError(ibin);
-          signal->SetBinContent(ibin, (isys == -2) ? bin_val + bin_err : bin_val - bin_err);
+    //Create an example plot with the systematic shift + ratio plot
+    if(print_sys_plots_) {
+      TCanvas* c = new TCanvas(Form("c_sys_%i", isys), Form("c_sys_%i", isys), 1200, 900);
+      TPad* pad1 = new TPad("pad1", "pad1", 0., 0.3, 1., 1. );
+      TPad* pad2 = new TPad("pad2", "pad2", 0., 0. , 1., 0.3);
+      pad1->Draw(); pad2->Draw();
+      pad1->cd();
+
+      //if isys < 0, plot the statistical uncertainty
+      if(isys < 0) {
+        for(int ibin = 1; ibin <= hbkg->GetNbinsX(); ++ibin) {
+          double bin_val = hbkg->GetBinContent(ibin);
+          double bin_err = hbkg->GetBinError(ibin);
+          hbkg->SetBinContent(ibin, (isys == -2) ? bin_val + bin_err : bin_val - bin_err);
+          for(TH1* signal : signals) {
+            bin_val = signal->GetBinContent(ibin);
+            bin_err = signal->GetBinError(ibin);
+            signal->SetBinContent(ibin, (isys == -2) ? bin_val + bin_err : bin_val - bin_err);
+          }
         }
       }
-    }
 
-    //Get the systematic shift as a TGraph
-    TGraph* g_bkg = dataplotter_->get_errors(hbkg_, hbkg, 0);
-    g_bkg->SetFillColor(kRed-3);
-    g_bkg->SetLineWidth(2);
-    g_bkg->SetLineColor(kRed-3);
-    g_bkg->SetFillStyle(3001);
-    g_bkg->Draw("AP2");
-    hbkg_->Draw("hist same");
-    g_bkg->Draw("P2");
+      //Get the systematic shift as a TGraph
+      TGraph* g_bkg = dataplotter_->get_errors(hbkg_, hbkg, 0);
+      g_bkg->SetFillColor(kRed-3);
+      g_bkg->SetLineWidth(2);
+      g_bkg->SetLineColor(kRed-3);
+      g_bkg->SetFillStyle(3001);
+      g_bkg->Draw("AP2");
+      hbkg_->Draw("hist same");
+      g_bkg->Draw("P2");
 
-    //Get the signal systematic shifts
-    for(unsigned index = 0; index < signals.size(); ++index) {
-      auto h = signals[index];
-      auto hnom = hsigs_[index];
-      TGraph* g_sig = dataplotter_->get_errors(hnom, h, 0);
-      hnom->SetFillColor(0);
-      hnom->SetLineWidth(2);
-      hnom->Draw("hist same");
-      g_sig->SetLineColor(hnom->GetLineColor());
-      g_sig->SetFillStyle(3001);
-      g_sig->SetFillColor(g_sig->GetLineColor());
-      g_sig->Draw("P2");
-    }
-    hdata->Draw("same E");
-    g_bkg->GetXaxis()->SetRangeUser(xmin_,xmax_);
-    g_bkg->SetTitle("");
-    if(logy_) pad1->SetLogy();
-
-    //Draw the ratio plot
-    pad2->cd();
-    double r_min, r_max;
-    TGraph* g_r_bkg = dataplotter_->get_errors(hbkg_, hbkg, 0, true, r_min, r_max);
-    g_r_bkg->SetFillColor(kRed-3);
-    g_r_bkg->SetLineWidth(2);
-    g_r_bkg->SetLineColor(kRed-3);
-    g_r_bkg->SetFillStyle(3001);
-    g_r_bkg->Draw("ALE2");
-    g_r_bkg->SetName(Form("g_r_bkg_sys_%i", isys));
-
-    for(unsigned index = 0; index < signals.size(); ++index) {
-      auto h = signals[index];
-      auto hnom = hsigs_[index];
-      double r_min_s, r_max_s;
-      TGraph* g_sig = dataplotter_->get_errors(hnom, h, 0, true, r_min_s, r_max_s);
-      r_min = min(r_min, r_min_s);
-      r_max = max(r_max, r_max_s);
-      g_sig->SetLineColor(hnom->GetLineColor());
-      if(index == 0) {
+      //Get the signal systematic shifts
+      for(unsigned index = 0; index < signals.size(); ++index) {
+        auto h = signals[index];
+        auto hnom = hsigs_[index];
+        TGraph* g_sig = dataplotter_->get_errors(hnom, h, 0);
+        hnom->SetFillColor(0);
+        hnom->SetLineWidth(2);
+        hnom->Draw("hist same");
+        g_sig->SetLineColor(hnom->GetLineColor());
+        g_sig->SetFillStyle(3001);
         g_sig->SetFillColor(g_sig->GetLineColor());
-        g_sig->SetFillStyle(3004);
-        g_sig->Draw("PL");
-        g_sig->Draw("PLE2");
-      } else {
-        g_sig->Draw("PL");
+        g_sig->Draw("P2");
       }
-    }
-    hdata_ratio->Draw("same E");
-    g_r_bkg->GetXaxis()->SetRangeUser(xmin_,xmax_);
-    g_r_bkg->GetXaxis()->SetLabelSize(0.08);
-    g_r_bkg->GetYaxis()->SetLabelSize(0.08);
-    g_r_bkg->GetYaxis()->SetRangeUser(max(0.5, min(0.95, 1. + 1.15*(r_min - 1.))), min(1.5, max(1.05, 1. + 1.15*(r_max - 1.))));
-    g_r_bkg->SetTitle("");
+      hdata->Draw("same E");
+      g_bkg->GetXaxis()->SetRangeUser(xmin_,xmax_);
+      g_bkg->SetTitle("");
+      if(logy_) pad1->SetLogy();
 
-    c->Print(Form("%s_sys/sys_%i.png", canvas_name.Data(), isys));
+      //Draw the ratio plot
+      pad2->cd();
+      double r_min, r_max;
+      TGraph* g_r_bkg = dataplotter_->get_errors(hbkg_, hbkg, 0, true, r_min, r_max);
+      g_r_bkg->SetFillColor(kRed-3);
+      g_r_bkg->SetLineWidth(2);
+      g_r_bkg->SetLineColor(kRed-3);
+      g_r_bkg->SetFillStyle(3001);
+      g_r_bkg->Draw("ALE2");
+      g_r_bkg->SetName(Form("g_r_bkg_sys_%i", isys));
+
+      for(unsigned index = 0; index < signals.size(); ++index) {
+        auto h = signals[index];
+        auto hnom = hsigs_[index];
+        double r_min_s, r_max_s;
+        TGraph* g_sig = dataplotter_->get_errors(hnom, h, 0, true, r_min_s, r_max_s);
+        r_min = min(r_min, r_min_s);
+        r_max = max(r_max, r_max_s);
+        g_sig->SetLineColor(hnom->GetLineColor());
+        if(index == 0) {
+          g_sig->SetFillColor(g_sig->GetLineColor());
+          g_sig->SetFillStyle(3004);
+          g_sig->Draw("PL");
+          g_sig->Draw("PLE2");
+        } else {
+          g_sig->Draw("PL");
+        }
+      }
+      hdata_ratio->Draw("same E");
+      g_r_bkg->GetXaxis()->SetRangeUser(xmin_,xmax_);
+      g_r_bkg->GetXaxis()->SetLabelSize(0.08);
+      g_r_bkg->GetYaxis()->SetLabelSize(0.08);
+      g_r_bkg->GetYaxis()->SetRangeUser(max(0.5, min(0.95, 1. + 1.15*(r_min - 1.))), min(1.5, max(1.05, 1. + 1.15*(r_max - 1.))));
+      g_r_bkg->SetTitle("");
+
+      c->Print(Form("%s_sys/sys_%i.png", canvas_name.Data(), isys));
+      delete c;
+    } //end if(print_sys_plots_)
+
     for(auto h : signals) {
       TString hname = h->GetName();
       if(dataplotter_->signal_scales_.find(hname) != dataplotter_->signal_scales_.end())
@@ -323,7 +349,6 @@ int get_systematics(int set, TString hist, TH1* hdata, TFile* f, TString canvas_
     hbkg->Write();
     hstack->Write();
     // f->Flush();
-    delete c;
   }
   return status;
 }
@@ -391,20 +416,23 @@ int get_individual_MVA_histogram(int set = 8, TString selection = "zmutau",
   if(!hdata) return 3;
   hdata->SetName("hdata");
 
-  //determine an appropriate plotting range
+  //determine an appropriate plotting range and if log or linear plot
   TH1* hlast = (TH1*) hstack->GetStack()->Last()->Clone("hbackground");
   const int nbins = hlast->GetNbinsX();
   xmin_ = hlast->GetBinLowEdge(1);
   xmax_ = hlast->GetBinLowEdge(1) - 1.;
-  logy_ = false;
+  int ndec(0), nnonzero(0);
   for(int ibin = 1; ibin <= nbins; ++ibin) {
+    const double binc = hlast->GetBinContent(ibin);
     //if haven't found a non-zero bin yet, update xmin, else update xmax
-    if(hlast->GetBinContent(ibin) <= 0. && xmax_ < xmin_) xmin_ = hlast->GetBinLowEdge(ibin);
-    else if(hlast->GetBinContent(ibin) > 0.) xmax_ = hlast->GetBinLowEdge(ibin) + hlast->GetBinWidth(ibin);
-    //check for logy by comparing sequential bins
-    if(ibin < nbins && hlast->GetBinContent(ibin) > 100. && hlast->GetBinContent(ibin+1) > 100.)
-      logy_ |= hlast->GetBinContent(ibin+1) / hlast->GetBinContent(ibin) < 0.5; //significant drop
+    if(binc <= 0. && xmax_ < xmin_) xmin_ = hlast->GetBinLowEdge(ibin);
+    else if(binc > 0.) xmax_ = hlast->GetBinLowEdge(ibin) + hlast->GetBinWidth(ibin);
+    if(binc > 0.) {
+      ++nnonzero;
+      if(ibin < nbins && hlast->GetBinContent(ibin+1) < 0.8) ++ndec;
+    }
   }
+  logy_ = ndec > 0.75*nnonzero; //if generally an exponential-like drop, plot in log
 
   //blind high MVA score region if desired
   if(blind_data_) {

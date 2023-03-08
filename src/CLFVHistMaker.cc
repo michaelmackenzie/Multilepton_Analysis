@@ -457,7 +457,7 @@ void CLFVHistMaker::BookSystematicHistograms() {
         for(unsigned j = 0; j < fMVAConfig->names_.size(); ++j)  {
           if(fUseCDFBDTs) {
             Utilities::BookH1D(fSystematicHist[i]->hMVA[j][sys], Form("mva%i_%i",j, sys), Form("%s: %s MVA %i" ,dirname, fMVAConfig->names_[j].Data(), sys),
-                               fNCDFBins, 0., 1., folder);
+                               fNCDFBins+1, 0. - (1./fNCDFBins), 1., folder);
           } else {
             Utilities::BookH1D(fSystematicHist[i]->hMVA[j][sys], Form("mva%i_%i",j, sys), Form("%s: %s MVA %i" ,dirname, fMVAConfig->names_[j].Data(), sys),
                                fMVAConfig->NBins(j), fMVAConfig->Bins(j).data(), folder);
@@ -1856,8 +1856,10 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   etau_mu = lep_tau == 2 && emu;
   emu    &= lep_tau == 0;
 
+  //define leptonic tau kinematic cuts
   if(mutau_e) {two_pt_min_ = 20.f; ptdiff_min_ = -1.e10; ptdiff_max_ =   20.f; mtlep_max_ = 100.f; mtone_max_ = 60.f;} //lep 2 = prompt, lep 1 = tau_l
-  if(etau_mu) {one_pt_min_ = 20.f; ptdiff_min_ =   20.f; ptdiff_max_ = +1.e10; mtlep_max_ = 100.f; mttwo_max_ = 60.f;} //lep 1 = prompt, lep 2 = tau_l
+  if(etau_mu) {one_pt_min_ = 20.f; ptdiff_min_ =    0.f; ptdiff_max_ = +1.e10; mtlep_max_ = 100.f; mttwo_max_ = 60.f;} //lep 1 = prompt, lep 2 = tau_l
+
   mutau_e &= leptonTwo.pt > two_pt_min_ - sys_buffer; //lepton pT,
   etau_mu &= leptonOne.pt > one_pt_min_ - sys_buffer;
   mutau_e &= fTreeVars.ptdiff > ptdiff_min_ - sys_buffer && fTreeVars.ptdiff < ptdiff_max_ + sys_buffer; //lepton pT - leptonic tau pT

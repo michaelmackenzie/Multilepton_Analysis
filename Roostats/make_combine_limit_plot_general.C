@@ -7,9 +7,11 @@ struct config_t {
   vector<int> sets_;
   vector<int> years_;
   double scale_;
+  double rmin_;
+  double rmax_;
 
   config_t(TString name, TString label, vector<int> sets, vector<int> years, double scale = 1.):
-   name_(name), label_(label), sets_(sets), years_(years), scale_(scale) {}
+    name_(name), label_(label), sets_(sets), years_(years), scale_(scale), rmin_(-20.), rmax_(20.) {}
 };
 
 int make_combine_limit_plot_general(vector<config_t> configs, //info for each entry
@@ -32,8 +34,9 @@ int make_combine_limit_plot_general(vector<config_t> configs, //info for each en
   //Loop through each input configuration
   for(config_t config : configs) {
     vector<int> years = config.years_;
-    vector<int> sets  = config.sets_;
     TString card      = config.name_;
+    const double rmin = config.rmin_;
+    const double rmax = config.rmax_;
 
     //Move to the proper directory
     if(years.size() == 0) { cout << "No years given!\n"; return 2; }
@@ -42,18 +45,18 @@ int make_combine_limit_plot_general(vector<config_t> configs, //info for each en
     TString dir = Form("datacards/%s", year_string.Data());
     gSystem->cd(dir.Data());
 
-    if(sets.size() == 0) { cout << "No sets given!\n"; return 3; }
-    TString set_string = Form("%i", sets[0]);
-    for(int i = 1; i < sets.size(); ++i) set_string += Form("_%i", sets[i]);
-
     int status(0);
     if(processCards) {
       //Run combine on each datacard
-      gSystem->Exec(Form("combine -d combine_%s.txt %s --name _%s --rMin -20 --rMax 20 %s",
-                         card.Data(),
-                         (doObs) ? "" : "-t -1 --run blind",
-                         card.Data(),
-                         (doNoSys) ? "--freezeParameters allConstrainedNuisances" : ""));
+      printf("Processing combine card %s/combine_%s.txt\n", dir.Data(), card.Data());
+      TString command = Form("combine -d combine_%s.txt %s --name _%s --rMin %.1f --rMax %.1f %s",
+                             card.Data(),
+                             (doObs) ? "" : "-t -1 --run blind",
+                             card.Data(),
+                             rmin, rmax,
+                             (doNoSys) ? "--freezeParameters allConstrainedNuisances" : "");
+      printf(">>> %s\n", command.Data());
+      gSystem->Exec(command.Data());
     }
 
     TFile* f = TFile::Open(Form("higgsCombine_%s.AsymptoticLimits.mH120.root", card.Data()), "READ");
@@ -107,12 +110,18 @@ int make_combine_limit_plot_general(vector<config_t> configs, //info for each en
   expected_2->SetTitle("CLs Limits");
   expected_2->GetXaxis()->SetTitle("Branching fraction");
 
+  //calculate x-axis range
+  const float scale_size = (log10(max_val) - log10(min_val)); //orders of magnitude spanning the plot
+  const float xmax = max_val*pow(2,max(0.f, scale_size));
+  const float xmin = min_val/pow(1.5,max(0.f, scale_size));
+  printf("Max val = %.2e, Min val = %.2e --> xrange = [%.2e , %.2e]\n", max_val, min_val, xmin, xmax);
+
   TCanvas* c = new TCanvas("c", "c", 800, 800);
   expected_2->Draw("AE2");
   expected_1->Draw("PE2 SAME");
   c->SetLogx();
   expected_2->GetYaxis()->SetRangeUser(ymin, ymax);
-  expected_2->GetXaxis()->SetRangeUser(0.05*max(1.e-15, min_val), 1.2*max_val);
+  expected_2->GetXaxis()->SetRangeUser(xmin, xmax);
   expected_2->GetXaxis()->SetMoreLogLabels(true);
   expected_2->GetYaxis()->SetLabelOffset(1e10);
   expected_2->GetYaxis()->SetLabelSize(0);

@@ -509,14 +509,14 @@ void HistMaker::BookBaseEventHistograms(Int_t i, const char* dirname) {
       for(unsigned j = 0; j < fMVAConfig->names_.size(); ++j)  {
         if(fUseCDFBDTs) {
           Utilities::BookH1D(fEventHist[i]->hMVA[j][0], Form("mva%i",j)   , Form("%s: %s MVA" ,dirname, fMVAConfig->names_[j].Data()) ,
-                             fNCDFBins, 0., 1., folder);
+                             fNCDFBins+1, 0.-1./fNCDFBins, 1., folder);
         } else {
           Utilities::BookH1D(fEventHist[i]->hMVA[j][0], Form("mva%i",j)   , Form("%s: %s MVA" ,dirname, fMVAConfig->names_[j].Data()) ,
                              fMVAConfig->NBins(j), fMVAConfig->Bins(j).data(), folder);
         }
         //high mva score binning to improve cdf making
         Utilities::BookH1F(fEventHist[i]->hMVA[j][1]  , Form("mva%i_1",j)   , Form("%s: %s MVA"         ,dirname, fMVAConfig->names_[j].Data()), 2000, -1.,  1., folder);
-        Utilities::BookH1F(fEventHist[i]->hMVA[j][2]  , Form("mva%i_2",j)   , Form("%s: %s MVA"         ,dirname, fMVAConfig->names_[j].Data()), fNCDFBins,  0.,  1., folder);
+        Utilities::BookH1D(fEventHist[i]->hMVA[j][2]  , Form("mva%i_2",j)   , Form("%s: %s MVA"         ,dirname, fMVAConfig->names_[j].Data()), fNCDFBins,  0.,  1., folder);
         Utilities::BookH1F(fEventHist[i]->hMVATrain[j], Form("mvatrain%i",j), Form("%s: %s MVA (train)" ,dirname, fMVAConfig->names_[j].Data()),  100, -3.,  2., folder);
         Utilities::BookH1F(fEventHist[i]->hMVATest[j] , Form("mvatest%i",j) , Form("%s: %s MVA (test)"  ,dirname, fMVAConfig->names_[j].Data()),  100, -3.,  2., folder);
       }
@@ -2035,6 +2035,10 @@ void HistMaker::EvalMVAs(TString TimerName) {
     } else {
       const TString selection = fMVAConfig->GetSelectionByIndex(i);
       fMvaCDFs[i] = fMVAConfig->CDFTransform(fMvaOutputs[i], selection);
+      //FIXME: Determine a nicer way of binning the 0 probability signal-like events
+      if(fMvaCDFs[i] < 1.e-3) { //near 0 signal probability, push to a separate bin from 0-x probability
+        fMvaCDFs[i] = -0.5/fNCDFBins;
+      }
     }
   }
   if(eval_timer) IncrementTimer(TimerName.Data(), true);

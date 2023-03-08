@@ -10,7 +10,6 @@
 
 using namespace CLFV;
 
-bool blindData_     = true;
 bool useRateParams_ = false;
 bool fixSignalPDF_  = true;
 bool useMultiDim_   = true;
@@ -208,7 +207,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
   const double blind_max = (isHiggs) ? 130. : 96.;
   sig->Scale(sig_scale);
 
-  for(int ibin = blindData->FindBin(blind_min); ibin <= blindData->FindBin(blind_max); ++ibin) {
+  for(int ibin = blindData->FindBin(blind_min)+1; ibin < blindData->FindBin(blind_max); ++ibin) {
     blindData->SetBinContent(ibin, 0.);
     blindData->SetBinError  (ibin, 0.);
   }
@@ -228,6 +227,12 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
   RooDataHist* sigData  = new RooDataHist("sig_data" ,  "Signal Data"    , RooArgList(*lepm), sig );
   RooDataHist* dataData = new RooDataHist("data_data",  "Data Data"      , RooArgList(*lepm), data);
   RooDataHist* blindDataHist = new RooDataHist("blind_data_hist",  "Blind Data Hist", RooArgList(*lepm), blindData);
+
+  //create RooDataHist for drawing a more visible signal
+  const double br_scale = 10.;
+  TH1* sigVis = (TH1*) sig->Clone("sigVis");
+  sigVis->Scale(br_scale);
+  RooDataHist* sigDataVis  = new RooDataHist("sig_data_vis" ,  "Signal Data"    , RooArgList(*lepm), sigVis);
 
   //////////////////////////////////////////////////////////////////
   // Fit the signal distribution
@@ -303,25 +308,30 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
 
     pad1->cd();
     TLegend* leg = new TLegend(0.4, 0.7, 0.9, 0.9);
-    const int nentries = 40;
-    auto xframe = lepm->frame(nentries);
+    // const int nentries = 40;
+    // auto xframe = lepm->frame(nentries);
+    auto xframe = lepm->frame();
     xframe->SetTitle("");
-    sigData->plotOn(xframe, RooFit::Invisible());
+    sigDataVis->plotOn(xframe, RooFit::Invisible());
     sigPDF->plotOn(xframe, RooFit::Name("sigPDF"), RooFit::LineColor(kRed), RooFit::NormRange("BlindRegion"), RooFit::Range("full"));
     if(blindData_) {
       dataData->plotOn(xframe, RooFit::Invisible());
       // dataset->plotOn(xframe, RooFit::Name("toy_data"));
     }
     else           dataData->plotOn(xframe);
-    double chi_sq = get_chi_squared(*lepm, bkgPDF, *dataData, fitSideBands_);
+    verbose_ = 2;
+    int nentries = 40;
+    double chi_sq = get_chi_squared(*lepm, bkgPDF, *dataData, fitSideBands_, &nentries);
     bkgPDF->plotOn(xframe, RooFit::Name(bkgPDF->GetName()), RooFit::LineColor(kBlue), RooFit::NormRange("full"), RooFit::Range("full"));
 
     TString name = bkgPDF->GetName();
     TString title = bkgPDF->GetTitle();
     int order = ((title(title.Sizeof() - 2)) - '0');
-    vector<int> colors = {kRed, kYellow-7, kViolet-7, kGreen-7, kOrange+2, kAtlantic, kRed+2, kMagenta};
+    vector<int> colors = {kRed, kYellow-7, kViolet-7, kGreen-7, kOrange+2, kAtlantic, kRed+2, kMagenta, kOrange};
     vector<double> chi_sqs;
+    vector<double> p_chi_sqs;
     chi_sqs.push_back(chi_sq / (nentries - order - 2));
+    p_chi_sqs.push_back(TMath::Prob(chi_sq, nentries - order - 2));
 
     if(useMultiDim_) {
       for(int ipdf = 0; ipdf < categories->numTypes(); ++ipdf) {
@@ -335,6 +345,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
         order = ((title(title.Sizeof() - 2)) - '0');
         if(title.Contains("Exponential")) order *= 2;
         chi_sqs.push_back(chi_sq / (nentries - order - 1));
+        p_chi_sqs.push_back(TMath::Prob(chi_sq, nentries - order - 1));
       }
     }
     xframe->Draw();
@@ -344,8 +355,8 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
     } else {
       leg->AddEntry("data", Form("Data, N(entries) = %.0f", data->Integral(low_bin, high_bin)), "PL");
     }
-    leg->AddEntry("sigPDF", Form("Signal, BR = %.1e, N(sig) = %.1f", br_sig, sig->Integral(low_bin, high_bin)), "L");
-    leg->AddEntry(bkgPDF->GetName(), Form("%s - #chi^{2}/DOF = %.2f", bkgPDF->GetTitle(), chi_sqs[0]), "L");
+    leg->AddEntry("sigPDF", Form("Signal, BR = %.1e, N(sig) = %.1f", br_sig*br_scale, sigVis->Integral(low_bin, high_bin)), "L");
+    leg->AddEntry(bkgPDF->GetName(), Form("%s - #chi^{2}/DOF = %.2f, p = %.3f", bkgPDF->GetTitle(), chi_sqs[0], p_chi_sqs[0]), "L");
     if(useMultiDim_) {
       int offset = 1;
       for(int ipdf = 0; ipdf < categories->numTypes(); ++ipdf) {
@@ -354,7 +365,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
           continue;
         }
         auto pdf = multiPDF->getPdf(ipdf); //multiPDF->getPdf(Form("index_%i", ipdf));
-        leg->AddEntry(pdf->GetName(), Form("%s - #chi^{2}/DOF = %.2f", pdf->GetTitle(), chi_sqs[ipdf+offset]), "L");
+        leg->AddEntry(pdf->GetName(), Form("%s - #chi^{2}/DOF = %.2f, p = %.3f", pdf->GetTitle(), chi_sqs[ipdf+offset], p_chi_sqs[ipdf+offset]), "L");
       }
     }
     leg->Draw();
@@ -380,7 +391,6 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
          << " xhigh = " << dataDiff->GetBinLowEdge(dataDiff->GetNbinsX()) + dataDiff->GetBinWidth(dataDiff->GetNbinsX())
          << " nbins = " << dataDiff->GetNbinsX() << " integral = " << dataDiff->Integral() << endl;
     TH1* sigDiff = sigPDF->createHistogram("sigDiff", *lepm);
-    // TH1* sigDiff = (TH1*) dataDiff->Clone("sigDiff");
     vector<TH1*> pdfDiffs;
     for(int ipdf = 0; ipdf < categories->numTypes(); ++ipdf) {
       if(ipdf == index) {
@@ -412,7 +422,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
     //   // }
     // }
     dataDiff->Scale(norm/dataDiff->Integral()); //set the norms equal
-    sigDiff->Scale(sig->Integral(low_bin, high_bin) / sigDiff->Integral());
+    sigDiff->Scale(sigVis->Integral(low_bin, high_bin) / sigDiff->Integral());
     for(int ipdf = 0; ipdf < categories->numTypes(); ++ipdf) {
       if(ipdf == index) {
         continue;

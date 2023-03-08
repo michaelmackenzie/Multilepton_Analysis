@@ -36,7 +36,8 @@ namespace CLFV {
         categories_["hetau"   ] = {0.05, 0.10, 0.25, 0.50};
         categories_["zetau"   ] = {0.05, 0.10, 0.25, 0.50};
         categories_["hemu"    ] = {0.05, 0.10, 0.25, 0.50};
-        categories_["zemu"    ] = {0.05, 0.10, 0.325, 0.700}; //defined with cut-and-count sqrt(S)/B quadrature sum in M in 86 - 96 GeV/c^2
+        // categories_["zemu"    ] = {0.050, 0.100, 0.200, 0.250}; //defined with a cut-and-count sqrt(S)/B in a single category (top one), others added as filler
+        categories_["zemu"    ] = {-1.0, 0.075, 0.300, 0.675}; //defined with a cut-and-count sqrt(S)/B quadrature sum for (top) 3 categories in M in 86 - 96 GeV/c^2
         categories_["hmutau_e"] = {0.05, 0.10, 0.25, 0.50};
         categories_["zmutau_e"] = {0.05, 0.10, 0.25, 0.50};
         categories_["hetau_mu"] = {0.05, 0.10, 0.25, 0.50};

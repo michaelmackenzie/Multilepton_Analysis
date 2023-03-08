@@ -4,8 +4,88 @@
 
 //Construct multi-dimensional PDF with discrete index
 bool useFrameChiSq_ = false;
+bool useManualChisq_ = true; //calcuate chi^2 values by hand with histograms
 bool use_generic_bernstein_ = false;
 bool use_fast_bernstein_ = true;
+
+//----------------------------------------------------------------------------------------------------------------
+//Get the chi-squared using a by-hand calculation
+double get_manual_subrange_chisquare(RooRealVar& obs, RooAbsPdf* pdf, RooDataHist& data, const char* range = nullptr,
+                                     const char* norm_range = nullptr, bool norm_skip = true, int* nbins = nullptr) {
+  TH1* htmp_pdf  = pdf->createHistogram("htmp_chisq_pdf", obs);
+  TH1* htmp_data = data.createHistogram("htmp_chisq_data", obs);
+  if(htmp_pdf->GetNbinsX() != htmp_data->GetNbinsX()) {
+    cout << __func__ << ": PDF and data don't have the same number of bins ("
+         << htmp_pdf->GetNbinsX() << " vs " << htmp_data->GetNbinsX() << ")!\n";
+    delete htmp_pdf;
+    delete htmp_data;
+    return -1.;
+  }
+
+  //Create the PDF normalization by matching it to the data, skipping the region requested
+  const double xmin_norm = (norm_range) ? obs.getMin(norm_range) : (norm_skip) ?  1. : obs.getMin();
+  const double xmax_norm = (norm_range) ? obs.getMax(norm_range) : (norm_skip) ? -1. : obs.getMax();
+  const int bin_norm_lo = (xmin_norm < xmax_norm) ? htmp_data->GetXaxis()->FindBin(xmin_norm) : (norm_skip) ? -1 : 1;
+  const int bin_norm_hi = (xmin_norm < xmax_norm) ? htmp_data->GetXaxis()->FindBin(xmax_norm) : (norm_skip) ? -1 : htmp_data->GetNbinsX();
+  double pdf_norm = 0.;
+  double data_norm = 0.;
+  for(int ibin = 1; ibin <= htmp_data->GetNbinsX(); ++ibin) {
+    bool in_norm = ibin >= bin_norm_lo && ibin <= bin_norm_hi;
+    if(norm_skip && in_norm) continue; //if given a range to skip
+    if(!norm_skip && !in_norm) continue; //if given a range for normalizing
+    const double npdf = htmp_pdf->GetBinContent(ibin)*htmp_pdf->GetBinWidth(ibin); //expected N(events)
+    const double ndata = htmp_data->GetBinContent(ibin); //observed N(events)
+    pdf_norm  += npdf;
+    data_norm += ndata;
+    if(verbose_ > 2) {
+      cout << "Norm Bin " << ibin << " (" << htmp_data->GetBinLowEdge(ibin) << " - "
+           << htmp_data->GetBinLowEdge(ibin) + htmp_data->GetBinWidth(ibin) << "): Data = " << ndata << " PDF = " << npdf  << endl;
+    }
+  }
+  if(pdf_norm <= 0.) {
+    cout << __func__ << ": PDF normalization is non-positive!\n";
+    delete htmp_pdf;
+    delete htmp_data;
+    return -1.;
+  }
+  htmp_pdf->Scale(data_norm / pdf_norm);
+  if(verbose_ > 2) {
+    cout << __func__ << ": Scaling PDF:\n"
+         << "#### Data norm = " << data_norm << endl
+         << "#### PDF norm = " << pdf_norm << endl
+         << "#### Scaling the PDF histogram by " << data_norm / pdf_norm << endl;
+  }
+
+  const double xmin = obs.getMin(range);
+  const double xmax = obs.getMax(range);
+
+  double chisq = 0.;
+  const int bin_lo = max(1, htmp_data->GetXaxis()->FindBin(xmin));
+  const int bin_hi = min(htmp_data->GetNbinsX(), htmp_data->GetXaxis()->FindBin(xmax));
+  for(int ibin = bin_lo; ibin <= bin_hi; ++ibin) {
+    const double x_data = htmp_data->GetBinCenter(ibin);
+    const double x_pdf  = htmp_pdf ->GetBinCenter(ibin);
+    if(x_data != x_pdf) {
+      cout << __func__ << ": Warning! Data center = " << x_data << " but PDF center = " << x_pdf << endl;
+    }
+    const double npdf = htmp_pdf->GetBinContent(ibin)*htmp_pdf->GetBinWidth(ibin);
+    const double ndata = htmp_data->GetBinContent(ibin);
+    const double val  = ndata - npdf;
+    const double sigma = val*val / (npdf <= 0. ? 1.e-5 : npdf);
+    chisq += sigma;
+    if(verbose_ > 2) {
+      cout << "Bin " << ibin << " (" << htmp_data->GetBinLowEdge(ibin) << " - "
+           << htmp_data->GetBinLowEdge(ibin) + htmp_data->GetBinWidth(ibin) << "): Data = " << ndata << " PDF = " << npdf
+           << " --> sigma = " << sigma << endl;
+    }
+  }
+
+  if(verbose_ > 1) cout << __func__ << ": Total chi^2 = " << chisq << " / " << bin_hi - bin_lo+1 << " bins\n";
+  if(nbins) *nbins = bin_hi - bin_lo+1;
+  delete htmp_pdf;
+  delete htmp_data;
+  return chisq;
+}
 
 //Get the chi-squared using a RooChi2Var
 double get_subrange_chisquare(RooRealVar& obs, RooAbsPdf* pdf, RooDataHist& data, const char* range) {
@@ -14,7 +94,20 @@ double get_subrange_chisquare(RooRealVar& obs, RooAbsPdf* pdf, RooDataHist& data
 }
 
 //Evaluate the chi-squared
-double get_chi_squared(RooRealVar& obs, RooAbsPdf* pdf, RooDataHist& data, bool useSideBands) {
+double get_chi_squared(RooRealVar& obs, RooAbsPdf* pdf, RooDataHist& data, bool useSideBands, int* nbins = nullptr) {
+  if(useManualChisq_) {
+    if(useSideBands || blindData_) {
+      const char* blind_region = (blindData_) ? "BlindRegion" : nullptr;
+      int nbin_running = 0;
+      double chi_sq = get_manual_subrange_chisquare(obs, pdf, data, "LowSideband", blind_region, true, &nbin_running);
+      if(nbins) *nbins = nbin_running;
+      chi_sq += get_manual_subrange_chisquare(obs, pdf, data, "HighSideband", blind_region, true, &nbin_running);
+      if(nbins) *nbins = *nbins + nbin_running;
+      return chi_sq;
+    } else {
+      return get_manual_subrange_chisquare(obs, pdf, data, "full");
+    }
+  }
   if(useFrameChiSq_ || TString(pdf->GetTitle()).Contains("Exponential")) {
     // if(useSideBands) {
     //   double chi_sq = 0.;
@@ -92,7 +185,9 @@ RooAbsPdf* create_generic_bernstein(RooRealVar& obs, int order, int set) {
     if(ivar < order) formula += " + ";
     var_set.add(*v);
   }
-  cout << "#### Bernstein order " << order << " formula: " << formula.Data() << endl;
+  cout << "######################\n"
+       << "#### Bernstein order " << order << " formula: " << formula.Data() << endl
+       << "######################\n";
   RooAbsPdf* pdf = new RooGenericPdf(Form("bst_%i_order_%i", set, order), Form("Bernstein PDF, order %i", order), formula.Data(), var_set);
   return pdf;
 }
@@ -150,7 +245,7 @@ RooAbsPdf* create_bernstein(RooAbsReal& obs, const int order, int set) {
 //Fit exponentials and add passing ones
 std::pair<int,double> add_exponentials(RooDataHist& data, RooRealVar& obs, RooArgList& list, bool useSideBands, int set, int verbose) {
   const int max_order = 3;
-  const double max_chisq = 5.; //per DOF
+  const double max_chisq = 2.; //per DOF
   double min_chi = 1.e10;
   int min_index = -1;
   for(int order = 0; order <= max_order; ++order) {
@@ -171,15 +266,17 @@ std::pair<int,double> add_exponentials(RooDataHist& data, RooRealVar& obs, RooAr
       delete pdf;
     }
     if(chi_sq < min_chi) {min_chi = chi_sq; min_index = list.getSize() - 1;}
-    if(verbose > 1) cout << "### Exponential order " << order << " has chisq = " << chi_sq << " / " << dof << " = " << chi_sq/dof << endl;
+    if(verbose > 1) cout << "######################\n"
+                         << "### Exponential order " << order << " has chisq = " << chi_sq << " / " << dof << " = " << chi_sq/dof << endl
+                         << "######################\n";
   }
   return std::pair<int, double>(min_index, min_chi);
 }
 
 //Fit Chebychev polynomials and add passing ones
 void add_chebychevs(RooDataHist& data, RooRealVar& obs, RooArgList& list, bool useSideBands, int& index, int set, int verbose) {
-  const int max_order = 6;
-  const double max_chisq = 5.; //per DOF
+  const int max_order = 5;
+  const double max_chisq = 2.; //per DOF
   //for finding the best fitting function
   double chi_min = 1.e10;
   const double chi_cutoff = 3.85;
@@ -205,17 +302,21 @@ void add_chebychevs(RooDataHist& data, RooRealVar& obs, RooArgList& list, bool u
     else {
       delete pdf;
     }
-    if(verbose > 1) cout << "### Chebychev order " << order << " has chisq = "
+    if(verbose > 1) cout << "######################\n"
+                         << "### Chebychev order " << order << " has chisq = "
                          << chi_sq << " / " << dof << " = " << chi_sq/dof
-                         << endl;
+                         << endl
+                         << "######################\n";
   }
-  if(verbose > 0) cout << "### Best fit Chebychev order is " << best_order << " with chisq = " << chi_min << endl;
+  if(verbose > 0) cout << "######################\n"
+                       << "### Best fit Chebychev order is " << best_order << " with chisq = " << chi_min << endl
+                       << "######################\n";
 }
 
 //Fit Bernstein polynomials and add passing ones
 std::pair<int, double> add_bernsteins(RooDataHist& data, RooRealVar& obs, RooArgList& list, bool useSideBands, int& index, int set, int verbose) {
-  const int max_order = 6;
-  const double max_chisq = 5.; //per DOF
+  const int max_order = 5;
+  const double max_chisq = 2.; //per DOF
   //for finding the best fitting function
   double chi_min = 1.e10;
   const double chi_cutoff = 3.85; //minimum difference in chi^2 to consider a higher order function
@@ -262,9 +363,15 @@ std::pair<int, double> add_bernsteins(RooDataHist& data, RooRealVar& obs, RooArg
     else {
       delete pdf;
     }
-    if(verbose > 1) cout << "### Bernstein order " << order << " has chisq = " << chi_sq << " / " << dof << " = " << chi_sq/dof << endl;
+    if(verbose > 1) {
+      cout << "######################\n"
+           << "### Bernstein order " << order << " has chisq = " << chi_sq << " / " << dof << " = " << chi_sq/dof << endl
+           << "######################\n";
+    }
   }
-  if(verbose > 0) cout << "### Best fit Bernstein order is " << best_order << " with chisq = " << chi_min << endl;
+  if(verbose > 0) cout << "######################\n"
+                       << "### Best fit Bernstein order is " << best_order << " with chisq = " << chi_min << endl
+                       << "######################\n";
   return std::pair<int, double>(index, chi_min);
 }
 

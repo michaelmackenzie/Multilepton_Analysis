@@ -74,7 +74,6 @@ FINALCARD="combine_bemu_${SELECTION}_${HISTSTRING}.txt"
 for SET_I in $HISTLIST
 do
     COMMAND="${COMMAND} mva_${SET_I}=combine_bemu_${SELECTION}_${SET_I}.txt"
-    ${HEAD} cp "combine_mva_${SELECTION}_${SET_I}_${YEAR_I}.root" ../${YEARSTRING}/
 done
 if [[ "${DRYRUN}" != "" ]]; then
     ${HEAD} ${COMMAND} ${FINALCARD}

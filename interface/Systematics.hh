@@ -9,6 +9,7 @@
 #include "TString.h"
 //local includes
 #include "interface/GlobalConstants.h"
+#include "interface/ScaleUncertainty_t.hh"
 
 namespace CLFV {
 
@@ -17,6 +18,13 @@ namespace CLFV {
     Systematics() {
       //initialize the defined systematics information
       for(int isys = 0; isys < kMaxSystematics; ++isys) {
+        Data data = getData(isys);
+        if(data.name_ == "") continue; //only store defined systematics
+        idToData_[isys] = data;
+        if(data.up_) nameToData_[data.name_] = data; //map to the up value
+      }
+      //initialize the defined normalization/scale systematics information
+      for(int isys = kMaxSystematics; isys < kMaxSystematics+kMaxScaleSystematics; ++isys) {
         Data data = getData(isys);
         if(data.name_ == "") continue; //only store defined systematics
         idToData_[isys] = data;
@@ -41,11 +49,18 @@ namespace CLFV {
       return false;
     }
 
+    ScaleUncertainty_t GetScale(const int isys) {
+      if(idToData_.find(isys) != idToData_.end()) return idToData_[isys].scale_;
+      return ScaleUncertainty_t();
+    }
+
   private:
     struct Data {
       int     num_;
       TString name_;
       bool    up_;
+      //for scale/normalization uncertainties only (e.g. cross section)
+      ScaleUncertainty_t scale_;
       Data(int num = -1, TString name = "", bool up = true) : num_(num), name_(name), up_(up) {}
     };
 

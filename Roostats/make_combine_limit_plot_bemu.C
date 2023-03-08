@@ -4,14 +4,16 @@
 int make_combine_limit_plot_bemu(vector<int> sets = {8}, TString selection = "zemu",
                                  vector<int> years = {2016, 2017, 2018},
                                  bool processCards = true,
-                                 bool doNoSys = true,
+                                 bool doNoSys = false,
                                  bool doObs = false) {
   scale_ = (selection.Contains("h")) ? 1.e-4 : 1.e-7;
   int status = 0;
   vector<config_t> cards;
-  int index = 0;
+  int index = 1;
   for(int set : sets) {
-    cards.push_back(config_t(Form("bemu_%s_%i", selection.Data(), set), Form("Cat %i", index), {set}, years, scale_));
+    config_t card(Form("bemu_%s_%i", selection.Data(), set), Form("Cat %i", index), {set}, years, scale_);
+    card.rmin_ = 0.; card.rmax_ = 20.;
+    cards.push_back(card);
     ++index;
   }
 

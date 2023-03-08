@@ -16,7 +16,7 @@ namespace CLFV {
     Bool_t   data_   ; //apply to data or not
     Bool_t   mc_     ; //apply to MC or not
     Bool_t   embed_  ; //apply to Embedding or not
-    ScaleUncertainty_t(TString name, Double_t scale,
+    ScaleUncertainty_t(TString name = "", Double_t scale = 1.,
                        TString process = "", TString tag = "", TString veto = "",
                        Int_t year = -1,
                        Bool_t data = false, Bool_t mc = true, Bool_t embed = true): name_(name), scale_(scale), process_(process),
