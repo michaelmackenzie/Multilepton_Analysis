@@ -24,8 +24,9 @@
 #include "interface/Utilities.hh"
 #include "Math/ProbFuncMathCore.h"
 
-#include "interface/PlottingCard_t.hh"
 #include "interface/DataCard_t.hh"
+#include "interface/PlottingCard_t.hh"
+#include "interface/ScaleUncertainty_t.hh"
 #include "interface/Titles.hh"
 
 namespace CLFV {
@@ -54,20 +55,6 @@ namespace CLFV {
     std::vector<Int_t> years_ = {2016};
     Int_t verbose_ = 0;
     std::vector<Data_t>   inputs_; //list of input data to plot
-    // std::vector<Double_t> scale_; //scales for datasets
-    // std::vector<Int_t>    process_; //indicates which backgrounds to use
-    // std::vector<TString> names_; //to get event histograms
-    // std::vector<TString> labels_; //to label tlegend and group datasets
-    // std::vector<Double_t> xsec_;
-    // std::vector<TString> fileNames_;
-    // std::vector<TFile*> files_;  //histogram files opened
-    // std::vector<TFile*> data_;  //background data files
-    // std::vector<bool> isData_; //flag to check if is data
-    // std::vector<bool> isEmbed_; //flag to check if is embedded
-    // std::vector<bool> isSignal_; //flag to check if is signal file
-    // std::vector<Int_t> dataYear_; //list of years it's associated with (2016, 2017, or 2018)
-    // std::vector<Int_t> ngenerated_; //generation number for datasets
-    // // std::map<TString, double> systematicMap_; //map of background label to a systematic uncertainty
 
     Double_t embed_scale_ = 1.; //additional scale factor for embedding
 
@@ -292,7 +279,7 @@ namespace CLFV {
       }
     }
 
-    std::vector<TH1*> get_histograms(TString hist, TString setType, Int_t set, Int_t Mode, TString process = "");
+    std::vector<TH1*> get_histograms(TString hist, TString setType, Int_t set, Int_t Mode, TString process = "", ScaleUncertainty_t* sys_scale = nullptr);
     enum{kBackground, kSignal, kData, kAny};
 
     std::vector<TH1*> get_signal(TString hist, TString setType, Int_t set);
@@ -375,14 +362,14 @@ namespace CLFV {
       double tmp1, tmp2;
       return get_errors(h, h_p, h_m, ratio, tmp1, tmp2);
     }
-    TCanvas* plot_systematic(TString hist, Int_t set, Int_t systematic);
-    TCanvas* plot_systematic(TString hist, Int_t set, Int_t systematic, Double_t xmin, Double_t xmax) {
-      xMin_ = xmin; xMax_=xmax; auto c = plot_systematic(hist, set, systematic); reset_axes(); return c;
+    TCanvas* plot_systematic(TString hist, Int_t set, Int_t systematic, ScaleUncertainty_t* sys_scale = nullptr);
+    TCanvas* plot_systematic(TString hist, Int_t set, Int_t systematic, Double_t xmin, Double_t xmax, ScaleUncertainty_t* sys_scale = nullptr) {
+      xMin_ = xmin; xMax_=xmax; auto c = plot_systematic(hist, set, systematic, sys_scale); reset_axes(); return c;
     }
-    TCanvas* plot_systematic(TString hist, Int_t set, Int_t systematic, Double_t xmin, Double_t xmax, Double_t blind_min, Double_t blind_max) {
-      blindxmin_ = {blind_min}; blindxmax_= {blind_max}; return plot_systematic(hist, set, systematic, xmin, xmax);
+    TCanvas* plot_systematic(TString hist, Int_t set, Int_t systematic, Double_t xmin, Double_t xmax, Double_t blind_min, Double_t blind_max, ScaleUncertainty_t* sys_scale = nullptr) {
+      blindxmin_ = {blind_min}; blindxmax_= {blind_max}; return plot_systematic(hist, set, systematic, xmin, xmax, sys_scale);
     }
-    TCanvas* plot_systematic(PlottingCard_t card) {
+    TCanvas* plot_systematic(PlottingCard_t card, ScaleUncertainty_t* sys_scale = nullptr) {
       rebinH_ = card.rebin_;
       blindxmin_ = card.blindmin_;
       blindxmax_ = card.blindmax_;
@@ -392,7 +379,7 @@ namespace CLFV {
         data_over_mc_ = card.data_over_mc_;
       only_signal_ = card.label_;
       single_systematic_ = card.single_systematic_;
-      return plot_systematic(card.hist_, card.set_, card.systematic_, card.xmin_, card.xmax_);
+      return plot_systematic(card.hist_, card.set_, card.systematic_, card.xmin_, card.xmax_, sys_scale);
     }
 
     TCanvas* plot_cdf(TString hist, TString setType, Int_t set, TString label);
@@ -438,11 +425,11 @@ namespace CLFV {
       return print_stack(card.hist_, card.type_, card.set_, card.xmin_, card.xmax_, card.tag_);
     }
 
-    TCanvas* print_systematic(TString hist, Int_t set, Int_t systematic, TString tag = "");
-    TCanvas* print_systematic(TString hist, Int_t set, Int_t systematic, Double_t xmin, Double_t xmax, TString tag = "") {
-      xMin_ = xmin; xMax_=xmax; auto c = print_systematic(hist, set, systematic, tag); reset_axes(); return c;
+    TCanvas* print_systematic(TString hist, Int_t set, Int_t systematic, TString tag = "", ScaleUncertainty_t* sys_scale = nullptr);
+    TCanvas* print_systematic(TString hist, Int_t set, Int_t systematic, Double_t xmin, Double_t xmax, TString tag = "", ScaleUncertainty_t* sys_scale = nullptr) {
+      xMin_ = xmin; xMax_=xmax; auto c = print_systematic(hist, set, systematic, tag, sys_scale); reset_axes(); return c;
     }
-    TCanvas* print_systematic(PlottingCard_t card) {
+    TCanvas* print_systematic(PlottingCard_t card, ScaleUncertainty_t* sys_scale = nullptr) {
       rebinH_ = card.rebin_;
       blindxmin_ = card.blindmin_;
       blindxmax_ = card.blindmax_;
@@ -452,7 +439,7 @@ namespace CLFV {
         data_over_mc_ = card.data_over_mc_;
       only_signal_ = card.label_;
       single_systematic_ = card.single_systematic_;
-      return print_systematic(card.hist_, card.set_, card.systematic_, card.xmin_, card.xmax_, card.tag_);
+      return print_systematic(card.hist_, card.set_, card.systematic_, card.xmin_, card.xmax_, card.tag_, sys_scale);
     }
 
     // TCanvas* print_hist(TString hist, TString setType, Int_t set, TString tag = "");

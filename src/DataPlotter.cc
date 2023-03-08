@@ -3,7 +3,7 @@ using namespace CLFV;
 
 //--------------------------------------------------------------------------------------------------------------------
 // general method to get a list of histograms, either for data, signal, or backgrounds
-std::vector<TH1*> DataPlotter::get_histograms(TString hist, TString setType, Int_t set, Int_t Mode, TString process) {
+std::vector<TH1*> DataPlotter::get_histograms(TString hist, TString setType, Int_t set, Int_t Mode, TString process, ScaleUncertainty_t* sys_scale) {
   //list of histograms to return
   std::vector<TH1*> histograms;
 
@@ -13,6 +13,9 @@ std::vector<TH1*> DataPlotter::get_histograms(TString hist, TString setType, Int
   if(Mode != kData && Mode != kSignal && Mode != kBackground && Mode != kAny) {
     std::cout << __func__ << ": Unknown histogram list mode: " << Mode << std::endl;
     return histograms;
+  }
+  if(sys_scale && sys_scale->scale_ <= 0.) {
+    printf("%s: Warning! Scale uncertainty %s has scale <= 0 (%f)\n", __func__, sys_scale->name_.Data(), sys_scale->scale_);
   }
 
   //for combining histograms of the same label
@@ -53,10 +56,25 @@ std::vector<TH1*> DataPlotter::get_histograms(TString hist, TString setType, Int
     // tmp->SetBit(kCanDelete);
     tmp = (TH1*) tmp->Clone("htmp");
     tmp->SetDirectory(0);
-    tmp->Scale(input.scale_);
     tmp->SetLineColor(input.color_);
     tmp->SetFillColor(input.color_);
     tmp->SetMarkerColor(input.color_);
+
+    //determine the scale to apply, depending on if there's a scale uncertainty
+    double scale = input.scale_;
+    if(sys_scale) {
+      bool passed = true;
+      passed &= sys_scale->process_ == "" || sys_scale->process_ == input.name_;
+      passed &= sys_scale->tag_ == "" || input.name_.Contains(sys_scale->tag_);
+      passed &= sys_scale->veto_ == "" || !input.name_.Contains(sys_scale->veto_);
+      passed &= sys_scale->year_ < 0 || sys_scale->year_ == input.dataYear_;
+      if(passed) {
+        scale *= sys_scale->scale_;
+        if(verbose_ > 1) printf("%s: Applying %f scale to %s input\n", __func__, sys_scale->scale_, input.name_.Data());
+      }
+    }
+    tmp->Scale(scale);
+
     histograms[i] = tmp;
     if(density_plot_) density(histograms[i]);
     unsigned int index = i;
@@ -1498,9 +1516,14 @@ TGraphAsymmErrors* DataPlotter::get_errors(TH1* h, TH1* h_p, TH1* h_m, bool rati
 }
 
 //--------------------------------------------------------------------------------------------------------------------
-TCanvas* DataPlotter::plot_systematic(TString hist, Int_t set, Int_t systematic) {
+TCanvas* DataPlotter::plot_systematic(TString hist, Int_t set, Int_t systematic, ScaleUncertainty_t* sys_scale) {
   TString c_name = Form("sys_%s_%i_%i", hist.Data(), systematic, set);
   while(TObject* o = gDirectory->Get(c_name.Data())) delete o;
+
+  if(sys_scale) {
+    std::cout << __func__ << ": Systematic scale plotting not yet implemented!\n";
+    return nullptr;
+  }
 
   //Get background stacks
   THStack* hstack_b = get_stack(hist+"_0"                               , "systematic", set);
@@ -2236,8 +2259,8 @@ TCanvas* DataPlotter::print_stack(TString hist, TString setType, Int_t set, TStr
 }
 
 //--------------------------------------------------------------------------------------------------------------------
-TCanvas* DataPlotter::print_systematic(TString hist, Int_t set, Int_t systematic, TString tag) {
-  TCanvas* c = plot_systematic(hist,set,systematic);
+TCanvas* DataPlotter::print_systematic(TString hist, Int_t set, Int_t systematic, TString tag, ScaleUncertainty_t* sys_scale) {
+  TCanvas* c = plot_systematic(hist,set,systematic, sys_scale);
   if(!c) return c;
   TString label = "";
   if(single_systematic_) label += "single_";

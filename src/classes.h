@@ -41,6 +41,7 @@
 #include "interface/RecoilHistMaker.hh"
 #include "interface/DataCard_t.hh"
 #include "interface/PlottingCard_t.hh"
+#include "interface/ScaleUncertainty_t.hh"
 #include "interface/DataPlotter.hh"
 #include "interface/Fitter.hh"
 
@@ -84,6 +85,7 @@ namespace CLFV {
     RecoilHistMaker dummy15b7;
     DataCard_t dummy15c;
     PlottingCard_t dummy15d;
+    ScaleUncertainty_t dummy15e;
     DataPlotter dummy16;
     Fitter dummy19;
   };
