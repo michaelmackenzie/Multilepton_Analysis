@@ -11,16 +11,16 @@ typedef CLFVHistMaker HISTOGRAMMER;
 // typedef SparseHistMaker HISTOGRAMMER;
 
 //Process multiple cards in parallel
-bool newProcess_   = true; //run card processing in a new process to avoid memory issues
+bool newProcess_   = false; //run card processing in a new process to avoid memory issues
 int  maxProcesses_ = 6; //maximum number of new processes to run at once
 bool preFetch_     = false; //check for the sample on /tmp, and copy it there if it isn't there
 bool useTChain_    = true; //use a TChain of input files rather than a tree from a single ntuple file
 
 Long64_t notify_ = 50000;
-TString tag_ = ""; //dataset tag requirement
-bool debug_ = false;
+TString tag_ = "DY50-amc_2016"; //dataset tag requirement
+bool debug_ = true;
 Long64_t startEvent_ = 0;
-Long64_t nEvents_ = 10; //at 20, verbosity returns to normal
+Long64_t nEvents_ = 1000000; //at 20, verbosity returns to normal
 HISTOGRAMMER* selector_ = 0;
 
 bool DYFakeTau_         = false; //speed up dy fake tau scale factor

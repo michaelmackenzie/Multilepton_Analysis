@@ -1,8 +1,8 @@
 CC       := c++
 CXX      := g++
 LD       := g++
-CXXFLAGS := -Wall -Wextra -Werror -O2 -std=c++1y -g -I./ $(shell root-config --cflags) -lTMVA
-LDFLAGS  := -shared -Wall -Wextra $(shell root-config --libs) -lTMVA
+CXXFLAGS := -Wall -Wextra -Werror -Wfatal-errors -O2 -std=c++1y -g -I./ $(shell root-config --cflags) -lTMVA -lGenVector
+LDFLAGS  := -shared -Wall -Wextra $(shell root-config --libs) -lTMVA -lGenVector
 SRC 	 := $(wildcard src/*.cc)
 BINSRC 	 := $(wildcard test/*.cpp)
 OBJS     := $(SRC:src/%.cc=obj/lib/%.o)
