@@ -13,9 +13,15 @@ namespace CLFV {
     TString  tag_    ; //process tag to consider, "" to not apply
     TString  veto_   ; //process tag to reject, "" to not apply
     Int_t    year_   ; //year to consider, < 0 to not apply
+    Bool_t   data_   ; //apply to data or not
+    Bool_t   mc_     ; //apply to MC or not
+    Bool_t   embed_  ; //apply to Embedding or not
     ScaleUncertainty_t(TString name, Double_t scale,
                        TString process = "", TString tag = "", TString veto = "",
-                       Int_t year = -1): name_(name), scale_(scale), process_(process), tag_(tag), veto_(veto), year_(year) {}
+                       Int_t year = -1,
+                       Bool_t data = false, Bool_t mc = true, Bool_t embed = true): name_(name), scale_(scale), process_(process),
+                                                                                    tag_(tag), veto_(veto), year_(year),
+                                                                                    data_(data), mc_(mc), embed_(embed) {}
   };
 }
 #endif

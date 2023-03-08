@@ -282,22 +282,22 @@ namespace CLFV {
     std::vector<TH1*> get_histograms(TString hist, TString setType, Int_t set, Int_t Mode, TString process = "", ScaleUncertainty_t* sys_scale = nullptr);
     enum{kBackground, kSignal, kData, kAny};
 
-    std::vector<TH1*> get_signal(TString hist, TString setType, Int_t set);
+    std::vector<TH1*> get_signal(TString hist, TString setType, Int_t set, ScaleUncertainty_t* sys_scale = nullptr);
     // TH2* get_signal_2D(TString hist, TString setType, Int_t set);
 
-    TH1* get_data_mc_diff(TString hist, TString setType, Int_t set);
+    TH1* get_data_mc_diff(TString hist, TString setType, Int_t set, ScaleUncertainty_t* sys_scale = nullptr);
 
-    TH1* get_data(TString hist, TString setType, Int_t set);
+    TH1* get_data(TString hist, TString setType, Int_t set, ScaleUncertainty_t* sys_scale = nullptr);
     TH2* get_data_2D(TString hist, TString setType, Int_t set);
 
-    TH1* get_qcd(TString hist, TString setType, Int_t set);
+    TH1* get_qcd(TString hist, TString setType, Int_t set, ScaleUncertainty_t* sys_scale = nullptr);
     TH2* get_qcd_2D(TString hist, TString setType, Int_t set);
 
-    TH1* get_misid(TString hist, TString setType, Int_t set);
+    TH1* get_misid(TString hist, TString setType, Int_t set, ScaleUncertainty_t* sys_scale = nullptr);
     TH2* get_misid_2D(TString hist, TString setType, Int_t set);
 
     TH1* get_stack_uncertainty(THStack* hstack, TString hname);
-    THStack* get_stack(TString hist, TString setType, Int_t set);
+    THStack* get_stack(TString hist, TString setType, Int_t set, ScaleUncertainty_t* sys_scale = nullptr);
     TH2* get_background_2D(TString hist, TString setType, Int_t set);
 
     TH1* get_process(TString label, TString hist, TString setType, Int_t set);

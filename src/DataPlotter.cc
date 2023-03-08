@@ -27,6 +27,7 @@ std::vector<TH1*> DataPlotter::get_histograms(TString hist, TString setType, Int
     const bool isData = input.isData_;
     const bool isSignal = input.isSignal_;
     const bool isBackground = !(isData || isSignal);
+    const bool isEmbed = input.isEmbed_;
     if(Mode != kAny) {
       if(Mode != kData && isData) continue;
       if(Mode != kSignal && isSignal) continue;
@@ -68,6 +69,9 @@ std::vector<TH1*> DataPlotter::get_histograms(TString hist, TString setType, Int
       passed &= sys_scale->tag_ == "" || input.name_.Contains(sys_scale->tag_);
       passed &= sys_scale->veto_ == "" || !input.name_.Contains(sys_scale->veto_);
       passed &= sys_scale->year_ < 0 || sys_scale->year_ == input.dataYear_;
+      passed &= ( isData && sys_scale->data_ ) || !isData;
+      passed &= (!isData && sys_scale->mc_   ) || isData;
+      passed &= (isEmbed && sys_scale->embed_) || !isEmbed;
       if(passed) {
         scale *= sys_scale->scale_;
         if(verbose_ > 1) printf("%s: Applying %f scale to %s input\n", __func__, sys_scale->scale_, input.name_.Data());
@@ -121,8 +125,8 @@ std::vector<TH1*> DataPlotter::get_histograms(TString hist, TString setType, Int
 }
 
 //--------------------------------------------------------------------------------------------------------------------
-std::vector<TH1*> DataPlotter::get_signal(TString hist, TString setType, Int_t set) {
-  std::vector<TH1*> histograms = get_histograms(hist, setType, set, kSignal);
+std::vector<TH1*> DataPlotter::get_signal(TString hist, TString setType, Int_t set, ScaleUncertainty_t* sys_scale) {
+  std::vector<TH1*> histograms = get_histograms(hist, setType, set, kSignal, "", sys_scale);
   if(verbose_ > 2) printf("%s: Retrieved the list of %i signal histograms\n", __func__, (int) histograms.size());
   for(unsigned index = 0; index < histograms.size(); ++index) {
     if(verbose_ > 7) printf(" Updating drawing settings for signal %i (%s)\n", (int) index, histograms[index]->GetTitle());
@@ -156,7 +160,7 @@ std::vector<TH1*> DataPlotter::get_signal(TString hist, TString setType, Int_t s
 }
 
 //--------------------------------------------------------------------------------------------------------------------
-TH1* DataPlotter::get_data_mc_diff(TString hist, TString setType, Int_t set) {
+TH1* DataPlotter::get_data_mc_diff(TString hist, TString setType, Int_t set, ScaleUncertainty_t* sys_scale) {
   TString hname = Form("Diff_%s_%s_%i", hist.Data(), setType.Data(), set);
   if(density_plot_) hname += "_density";
   {
@@ -167,7 +171,7 @@ TH1* DataPlotter::get_data_mc_diff(TString hist, TString setType, Int_t set) {
   //get the data histogram
   const Int_t tmpRebin = rebinH_;
   rebinH_ = 1; //don't rebin the data yet
-  TH1* hData = get_data(hist, setType, set);
+  TH1* hData = get_data(hist, setType, set, sys_scale);
   rebinH_ = tmpRebin;
   if(!hData) return nullptr;
 
@@ -175,7 +179,7 @@ TH1* DataPlotter::get_data_mc_diff(TString hist, TString setType, Int_t set) {
   hData->SetName(hname.Data());
 
   //get the MC background histograms
-  std::vector<TH1*> backgrounds = get_histograms(hist, setType, set, kBackground);
+  std::vector<TH1*> backgrounds = get_histograms(hist, setType, set, kBackground, "", sys_scale);
   TH1* hBackground = nullptr;
   for(unsigned index = 0; index < backgrounds.size(); ++index) {
     if(!hBackground) {
@@ -202,14 +206,14 @@ TH1* DataPlotter::get_data_mc_diff(TString hist, TString setType, Int_t set) {
 }
 
 //--------------------------------------------------------------------------------------------------------------------
-TH1* DataPlotter::get_data(TString hist, TString setType, Int_t set) {
+TH1* DataPlotter::get_data(TString hist, TString setType, Int_t set, ScaleUncertainty_t* sys_scale) {
   TString hname = Form("hData_%s_%i", hist.Data(), set);
   if(density_plot_) hname += "_density";
   {
     auto o = gDirectory->Get(hname.Data());
     if(o) delete o;
   }
-  std::vector<TH1*> histograms = get_histograms(hist, setType, set, kData);
+  std::vector<TH1*> histograms = get_histograms(hist, setType, set, kData, "", sys_scale);
   TH1* hdata = nullptr;
   for(unsigned index = 0; index < histograms.size(); ++index) {
     if(!hdata) {
@@ -247,7 +251,7 @@ TH2* DataPlotter::get_data_2D(TString hist, TString setType, Int_t set) {
 }
 
 //--------------------------------------------------------------------------------------------------------------------
-TH1* DataPlotter::get_qcd(TString hist, TString setType, Int_t set) {
+TH1* DataPlotter::get_qcd(TString hist, TString setType, Int_t set, ScaleUncertainty_t* sys_scale) {
   TString hname = Form("QCD_%s_%s_%i", hist.Data(), setType.Data(), set);
   if(density_plot_) hname += "_density";
   {
@@ -259,7 +263,7 @@ TH1* DataPlotter::get_qcd(TString hist, TString setType, Int_t set) {
 
   //get the data histogram
   const Int_t set_qcd = set + qcd_offset_;
-  TH1* hData = get_data_mc_diff(hist, setType, set_qcd);
+  TH1* hData = get_data_mc_diff(hist, setType, set_qcd, sys_scale);
   if(!hData) return nullptr;
 
   //redefine the data histogram as the QCD histogram
@@ -268,7 +272,7 @@ TH1* DataPlotter::get_qcd(TString hist, TString setType, Int_t set) {
   if(rebinH_ > 1) hData->Rebin(rebinH_);
 
   //include the Mis-ID background subtraction if included
-  TH1* hMisID = (include_misid_) ? get_misid(hist, setType, set_qcd) : nullptr;
+  TH1* hMisID = (include_misid_) ? get_misid(hist, setType, set_qcd, sys_scale) : nullptr;
   if(hMisID) {hData->Add(hMisID, -1.); delete hMisID;}
 
 
@@ -358,7 +362,7 @@ TH2* DataPlotter::get_qcd_2D(TString hist, TString setType, Int_t set) {
 }
 
 //--------------------------------------------------------------------------------------------------------------------
-TH1* DataPlotter::get_misid(TString hist, TString setType, Int_t set) {
+TH1* DataPlotter::get_misid(TString hist, TString setType, Int_t set, ScaleUncertainty_t* sys_scale) {
   TString hname = Form("MisID_%s_%s_%i", hist.Data(), setType.Data(), set);
   if(density_plot_) hname += "_density";
   {
@@ -370,7 +374,7 @@ TH1* DataPlotter::get_misid(TString hist, TString setType, Int_t set) {
 
   //get the data histogram
   const Int_t set_misid = set + misid_offset_;
-  TH1* hData = get_data_mc_diff(hist, setType, set_misid);
+  TH1* hData = get_data_mc_diff(hist, setType, set_misid, sys_scale);
   if(!hData) return nullptr;
 
   //redefine the data histogram as the MisID histogram
@@ -379,7 +383,7 @@ TH1* DataPlotter::get_misid(TString hist, TString setType, Int_t set) {
   if(rebinH_ > 1) hData->Rebin(rebinH_);
 
   //include the QCD background subtraction if included
-  TH1* hQCD = (include_qcd_) ? get_qcd(hist, setType, set_misid) : nullptr;
+  TH1* hQCD = (include_qcd_) ? get_qcd(hist, setType, set_misid, sys_scale) : nullptr;
   if(hQCD) {hData->Add(hQCD, -1.); delete hQCD;}
 
   //store the integral before clipping negative bins
@@ -470,11 +474,11 @@ TH2* DataPlotter::get_misid_2D(TString hist, TString setType, Int_t set) {
 }
 
 //--------------------------------------------------------------------------------------------------------------------
-THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set) {
+THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set, ScaleUncertainty_t* sys_scale) {
 
   //Get the data-driven backgrounds if applicable
-  TH1* hQCD   = (include_qcd_)   ? get_qcd  (hist,setType,set) : nullptr;
-  TH1* hMisID = (include_misid_) ? get_misid(hist,setType,set) : nullptr;
+  TH1* hQCD   = (include_qcd_)   ? get_qcd  (hist,setType,set,sys_scale) : nullptr;
+  TH1* hMisID = (include_misid_) ? get_misid(hist,setType,set,sys_scale) : nullptr;
   if(hQCD   && verbose_ > 0) std::cout << "QCD histogram has integral " << hQCD->Integral((density_plot_ > 0) ? "width" : "") << std::endl;
   if(hMisID && verbose_ > 0) std::cout << "MisID histogram has integral " << hMisID->Integral((density_plot_ > 0) ? "width" : "") << std::endl;
 
@@ -487,7 +491,7 @@ THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set) {
   THStack* hstack = new THStack(stack_name.Data(),stack_name.Data());
 
   //Get the background histograms
-  std::vector<TH1*> histograms = get_histograms(hist, setType, set, kBackground);
+  std::vector<TH1*> histograms = get_histograms(hist, setType, set, kBackground, "", sys_scale);
 
   //Loop through the histograms and add them to the stack
   for(unsigned index = 0; index < histograms.size(); ++index) {
