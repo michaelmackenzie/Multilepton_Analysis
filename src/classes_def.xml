@@ -30,7 +30,7 @@
   <class name="MVAConfig"/>
   <class name="TrkQualInit"/>
   <class name="BaseSelector"/>
-  <class name="HistSelector"/>
+  <!-- <class name="HistSelector"/> -->
   <class name="HistMaker"/>
   <class name="CLFVHistMaker"/>
   <class name="SparseHistMaker"/>

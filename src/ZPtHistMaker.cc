@@ -241,10 +241,10 @@ void ZPtHistMaker::FillEventHistogram(EventHist_t* Hist) {
   Hist->hMTTwo             ->Fill(fTreeVars.mttwo    , eventWeight*genWeight);
   Hist->hMTLep             ->Fill(fTreeVars.mtlep    , eventWeight*genWeight);
 
-  TLorentzVector lepSys = (*leptonOne.p4) + (*leptonTwo.p4);
-  TLorentzVector sys    = (photonP4) ? (*photonP4) + lepSys : lepSys;
-  const double lepDelR   = std::fabs(leptonOne.p4->DeltaR(*leptonTwo.p4));
-  const double lepDelPhi = std::fabs(leptonOne.p4->DeltaPhi(*leptonTwo.p4));
+  PtEtaPhiMVector lepSys = (*leptonOne.p4) + (*leptonTwo.p4);
+  // PtEtaPhiMVector sys    = (photonP4) ? (*photonP4) + lepSys : lepSys;
+  const double lepDelR   = std::fabs(Utilities::DeltaR(*leptonOne.p4, *leptonTwo.p4));
+  const double lepDelPhi = std::fabs(Utilities::DeltaPhi(leptonOne.p4->Phi(), leptonTwo.p4->Phi()));
   const double lepDelEta = std::fabs(leptonOne.p4->Eta() - leptonTwo.p4->Eta());
 
   Hist->hLepPt[0]     ->Fill(lepSys.Pt()            ,eventWeight*genWeight);
@@ -407,7 +407,7 @@ Bool_t ZPtHistMaker::Process(Long64_t entry)
   if(leptonTwo.isElectron() && std::fabs(leptonTwo.scEta) >= elec_gap_low && std::fabs(leptonTwo.scEta) <= elec_gap_high) return kTRUE;
 
   //enforce the leptons are separated
-  if(std::fabs(leptonOne.p4->DeltaR(*leptonTwo.p4)) < 0.3) return kTRUE;
+  if(std::fabs(Utilities::DeltaR(*leptonOne.p4, *leptonTwo.p4)) < 0.3) return kTRUE;
 
   //apply reasonable lepton isolation cuts
   if(leptonOne.isElectron() && leptonOne.relIso >= 0.5) return kTRUE;

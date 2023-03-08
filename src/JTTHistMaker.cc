@@ -432,10 +432,10 @@ void JTTHistMaker::FillEventHistogram(EventHist_t* Hist) {
   Hist->hMTTwo             ->Fill(fTreeVars.mttwo    , eventWeight*genWeight);
   Hist->hMTLep             ->Fill(fTreeVars.mtlep    , eventWeight*genWeight);
 
-  TLorentzVector lepSys = (*leptonOne.p4) + (*leptonTwo.p4);
-  TLorentzVector sys    = (photonP4) ? (*photonP4) + lepSys : lepSys;
-  const double lepDelR   = std::fabs(leptonOne.p4->DeltaR(*leptonTwo.p4));
-  const double lepDelPhi = std::fabs(leptonOne.p4->DeltaPhi(*leptonTwo.p4));
+  PtEtaPhiMVector lepSys = (*leptonOne.p4) + (*leptonTwo.p4);
+  // PtEtaPhiMVector sys    = (photonP4) ? (*photonP4) + lepSys : lepSys;
+  const double lepDelR   = std::fabs(Utilities::DeltaR(*leptonOne.p4, *leptonTwo.p4));
+  const double lepDelPhi = std::fabs(Utilities::DeltaPhi(leptonOne.p4->Phi(), leptonTwo.p4->Phi()));
   const double lepDelEta = std::fabs(leptonOne.p4->Eta() - leptonTwo.p4->Eta());
 
   Hist->hLepPt[0]     ->Fill(lepSys.Pt()            ,eventWeight*genWeight);
@@ -482,9 +482,9 @@ void JTTHistMaker::FillEventHistogram(EventHist_t* Hist) {
         Hist->hTausAntiMu ->Fill(Tau_idDeepTau2017v2p1VSmu[itau]              , tau_wt*eventWeight*genWeight);
         Hist->hTausMVAAntiMu->Fill(Tau_idAntiMu[itau]         , tau_wt*eventWeight*genWeight);
         Hist->hTausGenFlavor->Fill(TauFlavorFromID(Tau_genPartFlav[itau]), tau_wt*eventWeight*genWeight);
-        TLorentzVector tausLV;
-        tausLV.SetPtEtaPhiM(Tau_pt[itau], Tau_eta[itau], Tau_phi[itau], Tau_mass[itau]);
-        Hist->hTausDeltaR->Fill(std::fabs(tausLV.DeltaR(*leptonOne.p4)), tau_wt*eventWeight*genWeight);
+        PtEtaPhiMVector tausLV;
+        tausLV.SetCoordinates(Tau_pt[itau], Tau_eta[itau], Tau_phi[itau], Tau_mass[itau]);
+        Hist->hTausDeltaR->Fill(std::fabs(Utilities::DeltaR(tausLV, *leptonOne.p4)), tau_wt*eventWeight*genWeight);
       } else {
         Hist->hFakeTausPt->Fill(Tau_pt[itau], tau_wt*eventWeight*genWeight);
         Hist->hFakeTausEta->Fill(Tau_eta[itau], tau_wt*eventWeight*genWeight);
@@ -597,16 +597,16 @@ void JTTHistMaker::FillLepHistogram(LepHist_t* Hist) {
     if(dmr > 9) dmr -= (10 - 2); //10,11 --> 2,3
     dmr += 1; //dmr = DM ID + 1, so 0 can be inclusive
     dmr = std::min(4, dmr); //ensure it's not out of bounds
-    TLorentzVector taulv;
+    PtEtaPhiMVector taulv;
     if(leptonTwo.isTau     ()) taulv = *leptonTwo.p4;
-    else taulv.SetPtEtaPhiM(Tau_pt[0], Tau_eta[0], Tau_phi[0], Tau_mass[0]);
+    else taulv.SetCoordinates(Tau_pt[0], Tau_eta[0], Tau_phi[0], Tau_mass[0]);
 
     //FIXME: Remove tau pT region histograms
     float wt_nojt(eventWeight*genWeight), wt_nocorr(eventWeight*genWeight), wt_nobias(eventWeight*genWeight);
     if(jetToTauWeightBias > 0.) wt_nojt   *= 1.                 / jetToTauWeightBias; // remove the entire weight
     if(jetToTauWeightBias > 0.) wt_nocorr *= jetToTauWeight     / jetToTauWeightBias; // remove the non-closure and bias corrections
     if(jetToTauWeightBias > 0.) wt_nobias *= jetToTauWeightCorr / jetToTauWeightBias; // remove the bias corrections
-    double dr = std::fabs(leptonOne.p4->DeltaR(taulv));
+    double dr = std::fabs(Utilities::DeltaR(*leptonOne.p4, taulv));
     Hist->hJetTauOnePt[0]       ->Fill(fTreeVars.leponept, wt_nocorr);
     Hist->hJetTauOnePt[dmr]     ->Fill(fTreeVars.leponept, wt_nocorr);
     Hist->hJetTauOnePtQCD[0]    ->Fill(fTreeVars.leponept, eventWeight*genWeight);
@@ -629,7 +629,7 @@ void JTTHistMaker::FillLepHistogram(LepHist_t* Hist) {
     Hist->hJetTauMTOneComp     ->Fill(fTreeVars.mtone         , wt_nojt);
     Hist->hJetTauMTTwoComp     ->Fill(fTreeVars.mttwo         , wt_nojt);
 
-    dr = std::fabs(leptonTwo.p4->DeltaR(taulv));
+    dr = std::fabs(Utilities::DeltaR(*leptonTwo.p4, taulv));
     Hist->hJetTauTwoPt[0]       ->Fill(fTreeVars.leptwopt, wt_nocorr);
     Hist->hJetTauTwoPt[dmr]     ->Fill(fTreeVars.leptwopt, wt_nocorr);
     Hist->hJetTauTwoPtVsR[0]    ->Fill(fTreeVars.leptwopt, dr, wt_nocorr);
@@ -695,7 +695,7 @@ Bool_t JTTHistMaker::Process(Long64_t entry)
   etau &= std::fabs(leptonOne.scEta) < elec_gap_low || std::fabs(leptonOne.scEta) > elec_gap_high;
 
   //enforce the leptons are separated
-  if(std::fabs(leptonOne.p4->DeltaR(*leptonTwo.p4)) < 0.3) return kTRUE;
+  if(std::fabs(Utilities::DeltaR(*leptonOne.p4, *leptonTwo.p4)) < 0.3) return kTRUE;
 
   //apply reasonable lepton isolation cuts
   if(leptonOne.isElectron() && fTreeVars.leponereliso >= 0.5) return kTRUE;

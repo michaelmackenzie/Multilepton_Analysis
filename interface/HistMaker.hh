@@ -18,6 +18,9 @@
 // Headers needed by this particular selector
 #include "TLorentzVector.h"
 #include "Math/LorentzVector.h"
+#include "Math/GenVector/Boost.h"
+#include "Math/RotationX.h"
+#include "Math/RotationZ.h"
 #include "TStopwatch.h"
 #include "TH1.h"
 #include "TH2.h"
@@ -66,6 +69,7 @@
 #include "interface/ElectronIDWeight.hh"
 
 #include "interface/Systematics.hh"
+
 
 namespace CLFV {
 
@@ -323,7 +327,7 @@ namespace CLFV {
     Float_t qcdIsoScale = 1.           ; //QCD bias correction
 
     //Tau information
-    TLorentzVector* tauP4 = 0          ;
+    PtEtaPhiMVector* tauP4 = nullptr   ;
     Int_t   tauDecayMode               ;
     Int_t   tauGenFlavor               ;
     Int_t   tauGenID                   ;
@@ -338,14 +342,14 @@ namespace CLFV {
     //Selected lepton info
     Lepton_t leptonOne                 ;
     Lepton_t leptonTwo                 ;
-    TLorentzVector* genLeptonOneP4 = 0 ;
-    TLorentzVector* genLeptonTwoP4 = 0 ;
+    PtEtaPhiMVector* genLeptonOneP4 = nullptr;
+    PtEtaPhiMVector* genLeptonTwoP4 = nullptr;
 
     Float_t triggerWeights[3]          ;
     Float_t triggerWeightsSys[6]       ;
 
     //Additional event object information
-    TLorentzVector* photonP4 = 0       ;
+    PtEtaPhiMVector* photonP4 = nullptr;
     Float_t         photonMVA          ;
     Float_t         photonIDWeight     ;
     Jet_t           jetOne             ;
@@ -406,6 +410,7 @@ namespace CLFV {
     void    SetEventList(TTree* tree);
     void    InitializeEventWeights();
     void    EnergyScale(const float scale, Lepton_t& lep, float* MET = nullptr, float* METPhi = nullptr);
+    void    EnergyScale(const float scale, PtEtaPhiMVector& lv, float* MET = nullptr, float* METPhi = nullptr);
     void    EnergyScale(const float scale, TLorentzVector& lv, float* MET = nullptr, float* METPhi = nullptr);
     void    ApplyElectronCorrections();
     void    ApplyMuonCorrections();
@@ -415,6 +420,7 @@ namespace CLFV {
     void    SetKinematics();
     void    EstimateNeutrinos();
     void    EvalMVAs(TString TimerName = "");
+    int     GetTriggerMatch(PtEtaPhiMVector* lv, bool isMuon, Int_t& trigIndex);
     int     GetTriggerMatch(TLorentzVector* lv, bool isMuon, Int_t& trigIndex);
     void    MatchTriggers();
     void    ApplyTriggerWeights();

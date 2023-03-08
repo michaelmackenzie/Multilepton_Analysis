@@ -1,7 +1,7 @@
 #ifndef __JET__HH
 #define __JET__HH
 
-#include "TLorentzVector.h"
+#include "interface/GlobalConstants.h"
 
 namespace CLFV {
   struct Jet_t {
@@ -9,7 +9,7 @@ namespace CLFV {
     float eta;
     float phi;
     float mass;
-    TLorentzVector* p4 = nullptr;
+    PtEtaPhiMVector* p4 = nullptr;
     int   flavor;
     float iso;
     float dxy;
@@ -36,10 +36,11 @@ namespace CLFV {
     float absEta    () {return std::fabs(eta);}
 
     void setPtEtaPhiM(const float vpt, const float veta, const float vphi, const float vmass) {
-      if(p4) p4->SetPtEtaPhiM(vpt, veta, vphi, vmass);
+      if(p4) p4->SetCoordinates(vpt, veta, vphi, vmass);
       pt = vpt; eta = veta; phi = vphi; mass = vmass;
     }
-    void setP(TLorentzVector p) { setPtEtaPhiM(p.Pt(), p.Eta(), p.Phi(), p.M()); }
+    void setP(PtEtaPhiMVector  p) { setPtEtaPhiM(p.Pt(), p.Eta(), p.Phi(), p.M()); }
+    void setP(TLorentzVector   p) { setPtEtaPhiM(p.Pt(), p.Eta(), p.Phi(), p.M()); }
   };
 }
 #endif

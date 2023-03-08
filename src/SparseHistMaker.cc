@@ -203,7 +203,7 @@ void SparseHistMaker::FillEventHistogram(EventHist_t* Hist) {
   Hist->hMTTwo             ->Fill(fTreeVars.mttwo           , eventWeight*genWeight);
   Hist->hMTLep             ->Fill(fTreeVars.mtlep           , eventWeight*genWeight);
 
-  TLorentzVector lepSys = (*leptonOne.p4) + (*leptonTwo.p4);
+  PtEtaPhiMVector lepSys = (*leptonOne.p4) + (*leptonTwo.p4);
 
   Hist->hLepPt[0]          ->Fill(lepSys.Pt()               , eventWeight*genWeight);
   Hist->hLepM[0]           ->Fill(lepSys.M()                , eventWeight*genWeight);
@@ -301,7 +301,7 @@ Bool_t SparseHistMaker::Process(Long64_t entry)
   if(leptonOne.isTau     () && std::fabs(leptonOne.p4->Eta()) >= tau_eta_max     ) return kTRUE;
   if(leptonTwo.isTau     () && std::fabs(leptonTwo.p4->Eta()) >= tau_eta_max     ) return kTRUE;
 
-  if(std::fabs(leptonOne.p4->DeltaR(*leptonTwo.p4)) < 0.3) return kTRUE;
+  if(std::fabs(Utilities::DeltaR(*leptonOne.p4, *leptonTwo.p4)) < 0.3) return kTRUE;
 
   fCutFlow->Fill(icutflow); ++icutflow; //7
 

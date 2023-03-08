@@ -530,8 +530,8 @@ void CLFVHistMaker::FillEventHistogram(EventHist_t* Hist) {
     Hist->hTauDecayMode[1]   ->Fill(tauDecayMode);
 
 
-    TLorentzVector lepSys = (*leptonOne.p4) + (*leptonTwo.p4);
-    TLorentzVector sys    = (photonP4) ? (*photonP4) + lepSys : lepSys;
+    PtEtaPhiMVector lepSys = (*leptonOne.p4) + (*leptonTwo.p4);
+    // PtEtaPhiMVector sys    = (photonP4) ? (*photonP4) + lepSys : lepSys;
 
     // const double lepDelR   = std::fabs(leptonOne.p4->DeltaR(*leptonTwo.p4));
     // const double lepDelPhi = std::fabs(leptonOne.p4->DeltaPhi(*leptonTwo.p4));
@@ -664,7 +664,7 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
   const bool isMData = leptonOne.isMuon()     || leptonTwo.isMuon    ();
 
   //Event information that may be altered, to restore the event information after a systematic shift
-  const TLorentzVector o_lv1(*leptonOne.p4), o_lv2(*leptonTwo.p4), o_jet(*jetOne.p4);
+  const PtEtaPhiMVector o_lv1(*leptonOne.p4), o_lv2(*leptonTwo.p4), o_jet(*jetOne.p4);
   const float o_met(met), o_metPhi(metPhi);
   float o_mvas[fMVAConfig->names_.size()], o_cdfs[fMVAConfig->names_.size()];
   for(unsigned i = 0; i < fMVAConfig->names_.size(); ++i) {
@@ -1432,23 +1432,23 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
 
   mutau &= std::fabs(leptonOne.eta) < muon_eta_max;
   mutau &= std::fabs(leptonTwo.eta) < tau_eta_max ;
-  mutau &= std::fabs(leptonOne.p4->DeltaR(*leptonTwo.p4)) > min_delta_r;
+  mutau &= std::fabs(Utilities::DeltaR(*leptonOne.p4, *leptonTwo.p4)) > min_delta_r;
 
   etau  &= std::fabs(leptonOne.eta) < electron_eta_max;
   etau  &= std::fabs(leptonTwo.eta) < tau_eta_max      ;
-  etau  &= std::fabs(leptonOne.p4->DeltaR(*leptonTwo.p4)) > min_delta_r;
+  etau  &= std::fabs(Utilities::DeltaR(*leptonOne.p4, *leptonTwo.p4)) > min_delta_r;
 
   emu   &= std::fabs(leptonOne.eta) < electron_eta_max;
   emu   &= std::fabs(leptonTwo.eta) < muon_eta_max    ;
-  emu   &= std::fabs(leptonOne.p4->DeltaR(*leptonTwo.p4)) > min_delta_r;
+  emu   &= std::fabs(Utilities::DeltaR(*leptonOne.p4, *leptonTwo.p4)) > min_delta_r;
 
   mumu  &= std::fabs(leptonOne.eta) < muon_eta_max;
   mumu  &= std::fabs(leptonTwo.eta) < muon_eta_max;
-  mumu  &= std::fabs(leptonOne.p4->DeltaR(*leptonTwo.p4)) > min_delta_r;
+  mumu  &= std::fabs(Utilities::DeltaR(*leptonOne.p4, *leptonTwo.p4)) > min_delta_r;
 
   ee    &= std::fabs(leptonOne.eta) < electron_eta_max;
   ee    &= std::fabs(leptonTwo.eta) < electron_eta_max;
-  ee    &= std::fabs(leptonOne.p4->DeltaR(*leptonTwo.p4)) > min_delta_r;
+  ee    &= std::fabs(Utilities::DeltaR(*leptonOne.p4, *leptonTwo.p4)) > min_delta_r;
 
   ///////////////////////////////////////////////////////////////////
   //Apply di-lepton mass cuts

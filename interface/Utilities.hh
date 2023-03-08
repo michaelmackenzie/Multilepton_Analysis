@@ -14,6 +14,9 @@
 #include "TTree.h"
 #include "TBranch.h"
 
+//local includes
+#include "interface/GlobalConstants.h"
+
 
 namespace CLFV {
 
@@ -178,10 +181,10 @@ namespace CLFV {
       }
       tree->SetBranchStatus(branch, 1);
       //FIXME: add check for available cache
-      // auto f = GetCurrentFile();
-      // if(GetReadCache(f,kTRUE)) {
-      tree->AddBranchToCache(branch, 1);
-      // }
+      auto f = tree->GetCurrentFile();
+      if(tree->GetReadCache(f)) {
+        tree->AddBranchToCache(branch, 1);
+      }
       if(br != nullptr) {
         return tree->SetBranchAddress(branch, val, br);
       }
@@ -199,6 +202,25 @@ namespace CLFV {
       if(val >= M_PI) val -= 2.*M_PI;
       if(val < -M_PI) val += 2.*M_PI;
       return val;
+    }
+
+    //------------------------------------------------------------------------------------------------------
+    // Delta R
+    static double DeltaR(const PtEtaPhiMVector lv_1, const PtEtaPhiMVector lv_2) {
+      const double phi_1(lv_1.Phi()), phi_2(lv_2.Phi());
+      const double eta_1(lv_1.Eta()), eta_2(lv_2.Eta());
+      if(!std::isfinite(phi_1) || !std::isfinite(phi_2)) {
+        std::cout << "Utilities::" << __func__ << ": Input phi values are not finite!\n";
+        return 0.;
+      }
+      if(!std::isfinite(eta_1) || !std::isfinite(eta_2)) {
+        std::cout << "Utilities::" << __func__ << ": Input phi values are not finite!\n";
+        return 0.;
+      }
+      const double dphi = DeltaPhi(phi_1, phi_2);
+      const double deta = eta_1 - eta_2;
+      const double dr = std::sqrt(dphi*dphi + deta*deta);
+      return dr;
     }
 
     //------------------------------------------------------------------------------------------------------
