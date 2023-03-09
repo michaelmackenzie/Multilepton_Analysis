@@ -9,6 +9,7 @@ bool  doDY_           = true; //include Drell-Yan
 bool  doWJets_        = true; //include W+Jets
 bool  doTop_          = true; //include Top
 bool  doDiboson_      = true; //include di-boson
+bool  useLepSets_     = true; //use etau_mu/mutau_e sets
 bool  debug_          = false; //debug the merging
 Int_t verbose_        = 1; //how verbose the output should be
 vector<int> years_    = {2016, 2017, 2018}; //years to merge
@@ -26,7 +27,9 @@ Int_t combine_trees(vector<TString> in_files, TString selection, int file_set, T
   if     (selection == "mutau"   ) set_offset = HistMaker::kMuTau;
   else if(selection == "etau"    ) set_offset = HistMaker::kETau;
   else if(selection == "emu"     ) set_offset = HistMaker::kEMu;
-  else if(selection.Contains("_")) set_offset = HistMaker::kEMu;
+  else if(!useLepSets_ && selection.Contains("_")) set_offset = HistMaker::kEMu;
+  else if(selection == "mutau_e" ) set_offset = HistMaker::kMuTauE;
+  else if(selection == "etau_mu" ) set_offset = HistMaker::kETauMu;
   else if(selection == "mumu"    ) set_offset = HistMaker::kMuMu;
   else if(selection == "ee"      ) set_offset = HistMaker::kEE;
 
@@ -100,7 +103,7 @@ Int_t combine_trees(vector<TString> in_files, TString selection, int file_set, T
 }
 
 //Create a file list and call the tree merging function for a given selection
-Int_t make_background(int set = 8, TString selection = "mutau", TString base = "nanoaods_dev") {
+Int_t make_background(int set = 8, TString selection = "mutau", TString base = "nanoaods_trees") {
 
   base = "root://cmseos.fnal.gov//store/user/mmackenz/histograms/" + base + "/";
   cout << "Beginning to make tree for selection " << selection.Data() << " with set " << set
@@ -112,7 +115,7 @@ Int_t make_background(int set = 8, TString selection = "mutau", TString base = "
   }
   vector<TString> file_list;
   TString fileSelec = selection;
-  if(fileSelec.Contains("_")) //leptonic tau
+  if(!useLepSets_ && fileSelec.Contains("_")) //leptonic tau
     fileSelec = "emu";
   for(int year : years_) {
     vector<TString> nano_names = {"DY50"               ,

@@ -109,6 +109,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
         hist_selec->fMaxLepM            = (selection == "emu") ? 115.f : (selection.EndsWith("tau")) ? 175.f : 175.f;
         hist_selec->fDoSSSystematics    = selection == "emu" || selection.Contains("_");
         hist_selec->fDoLooseSystematics = selection.EndsWith("tau");
+        hist_selec->fAllowMigration     = allowMigration_ && config.doSystematics_;
       }
 
       selec->fRemoveTriggerWeights = removeTrigWeights_;
@@ -279,6 +280,7 @@ Int_t process_single_card(datacard_t& card, config_t& config, vector<TString> fi
   name.ReplaceAll("-v1", ""); //replace signal versioning in output
   name.ReplaceAll("-v2", "");
   name.ReplaceAll("-v3", "");
+  // name.ReplaceAll("-old", ""); //old/new ntuple name cleaning
   card.dataset_ = name;
 
   //Loop throught the file looking for all selection channels

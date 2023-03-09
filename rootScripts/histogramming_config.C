@@ -15,8 +15,8 @@ bool newProcess_   = true; //run card processing in a new process to avoid memor
 int  maxProcesses_ = 6; //maximum number of new processes to run at once
 bool preFetch_     = false; //check for the sample on /tmp, and copy it there if it isn't there
 bool useTChain_    = true; //use a TChain of input files rather than a tree from a single ntuple file
+Long64_t notify_   = 50000; //frequency at which to printout processing info
 
-Long64_t notify_ = 50000;
 TString tag_ = ""; //dataset tag requirement
 bool debug_ = false;
 Long64_t startEvent_ = 0;
@@ -35,9 +35,9 @@ bool TriggerTesting_    = false; //make a few extra selections for ee/mumu/emu t
 int removeTrigWeights_ = 4; //0: do nothing 1: remove weights 2: replace 3: replace P(event) 4: replace P(at least 1 triggered)
 int updateMCEra_       = 1; //0: do nothing 1: throw random number for MC era (data/embedding not random)
 int useBTagWeights_    = 1; //1: calculate locally; 2: use ntuple values for each jet
-int useJetPUIDWeights_ = 1; //1: calculate locally; 2: use ntuple definition
+int useJetPUIDWeights_ = 2; //1: calculate locally; 2: use ntuple definition
 int usePrefireWeights_ = 1; //0: remove weights; 1: use pre-defined weights; 2: re-define the weights
-int removePUWeights_   = 0; //Signal only: 0: use ntuple definition; 1: don't apply PU weights; 2: replace PU weights
+int removePUWeights_   = 2; //Signal only: 0: use ntuple definition; 1: don't apply PU weights; 2: replace PU weights
 int useMCFakeLep_      = 0; //use MC estimated light leptons in ee, mumu, and emu categories
 int useJetToTauComp_   = 1; //use the composition of the anti-iso region to combine j->tau weights
 int useQCDWeights_     = 1; //use QCD SS --> OS transfer weights
@@ -54,7 +54,8 @@ int embeddedTesting_   = 0; //test embedding options: 3 = use KIT measured scale
 int useEmbedRocco_     = 1; //use Rochester correction vs LFV Higgs AN muon sys in Embedded samples
 
 int systematicSeed_    = 90; //seed for systematic random shifts
-int doSystematics_     = 1;
+int doSystematics_     = 1; //process systematic uncertainty histograms
+int allowMigration_    = 1; //event migration systematic effects
 int  DoMVASets_        = 1; //Fill sets with MVA cuts: 1 = emu; 2 = emu/ee/mumu; 3 = all sets
 int  ReprocessMVAs_    = 1; //Re-evaluate MVA scores on the fly
 bool writeTrees_       = false;
@@ -107,7 +108,7 @@ config_t get_config() {
   config_t config;
 
   config.writeTrees_ = writeTrees_;
-  config.selections_ = {"mutau"}; //{"mutau", "etau", "emu", "mutau_e", "etau_mu", "ee", "mumu"};
+  config.selections_ = {"mutau_e"}; //{"mutau", "etau", "emu", "mutau_e", "etau_mu", "ee", "mumu"};
   config.signalTrainFraction_ = 0.5;
   config.backgroundTrainFraction_ = 0.3;
   config.doSystematics_ = doSystematics_;
@@ -293,6 +294,8 @@ vector<datacard_t> get_data_cards(TString& nanoaod_path) {
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZETau"                   ), "LFVAnalysis_ZETau-v2_2017.root"                , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZMuTau"                  ), "LFVAnalysis_ZMuTau-v2_2017.root"               , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZEMu"                    ), "LFVAnalysis_ZEMu-v2_2017.root"                 , 0));
+  // nanocards.push_back(datacard_t(false, xs.GetCrossSection("ZMuTau"                  ), "LFVAnalysis_ZMuTau_2017.root"                  , 0));
+  // nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZMuTau"                  ), "LFVAnalysis_ZMuTau-v2-old_2017.root"           , 0));
   // nanocards.push_back(datacard_t(true , xs.GetCrossSection("HETau"                   ), "LFVAnalysis_HETau_2017.root"                   , 0));
   // nanocards.push_back(datacard_t(true , xs.GetCrossSection("HMuTau"                  ), "LFVAnalysis_HMuTau_2017.root"                  , 0));
   // nanocards.push_back(datacard_t(true , xs.GetCrossSection("HEMu"                    ), "LFVAnalysis_HEMu_2017.root"                    , 0));
