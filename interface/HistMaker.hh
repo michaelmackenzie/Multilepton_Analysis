@@ -590,6 +590,8 @@ namespace CLFV {
     }
 
     Long64_t fentry; //for tracking entry in functions
+    Long64_t fMaxEntries = -1; //for proper fraction remaining estimates when processing partial chains
+
     //Define relevant fields
     TStopwatch* timer = new TStopwatch();
     // TStopwatch timer_funcs; //for measuring time taken in each function

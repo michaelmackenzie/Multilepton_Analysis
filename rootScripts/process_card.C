@@ -117,6 +117,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
         hist_selec->fDoSSSystematics    = selection == "emu" || selection.Contains("_");
         hist_selec->fDoLooseSystematics = selection.EndsWith("tau");
         hist_selec->fAllowMigration     = allowMigration_ && config.doSystematics_;
+        hist_selec->fMaxEntries         = (events_scale < 1.f) ? max_sim_events_ : nentries;
       }
 
       selec->fRemoveTriggerWeights = removeTrigWeights_;

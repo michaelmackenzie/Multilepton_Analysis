@@ -3050,7 +3050,9 @@ Bool_t HistMaker::InitializeEvent(Long64_t entry)
   fTimes[GetTimerNumber("EventInit")] = std::chrono::steady_clock::now(); //timer for initializing event info
   if(fVerbose > 0 || (fTimeCounts[GetTimerNumber("Total")]-1)%fNotifyCount == 0) {
     const double dur = fDurations[GetTimerNumber("Total")]/1.e6;
-    const Long64_t entries = fChain->GetEntriesFast();
+    //Number of entries in the tree (or partial tree if not processing the entire dataset)
+    const Long64_t entries = (fMaxEntries < 0) ? fChain->GetEntriesFast() : fMaxEntries;
+    if(fMaxEntries < 0) fMaxEntries = entries;
     const int seen = fTimeCounts[GetTimerNumber("Total")] - 1;
     const double rate = (dur > 0.) ? seen/dur : 0.;
     const double remain = (entries - seen)/rate;
