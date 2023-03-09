@@ -9,7 +9,6 @@ vector<TH1*> hsigs_;
 int  test_sys_        = -1; //set to systematic number if debugging/inspecting it
 bool blind_data_      = true; //set data bins > MVA score level to 0
 bool ignore_sys_      = false; //don't get systematics
-bool get_scale_sys_   = true; //get normalization uncertainty histograms
 bool skip_shape_sys_  = false; //skip shape systematic retrieval
 int  use_dev_mva_     = 0; //1: use the extra MVA hist for development, mvaX_1; 2: use the CDF transformed hist, mvaX_2
 bool do_same_flavor_  = false; //retrieve Z->ll control region data
@@ -211,7 +210,7 @@ int get_systematics(int set, TString hist, TH1* hdata, TFile* f, TString canvas_
 
   //Loop through each systematic, creating PDFs and example figures
   const int sys_start = (test_sys_ >= 0) ? test_sys_     : (skip_shape_sys_) ? kMaxSystematics : -2;
-  const int sys_max   = (test_sys_ >= 0) ? test_sys_ + 1 : (get_scale_sys_ ) ? kMaxSystematics + kMaxScaleSystematics : kMaxSystematics;
+  const int sys_max   = (test_sys_ >= 0) ? test_sys_ + 1 : (use_scale_sys_ ) ? kMaxSystematics + kMaxScaleSystematics : kMaxSystematics;
   for(int isys = sys_start; isys < sys_max; ++isys) {
     if(isys > 0 && systematics.GetName(isys) == "") continue; //only retrieve defined systematics
 
