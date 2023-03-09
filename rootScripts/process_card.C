@@ -71,6 +71,13 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
        << " isWJets = " << isWJ << " isData = " << card.isData_ << " useSystematics = " << doSystematics_ << " doMVASets = " << DoMVASets_
        << " removeTrigWeights = " << removeTrigWeights_ << endl;
 
+  const Long64_t nentries = chain->GetEntries();
+  float events_scale = 1.f;
+  if(card.isData_ == 0 && max_sim_events_ > 0 && nentries > max_sim_events_) {
+    cout << "!!! Reducing sim events from " << nentries << " to " << max_sim_events_ << "!\n";
+    events_scale = (max_sim_events_*1.) / nentries;
+  }
+
   for(int wjloop = -1; wjloop < nwloops; ++wjloop) { //start from -1 to also do unsplit histogram
     for(int dyloop = 1; dyloop <= ndyloops; ++dyloop) {
       auto selec = new HISTOGRAMMER(systematicSeed_); //selector
@@ -160,10 +167,10 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
       if(dynamic_cast<HistMaker*> (selec)) {
         selec->Init(chain);
       }
-      if(!debug_)
-        chain->Process(selec,""); //run the selector over the chain
-      else
-        chain->Process(selec,"", nEvents_, startEvent_); //process specific event range
+      if(!debug_) { //run the selector over the chain
+        if(card.isData_ == 0 && events_scale < 1.f) chain->Process(selec,"", max_sim_events_); //only process a certain amount
+        else                                        chain->Process(selec, ""); //process the whole chain
+      } else                                        chain->Process(selec,"", nEvents_, startEvent_); //process specific event range for debugging
 
       //open back up the file
       TString outname = selec->GetOutputName();
@@ -174,7 +181,12 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
         continue;
       }
       //add the events histogram to the output
-      card.events_->Write();
+      auto events = (TH1*) card.events_->Clone(card.events_->GetName());
+      if(events_scale < 1.f) {
+        events->SetBinContent( 1, events_scale*events->GetBinContent( 1));
+        events->SetBinContent(10, events_scale*events->GetBinContent(10));
+      }
+      events->Write();
       out->Write();
       out->Close();
       delete out;

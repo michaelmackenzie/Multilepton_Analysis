@@ -23,6 +23,8 @@ Long64_t startEvent_ = 0;
 Long64_t nEvents_ = 10; //at 20, verbosity returns to normal
 HISTOGRAMMER* selector_ = 0;
 
+Long64_t max_sim_events_ = -1; //maximum number of events to skim in simulation, -1 to ignore
+
 bool DYFakeTau_         = false; //speed up dy fake tau scale factor
 bool WJFakeTau_         = false; //speed up w+jets fake tau scale factor
 bool TTFakeTau_         = false; //speed up ttbar fake tau scale factor
