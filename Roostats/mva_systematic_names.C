@@ -30,7 +30,9 @@ std::pair<TString,TString> systematic_name(int sys, TString selection, int year)
     if(embed_muon_scale_mode_ != 0) name = "";
   }
 
-  if(use_scale_sys_ && name == "EmbedUnfold" ) name = ""; //implemented in scale uncertainty
+  //implemented in scale uncertainty
+  if(use_scale_sys_ && name == "EmbedUnfold" ) name = "";
+  if(use_scale_sys_ && name == "Lumi"        ) name = "";
 
   if(name == "Prefire" && year == 2018) name = ""; //not defined for 2018
   if(name == "METCorr") name = ""; //not a real uncertainty
