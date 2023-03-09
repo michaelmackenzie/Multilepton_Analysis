@@ -9,7 +9,7 @@ Int_t verbose_        = 1;
 #endif
 #endif
 
-int embed_mode_       = 1; //Nominal: 1; Definitions: 0: use DY MC; 1: use Embedding; 2: use Embedding except DY MC in emu
+int embed_mode_            = 1; //Nominal: 1; Definitions: 0: use DY MC; 1: use Embedding; 2: use Embedding except DY MC in emu
 int embed_muon_scale_mode_ = 1; //0: use Higgs LFV uncertainty binning; 1: use 1 bin
 
 #endif

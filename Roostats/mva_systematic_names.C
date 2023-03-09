@@ -24,6 +24,7 @@ std::pair<TString,TString> systematic_name(int sys, TString selection, int year)
   else if(name == "JetToTauNC"  ) name = "";
   else if(name == "JetToTauBias") name = "";
   else if(name == "QCDStat"     ) name = "";
+  else if(name == "EmbedUnfold" ) name = ""; //now implemented in scale uncertainty
   else if(name == "EmbMuonES"   ) { //1 correlated bin
     if(embed_muon_scale_mode_ != 1) name = "";
   } else if(name.BeginsWith("EmbMuonES")) { //3 uncorrelated bins

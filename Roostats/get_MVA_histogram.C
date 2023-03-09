@@ -9,12 +9,14 @@ vector<TH1*> hsigs_;
 int  test_sys_        = -1; //set to systematic number if debugging/inspecting it
 bool blind_data_      = true; //set data bins > MVA score level to 0
 bool ignore_sys_      = false; //don't get systematics
-bool get_scale_sys_   = false; //get normalization uncertainty histograms
+bool get_scale_sys_   = true; //get normalization uncertainty histograms
+bool skip_shape_sys_  = false; //skip shape systematic retrieval
 int  use_dev_mva_     = 0; //1: use the extra MVA hist for development, mvaX_1; 2: use the CDF transformed hist, mvaX_2
 bool do_same_flavor_  = false; //retrieve Z->ll control region data
 bool separate_years_  = true; //retrieve and store histograms by year
 bool use_lep_tau_set_ = true; //use kETauMu/kMuTauE offsets instead of kEMu
 bool print_sys_plots_ = true; //print systematic figures
+
 //plotting parameters
 double xmin_ = -1.;
 double xmax_ =  1.;
@@ -208,23 +210,27 @@ int get_systematics(int set, TString hist, TH1* hdata, TFile* f, TString canvas_
   if(print_sys_plots_) gSystem->Exec(Form("mkdir -p %s_sys", canvas_name.Data()));
 
   //Loop through each systematic, creating PDFs and example figures
-  int sys_max = (get_scale_sys_) ? kMaxSystematics + kMaxScaleSystematics : kMaxSystematics;
-  if(test_sys_ >= 0) sys_max = test_sys_ + 1;
-  for(int isys = (test_sys_ >= 0 ? test_sys_ : -2); isys < sys_max; ++isys) {
+  const int sys_start = (test_sys_ >= 0) ? test_sys_     : (skip_shape_sys_) ? kMaxSystematics : -2;
+  const int sys_max   = (test_sys_ >= 0) ? test_sys_ + 1 : (get_scale_sys_ ) ? kMaxSystematics + kMaxScaleSystematics : kMaxSystematics;
+  for(int isys = sys_start; isys < sys_max; ++isys) {
     if(isys > 0 && systematics.GetName(isys) == "") continue; //only retrieve defined systematics
 
     THStack* hstack = nullptr;
     vector<TH1*> signals;
     if(isys >= kMaxSystematics) { //normalization systematics
       //retrieve the systematic scale factor
-      CLFV::SystematicScale_t sys_scale = systematics.GetScale(isys);
+      CLFV::ScaleUncertainty_t sys_scale = systematics.GetScale(isys);
       if(sys_scale.name_ == "") { //not implemented
         cout << __func__ << " Systematic " << isys << " (" << systematics.GetName(isys).Data() << ") not implemented\n";
         continue;
       }
       if(sys_scale.scale_ <= 0.) {
-        cout << __func__ << ": Warning! Scale uncertainty " << isys << "(" << sys_scale.name_.Data() << ") is <= 0 (" << scale << ")\n";
+        cout << __func__ << ": Warning! Scale uncertainty " << isys << "(" << sys_scale.name_.Data() << ") is <= 0 (" << sys_scale.scale_ << ")\n";
       }
+      printf("%s: Scale systematic %3i (%s): Scale = %.3f, data = %o, mc = %o, embed = %o\n", __func__, isys,
+             sys_scale.name_.Data(), sys_scale.scale_, sys_scale.data_, sys_scale.mc_, sys_scale.embed_);
+      sys_scale.Print();
+      if(test_sys_ >= 0) dataplotter_->verbose_ = 7;
       //Get background for the systematic
       hstack = dataplotter_->get_stack(Form("%s_0", hist.Data()), "systematic", set, &sys_scale);
       //Get the signals
@@ -338,9 +344,10 @@ int get_systematics(int set, TString hist, TH1* hdata, TFile* f, TString canvas_
         h->Scale(1./dataplotter_->signal_scales_[hname]);
       else
         h->Scale(1./dataplotter_->signal_scale_);
+      hname = hname(0,hname.First('_'));
       hname.ReplaceAll("#", "");
       hname.ReplaceAll("->", "");
-      hname.ReplaceAll(Form("_%s_%i_%i", hist.Data(), isys, set), "");
+      // hname.ReplaceAll(Form("_%s_%i_%i", hist.Data(), isys, set), "");
       hname.ToLower();
       hname += "_sys_"; hname += isys;
       h->SetName(hname.Data());

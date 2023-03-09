@@ -103,11 +103,7 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
 
   if(use_sys_) {
     TString prev = "";
-    for(int isys = 1; isys < kMaxSystematics; ++isys) {
-      //take only the up/down systematics from the sets < 50, skipping the _sys set. Above 50, only up/down
-      // if(isys < 43 && (isys % 3) == 0) isys +=1;
-      // // if(isys == 49) isys = 50; //skip to get to set 50
-      // if(isys == 99) isys = 100; //skip to get to 100
+    for(int isys = 1; isys < kMaxSystematics+kMaxScaleSystematics; ++isys) {
       auto sys_info = systematic_name(isys, selection, years[0]); //FIXME: take the first year in the list for now
       TString name = sys_info.first;
       if(name == "") continue;
@@ -146,6 +142,7 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
   // Configure the output file
   //////////////////////////////////////////////////////////////////
 
+  gSystem->Exec(Form("[ ! -d datacards/%s ] && mkdir -p datacards/%s", year_string.Data(), year_string.Data()));
   TString outName = Form("combine_mva_%s_%i_%s.root", selection.Data(), set, year_string.Data());
   TFile* fOut = new TFile(("datacards/"+year_string+"/"+outName).Data(), "RECREATE");
   auto dir = fOut->mkdir(hist.Data());
@@ -235,7 +232,7 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
   for(int ihist = 0; ihist < hstack->GetNhists(); ++ihist) {
     TH1* hbkg_i = (TH1*) hstack->GetHists()->At(ihist);
     if(!hbkg_i) {cout << "Background hist " << ihist << " not retrieved!\n"; continue;}
-    //kill sensitive region if requested
+    //kill sensitive region in data and MC if requested
     if(blind_data_ == 1) {
       for(int ibin = hbkg_i->FindBin(blind_cut_); ibin <= hbkg_i->GetNbinsX(); ++ibin) {
         //kill background
@@ -245,25 +242,7 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
     }
 
     TString hname = hbkg_i->GetName();
-    hname.ReplaceAll(Form("_%s_%i", hist.Data(), set+set_offset), "");
-    hname.ReplaceAll(Form("_%s_%i", hist.Data(), set+set_offset+100), "");
-    hname.ReplaceAll(Form("_%s_%i", hist.Data(), set+set_offset+200), "");
-    hname.ReplaceAll(Form("_%s_1_%i", hist.Data(), set+set_offset), "");
-    hname.ReplaceAll(Form("_%s_1_%i", hist.Data(), set+set_offset+100), "");
-    hname.ReplaceAll(Form("_%s_1_%i", hist.Data(), set+set_offset+200), "");
-    hname.ReplaceAll(Form("_%s_2_%i", hist.Data(), set+set_offset), "");
-    hname.ReplaceAll(Form("_%s_2_%i", hist.Data(), set+set_offset+100), "");
-    hname.ReplaceAll(Form("_%s_2_%i", hist.Data(), set+set_offset+200), "");
-    hname.ReplaceAll(Form("_%s_event_%i", hist.Data(), set+set_offset), "");
-    hname.ReplaceAll(Form("_%s_event_%i", hist.Data(), set+set_offset+100), "");
-    hname.ReplaceAll(Form("_%s_event_%i", hist.Data(), set+set_offset+200), "");
-    hname.ReplaceAll(Form("_%s_1_event_%i", hist.Data(), set+set_offset), "");
-    hname.ReplaceAll(Form("_%s_1_event_%i", hist.Data(), set+set_offset+100), "");
-    hname.ReplaceAll(Form("_%s_1_event_%i", hist.Data(), set+set_offset+200), "");
-    hname.ReplaceAll(Form("_%s_2_event_%i", hist.Data(), set+set_offset), "");
-    hname.ReplaceAll(Form("_%s_2_event_%i", hist.Data(), set+set_offset+100), "");
-    hname.ReplaceAll(Form("_%s_2_event_%i", hist.Data(), set+set_offset+200), "");
-    hname.ReplaceAll("s_", "");
+    hname = hname(0, hname.First('_'));
     hname.ReplaceAll(" ", "");
     hname.ReplaceAll("#", "");
     hname.ReplaceAll("/", "");
@@ -369,23 +348,7 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
       if(hbkg_i_down->Integral() == 0.) hbkg_i_down->SetBinContent(1, 1.e-5);
 
       TString hname = hbkg_i_up->GetName();
-      TString isys_set = hstack_down->GetTitle();
-      isys_set.ReplaceAll("sys_", "");
-      hname.ReplaceAll(Form("_%s_%s_%i", hist.Data(), isys_set.Data(), set+set_offset), "");
-      hname.ReplaceAll(Form("_%s_%s_%i", hist.Data(), isys_set.Data(), set+set_offset+100), "");
-      hname.ReplaceAll(Form("_%s_%s_%i", hist.Data(), isys_set.Data(), set+set_offset+200), "");
-      hname.ReplaceAll(Form("_%s_%s_systematic_%i", hist.Data(), isys_set.Data(), set+set_offset), "");
-      hname.ReplaceAll(Form("_%s_%s_systematic_%i", hist.Data(), isys_set.Data(), set+set_offset+100), "");
-      hname.ReplaceAll(Form("_%s_%s_systematic_%i", hist.Data(), isys_set.Data(), set+set_offset+200), "");
-      hname.ReplaceAll(Form("_%s_systematic_%i", hist.Data(), set+set_offset), "");
-      hname.ReplaceAll(Form("_%s_systematic_%i", hist.Data(), set+set_offset+100), "");
-      hname.ReplaceAll(Form("_%s_systematic_%i", hist.Data(), set+set_offset+200), "");
-      hname.ReplaceAll(Form("_%s_1_systematic_%i", hist.Data(), set+set_offset), "");
-      hname.ReplaceAll(Form("_%s_1_systematic_%i", hist.Data(), set+set_offset+100), "");
-      hname.ReplaceAll(Form("_%s_1_systematic_%i", hist.Data(), set+set_offset+200), "");
-      // hname.ReplaceAll(Form("_%s_%s_systematic_%i", hist.Data(), isys_set.Data(), set+set_offset), "");
-      // hname.ReplaceAll(Form("_%s_1_systematic_%i", hist.Data(), set+set_offset), "");
-      hname.ReplaceAll("s_", "");
+      hname = hname(0, hname.First('_'));
       hname.ReplaceAll(" ", "");
       hname.ReplaceAll("#", "");
       hname.ReplaceAll("/", "");

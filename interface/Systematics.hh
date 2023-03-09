@@ -25,7 +25,7 @@ namespace CLFV {
       }
       //initialize the defined normalization/scale systematics information
       for(int isys = kMaxSystematics; isys < kMaxSystematics+kMaxScaleSystematics; ++isys) {
-        Data data = getData(isys);
+        Data data = getScaleData(isys);
         if(data.name_ == "") continue; //only store defined systematics
         idToData_[isys] = data;
         if(data.up_) nameToData_[data.name_] = data; //map to the up value
@@ -195,6 +195,26 @@ namespace CLFV {
       //return the default result if no systematic is defined
       return Data();
     }
+
+    //Scale uncertainty data
+    static Data getScaleData(const int isys) {
+      if(isys < kMaxSystematics) return Data();
+      Data data(isys);
+      bool up = true;
+      //constructor:                       name             scale  process tag    veto   year data   mc    embed
+      switch(isys-kMaxSystematics) {
+      case   0: data.scale_ = ScaleUncertainty_t("XS_Z"          , 1.0201, "", "DY"     , "",   -1, false,  true, false); up = true ; break;
+      case   1: data.scale_ = ScaleUncertainty_t("XS_Z"          , 0.9799, "", "DY"     , "",   -1, false,  true, false); up = false; break;
+      case   2: data.scale_ = ScaleUncertainty_t("XS_WJets"      , 1.0384, "", "Wlnu"   , "",   -1, false,  true, false); up = true ; break;
+      case   3: data.scale_ = ScaleUncertainty_t("XS_WJets"      , 0.9622, "", "Wlnu"   , "",   -1, false,  true, false); up = false; break;
+      case   4: data.scale_ = ScaleUncertainty_t("XS_Embed"      , 1.0400, "", ""       , "",   -1, false, false,  true); up = true ; break;
+      case   5: data.scale_ = ScaleUncertainty_t("XS_Embed"      , 0.9600, "", ""       , "",   -1, false, false,  true); up = false; break;
+      }
+      data.name_ = data.scale_.name_;
+      data.up_ = up;
+      return data;
+    }
+
 
   private:
     std::map<int, Data> idToData_;

@@ -65,16 +65,26 @@ std::vector<TH1*> DataPlotter::get_histograms(TString hist, TString setType, Int
     double scale = input.scale_;
     if(sys_scale) {
       bool passed = true;
+      if(verbose_ > 7) printf("Testing scale uncertainty %s on %s:\n", sys_scale->name_.Data(), input.name_.Data());
       passed &= sys_scale->process_ == "" || sys_scale->process_ == input.name_;
+      if(passed && verbose_ > 7) printf(" Passed process check\n");
       passed &= sys_scale->tag_ == "" || input.name_.Contains(sys_scale->tag_);
+      if(passed && verbose_ > 7) printf(" Passed tag check\n");
       passed &= sys_scale->veto_ == "" || !input.name_.Contains(sys_scale->veto_);
+      if(passed && verbose_ > 7) printf(" Passed veto check\n");
       passed &= sys_scale->year_ < 0 || sys_scale->year_ == input.dataYear_;
+      if(passed && verbose_ > 7) printf(" Passed year check\n");
       passed &= ( isData && sys_scale->data_ ) || !isData;
-      passed &= (!isData && sys_scale->mc_   ) || isData;
+      if(passed && verbose_ > 7) printf(" Passed data check\n");
+      passed &= (!isData && sys_scale->mc_   ) || (isData || isEmbed);
+      if(passed && verbose_ > 7) printf(" Passed MC check\n");
       passed &= (isEmbed && sys_scale->embed_) || !isEmbed;
+      if(passed && verbose_ > 7) printf(" Passed Embed check\n");
       if(passed) {
         scale *= sys_scale->scale_;
         if(verbose_ > 1) printf("%s: Applying %f scale to %s input\n", __func__, sys_scale->scale_, input.name_.Data());
+      } else if(verbose_ > 5) {
+        printf("%s: Not applying %s scale uncertainty to %s input\n", __func__, sys_scale->name_.Data(), input.name_.Data());
       }
     }
     tmp->Scale(scale);
