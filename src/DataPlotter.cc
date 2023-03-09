@@ -68,9 +68,17 @@ std::vector<TH1*> DataPlotter::get_histograms(TString hist, TString setType, Int
       if(verbose_ > 7) printf("Testing scale uncertainty %s on %s:\n", sys_scale->name_.Data(), input.name_.Data());
       passed &= sys_scale->process_ == "" || sys_scale->process_ == input.name_;
       if(passed && verbose_ > 7) printf(" Passed process check\n");
-      passed &= sys_scale->tag_ == "" || input.name_.Contains(sys_scale->tag_);
+      if(sys_scale->tags_.size() > 0) {
+        bool tagged = false;
+        for(TString tag : sys_scale->tags_) tagged |= tag == "" || input.name_.Contains(tag);
+        passed &= tagged;
+      }
       if(passed && verbose_ > 7) printf(" Passed tag check\n");
-      passed &= sys_scale->veto_ == "" || !input.name_.Contains(sys_scale->veto_);
+      if(sys_scale->tags_.size() > 0) {
+        bool vetoed = false;
+        for(TString veto : sys_scale->vetos_) vetoed |= veto != "" && input.name_.Contains(veto);
+        passed &= !vetoed;
+      }
       if(passed && verbose_ > 7) printf(" Passed veto check\n");
       passed &= sys_scale->year_ < 0 || sys_scale->year_ == input.dataYear_;
       if(passed && verbose_ > 7) printf(" Passed year check\n");

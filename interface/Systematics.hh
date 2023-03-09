@@ -201,14 +201,36 @@ namespace CLFV {
       if(isys < kMaxSystematics) return Data();
       Data data(isys);
       bool up = true;
-      //constructor:                       name             scale  process tag    veto   year data   mc    embed
+      //constructor:                                name             scale  process          tag              veto   year  data    mc   embed
       switch(isys-kMaxSystematics) {
-      case   0: data.scale_ = ScaleUncertainty_t("XS_Z"          , 1.0201, "", "DY"     , "",   -1, false,  true, false); up = true ; break;
-      case   1: data.scale_ = ScaleUncertainty_t("XS_Z"          , 0.9799, "", "DY"     , "",   -1, false,  true, false); up = false; break;
-      case   2: data.scale_ = ScaleUncertainty_t("XS_WJets"      , 1.0384, "", "Wlnu"   , "",   -1, false,  true, false); up = true ; break;
-      case   3: data.scale_ = ScaleUncertainty_t("XS_WJets"      , 0.9622, "", "Wlnu"   , "",   -1, false,  true, false); up = false; break;
-      case   4: data.scale_ = ScaleUncertainty_t("XS_Embed"      , 1.0400, "", ""       , "",   -1, false, false,  true); up = true ; break;
-      case   5: data.scale_ = ScaleUncertainty_t("XS_Embed"      , 0.9600, "", ""       , "",   -1, false, false,  true); up = false; break;
+      case   0: data.scale_ = ScaleUncertainty_t("XS_Z"          ,   1.0201, ""       , {"DY","ZE","ZMu"},      {},   -1, false,  true, false); up = true ; break; //from cms xs twiki
+      case   1: data.scale_ = ScaleUncertainty_t("XS_Z"          ,   0.9799, ""       , {"DY","ZE","ZMu"},      {},   -1, false,  true, false); up = false; break;
+      case   2: data.scale_ = ScaleUncertainty_t("XS_WJets"      ,   1.0384, ""       , "Wlnu"           ,      "",   -1, false,  true, false); up = true ; break; //from cms xs twiki
+      case   3: data.scale_ = ScaleUncertainty_t("XS_WJets"      ,   0.9622, ""       , "Wlnu"           ,      "",   -1, false,  true, false); up = false; break;
+      case   4: data.scale_ = ScaleUncertainty_t("XS_Embed"      ,   1.0400, ""       , ""               ,      "",   -1, false, false,  true); up = true ; break; //from embed twiki
+      case   5: data.scale_ = ScaleUncertainty_t("XS_Embed"      ,   0.9600, ""       , ""               ,      "",   -1, false, false,  true); up = false; break;
+      case   6: data.scale_ = ScaleUncertainty_t("XS_Lumi0"      , 1.+0.012, ""       , ""               ,      "", 2016, false,  true, false); up = true ; break; //from lumi twiki
+      case   7: data.scale_ = ScaleUncertainty_t("XS_Lumi0"      , 1.-0.012, ""       , ""               ,      "", 2016, false,  true, false); up = false; break;
+      case   8: data.scale_ = ScaleUncertainty_t("XS_Lumi1"      , 1.+0.023, ""       , ""               ,      "", 2017, false,  true, false); up = true ; break;
+      case   9: data.scale_ = ScaleUncertainty_t("XS_Lumi1"      , 1.-0.023, ""       , ""               ,      "", 2017, false,  true, false); up = false; break;
+      case  10: data.scale_ = ScaleUncertainty_t("XS_Lumi2"      , 1.+0.025, ""       , ""               ,      "", 2018, false,  true, false); up = true ; break;
+      case  11: data.scale_ = ScaleUncertainty_t("XS_Lumi2"      , 1.-0.025, ""       , ""               ,      "", 2018, false,  true, false); up = false; break;
+      case  12: data.scale_ = ScaleUncertainty_t("XS_ttbar"      , 1.+0.060, ""       , "ttbar"          ,      "",   -1, false,  true, false); up = true ; break; //from HTauTau AN
+      case  13: data.scale_ = ScaleUncertainty_t("XS_ttbar"      , 1.-0.060, ""       , "ttbar"          ,      "",   -1, false,  true, false); up = false; break;
+      case  14: data.scale_ = ScaleUncertainty_t("XS_singletop"  , 1.+0.050, ""       , "Top"            ,      "",   -1, false,  true, false); up = true ; break; //from HTauTau AN
+      case  15: data.scale_ = ScaleUncertainty_t("XS_singletop"  , 1.-0.050, ""       , "Top"            ,      "",   -1, false,  true, false); up = false; break;
+      case  16: data.scale_ = ScaleUncertainty_t("XS_ZZ"         , 1.+0.050, "ZZ"     , ""               ,      "",   -1, false,  true, false); up = true ; break; //from HTauTau AN
+      case  17: data.scale_ = ScaleUncertainty_t("XS_ZZ"         , 1.-0.050, "ZZ"     , ""               ,      "",   -1, false,  true, false); up = false; break;
+      case  18: data.scale_ = ScaleUncertainty_t("XS_WW"         , 1.+0.050, "WW"     , ""               ,      "",   -1, false,  true, false); up = true ; break; //from HTauTau AN
+      case  19: data.scale_ = ScaleUncertainty_t("XS_WW"         , 1.-0.050, "WW"     , ""               ,      "",   -1, false,  true, false); up = false; break;
+      case  20: data.scale_ = ScaleUncertainty_t("XS_WZ"         , 1.+0.050, "WZ"     , ""               ,      "",   -1, false,  true, false); up = true ; break; //from HTauTau AN
+      case  21: data.scale_ = ScaleUncertainty_t("XS_WZ"         , 1.-0.050, "WZ"     , ""               ,      "",   -1, false,  true, false); up = false; break;
+      case  22: data.scale_ = ScaleUncertainty_t("XS_WWW"        , 1.+0.050, "WWW"    , ""               ,      "",   -1, false,  true, false); up = true ; break; //from HTauTau AN
+      case  23: data.scale_ = ScaleUncertainty_t("XS_WWW"        , 1.-0.050, "WWW"    , ""               ,      "",   -1, false,  true, false); up = false; break;
+      case  24: data.scale_ = ScaleUncertainty_t("XS_EWKZ"       , 1.+0.020,  ""      , "EWKZ"           ,      "",   -1, false,  true, false); up = true ; break; //from HTauTau AN
+      case  25: data.scale_ = ScaleUncertainty_t("XS_EWKZ"       , 1.-0.020,  ""      , "EWKZ"           ,      "",   -1, false,  true, false); up = false; break;
+      case  26: data.scale_ = ScaleUncertainty_t("XS_EWKW"       , 1.+0.020,  ""      , "EWKW"           ,      "",   -1, false,  true, false); up = true ; break; //from HTauTau AN
+      case  27: data.scale_ = ScaleUncertainty_t("XS_EWKW"       , 1.-0.020,  ""      , "EWKW"           ,      "",   -1, false,  true, false); up = false; break;
       }
       data.name_ = data.scale_.name_;
       data.up_ = up;
