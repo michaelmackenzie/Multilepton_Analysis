@@ -173,6 +173,14 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
         else                                        chain->Process(selec, ""); //process the whole chain
       } else                                        chain->Process(selec,"", nEvents_, startEvent_); //process specific event range for debugging
 
+      //get the events histogram, make a modified clone if using a subset of the dataset
+      auto events = card.events_;
+      if(events_scale < 1.f) {
+        card.events_->SetName("tmp_events");
+        events = (TH1*) card.events_->Clone("events");
+        events->SetBinContent( 1, events_scale*events->GetBinContent( 1));
+        events->SetBinContent(10, events_scale*events->GetBinContent(10));
+      }
       //open back up the file
       TString outname = selec->GetOutputName();
       printf("Re-opening output file %s to append the events histogram\n", outname.Data());
@@ -182,15 +190,16 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
         continue;
       }
       //add the events histogram to the output
-      auto events = (TH1*) card.events_->Clone(card.events_->GetName());
-      if(events_scale < 1.f) {
-        events->SetBinContent( 1, events_scale*events->GetBinContent( 1));
-        events->SetBinContent(10, events_scale*events->GetBinContent(10));
-      }
       events->Write();
       out->Write();
       out->Close();
       delete out;
+
+      //restore the events histogram name if used a clone
+      if(events_scale < 1.f) {
+        delete events;
+        card.events_->SetName("events");
+      }
       if(!debug_) delete selec;
     } //end DY loop
   } //end W+Jets loop
