@@ -512,7 +512,7 @@ void HistMaker::BookBaseEventHistograms(Int_t i, const char* dirname) {
                              fNCDFBins+1, 0.-1./fNCDFBins, 1., folder);
         } else {
           Utilities::BookH1D(fEventHist[i]->hMVA[j][0], Form("mva%i",j)   , Form("%s: %s MVA" ,dirname, fMVAConfig->names_[j].Data()) ,
-                             fMVAConfig->NBins(j), fMVAConfig->Bins(j).data(), folder);
+                             fMVAConfig->NBins(j, i), fMVAConfig->Bins(j, i).data(), folder);
         }
         //high mva score binning to improve cdf making
         Utilities::BookH1F(fEventHist[i]->hMVA[j][1]  , Form("mva%i_1",j)   , Form("%s: %s MVA"         ,dirname, fMVAConfig->names_[j].Data()), 2000, -1.,  1., folder);
@@ -694,7 +694,7 @@ void HistMaker::BookSystematicHistograms() {
                                fNCDFBins, 0., 1., folder);
           } else {
             Utilities::BookH1D(fSystematicHist[i]->hMVA[j][sys], Form("mva%i_%i",j, sys), Form("%s: %s MVA %i" ,dirname, fMVAConfig->names_[j].Data(), sys),
-                               fMVAConfig->NBins(j), fMVAConfig->Bins(j).data(), folder);
+                               fMVAConfig->NBins(j, i), fMVAConfig->Bins(j, i).data(), folder);
           }
         }
       }
@@ -799,6 +799,7 @@ void HistMaker::BookBaseTree(Int_t index) {
   fTrees[index]->Branch("fulleventweightlum", &fTreeVars.fulleventweightlum); //event weight * xsec / N(gen) * luminosity
   fTrees[index]->Branch("category"          , &fTreeVars.category          ); //etau/mutau/etc.
   fTrees[index]->Branch("train"             , &fTreeVars.train             );
+  fTrees[index]->Branch("trainfraction"     , &fTreeVars.trainfraction     );
   fTrees[index]->Branch("issignal"          , &fTreeVars.issignal          );
   fTrees[index]->Branch("type"              , &fTreeVars.type              ); //background category (Top, DY, etc.)
   fTrees[index]->Branch("year"              , &fTreeVars.year              );
@@ -2599,7 +2600,11 @@ void HistMaker::InitializeTreeVariables() {
   if(!fIsData || looseQCDSelection) {
     if(fFractionMVA > 0.f) fTreeVars.train = (fRnd->Uniform() < fFractionMVA) ? 1.f : -1.f; //whether or not it is in the training sample
     else                   fTreeVars.train = -1.f;
-  } else                   fTreeVars.train = -1.f;
+    fTreeVars.trainfraction = fFractionMVA;
+  } else {
+    fTreeVars.train = -1.f;
+    fTreeVars.trainfraction = 0.f;
+  }
 
   fTreeVars.issignal = (fIsData == 0) ? (2.f*(fIsSignal) - 1.f) : 0.f; //signal = 1, background = -1, data = 0
   fTreeVars.year = fYear;

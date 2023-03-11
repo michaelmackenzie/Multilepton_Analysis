@@ -460,7 +460,7 @@ void CLFVHistMaker::BookSystematicHistograms() {
                                fNCDFBins+1, 0. - (1./fNCDFBins), 1., folder);
           } else {
             Utilities::BookH1D(fSystematicHist[i]->hMVA[j][sys], Form("mva%i_%i",j, sys), Form("%s: %s MVA %i" ,dirname, fMVAConfig->names_[j].Data(), sys),
-                               fMVAConfig->NBins(j), fMVAConfig->Bins(j).data(), folder);
+                               fMVAConfig->NBins(j, i), fMVAConfig->Bins(j, i).data(), folder);
           }
           Utilities::BookH1D(fSystematicHist[i]->hMVADiff[j][sys], Form("mvadiff%i_%i",j, sys)     , Form("%s: %s MVADiff %i" ,dirname, fMVAConfig->names_[j].Data(), sys),
                              25, -0.25, 0.25, folder);
