@@ -1857,8 +1857,8 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   emu    &= lep_tau == 0;
 
   //define leptonic tau kinematic cuts
-  if(mutau_e) {two_pt_min_ = 20.f; ptdiff_min_ = -1.e10; ptdiff_max_ =   20.f; mtlep_max_ = 100.f; mtone_max_ = 60.f;} //lep 2 = prompt, lep 1 = tau_l
-  if(etau_mu) {one_pt_min_ = 20.f; ptdiff_min_ =    0.f; ptdiff_max_ = +1.e10; mtlep_max_ = 100.f; mttwo_max_ = 60.f;} //lep 1 = prompt, lep 2 = tau_l
+  if(mutau_e) {two_pt_min_ = 20.f; ptdiff_min_ = -1.e10; ptdiff_max_ = +1.e10; mtlep_max_ = 100.f; mtone_max_ = 60.f;} //lep 2 = prompt, lep 1 = tau_l
+  if(etau_mu) {one_pt_min_ = 25.f; ptdiff_min_ =    0.f; ptdiff_max_ = +1.e10; mtlep_max_ =  90.f; mttwo_max_ = 50.f;} //lep 1 = prompt, lep 2 = tau_l
 
   mutau_e &= leptonTwo.pt > two_pt_min_ - sys_buffer; //lepton pT,
   etau_mu &= leptonOne.pt > one_pt_min_ - sys_buffer;
