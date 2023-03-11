@@ -16,17 +16,12 @@ namespace CLFV {
     MVAConfig(bool useCDF = false) {
       //initialize MVA names
       names_ = {
-                //0 - 9: nominal mvas
+                //0 - 9: nominal mvas, even are Higgs, odd are Z
                 "mutau_BDT_MM_8.higgs","mutau_BDT_MM_8.Z0",
                 "etau_BDT_MM_8.higgs","etau_BDT_MM_8.Z0",
                 "emu_BDT_MM_8.higgs","emu_BDT_MM_8.Z0",
                 "mutau_e_BDT_MM_8.higgs","mutau_e_BDT_MM_8.Z0" ,
                 "etau_mu_BDT_MM_8.higgs","etau_mu_BDT_MM_8.Z0"//,
-                // // "mutau_TMlpANN_8.higgs","mutau_TMlpANN_8.Z0", //10 - 19: alternate mvas
-                // // "etau_TMlpANN_8.higgs","etau_TMlpANN_8.Z0",
-                // // "emu_BDT_68.higgs","emu_BDT_68.Z0",
-                // // "mutau_e_TMlpANN_8.higgs","mutau_e_TMlpANN_8.Z0",
-                // // "etau_mu_TMlpANN_8.higgs","etau_mu_TMlpANN_8.Z0"
       };
 
       //initialize MVA output categories
@@ -84,12 +79,14 @@ namespace CLFV {
       }
     }
 
+    //-------------------------------------------------------------------------------------------------
     ~MVAConfig() {
       for(auto cdf : cdf_) {
         if(cdf.second) {delete cdf.second; cdf_[cdf.first] = nullptr;}
       }
     }
 
+    //-------------------------------------------------------------------------------------------------
     //apply the cdf transform to the BDT score for a given selection
     float CDFTransform(const float score, const TString selection) {
       if(cdf_.find(selection) == cdf_.end()) return score; //don't transform if not defined
@@ -101,6 +98,7 @@ namespace CLFV {
       return p;
     }
 
+    //-------------------------------------------------------------------------------------------------
     //get MVA output selection name
     TString GetSelectionByIndex(Int_t index) {
       if     (index == 0) return "hmutau";
@@ -116,6 +114,7 @@ namespace CLFV {
       return "UNKNOWN";
     }
 
+    //-------------------------------------------------------------------------------------------------
     //get MVA output index by selection
     Int_t GetIndexBySelection(TString selection) {
       for(Int_t index = 0; index < 10; ++index) {
@@ -124,9 +123,12 @@ namespace CLFV {
       return -1;
     }
 
-    std::vector<Double_t> Bins(Int_t index, Int_t& nbins) {
+    //-------------------------------------------------------------------------------------------------
+    std::vector<Double_t> Bins(Int_t index, Int_t HistSet = 8) {
       TString selection = GetSelectionByIndex(index);
       std::vector<Double_t> bins;
+      HistSet = HistSet % 100; //get the base set number
+      //-------------------------------------------------------------------------------
       if       (selection == "hmutau") {
         double edges[] = {-1.00, -0.80,
                           -0.60, -0.50, -0.40, -0.30, -0.25,
@@ -137,30 +139,49 @@ namespace CLFV {
         for(unsigned bin = 0; bin < sizeof(edges)/sizeof(*edges); ++bin) {
           bins.push_back(edges[bin]);
         }
+      //-------------------------------------------------------------------------------
       } else if(selection == "zmutau") {
-        //v12 binning, 11/18/22-01/13/23
-        double edges[] = {-1.00, -0.80, -0.55,
-                          -0.50, -0.45, -0.40, -0.35, -0.30,
-                          -0.25, -0.20, -0.18, -0.16, -0.14,
-                          -0.12, -0.10, -0.08, -0.06, -0.04,
-                          -0.02, +0.00, +0.02, +0.04, +0.06,
-                          +0.08, +0.10, +0.12, +0.14, +0.16,
-                          +0.18, +0.20, +0.25,
-                          +0.40,
-                          +0.50, +2.00};
-        // //v17 dev binning, 01/13/23
-        // double edges[] = {-1.00, -0.80,
-        //                   -0.40, -0.30,
-        //                   -0.24, -0.18, -0.14,
-        //                   -0.10, -0.06,
-        //                   -0.02, +0.02, +0.06,
-        //                   +0.10, +0.14,
-        //                   +0.18,
-        //                   +0.40,
-        //                   +0.50, +2.00};
-        for(unsigned bin = 0; bin < sizeof(edges)/sizeof(*edges); ++bin) {
-          bins.push_back(edges[bin]);
+        if(HistSet == 26) { //high mass region, so low scores
+          double edges[] = {-1.00, -0.80, -0.60, -0.40, -0.30,
+                            -0.20, -0.10, +0.20, +0.40, +0.50,
+                            +2.00};
+          for(unsigned bin = 0; bin < sizeof(edges)/sizeof(*edges); ++bin) {
+            bins.push_back(edges[bin]);
+          }
+        } else if(HistSet == 27) { //low mass region, so low scores
+          double edges[] = {-1.00, -0.80, -0.40, -0.30, -0.20,
+                            -0.10, +0.00, +0.20, +0.40, +0.50,
+                            +2.00};
+          for(unsigned bin = 0; bin < sizeof(edges)/sizeof(*edges); ++bin) {
+            bins.push_back(edges[bin]);
+          }
+        } else if(HistSet == 25) { //central mass region, high scores
+          //v12 binning, 11/18/22-01/13/23
+          double edges[] = {-1.00, -0.80, -0.70,
+                            -0.50, -0.40, -0.30, -0.25, -0.20,
+                            -0.16, -0.12, -0.08, -0.04, +0.00,
+                            +0.04, +0.08, +0.12, +0.16, +0.20,
+                            +0.35, +0.40,
+                            +0.50, +2.00};
+          for(unsigned bin = 0; bin < sizeof(edges)/sizeof(*edges); ++bin) {
+            bins.push_back(edges[bin]);
+          }
+        } else { //default, nominal score distribution
+          //v12 binning, 11/18/22-01/13/23
+          double edges[] = {-1.00, -0.80, -0.55,
+                            -0.50, -0.45, -0.40, -0.35, -0.30,
+                            -0.25, -0.20, -0.18, -0.16, -0.14,
+                            -0.12, -0.10, -0.08, -0.06, -0.04,
+                            -0.02, +0.00, +0.02, +0.04, +0.06,
+                            +0.08, +0.10, +0.12, +0.14, +0.16,
+                            +0.18, +0.20, +0.25,
+                            +0.40,
+                            +0.50, +2.00};
+          for(unsigned bin = 0; bin < sizeof(edges)/sizeof(*edges); ++bin) {
+            bins.push_back(edges[bin]);
+          }
         }
+      //-------------------------------------------------------------------------------
       } else if(selection == "hetau") {
         double edges[] = {-1.00, -0.80,
                           -0.60, -0.50, -0.40, -0.30, -0.25,
@@ -171,41 +192,58 @@ namespace CLFV {
         for(unsigned bin = 0; bin < sizeof(edges)/sizeof(*edges); ++bin) {
           bins.push_back(edges[bin]);
         }
+      //-------------------------------------------------------------------------------
       } else if(selection == "zetau") {
-        // double edges[] = {-1.00, -0.80,
-        //                   -0.40, -0.30, -0.25, -0.20, -0.16,
-        //                   -0.13, -0.10, -0.07, -0.04, -0.01,
-        //                   +0.02,  0.05,  0.08,  0.30,
-        //                   +0.50,  2.00};
-        // //v7, as of 11/18/22
-        // double edges[] = {-1.00, -0.80,
-        //                   -0.50, -0.45, -0.40, -0.35, -0.30,
-        //                   -0.25, -0.20, -0.18, -0.16, -0.14,
-        //                   -0.12, -0.10, -0.08, -0.06, -0.04,
-        //                   -0.02, +0.00, +0.02, +0.04, +0.06,
-        //                   +0.08, +0.10,
-        //                   +0.40,
-        //                   +0.50, +2.00};
-        //dev, as of 11/18/22
-        double edges[] = {-1.00, -0.80,
-                          -0.50, -0.45, -0.40, -0.35, -0.30,
-                          -0.25, -0.20, -0.18, -0.16, -0.14,
-                          -0.12, -0.10, -0.08, -0.06, -0.04,
-                          -0.02, +0.00, +0.02, +0.04, +0.06,
-                          +0.08, +0.10, +0.12, +0.15, +0.18,
-                          +0.40,
-                          +0.50, +2.00};
-        for(unsigned bin = 0; bin < sizeof(edges)/sizeof(*edges); ++bin) {
-          bins.push_back(edges[bin]);
+        if(HistSet == 26) { //high mass region, so low scores
+          double edges[] = {-1.00, -0.80, -0.60, -0.40, -0.30,
+                            -0.20, -0.10, +0.20, +0.40, +0.50,
+                            +2.00};
+          for(unsigned bin = 0; bin < sizeof(edges)/sizeof(*edges); ++bin) {
+            bins.push_back(edges[bin]);
+          }
+        } else if(HistSet == 27) { //low mass region, so low scores
+          double edges[] = {-1.00, -0.80, -0.40, -0.30, -0.20,
+                            -0.10, +0.00, +0.20, +0.40, +0.50,
+                            +2.00};
+          for(unsigned bin = 0; bin < sizeof(edges)/sizeof(*edges); ++bin) {
+            bins.push_back(edges[bin]);
+          }
+        } else if(HistSet == 25) { //central mass region, high scores mostly
+          //dev, as of 11/22
+          double edges[] = {-1.00, -0.80, -0.70,
+                            -0.40, -0.30, -0.25, -0.20, -0.16,
+                            -0.12, -0.08, -0.04, +0.00, +0.04,
+                            +0.08, +0.12, +0.16,
+                            +0.30, +0.40,
+                            +0.50, +2.00};
+          for(unsigned bin = 0; bin < sizeof(edges)/sizeof(*edges); ++bin) {
+            bins.push_back(edges[bin]);
+          }
+        } else { //default, nominal score distribution
+          //dev, as of 11/22
+          double edges[] = {-1.00, -0.80,
+                            -0.50, -0.45, -0.40, -0.35, -0.30,
+                            -0.25, -0.20, -0.18, -0.16, -0.14,
+                            -0.12, -0.10, -0.08, -0.06, -0.04,
+                            -0.02, +0.00, +0.02, +0.04, +0.06,
+                            +0.08, +0.10, +0.12, +0.15, +0.18,
+                            +0.40,
+                            +0.50, +2.00};
+          for(unsigned bin = 0; bin < sizeof(edges)/sizeof(*edges); ++bin) {
+            bins.push_back(edges[bin]);
+          }
         }
+      //-------------------------------------------------------------------------------
       } else if(selection == "hemu") {
         for(float bin = -1.; bin <= 2.; bin += 0.05) {
           bins.push_back(bin);
         }
+      //-------------------------------------------------------------------------------
       } else if(selection == "zemu") {
         for(float bin = -1.; bin <= 2.; bin += 0.05) {
           bins.push_back(bin);
         }
+      //-------------------------------------------------------------------------------
       } else if(selection == "hmutau_e") {
         double edges[] = {-1.00, -0.80,
                           -0.55, -0.45, -0.35, -0.30, -0.25,
@@ -215,28 +253,52 @@ namespace CLFV {
         for(unsigned bin = 0; bin < sizeof(edges)/sizeof(*edges); ++bin) {
           bins.push_back(edges[bin]);
         }
+      //-------------------------------------------------------------------------------
       } else if(selection == "zmutau_e") {
-        // double edges[] = {-1.00, -0.80,
-        //                   -0.50, -0.45, -0.40, -0.35, -0.30,
-        //                   -0.28, -0.26, -0.24, -0.22, -0.20,
-        //                   -0.18, -0.16, -0.14, -0.12, -0.10,
-        //                   -0.08, -0.06, -0.04, -0.02, +0.00,
-        //                   +0.02, +0.04, +0.06, +0.08, +0.30,
-        //                   +0.50, +2.00};
-        //dev, as of 11/29/22
-        double edges[] = {-1.00, -0.80,
-                          -0.55, -0.50, -0.45, -0.40, -0.35,
-                          -0.30, -0.26, -0.23,
-                          -0.20, -0.17, -0.14,
-                          -0.11, -0.08, -0.06, -0.04, -0.02,
-                          +0.00, +0.02, +0.04, +0.06, +0.08,
-                          +0.10, +0.12, +0.14, +0.16, +0.18,
-                          +0.20,
-                          +0.40,
-                          +0.50, +2.00};
-        for(unsigned bin = 0; bin < sizeof(edges)/sizeof(*edges); ++bin) {
-          bins.push_back(edges[bin]);
+        if(HistSet == 26) { //high mass region, so low scores
+          double edges[] = {-1.00, -0.80, -0.70, -0.40, -0.30,
+                            -0.20, -0.10, +0.00, +0.20, +0.40,
+                            +0.50,
+                            +2.00};
+          for(unsigned bin = 0; bin < sizeof(edges)/sizeof(*edges); ++bin) {
+            bins.push_back(edges[bin]);
+          }
+        } else if(HistSet == 27) { //low mass region, so low scores
+          double edges[] = {-1.00, -0.80, -0.60, -0.50, -0.40,
+                            -0.30, -0.20, -0.10, +0.00, +0.30,
+                            +0.40, +0.50,
+                            +2.00};
+          for(unsigned bin = 0; bin < sizeof(edges)/sizeof(*edges); ++bin) {
+            bins.push_back(edges[bin]);
+          }
+        } else if(HistSet == 25) { //central mass region, high scores
+          double edges[] = {-1.00, -0.80,
+                            -0.60, -0.50, -0.40, -0.35, -0.30,
+                            -0.25, -0.20, -0.16, -0.12, -0.08,
+                            -0.04, +0.00, +0.04, +0.08, +0.12,
+                            +0.16, +0.20,
+                            +0.35, +0.40,
+                            +0.50, +2.00};
+          for(unsigned bin = 0; bin < sizeof(edges)/sizeof(*edges); ++bin) {
+            bins.push_back(edges[bin]);
+          }
+        } else { //default, nominal score distribution
+          //dev, as of 11/29/22
+          double edges[] = {-1.00, -0.80,
+                            -0.55, -0.50, -0.45, -0.40, -0.35,
+                            -0.30, -0.26, -0.23,
+                            -0.20, -0.17, -0.14,
+                            -0.11, -0.08, -0.06, -0.04, -0.02,
+                            +0.00, +0.02, +0.04, +0.06, +0.08,
+                            +0.10, +0.12, +0.14, +0.16, +0.18,
+                            +0.20,
+                            +0.40,
+                            +0.50, +2.00};
+          for(unsigned bin = 0; bin < sizeof(edges)/sizeof(*edges); ++bin) {
+            bins.push_back(edges[bin]);
+          }
         }
+      //-------------------------------------------------------------------------------
       } else if(selection == "hetau_mu") {
         double edges[] = {-1.00, -0.80,
                           -0.55, -0.45, -0.35, -0.30, -0.25,
@@ -246,27 +308,48 @@ namespace CLFV {
         for(unsigned bin = 0; bin < sizeof(edges)/sizeof(*edges); ++bin) {
           bins.push_back(edges[bin]);
         }
+      //-------------------------------------------------------------------------------
       } else if(selection == "zetau_mu") {
-        // double edges[] = {-1.00, -0.80,
-        //                   -0.55, -0.50, -0.45, -0.40, -0.35,
-        //                   -0.30, -0.28, -0.26, -0.24, -0.22,
-        //                   -0.20, -0.18, -0.16, -0.14, -0.12,
-        //                   -0.10, -0.08, -0.06, -0.04, -0.02,
-        //                   +0.00, +0.02, +0.04, +0.06, +0.08,
-        //                   +0.10, +0.12, +0.40,
-        //                   +0.50, +2.00};
-        //dev, as of 11/29/22
-        double edges[] = {-1.00, -0.80, -0.60,
-                          -0.55, -0.50, -0.45, -0.40, -0.35,
-                          -0.30, -0.26, -0.23,
-                          -0.20, -0.17, -0.14,
-                          -0.11, -0.08, -0.06, -0.04, -0.02,
-                          +0.00, +0.02, +0.04, +0.06, +0.08,
-                          +0.10, +0.12, +0.14, +0.16, +0.18,
-                          +0.40,
-                          +0.50, +2.00};
-        for(unsigned bin = 0; bin < sizeof(edges)/sizeof(*edges); ++bin) {
-          bins.push_back(edges[bin]);
+        if(HistSet == 26) { //high mass region, so low scores
+          double edges[] = {-1.00, -0.80, -0.70, -0.40, -0.30,
+                            -0.20, -0.10, +0.00, +0.20, +0.40,
+                            +0.50,
+                            +2.00};
+          for(unsigned bin = 0; bin < sizeof(edges)/sizeof(*edges); ++bin) {
+            bins.push_back(edges[bin]);
+          }
+        } else if(HistSet == 27) { //low mass region, so low scores
+          double edges[] = {-1.00, -0.80, -0.50, -0.40, -0.30,
+                            -0.20, -0.10, +0.00, +0.10, +0.25,
+                            +0.40, +0.50,
+                            +2.00};
+          for(unsigned bin = 0; bin < sizeof(edges)/sizeof(*edges); ++bin) {
+            bins.push_back(edges[bin]);
+          }
+        } else if(HistSet == 25) { //central mass region, high scores
+          double edges[] = {-1.00, -0.80,
+                            -0.50, -0.40, -0.30, -0.25, -0.20,
+                            -0.16, -0.12, -0.08, -0.04, +0.00,
+                            +0.04, +0.08, +0.12, +0.16, +0.25,
+                            +0.40,
+                            +0.50, +2.00};
+          for(unsigned bin = 0; bin < sizeof(edges)/sizeof(*edges); ++bin) {
+            bins.push_back(edges[bin]);
+          }
+        } else { //default, nominal score distribution
+          //dev, as of 11/29/22
+          double edges[] = {-1.00, -0.80, -0.60,
+                            -0.55, -0.50, -0.45, -0.40, -0.35,
+                            -0.30, -0.26, -0.23,
+                            -0.20, -0.17, -0.14,
+                            -0.11, -0.08, -0.06, -0.04, -0.02,
+                            +0.00, +0.02, +0.04, +0.06, +0.08,
+                            +0.10, +0.12, +0.14, +0.16, +0.18,
+                            +0.40,
+                            +0.50, +2.00};
+          for(unsigned bin = 0; bin < sizeof(edges)/sizeof(*edges); ++bin) {
+            bins.push_back(edges[bin]);
+          }
         }
       }
       //perform a sanity check
@@ -277,20 +360,16 @@ namespace CLFV {
           throw 20;
         }
       }
-      nbins = bins.size() - 1;
       return bins;
     }
 
-    std::vector<Double_t> Bins(Int_t index) {
-      Int_t nbins;
-      return Bins(index, nbins);
-    }
-
-    Int_t NBins(Int_t index) {
-      int nbins;
-      Bins(index, nbins);
+    //-------------------------------------------------------------------------------------------------
+    Int_t NBins(Int_t index, Int_t HistSet = 8) {
+      auto bins = Bins(index, HistSet);
+      const Int_t nbins = bins.size() - 1;
       return nbins;
     }
+
   public:
     std::vector<TString> names_; //MVA names
     std::vector<int> data_cat_; //relevant data category

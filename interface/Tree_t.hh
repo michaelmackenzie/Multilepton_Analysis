@@ -151,6 +151,7 @@ namespace CLFV {
     float eventweightMVA; //for MVA categories/histograms, remove training samples
     float fulleventweight; //includes cross-section and number gen
     float fulleventweightlum; //includes cross-section, number gen, and luminosity
+    float trainfraction; //to properly normalize events when comparing testing/training
     float eventcategory; //for identifying the process in mva trainings
     float issignal;
     float category; //selection category e.g. mutau_h, mutau_e
