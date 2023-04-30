@@ -1,7 +1,8 @@
 //Script to process the individual and combined category limits and plot them
 #include "make_combine_limit_plot_general.C"
 
-int make_combine_limit_plot_channels(vector<int> sets = {8}, TString selection = "zmutau",
+int make_combine_limit_plot_channels(vector<int> sets_had = {8}, vector<int> sets_lep = {8},
+                                     TString selection = "zmutau",
                                      vector<int> years = {2016, 2017, 2018},
                                      bool processCards = true,
                                      bool doNoSys = false,
@@ -10,17 +11,19 @@ int make_combine_limit_plot_channels(vector<int> sets = {8}, TString selection =
 
   TString year_s = Form("%i", years[0]);
   for(int i = 1; i < years.size(); ++i) year_s += Form("_%i", years[i]);
-  TString set_s = Form("%i", sets[0]);
-  for(int i = 1; i < sets.size(); ++i) set_s += Form("_%i", sets[i]);
+  TString set_had_s = Form("%i", sets_had[0]);
+  for(int i = 1; i < sets_had.size(); ++i) set_had_s += Form("_%i", sets_had[i]);
+  TString set_lep_s = Form("%i", sets_lep[0]);
+  for(int i = 1; i < sets_lep.size(); ++i) set_lep_s += Form("_%i", sets_lep[i]);
 
   TString lep = (selection.Contains("mutau")) ? "e" : "mu";
 
   vector<config_t> configs;
-  configs.push_back(config_t(Form("mva_%s_%s_%s"                 , selection.Data(),             set_s.Data()              , year_s.Data()), "Hadronic", sets, years, scale));
-  configs.push_back(config_t(Form("mva_%s_%s_%s_%s"              , selection.Data(), lep.Data(), set_s.Data()              , year_s.Data()), "Leptonic", sets, years, scale));
-  configs.push_back(config_t(Form("mva_total_%s_had_%s_lep_%s_%s", selection.Data()            , set_s.Data(), set_s.Data(), year_s.Data()), "Combined", sets, years, scale));
+  configs.push_back(config_t(Form("mva_%s_%s_%s"                 , selection.Data(),             set_had_s.Data()                  , year_s.Data()), "Hadronic", sets_had, years, scale));
+  configs.push_back(config_t(Form("mva_%s_%s_%s_%s"              , selection.Data(), lep.Data(), set_lep_s.Data()                  , year_s.Data()), "Leptonic", sets_lep, years, scale));
+  configs.push_back(config_t(Form("mva_total_%s_had_%s_lep_%s_%s", selection.Data()            , set_had_s.Data(), set_lep_s.Data(), year_s.Data()), "Combined", sets_had, years, scale));
 
   TString tag = (doNoSys) ? "cat_nosys" : "cat";
-  tag += Form("_%s", set_s.Data());
+  tag += Form("_had_%s_lep_%s", set_had_s.Data(), set_lep_s.Data());
   return make_combine_limit_plot_general(configs, tag, selection, processCards, doNoSys, doObs);
 }

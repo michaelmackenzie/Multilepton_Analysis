@@ -450,7 +450,7 @@ int validation(bool isMuon = true, int year = 2016, int period = -1, int max_ent
         }
 
         //get an idea of the energy scale uncertainty
-        const float escale = (isMC == 0) ? 0. : (isMuon) ?  0.005 : 0.01;
+        const float escale = (isMC == 0) ? 0. : (isMuon) ?  0.0025 : 0.01;
         lv1 *= 1. + escale;
         lv2 *= 1. + escale;
         const float pair_mass_up   = (lv1 + lv2).M();

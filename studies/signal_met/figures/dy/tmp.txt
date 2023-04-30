@@ -1,0 +1,23 @@
+alpha*p1T = beta*p2T
+-->
+beta = alpha*p1T/p2T
+
+(Mz^2 - Mt^2) = 2*alpha*beta*(p1.p2)
+              = 28alpha^2*p1T/p2T*(p1.p2)
+-->
+alpha = sqrt(MZ^2-Mt^2)/sqrt(p1/p2*2*p1.p2) ~ MZ/sqrt(p1/p2*2*p1.p2)
+beta  = ~MZ/sqrt(p2/p1*p1.p2)
+assuming M(lep) ~ 0
+plep/|pTlep| = (cos(phi), sin(phi), sinh(eta), sqrt(1 + sinh^2))
+             = (cos(phi), sin(phi), sinh(eta), sqrt(cosh^2))
+	     = (cos(phi), sin(phi), sinh(eta), |cosh|)
+
+----------------------------------------------------------------------
+M(balance) vs M(alpha):
+
+M(alpha) = sqrt(M(tau)^2 + 2*alpha*p1.p2)
+	 = sqrt(M(tau)^2 + 2*p2T/p1T*(p1.p2))
+
+M(balance) = M(p1, p1T/p2T*p2)
+	   = sqrt(p1^2 + (p1T/p2T)^2p2^2 + 2*p1T/p2T*p1.p2)
+--> if M(p2) kept at M(tau), then it's identical

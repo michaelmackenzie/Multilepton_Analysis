@@ -14,6 +14,11 @@ bool   separate_years_    =  true; //separate each year of data
 int    blind_data_        =    2 ; //0: no blinding; 1: kill high BDT score regions; 2: use ~Asimov instead of data
 double blind_cut_         =    0.;
 
+void add_group(map<TString,vector<TString>>& groups, TString sys, TString group) {
+  if(groups.find(group) != groups.end()) groups[group].push_back(sys);
+  else groups[group] = {sys};
+}
+
 Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
                              vector<int> years = {2016, 2017, 2018},
                              int seed = 90) {
@@ -99,11 +104,11 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
 
   vector<THStack*> hsys_stacks;
   vector<TH1*> hsys_signals;
-  map<TString, vector<TString>> sys_groups; //define groups in the cards for convenience
 
   if(use_sys_) {
     TString prev = "";
-    for(int isys = 1; isys < kMaxSystematics+kMaxScaleSystematics; ++isys) {
+    const int max_sys = (use_scale_sys_) ? kMaxSystematics+kMaxScaleSystematics : kMaxSystematics;
+    for(int isys = 1; isys < max_sys; ++isys) {
       auto sys_info = systematic_name(isys, selection, years[0]); //FIXME: take the first year in the list for now
       TString name = sys_info.first;
       if(name == "") continue;
@@ -215,6 +220,8 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
   TString obs    = Form("observation  %15.0f",        //data observations, 1 per channel
                         hdata_obs->Integral());
 
+  map<TString,vector<TString>> groups;
+
   //////////////////////////////////////////////////////////////////
   // Print the MC values to the card
   //////////////////////////////////////////////////////////////////
@@ -253,6 +260,28 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
     proc_c += Form("          %2i   ", process_value(hname));
     rate   += Form("%15.3f", hbkg_i->Integral());
     hbkg_i->SetName(hname.Data());
+
+    //if embedding, increase bin-by-bin uncertainties to account for binomial gen-weight uncertainty
+    if(embed_mode_ && embed_bin_stats_mode_ && hname.Contains("Embedding")) {
+      //only apply to emu data (if using emu embedding) unless embed_bin_stat_mode_ = 2
+      if((embed_mode_ == 1 && selection.Contains("_")) || (embed_bin_stats_mode_ == 2 && selection.EndsWith("tau"))) {
+        const double p = (years[0] == 2016) ? 0.017 : (years[0] == 2017) ? 0.014 : 0.019;
+        //approximate the binomial error with N = 1000
+        const int N = 1000;
+        const double binomial_error = std::sqrt(p*(1.-p)/N);
+        //increase uncertainty by: sqrt(p^2 + error(p)^2) / p = sqrt(1 + error(p)^2/p^2)
+        const double bin_error_scale = std::sqrt(1. + binomial_error*binomial_error/(p*p));
+        printf("--> Increasing Embedding bin uncertainties by %.4f\n", bin_error_scale);
+        for(int ibin = 1; ibin <= hbkg_i->GetNbinsX(); ++ibin) {
+          const double bin_c = hbkg_i->GetBinContent(ibin);
+          if(bin_c <= 0.) continue;
+          const double bin_e = hbkg_i->GetBinError(ibin);
+          if(bin_e <= 0.) continue;
+          hbkg_i->SetBinError(ibin, bin_e*bin_error_scale);
+        }
+      }
+    }
+
     hbkg_i->Write(); //add to the output file
   }
 
@@ -373,9 +402,51 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
         double val = sys_up; //max((sys_up < 1.) ? 1./sys_up : sys_up, (sys_down < 1.) ? 1./sys_down : sys_down);
         sys += Form("%15.3f", val);
       }
+
+      //Add to a group list if a standard nuisance group
+      if(name.BeginsWith("JetToTau")    ) add_group(groups, name, "JetToTau_Total");
+      if(name.BeginsWith("JetToTauAlt") ) add_group(groups, name, "JetToTau_Stat");
+      if(name.BeginsWith("JetToTauNC")  ) add_group(groups, name, "JetToTau_NC");
+      if(name.BeginsWith("JetToTauBias")) add_group(groups, name, "JetToTau_Bias");
+      if(name.BeginsWith("JetToTauComp")) add_group(groups, name, "JetToTau_Comp");
+      if(name.BeginsWith("QCD")         ) add_group(groups, name, "QCD_Total");
+      if(name.BeginsWith("QCDAlt")      ) add_group(groups, name, "QCD_Stat");
+      if(name.BeginsWith("QCDNC")       ) add_group(groups, name, "QCD_NC");
+      if(name.BeginsWith("QCDBias")     ) add_group(groups, name, "QCD_Bias");
+      if(name.BeginsWith("JER")         ) add_group(groups, name, "JER_JES");
+      if(name.BeginsWith("JES")         ) add_group(groups, name, "JER_JES");
+      if(name.BeginsWith("BTag")        ) add_group(groups, name, "BTag_Total"        );
+      if(name.Contains("TauJetID")      ) add_group(groups, name, "TauJetID_Total"    );
+      if(name.Contains("TauEleID")      ) add_group(groups, name, "TauEleID_Total"    );
+      if(name.Contains("TauMuID")       ) add_group(groups, name, "TauMuID_Total"     );
+      if(name.Contains("MuonID")        ) add_group(groups, name, "MuonID_Total"      );
+      if(name.Contains("MuonIsoID")     ) add_group(groups, name, "MuonID_Total"      );
+      if(name.Contains("EleID")         ) add_group(groups, name, "EleID_Total"       );
+      if(name.Contains("EleIsoID")      ) add_group(groups, name, "EleID_Total"       );
+      if(name.Contains("MuonES")        ) add_group(groups, name, "MuonES_Total"      );
+      if(name.Contains("EleES")         ) add_group(groups, name, "EleES_Total"       );
+      if(name.Contains("TauES")         ) add_group(groups, name, "TauES_Total"       );
+      if(name.Contains("EleTrig")       ) add_group(groups, name, "EleTrig_Total"     );
+      if(name.Contains("MuonTrig")      ) add_group(groups, name, "MuonTrig_Total"    );
+      if(name.Contains("ZPt")           ) add_group(groups, name, "ZPt_Total"         );
+      if(name.Contains("Pileup")        ) add_group(groups, name, "Pileup_Total"      );
+      if(name.Contains("Prefire")       ) add_group(groups, name, "Prefire_Total"     );
+      if(name.Contains("XS_Embed")      ) add_group(groups, name, "EmbedUnfold_Total" );
+      else if(name.Contains("Lumi")     ) add_group(groups, name, "Lumi_Total"        );
+      else if(name.BeginsWith("XS_")    ) add_group(groups, name, "XSec_Total"        );
     }
     outfile << Form("%s \n", sys.Data());
+    if(verbose_ > 3) cout << sys.Data() << endl;
   }
+  //print the groups
+  outfile << "\n";
+  for(auto group : groups) {
+    cout << "Adding group " << group.first.Data() << endl;
+    outfile << Form("%-13s group =", group.first.Data());
+    for(TString isys : group.second) outfile << " " << isys.Data();
+    outfile << "\n";
+  }
+
   if(use_fake_bkg_norm_) {
     outfile << Form("%s \n", qcd_bkg_line.Data());
     outfile << Form("%s \n", jtt_bkg_line.Data());

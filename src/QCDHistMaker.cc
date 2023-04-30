@@ -107,6 +107,14 @@ void QCDHistMaker::BookEventHistograms() {
       Utilities::BookH1F(fEventHist[i]->hLepEta  , "lepeta"        , Form("%s: Lepton Eta"     ,dirname)  ,  50,  -5,   5, folder);
       Utilities::BookH1F(fEventHist[i]->hLepMEstimate   , "lepmestimate"   , Form("%s: Estimate di-lepton mass"  ,dirname)  ,100,0.,  200, folder);
       Utilities::BookH1F(fEventHist[i]->hLepMEstimateTwo, "lepmestimatetwo", Form("%s: Estimate di-lepton mass"  ,dirname)  ,100,0.,  200, folder);
+      Utilities::BookH1F(fEventHist[i]->hLepMEstimateThree, "lepmestimatethree", Form("%s: Estimate di-lepton mass"  ,dirname)  ,100,0.,  200, folder);
+      Utilities::BookH1F(fEventHist[i]->hLepMEstimateFour, "lepmestimatefour", Form("%s: Estimate di-lepton mass"  ,dirname)  ,100,0.,  200, folder);
+      Utilities::BookH1F(fEventHist[i]->hLepMEstimateCut[0], "lepmestimatecut0"   , Form("%s: Estimate di-lepton mass"  ,dirname)  ,100,0.,  200, folder);
+      Utilities::BookH1F(fEventHist[i]->hLepMEstimateCut[1], "lepmestimatecut1"   , Form("%s: Estimate di-lepton mass"  ,dirname)  ,100,0.,  200, folder);
+      Utilities::BookH1F(fEventHist[i]->hLepMEstimateAvg[0], "lepmestimateavg0"   , Form("%s: Estimate di-lepton mass"  ,dirname)  ,100,0.,  200, folder);
+      Utilities::BookH1F(fEventHist[i]->hLepMEstimateAvg[1], "lepmestimateavg1"   , Form("%s: Estimate di-lepton mass"  ,dirname)  ,100,0.,  200, folder);
+      Utilities::BookH1F(fEventHist[i]->hLepMBalance    , "lepmbalance"    , Form("%s: Estimate di-lepton mass"  ,dirname)  ,100,0.,  200, folder);
+      Utilities::BookH1F(fEventHist[i]->hLepMBalanceTwo , "lepmbalancetwo" , Form("%s: Estimate di-lepton mass"  ,dirname)  ,100,0.,  200, folder);
       Utilities::BookH1F(fEventHist[i]->hLepDeltaPhi[0], "lepdeltaphi"   , Form("%s: Lepton DeltaPhi",dirname), 50,   0,   5, folder);
       Utilities::BookH1F(fEventHist[i]->hLepDeltaEta   , "lepdeltaeta"   , Form("%s: Lepton DeltaEta",dirname), 50,   0,   5, folder);
       Utilities::BookH1F(fEventHist[i]->hLepDeltaR[0]  , "lepdeltar"     , Form("%s: Lepton DeltaR"  ,dirname), 50,   0,   5, folder);
@@ -115,6 +123,10 @@ void QCDHistMaker::BookEventHistograms() {
       Utilities::BookH1F(fEventHist[i]->hDeltaAlpha[1]     , "deltaalpha1"      , Form("%s: Delta Alpha (Z) 1"   ,dirname),  80,  -5,  10, folder);
       Utilities::BookH1F(fEventHist[i]->hDeltaAlpha[2]     , "deltaalpha2"      , Form("%s: Delta Alpha (H) 0"   ,dirname),  80,  -5,  10, folder);
       Utilities::BookH1F(fEventHist[i]->hDeltaAlpha[3]     , "deltaalpha3"      , Form("%s: Delta Alpha (H) 1"   ,dirname),  80,  -5,  10, folder);
+      Utilities::BookH1F(fEventHist[i]->hDeltaAlphaM[0]    , "deltaalpham0"     , Form("%s: Delta Alpha M 0"     ,dirname),  80,  40, 180, folder);
+      Utilities::BookH1F(fEventHist[i]->hDeltaAlphaM[1]    , "deltaalpham1"     , Form("%s: Delta Alpha M 1"     ,dirname),  80,  40, 180, folder);
+      Utilities::BookH1F(fEventHist[i]->hBeta[0]           , "beta0"            , Form("%s: Beta (Z) 0"          ,dirname),  60,   0,  3., folder);
+      Utilities::BookH1F(fEventHist[i]->hBeta[1]           , "beta1"            , Form("%s: Beta (Z) 1"          ,dirname),  60,   0,  3., folder);
 
       for(unsigned j = 0; j < fMVAConfig->names_.size(); ++j)  {
         Utilities::BookH1D(fEventHist[i]->hMVA[j][0], Form("mva%i",j)   , Form("%s: %s MVA" ,dirname, fMVAConfig->names_[j].Data()) ,
@@ -238,6 +250,14 @@ void QCDHistMaker::FillEventHistogram(EventHist_t* Hist) {
   Hist->hLepEta       ->Fill(lepSys.Eta()           ,eventWeight*genWeight);
   Hist->hLepMEstimate   ->Fill(fTreeVars.mestimate   , eventWeight*genWeight);
   Hist->hLepMEstimateTwo->Fill(fTreeVars.mestimatetwo, eventWeight*genWeight);
+  Hist->hLepMEstimateThree->Fill(fTreeVars.mestimatethree, eventWeight*genWeight);
+  Hist->hLepMEstimateFour->Fill(fTreeVars.mestimatefour, eventWeight*genWeight);
+  Hist->hLepMEstimateCut[0]->Fill(fTreeVars.mestimate_cut_1, eventWeight*genWeight);
+  Hist->hLepMEstimateCut[1]->Fill(fTreeVars.mestimate_cut_2, eventWeight*genWeight);
+  Hist->hLepMEstimateAvg[0]->Fill(fTreeVars.mestimate_avg_1, eventWeight*genWeight);
+  Hist->hLepMEstimateAvg[1]->Fill(fTreeVars.mestimate_avg_2, eventWeight*genWeight);
+  Hist->hLepMBalance    ->Fill(fTreeVars.mbalance    , eventWeight*genWeight);
+  Hist->hLepMBalanceTwo ->Fill(fTreeVars.mbalancetwo , eventWeight*genWeight);
   Hist->hLepDeltaPhi[0]->Fill(lepDelPhi             ,eventWeight*genWeight);
   Hist->hLepDeltaEta  ->Fill(lepDelEta              ,eventWeight*genWeight);
   Hist->hLepDeltaR[0] ->Fill(lepDelR                ,eventWeight*genWeight);
@@ -246,6 +266,10 @@ void QCDHistMaker::FillEventHistogram(EventHist_t* Hist) {
   Hist->hDeltaAlpha[1]->Fill(fTreeVars.deltaalphaz2, eventWeight*genWeight);
   Hist->hDeltaAlpha[2]->Fill(fTreeVars.deltaalphah1, eventWeight*genWeight);
   Hist->hDeltaAlpha[3]->Fill(fTreeVars.deltaalphah2, eventWeight*genWeight);
+  Hist->hDeltaAlphaM[0]->Fill(fTreeVars.deltaalpham1, eventWeight*genWeight);
+  Hist->hDeltaAlphaM[1]->Fill(fTreeVars.deltaalpham2, eventWeight*genWeight);
+  Hist->hBeta[0]->Fill(fTreeVars.beta1, eventWeight*genWeight);
+  Hist->hBeta[1]->Fill(fTreeVars.beta2, eventWeight*genWeight);
 
   //MVA outputs
   for(unsigned i = 0; i < fMVAConfig->names_.size(); ++i) {
@@ -334,6 +358,11 @@ Bool_t QCDHistMaker::Process(Long64_t entry)
 {
   if(InitializeEvent(entry)) return kTRUE;
 
+  //Remove threshold cuts, rely on cuts applied when filling sets
+  one_pt_min_ = -1.f; two_pt_min_ = -1.f;
+  ptdiff_min_ = -1.e10; ptdiff_max_ = 1.e10; min_mass_ = -1.f; max_mass_ = -1.f;
+  mtone_max_ = -1.f; mttwo_max_ = -1.f; mtlep_max_ = -1.f; met_max_   = -1.f;
+
   //object pT thresholds
   const float muon_pt(10.), electron_pt(15.), tau_pt(20.);
 
@@ -343,6 +372,13 @@ Bool_t QCDHistMaker::Process(Long64_t entry)
   if(!emu) return kTRUE;
 
   fCutFlow->Fill(icutflow); ++icutflow; //5
+
+  if(leptonOne.isElectron()) one_pt_min_ = electron_pt;
+  if(leptonTwo.isElectron()) two_pt_min_ = electron_pt;
+  if(leptonOne.isMuon    ()) one_pt_min_ = muon_pt;
+  if(leptonTwo.isMuon    ()) two_pt_min_ = muon_pt;
+  if(leptonOne.isTau     ()) one_pt_min_ = tau_pt;
+  if(leptonTwo.isTau     ()) two_pt_min_ = tau_pt;
 
   if(leptonOne.isElectron() && leptonOne.p4->Pt() <= electron_pt) return kTRUE;
   if(leptonTwo.isElectron() && leptonTwo.p4->Pt() <= electron_pt) return kTRUE;
@@ -359,8 +395,8 @@ Bool_t QCDHistMaker::Process(Long64_t entry)
   fCutFlow->Fill(icutflow); ++icutflow; //6
 
   //eta region cuts
-  const double electron_eta_max = (fUseEmbedCuts) ? (emu) ? 2.4 : 2.2 : 2.5;
-  const double muon_eta_max     = (fUseEmbedCuts) ? (emu) ? 2.4 : 2.2 : 2.4;
+  const double electron_eta_max = (fUseEmbedCuts) ? 2.4 : 2.5;
+  const double muon_eta_max     = (fUseEmbedCuts) ? 2.4 : 2.4;
   const double tau_eta_max      = (fUseEmbedCuts) ? 2.3 : 2.3; //tau eta doesn't change
   const double min_delta_r      = 0.3;
 
@@ -377,7 +413,7 @@ Bool_t QCDHistMaker::Process(Long64_t entry)
   if(leptonTwo.isElectron() && std::fabs(leptonTwo.scEta) >= elec_gap_low && std::fabs(leptonTwo.scEta) <= elec_gap_high) return kTRUE;
 
   //enforce the leptons are separated
-  if(std::fabs(leptonOne.p4->DeltaR(*leptonTwo.p4)) < min_delta_r) return kTRUE;
+  if(std::fabs(leptonOne.p4->DeltaR(*leptonTwo.p4)) <= min_delta_r) return kTRUE;
 
   //apply reasonable lepton isolation cuts
   if(leptonOne.isElectron() && leptonOne.relIso >= 0.5) return kTRUE;
@@ -389,7 +425,9 @@ Bool_t QCDHistMaker::Process(Long64_t entry)
 
   //FIXME: Confirm mass cut region needed
   const double mll = (*leptonOne.p4+*leptonTwo.p4).M();
-  if(mll <= 50. || mll >= 170.) return kTRUE;
+  min_mass_ =  40.f;
+  max_mass_ = 170.f;
+  if(mll <= min_mass_ || mll >= max_mass_) return kTRUE;
 
   fCutFlow->Fill(icutflow); ++icutflow; //8
 
@@ -447,7 +485,7 @@ Bool_t QCDHistMaker::Process(Long64_t entry)
 
   const float met_cut         = -1.f;//60.;
   //FIXME: Confirm mtlep cut needed
-  const float mtlep_cut       = 70.f;
+  const float mtlep_cut       = 90.f; //70.f;
 
   emu   &= met_cut < 0.f || met < met_cut;
   emu   &= mtlep_cut < 0.f || fTreeVars.mtlep < mtlep_cut;

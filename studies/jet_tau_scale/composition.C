@@ -83,9 +83,17 @@ void make_composition(PlottingCard_t card, bool printHists = false, bool debug =
   xtitle.ReplaceAll("one","");
   xtitle.ReplaceAll("two","");
   xtitle.ReplaceAll("delta", "#Delta");
+  xtitle.ReplaceAll("comp", "");
   xtitle.ReplaceAll("eta", "#eta"); xtitle.ReplaceAll("phi", "#phi"); xtitle.ReplaceAll("pt", "p_{T}");
-  if(addone) xtitle = xtitle + "^{1}";
-  if(addtwo) xtitle = xtitle + "^{2}";
+  if(xtitle == "mt") {
+    xtitle = "M_{T}(MET,";
+    if     (addone) xtitle = xtitle + "l_{1})";
+    else if(addtwo) xtitle = xtitle + "l_{2})";
+    else            xtitle = xtitle +    "ll)";
+  } else {
+    if(addone) xtitle = xtitle + "^{1}";
+    if(addtwo) xtitle = xtitle + "^{2}";
+  }
   xtitle.ReplaceAll("taus", "#tau ");
   xtitle.ReplaceAll("met", "MET ");
   xtitle.ReplaceAll("dm", "Decay Mode");

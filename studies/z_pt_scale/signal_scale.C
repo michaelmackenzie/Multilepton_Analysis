@@ -240,8 +240,13 @@ int fill_hist(TTree* tree, const int index) {
     hwt_  [2]->SetLineColor(kGreen-7); hwt_  [2]->SetLineWidth(2); hwt_  [2]->SetMarkerStyle(20); hwt_  [2]->SetMarkerSize(0.8);
   }
 
-  printf("Sample index %i: Mass fraction below 75 GeV: %.5f\n",
+  printf("Sample index %i:\n Mass fraction below 75 GeV: %.5f\n",
          index, hmass_[index]->Integral(0, hmass_[index]->FindBin(75.))/hmass_[index]->Integral(0, hmass_[index]->GetNbinsX()+1));
+  printf(" No Z fraction: %.5f\n", hmass_mode_[3*index+2]->Integral() / hmass_mode_[3*index]->Integral());
+  printf(" Z found below 75 GeV fraction: %.5f\n",
+         hmass_mode_[3*index+1]->Integral(0, hmass_mode_[3*index+1]->FindBin(75.))/hmass_mode_[3*index+1]->Integral(0, hmass_mode_[3*index+1]->GetNbinsX()+1));
+  printf(" No Z below 75 GeV fraction: %.5f\n",
+         hmass_mode_[3*index+2]->Integral(0, hmass_mode_[3*index+2]->FindBin(75.))/hmass_mode_[3*index+2]->Integral(0, hmass_mode_[3*index+2]->GetNbinsX()+1));
   return 0;
 }
 

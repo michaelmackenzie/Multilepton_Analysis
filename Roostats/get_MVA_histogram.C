@@ -226,9 +226,11 @@ int get_systematics(int set, TString hist, TH1* hdata, TFile* f, TString canvas_
       if(sys_scale.scale_ <= 0.) {
         cout << __func__ << ": Warning! Scale uncertainty " << isys << "(" << sys_scale.name_.Data() << ") is <= 0 (" << sys_scale.scale_ << ")\n";
       }
-      printf("%s: Scale systematic %3i (%s): Scale = %.3f, data = %o, mc = %o, embed = %o\n", __func__, isys,
-             sys_scale.name_.Data(), sys_scale.scale_, sys_scale.data_, sys_scale.mc_, sys_scale.embed_);
-      sys_scale.Print();
+      if(test_sys_ >= 0 || verbose_ > 0) {
+        printf("%s: Scale systematic %3i (%s): Scale = %.3f, data = %o, mc = %o, embed = %o\n", __func__, isys,
+               sys_scale.name_.Data(), sys_scale.scale_, sys_scale.data_, sys_scale.mc_, sys_scale.embed_);
+        sys_scale.Print();
+      }
       if(test_sys_ >= 0) dataplotter_->verbose_ = 7;
       //Get background for the systematic
       hstack = dataplotter_->get_stack(Form("%s_0", hist.Data()), "systematic", set, &sys_scale);
@@ -280,6 +282,7 @@ int get_systematics(int set, TString hist, TH1* hdata, TFile* f, TString canvas_
       hbkg_->Draw("hist same");
       g_bkg->Draw("P2");
 
+      double ymax = max(hdata->GetMaximum(), hbkg_->GetMaximum());
       //Get the signal systematic shifts
       for(unsigned index = 0; index < signals.size(); ++index) {
         auto h = signals[index];
@@ -292,9 +295,11 @@ int get_systematics(int set, TString hist, TH1* hdata, TFile* f, TString canvas_
         g_sig->SetFillStyle(3001);
         g_sig->SetFillColor(g_sig->GetLineColor());
         g_sig->Draw("P2");
+        ymax = max(ymax, g_sig->GetMaximum());
       }
       hdata->Draw("same E");
       g_bkg->GetXaxis()->SetRangeUser(xmin_,xmax_);
+      g_bkg->GetYaxis()->SetRangeUser((logy_) ? 0.5 : 0.9,(logy_) ? 2*ymax : 1.1*ymax);
       g_bkg->SetTitle("");
       if(logy_) pad1->SetLogy();
 
@@ -455,21 +460,24 @@ int get_individual_MVA_histogram(int set = 8, TString selection = "zmutau",
 
   TCanvas* c = new TCanvas();
 
-  cout << "Plotting parameters: xmin = " << xmin_ << " xmax = " << xmax_ << " logy = " << logy_ << endl;
+  double ymax = max(hdata->GetMaximum(), hstack->GetMaximum());
   hdata->Draw("E");
   hstack->Draw("same hist noclear");
   for(auto h : signals) {
     h->Draw("hist same");
+    ymax = max(ymax, h->GetMaximum());
   }
   hdata->Draw("same E");
+
+  cout << "Plotting parameters: xmin = " << xmin_ << " xmax = " << xmax_ << " logy = " << logy_ << endl;
 
   hdata->GetXaxis()->SetRangeUser(xmin_,xmax_);
   logy_ |= use_dev_mva_ == 2;
   if(logy_) {
-    hdata->GetYaxis()->SetRangeUser(0.5,2*hstack->GetMaximum());
+    hdata->GetYaxis()->SetRangeUser(0.5,2*ymax);
     c->SetLogy();
   } else {
-    hdata->GetYaxis()->SetRangeUser(0.9,1.1*hstack->GetMaximum());
+    hdata->GetYaxis()->SetRangeUser(0.9,1.1*ymax);
   }
 
   ///////////////////////////////////////////////

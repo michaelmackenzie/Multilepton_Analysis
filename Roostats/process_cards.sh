@@ -88,16 +88,16 @@ do
         for SET_I in $TAULIST
         do
             COMMAND="${COMMAND} mva_${SET_I}=combine_mva_${SELECTION}_${SET_I}_${YEAR_I}.txt"
-            ${HEAD} cp "combine_mva_${SELECTION}_${SET_I}_${YEAR_I}.root" ../${YEARSTRING}/
+            if [[ "${YEARSTRING}" != "${YEARLIST}" ]]; then ${HEAD} cp "combine_mva_${SELECTION}_${SET_I}_${YEAR_I}.root" ../${YEARSTRING}/; fi
         done
         if [[ "${DRYRUN}" != "" ]]; then
             ${HEAD} ${COMMAND} ${FINALTAUCARD}
-        else
+        elif [[ "${TAUSTRING}" != "${TAULIST}" ]]; then
             sleep 1
             echo ${COMMAND} ${FINALTAUCARD}
             ${COMMAND} >| ${FINALTAUCARD}
         fi
-        ${HEAD} cp ${FINALTAUCARD} ../${YEARSTRING}/
+        if [[ "${YEARSTRING}" != "${YEARLIST}" ]]; then ${HEAD} cp ${FINALTAUCARD} ../${YEARSTRING}/; fi
     fi
 
     #iterate through each histogram set to build the leptonic tau combined card
@@ -106,16 +106,16 @@ do
         for SET_I in $LEPLIST
         do
             COMMAND="${COMMAND} mva_${SET_I}=combine_mva_${LEPSIGNAL}_${SET_I}_${YEAR_I}.txt"
-            ${HEAD} cp "combine_mva_${LEPSIGNAL}_${SET_I}_${YEAR_I}.root" ../${YEARSTRING}/
+            if [[ "${YEARSTRING}" != "${YEARLIST}" ]]; then ${HEAD} cp "combine_mva_${LEPSIGNAL}_${SET_I}_${YEAR_I}.root" ../${YEARSTRING}/; fi
         done
         if [[ "${DRYRUN}" != "" ]]; then
             ${HEAD} ${COMMAND} ${FINALLEPCARD}
-        else
+        elif [[ "${LEPSTRING}" != "${LEPLIST}" ]]; then
             sleep 1
             echo ${COMMAND} ${FINALLEPCARD}
             ${COMMAND} >| ${FINALLEPCARD}
         fi
-        ${HEAD} cp ${FINALLEPCARD} ../${YEARSTRING}/
+        if [[ "${YEARSTRING}" != "${YEARLIST}" ]]; then ${HEAD} cp ${FINALLEPCARD} ../${YEARSTRING}/; fi
     fi
 
     if [[ "${TAUSTRING}" != "" ]] && [[ "${LEPSTRING}" != "" ]]; then

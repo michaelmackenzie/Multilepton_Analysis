@@ -80,7 +80,11 @@ std::vector<TH1*> DataPlotter::get_histograms(TString hist, TString setType, Int
         passed &= !vetoed;
       }
       if(passed && verbose_ > 7) printf(" Passed veto check\n");
-      passed &= sys_scale->year_ < 0 || sys_scale->year_ == input.dataYear_;
+      if(sys_scale->years_.size() > 0) {
+        bool tagged = false;
+        for(Int_t year : sys_scale->years_) tagged |= year < 0 || year == input.dataYear_;
+        passed &= tagged;
+      }
       if(passed && verbose_ > 7) printf(" Passed year check\n");
       passed &= ( isData && sys_scale->data_ ) || !isData;
       if(passed && verbose_ > 7) printf(" Passed data check\n");

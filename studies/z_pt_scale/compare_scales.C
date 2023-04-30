@@ -55,6 +55,7 @@ int compare_scales(int year = 2016) {
 
   pad = c->cd(1);
   pad->SetRightMargin(0.15);
+  set_z_range(hmumu);
   hmumu->Draw("colz text");
   hmumu->SetTitle("#mu#mu weights");
   hmumu->GetYaxis()->SetMoreLogLabels(kTRUE);
@@ -66,6 +67,7 @@ int compare_scales(int year = 2016) {
 
   pad = c->cd(2);
   pad->SetRightMargin(0.15);
+  set_z_range(hee);
   hee->Draw("colz text");
   hee->SetTitle("ee weights");
   hee->GetYaxis()->SetMoreLogLabels(kTRUE);

@@ -26,6 +26,7 @@ bool offsetSets_ = true; //offset by selection set from CLFVHistMaker
 int sigOverBkg_ = 0; //plot sig / bkg or data / MC (0 = data/MC, 1 = sig/MC, 2 = sig*sig/MC)
 int useQCD_ = 0; //use qcd estimate
 int useMisID_ = 1; //use Mis-ID estimate
+bool cdfMVAs_ = true; //CDF transformed BDT scores are the default
 
 int debug_ = 0;
 
@@ -1979,11 +1980,28 @@ Int_t print_basic_debug_plots(bool test_trigger = false, bool doMC = false,
 
   //MET, di-lepton projection variables
   if(tau_set) {
-    cards.push_back(PlottingCard_t("taudecaymode"    , "event", 0,  0.,  15.));
-    cards.push_back(PlottingCard_t("lepmestimate"   , "event", 1, mass_min, mass_max, 80., 100.));
-  } else if(selection_ == "emu" || selection_.Contains("_")) {
+    cards.push_back(PlottingCard_t("taudecaymode"     , "event", 0,  0.,  15.));
+    cards.push_back(PlottingCard_t("lepmestimate"     , "event", 1, mass_min, mass_max, 80., 100.));
+    cards.push_back(PlottingCard_t("lepmestimatethree", "event", 1, mass_min, mass_max, 80., 100.)); //met --> neutrino mass
+    cards.push_back(PlottingCard_t("lepmbalance"      , "event", 1, mass_min, mass_max, 80., 100.)); //balance lepton pT
+    cards.push_back(PlottingCard_t("lepmestimateavg0" , "event", 1, mass_min, mass_max, 80., 100.)); //average balance and collinear neutrinos
+    cards.push_back(PlottingCard_t("lepmestimatecut0" , "event", 1, mass_min, mass_max, 80., 100.)); //collinear mass if neutrino estimate parallel
+  } else if(selection_.Contains("_")) {
+    cards.push_back(PlottingCard_t("lepmestimate"   , "event", 1, mass_min, mass_max, 80., 100.)); //collinear mass
+    cards.push_back(PlottingCard_t("lepmestimatetwo", "event", 1, mass_min, mass_max, 80., 100.)); //collinear mass
+    cards.push_back(PlottingCard_t("lepmestimatethree", "event", 1, mass_min, mass_max, 80., 100.)); //met --> neutrino mass
+    cards.push_back(PlottingCard_t("lepmestimatefour", "event", 1, mass_min, mass_max, 80., 100.)); //met --> neutrino mass
+    cards.push_back(PlottingCard_t("lepmbalance", "event", 1, mass_min, mass_max, 80., 100.)); //balance lepton pT
+    cards.push_back(PlottingCard_t("lepmbalancetwo", "event", 1, mass_min, mass_max, 80., 100.)); //balance lepton pT
+    cards.push_back(PlottingCard_t("lepmestimateavg0", "event", 1, mass_min, mass_max, 80., 100.)); //average balance and collinear neutrinos
+    cards.push_back(PlottingCard_t("lepmestimateavg1", "event", 1, mass_min, mass_max, 80., 100.)); //average balance and collinear neutrinos
+    cards.push_back(PlottingCard_t("lepmestimatecut0" , "event", 1, mass_min, mass_max, 80., 100.)); //collinear mass if neutrino estimate parallel
+    cards.push_back(PlottingCard_t("lepmestimatecut1" , "event", 1, mass_min, mass_max, 80., 100.)); //collinear mass if neutrino estimate parallel
+  } else if(selection_ == "emu") {
     cards.push_back(PlottingCard_t("lepmestimate"   , "event", 1, mass_min, mass_max, 86., 96.));
     cards.push_back(PlottingCard_t("lepmestimatetwo", "event", 1, mass_min, mass_max, 86., 96.));
+    cards.push_back(PlottingCard_t("lepmestimatecut0" , "event", 1, mass_min, mass_max, 86., 96.)); //collinear mass if neutrino estimate parallel
+    cards.push_back(PlottingCard_t("lepmestimatecut1" , "event", 1, mass_min, mass_max, 86., 96.)); //collinear mass if neutrino estimate parallel
   } else {
     cards.push_back(PlottingCard_t("lepmestimate"   , "event", 1, mass_min, mass_max));
     cards.push_back(PlottingCard_t("lepmestimatetwo", "event", 1, mass_min, mass_max));
@@ -2098,15 +2116,13 @@ Int_t print_basic_debug_plots(bool test_trigger = false, bool doMC = false,
 
   if(mvas) {
     if(selection_ == "mutau") {
-      // cards.push_back(PlottingCard_t("mva0"            , "event", 0,  -0.8, 0.4, 0., 0.6));
-      // cards.push_back(PlottingCard_t("mva0_1"          , "event",20,  -0.8, 0.5, 0., 0.6));
-      cards.push_back(PlottingCard_t("mva1"            , "event", 1,  0,  -0.8, 0.4, 0., 0.6));
-      cards.push_back(PlottingCard_t("mva1"            , "event", 1,  0,  -0.8, 0.4, 0., 0.6, true)); //density plot
+      cards.push_back(PlottingCard_t("mva1"            , "event", 1,  0, (cdfMVAs_) ? 0. : -0.8, (cdfMVAs_) ? 1. : 0.4, (cdfMVAs_) ? 0.5 : 0., 1.));
+      cards.push_back(PlottingCard_t("mva1"            , "event", 1,  0, (cdfMVAs_) ? 0. : -0.8, (cdfMVAs_) ? 1. : 0.4, (cdfMVAs_) ? 0.5 : 0., 1., true)); //density plot
       cards.push_back(PlottingCard_t("mva1_1"          , "event", 1, 20,  -0.8, 0.5, 0., 0.6));
       cards.push_back(PlottingCard_t("mva1_2"          , "event", 1,  2,   0.0, 1.0, 0.5, 1.));
     } else if(selection_ == "etau") {
-      // cards.push_back(PlottingCard_t("mva2"            , "event", 0,  -0.8, 0.4, 0., 0.6));
-      // cards.push_back(PlottingCard_t("mva2_1"          , "event",20,  -0.8, 0.5, 0., 0.6));
+      cards.push_back(PlottingCard_t("mva3"            , "event", 1,  0, (cdfMVAs_) ? 0. : -0.8, (cdfMVAs_) ? 1. : 0.4, (cdfMVAs_) ? 0.5 : 0., 1.));
+      cards.push_back(PlottingCard_t("mva3"            , "event", 1,  0, (cdfMVAs_) ? 0. : -0.8, (cdfMVAs_) ? 1. : 0.4, (cdfMVAs_) ? 0.5 : 0., 1., true)); //density plot
       cards.push_back(PlottingCard_t("mva3"            , "event", 1,  0,  -0.8, 0.4, 0., 0.6));
       cards.push_back(PlottingCard_t("mva3"            , "event", 1,  0,  -0.8, 0.4, 0., 0.6, true)); //density plot
       cards.push_back(PlottingCard_t("mva3_1"          , "event", 1, 20,  -0.8, 0.5, 0., 0.6));
@@ -2268,6 +2284,68 @@ Int_t print_basic_debug_plots(bool test_trigger = false, bool doMC = false,
     card.systematic_ = 13; dataplotter_->print_systematic(card); //ZpT
     card.systematic_ = 45; dataplotter_->print_systematic(card); //b-tag
     card.systematic_ = 49; dataplotter_->print_systematic(card); //EmbedUnfold
+  }
+
+  return status;
+}
+
+//print standard  debugging plots
+Int_t print_basic_mva_plots(vector<int> sets = {8,25,26,27}) {
+  Int_t status = 0;
+  if(!dataplotter_) return 1;
+  int offset = 0;
+  if     (selection_ == "mutau"  ) offset = HistMaker::kMuTau;
+  else if(selection_ == "etau"   ) offset = HistMaker::kETau;
+  else if(selection_ == "emu"    ) offset = HistMaker::kEMu;
+  else if(selection_ == "mumu"   ) offset = HistMaker::kMuMu;
+  else if(selection_ == "ee"     ) offset = HistMaker::kEE;
+  else if(selection_ == "mutau_e") offset = (useLepTauSet_) ? HistMaker::kMuTauE : HistMaker::kEMu;
+  else if(selection_ == "etau_mu") offset = (useLepTauSet_) ? HistMaker::kETauMu : HistMaker::kEMu;
+  else {
+    cout << __func__ << " only defined for mutau, etau, emu, etau_mu, mutau_e, mumu, or ee!\n";
+    return 2;
+  }
+  const bool tau_set     = (selection_ == "etau" || selection_ == "mutau");
+  const bool same_flavor = (selection_ == "ee"   || selection_ == "mumu" );
+  if(tau_set) {
+    dataplotter_->include_qcd_ = 0;
+    dataplotter_->include_misid_ = 1;
+  }
+
+  for(unsigned index = 0; index < sets.size(); ++index) sets[index] += offset;
+
+  TString mva = "mva";
+  if     (selection_ == "mutau"  ) mva += "1";
+  else if(selection_ == "etau"   ) mva += "3";
+  else if(selection_ == "emu"    ) mva += "5";
+  else if(selection_ == "mutau_e") mva += "7";
+  else if(selection_ == "etau_mu") mva += "9";
+  else                             mva += "5"; //same flavor use Z->e+mu MVA
+
+  TCanvas* c = nullptr;
+  for(int set : sets) {
+    if(tau_set) {
+      //MC fake tau sets, don't use j-->tau estimate
+      if(((set % 100) >= 35 && (set % 100) <= 38) || (set % 100) == 33) {
+        dataplotter_->include_misid_ = 0;
+        dataplotter_->include_qcd_ = 1; //approximate QCD using same-sign Data - MC
+      } else {
+        dataplotter_->include_misid_ = 1;
+        dataplotter_->include_qcd_ = 0;
+      }
+    }
+    for(int ilog = 0; ilog < 2; ++ilog) { //print log and linear plots
+      dataplotter_->logY_ = ilog;
+      c = dataplotter_->print_stack(PlottingCard_t(mva.Data()         , "event", set,  0, (cdfMVAs_) ? 0. : -0.8, (cdfMVAs_) ? 1. : 0.4, (cdfMVAs_) ? 0.5 : 0., 1.));
+      if(c) DataPlotter::Empty_Canvas(c); else ++status;
+      c = dataplotter_->print_stack(PlottingCard_t(mva.Data()         , "event", set,  0, (cdfMVAs_) ? 0. : -0.8, (cdfMVAs_) ? 1. : 0.4, (cdfMVAs_) ? 0.5 : 0., 1., true));
+      if(c) DataPlotter::Empty_Canvas(c); else ++status;
+      c = dataplotter_->print_stack(PlottingCard_t((mva + "_1").Data(), "event", set, 20,  -0.8, 0.5, 0., 0.6));
+      if(c) DataPlotter::Empty_Canvas(c); else ++status;
+      c = dataplotter_->print_stack(PlottingCard_t((mva + "_2").Data(), "event", set,  1,   0.0, 1.0, 0.5, 1.));
+      if(c) DataPlotter::Empty_Canvas(c); else ++status;
+      c = nullptr;
+    }
   }
 
   return status;

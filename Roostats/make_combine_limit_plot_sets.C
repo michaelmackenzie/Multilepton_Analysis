@@ -2,10 +2,12 @@
 #include "make_combine_limit_plot_general.C"
 
 int make_combine_limit_plot_sets(vector<int> sets = {8}, TString selection = "zmutau",
-                                     vector<int> years = {2016, 2017, 2018},
-                                     bool processCards = true,
-                                     bool doNoSys = false,
-                                     bool doObs = false) {
+                                 vector<int> years = {2016, 2017, 2018},
+                                 bool processCards = true,
+                                 bool doNoSys = false,
+                                 bool doObs = false,
+                                 int  hadOnly = 0 //0: both, 1: had only, -1: lep only
+                                 ) {
   const double scale = (selection.Contains("h")) ? 1.e-4 : 1.e-6;
 
   TString year_s = Form("%i", years[0]);
@@ -17,15 +19,17 @@ int make_combine_limit_plot_sets(vector<int> sets = {8}, TString selection = "zm
 
   vector<config_t> configs;
   for(int set : sets) {
-    configs.push_back(config_t(Form("mva_%s_%i_%s"                 , selection.Data(),             set     , year_s.Data()), Form("%i: Had" , set), {set}, years, scale));
-    configs.push_back(config_t(Form("mva_%s_%s_%i_%s"              , selection.Data(), lep.Data(), set     , year_s.Data()), Form("%i: Lep" , set), {set}, years, scale));
+    if(hadOnly >= 0) configs.push_back(config_t(Form("mva_%s_%i_%s"                 , selection.Data(),             set, year_s.Data()), Form("%i: Had" , set), {set}, years, scale));
+    if(hadOnly <= 0) configs.push_back(config_t(Form("mva_%s_%s_%i_%s"              , selection.Data(), lep.Data(), set, year_s.Data()), Form("%i: Lep" , set), {set}, years, scale));
     // configs.push_back(config_t(Form("mva_total_%s_had_%i_lep_%i_%s", selection.Data()            , set, set, year_s.Data()), Form("%i: Comb", set), {set}, years, scale));
   }
-  configs.push_back(config_t(Form("mva_%s_%s_%s"                 , selection.Data(),             set_s.Data()              , year_s.Data()), "Total Had" , sets, years, scale));
-  configs.push_back(config_t(Form("mva_%s_%s_%s_%s"              , selection.Data(), lep.Data(), set_s.Data()              , year_s.Data()), "Total Lep" , sets, years, scale));
-  configs.push_back(config_t(Form("mva_total_%s_had_%s_lep_%s_%s", selection.Data()            , set_s.Data(), set_s.Data(), year_s.Data()), "Total Comb", sets, years, scale));
+  if(hadOnly >= 0) configs.push_back(config_t(Form("mva_%s_%s_%s"                 , selection.Data(),             set_s.Data()              , year_s.Data()), "Total Had" , sets, years, scale));
+  if(hadOnly <= 0) configs.push_back(config_t(Form("mva_%s_%s_%s_%s"              , selection.Data(), lep.Data(), set_s.Data()              , year_s.Data()), "Total Lep" , sets, years, scale));
+  if(hadOnly == 0) configs.push_back(config_t(Form("mva_total_%s_had_%s_lep_%s_%s", selection.Data()            , set_s.Data(), set_s.Data(), year_s.Data()), "Total Comb", sets, years, scale));
 
   TString tag = (doNoSys) ? "sets_nosys" : "sets";
+  if(hadOnly > 0) tag += "_had";
+  if(hadOnly < 0) tag += "_lep";
   tag += Form("_%s", set_s.Data());
   tag += Form("_%s", year_s.Data());
   return make_combine_limit_plot_general(configs, tag, selection, processCards, doNoSys, doObs);

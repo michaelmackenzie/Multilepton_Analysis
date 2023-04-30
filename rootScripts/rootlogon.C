@@ -11,6 +11,7 @@
   gInterpreter->AddIncludePath("./include");
   gInterpreter->AddIncludePath(Form("%s/include",gSystem->Getenv("ROOTSYS")));
   TString hostname = gSystem->Getenv("HOSTNAME");
+  
 //-----------------------------------------------------------------------------
 //  check batch mode
 //-----------------------------------------------------------------------------
@@ -50,27 +51,31 @@
       gInterpreter->ProcessLine(".! ps | grep root");
       printf("Loading lib/libCLFVAnalysis.so!\n");
       TString cmssw = gSystem->Getenv("CMSSW_BASE");
-      TString path = (hostname.Contains("cmslpc")) ? "/src/CLFVAnalysis/" : gSystem->Getenv("PWD");
-      if(!hostname.Contains("cmslpc")) path += "/../";
+      TString path = (hostname.Contains("cms")) ? "src/CLFVAnalysis/lib/" : gSystem->Getenv("PWD");
+      if(!hostname.Contains("cms")) {
+        path += "/../lib/";
+      } else {
+        //add check for NanoAOD working area, no BLT repository
+        if(TString(gSystem->Getenv("PWD")).Contains("CLFVAnalysis_dev"))  path = "/src/CLFVAnalysis_dev/lib/";
+        gSystem->AddDynamicPath(cmssw.Data());
+        gSystem->AddDynamicPath(gSystem->Getenv("PWD"));
+      }
+      int status = gSystem->Load((path + "libCLFVAnalysis.so").Data());
+      if(status < 0)
+        status = gSystem->Load("../lib/libCLFVAnalysis.so");
+      if(status < 0)
+        status = gSystem->Load("../../src/CLFVAnalysis/lib/libCLFVAnalysis.so");
+      if(status < 0)
+        status = gSystem->Load("src/CLFVAnalysis/lib/libCLFVAnalysis.so");
+      if(status < 0)
+        status = gSystem->Load("libCLFVAnalysis.so");
 
-      //add check for NanoAOD working area, no BLT repository
-      if(TString(gSystem->Getenv("PWD")).Contains("CLFVAnalysis_dev"))  path = "/src/CLFVAnalysis_dev/";
 
-      // gSystem->Load((cmssw + path + "AsciiPlotter/AsciiPlotter_cc.so").Data());
-
-      gSystem->Load((cmssw + path + "lib/libCLFVAnalysis.so").Data());
      // gSystem->Load((cmssw + path + "CutsetTraining/CutsetTrainer_cc.so").Data());
 
       // cout << "Loading SVFit libraries" << endl;
      // gSystem->Load("libTauAnalysisClassicSVfit.so");
      // gSystem->Load("libTauAnalysisSVfitTF.so");
     }
-  }
-//-----------------------------------------------------------------------------
-//  databases
-//-----------------------------------------------------------------------------
-  if(hostname.Contains("cmslpc") && TString(gSystem->Getenv("PWD")).Contains("BLTAnalysis/")) { //only load if on LPC and not in NanoAOD area
-    cout << "Loading Bacon data formats." << endl;
-    gSystem->Load("libBaconAnaDataFormats.so");
   }
 }

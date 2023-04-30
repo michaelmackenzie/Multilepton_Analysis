@@ -13,6 +13,9 @@
 #include "TFolder.h"
 #include "TTree.h"
 #include "TBranch.h"
+#include "TVectorD.h"
+#include "TMatrixD.h"
+#include "TDecompSVD.h"
 
 
 namespace CLFV {
@@ -241,6 +244,52 @@ namespace CLFV {
       return val;
     }
 
+    //------------------------------------------------------------------------------------------------------
+    // Principal component shifted parameters, <up,down>
+    static std::pair<TMatrixD, TMatrixD> PCAShifts(TMatrixDSym& cov, TVectorD& params) {
+
+      const int nparams = params.GetNoElements();
+      std::pair<TMatrixD, TMatrixD> shifts = {TMatrixD(nparams, nparams), TMatrixD(nparams, nparams)};
+      if(nparams != cov.GetNrows()) {
+        std::cout << "Utilities::" << __func__ << ": N(params) doesn't match covariance matrix!\n";
+        return shifts;
+      }
+
+      //Get the up/down shifted parameter matrices
+      TMatrixD& up   = shifts.first;
+      TMatrixD& down = shifts.second;
+
+      //Perform the SVD
+      TDecompSVD svd(cov);
+      if(!svd.Decompose()) {
+        std::cout << "Utilities::" << __func__ << ": SVD failed!\n";
+        return shifts;
+      }
+
+      //Retrieve the eigen vector/values
+      TVectorD sig  = svd.GetSig();
+      TMatrixD eig  = svd.GetV();
+      TMatrixD eigT = eig; eigT.Transpose(eigT);
+
+      //Create a vector of rotated parameters
+      TVectorD params_rot = eigT*params;
+
+      //Create a vector for each shifted rotated parameter
+      for(int irow = 0; irow < nparams; ++irow) {
+        const double unc = sqrt((nparams-1)*sig[irow]); //uncertainty on s' parameter
+        //create a vector of just the one parameter shifted
+        TVectorD shift(nparams);
+        for(int jrow = 0; jrow < nparams; ++jrow) shift[jrow] = (irow == jrow) ? unc : 0.;
+        //shift the rotated parameter and find the shifted nominal parameters
+        TVectorD params_up   = eig*(params_rot + shift);
+        TVectorD params_down = eig*(params_rot - shift);
+        up  [irow] = params_up;
+        down[irow] = params_down;
+      }
+      return shifts;
+    }
+
+    //------------------------------------------------------------------------------------------------------
     enum {kXAxis, kYAxis};
   };
 }

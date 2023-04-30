@@ -7,11 +7,13 @@ DataPlotter* dataplotter_ = 0;
 int     verbose_       = 0    ;
 int     noncl_verbose_ = 0    ;
 int     drawFit_       = 1    ; //whether to draw the linear fits
+bool    doPCA_         = true ; //
 TString process_       = ""   ; //Process of interest, where all others should be subtracted
 bool    usingMCTaus_   = false; //whether or not the histogram set uses MC taus
 TString selection_     = ""   ;
 int     set_offset_    = 0    ; //offset to selection set
 int     override_year_ = -1   ; //use a default year to get initial scales for a different year
+bool    skip_closure_  = false; //skip closure plots, except for corrections
 TRandom3 rnd_(90);
 
 //-------------------------------------------------------------------------------------------------------------------------------
@@ -46,6 +48,8 @@ TString get_title(TString hist, TString type) {
   if(hist.Contains("decaymode"))      return "Decay Mode";
   if(hist.Contains("tauspt"))         return "p_{T}^{#tau}";
   if(hist.Contains("tauseta"))        return "#eta^{#tau}";
+  if(hist.BeginsWith("beta0"))        return "#alpha(l)";
+  if(hist.BeginsWith("beta1"))        return "#alpha(#tau)";
   return hist;
   // xtitle.ReplaceAll("jettau", "");
   // xtitle.ReplaceAll("1", ""); xtitle.ReplaceAll("2", ""); xtitle.ReplaceAll("3", "");
@@ -421,8 +425,8 @@ TCanvas* make_closure_canvas(int set1, int set2, PlottingCard_t card, TH1* &hTig
   datalabel.SetTextFont(72);
   datalabel.SetTextSize(0.07);
   datalabel.SetTextAlign(13);
-  datalabel.DrawLatex(0.65, 0.62,  Form("Tight      : %9.1f", hTight->Integral()));
-  datalabel.DrawLatex(0.65, 0.54 , Form("Estimate: %9.1f", hLoose->Integral()));
+  datalabel.DrawLatex(0.65, 0.62,  Form("Tight      : %9.1f", hTight->Integral() + hTight->GetBinContent(0) + hTight->GetBinContent(hTight->GetNbinsX()+1)));
+  datalabel.DrawLatex(0.65, 0.54 , Form("Estimate: %9.1f"   , hLoose->Integral() + hLoose->GetBinContent(0) + hLoose->GetBinContent(hLoose->GetNbinsX()+1)));
 
   //Draw the ratio plot
   pad2->cd();
@@ -599,7 +603,7 @@ TCanvas* make_eta_region_canvas(TH2* hnum, TH2* hdnm, TString name, bool iseff,
       hetas[ibin]->Draw("E1");
     }
     TF1* func;
-    const int mode = 4; //0: pol1 1: atan 2: pol1 + landau 3: pol1 + gaussian
+    const int mode = 5; //0: pol1; 1: atan; 2: pol1 + landau; 3: pol1 + gaussian; 4: opt 3 with min val; 5: pol2
     if(mode == 0) {
       func = new TF1("func", "[slope]*x + [intercept]", 0.,  999.);
       func->SetParameters(0.1, 0.1);
@@ -634,13 +638,22 @@ TCanvas* make_eta_region_canvas(TH2* hnum, TH2* hdnm, TString name, bool iseff,
       // func->SetParLimits(func->GetParNumber("offset"), -1e3, 1e3);   //0
       // func->SetParLimits(func->GetParNumber("slope"), -1.e3, 1.e3);  //1
       func->SetParLimits(func->GetParNumber("xoffset"), -19., 1e4);  //2
+    } else if(mode == 5) {
+      func = new TF1("func", "[c0] + [c1]*x + [c2]*x*x", 0., 999.);
+      func->SetParameters(0.1, 0.1, 0.);
+      // func = new TF1("func", "[slope]*(x - [xoffset])^2 + [base]", 0.,  999.);
+      // func->SetParameters(0.5, 1.e-5, 100.);
+      // func->SetParLimits(0, 0., 1.);
+      // func->SetParLimits(1, -10., 10.);
+      // func->SetParLimits(2, -10., 10.);
     }
     bool refit = false;
     int ifit = 0;
     int max_fits = 6;
+    TFitResultPtr fit_res;
     do {
       refit = false;
-      auto fit_res = hetas[ibin]->Fit(func, fit_option.Data());
+      fit_res = hetas[ibin]->Fit(func, fit_option.Data());
       const double chi_sq = func->GetChisquare() / hetas[ibin]->GetNbinsX();
       cout << "bin " << ibin << ": Fit has chi^2 = " << chi_sq << " and fit result " << fit_res;
       cout << " Hist: " << hetas[ibin]->GetName() << ", I = " << hetas[ibin]->Integral() << endl;
@@ -689,7 +702,7 @@ TCanvas* make_eta_region_canvas(TH2* hnum, TH2* hdnm, TString name, bool iseff,
     pad->Update();
 
     TF1* f = func;
-    if(drawFit_ && f) {
+    if(drawFit_ && f && fit_res == 0) {
       hetas[ibin]->Draw("E1");
       TH1* herr_2s = (TH1*) hetas[ibin]->Clone(Form("%s_err_2s", hetas[ibin]->GetName()));
       herr_2s->Reset();
@@ -716,11 +729,39 @@ TCanvas* make_eta_region_canvas(TH2* hnum, TH2* hdnm, TString name, bool iseff,
       label.SetTextSize(0.04);
       label.SetTextAlign(13);
       label.SetTextAngle(0);
-      label.DrawLatex(0.15, 0.89, Form("#chi^{2}/NDF  %.3f / %i", f->GetChisquare(), hetas[ibin]->GetNbinsX() - f->GetNpar()));
+      label.DrawLatex(0.15, 0.89, Form("#chi^{2}/NDF  %.3f / %i (p = %.3f)", f->GetChisquare(), hetas[ibin]->GetNbinsX() - f->GetNpar(),
+                                       TMath::Prob(f->GetChisquare(), hetas[ibin]->GetNbinsX() - f->GetNpar())));
       for(int ipar = 0; ipar < f->GetNpar(); ++ipar) {
         label.DrawLatex(0.15, 0.89-0.05*(ipar+1), Form("%-10s %.4g +- %.5g\n", f->GetParName(ipar), f->GetParameter(ipar), f->GetParError(ipar)));
       }
       gStyle->SetOptFit(0);
+
+      if(doPCA_ && fit_res == 0) { //perform PCA to get N up/down shifted templates
+        TMatrixDSym cov(fit_res->GetCovarianceMatrix());
+        const int nparams = cov.GetNrows();
+        TVectorD params(nparams);
+        for(int iparam = 0; iparam < nparams; ++iparam) params[iparam] = f->GetParameter(iparam);
+        auto shifts = Utilities::PCAShifts(cov, params);
+        auto up = shifts.first;
+        auto down = shifts.second;
+        const int colors[] = {kViolet, kOrange, kAtlantic, kYellow-3, kGreen, kBlue};
+        const int ncolors = sizeof(colors) / sizeof(*colors);
+        for(int ishift = 0; ishift < nparams; ++ishift) {
+          TF1* f_up = (TF1*) f->Clone(Form("fit_error_%s_%ieta_%i_up", tag.Data(), ibin, ishift));
+          for(int iparam = 0; iparam < nparams; ++iparam) f_up->SetParameter(iparam, up[ishift][iparam]);
+          TF1* f_down = (TF1*) f->Clone(Form("fit_error_%s_%ieta_%i_down", tag.Data(), ibin, ishift));
+          for(int iparam = 0; iparam < nparams; ++iparam) f_down->SetParameter(iparam, down[ishift][iparam]);
+          const int color = colors[ishift % ncolors];
+          f_up->SetLineColor(color);
+          f_up->SetLineStyle(kDashed);
+          f_down->SetLineColor(color);
+          f_down->SetLineStyle(kDashed);
+          f_up->Draw("same");
+          f_down->Draw("same");
+          f_up->Write();
+          f_down->Write();
+        }
+      }
     } else {
       if(!drawFit_) gStyle->SetOptFit(0);
       if(!f) cout << "!!! " << __func__ << ": Fit function not found! Eta region " << eta_region.Data() << endl;
@@ -795,8 +836,8 @@ Int_t initialize_plotter(TString base, int year) {
 
 //-------------------------------------------------------------------------------------------------------------------------------
 //Generate the plots and scale factors
-Int_t scale_factors(TString selection = "mutau", TString process = "", int set1 = 31, int set2 = 2031, int year = 2016,
-                    TString path = "nanoaods_dev") {
+Int_t scale_factors(TString selection = "mutau", TString process = "WJets", int set1 = 31, int set2 = 2031, int year = 2016,
+                    TString path = "nanoaods_jtt") {
 
   ///////////////////////
   // Initialize params //
@@ -1289,6 +1330,8 @@ Int_t scale_factors(TString selection = "mutau", TString process = "", int set1 
   /////////////////////////////////////////////
   // Additional figures / closure tests
 
+  if(skip_closure_) return 0;
+
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettautwometdeltaphi"  , "lep"  , 0               )); if(c) c->Print(Form("%sjettau_twometdeltaphi.png"   , name.Data()));
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettauonemetdeltaphi"  , "lep"  , 0               )); if(c) c->Print(Form("%sjettau_onemetdeltaphi.png"   , name.Data()));
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("onept"                 , "lep"  , 0, 2,  20., 100.)); if(c) c->Print(Form("%sonept.png"                   , name.Data()));
@@ -1298,6 +1341,10 @@ Int_t scale_factors(TString selection = "mutau", TString process = "", int set1 
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettauonemetdphiqcd0"  , "lep"  , 0, 0,   1.,  -1.)); if(c) c->Print(Form("%sjettau_onemetdphiqcd_0.png"  , name.Data()));
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettautwoetaqcd0"      , "lep"  , 0, 0,   1.,  -1.)); if(c) c->Print(Form("%sjettau_twoetaqcd_0.png"      , name.Data()));
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettautwopt"           , "lep"  , 0, 0,   1.,  -1.)); if(c) c->Print(Form("%sjettau_twopt_0.png"          , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettautwopt_1"         , "lep"  , 0, 0,   1.,  -1.)); if(c) c->Print(Form("%sjettau_twopt_1.png"          , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettautwopt_2"         , "lep"  , 0, 0,   1.,  -1.)); if(c) c->Print(Form("%sjettau_twopt_2.png"          , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettautwopt_3"         , "lep"  , 0, 0,   1.,  -1.)); if(c) c->Print(Form("%sjettau_twopt_3.png"          , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettautwopt_4"         , "lep"  , 0, 0,   1.,  -1.)); if(c) c->Print(Form("%sjettau_twopt_4.png"          , name.Data()));
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettauonept"           , "lep"  , 0, 0,   1.,  -1.)); if(c) c->Print(Form("%sjettau_onept_0.png"          , name.Data()));
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("onept11"               , "lep"  , 0, 2,  20., 100.)); if(c) c->Print(Form("%sonept11.png"                 , name.Data()));
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("oneeta"                , "lep"  , 0, 2,  -3.,   3.)); if(c) c->Print(Form("%soneeta.png"                  , name.Data()));
@@ -1315,10 +1362,14 @@ Int_t scale_factors(TString selection = "mutau", TString process = "", int set1 
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("mtlep"                 , "event", 0, 2,   0., 150.)); if(c) c->Print(Form("%smtlep.png"                   , name.Data()));
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettaumtlep0"          , "event", 0               )); if(c) c->Print(Form("%sjettau_mtlep0.png"           , name.Data()));
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettaumtlep1"          , "event", 0               )); if(c) c->Print(Form("%sjettau_mtlep1.png"           , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("lepm"                  , "event", 0, 5,  50., 170.)); if(c) c->Print(Form("%slepm.png"                    , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("lepm"                  , "event", 0, 5,  40., 170.)); if(c) c->Print(Form("%slepm.png"                    , name.Data()));
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettaulepm0"           , "event", 0               )); if(c) c->Print(Form("%sjettau_lepm0.png"            , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("lepmestimate"          , "event", 0, 5, 50.,  200.)); if(c) c->Print(Form("%slepmestimate.png"            , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("lepmestimatetwo"       , "event", 0, 5, 50.,  200.)); if(c) c->Print(Form("%slepmestimatetwo.png"         , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("lepmestimate"          , "event", 0, 5, 40.,  200.)); if(c) c->Print(Form("%slepmestimate.png"            , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("lepmestimatethree"     , "event", 0, 5, 40.,  200.)); if(c) c->Print(Form("%slepmestimatethree.png"       , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("lepmbalance"           , "event", 0, 5, 40.,  200.)); if(c) c->Print(Form("%slepmbalance.png"             , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("lepmestimateavg0"      , "event", 0, 5, 40.,  200.)); if(c) c->Print(Form("%slepmestimateavg0.png"        , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("beta0"                 , "event", 0, 3,   0.,   3.)); if(c) c->Print(Form("%sbeta0.png"                   , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("beta1"                 , "event", 0, 3,   0.,   3.)); if(c) c->Print(Form("%sbeta1.png"                   , name.Data()));
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettaudeltar0"         , "event", 0               )); if(c) c->Print(Form("%sjettau_deltar0.png"          , name.Data()));
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettaudeltar1"         , "event", 0               )); if(c) c->Print(Form("%sjettau_deltar1.png"          , name.Data()));
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("ntaus"                 , "event", 0, 1,   0.,   7.)); if(c) c->Print(Form("%sntaus.png"                   , name.Data()));

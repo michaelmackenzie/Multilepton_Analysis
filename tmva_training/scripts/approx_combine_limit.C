@@ -19,7 +19,33 @@ TString get_file_name(TString selection, int set, vector<int> years, int version
   return file;
 }
 
+TH1D* make_cdf_binning(TTree* tree) {
+  if(!tree) return nullptr;
+  //create BDT score distribution for the signal
+  TH1* htmp = new TH1D("htmp", "Temp hist", 10000, -1., 1.);
+  tree->Draw(Form("%s >> htmp", MVA_.Data()), "fulleventweightlum*(issignal > 0.5)", "goff");
+  //define the CDF transform precision
+  const int nbins = 50; //2% signal strength steps
+  vector<double> bins = {-1.};
+  double integral = 0.;
+  htmp->Scale(1./htmp->Integral());
+  for(int ibin = 1; ibin <= htmp->GetNbinsX(); ++ibin) {
+    integral += htmp->GetBinContent(ibin);
+    if(integral >= (bins.size() - 1.)/nbins) bins.push_back(htmp->GetBinLowEdge(ibin) + htmp->GetBinWidth(ibin));
+  }
+  delete htmp;
+  if(bins.size() < nbins) {
+    cout << "Error! CDF binning failed!\n";
+    return nullptr;
+  } else if(bins.size() == nbins) {
+    bins.push_back(1.);
+  }
+  TH1D* hbinning = new TH1D("hbinning", "Binning definition", nbins, &bins[0]);
+  return hbinning;
+}
+
 int add_systematic(TString sys_wt, TString sys_name, bool up, TTree* tTrain, TTree* tTest, TString tag, TH1* hBkgNom, TH1* hSigNom) {
+  if(!tTrain || !tTest) return -1;
   if(sys_wt != "" && !tTrain->GetBranch(sys_wt.Data())) {
     cout << "Undefined systematic weight " << sys_wt.Data() << endl;
     return 1;
@@ -111,15 +137,11 @@ int approx_combine_limit(TString selection = "zmutau", int version = -1,
   const int singleCat = selection.Contains("_") + selection.Contains("_h");
   selection.ReplaceAll("_h", ""); //for BXtau_h
 
-  if(singleCat) {
-    cout << "Single category not yet implemented!\n";
-    return -1;
-  }
   if(singleCat) cout << "Using single category " << selection.Data() << endl;
 
   //Retrieve the training names
   TString nHad = (singleCat != 1) ? get_file_name(selection, set, years, version) : "";
-  TString nLep = (singleCat != 2) ? get_file_name(selection+(selection.Contains("mutau") ? "_e" : "_mu"), set, years, version) : "";
+  TString nLep = (singleCat != 2) ? get_file_name(selection+((singleCat == 1) ? "" : (selection.Contains("mutau") ? "_e" : "_mu")), set, years, version) : "";
   //Get the training files
   TFile* fHad = (singleCat != 1) ? TFile::Open(("../" + nHad + "/" + nHad + ".root").Data(), "READ") : nullptr;
   TFile* fLep = (singleCat != 2) ? TFile::Open(("../" + nLep + "/" + nLep + ".root").Data(), "READ") : nullptr;
@@ -129,35 +151,65 @@ int approx_combine_limit(TString selection = "zmutau", int version = -1,
   TTree* tTrainHad = (fHad) ? (TTree*) fHad->Get(("tmva_" + nHad + "/TrainTree").Data()) : nullptr;
   TTree* tTestHad  = (fHad) ? (TTree*) fHad->Get(("tmva_" + nHad + "/TestTree" ).Data()) : nullptr;
   if(fHad && (!tTrainHad || !tTestHad)) return 2;
-  tTrainHad->SetName("TrainHad");
-  tTestHad->SetName("TestHad");
-  TTree* tTrainLep = (TTree*) fLep->Get(("tmva_" + nLep + "/TrainTree").Data());
-  TTree* tTestLep  = (TTree*) fLep->Get(("tmva_" + nLep + "/TestTree").Data());
-  if(!tTrainLep || !tTestLep) return 3;
-  tTrainLep->SetName("TrainLep");
-  tTestLep->SetName("TestLep");
+  if(fHad) tTrainHad->SetName("TrainHad");
+  if(fHad) tTestHad->SetName("TestHad");
+  TTree* tTrainLep = (fLep) ? (TTree*) fLep->Get(("tmva_" + nLep + "/TrainTree").Data()) : nullptr;
+  TTree* tTestLep  = (fLep) ? (TTree*) fLep->Get(("tmva_" + nLep + "/TestTree" ).Data()) : nullptr;
+  if(fLep && (!tTrainLep || !tTestLep)) return 3;
+  if(fLep) tTrainLep->SetName("TrainLep");
+  if(fLep) tTestLep->SetName("TestLep");
 
   cout << "Retrieved the trees, creating the background and signal PDFs!\n";
+  // if(singleCat) {
+  //   cout << "Single category not yet implemented!\n";
+  //   return -1;
+  // }
 
   const int nbins = 50;
   const double xmin(-1.), xmax(1.);
-  TH1D* hBkgTrainHad = new TH1D("hBkgTrainHad", "hBkgTrainHad", nbins, xmin, xmax);
-  TH1D* hBkgTestHad  = new TH1D("hBkgTestHad" , "hBkgTestHad" , nbins, xmin, xmax);
-  TH1D* hBkgTrainLep = new TH1D("hBkgTrainLep", "hBkgTrainLep", nbins, xmin, xmax);
-  TH1D* hBkgTestLep  = new TH1D("hBkgTestLep" , "hBkgTestLep" , nbins, xmin, xmax);
-  TH1D* hSigTrainHad = new TH1D("hSigTrainHad", "hSigTrainHad", nbins, xmin, xmax);
-  TH1D* hSigTestHad  = new TH1D("hSigTestHad" , "hSigTestHad" , nbins, xmin, xmax);
-  TH1D* hSigTrainLep = new TH1D("hSigTrainLep", "hSigTrainLep", nbins, xmin, xmax);
-  TH1D* hSigTestLep  = new TH1D("hSigTestLep" , "hSigTestLep" , nbins, xmin, xmax);
+  TH1D* hBkgTrainHad = nullptr;
+  TH1D* hBkgTestHad  = nullptr;
+  TH1D* hBkgTrainLep = nullptr;
+  TH1D* hBkgTestLep  = nullptr;
+  TH1D* hSigTrainHad = nullptr;
+  TH1D* hSigTestHad  = nullptr;
+  TH1D* hSigTrainLep = nullptr;
+  TH1D* hSigTestLep  = nullptr;
 
-  tTrainHad->Draw(Form("%s >> hBkgTrainHad", MVA.Data()), "fulleventweightlum*(issignal < 0.5)", "goff");
-  tTestHad ->Draw(Form("%s >> hBkgTestHad ", MVA.Data()), "fulleventweightlum*(issignal < 0.5)", "goff");
-  tTrainLep->Draw(Form("%s >> hBkgTrainLep", MVA.Data()), "fulleventweightlum*(issignal < 0.5)", "goff");
-  tTestLep ->Draw(Form("%s >> hBkgTestLep ", MVA.Data()), "fulleventweightlum*(issignal < 0.5)", "goff");
-  tTrainHad->Draw(Form("%s >> hSigTrainHad", MVA.Data()), "fulleventweightlum*(issignal > 0.5)", "goff");
-  tTestHad ->Draw(Form("%s >> hSigTestHad ", MVA.Data()), "fulleventweightlum*(issignal > 0.5)", "goff");
-  tTrainLep->Draw(Form("%s >> hSigTrainLep", MVA.Data()), "fulleventweightlum*(issignal > 0.5)", "goff");
-  tTestLep ->Draw(Form("%s >> hSigTestLep ", MVA.Data()), "fulleventweightlum*(issignal > 0.5)", "goff");
+  if(MVA == "BDTRT") {
+    TH1D* hbinning_had = make_cdf_binning(tTestHad); if(hbinning_had) hbinning_had->SetName("hbinning_had");
+    TH1D* hbinning_lep = make_cdf_binning(tTestLep); if(hbinning_lep) hbinning_lep->SetName("hbinning_lep");
+    hBkgTrainHad = (TH1D*) hbinning_had->Clone("hBkgTrainHad");
+    hBkgTestHad  = (TH1D*) hbinning_had->Clone("hBkgTestHad" );
+    hBkgTrainLep = (TH1D*) hbinning_lep->Clone("hBkgTrainLep");
+    hBkgTestLep  = (TH1D*) hbinning_lep->Clone("hBkgTestLep" );
+    hSigTrainHad = (TH1D*) hbinning_had->Clone("hSigTrainHad");
+    hSigTestHad  = (TH1D*) hbinning_had->Clone("hSigTestHad" );
+    hSigTrainLep = (TH1D*) hbinning_lep->Clone("hSigTrainLep");
+    hSigTestLep  = (TH1D*) hbinning_lep->Clone("hSigTestLep" );
+  } else {
+    hBkgTrainHad = new TH1D("hBkgTrainHad", "hBkgTrainHad", nbins, xmin, xmax);
+    hBkgTestHad  = new TH1D("hBkgTestHad" , "hBkgTestHad" , nbins, xmin, xmax);
+    hBkgTrainLep = new TH1D("hBkgTrainLep", "hBkgTrainLep", nbins, xmin, xmax);
+    hBkgTestLep  = new TH1D("hBkgTestLep" , "hBkgTestLep" , nbins, xmin, xmax);
+    hSigTrainHad = new TH1D("hSigTrainHad", "hSigTrainHad", nbins, xmin, xmax);
+    hSigTestHad  = new TH1D("hSigTestHad" , "hSigTestHad" , nbins, xmin, xmax);
+    hSigTrainLep = new TH1D("hSigTrainLep", "hSigTrainLep", nbins, xmin, xmax);
+    hSigTestLep  = new TH1D("hSigTestLep" , "hSigTestLep" , nbins, xmin, xmax);
+  }
+
+  if(fHad) {
+    tTrainHad->Draw(Form("%s >> hBkgTrainHad", MVA.Data()), "fulleventweightlum*(issignal < 0.5)", "goff");
+    tTestHad ->Draw(Form("%s >> hBkgTestHad ", MVA.Data()), "fulleventweightlum*(issignal < 0.5)", "goff");
+    tTrainHad->Draw(Form("%s >> hSigTrainHad", MVA.Data()), "fulleventweightlum*(issignal > 0.5)", "goff");
+    tTestHad ->Draw(Form("%s >> hSigTestHad ", MVA.Data()), "fulleventweightlum*(issignal > 0.5)", "goff");
+  }
+  if(fLep) {
+    tTrainLep->Draw(Form("%s >> hBkgTrainLep", MVA.Data()), "fulleventweightlum*(issignal < 0.5)", "goff");
+    tTestLep ->Draw(Form("%s >> hBkgTestLep ", MVA.Data()), "fulleventweightlum*(issignal < 0.5)", "goff");
+    tTrainLep->Draw(Form("%s >> hSigTrainLep", MVA.Data()), "fulleventweightlum*(issignal > 0.5)", "goff");
+    tTestLep ->Draw(Form("%s >> hSigTestLep ", MVA.Data()), "fulleventweightlum*(issignal > 0.5)", "goff");
+  }
 
   TH1D* hBkgHad = (TH1D*) hBkgTrainHad->Clone("bkgHad"); hBkgHad->Add(hBkgTestHad);
   TH1D* hBkgLep = (TH1D*) hBkgTrainLep->Clone("bkgLep"); hBkgLep->Add(hBkgTestLep);
@@ -165,8 +217,8 @@ int approx_combine_limit(TString selection = "zmutau", int version = -1,
   TH1D* hSigLep = (TH1D*) hSigTrainLep->Clone("sigLep"); hSigLep->Add(hSigTestLep);
 
   //make figures
-  TString base_name = Form("combine_%s_%s%s_%i_%s",
-                           selection.Data(), MVA.Data(),
+  TString base_name = Form("combine_%s%s_%s%s_%i_%s",
+                           selection.Data(), (singleCat == 2) ? "_h" : "", MVA.Data(),
                            (version > -1) ? Form("_v%i", version) : "",
                            set, year_string.Data());
   dir_ = "figures/" + base_name;
@@ -183,17 +235,22 @@ int approx_combine_limit(TString selection = "zmutau", int version = -1,
   hSigHad->SetLineColor(kViolet); hSigHad->SetFillColor(kViolet);
   hSigLep->SetLineColor(kGreen ); hSigLep->SetFillColor(kGreen );
   // gStyle->SetOptStat(0);
-  c_bkg->cd(1);
+  auto pad1 = c_bkg->cd(1);
   hSigHad->Scale(100.);
   hSigHad->Draw("hist"); hSigHad->SetTitle("Hadronic MVA scores");
   hBkgHad->Draw("hist same");
   hSigHad->GetYaxis()->SetRangeUser(0.1, 1.2*max(hSigHad->GetMaximum(), hBkgHad->GetMaximum()));
-  c_bkg->cd(2);
+  auto pad2 = c_bkg->cd(2);
   hSigLep->Scale(100.);
   hSigLep->Draw("hist"); hSigLep->SetTitle("Leptonic MVA scores");
   hBkgLep->Draw("hist same");
   hSigLep->GetYaxis()->SetRangeUser(0.1, 1.2*max(hSigLep->GetMaximum(), hBkgLep->GetMaximum()));
   c_bkg->SaveAs(Form("%s/nominal.png", dir_.Data()));
+  hSigHad->GetYaxis()->SetRangeUser(0.1, 5*max(hSigHad->GetMaximum(), hBkgHad->GetMaximum()));
+  hSigLep->GetYaxis()->SetRangeUser(0.1, 5*max(hSigLep->GetMaximum(), hBkgLep->GetMaximum()));
+  pad1->SetLogy();
+  pad2->SetLogy();
+  c_bkg->SaveAs(Form("%s/nominal_log.png", dir_.Data()));
   hSigHad->Scale(1./100.);
   hSigLep->Scale(1./100.);
 
@@ -213,7 +270,7 @@ int approx_combine_limit(TString selection = "zmutau", int version = -1,
   double sigxs = xs.GetCrossSection(signame.Data());
   double br_sig = sigxs/bxs;
   datacard << Form("#Using a signal branching fraction of %.3e\n\n", br_sig)
-           << "imax 2 number of channels\n"
+           << "imax * number of channels\n"
            << "jmax * number of backgrounds\n"
            << "kmax * number of nuisance parameters\n\n"
            << "-----------------------------------------------------------------------------------------------------------\n\n"
@@ -238,57 +295,53 @@ int approx_combine_limit(TString selection = "zmutau", int version = -1,
   TFile* fout = new TFile((base_name + ".root").Data(), "RECREATE");
   auto hadDir = fout->mkdir("had");
   auto lepDir = fout->mkdir("lep");
-
-  hadDir->cd();
-  hBkgHad->SetName("bkg");      hBkgHad->Write();
-  hSigHad->SetName("sig");      hSigHad->Write();
-  hBkgHad->SetName("data_obs"); hBkgHad->Write();
-
-  lepDir->cd();
-  hBkgLep->SetName("bkg");      hBkgLep->Write();
-  hSigLep->SetName("sig");      hSigLep->Write();
-  hBkgLep->SetName("data_obs"); hBkgLep->Write();
-
-
-  datacard << Form("%-13s shape         -                            1                          -                            1\n", "JetToTauNC");
-  hadDir->cd();
-  add_systematic("jettotaunonclosure", "JetToTauNCUp"  , true , tTrainHad, tTestHad, "had", hBkgHad, hSigHad);
-  add_systematic("jettotaunonclosure", "JetToTauNCDown", false, tTrainHad, tTestHad, "had", hBkgHad, hSigHad);
-
-  lepDir->cd();
-  add_systematic("", "JetToTauNCUp"  , true , tTrainLep, tTestLep, "lep", hBkgLep, hSigLep);
-  add_systematic("", "JetToTauNCDown", false, tTrainLep, tTestLep, "lep", hBkgLep, hSigLep);
-
-  if(selection.EndsWith("mutau")) {
-    datacard << Form("%-13s shape         -                            1                          -                            1\n", "TauMuID");
+  if(fHad) {
     hadDir->cd();
-    add_systematic("jetantimu", "TauMuIDUp"  , true , tTrainHad, tTestHad, "had", hBkgHad, hSigHad);
-    add_systematic("jetantimu", "TauMuIDDown", false, tTrainHad, tTestHad, "had", hBkgHad, hSigHad);
-
+    hBkgHad->SetName("bkg");      hBkgHad->Write();
+    hSigHad->SetName("sig");      hSigHad->Write();
+    hBkgHad->SetName("data_obs"); hBkgHad->Write();
+  }
+  if(fLep) {
     lepDir->cd();
-    add_systematic("", "TauMuIDUp"  , true , tTrainLep, tTestLep, "lep", hBkgLep, hSigLep);
-    add_systematic("", "TauMuIDDown", false, tTrainLep, tTestLep, "lep", hBkgLep, hSigLep);
-  } else if(selection.EndsWith("etau")) {
-    datacard << Form("%-13s shape         -                            1                          -                            1\n", "TauEleID");
-    hadDir->cd();
-    add_systematic("jetantiele", "TauEleIDUp"  , true , tTrainHad, tTestHad, "had", hBkgHad, hSigHad);
-    add_systematic("jetantiele", "TauEleIDDown", false, tTrainHad, tTestHad, "had", hBkgHad, hSigHad);
-
-    lepDir->cd();
-    add_systematic("", "TauEleIDUp"  , true , tTrainLep, tTestLep, "lep", hBkgLep, hSigLep);
-    add_systematic("", "TauEleIDDown", false, tTrainLep, tTestLep, "lep", hBkgLep, hSigLep);
+    hBkgLep->SetName("bkg");      hBkgLep->Write();
+    hSigLep->SetName("sig");      hSigLep->Write();
+    hBkgLep->SetName("data_obs"); hBkgLep->Write();
   }
 
-  datacard << Form("%-13s shape         -                            1                          -                            1\n", "QCD");
-  hadDir->cd();
-  add_systematic("", "QCDUp"  , true , tTrainHad, tTestHad, "had", hBkgHad, hSigHad);
-  add_systematic("", "QCDDown", false, tTrainHad, tTestHad, "had", hBkgHad, hSigHad);
+  if(fHad) {
+    datacard << Form("%-13s shape         -                            1                          -                            -\n", "JetToTauNC0");
+    // datacard << Form("%-13s shape         -                            1                          -                            -\n", "JetToTauNC1");
+    datacard << Form("%-13s shape         -                            1                          -                            -\n", "JetToTauNC2");
+    datacard << Form("%-13s shape         -                            1                          -                            -\n", "JetToTauNC3");
+    hadDir->cd();
+    add_systematic("jettotaunoncl0", "JetToTauNC0Up"  , true , tTrainHad, tTestHad, "had", hBkgHad, hSigHad); //WJets
+    add_systematic("jettotaunoncl0", "JetToTauNC0Down", false, tTrainHad, tTestHad, "had", hBkgHad, hSigHad);
+    add_systematic("jettotaunoncl2", "JetToTauNC2Up"  , true , tTrainHad, tTestHad, "had", hBkgHad, hSigHad); //Top
+    add_systematic("jettotaunoncl2", "JetToTauNC2Down", false, tTrainHad, tTestHad, "had", hBkgHad, hSigHad);
+    add_systematic("jettotaunoncl3", "JetToTauNC3Up"  , true , tTrainHad, tTestHad, "had", hBkgHad, hSigHad); //QCD
+    add_systematic("jettotaunoncl3", "JetToTauNC3Down", false, tTrainHad, tTestHad, "had", hBkgHad, hSigHad);
 
-  lepDir->cd();
-  add_systematic("qcdsys", "QCDUp"  , true , tTrainLep, tTestLep, "lep", hBkgLep, hSigLep);
-  add_systematic("qcdsys", "QCDDown", false, tTrainLep, tTestLep, "lep", hBkgLep, hSigLep);
+    if(selection.EndsWith("mutau")) {
+      datacard << Form("%-13s shape         -                            1                          -                            -\n", "TauMuID");
+      hadDir->cd();
+      add_systematic("jetantimusys", "TauMuIDUp"  , true , tTrainHad, tTestHad, "had", hBkgHad, hSigHad);
+      add_systematic("jetantimusys", "TauMuIDDown", false, tTrainHad, tTestHad, "had", hBkgHad, hSigHad);
+    } else if(selection.EndsWith("etau")) {
+      datacard << Form("%-13s shape         -                            1                          -                            -\n", "TauEleID");
+      hadDir->cd();
+      add_systematic("jetantielesys", "TauEleIDUp"  , true , tTrainHad, tTestHad, "had", hBkgHad, hSigHad);
+      add_systematic("jetantielesys", "TauEleIDDown", false, tTrainHad, tTestHad, "had", hBkgHad, hSigHad);
+    }
+  }
 
-  datacard << Form("%-13s shape         -                            1                          -                            1\n", "BTag");
+  if(fLep) {
+    datacard << Form("%-13s shape         -                            -                          -                            1\n", "QCD");
+    lepDir->cd();
+    add_systematic("qcdstat", "QCDUp"  , true , tTrainLep, tTestLep, "lep", hBkgLep, hSigLep);
+    add_systematic("qcdstat", "QCDDown", false, tTrainLep, tTestLep, "lep", hBkgLep, hSigLep);
+  }
+
+  datacard << Form("%-13s shape         1                            1                          1                            1\n", "BTag");
   hadDir->cd();
   add_systematic("btagsys", "BTagUp"  , true , tTrainHad, tTestHad, "had", hBkgHad, hSigHad);
   add_systematic("btagsys", "BTagDown", false, tTrainHad, tTestHad, "had", hBkgHad, hSigHad);
@@ -297,15 +350,15 @@ int approx_combine_limit(TString selection = "zmutau", int version = -1,
   add_systematic("btagsys", "BTagUp"  , true , tTrainLep, tTestLep, "lep", hBkgLep, hSigLep);
   add_systematic("btagsys", "BTagDown", false, tTrainLep, tTestLep, "lep", hBkgLep, hSigLep);
 
-  //FIXME: Ignoring ZpT effect on background, since will use embedding eventually
-  datacard << Form("%-13s shape         1                            -                          1                            -\n", "ZpT");
-  hadDir->cd();
-  add_systematic("zptup"  , "ZpTUp"  , true , tTrainHad, tTestHad, "had", hBkgHad, hSigHad);
-  add_systematic("zptdown", "ZpTDown", true , tTrainHad, tTestHad, "had", hBkgHad, hSigHad);
+  // //FIXME: Ignoring ZpT effect on background, since will use embedding eventually
+  // datacard << Form("%-13s shape         1                            -                          1                            -\n", "ZpT");
+  // hadDir->cd();
+  // add_systematic("zptsys", "ZpTUp"  , true , tTrainHad, tTestHad, "had", hBkgHad, hSigHad);
+  // add_systematic("zptsys", "ZpTDown", false, tTrainHad, tTestHad, "had", hBkgHad, hSigHad);
 
-  lepDir->cd();
-  add_systematic("zptup"  , "ZpTUp"  , true , tTrainLep, tTestLep, "lep", hBkgLep, hSigLep);
-  add_systematic("zptdown", "ZpTDown", true , tTrainLep, tTestLep, "lep", hBkgLep, hSigLep);
+  // lepDir->cd();
+  // add_systematic("zptsys", "ZpTUp"  , true , tTrainLep, tTestLep, "lep", hBkgLep, hSigLep);
+  // add_systematic("zptsys", "ZpTDown", false, tTrainLep, tTestLep, "lep", hBkgLep, hSigLep);
 
   fout->Write();
   fout->Close();
@@ -317,23 +370,27 @@ int approx_combine_limit(TString selection = "zmutau", int version = -1,
     cout << "Passing datacard to Combine, performing estimates using Asimov a priori fits\nFull fit:\n";
     TString base_command = Form("combine -d %s -t -1 --noFitAsimov --run blind --rMin -5 --rMax 5 --rRelAcc 0.0001 --rAbsAcc 0.001",
                                 (base_name + ".txt").Data());
-    gSystem->Exec(Form("%s 2>&1 | grep \"Expected 50\"", base_command.Data()));
+    gSystem->Exec(Form("%s 2>&1 | grep \"Expected 50\\|Failed to convert\"", base_command.Data()));
     cout << "No sytematics:\n";
     gSystem->Exec(Form("%s 2>&1 --freezeParameters allConstrainedNuisances | grep \"Expected 50\"", base_command.Data()));
     cout << "No ZpT sytematic:\n";
     gSystem->Exec(Form("%s 2>&1 --freezeParameters ZpT | grep \"Expected 50\"", base_command.Data()));
     cout << "No bTag sytematic:\n";
     gSystem->Exec(Form("%s 2>&1 --freezeParameters BTag | grep \"Expected 50\"", base_command.Data()));
-    cout << "No QCD sytematic:\n";
-    gSystem->Exec(Form("%s 2>&1 --freezeParameters QCD | grep \"Expected 50\"", base_command.Data()));
-    cout << "No j-->tau sytematic:\n";
-    gSystem->Exec(Form("%s 2>&1 --freezeParameters JetToTauNC | grep \"Expected 50\"", base_command.Data()));
-    if(selection.EndsWith("mutau")) {
-      cout << "No mu-->tau sytematic:\n";
-      gSystem->Exec(Form("%s 2>&1 --freezeParameters TauMuID  | grep \"Expected 50\"", base_command.Data()));
-    } else if(selection.EndsWith("etau")) {
-      cout << "No e-->tau sytematic:\n";
-      gSystem->Exec(Form("%s 2>&1 --freezeParameters TauEleID  | grep \"Expected 50\"", base_command.Data()));
+    if(fLep) {
+      cout << "No QCD sytematic:\n";
+      gSystem->Exec(Form("%s 2>&1 --freezeParameters QCD | grep \"Expected 50\"", base_command.Data()));
+    }
+    if(fHad) {
+      cout << "No j-->tau sytematic:\n";
+      gSystem->Exec(Form("%s 2>&1 --freezeParameters JetToTauNC0,JetToTauNC2,JetToTauNC3 | grep \"Expected 50\"", base_command.Data()));
+      if(selection.EndsWith("mutau")) {
+        cout << "No mu-->tau sytematic:\n";
+        gSystem->Exec(Form("%s 2>&1 --freezeParameters TauMuID  | grep \"Expected 50\"", base_command.Data()));
+      } else if(selection.EndsWith("etau")) {
+        cout << "No e-->tau sytematic:\n";
+        gSystem->Exec(Form("%s 2>&1 --freezeParameters TauEleID  | grep \"Expected 50\"", base_command.Data()));
+      }
     }
   }
   return 0;

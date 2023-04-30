@@ -8,7 +8,7 @@ using namespace CLFV;
 //        + 10,000 * (use 2D pT vs delta R corrections)
 //        + 1,000 * (use DM binned pT corrections) + 100 * (1*(use scale factor fits) + 2*(use fitter errors))
 //        + 10 * (interpolate bins) + 1 * (use MC Fits)
-JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TString process, const int set, const int Mode, const int verbose)
+JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TString process, const int set, const int Mode, const int only_year, const int verbose)
   : name_(name), Mode_(Mode), verbose_(verbose) {
 
   TFile* f = 0;
@@ -56,6 +56,9 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
               << std::endl
               << " scale factor selection = " << selection.Data()
               << " set = " << set << std::endl;
+    if(only_year > 0) {
+      std::cout << " --> only retrieving for year " << only_year << std::endl;
+    }
   }
 
   const TString cmssw = gSystem->Getenv("CMSSW_BASE");
@@ -63,12 +66,15 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
   if(process != "") process += "_";
 
   for(int year : years) {
+    if(only_year > 0 && year != only_year) continue;
     if(verbose_ > 1) printf("%s: Initializing %i scale factors\n", __func__, year);
     //get the jet --> tau scale factors measured
     f = TFile::Open(Form("%s/jet_to_tau_%s_%s%i_%i.root", path.Data(), selection.Data(), process.Data(), set, year), "READ");
     if(f) {
       for(int dm = 0; dm < 4; ++dm) {
+        //////////////////////////////////////
         //Get Data histogram
+
         histsData_[year][dm] = (TH2*) f->Get(Form("h%s_eff_%idm", (useMCFits_) ? "mc" : "data", dm));
         int netabins(0);
         if(!histsData_[year][dm]) {
@@ -80,10 +86,15 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
           histsData_[year][dm]->SetDirectory(0);
           netabins = histsData_[year][dm]->GetNbinsY();
         }
+
+        //////////////////////////////////////
         //Get Data fits and errors
+
         for(int ieta = 0; ieta < netabins; ++ieta) {
           const char* fname   = (useMCFits_) ? Form("fit_mc_func_%idm_%ieta", dm, ieta) : Form("fit_func_%idm_%ieta", dm, ieta);
           const char* errname = (useMCFits_) ? Form("fit_1s_error_mc_%idm_%ieta", dm, ieta) : Form("fit_1s_error_%idm_%ieta", dm, ieta);
+
+          //check for the fit function
           funcsData_[year][dm][ieta] = (TF1*) f->Get(fname);
           if(!funcsData_[year][dm][ieta]) {
             if(useFits_)
@@ -96,6 +107,7 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
             funcsData_[year][dm][ieta]->AddToGlobalList();
           }
 
+          //check for the fit function
           errorsData_[year][dm][ieta] = (TH1*) f->Get(errname);
           if(!errorsData_[year][dm][ieta]) {
             if(useFitterErrors_)
@@ -107,6 +119,30 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
                                                       selection.Data(), year));
             errorsData_[year][dm][ieta]->SetDirectory(0);
           }
+
+          //check for alternate fit functions
+          int isys = 0;
+          while(true) { //keep checking for shapes until none are found
+            const char* altname = (useMCFits_) ? Form("fit_error_mc_%idm_%ieta_%i", dm, ieta, isys) : Form("fit_error_%idm_%ieta_%i", dm, ieta, isys);
+            TF1* up = (TF1*) f->Get(Form("%s_up", altname));
+            TF1* down = (TF1*) f->Get(Form("%s_down", altname));
+            if(!up || !down) {
+              if(verbose_) printf("%s: Didn't find alternate function shapes with name %s in %i\n", __func__, altname, year);
+              break;
+            } else if(verbose_) {
+              printf("%s: Adding alternate function shapes with name %s in %i\n", __func__, altname, year);
+            }
+            up->SetName(Form("%s-%s_%s_%i", name_.Data(), up->GetName(),
+                             selection.Data(), year));
+            up->AddToGlobalList();
+            down->SetName(Form("%s-%s_%s_%i", name_.Data(), down->GetName(),
+                             selection.Data(), year));
+            down->AddToGlobalList();
+            altFuncsUp_[year][dm][ieta].push_back(up);
+            altFuncsDown_[year][dm][ieta].push_back(down);
+            ++isys;
+          }
+
         } //end fit function retrieval loop
       } //end year loop
       f->Close();
@@ -343,15 +379,30 @@ JetToTauWeight::~JetToTauWeight() {
       for(std::pair<int, TH1*> val_3 : val_2.second) {if(val_3.second) delete val_3.second;}
     }
   }
+  for(std::pair<int, std::map<int, std::map<int, std::vector<TF1*>>>> val_1 : altFuncsUp_) {
+    for(std::pair<int, std::map<int, std::vector<TF1*>>> val_2 : val_1.second) {
+      for(std::pair<int, std::vector<TF1*>> val_3 : val_2.second) {
+        for(TF1* val_4 : val_3.second) {if(val_4) delete val_4;}
+      }
+    }
+  }
+  for(std::pair<int, std::map<int, std::map<int, std::vector<TF1*>>>> val_1 : altFuncsDown_) {
+    for(std::pair<int, std::map<int, std::vector<TF1*>>> val_2 : val_1.second) {
+      for(std::pair<int, std::vector<TF1*>> val_3 : val_2.second) {
+        for(TF1* val_4 : val_3.second) {if(val_4) delete val_4;}
+      }
+    }
+  }
 }
 
 //-------------------------------------------------------------------------------------------------------------------------------
 // Get factor to apply to data
 float JetToTauWeight::GetDataFactor(int DM, int year, float pt, float eta,
                                     float pt_lead, float deltar, float metdphi, float lepm, float mtlep, float oneiso,
-                                    float& up, float& down,
+                                    float* up, float* down, int& nsys,
                                     float& pt_wt, float& pt_up, float& pt_down, float& bias) {
   pt_wt = 1.f; pt_up = 1.f; pt_down = 1.f; bias = 1.f;
+  up[0] = 1.f; down[0] = 1.f; nsys = 1;
   TH2* h = 0;
   //get correct decay mode histogram
   int idm = 0;
@@ -381,13 +432,11 @@ float JetToTauWeight::GetDataFactor(int DM, int year, float pt, float eta,
   if(!h) {
     std::cout << "JetToTauWeight::" << __func__ << ": " << name_.Data() << " Undefined histogram for DM = "
               << DM << " year = " << year << std::endl;
-    up = 1.f; down = 1.f;
     return 1.f;
   }
   if(!hCorrection && doPtCorrections_) {
     std::cout << "JetToTauWeight::" << __func__ << ": " << name_.Data() << " Undefined correction histogram for DM = "
               << DM << " year = " << year << std::endl;
-    up = 1.f; down = 1.f;
     return 1.f;
   }
   //get the fit function
@@ -398,7 +447,6 @@ float JetToTauWeight::GetDataFactor(int DM, int year, float pt, float eta,
   if(!func && useFits_) {
     std::cout << "JetToTauWeight::" << __func__ << ": " << name_.Data() << " Undefined function for DM = "
               << DM << " eta = " << eta << " year = " << year << std::endl;
-    up = 1.f; down = 1.f;
     return 1.f;
   }
 
@@ -407,11 +455,24 @@ float JetToTauWeight::GetDataFactor(int DM, int year, float pt, float eta,
   if(!hFitterErrors && useFitterErrors_) {
     std::cout << "JetToTauWeight::" << __func__ << ": " << name_.Data() << " Undefined fitter errors for DM = "
               << DM << " eta = " << eta << " year = " << year << std::endl;
-    up = 1.f; down = 1.f;
     return 1.f;
   }
 
-  return GetFactor(h, func, hCorrection, hFitterErrors, pt, eta, DM, pt_lead, deltar, metdphi, lepm, mtlep, oneiso,
+  std::vector<TF1*> func_up   = altFuncsUp_[year][idm][h->GetYaxis()->FindBin(eta)-1];
+  std::vector<TF1*> func_down = altFuncsDown_[year][idm][h->GetYaxis()->FindBin(eta)-1];
+  if(func_up.size() == 0 || func_down.size() == 0) {
+    if(useFits_) {
+      std::cout << "JetToTauWeight::" << __func__ << ": " << name_.Data() << " Undefined alternate fits for DM = "
+                << DM << " eta = " << eta << " year = " << year << std::endl;
+    }
+  } else if(func_up.size() != func_down.size()) {
+      std::cout << "JetToTauWeight::" << __func__ << ": " << name_.Data() << " Alternate fit up/down vector sizes differ for DM = "
+                << DM << " eta = " << eta << " year = " << year << std::endl;
+      return 1.f;
+  }
+  nsys = func_up.size();
+
+  return GetFactor(h, func, hCorrection, hFitterErrors, func_up, func_down, pt, eta, DM, pt_lead, deltar, metdphi, lepm, mtlep, oneiso,
                    year, up, down, pt_wt, pt_up, pt_down, bias);
 }
 
@@ -422,6 +483,29 @@ float JetToTauWeight::GetDataFactor(int DM, int year, float pt, float eta, float
   float weight = GetDataFactor(DM, year, pt, eta, pt_lead, deltar, metdphi, lepm, mtlep, oneiso,
                                up, down, pt_wt, pt_up, pt_down, bias);
   weight *= pt_wt*bias;
+  return weight;
+}
+
+//-------------------------------------------------------------------------------------------------------------------------------
+//Get weight with flattened systematics and corrections carried
+float JetToTauWeight::GetDataFactor(int DM, int year, float pt, float eta, float pt_lead, float deltar, float metdphi, float lepm, float mtlep, float oneiso,
+                                    float& up, float& down, float& pt_wt, float& pt_up, float& pt_down, float& bias) {
+  int nsys;
+  float up_arr[10], down_arr[10];
+  float weight = GetDataFactor(DM, year, pt, eta, pt_lead, deltar, metdphi, lepm, mtlep, oneiso,
+                               up_arr, down_arr, nsys, pt_wt, pt_up, pt_down, bias);
+  up = 0.f;
+  down = 0.f;
+  //add each component in quadrature
+  for(int isys = 0; isys < nsys; ++isys) {
+    up   += std::pow(weight - up_arr  [isys], 2);
+    down += std::pow(weight - down_arr[isys], 2);
+  }
+  up   = weight + std::sqrt(up  );
+  down = weight - std::sqrt(down);
+  up   = std::min(3.f, std::max(1.e-5f, up  ));
+  down = std::min(3.f, std::max(1.e-5f, down));
+  if(verbose_ > 3) printf(" --> total stat: up = %.4f; down = %.4f\n", up, down);
   return weight;
 }
 
@@ -437,12 +521,13 @@ float JetToTauWeight::GetDataFactor(int DM, int year, float pt, float eta, float
 
 //-------------------------------------------------------------------------------------------------------------------------------
 // interal function to calculate the transfer factor
-float JetToTauWeight::GetFactor(TH2* h, TF1* func, TH1* hCorrection, TH1* hFitterErrors,
+float JetToTauWeight::GetFactor(TH2* h, TF1* func, TH1* hCorrection, TH1* hFitterErrors, std::vector<TF1*> alt_up, std::vector<TF1*> alt_down,
                                 float pt, float eta, int DM,
                                 float pt_lead, float deltar, float metdphi, float lepm, float mtlep, float oneiso,
                                 int year,
-                                float& up, float& down,
+                                float* up, float* down,
                                 float& pt_wt, float& pt_up, float& pt_down, float& bias) {
+  const int nsys = std::max(1, (int) alt_up.size());
   //ensure within kinematic regions
   eta = std::fabs(eta);
   if(pt > 199.) pt = 199.;
@@ -465,25 +550,30 @@ float JetToTauWeight::GetFactor(TH2* h, TF1* func, TH1* hCorrection, TH1* hFitte
 
   if(useFits_) {
     eff = func->Eval(pt);
-    if(useFitterErrors_) {
+    if(useFitterErrors_ && (alt_up.size() != 0 && alt_down.size() != 0)) {
+      for(int isys = 0; isys < nsys; ++isys) {
+        up  [isys] = alt_up  [isys]->Eval(pt);
+        down[isys] = alt_down[isys]->Eval(pt);
+      }
+    } else if(useFitterErrors_) {
       int bin_fitter = std::min(hFitterErrors->FindBin(pt), hFitterErrors->GetNbinsX());
-      up   = hFitterErrors->GetBinContent(bin_fitter) + hFitterErrors->GetBinError(bin_fitter);
-      down = hFitterErrors->GetBinContent(bin_fitter) - hFitterErrors->GetBinError(bin_fitter);
+      up  [0] = hFitterErrors->GetBinContent(bin_fitter) + hFitterErrors->GetBinError(bin_fitter);
+      down[0] = hFitterErrors->GetBinContent(bin_fitter) - hFitterErrors->GetBinError(bin_fitter);
+      //ensure up/down encloses the fit value
+      up  [0] = std::max(up  [0], eff);
+      down[0] = std::min(down[0], eff);
     } else {
       double* params = new double[10];
       func->GetParameters(params);
       for(int i = 0; i < func->GetNpar(); ++i)
         func->SetParameter(i, func->GetParameter(i)+func->GetParError(i));
-      up = func->Eval(pt);
+      up[0] = func->Eval(pt);
       for(int i = 0; i < func->GetNpar(); ++i)
         func->SetParameter(i, func->GetParameter(i)-func->GetParError(i));
-      down = func->Eval(pt);
+      down[0] = func->Eval(pt);
       func->SetParameters(params);
       delete[] params;
     }
-    //ensure up/down encloses the fit value
-    up   = std::max(up  , eff);
-    down = std::min(down, eff);
   } else { //use the binned values
     //get bin value
     const int binx = h->GetXaxis()->FindBin(pt);
@@ -504,8 +594,8 @@ float JetToTauWeight::GetFactor(TH2* h, TF1* func, TH1* hCorrection, TH1* hFitte
       eff = eff_bin + (eff_off - eff_bin)*(pt - pt_bin)/(pt_off - pt_bin);
     } else {
       eff  = eff_bin;
-      up   = eff + err_bin;
-      down = eff - err_bin;
+      up[0]   = eff + err_bin;
+      down[0] = eff - err_bin;
     }
   }
 
@@ -633,28 +723,33 @@ float JetToTauWeight::GetFactor(TH2* h, TF1* func, TH1* hCorrection, TH1* hFitte
   // Convert efficiency into scale factor
   ///////////////////////////////////////////////////////////
 
-  const static float min_eff = 0.000001;
-  const static float max_eff = 0.75    ; //force weight <= 0.75 / (1 - 0.75) = 3
+  const static float min_eff = 1.e-5;
+  const static float max_eff = 0.75 ; //force weight <= 0.75 / (1 - 0.75) = 3
   //check if allowed value
   if(eff < min_eff) {
-    std::cout << "JetToTauWeight::" << __func__ << ": " << name_.Data() << " Warning! Eff < " << min_eff << " = " << eff
-              << " pt = " << pt << " eta = " << eta
-              << " dm = " << DM << " year = " << year << std::endl;
+    if(verbose_) std::cout << "JetToTauWeight::" << __func__ << ": " << name_.Data() << " Warning! Eff < " << min_eff << " = " << eff
+                           << " pt = " << pt << " eta = " << eta
+                           << " dm = " << DM << " year = " << year << std::endl;
     eff = min_eff;
   } else if(eff > max_eff) {
-    std::cout << "JetToTauWeight::" << __func__ << ": " << name_.Data() << " Warning! Eff > " << max_eff << " = " << eff
-              << " pt = " << pt << " eta = " << eta
-              << " dm = " << DM << " year = " << year << std::endl;
+    if(verbose_) std::cout << "JetToTauWeight::" << __func__ << ": " << name_.Data() << " Warning! Eff > " << max_eff << " = " << eff
+                           << " pt = " << pt << " eta = " << eta
+                           << " dm = " << DM << " year = " << year << std::endl;
     eff = max_eff;
   }
   //write as scale factor instead of efficiency
   //eff_0 = a / (a+b) = 1 / (1 + 1/eff_p) = eff_p / (eff_p + 1)
   // --> eff_p = eff_0 / (1 - eff_0)
   eff = eff / (1.f - eff);
-  up   = std::max(min_eff, std::min(max_eff, up  )); //don't need to warn about these
-  down = std::max(min_eff, std::min(max_eff, down));
-  up   = up   / (1.f - up  );
-  down = down / (1.f - down);
+  if(verbose_ > 3) printf("JetToTauWeight::%s: %s\n weight = %.4f, non-closure correction = %.4f, bias correction = %.4f\n",
+                          __func__, name_.Data(), eff, pt_wt, bias);
+  for(int isys = 0; isys < nsys; ++isys) {
+    up  [isys] = std::max(min_eff, std::min(max_eff, up  [isys])); //don't need to warn about these
+    down[isys] = std::max(min_eff, std::min(max_eff, down[isys]));
+    up  [isys] = up  [isys] / (1.f - up  [isys]);
+    down[isys] = down[isys] / (1.f - down[isys]);
+    if(verbose_ > 3) printf(" stat sys %2i: up = %.4f; down = %.4f\n", isys, up[isys], down[isys]);
+  }
 
   //calculate pt correction uncertainties
   //Set systematic to be the correction size

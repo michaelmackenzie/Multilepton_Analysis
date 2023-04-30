@@ -49,8 +49,8 @@ void get_datacards(std::vector<dcard>& cards, TString selection, int forStudies 
   TString vb    = (forStudies == 1) ? "WJets" : "Other VB";
 
   const int top_c = kYellow - 7;
-  const int dy_ll_c = (forStudies) ? kRed - 7 : kRed - 2;
-  const int dy_tt_c = (forStudies) ? kRed - 7 : kRed - 7;
+  const int dy_ll_c = (forStudies == 1) ? kRed - 7 : kRed - 2;
+  const int dy_tt_c = (forStudies == 1) ? kRed - 7 : kRed - 7;
   const int wj_c = kViolet - 9;
   const int vb_c = (vb == wj) ? wj_c : kMagenta - 9;
 
@@ -58,38 +58,36 @@ void get_datacards(std::vector<dcard>& cards, TString selection, int forStudies 
     bool combineZ = !oneDY && !useUL_ && year != 2018 && (!useAMC_ || year == 2017);
     TString DYName = (useAMC_ && year != 2017) ? "DY50-amc" : "DY50";
     //card constructor:    filepath,              name,                  label,      isData,                   xsec               ,  isSignal,year,  color,   combine extension samples
-    cards.push_back(dcard("SingleAntiToptW"    , "SingleAntiToptW"    , top.Data()  , false, xs.GetCrossSection("SingleAntiToptW"    ), false, year, top_c));
-    cards.push_back(dcard("SingleToptW"        , "SingleToptW"        , top.Data()  , false, xs.GetCrossSection("SingleToptW"        ), false, year, top_c));
+    cards.push_back(dcard("SingleAntiToptW"      , "SingleAntiToptW"      , top.Data()  , false, xs.GetCrossSection("SingleAntiToptW"      ), false, year, top_c));
+    cards.push_back(dcard("SingleToptW"          , "SingleToptW"          , top.Data()  , false, xs.GetCrossSection("SingleToptW"          ), false, year, top_c));
     cards.push_back(dcard("SingleAntiToptChannel", "SingleAntiToptChannel", top.Data()  , false, xs.GetCrossSection("SingleAntiToptChannel"), false, year, top_c));
     cards.push_back(dcard("SingleToptChannel"    , "SingleToptChannel"    , top.Data()  , false, xs.GetCrossSection("SingleToptChannel"    ), false, year, top_c));
-    cards.push_back(dcard("ttbarToHadronic"    , "ttbarToHadronic"    , top.Data()  , false, xs.GetCrossSection("ttbarToHadronic")    , false, year, top_c));
-    cards.push_back(dcard("ttbarToSemiLeptonic", "ttbarToSemiLeptonic", top.Data()  , false, xs.GetCrossSection("ttbarToSemiLeptonic"), false, year, top_c));
-    cards.push_back(dcard("ttbarlnu"           , "ttbarlnu"           , top.Data()  , false, xs.GetCrossSection("ttbarlnu"           ), false, year, top_c));
+    cards.push_back(dcard("ttbarToHadronic"      , "ttbarToHadronic"      , top.Data()  , false, xs.GetCrossSection("ttbarToHadronic"      ), false, year, top_c));
+    cards.push_back(dcard("ttbarToSemiLeptonic"  , "ttbarToSemiLeptonic"  , top.Data()  , false, xs.GetCrossSection("ttbarToSemiLeptonic"  ), false, year, top_c));
+    cards.push_back(dcard("ttbarlnu"             , "ttbarlnu"             , top.Data()  , false, xs.GetCrossSection("ttbarlnu"             ), false, year, top_c));
     if(useUL_ == 0)
-    cards.push_back(dcard("WWW"                , "WWW"                , vb.Data()   , false, xs.GetCrossSection("WWW"                ), false, year, vb_c));
-    cards.push_back(dcard("WZ"                 , "WZ"                 , vb.Data()   , false, xs.GetCrossSection("WZ"                 ), false, year, vb_c));
-    cards.push_back(dcard("ZZ"                 , "ZZ"                 , vb.Data()   , false, xs.GetCrossSection("ZZ"                 ), false, year, vb_c));
-    cards.push_back(dcard("WW"                 , "WW"                 , vb.Data()   , false, xs.GetCrossSection("WW"                 ), false, year, vb_c));
-    cards.push_back(dcard("EWKWplus"           , "EWKWplus"           , vb.Data()   , false, xs.GetCrossSection("EWKWplus"           ), false, year, vb_c));
-    cards.push_back(dcard("EWKWminus"          , "EWKWminus"          , vb.Data()   , false, xs.GetCrossSection("EWKWminus"          ), false, year, vb_c));
-    cards.push_back(dcard("EWKZ-M50"           , "EWKZ-M50"           , vb.Data()   , false, xs.GetCrossSection("EWKZ-M50"           ), false, year, vb_c));
-    if(useWG_) cards.push_back(dcard("WGamma"             , "WGamma"             , wj.Data()   , false, xs.GetCrossSection("WGamma"             ), false, year, wj_c));
+    cards.push_back(dcard("WWW"                  , "WWW"                  , vb.Data()   , false, xs.GetCrossSection("WWW"                  ), false, year, vb_c));
+    cards.push_back(dcard("WZ"                   , "WZ"                   , vb.Data()   , false, xs.GetCrossSection("WZ"                   ), false, year, vb_c));
+    cards.push_back(dcard("ZZ"                   , "ZZ"                   , vb.Data()   , false, xs.GetCrossSection("ZZ"                   ), false, year, vb_c));
+    cards.push_back(dcard("WW"                   , "WW"                   , vb.Data()   , false, xs.GetCrossSection("WW"                   ), false, year, vb_c));
+    cards.push_back(dcard("EWKWplus"             , "EWKWplus"             , vb.Data()   , false, xs.GetCrossSection("EWKWplus"             ), false, year, vb_c));
+    cards.push_back(dcard("EWKWminus"            , "EWKWminus"            , vb.Data()   , false, xs.GetCrossSection("EWKWminus"            ), false, year, vb_c));
+    cards.push_back(dcard("EWKZ-M50"             , "EWKZ-M50"             , vb.Data()   , false, xs.GetCrossSection("EWKZ-M50"             ), false, year, vb_c));
+    if(useWG_) cards.push_back(dcard("WGamma"    , "WGamma"               , wj.Data()   , false, xs.GetCrossSection("WGamma"               ), false, year, wj_c));
     //if splitting W+Jets into jet-binned samples, use W+Jets inclusive 0-j for 0-j, then jet-binned samples for the rest
     if(splitWJ_) {
-      cards.push_back(dcard("Wlnu-0"           , "Wlnu-0"             , wj.Data()   , false, xs.GetCrossSection("Wlnu"               ), false, year, wj_c, !useUL_&&year!=2018));
+      cards.push_back(dcard("Wlnu-0"             , "Wlnu-0"               , wj.Data()   , false, xs.GetCrossSection("Wlnu"                 ), false, year, wj_c, !useUL_&&year!=2018));
       if(year != 2018 && !useUL_){
-        cards.push_back(dcard("Wlnu-ext-0"     , "Wlnu-ext-0"         , wj.Data()   , false, xs.GetCrossSection("Wlnu"               ), false, year, wj_c, true));
+        cards.push_back(dcard("Wlnu-ext-0"       , "Wlnu-ext-0"           , wj.Data()   , false, xs.GetCrossSection("Wlnu"                 ), false, year, wj_c, true));
       }
-      cards.push_back(dcard("Wlnu-1J"           , "Wlnu-1J"           , wj.Data()   , false, xs.GetCrossSection("Wlnu-1J"      , year), false, year, wj_c, false));
-      cards.push_back(dcard("Wlnu-2J"           , "Wlnu-2J"           , wj.Data()   , false, xs.GetCrossSection("Wlnu-2J"      , year), false, year, wj_c, false));
-      cards.push_back(dcard("Wlnu-3J"           , "Wlnu-3J"           , wj.Data()   , false, xs.GetCrossSection("Wlnu-3J"      , year), false, year, wj_c, false));
-      if(year != 2017) {
-        cards.push_back(dcard("Wlnu-4J"         , "Wlnu-4J"           , wj.Data()   , false, xs.GetCrossSection("Wlnu-4J"      , year), false, year, wj_c, false));
-      }
+      cards.push_back(dcard("Wlnu-1J"            , "Wlnu-1J"              , wj.Data()   , false, xs.GetCrossSection("Wlnu-1J"        , year), false, year, wj_c, false));
+      cards.push_back(dcard("Wlnu-2J"            , "Wlnu-2J"              , wj.Data()   , false, xs.GetCrossSection("Wlnu-2J"        , year), false, year, wj_c, false));
+      cards.push_back(dcard("Wlnu-3J"            , "Wlnu-3J"              , wj.Data()   , false, xs.GetCrossSection("Wlnu-3J"        , year), false, year, wj_c, false));
+      cards.push_back(dcard("Wlnu-4J"            , "Wlnu-4J"              , wj.Data()   , false, xs.GetCrossSection("Wlnu-4J"        , year), false, year, wj_c, false));
     } else {
-      cards.push_back(dcard("Wlnu"              , "Wlnu"              , wj.Data()   , false, xs.GetCrossSection("Wlnu"               ), false, year, wj_c, !useUL_&&year!=2018));
+      cards.push_back(dcard("Wlnu"               , "Wlnu"                 , wj.Data()   , false, xs.GetCrossSection("Wlnu"                 ), false, year, wj_c, !useUL_&&year!=2018));
       if(year != 2018 && !useUL_){
-        cards.push_back(dcard("Wlnu-ext"        , "Wlnu-ext"          , wj.Data()   , false, xs.GetCrossSection("Wlnu"               ), false, year, wj_c, true));
+        cards.push_back(dcard("Wlnu-ext"        , "Wlnu-ext"              , wj.Data()   , false, xs.GetCrossSection("Wlnu"                 ), false, year, wj_c, true));
       }
     }
     if(splitDY_ > 0 || (useEmbed_ == 2 || (useEmbed_ && selection != "ee" && selection != "mumu"))) {
@@ -164,7 +162,7 @@ void get_datacards(std::vector<dcard>& cards, TString selection, int forStudies 
         cards.push_back(                  dcard("ZMuTau"           , "ZMuTau"           , "Z->#mu#tau (10^{-3})", false, 1.e-3*zxs, true, year, kBlue   ));
         if(includeHiggs_) cards.push_back(dcard("HMuTau"           , "HMuTau"           , "H->#mu#tau (10^{-1})", false, 1.e-1*hxs, true, year, kGreen-1));
       }
-    } else if(forStudies == 2) { //include signal in a study
+    } else if(forStudies == 2) { //include signal in a study at the nominal cross section
       if(selection == "emu") {
         cards.push_back(                  dcard("ZEMu"             , "ZEMu"             , "Z->e#mu"   , false, xs.GetCrossSection("ZEMu"  ), true, year, kBlue   ));
         if(includeHiggs_) cards.push_back(dcard("HEMu"             , "HEMu"             , "H->e#mu"   , false, xs.GetCrossSection("HEMu"  ), true, year, kGreen-1));

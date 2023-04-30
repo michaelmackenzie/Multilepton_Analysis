@@ -165,9 +165,9 @@ namespace CLFV {
     Double_t lum_txt_x_single_ = 0.63;
     Double_t lum_txt_y_single_ = 0.975;
     //CMS prelim drawing
-    Double_t cms_txt_x_ = 0.23;
+    Double_t cms_txt_x_ = 0.28;
     Double_t cms_txt_y_ = 0.97;
-    Double_t cms_txt_x_single_ = 0.24; //text location without data/mc split pad
+    Double_t cms_txt_x_single_ = 0.28; //text location without data/mc split pad
     Double_t cms_txt_y_single_ = 0.97;
     Double_t cms_txt_size_ = 0.06;
     Double_t cms_txt_size_single_ = 0.045; //text size without data/mc split pad

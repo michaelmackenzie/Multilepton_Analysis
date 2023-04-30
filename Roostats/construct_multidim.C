@@ -12,7 +12,7 @@ bool use_fast_bernstein_ = true;
 //Get the chi-squared using a by-hand calculation
 double get_manual_subrange_chisquare(RooRealVar& obs, RooAbsPdf* pdf, RooDataHist& data, const char* range = nullptr,
                                      const char* norm_range = nullptr, bool norm_skip = true, int* nbins = nullptr) {
-  TH1* htmp_pdf  = pdf->createHistogram("htmp_chisq_pdf", obs);
+  TH1* htmp_pdf  = pdf->createHistogram("htmp_chisq_pdf" , obs);
   TH1* htmp_data = data.createHistogram("htmp_chisq_data", obs);
   if(htmp_pdf->GetNbinsX() != htmp_data->GetNbinsX()) {
     cout << __func__ << ": PDF and data don't have the same number of bins ("
@@ -137,24 +137,24 @@ double get_chi_squared(RooRealVar& obs, RooAbsPdf* pdf, RooDataHist& data, bool 
 }
 
 //Create an exponential PDF sum
-RooAbsPdf* create_exponential(RooRealVar& obs, int order, int set) {
+RooAbsPdf* create_exponential(RooRealVar& obs, int order, int set, TString tag = "") {
   vector<RooRealVar*> vars;
   vector<RooRealVar*> coeffs;
   vector<RooExponential*> exps;
   RooArgList pdfs;
   RooArgList coefficients;
   for(int i = 0; i <= order; ++i) {
-    vars.push_back(new RooRealVar(Form("exp_%i_order_%i_c_%i", set, order, i), Form("exp_%i_order_%i_%i power", set, order, i), 1., -10., 10.));
-    exps.push_back(new RooExponential(Form("exp_%i_pdf_order_%i_%i", set, order, i), Form("exp_%i_pdf_order_%i_%i", set, order, i), obs, *vars[i]));
+    vars.push_back(new RooRealVar(Form("exp_%i_order_%i_c_%i%s", set, order, i, tag.Data()), Form("exp_%i_order_%i_%i power%s", set, order, i, tag.Data()), 1., -10., 10.));
+    exps.push_back(new RooExponential(Form("exp_%i_pdf_order_%i_%i%s", set, order, i, tag.Data()), Form("exp_%i_pdf_order_%i_%i%s", set, order, i, tag.Data()), obs, *vars[i]));
     pdfs.add(*exps[i]);
-    coeffs.push_back(new RooRealVar(Form("exp_%i_order_%i_n_%i", set, order, i), Form("exp_%i_order_%i_%i norm" , set, order, i), 1.e3, -1.e6, 1.e6));
+    coeffs.push_back(new RooRealVar(Form("exp_%i_order_%i_n_%i%s", set, order, i, tag.Data()), Form("exp_%i_order_%i_%i%s norm" , set, order, i, tag.Data()), 1.e3, -1.e6, 1.e6));
     coefficients.add(*coeffs[i]);
   }
   if(order == 0) {
     pdfs.at(0)->SetTitle(Form("Exponential PDF, order %i", order));
     return ((RooAbsPdf*) pdfs.at(0));
   }
-  return new RooAddPdf(Form("exp_%i_pdf_order_%i", set, order), Form("Exponential PDF, order %i", order), pdfs, coefficients, false);
+  return new RooAddPdf(Form("exp_%i_pdf_order_%i%s", set, order, tag.Data()), Form("Exponential PDF, order %i", order), pdfs, coefficients, false);
 }
 
 //Create a Chebychev polynomial PDF
@@ -168,7 +168,7 @@ RooChebychev* create_chebychev(RooRealVar& obs, int order, int set) {
   return new RooChebychev(Form("chb_%i_order_%i", set, order), Form("Chebychev PDF, order %i", order), obs, list);
 }
 
-RooAbsPdf* create_generic_bernstein(RooRealVar& obs, int order, int set) {
+RooAbsPdf* create_generic_bernstein(RooRealVar& obs, int order, int set, TString tag = "") {
 
   vector<RooRealVar*> variables;
   RooArgSet var_set;
@@ -180,7 +180,7 @@ RooAbsPdf* create_generic_bernstein(RooRealVar& obs, int order, int set) {
   double vals[] = {1.404, 2.443e-1, 5.549e-1, 3.675e-1, 0., 0., 0., 0., 0., 0., 0.};
 
   for(int ivar = 0; ivar <= order; ++ivar) {
-    RooRealVar* v = new RooRealVar(Form("bst_%i_order_%i_c_%i", set, order, ivar), Form("bst_%i_order_%i_c_%i", set, order, ivar), 1./pow(10,ivar), -5., 5.);
+    RooRealVar* v = new RooRealVar(Form("bst_%i_order_%i_c_%i%s", set, order, ivar, tag.Data()), Form("bst_%i_order_%i_c_%i%s", set, order, ivar, tag.Data()), 1./pow(10,ivar), -5., 5.);
     formula += Form("%.0f*(%s)^%i*(1-%s)^%i*%s", TMath::Binomial(order, ivar), var_form.Data(), ivar, var_form.Data(), order-ivar, v->GetName());
     if(ivar < order) formula += " + ";
     var_set.add(*v);
@@ -188,28 +188,28 @@ RooAbsPdf* create_generic_bernstein(RooRealVar& obs, int order, int set) {
   cout << "######################\n"
        << "#### Bernstein order " << order << " formula: " << formula.Data() << endl
        << "######################\n";
-  RooAbsPdf* pdf = new RooGenericPdf(Form("bst_%i_order_%i", set, order), Form("Bernstein PDF, order %i", order), formula.Data(), var_set);
+  RooAbsPdf* pdf = new RooGenericPdf(Form("bst_%i_order_%i%s", set, order, tag.Data()), Form("Bernstein PDF, order %i", order), formula.Data(), var_set);
   return pdf;
 }
 
 //Create a Combine fast Bernstein polynomial PDF
-RooAbsPdf* create_fast_bernstein(RooAbsReal& obs, const int order, int set) {
+RooAbsPdf* create_fast_bernstein(RooAbsReal& obs, const int order, int set, TString tag = "") {
   vector<RooRealVar*> vars;
   RooArgList list;
-  for(int i = 0; i <= order; ++i) {
-    vars.push_back(new RooRealVar(Form("bst_%i_order_%i_%i", set, order, i), Form("bst_%i_order_%i_%i", set, order, i), 1./pow(10.,i), -5., 5.));
+  for(int i = 0; i < order; ++i) {
+    vars.push_back(new RooRealVar(Form("bst_%i_order_%i_%i%s", set, order, i, tag.Data()), Form("bst_%i_order_%i_%i%s", set, order, i, tag.Data()), 1./pow(10.,i), -25., 25.));
     list.add(*vars[i]);
   }
   RooAbsPdf* pdf;
   //FIXME have a better way to set the template
   switch(order) {
-  case 1 : pdf = new RooBernsteinFast<1 >(Form("bst_%i_order_%i", set, order), Form("Bernstein PDF, order %i", order), obs, list); break;
-  case 2 : pdf = new RooBernsteinFast<2 >(Form("bst_%i_order_%i", set, order), Form("Bernstein PDF, order %i", order), obs, list); break;
-  case 3 : pdf = new RooBernsteinFast<3 >(Form("bst_%i_order_%i", set, order), Form("Bernstein PDF, order %i", order), obs, list); break;
-  case 4 : pdf = new RooBernsteinFast<4 >(Form("bst_%i_order_%i", set, order), Form("Bernstein PDF, order %i", order), obs, list); break;
-  case 5 : pdf = new RooBernsteinFast<5 >(Form("bst_%i_order_%i", set, order), Form("Bernstein PDF, order %i", order), obs, list); break;
-  case 6 : pdf = new RooBernsteinFast<6 >(Form("bst_%i_order_%i", set, order), Form("Bernstein PDF, order %i", order), obs, list); break;
-  case 7 : pdf = new RooBernsteinFast<7 >(Form("bst_%i_order_%i", set, order), Form("Bernstein PDF, order %i", order), obs, list); break;
+  case 1 : pdf = new RooBernsteinFast<1 >(Form("bst_%i_order_%i%s", set, order, tag.Data()), Form("Bernstein PDF, order %i", order), obs, list); break;
+  case 2 : pdf = new RooBernsteinFast<2 >(Form("bst_%i_order_%i%s", set, order, tag.Data()), Form("Bernstein PDF, order %i", order), obs, list); break;
+  case 3 : pdf = new RooBernsteinFast<3 >(Form("bst_%i_order_%i%s", set, order, tag.Data()), Form("Bernstein PDF, order %i", order), obs, list); break;
+  case 4 : pdf = new RooBernsteinFast<4 >(Form("bst_%i_order_%i%s", set, order, tag.Data()), Form("Bernstein PDF, order %i", order), obs, list); break;
+  case 5 : pdf = new RooBernsteinFast<5 >(Form("bst_%i_order_%i%s", set, order, tag.Data()), Form("Bernstein PDF, order %i", order), obs, list); break;
+  case 6 : pdf = new RooBernsteinFast<6 >(Form("bst_%i_order_%i%s", set, order, tag.Data()), Form("Bernstein PDF, order %i", order), obs, list); break;
+  case 7 : pdf = new RooBernsteinFast<7 >(Form("bst_%i_order_%i%s", set, order, tag.Data()), Form("Bernstein PDF, order %i", order), obs, list); break;
   // case 8 : pdf = new RooBernsteinFast<8 >(Form("bst_%i_order_%i", set, order), Form("Bernstein PDF, order %i", order), obs, list); break;
   // case 9 : pdf = new RooBernsteinFast<9 >(Form("bst_%i_order_%i", set, order), Form("Bernstein PDF, order %i", order), obs, list); break;
   // case 10: pdf = new RooBernsteinFast<10>(Form("bst_%i_order_%i", set, order), Form("Bernstein PDF, order %i", order), obs, list); break;
@@ -231,14 +231,14 @@ RooAbsPdf* create_fast_bernstein(RooAbsReal& obs, const int order, int set) {
 }
 
 //Create a Bernstein polynomial PDF
-RooAbsPdf* create_bernstein(RooAbsReal& obs, const int order, int set) {
+RooAbsPdf* create_bernstein(RooAbsReal& obs, const int order, int set, TString tag = "") {
   vector<RooRealVar*> vars;
   RooArgList list;
   for(int i = 0; i <= order; ++i) {
-    vars.push_back(new RooRealVar(Form("bst_%i_order_%i_%i", set, order, i), Form("bst_%i_order_%i_%i", set, order, i), 1./pow(10.,i), -5., 5.));
+    vars.push_back(new RooRealVar(Form("bst_%i_order_%i_%i%s", set, order, i, tag.Data()), Form("bst_%i_order_%i_%i%s", set, order, i, tag.Data()), 1./pow(10.,i), -5., 5.));
     list.add(*vars[i]);
   }
-  RooAbsPdf* pdf = new RooBernstein(Form("bst_%i_order_%i", set, order), Form("Bernstein PDF, order %i", order), obs, list);
+  RooAbsPdf* pdf = new RooBernstein(Form("bst_%i_order_%i%s", set, order, tag.Data()), Form("Bernstein PDF, order %i", order), obs, list);
   return pdf;
 }
 
@@ -315,7 +315,7 @@ void add_chebychevs(RooDataHist& data, RooRealVar& obs, RooArgList& list, bool u
 
 //Fit Bernstein polynomials and add passing ones
 std::pair<int, double> add_bernsteins(RooDataHist& data, RooRealVar& obs, RooArgList& list, bool useSideBands, int& index, int set, int verbose) {
-  const int max_order = 5;
+  const int max_order = 4;
   const double max_chisq = 2.; //per DOF
   //for finding the best fitting function
   double chi_min = 1.e10;
@@ -339,7 +339,7 @@ std::pair<int, double> add_bernsteins(RooDataHist& data, RooRealVar& obs, RooArg
     do {
       ++ntries;
       if(useSideBands) {
-        pdf->fitTo(data, RooFit::Extended(true), RooFit::PrintLevel((verbose > 2) ? 1 : -1), //RooFit::Minimizer("Minuit2", "migrad"),
+        basePdf->fitTo(data, RooFit::PrintLevel((verbose > 2) ? 1 : -1), //RooFit::Minimizer("Minuit2", "migrad"),
                    RooFit::Warnings(0), RooFit::PrintEvalErrors(-1), RooFit::Range("LowSideband,HighSideband"));
         // pdf->fitTo(data, RooFit::Extended(true), RooFit::PrintLevel((verbose > 2) ? 1 : -1), //RooFit::Minimizer("Minuit2", "migrad"),
         //            RooFit::Warnings(0), RooFit::PrintEvalErrors(-1), RooFit::Range("LowSideband,HighSideband"));
@@ -375,6 +375,78 @@ std::pair<int, double> add_bernsteins(RooDataHist& data, RooRealVar& obs, RooArg
   return std::pair<int, double>(index, chi_min);
 }
 
+//Fit a combination of exponential and polynomial components (DY + WW)
+std::pair<int, double> add_dy_ww(RooDataHist& data, RooRealVar& obs, RooArgList& list, bool useSideBands, int set, int verbose) {
+  const double max_chisq = 2.; //per DOF
+  const int max_tries = 2; //retry if poor fit to get a better one
+
+  //fixed polynomial order for the WW/ttbar contribution
+  const int poly_order = 3;
+  RooAbsPdf* polyPdf;
+  if(use_generic_bernstein_)   polyPdf = create_generic_bernstein(obs, poly_order, set, "_comb");
+  else if(use_fast_bernstein_) polyPdf = create_fast_bernstein   (obs, poly_order, set, "_comb");
+  else                         polyPdf = create_bernstein        (obs, poly_order, set, "_comb");
+
+  //set the Bernstein initial parameters to an MC fit
+  auto polyVar = RooArgList(*(polyPdf->getVariables()));
+  polyVar.Print();
+  ((RooRealVar*) polyVar.at(0))->setVal(1.66889);
+  ((RooRealVar*) polyVar.at(1))->setVal(1.57434);
+  // ((RooRealVar*) polyVar.at(2))->setVal(-2.44089);
+
+
+  //fixed exponential order for the DY contribution
+  const int exp_order = 0;
+  //set the Exponential initial parameters to an MC fit
+  RooAbsPdf* expPdf = create_exponential(obs, exp_order, set, "_comb");
+  auto expVar = RooArgList(*(expPdf->getVariables()));
+  expVar.Print();
+  ((RooRealVar*) expVar.at(0))->setVal(-0.135877);
+
+  //add the PDFs together
+  RooRealVar* comb_coeff = new RooRealVar(Form("comb_%i_coeff", set), Form("comb_%i_coeff", set), 0.1, 0., 1.);
+  RooAddPdf* basePdf     = new RooAddPdf (Form("comb_%i_pdf"  , set), Form("comb_%i_pdf"  , set),
+                                          RooArgList(*polyPdf, *expPdf), RooArgList(*comb_coeff), false);
+
+  //Wrap the pdf in a RooAddPdf
+  RooRealVar* pdfNorm = new RooRealVar(Form("%s_norm", basePdf->GetName()), Form("%s_norm", basePdf->GetName()),
+                                       data.sumEntries(), 0.5*data.sumEntries(), 1.5*data.sumEntries());
+  RooAddPdf* pdf = new RooAddPdf(Form("%s_wrapper", basePdf->GetName()), basePdf->GetTitle(), RooArgList(*basePdf), RooArgList(*pdfNorm));
+  // RooAbsPdf* pdf = basePdf;
+  const int dof = (data.numEntries() - 2*exp_order - (poly_order+1) - 1);  //DOF = number of variables + normalization
+  double chi_sq = 1e10;
+  int ntries = 0;
+  do {
+    ++ntries;
+    if(useSideBands) {
+      basePdf->fitTo(data, RooFit::PrintLevel((verbose > 2) ? 1 : -1), //RooFit::Minimizer("Minuit2", "migrad"),
+                     RooFit::Warnings(0), RooFit::PrintEvalErrors(-1), RooFit::Range("LowSideband,HighSideband"));
+      // pdf->fitTo(data, RooFit::Extended(true), RooFit::PrintLevel((verbose > 2) ? 1 : -1), //RooFit::Minimizer("Minuit2", "migrad"),
+      //            RooFit::Warnings(0), RooFit::PrintEvalErrors(-1), RooFit::Range("LowSideband,HighSideband"));
+    } else {
+      pdf->fitTo(data, RooFit::Extended(true), RooFit::PrintLevel((verbose > 2) ? 1 : -1),
+                   RooFit::Warnings(0), RooFit::PrintEvalErrors(-1));
+    }
+    chi_sq =  get_chi_squared(obs, pdf, data, useSideBands);
+  } while(chi_sq / dof > max_chisq && ntries < max_tries);
+
+  if(true || chi_sq / dof < max_chisq) {
+    basePdf->Print("tree");
+    basePdf->SetTitle("Combined DY/WW");
+    // list.add(*pdf);
+    list.add(*basePdf);
+  }
+  else {
+    delete pdf;
+  }
+  if(verbose > 1) {
+    cout << "######################\n"
+         << "### Exp+Poly has chisq = " << chi_sq << " / " << dof << " = " << chi_sq/dof << endl
+         << "######################\n";
+  }
+  return std::pair<int, double>(list.getSize()-1, chi_sq);
+}
+
 RooSimultaneous* construct_simultaneous_pdf(RooDataHist& data, RooRealVar& obs, RooCategory& categories, bool useSideBands, int& index, int set, int verbose = 0) {
   RooArgList pdfList;
   add_bernsteins(data, obs, pdfList, useSideBands, index, set, verbose);
@@ -397,6 +469,8 @@ RooMultiPdf* construct_multipdf(RooDataHist& data, RooRealVar& obs, RooCategory&
   if(result.second < chi_min) {chi_min = result.second; index = result.first;}
   // add_chebychevs(data, obs, pdfList, useSideBands, index, set, verbose);
   result = add_exponentials(data, obs, pdfList, useSideBands, set, verbose);
+  if(result.second < chi_min) {chi_min = result.second; index = result.first;}
+  result = add_dy_ww(data, obs, pdfList, useSideBands, set, verbose);
   if(result.second < chi_min) {chi_min = result.second; index = result.first;}
   RooMultiPdf* pdfs =  new RooMultiPdf("bkg_multi", "Background function PDF choice", categories, pdfList);
   return pdfs;

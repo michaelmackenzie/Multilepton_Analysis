@@ -1,7 +1,7 @@
 //make plots of the base gen-level selection, to compare DY MC and Embedding
 
 int ndebug_ = -1;
-bool overRide_ = false; //override 2018 unfolding with 2016 or IC weights
+bool overRide_ = true; //override 2018 unfolding with 2016 or IC weights
 
 //-------------------------------------------------------------------------------------------------------------------
 void print_figure(TH1* h, TString path) {
@@ -70,7 +70,7 @@ int make_hists(const TString selec = "emu", const bool isEmbed = true, const int
   //unfolding weight
   CLFV::EmbeddingWeight embed_wt((overRide_) ? 10 : 0); //mode 4: override 2018 trigger efficiencies with 2016 values, mode 10: use IC weights for 2018
   //MC DY Z spectrum correction
-  CLFV::ZPtWeight zptweight("MuMu", 1, 90);
+  CLFV::ZPtWeight zptweight("MuMu", 1);
   //Cross section information (including missing embedding events)
   CLFV::CrossSections xsecs;
 
@@ -152,7 +152,8 @@ int make_hists(const TString selec = "emu", const bool isEmbed = true, const int
   const float min_tau_pt        = 20.;
   const float min_electron_trig = 29.; //(year == 2016) ? 29. : 35.;
   const float min_muon_trig     = 25.; //(year == 2017) ? 28. : 25.;
-  const float max_eta           = 2.2;
+  const float max_lep_eta       = (selec == "emu") ? 2.4 : 2.2;
+  const float max_tau_eta       = 2.3;
   const float min_lepm          = 50.;
 
   //Reco tau cuts
@@ -275,14 +276,18 @@ int make_hists(const TString selec = "emu", const bool isEmbed = true, const int
       if(lep_one_idx < 0) lep_one_idx = tau_one_idx;
       if(lep_two_idx < 0) lep_two_idx = tau_two_idx;
 
-      if(lv1.Pt() < min_lep_pt) continue;
-      if(lv2.Pt() < min_lep_pt) continue;
-      //eta cuts
-      if(std::fabs(lv1.Eta()) >= max_eta) continue;
-      if(std::fabs(lv2.Eta()) >= max_eta) continue;
-
       const int pdg_l1 = std::abs(GenPart_pdgId[lep_one_idx]);
       const int pdg_l2 = std::abs(GenPart_pdgId[lep_two_idx]);
+
+      //pt cuts
+      if(lv1.Pt() < min_lep_pt) continue;
+      if(lv2.Pt() < min_lep_pt) continue;
+
+      //eta cuts
+      if(pdg_l1 == 15 && std::fabs(lv1.Eta()) >= max_tau_eta) continue;
+      if(pdg_l1 != 15 && std::fabs(lv1.Eta()) >= max_lep_eta) continue;
+      if(pdg_l2 == 15 && std::fabs(lv2.Eta()) >= max_tau_eta) continue;
+      if(pdg_l2 != 15 && std::fabs(lv2.Eta()) >= max_lep_eta) continue;
 
       //reconstructable events
       if(tight) {

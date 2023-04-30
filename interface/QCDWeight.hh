@@ -4,6 +4,7 @@
 
 //c++ includes
 #include <map>
+#include <vector>
 #include <iostream>
 
 //ROOT includes
@@ -17,12 +18,19 @@ namespace CLFV {
 
   class QCDWeight {
   public:
-    QCDWeight(TString selection, int Mode = 0, int verbose = 0);
+    QCDWeight(const TString selection, const int Mode = 0, const int year = 0, const int verbose = 0);
     ~QCDWeight();
 
-    //Get scale factor for Data
+    //Get the transfer factor
+    float GetWeight(float deltar, float deltaphi, float oneeta, float onept, float twopt, const int year, int njets, const bool isantiiso,
+                    float& nonclosure, float& antiiso, float* up, float* down, int& nsys);
+
+    //single statistical uncertainty
     float GetWeight(float deltar, float deltaphi, float oneeta, float onept, float twopt, const int year, int njets, const bool isantiiso,
                     float& nonclosure, float& antiiso, float& up, float& down, float& sys);
+
+    //no uncertainties/separated corrections
+    float GetWeight(float deltar, float deltaphi, float oneeta, float onept, float twopt, const int year, int njets, const bool isantiiso);
 
   public:
     std::map<int, TH1*> histsData_;
@@ -34,6 +42,8 @@ namespace CLFV {
     std::map<int, TH1*> jetBinnedHists_;
     std::map<int, TF1*> jetBinnedFits_;
     std::map<int, TH1*> jetBinnedFitErrs_;
+    std::map<int, std::vector<TF1*>> altJetFitsUp_; //varying fit uncertainties
+    std::map<int, std::vector<TF1*>> altJetFitsDown_; //varying fit uncertainties
     std::map<int, TH2*> Pt2DClosure_;
     std::map<int, TH2*> AntiIsoScale_;
 

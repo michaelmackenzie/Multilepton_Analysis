@@ -318,9 +318,11 @@ namespace CLFV {
     Float_t qcdWeight                  ;
     Float_t qcdWeightUp                ;
     Float_t qcdWeightDown              ;
-    Float_t qcdWeightSys               ;
     Float_t qcdClosure                 ; //Non-closure correction
     Float_t qcdIsoScale = 1.           ; //QCD bias correction
+    Float_t qcdWeightAltUp  [kMaxAltFunc]; //alternate shapes
+    Float_t qcdWeightAltDown[kMaxAltFunc]; //alternate shapes
+    Int_t   qcdWeightAltNum              ; //N(alternate shapes)
 
     //Tau information
     TLorentzVector* tauP4 = 0          ;
@@ -698,6 +700,9 @@ namespace CLFV {
     Float_t*        fJetToTauWts       = new Float_t[JetToTauComposition::kLast];
     Float_t*        fJetToTauWtsUp     = new Float_t[JetToTauComposition::kLast];
     Float_t*        fJetToTauWtsDown   = new Float_t[JetToTauComposition::kLast];
+    Float_t*        fJetToTauAltUp     = new Float_t[JetToTauComposition::kLast*kMaxAltFunc]; //alternate shapes
+    Float_t*        fJetToTauAltDown   = new Float_t[JetToTauComposition::kLast*kMaxAltFunc]; //alternate shapes
+    Int_t*          fJetToTauAltNum    = new Int_t  [JetToTauComposition::kLast]; //N(alternate shapes)
     Float_t*        fJetToTauCorrs     = new Float_t[JetToTauComposition::kLast];
     Float_t*        fJetToTauBiases    = new Float_t[JetToTauComposition::kLast];
     Float_t*        fJetToTauComps     = new Float_t[JetToTauComposition::kLast];
@@ -707,6 +712,7 @@ namespace CLFV {
     Float_t*        fJetToTauMCWts     = new Float_t[JetToTauComposition::kLast]; //weights using MC-based scale factors
     Float_t*        fJetToTauMCCorrs   = new Float_t[JetToTauComposition::kLast];
     Float_t*        fJetToTauMCBiases  = new Float_t[JetToTauComposition::kLast];
+    Bool_t          fApplyJetToTauMCBias = true; //apply (W/Z)+Jets MC bias correction
 
     QCDWeight       fQCDWeight; //for emu
     MuonIDWeight    fMuonIDWeight;

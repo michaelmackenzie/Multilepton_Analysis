@@ -94,6 +94,8 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
         clfv_selec->fCutFlowTesting    = CutFlowTesting_;
         clfv_selec->fTriggerTesting    = TriggerTesting_;
         clfv_selec->fDoMVASets = DoMVASets_ > 0 && (DoMVASets_ > 2 || (DoMVASets_ == 2 && !(selection.Contains("tau"))) || (selection == "emu"));
+        clfv_selec->fMinLepM           = (selection == "emu") ?  65.f : 35.f;
+        clfv_selec->fMaxLepM           = (selection == "emu") ? 115.f : (selection.EndsWith("tau")) ? 175.f : 175.f;
       }
       if(dynamic_cast<HistMaker*> (selec)) {
         auto hist_selec = (HistMaker*) selec;
@@ -112,8 +114,6 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
         hist_selec->fUseCDFBDTs         = useCDFBDTs_;
         hist_selec->fNotifyCount        = notify_;
         hist_selec->fLoadBaskets        = false;
-        hist_selec->fMinLepM            = (selection == "emu") ?  65.f : 35.f;
-        hist_selec->fMaxLepM            = (selection == "emu") ? 115.f : (selection.EndsWith("tau")) ? 175.f : 175.f;
         hist_selec->fDoSSSystematics    = selection == "emu" || selection.Contains("_");
         hist_selec->fDoLooseSystematics = selection.EndsWith("tau");
         hist_selec->fAllowMigration     = allowMigration_ && config.doSystematics_;
@@ -133,6 +133,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
 
       selec->fUseMCEstimatedFakeLep  = useMCFakeLep_;
       selec->fUseJetToTauComposition = useJetToTauComp_;
+      selec->fApplyJetToTauMCBias    = applyJetToTauMCBias_;
 
       if(isDY && splitDY_)     selec->fDYType = dyloop; //if Drell-Yan, tell the selector which loop we're on
       if(isWJ && splitWJets_)  selec->fWNJets = wjloop; //if W+Jets, tell the selector which loop we're on
@@ -159,7 +160,19 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
         selec->fXsec = xs.GetCrossSection(Form("QCD_%s", tree_name.Data()));
         selec->fLum = 1.; //no luminosity needed for data
       }
-      selec->fFractionMVA = (isSignal) ? config.signalTrainFraction_ : config.backgroundTrainFraction_; //fraction of events to use for MVA training
+      if(train_mode_ == 1) { //fixed training fraction for signal and background
+        selec->fFractionMVA = (isSignal) ? config.signalTrainFraction_ : config.backgroundTrainFraction_; //fraction of events to use for MVA training
+      } else if(train_mode_ == 2) { //variable training fractions
+        if(selection == "ee" || selection == "mumu") selec->fFractionMVA = 0.f; //don't train in ee/mumu
+        else if(card.isData_) { //data from data-driven backgrounds
+          selec->fFractionMVA = (selection.EndsWith("tau")) ? 0.05f : 0.3f; //don't need much j-->tau data
+        } else if(isSignal) selec->fFractionMVA = 0.5f; //use half the signal data for training
+        else if(selec->fIsEmbed) selec->fFractionMVA = (selection.EndsWith("tau")) ? 0.1f : 0.1f; //don't need much embedding data
+        else if(card.fname_.Contains("ttbarlnu")) selec->fFractionMVA = 0.1f; //reduce ttbar->ll contributions
+        else selec->fFractionMVA = 0.3f; //default MC training fraction
+      } else { //no training
+        selec->fFractionMVA = 0.f;
+      }
       if(selection == "mumu" || selection == "ee") selec->fFractionMVA = 0.; //don't split off same flavor data
       selec->fIsNano = true;
       if(debug_ && nEvents_ < 20) selec->fVerbose = 1;

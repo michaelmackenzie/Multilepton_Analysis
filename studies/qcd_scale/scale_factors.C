@@ -8,9 +8,10 @@ TString selection_;
 
 //use the dataplotter to manage normalizations and initializations
 DataPlotter* dataplotter_ = 0;
-int verbose_ = 0;
-int drawFit_ = 1; //whether to draw the linear fits
-int rebin_ = 1;
+int  verbose_ = 0;
+int  drawFit_ = 1; //whether to draw the linear fits
+bool doPCA_   = true; //whether or not to generate shifted function templates
+int  rebin_   = 1;
 
 //Get 1D histograms
 TH1* get_histogram(TString name, int setAbs, int isdata, TString type = "event") {
@@ -121,7 +122,8 @@ TH2* get_2D_qcd_histogram(TString name, int setAbs, TString type = "event") {
 }
 
 //make 1D ratio plots
-TCanvas* make_ratio_canvas(TH1* hnum, TH1* hdnm, TF1 *&f1, bool print = false, bool doFit = true, double xmin = 0., double xmax = 5., int rebin = 1) {
+TCanvas* make_ratio_canvas(TH1* hnum, TH1* hdnm, TF1 *&f1, TString print_name = "", bool doFit = true,
+                           double xmin = 0., double xmax = 5., int rebin = 1) {
   TCanvas* c = new TCanvas("c_ratio", "c_ratio", 800, 600);
   TVirtualPad* pad;
   TH1* hRatio = (TH1*) hnum->Clone(Form("hRatio_%s", hnum->GetName()));
@@ -141,15 +143,16 @@ TCanvas* make_ratio_canvas(TH1* hnum, TH1* hdnm, TF1 *&f1, bool print = false, b
     hRatio->Draw("E1");
   }
   TF1* f = 0;
+  TFitResultPtr fitres;
   if(doFit) {
     TString fit_func = "pol1(0)"; //(years_[0] == 2016) ? "pol1(0) + gaus(2)" : "pol1(0)";
-    f = new TF1("fit_func", fit_func.Data());
+    f = new TF1("fit_func", fit_func.Data(), 0., 10.);
     f->SetParameters(1.7, -0.1, 0.25, 3.2, 0.4);
     int count = 0;
     bool refit = false;
     do {
       if(refit) cout << __func__ << ": Refitting for " << hnum->GetName() << ", " << hdnm->GetName() << endl;
-      auto fitres = hRatio->Fit(f, fit_option.Data());
+      fitres = hRatio->Fit(f, fit_option.Data());
       refit = !fitres || fitres->Status() != 0;
       refit &=  count < 5;
       ++count;
@@ -180,9 +183,49 @@ TCanvas* make_ratio_canvas(TH1* hnum, TH1* hdnm, TF1 *&f1, bool print = false, b
     herr_1s->Draw("E3 same");
     hRatio->Draw("E1 same"); //add again on top of confidence intervals
     f1->Draw("same");
-    if(print) {
-      herr_1s->SetName("fit_1s_err");
+    if(print_name != "") {
+      herr_1s->SetName(print_name.Data());
       herr_1s->Write();
+    }
+
+    if(doPCA_) { //perform PCA to get N up/down shifted templates
+      TMatrixDSym cov(fitres->GetCovarianceMatrix());
+      const int nparams = cov.GetNrows();
+      TVectorD params(nparams);
+      for(int iparam = 0; iparam < nparams; ++iparam) params[iparam] = f1->GetParameter(iparam);
+      auto shifts = Utilities::PCAShifts(cov, params);
+      auto up = shifts.first;
+      auto down = shifts.second;
+      const int colors[] = {kViolet, kCyan+3, kOrange, kAtlantic, kYellow-3, kGreen, kBlue};
+      // const int colors[] = {kViolet, kGreen, kOrange, kYellow-3, kAtlantic, kBlue};
+      const int ncolors = sizeof(colors) / sizeof(*colors);
+      for(int ishift = 0; ishift < nparams; ++ishift) {
+        TF1* f_up = (TF1*) f1->Clone(Form("%s_%i_up", print_name.Data(), ishift));
+        for(int iparam = 0; iparam < nparams; ++iparam) f_up->SetParameter(iparam, up[ishift][iparam]);
+        TF1* f_down = (TF1*) f1->Clone(Form("%s_%i_down", print_name.Data(), ishift));
+        for(int iparam = 0; iparam < nparams; ++iparam) f_down->SetParameter(iparam, down[ishift][iparam]);
+        const int color = colors[ishift % ncolors];
+        f_up->SetLineColor(color);
+        f_up->SetLineStyle(kDashed);
+        f_down->SetLineColor(color);
+        f_down->SetLineStyle(kDashed);
+        f_up->Draw("same");
+        f_down->Draw("same");
+        f_up->Write();
+        f_down->Write();
+      }
+    }
+    //Draw the fit parameter results
+    TLatex label;
+    label.SetNDC();
+    label.SetTextFont(72);
+    label.SetTextSize(0.04);
+    label.SetTextAlign(13);
+    label.SetTextAngle(0);
+    label.DrawLatex(0.15, 0.89, Form("#chi^{2}/NDF  %.3f / %i (p = %.3f)", f->GetChisquare(), hRatio->GetNbinsX() - f->GetNpar(),
+                                     TMath::Prob(f->GetChisquare(), hRatio->GetNbinsX() - f->GetNpar())));
+    for(int ipar = 0; ipar < f->GetNpar(); ++ipar) {
+      label.DrawLatex(0.15, 0.89-0.05*(ipar+1), Form("%-10s %.4g +- %.5g\n", f->GetParName(ipar), f->GetParameter(ipar), f->GetParError(ipar)));
     }
   } else {
     gStyle->SetOptFit(0);
@@ -283,7 +326,7 @@ Int_t initialize_plotter(TString base) {
 
 //Generate the plots and scale factors
 Int_t scale_factors(TString selection = "emu", int set = 8, int year = 2016,
-                    TString hist_dir = "nanoaods_dev") {
+                    TString hist_dir = "nanoaods_qcd") {
 
   //////////////////////
   // Initialize files //
@@ -370,7 +413,7 @@ Int_t scale_factors(TString selection = "emu", int set = 8, int year = 2016,
   TF1* f;
   TCanvas* c1 = make_canvas(hData[0], hMC[0], hQCD[0], "SS");
   TCanvas* c2 = make_canvas(hData[1], hMC[1], hQCD[1], "OS");
-  TCanvas* c3 = make_ratio_canvas(hQCD[1], hQCD[0], f, true);
+  TCanvas* c3 = make_ratio_canvas(hQCD[1], hQCD[0], f, "fit_1s_err");
 
   //////////////////////
   //  Print results   //
@@ -401,7 +444,7 @@ Int_t scale_factors(TString selection = "emu", int set = 8, int year = 2016,
   TH1 *hOS, *hSS, *hRatio;
   hOS = get_qcd_histogram("lepdeltaphi1", setAbs);
   hSS = get_qcd_histogram("lepdeltaphi1", setAbs+CLFVHistMaker::fQcdOffset);
-  c = make_ratio_canvas(hOS, hSS, f, false, false, 0, 3.2);
+  c = make_ratio_canvas(hOS, hSS, f, "", false, 0, 3.2);
   if(c) {c->Print((name + "lepdeltaphi1_ratio.png").Data()); delete c;}
   if(hOS && hSS) {
     hRatio = (TH1*) hOS->Clone("hRatio_lepdeltaphi1");
@@ -411,7 +454,7 @@ Int_t scale_factors(TString selection = "emu", int set = 8, int year = 2016,
 
   hOS = get_qcd_histogram("lepdeltaphi", setAbs);
   hSS = get_qcd_histogram("lepdeltaphi", setAbs+CLFVHistMaker::fQcdOffset);
-  c = make_ratio_canvas(hOS, hSS, f, false, false, 0, 3.2);
+  c = make_ratio_canvas(hOS, hSS, f, "", false, 0, 3.2);
   if(c) {c->Print((name + "lepdeltaphi_ratio.png").Data()); delete c;}
   if(hOS && hSS) {
     hSS->Scale(hOS->Integral() / hSS->Integral());
@@ -422,7 +465,7 @@ Int_t scale_factors(TString selection = "emu", int set = 8, int year = 2016,
 
   hOS = get_qcd_histogram("oneeta", setAbs, "lep");
   hSS = get_qcd_histogram("oneeta", setAbs+CLFVHistMaker::fQcdOffset, "lep");
-  c = make_ratio_canvas(hOS, hSS, f, false, false, -2.5, 2.5);
+  c = make_ratio_canvas(hOS, hSS, f, "", false, -2.5, 2.5);
   if(c) {c->Print((name + "oneeta_ratio.png").Data()); delete c;}
   if(hOS && hSS) {
     hSS->Scale(hOS->Integral() / hSS->Integral());
@@ -433,7 +476,7 @@ Int_t scale_factors(TString selection = "emu", int set = 8, int year = 2016,
 
   hOS = get_qcd_histogram("lepdeltar2", setAbs);
   hSS = get_qcd_histogram("lepdeltar2", setAbs+CLFVHistMaker::fQcdOffset);
-  c = make_ratio_canvas(hOS, hSS, f, false, false);
+  c = make_ratio_canvas(hOS, hSS, f, "", false);
   if(c) {c->Print((name + "lepdeltar2_ratio.png").Data()); delete c;}
   if(hOS && hSS) {
     hSS->Scale(hOS->Integral() / hSS->Integral());
@@ -451,7 +494,7 @@ Int_t scale_factors(TString selection = "emu", int set = 8, int year = 2016,
   c = make_canvas(get_histogram("qcddelrj0", setAbs, 1),
                   get_histogram("qcddelrj0", setAbs, 0), hOS, "OS", true);
   if(c) {c->SetLogy(); c->Print((name + "lepdeltarj0_OS.png").Data()); delete c;}
-  c = make_ratio_canvas(hOS, hSS, f, false, true);
+  c = make_ratio_canvas(hOS, hSS, f, "fit_j0_1s_err", true);
   if(c) {c->Print((name + "lepdeltarj0_ratio.png").Data()); delete c;}
   if(hOS && hSS) {
     hRatio = (TH1*) hOS->Clone("hRatio_lepdeltarj0");
@@ -469,7 +512,7 @@ Int_t scale_factors(TString selection = "emu", int set = 8, int year = 2016,
   c = make_canvas(get_histogram("qcddelrj1", setAbs, 1),
                   get_histogram("qcddelrj1", setAbs, 0), hOS, "OS", true);
   if(c) {c->SetLogy(); c->Print((name + "lepdeltarj1_OS.png").Data()); delete c;}
-  c = make_ratio_canvas(hOS, hSS, f, false, true);
+  c = make_ratio_canvas(hOS, hSS, f, "fit_j1_1s_err", true);
   if(c) {c->Print((name + "lepdeltarj1_ratio.png").Data()); delete c;}
   if(hOS && hSS) {
     hRatio = (TH1*) hOS->Clone("hRatio_lepdeltarj1");
@@ -487,7 +530,7 @@ Int_t scale_factors(TString selection = "emu", int set = 8, int year = 2016,
   c = make_canvas(get_histogram("qcddelrj2", setAbs, 1),
                   get_histogram("qcddelrj2", setAbs, 0), hOS, "OS", true);
   if(c) {c->SetLogy(); c->Print((name + "lepdeltarj2_OS.png").Data()); delete c;}
-  c = make_ratio_canvas(hOS, hSS, f, false, true);
+  c = make_ratio_canvas(hOS, hSS, f, "fit_j2_1s_err", true);
   if(c) {c->Print((name + "lepdeltarj2_ratio.png").Data()); delete c;}
   if(hOS && hSS) {
     hRatio = (TH1*) hOS->Clone("hRatio_lepdeltarj2");

@@ -3,11 +3,12 @@
 Help() {
     echo "Process combine impacts"
     echo "Options:"
-    echo " 1: Force card name"
+    echo " 1: Card name"
     echo " 2: Don't clean flag"
     echo " 3: Do observed flag"
     echo " 4: r POI range"
     echo " 5: Approximate impacts"
+    echo " 6: Argument for combineTool.py"
 }
 
 CARD=$1
@@ -15,6 +16,7 @@ DONTCLEAN=$2
 DOOBS=$3
 RRANGE=$4
 APPROX=$5
+COMMAND=$6
 
 if [[ "$1" == "-h" ]] || [[ "$1" == "--help" ]]
 then
@@ -58,6 +60,10 @@ ARGS=""
 if [[ "${APPROX}" != "" ]]; then
     echo "-- Performing approximate impacts"
     ARGS="--approx robust"
+fi
+if [[ "${COMMAND}" != "" ]]; then
+    echo "Adding argument ${COMMAND} to the evaluation"
+    ARGS="${ARGS} ${COMMAND}"
 fi
 
 text2workspace.py ${CARD} -o ${WORKSPACE}

@@ -3,7 +3,7 @@
 using namespace CLFV;
 
 //-------------------------------------------------------------------------------------------------------------------------
-QCDWeight::QCDWeight(const TString selection, const int Mode, const int verbose) : verbose_(verbose) {
+QCDWeight::QCDWeight(const TString selection, const int Mode, const int only_year, const int verbose) : verbose_(verbose) {
 
   useFits_        = (Mode %       10) /       1 == 1;
   useDeltaPhi_    = (Mode %      100) /      10 == 1;
@@ -46,6 +46,7 @@ QCDWeight::QCDWeight(const TString selection, const int Mode, const int verbose)
   const TString cmssw = gSystem->Getenv("CMSSW_BASE");
   const TString path = (cmssw == "") ? "../scale_factors" : cmssw + "/src/CLFVAnalysis/scale_factors";
   for(int year : years) {
+    if(only_year > 2000 && year != only_year) continue;
     //get the SS --> OS scale factors measured
     f = TFile::Open(Form("%s/qcd_scale_%s_%i.root", path.Data(), selection.Data(), year), "READ");
     if(f) {
@@ -139,6 +140,27 @@ QCDWeight::QCDWeight(const TString selection, const int Mode, const int verbose)
             h->SetDirectory(0);
           }
         }
+
+        ///////////////////////////
+        // Get alternate fit shapes
+        for(int ialt = 0; ; ++ialt) {
+          const char* name = Form("fit_j%i_1s_err_%i", ijet, ialt);
+          TF1* up   = (TF1*) f->Get(Form("%s_up"  , name));
+          TF1* down = (TF1*) f->Get(Form("%s_down", name));
+          if(!up || !down) {
+            if(ialt == 0) {
+              std::cout << "QCDWeight::QCDWeight: Warning! No jet-binned alternate fit shapes " << name << " found for year = " << year
+                        << " selection = " << selection.Data() << std::endl;
+            }
+            break;
+          }
+          altJetFitsUp_  [index].push_back(up  );
+          altJetFitsDown_[index].push_back(down);
+          up->SetName(Form("%s_%s_%i", up->GetName(), selection.Data(), year));
+          up->AddToGlobalList();
+          down->SetName(Form("%s_%s_%i", down->GetName(), selection.Data(), year));
+          down->AddToGlobalList();
+        }
       }
 
       ///////////////////////////////////////////
@@ -211,7 +233,7 @@ QCDWeight::~QCDWeight() {
 //-------------------------------------------------------------------------------------------------------------------------
 //Get scale factor for Data
 float QCDWeight::GetWeight(float deltar, float deltaphi, float oneeta, float onept, float twopt, const int year, int njets, const bool isantiiso,
-                           float& nonclosure, float& antiiso, float& up, float& down, float& sys) {
+                           float& nonclosure, float& antiiso, float* up, float* down, int& nsys) {
   njets = std::max(0, std::min(njets, 2)); //jet-bins: 0, 1, >=2
   TH1* h          = (useJetBinned_) ? jetBinnedHists_  [10*year + njets] : histsData_ [year];
   TF1* f          = (useJetBinned_) ? jetBinnedFits_   [10*year + njets] : fitsData_  [year];
@@ -221,6 +243,17 @@ float QCDWeight::GetWeight(float deltar, float deltaphi, float oneeta, float one
   TH1* hSys       = histsSys_[year];
   TH2* h2D        = hists2DData_[year];
   TH2* hAntiIso   = AntiIsoScale_[year]; //muon anti-iso --> iso scale
+
+  std::vector<TF1*> altFitsUp   = (useJetBinned_) ? altJetFitsUp_  [10*year + njets] : std::vector<TF1*>();
+  std::vector<TF1*> altFitsDown = (useJetBinned_) ? altJetFitsDown_[10*year + njets] : std::vector<TF1*>();
+
+  if(useFits_ && altFitsUp.size() != altFitsDown.size()) {
+    std::cout << "QCDWeight::" << __func__ << " Disagreement in alternate fit up/down list length for year = "
+              << year << " --> will skip alternate fits!"
+              << std::endl;
+    altFitsUp   = {};
+    altFitsDown = {};
+  }
 
 
   //ensure within kinematic regions
@@ -233,7 +266,8 @@ float QCDWeight::GetWeight(float deltar, float deltaphi, float oneeta, float one
   twopt = std::min(149.f, std::max(twopt, 10.f));
 
   //initialize values
-  nonclosure = 1.f; up = 1.f; down = 1.f; sys = 1.f; antiiso = 1.f;
+  nsys = 1;
+  nonclosure = 1.f; up[0] = 1.f; down[0] = 1.f; antiiso = 1.f;
   const float var = (useDeltaPhi_) ? deltaphi : deltar;
   const float closure = oneeta;
 
@@ -284,12 +318,23 @@ float QCDWeight::GetWeight(float deltar, float deltaphi, float oneeta, float one
 
   float eff(1.f), err(0.f);
   int bin(1);
+  bool use_alt_fits = useFits_ && altFitsUp.size() != 0;
   if(useFits_) {
     //get bin value
     bin = std::max(1, std::min(fErr->GetNbinsX(), fErr->FindBin(var)));
     //get efficiency from fit function
     eff = f->Eval(deltar);
-    err = fErr->GetBinError(bin); //68% confidence band from virtual fitter
+    if(use_alt_fits) {
+      nsys = altFitsUp.size();
+      for(int ialt = 0; ialt < nsys; ++ialt) {
+        TF1* fit_up   = altFitsUp  [ialt];
+        TF1* fit_down = altFitsDown[ialt];
+        up  [ialt] = fit_up  ->Eval(deltar);
+        down[ialt] = fit_down->Eval(deltar);
+      }
+    } else {
+      err = fErr->GetBinError(bin); //68% confidence band from virtual fitter
+    }
   } else if(use2DScale_) {
     //get bin values
     bin = std::max(1, std::min(h2D->GetNbinsY(), h2D->GetYaxis()->FindBin(var)));
@@ -321,14 +366,21 @@ float QCDWeight::GetWeight(float deltar, float deltaphi, float oneeta, float one
     std::cout << "QCDWeight::" << __func__ << " Weight < 0  = " << eff
               << " delta R = " << deltar << " delta phi = " << deltaphi
               << " for year = " << year << std::endl;
-    nonclosure = 1.f; up = 1.f; down = 1.f; sys = 1.f; antiiso = 1.f;
+    nonclosure = 1.f; up[0] = 1.f; down[0] = 1.f; nsys = 1; antiiso = 1.f;
     return 1.;
   }
 
-  eff  = std::max(min_eff, std::min(max_eff, eff      ));
-  up   = std::max(min_eff, std::min(max_eff, eff + err));
-  down = std::max(min_eff, std::min(max_eff, eff - err));
-  sys  = up;
+  eff     = std::max(min_eff, std::min(max_eff, eff      ));
+  if(use_alt_fits) {
+    for(int ialt = 0; ialt < nsys; ++ialt) {
+      up  [ialt] = std::max(min_eff, std::min(max_eff, up  [ialt]));
+      down[ialt] = std::max(min_eff, std::min(max_eff, down[ialt]));
+    }
+  } else {
+    up  [0] = std::max(min_eff, std::min(max_eff, eff + err));
+    down[0] = std::max(min_eff, std::min(max_eff, eff - err));
+    nsys    = 1;
+  }
 
   //Apply a closure correction
   if(useEtaClosure_) {
@@ -338,7 +390,7 @@ float QCDWeight::GetWeight(float deltar, float deltaphi, float oneeta, float one
       std::cout << "QCDWeight::" << __func__ << " Closure Weight < 0  = " << nonclosure
                 << " delta R = " << deltar << " delta phi = " << deltaphi
                 << " for year = " << year << std::endl;
-      nonclosure = 1.f; up = 1.f; down = 1.f; sys = 1.f; antiiso = 1.f;
+      nonclosure = 1.f; up[0] = 1.f; down[0] = 1.f; nsys = 1; antiiso = 1.f;
       return 1.;
     }
   } else if(use2DPtClosure_) {
@@ -357,13 +409,14 @@ float QCDWeight::GetWeight(float deltar, float deltaphi, float oneeta, float one
   }
 
   //apply non-closure correction
-  eff  *= nonclosure;
-  up   *= nonclosure;
-  down *= nonclosure;
-  sys  *= nonclosure;
+  eff     *= nonclosure;
+  for(int ialt = 0; ialt < nsys; ++ialt) {
+    up  [ialt] *= nonclosure;
+    down[ialt] *= nonclosure;
+  }
 
   if(verbose_ > 9) {
-    std::cout << " closure = " << nonclosure << ", weight = " << eff << " (" << up << "/" << down << ")" << std::endl;
+    std::cout << " closure = " << nonclosure << ", weight = " << eff << " (" << up[0] << "/" << down[0] << ")" << std::endl;
   }
 
   //get anti-iso --> iso correction factor if needed
@@ -383,13 +436,14 @@ float QCDWeight::GetWeight(float deltar, float deltaphi, float oneeta, float one
   }
 
   //apply anti-iso correction
-  eff  *= antiiso;
-  up   *= antiiso;
-  down *= antiiso;
-  sys  *= antiiso;
+  eff     *= antiiso;
+  for(int ialt = 0; ialt < nsys; ++ialt) {
+    up  [ialt] *= antiiso;
+    down[ialt] *= antiiso;
+  }
 
   if(verbose_ > 9) {
-    std::cout << " iso = " << antiiso << ", weight = " << eff << " (" << up << "/" << down << ")" << std::endl;
+    std::cout << " iso = " << antiiso << ", weight = " << eff << " (" << up[0] << "/" << down[0] << ")" << std::endl;
   }
 
   //Evaluate systematic by varying a delta R closure
@@ -400,12 +454,13 @@ float QCDWeight::GetWeight(float deltar, float deltaphi, float oneeta, float one
       std::cout << "QCDWeight::" << __func__ << " Systematic < 0  = " << closure
                 << " delta R = " << deltar << " delta phi = " << deltaphi
                 << " for year = " << year << std::endl;
-      nonclosure = 1.f; up = 1.f; down = 1.f; sys = 1.f; antiiso = 1.f;
+      nonclosure = 1.f; up[0] = 1.f; down[0] = 1.f; nsys = 1; antiiso = 1.f;
       return 1.;
     }
     const float eff_sys = eff*correction;
-    up = eff_sys;
-    down = std::max(min_eff, 2.f*eff - eff_sys); //eff - (sys - eff) = 2*eff - sys
+    up  [0] = eff_sys;
+    down[0] = std::max(min_eff, 2.f*eff - eff_sys); //eff - (sys - eff) = 2*eff - sys
+    nsys = 1;
     // sys = eff_sys; leave sys as the statistical variation from the fits
   }
 
@@ -418,14 +473,41 @@ float QCDWeight::GetWeight(float deltar, float deltaphi, float oneeta, float one
     err = 0.99f*eff; //99% uncertainty
     nonclosure = 1.f;
     antiiso = 1.f;
-    up = eff + err;
-    down = eff - err;
-    sys = up;
+    up  [0] = eff + err;
+    down[0] = eff - err;
+    nsys = 1;
   }
 
   if(verbose_ > 9) {
-    std::cout << " final weight = " << eff << " (" << up << "/" << down << ")" << std::endl;
+    std::cout << " final weight = " << eff << " (" << up[0] << "/" << down[0] << ")" << std::endl;
   }
 
   return eff;
+}
+
+//-------------------------------------------------------------------------------------------------------------------------
+//Get scale factor for Data without uncertainties/separated corrections
+float QCDWeight::GetWeight(float deltar, float deltaphi, float oneeta, float onept, float twopt, const int year, int njets, const bool isantiiso,
+                           float& nonclosure, float& antiiso, float& up, float& down, float& sys) {
+  float up_arr[10], down_arr[10];
+  int nsys(0);
+  float wt = GetWeight(deltar, deltaphi, oneeta, onept, twopt, year, njets, isantiiso, nonclosure, antiiso, up_arr, down_arr, nsys);
+  up = 0.f; down = 0.f;
+  //add each deviation from nominal in quadrature
+  for(int ialt = 0; ialt < nsys; ++ialt) {
+    up   = std::pow(wt - up_arr  [ialt], 2);
+    down = std::pow(wt - down_arr[ialt], 2);
+  }
+  up   = wt + std::sqrt(up);
+  down = std::max(1.e-5f, wt - std::sqrt(down));
+  sys = up;
+  return wt;
+}
+
+//-------------------------------------------------------------------------------------------------------------------------
+//Get scale factor for Data without uncertainties/separated corrections
+float QCDWeight::GetWeight(float deltar, float deltaphi, float oneeta, float onept, float twopt, const int year, int njets, const bool isantiiso) {
+  float nonclosure, antiiso, up, down, sys;
+  float wt = GetWeight(deltar, deltaphi, oneeta, onept, twopt, year, njets, isantiiso, nonclosure, antiiso, up, down, sys);
+  return wt;
 }

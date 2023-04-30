@@ -167,6 +167,7 @@ namespace CLFV {
       variables.push_back(Var_t("fulleventweight"   ,"fullEventWeight"   ,"", &tree.fulleventweight   ));
       variables.push_back(Var_t("fulleventweightlum","fullEventWeightLum","", &tree.fulleventweightlum));
       variables.push_back(Var_t("eventweight"       ,"eventWeight"       ,"", &tree.eventweight       ));
+      variables.push_back(Var_t("trainfraction"     ,"trainfraction"     ,"", &tree.trainfraction     ));
       if(version_ == 7)
         variables.push_back(Var_t("eventcategory"     ,"eventCategory"     ,"", &tree.eventcategory     ));
       variables.push_back(Var_t("issignal"          ,"isSignal"          ,"", &tree.issignal          ));
@@ -359,6 +360,7 @@ namespace CLFV {
         else if(var.var_ == "issignal") loader.AddSpectator(var.var_.Data(), var.desc_.Data(), var.unit_.Data(), var.type_);
         else if(var.var_ == "fulleventweightlum") loader.AddSpectator(var.var_.Data(), var.desc_.Data(), var.unit_.Data(), var.type_);
         else if(var.var_ == "type") loader.AddSpectator(var.var_.Data(), var.desc_.Data(), var.unit_.Data(), var.type_);
+        else if(var.var_ == "trainfraction") loader.AddSpectator(var.var_.Data(), var.desc_.Data(), var.unit_.Data(), var.type_);
       }
       return status;
     }
@@ -373,6 +375,7 @@ namespace CLFV {
         else if(var.var_ == "issignal") reader.AddSpectator(var.var_.Data(), var.val_);
         else if(var.var_ == "fulleventweightlum") reader.AddSpectator(var.var_.Data(), var.val_);
         else if(var.var_ == "type") reader.AddSpectator(var.var_.Data(), var.val_);
+        else if(var.var_ == "trainfraction") reader.AddSpectator(var.var_.Data(), var.val_);
       }
       return status;
     }

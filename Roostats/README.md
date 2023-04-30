@@ -279,6 +279,13 @@ combine -d combine_bemu_${SELECTION}_${HISTSTRING}.txt
 ./process_bemu.sh "${SELECTION}" "${YEAR}" "${HISTPATH}" "${HISTSET}" ["d" to skip retrieval] ["d" to skip card creation] ["d" for dry run]
 ```
 
+#### Notes on limit calculation
+- A systematic uncertainty must be included in order to profile the discrete index in the envelope method
+- For envelope details see: http://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/part3/nonstandard/#discrete-profiling
+- Improve discrete profiling with the option `--X-rtd MINIMIZER_freezeDisassociatedParams`
+
+
+
 ### x+tau workflow recommendation
 ```
 HISTSET="{8}"; HISTSTRING="8"; SELECTION="zmutau"; HISTPATH="nanoaods_merged_mva"; YEAR="{2016,2017,2018}"; YEARSTRING="2016_2017_2018"
@@ -306,6 +313,10 @@ root.exe -q -b "make_combine_limit_plot_years_cats.C(${HISTSTRING}, \"${SELECTIO
 cd datacards/${YEARSTRING}/
 ../../combine_channel_impacts.sh ${SELECTION} ${HISTSTRING}
 ```
+
+#### Standard nuisance groups
+Z->mu+tau_h:
+JToTau_Stat group =
 
 ## Higgs Combine notes
 

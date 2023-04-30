@@ -51,29 +51,116 @@
 using namespace CLFV;
 
 TString selection_ = "zmutau";
-Int_t split_trees_ = 0; //split training/testing using tree defined samples
+Int_t split_trees_ = 1; //split training/testing using tree defined samples
 Int_t trkqual_version_ = -1; //version of variables used in trkqual training, < 0 is use default
 Int_t use_njets_ = 1; //whether or not to train using njets, don't use if jet binned categories
-bool use_mass_window_ = true; //train B->e+mu MVAs in the relevant mass window
-Double_t scale_zll_ = 3.; //increase the impact of Z->ll due to the systematic impact
+int use_mass_window_ = 1; //>0: train B->e+mu MVAs in the relevant mass window; >1: train tau channels in mass window
+Int_t nprongs_ = -1; //hadronic tau prong mode
+Bool_t scale_zll_ = true; //increase the impact of Z->ll due to the systematic impact
+TString additional_cut_ = ""; //"ptdiff > 0."; //additional cut to apply to the selection
 
 bool dryrun_ = false; //don't actually train
 bool plotOnly_ = false; //read and plot pre-existing training results
+bool doDetailedPlots_  = false; //make detailed plots or not
 bool inTrainDir_ = false; //track if we've gone into a training directory
 bool multiTrainings_ = false; //if doing multiple trainings, leave directory at the end of the training
+
+//print a ROC plot
+int print_roc(TString var, TTree* TestTree, TTree* TrainTree, TString dir, TString cut = "") {
+  TCanvas* c = new TCanvas();
+  TH1 *hsig_test, *hbkg_test, *hsig_train, *hbkg_train;
+  TString weight_train = (split_trees_) ? "fulleventweightlum/(trainfraction)"    : "fulleventweightlum";
+  TString weight_test  = (split_trees_) ? "fulleventweightlum/(1.-trainfraction)" : "fulleventweightlum";
+
+  //first get the initial distributions
+  const int nbins(2000);
+  const double xmin(-1.), xmax(1.);
+  hsig_test  = new TH1D("hsig_test" , var.Data(), nbins, xmin, xmax);
+  hbkg_test  = new TH1D("hbkg_test" , var.Data(), nbins, xmin, xmax);
+  hsig_train = new TH1D("hsig_train", var.Data(), nbins, xmin, xmax);
+  hbkg_train = new TH1D("hbkg_train", var.Data(), nbins, xmin, xmax);
+  if(cut != "") cut = "(" + cut + ") &&";
+  TestTree ->Draw(Form("%s >> hsig_test" , var.Data()), Form("(%s (issignal > 0.5))*%s", cut.Data(), weight_test.Data() ));
+  TestTree ->Draw(Form("%s >> hbkg_test" , var.Data()), Form("(%s (issignal < 0.5))*%s", cut.Data(), weight_test.Data() ));
+  TrainTree->Draw(Form("%s >> hsig_train", var.Data()), Form("(%s (issignal > 0.5))*%s", cut.Data(), weight_train.Data()));
+  TrainTree->Draw(Form("%s >> hbkg_train", var.Data()), Form("(%s (issignal < 0.5))*%s", cut.Data(), weight_train.Data()));
+
+  hsig_test ->Scale(1./hsig_test ->Integral());
+  hbkg_test ->Scale(1./hbkg_test ->Integral());
+  hsig_train->Scale(1./hsig_train->Integral());
+  hbkg_train->Scale(1./hbkg_train->Integral());
+
+  //create efficiency arrays
+  double bkg_test[nbins], bkg_train[nbins], sig_test[nbins], sig_train[nbins];
+  double nbkg_test(0.), nbkg_train(0.), nsig_test(0.), nsig_train(0.);
+  double roc_test(0.), roc_train(0.);
+  for(int ibin = 1; ibin <= nbins; ++ibin) {
+    nbkg_test  += hbkg_test ->GetBinContent(ibin);
+    nbkg_train += hbkg_train->GetBinContent(ibin);
+    nsig_test  += hsig_test ->GetBinContent(ibin);
+    nsig_train += hsig_train->GetBinContent(ibin);
+    bkg_test [ibin-1] = nbkg_test; //save background rejection
+    bkg_train[ibin-1] = nbkg_train;
+    sig_test [ibin-1] = 1. - nsig_test; //save signal efficiency
+    sig_train[ibin-1] = 1. - nsig_train;
+    //get the integral under the curve
+    // x = sig_eff, y = bkg_rej
+    // integral = sum(y(x)*dx)
+    if(ibin > 1 && ibin < nbins) {
+      //do trapezoidal sum
+      roc_test  += (sig_test [ibin-2] - sig_test [ibin-1])*(bkg_test [ibin-2] + bkg_test [ibin-1])/2.;
+      roc_train += (sig_train[ibin-2] - sig_train[ibin-1])*(bkg_train[ibin-2] + bkg_train[ibin-1])/2.;
+    }
+  }
+
+  cout << "ROC scores for " << var.Data() << endl << " Test : " << roc_test << endl << " Train: " << roc_train << endl;
+  TGraph* test  = new TGraph(nbins, sig_test , bkg_test );
+  TGraph* train = new TGraph(nbins, sig_train, bkg_train);
+  test->SetLineColor(kBlue);
+  test->SetLineWidth(2);
+  train->SetLineColor(kRed);
+  train->SetLineWidth(2);
+  train->SetLineStyle(kDashed);
+
+  test->Draw("AL");
+  train->Draw("L");
+  test->SetTitle(Form("%s ROC; Signal efficiency; Background rejection", var.Data()));
+  TLegend* leg = new TLegend(0.1, 0.1, 0.4, 0.3);
+  leg->AddEntry(test , Form("Test : %.3f", roc_test ), "L");
+  leg->AddEntry(train, Form("Train: %.3f", roc_train), "L");
+  leg->Draw();
+  c->SetGrid();
+  if(cut == "") {
+    c->SaveAs(Form("%s/plots/roc_%s.png", dir.Data(), var.Data()));
+  } else {
+    c->SaveAs(Form("%s/plots/roc_%s_cut.png", dir.Data(), var.Data()));
+  }
+
+  delete c;
+  delete test;
+  delete train;
+  delete hbkg_test;
+  delete hbkg_train;
+  delete hsig_test;
+  delete hsig_train;
+
+  return 0;
+}
 
 //print a spectator comparison canvas
 int print_spectator(TString var, TTree* TestTree, TTree* TrainTree, TString dir) {
   TCanvas* c = new TCanvas();
   TH1 *hsig_test, *hbkg_test, *hsig_train, *hbkg_train;
+  TString weight_train = (split_trees_) ? "fulleventweightlum/(trainfraction)"    : "fulleventweightlum";
+  TString weight_test  = (split_trees_) ? "fulleventweightlum/(1.-trainfraction)" : "fulleventweightlum";
   //first get the initial distributions
-  TestTree->Draw(Form("%s >> hsig_test", var.Data()), Form("(issignal > 0.5)*fulleventweightlum"));
+  TestTree->Draw(Form("%s >> hsig_test", var.Data()), Form("(issignal > 0.5)*%s", weight_test.Data()));
   hsig_test = (TH1*) gDirectory->Get("hsig_test");
-  TestTree->Draw(Form("%s >> hbkg_test", var.Data()), Form("(issignal < 0.5)*fulleventweightlum"));
+  TestTree->Draw(Form("%s >> hbkg_test", var.Data()), Form("(issignal < 0.5)*%s", weight_test.Data()));
   hbkg_test = (TH1*) gDirectory->Get("hbkg_test");
-  TrainTree->Draw(Form("%s >> hsig_train", var.Data()), Form("(issignal > 0.5)*fulleventweightlum"));
+  TrainTree->Draw(Form("%s >> hsig_train", var.Data()), Form("(issignal > 0.5)*%s", weight_train.Data()));
   hsig_train = (TH1*) gDirectory->Get("hsig_train");
-  TrainTree->Draw(Form("%s >> hbkg_train", var.Data()), Form("(issignal < 0.5)*fulleventweightlum"));
+  TrainTree->Draw(Form("%s >> hbkg_train", var.Data()), Form("(issignal < 0.5)*%s", weight_train.Data()));
   hbkg_train = (TH1*) gDirectory->Get("hbkg_train");
 
   if(!hsig_test || !hsig_train || !hbkg_test || !hbkg_train) {
@@ -99,10 +186,10 @@ int print_spectator(TString var, TTree* TestTree, TTree* TrainTree, TString dir)
   hbkg_test  = new TH1D("hbkg_test" , var.Data(), nbins, xmin, xmax);
   hsig_train = new TH1D("hsig_train", var.Data(), nbins, xmin, xmax);
   hbkg_train = new TH1D("hbkg_train", var.Data(), nbins, xmin, xmax);
-  TestTree ->Draw(Form("%s >> hsig_test" , var.Data()), Form("(issignal > 0.5)*fulleventweightlum"));
-  TestTree ->Draw(Form("%s >> hbkg_test" , var.Data()), Form("(issignal < 0.5)*fulleventweightlum"));
-  TrainTree->Draw(Form("%s >> hsig_train", var.Data()), Form("(issignal > 0.5)*fulleventweightlum"));
-  TrainTree->Draw(Form("%s >> hbkg_train", var.Data()), Form("(issignal < 0.5)*fulleventweightlum"));
+  TestTree ->Draw(Form("%s >> hsig_test" , var.Data()), Form("(issignal > 0.5)*%s", weight_test.Data()));
+  TestTree ->Draw(Form("%s >> hbkg_test" , var.Data()), Form("(issignal < 0.5)*%s", weight_test.Data()));
+  TrainTree->Draw(Form("%s >> hsig_train", var.Data()), Form("(issignal > 0.5)*%s", weight_train.Data()));
+  TrainTree->Draw(Form("%s >> hbkg_train", var.Data()), Form("(issignal < 0.5)*%s", weight_train.Data()));
 
   const double nbkg = hbkg_test->Integral(); //for making the stacked results
 
@@ -156,12 +243,12 @@ int print_spectator(TString var, TTree* TestTree, TTree* TrainTree, TString dir)
   httbar->Reset(); httbar->SetLineColor(  top_c); httbar->SetFillColor(  top_c); httbar->SetFillStyle(1001);
   hqcd  ->Reset(); hqcd  ->SetLineColor(  qcd_c); hqcd  ->SetFillColor(  qcd_c); hqcd  ->SetFillStyle(1001);
   hwlnu ->Reset(); hwlnu ->SetLineColor(   wj_c); hwlnu ->SetFillColor(   wj_c); hwlnu ->SetFillStyle(1001);
-  TestTree ->Draw(Form("%s >> hdy_tt", var.Data()), Form("(type == 3)*fulleventweightlum"));
-  TestTree ->Draw(Form("%s >> hdy_ll", var.Data()), Form("(type == 2)*fulleventweightlum"));
-  TestTree ->Draw(Form("%s >> hww"   , var.Data()), Form("(type == 6)*fulleventweightlum"));
-  TestTree ->Draw(Form("%s >> httbar", var.Data()), Form("(type == 4)*fulleventweightlum"));
-  TestTree ->Draw(Form("%s >> hqcd"  , var.Data()), Form("(type == 1)*fulleventweightlum"));
-  TestTree ->Draw(Form("%s >> hwlnu" , var.Data()), Form("(type == 5)*fulleventweightlum"));
+  TestTree ->Draw(Form("%s >> hdy_tt", var.Data()), Form("(type == 3)*%s", weight_test.Data()));
+  TestTree ->Draw(Form("%s >> hdy_ll", var.Data()), Form("(type == 2)*%s", weight_test.Data()));
+  TestTree ->Draw(Form("%s >> hww"   , var.Data()), Form("(type == 6)*%s", weight_test.Data()));
+  TestTree ->Draw(Form("%s >> httbar", var.Data()), Form("(type == 4)*%s", weight_test.Data()));
+  TestTree ->Draw(Form("%s >> hqcd"  , var.Data()), Form("(type == 1)*%s", weight_test.Data()));
+  TestTree ->Draw(Form("%s >> hwlnu" , var.Data()), Form("(type == 5)*%s", weight_test.Data()));
 
   hdy_tt->Scale(1./nbkg);
   hdy_ll->Scale(1./nbkg);
@@ -350,18 +437,25 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
     // TMVA::Factory *factory = new TMVA::Factory( "TMVAClassification", outputFile,
     //     "!V:!Silent:Color:DrawProgressBar:Transformations=I;D;P;G,D:AnalysisType=Classification" );
 
-    TMVA::Factory *factory = new TMVA::Factory( "TMVAClassification", outputFile,
-                                                "!V:!Silent:Color:DrawProgressBar:Transformations=I:AnalysisType=Classification" );
+    TString factory_options = "!V:!Silent:Color:DrawProgressBar:AnalysisType=Classification";
+    factory_options += ":Transformations=I";
+    // factory_options += ":Transformations=P";
+    // factory_options += ":Transformations=G,D";
+    TMVA::Factory *factory = new TMVA::Factory( "TMVAClassification", outputFile, factory_options.Data());
 
 
     //data loader to handle the variables, spectators, signal trees, and background trees
     TMVA::DataLoader* dataloader = new TMVA::DataLoader(outFolder);
 
-    if(scale_zll_ > 1. && selection_.EndsWith("tau"))
-      dataloader->SetBackgroundWeightExpression(Form("fulleventweightlum*(1 + %.2f*(type == 2))", scale_zll_ - 1.));
-    else
-      dataloader->SetBackgroundWeightExpression("fulleventweightlum");
-    dataloader->SetSignalWeightExpression("fulleventweightlum");
+    //Set weight expressions
+    if(scale_zll_ && selection_.Contains("tau")) {
+      const double zll_scale = selection_.Contains("_") ? 10. : (selection_.EndsWith("mutau")) ? 5. : 5.;
+      cout << "--- Scale Z->ll background weight by " << zll_scale << endl;
+      dataloader->SetBackgroundWeightExpression(Form("fulleventweightlum*(1 + %.2f*(type == 2))*((train > 0.) ? 1./trainfraction : 1./(1.-trainfraction)) ", zll_scale - 1.));
+    } else {
+      dataloader->SetBackgroundWeightExpression("fulleventweightlum*((train > 0.) ? 1./trainfraction : 1./(1.-trainfraction))");
+     }
+    dataloader->SetSignalWeightExpression("fulleventweightlum*((train > 0.) ? 1./trainfraction : 1./(1.-trainfraction))");
     // If you wish to modify default settings
     // (please check "src/Config.h" to see all available global options)
     //    (TMVA::gConfig().GetVariablePlotting()).fTimesRMS = 8.0;
@@ -389,13 +483,13 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
       bkgd_train->SetName("bkgd_train");
       TTree* bkgd_test  = background->CopyTree("train<0.");
       bkgd_test->SetName("bkgd_test");
-      dataloader->AddSignalTree    ( signal_train, signalWeight,     "Training" );
-      dataloader->AddSignalTree    ( signal_test,  signalWeight,     "Test" );
-      dataloader->AddBackgroundTree( bkgd_train,   backgroundWeight, "Training" );
-      dataloader->AddBackgroundTree( bkgd_test,    backgroundWeight, "Test" );
+      dataloader->AddSignalTree    (signal_train, signalWeight,     "Training" );
+      dataloader->AddSignalTree    (signal_test,  signalWeight,     "Test" );
+      dataloader->AddBackgroundTree(bkgd_train,   backgroundWeight, "Training" );
+      dataloader->AddBackgroundTree(bkgd_test,    backgroundWeight, "Test" );
     } else {
-      dataloader->AddSignalTree    ( signal, signalWeight);
-      dataloader->AddBackgroundTree( background, backgroundWeight );
+      dataloader->AddSignalTree    (signal, signalWeight);
+      dataloader->AddBackgroundTree(background, backgroundWeight );
     }
 
 
@@ -432,6 +526,26 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
       const double xmax = (selection_.Contains("h")) ? 135. : 100.;
       sig_cut += Form(" && (lepm > %.1f) && (lepm < %.1f)", xmin, xmax);
       bkg_cut += Form(" && (lepm > %.1f) && (lepm < %.1f)", xmin, xmax);
+    } else if(use_mass_window_ > 1 && selection_.EndsWith("tau")) {
+      const double xmin = (selection_.Contains("h")) ?  60. :  50.;
+      const double xmax = (selection_.Contains("h")) ? 130. : 110.;
+      sig_cut += Form(" && (lepm > %.1f) && (lepm < %.1f)", xmin, xmax);
+      bkg_cut += Form(" && (lepm > %.1f) && (lepm < %.1f)", xmin, xmax);
+    } else if(use_mass_window_ > 1) { //leptonic tau
+      const double xmin = (selection_.Contains("h")) ?  60. :  40.;
+      const double xmax = (selection_.Contains("h")) ? 130. : 100.;
+      sig_cut += Form(" && (lepm > %.1f) && (lepm < %.1f)", xmin, xmax);
+      bkg_cut += Form(" && (lepm > %.1f) && (lepm < %.1f)", xmin, xmax);
+    }
+    if(nprongs_ > 0 && selection_.EndsWith("tau")) {
+      sig_cut += Form(" && ((2*(taudecaymode / 10) + 1) %s 2)", (nprongs_ > 1 ? ">" : "<"));
+      bkg_cut += Form(" && ((2*(taudecaymode / 10) + 1) %s 2)", (nprongs_ > 1 ? ">" : "<"));
+    }
+
+    if(additional_cut_ != "") {
+      printf("\033[32m!!! WARNING: Applying additional cut %s to signal and background!\033[0m\n", additional_cut_.Data());
+      sig_cut += Form(" && (%s)", additional_cut_.Data());
+      bkg_cut += Form(" && (%s)", additional_cut_.Data());
     }
 
     printf("\033[32m--- Using signal identification cut %s\033[0m\n", sig_cut.Data());
@@ -604,7 +718,7 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
 
     if (Use["MLP_MM"]) {
       TString network;
-      network = "20,10"; //"N,5,5"; //10,5,5
+      network = "10,5,5"; //"20,10"; //"N,5,5"; //10,5,5
       factory->BookMethod(dataloader, TMVA::Types::kMLP, "MLP_MM",
                           Form("!H:!V:VarTransform=N:NCycles=600:HiddenLayers=%s:TestRate=5:!UseRegulator",
                                network.Data()));
@@ -634,9 +748,17 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
       factory->BookMethod(dataloader, TMVA::Types::kBDT,"BDT",
                           "!H:!V:NTrees=850:nEventsMin=150:MaxDepth=3:BoostType=AdaBoost:AdaBoostBeta=0.5:SeparationType=GiniIndex:nCuts=20:PruneMethod=NoPruning:CreateMVAPdfs=False" );
 
-    if (Use["BDT_MM"])  // Adaptive Boost
-      factory->BookMethod(dataloader, TMVA::Types::kBDT,"BDT_MM",
-                          "!H:!V:NTrees=400:MinNodeSize=1.5%:MaxDepth=3:BoostType=AdaBoost:AdaBoostBeta=0.5:UseBaggedBoost:BaggedSampleFraction=0.5:SeparationType=GiniIndex:nCuts=20" );
+    if (Use["BDT_MM"]) { // Adaptive Boost
+      TString options = "!H:!V:NTrees=800:MinNodeSize=0.1%:";
+      options += Form("MaxDepth=%i",(selection_.Contains("_")) ? 4 : 5); //use more shallow tree in leptonic tau decays
+      options += ":BoostType=AdaBoost:AdaBoostBeta=0.5:SeparationType=GiniIndex:nCuts=20";
+      cout << "Using BDT options " << options.Data() << endl;
+      //version until 03/23
+      // "!H:!V:NTrees=800:MinNodeSize=0.1%:MaxDepth=4:BoostType=AdaBoost:AdaBoostBeta=0.5:SeparationType=GiniIndex:nCuts=20"
+      //legacy version
+      // "!H:!V:NTrees=400:MinNodeSize=1.5%:MaxDepth=3:BoostType=AdaBoost:AdaBoostBeta=0.5:UseBaggedBoost:BaggedSampleFraction=0.5:SeparationType=GiniIndex:nCuts=20"
+      factory->BookMethod(dataloader, TMVA::Types::kBDT,"BDT_MM", options.Data());
+    }
 
     if (Use["BDTRT"]) {  // Bagging Boost Random Trees
       TString bdtSetup = "!H:!V";
@@ -715,26 +837,36 @@ int TrainTrkQual(TTree* signal, TTree* background, const char* tname = "TrkQual"
   else if(!dryrun_) { //if not a dry run and batch mode, make some relevant plots directly
     TMVA::variables(outFolder.Data(), outfilename.Data(), "InputVariables_Id"); //1D variable plots
     TMVA::mvas(outFolder.Data(), outfilename.Data(), TMVA::kCompareType); //Training + Testing MVA scores
-    TMVA::correlations(outFolder.Data(), outfilename.Data()); //linear correlations
-    TMVA::efficiencies(outFolder.Data(), outfilename.Data()); //ROC
-    //make scatter plots for all variables
-    Tree_t tmp_tree_t; //not used
-    auto vars = trkqualinit.GetVariables(selection_, tmp_tree_t);
     outputFile = TFile::Open( outfilename, "READ" );
     TTree* TestTree  = (outputFile) ? (TTree*) outputFile->Get(Form("tmva_%s/TestTree" , tname)) : nullptr;
     TTree* TrainTree = (outputFile) ? (TTree*) outputFile->Get(Form("tmva_%s/TrainTree", tname)) : nullptr;
-    for(auto var : vars) {
-      if(var.use_) TMVA::correlationscatters(outFolder.Data(), outfilename.Data(), var.var_.Data()); //2D correlations
-      if(TestTree && TrainTree) { //make 1-D histograms of spectators and variables
-        print_spectator(var.var_, TestTree, TrainTree, outFolder);
-      } else {
-        cout << "Can't plot variable " << var.var_.Data() << " due to missing trees!\n";
+    for(auto mva : Use) {
+      if(Use[mva.first]) {
+        print_spectator(mva.first, TestTree, TrainTree, outFolder);
+        print_roc      (mva.first, TestTree, TrainTree, outFolder);
+        if(selection_.Contains("tau")) {
+          TString roc_cut = (selection_.EndsWith("tau")) ? "lepm > 50. && lepm < 110." : "lepm > 40. && lepm < 100.";
+          print_roc    (mva.first, TestTree, TrainTree, outFolder, roc_cut);
+        }
       }
     }
-    for(auto mva : Use) {
-      if(Use[mva.first]) print_spectator(mva.first, TestTree, TrainTree, outFolder);
+    if(doDetailedPlots_) { //only do detailed plots if requested
+      TMVA::correlations(outFolder.Data(), outfilename.Data()); //linear correlations
+      TMVA::efficiencies(outFolder.Data(), outfilename.Data()); //ROC
+      //make scatter plots for all variables
+      Tree_t tmp_tree_t; //not used
+      auto vars = trkqualinit.GetVariables(selection_, tmp_tree_t);
+      for(auto var : vars) {
+        if(var.use_) TMVA::correlationscatters(outFolder.Data(), outfilename.Data(), var.var_.Data()); //2D correlations
+        if(TestTree && TrainTree) { //make 1-D histograms of spectators and variables
+          print_spectator(var.var_, TestTree, TrainTree, outFolder);
+        } else {
+          cout << "Can't plot variable " << var.var_.Data() << " due to missing trees!\n";
+        }
+      }
     }
+    outputFile->Close();
   }
-  if(multiTrainings_) {gSystem->cd(".."); inTrainDir_ = false;}
+  if(multiTrainings_) {gSystem->cd(".."); inTrainDir_ = false; nprongs_ = -1;}
   return 0;
 }

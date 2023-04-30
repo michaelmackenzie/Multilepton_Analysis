@@ -3,7 +3,7 @@
 using namespace CLFV;
 
 //-------------------------------------------------------------------------------------------------------------------------
-// Mode = 100*(use DM binned factors) + 10*(use fits) + (do QCD vs W+Jets in tau pT)
+// Mode = 100*(use DM binned factors) + 10*(use fits) + (variable mode)
 JetToTauComposition::JetToTauComposition(const TString selection, const int set, const int Mode, const int verbose) : Mode_(Mode), verbose_(verbose) {
   TFile* f = 0;
   std::vector<int> years = {2016, 2017, 2018};

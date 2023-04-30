@@ -79,30 +79,30 @@ namespace CLFV {
       case  10: return Data(isys, "MuonIsoID"     , false);
       case  11: return Data(isys, "TauES"         , true );
       case  12: return Data(isys, "TauES"         , false);
-      case  13: return Data(isys, "QCDStat"       , true );
-      case  14: return Data(isys, "QCDStat"       , false);
+      // case  13: return Data(isys, "QCDStat"       , true );
+      // case  14: return Data(isys, "QCDStat"       , false);
       case  15: return Data(isys, "QCDNC"         , true );
       case  16: return Data(isys, "QCDNC"         , false);
-      case  17: return Data(isys, "JetToTauStat"  , true );
-      case  18: return Data(isys, "JetToTauStat"  , false);
-      case  19: return Data(isys, "JetToTauNC"    , true );
-      case  20: return Data(isys, "JetToTauNC"    , false);
+      // case  17: return Data(isys, "JetToTauStat"  , true );
+      // case  18: return Data(isys, "JetToTauStat"  , false);
+      // case  19: return Data(isys, "JetToTauNC"    , true );
+      // case  20: return Data(isys, "JetToTauNC"    , false);
       case  21: return Data(isys, "JetToTauComp"  , true );
       case  22: return Data(isys, "JetToTauComp"  , false);
-      case  23: return Data(isys, "JetToTauBias"  , true );
-      case  24: return Data(isys, "JetToTauBias"  , false);
-      case  25: return Data(isys, "TauJetID"      , true );
-      case  26: return Data(isys, "TauJetID"      , false);
+      // case  23: return Data(isys, "JetToTauBias"  , true );
+      // case  24: return Data(isys, "JetToTauBias"  , false);
+      // case  25: return Data(isys, "TauJetID"      , true );
+      // case  26: return Data(isys, "TauJetID"      , false);
       case  27: return Data(isys, "TauMuID"       , true );
       case  28: return Data(isys, "TauMuID"       , false);
       case  29: return Data(isys, "TauEleID"      , true );
       case  30: return Data(isys, "TauEleID"      , false);
       case  31: return Data(isys, "BTag"          , true );
       case  32: return Data(isys, "BTag"          , false);
-      case  33: return Data(isys, "Lumi"          , true );
-      case  34: return Data(isys, "Lumi"          , false);
-      case  35: return Data(isys, "EmbedUnfold"   , true );
-      case  36: return Data(isys, "EmbedUnfold"   , false);
+      // case  33: return Data(isys, "Lumi"          , true );
+      // case  34: return Data(isys, "Lumi"          , false);
+      // case  35: return Data(isys, "EmbedUnfold"   , true );
+      // case  36: return Data(isys, "EmbedUnfold"   , false);
       case  37: return Data(isys, "EleTrig"       , true );
       case  38: return Data(isys, "EleTrig"       , false);
       case  39: return Data(isys, "MuonTrig"      , true );
@@ -132,8 +132,8 @@ namespace CLFV {
       // case  63: return Data(isys, "BTagHeavy"     , true ); //FIXME: Turn on and turn off just "BTag"
       // case  64: return Data(isys, "BTagHeavy"     , false);
 
-      case  70: return Data(isys, "EmbTauJetID"   , true );
-      case  71: return Data(isys, "EmbTauJetID"   , false);
+      // case  70: return Data(isys, "EmbTauJetID"   , true );
+      // case  71: return Data(isys, "EmbTauJetID"   , false);
       case  72: return Data(isys, "EmbTauMuID"    , true );
       case  73: return Data(isys, "EmbTauMuID"    , false);
       case  74: return Data(isys, "EmbTauEleID"   , true );
@@ -144,13 +144,13 @@ namespace CLFV {
       case  79: return Data(isys, "EmbMuonTrig"   , false);
       case  80: return Data(isys, "EmbEleIsoID"   , true );
       case  81: return Data(isys, "EmbEleIsoID"   , false);
-      case  82: return Data(isys, "EmbEleES"      , true );
+      case  82: return Data(isys, "EmbEleES"      , true ); //low |eta| bin
       case  83: return Data(isys, "EmbEleES"      , false);
       case  84: return Data(isys, "EmbMuonES"     , true );
       case  85: return Data(isys, "EmbMuonES"     , false);
       case  86: return Data(isys, "EmbTauES"      , true );
       case  87: return Data(isys, "EmbTauES"      , false);
-      case  88: return Data(isys, "EmbEleES1"     , true );
+      case  88: return Data(isys, "EmbEleES1"     , true ); //high |eta| bin
       case  89: return Data(isys, "EmbEleES1"     , false);
       default: break;
       }
@@ -167,7 +167,7 @@ namespace CLFV {
       if(isys >= base && isys < base+2*nbin) return Data(isys, Form("TauEleID%i", (isys-base)/2), (isys-base)%2 == 0);
       //j-->tau process/DM binned fit uncertainty
       base += 2*nbin; nbin = 3*4; //126 - 149
-      if(isys >= base && isys < base+2*nbin) return Data(isys, Form("JetToTauStat%i", (isys-base)/2), (isys-base)%2 == 0);
+      // if(isys >= base && isys < base+2*nbin) return Data(isys, Form("JetToTauStat%i", (isys-base)/2), (isys-base)%2 == 0); //Replaced with Alt function version
       //j-->tau process binned bias uncertainty
       base += 2*nbin; nbin = 3; //150 - 155
       if(isys >= base && isys < base+2*nbin) return Data(isys, Form("JetToTauBias%i", (isys-base)/2), (isys-base)%2 == 0);
@@ -191,6 +191,20 @@ namespace CLFV {
       //embedding muon ES, 3 bins / year
       base += 2*nbin; nbin = 3; //194 - 199
       if(isys >= base && isys < base+2*nbin) return Data(isys, Form("EmbMuonES%i", (isys-base)/2), (isys-base)%2 == 0);
+      //j-->tau statistical function shape variations (3 per fit)
+      int nproc(3), ndm(4), nalt(3);
+      base += 2*nbin; nbin = nproc*ndm*nalt; //200-271
+      if(isys >= base && isys < base+2*nbin) return Data(isys, Form("JetToTauAltP%iD%iA%i",
+                                                                    (isys-base)/(2*ndm*nalt), //e.g. 200-223 = 1 proc
+                                                                    (((isys-base)/(2*nalt))%ndm),//200-205 = 1 DM mode
+                                                                    ((isys-base)/2)%nalt), (isys-base)%2 == 0);
+      //QCD SS-->OS statistical function shape variations (2 per fit)
+      //3 jet bins, 2 alt function shapes
+      base += 2*nbin; nbin = 3*2; //272-283
+      if(isys >= base && isys < base+2*nbin) return Data(isys, Form("QCDAltJ%iA%i",
+                                                                    (isys-base)/(2*2), //e.g. 272-277 = 0 jets
+                                                                    ((isys-base)/2)%2), //272-273 = up/down of 1 shape param
+                                                         (isys-base)%2 == 0);
 
       //return the default result if no systematic is defined
       return Data();
@@ -209,28 +223,50 @@ namespace CLFV {
       case   3: data.scale_ = ScaleUncertainty_t("XS_WJets"      ,   0.9622, ""       , "Wlnu"           ,      "",   -1, false,  true, false); up = false; break;
       case   4: data.scale_ = ScaleUncertainty_t("XS_Embed"      ,   1.0400, ""       , ""               ,      "",   -1, false, false,  true); up = true ; break; //from embed twiki
       case   5: data.scale_ = ScaleUncertainty_t("XS_Embed"      ,   0.9600, ""       , ""               ,      "",   -1, false, false,  true); up = false; break;
-      case   6: data.scale_ = ScaleUncertainty_t("XS_Lumi0"      , 1.+0.012, ""       , ""               ,      "", 2016, false,  true, false); up = true ; break; //from lumi twiki
-      case   7: data.scale_ = ScaleUncertainty_t("XS_Lumi0"      , 1.-0.012, ""       , ""               ,      "", 2016, false,  true, false); up = false; break;
-      case   8: data.scale_ = ScaleUncertainty_t("XS_Lumi1"      , 1.+0.023, ""       , ""               ,      "", 2017, false,  true, false); up = true ; break;
-      case   9: data.scale_ = ScaleUncertainty_t("XS_Lumi1"      , 1.-0.023, ""       , ""               ,      "", 2017, false,  true, false); up = false; break;
-      case  10: data.scale_ = ScaleUncertainty_t("XS_Lumi2"      , 1.+0.025, ""       , ""               ,      "", 2018, false,  true, false); up = true ; break;
-      case  11: data.scale_ = ScaleUncertainty_t("XS_Lumi2"      , 1.-0.025, ""       , ""               ,      "", 2018, false,  true, false); up = false; break;
       case  12: data.scale_ = ScaleUncertainty_t("XS_ttbar"      , 1.+0.060, ""       , "ttbar"          ,      "",   -1, false,  true, false); up = true ; break; //from HTauTau AN
       case  13: data.scale_ = ScaleUncertainty_t("XS_ttbar"      , 1.-0.060, ""       , "ttbar"          ,      "",   -1, false,  true, false); up = false; break;
-      case  14: data.scale_ = ScaleUncertainty_t("XS_singletop"  , 1.+0.050, ""       , "Top"            ,      "",   -1, false,  true, false); up = true ; break; //from HTauTau AN
-      case  15: data.scale_ = ScaleUncertainty_t("XS_singletop"  , 1.-0.050, ""       , "Top"            ,      "",   -1, false,  true, false); up = false; break;
-      case  16: data.scale_ = ScaleUncertainty_t("XS_ZZ"         , 1.+0.050, "ZZ"     , ""               ,      "",   -1, false,  true, false); up = true ; break; //from HTauTau AN
-      case  17: data.scale_ = ScaleUncertainty_t("XS_ZZ"         , 1.-0.050, "ZZ"     , ""               ,      "",   -1, false,  true, false); up = false; break;
-      case  18: data.scale_ = ScaleUncertainty_t("XS_WW"         , 1.+0.050, "WW"     , ""               ,      "",   -1, false,  true, false); up = true ; break; //from HTauTau AN
-      case  19: data.scale_ = ScaleUncertainty_t("XS_WW"         , 1.-0.050, "WW"     , ""               ,      "",   -1, false,  true, false); up = false; break;
-      case  20: data.scale_ = ScaleUncertainty_t("XS_WZ"         , 1.+0.050, "WZ"     , ""               ,      "",   -1, false,  true, false); up = true ; break; //from HTauTau AN
-      case  21: data.scale_ = ScaleUncertainty_t("XS_WZ"         , 1.-0.050, "WZ"     , ""               ,      "",   -1, false,  true, false); up = false; break;
-      case  22: data.scale_ = ScaleUncertainty_t("XS_WWW"        , 1.+0.050, "WWW"    , ""               ,      "",   -1, false,  true, false); up = true ; break; //from HTauTau AN
-      case  23: data.scale_ = ScaleUncertainty_t("XS_WWW"        , 1.-0.050, "WWW"    , ""               ,      "",   -1, false,  true, false); up = false; break;
-      case  24: data.scale_ = ScaleUncertainty_t("XS_EWKZ"       , 1.+0.020,  ""      , "EWKZ"           ,      "",   -1, false,  true, false); up = true ; break; //from HTauTau AN
-      case  25: data.scale_ = ScaleUncertainty_t("XS_EWKZ"       , 1.-0.020,  ""      , "EWKZ"           ,      "",   -1, false,  true, false); up = false; break;
-      case  26: data.scale_ = ScaleUncertainty_t("XS_EWKW"       , 1.+0.020,  ""      , "EWKW"           ,      "",   -1, false,  true, false); up = true ; break; //from HTauTau AN
-      case  27: data.scale_ = ScaleUncertainty_t("XS_EWKW"       , 1.-0.020,  ""      , "EWKW"           ,      "",   -1, false,  true, false); up = false; break;
+      case  14: data.scale_ = ScaleUncertainty_t("XS_toptw"      , 1.+0.050, ""       , "ToptW"          ,      "",   -1, false,  true, false); up = true ; break; //from HTauTau AN
+      case  15: data.scale_ = ScaleUncertainty_t("XS_toptw"      , 1.-0.050, ""       , "ToptW"          ,      "",   -1, false,  true, false); up = false; break;
+      case  16: data.scale_ = ScaleUncertainty_t("XS_toptCh"     , 1.+0.050, ""       , "ToptChannel"    ,      "",   -1, false,  true, false); up = true ; break; //from HTauTau AN
+      case  17: data.scale_ = ScaleUncertainty_t("XS_toptCh"     , 1.-0.050, ""       , "ToptChannel"    ,      "",   -1, false,  true, false); up = false; break;
+      case  18: data.scale_ = ScaleUncertainty_t("XS_ZZ"         , 1.+0.050, "ZZ"     , ""               ,      "",   -1, false,  true, false); up = true ; break; //from HTauTau AN
+      case  19: data.scale_ = ScaleUncertainty_t("XS_ZZ"         , 1.-0.050, "ZZ"     , ""               ,      "",   -1, false,  true, false); up = false; break;
+      case  20: data.scale_ = ScaleUncertainty_t("XS_WW"         , 1.+0.050, "WW"     , ""               ,      "",   -1, false,  true, false); up = true ; break; //from HTauTau AN
+      case  21: data.scale_ = ScaleUncertainty_t("XS_WW"         , 1.-0.050, "WW"     , ""               ,      "",   -1, false,  true, false); up = false; break;
+      case  22: data.scale_ = ScaleUncertainty_t("XS_WZ"         , 1.+0.050, "WZ"     , ""               ,      "",   -1, false,  true, false); up = true ; break; //from HTauTau AN
+      case  23: data.scale_ = ScaleUncertainty_t("XS_WZ"         , 1.-0.050, "WZ"     , ""               ,      "",   -1, false,  true, false); up = false; break;
+      case  24: data.scale_ = ScaleUncertainty_t("XS_WWW"        , 1.+0.050, "WWW"    , ""               ,      "",   -1, false,  true, false); up = true ; break; //from HTauTau AN
+      case  25: data.scale_ = ScaleUncertainty_t("XS_WWW"        , 1.-0.050, "WWW"    , ""               ,      "",   -1, false,  true, false); up = false; break;
+      case  26: data.scale_ = ScaleUncertainty_t("XS_EWKZ"       , 1.+0.020,  ""      , "EWKZ"           ,      "",   -1, false,  true, false); up = true ; break; //from HTauTau AN
+      case  27: data.scale_ = ScaleUncertainty_t("XS_EWKZ"       , 1.-0.020,  ""      , "EWKZ"           ,      "",   -1, false,  true, false); up = false; break;
+      case  28: data.scale_ = ScaleUncertainty_t("XS_EWKW"       , 1.+0.020,  ""      , "EWKW"           ,      "",   -1, false,  true, false); up = true ; break; //from HTauTau AN
+      case  29: data.scale_ = ScaleUncertainty_t("XS_EWKW"       , 1.-0.020,  ""      , "EWKW"           ,      "",   -1, false,  true, false); up = false; break;
+
+      case  50: data.scale_ = ScaleUncertainty_t("XS_LumiUC0"    , 1.+0.010, ""       , ""               ,      "", 2016, false,  true, false); up = true ; break; //from lumi twiki
+      case  51: data.scale_ = ScaleUncertainty_t("XS_LumiUC0"    , 1.-0.010, ""       , ""               ,      "", 2016, false,  true, false); up = false; break; //UC = uncorrelated comp.
+      case  52: data.scale_ = ScaleUncertainty_t("XS_LumiUC1"    , 1.+0.020, ""       , ""               ,      "", 2017, false,  true, false); up = true ; break;
+      case  53: data.scale_ = ScaleUncertainty_t("XS_LumiUC1"    , 1.-0.020, ""       , ""               ,      "", 2017, false,  true, false); up = false; break;
+      case  54: data.scale_ = ScaleUncertainty_t("XS_LumiUC2"    , 1.+0.015, ""       , ""               ,      "", 2018, false,  true, false); up = true ; break;
+      case  55: data.scale_ = ScaleUncertainty_t("XS_LumiUC2"    , 1.-0.015, ""       , ""               ,      "", 2018, false,  true, false); up = false; break;
+      case  56: data.scale_ = ScaleUncertainty_t("XS_LumiCA0"    , 1.+0.006, ""       , ""               ,      "", 2016, false,  true, false); up = true ; break; //corrleated pieces
+      case  57: data.scale_ = ScaleUncertainty_t("XS_LumiCA0"    , 1.-0.006, ""       , ""               ,      "", 2016, false,  true, false); up = false; break; //CA = Run-II correlated
+      case  58: data.scale_ = ScaleUncertainty_t("XS_LumiCA1"    , 1.+0.009, ""       , ""               ,      "", 2017, false,  true, false); up = true ; break;
+      case  59: data.scale_ = ScaleUncertainty_t("XS_LumiCA1"    , 1.-0.009, ""       , ""               ,      "", 2017, false,  true, false); up = false; break;
+      case  60: data.scale_ = ScaleUncertainty_t("XS_LumiCA2"    , 1.+0.020, ""       , ""               ,      "", 2018, false,  true, false); up = true ; break;
+      case  61: data.scale_ = ScaleUncertainty_t("XS_LumiCA2"    , 1.-0.020, ""       , ""               ,      "", 2018, false,  true, false); up = false; break;
+      case  62: data.scale_ = ScaleUncertainty_t("XS_LumiCB1"    , 1.+0.006, ""       , ""               ,      "", 2017, false,  true, false); up = true ; break; //CB = 2017/2018
+      case  63: data.scale_ = ScaleUncertainty_t("XS_LumiCB1"    , 1.-0.006, ""       , ""               ,      "", 2017, false,  true, false); up = false; break; //     correlated
+      case  64: data.scale_ = ScaleUncertainty_t("XS_LumiCB2"    , 1.+0.002, ""       , ""               ,      "", 2018, false,  true, false); up = true ; break;
+      case  65: data.scale_ = ScaleUncertainty_t("XS_LumiCB2"    , 1.-0.002, ""       , ""               ,      "", 2018, false,  true, false); up = false; break;
+
+      // case  : data.scale_ = ScaleUncertainty_t("XS_LumiUC0"    , 1.+0.012, ""       , ""               ,      "", 2016, false,  true, false); up = true ; break; //individual year corr
+      // case  : data.scale_ = ScaleUncertainty_t("XS_LumiUC0"    , 1.-0.012, ""       , ""               ,      "", 2016, false,  true, false); up = false; break;
+      // case  : data.scale_ = ScaleUncertainty_t("XS_LumiUC1"    , 1.+0.023, ""       , ""               ,      "", 2017, false,  true, false); up = true ; break;
+      // case  : data.scale_ = ScaleUncertainty_t("XS_LumiUC1"    , 1.-0.023, ""       , ""               ,      "", 2017, false,  true, false); up = false; break;
+      // case  : data.scale_ = ScaleUncertainty_t("XS_LumiUC2"    , 1.+0.025, ""       , ""               ,      "", 2018, false,  true, false); up = true ; break;
+      // case  : data.scale_ = ScaleUncertainty_t("XS_LumiUC2"    , 1.-0.025, ""       , ""               ,      "", 2018, false,  true, false); up = false; break;
+      // case  : data.scale_ = ScaleUncertainty_t("XS_LumiUC"     , 1.+0.016, ""       , ""               ,      "",   -1, false,  true, false); up = true ; break; //Run-II total unc
+      // case  : data.scale_ = ScaleUncertainty_t("XS_LumiUC"     , 1.-0.016, ""       , ""               ,      "",   -1, false,  true, false); up = false; break;
       }
       data.name_ = data.scale_.name_;
       data.up_ = up;

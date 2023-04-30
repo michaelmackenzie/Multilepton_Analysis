@@ -13,10 +13,12 @@ using namespace CLFV;
 bool useRateParams_ = false;
 bool fixSignalPDF_  = true;
 bool useMultiDim_   = true;
-bool includeSys_    = false; //FIXME: turn on systematics
+bool includeSys_    = true;
 bool printPlots_    = true;
 bool fitSideBands_  = true;
 bool export_        = false; //if locally run, export the workspace to LPC
+bool replaceRefit_  = false; //replace data with toy MC, then fit the unblinded toy data
+bool save_          = true ; //save output combine workspace/cards
 
 
 //Retrieve yields for each relevant systematic
@@ -149,7 +151,8 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
   //////////////////////////////////////////////////////////////////
 
   TString outName = Form("combine_bemu_%s_%s.root", selection.Data(), set_string.Data());
-  TFile* fOut = new TFile(("datacards/"+year_string+"/"+outName).Data(), "RECREATE");
+  TFile* fOut = nullptr;
+  if(save_) fOut = new TFile(("datacards/"+year_string+"/"+outName).Data(), "RECREATE");
 
   //////////////////////////////////////////////////////////////////
   // Configure the data card
@@ -159,7 +162,9 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
   gSystem->Exec(Form("[ ! -d datacards/%s ] && mkdir -p datacards/%s", year_string.Data(), year_string.Data()));
   TString filepath = Form("datacards/%s/combine_bemu_%s_%s.txt", year_string.Data(), selection.Data(), set_string.Data());
   std::ofstream outfile;
-  outfile.open(filepath.Data());
+  if(save_)
+    outfile.open(filepath.Data());
+  else outfile.open("TMP.txt"); //save to a temporary card
   if(!outfile.is_open()) return 10;
 
   outfile << "# -*- mode: tcl -*-\n";
@@ -174,12 +179,12 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
   }
 
   //Start each line, building for each background process
-  TString bins   = "bin          "; //channel definition, 1 per channel
-  TString bins_p = "bin       "    ; //per process per channel channel listing
-  TString proc_l = "process  "; //process definition per channel
-  TString proc_c = "process  "; //process class per channel
-  TString rate   = "rate     "; //process rate per channel
-  TString obs    = "observation      "; //data observations, 1 per channel
+  TString bins   = "bin                    "; //channel definition, 1 per channel
+  TString bins_p = "bin                 "    ; //per process per channel channel listing
+  TString proc_l = "process            "; //process definition per channel
+  TString proc_c = "process            "; //process class per channel
+  TString rate   = "rate               "; //process rate per channel
+  TString obs    = "observation                "; //data observations, 1 per channel
   TString signorm; //for relative signal rates at example branching fraction
   TString cats; //for discrete category indices
   map<TString, TString> systematics; //map of systematic name to systematic effect line
@@ -299,6 +304,18 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
   RooDataSet* dataset = bkgPDF->generate(RooArgSet(*lepm), data->Integral(low_bin, high_bin));
   dataset->SetName("data_obs");
 
+  //Re-fit the PDFs to the toy MC data
+  if(replaceRefit_) {
+    cout << "####################################################################" << endl
+         << "!!! Re-fitting to the toy MC data generated!\n"
+         << "####################################################################" << endl;
+    for(int ipdf = 0; ipdf < categories->numTypes(); ++ipdf) {
+      auto pdf = multiPDF->getPdf(ipdf);
+      pdf->fitTo(*dataset, RooFit::PrintLevel((verbose_ > 2) ? 1 : -1),
+                 RooFit::Warnings(0), RooFit::PrintEvalErrors(-1));
+    }
+  }
+
   //Plot the results of the background fits
   if(printPlots_) {
     TCanvas* c = new TCanvas(Form("c_%i", set), Form("c_%i", set), 1000, 1000);
@@ -344,6 +361,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
                     RooFit::NormRange("full"), RooFit::Range("full"));
         order = ((title(title.Sizeof() - 2)) - '0');
         if(title.Contains("Exponential")) order *= 2;
+        if(title.BeginsWith("Combined")) order = 4; //2nd order poly + 0th order exp
         chi_sqs.push_back(chi_sq / (nentries - order - 1));
         p_chi_sqs.push_back(TMath::Prob(chi_sq, nentries - order - 1));
       }
@@ -512,14 +530,14 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
   signorm += Form("nsig_%-3i rateParam   lepm_%-3i %8s %10.1f\n", set, set, selection.Data(), sig->Integral(low_bin, high_bin));
 
   //add the background
-  bins_p += Form("%10s", hist.Data());
-  proc_l += Form("%10s", "bkg");
-  proc_c += Form("%10i", ncat);
+  bins_p += Form("%15s", hist.Data());
+  proc_l += Form("%15s", "bkg");
+  proc_c += Form("%15i", ncat);
   ++ncat;
   if(useRateParams_)
-    rate   += Form("%10i", 1);
+    rate   += Form("%15i", 1);
   else
-    rate   += Form("%10.1f", data->Integral(low_bin, high_bin));
+    rate   += Form("%15.1f", data->Integral(low_bin, high_bin));
   if(useMultiDim_) {
     ws->import(*multiPDF, RooFit::RecycleConflictNodes());
     ws->import(*categories, RooFit::RecycleConflictNodes());
@@ -530,7 +548,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
   //   ws->import(*N_bkg, RooFit::RecycleConflictNodes());
 
   ws->import(*dataset);
-  ws->Write();
+  if(save_) ws->Write();
   cout << "Best fit bkgPDF is index " << index << " (" << bkgPDF->GetTitle() << ")\n";
 
   //add systematic information
@@ -538,12 +556,12 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
     TString sys = sys_names[index];
     TString line;
     if(systematics.find(sys) == systematics.end()) {
-      line = Form("%-12s lnN", sys.Data());
+      line = Form("%-17s lnN", sys.Data());
     } else {
       line = systematics[sys];
     }
     double yield = sig_sys[index]*sig_scale;
-    line += Form("%9.4f     -     ", 1. + (yield - sig_rate)/sig_rate);
+    line += Form("%9.4f            -     ", 1. + (yield - sig_rate)/sig_rate);
     systematics[sys] = line;
   }
 
@@ -614,11 +632,13 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
         systematics[sys] = line;
       }
     }
-    auto dir = fOut->mkdir("ee");
-    dir->cd();
-    hZ->Write();
-    hZBkg->Write();
-    hZObs->Write();
+    if(save_) {
+      auto dir = fOut->mkdir("ee");
+      dir->cd();
+      hZ->Write();
+      hZBkg->Write();
+      hZObs->Write();
+    }
     delete hDY;
     delete hBkg;
     delete hZ;
@@ -681,12 +701,14 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
         systematics[sys] = line;
       }
     }
-    fOut->cd();
-    dir = fOut->mkdir("mumu");
-    dir->cd();
-    hZ->Write();
-    hZBkg->Write();
-    hZObs->Write();
+    if(save_) {
+      fOut->cd();
+      auto dir = fOut->mkdir("mumu");
+      dir->cd();
+      hZ->Write();
+      hZBkg->Write();
+      hZObs->Write();
+    }
     delete hDY;
     delete hBkg;
     delete hZ;
@@ -696,7 +718,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
     delete hstack;
     fmumu->Close();
   }
-  fOut->Close();
+  if(save_) fOut->Close();
 
   //Print the contents of the card
   outfile << Form("----------------------------------------------------------------------------------------------------------- \n\n");
@@ -707,13 +729,13 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
   outfile << Form("%s \n\n", proc_c.Data());
   outfile << Form("%s \n\n", rate.Data()  );
   outfile << Form("----------------------------------------------------------------------------------------------------------- \n\n");
-  outfile.close();
+  if(save_) outfile.close();
 
   //make a systematic free copy of the data card
   TString alt_card = filepath; alt_card.ReplaceAll(".txt", "_nosys.txt");
-  gSystem->Exec(Form("cp %s %s", filepath.Data(), alt_card.Data()));
+  if(save_) gSystem->Exec(Form("cp %s %s", filepath.Data(), alt_card.Data()));
 
-  outfile.open(filepath.Data(), std::ios_base::app); //open again, appending to the file
+  if(save_) outfile.open(filepath.Data(), std::ios_base::app); //open again, appending to the file
 
   for(int index = 0; index < systematics.size(); ++index) {
     TString sys = sys_names[index];

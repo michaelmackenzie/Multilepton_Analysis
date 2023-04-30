@@ -9,9 +9,10 @@ vector<TH1*> hsigs_;
 int test_sys_ = -1; //set to systematic number if debugging/inspecting it
 double xmin_;
 double xmax_;
-bool blind_data_ = true;
-bool do_systematics_ = false;
-bool allow_sys_errors_ = true; //if there are missing systematic histograms, clone the default for now
+bool blind_data_       = true ; //remove signal region from data
+bool do_systematics_   = true ; //retrieve systematically shifted templates
+bool sig_sys_only_     = true ; //only process systematic templates for signal processes
+bool allow_sys_errors_ = true ; //if there are missing systematic histograms, clone the default
 TH1* hDefault_; //store the default histogram in case of missing systematics
 TH1* hDY_;
 
@@ -123,17 +124,21 @@ int get_systematics(int set, TString hist, TFile* f, TString canvas_name) {
 
   //Loop through each systematic, creating PDFs and example figures
   for(int isys = (test_sys_ >= 0 ? test_sys_ : 0); isys < (test_sys_ >= 0 ? test_sys_ + 1 : kMaxSystematics); ++isys) {
-
+    // cout << "Retrieving histograms for systematic " << isys << endl;
     //Get background for the systematic
-    THStack* hstack = dataplotter_->get_stack(Form("%s_%i", hist.Data(), isys), "systematic", set);
-    if(!hstack) {++status; continue;}
-    if(!hstack->GetStack()) {++status; continue;}
-    TH1* hbkg = (TH1*) hstack->GetStack()->Last();
+    THStack* hstack = (sig_sys_only_) ? nullptr : dataplotter_->get_stack(Form("%s_%i", hist.Data(), isys), "systematic", set);
+    if(!sig_sys_only_ && !hstack) {++status; continue;}
+    if(!sig_sys_only_ && !hstack->GetStack()) {++status; continue;}
+    TH1* hbkg = (sig_sys_only_) ? (TH1*) hbkg_->Clone(Form("hbkg_sys_%i", isys)) : (TH1*) hstack->GetStack()->Last();
     hbkg->SetName(Form("hbkg_sys_%i", isys));
 
     //Get the signals
     vector<TH1*> signals = dataplotter_->get_signal(Form("%s_%i", hist.Data(), isys), "systematic", set);
-    if(signals.size() == 0) {++status; continue;}
+    if(signals.size() == 0) {
+      cout << "No signal template for systematic " << isys << endl;
+      ++status;
+      continue;
+    }
     // //get data
     // TH1* hdata = dataplotter_->get_data(Form("%s_%i", hist.Data(), isys), "systematic", set);
     // if(!hdata) {++status; continue;}
@@ -163,6 +168,11 @@ int get_systematics(int set, TString hist, TFile* f, TString canvas_name) {
     for(unsigned index = 0; index < signals.size(); ++index) {
       auto h = signals[index];
       auto hnom = hsigs_[index];
+      TString hname = h->GetName();
+      if(dataplotter_->signal_scales_.find(hname) != dataplotter_->signal_scales_.end())
+        h->Scale(1./dataplotter_->signal_scales_[hname]);
+      else
+        h->Scale(1./dataplotter_->signal_scale_);
       TGraph* g_sig = dataplotter_->get_errors(hnom, h, 0);
       hnom->SetFillColor(0);
       hnom->SetLineWidth(2);
@@ -194,11 +204,6 @@ int get_systematics(int set, TString hist, TFile* f, TString canvas_name) {
     for(unsigned index = 0; index < signals.size(); ++index) {
       auto h = signals[index];
       auto hnom = hsigs_[index];
-      TString hname = h->GetName();
-      if(dataplotter_->signal_scales_.find(hname) != dataplotter_->signal_scales_.end())
-        h->Scale(1./dataplotter_->signal_scales_[hname]);
-      else
-        h->Scale(1./dataplotter_->signal_scale_);
       double r_min_s, r_max_s;
       TGraph* g_sig = dataplotter_->get_errors(hnom, h, 0, true, r_min_s, r_max_s);
       r_min = min(r_min, r_min_s);

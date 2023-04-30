@@ -3,33 +3,47 @@ using namespace CLFV;
 
 #include "TrainTrkQual.C"
 
-int train_tmva(const char* tree_name = "trees/background_clfv_Z0_nano_mutau_2016_8.tree", vector<int> ignore = {}, int version = -1) {
+int train_tmva(const char* tree_name = "trees/background_clfv_Z0_nano_mutau_2016_2017_2018_8.tree", vector<int> ignore = {}, int version = -1) {
   if(version > -1) trkqual_version_ = version;
 
   TFile *f;
   TString tmvaName;
+  TString fname = tree_name;
   TString x = tree_name;
   x.ReplaceAll("trees/", ""); //remove directory from name
   TObjArray *tx = x.Tokenize(".");
 
   printf("Getting Trees\n");
 
-  f = TFile::Open(tree_name, "READ");
+  /////////////////////////////////////////////////////////////
+  // Check if doing hadronic tau prong fit regions
+  if(fname.Contains("_21.tree")) {
+    fname.ReplaceAll("_21.tree", "_8.tree");
+    nprongs_ = 1;
+  } else if(fname.Contains("_22.tree")) {
+    fname.ReplaceAll("_22.tree", "_8.tree");
+    nprongs_ = 3;
+  }
+  f = TFile::Open(fname.Data(), "READ");
 
   if(!f) {
     return 1;
   }
 
-  TTree* signal;
+  TTree *signal, *background;
   int isData = 0;
   if(x.Contains("mock")) {
     signal = (TTree*) f->Get("background_tree_mock_data");
     isData = 1;
-  } else
+  } else if(x.Contains("split")) { //FIXME: define test and train trees
+    signal = (TTree*) f->Get("train");
+  } else {
     signal = (TTree*) f->Get("background_tree");
+    background = signal;
+  }
 
+  background = signal;
 
-  TTree* background = signal;
   if(!signal || !background) {
     printf("Trees not found\n");
     f->ls();

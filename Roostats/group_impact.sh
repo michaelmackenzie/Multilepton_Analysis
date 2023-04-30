@@ -2,7 +2,8 @@
 
 WORKSPACE=$1
 GROUP=$2
-DOOBS=$3
+SKIPNOMINAL=$3
+DOOBS=$4
 
 if [[ "${DOOBS}" == "" ]]
 then
@@ -12,7 +13,10 @@ else
 fi
 
 #evaluate precision on r with/without the group of nuisances
-combine -M FitDiagnostics -n _groupFit_Test_Nominal  -d ${WORKSPACE} ${DOOBS} --rMin -20 --rMax 20
+if [[ "${SKIPNOMINAL}" == "" ]]
+then
+    combine -M FitDiagnostics -n _groupFit_Test_Nominal  -d ${WORKSPACE} ${DOOBS} --rMin -20 --rMax 20
+fi
 combine -M FitDiagnostics -n _groupFit_Test_${GROUP} -d ${WORKSPACE} ${DOOBS} --rMin -20 --rMax 20 --freezeNuisanceGroups ${GROUP}
 
 FNOMINAL="fitDiagnostics_groupFit_Test_Nominal.root"
@@ -30,4 +34,4 @@ then
 fi
 
 root.exe -q -b "${CMSSW_BASE}/src/CLFVAnalysis/Roostats/extract_impact.C(\"${FNOMINAL}\", \"${FGROUP}\")"
-rm ${FNOMINAL} ${FGROUP}
+rm ${FGROUP}

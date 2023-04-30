@@ -260,10 +260,13 @@ double EmbeddingTnPWeight::MuonTriggerWeight(double pt, double eta, int year, fl
     return 1.;
   }
 
+  //Assume a fixed overall systematic uncertainty on the embedding trigger efficiency
+  const float mc_sys_eff = 0.002; //0.2% overall uncertainty
+
   data_up   = data_eff + data_unc[0];
-  mc_up     = mc_eff   + mc_unc  [0];
+  mc_up     = mc_eff   + std::sqrt(std::pow(mc_unc[0],2) + std::pow(mc_sys_eff,2));
   data_down = data_eff - data_unc[1];
-  mc_down   = mc_eff   - mc_unc  [1];
+  mc_down   = mc_eff   - std::sqrt(std::pow(mc_unc[1],2) + std::pow(mc_sys_eff,2));
 
   const float max_eff(0.999), min_eff(0.001); // maximum of 99.9% efficiency, minimum of 0.1%
   data_eff  = std::max(min_eff, std::min(max_eff, data_eff ));
@@ -408,10 +411,13 @@ double EmbeddingTnPWeight::ElectronTriggerWeight(double pt, double eta, int year
     return 1.;
   }
 
+  //Assume a fixed overall systematic uncertainty on the embedding trigger efficiency
+  const float mc_sys_eff = 0.005; //0.5% overall uncertainty
+
   data_up   = data_eff + data_unc[0];
-  mc_up     = mc_eff   + mc_unc  [0];
+  mc_up     = mc_eff   + std::sqrt(std::pow(mc_unc[0],2) + std::pow(mc_sys_eff,2));
   data_down = data_eff - data_unc[1];
-  mc_down   = mc_eff   - mc_unc  [1];
+  mc_down   = mc_eff   - std::sqrt(std::pow(mc_unc[1],2) + std::pow(mc_sys_eff,2));
 
   const float max_eff(0.999), min_eff(0.001); // maximum of 99.9% efficiency, minimum of 0.1%
   data_eff  = std::max(min_eff, std::min(max_eff, data_eff ));

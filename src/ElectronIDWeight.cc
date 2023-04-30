@@ -267,25 +267,30 @@ double ElectronIDWeight::TriggerEff(double pt, double eta, int year, int WP, flo
   //check if using eta or |eta|
   if(hTrigData->GetXaxis()->GetBinLowEdge(1) > -0.1) eta = std::fabs(eta);
 
+  //Assume a fixed overall systematic uncertainty on the embedding trigger efficiency
+  const float mc_sys_eff = 0.005; //0.5% overall uncertainty
+
   if(interpolate_) {
     data_eff = Utilities::Interpolate(hTrigData, eta, pt, Utilities::kYAxis);
     mc_eff   = Utilities::Interpolate(hTrigMC  , eta, pt, Utilities::kYAxis);
-    data_up = data_eff; data_down = data_eff;
-    mc_up = mc_eff; mc_down = mc_eff;
+    data_up = data_eff; data_down = data_eff; //FIXME: add uncertainties on interpolation
+    mc_up = mc_eff + mc_sys_eff; mc_down = mc_eff - mc_sys_eff;
   } else {
     const int data_bin_x = std::max(1, std::min(hTrigData->GetNbinsX(), hTrigData->GetXaxis()->FindBin(eta)));
     const int data_bin_y = std::max(1, std::min(hTrigData->GetNbinsY(), hTrigData->GetYaxis()->FindBin(pt )));
-    data_eff  = hTrigData->GetBinContent(data_bin_x, data_bin_y);
-    data_up   = data_eff + hTrigData->GetBinError(data_bin_x, data_bin_y);
-    data_down = data_eff - hTrigData->GetBinError(data_bin_x, data_bin_y);
     const int mc_bin_x   = std::max(1, std::min(hTrigMC  ->GetNbinsX(), hTrigMC  ->GetXaxis()->FindBin(eta)));
     const int mc_bin_y   = std::max(1, std::min(hTrigMC  ->GetNbinsY(), hTrigMC  ->GetYaxis()->FindBin(pt )));
-    mc_eff  = hTrigMC->GetBinContent(mc_bin_x  , mc_bin_y  );
-    mc_up   = mc_eff + hTrigMC->GetBinError(mc_bin_x  , mc_bin_y  );
-    mc_down = mc_eff - hTrigMC->GetBinError(mc_bin_x  , mc_bin_y  );
+    const float data_err = hTrigData->GetBinError(data_bin_x, data_bin_y);
+    const float mc_err   = hTrigMC  ->GetBinError(mc_bin_x  , mc_bin_y  );
+    data_eff  = hTrigData->GetBinContent(data_bin_x, data_bin_y);
+    data_up   = data_eff + data_err;
+    data_down = data_eff - data_err;
+    mc_eff    = hTrigMC->GetBinContent(mc_bin_x  , mc_bin_y  );
+    mc_up     = mc_eff   + std::sqrt(std::pow(mc_err,2) + std::pow(mc_sys_eff,2));
+    mc_down   = mc_eff   - std::sqrt(std::pow(mc_err,2) + std::pow(mc_sys_eff,2));
   }
 
-  //ensure reasonable efficiencies
+  //ensure reasonable efficiencies/inefficiencies
   const float min_eff = 1.e-4;
   data_eff  = std::min(1.f - min_eff, std::max(min_eff, data_eff ));
   mc_eff    = std::min(1.f - min_eff, std::max(min_eff, mc_eff   ));

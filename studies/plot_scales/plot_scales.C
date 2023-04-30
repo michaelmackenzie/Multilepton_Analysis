@@ -129,26 +129,32 @@ TCanvas* plot_1D_slices(TH2* hID, TString cname, bool xaxis, TH1*& haxis) {
   const int colors[] = {kRed, kBlue, kGreen, kViolet, kOrange, kYellow+2,
                         kAtlantic, kGreen+2, kRed+2, kBlue+2, kViolet-2,
                         kOrange+2,kViolet+2, kBlue-2};
+  const int styles[] = {kSolid, kDashed, kDotted, kDashDotted};
+  const int ncolors = sizeof(colors) / sizeof(*colors);
+  const int nstyles = sizeof(styles) / sizeof(*styles);
+
   double ymin(1.e9), ymax(-1.e9);
   haxis = nullptr;
   for(int ibin = 1; ibin <= nbins; ++ibin) {
     TH1* h = (xaxis) ? hID->ProjectionY(Form("_%i", ibin), ibin, ibin) : hID->ProjectionX(Form("_%i", ibin), ibin, ibin);
-    h->SetLineColor(colors[ibin-1]);
+    h->SetLineColor(colors[(ibin-1) % ncolors]);
+    h->SetLineStyle(styles[(ibin-1) / nstyles]);
     h->SetLineWidth(2);
     h->SetMarkerSize(0.8);
     h->SetMarkerStyle(20);
-    h->SetMarkerColor(colors[ibin-1]);
+    h->SetMarkerColor(colors[(ibin-1) % ncolors]);
     if(ibin == 1) {h->Draw("E"); haxis = h;}
     else h->Draw("E same");
     const double xmin = (xaxis) ? hID->GetXaxis()->GetBinLowEdge(ibin) : hID->GetYaxis()->GetBinLowEdge(ibin);
     const double xmax = (xaxis) ? xmin + hID->GetXaxis()->GetBinWidth(ibin) : xmin + hID->GetYaxis()->GetBinWidth(ibin);
-    leg->AddEntry(h, Form("[%.2f, %.2f]", xmin, xmax));
+    leg->AddEntry(h, Form("[%.2f, %.2f]", xmin, xmax), "L");
     for(int jbin = 1; jbin <= h->GetNbinsX(); ++jbin) {
       const double binc = h->GetBinContent(jbin);
       ymin = std::min(ymin, binc);
       ymax = std::max(ymax, binc);
     }
   }
+  leg->SetNColumns(1 + nbins / 10);
   leg->Draw();
   haxis->GetXaxis()->SetTitleSize(0.05);
   haxis->GetYaxis()->SetTitleSize(0.05);
@@ -362,6 +368,16 @@ TCanvas* plot_muon_ID_scale(int year, int period = 0, bool error = false) {
   hID->SetTitle("Muon ID scale");
   hID->SetXTitle(xname.Data());
   hID->SetYTitle(yname.Data());
+  TH1* haxis = nullptr;
+  TString slice_name = Form("muon_ID_slice_%i%s", year, (period > 0) ? Form("_%i", period+1) : "");
+  TCanvas* c = plot_1D_slices(hID, ("c_" + slice_name).Data(), true, haxis);
+  if(c) {
+    c->Print(Form("figures/%s.png", slice_name.Data()));
+    c->SetLogx();
+    if(haxis) haxis->GetXaxis()->SetMoreLogLabels(kTRUE);
+    c->Print(Form("figures/%s_log.png", slice_name.Data()));
+  }
+
   return plot_scale(hID, Form("c_muon_id_%i", year), error);
 }
 

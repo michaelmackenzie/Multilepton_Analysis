@@ -79,6 +79,8 @@ void CLFVHistMaker::InitHistogramFlags() {
     fSysSets   [kMuTau + 26] = 1;
     fEventSets [kMuTau + 27] = 1; //low mass
     fSysSets   [kMuTau + 27] = 1;
+    fEventSets [kMuTau + 28] = 1; //Z->ee/mumu
+    fSysSets   [kMuTau + 28] = 1;
 
     // jet --> tau DRs
     fEventSets [kMuTau + 30] = fQCDFakeTauTesting; //QCD
@@ -121,6 +123,8 @@ void CLFVHistMaker::InitHistogramFlags() {
     fSysSets   [kETau + 26] = 1;
     fEventSets [kETau + 27] = 1; //low mass
     fSysSets   [kETau + 27] = 1;
+    fEventSets [kETau + 28] = 1; //Z->ee/mumu
+    fSysSets   [kETau + 28] = 1;
 
     // jet --> tau DRs
     fEventSets [kETau + 30] = fQCDFakeTauTesting; //QCD
@@ -155,8 +159,9 @@ void CLFVHistMaker::InitHistogramFlags() {
 
       // MVA categories
       for(int i = 9; i < ((fDoHiggs) ? 19 : 15); ++i) fEventSets[kEMu  + i] = 1;
-      fSysSets[kEMu  + 9  + fMVAConfig->categories_["zemu"].size()] = 1; //start with most significant category
+      fSysSets[kEMu  + 9  + fMVAConfig->categories_["zemu"].size()] = 1; //most significant category
       fSysSets[kEMu  + 8  + fMVAConfig->categories_["zemu"].size()] = 1; //second most significant category
+      fSysSets[kEMu  + 7  + fMVAConfig->categories_["zemu"].size()] = 1; //third most significant category
       if(fDoHiggs) {
         fSysSets[kEMu  + 14 + fMVAConfig->categories_["hemu"].size()] = 1; //start with most significant category
         fSysSets[kEMu  + 13 + fMVAConfig->categories_["hemu"].size()] = 1; //second most significant category
@@ -662,6 +667,7 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
   const bool isETau  = leptonOne.isElectron() && leptonTwo.isTau     ();
   const bool isEData = leptonOne.isElectron() || leptonTwo.isElectron();
   const bool isMData = leptonOne.isMuon()     || leptonTwo.isMuon    ();
+  const bool isEMu   = fSelection == "emu"; //for Z->e+mu, ignore many background-only effects
 
   //Event information that may be altered, to restore the event information after a systematic shift
   const TLorentzVector o_lv1(*leptonOne.p4), o_lv2(*leptonTwo.p4), o_jet(*jetOne.p4);
@@ -686,7 +692,7 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
     const TString name = fSystematics.GetName(sys);
     if(name == "") continue; //only process defined systematics
 
-    if( (isMuTau || isETau || isSameFlavor) && name.Contains("QCD")) continue; //only relevant to e+mu category
+    if( (isMuTau || isETau || isSameFlavor || isEMu) && name.Contains("QCD")) continue; //only relevant to e+mu category MVA fits
     if(!(isMuTau || isETau) && name.Contains("Tau")) continue; //only relevant to tau categories
     if(name.BeginsWith("Emb") && !fIsEmbed) continue; //only relevant for embedding samples
 
@@ -803,11 +809,15 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
         }
         float wt_jtt = 0.f;
         for(int iproc = 0; iproc < JetToTauComposition::kLast; ++iproc) {
-          const bool test = (iproc == proc) && (tauDecayMode % 10 == 0 || tauDecayMode % 10 == 1) && ((tauDecayMode%10 + 2*(tauDecayMode/10)) == dm_bin);
-          const float comp = fJetToTauComps[iproc] * fJetToTauCorrs[iproc] * fJetToTauBiases[iproc] * ((test) ?
-                                                                                                       (fSystematics.IsUp(sys)) ? fJetToTauWtsUp[iproc] : fJetToTauWtsDown[iproc]
-                                                                                                       : fJetToTauWts[iproc]);
-          wt_jtt += comp;
+          const bool test = (((iproc == proc || (proc == JetToTauComposition::kWJets && iproc == JetToTauComposition::kZJets)))
+                             && (tauDecayMode % 10 == 0 || tauDecayMode % 10 == 1) && ((tauDecayMode%10 + 2*(tauDecayMode/10)) == dm_bin));
+          float base = fJetToTauComps[iproc] * fJetToTauCorrs[iproc];
+          if(fApplyJetToTauMCBias || (iproc != JetToTauComposition::kWJets && iproc != JetToTauComposition::kZJets)) {
+            base *= fJetToTauBiases[proc];
+          }
+          wt_jtt += base * ((test) ?
+                            (fSystematics.IsUp(sys)) ? fJetToTauWtsUp[iproc] : fJetToTauWtsDown[iproc]
+                            : fJetToTauWts[iproc]);
         }
         if(wt_jtt <= 0.f || (fVerbose && std::abs(wt_jtt-jetToTauWeightBias)/wt_jtt > 2.f)) {
           printf("CLFVHistMaker::%s: Unexpected j-->tau weight variation! wt = %.3f, nominal = %.3f, proc = %i, dm_bin = %i, dm = %i\n",
@@ -815,6 +825,51 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
         }
         weight *= wt_jtt / jetToTauWeightBias;
       }
+    } else if(name.Contains("JetToTauAlt")) { //process (3) x DM (4) x fit param (3) binned stat. uncertainty
+      if(isLooseTau) { //only shift the weight for loose tau ID region events
+        //recreate the weight with shifted process bias
+        TString id_s = name; id_s.ReplaceAll("JetToTauAlt", "");
+        int proc = 0;
+        if     (id_s.BeginsWith("P0")) proc = JetToTauComposition::kWJets;
+        else if(id_s.BeginsWith("P1")) proc = JetToTauComposition::kTop;
+        else if(id_s.BeginsWith("P2")) proc = JetToTauComposition::kQCD;
+        else continue;
+        int dm_bin = 0;
+        if     (id_s.Contains("D0")) dm_bin = 0;
+        else if(id_s.Contains("D1")) dm_bin = 1;
+        else if(id_s.Contains("D2")) dm_bin = 2;
+        else if(id_s.Contains("D3")) dm_bin = 3;
+        else continue;
+        int alt_bin = 0;
+        if     (id_s.EndsWith("A0")) alt_bin = 0;
+        else if(id_s.EndsWith("A1")) alt_bin = 1;
+        else if(id_s.EndsWith("A2")) alt_bin = 2;
+        else continue;
+        float wt_jtt = 0.f;
+        for(int iproc = 0; iproc < JetToTauComposition::kLast; ++iproc) {
+          //Z+jets uses the W+jets scales
+          bool test = ((iproc == proc || (proc == JetToTauComposition::kWJets && iproc == JetToTauComposition::kZJets)) &&
+                       (tauDecayMode % 10 == 0 || tauDecayMode % 10 == 1)
+                       && ((tauDecayMode%10 + 2*(tauDecayMode/10)) == dm_bin)
+                       && (alt_bin < fJetToTauAltNum[proc]));
+          float corr;
+          if(fApplyJetToTauMCBias || (iproc != JetToTauComposition::kWJets && iproc != JetToTauComposition::kZJets)) {
+            corr = fJetToTauComps[iproc] * fJetToTauCorrs[iproc] * fJetToTauBiases[iproc];
+          } else {
+            corr = fJetToTauComps[iproc] * fJetToTauCorrs[iproc];
+          }
+          if(test) {
+            wt_jtt += corr * ((fSystematics.IsUp(sys)) ? fJetToTauAltUp[iproc*kMaxAltFunc + alt_bin] : fJetToTauAltDown[iproc*kMaxAltFunc + alt_bin]);
+          } else {
+            wt_jtt += corr * fJetToTauWts[iproc];
+          }
+        }
+        if(wt_jtt <= 0.f || (fVerbose && std::abs(wt_jtt-jetToTauWeightBias)/wt_jtt > 2.f)) {
+          printf("CLFVHistMaker::%s: Entry %lld: Unexpected j-->tau weight variation! wt = %.3f, nominal = %.3f, proc = %i, dm_bin = %i, dm = %i\n",
+                 __func__, fentry, wt_jtt, jetToTauWeightBias, proc, dm_bin, tauDecayMode);
+        }
+        weight *= wt_jtt / jetToTauWeightBias;
+      } else continue; //skip tight ID events, take default histogram
     } else if(name == "ZPt") {
       if(!(fIsSignal || fIsDY)) continue;
       if(fSystematics.IsUp(sys)) weight *= zPtWeightUp          / zPtWeight      ;
@@ -844,7 +899,7 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
     } else if(name.BeginsWith("EmbEleES")) {
       if(!fIsEmbed || !isEData) continue;
       reeval = true;
-      //EmbEleES = |eta| < 1.5; EmbEleES1 = |eta| > 1.5;
+      //|eta| Regions: EmbEleES = |eta| < 1.5; EmbEleES1 = |eta| > 1.5;
       const float eta_min = (name.EndsWith("1")) ? 1.5f : 0.f;
       const float eta_max = (name.EndsWith("1")) ? 2.5f : 1.5f;
       if(fSystematics.IsUp(sys)) { //FIXME: check if this should be propagated to the MET
@@ -937,7 +992,7 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
       if(!chargeTest) { //only shift for same-sign events
         if(fSystematics.IsUp(sys)) weight *= (qcdWeight > 0.) ? qcdWeightUp   / qcdWeight : 0.;
         else                       weight *= (qcdWeight > 0.) ? qcdWeightDown / qcdWeight : 0.;
-      }
+      } else continue; //no need to fill opposite signed histograms
     } else if(name.Contains("QCDStat")) { //jet binned QCD fit uncertainty
       if(!chargeTest) { //only shift for same-sign events
         int jet_bin(0);
@@ -948,22 +1003,35 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
           if(fSystematics.IsUp(sys)) weight *= (qcdWeight > 0.) ? qcdWeightUp   / qcdWeight : 0.;
           else                       weight *= (qcdWeight > 0.) ? qcdWeightDown / qcdWeight : 0.;
         }
-      }
+      } else continue; //no need to fill opposite signed histograms
+    } else if(name.Contains("QCDAlt")) { //jet binned QCD fit uncertainty using alternate shapes
+      if(!chargeTest) { //only shift for same-sign events
+        int jet_bin(0), alt_bin(0);
+        if     (name.BeginsWith("QCDAltJ0")) jet_bin = 0;
+        else if(name.BeginsWith("QCDAltJ1")) jet_bin = 1;
+        else if(name.BeginsWith("QCDAltJ2")) jet_bin = 2;
+        if     (name.EndsWith("A0")) alt_bin = 0;
+        else if(name.EndsWith("A1")) alt_bin = 1;
+        if(std::min(2, (int) nJets20) == jet_bin) {
+          if(fSystematics.IsUp(sys)) weight *= (qcdWeight > 0.) ? qcdWeightAltUp  [alt_bin] / qcdWeight : 0.;
+          else                       weight *= (qcdWeight > 0.) ? qcdWeightAltDown[alt_bin] / qcdWeight : 0.;
+        }
+      } else continue; //no need to fill opposite signed histograms
     } else if(name == "QCDNC") {
       if(!chargeTest) { //only shift for same-sign events
         if(fSystematics.IsUp(sys)) weight *= (qcdClosure > 0.) ? 1. / qcdClosure : 0.; //remove / apply twice as uncertainty
         else                       weight *= (qcdClosure > 0.) ? 1. * qcdClosure : 0.;
-      }
+      } else continue; //no need to fill opposite signed histograms
     } else if(name == "QCDBias") {
       if(!chargeTest) { //only shift for same-sign events
         if(fSystematics.IsUp(sys)) weight *= (qcdIsoScale > 0.) ? 1. / qcdIsoScale : 0.; //remove / apply twice as uncertainty
         else                       weight *= (qcdIsoScale > 0.) ? 1. * qcdIsoScale : 0.;
-      }
+      } else continue; //no need to fill opposite signed histograms
     } else if(name == "JetToTauNC") {
       if(isLooseTau) { //only shift the weight for loose tau ID region events
         if(fSystematics.IsUp(sys)) weight *= jetToTauWeightCorrUp     / jetToTauWeightCorr   ;
         else                       weight *= jetToTauWeightCorrDown   / jetToTauWeightCorr   ;
-      }
+      } else continue; //no need to fill tight ID histograms
     } else if(name.Contains("JetToTauNC")) { //process binned bias uncertainty
       if(isLooseTau) { //only shift the weight for loose tau ID region events
         //recreate the weight with shifted process bias
@@ -977,17 +1045,28 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
           continue;
         }
         for(int iproc = 0; iproc < JetToTauComposition::kLast; ++iproc) {
+          //Z+jets uses the W+jets scales
+          bool test = iproc == proc || (iproc == JetToTauComposition::kWJets && iproc == JetToTauComposition::kZJets);
+          float corr;
+          if(fApplyJetToTauMCBias || (proc != JetToTauComposition::kWJets && proc != JetToTauComposition::kZJets)) {
+            corr = fJetToTauComps[iproc] * fJetToTauWts[iproc] * fJetToTauBiases[iproc];
+          } else {
+            corr = fJetToTauComps[iproc] * fJetToTauWts[iproc];
+          }
           //take up as apply correction twice, down as no correction
-          wt_jtt += fJetToTauComps[iproc] * fJetToTauWts[iproc] * fJetToTauBiases[iproc] * ((iproc != proc) ? fJetToTauCorrs[iproc] :
-                                                                                           (fSystematics.IsUp(sys)) ? fJetToTauCorrs[iproc]*fJetToTauCorrs[iproc] : 1.f);
+          if(test) {
+            wt_jtt += corr * ((fSystematics.IsUp(sys)) ? fJetToTauCorrs[iproc]*fJetToTauCorrs[iproc] : 1.f);
+          } else {
+            wt_jtt += corr * fJetToTauCorrs[iproc];
+          }
         }
         weight *= wt_jtt / jetToTauWeightBias;
-      }
+      } else continue; //no need to fill tight ID histograms
     } else if(name == "JetToTauComp") {
       if(isLooseTau) { //only shift the weight for loose tau ID region events
         if(fSystematics.IsUp(sys)) weight *= jetToTauWeight_compUp    / jetToTauWeightBias   ;
         else                       weight *= jetToTauWeight_compDown  / jetToTauWeightBias   ;
-      }
+      } else continue; //no need to fill tight ID histograms
     } else if(name == "TauJetID") {
       if(fIsData) continue;
       if(leptonTwo.isTau() && std::abs(tauGenFlavor) == 15) { //only evaluate for true hadronic taus
@@ -1031,6 +1110,10 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
       else                        weight *= (fIsData || fIsEmbed) ? 1.f : 1.f - unc;
     } else if(name == "BTag" || name == "BTagHeavy") {
       if(fIsData || fIsEmbed) continue;
+      if((btagWeightUpBC - btagWeight)*(btagWeightDownBC - btagWeight) > 1.e-6) { //weights are in the same direction
+        printf("HistMaker::%s: Warning! Entry %lld: B-tag gen b/c weight has up/down in same direction: wt = %.4f, up = %.4f, down = %.4f, nJets = %i\n",
+               __func__, fentry, btagWeight, btagWeightUpBC, btagWeightDownBC, nJets20);
+      }
       if(fSystematics.IsUp(sys)) weight *= (btagWeight > 0.f) ? btagWeightUpBC   / btagWeight : 1.f;
       else                       weight *= (btagWeight > 0.f) ? btagWeightDownBC / btagWeight : 1.f;
     } else if(name == "BTagLight") { //non-B/C jet uncertainty
@@ -1041,7 +1124,7 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
       if(isLooseTau) { //only shift the weight for loose tau ID region events
         if(fSystematics.IsUp(sys)) weight *= jetToTauWeightBiasUp     / jetToTauWeightBias   ;
         else                       weight *= jetToTauWeightBiasDown   / jetToTauWeightBias   ;
-      }
+      } else continue; //no need to fill tight ID histograms
     } else if(name.Contains("JetToTauBias")) { //process binned bias uncertainty
       if(isLooseTau) { //only shift the weight for loose tau ID region events
         //recreate the weight with shifted process bias
@@ -1055,12 +1138,35 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
           continue;
         }
         for(int iproc = 0; iproc < JetToTauComposition::kLast; ++iproc) {
-          //take up as apply correction twice, down as no correction
-          wt_jtt += fJetToTauComps[iproc] * fJetToTauWts[iproc] * fJetToTauCorrs[iproc] * ((iproc != proc) ? fJetToTauBiases[iproc] :
-                                                                                           (fSystematics.IsUp(sys)) ? fJetToTauBiases[iproc]*fJetToTauBiases[iproc] : 1.f);
+          //Z+jets uses the W+jets scales
+          bool test = iproc == proc || (proc == JetToTauComposition::kWJets && iproc == JetToTauComposition::kZJets);
+          const float base = fJetToTauComps[iproc] * fJetToTauWts[iproc] * fJetToTauCorrs[iproc];
+          if(fApplyJetToTauMCBias || (iproc != JetToTauComposition::kWJets && iproc != JetToTauComposition::kZJets)) {
+            //take up as applying the bias correction twice, down as no correction
+            wt_jtt += base * ((test) ?
+                              (fSystematics.IsUp(sys)) ? fJetToTauBiases[iproc]*fJetToTauBiases[iproc] : 1.f
+                              : fJetToTauBiases[iproc]);
+          } else {
+            //take up as applying the bias correction, down dividing by the correction
+            wt_jtt += base * ((test) ?
+                              (fSystematics.IsUp(sys)) ? fJetToTauBiases[iproc] : 1.f/fJetToTauBiases[iproc]
+                              : 1.f);
+
+          }
+        }
+        if(proc == JetToTauComposition::kTop && wt_jtt != jetToTauWeightBias) {
+          printf("%s: Bias found in j-->tau top estimation! wt(nom) = %.4f, wt(sys) = %.4f, Bias = %.4f\n",
+                 __func__, jetToTauWeightBias, wt_jtt, fJetToTauBiases[proc]);
+          printf(" event info: lepm = %.1f, mtone = %.1f, one pt = %.1f, two pt = %.1f\n",
+                 fTreeVars.lepm, fTreeVars.mtone, fTreeVars.leponept, fTreeVars.leptwopt);
+          for(int jproc = 0; jproc < JetToTauComposition::kLast; ++jproc) {
+            printf(" proc %i: comp = %.4f, wt = %.4f, correction = %.4f, bias = %.4f\n",
+                   jproc, fJetToTauComps[jproc], fJetToTauWts[jproc], fJetToTauCorrs[jproc], fJetToTauBiases[jproc]);
+          }
+          throw 20;
         }
         weight *= wt_jtt / jetToTauWeightBias;
-      }
+      } else continue; //no need to fill tight ID histograms
     } else if(name == "EmbedUnfold") {
       if(!fIsEmbed) continue;
       if(fSystematics.IsUp(sys)) weight *= 1.04f;
@@ -1487,12 +1593,12 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   ee    &= std::fabs(leptonTwo.dz ) < max_dz ;
 
   //FIXME: Decide dxy/dz significance cuts
-  const int use_dxyz_sig = 0; //0: None; 1: Z->e+mu only; 2: All channels
+  const int use_dxyz_sig = 1; //0: None; 1: Z->e+mu only; 2: All channels
   if(use_dxyz_sig > 1) {
-    mutau &= std::fabs(leptonOne.dxySig) < 2.5;
-    mutau &= std::fabs(leptonOne.dzSig ) < 2.5;
-    etau  &= std::fabs(leptonOne.dxySig) < 2.5;
-    etau  &= std::fabs(leptonOne.dzSig ) < 2.5;
+    mutau &= std::fabs(leptonOne.dxySig) < 3.0;
+    mutau &= std::fabs(leptonOne.dzSig ) < 4.7;
+    etau  &= std::fabs(leptonOne.dxySig) < 3.0;
+    etau  &= std::fabs(leptonOne.dzSig ) < 4.7;
   }
 
   ///////////////////////////////////////////////////////////////////
@@ -1529,8 +1635,8 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   etau  &= leptonTwo.id2  >=  2; //1 = loose, 3 = tight tau MVA anti-muon ID
 
   //remove tau decay modes not interested in (keep only 0, 1, 10, 11)
-  mutau &= tauDecayMode % 10 < 2;
-  etau  &= tauDecayMode % 10 < 2;
+  mutau &= tauDecayMode % 10 < 2 && tauDecayMode <= 11;
+  etau  &= tauDecayMode % 10 < 2 && tauDecayMode <= 11;
 
   if(!(mutau || etau || emu || mumu || ee)) return kTRUE;
 
@@ -1857,8 +1963,8 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   emu    &= lep_tau == 0;
 
   //define leptonic tau kinematic cuts
-  if(mutau_e) {two_pt_min_ = 20.f; ptdiff_min_ = -1.e10; ptdiff_max_ = +1.e10; mtlep_max_ = 100.f; mtone_max_ = 60.f;} //lep 2 = prompt, lep 1 = tau_l
-  if(etau_mu) {one_pt_min_ = 25.f; ptdiff_min_ =    0.f; ptdiff_max_ = +1.e10; mtlep_max_ =  90.f; mttwo_max_ = 50.f;} //lep 1 = prompt, lep 2 = tau_l
+  if(mutau_e) {two_pt_min_ = 20.f; ptdiff_min_ = -1.e10; ptdiff_max_ = +1.e10; mtlep_max_ =  90.f; mtone_max_ = 60.f;} //lep 2 = prompt, lep 1 = tau_l
+  if(etau_mu) {one_pt_min_ = 20.f; ptdiff_min_ =    0.f; ptdiff_max_ = +1.e10; mtlep_max_ =  90.f; mttwo_max_ = 60.f;} //lep 1 = prompt, lep 2 = tau_l
 
   mutau_e &= leptonTwo.pt > two_pt_min_ - sys_buffer; //lepton pT,
   etau_mu &= leptonOne.pt > one_pt_min_ - sys_buffer;
@@ -1871,16 +1977,16 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
 
   //FIXME: Decide dxy/dz significance cuts
   if(use_dxyz_sig > 1) {
-    mutau_e &= std::fabs(leptonTwo.dxySig) < 2.5;
-    mutau_e &= std::fabs(leptonTwo.dzSig ) < 2.5;
-    etau_mu &= std::fabs(leptonOne.dxySig) < 2.5;
-    etau_mu &= std::fabs(leptonOne.dzSig ) < 2.5;
+    mutau_e &= std::fabs(leptonTwo.dxySig) < 3.0;
+    mutau_e &= std::fabs(leptonTwo.dzSig ) < 4.7;
+    etau_mu &= std::fabs(leptonOne.dxySig) < 3.0;
+    etau_mu &= std::fabs(leptonOne.dzSig ) < 4.7;
   }
   if(use_dxyz_sig > 0) {
-    emu     &= std::fabs(leptonTwo.dxySig) < 2.5;
-    emu     &= std::fabs(leptonOne.dxySig) < 2.5;
-    emu     &= std::fabs(leptonTwo.dzSig ) < 2.5;
-    emu     &= std::fabs(leptonOne.dzSig ) < 2.5;
+    emu     &= std::fabs(leptonTwo.dxySig) < 3.0;
+    emu     &= std::fabs(leptonOne.dxySig) < 3.0;
+    emu     &= std::fabs(leptonTwo.dzSig ) < 4.7;
+    emu     &= std::fabs(leptonOne.dzSig ) < 4.7;
   }
 
   //Z/H->e+mu only
@@ -1916,17 +2022,12 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   // Set 8 + selection offset: nBJets = 0
   ////////////////////////////////////////////////////////////////////////////
   if(!lep_tau) {
-    const float prev_min(min_mass_), prev_max(max_mass_);
-    min_mass_ = 50.f;
     if(mll > min_mass_ - sys_buffer) {
       fTimes[GetTimerNumber("SingleFill")] = std::chrono::steady_clock::now(); //timer for filling all histograms
       FillAllHistograms(set_offset + 8);
       IncrementTimer("SingleFill", true);
     }
-    min_mass_ = prev_min; max_mass_ = prev_max;
   } else if(mutau_e || etau_mu) { //single mass category search for leptonic taus
-    const float prev_min(min_mass_), prev_max(max_mass_);
-    max_mass_ = 100.f;
     if(lep_tau == 1 && mutau_e && mll > min_mass_ - sys_buffer && mll < max_mass_ + sys_buffer ) {
       fTimes[GetTimerNumber("SingleFill")] = std::chrono::steady_clock::now(); //timer for filling all histograms
       FillAllHistograms(set_offset + (kMuTauE - kEMu) + 8);
@@ -1937,22 +2038,30 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
       FillAllHistograms(set_offset + (kETauMu - kEMu) + 8);
       IncrementTimer("SingleFill", true);
     }
-    min_mass_ = prev_min; max_mass_ = prev_max;
   }
 
   ////////////////////////////////////////////////////////////////////////////
-  // Set 25/26/27 + selection offset: Mass regions testing
+  // Set 25/26/27/28 + selection offset: Mass region splitting of searches
   ////////////////////////////////////////////////////////////////////////////
 
   if(mutau || etau || mutau_e || etau_mu) {
-    float prev_min(min_mass_), prev_max(max_mass_), jtt_region((mutau_e || etau_mu) ? 100.f : 110.f), z_region((mutau_e || etau_mu) ? 50.f : 60.f);
+    const bool do_zll_cut = true; //create a region for Z->ee/mumu backgrounds in hadronic tau
+    const float prev_min(min_mass_), prev_max(max_mass_);
+    const float jtt_region((mutau_e || etau_mu) ? 100.f : 110.f), z_region((mutau_e || etau_mu) ? 50.f : 60.f);
+    const float zll_low(85.f), zll_high(100.f);
+    const float jtt_low((!do_zll_cut || mutau_e || etau_mu) ? jtt_region : zll_high);
+    const float central_high ((!do_zll_cut || mutau_e || etau_mu) ? jtt_region : zll_low );
     const int loc_set_offset = (mutau_e) ? set_offset + (kMuTauE-kEMu) : (etau_mu) ? set_offset + (kETauMu - kEMu) : set_offset;
-    //nominal
-    if(fTreeVars.lepm > z_region   - sys_buffer && fTreeVars.lepm < jtt_region + sys_buffer) {min_mass_ = z_region  ; max_mass_ = jtt_region; FillAllHistograms(loc_set_offset + 25);}
+    //central mass region
+    if(mll > z_region   - sys_buffer && mll < central_high + sys_buffer) {min_mass_ = z_region  ; max_mass_ = central_high; FillAllHistograms(loc_set_offset + 25);}
     //j-->tau control
-    if(fTreeVars.lepm > jtt_region - sys_buffer)                                             {min_mass_ = jtt_region; max_mass_ = prev_max  ; FillAllHistograms(loc_set_offset + 26);}
+    if(mll > jtt_low - sys_buffer)                                       {min_mass_ = jtt_low   ; max_mass_ = prev_max    ; FillAllHistograms(loc_set_offset + 26);}
     //Z->tau tau control
-    if(fTreeVars.lepm < z_region   + sys_buffer)                                             {min_mass_ = prev_min  ; max_mass_ = z_region  ; FillAllHistograms(loc_set_offset + 27);}
+    if(mll < z_region   + sys_buffer)                                    {min_mass_ = prev_min  ; max_mass_ = z_region    ; FillAllHistograms(loc_set_offset + 27);}
+    if(do_zll_cut && (mutau || etau)) {
+      //Z->ee/mumu control
+      if(mll > zll_low - sys_buffer && mll < zll_high + sys_buffer)      {min_mass_ = zll_low   ; max_mass_ = zll_high    ; FillAllHistograms(loc_set_offset + 28);}
+    }
     min_mass_ = prev_min; max_mass_ = prev_max;
   }
 
@@ -2030,7 +2139,7 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
     ////////////////////////////////////////////////////////////////////////////
     // Set 24-25 : Mass window sets
     ////////////////////////////////////////////////////////////////////////////
-    //Z0 window
+    //Z window
     if(emu && mll < 96.f && mll > 85.f)    FillAllHistograms(set_offset + 24);
     //higgs window
     if(fDoHiggs && emu && mll < 130.f && mll > 120.f)  FillAllHistograms(set_offset + 25);

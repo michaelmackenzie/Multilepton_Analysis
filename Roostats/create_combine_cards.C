@@ -24,8 +24,8 @@ int combine_channels(int set, TString selection, vector<int> years) {
   return 0;
 }
 
-int create_combine_cards(int set = 8, TString selection = "zmutau",
-                         vector<int> years = {2016, 2017, 2018}, int had_only = 0) {
+int create_combine_cards_set(int set = 8, TString selection = "zmutau",
+                             vector<int> years = {2016, 2017, 2018}, int had_only = 0) {
   int status(0);
   TString year_string = Form("%i", years[0]);
   for(int i = 1; i < years.size(); ++i) year_string += Form("_%i", years[i]);
@@ -121,7 +121,7 @@ int create_combine_cards(int set = 8, TString selection = "zmutau",
 
     gSystem->cd("../..");
     // separate_years_ = false;
-    // return create_combine_cards(set, selection, years);
+    // return create_combine_cards_set(set, selection, years);
   }
 
   if(use_control_regions_ && had_only == 0) {
@@ -150,6 +150,6 @@ int create_combine_cards(int set = 8, TString selection = "zmutau",
 int create_combine_cards(vector<int> sets, TString selection = "zmutau",
                          vector<int> years = {2016, 2017, 2018}, int had_only = 0) {
   int status(0);
-  for(int set : sets) status += create_combine_cards(set, selection, years, had_only);
+  for(int set : sets) status += create_combine_cards_set(set, selection, years, had_only);
   return status;
 }

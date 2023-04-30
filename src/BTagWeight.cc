@@ -618,17 +618,17 @@ float BTagWeight::GetWeight(const int wp, const int year, const int njets, const
     if(jetsbtag[jet] > wp) { //passes this working point
       prob_data *= p_data;
       prob_mc   *= p_mc;
-      up_bc   *= std::max(0.f, std::min(1.f, p_mc*(( isbc) ? sf_up   : 1.f))); //b/c jet up/down scale
-      down_bc *= std::max(0.f, std::min(1.f, p_mc*(( isbc) ? sf_down : 1.f)));
-      up_l    *= std::max(0.f, std::min(1.f, p_mc*((!isbc) ? sf_up   : 1.f))); //light parton up/down scale
-      down_l  *= std::max(0.f, std::min(1.f, p_mc*((!isbc) ? sf_down : 1.f)));
+      up_bc   *= std::max(0.f, std::min(1.f, p_mc*(( isbc) ? sf_up   : scale_factor))); //b/c jet up/down scale
+      down_bc *= std::max(0.f, std::min(1.f, p_mc*(( isbc) ? sf_down : scale_factor)));
+      up_l    *= std::max(0.f, std::min(1.f, p_mc*((!isbc) ? sf_up   : scale_factor))); //light parton up/down scale
+      down_l  *= std::max(0.f, std::min(1.f, p_mc*((!isbc) ? sf_down : scale_factor)));
     } else { //fails this working point
       prob_data *= 1.f - p_data;
       prob_mc   *= 1.f - p_mc;
-      up_bc   *= 1.f - std::max(0.f, std::min(1.f, p_mc*(( isbc) ? sf_up   : 1.f))); //b/c jet up/down scale
-      down_bc *= 1.f - std::max(0.f, std::min(1.f, p_mc*(( isbc) ? sf_down : 1.f)));
-      up_l    *= 1.f - std::max(0.f, std::min(1.f, p_mc*((!isbc) ? sf_up   : 1.f))); //light parton up/down scale
-      down_l  *= 1.f - std::max(0.f, std::min(1.f, p_mc*((!isbc) ? sf_down : 1.f)));
+      up_bc   *= 1.f - std::max(0.f, std::min(1.f, p_mc*(( isbc) ? sf_up   : scale_factor))); //b/c jet up/down scale
+      down_bc *= 1.f - std::max(0.f, std::min(1.f, p_mc*(( isbc) ? sf_down : scale_factor)));
+      up_l    *= 1.f - std::max(0.f, std::min(1.f, p_mc*((!isbc) ? sf_up   : scale_factor))); //light parton up/down scale
+      down_l  *= 1.f - std::max(0.f, std::min(1.f, p_mc*((!isbc) ? sf_down : scale_factor)));
     }
     if(verbose_ > 0) {
       printf(" Jet %2i: pt = %.2f eta = %.2f flavor = %i tagged = %i scale = %.3f up = %.3f down = %.3f\n",
