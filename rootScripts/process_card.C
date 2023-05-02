@@ -118,6 +118,8 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
         hist_selec->fDoLooseSystematics = selection.EndsWith("tau");
         hist_selec->fAllowMigration     = allowMigration_ && config.doSystematics_;
         hist_selec->fMaxEntries         = (events_scale < 1.f) ? max_sim_events_ : nentries;
+
+        if(etauAntiEleCut_ > 0) hist_selec->fETauAntiEleCut = etauAntiEleCut_;
       }
 
       selec->fRemoveTriggerWeights = removeTrigWeights_;
@@ -315,6 +317,11 @@ Int_t process_single_card(datacard_t& card, config_t& config, vector<TString> fi
   name.ReplaceAll("-v1", ""); //replace signal versioning in output
   name.ReplaceAll("-v2", "");
   name.ReplaceAll("-v3", "");
+  name.ReplaceAll("-v3a", "");
+  name.ReplaceAll("-v3b", "");
+  name.ReplaceAll("-v4", "");
+  name.ReplaceAll("-v*", "");
+  name.ReplaceAll("-v" , "");
   // name.ReplaceAll("-old", ""); //old/new ntuple name cleaning
   card.dataset_ = name;
 
@@ -420,8 +427,11 @@ Int_t process_card(TString treepath, TString filename, double xsec, int isdata, 
     }
     std::string line;
     while(std::getline(input_list, line)) {
-      file_names.push_back(Form("%s%s/%s", treepath.Data(), card.fname_.Data(), line.c_str()));
-      cout << "File: " << file_names.back().Data() << endl;
+      TString file_path = treepath;
+      if(card.fname_.Contains(".root")) file_path += line.c_str();
+      else                              file_path += Form("%s/%s", card.fname_.Data(), line.c_str());
+      file_names.push_back(file_path);
+      cout << "File: " << file_path.Data() << endl;
     }
     input_list.close();
     if(!debug_)

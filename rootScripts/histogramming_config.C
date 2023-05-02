@@ -22,7 +22,7 @@ TString tag_ = ""; //dataset tag requirement
 bool debug_ = false;
 Long64_t startEvent_ = 0;
 Long64_t nEvents_ = 10; //at 20, verbosity returns to normal
-HISTOGRAMMER* selector_ = 0;
+HISTOGRAMMER* selector_ = nullptr;
 
 Long64_t max_sim_events_ = -1; //5e5; //maximum number of events to skim in simulation, -1 to ignore
 
@@ -35,21 +35,22 @@ bool FakeLeptonTesting_  = false; //test MC fake leptons
 bool CutFlowTesting_     = false; //test just basic cutflow sets
 bool TriggerTesting_     = false; //make a few extra selections for ee/mumu/emu trigger testing
 
-int removeTrigWeights_   = 4; //0: do nothing 1: remove weights 2: replace 3: replace P(event) 4: replace P(at least 1 triggered)
-int updateMCEra_         = 1; //0: do nothing 1: throw random number for MC era (data/embedding not random)
-int useBTagWeights_      = 2; //1: calculate locally; 2: use ntuple values for each jet
-int useJetPUIDWeights_   = 2; //1: calculate locally; 2: use ntuple definition
-int usePrefireWeights_   = 1; //0: remove weights; 1: use pre-defined weights; 2: re-define the weights
-int removePUWeights_     = 2; //Signal only: 0: use ntuple definition; 1: don't apply PU weights; 2: replace PU weights
-int useMCFakeLep_        = 0; //use MC estimated light leptons in ee, mumu, and emu categories
-int useJetToTauComp_     = 1; //use the composition of the anti-iso region to combine j->tau weights
-int applyJetToTauMCBias_ = 0; //apply the W+jets/Z+jets MC bias estimate or only use as a uncertainty
-int useQCDWeights_       = 1; //use QCD SS --> OS transfer weights
-int doTriggerMatching_   = 1; //do trigger object matching
-int doSSSF_              = 1; //do same-sign, same flavor processing
-int useSignalZWeights_   = 1; //match the signal Z to the Drell-Yan Z MC
-int useRoccoCorr_        = 1; //Muon Rochester corrections 0: don't apply; 1: apply local corrections; 2: use ntuple-level corrections
-int useRoccoSize_        = 1; //Use size of the Rochester corrections as the uncertainty
+int removeTrigWeights_   =  4; //0: do nothing 1: remove weights 2: replace 3: replace P(event) 4: replace P(at least 1 triggered)
+int updateMCEra_         =  1; //0: do nothing 1: throw random number for MC era (data/embedding not random)
+int useBTagWeights_      =  2; //1: calculate locally; 2: use ntuple values for each jet
+int useJetPUIDWeights_   =  2; //1: calculate locally; 2: use ntuple definition
+int usePrefireWeights_   =  1; //0: remove weights; 1: use pre-defined weights; 2: re-define the weights
+int removePUWeights_     =  2; //Signal only: 0: use ntuple definition; 1: don't apply PU weights; 2: replace PU weights
+int useMCFakeLep_        =  0; //use MC estimated light leptons in ee, mumu, and emu categories
+int useJetToTauComp_     =  1; //use the composition of the anti-iso region to combine j->tau weights
+int applyJetToTauMCBias_ =  0; //apply the W+jets/Z+jets MC bias estimate or only use as a uncertainty
+int useQCDWeights_       =  1; //use QCD SS --> OS transfer weights
+int doTriggerMatching_   =  1; //do trigger object matching
+int doSSSF_              =  1; //do same-sign, same flavor processing
+int useSignalZWeights_   =  1; //match the signal Z to the Drell-Yan Z MC
+int useRoccoCorr_        =  1; //Muon Rochester corrections 0: don't apply; 1: apply local corrections; 2: use ntuple-level corrections
+int useRoccoSize_        =  1; //Use size of the Rochester corrections as the uncertainty
+int etauAntiEleCut_      = -1; //cut on tau anti-ele ID for etau, -1 to use default
 
 
 int useEmbedCuts_        = 1; //use kinematic cuts based on embedded generation: 1 = tau tau only; 2 = tau tau, mumu, and ee
@@ -212,9 +213,9 @@ vector<datacard_t> get_data_cards(TString& nanoaod_path) {
   nanocards.push_back(datacard_t(true , 1.                                            , "LFVAnalysis_SingleElectronRun2016F_2016.root"  , 1));
   nanocards.push_back(datacard_t(true , 1.                                            , "LFVAnalysis_SingleElectronRun2016G_2016.root"  , 1));
   nanocards.push_back(datacard_t(true , 1.                                            , "LFVAnalysis_SingleElectronRun2016H_2016.root"  , 1));
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZETau"                   ), "LFVAnalysis_ZETau-v2_2016.root"                , 0));
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZMuTau"                  ), "LFVAnalysis_ZMuTau-v2_2016.root"               , 0));
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZEMu"                    ), "LFVAnalysis_ZEMu-v2_2016.root"                 , 0));
+  nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZETau"                   ), "LFVAnalysis_ZETau-v*_2016.root"                , 0));
+  nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZMuTau"                  ), "LFVAnalysis_ZMuTau-v*_2016.root"               , 0));
+  nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZEMu"                    ), "LFVAnalysis_ZEMu-v*_2016.root"                 , 0));
   // nanocards.push_back(datacard_t(true , xs.GetCrossSection("HETau"                   ), "LFVAnalysis_HETau_2016.root"                   , 0));
   // nanocards.push_back(datacard_t(true , xs.GetCrossSection("HMuTau"                  ), "LFVAnalysis_HMuTau_2016.root"                  , 0));
   // nanocards.push_back(datacard_t(true , xs.GetCrossSection("HEMu"                    ), "LFVAnalysis_HEMu_2016.root"                    , 0));
@@ -297,9 +298,9 @@ vector<datacard_t> get_data_cards(TString& nanoaod_path) {
   nanocards.push_back(datacard_t(true , 1.                                            , "LFVAnalysis_SingleElectronRun2017D_2017.root"  , 1));
   nanocards.push_back(datacard_t(true , 1.                                            , "LFVAnalysis_SingleElectronRun2017E_2017.root"  , 1));
   nanocards.push_back(datacard_t(true , 1.                                            , "LFVAnalysis_SingleElectronRun2017F_2017.root"  , 1));
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZETau"                   ), "LFVAnalysis_ZETau-v2_2017.root"                , 0));
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZMuTau"                  ), "LFVAnalysis_ZMuTau-v2_2017.root"               , 0));
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZEMu"                    ), "LFVAnalysis_ZEMu-v2_2017.root"                 , 0));
+  nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZETau"                   ), "LFVAnalysis_ZETau-v3*_2017.root"                , 0));
+  nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZMuTau"                  ), "LFVAnalysis_ZMuTau-v3*_2017.root"               , 0));
+  nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZEMu"                    ), "LFVAnalysis_ZEMu-v3*_2017.root"                 , 0));
   // nanocards.push_back(datacard_t(false, xs.GetCrossSection("ZMuTau"                  ), "LFVAnalysis_ZMuTau_2017.root"                  , 0));
   // nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZMuTau"                  ), "LFVAnalysis_ZMuTau-v2-old_2017.root"           , 0));
   // nanocards.push_back(datacard_t(true , xs.GetCrossSection("HETau"                   ), "LFVAnalysis_HETau_2017.root"                   , 0));
@@ -363,9 +364,9 @@ vector<datacard_t> get_data_cards(TString& nanoaod_path) {
   nanocards.push_back(datacard_t(true , 1.                                            , "LFVAnalysis_SingleElectronRun2018A_2018.root"  , 1));
   nanocards.push_back(datacard_t(true , 1.                                            , "LFVAnalysis_SingleElectronRun2018B_2018.root"  , 1));
   nanocards.push_back(datacard_t(true , 1.                                            , "LFVAnalysis_SingleElectronRun2018C_2018.root"  , 1));
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZETau"                   ), "LFVAnalysis_ZETau-v2_2018.root"                , 0));
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZMuTau"                  ), "LFVAnalysis_ZMuTau-v2_2018.root"               , 0));
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZEMu"                    ), "LFVAnalysis_ZEMu-v2_2018.root"                 , 0));
+  nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZETau"                   ), "LFVAnalysis_ZETau-v*_2018.root"                , 0));
+  nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZMuTau"                  ), "LFVAnalysis_ZMuTau-v*_2018.root"               , 0));
+  nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZEMu"                    ), "LFVAnalysis_ZEMu-v*_2018.root"                 , 0));
   // nanocards.push_back(datacard_t(true , xs.GetCrossSection("HETau"                   ), "LFVAnalysis_HETau_2018.root"                   , 0));
   // nanocards.push_back(datacard_t(true , xs.GetCrossSection("HMuTau"                  ), "LFVAnalysis_HMuTau_2018.root"                  , 0));
   // nanocards.push_back(datacard_t(true , xs.GetCrossSection("HEMu"                    ), "LFVAnalysis_HEMu_2018.root"                    , 0));
