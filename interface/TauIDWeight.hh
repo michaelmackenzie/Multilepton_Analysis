@@ -19,7 +19,7 @@ namespace CLFV {
 
   class TauIDWeight {
   public:
-    TauIDWeight(bool isEmbed = false, TString selection = "etau", int verbose = 0);
+    TauIDWeight(int Mode = 0, bool isEmbed = false, TString selection = "etau", int verbose = 0);
 
     ~TauIDWeight();
 

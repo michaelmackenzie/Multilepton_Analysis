@@ -670,6 +670,8 @@ namespace CLFV {
     Float_t         fMaxLepM = -1.f; //for filtering on the ntuple-level di-lepton mass
     Float_t         fMinLepM = -1.f; //for filtering on the ntuple-level di-lepton mass
 
+    Int_t           fETauAntiEleCut = 100; //Cut on the anti-ele ID for etau
+
     Int_t           fSystematicSeed; //for systematic variations
 
     Systematics     fSystematics; //systematics information

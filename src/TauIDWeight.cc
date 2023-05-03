@@ -3,7 +3,7 @@
 using namespace CLFV;
 
 //-------------------------------------------------------------------------------------------------------------
-TauIDWeight::TauIDWeight(bool isEmbed, TString selection, int verbose) : isEmbed_(isEmbed), selection_(selection), verbose_(verbose) {
+TauIDWeight::TauIDWeight(int Mode, bool isEmbed, TString selection, int verbose) : isEmbed_(isEmbed), selection_(selection), verbose_(verbose) {
   std::vector<TString> file_regions;
 
   typedef std::pair<TString,TString> fpair;
@@ -39,9 +39,15 @@ TauIDWeight::TauIDWeight(bool isEmbed, TString selection, int verbose) : isEmbed
   /////////////////////////////////
 
   std::map<int, fpair> tauEleIDFileNames;
-  tauEleIDFileNames[k2016]    = fpair("TauID_SF_eta_DeepTau2017v2p1VSe_2016Legacy.root", (selection_ == "etau") ? "VTight"/*"Tight"*/ : "Loose"); //Tighter ID in etau selection
-  tauEleIDFileNames[k2017]    = fpair("TauID_SF_eta_DeepTau2017v2p1VSe_2017ReReco.root", (selection_ == "etau") ? "VTight"/*"Tight"*/ : "Loose");
-  tauEleIDFileNames[k2018]    = fpair("TauID_SF_eta_DeepTau2017v2p1VSe_2018ReReco.root", (selection_ == "etau") ? "VTight"/*"Tight"*/ : "Loose");
+  TString antiEleWP = "Loose";
+  if(selection_ == "etau") { // Tighter ID in etau selection
+    if     (Mode == 0) antiEleWP = "Tight";
+    else if(Mode == 1) antiEleWP = "VTight";
+    else if(Mode == 2) antiEleWP = "VVTight";
+  }
+  tauEleIDFileNames[k2016]    = fpair("TauID_SF_eta_DeepTau2017v2p1VSe_2016Legacy.root", antiEleWP);
+  tauEleIDFileNames[k2017]    = fpair("TauID_SF_eta_DeepTau2017v2p1VSe_2017ReReco.root", antiEleWP);
+  tauEleIDFileNames[k2018]    = fpair("TauID_SF_eta_DeepTau2017v2p1VSe_2018ReReco.root", antiEleWP);
   for(int period = k2016; period <= k2018; ++period) {
     if(tauEleIDFileNames[period].first == "") continue;
     TFile* f = TFile::Open((tauScaleFactorPath + tauEleIDFileNames[period].first).Data(),"READ");
@@ -49,6 +55,7 @@ TauIDWeight::TauIDWeight(bool isEmbed, TString selection, int verbose) : isEmbed
     tauEleIDMap[period] = (TH1*) f->Get((tauEleIDFileNames[period].second).Data())->Clone();
     files_.push_back(f);
   }
+
   /////////////////////////////////
   // Tau anti-mu ID
   /////////////////////////////////
@@ -137,6 +144,7 @@ double TauIDWeight::IDWeight(double pt, double eta, int genID, UChar_t antiJet, 
   const int antiJetBit = BitFromID(antiJet);
   const int antiJetIndex = (antiJetBit >= kTight) ? kTight : kVLoose; //tight or loose tau
   bin = 1;
+  const double min_scale = 1.e-5; //account for errors larger than the scale factor size
   if(genID == 5) { //genuine tau
     scale_factor  = tauJetIDMap    [year][antiJetIndex]->Eval(pt);
     up            = tauJetUpIDMap  [year][antiJetIndex]->Eval(pt);
@@ -147,12 +155,12 @@ double TauIDWeight::IDWeight(double pt, double eta, int genID, UChar_t antiJet, 
     bin           = std::max(1, std::min(tauEleIDMap[year]->GetNbinsX(), tauEleIDMap[year]->FindBin(std::fabs(eta))));
     scale_factor  = tauEleIDMap[year]->GetBinContent(bin);
     up            = scale_factor + tauEleIDMap[year]->GetBinError(bin);
-    down          = scale_factor - tauEleIDMap[year]->GetBinError(bin);
+    down          = std::max(min_scale, scale_factor - tauEleIDMap[year]->GetBinError(bin));
   } else if(genID == 2 || genID == 4) { //genuine muon -> tau
     bin           = std::max(1, std::min(tauMuIDMap[year]->GetNbinsX(), tauMuIDMap[year]->FindBin(std::fabs(eta))));
     scale_factor  = tauMuIDMap[year]->GetBinContent(bin);
     up            = scale_factor + tauMuIDMap[year]->GetBinError(bin);
-    down          = scale_factor - tauMuIDMap[year]->GetBinError(bin);
+    down          = std::max(min_scale, scale_factor - tauMuIDMap[year]->GetBinError(bin));
   } else { //unmatched, likely j --> tau
     return 1.;
   }

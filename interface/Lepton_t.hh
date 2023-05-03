@@ -32,8 +32,10 @@ namespace CLFV {
     float wt3[4] = {1.f, 1.f, 1.f, 1.f}; //weight, up, down, sys
     int   wt1_bin;
     int   wt2_bin;
+    int   wt3_bin;
     int   wt1_group;
     int   wt2_group;
+    int   wt3_group;
     float trig_wt = 1.f;
 
     int   trigger;

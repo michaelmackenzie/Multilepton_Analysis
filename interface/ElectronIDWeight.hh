@@ -14,6 +14,7 @@
 
 //local includes
 #include "interface/Utilities.hh"
+#include "interface/Lepton_t.hh"
 
 namespace CLFV {
   class ElectronIDWeight {
@@ -21,12 +22,12 @@ namespace CLFV {
     ElectronIDWeight(const int Mode = 0, const int verbose = 0);
     ~ElectronIDWeight();
 
-    double IDWeight(double pt, double eta, int year,
-                    float& weight_id , float& weight_up_id , float& weight_down_id ,
-                    float& weight_rec, float& weight_up_rec, float& weight_down_rec);
+    double IDWeight(Lepton_t& lepton, int year);
     double IDWeight(double pt, double eta, int year) {
-      float wt_id, wt_up_id, wt_down_id, wt_rec, wt_up_rec, wt_down_rec;
-      return IDWeight(pt, eta, year, wt_id, wt_up_id, wt_down_id, wt_rec, wt_up_rec, wt_down_rec);
+      Lepton_t lepton;
+      lepton.pt = pt;
+      lepton.eta = eta;
+      return IDWeight(lepton, year);
     }
     double EmbedEnergyScale(double pt, double eta, int year, float& up, float& down);
     double TriggerEff(double pt, double eta, int year, int WP, float& data_eff, float& mc_eff,
@@ -38,7 +39,8 @@ namespace CLFV {
     enum { kFailed, kWPL, kWP90, kWP80, kWPLNotWP90, kWPLNotWP80}; //electron ID working points (kWPLNotWPXX = WPL + !WPXX)
     std::map<int, TH2*> histID_;
     std::map<int, TH2*> histReco_;
-    std::map<int, TH2*> histLowReco_;
+    std::map<int, TH2*> histLowReco_; //2016/2017 use different reco ID corrections for < 20 GeV/c electrons
+    std::map<int, TH2*> histIsoID_;
     std::map<int, float> vertexMap_;
     std::map<int, std::map<int, TH2*>> histTrigMCEff_  ; //map is <year, <WP, hist>>
     std::map<int, std::map<int, TH2*>> histTrigDataEff_;

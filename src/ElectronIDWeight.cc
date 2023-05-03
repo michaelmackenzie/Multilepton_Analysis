@@ -89,6 +89,25 @@ ElectronIDWeight::ElectronIDWeight(const int Mode, const int verbose) : verbose_
     }
 
     //////////////////////////////////////////
+    //Electron Iso ID
+    //////////////////////////////////////////
+
+    TString f_iso_name = Form("embedding_eff_ee_mode-2_%i.root", period+2016);
+    f = TFile::Open((path + "/" + f_iso_name).Data(), "READ");
+    if(f) {
+      TH2* hMC   = (TH2*) f->Get("PtVsEtaDYMC");
+      TH2* hData = (TH2*) f->Get("PtVsEtaData");
+      if(hMC && hData) {
+        hMC->SetName(Form("EGamma_MC_isoID_%i", period+2016));
+        hMC->Divide(hData);
+        histIsoID_[period] = hMC;
+      } else {
+        std::cout << "ElectronIDWeight::" << __func__ << ": Iso ID histograms for year " << period+2016 << " not found!\n";
+      }
+      files_.push_back(f);
+    }
+
+    //////////////////////////////////////////
     //Electron Trigger files
     //////////////////////////////////////////
 
@@ -103,7 +122,7 @@ ElectronIDWeight::ElectronIDWeight(const int Mode, const int verbose) : verbose_
             hMC->SetName(Form("EGamma_MC_%i_%i", period+2016, region));
             histTrigMCEff_[period][(region == 0) ? kWP80 : kWPLNotWP80] = hMC;
           } else {
-            std::cout << __func__ << ": MC trigger efficiency histogram for year " << period+2016
+            std::cout << "ElectronIDWeight::" << __func__ << ": MC trigger efficiency histogram for year " << period+2016
                       << " and loose isolation flag = " << region << " not found!\n";
           }
           TH2* hData = (TH2*) f->Get("PtVsEtaData");
@@ -111,7 +130,7 @@ ElectronIDWeight::ElectronIDWeight(const int Mode, const int verbose) : verbose_
             hData->SetName(Form("EGamma_Data_%i_%i", period+2016, region));
             histTrigDataEff_[period][(region == 0) ? kWP80 : kWPLNotWP80] = hData;
           } else {
-            std::cout << __func__ << ": Data trigger efficiency histogram for year " << period+2016
+            std::cout << "ElectronIDWeight::" << __func__ << ": Data trigger efficiency histogram for year " << period+2016
                       << " and loose isolation flag = " << region << " not found!\n";
           }
           files_.push_back(f);
@@ -148,9 +167,19 @@ ElectronIDWeight::ElectronIDWeight(const int Mode, const int verbose) : verbose_
 ElectronIDWeight::~ElectronIDWeight() { for(unsigned i = 0; i < files_.size(); ++i) files_[i]->Close(); }
 
 //-------------------------------------------------------------------------------------------------------------------------
-double ElectronIDWeight::IDWeight(double pt, double eta, int year,
-                                  float& weight_id , float& weight_up_id , float& weight_down_id ,
-                                  float& weight_rec, float& weight_up_rec, float& weight_down_rec) {
+double ElectronIDWeight::IDWeight(Lepton_t& lepton, int year) {
+  float& weight_id       = lepton.wt1[0];
+  float& weight_up_id    = lepton.wt1[1];
+  float& weight_down_id  = lepton.wt1[2];
+  float& weight_rec      = lepton.wt2[0];
+  float& weight_up_rec   = lepton.wt2[1];
+  float& weight_down_rec = lepton.wt2[2];
+  float& weight_iso      = lepton.wt3[0];
+  float& weight_up_iso   = lepton.wt3[1];
+  float& weight_down_iso = lepton.wt3[2];
+  float pt  = lepton.pt;
+  float eta = lepton.scEta;
+
   weight_id  = 1.f; weight_up_id  = 1.f; weight_down_id  = 1.f;
   weight_rec = 1.f; weight_up_rec = 1.f; weight_down_rec = 1.f;
   if(year > 2000) year -= 2016;
@@ -161,8 +190,9 @@ double ElectronIDWeight::IDWeight(double pt, double eta, int year,
 
   TH2* hID = histID_[year];
   TH2* hReco = (pt < 20. && year != k2018) ? histLowReco_[year] : histReco_[year];
+  TH2* hIsoID = histIsoID_[year];
   if(!hID || !hReco) {
-    std::cout << "ElectronIDWeight:: " << __func__ << ": Error! Undefined ID/Reco histograms for year " << year+2016 << std::endl;
+    std::cout << "ElectronIDWeight:: " << __func__ << ": Error! Undefined ID/Iso ID/Reco ID correction histograms for year " << year+2016 << std::endl;
     return 1.;
   }
 
@@ -178,10 +208,19 @@ double ElectronIDWeight::IDWeight(double pt, double eta, int year,
   const double reco_scale = hReco->GetBinContent(binx, biny);
   const double reco_error = hReco->GetBinError(binx, biny);
 
+  //Get the iso ID weight
+  binx = std::max(1, std::min(hIsoID->GetNbinsX(), hIsoID->GetXaxis()->FindBin(eta)));
+  biny = std::max(1, std::min(hIsoID->GetNbinsY(), hIsoID->GetYaxis()->FindBin(pt)));
+  const double iso_scale = hIsoID->GetBinContent(binx, biny);
+  double iso_error = hIsoID->GetBinError(binx, biny);
+  //Add an uncertainty of sqrt(2%) to the MC Iso ID correction
+  const float iso_sys = 0.02/std::sqrt(2.);
+  iso_error = std::sqrt(iso_sys*iso_sys + iso_error*iso_error); //combine systematic and statistical uncertainties
+
   const double vertex_scale = vertexMap_[year];
   const double vertex_unc   = (year == k2017) ? 0.001 : 0.; //0.1% uncertainty in 2017
 
-  double scale_factor = id_scale * reco_scale * vertex_scale;
+  double scale_factor = id_scale * reco_scale * iso_scale * vertex_scale;
 
   if(scale_factor <= 0. || verbose_ > 0) {
     if(scale_factor <= 0.) std::cout << "Warning! Scale factor <= 0! ";
@@ -189,17 +228,22 @@ double ElectronIDWeight::IDWeight(double pt, double eta, int year,
               << " year = " << year
               << "; id_scale = " << id_scale << " +- " << id_error
               << "; reco_scale = " << reco_scale << " +- " << reco_error
+              << "; iso_scale = " << iso_scale << " +- " << iso_error
               << "; vertex_scale = " << vertex_scale
               << std::endl;
   }
   //calculate the +- 1 sigma weights
   //FIXME: Currently just combining vertex scale and reco scale
-  weight_id = std::max(0., id_scale); weight_rec = std::max(0., vertex_scale * reco_scale);
+  weight_id       = std::max(0., id_scale);
   weight_up_id    = std::max(0., id_scale + id_error);
   weight_down_id  = std::max(0., id_scale - id_error);
+  weight_rec      = std::max(0., vertex_scale * reco_scale);
   weight_up_rec   = weight_rec * std::max(0., 1. - std::sqrt(vertex_unc*vertex_unc + (reco_error/reco_scale)*(reco_error/reco_scale)));
   weight_down_rec = weight_rec * std::max(0., 1. + std::sqrt(vertex_unc*vertex_unc + (reco_error/reco_scale)*(reco_error/reco_scale)));
-  scale_factor = weight_id * weight_rec;
+  weight_iso      = std::max(0., iso_scale);
+  weight_up_iso   = std::max(0., iso_scale + iso_error);
+  weight_down_iso = std::max(0., iso_scale - iso_error);
+  scale_factor = weight_id * weight_rec * weight_iso;
 
   return scale_factor;
 }

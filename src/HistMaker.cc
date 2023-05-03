@@ -149,7 +149,8 @@ void HistMaker::Begin(TTree * /*tree*/)
   fElectronJetToTauMCWeights[JetToTauComposition::kTop  ] = new JetToTauWeight("ElectronMCTop"  , "etau" , "Top"  ,   82,  1100301, fYear, 0); //Normal weights
   fElectronJetToTauMCWeights[JetToTauComposition::kQCD  ] = new JetToTauWeight("ElectronMCQCD"  , "etau" , "QCD"  , 1095,   300300, fYear, 0); //loose electron ID weights for SS --> OS bias
 
-  fTauIDWeight = new TauIDWeight(fIsEmbed, (fSelection == "etau" || fSelection == "mutau") ? fSelection : "etau", fVerbose); //default to etau IDs
+  fTauIDWeight = new TauIDWeight((fETauAntiEleCut <= 63) ? 0 : (fETauAntiEleCut <= 127) ? 1 : 2, //which etau anti-ele ID WP is being used, Tight, VTight, or VVTight
+                                 fIsEmbed, (fSelection == "etau" || fSelection == "mutau") ? fSelection : "etau", fVerbose); //default to etau IDs
 
   //0: normal unfolding; 1: use z eta unfolding; 2: use z (eta, pt) unfolding; 3: mode 2 with tight cuts; 4: 2016 unfolding; 10: IC measured unfolding
   //FIXME: Settle on an embedding unfolding configuration
@@ -238,15 +239,15 @@ void HistMaker::Begin(TTree * /*tree*/)
 
   //Check that flags agree with the available branches in the tree
   if(fUseBTagWeights == 2 && !fChain->GetBranch("Jet_btagSF_deepcsv_L")) {
-    printf("%s: Warning! B-tag SFs not available in tree, will re-calculate on the fly\n", __func__);
+    printf("HistMaker::%s: Warning! B-tag SFs not available in tree, will re-calculate on the fly\n", __func__);
     fUseBTagWeights = 1;
   }
   if(fUseRoccoCorr == 2 && !fChain->GetBranch("Muon_corrected_pt")) {
-    printf("%s: Warning! Rochester corrections not available in tree, will re-calculate on the fly\n", __func__);
+    printf("HistMaker::%s: Warning! Rochester corrections not available in tree, will re-calculate on the fly\n", __func__);
     fUseRoccoCorr = 1;
   }
   if(fUseJetPUIDWeights == 2 && !fChain->GetBranch("JetPUIDWeight")) {
-    printf("%s: Warning! Jet PU ID weight not available in tree, will re-calculate on the fly\n", __func__);
+    printf("HistMaker::%s: Warning! Jet PU ID weight not available in tree, will re-calculate on the fly\n", __func__);
     fUseJetPUIDWeights = 1;
   }
 
@@ -1303,17 +1304,26 @@ void HistMaker::InitializeEventWeights() {
   //reset to-be-defined weights
   eventWeight = 1.f;
 
+  //muon/electron ID weight
   leptonOne.wt1[0]  = 1.f; leptonTwo.wt1[0]  = 1.f;
   leptonOne.wt1[1]  = 1.f; leptonTwo.wt1[1]  = 1.f;
   leptonOne.wt1[2]  = 1.f; leptonTwo.wt1[2]  = 1.f;
   leptonOne.wt1[3]  = 1.f; leptonTwo.wt1[3]  = 1.f;
   leptonOne.wt1_bin = 0  ; leptonTwo.wt1_bin = 0  ;
 
+  //muon Iso ID / electron reco ID weight
   leptonOne.wt2[0]  = 1.f; leptonTwo.wt2[0]  = 1.f;
   leptonOne.wt2[1]  = 1.f; leptonTwo.wt2[1]  = 1.f;
   leptonOne.wt2[2]  = 1.f; leptonTwo.wt2[2]  = 1.f;
   leptonOne.wt2[3]  = 1.f; leptonTwo.wt2[3]  = 1.f;
   leptonOne.wt2_bin = 0  ; leptonTwo.wt2_bin = 0  ;
+
+  //electron Iso ID weight
+  leptonOne.wt3[0]  = 1.f; leptonTwo.wt3[0]  = 1.f;
+  leptonOne.wt3[1]  = 1.f; leptonTwo.wt3[1]  = 1.f;
+  leptonOne.wt3[2]  = 1.f; leptonTwo.wt3[2]  = 1.f;
+  leptonOne.wt3[3]  = 1.f; leptonTwo.wt3[3]  = 1.f;
+  leptonOne.wt3_bin = 0  ; leptonTwo.wt3_bin = 0  ;
 
   leptonOne.trig_wt = 1.f; leptonTwo.trig_wt = 1.f;
   const int ntrig = sizeof(triggerWeights)/sizeof(*triggerWeights);
@@ -1554,29 +1564,43 @@ void HistMaker::InitializeEventWeights() {
                                                                      leptonTwo.isLoose, mcEra);
     else if(leptonTwo.isTau     ()) leptonTwo.wt1[0] = fTauIDWeight->IDWeight(leptonTwo.p4->Pt(), leptonTwo.p4->Eta(), tauGenID, tauDeepAntiJet,
                                                                               fYear, leptonTwo.wt1[1], leptonTwo.wt1[2], leptonTwo.wt1_bin);
+    //Apply the MC electron reco ID/uncertainty to the embedding electrons
+    Lepton_t tmp_lep;
+    if     (leptonOne.isElectron()) {
+      tmp_lep.pt    = leptonOne.pt;
+      tmp_lep.scEta = leptonOne.scEta;
+      fElectronIDWeight.IDWeight(tmp_lep, fYear);
+      leptonOne.wt2[0] = tmp_lep.wt2[0];
+      leptonOne.wt2[1] = tmp_lep.wt2[1];
+      leptonOne.wt2[2] = tmp_lep.wt2[2];
+    }
+    if     (leptonTwo.isElectron()) {
+      tmp_lep.pt    = leptonTwo.pt;
+      tmp_lep.scEta = leptonTwo.scEta;
+      fElectronIDWeight.IDWeight(tmp_lep, fYear);
+      leptonTwo.wt2[0] = tmp_lep.wt2[0];
+      leptonTwo.wt2[1] = tmp_lep.wt2[1];
+      leptonTwo.wt2[2] = tmp_lep.wt2[2];
+    }
 
   } else if(!fIsData) { //MC simulations
     //Lepton 1
-    if     (leptonOne.isElectron()) fElectronIDWeight.IDWeight(leptonOne.p4->Pt(), leptonOne.scEta, fYear,
-                                                               leptonOne.wt1[0] , leptonOne.wt1[1], leptonOne.wt1[2], //electon ID
-                                                               leptonOne.wt2[0] , leptonOne.wt2[1], leptonOne.wt2[2]); //electron reco ID
+    if     (leptonOne.isElectron()) fElectronIDWeight.IDWeight(leptonOne, fYear);
     else if(leptonOne.isMuon    ()) fMuonIDWeight.IDWeight    (leptonOne.p4->Pt(), leptonOne.p4->Eta(), fYear, mcEra,
                                                                leptonOne.wt1[0] , leptonOne.wt1[1], leptonOne.wt1[2],
                                                                leptonOne.wt2[0] , leptonOne.wt2[1], leptonOne.wt2[2]);
     else if(leptonOne.isTau     ()) leptonOne.wt1[0] = fTauIDWeight->IDWeight(leptonOne.p4->Pt(), leptonOne.p4->Eta(), tauGenID, tauDeepAntiJet,
                                                                               fYear, leptonOne.wt1[1], leptonOne.wt1[2], leptonOne.wt1_bin);
     //Lepton 2
-    if     (leptonTwo.isElectron()) fElectronIDWeight.IDWeight(leptonTwo.p4->Pt(), leptonTwo.scEta, fYear,
-                                                               leptonTwo.wt1[0] , leptonTwo.wt1[1], leptonTwo.wt1[2],
-                                                               leptonTwo.wt2[0] , leptonTwo.wt2[1], leptonTwo.wt2[2]);
+    if     (leptonTwo.isElectron()) fElectronIDWeight.IDWeight(leptonTwo, fYear);
     else if(leptonTwo.isMuon    ()) fMuonIDWeight.IDWeight    (leptonTwo.p4->Pt(), leptonTwo.p4->Eta(), fYear, mcEra,
                                                                leptonTwo.wt1[0] , leptonTwo.wt1[1], leptonTwo.wt1[2],
                                                                leptonTwo.wt2[0] , leptonTwo.wt2[1], leptonTwo.wt2[2]);
     else if(leptonTwo.isTau     ()) leptonTwo.wt1[0] = fTauIDWeight->IDWeight(leptonTwo.p4->Pt(), leptonTwo.p4->Eta(), tauGenID, tauDeepAntiJet,
                                                                               fYear, leptonTwo.wt1[1], leptonTwo.wt1[2], leptonTwo.wt1_bin);
   }
-  eventWeight *= leptonOne.wt1[0]*leptonOne.wt2[0];
-  eventWeight *= leptonTwo.wt1[0]*leptonTwo.wt2[0];
+  eventWeight *= leptonOne.wt1[0]*leptonOne.wt2[0]*leptonOne.wt3[0];
+  eventWeight *= leptonTwo.wt1[0]*leptonTwo.wt2[0]*leptonTwo.wt3[0];
 
   /////////////////////////
   // Jet --> tau weights //

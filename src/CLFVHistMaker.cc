@@ -1631,7 +1631,7 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
 
   etau  &= isLooseTau || tauDeepAntiJet >= 50; //
   etau  &= tauDeepAntiMu  >= 10; //15 = tight
-  etau  &= tauDeepAntiEle >= 100; //tauDeepAntiEle >= 50; //63 = tight, 127 = VTight, 255 = VVTight
+  etau  &= tauDeepAntiEle >= fETauAntiEleCut; //tauDeepAntiEle >= 50; //31 = Medium, 63 = tight, 127 = VTight, 255 = VVTight
   etau  &= leptonTwo.id2  >=  2; //1 = loose, 3 = tight tau MVA anti-muon ID
 
   //remove tau decay modes not interested in (keep only 0, 1, 10, 11)

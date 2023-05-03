@@ -203,9 +203,25 @@ double EmbeddingTnPWeight::MuonIDWeight(double pt, double eta, int year,
     printf(" Iso weight = %.2f + %.2f - %.2f\n", iso_wt, iso_up, iso_down);
   }
 
+  /////////////////////////////////////////////////////////
+  //Apply an overall systematic uncertainty
+  const float muon_id_sys = 0.02; //assume a 2% uncertainty on muon IDs
+  //apply equally to the muon ID and Iso ID
+  iso_up   = iso_wt + std::sqrt(std::pow(iso_wt-iso_up  , 2) + std::pow(muon_id_sys/std::sqrt(2.)*iso_wt, 2)); //apply in quadrature with stat. uncertainty
+  iso_down = iso_wt - std::sqrt(std::pow(iso_wt-iso_down, 2) + std::pow(muon_id_sys/std::sqrt(2.)*iso_wt, 2)); //apply id_sys/sqrt() so iso id + id add to id_sys
+  id_up    = id_wt  + std::sqrt(std::pow(id_wt -id_up   , 2) + std::pow(muon_id_sys/std::sqrt(2.)*id_wt , 2));
+  id_down  = id_wt  - std::sqrt(std::pow(id_wt -id_down , 2) + std::pow(muon_id_sys/std::sqrt(2.)*id_wt , 2));
+
+  if(verbose_) {
+    printf(" Inflated systematic uncertainty by sqrt(%.1f%%) to both IDs\n", muon_id_sys);
+    printf(" ID weight  = %.2f + %.2f - %.2f\n", id_wt, id_up, id_down);
+    printf(" Iso weight = %.2f + %.2f - %.2f\n", iso_wt, iso_up, iso_down);
+  }
+
   if(scale_factor <= 0. || !std::isfinite(scale_factor)) {
     std::cout << "Warning! Scale factor <= 0 or undefined (" << scale_factor << ") in EmbeddingTnPWeight::" << __func__ << ", returning 1" << std::endl;
-    iso_wt = 1.f; id_wt = 1.f;
+    iso_wt = 1.f; iso_up = 1.f; iso_down = 1.f;
+    id_wt = 1.f; id_up = 1.f; id_down = 1.f;
     return 1.;
   }
 
@@ -261,7 +277,7 @@ double EmbeddingTnPWeight::MuonTriggerWeight(double pt, double eta, int year, fl
   }
 
   //Assume a fixed overall systematic uncertainty on the embedding trigger efficiency
-  const float mc_sys_eff = 0.002; //0.2% overall uncertainty
+  const float mc_sys_eff = 0.005; //0.5% overall uncertainty
 
   data_up   = data_eff + data_unc[0];
   mc_up     = mc_eff   + std::sqrt(std::pow(mc_unc[0],2) + std::pow(mc_sys_eff,2));
@@ -336,7 +352,7 @@ double EmbeddingTnPWeight::ElectronIDWeight(double pt, double eta, int year,
   scale_factor *= id_wt;
 
   if(verbose_) {
-    printf(" ID weight = %.2f + %.2f - %.2f\n", id_wt, id_up, id_down);
+    printf(" ID weight  = %.2f + %.2f - %.2f\n", id_wt, id_up, id_down);
   }
 
   ///////////////////////////
@@ -354,10 +370,26 @@ double EmbeddingTnPWeight::ElectronIDWeight(double pt, double eta, int year,
     printf(" Iso weight = %.2f + %.2f - %.2f\n", iso_wt, iso_up, iso_down);
   }
 
+  /////////////////////////////////////////////////////////
+  //Apply an overall systematic uncertainty
+  const float electron_id_sys = 0.02; //assume a 2% uncertainty on electron IDs
+  //apply equally to the electron ID and Iso ID
+  iso_up   = iso_wt + std::sqrt(std::pow(iso_wt-iso_up  , 2) + std::pow(electron_id_sys/std::sqrt(2.)*iso_wt, 2)); //apply in quadrature with stat. uncertainty
+  iso_down = iso_wt - std::sqrt(std::pow(iso_wt-iso_down, 2) + std::pow(electron_id_sys/std::sqrt(2.)*iso_wt, 2)); //apply id_sys/sqrt(2) so iso id + id add to id_sys
+  id_up    = id_wt  + std::sqrt(std::pow(id_wt -id_up   , 2) + std::pow(electron_id_sys/std::sqrt(2.)*id_wt , 2));
+  id_down  = id_wt  - std::sqrt(std::pow(id_wt -id_down , 2) + std::pow(electron_id_sys/std::sqrt(2.)*id_wt , 2));
+
+  if(verbose_) {
+    printf(" Inflated systematic uncertainty by sqrt(%.1f%%) to both IDs\n", electron_id_sys);
+    printf(" ID weight  = %.2f + %.2f - %.2f\n", id_wt, id_up, id_down);
+    printf(" Iso weight = %.2f + %.2f - %.2f\n", iso_wt, iso_up, iso_down);
+  }
+
   if(scale_factor <= 0. || !std::isfinite(scale_factor)) {
     std::cout << "Warning! Scale factor <= 0 or undefined (" << scale_factor << ") in EmbeddingTnPWeight::" << __func__ << ", returning 1" << std::endl;
-    iso_wt = 1.f; id_wt = 1.f;
-    return 1.;
+    iso_wt = 1.f; iso_up = 1.f; iso_down = 1.f;
+    id_wt = 1.f; id_up = 1.f; id_down = 1.f;
+    return 1.f;
   }
   return scale_factor;
 }
