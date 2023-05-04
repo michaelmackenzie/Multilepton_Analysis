@@ -1,7 +1,8 @@
 CC       := c++
 CXX      := g++
 LD       := g++
-CXXFLAGS := -Wall -Wextra -Werror -O2 -std=c++1y -g -I./ $(shell root-config --cflags) -lTMVA
+XGBOOST  := /cvmfs/cms.cern.ch/$(SCRAM_ARCH)/external/py2-xgboost/0.80-ikaegh/lib/python2.7/site-packages/xgboost
+CXXFLAGS := -Wall -Wextra -Werror -O2 -std=c++1y -g -I./ $(shell root-config --cflags) -lTMVA -I$(XGBOOST)/include/ -I$(XGBOOST)/rabit/include/
 LDFLAGS  := -shared -Wall -Wextra $(shell root-config --libs) -lTMVA
 SRC 	 := $(wildcard src/*.cc)
 BINSRC 	 := $(wildcard test/*.cpp)
@@ -40,10 +41,10 @@ lib/CLFVAnalysis_xr.cc:
 	genreflex src/classes.h -s src/classes_def.xml -o lib/CLFVAnalysis_xr.cc --deep --fail_on_warnings \
 	--rootmap=lib/CLFVAnalysis_xr.rootmap --rootmap-lib=lib/libCLFVAnalysis.so --capabilities=lib/CLFVAnalysis_xi.cc \
 	-DCMS_DICT_IMPL -D_REENTRANT -DGNUSOURCE -D__STRICT_ANSI__ -DGNU_GCC -D_GNU_SOURCE \
-	-I$(PARENT_DIR) -DCMSSW_REFLEX_DICT
+	-I$(PARENT_DIR) -I$(XGBOOST)/include -I$(XGBOOST)/rabit/include/ -DCMSSW_REFLEX_DICT
 
 lib/CLFVAnalysis_xr.cc.o: lib/CLFVAnalysis_xr.cc
-	$(CC) -MMD -MF lib/CLFVAnalysis_xr.cc.d -c -I$(PARENT_DIR) -I./ -DGNU_GCC -D_GNU_SOURCE $(shell root-config --cflags)  \
+	$(CC) -MMD -MF lib/CLFVAnalysis_xr.cc.d -c -I$(PARENT_DIR) -I./ -I$(XGBOOST)/include -I$(XGBOOST)/rabit/include/ -DGNU_GCC -D_GNU_SOURCE $(shell root-config --cflags)  \
 	-DCMSSW_REFLEX_DICT -pthread -Os -Wno-unused-variable -g -fPIC lib/CLFVAnalysis_xr.cc -o lib/CLFVAnalysis_xr.cc.o
 
 
@@ -56,7 +57,7 @@ bin/%: obj/bin/%.o $(LIB)
 exe: $(addprefix $(EXE_DIR)/,$(EXES))
 	@echo "*** Compiling executables..."
 $(EXE_DIR)/% : $(PROG_DIR)/%.cpp lib
-	$(CC) $< -o $@ $(CCFLAGS) -L $(LIB_DIR) -l $(LIBNAME) -I $(INC_DIR) -I $(SRC_DIR) -I $(PARENT_DIR) $(LIB)
+	$(CC) $< -o $@ $(CCFLAGS) -L $(LIB_DIR) -l$(LIBNAME) -I$(INC_DIR) -I$(SRC_DIR) -I$(PARENT_DIR) -I$(XGBOOST)/include $(XGBOOST)/rabit/include/ $(LIB)
 
 all: dirs $(LIB)
 

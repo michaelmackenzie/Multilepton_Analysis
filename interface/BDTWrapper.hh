@@ -1,42 +1,74 @@
 #ifndef __CLFV_BDTWRAPPER__
 #define __CLFV_BDTWRAPPER__
 
-#define PY_SSIZE_T_CLEAN
-#include <Python.h>
-
 //c++ includes
 #include <iostream>
+#include <vector>
+
+//xgboost
+#include <xgboost/c_api.h>
 
 //local includes
-#include "interface/Tree_t.hh"
 
 namespace CLFV {
 
   class BDTWrapper {
   public:
-    BDTWrapper(std::string script = "BDTEval") {
-      Py_Initialize();
-      PyObject* pModule = PyImport_ImportModule(script.c_str());
-      // PyObject* pName = PyString_FromString(script.c_str());
-      // PyObject* pModule = PyImport_Import(pName);
-      PyObject* pDict = PyModule_GetDict(pModule);
-      PyObject* pClass = PyDict_GetItemString(pDict, script.c_str());
-      scriptHandle_ = PyObject_CallObject(pClass, nullptr);
+    BDTWrapper(std::string model = "bdt.xml", int verbose = 0) {
+      verbose_ = verbose;
+      if(model != "") {
+        if(verbose_ > -1) printf("BDTWrapper::%s: Initializing BDT with weight file %s\n", __func__, model.c_str());
+        XGBoosterCreate(nullptr, 0, &bdt_);
+        const int status = XGBoosterLoadModel(bdt_, model.c_str());
+        if(status && verbose_ > -2) printf("BDTWrapper:%s: Error! BDT failed to load, status = %i\n", __func__, status);
+      }
     }
 
     ~BDTWrapper() {
     }
 
-    float EvaluateScore(int index, Tree_t& vars) {
-      if(index >= 0 && vars.leponept > 0.f) {
-        return 0.f;
-      }
-      return -2.f;
+    void InitializeVariables(std::vector<float*> vars) {
+      vars_ = vars;
     }
 
+    float EvaluateScore() {
+      if(!bdt_) return -999.f;
+      if(vars_.size() == 0) {
+        if(verbose_ > -2) printf("BDTWrapper::%s: No variables defined!\n", __func__);
+        return -999.f;
+      }
+      DMatrixHandle dvalues;
+      float data[vars_.size()];
+      for(unsigned index = 0; index < vars_.size(); ++index) data[index] = *(vars_[index]);
+      if(verbose_ > 3) std::cout << "Creating matrix\n";
+      int status = XGDMatrixCreateFromMat(data, 1, vars_.size(), 0.f, &dvalues);
+      if(status) {
+        if(verbose_ > -2) printf("BDTWrapper::%s: Error creating data matrix! Status = %i\n", __func__, status);
+        return - 999.f;
+      }
+
+      if(verbose_ > 3) std::cout << "Evaluating prediction\n";
+      bst_ulong out_len=0;
+      const float* score;
+
+      auto ret = XGBoosterPredict(bdt_, dvalues, 0, 0, &out_len, &score);
+      if(verbose_ > 3) std::cout << "Evaluated prediction\n";
+
+      XGDMatrixFree(dvalues);
+
+      std::vector<float> results;
+      if(ret==0) {
+        for(unsigned int ic=0; ic<out_len; ++ic)
+          results.push_back(score[ic]);
+      }
+      return results[0];
+    }
+
+  public:
+    BoosterHandle bdt_;
   private:
-    PyObject* pModule_;
-    PyObject* scriptHandle_;
+    int verbose_;
+    std::vector<float*> vars_;
   };
 }
 

@@ -42,6 +42,7 @@
 #include "interface/ScaleUncertainty_t.hh"
 #include "interface/DataPlotter.hh"
 #include "interface/Fitter.hh"
+#include "interface/BDTWrapper.hh"
 
 using namespace CLFV;
 namespace CLFV {
@@ -84,5 +85,6 @@ namespace CLFV {
     ScaleUncertainty_t dummy15e;
     DataPlotter dummy16;
     Fitter dummy19;
+    BDTWrapper dummy20;
   };
 }
