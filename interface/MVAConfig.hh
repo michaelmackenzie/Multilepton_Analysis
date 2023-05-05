@@ -358,8 +358,8 @@ namespace CLFV {
       } else if(selection == "zetau_mu") {
         if(HistSet == 26) { //high mass region
           double edges[] = {-1.00, -0.90,
-                            -0.55, -0.45, -0.35, -0.25, -0.15,
-                            -0.05, +0.15, +0.40,
+                            -0.55, -0.45, -0.35, -0.25, -0.10,
+                            +0.20, +0.40,
                             +0.50,
                             +2.00};
           for(unsigned bin = 0; bin < sizeof(edges)/sizeof(*edges); ++bin) {
@@ -369,7 +369,7 @@ namespace CLFV {
           double edges[] = {-1.00,
                             -0.90, -0.55, -0.45, -0.40, -0.35,
                             -0.30, -0.25, -0.20, -0.15, -0.10,
-                            -0.05, +0.00, +0.05, +0.10,
+                            -0.05, +0.00, +0.05, +0.10, +0.15,
                             +0.25,
                             +0.40, +0.50,
                             +2.00};
@@ -378,51 +378,23 @@ namespace CLFV {
           }
         } else if(HistSet == 25) { //central mass region
           double edges[] = {-1.00,
-                            -0.90, -0.50, -0.38, -0.30,
+                            -0.90, -0.50, -0.40, -0.30,
                             -0.25, -0.20, -0.17, -0.14, -0.11,
                             -0.08, -0.05, -0.01, +0.02, +0.04,
                             +0.06, +0.08, +0.10, +0.12, +0.14,
-                            +0.16, +0.25,
+                            +0.16, +0.18, +0.30,
                             +0.40,
                             +0.50, +2.00};
           for(unsigned bin = 0; bin < sizeof(edges)/sizeof(*edges); ++bin) {
             bins.push_back(edges[bin]);
           }
-        // if(HistSet == 26) { //high mass region, so low scores
-        //   double edges[] = {-1.00, -0.80, -0.70, -0.40, -0.30,
-        //                     -0.20, -0.10, +0.00, +0.20, +0.40,
-        //                     +0.50,
-        //                     +2.00};
-        //   for(unsigned bin = 0; bin < sizeof(edges)/sizeof(*edges); ++bin) {
-        //     bins.push_back(edges[bin]);
-        //   }
-        // } else if(HistSet == 27) { //low mass region, so low scores
-        //   double edges[] = {-1.00, -0.80, -0.50, -0.40, -0.30,
-        //                     -0.20, -0.10, +0.00, +0.10, +0.25,
-        //                     +0.40, +0.50,
-        //                     +2.00};
-        //   for(unsigned bin = 0; bin < sizeof(edges)/sizeof(*edges); ++bin) {
-        //     bins.push_back(edges[bin]);
-        //   }
-        // } else if(HistSet == 25) { //central mass region, high scores
-        //   double edges[] = {-1.00, -0.80,
-        //                     -0.50, -0.40, -0.30, -0.25, -0.20,
-        //                     -0.16, -0.12, -0.08, -0.04, +0.00,
-        //                     +0.04, +0.08, +0.12, +0.16, +0.25,
-        //                     +0.40,
-        //                     +0.50, +2.00};
-        //   for(unsigned bin = 0; bin < sizeof(edges)/sizeof(*edges); ++bin) {
-        //     bins.push_back(edges[bin]);
-        //   }
         } else { //default, nominal score distribution
-          //dev, as of 11/29/22
-          double edges[] = {-1.00, -0.80, -0.60,
-                            -0.55, -0.50, -0.45, -0.40, -0.35,
-                            -0.30, -0.26, -0.23,
-                            -0.20, -0.17, -0.14,
-                            -0.11, -0.08, -0.06, -0.04, -0.02,
-                            +0.00, +0.02, +0.04, +0.06, +0.08,
-                            +0.10, +0.12, +0.14, +0.16, +0.18,
+          double edges[] = {-1.00,
+                            -0.90, -0.50, -0.40, -0.30,
+                            -0.25, -0.20, -0.17, -0.14, -0.11,
+                            -0.08, -0.05, -0.02, +0.01, +0.04,
+                            +0.06, +0.08, +0.10, +0.12, +0.14,
+                            +0.16, +0.18, +0.30,
                             +0.40,
                             +0.50, +2.00};
           for(unsigned bin = 0; bin < sizeof(edges)/sizeof(*edges); ++bin) {
