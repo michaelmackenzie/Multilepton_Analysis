@@ -1,0 +1,7 @@
+* Processing XGBoost BDT trainings
+
+** Training with `BDT_xgbtrain.py`
+
+```
+time python BDT_xgbtrain.py --trainSgnFile [bdt_tree_v2_emu_zemu_test.root] --trainBkgFile [bdt_tree_v2_emu_WW_test.root] --model [out name]
+```
