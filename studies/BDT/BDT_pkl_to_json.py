@@ -11,6 +11,7 @@ if __name__ == "__main__":
   parser = argparse.ArgumentParser()
   parser.add_argument("--model", dest="model", default="xgbmodel", type=str, help="model name to read in")
   parser.add_argument("--outname", dest="outname", default=None, type=str, help="model name write out")
+  parser.add_argument("--dump", dest="dump", default=False, action='store_true', help="write out model dump")
  
 
  
@@ -34,6 +35,13 @@ if __name__ == "__main__":
   outname=args.outname
   if outname is None: outname = model
   bdt.get_booster().save_model(outname+'.json')
+  if args.dump:
+    print "--> Printing information about the BDT:"
+    # dump = bdt.get_booster().dump_model(outname+'.txt',dump_format='txt')
+    # print bdt.get_params()
+    print bdt
+    print bdt.get_booster().feature_names
+    print bdt.get_booster().feature_types
 
   print "Finished"
 

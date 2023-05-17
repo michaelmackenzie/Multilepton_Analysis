@@ -16,16 +16,23 @@ namespace CLFV {
   public:
     BDTWrapper(std::string model = "bdt.xml", int verbose = 0) {
       verbose_ = verbose;
-      if(model != "") {
-        if(verbose_ > -1) printf("BDTWrapper::%s: Initializing BDT with weight file %s\n", __func__, model.c_str());
-        XGBoosterCreate(nullptr, 0, &bdt_);
-        const int status = XGBoosterLoadModel(bdt_, model.c_str());
-        if(status && verbose_ > -2) printf("BDTWrapper:%s: Error! BDT failed to load, status = %i\n", __func__, status);
-      }
+      status_ = 0;
+      if(model != "")
+        status_ = InitializeModel(model);
     }
 
     ~BDTWrapper() {
     }
+
+    int InitializeModel(std::string model) {
+      if(verbose_ > -1) printf("BDTWrapper::%s: Initializing BDT with weight file %s\n", __func__, model.c_str());
+      XGBoosterCreate(nullptr, 0, &bdt_);
+      const int status = XGBoosterLoadModel(bdt_, model.c_str());
+      if(status && verbose_ > -2) printf("BDTWrapper:%s: Error! BDT failed to load, status = %i\n", __func__, status);
+      return status;
+    }
+
+    int GetStatus() { return status_; }
 
     void InitializeVariables(std::vector<float*> vars) {
       vars_ = vars;
@@ -39,7 +46,7 @@ namespace CLFV {
       }
       DMatrixHandle dvalues;
       float data[vars_.size()];
-      for(unsigned index = 0; index < vars_.size(); ++index) data[index] = *(vars_[index]);
+      for(unsigned index = 0; index < vars_.size(); ++index) data[index] = vars_[index][0];
       if(verbose_ > 3) std::cout << "Creating matrix\n";
       int status = XGDMatrixCreateFromMat(data, 1, vars_.size(), 0.f, &dvalues);
       if(status) {
@@ -69,6 +76,7 @@ namespace CLFV {
   private:
     int verbose_;
     std::vector<float*> vars_;
+    int status_;
   };
 }
 

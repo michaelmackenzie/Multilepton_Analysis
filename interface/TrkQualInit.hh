@@ -31,10 +31,9 @@ namespace CLFV {
        8 : 7 but with updated spectators
        9 : development version
      **/
-    TrkQualInit(int version = TrkQualInit::Default, int njets = 0) {
-      version_ = version;
-      njets_ = njets;
-    }
+    TrkQualInit(int version = TrkQualInit::Default, int njets = 0, int xgboost = 0) : version_(version),
+                                                                                      njets_(njets),
+                                                                                      xgboost_(xgboost) {}
 
     //information for a variable
     struct Var_t {
@@ -56,6 +55,7 @@ namespace CLFV {
       const bool tau      = selection.Contains("tau");
       const bool emu_data = emu || selection.Contains("_");
       const bool tau_data = selection.EndsWith("tau");
+      const bool xgboost  = emu && xgboost_ && version_ == 0;
 
       std::vector<TString> train_var;
       if(tau) {
@@ -145,10 +145,12 @@ namespace CLFV {
                                         "leptwoprimepx", "leptwoprimepz", "leptwoprimee", "leponeprimepz", "leponeprimee", "metprimee"};
         if(version_ == 17) train_var = {"lepm", "lepmestimate", "deltaalpha", "mtone", "mttwo", "mtlep", //v12 - jetpt
                                         "leponept", "leptwopt", "lepdeltaphi", "leppt"};
-      } else {
-        //v0 = current version without spectators; current version is v7
-        if(version_ ==  0) train_var = {"mtoneoverm", "mttwooverm", "onemetdeltaphi", "twometdeltaphi",
-                                        "leponeptoverm", "leptwoptoverm", "lepptoverm", "lepdeltaphi", "jetpt"};
+      } else { //emu
+        //v0 = current version without spectators; current version is XGBoost BDT
+        if(xgboost) train_var = {"met", "mtlead", "mttrail", "leppt", "pttrailoverlead",
+                                 "metsignificance", "lepeta", "metdeltaphi"};
+        else if(version_ ==  0) train_var = {"mtoneoverm", "mttwooverm", "onemetdeltaphi", "twometdeltaphi",
+                                             "leponeptoverm", "leptwoptoverm", "lepptoverm", "lepdeltaphi", "jetpt"};
         if(version_ ==  7) train_var = {"mtoneoverm", "mttwooverm", "onemetdeltaphi", "twometdeltaphi",
                                         "leponeptoverm", "leptwoptoverm", "lepptoverm", "lepdeltaphi", "jetpt"};
         if(version_ ==  9) train_var = {"mtoneoverm", "mttwooverm", "mtlepoverm", "lepptoverm",
@@ -230,6 +232,8 @@ namespace CLFV {
       variables.push_back(Var_t("mtone", "MT(MET,l1)", ""   , &tree.mtone));
       variables.push_back(Var_t("mttwo", "MT(MET,l2)", ""   , &tree.mttwo));
       variables.push_back(Var_t("mtlep", "MT(MET,ll)", ""   , &tree.mtlep));
+      variables.push_back(Var_t("mtlead", "MT(MET,l1)", ""   , &tree.mtlead));
+      variables.push_back(Var_t("mttrail", "MT(MET,l2)", ""   , &tree.mttrail));
       variables.push_back(Var_t("mtdiff", "#DeltaMT(MET,l)", ""   , &tree.mtdiff));
       variables.push_back(Var_t("mtoneoverm", "MT(MET,l1)/M_{ll}", ""   , &tree.mtoneoverm));
       variables.push_back(Var_t("mttwooverm", "MT(MET,l2)/M_{ll}", ""   , &tree.mttwooverm));
@@ -248,6 +252,7 @@ namespace CLFV {
       variables.push_back(Var_t("leponept","pT_{l1}","GeV", &tree.leponept));
       variables.push_back(Var_t("leptwopt","pT_{l2}","GeV", &tree.leptwopt));
       variables.push_back(Var_t("leppt"   ,"pT_{ll}","GeV", &tree.leppt   ));
+      variables.push_back(Var_t("lepeta"  ,"#eta_{ll}","" , &tree.lepeta  ));
       variables.push_back(Var_t("leponeptoverm","pT_{l1}/M_{ll}","", &tree.leponeptoverm));
       variables.push_back(Var_t("leptwoptoverm","pT_{l2}/M_{ll}","", &tree.leptwoptoverm));
       variables.push_back(Var_t("lepptoverm"   ,"pT_{ll}/M_{ll}","", &tree.lepptoverm   ));
@@ -308,6 +313,7 @@ namespace CLFV {
         variables.push_back(Var_t("htsum"     ,"#Sigma pT_{Jet}"         ,"", &tree.htsum     ));
         variables.push_back(Var_t("jetpt"     ,"pT_{Jet}"                ,"", &tree.jetpt     ));
         variables.push_back(Var_t("met"       , "MET"                    , "GeV", &tree.met   ));
+        variables.push_back(Var_t("metsignificance", "#sigma_{MET}"      , "GeV", &tree.metsignificance));
       } else {
         variables.push_back(Var_t("jetpt","pT_{Jet}","", &tree.jetpt, true));
       }
@@ -320,6 +326,7 @@ namespace CLFV {
         variables.push_back(Var_t("pzetainv","#zeta inv","", &tree.pzetainv));
         variables.push_back(Var_t("ptdiff","pT_{1} - pT_{2}","", &tree.ptdiff));
         variables.push_back(Var_t("ptratio","pT_{1} / pT_{2}","", &tree.ptratio));
+        variables.push_back(Var_t("pttrailoverlead","pT_{2} / pT_{1}","", &tree.pttrailoverlead));
         if(emu) variables.push_back(Var_t("ptdiffoverm","#DeltapT / M","", &tree.ptdiffoverm));
       }
 
@@ -344,6 +351,23 @@ namespace CLFV {
           std::cout << "TrkQualInit::" << __func__ << ": WARNING! Failed to find training variable named: "
                     << name.Data() << std::endl;
         }
+      }
+
+      if(xgboost) { //require the variables in order
+        std::vector<Var_t> ordered_vars;
+        for(unsigned index = 0; index < train_var.size(); ++index) {
+          TString name = train_var[index];
+          bool found = false;
+          for(Var_t var : variables) {
+            if(var.var_ == name) {ordered_vars.push_back(var); found = true; break;}
+          }
+          if(!found) {
+            std::cout << "TrkQualInit::" << __func__ << ": ERROR! Failed to find training variable named: "
+                      << name.Data() << " required for XGBoost evaluation\n";
+            throw 20;
+          }
+        }
+        return ordered_vars;
       }
 
       return variables;
@@ -380,6 +404,13 @@ namespace CLFV {
       return status;
     }
 
+    std::vector<float*> GetXGBoostVariables(TString selection, Tree_t& tree) {
+      std::vector<Var_t> variables = GetVariables(selection, tree);
+      std::vector<float*> values;
+      for(unsigned index = 0; index < variables.size(); ++index) values.push_back(variables[index].val_);
+      return values;
+    }
+
     int SetBranchAddresses(TTree* tree, TString selection, Tree_t& tree_t){
       int status = 0;
       std::vector<Var_t> variables = GetVariables(selection, tree_t);
@@ -407,6 +438,7 @@ namespace CLFV {
     //fields
     int version_;
     int njets_; //flag for jet binned categories
+    int xgboost_;
 
   };
 }

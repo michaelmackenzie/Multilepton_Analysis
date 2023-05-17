@@ -13,7 +13,8 @@ typedef CLFVHistMaker HISTOGRAMMER;
 
 //Process multiple cards in parallel
 bool newProcess_   = true; //run card processing in a new process to avoid memory issues
-int  maxProcesses_ = 6; //maximum number of new processes to run at once
+int  maxProcesses_ = 1; //maximum number of new processes to run at once
+bool splitSelecs_  = true; //split each selection processing into a new job
 bool preFetch_     = false; //check for the sample on /tmp, and copy it there if it isn't there
 bool useTChain_    = true; //use a TChain of input files rather than a tree from a single ntuple file
 Long64_t notify_   = 50000; //frequency at which to printout processing info
@@ -58,13 +59,14 @@ int embeddedTesting_     = 0; //test embedding options: 3 = use KIT measured sca
 int useEmbedRocco_       = 1; //use Rochester correction vs LFV Higgs AN muon sys in Embedded samples
 
 int systematicSeed_      = 90; //seed for systematic random shifts
-int doSystematics_       = 1; //process systematic uncertainty histograms
-int allowMigration_      = 1; //event migration systematic effects
+int doSystematics_       = 0; //process systematic uncertainty histograms
+int allowMigration_      = 0; //event migration systematic effects
 int  DoMVASets_          = 1; //Fill sets with MVA cuts: 1 = emu; 2 = emu/ee/mumu; 3 = all sets
 int  ReprocessMVAs_      = 1; //Re-evaluate MVA scores on the fly
+int useCDFBDTs_          = 0; //Use CDF transformed BDTs instead of the raw BDT scores in the fits
+int useXGBoost_          = 1; //use XGBoost BDT in Z->e+mu
 bool writeTrees_         = false;
 int  train_mode_         = 2; //MVA training mode, how to define training fractions
-int useCDFBDTs_          = 0; //Use CDF transformed BDTs instead of the raw BDT score fits
 
 int  doHiggs_            = 0; //do higgs-related analysis
 bool sparseHists_        = true; //only plot more basic histograms
@@ -115,7 +117,7 @@ config_t get_config() {
   config_t config;
 
   config.writeTrees_ = writeTrees_;
-  config.selections_ = {"mutau"}; //{"mutau", "etau", "emu", "mutau_e", "etau_mu", "ee", "mumu"};
+  config.selections_ = {"emu"}; //{"mutau", "etau", "emu", "mutau_e", "etau_mu", "ee", "mumu"};
   config.signalTrainFraction_ = 0.5;
   config.backgroundTrainFraction_ = 0.3;
   config.doSystematics_ = doSystematics_;
@@ -185,20 +187,20 @@ vector<datacard_t> get_data_cards(TString& nanoaod_path) {
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-EMu-D"       , 2016), "LFVAnalysis_Embed-EMu-D_2016.root"             , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-EMu-E"       , 2016), "LFVAnalysis_Embed-EMu-E_2016.root"             , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-EMu-F"       , 2016), "LFVAnalysis_Embed-EMu-F_2016.root"             , 0));
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-MuMu-B"      , 2016), "LFVAnalysis_Embed-MuMu-B_2016.root"            , 0));
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-MuMu-C"      , 2016), "LFVAnalysis_Embed-MuMu-C_2016.root"            , 0));
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-MuMu-D"      , 2016), "LFVAnalysis_Embed-MuMu-D_2016.root"            , 0));
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-MuMu-E"      , 2016), "LFVAnalysis_Embed-MuMu-E_2016.root"            , 0));
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-MuMu-F"      , 2016), "LFVAnalysis_Embed-MuMu-F_2016.root"            , 0));
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-MuMu-G"      , 2016), "LFVAnalysis_Embed-MuMu-G_2016.root"            , 0));
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-MuMu-H"      , 2016), "LFVAnalysis_Embed-MuMu-H_2016.root"            , 0));
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-EE-B"        , 2016), "LFVAnalysis_Embed-EE-B_2016.root"              , 0));
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-EE-C"        , 2016), "LFVAnalysis_Embed-EE-C_2016.root"              , 0));
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-EE-D"        , 2016), "LFVAnalysis_Embed-EE-D_2016.root"              , 0));
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-EE-E"        , 2016), "LFVAnalysis_Embed-EE-E_2016.root"              , 0));
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-EE-F"        , 2016), "LFVAnalysis_Embed-EE-F_2016.root"              , 0));
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-EE-G"        , 2016), "LFVAnalysis_Embed-EE-G_2016.root"              , 0));
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-EE-H"        , 2016), "LFVAnalysis_Embed-EE-H_2016.root"              , 0));
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-MuMu-B"      , 2016), "LFVAnalysis_Embed-MuMu-B_2016.root"            , 0));
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-MuMu-C"      , 2016), "LFVAnalysis_Embed-MuMu-C_2016.root"            , 0));
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-MuMu-D"      , 2016), "LFVAnalysis_Embed-MuMu-D_2016.root"            , 0));
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-MuMu-E"      , 2016), "LFVAnalysis_Embed-MuMu-E_2016.root"            , 0));
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-MuMu-F"      , 2016), "LFVAnalysis_Embed-MuMu-F_2016.root"            , 0));
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-MuMu-G"      , 2016), "LFVAnalysis_Embed-MuMu-G_2016.root"            , 0));
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-MuMu-H"      , 2016), "LFVAnalysis_Embed-MuMu-H_2016.root"            , 0));
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-EE-B"        , 2016), "LFVAnalysis_Embed-EE-B_2016.root"              , 0));
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-EE-C"        , 2016), "LFVAnalysis_Embed-EE-C_2016.root"              , 0));
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-EE-D"        , 2016), "LFVAnalysis_Embed-EE-D_2016.root"              , 0));
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-EE-E"        , 2016), "LFVAnalysis_Embed-EE-E_2016.root"              , 0));
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-EE-F"        , 2016), "LFVAnalysis_Embed-EE-F_2016.root"              , 0));
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-EE-G"        , 2016), "LFVAnalysis_Embed-EE-G_2016.root"              , 0));
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-EE-H"        , 2016), "LFVAnalysis_Embed-EE-H_2016.root"              , 0));
   nanocards.push_back(datacard_t(true , 1.                                            , "LFVAnalysis_SingleMuonRun2016B_2016.root"      , 2));
   nanocards.push_back(datacard_t(true , 1.                                            , "LFVAnalysis_SingleMuonRun2016C_2016.root"      , 2));
   nanocards.push_back(datacard_t(true , 1.                                            , "LFVAnalysis_SingleMuonRun2016D_2016.root"      , 2));
@@ -278,16 +280,16 @@ vector<datacard_t> get_data_cards(TString& nanoaod_path) {
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-EMu-D"       , 2017), "LFVAnalysis_Embed-EMu-D_2017.root"             , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-EMu-E"       , 2017), "LFVAnalysis_Embed-EMu-E_2017.root"             , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-EMu-F"       , 2017), "LFVAnalysis_Embed-EMu-F_2017.root"             , 0));
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-MuMu-B"      , 2017), "LFVAnalysis_Embed-MuMu-B_2017.root"            , 0));
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-MuMu-C"      , 2017), "LFVAnalysis_Embed-MuMu-C_2017.root"            , 0));
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-MuMu-D"      , 2017), "LFVAnalysis_Embed-MuMu-D_2017.root"            , 0));
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-MuMu-E"      , 2017), "LFVAnalysis_Embed-MuMu-E_2017.root"            , 0));
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-MuMu-F"      , 2017), "LFVAnalysis_Embed-MuMu-F_2017.root"            , 0));
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-EE-B"        , 2017), "LFVAnalysis_Embed-EE-B_2017.root"              , 0));
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-EE-C"        , 2017), "LFVAnalysis_Embed-EE-C_2017.root"              , 0));
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-EE-D"        , 2017), "LFVAnalysis_Embed-EE-D_2017.root"              , 0));
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-EE-E"        , 2017), "LFVAnalysis_Embed-EE-E_2017.root"              , 0));
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-EE-F"        , 2017), "LFVAnalysis_Embed-EE-F_2017.root"              , 0));
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-MuMu-B"      , 2017), "LFVAnalysis_Embed-MuMu-B_2017.root"            , 0));
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-MuMu-C"      , 2017), "LFVAnalysis_Embed-MuMu-C_2017.root"            , 0));
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-MuMu-D"      , 2017), "LFVAnalysis_Embed-MuMu-D_2017.root"            , 0));
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-MuMu-E"      , 2017), "LFVAnalysis_Embed-MuMu-E_2017.root"            , 0));
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-MuMu-F"      , 2017), "LFVAnalysis_Embed-MuMu-F_2017.root"            , 0));
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-EE-B"        , 2017), "LFVAnalysis_Embed-EE-B_2017.root"              , 0));
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-EE-C"        , 2017), "LFVAnalysis_Embed-EE-C_2017.root"              , 0));
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-EE-D"        , 2017), "LFVAnalysis_Embed-EE-D_2017.root"              , 0));
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-EE-E"        , 2017), "LFVAnalysis_Embed-EE-E_2017.root"              , 0));
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-EE-F"        , 2017), "LFVAnalysis_Embed-EE-F_2017.root"              , 0));
   nanocards.push_back(datacard_t(true , 1.                                            , "LFVAnalysis_SingleMuonRun2017B_2017.root"      , 2));
   nanocards.push_back(datacard_t(true , 1.                                            , "LFVAnalysis_SingleMuonRun2017C_2017.root"      , 2));
   nanocards.push_back(datacard_t(true , 1.                                            , "LFVAnalysis_SingleMuonRun2017D_2017.root"      , 2));
@@ -348,14 +350,14 @@ vector<datacard_t> get_data_cards(TString& nanoaod_path) {
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-EMu-A"       , 2018), "LFVAnalysis_Embed-EMu-A_2018.root"             , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-EMu-B"       , 2018), "LFVAnalysis_Embed-EMu-B_2018.root"             , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-EMu-C"       , 2018), "LFVAnalysis_Embed-EMu-C_2018.root"             , 0));
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-EE-A"        , 2018), "LFVAnalysis_Embed-EE-A_2018.root"              , 0));
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-EE-B"        , 2018), "LFVAnalysis_Embed-EE-B_2018.root"              , 0));
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-EE-C"        , 2018), "LFVAnalysis_Embed-EE-C_2018.root"              , 0));
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-EE-D"        , 2018), "LFVAnalysis_Embed-EE-D_2018.root"              , 0));
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-MuMu-A"      , 2018), "LFVAnalysis_Embed-MuMu-A_2018.root"            , 0));
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-MuMu-B"      , 2018), "LFVAnalysis_Embed-MuMu-B_2018.root"            , 0));
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-MuMu-C"      , 2018), "LFVAnalysis_Embed-MuMu-C_2018.root"            , 0));
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-MuMu-D"      , 2018), "LFVAnalysis_Embed-MuMu-D_2018.root"            , 0));
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-EE-A"        , 2018), "LFVAnalysis_Embed-EE-A_2018.root"              , 0));
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-EE-B"        , 2018), "LFVAnalysis_Embed-EE-B_2018.root"              , 0));
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-EE-C"        , 2018), "LFVAnalysis_Embed-EE-C_2018.root"              , 0));
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-EE-D"        , 2018), "LFVAnalysis_Embed-EE-D_2018.root"              , 0));
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-MuMu-A"      , 2018), "LFVAnalysis_Embed-MuMu-A_2018.root"            , 0));
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-MuMu-B"      , 2018), "LFVAnalysis_Embed-MuMu-B_2018.root"            , 0));
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-MuMu-C"      , 2018), "LFVAnalysis_Embed-MuMu-C_2018.root"            , 0));
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("Embed-MuMu-D"      , 2018), "LFVAnalysis_Embed-MuMu-D_2018.root"            , 0));
   nanocards.push_back(datacard_t(true , 1.                                            , "LFVAnalysis_SingleMuonRun2018D_2018.root"      , 2));
   nanocards.push_back(datacard_t(true , 1.                                            , "LFVAnalysis_SingleMuonRun2018A_2018.root"      , 2));
   nanocards.push_back(datacard_t(true , 1.                                            , "LFVAnalysis_SingleMuonRun2018B_2018.root"      , 2));

@@ -325,6 +325,7 @@ TH1* DataPlotter::get_qcd(TString hist, TString setType, Int_t set, ScaleUncerta
     hData->SetLineColor(qcd_color_);
     hData->SetFillColor(qcd_color_);
   }
+  hData->SetMarkerColor(qcd_color_);
   return hData;
 }
 
@@ -434,6 +435,7 @@ TH1* DataPlotter::get_misid(TString hist, TString setType, Int_t set, ScaleUncer
     hData->SetLineColor(misid_color_);
     hData->SetFillColor(misid_color_);
   }
+  hData->SetMarkerColor(misid_color_);
   return hData;
 }
 

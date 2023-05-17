@@ -182,9 +182,10 @@ double ElectronIDWeight::IDWeight(Lepton_t& lepton, int year) {
 
   weight_id  = 1.f; weight_up_id  = 1.f; weight_down_id  = 1.f;
   weight_rec = 1.f; weight_up_rec = 1.f; weight_down_rec = 1.f;
+  weight_iso = 1.f; weight_up_iso = 1.f; weight_down_iso = 1.f;
   if(year > 2000) year -= 2016;
   if(year != k2016 && year != k2017 && year != k2018) {
-    std::cout << "Warning! Undefined year in ElectronIDWeight::" << __func__ << ", returning -1" << std::endl;
+    std::cout << "Warning! Undefined year " << year+2016 << " in ElectronIDWeight::" << __func__ << ", returning -1" << std::endl;
     return 1.;
   }
 
@@ -278,7 +279,7 @@ double ElectronIDWeight::EmbedEnergyScale(double pt, double eta, int year, float
 
 //-------------------------------------------------------------------------------------------------------------------------
 double ElectronIDWeight::TriggerEff(double pt, double eta, int year, int WP, float& data_eff, float& mc_eff,
-                      float& data_up, float& mc_up, float& data_down, float& mc_down) {
+                                    float& data_up, float& mc_up, float& data_down, float& mc_down) {
   data_eff = 0.5f; //safer default than 0 or 1, as eff and 1-eff are well defined in ratios
   mc_eff = 0.5f;
   data_up = 0.5f; mc_up = 0.5f; data_down = 0.5f; mc_down = 0.5f;

@@ -110,6 +110,7 @@ namespace CLFV {
     TH1* hTrkMetPhi;
 
     TH1* hMet;
+    TH1* hMetSignificance;
     TH1* hMetPhi;
     TH1* hMetCorr;
     TH1* hMetCorrPhi;
@@ -232,6 +233,8 @@ namespace CLFV {
     TH1* hMTOne;
     TH1* hMTTwo;
     TH2* hMTTwoVsOne;
+    TH1* hMTLead;
+    TH1* hMTTrail;
     TH1* hMTDiff;
     TH1* hMTLep;
     TH1* hMTOneOverM;
@@ -283,7 +286,7 @@ namespace CLFV {
     TH1* hPtSum[2]; //scalar sum of lepton Pt and Met, and photon for one
     TH1* hPt1Sum[4]; //scalar sum of 1 lepton Pt and Met, both leptons, then both minus met
     //MVA values
-    TH1* hMVA[kMaxMVAs][3]; //0: distribution for search; 1: high binning score for CDF; 2: CDF transformed distribution
+    TH1* hMVA[kMaxMVAs][5]; //0: distribution for search; 1: high binning score for CDF; 2: CDF transformed distribution; 3: log(CDF p-value); 4: p+log(p)
     TH1* hMVATrain[kMaxMVAs];
     TH1* hMVATest[kMaxMVAs];
 

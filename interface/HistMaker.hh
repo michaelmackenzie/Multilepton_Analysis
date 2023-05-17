@@ -47,6 +47,7 @@
 // initialize local MVA weight files
 #include "interface/TrkQualInit.hh"
 #include "interface/MVAConfig.hh"
+#include "interface/BDTWrapper.hh"
 
 // Correction objects
 #include "interface/PUWeight.hh"
@@ -272,6 +273,7 @@ namespace CLFV {
     Float_t metPhi                     ;
     Float_t metCorr                    ;
     Float_t metCorrPhi                 ;
+    Float_t metSignificance            ;
 
     //event information
     Int_t   mcEra                      ;
@@ -490,19 +492,44 @@ namespace CLFV {
     }
 
     int             TauFlavorFromID(int ID) {
+      //From NANOAOD documentation:
+      //Flavour of genParticle for MC matching to status==2 taus:
+      //1 = prompt electron
+      //2 = prompt muon
+      //3 = tau->e decay
+      //4 = tau->mu decay
+      //5 = hadronic tau decay
+      //0 = unknown or unmatched
       if(ID == 1 || ID == 3) return 11;
       if(ID == 2 || ID == 4) return 13;
       if(ID == 5) return 15;
       return 26; //unknown
     }
     int             MuonFlavorFromID(int ID) {
-      if(ID == 1 || ID == 5 || ID == 4 || ID == 3 || ID == 15) return 13;
-      return 26; //unknown
+      //From NANOAOD documenation:
+      //Flavour of genParticle for MC matching to status==1 muons:
+      //1 = prompt muon (including gamma*->mu mu)
+      //15 = muon from prompt tau
+      //5 = muon from b
+      //4 = muon from c
+      //3 = muon from light or unknown
+      //0 = unmatched
+      if(ID == 1 /*|| ID == 5 || ID == 4 || ID == 3*/ || ID == 15) return 13;
+      return 26; //unknown/jet
     }
     int             ElectronFlavorFromID(int ID) {
-      if(ID == 1 || ID == 5 || ID == 4 || ID == 3 || ID == 15) return 11;
-      if(ID == 22) return 22;
-      return 26; //unknown
+      //From NANOAOD documentation:
+      //Flavour of genParticle for MC matching to status==1 electrons or photons:
+      // 1 = prompt electron (including gamma*->mu mu)
+      //15 = electron from prompt tau
+      //22 = prompt photon (likely conversion)
+      //5 = electron from b
+      //4 = electron from c
+      //3 = electron from light or unknown
+      //0 = unmatched
+      if(ID == 1 /*|| ID == 5 || ID == 4 || ID == 3*/ || ID == 15) return 11;
+      if(ID == 22) return 22; //photon
+      return 26; //unknown/jet
     }
     int             MuonRelIsoID(float reliso) {
       //muon isolation levels
@@ -598,14 +625,20 @@ namespace CLFV {
     TStopwatch* timer = new TStopwatch();
     // TStopwatch timer_funcs; //for measuring time taken in each function
     TMVA::Reader* mva[kMaxMVAs]; //read and apply mva weight files
+    BDTWrapper*   wrappedBDTs[kMaxMVAs]; //XGBoost BDTs
     MVAConfig* fMVAConfig = nullptr; //contains MVA names and categories
 
     Int_t   fIsJetBinnedMVAs[kMaxMVAs]; //storing number of jets for MVA, < 0 if not binned
     Float_t fMvaOutputs[kMaxMVAs];
     Float_t fMvaCDFs[kMaxMVAs]; //CDF transformed BDT score
+    Float_t fMvaLogP[kMaxMVAs]; //log10(CDF p-value)
+    Float_t fMvaFofP[kMaxMVAs]; //Function of p-value to fit
     Int_t   fTrkQualVersion = TrkQualInit::Default; //for updating which variables are used
-    Bool_t  fUseCDFBDTs = true;
+    TrkQualInit* fTrkQualInit = nullptr;
+    Int_t   fUseCDFBDTs = 0; //0: Use BDT score histograms; 1: Use CDF transform p-values; 2: use a function of the p-value
+    Int_t   fUseCDFTailFits = 1; //use fits to the low tail of the CDF transform where signal stats run out
     Int_t   fNCDFBins = 20; //CDF transformed BDT binning
+    Int_t   fUseXGBoostBDT = 0; //Use XGBoost trained BDT for Z->e+mu
 
     //Histograms:
     const static Int_t fn = 4000; //max histogram sets: 0 - 999 typical, 1000 - 1999 QCD, 2000 - 2999 MisID, 3000 - 3999 QCD+MisID

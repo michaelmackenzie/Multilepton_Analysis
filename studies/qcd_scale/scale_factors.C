@@ -267,6 +267,49 @@ TCanvas* make_2D_ratio_canvas(TH2* hnum, TH2* hdnm,
   return c;
 }
 
+//make a closure plot
+TCanvas* make_closure_plot(TString hist, TString type, const int setAbs, double xmin = 1., double xmax = -1., int rebin = 0) {
+  dataplotter_->include_qcd_ = 1;
+  dataplotter_->rebinH_ = rebin;
+  TH1*     hData = dataplotter_->get_data(hist, type, setAbs);
+  THStack* hMC   = dataplotter_->get_stack(hist, type, setAbs);
+  dataplotter_->include_qcd_ = 0;
+  dataplotter_->rebinH_ = 0;
+  if(!hData || !hMC) return nullptr;
+
+  TCanvas* c = new TCanvas(Form("c_%s_%s_%i", hist.Data(), type.Data(), setAbs),
+                           Form("c_%s_%s_%i", hist.Data(), type.Data(), setAbs),
+                           800, 1200);
+  TPad* pad1 = new TPad("pad1", "pad1", 0.0, 0.3, 1.0, 1.0); pad1->Draw();
+  TPad* pad2 = new TPad("pad2", "pad2", 0.0, 0.0, 1.0, 0.3); pad2->Draw();
+
+  pad1->cd();
+  pad1->SetGrid();
+  hData->Draw("E1");
+  hMC->Draw("hist noclear same");
+  hData->Draw("same E1");
+  if(xmin < xmax) hData->GetXaxis()->SetRangeUser(xmin, xmax);
+  hData->GetYaxis()->SetRangeUser(0.1, 1.1*max(hMC->GetMaximum(), hData->GetMaximum()));
+  hData->SetTitle("");
+
+  pad2->cd();
+  pad2->SetGrid();
+  TH1* hRatio = (TH1*) hData->Clone(Form("%s_r", hData->GetName()));
+  hRatio->Divide((TH1*) hMC->GetStack()->Last());
+  hRatio->Draw("E1");
+  hRatio->GetYaxis()->SetRangeUser(0.5, 1.5);
+  if(xmin < xmax) hRatio->GetXaxis()->SetRangeUser(xmin, xmax);
+  hRatio->SetTitle("");
+
+  xmin = (xmin < xmax) ? xmin : hRatio->GetBinLowEdge(1);
+  xmax = (xmin < xmax) ? xmax : hRatio->GetXaxis()->GetBinUpEdge(hRatio->GetNbinsX());
+  TLine* line = new TLine(xmin, 1., xmax, 1.);
+  line->SetLineWidth(2);
+  line->Draw("same");
+
+  return c;
+}
+
 //make 1D plots
 TCanvas* make_canvas(TH1* hData, TH1* hMC, TH1* hQCD, TString name, bool logy = false) {
   TCanvas* c = new TCanvas(("c_"+name).Data(), ("c_"+name).Data(), 800, 600);
@@ -652,5 +695,21 @@ Int_t scale_factors(TString selection = "emu", int set = 8, int year = 2016,
 
   fOut->Close();
   delete fOut;
+
+  //Print closure histograms
+  c = make_closure_plot("lepm" , "event", setAbs, 50., 170., 5); if(c) {c->SaveAs((name + "closure_lepm.png" ).Data()); delete c;}
+  c = make_closure_plot("mtone", "event", setAbs,  0., 100., 2); if(c) {c->SaveAs((name + "closure_mtone.png").Data()); delete c;}
+  c = make_closure_plot("mttwo", "event", setAbs,  0., 100., 2); if(c) {c->SaveAs((name + "closure_mttwo.png").Data()); delete c;}
+  c = make_closure_plot("onept", "lep"  , setAbs, 10., 100., 2); if(c) {c->SaveAs((name + "closure_onept.png").Data()); delete c;}
+  c = make_closure_plot("twopt", "lep"  , setAbs, 10., 100., 2); if(c) {c->SaveAs((name + "closure_twopt.png").Data()); delete c;}
+  c = make_closure_plot("mtone", "event",    208,  0., 100., 2); if(c) {c->SaveAs((name + "closure_mtone_208.png").Data()); delete c;}
+  c = make_closure_plot("mttwo", "event",    208,  0., 100., 2); if(c) {c->SaveAs((name + "closure_mttwo_208.png").Data()); delete c;}
+  c = make_closure_plot("onept", "lep"  ,    208, 10., 100., 2); if(c) {c->SaveAs((name + "closure_onept_208.png").Data()); delete c;}
+  c = make_closure_plot("twopt", "lep"  ,    208, 10., 100., 2); if(c) {c->SaveAs((name + "closure_twopt_208.png").Data()); delete c;}
+  c = make_closure_plot("mtone", "event",   1208,  0., 100., 2); if(c) {c->SaveAs((name + "closure_mtone_1208.png").Data()); delete c;}
+  c = make_closure_plot("mttwo", "event",   1208,  0., 100., 2); if(c) {c->SaveAs((name + "closure_mttwo_1208.png").Data()); delete c;}
+  c = make_closure_plot("onept", "lep"  ,   1208, 10., 100., 2); if(c) {c->SaveAs((name + "closure_onept_1208.png").Data()); delete c;}
+  c = make_closure_plot("twopt", "lep"  ,   1208, 10., 100., 2); if(c) {c->SaveAs((name + "closure_twopt_1208.png").Data()); delete c;}
+
   return 0;
 }

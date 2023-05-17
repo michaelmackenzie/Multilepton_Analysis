@@ -473,7 +473,7 @@ TCanvas* plot_electron_reco_scale(int year, bool error = false) {
   }
   hID->SetDirectory(0);
   f->Close();
-  return plot_scale(hID, Form("c_elec_reco_%i", year), error);
+  return plot_scale(hID, Form("c_elec_reco_%i", year), error, true);
 }
 
 //////////////////////////////////////////////////

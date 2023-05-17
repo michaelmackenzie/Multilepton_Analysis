@@ -1,7 +1,24 @@
 #! /bin/bash
+
+Help() {
+    echo "Move histograms to eos space"
+    echo " 1: Output directory (e.g. nanoaods_mva/)"
+    echo " 2: Input directory (\"\" for local, e.g. \"nanoaods_mva\" for from eos)"
+    echo " 3: Don't force (\"d\" to not overwrite previous files)"
+    echo " 4: Year tag"
+    echo " 5: Selection tag"
+    echo " 6: Remove after copying (e.g. \"d\")"
+    echo " 7: Apply timeout to retry (e.g. \"d\")"
+}
+
+if [[ "$1" == "-h" ]] || [[ "$1" == "--help" ]]; then
+    Help
+    exit
+fi
+
 OUTDIR=$1
 INDIR=$2
-FORCE=$3
+DONTFORCE=$3
 YEAR=$4
 SELECTION=$5
 RMAFTER=$6
@@ -25,12 +42,12 @@ else
     rmhead="eos root://cmseos.fnal.gov rm"
 fi
 
-if [[ "${FORCE}" == "" ]]
-then
-    FORCE=""
-else
-    FORCE="-f "
-fi
+# if [[ "${DONTFORCE}" != "" ]]
+# then
+#     FORCE=""
+# else
+FORCE="-f "
+# fi
 
 if [[ "${RMAFTER}" != "" ]]
 then

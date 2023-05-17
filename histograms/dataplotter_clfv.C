@@ -1894,6 +1894,7 @@ Int_t print_basic_debug_plots(bool test_trigger = false, bool doMC = false,
     return 2;
   }
   const bool tau_set = (selection_ == "etau" || selection_ == "mutau");
+  const bool emu     = (selection_ == "emu");
   const bool same_flavor = (selection_ == "ee" || selection_ == "mumu");
   if(tau_set) {
     dataplotter_->include_qcd_ = 0;
@@ -1977,6 +1978,9 @@ Int_t print_basic_debug_plots(bool test_trigger = false, bool doMC = false,
   cards.push_back(PlottingCard_t("twoeta"          , "lep"  , 2,  1.,  -1.));
   cards.push_back(PlottingCard_t("ptdiff"          , "lep"  , 2, (same_flavor) ? -5. : -50,  (same_flavor) ? 75. : 50.));
   cards.push_back(PlottingCard_t("ptratio"         , "lep"  , 1, 0., 2.5));
+  if(emu) {
+    cards.push_back(PlottingCard_t("pttrailoverlead", "lep"  , 1, 0., 1.));
+  }
 
   //MET, di-lepton projection variables
   if(tau_set) {
@@ -2051,10 +2055,16 @@ Int_t print_basic_debug_plots(bool test_trigger = false, bool doMC = false,
 
   //MET variables
   cards.push_back(PlottingCard_t("met"             , "event", 2,  0., 100.));
+  cards.push_back(PlottingCard_t("metsignificance" , "event", 1,  0.,   5.));
   cards.push_back(PlottingCard_t("mtone"           , "event", 5,  0., 150.));
   cards.push_back(PlottingCard_t("mttwo"           , "event", 5,  0., 150.));
   cards.push_back(PlottingCard_t("mtlep"           , "event", 5,  0., 150.));
   cards.push_back(PlottingCard_t("metdeltaphi"     , "event", 2,  0.,   5.));
+  if(emu) {
+    cards.push_back(PlottingCard_t("mtlead"        , "event", 1,  0., 150.));
+    cards.push_back(PlottingCard_t("mttrail"       , "event", 1,  0., 150.));
+    cards.push_back(PlottingCard_t("metdeltaphi"   , "event", 2,  0.,  3.2));
+  }
 
   //jet variables
   cards.push_back(PlottingCard_t("ht"              , "event", 2,  1.,  -1.));
@@ -2336,13 +2346,17 @@ Int_t print_basic_mva_plots(vector<int> sets = {8,25,26,27}) {
     }
     for(int ilog = 0; ilog < 2; ++ilog) { //print log and linear plots
       dataplotter_->logY_ = ilog;
-      c = dataplotter_->print_stack(PlottingCard_t(mva.Data()         , "event", set,  0, (cdfMVAs_) ? 0. : -0.8, (cdfMVAs_) ? 1. : 0.4, (cdfMVAs_) ? 0.5 : 0., 1.));
+      c = dataplotter_->print_stack(PlottingCard_t(mva.Data()         , "event", set,  0, (cdfMVAs_) ? -0.05 : -1.0, (cdfMVAs_) ? 1. : 0.4, (cdfMVAs_) ? 0.5 : 0., 1.));
       if(c) DataPlotter::Empty_Canvas(c); else ++status;
-      c = dataplotter_->print_stack(PlottingCard_t(mva.Data()         , "event", set,  0, (cdfMVAs_) ? 0. : -0.8, (cdfMVAs_) ? 1. : 0.4, (cdfMVAs_) ? 0.5 : 0., 1., true));
+      c = dataplotter_->print_stack(PlottingCard_t(mva.Data()         , "event", set,  0, (cdfMVAs_) ? -0.05 : -1.0, (cdfMVAs_) ? 1. : 0.4, (cdfMVAs_) ? 0.5 : 0., 1., true));
       if(c) DataPlotter::Empty_Canvas(c); else ++status;
-      c = dataplotter_->print_stack(PlottingCard_t((mva + "_1").Data(), "event", set, 20,  -0.8, 0.5, 0., 0.6));
+      c = dataplotter_->print_stack(PlottingCard_t((mva + "_1").Data(), "event", set, 20,  -0.8, 0.5, 0. , 1.)); //BDT score, fixed width binning
       if(c) DataPlotter::Empty_Canvas(c); else ++status;
-      c = dataplotter_->print_stack(PlottingCard_t((mva + "_2").Data(), "event", set,  1,   0.0, 1.0, 0.5, 1.));
+      c = dataplotter_->print_stack(PlottingCard_t((mva + "_2").Data(), "event", set,  1, -0.05, 1.0, 0.5, 1.)); //CDF score, fixed width binning
+      if(c) DataPlotter::Empty_Canvas(c); else ++status;
+      c = dataplotter_->print_stack(PlottingCard_t((mva + "_3").Data(), "event", set,  1, -5.00, 0.0, -1., 0.)); //log10(CDF score), fixed width binning
+      if(c) DataPlotter::Empty_Canvas(c); else ++status;
+      c = dataplotter_->print_stack(PlottingCard_t((mva + "_4").Data(), "event", set,  1, -3.00, 1.0, 0., 1.)); //log10(p)+p, fixed width binning
       if(c) DataPlotter::Empty_Canvas(c); else ++status;
       c = nullptr;
     }

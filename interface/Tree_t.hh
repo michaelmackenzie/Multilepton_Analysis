@@ -52,6 +52,7 @@ namespace CLFV {
     float ptdiff;
     float ptdiffoverm;
     float ptratio;
+    float pttrailoverlead;
 
     //extra angles
     float htdeltaphi;
@@ -63,8 +64,11 @@ namespace CLFV {
 
     //MET variables
     float met;
+    float metsignificance;
     float mtone;
     float mttwo;
+    float mtlead;
+    float mttrail;
     float mtdiff;
     float mtlep;
     float mtoneoverm;

@@ -128,6 +128,7 @@ namespace CLFV {
 
     TH1* hPtDiff;
     TH1* hPtRatio;
+    TH1* hPtTrailOverLead;
     TH1* hD0Diff;
     TH1* hDXYDiff;
     TH1* hDZDiff;

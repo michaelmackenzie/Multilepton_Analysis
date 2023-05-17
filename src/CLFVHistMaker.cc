@@ -460,13 +460,8 @@ void CLFVHistMaker::BookSystematicHistograms() {
           Utilities::BookH1F(fSystematicHist[i]->hWeightChange[sys], Form("weightchange_%i", sys), Form("%s: Relative weight change %i" , dirname, sys) ,  30, -2.,   2, folder);
         }
         for(unsigned j = 0; j < fMVAConfig->names_.size(); ++j)  {
-          if(fUseCDFBDTs) {
-            Utilities::BookH1D(fSystematicHist[i]->hMVA[j][sys], Form("mva%i_%i",j, sys), Form("%s: %s MVA %i" ,dirname, fMVAConfig->names_[j].Data(), sys),
-                               fNCDFBins+1, 0. - (1./fNCDFBins), 1., folder);
-          } else {
-            Utilities::BookH1D(fSystematicHist[i]->hMVA[j][sys], Form("mva%i_%i",j, sys), Form("%s: %s MVA %i" ,dirname, fMVAConfig->names_[j].Data(), sys),
-                               fMVAConfig->NBins(j, i), fMVAConfig->Bins(j, i).data(), folder);
-          }
+          Utilities::BookH1D(fSystematicHist[i]->hMVA[j][sys], Form("mva%i_%i",j, sys), Form("%s: %s MVA %i" ,dirname, fMVAConfig->names_[j].Data(), sys),
+                             fMVAConfig->NBins(j, i), fMVAConfig->Bins(j, i).data(), folder);
           Utilities::BookH1D(fSystematicHist[i]->hMVADiff[j][sys], Form("mvadiff%i_%i",j, sys)     , Form("%s: %s MVADiff %i" ,dirname, fMVAConfig->names_[j].Data(), sys),
                              25, -0.25, 0.25, folder);
         }
@@ -672,10 +667,11 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
   //Event information that may be altered, to restore the event information after a systematic shift
   const TLorentzVector o_lv1(*leptonOne.p4), o_lv2(*leptonTwo.p4), o_jet(*jetOne.p4);
   const float o_met(met), o_metPhi(metPhi);
-  float o_mvas[fMVAConfig->names_.size()], o_cdfs[fMVAConfig->names_.size()];
+  float o_mvas[fMVAConfig->names_.size()], o_cdfs[fMVAConfig->names_.size()], o_fofp[fMVAConfig->names_.size()];
   for(unsigned i = 0; i < fMVAConfig->names_.size(); ++i) {
     o_mvas[i] = fMvaOutputs[i];
     o_cdfs[i] = fMvaCDFs[i];
+    o_fofp[i] = fMvaFofP[i];
   }
 
   const float rho = (fIsEmbed) ? 0.5f : 1.f; //for embedding correlation
@@ -1381,7 +1377,7 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
       for(unsigned i = 0; i < fMVAConfig->names_.size(); ++i) {
         //assume only relevant MVAs are initialized
         if(!mva[i]) continue;
-        float mvascore = (fUseCDFBDTs) ? fMvaCDFs[i] : fMvaOutputs[i];
+        float mvascore = (fUseCDFBDTs == 1) ? fMvaCDFs[i] : (fUseCDFBDTs == 2) ? fMvaFofP[i] : fMvaOutputs[i];
         if(!std::isfinite(mvascore) && fVerbose > 0) {
           std::cout << "CLFVHistMaker::" << __func__ << ": Entry " << fentry << ", sys " << sys <<", MVA " << i << ": score is not finite = " << mvascore << "! Setting to -2...\n";
           mvascore = -2.;
@@ -1390,7 +1386,7 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
           std::cout << "CLFVHistMaker::" << __func__ << ": Entry " << fentry << ", sys " << sys <<", MVA " << i << ": score is not defined = " << mvascore << "!\n";
         }
         Hist->hMVA[i][sys]->Fill(mvascore, mvaweight);
-        if(reeval) Hist->hMVADiff[i][sys]->Fill(mvascore-((fUseCDFBDTs) ? o_cdfs[i] : o_mvas[i]), mvaweight);
+        if(reeval) Hist->hMVADiff[i][sys]->Fill(mvascore-((fUseCDFBDTs == 1) ? o_cdfs[i] : (fUseCDFBDTs == 2) ? o_fofp[i] : o_mvas[i]), mvaweight);
       }
     } //end kinematic event selection check
 
@@ -1405,6 +1401,7 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
       for(unsigned i = 0; i < fMVAConfig->names_.size(); ++i) {
         fMvaOutputs[i] = o_mvas[i];
         fMvaCDFs[i] = o_cdfs[i];
+        fMvaFofP[i] = o_fofp[i];
       }
     }
   }

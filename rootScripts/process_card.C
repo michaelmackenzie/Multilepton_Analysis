@@ -112,6 +112,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
         hist_selec->fUseRoccoCorr       = useRoccoCorr_;
         hist_selec->fUseRoccoSize       = useRoccoSize_;
         hist_selec->fUseCDFBDTs         = useCDFBDTs_;
+        hist_selec->fUseXGBoostBDT      = useXGBoost_;
         hist_selec->fNotifyCount        = notify_;
         hist_selec->fLoadBaskets        = false;
         hist_selec->fDoSSSystematics    = selection == "emu" || selection.Contains("_");
@@ -367,11 +368,13 @@ Int_t process_single_card(datacard_t& card, config_t& config, vector<TString> fi
   return 0;
 }
 
-Int_t process_card(TString treepath, TString filename, double xsec, int isdata, bool combine, int category) {
+Int_t process_card(TString treepath, TString filename, double xsec, int isdata, bool combine, int category, TString selection = "") {
 
   datacard_t card(true, xsec, filename, isdata, combine);
   config_t config(get_config());
   CrossSections xs(useUL_);
+  //override the default selections to process if a specific one is given
+  if(selection != "") config.selections_ = {selection};
 
   cout << "---  Write Trees mode: " << config.writeTrees_
        << ", training fractions: signal = " << config.signalTrainFraction_

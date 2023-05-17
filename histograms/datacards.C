@@ -14,6 +14,8 @@ int    useUL_        =  0 ; //use UL dataset definitions
 int    ZMode_        =  0 ; //which Z cross-section information to use
 int    useAMC_       =  1 ; //use amc@NLO samples in place of previous LO samples
 int    useWG_        =  0 ; //use the W+gamma dataset
+int    useEWK_       =  0 ; //include the EWK W/Z samples
+int    useWWW_       =  1 ; //include the WWW samples
 int    splitDY_      =  1 ; //split Z->tautau and Z->ee/mumu
 int    splitWJ_      =  1 ; //use N(LHE jets) split W+Jets samples
 int    useEmbed_     =  1 ; //use Z->tautau embedding
@@ -65,14 +67,16 @@ void get_datacards(std::vector<dcard>& cards, TString selection, int forStudies 
     cards.push_back(dcard("ttbarToHadronic"      , "ttbarToHadronic"      , top.Data()  , false, xs.GetCrossSection("ttbarToHadronic"      ), false, year, top_c));
     cards.push_back(dcard("ttbarToSemiLeptonic"  , "ttbarToSemiLeptonic"  , top.Data()  , false, xs.GetCrossSection("ttbarToSemiLeptonic"  ), false, year, top_c));
     cards.push_back(dcard("ttbarlnu"             , "ttbarlnu"             , top.Data()  , false, xs.GetCrossSection("ttbarlnu"             ), false, year, top_c));
-    if(useUL_ == 0)
+    if(useUL_ == 0 && useWWW_)
     cards.push_back(dcard("WWW"                  , "WWW"                  , vb.Data()   , false, xs.GetCrossSection("WWW"                  ), false, year, vb_c));
     cards.push_back(dcard("WZ"                   , "WZ"                   , vb.Data()   , false, xs.GetCrossSection("WZ"                   ), false, year, vb_c));
     cards.push_back(dcard("ZZ"                   , "ZZ"                   , vb.Data()   , false, xs.GetCrossSection("ZZ"                   ), false, year, vb_c));
     cards.push_back(dcard("WW"                   , "WW"                   , vb.Data()   , false, xs.GetCrossSection("WW"                   ), false, year, vb_c));
+    if(useEWK_) {
     cards.push_back(dcard("EWKWplus"             , "EWKWplus"             , vb.Data()   , false, xs.GetCrossSection("EWKWplus"             ), false, year, vb_c));
     cards.push_back(dcard("EWKWminus"            , "EWKWminus"            , vb.Data()   , false, xs.GetCrossSection("EWKWminus"            ), false, year, vb_c));
     cards.push_back(dcard("EWKZ-M50"             , "EWKZ-M50"             , vb.Data()   , false, xs.GetCrossSection("EWKZ-M50"             ), false, year, vb_c));
+    }
     if(useWG_) cards.push_back(dcard("WGamma"    , "WGamma"               , wj.Data()   , false, xs.GetCrossSection("WGamma"               ), false, year, wj_c));
     //if splitting W+Jets into jet-binned samples, use W+Jets inclusive 0-j for 0-j, then jet-binned samples for the rest
     if(splitWJ_) {

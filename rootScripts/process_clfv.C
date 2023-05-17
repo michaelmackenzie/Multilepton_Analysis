@@ -18,6 +18,8 @@ Int_t process_clfv() {
   vector<datacard_t> nanocards = get_data_cards(nanoaod_path);
   //cross section handler
   CrossSections xs(useUL_);
+  config_t config(get_config());
+  vector<TString>& selections = config.selections_;
 
   TStopwatch* timer = new TStopwatch();
 
@@ -63,17 +65,23 @@ Int_t process_clfv() {
         cout << "ERROR: Didn't find generation numbers for combining with sample name " << name.Data() << endl;
     } //end combine extension samples
     if(newProcess_) {
-      gSystem->Exec(Form("root.exe -q -b -l \"process_card.C(\\\"%s\\\", \\\"%s\\\", %f, %i, %i, %i)\" >| log/out_%i.log 2>&1 &",
-                         nanoaod_path.Data(), nanocards[i].fname_.Data(), nanocards[i].xsec_,
-                         nanocards[i].isData_, nanocards[i].combine_, category, category
-                         )
-                    );
-      // TString return_val = gSystem->GetFromPipe(Form("grep \"(int) \" log/out_%i.log| tail -n 1", category));
-      // if(return_val != "(int) 0") printf("--> File %s (category %i) didn't pass processing!\n", nanocards[i].fname_.Data(), category);
-      while(count_processes() >= maxProcesses_) {
-        sleep(10); //wait to submit until fewer than the maximum are running
+      for(TString selection : selections) {
+        TString command = Form("root.exe -q -b -l \"process_card.C(\\\"%s\\\", \\\"%s\\\", %f, %i, %i, %i",
+                               nanoaod_path.Data(), nanocards[i].fname_.Data(), nanocards[i].xsec_,
+                               nanocards[i].isData_, nanocards[i].combine_, category
+                               );
+        if(splitSelecs_) command += Form(", \\\"%s\\\"", selection.Data());
+        command += Form(")\" >| log/out_%i%s.log 2>&1 &", category, (splitSelecs_) ? ("_"+selection).Data() : "");
+        if(splitSelecs_ && selections.size() > 1) printf(" Submitting %-8s histogramming...\n", selection.Data());
+        gSystem->Exec(command.Data());
+        // TString return_val = gSystem->GetFromPipe(Form("grep \"(int) \" log/out_%i.log| tail -n 1", category));
+        // if(return_val != "(int) 0") printf("--> File %s (category %i) didn't pass processing!\n", nanocards[i].fname_.Data(), category);
+        while(count_processes() >= maxProcesses_) {
+          sleep(10); //wait to submit until fewer than the maximum are running
+        }
+        sleep(2); //add 2 sec buffer between loops
+        if(!splitSelecs_) break; //submit only once if the job is processing all selections
       }
-      sleep(2); //add 2 sec buffer between loops
     } else { //process within this process
       process_card(nanoaod_path.Data(), nanocards[i].fname_.Data(), nanocards[i].xsec_,
                    nanocards[i].isData_, nanocards[i].combine_, category

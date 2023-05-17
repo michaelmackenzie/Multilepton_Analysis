@@ -59,14 +59,31 @@ int study(TString selection = "zmutau", const int set = 8, TString path = "nanoa
   hcdf->SetLineWidth(2);
   hcdf->Draw("hist same");
   h->GetXaxis()->SetRangeUser(-1., 1.);
+  h->GetYaxis()->SetRangeUser(h->GetMaximum()/1.e5, 1.1*h->GetMaximum());
   h->SetXTitle("MVA score");
-  c->BuildLegend();
   h->SetTitle("MVA score and CDF");
+
+  const double fit_min = hcdf->GetBinLowEdge(1);
+  const double fit_max = hcdf->GetBinLowEdge(hcdf->FindFirstBinAbove(5.e-3));
+  TF1* fit_func = new TF1("fit_func", "exp([0]+x*[1])", fit_min, fit_max);
+  fit_func->SetParameters(-0.5, 15.);
+  hcdf->Fit(fit_func, "R");
+  fit_func->SetLineStyle(kDashed);
+  fit_func->SetLineColor(kGreen);
+  fit_func->Draw("same");
+  fit_func->Write();
+
+  TLegend* leg = new TLegend(0.1, 0.75, 0.4, 0.9);
+  leg->AddEntry(h, "MVA score");
+  leg->AddEntry(hcdf, "MVA CDF");
+  leg->Draw();
 
   gSystem->Exec("[ ! -d figures ] && mkdir figures");
   gSystem->Exec("[ ! -d rootfiles ] && mkdir rootfiles");
 
   c->SaveAs(Form("figures/cdf_%s_%i.png", selection.Data(), set));
+  c->SetLogy();
+  c->SaveAs(Form("figures/cdf_%s_%i_log.png", selection.Data(), set));
 
   fout->Close();
 
