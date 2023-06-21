@@ -57,6 +57,7 @@
 #include "interface/BTagWeight.hh"
 #include "interface/ZPtWeight.hh"
 #include "interface/SignalZWeight.hh"
+#include "interface/SignalZMixingWeight.hh"
 #include "interface/EmbeddingWeight.hh"
 #include "interface/EmbeddingTnPWeight.hh"
 #include "interface/TauIDWeight.hh"
@@ -267,6 +268,8 @@ namespace CLFV {
     Float_t puppMETJESUp               ;
     Float_t puppMETphiJERUp            ;
     Float_t puppMETphiJESUp            ;
+    Float_t puppMETSumEt               ;
+    Float_t puppMETSig                 ;
 
     //MET field to use
     Float_t met                        ;
@@ -298,6 +301,9 @@ namespace CLFV {
     Float_t btagWeightUpL = 1.         ;
     Float_t btagWeightDownL = 1.       ;
     Float_t signalZWeight = 1.         ;
+    Float_t signalZMixingWeight = 1.   ;
+    Float_t signalZMixingWeightUp = 1. ;
+    Float_t signalZMixingWeightDown = 1.;
     Float_t zPtWeight = 1.             ;
     Float_t zPtWeightUp = 1.           ;
     Float_t zPtWeightDown = 1.         ;
@@ -419,7 +425,8 @@ namespace CLFV {
     void    SetKinematics();
     void    EstimateNeutrinos();
     void    EvalMVAs(TString TimerName = "");
-    int     GetTriggerMatch(TLorentzVector* lv, bool isMuon, Int_t& trigIndex);
+    int     GetTriggerMatch(Lepton_t& lep, bool isMuon);
+    // int     GetTriggerMatch(TLorentzVector* lv, bool isMuon, Int_t& trigIndex);
     void    MatchTriggers();
     void    ApplyTriggerWeights();
     void    EvalJetToTauWeights(float& wt, float& wtcorr, float& wtbias);
@@ -438,7 +445,10 @@ namespace CLFV {
       pass &= mtone_max_ < 0.f || fTreeVars.mtone < mtone_max_;
       pass &= mttwo_max_ < 0.f || fTreeVars.mttwo < mttwo_max_;
       pass &= mtlep_max_ < 0.f || fTreeVars.mtlep < mtlep_max_;
-      if(!pass) return false;
+      if(!pass) {
+        if(fVerbose > 0) printf(" HistMaker::%s: Fails kinematic cuts\n", __func__);
+        return false;
+      }
 
       //apply trigger cuts
       bool triggered(false);
@@ -446,6 +456,8 @@ namespace CLFV {
       triggered |= leptonTwo.isMuon    () && leptonTwo.matched && leptonTwo.pt > muon_trig_pt_    ;
       triggered |= leptonOne.isElectron() && leptonOne.matched && leptonOne.pt > electron_trig_pt_;
       triggered |= leptonTwo.isElectron() && leptonTwo.matched && leptonTwo.pt > electron_trig_pt_;
+      if(triggered && fVerbose > 0) printf(" HistMaker::%s: Passes cuts\n", __func__);
+      else if(fVerbose > 0)         printf(" HistMaker::%s: Fails trigger requirement\n", __func__);
       return triggered;
     }
 
@@ -756,6 +768,8 @@ namespace CLFV {
     ZPtWeight*      fZPtWeight; //re-weight Drell-Yan pT vs Mass
     SignalZWeight   fSignalZWeight; //re-weight signal to match Drell-Yan MC
     Int_t           fUseSignalZWeights = 1; //whether or not to match the signal to the Drell-Yan MC
+    SignalZMixingWeight fSignalZMixWeight; //re-weight signal to remove z/gamma* mixing effect
+    Int_t               fUseSignalZMixWeights = 1; //whether or not to remove the z/gamma* mixing effect
     EmbeddingWeight* fEmbeddingWeight; //correct di-muon embedding selection unfolding
     EmbeddingTnPWeight fEmbeddingTnPWeight; //correct lepton ID/trigger efficiencies in embedding simulation
     Int_t           fEmbeddedTesting = 0; //play with embedding configurations/weights
@@ -772,6 +786,7 @@ namespace CLFV {
     bool            fIsNano = false; //whether the tree is nano AOD based or not
 
     Int_t           fVerbose = 0; //verbosity level
+    Int_t           fFollowHistSet = -1; //print information whenever this set is filled
 
     Long64_t        fCacheSize = 20000000U; //20MB cache by default
     Bool_t          fLoadBaskets = false;

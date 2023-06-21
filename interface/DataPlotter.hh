@@ -237,7 +237,7 @@ namespace CLFV {
       double y = data_txt_y_;
       if(nmc > 0.) {
         y -= 0.045;
-        label.DrawLatex(data_txt_x_, y, Form("%9s = %10.1f", "n_{MC}", nmc));
+        label.DrawLatex(data_txt_x_, y, Form("%9s = %10.0f", "n_{MC}", nmc));
       }
       auto it = nsig.begin();
       while(draw_signal_yield_ && it != nsig.end()) {

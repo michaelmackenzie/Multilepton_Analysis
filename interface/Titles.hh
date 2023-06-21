@@ -58,6 +58,11 @@ namespace CLFV {
         *ytitle = "";
         *title  = Form("Missing Transverse Energy");
       }
+      else if(hist == "metsignificance" || hist == "puppimetsig") {
+        *xtitle = "MET significance";
+        *ytitle = "";
+        *title  = Form("MET significance");
+      }
       else if(hist == "pfmet") {
         *xtitle = "PF Missing Transverse Energy (GeV)";
         *ytitle = "";
@@ -149,9 +154,14 @@ namespace CLFV {
         *title  = Form("Lepton pT difference");
       }
       else if(hist == "ptratio") {
-        *xtitle = Form("p_{T}^{%s} / p_{T}^{%s} (GeV/c)", lep1.Data(), lep2.Data());
+        *xtitle = Form("p_{T}^{%s} / p_{T}^{%s}", lep1.Data(), lep2.Data());
         *ytitle = "";
         *title  = Form("Lepton pT ratio");
+      }
+      else if(hist == "pttrailoverlead") {
+        *xtitle = "p_{T}(trail) / p_{T}(lead)";
+        *ytitle = "";
+        *title  = "Lepton pT ratio";
       }
       else if(hist == "onesvpt") {
         *xtitle = "SVFit p_{T}^{1} (GeV/c)";
@@ -420,6 +430,16 @@ namespace CLFV {
       }
       else if(hist == "mttwo") {
         *xtitle = Form("MT(%s,MET)", lep2.Data());
+        *ytitle = "";
+        *title  = "";
+      }
+      else if(hist == "mtlead") {
+        *xtitle = "MT(lead,MET)";
+        *ytitle = "";
+        *title  = "";
+      }
+      else if(hist == "mttrail") {
+        *xtitle = "MT(trail,MET)";
         *ytitle = "";
         *title  = "";
       }

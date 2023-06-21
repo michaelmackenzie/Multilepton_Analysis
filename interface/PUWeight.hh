@@ -39,6 +39,20 @@ namespace CLFV {
             dataHists_[year]->Clone(Form("hd_%i", year));
             dataHists_[year]->SetDirectory(0);
           }
+          dataHistsUp_[year] = (TH1*) f->Get("pileup_plus");
+          if(!dataHistsUp_[year]) {
+            std::cout << "!!! Warning: " << __func__ << ": No pileup_plus histogram found for " << year << " Data!\n";
+          } else {
+            dataHistsUp_[year]->Clone(Form("hd_up_%i", year));
+            dataHistsUp_[year]->SetDirectory(0);
+          }
+          dataHistsDown_[year] = (TH1*) f->Get("pileup_minus");
+          if(!dataHistsDown_[year]) {
+            std::cout << "!!! Warning: " << __func__ << ": No pileup_down histogram found for " << year << " Data!\n";
+          } else {
+            dataHistsDown_[year]->Clone(Form("hd_down_%i", year));
+            dataHistsDown_[year]->SetDirectory(0);
+          }
           f->Close();
           delete f;
         }
@@ -63,16 +77,26 @@ namespace CLFV {
     }
 
     ~PUWeight() {
-      for(std::pair<int, TH1*> val : dataHists_) {if(val.second) delete val.second;}
-      for(std::pair<int, TH1*> val : mcHists_  ) {if(val.second) delete val.second;}
+      for(std::pair<int, TH1*> val : dataHists_    ) {if(val.second) delete val.second;}
+      for(std::pair<int, TH1*> val : dataHistsUp_  ) {if(val.second) delete val.second;}
+      for(std::pair<int, TH1*> val : dataHistsDown_) {if(val.second) delete val.second;}
+      for(std::pair<int, TH1*> val : mcHists_      ) {if(val.second) delete val.second;}
     }
 
     float GetWeight(float nint, int year) {
-      float weight(1.), ndata(1.), nmc(1.);
-      TH1* hdata = dataHists_[year];
-      TH1* hMC   = mcHists_  [year];
+      float tmp_up, tmp_down;
+      return GetWeight(nint, year, tmp_up, tmp_down);
+    }
+
+    float GetWeight(float nint, int year, float& up, float& down) {
+      float weight(1.f), ndata(1.f), nmc(1.f);
+      up = 1.f; down = 1.f;
+      TH1* hdata     = dataHists_    [year];
+      TH1* hdataUp   = dataHistsUp_  [year];
+      TH1* hdataDown = dataHistsDown_[year];
+      TH1* hMC       = mcHists_      [year];
       //exit if no histograms
-      if(!hdata || !hMC) {std::cout << "No histograms found in PUWeight::" << __func__ << std::endl; return weight;}
+      if(!hdata || !hMC || !hdataUp || !hdataDown) {std::cout << "No histograms found in PUWeight::" << __func__ << std::endl; return weight;}
       //exit if nint > number of bins in histograms --> no number stored
       if(hdata->GetNbinsX() <= nint || hMC->GetNbinsX() <= nint) return weight;
       //assume binning is 0 - N, width = 1
@@ -80,18 +104,27 @@ namespace CLFV {
       const int n = nint;
       ndata = hdata->GetBinContent(n);
       nmc   = hMC  ->GetBinContent(n);
-      if(ndata > 0. && nmc > 0.) weight = ndata/nmc;
+      if(ndata > 0.f && nmc > 0.f) weight = ndata/nmc;
+      const float max_weight(3.f);
       if(weight > 3.) {
         if(verbose_) std::cout << "Warning in PUWeight::" << __func__ << ": weight = "
-                               << weight << " > 3 with nInt = " << nint << " and year = "
+                               << weight << " > " << max_weight << " with nInt = " << nint << " and year = "
                                << year << " ndata = " << ndata << " nmc = " << nmc << std::endl;
-        weight = 3.;
+        weight = max_weight;
       }
+      //calculate up/down values
+      ndata = hdataUp->GetBinContent(n);
+      up    = (ndata > 0.f && nmc > 0.f) ? std::min(max_weight, ndata/nmc) : weight;
+      ndata = hdataDown->GetBinContent(n);
+      down  = (ndata > 0.f && nmc > 0.f) ? std::min(max_weight, ndata/nmc) : weight;
+
       return weight;
     }
 
     int verbose_;
     std::map<int, TH1*> dataHists_;
+    std::map<int, TH1*> dataHistsUp_;
+    std::map<int, TH1*> dataHistsDown_;
     std::map<int, TH1*> mcHists_;
   };
 }

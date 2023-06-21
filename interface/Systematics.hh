@@ -113,8 +113,6 @@ namespace CLFV {
       case  44: return Data(isys, "JES"           , false);
       case  45: return Data(isys, "QCDBias"       , true );
       case  46: return Data(isys, "QCDBias"       , false);
-      // case  47: return Data(isys, "METCorr"       , true ); //FIXME: Remove
-      // case  48: return Data(isys, "METCorr"       , false);
       case  49: return Data(isys, "Prefire"       , true );
       case  50: return Data(isys, "Prefire"       , false);
       case  51: return Data(isys, "Pileup"        , true );
@@ -131,6 +129,8 @@ namespace CLFV {
       case  62: return Data(isys, "BTagLight"     , false);
       // case  63: return Data(isys, "BTagHeavy"     , true ); //FIXME: Turn on and turn off just "BTag"
       // case  64: return Data(isys, "BTagHeavy"     , false);
+      case  65: return Data(isys, "SignalMixing"  , true );
+      case  66: return Data(isys, "SignalMixing"  , false);
 
       // case  70: return Data(isys, "EmbTauJetID"   , true );
       // case  71: return Data(isys, "EmbTauJetID"   , false);

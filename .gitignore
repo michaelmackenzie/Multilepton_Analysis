@@ -8,11 +8,16 @@
 *_hist
 *.tree
 *_tree
+roostats-*.root
+*.dot
 *.xml
 *Weights*
 lib/
 histograms/figures/*
 studies/*/rootfiles/
+studies/*/*.root
+studies/BDT/*.pkl
+studies/BDT/*.json
 tmva_training/plots/*
 tmva_training/*.root
 tmva_training/*/*.root
@@ -29,6 +34,9 @@ Roostats/datacards/*/*.txt
 bin
 scripts/*.root
 *.log
+*.out
+*.tmp
+*.save
 histograms/canvases/*/*/*.root
 studies/*/*.root
 #ignore images by default

@@ -572,6 +572,32 @@ void CLFVHistMaker::FillEventHistogram(EventHist_t* Hist) {
     Hist->hLepTwoPrimeE [mode]->Fill(fTreeVars.leptwoprimee [mode], eventWeight*genWeight);
     Hist->hMetPrimeE    [mode]->Fill(fTreeVars.metprimee    [mode], eventWeight*genWeight);
   }
+
+  if(!fSparseHists) {
+    for(UInt_t jet = 0; jet < nJets20; ++jet) {
+      float jpt = jetsPt[jet], jeta = jetsEta[jet], wt = genWeight*eventWeight;
+      if(btagWeight > 0.) wt /= btagWeight; //remove previous correction
+      if(std::fabs(jeta) >= 2.5) continue; //outside the b-tagging region
+
+      // Hist->hJetsFlavor->Fill(jetsFlavor[jet], genWeight*eventWeight);
+      int flavor = std::abs(jetsFlavor[jet]);
+      if(flavor > 20) flavor = 1; //unknown parent defaults to light jet
+
+      int index = 0; //light jets
+      if(flavor == 4)      index = 1; // c-jet
+      else if(flavor == 5) index = 2; // b-jet
+      Hist->hJetsPtVsEta[index]->Fill(jeta, jpt, wt);
+      if(jetsBTag[jet] > 0) { //Loose b-tag
+        Hist->hBJetsLPtVsEta[index]->Fill(jeta, jpt, wt);
+        if(jetsBTag[jet] > 1) { //Medium b-tag
+          Hist->hBJetsMPtVsEta[index]->Fill(jeta, jpt, wt);
+          if(jetsBTag[jet] > 2) { //Tight b-tag
+            Hist->hBJetsPtVsEta[index]->Fill(jeta, jpt, wt);
+          }
+        }
+      }
+    }
+  }
 }
 
 //--------------------------------------------------------------------------------------------------------------
@@ -653,9 +679,6 @@ void CLFVHistMaker::FillLepHistogram(LepHist_t* Hist) {
 
 //--------------------------------------------------------------------------------------------------------------
 void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
-  if(!fDoSSSystematics && !chargeTest) return;
-  if(!fDoLooseSystematics && looseQCDSelection) return;
-  if(eventWeight*genWeight == 0.) return; //no way to re-scale 0, contributes nothing to histograms so can just skip filling
 
   const bool isSameFlavor = std::abs(leptonOne.flavor) == std::abs(leptonTwo.flavor);
   const bool isMuTau = leptonOne.isMuon    () && leptonTwo.isTau     ();
@@ -870,6 +893,10 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
       if(!(fIsSignal || fIsDY)) continue;
       if(fSystematics.IsUp(sys)) weight *= zPtWeightUp          / zPtWeight      ;
       else                       weight *= zPtWeightDown        / zPtWeight      ;
+    } else if(name == "SignalMixing") {
+      if(!fIsSignal) continue;
+      if(fSystematics.IsUp(sys)) weight *= signalZMixingWeightUp  /signalZMixingWeight;
+      else                       weight *= signalZMixingWeightDown/signalZMixingWeight;
     } else if(name == "Pileup") {
       if(fIsData || fIsEmbed) continue;
       if(fSystematics.IsUp(sys)) weight *= puWeight_up          / puWeight       ;
@@ -881,7 +908,7 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
     } else if(name == "EleES") {
       if(fIsEmbed || fIsData || !isEData) continue;
       reeval = true;
-      if(fSystematics.IsUp(sys)) { //FIXME: check if this should be propagated to the MET
+      if(fSystematics.IsUp(sys)) {
         if(leptonOne.isElectron() && leptonOne.ES[0] > 0. && leptonOne.ES[1] > 0.)
           EnergyScale(leptonOne.ES[1] / leptonOne.ES[0], leptonOne, &met, &metPhi);
         if(leptonTwo.isElectron() && leptonTwo.ES[0] > 0. && leptonTwo.ES[1] > 0.)
@@ -898,7 +925,7 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
       //|eta| Regions: EmbEleES = |eta| < 1.5; EmbEleES1 = |eta| > 1.5;
       const float eta_min = (name.EndsWith("1")) ? 1.5f : 0.f;
       const float eta_max = (name.EndsWith("1")) ? 2.5f : 1.5f;
-      if(fSystematics.IsUp(sys)) { //FIXME: check if this should be propagated to the MET
+      if(fSystematics.IsUp(sys)) {
         if(leptonOne.isElectron() && std::fabs(leptonOne.eta) >= eta_min && std::fabs(leptonOne.eta) < eta_max && leptonOne.ES[0] > 0. && leptonOne.ES[1] > 0.)
           EnergyScale(leptonOne.ES[1] / leptonOne.ES[0], leptonOne, &met, &metPhi);
         if(leptonTwo.isElectron() && std::fabs(leptonTwo.eta) >= eta_min && std::fabs(leptonTwo.eta) < eta_max && leptonTwo.ES[0] > 0. && leptonTwo.ES[1] > 0.)
@@ -1251,19 +1278,6 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
           jetOne.setPtEtaPhiM(jetOne.jes_pt_down, jetOne.eta, jetOne.phi, jetOne.mass);
         }
       }
-    } else if(name == "METCorr") { //FIXME: Remove
-      if(fIsData) continue;
-      reeval = true;
-      const float met_c_x(metCorr*std::cos(metCorrPhi)), met_c_y(metCorr*std::sin(metCorrPhi));
-      if(fSystematics.IsUp(sys)) {
-        const float met_x(met*std::cos(metPhi) - met_c_x), met_y(met*std::sin(metPhi) - met_c_y);
-        met    = std::sqrt(met_x*met_x + met_y*met_y);
-        metPhi = (met > 0.f) ? std::acos(std::max(-1.f, std::min(1.f, met_x/met)))*(met_y < 0.f ? -1 : 1) : 0.f;
-      } else {
-        const float met_x(met*std::cos(metPhi) + met_c_x), met_y(met*std::sin(metPhi) + met_c_y);
-        met    = std::sqrt(met_x*met_x + met_y*met_y);
-        metPhi = (met > 0.f) ? std::acos(std::max(-1.f, std::min(1.f, met_x/met)))*(met_y < 0.f ? -1 : 1) : 0.f;
-      }
     } else if(name.BeginsWith("TauJetID")) { //a tau anti-jet ID bin
       if(fIsData || !leptonTwo.isTau()) continue;
       if(std::abs(tauGenFlavor) == 15) {
@@ -1343,6 +1357,9 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
     }
 
     if(reeval) {
+      if(fVerbose > 0) {
+        printf("CLFVHistMaker::%s: Systematic %s (%i): Re-evaluating kinematics\n", __func__, name.Data(), sys);
+      }
       fTimes[GetTimerNumber("SystKin")] = std::chrono::steady_clock::now(); //timer for evaluating the MVAs
       SetKinematics();
       IncrementTimer("SystKin", true);
@@ -1675,7 +1692,7 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   ////////////////////////////////////////////////////////////
 
   const double met_cut         = -1.; //60.;
-  const double mtlep_cut       = (lep_tau) ? -1. : 70.;
+  const double mtlep_cut       = (lep_tau || emu) ? -1. : 70.;
   const double qcd_mtlep_cut   = mtlep_cut; //(etau) ? 45. : mtlep_cut;
   const bool looseQCDRegion    = (mutau || etau) && nBJetsUse == 0 && fTreeVars.mtlep < mtlep_cut && (met_cut < 0 || met < met_cut); // no isolation cut (0 - 0.5 allowed)
   const bool qcdSelection      = looseQCDRegion && fTreeVars.mtlep < qcd_mtlep_cut && (fTreeVars.leponereliso > 0.05) && !(isLooseMuon || isLooseElectron);

@@ -174,8 +174,7 @@ std::vector<TH1*> DataPlotter::get_signal(TString hist, TString setType, Int_t s
                                      (signal_scale == 1.) ? "" : Form(" (x%.0f)",signal_scale), stats));
     if(verbose_ > 8) printf(" Scaling signal %i (%s) by %.3f\n", (int) index, histograms[index]->GetTitle(), signal_scale);
     histograms[index]->Scale(signal_scale);
-    if(verbose_ > 0) std::cout << histograms[index]->GetTitle() << " signal histogram has integral "
-                               << integral << std::endl;
+    if(verbose_ > 0) printf("%s signal histogram has integral %.4f\n", histograms[index]->GetTitle(), integral);
   }
   if(verbose_ > 5) printf(" Returning the list of %i signal histograms\n", (int) histograms.size());
   return histograms;
@@ -219,9 +218,18 @@ TH1* DataPlotter::get_data_mc_diff(TString hist, TString setType, Int_t set, Sca
     return nullptr;
   }
 
+  if(verbose_ > 1) {
+    printf("%s: %s/%s/%i:\n Background = %.4f\n Data       = %.4f\n", __func__, hist.Data(), setType.Data(), set,
+           hBackground->Integral(0, hBackground->GetNbinsX()+1),
+           hData->Integral(0, hData->GetNbinsX()+1));
+  }
   //subtract the MC backgrounds from the data
   hData->Add(hBackground, -1.);
   delete hBackground;
+  if(verbose_ > 1) {
+    printf(" Difference = %.4f\n",
+           hData->Integral(0, hData->GetNbinsX()+1));
+  }
 
   //return the difference
   return hData;
@@ -253,7 +261,7 @@ TH1* DataPlotter::get_data(TString hist, TString setType, Int_t set, ScaleUncert
                              + hdata->GetBinContent(hdata->GetNbinsX()+1));
   const char* stats = (doStatsLegend_) ? Form(": #scale[0.8]{%.2e}", integral) : "";
   hdata->SetTitle(Form("Data%s",stats));
-  if(verbose_ > 0) std::cout << "Data histogram has integral " << integral  << std::endl;
+  if(verbose_ > 0) printf("Data histogram has integral %.4f\n", integral);
   if(rebinH_ > 0) hdata->Rebin(rebinH_);
   return hdata;
 }
@@ -420,11 +428,13 @@ TH1* DataPlotter::get_misid(TString hist, TString setType, Int_t set, ScaleUncer
 
   //ensure the normalization doesn't change
   const double nafter = hData->Integral(0, hData->GetNbinsX()+1, (density_plot_ > 0) ? "width" : "");
-
+  const double scale = (nbefore < 0.) ? 0. : nbefore/nafter;
   if(nbefore < 0.) hData->Scale(0.);
-  else if(nafter > 0.) hData->Scale(nbefore/nafter);
+  else if(nafter > 0.) hData->Scale(scale);
 
   const double nmisid = hData->Integral(0, hData->GetNbinsX()+1, (density_plot_ > 0) ? "width" : "");
+  if(verbose_ > 1) printf(" MisID negative clipping scale = %.4f, %.4f before --> %.4f after\n",
+                          scale, nbefore, nmisid);
 
   const char* stats = (doStatsLegend_) ? Form(": #scale[0.8]{%.2e}", nmisid) : "";
   hData->SetTitle(Form("%s%s",misid_label_.Data(), stats));
@@ -503,8 +513,8 @@ THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set, ScaleU
   //Get the data-driven backgrounds if applicable
   TH1* hQCD   = (include_qcd_)   ? get_qcd  (hist,setType,set,sys_scale) : nullptr;
   TH1* hMisID = (include_misid_) ? get_misid(hist,setType,set,sys_scale) : nullptr;
-  if(hQCD   && verbose_ > 0) std::cout << "QCD histogram has integral " << hQCD->Integral((density_plot_ > 0) ? "width" : "") << std::endl;
-  if(hMisID && verbose_ > 0) std::cout << "MisID histogram has integral " << hMisID->Integral((density_plot_ > 0) ? "width" : "") << std::endl;
+  if(hQCD   && verbose_ > 0) printf("QCD histogram has integral %.4f\n", hQCD->Integral(0, hQCD->GetNbinsX()+1, (density_plot_ > 0) ? "width" : ""));
+  if(hMisID && verbose_ > 0) printf("MisID histogram has integral %.4f\n", hMisID->Integral(0, hMisID->GetNbinsX()+1, (density_plot_ > 0) ? "width" : ""));
 
   //Create the stack
   TString stack_name = Form("stack_%s_%s_%i%s", hist.Data(), setType.Data(), set, (density_plot_) ? "_density" : "");
@@ -536,8 +546,7 @@ THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set, ScaleU
     const char* stats = (doStatsLegend_) ? Form(": #scale[0.8]{%.2e}", integral) : "";
     const TString label = histograms[index]->GetTitle();
     histograms[index]->SetTitle(Form("%s%s", label.Data(), stats));
-    if(verbose_ > 0) std::cout << histograms[index]->GetTitle() << " background histogram has integral "
-                               << integral << std::endl;
+    if(verbose_ > 0) printf("%s background histogram has integral %.4f\n", histograms[index]->GetTitle(), integral);
     hstack->Add(histograms[index]);
   }
 
@@ -603,8 +612,7 @@ TH1* DataPlotter::get_process(TString process, TString hist, TString setType, In
   const char* stats = (doStatsLegend_) ? Form(": #scale[0.8]{%.2e}", integral) : "";
   const TString label = h->GetTitle();
   h->SetTitle(Form("%s%s", label.Data(), stats));
-  if(verbose_ > 0) std::cout << h->GetTitle() << " process histogram has integral "
-                             << integral << std::endl;
+  if(verbose_ > 0) printf("%s process histogram has integral %.4f\n", h->GetTitle(), integral);
 
   return h;
 }
@@ -1134,7 +1142,12 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
     printf("Null or empty stack! %s/%s/%i\n", hist.Data(), setType.Data(), set);
     return nullptr;
   }
-  if(verbose_ > 0) std::cout << "Retrieved the stack with " << hstack->GetNhists() << " histograms\n";
+  if(verbose_ > 0) {
+    std::cout << "Retrieved the stack with " << hstack->GetNhists() << " histograms\n";
+    TH1* hlast = (TH1*) hstack->GetStack()->Last();
+    const double integral = hlast->Integral(0,hlast->GetNbinsX()+1);
+    printf("Background stack has integral = %.4f\n", integral);
+  }
 
   // hstack->SetBit(kCanDelete);
   TH1* d = get_data(hist, setType, set);

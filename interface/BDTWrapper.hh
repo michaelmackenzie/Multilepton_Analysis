@@ -8,15 +8,19 @@
 //xgboost
 #include <xgboost/c_api.h>
 
+//ROOT includes
+#include "TString.h"
+
 //local includes
 
 namespace CLFV {
 
   class BDTWrapper {
   public:
-    BDTWrapper(std::string model = "bdt.xml", int verbose = 0) {
+    BDTWrapper(std::string model = "bdt.xml", int nthreads = 1, int verbose = 0) {
       verbose_ = verbose;
       status_ = 0;
+      nthreads_ = std::max(1, nthreads);
       if(model != "")
         status_ = InitializeModel(model);
     }
@@ -29,6 +33,10 @@ namespace CLFV {
       XGBoosterCreate(nullptr, 0, &bdt_);
       const int status = XGBoosterLoadModel(bdt_, model.c_str());
       if(status && verbose_ > -2) printf("BDTWrapper:%s: Error! BDT failed to load, status = %i\n", __func__, status);
+      if(!status) {
+        if(XGBoosterSetParam(bdt_, "nthreads", Form("%i", nthreads_)) < 0 && verbose_ > -2) //limit the number of threads used in BDT evaluation to 1
+          printf("BDTWrapper::%s: Failed to set N(threads) to %i\n", __func__, nthreads_);
+      }
       return status;
     }
 
@@ -77,6 +85,7 @@ namespace CLFV {
     int verbose_;
     std::vector<float*> vars_;
     int status_;
+    int nthreads_;
   };
 }
 

@@ -10,6 +10,7 @@ TString selection_ = "emu"; //current options: mutau, etau, emu, mutau_e, etau_m
 Int_t verbose_ = 0; //verbosity level
 Int_t useOpenGL_ = 0;
 bool  doStatsLegend_ = false;
+int   drawStats_ = 1; //draw N(data) and N(MC) on plots
 TString folder_ = "nanoaods_dev"; //figures output folder
 bool doAllEMu_ = false; //plot all emu signals (including leptonic decays) on selection_ == "emu"
 bool printCDFs_ = false; //print cdf transform of MVAs
@@ -27,6 +28,7 @@ int sigOverBkg_ = 0; //plot sig / bkg or data / MC (0 = data/MC, 1 = sig/MC, 2 =
 int useQCD_ = 0; //use qcd estimate
 int useMisID_ = 1; //use Mis-ID estimate
 bool cdfMVAs_ = true; //CDF transformed BDT scores are the default
+bool xgbBDT_  = true; //XGBoost BDT in Z->e+mu
 
 int debug_ = 0;
 
@@ -1073,6 +1075,7 @@ Int_t init_dataplotter() {
   dataplotter_->selection_ = selection_;
   dataplotter_->folder_ = folder_;
   dataplotter_->doStatsLegend_ = doStatsLegend_;
+  dataplotter_->draw_statistics_ = drawStats_;
   dataplotter_->useOpenGL_ = (gROOT->IsBatch()) ? 0 : useOpenGL_;
 
   dataplotter_->qcd_scale_ = 1.;
@@ -2138,14 +2141,14 @@ Int_t print_basic_debug_plots(bool test_trigger = false, bool doMC = false,
       cards.push_back(PlottingCard_t("mva3_1"          , "event", 1, 20,  -0.8, 0.5, 0., 0.6));
       cards.push_back(PlottingCard_t("mva3_2"          , "event", 1,  2,   0.0, 1.0, 0.5, 1.));
     } else if(same_flavor) {
-      cards.push_back(PlottingCard_t("mva5"            , "event", 1,  0,  -0.8, 0.4, 1., -1.));
-      cards.push_back(PlottingCard_t("mva5"            , "event", 1,  0,  -0.8, 0.4, 1., -1., true)); //density plot
-      cards.push_back(PlottingCard_t("mva5_1"          , "event", 1, 20,  -0.8, 0.5, 1., -1.));
+      cards.push_back(PlottingCard_t("mva5"            , "event", 1,  0, (xgbBDT_) ? 0. : -0.8, (xgbBDT_) ? 1. : 0.4, 1., -1.));
+      cards.push_back(PlottingCard_t("mva5"            , "event", 1,  0, (xgbBDT_) ? 0. : -0.8, (xgbBDT_) ? 1. : 0.4, 1., -1., true)); //density plot
+      cards.push_back(PlottingCard_t("mva5_1"          , "event", 1, 20, (xgbBDT_) ? 0. : -0.8, (xgbBDT_) ? 1. : 0.5, 1., -1.));
       cards.push_back(PlottingCard_t("mva5_2"          , "event", 1,  2,   0.0, 1.0, 0.5, 1.));
     } else if(selection_ == "emu") {
-      cards.push_back(PlottingCard_t("mva5"            , "event", 1,  0,  -0.8, 0.4, 0., 0.6));
-      cards.push_back(PlottingCard_t("mva5"            , "event", 1,  0,  -0.8, 0.4, 0., 0.6, true)); //density plot
-      cards.push_back(PlottingCard_t("mva5_1"          , "event", 1, 20,  -0.8, 0.5, 0., 0.6));
+      cards.push_back(PlottingCard_t("mva5"            , "event", 1,  0, (xgbBDT_) ? 0. : -0.8, (xgbBDT_) ? 1. : 0.4, (xgbBDT_) ? 0.5 : 0., 1.));
+      cards.push_back(PlottingCard_t("mva5"            , "event", 1,  0, (xgbBDT_) ? 0. : -0.8, (xgbBDT_) ? 1. : 0.4, (xgbBDT_) ? 0.5 : 0., 1., true)); //density plot
+      cards.push_back(PlottingCard_t("mva5_1"          , "event", 1, 20, (xgbBDT_) ? 0. : -0.8, (xgbBDT_) ? 1. : 0.5, (xgbBDT_) ? 0.5 : 0., 1.));
       cards.push_back(PlottingCard_t("mva5_2"          , "event", 1,  2,   0.0, 1.0, 0.5, 1.));
     } else if(selection_ == "mutau_e") {
       cards.push_back(PlottingCard_t("mva7"            , "event", 1,  0,  -0.8, 0.4, 0., 0.6));
@@ -2333,6 +2336,10 @@ Int_t print_basic_mva_plots(vector<int> sets = {8,25,26,27}) {
   else                             mva += "5"; //same flavor use Z->e+mu MVA
 
   TCanvas* c = nullptr;
+  bool xgbBDT = xgbBDT_ && selection_ == "emu";
+  double xmin = (cdfMVAs_ || xgbBDT) ? 0. : -0.8;
+  double xmax = (cdfMVAs_ || xgbBDT) ? 1. :  0.4;
+  double blind_min = (cdfMVAs_ || xgbBDT) ? 0.5 :  0.;
   for(int set : sets) {
     if(tau_set) {
       //MC fake tau sets, don't use j-->tau estimate
@@ -2346,11 +2353,11 @@ Int_t print_basic_mva_plots(vector<int> sets = {8,25,26,27}) {
     }
     for(int ilog = 0; ilog < 2; ++ilog) { //print log and linear plots
       dataplotter_->logY_ = ilog;
-      c = dataplotter_->print_stack(PlottingCard_t(mva.Data()         , "event", set,  0, (cdfMVAs_) ? -0.05 : -1.0, (cdfMVAs_) ? 1. : 0.4, (cdfMVAs_) ? 0.5 : 0., 1.));
+      c = dataplotter_->print_stack(PlottingCard_t(mva.Data()         , "event", set,  0, xmin, xmax, blind_min, 1.));
       if(c) DataPlotter::Empty_Canvas(c); else ++status;
-      c = dataplotter_->print_stack(PlottingCard_t(mva.Data()         , "event", set,  0, (cdfMVAs_) ? -0.05 : -1.0, (cdfMVAs_) ? 1. : 0.4, (cdfMVAs_) ? 0.5 : 0., 1., true));
+      c = dataplotter_->print_stack(PlottingCard_t(mva.Data()         , "event", set,  0, xmin, xmax, blind_min, 1., true));
       if(c) DataPlotter::Empty_Canvas(c); else ++status;
-      c = dataplotter_->print_stack(PlottingCard_t((mva + "_1").Data(), "event", set, 20,  -0.8, 0.5, 0. , 1.)); //BDT score, fixed width binning
+      c = dataplotter_->print_stack(PlottingCard_t((mva + "_1").Data(), "event", set, 20, (xgbBDT) ? 0. : -0.8, (xgbBDT) ? 1. : 0.5, (xgbBDT) ? 0.5 : 0., 1.)); //BDT score, fixed width binning
       if(c) DataPlotter::Empty_Canvas(c); else ++status;
       c = dataplotter_->print_stack(PlottingCard_t((mva + "_2").Data(), "event", set,  1, -0.05, 1.0, 0.5, 1.)); //CDF score, fixed width binning
       if(c) DataPlotter::Empty_Canvas(c); else ++status;
@@ -2358,6 +2365,10 @@ Int_t print_basic_mva_plots(vector<int> sets = {8,25,26,27}) {
       if(c) DataPlotter::Empty_Canvas(c); else ++status;
       c = dataplotter_->print_stack(PlottingCard_t((mva + "_4").Data(), "event", set,  1, -3.00, 1.0, 0., 1.)); //log10(p)+p, fixed width binning
       if(c) DataPlotter::Empty_Canvas(c); else ++status;
+      if(selection_ == "emu") {
+        c = dataplotter_->print_stack(PlottingCard_t("lepm", "event", set,  5, 70., 110., 84., 98.)); //print lepm in zemu as the main observable
+        if(c) DataPlotter::Empty_Canvas(c); else ++status;
+      }
       c = nullptr;
     }
   }

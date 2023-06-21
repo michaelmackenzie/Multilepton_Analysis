@@ -417,9 +417,59 @@ std::vector<Double_t> MVAConfig::CDFBins(Int_t index, Int_t HistSet) {
       if(HistSet == 28) {xmin = 0.00f; xmax = 1.00f;} //zll mass
     }
     */
+    /*
+    // Binning for F(p) = p^2 + 1/4*log(p)
+    if(selection == "zetau_mu") {
+    if(HistSet == 25) {xmin = 0.08f; xmax = 1.00f;} //central mass
+    if(HistSet == 26) {xmin = 0.08f; xmax = 0.44f;} //high mass
+    if(HistSet == 27) {xmin = 0.08f; xmax = 1.00f;} //low mass
+    }
+    if(selection == "zmutau_e") {
+    if(HistSet == 25) {xmin = 0.00f; xmax = 1.00f;} //central mass
+    if(HistSet == 26) {xmin = 0.00f; xmax = 0.56f;} //high mass
+    if(HistSet == 27) {xmin = 0.00f; xmax = 0.80f;} //low mass
+    }
+    if(selection == "zetau") {
+    if(HistSet == 25) {xmin = 0.12f; xmax = 1.00f;} //central mass
+    if(HistSet == 26) {xmin = 0.00f; xmax = 0.52f;} //high mass
+    if(HistSet == 27) {xmin = 0.00f; xmax = 0.84f;} //low mass
+    if(HistSet == 28) {xmin = 0.12f; xmax = 1.00f;} //zll mass
+    }
+    if(selection == "zmutau") {
+    if(HistSet == 25) {xmin = 0.00f; xmax = 1.00f;} //central mass
+    if(HistSet == 26) {xmin = 0.00f; xmax = 0.60f;} //high mass
+    if(HistSet == 27) {xmin = 0.00f; xmax = 0.92f;} //low mass
+    if(HistSet == 28) {xmin = 0.00f; xmax = 1.00f;} //zll mass
+    }
+    */
+
+    // Binning for F(p) = p^2 + 1/6*log(p)
+    if(selection == "zetau_mu") {
+    if(HistSet == 25) {xmin = 0.08f; xmax = 1.00f;} //central mass
+    if(HistSet == 26) {xmin = 0.08f; xmax = 0.28f;} //high mass
+    if(HistSet == 27) {xmin = 0.08f; xmax = 0.92f;} //low mass
+    }
+    if(selection == "zmutau_e") {
+    if(HistSet == 25) {xmin = 0.00f; xmax = 1.00f;} //central mass
+    if(HistSet == 26) {xmin = 0.00f; xmax = 0.36f;} //high mass
+    if(HistSet == 27) {xmin = 0.00f; xmax = 0.56f;} //low mass
+    }
+    if(selection == "zetau") {
+    if(HistSet == 25) {xmin = 0.12f; xmax = 1.00f;} //central mass
+    if(HistSet == 26) {xmin = 0.00f; xmax = 0.36f;} //high mass
+    if(HistSet == 27) {xmin = 0.00f; xmax = 0.60f;} //low mass
+    if(HistSet == 28) {xmin = 0.12f; xmax = 1.00f;} //zll mass
+    }
+    if(selection == "zmutau") {
+    if(HistSet == 25) {xmin = 0.00f; xmax = 1.00f;} //central mass
+    if(HistSet == 26) {xmin = 0.00f; xmax = 0.44f;} //high mass
+    if(HistSet == 27) {xmin = 0.00f; xmax = 0.72f;} //low mass
+    if(HistSet == 28) {xmin = 0.00f; xmax = 1.00f;} //zll mass
+    }
+
     const int ndefault = std::ceil(1.f/default_width) + 1;
     const int bin_min(std::ceil(xmin/default_width)), bin_max(xmax/default_width);
-    if(bin_min < 0 || bin_max > ndefault) {
+    if(bin_min < 0 || bin_max >= ndefault) {
       printf("MVAConfig::%s: Bin dimensions not sensible:  [%.3f (bin %i) --> %.3f (bin %i)]\n",
              __func__, xmin, bin_min, xmax, bin_max);
       throw 30;

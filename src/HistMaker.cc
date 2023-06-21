@@ -203,7 +203,7 @@ void HistMaker::Begin(TTree * /*tree*/)
       if(fUseXGBoostBDT && selection == "zemu") {
         if(!fTrkQualInit) fTrkQualInit = new TrkQualInit(fTrkQualVersion, -1, fUseXGBoostBDT);
         mva        [mva_i] = nullptr;
-        wrappedBDTs[mva_i] = new BDTWrapper(Form("weights/%s.2016_2017_2018.json", fMVAConfig->names_[mva_i].Data()), fVerbose);
+        wrappedBDTs[mva_i] = new BDTWrapper(Form("weights/%s.2016_2017_2018.json", fMVAConfig->names_[mva_i].Data()), 1, fVerbose);
         if(wrappedBDTs[mva_i]->GetStatus()) throw 20;
         wrappedBDTs[mva_i]->InitializeVariables(fTrkQualInit->GetXGBoostVariables(selection, fTreeVars));
       } else {
@@ -289,6 +289,7 @@ void HistMaker::SlaveBegin(TTree * /*tree*/)
 
 //--------------------------------------------------------------------------------------------------------------
 void HistMaker::FillAllHistograms(Int_t index) {
+
   if(eventWeight < 0. || !std::isfinite(eventWeight*genWeight)) {
     std::cout << "WARNING! Event " << fentry << ": Set " << index << " has negative bare event weight or undefined total weight:\n"
               << " eventWeight = " << eventWeight << "; genWeight = " << genWeight << "; puWeight = " << puWeight
@@ -297,6 +298,7 @@ void HistMaker::FillAllHistograms(Int_t index) {
               << std::endl;
   }
   if(!std::isfinite(eventWeight*genWeight)) {
+    if(fVerbose > 0) printf("Warning! Event %lld: Event weight non-finite. wt = %f, gen = %f\n", fentry, eventWeight, genWeight);
     eventWeight = 0.;
     genWeight = 1.;
   }
@@ -309,15 +311,21 @@ void HistMaker::FillAllHistograms(Int_t index) {
     fTimes[GetTimerNumber("Filling")] = std::chrono::steady_clock::now(); //timer for reading from the tree
 
     if(pass) {
+      if(fFollowHistSet == index) printf(" Entry %lld: Filling histogram set %i\n", fentry, index);
       ++fSetFills[index];
       FillEventHistogram( fEventHist [index]);
       FillLepHistogram(   fLepHist   [index]);
     }
     //allow events outside the window to the systematics filling, to account for shifted events migrating in/out
     if(fDoSystematics && fSysSets[index]) {
-      fTimes[GetTimerNumber("SystFill")] = std::chrono::steady_clock::now(); //timer for reading from the tree
-      FillSystematicHistogram(fSystematicHist[index]);
-      IncrementTimer("SystFill", true);
+      if((fDoSSSystematics || chargeTest) && //skip same-sign if not relevant
+         (fDoLooseSystematics || !looseQCDSelection) && //skip loose ID if not relevant
+         (eventWeight*genWeight != 0.) //no way to re-scale 0, contributes nothing to histograms so can just skip filling
+         ) {
+        fTimes[GetTimerNumber("SystFill")] = std::chrono::steady_clock::now(); //timer for reading from the tree
+        FillSystematicHistogram(fSystematicHist[index]);
+        IncrementTimer("SystFill", true);
+      }
     }
     // if(fFillPhotonHists) FillPhotonHistogram(fPhotonHist[index]);
     IncrementTimer("Filling", true);
@@ -446,7 +454,8 @@ void HistMaker::BookBaseEventHistograms(Int_t i, const char* dirname) {
       Utilities::BookH1F(fEventHist[i]->hHt                 , "ht"                  , Form("%s: Ht"                  ,dirname), 100,    0, 200, folder);
 
       Utilities::BookH1F(fEventHist[i]->hMet                 , "met"                 , Form("%s: Met"                     ,dirname)  , 100,  0, 200, folder);
-      Utilities::BookH1F(fEventHist[i]->hMetSignificance     , "metsignificance"     , Form("%s: Met Significance"        ,dirname)  ,  30,  0,   5, folder);
+      Utilities::BookH1F(fEventHist[i]->hMetSignificance     , "metsignificance"     , Form("%s: Met Significance"        ,dirname)  ,  40,  0,  10, folder);
+      Utilities::BookH1F(fEventHist[i]->hPuppiMetSig         , "puppimetsig"         , Form("%s: Met Significance"        ,dirname)  ,  50,  0,  15, folder);
       Utilities::BookH1F(fEventHist[i]->hMetPhi              , "metphi"              , Form("%s: MetPhi"                  ,dirname)  ,  40, -4,   4, folder);
       Utilities::BookH1F(fEventHist[i]->hMetCorr             , "metcorr"             , Form("%s: Met Correction"          ,dirname)  ,  40,  0,   5, folder);
       Utilities::BookH1F(fEventHist[i]->hMetUp               , "metup"               , Form("%s: Met up"                  ,dirname)  , 100,  0, 200, folder);
@@ -511,7 +520,7 @@ void HistMaker::BookBaseEventHistograms(Int_t i, const char* dirname) {
       Utilities::BookH1D(fEventHist[i]->hZDecayMode , "zdecaymode"    , Form("%s: ZDecayMode"     ,dirname)  ,  20,    0,  20, folder);
 
       if(!fSparseHists || fSelection == "emu") {
-        if(fUseCDFBDTs) {
+        if(fUseCDFBDTs || fUseXGBoostBDT) {
           Utilities::BookH2F(fEventHist[i]->hLepMVsMVA[0], "lepmvsmva0"    , Form("%s: Lepton M vs MVA",dirname)  ,  40, 0., 1., 20, 70, 110, folder);
           Utilities::BookH2F(fEventHist[i]->hLepMVsMVA[1], "lepmvsmva1"    , Form("%s: Lepton M vs MVA",dirname)  ,  40, 0., 1., 20, 70, 110, folder);
         } else {
@@ -604,7 +613,10 @@ void HistMaker::BookBaseLepHistograms(Int_t i, const char* dirname) {
       // Lepton one info //
       Utilities::BookH1F(fLepHist[i]->hOnePt[0]       , "onept"            , Form("%s: Pt"           ,dirname)  , 150,   0, 150, folder);
       Utilities::BookH1F(fLepHist[i]->hOnePz          , "onepz"            , Form("%s: Pz"           ,dirname), 100, -100,  100, folder);
-      Utilities::BookH1F(fLepHist[i]->hOneMomErr      , "onemomerr"        , Form("%s: Mom. Error"   ,dirname),  n_momerr_bins, momerr_bins, folder);
+      if(fSelection == "mutau" || fSelection == "mumu")
+        Utilities::BookH1F(fLepHist[i]->hOneMomErr      , "onemomerr"        , Form("%s: Mom. Error"   ,dirname),  n_momerr_bins, momerr_bins, folder);
+      else
+        Utilities::BookH1F(fLepHist[i]->hOneMomErr      , "onemomerr"        , Form("%s: Mom. Error"   ,dirname),  20, 0., 1., folder);
       Utilities::BookH1F(fLepHist[i]->hOneEta         , "oneeta"           , Form("%s: Eta"          ,dirname),  50, -2.5,  2.5, folder);
       Utilities::BookH1F(fLepHist[i]->hOneSCEta       , "onesceta"         , Form("%s: SC Eta"       ,dirname),  50, -2.5,  2.5, folder);
       Utilities::BookH1F(fLepHist[i]->hOnePhi         , "onephi"           , Form("%s: Phi"          ,dirname),  80,   -4,    4, folder);
@@ -636,7 +648,10 @@ void HistMaker::BookBaseLepHistograms(Int_t i, const char* dirname) {
       // Lepton two info //
       Utilities::BookH1F(fLepHist[i]->hTwoPt[0]       , "twopt"            , Form("%s: Pt"          ,dirname)  , 150,   0, 150, folder);
       Utilities::BookH1F(fLepHist[i]->hTwoPz          , "twopz"            , Form("%s: Pz"          ,dirname), 100, -100,  100, folder);
-      Utilities::BookH1F(fLepHist[i]->hTwoMomErr      , "twomomerr"        , Form("%s: Mom. Error"  ,dirname),  n_momerr_bins, momerr_bins, folder);
+      if(fSelection == "emu" || fSelection.Contains("_"))
+        Utilities::BookH1F(fLepHist[i]->hTwoMomErr      , "twomomerr"        , Form("%s: Mom. Error"  ,dirname),  n_momerr_bins, momerr_bins, folder);
+      else
+        Utilities::BookH1F(fLepHist[i]->hTwoMomErr      , "twomomerr"        , Form("%s: Mom. Error"  ,dirname),  20, 0., 1., folder);
       Utilities::BookH1F(fLepHist[i]->hTwoEta         , "twoeta"           , Form("%s: Eta"         ,dirname),  50,-2.5,  2.5, folder);
       Utilities::BookH1F(fLepHist[i]->hTwoSCEta       , "twosceta"         , Form("%s: SC Eta"      ,dirname),  50,-2.5,  2.5, folder);
       Utilities::BookH1F(fLepHist[i]->hTwoPhi         , "twophi"           , Form("%s: Phi"         ,dirname),  80,  -4,    4, folder);
@@ -1095,6 +1110,7 @@ void HistMaker::InitializeInputTree(TTree* tree) {
   Utilities::SetBranchAddress(tree, "HT"                            , &ht                            );
   Utilities::SetBranchAddress(tree, "PuppiMET_pt"                   , &puppMET                       );
   Utilities::SetBranchAddress(tree, "PuppiMET_phi"                  , &puppMETphi                    );
+  Utilities::SetBranchAddress(tree, "PuppiMET_sumEt"                , &puppMETSumEt                  );
   Utilities::SetBranchAddress(tree, "PuppiMET_ptJERUp"              , &puppMETJERUp                  );
   Utilities::SetBranchAddress(tree, "PuppiMET_ptJESUp"              , &puppMETJESUp                  );
   Utilities::SetBranchAddress(tree, "PuppiMET_phiJERUp"             , &puppMETphiJERUp               );
@@ -1420,12 +1436,17 @@ void HistMaker::InitializeEventWeights() {
   if(fIsSignal && fDataset.Contains("Z")) {
     //re-weight to MC spectrum
     signalZWeight = (fUseSignalZWeights) ? fSignalZWeight.GetWeight(fYear, zPt, zMass) : 1.f;
+    //re-weight to remove z/gamma* effect
+    signalZMixingWeightUp = 1.f; signalZMixingWeightDown = 1.f;
+    signalZMixingWeight = (fUseSignalZMixWeights) ? fSignalZMixWeight.GetWeight(fYear, zPt, zMass, signalZMixingWeightUp, signalZMixingWeightDown) : 1.f;
     //re-weight MC spectrum to data spectrum
     zPtWeight = fZPtWeight->GetWeight(fYear, zPt, zMass, false /*Use Gen level weights*/, zPtWeightUp, zPtWeightDown, zPtWeightSys);
-    eventWeight *= zPtWeight*signalZWeight;
+    eventWeight *= zPtWeight*signalZWeight*signalZMixingWeight;
     if(fVerbose > 0) std::cout << " For Z pT = " << zPt << " and Mass = " << zMass << " using Data/MC weight " << zPtWeight
-                               << " and signal Z weight " << signalZWeight
-                               << "--> event weight = " << eventWeight << std::endl;
+                               << ", signal Z weight " << signalZWeight
+                               << ", and signal Z mixing weight " << signalZMixingWeight
+                               << "(" << signalZMixingWeightUp << "/" << signalZMixingWeightDown << ")"
+                               << " --> event weight = " << eventWeight << std::endl;
   }
 
   ////////////////////////////////////////////////////////////////////
@@ -1461,10 +1482,7 @@ void HistMaker::InitializeEventWeights() {
       puWeight = 1.f;
       //replace weight
       if(fRemovePUWeights > 1) {
-        puWeight = fPUWeight->GetWeight(nPU, fYear);
-        //FIXME: Decide on up/down for PU
-        puWeight_up = std::max(0.f, 2.f*puWeight - 1.f);
-        puWeight_down = 1.f;
+        puWeight = fPUWeight->GetWeight(nPU, fYear, puWeight_up, puWeight_down);
       }
     }
     eventWeight *= puWeight;
@@ -1896,7 +1914,13 @@ void HistMaker::SetKinematics() {
 
   //MET variables
   fTreeVars.met        = met;
+  //FIXME: Decide on met significance definition
   fTreeVars.metsignificance = metSignificance;
+  //FIXME: How is met significance defined on data?
+  // const float met_err   = std::sqrt(std::pow(puppMETJERUp - puppMET, 2) + std::pow(puppMETJESUp - puppMET, 2))/puppMET;
+  // puppMETSig = (met_err > 0.f) ? puppMET/met_err : -1.f;
+  puppMETSig = (puppMETSumEt > 0.f) ? puppMET/std::sqrt(puppMETSumEt) : -1.f;
+
   fTreeVars.mtone      = std::sqrt(2.*met*leptonOne.p4->Pt()*(1.-cos(leptonOne.p4->Phi() - metPhi)));
   fTreeVars.mttwo      = std::sqrt(2.*met*leptonTwo.p4->Pt()*(1.-cos(leptonTwo.p4->Phi() - metPhi)));
   fTreeVars.mtlep      = std::sqrt(2.*met*lep.Pt()*(1.-cos(lep.Phi() - metPhi)));
@@ -2126,6 +2150,7 @@ void HistMaker::EvalMVAs(TString TimerName) {
               << " has undentified selection in " << __func__ << "!\n";
     selecName = "unknown";
   }
+  if(fVerbose > 0) printf(" Processing event MVA scores\n");
   for(unsigned i = 0; i < fMVAConfig->names_.size(); ++i) {
     //assume only relevant MVAs are configured
     fMvaOutputs[i] = -2.f;
@@ -2134,9 +2159,14 @@ void HistMaker::EvalMVAs(TString TimerName) {
     fMvaFofP[i] = -1.f;
     if(mva[i]) {
       fMvaOutputs[i] = mva[i]->EvaluateMVA(fMVAConfig->names_[i].Data());
+      if(fVerbose > 0) printf("  MVA %i (%s) has score %.5f\n", i, fMVAConfig->names_[i].Data(), fMvaOutputs[i]);
     } else if(wrappedBDTs[i]) {
       fMvaOutputs[i] = wrappedBDTs[i]->EvaluateScore();
-    } else continue; //not defined
+      if(fVerbose > 0) printf("  BDT %i (%s) has score %.5f\n", i, fMVAConfig->names_[i].Data(), fMvaOutputs[i]);
+    } else { //not defined
+      if(fVerbose > 9) printf("  Skipping undefined MVA %i (%s)\n", i, fMVAConfig->names_[i].Data());
+      continue;
+    }
 
     if(fMvaOutputs[i] < -2.1f) {
       std::cout << "Error value returned for MVA " << fMVAConfig->names_[i].Data()
@@ -2153,6 +2183,10 @@ void HistMaker::EvalMVAs(TString TimerName) {
       // fMvaFofP[i] = (fMvaCDFs[i] > min_p) ? fMvaLogP[i]+fMvaCDFs[i] : min_log_p + min_p;
       // fMvaFofP[i] = (fMvaFofP[i] - (min_log_p + min_p)) / (1.f - (min_log_p + min_p));
 
+      // //F(p) = p + 1/4*log10(p)
+      // fMvaFofP[i] = (fMvaCDFs[i] > min_p) ? 1.f/4.f*fMvaLogP[i]+fMvaCDFs[i] : 1.f/4.f*min_log_p + min_p;
+      // fMvaFofP[i] = (fMvaFofP[i] - (1.f/4.f*min_log_p + min_p)) / (1.f - (1.f/4.f*min_log_p + min_p));
+
       // //F(p) = p*p + log10(p)
       // fMvaFofP[i] = (fMvaCDFs[i] > min_p) ? fMvaLogP[i]+std::pow(fMvaCDFs[i],2) : min_log_p + min_p*min_p;
       // fMvaFofP[i] = (fMvaFofP[i] - (min_log_p + min_p*min_p)) / (1.f - (min_log_p + min_p*min_p));
@@ -2161,13 +2195,17 @@ void HistMaker::EvalMVAs(TString TimerName) {
       // fMvaFofP[i] = (fMvaCDFs[i] > min_p) ? 0.5f*fMvaLogP[i]+std::pow(fMvaCDFs[i],2) : 0.5f*min_log_p + min_p*min_p;
       // fMvaFofP[i] = (fMvaFofP[i] - (0.5f*min_log_p + min_p*min_p)) / (1.f - (0.5f*min_log_p + min_p*min_p));
 
-      //F(p) = p*p + 1/4*log10(p)
-      fMvaFofP[i] = (fMvaCDFs[i] > min_p) ? 1.f/4.f*fMvaLogP[i]+std::pow(fMvaCDFs[i],2) : 1.f/4.f*min_log_p + min_p*min_p;
-      fMvaFofP[i] = (fMvaFofP[i] - (1.f/4.f*min_log_p + min_p*min_p)) / (1.f - (1.f/4.f*min_log_p + min_p*min_p));
+      // //F(p) = p*p + 1/4*log10(p)
+      // fMvaFofP[i] = (fMvaCDFs[i] > min_p) ? 1.f/4.f*fMvaLogP[i]+std::pow(fMvaCDFs[i],2) : 1.f/4.f*min_log_p + min_p*min_p;
+      // fMvaFofP[i] = (fMvaFofP[i] - (1.f/4.f*min_log_p + min_p*min_p)) / (1.f - (1.f/4.f*min_log_p + min_p*min_p));
 
-      // //F(p) = p + 1/4*log10(p)
-      // fMvaFofP[i] = (fMvaCDFs[i] > min_p) ? 1.f/4.f*fMvaLogP[i]+fMvaCDFs[i] : 1.f/4.f*min_log_p + min_p;
-      // fMvaFofP[i] = (fMvaFofP[i] - (1.f/4.f*min_log_p + min_p)) / (1.f - (1.f/4.f*min_log_p + min_p));
+      //F(p) = p*p + 1/6*log10(p)
+      fMvaFofP[i] = (fMvaCDFs[i] > min_p) ? 1.f/6.f*fMvaLogP[i]+std::pow(fMvaCDFs[i],2) : 1.f/6.f*min_log_p + min_p*min_p;
+      fMvaFofP[i] = (fMvaFofP[i] - (1.f/6.f*min_log_p + min_p*min_p)) / (1.f - (1.f/6.f*min_log_p + min_p*min_p));
+
+      // //F(p) = p*p + 1/8*log10(p)
+      // fMvaFofP[i] = (fMvaCDFs[i] > min_p) ? 1.f/8.f*fMvaLogP[i]+std::pow(fMvaCDFs[i],2) : 1.f/8.f*min_log_p + min_p*min_p;
+      // fMvaFofP[i] = (fMvaFofP[i] - (1.f/8.f*min_log_p + min_p*min_p)) / (1.f - (1.f/8.f*min_log_p + min_p*min_p));
     }
   }
   if(eval_timer) IncrementTimer(TimerName.Data(), true);
@@ -2205,6 +2243,21 @@ void HistMaker::CountObjects() {
     throw 20;
   }
 
+
+  if(fVerbose > 2) {
+    printf(" Electron collection:\n");
+    for(int i = 0; i < (int) nElectron; ++i) {
+      printf("  %2i: pt = %.1f, eta = %.2f, eta_sc = %.2f\n", i, Electron_pt[i], Electron_eta[i], Electron_eta[i]+Electron_deltaEtaSC[i]);
+    }
+    printf(" Muon collection:\n");
+    for(int i = 0; i < (int) nMuon; ++i) {
+      printf("  %2i: pt = %.1f, eta = %.2f\n", i, Muon_pt[i], Muon_eta[i]);
+    }
+    printf(" Tau collection:\n");
+    for(int i = 0; i < (int) nTau; ++i) {
+      printf("  %2i: pt = %.1f, eta = %.2f\n", i, Tau_pt[i], Tau_eta[i]);
+    }
+  }
   /////////////////////////////////////
   // Base selections
   mutau   =                   nMuon == 1 && nTau == 1 && (fSelection == "" || fSelection == "mutau");
@@ -2278,7 +2331,6 @@ void HistMaker::CountObjects() {
   metPhi     = puppMETphi;
   metCorr    = 0.f; //record the changes to the MET due to changes in object energy/momentum scales
   metCorrPhi = 0.f;
-  //FIXME: Decide on met significance definition
 
   ApplyElectronCorrections();
   ApplyMuonCorrections();
@@ -2618,6 +2670,15 @@ void HistMaker::CountJets() {
   TLorentzVector jetLoop; //for checking delta R
   float jetptmax = -1; //track highest pt jet
   jetOne.setPtEtaPhiM(0.,0.,0.,0.); //reset to no jet found
+  if(fVerbose > 5) {
+    printf(" Printing input jet collection:\n");
+    for(int ijet = 0; ijet < (int) nJet; ++ijet) {
+      printf("  %2i: pt = %.1f, eta = %5.2f, btag = %.5f, tagged (e, mu, tau) = (%o, %o, %o), ID = %i, pu ID = %i, flavor = %i\n", ijet,
+             Jet_pt[ijet], Jet_eta[ijet], Jet_btagDeepB[ijet],
+             Jet_TaggedAsRemovedByElectron[ijet], Jet_TaggedAsRemovedByMuon[ijet], Jet_TaggedAsRemovedByTau[ijet],
+             Jet_jetId[ijet], Jet_puId[ijet], (fIsData || fIsEmbed) ? 0 : Jet_partonFlavour[ijet]);
+    }
+  }
   for(UInt_t ijet = 0; ijet < nJet; ++ijet) {
     if(Jet_jetId[ijet] < min_jet_id) continue; //bad jet
     if(Jet_TaggedAsRemovedByMuon[ijet]) continue; //overlapping a muon
@@ -2679,6 +2740,13 @@ void HistMaker::CountJets() {
   //Record HT result
   ht    = htLV.Pt();
   htPhi = htLV.Phi();
+
+  if(fVerbose > 5) {
+    printf(" Printing final jet collection:\n");
+    for(int ijet = 0; ijet < (int) nJets20; ++ijet) {
+      printf("  %2i: pt = %.1f, eta = %5.2f, btag = %i, flavor = %i\n", ijet, jetsPt[ijet], jetsEta[ijet], jetsBTag[ijet], jetsFlavor[ijet]);
+    }
+  }
 }
 
 //--------------------------------------------------------------------------------------------------------------
@@ -2883,6 +2951,7 @@ void HistMaker::FillBaseEventHistogram(EventHist_t* Hist) {
 
   Hist->hMet               ->Fill(met                , genWeight*eventWeight)      ;
   Hist->hMetSignificance   ->Fill(metSignificance    , genWeight*eventWeight)      ;
+  Hist->hPuppiMetSig       ->Fill(puppMETSig         , genWeight*eventWeight)      ;
   Hist->hMetPhi            ->Fill(metPhi             , genWeight*eventWeight)      ;
   Hist->hMetCorr           ->Fill(metCorr            , genWeight*eventWeight)      ;
   //approximate met uncertainty
@@ -3212,10 +3281,12 @@ Bool_t HistMaker::InitializeEvent(Long64_t entry)
   //Filter ntuple-level details
   if(fMaxLepM > 0.f && SelectionFilter_LepM > 0.f && SelectionFilter_LepM > fMaxLepM) {
     IncrementTimer("EventInit", true);
+    if(fVerbose > 0) printf(" Event fails max mass cut (%.1f) with ntuple-level mass %.1f \n", fMaxLepM, SelectionFilter_LepM);
     return kTRUE;
   }
   if(fMinLepM > 0.f && SelectionFilter_LepM > 0.f && SelectionFilter_LepM < fMinLepM) {
     IncrementTimer("EventInit", true);
+    if(fVerbose > 0) printf(" Event fails min mass cut (%.1f) with ntuple-level mass %.1f \n", fMinLepM, SelectionFilter_LepM);
     return kTRUE;
   }
 
@@ -3229,12 +3300,14 @@ Bool_t HistMaker::InitializeEvent(Long64_t entry)
   CountObjects(); // > 100 kHz
   if(!(mutau or etau or emu or mumu or ee)) {
     IncrementTimer("EventInit", true);
+    if(fVerbose > 0) printf(" Event passes no selections \n");
     return kTRUE;
   }
 
   //MC sample splitting
   if(SplitSampleEvent()) {
     IncrementTimer("EventInit", true);
+    if(fVerbose > 0) printf(" Event is filtered out due to sample splitting \n");
     return kTRUE;
   }
 
@@ -3244,25 +3317,31 @@ Bool_t HistMaker::InitializeEvent(Long64_t entry)
   // Data overlap check //
   ////////////////////////
 
-  //skip if it's data and lepton status doesn't match data set ( 1 = electron 2 = muon) unless allowing overlap and it passes both
+  //skip if it's data and lepton status doesn't match data set (1 = electron, 2 = muon) unless allowing overlap and it passes both
   if(fIsData > 0) {
+    //Use trigger matches, without reco pT cut, for data overlap rejection
+    //--> Beyond here, with overlap rejected, simply require a lepton fires with reco pT cuts
+
     const int pdgid = (fIsData == 1) ? 11 : 13; //pdg ID for the data stream
     //if no selected lepton fired this trigger, continue
-    if(!((std::abs(leptonOne.flavor) == pdgid && leptonOne.fired) || (std::abs(leptonTwo.flavor) == pdgid && leptonTwo.fired))) {
+    if(!((std::abs(leptonOne.flavor) == pdgid && leptonOne.matched) || (std::abs(leptonTwo.flavor) == pdgid && leptonTwo.matched))) {
       IncrementTimer("EventInit", true);
+      if(fVerbose > 0) printf(" Event fails trigger matching\n");
       return kTRUE;
     }
 
     if(triggerLeptonStatus != ((UInt_t) fIsData)) { //trigger doesn't match data stream
       if(triggerLeptonStatus != 3) {
         IncrementTimer("EventInit", true);
+        if(fVerbose > 0) printf(" Event fails data trigger stream splitting\n");
         return kTRUE; //triggered only for the other stream
       }
-      if(fSkipDoubleTrigger) { //don't allow double triggers
+      if(fSkipDoubleTrigger) { //don't allow electron and muon triggered event
         const int other_pdgid = (fIsData == 1) ? 13 : 11; //pdg ID for the other data stream
         //only skip if the selected lepton actually fired the trigger
-        if((std::abs(leptonOne.flavor) == other_pdgid && leptonOne.fired) ||(std::abs(leptonTwo.flavor) == other_pdgid && leptonTwo.fired)) {
+        if((std::abs(leptonOne.flavor) == other_pdgid && leptonOne.matched) ||(std::abs(leptonTwo.flavor) == other_pdgid && leptonTwo.matched)) {
           IncrementTimer("EventInit", true);
+          if(fVerbose > 0) printf(" Event fails data trigger stream overlap splitting\n");
           return kTRUE;
         }
       }
@@ -3363,6 +3442,17 @@ Bool_t HistMaker::InitializeEvent(Long64_t entry)
   if(!chargeTest) set_offset += fQcdOffset;
   if(looseQCDSelection) set_offset += fMisIDOffset;
 
+  //Print event summary after initialization if requested
+  if(fVerbose) {
+    printf(" HistMaker::%s summary:\n", __func__);
+    printf("  di-lepton: mass = %.1f, pt = %.1f, eta = %5.1f, mt(ll,met) = %.1f\n", fTreeVars.lepm, fTreeVars.leppt, fTreeVars.lepeta, fTreeVars.mtlep);
+    printf("  lep_1: pdg = %3i, pt = %5.1f, eta(SC) = %5.2f(%5.2f), mt(l,met) = %5.1f, matched = %o\n", leptonOne.flavor, leptonOne.pt, leptonOne.eta, leptonOne.scEta, fTreeVars.mtone, leptonOne.matched);
+    printf("  lep_2: pdg = %3i, pt = %5.1f, eta(SC) = %5.2f(%5.2f), mt(l,met) = %5.1f, matched = %o\n", leptonTwo.flavor, leptonTwo.pt, leptonTwo.eta, leptonTwo.scEta, fTreeVars.mttwo, leptonTwo.matched);
+    printf("  event: met = %.1f, N(jets) = %i, N(tight b) = %i, N(loose b) = %i, jet pt = %.1f, weight = %.4f\n", fTreeVars.met, nJets20, nBJets20, nBJets20L, fTreeVars.jetpt, eventWeight*genWeight);
+    if(fIsData || fIsEmbed)
+      printf("  event = %llu, lumi = %u, run = %u\n", eventNumber, lumiSection, runNumber);
+  }
+
   IncrementTimer("EventInit", true);
 
   return kFALSE;
@@ -3370,7 +3460,10 @@ Bool_t HistMaker::InitializeEvent(Long64_t entry)
 
 //-----------------------------------------------------------------------------------------------------------------
 //Check if lepton matches to a trigger
-int HistMaker::GetTriggerMatch(TLorentzVector* lv, bool isMuon, Int_t& trigIndex) {
+// int HistMaker::GetTriggerMatch(TLorentzVector* lv, bool isMuon, Int_t& trigIndex) {
+int HistMaker::GetTriggerMatch(Lepton_t& lep, bool isMuon) {
+  Int_t& trigIndex = lep.trigger;
+  TLorentzVector* lv = lep.p4;
   float pt(lv->Pt()), eta(lv->Eta()), phi(lv->Phi()), min_pt_1, min_pt_2;
   int bit_1, bit_2, id; //trigger bits to use and pdgID
   bool flag_1, flag_2;
@@ -3446,6 +3539,10 @@ int HistMaker::GetTriggerMatch(TLorentzVector* lv, bool isMuon, Int_t& trigIndex
     if(passedBit1 || passedBit2) break;
   }
 
+  if     (passedBit1) lep.trigger_id = 1; //default to the first trigger bit
+  else if(passedBit2) lep.trigger_id = 2;
+  else                lep.trigger_id = 0; //no match
+
   return (passedBit1+2*passedBit2);//no matching trigger object found = 0
 }
 
@@ -3466,32 +3563,39 @@ void HistMaker::MatchTriggers() {
   if(leptonOne.isTau     ()) {
     leptonOne.matched = false; leptonOne.fired = false;
   } else if(leptonOne.isMuon    ()) {
-    leptonOne.matched = mu_trig  && (!fDoTriggerMatching || GetTriggerMatch(leptonOne.p4, true , leptonOne.trigger));
+    leptonOne.matched = mu_trig  && (!fDoTriggerMatching || GetTriggerMatch(leptonOne, true));
     leptonOne.fired = leptonOne.matched && leptonOne.p4->Pt() > muon_trig_pt_;
   } else if(leptonOne.isElectron()) {
-    leptonOne.matched = ele_trig && (!fDoTriggerMatching || GetTriggerMatch(leptonOne.p4, false, leptonOne.trigger));
+    leptonOne.matched = ele_trig && (!fDoTriggerMatching || GetTriggerMatch(leptonOne, false));
     leptonOne.fired = leptonOne.matched && leptonOne.p4->Pt() > electron_trig_pt_;
   }
 
   if(leptonTwo.isTau     ()) {
-    leptonTwo.matched = false; leptonTwo.fired = false;
+    leptonTwo.matched = false; leptonTwo.fired = false; leptonTwo.trigger = -1; leptonTwo.trigger_id = 0;
   } else if(leptonTwo.isMuon    ()) {
-    leptonTwo.matched = mu_trig  && (!fDoTriggerMatching || GetTriggerMatch(leptonTwo.p4, true , leptonTwo.trigger));
+    leptonTwo.matched = mu_trig  && (!fDoTriggerMatching || GetTriggerMatch(leptonTwo, true));
     leptonTwo.fired   = leptonTwo.matched && leptonTwo.p4->Pt() > muon_trig_pt_;
   } else if(leptonTwo.isElectron()) {
-    leptonTwo.matched = ele_trig && (!fDoTriggerMatching || GetTriggerMatch(leptonTwo.p4, false, leptonTwo.trigger));
+    leptonTwo.matched = ele_trig && (!fDoTriggerMatching || GetTriggerMatch(leptonTwo, false));
     leptonTwo.fired   = leptonTwo.matched && leptonTwo.p4->Pt() > electron_trig_pt_;
   }
 
+  //Event trigger matching without reco pT cuts, as only used for data stream overlap removal between muon and electron data
   triggerLeptonStatus = 0;
-  if((leptonOne.isElectron() && leptonOne.fired) || //electron triggered
-     (leptonTwo.isElectron() && leptonTwo.fired)) {
+  if((leptonOne.isElectron() && leptonOne.matched) || //electron matched to a trigger
+     (leptonTwo.isElectron() && leptonTwo.matched)) {
     triggerLeptonStatus += 1;
   }
-  if((leptonOne.isMuon    () && leptonOne.fired) || //muon triggered
-     (leptonTwo.isMuon    () && leptonTwo.fired)) {
+  if((leptonOne.isMuon    () && leptonOne.matched) || //muon matched to a trigger
+     (leptonTwo.isMuon    () && leptonTwo.matched)) {
     triggerLeptonStatus += 2;
   }
+
+  //check if the Mu50 (2) but not IsoMu (1) trigger is fired in the event
+  muonTriggerStatus = (leptonOne.isMuon() && leptonOne.fired) ? leptonOne.trigger_id : 0;
+  if(muonTriggerStatus != 1) muonTriggerStatus = (leptonTwo.isMuon() && leptonTwo.fired) ? leptonTwo.trigger_id : muonTriggerStatus;
+
+
   //matches are within 0.1 delta R, so both to be matched must be within 0.2 and therefore will be rejected
   if(fVerbose > 0 && leptonOne.trigger == leptonTwo.trigger) {
     printf("HistMaker::%s: Entry %lld: Warning! Both leptons were matched to the same trigger index!\n", __func__, fentry);
@@ -3557,7 +3661,7 @@ void HistMaker::ApplyTriggerWeights() {
         fEmbeddingWeight->MuonTriggerWeight   (leptonOne.p4->Pt(), leptonOne.p4->Eta(), fYear, data_eff[0], mc_eff[0]);
       }
     } else {
-      fMuonIDWeight.TriggerEff               (leptonOne.p4->Pt(), leptonOne.p4->Eta(), fYear, !leptonOne.fired || muonTriggerStatus != 2, mcEra,
+      fMuonIDWeight.TriggerEff               (leptonOne.p4->Pt(), leptonOne.p4->Eta(), fYear, !leptonOne.fired || leptonOne.trigger_id != 2, mcEra,
                                               data_eff[0], mc_eff[0], data_up[0], mc_up[0], data_down[0], mc_down[0]);
     }
   }
@@ -3572,7 +3676,7 @@ void HistMaker::ApplyTriggerWeights() {
       }
     } else {
       //use low trigger in case the lepton didn't fire a trigger
-      fMuonIDWeight.TriggerEff               (leptonTwo.p4->Pt(), leptonTwo.p4->Eta(), fYear, !leptonTwo.fired || muonTriggerStatus != 2, mcEra,
+      fMuonIDWeight.TriggerEff               (leptonTwo.p4->Pt(), leptonTwo.p4->Eta(), fYear, !leptonTwo.fired || leptonTwo.trigger_id != 2, mcEra,
                                               data_eff[1], mc_eff[1], data_up[1], mc_up[1], data_down[1], mc_down[1]);
     }
   }

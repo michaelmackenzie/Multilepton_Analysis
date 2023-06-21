@@ -61,6 +61,15 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
     return 1;
   }
 
+  // configure fields for emu defaults, assuming tau ones are set
+  if(doEmuDefaults_ && selection == "emu") {
+    doSystematics_ = isSignal;
+    allowMigration_ = isSignal;
+    useCDFBDTs_ = 0;
+    useXGBoost_ = 1;
+    cout << "Overridding defaults\n";
+  }
+
   // if Drell-Yan, loop through it twice, doing tautau then ee/mumu decays
   const int ndyloops = (isDY && splitDY_) ? 2 : 1;
 
@@ -117,7 +126,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
         hist_selec->fLoadBaskets        = false;
         hist_selec->fDoSSSystematics    = selection == "emu" || selection.Contains("_");
         hist_selec->fDoLooseSystematics = selection.EndsWith("tau");
-        hist_selec->fAllowMigration     = allowMigration_ && config.doSystematics_;
+        hist_selec->fAllowMigration     = allowMigration_ && doSystematics_;
         hist_selec->fMaxEntries         = (events_scale < 1.f) ? max_sim_events_ : nentries;
 
         if(etauAntiEleCut_ > 0) hist_selec->fETauAntiEleCut = etauAntiEleCut_;
@@ -131,7 +140,10 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
       selec->fUsePrefireWeights    = usePrefireWeights_;
       selec->fUseQCDWeights        = useQCDWeights_;
 
-      selec->fUseEmbedCuts         = useEmbedCuts_;
+      if(selection == "emu" && useEmbedCuts_ == 1)
+        selec->fUseEmbedCuts         = 0;
+      else
+        selec->fUseEmbedCuts         = useEmbedCuts_;
       selec->fEmbeddedTesting      = embeddedTesting_;
 
       selec->fUseMCEstimatedFakeLep  = useMCFakeLep_;
@@ -148,7 +160,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
       selec->fDataset = card.dataset_;
       selec->fIsSignal = isSignal;
 
-      selec->fDoSystematics = config.doSystematics_;
+      selec->fDoSystematics = doSystematics_;
       //skip electron data events with both triggers for e+mu channel, to not double count
       selec->fSkipDoubleTrigger = isElectronData && (tree_name == "emu");
       //store a label for this dataset
@@ -178,8 +190,10 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
       }
       if(selection == "mumu" || selection == "ee") selec->fFractionMVA = 0.; //don't split off same flavor data
       selec->fIsNano = true;
-      if(debug_ && nEvents_ < 20) selec->fVerbose = 1;
-      else                        selec->fVerbose = 0;
+      if(follow_hist_set_ >= 0) selec->fFollowHistSet = follow_hist_set_;
+      if(debug_ && verbose_ > 1)       selec->fVerbose = verbose_;
+      else if(debug_ && nEvents_ < 20) selec->fVerbose = 1;
+      else                             selec->fVerbose = 0;
       selector_ = selec;
       //FIXME: This isn't being called by default for some reason, only for HistMaker type objects
       if(dynamic_cast<HistMaker*> (selec)) {
@@ -379,7 +393,7 @@ Int_t process_card(TString treepath, TString filename, double xsec, int isdata, 
   cout << "---  Write Trees mode: " << config.writeTrees_
        << ", training fractions: signal = " << config.signalTrainFraction_
        << ", background = " << config.backgroundTrainFraction_
-       << ", doSystematics = " << config.doSystematics_
+       << ", doSystematics = " << doSystematics_
        << endl;
   cout << "--- Processing channels: ";
   for(TString channel : config.selections_)

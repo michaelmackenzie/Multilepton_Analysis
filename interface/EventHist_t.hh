@@ -100,7 +100,8 @@ namespace CLFV {
     TH1* hTauM;
     TH1* hTauEta;
     TH1* hTauPhi;
-    TH1* hPuppMet;
+    TH1* hPuppiMet;
+    TH1* hPuppiMetSig;
     TH1* hPFMet;
     TH1* hPFMetPhi;
     TH1* hPFCovMet00;
