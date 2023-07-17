@@ -1496,9 +1496,9 @@ void HistMaker::InitializeEventWeights() {
   //   Lepton displacement weights
   ////////////////////////////////////////////////////////////////////
 
-  if(emu && !lep_tau && fUseLepDisplacementWeights && !fIsData && !fIsEmbed) {
-    lepDisplacementWeight  = fLeptonDisplacement.Weight(leptonOne.pt, leptonOne.eta, false /*is muon*/, fYear) *
-      fLeptonDisplacement.Weight(leptonTwo.pt, leptonTwo.eta, true /*is muon*/, fYear);
+  if((emu || ((ee || mumu) && fSameFlavorEMuSelec)) && !lep_tau && fUseLepDisplacementWeights && !fIsData && !fIsEmbed) {
+    lepDisplacementWeight  = fLeptonDisplacement.Weight(leptonOne.pt, leptonOne.eta, leptonOne.isMuon(), fYear) *
+      fLeptonDisplacement.Weight(leptonTwo.pt, leptonTwo.eta, leptonTwo.isMuon(), fYear);
   } else {
     lepDisplacementWeight = 1.f;
   }
