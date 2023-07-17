@@ -21,9 +21,11 @@
 #include "interface/JetToTauComposition.hh"
 #include "interface/QCDWeight.hh"
 #include "interface/MuonIDWeight.hh"
+#include "interface/LeptonDisplacement.hh"
 #include "interface/ZPtWeight.hh"
 #include "interface/SignalZWeight.hh"
 #include "interface/SignalZMixingWeight.hh"
+#include "interface/ZPDFUncertainty.hh"
 #include "interface/EmbeddingWeight.hh"
 #include "interface/EmbeddingTnPWeight.hh"
 #include "interface/TauIDWeight.hh"
@@ -66,10 +68,12 @@ namespace CLFV {
     QCDWeight dummy6b3;
     ElectronIDWeight dummy6c2;
     MuonIDWeight dummy6c;
+    LeptonDisplacement dummy6c3;
     TauIDWeight dummy6d;
     ZPtWeight dummy6e;
     SignalZWeight dummy6e2;
     SignalZMixingWeight dummy6e3;
+    ZPDFUncertainty dummy6e4;
     EmbeddingWeight dummy6f;
     EmbeddingTnPWeight dummy6f2;
     RoccoR dummy12b;

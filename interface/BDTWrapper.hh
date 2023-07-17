@@ -55,6 +55,12 @@ namespace CLFV {
       DMatrixHandle dvalues;
       float data[vars_.size()];
       for(unsigned index = 0; index < vars_.size(); ++index) data[index] = vars_[index][0];
+      if(verbose_ > 5) {
+        printf("BDTWrapper::%s: Input variables:\n", __func__);
+        for(unsigned index = 0; index < vars_.size(); ++index) {
+          printf(" %i: %f\n", (int) index, *(vars_[index]));
+        }
+      }
       if(verbose_ > 3) std::cout << "Creating matrix\n";
       int status = XGDMatrixCreateFromMat(data, 1, vars_.size(), 0.f, &dvalues);
       if(status) {

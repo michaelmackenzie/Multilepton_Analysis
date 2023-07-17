@@ -131,6 +131,10 @@ namespace CLFV {
       // case  64: return Data(isys, "BTagHeavy"     , false);
       case  65: return Data(isys, "SignalMixing"  , true );
       case  66: return Data(isys, "SignalMixing"  , false);
+      case  67: return Data(isys, "SignalPDF"     , true );
+      case  68: return Data(isys, "SignalPDF"     , false);
+      case  69: return Data(isys, "SignalScale"   , true );
+      case  70: return Data(isys, "SignalScale"   , false);
 
       // case  70: return Data(isys, "EmbTauJetID"   , true );
       // case  71: return Data(isys, "EmbTauJetID"   , false);

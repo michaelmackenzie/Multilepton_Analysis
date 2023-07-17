@@ -59,52 +59,35 @@ namespace CLFV {
 
       std::vector<TString> train_var;
       if(tau) {
-        //v0 = current without spectators; current version is v12
-        // if(version_ == 0 ) train_var = {"lepm", "lepmestimate", "deltaalpha", "mtone", "mttwo", "mtlep",
-        //                                 "leponept", "leptwopt", "lepdeltaphi", "leppt", "jetpt"};
-        //FIXME: Decide on BDT variables
         if(emu_data) {
-          if(selection.Contains("etau")) {
+          if(selection.Contains("etau")) { //etau_mu
             if(version_ == 0 ) train_var = {"lepm",
                                             "lepmestimate",
-                                            // "lepmestimateavg",
                                             "beta1", "beta2",
-                                            // "mtone", "mttwo", "mtlep",
-                                            // "onemetdeltaphi", "twometdeltaphi", "metdeltaphi",
                                             "mtone", "twometdeltaphi",
                                             "ptratio",
                                             "lepdeltaphi", "leppt", "jetpt"};
           } else { //mutau_e
             if(version_ == 0 ) train_var = {"lepm",
                                             "lepmestimate",
-                                            // "lepmestimateavg",
                                             "beta1", "beta2",
-                                            // "mtone", "mttwo", "mtlep",
-                                            // "onemetdeltaphi", "twometdeltaphi", "metdeltaphi",
                                             "mttwo", "onemetdeltaphi",
                                             "ptratio",
                                             "lepdeltaphi", "leppt", "jetpt"};
           }
-        } else if(selection.EndsWith("etau")) {
+        } else if(selection.EndsWith("etau")) { //etau_h
           if(version_ == 0 ) train_var = {"lepm",
                                           "lepmestimate",
-                                          // "lepmestimateavg",
                                           "beta1", "beta2",
-                                          // "mtone", "mttwo", "mtlep",
-                                          // "onemetdeltaphi", "twometdeltaphi", "metdeltaphi",
                                           "mtone", "twometdeltaphi",
                                           "ptratio",
                                           "lepdeltaphi",
                                           "leppt",
-                                          // "lepptoverm",
                                           "jetpt"};
-        } else { //mutau
+        } else { //mutau_h
           if(version_ == 0 ) train_var = {"lepm",
                                           "lepmestimate",
-                                          // "lepmestimateavg",
                                           "beta1", "beta2",
-                                          // "mtone", "mttwo", "mtlep",
-                                          // "onemetdeltaphi", "twometdeltaphi", "metdeltaphi",
                                           "mtone", "twometdeltaphi",
                                           "ptratio",
                                           "lepdeltaphi",
@@ -114,13 +97,6 @@ namespace CLFV {
         // if(version_ ==  0) train_var = {"lepm", "lepmestimate-nu", "deltaalpha",
         //                                 "leponeprimepz", "leponeprimee", "leptwoprimepz",
         //                                 "leptwoprimepx", "leptwoprimee", "metprimee"};
-        // if(emu_data) {
-        //   if(version_ == 0 ) train_var = {"lepm", "lepmestimate", "deltaalpha", "onemetdeltaphi", "twometdeltaphi",
-        //                                   "ptratio", "lepdeltaphi", "leppt", "jetpt"};
-        // } else {
-        //   if(version_ == 0 ) train_var = {"lepm", "lepmestimate", "deltaalpha", "onemetdeltaphi", "twometdeltaphi",
-        //                                   "ptratio", "lepdeltaphi", "leppt", "jetpt"};
-        // }
 
         if(version_ ==  7) train_var = {"lepm", "lepmestimate", "deltaalpha", "mtone", "mttwo", "onemetdeltaphi", "twometdeltaphi",
                                         "leponept", "leptwopt", "lepdeltaphi", "leppt", "jetpt"};

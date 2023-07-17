@@ -897,6 +897,14 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
       if(!fIsSignal) continue;
       if(fSystematics.IsUp(sys)) weight *= signalZMixingWeightUp  /signalZMixingWeight;
       else                       weight *= signalZMixingWeightDown/signalZMixingWeight;
+    } else if(name == "SignalPDF") {
+      if(!fIsSignal) continue;
+      if(fSystematics.IsUp(sys)) weight *= signalPDFSys;
+      else                       weight *= 1.f/signalPDFSys;
+    } else if(name == "SignalScale") {
+      if(!fIsSignal) continue;
+      if(fSystematics.IsUp(sys)) weight *= signalScaleSys;
+      else                       weight *= 1.f/signalScaleSys;
     } else if(name == "Pileup") {
       if(fIsData || fIsEmbed) continue;
       if(fSystematics.IsUp(sys)) weight *= puWeight_up          / puWeight       ;
@@ -1828,7 +1836,7 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   ///////////////////////////////////////////////////////////////////
   //remove MC jet -> light lepton contribution
 
-  if(!fUseMCEstimatedFakeLep && !fIsData) {
+  if(!fUseMCEstimatedFakeLep && !fIsData && !fIsSignal) { //keep signal as even events with fakes are signal from the MC
     emu   &= !isFakeMuon;
     emu   &= !isFakeElectron;
     mumu  &= !isFakeMuon;
@@ -1840,8 +1848,8 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   ///////////////////////////////////////////////////////////////////
   //remove MC estimated jet --> tau component
 
-  mutau &= fIsData > 0 || std::abs(tauGenFlavor) != 26;
-  etau  &= fIsData > 0 || std::abs(tauGenFlavor) != 26;
+  mutau &= fIsData > 0 || std::abs(tauGenFlavor) != 26 || fIsSignal; //keep signal as even events with fakes are signal from the MC
+  etau  &= fIsData > 0 || std::abs(tauGenFlavor) != 26 || fIsSignal;
 
   if(!(mutau || etau || emu || mumu || ee)) return kTRUE;
 
@@ -1996,6 +2004,7 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
     etau_mu &= std::fabs(leptonOne.dxySig) < 3.0;
     etau_mu &= std::fabs(leptonOne.dzSig ) < 4.7;
   }
+
   if(use_dxyz_sig > 0) {
     emu     &= std::fabs(leptonTwo.dxySig) < 3.0;
     emu     &= std::fabs(leptonOne.dxySig) < 3.0;
@@ -2004,10 +2013,29 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   }
 
   //Z/H->e+mu only
-  if(emu) {one_pt_min_ = 20.f; two_pt_min_ = 20.f; min_mass_ = 70.f; max_mass_ = 110.f;}
+  if(emu || (fSameFlavorEMuSelec && (ee || mumu))) {one_pt_min_ = 20.f; two_pt_min_ = 20.f; min_mass_ = 70.f; max_mass_ = 110.f;}
   emu     &= leptonOne.pt > one_pt_min_ - sys_buffer;
   emu     &= leptonTwo.pt > two_pt_min_ - sys_buffer;
   emu     &= mll > min_mass_ - sys_buffer && mll < max_mass_ + sys_buffer;
+
+  if(fSameFlavorEMuSelec && (ee || mumu)) {
+    if(use_dxyz_sig > 0) {
+      mumu    &= std::fabs(leptonTwo.dxySig) < 3.0;
+      mumu    &= std::fabs(leptonOne.dxySig) < 3.0;
+      mumu    &= std::fabs(leptonTwo.dzSig ) < 4.7;
+      mumu    &= std::fabs(leptonOne.dzSig ) < 4.7;
+      ee      &= std::fabs(leptonTwo.dxySig) < 3.0;
+      ee      &= std::fabs(leptonOne.dxySig) < 3.0;
+      ee      &= std::fabs(leptonTwo.dzSig ) < 4.7;
+      ee      &= std::fabs(leptonOne.dzSig ) < 4.7;
+    }
+    ee     &= leptonOne.pt > one_pt_min_ - sys_buffer;
+    ee     &= leptonTwo.pt > two_pt_min_ - sys_buffer;
+    ee     &= mll > min_mass_ - sys_buffer && mll < max_mass_ + sys_buffer;
+    mumu   &= leptonOne.pt > one_pt_min_ - sys_buffer;
+    mumu   &= leptonTwo.pt > two_pt_min_ - sys_buffer;
+    mumu   &= mll > min_mass_ - sys_buffer && mll < max_mass_ + sys_buffer;
+  }
 
   if(!(mutau || etau || emu || mumu || ee || mutau_e || etau_mu)) return kTRUE;
 
@@ -2031,6 +2059,13 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   ++icutflow;
   if(!looseQCDSelection && chargeTest) fCutFlow->Fill(icutflow); //25
   ++icutflow;
+
+  if(PassesCuts()) {
+    if(!looseQCDSelection && chargeTest) fCutFlow->Fill(icutflow); //26
+    ++icutflow;
+    if(looseQCDSelection || !chargeTest) fCutFlow->Fill(icutflow); //27
+    ++icutflow;
+  }
 
   ////////////////////////////////////////////////////////////////////////////
   // Set 8 + selection offset: nBJets = 0

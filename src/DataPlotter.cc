@@ -35,25 +35,26 @@ std::vector<TH1*> DataPlotter::get_histograms(TString hist, TString setType, Int
     }
     if(process != "" && input.label_ != process) continue;
     TH1* tmp = (TH1*) input.data_->Get(Form("%s_%i/%s", setType.Data(), set, hist.Data()));
-    if(!tmp) {
+
+    if(!tmp && !replace_missing_sys_) {
       printf("%s: Histogram %s/%s/%i for %s (%s) %i not found! Continuing...\n",
              __func__, hist.Data(), setType.Data(), set, input.name_.Data(), input.label_.Data(), input.dataYear_);
       continue;
-    }
-    if(verbose_ > 7) printf(" retrieved histogram from input %i (%i %s)\n", i, input.dataYear_, input.name_.Data());
+    } else if(verbose_ > 7) printf(" retrieved histogram from input %i (%i %s)\n", i, input.dataYear_, input.name_.Data());
+
     //check if the systematic has been filled
-    if(replace_missing_sys_ && tmp->GetEntries() == 0 && setType == "systematic") {
+    if(replace_missing_sys_ && (!tmp || tmp->GetEntries() == 0) && setType == "systematic") {
       TString base_name(hist(0,hist.Last('_')));
       base_name += "_0";
       TH1* tmp_base = (TH1*) input.data_->Get(Form("%s_%i/%s", setType.Data(), set, base_name.Data()));
-      if(tmp_base && tmp_base->GetEntries() > 0) {
+      if(tmp_base && (!tmp || tmp_base->GetEntries() > 0)) {
         if(verbose_ > 1) printf("%s: Replacing missing systematic %s in input %s with the base histogram\n", __func__, hist.Data(), input.label_.Data());
         tmp = tmp_base;
       } else if(!tmp_base) {
         printf("%s: Replacement for missing systematic %s in input %s not found!\n", __func__, hist.Data(), input.label_.Data());
+        continue;
       }
     }
-
     // tmp->SetBit(kCanDelete);
     tmp = (TH1*) tmp->Clone("htmp");
     tmp->SetDirectory(0);

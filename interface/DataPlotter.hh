@@ -188,7 +188,7 @@ namespace CLFV {
 
     //systematic plotting
     Bool_t single_systematic_   = false;
-    Bool_t replace_missing_sys_ = true; //if a systematic histogram has 0 entries, replace with the nominal histogram
+    Bool_t replace_missing_sys_ = true; //if a systematic histogram has 0 entries or is null, replace with the nominal histogram
 
     ~DataPlotter() {
       for(Data_t& input : inputs_) {

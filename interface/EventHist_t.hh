@@ -78,6 +78,8 @@ namespace CLFV {
     TH1* hBTagWeight;
     TH1* hZPtWeight;
     TH1* hSignalZWeight;
+    TH1* hSignalZMixWeight;
+    TH1* hLepDisplacementWeight;
     TH1* hTauDecayMode[2]; //with and without event weights
     TH1* hTauMVA;
     TH1* hTauGenFlavor;

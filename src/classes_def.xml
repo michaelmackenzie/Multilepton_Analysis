@@ -21,10 +21,12 @@
   <class name="QCDWeight"/>
   <class name="ElectronIDWeight"/>
   <class name="MuonIDWeight"/>
+  <class name="LeptonDisplacement"/>
   <class name="TauIDWeight"/>
   <class name="ZPtWeight"/>
   <class name="SignalZWeight"/>
   <class name="SignalZMixingWeight"/>
+  <class name="ZPDFUncertainty"/>
   <class name="EmbeddingWeight"/>
   <class name="EmbeddingTnPWeight"/>
   <class name="RoccoR"/>

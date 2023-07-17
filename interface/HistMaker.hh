@@ -66,7 +66,9 @@
 #include "interface/QCDWeight.hh"
 #include "interface/MuonIDWeight.hh"
 #include "interface/ElectronIDWeight.hh"
+#include "interface/LeptonDisplacement.hh"
 
+#include "interface/ZPDFUncertainty.hh"
 #include "interface/Systematics.hh"
 
 namespace CLFV {
@@ -75,7 +77,7 @@ namespace CLFV {
   public :
     TTreeReader     fReader;  //!the tree reader
     TTree          *fChain = 0;   //!pointer to the analyzed TTree or TChain
-    enum {kMaxLeptons = 10, kMaxParticles = 50, kMaxTriggers = 100, kMaxGenPart = 200};
+    enum {kMaxLeptons = 10, kMaxParticles = 50, kMaxTriggers = 100, kMaxGenPart = 200, kMaxPSWeight = 50};
     enum {kMuTau = 0, kETau = 100, kEMu = 200, kMuTauE = 300, kETauMu = 400, kMuMu = 500, kEE = 600};
     enum {kMaxMVAs = 80};
 
@@ -304,12 +306,17 @@ namespace CLFV {
     Float_t signalZMixingWeight = 1.   ;
     Float_t signalZMixingWeightUp = 1. ;
     Float_t signalZMixingWeightDown = 1.;
+    Float_t signalPDFSys = 1.          ;
+    Float_t signalScaleSys = 1.        ;
+    Float_t lepDisplacementWeight = 1. ;
     Float_t zPtWeight = 1.             ;
     Float_t zPtWeightUp = 1.           ;
     Float_t zPtWeightDown = 1.         ;
     Float_t zPtWeightSys = 1.          ;
     Float_t embeddingWeight = 1.       ;
     Float_t embeddingUnfoldingWeight = 1.;
+    UInt_t  nPSWeight = 0              ;
+    Float_t PSWeight[kMaxPSWeight]     ;
 
     Float_t jetToTauWeight             ;
     Float_t jetToTauWeightUp           ;
@@ -721,6 +728,7 @@ namespace CLFV {
 
     Systematics     fSystematics; //systematics information
 
+    Int_t           fRemoveEventWeights = 0; //0: do nothing; 1: remove most event weight corrections; 2: remove all weights, including gen-weight and transfer factors
     Int_t           fRemoveTriggerWeights = 0; // 0: do nothing 1: remove weights 2: replace weights
     Int_t           fUpdateMCEra = 0; //update the MC era flag
     Int_t           fRemovePhotonIDWeights = 1;
@@ -764,16 +772,22 @@ namespace CLFV {
     QCDWeight       fQCDWeight; //for emu
     MuonIDWeight    fMuonIDWeight;
     ElectronIDWeight fElectronIDWeight;
+    LeptonDisplacement fLeptonDisplacement; //dxy/dz significance corrections (Z->e+mu only)
+    Int_t           fUseLepDisplacementWeights = 1; //for emu selection, dxy/dz cut corrections
+    Int_t           fSameFlavorEMuSelec = 0; //apply the Z->e+mu selection to the ee/mumu events
 
     ZPtWeight*      fZPtWeight; //re-weight Drell-Yan pT vs Mass
+    Int_t           fUseZPtWeight = 1;
     SignalZWeight   fSignalZWeight; //re-weight signal to match Drell-Yan MC
     Int_t           fUseSignalZWeights = 1; //whether or not to match the signal to the Drell-Yan MC
     SignalZMixingWeight fSignalZMixWeight; //re-weight signal to remove z/gamma* mixing effect
     Int_t               fUseSignalZMixWeights = 1; //whether or not to remove the z/gamma* mixing effect
+    ZPDFUncertainty   fZPDFSys; //re-weight signal to different PDF/Scale sets
     EmbeddingWeight* fEmbeddingWeight; //correct di-muon embedding selection unfolding
     EmbeddingTnPWeight fEmbeddingTnPWeight; //correct lepton ID/trigger efficiencies in embedding simulation
     Int_t           fEmbeddedTesting = 0; //play with embedding configurations/weights
     TauIDWeight*    fTauIDWeight; //tau ID/ES corrections
+    Int_t           fPSWeightMode = -1; //>= 0: Use this index for sys, <0: Use largest deviation per event
 
     float           fFractionMVA = 0.; //fraction of events used to train. Ignore these events in histogram filling, reweight the rest to compensate
     TRandom3*       fRnd = 0; //for splitting MVA testing/training
