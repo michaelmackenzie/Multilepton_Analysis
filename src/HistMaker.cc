@@ -1475,8 +1475,8 @@ void HistMaker::InitializeEventWeights() {
                                << " --> event weight = " << eventWeight << std::endl;
 
     //Store signal Z PDF/Scale uncertainties
-    signalPDFSys   = fZPDFSys.GetPDFWeight  (fYear, zEta, zMass);
-    signalScaleSys = fZPDFSys.GetScaleWeight(fYear, zPt , zMass);
+    signalPDFSys   = fZPDFSys.GetPDFWeight  (fYear, zPt, zEta, zMass);
+    signalScaleSys = fZPDFSys.GetScaleWeight(fYear, zPt,       zMass);
   }
 
   ////////////////////////////////////////////////////////////////////

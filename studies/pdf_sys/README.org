@@ -1,0 +1,20 @@
+# PDF and Scale Uncertainty Factors
+
+Evaluate scale factors to account for theoretical PDF and renormalization/factorization scale uncertainties.
+
+An array of weights for each theory source is given for the input Drell-Yan MadGraph MC. Each index in the array
+is associated with a different generation configuration.
+
+## Evaluating scale factors
+
+Uncertainties can either be evaluated for a given index in the array of weights or evaluated by taking
+the largest deviation from 1 on an event-by-event basis. To measure PDF uncertainties, use `pdf_set`
+set to 0-Max Index for the individual set weights and `-1` to use the largest deviation for each event.
+For the scale uncertainties, use 1000-1000+Max for the individual set weights and `-1001` to use the
+largest deviation for each event.
+
+## Current recommendation
+
+Use `-1` and `-1001` processing on 2016 and 2018 (no 2017 LO Drell-Yan MadGraph MC available). Process
+each configuration twice to get the closure plots.
+

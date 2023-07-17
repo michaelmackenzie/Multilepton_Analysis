@@ -59,7 +59,7 @@ ZPDFUncertainty::~ZPDFUncertainty() {
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------------
-float ZPDFUncertainty::GetPDFWeight(int year, float z_eta, float z_mass) {
+float ZPDFUncertainty::GetPDFWeight(int year, float z_pt, float z_eta, float z_mass) {
   float weight = 1.f;
   if(year == 2017) year = 2018; //Use 2018 weights in 2017 due to no LO MC sample being available
   if(hPDF_.find(year) == hPDF_.end()) {
@@ -74,10 +74,11 @@ float ZPDFUncertainty::GetPDFWeight(int year, float z_eta, float z_mass) {
 
   //use |eta|
   z_eta = std::fabs(z_eta);
+  const float y_var = (year == 2016) ? z_pt : z_eta;
 
   //allow the overflow bins to be included in the correction
   const int binx = h->GetXaxis()->FindBin(z_mass);
-  const int biny = h->GetYaxis()->FindBin(z_eta);
+  const int biny = h->GetYaxis()->FindBin(y_var);
   weight = h->GetBinContent(binx, biny);
 
   const float min_weight = 1.e-3; //minimum weight allowed
@@ -85,8 +86,8 @@ float ZPDFUncertainty::GetPDFWeight(int year, float z_eta, float z_mass) {
   weight = std::min(max_weight, std::max(min_weight, weight));
 
   if(!std::isfinite(weight) || weight <= 0.) {
-    std::cout << "ZPDFUncertainty::" << __func__ << " WARNING! Z PDF weight undefined or <= 0 = " << weight << " (mass, eta) = ("
-              << z_mass << ", " << z_eta << ") using year = "<< year << "! Returning 1...\n";
+    std::cout << "ZPDFUncertainty::" << __func__ << " WARNING! Z PDF weight undefined or <= 0 = " << weight << " (mass, eta, pt) = ("
+              << z_mass << ", " << z_eta << ", " << z_pt <<  ") using year = "<< year << "! Returning 1...\n";
     return 1.;
   }
   return weight;

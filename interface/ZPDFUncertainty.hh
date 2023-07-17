@@ -19,7 +19,7 @@ namespace CLFV {
 
     ~ZPDFUncertainty();
 
-    float GetPDFWeight  (int year, float z_eta, float z_mass);
+    float GetPDFWeight  (int year, float z_pt, float z_eta, float z_mass);
     float GetScaleWeight(int year, float z_pt , float z_mass/*, int Mode = 0*/);
 
   private:
