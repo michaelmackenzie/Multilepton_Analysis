@@ -5,3 +5,12 @@
 ```
 time python BDT_xgbtrain.py --trainSgnFile [bdt_tree_v2_emu_zemu_test.root] --trainBkgFile [bdt_tree_v2_emu_WW_test.root] --model [out name]
 ```
+** Convert pkl training to json
+
+The C++ tools read json versions of the training rather than pkl.
+```
+MODEL="xgbmodel.pkl"
+#OUTNAME=[base name of output file]
+OUTNAME="emu.Z0.xgboost.2016_2017_2018"
+python BDT_pkl_to_json.py --model ${MODEL} --outname ${OUTNAME} [--dump print BDT info]
+```
