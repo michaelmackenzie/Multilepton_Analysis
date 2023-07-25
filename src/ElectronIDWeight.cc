@@ -200,6 +200,10 @@ double ElectronIDWeight::IDWeight(Lepton_t& lepton, int year) {
   //Get the ID weight
   int binx = std::max(1, std::min(hID->GetNbinsX(), hID->GetXaxis()->FindBin(eta)));
   int biny = std::max(1, std::min(hID->GetNbinsY(), hID->GetYaxis()->FindBin(pt)));
+  if(verbose_ > 9) {
+    printf("ElectronIDWeight::%s: ID bin (%i, %i)\n", __func__, binx, biny);
+  }
+
   const double id_scale = hID->GetBinContent(binx, biny);
   const double id_error = hID->GetBinError(binx, biny);
 
@@ -210,7 +214,7 @@ double ElectronIDWeight::IDWeight(Lepton_t& lepton, int year) {
   const double reco_error = hReco->GetBinError(binx, biny);
 
   //Get the iso ID weight
-  binx = std::max(1, std::min(hIsoID->GetNbinsX(), hIsoID->GetXaxis()->FindBin(eta)));
+  binx = std::max(1, std::min(hIsoID->GetNbinsX(), hIsoID->GetXaxis()->FindBin(std::fabs(eta))));
   biny = std::max(1, std::min(hIsoID->GetNbinsY(), hIsoID->GetYaxis()->FindBin(pt)));
   const double iso_scale = hIsoID->GetBinContent(binx, biny);
   double iso_error = hIsoID->GetBinError(binx, biny);
