@@ -77,7 +77,7 @@ namespace CLFV {
   public :
     TTreeReader     fReader;  //!the tree reader
     TTree          *fChain = 0;   //!pointer to the analyzed TTree or TChain
-    enum {kMaxLeptons = 10, kMaxParticles = 50, kMaxTriggers = 100, kMaxGenPart = 200, kMaxPSWeight = 50};
+    enum {kMaxLeptons = 10, kMaxParticles = 50, kMaxTriggers = 100, kMaxGenPart = 200, kMaxTheory = 200};
     enum {kMuTau = 0, kETau = 100, kEMu = 200, kMuTauE = 300, kETauMu = 400, kMuMu = 500, kEE = 600};
     enum {kMaxMVAs = 80};
 
@@ -143,6 +143,12 @@ namespace CLFV {
     Int_t   Muon_genPartIdx               [kMaxLeptons];
     Float_t Muon_RoccoSF                  [kMaxLeptons]; //calculated momentum scale
     Float_t Muon_ESErr                    [kMaxLeptons]; //momentum scale uncertainty
+    Float_t Muon_ID_wt                    [kMaxLeptons]; //ntuple-level ID weights
+    Float_t Muon_ID_up                    [kMaxLeptons];
+    Float_t Muon_ID_down                  [kMaxLeptons];
+    Float_t Muon_IsoID_wt                 [kMaxLeptons];
+    Float_t Muon_IsoID_up                 [kMaxLeptons];
+    Float_t Muon_IsoID_down               [kMaxLeptons];
 
     //electrons
     UInt_t  nElectron                                  ;
@@ -167,6 +173,15 @@ namespace CLFV {
     Bool_t  Electron_TaggedAsRemovedByJet [kMaxLeptons];
     UChar_t Electron_genPartFlav          [kMaxLeptons];
     Int_t   Electron_genPartIdx           [kMaxLeptons];
+    Float_t Electron_ID_wt                [kMaxLeptons]; //ntuple-level ID weights
+    Float_t Electron_ID_up                [kMaxLeptons];
+    Float_t Electron_ID_down              [kMaxLeptons];
+    Float_t Electron_IsoID_wt             [kMaxLeptons];
+    Float_t Electron_IsoID_up             [kMaxLeptons];
+    Float_t Electron_IsoID_down           [kMaxLeptons];
+    Float_t Electron_RecoID_wt            [kMaxLeptons];
+    Float_t Electron_RecoID_up            [kMaxLeptons];
+    Float_t Electron_RecoID_down          [kMaxLeptons];
     Float_t Electron_energyErr            [kMaxLeptons]; //provided energy scale uncertainty
     Float_t Electron_energyScale          [kMaxLeptons]; //energy scale replacing given one
     Float_t Electron_energyScaleUp        [kMaxLeptons];
@@ -306,8 +321,6 @@ namespace CLFV {
     Float_t signalZMixingWeight = 1.   ;
     Float_t signalZMixingWeightUp = 1. ;
     Float_t signalZMixingWeightDown = 1.;
-    Float_t signalPDFSys = 1.          ;
-    Float_t signalScaleSys = 1.        ;
     Float_t lepDisplacementWeight = 1. ;
     Float_t zPtWeight = 1.             ;
     Float_t zPtWeightUp = 1.           ;
@@ -316,7 +329,16 @@ namespace CLFV {
     Float_t embeddingWeight = 1.       ;
     Float_t embeddingUnfoldingWeight = 1.;
     UInt_t  nPSWeight = 0              ;
-    Float_t PSWeight[kMaxPSWeight]     ;
+    Float_t PSWeight[kMaxTheory]       ;
+    Float_t PSWeightMax = 1.f          ;
+    UInt_t  nLHEPdfWeight = 0          ;
+    Float_t LHEPdfWeight[kMaxTheory]   ;
+    Float_t LHEPdfWeightMax = 1.f      ;
+    UInt_t  nLHEScaleWeight = 0        ;
+    Float_t LHEScaleWeight[kMaxTheory] ;
+    Float_t LHEScaleRWeightMax = 1.f   ; //renormalization scale
+    Float_t LHEScaleFWeightMax = 1.f   ; //factorization scale
+    Float_t MCGenWeight = 1.f          ;
 
     Float_t jetToTauWeight             ;
     Float_t jetToTauWeightUp           ;
@@ -730,7 +752,9 @@ namespace CLFV {
 
     Int_t           fRemoveEventWeights = 0; //0: do nothing; 1: remove most event weight corrections; 2: remove all weights, including gen-weight and transfer factors
     Int_t           fRemoveTriggerWeights = 0; // 0: do nothing 1: remove weights 2: replace weights
+    Int_t           fApplyLeptonIDWt = 1; //Apply lepton ID correction weights: 0: none, 1: locally evaluated, 2: ntuple-level scales
     Int_t           fUpdateMCEra = 0; //update the MC era flag
+    Int_t           fUpdateMET = 1; //update MET when lepton energy scales are corrected
     Int_t           fRemovePhotonIDWeights = 1;
     Int_t           fUseBTagWeights = 1; //0: do nothing; 1: apply local weights; 2: use ntuple-level weights
     BTagWeight*     fBTagWeight;
@@ -779,7 +803,7 @@ namespace CLFV {
     ZPtWeight*      fZPtWeight; //re-weight Drell-Yan pT vs Mass
     Int_t           fUseZPtWeight = 1;
     SignalZWeight   fSignalZWeight; //re-weight signal to match Drell-Yan MC
-    Int_t           fUseSignalZWeights = 1; //whether or not to match the signal to the Drell-Yan MC
+    Int_t           fUseSignalZWeights = 1; //whether or not to match the signal to the Drell-Yan MC, 1: use local, 2: use ntuple-level
     SignalZMixingWeight fSignalZMixWeight; //re-weight signal to remove z/gamma* mixing effect
     Int_t               fUseSignalZMixWeights = 1; //whether or not to remove the z/gamma* mixing effect
     ZPDFUncertainty   fZPDFSys; //re-weight signal to different PDF/Scale sets

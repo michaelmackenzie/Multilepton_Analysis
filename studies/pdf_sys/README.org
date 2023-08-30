@@ -1,11 +1,18 @@
-# PDF and Scale Uncertainty Factors
+* PDF and Scale Uncertainty Factors
 
 Evaluate scale factors to account for theoretical PDF and renormalization/factorization scale uncertainties.
 
 An array of weights for each theory source is given for the input Drell-Yan MadGraph MC. Each index in the array
 is associated with a different generation configuration.
 
-## Evaluating scale factors
+PDF information on the twiki:
+https://twiki.cern.ch/twiki/bin/view/CMS/HowToPDF
+https://twiki.cern.ch/twiki/bin/viewauth/CMS/TopSystematics#PDF
+
+PDF sets and their descriptions:
+https://lhapdf.hepforge.org/pdfsets
+
+** Evaluating scale factors
 
 Uncertainties can either be evaluated for a given index in the array of weights or evaluated by taking
 the largest deviation from 1 on an event-by-event basis. To measure PDF uncertainties, use `pdf_set`
@@ -13,8 +20,124 @@ set to 0-Max Index for the individual set weights and `-1` to use the largest de
 For the scale uncertainties, use 1000-1000+Max for the individual set weights and `-1001` to use the
 largest deviation for each event.
 
-## Current recommendation
+** Current recommendation
 
 Use `-1` and `-1001` processing on 2016 and 2018 (no 2017 LO Drell-Yan MadGraph MC available). Process
 each configuration twice to get the closure plots.
 
+** Dumping PDF info from MINIAOD file
+
+To understand which PDF sets are considered in the weight arrays use, start by printing the
+branches from the NanoAOD Events TTree, where the description contains this information.
+
+You can also check what the dataset was generated with the following tool: https://github.com/lviliani/LHEWeightsReader/tree/master
+```
+source /cvmfs/cms.cern.ch/cmsset_default.sh 
+mkdir ~/nobackup/PDFDump
+cd ~/nobackup/PDFDump/
+cmsrel CMSSW_10_2_3
+cd CMSSW_10_2_3/sr
+cmsenv
+mkdir LHEWeightsReader
+cd LHEWeightsReader
+git clone https://github.com/lviliani/LHEWeightsReader.git
+scram b
+
+voms-proxy-init --rfc --voms cms --hours 192
+FILE="<MINIAOD file path, /store/...>"
+cmsRun lheWeightDumper_cfg.py inputFiles="${FILE}" >| reader.log 2>&1 &
+```
+
+*** 2016 LO DY MC LHE dump
+**** Scale uncertainties
+  <weightgroup combine="envelope" type="Central scale variation">
+    <weight id="1"> mur=1 muf=1 </weight>
+    <weight id="2"> mur=1 muf=2 </weight>
+    <weight id="3"> mur=1 muf=0.5 </weight>
+    <weight id="4"> mur=2 muf=1 </weight>
+    <weight id="5"> mur=2 muf=2 </weight>
+    <weight id="6"> mur=2 muf=0.5 </weight>
+    <weight id="7"> mur=0.5 muf=1 </weight>
+    <weight id="8"> mur=0.5 muf=2 </weight>
+    <weight id="9"> mur=0.5 muf=0.5 </weight>
+  </weightgroup>
+
+**** PDF uncertainties
+  <weightgroup combine="hessian" type="NNPDF30_lo_as_0130.LHgrid">
+    <weight id="10">Member 0</weight>
+    <weight id="11">Member 1</weight>
+    <weight id="12">Member 2</weight>
+    <weight id="13">Member 3</weight>
+    <weight id="14">Member 4</weight>
+    ...(trimmed)
+    <weight id="110">Member 100</weight>
+  </weightgroup>
+
+*** 2018 LO DY MC LHE dump
+
+**** Scale uncertainties
+  <weightgroup combine="envelope" name="Central scale variation">
+    <weight MUF="1" MUR="1" PDF="306000" id="1"> mur=1 muf=1 </weight>
+    <weight MUF="2" MUR="1" PDF="306000" id="2"> mur=1 muf=2 </weight>
+    <weight MUF="0.5" MUR="1" PDF="306000" id="3"> mur=1 muf=0.5 </weight>
+    <weight MUF="1" MUR="2" PDF="306000" id="4"> mur=2 muf=1 </weight>
+    <weight MUF="2" MUR="2" PDF="306000" id="5"> mur=2 muf=2 </weight>
+    <weight MUF="0.5" MUR="2" PDF="306000" id="6"> mur=2 muf=0.5 </weight>
+    <weight MUF="1" MUR="0.5" PDF="306000" id="7"> mur=0.5 muf=1 </weight>
+    <weight MUF="2" MUR="0.5" PDF="306000" id="8"> mur=0.5 muf=2 </weight>
+    <weight MUF="0.5" MUR="0.5" PDF="306000" id="9"> mur=0.5 muf=0.5 </weight>
+  </weightgroup>
+
+**** PDF uncertainties
+
+  <weightgroup combine="hessian" name="NNPDF31_nnlo_hessian_pdfas"> *Hessian variations(?)*
+    <weight MUF="1" MUR="1" PDF="306000" id="10"> Member 0 of sets NNPDF31_nnlo_hessian_pdfas</weight>
+    <weight MUF="1" MUR="1" PDF="306001" id="11"> Member 1 of sets NNPDF31_nnlo_hessian_pdfas</weight>
+    <weight MUF="1" MUR="1" PDF="306002" id="12"> Member 2 of sets NNPDF31_nnlo_hessian_pdfas</weight>
+    <weight MUF="1" MUR="1" PDF="306003" id="13"> Member 3 of sets NNPDF31_nnlo_hessian_pdfas</weight>
+    <weight MUF="1" MUR="1" PDF="306004" id="14"> Member 4 of sets NNPDF31_nnlo_hessian_pdfas</weight>
+    ... (trimmed)
+    <weight MUF="1" MUR="1" PDF="306102" id="112"> Member 102 of sets NNPDF31_nnlo_hessian_pdfas</weight>
+  </weightgroup>
+  <weightgroup combine="hessian" name="NNPDF31_nnlo_as_0108">
+    <weight MUF="1" MUR="1" PDF="322500" id="113"> Member 0 of sets NNPDF31_nnlo_as_0108</weight>
+  </weightgroup>
+  <weightgroup combine="hessian" name="NNPDF31_nnlo_as_0110">
+    <weight MUF="1" MUR="1" PDF="322700" id="114"> Member 0 of sets NNPDF31_nnlo_as_0110</weight>
+  </weightgroup>
+  <weightgroup combine="hessian" name="NNPDF31_nnlo_as_0112">
+    <weight MUF="1" MUR="1" PDF="322900" id="115"> Member 0 of sets NNPDF31_nnlo_as_0112</weight>
+  </weightgroup>
+  <weightgroup combine="hessian" name="NNPDF31_nnlo_as_0114">
+    <weight MUF="1" MUR="1" PDF="323100" id="116"> Member 0 of sets NNPDF31_nnlo_as_0114</weight>
+  </weightgroup>
+  <weightgroup combine="hessian" name="NNPDF31_nnlo_as_0117">
+    <weight MUF="1" MUR="1" PDF="323300" id="117"> Member 0 of sets NNPDF31_nnlo_as_0117</weight>
+  </weightgroup>
+  <weightgroup combine="hessian" name="NNPDF31_nnlo_as_0119">
+    <weight MUF="1" MUR="1" PDF="323500" id="118"> Member 0 of sets NNPDF31_nnlo_as_0119</weight>
+  </weightgroup>
+  <weightgroup combine="hessian" name="NNPDF31_nnlo_as_0122">
+    <weight MUF="1" MUR="1" PDF="323700" id="119"> Member 0 of sets NNPDF31_nnlo_as_0122</weight>
+  </weightgroup>
+  <weightgroup combine="hessian" name="NNPDF31_nnlo_as_0124">
+    <weight MUF="1" MUR="1" PDF="323900" id="120"> Member 0 of sets NNPDF31_nnlo_as_0124</weight>
+  </weightgroup>
+  <weightgroup combine="hessian" name="NNPDF30_nlo_nf_5_pdfas"> *Replicas(?)*
+    <weight MUF="1" MUR="1" PDF="292200" id="973"> Member 0 of sets NNPDF30_nlo_nf_5_pdfas</weight>
+    <weight MUF="1" MUR="1" PDF="292201" id="974"> Member 1 of sets NNPDF30_nlo_nf_5_pdfas</weight>
+    <weight MUF="1" MUR="1" PDF="292202" id="975"> Member 2 of sets NNPDF30_nlo_nf_5_pdfas</weight>
+    <weight MUF="1" MUR="1" PDF="292203" id="976"> Member 3 of sets NNPDF30_nlo_nf_5_pdfas</weight>
+    <weight MUF="1" MUR="1" PDF="292204" id="977"> Member 4 of sets NNPDF30_nlo_nf_5_pdfas</weight>
+    ...(trimmed)
+    <weight MUF="1" MUR="1" PDF="292302" id="1075"> Member 102 of sets NNPDF30_nlo_nf_5_pdfas</weight>
+  </weightgroup>
+  <weightgroup combine="hessian" name="NNPDF30_nnlo_nf_5_pdfas">
+    <weight MUF="1" MUR="1" PDF="292600" id="1076"> Member 0 of sets NNPDF30_nnlo_nf_5_pdfas</weight>
+  </weightgroup>
+  <weightgroup combine="hessian" name="NNPDF30_lo_as_0118">
+    <weight MUF="1" MUR="1" PDF="262000" id="1079"> Member 0 of sets NNPDF30_lo_as_0118</weight>
+  </weightgroup>
+  <weightgroup combine="hessian" name="NNPDF30_lo_as_0130">
+    <weight MUF="1" MUR="1" PDF="263000" id="1080"> Member 0 of sets NNPDF30_lo_as_0130</weight>
+  </weightgroup>

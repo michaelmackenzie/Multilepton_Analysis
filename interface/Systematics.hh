@@ -131,10 +131,6 @@ namespace CLFV {
       // case  64: return Data(isys, "BTagHeavy"     , false);
       case  65: return Data(isys, "SignalMixing"  , true );
       case  66: return Data(isys, "SignalMixing"  , false);
-      case  67: return Data(isys, "SignalPDF"     , true );
-      case  68: return Data(isys, "SignalPDF"     , false);
-      case  69: return Data(isys, "SignalScale"   , true );
-      case  70: return Data(isys, "SignalScale"   , false);
 
       // case  70: return Data(isys, "EmbTauJetID"   , true );
       // case  71: return Data(isys, "EmbTauJetID"   , false);
@@ -156,6 +152,13 @@ namespace CLFV {
       case  87: return Data(isys, "EmbTauES"      , false);
       case  88: return Data(isys, "EmbEleES1"     , true ); //high |eta| bin
       case  89: return Data(isys, "EmbEleES1"     , false);
+
+      case  90: return Data(isys, "TheoryPDF"     , true );
+      case  91: return Data(isys, "TheoryPDF"     , false);
+      case  92: return Data(isys, "TheoryScaleF"  , true );
+      case  93: return Data(isys, "TheoryScaleF"  , false);
+      case  94: return Data(isys, "TheoryScaleR"  , true );
+      case  95: return Data(isys, "TheoryScaleR"  , false);
       default: break;
       }
 

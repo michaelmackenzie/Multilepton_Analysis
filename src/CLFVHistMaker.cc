@@ -897,14 +897,18 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
       if(!fIsSignal) continue;
       if(fSystematics.IsUp(sys)) weight *= signalZMixingWeightUp  /signalZMixingWeight;
       else                       weight *= signalZMixingWeightDown/signalZMixingWeight;
-    } else if(name == "SignalPDF") {
-      if(!fIsSignal) continue;
-      if(fSystematics.IsUp(sys)) weight *= signalPDFSys;
-      else                       weight *= 1.f/signalPDFSys;
-    } else if(name == "SignalScale") {
-      if(!fIsSignal) continue;
-      if(fSystematics.IsUp(sys)) weight *= signalScaleSys;
-      else                       weight *= 1.f/signalScaleSys;
+    } else if(name == "TheoryPDF") {
+      if(fIsData || fIsEmbed) continue;
+      if(fSystematics.IsUp(sys)) weight *= LHEPdfWeightMax;
+      else                       weight *= 1.f/LHEPdfWeightMax;
+    } else if(name == "TheoryScaleR") {
+      if(fIsData || fIsEmbed) continue;
+      if(fSystematics.IsUp(sys)) weight *= LHEScaleRWeightMax;
+      else                       weight *= 1.f/LHEScaleRWeightMax;
+    } else if(name == "TheoryScaleF") {
+      if(fIsData || fIsEmbed) continue;
+      if(fSystematics.IsUp(sys)) weight *= LHEScaleFWeightMax;
+      else                       weight *= 1.f/LHEScaleFWeightMax;
     } else if(name == "Pileup") {
       if(fIsData || fIsEmbed) continue;
       if(fSystematics.IsUp(sys)) weight *= puWeight_up          / puWeight       ;
@@ -1580,6 +1584,13 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   ee    &= std::fabs(leptonTwo.eta) < electron_eta_max;
   ee    &= std::fabs(leptonOne.p4->DeltaR(*leptonTwo.p4)) > min_delta_r;
 
+  //apply reasonable lepton isolation cuts
+  const float max_rel_iso = 0.5;
+  if(leptonOne.isElectron() && leptonOne.relIso >= max_rel_iso) return kTRUE;
+  if(leptonTwo.isElectron() && leptonTwo.relIso >= max_rel_iso) return kTRUE;
+  if(leptonOne.isMuon    () && leptonOne.relIso >= max_rel_iso) return kTRUE;
+  if(leptonTwo.isMuon    () && leptonTwo.relIso >= max_rel_iso) return kTRUE;
+
   ///////////////////////////////////////////////////////////////////
   //Apply di-lepton mass cuts
 
@@ -1614,8 +1625,7 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   ee    &= std::fabs(leptonTwo.dxy) < max_dxy;
   ee    &= std::fabs(leptonTwo.dz ) < max_dz ;
 
-  //FIXME: Decide dxy/dz significance cuts
-  const int use_dxyz_sig = 1; //0: None; 1: Z->e+mu only; 2: All channels
+  const int use_dxyz_sig = 1; //0: None; 1: Z->e+mu-like only; 2: All channels
   if(use_dxyz_sig > 1) {
     mutau &= std::fabs(leptonOne.dxySig) < 3.0;
     mutau &= std::fabs(leptonOne.dzSig ) < 4.7;
@@ -1700,7 +1710,7 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   ////////////////////////////////////////////////////////////
 
   const double met_cut         = -1.; //60.;
-  const double mtlep_cut       = (lep_tau || emu) ? -1. : 70.;
+  const double mtlep_cut       = (lep_tau || emu || ee || mumu) ? -1. : 70.;
   const double qcd_mtlep_cut   = mtlep_cut; //(etau) ? 45. : mtlep_cut;
   const bool looseQCDRegion    = (mutau || etau) && nBJetsUse == 0 && fTreeVars.mtlep < mtlep_cut && (met_cut < 0 || met < met_cut); // no isolation cut (0 - 0.5 allowed)
   const bool qcdSelection      = looseQCDRegion && fTreeVars.mtlep < qcd_mtlep_cut && (fTreeVars.leponereliso > 0.05) && !(isLooseMuon || isLooseElectron);
@@ -1929,10 +1939,14 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   mutau &= met_cut < 0.f || met < met_cut + sys_buffer;
   etau  &= met_cut < 0.f || met < met_cut + sys_buffer;
   emu   &= met_cut < 0.f || met < met_cut + sys_buffer;
+  mumu  &= met_cut < 0.f || met < met_cut + sys_buffer;
+  ee    &= met_cut < 0.f || met < met_cut + sys_buffer;
 
   mutau &= mtlep_cut < 0.f || fTreeVars.mtlep < mtlep_cut + sys_buffer;
   etau  &= mtlep_cut < 0.f || fTreeVars.mtlep < mtlep_cut + sys_buffer;
   emu   &= mtlep_cut < 0.f || fTreeVars.mtlep < mtlep_cut + sys_buffer;
+  mumu  &= mtlep_cut < 0.f || fTreeVars.mtlep < mtlep_cut + sys_buffer;
+  ee    &= mtlep_cut < 0.f || fTreeVars.mtlep < mtlep_cut + sys_buffer;
 
   if(!(mutau || etau || emu || mumu || ee)) return kTRUE;
 

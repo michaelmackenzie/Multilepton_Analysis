@@ -108,7 +108,8 @@ int fill_hist(TTree* tree) {
   TLorentzVector lv1, lv2;
 
   //Retrieve the correction factors (if available)
-  TFile* f = TFile::Open(Form("rootfiles/z_pdf_shift_p%i_%i.root", std::abs(pdf_set_), year_));
+  const char* base_name = Form("p%s%i_%i", (pdf_set_ < 0) ? "n" : "", abs(pdf_set_), year_);
+  TFile* f = TFile::Open(Form("rootfiles/z_pdf_shift_%s.root", base_name));
   TH2* hcorr = (f) ? (TH2*) f->Get("hratio") : nullptr;
 
   //Loop over the data
@@ -125,6 +126,11 @@ int fill_hist(TTree* tree) {
     const float pt   = (lv1+lv2).Pt();
     const float eta  = (lv1+lv2).Eta();
 
+    if(entry == 0) {
+      cout << "--- The tree has " << n_pdf << " variations to consider\n";
+    }
+
+    genwt = (genwt < 0.f) ? -1.f : 1.f;
     //Evaluate the weight associated with the theory uncertainty
     float shift = 1.f;
     if(pdf_set_ >= 0) { //use an index in the weight array
@@ -132,11 +138,50 @@ int fill_hist(TTree* tree) {
     } else { //loop through to find the largest deviation in the event
       float max_dev = 0.f;
       int index = 0;
-      for(int ipdf = 0; ipdf < n_pdf; ++ipdf) {
-        const float dev = std::fabs(pdf_wt[ipdf]/genwt - 1.f);
-        if(dev > max_dev) {max_dev = dev; index = ipdf;}
+      //scale entries mapping (muR, muF): (0.5,0.5), (0.5,1), (0.5,2), (1,0.5), (1,1), (1,2), (2,0.5), (2,1), (2,2)
+      if(pdf_set_ == -1002 && n_pdf >= 9) { //only do renorm scale entries
+        //renorm entries: 1 and 7
+        const float ref_wt = pdf_wt[4]; //genwt
+        const int idx_1(1), idx_2(7);
+        const float dev_1 = std::fabs(pdf_wt[idx_1]/ref_wt - 1.f);
+        const float dev_2 = std::fabs(pdf_wt[idx_2]/ref_wt - 1.f);
+        if(dev_1 > dev_2) {max_dev = dev_1; index = idx_1;}
+        else              {max_dev = dev_2; index = idx_2;}
+        shift = pdf_wt[index] / ref_wt;
+      } else if(pdf_set_ == -1003 && n_pdf >= 9) { //only do factor scale entries
+        //factor entries: 3 and 5
+        const float ref_wt = pdf_wt[4]; //genwt
+        const int idx_1(3), idx_2(5);
+        const float dev_1 = std::fabs(pdf_wt[idx_1]/ref_wt - 1.f);
+        const float dev_2 = std::fabs(pdf_wt[idx_2]/ref_wt - 1.f);
+        if(dev_1 > dev_2) {max_dev = dev_1; index = idx_1;}
+        else              {max_dev = dev_2; index = idx_2;}
+        shift = pdf_wt[index] / ref_wt;
+      } else if(pdf_set_ == -1004 && n_pdf >= 9) { //correlated renorm/factor
+        //factor entries: 0 and 8
+        const float ref_wt = pdf_wt[4]; //genwt
+        const int idx_1(0), idx_2(8);
+        const float dev_1 = std::fabs(pdf_wt[idx_1]/ref_wt - 1.f);
+        const float dev_2 = std::fabs(pdf_wt[idx_2]/ref_wt - 1.f);
+        if(dev_1 > dev_2) {max_dev = dev_1; index = idx_1;}
+        else              {max_dev = dev_2; index = idx_2;}
+        shift = pdf_wt[index] / ref_wt;
+      } else if(pdf_set_ == -1005 && n_pdf >= 9) { //anti-correlated renorm/factor
+        //factor entries: 0 and 8
+        const float ref_wt = pdf_wt[4]; //genwt
+        const int idx_1(2), idx_2(6);
+        const float dev_1 = std::fabs(pdf_wt[idx_1]/ref_wt - 1.f);
+        const float dev_2 = std::fabs(pdf_wt[idx_2]/ref_wt - 1.f);
+        if(dev_1 > dev_2) {max_dev = dev_1; index = idx_1;}
+        else              {max_dev = dev_2; index = idx_2;}
+        shift = pdf_wt[index] / ref_wt;
+      } else { //take the max of all entries
+        for(int ipdf = 0; ipdf < n_pdf; ++ipdf) {
+          const float dev = std::fabs(pdf_wt[ipdf] - 1.f);
+          if(dev > max_dev) {max_dev = dev; index = ipdf;}
+        }
+        shift = pdf_wt[index];
       }
-      shift = pdf_wt[index] / genwt;
     }
     shift = std::fabs(shift); //take the sign from the nominal PDF weight
     if(shift > 3.f) shift = 1.f; //ignore large weights
@@ -245,9 +290,10 @@ int fill_hist(TTree* tree) {
 
 /**
    Main function
-   pdf_set: PDF set weights to compare to nominal
+   year: supported are 2016 and 2018
+   pdf_set: PDF set weights to compare to nominal (< 1000 = PDF, >= 1000 = scale, -1 = all PDF, -1001 = all scale)
  **/
-int scale_factors(int year, int pdf_set = 1) {
+int scale_factors(int year, int pdf_set = -1) {
   year_ = year;
   pdf_set_ = pdf_set;
   TChain* chain = new TChain("Events", "Events");
@@ -279,7 +325,7 @@ int scale_factors(int year, int pdf_set = 1) {
     hlpt_ [index] = new TH1D(Form("h%i_lpt" , index), " p^{l}_{T}"        , 50,  0, 100);
     hlet_ [index] = new TH1D(Form("h%i_le"  , index), " E^{l}_{T}"        , 50,  0, 100);
     hleta_[index] = new TH1D(Form("h%i_leta", index), " #eta_{l}"         , 50, -5,   5);
-    hnpdf_[index] = new TH1D(Form("h%i_npdf", index), " N(PDF)"           , 50,  0,  50);
+    hnpdf_[index] = new TH1D(Form("h%i_npdf", index), " N(PDF)"           ,110,  0, 110);
     hwt_  [index] = new TH1D(Form("h%i_wt"  , index), " Event weight"     , 70, -3.5,   3.5);
   }
 
@@ -291,14 +337,11 @@ int scale_factors(int year, int pdf_set = 1) {
     return 3;
   }
 
-  //Using negative pdf_set for looping, remove that for printout
-  if(pdf_set < 0) pdf_set = std::fabs(pdf_set);
-  if(pdf_set_ < 0) pdf_set_ = std::fabs(pdf_set_);
-
   TH2* hratio = (TH2*) h_[1]->Clone("hratio");
   hratio->Divide(h_[0]);
 
-  gSystem->Exec(Form("[ ! -d figures/p%i_%i ] && mkdir -p figures/p%i_%i", pdf_set, year, pdf_set, year));
+  const char* base_name = Form("p%s%i_%i", (pdf_set_ < 0) ? "n" : "", abs(pdf_set_), year);
+  gSystem->Exec(Form("[ ! -d figures/%s ] && mkdir -p figures/%s", base_name, base_name));
   gStyle->SetOptStat(0);
 
   TCanvas* c = new TCanvas();
@@ -315,7 +358,7 @@ int scale_factors(int year, int pdf_set = 1) {
   // c->SetLogz();
   hratio->GetXaxis()->SetMoreLogLabels(kTRUE);
   hratio->GetYaxis()->SetMoreLogLabels(kTRUE);
-  c->SaveAs(Form("figures/ratio_p%i_%i.png", pdf_set, year));
+  c->SaveAs(Form("figures/ratio_%s.png", base_name));
 
   TH1* hdy  = h_[0]->ProjectionY("_py", 1, h_[0]->GetNbinsX());
   TH1* hsig = h_[1]->ProjectionY("_py", 1, h_[1]->GetNbinsX());
@@ -334,9 +377,9 @@ int scale_factors(int year, int pdf_set = 1) {
   hdy->GetXaxis()->SetMoreLogLabels(true);
   hdy->GetYaxis()->SetMoreLogLabels(true);
   if(hist_mode_ == 0)
-    c->SaveAs(Form("figures/p%i_%i/pt_proj.png", pdf_set, year));
+    c->SaveAs(Form("figures/%s/pt_proj.png", base_name));
   else
-    c->SaveAs(Form("figures/p%i_%i/eta_proj.png", pdf_set, year));
+    c->SaveAs(Form("figures/%s/eta_proj.png", base_name));
 
   TH1* hprojx = hratio->ProjectionX("_px", 1, hratio->GetNbinsY());
   hprojx->Scale(1./hratio->GetNbinsY());
@@ -352,7 +395,7 @@ int scale_factors(int year, int pdf_set = 1) {
   hprojx->GetXaxis()->SetMoreLogLabels(true);
   hprojx->GetYaxis()->SetMoreLogLabels(true);
   hprojx->GetXaxis()->SetRangeUser(0.5, hprojx->GetBinCenter(hprojx->GetNbinsX()));
-  c->SaveAs(Form("figures/p%i_%i/mass_ratio.png", pdf_set, year));
+  c->SaveAs(Form("figures/%s/mass_ratio.png", base_name));
 
   TH1* hprojy = hratio->ProjectionY("_py", 1, hratio->GetNbinsX());
   hprojy->Scale(1./hratio->GetNbinsX());
@@ -369,11 +412,11 @@ int scale_factors(int year, int pdf_set = 1) {
   if(hist_mode_ == 0) {
     hprojy->SetTitle("Signal p_{T}^{Z} corrections");
     hprojy->SetXTitle("p_{T}^{Z}");
-    c->SaveAs(Form("figures/p%i_%i/pt_ratio.png", pdf_set, year));
+    c->SaveAs(Form("figures/%s/pt_ratio.png", base_name));
   } else if(hist_mode_ == 1) {
     hprojy->SetTitle("Signal |#eta^{Z}| corrections");
     hprojy->SetXTitle("|#eta^{Z}|");
-    c->SaveAs(Form("figures/p%i_%i/eta_ratio.png", pdf_set, year));
+    c->SaveAs(Form("figures/%s/eta_ratio.png", base_name));
   }
 
   //Test the scale factors
@@ -381,22 +424,22 @@ int scale_factors(int year, int pdf_set = 1) {
   closure->Divide(h_[2]);
   closure->Draw("colz text");
   closure->GetZaxis()->SetRangeUser(0.985, 1.015);
-  c->SaveAs(Form("figures/p%i_%i/closure.png", pdf_set, year));
+  c->SaveAs(Form("figures/%s/closure.png", base_name));
 
   delete c;
 
-  TFile* fout = new TFile(Form("rootfiles/z_pdf_shift_p%i_%i.root", abs(pdf_set), year), "RECREATE");
+  TFile* fout = new TFile(Form("rootfiles/z_pdf_shift_%s.root", base_name), "RECREATE");
   hratio->Write();
   fout->Close();
 
-  print_figure(hpt_  , Form("figures/p%i_%i/z_pt.png"   , pdf_set, year));
-  print_figure(hmass_, Form("figures/p%i_%i/z_mass.png" , pdf_set, year), true);
-  print_figure(heta_ , Form("figures/p%i_%i/z_eta.png"  , pdf_set, year));
-  print_figure(hlpt_ , Form("figures/p%i_%i/lep_pt.png" , pdf_set, year));
-  print_figure(hlet_ , Form("figures/p%i_%i/lep_et.png" , pdf_set, year));
-  print_figure(hleta_, Form("figures/p%i_%i/lep_eta.png", pdf_set, year));
-  print_figure(hnpdf_, Form("figures/p%i_%i/npdf.png"   , pdf_set, year));
-  print_figure(hwt_  , Form("figures/p%i_%i/weight.png" , pdf_set, year), true);
+  print_figure(hpt_  , Form("figures/%s/z_pt.png"   , base_name));
+  print_figure(hmass_, Form("figures/%s/z_mass.png" , base_name), true);
+  print_figure(heta_ , Form("figures/%s/z_eta.png"  , base_name));
+  print_figure(hlpt_ , Form("figures/%s/lep_pt.png" , base_name));
+  print_figure(hlet_ , Form("figures/%s/lep_et.png" , base_name));
+  print_figure(hleta_, Form("figures/%s/lep_eta.png", base_name));
+  print_figure(hnpdf_, Form("figures/%s/npdf.png"   , base_name));
+  print_figure(hwt_  , Form("figures/%s/weight.png" , base_name), true);
 
   return 0;
 }

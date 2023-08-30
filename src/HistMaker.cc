@@ -258,8 +258,8 @@ void HistMaker::Begin(TTree * /*tree*/)
   lep_tau = fSelection.EndsWith("tau_e") + 2*fSelection.EndsWith("tau_mu");
 
   //Check that flags agree with the available branches in the tree
-  if(fUseBTagWeights == 2 && !fChain->GetBranch("Jet_btagSF_deepcsv_L")) {
-    printf("HistMaker::%s: Warning! B-tag SFs not available in tree, will re-calculate on the fly\n", __func__);
+  if(fUseBTagWeights == 2 && !fChain->GetBranch("Jet_btagSF_deepcsv_L_wt")) {
+    printf("HistMaker::%s: Warning! B-tag SF weights not available in tree, will re-calculate on the fly\n", __func__);
     fUseBTagWeights = 1;
   }
   if(fUseRoccoCorr == 2 && !fChain->GetBranch("Muon_corrected_pt")) {
@@ -269,6 +269,14 @@ void HistMaker::Begin(TTree * /*tree*/)
   if(fUseJetPUIDWeights == 2 && !fChain->GetBranch("JetPUIDWeight")) {
     printf("HistMaker::%s: Warning! Jet PU ID weight not available in tree, will re-calculate on the fly\n", __func__);
     fUseJetPUIDWeights = 1;
+  }
+  if(fUseSignalZWeights == 2 && !fChain->GetBranch("SignalpTWeight")) {
+    printf("HistMaker::%s: Warning! Signal Z pT weight not available in tree, will re-calculate on the fly\n", __func__);
+    fUseSignalZWeights = 1;
+  }
+  if(fUseZPtWeight == 2 && !fChain->GetBranch("ZpTWeight")) {
+    printf("HistMaker::%s: Warning! Z pT weight not available in tree, will re-calculate on the fly\n", __func__);
+    fUseZPtWeight = 1;
   }
 
   //Turn off weights if not requested
@@ -324,7 +332,7 @@ void HistMaker::FillAllHistograms(Int_t index) {
     fTimes[GetTimerNumber("Filling")] = std::chrono::steady_clock::now(); //timer for reading from the tree
 
     if(pass) {
-      if(fFollowHistSet == index) printf(" Entry %lld: Filling histogram set %i\n", fentry, index);
+      if(fFollowHistSet == index) printf(" Entry %10lld (%10lld): Filling histogram set %i\n", fentry, eventNumber, index);
       ++fSetFills[index];
       FillEventHistogram( fEventHist [index]);
       FillLepHistogram(   fLepHist   [index]);
@@ -447,11 +455,15 @@ void HistMaker::BookBaseEventHistograms(Int_t i, const char* dirname) {
         Utilities::BookH1F(fEventHist[i]->hPuWeight           , "puweight"            , Form("%s: PUWeight"            ,dirname),  50,    0,   2, folder);
         Utilities::BookH1F(fEventHist[i]->hJetPUIDWeight      , "jetpuidweight"       , Form("%s: JetPUIDWeight"       ,dirname),  50,    0,   2, folder);
         Utilities::BookH1D(fEventHist[i]->hPrefireWeight      , "prefireweight"       , Form("%s: PrefireWeight"       ,dirname),  50,    0,   2, folder);
-        Utilities::BookH1F(fEventHist[i]->hBTagWeight         , "btagweight"          , Form("%s: BTagWeight"          ,dirname),  50,    0,   2, folder);
+        Utilities::BookH1F(fEventHist[i]->hBTagWeight         , "btagweight"          , Form("%s: BTagWeight"          ,dirname), 100,    0,   5, folder);
         Utilities::BookH1F(fEventHist[i]->hZPtWeight          , "zptweight"           , Form("%s: ZPtWeight"           ,dirname),  50,    0,   2, folder);
         Utilities::BookH1F(fEventHist[i]->hSignalZWeight      , "signalzweight"       , Form("%s: SignalZWeight"       ,dirname),  50,    0,   2, folder);
         Utilities::BookH1F(fEventHist[i]->hSignalZMixWeight   , "signalzmixweight"    , Form("%s: SignalZMixWeight"    ,dirname),  50,    0,   2, folder);
         Utilities::BookH1F(fEventHist[i]->hLepDisplacementWeight, "lepdisplacementweight", Form("%s: LepDisplacementWeight",dirname),  50,    0,   2, folder);
+        Utilities::BookH1F(fEventHist[i]->hPSSys              , "pssys"               , Form("%s: PSSys"               ,dirname),  50,    0,   4, folder);
+        Utilities::BookH1F(fEventHist[i]->hPDFSys             , "pdfsys"              , Form("%s: PDFSys"              ,dirname),  50,    0,   4, folder);
+        Utilities::BookH1F(fEventHist[i]->hScaleRSys          , "scalersys"           , Form("%s: ScaleRSys"           ,dirname),  50,    0,   4, folder);
+        Utilities::BookH1F(fEventHist[i]->hScaleFSys          , "scalefsys"           , Form("%s: ScaleFSys"           ,dirname),  50,    0,   4, folder);
 
         Utilities::BookH1F(fEventHist[i]->hTauPt              , "taupt"               , Form("%s: TauPt"               ,dirname),  50,    0, 200, folder);
         Utilities::BookH1F(fEventHist[i]->hTauEta             , "taueta"              , Form("%s: TauEta"              ,dirname),  30, -2.5, 2.5, folder);
@@ -462,7 +474,6 @@ void HistMaker::BookBaseEventHistograms(Int_t i, const char* dirname) {
       Utilities::BookH1D(fEventHist[i]->hTauDeepAntiEle     , "taudeepantiele"      , Form("%s: TauDeepAntiEle"      ,dirname),  30,    0,  30, folder);
       Utilities::BookH1D(fEventHist[i]->hTauDeepAntiMu      , "taudeepantimu"       , Form("%s: TauDeepAntiMu"       ,dirname),  30,    0,  30, folder);
       Utilities::BookH1D(fEventHist[i]->hTauDeepAntiJet     , "taudeepantijet"      , Form("%s: TauDeepAntiJet"      ,dirname),  30,    0,  30, folder);
-
       Utilities::BookH1F(fEventHist[i]->hJetPt[0]           , "jetpt"               , Form("%s: JetPt"               ,dirname), 100,    0, 200, folder);
       Utilities::BookH1F(fEventHist[i]->hJetEta             , "jeteta"              , Form("%s: JetEta"              ,dirname), 100,   -5,   5, folder);
       Utilities::BookH1F(fEventHist[i]->hHtSum              , "htsum"               , Form("%s: HtSum"               ,dirname), 100,    0, 400, folder);
@@ -1063,18 +1074,20 @@ void HistMaker::InitializeInputTree(TTree* tree) {
   Utilities::SetBranchAddress(tree, "Jet_pt_jerDown"                , &Jet_pt_jerDown                );
   Utilities::SetBranchAddress(tree, "Jet_pt_jesTotalUp"             , &Jet_pt_jesTotalUp             );
   Utilities::SetBranchAddress(tree, "Jet_pt_jesTotalDown"           , &Jet_pt_jesTotalDown           );
-  Utilities::SetBranchAddress(tree, "Jet_btagSF_deepcsv_L"          , &Jet_btagSF_L                  );
-  Utilities::SetBranchAddress(tree, "Jet_btagSF_deepcsv_L_up"       , &Jet_btagSF_L_up               );
-  Utilities::SetBranchAddress(tree, "Jet_btagSF_deepcsv_L_down"     , &Jet_btagSF_L_down             );
-  Utilities::SetBranchAddress(tree, "Jet_btagSF_deepcsv_T"          , &Jet_btagSF_T                  );
-  Utilities::SetBranchAddress(tree, "Jet_btagSF_deepcsv_T_up"       , &Jet_btagSF_T_up               );
-  Utilities::SetBranchAddress(tree, "Jet_btagSF_deepcsv_T_down"     , &Jet_btagSF_T_down             );
+  if(fUseBTagWeights == 2 && !fIsData && !fIsEmbed) {
+    Utilities::SetBranchAddress(tree, "Jet_btagSF_deepcsv_L_wt"     , &Jet_btagSF_L                  );
+    Utilities::SetBranchAddress(tree, "Jet_btagSF_deepcsv_L_wt_up"  , &Jet_btagSF_L_up               );
+    Utilities::SetBranchAddress(tree, "Jet_btagSF_deepcsv_L_wt_down", &Jet_btagSF_L_down             );
+    Utilities::SetBranchAddress(tree, "Jet_btagSF_deepcsv_T_wt"     , &Jet_btagSF_T                  );
+    Utilities::SetBranchAddress(tree, "Jet_btagSF_deepcsv_T_wt_up"  , &Jet_btagSF_T_up               );
+    Utilities::SetBranchAddress(tree, "Jet_btagSF_deepcsv_T_wt_down", &Jet_btagSF_T_down             );
+  }
   // Utilities::SetBranchAddress(tree, "Jet_charge"                    , &Jet_charge                    );
   Utilities::SetBranchAddress(tree, "Jet_jetId"                     , &Jet_jetId                     );
   Utilities::SetBranchAddress(tree, "Jet_puId"                      , &Jet_puId                      );
   // Utilities::SetBranchAddress(tree, "Jet_pfRelIso03_all"            , &Jet_pfRelIso03_al           l );
   Utilities::SetBranchAddress(tree, "Jet_btagDeepB"                 , &Jet_btagDeepB                 );
-  Utilities::SetBranchAddress(tree, "Jet_btagCMVA"                  , &Jet_btagCMVA                  );
+  // Utilities::SetBranchAddress(tree, "Jet_btagCMVA"                  , &Jet_btagCMVA                  );
   // Utilities::SetBranchAddress(tree, "Jet_eCorr"                     , &Jet_eCorr                     );
   // Utilities::SetBranchAddress(tree, "Jet_dxy"                       , &Jet_dxy                       );
   // Utilities::SetBranchAddress(tree, "Jet_dxyErr"                    , &Jet_dxyErr                    );
@@ -1122,7 +1135,12 @@ void HistMaker::InitializeInputTree(TTree* tree) {
     Utilities::SetBranchAddress(tree, "GenPart_pdgId"                 , &GenPart_pdgId                 );
     Utilities::SetBranchAddress(tree, "GenPart_pt"                    , &GenPart_pt                    );
     Utilities::SetBranchAddress(tree, "GenPart_genPartIdxMother"      , &GenPart_genPartIdxMother      );
+
   }
+  if(fIsSignal && fUseSignalZWeights == 2)
+    Utilities::SetBranchAddress(tree, "SignalpTWeight"                , &signalZWeight                 );
+  if((fIsSignal || fIsDY) && fUseZPtWeight == 2)
+    Utilities::SetBranchAddress(tree, "ZpTWeight"                     , &zPtWeight                     );
 
   //Event information
   if(!fIsData) {
@@ -1139,6 +1157,10 @@ void HistMaker::InitializeInputTree(TTree* tree) {
     }
     Utilities::SetBranchAddress(tree, "nPSWeight"                     , &nPSWeight                     );
     Utilities::SetBranchAddress(tree, "PSWeight"                      , PSWeight                       );
+    Utilities::SetBranchAddress(tree, "nLHEPdfWeight"                 , &nLHEPdfWeight                 );
+    Utilities::SetBranchAddress(tree, "LHEPdfWeight"                  , &LHEPdfWeight                  );
+    Utilities::SetBranchAddress(tree, "nLHEScaleWeight"               , &nLHEScaleWeight               );
+    Utilities::SetBranchAddress(tree, "LHEScaleWeight"                , &LHEScaleWeight                );
   }
   Utilities::SetBranchAddress(tree, "SelectionFilter_LepM"          , &SelectionFilter_LepM          );
   Utilities::SetBranchAddress(tree, "PV_npvsGood"                   , &nPV                           ) ;
@@ -1415,9 +1437,12 @@ void HistMaker::InitializeEventWeights() {
   for(int itrig = 0; itrig < ntrig_sys; ++itrig) triggerWeightsSys[itrig] = 1.f;
 
   embeddingWeight = 1.f; embeddingUnfoldingWeight = 1.f;
-  zPtWeight = 1.f; zPtWeightUp = 1.f; zPtWeightDown = 1.f; zPtWeightSys = 1.f;
-  signalZWeight = 1.f; signalZMixingWeight = 1.f;
-  signalPDFSys = 1.f; signalScaleSys = 1.f;
+  if(!fIsSignal) {
+    signalZWeight = 1.f; signalZMixingWeight = 1.f;
+    if(!fIsDY) {
+      zPtWeight = 1.f; zPtWeightUp = 1.f; zPtWeightDown = 1.f; zPtWeightSys = 1.f;
+    }
+  }
 
 
 
@@ -1452,6 +1477,7 @@ void HistMaker::InitializeEventWeights() {
   ////////////////////////////////////////////////////////////////////
 
   embeddingWeight = 1.f; embeddingUnfoldingWeight = 1.f;
+  MCGenWeight = genWeight; //store the original generator weight for theory weight variations
   if(fIsEmbed) {
     genWeight = std::fabs(genWeight);
     if(fIsLLEmbed) {
@@ -1484,17 +1510,70 @@ void HistMaker::InitializeEventWeights() {
   }
 
   ////////////////////////////////////////////////////////////////////
+  //   MC Theory weights
+  ////////////////////////////////////////////////////////////////////
+
+  PSWeightMax = 1.f; LHEPdfWeightMax = 1.f; LHEScaleRWeightMax = 1.f; LHEScaleFWeightMax = 1.f;
+  if(!fIsData && !fIsEmbed && MCGenWeight != 0.) {
+    //Get the maximum event-by-event deviations
+
+    //PS weight
+    float deviation = 0.f;
+    for(UInt_t index = 0; index < nPSWeight; ++index) {
+      if(PSWeight[index] == 0.f) continue;
+      const float dev = std::max(0.3f, std::min(3.f, PSWeight[index])) - 1.f;
+      if(std::fabs(deviation) < std::fabs(dev)) {
+        deviation = dev;
+      }
+    }
+    PSWeightMax = 1.f + deviation;
+
+    //PDF weight
+    deviation = 0.f;
+    for(UInt_t index = 0; index < nLHEPdfWeight; ++index) {
+      if(LHEPdfWeight[index] == 0.f) continue;
+      const float dev = std::max(0.3f, std::min(3.f, LHEPdfWeight[index])) - 1.f;
+      if(std::fabs(deviation) < std::fabs(dev)) {
+        deviation = dev;
+      }
+    }
+    LHEPdfWeightMax = 1.f + deviation;
+
+    //Renormalization scale weight
+    deviation = 0.f;
+    if(nLHEScaleWeight >= 9) {
+      const int idx_1(1), idx_2(7);
+      const float dev_1 = std::max(0.3f, std::min(3.f, LHEScaleWeight[idx_1])) - 1.f;
+      const float dev_2 = std::max(0.3f, std::min(3.f, LHEScaleWeight[idx_2])) - 1.f;
+      deviation = (std::fabs(dev_1) > std::fabs(dev_2)) ? dev_1 : dev_2;
+    }
+    LHEScaleRWeightMax = 1.f + deviation;
+
+    //Factorization scale weight
+    deviation = 0.f;
+    if(nLHEScaleWeight >= 9) {
+      const int idx_1(3), idx_2(5);
+      const float dev_1 = std::max(0.3f, std::min(3.f, LHEScaleWeight[idx_1])) - 1.f;
+      const float dev_2 = std::max(0.3f, std::min(3.f, LHEScaleWeight[idx_2])) - 1.f;
+      deviation = (std::fabs(dev_1) > std::fabs(dev_2)) ? dev_1 : dev_2;
+    }
+    LHEScaleFWeightMax = 1.f + deviation;
+  }
+
+  ////////////////////////////////////////////////////////////////////
   //   Signal Z info + re-weight
   ////////////////////////////////////////////////////////////////////
 
   if(fIsSignal && fDataset.Contains("Z")) {
     //re-weight to MC spectrum
-    signalZWeight = (fUseSignalZWeights) ? fSignalZWeight.GetWeight(fYear, zPt, zMass) : 1.f;
+    if(fUseSignalZWeights != 2) //2 = use ntuple input
+      signalZWeight = (fUseSignalZWeights) ? fSignalZWeight.GetWeight(fYear, zPt, zMass) : 1.f;
     //re-weight to remove z/gamma* effect
     signalZMixingWeightUp = 1.f; signalZMixingWeightDown = 1.f;
     signalZMixingWeight = (fUseSignalZMixWeights) ? fSignalZMixWeight.GetWeight(fYear, zPt, zMass, signalZMixingWeightUp, signalZMixingWeightDown) : 1.f;
     //re-weight MC spectrum to data spectrum
-    zPtWeight = (fUseZPtWeight) ? fZPtWeight->GetWeight(fYear, zPt, zMass, false /*Use Gen level weights*/, zPtWeightUp, zPtWeightDown, zPtWeightSys) : 1.f;
+    if(fUseZPtWeight != 2) //2 = use ntuple input
+      zPtWeight = (fUseZPtWeight) ? fZPtWeight->GetWeight(fYear, zPt, zMass, false /*Use Gen level weights*/, zPtWeightUp, zPtWeightDown, zPtWeightSys) : 1.f;
     eventWeight *= zPtWeight*signalZWeight*signalZMixingWeight;
     if(fVerbose > 0) std::cout << " For Z pT = " << zPt << " and Mass = " << zMass << " using Data/MC weight " << zPtWeight
                                << ", signal Z weight " << signalZWeight
@@ -1503,8 +1582,9 @@ void HistMaker::InitializeEventWeights() {
                                << ") --> event weight = " << eventWeight << std::endl;
 
     //Store signal Z PDF/Scale uncertainties
-    signalPDFSys   = fZPDFSys.GetPDFWeight  (fYear, zPt, zEta, zMass);
-    signalScaleSys = fZPDFSys.GetScaleWeight(fYear, zPt,       zMass);
+    LHEPdfWeightMax    = fZPDFSys.GetPDFWeight        (fYear, zPt, zEta, zMass);
+    LHEScaleRWeightMax = fZPDFSys.GetRenormScaleWeight(fYear, zPt,       zMass);
+    LHEScaleFWeightMax = fZPDFSys.GetFactorScaleWeight(fYear, zPt,       zMass);
   }
 
   ////////////////////////////////////////////////////////////////////
@@ -1514,7 +1594,8 @@ void HistMaker::InitializeEventWeights() {
   //Z pT/mass info (DY and Z signals only)
   if(fIsDY && !fIsEmbed) {
     //re-weight the Z pt vs mass spectrum
-    zPtWeight = (fUseZPtWeight) ? fZPtWeight->GetWeight(fYear, zPt, zMass, false /*Use Gen level weights*/, zPtWeightUp, zPtWeightDown, zPtWeightSys) : 1.f;
+    if(fUseZPtWeight != 2) //2 = use ntuple input
+      zPtWeight = (fUseZPtWeight) ? fZPtWeight->GetWeight(fYear, zPt, zMass, false /*Use Gen level weights*/, zPtWeightUp, zPtWeightDown, zPtWeightSys) : 1.f;
     eventWeight *= zPtWeight;
     if(fVerbose > 0) std::cout << " For Z pT = " << zPt << " and Mass = " << zMass << " using Data/MC weight " << zPtWeight
                                << "--> event weight = " << eventWeight << std::endl;
@@ -2053,7 +2134,8 @@ void HistMaker::SetKinematics() {
 
   //phi differences
   fTreeVars.htdeltaphi     = std::fabs(Utilities::DeltaPhi(lep.Phi(), htPhi));
-  fTreeVars.metdeltaphi    = std::fabs(Utilities::DeltaPhi(lep.Phi(), metPhi));
+  fTreeVars.metdeltaphi    = Utilities::DeltaPhi(lep.Phi(), metPhi); //FIXME: Using signed dphi in XGBoost BDT case
+  if(!fUseXGBoostBDT) fTreeVars.metdeltaphi = std::fabs(fTreeVars.metdeltaphi);
   fTreeVars.leponedeltaphi = std::fabs(Utilities::DeltaPhi(leptonOne.p4->Phi(), lep.Phi()));
   fTreeVars.leptwodeltaphi = std::fabs(Utilities::DeltaPhi(leptonTwo.p4->Phi(), lep.Phi()));
   fTreeVars.onemetdeltaphi = std::fabs(Utilities::DeltaPhi(leptonOne.p4->Phi(), metPhi));
@@ -2375,6 +2457,18 @@ void HistMaker::CountObjects() {
   }
   if(nTrigObj > kMaxTriggers) {
     printf("HistMaker::%s: Error! Too many triggers (%i), max allowed are %i\n", __func__, nTrigObj, kMaxTriggers);
+    throw 20;
+  }
+  if(!fIsData && nPSWeight > kMaxTheory) {
+    printf("HistMaker::%s: Error! Too many PS weight versions (%i), max allowed are %i\n", __func__, nPSWeight, kMaxTheory);
+    throw 20;
+  }
+  if(!fIsData && nLHEPdfWeight > kMaxTheory) {
+    printf("HistMaker::%s: Error! Too many PDF weight versions (%i), max allowed are %i\n", __func__, nLHEPdfWeight, kMaxTheory);
+    throw 20;
+  }
+  if(!fIsData && nLHEScaleWeight > kMaxTheory) {
+    printf("HistMaker::%s: Error! Too many Scale weight versions (%i), max allowed are %i\n", __func__, nLHEScaleWeight, kMaxTheory);
     throw 20;
   }
 
@@ -3077,6 +3171,10 @@ void HistMaker::FillBaseEventHistogram(EventHist_t* Hist) {
     Hist->hSignalZWeight       ->Fill(signalZWeight);
     Hist->hSignalZMixWeight    ->Fill(signalZMixingWeight);
     Hist->hLepDisplacementWeight->Fill(lepDisplacementWeight);
+    Hist->hPSSys               ->Fill(PSWeightMax);
+    Hist->hPDFSys              ->Fill(LHEPdfWeightMax);
+    Hist->hScaleRSys           ->Fill(LHEScaleRWeightMax);
+    Hist->hScaleFSys           ->Fill(LHEScaleFWeightMax);
 
     if(tauP4 && tauP4->Pt() > 0.) { //if 0 then no additional tau stored
       Hist->hTauPt           ->Fill(tauP4->Pt()        , genWeight*eventWeight)   ;
@@ -3611,10 +3709,12 @@ Bool_t HistMaker::InitializeEvent(Long64_t entry)
   //Print event summary after initialization if requested
   if(fVerbose) {
     printf(" HistMaker::%s summary:\n", __func__);
-    printf("  di-lepton: mass = %.1f, pt = %.1f, eta = %5.1f, mt(ll,met) = %.1f\n", fTreeVars.lepm, fTreeVars.leppt, fTreeVars.lepeta, fTreeVars.mtlep);
+    printf("  di-lepton: mass = %.1f, pt = %.1f, eta = %5.1f, phi = %.5f, mt(ll,met) = %.1f\n", fTreeVars.lepm, fTreeVars.leppt, fTreeVars.lepeta,
+           (*leptonOne.p4+*leptonTwo.p4).Phi(),
+           fTreeVars.mtlep);
     printf("  lep_1: pdg = %3i, pt = %5.1f, eta(SC) = %5.2f(%5.2f), mt(l,met) = %5.1f, matched = %o\n", leptonOne.flavor, leptonOne.pt, leptonOne.eta, leptonOne.scEta, fTreeVars.mtone, leptonOne.matched);
     printf("  lep_2: pdg = %3i, pt = %5.1f, eta(SC) = %5.2f(%5.2f), mt(l,met) = %5.1f, matched = %o\n", leptonTwo.flavor, leptonTwo.pt, leptonTwo.eta, leptonTwo.scEta, fTreeVars.mttwo, leptonTwo.matched);
-    printf("  event: met = %.1f, N(jets) = %i, N(tight b) = %i, N(loose b) = %i, jet pt = %.1f, weight = %.4f\n", fTreeVars.met, nJets20, nBJets20, nBJets20L, fTreeVars.jetpt, eventWeight*genWeight);
+    printf("  event: met = %.1f, met phi = %.5f, N(jets) = %i, N(tight b) = %i, N(loose b) = %i, jet pt = %.1f, weight = %.4f\n", fTreeVars.met, metPhi, nJets20, nBJets20, nBJets20L, fTreeVars.jetpt, eventWeight*genWeight);
     // if(fIsData || fIsEmbed)
     printf("  event = %llu, lumi = %u, run = %u\n", eventNumber, lumiSection, runNumber);
   }
