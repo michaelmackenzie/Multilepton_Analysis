@@ -105,6 +105,111 @@ void print_stack(TString hist, TString type, int set, bool useMuon, int year) {
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------
+// make a plot of the di-lepton pT with an uncertainty band
+void print_unc_band(int set, bool useMuon, int year, int bin = -1) {
+  TString hist("lepptvsm0"), sys("lepptvsm3"), type("event");
+  dataplotter_->rebinH_ = 0;
+  THStack* hsys2D  = dataplotter_->get_stack(sys , type, set);
+  THStack* hbkg2D  = dataplotter_->get_stack(hist, type, set);
+  TH2*     hdata2D = (TH2*) dataplotter_->get_data(hist, type, set);
+  if(!hbkg2D || !hsys2D || !hdata2D) return nullptr;
+  //Project into the pT dimension
+  const int nx = hdata2D->GetNbinsX();
+  int bin_low(1), bin_high(nx);
+  if(bin > 0 && bin <= nx) {bin_low = bin; bin_high = bin;} //if projecting a single bin
+  TH1* hsys  = ((TH2*) hsys2D->GetStack()->Last())->ProjectionY("_sys_py", bin_low, bin_high);
+  TH1* hbkg  = ((TH2*) hbkg2D->GetStack()->Last())->ProjectionY("_bkg_py", bin_low, bin_high);
+  TH1* hdata = hdata2D->ProjectionY("_data_py", bin_low, bin_high);
+  if(!hbkg || !hsys || !hdata) return nullptr;
+  TH1* hsys_down = (TH1*) hbkg->Clone(Form("%s_down", hsys->GetName()));
+  hsys_down->Add(hbkg); hsys_down->Add(hsys, -1.); //hbkg + (hbkg - hsys) = 2*hbkg - hsys
+  cout << __func__ << ": Data / MC = " << hdata->Integral() << " / " << hbkg->Integral()
+       << " (" << hsys->Integral() << " - " << hsys_down->Integral() << ")\n";
+  TCanvas* c = new TCanvas(Form("c_unc_band_%i", set),
+                           Form("c_unc_band_%i", set),
+                           1000, 1200);
+  TPad* pad1 = new TPad("pad1", "pad1", 0., 0.25, 1., 1.0 ); pad1->Draw();
+  TPad* pad2 = new TPad("pad2", "pad2", 0., 0.  , 1., 0.25); pad2->Draw();
+  pad1->SetBottomMargin(0.04);
+  pad2->SetTopMargin(0.03);
+
+  pad1->cd();
+  hbkg     ->SetLineWidth(2); hbkg     ->SetLineColor(kBlue); hbkg     ->SetFillColor(0);
+  hsys     ->SetLineWidth(2); hsys     ->SetLineColor(kRed ); hsys     ->SetFillColor(0);
+  hsys_down->SetLineWidth(2); hsys_down->SetLineColor(kRed ); hsys_down->SetFillColor(0);
+  hbkg->Draw("hist");
+  hsys->Draw("hist same");
+  hsys_down->Draw("hist same");
+  hdata->Draw("E same");
+  double max_val = std::max(hdata->GetMaximum(), std::max(hsys->GetMaximum(), hsys_down->GetMaximum()));
+  hbkg->GetYaxis()->SetRangeUser(0.1, 1.2*max_val);
+  hbkg->SetTitle("");
+  pad1->SetGrid();
+
+  pad2->cd();
+  TH1* hratio = (TH1*) hdata->Clone("hratio");
+  hratio->Divide(hbkg);
+  TH1* hup_r = (TH1*) hdata->Clone("hup_r");
+  hup_r->Divide(hsys); hup_r->SetLineColor(kRed); hup_r->SetLineWidth(2); hup_r->SetFillColor(0);
+  TH1* hdown_r = (TH1*) hdata->Clone("hdown_r");
+  hdown_r->Divide(hsys_down); hdown_r->SetLineColor(kRed); hdown_r->SetLineWidth(2); hdown_r->SetFillColor(0);
+  hratio->SetTitle("");
+  hratio->Draw("E");
+  hup_r->Draw("hist same");
+  hdown_r->Draw("hist same");
+  TLine* line = new TLine(hratio->GetXaxis()->GetXmin(), 1., hratio->GetXaxis()->GetXmax(), 1.);
+  line->SetLineColor(kRed);
+  line->SetLineWidth(2);
+  line->SetLineStyle(kDashed);
+  line->Draw("same");
+  hratio->Draw("E same");
+  hratio->GetYaxis()->SetRangeUser(0.7, 1.3);
+  hratio->GetXaxis()->SetLabelSize(0.1);
+  hratio->GetYaxis()->SetLabelSize(0.1);
+  pad2->SetGrid();
+  gStyle->SetPadTickX(1);
+  gStyle->SetPadTickY(1);
+
+  pad1->SetLogx();
+  pad2->SetLogx();
+
+  //Add the mass range to the plot
+  pad1->cd();
+  TLatex label;
+  label.SetNDC();
+  label.SetTextFont(72);
+  label.SetTextSize(0.04);
+  label.SetTextAlign(13);
+  label.DrawLatex(0.13, 0.85,  Form("%.1f < M_{ll} < %.1f",
+                                    hdata2D->GetXaxis()->GetBinLowEdge(bin_low),
+                                    hdata2D->GetXaxis()->GetBinLowEdge(bin_high) + hdata2D->GetXaxis()->GetBinWidth(bin_high)));
+
+
+  if(c) {
+    //check if doing a single bin
+    if(bin > 0 && bin <= nx) {
+      c->Print(Form("figures/%i/%s_leppt_unc_band_%i/bin_%i.png", years_[0], (useMuon) ? "mumu" : "ee", year, bin));
+      pad1->SetLogy();
+      hbkg->GetYaxis()->SetRangeUser(1.e-4*max_val, 5.*max_val);
+      c->Print(Form("figures/%i/%s_leppt_unc_band_%i/bin_%i_log.png", years_[0], (useMuon) ? "mumu" : "ee", year, bin));
+      delete c;
+      delete hbkg, hdata, hsys, hsys_down, hratio, hup_r, hdown_r, hdata2D, hbkg2D, hsys2D, pad1, pad2;
+    } else {
+      c->Print(Form("figures/%i/%s_leppt_unc_band_%i.png", years_[0], (useMuon) ? "mumu" : "ee", year));
+      pad1->SetLogy();
+      hbkg->GetYaxis()->SetRangeUser(1.e-4*max_val, 5.*max_val);
+      c->Print(Form("figures/%i/%s_leppt_unc_band_%i_log.png", years_[0], (useMuon) ? "mumu" : "ee", year));
+      delete c;
+      delete hbkg, hdata, hsys, hsys_down, hratio, hup_r, hdown_r, hdata2D, hbkg2D, hsys2D, pad1, pad2;
+      //print each bin's projection
+      const char* dir = Form("figures/%i/%s_leppt_unc_band_%i", years_[0], (useMuon) ? "mumu" : "ee", year);
+      gSystem->Exec(Form("[ ! -d %s ] && mkdir -p %s", dir, dir));
+      for(int ibin = 1; ibin <= nx; ++ibin) print_unc_band(set, useMuon, year, ibin);
+    }
+  } else cout << "Canvas not found for uncertainy band in set " << set << " (bin = " << bin << ")\n";
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
 //create a histogram with variable bin widths from fixed with histogram
 TH2* create_rebinned_histogram(TH2* h, const int& nbinsx, const double* xbins,
                                 const int& nbinsy, const double* ybins) {
@@ -278,9 +383,10 @@ TH2* get_histogram(int set, int type = 0, bool isdata = false) {
       if(verbose_ > 0) cout << "Histogram " << hname.Data() << " for " << input.name_.Data() << " not found!\n";
       continue;
     }
+    hTmp = (TH2*) hTmp->Clone(Form("tmp_%s", hTmp->GetName()));
     hTmp->Scale(input.scale_);
     if(!h) h = hTmp;
-    else h->Add(hTmp);
+    else {h->Add(hTmp); delete hTmp;}
   }
 
   //loop through and ensure all bins are >= 0
@@ -340,7 +446,7 @@ TCanvas* scale_factors(bool useMuon = true, int set = 7, int year = 2016, TStrin
 
   int setAbs = (useMuon) ? set+CLFVHistMaker::kMuMu : set+CLFVHistMaker::kEE;
   if(verbose_ > 0) std::cout << "Retrieving data histogram" << std::endl;
-  TH2* hData = get_histogram(setAbs, 0, true); //(TH2*) fData->Get(Form("Data/event_%i/lepptvsm1", setAbs));
+  TH2* hData = get_histogram(setAbs, 0, true);
   if(!hData) {
     cout << "2D data histogram not found!\n";
     return nullptr;
@@ -602,12 +708,17 @@ TCanvas* scale_factors(bool useMuon = true, int set = 7, int year = 2016, TStrin
   //////////////////////////////////////////////////////////////////////////////////////
   // Draw distributions with/without corrections
 
-  for(int i = 0; i < 5; ++i) {
+  for(int i = 0; i <= 5; ++i) {
     print_stack((i > 0) ? Form("zpt%i", i) : "zpt", "event", setAbs, useMuon, year);
     print_stack((i > 0) ? Form("zmass%i", i) : "zmass", "event", setAbs, useMuon, year);
     if(i < 3) print_stack((i > 0) ? Form("leppt%i", i) : "leppt", "event", setAbs, useMuon, year);
     if(i < 3) print_stack((i > 0) ? Form("lepm%i", i) : "lepm", "event", setAbs, useMuon, year);
   }
+
+  //////////////////////////////////////////////////////////////////////////////////////
+  // Plot the correction with the uncertainty band
+
+  print_unc_band(setAbs, useMuon, year);
 
   return c;
 }

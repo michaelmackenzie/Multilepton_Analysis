@@ -36,7 +36,7 @@ std::vector<TH1*> DataPlotter::get_histograms(TString hist, TString setType, Int
     if(process != "" && input.label_ != process) continue;
     TH1* tmp = (TH1*) input.data_->Get(Form("%s_%i/%s", setType.Data(), set, hist.Data()));
 
-    if(!tmp && !replace_missing_sys_) {
+    if(!tmp && (!replace_missing_sys_ || setType != "systematic")) {
       printf("%s: Histogram %s/%s/%i for %s (%s) %i not found! Continuing...\n",
              __func__, hist.Data(), setType.Data(), set, input.name_.Data(), input.label_.Data(), input.dataYear_);
       continue;

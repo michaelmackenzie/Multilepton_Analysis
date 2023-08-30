@@ -2,17 +2,18 @@
 
 using namespace CLFV;
 
-CrossSections::CrossSections(int useUL, int ZMode) {
+CrossSections::CrossSections(int /*useUL*/, int /*ZMode*/) {
   //cross sections by MC dataset
-  double zll = (useUL > 0) ? 6435. : /*2075.14/0.0337*/ 6077.22; //UL: AMC@NLO = 6435 MadGraph = 5321
-  if(ZMode == 1 && useUL == 0) zll = 4963.0; //2016 Legacy AMC@NLO (?)
+  // double zll = (useUL > 0) ? 6435. : /*2075.14/0.0337*/ 6077.22; //UL: AMC@NLO = 6435 MadGraph = 5321
+  // if(ZMode == 1 && useUL == 0) zll = 4963.0; //2016 Legacy AMC@NLO (?)
+  const double zll = 6077.22; //see x-sec wiki
 
   const double br_ll = 0.0337; //branching ratio of Z->ll
   const double zxs = zll/(3.*br_ll);
   const double higgs = (48.61+3.766+0.5071+1.358+0.880);
   values_["DY50"                    ][2016] = zll    ;
-  values_["DY50"                    ][2017] = (ZMode == 1) ? 6435. : zll;
-  values_["DY50"                    ][2018] = (ZMode == 1) ? 6435. : zll;
+  values_["DY50"                    ][2017] = zll;
+  values_["DY50"                    ][2018] = zll;
   values_["DY10to50"                ][2016] =  21658. ; //18810. ;
   values_["DY10to50"                ][2017] =  21658. ; //15890. ;
   values_["DY10to50"                ][2018] =  21658. ; //15890. ;

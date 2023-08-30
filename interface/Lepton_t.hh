@@ -52,6 +52,8 @@ namespace CLFV {
 
     bool  jetOverlap;
 
+    int index;
+
     bool  isElectron() {return std::abs(flavor) == 11;}
     bool  isMuon    () {return std::abs(flavor) == 13;}
     bool  isTau     () {return std::abs(flavor) == 15;}

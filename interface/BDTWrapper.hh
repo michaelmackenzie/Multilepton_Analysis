@@ -48,6 +48,7 @@ namespace CLFV {
 
     float EvaluateScore() {
       if(!bdt_) return -999.f;
+      if(verbose_ > 3) printf("BDTWrapper::%s:\n", __func__);
       if(vars_.size() == 0) {
         if(verbose_ > -2) printf("BDTWrapper::%s: No variables defined!\n", __func__);
         return -999.f;
@@ -56,24 +57,24 @@ namespace CLFV {
       float data[vars_.size()];
       for(unsigned index = 0; index < vars_.size(); ++index) data[index] = vars_[index][0];
       if(verbose_ > 5) {
-        printf("BDTWrapper::%s: Input variables:\n", __func__);
+        printf(" BDT input variables:\n");
         for(unsigned index = 0; index < vars_.size(); ++index) {
-          printf(" %i: %f\n", (int) index, *(vars_[index]));
+          printf("  %i: %f\n", (int) index, *(vars_[index]));
         }
       }
-      if(verbose_ > 3) std::cout << "Creating matrix\n";
+      if(verbose_ > 3) std::cout << " --> Creating matrix\n";
       int status = XGDMatrixCreateFromMat(data, 1, vars_.size(), 0.f, &dvalues);
       if(status) {
         if(verbose_ > -2) printf("BDTWrapper::%s: Error creating data matrix! Status = %i\n", __func__, status);
         return - 999.f;
       }
 
-      if(verbose_ > 3) std::cout << "Evaluating prediction\n";
+      if(verbose_ > 3) std::cout << " --> Evaluating prediction\n";
       bst_ulong out_len=0;
       const float* score;
 
       auto ret = XGBoosterPredict(bdt_, dvalues, 0, 0, &out_len, &score);
-      if(verbose_ > 3) std::cout << "Evaluated prediction\n";
+      if(verbose_ > 3) std::cout << " --> Evaluated prediction\n";
 
       XGDMatrixFree(dvalues);
 
@@ -82,6 +83,7 @@ namespace CLFV {
         for(unsigned int ic=0; ic<out_len; ++ic)
           results.push_back(score[ic]);
       }
+      if(verbose_ > 3) std::cout << " --> BDT score = " << results[0] << std::endl;
       return results[0];
     }
 

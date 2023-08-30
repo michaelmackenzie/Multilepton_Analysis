@@ -19,12 +19,14 @@ namespace CLFV {
 
     ~ZPDFUncertainty();
 
-    float GetPDFWeight  (int year, float z_pt, float z_eta, float z_mass);
-    float GetScaleWeight(int year, float z_pt , float z_mass/*, int Mode = 0*/);
+    float GetPDFWeight        (int year, float z_pt, float z_eta, float z_mass);
+    float GetRenormScaleWeight(int year, float z_pt, float z_mass);
+    float GetFactorScaleWeight(int year, float z_pt, float z_mass);
 
   private:
-    std::map<int, TH2*> hPDF_; //scales using generator level quantities
-    std::map<int, TH2*> hScale_; //scales using generator level quantities
+    std::map<int, TH2*> hPDF_   ; //scales using generator level quantities
+    std::map<int, TH2*> hScaleR_;
+    std::map<int, TH2*> hScaleF_;
   };
 }
 #endif

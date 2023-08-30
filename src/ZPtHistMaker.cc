@@ -17,6 +17,59 @@ void ZPtHistMaker::Begin(TTree * /*tree*/)
   HistMaker::Begin(nullptr);
 }
 
+//--------------------------------------------------------------------------------------------------------------
+void ZPtHistMaker::Init(TTree* tree)
+{
+  HistMaker::Init(tree);
+
+  /////////////////////////////////////////////////
+  // Turn off branches that won't be used here
+
+  //Taus aren't used
+  tree->SetBranchStatus("nTau" , 0); nTau = 0;
+  tree->SetBranchStatus("Tau_*", 0);
+
+  //Theory uncertainties aren't used
+  if(!fIsData && !fIsEmbed) {
+    tree->SetBranchAddress("nPSWeight"      , 0); nPSWeight = 0;
+    tree->SetBranchAddress("PSWeight"       , 0);
+    tree->SetBranchAddress("nLHEPdfWeight"  , 0); nLHEPdfWeight = 0;
+    tree->SetBranchAddress("LHEPdfWeight"   , 0);
+    tree->SetBranchAddress("nLHEScaleWeight", 0); nLHEScaleWeight = 0;
+    tree->SetBranchAddress("LHEScaleWeight" , 0);
+  }
+
+  //Systematics not used
+  if(!fIsData) {
+    tree->SetBranchAddress("puWeightUp"  , 0);
+    tree->SetBranchAddress("puWeightDown", 0);
+    tree->SetBranchAddress("PrefireWeight_Up"  , 0);
+    tree->SetBranchAddress("PrefireWeight_Down", 0);
+    tree->SetBranchAddress("Jet_pt_jerUp"  , 0);
+    tree->SetBranchAddress("Jet_pt_jerDown", 0);
+    tree->SetBranchAddress("Jet_pt_jesTotalUp"  , 0);
+    tree->SetBranchAddress("Jet_pt_jesTotalDown", 0);
+    if(fApplyLeptonIDWt == 2) {
+      tree->SetBranchAddress("Electron_ID_up"  , 0);
+      tree->SetBranchAddress("Electron_ID_down", 0);
+      tree->SetBranchAddress("Electron_IsoID_up"  , 0);
+      tree->SetBranchAddress("Electron_IsoID_down", 0);
+      tree->SetBranchAddress("Electron_RecoID_up"  , 0);
+      tree->SetBranchAddress("Electron_RecoID_down", 0);
+      tree->SetBranchAddress("Muon_ID_up"  , 0);
+      tree->SetBranchAddress("Muon_ID_down", 0);
+      tree->SetBranchAddress("Muon_IsoID_up"  , 0);
+      tree->SetBranchAddress("Muon_IsoID_down", 0);
+    }
+    tree->SetBranchAddress("Muon_correctedUp_pt"  , 0);
+    tree->SetBranchAddress("Muon_correctedDown_pt", 0);
+    if(!fIsEmbed) {
+      tree->SetBranchAddress("Jet_btagSF_deepcsv_L_wt_*", 0);
+      tree->SetBranchAddress("Jet_btagSF_deepcsv_T_wt_*", 0);
+    }
+  }
+}
+
 
 //--------------------------------------------------------------------------------------------------------------
 void ZPtHistMaker::InitHistogramFlags() {
@@ -135,22 +188,30 @@ void ZPtHistMaker::BookEventHistograms() {
       Utilities::BookH1F(fEventHist[i]->hLepM[3] , "lepm3"         , Form("%s: Lepton M"       ,dirname)  ,  80,  70, 110, folder);
       Utilities::BookH1F(fEventHist[i]->hLepM[4] , "lepm4"         , Form("%s: Lepton M"       ,dirname)  ,  40, 105, 145, folder);
 
-      //Z pT weights measurement
-      const double mbins[] = {50., 80., 100., 130., 500.}; //modified from H->tautau
+      /////////////////////////////////////////////////////////////
+      //Z pT weights measurement histograms
+
+      //binning for reco (M, pT)
+      const double mbins[] = {40., 80., 100., 130., 500.}; //modified from H->tautau
       const int nmbins = sizeof(mbins) / sizeof(*mbins) - 1;
       const double pbins[] = {0., 3., 6., 10., 15., 20., 30., 40., 50., 100., 150., 200., 300., 400., 1000.}; //modified from H->tautau
       const int npbins = sizeof(pbins) / sizeof(*pbins) - 1;
+      //binning for gen (M, pT)
+      const double gen_mbins[] = {40., 80., 100., 130., 500.}; //modified from H->tautau
+      const int gen_nmbins = sizeof(gen_mbins) / sizeof(*gen_mbins) - 1;
+      const double gen_pbins[] = {0., 1., 2., 3., 6., 9., 12., 15., 20., 30., 40., 50., 100., 150., 200., 300., 400., 1000.}; //modified from H->tautau
+      const int gen_npbins = sizeof(gen_pbins) / sizeof(*gen_pbins) - 1;
 
       Utilities::BookH2F(fEventHist[i]->hLepPtVsM[0], "lepptvsm0"     , Form("%s: Lepton Pt vs M" ,dirname)  , nmbins, mbins, npbins, pbins, folder);
       Utilities::BookH2F(fEventHist[i]->hLepPtVsM[1], "lepptvsm1"     , Form("%s: Lepton Pt vs M" ,dirname)  , nmbins, mbins, npbins, pbins, folder);
       Utilities::BookH2F(fEventHist[i]->hLepPtVsM[2], "lepptvsm2"     , Form("%s: Lepton Pt vs M" ,dirname)  , nmbins, mbins, npbins, pbins, folder);
       Utilities::BookH2F(fEventHist[i]->hLepPtVsM[3], "lepptvsm3"     , Form("%s: Lepton Pt vs M" ,dirname)  , nmbins, mbins, npbins, pbins, folder);
       Utilities::BookH2F(fEventHist[i]->hLepPtVsM[4], "lepptvsm4"     , Form("%s: Lepton Pt vs M" ,dirname)  , nmbins, mbins, npbins, pbins, folder);
-      Utilities::BookH2F(fEventHist[i]->hZPtVsM[0]  , "zptvsm0"       , Form("%s: Gen Z Pt vs M"  ,dirname)  , nmbins, mbins, npbins, pbins, folder);
-      Utilities::BookH2F(fEventHist[i]->hZPtVsM[1]  , "zptvsm1"       , Form("%s: Gen Z Pt vs M"  ,dirname)  , nmbins, mbins, npbins, pbins, folder);
-      Utilities::BookH2F(fEventHist[i]->hZPtVsM[2]  , "zptvsm2"       , Form("%s: Gen Z Pt vs M"  ,dirname)  , nmbins, mbins, npbins, pbins, folder);
-      Utilities::BookH2F(fEventHist[i]->hZPtVsM[3]  , "zptvsm3"       , Form("%s: Gen Z Pt vs M"  ,dirname)  , nmbins, mbins, npbins, pbins, folder);
-      Utilities::BookH2F(fEventHist[i]->hZPtVsM[4]  , "zptvsm4"       , Form("%s: Gen Z Pt vs M"  ,dirname)  , nmbins, mbins, npbins, pbins, folder);
+      Utilities::BookH2F(fEventHist[i]->hZPtVsM[0]  , "zptvsm0"       , Form("%s: Gen Z Pt vs M"  ,dirname)  , gen_nmbins, gen_mbins, gen_npbins, gen_pbins, folder);
+      Utilities::BookH2F(fEventHist[i]->hZPtVsM[1]  , "zptvsm1"       , Form("%s: Gen Z Pt vs M"  ,dirname)  , gen_nmbins, gen_mbins, gen_npbins, gen_pbins, folder);
+      Utilities::BookH2F(fEventHist[i]->hZPtVsM[2]  , "zptvsm2"       , Form("%s: Gen Z Pt vs M"  ,dirname)  , gen_nmbins, gen_mbins, gen_npbins, gen_pbins, folder);
+      Utilities::BookH2F(fEventHist[i]->hZPtVsM[3]  , "zptvsm3"       , Form("%s: Gen Z Pt vs M"  ,dirname)  , gen_nmbins, gen_mbins, gen_npbins, gen_pbins, folder);
+      Utilities::BookH2F(fEventHist[i]->hZPtVsM[4]  , "zptvsm4"       , Form("%s: Gen Z Pt vs M"  ,dirname)  , gen_nmbins, gen_mbins, gen_npbins, gen_pbins, folder);
       Utilities::BookH1F(fEventHist[i]->hZPt[0]     , "zpt"           , Form("%s: Z Pt"           ,dirname)  , npbins,   pbins, folder);
       Utilities::BookH1F(fEventHist[i]->hZPt[1]     , "zpt1"          , Form("%s: Z Pt"           ,dirname)  , npbins,   pbins, folder);
       Utilities::BookH1F(fEventHist[i]->hZPt[2]     , "zpt2"          , Form("%s: Z Pt"           ,dirname)  , npbins,   pbins, folder);
@@ -286,7 +347,7 @@ void ZPtHistMaker::FillEventHistogram(EventHist_t* Hist) {
   Hist->hLepM[3]      ->Fill(lepSys.M()             ,eventWeight*genWeight);
   Hist->hLepM[4]      ->Fill(lepSys.M()             ,eventWeight*genWeight);
 
-    //2D histograms for DY reweighting
+  //2D histograms for DY reweighting
   Hist->hLepPtVsM[0]  ->Fill(lepSys.M(), lepSys.Pt(), eventWeight*genWeight);
   Hist->hLepPtVsM[1]  ->Fill(lepSys.M(), lepSys.Pt(), bareweight);
   Hist->hLepPtVsM[2]  ->Fill(lepSys.M(), lepSys.Pt(), recoweight);
@@ -365,7 +426,7 @@ Bool_t ZPtHistMaker::Process(Long64_t entry)
   if(InitializeEvent(entry)) return kTRUE;
 
   //object pT thresholds
-  const float muon_pt(10.), electron_pt(15.), tau_pt(20.);
+  const float muon_pt(10.), electron_pt(15.);
 
   if(!(mutau || etau || emu || mumu || ee)) return kTRUE;
 
@@ -378,8 +439,6 @@ Bool_t ZPtHistMaker::Process(Long64_t entry)
   if(leptonTwo.isElectron() && leptonTwo.p4->Pt() <= electron_pt) return kTRUE;
   if(leptonOne.isMuon    () && leptonOne.p4->Pt() <= muon_pt    ) return kTRUE;
   if(leptonTwo.isMuon    () && leptonTwo.p4->Pt() <= muon_pt    ) return kTRUE;
-  if(leptonOne.isTau     () && leptonOne.p4->Pt() <= tau_pt     ) return kTRUE;
-  if(leptonTwo.isTau     () && leptonTwo.p4->Pt() <= tau_pt     ) return kTRUE;
 
   //leptons must satisfy the pt requirements and fire a trigger
   mumu  &= ((leptonOne.p4->Pt() > muon_trig_pt_ && leptonOne.fired) ||
@@ -391,23 +450,21 @@ Bool_t ZPtHistMaker::Process(Long64_t entry)
   fCutFlow->Fill(icutflow); ++icutflow; //6
 
   //eta region cuts
-  const double electron_eta_max = (fUseEmbedCuts) ? 2.2 : 2.5;
-  const double muon_eta_max     = (fUseEmbedCuts) ? 2.2 : 2.4;
-  const double tau_eta_max      = (fUseEmbedCuts) ? 2.2 : 2.3;
+  const double electron_eta_max = (fUseEmbedCuts) ? (emu || ee || mumu) ? 2.4 : 2.2 : 2.5;
+  const double muon_eta_max     = (fUseEmbedCuts) ? (emu || ee || mumu) ? 2.4 : 2.2 : 2.4;
+  const double min_delta_r      = 0.3; //separation between leptons
   if(leptonOne.isElectron() && std::fabs(leptonOne.p4->Eta()) >= electron_eta_max) return kTRUE;
   if(leptonTwo.isElectron() && std::fabs(leptonTwo.p4->Eta()) >= electron_eta_max) return kTRUE;
   if(leptonOne.isMuon    () && std::fabs(leptonOne.p4->Eta()) >= muon_eta_max    ) return kTRUE;
   if(leptonTwo.isMuon    () && std::fabs(leptonTwo.p4->Eta()) >= muon_eta_max    ) return kTRUE;
-  if(leptonOne.isTau     () && std::fabs(leptonOne.p4->Eta()) >= tau_eta_max     ) return kTRUE;
-  if(leptonTwo.isTau     () && std::fabs(leptonTwo.p4->Eta()) >= tau_eta_max     ) return kTRUE;
 
   //reject electrons in the barrel/endcap gap region
-  const float elec_gap_low(1.4442), elec_gap_high(1.566);
+  const float elec_gap_low(1.444), elec_gap_high(1.566);
   if(leptonOne.isElectron() && std::fabs(leptonOne.scEta) >= elec_gap_low && std::fabs(leptonOne.scEta) <= elec_gap_high) return kTRUE;
   if(leptonTwo.isElectron() && std::fabs(leptonTwo.scEta) >= elec_gap_low && std::fabs(leptonTwo.scEta) <= elec_gap_high) return kTRUE;
 
   //enforce the leptons are separated
-  if(std::fabs(leptonOne.p4->DeltaR(*leptonTwo.p4)) < 0.3) return kTRUE;
+  if(std::fabs(leptonOne.p4->DeltaR(*leptonTwo.p4)) < min_delta_r) return kTRUE;
 
   //apply reasonable lepton isolation cuts
   if(leptonOne.isElectron() && leptonOne.relIso >= 0.5) return kTRUE;
@@ -419,7 +476,9 @@ Bool_t ZPtHistMaker::Process(Long64_t entry)
 
   //FIXME: Decide on mass range to use, should low/high mass be included?
   const double mll = (*leptonOne.p4+*leptonTwo.p4).M();
-  if(mll <= 51. || mll >= 170.) return kTRUE;
+  const float min_lepm =  40.f;
+  const float max_lepm = 170.f;
+  if(mll <= min_lepm || mll >= max_lepm) return kTRUE;
 
   fCutFlow->Fill(icutflow); ++icutflow; //8
 
@@ -442,8 +501,8 @@ Bool_t ZPtHistMaker::Process(Long64_t entry)
   if(!(mumu || ee)) return kTRUE;
 
   //remove additional leptons
-  mumu &= nElectrons < 2;
-  ee   &= nMuons     < 2;
+  mumu &= nMuons     == 2 && nElectrons < 2;
+  ee   &= nElectrons == 2 && nMuons     < 2;
 
   fCutFlow->Fill(icutflow); ++icutflow; //10
   if(!(mumu || ee)) return kTRUE;
@@ -476,22 +535,6 @@ Bool_t ZPtHistMaker::Process(Long64_t entry)
     mumu   &= !isFakeMuon;
     ee     &= !isFakeElectron;
   }
-
-  if(!(mumu || ee)) return kTRUE;
-
-  //////////////////////////
-  //    Add MET cuts      //
-  //////////////////////////
-
-  // const double met_cut         = 60.;
-  // const double mtlep_cut       = 70.;
-
-  // mumu  &= met < met_cut;
-  // ee    &= met < met_cut;
-
-  //Add W+Jets selection orthogonality condition
-  // mumu  &= fTreeVars.mtlep < mtlep_cut;
-  // ee    &= fTreeVars.mtlep < mtlep_cut;
 
   if(!(mumu || ee)) return kTRUE;
 

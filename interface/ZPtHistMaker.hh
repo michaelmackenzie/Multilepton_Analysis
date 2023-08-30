@@ -15,6 +15,7 @@ namespace CLFV {
 
 
     void    Begin(TTree*);
+    void    Init(TTree* tree);
     void    InitHistogramFlags();
     void    BookHistograms();
     void    BookEventHistograms();
