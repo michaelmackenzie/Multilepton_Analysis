@@ -42,6 +42,8 @@ namespace CLFV {
     bool  matched;
     bool  fired;
     int   trigger_id;
+    float trig_data_eff;
+    float trig_mc_eff;
 
     bool  isLoose;
 

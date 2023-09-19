@@ -67,9 +67,11 @@
 #include "interface/MuonIDWeight.hh"
 #include "interface/ElectronIDWeight.hh"
 #include "interface/LeptonDisplacement.hh"
+#include "interface/BDTScale.hh"
 
 #include "interface/ZPDFUncertainty.hh"
 #include "interface/Systematics.hh"
+#include "interface/EventFlags.hh"
 
 namespace CLFV {
 
@@ -285,8 +287,12 @@ namespace CLFV {
     Float_t puppMETJESUp               ;
     Float_t puppMETphiJERUp            ;
     Float_t puppMETphiJESUp            ;
+    Float_t puppMETJERDown             ; //locally evaluated
+    Float_t puppMETJESDown             ; //locally evaluated
+    Float_t puppMETphiJERDown          ; //locally evaluated
+    Float_t puppMETphiJESDown          ; //locally evaluated
     Float_t puppMETSumEt               ;
-    Float_t puppMETSig                 ;
+    Float_t puppMETSig                 ; //locally evaluated
 
     //MET field to use
     Float_t met                        ;
@@ -322,6 +328,7 @@ namespace CLFV {
     Float_t signalZMixingWeightUp = 1. ;
     Float_t signalZMixingWeightDown = 1.;
     Float_t lepDisplacementWeight = 1. ;
+    Float_t bdtWeight = 1.             ;
     Float_t zPtWeight = 1.             ;
     Float_t zPtWeightUp = 1.           ;
     Float_t zPtWeightDown = 1.         ;
@@ -626,9 +633,15 @@ namespace CLFV {
       if(fDYType > 0) {
         // 1 = tau, 2 = muon or electron channel
         if(nGenHardTaus == 0) { //Z->ee/mumu
-          if(fDYType == 1) return kTRUE;
+          if(fDYType == 1) {
+            if(fVerbose > 1) std::cout << " " <<  __func__ << ": Z->ee/mumu in Z->tautau\n";
+            return kTRUE;
+          }
         } else if(nGenHardTaus == 2) { //Z->tautau
-          if(fDYType == 2) return kTRUE;
+          if(fDYType == 2) {
+            if(fVerbose > 1) std::cout << " " <<  __func__ << ": Z->tautau in Z->ee/mumu\n";
+            return kTRUE;
+          }
         } else {
           std::cout << "Warning! Unable to identify type of DY event!" << std::endl
                     << "nGenHardTaus = " << nGenHardTaus << std::endl
@@ -648,11 +661,15 @@ namespace CLFV {
       //If running embedding, reject di-tau production from non-embedding MC (except tau-tau DY MC, which is already separated by histogram files)
       //If testing ee/mumu with embedding, reject ee/mumu events instead
       if(fUseEmbedCuts && !fIsEmbed && !fIsData) {
-        if(fDYType != 1 && nGenTaus == 2 && !(fSelection == "ee" || fSelection == "mumu")) {
+        if(fUseEmbedCuts < 3 && (fSelection == "ee" || fSelection == "mumu" || fSelection == "emu")) return kFALSE; //don't do gen cuts if < 3
+        if(((fIsDY && fDYType == 0) || fDYType != 1) && nGenTaus == 2 && !(fSelection == "ee" || fSelection == "mumu")) {
+          if(fVerbose > 1) std::cout << " " <<  __func__ << ": Splitting event due to non-Embedded tautau in ee/mumu\n";
           return kTRUE;
-        } else if(fDYType != 2 && fUseEmbedCuts == 2 && nGenMuons == 2 && fSelection == "mumu") {
+        } else if(((fIsDY && fDYType == 0) || fDYType != 2) && fUseEmbedCuts == 2 && nGenMuons == 2 && fSelection == "mumu") {
+          if(fVerbose > 1) std::cout << " " <<  __func__ << ": Splitting event due to non-Embedded mumu in mumu\n";
           return kTRUE;
-        } else if(fDYType != 2 && fUseEmbedCuts == 2 && nGenElectrons == 2 && fSelection == "ee") {
+        } else if(((fIsDY && fDYType == 0) || fDYType != 2) && fUseEmbedCuts == 2 && nGenElectrons == 2 && fSelection == "ee") {
+          if(fVerbose > 1) std::cout << " " <<  __func__ << ": Splitting event due to non-Embedded ee in ee\n";
           return kTRUE;
         }
       }
@@ -749,6 +766,8 @@ namespace CLFV {
     Int_t           fSystematicSeed; //for systematic variations
 
     Systematics     fSystematics; //systematics information
+    EventFlags      fFlags; //event flags/filters
+    Int_t           fUseFlags = 1; //use event flag filtering
 
     Int_t           fRemoveEventWeights = 0; //0: do nothing; 1: remove most event weight corrections; 2: remove all weights, including gen-weight and transfer factors
     Int_t           fRemoveTriggerWeights = 0; // 0: do nothing 1: remove weights 2: replace weights
@@ -798,6 +817,8 @@ namespace CLFV {
     ElectronIDWeight fElectronIDWeight;
     LeptonDisplacement fLeptonDisplacement; //dxy/dz significance corrections (Z->e+mu only)
     Int_t           fUseLepDisplacementWeights = 1; //for emu selection, dxy/dz cut corrections
+    BDTScale        fBDTScale; //BDT score corrections (Z->e+mu only)
+    Int_t           fUseBDTScale = 1; //for emu selection, BDT score corrections
     Int_t           fSameFlavorEMuSelec = 0; //apply the Z->e+mu selection to the ee/mumu events
 
     ZPtWeight*      fZPtWeight; //re-weight Drell-Yan pT vs Mass

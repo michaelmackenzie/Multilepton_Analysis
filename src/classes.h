@@ -12,6 +12,7 @@
 #include "interface/Significances.hh"
 #include "interface/Utilities.hh"
 #include "interface/Systematics.hh"
+#include "interface/EventFlags.hh"
 #include "interface/CreateCategories.hh"
 #include "interface/BTagWeight.hh"
 #include "interface/PUWeight.hh"
@@ -30,6 +31,7 @@
 #include "interface/EmbeddingTnPWeight.hh"
 #include "interface/TauIDWeight.hh"
 #include "interface/ElectronIDWeight.hh"
+#include "interface/BDTScale.hh"
 #include "interface/RoccoR.h"
 #include "interface/MVAConfig.hh"
 #include "interface/TrkQualInit.hh"
@@ -58,6 +60,7 @@ namespace CLFV {
     Significances dummy3;
     Utilities dummy3a;
     Systematics dummy3a2;
+    EventFlags dummy3a3;
     CreateCategories dummy3b;
     BTagWeight dummy4;
     PUWeight dummy5;
@@ -69,6 +72,7 @@ namespace CLFV {
     ElectronIDWeight dummy6c2;
     MuonIDWeight dummy6c;
     LeptonDisplacement dummy6c3;
+    BDTScale dummy6c4;
     TauIDWeight dummy6d;
     ZPtWeight dummy6e;
     SignalZWeight dummy6e2;

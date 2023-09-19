@@ -11,6 +11,7 @@
   <class name="Significances"/>
   <class name="Utilities"/>
   <class name="Systematics"/>
+  <class name="EventFlags"/>
   <class name="CreateCategories"/>
   <class name="BTagWeight"/>
   <class name="PUWeight"/>
@@ -22,6 +23,7 @@
   <class name="ElectronIDWeight"/>
   <class name="MuonIDWeight"/>
   <class name="LeptonDisplacement"/>
+  <class name="BDTScale"/>
   <class name="TauIDWeight"/>
   <class name="ZPtWeight"/>
   <class name="SignalZWeight"/>

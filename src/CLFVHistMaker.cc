@@ -453,17 +453,21 @@ void CLFVHistMaker::BookSystematicHistograms() {
         const TString name = fSystematics.GetName(sys);
         if(name == "") continue; //only initialize defined systematics
 
-        Utilities::BookH1F(fSystematicHist[i]->hLepM        [sys], Form("lepm_%i"        , sys), Form("%s: LepM %i"                   , dirname, sys) , 280,  40, 180, folder);
+        if(!fSparseHists || (fSelection == "emu" || fSelection == "mumu" || fSelection == "ee")) {
+          Utilities::BookH1F(fSystematicHist[i]->hLepM        [sys], Form("lepm_%i"        , sys), Form("%s: LepM %i"                   , dirname, sys) , 280,  40, 180, folder);
+        }
         if(!fSparseHists) {
           Utilities::BookH1F(fSystematicHist[i]->hOnePt       [sys], Form("onept_%i"       , sys), Form("%s: Pt %i"                     , dirname, sys) ,  40,   0, 100, folder);
           Utilities::BookH1F(fSystematicHist[i]->hTwoPt       [sys], Form("twopt_%i"       , sys), Form("%s: Pt %i"                     , dirname, sys) ,  40,   0, 100, folder);
           Utilities::BookH1F(fSystematicHist[i]->hWeightChange[sys], Form("weightchange_%i", sys), Form("%s: Relative weight change %i" , dirname, sys) ,  30, -2.,   2, folder);
         }
-        for(unsigned j = 0; j < fMVAConfig->names_.size(); ++j)  {
-          Utilities::BookH1D(fSystematicHist[i]->hMVA[j][sys], Form("mva%i_%i",j, sys), Form("%s: %s MVA %i" ,dirname, fMVAConfig->names_[j].Data(), sys),
-                             fMVAConfig->NBins(j, i), fMVAConfig->Bins(j, i).data(), folder);
-          Utilities::BookH1D(fSystematicHist[i]->hMVADiff[j][sys], Form("mvadiff%i_%i",j, sys)     , Form("%s: %s MVADiff %i" ,dirname, fMVAConfig->names_[j].Data(), sys),
-                             25, -0.25, 0.25, folder);
+        if(!fSparseHists || !(fSelection == "emu" || fSelection == "mumu" || fSelection == "ee")) {
+          for(unsigned j = 0; j < fMVAConfig->names_.size(); ++j)  {
+            Utilities::BookH1D(fSystematicHist[i]->hMVA[j][sys], Form("mva%i_%i",j, sys), Form("%s: %s MVA %i" ,dirname, fMVAConfig->names_[j].Data(), sys),
+                               fMVAConfig->NBins(j, i), fMVAConfig->Bins(j, i).data(), folder);
+            Utilities::BookH1D(fSystematicHist[i]->hMVADiff[j][sys], Form("mvadiff%i_%i",j, sys)     , Form("%s: %s MVADiff %i" ,dirname, fMVAConfig->names_[j].Data(), sys),
+                               25, -0.25, 0.25, folder);
+          }
         }
       }
       //Per book histograms
@@ -1386,7 +1390,9 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
 
     if(pass) {
       ++nfilled;
-      Hist->hLepM  [sys]->Fill(lepm  , weight);
+      if(!fSparseHists || (isEMu || isSameFlavor)) {
+        Hist->hLepM  [sys]->Fill(lepm  , weight);
+      }
       //skip all other histograms in same-flavor selection, only using the M_{ll} histogram
       if(!fSparseHists) {
         Hist->hOnePt [sys]->Fill(onept  , weight);
@@ -1395,7 +1401,7 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
           Hist->hWeightChange[sys]->Fill((eventWeight*genWeight != 0.) ? (eventWeight*genWeight - weight) / (eventWeight*genWeight) : 0.);
         }
       }
-      if(isSameFlavor) continue;
+      if(isSameFlavor || (fSparseHists && isEMu)) continue;
       //MVA outputs
       float mvaweight = fTreeVars.eventweightMVA*(weight/(eventWeight*genWeight)); //apply the fractional weight change to the MVA weight accounting for test/train splitting
       if(!std::isfinite(mvaweight)) {

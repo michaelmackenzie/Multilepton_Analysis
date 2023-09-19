@@ -21,6 +21,14 @@ Int_t process_clfv() {
   config_t config(get_config());
   vector<TString>& selections = config.selections_;
 
+  if(selections.size() > 0) {
+    cout << "Selections for histogramming: { ";
+    for(TString selection : selections) {
+      cout << selection.Data() << " ";
+    }
+    cout << "}\n";
+  }
+
   TStopwatch* timer = new TStopwatch();
 
   //ensure the log directory exists
@@ -32,6 +40,13 @@ Int_t process_clfv() {
   for(unsigned i = 0; i < nfiles; ++i) {
     ++category; // could have just used i + 1?
     if(!nanocards[i].process_ || (tag_ != "" && !nanocards[i].fname_.Contains(tag_.Data()))) continue;
+    if(veto_.size() > 0) {
+      bool skip = false;
+      for(TString veto : veto_) {
+        if(veto != "" && nanocards[i].fname_.Contains(veto.Data())) skip = true;
+      }
+      if(skip) continue;
+    }
     cout << "Loop " << i << ", category " << category
          << ", file " << nanocards[i].fname_.Data()
          << ", xsec " << nanocards[i].xsec_

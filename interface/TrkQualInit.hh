@@ -124,7 +124,7 @@ namespace CLFV {
       } else { //emu
         //v0 = current version without spectators; current version is XGBoost BDT
         if(xgboost) train_var = {"met", "mtlead", "mttrail", "leppt", "pttrailoverlead",
-                                 "metsignificance", "lepeta", "metdeltaphi"};
+                                 /*"metsignificance",*/ "lepeta", "metdeltaphi"};
         else if(version_ ==  0) train_var = {"mtoneoverm", "mttwooverm", "onemetdeltaphi", "twometdeltaphi",
                                              "leponeptoverm", "leptwoptoverm", "lepptoverm", "lepdeltaphi", "jetpt"};
         if(version_ ==  7) train_var = {"mtoneoverm", "mttwooverm", "onemetdeltaphi", "twometdeltaphi",
