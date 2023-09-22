@@ -77,6 +77,104 @@ Int_t initialize_plotter(TString selection, TString base) {
   return status;
 }
 
+//-----------------------------------------------------------------------------------------------------------
+// Plot the statistical uncertainty in each histogram
+int plot_stat_sys(THStack* stack, vector<TH1*> sigs, TH1* hdata, TString name) {
+  if(!stack || stack->GetNhists() == 0 || sigs.size() == 0 || !hdata) {
+    cout << __func__ << ": Input histograms not all defined!\n";
+    return 1;
+  }
+  TCanvas* c = new TCanvas("c_stat", "c_stat", 1200, 900);
+  TPad* pad1 = new TPad("pad1_stat", "pad1_stat", 0., 0.3, 1., 1. );
+  TPad* pad2 = new TPad("pad2_stat", "pad2_stat", 0., 0. , 1., 0.3);
+  pad1->Draw(); pad2->Draw();
+  pad1->SetBottomMargin(0.06);
+  pad2->SetTopMargin(0.03);
+  pad1->cd();
+
+  TLegend* leg = (logy_) ? new TLegend(0.5, 0.7, 0.9, 0.9) : new TLegend(0.1, 0.7, 0.5, 0.9);
+  leg->SetNColumns(2);
+  auto data = (TH1*) hdata->Clone("data_stat");
+  data->SetTitle("Statistical uncertainties");
+  data->Draw("E1");
+  leg->AddEntry(data, "Data");
+  for(auto sig : sigs) {sig->Draw("E1 same"); leg->AddEntry(sig);}
+  for(auto obj : *(stack->GetHists())) {obj->Draw("E1 same"); leg->AddEntry(obj);}
+  data->GetYaxis()->SetRangeUser(0.5, (logy_) ? 2.*data->GetMaximum() : 1.1*data->GetMaximum());
+  if(logy_) pad1->SetLogy();
+  leg->Draw();
+
+  pad2->cd();
+  std::vector<TH1*> to_clean;
+  TH1* hbkg = (TH1*) stack->GetStack()->Last()->Clone("hbkg_stat");
+  TH1* hbkg_r = (TH1*) hbkg->Clone("hbkg_r");
+  hbkg_r->Divide(hbkg);
+  double max_diff = 0.;
+  for(int ibin = 1; ibin <= hbkg->GetNbinsX(); ++ibin) {
+    const double error = (hbkg->GetBinContent(ibin) > 0.) ? 1./sqrt(hbkg->GetBinContent(ibin)) : 0.;
+    max_diff = max(error, max_diff);
+    if(hbkg->GetBinContent(ibin) > 0.) hbkg_r->SetBinError(ibin, error);
+    else {
+      hbkg->SetBinContent(ibin, 0.);
+      hbkg->SetBinError  (ibin, 0.);
+    }
+  }
+  hbkg_r->SetLineColor(data->GetLineColor());
+  hbkg_r->SetMarkerColor(data->GetMarkerColor());
+  hbkg_r->Draw("E1");
+  to_clean.push_back(hbkg);
+  to_clean.push_back(hbkg_r);
+  for(auto sig : sigs) {
+    TH1* sig_u = (TH1*) sig->Clone(Form("%s_u", sig->GetName()));
+    TH1* sig_d = (TH1*) sig->Clone(Form("%s_d", sig->GetName()));
+    for(int ibin = 1; ibin <= sig->GetNbinsX(); ++ibin) {
+      const double error = (hbkg->GetBinContent(ibin) > 0.) ? sig->GetBinError(ibin)/hbkg->GetBinContent(ibin) : 0.;
+      // max_diff = max(error, max_diff);
+      if(hbkg->GetBinContent(ibin) > 0.) sig_u->SetBinContent(ibin, 1. + error);
+      if(hbkg->GetBinContent(ibin) > 0.) sig_d->SetBinContent(ibin, 1. - error);
+    }
+    sig_u->SetFillColor(0);
+    sig_d->SetFillColor(0);
+    // sig_u->Draw("hist same");
+    // sig_d->Draw("hist same");
+    to_clean.push_back(sig_u);
+    to_clean.push_back(sig_d);
+  }
+  for(auto obj : *(stack->GetHists())) {
+    TH1* h = (TH1*) obj;
+    TH1* h_u = (TH1*) h->Clone(Form("%s_u", h->GetName()));
+    TH1* h_d = (TH1*) h->Clone(Form("%s_d", h->GetName()));
+    for(int ibin = 1; ibin <= h->GetNbinsX(); ++ibin) {
+      const double error = (hbkg->GetBinContent(ibin) > 0.) ? h->GetBinError(ibin)/hbkg->GetBinContent(ibin) : 0.;
+      max_diff = max(error, max_diff);
+      if(hbkg->GetBinContent(ibin) > 0.) h_u->SetBinContent(ibin, 1. + error);
+      if(hbkg->GetBinContent(ibin) > 0.) h_d->SetBinContent(ibin, 1. - error);
+    }
+    h_u->SetFillColor(0);
+    h_d->SetFillColor(0);
+    h_u->Draw("hist same");
+    h_d->Draw("hist same");
+    to_clean.push_back(h_u);
+    to_clean.push_back(h_d);
+  }
+
+  hbkg_r->GetXaxis()->SetRangeUser(xmin_, xmax_);
+  hbkg_r->GetYaxis()->SetRangeUser(1. - 1.05*max_diff, 1. + 1.05*max_diff);
+  hbkg_r->GetXaxis()->SetLabelSize(0.09);
+  hbkg_r->GetYaxis()->SetLabelSize(0.09);
+  hbkg_r->GetYaxis()->SetTitleSize(0.1);
+  hbkg_r->GetYaxis()->SetTitleOffset(0.35);
+  hbkg_r->SetTitle("");
+  hbkg_r->SetYTitle("Stat. uncertainty");
+  c->SaveAs(name.Data());
+  for(auto h : to_clean) delete h;
+  delete data;
+  delete c;
+
+  return 0;
+}
+
+
 int get_same_flavor_systematics(int set, TString hist, TH1* hdata, TFile* f) {
   int status(0);
   f->cd();
@@ -440,10 +538,11 @@ int get_individual_MVA_histogram(int set = 8, TString selection = "zmutau",
     else if(binc > 0.) xmax_ = hlast->GetBinLowEdge(ibin) + hlast->GetBinWidth(ibin);
     if(binc > 0.) {
       ++nnonzero;
-      if(ibin < nbins && hlast->GetBinContent(ibin+1) < 0.8) ++ndec;
+      if(ibin < nbins && hlast->GetBinContent(ibin+1)/binc < 0.95) ++ndec;
     }
   }
   logy_ = ndec > 0.75*nnonzero; //if generally an exponential-like drop, plot in log
+  logy_ |= hlast->GetBinLowEdge(1) > -0.5; //FIXME: CDF flag based on x-axis range to use log y
 
   //blind high MVA score region if desired
   if(blind_data_) {
@@ -496,6 +595,10 @@ int get_individual_MVA_histogram(int set = 8, TString selection = "zmutau",
   TString canvas_name = Form("plots/latest_production/%s/hist_%s_%s_%i", year_string.Data(), hist.Data(), selection.Data(), set);
   c->Print(canvas_name + ".png");
 
+  //print statistical uncertainty plot
+  plot_stat_sys(hstack, signals, hdata, canvas_name + "_stat.png");
+
+  //open file to save histograms to
   gSystem->Exec("[ ! -d histograms ] && mkdir histograms");
   TFile* fout = new TFile(Form("histograms/%s_%s_%i_%s.hist", selection.Data(), hist.Data(), set, year_string.Data()), "RECREATE");
   hdata->Write();

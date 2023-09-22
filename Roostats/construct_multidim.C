@@ -3,10 +3,13 @@
 #include "bemu_defaults.C"
 
 //Construct multi-dimensional PDF with discrete index
-bool useFrameChiSq_ = false;
-bool useManualChisq_ = true; //calcuate chi^2 values by hand with histograms
+bool useFrameChiSq_         = false; //use a roo plot frame to evaluate chi^2
+bool useManualChisq_        = true ; //calcuate chi^2 values by hand with histograms
 bool use_generic_bernstein_ = false;
-bool use_fast_bernstein_ = true;
+bool use_fast_bernstein_    = true ;
+bool use_dy_ww_shape_       = false;
+
+bool test_single_function_  = false; //only pass 1 function into the PDF ensemble
 
 //----------------------------------------------------------------------------------------------------------------
 //Get the chi-squared using a by-hand calculation
@@ -147,7 +150,7 @@ RooAbsPdf* create_exponential(RooRealVar& obs, int order, int set, TString tag =
     vars.push_back(new RooRealVar(Form("exp_%i_order_%i_c_%i%s", set, order, i, tag.Data()), Form("exp_%i_order_%i_%i power%s", set, order, i, tag.Data()), 1., -10., 10.));
     exps.push_back(new RooExponential(Form("exp_%i_pdf_order_%i_%i%s", set, order, i, tag.Data()), Form("exp_%i_pdf_order_%i_%i%s", set, order, i, tag.Data()), obs, *vars[i]));
     pdfs.add(*exps[i]);
-    coeffs.push_back(new RooRealVar(Form("exp_%i_order_%i_n_%i%s", set, order, i, tag.Data()), Form("exp_%i_order_%i_%i%s norm" , set, order, i, tag.Data()), 1.e3, -1.e6, 1.e6));
+    coeffs.push_back(new RooRealVar(Form("exp_%i_order_%i_n_%i%s", set, order, i, tag.Data()), Form("exp_%i_order_%i_%i%s norm" , set, order, i, tag.Data()), 1.e3, 0., 1.e6));
     coefficients.add(*coeffs[i]);
   }
   if(order == 0) {
@@ -261,7 +264,8 @@ std::pair<int,double> add_exponentials(RooDataHist& data, RooRealVar& obs, RooAr
     const int dof = (data.numEntries() - 2*order - 1);  //DOF = number of variables + normalization
     const double chi_sq = get_chi_squared(obs, pdf, data, useSideBands);
     if(chi_sq / dof < max_chisq) {
-      list.add(*pdf);
+      // list.add(*pdf);
+      list.add(*basePdf);
     } else {
       delete pdf;
     }
@@ -339,10 +343,10 @@ std::pair<int, double> add_bernsteins(RooDataHist& data, RooRealVar& obs, RooArg
     do {
       ++ntries;
       if(useSideBands) {
-        basePdf->fitTo(data, RooFit::PrintLevel((verbose > 2) ? 1 : -1), //RooFit::Minimizer("Minuit2", "migrad"),
-                   RooFit::Warnings(0), RooFit::PrintEvalErrors(-1), RooFit::Range("LowSideband,HighSideband"));
-        // pdf->fitTo(data, RooFit::Extended(true), RooFit::PrintLevel((verbose > 2) ? 1 : -1), //RooFit::Minimizer("Minuit2", "migrad"),
+        // basePdf->fitTo(data, RooFit::PrintLevel((verbose > 2) ? 1 : -1), //RooFit::Minimizer("Minuit2", "migrad"),
         //            RooFit::Warnings(0), RooFit::PrintEvalErrors(-1), RooFit::Range("LowSideband,HighSideband"));
+        pdf->fitTo(data, RooFit::PrintLevel((verbose > 2) ? 1 : -1), //RooFit::Minimizer("Minuit2", "migrad"),
+                   RooFit::Warnings(0), RooFit::PrintEvalErrors(-1), RooFit::Range("LowSideband,HighSideband"));
       } else {
         pdf->fitTo(data, RooFit::Extended(true), RooFit::PrintLevel((verbose > 2) ? 1 : -1),
                    RooFit::Warnings(0), RooFit::PrintEvalErrors(-1));
@@ -469,10 +473,25 @@ RooMultiPdf* construct_multipdf(RooDataHist& data, RooRealVar& obs, RooCategory&
   if(result.second < chi_min) {chi_min = result.second; index = result.first;}
   // add_chebychevs(data, obs, pdfList, useSideBands, index, set, verbose);
   result = add_exponentials(data, obs, pdfList, useSideBands, set, verbose);
-  if(result.second < chi_min) {chi_min = result.second; index = result.first;}
-  result = add_dy_ww(data, obs, pdfList, useSideBands, set, verbose);
-  if(result.second < chi_min) {chi_min = result.second; index = result.first;}
-  RooMultiPdf* pdfs =  new RooMultiPdf("bkg_multi", "Background function PDF choice", categories, pdfList);
+  // if(result.second < chi_min) {chi_min = result.second; index = result.first;}
+  if(use_dy_ww_shape_) {
+    result = add_dy_ww(data, obs, pdfList, useSideBands, set, verbose);
+    if(result.second < chi_min) {chi_min = result.second; index = result.first;}
+  }
+  RooMultiPdf* pdfs = nullptr;
+  if(test_single_function_) {
+    RooAbsPdf* best_pdf = (RooAbsPdf*) pdfList.at(index);
+    RooArgList new_list;
+    new_list.add(*best_pdf);
+    pdfs = new RooMultiPdf("bkg_multi", "Background function PDF choice", categories, new_list);
+    cout << "################################################################\n"
+         << "################################################################\n"
+         << "## N(multi pdf) PDFs = " << categories.numTypes() << endl
+         << "################################################################\n"
+         << "################################################################\n";
+    index = 0;
+  } else  pdfs = new RooMultiPdf("bkg_multi", "Background function PDF choice", categories, pdfList);
+
   return pdfs;
 }
 

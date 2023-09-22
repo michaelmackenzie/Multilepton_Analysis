@@ -72,6 +72,43 @@ std::pair<TString,TString> systematic_name(int sys, TString selection, int year)
     if(name.Contains("Emb")) name = "";
   }
 
+  //ignore EWK W/Z and WWW samples
+  if(name == "XS_WWW" ) name = "";
+  if(name == "XS_EWKZ") name = "";
+  if(name == "XS_EWKW") name = "";
+  if(name == "XS_toptCh") name = ""; //contributes nothing at 1e-4 norm level
+  if(name == "XS_ZZ") name = ""; //contributes nothing at 1e-4 norm level
+
+  //define which are implemented just as rate uncertainties
+  if     (name == "SignalMixing"      ) type = "lnN";
+  // else if(name == "SignalScale"       ) type = "lnN";
+  // else if(name == "SignalPDF"         ) type = "lnN";
+  else if(name == "XS_EWKZ"           ) type = "lnN";
+  else if(name == "XS_EWKW"           ) type = "lnN";
+  else if(name == "XS_WWW"            ) type = "lnN";
+  else if(name == "XS_WW"             ) type = "lnN";
+  else if(name == "XS_WZ"             ) type = "lnN";
+  else if(name == "XS_ZZ"             ) type = "lnN";
+  else if(name == "XS_Z"              ) type = "lnN";
+  else if(name == "XS_WJets"          ) type = "lnN";
+  else if(name == "XS_ttbar"          ) type = "lnN";
+  else if(name == "XS_toptw"          ) type = "lnN";
+  else if(name == "XS_toptCh"         ) type = "lnN";
+  else if(name == "Prefire"           ) type = "lnN";
+  else if(name == "EleID"             ) type = "lnN";
+  else if(name == "EmbEleID"          ) type = "lnN"; //don't use contains to avoid TauEleID
+  else if(name.Contains("EleIsoID")   ) type = "lnN";
+  else if(name.Contains("EleRecoID")  ) type = "lnN";
+  else if(name.Contains("MuonID")     ) type = "lnN";
+  else if(name.Contains("MuonIsoID")  ) type = "lnN";
+  else if(name.Contains("Lumi")       ) type = "lnN";
+  else if(name.Contains("EleTrig")    ) type = "lnN";
+  else if(name.Contains("MuonTrig")   ) type = "lnN";
+  else if(name.Contains("EmbTauEleID")) type = "lnN"; //Embedded e-->tau negligible as could only be tau tau --> tau_e tau_(e/mu) --> (tau_e --> tau_h) tau_(e/mu)
+  else if(name.Contains("EmbTauMuID" )) type = "lnN"; //Embedded mu-->tau negligible as could only be tau tau --> tau_mu tau_(e/mu) --> (tau_mu --> tau_h) tau_(e/mu)
+  else if(name == "BTag"              ) type = "lnN"; //c/b b-tagging efficiencies (light b-tag eff left as shape)
+  else if(name.BeginsWith("TauJetID") ) type = "lnN"; //MC tau ID (Embed tau ID left as shape)
+
   //define which are uncorrelated between years
   year -= 2016; //reduce needed characters
   if     (name.Contains("JetToTauStat")) name = Form("%sY%i", name.Data(), year);
@@ -89,6 +126,7 @@ std::pair<TString,TString> systematic_name(int sys, TString selection, int year)
   else if(name.Contains("JER")         ) name = Form("%sY%i", name.Data(), year); //uncorrelated JER uncertainties
   else if(name.Contains("JES")         ) name = Form("%sY%i", name.Data(), year); //uncorrelated JES uncertainties
   else if(name.Contains("BTag")        ) name = Form("%s-%s", name.Data(), (selection.EndsWith("tau")) ? "had" : "lep"); //FIXME: Decide correlation between years, and tight/loose ID
+  else if(name == "SignalMixing"       ) name = Form("%sY%i", name.Data(), year);
 
   return std::pair<TString,TString>(name,type);
 }

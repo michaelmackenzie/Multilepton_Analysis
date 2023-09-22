@@ -12,12 +12,15 @@ else
     DOOBS=""
 fi
 
+RMIN="-10"
+RMAX="10"
+
 #evaluate precision on r with/without the group of nuisances
 if [[ "${SKIPNOMINAL}" == "" ]]
 then
-    combine -M FitDiagnostics -n _groupFit_Test_Nominal  -d ${WORKSPACE} ${DOOBS} --rMin -20 --rMax 20
+    combine -M FitDiagnostics --stepSize 0.05 --setRobustFitTolerance 0.001 --setCrossingTolerance 5e-6 -n _groupFit_Test_Nominal  -d ${WORKSPACE} ${DOOBS} --rMin ${RMIN} --rMax ${RMAX}
 fi
-combine -M FitDiagnostics -n _groupFit_Test_${GROUP} -d ${WORKSPACE} ${DOOBS} --rMin -20 --rMax 20 --freezeNuisanceGroups ${GROUP}
+combine -M FitDiagnostics --stepSize 0.05 --setRobustFitTolerance 0.001 --setCrossingTolerance 5e-6 -n _groupFit_Test_${GROUP} -d ${WORKSPACE} ${DOOBS} --rMin ${RMIN} --rMax ${RMAX} --freezeNuisanceGroups ${GROUP}
 
 FNOMINAL="fitDiagnostics_groupFit_Test_Nominal.root"
 FGROUP="fitDiagnostics_groupFit_Test_${GROUP}.root"

@@ -168,11 +168,11 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
   if(!outfile.is_open()) return 10;
 
   outfile << "# -*- mode: tcl -*-\n";
-  outfile << "#Auto generated counting card for CLFVAnalysis \n";
-  outfile << Form("#Signal branching fraction used: %.3e \n\n", br_sig);
-  outfile << Form("imax %2i number of channels \n", 1 + 2*use_same_flavor_);
-  outfile << "jmax  * number of backgrounds \n";
-  outfile << "kmax  * number of nuisance parameters \n\n";
+  outfile << "#Auto generated Higgs Combine datacard for CLFVAnalysis\n";
+  outfile << Form("#Signal branching fraction used: %.3e\n\n", br_sig);
+  outfile << Form("imax %2i number of channels\n", 1 + 2*use_same_flavor_);
+  outfile << "jmax  * number of backgrounds\n";
+  outfile << "kmax  * number of nuisance parameters\n\n";
   outfile << "----------------------------------------------------------------------------------------------------------- \n";
   if(!use_same_flavor_) {
     outfile << Form("shapes * * %s $CHANNEL:$PROCESS\n", outName.Data());
@@ -524,7 +524,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
   if(useRateParams_)
     rate   += Form("%10i", 1);
   else
-    rate   += Form("%10.1f", sig_rate);
+    rate   += Form("%10.3f", sig_rate);
   sigPDF->SetName(selection.Data());
   ws->import(*sigPDF, RooFit::RecycleConflictNodes());
   signorm += Form("nsig_%-3i rateParam   lepm_%-3i %8s %10.1f\n", set, set, selection.Data(), sig->Integral(low_bin, high_bin));

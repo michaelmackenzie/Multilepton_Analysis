@@ -1,13 +1,6 @@
 //Plot uncertainty impacts from standard groups
 #include "extract_impact.C"
 
-// Bool_t compare_impact(TGraph* g, Int_t left, Int_t right) {
-//   if(g->InheritsFrom(TGraphAsymmErrors::Class())) {
-//     TGraphAsymmErrors* gerr = (TGraphAsymmErrors*) g;
-//     if(gerr->GetErrorXhigh(left) > gerr->GetErrorXhigh(right)) return true;
-//   } else return true;
-// }
-
 int plot_groups(const char* file, const char* tag = "", const bool doObs = false, const bool run = true) {
 
   vector<TString> groups = {
@@ -28,6 +21,7 @@ int plot_groups(const char* file, const char* tag = "", const bool doObs = false
                             "EleES_Total"      ,
                             "TauES_Total"      ,
                             "JER_JES"          ,
+                            "Theory_Total"     ,
                             "QCD_Stat"         ,
                             "QCD_NC"           ,
                             "QCD_Bias"         ,
@@ -41,16 +35,17 @@ int plot_groups(const char* file, const char* tag = "", const bool doObs = false
   };
 
   if(run) {
-    gSystem->Exec(Form("combine -M FitDiagnostics -n _groupFit_Test%s_Nominal  -d %s %s --rMin -20 --rMax 20", tag, file, (doObs) ? "" : "-t -1"));
+    TString args = "-M FitDiagnostics --rMin -10 --rMax 10 --stepSize 0.05 --setRobustFitTolerance 0.001 --setCrossingTolerance 5e-6";
+    gSystem->Exec(Form("combine %s -n _groupFit_Test%s_Nominal  -d %s %s", args.Data(), tag, file, (doObs) ? "" : "-t -1"));
     for(TString group : groups) {
       if(group == "All_Systematics") {
         cout << "Fitting without any systematics\n";
-        gSystem->Exec(Form("combine -M FitDiagnostics -n _groupFit_Test%s_%s  -d %s %s --rMin -20 --rMax 20 --freezeParameters allConstrainedNuisances",
-                           tag, group.Data(), file, (doObs) ? "" : "-t -1"));
+        gSystem->Exec(Form("combine %s -n _groupFit_Test%s_%s  -d %s %s --freezeParameters allConstrainedNuisances",
+                           args.Data(), tag, group.Data(), file, (doObs) ? "" : "-t -1"));
       } else {
         cout << "Fitting without group " << group.Data() << endl;
-        gSystem->Exec(Form("combine -M FitDiagnostics -n _groupFit_Test%s_%s  -d %s %s --rMin -20 --rMax 20 --freezeNuisanceGroups %s",
-                           tag, group.Data(), file, (doObs) ? "" : "-t -1", group.Data()));
+        gSystem->Exec(Form("combine %s -n _groupFit_Test%s_%s  -d %s %s --freezeNuisanceGroups %s",
+                           args.Data(), tag, group.Data(), file, (doObs) ? "" : "-t -1", group.Data()));
       }
     }
   }

@@ -19,6 +19,21 @@ void add_group(map<TString,vector<TString>>& groups, TString sys, TString group)
   else groups[group] = {sys};
 }
 
+//ensure reasonable bin values
+void make_safe(TH1* h) {
+  for(int ibin = 0; ibin <= h->GetNbinsX()+1; ++ibin) {
+    const double binc(h->GetBinContent(ibin));
+    const double bine(h->GetBinError  (ibin));
+    if(!std::isfinite(binc) || !std::isfinite(bine) || binc < 0.) {
+      h->SetBinContent(ibin, 0.);
+      h->SetBinError  (ibin, 0.);
+    }
+    if(binc < bine) {
+      h->SetBinError(ibin, binc);
+    }
+  }
+}
+
 Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
                              vector<int> years = {2016, 2017, 2018},
                              int seed = 90) {
@@ -98,6 +113,9 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
   TH1* hdata = (TH1*) fInput->Get("hdata");
   if(!hdata) {cout << "Data histogram not found!\n"; return 5;}
 
+  make_safe(hsig);
+  make_safe(hbkg);
+
   //////////////////////////////////////////////////////////////////
   // Read in the systematic histograms
   //////////////////////////////////////////////////////////////////
@@ -162,6 +180,7 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
   if(blind_data_ == 2) {
     hdata_obs = (TH1*) hbkg->Clone("data_obs");
     hdata_obs->SetTitle("Asimov Data");
+    make_safe(hdata_obs);
     for(int ibin = 1; ibin <= hdata_obs->GetNbinsX(); ++ibin) {
       const double nentries = std::max(0., hdata_obs->GetBinContent(ibin));
       hdata_obs->SetBinContent(ibin, nentries);
@@ -235,6 +254,7 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
   proc_c +=      "            0   ";
   rate   += Form("%15.3f", hsig->Integral());
   hsig->SetName(selec_name.Data());
+  make_safe(hsig);
   hsig->Write(); //add to the output file
   for(int ihist = 0; ihist < hstack->GetNhists(); ++ihist) {
     TH1* hbkg_i = (TH1*) hstack->GetHists()->At(ihist);
@@ -281,7 +301,7 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
         }
       }
     }
-
+    make_safe(hbkg_i);
     hbkg_i->Write(); //add to the output file
   }
 
@@ -311,7 +331,7 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
     TString name = hstack_up->GetTitle();
     TString type = hsig_up->GetTitle();
     if(name == "") continue; //systematic we don't care about
-    if(verbose_ > 0) cout << "Processing systematic " << name.Data() << endl;
+    if(verbose_ > 0) cout << "Processing systematic " << name.Data() << " with type " << type.Data() << endl;
 
     if(hstack_up->GetNhists() != nbkg_proc || hstack_down->GetNhists() != nbkg_proc) {
       cout << "!!! Systematic " << name.Data() << " up/down stacks don't match the expected number of processes!\n";
@@ -330,8 +350,10 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
 
     TString sys = Form("%-13s %5s ", name.Data(), type.Data());
     hsig_up->SetName(Form("%s_%sUp", selec_name.Data(), name.Data()));
+    make_safe(hsig_up);
     hsig_up->Write();
     hsig_down->SetName(Form("%s_%sDown", selec_name.Data(), name.Data()));
+    make_safe(hsig_down);
     hsig_down->Write();
     bool do_fake_bkg_line = (qcd_bkg_line == "");
     if(do_fake_bkg_line) {
@@ -343,8 +365,8 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
     } else {
       double sys_up   = (hsig->Integral() > 0.) ? hsig->Integral()/hsig_up->Integral() : 0.;
       double sys_down = (hsig->Integral() > 0.) ? hsig->Integral()/hsig_down->Integral() : 0.;
-      double val = sys_up; //max((sys_up < 1.) ? 1./sys_up : sys_up, (sys_down < 1.) ? 1./sys_down : sys_down);
-      sys += Form("%6.3f", val);
+      double val = sys_up; //use up to preserve correlation directions //(std::fabs(1.-sys_up) > std::fabs(1.-sys_down)) ? sys_up : sys_down;
+      sys += Form("%6.4f", val);
     }
     for(int ihist = 0; ihist < nbkg_proc; ++ihist) {
       TH1* hbkg_i = (TH1*) hstack->GetHists()->At(ihist);
@@ -386,8 +408,10 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
       TString hname_up   = Form("%s_%sUp"  , hname.Data(), hstack_up->GetTitle());
       TString hname_down = Form("%s_%sDown", hname.Data(), hstack_up->GetTitle());
       hbkg_i_up->SetName(hname_up.Data());
+      make_safe(hbkg_i_up);
       hbkg_i_up->Write(); //add to the output file
       hbkg_i_down->SetName(hname_down.Data());
+      make_safe(hbkg_i_down);
       hbkg_i_down->Write(); //add to the output file
       if(do_fake_bkg_line && hname == "QCD")   qcd_bkg_line += Form("%15.3f", 1.30); //additional 30% uncertainty
       else if(do_fake_bkg_line)                qcd_bkg_line += Form("%15i", 1);
@@ -404,36 +428,38 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
       }
 
       //Add to a group list if a standard nuisance group
-      if(name.BeginsWith("JetToTau")    ) add_group(groups, name, "JetToTau_Total");
-      if(name.BeginsWith("JetToTauAlt") ) add_group(groups, name, "JetToTau_Stat");
-      if(name.BeginsWith("JetToTauNC")  ) add_group(groups, name, "JetToTau_NC");
-      if(name.BeginsWith("JetToTauBias")) add_group(groups, name, "JetToTau_Bias");
-      if(name.BeginsWith("JetToTauComp")) add_group(groups, name, "JetToTau_Comp");
-      if(name.BeginsWith("QCD")         ) add_group(groups, name, "QCD_Total");
-      if(name.BeginsWith("QCDAlt")      ) add_group(groups, name, "QCD_Stat");
-      if(name.BeginsWith("QCDNC")       ) add_group(groups, name, "QCD_NC");
-      if(name.BeginsWith("QCDBias")     ) add_group(groups, name, "QCD_Bias");
-      if(name.BeginsWith("JER")         ) add_group(groups, name, "JER_JES");
-      if(name.BeginsWith("JES")         ) add_group(groups, name, "JER_JES");
-      if(name.BeginsWith("BTag")        ) add_group(groups, name, "BTag_Total"        );
-      if(name.Contains("TauJetID")      ) add_group(groups, name, "TauJetID_Total"    );
-      if(name.Contains("TauEleID")      ) add_group(groups, name, "TauEleID_Total"    );
-      if(name.Contains("TauMuID")       ) add_group(groups, name, "TauMuID_Total"     );
-      if(name.Contains("MuonID")        ) add_group(groups, name, "MuonID_Total"      );
-      if(name.Contains("MuonIsoID")     ) add_group(groups, name, "MuonID_Total"      );
-      if(name.Contains("EleID")         ) add_group(groups, name, "EleID_Total"       );
-      if(name.Contains("EleIsoID")      ) add_group(groups, name, "EleID_Total"       );
-      if(name.Contains("MuonES")        ) add_group(groups, name, "MuonES_Total"      );
-      if(name.Contains("EleES")         ) add_group(groups, name, "EleES_Total"       );
-      if(name.Contains("TauES")         ) add_group(groups, name, "TauES_Total"       );
-      if(name.Contains("EleTrig")       ) add_group(groups, name, "EleTrig_Total"     );
-      if(name.Contains("MuonTrig")      ) add_group(groups, name, "MuonTrig_Total"    );
-      if(name.Contains("ZPt")           ) add_group(groups, name, "ZPt_Total"         );
-      if(name.Contains("Pileup")        ) add_group(groups, name, "Pileup_Total"      );
-      if(name.Contains("Prefire")       ) add_group(groups, name, "Prefire_Total"     );
-      if(name.Contains("XS_Embed")      ) add_group(groups, name, "EmbedUnfold_Total" );
-      else if(name.Contains("Lumi")     ) add_group(groups, name, "Lumi_Total"        );
-      else if(name.BeginsWith("XS_")    ) add_group(groups, name, "XSec_Total"        );
+      if(name.BeginsWith("JetToTau")                    ) add_group(groups, name, "JetToTau_Total"    );
+      if(name.BeginsWith("JetToTauAlt")                 ) add_group(groups, name, "JetToTau_Stat"     );
+      if(name.BeginsWith("JetToTauNC")                  ) add_group(groups, name, "JetToTau_NC"       );
+      if(name.BeginsWith("JetToTauBias")                ) add_group(groups, name, "JetToTau_Bias"     );
+      if(name.BeginsWith("JetToTauComp")                ) add_group(groups, name, "JetToTau_Comp"     );
+      if(name.BeginsWith("QCD")                         ) add_group(groups, name, "QCD_Total"         );
+      if(name.BeginsWith("QCDAlt")                      ) add_group(groups, name, "QCD_Stat"          );
+      if(name.BeginsWith("QCDNC")                       ) add_group(groups, name, "QCD_NC"            );
+      if(name.BeginsWith("QCDBias")                     ) add_group(groups, name, "QCD_Bias"          );
+      if(name.BeginsWith("JER")                         ) add_group(groups, name, "JER_JES"           );
+      if(name.BeginsWith("JES")                         ) add_group(groups, name, "JER_JES"           );
+      if(name.BeginsWith("BTag")                        ) add_group(groups, name, "BTag_Total"        );
+      if(name.Contains("TauJetID")                      ) add_group(groups, name, "TauJetID_Total"    );
+      if(name.BeginsWith("TauEleID")                    ) add_group(groups, name, "TauEleID_Total"    );
+      if(name.BeginsWith("TauMuID")                     ) add_group(groups, name, "TauMuID_Total"     );
+      if(name.Contains("MuonID")                        ) add_group(groups, name, "MuonID_Total"      );
+      if(name.Contains("MuonIsoID")                     ) add_group(groups, name, "MuonID_Total"      );
+      if(name.Contains("EleID") && !name.Contains("Tau")) add_group(groups, name, "EleID_Total"       );
+      if(name.Contains("EleIsoID")                      ) add_group(groups, name, "EleID_Total"       );
+      if(name.Contains("EleRecoID")                     ) add_group(groups, name, "EleID_Total"       );
+      if(name.Contains("MuonES")                        ) add_group(groups, name, "MuonES_Total"      );
+      if(name.Contains("EleES")                         ) add_group(groups, name, "EleES_Total"       );
+      if(name.Contains("TauES")                         ) add_group(groups, name, "TauES_Total"       );
+      if(name.Contains("EleTrig")                       ) add_group(groups, name, "EleTrig_Total"     );
+      if(name.Contains("MuonTrig")                      ) add_group(groups, name, "MuonTrig_Total"    );
+      if(name.Contains("ZPt")                           ) add_group(groups, name, "ZPt_Total"         );
+      if(name.Contains("Pileup")                        ) add_group(groups, name, "Pileup_Total"      );
+      if(name.Contains("Prefire")                       ) add_group(groups, name, "Prefire_Total"     );
+      if(name.Contains("Theory")                        ) add_group(groups, name, "Theory_Total"      );
+      if(name.Contains("XS_Embed")                      ) add_group(groups, name, "EmbedUnfold_Total" );
+      else if(name.Contains("Lumi")                     ) add_group(groups, name, "Lumi_Total"        );
+      else if(name.BeginsWith("XS_")                    ) add_group(groups, name, "XSec_Total"        );
     }
     outfile << Form("%s \n", sys.Data());
     if(verbose_ > 3) cout << sys.Data() << endl;
@@ -441,7 +467,7 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
   //print the groups
   outfile << "\n";
   for(auto group : groups) {
-    cout << "Adding group " << group.first.Data() << endl;
+    if(verbose_ > 0) cout << "Adding group " << group.first.Data() << endl;
     outfile << Form("%-13s group =", group.first.Data());
     for(TString isys : group.second) outfile << " " << isys.Data();
     outfile << "\n";

@@ -1,5 +1,6 @@
 //Script to process limits for channels/years/etc. and plot the limits
 double scale_ = 1.;
+bool speed_limit_ = true; //use Combine arguments to speed up limit calculation
 
 struct config_t {
   TString name_;
@@ -43,10 +44,18 @@ int make_combine_limit_plot_general(vector<config_t> configs, //info for each en
     TString year_string = Form("%i", years[0]);
     for(int i = 1; i < years.size(); ++i) year_string += Form("_%i", years[i]);
     TString dir = Form("datacards/%s", year_string.Data());
+    cout << ">>> Using directory " << dir.Data() << endl;
     gSystem->cd(dir.Data());
 
     int status(0);
     if(processCards) {
+      TString additional_command = "";
+      if(doNoSys) {
+        if(selection == "zemu") additional_command = "--freezeParameters 'rgx{.*},var{cat_.*},var{bst_.*},var{exp_.*}'";
+        else                    additional_command = "--freezeParameters allConstrainedNuisances";
+      }
+      if(speed_limit_) additional_command += "--cminDefaultMinimizerStrategy 0";
+
       //Run combine on each datacard
       printf("Processing combine card %s/combine_%s.txt\n", dir.Data(), card.Data());
       TString command = Form("combine -d combine_%s.txt %s --name _%s --rMin %.1f --rMax %.1f %s",
@@ -54,7 +63,7 @@ int make_combine_limit_plot_general(vector<config_t> configs, //info for each en
                              (doObs) ? "" : "-t -1 --run blind",
                              card.Data(),
                              rmin, rmax,
-                             (doNoSys) ? "--freezeParameters allConstrainedNuisances" : "");
+                             additional_command.Data());
       printf(">>> %s\n", command.Data());
       gSystem->Exec(command.Data());
     }
@@ -92,6 +101,7 @@ int make_combine_limit_plot_general(vector<config_t> configs, //info for each en
     yerr[itree] = 0.2;
     max_val = max(max_val, expected[itree] + up_2  [itree]);
     min_val = min(min_val, expected[itree] - down_2[itree]);
+    cout << configs[itree].name_.Data() << ": r < " << expected[itree] << endl;
   }
 
   TGraphAsymmErrors* expected_1 = new TGraphAsymmErrors(nfiles, expected, y, down_1, up_1, yerr, yerr);

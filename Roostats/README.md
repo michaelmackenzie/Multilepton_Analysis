@@ -284,7 +284,12 @@ combine -d combine_bemu_${SELECTION}_${HISTSTRING}.txt
 - For envelope details see: http://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/part3/nonstandard/#discrete-profiling
 - Improve discrete profiling with the option `--X-rtd MINIMIZER_freezeDisassociatedParams`
 
-
+Running FitDiagnostics can have odd behaviour with the RooMultiPdf, command options tested to improve running:
+- `--X-rtd MINIMIZER_freezeDisassociatedParams`
+- `--cminDefaultMinimizerStrategy 0`
+- `--toysFrequentist`
+- `--cminRunAllDiscreteCombinations`
+Overall, running with `--X-rtd MINIMIZER_freezeDisassociatedParams --cminDefaultMinimizerStrategy 0 [-t X --toysFrequentist]` seems to work, but not perfect
 
 ### x+tau workflow recommendation
 ```

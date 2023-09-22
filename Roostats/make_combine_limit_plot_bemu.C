@@ -25,6 +25,9 @@ int make_combine_limit_plot_bemu(vector<int> sets = {8}, TString selection = "ze
   }
 
   TString tag = "cat";
+  if(doNoSys) tag += "_nosys";
+  if(doObs) tag += "_obs";
+  for(int year : years) tag += Form("_%i", year);
   status += make_combine_limit_plot_general(cards, tag, selection, processCards, doNoSys, doObs);
   return status;
 }
