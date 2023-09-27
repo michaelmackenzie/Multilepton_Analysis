@@ -61,13 +61,30 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
     return 1;
   }
 
+  int doSystematics = doSystematics_;
   // configure fields for emu defaults, assuming tau ones are set
-  if(doEmuDefaults_ && selection == "emu") {
-    doSystematics_ = isSignal;
-    allowMigration_ = isSignal;
+  if(doEmuDefaults_ && (selection == "emu" || ((selection == "ee" || selection == "mumu") && doSameFlavorEMu_))) {
+    doSystematics = isSignal && doSystematics_;
+    // doSystematics_ = 0;
+    allowMigration_ = isSignal && doSystematics_;
+    useEventFlags_      = 1; //filter using event flags
+    useBTagWeights_     = 2; //2: ntuple-level
+    removePUWeights_    = 0; //0: ntuple-level
+    useSignalZWeights_  = 2; //2: ntuple-level
+    useLeptonIDWeights_ = 2; //2: ntuple-level
+    useRoccoCorr_       = 2; //2: ntuple-level
+    useZPtWeights_      = 2; //2: ntuple-level
+    // useJetPUIDWeights_ = 0;
+    // removeTrigWeights_ = 1;
+    // usePrefireWeights_ = 0;
+    // useLepDxyzWeights_ = 0; //use dxy/dz displacement weights
+    // useZPtWeights_     = 0; //MC --> Data Z pT matching
+    // useSignalZMixWeights_ = 0; //FIXME: Remove after done with comparisons
+    // updateMET_ = 0; //FIXME: Remove after done with comparisons
     useCDFBDTs_ = 0;
-    useXGBoost_ = 1;
-    cout << "Overridding defaults\n";
+    useXGBoost_ = 1; //FIXME: Set to 1 for nominal BDT processing
+    train_mode_ = 0;
+    cout << "Overridding processing defaults for emu-style selection\n";
   }
 
   // if Drell-Yan, loop through it twice, doing tautau then ee/mumu decays
@@ -77,7 +94,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
   const int nwloops = (isWJ && splitWJets_) ? 5 : 0;
 
   cout << "Processing " << card.fname_.Data() << " with eventCategory = " << card.category_ << " isSignal = " << isSignal << " isDY = " << isDY
-       << " isWJets = " << isWJ << " isData = " << card.isData_ << " useSystematics = " << doSystematics_ << " doMVASets = " << DoMVASets_
+       << " isWJets = " << isWJ << " isData = " << card.isData_ << " useSystematics = " << doSystematics << " doMVASets = " << DoMVASets_
        << " removeTrigWeights = " << removeTrigWeights_ << endl;
 
   const Long64_t nentries = chain->GetEntries();
@@ -92,6 +109,22 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
       auto selec = new HISTOGRAMMER(systematicSeed_); //selector
       selec->fSelection = selection;
 
+      //configure fields for j-->tau measurement histogramming
+      if(dynamic_cast<JTTHistMaker*> (selec)) {
+        doSystematics_  =  0; //ignore systematics
+        train_mode_     =  0; //ignore MVA training weights
+        ReprocessMVAs_  =  0; //ignore MVA scores
+        max_sim_events_ = -1; //use all sim events
+      }
+
+      //configure fields for OS-->SS measurement histogramming
+      if(dynamic_cast<QCDHistMaker*> (selec)) {
+        doSystematics_  =  0; //ignore systematics
+        train_mode_     =  0; //ignore MVA training weights
+        ReprocessMVAs_  =  0; //ignore MVA scores
+        max_sim_events_ = -1; //use all sim events
+      }
+
       if(dynamic_cast<CLFVHistMaker*> (selec)) {
         auto clfv_selec = (CLFVHistMaker*) selec;
         clfv_selec->fDYFakeTauTesting  = DYFakeTau_;
@@ -105,6 +138,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
         clfv_selec->fDoMVASets = DoMVASets_ > 0 && (DoMVASets_ > 2 || (DoMVASets_ == 2 && !(selection.Contains("tau"))) || (selection == "emu"));
         clfv_selec->fMinLepM           = (selection == "emu") ?  65.f : 35.f;
         clfv_selec->fMaxLepM           = (selection == "emu") ? 115.f : (selection.EndsWith("tau")) ? 175.f : 175.f;
+        clfv_selec->fSameFlavorEMuSelec = doSameFlavorEMu_;
       }
       if(dynamic_cast<HistMaker*> (selec)) {
         auto hist_selec = (HistMaker*) selec;
@@ -116,17 +150,23 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
         hist_selec->fDoEventList        = selection == "ee" || selection == "mumu";
         hist_selec->fDoHiggs            = doHiggs_;
         hist_selec->fSparseHists        = sparseHists_;
+        hist_selec->fUseFlags           = useEventFlags_;
+        hist_selec->fUseZPtWeight       = useZPtWeights_;
         hist_selec->fUseSignalZWeights  = useSignalZWeights_;
+        hist_selec->fUseSignalZMixWeights  = useSignalZMixWeights_;
+        hist_selec->fUseLepDisplacementWeights = useLepDxyzWeights_;
+        hist_selec->fRemoveEventWeights = removeEventWeights_;
         hist_selec->fUseEmbedRocco      = useEmbedRocco_;
         hist_selec->fUseRoccoCorr       = useRoccoCorr_;
         hist_selec->fUseRoccoSize       = useRoccoSize_;
         hist_selec->fUseCDFBDTs         = useCDFBDTs_;
         hist_selec->fUseXGBoostBDT      = useXGBoost_;
+        hist_selec->fUseBDTScale        = useBDTScale_;
         hist_selec->fNotifyCount        = notify_;
         hist_selec->fLoadBaskets        = false;
         hist_selec->fDoSSSystematics    = selection == "emu" || selection.Contains("_");
         hist_selec->fDoLooseSystematics = selection.EndsWith("tau");
-        hist_selec->fAllowMigration     = allowMigration_ && doSystematics_;
+        hist_selec->fAllowMigration     = allowMigration_ && doSystematics;
         hist_selec->fMaxEntries         = (events_scale < 1.f) ? max_sim_events_ : nentries;
 
         if(etauAntiEleCut_ > 0) hist_selec->fETauAntiEleCut = etauAntiEleCut_;
@@ -134,10 +174,12 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
 
       selec->fRemoveTriggerWeights = removeTrigWeights_;
       selec->fUpdateMCEra          = updateMCEra_;
+      selec->fUpdateMET            = updateMET_;
       selec->fUseBTagWeights       = useBTagWeights_;
       selec->fRemovePUWeights      = (isSignal) ? removePUWeights_ : 0 ; //remove for signal, due to module issues (likely weights measured per file too low stats)
       selec->fUseJetPUIDWeights    = useJetPUIDWeights_;
       selec->fUsePrefireWeights    = usePrefireWeights_;
+      selec->fApplyLeptonIDWt      = useLeptonIDWeights_;
       selec->fUseQCDWeights        = useQCDWeights_;
 
       if(selection == "emu" && useEmbedCuts_ == 1)
@@ -150,6 +192,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
       selec->fUseJetToTauComposition = useJetToTauComp_;
       selec->fApplyJetToTauMCBias    = applyJetToTauMCBias_;
 
+      selec->fDYType = 0;
       if(isDY && splitDY_)     selec->fDYType = dyloop; //if Drell-Yan, tell the selector which loop we're on
       if(isWJ && splitWJets_)  selec->fWNJets = wjloop; //if W+Jets, tell the selector which loop we're on
       selec->fIsDY = isDY;
@@ -160,7 +203,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
       selec->fDataset = card.dataset_;
       selec->fIsSignal = isSignal;
 
-      selec->fDoSystematics = doSystematics_;
+      selec->fDoSystematics = doSystematics;
       //skip electron data events with both triggers for e+mu channel, to not double count
       selec->fSkipDoubleTrigger = isElectronData && (tree_name == "emu");
       //store a label for this dataset
@@ -190,7 +233,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
       }
       if(selection == "mumu" || selection == "ee") selec->fFractionMVA = 0.; //don't split off same flavor data
       selec->fIsNano = true;
-      if(follow_hist_set_ >= 0) selec->fFollowHistSet = follow_hist_set_;
+      if(follow_hist_set_ >= 0 && debug_) selec->fFollowHistSet = follow_hist_set_;
       if(debug_ && verbose_ > 1)       selec->fVerbose = verbose_;
       else if(debug_ && nEvents_ < 20) selec->fVerbose = 1;
       else                             selec->fVerbose = 0;

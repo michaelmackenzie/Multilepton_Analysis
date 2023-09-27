@@ -730,7 +730,7 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
         if(leptonTwo.isElectron()) weight *= (1.f-rho) + rho*leptonTwo.wt1[2] / leptonTwo.wt1[0];
       }
     } else if  (name == "EmbEleID") {
-      if(fIsData || !isEData) continue;
+      if(fIsData || !isEData || !fIsEmbed) continue;
       if(fSystematics.IsUp(sys)) {
         if(leptonOne.isElectron()) weight *= (1.f-rho_t) + rho_t*leptonOne.wt1[1] / leptonOne.wt1[0];
         if(leptonTwo.isElectron()) weight *= (1.f-rho_t) + rho_t*leptonTwo.wt1[1] / leptonTwo.wt1[0];
@@ -748,7 +748,7 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
         if(leptonTwo.isElectron()) weight *= (1.f-rho) + rho*leptonTwo.wt2[2] / leptonTwo.wt2[0];
       }
     } else if(name == "EmbEleRecoID") {
-      if(fIsData || !isEData) continue;
+      if(fIsData || !isEData || !fIsEmbed) continue;
       if(fSystematics.IsUp(sys)) {
         if(leptonOne.isElectron()) weight *= (1.f-rho_t) + rho_t*leptonOne.wt2[1] / leptonOne.wt2[0];
         if(leptonTwo.isElectron()) weight *= (1.f-rho_t) + rho_t*leptonTwo.wt2[1] / leptonTwo.wt2[0];
@@ -766,7 +766,7 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
         if(leptonTwo.isElectron()) weight *= (1.f-rho) + rho*leptonTwo.wt3[2] / leptonTwo.wt3[0];
       }
     } else if(name == "EmbEleIsoID") {
-      if(!fIsEmbed || !isEData) continue;
+      if(!fIsEmbed || !isEData || !fIsEmbed) continue;
       if(fSystematics.IsUp(sys)) {
         if(leptonOne.isElectron()) weight *= (1.f-rho_t) + rho_t*leptonOne.wt3[1] / leptonOne.wt3[0];
         if(leptonTwo.isElectron()) weight *= (1.f-rho_t) + rho_t*leptonTwo.wt3[1] / leptonTwo.wt3[0];
@@ -784,7 +784,7 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
         if(leptonTwo.isMuon    ()) weight *= (1.f-rho) + rho*leptonTwo.wt1[2] / leptonTwo.wt1[0];
       }
     } else if(name == "EmbMuonID") {
-      if(fIsData || !isMData) continue;
+      if(fIsData || !isMData || !fIsEmbed) continue;
       if(fSystematics.IsUp(sys)) {
         if(leptonOne.isMuon    ()) weight *= (1.f-rho_t) + rho_t*leptonOne.wt1[1] / leptonOne.wt1[0];
         if(leptonTwo.isMuon    ()) weight *= (1.f-rho_t) + rho_t*leptonTwo.wt1[1] / leptonTwo.wt1[0];
@@ -802,7 +802,7 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
         if(leptonTwo.isMuon    ()) weight *= (1.f-rho) + rho*leptonTwo.wt2[2] / leptonTwo.wt2[0];
       }
     } else if(name == "EmbMuonIsoID") {
-      if(fIsData || !isMData) continue;
+      if(fIsData || !isMData || !fIsEmbed) continue;
       if(fSystematics.IsUp(sys)) {
         if(leptonOne.isMuon    ()) weight *= (1.f-rho_t) + rho_t*leptonOne.wt2[1] / leptonOne.wt2[0];
         if(leptonTwo.isMuon    ()) weight *= (1.f-rho_t) + rho_t*leptonTwo.wt2[1] / leptonTwo.wt2[0];
@@ -901,6 +901,10 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
       if(!fIsSignal) continue;
       if(fSystematics.IsUp(sys)) weight *= signalZMixingWeightUp  /signalZMixingWeight;
       else                       weight *= signalZMixingWeightDown/signalZMixingWeight;
+    } else if(name == "SignalBDT") {
+      if(!fIsSignal || !isEMu) continue;
+      if(fSystematics.IsUp(sys)) weight *= 1./bdtWeight; //remove weight for up
+      else                       weight *=    bdtWeight; //apply twice for down
     } else if(name == "TheoryPDF") {
       if(fIsData || fIsEmbed) continue;
       if(fSystematics.IsUp(sys)) weight *= LHEPdfWeightMax;

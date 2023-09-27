@@ -1,6 +1,8 @@
 #ifndef DataPlotter_hh
 #define DataPlotter_hh
 
+#include <vector>
+
 #include "TString.h"
 #include "TFile.h"
 #include "TKey.h"
@@ -83,6 +85,7 @@ namespace CLFV {
     Float_t ratio_plot_min_ = 0.6; //Data/MC Y-axis range
     Float_t ratio_plot_max_ = 1.4;
     Int_t stack_uncertainty_ = 1; //whether or not to add gray shading for uncertainty
+    Int_t combine_uncertainties_ = 1; //whether or not to combine sys and stat uncertainties
     Int_t add_bkg_hists_manually_ = 0; //whether to use Stacks given uncertainty or add them by hand
     Int_t density_plot_ = 0; //divide by bin width
     Int_t debug_ = 0; //for debugging
@@ -279,25 +282,29 @@ namespace CLFV {
       }
     }
 
-    std::vector<TH1*> get_histograms(TString hist, TString setType, Int_t set, Int_t Mode, TString process = "", ScaleUncertainty_t* sys_scale = nullptr);
+    std::vector<TH1*> get_histograms(TString hist, TString setType, Int_t set, Int_t Mode, TString process = "", ScaleUncertainty_t* sys_scale = nullptr, TString tag = "");
     enum{kBackground, kSignal, kData, kAny};
 
-    std::vector<TH1*> get_signal(TString hist, TString setType, Int_t set, ScaleUncertainty_t* sys_scale = nullptr);
+    std::vector<TH1*> get_signal(TString hist, TString setType, Int_t set, ScaleUncertainty_t* sys_scale = nullptr, TString tag = "");
     // TH2* get_signal_2D(TString hist, TString setType, Int_t set);
 
-    TH1* get_data_mc_diff(TString hist, TString setType, Int_t set, ScaleUncertainty_t* sys_scale = nullptr);
+    TH1* get_data_mc_diff(TString hist, TString setType, Int_t set, ScaleUncertainty_t* sys_scale = nullptr, TString tag = "");
 
-    TH1* get_data(TString hist, TString setType, Int_t set, ScaleUncertainty_t* sys_scale = nullptr);
+    TH1* get_data(TString hist, TString setType, Int_t set, ScaleUncertainty_t* sys_scale = nullptr, TString tag = "");
     TH2* get_data_2D(TString hist, TString setType, Int_t set);
 
-    TH1* get_qcd(TString hist, TString setType, Int_t set, ScaleUncertainty_t* sys_scale = nullptr);
+    TH1* get_qcd(TString hist, TString setType, Int_t set, ScaleUncertainty_t* sys_scale = nullptr, TString tag = "");
     TH2* get_qcd_2D(TString hist, TString setType, Int_t set);
 
-    TH1* get_misid(TString hist, TString setType, Int_t set, ScaleUncertainty_t* sys_scale = nullptr);
+    TH1* get_misid(TString hist, TString setType, Int_t set, ScaleUncertainty_t* sys_scale = nullptr, TString tag = "");
     TH2* get_misid_2D(TString hist, TString setType, Int_t set);
 
     TH1* get_stack_uncertainty(THStack* hstack, TString hname);
-    THStack* get_stack(TString hist, TString setType, Int_t set, ScaleUncertainty_t* sys_scale = nullptr);
+    TGraphAsymmErrors* get_stack_systematic(THStack* hstack, const std::vector<std::pair<TString,TString>> hnames,
+                                            const std::vector<std::pair<ScaleUncertainty_t,ScaleUncertainty_t>>& scales,
+                                            const TString hist, const TString type, const int set);
+
+    THStack* get_stack(TString hist, TString setType, Int_t set, ScaleUncertainty_t* sys_scale = nullptr, TString tag = "");
     TH2* get_background_2D(TString hist, TString setType, Int_t set);
 
     TH1* get_process(TString label, TString hist, TString setType, Int_t set);
@@ -340,9 +347,13 @@ namespace CLFV {
     //   return plot_hist(card.hist_, card.type_, card.set_, card.xmin_, card.xmax_);
     // }
 
-    TCanvas* plot_stack(TString hist, TString setType, Int_t set);
-    TCanvas* plot_stack(TString hist, TString setType, Int_t set, Double_t xmin, Double_t xmax) {
-      xMin_ = xmin; xMax_=xmax; auto c = plot_stack(hist, setType, set); reset_axes(); return c;
+    TCanvas* plot_stack(TString hist, TString setType, Int_t set,
+                        const std::vector<std::pair<TString,TString>> sys_names = {},
+                        const std::vector<std::pair<ScaleUncertainty_t,ScaleUncertainty_t>>& scale_sys = {});
+    TCanvas* plot_stack(TString hist, TString setType, Int_t set, Double_t xmin, Double_t xmax,
+                        const std::vector<std::pair<TString,TString>> sys_names = {},
+                        const std::vector<std::pair<ScaleUncertainty_t,ScaleUncertainty_t>>& scale_sys = {}) {
+      xMin_ = xmin; xMax_=xmax; auto c = plot_stack(hist, setType, set, sys_names, scale_sys); reset_axes(); return c;
     }
     TCanvas* plot_stack(PlottingCard_t card) {
       rebinH_ = card.rebin_;
@@ -354,7 +365,7 @@ namespace CLFV {
       if(card.data_over_mc_ < 100)
         data_over_mc_ = card.data_over_mc_;
       only_signal_ = card.label_;
-      return plot_stack(card.hist_, card.type_, card.set_, card.xmin_, card.xmax_);
+      return plot_stack(card.hist_, card.type_, card.set_, card.xmin_, card.xmax_, card.sys_list_, card.scale_sys_list_);
     }
 
     TGraphAsymmErrors* get_errors(TH1* h, TH1* h_p, TH1* h_m, bool ratio, double& r_min, double& r_max);
@@ -362,6 +373,9 @@ namespace CLFV {
       double tmp1, tmp2;
       return get_errors(h, h_p, h_m, ratio, tmp1, tmp2);
     }
+    void combine_errors(TH1* h, TGraphAsymmErrors* g);
+    TGraphAsymmErrors* get_ratio(TH1* h, TGraphAsymmErrors* g);
+
     TCanvas* plot_systematic(TString hist, Int_t set, Int_t systematic, ScaleUncertainty_t* sys_scale = nullptr);
     TCanvas* plot_systematic(TString hist, Int_t set, Int_t systematic, Double_t xmin, Double_t xmax, ScaleUncertainty_t* sys_scale = nullptr) {
       xMin_ = xmin; xMax_=xmax; auto c = plot_systematic(hist, set, systematic, sys_scale); reset_axes(); return c;
@@ -408,9 +422,11 @@ namespace CLFV {
       reset_axes(); return c;
     }
 
-    TCanvas* print_stack(TString hist, TString setType, Int_t set, TString tag = "");
-    TCanvas* print_stack(TString hist, TString setType, Int_t set, Double_t xmin, Double_t xmax, TString tag = "") {
-      xMin_ = xmin; xMax_=xmax; auto c = print_stack(hist, setType, set, tag); reset_axes(); return c;
+    TCanvas* print_stack(TString hist, TString setType, Int_t set, TString tag = "", std::vector<std::pair<TString,TString>> sys = {},
+                         const std::vector<std::pair<ScaleUncertainty_t,ScaleUncertainty_t>>& scale_sys = {});
+    TCanvas* print_stack(TString hist, TString setType, Int_t set, Double_t xmin, Double_t xmax, TString tag = "", std::vector<std::pair<TString,TString>> sys = {},
+                         const std::vector<std::pair<ScaleUncertainty_t,ScaleUncertainty_t>>& scale_sys = {}) {
+      xMin_ = xmin; xMax_=xmax; auto c = print_stack(hist, setType, set, tag, sys, scale_sys); reset_axes(); return c;
     }
     TCanvas* print_stack(PlottingCard_t card) {
       rebinH_ = card.rebin_;
@@ -422,7 +438,7 @@ namespace CLFV {
       if(card.data_over_mc_ < 100)
         data_over_mc_ = card.data_over_mc_;
       only_signal_ = card.label_;
-      return print_stack(card.hist_, card.type_, card.set_, card.xmin_, card.xmax_, card.tag_);
+      return print_stack(card.hist_, card.type_, card.set_, card.xmin_, card.xmax_, card.tag_, card.sys_list_, card.scale_sys_list_);
     }
 
     TCanvas* print_systematic(TString hist, Int_t set, Int_t systematic, TString tag = "", ScaleUncertainty_t* sys_scale = nullptr);

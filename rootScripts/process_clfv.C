@@ -39,7 +39,14 @@ Int_t process_clfv() {
   unsigned nfiles = nanocards.size();
   for(unsigned i = 0; i < nfiles; ++i) {
     ++category; // could have just used i + 1?
-    if(!nanocards[i].process_ || (tag_ != "" && !nanocards[i].fname_.Contains(tag_.Data()))) continue;
+    if(!nanocards[i].process_) continue;
+    if(tag_.size() > 0) {
+      bool skip = true;
+      for(TString tag : tag_) {
+        if(tag == "" || nanocards[i].fname_.Contains(tag.Data())) {skip = false; break;}
+      }
+      if(skip) continue;
+    }
     if(veto_.size() > 0) {
       bool skip = false;
       for(TString veto : veto_) {

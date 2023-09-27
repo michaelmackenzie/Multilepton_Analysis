@@ -1156,8 +1156,10 @@ void HistMaker::InitializeInputTree(TTree* tree) {
   }
   if(fIsSignal && fUseSignalZWeights == 2)
     Utilities::SetBranchAddress(tree, "SignalpTWeight"                , &signalZWeight                 );
-  if((fIsSignal || fIsDY) && fUseZPtWeight == 2)
+  if((fIsSignal || fIsDY) && fUseZPtWeight == 2) {
     Utilities::SetBranchAddress(tree, "ZpTWeight"                     , &zPtWeight                     );
+    Utilities::SetBranchAddress(tree, "ZpTWeight_sys"                 , &zPtWeightUp                   );
+  }
 
   //Event information
   if(!fIsData) {
@@ -1594,6 +1596,10 @@ void HistMaker::InitializeEventWeights() {
     //re-weight MC spectrum to data spectrum
     if(fUseZPtWeight != 2) //2 = use ntuple input
       zPtWeight = (fUseZPtWeight) ? fZPtWeight->GetWeight(fYear, zPt, zMass, false /*Use Gen level weights*/, zPtWeightUp, zPtWeightDown, zPtWeightSys) : 1.f;
+    else if(fUseZPtWeight == 2) { //initialize down using up value
+      zPtWeightDown = std::min(10.f, std::max(1.e-6f, 2.f*zPtWeight - zPtWeightUp)); //down = weight - (up - weight)
+      zPtWeightSys = zPtWeightUp;
+    }
     eventWeight *= zPtWeight*signalZWeight*signalZMixingWeight;
     if(fVerbose > 0) std::cout << " For Z pT = " << zPt << " and Mass = " << zMass << " using Data/MC weight " << zPtWeight
                                << ", signal Z weight " << signalZWeight

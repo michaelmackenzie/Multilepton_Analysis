@@ -3,7 +3,8 @@ using namespace CLFV;
 
 //--------------------------------------------------------------------------------------------------------------------
 // general method to get a list of histograms, either for data, signal, or backgrounds
-std::vector<TH1*> DataPlotter::get_histograms(TString hist, TString setType, Int_t set, Int_t Mode, TString process, ScaleUncertainty_t* sys_scale) {
+std::vector<TH1*> DataPlotter::get_histograms(TString hist, TString setType, Int_t set, Int_t Mode, TString process,
+                                              ScaleUncertainty_t* sys_scale, TString tag) {
   //list of histograms to return
   std::vector<TH1*> histograms;
 
@@ -117,6 +118,7 @@ std::vector<TH1*> DataPlotter::get_histograms(TString hist, TString setType, Int
     } else {
       TString hname = Form("%s_%s_%i", input.label_.Data(), hist.Data(), set);
       if(density_plot_) hname += "_density";
+      if(tag != "" ) hname += "_" + tag;
       auto o = gDirectory->Get(hname.Data());
       if(o) delete o;
       histograms[index]->SetName(hname.Data());
@@ -148,8 +150,8 @@ std::vector<TH1*> DataPlotter::get_histograms(TString hist, TString setType, Int
 }
 
 //--------------------------------------------------------------------------------------------------------------------
-std::vector<TH1*> DataPlotter::get_signal(TString hist, TString setType, Int_t set, ScaleUncertainty_t* sys_scale) {
-  std::vector<TH1*> histograms = get_histograms(hist, setType, set, kSignal, "", sys_scale);
+std::vector<TH1*> DataPlotter::get_signal(TString hist, TString setType, Int_t set, ScaleUncertainty_t* sys_scale, TString tag) {
+  std::vector<TH1*> histograms = get_histograms(hist, setType, set, kSignal, "", sys_scale, tag);
   if(verbose_ > 2) printf("%s: Retrieved the list of %i signal histograms\n", __func__, (int) histograms.size());
   for(unsigned index = 0; index < histograms.size(); ++index) {
     if(verbose_ > 7) printf(" Updating drawing settings for signal %i (%s)\n", (int) index, histograms[index]->GetTitle());
@@ -182,9 +184,10 @@ std::vector<TH1*> DataPlotter::get_signal(TString hist, TString setType, Int_t s
 }
 
 //--------------------------------------------------------------------------------------------------------------------
-TH1* DataPlotter::get_data_mc_diff(TString hist, TString setType, Int_t set, ScaleUncertainty_t* sys_scale) {
+TH1* DataPlotter::get_data_mc_diff(TString hist, TString setType, Int_t set, ScaleUncertainty_t* sys_scale, TString tag) {
   TString hname = Form("Diff_%s_%s_%i", hist.Data(), setType.Data(), set);
   if(density_plot_) hname += "_density";
+  if(tag != "") hname += "_" + tag;
   {
     auto o = gDirectory->Get(hname.Data());
     if(o) delete o;
@@ -201,7 +204,7 @@ TH1* DataPlotter::get_data_mc_diff(TString hist, TString setType, Int_t set, Sca
   hData->SetName(hname.Data());
 
   //get the MC background histograms
-  std::vector<TH1*> backgrounds = get_histograms(hist, setType, set, kBackground, "", sys_scale);
+  std::vector<TH1*> backgrounds = get_histograms(hist, setType, set, kBackground, "", sys_scale, tag);
   TH1* hBackground = nullptr;
   for(unsigned index = 0; index < backgrounds.size(); ++index) {
     if(!hBackground) {
@@ -237,14 +240,15 @@ TH1* DataPlotter::get_data_mc_diff(TString hist, TString setType, Int_t set, Sca
 }
 
 //--------------------------------------------------------------------------------------------------------------------
-TH1* DataPlotter::get_data(TString hist, TString setType, Int_t set, ScaleUncertainty_t* sys_scale) {
+TH1* DataPlotter::get_data(TString hist, TString setType, Int_t set, ScaleUncertainty_t* sys_scale, TString tag) {
   TString hname = Form("hData_%s_%i", hist.Data(), set);
   if(density_plot_) hname += "_density";
+  if(tag != "") hname += "_" + tag;
   {
     auto o = gDirectory->Get(hname.Data());
     if(o) delete o;
   }
-  std::vector<TH1*> histograms = get_histograms(hist, setType, set, kData, "", sys_scale);
+  std::vector<TH1*> histograms = get_histograms(hist, setType, set, kData, "", sys_scale, tag);
   TH1* hdata = nullptr;
   for(unsigned index = 0; index < histograms.size(); ++index) {
     if(!hdata) {
@@ -282,9 +286,10 @@ TH2* DataPlotter::get_data_2D(TString hist, TString setType, Int_t set) {
 }
 
 //--------------------------------------------------------------------------------------------------------------------
-TH1* DataPlotter::get_qcd(TString hist, TString setType, Int_t set, ScaleUncertainty_t* sys_scale) {
+TH1* DataPlotter::get_qcd(TString hist, TString setType, Int_t set, ScaleUncertainty_t* sys_scale, TString tag) {
   TString hname = Form("QCD_%s_%s_%i", hist.Data(), setType.Data(), set);
   if(density_plot_) hname += "_density";
+  if(tag != "") hname += "_" + tag;
   {
     auto o = gDirectory->Get(hname.Data());
     if(o) delete o;
@@ -294,7 +299,7 @@ TH1* DataPlotter::get_qcd(TString hist, TString setType, Int_t set, ScaleUncerta
 
   //get the data histogram
   const Int_t set_qcd = set + qcd_offset_;
-  TH1* hData = get_data_mc_diff(hist, setType, set_qcd, sys_scale);
+  TH1* hData = get_data_mc_diff(hist, setType, set_qcd, sys_scale, tag);
   if(!hData) return nullptr;
 
   //redefine the data histogram as the QCD histogram
@@ -303,7 +308,7 @@ TH1* DataPlotter::get_qcd(TString hist, TString setType, Int_t set, ScaleUncerta
   if(rebinH_ > 1) hData->Rebin(rebinH_);
 
   //include the Mis-ID background subtraction if included
-  TH1* hMisID = (include_misid_) ? get_misid(hist, setType, set_qcd, sys_scale) : nullptr;
+  TH1* hMisID = (include_misid_) ? get_misid(hist, setType, set_qcd, sys_scale, tag) : nullptr;
   if(hMisID) {hData->Add(hMisID, -1.); delete hMisID;}
 
 
@@ -394,9 +399,10 @@ TH2* DataPlotter::get_qcd_2D(TString hist, TString setType, Int_t set) {
 }
 
 //--------------------------------------------------------------------------------------------------------------------
-TH1* DataPlotter::get_misid(TString hist, TString setType, Int_t set, ScaleUncertainty_t* sys_scale) {
+TH1* DataPlotter::get_misid(TString hist, TString setType, Int_t set, ScaleUncertainty_t* sys_scale, TString tag) {
   TString hname = Form("MisID_%s_%s_%i", hist.Data(), setType.Data(), set);
   if(density_plot_) hname += "_density";
+  if(tag != "") hname += "_" + tag;
   {
     auto o = gDirectory->Get(hname.Data());
     if(o) delete o;
@@ -406,7 +412,7 @@ TH1* DataPlotter::get_misid(TString hist, TString setType, Int_t set, ScaleUncer
 
   //get the data histogram
   const Int_t set_misid = set + misid_offset_;
-  TH1* hData = get_data_mc_diff(hist, setType, set_misid, sys_scale);
+  TH1* hData = get_data_mc_diff(hist, setType, set_misid, sys_scale, tag);
   if(!hData) return nullptr;
 
   //redefine the data histogram as the MisID histogram
@@ -415,7 +421,7 @@ TH1* DataPlotter::get_misid(TString hist, TString setType, Int_t set, ScaleUncer
   if(rebinH_ > 1) hData->Rebin(rebinH_);
 
   //include the QCD background subtraction if included
-  TH1* hQCD = (include_qcd_) ? get_qcd(hist, setType, set_misid, sys_scale) : nullptr;
+  TH1* hQCD = (include_qcd_) ? get_qcd(hist, setType, set_misid, sys_scale, tag) : nullptr;
   if(hQCD) {hData->Add(hQCD, -1.); delete hQCD;}
 
   //store the integral before clipping negative bins
@@ -509,16 +515,17 @@ TH2* DataPlotter::get_misid_2D(TString hist, TString setType, Int_t set) {
 }
 
 //--------------------------------------------------------------------------------------------------------------------
-THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set, ScaleUncertainty_t* sys_scale) {
+THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set, ScaleUncertainty_t* sys_scale, TString tag) {
 
   //Get the data-driven backgrounds if applicable
-  TH1* hQCD   = (include_qcd_)   ? get_qcd  (hist,setType,set,sys_scale) : nullptr;
-  TH1* hMisID = (include_misid_) ? get_misid(hist,setType,set,sys_scale) : nullptr;
+  TH1* hQCD   = (include_qcd_)   ? get_qcd  (hist,setType,set,sys_scale, tag) : nullptr;
+  TH1* hMisID = (include_misid_) ? get_misid(hist,setType,set,sys_scale, tag) : nullptr;
   if(hQCD   && verbose_ > 0) printf("QCD histogram has integral %.4f\n", hQCD->Integral(0, hQCD->GetNbinsX()+1, (density_plot_ > 0) ? "width" : ""));
   if(hMisID && verbose_ > 0) printf("MisID histogram has integral %.4f\n", hMisID->Integral(0, hMisID->GetNbinsX()+1, (density_plot_ > 0) ? "width" : ""));
 
   //Create the stack
   TString stack_name = Form("stack_%s_%s_%i%s", hist.Data(), setType.Data(), set, (density_plot_) ? "_density" : "");
+  if(tag != "") stack_name += "_" + tag;
   {
     auto o = gDirectory->Get(stack_name.Data());
     if(o) delete o;
@@ -526,7 +533,7 @@ THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set, ScaleU
   THStack* hstack = new THStack(stack_name.Data(),stack_name.Data());
 
   //Get the background histograms
-  std::vector<TH1*> histograms = get_histograms(hist, setType, set, kBackground, "", sys_scale);
+  std::vector<TH1*> histograms = get_histograms(hist, setType, set, kBackground, "", sys_scale, tag);
 
   //Loop through the histograms and add them to the stack
   for(unsigned index = 0; index < histograms.size(); ++index) {
@@ -662,7 +669,7 @@ TH1* DataPlotter::get_stack_uncertainty(THStack* hstack, TString hname) {
   TH1* huncertainty = (TH1*) hlast->Clone(hname.Data());
   huncertainty->SetDirectory(0);
   if(add_bkg_hists_manually_) {huncertainty->Clear(); huncertainty->Reset();}
-  huncertainty->SetTitle("Bkg #pm#sigma(Stat)");
+  huncertainty->SetTitle("#sigma(stat.)");
   huncertainty->SetName(hname.Data());
   huncertainty->SetFillColor(kGray+1);
   huncertainty->SetLineColor(kGray+1);
@@ -676,6 +683,131 @@ TH1* DataPlotter::get_stack_uncertainty(THStack* hstack, TString hname) {
     }
   }
   return huncertainty;
+}
+
+//--------------------------------------------------------------------------------------------------------------------
+TGraphAsymmErrors* DataPlotter::get_stack_systematic(THStack* hstack,
+                                                     const std::vector<std::pair<TString, TString>> hnames,
+                                                     const std::vector<std::pair<ScaleUncertainty_t,ScaleUncertainty_t>>& scales,
+                                                     const TString hist, const TString type, const int set) {
+  if(!hstack || hstack->GetNhists() == 0 || (hnames.size() == 0 && scales.size() == 0))
+    return nullptr;
+
+  TH1* hbkg = (TH1*) hstack->GetStack()->Last()->Clone("TMP_systematic_bkg");
+  const int npoints = hbkg->GetNbinsX() + 2; //N(bins) + underflow + overflow
+
+  //Create a list of up/down systematic histograms
+  std::vector<TH1*> up, down;
+  for(std::pair<TString, TString> name : hnames) {
+    THStack* s_up = get_stack(name.first, type, set, nullptr, name.first + "_up");
+    if(!s_up || s_up->GetNhists() == 0) continue;
+    THStack* s_down = nullptr;
+    if(name.second != "") { //if not defined, use up to define down
+      s_down = get_stack(name.second, type, set, nullptr, name.second + "_down");
+      if(!s_down || s_down->GetNhists() == 0) continue;
+    } else {
+      if(verbose_ > 2) std::cout << __func__ << ": Using systematic up to define down\n";
+    }
+    TH1* h_up = (TH1*) s_up->GetStack()->Last()->Clone(Form("TMP_systematic_%s", name.first.Data()));
+    up.push_back(h_up);
+    delete s_up;
+    if(s_down) {
+      TH1* h_down = (TH1*) s_down->GetStack()->Last()->Clone(Form("TMP_systematic_%s", name.second.Data()));
+      down.push_back(h_down);
+      delete s_down;
+    } else {
+      TH1* h_down = (TH1*) hbkg->Clone(Form("TMP_systematic_%s_down", name.first.Data()));
+      h_down->Scale(2.);
+      h_down->Add(h_up, -1.);
+      down.push_back(h_down);
+    }
+  }
+
+  //Add the up/down scale systematic histograms
+  //assume the
+  for(auto scale : scales) {
+    THStack* s_up = get_stack(hist, type, set, &scale.first, scale.first.name_ + "_up");
+    if(!s_up || s_up->GetNhists() == 0) continue;
+    THStack* s_down = nullptr;
+    if(scale.second.name_ != "") { //if not defined, use up to define down
+      s_down = get_stack(hist, type, set, &scale.second, scale.second.name_ + "_down");
+      if(!s_down || s_down->GetNhists() == 0) continue;
+    } else {
+      if(verbose_ > 2) std::cout << __func__ << ": Using systematic up to define down\n";
+    }
+    TH1* h_up = (TH1*) s_up->GetStack()->Last()->Clone(Form("TMP_systematic_%s_up", scale.first.name_.Data()));
+    up.push_back(h_up);
+    delete s_up;
+    if(s_down) {
+      TH1* h_down = (TH1*) s_down->GetStack()->Last()->Clone(Form("TMP_systematic_%s_down", scale.second.name_.Data()));
+      down.push_back(h_down);
+      delete s_down;
+    } else {
+      TH1* h_down = (TH1*) hbkg->Clone(Form("TMP_systematic_%s_down", scale.first.name_.Data()));
+      h_down->Scale(2.);
+      h_down->Add(h_up, -1.);
+      down.push_back(h_down);
+    }
+  }
+
+  //sanity check
+  if(down.size() != up.size()) {
+    printf("DataPlotter::%s: Error! Up = %i and down = %i\n", __func__, (int) up.size(), (int) down.size());
+    return nullptr;
+  }
+
+  //Evaluate the error in each bin
+  double xvals[npoints], yvals[npoints], xerrs[npoints], ylow[npoints], yhigh[npoints];
+  if(verbose_ > 9) {
+    printf("Systematic errors: bin, sys, val, err_up, err_down\n");
+  }
+  for(int ibin = 0; ibin < npoints; ++ibin) {
+    const double val = hbkg->GetBinContent(ibin);
+    const double x   = hbkg->GetBinCenter (ibin);
+    const double w   = hbkg->GetBinWidth  (ibin);
+    xvals[ibin] = x;
+    xerrs[ibin] = w/2.;
+    yvals[ibin] = val;
+
+    double tot_err_up = 0.;
+    double tot_err_down = 0.;
+    //loop through each systematic effect, add in quadrature
+    for(unsigned isys = 0; isys < up.size(); ++isys) {
+      TH1* hup   = up  [isys];
+      TH1* hdown = down[isys];
+      const double val_up   = hup  ->GetBinContent(ibin);
+      const double val_down = hdown->GetBinContent(ibin);
+      const double err_up   = (val_up > val_down) ? val_up   - val : val_down - val; //order by increase/decrease in bin
+      const double err_down = (val_up > val_down) ? val_down - val : val_up   - val;
+      tot_err_up   += (err_up   > 0.) ? err_up  *err_up   : 0.; //ignore decreases
+      tot_err_down += (err_down < 0.) ? err_down*err_down : 0.; //ignore increases
+      if(verbose_ > 9) {
+        printf(" %3i: %2i: %.3f %.3f %.3f\n", ibin, isys, val, err_up, err_down);
+      }
+    }
+    tot_err_up   = std::sqrt(tot_err_up  );
+    tot_err_down = std::sqrt(tot_err_down);
+    yhigh[ibin] = tot_err_up  ;
+    ylow [ibin] = tot_err_down;
+  }
+
+  //loop through each systematic effect to cleanup
+  for(unsigned isys = 0; isys < up.size(); ++isys) {
+    delete up  [isys];
+    delete down[isys];
+  }
+
+  //make a graph of the errors and return it
+  TGraphAsymmErrors* gerrors = new TGraphAsymmErrors(npoints, xvals, yvals, xerrs, xerrs, ylow, yhigh);
+  gerrors->SetTitle("#sigma(sys)");
+  gerrors->SetFillColor(kGray+3);
+  gerrors->SetLineColor(kGray+3);
+  gerrors->SetFillStyle(3005);
+  gerrors->SetMarkerSize(0.); //so no marker
+
+
+  delete hbkg;
+  return gerrors;
 }
 
 // //--------------------------------------------------------------------------------------------------------------------
@@ -1133,7 +1265,8 @@ TH1* DataPlotter::get_stack_uncertainty(THStack* hstack, TString hname) {
 // }
 
 //--------------------------------------------------------------------------------------------------------------------
-TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
+TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set, const std::vector<std::pair<TString,TString>> sys_names,
+                                 const std::vector<std::pair<ScaleUncertainty_t,ScaleUncertainty_t>>& scale_sys) {
   if(verbose_ > 0) std::cout << "Plotting stack with hist = " << hist.Data()
                              << " type = " << setType.Data() << " and set = "
                              << set << std::endl;
@@ -1249,6 +1382,15 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
   TH1* huncertainty = get_stack_uncertainty(hstack,Form("uncertainty_%s_%i", hist.Data(), set));
   if(stack_uncertainty_)
     huncertainty->Draw("E2 SAME");
+  auto systematic = get_stack_systematic(hstack, sys_names, scale_sys, hist, setType, set);
+  if(systematic) {
+    systematic->SetName(Form("systematic_%s_%i", hist.Data(), set));
+    if(combine_uncertainties_) { //combine stat + sys uncertainties
+      combine_errors(huncertainty, systematic);
+      systematic->SetTitle("#sigma(total)");
+    }
+    systematic->Draw("E2 SAME");
+  }
 
   int ndata = 0.;
   double nmc = 0.;
@@ -1300,6 +1442,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
   leg->SetNColumns(legend_ncol_);
   if(d) leg->AddEntry(d, d->GetTitle(), "PL");
   if(stack_uncertainty_) leg->AddEntry(huncertainty, huncertainty->GetTitle(), "F");
+  if(systematic)         leg->AddEntry(systematic  , systematic  ->GetTitle(), "F");
   if(!stack_signal_) {
     for(unsigned int i = 0; i < hsignal.size(); ++i) {
       leg->AddEntry(hsignal[i], hsignal[i]->GetTitle(), "FL");
@@ -1474,6 +1617,10 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set) {
     //  hDataMC->SetName("hDataMC");
     if(hDataMCErr)
       hDataMCErr->Draw("E2");
+    if(systematic) {
+      auto sys_ratio = get_ratio((TH1*) hstack->GetStack()->Last(), systematic);
+      if(sys_ratio) sys_ratio->Draw("same E2");
+    }
   } else if(hDataMC && data_over_mc_ < 0) {
     pad2->cd();
     pad2->SetGrid();
@@ -1555,6 +1702,58 @@ TGraphAsymmErrors* DataPlotter::get_errors(TH1* h, TH1* h_p, TH1* h_m, bool rati
   g->SetFillStyle(3001);
   g->SetLineWidth(3);
   return g;
+}
+
+//--------------------------------------------------------------------------------------------------------------------
+//Combine the errors in a TH1 and a TGraph to get the total error
+void DataPlotter::combine_errors(TH1* h, TGraphAsymmErrors* g) {
+  const int npoints = g->GetN();
+  if(npoints != h->GetNbinsX()+2) {
+    printf("DataPlotter::%s: Combination not defined due to not aligned bins!\n", __func__);
+    return;
+  }
+
+  //update the graph errors for each point
+  for(int ibin = 0; ibin < npoints; ++ibin) { //include under/overflow
+    const double g_p_err = g->GetErrorYhigh(ibin);
+    const double g_m_err = g->GetErrorYlow (ibin);
+    const double herr    = h->GetBinError(ibin);
+    const double p_err   = std::sqrt(g_p_err*g_p_err + herr*herr);
+    const double m_err   = std::sqrt(g_m_err*g_p_err + herr*herr);
+    g->SetPointEYhigh(ibin, p_err);
+    g->SetPointEYlow (ibin, m_err);
+  }
+}
+
+//--------------------------------------------------------------------------------------------------------------------
+//Get a TGraph to represent the ratio of a graph over a histogram
+TGraphAsymmErrors* DataPlotter::get_ratio(TH1* h, TGraphAsymmErrors* g) {
+  const int npoints = g->GetN();
+  if(npoints != h->GetNbinsX()+2) {
+    printf("DataPlotter::%s: Ratio not defined due to not aligned bins!\n", __func__);
+    return nullptr;
+  }
+
+  double xs[npoints], ys[npoints], p_errs[npoints], m_errs[npoints], x_errs[npoints];
+  for(int ibin = 0; ibin < npoints; ++ibin) { //include under/overflow
+    const double gval = g->GetY()[ibin];
+    const double hval = h->GetBinContent(ibin);
+    xs    [ibin] = h->GetBinCenter(ibin);
+    x_errs[ibin] = h->GetBinWidth((ibin == 0) ? 1 : (ibin == npoints - 1) ? npoints - 2 : ibin)/2.;
+    ys    [ibin] = gval / hval;
+    const double p_err = (g->GetErrorYhigh(ibin)) / hval;
+    const double m_err = (g->GetErrorYlow (ibin)) / hval;
+    p_errs[ibin] = p_err;
+    m_errs[ibin] = m_err;
+  }
+  TGraphAsymmErrors* gr = new TGraphAsymmErrors(npoints, xs, ys, x_errs, x_errs, m_errs, p_errs);
+  gr->SetName(Form("%s_ratio", g->GetName()));
+  gr->SetMarkerColor(g->GetMarkerColor());
+  gr->SetMarkerSize (g->GetMarkerSize ());
+  gr->SetFillColor(g->GetFillColor());
+  gr->SetLineColor(g->GetLineColor());
+  gr->SetFillStyle(g->GetFillStyle());
+  return gr;
 }
 
 //--------------------------------------------------------------------------------------------------------------------
@@ -2293,8 +2492,9 @@ TCanvas* DataPlotter::plot_significance(TString hist, TString setType, Int_t set
 }
 
 //--------------------------------------------------------------------------------------------------------------------
-TCanvas* DataPlotter::print_stack(TString hist, TString setType, Int_t set, TString tag) {
-  TCanvas* c = plot_stack(hist,setType,set);
+TCanvas* DataPlotter::print_stack(TString hist, TString setType, Int_t set, TString tag, std::vector<std::pair<TString,TString>> sys,
+                                  const std::vector<std::pair<ScaleUncertainty_t,ScaleUncertainty_t>>& scale_sys) {
+  TCanvas* c = plot_stack(hist,setType,set, sys, scale_sys);
   if(!c) return c;
   c->Print(GetFigureName(setType, hist, set, "stack", tag));
   return c;
@@ -2529,9 +2729,11 @@ Int_t DataPlotter::init_files() {
       input.ngenerated_ = nevents;
       input.scale_ = (1./(nevents)*input.xsec_*((lums_.size() > 0) ? lums_[input.dataYear_] : lum_));
     }
-    if(input.scale_ <= 0.) std::cout << __func__ << ": Warning! Dataset " << i << " ("
-                                     << input.name_.Data() << ") has <= 0 scale = " << input.scale_
-                                     << std::endl;
+    if(input.scale_ <= 0.) {
+      std::cout << __func__ << ": Warning! Dataset " << i << " ("
+                << input.name_.Data() << ") has <= 0 scale = " << input.scale_
+                << std::endl;
+    }
   }
 
   gStyle->SetTitleW(0.8f);

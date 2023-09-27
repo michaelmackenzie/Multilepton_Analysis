@@ -1,6 +1,8 @@
 #ifndef __PLOTTINGCARD__
 #define __PLOTTINGCARD__
 #include "TString.h"
+#include <vector>
+#include "interface/ScaleUncertainty_t.hh"
 
 namespace CLFV {
 
@@ -23,11 +25,13 @@ namespace CLFV {
     Int_t    systematic_;
     Bool_t   single_systematic_;
     Bool_t   density_;
+    std::vector<std::pair<TString,TString>> sys_list_;
+    std::vector<std::pair<ScaleUncertainty_t,ScaleUncertainty_t>> scale_sys_list_;
 
     PlottingCard_t() : hist_(""), type_(""), label_(""), set_(-1),
                        xmin_(1.), xmax_(-1.), ymin_(1.), ymax_(-1.), rebin_(1),
                        plot_data_(999), data_over_mc_(999), tag_(""), systematic_(0),
-                       single_systematic_(false), density_(false) {}
+                       single_systematic_(false), density_(false), sys_list_({}), scale_sys_list_({}) {}
 
     PlottingCard_t(TString hist, TString type) : PlottingCard_t() {
       hist_ = hist;

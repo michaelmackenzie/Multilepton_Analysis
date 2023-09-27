@@ -123,8 +123,14 @@ namespace CLFV {
                                         "leponept", "leptwopt", "lepdeltaphi", "leppt"};
       } else { //emu
         //v0 = current version without spectators; current version is XGBoost BDT
-        if(xgboost) train_var = {"met", "mtlead", "mttrail", "leppt", "pttrailoverlead",
-                                 /*"metsignificance",*/ "lepeta", "metdeltaphi"};
+        if(xgboost) {
+          if(xgboost_ == 1) { //nominal version
+            train_var = {"met", "mtlead", "mttrail", "leppt", "pttrailoverlead",
+                         /*"metsignificance",*/ "lepeta", "metdeltaphi"};
+          } else if(xgboost_ == 2 || xgboost_ == 3) { //minimal variable version
+            train_var = {"met", "leppt", "jetpt"};
+          }
+        }
         else if(version_ ==  0) train_var = {"mtoneoverm", "mttwooverm", "onemetdeltaphi", "twometdeltaphi",
                                              "leponeptoverm", "leptwoptoverm", "lepptoverm", "lepdeltaphi", "jetpt"};
         if(version_ ==  7) train_var = {"mtoneoverm", "mttwooverm", "onemetdeltaphi", "twometdeltaphi",
