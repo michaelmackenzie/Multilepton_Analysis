@@ -18,7 +18,7 @@ bool preFetch_     = false; //check for the sample on /tmp, and copy it there if
 bool useTChain_    = true; //use a TChain of input files rather than a tree from a single ntuple file
 Long64_t notify_   = 50000; //frequency at which to printout processing info
 
-TString tag_ = ""; //dataset tag requirement
+vector<TString> tag_ = {}; //dataset tag requirement
 vector<TString> veto_ = {}; //dataset tags to veto
 bool debug_ = false;
 Long64_t startEvent_ = 0;
@@ -65,9 +65,12 @@ int removeEventWeights_   =  0; //remove most (1) or all (2) event weights
 int useEmbedCuts_        = 2; //use kinematic cuts based on embedded generation: 1 = tau tau only; 2 = tau tau, mumu, ee, and emu; 3: do gen rejection in ee/mumu/emu as well
 int embeddedTesting_     = 0; //test embedding options: 3 = use KIT measured scales
 int useEmbedRocco_       = 1; //use Rochester correction vs LFV Higgs AN muon sys in Embedded samples
+int embedUseMETUnc_      = 0; //use JER/JES MET uncertainties in embedding as well
 
 int doEmuDefaults_       = 1; //set to default emu running
 int doSameFlavorEMu_     = 1; //treat ee/mumu as emu
+int doEmbedSameFlavor_   = 0; //setup ee/mumu for embedding testing
+
 int systematicSeed_      = 90; //seed for systematic random shifts
 int doSystematics_       = 1; //process systematic uncertainty histograms
 int allowMigration_      = 1; //event migration systematic effects
@@ -86,6 +89,9 @@ int  splitWJets_         = true; //split w+jets sample based on N(LHE jets)
 bool splitDY_            = true; //split z+jets sample based on gen-level lepton pair flavor
 
 bool useUL_              = false; //Use UL files/cross sections
+
+float min_lepm_         = -1.;
+float max_lepm_         = 200.;
 
 //information about the data file/data
 struct datacard_t {

@@ -204,15 +204,15 @@ namespace CLFV {
     }
 
     void draw_cms_label(bool single = false) {
-      TText *cmslabel = new TText();
-      cmslabel -> SetNDC();
-      cmslabel -> SetTextFont(72);
-      cmslabel -> SetTextColor(1);
-      cmslabel -> SetTextSize((single) ? cms_txt_size_single_ : cms_txt_size_);
-      cmslabel -> SetTextAlign(22);
-      cmslabel -> SetTextAngle(0);
-      cmslabel -> DrawText((single) ? cms_txt_x_single_ : cms_txt_x_,
-                           (single) ? cms_txt_y_single_ : cms_txt_y_, (cms_is_prelim_) ? "CMS Preliminary" : "CMS");
+      TText cmslabel;
+      cmslabel.SetNDC();
+      cmslabel.SetTextFont(72);
+      cmslabel.SetTextColor(1);
+      cmslabel.SetTextSize((single) ? cms_txt_size_single_ : cms_txt_size_);
+      cmslabel.SetTextAlign(22);
+      cmslabel.SetTextAngle(0);
+      cmslabel.DrawText((single) ? cms_txt_x_single_ : cms_txt_x_,
+                        (single) ? cms_txt_y_single_ : cms_txt_y_, (cms_is_prelim_) ? "CMS Preliminary" : "CMS");
     }
 
     void draw_luminosity(bool single = false) {

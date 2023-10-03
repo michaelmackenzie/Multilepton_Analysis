@@ -784,7 +784,7 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
         if(leptonTwo.isMuon    ()) weight *= (1.f-rho) + rho*leptonTwo.wt1[2] / leptonTwo.wt1[0];
       }
     } else if(name == "EmbMuonID") {
-      if(fIsData || !isMData || !fIsEmbed) continue;
+      if(!fIsEmbed) continue;
       if(fSystematics.IsUp(sys)) {
         if(leptonOne.isMuon    ()) weight *= (1.f-rho_t) + rho_t*leptonOne.wt1[1] / leptonOne.wt1[0];
         if(leptonTwo.isMuon    ()) weight *= (1.f-rho_t) + rho_t*leptonTwo.wt1[1] / leptonTwo.wt1[0];
@@ -1263,12 +1263,12 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
         else if(leptonTwo.isMuon())                          { weight *= (1.f-rho_t) + rho_t*triggerWeightsSys[3] / trig_wt; }
       }
     } else if(name == "JER") {
-      if(fIsData || fIsEmbed) continue;
+      if(fIsData || (fIsEmbed && fEmbedUseMETUnc == 0)) continue;
       reeval = true;
       if(fSystematics.IsUp(sys)) {
         met    = puppMETJERUp;
         metPhi = puppMETphiJERUp;
-        if(jetOne.pt > 5.f && jetOne.jer_pt_up > 5.f) { //if there's a jet and defined uncertainties
+        if(!fIsEmbed && jetOne.pt > 5.f && jetOne.jer_pt_up > 5.f) { //if there's a jet and defined uncertainties (ignore for Embedding)
           jetOne.setPtEtaPhiM(jetOne.jer_pt_up, jetOne.eta, jetOne.phi, jetOne.mass);
         }
       } else {
@@ -1276,17 +1276,17 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
         const float new_x(met*std::cos(metPhi)+dx), new_y(met*std::sin(metPhi)+dy);
         met    = std::sqrt(std::pow(new_x, 2) + std::pow(new_y, 2));
         metPhi = (met > 0.f) ? std::acos(std::max(-1.f, std::min(1.f, new_x/met)))*(new_y < 0.f ? -1.f : 1.f) : 0.f;
-        if(jetOne.pt > 5.f && jetOne.jer_pt_down > 5.f) { //if there's a jet and defined uncertainties
+        if(!fIsEmbed && jetOne.pt > 5.f && jetOne.jer_pt_down > 5.f) { //if there's a jet and defined uncertainties (ignore for Embedding)
           jetOne.setPtEtaPhiM(jetOne.jer_pt_down, jetOne.eta, jetOne.phi, jetOne.mass);
         }
       }
     } else if(name == "JES") {
-      if(fIsData || fIsEmbed) continue;
+      if(fIsData || (fIsEmbed && fEmbedUseMETUnc == 0)) continue;
       reeval = true;
       if(fSystematics.IsUp(sys)) {
         met    = puppMETJESUp;
         metPhi = puppMETphiJESUp;
-        if(jetOne.pt > 5.f && jetOne.jes_pt_up > 5.f) { //if there's a jet and defined uncertainties
+        if(!fIsEmbed && jetOne.pt > 5.f && jetOne.jes_pt_up > 5.f) { //if there's a jet and defined uncertainties (ignore for Embedding)
           jetOne.setPtEtaPhiM(jetOne.jes_pt_up, jetOne.eta, jetOne.phi, jetOne.mass);
         }
       } else {
@@ -1294,7 +1294,7 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
         float new_x(met*std::cos(metPhi)+dx), new_y(met*std::sin(metPhi)+dy);
         met    = std::sqrt(std::pow(new_x, 2) + std::pow(new_y, 2));
         metPhi = (met > 0.f) ? std::acos(std::max(-1.f, std::min(1.f, new_x/met)))*(new_y < 0.f ? -1.f : 1.f) : 0.f;
-        if(jetOne.pt > 5.f && jetOne.jes_pt_down > 5.f) { //if there's a jet and defined uncertainties
+        if(!fIsEmbed && jetOne.pt > 5.f && jetOne.jes_pt_down > 5.f) { //if there's a jet and defined uncertainties (ignore for Embedding)
           jetOne.setPtEtaPhiM(jetOne.jes_pt_down, jetOne.eta, jetOne.phi, jetOne.mass);
         }
       }

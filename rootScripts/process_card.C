@@ -84,7 +84,39 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
     useCDFBDTs_ = 0;
     useXGBoost_ = 1; //FIXME: Set to 1 for nominal BDT processing
     train_mode_ = 0;
+
+    min_lepm_ =  65.f;
+    max_lepm_ = 115.f;
     cout << "Overridding processing defaults for emu-style selection\n";
+  }
+  if(doEmbedSameFlavor_ && (selection == "ee" || selection == "mumu")) {
+    doSystematics       = 0;
+    allowMigration_     = 0;
+    useEmbedCuts_       = 3;
+    useEventFlags_      = 1; //filter using event flags
+    useLepDxyzWeights_  = 0;
+    useRoccoCorr_       = 1;
+    useRoccoSize_       = 1;
+
+    useBTagWeights_     = 2; //2: ntuple-level
+    removePUWeights_    = 0; //0: ntuple-level
+    useSignalZWeights_  = 2; //2: ntuple-level
+    useLeptonIDWeights_ = 1; //2: ntuple-level
+    useRoccoCorr_       = 2; //2: ntuple-level
+    useZPtWeights_      = 2; //2: ntuple-level
+
+    //ignore BDTs
+    DoMVASets_     = 0;
+    ReprocessMVAs_ = 0;
+    useCDFBDTs_    = 0;
+    useXGBoost_    = 0; //FIXME: Set to 1 for nominal BDT processing
+    train_mode_    = 0;
+    writeTrees_    = 0;
+    sparseHists_   = false;
+
+    min_lepm_ =  35.f;
+    max_lepm_ = 175.f;
+    cout << "Overridding processing defaults for same flavor embedding selection\n";
   }
 
   // if Drell-Yan, loop through it twice, doing tautau then ee/mumu decays
@@ -136,8 +168,8 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
         clfv_selec->fCutFlowTesting    = CutFlowTesting_;
         clfv_selec->fTriggerTesting    = TriggerTesting_;
         clfv_selec->fDoMVASets = DoMVASets_ > 0 && (DoMVASets_ > 2 || (DoMVASets_ == 2 && !(selection.Contains("tau"))) || (selection == "emu"));
-        clfv_selec->fMinLepM           = (selection == "emu") ?  65.f : 35.f;
-        clfv_selec->fMaxLepM           = (selection == "emu") ? 115.f : (selection.EndsWith("tau")) ? 175.f : 175.f;
+        clfv_selec->fMinLepM           = min_lepm_; //(selection == "emu") ?  65.f : 35.f;
+        clfv_selec->fMaxLepM           = max_lepm_; //(selection == "emu") ? 115.f : (selection.EndsWith("tau")) ? 175.f : 175.f;
         clfv_selec->fSameFlavorEMuSelec = doSameFlavorEMu_;
       }
       if(dynamic_cast<HistMaker*> (selec)) {
@@ -157,6 +189,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
         hist_selec->fUseLepDisplacementWeights = useLepDxyzWeights_;
         hist_selec->fRemoveEventWeights = removeEventWeights_;
         hist_selec->fUseEmbedRocco      = useEmbedRocco_;
+        hist_selec->fEmbedUseMETUnc     = embedUseMETUnc_;
         hist_selec->fUseRoccoCorr       = useRoccoCorr_;
         hist_selec->fUseRoccoSize       = useRoccoSize_;
         hist_selec->fUseCDFBDTs         = useCDFBDTs_;
@@ -208,14 +241,14 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
       selec->fSkipDoubleTrigger = isElectronData && (tree_name == "emu");
       //store a label for this dataset
       selec->fEventCategory = card.category_;
-      selec->fWriteTrees = selection != "mumu" && selection != "ee" && config.writeTrees_; //don't write trees for data
+      selec->fWriteTrees = selection != "mumu" && selection != "ee" && config.writeTrees_; //don't write trees for same flavor events
       if(card.isData_ == 0) {
         selec->fXsec = card.xsec_;
         selec->fXsec /= (selec->fIsEmbed) ? 1. : (card.events_->GetBinContent(1) - 2.*card.events_->GetBinContent(10));; //for writing trees with correct normalization
         selec->fLum = (selec->fIsEmbed) ? 1. : card.lum_; //for adding lum to tree weights
       } else {
         CrossSections xs(useUL_);
-        selec->fXsec = xs.GetCrossSection(Form("QCD_%s", tree_name.Data()));
+        selec->fXsec = xs.GetCrossSection(Form("QCD_%s", tree_name.Data())); //rough P(signal region) / P(background region) scale
         selec->fLum = 1.; //no luminosity needed for data
       }
       if(train_mode_ == 1) { //fixed training fraction for signal and background

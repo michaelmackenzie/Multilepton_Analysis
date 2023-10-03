@@ -3248,9 +3248,31 @@ void HistMaker::FillBaseEventHistogram(EventHist_t* Hist) {
   Hist->hMetPhi            ->Fill(metPhi             , genWeight*eventWeight)      ;
   Hist->hMetCorr           ->Fill(metCorr            , genWeight*eventWeight)      ;
   //approximate met uncertainty
-  const float met_err_up   = (fIsData) ? 0.f : std::sqrt(std::pow(puppMETJERUp   - puppMET, 2) + std::pow(puppMETJESUp   - puppMET, 2))/puppMET;
-  const float met_err_down = (fIsData) ? 0.f : std::sqrt(std::pow(puppMETJERDown - puppMET, 2) + std::pow(puppMETJESDown - puppMET, 2))/puppMET;
-  const float met_err = std::max(met_err_up, met_err_down); //take the largest deviation
+  const float met_err_up   = (fIsData || (fIsEmbed && fEmbedUseMETUnc == 0)) ? 0.f : std::sqrt(std::pow(puppMETJERUp   - puppMET, 2) + std::pow(puppMETJESUp   - puppMET, 2))/puppMET;
+  const float met_err_down = (fIsData || (fIsEmbed && fEmbedUseMETUnc == 0)) ? 0.f : std::sqrt(std::pow(puppMETJERDown - puppMET, 2) + std::pow(puppMETJESDown - puppMET, 2))/puppMET;
+  float met_err = std::max(met_err_up, met_err_down); //take the largest deviation
+  //approximate the lepton energy scale on the MET as well
+  float met_err_lep = 0.f;
+  if(!fIsData) {
+    Lepton_t lep_tmp;
+    { //up variation (FIXME: correlate both lepton legs for now)
+      float met_tmp(met), met_phi_tmp(metPhi);
+      lep_tmp.setPtEtaPhiM(leptonOne.pt, leptonOne.eta, leptonOne.phi, leptonOne.mass);
+      EnergyScale(leptonOne.ES[1]/leptonOne.ES[0], lep_tmp, &met_tmp, &met_phi_tmp);
+      lep_tmp.setPtEtaPhiM(leptonTwo.pt, leptonTwo.eta, leptonTwo.phi, leptonTwo.mass);
+      EnergyScale(leptonTwo.ES[1]/leptonTwo.ES[0], lep_tmp, &met_tmp, &met_phi_tmp);
+      met_err_lep = std::max(std::fabs(met_tmp - met), met_err_lep);
+    }
+    { //down variation
+      float met_tmp(met), met_phi_tmp(metPhi);
+      lep_tmp.setPtEtaPhiM(leptonOne.pt, leptonOne.eta, leptonOne.phi, leptonOne.mass);
+      EnergyScale(leptonOne.ES[2]/leptonOne.ES[0], lep_tmp, &met_tmp, &met_phi_tmp);
+      lep_tmp.setPtEtaPhiM(leptonTwo.pt, leptonTwo.eta, leptonTwo.phi, leptonTwo.mass);
+      EnergyScale(leptonTwo.ES[2]/leptonTwo.ES[0], lep_tmp, &met_tmp, &met_phi_tmp);
+      met_err_lep = std::max(std::fabs(met_tmp - met), met_err_lep);
+    }
+  }
+  met_err = std::sqrt(met_err*met_err + met_err_lep*met_err_lep);
   Hist->hMetUp             ->Fill(met*(1.f+met_err)  , genWeight*eventWeight);
   Hist->hMetDown           ->Fill(met*(1.f-met_err)  , genWeight*eventWeight);
   //met if no corrections were applied
