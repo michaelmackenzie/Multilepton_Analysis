@@ -472,7 +472,7 @@ RooMultiPdf* construct_multipdf(RooDataHist& data, RooRealVar& obs, RooCategory&
   result = add_bernsteins(data, obs, pdfList, useSideBands, index, set, verbose);
   if(result.second < chi_min) {chi_min = result.second; index = result.first;}
   // add_chebychevs(data, obs, pdfList, useSideBands, index, set, verbose);
-  result = add_exponentials(data, obs, pdfList, useSideBands, set, verbose);
+  // result = add_exponentials(data, obs, pdfList, useSideBands, set, verbose);
   // if(result.second < chi_min) {chi_min = result.second; index = result.first;}
   if(use_dy_ww_shape_) {
     result = add_dy_ww(data, obs, pdfList, useSideBands, set, verbose);

@@ -23,6 +23,7 @@ bool   logy_ = false;
 
 CLFV::DataPlotter* dataplotter_ = nullptr;
 
+//---------------------------------------------------------------------------------------------------------------------
 //initialize the datasets using a DataPlotter
 Int_t initialize_plotter(TString selection, TString base) {
   if(dataplotter_) delete dataplotter_;
@@ -175,6 +176,7 @@ int plot_stat_sys(THStack* stack, vector<TH1*> sigs, TH1* hdata, TString name) {
 }
 
 
+//---------------------------------------------------------------------------------------------------------------------
 int get_same_flavor_systematics(int set, TString hist, TH1* hdata, TFile* f) {
   int status(0);
   f->cd();
@@ -183,7 +185,8 @@ int get_same_flavor_systematics(int set, TString hist, TH1* hdata, TFile* f) {
 
   //Loop through each systematic, creating PDFs and example figures
   for(int isys = (test_sys_ >= 0 ? test_sys_ : 0); isys < (test_sys_ >= 0 ? test_sys_ + 1 : kMaxSystematics); ++isys) {
-    if(systematics.GetName(isys) == "") continue; //only retrieve defined systematics
+    TString name = systematics.GetName(isys);
+    if(name == "") continue; //only retrieve defined systematics
 
     cout << "Getting same flavor systematic " << isys << " for set " << set << endl;
     //Get background for the systematic
@@ -219,6 +222,7 @@ int get_same_flavor_systematics(int set, TString hist, TH1* hdata, TFile* f) {
 }
 
 
+//---------------------------------------------------------------------------------------------------------------------
 int get_same_flavor_histogram(int set = 8, TString selection = "mumu",
                               vector<int> years = {2016, 2017, 2018},
                               TString base = "nanoaods_dev") {
@@ -293,6 +297,7 @@ int get_same_flavor_histogram(int set = 8, TString selection = "mumu",
   return status;
 }
 
+//---------------------------------------------------------------------------------------------------------------------
 int get_systematics(int set, TString hist, TH1* hdata, TFile* f, TString canvas_name) {
   int status(0);
   f->cd();
@@ -348,7 +353,9 @@ int get_systematics(int set, TString hist, TH1* hdata, TFile* f, TString canvas_
     if(signals.size() == 0) {++status; continue;}
 
 
-    //Create an example plot with the systematic shift + ratio plot
+    /////////////////////////////////////////////////
+    // Plot the shifted distributions
+
     if(print_sys_plots_) {
       TCanvas* c = new TCanvas(Form("c_sys_%i", isys), Form("c_sys_%i", isys), 1200, 900);
       TPad* pad1 = new TPad("pad1", "pad1", 0., 0.3, 1., 1. );
@@ -440,6 +447,9 @@ int get_systematics(int set, TString hist, TH1* hdata, TFile* f, TString canvas_
       delete c;
     } //end if(print_sys_plots_)
 
+    /////////////////////////////////////////////////
+    // Write the shifted histograms to disk
+
     for(auto h : signals) {
       TString hname = h->GetName();
       if(dataplotter_->signal_scales_.find(hname) != dataplotter_->signal_scales_.end())
@@ -462,6 +472,7 @@ int get_systematics(int set, TString hist, TH1* hdata, TFile* f, TString canvas_
   return status;
 }
 
+//---------------------------------------------------------------------------------------------------------------------
 int get_individual_MVA_histogram(int set = 8, TString selection = "zmutau",
                                  vector<int> years = {2016, 2017, 2018},
                                  TString base = "nanoaods_dev") {

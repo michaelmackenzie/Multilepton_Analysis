@@ -1,6 +1,7 @@
 //Script to process limits for channels/years/etc. and plot the limits
 double scale_ = 1.;
 bool speed_limit_ = true; //use Combine arguments to speed up limit calculation
+bool preliminary_ = true;
 
 struct config_t {
   TString name_;
@@ -106,7 +107,7 @@ int make_combine_limit_plot_general(vector<config_t> configs, //info for each en
 
   TGraphAsymmErrors* expected_1 = new TGraphAsymmErrors(nfiles, expected, y, down_1, up_1, yerr, yerr);
   expected_1->SetName("1_sigma_exp");
-  expected_1->SetFillColor(kGreen);
+  expected_1->SetFillColor(kGreen+1);
   expected_1->SetMarkerStyle(20);
   expected_1->SetMarkerSize(1.5);
 
@@ -114,17 +115,21 @@ int make_combine_limit_plot_general(vector<config_t> configs, //info for each en
   const double ymin = 0.5;
   TGraphAsymmErrors* expected_2 = new TGraphAsymmErrors(nfiles, expected, y, down_2, up_2, yerr, yerr);
   expected_2->SetName("2_sigma_exp");
-  expected_2->SetFillColor(kYellow);
+  expected_2->SetFillColor(kOrange);
   expected_2->SetMarkerStyle(20);
   expected_2->SetMarkerSize(0.8);
-  expected_2->SetTitle("CLs Limits");
-  expected_2->GetXaxis()->SetTitle("Branching fraction");
+  expected_2->SetTitle("");
+  expected_2->GetXaxis()->SetTitle(Form("95%% upper limit on BF(Z^{0} #rightarrow %s^{#pm}%s^{#mp})",
+                                        selection.BeginsWith("zmu") ? "#mu" : "e", selection.EndsWith("mu") ? "#mu" : "#tau"));
 
   //calculate x-axis range
   const float scale_size = (log10(max_val) - log10(min_val)); //orders of magnitude spanning the plot
   const float xmax = max_val*pow(2,max(0.f, scale_size));
   const float xmin = min_val/pow(1.5,max(0.f, scale_size));
   printf("Max val = %.2e, Min val = %.2e --> xrange = [%.2e , %.2e]\n", max_val, min_val, xmin, xmax);
+
+  gStyle->SetPadTickX(1);
+  gStyle->SetPadTickY(1);
 
   TCanvas* c = new TCanvas("c", "c", 800, 800);
   expected_2->Draw("AE2");
@@ -143,18 +148,39 @@ int make_combine_limit_plot_general(vector<config_t> configs, //info for each en
   g_obs->SetMarkerSize(2);
   if(doObs) g_obs->Draw("P SAME");
 
-  TLegend* leg = new TLegend(0.6, 0.75, 0.9, 0.9);
+  c->SetGridx();
+
+  TLegend* leg = new TLegend(0.6, 0.75, 0.89, 0.89);
   if(doObs) leg->AddEntry(g_obs, "Observed", "P");
   leg->AddEntry(expected_1, "Expected", "P");
   leg->AddEntry(expected_1, "#pm1#sigma", "F");
   leg->AddEntry(expected_2, "#pm2#sigma", "F");
+  leg->SetFillStyle(0);
+  leg->SetFillColor(0);
+  leg->SetLineColor(0);
   leg->Draw();
 
-  //Draw the category labels
+  //Add labels to the plot
   TLatex label;
   label.SetNDC();
+
+  //add CMS label
+  label.SetTextFont(62);
+  label.SetTextColor(1);
+  label.SetTextSize(0.05);
+  label.SetTextAlign(13);
+  label.SetTextAngle(0);
+  label.DrawLatex(0.13, 0.89, "CMS");
+  if(preliminary_) {
+    label.SetTextFont(72);
+    label.SetTextSize(0.04);
+    label.SetTextAlign(22);
+    label.SetTextAngle(0);
+    label.DrawLatex(0.23, 0.82, "Preliminary");
+  }
+
+  //Draw the category labels
   label.SetTextFont(72);
-  // label.SetTextColor(1);
   label.SetTextSize(0.05);
   label.SetTextAlign(13);
   label.SetTextAngle(25);

@@ -14,6 +14,7 @@ bool useRateParams_ = false;
 bool fixSignalPDF_  = true;
 bool useMultiDim_   = true;
 bool includeSys_    = true;
+bool twoSidedSys_   = true; //write both up and down for each rate systematic
 bool printPlots_    = true;
 bool fitSideBands_  = true;
 bool export_        = false; //if locally run, export the workspace to LPC
@@ -22,7 +23,7 @@ bool save_          = true ; //save output combine workspace/cards
 
 
 //Retrieve yields for each relevant systematic
-void get_systematics(TFile* f, TString label, int set, vector<double>& yields, vector<TString>& names, double xmin = 1., double xmax = -1.) {
+void get_systematics(TFile* f, TString label, int set, vector<pair<double,double>>& yields, vector<TString>& names, double xmin = 1., double xmax = -1.) {
   //offset the set number to the absolute set value
   if     (label == "zee"   || label == "eeBkg"  ) set += HistMaker::kEE;
   else if(label == "zmumu" || label == "mumuBkg") set += HistMaker::kMuMu;
@@ -33,36 +34,42 @@ void get_systematics(TFile* f, TString label, int set, vector<double>& yields, v
   TString prev_name = "";
 
   //for each relevant systematic, record the yield
-  //only add the first occurence of each systematic for now
   int bin1(-1), bin2(-1);
   for(int isys = 1; isys < kMaxSystematics; ++isys) {
     auto sys_info = systematic_name(isys, "emu", 2016); //FIXME: Get actual year
     TString sys_name = sys_info.first;
-    if(sys_name == "" || sys_name.Contains("Tau") || sys_name == prev_name) {
-      prev_name = "";
+    //if not a defined/used systematic or if not the second of the set, continue
+    if(sys_name == "" || sys_name != prev_name) {
+      prev_name = sys_name;
       continue;
     }
-    prev_name = sys_name;
-    TString hist_name;
-    if(set > HistMaker::kMuMu) hist_name = Form("%s_sys_%i", (label.Contains("Bkg")) ? "hbkg" : "hDY", isys);
-    else                              hist_name = Form("%s_lepm_%i_%i_sys_%i", label.Data(), isys, set, isys);
-    TH1* h = (TH1*) f->Get(hist_name.Data());
-    if(!h) {
-      cout << "!!! Systematic " << isys << " not found for set " << set << " and label " << label.Data()
-           << " hist name = " << hist_name.Data() << endl;
+    prev_name = sys_name; //store for the next loop
+    TString hist_up, hist_down;
+    //up is always the index preceding the down index
+    if(set > HistMaker::kMuMu) hist_up   = Form("%s_sys_%i", (label.Contains("Bkg")) ? "hbkg" : "hDY", isys-1);
+    else                       hist_up   = Form("%s_lepm_%i_%i_sys_%i", label.Data(), isys-1, set, isys-1);
+    if(set > HistMaker::kMuMu) hist_down = Form("%s_sys_%i", (label.Contains("Bkg")) ? "hbkg" : "hDY", isys);
+    else                       hist_down = Form("%s_lepm_%i_%i_sys_%i", label.Data(), isys, set, isys);
+    TH1* h_up   = (TH1*) f->Get(hist_up.Data());
+    TH1* h_down = (TH1*) f->Get(hist_down.Data());
+    if(!h_up || !h_down) {
+      cout << "!!! Systematic " << sys_name.Data() << "(" << isys-1 << "/" << isys << ") not found for set " << set << " and label " << label.Data()
+           << " hist up name = " << hist_up.Data() << endl;
       continue;
     }
-    double yield;
+    double yield_up, yield_down;
     if(xmin > xmax) {
-      yield = h->Integral();
+      yield_up   = h_up  ->Integral();
+      yield_down = h_down->Integral();
     } else {
       if(bin1 < 0 || bin2 < 0) {
-        bin1 = std::max(1, std::min(h->GetNbinsX(), h->FindBin(xmin)));
-        bin2 = std::max(1, std::min(h->GetNbinsX(), h->FindBin(xmax)));
+        bin1 = std::max(1, std::min(h_up->GetNbinsX(), h_up->FindBin(xmin)));
+        bin2 = std::max(1, std::min(h_up->GetNbinsX(), h_up->FindBin(xmax)));
       }
-      yield = h->Integral(bin1, bin2);
+      yield_up   = h_up  ->Integral(bin1,bin2);
+      yield_down = h_down->Integral(bin1,bin2);
     }
-    yields.push_back(yield);
+    yields.push_back(pair<double,double>(yield_up,yield_down));
     if(addNames) names.push_back(sys_name);
   }
 }
@@ -111,7 +118,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
   // Read in the data
   //////////////////////////////////////////////////////////////////
 
-  vector<double> sig_sys; //only consider systematics on signal and control region yields for now
+  vector<pair<double,double>> sig_sys; //only consider systematics on signal and control region yields for now
   vector<TString> sys_names;
   TFile* fInput = TFile::Open(Form("histograms/%s_lepm_%i_%s.hist",
                                    selection.Data(), set, year_string.Data()), "READ");
@@ -187,6 +194,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
   TString obs    = "observation                "; //data observations, 1 per channel
   TString signorm; //for relative signal rates at example branching fraction
   TString cats; //for discrete category indices
+  TString bkg_norm; //for allowing the background to float
   map<TString, TString> systematics; //map of systematic name to systematic effect line
 
   //////////////////////////////////////////////////////////////////
@@ -255,7 +263,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
   RooGaussian* sigpdf2 = new RooGaussian(Form("sigpdf2_%i" , set), "sigpdf2", *lepm, *mean2, *sigma2);
   RooRealVar* fracsig  = new RooRealVar(Form("fracsig_%i"  , set), "fracsig", 0.7, 0., 1.);
   RooAddPdf* sigPDF    = new RooAddPdf(Form("sigPDF_%i"    , set), "signal PDF", *sigpdf1, *sigpdf2, *fracsig);
-  RooRealVar* N_sig    = new RooRealVar(Form("N_sig_%i"    , set), "N_sig", 2e5, 1e2, 3e6);
+  RooRealVar* N_sig    = new RooRealVar(Form("N_sig_%i"    , set), "N_sig", 2e5, 0, 3e6);
   RooAddPdf* totsigpdf = new RooAddPdf(Form("totSigPDF_%i" , set), "Signal PDF", RooArgList(*sigPDF), RooArgList(*N_sig));
 
   totsigpdf->fitTo(*sigData, RooFit::SumW2Error(1), RooFit::Extended(1));
@@ -293,6 +301,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
   RooAbsPdf* bkgPDF = multiPDF->getPdf(index); //multiPDF->getPdf(Form("index_%i", index));
   categories->setIndex(index);
   cats += Form("%-8s discrete\n", categories->GetName());
+  bkg_norm += Form("nbkg_%i rateParam lepm_%i bkg 1.\n", set, set);
 
   if(useMultiDim_) {
     multiPDF->SetName("bkg");
@@ -560,8 +569,14 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
     } else {
       line = systematics[sys];
     }
-    double yield = sig_sys[index]*sig_scale;
-    line += Form("%9.4f            -     ", 1. + (yield - sig_rate)/sig_rate);
+    if(twoSidedSys_) {
+      const double yield_up   = sig_sys[index].first*sig_scale;
+      const double yield_down = sig_sys[index].second*sig_scale;
+      line += Form("%9.4f/%6.4f     -     ", yield_up/sig_rate, yield_down/sig_rate);
+    } else { //use only the up of each systematic
+      const double yield = sig_sys[index].first*sig_scale;
+      line += Form("%9.4f            -     ", yield/sig_rate);
+    }
     systematics[sys] = line;
   }
 
@@ -576,7 +591,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
     const int cr_set = 8;
     const double low_mass = 70.;
     const double high_mass = 110.;
-    vector<double> ee_sys, ee_bkg_sys, mumu_sys, mumu_bkg_sys;
+    vector<pair<double,double>> ee_sys, ee_bkg_sys, mumu_sys, mumu_bkg_sys;
 
     TFile* fee = TFile::Open(Form("histograms/ee_lepm_%i_%s.hist", cr_set, year_string.Data()), "READ");
     if(!fee) {
@@ -626,8 +641,8 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
       for(int index = 0; index < sys_names.size(); ++index) {
         TString sys = sys_names[index];
         TString line = systematics[sys];
-        double yield_ee = ee_sys[index];
-        double yield_bkg = ee_bkg_sys[index];
+        double yield_ee = ee_sys[index].first;
+        double yield_bkg = ee_bkg_sys[index].first;
         line += Form("%9.4f %9.4f", 1. + (yield_ee - zrate)/zrate, 1. + (yield_bkg - zbkg)/zbkg);
         systematics[sys] = line;
       }
@@ -695,8 +710,8 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
       for(int index = 0; index < sys_names.size(); ++index) {
         TString sys = sys_names[index];
         TString line = systematics[sys];
-        double yield_mumu = mumu_sys[index];
-        double yield_bkg = mumu_bkg_sys[index];
+        double yield_mumu = mumu_sys[index].first;
+        double yield_bkg = mumu_bkg_sys[index].first;
         line += Form("%9.4f %9.4f", 1. + (yield_mumu - zrate)/zrate, 1. + (yield_bkg - zbkg)/zbkg);
         systematics[sys] = line;
       }
@@ -761,6 +776,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
   if(useMultiDim_) {
     outfile << Form("%s \n\n", cats.Data());
   }
+  outfile << Form("%s \n\n", bkg_norm.Data());
   outfile.close();
 
   //for performing fits using local build of ROOT

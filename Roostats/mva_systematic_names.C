@@ -70,6 +70,8 @@ std::pair<TString,TString> systematic_name(int sys, TString selection, int year)
     if(name.Contains("QCD")) name = "";
     if(name.Contains("Tau")) name = "";
     if(name.Contains("Emb")) name = "";
+  } else {
+    if(name == "SignalBDT" ) name = ""; //signal BDT corrections only in the Z->e+mu search
   }
 
   //ignore EWK W/Z and WWW samples
@@ -125,6 +127,7 @@ std::pair<TString,TString> systematic_name(int sys, TString selection, int year)
   else if(name.Contains("Trig")        ) name = Form("%sY%i", name.Data(), year); //uncorrelated trigger uncertainties
   else if(name.Contains("JER")         ) name = Form("%sY%i", name.Data(), year); //uncorrelated JER uncertainties
   else if(name.Contains("JES")         ) name = Form("%sY%i", name.Data(), year); //uncorrelated JES uncertainties
+  else if(name == "EmbMET"             ) name = Form("%sY%i", name.Data(), year);
   else if(name.Contains("BTag")        ) name = Form("%s-%s", name.Data(), (selection.EndsWith("tau")) ? "had" : "lep"); //FIXME: Decide correlation between years, and tight/loose ID
   else if(name == "SignalMixing"       ) name = Form("%sY%i", name.Data(), year);
 
