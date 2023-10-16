@@ -131,6 +131,8 @@ namespace CLFV {
     TH2* hMetVsM;
     TH2* hMetVsHtSum; //MET ~ sqrt(htsum)
     TH1* hMetOverSqrtHtSum; //MET ~ sqrt(htsum)
+    TH1* hNuPt; //neutrino momentum
+    TH1* hDetectorMet; //MET - neutrino energy
 
     TH1* hMassSVFit;
     TH1* hMassErrSVFit;

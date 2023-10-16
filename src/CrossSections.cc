@@ -133,17 +133,17 @@ CrossSections::CrossSections(int /*useUL*/, int /*ZMode*/) {
   values_["Embed-MuTau-E"][2017] = 1.0590; // current V4: masked N(events); V3 lumi  9.3136 /  9.1610; V2 N(events): 2.0557; //V1: 2.7259;
   values_["Embed-MuTau-F"][2017] = 1.4272; // current V4: masked N(events); V3 lumi 13.5390 / 11.9807; V2 N(events): 1.5287; //V1: 5.6159;
 
-  values_["Embed-MuMu-B"][2017]  =  4.7939 /  2.7802; //current: V3 lumi; V2 N(events): 1.9039; //V1: 1.9039;
-  values_["Embed-MuMu-C"][2017]  =  9.6312 /  6.1608; //current: V3 lumi; V2 N(events): 1.5831; //V1: 3.2283;
-  values_["Embed-MuMu-D"][2017]  =  4.2477 /  3.6894; //current: V3 lumi; V2 N(events): 1.1873; //V1: 1.3284;
-  values_["Embed-MuMu-E"][2017]  =  9.3136 /  9.0347; //current: V3 lumi; V2 N(events): 1.3037; //V1: 2.8647;
-  values_["Embed-MuMu-F"][2017]  = 13.5375 /  3.8110; //current: V3 lumi; V2 N(events): 6.8001; //V1: 6.8001;
+  values_["Embed-MuMu-B"][2017]  = 1.9039; //current: V4: updated N(events); V3 lumi:  4.7939 /  2.7802; V2 N(events): 1.9039; //V1: 1.9039;
+  values_["Embed-MuMu-C"][2017]  = 1.5832; //current: V4: updated N(events); V3 lumi:  9.6312 /  6.1608; V2 N(events): 1.5831; //V1: 3.2283;
+  values_["Embed-MuMu-D"][2017]  = 1.1873; //current: V4: updated N(events); V3 lumi:  4.2477 /  3.6894; V2 N(events): 1.1873; //V1: 1.3284;
+  values_["Embed-MuMu-E"][2017]  = 1.1222; //current: V4: updated N(events); V3 lumi:  9.3136 /  9.0347; V2 N(events): 1.3037; //V1: 2.8647;
+  values_["Embed-MuMu-F"][2017]  = 6.8001; //current: V4: updated N(events); V3 lumi: 13.5375 /  3.8110; V2 N(events): 6.8001; //V1: 6.8001;
 
-  values_["Embed-EE-B"][2017]  =  4.7939 /  4.4775; //current: V3 lumi; V2 N(events): 1.0799; //V1: 1.5825;
-  values_["Embed-EE-C"][2017]  =  9.6307 /  7.6495; //current: V3 lumi; V2 N(events): 1.2635; //V1: 2.7471;
-  values_["Embed-EE-D"][2017]  =  4.2477 /  4.0178; //current: V3 lumi; V2 N(events): 1.1826; //V1: 1.1859;
-  values_["Embed-EE-E"][2017]  =  9.3136 /  9.1016; //current: V3 lumi; V2 N(events): 1.3515; //V1: 2.5760;
-  values_["Embed-EE-F"][2017]  = 13.5382 / 10.9579; //current: V3 lumi; V2 N(events): 2.4550; //V1: 5.4018;
+  values_["Embed-EE-B"][2017]  = 1.0800; //current: V4 updated N(events); V3 lumi:  4.7939 /  4.4775; V2 N(events): 1.0799; //V1: 1.5825;
+  values_["Embed-EE-C"][2017]  = 1.2636; //current: V4 updated N(events); V3 lumi:  9.6307 /  7.6495; V2 N(events): 1.2635; //V1: 2.7471;
+  values_["Embed-EE-D"][2017]  = 1.1543; //current: V4 updated N(events); V3 lumi:  4.2477 /  4.0178; V2 N(events): 1.1826; //V1: 1.1859;
+  values_["Embed-EE-E"][2017]  = 1.1001; //current: V4 updated N(events); V3 lumi:  9.3136 /  9.1016; V2 N(events): 1.3515; //V1: 2.5760;
+  values_["Embed-EE-F"][2017]  = 1.7282; //current: V4 updated N(events); V3 lumi: 13.5382 / 10.9579; V2 N(events): 2.4550; //V1: 5.4018;
 
   // V1:
   // *** Total 2017 ElMu  Mini / Nano = 37713920/12833285 = 2.9387

@@ -397,6 +397,14 @@ JetToTauWeight::~JetToTauWeight() {
 
 //-------------------------------------------------------------------------------------------------------------------------------
 // Get factor to apply to data
+float JetToTauWeight::GetDataFactor(int , int , Tree_t&, Weight& weight) {
+  weight.wt_ = 1.f;
+  printf("JetToTauWeight::%s: Function not implemented!\n", __func__);
+  return 1.f;
+}
+
+//-------------------------------------------------------------------------------------------------------------------------------
+// Get factor to apply to data
 float JetToTauWeight::GetDataFactor(int DM, int year, float pt, float eta,
                                     float pt_lead, float deltar, float metdphi, float lepm, float mtlep, float oneiso,
                                     float* up, float* down, int& nsys,

@@ -119,6 +119,7 @@ namespace CLFV {
     Int_t  GenPart_pdgId                [kMaxGenPart];
     Int_t  GenPart_genPartIdxMother     [kMaxGenPart];
     Float_t GenPart_pt                  [kMaxGenPart];
+    Float_t GenPart_phi                 [kMaxGenPart];
 
     //lepton information
     //muons
@@ -300,6 +301,12 @@ namespace CLFV {
     Float_t metCorr                    ;
     Float_t metCorrPhi                 ;
     Float_t metSignificance            ;
+
+    //Neutrino momentum in the event
+    Float_t eventNuPt                  ;
+    Float_t eventNuPhi                 ;
+    Float_t eventDetectorMet           ; //removing the neutrino pT from the MET
+    Float_t eventDetectorMetPhi        ;
 
     //event information
     Int_t   mcEra                      ;
@@ -796,6 +803,7 @@ namespace CLFV {
     JetToTauComposition  fElectronJetToTauSSComp; //for etau SS systematic test
     JetToTauWeight* fElectronJetToTauWeights  [JetToTauComposition::kLast];
     JetToTauWeight* fElectronJetToTauMCWeights[JetToTauComposition::kLast]; //for measuring DR to AR/SR biases
+    JetToTauWeight::Weight* fJetToTauWeights   = new JetToTauWeight::Weight[JetToTauComposition::kLast];
     Float_t*        fJetToTauWts       = new Float_t[JetToTauComposition::kLast];
     Float_t*        fJetToTauWtsUp     = new Float_t[JetToTauComposition::kLast];
     Float_t*        fJetToTauWtsDown   = new Float_t[JetToTauComposition::kLast];

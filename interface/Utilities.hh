@@ -191,6 +191,19 @@ namespace CLFV {
     }
 
     //------------------------------------------------------------------------------------------------------
+    // Get phi from (x,y) point
+    static double PhiFromXY(const double x, const double y) {
+      if(!std::isfinite(x) || !std::isfinite(y)) {
+        std::cout << "Utilities::" << __func__ << ": Input (x,y) coordinates are not finite!\n";
+        return 0.;
+      }
+      const double r = std::sqrt(x*x+y*y);
+      if(r <= 0.) return 0.;
+      const double phi = std::acos(std::max(-1., std::min(1., x/r)))*(y < 0. ? -1. : 1.);
+      return phi;
+    }
+
+    //------------------------------------------------------------------------------------------------------
     // Delta Phi in [-pi, pi)
     static double DeltaPhi(const double phi_1, const double phi_2) {
       if(!std::isfinite(phi_1) || !std::isfinite(phi_2)) {

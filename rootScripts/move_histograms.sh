@@ -2,31 +2,78 @@
 
 Help() {
     echo "Move histograms to eos space"
-    echo " 1: Output directory (e.g. nanoaods_mva/)"
-    echo " 2: Input directory (\"\" for local, e.g. \"nanoaods_mva\" for from eos)"
-    echo " 3: Don't force (\"d\" to not overwrite previous files)"
-    echo " 4: Year tag"
-    echo " 5: Selection tag"
-    echo " 6: Remove after copying (e.g. \"d\")"
-    echo " 7: Apply timeout to retry (e.g. \"d\")"
+    echo "Usage: move_histograms.sh [output directory e.g. nanoaods_mva/] [options]"
+    echo " --help (-h): Print this message"
+    echo " --indir    : Input directory (\"\" for local, e.g. \"nanoaods_mva\" for from eos)"
+    echo " --year     : Year tag"
+    echo " --selection: Selection tag"
+    echo " --remove   : Remove after copying"
+    echo " --timeout  : Apply timeout to retry"
+    echo " --dontforce: Don't overwrite existing files"
 }
 
-if [[ "$1" == "-h" ]] || [[ "$1" == "--help" ]]; then
+if [ $# -eq 0 ]
+then
+    echo "No parameters passed! Printing help (--help) information:"
     Help
     exit
 fi
 
-OUTDIR=$1
-INDIR=$2
-DONTFORCE=$3
-YEAR=$4
-SELECTION=$5
-RMAFTER=$6
-APPLYTIMEOUT=$7
+OUTDIR=""
+INDIR=""
+DONTFORCE=""
+YEAR=""
+SELECTION=""
+RMAFTER=""
+APPLYTIMEOUT=""
 
-if [[ "${OUTDIR}" == "" ]]
-then
-    OUTDIR="nanoaods_dev/"
+iarg=1
+while [ ${iarg} -le $# ]
+do
+    eval "var=\${${iarg}}"
+    if [[ "${var}" == "--help" ]] || [[ "${var}" == "-h" ]]
+    then
+        Help
+        exit
+    elif [[ "${var}" == "--indir" ]]
+    then
+        iarg=$((iarg + 1))
+        eval "var=\${${iarg}}"
+        INDIR=${var}
+    elif [[ "${var}" == "--selection" ]]
+    then
+        iarg=$((iarg + 1))
+        eval "var=\${${iarg}}"
+        SELECTION=${var}
+    elif [[ "${var}" == "--year" ]]
+    then
+        iarg=$((iarg + 1))
+        eval "var=\${${iarg}}"
+        YEAR=${var}
+    elif [[ "${var}" == "--dontforce" ]]
+    then
+        DONTFORCE="d"
+    elif [[ "${var}" == "--remove" ]]
+    then
+        RMAFTER="d"
+    elif [[ "${var}" == "--timeout" ]]
+    then
+        APPLYTIMEOUT="d"
+    else
+        OUTDIR=${var}
+    fi
+    iarg=$((iarg + 1))
+done
+
+if [[ "${OUTDIR}" == "" ]]; then
+    echo "No output directory given!"
+    Help
+    exit
+fi
+
+#ensure the output directory format is as expected
+if [[ "${OUTDIR: -1}" != "/" ]]; then
+    OUTDIR="${OUTDIR}/"
 fi
 
 lscommand="ls"
@@ -42,12 +89,12 @@ else
     rmhead="eos root://cmseos.fnal.gov rm"
 fi
 
-# if [[ "${DONTFORCE}" != "" ]]
-# then
-#     FORCE=""
-# else
-FORCE="-f "
-# fi
+if [[ "${DONTFORCE}" != "" ]]
+then
+    FORCE=""
+else
+    FORCE="-f "
+fi
 
 if [[ "${RMAFTER}" != "" ]]
 then

@@ -2,7 +2,7 @@
 #define __GLOBALCONSTANTS__
 
 namespace CLFV {
-  enum {kMaxSystematics = 300, kMaxScaleSystematics = 100, kMaxAltFunc = 10};
+  enum {kMaxSystematics = 300, kMaxScaleSystematics = 100, kMaxAltFunc = 10, kMaxNonClosure = 10};
 
   const double TAUMASS = 1.77686;
   const double MUONMASS = 0.105658;

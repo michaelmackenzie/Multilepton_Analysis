@@ -97,6 +97,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
     useLepDxyzWeights_  = 0;
     useRoccoCorr_       = 1;
     useRoccoSize_       = 1;
+    embedUseMETUnc_     = 2; //add uncertainty on embedding MET
 
     useBTagWeights_     = 2; //2: ntuple-level
     removePUWeights_    = 0; //0: ntuple-level
@@ -138,6 +139,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
 
   for(int wjloop = -1; wjloop < nwloops; ++wjloop) { //start from -1 to also do unsplit histogram
     for(int dyloop = 1; dyloop <= ndyloops; ++dyloop) {
+      if(isDY && dyloop == 2 && doEmbedSameFlavor_ && (selection == "ee" || selection == "mumu")) continue; //skip Z->ll if using embedding ll
       auto selec = new HISTOGRAMMER(systematicSeed_); //selector
       selec->fSelection = selection;
 
@@ -200,6 +202,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
         hist_selec->fDoSSSystematics    = selection == "emu" || selection.Contains("_");
         hist_selec->fDoLooseSystematics = selection.EndsWith("tau");
         hist_selec->fAllowMigration     = allowMigration_ && doSystematics;
+        hist_selec->fMigrationBuffer    = migration_buffer_;
         hist_selec->fMaxEntries         = (events_scale < 1.f) ? max_sim_events_ : nentries;
 
         if(etauAntiEleCut_ > 0) hist_selec->fETauAntiEleCut = etauAntiEleCut_;

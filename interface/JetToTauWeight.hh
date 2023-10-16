@@ -13,10 +13,28 @@
 #include "TF1.h"
 #include "TSystem.h"
 
+//local includes
+#include "interface/GlobalConstants.h"
+#include "interface/Tree_t.hh"
+
 
 namespace CLFV {
   class JetToTauWeight {
   public:
+
+    struct Weight {
+      float wt_;
+      float stat_[2*kMaxAltFunc   ]; //statistical up/down
+      float nc_  [2*kMaxNonClosure]; //non-closure up/down
+      float bias_[2*kMaxNonClosure]; //bias up/down
+
+      Weight() {
+        wt_ = 1.f;
+        for(int i = 0; i < 2*kMaxAltFunc   ; ++i) {stat_[i] = 1.f;}
+        for(int i = 0; i < 2*kMaxNonClosure; ++i) {bias_[i] = 1.f; nc_[i] = 1.f;}
+      }
+    };
+
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     // Mode = 10,000,000 * (bias mode) + 1,000,000 * (don't use pT corrections) + 100000 * (1*(use tau eta corrections) + 2*(use one met dphi))
     //        + 10000 * (use 2D pT vs delta R corrections)
@@ -28,6 +46,9 @@ namespace CLFV {
       JetToTauWeight(name, selection, "", set, Mode, verbose) {}
 
     ~JetToTauWeight();
+
+    //weight object
+    float GetDataFactor(int DM, int year, Tree_t& vars, Weight& weight);
 
     //list of up/down uncertainties
     float GetDataFactor(int DM, int year, float pt, float eta,

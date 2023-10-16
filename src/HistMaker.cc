@@ -500,6 +500,8 @@ void HistMaker::BookBaseEventHistograms(Int_t i, const char* dirname) {
       Utilities::BookH1F(fEventHist[i]->hMetUp               , "metup"               , Form("%s: Met up"                  ,dirname)  , 100,  0, 200, folder);
       Utilities::BookH1F(fEventHist[i]->hMetDown             , "metdown"             , Form("%s: Met down"                ,dirname)  , 100,  0, 200, folder);
       Utilities::BookH1F(fEventHist[i]->hMetNoCorr           , "metnocorr"           , Form("%s: Met No Correction"       ,dirname)  , 100,  0, 200, folder);
+      Utilities::BookH1F(fEventHist[i]->hNuPt                , "nupt"                , Form("%s: Nu pT"                   ,dirname)  ,  50,  0, 100, folder);
+      Utilities::BookH1F(fEventHist[i]->hDetectorMet         , "detectormet"         , Form("%s: Detector Met"            ,dirname)  , 100,  0, 200, folder);
 
       Utilities::BookH1F(fEventHist[i]->hMTOne               , "mtone"               , Form("%s: MTOne"                   ,dirname)  , 100, 0.,   150., folder);
       Utilities::BookH1F(fEventHist[i]->hMTTwo               , "mttwo"               , Form("%s: MTTwo"                   ,dirname)  , 100, 0.,   150., folder);
@@ -725,8 +727,8 @@ void HistMaker::BookBaseLepHistograms(Int_t i, const char* dirname) {
       Utilities::BookH1F(fLepHist[i]->hTwoMetDeltaPhi , "twometdeltaphi"   , Form("%s: Met Delta Phi",dirname), 50,   0,    5, folder);
 
       Utilities::BookH1F(fLepHist[i]->hPtDiff         , "ptdiff"           , Form("%s: 1 pT - 2 pT"  ,dirname), 100,  -80,   80, folder);
-      Utilities::BookH1F(fLepHist[i]->hPtRatio        , "ptratio"          , Form("%s: 1 pT / 2 pT"  ,dirname),  30,    0,    6, folder);
-      Utilities::BookH1F(fLepHist[i]->hPtTrailOverLead, "pttrailoverlead"  , Form("%s: 1 pT / 2 pT"  ,dirname),  20,    0,    1, folder);
+      Utilities::BookH1F(fLepHist[i]->hPtRatio        , "ptratio"          , Form("%s: 1 pT / 2 pT"  ,dirname),  50,    0,    3, folder);
+      Utilities::BookH1F(fLepHist[i]->hPtTrailOverLead, "pttrailoverlead"  , Form("%s: trail pT / lead pT",dirname),  20,    0,    1, folder);
       Utilities::BookH1F(fLepHist[i]->hD0Diff         , "d0diff"           , Form("%s: 2 D0 - 1 D0"  ,dirname), 100,-0.08, 0.08, folder);
       Utilities::BookH1F(fLepHist[i]->hDXYDiff        , "dxydiff"          , Form("%s: 2 DXY - 1 DXY",dirname), 100,-0.08, 0.08, folder);
       Utilities::BookH1F(fLepHist[i]->hDZDiff         , "dzdiff"           , Form("%s: 2 DZ - 1 DZ"  ,dirname), 100,-0.08, 0.08, folder);
@@ -1151,6 +1153,7 @@ void HistMaker::InitializeInputTree(TTree* tree) {
     Utilities::SetBranchAddress(tree, "nGenPart"                      , &nGenPart                      );
     Utilities::SetBranchAddress(tree, "GenPart_pdgId"                 , &GenPart_pdgId                 );
     Utilities::SetBranchAddress(tree, "GenPart_pt"                    , &GenPart_pt                    );
+    Utilities::SetBranchAddress(tree, "GenPart_phi"                   , &GenPart_phi                   );
     Utilities::SetBranchAddress(tree, "GenPart_genPartIdxMother"      , &GenPart_genPartIdxMother      );
 
   }
@@ -2625,6 +2628,49 @@ void HistMaker::CountObjects() {
   puppMETphiJESDown = (puppMETJESDown <= 0.f) ? 0.f : std::acos(std::max(-1.f, std::min(1.f, met_jes_x/puppMETJESDown))) * (met_jes_y < 0.f ? -1.f : 1.f);
 
 
+  //Evaluate the neutrino momentum in the event
+  if(!fIsData && nGenPart > 0) { //check if there are gen particles
+    float px(0.f), py(0.f);
+    for(UInt_t ipart = 0; ipart < nGenPart; ++ipart) {
+      const int pdg = std::abs(GenPart_pdgId[ipart]);
+      if(pdg == 12 || pdg == 14 || pdg == 16) {
+        const int mother = GenPart_genPartIdxMother[ipart]; //ensure this isn't some nu --> nu entry in the generator
+        if(mother >= 0 && GenPart_pdgId[ipart] == GenPart_pdgId[mother]) continue;
+        px += GenPart_pt[ipart]*std::cos(GenPart_phi[ipart]);
+        py += GenPart_pt[ipart]*std::sin(GenPart_phi[ipart]);
+      }
+    }
+    eventNuPt = std::sqrt(px*px+py*py);
+    eventNuPhi = Utilities::PhiFromXY(px,py);
+    //remove nu pT from the MET
+    px = met*std::cos(metPhi) - px;
+    py = met*std::sin(metPhi) - py;
+    eventDetectorMet = std::sqrt(px*px + py*py);
+    eventDetectorMetPhi = Utilities::PhiFromXY(px,py);
+  } else {
+    eventNuPt           = 0.f;
+    eventNuPhi          = 0.f;
+    eventDetectorMet    = met;
+    eventDetectorMetPhi = metPhi;
+  }
+
+  //For Embedding, use the puppMET uncertainty fields to set a MET uncertainty
+  if(fIsEmbed && fEmbedUseMETUnc == 2) {
+    //fractional error on the detector MET
+    // const float met_err = (0.01f + 0.07f*(eventDetectorMet/100.f)); //fractional error on the detector MET
+    const float met_err = (0.01f + 0.20f*(eventDetectorMet/100.f)); //fractional error on the detector MET
+
+    //scale down the detector MET by this value (overestimates in data)
+    const float dx(eventDetectorMet*met_err*std::cos(eventDetectorMetPhi)), dy(eventDetectorMet*met_err*std::cos(eventDetectorMetPhi));
+    const float met_x(met*std::cos(metPhi) - dx), met_y(met*std::sin(metPhi) - dy);
+    puppMETJESUp = std::sqrt(met_x*met_x+met_y*met_y);
+    puppMETphiJESUp = Utilities::PhiFromXY(met_x,met_y);
+    // puppMETJESUp    = met + met_err*eventDetectorMet;
+    // puppMETphiJESUp = metPhi; //ignore phi uncertainty
+    puppMETJERUp    = met; //no resolution uncertainty included
+    puppMETphiJERUp = metPhi;
+  }
+
   ///////////////////////////////////////////////////////
   // Initialize lepton selection info
   ///////////////////////////////////////////////////////
@@ -3247,34 +3293,27 @@ void HistMaker::FillBaseEventHistogram(EventHist_t* Hist) {
   Hist->hPuppiMetSig       ->Fill(puppMETSig         , genWeight*eventWeight)      ;
   Hist->hMetPhi            ->Fill(metPhi             , genWeight*eventWeight)      ;
   Hist->hMetCorr           ->Fill(metCorr            , genWeight*eventWeight)      ;
+  Hist->hNuPt              ->Fill((fIsData) ? met : eventNuPt, genWeight*eventWeight)      ;
+  Hist->hDetectorMet       ->Fill(eventDetectorMet   , genWeight*eventWeight)      ;
   //approximate met uncertainty
-  const float met_err_up   = (fIsData || (fIsEmbed && fEmbedUseMETUnc == 0)) ? 0.f : std::sqrt(std::pow(puppMETJERUp   - puppMET, 2) + std::pow(puppMETJESUp   - puppMET, 2))/puppMET;
-  const float met_err_down = (fIsData || (fIsEmbed && fEmbedUseMETUnc == 0)) ? 0.f : std::sqrt(std::pow(puppMETJERDown - puppMET, 2) + std::pow(puppMETJESDown - puppMET, 2))/puppMET;
-  float met_err = std::max(met_err_up, met_err_down); //take the largest deviation
-  //approximate the lepton energy scale on the MET as well
-  float met_err_lep = 0.f;
-  if(!fIsData) {
-    Lepton_t lep_tmp;
-    { //up variation (FIXME: correlate both lepton legs for now)
-      float met_tmp(met), met_phi_tmp(metPhi);
-      lep_tmp.setPtEtaPhiM(leptonOne.pt, leptonOne.eta, leptonOne.phi, leptonOne.mass);
-      EnergyScale(leptonOne.ES[1]/leptonOne.ES[0], lep_tmp, &met_tmp, &met_phi_tmp);
-      lep_tmp.setPtEtaPhiM(leptonTwo.pt, leptonTwo.eta, leptonTwo.phi, leptonTwo.mass);
-      EnergyScale(leptonTwo.ES[1]/leptonTwo.ES[0], lep_tmp, &met_tmp, &met_phi_tmp);
-      met_err_lep = std::max(std::fabs(met_tmp - met), met_err_lep);
+  float met_err_up(0.f), met_err_down(0.f);
+  if(fIsEmbed && fEmbedUseMETUnc > 0) {
+    if(fEmbedUseMETUnc == 1) { //use provided MET errors for JER/JES to approximate the error
+      met_err_up   =     std::sqrt(std::pow(puppMETJERUp   - puppMET, 2) + std::pow(puppMETJESUp   - puppMET, 2))/puppMET;
+      met_err_down = -1.*std::sqrt(std::pow(puppMETJERDown - puppMET, 2) + std::pow(puppMETJESDown - puppMET, 2))/puppMET;
+    } else if(fEmbedUseMETUnc == 2) { //use the MET - neutrino momentum added to approximate the error
+      const float embed_met_err = (puppMETJESUp-met)/met; //JES uncertainty is re-used for this uncertainty
+      met_err_up   = embed_met_err;
+      met_err_down = 0.f; //embed_met_err;
     }
-    { //down variation
-      float met_tmp(met), met_phi_tmp(metPhi);
-      lep_tmp.setPtEtaPhiM(leptonOne.pt, leptonOne.eta, leptonOne.phi, leptonOne.mass);
-      EnergyScale(leptonOne.ES[2]/leptonOne.ES[0], lep_tmp, &met_tmp, &met_phi_tmp);
-      lep_tmp.setPtEtaPhiM(leptonTwo.pt, leptonTwo.eta, leptonTwo.phi, leptonTwo.mass);
-      EnergyScale(leptonTwo.ES[2]/leptonTwo.ES[0], lep_tmp, &met_tmp, &met_phi_tmp);
-      met_err_lep = std::max(std::fabs(met_tmp - met), met_err_lep);
-    }
+  } else if(!fIsData && !fIsEmbed) { //MC
+    met_err_up   =     std::sqrt(std::pow(puppMETJERUp   - puppMET, 2) + std::pow(puppMETJESUp   - puppMET, 2))/puppMET;
+    met_err_down = -1.*std::sqrt(std::pow(puppMETJERDown - puppMET, 2) + std::pow(puppMETJESDown - puppMET, 2))/puppMET;
   }
-  met_err = std::sqrt(met_err*met_err + met_err_lep*met_err_lep);
-  Hist->hMetUp             ->Fill(met*(1.f+met_err)  , genWeight*eventWeight);
-  Hist->hMetDown           ->Fill(met*(1.f-met_err)  , genWeight*eventWeight);
+  //Make up correspond to higher met and down to lower
+  if(met_err_up < met_err_down) std::swap(met_err_up, met_err_down);
+  Hist->hMetUp  ->Fill(std::max(0.f, met*(1.f+met_err_up  )), genWeight*eventWeight);
+  Hist->hMetDown->Fill(std::max(0.f, met*(1.f+met_err_down)), genWeight*eventWeight);
   //met if no corrections were applied
   const float met_x_orig(met*std::cos(metPhi) - metCorr*std::cos(metCorrPhi)), met_y_orig(met*std::sin(metPhi) - metCorr*std::sin(metCorrPhi));
   const float met_no_corr(std::sqrt(met_x_orig*met_x_orig + met_y_orig*met_y_orig));
