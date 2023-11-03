@@ -1,6 +1,6 @@
 //Produce scale factors to produce alternate PDF versions of the Z spectrum
 
-Long64_t max_entries_ = 1e7;
+Long64_t max_entries_ = 1e6;
 const static int nhist = 4;
 
 int year_;
@@ -134,6 +134,8 @@ int fill_hist(TTree* tree) {
     //Evaluate the weight associated with the theory uncertainty
     float shift = 1.f;
     if(pdf_set_ >= 0) { //use an index in the weight array
+      if(std::abs(pdf_set_) < 1000) //normalize to PDF set 0
+        genwt = pdf_wt[0];
       shift = (pdf_set < n_pdf) ? pdf_wt[pdf_set] / genwt : 1.f;
     } else { //loop through to find the largest deviation in the event
       float max_dev = 0.f;
@@ -292,24 +294,36 @@ int fill_hist(TTree* tree) {
    Main function
    year: supported are 2016 and 2018
    pdf_set: PDF set weights to compare to nominal (< 1000 = PDF, >= 1000 = scale, -1 = all PDF, -1001 = all scale)
+
+   pdf_set array index mapping:
+     scale entries (muR, muF): 0: (0.5,0.5), 1: (0.5,1), 2: (0.5,2), 3: (1,0.5), 4: (1,1), 5: (1,2), 6: (2,0.5), 7: (2,1), 8: (2,2)
+     PDF entries:
+       2016: 101 variations, 0: nominal, 1-100: statistical replicas
+       2018:  33 variations, 0: nominal, 1-30: eigent vector variations, 31: alpha(MZ)=0.1165, 32: alpha(MZ)=0.1195
  **/
 int scale_factors(int year, int pdf_set = -1) {
+
+  //Initialize fields
   year_ = year;
   pdf_set_ = pdf_set;
-  TChain* chain = new TChain("Events", "Events");
 
+  //Initialize the input data from leading order Drell-Yan MC
+  TChain* chain = new TChain("Events", "Events");
   chain->Add(Form("root://cmseos.fnal.gov//store/user/mmackenz/gen_z/files/GenZAnalysis_LO-DY50_%i.root", year));
 
-  const double pt[] = {0., 5., 10., 15., 20., 23., 26., 30., 35., 40., 50., 60., 70., 80., 90., 100., 500.};
-  const double eta[] = {0., 1., 2., 3., 4., 5., 6., 8., 10.};
-  const double mass[] = {50., 60., 70., 80., 85., 90., 95., 100., 110., 120., 150., 500.}; //{50., 70., 80., 100., 500.};
-  const int npt = sizeof(pt)/sizeof(*pt) - 1;
-  const int neta = sizeof(eta)/sizeof(*eta) - 1;
+  //Initialize the Z pT, |eta|, and mass histograms
+  const double pt  [] = {0., 5., 10., 15., 20., 23., 26., 30., 35., 40., 50., 60., 70., 80., 90., 100., 500.};
+  const double eta [] = {0., 1., 2., 3., 4., 5., 6., 8., 10.};
+  const double mass[] = {50., 60., 70., 80., 85., 90., 95., 100., 110., 120., 150., 500.};
+  const int npt   = sizeof(pt)/sizeof(*pt) - 1;
+  const int neta  = sizeof(eta)/sizeof(*eta) - 1;
   const int nmass = sizeof(mass)/sizeof(*mass) - 1;
 
+  //Decide the scale factor parameterization, (M, pT) or (M, |eta|)
   if(abs(pdf_set) < 1000) hist_mode_ = (year == 2016) ? 0 : 1; //PDF uncertainties
   else                    hist_mode_ = (year == 2016) ? 0 : 0; //Scale uncertainties
 
+  //Initialize the histograms
   for(int index = 0; index < nhist; ++index) {
     if(hist_mode_ == 0) {
       h_    [index] = new TH2D(Form("h%i"     , index), "M_{Z} vs p^{Z}_{T}", nmass, mass, npt, pt);
@@ -329,21 +343,26 @@ int scale_factors(int year, int pdf_set = -1) {
     hwt_  [index] = new TH1D(Form("h%i_wt"  , index), " Event weight"     , 70, -3.5,   3.5);
   }
 
+  //Fill the histograms
   cout << "Processing chain...\n";
   fill_hist(chain);
 
+  //Ensure the scale factor histograms are properly filled
   if(h_[0]->GetEntries() == 0 || h_[1]->GetEntries() == 0) {
     cout << "No events found!\n";
     return 3;
   }
 
+  //Create the scale factor histogram
   TH2* hratio = (TH2*) h_[1]->Clone("hratio");
   hratio->Divide(h_[0]);
 
+  //Create the output figure directory
   const char* base_name = Form("p%s%i_%i", (pdf_set_ < 0) ? "n" : "", abs(pdf_set_), year);
   gSystem->Exec(Form("[ ! -d figures/%s ] && mkdir -p figures/%s", base_name, base_name));
   gStyle->SetOptStat(0);
 
+  //Create the scale factor plot
   TCanvas* c = new TCanvas();
   gStyle->SetPaintTextFormat(".2f");
   hratio->Draw("colz text");
@@ -354,11 +373,13 @@ int scale_factors(int year, int pdf_set = -1) {
     hratio->SetYTitle("|#eta^{Z}|");
   }
   c->SetLogx();
-  if(pdf_set_ > 1000) c->SetLogy();
+  c->SetLogy();
   // c->SetLogz();
   hratio->GetXaxis()->SetMoreLogLabels(kTRUE);
   hratio->GetYaxis()->SetMoreLogLabels(kTRUE);
   c->SaveAs(Form("figures/ratio_%s.png", base_name));
+
+  //Save 1-D projections as well
 
   TH1* hdy  = h_[0]->ProjectionY("_py", 1, h_[0]->GetNbinsX());
   TH1* hsig = h_[1]->ProjectionY("_py", 1, h_[1]->GetNbinsX());
@@ -428,10 +449,12 @@ int scale_factors(int year, int pdf_set = -1) {
 
   delete c;
 
+  //Save the scale factors
   TFile* fout = new TFile(Form("rootfiles/z_pdf_shift_%s.root", base_name), "RECREATE");
   hratio->Write();
   fout->Close();
 
+  //Print additional figures
   print_figure(hpt_  , Form("figures/%s/z_pt.png"   , base_name));
   print_figure(hmass_, Form("figures/%s/z_mass.png" , base_name), true);
   print_figure(heta_ , Form("figures/%s/z_eta.png"  , base_name));

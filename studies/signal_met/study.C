@@ -119,6 +119,11 @@ void study(TString signal = "zmutau", const int max_entries = -1) {
   hbalmdiff  ->SetLineWidth(2);
   hcoltaum   ->SetLineWidth(2);
 
+  hrecalphavbeta->GetXaxis()->SetTitle("#alpha_{1}");
+  hrecalphavbeta->GetYaxis()->SetTitle("#alpha_{2}");
+  hnudphiveta->GetXaxis()->SetTitle("#Delta#phi");
+  hnudphiveta->GetYaxis()->SetTitle("#Delta#eta");
+
   const int nmax = 100;
   UInt_t nGenPart;
   Float_t GenPart_pt[nmax], GenPart_eta[nmax], GenPart_phi[nmax], GenPart_mass[nmax];

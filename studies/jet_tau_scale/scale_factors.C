@@ -51,17 +51,6 @@ TString get_title(TString hist, TString type) {
   if(hist.BeginsWith("beta0"))        return "#alpha(l)";
   if(hist.BeginsWith("beta1"))        return "#alpha(#tau)";
   return hist;
-  // xtitle.ReplaceAll("jettau", "");
-  // xtitle.ReplaceAll("1", ""); xtitle.ReplaceAll("2", ""); xtitle.ReplaceAll("3", "");
-  // bool addone = xtitle.Contains("one");
-  // bool addtwo = xtitle.Contains("two");
-  // xtitle.ReplaceAll("one","");
-  // xtitle.ReplaceAll("two","");
-  // xtitle.ReplaceAll("eta", "#eta"); xtitle.ReplaceAll("phi", "#phi"); xtitle.ReplaceAll("pt", "p_{T}");
-  // if(addone) xtitle = xtitle + "^{1}";
-  // if(addtwo) xtitle = xtitle + "^{2}";
-  // xtitle.ReplaceAll("taus", "#tau ");
-  // xtitle.ReplaceAll("dm", "Decay Mode");
 }
 
 //-------------------------------------------------------------------------------------------------------------------------------
