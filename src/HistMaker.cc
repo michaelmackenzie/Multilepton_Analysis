@@ -12,6 +12,7 @@ HistMaker::HistMaker(int seed, TTree * /*tree*/) : fSystematicSeed(seed),
                                                    fQCDWeight("emu", 1100201/*anti-iso, jet binned, 2D pt closure, use fits*/, -1, 0),
                                                    fMuonIDWeight(1 /*use medium muon ID*/),
                                                    fElectronIDWeight(110 /*use WP90 electron ID and embed TnP trigger*/),
+                                                   fZPDFSys(true),
                                                    fEmbeddingTnPWeight(10/*10*(use 2016 BF/GH and 2018 ABC/D scales) + 1*(interpolate scales or not)*/) {
 
   //ensure pointers set to null to not attempt to delete if never initialized
@@ -173,74 +174,7 @@ void HistMaker::Begin(TTree * /*tree*/)
   fMigrationBuffer = (fAllowMigration) ? 1.f : 0.f; //FIXME: Settle on an event migration buffer allowance
 
   //Initialize MVA tools
-  TMVA::Tools::Instance(); //load the TMVA library
-  for(int i = 0; i < kMaxMVAs; ++i) mva        [i] = nullptr; //initially 0s
-  for(int i = 0; i < kMaxMVAs; ++i) wrappedBDTs[i] = nullptr; //initially 0s
-
-  if(fReprocessMVAs) {
-    for(unsigned mva_i = 0; mva_i < fMVAConfig->names_.size(); ++mva_i) {
-      //only initialize necessary MVAs
-      if(fSelection == "ee" || fSelection == "mumu") { //use e+mu MVAs
-        if(!fMVAConfig->names_[mva_i].Contains("emu")) continue;
-      } else if(fSelection != "" && !fMVAConfig->names_[mva_i].Contains(fSelection.Data())) continue;
-
-      //ignore leptonic tau MVAs in hadronic channels
-      if(fSelection.EndsWith("tau") && (fMVAConfig->names_[mva_i].Contains("tau_e") || fMVAConfig->names_[mva_i].Contains("tau_mu"))) continue;
-
-      //determine the selection for defining the variables
-      TString selection = "";
-      if(fMVAConfig->names_[mva_i].Contains("higgs")) {if(!fDoHiggs) continue; else selection += "h";}
-      else selection += "z";
-      if(fMVAConfig->names_[mva_i].Contains("mutau")) selection += "mutau";
-      else if(fMVAConfig->names_[mva_i].Contains("etau")) selection += "etau";
-      else if(fMVAConfig->names_[mva_i].Contains("emu")) selection += "emu";
-      else {
-        printf ("Warning! Didn't determine mva weight file %s corresponding selection!\n",
-                fMVAConfig->names_[mva_i].Data());
-        continue;
-      }
-      //add for leptonic tau channels FIXME: Put as part of original check
-      if(fMVAConfig->names_[mva_i].Contains("mutau_e")) selection += "_e";
-      else if(fMVAConfig->names_[mva_i].Contains("etau_mu")) selection += "_mu";
-
-      if(fUseXGBoostBDT && selection == "zemu") {
-        if(!fTrkQualInit) fTrkQualInit = new TrkQualInit(fTrkQualVersion, -1, fUseXGBoostBDT);
-        mva        [mva_i] = nullptr;
-        wrappedBDTs[mva_i] = new BDTWrapper(Form("weights/%s.2016_2017_2018.json", fMVAConfig->names_[mva_i].Data()), 1, fVerbose);
-        if(wrappedBDTs[mva_i]->GetStatus()) throw 20;
-        wrappedBDTs[mva_i]->InitializeVariables(fTrkQualInit->GetXGBoostVariables(selection, fTreeVars));
-      } else {
-        //initialize the reader
-        mva        [mva_i] = new TMVA::Reader("!Color:!Silent");
-        wrappedBDTs[mva_i] = nullptr;
-
-        Int_t isJetBinned = -1; // -1 is not binned, 0 = 0 jets, 1 = 1 jet, 2 = >1 jets
-        if(fMVAConfig->names_[mva_i].Contains("_18") || //0 jet
-           fMVAConfig->names_[mva_i].Contains("_48") ||
-           fMVAConfig->names_[mva_i].Contains("_78"))
-          isJetBinned = 0;
-        else if(fMVAConfig->names_[mva_i].Contains("_19") || //1 jet
-                fMVAConfig->names_[mva_i].Contains("_49") ||
-                fMVAConfig->names_[mva_i].Contains("_79"))
-          isJetBinned = 1;
-        else if(fMVAConfig->names_[mva_i].Contains("_20") || //>1 jet
-                fMVAConfig->names_[mva_i].Contains("_50") ||
-                fMVAConfig->names_[mva_i].Contains("_80"))
-          isJetBinned = 2;
-
-        fIsJetBinnedMVAs[mva_i] = isJetBinned; //store for checking when filling
-
-        printf("Using selection %s\n", selection.Data());
-        //use a tool to initialize the MVA variables and spectators
-        if(!fTrkQualInit) fTrkQualInit = new TrkQualInit(fTrkQualVersion, isJetBinned, fUseXGBoostBDT);
-        fTrkQualInit->InitializeVariables(*(mva[mva_i]), selection, fTreeVars);
-        //Initialize MVA weight file
-        const char* f = Form("weights/%s.2016_2017_2018.weights.xml",fMVAConfig->names_[mva_i].Data());
-        mva[mva_i]->BookMVA(fMVAConfig->names_[mva_i].Data(),f);
-        printf("Booked MVA %s with selection %s\n", fMVAConfig->names_[mva_i].Data(), selection.Data());
-      }
-    }
-  }
+  InitializeMVAs();
 
   //Create the output file
   fOut = new TFile(GetOutputName(), "RECREATE","HistMaker output histogram file");
@@ -291,6 +225,13 @@ void HistMaker::Begin(TTree * /*tree*/)
     fUseLepDisplacementWeights = 0;
   }
 
+  //Initialize some weights to 1
+  for(int i = 0; i < kMaxTheory; ++i) {
+    PSWeight      [i] = 1.f;
+    LHEPdfWeight  [i] = 1.f;
+    LHEScaleWeight[i] = 1.f;
+  }
+
   //Setup output histograms
   InitHistogramFlags();
   BookHistograms();
@@ -306,6 +247,56 @@ void HistMaker::SlaveBegin(TTree * /*tree*/)
   printf("HistMaker::SlaveBegin\n");
   TString option = GetOption();
 
+}
+
+//--------------------------------------------------------------------------------------------------------------
+void HistMaker::InitializeMVAs() {
+  TMVA::Tools::Instance(); //load the TMVA library
+  for(int i = 0; i < kMaxMVAs; ++i) mva        [i] = nullptr; //initially 0s
+  for(int i = 0; i < kMaxMVAs; ++i) wrappedBDTs[i] = nullptr; //initially 0s
+
+  if(fReprocessMVAs) {
+    for(unsigned mva_i = 0; mva_i < fMVAConfig->names_.size(); ++mva_i) {
+      //only initialize necessary MVAs
+      bool init = false;
+      const TString mva_selection = fMVAConfig->GetSelectionByIndex(mva_i);
+      //Check if testing this specific MVA
+      init |= fTestMVA != "" && fTestMVA == mva_selection;
+      init |= fDoHiggs && mva_selection == ("h" + fSelection);
+      init |= mva_selection == ("z" + fSelection);
+      if(fSelection == "ee" || fSelection == "mumu") { //use the emu selection for same flavor
+        init |= fDoHiggs && mva_selection == "hemu";
+        init |= mva_selection == "zemu";
+      }
+
+      //skip this MVA if not selected
+      if(!init) continue;
+
+      if(fUseXGBoostBDT && mva_selection == "zemu") {
+        if(!fTrkQualInit) fTrkQualInit = new TrkQualInit(fTrkQualVersion, -1, fUseXGBoostBDT);
+        mva        [mva_i] = nullptr;
+        wrappedBDTs[mva_i] = new BDTWrapper(Form("weights/%s.2016_2017_2018.json", fMVAConfig->names_[mva_i].Data()), 1, fVerbose);
+        if(wrappedBDTs[mva_i]->GetStatus()) throw 20;
+        wrappedBDTs[mva_i]->InitializeVariables(fTrkQualInit->GetXGBoostVariables(mva_selection, fTreeVars));
+      } else {
+        //initialize the reader
+        mva        [mva_i] = new TMVA::Reader("!Color:!Silent");
+        wrappedBDTs[mva_i] = nullptr;
+
+        Int_t isJetBinned = -1; // -1 is not binned, 0 = 0 jets, 1 = 1 jet, 2 = >1 jets
+        fIsJetBinnedMVAs[mva_i] = isJetBinned; //store for checking when filling
+
+        printf("Using selection %s\n", mva_selection.Data());
+        //use a tool to initialize the MVA variables and spectators
+        if(!fTrkQualInit) fTrkQualInit = new TrkQualInit(fTrkQualVersion, isJetBinned, fUseXGBoostBDT);
+        fTrkQualInit->InitializeVariables(*(mva[mva_i]), mva_selection, fTreeVars);
+        //Initialize MVA weight file
+        const char* f = Form("weights/%s.2016_2017_2018.weights.xml",fMVAConfig->names_[mva_i].Data());
+        mva[mva_i]->BookMVA(fMVAConfig->names_[mva_i].Data(),f);
+        printf("Booked MVA %s with selection %s\n", fMVAConfig->names_[mva_i].Data(), mva_selection.Data());
+      }
+    }
+  }
 }
 
 //--------------------------------------------------------------------------------------------------------------
@@ -450,6 +441,9 @@ void HistMaker::BookBaseEventHistograms(Int_t i, const char* dirname) {
         Utilities::BookH1F(fEventHist[i]->hNPU[0]                  , "npu"                     , Form("%s: NPU"                         ,dirname),  50,    0, 100, folder);
         Utilities::BookH1D(fEventHist[i]->hLHENJets                , "lhenjets"                , Form("%s: LHE N(jets)"                 ,dirname),  10,    0,  10, folder);
       }
+      if(fUseEmbBDTUncertainty) {
+        Utilities::BookH1F(fEventHist[i]->hEmbBDTWeight            , "embbdtweight"            , Form("%s: EmbBDTWeight"                ,dirname),  20, 0.75,1.25, folder);
+      }
       Utilities::BookH1D(fEventHist[i]->hMcEra                   , "mcera"                   , Form("%s: MCEra + 2*(year-2016)"       ,dirname),   8,    0,   8, folder);
       Utilities::BookH1D(fEventHist[i]->hRunEra                  , "runera"                  , Form("%s: Run era"                     ,dirname),  20,    0,  20, folder);
       Utilities::BookH1F(fEventHist[i]->hDataRun                 , "datarun"                 , Form("%s: DataRun"                     ,dirname), 100, 2.6e5, 3.3e5, folder);
@@ -591,8 +585,8 @@ void HistMaker::BookBaseEventHistograms(Int_t i, const char* dirname) {
         Utilities::BookH1D(fEventHist[i]->hMVA[j][2]  , Form("mva%i_2",j)   , Form("%s: %s MVA"         ,dirname, fMVAConfig->names_[j].Data()), fNCDFBins+1,  0.-1./fNCDFBins,  1., folder);
         //log10(CDF p-value)
         Utilities::BookH1D(fEventHist[i]->hMVA[j][3]  , Form("mva%i_3",j)   , Form("%s: %s log10(MVA)"  ,dirname, fMVAConfig->names_[j].Data()), 20, -3., 0., folder);
-        //log10(CDF p-value) + p-value
-        Utilities::BookH1D(fEventHist[i]->hMVA[j][4]  , Form("mva%i_4",j)   , Form("%s: %s p+log10(p)"  ,dirname, fMVAConfig->names_[j].Data()), 20, -3., 1., folder);
+        //F(p-value) transformation
+        Utilities::BookH1D(fEventHist[i]->hMVA[j][4]  , Form("mva%i_4",j)   , Form("%s: %s f(p)"  ,dirname, fMVAConfig->names_[j].Data()), 20, 0., 1., folder);
         //no BDT score correction
         Utilities::BookH1D(fEventHist[i]->hMVA[j][5], Form("mva%i_5",j)   , Form("%s: %s MVA" ,dirname, fMVAConfig->names_[j].Data()) ,
                            fMVAConfig->NBins(j, i), fMVAConfig->Bins(j, i).data(), folder);
@@ -945,7 +939,7 @@ void HistMaker::SetEventList(TTree* tree) {
   if(fIsDY && fDYType > 0) { //Split DY into tautau and ee/mumu
     if(fDYType == 1) { //only process Z->tautau
       cut = "std::abs(GenZll_LepOne_pdgId) == 15 && std::abs(GenZll_LepTwo_pdgId) == 15";
-    } else if(fDYType == 2) { //only process Z->ee/mumu
+    } else if(fDYType == 2) { //only process Z->ee/mumu --> No longer removing Z->tau tau from processing
       cut = ""; //"std::abs(GenZll_LepOne_pdgId) != 15 && std::abs(GenZll_LepTwo_pdgId) != 15";
     } else {
       std::cout << "HistMaker::" << __func__
@@ -1556,8 +1550,14 @@ void HistMaker::InitializeEventWeights() {
     //PDF weight
     deviation = 0.f;
     for(UInt_t index = 0; index < nLHEPdfWeight; ++index) {
-      if(LHEPdfWeight[index] == 0.f) continue;
-      const float dev = std::max(0.3f, std::min(3.f, LHEPdfWeight[index])) - 1.f;
+      //If zero weights, set them to 1
+      if(LHEPdfWeight[0] != 0.f) LHEPdfWeight[0] = 1.f;
+      if(LHEPdfWeight[index] == 0.f) LHEPdfWeight[index] = 1.f;
+       //index 0 should be the nominal weight, so divide by it
+      LHEPdfWeight[index] /= LHEPdfWeight[0];
+      //Ensure a reasonable weight ratio
+      LHEPdfWeight[index] = std::max(0.3f, std::min(3.f, LHEPdfWeight[index]));
+      const float dev = LHEPdfWeight[index] - 1.f;
       if(std::fabs(deviation) < std::fabs(dev)) {
         deviation = dev;
       }
@@ -1614,6 +1614,7 @@ void HistMaker::InitializeEventWeights() {
     LHEPdfWeightMax    = fZPDFSys.GetPDFWeight        (fYear, zPt, zEta, zMass);
     LHEScaleRWeightMax = fZPDFSys.GetRenormScaleWeight(fYear, zPt,       zMass);
     LHEScaleFWeightMax = fZPDFSys.GetFactorScaleWeight(fYear, zPt,       zMass);
+    fZPDFSys.GetPDFWeight(fYear, zPt, zEta, zMass, LHEPdfWeight, nLHEPdfWeight);
   }
 
   ////////////////////////////////////////////////////////////////////
@@ -1654,6 +1655,14 @@ void HistMaker::InitializeEventWeights() {
     bdtWeight = 1.f;
   }
   eventWeight *= bdtWeight;
+
+  //only evaluate embedding BDT uncertainty on tau channel embedding samples
+  embBDTWeight = 1.f;
+  if(fIsEmbed && fUseEmbBDTUncertainty && fSelection.Contains("tau")) {
+    embBDTWeight = EvalEmbBDTUncertainty("z"+fSelection);
+    //apply as a correction if requested
+    if(fUseEmbBDTUncertainty == 2) eventWeight *= embBDTWeight;
+  }
 
 
   ////////////////////////////////////////////////////////////////////
@@ -2147,6 +2156,7 @@ void HistMaker::SetKinematics() {
   fTreeVars.leppt         = lep.Pt();
   fTreeVars.lepm          = lep.M();
   fTreeVars.lepmt         = lep.Mt();
+  fTreeVars.lepphi        = lep.Phi();
   fTreeVars.lepptoverm    = fTreeVars.leppt   /fTreeVars.lepm;
   fTreeVars.leponeptoverm = fTreeVars.leponept/fTreeVars.lepm;
   fTreeVars.leptwoptoverm = fTreeVars.leptwopt/fTreeVars.lepm;
@@ -3242,6 +3252,9 @@ void HistMaker::FillBaseEventHistogram(EventHist_t* Hist) {
     Hist->hNPU[0]              ->Fill(nPU                , genWeight*eventWeight)      ;
     Hist->hLHENJets            ->Fill(LHE_Njets          , genWeight*eventWeight)      ;
   }
+  if(fUseEmbBDTUncertainty) {
+    Hist->hEmbBDTWeight->Fill(embBDTWeight, genWeight*eventWeight);
+  }
   Hist->hMcEra               ->Fill(mcEra + 2*(fYear - 2016), genWeight*eventWeight) ;
   Hist->hRunEra              ->Fill(runEra             , genWeight*eventWeight) ;
   Hist->hDataRun             ->Fill(runNumber          , genWeight*eventWeight)      ;
@@ -3407,7 +3420,7 @@ void HistMaker::FillBaseEventHistogram(EventHist_t* Hist) {
     Hist->hMVA[i][1]->Fill(fMvaOutputs[i], fTreeVars.eventweightMVA); //remove training samples
     Hist->hMVA[i][2]->Fill(fMvaCDFs   [i], fTreeVars.eventweightMVA); //remove training samples
     Hist->hMVA[i][3]->Fill(fMvaLogP   [i], fTreeVars.eventweightMVA); //remove training samples
-    Hist->hMVA[i][4]->Fill(fMvaLogP[i]+fMvaCDFs[i], fTreeVars.eventweightMVA); //remove training samples
+    Hist->hMVA[i][4]->Fill(fMvaFofP   [i], fTreeVars.eventweightMVA); //remove training samples
     Hist->hMVA[i][5]->Fill(score, fTreeVars.eventweightMVA*((bdtWeight > 0.f) ? 1./bdtWeight : 1.f)); //remove training samples and BDT score correction
     if (fTreeVars.train > 0) Hist->hMVATrain[i]->Fill(fMvaOutputs[i], fTreeVars.eventweight*((fFractionMVA > 0.f) ? 1.f/fFractionMVA : 1.f));
     if (fTreeVars.train < 0) Hist->hMVATest[i] ->Fill(fMvaOutputs[i], fTreeVars.eventweightMVA);
@@ -4237,6 +4250,57 @@ void HistMaker::EvalJetToTauWeights(float& wt, float& wtcorr, float& wtbias) {
       wtbias += fJetToTauComps[proc] * fJetToTauWts[proc] * fJetToTauCorrs[proc];
     }
   }
+}
+
+//--------------------------------------------------------------------------------------------------------------
+// Evaluate the embedding BDT uncertainty
+float HistMaker::EvalEmbBDTUncertainty(TString selection) {
+  if(!fReprocessMVAs) return 1.f;
+  if(!fIsEmbed) return 1.f;
+  if(!fUseEmbBDTUncertainty) return 1.f;
+
+  //Store the original event information
+  const TLorentzVector o_lv1(*leptonOne.p4), o_lv2(*leptonTwo.p4), o_jet(*jetOne.p4);
+  const float o_met(met), o_metPhi(metPhi);
+  float o_mvas[fMVAConfig->names_.size()], o_cdfs[fMVAConfig->names_.size()], o_fofp[fMVAConfig->names_.size()];
+  for(unsigned i = 0; i < fMVAConfig->names_.size(); ++i) {
+    o_mvas[i] = fMvaOutputs[i];
+    o_cdfs[i] = fMvaCDFs[i];
+    o_fofp[i] = fMvaFofP[i];
+  }
+
+  //Override with the embedded event kinematics
+  if(zLepOnePt > zLepTwoPt) { //order by leading pT
+    leptonOne.setPtEtaPhiM(zLepOnePt, zLepOneEta, zLepOnePhi, MUONMASS);
+    leptonTwo.setPtEtaPhiM(zLepTwoPt, zLepTwoEta, zLepTwoPhi, MUONMASS);
+  } else {
+    leptonTwo.setPtEtaPhiM(zLepOnePt, zLepOneEta, zLepOnePhi, MUONMASS);
+    leptonOne.setPtEtaPhiM(zLepTwoPt, zLepTwoEta, zLepTwoPhi, MUONMASS);
+  }
+  met    = eventDetectorMet; //use the MET without the neutrinos
+  metPhi = eventDetectorMetPhi;
+  SetKinematics();
+
+  //Evaluate the BDT score
+  EvalMVAs("EmbBDTMVAs");
+
+  //Evaluate the uncertainty for the selection (uses F(p) in the uncertainty evaluation)
+  const float score = fMvaFofP[fMVAConfig->GetIndexBySelection(selection)];
+  const float weight = fEmbBDTUncertainty.Weight(score, fYear, selection);
+
+  //Restore the event information
+  leptonOne.setP(o_lv1);
+  leptonTwo.setP(o_lv2);
+  met = o_met;
+  metPhi = o_metPhi;
+  SetKinematics();
+  for(unsigned i = 0; i < fMVAConfig->names_.size(); ++i) {
+    fMvaOutputs[i] = o_mvas[i];
+    fMvaCDFs[i] = o_cdfs[i];
+    fMvaFofP[i] = o_fofp[i];
+  }
+
+  return weight;
 }
 
 //--------------------------------------------------------------------------------------------------------------

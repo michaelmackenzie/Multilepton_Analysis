@@ -3,7 +3,7 @@
 using namespace CLFV;
 
 //--------------------------------------------------------------------------------------------------------------------------------------
-ZPDFUncertainty::ZPDFUncertainty() {
+ZPDFUncertainty::ZPDFUncertainty(const bool useEnvelope) : useEnvelope_(useEnvelope) {
 
   const TString cmssw = gSystem->Getenv("CMSSW_BASE");
   const TString path = (cmssw == "") ? "../scale_factors" : cmssw + "/src/CLFVAnalysis/scale_factors";
@@ -20,7 +20,7 @@ ZPDFUncertainty::ZPDFUncertainty() {
     /////////////////////////////
     //Get the PDF weights
 
-    //define which PDF index set to use
+    //define which PDF index set to use for the simplified case
     const int pdf_set = -1;
     f = TFile::Open(Form("%s/z_pdf_shift_p%s%i_%i.root", path.Data(), (pdf_set) < 0 ? "n" : "", std::abs(pdf_set), year), "READ");
     if(!f) continue;
@@ -33,6 +33,24 @@ ZPDFUncertainty::ZPDFUncertainty() {
     }
     f->Close();
     delete f;
+
+    //get all the PDFs for the full case
+    if(useEnvelope_) {
+      f = TFile::Open(Form("%s/z_pdf_shift_env_%i.root", path.Data(), year), "READ");
+      if(!f) continue;
+      for(int ipdf = 1; ipdf <= ((year == 2016) ? 100 : 32); ++ipdf) {
+        const int map_index = year*kMaxNPDF + ipdf;
+        hPDF_[map_index] = (TH2*) f->Get(Form("hratio_%i", ipdf));
+        if(!hPDF_[map_index]) {
+          std::cout << "ZPDFUncertainty: No PDF uncertainty histogram found for year " << year << " index " << ipdf << std::endl;
+        } else {
+          hPDF_[map_index]->SetName(Form("%s_pdf_%i", hPDF_[map_index]->GetName(), year));
+          hPDF_[map_index]->SetDirectory(0);
+        }
+      }
+      f->Close();
+      delete f;
+    }
 
     /////////////////////////////
     //Get the Scale weights
@@ -75,16 +93,25 @@ ZPDFUncertainty::~ZPDFUncertainty() {
 }
 
 //--------------------------------------------------------------------------------------------------------------------------------------
-float ZPDFUncertainty::GetPDFWeight(int year, float z_pt, float z_eta, float z_mass) {
+float ZPDFUncertainty::GetPDFWeight(int year, float z_pt, float z_eta, float z_mass, int index) {
   float weight = 1.f;
   if(year == 2017) year = 2018; //Use 2018 weights in 2017 due to no LO MC sample being available
-  if(hPDF_.find(year) == hPDF_.end()) {
-    std::cout << "ZPDFUncertainty::" << __func__ << " WARNING! Z PDF weights not defined for year = " << year << std::endl;
+
+  //Define the map index to the appropriate histogram
+  int map_index = (useEnvelope_ && index >= 0 && index < kMaxNPDF) ? year*kMaxNPDF + index : year;
+
+  //Check for the histogram
+  if(hPDF_.find(map_index) == hPDF_.end()) {
+    std::cout << "ZPDFUncertainty::" << __func__ << " WARNING! Z PDF weights not defined for year = " << year;
+    if(useEnvelope_ && index >= 0) std::cout << " and index = " << index;
+    std::cout << std::endl;
     return weight;
   }
-  TH2* h = hPDF_[year];
+  TH2* h = hPDF_[map_index];
   if(!h) {
-    std::cout << "ZPDFUncertainty::" << __func__ << " WARNING! Z PDF weights not defined for year = " << year << std::endl;
+    std::cout << "ZPDFUncertainty::" << __func__ << " WARNING! Z PDF weights not defined for year = " << year;
+    if(useEnvelope_ && index >= 0) std::cout << " and index = " << index;
+    std::cout << std::endl;
     return weight;
   }
 
@@ -108,6 +135,15 @@ float ZPDFUncertainty::GetPDFWeight(int year, float z_pt, float z_eta, float z_m
   }
   return weight;
 }
+
+//--------------------------------------------------------------------------------------------------------------------------------------
+void ZPDFUncertainty::GetPDFWeight(int year, float z_pt, float z_eta, float z_mass, float* weights, unsigned& npdf) {
+  if(!useEnvelope_) return;
+  npdf = (year == 2016) ? 100 : 32;
+  for(unsigned ipdf = 1; ipdf <= npdf; ++ipdf) {
+    weights[ipdf] = GetPDFWeight(year, z_pt, z_eta, z_mass, ipdf);
+  }
+ }
 
 //--------------------------------------------------------------------------------------------------------------------------------------
 float ZPDFUncertainty::GetRenormScaleWeight(int year, float z_pt, float z_mass) {

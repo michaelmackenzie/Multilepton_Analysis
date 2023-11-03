@@ -68,6 +68,7 @@
 #include "interface/ElectronIDWeight.hh"
 #include "interface/LeptonDisplacement.hh"
 #include "interface/BDTScale.hh"
+#include "interface/EmbBDTUncertainty.hh"
 
 #include "interface/ZPDFUncertainty.hh"
 #include "interface/Systematics.hh"
@@ -336,6 +337,7 @@ namespace CLFV {
     Float_t signalZMixingWeightDown = 1.;
     Float_t lepDisplacementWeight = 1. ;
     Float_t bdtWeight = 1.             ;
+    Float_t embBDTWeight = 1.          ;
     Float_t zPtWeight = 1.             ;
     Float_t zPtWeightUp = 1.           ;
     Float_t zPtWeightDown = 1.         ;
@@ -473,6 +475,7 @@ namespace CLFV {
     void    MatchTriggers();
     void    ApplyTriggerWeights();
     void    EvalJetToTauWeights(float& wt, float& wtcorr, float& wtbias);
+    float   EvalEmbBDTUncertainty(TString selection);
 
     //Apply event selection cuts
     bool    PassesCuts() {
@@ -625,6 +628,7 @@ namespace CLFV {
     void    InitializeTreeVariables();
     int     Category(TString selection);
     void    InitializeSystematics();
+    void    InitializeMVAs();
     virtual TString GetOutputName() {
       return Form("hist%s_%i_%s%s%s.hist",
                   (fSelection == "") ? "" : ("_"+fSelection).Data(),fYear, fDataset.Data(),
@@ -667,17 +671,26 @@ namespace CLFV {
 
       //If running embedding, reject di-tau production from non-embedding MC (except tau-tau DY MC, which is already separated by histogram files)
       //If testing ee/mumu with embedding, reject ee/mumu events instead
-      if(fUseEmbedCuts && !fIsEmbed && !fIsData) {
+      if(fUseEmbedCuts && !fIsEmbed && !fIsData && !fIsSignal) {
         if(fUseEmbedCuts < 3 && (fSelection == "ee" || fSelection == "mumu" || fSelection == "emu")) return kFALSE; //don't do gen cuts if < 3
-        if(((fIsDY && fDYType == 0) || fDYType != 1) && nGenTaus == 2 && !(fSelection == "ee" || fSelection == "mumu")) {
-          if(fVerbose > 1) std::cout << " " <<  __func__ << ": Splitting event due to non-Embedded tautau in ee/mumu\n";
-          return kTRUE;
-        } else if(((fIsDY && fDYType == 0) || fDYType != 2) && fUseEmbedCuts == 2 && nGenMuons == 2 && fSelection == "mumu") {
-          if(fVerbose > 1) std::cout << " " <<  __func__ << ": Splitting event due to non-Embedded mumu in mumu\n";
-          return kTRUE;
-        } else if(((fIsDY && fDYType == 0) || fDYType != 2) && fUseEmbedCuts == 2 && nGenElectrons == 2 && fSelection == "ee") {
-          if(fVerbose > 1) std::cout << " " <<  __func__ << ": Splitting event due to non-Embedded ee in ee\n";
-          return kTRUE;
+        if(fIsDY) { //Z->ll/tautau event
+          if(fDYType != 1 && nGenTaus == 2 && !(fSelection == "ee" || fSelection == "mumu")) {
+            if(fVerbose > 1) std::cout << " " <<  __func__ << ": Splitting event due to non-Embedded tautau in ee/mumu\n";
+            return kTRUE;
+          } else if(fDYType != 2 && fUseEmbedCuts == 2 && nGenMuons == 2 && fSelection == "mumu") {
+            if(fVerbose > 1) std::cout << " " <<  __func__ << ": Splitting event due to non-Embedded mumu in mumu\n";
+            return kTRUE;
+          } else if(fDYType != 2 && fUseEmbedCuts == 2 && nGenElectrons == 2 && fSelection == "ee") {
+            if(fVerbose > 1) std::cout << " " <<  __func__ << ": Splitting event due to non-Embedded ee in ee\n";
+            return kTRUE;
+          }
+        } else { //non-DY event
+          if(nGenMuons     == 2 && fSelection == "mumu") return kTRUE;
+          if(nGenElectrons == 2 && fSelection == "ee"  ) return kTRUE;
+          if(nGenTaus      == 2                        ) return kTRUE; //skip tau tau production in all channels, including ee/mumu FIXME: Is this reasonable?
+          if((fSelection == "mumu" && nGenMuons < 3) || (fSelection == "ee" && nGenElectrons < 3)) { //check if it's a genuine ll, l+tau_l, or tau_l+tau_l event
+            if(std::abs(leptonOne.genFlavor) == std::abs(leptonTwo.genFlavor) && std::abs(leptonOne.genFlavor) == std::abs(leptonOne.flavor)) return kTRUE;
+          }
         }
       }
       return kFALSE;
@@ -829,6 +842,8 @@ namespace CLFV {
     BDTScale        fBDTScale; //BDT score corrections (Z->e+mu only)
     Int_t           fUseBDTScale = 1; //for emu selection, BDT score corrections
     Int_t           fSameFlavorEMuSelec = 0; //apply the Z->e+mu selection to the ee/mumu events
+    EmbBDTUncertainty fEmbBDTUncertainty; //BDT score uncertainty from embedding
+    Int_t             fUseEmbBDTUncertainty = 1; //BDT score uncertainty in embedding: 1: use as systematic; 2: apply as correction
 
     ZPtWeight*      fZPtWeight; //re-weight Drell-Yan pT vs Mass
     Int_t           fUseZPtWeight = 1;
@@ -847,6 +862,7 @@ namespace CLFV {
     TRandom3*       fRnd = 0; //for splitting MVA testing/training
     Int_t           fRndSeed = 90; //random number generator seed (not the same as systematics, as want fixed even for systematic studies)
     bool            fReprocessMVAs = false; //whether or not to use the tree given MVA values
+    TString         fTestMVA = ""; //specific MVA to test, independent of selection
     Int_t           fBJetCounting = 1; // 0: pT > 30 1: pT > 25 2: pT > 20
     Int_t           fBJetTightness = 1; // 0: tight 1: medium 2: loose
     Int_t           fMETType = 0; // 0: PF corrected 1: PUPPI Corrected

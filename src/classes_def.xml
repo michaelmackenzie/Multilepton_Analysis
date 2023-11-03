@@ -24,6 +24,7 @@
   <class name="MuonIDWeight"/>
   <class name="LeptonDisplacement"/>
   <class name="BDTScale"/>
+  <class name="EmbBDTUncertainty"/>
   <class name="TauIDWeight"/>
   <class name="ZPtWeight"/>
   <class name="SignalZWeight"/>
@@ -41,6 +42,8 @@
   <class name="QCDHistMaker"/>
   <class name="ZPtHistMaker"/>
   <class name="RecoilHistMaker"/>
+  <class name="EmbedBDTHistMaker"/>
+  <class name="SparseTreeMaker"/>
   <class name="DataCard_t"/>
   <class name="PlottingCard_t"/>
   <class name="ScaleUncertainty_t"/>

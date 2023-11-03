@@ -46,6 +46,7 @@ namespace CLFV {
     float lepm;
     float lepmt;
     float lepeta;
+    float lepphi;
     float lepdeltaeta;
     float lepdeltar;
     float lepdeltaphi;

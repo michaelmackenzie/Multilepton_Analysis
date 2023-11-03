@@ -112,6 +112,7 @@ namespace CLFV {
     Double_t signal_scale_ = 1.; //increase the size of the signal if needed
     std::map<TString, Double_t> signal_scales_; //map from signal label to signal scaling
     Int_t stack_signal_ = 0; //put signal into the stack
+    Int_t include_signal_subtraction_ = 0; //include signal when subtracting MC from data
     Int_t signal_fill_style_ = 3005; //fill for the signal histograms
     Int_t stack_as_hist_ = 0; //plot the stack as a total background histogram
     TString only_signal_ = ""; //Only plot the given signal label

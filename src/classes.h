@@ -32,6 +32,7 @@
 #include "interface/TauIDWeight.hh"
 #include "interface/ElectronIDWeight.hh"
 #include "interface/BDTScale.hh"
+#include "interface/EmbBDTUncertainty.hh"
 #include "interface/RoccoR.h"
 #include "interface/MVAConfig.hh"
 #include "interface/TrkQualInit.hh"
@@ -42,6 +43,8 @@
 #include "interface/QCDHistMaker.hh"
 #include "interface/ZPtHistMaker.hh"
 #include "interface/RecoilHistMaker.hh"
+#include "interface/EmbedBDTHistMaker.hh"
+#include "interface/SparseTreeMaker.hh"
 #include "interface/DataCard_t.hh"
 #include "interface/PlottingCard_t.hh"
 #include "interface/ScaleUncertainty_t.hh"
@@ -73,6 +76,7 @@ namespace CLFV {
     MuonIDWeight dummy6c;
     LeptonDisplacement dummy6c3;
     BDTScale dummy6c4;
+    EmbBDTUncertainty dummy6c5;
     TauIDWeight dummy6d;
     ZPtWeight dummy6e;
     SignalZWeight dummy6e2;
@@ -90,6 +94,8 @@ namespace CLFV {
     QCDHistMaker dummy15b5;
     ZPtHistMaker dummy15b6;
     RecoilHistMaker dummy15b7;
+    EmbedBDTHistMaker dummy15b8;
+    SparseTreeMaker dummy15b9;
     DataCard_t dummy15c;
     PlottingCard_t dummy15d;
     ScaleUncertainty_t dummy15e;

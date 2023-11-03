@@ -163,6 +163,10 @@ namespace CLFV {
       case  93: return Data(isys, "TheoryScaleF"  , false);
       case  94: return Data(isys, "TheoryScaleR"  , true );
       case  95: return Data(isys, "TheoryScaleR"  , false);
+      case  96: return Data(isys, "EmbTauTau"     , true );
+      case  97: return Data(isys, "EmbTauTau"     , false);
+      case  98: return Data(isys, "EmbBDT"        , true );
+      case  99: return Data(isys, "EmbBDT"        , false);
       default: break;
       }
 
@@ -216,6 +220,11 @@ namespace CLFV {
                                                                     (isys-base)/(2*2), //e.g. 272-277 = 0 jets
                                                                     ((isys-base)/2)%2), //272-273 = up/down of 1 shape param
                                                          (isys-base)%2 == 0);
+
+      //PDF uncertainty eigenvector variations (2017/2018)
+      //30 eigenvectors + alpha_down, alpha_up --> 31 nuisances with up/down
+      base += 2*nbin; nbin = 31; //284 - 345
+      if(isys >= base && isys < base+2*nbin) return Data(isys, Form("TheoryPDF%i", (isys-base)/2), (isys-base)%2 == 0);
 
       //return the default result if no systematic is defined
       return Data();

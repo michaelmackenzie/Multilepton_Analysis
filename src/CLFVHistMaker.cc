@@ -381,10 +381,10 @@ void CLFVHistMaker::BookEventHistograms() {
         Utilities::BookH1F(fEventHist[i]->hLepM[3] , "lepm3"         , Form("%s: Lepton M"       ,dirname)  ,  80,  70, 110, folder);
         Utilities::BookH1F(fEventHist[i]->hLepM[4] , "lepm4"         , Form("%s: Lepton M"       ,dirname)  ,  40, 105, 145, folder);
 
-        Utilities::BookH1F(fEventHist[i]->hZPt[5]     , "zpt5"          , Form("%s: Z Pt"           ,dirname)  ,     50,   0.,  150., folder);
-        Utilities::BookH1F(fEventHist[i]->hZMass[5]   , "zmass5"        , Form("%s: Z Mass"         ,dirname)  ,     70,  40.,  180., folder);
-        Utilities::BookH1F(fEventHist[i]->hZEta[1]    , "zeta1"         , Form("%s: ZEta"           ,dirname)  ,     50,  -10,    10, folder);
       }
+      Utilities::BookH1F(fEventHist[i]->hZPt[5]    , "zpt5"          , Form("%s: Z Pt"           ,dirname)  ,  50,   0, 150, folder);
+      Utilities::BookH1F(fEventHist[i]->hZMass[5]  , "zmass5"        , Form("%s: Z Mass"         ,dirname)  ,  70,  40, 180, folder);
+      Utilities::BookH1F(fEventHist[i]->hZEta[1]   , "zeta1"         , Form("%s: ZEta"           ,dirname)  ,  50, -10,  10, folder);
 
       //boosted frame variables
       for(int mode = 0; mode < 3; ++mode) {
@@ -461,6 +461,8 @@ void CLFVHistMaker::BookSystematicHistograms() {
       for(int sys = 0; sys < kMaxSystematics; ++sys) {
         const TString name = fSystematics.GetName(sys);
         if(name == "") continue; //only initialize defined systematics
+        if(name.BeginsWith("QCD") && fSelection.EndsWith("tau")) continue; //skip QCD OS --> SS in tau channels
+        if(name.BeginsWith("JetToTau") && !fSelection.EndsWith("tau")) continue; //only consider j-->tau in tau channels
 
         if(!fSparseHists || (fSelection == "emu" || fSelection == "mumu" || fSelection == "ee")) {
           Utilities::BookH1F(fSystematicHist[i]->hLepM        [sys], Form("lepm_%i"        , sys), Form("%s: LepM %i"                   , dirname, sys) , 280,  40, 180, folder);
@@ -510,6 +512,14 @@ void CLFVHistMaker::FillEventHistogram(EventHist_t* Hist) {
   }
   FillBaseEventHistogram(Hist);
 
+  TLorentzVector lepSys = (*leptonOne.p4) + (*leptonTwo.p4);
+  TLorentzVector sys    = (photonP4) ? (*photonP4) + lepSys : lepSys;
+  //for removing or alternate DY reweighting weights
+  double bareweight = (fIsDY && zPtWeight > 0.) ? eventWeight*genWeight/zPtWeight : eventWeight*genWeight; //no DY Z pT vs M weights
+  float tmp_1, tmp_2, sys_reco_weight(1.);
+  double recoweight = (fIsDY) ? bareweight*fZPtWeight->GetWeight(fYear, lepSys.Pt(), lepSys.M(), /*use reco weights*/ true, tmp_1, tmp_2, sys_reco_weight) : bareweight;
+  sys_reco_weight *= bareweight;
+
   if(!fSparseHists) {
     //Additional j-->tau info
     for(int ji = 0; ji < JetToTauComposition::kLast; ++ji) {
@@ -542,18 +552,8 @@ void CLFVHistMaker::FillEventHistogram(EventHist_t* Hist) {
     //tau decay mode study
     Hist->hTauDecayMode[1]   ->Fill(tauDecayMode);
 
-
-    TLorentzVector lepSys = (*leptonOne.p4) + (*leptonTwo.p4);
-    TLorentzVector sys    = (photonP4) ? (*photonP4) + lepSys : lepSys;
-
     // const double lepDelR   = std::fabs(leptonOne.p4->DeltaR(*leptonTwo.p4));
     // const double lepDelPhi = std::fabs(leptonOne.p4->DeltaPhi(*leptonTwo.p4));
-
-    //for removing or alternate DY reweighting weights
-    double bareweight = (fIsDY && zPtWeight > 0.) ? eventWeight*genWeight/zPtWeight : eventWeight*genWeight; //no DY Z pT vs M weights
-    float tmp_1, tmp_2, sys_reco_weight(1.);
-    double recoweight = (fIsDY) ? bareweight*fZPtWeight->GetWeight(fYear, lepSys.Pt(), lepSys.M(), /*use reco weights*/ true, tmp_1, tmp_2, sys_reco_weight) : bareweight;
-    sys_reco_weight *= bareweight;
 
     //test Drell-Yan reweighting
     Hist->hLepPt[1]     ->Fill(lepSys.Pt()            ,bareweight);
@@ -563,12 +563,12 @@ void CLFVHistMaker::FillEventHistogram(EventHist_t* Hist) {
     Hist->hLepM[3]      ->Fill(lepSys.M()             ,eventWeight*genWeight);
     Hist->hLepM[4]      ->Fill(lepSys.M()             ,eventWeight*genWeight);
 
-    const double zpt   = (zPt   <  0.f) ? lepSys.Pt()  : zPt;
-    const double zmass = (zMass <  0.f) ? lepSys.M()   : zMass;
-    Hist->hZPt[5]       ->Fill(zpt  , eventWeight*genWeight);
-    Hist->hZMass[5]     ->Fill(zmass, eventWeight*genWeight);
-    Hist->hZEta [1]     ->Fill(zEta , bareweight           );
   }
+  const double zpt   = (zPt   <  0.f) ? lepSys.Pt()  : zPt;
+  const double zmass = (zMass <  0.f) ? lepSys.M()   : zMass;
+  Hist->hZPt[5]       ->Fill(zpt  , eventWeight*genWeight);
+  Hist->hZMass[5]     ->Fill(zmass, eventWeight*genWeight);
+  Hist->hZEta [1]     ->Fill(zEta , bareweight           );
 
   //ATLAS boosted frame variables
   for(int mode = 0; mode < 3; ++mode) {
@@ -914,10 +914,6 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
       if(!fIsSignal || !isEMu) continue;
       if(fSystematics.IsUp(sys)) weight *= 1./bdtWeight; //remove weight for up
       else                       weight *=    bdtWeight; //apply twice for down
-    } else if(name == "TheoryPDF") {
-      if(fIsData || fIsEmbed) continue;
-      if(fSystematics.IsUp(sys)) weight *= LHEPdfWeightMax;
-      else                       weight *= 1.f/LHEPdfWeightMax;
     } else if(name == "TheoryScaleR") {
       if(fIsData || fIsEmbed) continue;
       if(fSystematics.IsUp(sys)) weight *= LHEScaleRWeightMax;
@@ -926,6 +922,18 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
       if(fIsData || fIsEmbed) continue;
       if(fSystematics.IsUp(sys)) weight *= LHEScaleFWeightMax;
       else                       weight *= 1.f/LHEScaleFWeightMax;
+    } else if(name == "TheoryPDF") {
+      if(fIsData || fIsEmbed) continue;
+      if(fSystematics.IsUp(sys)) weight *= LHEPdfWeightMax;
+      else                       weight *= 1.f/LHEPdfWeightMax;
+    } else if(name.BeginsWith("TheoryPDF")) {
+      if(fIsData || fIsEmbed) continue;
+      TString bin_s = name;
+      bin_s.ReplaceAll("TheoryPDF", "");
+      const int bin = std::stoi(bin_s.Data()) + 1; //array index 1 = TheoryPDF0 as index 0 is nominal
+      if(fSystematics.IsUp(sys))          weight *=     LHEPdfWeight[bin];
+      else if(bin == 31 && fYear != 2016) weight *=     LHEPdfWeight[bin+1]; //alpha variation has separate up/down weights
+      else                                weight *= 1.f/LHEPdfWeight[bin];
     } else if(name == "Pileup") {
       if(fIsData || fIsEmbed) continue;
       if(fSystematics.IsUp(sys)) weight *= puWeight_up          / puWeight       ;
@@ -1311,11 +1319,32 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
       if(!fIsEmbed || fEmbedUseMETUnc != 2) continue;
       reeval = true;
       if(fSystematics.IsUp(sys)) {
-        met    = puppMETJESUp; //variable reused for this purpose here
+        met    = puppMETJESUp; //variable re-used for this purpose here
         metPhi = puppMETphiJESUp;
       } else { //no down variation, make one-sided
         continue; //skip since no variation is needed for down
         // reeval = false; //no need to re-evaluate
+      }
+    } else if(name == "EmbTauTau") { //tau_mu tau_mu contamination in embedding
+      if(!fIsEmbed) continue;
+      float scale = 0.f;
+      if     (zMass < 60.f) scale = 0.10f;
+      else if(zMass < 80.f) scale = 0.10f*(1.f - (zMass-60.f)/20.f); //linearly drop to 0 at 80 GeV
+      if(fSystematics.IsUp(sys)) {
+        weight *= 1.f + scale;
+      } else { //no down variation, make one-sided
+        weight *= 1.f - scale;
+      }
+    } else if(name == "EmbBDT") { //BDT uncertainty from di-muon selection in embedding
+      if(!fIsEmbed) continue;
+      if(!fUseEmbBDTUncertainty) continue;
+      if(embBDTWeight <= 0.f) weight = 0.f;
+      else {
+        if(fSystematics.IsUp(sys)) {
+          weight *= embBDTWeight;
+        } else { //no down variation, make one-sided
+          weight /= embBDTWeight;
+        }
       }
     } else if(name.BeginsWith("TauJetID")) { //a tau anti-jet ID bin
       if(fIsData || !leptonTwo.isTau()) continue;
@@ -1507,11 +1536,11 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   ///////////////////////////////////////////
   // Re-define N(b-jets) if needed
 
-  //FIXME: decide on b-jet ID to use in etau_mu/mutau_e selections
-  if(emu && lep_tau) { //use medium ID b-jets in etau_mu/mutau_e since DY is the dominant background
-    fBJetTightness = 1;
-    nBJetsUse = (fBJetCounting == 0) ? nBJetsL : nBJets20L;
-  }
+  // //FIXME: decide on b-jet ID to use in etau_mu/mutau_e selections
+  // if(emu && lep_tau) { //use medium ID b-jets in etau_mu/mutau_e since DY is the dominant background
+  //   fBJetTightness = 1;
+  //   nBJetsUse = (fBJetCounting == 0) ? nBJetsL : nBJets20L;
+  // }
 
   ////////////////////////////////////////////////////////////
   // Set 1 + selection offset: base selection

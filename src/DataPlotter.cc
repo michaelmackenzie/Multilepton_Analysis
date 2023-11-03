@@ -41,7 +41,7 @@ std::vector<TH1*> DataPlotter::get_histograms(TString hist, TString setType, Int
       printf("%s: Histogram %s/%s/%i for %s (%s) %i not found! Continuing...\n",
              __func__, hist.Data(), setType.Data(), set, input.name_.Data(), input.label_.Data(), input.dataYear_);
       continue;
-    } else if(verbose_ > 7) printf(" retrieved histogram from input %i (%i %s)\n", i, input.dataYear_, input.name_.Data());
+    } else if(verbose_ > 7) printf(" retrieved histogram from input %i (%i %s: %s)\n", i, input.dataYear_, input.name_.Data(), input.label_.Data());
 
     //check if the systematic has been filled
     if(replace_missing_sys_ && (!tmp || tmp->GetEntries() == 0) && setType == "systematic") {
@@ -102,7 +102,7 @@ std::vector<TH1*> DataPlotter::get_histograms(TString hist, TString setType, Int
       }
     }
     tmp->Scale(scale);
-
+    if(verbose_ > 7) printf("  --> Histogram integral = %.4f\n", tmp->Integral(0, tmp->GetNbinsX()+1));
     histograms[i] = tmp;
     if(density_plot_) density(histograms[i]);
     unsigned int index = i;
@@ -141,6 +141,7 @@ std::vector<TH1*> DataPlotter::get_histograms(TString hist, TString setType, Int
         }
         hresults.push_back(h);
       } else {
+        if(verbose_ > 3) printf(">Dropping %s due to no contribution!\n", h->GetTitle());
         delete h;
       }
     }
@@ -297,6 +298,9 @@ TH1* DataPlotter::get_qcd(TString hist, TString setType, Int_t set, ScaleUncerta
   //check if in a same-sign region, where QCD estimate is undefined
   if((set >= qcd_offset_ && set < misid_offset_) || (set >= misid_offset_ + qcd_offset_)) return nullptr;
 
+  if(verbose_ > 3) printf("  Getting QCD histogram for %s/%s/%i with tag %s\n",
+                          hist.Data(), setType.Data(), set, tag.Data());
+
   //get the data histogram
   const Int_t set_qcd = set + qcd_offset_;
   TH1* hData = get_data_mc_diff(hist, setType, set_qcd, sys_scale, tag);
@@ -311,6 +315,16 @@ TH1* DataPlotter::get_qcd(TString hist, TString setType, Int_t set, ScaleUncerta
   TH1* hMisID = (include_misid_) ? get_misid(hist, setType, set_qcd, sys_scale, tag) : nullptr;
   if(hMisID) {hData->Add(hMisID, -1.); delete hMisID;}
 
+  //include the signal in the subtraction if requested
+  if(include_signal_subtraction_) {
+    auto signals = get_signal(hist, setType, set_qcd, sys_scale, tag+"_sig_sub");
+    for(auto signal : signals) {
+      if(signal) {
+        if(signal->Integral() > 0.) hData->Add(signal, -1.);
+        delete signal;
+      }
+    }
+  }
 
   //store the integral before clipping negative bins
   const double nbefore = hData->Integral(0, hData->GetNbinsX()+1, (density_plot_ > 0) ? "width" : "");
@@ -409,6 +423,8 @@ TH1* DataPlotter::get_misid(TString hist, TString setType, Int_t set, ScaleUncer
   }
   //check if in a loose ID region, where Mis-ID estimate is undefined
   if(set >= misid_offset_) return nullptr;
+  if(verbose_ > 3) printf("  Getting MisID histogram for %s/%s/%i with tag %s\n",
+                          hist.Data(), setType.Data(), set, tag.Data());
 
   //get the data histogram
   const Int_t set_misid = set + misid_offset_;
@@ -423,6 +439,17 @@ TH1* DataPlotter::get_misid(TString hist, TString setType, Int_t set, ScaleUncer
   //include the QCD background subtraction if included
   TH1* hQCD = (include_qcd_) ? get_qcd(hist, setType, set_misid, sys_scale, tag) : nullptr;
   if(hQCD) {hData->Add(hQCD, -1.); delete hQCD;}
+
+  //include the signal in the subtraction if requested
+  if(include_signal_subtraction_) {
+    auto signals = get_signal(hist, setType, set_misid, sys_scale, tag+"_sig_sub");
+    for(auto signal : signals) {
+      if(signal) {
+        if(signal->Integral() > 0.) hData->Add(signal, -1.);
+        delete signal;
+      }
+    }
+  }
 
   //store the integral before clipping negative bins
   const double nbefore = hData->Integral(0, hData->GetNbinsX()+1, (density_plot_ > 0) ? "width" : "");
@@ -517,6 +544,8 @@ TH2* DataPlotter::get_misid_2D(TString hist, TString setType, Int_t set) {
 //--------------------------------------------------------------------------------------------------------------------
 THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set, ScaleUncertainty_t* sys_scale, TString tag) {
 
+  if(verbose_ > 2) printf(" Getting stack %s/%s/%i with tag %s\n", hist.Data(), setType.Data(), set, tag.Data());
+
   //Get the data-driven backgrounds if applicable
   TH1* hQCD   = (include_qcd_)   ? get_qcd  (hist,setType,set,sys_scale, tag) : nullptr;
   TH1* hMisID = (include_misid_) ? get_misid(hist,setType,set,sys_scale, tag) : nullptr;
@@ -537,14 +566,6 @@ THStack* DataPlotter::get_stack(TString hist, TString setType, Int_t set, ScaleU
 
   //Loop through the histograms and add them to the stack
   for(unsigned index = 0; index < histograms.size(); ++index) {
-    // const int i_color = index % (sizeof(background_colors_) / sizeof(*background_colors_));
-    // if(fill_alpha_ < 1.) {
-    //   histograms[index]->SetFillColorAlpha(background_colors_[i_color],fill_alpha_);
-    //   histograms[index]->SetLineColorAlpha(background_colors_[i_color],fill_alpha_);
-    // } else {
-    //   histograms[index]->SetFillColor(background_colors_[i_color]);
-    //   histograms[index]->SetLineColor(background_colors_[i_color]);
-    // }
     histograms[index]->SetLineWidth(2);
     histograms[index]->SetMarkerStyle(20);
     if(rebinH_ > 1) histograms[index]->Rebin(rebinH_);
