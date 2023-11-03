@@ -46,6 +46,8 @@ else
     LEPSIGNAL="${LEPSIGNAL}_mu";
 fi
 
+[ ! -d datacards/${YEARSTRING} ] && mkdir -p datacards/${YEARSTRING}
+
 echo "Running with selection = ${SELECTION} (with ${LEPSIGNAL}), years = ${YEAR}, tau sets = ${TAUSETS}, lep sets = ${LEPSETS}"
 if [[ "${SKIPRETRIEVAL}" == "" ]]
 then

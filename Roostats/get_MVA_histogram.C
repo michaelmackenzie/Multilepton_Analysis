@@ -8,7 +8,6 @@ TH1* hbkg_;
 vector<TH1*> hsigs_;
 int  test_sys_        = -1; //set to systematic number if debugging/inspecting it
 bool blind_data_      = true; //set data bins > MVA score level to 0
-bool ignore_sys_      = false; //don't get systematics
 bool skip_shape_sys_  = false; //skip shape systematic retrieval
 int  use_dev_mva_     = 0; //1: use the extra MVA hist for development, mvaX_1; 2: use the CDF transformed hist, mvaX_2
 bool do_same_flavor_  = false; //retrieve Z->ll control region data
@@ -39,16 +38,27 @@ Int_t initialize_plotter(TString selection, TString base) {
   dataplotter_->folder_        = "";
   dataplotter_->include_empty_ = 1; //ensure even an empty histogram is included in the stacks
   dataplotter_->clip_negative_ = 1; //ensure no negative process rate bins
+  dataplotter_->include_signal_subtraction_ = signal_in_fakes_cr_; //subtract the signal at the example scale from fake lepton control region
 
-  if(selection == "emu")
-    {dataplotter_->signal_scale_ = 100.; dataplotter_->signal_scales_["H->e#mu"] = 400.;}
-  else if(selection.Contains("_"))
-    {dataplotter_->signal_scale_ = 250.; dataplotter_->signal_scales_["H->#mu#tau"] = 300.; dataplotter_->signal_scales_["H->e#tau"] = 300.;}
-  else if(selection.Contains("tau"))
-    {dataplotter_->signal_scale_ = 150.; dataplotter_->signal_scales_["H->#mu#tau"] = 250.; dataplotter_->signal_scales_["H->e#tau"] = 250.;}
-  else if(selection == "ee" || selection == "mumu")
-    dataplotter_->signal_scale_ = 2.e4;
-
+  if(signal_in_fakes_cr_) { //use more normal, consistent branching fractions for these tests
+    if(selection == "emu")
+      {dataplotter_->signal_scale_ = 10.; dataplotter_->signal_scales_["H->e#mu"] = 40.;}
+    else if(selection.Contains("_"))
+      {dataplotter_->signal_scale_ = 10.; dataplotter_->signal_scales_["H->#mu#tau"] = 10.; dataplotter_->signal_scales_["H->e#tau"] = 10.;}
+    else if(selection.Contains("tau"))
+      {dataplotter_->signal_scale_ = 10.; dataplotter_->signal_scales_["H->#mu#tau"] = 10.; dataplotter_->signal_scales_["H->e#tau"] = 10.;}
+    else if(selection == "ee" || selection == "mumu")
+      dataplotter_->signal_scale_ = 1000.;
+  } else { //use more visible branching fractions
+    if(selection == "emu")
+      {dataplotter_->signal_scale_ = 100.; dataplotter_->signal_scales_["H->e#mu"] = 400.;}
+    else if(selection.Contains("_"))
+      {dataplotter_->signal_scale_ = 250.; dataplotter_->signal_scales_["H->#mu#tau"] = 300.; dataplotter_->signal_scales_["H->e#tau"] = 300.;}
+    else if(selection.Contains("tau"))
+      {dataplotter_->signal_scale_ = 150.; dataplotter_->signal_scales_["H->#mu#tau"] = 250.; dataplotter_->signal_scales_["H->e#tau"] = 250.;}
+    else if(selection == "ee" || selection == "mumu")
+      dataplotter_->signal_scale_ = 2.e4;
+  }
   //ensure the years are sorted
   std::sort(years_.begin(),years_.end());
   dataplotter_->years_ = years_;
@@ -660,7 +670,7 @@ int get_MVA_histogram(vector<int> sets = {8}, TString selection = "zmutau",
   useLepTauSet_ = use_lep_tau_set_;
   includeHiggs_ = selection.BeginsWith("h");
 
-  if(embed_mode_ != 1) cout << "!!! Warning! Using non-nominal embedding mode " << embed_mode_ << endl;
+  if(embed_mode_ != 1) cout << "!!! Warning! Using non-standard embedding mode " << embed_mode_ << endl;
 
   //loop through the year list if separating years
   for(int iyear = 0; iyear < ((separate_years_) ? years.size() : 1); ++iyear) {

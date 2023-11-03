@@ -9,13 +9,15 @@
 #include <fstream>
 
 bool   use_fake_bkg_norm_ = false; //add a large uncertainty on j->tau/qcd norm to be fit by data
-bool   use_sys_           =  true; //add systematic uncertainties
 bool   separate_years_    =  true; //separate each year of data
 int    blind_data_        =    2 ; //0: no blinding; 1: kill high BDT score regions; 2: use ~Asimov instead of data
 double blind_cut_         =    0.;
 
 void add_group(map<TString,vector<TString>>& groups, TString sys, TString group) {
-  if(groups.find(group) != groups.end()) groups[group].push_back(sys);
+  if(groups.find(group) != groups.end()) {
+    for(TString isys : groups[group]) {if(isys == sys) return;} //check the systematic isn't already added
+    groups[group].push_back(sys);
+  }
   else groups[group] = {sys};
 }
 
@@ -123,7 +125,7 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
   vector<THStack*> hsys_stacks;
   vector<TH1*> hsys_signals;
 
-  if(use_sys_) {
+  if(!ignore_sys_) {
     TString prev = "";
     const int max_sys = (use_scale_sys_) ? kMaxSystematics+kMaxScaleSystematics : kMaxSystematics;
     for(int isys = 1; isys < max_sys; ++isys) {
@@ -456,6 +458,7 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
       if(name.Contains("ZPt")                           ) add_group(groups, name, "ZPt_Total"         );
       if(name.Contains("Pileup")                        ) add_group(groups, name, "Pileup_Total"      );
       if(name.Contains("Prefire")                       ) add_group(groups, name, "Prefire_Total"     );
+      if(name.Contains("TheoryPDF")                     ) add_group(groups, name, "TheoryPDF_Total"   );
       if(name.Contains("Theory")                        ) add_group(groups, name, "Theory_Total"      );
       if(name.Contains("XS_Embed")                      ) add_group(groups, name, "EmbedUnfold_Total" );
       else if(name.Contains("Lumi")                     ) add_group(groups, name, "Lumi_Total"        );

@@ -4,6 +4,8 @@ WORKSPACE=$1
 GROUP=$2
 SKIPNOMINAL=$3
 DOOBS=$4
+TOLERANCE=$5
+EXPECTSIGNAL=$6
 
 if [[ "${DOOBS}" == "" ]]
 then
@@ -12,15 +14,25 @@ else
     DOOBS=""
 fi
 
-RMIN="-10"
-RMAX="10"
+if [[ "${TOLERANCE}" == "" ]]
+then
+    TOLERANCE="0.001"
+fi
+
+if [[ "${EXPECTSIGNAL}" == "" ]]
+then
+    EXPECTSIGNAL="0"
+fi
+
+RMIN="-20"
+RMAX="20"
 
 #evaluate precision on r with/without the group of nuisances
 if [[ "${SKIPNOMINAL}" == "" ]]
 then
-    combine -M FitDiagnostics --stepSize 0.05 --setRobustFitTolerance 0.001 --setCrossingTolerance 5e-6 -n _groupFit_Test_Nominal  -d ${WORKSPACE} ${DOOBS} --rMin ${RMIN} --rMax ${RMAX}
+    combine -M FitDiagnostics --stepSize 0.01 --setRobustFitTolerance ${TOLERANCE} --setCrossingTolerance 5e-7 -n _groupFit_Test_Nominal  -d ${WORKSPACE} ${DOOBS} --rMin ${RMIN} --rMax ${RMAX} --cminDefaultMinimizerStrategy 0 --expectSignal ${EXPECTSIGNAL}
 fi
-combine -M FitDiagnostics --stepSize 0.05 --setRobustFitTolerance 0.001 --setCrossingTolerance 5e-6 -n _groupFit_Test_${GROUP} -d ${WORKSPACE} ${DOOBS} --rMin ${RMIN} --rMax ${RMAX} --freezeNuisanceGroups ${GROUP}
+combine -M FitDiagnostics --stepSize 0.01 --setRobustFitTolerance ${TOLERANCE} --setCrossingTolerance 5e-7 -n _groupFit_Test_${GROUP} -d ${WORKSPACE} ${DOOBS} --rMin ${RMIN} --rMax ${RMAX} --freezeNuisanceGroups ${GROUP} --cminDefaultMinimizerStrategy 0 --expectSignal ${EXPECTSIGNAL}
 
 FNOMINAL="fitDiagnostics_groupFit_Test_Nominal.root"
 FGROUP="fitDiagnostics_groupFit_Test_${GROUP}.root"

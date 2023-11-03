@@ -65,6 +65,12 @@ std::pair<TString,TString> systematic_name(int sys, TString selection, int year)
     if(name.Contains("Tau")) name = "";
   }
 
+  //decide if using theory pdf as total or split
+  if(name.BeginsWith("TheoryPDF")) {
+    if(name == "TheoryPDF" && split_pdf_sys_) name = "";
+    else if(!split_pdf_sys_ && name != "TheoryPDF") name = "";
+  }
+
   //for Z->e+mu, ignore background/hadronic tau uncertainties
   if(selection == "emu") {
     if(name.Contains("QCD")) name = "";
@@ -110,6 +116,7 @@ std::pair<TString,TString> systematic_name(int sys, TString selection, int year)
   else if(name.Contains("EmbTauMuID" )) type = "lnN"; //Embedded mu-->tau negligible as could only be tau tau --> tau_mu tau_(e/mu) --> (tau_mu --> tau_h) tau_(e/mu)
   else if(name == "BTag"              ) type = "lnN"; //c/b b-tagging efficiencies (light b-tag eff left as shape)
   else if(name.BeginsWith("TauJetID") ) type = "lnN"; //MC tau ID (Embed tau ID left as shape)
+  // else if(name.BeginsWith("TheoryPDF")) type = "lnN"; //FIXME: Implement as a shape if needed
 
   //define which are uncorrelated between years
   year -= 2016; //reduce needed characters
