@@ -127,8 +127,8 @@ namespace CLFV {
       case  60: return Data(isys, "MuonES"        , false);
       case  61: return Data(isys, "BTagLight"     , true );
       case  62: return Data(isys, "BTagLight"     , false);
-      // case  63: return Data(isys, "BTagHeavy"     , true ); //FIXME: Turn on and turn off just "BTag"
-      // case  64: return Data(isys, "BTagHeavy"     , false);
+      case  63: return Data(isys, "2018HEM"       , true );
+      case  64: return Data(isys, "2018HEM"       , false);
       case  65: return Data(isys, "SignalMixing"  , true );
       case  66: return Data(isys, "SignalMixing"  , false);
       case  67: return Data(isys, "SignalBDT"     , true );
@@ -279,14 +279,8 @@ namespace CLFV {
       case  64: data.scale_ = ScaleUncertainty_t("XS_LumiCB2"    , 1.+0.002, ""       , ""               ,      "", 2018, false,  true, false); up = true ; break;
       case  65: data.scale_ = ScaleUncertainty_t("XS_LumiCB2"    , 1.-0.002, ""       , ""               ,      "", 2018, false,  true, false); up = false; break;
 
-      // case  : data.scale_ = ScaleUncertainty_t("XS_LumiUC0"    , 1.+0.012, ""       , ""               ,      "", 2016, false,  true, false); up = true ; break; //individual year corr
-      // case  : data.scale_ = ScaleUncertainty_t("XS_LumiUC0"    , 1.-0.012, ""       , ""               ,      "", 2016, false,  true, false); up = false; break;
-      // case  : data.scale_ = ScaleUncertainty_t("XS_LumiUC1"    , 1.+0.023, ""       , ""               ,      "", 2017, false,  true, false); up = true ; break;
-      // case  : data.scale_ = ScaleUncertainty_t("XS_LumiUC1"    , 1.-0.023, ""       , ""               ,      "", 2017, false,  true, false); up = false; break;
-      // case  : data.scale_ = ScaleUncertainty_t("XS_LumiUC2"    , 1.+0.025, ""       , ""               ,      "", 2018, false,  true, false); up = true ; break;
-      // case  : data.scale_ = ScaleUncertainty_t("XS_LumiUC2"    , 1.-0.025, ""       , ""               ,      "", 2018, false,  true, false); up = false; break;
-      // case  : data.scale_ = ScaleUncertainty_t("XS_LumiUC"     , 1.+0.016, ""       , ""               ,      "",   -1, false,  true, false); up = true ; break; //Run-II total unc
-      // case  : data.scale_ = ScaleUncertainty_t("XS_LumiUC"     , 1.-0.016, ""       , ""               ,      "",   -1, false,  true, false); up = false; break;
+      // case  70: data.scale_ = ScaleUncertainty_t("XS_TheoryPDF"   , 1.+0.05, ""       , ""               ,      "",   -1, false,  true, false); up = true ; break;
+      // case  71: data.scale_ = ScaleUncertainty_t("XS_TheoryPDF"   , 1.-0.05, ""       , ""               ,      "",   -1, false,  true, false); up = false; break;
       }
       data.name_ = data.scale_.name_;
       data.up_ = up;

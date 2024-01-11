@@ -55,7 +55,7 @@ namespace CLFV {
       const bool tau      = selection.Contains("tau");
       const bool emu_data = emu || selection.Contains("_");
       const bool tau_data = selection.EndsWith("tau");
-      const bool xgboost  = emu && xgboost_ && version_ == 0;
+      const bool xgboost  = ((emu && xgboost_) || xgboost_ > 9) && version_ == 0;
 
       std::vector<TString> train_var;
       if(tau) {

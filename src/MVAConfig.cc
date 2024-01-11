@@ -10,12 +10,12 @@ MVAConfig::MVAConfig(int useCDF, int use_cdf_fit, int use_xgboost) {
   //initialize MVA names
   names_ = {
             //0 - 9: nominal mvas, even are Higgs, odd are Z
-            "mutau_BDT_MM_8.higgs","mutau_BDT_MM_8.Z0",
-            "etau_BDT_MM_8.higgs","etau_BDT_MM_8.Z0",
+            "mutau_BDT_MM_8.higgs",(use_xgboost > 9) ? "mutau.Z0.xgboost" : "mutau_BDT_MM_8.Z0",
+            "etau_BDT_MM_8.higgs" ,(use_xgboost > 9) ? "etau.Z0.xgboost"  : "etau_BDT_MM_8.Z0",
             // "emu_BDT_MM_8.higgs","emu_BDT_MM_8.Z0",
             "emu_BDT_MM_8.higgs",(use_xgboost == 1) ? "emu.Z0.xgboost" : (use_xgboost == 2 || use_xgboost == 3) ? "emu.Z0.xgboost_atlas" : "emu_BDT_MM_8.Z0",
-            "mutau_e_BDT_MM_8.higgs","mutau_e_BDT_MM_8.Z0" ,
-            "etau_mu_BDT_MM_8.higgs","etau_mu_BDT_MM_8.Z0"//,
+            "mutau_e_BDT_MM_8.higgs",(use_xgboost > 9) ? "mutau_e.Z0.xgboost" : "mutau_e_BDT_MM_8.Z0" ,
+            "etau_mu_BDT_MM_8.higgs",(use_xgboost > 9) ? "etau_mu.Z0.xgboost" : "etau_mu_BDT_MM_8.Z0"//,
   };
 
   //initialize MVA output categories

@@ -20,9 +20,13 @@ namespace CLFV {
     TH1* hJetTauTwoPtComp;
     TH1* hJetTauMTOneComp;
     TH1* hJetTauMTTwoComp;
+    TH1* hJetTauLepMComp;
+    TH2* hJetTauLepMvsMTOneComp; //2D composition to account for mass regions
 
     TH1* hOnePz;
     TH1* hOnePt[14]; //0: nominal 1: no trigger weight 2-5: trigger weight options 6: no ID1 weight 7: no ID2 weight
+    TH1* hOnePtUp; //rough overall errors
+    TH1* hOnePtDown;
     TH1* hOneMomErr; //momentum/energy scale uncertainty
     TH1* hOneP;
     TH1* hOneM;
@@ -78,6 +82,8 @@ namespace CLFV {
 
     TH1* hTwoPz;
     TH1* hTwoPt[14]; //0: nominal 1: no trigger weight 2-5: trigger weight options 6: no ID1 weight 7: no ID2 weight
+    TH1* hTwoPtUp; //rough overall errors
+    TH1* hTwoPtDown;
     TH1* hTwoMomErr; //momentum/energy scale uncertainty
     TH1* hTwoP;
     TH1* hTwoM;

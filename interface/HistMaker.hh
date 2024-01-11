@@ -275,6 +275,7 @@ namespace CLFV {
     Float_t jetsRejEta  [kMaxParticles];
     Float_t jetsPt      [kMaxParticles]; //accepted jets
     Float_t jetsEta     [kMaxParticles];
+    Float_t jetsPhi     [kMaxParticles];
     Int_t   jetsFlavor  [kMaxParticles];
     Int_t   jetsBTag    [kMaxParticles];
 
@@ -711,6 +712,7 @@ namespace CLFV {
     Float_t fMvaCDFs[kMaxMVAs]; //CDF transformed BDT score
     Float_t fMvaLogP[kMaxMVAs]; //log10(CDF p-value)
     Float_t fMvaFofP[kMaxMVAs]; //Function of p-value to fit
+    Float_t fMvaUse [kMaxMVAs]; //form of the MVA score to plot/fit
     Int_t   fTrkQualVersion = TrkQualInit::Default; //for updating which variables are used
     TrkQualInit* fTrkQualInit = nullptr;
     Int_t   fUseCDFBDTs = 0; //0: Use BDT score histograms; 1: Use CDF transform p-values; 2: use a function of the p-value

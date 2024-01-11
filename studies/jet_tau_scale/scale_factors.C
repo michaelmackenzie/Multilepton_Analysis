@@ -14,7 +14,40 @@ TString selection_     = ""   ;
 int     set_offset_    = 0    ; //offset to selection set
 int     override_year_ = -1   ; //use a default year to get initial scales for a different year
 bool    skip_closure_  = false; //skip closure plots, except for corrections
+TString name_; //output figure base name
 TRandom3 rnd_(90);
+
+//-----------------------------------------------------------------------------------------------------------------------------------------
+//ensure reasonable bin values
+void make_safe(TH1* h) {
+  const double integral = h->Integral(0,h->GetNbinsX()+1);
+  for(int ibin = 0; ibin <= h->GetNbinsX()+1; ++ibin) {
+    const double binc(h->GetBinContent(ibin));
+    const double bine(h->GetBinError  (ibin));
+    if(!std::isfinite(binc) || !std::isfinite(bine) || binc < 0.) {
+      h->SetBinContent(ibin, 0.);
+      h->SetBinError  (ibin, 0.);
+    }
+  }
+  // if(preserve_clip_int_ && integral > 0.) h->Scale(integral/h->Integral(0,h->GetNbinsX()+1));
+}
+
+//-----------------------------------------------------------------------------------------------------------------------------------------
+//ensure reasonable bin values (2D histograms)
+void make_safe(TH2* h) {
+  const double integral = h->Integral(0,h->GetNbinsX()+1, 0, h->GetNbinsY()+1);
+  for(int xbin = 0; xbin <= h->GetNbinsX()+1; ++xbin) {
+    for(int ybin = 0; ybin <= h->GetNbinsY()+1; ++ybin) {
+      const double binc(h->GetBinContent(xbin,ybin));
+      const double bine(h->GetBinError  (xbin,ybin));
+      if(!std::isfinite(binc) || !std::isfinite(bine) || binc < 0.) {
+        h->SetBinContent(xbin, ybin, 0.);
+        h->SetBinError  (xbin, ybin, 0.);
+      }
+    }
+  }
+  // if(preserve_clip_int_ && integral > 0.) h->Scale(integral/h->Integral(0,h->GetNbinsX()+1, 0, h->GetNbinsY()+1));
+}
 
 //-------------------------------------------------------------------------------------------------------------------------------
 // Standard axis labels
@@ -129,6 +162,7 @@ TH2* get_histogram(int setAbs, int ijet, int idm, int isdata, int icat) {
     auto input = dataplotter_->inputs_[d];
     //////////////////////////////////////////////////////////
     // Check if this histogram should be added
+    if(input.isSignal_) continue;
     if(process_ == "") { //not process-specific factors
       if(input.isData_ != (isdata > 0)) continue; //check if using data or not
     } else if(isdata <= 0) { //MC taus, fake or real
@@ -229,6 +263,7 @@ TH1* get_closure_hist(TString hist, TString type, int set, int isdata) {
     auto input = dataplotter_->inputs_[d];
     //////////////////////////////////////////////////////////
     // Check if this histogram should be added
+    if(input.isSignal_) continue;
     if(process_ == "") { //not process-specific factors
       if(input.isData_ != (isdata > 0)) continue; //check if using data or not
     } else if(isdata <= 0) { //MC taus, both real and fake
@@ -348,7 +383,222 @@ TH1* get_misid_hist(TString hist, TString type, int set) {
 }
 
 //-------------------------------------------------------------------------------------------------------------------------------
-TCanvas* make_closure_canvas(int set1, int set2, PlottingCard_t card, TH1* &hTight, TH1* &hLoose) {
+// get a 1D signal histogram
+TH1* get_signal_hist(TString hist, TString type, int set) {
+  if(noncl_verbose_ > 0) cout << " Retrieving signal histogram for " << hist.Data() << "/" << type.Data() << "/" << set << endl;
+
+  TH1* h = nullptr;
+  const unsigned nfiles = dataplotter_->inputs_.size();
+  //get the histogram for each process added to the dataplotter
+  for(unsigned d = 0; d < nfiles; ++d) {
+    auto input = dataplotter_->inputs_[d];
+
+    //////////////////////////////////////////////////////////
+    // Check if this histogram should be added
+
+    if(!input.isSignal_) continue;
+
+    //////////////////////////////////////////////////////////
+    //Histogram is accepted, so add to the final histogram
+
+    const int setAbs = set;
+    const char* hpath = Form("%s_%i/%s", type.Data(), setAbs, hist.Data());
+    if(noncl_verbose_ > 2) cout << "  Retrieving histogram " << hpath << " for " << input.name_.Data()
+                          << " with scale = " << input.scale_ << endl;
+    TH1* hTmp = (TH1*) input.data_->Get(hpath);
+    if(!hTmp) {
+      if(noncl_verbose_ >= 0) cout << "!!! Histogram " << hist.Data() << "/" << type.Data() << "/" << setAbs << " for " << input.name_.Data() << " not found!\n";
+      continue;
+    }
+    hTmp = (TH1*) hTmp->Clone(Form("hTmp_%s_%i_signal", hist.Data(), set));
+    hTmp->Scale(input.scale_);
+
+
+    if(noncl_verbose_ > 1)
+      cout << "  File name " << input.name_.Data() << ": Histogram " << hpath << " has integral " << hTmp->Integral() << endl;
+
+    if(!h) {h = hTmp; h->SetName(Form("h_%s_%i_signal", hist.Data(), set));}
+    else {h->Add(hTmp); delete hTmp;}
+  }
+
+  if(!h) {
+    cout << "  --- No signal histogram found for " << hist.Data() << " set " << set << endl;
+    return nullptr;
+  }
+
+
+  if(noncl_verbose_ > 0)
+    cout << "  --- Signal histogram " << hist.Data() << " set " << set << " integral = " << h->Integral() << endl;
+  //setup the histogram style
+  h->SetLineColor(kBlue);
+  h->SetLineWidth(2);
+  h->SetFillColor(kBlue);
+  h->SetFillStyle(3005);
+  return h;
+}
+
+//-----------------------------------------------------------------------------------------------------------------------------------------
+// Plot 1D slices of a 2D distribution
+void make_2d_closure_slices(int set1, int set2, PlottingCard_t card, TH2* &hTight, TH2* &hLoose, const bool add_signal = false, const bool smooth = false) {
+  dataplotter_->plot_data_ = 0;
+  dataplotter_->include_qcd_ = 0;
+  dataplotter_->include_misid_ = 0;
+  dataplotter_->rebinH_ = 0;
+  dataplotter_->doStatsLegend_ = false;
+  hTight = nullptr; hLoose = nullptr;
+
+  TString hist = card.hist_;
+  TString type = card.type_;
+  const int set = card.set_;
+  const bool debug = true;
+
+  if(noncl_verbose_ > 0) {
+    cout << __func__ << ": Making 2d closure slices for " << hist.Data() << "/" << type.Data() << " using sets "
+         << set1 << " and " << set2 << endl;
+  }
+
+  //Get the MisID for the tight region
+  hTight = (TH2*) get_misid_hist(card.hist_, card.type_, set1);
+  //Get the MisID for the loose region
+  hLoose = (TH2*) get_misid_hist(card.hist_, card.type_, set2); //jet --> tau estimate
+  if(!hTight || !hLoose) return;
+
+  if(hLoose->Integral() <= 0. || hTight->Integral() <= 0.) {
+    cout << "Warning! " << type.Data() << "/" << hist.Data() << "/" << set1
+         << " has at least 1 non-positive integral! Tight = " << hTight->Integral()
+         << " Loose = " << hLoose->Integral() << endl;
+    return;
+  }
+
+  //Get the signal distribution if requested
+  TH2* hsignal = (add_signal) ? (TH2*) get_signal_hist(hist, type, set1) : nullptr;
+
+
+  //loop through the x-axis bins
+  const int nxbins = hLoose->GetNbinsX();
+  for(int ixbin = 1; ixbin <= nxbins; ++ixbin) {
+    if(debug) cout << " Performing slice " << ixbin << endl;
+
+    //create 1D projections for the loose and tight
+    TH1* h_loose = hLoose->ProjectionY(Form("%s_%i_loose", hist.Data(), ixbin), ixbin, ixbin);
+    TH1* h_tight = hTight->ProjectionY(Form("%s_%i_tight", hist.Data(), ixbin), ixbin, ixbin);
+    if(h_loose->Integral() <= 0. || h_tight->Integral() <= 0.) {
+      cout << "Bin " << ixbin << " of 2D histogram " << hist.Data() << " has 0 integral loose or tight: Loose = " << h_loose->Integral()
+           << " and Tight = " << h_tight->Integral() << endl;
+      delete h_loose;
+      delete h_tight;
+      continue;
+    }
+    h_loose->SetTitle(hLoose->GetTitle());
+    h_loose->SetFillColor(hLoose->GetFillColor());
+    h_loose->SetFillStyle(hLoose->GetFillStyle());
+    h_loose->SetLineColor(hLoose->GetLineColor());
+    h_tight->SetLineColor(kBlack);
+    h_tight->SetMarkerColor(kBlack);
+    h_tight->SetMarkerStyle(20);
+    h_tight->SetMarkerSize(0.8);
+    h_tight->SetFillStyle(0);
+    h_tight->SetFillColor(0);
+
+    TCanvas* c = new TCanvas("c1","c1",1200,800);
+    TPad* pad1 = new TPad("pad1", "pad1", 0., 0.35, 1., 1.0 );
+    TPad* pad2 = new TPad("pad2", "pad2", 0., 0.0 , 1., 0.35);
+    pad1->SetBottomMargin(0.03);
+    pad1->SetTopMargin(0.03);
+    pad2->SetTopMargin(0.03);
+    pad2->SetBottomMargin(0.3);
+    pad1->Draw(); pad2->Draw();
+    pad1->cd();
+    h_tight->Draw("E1");
+    h_loose->Draw("hist same");
+    if(hsignal) hsignal->Draw("hist same");
+    h_tight->GetXaxis()->SetRangeUser(card.xmin_, card.xmax_);
+    h_tight->GetYaxis()->SetRangeUser(0.1, 1.1*max(h_loose->GetMaximum(), h_tight->GetMaximum()));
+    h_tight->Draw("E1 sames");
+    h_tight->GetXaxis()->SetLabelSize(0.);
+    h_tight->GetYaxis()->SetLabelSize(0.06);
+    h_tight->GetXaxis()->SetTitleSize(0.157);
+    h_tight->GetYaxis()->SetTitleSize(0.157);
+    h_tight->SetTitle("");
+
+    TLegend* leg = new TLegend(0.61, 0.65, 0.9, 0.97);
+    leg->AddEntry(h_tight, "Tight j#rightarrow#tau");
+    leg->AddEntry(h_loose, "j#rightarrow#tau Estimate");
+    leg->SetTextSize(0.06);
+    leg->Draw();
+
+    pad1->SetGrid();
+
+    //Add labels with the event number and predicted number
+    TLatex datalabel;
+    datalabel.SetNDC();
+    datalabel.SetTextFont(72);
+    datalabel.SetTextSize(0.07);
+    datalabel.SetTextAlign(13);
+    datalabel.DrawLatex(0.65, 0.62,  Form("Tight      : %9.1f", h_tight->Integral() + h_tight->GetBinContent(0) + h_tight->GetBinContent(h_tight->GetNbinsX()+1)));
+    datalabel.DrawLatex(0.65, 0.54 , Form("Estimate: %9.1f"   , h_loose->Integral() + h_loose->GetBinContent(0) + h_loose->GetBinContent(h_loose->GetNbinsX()+1)));
+    if(hsignal)
+      datalabel.DrawLatex(0.65, 0.46,Form("Signal    : %9.1f"   , hsignal->Integral() + hsignal->GetBinContent(0) + hsignal->GetBinContent(hsignal->GetNbinsX()+1)));
+
+    //Draw the ratio plot
+    pad2->cd();
+    TH1* hratio = (TH1*) h_tight->Clone(Form("hRatio_%s", h_tight->GetName()));
+    hratio->Divide(h_loose);
+    hratio->Draw("E1");
+    if(smooth) {
+      TH1* hsmooth = smooth_hist(hratio);
+      hsmooth->SetLineColor(kAtlantic);
+      hsmooth->SetFillColor(0);
+      hsmooth->Draw("hist same");
+    }
+    pad2->Update();
+
+    TString xtitle = get_title(card.hist_, card.type_);
+    hratio->GetYaxis()->SetRangeUser(0.5, 1.5);
+    hratio->GetXaxis()->SetRangeUser(card.xmin_, card.xmax_);
+    hratio->SetXTitle(xtitle.Data());
+    hratio->SetYTitle("Tight / Estimate");
+    hratio->SetTitle("");
+    hratio->GetXaxis()->SetTitleOffset(0.75);
+    hratio->GetYaxis()->SetTitleOffset(0.4);
+    hratio->GetXaxis()->SetLabelSize(0.1);
+    hratio->GetYaxis()->SetLabelSize(0.09);
+    hratio->GetXaxis()->SetTitleSize(0.157);
+    hratio->GetYaxis()->SetTitleSize(0.11);
+
+    if(hsignal) {
+      TH1* sig_ratio = (TH1*) hsignal->Clone(Form("%s_ratio", hsignal->GetName()));
+      sig_ratio->Add(h_loose);
+      sig_ratio->Divide(h_loose);
+      sig_ratio->SetFillColor(0);
+      sig_ratio->Draw("hist same");
+    }
+
+    double xmin = (card.xmin_ < card.xmax_) ? card.xmin_ : hratio->GetBinLowEdge(1);
+    double xmax = (card.xmin_ < card.xmax_) ? card.xmax_ : hratio->GetBinLowEdge(hratio->GetNbinsX()) + hratio->GetBinWidth(hratio->GetNbinsX());
+    TLine* line = new TLine(xmin, 1., xmax, 1.);
+    line->SetLineColor(kRed);
+    line->SetLineWidth(2);
+    line->Draw("same");
+    pad2->SetGrid();
+
+    c->SaveAs(Form("%s%s_bin_%i.png", name_.Data(), hist.Data(), ixbin));
+    delete h_loose;
+    delete h_tight;
+    delete pad1;
+    delete pad2;
+    delete c;
+  }
+}
+
+//-----------------------------------------------------------------------------------------------------------------------------------------
+void make_2d_closure_slices(int set1, int set2, PlottingCard_t card, const bool add_signal = false, const bool smooth = false) {
+  TH2 *hloose, *htight;
+  make_2d_closure_slices(set1, set2, card, hloose, htight, add_signal, smooth);
+}
+
+//-------------------------------------------------------------------------------------------------------------------------------
+TCanvas* make_closure_canvas(int set1, int set2, PlottingCard_t card, TH1* &hTight, TH1* &hLoose, const bool add_signal = false, const bool smooth = false) {
   dataplotter_->plot_data_ = 0;
   dataplotter_->include_qcd_ = 0;
   dataplotter_->include_misid_ = 0;
@@ -371,7 +621,11 @@ TCanvas* make_closure_canvas(int set1, int set2, PlottingCard_t card, TH1* &hTig
          << " has at least 1 non-positive integral! Tight = " << hTight->Integral()
          << " Loose = " << hLoose->Integral() << endl;
   }
-  if(card.rebin_ > 1) {hTight->Rebin(card.rebin_); hLoose->Rebin(card.rebin_);};
+
+  //Get the signal distribution if requested
+  TH1* hsignal = (add_signal) ? get_signal_hist(card.hist_, card.type_, set1) : nullptr;
+
+  if(card.rebin_ > 1) {hTight->Rebin(card.rebin_); hLoose->Rebin(card.rebin_); if(hsignal) hsignal->Rebin(card.rebin_);};
 
   hTight->SetLineColor(kBlack);
   hTight->SetMarkerColor(kBlack);
@@ -391,6 +645,7 @@ TCanvas* make_closure_canvas(int set1, int set2, PlottingCard_t card, TH1* &hTig
   pad1->cd();
   hTight->Draw("E1");
   hLoose->Draw("hist same");
+  if(hsignal) hsignal->Draw("hist same");
   hTight->GetXaxis()->SetRangeUser(card.xmin_, card.xmax_);
   hTight->GetYaxis()->SetRangeUser(0.1, 1.1*max(hLoose->GetMaximum(), hTight->GetMaximum()));
   hTight->Draw("E1 sames");
@@ -416,17 +671,20 @@ TCanvas* make_closure_canvas(int set1, int set2, PlottingCard_t card, TH1* &hTig
   datalabel.SetTextAlign(13);
   datalabel.DrawLatex(0.65, 0.62,  Form("Tight      : %9.1f", hTight->Integral() + hTight->GetBinContent(0) + hTight->GetBinContent(hTight->GetNbinsX()+1)));
   datalabel.DrawLatex(0.65, 0.54 , Form("Estimate: %9.1f"   , hLoose->Integral() + hLoose->GetBinContent(0) + hLoose->GetBinContent(hLoose->GetNbinsX()+1)));
+  if(hsignal)
+    datalabel.DrawLatex(0.65, 0.46,Form("Signal    : %9.1f"   , hsignal->Integral() + hsignal->GetBinContent(0) + hsignal->GetBinContent(hsignal->GetNbinsX()+1)));
 
   //Draw the ratio plot
   pad2->cd();
   TH1* hratio = (TH1*) hTight->Clone(Form("hRatio_%s", hTight->GetName()));
   hratio->Divide(hLoose);
   hratio->Draw("E1");
-  // TH1* hsmooth = smooth_hist(hratio);
-  // hsmooth->SetLineColor(kBlue);
-  // hsmooth->SetFillStyle(1001);
-  // hsmooth->SetFillColor(kBlue);
-  // hsmooth->Draw("L SAME");
+  if(smooth) {
+    TH1* hsmooth = smooth_hist(hratio);
+    hsmooth->SetLineColor(kAtlantic);
+    hsmooth->SetFillColor(0);
+    hsmooth->Draw("hist same");
+  }
   pad2->Update();
 
   TString xtitle = get_title(card.hist_, card.type_);
@@ -442,12 +700,20 @@ TCanvas* make_closure_canvas(int set1, int set2, PlottingCard_t card, TH1* &hTig
   hratio->GetXaxis()->SetTitleSize(0.157);
   hratio->GetYaxis()->SetTitleSize(0.11);
 
+  if(hsignal) {
+    TH1* sig_ratio = (TH1*) hsignal->Clone(Form("%s_ratio", hsignal->GetName()));
+    sig_ratio->Add(hLoose);
+    sig_ratio->Divide(hLoose);
+    sig_ratio->SetFillColor(0);
+    sig_ratio->Draw("hist same");
+  }
+
   double xmin = (card.xmin_ < card.xmax_) ? card.xmin_ : hratio->GetBinLowEdge(1);
   double xmax = (card.xmin_ < card.xmax_) ? card.xmax_ : hratio->GetBinLowEdge(hratio->GetNbinsX()) + hratio->GetBinWidth(hratio->GetNbinsX());
   TLine* line = new TLine(xmin, 1., xmax, 1.);
   line->SetLineColor(kRed);
   line->SetLineWidth(2);
-  line->Draw("sames");
+  line->Draw("same");
   pad2->SetGrid();
   return c;
 }
@@ -513,9 +779,9 @@ TCanvas* make_2d_closure_canvas(int set1, int set2, PlottingCard_t card, TH2* &h
 }
 
 //-------------------------------------------------------------------------------------------------------------------------------
-TCanvas* make_closure_canvas(int set1, int set2, PlottingCard_t card) {
+TCanvas* make_closure_canvas(int set1, int set2, PlottingCard_t card, const bool add_signal = false, const bool smooth = false) {
   TH1 *hData, *hMC;
-  return make_closure_canvas(set1, set2, card, hData, hMC);
+  return make_closure_canvas(set1, set2, card, hData, hMC, add_signal, smooth);
 }
 
 //-------------------------------------------------------------------------------------------------------------------------------
@@ -807,6 +1073,7 @@ Int_t initialize_plotter(TString base, int year) {
   hist_tag_ = "jtt";
   useEmbed_ = 0; //FIXME: Investigate using embedding for j-->tau measurements
   // splitWJ_ = 0;
+  signalInStudy_ = 1; //for checking signal contamination in the control region
 
   std::vector<dcard> cards;
   get_datacards(cards, selection_, true);
@@ -1013,6 +1280,7 @@ Int_t scale_factors(TString selection = "mutau", TString process = "WJets", int 
   name += "_";
   name += set1;
   name += "/";
+  name_ = name;
   //ensure directories exist
   gSystem->Exec(Form("[ ! -d %s ] && mkdir -p %s", name.Data(), name.Data()));
   gSystem->Exec("[ ! -d rootfiles ] && mkdir rootfiles");
@@ -1272,6 +1540,8 @@ Int_t scale_factors(TString selection = "mutau", TString process = "WJets", int 
     hMC->Scale(hData->Integral() / hMC->Integral());
     hRatio->Divide(hMC);
     hRatio->Write();
+  } else {
+    cout << "ERROR: LepMBias histogram not returned!\n";
   }
 
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettaumtlep2", "event", 0), hData, hMC);
@@ -1280,6 +1550,8 @@ Int_t scale_factors(TString selection = "mutau", TString process = "WJets", int 
     hRatio->Divide(hMC); //No integral matching since bias test should include shape + rate
     hRatio->Write();
     c->Print(Form("%sjettau_mtlep_bias.png", name.Data()));
+  } else {
+    cout << "ERROR: MTLepBias histogram not returned!\n";
   }
 
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettaudeltar2", "event", 0), hData, hMC);
@@ -1288,6 +1560,8 @@ Int_t scale_factors(TString selection = "mutau", TString process = "WJets", int 
     hRatio->Divide(hMC); //No integral matching since bias test should include shape + rate
     hRatio->Write();
     c->Print(Form("%sjettau_deltar_bias.png", name.Data()));
+  } else {
+    cout << "ERROR: DeltaRBias histogram not returned!\n";
   }
 
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettaumtone2", "event", 0), hData, hMC);
@@ -1296,6 +1570,8 @@ Int_t scale_factors(TString selection = "mutau", TString process = "WJets", int 
     hRatio->Divide(hMC); //No integral matching since bias test should include shape + rate
     hRatio->Write();
     c->Print(Form("%sjettau_mtone_bias.png", name.Data()));
+  } else {
+    cout << "ERROR: MTOneBias histogram not returned!\n";
   }
 
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettaumttwo2", "event", 0), hData, hMC);
@@ -1304,6 +1580,8 @@ Int_t scale_factors(TString selection = "mutau", TString process = "WJets", int 
     hRatio->Divide(hMC); //No integral matching since bias test should include shape + rate
     hRatio->Write();
     c->Print(Form("%sjettau_mttwo_bias.png", name.Data()));
+  } else {
+    cout << "ERROR: MTTwoBias histogram not returned!\n";
   }
 
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettauonereliso_1", "lep", 0), hData, hMC);
@@ -1312,6 +1590,20 @@ Int_t scale_factors(TString selection = "mutau", TString process = "WJets", int 
     hRatio->Divide(hMC); //No integral matching since bias test should include shape + rate
     hRatio->Write();
     c->Print(Form("%sjettau_onereliso_bias.png", name.Data()));
+  } else {
+    cout << "ERROR: OneIsoBias histogram not returned!\n";
+  }
+
+  //2D corrections
+  TH2 *hData_2D, *hMC_2D;
+  make_2d_closure_slices (set1Abs, set2Abs, PlottingCard_t("jettaulepmvsmva2", "event", 0), hData_2D, hMC_2D); //no bias corrections
+  if(hData_2D && hMC_2D) {
+    TH2* hRatio_2D = (TH2*) hData_2D->Clone("LepMVsMVABias");
+    // if(hMC_2D->Integral() > 0.) hRatio_2D->Scale(hData_2D->Integral() / hMC_2D->Integral()); //Assume the integral error is corrected by another bias correction
+    hRatio_2D->Divide(hMC_2D);
+    hRatio_2D->Write();
+  } else {
+    cout << "ERROR: LepMVsMVABias histogram not returned!\n";
   }
 
   fOut->Close();
@@ -1321,65 +1613,96 @@ Int_t scale_factors(TString selection = "mutau", TString process = "WJets", int 
 
   if(skip_closure_) return 0;
 
+  const int rb = (set1 == 32 || set1 == 38) ? 2 : 1;
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettautwometdeltaphi"  , "lep"  , 0               )); if(c) c->Print(Form("%sjettau_twometdeltaphi.png"   , name.Data()));
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettauonemetdeltaphi"  , "lep"  , 0               )); if(c) c->Print(Form("%sjettau_onemetdeltaphi.png"   , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("onept"                 , "lep"  , 0, 2,  20., 100.)); if(c) c->Print(Form("%sonept.png"                   , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("onereliso"             , "lep"  , 0, 1,   0.,  0.5)); if(c) c->Print(Form("%sonereliso.png"               , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettauonereliso_0"     , "lep"  , 0, 0,   0.,  0.5)); if(c) c->Print(Form("%sjettau_onereliso.png"        , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettauoneptqcd_0"      , "lep"  , 0, 0,   0., 200.)); if(c) c->Print(Form("%sjettau_oneptqcd_0.png"       , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettauonemetdphiqcd0"  , "lep"  , 0, 0,   1.,  -1.)); if(c) c->Print(Form("%sjettau_onemetdphiqcd_0.png"  , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettautwoetaqcd0"      , "lep"  , 0, 0,   1.,  -1.)); if(c) c->Print(Form("%sjettau_twoetaqcd_0.png"      , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettautwopt"           , "lep"  , 0, 0,   1.,  -1.)); if(c) c->Print(Form("%sjettau_twopt_0.png"          , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettautwopt_1"         , "lep"  , 0, 0,   1.,  -1.)); if(c) c->Print(Form("%sjettau_twopt_1.png"          , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettautwopt_2"         , "lep"  , 0, 0,   1.,  -1.)); if(c) c->Print(Form("%sjettau_twopt_2.png"          , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettautwopt_3"         , "lep"  , 0, 0,   1.,  -1.)); if(c) c->Print(Form("%sjettau_twopt_3.png"          , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettautwopt_4"         , "lep"  , 0, 0,   1.,  -1.)); if(c) c->Print(Form("%sjettau_twopt_4.png"          , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettauonept"           , "lep"  , 0, 0,   1.,  -1.)); if(c) c->Print(Form("%sjettau_onept_0.png"          , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("onept11"               , "lep"  , 0, 2,  20., 100.)); if(c) c->Print(Form("%sonept11.png"                 , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("oneeta"                , "lep"  , 0, 2,  -3.,   3.)); if(c) c->Print(Form("%soneeta.png"                  , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("twopt"                 , "lep"  , 0, 2,  20., 100.)); if(c) c->Print(Form("%stwopt.png"                   , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("twopt11"               , "lep"  , 0, 2,  20., 100.)); if(c) c->Print(Form("%stwopt11.png"                 , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("twoeta"                , "lep"  , 0, 2,  -3.,   3.)); if(c) c->Print(Form("%stwoeta.png"                  , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("tausdm"                , "event", 0, 1,   0.,  12.)); if(c) c->Print(Form("%stausdm.png"                  , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("tauspt"                , "event", 0, 1,  20., 100.)); if(c) c->Print(Form("%stauspt.png"                  , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("mtone"                 , "event", 0, 5,   0., 150.)); if(c) c->Print(Form("%smtone.png"                   , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("onept"                 , "lep"  , 0, 2*rb,  20., 100.)); if(c) c->Print(Form("%sonept.png"                   , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("onereliso"             , "lep"  , 0, 1*rb,   0.,  0.5)); if(c) c->Print(Form("%sonereliso.png"               , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettauonereliso_0"     , "lep"  , 0, 0*rb,   0.,  0.5)); if(c) c->Print(Form("%sjettau_onereliso.png"        , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettauoneptqcd_0"      , "lep"  , 0, 0*rb,   0., 200.)); if(c) c->Print(Form("%sjettau_oneptqcd_0.png"       , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettauonemetdphiqcd0"  , "lep"  , 0, 0*rb,   1.,  -1.)); if(c) c->Print(Form("%sjettau_onemetdphiqcd_0.png"  , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettautwoetaqcd0"      , "lep"  , 0, 0*rb,   1.,  -1.)); if(c) c->Print(Form("%sjettau_twoetaqcd_0.png"      , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettautwopt"           , "lep"  , 0, 0*rb,   1.,  -1.)); if(c) c->Print(Form("%sjettau_twopt_0.png"          , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettautwopt_1"         , "lep"  , 0, 0*rb,   1.,  -1.)); if(c) c->Print(Form("%sjettau_twopt_1.png"          , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettautwopt_2"         , "lep"  , 0, 0*rb,   1.,  -1.)); if(c) c->Print(Form("%sjettau_twopt_2.png"          , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettautwopt_3"         , "lep"  , 0, 0*rb,   1.,  -1.)); if(c) c->Print(Form("%sjettau_twopt_3.png"          , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettautwopt_4"         , "lep"  , 0, 0*rb,   1.,  -1.)); if(c) c->Print(Form("%sjettau_twopt_4.png"          , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettauonept"           , "lep"  , 0, 0*rb,   1.,  -1.)); if(c) c->Print(Form("%sjettau_onept_0.png"          , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("onept11"               , "lep"  , 0, 2*rb,  20., 100.)); if(c) c->Print(Form("%sonept11.png"                 , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("oneeta"                , "lep"  , 0, 2*rb,  -3.,   3.)); if(c) c->Print(Form("%soneeta.png"                  , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("twopt"                 , "lep"  , 0, 2*rb,  20., 100.)); if(c) c->Print(Form("%stwopt.png"                   , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("twopt11"               , "lep"  , 0, 2*rb,  20., 100.)); if(c) c->Print(Form("%stwopt11.png"                 , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("twoeta"                , "lep"  , 0, 2*rb,  -3.,   3.)); if(c) c->Print(Form("%stwoeta.png"                  , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("tausdm"                , "event", 0, 1*rb,   0.,  12.)); if(c) c->Print(Form("%stausdm.png"                  , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("tauspt"                , "event", 0, 1*rb,  20., 100.)); if(c) c->Print(Form("%stauspt.png"                  , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("mtone"                 , "event", 0, 5*rb,   0., 150.)); if(c) c->Print(Form("%smtone.png"                   , name.Data()));
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettaumtone0"          , "event", 0               )); if(c) c->Print(Form("%sjettau_mtone0.png"           , name.Data()));
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettaumtone1"          , "event", 0               )); if(c) c->Print(Form("%sjettau_mtone1.png"           , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("mttwo"                 , "event", 0, 5,   0., 150.)); if(c) c->Print(Form("%smttwo.png"                   , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("mttwo"                 , "event", 0, 5*rb,   0., 150.)); if(c) c->Print(Form("%smttwo.png"                   , name.Data()));
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettaumttwo0"          , "event", 0               )); if(c) c->Print(Form("%sjettau_mttwo0.png"           , name.Data()));
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettaumttwo1"          , "event", 0               )); if(c) c->Print(Form("%sjettau_mttwo1.png"           , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("mtlep"                 , "event", 0, 2,   0., 150.)); if(c) c->Print(Form("%smtlep.png"                   , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("mtlep"                 , "event", 0, 2*rb,   0., 150.)); if(c) c->Print(Form("%smtlep.png"                   , name.Data()));
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettaumtlep0"          , "event", 0               )); if(c) c->Print(Form("%sjettau_mtlep0.png"           , name.Data()));
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettaumtlep1"          , "event", 0               )); if(c) c->Print(Form("%sjettau_mtlep1.png"           , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("lepm"                  , "event", 0, 5,  40., 170.)); if(c) c->Print(Form("%slepm.png"                    , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("lepm"                  , "event", 0, 5*rb,  40., 170.)); if(c) c->Print(Form("%slepm.png"                    , name.Data()));
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettaulepm0"           , "event", 0               )); if(c) c->Print(Form("%sjettau_lepm0.png"            , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("lepmestimate"          , "event", 0, 5, 40.,  200.)); if(c) c->Print(Form("%slepmestimate.png"            , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("lepmestimatethree"     , "event", 0, 5, 40.,  200.)); if(c) c->Print(Form("%slepmestimatethree.png"       , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("lepmbalance"           , "event", 0, 5, 40.,  200.)); if(c) c->Print(Form("%slepmbalance.png"             , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("lepmestimateavg0"      , "event", 0, 5, 40.,  200.)); if(c) c->Print(Form("%slepmestimateavg0.png"        , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("beta0"                 , "event", 0, 3,   0.,   3.)); if(c) c->Print(Form("%sbeta0.png"                   , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("beta1"                 , "event", 0, 3,   0.,   3.)); if(c) c->Print(Form("%sbeta1.png"                   , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("lepmestimate"          , "event", 0, 5*rb, 40.,  200.)); if(c) c->Print(Form("%slepmestimate.png"            , name.Data()));
+  // c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("lepmestimatethree"     , "event", 0, 5, 40.,  200.)); if(c) c->Print(Form("%slepmestimatethree.png"       , name.Data()));
+  // c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("lepmbalance"           , "event", 0, 5, 40.,  200.)); if(c) c->Print(Form("%slepmbalance.png"             , name.Data()));
+  // c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("lepmestimateavg0"      , "event", 0, 5, 40.,  200.)); if(c) c->Print(Form("%slepmestimateavg0.png"        , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("beta0"                 , "event", 0, 3*rb,   0.,   3.)); if(c) c->Print(Form("%sbeta0.png"                   , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("beta1"                 , "event", 0, 3*rb,   0.,   3.)); if(c) c->Print(Form("%sbeta1.png"                   , name.Data()));
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettaudeltar0"         , "event", 0               )); if(c) c->Print(Form("%sjettau_deltar0.png"          , name.Data()));
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettaudeltar1"         , "event", 0               )); if(c) c->Print(Form("%sjettau_deltar1.png"          , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("ntaus"                 , "event", 0, 1,   0.,   7.)); if(c) c->Print(Form("%sntaus.png"                   , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("njets20"               , "event", 0, 1,   0.,   7.)); if(c) c->Print(Form("%snjets20.png"                 , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("lepdeltar"             , "event", 0, 2,   0.,   6.)); if(c) c->Print(Form("%slepdeltar.png"               , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("lepdeltaphi"           , "event", 0, 2,   0.,   4.)); if(c) c->Print(Form("%slepdeltaphi.png"             , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("ntaus"                 , "event", 0, 1*rb,   0.,   7.)); if(c) c->Print(Form("%sntaus.png"                   , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("njets20"               , "event", 0, 1*rb,   0.,   7.)); if(c) c->Print(Form("%snjets20.png"                 , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jetpt"                 , "event", 0, 1*rb,  20., 100.)); if(c) c->Print(Form("%sjetpt.png"                   , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("leppt"                 , "event", 0, 2*rb,   0., 100.)); if(c) c->Print(Form("%sleppt.png"                   , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("lepdeltar"             , "event", 0, 2*rb,   0.,   6.)); if(c) c->Print(Form("%slepdeltar.png"               , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("lepdeltaphi"           , "event", 0, 2*rb,   0.,   4.)); if(c) c->Print(Form("%slepdeltaphi.png"             , name.Data()));
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettauoner"            , "lep"  , 0               )); if(c) c->Print(Form("%sjettau_oner.png"             , name.Data()));
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettautwor"            , "lep"  , 0               )); if(c) c->Print(Form("%sjettau_twor.png"             , name.Data()));
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettautwopt"           , "lep"  , 0               )); if(c) c->Print(Form("%sjettau_twopt.png"            , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("onemetdeltaphi"        , "lep"  , 0, 1,  0.,   4. )); if(c) c->Print(Form("%sonemetdeltaphi.png"          , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("twometdeltaphi"        , "lep"  , 0, 1,  0.,   4. )); if(c) c->Print(Form("%stwometdeltaphi.png"          , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("onemetdeltaphi"        , "lep"  , 0, 1*rb,  0.,   4. )); if(c) c->Print(Form("%sonemetdeltaphi.png"          , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("twometdeltaphi"        , "lep"  , 0, 1*rb,  0.,   4. )); if(c) c->Print(Form("%stwometdeltaphi.png"          , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("ptratio"               , "lep"  , 0, 1*rb,  0.,   3. )); if(c) c->Print(Form("%sptratio.png"                 , name.Data()));
+
+  // make_2d_closure_slices (set1Abs, set2Abs, PlottingCard_t("jettaulepmvsmtonecomp" , "lep"  , 0                  ));
+  make_2d_closure_slices (set1Abs, set2Abs, PlottingCard_t("jettaulepmvsmva0"      , "event", 0                  )); //corrected
+  make_2d_closure_slices (set1Abs, set2Abs, PlottingCard_t("jettaulepmvsmva1"      , "event", 0                  )); //no non-closure/bias corrections
+  // make_2d_closure_slices (set1Abs, set2Abs, PlottingCard_t("jettaulepmvsmtone0"    , "event", 0                  )); //corrected
+  // make_2d_closure_slices (set1Abs, set2Abs, PlottingCard_t("jettaulepmvsmtone1"    , "event", 0                  )); //no non-closure/bias corrections
+  // make_2d_closure_slices (set1Abs, set2Abs, PlottingCard_t("jettaulepmvsmtone2"    , "event", 0                  )); //no bias corrections
+
+  const bool add_signal = (process == "WJets" && set1 == 31) || (process == "QCD" && set1 == 1030) || (process == "Top" && set1 == 32);
+  if(selection == "mutau") {
+    c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("mva1", "event", 0, 0,  0.,   1. ), add_signal, true); if(c) c->Print(Form("%smva1.png"          , name.Data()));
+  }
+  if(selection == "etau") {
+    c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("mva3", "event", 0, 0,  0.,   1. ), add_signal, true); if(c) c->Print(Form("%smva3.png"          , name.Data()));
+  }
   // make_2d_canvas(setAbs1, setAbs2, PlottingCard_t("jettautwoptvsr", "lep", 0), true);
   // make_2d_canvas(setAbs1, setAbs2, PlottingCard_t("twoptvsonept"  , "lep", 0), true);
 
   //Make stack plots
   dataplotter_->include_misid_ = 1;
   dataplotter_->data_over_mc_ = 0;
+  dataplotter_->plot_data_ = 1;
+  dataplotter_->rebinH_ = 2;
   c = dataplotter_->plot_stack("twopt", "lep"  , set1Abs); if(c) c->Print(Form("%sstack_twopt_%i.png", name.Data(), set1));
   c = dataplotter_->plot_stack("onept", "lep"  , set1Abs); if(c) c->Print(Form("%sstack_onept_%i.png", name.Data(), set1));
+  dataplotter_->rebinH_ = 5;
   c = dataplotter_->plot_stack("lepm" , "event", set1Abs); if(c) c->Print(Form("%sstack_lepm_%i.png" , name.Data(), set1));
+  dataplotter_->rebinH_ = 2;
   c = dataplotter_->plot_stack("leppt", "event", set1Abs); if(c) c->Print(Form("%sstack_leppt_%i.png", name.Data(), set1));
+  dataplotter_->rebinH_ = 1;
+
+  if(selection == "mutau") {
+    c = dataplotter_->plot_stack("mva1" , "event", set1Abs); if(c) c->Print(Form("%sstack_mva1_%i.png" , name.Data(), set1));
+  }
+  if(selection == "etau") {
+    c = dataplotter_->plot_stack("mva3" , "event", set1Abs); if(c) c->Print(Form("%sstack_mva3_%i.png" , name.Data(), set1));
+  }
 
   return 0;
 }

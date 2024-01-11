@@ -11,6 +11,7 @@
 #include "interface/CrossSections.hh"
 #include "interface/Significances.hh"
 #include "interface/Utilities.hh"
+#include "interface/PlotUtil.hh"
 #include "interface/Systematics.hh"
 #include "interface/EventFlags.hh"
 #include "interface/CreateCategories.hh"
@@ -64,6 +65,7 @@ namespace CLFV {
     Utilities dummy3a;
     Systematics dummy3a2;
     EventFlags dummy3a3;
+    PlotUtil dummy3a4;
     CreateCategories dummy3b;
     BTagWeight dummy4;
     PUWeight dummy5;

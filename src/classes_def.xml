@@ -10,6 +10,7 @@
   <class name="CrossSections"/>
   <class name="Significances"/>
   <class name="Utilities"/>
+  <class name="PlotUtil"/>
   <class name="Systematics"/>
   <class name="EventFlags"/>
   <class name="CreateCategories"/>

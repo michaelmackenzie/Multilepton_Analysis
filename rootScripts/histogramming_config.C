@@ -9,6 +9,8 @@ typedef CLFVHistMaker HISTOGRAMMER;
 // typedef ZPtHistMaker HISTOGRAMMER;
 // typedef METHistMaker HISTOGRAMMER;
 // typedef SparseHistMaker HISTOGRAMMER;
+// typedef EmbedBDTHistMaker HISTOGRAMMER;
+// typedef SparseTreeMaker HISTOGRAMMER;
 
 //Process multiple cards in parallel
 bool newProcess_   = true; //run card processing in a new process to avoid memory issues
@@ -18,16 +20,17 @@ bool preFetch_     = false; //check for the sample on /tmp, and copy it there if
 bool useTChain_    = true; //use a TChain of input files rather than a tree from a single ntuple file
 Long64_t notify_   = 50000; //frequency at which to printout processing info
 
-vector<TString> tag_ = {"Embed"}; //dataset tag requirement
-vector<TString> veto_ = {"Embed-EE", "Embed-MuMu"}; //dataset tags to veto
-bool debug_ = false;
-Long64_t startEvent_ = 0;
-Long64_t nEvents_ = 1; //at 20, verbosity returns to normal
-int verbose_ = -1; //override verbosity in debug mode to higher levels if > 1
-int follow_hist_set_ = -1; //print info whenever this hist set is filled
-HISTOGRAMMER* selector_ = nullptr;
+vector<TString> tag_     = {"2018"}; //dataset tag requirement
+vector<TString> veto_    = {"Run","Embed"}; //dataset tags to veto
+bool debug_              = false;
+Long64_t startEvent_     =  0;
+Long64_t nEvents_        =  1; //at 20, verbosity returns to normal
+int verbose_             = -1; //override verbosity in debug mode to higher levels if > 1
+int follow_hist_set_     = -1; //print info whenever this hist set is filled
+HISTOGRAMMER* selector_  = nullptr;
 
-Long64_t max_sim_events_ = -1; //5e5; //maximum number of events to skim in simulation, -1 to ignore
+Long64_t max_sim_events_  = -1; //5e5; //maximum number of events to skim in simulation, -1 to ignore
+Double_t max_data_events_ = -1; //maximum fraction of events to skim in data, -1 to ignore
 
 bool DYFakeTau_          = false; //speed up dy fake tau scale factor
 bool WJFakeTau_          = false; //speed up w+jets fake tau scale factor
@@ -66,10 +69,11 @@ int useEmbedCuts_        = 2; //use kinematic cuts based on embedded generation:
 int embeddedTesting_     = 0; //test embedding options: 3 = use KIT measured scales
 int useEmbedRocco_       = 1; //use Rochester correction vs LFV Higgs AN muon sys in Embedded samples
 int embedUseMETUnc_      = 2; //use MET uncertainties in embedding: 1: use JER/JES; 2: use approximate errors on (MET - nu pT)
+int useEmbedBDTUnc_      = 0; //use gen-level BDT score uncertainty in embedding
 
 int doEmuDefaults_       = 1; //set to default emu running
 int doSameFlavorEMu_     = 0; //treat ee/mumu as emu
-int doEmbedSameFlavor_   = 1; //setup ee/mumu for embedding testing
+int doEmbedSameFlavor_   = 2; //setup ee/mumu for embedding testing: 1: skip MC Z->ll; 2: allow MC Z->ll
 
 int systematicSeed_      = 90; //seed for systematic random shifts
 int doSystematics_       = 1; //process systematic uncertainty histograms
@@ -77,10 +81,11 @@ int allowMigration_      = 1; //event migration systematic effects
 int  DoMVASets_          = 1; //Fill sets with MVA cuts: 1 = emu; 2 = emu/ee/mumu; 3 = all sets
 int  ReprocessMVAs_      = 1; //Re-evaluate MVA scores on the fly
 int useCDFBDTs_          = 2; //Use CDF transformed BDTs instead of the raw BDT scores in the fits
-int useXGBoost_          = 0; //use XGBoost BDT in Z->e+mu
+int useXGBoost_          = 1; //>0: use XGBoost BDT in Z->e+mu; >9: use XGBoost BDT in all categories
 int useBDTScale_         = 1; //use BDT score corrections in Z->e+mu
 bool writeTrees_         = false;
 int  train_mode_         = 2; //MVA training mode, how to define training fractions
+TString test_mva_        = ""; //MVA to test, independent of selection
 
 int  doHiggs_            = 0; //do higgs-related analysis
 bool sparseHists_        = true; //only plot more basic histograms
@@ -90,9 +95,9 @@ bool splitDY_            = true; //split z+jets sample based on gen-level lepton
 
 bool useUL_              = false; //Use UL files/cross sections
 
-float min_lepm_         = -1.f;
-float max_lepm_         = 200.f;
-float migration_buffer_ = 5.f; //mass, met, and pT window to use for systematic migration
+float min_lepm_          = -1.f;
+float max_lepm_          = 200.f;
+float migration_buffer_  = 2.f; //mass, met, and pT window to use for systematic migration
 
 //information about the data file/data
 struct datacard_t {
@@ -181,6 +186,8 @@ vector<datacard_t> get_data_cards(TString& nanoaod_path) {
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("WZ"                      ), "LFVAnalysis_WZ_2016.root"                      , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZZ"                      ), "LFVAnalysis_ZZ_2016.root"                      , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("WWW"                     ), "LFVAnalysis_WWW_2016.root"                     , 0));
+  nanocards.push_back(datacard_t(true , xs.GetCrossSection("ggFH-TauTau"             ), "LFVAnalysis_ggFH-TauTau_2016.root"             , 0));
+  nanocards.push_back(datacard_t(true , xs.GetCrossSection("ggFH-WW"                 ), "LFVAnalysis_ggFH-WW_2016.root"                 , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-MuTau-G"     , 2016), "LFVAnalysis_Embed-MuTau-G_2016.root"           , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-MuTau-H"     , 2016), "LFVAnalysis_Embed-MuTau-H_2016.root"           , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-MuTau-B"     , 2016), "LFVAnalysis_Embed-MuTau-B_2016.root"           , 0));
@@ -281,6 +288,8 @@ vector<datacard_t> get_data_cards(TString& nanoaod_path) {
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("WZ"                      ), "LFVAnalysis_WZ_2017.root"                      , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZZ"                      ), "LFVAnalysis_ZZ_2017.root"                      , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("WWW"                     ), "LFVAnalysis_WWW_2017.root"                     , 0));
+  nanocards.push_back(datacard_t(true , xs.GetCrossSection("ggFH-TauTau"             ), "LFVAnalysis_ggFH-TauTau_2017.root"             , 0));
+  nanocards.push_back(datacard_t(true , xs.GetCrossSection("ggFH-WW"                 ), "LFVAnalysis_ggFH-WW_2017.root"                 , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-MuTau-B"     , 2017), "LFVAnalysis_Embed-MuTau-B_2017.root"           , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-MuTau-C"     , 2017), "LFVAnalysis_Embed-MuTau-C_2017.root"           , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-MuTau-D"     , 2017), "LFVAnalysis_Embed-MuTau-D_2017.root"           , 0));
@@ -355,6 +364,8 @@ vector<datacard_t> get_data_cards(TString& nanoaod_path) {
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("WZ"                      ), "LFVAnalysis_WZ_2018.root"                      , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZZ"                      ), "LFVAnalysis_ZZ_2018.root"                      , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("WWW"                     ), "LFVAnalysis_WWW_2018.root"                     , 0));
+  nanocards.push_back(datacard_t(true , xs.GetCrossSection("ggFH-TauTau"             ), "LFVAnalysis_ggFH-TauTau_2018.root"             , 0));
+  nanocards.push_back(datacard_t(true , xs.GetCrossSection("ggFH-WW"                 ), "LFVAnalysis_ggFH-WW_2018.root"                 , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-MuTau-D"     , 2018), "LFVAnalysis_Embed-MuTau-D_2018.root"           , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-MuTau-A"     , 2018), "LFVAnalysis_Embed-MuTau-A_2018.root"           , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("Embed-MuTau-B"     , 2018), "LFVAnalysis_Embed-MuTau-B_2018.root"           , 0));

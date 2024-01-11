@@ -268,7 +268,7 @@ TH1* DataPlotter::get_data(TString hist, TString setType, Int_t set, ScaleUncert
   const char* stats = (doStatsLegend_) ? Form(": #scale[0.8]{%.2e}", integral) : "";
   hdata->SetTitle(Form("Data%s",stats));
   if(verbose_ > 0) printf("Data histogram has integral %.4f\n", integral);
-  if(rebinH_ > 0) hdata->Rebin(rebinH_);
+  if(rebinH_ > 1) hdata->Rebin(rebinH_);
   return hdata;
 }
 
@@ -279,7 +279,7 @@ TH2* DataPlotter::get_data_2D(TString hist, TString setType, Int_t set) {
   TH2* hdata = (TH2*) get_data(hist, setType, set);
   if(!hdata) return nullptr;
   rebinH_ = rebin_prev;
-  if(rebinH_ > 0) {
+  if(rebinH_ > 1) {
     hdata->RebinX(rebinH_);
     hdata->RebinY(rebinH_);
   }
@@ -672,7 +672,7 @@ TH1* DataPlotter::get_process(TString process, TString hist, TString setType, In
 //   h->SetFillStyle(3001);
 
 //   h->SetName("hSignal");
-//   if(rebinH_ > 0) {
+//   if(rebinH_ > 1) {
 //     h->RebinX(rebinH_);
 //     h->RebinY(rebinH_);
 //   }
@@ -1144,7 +1144,7 @@ TGraphAsymmErrors* DataPlotter::get_stack_systematic(THStack* hstack,
 //     h[i]->SetDirectory(0);
 //     //scale to cross section and luminosity
 //     h[i]->Scale(scale_[i]);
-//     if(rebinH_ > 0) h[i]->Rebin(rebinH_);
+//     if(rebinH_ > 1) h[i]->Rebin(rebinH_);
 
 //     //if the first, add to map, else get first of this label
 //     int index = i;
@@ -2279,6 +2279,86 @@ TCanvas* DataPlotter::plot_cdf(TString hist, TString setType, Int_t set, TString
 }
 
 //--------------------------------------------------------------------------------------------------------------------
+// Plot of signal efficiency vs. background rejection
+TCanvas* DataPlotter::plot_roc(TString hist, TString setType, Int_t set, bool cut_low) {
+
+  // Retrieve the signal and background distributions
+
+  auto signals = get_signal(hist, setType, set, nullptr, "roc");
+  if(!signals.size()) {
+    printf("%s: No histograms for signal efficiency found!\n", __func__);
+    return nullptr;
+  }
+  auto stack = get_stack(hist, setType, set, nullptr, "roc");
+  if(!stack || stack->GetNhists() == 0) {
+    printf("%s: No histograms for background rejection found!\n", __func__);
+    return nullptr;
+  }
+
+  TH1* background_rej = (TH1*) stack->GetStack()->Last()->Clone("background_rej");
+  delete stack;
+
+  //convert to efficiencies
+
+  for(auto signal : signals) Utilities::HistToEff(signal, cut_low);
+  Utilities::HistToEff(background_rej, cut_low, true); //set to rejection for background
+
+  //store the (signal eff, background rej) for each signal
+
+  const int nbins = background_rej->GetNbinsX();
+  std::vector<TGraph*> graphs;
+  for(auto signal : signals) {
+    double effs[nbins], rejs[nbins];
+    for(int ibin = 1; ibin <= nbins; ++ibin) {
+      effs[ibin-1] = signal->GetBinContent(ibin);
+      rejs[ibin-1] = background_rej->GetBinContent(ibin);
+    }
+    TGraph* graph = new TGraph(nbins, effs, rejs);
+    graph->SetLineWidth  (signal->GetLineWidth  ());
+    graph->SetLineColor  (signal->GetLineColor  ());
+    graph->SetMarkerColor(signal->GetMarkerColor());
+    graph->SetMarkerStyle(20);
+    graph->SetMarkerSize(0.6);
+    graph->SetTitle(signal->GetTitle());
+    graphs.push_back(graph);
+  }
+
+  // make the plot
+
+  TCanvas* c = new TCanvas(Form("roc_%s_%i",hist.Data(),set),Form("roc_%s_%i",hist.Data(),set), canvas_x_, canvas_y_);
+  TPad *pad1 = 0;
+  pad1 = new TPad("pad1","pad1",0.0,0.0,1,1); //xL yL xH xH, (0,0) = bottom left
+  pad1->Draw();
+  pad1->cd();
+
+  TGraph* gAxis = graphs[0];
+  gAxis->Draw("AL");
+
+  TLegend* leg = new TLegend(legend_x1_, legend_y1_, legend_x2_, legend_y2_);
+  leg->SetTextSize(legend_txt_);
+  leg->SetNColumns(legend_ncol_);
+  for(auto graph : graphs) {graph->Draw("L"); leg->AddEntry(graph, Form("%s", graph->GetTitle()), "L");}
+  // leg->SetEntrySeparation(legend_sep_);
+  leg->SetFillStyle(0);
+  leg->SetFillColor(0);
+  leg->SetLineColor(0);
+  leg->SetLineStyle(0);
+  if(signals.size() > 1) leg->Draw();
+
+  gAxis->SetTitle(";signal eff.;background rej.");
+  if(xMin_ < xMax_) gAxis->GetXaxis()->SetRangeUser(xMin_, xMax_);
+  if(yMin_ < yMax_) gAxis->GetYaxis()->SetRangeUser(yMin_, yMax_);
+  pad1->SetGrid();
+  pad1->Update();
+
+
+  //draw text
+  draw_cms_label();
+
+  return c;
+}
+
+//--------------------------------------------------------------------------------------------------------------------
 TCanvas* DataPlotter::plot_significance(TString hist, TString setType, Int_t set, TString label,
                                         bool dir = true, Double_t line_val = -1., bool doVsEff = false,
                                         TString label1 = "", TString label2 = "") {
@@ -2575,6 +2655,14 @@ TCanvas* DataPlotter::print_cdf(TString hist, TString setType, Int_t set, TStrin
   label.ReplaceAll(" ", "");
   label.ReplaceAll("/", "");
   c->Print(GetFigureName(setType, hist, set, "cdf_" + label, tag));
+  return c;
+}
+
+//--------------------------------------------------------------------------------------------------------------------
+TCanvas* DataPlotter::print_roc(TString hist, TString setType, Int_t set, bool cut_low, TString tag) {
+  TCanvas* c = plot_roc(hist,setType,set,cut_low);
+  if(!c) return c;
+  c->Print(GetFigureName(setType, hist, set, "roc", tag));
   return c;
 }
 

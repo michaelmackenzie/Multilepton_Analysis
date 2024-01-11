@@ -248,6 +248,8 @@ void JTTHistMaker::BookEventHistograms() {
         Utilities::BookH1D(fEventHist[i]->hFakeTausDM   , "faketausdm"   , Form("%s: TausDM     "  ,dirname),  15,  0.,  15., folder);
 
         // jet --> tau non-closure histograms
+        const double fit_mbins[]    = {40., 60., 85., 100., 170.}; //mass regions the fit is performed in
+        const int    nfit_mbins     = sizeof(fit_mbins) / sizeof(*fit_mbins) - 1;
         const double jt_lepm_bins[] = {40., 70., 85., 120., 170.};
         const int    jt_nlepm_bins  = sizeof(jt_lepm_bins) / sizeof(*jt_lepm_bins) - 1;
         const double jt_dr_bins[]   = {0., 2., 2.5, 3., 3.5, 4., 5.};
@@ -269,6 +271,14 @@ void JTTHistMaker::BookEventHistograms() {
         Utilities::BookH1F(fEventHist[i]->hJetTauMTTwo [0], "jettaumttwo0" , Form("%s: JetTauMTTwo" ,dirname),  jt_nmt_bins, jt_mt_bins, folder);
         Utilities::BookH1F(fEventHist[i]->hJetTauMTTwo [1], "jettaumttwo1" , Form("%s: JetTauMTTwo" ,dirname),  jt_nmt_bins, jt_mt_bins, folder);
         Utilities::BookH1F(fEventHist[i]->hJetTauMTTwo [2], "jettaumttwo2" , Form("%s: JetTauMTTwo" ,dirname),  jt_nmt_bins, jt_mt_bins, folder);
+
+        //2D closure checks
+        Utilities::BookH2F(fEventHist[i]->hJetTauLepMVsMTOne [0], "jettaulepmvsmtone0" , Form("%s: JetTauLepMVsMTOne" ,dirname),  nfit_mbins, fit_mbins, jt_nmt_bins, jt_mt_bins, folder);
+        Utilities::BookH2F(fEventHist[i]->hJetTauLepMVsMTOne [1], "jettaulepmvsmtone1" , Form("%s: JetTauLepMVsMTOne" ,dirname),  nfit_mbins, fit_mbins, jt_nmt_bins, jt_mt_bins, folder);
+        Utilities::BookH2F(fEventHist[i]->hJetTauLepMVsMTOne [2], "jettaulepmvsmtone2" , Form("%s: JetTauLepMVsMTOne" ,dirname),  nfit_mbins, fit_mbins, jt_nmt_bins, jt_mt_bins, folder);
+        Utilities::BookH2F(fEventHist[i]->hJetTauLepMVsMVA   [0], "jettaulepmvsmva0"   , Form("%s: JetTauLepMVsMVA"   ,dirname),  nfit_mbins, fit_mbins, 10, 0., 1., folder);
+        Utilities::BookH2F(fEventHist[i]->hJetTauLepMVsMVA   [1], "jettaulepmvsmva1"   , Form("%s: JetTauLepMVsMVA"   ,dirname),  nfit_mbins, fit_mbins, 10, 0., 1., folder);
+        Utilities::BookH2F(fEventHist[i]->hJetTauLepMVsMVA   [2], "jettaulepmvsmva2"   , Form("%s: JetTauLepMVsMVA"   ,dirname),  nfit_mbins, fit_mbins, 10, 0., 1., folder);
       }
 
       delete dirname;
@@ -304,6 +314,7 @@ void JTTHistMaker::BookLepHistograms() {
       Utilities::BookH1F(fLepHist[i]->hTwoMetDeltaPhi , "twometdeltaphi"   , Form("%s: Met Delta Phi",dirname), 50,   0,    5, folder);
 
       Utilities::BookH1F(fLepHist[i]->hPtDiff         , "ptdiff"           , Form("%s: 1 pT - 2 pT"  ,dirname), 100,  -80,   80, folder);
+      Utilities::BookH1F(fLepHist[i]->hPtRatio        , "ptratio"          , Form("%s: 1 pT / 2 pT"  ,dirname),  50,    0,    3, folder);
 
 
       //j-->tau weight variations
@@ -364,6 +375,14 @@ void JTTHistMaker::BookLepHistograms() {
       Utilities::BookH1F(fLepHist[i]->hJetTauTwoPtComp     , "jettautwoptcomp"     , Form("%s: TwoPt"           ,dirname), nbins_pt_qcd, pts_qcd, folder);
       Utilities::BookH1F(fLepHist[i]->hJetTauMTOneComp     , "jettaumtonecomp"     , Form("%s: MTOne"           ,dirname), nmtbins     , mtbins , folder);
       Utilities::BookH1F(fLepHist[i]->hJetTauMTTwoComp     , "jettaumttwocomp"     , Form("%s: MTTwo"           ,dirname), nmtbins     , mtbins , folder);
+      const double mbins[] = {40., 60., 85., 100., 170.};
+      const int    nmbins  = sizeof(mbins) / sizeof(*mbins) - 1;
+      Utilities::BookH1F(fLepHist[i]->hJetTauLepMComp      , "jettaulepmcomp"      , Form("%s: LepM"            ,dirname), nmbins      , mbins  , folder);
+
+      //2D composition with final fit mass regions
+      const double mtbins_2d[] = {0., 15., 30., 45., 60., 75., 150.};
+      const int    nmtbins_2d  = sizeof(mtbins_2d) / sizeof(*mtbins_2d) - 1;
+      Utilities::BookH2F(fLepHist[i]->hJetTauLepMvsMTOneComp, "jettaulepmvsmtonecomp", Form("%s: LepM vs MTOne",dirname), nmbins, mbins, nmtbins_2d, mtbins_2d, folder);
 
       for(int dmregion = 0; dmregion < 5; ++dmregion) {
         TString name_r = "jettautwoptvsr";
@@ -479,8 +498,8 @@ void JTTHistMaker::FillEventHistogram(EventHist_t* Hist) {
 
   //MVA outputs
   for(unsigned i = 0; i < fMVAConfig->names_.size(); ++i) {
-    Hist->hMVA[i][0]->Fill(fMvaOutputs[i], fTreeVars.eventweightMVA); //remove training samples
-    Hist->hMVA[i][1]->Fill(fMvaOutputs[i], fTreeVars.eventweightMVA); //remove training samples
+    Hist->hMVA[i][0]->Fill(fMvaUse[i], eventWeight*genWeight);
+    Hist->hMVA[i][1]->Fill(fMvaUse[i], eventWeight*genWeight);
   }
 
   /////////////////////////////////////
@@ -560,6 +579,16 @@ void JTTHistMaker::FillEventHistogram(EventHist_t* Hist) {
       Hist->hJetTauMTTwo [0]->Fill(fTreeVars.mttwo    , eventWeight*genWeight);
       Hist->hJetTauMTTwo [1]->Fill(fTreeVars.mttwo    , wt_no_nonclosure     );
       Hist->hJetTauMTTwo [2]->Fill(fTreeVars.mttwo    , wt_no_biascorr       );
+
+      Hist->hJetTauLepMVsMTOne[0]->Fill(fTreeVars.lepm, fTreeVars.mtone, eventWeight*genWeight);
+      Hist->hJetTauLepMVsMTOne[1]->Fill(fTreeVars.lepm, fTreeVars.mtone, wt_no_nonclosure     );
+      Hist->hJetTauLepMVsMTOne[2]->Fill(fTreeVars.lepm, fTreeVars.mtone, wt_no_biascorr       );
+      int mva_index(1);
+      if(fSelection == "mutau") mva_index = 1;
+      else                      mva_index = 3;
+      Hist->hJetTauLepMVsMVA[0]->Fill(fTreeVars.lepm, fMvaUse[mva_index], eventWeight*genWeight);
+      Hist->hJetTauLepMVsMVA[1]->Fill(fTreeVars.lepm, fMvaUse[mva_index], wt_no_nonclosure     );
+      Hist->hJetTauLepMVsMVA[2]->Fill(fTreeVars.lepm, fMvaUse[mva_index], wt_no_biascorr       );
     }
   } //end j-->tau scale factor section
 }
@@ -601,7 +630,8 @@ void JTTHistMaker::FillLepHistogram(LepHist_t* Hist) {
   ////////////////////////////////////////////////
   // Lepton comparisons/2D distributions
 
-  Hist->hPtDiff      ->Fill(fTreeVars.leponept-fTreeVars.leptwopt ,eventWeight*genWeight);
+  Hist->hPtDiff      ->Fill(fTreeVars.ptdiff  ,eventWeight*genWeight);
+  Hist->hPtRatio     ->Fill(fTreeVars.ptratio ,eventWeight*genWeight);
 
   ////////////////////////////////////////////////
   // j-->tau histograms
@@ -652,6 +682,8 @@ void JTTHistMaker::FillLepHistogram(LepHist_t* Hist) {
     Hist->hJetTauTwoPtComp     ->Fill(fTreeVars.leptwopt       , wt_nojt);
     Hist->hJetTauMTOneComp     ->Fill(fTreeVars.mtone         , wt_nojt);
     Hist->hJetTauMTTwoComp     ->Fill(fTreeVars.mttwo         , wt_nojt);
+    Hist->hJetTauLepMComp      ->Fill(fTreeVars.lepm          , wt_nojt);
+    Hist->hJetTauLepMvsMTOneComp->Fill(fTreeVars.lepm, fTreeVars.mtone, wt_nojt);
 
     dr = std::fabs(leptonTwo.p4->DeltaR(taulv));
     Hist->hJetTauTwoPt[0]       ->Fill(fTreeVars.leptwopt, wt_nocorr);
@@ -808,7 +840,7 @@ Bool_t JTTHistMaker::Process(Long64_t entry)
   const bool looseQCDRegion    = nBJetsUse == 0 && fTreeVars.mtlep < mtlep_cut && (met_cut < 0. || met < met_cut); // no isolation cut (0 - 0.5 allowed)
   const bool qcdSelection      = looseQCDRegion && fTreeVars.mtlep < qcd_mtlep_cut && (fTreeVars.leponereliso > 0.05) && !(isLooseMuon || isLooseElectron);
   const bool wjetsSelection    = fTreeVars.mtlep > mtlep_cut && nBJetsUse == 0 && !(isLooseMuon || isLooseElectron) && chargeTest;
-  const bool topSelection      = nBJetsUse >= 1 && !(isLooseMuon || isLooseElectron) && chargeTest;
+  const bool topSelection      = nBJetsUse >= 1 && (mtlep_cut < 0. || fTreeVars.mtlep < mtlep_cut) && (met_cut < 0. || met < met_cut) && !(isLooseMuon || isLooseElectron) && chargeTest;
   const bool nominalSelection  = nBJetsUse == 0 && (met_cut < 0. || met < met_cut) && fTreeVars.mtlep < mtlep_cut && !(isLooseMuon || isLooseElectron);
 
   /**
@@ -861,11 +893,11 @@ Bool_t JTTHistMaker::Process(Long64_t entry)
     }
 
     if(fTreeVars.mtlep < qcd_mtlep_cut && fTreeVars.leponereliso > 0.15) { //high isolation region for SS --> OS bias measurement
-      //QCD weights from high iso region, no bias corrections (stored in MC weights, but high iso weights)
+      //QCD weights from high iso region, but bias correction is (iso * charge) bias corrections (iso bias should be small though)
       if(add_wt) {
         jetToTauWeight     = fJetToTauMCWts                      [JetToTauComposition::kQCD];
         jetToTauWeightCorr = jetToTauWeight*fJetToTauMCCorrs     [JetToTauComposition::kQCD];
-        jetToTauWeightBias = jetToTauWeightCorr;//*fJetToTauMCBiases[JetToTauComposition::kQCD];
+        jetToTauWeightBias = jetToTauWeightCorr*((chargeTest) ? fJetToTauMCBiases[JetToTauComposition::kQCD] : 1.f);
         eventWeight        = jetToTauWeightBias*evt_wt_bare;
       }
       FillAllHistograms(qcd_set_offset + 94);

@@ -15,11 +15,11 @@
 namespace CLFV {
   class JetToTauComposition {
   public:
-    JetToTauComposition(TString selection, int set = 35, int Mode = 0, int verbose = 0);
+    JetToTauComposition(TString selection, int set = 2035, int Mode = 0, int verbose = 0);
     ~JetToTauComposition();
 
     void GetComposition(float pt, float dphi, float mt, int DM,
-                        float pt_lead, float lead_dphi, float lead_mt,
+                        float pt_lead, float lead_dphi, float lead_mt, float mass,
                         int year, float*& compositions, float*& comp_up, float*& comp_down);
 
 
@@ -36,6 +36,7 @@ namespace CLFV {
     bool useTwoDPhi_;
     bool useMTOne_;
     bool useMTTwo_;
+    bool use2DMvsMTOne_;
     bool useDM_;
   };
 }

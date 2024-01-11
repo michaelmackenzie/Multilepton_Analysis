@@ -184,6 +184,9 @@ namespace CLFV {
     TH1* hJetTauMTLep[3];  //0: nominal; 1: non-closure correction removed; 2: no bias correction
     TH1* hJetTauMTOne[3];  //0: nominal; 1: non-closure correction removed; 2: no bias correction
     TH1* hJetTauMTTwo[3];  //0: nominal; 1: non-closure correction removed; 2: no bias correction
+    TH2* hJetTauLepMVsMTOne[3];  //0: nominal; 1: non-closure correction removed; 2: no bias correction
+    TH2* hJetTauLepMVsMVA[3];  //0: nominal; 1: non-closure correction removed; 2: no bias correction
+
 
     //Jet --> electron/muon histograms
     TH2* hFakeLepPtEta[3/*iso cat*/];
@@ -242,7 +245,11 @@ namespace CLFV {
 
     //Transverse Masses
     TH1* hMTOne;
+    TH1* hMTOneUp;
+    TH1* hMTOneDown;
     TH1* hMTTwo;
+    TH1* hMTTwoUp;
+    TH1* hMTTwoDown;
     TH2* hMTTwoVsOne;
     TH1* hMTLead;
     TH1* hMTTrail;

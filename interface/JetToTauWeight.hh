@@ -52,24 +52,24 @@ namespace CLFV {
 
     //list of up/down uncertainties
     float GetDataFactor(int DM, int year, float pt, float eta,
-                        float pt_lead, float deltar, float metdphi, float lepm, float mtlep, float oneiso,
+                        float pt_lead, float deltar, float metdphi, float lepm, float mtlep, float oneiso, float mva,
                         float* up, float* down, int& nsys,
                         float& pt_wt, float& pt_up, float& pt_down, float& bias);
     //single up/down uncertainties
     float GetDataFactor(int DM, int year, float pt, float eta,
-                        float pt_lead, float deltar, float metdphi, float lepm, float mtlep, float oneiso,
+                        float pt_lead, float deltar, float metdphi, float lepm, float mtlep, float oneiso, float mva,
                         float& up, float& down,
                         float& pt_wt, float& pt_up, float& pt_down, float& bias);
     //no uncertainty or non-closure/bias correction references
-    float GetDataFactor(int DM, int year, float pt, float eta, float pt_lead, float deltar, float metdphi, float lepm, float mtlep, float oneiso);
+    float GetDataFactor(int DM, int year, float pt, float eta, float pt_lead, float deltar, float metdphi, float lepm, float mtlep, float oneiso, float mva);
     //no uncertainty references
-    float GetDataFactor(int DM, int year, float pt, float eta, float pt_lead, float deltar, float metdphi, float lepm, float mtlep, float oneiso, float& pt_wt, float& bias);
+    float GetDataFactor(int DM, int year, float pt, float eta, float pt_lead, float deltar, float metdphi, float lepm, float mtlep, float oneiso, float mva, float& pt_wt, float& bias);
 
   private:
     float GetFactor(TH2* h, TF1* func, TH1* hCorrection, TH1* hFitterErrors,
                     std::vector<TF1*> alt_up, std::vector<TF1*> alt_down,
                     float pt, float eta, int DM,
-                    float pt_lead, float deltar, float metdphi, float lepm, float mtlep, float oneiso,
+                    float pt_lead, float deltar, float metdphi, float lepm, float mtlep, float oneiso, float mva,
                     int year,
                     float* up, float* down,
                     float& pt_wt, float& pt_up, float& pt_down, float& bias);
@@ -84,6 +84,7 @@ namespace CLFV {
     std::map<int, TH1*> lepMBias_;
     std::map<int, TH1*> mtLepBias_;
     std::map<int, TH1*> oneIsoBias_;
+    std::map<int, TH2*> lepMVsMVABias_;
     std::map<int, std::map<int, std::map<int, TF1*>>> funcsData_; //fits to the transfer factors
     std::map<int, std::map<int, std::map<int, TH1*>>> errorsData_; //68% confidence interval around the fit
     std::map<int, std::map<int, std::map<int, std::vector<TF1*>>>> altFuncsUp_; //alternate fit function shapes
@@ -105,6 +106,7 @@ namespace CLFV {
     bool useLepMBias_;
     bool useMTLepBias_;
     bool useOneIsoBias_;
+    bool useLepMVsMVABias_;
 
   };
 }

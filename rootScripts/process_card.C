@@ -89,6 +89,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
     max_lepm_ = 115.f;
     cout << "Overridding processing defaults for emu-style selection\n";
   }
+
   if(doEmbedSameFlavor_ && (selection == "ee" || selection == "mumu")) {
     doSystematics       = 0;
     allowMigration_     = 0;
@@ -98,6 +99,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
     useRoccoCorr_       = 1;
     useRoccoSize_       = 1;
     embedUseMETUnc_     = 2; //add uncertainty on embedding MET
+    useEmbedBDTUnc_     = 0;
 
     useBTagWeights_     = 2; //2: ntuple-level
     removePUWeights_    = 0; //0: ntuple-level
@@ -106,11 +108,15 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
     useRoccoCorr_       = 2; //2: ntuple-level
     useZPtWeights_      = 2; //2: ntuple-level
 
+    //use a subset of embedded events for faster processing
+    max_sim_events_     = 1e6;
+
     //ignore BDTs
     DoMVASets_     = 0;
     ReprocessMVAs_ = 0;
+    test_mva_      = ""; //(selection == "mumu") ? "zmutau" : "zetau";
     useCDFBDTs_    = 0;
-    useXGBoost_    = 0; //FIXME: Set to 1 for nominal BDT processing
+    useXGBoost_    = 0;
     train_mode_    = 0;
     writeTrees_    = 0;
     sparseHists_   = false;
@@ -132,31 +138,57 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
 
   const Long64_t nentries = chain->GetEntries();
   float events_scale = 1.f;
+  Long64_t max_events = nentries;
   if(card.isData_ == 0 && max_sim_events_ > 0 && nentries > max_sim_events_) {
     cout << "!!! Reducing sim events from " << nentries << " to " << max_sim_events_ << "!\n";
     events_scale = (max_sim_events_*1.) / nentries;
+    max_events = max_sim_events_;
+  }
+  if(card.isData_ && max_data_events_ > 0. && max_data_events_ < 1.) {
+    cout << "!!! REDUCING DATA EVENTS BY " << 100.*(1.-max_data_events_) << " PERCENT\n";
+    events_scale = max_data_events_;
+    max_events = max_data_events_*nentries + 0.99;
   }
 
   for(int wjloop = -1; wjloop < nwloops; ++wjloop) { //start from -1 to also do unsplit histogram
     for(int dyloop = 1; dyloop <= ndyloops; ++dyloop) {
-      if(isDY && dyloop == 2 && doEmbedSameFlavor_ && (selection == "ee" || selection == "mumu")) continue; //skip Z->ll if using embedding ll
+      if(isDY && dyloop == 2 && doEmbedSameFlavor_ == 1 && (selection == "ee" || selection == "mumu")) continue; //skip Z->ll if using embedding ll
       auto selec = new HISTOGRAMMER(systematicSeed_); //selector
       selec->fSelection = selection;
+
+      //don't put limit on Z->tautau in Z->ll channel (event lists aren't used with max sim set)
+      const Long64_t prev_max_sim = max_sim_events_;
+      const float    prev_evt_scale = events_scale;
+      if(dyloop == 1 && isDY && (selection == "ee" || selection == "mumu")) {
+        max_sim_events_ = -1;
+        events_scale = 1.f;
+      }
 
       //configure fields for j-->tau measurement histogramming
       if(dynamic_cast<JTTHistMaker*> (selec)) {
         doSystematics_  =  0; //ignore systematics
         train_mode_     =  0; //ignore MVA training weights
-        ReprocessMVAs_  =  0; //ignore MVA scores
+        // ReprocessMVAs_  =  0; //ignore MVA scores
         max_sim_events_ = -1; //use all sim events
+      }
+
+      //use a subset of data events as well if producing embedding BDT scale factors
+      if(dynamic_cast<EmbedBDTHistMaker*> (selec)) {
+        max_data_events_    = 0.20; //use 20% of the data
       }
 
       //configure fields for OS-->SS measurement histogramming
       if(dynamic_cast<QCDHistMaker*> (selec)) {
         doSystematics_  =  0; //ignore systematics
         train_mode_     =  0; //ignore MVA training weights
-        ReprocessMVAs_  =  0; //ignore MVA scores
+        // ReprocessMVAs_  =  0; //ignore MVA scores
         max_sim_events_ = -1; //use all sim events
+      }
+
+      //for sparse histogramming
+      if(dynamic_cast<SparseHistMaker*> (selec)) {
+        auto sparse_selec = (SparseHistMaker*) selec;
+        sparse_selec->fDoCutFlowSets = true; //histogram the cut flow
       }
 
       if(dynamic_cast<CLFVHistMaker*> (selec)) {
@@ -180,8 +212,9 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
         hist_selec->fPrintFilling       = 1; //print detailed histogram set filling
         hist_selec->fDoTriggerMatching  = doTriggerMatching_;
         hist_selec->fReprocessMVAs      = ReprocessMVAs_; //reevaluate MVA scores on the fly
+        hist_selec->fTestMVA            = test_mva_;
         hist_selec->fProcessSSSF        = doSSSF_;
-        hist_selec->fDoEventList        = selection == "ee" || selection == "mumu";
+        hist_selec->fDoEventList        = (selection == "ee" || selection == "mumu") && (isDY || max_sim_events_ < 0); //don't use lists if reducing simulation size
         hist_selec->fDoHiggs            = doHiggs_;
         hist_selec->fSparseHists        = sparseHists_;
         hist_selec->fUseFlags           = useEventFlags_;
@@ -192,6 +225,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
         hist_selec->fRemoveEventWeights = removeEventWeights_;
         hist_selec->fUseEmbedRocco      = useEmbedRocco_;
         hist_selec->fEmbedUseMETUnc     = embedUseMETUnc_;
+        hist_selec->fUseEmbBDTUncertainty = useEmbedBDTUnc_;
         hist_selec->fUseRoccoCorr       = useRoccoCorr_;
         hist_selec->fUseRoccoSize       = useRoccoSize_;
         hist_selec->fUseCDFBDTs         = useCDFBDTs_;
@@ -203,7 +237,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
         hist_selec->fDoLooseSystematics = selection.EndsWith("tau");
         hist_selec->fAllowMigration     = allowMigration_ && doSystematics;
         hist_selec->fMigrationBuffer    = migration_buffer_;
-        hist_selec->fMaxEntries         = (events_scale < 1.f) ? max_sim_events_ : nentries;
+        hist_selec->fMaxEntries         = max_events;
 
         if(etauAntiEleCut_ > 0) hist_selec->fETauAntiEleCut = etauAntiEleCut_;
       }
@@ -279,7 +313,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
         selec->Init(chain);
       }
       if(!debug_) { //run the selector over the chain
-        if(card.isData_ == 0 && events_scale < 1.f) chain->Process(selec,"", max_sim_events_); //only process a certain amount
+        if(nentries > max_events)                   chain->Process(selec,"",max_events); //only process given amount
         else                                        chain->Process(selec, ""); //process the whole chain
       } else                                        chain->Process(selec,"", nEvents_, startEvent_); //process specific event range for debugging
 
@@ -291,22 +325,33 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
         events->SetBinContent( 1, events_scale*events->GetBinContent( 1));
         events->SetBinContent(10, events_scale*events->GetBinContent(10));
       }
+
+      //restore max sim flag, if changed
+      max_sim_events_ = prev_max_sim;
+      events_scale    = prev_evt_scale;
+
       //open back up the file
       TString outname = selec->GetOutputName();
       printf("Re-opening output file %s to append the events histogram\n", outname.Data());
       TFile* out = TFile::Open(outname.Data(),"UPDATE");
       if(!out) {
         printf("!!! Unable to find output hist file %s, continuing\n", outname.Data());
+        //restore the events histogram name if used a clone
+        if(TString(card.events_->GetName()) != "events") {
+          delete events;
+          card.events_->SetName("events");
+        }
         continue;
+      } else if(debug_) {
+        printf("--> Successfully opened the output file\n");
       }
       //add the events histogram to the output
       events->Write();
-      out->Write();
       out->Close();
       delete out;
 
       //restore the events histogram name if used a clone
-      if(events_scale < 1.f) {
+      if(TString(card.events_->GetName()) != "events") {
         delete events;
         card.events_->SetName("events");
       }

@@ -7,6 +7,8 @@ Help() {
     echo " --indir    : Input directory (\"\" for local, e.g. \"nanoaods_mva\" for from eos)"
     echo " --year     : Year tag"
     echo " --selection: Selection tag"
+    echo " --maker    : HistMaker label"
+    echo " --veto     : Veto tag"
     echo " --remove   : Remove after copying"
     echo " --timeout  : Apply timeout to retry"
     echo " --dontforce: Don't overwrite existing files"
@@ -24,6 +26,8 @@ INDIR=""
 DONTFORCE=""
 YEAR=""
 SELECTION=""
+MAKER=""
+VETO=""
 RMAFTER=""
 APPLYTIMEOUT=""
 
@@ -50,6 +54,16 @@ do
         iarg=$((iarg + 1))
         eval "var=\${${iarg}}"
         YEAR=${var}
+    elif [[ "${var}" == "--maker" ]]
+    then
+        iarg=$((iarg + 1))
+        eval "var=\${${iarg}}"
+        MAKER=${var}
+    elif [[ "${var}" == "--veto" ]]
+    then
+        iarg=$((iarg + 1))
+        eval "var=\${${iarg}}"
+        VETO=${var}
     elif [[ "${var}" == "--dontforce" ]]
     then
         DONTFORCE="d"
@@ -81,10 +95,10 @@ filehead=""
 rmhead="rm"
 if [[ "${INDIR}" == "" ]]
 then
-    INDIR="./*${SELECTION}*${YEAR}*.hist"
+    INDIR="./${MAKER}*${SELECTION}*${YEAR}*.hist"
 else
     filehead="root://cmseos.fnal.gov//store/user/${USER}/histograms/"${INDIR}"/"
-    INDIR="/store/user/${USER}/histograms/${INDIR}/*${SELECTION}*${YEAR}*.hist"
+    INDIR="/store/user/${USER}/histograms/${INDIR}/${MAKER}*${SELECTION}*${YEAR}*.hist"
     lscommand="eos root://cmseos.fnal.gov ls"
     rmhead="eos root://cmseos.fnal.gov rm"
 fi
@@ -112,6 +126,9 @@ OUTDIR="root://cmseos.fnal.gov/"${OUTDIR}
 echo "Using input path ${INDIR} and output path ${OUTDIR}"
 for f in `${lscommand} ${INDIR}`;
 do
+    if [[ "${VETO}" != "" ]] && [[ "${f}" == *"${VETO}"* ]]; then
+        continue
+    fi
     echo "Copying hist file "${filehead}${f};
     if [[ "$APPLYTIMEOUT" != "" ]]
     then

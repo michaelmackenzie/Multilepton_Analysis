@@ -1315,6 +1315,29 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
           jetOne.setPtEtaPhiM(jetOne.jes_pt_down, jetOne.eta, jetOne.phi, jetOne.mass);
         }
       }
+    } else if(name == "2018HEM") { //see https://hypernews.cern.ch/HyperNews/CMS/get/JetMET/2000.html
+      if(fIsData || fIsEmbed || fYear != 2018 || !fSystematics.IsUp(sys)) continue; //only relevant to 2018 MC, and only an up is defined
+      //loop through the jet collection, evaluate the total shift to the MET
+      float dx(0.f), dy(0.f);
+      for(unsigned ijet = 0; ijet < nJets20; ++ijet) {
+        if(jetsEta[ijet] < -3.0f || jetsEta[ijet] > -1.3f) continue;
+        const float factor = (jetsEta[ijet] < -2.5f) ? -0.35f : -0.20f; //factor the jet pT should be changed by
+        dx += factor*jetsPt[ijet]*std::cos(jetsPhi[ijet]);
+        dy += factor*jetsPt[ijet]*std::sin(jetsPhi[ijet]);
+      }
+      if(dx != 0.f && dy != 0.f) { //a jet is relevant
+        reeval = true;
+        //check if the identified jet should be updated
+        const float factor = (jetOne.eta < -3.0f || jetOne.eta > -1.3f) ? 1.f : (jetOne.eta < -2.5f) ? 0.65f : 0.80f;
+        jetOne.setPtEtaPhiM(jetOne.pt*factor, jetOne.eta, jetOne.phi, jetOne.mass);
+        //update the met
+        const float met_x = std::cos(metPhi) * met - dx;
+        const float met_y = std::sin(metPhi) * met - dy;
+        met = std::sqrt(met_x*met_x + met_y*met_y);
+        metPhi = Utilities::PhiFromXY(met_x, met_y);
+      } else { //no jet was changed
+        reeval = false;
+      }
     } else if(name == "EmbMET") {
       if(!fIsEmbed || fEmbedUseMETUnc != 2) continue;
       reeval = true;

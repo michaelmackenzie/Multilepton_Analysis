@@ -7,8 +7,8 @@ using namespace CLFV;
 
 //--------------------------------------------------------------------------------------------------------------
 HistMaker::HistMaker(int seed, TTree * /*tree*/) : fSystematicSeed(seed),
-                                                   fMuonJetToTauComp("mutau", 2035, 3, 0), fMuonJetToTauSSComp("mutau", 3035, 3, 0),
-                                                   fElectronJetToTauComp("etau", 2035, 3, 0), fElectronJetToTauSSComp("etau", 3035, 3, 0),
+                                                   fMuonJetToTauComp("mutau", 2035, 6, 0), fMuonJetToTauSSComp("mutau", 3035, 6, 0),
+                                                   fElectronJetToTauComp("etau", 2035, 6, 0), fElectronJetToTauSSComp("etau", 3035, 6, 0),
                                                    fQCDWeight("emu", 1100201/*anti-iso, jet binned, 2D pt closure, use fits*/, -1, 0),
                                                    fMuonIDWeight(1 /*use medium muon ID*/),
                                                    fElectronIDWeight(110 /*use WP90 electron ID and embed TnP trigger*/),
@@ -135,27 +135,27 @@ void HistMaker::Begin(TTree * /*tree*/)
 
   //FIXME: Added back W+Jets MC bias (Mode = 10100300, 60100300 for only MC bias shape)
   //FIXME: Removed onemetdphi non-closure from W+Jets and QCD, decide if this is needed (1xxxxx --> 3xxxxx)
-  fMuonJetToTauWeights      [JetToTauComposition::kWJets] = new JetToTauWeight("MuonWJets"      , "mutau", "WJets",   31, 10300300, fYear, 0);
-  fMuonJetToTauWeights      [JetToTauComposition::kZJets] = new JetToTauWeight("MuonZJets"      , "mutau", "WJets",   31, 10300300, fYear, 0);
+  fMuonJetToTauWeights      [JetToTauComposition::kWJets] = new JetToTauWeight("MuonWJets"      , "mutau", "WJets",   31, 70300300, fYear, 0);
+  fMuonJetToTauWeights      [JetToTauComposition::kZJets] = new JetToTauWeight("MuonZJets"      , "mutau", "WJets",   31, 70300300, fYear, 0);
   fMuonJetToTauWeights      [JetToTauComposition::kTop  ] = new JetToTauWeight("MuonTop"        , "mutau", "Top"  ,   82,  1100301, fYear, 0);
   fMuonJetToTauWeights      [JetToTauComposition::kQCD  ] = new JetToTauWeight("MuonQCD"        , "mutau", "QCD"  , 1030, 40300300, fYear, 0);
 
-  fMuonJetToTauMCWeights    [JetToTauComposition::kWJets] = new JetToTauWeight("MuonMCWJets"    , "mutau", "WJets",   88, 10300301, fYear, 0); //MC weights with MC non-closure + bias
-  fMuonJetToTauMCWeights    [JetToTauComposition::kZJets] = new JetToTauWeight("MuonMCZJets"    , "mutau", "WJets",   88, 10300301, fYear, 0);
+  fMuonJetToTauMCWeights    [JetToTauComposition::kWJets] = new JetToTauWeight("MuonMCWJets"    , "mutau", "WJets",   88, 70300301, fYear, 0); //MC weights with MC non-closure + bias
+  fMuonJetToTauMCWeights    [JetToTauComposition::kZJets] = new JetToTauWeight("MuonMCZJets"    , "mutau", "WJets",   88, 70300301, fYear, 0);
   fMuonJetToTauMCWeights    [JetToTauComposition::kTop  ] = new JetToTauWeight("MuonMCTop"      , "mutau", "Top"  ,   82,  1100301, fYear, 0); //Normal weights
-  fMuonJetToTauMCWeights    [JetToTauComposition::kQCD  ] = new JetToTauWeight("MuonMCQCD"      , "mutau", "QCD"  , 1095,   300300, fYear, 0); //high iso weights for SS --> OS bias
+  fMuonJetToTauMCWeights    [JetToTauComposition::kQCD  ] = new JetToTauWeight("MuonMCQCD"      , "mutau", "QCD"  , 1095, 10300300, fYear, 0); //high iso weights for SS --> OS bias
 
   //FIXME: Added back W+Jets MC bias (Mode = 10300300, 60300300 for only MC bias shape)
   //FIXME: Removed onemetdphi non-closure from W+Jets and QCD, decide if this is needed (1xxxxx --> 3xxxxx)
-  fElectronJetToTauWeights  [JetToTauComposition::kWJets] = new JetToTauWeight("ElectronWJets"  , "etau" , "WJets",   31, 10300300, fYear, 0);
-  fElectronJetToTauWeights  [JetToTauComposition::kZJets] = new JetToTauWeight("ElectronZJets"  , "etau" , "WJets",   31, 10300300, fYear, 0);
+  fElectronJetToTauWeights  [JetToTauComposition::kWJets] = new JetToTauWeight("ElectronWJets"  , "etau" , "WJets",   31, 70300300, fYear, 0);
+  fElectronJetToTauWeights  [JetToTauComposition::kZJets] = new JetToTauWeight("ElectronZJets"  , "etau" , "WJets",   31, 70300300, fYear, 0);
   fElectronJetToTauWeights  [JetToTauComposition::kTop  ] = new JetToTauWeight("ElectronTop"    , "etau" , "Top"  ,   82,  1100301, fYear, 0);
   fElectronJetToTauWeights  [JetToTauComposition::kQCD  ] = new JetToTauWeight("ElectronQCD"    , "etau" , "QCD"  , 1030, 40300300, fYear, 0);
 
-  fElectronJetToTauMCWeights[JetToTauComposition::kWJets] = new JetToTauWeight("ElectronMCWJets", "etau" , "WJets",   88, 10300301, fYear, 0); //MC weights with MC non-closure + bias
-  fElectronJetToTauMCWeights[JetToTauComposition::kZJets] = new JetToTauWeight("ElectronMCZJets", "etau" , "WJets",   88, 10300301, fYear, 0);
+  fElectronJetToTauMCWeights[JetToTauComposition::kWJets] = new JetToTauWeight("ElectronMCWJets", "etau" , "WJets",   88, 70300301, fYear, 0); //MC weights with MC non-closure + bias
+  fElectronJetToTauMCWeights[JetToTauComposition::kZJets] = new JetToTauWeight("ElectronMCZJets", "etau" , "WJets",   88, 70300301, fYear, 0);
   fElectronJetToTauMCWeights[JetToTauComposition::kTop  ] = new JetToTauWeight("ElectronMCTop"  , "etau" , "Top"  ,   82,  1100301, fYear, 0); //Normal weights
-  fElectronJetToTauMCWeights[JetToTauComposition::kQCD  ] = new JetToTauWeight("ElectronMCQCD"  , "etau" , "QCD"  , 1095,   300300, fYear, 0); //loose electron ID weights for SS --> OS bias
+  fElectronJetToTauMCWeights[JetToTauComposition::kQCD  ] = new JetToTauWeight("ElectronMCQCD"  , "etau" , "QCD"  , 1095, 10300300, fYear, 0); //high iso weights for SS --> OS bias
 
   fTauIDWeight = new TauIDWeight((fETauAntiEleCut <= 63) ? 0 : (fETauAntiEleCut <= 127) ? 1 : 2, //which etau anti-ele ID WP is being used, Tight, VTight, or VVTight
                                  fIsEmbed, (fSelection == "etau" || fSelection == "mutau") ? fSelection : "etau", fVerbose); //default to etau IDs
@@ -272,7 +272,7 @@ void HistMaker::InitializeMVAs() {
       //skip this MVA if not selected
       if(!init) continue;
 
-      if(fUseXGBoostBDT && mva_selection == "zemu") {
+      if((fUseXGBoostBDT && mva_selection == "zemu") || fUseXGBoostBDT > 9) { //1-9: assume TMVA in tau channels; 10: XGBoost
         if(!fTrkQualInit) fTrkQualInit = new TrkQualInit(fTrkQualVersion, -1, fUseXGBoostBDT);
         mva        [mva_i] = nullptr;
         wrappedBDTs[mva_i] = new BDTWrapper(Form("weights/%s.2016_2017_2018.json", fMVAConfig->names_[mva_i].Data()), 1, fVerbose);
@@ -498,7 +498,11 @@ void HistMaker::BookBaseEventHistograms(Int_t i, const char* dirname) {
       Utilities::BookH1F(fEventHist[i]->hDetectorMet         , "detectormet"         , Form("%s: Detector Met"            ,dirname)  , 100,  0, 200, folder);
 
       Utilities::BookH1F(fEventHist[i]->hMTOne               , "mtone"               , Form("%s: MTOne"                   ,dirname)  , 100, 0.,   150., folder);
+      Utilities::BookH1F(fEventHist[i]->hMTOneUp             , "mtoneup"             , Form("%s: MTOne up"                ,dirname)  , 100, 0.,   150., folder);
+      Utilities::BookH1F(fEventHist[i]->hMTOneDown           , "mtonedown"           , Form("%s: MTOne down"              ,dirname)  , 100, 0.,   150., folder);
       Utilities::BookH1F(fEventHist[i]->hMTTwo               , "mttwo"               , Form("%s: MTTwo"                   ,dirname)  , 100, 0.,   150., folder);
+      Utilities::BookH1F(fEventHist[i]->hMTTwoUp             , "mttwoup"             , Form("%s: MTTwo up"                ,dirname)  , 100, 0.,   150., folder);
+      Utilities::BookH1F(fEventHist[i]->hMTTwoDown           , "mttwodown"           , Form("%s: MTTwo down"              ,dirname)  , 100, 0.,   150., folder);
       Utilities::BookH1F(fEventHist[i]->hMTLep               , "mtlep"               , Form("%s: MTLep"                   ,dirname)  , 100, 0.,   150., folder);
       Utilities::BookH1F(fEventHist[i]->hMTDiff              , "mtdiff"              , Form("%s: MTDiff"                  ,dirname)  , 100, -100.,  100., folder);
       Utilities::BookH1F(fEventHist[i]->hMTLead              , "mtlead"              , Form("%s: MTLead"                  ,dirname)  ,  20, 0.,   150., folder);
@@ -651,6 +655,8 @@ void HistMaker::BookBaseLepHistograms(Int_t i, const char* dirname) {
 
       // Lepton one info //
       Utilities::BookH1F(fLepHist[i]->hOnePt[0]       , "onept"            , Form("%s: Pt"           ,dirname)  , 150,   0, 150, folder);
+      Utilities::BookH1F(fLepHist[i]->hOnePtUp        , "oneptup"          , Form("%s: Pt up"        ,dirname)  , 150,   0, 150, folder);
+      Utilities::BookH1F(fLepHist[i]->hOnePtDown      , "oneptdown"        , Form("%s: Pt down"      ,dirname)  , 150,   0, 150, folder);
       Utilities::BookH1F(fLepHist[i]->hOnePz          , "onepz"            , Form("%s: Pz"           ,dirname), 100, -100,  100, folder);
       if(fSelection == "mutau" || fSelection == "mumu")
         Utilities::BookH1F(fLepHist[i]->hOneMomErr      , "onemomerr"        , Form("%s: Mom. Error"   ,dirname),  n_momerr_bins, momerr_bins, folder);
@@ -686,6 +692,8 @@ void HistMaker::BookBaseLepHistograms(Int_t i, const char* dirname) {
 
       // Lepton two info //
       Utilities::BookH1F(fLepHist[i]->hTwoPt[0]       , "twopt"            , Form("%s: Pt"          ,dirname)  , 150,   0, 150, folder);
+      Utilities::BookH1F(fLepHist[i]->hTwoPtUp        , "twoptup"          , Form("%s: Pt up"       ,dirname)  , 150,   0, 150, folder);
+      Utilities::BookH1F(fLepHist[i]->hTwoPtDown      , "twoptdown"        , Form("%s: Pt down"     ,dirname)  , 150,   0, 150, folder);
       Utilities::BookH1F(fLepHist[i]->hTwoPz          , "twopz"            , Form("%s: Pz"          ,dirname), 100, -100,  100, folder);
       if(fSelection == "emu" || fSelection.Contains("_"))
         Utilities::BookH1F(fLepHist[i]->hTwoMomErr      , "twomomerr"        , Form("%s: Mom. Error"  ,dirname),  n_momerr_bins, momerr_bins, folder);
@@ -1551,10 +1559,19 @@ void HistMaker::InitializeEventWeights() {
     deviation = 0.f;
     for(UInt_t index = 0; index < nLHEPdfWeight; ++index) {
       //If zero weights, set them to 1
-      if(LHEPdfWeight[0] != 0.f) LHEPdfWeight[0] = 1.f;
+      // if(LHEPdfWeight[0] != 0.f) LHEPdfWeight[0] = 1.f;
       if(LHEPdfWeight[index] == 0.f) LHEPdfWeight[index] = 1.f;
        //index 0 should be the nominal weight, so divide by it
       LHEPdfWeight[index] /= LHEPdfWeight[0];
+
+      //apply a scale factor to preserve the cross section
+      if(nLHEPdfWeight == 33 && index > 0) //assume the PDF set used in 2018
+        LHEPdfWeight[index] *= fZPDFSys.GetPDFScale(2018, index);
+      else if(nLHEPdfWeight == 101 && index > 0) //assume the PDF set used in 2016
+        LHEPdfWeight[index] *= fZPDFSys.GetPDFScale(2016, index);
+      else //ignore the systematic as it's not a know PDF set FIXME: Decide how to handle these cases
+        LHEPdfWeight[index] = 1.f;
+
       //Ensure a reasonable weight ratio
       LHEPdfWeight[index] = std::max(0.3f, std::min(3.f, LHEPdfWeight[index]));
       const float dev = LHEPdfWeight[index] - 1.f;
@@ -1769,6 +1786,7 @@ void HistMaker::InitializeEventWeights() {
         btagWeightUpL    *= (!isbc) ? wt_up   : wt;
         btagWeightDownL  *= (!isbc) ? wt_down : wt;
       }
+      eventWeight *= btagWeight;
       if((btagWeightUpBC - btagWeight)*(btagWeightDownBC - btagWeight) > 1.e-6) { //weights are in the same direction
         printf("HistMaker::%s: Warning! Entry %lld: B-tag gen b/c weight has up/down in same direction: wt = %.4f, up = %.4f, down = %.4f, nJets = %i\n",
                __func__, fentry, btagWeight, btagWeightUpBC, btagWeightDownBC, ncount);
@@ -1917,21 +1935,21 @@ void HistMaker::InitializeEventWeights() {
       if(mutau) {
         if(chargeTest) {
           fMuonJetToTauComp.GetComposition(leptonTwo.p4->Pt(), fTreeVars.twometdeltaphi, fTreeVars.mttwo, tauDecayMode,
-                                           leptonOne.p4->Pt(), fTreeVars.onemetdeltaphi, fTreeVars.mtone,
+                                           leptonOne.p4->Pt(), fTreeVars.onemetdeltaphi, fTreeVars.mtone, fTreeVars.lepm,
                                            fYear, fJetToTauComps, fJetToTauCompsUp, fJetToTauCompsDown);
         } else {
           fMuonJetToTauSSComp.GetComposition(leptonTwo.p4->Pt(), fTreeVars.twometdeltaphi, fTreeVars.mttwo, tauDecayMode,
-                                             leptonOne.p4->Pt(), fTreeVars.onemetdeltaphi, fTreeVars.mtone,
+                                             leptonOne.p4->Pt(), fTreeVars.onemetdeltaphi, fTreeVars.mtone, fTreeVars.lepm,
                                              fYear, fJetToTauComps, fJetToTauCompsUp, fJetToTauCompsDown);
         }
       } else {
         if(chargeTest) {
           fElectronJetToTauComp.GetComposition(leptonTwo.p4->Pt(), fTreeVars.twometdeltaphi, fTreeVars.mttwo, tauDecayMode,
-                                               leptonOne.p4->Pt(), fTreeVars.onemetdeltaphi, fTreeVars.mtone,
+                                               leptonOne.p4->Pt(), fTreeVars.onemetdeltaphi, fTreeVars.mtone, fTreeVars.lepm,
                                                fYear, fJetToTauComps, fJetToTauCompsUp, fJetToTauCompsDown);
         } else {
           fElectronJetToTauSSComp.GetComposition(leptonTwo.p4->Pt(), fTreeVars.twometdeltaphi, fTreeVars.mttwo, tauDecayMode,
-                                                 leptonOne.p4->Pt(), fTreeVars.onemetdeltaphi, fTreeVars.mtone,
+                                                 leptonOne.p4->Pt(), fTreeVars.onemetdeltaphi, fTreeVars.mtone, fTreeVars.lepm,
                                                  fYear, fJetToTauComps, fJetToTauCompsUp, fJetToTauCompsDown);
         }
       }
@@ -1939,24 +1957,24 @@ void HistMaker::InitializeEventWeights() {
         if(mutau) {
           fJetToTauWts[proc]   = (fMuonJetToTauWeights[proc]->GetDataFactor(tauDecayMode, fYear, leptonTwo.p4->Pt(), leptonTwo.p4->Eta(), leptonOne.p4->Pt(),
                                                                             leptonOne.p4->DeltaR(*leptonTwo.p4),
-                                                                            fTreeVars.onemetdeltaphi, fTreeVars.lepm, fTreeVars.mtlep, leptonOne.iso/leptonOne.p4->Pt(),
+                                                                            fTreeVars.onemetdeltaphi, fTreeVars.lepm, fTreeVars.mtlep, leptonOne.iso/leptonOne.p4->Pt(), fMvaUse[1],
                                                                             &fJetToTauAltUp[proc*kMaxAltFunc], &fJetToTauAltDown[proc*kMaxAltFunc], fJetToTauAltNum[proc],
                                                                             fJetToTauCorrs[proc], jetToTauWeightCorrUp, jetToTauWeightCorrDown,
                                                                             fJetToTauBiases[proc]));
           fJetToTauMCWts[proc] = (fMuonJetToTauMCWeights[proc]->GetDataFactor(tauDecayMode, fYear, leptonTwo.p4->Pt(), leptonTwo.p4->Eta(), leptonOne.p4->Pt(),
                                                                               leptonOne.p4->DeltaR(*leptonTwo.p4),
-                                                                              fTreeVars.onemetdeltaphi, fTreeVars.lepm, fTreeVars.mtlep, leptonOne.iso/leptonOne.p4->Pt(),
+                                                                              fTreeVars.onemetdeltaphi, fTreeVars.lepm, fTreeVars.mtlep, leptonOne.iso/leptonOne.p4->Pt(), fMvaUse[1],
                                                                               fJetToTauMCCorrs[proc], fJetToTauMCBiases[proc]));
         } else {
           fJetToTauWts[proc]   = (fElectronJetToTauWeights[proc]->GetDataFactor(tauDecayMode, fYear, leptonTwo.p4->Pt(), leptonTwo.p4->Eta(), leptonOne.p4->Pt(),
                                                                                 leptonOne.p4->DeltaR(*leptonTwo.p4),
-                                                                                fTreeVars.onemetdeltaphi, fTreeVars.lepm, fTreeVars.mtlep, leptonOne.iso/leptonOne.p4->Pt(),
+                                                                                fTreeVars.onemetdeltaphi, fTreeVars.lepm, fTreeVars.mtlep, leptonOne.iso/leptonOne.p4->Pt(), fMvaUse[3],
                                                                                 &fJetToTauAltUp[proc*kMaxAltFunc], &fJetToTauAltDown[proc*kMaxAltFunc], fJetToTauAltNum[proc],
                                                                                 fJetToTauCorrs[proc], jetToTauWeightCorrUp, jetToTauWeightCorrDown,
                                                                                 fJetToTauBiases[proc]));
           fJetToTauMCWts[proc] = (fElectronJetToTauMCWeights[proc]->GetDataFactor(tauDecayMode, fYear, leptonTwo.p4->Pt(), leptonTwo.p4->Eta(), leptonOne.p4->Pt(),
                                                                                   leptonOne.p4->DeltaR(*leptonTwo.p4),
-                                                                                  fTreeVars.onemetdeltaphi, fTreeVars.lepm, fTreeVars.mtlep, leptonOne.iso/leptonOne.p4->Pt(),
+                                                                                  fTreeVars.onemetdeltaphi, fTreeVars.lepm, fTreeVars.mtlep, leptonOne.iso/leptonOne.p4->Pt(), fMvaUse[3],
                                                                                   fJetToTauMCCorrs[proc], fJetToTauMCBiases[proc]));
         }
         if(proc == JetToTauComposition::kTop && fJetToTauBiases[proc] != 1.f) {
@@ -2426,6 +2444,7 @@ void HistMaker::EvalMVAs(TString TimerName) {
     fMvaCDFs[i] =  0.f;
     fMvaLogP[i] = -3.f;
     fMvaFofP[i] = -1.f;
+    fMvaUse [i] = -2.f;
     if(mva[i]) {
       fMvaOutputs[i] = mva[i]->EvaluateMVA(fMVAConfig->names_[i].Data());
       if(fVerbose > 0) printf("  MVA %i (%s) has score %.5f\n", i, fMVAConfig->names_[i].Data(), fMvaOutputs[i]);
@@ -2476,6 +2495,8 @@ void HistMaker::EvalMVAs(TString TimerName) {
       // fMvaFofP[i] = (fMvaCDFs[i] > min_p) ? 1.f/8.f*fMvaLogP[i]+std::pow(fMvaCDFs[i],2) : 1.f/8.f*min_log_p + min_p*min_p;
       // fMvaFofP[i] = (fMvaFofP[i] - (1.f/8.f*min_log_p + min_p*min_p)) / (1.f - (1.f/8.f*min_log_p + min_p*min_p));
     }
+    //function of the MVA score to use in fits/plotting
+    fMvaUse[i] = (fUseCDFBDTs == 1) ? fMvaCDFs[i] : (fUseCDFBDTs == 2) ? fMvaFofP[i] : fMvaOutputs[i];
   }
   if(eval_timer) IncrementTimer(TimerName.Data(), true);
 }
@@ -3029,6 +3050,7 @@ void HistMaker::CountJets() {
     if(Jet_TaggedAsRemovedByTau[ijet]) continue; //overlapping a hadronic tau
     const float jetpt  = Jet_pt [ijet];
     const float jeteta = Jet_eta[ijet];
+    const float jetphi = Jet_phi[ijet];
     if(jetpt < min_jet_pt) continue; //too low of jet pt
 
     //Restrict to less-forward jets
@@ -3074,6 +3096,7 @@ void HistMaker::CountJets() {
         //save info for jet b-tag efficiency
         jetsPt    [nJets20-1] = jetpt;
         jetsEta   [nJets20-1] = jeteta;
+        jetsPhi   [nJets20-1] = jetphi;
         jetsBTag  [nJets20-1] = jetBTag;
         jetsFlavor[nJets20-1] = (fIsData || fIsEmbed) ? 0 : Jet_partonFlavour[ijet];
       }
@@ -3332,8 +3355,17 @@ void HistMaker::FillBaseEventHistogram(EventHist_t* Hist) {
   const float met_no_corr(std::sqrt(met_x_orig*met_x_orig + met_y_orig*met_y_orig));
   Hist->hMetNoCorr         ->Fill(met_no_corr        , eventWeight*genWeight);
 
+  //mt(x, y) ~ sqrt(x*y) --> mt(x+-sigma_x,y) ~ sqrt(x+-sigma_x)/sqrt(x)*mt, sigma(mt) ~ mt*sqrt((x+-sigma_x)/x + (y+-sigma_y)/y)
+  float mtone_up   = fTreeVars.mtone*std::sqrt((leptonOne.pt_up  ()/leptonOne.pt) + met*(1.f+met_err_up  ));
+  float mtone_down = fTreeVars.mtone*std::sqrt((leptonOne.pt_down()/leptonOne.pt) + met*(1.f+met_err_down));
+  float mttwo_up   = fTreeVars.mttwo*std::sqrt((leptonTwo.pt_up  ()/leptonTwo.pt) + met*(1.f+met_err_up  ));
+  float mttwo_down = fTreeVars.mttwo*std::sqrt((leptonTwo.pt_down()/leptonTwo.pt) + met*(1.f+met_err_down));
   Hist->hMTOne             ->Fill(fTreeVars.mtone    , eventWeight*genWeight);
+  Hist->hMTOneUp           ->Fill(mtone_up           , eventWeight*genWeight);
+  Hist->hMTOneDown         ->Fill(mtone_down         , eventWeight*genWeight);
   Hist->hMTTwo             ->Fill(fTreeVars.mttwo    , eventWeight*genWeight);
+  Hist->hMTTwoUp           ->Fill(mttwo_up           , eventWeight*genWeight);
+  Hist->hMTTwoDown         ->Fill(mttwo_down         , eventWeight*genWeight);
   Hist->hMTLead            ->Fill(fTreeVars.mtlead   , eventWeight*genWeight);
   Hist->hMTTrail           ->Fill(fTreeVars.mttrail  , eventWeight*genWeight);
   Hist->hMTLep             ->Fill(fTreeVars.mtlep    , eventWeight*genWeight);
@@ -3457,6 +3489,14 @@ void HistMaker::FillBaseLepHistogram(LepHist_t* Hist) {
   /////////////
   Hist->hOnePz        ->Fill(leptonOne.p4->Pz()            ,eventWeight*genWeight);
   Hist->hOnePt[0]     ->Fill(fTreeVars.leponept            ,eventWeight*genWeight);
+  Hist->hOnePtUp      ->Fill(leptonOne.pt_up()             ,eventWeight*genWeight);
+  //fill pt down only if it would pass the event cuts
+  const Float_t tmp_one_pt = leptonOne.pt;
+  leptonOne.pt = leptonOne.pt_down();
+  if(PassesCuts()) {
+    Hist->hOnePtDown    ->Fill(leptonOne.pt                ,eventWeight*genWeight);
+  }
+  leptonOne.pt = tmp_one_pt;
   Hist->hOneMomErr    ->Fill(std::fabs(1.f - leptonOne.ES[1]/leptonOne.ES[0]), eventWeight*genWeight);
   Hist->hOneEta       ->Fill(leptonOne.p4->Eta()           ,eventWeight*genWeight);
   Hist->hOneSCEta     ->Fill(leptonOne.scEta               ,eventWeight*genWeight);
@@ -3489,6 +3529,14 @@ void HistMaker::FillBaseLepHistogram(LepHist_t* Hist) {
 
   Hist->hTwoPz        ->Fill(leptonTwo.p4->Pz()            ,eventWeight*genWeight);
   Hist->hTwoPt[0]     ->Fill(fTreeVars.leptwopt            ,eventWeight*genWeight);
+  Hist->hTwoPtUp      ->Fill(leptonTwo.pt_up()             ,eventWeight*genWeight);
+  //fill pt down only if it would pass the event cuts
+  const Float_t tmp_two_pt = leptonTwo.pt;
+  leptonTwo.pt = leptonTwo.pt_down();
+  if(PassesCuts()) {
+    Hist->hTwoPtDown    ->Fill(leptonTwo.pt                ,eventWeight*genWeight);
+  }
+  leptonTwo.pt = tmp_two_pt;
   Hist->hTwoMomErr    ->Fill(std::fabs(1.f - leptonTwo.ES[1]/leptonTwo.ES[0]), eventWeight*genWeight);
   Hist->hTwoEta       ->Fill(leptonTwo.p4->Eta()           ,eventWeight*genWeight);
   Hist->hTwoSCEta     ->Fill(leptonTwo.scEta               ,eventWeight*genWeight);

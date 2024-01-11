@@ -7,6 +7,39 @@ int     verbose_     = 0;
 TString name_           ; //figures directory
 int     setqcd_         ; //set to estimate QCD background in
 TString selection_      ;
+bool    preserve_clip_int_ = 1; //preserve the integral of histograms when clipping negative values
+
+//-----------------------------------------------------------------------------------------------------------------------------------------
+//ensure reasonable bin values
+void make_safe(TH1* h) {
+  const double integral = h->Integral(0,h->GetNbinsX()+1);
+  for(int ibin = 0; ibin <= h->GetNbinsX()+1; ++ibin) {
+    const double binc(h->GetBinContent(ibin));
+    const double bine(h->GetBinError  (ibin));
+    if(!std::isfinite(binc) || !std::isfinite(bine) || binc < 0.) {
+      h->SetBinContent(ibin, 0.);
+      h->SetBinError  (ibin, 0.);
+    }
+  }
+  if(preserve_clip_int_ && integral > 0.) h->Scale(integral/h->Integral(0,h->GetNbinsX()+1));
+}
+
+//-----------------------------------------------------------------------------------------------------------------------------------------
+//ensure reasonable bin values (2D histograms)
+void make_safe(TH2* h) {
+  const double integral = h->Integral(0,h->GetNbinsX()+1, 0, h->GetNbinsY()+1);
+  for(int xbin = 0; xbin <= h->GetNbinsX()+1; ++xbin) {
+    for(int ybin = 0; ybin <= h->GetNbinsY()+1; ++ybin) {
+      const double binc(h->GetBinContent(xbin,ybin));
+      const double bine(h->GetBinError  (xbin,ybin));
+      if(!std::isfinite(binc) || !std::isfinite(bine) || binc < 0.) {
+        h->SetBinContent(xbin, ybin, 0.);
+        h->SetBinError  (xbin, ybin, 0.);
+      }
+    }
+  }
+  if(preserve_clip_int_ && integral > 0.) h->Scale(integral/h->Integral(0,h->GetNbinsX()+1, 0, h->GetNbinsY()+1));
+}
 
 //-----------------------------------------------------------------------------------------------------------------------------------------
 // Estimate the QCD using Data - MC
@@ -31,11 +64,108 @@ TH1* get_qcd(PlottingCard_t card) {
 }
 
 //-----------------------------------------------------------------------------------------------------------------------------------------
-void make_composition(PlottingCard_t card, bool printHists = false, bool debug = false) {
+// Plot 1D slices of a 2D distribution
+void slice_2d(std::vector<TH2*> histograms, PlottingCard_t card, const bool printHists = false, const bool debug = false) {
   TString hist = card.hist_;
   TString type = card.type_;
   const int set = card.set_;
-  if(card.rebin_ > 1) dataplotter_->rebinH_ = card.rebin_;
+
+  //check the histograms are defined
+  if(histograms.size() == 0 || !histograms[0]) return;
+
+  if(debug) {
+    cout << __func__ << ": Plotting hist " << hist.Data() << endl;
+    for(unsigned ihist = 0; ihist < histograms.size(); ++ihist) {
+      cout << " Label " << histograms[ihist]->GetTitle() << " has integral = " << histograms[ihist]->Integral() << endl;
+    }
+  }
+
+  //ensure each histogram is well defined
+  for(auto h : histograms) make_safe(h);
+
+  //construct the total histogram
+  TH2* total_2d = (TH2*) histograms[0]->Clone(Form("%s_total", histograms[0]->GetName()));
+  for(unsigned ihist = 1; ihist < histograms.size(); ++ihist) total_2d->Add(histograms[ihist]);
+
+  //construct the 2D compositions
+  std::vector<TH2*> compositions;
+  for(unsigned ihist = 0; ihist < histograms.size(); ++ihist) {
+    if(debug) cout << histograms[ihist]->GetName() << ": " << histograms[ihist]->GetTitle() << endl;
+    TH2* comp = (TH2*) histograms[ihist]->Clone(Form("hComposition_%s_%s", hist.Data(), histograms[ihist]->GetTitle()));
+    comp->Divide(total_2d);
+    compositions.push_back(comp);
+    if(printHists) comp->Write(); //save the histograms to output if requested
+  }
+
+  //loop through the x-axis bins
+  const int nxbins = histograms[0]->GetNbinsX();
+  for(int ixbin = 1; ixbin <= nxbins; ++ixbin) {
+    if(debug) cout << " Performing slice " << ixbin << endl;
+
+    //create a stack of the 1D projections
+    THStack* stack = new THStack(Form("stack_%s_%i", hist.Data(), ixbin), Form("stack_%s_%i", hist.Data(), ixbin));
+    for(unsigned ihist = 0; ihist < histograms.size(); ++ihist) {
+      TH1* h = histograms[ihist]->ProjectionY(Form("%s_%i_%i", hist.Data(), ixbin, ihist), ixbin, ixbin);
+      h->SetTitle(histograms[ihist]->GetTitle());
+      h->SetFillColor(histograms[ihist]->GetFillColor());
+      h->SetFillStyle(histograms[ihist]->GetFillStyle());
+      h->SetLineColor(histograms[ihist]->GetLineColor());
+      if(debug) {
+        cout << "  Adding label " << h->GetTitle() << " with integral " << h->Integral() << endl;
+      }
+      // make_safe(h); //ensure no negative bins
+      stack->Add(h);
+    }
+
+    //create a stack of the compositions
+    THStack* comp  = new THStack(Form("comp_%s_%i" , hist.Data(), ixbin), Form("comp_%s_%i" , hist.Data(), ixbin));
+    for(unsigned ihist = 0; ihist < histograms.size(); ++ihist) {
+      TH1* h = compositions[ihist]->ProjectionY(Form("%s_%i_%i_comp", hist.Data(), ixbin, ihist), ixbin, ixbin);
+      h->SetTitle(histograms[ihist]->GetTitle());
+      h->SetFillColor(histograms[ihist]->GetFillColor());
+      h->SetFillStyle(histograms[ihist]->GetFillStyle());
+      h->SetLineColor(histograms[ihist]->GetLineColor());
+      if(debug) {
+        cout << "  Adding label " << h->GetTitle() << " composition with integral " << h->Integral() << endl;
+      }
+      // make_safe(h); //ensure no negative bins
+      comp->Add(h);
+    }
+    TCanvas* c = new TCanvas(Form("c_%s_%i", hist.Data(), ixbin), Form("c_%s_%i", hist.Data(), ixbin), 1000, 600);
+    c->Divide(2,1);
+    auto pad = c->cd(1);
+    stack->Draw("hist noclear");
+    stack->SetMaximum(stack->GetMaximum()*3.);
+    pad->SetLogy();
+    TLegend* leg = new TLegend(0.7, 0.7, 0.9, 0.9);
+    for(auto o : *stack->GetHists()) leg->AddEntry(o, o->GetTitle(), "F");
+    leg->Draw();
+    c->cd(2);
+    comp->Draw("hist noclear");
+    comp->SetMaximum(1.05);
+    comp->SetMinimum(0.);
+    leg->Draw();
+    c->Modified(); c->Update();
+    if(card.xmin_ < card.xmax_ && comp->GetXaxis()) comp->GetXaxis()->SetRangeUser(card.xmin_, card.xmax_);
+    c->Modified(); c->Update();
+
+
+    c->Print(Form("%scomp_%s_%s_%i.png", name_.Data(), type.Data(), hist.Data(), ixbin));
+    delete c;
+
+    for(auto o : *(stack->GetHists())) delete o;
+    for(auto o : *(comp ->GetHists())) delete o;
+    delete comp;
+    delete stack;
+  }
+}
+
+//-----------------------------------------------------------------------------------------------------------------------------------------
+void make_composition(PlottingCard_t card, const bool printHists = false, const bool debug = false, const bool is_2d = false) {
+  TString hist = card.hist_;
+  TString type = card.type_;
+  const int set = card.set_;
+  if(card.rebin_ > 1 && !is_2d) dataplotter_->rebinH_ = card.rebin_;
   else dataplotter_->rebinH_ = 1;
 
   //Get MC stack
@@ -47,6 +177,21 @@ void make_composition(PlottingCard_t card, bool printHists = false, bool debug =
   if(!hQCD) return;
   hQCD->SetLineColor(dataplotter_->qcd_color_);
   hQCD->SetFillColor(dataplotter_->qcd_color_);
+
+
+  //Check if a 2D plot
+  if(is_2d) {
+    //create a list of histograms
+    std::vector<TH2*> histograms;
+    for(int ihist = 0; ihist < hstack->GetNhists(); ++ihist) {
+      TH2* h = (TH2*) hstack->GetHists()->At(ihist);
+      histograms.push_back(h);
+    }
+    hQCD->SetTitle("QCD");
+    histograms.push_back((TH2*) hQCD);
+    slice_2d(histograms, card, printHists, debug);
+    return;
+  }
 
   if(debug) cout << "Composition for: hist = " << hist.Data() << " type = " << type.Data() << endl
                  << "Integrals:\n QCD = " << hQCD->Integral() << endl;
@@ -105,6 +250,7 @@ void make_composition(PlottingCard_t card, bool printHists = false, bool debug =
   TCanvas* c = new TCanvas(Form("c_%s", hist.Data()), Form("c_%s", hist.Data()), 1000, 600);
   c->Divide(2,1);
   auto pad = c->cd(1);
+  // hstack->Add(hQCD_orig);
   hstack->Draw("hist noclear");
   // pad->Modified(); c->Modified();
   // pad->Update(); c->Update();
@@ -142,6 +288,7 @@ Int_t initialize_plotter(int year) {
   dataplotter_->qcd_scale_     = 1.;
   dataplotter_->embed_scale_   = embedScale_;
   dataplotter_->doStatsLegend_ = false;
+  dataplotter_->clip_negative_ = true;
   years_ = {year};
   useEmbed_ = 0;
 
@@ -228,10 +375,15 @@ Int_t composition(TString selection = "mutau", int setmc = 2042, int setqcd = 30
   make_composition(PlottingCard_t("jettaumttwocomp"     , "lep", setmcAbs, 1, 1.,-1.), true);
   make_composition(PlottingCard_t("jettauoneptcomp"     , "lep", setmcAbs, 1, 1.,-1.), true);
   make_composition(PlottingCard_t("jettautwoptcomp"     , "lep", setmcAbs, 1, 1.,-1.), true);
+  make_composition(PlottingCard_t("jettaulepmcomp"      , "lep", setmcAbs, 1, 1.,-1.), true);
   make_composition(PlottingCard_t("mtone", "event", setmcAbs, 5, 0., 150.), false);
   make_composition(PlottingCard_t("mttwo", "event", setmcAbs, 5, 0., 150.), false);
   make_composition(PlottingCard_t("mtlep", "event", setmcAbs, 5, 0., 150.), false);
+  make_composition(PlottingCard_t("lepm" , "event", setmcAbs, 5,40., 170.), false);
   make_composition(PlottingCard_t("taudecaymode", "event", setmcAbs, 0, 1., -1.), false);
+
+  //Make 2D compositions
+  make_composition(PlottingCard_t("jettaulepmvsmtonecomp", "lep", setmcAbs, 1, 1.,-1.), true, false, true);
 
   //Decay mode dependent compositions
   make_composition(PlottingCard_t("jettauonemetdeltaphi_0", "lep", setmcAbs, 1, 0., 4.), false);

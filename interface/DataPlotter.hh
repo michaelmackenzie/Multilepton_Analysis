@@ -412,6 +412,21 @@ namespace CLFV {
       return plot_cdf(card.hist_, card.type_, card.set_, card.label_, card.xmin_, card.xmax_);
     }
 
+    TCanvas* plot_roc(TString hist, TString setType, Int_t set, bool cut_low = true);
+    TCanvas* plot_roc(TString hist, TString setType, Int_t set, Double_t xmin, Double_t xmax, bool cut_low = true) {
+      xMin_ = xmin; xMax_=xmax; auto c = plot_roc(hist, setType, set, cut_low); reset_axes(); return c;
+    }
+    TCanvas* plot_roc(PlottingCard_t card, bool cut_low = true) {
+      rebinH_ = card.rebin_;
+      blindxmin_ = card.blindmin_;
+      blindxmax_ = card.blindmax_;
+      if(card.plot_data_ < 100)
+        plot_data_ = card.plot_data_;
+      if(card.data_over_mc_ < 100)
+        data_over_mc_ = card.data_over_mc_;
+      return plot_roc(card.hist_, card.type_, card.set_, card.xmin_, card.xmax_, cut_low);
+    }
+
 
     TCanvas* plot_significance(TString hist, TString setType, Int_t set, TString label, bool dir,
                                        Double_t line_val, bool doVsEff, TString label1, TString label2);
@@ -509,6 +524,21 @@ namespace CLFV {
       if(card.data_over_mc_ < 100)
         data_over_mc_ = card.data_over_mc_;
       return print_cdf(card.hist_, card.type_, card.set_, card.label_, card.xmin_, card.xmax_, card.tag_);
+    }
+
+    TCanvas* print_roc(TString hist, TString setType, Int_t set, bool cut_low = false, TString tag = "");
+    TCanvas* print_roc(TString hist, TString setType, Int_t set, Double_t xmin, Double_t xmax, bool cut_low = false, TString tag = "") {
+      xMin_ = xmin; xMax_=xmax; auto c = print_roc(hist, setType, set, cut_low, tag); reset_axes(); return c;
+    }
+    TCanvas* print_roc(PlottingCard_t card, bool cut_low = false) {
+      rebinH_ = card.rebin_;
+      blindxmin_ = card.blindmin_;
+      blindxmax_ = card.blindmax_;
+      if(card.plot_data_ < 100)
+        plot_data_ = card.plot_data_;
+      if(card.data_over_mc_ < 100)
+        data_over_mc_ = card.data_over_mc_;
+      return print_roc(card.hist_, card.type_, card.set_, card.xmin_, card.xmax_, cut_low, card.tag_);
     }
 
     TCanvas* print_significance(TString hist, TString setType, Int_t set, TString label, bool dir = false,

@@ -21,6 +21,8 @@ namespace CLFV {
 
     float GetPDFWeight        (int year, float z_pt, float z_eta, float z_mass, int index = -1);
     void  GetPDFWeight        (int year, float z_pt, float z_eta, float z_mass, float* weights, unsigned& npdf);
+    float GetPDFScale         (int year, int index); //scale factor applied to a PDF set to prevent cross section changes
+
     float GetRenormScaleWeight(int year, float z_pt, float z_mass);
     float GetFactorScaleWeight(int year, float z_pt, float z_mass);
 
@@ -29,6 +31,7 @@ namespace CLFV {
     std::map<int, TH2*> hPDF_   ; //scales using generator level quantities
     std::map<int, TH2*> hScaleR_;
     std::map<int, TH2*> hScaleF_;
+    std::map<int, float> pdf_scale_; //scale factor applied to PDF weight to remove cross-section change
     bool useEnvelope_; //use all PDFs given in a certain year
   };
 }

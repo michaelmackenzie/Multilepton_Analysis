@@ -50,6 +50,8 @@ CrossSections::CrossSections(int /*useUL*/, int /*ZMode*/) {
   values_["ttbarToSemiLeptonic"     ][2016] =  365.35 ;
   values_["ttbarlnu"                ][2016] =  88.29  ; //87.31  ;
   values_["ttbarToHadronic"         ][2016] =  377.96 ;
+  values_["ggFH-TauTau"             ][2016] =  3.05   ; //ggF H->tautau, taken from LFV H AN 2020/087
+  values_["ggFH-WW"                 ][2016] =  1.001  ; //ggF H->WW->2l 2nu, taken from LFV H AN 2020/087
   values_["SingleEle"               ][2016] =  1.     ;
   values_["SingleMu"                ][2016] =  1.     ;
   values_["QCDEMEnrich15to20"       ][2016] = 1327000.;

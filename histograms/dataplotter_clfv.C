@@ -3,7 +3,10 @@
 #define __DATAPLOTTER_CLFV__
 
 #include "datacards.C"
+
 using namespace CLFV;
+typedef std::pair<TString,TString> fpair;
+typedef std::pair<ScaleUncertainty_t,ScaleUncertainty_t> scale_pair;
 
 DataPlotter* dataplotter_ = 0;
 TString selection_ = "emu"; //current options: mutau, etau, emu, mutau_e, etau_mu, mumu, ee
@@ -28,9 +31,123 @@ int sigOverBkg_ = 0; //plot sig / bkg or data / MC (0 = data/MC, 1 = sig/MC, 2 =
 int useQCD_ = 0; //use qcd estimate
 int useMisID_ = 1; //use Mis-ID estimate
 bool cdfMVAs_ = true; //CDF transformed BDT scores are the default
-bool xgbBDT_  = true; //XGBoost BDT in Z->e+mu
+int xgbBDT_  = 1; //XGBoost BDT: 1: in Z->e+mu; 10: all channels
 
 int debug_ = 0;
+#include "standard_plots.C"
+
+Int_t print_sys_plot(PlottingCard_t nominal, PlottingCard_t up, PlottingCard_t down) {
+  if(!dataplotter_) return -1;
+  TH1*     hdata   = dataplotter_->get_data (nominal.hist_, nominal.type_, nominal.set_);
+  THStack* hnom_s  = dataplotter_->get_stack(nominal.hist_, nominal.type_, nominal.set_);
+  THStack* hup_s   = dataplotter_->get_stack(     up.hist_,      up.type_,      up.set_);
+  THStack* hdown_s = dataplotter_->get_stack(   down.hist_,    down.type_,    down.set_);
+  if(!hdata || !hnom_s || !hup_s || !hdown_s) return 1;
+  TH1* hnom  = (TH1*) hnom_s ->GetStack()->Last()->Clone(Form("%s_hist", hnom_s ->GetName()));
+  TH1* hup   = (TH1*) hup_s  ->GetStack()->Last()->Clone(Form("%s_hist", hup_s  ->GetName()));
+  TH1* hdown = (TH1*) hdown_s->GetStack()->Last()->Clone(Form("%s_hist", hdown_s->GetName()));
+  TCanvas* c = new TCanvas(Form("c_%s_%s_%i_sys", nominal.hist_.Data(), nominal.type_.Data(), nominal.set_), "c_sys",
+                           dataplotter_->canvas_x_, dataplotter_->canvas_y_);
+  TPad* pad1 = new TPad("pad1","pad1",dataplotter_->upper_pad_x1_, dataplotter_->upper_pad_y1_, dataplotter_->upper_pad_x2_, dataplotter_->upper_pad_y2_);
+  TPad* pad2 = new TPad("pad2","pad2",dataplotter_->lower_pad_x1_, dataplotter_->lower_pad_y1_, dataplotter_->lower_pad_x2_, dataplotter_->lower_pad_y2_);
+  pad1->SetTopMargin   (dataplotter_->upper_pad_topmargin_);
+  pad2->SetTopMargin   (dataplotter_->lower_pad_topmargin_);
+  pad1->SetBottomMargin(dataplotter_->upper_pad_botmargin_);
+  pad2->SetBottomMargin(dataplotter_->lower_pad_botmargin_);
+  pad1->Draw();
+  pad2->Draw();
+  pad1->cd();
+
+  //Add axis tick marks to all sides of the pads
+  gStyle->SetPadTickX(1);
+  gStyle->SetPadTickY(1);
+
+  //Setup histogram style
+  hnom ->SetLineColor(kRed);
+  hnom ->SetLineWidth(2);
+  hnom ->SetFillColor(0);
+  hup  ->SetLineColor(kRed);
+  hup  ->SetLineWidth(2);
+  hup  ->SetFillColor(0);
+  hup  ->SetLineStyle(kDashed);
+  hdown->SetLineColor(kRed);
+  hdown->SetLineWidth(2);
+  hdown->SetFillColor(0);
+  hdown->SetLineStyle(kDashed);
+
+  hdata->SetTitle("");
+
+  //Draw histograms
+  hdata->Draw("E1");
+  hnom ->Draw("hist same");
+  hup  ->Draw("hist same");
+  hdown->Draw("hist same");
+
+  //configure axes
+  const double xmin = (nominal.xmin_ < nominal.xmax_) ? nominal.xmin_ :  1.;
+  const double xmax = (nominal.xmin_ < nominal.xmax_) ? nominal.xmax_ : -1.;
+  double max_val = max(hdata->GetMaximum(), max(hnom->GetMaximum(), max(hup->GetMaximum(), hdown->GetMaximum())));
+  double min_val = max(hdata->GetMinimum(), max(hnom->GetMinimum(), max(hup->GetMinimum(), hdown->GetMinimum())));
+  hdata->GetYaxis()->SetRangeUser(max(0.8, min_val/dataplotter_->linear_buffer_), dataplotter_->linear_buffer_*max_val);
+  if(xmin < xmax) hdata->GetXaxis()->SetRangeUser(xmin, xmax);
+  hdata->GetXaxis()->SetTitleSize(dataplotter_->axis_font_size_);
+  hdata->GetXaxis()->SetTitleSize(dataplotter_->axis_font_size_);
+
+  //Make ratio plots
+  pad2->cd();
+  TH1* hdata_r = (TH1*) hdata->Clone(Form("%s_r", hdata->GetName()));
+  TH1* hdata_u = (TH1*) hup  ->Clone(Form("%s_r", hdata->GetName()));
+  TH1* hdata_d = (TH1*) hdown->Clone(Form("%s_r", hdata->GetName()));
+  for(int ibin = 1; ibin <= hdata_r->GetNbinsX(); ++ibin) {
+    const double binc   = hdata->GetBinContent(ibin);
+    const double binc_m = hnom ->GetBinContent(ibin);
+    const double binc_u = hup  ->GetBinContent(ibin);
+    const double binc_d = hdown->GetBinContent(ibin);
+    if(binc <= 0.) {
+      hdata_r->SetBinContent(ibin, 0.); hdata_r->SetBinError(ibin, 0.);
+      hdata_u->SetBinContent(ibin, 0.); hdata_u->SetBinError(ibin, 0.);
+      hdata_d->SetBinContent(ibin, 0.); hdata_d->SetBinError(ibin, 0.);
+    } else {
+      hdata_r->SetBinContent(ibin, (binc_m <= 0.) ? -1. : binc / binc_m); hdata_r->SetBinError(ibin, 1./sqrt(binc));
+      hdata_u->SetBinContent(ibin, (binc_u <= 0.) ? -1. : binc / binc_u); hdata_u->SetBinError(ibin, 1./sqrt(binc));
+      hdata_d->SetBinContent(ibin, (binc_d <= 0.) ? -1. : binc / binc_d); hdata_d->SetBinError(ibin, 1./sqrt(binc));
+    }
+  }
+  hdata_r->Draw("E1");
+  hdata_u->Draw("hist same");
+  hdata_d->Draw("hist same");
+  TLine* line = new TLine((xmin < xmax) ? xmin : hdata->GetBinCenter(1)-hdata->GetBinWidth(1)/2., 1.,
+                          (xmin < xmax) ? xmax : hdata->GetBinCenter(hdata->GetNbinsX())+hdata->GetBinWidth(1)/2., 1.);
+  line->SetLineColor(kRed);
+  line->SetLineWidth(2);
+  line->Draw("same");
+  hdata_r->Draw("same E1");
+
+  hdata_r->GetYaxis()->SetRangeUser(0.6, 1.4);
+  if(xmin < xmax) hdata_r->GetXaxis()->SetRangeUser(xmin, xmax);
+  hdata_r->GetXaxis()->SetTitleSize  (dataplotter_->axis_font_size_);
+  hdata_r->GetXaxis()->SetTitleOffset(dataplotter_->x_title_offset_);
+  hdata_r->GetXaxis()->SetLabelSize  (dataplotter_->x_label_size_);
+  hdata_r->GetYaxis()->SetTitleSize  (dataplotter_->axis_font_size_);
+  hdata_r->GetYaxis()->SetTitleOffset(dataplotter_->y_title_offset_);
+  hdata_r->GetYaxis()->SetLabelSize  (dataplotter_->y_label_size_);
+
+  TString xtitle, ytitle, title;
+  Titles::get_titles(nominal.hist_, nominal.type_, dataplotter_->selection_, &xtitle, &ytitle, &title);
+  hdata_r->SetXTitle(xtitle.Data());
+
+  pad1->SetGrid();
+  pad2->SetGrid();
+
+  //Print figure
+  TString fig_name = dataplotter_->GetFigureName(nominal.type_, nominal.hist_, nominal.set_, "env"); //envelope type
+  c->SaveAs(fig_name.Data());
+  DataPlotter::Empty_Canvas(c);
+  // delete hnom_s; delete hup_s; delete hdown_s;
+  // delete hdata; delete hnom; delete hup; delete hdown; delete pad1; delete pad2; delete c;
+
+  return 0;
+}
 
 Int_t print_significance_canvases(vector<TString> hists, vector<TString> types, vector<TString> labels, vector<int> sets) {
   TCanvas* c = 0;
@@ -1877,6 +1994,58 @@ Int_t print_embedding_debug_plots(bool doMC = false, bool doExtraEMu = false) {
   return status;
 }
 
+//print the theory uncertainty plots
+Int_t print_theory_uncertainty(vector<int> sets = {25}) {
+  Int_t status = 0;
+  if(!dataplotter_) return 1;
+
+  const bool same_flavor = (selection_ == "ee"   || selection_ == "mumu" );
+
+  TString mva = "mva";
+  if     (selection_ == "mutau"  ) mva += "1";
+  else if(selection_ == "etau"   ) mva += "3";
+  else if(selection_ == "emu"    ) mva += "5";
+  else if(selection_ == "mutau_e") mva += "7";
+  else if(selection_ == "etau_mu") mva += "9";
+  else                             mva += "5"; //same flavor use Z->e+mu MVA
+
+
+  CLFV::Systematics sys_info;
+  std::vector<fpair> sys;
+  std::vector<scale_pair> scale_sys;
+  vector<int> sys_vals;
+  for(int ipdf = 0; ipdf <= 30; ++ipdf) {
+    sys_vals.push_back(sys_info.GetNum(Form("TheoryPDF%i", ipdf)));
+  }
+  for(int isys : sys_vals) {
+    if(isys < CLFV::kMaxSystematics) {
+      sys.push_back(fpair(mva + Form("_%i", isys), mva + Form("_%i", isys+1)));
+    } else {
+      std::pair<ScaleUncertainty_t,ScaleUncertainty_t> sys_pair(sys_info.GetScale(isys), sys_info.GetScale(isys+1));
+      if(sys_pair.first.name_ != "" && sys_pair.second.name_ != "") {
+        scale_sys.push_back(sys_pair);
+      }
+    }
+  }
+
+  bool xgbBDT = xgbBDT_ && (selection_ == "emu" || same_flavor);
+  double xmin = (cdfMVAs_ || xgbBDT) ? 0. : -0.8;
+  double xmax = (cdfMVAs_ || xgbBDT) ? 1. :  0.4;
+  double blind_min = (cdfMVAs_ || xgbBDT) ? 0.5 :  0.;
+  double cdf_blind = 0.5;
+  if(same_flavor) {blind_min = 1e3; cdf_blind = 1e3;}
+
+  for(int set : sets) {
+    PlottingCard_t card((mva+"_0").Data(), "systematic", set,  0, xmin, xmax, blind_min, 1.);
+    card.sys_list_ = sys;
+    card.scale_sys_list_ = scale_sys;
+    card.tag_ = "pdf";
+    TCanvas* c = dataplotter_->print_stack(card);
+    if(c) DataPlotter::Empty_Canvas(c); else ++status;
+  }
+
+  return status;
+}
 
 //print standard  debugging plots
 Int_t print_basic_debug_plots(bool test_trigger = false, bool doMC = false,
@@ -1955,7 +2124,7 @@ Int_t print_basic_debug_plots(bool test_trigger = false, bool doMC = false,
   }
 
   const float mass_min = (selection_.EndsWith("tau")) ? 40. : (selection_.Contains("_")) ? 40. : 70.;
-  const float mass_max = (selection_ == "emu") ? 110. : 170.;
+  const float mass_max = (selection_.Contains("tau")) ? 170. : 110.;
   vector<PlottingCard_t> cards;
   if(selection_ != "emu" && !selection_.Contains("_")) {
     cards.push_back(PlottingCard_t("lepm"            , "event", 5, mass_min, mass_max));
@@ -1969,8 +2138,12 @@ Int_t print_basic_debug_plots(bool test_trigger = false, bool doMC = false,
     cards.push_back(PlottingCard_t("leppt1"          , "event", 2,  0., 100.));
     cards.push_back(PlottingCard_t("leppt2"          , "event", 2,  0., 100.));
     cards.push_back(PlottingCard_t("onept8"          , "lep"  , 1, 10., 120.)); //no Z pT vs M weight
-    cards.push_back(PlottingCard_t("metu1"           , "event", 1, 1., -1.));
-    cards.push_back(PlottingCard_t("metu2"           , "event", 1, 1., -1.));
+    cards.push_back(PlottingCard_t("onept12"         , "lep"  , 1, 10., 120.)); //mom/energy err up
+    cards.push_back(PlottingCard_t("twopt12"         , "lep"  , 1, 10., 120.));
+    cards.push_back(PlottingCard_t("onept13"         , "lep"  , 1, 10., 120.)); //mom/energy err down
+    cards.push_back(PlottingCard_t("twopt13"         , "lep"  , 1, 10., 120.));
+    // cards.push_back(PlottingCard_t("metu1"           , "event", 1, 1., -1.));
+    // cards.push_back(PlottingCard_t("metu2"           , "event", 1, 1., -1.));
   }
 
   //lepton pT
@@ -1980,43 +2153,50 @@ Int_t print_basic_debug_plots(bool test_trigger = false, bool doMC = false,
   cards.push_back(PlottingCard_t("twopt"           , "lep"  , 2, (tau_set) ? 20. : 10., 120.));
   cards.push_back(PlottingCard_t("twoeta"          , "lep"  , 2,  1.,  -1.));
   cards.push_back(PlottingCard_t("ptdiff"          , "lep"  , 2, (same_flavor) ? -5. : -50,  (same_flavor) ? 75. : 50.));
-  cards.push_back(PlottingCard_t("ptratio"         , "lep"  , 1, 0., 2.5));
-  if(emu) {
+  cards.push_back(PlottingCard_t("ptratio"         , "lep"  , (same_flavor) ? 1 : 2, 0., 2.5));
+  if(emu || same_flavor) {
     cards.push_back(PlottingCard_t("pttrailoverlead", "lep"  , 1, 0., 1.));
   }
 
   //MET, di-lepton projection variables
   if(tau_set) {
     cards.push_back(PlottingCard_t("taudecaymode"     , "event", 0,  0.,  15.));
-    cards.push_back(PlottingCard_t("lepmestimate"     , "event", 1, mass_min, mass_max, 80., 100.));
-    cards.push_back(PlottingCard_t("lepmestimatethree", "event", 1, mass_min, mass_max, 80., 100.)); //met --> neutrino mass
-    cards.push_back(PlottingCard_t("lepmbalance"      , "event", 1, mass_min, mass_max, 80., 100.)); //balance lepton pT
-    cards.push_back(PlottingCard_t("lepmestimateavg0" , "event", 1, mass_min, mass_max, 80., 100.)); //average balance and collinear neutrinos
-    cards.push_back(PlottingCard_t("lepmestimatecut0" , "event", 1, mass_min, mass_max, 80., 100.)); //collinear mass if neutrino estimate parallel
+    cards.push_back(PlottingCard_t("lepmestimate"     , "event", 2, mass_min, mass_max, 80., 100.));
+    cards.push_back(PlottingCard_t("lepmestimatethree", "event", 2, mass_min, mass_max, 80., 100.)); //met --> neutrino mass
+    cards.push_back(PlottingCard_t("lepmbalance"      , "event", 2, mass_min, mass_max, 80., 100.)); //balance lepton pT
+    cards.push_back(PlottingCard_t("lepmestimateavg0" , "event", 2, mass_min, mass_max, 80., 100.)); //average balance and collinear neutrinos
+    cards.push_back(PlottingCard_t("lepmestimatecut0" , "event", 2, mass_min, mass_max, 80., 100.)); //collinear mass if neutrino estimate parallel
   } else if(selection_.Contains("_")) {
-    cards.push_back(PlottingCard_t("lepmestimate"   , "event", 1, mass_min, mass_max, 80., 100.)); //collinear mass
-    cards.push_back(PlottingCard_t("lepmestimatetwo", "event", 1, mass_min, mass_max, 80., 100.)); //collinear mass
-    cards.push_back(PlottingCard_t("lepmestimatethree", "event", 1, mass_min, mass_max, 80., 100.)); //met --> neutrino mass
-    cards.push_back(PlottingCard_t("lepmestimatefour", "event", 1, mass_min, mass_max, 80., 100.)); //met --> neutrino mass
-    cards.push_back(PlottingCard_t("lepmbalance", "event", 1, mass_min, mass_max, 80., 100.)); //balance lepton pT
-    cards.push_back(PlottingCard_t("lepmbalancetwo", "event", 1, mass_min, mass_max, 80., 100.)); //balance lepton pT
-    cards.push_back(PlottingCard_t("lepmestimateavg0", "event", 1, mass_min, mass_max, 80., 100.)); //average balance and collinear neutrinos
-    cards.push_back(PlottingCard_t("lepmestimateavg1", "event", 1, mass_min, mass_max, 80., 100.)); //average balance and collinear neutrinos
-    cards.push_back(PlottingCard_t("lepmestimatecut0" , "event", 1, mass_min, mass_max, 80., 100.)); //collinear mass if neutrino estimate parallel
-    cards.push_back(PlottingCard_t("lepmestimatecut1" , "event", 1, mass_min, mass_max, 80., 100.)); //collinear mass if neutrino estimate parallel
+    cards.push_back(PlottingCard_t("lepmestimate"     , "event", 2, mass_min, mass_max, 80., 100.)); //collinear mass
+    cards.push_back(PlottingCard_t("lepmestimatetwo"  , "event", 2, mass_min, mass_max, 80., 100.)); //collinear mass
+    cards.push_back(PlottingCard_t("lepmestimatethree", "event", 2, mass_min, mass_max, 80., 100.)); //met --> neutrino mass
+    cards.push_back(PlottingCard_t("lepmestimatefour" , "event", 2, mass_min, mass_max, 80., 100.)); //met --> neutrino mass
+    cards.push_back(PlottingCard_t("lepmbalance"      , "event", 2, mass_min, mass_max, 80., 100.)); //balance lepton pT
+    cards.push_back(PlottingCard_t("lepmbalancetwo"   , "event", 2, mass_min, mass_max, 80., 100.)); //balance lepton pT
+    cards.push_back(PlottingCard_t("lepmestimateavg0" , "event", 2, mass_min, mass_max, 80., 100.)); //average balance and collinear neutrinos
+    cards.push_back(PlottingCard_t("lepmestimateavg1" , "event", 2, mass_min, mass_max, 80., 100.)); //average balance and collinear neutrinos
+    cards.push_back(PlottingCard_t("lepmestimatecut0" , "event", 2, mass_min, mass_max, 80., 100.)); //collinear mass if neutrino estimate parallel
+    cards.push_back(PlottingCard_t("lepmestimatecut1" , "event", 2, mass_min, mass_max, 80., 100.)); //collinear mass if neutrino estimate parallel
   } else if(selection_ == "emu") {
-    cards.push_back(PlottingCard_t("lepmestimate"   , "event", 1, mass_min, mass_max, 86., 96.));
-    cards.push_back(PlottingCard_t("lepmestimatetwo", "event", 1, mass_min, mass_max, 86., 96.));
-    cards.push_back(PlottingCard_t("lepmestimatecut0" , "event", 1, mass_min, mass_max, 86., 96.)); //collinear mass if neutrino estimate parallel
-    cards.push_back(PlottingCard_t("lepmestimatecut1" , "event", 1, mass_min, mass_max, 86., 96.)); //collinear mass if neutrino estimate parallel
+    cards.push_back(PlottingCard_t("lepmestimate"     , "event", 2, mass_min, mass_max, 86., 96.));
+    cards.push_back(PlottingCard_t("lepmestimatetwo"  , "event", 2, mass_min, mass_max, 86., 96.));
+    cards.push_back(PlottingCard_t("lepmestimatecut0" , "event", 2, mass_min, mass_max, 86., 96.)); //collinear mass if neutrino estimate parallel
+    cards.push_back(PlottingCard_t("lepmestimatecut1" , "event", 2, mass_min, mass_max, 86., 96.)); //collinear mass if neutrino estimate parallel
   } else {
     cards.push_back(PlottingCard_t("lepmestimate"   , "event", 1, mass_min, mass_max));
     cards.push_back(PlottingCard_t("lepmestimatetwo", "event", 1, mass_min, mass_max));
   }
-  cards.push_back(PlottingCard_t("deltaalpha0"     , "event", 1, -3.,   3., -0.8, 0.5)); //lep_1 = tau
-  cards.push_back(PlottingCard_t("deltaalpha1"     , "event", 1, -3.,   3., -0.8, 0.5)); //lep_2 = tau
-  cards.push_back(PlottingCard_t("beta0"           , "event", 1,  0.,   3., (selection_.EndsWith("_e")) ? 0.8 : 1.0, (selection_.EndsWith("_e")) ?  1.2 : -1.0));
-  cards.push_back(PlottingCard_t("beta1"           , "event", 1,  0.,   3., (selection_.EndsWith("_e")) ? 1.0 : 0.8, (selection_.EndsWith("_e")) ? -1.0 :  1.2));
+  if(same_flavor) {
+    cards.push_back(PlottingCard_t("deltaalpha0"     , "event", 1, -3.,   3.)); //lep_1 = tau
+    cards.push_back(PlottingCard_t("deltaalpha1"     , "event", 1, -3.,   3.)); //lep_2 = tau
+    cards.push_back(PlottingCard_t("beta0"           , "event", 1,  0.,   3.));
+    cards.push_back(PlottingCard_t("beta1"           , "event", 1,  0.,   3.));
+  } else {
+    cards.push_back(PlottingCard_t("deltaalpha0"     , "event", 1, -3.,   3., -0.8, 0.5)); //lep_1 = tau
+    cards.push_back(PlottingCard_t("deltaalpha1"     , "event", 1, -3.,   3., -0.8, 0.5)); //lep_2 = tau
+    cards.push_back(PlottingCard_t("beta0"           , "event", 2,  0.,   3., (selection_.EndsWith("_e")) ? 0.8 : 1.0, (selection_.EndsWith("_e")) ?  1.2 : -1.0));
+    cards.push_back(PlottingCard_t("beta1"           , "event", 2,  0.,   3., (selection_.EndsWith("_e")) ? 1.0 : 0.8, (selection_.EndsWith("_e")) ? -1.0 :  1.2));
+   }
 
   //ttbar rejection variables
   cards.push_back(PlottingCard_t("pzetavis"        , "event", 1,  1., -1.));
@@ -2058,16 +2238,21 @@ Int_t print_basic_debug_plots(bool test_trigger = false, bool doMC = false,
 
   //MET variables
   cards.push_back(PlottingCard_t("met"             , "event", 2,  0., 100.));
+  cards.push_back(PlottingCard_t("metup"           , "event", 2,  0., 100.));
+  cards.push_back(PlottingCard_t("metdown"         , "event", 2,  0., 100.));
+  cards.push_back(PlottingCard_t("metnocorr"       , "event", 2,  0., 100.));
   cards.push_back(PlottingCard_t("metsignificance" , "event", 1,  0.,   5.));
   cards.push_back(PlottingCard_t("mtone"           , "event", 5,  0., 150.));
   cards.push_back(PlottingCard_t("mttwo"           , "event", 5,  0., 150.));
   cards.push_back(PlottingCard_t("mtlep"           , "event", 5,  0., 150.));
   cards.push_back(PlottingCard_t("metdeltaphi"     , "event", 2,  0.,   5.));
-  if(emu) {
+  if(emu || same_flavor) {
     cards.push_back(PlottingCard_t("mtlead"        , "event", 1,  0., 150.));
     cards.push_back(PlottingCard_t("mttrail"       , "event", 1,  0., 150.));
     cards.push_back(PlottingCard_t("metdeltaphi"   , "event", 2,  0.,  3.2));
   }
+  cards.push_back(PlottingCard_t("detectormet"   , "event", 2,  0., 100.));
+  cards.push_back(PlottingCard_t("nupt"          , "event", 1,  0., 100.));
 
   //jet variables
   cards.push_back(PlottingCard_t("ht"              , "event", 2,  1.,  -1.));
@@ -2078,7 +2263,7 @@ Int_t print_basic_debug_plots(bool test_trigger = false, bool doMC = false,
 
   //di-lepton kinematics
   cards.push_back(PlottingCard_t("lepdeltar"       , "event", 5,  0.,   5.));
-  cards.push_back(PlottingCard_t("lepdeltaphi"     , "event", 1,  0.,   5.));
+  cards.push_back(PlottingCard_t("lepdeltaphi"     , "event", 2,  0.,   5.));
   cards.push_back(PlottingCard_t("lepdeltaeta"     , "event", 2,  0.,   5.));
   cards.push_back(PlottingCard_t("lepeta"          , "event", 2,  1., -1.));
 
@@ -2123,6 +2308,7 @@ Int_t print_basic_debug_plots(bool test_trigger = false, bool doMC = false,
   cards.push_back(PlottingCard_t("twoweight"         , "lep"  , 0,  0.5,  1.5));
   if(useEmbed_) {
     cards.push_back(PlottingCard_t("datarun"                 , "event", 0,   1 , -1 ));
+    cards.push_back(PlottingCard_t("runera"                  , "event", 0,   1 , -1 ));
     cards.push_back(PlottingCard_t("embeddingweight"         , "event", 0,   0., 0.4));
     cards.push_back(PlottingCard_t("embeddingunfoldingweight", "event", 0,  0.5, 1.5));
   }
@@ -2196,23 +2382,35 @@ Int_t print_basic_debug_plots(bool test_trigger = false, bool doMC = false,
                              || (card.hist_.BeginsWith("mva") && card.hist_.EndsWith("_2")));
       auto tmp_blind_min = card.blindmin_;
       auto tmp_blind_max = card.blindmax_;
-      if(card.hist_.Contains("mva") && !same_flavor) {
-        if(set > 1000 || ((set % 100) >= 30 && (set % 100) <= 32)) {//control region histogram, don't blind
-          card.blindmin_ = {};
-          card.blindmax_ = {};
-        }
-        // else { //blind singal region high score MVA region
-        //   card.blindmin_ = {0.};
-        //   card.blindmax_ = {1.};
-        // }
+      int  tmp_rebin     = card.rebin_;
+      // if(card.hist_.Contains("mva") && !same_flavor) {
+      if(set > 1000 || ((set % 100) >= 30 && (set % 100) <= 32)) {//control region histograms, don't blind
+        card.blindmin_ = {};
+        card.blindmax_ = {};
+      }
+      // }
+
+      //debug histogram set
+      if((set % 100) == 29) {
+        card.blindmin_ = {};
+        card.blindmax_ = {};
+        if(!card.hist_.BeginsWith("n")) card.rebin_ *= 2;
       }
       c = dataplotter_->print_stack(card);
       if(c) {
         DataPlotter::Empty_Canvas(c);
       } else ++status;
+
+      if(card.hist_ == "metup") {
+        PlottingCard_t card_1("met"    , "event", card.set_, 2,  0., 100.);
+        PlottingCard_t card_2("metup"  , "event", card.set_, 2,  0., 100.);
+        PlottingCard_t card_3("metdown", "event", card.set_, 2,  0., 100.);
+        status += print_sys_plot(card_1, card_2, card_3);
+      }
       c = nullptr;
       card.blindmin_ = tmp_blind_min;
       card.blindmax_ = tmp_blind_max;
+      card.rebin_    = tmp_rebin;
     }
   }
   dataplotter_->plot_data_ = 1;
@@ -2303,7 +2501,7 @@ Int_t print_basic_debug_plots(bool test_trigger = false, bool doMC = false,
 }
 
 //print standard  debugging plots
-Int_t print_basic_mva_plots(vector<int> sets = {8,25,26,27}) {
+Int_t print_basic_mva_plots(vector<int> sets = {8,25,26,27}, int use_sys = 0) {
   Int_t status = 0;
   if(!dataplotter_) return 1;
   int offset = 0;
@@ -2336,10 +2534,190 @@ Int_t print_basic_mva_plots(vector<int> sets = {8,25,26,27}) {
   else                             mva += "5"; //same flavor use Z->e+mu MVA
 
   TCanvas* c = nullptr;
-  bool xgbBDT = xgbBDT_ && selection_ == "emu";
+  bool xgbBDT = xgbBDT_ && (selection_ == "emu" || same_flavor || xgbBDT_ > 9);
   double xmin = (cdfMVAs_ || xgbBDT) ? 0. : -0.8;
   double xmax = (cdfMVAs_ || xgbBDT) ? 1. :  0.4;
   double blind_min = (cdfMVAs_ || xgbBDT) ? 0.5 :  0.;
+  double cdf_blind = 0.5;
+  if(same_flavor) {blind_min = 1e3; cdf_blind = 1e3;}
+
+  //create a list of systematics to consider in the MVA histogram
+  std::vector<fpair> sys;
+  std::vector<scale_pair> scale_sys;
+  if(use_sys) {
+    CLFV::Systematics sys_info;
+    vector<int> sys_vals;
+    if(selection_ == "emu") {
+      sys_vals.push_back(sys_info.GetNum("ZPt"));
+      sys_vals.push_back(sys_info.GetNum("MuonES"));
+      sys_vals.push_back(sys_info.GetNum("EleES"));
+      sys_vals.push_back(sys_info.GetNum("BTag"));
+      sys_vals.push_back(sys_info.GetNum("JER"));
+      sys_vals.push_back(sys_info.GetNum("JES"));
+      sys_vals.push_back(sys_info.GetNum("SignalMixing"));
+    } else if(selection_ == "mutau") {
+      sys_vals.push_back(sys_info.GetNum("ZPt"));
+      sys_vals.push_back(sys_info.GetNum("MuonID"));
+      sys_vals.push_back(sys_info.GetNum("MuonIsoID"));
+      sys_vals.push_back(sys_info.GetNum("EmbMuonID"));
+      sys_vals.push_back(sys_info.GetNum("EmbMuonIsoID"));
+      sys_vals.push_back(sys_info.GetNum("MuonES"));
+      // sys_vals.push_back(sys_info.GetNum("EmbMuonES0"));
+      // sys_vals.push_back(sys_info.GetNum("EmbMuonES1"));
+      // sys_vals.push_back(sys_info.GetNum("EmbMuonES2"));
+      sys_vals.push_back(sys_info.GetNum("EmbMuonES"));
+      // sys_vals.push_back(sys_info.GetNum("MuonTrig"));
+      // sys_vals.push_back(sys_info.GetNum("EmbMuonTrig"));
+      sys_vals.push_back(sys_info.GetNum("TauES"));
+      sys_vals.push_back(sys_info.GetNum("EmbTauES"));
+      sys_vals.push_back(sys_info.GetNum("TauMuID"));
+      sys_vals.push_back(sys_info.GetNum("BTag"));
+      sys_vals.push_back(sys_info.GetNum("BTagLight"));
+      sys_vals.push_back(sys_info.GetNum("JER"));
+      sys_vals.push_back(sys_info.GetNum("JES"));
+      sys_vals.push_back(sys_info.GetNum("EmbMET"));
+      // for(int isys = 0; isys < 5; ++isys) sys_vals.push_back(sys_info.GetNum(Form("TauJetID%i", isys)));
+      // for(int isys = 0; isys < 5; ++isys) sys_vals.push_back(sys_info.GetNum(Form("EmbTauJetID%i", isys)));
+      sys_vals.push_back(sys_info.GetNum("JetToTauComp"));
+      // for(int isys = 0; isys < 36; ++isys) sys_vals.push_back(sys_info.GetNum(Form("JetToTauAltP%iD%iA%i", isys/(12)/*3 procs*/, (isys/3)%4/*4 decay modes*/, isys%3/*3 params*/)));
+      for(int isys = 0; isys < 3; ++isys) sys_vals.push_back(sys_info.GetNum(Form("JetToTauNC%i"  ,isys)));
+      for(int isys = 0; isys < 3; ++isys) sys_vals.push_back(sys_info.GetNum(Form("JetToTauBias%i",isys)));
+      sys_vals.push_back(sys_info.GetNum("XS_Z"));
+      sys_vals.push_back(sys_info.GetNum("XS_ttbar"));
+      // sys_vals.push_back(sys_info.GetNum("XS_toptw"));
+      // sys_vals.push_back(sys_info.GetNum("XS_toptCh"));
+      sys_vals.push_back(sys_info.GetNum("XS_Embed"));
+      sys_vals.push_back(sys_info.GetNum("XS_WJets"));
+      sys_vals.push_back(sys_info.GetNum("XS_WW"));
+      // sys_vals.push_back(sys_info.GetNum("XS_ZZ"));
+      // sys_vals.push_back(sys_info.GetNum("XS_WZ"));
+      sys_vals.push_back(sys_info.GetNum("XS_LumiUC0"));
+      sys_vals.push_back(sys_info.GetNum("XS_LumiUC1"));
+      sys_vals.push_back(sys_info.GetNum("XS_LumiUC2"));
+      // sys_vals.push_back(sys_info.GetNum("XS_LumiCA0"));
+      // sys_vals.push_back(sys_info.GetNum("XS_LumiCA1"));
+      // sys_vals.push_back(sys_info.GetNum("XS_LumiCA2"));
+      // sys_vals.push_back(sys_info.GetNum("XS_LumiCB1"));
+      // sys_vals.push_back(sys_info.GetNum("XS_LumiCB2"));
+    } else if(selection_ == "etau") {
+      sys_vals.push_back(sys_info.GetNum("ZPt"));
+      sys_vals.push_back(sys_info.GetNum("EleES"));
+      sys_vals.push_back(sys_info.GetNum("EmbEleES"));
+      sys_vals.push_back(sys_info.GetNum("EmbEleES1"));
+      // sys_vals.push_back(sys_info.GetNum("EleTrig"));
+      // sys_vals.push_back(sys_info.GetNum("EmbEleTrig"));
+      sys_vals.push_back(sys_info.GetNum("TauES"));
+      sys_vals.push_back(sys_info.GetNum("EmbTauES"));
+      sys_vals.push_back(sys_info.GetNum("TauEleID"));
+      sys_vals.push_back(sys_info.GetNum("BTag"));
+      sys_vals.push_back(sys_info.GetNum("BTagLight"));
+      sys_vals.push_back(sys_info.GetNum("JER"));
+      sys_vals.push_back(sys_info.GetNum("JES"));
+      sys_vals.push_back(sys_info.GetNum("EmbMET"));
+      // for(int isys = 0; isys < 5; ++isys) sys_vals.push_back(sys_info.GetNum(Form("TauJetID%i", isys)));
+      // for(int isys = 0; isys < 5; ++isys) sys_vals.push_back(sys_info.GetNum(Form("EmbTauJetID%i", isys)));
+      sys_vals.push_back(sys_info.GetNum("JetToTauComp"));
+      // for(int isys = 0; isys < 36; ++isys) sys_vals.push_back(sys_info.GetNum(Form("JetToTauAltP%iD%iA%i", isys/(12)/*3 procs*/, (isys/3)%4/*4 decay modes*/, isys%3/*3 params*/)));
+      for(int isys = 0; isys < 3; ++isys) sys_vals.push_back(sys_info.GetNum(Form("JetToTauNC%i"  ,isys)));
+      for(int isys = 0; isys < 3; ++isys) sys_vals.push_back(sys_info.GetNum(Form("JetToTauBias%i",isys)));
+      sys_vals.push_back(sys_info.GetNum("XS_Z"));
+      sys_vals.push_back(sys_info.GetNum("XS_ttbar"));
+      // sys_vals.push_back(sys_info.GetNum("XS_toptw"));
+      // sys_vals.push_back(sys_info.GetNum("XS_toptCh"));
+      sys_vals.push_back(sys_info.GetNum("XS_Embed"));
+      sys_vals.push_back(sys_info.GetNum("XS_WJets"));
+      sys_vals.push_back(sys_info.GetNum("XS_WW"));
+      // sys_vals.push_back(sys_info.GetNum("XS_ZZ"));
+      // sys_vals.push_back(sys_info.GetNum("XS_WZ"));
+      sys_vals.push_back(sys_info.GetNum("XS_LumiUC0"));
+      sys_vals.push_back(sys_info.GetNum("XS_LumiUC1"));
+      sys_vals.push_back(sys_info.GetNum("XS_LumiUC2"));
+      // sys_vals.push_back(sys_info.GetNum("XS_LumiCA0"));
+      // sys_vals.push_back(sys_info.GetNum("XS_LumiCA1"));
+      // sys_vals.push_back(sys_info.GetNum("XS_LumiCA2"));
+      // sys_vals.push_back(sys_info.GetNum("XS_LumiCB1"));
+      // sys_vals.push_back(sys_info.GetNum("XS_LumiCB2"));
+    } else if(selection_ == "mutau_e") {
+      sys_vals.push_back(sys_info.GetNum("ZPt"));
+      sys_vals.push_back(sys_info.GetNum("EleES"));
+      sys_vals.push_back(sys_info.GetNum("EmbEleES"));
+      sys_vals.push_back(sys_info.GetNum("MuonES"));
+      sys_vals.push_back(sys_info.GetNum("EmbMuonES"));
+      sys_vals.push_back(sys_info.GetNum("EleTrig"));
+      sys_vals.push_back(sys_info.GetNum("EmbEleTrig"));
+      sys_vals.push_back(sys_info.GetNum("MuonTrig"));
+      sys_vals.push_back(sys_info.GetNum("EmbMuonTrig"));
+      sys_vals.push_back(sys_info.GetNum("BTag"));
+      sys_vals.push_back(sys_info.GetNum("BTagLight"));
+      sys_vals.push_back(sys_info.GetNum("JER"));
+      sys_vals.push_back(sys_info.GetNum("JES"));
+      for(int isys = 0; isys < 6; ++isys) sys_vals.push_back(sys_info.GetNum(Form("QCDAltJ%iA%i", isys/(2)/*3 jet bins*/, (isys/2)%2/*2 params*/)));
+      sys_vals.push_back(sys_info.GetNum("QCDNC"));
+      sys_vals.push_back(sys_info.GetNum("QCDBias"));
+      sys_vals.push_back(sys_info.GetNum("XS_Z"));
+      sys_vals.push_back(sys_info.GetNum("XS_ttbar"));
+      sys_vals.push_back(sys_info.GetNum("XS_toptw"));
+      sys_vals.push_back(sys_info.GetNum("XS_toptCh"));
+      sys_vals.push_back(sys_info.GetNum("XS_Embed"));
+      sys_vals.push_back(sys_info.GetNum("XS_WJets"));
+      sys_vals.push_back(sys_info.GetNum("XS_WW"));
+      sys_vals.push_back(sys_info.GetNum("XS_ZZ"));
+      sys_vals.push_back(sys_info.GetNum("XS_WZ"));
+      sys_vals.push_back(sys_info.GetNum("XS_LumiUC0"));
+      sys_vals.push_back(sys_info.GetNum("XS_LumiUC1"));
+      sys_vals.push_back(sys_info.GetNum("XS_LumiUC2"));
+      sys_vals.push_back(sys_info.GetNum("XS_LumiCA0"));
+      sys_vals.push_back(sys_info.GetNum("XS_LumiCA1"));
+      sys_vals.push_back(sys_info.GetNum("XS_LumiCA2"));
+      sys_vals.push_back(sys_info.GetNum("XS_LumiCB1"));
+      sys_vals.push_back(sys_info.GetNum("XS_LumiCB2"));
+    } else if(selection_ == "etau_mu") {
+      sys_vals.push_back(sys_info.GetNum("ZPt"));
+      sys_vals.push_back(sys_info.GetNum("EleES"));
+      sys_vals.push_back(sys_info.GetNum("EmbEleES"));
+      sys_vals.push_back(sys_info.GetNum("MuonES"));
+      sys_vals.push_back(sys_info.GetNum("EmbMuonES"));
+      sys_vals.push_back(sys_info.GetNum("EleTrig"));
+      sys_vals.push_back(sys_info.GetNum("EmbEleTrig"));
+      sys_vals.push_back(sys_info.GetNum("MuonTrig"));
+      sys_vals.push_back(sys_info.GetNum("EmbMuonTrig"));
+      sys_vals.push_back(sys_info.GetNum("BTag"));
+      sys_vals.push_back(sys_info.GetNum("BTagLight"));
+      sys_vals.push_back(sys_info.GetNum("JER"));
+      sys_vals.push_back(sys_info.GetNum("JES"));
+      for(int isys = 0; isys < 6; ++isys) sys_vals.push_back(sys_info.GetNum(Form("QCDAltJ%iA%i", isys/(2)/*3 jet bins*/, (isys/2)%2/*2 params*/)));
+      sys_vals.push_back(sys_info.GetNum("QCDNC"));
+      sys_vals.push_back(sys_info.GetNum("QCDBias"));
+      sys_vals.push_back(sys_info.GetNum("XS_Z"));
+      sys_vals.push_back(sys_info.GetNum("XS_ttbar"));
+      sys_vals.push_back(sys_info.GetNum("XS_toptw"));
+      sys_vals.push_back(sys_info.GetNum("XS_toptCh"));
+      sys_vals.push_back(sys_info.GetNum("XS_Embed"));
+      sys_vals.push_back(sys_info.GetNum("XS_WJets"));
+      sys_vals.push_back(sys_info.GetNum("XS_WW"));
+      sys_vals.push_back(sys_info.GetNum("XS_ZZ"));
+      sys_vals.push_back(sys_info.GetNum("XS_WZ"));
+      sys_vals.push_back(sys_info.GetNum("XS_LumiUC0"));
+      sys_vals.push_back(sys_info.GetNum("XS_LumiUC1"));
+      sys_vals.push_back(sys_info.GetNum("XS_LumiUC2"));
+      sys_vals.push_back(sys_info.GetNum("XS_LumiCA0"));
+      sys_vals.push_back(sys_info.GetNum("XS_LumiCA1"));
+      sys_vals.push_back(sys_info.GetNum("XS_LumiCA2"));
+      sys_vals.push_back(sys_info.GetNum("XS_LumiCB1"));
+      sys_vals.push_back(sys_info.GetNum("XS_LumiCB2"));
+    }
+    for(int isys : sys_vals) {
+      if(isys < CLFV::kMaxSystematics) {
+        sys.push_back(fpair(mva + Form("_%i", isys), mva + Form("_%i", isys+1)));
+      } else {
+        std::pair<ScaleUncertainty_t,ScaleUncertainty_t> sys_pair(sys_info.GetScale(isys), sys_info.GetScale(isys+1));
+        if(sys_pair.first.name_ != "" && sys_pair.second.name_ != "") {
+          scale_sys.push_back(sys_pair);
+          // cout << "Adding scale systematic " << sys_pair.first.name_.Data() << endl;
+        }
+      }
+    }
+  }
   for(int set : sets) {
     if(tau_set) {
       //MC fake tau sets, don't use j-->tau estimate
@@ -2351,23 +2729,43 @@ Int_t print_basic_mva_plots(vector<int> sets = {8,25,26,27}) {
         dataplotter_->include_qcd_ = 0;
       }
     }
+    if(selection_ == "emu" && xgbBDT) {
+      if(set % 100 == 13 || set % 100 == 12 || set % 100 == 11) blind_min = 0.5;
+      else blind_min = 1e3; //no need to blind as it doesn't discriminate well outside the mass window
+    }
+    if(same_flavor) blind_min = 1e3;
     for(int ilog = 0; ilog < 2; ++ilog) { //print log and linear plots
       dataplotter_->logY_ = ilog;
+      if(use_sys && ilog == 0) {
+        PlottingCard_t card((mva+"_0").Data(), "systematic", set,  0, xmin, xmax, blind_min, 1.);
+        card.sys_list_ = sys;
+        card.scale_sys_list_ = scale_sys;
+        c = dataplotter_->print_stack(card);
+        if(c) DataPlotter::Empty_Canvas(c); else ++status;
+      }
+      if(use_sys == -1) continue; //skip all other plots
       c = dataplotter_->print_stack(PlottingCard_t(mva.Data()         , "event", set,  0, xmin, xmax, blind_min, 1.));
       if(c) DataPlotter::Empty_Canvas(c); else ++status;
       c = dataplotter_->print_stack(PlottingCard_t(mva.Data()         , "event", set,  0, xmin, xmax, blind_min, 1., true));
       if(c) DataPlotter::Empty_Canvas(c); else ++status;
-      c = dataplotter_->print_stack(PlottingCard_t((mva + "_1").Data(), "event", set, 20, (xgbBDT) ? 0. : -0.8, (xgbBDT) ? 1. : 0.5, (xgbBDT) ? 0.5 : 0., 1.)); //BDT score, fixed width binning
+      c = dataplotter_->print_stack(PlottingCard_t((mva + "_1").Data(), "event", set, 20, (xgbBDT) ? 0. : -0.8, (xgbBDT) ? 1. : 0.5, 0., 1.)); //BDT score, fixed width binning
       if(c) DataPlotter::Empty_Canvas(c); else ++status;
-      c = dataplotter_->print_stack(PlottingCard_t((mva + "_2").Data(), "event", set,  1, -0.05, 1.0, 0.5, 1.)); //CDF score, fixed width binning
+      c = dataplotter_->print_stack(PlottingCard_t((mva + "_2").Data(), "event", set,  1, -0.05, 1.0, cdf_blind, 1.)); //CDF score, fixed width binning
       if(c) DataPlotter::Empty_Canvas(c); else ++status;
       c = dataplotter_->print_stack(PlottingCard_t((mva + "_3").Data(), "event", set,  1, -5.00, 0.0, -1., 0.)); //log10(CDF score), fixed width binning
       if(c) DataPlotter::Empty_Canvas(c); else ++status;
       c = dataplotter_->print_stack(PlottingCard_t((mva + "_4").Data(), "event", set,  1, -3.00, 1.0, 0., 1.)); //log10(p)+p, fixed width binning
       if(c) DataPlotter::Empty_Canvas(c); else ++status;
-      if(selection_ == "emu") {
-        c = dataplotter_->print_stack(PlottingCard_t("lepm", "event", set,  5, 70., 110., 84., 98.)); //print lepm in zemu as the main observable
+      if(selection_ == "emu" || same_flavor) {
+        c = dataplotter_->print_stack(PlottingCard_t((mva + "_5").Data(), "event", set,  0, xmin, xmax, blind_min, 1.)); //BDT scale correction
         if(c) DataPlotter::Empty_Canvas(c); else ++status;
+        if(selection_ == "emu") {
+          c = dataplotter_->print_stack(PlottingCard_t("lepm", "event", set,  5, 70., 110., 84., 98.)); //print lepm in zemu as the main observable
+          if(c) DataPlotter::Empty_Canvas(c); else ++status;
+        } else {
+          c = dataplotter_->print_stack(PlottingCard_t("lepm", "event", set,  5, 70., 110.)); //print lepm in zll as the main observable
+          if(c) DataPlotter::Empty_Canvas(c); else ++status;
+        }
       }
       c = nullptr;
     }

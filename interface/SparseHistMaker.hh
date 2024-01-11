@@ -34,6 +34,7 @@ namespace CLFV {
     }
 
 
+    bool fDoCutFlowSets = false; //fill histogram sets for each in the selection
 
     ClassDef(SparseHistMaker,0);
 

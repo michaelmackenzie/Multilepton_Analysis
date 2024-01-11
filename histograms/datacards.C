@@ -6,6 +6,7 @@ typedef DataCard_t dcard;
 vector<int> years_    = {2016, 2017, 2018}; //list of years of interest
 int useRunPeriodData_ = 1; //use run periods of data
 int doRunPeriod_      = 0; //use predefined set of run periods of data (e.g. 2016 B-F)
+vector<TString> runs_ = {}; //runs to use
 TString hist_path_    = "root://cmseos.fnal.gov//store/user/mmackenz/histograms/"; //where histogram files are
 TString hist_dir_     = "nanoaods_dev"; //which histogram directory to use
 TString hist_tag_     = "clfv"; //leading tag from HistMaker, e.g. "clfv", "hist", or "sparse"
@@ -23,8 +24,10 @@ double embedScale_   =  1.; //scale factor to add onto the embedding normalizati
 int    useQCDMC_     =  0 ; //use MC QCD background estimates
 int    combineVB_    =  1 ; //combine W+Jets with other vector boson processes
 int    includeHiggs_ =  0 ; //include the higgs signals in the plots
+int    higgsBkg_     =  0 ; //include SM higgs samples in the background estimate
 int    correctEmbed_ =  1 ; //check the event histogram vs gen numbers to correct for missing events
 bool   useLepTauSet_ =  1 ; //use leptonic tau files for leptonic tau selections
+bool   signalInStudy_ = 0 ; //include signal distributions in processing for studies
 
 //get the data cards needed
 void get_datacards(std::vector<dcard>& cards, TString selection, int forStudies = 0 /*0: plotting; 1: studies; 2: fits*/) {
@@ -40,6 +43,17 @@ void get_datacards(std::vector<dcard>& cards, TString selection, int forStudies 
   periods[2016] = {"B", "C", "D", "E", "F", "G", "H"};
   periods[2017] = {"B", "C", "D", "E", "F"};
   periods[2018] = {"A", "B", "C", "D"};
+
+  //Update the runs used if not using the full year's data
+  if(runs_.size() > 0 && years_.size() > 1) {
+    cout << "WARNING! Using partial year running for multiple years!\n";
+  }
+
+  if(runs_.size() > 0) {
+    for(int year : years_) {
+      periods[year] = runs_;
+    }
+  }
 
   //Names of the different background categories
   TString top   = "Top";
@@ -60,6 +74,10 @@ void get_datacards(std::vector<dcard>& cards, TString selection, int forStudies 
     bool combineZ = !oneDY && !useUL_ && year != 2018 && (!useAMC_ || year == 2017);
     TString DYName = (useAMC_ && year != 2017) ? "DY50-amc" : "DY50";
     //card constructor:    filepath,              name,                  label,      isData,                   xsec               ,  isSignal,year,  color,   combine extension samples
+    if(higgsBkg_) {
+      cards.push_back(dcard("ggFH-TauTau"        , "ggFH-TauTau"          , "H->#tau#tau", false, xs.GetCrossSection("ggFH-TauTau"         ), false, year, kAtlantic));
+      cards.push_back(dcard("ggFH-WW"            , "ggFH-WW"              , "H->WW"      , false, xs.GetCrossSection("ggFH-WW"             ), false, year, kCyan    ));
+    }
     cards.push_back(dcard("SingleAntiToptW"      , "SingleAntiToptW"      , top.Data()  , false, xs.GetCrossSection("SingleAntiToptW"      ), false, year, top_c));
     cards.push_back(dcard("SingleToptW"          , "SingleToptW"          , top.Data()  , false, xs.GetCrossSection("SingleToptW"          ), false, year, top_c));
     cards.push_back(dcard("SingleAntiToptChannel", "SingleAntiToptChannel", top.Data()  , false, xs.GetCrossSection("SingleAntiToptChannel"), false, year, top_c));
@@ -96,12 +114,27 @@ void get_datacards(std::vector<dcard>& cards, TString selection, int forStudies 
     }
     if(splitDY_ > 0 || (useEmbed_ == 2 || (useEmbed_ && selection != "ee" && selection != "mumu"))) {
       //useEmbed_: 0 = use DY MC; 1 = use embedding in emu/etau/mutau; 2 = use embedding in all categories (including ee/mumu)
-      if(!(selection == "ee" || selection == "mumu") || useEmbed_ < 2) { //use DY MC ee/mumu for non-ee/mumu categories or if using DY MC in general
-        cards.push_back(dcard((DYName+"-2").Data(), (DYName+"-2").Data(), dy_ll.Data(), false, xs.GetCrossSection("DY50", year), false, year, dy_ll_c, combineZ));
+      //in ee/mumu, switch order of Z->ll/tautau
+      if(selection == "ee" || selection == "mumu") {
+        if(useEmbed_ < 2) {//if using DY MC, include Z->tau tau
+          cards.push_back(dcard((DYName+"-1").Data(), (DYName+"-1").Data(), dy_tt.Data(), false, xs.GetCrossSection("DY50"    , year), false, year, dy_tt_c, combineZ));
+          cards.push_back(dcard("DY10to50-1"        , "DY10to50-1"        , dy_tt.Data(), false, xs.GetCrossSection("DY10to50", year), false, year, dy_tt_c));
+        }
+        if(useEmbed_ < 2) { //use DY MC ee/mumu if using DY MC in general
+          cards.push_back(dcard((DYName+"-2").Data(), (DYName+"-2").Data(), dy_ll.Data(), false, xs.GetCrossSection("DY50"    , year), false, year, dy_ll_c, combineZ));
+          cards.push_back(dcard("DY10to50-2"        , "DY10to50-2"        , dy_ll.Data(), false, xs.GetCrossSection("DY10to50", year), false, year, dy_ll_c));
+        }
+      } else {
+        if(true) { //use DY MC ee/mumu for non-ee/mumu categories
+          cards.push_back(dcard((DYName+"-2").Data(), (DYName+"-2").Data(), dy_ll.Data(), false, xs.GetCrossSection("DY50"    , year), false, year, dy_ll_c, combineZ));
+          cards.push_back(dcard("DY10to50-2"        , "DY10to50-2"        , dy_ll.Data(), false, xs.GetCrossSection("DY10to50", year), false, year, dy_ll_c));
+        }
+        if(useEmbed_ == 0) {//either ee/mumu or using DY MC, in both cases need MC Z->tau tau
+          cards.push_back(dcard((DYName+"-1").Data(), (DYName+"-1").Data(), dy_tt.Data(), false, xs.GetCrossSection("DY50"    , year), false, year, dy_tt_c, combineZ));
+          cards.push_back(dcard("DY10to50-1"        , "DY10to50-1"        , dy_tt.Data(), false, xs.GetCrossSection("DY10to50", year), false, year, dy_tt_c));
+        }
       }
-      if((selection == "ee" || selection == "mumu") || useEmbed_ == 0) {//either ee/mumu or using DY MC, in both cases need MC Z->tau tau
-        cards.push_back(dcard((DYName+"-1").Data(), (DYName+"-1").Data(), dy_tt.Data(), false, xs.GetCrossSection("DY50", year), false, year, dy_tt_c, combineZ));
-      }
+      //useEmbed_: 0 = use DY MC; 1 = use embedding in emu/etau/mutau; 2 = use embedding in all categories (including ee/mumu)
       if(useEmbed_ == 2 || (useEmbed_ && selection != "ee" && selection != "mumu")) {
         for(int period = 0; period < periods[year].size(); ++period) {
           TString run = periods[year][period];
@@ -119,10 +152,13 @@ void get_datacards(std::vector<dcard>& cards, TString selection, int forStudies 
         }
       }
     } else if(splitDY_ == 0) {
-      cards.push_back(dcard((DYName+"-1").Data(), (DYName+"-1").Data(), dy.Data(), false, xs.GetCrossSection("DY50", year), false, year, dy_tt_c, combineZ));
-      cards.push_back(dcard((DYName+"-2").Data(), (DYName+"-2").Data(), dy.Data(), false, xs.GetCrossSection("DY50", year), false, year, dy_tt_c, combineZ));
+      cards.push_back(dcard((DYName+"-1").Data(), (DYName+"-1").Data(), dy.Data(), false, xs.GetCrossSection("DY50"    , year), false, year, dy_tt_c, combineZ));
+      cards.push_back(dcard((DYName+"-2").Data(), (DYName+"-2").Data(), dy.Data(), false, xs.GetCrossSection("DY50"    , year), false, year, dy_tt_c, combineZ));
+      cards.push_back(dcard("DY10to50-1"        , "DY10to50-1"        , dy.Data(), false, xs.GetCrossSection("DY10to50", year), false, year, dy_tt_c));
+      cards.push_back(dcard("DY10to50-2"        , "DY10to50-2"        , dy.Data(), false, xs.GetCrossSection("DY10to50", year), false, year, dy_tt_c));
     } else { //splitDY_ < 0, assume old dataset that was never separated into tautau and ee/mumu output files
-      cards.push_back(dcard(DYName.Data(), DYName.Data(), dy.Data(), false, xs.GetCrossSection("DY50", year), false, year, dy_tt_c, combineZ));
+      cards.push_back(dcard(DYName.Data(), DYName.Data(), dy.Data(), false, xs.GetCrossSection("DY50"    , year), false, year, dy_tt_c, combineZ));
+      cards.push_back(dcard("DY10to50"   , "DY10to50"   , dy.Data(), false, xs.GetCrossSection("DY10to50", year), false, year, dy_tt_c));
     }
     if(combineZ) {
       if(splitDY_ > 0 || useEmbed_) {
@@ -153,7 +189,7 @@ void get_datacards(std::vector<dcard>& cards, TString selection, int forStudies 
         cards.push_back(dcard("QCDEMEnrich300toInf"     , "QCDEMEnrich300toInf"     , "QCD", false, xs.GetCrossSection("QCDEMEnrich300toInf"     ), false, year, kOrange+6));
       }
     }
-    if(forStudies == 0) {
+    if(forStudies == 0 || (forStudies == 1 && signalInStudy_)) {
       const double zxs = xs.GetCrossSection("Z");
       const double hxs = xs.GetCrossSection("H");
       if(selection == "emu") {
@@ -184,9 +220,6 @@ void get_datacards(std::vector<dcard>& cards, TString selection, int forStudies 
       if(selection != "mutau" && selection !="mumu") cards.push_back(dcard("SingleEle", "SingleEle", "Data", true , 1., false, year));
     } else { //use run-period-specific data samples
       for(int period = 0; period < periods[year].size(); ++period) {
-        if(year == 2016 && ((doRunPeriod_ == 1 && period > 4) || (doRunPeriod_ == 2 && period < 5))) continue;
-        if(year == 2017 && ((doRunPeriod_ == 1 && period > 2) || (doRunPeriod_ == 2 && period < 3))) continue;
-        if(year == 2018 && ((doRunPeriod_ == 1 && period > 1) || (doRunPeriod_ == 2 && period < 2))) continue;
         TString muon_name = "SingleMuon-" + periods[year][period];
         TString electron_name = "SingleElectron-" + periods[year][period];
         if(selection != "etau"  && selection!="ee"  ) cards.push_back(dcard(muon_name.Data()    , muon_name.Data()    , "Data", true , 1., false, year));

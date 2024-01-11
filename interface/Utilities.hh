@@ -13,9 +13,11 @@
 #include "TFolder.h"
 #include "TTree.h"
 #include "TBranch.h"
+#include "TEventList.h"
 #include "TVectorD.h"
 #include "TMatrixD.h"
 #include "TDecompSVD.h"
+#include "TRandom3.h"
 
 
 namespace CLFV {
@@ -217,6 +219,23 @@ namespace CLFV {
     }
 
     //------------------------------------------------------------------------------------------------------
+    // Convert a histogram to an efficiency distribution
+    static void HistToEff(TH1* h, const bool cut_low = true, const bool rejection = false) {
+      const int nbins = h->GetNbinsX();
+      const double integral = h->Integral(0, nbins+1);
+      if(integral <= 0.) return; //cannot convert to efficiency
+      TH1* htmp = (TH1*) h->Clone("hTMP_HistToEff"); //temporary histogram with the values preserved
+      for(int ibin = 0; ibin <= nbins+1; ++ibin) {
+        const double cut_integral = (cut_low) ? htmp->Integral(ibin, nbins+1) : htmp->Integral(0, ibin);
+        if(rejection) { //store the rejection factor instead of efficiency
+          h->SetBinContent(ibin, 1. - cut_integral / integral);
+        } else { //store the cut efficiency
+          h->SetBinContent(ibin, cut_integral / integral);
+        }
+      }
+    }
+
+    //------------------------------------------------------------------------------------------------------
     static double Interpolate(const TH2* h, const double x, const double y, int along, int verbose = 0) {
       const int bin_x = std::max(1, std::min(h->GetXaxis()->GetNbins(), h->GetXaxis()->FindBin(x)));
       const int bin_y = std::max(1, std::min(h->GetYaxis()->GetNbins(), h->GetYaxis()->FindBin(y)));
@@ -255,6 +274,74 @@ namespace CLFV {
                              __func__, bin_x, bin_y, bin_con, bin_cen, bin_2, bin_con_2, bin_cen_2, val);
 
       return val;
+    }
+
+    //------------------------------------------------------------------------------------------------------
+    // Randomly sample a tree to create a bootstrapped tree (including input weights to have unweighted output)
+    static TTree* BootStrap(TTree* tree, const Long64_t nsample, TRandom3& rnd, const char* weight_name = nullptr, const TString cut = "", const int verbose = 0) {
+      if(!tree) return nullptr;
+      if(weight_name != nullptr && !tree->GetBranch(weight_name)) {
+        printf("Utilities::%s: No weight branch named %s\n", __func__, weight_name);
+        return nullptr;
+      }
+      const Long64_t nentries = tree->GetEntries();
+      if(verbose > 0) printf("Utilities::%s:\n N(entries) = %lld\n", __func__, nentries);
+      tree->SetEventList(nullptr);
+      TEventList* elist = nullptr;
+      if(cut != "") {
+        tree->Draw(">>elist", cut.Data());
+        elist = (TEventList*) gDirectory->Get("elist");
+        if(!elist) {
+          printf("Utilities::%s: No event list created using selection %s\n", __func__, cut.Data());
+          return nullptr;
+        }
+        if(verbose > 0) printf(" Processed the event list\n");
+        if(elist->GetN() == 0) {
+          printf("Utilities::%s: No events pass the pre-selection cut %s\n", __func__, cut.Data());
+          return nullptr;
+        }
+        // tree->SetEventList(elist);
+      }
+      const Long64_t nlist = (elist) ? elist->GetN() : nentries; //N(entries) in the event list
+
+      Float_t weight(1.f), max_weight(0.f); //default to 0 maximum weight so if no weights, all events pass
+      if(weight_name) {
+        tree->SetBranchAddress(weight_name, &weight);
+
+        //determine the maximum weight
+        tree->Draw(Form("%s>>TMP_UTILITIES_%s", weight_name, __func__), cut, "0");
+        auto hist = (TH1*) gDirectory->Get(Form("TMP_UTILITIES_%s", __func__));
+        if(!hist) {
+          printf("Utilities::%s: No unable to retrieve the event weight histogram (branch = %s)\n", __func__, weight_name);
+          return nullptr;
+        }
+        //find the highest weight bin
+        const int bin = hist->FindLastBinAbove(0.);
+        max_weight = hist->GetBinLowEdge(bin) + hist->GetBinWidth(bin);
+        delete hist; //clean up the memory
+        if(verbose > 0) printf(" Retrieved the maximum weight of %.4f\n", max_weight);
+        if(max_weight <= 0.) {
+          printf("Utilities::%s: Maximum weight of %.4f is not useful! Ignoring wieghts\n", __func__, max_weight);
+          max_weight = -1.f; //ensure it's ignored
+        }
+      }
+      TTree* out_tree = tree->CloneTree(0);
+
+      Long64_t nadded(0), nattempt(0);
+      while(nadded < nsample) {
+        if(verbose > 0 && (nattempt % 100000) == 0) printf(" Attempt %10lld\n", nattempt);
+        ++nattempt;
+        const Long64_t entry = (elist) ? elist->GetEntry(rnd.Integer(nlist)) : rnd.Integer(nentries);
+        if(elist && !elist->Contains(entry)) continue;
+        tree->GetEntry(entry);
+        //use accept/reject to sample the events using event weights
+        const double r = rnd.Uniform();
+        if(max_weight > 0. && weight <= r*max_weight) continue;
+        out_tree->Fill(); //accept the event
+        ++nadded;
+        if(verbose > 0 && (nadded*10) % nsample == 0) printf(" Added %7lld events (%.1f%%)\n", nadded, nadded*100./nsample);
+      }
+      return out_tree;
     }
 
     //------------------------------------------------------------------------------------------------------
