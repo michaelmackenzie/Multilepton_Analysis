@@ -47,6 +47,11 @@ std::pair<TString,TString> systematic_name(int sys, TString selection, int year)
 
   if(name == "Prefire" && year == 2018) name = ""; //not defined for 2018
   if(name == "METCorr") name = ""; //not a real uncertainty
+  if(name == "2018HEM") {
+    if(year != 2018) name = ""; //only defined in 2018
+    else             name = "HEM";
+  }
+  if(name.BeginsWith("JetToTauBiasRate")) name = ""; //currently ignored
 
   if(selection.EndsWith("etau")) {
     if(name.Contains("TauMuID") && name != "TauMuID") name = ""; //don't use finely binned nuisance parameters

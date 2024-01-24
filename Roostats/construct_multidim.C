@@ -160,6 +160,42 @@ RooAbsPdf* create_exponential(RooRealVar& obs, int order, int set, TString tag =
   return new RooAddPdf(Form("exp_%i_pdf_order_%i%s", set, order, tag.Data()), Form("Exponential PDF, order %i", order), pdfs, coefficients, false);
 }
 
+//Create an power law PDF sum
+RooAbsPdf* create_powerlaw(RooRealVar& obs, int order, int set, TString tag = "") {
+  vector<RooRealVar*> vars;
+  vector<RooRealVar*> coeffs;
+  vector<RooPowerLaw*> pwrs;
+  RooArgList pdfs;
+  RooArgList coefficients;
+  for(int i = 0; i <= order; ++i) {
+    vars.push_back(new RooRealVar(Form("pwr_%i_order_%i_c_%i%s", set, order, i, tag.Data()), Form("pwr_%i_order_%i_%i power%s", set, order, i, tag.Data()), 1., -10., 10.));
+    pwrs.push_back(new RooPowerLaw(Form("pwr_%i_pdf_order_%i_%i%s", set, order, i, tag.Data()), Form("pwr_%i_pdf_order_%i_%i%s", set, order, i, tag.Data()), obs, *vars[i]));
+    pdfs.add(*pwrs[i]);
+    coeffs.push_back(new RooRealVar(Form("pwr_%i_order_%i_n_%i%s", set, order, i, tag.Data()), Form("pwr_%i_order_%i_%i%s norm" , set, order, i, tag.Data()), 1.e3, 0., 1.e6));
+    coefficients.add(*coeffs[i]);
+  }
+  if(order == 0) {
+    pdfs.at(0)->SetTitle(Form("Power law PDF, order %i", order));
+    return ((RooAbsPdf*) pdfs.at(0));
+  }
+  return new RooAddPdf(Form("pwr_%i_pdf_order_%i%s", set, order, tag.Data()), Form("Power law PDF, order %i", order), pdfs, coefficients, false);
+}
+
+// //Create an power law PDF sum
+// RooAbsPdf* create_powerlaw(RooRealVar& obs, int order, int set, TString tag = "") {
+//   vector<RooRealVar*> coeffs;
+//   vector<RooRealVar*> exps;
+//   RooArgList list_coeff, list_exp;
+//   for(int i = 0; i <= order; ++i) {
+//     coeffs.push_back(new RooRealVar(Form("pwr_%i_order_%i_coeff_%i%s", set, order, i, tag.Data()), Form("pwr_%i_order_%i_coeff_%i%s", set, order, i, tag.Data()), 1./pow(10.,i), -5., 5.));
+//     exps  .push_back(new RooRealVar(Form("pwr_%i_order_%i_exp_%i%s"  , set, order, i, tag.Data()), Form("pwr_%i_order_%i_exp_%i%s"  , set, order, i, tag.Data()), 1./pow(10.,i), -5., 5.));
+//     list_coeff.add(*coeffs[i]);
+//     list_exp  .add(*exps  [i]);
+//   }
+//   RooAbsPdf* pdf = new RooPower(Form("pwr_%i_order_%i%s", set, order, tag.Data()), Form("Power law PDF, order %i", order), obs, list_coeff, list_exp);
+//   return pdf;
+// }
+
 //Create a Chebychev polynomial PDF
 RooChebychev* create_chebychev(RooRealVar& obs, int order, int set) {
   vector<RooRealVar*> vars;
@@ -247,8 +283,9 @@ RooAbsPdf* create_bernstein(RooAbsReal& obs, const int order, int set, TString t
 
 //Fit exponentials and add passing ones
 std::pair<int,double> add_exponentials(RooDataHist& data, RooRealVar& obs, RooArgList& list, bool useSideBands, int set, int verbose) {
-  const int max_order = 3;
+  const int max_order = 1;
   const double max_chisq = 2.; //per DOF
+  const double min_p_chisq = 0.01;
   double min_chi = 1.e10;
   int min_index = -1;
   for(int order = 0; order <= max_order; ++order) {
@@ -261,9 +298,50 @@ std::pair<int,double> add_exponentials(RooDataHist& data, RooRealVar& obs, RooAr
       pdf->fitTo(data, RooFit::PrintLevel(-1), RooFit::Warnings(0), RooFit::PrintEvalErrors(-1), RooFit::Range("LowSideband,HighSideband"));
     else
       pdf->fitTo(data, RooFit::PrintLevel(-1), RooFit::Warnings(0), RooFit::PrintEvalErrors(-1));
-    const int dof = (data.numEntries() - 2*order - 1);  //DOF = number of variables + normalization
-    const double chi_sq = get_chi_squared(obs, pdf, data, useSideBands);
-    if(chi_sq / dof < max_chisq) {
+    int nentries = data.numEntries();
+    const double chi_sq = get_chi_squared(obs, pdf, data, useSideBands, &nentries);
+    const int dof = (nentries - 2*order - 1);  //DOF = number of variables + normalization
+    const double p_chi_sq = TMath::Prob(chi_sq, dof);
+    if(chi_sq / dof < max_chisq && p_chi_sq >= min_p_chisq) {
+      // list.add(*pdf);
+      list.add(*basePdf);
+      // basePdf->Print("tree");
+    } else {
+      delete pdf;
+    }
+    if(chi_sq < min_chi) {min_chi = chi_sq; min_index = list.getSize() - 1;}
+    if(verbose > 1) cout << "######################\n"
+                         << "### Exponential order " << order << " has chisq = " << chi_sq << " / " << dof << " = " << chi_sq/dof
+                         << " (p = " << p_chi_sq << ")" << endl
+                         << "######################\n";
+  }
+  return std::pair<int, double>(min_index, min_chi);
+}
+
+
+//Fit powerlaw orders and add passing ones
+std::pair<int,double> add_powerlaws(RooDataHist& data, RooRealVar& obs, RooArgList& list, bool useSideBands, int set, int verbose) {
+  const int max_order = 3;
+  const double max_chisq = 2.; //per DOF
+  const double min_p_chisq = 0.01;
+  const double chi_cutoff = 3.85;
+  double min_chi = 1.e10;
+  int min_index = -1;
+  for(int order = 0; order <= max_order; ++order) {
+    RooAbsPdf* basePdf = create_powerlaw(obs, order, set);
+    //Wrap the exponential in a RooAddPdf
+    RooRealVar* pdfNorm = new RooRealVar(Form("%s_norm", basePdf->GetName()), Form("%s_norm", basePdf->GetName()),
+                                         data.sumEntries(), 0.5*data.sumEntries(), 1.5*data.sumEntries());
+    RooAddPdf* pdf = new RooAddPdf(Form("%s_wrapper", basePdf->GetName()), basePdf->GetTitle(), RooArgList(*basePdf), RooArgList(*pdfNorm));
+    if(useSideBands)
+      pdf->fitTo(data, RooFit::PrintLevel(-1), RooFit::Warnings(0), RooFit::PrintEvalErrors(-1), RooFit::Range("LowSideband,HighSideband"));
+    else
+      pdf->fitTo(data, RooFit::PrintLevel(-1), RooFit::Warnings(0), RooFit::PrintEvalErrors(-1));
+    int nentries = data.numEntries();
+    const double chi_sq = get_chi_squared(obs, pdf, data, useSideBands, &nentries);
+    const int dof = (nentries - 2*order - 1);  //DOF = number of variables + normalization
+    const double p_chi_sq = TMath::Prob(chi_sq, dof);
+    if(chi_sq < min_chi - chi_cutoff && chi_sq / dof < max_chisq && p_chi_sq >= min_p_chisq) {
       // list.add(*pdf);
       list.add(*basePdf);
     } else {
@@ -271,7 +349,8 @@ std::pair<int,double> add_exponentials(RooDataHist& data, RooRealVar& obs, RooAr
     }
     if(chi_sq < min_chi) {min_chi = chi_sq; min_index = list.getSize() - 1;}
     if(verbose > 1) cout << "######################\n"
-                         << "### Exponential order " << order << " has chisq = " << chi_sq << " / " << dof << " = " << chi_sq/dof << endl
+                         << "### Powerlaw order " << order << " has chisq = " << chi_sq << " / " << dof << " = " << chi_sq/dof
+                         << " (p = " << p_chi_sq << ")" << endl
                          << "######################\n";
   }
   return std::pair<int, double>(min_index, min_chi);
@@ -292,8 +371,9 @@ void add_chebychevs(RooDataHist& data, RooRealVar& obs, RooArgList& list, bool u
       pdf->fitTo(data, RooFit::PrintLevel(-1 + 2*(verbose > 2)), RooFit::Warnings(0), RooFit::PrintEvalErrors(-1), RooFit::Range("LowSideband,HighSideband"));
     else
       pdf->fitTo(data, RooFit::PrintLevel(-1 + 2*(verbose > 2)), RooFit::Warnings(0), RooFit::PrintEvalErrors(-1));
-    const int dof = (data.numEntries() - order - 2);  //DOF = number of variables + normalization
-    const double chi_sq = get_chi_squared(obs, pdf, data, useSideBands);
+    int nentries = data.numEntries();
+    const double chi_sq = get_chi_squared(obs, pdf, data, useSideBands, &nentries);
+    const int dof = (nentries - order - 2);  //DOF = number of variables + normalization
     if(chi_sq / dof < max_chisq) {
       list.add(*pdf);
       ++num_added;
@@ -337,8 +417,8 @@ std::pair<int, double> add_bernsteins(RooDataHist& data, RooRealVar& obs, RooArg
                                          data.sumEntries(), 0.5*data.sumEntries(), 1.5*data.sumEntries());
     RooAddPdf* pdf = new RooAddPdf(Form("%s_wrapper", basePdf->GetName()), basePdf->GetTitle(), RooArgList(*basePdf), RooArgList(*pdfNorm));
     // RooAbsPdf* pdf = basePdf;
-    const int dof = (data.numEntries() - order - 2);  //DOF = number of variables + normalization
     double chi_sq = 1e10;
+    int dof = data.numEntries();
     int ntries = 0;
     do {
       ++ntries;
@@ -351,6 +431,9 @@ std::pair<int, double> add_bernsteins(RooDataHist& data, RooRealVar& obs, RooArg
         pdf->fitTo(data, RooFit::Extended(true), RooFit::PrintLevel((verbose > 2) ? 1 : -1),
                    RooFit::Warnings(0), RooFit::PrintEvalErrors(-1));
       }
+      int nentries = data.numEntries();
+      chi_sq = get_chi_squared(obs, pdf, data, useSideBands, &nentries);
+      dof = (nentries - order - 2);  //DOF = number of variables + normalization
       chi_sq =  get_chi_squared(obs, pdf, data, useSideBands);
     } while(chi_sq / dof > max_chisq && ntries < max_tries);
 
@@ -472,7 +555,9 @@ RooMultiPdf* construct_multipdf(RooDataHist& data, RooRealVar& obs, RooCategory&
   result = add_bernsteins(data, obs, pdfList, useSideBands, index, set, verbose);
   if(result.second < chi_min) {chi_min = result.second; index = result.first;}
   // add_chebychevs(data, obs, pdfList, useSideBands, index, set, verbose);
-  // result = add_exponentials(data, obs, pdfList, useSideBands, set, verbose);
+  result = add_exponentials(data, obs, pdfList, useSideBands, set, verbose);
+  // if(result.second < chi_min) {chi_min = result.second; index = result.first;}
+  result = add_powerlaws(data, obs, pdfList, useSideBands, set, verbose);
   // if(result.second < chi_min) {chi_min = result.second; index = result.first;}
   if(use_dy_ww_shape_) {
     result = add_dy_ww(data, obs, pdfList, useSideBands, set, verbose);

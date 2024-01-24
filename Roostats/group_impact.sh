@@ -6,6 +6,8 @@ SKIPNOMINAL=$3
 DOOBS=$4
 TOLERANCE=$5
 EXPECTSIGNAL=$6
+#If doing a single uncertainty instead of a group:
+SYSNOTGROUP=$7
 
 if [[ "${DOOBS}" == "" ]]
 then
@@ -24,6 +26,13 @@ then
     EXPECTSIGNAL="0"
 fi
 
+if [[ "${SYSNOTGROUP}" == "" ]]
+then
+    FREEZECOMMAND="--freezeNuisanceGroups ${GROUP}"
+else
+    FREEZECOMMAND="--freezeParameters ${GROUP}"
+fi
+
 RMIN="-20"
 RMAX="20"
 
@@ -32,7 +41,7 @@ if [[ "${SKIPNOMINAL}" == "" ]]
 then
     combine -M FitDiagnostics --stepSize 0.01 --setRobustFitTolerance ${TOLERANCE} --setCrossingTolerance 5e-7 -n _groupFit_Test_Nominal  -d ${WORKSPACE} ${DOOBS} --rMin ${RMIN} --rMax ${RMAX} --cminDefaultMinimizerStrategy 0 --expectSignal ${EXPECTSIGNAL}
 fi
-combine -M FitDiagnostics --stepSize 0.01 --setRobustFitTolerance ${TOLERANCE} --setCrossingTolerance 5e-7 -n _groupFit_Test_${GROUP} -d ${WORKSPACE} ${DOOBS} --rMin ${RMIN} --rMax ${RMAX} --freezeNuisanceGroups ${GROUP} --cminDefaultMinimizerStrategy 0 --expectSignal ${EXPECTSIGNAL}
+combine -M FitDiagnostics --stepSize 0.01 --setRobustFitTolerance ${TOLERANCE} --setCrossingTolerance 5e-7 -n _groupFit_Test_${GROUP} -d ${WORKSPACE} ${DOOBS} --rMin ${RMIN} --rMax ${RMAX} ${FREEZECOMMAND} --cminDefaultMinimizerStrategy 0 --expectSignal ${EXPECTSIGNAL}
 
 FNOMINAL="fitDiagnostics_groupFit_Test_Nominal.root"
 FGROUP="fitDiagnostics_groupFit_Test_${GROUP}.root"

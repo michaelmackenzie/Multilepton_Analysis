@@ -1,6 +1,12 @@
 //Plot data from  Higgs Combine FitDiagnostics toys
+int skip_bad_fits_ = 1;
 
 int plot_combine_fits(const char* file_name, double r_true = 0., TString out_name = "") {
+  // if(gSystem->Load(Form("%s/src/CLFVAnalysis/lib/libCLFVAnalysis.so",gSystem->Getenv("CMSSW_BASE"))) < 0) return -1;
+
+  /////////////////////////////////////////////////////////////////
+  // Retrieve the fit data
+
   TFile* file = TFile::Open(file_name, "READ");
   if(!file) return 1;
 
@@ -11,31 +17,64 @@ int plot_combine_fits(const char* file_name, double r_true = 0., TString out_nam
     return 1;
   }
 
-  // const Long64_t nentries = tree->GetEntries();
-  // Double_t limit, quantile;
-  // std::vector<Double_t> limits;
-  // tree->SetBranchAddress("limit", &limit);
-  // tree->SetBranchAddress("quantileExpected", &quantile);
 
-  // for(Long64_t entry = 0; entry < nentries; ++entry) {
-  //   tree->GetEntry(entry);
-  //   if(quantile > 0.) continue;
-  //   limits.push_back(limit);
-  // }
+  /////////////////////////////////////////////////////////////////
+  // Setup the fit result histograms
 
-  TCanvas* c = new TCanvas("c","c",1000,600);
-  c->Divide(2,1);
-  c->cd(1);
+  //Get some initial results to determine how to setup the histogram x-axis
   tree->Draw("r >> htmp"/*, "fit_status == 0"*/);
   TH1* h = (TH1*) gDirectory->Get("htmp");
 
   const double mean  = h->GetMean();
   const double sigma = h->GetStdDev();
   delete h;
-  h = new TH1D("hr", "Fit signal strengths", 25, mean - 2.5*sigma, mean + 2.5*sigma);
-  tree->Draw("r >> hr"/*, "fit_status"*/);
 
+  //Initialize fit result histograms using the initial results
+  h = new TH1D("hr", "Fit signal strengths", 25, mean - 2.5*sigma, mean + 2.5*sigma);
+  TH1* hpull = new TH1D("hpull", "Pulls", 40, -4., 4.);
+
+  /////////////////////////////////////////////////////////////////
+  // Loop through the fit results
+
+  const Long64_t nentries = tree->GetEntries();
+  tree->SetBranchStatus("*", 0);
+  double r, rHiErr, rLoErr;
+  int fit_status;
+  CLFV::Utilities::SetBranchAddress(tree, "r"         , &r         );
+  CLFV::Utilities::SetBranchAddress(tree, "rHiErr"    , &rHiErr    );
+  CLFV::Utilities::SetBranchAddress(tree, "rLoErr"    , &rLoErr    );
+  CLFV::Utilities::SetBranchAddress(tree, "fit_status", &fit_status);
+  for(Long64_t entry = 0; entry < nentries; ++entry) {
+    tree->GetEntry(entry);
+    if(nentries <= 10) cout << " Entry " << entry << ": (r, r_up, r_down) = (" << r << ", " << rHiErr << ", " << rLoErr << "), status = " << fit_status << endl;
+    //check for fit issues
+    if(skip_bad_fits_) {
+      if(std::fabs(rLoErr/rHiErr) > 2. || std::fabs(rHiErr/rLoErr) > 2.) {
+        cout << " Entry " << entry << " has suspicious errors: (r, r_up, r_down) = (" << r << ", " << rHiErr << ", " << rLoErr << "), status = " << fit_status << endl;
+        continue;
+      }
+    }
+    if(fit_status != 0) {
+      cout << " Entry " << entry << " has non-zero fit status: (r, r_up, r_down) = (" << r << ", " << rHiErr << ", " << rLoErr << "), status = " << fit_status << endl;
+      if(skip_bad_fits_) continue;
+    }
+    //Fill the fit results histograms
+    h->Fill(r);
+    hpull->Fill((r > r_true) ? (r - r_true) / rHiErr : (r - r_true) / rLoErr);
+  }
+  // tree->Draw("r >> hr"/*, "fit_status"*/);
+  // tree->Draw(Form("(r-%.5f)/((r > %.5f) ? rHiErr : rLoErr) >> hpull", r_true, r_true));
+
+  /////////////////////////////////////////////////////////////////
+  // Plot the results
+
+  TCanvas* c = new TCanvas("c","c",1000,600);
+  c->Divide(2,1);
+
+  //Plot the fit result histogram
+  c->cd(1);
   h->SetLineWidth(2);
+  h->Draw("hist");
   const bool do_fit = false;
   gStyle->SetOptStat(0);
   gStyle->SetOptFit(1111);
@@ -55,7 +94,7 @@ int plot_combine_fits(const char* file_name, double r_true = 0., TString out_nam
     }
   }
   if(do_fit) {
-    h->Fit("gaus");
+    h->Fit("gaus","L");
   }
   h->SetXTitle("#mu");
   h->SetYTitle("N(toys)");
@@ -63,10 +102,9 @@ int plot_combine_fits(const char* file_name, double r_true = 0., TString out_nam
   h->SetFillColor(kBlue);
   h->SetFillStyle(3003);
 
+  //Plot the pull histogram
   c->cd(2);
-  TH1* hpull = new TH1D("hpull", "Pulls", 40, -4., 4.);
-  tree->Draw(Form("(r-%.5f)/((r > %.5f) ? rHiErr : rLoErr) >> hpull", r_true, r_true));
-  hpull->Fit("gaus");
+  hpull->Fit("gaus","L");
   hpull->SetLineWidth(2);
   hpull->SetXTitle("(#mu-#mu_{true})/#sigma");
   hpull->SetYTitle("N(toys)");

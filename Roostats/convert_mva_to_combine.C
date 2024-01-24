@@ -11,14 +11,24 @@
 bool   use_fake_bkg_norm_ = false; //add a large uncertainty on j->tau/qcd norm to be fit by data
 bool   separate_years_    =  true; //separate each year of data
 int    blind_data_        =    2 ; //0: no blinding; 1: kill high BDT score regions; 2: use ~Asimov instead of data
-double blind_cut_         =    0.;
+double blind_cut_         =   0.35;
 
+//add a nuisance parameter index to a group, adding the group if not yet defined
 void add_group(map<TString,vector<TString>>& groups, TString sys, TString group) {
   if(groups.find(group) != groups.end()) {
     for(TString isys : groups[group]) {if(isys == sys) return;} //check the systematic isn't already added
     groups[group].push_back(sys);
   }
   else groups[group] = {sys};
+}
+
+//determine the bias correction factor for the signal
+double get_bias_factor(int year, bool isHadronic, bool isMuTau) {
+  if(!isHadronic) { //same sign bias
+    if(isMuTau) return -0.012; //1.2% bias
+    return -0.008; //0.8% bias
+  }
+  return -0.10;
 }
 
 //ensure reasonable bin values
@@ -55,14 +65,14 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
 
   int status(0);
   TString hist;
-  if     (selection == "hmutau"  ) {hist = "mva0"; blind_cut_ =  0.00;}
-  else if(selection == "zmutau"  ) {hist = "mva1"; blind_cut_ =  0.00;}
-  else if(selection == "hetau"   ) {hist = "mva2"; blind_cut_ =  0.00;}
-  else if(selection == "zetau"   ) {hist = "mva3"; blind_cut_ =  0.00;}
-  else if(selection == "hmutau_e") {hist = "mva6"; blind_cut_ =  0.00;}
-  else if(selection == "zmutau_e") {hist = "mva7"; blind_cut_ = -0.05;}
-  else if(selection == "hetau_mu") {hist = "mva8"; blind_cut_ =  0.00;}
-  else if(selection == "zetau_mu") {hist = "mva9"; blind_cut_ = -0.05;}
+  if     (selection == "hmutau"  ) {hist = "mva0"; blind_cut_ = 0.36;}
+  else if(selection == "zmutau"  ) {hist = "mva1"; blind_cut_ = 0.36;}
+  else if(selection == "hetau"   ) {hist = "mva2"; blind_cut_ = 0.36;}
+  else if(selection == "zetau"   ) {hist = "mva3"; blind_cut_ = 0.36;}
+  else if(selection == "hmutau_e") {hist = "mva6"; blind_cut_ = 0.36;}
+  else if(selection == "zmutau_e") {hist = "mva7"; blind_cut_ = 0.36;}
+  else if(selection == "hetau_mu") {hist = "mva8"; blind_cut_ = 0.36;}
+  else if(selection == "zetau_mu") {hist = "mva9"; blind_cut_ = 0.36;}
   else {
     cout << "Unidentified selection " << selection.Data() << endl;
     return -1;
@@ -316,6 +326,28 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
   outfile << Form("%s \n\n", rate.Data());
   outfile << "----------------------------------------------------------------------------------------------------------- \n\n";
 
+  // Plot the nominal PDFs
+  gStyle->SetOptStat(0);
+  hdata_obs->SetMarkerStyle(20);
+  hdata_obs->SetMarkerSize(0.8);
+  hdata_obs->SetMarkerColor(kBlack);
+  hdata_obs->SetLineColor(kBlue);
+  hdata_obs->SetLineWidth(2);
+  TCanvas* c = CLFV::PlotUtil::PlotRatio(hdata_obs, hstack, hsig, true, true);
+  // TCanvas* c = new TCanvas();
+  // hdata_obs->Draw("E1");
+  // hstack->Draw("hist noclear same");
+  // hsig->Draw("hist same");
+  // hdata_obs->Draw("E1 same");
+  TString figure_name = Form("plots/latest_production/%i/pdfs_%s", years[0], outName.Data());
+  figure_name.ReplaceAll(".root", ".png");
+  hdata_obs->GetYaxis()->SetRangeUser(5.e-2, 2.*hdata_obs->GetMaximum());
+  c->cd(1);
+  c->SetLogy();
+  c->SetGrid();
+  c->SaveAs(figure_name.Data());
+  delete c;
+
   //////////////////////////////////////////////////////////////////
   // Print the systematics to the card
   //////////////////////////////////////////////////////////////////
@@ -363,7 +395,9 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
       jtt_bkg_line = Form("%-13s %5s      1", "JetToTauNorm", "lnN");
     }
     if(type == "shape") {
-      sys += Form("%6i", 1);
+      double nsigma = 1.;
+      if(name == "TheoryPDF") nsigma = 2.; //increase the TheoryPDF size
+      sys += Form("%6.1f", nsigma);
     } else {
       double sys_up   = (hsig->Integral() > 0.) ? hsig->Integral()/hsig_up->Integral() : 0.;
       double sys_down = (hsig->Integral() > 0.) ? hsig->Integral()/hsig_down->Integral() : 0.;
@@ -421,7 +455,9 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
       else if(do_fake_bkg_line)                jtt_bkg_line += Form("%15i", 1);
 
       if(type == "shape") {
-        sys += Form("%15i", 1);
+        double nsigma = 1.;
+        if(name == "TheoryPDF") nsigma = 2.; //increase the TheoryPDF size
+        sys += Form("%15.1f", nsigma);
       } else {
         double sys_up   = (hbkg_i->Integral() > 0.) ? hbkg_i->Integral()/hbkg_i_up->Integral() : 0.;
         double sys_down = (hbkg_i->Integral() > 0.) ? hbkg_i->Integral()/hbkg_i_down->Integral() : 0.;
@@ -453,8 +489,10 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
       if(name.Contains("MuonES")                        ) add_group(groups, name, "MuonES_Total"      );
       if(name.Contains("EleES")                         ) add_group(groups, name, "EleES_Total"       );
       if(name.Contains("TauES")                         ) add_group(groups, name, "TauES_Total"       );
-      if(name.Contains("EleTrig")                       ) add_group(groups, name, "EleTrig_Total"     );
-      if(name.Contains("MuonTrig")                      ) add_group(groups, name, "MuonTrig_Total"    );
+      if(selection.Contains("etau"))
+        if(name.Contains("EleTrig")                       ) add_group(groups, name, "EleTrig_Total"     );
+      if(selection.Contains("mutau"))
+        if(name.Contains("MuonTrig")                      ) add_group(groups, name, "MuonTrig_Total"    );
       if(name.Contains("ZPt")                           ) add_group(groups, name, "ZPt_Total"         );
       if(name.Contains("Pileup")                        ) add_group(groups, name, "Pileup_Total"      );
       if(name.Contains("Prefire")                       ) add_group(groups, name, "Prefire_Total"     );
@@ -474,6 +512,14 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
     outfile << Form("%-13s group =", group.first.Data());
     for(TString isys : group.second) outfile << " " << isys.Data();
     outfile << "\n";
+  }
+
+  //apply a bias correction due to the data-driven control region signal contamination if requested
+  if(apply_signal_bias_) {
+    const double bias = get_bias_factor(years[0], selection.EndsWith("tau"), selection.BeginsWith("mu"));
+    const char* name = (selection.EndsWith("tau")) ? "had_bias_corr" : "lep_bias_corr";
+    const double scale = 1. + bias; //add the bias to the rate to compensate for it
+    outfile << Form("%s rateParam %s %s %.3f [%.3f,%.3f]\n", name, hist.Data(), selec_name.Data(), scale, scale, scale);
   }
 
   if(use_fake_bkg_norm_) {

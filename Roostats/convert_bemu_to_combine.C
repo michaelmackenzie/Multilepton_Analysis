@@ -13,13 +13,13 @@ using namespace CLFV;
 bool useRateParams_ = false;
 bool fixSignalPDF_  = true;
 bool useMultiDim_   = true;
-bool includeSys_    = true;
+bool includeSys_    = false;
 bool twoSidedSys_   = true; //write both up and down for each rate systematic
 bool printPlots_    = true;
 bool fitSideBands_  = true;
 bool export_        = false; //if locally run, export the workspace to LPC
 bool replaceRefit_  = false; //replace data with toy MC, then fit the unblinded toy data
-bool save_          = true ; //save output combine workspace/cards
+bool save_          = false; //save output combine workspace/cards
 
 
 //Retrieve yields for each relevant systematic
@@ -226,7 +226,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
   }
 
   // Create an observable for this category
-  RooRealVar* lepm = new RooRealVar(Form("lepm_%i", set), "M_{ll}", (xmin+xmax)/2., xmin, xmax);
+  RooRealVar* lepm = new RooRealVar(Form("lepm_%i", set), "M_{e#mu}", (xmin+xmax)/2., xmin, xmax);
   int low_bin  = std::max(1, std::min(data->GetNbinsX(), data->FindBin(xmin+1.e-3)));
   int high_bin = std::max(1, std::min(data->GetNbinsX(), data->FindBin(xmax-1.e-3)));
   lepm->setBins(high_bin - low_bin + 1);
@@ -275,6 +275,8 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
   if(printPlots_) {
     TCanvas* c = new TCanvas(Form("c_sig_%i", set), Form("c_sig_%i", set), 1000, 1000);
     auto xframe = lepm->frame();
+    xframe->SetTitle("");
+    xframe->SetXTitle("M_{e#mu}");
     sigData->plotOn(xframe);
     sigPDF->plotOn(xframe);
     sigPDF->plotOn(xframe, RooFit::Components(Form("sigpdf1_%i", set)), RooFit::LineColor(kRed), RooFit::LineStyle(kDashed));
@@ -345,15 +347,15 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
       // dataset->plotOn(xframe, RooFit::Name("toy_data"));
     }
     else           dataData->plotOn(xframe);
-    verbose_ = 2;
-    int nentries = 40;
+
+    int nentries = dataData->numEntries();
     double chi_sq = get_chi_squared(*lepm, bkgPDF, *dataData, fitSideBands_, &nentries);
     bkgPDF->plotOn(xframe, RooFit::Name(bkgPDF->GetName()), RooFit::LineColor(kBlue), RooFit::NormRange("full"), RooFit::Range("full"));
 
     TString name = bkgPDF->GetName();
     TString title = bkgPDF->GetTitle();
     int order = ((title(title.Sizeof() - 2)) - '0');
-    vector<int> colors = {kRed, kYellow-7, kViolet-7, kGreen-7, kOrange+2, kAtlantic, kRed+2, kMagenta, kOrange};
+    vector<int> colors = {kRed, kViolet-7, kGreen-7, kOrange+2, kAtlantic, kRed+2, kMagenta, kOrange, kYellow-7};
     vector<double> chi_sqs;
     vector<double> p_chi_sqs;
     chi_sqs.push_back(chi_sq / (nentries - order - 2));
@@ -365,14 +367,20 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
         auto pdf = multiPDF->getPdf(ipdf); //multiPDF->getPdf(Form("index_%i", ipdf));
         name = pdf->GetName();
         title = pdf->GetTitle();
-        chi_sq = get_chi_squared(*lepm, pdf, *dataData, fitSideBands_);
+        chi_sq = get_chi_squared(*lepm, pdf, (fitSideBands_) ? *blindDataHist : *dataData, fitSideBands_);
         pdf->plotOn(xframe, RooFit::Name(pdf->GetName()), RooFit::LineColor(colors[ipdf % colors.size()]), RooFit::LineStyle(kDashed),
                     RooFit::NormRange("full"), RooFit::Range("full"));
+        // pdf->Print("tree");
         order = ((title(title.Sizeof() - 2)) - '0');
-        if(title.Contains("Exponential")) order *= 2;
-        if(title.BeginsWith("Combined")) order = 4; //2nd order poly + 0th order exp
+        if     (title.Contains("Exponential")) order *= 2;
+        else if(title.Contains("Power law"  )) order *= 2;
+        else if(title.BeginsWith("Combined" )) order = 4; //2nd order poly + 0th order exp
         chi_sqs.push_back(chi_sq / (nentries - order - 1));
         p_chi_sqs.push_back(TMath::Prob(chi_sq, nentries - order - 1));
+        cout << "----------------------------------------------------------------------------" << endl
+             <<title.Data() << ": chi^2 / dof = " << chi_sq << " / " << (nentries - order - 1) << " = " << chi_sqs.back()
+             << " (p = " << p_chi_sqs.back() << ")" << endl
+             << "----------------------------------------------------------------------------" << endl;
       }
     }
     xframe->Draw();
@@ -410,6 +418,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
     TH1* dataDiff = bkgPDF->createHistogram("dataDiff", *lepm);
     // TH1* dataDiff = (blindData_) ? (TH1*) blindData->Clone("dataDiff") : (TH1*) data->Clone("dataDiff");
     dataDiff->SetTitle("");
+    // dataDiff->SetXTitle("M_{e#mu}");
     dataDiff->SetLineColor(data->GetLineColor());
     dataDiff->SetLineWidth(data->GetLineWidth());
     dataDiff->SetMarkerStyle(data->GetMarkerStyle());

@@ -2,6 +2,7 @@
 double scale_ = 1.;
 bool speed_limit_ = true; //use Combine arguments to speed up limit calculation
 bool preliminary_ = true;
+bool add_values_  = true; //add text values of the limits to the plot
 
 struct config_t {
   TString name_;
@@ -100,9 +101,15 @@ int make_combine_limit_plot_general(vector<config_t> configs, //info for each en
 
     y[itree] = nfiles - itree;
     yerr[itree] = 0.2;
-    max_val = max(max_val, expected[itree] + up_2  [itree]);
-    min_val = min(min_val, expected[itree] - down_2[itree]);
-    cout << configs[itree].name_.Data() << ": r < " << expected[itree] << endl;
+    max_val = max(max_val, max(expected[itree] + up_2  [itree], obs[itree]));
+    min_val = min(min_val, min(expected[itree] - down_2[itree], obs[itree]));
+    if(doObs) {
+      cout << configs[itree].name_.Data() << ": r < " << obs[itree] << " (" << expected[itree]
+           << " [" << expected[itree]-down_1[itree] << ", " << expected[itree]+up_1[itree] << "])" << endl;
+    } else {
+      cout << configs[itree].name_.Data() << ": r < " << expected[itree]
+           << " [" << expected[itree]-down_1[itree] << ", " << expected[itree]+up_1[itree] << "]" << endl;
+    }
   }
 
   TGraphAsymmErrors* expected_1 = new TGraphAsymmErrors(nfiles, expected, y, down_1, up_1, yerr, yerr);
@@ -118,8 +125,8 @@ int make_combine_limit_plot_general(vector<config_t> configs, //info for each en
   expected_2->SetFillColor(kOrange);
   expected_2->SetMarkerStyle(20);
   expected_2->SetMarkerSize(0.8);
-  expected_2->SetTitle("");
-  expected_2->GetXaxis()->SetTitle(Form("95%% upper limit on BF(Z^{0} #rightarrow %s^{#pm}%s^{#mp})",
+  // expected_2->SetTitle("");
+  expected_2->SetTitle(Form(";95%% upper limit on BF(Z^{0} #rightarrow %s^{#pm}%s^{#mp});",
                                         selection.BeginsWith("zmu") ? "#mu" : "e", selection.EndsWith("mu") ? "#mu" : "#tau"));
 
   //calculate x-axis range
@@ -128,18 +135,26 @@ int make_combine_limit_plot_general(vector<config_t> configs, //info for each en
   const float xmin = min_val/pow(1.5,max(0.f, scale_size));
   printf("Max val = %.2e, Min val = %.2e --> xrange = [%.2e , %.2e]\n", max_val, min_val, xmin, xmax);
 
+  gStyle->SetOptStat(0);
   gStyle->SetPadTickX(1);
   gStyle->SetPadTickY(1);
 
   TCanvas* c = new TCanvas("c", "c", 800, 800);
-  expected_2->Draw("AE2");
+  //Create a histogram to use as the axis
+  TH1* haxis = new TH1F("haxis", "", 1, xmin, xmax);
+  haxis->SetTitle(expected_2->GetTitle());
+  haxis->Draw();
+
+  //Add the graphs to the plot
+  expected_2->Draw("E2");
   expected_1->Draw("PE2 SAME");
   c->SetLogx();
-  expected_2->GetYaxis()->SetRangeUser(ymin, ymax);
-  expected_2->GetXaxis()->SetRangeUser(xmin, xmax);
-  expected_2->GetXaxis()->SetMoreLogLabels(true);
-  expected_2->GetYaxis()->SetLabelOffset(1e10);
-  expected_2->GetYaxis()->SetLabelSize(0);
+  haxis->GetYaxis()->SetRangeUser(ymin, ymax);
+  haxis->GetXaxis()->SetRangeUser(xmin, xmax);
+  haxis->GetXaxis()->SetMoreLogLabels(true);
+  haxis->GetYaxis()->SetLabelOffset(1e10);
+  haxis->GetYaxis()->SetLabelSize(0);
+  haxis->GetXaxis()->SetTitleOffset(1.2);
 
   TGaxis::SetMaxDigits(3);
   TGraph* g_obs = new TGraph(nfiles, obs, y);
@@ -189,7 +204,10 @@ int make_combine_limit_plot_general(vector<config_t> configs, //info for each en
     double ystart  = ((nfiles/ymax) - 0.1);
     double yfinish = (ymin/ymax) + 0.1;
     const double yloc = (nfiles == 1) ? 0.5 : ystart - (icard)*(ystart - yfinish)/(nfiles-1);
-    label.DrawLatex(0.01, yloc, Form("%s: %.2e", configs[icard].label_.Data(), expected[icard]));
+    if(add_values_)
+      label.DrawLatex(0.01, yloc, Form("%s: %.2e", configs[icard].label_.Data(), expected[icard]));
+    else
+      label.DrawLatex(0.01, yloc, Form("%s", configs[icard].label_.Data()));
   }
   // label.DrawLatex(0.1, 0.38, Form("%.1e", expected[1]));
   // label.DrawLatex(0.1, 0.18, Form("%.1e", expected[2]));
