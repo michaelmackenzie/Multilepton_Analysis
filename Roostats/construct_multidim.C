@@ -168,7 +168,7 @@ RooAbsPdf* create_powerlaw(RooRealVar& obs, int order, int set, TString tag = ""
   RooArgList pdfs;
   RooArgList coefficients;
   for(int i = 0; i <= order; ++i) {
-    vars.push_back(new RooRealVar(Form("pwr_%i_order_%i_c_%i%s", set, order, i, tag.Data()), Form("pwr_%i_order_%i_%i power%s", set, order, i, tag.Data()), 1., -10., 10.));
+    vars.push_back(new RooRealVar(Form("pwr_%i_order_%i_c_%i%s", set, order, i, tag.Data()), Form("pwr_%i_order_%i_%i power%s", set, order, i, tag.Data()), 1., -100., 100.));
     pwrs.push_back(new RooPowerLaw(Form("pwr_%i_pdf_order_%i_%i%s", set, order, i, tag.Data()), Form("pwr_%i_pdf_order_%i_%i%s", set, order, i, tag.Data()), obs, *vars[i]));
     pdfs.add(*pwrs[i]);
     coeffs.push_back(new RooRealVar(Form("pwr_%i_order_%i_n_%i%s", set, order, i, tag.Data()), Form("pwr_%i_order_%i_%i%s norm" , set, order, i, tag.Data()), 1.e3, 0., 1.e6));
@@ -341,7 +341,8 @@ std::pair<int,double> add_powerlaws(RooDataHist& data, RooRealVar& obs, RooArgLi
     const double chi_sq = get_chi_squared(obs, pdf, data, useSideBands, &nentries);
     const int dof = (nentries - 2*order - 1);  //DOF = number of variables + normalization
     const double p_chi_sq = TMath::Prob(chi_sq, dof);
-    if(chi_sq < min_chi - chi_cutoff && chi_sq / dof < max_chisq && p_chi_sq >= min_p_chisq) {
+    const bool add_pdf = /*chi_sq < min_chi - chi_cutoff &&*/ chi_sq / dof < max_chisq && p_chi_sq >= min_p_chisq;
+    if(add_pdf) {
       // list.add(*pdf);
       list.add(*basePdf);
     } else {
@@ -350,7 +351,7 @@ std::pair<int,double> add_powerlaws(RooDataHist& data, RooRealVar& obs, RooArgLi
     if(chi_sq < min_chi) {min_chi = chi_sq; min_index = list.getSize() - 1;}
     if(verbose > 1) cout << "######################\n"
                          << "### Powerlaw order " << order << " has chisq = " << chi_sq << " / " << dof << " = " << chi_sq/dof
-                         << " (p = " << p_chi_sq << ")" << endl
+                         << " (p = " << p_chi_sq << ")" " --> add PDF = " << add_pdf << endl
                          << "######################\n";
   }
   return std::pair<int, double>(min_index, min_chi);

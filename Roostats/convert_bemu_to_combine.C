@@ -352,6 +352,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
     double chi_sq = get_chi_squared(*lepm, bkgPDF, *dataData, fitSideBands_, &nentries);
     bkgPDF->plotOn(xframe, RooFit::Name(bkgPDF->GetName()), RooFit::LineColor(kBlue), RooFit::NormRange("full"), RooFit::Range("full"));
 
+
     TString name = bkgPDF->GetName();
     TString title = bkgPDF->GetTitle();
     int order = ((title(title.Sizeof() - 2)) - '0');
@@ -360,6 +361,20 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
     vector<double> p_chi_sqs;
     chi_sqs.push_back(chi_sq / (nentries - order - 2));
     p_chi_sqs.push_back(TMath::Prob(chi_sq, nentries - order - 2));
+    cout << "----------------------------------------------------------------------------" << endl
+         <<title.Data() << ": chi^2 / dof = " << chi_sq << " / " << (nentries - order - 1) << " = " << chi_sqs.back()
+         << " (p = " << p_chi_sqs.back() << ")" << endl;
+    auto vars = bkgPDF->getVariables();
+    auto itr = vars->createIterator();
+    auto var = itr->Next();
+    while(var) {
+      if(TString(var->GetName()) != lepm->GetName()) {
+        var->Print();
+      }
+      var = itr->Next();
+    }
+    cout << "----------------------------------------------------------------------------" << endl;
+    // bkgPDF->Print("tree");
 
     if(useMultiDim_) {
       for(int ipdf = 0; ipdf < categories->numTypes(); ++ipdf) {
@@ -379,8 +394,17 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
         p_chi_sqs.push_back(TMath::Prob(chi_sq, nentries - order - 1));
         cout << "----------------------------------------------------------------------------" << endl
              <<title.Data() << ": chi^2 / dof = " << chi_sq << " / " << (nentries - order - 1) << " = " << chi_sqs.back()
-             << " (p = " << p_chi_sqs.back() << ")" << endl
-             << "----------------------------------------------------------------------------" << endl;
+             << " (p = " << p_chi_sqs.back() << ")" << endl;
+        auto vars = pdf->getVariables();
+        auto itr = vars->createIterator();
+        auto var = itr->Next();
+        while(var) {
+          if(TString(var->GetName()) != lepm->GetName()) {
+            var->Print();
+          }
+          var = itr->Next();
+        }
+        cout << "----------------------------------------------------------------------------" << endl;
       }
     }
     xframe->Draw();
