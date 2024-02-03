@@ -450,7 +450,7 @@ void make_2d_closure_slices(int set1, int set2, PlottingCard_t card, TH2* &hTigh
   TString hist = card.hist_;
   TString type = card.type_;
   const int set = card.set_;
-  const bool debug = true;
+  const bool debug = false;
 
   if(noncl_verbose_ > 0) {
     cout << __func__ << ": Making 2d closure slices for " << hist.Data() << "/" << type.Data() << " using sets "
@@ -1599,7 +1599,17 @@ Int_t scale_factors(TString selection = "mutau", TString process = "WJets", int 
   make_2d_closure_slices (set1Abs, set2Abs, PlottingCard_t("jettaulepmvsmva2", "event", 0), hData_2D, hMC_2D); //no bias corrections
   if(hData_2D && hMC_2D) {
     TH2* hRatio_2D = (TH2*) hData_2D->Clone("LepMVsMVABias");
-    // if(hMC_2D->Integral() > 0.) hRatio_2D->Scale(hData_2D->Integral() / hMC_2D->Integral()); //Assume the integral error is corrected by another bias correction
+    hRatio_2D->Divide(hMC_2D);
+    hRatio_2D->Write();
+    //add a version without a rate component
+    hRatio_2D = (TH2*) hData_2D->Clone("LepMVsMVABiasShape");
+    double err_d(0.), err_m(0.);
+    const double int_m = hMC_2D  ->IntegralAndError(0, hMC_2D  ->GetNbinsX()+1, 0, hMC_2D  ->GetNbinsY()+1, err_m);
+    const double int_d = hData_2D->IntegralAndError(0, hData_2D->GetNbinsX()+1, 0, hData_2D->GetNbinsY()+1, err_d);
+    const double scale = (int_d > 0.) ? int_m / int_d : 1.;
+    printf("--- LepMVsMVABias scale uncertainty = %.3f +- %.3f\n", scale, scale*sqrt(pow(err_m/int_m, 2) + pow(err_d/int_d,2)));
+    //r = (a+-e_a)/(b+-e_b) = a/b*(1+e_a/a)/(1+e_b/b) = r*(1+e_a/a)*(1-e_b/b) = r*(1 + e_a/a - e_b/b) --> e_r = r*quad(e_a/a, e_b/b)
+    hRatio_2D->Scale(scale);
     hRatio_2D->Divide(hMC_2D);
     hRatio_2D->Write();
   } else {
