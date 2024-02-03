@@ -1230,15 +1230,11 @@ Int_t init_dataplotter() {
   double lum = 0.;
   for(int year : years_) {
     double currLum = 0.;
-    if(year == 2016) {
-      if(doRunPeriod_ == 0)
-        currLum = xs.GetLuminosity(year); //pb^-1
-      else if(doRunPeriod_ == 1)
-        currLum = (5.892 + 2.646 + 4.353 + 4.117 + 3.174)*1.e3; //B-F
-      else if(doRunPeriod_ == 2)
-        currLum = (7.540 + 8.606)*1.e3; //G-H
+    if(runs_.size() == 0) { //get full year luminosity
+      currLum = xs.GetLuminosity(year); //pb^-1
+    } else { //get each run's luminosity
+      for(auto run : runs_) currLum += xs.GetLuminosity(year, run);
     }
-    else currLum = xs.GetLuminosity(year);
     dataplotter_->lums_[year] = currLum; //store the luminosity for the year
     lum += currLum; //add to the total luminosity
   }

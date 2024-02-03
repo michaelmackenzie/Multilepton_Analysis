@@ -6,6 +6,7 @@ typedef DataCard_t dcard;
 vector<int> years_    = {2016, 2017, 2018}; //list of years of interest
 int useRunPeriodData_ = 1; //use run periods of data
 int doRunPeriod_      = 0; //use predefined set of run periods of data (e.g. 2016 B-F)
+int useMuonEGData_    = 0; //include MuonEG data in the emu data selections
 vector<TString> runs_ = {}; //runs to use
 TString hist_path_    = "root://cmseos.fnal.gov//store/user/mmackenz/histograms/"; //where histogram files are
 TString hist_dir_     = "nanoaods_dev"; //which histogram directory to use
@@ -218,12 +219,15 @@ void get_datacards(std::vector<dcard>& cards, TString selection, int forStudies 
     if(useRunPeriodData_ == 0) { //use merged data samples
       if(selection != "etau"  && selection !="ee"  ) cards.push_back(dcard("SingleMu" , "SingleMu" , "Data", true , 1., false, year));
       if(selection != "mutau" && selection !="mumu") cards.push_back(dcard("SingleEle", "SingleEle", "Data", true , 1., false, year));
+      if(useMuonEGData_ && (selection == "emu" || selection.Contains("_"))) cards.push_back(dcard("MuonEG", "MuonEG", "Data", true , 1., false, year));
     } else { //use run-period-specific data samples
       for(int period = 0; period < periods[year].size(); ++period) {
         TString muon_name = "SingleMuon-" + periods[year][period];
         TString electron_name = "SingleElectron-" + periods[year][period];
-        if(selection != "etau"  && selection!="ee"  ) cards.push_back(dcard(muon_name.Data()    , muon_name.Data()    , "Data", true , 1., false, year));
-        if(selection != "mutau" && selection!="mumu") cards.push_back(dcard(electron_name.Data(), electron_name.Data(), "Data", true , 1., false, year));
+        TString muoneg_name = "MuonEG-" + periods[year][period];
+        if(selection != "etau"  && selection!="ee"  ) cards.push_back(dcard(muon_name    , muon_name    , "Data", true , 1., false, year));
+        if(selection != "mutau" && selection!="mumu") cards.push_back(dcard(electron_name, electron_name, "Data", true , 1., false, year));
+        if(useMuonEGData_ && (selection == "emu" || selection.Contains("_"))) cards.push_back(dcard(muoneg_name, muoneg_name, "Data", true , 1., false, year));
       }
     }
   } //end years loop

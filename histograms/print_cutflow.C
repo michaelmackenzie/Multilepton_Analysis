@@ -19,6 +19,25 @@ int print_emu_cutflow() {
   return status;
 }
 
+int print_tau_cutflow() {
+  int status(0);
+  //cutflow sets
+  vector<int> sets = {20,8,21,22,23,24,25,26,27};
+  useLepTauSet_ = 0;
+  //print the cutflow
+  for(int set : sets) {
+    if(set == 20) dataplotter_->print_stack("eventweight","event",set+get_offset());
+    status += print_mass(set);
+    status += print_met(set);
+    status += print_mt(set);
+    status += print_pt(set);
+    status += print_ptdiff(set);
+    status += print_eta(set);
+    // status += print_mva(set);
+  }
+  return status;
+}
+
 int print_cutflow(TString hist_dir = "nanoaods_sparse", TString selection = "emu", vector<int> years = {2016,2017,2018}) {
   //setup the datacards
   years_     = years;
@@ -32,7 +51,8 @@ int print_cutflow(TString hist_dir = "nanoaods_sparse", TString selection = "emu
   if(status) return status;
 
   //print the cut flow histograms
-  if(selection == "emu") status += print_emu_cutflow();
+  if(selection == "emu")        status += print_emu_cutflow();
+  if(selection.Contains("tau")) status += print_tau_cutflow();
 
   return status;
 }

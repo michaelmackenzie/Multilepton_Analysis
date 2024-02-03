@@ -64,7 +64,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
   int doSystematics = doSystematics_;
   // configure fields for emu defaults, assuming tau ones are set
   if(doEmuDefaults_ && (selection == "emu" || ((selection == "ee" || selection == "mumu") && doSameFlavorEMu_))) {
-    doSystematics = isSignal && doSystematics_;
+    doSystematics = (isSignal) ? doSystematics_ : (doSystematics_) ? -2 : 0; //-2 only fills the base histogram for non-signal systematics
     // doSystematics_ = 0;
     allowMigration_ = isSignal && doSystematics_;
     useEventFlags_      = 1; //filter using event flags
@@ -211,6 +211,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
         hist_selec->fPrintTime          = 2; //Print detailed summary of processing times
         hist_selec->fPrintFilling       = 1; //print detailed histogram set filling
         hist_selec->fDoTriggerMatching  = doTriggerMatching_;
+        hist_selec->fUseEMuTrigger      = useEMuTrigger_;
         hist_selec->fReprocessMVAs      = ReprocessMVAs_; //reevaluate MVA scores on the fly
         hist_selec->fTestMVA            = test_mva_;
         hist_selec->fProcessSSSF        = doSSSF_;
@@ -441,6 +442,7 @@ Int_t process_single_card(datacard_t& card, config_t& config, vector<TString> fi
   //for avoiding double counting data events in muon+electron data files
   const bool isElectronData = card.isData_ == 1;
   const bool isMuonData     = card.isData_ == 2;
+  const bool isMuonEGData   = card.isData_ == 3;
 
   card.events_ = events;
   if(xs.GetGenNumber(name, card.year_) > 0) {
@@ -473,6 +475,12 @@ Int_t process_single_card(datacard_t& card, config_t& config, vector<TString> fi
     }
     if(isMuonData && (selection == "etau" || selection == "ee")) {
       cout << "Muon data on electron only channel, continuing!\n"; continue;
+    }
+    if(isMuonEGData && (selection != "emu" && !selection.Contains("_"))) {
+      cout << "MuonEG data not on e-mu data channel, continuing!\n"; continue;
+    }
+    if(isMuonEGData && useEMuTrigger_ == 0) {
+      cout << "MuonEG data but not using e-mu trigger, continuing!\n"; continue;
     }
     if(name.Contains("Embed-MuMu-") && selection != "mumu") {
       cout << "MuMu embedding is only relevant to the mumu channel, skipping " << selection.Data() << endl;
