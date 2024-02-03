@@ -11,5 +11,6 @@ Int_t verbose_        = 0;
 #endif
 int use_same_flavor_  = false;
 bool blindData_     = true;
+int zemu_signal_mode_ = 1; //Z->e+mu resonance shape: 0: CB+Gaussian; 1: DSCB
 
 #endif

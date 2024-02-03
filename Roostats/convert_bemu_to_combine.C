@@ -13,13 +13,14 @@ using namespace CLFV;
 bool useRateParams_ = false;
 bool fixSignalPDF_  = true;
 bool useMultiDim_   = true;
-bool includeSys_    = false;
+bool includeSys_    = true;
 bool twoSidedSys_   = true; //write both up and down for each rate systematic
+bool addESShifts_   = true; //include constrained parameters for the energy scale uncertainties
 bool printPlots_    = true;
 bool fitSideBands_  = true;
 bool export_        = false; //if locally run, export the workspace to LPC
 bool replaceRefit_  = false; //replace data with toy MC, then fit the unblinded toy data
-bool save_          = false; //save output combine workspace/cards
+bool save_          =  true; //save output combine workspace/cards
 
 
 //Retrieve yields for each relevant systematic
@@ -56,6 +57,9 @@ void get_systematics(TFile* f, TString label, int set, vector<pair<double,double
       cout << "!!! Systematic " << sys_name.Data() << "(" << isys-1 << "/" << isys << ") not found for set " << set << " and label " << label.Data()
            << " hist up name = " << hist_up.Data() << endl;
       continue;
+    }
+    if(sys_name.EndsWith("ES")) {
+      printf("Systematic %s: (up mean, down mean) = (%.4f, %.4f)\n", sys_name.Data(), h_up->GetMean(), h_down->GetMean());
     }
     double yield_up, yield_down;
     if(xmin > xmax) {
@@ -97,6 +101,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
   bool isHiggs = selection.Contains("h");
   const double xmin = (isHiggs) ? 110. :  70.;
   const double xmax = (isHiggs) ? 160. : 110.;
+  const double signal_mass = (isHiggs) ? 125. : 91.;
 
   //determine the signal name and branching ratio
   TString selec = selection;  selec.ReplaceAll("_e", ""); selec.ReplaceAll("_mu", "");
@@ -253,25 +258,61 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
 
   cout << "--- Performing the signal fit for set " << set << endl;
 
-  RooRealVar* mean     = new RooRealVar(Form("mean_%i"     , set), "mean", (isHiggs) ? 125. : 91., (isHiggs) ? 120. : 85., (isHiggs) ? 130. : 95.);
-  RooRealVar* sigma    = new RooRealVar(Form("sigma_%i"    , set), "sigma", 2., 0.1, 5.);
-  RooRealVar* alpha    = new RooRealVar(Form("alpha_%i"    , set), "alpha", 1., 0.1, 10.);
-  RooRealVar* enne     = new RooRealVar(Form("enne_%i"     , set), "enne", 5., 0.1, 30.);
-  RooRealVar* mean2    = new RooRealVar(Form("mean2_%i"    , set), "mean2", lepm->getVal(), lepm->getMin(), lepm->getMax());
-  RooRealVar* sigma2   = new RooRealVar(Form("sigma2_%i"   , set), "sigma2", 5., 0.1, 10.);
-  RooCBShape* sigpdf1  = new RooCBShape(Form("sigpdf1_%i"  , set), "sigpdf1", *lepm, *mean, *sigma, *alpha, *enne);
-  RooGaussian* sigpdf2 = new RooGaussian(Form("sigpdf2_%i" , set), "sigpdf2", *lepm, *mean2, *sigma2);
-  RooRealVar* fracsig  = new RooRealVar(Form("fracsig_%i"  , set), "fracsig", 0.7, 0., 1.);
-  RooAddPdf* sigPDF    = new RooAddPdf(Form("sigPDF_%i"    , set), "signal PDF", *sigpdf1, *sigpdf2, *fracsig);
+  vector<RooRealVar*> sig_pdf_vars; //signal resonance parameters
+ //energy scale nuisance shifts in the resonance mean
+  RooRealVar* elec_ES_shift = new RooRealVar(Form("elec_ES_shift"), "electron ES shift", 0., -5., 5.); elec_ES_shift->setConstant(true);
+  RooRealVar* muon_ES_shift = new RooRealVar(Form("muon_ES_shift"), "muon ES shift"    , 0., -5., 5.); muon_ES_shift->setConstant(true);
+  RooRealVar* elec_ES_size  = new RooRealVar(Form("elec_ES_size"), "electron ES size"  , 0.260/signal_mass); elec_ES_size->setConstant(true);
+  RooRealVar* muon_ES_size  = new RooRealVar(Form("muon_ES_size"), "muon ES size"      , 0.075/signal_mass); muon_ES_size->setConstant(true);
+
+  RooAbsPdf* sigPDF; //full signal PDF
+  if(zemu_signal_mode_ == 0) { //Use Crystal Ball with an additional Gaussian
+    RooRealVar* mean     = new RooRealVar(Form("mean_%i"     , set), "mean", signal_mass, signal_mass - 5., signal_mass + 5.);
+    RooRealVar* sigma    = new RooRealVar(Form("sigma_%i"    , set), "sigma", 2., 0.1, 5.);
+    RooRealVar* alpha    = new RooRealVar(Form("alpha_%i"    , set), "alpha", 1., 0.1, 10.);
+    RooRealVar* enne     = new RooRealVar(Form("enne_%i"     , set), "enne", 5., 0.1, 30.);
+    RooRealVar* mean2    = new RooRealVar(Form("mean2_%i"    , set), "mean2", signal_mass, lepm->getMin(), lepm->getMax());
+    RooRealVar* sigma2   = new RooRealVar(Form("sigma2_%i"   , set), "sigma2", 5., 0.1, 10.);
+    RooCBShape* sigpdf1  = new RooCBShape(Form("sigpdf1_%i"  , set), "sigpdf1", *lepm, *mean, *sigma, *alpha, *enne);
+    RooGaussian* sigpdf2 = new RooGaussian(Form("sigpdf2_%i" , set), "sigpdf2", *lepm, *mean2, *sigma2);
+    RooRealVar* fracsig  = new RooRealVar(Form("fracsig_%i"  , set), "fracsig", 0.7, 0., 1.);
+
+    sigPDF    = new RooAddPdf(Form("sigPDF_%i"    , set), "signal PDF", *sigpdf1, *sigpdf2, *fracsig);
+    sig_pdf_vars.push_back(mean);
+    sig_pdf_vars.push_back(sigma);
+    sig_pdf_vars.push_back(alpha);
+    sig_pdf_vars.push_back(enne);
+    sig_pdf_vars.push_back(mean2);
+    sig_pdf_vars.push_back(sigma2);
+  } else if(zemu_signal_mode_ == 1) {//Use a double-sided Crystall Ball
+    RooRealVar* mean     = new RooRealVar(Form("mean_%i"     , set), "mean", signal_mass, signal_mass - 5., signal_mass + 5.);
+    RooRealVar* sigma    = new RooRealVar(Form("sigma_%i"    , set), "sigma", 2., 0.1, 5.);
+    RooRealVar* alpha1   = new RooRealVar(Form("alpha1_%i"   , set), "alpha1", 1., 0.1, 10.);
+    RooRealVar* alpha2   = new RooRealVar(Form("alpha2_%i"   , set), "alpha2", 1., 0.1, 10.);
+    RooRealVar* enne1    = new RooRealVar(Form("enne1_%i"    , set), "enne2", 5., 0.1, 30.);
+    RooRealVar* enne2    = new RooRealVar(Form("enne2_%i"    , set), "enne2", 5., 0.1, 30.);
+    RooFormulaVar* mean_func = new RooFormulaVar(Form("mean_func_%i", set), "mean with offset",
+                                                 "@0*(1 + @1*@2 + @3*@4)", RooArgList(*mean, *elec_ES_shift, *elec_ES_size, *muon_ES_shift, *muon_ES_size));
+    sigPDF  = new RooDoubleCrystalBall(Form("sigPDF_%i"  , set), "signal PDF", *lepm, *mean_func, *sigma, *alpha1, *enne1, *alpha2, *enne2);
+    sig_pdf_vars.push_back(mean);
+    sig_pdf_vars.push_back(sigma);
+    sig_pdf_vars.push_back(alpha1);
+    sig_pdf_vars.push_back(alpha2);
+    sig_pdf_vars.push_back(enne1);
+    sig_pdf_vars.push_back(enne2);
+  }
   RooRealVar* N_sig    = new RooRealVar(Form("N_sig_%i"    , set), "N_sig", 2e5, 0, 3e6);
   RooAddPdf* totsigpdf = new RooAddPdf(Form("totSigPDF_%i" , set), "Signal PDF", RooArgList(*sigPDF), RooArgList(*N_sig));
 
   totsigpdf->fitTo(*sigData, RooFit::SumW2Error(1), RooFit::Extended(1));
   if(fixSignalPDF_) {
-    fracsig->setConstant(1); mean->setConstant(1); sigma->setConstant(1);
-    enne->setConstant(1); alpha->setConstant(1); mean2->setConstant(1); sigma2->setConstant(1);
+    for(auto var : sig_pdf_vars) var->setConstant(1);
   }
 
+  if(addESShifts_) {
+     elec_ES_shift->setConstant(false);
+     muon_ES_shift->setConstant(false);
+  }
   if(printPlots_) {
     TCanvas* c = new TCanvas(Form("c_sig_%i", set), Form("c_sig_%i", set), 1000, 1000);
     auto xframe = lepm->frame();
@@ -279,8 +320,10 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
     xframe->SetXTitle("M_{e#mu}");
     sigData->plotOn(xframe);
     sigPDF->plotOn(xframe);
-    sigPDF->plotOn(xframe, RooFit::Components(Form("sigpdf1_%i", set)), RooFit::LineColor(kRed), RooFit::LineStyle(kDashed));
-    sigPDF->plotOn(xframe, RooFit::Components(Form("sigpdf2_%i", set)), RooFit::LineColor(kRed), RooFit::LineStyle(kDashed));
+    if(zemu_signal_mode_ == 0) {
+      sigPDF->plotOn(xframe, RooFit::Components(Form("sigpdf1_%i", set)), RooFit::LineColor(kRed), RooFit::LineStyle(kDashed));
+      sigPDF->plotOn(xframe, RooFit::Components(Form("sigpdf2_%i", set)), RooFit::LineColor(kRed), RooFit::LineStyle(kDashed));
+    }
     xframe->Draw();
     c->SaveAs(Form("plots/latest_production/%s/convert_bemu_%s_%i_sig_pdf.png", year_string.Data(), selection.Data(), set));
     delete xframe;
@@ -562,7 +605,8 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
   bins_p += Form("%10s", hist.Data());
   proc_l += Form("%10s", selection.Data());
   proc_c += Form("%10i", 0);
-  const double sig_rate = sig->Integral(low_bin, high_bin);
+  double sig_err(0.);
+  const double sig_rate = sig->IntegralAndError(low_bin, high_bin, sig_err);
   if(useRateParams_)
     rate   += Form("%10i", 1);
   else
@@ -612,7 +656,20 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
     }
     systematics[sys] = line;
   }
-
+  //add signal MC statistics uncertainty
+  {
+    TString stat_line = Form("%-17s lnN", Form("signal_stats_%i", set));
+    if(twoSidedSys_) {
+      const double yield_up   = (sig_rate + sig_err);
+      const double yield_down = (sig_rate - sig_err);
+      stat_line += Form("%9.4f/%6.4f     -     ", yield_up/sig_rate, yield_down/sig_rate);
+    } else { //use only the up of each systematic
+      const double yield = (sig_rate + sig_err);
+      stat_line += Form("%9.4f            -     ", yield/sig_rate);
+    }
+    systematics[Form("signal_stats_%i", set)] = stat_line;
+    sys_names.push_back(Form("signal_stats_%i", set));
+  }
   //////////////////////////////////////////
   // Add Z->ll control regions
   //////////////////////////////////////////
@@ -810,6 +867,13 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
     outfile << Form("%s \n\n", cats.Data());
   }
   outfile << Form("%s \n\n", bkg_norm.Data());
+
+  //include constraints for the energy scale uncertainties
+  if(addESShifts_) {
+    outfile << Form("%10s param 0 1\n", muon_ES_shift->GetName());
+    outfile << Form("%10s param 0 1\n", elec_ES_shift->GetName());
+    outfile << "\n";
+  }
   outfile.close();
 
   //for performing fits using local build of ROOT
