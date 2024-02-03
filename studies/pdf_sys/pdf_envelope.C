@@ -17,8 +17,9 @@ TH1* hlet_  [max_pdf_];
 TH1* hleta_ [max_pdf_];
 TH1* hnpdf_ [max_pdf_];
 TH1* hwt_   [max_pdf_];
-
 TH2* hratio_[max_pdf_]; //output ratio scale factors
+
+double norm_scales_[max_pdf_]; //scale factors applied to keep the cross section unchanged
 
 
 //--------------------------------------------------------------------------------------
@@ -188,6 +189,7 @@ int fill_hist(TTree* tree) {
     }
   }
 
+  const double nominal_integral = h_[0]->Integral(0, h_[0]->GetNbinsX()+1, 0, h_[0]->GetNbinsY()+1);
   for(int index = 0; index < npdf_; ++index) {
     const float prev_int = h_[index]->Integral(0, h_[index]->GetNbinsX()+1, 0, h_[index]->GetNbinsY()+1);
     h_    [index]->Scale(1./prev_int);
@@ -201,8 +203,11 @@ int fill_hist(TTree* tree) {
     hwt_  [index]->Scale(1./hwt_  [index]->Integral(0, hwt_  [index]->GetNbinsX()+1));
 
     //compare integrals
+    norm_scales_[index] = prev_int / nominal_integral; //effective scale needed to preserve the cross section
     const float integral = h_[index]->Integral(0, h_[index]->GetNbinsX()+1, 0, h_[index]->GetNbinsY()+1);
-    printf("Initial integral: %f; Re-scaled integral: %f, N(effective) = %lld\n", prev_int, integral, neffective);
+    printf("Nominal integral: %.1f; Re-scaled integral: %.1f --> Scale = %.3f (N(effective) = %lld)\n", nominal_integral, prev_int, norm_scales_[index], neffective);
+
+    //configure the plotting setup
     int style = (index == 0) ? kSolid : kDashed;
     Int_t color;
     if      (index == 0) color = kBlue;
@@ -327,6 +332,11 @@ int pdf_envelope(int year = 2018) {
     c->SaveAs(name);
     hratio->Write();
     delete c;
+
+    //additionally save the scale factor needed to preserve normalization
+    TH1* hscale = new TH1F(Form("scale_%i", index), "Scale to preserve normalization", 1, 0, 1);
+    hscale->SetBinContent(1, norm_scales_[index]);
+    hscale->Write();
   }
   fout->Close();
 

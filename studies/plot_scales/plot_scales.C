@@ -312,6 +312,9 @@ TCanvas* plot_muon_low_trigger_scale(int year, int period = 0, bool error = fals
         delete c;
       }
     }
+    hData->SetTitle("Data");
+    hMC->SetTitle("MC");
+    plot_1D_efficiencies({hData, hMC}, Form("figures/muon_low_trigger_effs_%i%s", year, (period >= 0) ? Form("_period_%i", period) : ""), "eff", true, true);
   }
   hID->SetDirectory(0);
   f->Close();

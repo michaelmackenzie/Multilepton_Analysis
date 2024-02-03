@@ -1,8 +1,20 @@
 #! /bin/bash
 
+Help() {
+    echo "Create a new study directory with the standard layout"
+    echo "1: study directory name"
+}
+
 NAME=$1
+
+if [[ "${NAME}" == "-h" ]] || [[ "${NAME}" == "--help" ]]; then
+    Help
+    exit
+fi
+
 if [[ "${NAME}" == "" ]]; then
     echo "No study name given!"
+    Help
     exit
 fi
 
