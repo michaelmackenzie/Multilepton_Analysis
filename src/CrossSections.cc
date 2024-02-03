@@ -437,4 +437,24 @@ CrossSections::CrossSections(int /*useUL*/, int /*ZMode*/) {
   lum_[2017] = 41.48e3;
   lum_[2018] = 59.83e3;
 
+  //luminosity by run
+  lum_run_["2016B"] = 5.892e3;
+  lum_run_["2016C"] = 2.646e3;
+  lum_run_["2016D"] = 4.353e3;
+  lum_run_["2016E"] = 4.117e3;
+  lum_run_["2016F"] = 3.174e3;
+  lum_run_["2016G"] = 7.540e3;
+  lum_run_["2016H"] = 8.606e3;
+
+  lum_run_["2017B"] = 4.823e3;
+  lum_run_["2017C"] = 9.664e3;
+  lum_run_["2017D"] = 4.252e3;
+  lum_run_["2017E"] = 9.278e3;
+  lum_run_["2017F"] = 13.540e3;
+
+  lum_run_["2018A"] = 14.027e3;
+  lum_run_["2018B"] = 7.061e3;
+  lum_run_["2018C"] = 6.916e3;
+  lum_run_["2018D"] = 31.258e3;
+
 }

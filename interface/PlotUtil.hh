@@ -40,6 +40,52 @@ namespace CLFV {
     };
 
     //------------------------------------------------------------------------------------------------------------------------------------------------------
+    static TGraphAsymmErrors* GraphDifference(TGraph* g1, TGraph* g2) {
+      if(!g1 || !g2) return nullptr;
+      const int np = g1->GetN();
+      if(g2->GetN() != np) return nullptr;
+      double x[np], y[np], xle[np], xhe[np], yle[np], yhe[np];
+      for(int i = 0; i < np; ++i) {
+        x[i] = g1->GetX()[i];
+        y[i] = g1->GetY()[i] - g2->GetY()[i];
+        xle[i] = g1->GetErrorXlow (i);
+        xhe[i] = g1->GetErrorXhigh(i);
+        const double y_err_l_1 = std::max(g1->GetErrorYlow (i), 0.);
+        const double y_err_h_1 = std::max(g1->GetErrorYhigh(i), 0.);
+        const double y_err_l_2 = std::max(g2->GetErrorYlow (i), 0.);
+        const double y_err_h_2 = std::max(g2->GetErrorYhigh(i), 0.);
+        yle[i] = std::sqrt(std::pow(y_err_l_1, 2) + std::pow(y_err_l_2, 2));
+        yhe[i] = std::sqrt(std::pow(y_err_h_1, 2) + std::pow(y_err_h_2, 2));
+      }
+      TGraphAsymmErrors* g = new TGraphAsymmErrors(np, x, y, xle, xhe, yle, yhe);
+      return g;
+    }
+
+    //------------------------------------------------------------------------------------------------------------------------------------------------------
+    static TGraphAsymmErrors* GraphRatio(TGraph* g1, TGraph* g2) {
+      if(!g1 || !g2) return nullptr;
+      const int np = g1->GetN();
+      if(g2->GetN() != np) return nullptr;
+      double x[np], y[np], xle[np], xhe[np], yle[np], yhe[np];
+      for(int i = 0; i < np; ++i) {
+        const double y1 = g1->GetY()[i];
+        const double y2 = g2->GetY()[i];
+        x[i] = g1->GetX()[i];
+        y[i] = (y2 != 0.) ? y1/y2 : 0.;
+        xle[i] = g1->GetErrorXlow (i);
+        xhe[i] = g1->GetErrorXhigh(i);
+        const double y_err_l_1 = std::max(g1->GetErrorYlow (i), 0.);
+        const double y_err_h_1 = std::max(g1->GetErrorYhigh(i), 0.);
+        const double y_err_l_2 = std::max(g2->GetErrorYlow (i), 0.);
+        const double y_err_h_2 = std::max(g2->GetErrorYhigh(i), 0.);
+        yle[i] = y[i]*std::sqrt(std::pow((y1 != 0.) ? y_err_l_1/y1 : 0., 2) + std::pow((y2 != 0.) ? y_err_l_2/y2 : 0., 2));
+        yhe[i] = y[i]*std::sqrt(std::pow((y1 != 0.) ? y_err_h_1/y1 : 0., 2) + std::pow((y2 != 0.) ? y_err_h_2/y2 : 0., 2));
+      }
+      TGraphAsymmErrors* g = new TGraphAsymmErrors(np, x, y, xle, xhe, yle, yhe);
+      return g;
+    }
+
+    //------------------------------------------------------------------------------------------------------------------------------------------------------
     static TCanvas* PlotShifts(SysCard_t card) {
 
       //Retrieve relevant inputs from the card

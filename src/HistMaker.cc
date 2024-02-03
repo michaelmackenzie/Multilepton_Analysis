@@ -7,8 +7,8 @@ using namespace CLFV;
 
 //--------------------------------------------------------------------------------------------------------------
 HistMaker::HistMaker(int seed, TTree * /*tree*/) : fSystematicSeed(seed),
-                                                   fMuonJetToTauComp("mutau", 2035, 6, 0), fMuonJetToTauSSComp("mutau", 3035, 6, 0),
-                                                   fElectronJetToTauComp("etau", 2035, 6, 0), fElectronJetToTauSSComp("etau", 3035, 6, 0),
+                                                   fMuonJetToTauComp("mutau", 2035, 3, 0), fMuonJetToTauSSComp("mutau", 3035, 3, 0),
+                                                   fElectronJetToTauComp("etau", 2035, 3, 0), fElectronJetToTauSSComp("etau", 3035, 3, 0),
                                                    fQCDWeight("emu", 1100201/*anti-iso, jet binned, 2D pt closure, use fits*/, -1, 0),
                                                    fMuonIDWeight(1 /*use medium muon ID*/),
                                                    fElectronIDWeight(110 /*use WP90 electron ID and embed TnP trigger*/),
@@ -133,27 +133,27 @@ void HistMaker::Begin(TTree * /*tree*/)
   fZPtWeight = new ZPtWeight("MuMu", 1);
   fCutFlow = new TH1D("hcutflow", "Cut-flow", 100, 0, 100);
 
-  //FIXME: Added back W+Jets MC bias (Mode = 10100300, 60100300 for only MC bias shape)
+  //FIXME: Added back W+Jets MC bias (Mode = 10100300, 60100300 for only MC lepm bias shape)
   //FIXME: Removed onemetdphi non-closure from W+Jets and QCD, decide if this is needed (1xxxxx --> 3xxxxx)
-  fMuonJetToTauWeights      [JetToTauComposition::kWJets] = new JetToTauWeight("MuonWJets"      , "mutau", "WJets",   31, 70300300, fYear, 0);
-  fMuonJetToTauWeights      [JetToTauComposition::kZJets] = new JetToTauWeight("MuonZJets"      , "mutau", "WJets",   31, 70300300, fYear, 0);
+  fMuonJetToTauWeights      [JetToTauComposition::kWJets] = new JetToTauWeight("MuonWJets"      , "mutau", "WJets",   31, 10300300, fYear, 0);
+  fMuonJetToTauWeights      [JetToTauComposition::kZJets] = new JetToTauWeight("MuonZJets"      , "mutau", "WJets",   31, 10300300, fYear, 0);
   fMuonJetToTauWeights      [JetToTauComposition::kTop  ] = new JetToTauWeight("MuonTop"        , "mutau", "Top"  ,   82,  1100301, fYear, 0);
   fMuonJetToTauWeights      [JetToTauComposition::kQCD  ] = new JetToTauWeight("MuonQCD"        , "mutau", "QCD"  , 1030, 40300300, fYear, 0);
 
-  fMuonJetToTauMCWeights    [JetToTauComposition::kWJets] = new JetToTauWeight("MuonMCWJets"    , "mutau", "WJets",   88, 70300301, fYear, 0); //MC weights with MC non-closure + bias
-  fMuonJetToTauMCWeights    [JetToTauComposition::kZJets] = new JetToTauWeight("MuonMCZJets"    , "mutau", "WJets",   88, 70300301, fYear, 0);
+  fMuonJetToTauMCWeights    [JetToTauComposition::kWJets] = new JetToTauWeight("MuonMCWJets"    , "mutau", "WJets",   88, 10300301, fYear, 0); //MC weights with MC non-closure + bias
+  fMuonJetToTauMCWeights    [JetToTauComposition::kZJets] = new JetToTauWeight("MuonMCZJets"    , "mutau", "WJets",   88, 10300301, fYear, 0);
   fMuonJetToTauMCWeights    [JetToTauComposition::kTop  ] = new JetToTauWeight("MuonMCTop"      , "mutau", "Top"  ,   82,  1100301, fYear, 0); //Normal weights
   fMuonJetToTauMCWeights    [JetToTauComposition::kQCD  ] = new JetToTauWeight("MuonMCQCD"      , "mutau", "QCD"  , 1095, 10300300, fYear, 0); //high iso weights for SS --> OS bias
 
   //FIXME: Added back W+Jets MC bias (Mode = 10300300, 60300300 for only MC bias shape)
   //FIXME: Removed onemetdphi non-closure from W+Jets and QCD, decide if this is needed (1xxxxx --> 3xxxxx)
-  fElectronJetToTauWeights  [JetToTauComposition::kWJets] = new JetToTauWeight("ElectronWJets"  , "etau" , "WJets",   31, 70300300, fYear, 0);
-  fElectronJetToTauWeights  [JetToTauComposition::kZJets] = new JetToTauWeight("ElectronZJets"  , "etau" , "WJets",   31, 70300300, fYear, 0);
+  fElectronJetToTauWeights  [JetToTauComposition::kWJets] = new JetToTauWeight("ElectronWJets"  , "etau" , "WJets",   31, 10300300, fYear, 0);
+  fElectronJetToTauWeights  [JetToTauComposition::kZJets] = new JetToTauWeight("ElectronZJets"  , "etau" , "WJets",   31, 10300300, fYear, 0);
   fElectronJetToTauWeights  [JetToTauComposition::kTop  ] = new JetToTauWeight("ElectronTop"    , "etau" , "Top"  ,   82,  1100301, fYear, 0);
   fElectronJetToTauWeights  [JetToTauComposition::kQCD  ] = new JetToTauWeight("ElectronQCD"    , "etau" , "QCD"  , 1030, 40300300, fYear, 0);
 
-  fElectronJetToTauMCWeights[JetToTauComposition::kWJets] = new JetToTauWeight("ElectronMCWJets", "etau" , "WJets",   88, 70300301, fYear, 0); //MC weights with MC non-closure + bias
-  fElectronJetToTauMCWeights[JetToTauComposition::kZJets] = new JetToTauWeight("ElectronMCZJets", "etau" , "WJets",   88, 70300301, fYear, 0);
+  fElectronJetToTauMCWeights[JetToTauComposition::kWJets] = new JetToTauWeight("ElectronMCWJets", "etau" , "WJets",   88, 10300301, fYear, 0); //MC weights with MC non-closure + bias
+  fElectronJetToTauMCWeights[JetToTauComposition::kZJets] = new JetToTauWeight("ElectronMCZJets", "etau" , "WJets",   88, 10300301, fYear, 0);
   fElectronJetToTauMCWeights[JetToTauComposition::kTop  ] = new JetToTauWeight("ElectronMCTop"  , "etau" , "Top"  ,   82,  1100301, fYear, 0); //Normal weights
   fElectronJetToTauMCWeights[JetToTauComposition::kQCD  ] = new JetToTauWeight("ElectronMCQCD"  , "etau" , "QCD"  , 1095, 10300300, fYear, 0); //high iso weights for SS --> OS bias
 
@@ -650,18 +650,23 @@ void HistMaker::BookPhotonHistograms() {
 void HistMaker::BookBaseLepHistograms(Int_t i, const char* dirname) {
       auto folder = fDirectories[2*fn + i];
 
-      const double momerr_bins[] = {0., 5.e-4f, 1.e-3f, 2.e-3f, 5.e-3f, 0.01f, 0.02f, 0.05f};
-      const int    n_momerr_bins = sizeof(momerr_bins) / sizeof(*momerr_bins) - 1;
+      // const double momerr_bins[] = {0., 5.e-4f, 1.e-3f, 2.e-3f, 5.e-3f, 0.01f, 0.02f, 0.05f};
+      // const int    n_momerr_bins = sizeof(momerr_bins) / sizeof(*momerr_bins) - 1;
 
       // Lepton one info //
       Utilities::BookH1F(fLepHist[i]->hOnePt[0]       , "onept"            , Form("%s: Pt"           ,dirname)  , 150,   0, 150, folder);
       Utilities::BookH1F(fLepHist[i]->hOnePtUp        , "oneptup"          , Form("%s: Pt up"        ,dirname)  , 150,   0, 150, folder);
       Utilities::BookH1F(fLepHist[i]->hOnePtDown      , "oneptdown"        , Form("%s: Pt down"      ,dirname)  , 150,   0, 150, folder);
       Utilities::BookH1F(fLepHist[i]->hOnePz          , "onepz"            , Form("%s: Pz"           ,dirname), 100, -100,  100, folder);
+      // if(fSelection == "mutau" || fSelection == "mumu")
+      //   Utilities::BookH1F(fLepHist[i]->hOneMomErr      , "onemomerr"        , Form("%s: Mom. Error"   ,dirname),  n_momerr_bins, momerr_bins, folder);
+      // else
+      //   Utilities::BookH1F(fLepHist[i]->hOneMomErr      , "onemomerr"        , Form("%s: Mom. Error"   ,dirname),  20, 0., 1., folder);
       if(fSelection == "mutau" || fSelection == "mumu")
-        Utilities::BookH1F(fLepHist[i]->hOneMomErr      , "onemomerr"        , Form("%s: Mom. Error"   ,dirname),  n_momerr_bins, momerr_bins, folder);
+        Utilities::BookH1F(fLepHist[i]->hOneMomErr      , "onemomerr"        , Form("%s: Mom. scale error"   ,dirname),  20, 0., 0.015, folder);
       else
-        Utilities::BookH1F(fLepHist[i]->hOneMomErr      , "onemomerr"        , Form("%s: Mom. Error"   ,dirname),  20, 0., 1., folder);
+        Utilities::BookH1F(fLepHist[i]->hOneMomErr      , "onemomerr"        , Form("%s: Mom. scale error"   ,dirname),  20, 0., 0.1, folder);
+      Utilities::BookH1F(fLepHist[i]->hOnePtRelErr    , "oneptrelerr"      , Form("%s: Mom. Error"   ,dirname),  40, -0.2, 0.2, folder);
       Utilities::BookH1F(fLepHist[i]->hOneEta         , "oneeta"           , Form("%s: Eta"          ,dirname),  50, -2.5,  2.5, folder);
       Utilities::BookH1F(fLepHist[i]->hOneSCEta       , "onesceta"         , Form("%s: SC Eta"       ,dirname),  50, -2.5,  2.5, folder);
       Utilities::BookH1F(fLepHist[i]->hOnePhi         , "onephi"           , Form("%s: Phi"          ,dirname),  80,   -4,    4, folder);
@@ -695,10 +700,15 @@ void HistMaker::BookBaseLepHistograms(Int_t i, const char* dirname) {
       Utilities::BookH1F(fLepHist[i]->hTwoPtUp        , "twoptup"          , Form("%s: Pt up"       ,dirname)  , 150,   0, 150, folder);
       Utilities::BookH1F(fLepHist[i]->hTwoPtDown      , "twoptdown"        , Form("%s: Pt down"     ,dirname)  , 150,   0, 150, folder);
       Utilities::BookH1F(fLepHist[i]->hTwoPz          , "twopz"            , Form("%s: Pz"          ,dirname), 100, -100,  100, folder);
+      // if(fSelection == "emu" || fSelection.Contains("_"))
+      //   Utilities::BookH1F(fLepHist[i]->hTwoMomErr      , "twomomerr"        , Form("%s: Mom. Error"  ,dirname),  n_momerr_bins, momerr_bins, folder);
+      // else
+      //   Utilities::BookH1F(fLepHist[i]->hTwoMomErr      , "twomomerr"        , Form("%s: Mom. Error"  ,dirname),  20, 0., 1., folder);
       if(fSelection == "emu" || fSelection.Contains("_"))
-        Utilities::BookH1F(fLepHist[i]->hTwoMomErr      , "twomomerr"        , Form("%s: Mom. Error"  ,dirname),  n_momerr_bins, momerr_bins, folder);
+        Utilities::BookH1F(fLepHist[i]->hTwoMomErr      , "twomomerr"        , Form("%s: Mom. scale error"  ,dirname),  20, 0., 0.015, folder);
       else
-        Utilities::BookH1F(fLepHist[i]->hTwoMomErr      , "twomomerr"        , Form("%s: Mom. Error"  ,dirname),  20, 0., 1., folder);
+        Utilities::BookH1F(fLepHist[i]->hTwoMomErr      , "twomomerr"        , Form("%s: Mom. scale error"  ,dirname),  20, 0., 0.1, folder);
+      Utilities::BookH1F(fLepHist[i]->hTwoPtRelErr    , "twoptrelerr"      , Form("%s: Mom. Error"  ,dirname),  40, -0.2, 0.2, folder);
       Utilities::BookH1F(fLepHist[i]->hTwoEta         , "twoeta"           , Form("%s: Eta"         ,dirname),  50,-2.5,  2.5, folder);
       Utilities::BookH1F(fLepHist[i]->hTwoSCEta       , "twosceta"         , Form("%s: SC Eta"      ,dirname),  50,-2.5,  2.5, folder);
       Utilities::BookH1F(fLepHist[i]->hTwoPhi         , "twophi"           , Form("%s: Phi"         ,dirname),  80,  -4,    4, folder);
@@ -1133,6 +1143,15 @@ void HistMaker::InitializeInputTree(TTree* tree) {
   Utilities::SetBranchAddress(tree, "HLT_Ele27_WPTight_Gsf"         , &HLT_Ele27_WPTight_GsF         );
   Utilities::SetBranchAddress(tree, "HLT_Ele32_WPTight_Gsf"         , &HLT_Ele32_WPTight_GsF         );
   Utilities::SetBranchAddress(tree, "HLT_Ele32_WPTight_Gsf_L1DoubleEG", &HLT_Ele32_WPTight_GsF_L1DoubleEG);
+  //determine the run info if data to get the correct e-mu trigger
+  TString name = GetOutputName();
+  if(fYear == 2016 && ((!fIsData && !fIsEmbed) || !(name.Contains("-G") || name.Contains("-H")))) {
+    Utilities::SetBranchAddress(tree, "HLT_Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL", &HLT_Mu23_Ele12);
+    Utilities::SetBranchAddress(tree, "HLT_Mu8_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL" , &HLT_Mu8_Ele23 );
+  } else {
+    Utilities::SetBranchAddress(tree, "HLT_Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL_DZ", &HLT_Mu23_Ele12);
+    Utilities::SetBranchAddress(tree, "HLT_Mu8_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ" , &HLT_Mu8_Ele23 );
+  }
 
   //Z information
   if(!fIsData) {
@@ -1155,7 +1174,9 @@ void HistMaker::InitializeInputTree(TTree* tree) {
     Utilities::SetBranchAddress(tree, "nGenPart"                      , &nGenPart                      );
     Utilities::SetBranchAddress(tree, "GenPart_pdgId"                 , &GenPart_pdgId                 );
     Utilities::SetBranchAddress(tree, "GenPart_pt"                    , &GenPart_pt                    );
+    Utilities::SetBranchAddress(tree, "GenPart_eta"                   , &GenPart_eta                   );
     Utilities::SetBranchAddress(tree, "GenPart_phi"                   , &GenPart_phi                   );
+    Utilities::SetBranchAddress(tree, "GenPart_mass"                  , &GenPart_mass                  );
     Utilities::SetBranchAddress(tree, "GenPart_genPartIdxMother"      , &GenPart_genPartIdxMother      );
 
   }
@@ -1220,9 +1241,10 @@ void HistMaker::ApplyElectronCorrections() {
                                                                fYear, Electron_energyScaleUp[index], Electron_energyScaleDown[index]) : 1.f;
     Electron_energyScale[index] = sf;
     if(!fIsEmbed) { //FIXME: Get electron energy scale uncertainty in MC
-      TLorentzVector lv; lv.SetPtEtaPhiM(Electron_pt[index], Electron_eta[index], Electron_phi[index], 0.f/*Electron_mass[index]*/);
-      Electron_energyScaleUp  [index] = 1.f + Electron_energyErr[index] / lv.E();
-      Electron_energyScaleDown[index] = 1.f - Electron_energyErr[index] / lv.E();
+      // TLorentzVector lv; lv.SetPtEtaPhiM(Electron_pt[index], Electron_eta[index], Electron_phi[index], 0.f/*Electron_mass[index]*/);
+      const float ele_scale_sys = 0.003f; //FIXME: Estimating the scale uncertainty from fits of MC resolution function (see emb_resolution study)
+      Electron_energyScaleUp  [index] = 1.f + ele_scale_sys;
+      Electron_energyScaleDown[index] = 1.f - ele_scale_sys;
     }
     if(fIsEmbed) sf /= Electron_eCorr[index]; //remove the NANOAOD defined correction applied to embedding electrons
     float pt_diff = Electron_pt[index];
@@ -1351,7 +1373,8 @@ void HistMaker::ApplyTauCorrections() {
 //Apply a lepton energy scale change, propagating the effect to the MET
 void HistMaker::EnergyScale(const float scale, Lepton_t& lep, float* MET, float* METPhi) {
   if(!lep.p4) return;
-  EnergyScale(scale, *(lep.p4), MET, METPhi);
+  TLorentzVector& lv = *(lep.p4);
+  EnergyScale(scale, lv, MET, METPhi);
   lep.pt   = lep.p4->Pt();
   lep.eta  = lep.p4->Eta();
   lep.phi  = lep.p4->Phi();
@@ -1365,18 +1388,25 @@ void HistMaker::EnergyScale(const float scale, TLorentzVector& lv, float* MET, f
     printf("!!! HistMaker::%s: Non-positive energy scale %f\n", __func__, scale);
     return;
   }
+  if(fVerbose > 5) printf("HistMaker::%s: Scale = %.4f, input (pT, eta, phi, M) = (%.2f, %.2f, %.2f, %.2e) ",
+                          __func__, scale, lv.Pt(), lv.Eta(), lv.Phi(), lv.M());
   const float pt_shift((scale-1.f)*lv.Pt()), phi(lv.Phi());
   lv *= scale;
   //ensure the vector has a non-imaginary mass
   if(lv.M2() < 0.) lv.SetE(lv.P());
+  if(fVerbose > 5) printf("output (pT, eta, phi, M) = (%.2f, %.2f, %.2f, %.2e) ",
+                          lv.Pt(), lv.Eta(), lv.Phi(), lv.M());
 
   //adjust the MET following the shift in the lepton pT, if non-null
   if(fUpdateMET && MET && METPhi) {
+    if(fVerbose > 5) printf(" MET input (pT, phi) = (%.2f, %.2f) ", *MET, *METPhi);
     const float dx(pt_shift*std::cos(phi)), dy(pt_shift*std::sin(phi));
     const float x((*MET)*std::cos(*METPhi)+dx), y((*MET)*std::sin(*METPhi)+dy);
     *MET    = std::sqrt(x*x+y*y);
     *METPhi = (*MET > 0.f) ? std::acos(std::max(-1.f, std::min(1.f, x/(*MET))))*(y < 0.f ? -1.f : 1.f) : 0.f;
+    if(fVerbose > 5) printf(" MET outnput (pT, phi) = (%.2f, %.2f) ", *MET, *METPhi);
   }
+  if(fVerbose > 5) printf("\n");
 }
 
 //--------------------------------------------------------------------------------------------------------------
@@ -2433,6 +2463,112 @@ void HistMaker::EstimateNeutrinos() {
 
 //--------------------------------------------------------------------------------------------------------------
 // Evaluate each MVA that is relevant to the current selection
+void HistMaker::SetGenHadronicTau(Lepton_t& lep) {
+  //check if the reco object is matched to a gen-level hadronic tau
+  if(!lep.isTau()) return;
+  if(std::abs(lep.genFlavor) != 15) return;
+
+  //if gen-matched, find the corresponding tau decay near the reco tau
+  if(fVerbose > 0) {
+    printf(" HistMaker::%s: Checking hadronic tau gen info:\n", __func__);
+    if(lep.genIndex >= 0 && lep.genIndex < (int) nGenPart)
+      printf("  Gen index = %i: pdg = %i, pt = %.2f, eta = %.1f, phi = %.1f\n",
+             lep.genIndex, GenPart_pdgId[lep.genIndex],  GenPart_pt[lep.genIndex],
+             GenPart_eta[lep.genIndex], GenPart_phi[lep.genIndex]);
+    else
+      printf("  No gen index mapped to reco tau\n");
+  }
+
+  //identify gen-level taus in the event
+  std::vector<int> tau_indices, veto_indices;
+  for(int ipart = 0; ipart < (int) nGenPart; ++ipart) {
+    if(std::abs(GenPart_pdgId[ipart]) == 15) { //taus
+      if(fVerbose > 3) printf("   idx %i: pdg = %i, pt = %.1f, eta = %.2f, phi = %.2f\n",
+                              ipart, GenPart_pdgId[ipart], GenPart_pt[ipart], GenPart_eta[ipart], GenPart_phi[ipart]);
+      //check this tau is already identified as a tau -> tau+gamma candidate
+      if(std::find(veto_indices.begin(), veto_indices.end(), ipart) != veto_indices.end()) {
+        if(fVerbose > 3) printf("   idx %i vetoed\n", ipart);
+        continue;
+      }
+      //add it to the tau list
+      tau_indices.push_back(ipart);
+      //check if it has a parent that is a tau and is in the list
+      const int mother = GenPart_genPartIdxMother[ipart];
+      if(mother >= 0 && std::abs(GenPart_pdgId[mother]) == 15) {
+        //add the likely tau -> tau+gamma candidate to the veto list, remove if in the nominal list
+        if(std::find(veto_indices.begin(), veto_indices.end(), mother) != veto_indices.end()) {
+          veto_indices.push_back(mother);
+          auto list_index = std::find(tau_indices.begin(), tau_indices.end(), mother);
+          if(list_index != tau_indices.end()) tau_indices.erase(list_index);
+        }
+      }
+    }
+  }
+  //if no taus are found, exit
+  if(tau_indices.size() == 0) {
+    if(fVerbose > 0) printf("  No gen-level taus found to match to the reco tau!\n");
+    return;
+  }
+
+  //identify the tau decay daughters
+  std::map<int, std::vector<int>> tau_daughters;
+  std::vector<int> tau_had_decays;
+  for(int ipart : tau_indices) {
+    tau_daughters[ipart] = {};
+    if(fVerbose > 0) printf("  Gen tau info: idx = %i, pdg = %3i, pt = %.2f, eta = %.1f, phi = %.1f\n",
+                            ipart, GenPart_pdgId[ipart], GenPart_pt[ipart],
+                            GenPart_eta[ipart], GenPart_phi[ipart]);
+    for(int jpart = 0; jpart < (int) nGenPart; ++jpart) {
+      const int mother = GenPart_genPartIdxMother[jpart];
+      if(mother != ipart) continue;
+      tau_daughters[ipart].push_back(jpart);
+      const int pdg = std::abs(GenPart_pdgId[jpart]);
+      if((pdg < 11 || pdg > 16) && pdg != 22) tau_had_decays.push_back(ipart);
+      if(fVerbose > 0) printf("   idx = %i, pdg = %3i, pt = %.2f, eta = %.1f, phi = %.1f\n",
+                          jpart, GenPart_pdgId[jpart], GenPart_pt[jpart],
+                          GenPart_eta[jpart], GenPart_phi[jpart]);
+    }
+  }
+  if(tau_had_decays.size() == 0) {
+    if(fVerbose > 0) printf("  No gen-level hadronic taus found to match to the reco tau!\n");
+    return;
+  }
+
+  //determine the tau that is closest to the reco tau
+  double min_delta_r(1.e3);
+  int best_match(-1);
+  for(int itau : tau_had_decays) {
+    const double delta_r = std::sqrt(std::pow(GenPart_eta[itau] - lep.eta, 2) + std::pow(GenPart_phi[itau] - lep.phi, 2));
+    if(delta_r < min_delta_r) {
+      best_match = itau;
+      min_delta_r = delta_r;
+    }
+  }
+
+  //check a match is found
+  if(best_match < 0) {
+    if(fVerbose > 0) printf("  Failed to find a best matching tau!\n");
+    return;
+  }
+
+  //get the pT, eta, and phi for the hadronic tau
+  TLorentzVector gen_had_tau;
+  for(int ipart : tau_daughters[best_match]) {
+    const int pdg = std::abs(GenPart_pdgId[ipart]);
+    if(pdg == 12 || pdg == 14 || pdg == 16) continue; //can't reconstruct neutrinos
+    TLorentzVector lpart;
+    lpart.SetPtEtaPhiM(GenPart_pt[ipart], GenPart_eta[ipart], GenPart_phi[ipart], GenPart_mass[ipart]);
+    gen_had_tau += lpart;
+  }
+  lep.genPt   = gen_had_tau.Pt();
+  lep.genEta  = gen_had_tau.Eta();
+  lep.genPhi  = gen_had_tau.Phi();
+  lep.genMass = gen_had_tau.M();
+}
+
+
+//--------------------------------------------------------------------------------------------------------------
+// Evaluate each MVA that is relevant to the current selection
 void HistMaker::EvalMVAs(TString TimerName) {
   if(!fReprocessMVAs) return;
   const bool eval_timer = TimerName != "";
@@ -2560,6 +2696,16 @@ void HistMaker::CountObjects() {
       printf("  %2i: pt = %.1f, eta = %.2f\n", i, Tau_pt[i], Tau_eta[i]);
     }
   }
+
+  if(fVerbose > 3 && !fIsData) {
+    printf(" Gen-particle collection:\n");
+    for(int i = 0; i < (int) nGenPart; ++i) {
+      printf("  %2i: pdg = %5i, pt = %.1f, eta = %.2f, phi = %.2f, mass = %.2e, mother = %2i\n", i,
+             GenPart_pdgId[i], GenPart_pt[i], GenPart_eta[i], GenPart_phi[i],
+             GenPart_mass[i], GenPart_genPartIdxMother[i]);
+    }
+  }
+
   /////////////////////////////////////
   // Base selections
   mutau   =                   nMuon == 1 && nTau == 1 && (fSelection == "" || fSelection == "mutau");
@@ -2739,6 +2885,8 @@ void HistMaker::CountObjects() {
     leptonTwo.genID     = Muon_genPartFlav[0];
     leptonOne.genFlavor = ElectronFlavorFromID(Electron_genPartFlav[0]);
     leptonTwo.genFlavor = MuonFlavorFromID(Muon_genPartFlav[0]);
+    leptonOne.genIndex  = Electron_genPartIdx[0];
+    leptonTwo.genIndex  = Muon_genPartIdx[0];
     leptonOne.id1       = Electron_mvaFall17V2noIso_WPL[0] + Electron_mvaFall17V2noIso_WP90[0] + Electron_mvaFall17V2noIso_WP80[0];
     leptonOne.id2       = 0;
     leptonTwo.id1       = Muon_looseId[0] + Muon_mediumId[0] + Muon_tightId[0];
@@ -2776,6 +2924,8 @@ void HistMaker::CountObjects() {
     leptonTwo.genID     = Tau_genPartFlav[0];
     leptonOne.genFlavor = ElectronFlavorFromID(Electron_genPartFlav[0]);
     leptonTwo.genFlavor = TauFlavorFromID(Tau_genPartFlav[0]);
+    leptonOne.genIndex  = Electron_genPartIdx[0];
+    leptonTwo.genIndex  = Tau_genPartIdx[0];
     leptonOne.id1       = Electron_mvaFall17V2noIso_WPL[0] + Electron_mvaFall17V2noIso_WP90[0] + Electron_mvaFall17V2noIso_WP80[0];
     leptonOne.id2       = 0;
     leptonTwo.id1       = Tau_idAntiEle[0];
@@ -2817,6 +2967,8 @@ void HistMaker::CountObjects() {
     leptonTwo.genID     = Tau_genPartFlav[0];
     leptonOne.genFlavor = MuonFlavorFromID(Muon_genPartFlav[0]);
     leptonTwo.genFlavor = TauFlavorFromID(Tau_genPartFlav[0]);
+    leptonOne.genIndex  = Muon_genPartIdx[0];
+    leptonTwo.genIndex  = Tau_genPartIdx[0];
     leptonOne.id1       = Muon_looseId[0] + Muon_mediumId[0] + Muon_tightId[0];
     leptonOne.id2       = MuonRelIsoID(Muon_pfRelIso04_all[0]);
     leptonTwo.id1       = Tau_idAntiEle[0];
@@ -2858,6 +3010,8 @@ void HistMaker::CountObjects() {
     leptonTwo.genID     = Muon_genPartFlav[1];
     leptonOne.genFlavor = MuonFlavorFromID(Muon_genPartFlav[0]);
     leptonTwo.genFlavor = MuonFlavorFromID(Muon_genPartFlav[1]);
+    leptonOne.genIndex  = Muon_genPartIdx[0];
+    leptonTwo.genIndex  = Muon_genPartIdx[1];
     leptonOne.id1       = Muon_looseId[0] + Muon_mediumId[0] + Muon_tightId[0];
     leptonOne.id2       = MuonRelIsoID(Muon_pfRelIso04_all[0]);
     leptonTwo.id1       = Muon_looseId[1] + Muon_mediumId[1] + Muon_tightId[1];
@@ -2895,6 +3049,8 @@ void HistMaker::CountObjects() {
     leptonTwo.genID     = Electron_genPartFlav[1];
     leptonOne.genFlavor = ElectronFlavorFromID(Electron_genPartFlav[0]);
     leptonTwo.genFlavor = ElectronFlavorFromID(Electron_genPartFlav[1]);
+    leptonOne.genIndex  = Electron_genPartIdx[0];
+    leptonTwo.genIndex  = Electron_genPartIdx[1];
     leptonOne.id1       = Electron_mvaFall17V2noIso_WPL[0] + Electron_mvaFall17V2noIso_WP90[0] + Electron_mvaFall17V2noIso_WP80[0];
     leptonOne.id2       = 0;
     leptonTwo.id1       = Electron_mvaFall17V2noIso_WPL[1] + Electron_mvaFall17V2noIso_WP90[1] + Electron_mvaFall17V2noIso_WP80[1];
@@ -2923,6 +3079,49 @@ void HistMaker::CountObjects() {
     tauGenFlavor   = TauFlavorFromID(tauGenID);
   }
 
+  //Initialize gen-level info if available
+  if(!fIsData) {
+    if(leptonOne.genIndex >= 0 && leptonOne.genIndex < (int) nGenPart) {
+      if(leptonOne.isTau()) SetGenHadronicTau(leptonOne);
+      else {
+        leptonOne.genPt   = GenPart_pt  [leptonOne.genIndex];
+        leptonOne.genEta  = GenPart_eta [leptonOne.genIndex];
+        leptonOne.genPhi  = GenPart_phi [leptonOne.genIndex];
+        leptonOne.genMass = GenPart_mass[leptonOne.genIndex];
+      }
+      if(fVerbose > 1) printf(" Lepton one gen info: pt = %.1f, eta = %.2f, phi = %.2f, mass = %.1e\n",
+                              leptonOne.genPt, leptonOne.genEta, leptonOne.genPhi, leptonOne.genMass);
+    } else {
+      leptonOne.genPt   = -1.f;
+      leptonOne.genEta  =  0.f;
+      leptonOne.genPhi  =  0.f;
+      leptonOne.genMass =  0.f;
+    }
+    if(leptonTwo.genIndex >= 0 && leptonTwo.genIndex < (int) nGenPart) {
+      if(leptonTwo.isTau()) SetGenHadronicTau(leptonTwo);
+      else {
+        leptonTwo.genPt   = GenPart_pt  [leptonTwo.genIndex];
+        leptonTwo.genEta  = GenPart_eta [leptonTwo.genIndex];
+        leptonTwo.genPhi  = GenPart_phi [leptonTwo.genIndex];
+        leptonTwo.genMass = GenPart_mass[leptonTwo.genIndex];
+      }
+      if(fVerbose > 1) printf(" Lepton two gen info: pt = %.1f, eta = %.2f, phi = %.2f, mass = %.1e\n",
+                              leptonTwo.genPt, leptonTwo.genEta, leptonTwo.genPhi, leptonTwo.genMass);
+    } else {
+      leptonTwo.genPt  = -1.f;
+      leptonTwo.genEta =  0.f;
+      leptonTwo.genPhi =  0.f;
+    }
+  } else { //data --> set to reco values
+    leptonOne.genPt   = leptonOne.pt  ;
+    leptonOne.genEta  = leptonOne.eta ;
+    leptonOne.genPhi  = leptonOne.phi ;
+    leptonOne.genMass = leptonOne.mass;
+    leptonTwo.genPt   = leptonTwo.pt  ;
+    leptonTwo.genEta  = leptonTwo.eta ;
+    leptonTwo.genPhi  = leptonTwo.phi ;
+    leptonTwo.genMass = leptonTwo.mass;
+  }
 
   if(!std::isfinite(puppMETJERUp) || !std::isfinite(puppMETphiJERUp)) {
     if(fVerbose) printf("HistMaker::%s: Entry %lld: MET JER Up not defined\n", __func__, fentry);
@@ -2998,6 +3197,10 @@ void HistMaker::CountObjects() {
   muon_trig_pt_ = 25.f; electron_trig_pt_ = 34.f;
   if(fYear == 2017) muon_trig_pt_ = 28.f;
   if(fYear == 2016) electron_trig_pt_ = 29.f;
+  emu_trig_ele_pt_ = 24.f; //following the LFV H AN selections
+  emu_trig_mu_pt_  = 10.f;
+  mue_trig_ele_pt_ = 13.f; //following the LFV H AN selections
+  mue_trig_mu_pt_  = 24.f;
 
   MatchTriggers();
 
@@ -3498,6 +3701,7 @@ void HistMaker::FillBaseLepHistogram(LepHist_t* Hist) {
   }
   leptonOne.pt = tmp_one_pt;
   Hist->hOneMomErr    ->Fill(std::fabs(1.f - leptonOne.ES[1]/leptonOne.ES[0]), eventWeight*genWeight);
+  Hist->hOnePtRelErr  ->Fill((leptonOne.genPt > 0.f) ? (leptonOne.pt - leptonOne.genPt) / leptonOne.pt : 0.f, eventWeight*genWeight);
   Hist->hOneEta       ->Fill(leptonOne.p4->Eta()           ,eventWeight*genWeight);
   Hist->hOneSCEta     ->Fill(leptonOne.scEta               ,eventWeight*genWeight);
   Hist->hOnePhi       ->Fill(leptonOne.p4->Phi()           ,eventWeight*genWeight);
@@ -3538,6 +3742,7 @@ void HistMaker::FillBaseLepHistogram(LepHist_t* Hist) {
   }
   leptonTwo.pt = tmp_two_pt;
   Hist->hTwoMomErr    ->Fill(std::fabs(1.f - leptonTwo.ES[1]/leptonTwo.ES[0]), eventWeight*genWeight);
+  Hist->hTwoPtRelErr  ->Fill((leptonTwo.genPt > 0.f) ? (leptonTwo.pt - leptonTwo.genPt) / leptonTwo.pt : 0.f, eventWeight*genWeight);
   Hist->hTwoEta       ->Fill(leptonTwo.p4->Eta()           ,eventWeight*genWeight);
   Hist->hTwoSCEta     ->Fill(leptonTwo.scEta               ,eventWeight*genWeight);
   Hist->hTwoPhi       ->Fill(leptonTwo.p4->Phi()           ,eventWeight*genWeight);
@@ -3753,33 +3958,51 @@ Bool_t HistMaker::InitializeEvent(Long64_t entry)
   // Data overlap check //
   ////////////////////////
 
-  //skip if it's data and lepton status doesn't match data set (1 = electron, 2 = muon) unless allowing overlap and it passes both
+  //skip if it's data and lepton status doesn't match data set (1 = electron, 2 = muon, 3 = MuonEG) unless allowing overlap and it passes both
   if(fIsData > 0) {
     //Use trigger matches, without reco pT cut, for data overlap rejection
     //--> Beyond here, with overlap rejected, simply require a lepton fires with reco pT cuts
 
-    const int pdgid = (fIsData == 1) ? 11 : 13; //pdg ID for the data stream
-    //if no selected lepton fired this trigger, continue
-    if(!((std::abs(leptonOne.flavor) == pdgid && leptonOne.matched) || (std::abs(leptonTwo.flavor) == pdgid && leptonTwo.matched))) {
-      IncrementTimer("EventInit", true);
-      if(fVerbose > 0) printf(" Event fails trigger matching\n");
-      return kTRUE;
+    if(fIsData == 1 || fIsData == 2) { //single electron or muon data
+      const int pdgid = (fIsData == 1) ? 11 : 13; //pdg ID for the data stream
+      //if no selected lepton fired this trigger, continue
+      if(!((std::abs(leptonOne.flavor) == pdgid && leptonOne.matched) || (std::abs(leptonTwo.flavor) == pdgid && leptonTwo.matched))) {
+        IncrementTimer("EventInit", true);
+        if(fVerbose > 0) printf(" Event fails trigger matching\n");
+        return kTRUE;
+      }
+    } else if(fIsData == 3) { //MuonEG data
+      //check that one of the e-mu triggers was matched to
+      if(!(leptonOne.emu_matched && leptonTwo.emu_matched) && !(leptonOne.mue_matched && leptonTwo.mue_matched)) {
+        IncrementTimer("EventInit", true);
+        if(fVerbose > 0) printf(" Event fails e-mu/mu-e trigger matching\n");
+        return kTRUE;
+      }
     }
 
-    if(triggerLeptonStatus != ((UInt_t) fIsData)) { //trigger doesn't match data stream
-      if(triggerLeptonStatus != 3) {
-        IncrementTimer("EventInit", true);
-        if(fVerbose > 0) printf(" Event fails data trigger stream splitting\n");
-        return kTRUE; //triggered only for the other stream
-      }
-      if(fSkipDoubleTrigger) { //don't allow electron and muon triggered event
-        const int other_pdgid = (fIsData == 1) ? 13 : 11; //pdg ID for the other data stream
-        //only skip if the selected lepton actually fired the trigger
-        if((std::abs(leptonOne.flavor) == other_pdgid && leptonOne.matched) ||(std::abs(leptonTwo.flavor) == other_pdgid && leptonTwo.matched)) {
+    if(fIsData == 1 || fIsData == 2) { //single muon/electron data
+      if(triggerLeptonStatus != ((UInt_t) fIsData)) { //trigger doesn't match data stream
+        if(triggerLeptonStatus != 3) {
           IncrementTimer("EventInit", true);
-          if(fVerbose > 0) printf(" Event fails data trigger stream overlap splitting\n");
-          return kTRUE;
+          if(fVerbose > 0) printf(" Event fails data trigger stream splitting\n");
+          return kTRUE; //triggered only for the other stream
         }
+        if(fSkipDoubleTrigger) { //don't allow electron and muon triggered event
+          const int other_pdgid = (fIsData == 1) ? 13 : 11; //pdg ID for the other data stream
+          //only skip if the selected lepton actually fired the trigger
+          if((std::abs(leptonOne.flavor) == other_pdgid && leptonOne.matched) ||(std::abs(leptonTwo.flavor) == other_pdgid && leptonTwo.matched)) {
+            IncrementTimer("EventInit", true);
+            if(fVerbose > 0) printf(" Event fails data trigger stream overlap splitting\n");
+            return kTRUE;
+          }
+        }
+      }
+    } //end single muon/electron data overlap checking
+    else if(fIsData == 3) { //MuonEG data overlap checking
+      if(dataTriggerFlags & (1 << 0) || dataTriggerFlags & (1 << 1)) { //passed a single lepton dataset trigger flag
+        IncrementTimer("EventInit", true);
+        if(fVerbose > 0) printf(" Event fails MuonEG data trigger stream splitting\n");
+        return kTRUE;
       }
     }
   }
@@ -4008,13 +4231,17 @@ int HistMaker::GetTriggerMatch(Lepton_t& lep, bool isMuon) {
 void HistMaker::MatchTriggers() {
   leptonOne.fired = false; leptonTwo.fired = false;
 
-  //FIXME: Do actual trigger matching
   const bool mu_trig  = ((fYear == 2016 && HLT_IsoMu24) ||
                         ( fYear == 2017 && HLT_IsoMu27) ||
                         ( fYear == 2018 && HLT_IsoMu24));
   const bool ele_trig = ((fYear == 2016 && HLT_Ele27_WPTight_GsF) ||
                         ( fYear == 2017 && HLT_Ele32_WPTight_GsF_L1DoubleEG) ||
                         ( fYear == 2018 && HLT_Ele32_WPTight_GsF));
+  const bool emu_trig = HLT_Mu8_Ele23;
+  const bool mue_trig = HLT_Mu23_Ele12;
+
+  //Set event-level flag info for dataset filtering
+  dataTriggerFlags = ele_trig + 2*mu_trig + 4*emu_trig + 8*mue_trig;
 
   //FIXME: Perhaps remove reco trig pT cut from matching to better eval energy scale uncertainties
   if(leptonOne.isTau     ()) {
@@ -4037,6 +4264,32 @@ void HistMaker::MatchTriggers() {
     leptonTwo.fired   = leptonTwo.matched && leptonTwo.p4->Pt() > electron_trig_pt_;
   }
 
+  //check specifically for the e-mu trigger
+  if(leptonOne.isElectron() && leptonTwo.isMuon()) {
+    //FIXME: Add trigger object matching for e-mu triggers
+    if(emu_trig) {
+      leptonOne.emu_matched = true;
+      leptonTwo.emu_matched = true;
+      leptonOne.emu_fired = leptonOne.pt > emu_trig_ele_pt_;
+      leptonTwo.emu_fired = leptonTwo.pt > emu_trig_mu_pt_ ;
+    }
+    if(mue_trig) {
+      leptonOne.mue_matched = true;
+      leptonTwo.mue_matched = true;
+      leptonOne.mue_fired = leptonOne.pt > mue_trig_ele_pt_;
+      leptonTwo.mue_fired = leptonTwo.pt > mue_trig_mu_pt_ ;
+    }
+  } else {
+    leptonOne.emu_matched = false;
+    leptonTwo.emu_matched = false;
+    leptonOne.emu_fired   = false;
+    leptonTwo.emu_fired   = false;
+    leptonOne.mue_matched = false;
+    leptonTwo.mue_matched = false;
+    leptonOne.mue_fired   = false;
+    leptonTwo.mue_fired   = false;
+  }
+
   //Event trigger matching without reco pT cuts, as only used for data stream overlap removal between muon and electron data
   triggerLeptonStatus = 0;
   if((leptonOne.isElectron() && leptonOne.matched) || //electron matched to a trigger
@@ -4054,7 +4307,7 @@ void HistMaker::MatchTriggers() {
 
 
   //matches are within 0.1 delta R, so both to be matched must be within 0.2 and therefore will be rejected
-  if(fVerbose > 0 && leptonOne.trigger == leptonTwo.trigger) {
+  if(fVerbose > 0 && leptonOne.trigger == leptonTwo.trigger && leptonOne.matched && leptonTwo.matched) {
     printf("HistMaker::%s: Entry %lld: Warning! Both leptons were matched to the same trigger index!\n", __func__, fentry);
   }
 }

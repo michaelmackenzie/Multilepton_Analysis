@@ -1425,7 +1425,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set, const
       if(signal_scales_.find(hsignal[i]->GetName()) != signal_scales_.end()) {
         signal_scale = signal_scales_[hsignal[i]->GetName()];
       }
-      nsig[hsignal[i]->GetName()] = (hsignal[i]->Integral((density_plot_ > 0) ? "width" : "") + hsignal[i]->GetBinContent(0)+hsignal[i]->GetBinContent(hsignal[i]->GetNbinsX()+1))/signal_scale;
+      nsig[hsignal[i]->GetTitle()] = (hsignal[i]->Integral((density_plot_ > 0) ? "width" : "") + hsignal[i]->GetBinContent(0)+hsignal[i]->GetBinContent(hsignal[i]->GetNbinsX()+1))/signal_scale;
     }
   }
   nmc = huncertainty->Integral((density_plot_ > 0) ? "width" : "") + huncertainty->GetBinContent(0)+huncertainty->GetBinContent(huncertainty->GetNbinsX()+1);

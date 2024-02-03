@@ -27,6 +27,7 @@ namespace CLFV {
     TH1* hOnePt[14]; //0: nominal 1: no trigger weight 2-5: trigger weight options 6: no ID1 weight 7: no ID2 weight
     TH1* hOnePtUp; //rough overall errors
     TH1* hOnePtDown;
+    TH1* hOnePtRelErr; //(pt - genpt)/pt
     TH1* hOneMomErr; //momentum/energy scale uncertainty
     TH1* hOneP;
     TH1* hOneM;
@@ -84,6 +85,7 @@ namespace CLFV {
     TH1* hTwoPt[14]; //0: nominal 1: no trigger weight 2-5: trigger weight options 6: no ID1 weight 7: no ID2 weight
     TH1* hTwoPtUp; //rough overall errors
     TH1* hTwoPtDown;
+    TH1* hTwoPtRelErr; //(pt - genpt)/pt
     TH1* hTwoMomErr; //momentum/energy scale uncertainty
     TH1* hTwoP;
     TH1* hTwoM;

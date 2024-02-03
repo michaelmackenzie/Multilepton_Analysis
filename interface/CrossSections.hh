@@ -60,15 +60,25 @@ namespace CLFV {
     }
 
     //Get luminosity by year
-    double GetLuminosity(int year) {
+    double GetLuminosity(int year, TString run = "") {
       double lum(0.);
-      if(year < 10) // using enums
+      if(year < 10) // using enums --> offset to absolute year
         year += 2016;
-      auto itr = lum_.find(year);
-      if(itr != lum_.end())
-        lum = itr->second;
-      else
-        std::cout << "Luminosity for " << year << " not found! Returning 0...\n";
+      //check if doing by-run luminosity or full year luminosity
+      if(run == "") {
+        auto itr = lum_.find(year);
+        if(itr != lum_.end())
+          lum = itr->second;
+        else
+          std::cout << "Luminosity for " << year << " not found! Returning 0...\n";
+      } else { //by-run luminosity
+        auto itr = lum_run_.find(Form("%i%s", year, run.Data()));
+        if(itr != lum_run_.end())
+          lum = itr->second;
+        else
+          std::cout << "Luminosity for " << year << run.Data()
+                    << " not found! Returning 0...\n";
+      }
       return lum;
     }
 
@@ -77,6 +87,7 @@ namespace CLFV {
     std::map<TString, std::map<int, double>> neg_frac_ ; //fraction of events with negative weights
     std::map<int, std::map<TString, long>>   numbers_; // generated numbers
     std::map<int, double> lum_; //luminosity
+    std::map<TString, double> lum_run_; //luminosity by run
   };
 }
 #endif

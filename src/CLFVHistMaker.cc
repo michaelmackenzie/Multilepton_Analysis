@@ -459,6 +459,9 @@ void CLFVHistMaker::BookSystematicHistograms() {
       fDirectories[4*fn + i]->cd();
       fSystematicHist[i] = new SystematicHist_t;
       for(int sys = 0; sys < kMaxSystematics; ++sys) {
+        if(fDoSystematics == -2 && !fIsSignal) { //only do nominal systematics for non-signal
+          if(sys > 0) break;
+        }
         const TString name = fSystematics.GetName(sys);
         if(name == "") continue; //only initialize defined systematics
         if(name.BeginsWith("QCD") && fSelection.EndsWith("tau")) continue; //skip QCD OS --> SS in tau channels
@@ -719,6 +722,9 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
   //count number of systematics filled
   int nfilled = 0;
   for(int sys = 0; sys < kMaxSystematics; ++sys) {
+    if(fDoSystematics == -2 && !fIsSignal) { //only do nominal systematics for non-signal
+      if(sys > 0) break;
+    }
     float weight = eventWeight*genWeight;
     bool reeval = false;
     const TString name = fSystematics.GetName(sys);
@@ -945,6 +951,8 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
     } else if(name == "EleES") {
       if(fIsEmbed || fIsData || !isEData) continue;
       reeval = true;
+      if(fVerbose > 5) printf("CLFVHistMaker::%s: Applying %s energy scale (up = %i)\n",
+                              __func__, name.Data(), fSystematics.IsUp(sys));
       if(fSystematics.IsUp(sys)) {
         if(leptonOne.isElectron() && leptonOne.ES[0] > 0. && leptonOne.ES[1] > 0.)
           EnergyScale(leptonOne.ES[1] / leptonOne.ES[0], leptonOne, &met, &metPhi);
@@ -958,24 +966,35 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
       }
     } else if(name.BeginsWith("EmbEleES")) {
       if(!fIsEmbed || !isEData) continue;
-      reeval = true;
+      if(fVerbose > 5) printf("CLFVHistMaker::%s: (Possibly) applying %s energy scale (up = %i)\n",
+                              __func__, name.Data(), fSystematics.IsUp(sys));
       //|eta| Regions: EmbEleES = |eta| < 1.5; EmbEleES1 = |eta| > 1.5;
       const float eta_min = (name.EndsWith("1")) ? 1.5f : 0.f;
       const float eta_max = (name.EndsWith("1")) ? 2.5f : 1.5f;
       if(fSystematics.IsUp(sys)) {
-        if(leptonOne.isElectron() && std::fabs(leptonOne.eta) >= eta_min && std::fabs(leptonOne.eta) < eta_max && leptonOne.ES[0] > 0. && leptonOne.ES[1] > 0.)
+        if(leptonOne.isElectron() && std::fabs(leptonOne.eta) >= eta_min && std::fabs(leptonOne.eta) < eta_max && leptonOne.ES[0] > 0. && leptonOne.ES[1] > 0.) {
+          reeval = true;
           EnergyScale(leptonOne.ES[1] / leptonOne.ES[0], leptonOne, &met, &metPhi);
-        if(leptonTwo.isElectron() && std::fabs(leptonTwo.eta) >= eta_min && std::fabs(leptonTwo.eta) < eta_max && leptonTwo.ES[0] > 0. && leptonTwo.ES[1] > 0.)
+        }
+        if(leptonTwo.isElectron() && std::fabs(leptonTwo.eta) >= eta_min && std::fabs(leptonTwo.eta) < eta_max && leptonTwo.ES[0] > 0. && leptonTwo.ES[1] > 0.) {
+          reeval = true;
           EnergyScale(leptonTwo.ES[1] / leptonTwo.ES[0], leptonTwo, &met, &metPhi);
+        }
       } else {
-        if(leptonOne.isElectron() && std::fabs(leptonOne.eta) >= eta_min && std::fabs(leptonOne.eta) < eta_max && leptonOne.ES[0] > 0. && leptonOne.ES[2] > 0.)
+        if(leptonOne.isElectron() && std::fabs(leptonOne.eta) >= eta_min && std::fabs(leptonOne.eta) < eta_max && leptonOne.ES[0] > 0. && leptonOne.ES[2] > 0.) {
+          reeval = true;
           EnergyScale(leptonOne.ES[2] / leptonOne.ES[0], leptonOne, &met, &metPhi);
-        if(leptonTwo.isElectron() && std::fabs(leptonTwo.eta) >= eta_min && std::fabs(leptonTwo.eta) < eta_max && leptonTwo.ES[0] > 0. && leptonTwo.ES[2] > 0.)
+        }
+        if(leptonTwo.isElectron() && std::fabs(leptonTwo.eta) >= eta_min && std::fabs(leptonTwo.eta) < eta_max && leptonTwo.ES[0] > 0. && leptonTwo.ES[2] > 0.) {
+          reeval = true;
           EnergyScale(leptonTwo.ES[2] / leptonTwo.ES[0], leptonTwo, &met, &metPhi);
+        }
       }
     } else if(name == "MuonES") {
       if(fIsEmbed || fIsData || !isMData) continue;
       reeval = true;
+      if(fVerbose > 5) printf("CLFVHistMaker::%s: Applying %s energy scale (up = %i)\n",
+                              __func__, name.Data(), fSystematics.IsUp(sys));
       if(fSystematics.IsUp(sys)) {
         if(leptonOne.isMuon() && leptonOne.ES[0] > 0. && leptonOne.ES[1] > 0.)
           EnergyScale(leptonOne.ES[1] / leptonOne.ES[0], leptonOne, &met, &metPhi);
@@ -990,6 +1009,8 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
     } else if(name == "EmbMuonES") {
       if(!fIsEmbed || !isMData || !fUseEmbedRocco) continue; //only process for embedding, and only if using Rocco systematics
       reeval = true;
+      if(fVerbose > 5) printf("CLFVHistMaker::%s: Applying %s energy scale (up = %i)\n",
+                              __func__, name.Data(), fSystematics.IsUp(sys));
       if(std::fabs(std::fabs(1.f - leptonOne.ES[1]/leptonOne.ES[0]) - std::fabs(1.f - leptonOne.ES[2]/leptonOne.ES[0])) > 1.e3f) {
         printf("%s: Energy scales disagree! ES = %.4f, up = %.4f, down = %.4f, pt = %.1f, eta = %.2f\n",
                __func__, leptonOne.ES[0], leptonOne.ES[1], leptonOne.ES[2], leptonOne.pt, leptonOne.eta);
@@ -1008,6 +1029,8 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
       }
     } else if(name.Contains("EmbMuonES")) { //bins of energy scale uncertainty
       if(!fIsEmbed || !isMData || fUseEmbedRocco) continue; //don't do binned ES if using Rocco systematics
+      if(fVerbose > 5) printf("CLFVHistMaker::%s: Applying %s energy scale (up = %i)\n",
+                              __func__, name.Data(), fSystematics.IsUp(sys));
       TString bin_s = name; bin_s.ReplaceAll("EmbMuonES", "");
       const int bin = std::abs(std::stoi(bin_s.Data()));
       if(bin < 0 || bin > 2) {printf("CLFVHistMaker::%s: Unknown sys bin %s\n", __func__, name.Data()); continue;}
@@ -1030,6 +1053,8 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
       }
     } else if(name == "TauES") {
       if(fIsData || !leptonTwo.isTau()) continue;
+      if(fVerbose > 5) printf("CLFVHistMaker::%s: Applying %s energy scale (up = %i)\n",
+                              __func__, name.Data(), fSystematics.IsUp(sys));
       reeval = true;
       if(fSystematics.IsUp(sys)) {  //FIXME: check if this should be propagated to the MET
         if(leptonTwo.isTau() && leptonTwo.ES[0] > 0. && leptonTwo.ES[1] > 0.)
@@ -1040,6 +1065,8 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
       }
     } else if(name == "EmbTauES") {
       if(!fIsEmbed || !leptonTwo.isTau()) continue;
+      if(fVerbose > 5) printf("CLFVHistMaker::%s: Applying %s energy scale (up = %i)\n",
+                              __func__, name.Data(), fSystematics.IsUp(sys));
       reeval = true;
       if(fSystematics.IsUp(sys)) {  //FIXME: check if this should be propagated to the MET
         if(leptonTwo.isTau() && leptonTwo.ES[0] > 0. && leptonTwo.ES[1] > 0.)
@@ -1047,6 +1074,36 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
       } else {
         if(leptonTwo.isTau() && leptonTwo.ES[0] > 0. && leptonTwo.ES[2] > 0.)
           EnergyScale((1.f-rho_t) + rho_t*leptonTwo.ES[2] / leptonTwo.ES[0], leptonTwo, &met, &metPhi);
+      }
+    } else if(name == "EmbEleRes") {
+      if(!fIsEmbed || !isEData) continue; //only process for embedding with reco electrons
+      reeval = true;
+      const float pt_err_scale = 0.50; //change the pT resolution by +-5%
+      if(fSystematics.IsUp(sys)) {
+        if(leptonOne.isElectron() && leptonOne.genPt > 0.f) //scale pT by 1 +- scale*(pt - genpt)/pt = 1 +- scale*(1 - genpt/pt)
+          EnergyScale(1.f + pt_err_scale * (1.f - leptonOne.genPt/leptonOne.pt), leptonOne, &met, &metPhi);
+        if(leptonTwo.isElectron() && leptonTwo.genPt > 0.f)
+          EnergyScale(1.f + pt_err_scale * (1.f - leptonTwo.genPt/leptonTwo.pt), leptonTwo, &met, &metPhi);
+      } else {
+        if(leptonOne.isElectron() && leptonOne.genPt > 0.f)
+          EnergyScale(1.f - pt_err_scale * (1.f - leptonOne.genPt/leptonOne.pt), leptonOne, &met, &metPhi);
+        if(leptonTwo.isElectron() && leptonTwo.genPt > 0.f)
+          EnergyScale(1.f - pt_err_scale * (1.f - leptonTwo.genPt/leptonTwo.pt), leptonTwo, &met, &metPhi);
+      }
+    } else if(name == "EmbMuonRes") {
+      if(!fIsEmbed || !isMData) continue; //only process for embedding with reco muons
+      reeval = true;
+      const float pt_err_scale = 0.05; //change the pT resolution by +-5%
+      if(fSystematics.IsUp(sys)) {
+        if(leptonOne.isMuon() && leptonOne.genPt > 0.f) //scale pT by 1 +- scale*(pt - genpt)/pt = 1 +- scale*(1 - genpt/pt)
+          EnergyScale(1.f + pt_err_scale * (1.f - leptonOne.genPt/leptonOne.pt), leptonOne, &met, &metPhi);
+        if(leptonTwo.isMuon() && leptonTwo.genPt > 0.f)
+          EnergyScale(1.f + pt_err_scale * (1.f - leptonTwo.genPt/leptonTwo.pt), leptonTwo, &met, &metPhi);
+      } else {
+        if(leptonOne.isMuon() && leptonOne.genPt > 0.f)
+          EnergyScale(1.f - pt_err_scale * (1.f - leptonOne.genPt/leptonOne.pt), leptonOne, &met, &metPhi);
+        if(leptonTwo.isMuon() && leptonTwo.genPt > 0.f)
+          EnergyScale(1.f - pt_err_scale * (1.f - leptonTwo.genPt/leptonTwo.pt), leptonTwo, &met, &metPhi);
       }
     } else if(name == "QCDStat") {
       if(!chargeTest) { //only shift for same-sign events
@@ -1185,6 +1242,31 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
         if(fSystematics.IsUp(sys)) weight *= jetToTauWeightBiasUp     / jetToTauWeightBias   ;
         else                       weight *= jetToTauWeightBiasDown   / jetToTauWeightBias   ;
       } else continue; //no need to fill tight ID histograms
+    } else if(name.Contains("JetToTauBiasRate")) { //process binned bias uncertainty
+      if(isLooseTau) { //only shift the weight for loose tau ID region events
+        //recreate the weight with shifted process bias
+        float wt_jtt = 0.f;
+        int proc;
+        if     (name == "JetToTauBiasRate0") proc = JetToTauComposition::kWJets; //only defined for W+jets
+        else {
+          printf("CLFVHistMaker::%s: Unknown jet-->tau bias systematic bin %s\n", __func__, name.Data());
+          continue;
+        }
+        for(int iproc = 0; iproc < JetToTauComposition::kLast; ++iproc) {
+          //Z+jets uses the W+jets scales
+          bool test = iproc == proc || (proc == JetToTauComposition::kWJets && iproc == JetToTauComposition::kZJets);
+          bool apply_bias = fApplyJetToTauMCBias || (iproc != JetToTauComposition::kWJets && iproc != JetToTauComposition::kZJets);
+          const float base = fJetToTauComps[iproc] * fJetToTauWts[iproc] * fJetToTauCorrs[iproc] * ((apply_bias) ? fJetToTauBiases[iproc] : 1.f);
+          float rate_unc = 1.f;
+          if(test) {
+            if(mutau) rate_unc = (fYear == 2016) ? 0.03f : (fYear == 2017) ? 0.029f : 0.059f;
+            if(etau ) rate_unc = (fYear == 2016) ? 0.04f : (fYear == 2017) ? 0.081f : 0.150f;
+          }
+          //apply the rate uncertainty to the process of interest
+          wt_jtt += base * ((test) ? ((fSystematics.IsUp(sys)) ? 1.f + rate_unc : 1.f - rate_unc) : 1.f);
+        }
+        weight *= wt_jtt / jetToTauWeightBias;
+      } else continue; //no need to fill tight ID histograms
     } else if(name.Contains("JetToTauBias")) { //process binned bias uncertainty
       if(isLooseTau) { //only shift the weight for loose tau ID region events
         //recreate the weight with shifted process bias
@@ -1320,15 +1402,17 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
       //loop through the jet collection, evaluate the total shift to the MET
       float dx(0.f), dy(0.f);
       for(unsigned ijet = 0; ijet < nJets20; ++ijet) {
-        if(jetsEta[ijet] < -3.0f || jetsEta[ijet] > -1.3f) continue;
+        if(jetsPhi[ijet] < -1.57f || jetsPhi[ijet] > -0.87f) continue; //relevant phi region
+        if(jetsEta[ijet] < -3.0f || jetsEta[ijet] > -1.3f) continue; //relevant eta region
         const float factor = (jetsEta[ijet] < -2.5f) ? -0.35f : -0.20f; //factor the jet pT should be changed by
         dx += factor*jetsPt[ijet]*std::cos(jetsPhi[ijet]);
         dy += factor*jetsPt[ijet]*std::sin(jetsPhi[ijet]);
       }
       if(dx != 0.f && dy != 0.f) { //a jet is relevant
         reeval = true;
-        //check if the identified jet should be updated
-        const float factor = (jetOne.eta < -3.0f || jetOne.eta > -1.3f) ? 1.f : (jetOne.eta < -2.5f) ? 0.65f : 0.80f;
+        //check if the identified jet should be updated, and if so what the pT scale factor is
+        const bool hem_region = jetOne.eta >= -3.0f && jetOne.eta <= -1.3f && jetOne.phi >= -1.57f && jetOne.phi <= -0.87f;
+        const float factor = (!hem_region) ? 1.f : (jetOne.eta < -2.5f) ? 0.65f : 0.80f;
         jetOne.setPtEtaPhiM(jetOne.pt*factor, jetOne.eta, jetOne.phi, jetOne.mass);
         //update the met
         const float met_x = std::cos(metPhi) * met - dx;
@@ -1477,42 +1561,43 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
         }
       }
       //skip MVA histograms if not relevant
-      if(isSameFlavor || (fSparseHists && isEMu)) continue;
-      //MVA outputs
-      float mvaweight = fTreeVars.eventweightMVA*(weight/(eventWeight*genWeight)); //apply the fractional weight change to the MVA weight accounting for test/train splitting
-      if(!std::isfinite(mvaweight)) {
-        std::cout << "CLFVHistMaker::" << __func__ << ": Entry " << fentry << " MVA weight is not finite! mvaweight = " << mvaweight << " eventweightMVA = "
-                  << fTreeVars.eventweightMVA << ", setting to 0...\n";
-        mvaweight = 0.;
-      }
-      for(unsigned i = 0; i < fMVAConfig->names_.size(); ++i) {
-        //assume only relevant MVAs are initialized
-        if(!mva[i]) continue;
-        float mvascore = (fUseCDFBDTs == 1) ? fMvaCDFs[i] : (fUseCDFBDTs == 2) ? fMvaFofP[i] : fMvaOutputs[i];
-        if(!std::isfinite(mvascore) && fVerbose > 0) {
-          std::cout << "CLFVHistMaker::" << __func__ << ": Entry " << fentry << ", sys " << sys <<", MVA " << i << ": score is not finite = " << mvascore << "! Setting to -2...\n";
-          mvascore = -2.;
+      if(!isSameFlavor && !(fSparseHists && isEMu)) {
+        //MVA outputs
+        float mvaweight = fTreeVars.eventweightMVA*(weight/(eventWeight*genWeight)); //apply the fractional weight change to the MVA weight accounting for test/train splitting
+        if(!std::isfinite(mvaweight)) {
+          std::cout << "CLFVHistMaker::" << __func__ << ": Entry " << fentry << " MVA weight is not finite! mvaweight = " << mvaweight << " eventweightMVA = "
+                    << fTreeVars.eventweightMVA << ", setting to 0...\n";
+          mvaweight = 0.;
         }
-        if(mvascore < -1.) {
-          std::cout << "CLFVHistMaker::" << __func__ << ": Entry " << fentry << ", sys " << sys <<", MVA " << i << ": score is not defined = " << mvascore << "!\n";
+        for(unsigned i = 0; i < fMVAConfig->names_.size(); ++i) {
+          //assume only relevant MVAs are initialized
+          if(!mva[i]) continue;
+          float mvascore = (fUseCDFBDTs == 1) ? fMvaCDFs[i] : (fUseCDFBDTs == 2) ? fMvaFofP[i] : fMvaOutputs[i];
+          if(!std::isfinite(mvascore) && fVerbose > 0) {
+            std::cout << "CLFVHistMaker::" << __func__ << ": Entry " << fentry << ", sys " << sys <<", MVA " << i << ": score is not finite = " << mvascore << "! Setting to -2...\n";
+            mvascore = -2.;
+          }
+          if(mvascore < -1.) {
+            std::cout << "CLFVHistMaker::" << __func__ << ": Entry " << fentry << ", sys " << sys <<", MVA " << i << ": score is not defined = " << mvascore << "!\n";
+          }
+          Hist->hMVA[i][sys]->Fill(mvascore, mvaweight);
+          if(reeval) Hist->hMVADiff[i][sys]->Fill(mvascore-((fUseCDFBDTs == 1) ? o_cdfs[i] : (fUseCDFBDTs == 2) ? o_fofp[i] : o_mvas[i]), mvaweight);
         }
-        Hist->hMVA[i][sys]->Fill(mvascore, mvaweight);
-        if(reeval) Hist->hMVADiff[i][sys]->Fill(mvascore-((fUseCDFBDTs == 1) ? o_cdfs[i] : (fUseCDFBDTs == 2) ? o_fofp[i] : o_mvas[i]), mvaweight);
-      }
+      } //end !same flavor and !(sparse+emu)
     } //end kinematic event selection check
 
     //restore the nominal kinematics/scores if shifted
     if(reeval) {
       leptonOne.setP(o_lv1);
       leptonTwo.setP(o_lv2);
-      jetOne.setP(o_jet);
-      met = o_met;
+      jetOne   .setP(o_jet);
+      met    = o_met;
       metPhi = o_metPhi;
       SetKinematics();
       for(unsigned i = 0; i < fMVAConfig->names_.size(); ++i) {
         fMvaOutputs[i] = o_mvas[i];
-        fMvaCDFs[i] = o_cdfs[i];
-        fMvaFofP[i] = o_fofp[i];
+        fMvaCDFs[i]    = o_cdfs[i];
+        fMvaFofP[i]    = o_fofp[i];
       }
     }
   }
@@ -1592,19 +1677,20 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   ///////////////////////////////////////////////////////////////////
   //leptons must satisfy the pt requirements and fire a trigger
 
-  mutau &= leptonOne.pt > muon_trig_pt_     - sys_buffer && leptonTwo.pt > tau_pt && leptonOne.matched;
-  etau  &= leptonOne.pt > electron_trig_pt_ - sys_buffer && leptonTwo.pt > tau_pt && leptonOne.matched;
-  emu   &= (leptonOne.pt > electron_pt && leptonTwo.pt > muon_pt &&
-            ((leptonOne.pt > electron_trig_pt_ - sys_buffer && leptonOne.matched) ||
-             (leptonTwo.pt > muon_trig_pt_     - sys_buffer && leptonTwo.matched)));
-  mumu  &= (leptonOne.pt > muon_pt && leptonTwo.pt > muon_pt &&
-            ((leptonOne.pt > muon_trig_pt_ - sys_buffer && leptonOne.matched) ||
-             (leptonTwo.pt > muon_trig_pt_ - sys_buffer && leptonTwo.matched)));
-  ee    &= (leptonOne.pt > electron_pt && leptonTwo.pt > electron_pt &&
-            ((leptonOne.pt > electron_trig_pt_ - sys_buffer && leptonOne.matched) ||
-             (leptonTwo.pt > electron_trig_pt_ - sys_buffer && leptonTwo.matched)));
+  //check the pT cuts
+  bool fail_pt_cuts = false;
+  fail_pt_cuts |= leptonOne.isElectron() && leptonOne.pt <= electron_pt;
+  fail_pt_cuts |= leptonTwo.isElectron() && leptonTwo.pt <= electron_pt;
+  fail_pt_cuts |= leptonOne.isMuon    () && leptonOne.pt <= muon_pt;
+  fail_pt_cuts |= leptonTwo.isMuon    () && leptonTwo.pt <= muon_pt;
+  fail_pt_cuts |= leptonOne.isTau     () && leptonOne.pt <= tau_pt;
+  fail_pt_cuts |= leptonTwo.isTau     () && leptonTwo.pt <= tau_pt;
+  if(fail_pt_cuts) return kTRUE;
 
-  if(!(mutau || etau || emu || mumu || ee)) return kTRUE;
+  //check against the triggers
+  const bool triggered = PassesTrigger(sys_buffer);
+
+  if(!triggered) return kTRUE;
   fCutFlow->Fill(icutflow); ++icutflow; //6
 
   ///////////////////////////////////////////////////////////////////

@@ -45,10 +45,34 @@ namespace CLFV {
     float trig_data_eff;
     float trig_mc_eff;
 
+    //Mu8_Ele23 trigger
+    int   emu_trigger;
+    bool  emu_matched;
+    bool  emu_fired;
+    int   emu_trigger_id;
+    float emu_trig_data_eff;
+    float emu_trig_mc_eff;
+
+    //Mu23_Ele12 trigger
+    int   mue_trigger;
+    bool  mue_matched;
+    bool  mue_fired;
+    int   mue_trigger_id;
+    float mue_trig_data_eff;
+    float mue_trig_mc_eff;
+
     bool  isLoose;
 
+    //generator truth information
     int   genFlavor;
     int   genID;
+    float genPt;
+    float genEta;
+    float genPhi;
+    float genMass;
+    int   genIndex;
+
+    //energy and momentum scales and up/down systematic scales
     float ptSF[3] = {1.f, 1.f, 1.f};
     float ES[3] = {1.f, 1.f, 1.f};
 

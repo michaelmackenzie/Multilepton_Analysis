@@ -509,19 +509,19 @@ namespace CLFV {
         *title  = Form("Jet scalar pT sum");
       }
       else if(hist.Contains("mva")) {
-        *xtitle = "MVA score";
+        *xtitle = "BDT score";
         *ytitle = "";
-        *title  = "MVA Score";
+        *title  = "BDT Score";
       }
       else if(hist.Contains("prob")) {
-        *xtitle = "MVA score probability";
+        *xtitle = "BDT score probability";
         *ytitle = "";
-        *title  = "MVA Score Probability";
+        *title  = "BDT Score Probability";
       }
       else if(hist.Contains("cdf")) {
-        *xtitle = "MVA score CDF";
+        *xtitle = "BDT score CDF";
         *ytitle = "";
-        *title  = "MVA Score CDF";
+        *title  = "BDT Score CDF";
       }
       else if(hist == "metdeltaphi") {
         *xtitle = "#Delta#phi(MET,ll)";

@@ -99,6 +99,10 @@ namespace CLFV {
       case  30: return Data(isys, "TauEleID"      , false);
       case  31: return Data(isys, "BTag"          , true );
       case  32: return Data(isys, "BTag"          , false);
+      case  33: return Data(isys, "EmbMuonRes"    , true );
+      case  34: return Data(isys, "EmbMuonRes"    , false);
+      case  35: return Data(isys, "EmbEleRes"     , true );
+      case  36: return Data(isys, "EmbEleRes"     , false);
       // case  33: return Data(isys, "Lumi"          , true );
       // case  34: return Data(isys, "Lumi"          , false);
       // case  35: return Data(isys, "EmbedUnfold"   , true );
@@ -119,8 +123,8 @@ namespace CLFV {
       case  52: return Data(isys, "Pileup"        , false);
       case  53: return Data(isys, "ZPt"           , true );
       case  54: return Data(isys, "ZPt"           , false);
-      case  55: return Data(isys, "EleIsoID"     , true );
-      case  56: return Data(isys, "EleIsoID"     , false);
+      case  55: return Data(isys, "EleIsoID"      , true );
+      case  56: return Data(isys, "EleIsoID"      , false);
       case  57: return Data(isys, "EleES"         , true );
       case  58: return Data(isys, "EleES"         , false);
       case  59: return Data(isys, "MuonES"        , true );
@@ -225,6 +229,11 @@ namespace CLFV {
       //30 eigenvectors + alpha_down, alpha_up --> 31 nuisances with up/down
       base += 2*nbin; nbin = 31; //284 - 345
       if(isys >= base && isys < base+2*nbin) return Data(isys, Form("TheoryPDF%i", (isys-base)/2), (isys-base)%2 == 0);
+
+      //j-->tau bias region rate uncertainties, if separated from bias corrections
+      //only implemented for W+jets currently
+      base += 2*nbin; nbin = 1; //346 - 347
+      if(isys >= base && isys < base+2*nbin) return Data(isys, Form("JetToTauBiasRate%i", (isys-base)/2), (isys-base)%2 == 0);
 
       //return the default result if no systematic is defined
       return Data();

@@ -120,7 +120,9 @@ namespace CLFV {
     Int_t  GenPart_pdgId                [kMaxGenPart];
     Int_t  GenPart_genPartIdxMother     [kMaxGenPart];
     Float_t GenPart_pt                  [kMaxGenPart];
+    Float_t GenPart_eta                 [kMaxGenPart];
     Float_t GenPart_phi                 [kMaxGenPart];
+    Float_t GenPart_mass                [kMaxGenPart];
 
     //lepton information
     //muons
@@ -262,6 +264,8 @@ namespace CLFV {
     Bool_t  HLT_Ele27_WPTight_GsF                        ;
     Bool_t  HLT_Ele32_WPTight_GsF                        ;
     Bool_t  HLT_Ele32_WPTight_GsF_L1DoubleEG             ;
+    Bool_t  HLT_Mu23_Ele12                               ;
+    Bool_t  HLT_Mu8_Ele23                                ;
     UInt_t  nTrigObj                                     ;
     Int_t   TrigObj_filterBits             [kMaxTriggers];
     Float_t TrigObj_pt                     [kMaxTriggers];
@@ -315,6 +319,7 @@ namespace CLFV {
     Int_t   runEra                     ;
     UInt_t  triggerLeptonStatus        ; //which triggers fired (muon, electron, or both)
     UInt_t  muonTriggerStatus          ; //which muon trigger was fired
+    UInt_t  dataTriggerFlags           ; //HLT event-level trigger info, without lepton matching (ele + 2*mu + 4*e-mu + 8*mu-e)
     Bool_t  isFakeElectron = false     ;
     Bool_t  isFakeMuon     = false     ;
     Int_t   looseQCDSelection = 0      ;
@@ -430,6 +435,10 @@ namespace CLFV {
 
     Float_t muon_trig_pt_    ; //lepton trigger thresholds
     Float_t electron_trig_pt_;
+    Float_t emu_trig_mu_pt_  ;
+    Float_t emu_trig_ele_pt_ ;
+    Float_t mue_trig_mu_pt_  ;
+    Float_t mue_trig_ele_pt_ ;
     Float_t one_pt_min_ =  0.f; //threshold cuts
     Float_t two_pt_min_ =  0.f;
     Float_t ptdiff_min_ = -1.e10f; //one pt - two pt
@@ -470,6 +479,7 @@ namespace CLFV {
     void    CountJets();
     void    SetKinematics();
     void    EstimateNeutrinos();
+    void    SetGenHadronicTau(Lepton_t& lep);
     void    EvalMVAs(TString TimerName = "");
     int     GetTriggerMatch(Lepton_t& lep, bool isMuon);
     // int     GetTriggerMatch(TLorentzVector* lv, bool isMuon, Int_t& trigIndex);
@@ -477,6 +487,24 @@ namespace CLFV {
     void    ApplyTriggerWeights();
     void    EvalJetToTauWeights(float& wt, float& wtcorr, float& wtbias);
     float   EvalEmbBDTUncertainty(TString selection);
+
+    //Apply trigger selection
+    bool    PassesTrigger(float buffer = 0.f /* for wider window trigger selection*/) {
+      bool triggered(false);
+      if(fUseEMuTrigger != 2 || (leptonTwo.isMuon() && leptonOne.isElectron())) {
+        triggered |= leptonOne.isMuon    () && leptonOne.matched && leptonOne.pt > muon_trig_pt_     - buffer;
+        triggered |= leptonTwo.isMuon    () && leptonTwo.matched && leptonTwo.pt > muon_trig_pt_     - buffer;
+        triggered |= leptonOne.isElectron() && leptonOne.matched && leptonOne.pt > electron_trig_pt_ - buffer;
+        triggered |= leptonTwo.isElectron() && leptonTwo.matched && leptonTwo.pt > electron_trig_pt_ - buffer;
+      }
+      if(fUseEMuTrigger != 0 && (leptonTwo.isMuon() && leptonOne.isElectron())) {
+        triggered |= (leptonOne.pt > emu_trig_ele_pt_ - buffer && leptonOne.emu_matched &&
+                      leptonTwo.pt > emu_trig_mu_pt_  - buffer && leptonTwo.emu_matched);
+        triggered |= (leptonOne.pt > mue_trig_ele_pt_ - buffer && leptonOne.mue_matched &&
+                      leptonTwo.pt > mue_trig_mu_pt_  - buffer && leptonTwo.mue_matched);
+      }
+      return triggered;
+    }
 
     //Apply event selection cuts
     bool    PassesCuts() {
@@ -498,11 +526,7 @@ namespace CLFV {
       }
 
       //apply trigger cuts
-      bool triggered(false);
-      triggered |= leptonOne.isMuon    () && leptonOne.matched && leptonOne.pt > muon_trig_pt_    ;
-      triggered |= leptonTwo.isMuon    () && leptonTwo.matched && leptonTwo.pt > muon_trig_pt_    ;
-      triggered |= leptonOne.isElectron() && leptonOne.matched && leptonOne.pt > electron_trig_pt_;
-      triggered |= leptonTwo.isElectron() && leptonTwo.matched && leptonTwo.pt > electron_trig_pt_;
+      const bool triggered = PassesTrigger(0.f); //give no buffer at this level of check
       if(triggered && fVerbose > 0) printf(" HistMaker::%s: Passes cuts\n", __func__);
       else if(fVerbose > 0)         printf(" HistMaker::%s: Fails trigger requirement\n", __func__);
       return triggered;
@@ -775,6 +799,7 @@ namespace CLFV {
     Int_t           fMETWeights = 0; //re-weight events based on the MET
     Int_t           fUseMCEstimatedFakeLep = 0;
     Int_t           fDoTriggerMatching = 1; //match trigger objects to selected leptons
+    Int_t           fUseEMuTrigger = 0; //consider the e-mu trigger in e-mu data: 1 = use it; 2 = only use it
 
     Bool_t          fSparseHists = false; //only fill/init more basic histograms
 

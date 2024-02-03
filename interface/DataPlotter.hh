@@ -603,14 +603,16 @@ namespace CLFV {
                   type.Data(), hist.Data());
 
       if(logY_)                                name += "_log";
-      if(!noDataDefined && plot_data_)         name += "_data";
-      if(!noDataDefined && stack_as_hist_)     name += "_totbkg";
-      if(!noDataDefined && data_over_mc_ < 0)  name += "_sigOverBkg";
-      else if(!noDataDefined && data_over_mc_) name += "_dataOverMC";
-      if(density_plot_)                        name += "_density";
-      if(!include_qcd_)                        name += "_noqcd";
-      if(!include_misid_)                      name += "_nomisid";
-      if(tag != "")                            name += "_" + tag;
+      if(figureType != "signal") {
+        if(!noDataDefined && plot_data_)         name += "_data";
+        if(!noDataDefined && stack_as_hist_)     name += "_totbkg";
+        if(!noDataDefined && data_over_mc_ < 0)  name += "_sigOverBkg";
+        else if(!noDataDefined && data_over_mc_) name += "_dataOverMC";
+        if(density_plot_)                        name += "_density";
+        if(!include_qcd_)                        name += "_noqcd";
+        if(!include_misid_)                      name += "_nomisid";
+        if(tag != "")                            name += "_" + tag;
+      }
 
       name += Form("_set_%i.%s", set, figure_format_.Data());
       return name;

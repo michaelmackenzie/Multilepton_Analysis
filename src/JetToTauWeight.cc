@@ -32,12 +32,13 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
     4: isolation + lepm (QCD iso + SS biases)
     5: mtlep + lepm (legacy etau QCD mtlep + SS biases)
     6: lepm, shape only (W+Jets)
-    7: lepm, 2D (lepm, mva) correction (W+Jets)
+    7: 2D (lepm, mva) correction (W+Jets)
+    8: 2D (lepm, mva) shape correction (W+Jets)
   */
   useLepMBias_           = bias_mode == 1 || bias_mode == 4 || bias_mode == 5 || bias_mode == 6; //bias correction in terms of di-lepton mass
   useMTLepBias_          = bias_mode == 2 || bias_mode == 5; //bias correction in terms of MT(ll, MET)
   useOneIsoBias_         = bias_mode == 3 || bias_mode == 4; //bias correction in terms of one iso / pT
-  useLepMVsMVABias_      = bias_mode == 7; //bias shape correction in terms of 2D (lepm, mva score)
+  useLepMVsMVABias_      = bias_mode == 7 || bias_mode == 8; //bias shape correction in terms of 2D (lepm, mva score)
 
 
   if(verbose_ > 0) {
@@ -314,7 +315,7 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
           }
         }
         if(useLepMVsMVABias_) { //BDT score shape correction in mass fit regions
-          lepMVsMVABias_[year] = (TH2*) f->Get("LepMVsMVABias");
+          lepMVsMVABias_[year] = (TH2*) f->Get((bias_mode == 7) ? "LepMVsMVABias" : "LepMVsMVABiasShape");
           if(!lepMVsMVABias_[year]) {
             std::cout << "JetToTauWeight::JetToTauWeight: " << name_.Data() << " Warning! No (lepton mass, MVA) bias hist found for year = "
                       << year << " selection = " << selection.Data() << std::endl;

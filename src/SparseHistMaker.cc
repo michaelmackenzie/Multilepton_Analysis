@@ -28,21 +28,49 @@ void SparseHistMaker::InitHistogramFlags() {
   }
 
   //Event Sets
-  const bool mutau = fSelection == "" || fSelection == "mutau";
-  const bool etau  = fSelection == "" || fSelection == "etau" ;
-  const bool emu   = fSelection == "" || fSelection == "emu"  ;
-  const bool mumu  = fSelection == "" || fSelection == "mumu" ;
-  const bool ee    = fSelection == "" || fSelection == "ee"   ;
+  const bool mutau   = fSelection == "" || fSelection == "mutau"  ;
+  const bool etau    = fSelection == "" || fSelection == "etau"   ;
+  const bool emu     = fSelection == "" || fSelection == "emu"    ;
+  const bool mumu    = fSelection == "" || fSelection == "mumu"   ;
+  const bool ee      = fSelection == "" || fSelection == "ee"     ;
+  const bool mutau_e = fSelection == "" || fSelection == "mutau_e";
+  const bool etau_mu = fSelection == "" || fSelection == "etau_mu";
 
   if(mutau) {
     fEventSets [kMuTau + 1] = 1; // all events
     fEventSets [kMuTau + 8] = 1; // preselection
+
+    //cutflow histogram sets
+    if(fDoCutFlowSets) {
+      fEventSets [kMuTau + 20] = 1; //object cleaning
+      fEventSets [kMuTau + 21] = 1; //
+      fEventSets [kMuTau + 22] = 1; //
+      fEventSets [kMuTau + 23] = 1; //
+      fEventSets [kMuTau + 24] = 1; //
+      fEventSets [kMuTau + 25] = 1; //
+      fEventSets [kMuTau + 26] = 1; //
+      fEventSets [kMuTau + 27] = 1; //
+      fEventSets [kMuTau + 28] = 1; //
+    }
   }
   if(etau) {
     fEventSets [kETau + 1] = 1; // all events
     fEventSets [kETau + 8] = 1; // preselection
+
+    //cutflow histogram sets
+    if(fDoCutFlowSets) {
+      fEventSets [kETau + 20] = 1; //object cleaning
+      fEventSets [kETau + 21] = 1; //
+      fEventSets [kETau + 22] = 1; //
+      fEventSets [kETau + 23] = 1; //
+      fEventSets [kETau + 24] = 1; //
+      fEventSets [kETau + 25] = 1; //
+      fEventSets [kETau + 26] = 1; //
+      fEventSets [kETau + 27] = 1; //
+      fEventSets [kETau + 28] = 1; //
+    }
   }
-  if(emu) {
+  if(emu || mutau_e || etau_mu) {
     fEventSets [kEMu  + 1] = 1; // all events
     fEventSets [kEMu  + 8] = 1; // preselection
 
@@ -58,20 +86,78 @@ void SparseHistMaker::InitHistogramFlags() {
       fEventSets [kEMu  + 27] = 1; //
       fEventSets [kEMu  + 28] = 1; //
     }
-
-    //Leptonic tau channels
-    fEventSets[kMuTauE + 1] = 1;
-    fEventSets[kETauMu + 1] = 1;
-    fEventSets[kMuTauE + 8] = 1;
-    fEventSets[kETauMu + 8] = 1;
   }
+
+  //Leptonic tau channels
+  if(mutau_e) {
+    fEventSets[kMuTauE + 1] = 1;
+    fEventSets[kMuTauE + 8] = 1;
+
+    //cutflow histogram sets
+    if(fDoCutFlowSets) {
+      fEventSets [kMuTauE + 20] = 1; //object cleaning
+      fEventSets [kMuTauE + 21] = 1; //
+      fEventSets [kMuTauE + 22] = 1; //
+      fEventSets [kMuTauE + 23] = 1; //
+      fEventSets [kMuTauE + 24] = 1; //
+      fEventSets [kMuTauE + 25] = 1; //
+      fEventSets [kMuTauE + 26] = 1; //
+      fEventSets [kMuTauE + 27] = 1; //
+      fEventSets [kMuTauE + 28] = 1; //
+    }
+  }
+
+  if(etau_mu) {
+    fEventSets[kETauMu + 1] = 1;
+    fEventSets[kETauMu + 8] = 1;
+
+    //cutflow histogram sets
+    if(fDoCutFlowSets) {
+      fEventSets [kETauMu + 20] = 1; //object cleaning
+      fEventSets [kETauMu + 21] = 1; //
+      fEventSets [kETauMu + 22] = 1; //
+      fEventSets [kETauMu + 23] = 1; //
+      fEventSets [kETauMu + 24] = 1; //
+      fEventSets [kETauMu + 25] = 1; //
+      fEventSets [kETauMu + 26] = 1; //
+      fEventSets [kETauMu + 27] = 1; //
+      fEventSets [kETauMu + 28] = 1; //
+    }
+  }
+
   if(mumu) {
     fEventSets [kMuMu + 1] = 1; // all events
     fEventSets [kMuMu + 8] = 1; // preselection
+
+    //cutflow histogram sets
+    if(fDoCutFlowSets) {
+      fEventSets [kMuMu + 20] = 1; //object cleaning
+      fEventSets [kMuMu + 21] = 1; //
+      fEventSets [kMuMu + 22] = 1; //
+      fEventSets [kMuMu + 23] = 1; //
+      fEventSets [kMuMu + 24] = 1; //
+      fEventSets [kMuMu + 25] = 1; //
+      fEventSets [kMuMu + 26] = 1; //
+      fEventSets [kMuMu + 27] = 1; //
+      fEventSets [kMuMu + 28] = 1; //
+    }
   }
   if(ee) {
     fEventSets [kEE   + 1] = 1; // all events
     fEventSets [kEE   + 8] = 1; // preselection
+
+    //cutflow histogram sets
+    if(fDoCutFlowSets) {
+      fEventSets [kEE   + 20] = 1; //object cleaning
+      fEventSets [kEE   + 21] = 1; //
+      fEventSets [kEE   + 22] = 1; //
+      fEventSets [kEE   + 23] = 1; //
+      fEventSets [kEE   + 24] = 1; //
+      fEventSets [kEE   + 25] = 1; //
+      fEventSets [kEE   + 26] = 1; //
+      fEventSets [kEE   + 27] = 1; //
+      fEventSets [kEE   + 28] = 1; //
+    }
   }
 }
 
@@ -397,17 +483,21 @@ Bool_t SparseHistMaker::Process(Long64_t entry)
   //check additional object IDs
 
   //Hadronic tau IDs
-  if(leptonOne.isTau() && !(isLooseTau || tauDeepAntiJet > 50))        return kTRUE; //tight anti-jet ID
-  if(leptonTwo.isTau() && !(isLooseTau || tauDeepAntiJet > 50))        return kTRUE;
-  if(leptonOne.isTau() && tauDeepAntiEle < 10)                         return kTRUE; //tight (deep) anti-ele ID
-  if(leptonTwo.isTau() && tauDeepAntiEle < 10)                         return kTRUE;
-  if(leptonOne.isTau() && tauDeepAntiMu  < 10)                         return kTRUE; //tight (deep) anti-muon ID
-  if(leptonTwo.isTau() && tauDeepAntiMu  < 10)                         return kTRUE;
-  if(leptonOne.isTau() && leptonOne.id2  <  2)                         return kTRUE; //tight (old) anti-muon ID
-  if(leptonTwo.isTau() && leptonTwo.id2  <  2)                         return kTRUE;
-  if(leptonOne.isTau() && tauDecayMode % 10 < 2 && tauDecayMode <= 11) return kTRUE; //relevant tau decay modes
-  if(leptonTwo.isTau() && tauDecayMode % 10 < 2 && tauDecayMode <= 11) return kTRUE;
+  if(leptonOne.isTau() && !(isLooseTau || tauDeepAntiJet >= 50))          return kTRUE; //tight anti-jet ID
+  if(leptonTwo.isTau() && !(isLooseTau || tauDeepAntiJet >= 50))          return kTRUE;
+  if(leptonOne.isTau() && tauDeepAntiEle < 10)                            return kTRUE; //tight (deep) anti-ele ID
+  if(leptonTwo.isTau() && tauDeepAntiEle < 10)                            return kTRUE;
+  if(leptonOne.isTau() && tauDeepAntiMu  < 10)                            return kTRUE; //tight (deep) anti-muon ID
+  if(leptonTwo.isTau() && tauDeepAntiMu  < 10)                            return kTRUE;
+  if(leptonOne.isTau() && leptonOne.id2  <  2)                            return kTRUE; //tight (old) anti-muon ID
+  if(leptonTwo.isTau() && leptonTwo.id2  <  2)                            return kTRUE;
+  if(leptonOne.isTau() && !(tauDecayMode % 10 < 2 && tauDecayMode <= 11)) return kTRUE; //relevant tau decay modes
+  if(leptonTwo.isTau() && !(tauDecayMode % 10 < 2 && tauDecayMode <= 11)) return kTRUE;
 
+  if(etau) {
+    if(leptonOne.isTau() && tauDeepAntiEle < fETauAntiEleCut)             return kTRUE; //tight (deep) anti-ele ID
+    if(leptonTwo.isTau() && tauDeepAntiEle < fETauAntiEleCut)             return kTRUE;
+  }
 
   ///////////////////////////////////////////////////////////////////
   // Remove MC fake contributions
@@ -418,7 +508,7 @@ Bool_t SparseHistMaker::Process(Long64_t entry)
   }
 
   //remove MC estimated jet --> tau component
-  if((mutau || etau) && !fIsData && std::abs(tauGenFlavor) != 26) return kTRUE;
+  if((mutau || etau) && !fIsData && std::abs(tauGenFlavor) == 26) return kTRUE;
 
   fCutFlow->Fill(icutflow); ++icutflow; //7
 
