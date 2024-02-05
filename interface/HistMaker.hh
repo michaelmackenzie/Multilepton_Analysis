@@ -231,6 +231,8 @@ namespace CLFV {
     Float_t Jet_eta                       [kMaxParticles];
     Float_t Jet_phi                       [kMaxParticles];
     Float_t Jet_mass                      [kMaxParticles];
+    Float_t Jet_pt_nom                    [kMaxParticles];
+    Float_t Jet_mass_nom                  [kMaxParticles];
     Float_t Jet_pt_jerUp                  [kMaxParticles];
     Float_t Jet_pt_jerDown                [kMaxParticles];
     Float_t Jet_pt_jesTotalUp             [kMaxParticles];
@@ -823,6 +825,7 @@ namespace CLFV {
     Int_t           fUpdateMCEra = 0; //update the MC era flag
     Int_t           fUpdateMET = 1; //update MET when lepton energy scales are corrected
     Int_t           fRemovePhotonIDWeights = 1;
+    Int_t           fApplyJERCorrections = 1; //apply Jet resolution corrections if available
     Int_t           fUseBTagWeights = 1; //0: do nothing; 1: apply local weights; 2: use ntuple-level weights
     BTagWeight*     fBTagWeight;
     Int_t           fRemovePUWeights = 0; //0: do nothing 1: remove weights 2: replace weights

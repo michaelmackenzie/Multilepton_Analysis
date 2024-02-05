@@ -212,6 +212,11 @@ void HistMaker::Begin(TTree * /*tree*/)
     printf("HistMaker::%s: Warning! Z pT weight not available in tree, will re-calculate on the fly\n", __func__);
     fUseZPtWeight = 1;
   }
+  if(!fIsData && !fIsEmbed && fApplyJERCorrections && (!fChain->GetBranch("Jet_pt_nom") || !fChain->GetBranch("Jet_mass_nom"))) {
+    printf("HistMaker::%s: Warning! JER corrections not available in tree, will ignore\n", __func__);
+    fApplyJERCorrections = 0;
+  }
+
 
   //Turn off weights if not requested
   if(fRemoveEventWeights > 0) {
@@ -1101,10 +1106,14 @@ void HistMaker::InitializeInputTree(TTree* tree) {
   Utilities::SetBranchAddress(tree, "Jet_eta"                       , &Jet_eta                       );
   Utilities::SetBranchAddress(tree, "Jet_phi"                       , &Jet_phi                       );
   Utilities::SetBranchAddress(tree, "Jet_mass"                      , &Jet_mass                      );
-  Utilities::SetBranchAddress(tree, "Jet_pt_jerUp"                  , &Jet_pt_jerUp                  );
-  Utilities::SetBranchAddress(tree, "Jet_pt_jerDown"                , &Jet_pt_jerDown                );
-  Utilities::SetBranchAddress(tree, "Jet_pt_jesTotalUp"             , &Jet_pt_jesTotalUp             );
-  Utilities::SetBranchAddress(tree, "Jet_pt_jesTotalDown"           , &Jet_pt_jesTotalDown           );
+  if(!fIsData && !fIsEmbed) { //uncertainties/corrections only relevant for simulated jets
+    Utilities::SetBranchAddress(tree, "Jet_pt_nom"                    , &Jet_pt_nom                    );
+    Utilities::SetBranchAddress(tree, "Jet_mass_nom"                  , &Jet_mass_nom                  );
+    Utilities::SetBranchAddress(tree, "Jet_pt_jerUp"                  , &Jet_pt_jerUp                  );
+    Utilities::SetBranchAddress(tree, "Jet_pt_jerDown"                , &Jet_pt_jerDown                );
+    Utilities::SetBranchAddress(tree, "Jet_pt_jesTotalUp"             , &Jet_pt_jesTotalUp             );
+    Utilities::SetBranchAddress(tree, "Jet_pt_jesTotalDown"           , &Jet_pt_jesTotalDown           );
+  }
   if(fUseBTagWeights == 2 && !fIsData && !fIsEmbed) {
     Utilities::SetBranchAddress(tree, "Jet_btagSF_deepcsv_L_wt"     , &Jet_btagSF_L                  );
     Utilities::SetBranchAddress(tree, "Jet_btagSF_deepcsv_L_wt_up"  , &Jet_btagSF_L_up               );
@@ -3231,7 +3240,7 @@ void HistMaker::CountJets() {
   //jet ids
   const int min_jet_id    = 6; //7 = tight lep veto in 2016, 6 in 2017/2018, so >=6 for either
   const int min_jet_pu_id = 6;
-  const float min_jet_pt = 20.;
+  const float min_jet_pt = 20.f; //minimum jet pT considered in the counting
 
   TLorentzVector htLV;
   TLorentzVector jetLoop; //for checking delta R
@@ -3247,64 +3256,83 @@ void HistMaker::CountJets() {
     }
   }
   for(UInt_t ijet = 0; ijet < nJet; ++ijet) {
+    //apply jet pT and mass JER corrections
+    if(!fIsData && !fIsEmbed && fApplyJERCorrections) {
+      Jet_pt  [ijet] = Jet_pt_nom  [ijet];
+      Jet_mass[ijet] = Jet_mass_nom[ijet];
+    }
+
+    //veto jets that fail IDs or overlap identified leptons
     if(Jet_jetId[ijet] < min_jet_id) continue; //bad jet
     if(Jet_TaggedAsRemovedByMuon[ijet]) continue; //overlapping a muon
     if(Jet_TaggedAsRemovedByElectron[ijet]) continue; //overlapping an electron
     if(Jet_TaggedAsRemovedByTau[ijet]) continue; //overlapping a hadronic tau
-    const float jetpt  = Jet_pt [ijet];
-    const float jeteta = Jet_eta[ijet];
-    const float jetphi = Jet_phi[ijet];
+
+    const float jetpt   = Jet_pt  [ijet];
+    const float jeteta  = Jet_eta [ijet];
+    const float jetphi  = Jet_phi [ijet];
+    const float jetmass = Jet_mass[ijet];
     if(jetpt < min_jet_pt) continue; //too low of jet pt
 
     //Restrict to less-forward jets
-    if(std::fabs(jeteta) < 3.) {
-      //check if jet fails PU ID or not
-      if(jetpt < 50. && Jet_puId[ijet] < min_jet_pu_id) {
+    if(std::fabs(jeteta) < 3.f) {
+      //check if jet fails PU ID or not (only for low pT jets)
+      if(jetpt < 50.f && Jet_puId[ijet] < min_jet_pu_id) {
         jetsRejPt    [nJets20Rej] = jetpt;
         jetsRejEta   [nJets20Rej] = jeteta;
         ++nJets20Rej;
         continue;
-      } else {
-        ++nJets20;
-        if(jetpt > 25.) ++nJets; //higher pT threshold counting
-        jetLoop.SetPtEtaPhiM(jetpt, jeteta, Jet_phi[ijet], Jet_mass[ijet]);
+      }
 
-        //add HT information
-        htLV  += jetLoop;
-        htSum += jetpt;
+      //accept the jet
+      ++nJets20;
+      if(jetpt > 25.f) ++nJets; //higher pT threshold counting
+      jetLoop.SetPtEtaPhiM(jetpt, jeteta, jetphi, jetmass);
 
-        //store the highest pT jet
-        if(jetpt > jetptmax) {
-          jetOne.setP(jetLoop); jetptmax = jetpt;
-          //jet systematic uncertainties
+      //add HT information
+      htLV  += jetLoop;
+      htSum += jetpt;
+
+      //store the highest pT jet
+      if(jetpt > jetptmax) {
+        jetOne.setPtEtaPhiM(jetpt, jeteta, jetphi, jetmass); jetptmax = jetpt;
+        //jet systematic uncertainties
+        if(!fIsData && !fIsEmbed) {
           jetOne.jer_pt_up   = Jet_pt_jerUp       [ijet];
           jetOne.jer_pt_down = Jet_pt_jerDown     [ijet];
           jetOne.jes_pt_up   = Jet_pt_jesTotalUp  [ijet];
           jetOne.jes_pt_down = Jet_pt_jesTotalDown[ijet];
+        } else { //data jets don't have these uncertainties
+          jetOne.jer_pt_up   = Jet_pt[ijet];
+          jetOne.jer_pt_down = Jet_pt[ijet];
+          jetOne.jes_pt_up   = Jet_pt[ijet];
+          jetOne.jes_pt_down = Jet_pt[ijet];
         }
+      }
 
-        int jetBTag = 0;
-        //check if b-tagged, must have eta < 2.4
-        if(std::fabs(jeteta) < 2.4) {
-          if(Jet_btagDeepB[ijet] > fBTagWeight->BTagCut(BTagWeight::kLooseBTag, fYear)) {
-            ++jetBTag; ++nBJets20L; if(jetpt > 25.) ++nBJetsL;
-            if(Jet_btagDeepB[ijet] > fBTagWeight->BTagCut(BTagWeight::kMediumBTag, fYear)) {
-              ++jetBTag; ++nBJets20M; if(jetpt > 25.) ++nBJetsM;
-              if(Jet_btagDeepB[ijet] > fBTagWeight->BTagCut(BTagWeight::kTightBTag, fYear)) {
-                ++jetBTag; ++nBJets20; if(jetpt > 25.) ++nBJets;
-              }
+      //store the b-tag information for the jet
+      int jetBTag = 0;
+      //check if b-tagged, must have eta < 2.4
+      if(std::fabs(jeteta) < 2.4) {
+        if(Jet_btagDeepB[ijet] > fBTagWeight->BTagCut(BTagWeight::kLooseBTag, fYear)) {
+          ++jetBTag; ++nBJets20L; if(jetpt > 25.) ++nBJetsL;
+          if(Jet_btagDeepB[ijet] > fBTagWeight->BTagCut(BTagWeight::kMediumBTag, fYear)) {
+            ++jetBTag; ++nBJets20M; if(jetpt > 25.) ++nBJetsM;
+            if(Jet_btagDeepB[ijet] > fBTagWeight->BTagCut(BTagWeight::kTightBTag, fYear)) {
+              ++jetBTag; ++nBJets20; if(jetpt > 25.) ++nBJets;
             }
           }
         }
-        //save info for jet b-tag efficiency
-        jetsPt    [nJets20-1] = jetpt;
-        jetsEta   [nJets20-1] = jeteta;
-        jetsPhi   [nJets20-1] = jetphi;
-        jetsBTag  [nJets20-1] = jetBTag;
-        jetsFlavor[nJets20-1] = (fIsData || fIsEmbed) ? 0 : Jet_partonFlavour[ijet];
       }
+
+      //save info for jet b-tag efficiency
+      jetsPt    [nJets20-1] = jetpt;
+      jetsEta   [nJets20-1] = jeteta;
+      jetsPhi   [nJets20-1] = jetphi;
+      jetsBTag  [nJets20-1] = jetBTag;
+      jetsFlavor[nJets20-1] = (fIsData || fIsEmbed) ? 0 : Jet_partonFlavour[ijet];
     }
-  }
+  } //end jet collection loop
 
   //Record HT result
   ht    = htLV.Pt();
