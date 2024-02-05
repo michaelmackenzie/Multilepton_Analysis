@@ -148,6 +148,30 @@ namespace CLFV {
     }
 
     //------------------------------------------------------------------------------------------------------
+    // Get bin content for a given x-value
+    static double GetBinContent(TH1* h, const double xval, const bool allow_out_range = true) {
+      if(!h) {
+        printf("Utilities::%s: Undefined histogram!\n", __func__);
+        return -1.;
+      }
+      if(allow_out_range) return h->GetBinContent(h->GetXaxis()->FindBin(xval));
+      return h->GetBinContent(std::max(1, std::min(h->GetNbinsX(), h->GetXaxis()->FindBin(xval))));
+    }
+
+    //------------------------------------------------------------------------------------------------------
+    // Get bin content for a given (x-value, y-value
+    static double GetBinContent(TH2* h, const double xval, const double yval, const bool allow_out_range = true) {
+      if(!h) {
+        printf("Utilities::%s: Undefined histogram!\n", __func__);
+        return -1.;
+      }
+      if(allow_out_range) return h->GetBinContent(h->GetXaxis()->FindBin(xval), h->GetYaxis()->FindBin(yval));
+      return h->GetBinContent(std::max(1, std::min(h->GetNbinsX(), h->GetXaxis()->FindBin(xval))),
+                              std::max(1, std::min(h->GetNbinsY(), h->GetYaxis()->FindBin(yval)))
+                              );
+    }
+
+    //------------------------------------------------------------------------------------------------------
     // minimum in histogram for a given range
     static double H1Min(TH1* h, const double xmin = 1., const double xmax = -1.) {
       if(!h) {
