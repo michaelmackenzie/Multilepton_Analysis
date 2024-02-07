@@ -1,6 +1,6 @@
 //Test Z->e+mu background fit closure when fitting the MC
 
-bool   fit_flat_bkgs_ = true;  //fit flat-ish background contributions (WW, Top, and Z->mumu)
+bool   fit_flat_bkgs_ = true;  //fit flat-ish background contributions (WW, ttbar, QCD, and (not flat) Z->mumu)
 bool   fit_dy_bkg_    = false; //fit the Z->tautau background
 int    smooth_hists_  =   2;   //number of times to smooth non-fit background histograms
 double zmumu_scale_   = -1.;   //if >= 0 scale the Z->ee/mumu contribution
@@ -55,8 +55,8 @@ double dscb_func(double* X, double* P) {
 // Fit a function to the histogram and replace the bin contents with the fit values
 void fit_and_replace(TH1* h, double xmin, double xmax, const char* fig_dir) {
   TF1* func;
-  if(TString(h->GetName()).Contains("#tau#tau")){
-    const int mode = 5;
+  if(TString(h->GetName()).Contains("#tau#tau")){ //Z->tautau or tautau Embedding
+    const int mode = 5; //Z->tautau background parameterization option
     if(mode == 0) { //exp fit
       func = new TF1("func", "exp([0] + [1]*(x-70))", xmin, xmax);
       func->SetParameters(std::log(h->Integral()/(xmax - xmin)*h->GetBinWidth(1)), -1.);
@@ -84,11 +84,10 @@ void fit_and_replace(TH1* h, double xmin, double xmax, const char* fig_dir) {
       func->SetParLimits(func->GetParNumber("n_{2}"), 0.2, 30.);
       func->FixParameter(func->GetParNumber("#alpha_{1}"), 1.);
       func->FixParameter(func->GetParNumber("#alpha_{2}"), 1.);
-      // func->SetParLimits(func->GetParNumber("#alpha_{2}"), 0.5, 5.);
     } else {
       return;
     }
-  } else if(TString(h->GetName()).Contains("Z->ee")){
+  } else if(TString(h->GetName()).Contains("Z->ee")){ //Z->ee/mumu
     func = new TF1("func", dscb_func, xmin, xmax, 7, 1);
     func->SetParameters(h->Integral(), h->GetMean(), 5., 1.056, 7.490, 1.000, 7.597);
     func->SetParNames("Norm", "#mu", "#sigma", "#alpha_{1}", "n_{1}", "#alpha_{2}", "n_{2}");
@@ -98,11 +97,15 @@ void fit_and_replace(TH1* h, double xmin, double xmax, const char* fig_dir) {
     func->SetParLimits(func->GetParNumber("n_{2}"), 0.2, 10.);
     func->SetParLimits(func->GetParNumber("#alpha_{1}"), 0.8, 5.);
     func->SetParLimits(func->GetParNumber("#alpha_{2}"), 0.5, 5.);
-  } else {
+  } else { //flat-ish contributions, such as WW, ttbar, and QCD
     func = new TF1("func", "[0] + [1]*x + [2]*x^2", xmin, xmax);
     func->SetParameters(h->Integral()/(xmax - xmin)*h->GetBinWidth(1), 1., 1.);
   }
+
+  //Fit the input histogram
   h->Fit(func, "R");
+
+  //Save a figure with the input histogram and the resulting fit
   TCanvas* c = new TCanvas();
   h->Draw("E1");
   func->Draw("same");
@@ -118,9 +121,13 @@ void fit_and_replace(TH1* h, double xmin, double xmax, const char* fig_dir) {
   fig_name.ReplaceAll("->", "");
   fig_name.ReplaceAll("/", "");
   c->SaveAs(Form("%s/%s.png", fig_dir, fig_name.Data()));
+
+  //Replace the bin values with the fit yield
   for(int bin = 1; bin <= h->GetNbinsX(); ++bin) {
     h->SetBinContent(bin, max(0., func->Eval(h->GetBinCenter(bin))));
   }
+
+  //clean up the memory
   delete c;
   delete func;
 }
@@ -128,10 +135,12 @@ void fit_and_replace(TH1* h, double xmin, double xmax, const char* fig_dir) {
 //---------------------------------------------------------------------------------------------------------------------------------------
 // Main function: test the background fit closure of the MC
 int test_bemu_mc_closure(int set = 13, vector<int> years = {2016,2017,2018}, const int index = -1) {
+
   if(years.size() == 0) return -1;
   TString years_s = Form("%i", years[0]);
   for(unsigned i = 1; i < years.size(); ++i) years_s += Form("_%i", years[i]);
 
+  //for outpur figures
   const char* fig_dir = Form("plots/latest_production/%s/zemu_mc_closure_%i%s", years_s.Data(), set, tag_.Data());
   gSystem->Exec(Form("[ ! -d %s ] && mkdir -p %s", fig_dir, fig_dir));
   gStyle->SetOptFit(1110);
@@ -152,7 +161,7 @@ int test_bemu_mc_closure(int set = 13, vector<int> years = {2016,2017,2018}, con
   //Retrieve the signal PDF
   // RooAbsPdf* bkgPDF = ws->pdf(Form("bkg"));
   RooAbsPdf* bkgPDF = ws->pdf(Form("bst_%i_order_3", set));
-  if(!sigPDF) {ws->Print(); return 3;}
+  if(!bkgPDF) {ws->Print(); return 3;}
 
   //Get the observable
   RooRealVar* obs = (RooRealVar*) ws->var(Form("lepm_%i", set));
@@ -163,6 +172,7 @@ int test_bemu_mc_closure(int set = 13, vector<int> years = {2016,2017,2018}, con
   if(!cat) return 5;
   cat->setConstant(true);
 
+  //turn off the energy scale uncertainties that are not currently constrained
   auto elec_es_shift = ws->var("elec_ES_shift");
   if(elec_es_shift) elec_es_shift->setConstant(true);
   auto muon_es_shift = ws->var("muon_ES_shift");
