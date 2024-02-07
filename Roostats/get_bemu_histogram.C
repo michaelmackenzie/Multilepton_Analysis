@@ -10,7 +10,7 @@ int test_sys_ = -1; //set to systematic number if debugging/inspecting it
 double xmin_;
 double xmax_;
 bool blind_data_       = true ; //remove signal region from data
-bool do_systematics_   = true ; //retrieve systematically shifted templates
+bool do_systematics_   = false; //retrieve systematically shifted templates
 bool sig_sys_only_     = true ; //only process systematic templates for signal processes
 bool allow_sys_errors_ = true ; //if there are missing systematic histograms, clone the default
 TH1* hDefault_; //store the default histogram in case of missing systematics
@@ -433,7 +433,7 @@ int get_bemu_histogram(vector<int> sets, TString selection = "zemu",
                        vector<int> years = {2016, 2017, 2018},
                        TString base = "nanoaods_dev",
                        bool do_same_flavor = true) {
-  useEmbed_ = 0; //FIXME: make this global
+  useEmbed_ = bemu_embed_mode_;
   int status(0);
   for(int set : sets) {
     cout << "Getting signal region histograms for set " << set << "...\n";

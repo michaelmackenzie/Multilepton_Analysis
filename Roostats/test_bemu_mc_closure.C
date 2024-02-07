@@ -4,12 +4,13 @@ bool   fit_flat_bkgs_ = true;  //fit flat-ish background contributions (WW, Top,
 bool   fit_dy_bkg_    = false; //fit the Z->tautau background
 int    smooth_hists_  =   2;   //number of times to smooth non-fit background histograms
 double zmumu_scale_   = -1.;   //if >= 0 scale the Z->ee/mumu contribution
+TString tag_          = "";    //tag for output figure directory
 
 //---------------------------------------------------------------------------------------------------------------------------------------
 // Ensure no negative bins and clip unused range
 TH1* make_safe(TH1* h, double xmin, double xmax) {
-  const int bin_low  = (xmin < xmax) ? h->FindBin(xmin) : 1;
-  const int bin_high = (xmin < xmax) ? h->FindBin(xmax) : h->GetNbinsX();
+  const int bin_low  = (xmin < xmax) ? h->FindBin(xmin+1.e-4) : 1;
+  const int bin_high = (xmin < xmax) ? h->FindBin(xmax-1.e-4) : h->GetNbinsX();
   TH1* h_new = new TH1D(Form("%s_safe", h->GetName()), h->GetTitle(), (bin_high - bin_low) + 1,
                         h->GetBinLowEdge(bin_low), h->GetBinLowEdge(bin_high)+h->GetBinWidth(bin_high));
   for(int bin = bin_low; bin <= bin_high; ++bin) {
@@ -24,16 +25,79 @@ TH1* make_safe(TH1* h, double xmin, double xmax) {
 }
 
 //---------------------------------------------------------------------------------------------------------------------------------------
+// Double-sided Crystal Ball function
+float dscb(float x, float mean, float sigma, float alpha1, float enne1, float alpha2, float enne2) {
+  //function constants
+  const float a1 = std::pow(std::fabs(enne1/alpha1), enne1)*std::exp(-0.5f*alpha1*alpha1);
+  const float a2 = std::pow(std::fabs(enne2/alpha2), enne2)*std::exp(-0.5f*alpha2*alpha2);
+  const float b1 = std::fabs(enne1/alpha1) - std::fabs(alpha1);
+  const float b2 = std::fabs(enne2/alpha2) - std::fabs(alpha2);
+
+  //function main variable
+  const float var = (x - mean) /sigma;
+  float val(0.f);
+
+  if     (var < -alpha1) val = a1*std::pow(b1 - var, -enne1);
+  else if(var <     0.f) val = std::exp(-0.5*var*var);
+  else if(var <  alpha2) val = std::exp(-0.5*var*var); //same sigma for left/right
+  else                   val = a2*std::pow(b2 + var, -enne2);
+
+  return val;
+}
+
+//---------------------------------------------------------------------------------------------------------------------------------------
+// Double-sided Crystal Ball call for TF1
+double dscb_func(double* X, double* P) {
+  return P[0]*dscb(X[0], P[1], P[2], P[3], P[4], P[5], P[6]);
+}
+
+//---------------------------------------------------------------------------------------------------------------------------------------
 // Fit a function to the histogram and replace the bin contents with the fit values
 void fit_and_replace(TH1* h, double xmin, double xmax, const char* fig_dir) {
   TF1* func;
-  if(TString(h->GetName()).Contains("Z->#tau#tau")){
-    // func = new TF1("func", "exp([0] + [1]*(x-70)) + exp([2] + [3]*(x-70))", xmin, xmax);
-    // func->SetParameters(std::log(h->Integral()/(xmax - xmin)*h->GetBinWidth(1)), -1., 1., -1.);
-    // func = new TF1("func", "[0]*(x)^[1]", xmin, xmax);
-    // func->SetParameters(h->Integral()/(xmax - xmin)*h->GetBinWidth(1), -1.);
-    func = new TF1("func", "[0]*(x)^[1] + exp([2] + [3]*(x-70))", xmin, xmax);
-    func->SetParameters(h->Integral()/(xmax - xmin)*h->GetBinWidth(1), -1., 1., -1.);
+  if(TString(h->GetName()).Contains("#tau#tau")){
+    const int mode = 5;
+    if(mode == 0) { //exp fit
+      func = new TF1("func", "exp([0] + [1]*(x-70))", xmin, xmax);
+      func->SetParameters(std::log(h->Integral()/(xmax - xmin)*h->GetBinWidth(1)), -1.);
+    } else if(mode == 1) { //2 exp fit
+      func = new TF1("func", "exp([0] + [1]*(x-70)) + exp([2] + [3]*(x-70))", xmin, xmax);
+      func->SetParameters(std::log(h->Integral()/(xmax - xmin)*h->GetBinWidth(1)), -1., 1., -1.);
+    } else if(mode == 5) { //exp fit + poly
+      func = new TF1("func", "exp([0] + [1]*(x-70)) + [2] + [3]*x + [4]*x^2", xmin, xmax);
+      func->SetParameters(std::log(h->Integral()/(xmax - xmin)*h->GetBinWidth(1)), -1., -1e3, 200., -1.);
+    } else if(mode == 2) { //power law fit
+      func = new TF1("func", "[0]*(x)^[1]", xmin, xmax);
+      func->SetParameters(h->Integral()/(xmax - xmin)*h->GetBinWidth(1), -1.);
+    } else if(mode == 3) { //exp + power law fit
+      func = new TF1("func", "[0]*(x)^[1] + exp([2] + [3]*(x-70))", xmin, xmax);
+      func->SetParameters(1., -1., 1., -1.);
+      func->SetParLimits(0, 0., h->Integral()*1.2);
+      func->SetParLimits(1, -20., 0.);
+    } else if(mode == 4) { //double-sided Crystal Ball fit
+      func = new TF1("func", dscb_func, xmin, xmax, 7, 1);
+      func->SetParameters(h->Integral(), 60., 5., 1.056, 7.490, 1.000, 7.597);
+      func->SetParNames("Norm", "#mu", "#sigma", "#alpha_{1}", "n_{1}", "#alpha_{2}", "n_{2}");
+      func->SetParLimits(func->GetParNumber("#mu"), 10., 80.);
+      func->SetParLimits(func->GetParNumber("#sigma"), 1., 30.);
+      func->FixParameter(func->GetParNumber("n_{1}"), 5.);
+      func->SetParLimits(func->GetParNumber("n_{2}"), 0.2, 30.);
+      func->FixParameter(func->GetParNumber("#alpha_{1}"), 1.);
+      func->FixParameter(func->GetParNumber("#alpha_{2}"), 1.);
+      // func->SetParLimits(func->GetParNumber("#alpha_{2}"), 0.5, 5.);
+    } else {
+      return;
+    }
+  } else if(TString(h->GetName()).Contains("Z->ee")){
+    func = new TF1("func", dscb_func, xmin, xmax, 7, 1);
+    func->SetParameters(h->Integral(), h->GetMean(), 5., 1.056, 7.490, 1.000, 7.597);
+    func->SetParNames("Norm", "#mu", "#sigma", "#alpha_{1}", "n_{1}", "#alpha_{2}", "n_{2}");
+    func->SetParLimits(func->GetParNumber("#mu"), 75., 105.);
+    func->SetParLimits(func->GetParNumber("#sigma"), 3., 30.);
+    func->SetParLimits(func->GetParNumber("n_{1}"), 0.2, 10.);
+    func->SetParLimits(func->GetParNumber("n_{2}"), 0.2, 10.);
+    func->SetParLimits(func->GetParNumber("#alpha_{1}"), 0.8, 5.);
+    func->SetParLimits(func->GetParNumber("#alpha_{2}"), 0.5, 5.);
   } else {
     func = new TF1("func", "[0] + [1]*x + [2]*x^2", xmin, xmax);
     func->SetParameters(h->Integral()/(xmax - xmin)*h->GetBinWidth(1), 1., 1.);
@@ -68,7 +132,7 @@ int test_bemu_mc_closure(int set = 13, vector<int> years = {2016,2017,2018}, con
   TString years_s = Form("%i", years[0]);
   for(unsigned i = 1; i < years.size(); ++i) years_s += Form("_%i", years[i]);
 
-  const char* fig_dir = Form("plots/latest_production/%s/zemu_mc_closure_%i", years_s.Data(), set);
+  const char* fig_dir = Form("plots/latest_production/%s/zemu_mc_closure_%i%s", years_s.Data(), set, tag_.Data());
   gSystem->Exec(Form("[ ! -d %s ] && mkdir -p %s", fig_dir, fig_dir));
   gStyle->SetOptFit(1110);
 
@@ -117,27 +181,27 @@ int test_bemu_mc_closure(int set = 13, vector<int> years = {2016,2017,2018}, con
   THStack* stack = new THStack("bkg_stack", "Background stack");
   for(int ihist = 0; ihist < stack_in->GetNhists(); ++ihist) {
     TH1* h = (TH1*) stack_in->GetHists()->At(ihist);
-    h = make_safe(h, obs->getMin(), obs->getMax());
     h->Rebin(rebin);
+    h = make_safe(h, obs->getMin(), obs->getMax());
     cout << h->GetName() << ": " << h->GetTitle() << endl;
-    if(zmumu_scale_ >= 0. && TString(h->GetName()).Contains("Z->ee")) h->Scale(zmumu_scale_);
     bool isflat(false);
     isflat |= TString(h->GetName()).Contains("QCD"  );
     isflat |= TString(h->GetName()).Contains("Top"  );
     isflat |= TString(h->GetName()).Contains("Other");
     isflat |= TString(h->GetName()).Contains("Z->ee");
-    bool isdy = TString(h->GetName()).Contains("Z->#tau");
+    bool isdy = TString(h->GetName()).Contains("#tau#tau");
     if(isflat) { //flat-ish distributions
       if(fit_flat_bkgs_) {
-        fit_and_replace(h, obs->getMin(), obs->getMax(), Form("plots/latest_production/%s/zemu_mc_closure_%i", years_s.Data(), set));
+        fit_and_replace(h, obs->getMin(), obs->getMax(), Form("plots/latest_production/%s/zemu_mc_closure_%i%s", years_s.Data(), set, tag_.Data()));
       } else if(smooth_hists_ > 0) h->Smooth(smooth_hists_);
     }
     if(isdy) { //Z->tautau
       if(fit_dy_bkg_) {
-        fit_and_replace(h, obs->getMin(), obs->getMax(), Form("plots/latest_production/%s/zemu_mc_closure_%i", years_s.Data(), set));
+        fit_and_replace(h, obs->getMin(), obs->getMax(), Form("plots/latest_production/%s/zemu_mc_closure_%i%s", years_s.Data(), set, tag_.Data()));
       } else if(smooth_hists_ > 0) h->Smooth(smooth_hists_);
     }
     if(!isflat && !isdy && smooth_hists_ > 0) h->Smooth(smooth_hists_); //any leftover histogram
+    if(zmumu_scale_ >= 0. && TString(h->GetName()).Contains("Z->ee")) h->Scale(zmumu_scale_);
     stack->Add(h);
   }
 
@@ -146,7 +210,7 @@ int test_bemu_mc_closure(int set = 13, vector<int> years = {2016,2017,2018}, con
     TCanvas* c = new TCanvas();
     // stack_in->Draw("hist noclear");
     stack->Draw("hist noclear");
-    c->SaveAs(Form("%s/stack.png", Form("plots/latest_production/%s/zemu_mc_closure_%i", years_s.Data(), set)));
+    c->SaveAs(Form("%s/stack.png", Form("plots/latest_production/%s/zemu_mc_closure_%i%s", years_s.Data(), set, tag_.Data())));
     delete c;
   }
 
@@ -193,7 +257,7 @@ int test_bemu_mc_closure(int set = 13, vector<int> years = {2016,2017,2018}, con
       totPDF->plotOn(frame, RooFit::Components(sigPDF->GetName()), RooFit::LineColor(kBlue), RooFit::LineStyle(kDashed));
       TCanvas* c = new TCanvas();
       frame->Draw();
-      c->SaveAs(Form("plots/latest_production/%s/zemu_mc_closure_%i/fit_neg.png", years_s.Data(), set));
+      c->SaveAs(Form("plots/latest_production/%s/zemu_mc_closure_%i%s/fit_neg.png", years_s.Data(), set, tag_.Data()));
       print_neg = false;
     }
     if(print_pos && n_sig->getVal() > 0.) { //print first positive fit
@@ -204,23 +268,23 @@ int test_bemu_mc_closure(int set = 13, vector<int> years = {2016,2017,2018}, con
       totPDF->plotOn(frame, RooFit::Components(sigPDF->GetName()), RooFit::LineColor(kBlue), RooFit::LineStyle(kDashed));
       TCanvas* c = new TCanvas();
       frame->Draw();
-      c->SaveAs(Form("plots/latest_production/%s/zemu_mc_closure_%i/fit_pos.png", years_s.Data(), set));
+      c->SaveAs(Form("plots/latest_production/%s/zemu_mc_closure_%i%s/fit_pos.png", years_s.Data(), set, tag_.Data()));
       print_pos = false;
     }
   }
 
   TCanvas* c = new TCanvas();
   hNSig->Draw("hist");
-  c->SaveAs(Form("plots/latest_production/%s/zemu_mc_closure_%i/nsig.png", years_s.Data(), set));
+  c->SaveAs(Form("plots/latest_production/%s/zemu_mc_closure_%i%s/nsig.png", years_s.Data(), set, tag_.Data()));
   hNBkg->Draw("hist");
-  c->SaveAs(Form("plots/latest_production/%s/zemu_mc_closure_%i/nbkg.png", years_s.Data(), set));
+  c->SaveAs(Form("plots/latest_production/%s/zemu_mc_closure_%i%s/nbkg.png", years_s.Data(), set, tag_.Data()));
 
   TF1* fgaus = new TF1("fgaus", "[norm]*TMath::Gaus(x, [mean], [sigma], true)", -6, 6);
   fgaus->SetParameters(1., 1., 1.);
   hPull->Fit(fgaus);
   hPull->Draw("hist");
   fgaus->Draw("same");
-  c->SaveAs(Form("plots/latest_production/%s/zemu_mc_closure_%i/pull.png", years_s.Data(), set));
+  c->SaveAs(Form("plots/latest_production/%s/zemu_mc_closure_%i%s/pull.png", years_s.Data(), set, tag_.Data()));
 
   delete c;
 

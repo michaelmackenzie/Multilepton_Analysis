@@ -44,6 +44,7 @@ studies/*/*.root
 *.gif
 *.jpg
 *.pdf
+*.ps
 
 #ignore compressed files by default
 *.tar
