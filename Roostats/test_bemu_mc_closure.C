@@ -112,8 +112,9 @@ void fit_and_replace(TH1* h, double xmin, double xmax, const char* fig_dir) {
   h->GetXaxis()->SetRangeUser(xmin, xmax);
   h->GetYaxis()->SetRangeUser(0., 1.2*h->GetMaximum());
   h->SetLineWidth(2);
-  if(h->GetLineColor() == kYellow - 7) {
+  if(h->GetLineColor() == kYellow - 7) { //make the Top histogram more visible
     h->SetLineColor(kOrange);
+    h->SetFillColor(kOrange);
     h->SetMarkerColor(kOrange);
   }
   TString fig_name = Form("%s_fit", h->GetName());
