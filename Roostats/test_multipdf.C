@@ -28,27 +28,29 @@ void test_multipdf() {
   RooRealVar bst_3_c1("bst_3_1", "bst_3_1",  0.0958628, -25., 25.);
   RooRealVar bst_3_c2("bst_3_2", "bst_3_2",  0.0160934, -25., 25.);
   auto bst_3_pdf = new RooBernsteinFast<3>("bst_3_pdf", "Bernstein PDF, order 3", obs, RooArgList(bst_3_c0, bst_3_c1, bst_3_c2));
-  bst_3_pdf->protectSubRange(true);
+  // bst_3_pdf->protectSubRange(true);
+  // auto bst_3_pdf = new RooChebychev("bst_3_pdf", "Chebychev PDF, order 3", obs, RooArgList(bst_3_c0, bst_3_c1, bst_3_c2));
 
   RooRealVar bst_4_c0("bst_4_0", "bst_4_0", 0.0309362, -25., 25.);
   RooRealVar bst_4_c1("bst_4_1", "bst_4_1", 0.0170719, -25., 25.);
   RooRealVar bst_4_c2("bst_4_2", "bst_4_2", 0.0434216, -25., 25.);
   RooRealVar bst_4_c3("bst_4_3", "bst_4_3", 0.0203762, -25., 25.);
-  auto bst_4_pdf = new RooBernsteinFast<4>("bst_4_pdf", "Bernstein PDF, order 4", obs, RooArgList(bst_4_c0, bst_4_c1, bst_4_c2, bst_4_c3));
-  bst_4_pdf->protectSubRange(true);
+  auto bst_4_pdf = new RooBernsteinFast<4>("bst_4_pdf", "Chebychev PDF, order 4", obs, RooArgList(bst_4_c0, bst_4_c1, bst_4_c2, bst_4_c3));
+  // bst_4_pdf->protectSubRange(true);
+  // auto bst_4_pdf = new RooChebychev("bst_4_pdf", "Bernstein PDF, order 4", obs, RooArgList(bst_4_c0, bst_4_c1, bst_4_c2, bst_4_c3));
 
   //Create a RooMultiPdf with two PDFs
   RooCategory categories("cat", "cat");
   RooArgList pdf_list;
-  pdf_list.add(*bst_3_pdf); categories.defineType("bst_3", 0);
-  pdf_list.add(*bst_4_pdf); categories.defineType("bst_4", 1);
+  pdf_list.add(*bst_3_pdf); //categories.defineType("bst_3", 0);
+  pdf_list.add(*bst_4_pdf); //categories.defineType("bst_4", 1);
   RooMultiPdf* bkgPDF = new RooMultiPdf("bkgPDF", "Background PDF envelope", categories, pdf_list);
   categories.setIndex(0);
 
   //Add the signal and background PDFs to make a total PDF
   RooRealVar* n_sig = new RooRealVar("n_sig", "N(signal)", 0., -1000., 1000.);
   RooRealVar* n_bkg = new RooRealVar("n_bkg", "N(background)", 7500., 0., 15000.);
-  RooAddPdf* totPDF = new RooAddPdf("total_PDF", "total PDF", RooArgList(*bkgPDF, *sigPDF), RooArgList(*n_bkg, *n_sig), false);
+  RooAbsPdf* totPDF = new RooAddPdf("total_PDF", "total PDF", RooArgList(*bkgPDF, *sigPDF), RooArgList(*n_bkg, *n_sig));
 
   //////////////////////////////////////////////
   // Plot the input PDFs
@@ -89,11 +91,9 @@ void test_multipdf() {
   RooDataHist* gen = bst_3_pdf->generateBinned(obs, ndata);
 
   //Fit to the data
-  const bool use_minuit = true; //plotting fails if not using Minuit2
-  if(use_minuit) {
-    auto fitres = totPDF->fitTo(*gen, RooFit::Minimizer("Minuit2"), RooFit::Save(true), RooFit::Offset(true));
-    if(!fitres || fitres->status() != 0) cout << "!!! Fit Failed!\n";
-  } else {
+  {
+    // categories.setConstant(true); // --> doesn't change the result
+    // auto fitres = bkgPDF->fitTo(*gen, RooFit::Save(true)); // --> fit succeeds, but only fits background parameters, no signal
     auto fitres = totPDF->fitTo(*gen, RooFit::Save(true));
     if(!fitres || fitres->status() != 0) cout << "!!! Fit Failed!\n";
   }
@@ -119,10 +119,18 @@ void test_multipdf() {
     c.SaveAs("test_multipdf_fit.png");
   }
 
-
   //////////////////////////////////////////////
   // Test fitting normal PDFs
   //////////////////////////////////////////////
+
+  //set to nominal coefficient values
+  bst_3_c0.setVal(-0.206163);
+  bst_3_c1.setVal(0.0958628);
+  bst_3_c2.setVal(0.0160934);
+  bst_4_c0.setVal(0.0309362);
+  bst_4_c1.setVal(0.0170719);
+  bst_4_c2.setVal(0.0434216);
+  bst_4_c3.setVal(0.0203762);
 
   //Fit to the data using only 1 bkg PDF
   delete totPDF;
