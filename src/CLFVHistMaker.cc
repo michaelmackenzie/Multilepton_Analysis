@@ -1078,32 +1078,44 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
     } else if(name == "EmbEleRes") {
       if(!fIsEmbed || !isEData) continue; //only process for embedding with reco electrons
       reeval = true;
-      const float pt_err_scale = 0.50; //change the pT resolution by +-5%
+      //change the pT resolution by a 55% at 10 GeV/c to 85% at 100 GeV/c (capped at these edges)
+      const float one_rel_scale = std::max(0.55f, std::min(0.85f, 0.55f + (leptonOne.pt - 10.f)*(0.85f - 0.55f) / (100.f - 10.f)));
+      const float two_rel_scale = std::max(0.55f, std::min(0.85f, 0.55f + (leptonTwo.pt - 10.f)*(0.85f - 0.55f) / (100.f - 10.f)));
+      //scale pT by 1 +- err_scale*(pt - genpt)/pt = 1 +- err_scale*(1 - genpt/pt)
+      const float one_scale = one_rel_scale * (1.f - leptonOne.genPt/leptonOne.pt);
+      const float two_scale = two_rel_scale * (1.f - leptonTwo.genPt/leptonTwo.pt);
       if(fSystematics.IsUp(sys)) {
-        if(leptonOne.isElectron() && leptonOne.genPt > 0.f) //scale pT by 1 +- scale*(pt - genpt)/pt = 1 +- scale*(1 - genpt/pt)
-          EnergyScale(1.f + pt_err_scale * (1.f - leptonOne.genPt/leptonOne.pt), leptonOne, &met, &metPhi);
-        if(leptonTwo.isElectron() && leptonTwo.genPt > 0.f)
-          EnergyScale(1.f + pt_err_scale * (1.f - leptonTwo.genPt/leptonTwo.pt), leptonTwo, &met, &metPhi);
-      } else {
         if(leptonOne.isElectron() && leptonOne.genPt > 0.f)
-          EnergyScale(1.f - pt_err_scale * (1.f - leptonOne.genPt/leptonOne.pt), leptonOne, &met, &metPhi);
+          EnergyScale(1.f + one_scale, leptonOne, &met, &metPhi);
         if(leptonTwo.isElectron() && leptonTwo.genPt > 0.f)
-          EnergyScale(1.f - pt_err_scale * (1.f - leptonTwo.genPt/leptonTwo.pt), leptonTwo, &met, &metPhi);
+          EnergyScale(1.f + two_scale, leptonTwo, &met, &metPhi);
+      } else { //FIXME: Should this be a one-sided uncertainty, as we know the direction of the difference?
+        continue; //skip the down, setting it to be a one-sided uncertainty
+        // if(leptonOne.isElectron() && leptonOne.genPt > 0.f)
+        //   EnergyScale(1.f - one_scale, leptonOne, &met, &metPhi);
+        // if(leptonTwo.isElectron() && leptonTwo.genPt > 0.f)
+        //   EnergyScale(1.f - two_scale, leptonTwo, &met, &metPhi);
       }
     } else if(name == "EmbMuonRes") {
       if(!fIsEmbed || !isMData) continue; //only process for embedding with reco muons
       reeval = true;
-      const float pt_err_scale = 0.05; //change the pT resolution by +-5%
+      //change the pT resolution by a 1% at 10 GeV/c to 12% at 100 GeV/c (capped at these edges)
+      const float one_rel_scale = std::max(0.01f, std::min(0.12f, 0.01f + (leptonOne.pt - 10.f)*(0.12f - 0.01f) / (100.f - 10.f)));
+      const float two_rel_scale = std::max(0.01f, std::min(0.12f, 0.01f + (leptonTwo.pt - 10.f)*(0.12f - 0.01f) / (100.f - 10.f)));
+      //scale pT by 1 +- err_scale*(pt - genpt)/pt = 1 +- err_scale*(1 - genpt/pt)
+      const float one_scale = one_rel_scale * (1.f - leptonOne.genPt/leptonOne.pt);
+      const float two_scale = two_rel_scale * (1.f - leptonTwo.genPt/leptonTwo.pt);
       if(fSystematics.IsUp(sys)) {
-        if(leptonOne.isMuon() && leptonOne.genPt > 0.f) //scale pT by 1 +- scale*(pt - genpt)/pt = 1 +- scale*(1 - genpt/pt)
-          EnergyScale(1.f + pt_err_scale * (1.f - leptonOne.genPt/leptonOne.pt), leptonOne, &met, &metPhi);
-        if(leptonTwo.isMuon() && leptonTwo.genPt > 0.f)
-          EnergyScale(1.f + pt_err_scale * (1.f - leptonTwo.genPt/leptonTwo.pt), leptonTwo, &met, &metPhi);
-      } else {
         if(leptonOne.isMuon() && leptonOne.genPt > 0.f)
-          EnergyScale(1.f - pt_err_scale * (1.f - leptonOne.genPt/leptonOne.pt), leptonOne, &met, &metPhi);
+          EnergyScale(1.f + one_scale, leptonOne, &met, &metPhi);
         if(leptonTwo.isMuon() && leptonTwo.genPt > 0.f)
-          EnergyScale(1.f - pt_err_scale * (1.f - leptonTwo.genPt/leptonTwo.pt), leptonTwo, &met, &metPhi);
+          EnergyScale(1.f + two_scale, leptonTwo, &met, &metPhi);
+      } else { //FIXME: Should this be a one-sided uncertainty, as we know the direction of the difference?
+        continue; //skip the down, setting it to be a one-sided uncertainty
+        // if(leptonOne.isMuon() && leptonOne.genPt > 0.f)
+        //   EnergyScale(1.f - one_scale, leptonOne, &met, &metPhi);
+        // if(leptonTwo.isMuon() && leptonTwo.genPt > 0.f)
+        //   EnergyScale(1.f - two_scale, leptonTwo, &met, &metPhi);
       }
     } else if(name == "QCDStat") {
       if(!chargeTest) { //only shift for same-sign events
