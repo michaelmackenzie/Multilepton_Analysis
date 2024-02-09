@@ -337,6 +337,11 @@ void HistMaker::FillAllHistograms(Int_t index) {
                  leptonTwo.pt, leptonTwo.eta, fTreeVars.mttwo, leptonTwo.flavor, leptonTwo.trig_data_eff, leptonTwo.trig_mc_eff);
           printf("  dilep  : pt = %5.1f, eta = %5.2f, mt = %5.1f\n", fTreeVars.leppt, fTreeVars.lepeta, fTreeVars.mtlep);
           printf("  event  : met = %5.1f, met_sig = %5.2f, njet = %2i, nbjet = %2i\n", met, metSignificance, nJets20, nBJetsUse);
+          if(fIsDY || fIsEmbed) { //print gen-level Z info
+            printf("  gen-Z  : mass = %5.1f, pt = %5.2f, eta = %5.2f\n", zMass, zPt, zEta);
+            printf("   -> l1 : ID = %3.0f, pt = %5.2f, eta = %5.2f\n", zLepOneID, zLepOnePt, zLepOneEta);
+            printf("   -> l2 : ID = %3.0f, pt = %5.2f, eta = %5.2f\n", zLepTwoID, zLepTwoPt, zLepTwoEta);
+          }
           printf("  weights: tot = %.3f, pu = %.3f, btag = %.3f, trig = %.3f, jetPUID = %.3f, zPt = %.3f, sig = %.3f, sigMix = %.3f, dxyz = %.3f\n",
                  eventWeight*genWeight, puWeight, btagWeight, leptonOne.trig_wt*leptonTwo.trig_wt, jetPUIDWeight,
                  zPtWeight, signalZWeight, signalZMixingWeight, lepDisplacementWeight);
@@ -2694,11 +2699,15 @@ void HistMaker::CountObjects() {
   if(fVerbose > 2) {
     printf(" Electron collection:\n");
     for(int i = 0; i < (int) nElectron; ++i) {
-      printf("  %2i: pt = %.1f, eta = %.2f, eta_sc = %.2f;\n", i, Electron_pt[i], Electron_eta[i], Electron_eta[i]+Electron_deltaEtaSC[i]);
+      printf("  %2i: pt = %.1f, eta = %.2f, eta_sc = %.2f", i, Electron_pt[i], Electron_eta[i], Electron_eta[i]+Electron_deltaEtaSC[i]);
+      if(!fIsData) printf(", gen_flav_ID = %2i", Electron_genPartFlav[i]);
+      printf("\n");
     }
     printf(" Muon collection:\n");
     for(int i = 0; i < (int) nMuon; ++i) {
-      printf("  %2i: pt = %.1f, eta = %.2f\n", i, Muon_pt[i], Muon_eta[i]);
+      printf("  %2i: pt = %.1f, eta = %.2f", i, Muon_pt[i], Muon_eta[i]);
+      if(!fIsData) printf(", gen_flav_ID = %2i", Muon_genPartFlav[i]);
+      printf("\n");
     }
     printf(" Tau collection:\n");
     for(int i = 0; i < (int) nTau; ++i) {
@@ -2709,7 +2718,7 @@ void HistMaker::CountObjects() {
   if(fVerbose > 3 && !fIsData) {
     printf(" Gen-particle collection:\n");
     for(int i = 0; i < (int) nGenPart; ++i) {
-      printf("  %2i: pdg = %5i, pt = %.1f, eta = %.2f, phi = %.2f, mass = %.2e, mother = %2i\n", i,
+      printf("  %2i: pdg = %5i, pt = %5.1f, eta = %5.2f, phi = %5.2f, mass = %.2e, mother = %2i\n", i,
              GenPart_pdgId[i], GenPart_pt[i], GenPart_eta[i], GenPart_phi[i],
              GenPart_mass[i], GenPart_genPartIdxMother[i]);
     }
@@ -3166,13 +3175,20 @@ void HistMaker::CountObjects() {
   //store generator level Z->ll lepton ids
   nGenHardElectrons = 0; nGenHardMuons = 0; nGenHardTaus = 0;
   //lepton one
-  if     (std::abs(zLepOneID) == 11) ++nGenHardElectrons;
-  else if(std::abs(zLepOneID) == 13) ++nGenHardMuons;
-  else if(std::abs(zLepOneID) == 15) ++nGenHardTaus;
+  if     (std::round(std::fabs(zLepOneID)) == 11) ++nGenHardElectrons;
+  else if(std::round(std::fabs(zLepOneID)) == 13) ++nGenHardMuons;
+  else if(std::round(std::fabs(zLepOneID)) == 15) ++nGenHardTaus;
   //lepton two
-  if     (std::abs(zLepTwoID) == 11) ++nGenHardElectrons;
-  else if(std::abs(zLepTwoID) == 13) ++nGenHardMuons;
-  else if(std::abs(zLepTwoID) == 15) ++nGenHardTaus;
+  if     (std::round(std::fabs(zLepTwoID)) == 11) ++nGenHardElectrons;
+  else if(std::round(std::fabs(zLepTwoID)) == 13) ++nGenHardMuons;
+  else if(std::round(std::fabs(zLepTwoID)) == 15) ++nGenHardTaus;
+
+  if(fIsDY || fIsSignal || fIsEmbed) { //ensure a reasonable number of generated leptons are found in (Z)->ll(') simulated events
+    if(nGenHardElectrons + nGenHardMuons + nGenHardTaus != 2) {
+      printf("HistMaker::%s: Entry %lld: Error! Not all Z->ll gen-leptons were found\n", __func__, fentry);
+      throw 20;
+    }
+  }
 
   /////////////////////////////////////////////
   // Check info about selected leptons
