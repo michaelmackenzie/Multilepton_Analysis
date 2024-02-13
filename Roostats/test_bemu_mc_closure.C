@@ -1,12 +1,13 @@
 //Test Z->e+mu background fit closure when fitting the MC
 #include "bemu_fit_bkg_mc.C"
 
-bool   fit_flat_bkgs_ = true;  //fit flat-ish background contributions (WW, ttbar, QCD, and (not flat) Z->mumu)
-bool   fit_dy_bkg_    = false; //fit the Z->tautau background
-int    smooth_hists_  =   2;   //number of times to smooth non-fit background histograms
-double zmumu_scale_   = -1.;   //if >= 0 scale the Z->ee/mumu contribution
-int    use_multi_pdf_ =   0;   //use multi-pdf instead of a single pdf FIXME: Not currently working
-TString tag_          = "_embed_zmumu_cuts";    //tag for output figure directory
+bool   fit_flat_bkgs_  = true;  //fit flat-ish background contributions (WW, ttbar, QCD, and (not flat) Z->mumu)
+bool   fit_dy_bkg_     = false; //fit the Z->tautau background
+int    smooth_hists_   =   2;   //number of times to smooth non-fit background histograms
+double zmumu_scale_    = -1.;   //if >= 0 scale the Z->ee/mumu contribution
+int    use_multi_pdf_  =   0;   //use multi-pdf instead of a single pdf FIXME: Not currently working
+bool   save_templates_ = false; //save MC templates in an output file
+TString tag_           = "";    //tag for output figure directory
 
 //---------------------------------------------------------------------------------------------------------------------------------------
 // Main function: test the background fit closure of the MC
@@ -32,13 +33,21 @@ int test_bemu_mc_closure(int set = 13, vector<int> years = {2016,2017,2018}, con
 
   //Retrieve the signal PDF
   RooAbsPdf* sigPDF = ws->pdf(Form("zemu"));
-  if(!sigPDF) {ws->Print(); return 2;}
+  if(!sigPDF) {
+    cout << "!!! Failed to retrieve the signal distribution!\n";
+    ws->Print();
+    return 2;
+  }
 
   //Retrieve the signal PDF
   RooAbsPdf* bkgPDF(nullptr);
   if(use_multi_pdf_) bkgPDF = ws->pdf(Form("bkg"));
   else               bkgPDF = ws->pdf(Form("bst_%i_order_3", set));
-  if(!bkgPDF) {ws->Print(); return 3;}
+  if(!bkgPDF) {
+    cout << "!!! Failed to retrieve the background distribution!\n";
+    ws->Print();
+    return 3;
+  }
 
   //Get the observable
   RooRealVar* obs = (RooRealVar*) ws->var(Form("lepm_%i", set));
@@ -126,6 +135,8 @@ int test_bemu_mc_closure(int set = 13, vector<int> years = {2016,2017,2018}, con
   //Get the MC histogram for generating data
   TH1* hMC = (TH1*) stack->GetStack()->Last()->Clone("hbkg");
   hMC = make_safe(hMC, obs->getMin(), obs->getMax());
+
+
   obs->setBins(hMC->GetNbinsX()); //ensure the binning matches
   const int n_init_mc = hMC->Integral() + 0.5;
   RooDataHist mc("mc", "MC data", RooArgList(*obs), hMC);
@@ -136,6 +147,25 @@ int test_bemu_mc_closure(int set = 13, vector<int> years = {2016,2017,2018}, con
   RooRealVar* n_bkg  = new RooRealVar("n_bkg", "N(background)", n_init_mc, 0., 5.*n_init_mc);
   RooAddPdf* totPDF = new RooAddPdf("total_PDF", "total PDF", RooArgList(*bkgPDF, *sigPDF), RooArgList(*n_bkg, *n_sig), false);
 
+
+  //Save the MC templates if requested
+  if(save_templates_) {
+    TFile* fout = new TFile(Form("histograms/zemu_smoothed%s_%i.root", tag_.Data(), set), "RECREATE");
+    fout->cd();
+    hMC->Write();
+    stack->Write();
+
+    //also add the RooWorkspace info
+    RooWorkspace ws_out(Form("lepm_%i", set), Form("lepm_%i", set));
+    ws_out.import(*obs);
+    ws_out.import(*bkgPDF);
+    ws_out.import(*sigPDF);
+    ws_out.import(mcPDF);
+    ws_out.Write();
+    fout->Write();
+    fout->Close();
+    // return 0;
+  }
 
   //Datasets to generate
   const int ngen = (use_multi_pdf_) ? 1000 : 1000;
