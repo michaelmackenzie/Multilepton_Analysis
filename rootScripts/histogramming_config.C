@@ -40,6 +40,7 @@ bool JetTauTesting_      = false; //perform MC closure test
 bool FakeLeptonTesting_  = false; //test MC fake leptons
 bool CutFlowTesting_     = false; //test just basic cutflow sets
 bool TriggerTesting_     = false; //make a few extra selections for ee/mumu/emu trigger testing
+int  doEleIDStudy_       = 0; //add additional electron cuts in Z->emu to reduce Z->mumu*
 
 int removeTrigWeights_    =  4; //0: do nothing 1: remove weights 2: replace 3: replace P(event) 4: replace P(at least 1 triggered)
 int updateMCEra_          =  1; //0: do nothing 1: throw random number for MC era (data/embedding not random)
@@ -52,6 +53,7 @@ int updateMET_            =  1; //Update MET with lepton energy scale changes
 int useMCFakeLep_         =  0; //use MC estimated fake light leptons in ee, mumu, and emu categories
 int useJetToTauComp_      =  1; //use the composition of the anti-iso region to combine j->tau weights
 int applyJetToTauMCBias_  =  0; //apply the W+jets/Z+jets MC bias estimate or only use as a uncertainty
+int wJetsBiasMode_        =  1; //W+jets/Z+jets MC bias mode (1: lepm shape+rate; 6: lepm shape; 7: (lepm, bdt) shape+rate; 8: (lepm, bdt) shape)
 int useQCDWeights_        =  1; //use QCD SS --> OS transfer weights
 int doTriggerMatching_    =  1; //do trigger object matching
 int useEMuTrigger_        =  0; //use the e-mu trigger in e-mu data: 1 = consider it; 2 = only consider it
@@ -139,7 +141,7 @@ config_t get_config() {
   config_t config;
 
   config.writeTrees_ = writeTrees_;
-  config.selections_ = {"emu"}; //{"mutau", "etau", "emu", "mutau_e", "etau_mu", "ee", "mumu"};
+  config.selections_ = {"etau", "mutau", "etau_mu", "mutau_"}; //{"mutau", "etau", "emu", "mutau_e", "etau_mu", "ee", "mumu"};
   config.signalTrainFraction_ = 0.5;
   config.backgroundTrainFraction_ = 0.3;
 
@@ -437,4 +439,3 @@ vector<datacard_t> get_data_cards(TString& nanoaod_path) {
 
 
 #endif
-                

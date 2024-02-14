@@ -2,6 +2,29 @@
 using namespace CLFV;
 #include "histogramming_config.C"
 
+//make a file list for the given dataset
+bool make_file_list(TString dataset, TString path, TString txt_name) {
+    TString redir = (path.Contains("cern.ch")) ? "root://eoscms.cern.ch/" : "root://cmseos.fnal.gov/";
+    TString base_loc = path;
+    base_loc.ReplaceAll(redir.Data(), "");
+    const TString user = gSystem->Getenv("USER");
+    const bool is_grid = user != "mmackenz" && user != "mimacken"; //FIXME: Check grid user names
+    TString ls_command;
+    if(is_grid) {
+      if(!dataset.Contains("*")) {
+        ls_command = Form("xrdfs %s ls %s | grep %s | awk '{print \"%s\"$0}' >| %s", redir.Data(), base_loc.Data(), dataset.Data(), redir.Data(), txt_name.Data());
+      } else { //handle the wildcards
+        dataset.ReplaceAll("*", "\"*\"");
+        ls_command = Form("for file in `xrdfs %s ls %s`; do if [[ \"${file}\" == *\"%s\" ]]; then echo %s${file}; fi; done >| %s", redir.Data(), base_loc.Data(), dataset.Data(), redir.Data(), txt_name.Data());
+      }
+    } else {
+      ls_command = Form("eos %s ls %s%s | awk '{print \"%s\"$0 }' >| %s", redir.Data(), base_loc.Data(), dataset.Data(), path.Data(), txt_name.Data());
+    }
+    cout << "ls command: " << ls_command.Data() << endl;
+    gSystem->Exec(ls_command.Data());
+    return true;
+}
+
 //retrieve the histogram of event counting from each file in a chain, returning the sum of the inputs
 TH1* events_from_chain(vector<TString> files) {
   TH1* events = nullptr;
@@ -78,15 +101,19 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
     // removeTrigWeights_ = 1;
     // usePrefireWeights_ = 0;
     // useLepDxyzWeights_ = 0; //use dxy/dz displacement weights
-    // useZPtWeights_     = 0; //MC --> Data Z pT matching
+    useZPtWeights_     = 0; //MC --> Data Z pT matching
     // useSignalZMixWeights_ = 0; //FIXME: Remove after done with comparisons
     // updateMET_ = 0; //FIXME: Remove after done with comparisons
     useCDFBDTs_ = 0;
-    useXGBoost_ = 1; //FIXME: Set to 1 for nominal BDT processing
+    useXGBoost_ = 1;
     train_mode_ = 0;
 
-    min_lepm_ =  65.f;
-    max_lepm_ = 115.f;
+    min_lepm_         =  65.f;
+    max_lepm_         = 115.f;
+    migration_buffer_ =   5.f;
+    // min_lepm_         =  85.f;
+    // max_lepm_         =  95.f;
+    // migration_buffer_ =   0.f;
     cout << "Overridding processing defaults for emu-style selection\n";
   }
 
@@ -212,6 +239,8 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
         hist_selec->fPrintFilling       = 1; //print detailed histogram set filling
         hist_selec->fDoTriggerMatching  = doTriggerMatching_;
         hist_selec->fUseEMuTrigger      = useEMuTrigger_;
+        if(selection.Contains("e")) //only relevant for channels with leptons
+          hist_selec->fDoEleIDStudy     = doEleIDStudy_;
         hist_selec->fReprocessMVAs      = ReprocessMVAs_; //reevaluate MVA scores on the fly
         hist_selec->fTestMVA            = test_mva_;
         hist_selec->fProcessSSSF        = doSSSF_;
@@ -262,6 +291,8 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
       selec->fUseMCEstimatedFakeLep  = useMCFakeLep_;
       selec->fUseJetToTauComposition = useJetToTauComp_;
       selec->fApplyJetToTauMCBias    = applyJetToTauMCBias_;
+      if(wJetsBiasMode_ >= 0)
+        selec->fWJetsMCBiasMode      = wJetsBiasMode_;
 
       selec->fDYType = 0;
       if(isDY && splitDY_)     selec->fDYType = dyloop; //if Drell-Yan, tell the selector which loop we're on
@@ -566,9 +597,7 @@ Int_t process_card(TString treepath, TString filename, double xsec, int isdata, 
     TString base_loc = treepath;
     base_loc.ReplaceAll(redir.Data(), "");
     TString txt_name = "input_" + card.fname_; txt_name.ReplaceAll("/", "_"); txt_name += ".txt";
-    TString ls_command = Form("eos %s ls %s%s >| %s", redir.Data(), base_loc.Data(), card.fname_.Data(), txt_name.Data());
-    cout << "ls command: " << ls_command.Data() << endl;
-    gSystem->Exec(ls_command.Data());
+    if(!make_file_list(card.fname_, treepath, txt_name)) return 10; //create the list of files to process
     std::ifstream input_list(txt_name.Data());
     if(!input_list.is_open()) {
       cout << "Couldn't retrieve file list for " << card.fname_.Data() << endl;
@@ -576,9 +605,7 @@ Int_t process_card(TString treepath, TString filename, double xsec, int isdata, 
     }
     std::string line;
     while(std::getline(input_list, line)) {
-      TString file_path = treepath;
-      if(card.fname_.Contains(".root")) file_path += line.c_str();
-      else                              file_path += Form("%s/%s", card.fname_.Data(), line.c_str());
+      TString file_path = line.c_str();
       file_names.push_back(file_path);
       cout << "File: " << file_path.Data() << endl;
     }
