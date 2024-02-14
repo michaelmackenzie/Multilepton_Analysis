@@ -81,6 +81,21 @@ namespace CLFV {
     TH1* hJetTauTwoMetDeltaPhi[2]; //0: nominal 1: no j-->tau correction
     TH1* hJetTauTwoRelIso[2]; //0: nominal 1: no bias correction
 
+    //Electron ID study info
+    TH1* hEleConvVeto     ;
+    TH1* hElePFCand       ;
+    TH1* hEleLostHits     ;
+    TH1* hEleEtaEta       ;
+    TH1* hEleR9           ;
+    TH1* hElePhotonIdx    ;
+    TH1* hEleCutID        ;
+    TH1* hEleEnergyErr    ;
+    TH1* hEle3DPVErr      ;
+    TH1* hEleSCEtOverPt   ;
+    TH1* hEleHOE          ;
+    TH1* hEleEInvMinusPInv;
+
+    //Lepton two info
     TH1* hTwoPz;
     TH1* hTwoPt[14]; //0: nominal 1: no trigger weight 2-5: trigger weight options 6: no ID1 weight 7: no ID2 weight
     TH1* hTwoPtUp; //rough overall errors

@@ -134,26 +134,27 @@ void HistMaker::Begin(TTree * /*tree*/)
   fCutFlow = new TH1D("hcutflow", "Cut-flow", 100, 0, 100);
 
   //FIXME: Added back W+Jets MC bias (Mode = 10100300, 60100300 for only MC lepm bias shape)
-  //FIXME: Removed onemetdphi non-closure from W+Jets and QCD, decide if this is needed (1xxxxx --> 3xxxxx)
-  fMuonJetToTauWeights      [JetToTauComposition::kWJets] = new JetToTauWeight("MuonWJets"      , "mutau", "WJets",   31, 10300300, fYear, 0);
-  fMuonJetToTauWeights      [JetToTauComposition::kZJets] = new JetToTauWeight("MuonZJets"      , "mutau", "WJets",   31, 10300300, fYear, 0);
+  //FIXME: Decide on 2D (lepm, bdt score) bias (bias mode 7 (shape+rate) and 8 (shape-only))
+  const int wJetsMode = fWJetsMCBiasMode*10000000 + 300300;
+  fMuonJetToTauWeights      [JetToTauComposition::kWJets] = new JetToTauWeight("MuonWJets"      , "mutau", "WJets",   31,wJetsMode, fYear, 0);
+  fMuonJetToTauWeights      [JetToTauComposition::kZJets] = new JetToTauWeight("MuonZJets"      , "mutau", "WJets",   31,wJetsMode, fYear, 0);
   fMuonJetToTauWeights      [JetToTauComposition::kTop  ] = new JetToTauWeight("MuonTop"        , "mutau", "Top"  ,   82,  1100301, fYear, 0);
   fMuonJetToTauWeights      [JetToTauComposition::kQCD  ] = new JetToTauWeight("MuonQCD"        , "mutau", "QCD"  , 1030, 40300300, fYear, 0);
 
-  fMuonJetToTauMCWeights    [JetToTauComposition::kWJets] = new JetToTauWeight("MuonMCWJets"    , "mutau", "WJets",   88, 10300301, fYear, 0); //MC weights with MC non-closure + bias
-  fMuonJetToTauMCWeights    [JetToTauComposition::kZJets] = new JetToTauWeight("MuonMCZJets"    , "mutau", "WJets",   88, 10300301, fYear, 0);
+  fMuonJetToTauMCWeights    [JetToTauComposition::kWJets] = new JetToTauWeight("MuonMCWJets"    , "mutau", "WJets",   88,wJetsMode+1, fYear, 0); //MC weights with MC non-closure + bias
+  fMuonJetToTauMCWeights    [JetToTauComposition::kZJets] = new JetToTauWeight("MuonMCZJets"    , "mutau", "WJets",   88,wJetsMode+1, fYear, 0);
   fMuonJetToTauMCWeights    [JetToTauComposition::kTop  ] = new JetToTauWeight("MuonMCTop"      , "mutau", "Top"  ,   82,  1100301, fYear, 0); //Normal weights
   fMuonJetToTauMCWeights    [JetToTauComposition::kQCD  ] = new JetToTauWeight("MuonMCQCD"      , "mutau", "QCD"  , 1095, 10300300, fYear, 0); //high iso weights for SS --> OS bias
 
   //FIXME: Added back W+Jets MC bias (Mode = 10300300, 60300300 for only MC bias shape)
   //FIXME: Removed onemetdphi non-closure from W+Jets and QCD, decide if this is needed (1xxxxx --> 3xxxxx)
-  fElectronJetToTauWeights  [JetToTauComposition::kWJets] = new JetToTauWeight("ElectronWJets"  , "etau" , "WJets",   31, 10300300, fYear, 0);
-  fElectronJetToTauWeights  [JetToTauComposition::kZJets] = new JetToTauWeight("ElectronZJets"  , "etau" , "WJets",   31, 10300300, fYear, 0);
+  fElectronJetToTauWeights  [JetToTauComposition::kWJets] = new JetToTauWeight("ElectronWJets"  , "etau" , "WJets",   31,wJetsMode, fYear, 0);
+  fElectronJetToTauWeights  [JetToTauComposition::kZJets] = new JetToTauWeight("ElectronZJets"  , "etau" , "WJets",   31,wJetsMode, fYear, 0);
   fElectronJetToTauWeights  [JetToTauComposition::kTop  ] = new JetToTauWeight("ElectronTop"    , "etau" , "Top"  ,   82,  1100301, fYear, 0);
   fElectronJetToTauWeights  [JetToTauComposition::kQCD  ] = new JetToTauWeight("ElectronQCD"    , "etau" , "QCD"  , 1030, 40300300, fYear, 0);
 
-  fElectronJetToTauMCWeights[JetToTauComposition::kWJets] = new JetToTauWeight("ElectronMCWJets", "etau" , "WJets",   88, 10300301, fYear, 0); //MC weights with MC non-closure + bias
-  fElectronJetToTauMCWeights[JetToTauComposition::kZJets] = new JetToTauWeight("ElectronMCZJets", "etau" , "WJets",   88, 10300301, fYear, 0);
+  fElectronJetToTauMCWeights[JetToTauComposition::kWJets] = new JetToTauWeight("ElectronMCWJets", "etau" , "WJets",   88,wJetsMode+1, fYear, 0); //MC weights with MC non-closure + bias
+  fElectronJetToTauMCWeights[JetToTauComposition::kZJets] = new JetToTauWeight("ElectronMCZJets", "etau" , "WJets",   88,wJetsMode+1, fYear, 0);
   fElectronJetToTauMCWeights[JetToTauComposition::kTop  ] = new JetToTauWeight("ElectronMCTop"  , "etau" , "Top"  ,   82,  1100301, fYear, 0); //Normal weights
   fElectronJetToTauMCWeights[JetToTauComposition::kQCD  ] = new JetToTauWeight("ElectronMCQCD"  , "etau" , "QCD"  , 1095, 10300300, fYear, 0); //high iso weights for SS --> OS bias
 
@@ -705,6 +706,22 @@ void HistMaker::BookBaseLepHistograms(Int_t i, const char* dirname) {
       Utilities::BookH1F(fLepHist[i]->hOneGenEta      , "onegeneta"        , Form("%s: Gen Eta"      ,dirname),  50, -2.5,  2.5, folder);
       Utilities::BookH1F(fLepHist[i]->hOneMetDeltaPhi , "onemetdeltaphi"   , Form("%s: Met Delta Phi",dirname),  50,    0,    5, folder);
 
+      //Electron study info
+      if(fDoEleIDStudy) {
+        Utilities::BookH1F(fLepHist[i]->hEleConvVeto      , "eleconvveto     "   , Form("%s: hEleConvVeto     ",dirname),   2,    0,    2, folder);
+        Utilities::BookH1F(fLepHist[i]->hElePFCand        , "elepfcand       "   , Form("%s: hElePFCand       ",dirname),   2,    0,    2, folder);
+        Utilities::BookH1F(fLepHist[i]->hEleLostHits      , "elelosthits     "   , Form("%s: hEleLostHits     ",dirname),  10,    0,   10, folder);
+        Utilities::BookH1F(fLepHist[i]->hEleEtaEta        , "eleetaeta       "   , Form("%s: hEleEtaEta       ",dirname),  50,    0, 0.035, folder);
+        Utilities::BookH1F(fLepHist[i]->hEleR9            , "eler9           "   , Form("%s: hEleR9           ",dirname),  50,    0,  1.2, folder);
+        // Utilities::BookH1F(fLepHist[i]->hElePhotonIdx     , "elephotonidx    "   , Form("%s: hElePhotonIdx    ",dirname),  50,    0,    5, folder);
+        Utilities::BookH1F(fLepHist[i]->hEleCutID         , "elecutid        "   , Form("%s: hEleCutID        ",dirname),   5,    0,    5, folder);
+        Utilities::BookH1F(fLepHist[i]->hEleEnergyErr     , "eleenergyerr    "   , Form("%s: hEleEnergyErr    ",dirname),  50,    0,  0.5, folder);
+        Utilities::BookH1F(fLepHist[i]->hEle3DPVErr       , "ele3dpverr      "   , Form("%s: hEle3DPVErr      ",dirname),  50,    0,    5, folder);
+        Utilities::BookH1F(fLepHist[i]->hEleSCEtOverPt    , "elescetoverpt   "   , Form("%s: hEleSCEtOverPt   ",dirname),  50, -0.5,  0.5, folder);
+        Utilities::BookH1F(fLepHist[i]->hEleHOE           , "elehoe          "   , Form("%s: hEleHOE          ",dirname),  50,    0,  0.5, folder);
+        Utilities::BookH1F(fLepHist[i]->hEleEInvMinusPInv , "eleeinvminuspinv"   , Form("%s: hEleEInvMinusPInv",dirname),  50, -0.2,  0.2, folder);
+      }
+
       // Lepton two info //
       Utilities::BookH1F(fLepHist[i]->hTwoPt[0]       , "twopt"            , Form("%s: Pt"          ,dirname)  , 150,   0, 150, folder);
       Utilities::BookH1F(fLepHist[i]->hTwoPtUp        , "twoptup"          , Form("%s: Pt up"       ,dirname)  , 150,   0, 150, folder);
@@ -1062,6 +1079,17 @@ void HistMaker::InitializeInputTree(TTree* tree) {
   Utilities::SetBranchAddress(tree, "Electron_dzErr"                , &Electron_dzErr                );
   Utilities::SetBranchAddress(tree, "Electron_TaggedAsRemovedByJet" , &Electron_TaggedAsRemovedByJet );
   Utilities::SetBranchAddress(tree, "Electron_energyErr"            , &Electron_energyErr            );
+  Utilities::SetBranchAddress(tree, "Electron_sip3d"                , &Electron_sip3d                );
+  Utilities::SetBranchAddress(tree, "Electron_sieie"                , &Electron_sieie                );
+  Utilities::SetBranchAddress(tree, "Electron_r9"                   , &Electron_r9                   );
+  Utilities::SetBranchAddress(tree, "Electron_hoe"                  , &Electron_hoe                  );
+  Utilities::SetBranchAddress(tree, "Electron_scEtOverPt"           , &Electron_scEtOverPt           );
+  Utilities::SetBranchAddress(tree, "Electron_eInvMinusPInv"        , &Electron_eInvMinusPInv        );
+  Utilities::SetBranchAddress(tree, "Electron_convVeto"             , &Electron_convVeto             );
+  Utilities::SetBranchAddress(tree, "Electron_cutBased"             , &Electron_cutBased             );
+  Utilities::SetBranchAddress(tree, "Electron_isPFcand"             , &Electron_isPFcand             );
+  Utilities::SetBranchAddress(tree, "Electron_lostHits"             , &Electron_lostHits             );
+  Utilities::SetBranchAddress(tree, "Electron_photonIdx"            , &Electron_photonIdx            );
   if(!fIsData) {
     if(fApplyLeptonIDWt == 2) { //load and use ntuple-level ID corrections
       Utilities::SetBranchAddress(tree, "Electron_ID_wt"            , &Electron_ID_wt                );
@@ -1244,6 +1272,34 @@ void HistMaker::InitializeInputTree(TTree* tree) {
 
   //Event flags
   fFlags.InitBranches(tree);
+}
+
+//-----------------------------------------------------------------------------------------------------------------
+// Get electron energy scale for resolution uncertainty up variation
+float HistMaker::ElectronResolutionUnc(Lepton_t& lep) {
+  if(!lep.isElectron()) return 1.f;
+  if(!fIsEmbed) return 1.f; //only defined for Embedding
+  const float min_scale(0.55f), max_scale(0.85f);
+  const float min_pt(10.f), max_pt(100.f);
+  const float pt_err = lep.pt - lep.genPt;
+  float pt_err_scale = std::max(min_scale, std::min(max_scale, min_scale + (max_scale - min_scale)*(lep.pt - min_pt)/(max_pt - min_pt)));
+  // pt_err_scale += 0.00f*std::pow(std::fabs(pt_err/lep.pt)/0.01f,2) - 0.01f*pt_err/lep.pt/0.01f;
+  const float scale = std::max(0.01f, 1.f + pt_err_scale * pt_err / lep.pt);
+  return scale;
+}
+
+//-----------------------------------------------------------------------------------------------------------------
+// Get muon energy scale for resolution uncertainty up variation
+float HistMaker::MuonResolutionUnc(Lepton_t& lep) {
+  if(!lep.isMuon()) return 1.f;
+  if(!fIsEmbed) return 1.f; //only defined for Embedding
+  const float min_scale(0.05f), max_scale(0.20f);
+  const float min_pt(10.f), max_pt(100.f);
+  const float pt_err = lep.pt - lep.genPt;
+  float pt_err_scale = std::max(min_scale, std::min(max_scale, min_scale + (max_scale - min_scale)*(lep.pt - min_pt)/(max_pt - min_pt)));
+  pt_err_scale += 0.04f*std::pow(std::fabs(pt_err/lep.pt)/0.01f,2) - 0.08f*pt_err/lep.pt/0.01f;
+  const float scale = std::max(0.01f, 1.f + pt_err_scale * pt_err / lep.pt);
+  return scale;
 }
 
 //-----------------------------------------------------------------------------------------------------------------
@@ -1464,6 +1520,16 @@ void HistMaker::SwapSameFlavor() {
     std::swap(Electron_dxyErr               [0], Electron_dxyErr               [1]);
     std::swap(Electron_dz                   [0], Electron_dz                   [1]);
     std::swap(Electron_dzErr                [0], Electron_dzErr                [1]);
+    std::swap(Electron_convVeto             [0], Electron_convVeto             [1]);
+    std::swap(Electron_cutBased             [0], Electron_cutBased             [1]);
+    std::swap(Electron_isPFcand             [0], Electron_isPFcand             [1]);
+    std::swap(Electron_lostHits             [0], Electron_lostHits             [1]);
+    std::swap(Electron_sieie                [0], Electron_sieie                [1]);
+    std::swap(Electron_r9                   [0], Electron_r9                   [1]);
+    std::swap(Electron_sip3d                [0], Electron_sip3d                [1]);
+    std::swap(Electron_scEtOverPt           [0], Electron_scEtOverPt           [1]);
+    std::swap(Electron_hoe                  [0], Electron_hoe                  [1]);
+    std::swap(Electron_eInvMinusPInv        [0], Electron_eInvMinusPInv        [1]);
     std::swap(Electron_TaggedAsRemovedByJet [0], Electron_TaggedAsRemovedByJet [1]);
     std::swap(Electron_genPartFlav          [0], Electron_genPartFlav          [1]);
     std::swap(Electron_genPartIdx           [0], Electron_genPartIdx           [1]);
@@ -3771,6 +3837,21 @@ void HistMaker::FillBaseLepHistogram(LepHist_t* Hist) {
 
   Hist->hOneMetDeltaPhi   ->Fill(fTreeVars.onemetdeltaphi   ,eventWeight*genWeight);
 
+  //Electron ID study
+  if(fDoEleIDStudy && nElectron > 0) { //take the leading electron, if found
+    Hist->hEleConvVeto     ->Fill(Electron_convVeto     [0], eventWeight*genWeight);
+    Hist->hEleCutID        ->Fill(Electron_cutBased     [0], eventWeight*genWeight);
+    Hist->hElePFCand       ->Fill(Electron_isPFcand     [0], eventWeight*genWeight);
+    Hist->hEleLostHits     ->Fill(Electron_lostHits     [0], eventWeight*genWeight);
+    Hist->hEleEtaEta       ->Fill(Electron_sieie        [0], eventWeight*genWeight);
+    Hist->hEleR9           ->Fill(Electron_r9           [0], eventWeight*genWeight);
+    Hist->hEle3DPVErr      ->Fill(Electron_sip3d        [0], eventWeight*genWeight);
+    Hist->hEleSCEtOverPt   ->Fill(Electron_scEtOverPt   [0], eventWeight*genWeight);
+    Hist->hEleHOE          ->Fill(Electron_hoe          [0], eventWeight*genWeight);
+    Hist->hEleEInvMinusPInv->Fill(Electron_eInvMinusPInv[0], eventWeight*genWeight);
+    Hist->hEleEnergyErr    ->Fill(Electron_energyErr[0]/Electron_pt[0], eventWeight*genWeight);
+    // Hist->hElePhotonIdx    ->Fill(Electron_photonIdx[0], eventWeight*genWeight);
+  }
   /////////////
   //  Lep 2  //
   /////////////

@@ -176,6 +176,17 @@ namespace CLFV {
     Float_t Electron_dxyErr               [kMaxLeptons];
     Float_t Electron_dz                   [kMaxLeptons];
     Float_t Electron_dzErr                [kMaxLeptons];
+    Float_t Electron_sip3d                [kMaxLeptons]; //3D PV distance significance
+    Float_t Electron_sieie                [kMaxLeptons];
+    Float_t Electron_r9                   [kMaxLeptons];
+    Float_t Electron_hoe                  [kMaxLeptons];
+    Float_t Electron_eInvMinusPInv        [kMaxLeptons];
+    Float_t Electron_scEtOverPt           [kMaxLeptons];
+    Int_t   Electron_photonIdx            [kMaxLeptons];
+    Int_t   Electron_cutBased             [kMaxLeptons];
+    UChar_t Electron_lostHits             [kMaxLeptons];
+    Bool_t  Electron_convVeto             [kMaxLeptons];
+    Bool_t  Electron_isPFcand             [kMaxLeptons];
     Bool_t  Electron_TaggedAsRemovedByJet [kMaxLeptons];
     UChar_t Electron_genPartFlav          [kMaxLeptons];
     Int_t   Electron_genPartIdx           [kMaxLeptons];
@@ -188,7 +199,7 @@ namespace CLFV {
     Float_t Electron_RecoID_wt            [kMaxLeptons];
     Float_t Electron_RecoID_up            [kMaxLeptons];
     Float_t Electron_RecoID_down          [kMaxLeptons];
-    Float_t Electron_energyErr            [kMaxLeptons]; //provided energy scale uncertainty
+    Float_t Electron_energyErr            [kMaxLeptons]; //estimated energy uncertainty
     Float_t Electron_energyScale          [kMaxLeptons]; //energy scale replacing given one
     Float_t Electron_energyScaleUp        [kMaxLeptons];
     Float_t Electron_energyScaleDown      [kMaxLeptons];
@@ -474,6 +485,8 @@ namespace CLFV {
     void    InitializeEventWeights();
     void    EnergyScale(const float scale, Lepton_t& lep, float* MET = nullptr, float* METPhi = nullptr);
     void    EnergyScale(const float scale, TLorentzVector& lv, float* MET = nullptr, float* METPhi = nullptr);
+    float   ElectronResolutionUnc(Lepton_t& lep);
+    float   MuonResolutionUnc(Lepton_t& lep);
     void    ApplyElectronCorrections();
     void    ApplyMuonCorrections();
     void    ApplyTauCorrections();
@@ -802,6 +815,7 @@ namespace CLFV {
     Int_t           fUseMCEstimatedFakeLep = 0;
     Int_t           fDoTriggerMatching = 1; //match trigger objects to selected leptons
     Int_t           fUseEMuTrigger = 0; //consider the e-mu trigger in e-mu data: 1 = use it; 2 = only use it
+    Int_t           fDoEleIDStudy = 0; //histogram additional electron info
 
     Bool_t          fSparseHists = false; //only fill/init more basic histograms
 
@@ -863,6 +877,7 @@ namespace CLFV {
     Float_t*        fJetToTauMCCorrs   = new Float_t[JetToTauComposition::kLast];
     Float_t*        fJetToTauMCBiases  = new Float_t[JetToTauComposition::kLast];
     Bool_t          fApplyJetToTauMCBias = true; //apply (W/Z)+Jets MC bias correction
+    Int_t           fWJetsMCBiasMode   = 1; //W+jets j-->tau MC bias parameterization
 
     QCDWeight       fQCDWeight; //for emu
     MuonIDWeight    fMuonIDWeight;

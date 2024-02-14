@@ -158,7 +158,7 @@ void CLFVHistMaker::InitHistogramFlags() {
       fTreeSets  [kEMu  + 8+fQcdOffset] = fIsData != 0; //save SS data for QCD training
       fSysSets   [kEMu  + 8] = 1;
 
-      // fEventSets [kEMu  + 20] = 1; //test set
+      fEventSets [kEMu  + 20] = fDoEleIDStudy; //test set
       // fSysSets   [kEMu  + 20] = 1;
 
       // MVA categories
@@ -169,6 +169,18 @@ void CLFVHistMaker::InitHistogramFlags() {
       if(fDoHiggs) {
         fSysSets[kEMu  + 14 + fMVAConfig->categories_["hemu"].size()] = 1; //start with most significant category
         fSysSets[kEMu  + 13 + fMVAConfig->categories_["hemu"].size()] = 1; //second most significant category
+      }
+
+      // MVA categories, split into barrel/endcap
+      if(fDoEleIDStudy) {
+        for(int imva = 0; imva < 5; ++imva) {
+          fEventSets[kEMu  + imva + 70] = 1; //barrel sets
+          fEventSets[kEMu  + imva + 80] = 1; //endcap sets
+          if(imva > 1) { //only do systematics for the top 3 categories
+            fSysSets  [kEMu  + imva + 70] = 1;
+            fSysSets  [kEMu  + imva + 80] = 1;
+          }
+        }
       }
 
       fEventSets [kEMu  + 24] = 1; // events within mass window
@@ -1078,44 +1090,36 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
     } else if(name == "EmbEleRes") {
       if(!fIsEmbed || !isEData) continue; //only process for embedding with reco electrons
       reeval = true;
-      //change the pT resolution by a 55% at 10 GeV/c to 85% at 100 GeV/c (capped at these edges)
-      const float one_rel_scale = std::max(0.55f, std::min(0.85f, 0.55f + (leptonOne.pt - 10.f)*(0.85f - 0.55f) / (100.f - 10.f)));
-      const float two_rel_scale = std::max(0.55f, std::min(0.85f, 0.55f + (leptonTwo.pt - 10.f)*(0.85f - 0.55f) / (100.f - 10.f)));
-      //scale pT by 1 +- err_scale*(pt - genpt)/pt = 1 +- err_scale*(1 - genpt/pt)
-      const float one_scale = one_rel_scale * (1.f - leptonOne.genPt/leptonOne.pt);
-      const float two_scale = two_rel_scale * (1.f - leptonTwo.genPt/leptonTwo.pt);
+      const float one_scale = ElectronResolutionUnc(leptonOne);
+      const float two_scale = ElectronResolutionUnc(leptonTwo);
       if(fSystematics.IsUp(sys)) {
         if(leptonOne.isElectron() && leptonOne.genPt > 0.f)
-          EnergyScale(1.f + one_scale, leptonOne, &met, &metPhi);
+          EnergyScale(one_scale, leptonOne, &met, &metPhi);
         if(leptonTwo.isElectron() && leptonTwo.genPt > 0.f)
-          EnergyScale(1.f + two_scale, leptonTwo, &met, &metPhi);
-      } else { //FIXME: Should this be a one-sided uncertainty, as we know the direction of the difference?
+          EnergyScale(two_scale, leptonTwo, &met, &metPhi);
+      } else { //FIXME: Should this be a one-sided uncertainty?
         continue; //skip the down, setting it to be a one-sided uncertainty
         // if(leptonOne.isElectron() && leptonOne.genPt > 0.f)
-        //   EnergyScale(1.f - one_scale, leptonOne, &met, &metPhi);
+        //   EnergyScale(1.f/one_scale, leptonOne, &met, &metPhi);
         // if(leptonTwo.isElectron() && leptonTwo.genPt > 0.f)
-        //   EnergyScale(1.f - two_scale, leptonTwo, &met, &metPhi);
+        //   EnergyScale(1.f/two_scale, leptonTwo, &met, &metPhi);
       }
     } else if(name == "EmbMuonRes") {
       if(!fIsEmbed || !isMData) continue; //only process for embedding with reco muons
       reeval = true;
-      //change the pT resolution by a 1% at 10 GeV/c to 12% at 100 GeV/c (capped at these edges)
-      const float one_rel_scale = std::max(0.01f, std::min(0.12f, 0.01f + (leptonOne.pt - 10.f)*(0.12f - 0.01f) / (100.f - 10.f)));
-      const float two_rel_scale = std::max(0.01f, std::min(0.12f, 0.01f + (leptonTwo.pt - 10.f)*(0.12f - 0.01f) / (100.f - 10.f)));
-      //scale pT by 1 +- err_scale*(pt - genpt)/pt = 1 +- err_scale*(1 - genpt/pt)
-      const float one_scale = one_rel_scale * (1.f - leptonOne.genPt/leptonOne.pt);
-      const float two_scale = two_rel_scale * (1.f - leptonTwo.genPt/leptonTwo.pt);
+      const float one_scale = MuonResolutionUnc(leptonOne);
+      const float two_scale = MuonResolutionUnc(leptonTwo);
       if(fSystematics.IsUp(sys)) {
         if(leptonOne.isMuon() && leptonOne.genPt > 0.f)
-          EnergyScale(1.f + one_scale, leptonOne, &met, &metPhi);
+          EnergyScale(one_scale, leptonOne, &met, &metPhi);
         if(leptonTwo.isMuon() && leptonTwo.genPt > 0.f)
-          EnergyScale(1.f + two_scale, leptonTwo, &met, &metPhi);
-      } else { //FIXME: Should this be a one-sided uncertainty, as we know the direction of the difference?
+          EnergyScale(two_scale, leptonTwo, &met, &metPhi);
+      } else { //FIXME: Should this be a one-sided uncertainty?
         continue; //skip the down, setting it to be a one-sided uncertainty
         // if(leptonOne.isMuon() && leptonOne.genPt > 0.f)
-        //   EnergyScale(1.f - one_scale, leptonOne, &met, &metPhi);
+        //   EnergyScale(1.f/one_scale, leptonOne, &met, &metPhi);
         // if(leptonTwo.isMuon() && leptonTwo.genPt > 0.f)
-        //   EnergyScale(1.f - two_scale, leptonTwo, &met, &metPhi);
+        //   EnergyScale(1.f/two_scale, leptonTwo, &met, &metPhi);
       }
     } else if(name == "QCDStat") {
       if(!chargeTest) { //only shift for same-sign events
@@ -1814,6 +1818,13 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   }
 
   ///////////////////////////////////////////////////////////////////
+  //additional lepton IDs
+
+  // if(lep_tau == 0) {
+  //   emu &= Electron_convVeto[0]; //veto gamma --> e to reduce Z->mu mu* --> mu mu gamma
+  // }
+
+  ///////////////////////////////////////////////////////////////////
   //remove additional leptons in tau categories
 
   mutau &= nElectrons == 0;
@@ -2264,11 +2275,30 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   ////////////////////////////////////////////////////////////////////////////
   // Set 8 + selection offset: nBJets = 0
   ////////////////////////////////////////////////////////////////////////////
+
+  //emu electron debugging, barrel vs. endcap
+  const int do_barrel = 0; //0: igore; 1: only barrel electrons; -1: only endcap electrons
+  const bool barrel = std::fabs(leptonOne.eta) < 1.5; //barrel electron, fewer fakes
+  const bool apply_ele_id_cuts = false;
+  //additional electron IDs to reduce Z->mumu backgrounds
+  if(fDoEleIDStudy && apply_ele_id_cuts) {
+    emu &= Electron_convVeto[0]; //veto gamma --> e ID'd events
+    if(!fIsEmbed) //Not defined in the embedding
+      emu &= Electron_isPFcand[0]; //gamma->e less likely to be a PF candidate
+    emu &= Electron_lostHits[0] == 0; //gamma --> e leaves more missing hits
+    emu &= leptonOne.dxy < 0.01;
+    emu &= leptonOne.dz  < 0.03;
+    emu &= Electron_r9[0] > 0.45;
+    emu &= Electron_mvaFall17V2noIso_WP80[0];
+  }
+
   if(!lep_tau) {
     if(mll > min_mass_ - sys_buffer) {
-      fTimes[GetTimerNumber("SingleFill")] = std::chrono::steady_clock::now(); //timer for filling all histograms
-      FillAllHistograms(set_offset + 8);
-      IncrementTimer("SingleFill", true);
+      if(!emu || do_barrel == 0 || (barrel && do_barrel == 1) || (!barrel && do_barrel == -1)) {
+        fTimes[GetTimerNumber("SingleFill")] = std::chrono::steady_clock::now(); //timer for filling all histograms
+        FillAllHistograms(set_offset + 8);
+        IncrementTimer("SingleFill", true);
+      }
     }
   } else if(mutau_e || etau_mu) { //single mass category search for leptonic taus
     if(lep_tau == 1 && mutau_e && mll > min_mass_ - sys_buffer && mll < max_mass_ + sys_buffer ) {
@@ -2281,6 +2311,21 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
       FillAllHistograms(set_offset + (kETauMu - kEMu) + 8);
       IncrementTimer("SingleFill", true);
     }
+  }
+
+  //Test Z->mumu rejection
+  if(fDoEleIDStudy) {  //reduce gamma --> e to reduce Z->mu mu* --> mu mu gamma
+    bool emu_study = emu; //use a local version of the emu selection flag
+    emu_study &= Electron_convVeto[0]; //veto gamma --> e ID'd events
+    emu_study &= Electron_isPFcand[0]; //gamma->e less likely to be a PF candidate
+    emu_study &= Electron_lostHits[0] == 0; //gamma --> e leaves more missing hits
+    emu_study &= leptonOne.dxy < 0.01;
+    emu_study &= leptonOne.dz  < 0.03;
+    // emu_study &= std::fabs(leptonTwo.dxy-leptonOne.dxy) < 0.01;
+    emu_study &= Electron_r9[0] > 0.45;
+    emu_study &= Electron_mvaFall17V2noIso_WP80[0];
+    if(emu_study && (do_barrel == 0 || (barrel && do_barrel == 1) || (!barrel && do_barrel == -1)))
+      FillAllHistograms(set_offset + 20);
   }
 
   ////////////////////////////////////////////////////////////////////////////
@@ -2420,6 +2465,12 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
       } else if(emu) {
         category = Category("zemu");
         FillAllHistograms(set_offset + 9 + category);
+        if(fDoEleIDStudy) {
+          if(barrel)
+            FillAllHistograms(set_offset + 70 + category);
+          else
+            FillAllHistograms(set_offset + 80 + category);
+        }
         // category = Category("zmutau_e");
         // FillAllHistograms(set_offset + kMuTauE - kEMu + 9 + category);
         // category = Category("zetau_mu");
