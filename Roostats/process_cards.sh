@@ -9,7 +9,8 @@ Help() {
     echo "5: Leptonic channel histogram sets (e.g. \"{8}\")"
     echo "6: Optional, skip histogram retrieval step flag"
     echo "7: Optional, skip card creation step flag, only merge cards"
-    echo "8: Optional, dry-run flag"
+    echo "8: Optional parallel-processing flag for histogram sets"
+    echo "9: Optional, dry-run flag"
 }
 
 SELECTION=$1
@@ -19,7 +20,8 @@ TAUSETS=$4
 LEPSETS=$5
 SKIPRETRIEVAL=$6
 SKIPCREATION=$7
-DRYRUN=$8
+PARALLEL=$8
+DRYRUN=$9
 
 
 if [[ "${SELECTION}" == "" ]] || [[ "${SELECTION}" == "-h" ]] || [[ "${SELECTION}" == "--help" ]]; then
@@ -54,11 +56,31 @@ then
     #get the BDT distributions
     if [[ "${TAUSTRING}" != "" ]]; then
         echo "Retrieving hadronic tau histograms"
-        ${HEAD} root.exe -q -b "get_MVA_histogram.C(${TAUSETS}, \"${SELECTION}\", ${YEAR}, \"${HISTPATH}\", 1)"
+        for TAUSET in ${TAULIST}; do
+            if [[ "${PARALLEL}" != "" ]]; then
+                echo "Starting processing to mva_had_${TAUSET}_${YEARSTRING}.log"
+                ${HEAD} root.exe -q -b "get_MVA_histogram.C({${TAUSET}}, \"${SELECTION}\", ${YEAR}, \"${HISTPATH}\", 1)" >| mva_had_${TAUSET}_${YEARSTRING}.log 2>&1 &
+            else
+                ${HEAD} root.exe -q -b "get_MVA_histogram.C({${TAUSET}}, \"${SELECTION}\", ${YEAR}, \"${HISTPATH}\", 1)"
+            fi
+        done
+        if [[ "${PARALLEL}" != "" ]]; then
+            wait
+        fi
     fi
     if [[ "${LEPSTRING}" != "" ]]; then
         echo "Retrieving leptonic tau histograms"
-        ${HEAD} root.exe -q -b "get_MVA_histogram.C(${LEPSETS}, \"${SELECTION}\", ${YEAR}, \"${HISTPATH}\", -1)"
+        for LEPSET in ${LEPLIST}; do
+            if [[ "${PARALLEL}" != "" ]]; then
+                echo "Starting processing to mva_lep_${LEPSET}_${YEARSTRING}.log"
+                ${HEAD} root.exe -q -b "get_MVA_histogram.C({${LEPSET}}, \"${SELECTION}\", ${YEAR}, \"${HISTPATH}\", -1)" >| mva_lep_${LEPSET}_${YEARSTRING}.log 2>&1 &
+            else
+                ${HEAD} root.exe -q -b "get_MVA_histogram.C({${LEPSET}}, \"${SELECTION}\", ${YEAR}, \"${HISTPATH}\", -1)"
+            fi
+        done
+        if [[ "${PARALLEL}" != "" ]]; then
+            wait
+        fi
     fi
 fi
 
@@ -95,7 +117,6 @@ do
         if [[ "${DRYRUN}" != "" ]]; then
             ${HEAD} ${COMMAND} ${FINALTAUCARD}
         elif [[ "${TAUSTRING}" != "${TAULIST}" ]]; then
-            sleep 1
             echo ${COMMAND} ${FINALTAUCARD}
             ${COMMAND} >| ${FINALTAUCARD}
         fi
@@ -113,7 +134,6 @@ do
         if [[ "${DRYRUN}" != "" ]]; then
             ${HEAD} ${COMMAND} ${FINALLEPCARD}
         elif [[ "${LEPSTRING}" != "${LEPLIST}" ]]; then
-            sleep 1
             echo ${COMMAND} ${FINALLEPCARD}
             ${COMMAND} >| ${FINALLEPCARD}
         fi
@@ -125,7 +145,6 @@ do
         if [[ "${DRYRUN}" != "" ]]; then
             ${HEAD} combineCards.py had=${FINALTAUCARD} lep=${FINALLEPCARD} ${FINALCARD}
         else
-            sleep 1
             echo combineCards.py had=${FINALTAUCARD} lep=${FINALLEPCARD} ${FINALCARD}
             combineCards.py had=${FINALTAUCARD} lep=${FINALLEPCARD} >| ${FINALCARD}
         fi
@@ -157,7 +176,6 @@ if [[ "${TAUSTRING}" != "" ]]; then
         if [[ "${DRYRUN}" != "" ]]; then
             ${HEAD} ${COMMAND} "combine_mva_${SELECTION}_${SET_I}_${YEARSTRING}.txt"
         else
-            sleep 1
             echo ${COMMAND}  "combine_mva_${SELECTION}_${SET_I}_${YEARSTRING}.txt"
             ${COMMAND} >| "combine_mva_${SELECTION}_${SET_I}_${YEARSTRING}.txt"
         fi
@@ -175,7 +193,6 @@ if [[ "${LEPSTRING}" != "" ]]; then
         if [[ "${DRYRUN}" != "" ]]; then
             ${HEAD} ${COMMAND} "combine_mva_${LEPSIGNAL}_${SET_I}_${YEARSTRING}.txt"
         else
-            sleep 1
             echo ${COMMAND} "combine_mva_${LEPSIGNAL}_${SET_I}_${YEARSTRING}.txt"
             ${COMMAND} >| "combine_mva_${LEPSIGNAL}_${SET_I}_${YEARSTRING}.txt"
         fi
@@ -201,15 +218,12 @@ if [[ "${DRYRUN}" != "" ]]; then
     fi
 else
     if [[ "${TAUSTRING}" != "" ]]; then
-        sleep 1
         ${YEARTAUMERGE} >| ${FINALTAUCARD}
     fi
     if [[ "${LEPSTRING}" != "" ]]; then
-        sleep 1
         ${YEARLEPMERGE} >| ${FINALLEPCARD}
     fi
     if [[ "${TAUSTRING}" != "" ]] && [[ "${LEPSTRING}" != "" ]]; then
-        sleep 1
         combineCards.py had=${FINALTAUCARD} lep=${FINALLEPCARD} >| ${FINALCARD}
     fi
 fi

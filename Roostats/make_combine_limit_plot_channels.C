@@ -8,6 +8,7 @@ int make_combine_limit_plot_channels(vector<int> sets_had = {8}, vector<int> set
                                      bool doNoSys = false,
                                      bool doObs = false) {
   const double scale = (selection.Contains("h")) ? 1.e-4 : 1.e-6;
+  add_values_ = false; //Whether to add expected limit values to the figure
 
   TString year_s = Form("%i", years[0]);
   for(int i = 1; i < years.size(); ++i) year_s += Form("_%i", years[i]);
@@ -25,5 +26,6 @@ int make_combine_limit_plot_channels(vector<int> sets_had = {8}, vector<int> set
 
   TString tag = (doNoSys) ? "cat_nosys" : "cat";
   tag += Form("_had_%s_lep_%s", set_had_s.Data(), set_lep_s.Data());
+  if(add_values_) tag += "_vals";
   return make_combine_limit_plot_general(configs, tag, selection, processCards, doNoSys, doObs);
 }

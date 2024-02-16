@@ -4,6 +4,7 @@
 #include "../interface/GlobalConstants.h"
 #include "perform_f_test.C"
 #include "construct_multidim.C"
+#include "bemu_fit_bkg_mc.C"
 
 #include <iostream>
 #include <fstream>
@@ -13,9 +14,11 @@ using namespace CLFV;
 bool useRateParams_ = false;
 bool fixSignalPDF_  = true;
 bool useMultiDim_   = true;
-bool includeSys_    = true;
+bool includeSys_    = true; //flag to ignore most systematics
 bool twoSidedSys_   = true; //write both up and down for each rate systematic
 bool addESShifts_   = true; //include constrained parameters for the energy scale uncertainties
+bool useMCBkg_      = false; //FIXME: turn off -- use the background MC to create background template PDFs
+float zmumu_scale_  =  -1.; //scale to Z->ee/mumu distribution if using MC templates
 bool printPlots_    = true;
 bool fitSideBands_  = true;
 bool export_        = false; //if locally run, export the workspace to LPC
@@ -136,6 +139,11 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
     cout << "Background histogram for set " << set << " not found\n";
     return 2;
   }
+  THStack* stack_in = (THStack*) fInput->Get("hstack");
+  if(!stack_in) {
+    cout << "Background stack for set " << set << " not found\n";
+    return 2;
+  }
   TH1* sig = (TH1*) fInput->Get(selection.Data());
   if(!sig) {
     cout << "Signal histogram for set " << set << " not found\n";
@@ -154,15 +162,63 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
   data->SetDirectory(0);
   data->SetName(Form("data_obs_%i", set));
 
+  //replace the background stack with smoothed/fit histograms
+  THStack* stack = new THStack("bkg_stack", "Background stack");
+  if(useMCBkg_) {
+    for(int ihist = 0; ihist < stack_in->GetNhists(); ++ihist) {
+      TH1* h = (TH1*) stack_in->GetHists()->At(ihist);
+      h = make_safe(h, xmin, xmax);
+      bool isflat(false);
+      isflat |= TString(h->GetName()).Contains("QCD"  );
+      isflat |= TString(h->GetName()).Contains("Top"  );
+      isflat |= TString(h->GetName()).Contains("Other");
+      isflat |= TString(h->GetName()).Contains("Z->ee");
+      const bool isdy = TString(h->GetName()).Contains("#tau#tau");
+      const bool isembed = TString(h->GetName()).Contains("Embed");
+      const bool iszmumu = TString(h->GetName()).Contains("Z->ee");
+      if(isflat) { //flat-ish distributions
+        fit_and_replace(h, xmin, xmax);
+      }
+      const bool fit_dy_bkg = false; //whether or not to fit the Z->tautau background
+      const bool smooth_hists(false); //smooth histograms that aren't fit
+      if(isdy) { //Z->tautau
+        if(fit_dy_bkg) {
+          fit_and_replace(h, xmin, xmax);
+        } else if(smooth_hists) h->Smooth(2);
+      }
+      if(!isflat && !isdy && smooth_hists) h->Smooth(2); //any leftover histogram
+      if(zmumu_scale_ >= 0. && iszmumu) h->Scale(zmumu_scale_); //scale to Z->ee/mumu distribution for systematic studies
+      //scale Embedding to match the Drell-Yan MC normalization
+      if(isembed) {
+        if     (set == 13) h->Scale(6.52/5.70);
+        else if(set == 12) h->Scale(1.78/1.66);
+        else if(set == 11) h->Scale(8.94/8.43);
+      }
+      h->SetDirectory(0);
+      TString name = h->GetName();
+      name.ReplaceAll("#","");
+      name.ReplaceAll("/","");
+      name.ReplaceAll("->","to");
+      name.ReplaceAll(" ","");
+      name.ReplaceAll(Form("_lepm_event_%i_safe_fit", set), "");
+      name.ReplaceAll(Form("_lepm_%i_safe_fit", set), "");
+      name.ReplaceAll("_","");
+      stack->Add(h);
+    }
+  }
+
+  //Get systematics if requested
   if(includeSys_)
     get_systematics(fInput, selection, set, sig_sys, sys_names, xmin+1.e-3, xmax-1.e-3);
+
+  //Close the input file
   fInput->Close();
 
   //////////////////////////////////////////////////////////////////
   // Configure the output file
   //////////////////////////////////////////////////////////////////
 
-  TString outName = Form("combine_bemu_%s_%s.root", selection.Data(), set_string.Data());
+  TString outName = Form("combine_bemu_%s%s_%s.root", selection.Data(), (useMCBkg_) ? "_mc" : "", set_string.Data());
   TFile* fOut = nullptr;
   if(save_) fOut = new TFile(("datacards/"+year_string+"/"+outName).Data(), "RECREATE");
 
@@ -172,7 +228,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
 
   //Create directory for the data cards if needed
   gSystem->Exec(Form("[ ! -d datacards/%s ] && mkdir -p datacards/%s", year_string.Data(), year_string.Data()));
-  TString filepath = Form("datacards/%s/combine_bemu_%s_%s.txt", year_string.Data(), selection.Data(), set_string.Data());
+  TString filepath = Form("datacards/%s/combine_bemu_%s%s_%s.txt", year_string.Data(), selection.Data(), (useMCBkg_) ? "_mc" : "", set_string.Data());
   std::ofstream outfile;
   if(save_)
     outfile.open(filepath.Data());
@@ -337,29 +393,39 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
   RooCategory* categories = new RooCategory(Form("cat_%i", set), Form("cat_%i", set));
   int index = 0;
   // auto multiPDF = construct_simultaneous_pdf((fitSideBands_) ? *blindDataHist : *dataData , *lepm, *categories, fitSideBands_, index, set, 2);
-  auto multiPDF = construct_multipdf((fitSideBands_) ? *blindDataHist : *dataData , *lepm, *categories, fitSideBands_, index, set, 2);
-  std::cout << "Finished constructing the multi-PDF background model for set " << set << std::endl;
-  if(categories->numTypes() < 1) {
-    std::cout << "MultiPDF has no PDFs in set " << set << std::endl;
-    return 5;
-  }
-  RooAbsPdf* bkgPDF = multiPDF->getPdf(index); //multiPDF->getPdf(Form("index_%i", index));
-  categories->setIndex(index);
-  cats += Form("%-8s discrete\n", categories->GetName());
-  bkg_norm += Form("nbkg_%i rateParam lepm_%i bkg 1.\n", set, set);
-
-  if(useMultiDim_) {
-    multiPDF->SetName("bkg");
+  RooMultiPdf* multiPDF(nullptr);
+  RooAbsPdf* bkgPDF(nullptr);
+  //if using the MC templates, skip fitting the data
+  if(!useMCBkg_) {
+    multiPDF = construct_multipdf((fitSideBands_) ? *blindDataHist : *dataData , *lepm, *categories, fitSideBands_, index, set, 2);
+    std::cout << "Finished constructing the multi-PDF background model for set " << set << std::endl;
+    if(categories->numTypes() < 1) {
+      std::cout << "MultiPDF has no PDFs in set " << set << std::endl;
+      return 5;
+    }
+    bkgPDF = multiPDF->getPdf(index); //multiPDF->getPdf(Form("index_%i", index));
+    categories->setIndex(index);
+    cats += Form("%-8s discrete\n", categories->GetName());
+    bkg_norm += Form("nbkg_%i rateParam lepm_%i bkg 1.\n", set, set);
+    if(useMultiDim_) {
+      multiPDF->SetName("bkg");
+    } else {
+      bkgPDF->SetName("bkg");
+    }
   } else {
-    bkgPDF->SetName("bkg");
+    //create a background template from the background stack
+    TH1* h = (TH1*) stack->GetStack()->Last()->Clone(Form("bkg_stack_hist_%i", set));
+    RooDataHist* bkgData = new RooDataHist(Form("bkgData_%i",set), "MC template data", *lepm, h);
+    bkgPDF = new RooHistPdf("bkg", "MC template PDF", *lepm, *bkgData);
   }
+
 
   //Generate toy data to stand in for the observed data
   RooDataSet* dataset = bkgPDF->generate(RooArgSet(*lepm), data->Integral(low_bin, high_bin));
   dataset->SetName("data_obs");
 
   //Re-fit the PDFs to the toy MC data
-  if(replaceRefit_) {
+  if(!useMCBkg_ && replaceRefit_) {
     cout << "####################################################################" << endl
          << "!!! Re-fitting to the toy MC data generated!\n"
          << "####################################################################" << endl;
@@ -370,7 +436,10 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
     }
   }
 
-  //Plot the results of the background fits
+  //////////////////////////////////////////////////////////////////
+  // Plot the results of the background fits
+  //////////////////////////////////////////////////////////////////
+
   if(printPlots_) {
     TCanvas* c = new TCanvas(Form("c_%i", set), Form("c_%i", set), 1000, 1000);
     TPad* pad1 = new TPad("pad1", "pad1", 0., 0.3, 1., 1. ); pad1->Draw();
@@ -385,11 +454,10 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
     xframe->SetTitle("");
     sigDataVis->plotOn(xframe, RooFit::Invisible());
     sigPDF->plotOn(xframe, RooFit::Name("sigPDF"), RooFit::LineColor(kRed), RooFit::NormRange("BlindRegion"), RooFit::Range("full"));
-    if(blindData_) {
+    if(blindData_)
       dataData->plotOn(xframe, RooFit::Invisible());
-      // dataset->plotOn(xframe, RooFit::Name("toy_data"));
-    }
-    else           dataData->plotOn(xframe);
+    else
+      dataData->plotOn(xframe);
 
     int nentries = dataData->numEntries();
     double chi_sq = get_chi_squared(*lepm, bkgPDF, *dataData, fitSideBands_, &nentries);
@@ -398,7 +466,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
 
     TString name = bkgPDF->GetName();
     TString title = bkgPDF->GetTitle();
-    int order = ((title(title.Sizeof() - 2)) - '0');
+    int order = (useMCBkg_) ? 0 : ((title(title.Sizeof() - 2)) - '0');
     vector<int> colors = {kRed, kViolet-7, kGreen-7, kOrange+2, kAtlantic, kRed+2, kMagenta, kOrange, kYellow-7};
     vector<double> chi_sqs;
     vector<double> p_chi_sqs;
@@ -407,19 +475,21 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
     cout << "----------------------------------------------------------------------------" << endl
          <<title.Data() << ": chi^2 / dof = " << chi_sq << " / " << (nentries - order - 1) << " = " << chi_sqs.back()
          << " (p = " << p_chi_sqs.back() << ")" << endl;
-    auto vars = bkgPDF->getVariables();
-    auto itr = vars->createIterator();
-    auto var = itr->Next();
-    while(var) {
-      if(TString(var->GetName()) != lepm->GetName()) {
-        var->Print();
+    if(!useMCBkg_) {
+      auto vars = bkgPDF->getVariables();
+      auto itr = vars->createIterator();
+      auto var = itr->Next();
+      while(var) {
+        if(TString(var->GetName()) != lepm->GetName()) {
+          var->Print();
+        }
+        var = itr->Next();
       }
-      var = itr->Next();
     }
     cout << "----------------------------------------------------------------------------" << endl;
     // bkgPDF->Print("tree");
 
-    if(useMultiDim_) {
+    if(!useMCBkg_ && useMultiDim_) {
       for(int ipdf = 0; ipdf < categories->numTypes(); ++ipdf) {
         if(ipdf == index) continue;
         auto pdf = multiPDF->getPdf(ipdf); //multiPDF->getPdf(Form("index_%i", ipdf));
@@ -459,7 +529,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
     }
     leg->AddEntry("sigPDF", Form("Signal, BR = %.1e, N(sig) = %.1f", br_sig*br_scale, sigVis->Integral(low_bin, high_bin)), "L");
     leg->AddEntry(bkgPDF->GetName(), Form("%s - #chi^{2}/DOF = %.2f, p = %.3f", bkgPDF->GetTitle(), chi_sqs[0], p_chi_sqs[0]), "L");
-    if(useMultiDim_) {
+    if(!useMCBkg_ && useMultiDim_) {
       int offset = 1;
       for(int ipdf = 0; ipdf < categories->numTypes(); ++ipdf) {
         if(ipdf == index) {
@@ -588,7 +658,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
     line->SetLineWidth(2);
     line->Draw("same");
     //print the results
-    c->SaveAs(Form("plots/latest_production/%s/convert_bemu_%s_%i_bkg_pdfs.png", year_string.Data(), selection.Data(), set));
+    c->SaveAs(Form("plots/latest_production/%s/convert_bemu_%s_%i_%sbkg_pdfs.png", year_string.Data(), selection.Data(), set, (useMCBkg_) ? "mc_" : "" ));
     delete xframe;
     delete c;
     delete blindData;
@@ -624,7 +694,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
     rate   += Form("%15i", 1);
   else
     rate   += Form("%15.1f", data->Integral(low_bin, high_bin));
-  if(useMultiDim_) {
+  if(!useMCBkg_ && useMultiDim_) {
     ws->import(*multiPDF, RooFit::RecycleConflictNodes());
     ws->import(*categories, RooFit::RecycleConflictNodes());
   } else {
@@ -863,10 +933,11 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
   if(useRateParams_) {
     outfile << Form("%s \n\n", signorm.Data());
   }
-  if(useMultiDim_) {
+  if(!useMCBkg_ && useMultiDim_) {
     outfile << Form("%s \n\n", cats.Data());
   }
-  outfile << Form("%s \n\n", bkg_norm.Data());
+  if(!useMCBkg_)
+    outfile << Form("%s \n\n", bkg_norm.Data());
 
   //include constraints for the energy scale uncertainties
   if(addESShifts_) {

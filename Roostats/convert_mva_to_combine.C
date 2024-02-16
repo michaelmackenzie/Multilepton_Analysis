@@ -25,10 +25,11 @@ void add_group(map<TString,vector<TString>>& groups, TString sys, TString group)
 //determine the bias correction factor for the signal
 double get_bias_factor(int year, bool isHadronic, bool isMuTau) {
   if(!isHadronic) { //same sign bias
-    if(isMuTau) return -0.012; //1.2% bias
-    return -0.008; //0.8% bias
+    if(isMuTau) return -0.0077; //constant fit to CR / SR in 0 - 1 BDT score
+    return -0.0065; //constant fit to CR / SR in 0 - 1 BDT score
   }
-  return -0.10;
+  if(isMuTau) return -0.0835; //constant fit to CR / SR in 0.5 - 1.0 BDT score
+  return -0.0860; //constant fit to CR / SR in 0.5 - 1.0 BDT score
 }
 
 //ensure reasonable bin values
@@ -139,13 +140,13 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
     TString prev = "";
     const int max_sys = (use_scale_sys_) ? kMaxSystematics+kMaxScaleSystematics : kMaxSystematics;
     for(int isys = 1; isys < max_sys; ++isys) {
-      auto sys_info = systematic_name(isys, selection, years[0]); //FIXME: take the first year in the list for now
+      auto sys_info = systematic_name(isys, selection, years[0], set); //FIXME: take the first year in the list for now
       TString name = sys_info.first;
       if(name == "") continue;
       if(name == prev) continue; //ensure no repetition
       prev = name;
       TString type = sys_info.second;
-      TString down_name = systematic_name(isys+1, selection, years[0]).first;
+      TString down_name = systematic_name(isys+1, selection, years[0], set).first;
       if(name != down_name) {
         cout << "!!! Sys " << isys << " (" << name.Data() << "), " << isys+1 << " (" << down_name.Data() << ") have different names! Skipping...\n";
         continue;
@@ -519,7 +520,14 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
     const double bias = get_bias_factor(years[0], selection.EndsWith("tau"), selection.BeginsWith("mu"));
     const char* name = (selection.EndsWith("tau")) ? "had_bias_corr" : "lep_bias_corr";
     const double scale = 1. + bias; //add the bias to the rate to compensate for it
+    //add the rate parameter to correct the signal yield
     outfile << Form("%s rateParam %s %s %.3f [%.3f,%.3f]\n", name, hist.Data(), selec_name.Data(), scale, scale, scale);
+    //add a signal yield uncertainty
+    if(!ignore_sys_) {
+      outfile << Form("%s_unc lnN %6.4f", name, 1. + ((selection.EndsWith("tau")) ? 0.1 : 0.5)*bias);
+      for(int ibkg = 0; ibkg < nbkg_proc; ++ibkg) outfile << Form("%6s", "-");
+      outfile << endl;
+    }
   }
 
   if(use_fake_bkg_norm_) {

@@ -14,6 +14,10 @@ bool do_same_flavor_  = false; //retrieve Z->ll control region data
 bool separate_years_  = true; //retrieve and store histograms by year
 bool use_lep_tau_set_ = true; //use kETauMu/kMuTauE offsets instead of kEMu
 bool print_sys_plots_ = true; //print systematic figures
+bool save_            = true; //save output histogram files
+
+//copy histogram files locally, process them, then delete them
+bool copy_local_ = false;
 
 //plotting parameters
 double xmin_ = -1.;
@@ -21,6 +25,54 @@ double xmax_ =  1.;
 bool   logy_ = false;
 
 CLFV::DataPlotter* dataplotter_ = nullptr;
+
+//---------------------------------------------------------------------------------------------------------------------
+//cleanup the temporary histogram holding area
+Int_t remove_local(TString selection) {
+  selection.ReplaceAll("z", ""); //remove signal label from selection
+  selection.ReplaceAll("h", "");
+
+  //get the datacards for the selection
+  std::vector<dcard> cards;
+  get_datacards(cards, selection, 2); //get datacards with signal, but without scaling for visibility at x-sec level
+
+  //temporary directory for histogram storage
+  const char* local_storage = "local_histograms";
+
+  //copy over each file
+  for(dcard& card : cards) {
+    const char* outname = Form("%s_%s_%i_%s.hist", hist_tag_.Data(), selection.Data(), card.year_, card.name_.Data());
+    printf("Removing %s\n", outname);
+    gSystem->Exec(Form("rm %s/%s", local_storage, outname));
+  }
+  return 0;
+}
+
+//---------------------------------------------------------------------------------------------------------------------
+//copy datasets locally for faster access
+Int_t copy_local(TString selection, TString base) {
+
+  //get the datacards for the selection
+  std::vector<dcard> cards;
+  get_datacards(cards, selection, 2); //get datacards with signal, but without scaling for visibility at x-sec level
+
+  //make a temporary directory for histogram storage
+  const char* local_storage = "local_histograms";
+  gSystem->Exec(Form("[ ! -d %s ] && mkdir %s", local_storage, local_storage));
+
+  //copy over each file
+  for(dcard& card : cards) {
+    const char* outname = Form("%s_%s_%i_%s.hist", hist_tag_.Data(), selection.Data(), card.year_, card.name_.Data());
+    printf("Copying %-45s: %s\n", outname, card.filename_.Data());
+    // gSystem->Exec(Form("while [ 1 ]; do; timeout 20 xrdcp -f %s %s/%s; if [ $? -eq 0 ]; then; break; else; echo Re-attempting to copy!; fi; done;",
+    //                    card.filename_.Data(), local_storage, outname));
+    gSystem->Exec(Form("while [ 1 ]; do timeout 20 xrdcp -f %s %s/%s; if [ $? -eq 0 ]; then break; else echo Re-attempting to copy!; fi; done",
+                       card.filename_.Data(), local_storage, outname));
+  }
+  hist_path_ = "./";
+  hist_dir_  = local_storage;
+  return 0;
+}
 
 //---------------------------------------------------------------------------------------------------------------------
 //initialize the datasets using a DataPlotter
@@ -66,6 +118,13 @@ Int_t initialize_plotter(TString selection, TString base) {
   hist_tag_  = "clfv";
   hist_dir_  = base;
 
+  if(copy_local_) {
+    int status = copy_local(selection, base);
+    if(status) {
+      cout << "Local histogram copying failed with status " << status << endl;
+      return status;
+    }
+  }
   std::vector<dcard> cards;
   get_datacards(cards, selection, 2); //get datacards with signal, but without scaling for visibility at x-sec level
 
@@ -278,7 +337,7 @@ int get_same_flavor_histogram(int set = 8, TString selection = "mumu",
   }
 
   gSystem->Exec("[ ! -d histograms ] && mkdir histograms");
-  TFile* fout = new TFile(Form("histograms/%s_CR_lepm_%i_%s.hist", selection.Data(), set, year_string.Data()), "RECREATE");
+  TFile* fout = new TFile((save_) ? Form("histograms/%s_CR_lepm_%i_%s.hist", selection.Data(), set, year_string.Data()) : "TMP_cr.root", "RECREATE");
   hdata->Write();
   hstack->SetName("hstack");
   hstack->Write();
@@ -621,7 +680,7 @@ int get_individual_MVA_histogram(int set = 8, TString selection = "zmutau",
 
   //open file to save histograms to
   gSystem->Exec("[ ! -d histograms ] && mkdir histograms");
-  TFile* fout = new TFile(Form("histograms/%s_%s_%i_%s.hist", selection.Data(), hist.Data(), set, year_string.Data()), "RECREATE");
+  TFile* fout = new TFile((save_) ? Form("histograms/%s_%s_%i_%s.hist", selection.Data(), hist.Data(), set, year_string.Data()) : "TMP.root", "RECREATE");
   hdata->Write();
   hstack->SetName("hstack");
   hstack->Write();
@@ -657,6 +716,13 @@ int get_individual_MVA_histogram(int set = 8, TString selection = "zmutau",
   //save the results
   fout->Write();
   fout->Close();
+  delete fout;
+
+  //if copied files locally, remove them
+  if(copy_local_) {
+    remove_local(selection);
+  }
+
   return status;
 }
 
@@ -677,6 +743,7 @@ int get_MVA_histogram(vector<int> sets = {8}, TString selection = "zmutau",
     vector<int> years_use;
     if(separate_years_) years_use = {years[iyear]}; //do a single year at a time
     else                years_use = years;
+
     //loop through the histogram set list for fitting in categories
     for(int set : sets) {
       //get the hadronic tau region
@@ -697,5 +764,6 @@ int get_MVA_histogram(vector<int> sets = {8}, TString selection = "zmutau",
       }
     }
   }
+  // gApplication->Terminate(status); //speed up the ending of the processing
   return status;
 }

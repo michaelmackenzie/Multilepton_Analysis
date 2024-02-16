@@ -9,6 +9,7 @@ Help() {
     echo "5: Optional, skip histogram retrieval step flag"
     echo "6: Optional, skip card creation step flag, only merge cards"
     echo "7: Optional, dry-run flag"
+    echo "8: MC template cards"
 }
 
 SELECTION=$1
@@ -18,6 +19,7 @@ HISTSETS=$4
 SKIPRETRIEVAL=$5
 SKIPCREATION=$6
 DRYRUN=$7
+MCTEMPLATES=$8
 
 
 if [[ "${SELECTION}" == "" ]] || [[ "${SELECTION}" == "-h" ]] || [[ "${SELECTION}" == "--help" ]]; then
@@ -43,6 +45,9 @@ fi
 if [[ "${HISTSTRING}" == "" ]]; then
     echo "No histogram sets identified!"
     exit
+fi
+if [[ "${MCTEMPLATES}" != "" ]]; then
+    MCTEMPLATES="mc_"
 fi
 
 echo "Running with selection = ${SELECTION}, years = ${YEAR}, hist sets = ${HISTSETS}"
@@ -70,10 +75,10 @@ SETMERGE="combineCards.py"
 cd datacards/${YEARSTRING}/
 #iterate through each histogram set to build the combined card
 COMMAND="combineCards.py"
-FINALCARD="combine_bemu_${SELECTION}_${HISTSTRING}.txt"
+FINALCARD="combine_bemu_${SELECTION}_${MCTEMPLATES}${HISTSTRING}.txt"
 for SET_I in $HISTLIST
 do
-    COMMAND="${COMMAND} mva_${SET_I}=combine_bemu_${SELECTION}_${SET_I}.txt"
+    COMMAND="${COMMAND} mva_${SET_I}=combine_bemu_${SELECTION}_${MCTEMPLATES}${SET_I}.txt"
 done
 if [[ "${DRYRUN}" != "" ]]; then
     ${HEAD} ${COMMAND} ${FINALCARD}

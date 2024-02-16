@@ -80,5 +80,4 @@ void combine_multipdf_example(){
    wout.import(signal);
    wout.Print();
    wout.Write();
-   polynomial.Print("tree");
 }

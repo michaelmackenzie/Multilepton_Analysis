@@ -1,7 +1,6 @@
 //Plot data from  Higgs Combine FitDiagnostics toys
-int skip_bad_fits_ = 1;
 
-int plot_combine_fits(const char* file_name, double r_true = 0., TString out_name = "") {
+int plot_combine_fits(const char* file_name, double r_true = 0., TString out_name = "", const int skip_bad_fits = 2, const int err_mode = 0) {
   // if(gSystem->Load(Form("%s/src/CLFVAnalysis/lib/libCLFVAnalysis.so",gSystem->Getenv("CMSSW_BASE"))) < 0) return -1;
 
   /////////////////////////////////////////////////////////////////
@@ -47,16 +46,20 @@ int plot_combine_fits(const char* file_name, double r_true = 0., TString out_nam
   for(Long64_t entry = 0; entry < nentries; ++entry) {
     tree->GetEntry(entry);
     if(nentries <= 10) cout << " Entry " << entry << ": (r, r_up, r_down) = (" << r << ", " << rHiErr << ", " << rLoErr << "), status = " << fit_status << endl;
+
+    //over-ride low error with high error
+    if(err_mode == 1) rLoErr = rHiErr;
+
     //check for fit issues
-    if(skip_bad_fits_) {
+    if(skip_bad_fits > 0) {
       if(std::fabs(rLoErr/rHiErr) > 2. || std::fabs(rHiErr/rLoErr) > 2.) {
         cout << " Entry " << entry << " has suspicious errors: (r, r_up, r_down) = (" << r << ", " << rHiErr << ", " << rLoErr << "), status = " << fit_status << endl;
         continue;
       }
     }
-    if(fit_status != 0) {
+    if(fit_status != 0 && skip_bad_fits > 1) {
       cout << " Entry " << entry << " has non-zero fit status: (r, r_up, r_down) = (" << r << ", " << rHiErr << ", " << rLoErr << "), status = " << fit_status << endl;
-      if(skip_bad_fits_) continue;
+      if(skip_bad_fits) continue;
     }
     //Fill the fit results histograms
     h->Fill(r);

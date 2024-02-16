@@ -17,7 +17,7 @@ int test_bemu_mc_closure(int set = 13, vector<int> years = {2016,2017,2018}, con
   TString years_s = Form("%i", years[0]);
   for(unsigned i = 1; i < years.size(); ++i) years_s += Form("_%i", years[i]);
 
-  //for outpur figures
+  //for output figures
   const char* fig_dir = Form("plots/latest_production/%s/zemu_mc_closure_%i%s", years_s.Data(), set, tag_.Data());
   gSystem->Exec(Form("[ ! -d %s ] && mkdir -p %s", fig_dir, fig_dir));
   gStyle->SetOptFit(1110);

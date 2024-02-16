@@ -1,7 +1,7 @@
 //Script to process each individual channel and some combined channels
 #include "make_combine_limit_plot_general.C"
 
-bool do_low_bdt_data_ = true; //assume the limits are for the low BDT score region of data --> for validating backgrounds
+bool do_low_bdt_data_ = false; //assume the limits are for the low BDT score region of data --> for validating backgrounds
 
 int make_combine_limit_plot_all_channels(vector<int> sets_had = {8}, vector<int> sets_lep = {8},
                                      TString selection = "zmutau",
@@ -24,9 +24,12 @@ int make_combine_limit_plot_all_channels(vector<int> sets_had = {8}, vector<int>
   //add each individual hadronic channel, all years
   for(int set : sets_had) {
     configs.push_back(config_t(Form("mva_%s_%i_%s", selection.Data(), set, year_s.Data()), Form("Had %i", set), {set}, years, scale));
-    if((set != 8 && set != 25) || do_low_bdt_data_) {
+    if(set == 26) { //very low signal here
       configs.back().rmin_ = -5000.;
       configs.back().rmax_ =  5000.;
+    } else if((set != 8 && set != 25) || do_low_bdt_data_) {
+      configs.back().rmin_ = -500.;
+      configs.back().rmax_ =  500.;
     }
   }
   //add each individual leptonic channel, all years
@@ -39,31 +42,32 @@ int make_combine_limit_plot_all_channels(vector<int> sets_had = {8}, vector<int>
   }
   if(!do_low_bdt_data_) {
     //total hadronic/leptonic categories
-    configs.push_back(config_t(Form("mva_%s_%s_%s"                 , selection.Data(),             set_had_s.Data()                  , year_s.Data()), "Hadronic", sets_had, years, scale));
+    configs.push_back(config_t(Form("mva_%s_%s_%s", selection.Data(), set_had_s.Data(), year_s.Data()), "Hadronic", sets_had, years, scale));
     if(do_low_bdt_data_) {
       configs.back().rmin_ = -500.;
       configs.back().rmax_ =  500.;
     }
-    configs.push_back(config_t(Form("mva_%s_%s_%s_%s"              , selection.Data(), lep.Data(), set_lep_s.Data()                  , year_s.Data()), "Leptonic", sets_lep, years, scale));
+    configs.push_back(config_t(Form("mva_%s_%s_%s_%s", selection.Data(), lep.Data(), set_lep_s.Data(), year_s.Data()), "Leptonic", sets_lep, years, scale));
     if(do_low_bdt_data_) {
       configs.back().rmin_ = -500.;
       configs.back().rmax_ =  500.;
     }
     //total fit
-    configs.push_back(config_t(Form("mva_total_%s_had_%s_lep_%s_%s", selection.Data()            , set_had_s.Data(), set_lep_s.Data(), year_s.Data()), "Combined", sets_had, years, scale));
+    configs.push_back(config_t(Form("mva_total_%s_had_%s_lep_%s_%s", selection.Data(), set_had_s.Data(), set_lep_s.Data(), year_s.Data()), "Combined", sets_had, years, scale));
     if(do_low_bdt_data_) {
       configs.back().rmin_ = -500.;
       configs.back().rmax_ =  500.;
     }
   }
 
+  // //turn off the expected limit text
+  // add_values_ = false;
+
   //tag for the output figure
   TString tag = (doNoSys) ? "all_cat_nosys" : "all_cat";
   if(do_low_bdt_data_) tag += "_low_bdt";
   tag += Form("_had_%s_lep_%s", set_had_s.Data(), set_lep_s.Data());
-
-  //turn off the expected limit text
-  add_values_ = false;
+  if(add_values_) tag += "_vals";
 
   //call the general plotting function
   return make_combine_limit_plot_general(configs, tag, selection, processCards, doNoSys, doObs);

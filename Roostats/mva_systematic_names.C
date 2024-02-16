@@ -6,8 +6,9 @@
 
 CLFV::Systematics systematics_; //names of the systematics
 
-std::pair<TString,TString> systematic_name(int sys, TString selection, int year) {
+std::pair<TString,TString> systematic_name(int sys, TString selection, int year, int set = -1) {
   TString name(systematics_.GetName(sys)), type("shape");
+  set = set % 100; //ensure it's the base set number
 
   if(embed_mode_ == 0) { //not using embedding samples
     if(name.BeginsWith("Emb")) name = "";
@@ -51,7 +52,17 @@ std::pair<TString,TString> systematic_name(int sys, TString selection, int year)
     if(year != 2018) name = ""; //only defined in 2018
     else             name = "HEM";
   }
-  if(name.BeginsWith("JetToTauBiasRate")) name = ""; //currently ignored
+
+  //j-->tau bias systematic configuration check
+  const int jtt_bias_mode = 1; //mode XY: X = 1: uncorrelated j-->tau bias in mass regions; Y = 1: use separate rate bias from shape bias
+  if(jtt_bias_mode % 10 == 0) //ignore j-->tau bias rate uncertainty, only use if separating from the shape effect
+    if(name.BeginsWith("JetToTauBiasRate")) name = "";
+  if((jtt_bias_mode / 10) % 10 == 1 && set > 0) {//make separate mass regions uncorrelated
+    if(name.BeginsWith("JetToTauBias0") && !name.BeginsWith("JetToTauBiasRate")) {
+      const char* region = (set == 25) ? "MidM" : (set == 26) ? "HighM" : (set == 27) ? "LowM" : (set == 28) ? "ZllM" : "";
+      name = Form("%sRgn%s", name.Data(), region);
+    }
+  }
 
   if(selection.EndsWith("etau")) {
     if(name.Contains("TauMuID") && name != "TauMuID") name = ""; //don't use finely binned nuisance parameters

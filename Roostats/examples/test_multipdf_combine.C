@@ -5,10 +5,10 @@
    0: Nominal Bernstein poly values fit to Z->e+mu sidebands --> Fails in Combine
    1: Nominal Chebychev poly values fit to Z->e+mu sidebands --> Fails in Combine
    2: Approximate Chebychev values from Z->e+mu sideband fit --> Fails in Combine
-   3: Higher (Chebychev) background near peak
-   4: Simpler (Chebychev) falling spectrum
+   3: Higher (Chebychev) background near peak --> Succeeds in Combine
+   4: Simpler (Chebychev) falling spectrum --> Succeeds in Combine
 **/
-void test_multipdf_combine(const int bkg_mode = 3) {
+void test_multipdf_combine(const int bkg_mode = 2) {
 
   //////////////////////////////////////////////
   // Create the inputs
@@ -20,7 +20,7 @@ void test_multipdf_combine(const int bkg_mode = 3) {
   obs.setRange("LowSideband" , 70.,  86.);
   obs.setRange("HighSideband", 96., 110.);
   obs.setRange("BlindRegion" , 86.,  96.);
-  obs.setBins(80);
+  // obs.setBins(80);
 
   //Create a signal PDF
   RooRealVar mean  ("mean"  , "mean"  , 9.06608e+01); mean  .setConstant(true);
@@ -67,6 +67,20 @@ void test_multipdf_combine(const int bkg_mode = 3) {
     RooRealVar* chb_4_c2 = new RooRealVar("chb_4_2", "chb_4_2", -0.208949, -25., 25.);
     RooRealVar* chb_4_c3 = new RooRealVar("chb_4_3", "chb_4_3", 0.0191548, -25., 25.);
     poly_2 = new RooChebychev("chb_4_pdf", "Chebychev PDF, order 4", obs, RooArgList(*chb_4_c0, *chb_4_c1, *chb_4_c2, *chb_4_c3));
+
+    // RooRealVar* chb_2_c0 = new RooRealVar("chb_2_0", "chb_2_0", -6.56766e-01, -25., 25.);
+    // RooRealVar* chb_2_c1 = new RooRealVar("chb_2_1", "chb_2_1",  1.22148e-01, -25., 25.);
+    // poly_2 = new RooChebychev("chb_2_pdf", "Chebychev PDF, order 2", obs, RooArgList(*chb_2_c0, *chb_2_c1));
+
+    // RooRealVar* chb_3_2_c0 = new RooRealVar("chb_3_2_0", "chb_3_2_0", -1.40, -25., 25.);
+    // RooRealVar* chb_3_2_c1 = new RooRealVar("chb_3_2_1", "chb_3_2_1",  0.70, -25., 25.);
+    // RooRealVar* chb_3_2_c2 = new RooRealVar("chb_3_2_2", "chb_3_2_2", -0.20, -25., 25.);
+    // poly_2 = new RooChebychev("chb_3_2_pdf", "Chebychev PDF, order 3", obs, RooArgList(*chb_3_2_c0, *chb_3_2_c1, *chb_3_2_c2));
+
+    // RooRealVar* bst_3_c0 = new RooRealVar("bst_3_0", "bst_3_0", -0.206163 , -25., 25.);
+    // RooRealVar* bst_3_c1 = new RooRealVar("bst_3_1", "bst_3_1",  0.0958628, -25., 25.);
+    // RooRealVar* bst_3_c2 = new RooRealVar("bst_3_2", "bst_3_2",  0.0160934, -25., 25.);
+    // poly_2 = new RooBernsteinFast<3>("bst_3_pdf", "Bernstein PDF, order 3", obs, RooArgList(*bst_3_c0, *bst_3_c1, *bst_3_c2));
   } else if(bkg_mode == 3) { //Higher background near signal
     RooRealVar* chb_3_c0 = new RooRealVar("chb_3_0", "chb_3_0", -0.80, -25., 25.);
     RooRealVar* chb_3_c1 = new RooRealVar("chb_3_1", "chb_3_1",  0.50, -25., 25.);
@@ -112,7 +126,7 @@ void test_multipdf_combine(const int bkg_mode = 3) {
 
   // Generate data from the background PDF
   const int ndata = 7307; //data in a nominal dataset
-  RooDataHist* gen = poly_1->generateBinned(obs, RooFit::NumEvents(ndata));
+  RooDataSet* gen = poly_2->generate(obs, RooFit::NumEvents(ndata));
 
   //Fit the PDFs to the data
   poly_1->fitTo(*gen);

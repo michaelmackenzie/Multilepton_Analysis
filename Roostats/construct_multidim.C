@@ -150,7 +150,7 @@ RooAbsPdf* create_exponential(RooRealVar& obs, int order, int set, TString tag =
     vars.push_back(new RooRealVar(Form("exp_%i_order_%i_c_%i%s", set, order, i, tag.Data()), Form("exp_%i_order_%i_%i power%s", set, order, i, tag.Data()), 1., -10., 10.));
     exps.push_back(new RooExponential(Form("exp_%i_pdf_order_%i_%i%s", set, order, i, tag.Data()), Form("exp_%i_pdf_order_%i_%i%s", set, order, i, tag.Data()), obs, *vars[i]));
     pdfs.add(*exps[i]);
-    coeffs.push_back(new RooRealVar(Form("exp_%i_order_%i_n_%i%s", set, order, i, tag.Data()), Form("exp_%i_order_%i_%i%s norm" , set, order, i, tag.Data()), 1.e3, 0., 1.e6));
+    coeffs.push_back(new RooRealVar(Form("exp_%i_order_%i_n_%i%s", set, order, i, tag.Data()), Form("exp_%i_order_%i_%i%s norm" , set, order, i, tag.Data()), 1.e3, 0., 1.e8));
     coefficients.add(*coeffs[i]);
   }
   if(order == 0) {
@@ -201,7 +201,7 @@ RooChebychev* create_chebychev(RooRealVar& obs, int order, int set) {
   vector<RooRealVar*> vars;
   RooArgList list;
   for(int i = 0; i <= order; ++i) {
-    vars.push_back(new RooRealVar(Form("chb_%i_order_%i_%i", set, order, i), Form("chb_%i_order_%i_%i", set, order, i), 1./pow(10.,i), -5., 5.));
+    vars.push_back(new RooRealVar(Form("chb_%i_order_%i_%i", set, order, i), Form("chb_%i_order_%i_%i", set, order, i), 1./pow(10.,i), -25., 25.));
     list.add(*vars[i]);
   }
   return new RooChebychev(Form("chb_%i_order_%i", set, order), Form("Chebychev PDF, order %i", order), obs, list);
@@ -556,6 +556,7 @@ RooMultiPdf* construct_multipdf(RooDataHist& data, RooRealVar& obs, RooCategory&
   result = add_bernsteins(data, obs, pdfList, useSideBands, index, set, verbose);
   if(result.second < chi_min) {chi_min = result.second; index = result.first;}
   // add_chebychevs(data, obs, pdfList, useSideBands, index, set, verbose);
+  // if(result.second < chi_min) {chi_min = result.second; index = result.first;}
   result = add_exponentials(data, obs, pdfList, useSideBands, set, verbose);
   // if(result.second < chi_min) {chi_min = result.second; index = result.first;}
   result = add_powerlaws(data, obs, pdfList, useSideBands, set, verbose);
