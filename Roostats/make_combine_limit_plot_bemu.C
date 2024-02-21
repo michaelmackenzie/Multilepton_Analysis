@@ -1,6 +1,6 @@
 //Script to process the individual and combined category limits and plot them
 #include "make_combine_limit_plot_general.C"
-bool do_barrel_endcap_ = true; //split fit into barrel/endcap electron categories
+bool do_barrel_endcap_ = false; //split fit into barrel/endcap electron categories
 
 int make_combine_limit_plot_bemu(vector<int> sets = {8}, TString selection = "zemu",
                                  vector<int> years = {2016, 2017, 2018},

@@ -56,7 +56,13 @@ int make_combine_limit_plot_general(vector<config_t> configs, //info for each en
         if(selection == "zemu") additional_command = "--freezeParameters 'rgx{.*},var{cat_.*},var{bst_.*},var{exp_.*}'";
         else                    additional_command = "--freezeParameters allConstrainedNuisances";
       }
-      if(speed_limit_) additional_command += "--cminDefaultMinimizerStrategy 0";
+      if(speed_limit_) additional_command += " --cminDefaultMinimizerStrategy 0";
+      if(selection == "zemu") {
+        additional_command += " --X-rtd MINIMIZER_freezeDisassociatedParams";
+        additional_command += " --X-rtd REMOVE_CONSTANT_ZERO_POINT=1";
+        additional_command += " --X-rtd MINIMIZER_multiMin_hideConstants";
+        additional_command += " --X-rtd MINIMIZER_multiMin_maskConstraints";
+      }
 
       //Run combine on each datacard
       printf("Processing combine card %s/combine_%s.txt\n", dir.Data(), card.Data());

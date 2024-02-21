@@ -5,16 +5,18 @@ Help() {
     echo "Process Z->e+mu closure test:"
     echo "1: Card name"
     echo "2: N(toys) (default = 1000)"
-    echo "3: Additional arguments"
-    echo "4: r range (default = 20)"
-    echo "5: Base random seed (default = 90)"
+    echo "3: N(gen) per segment (default = 100)"
+    echo "4: Additional arguments"
+    echo "5: r range (default = 100)"
+    echo "6: Base random seed (default = 90)"
 }
 
 CARD=$1
 NTOYS=$2
-ARGS=$3
-RRANGE=$4
-SEED=$5
+NGENPERTOY=$3
+ARGS=$4
+RRANGE=$5
+SEED=$6
 
 if [[ "${CARD}" == "" ]] || [[ "${CARD}" == "--help" ]] || [[ "{CARD}" == "-h" ]]; then
     Help
@@ -25,8 +27,12 @@ if [[ "${NTOYS}" == "" ]]; then
     NTOYS=1000
 fi
 
+if [[ "${NGENPERTOY}" == "" ]]; then
+    NGENPERTOY=100
+fi
+
 if [[ "${RRANGE}" == "" ]]; then
-    RRANGE="20"
+    RRANGE="100"
 fi
 
 if [[ "${SEED}" == "" ]]; then
@@ -45,22 +51,25 @@ ARGS="${ARGS} --X-rtd MINIMIZER_freezeDisassociatedParams --X-rtd MINIMIZER_mult
 
 #Do the fits in increments of N(toys) to avoid fit failures
 OUTPUTLIST=""
-NGENPERTOY=10
 GENERATED=0
-for ((IGEN=0; IGEN<=${NTOYS}; IGEN+=${NGENPERTOY}))
+for ((IGEN=0; IGEN<${NTOYS}; IGEN+=${NGENPERTOY}))
 do
     SEED=$((SEED+NGENPERTOY))
     NGEN=${NGENPERTOY}
     # Generate toy MC data
     combine -d ${GENCARD} -M GenerateOnly --saveToys -t ${NGEN} -n .${OUTNAME} --genBinnedChannels lepm_13,lepm_12,lepm_11,lepm_10 -s ${SEED}
 
+    # Create binned data to fit
+    time root.exe -q -b -l "${CMSSW_BASE}/src/CLFVAnalysis/Roostats/convert_unbinned_to_binned.C(\"higgsCombine.${OUTNAME}.GenerateOnly.mH120.${SEED}.root\", \"higgsCombine.${OUTNAME}_binned.GenerateOnly.mH120.${SEED}.root\")"
+
     # Fit the toy data
-    combine -d ${CARD} ${ARGS} --genBinnedChannels lepm_13,lepm_12,lepm_11,lepm_10 --rMin -${RRANGE} --rMax ${RRANGE} -M FitDiagnostics -t ${NGEN} --toysFile=higgsCombine.${OUTNAME}.GenerateOnly.mH120.${SEED}.root -n .${OUTNAME}_${SEED} -s ${SEED}
+    combine -d ${CARD} ${ARGS} --genBinnedChannels lepm_13,lepm_12,lepm_11,lepm_10 --rMin -${RRANGE} --rMax ${RRANGE} -M FitDiagnostics -t ${NGEN} --toysFile=higgsCombine.${OUTNAME}_binned.GenerateOnly.mH120.${SEED}.root -n .${OUTNAME}_${SEED} -s ${SEED}
     OUTPUTLIST="${OUTPUTLIST} fitDiagnostics.${OUTNAME}_${SEED}.root"
     GENERATED=$((GENERATED+NGEN))
 
     #Clean up the output
     rm higgsCombine.${OUTNAME}.GenerateOnly.mH120.${SEED}.root
+    rm higgsCombine.${OUTNAME}_binned.GenerateOnly.mH120.${SEED}.root
     rm higgsCombine.${OUTNAME}_${SEED}.FitDiagnostics.mH120.${SEED}.root
 done
 
@@ -72,4 +81,4 @@ rm ${OUTPUTLIST}
 
 #Merge output files
 echo "Creating bias plots..."
-root.exe -q -b "${CMSSW_BASE}/src/CLFVAnalysis/Roostats/plot_combine_fits.C(\"fitDiagnostics.${OUTNAME}.root\", 0, \"bias_${OUTNAME}\", 0, 1)"
+root.exe -q -b "${CMSSW_BASE}/src/CLFVAnalysis/Roostats/plot_combine_fits.C(\"fitDiagnostics.${OUTNAME}.root\", 0, \"bias_${OUTNAME}\", 0, 0)"

@@ -12,18 +12,19 @@
 using namespace CLFV;
 
 bool useRateParams_ = false;
-bool fixSignalPDF_  = true;
-bool useMultiDim_   = true;
-bool includeSys_    = true; //flag to ignore most systematics
-bool twoSidedSys_   = true; //write both up and down for each rate systematic
-bool addESShifts_   = true; //include constrained parameters for the energy scale uncertainties
+bool fixSignalPDF_  = true ;
+bool useMultiDim_   = true ;
+bool includeSys_    = true ; //flag to ignore most systematics
+bool twoSidedSys_   = true ; //write both up and down for each rate systematic
+bool addESShifts_   = true ; //include constrained parameters for the energy scale uncertainties
 bool useMCBkg_      = false; //FIXME: turn off -- use the background MC to create background template PDFs
-float zmumu_scale_  =  -1.; //scale to Z->ee/mumu distribution if using MC templates
-bool printPlots_    = true;
-bool fitSideBands_  = true;
-bool export_        = false; //if locally run, export the workspace to LPC
+float zmumu_scale_  =   -1.; //FIXME: set to -1 -- scale to Z->ee/mumu distribution if using MC templates
+bool printPlots_    = true ;
+bool fitSideBands_  = true ; //fit only the data sidebands
+bool replaceData_   = true ; //replace the data with toy MC
 bool replaceRefit_  = false; //replace data with toy MC, then fit the unblinded toy data
-bool save_          =  true; //save output combine workspace/cards
+bool export_        = false; //if locally run, export the workspace to LPC
+bool save_          = true ; //save output combine workspace/cards
 
 
 //Retrieve yields for each relevant systematic
@@ -177,13 +178,13 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
       const bool isembed = TString(h->GetName()).Contains("Embed");
       const bool iszmumu = TString(h->GetName()).Contains("Z->ee");
       if(isflat) { //flat-ish distributions
-        fit_and_replace(h, xmin, xmax);
+        fit_and_replace(h, xmin, xmax, nullptr, set, 2);
       }
       const bool fit_dy_bkg = false; //whether or not to fit the Z->tautau background
       const bool smooth_hists(false); //smooth histograms that aren't fit
       if(isdy) { //Z->tautau
         if(fit_dy_bkg) {
-          fit_and_replace(h, xmin, xmax);
+          fit_and_replace(h, xmin, xmax, nullptr, set, 2);
         } else if(smooth_hists) h->Smooth(2);
       }
       if(!isflat && !isdy && smooth_hists) h->Smooth(2); //any leftover histogram
@@ -421,7 +422,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
 
 
   //Generate toy data to stand in for the observed data
-  RooDataSet* dataset = bkgPDF->generate(RooArgSet(*lepm), data->Integral(low_bin, high_bin));
+  RooDataHist* dataset = (replaceData_) ? bkgPDF->generateBinned(RooArgSet(*lepm), data->Integral(low_bin, high_bin)) : dataData;
   dataset->SetName("data_obs");
 
   //Re-fit the PDFs to the toy MC data
@@ -454,7 +455,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
     xframe->SetTitle("");
     sigDataVis->plotOn(xframe, RooFit::Invisible());
     sigPDF->plotOn(xframe, RooFit::Name("sigPDF"), RooFit::LineColor(kRed), RooFit::NormRange("BlindRegion"), RooFit::Range("full"));
-    if(blindData_)
+    if(blind_data_)
       dataData->plotOn(xframe, RooFit::Invisible());
     else
       dataData->plotOn(xframe);
@@ -500,8 +501,8 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
                     RooFit::NormRange("full"), RooFit::Range("full"));
         // pdf->Print("tree");
         order = ((title(title.Sizeof() - 2)) - '0');
-        if     (title.Contains("Exponential")) order *= 2;
-        else if(title.Contains("Power law"  )) order *= 2;
+        if     (title.Contains("Exponential")) order = 2*order - 1;
+        else if(title.Contains("Power law"  )) order = 2*order - 1;
         else if(title.BeginsWith("Combined" )) order = 4; //2nd order poly + 0th order exp
         chi_sqs.push_back(chi_sq / (nentries - order - 1));
         p_chi_sqs.push_back(TMath::Prob(chi_sq, nentries - order - 1));
@@ -521,11 +522,11 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
       }
     }
     xframe->Draw();
-    if(blindData_) {
+    if(blind_data_) {
       blindData->Draw("same E1");
       leg->AddEntry(blindData, Form("Data, N(entries) = %.0f", data->Integral(low_bin, high_bin)), "PL");
     } else {
-      leg->AddEntry("data", Form("Data, N(entries) = %.0f", data->Integral(low_bin, high_bin)), "PL");
+      leg->AddEntry(data, Form("Data, N(entries) = %.0f", data->Integral(low_bin, high_bin)), "PL");
     }
     leg->AddEntry("sigPDF", Form("Signal, BR = %.1e, N(sig) = %.1f", br_sig*br_scale, sigVis->Integral(low_bin, high_bin)), "L");
     leg->AddEntry(bkgPDF->GetName(), Form("%s - #chi^{2}/DOF = %.2f, p = %.3f", bkgPDF->GetTitle(), chi_sqs[0], p_chi_sqs[0]), "L");
@@ -553,7 +554,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
          << " nbins = " << high_bin - low_bin + 1 << " integral = " << norm << endl;
 
     TH1* dataDiff = bkgPDF->createHistogram("dataDiff", *lepm);
-    // TH1* dataDiff = (blindData_) ? (TH1*) blindData->Clone("dataDiff") : (TH1*) data->Clone("dataDiff");
+    // TH1* dataDiff = (blind_data_) ? (TH1*) blindData->Clone("dataDiff") : (TH1*) data->Clone("dataDiff");
     dataDiff->SetTitle("");
     // dataDiff->SetXTitle("M_{e#mu}");
     dataDiff->SetLineColor(data->GetLineColor());
@@ -612,7 +613,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
       const double val = dataDiff->GetBinContent(ibin); //Bkg PDF estimate
       const int data_bin = data->FindBin(x);
       const double data_val = data->GetBinContent(data_bin);
-      if((blindData_ && x > blind_min && x < blind_max) || (data_val < 1)) {
+      if((blind_data_ && x > blind_min && x < blind_max) || (data_val < 1)) {
         dataDiff->SetBinContent(ibin, 0.);
         dataDiff->SetBinError  (ibin, 0.);
       } else {

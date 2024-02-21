@@ -9,7 +9,6 @@ vector<TH1*> hsigs_;
 int test_sys_ = -1; //set to systematic number if debugging/inspecting it
 double xmin_;
 double xmax_;
-bool blind_data_       = true ; //remove signal region from data
 bool do_systematics_   = true ; //retrieve systematically shifted templates
 bool sig_sys_only_     = true ; //only process systematic templates for signal processes
 bool allow_sys_errors_ = true ; //if there are missing systematic histograms, clone the default
