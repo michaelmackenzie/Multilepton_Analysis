@@ -826,6 +826,7 @@ namespace CLFV {
     Float_t         fMinLepM = -1.f; //for filtering on the ntuple-level di-lepton mass
 
     Int_t           fETauAntiEleCut = 100; //Cut on the anti-ele ID for etau
+    Int_t           fUseLooseTauBuffer = 0; //Add a buffer between the loose and tight tau selections
 
     Int_t           fSystematicSeed; //for systematic variations
 

@@ -2,15 +2,20 @@
 using namespace CLFV;
 #include "histogramming_config.C"
 
+//check if running on the grid
+const bool is_grid() {
+  const TString user = gSystem->Getenv("USER");
+  const bool grid = user == ""; //FIXME: Check grid user name on lxplus condor
+  return grid;
+}
+
 //make a file list for the given dataset
 bool make_file_list(TString dataset, TString path, TString txt_name) {
     TString redir = (path.Contains("cern.ch")) ? "root://eoscms.cern.ch/" : "root://cmseos.fnal.gov/";
     TString base_loc = path;
     base_loc.ReplaceAll(redir.Data(), "");
-    const TString user = gSystem->Getenv("USER");
-    const bool is_grid = user != "mmackenz" && user != "mimacken"; //FIXME: Check grid user names
     TString ls_command;
-    if(is_grid) {
+    if(is_grid()) {
       if(!dataset.Contains("*")) {
         ls_command = Form("xrdfs %s ls %s | grep %s | awk '{print \"%s\"$0}' >| %s", redir.Data(), base_loc.Data(), dataset.Data(), redir.Data(), txt_name.Data());
       } else { //handle the wildcards
@@ -268,6 +273,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
         hist_selec->fAllowMigration     = allowMigration_ && doSystematics;
         hist_selec->fMigrationBuffer    = migration_buffer_;
         hist_selec->fMaxEntries         = max_events;
+        hist_selec->fUseLooseTauBuffer  = useLooseTauBuffer_;
 
         if(etauAntiEleCut_ > 0) hist_selec->fETauAntiEleCut = etauAntiEleCut_;
       }

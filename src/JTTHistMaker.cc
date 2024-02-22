@@ -788,10 +788,13 @@ Bool_t JTTHistMaker::Process(Long64_t entry)
 
   //ensure reasonable dxy/dz cuts
   const float max_dz(0.5), max_dxy(0.2);
+  const float tau_dz(0.2);
   mutau &= std::fabs(leptonOne.dxy) < max_dxy;
   mutau &= std::fabs(leptonOne.dz ) < max_dz ;
+  mutau &= std::fabs(leptonTwo.dz ) < tau_dz ;
   etau  &= std::fabs(leptonOne.dxy) < max_dxy;
   etau  &= std::fabs(leptonOne.dz ) < max_dz ;
+  etau  &= std::fabs(leptonTwo.dz ) < tau_dz ;
 
   fCutFlow->Fill(icutflow); ++icutflow; //9
   if(!(mutau || etau)) return kTRUE;
@@ -810,12 +813,18 @@ Bool_t JTTHistMaker::Process(Long64_t entry)
   mutau &= isLooseTau || tauDeepAntiJet >= 50; //63 = tight
   mutau &= tauDeepAntiMu  >= 10; //15 = tight
   mutau &= tauDeepAntiEle >= 10; //15 = loose
-  mutau &= leptonTwo.id2  >=  2; //1 = loose, 3 = tight tau MVA anti-muon ID
+  // mutau &= leptonTwo.id2  >=  2; //1 = loose, 3 = tight tau MVA anti-muon ID
 
-  etau  &= isLooseTau || tauDeepAntiJet >= 50; //
+  etau  &= isLooseTau || tauDeepAntiJet >= 50; //63 = tight
   etau  &= tauDeepAntiMu  >= 10; //15 = tight
   etau  &= tauDeepAntiEle >= 100; //63 = tight, 127 = vtight
-  etau  &= leptonTwo.id2  >=  2; //1 = loose, 3 = tight tau MVA anti-muon ID
+  // etau  &= leptonTwo.id2  >=  2; //1 = loose, 3 = tight tau MVA anti-muon ID
+
+  //Add a buffer between loose ID and tight ID taus
+  if(fUseLooseTauBuffer && isLooseTau) {
+    mutau &= tauDeepAntiJet < 30; //31 = medium
+    etau  &= tauDeepAntiJet < 30;
+  }
 
   //remove tau decay modes not interested in
   mutau &= tauDecayMode % 10 < 2 && tauDecayMode <= 11;

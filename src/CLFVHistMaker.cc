@@ -1792,10 +1792,13 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   //ensure reasonable dxy/dz cuts for electrons/muons
 
   const float max_dz(0.5), max_dxy(0.2);
+  const float tau_dz(0.2);
   mutau &= std::fabs(leptonOne.dxy) < max_dxy;
   mutau &= std::fabs(leptonOne.dz ) < max_dz ;
+  mutau &= std::fabs(leptonTwo.dz ) < tau_dz ;
   etau  &= std::fabs(leptonOne.dxy) < max_dxy;
   etau  &= std::fabs(leptonOne.dz ) < max_dz ;
+  etau  &= std::fabs(leptonTwo.dz ) < tau_dz ;
   emu   &= std::fabs(leptonOne.dxy) < max_dxy;
   emu   &= std::fabs(leptonOne.dz ) < max_dz ;
   emu   &= std::fabs(leptonTwo.dxy) < max_dxy;
@@ -1850,12 +1853,18 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   mutau &= isLooseTau || tauDeepAntiJet >= 50; //63 = tight
   mutau &= tauDeepAntiMu  >= 10; //15 = tight
   mutau &= tauDeepAntiEle >= 10; //7 = VLoose, 15 = Loose, 31 = Medium
-  mutau &= leptonTwo.id2  >=  2; //1 = loose, 3 = tight tau MVA anti-muon ID
+  // mutau &= leptonTwo.id2  >=  2; //1 = loose, 3 = tight tau MVA anti-muon ID
 
   etau  &= isLooseTau || tauDeepAntiJet >= 50; //
   etau  &= tauDeepAntiMu  >= 10; //15 = tight
   etau  &= tauDeepAntiEle >= fETauAntiEleCut; //tauDeepAntiEle >= 50; //31 = Medium, 63 = tight, 127 = VTight, 255 = VVTight
-  etau  &= leptonTwo.id2  >=  2; //1 = loose, 3 = tight tau MVA anti-muon ID
+  // etau  &= leptonTwo.id2  >=  2; //1 = loose, 3 = tight tau MVA anti-muon ID
+
+  //Add a buffer between loose ID and tight ID taus
+  if(fUseLooseTauBuffer && isLooseTau) {
+    mutau &= tauDeepAntiJet < 30; //31 = medium
+    etau  &= tauDeepAntiJet < 30;
+  }
 
   //remove tau decay modes not interested in (keep only 0, 1, 10, 11)
   mutau &= tauDecayMode % 10 < 2 && tauDecayMode <= 11;
