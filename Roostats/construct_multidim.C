@@ -21,9 +21,24 @@ bool perform_f_test(double chisq_1, int ndof_1, double chisq_2, int ndof_2) {
   if(chisq_1 < 0. || ndof_1 <= 0) return true; //pick the higher order function
   if(chisq_2 < 0. || ndof_2 <= 0) return false; //stick with the original function
   if(ndof_1 == ndof_2) return chisq_1 > chisq_2; //if equal degrees of freedom, pick the better chi^2 model
+  if(ndof_1 < ndof_2) {
+    cout << __func__ << ": Error, higher order has higher N(dof)!\n";
+    return false;
+  }
 
-  const double ftest = (chisq_1 / ndof_1) / (chisq_2 / ndof_2); //(chisq_1 - chisq_2) / (ndof_1 - ndof_2) / (chisq_2 / ndof_2);
-  const double p_of_f = 1. - ROOT::Math::fdistribution_cdf(ftest, ndof_1, ndof_2);
+  const int Mode = 0; //how to perform the F-test
+  double p_of_f = 1.;
+  if(Mode == 0) { //use CDF for the F-distribution
+    const double ftest = (chisq_1 / ndof_1) / (chisq_2 / ndof_2); //(chisq_1 - chisq_2) / (ndof_1 - ndof_2) / (chisq_2 / ndof_2);
+    p_of_f = 1. - ROOT::Math::fdistribution_cdf(ftest, ndof_1, ndof_2);
+  } else if(Mode == 1) { //use the difference of chi^2 p-value given N(dof) = Delta N(dof)
+    const double ftest = chisq_2 - chisq_1;
+    if(ftest < 0.) p_of_f = 1.; //lower order is a better fit
+    else           p_of_f = 1. - ROOT::Math::chisquared_cdf(ftest, ndof_1 - ndof_2);
+  } else {
+    cout << __func__ << ": Unkown F-test mode " << Mode << endl;
+    return false;
+  }
   printf("F-test: chisq_1 = %.3f / %i; chisq_2 = %.3f / %i --> p(F) = %.3e\n",
          chisq_1, ndof_1, chisq_2, ndof_2, p_of_f);
   return (p_of_f < 0.05); //select a higher order if 95% confidence it's better
@@ -433,7 +448,7 @@ std::pair<int,double> add_powerlaws(RooDataHist& data, RooRealVar& obs, RooArgLi
 
 //Fit Chebychev polynomials and add passing ones
 std::pair<int, double> add_chebychevs(RooDataHist& data, RooRealVar& obs, RooArgList& list, bool useSideBands, int& index, int set, int verbose) {
-  const int max_order = 6;
+  const int max_order = 4;
   const double max_chisq = 2.; //per DOF
   //for finding the best fitting function
   double chi_min = 1.e10;
@@ -495,7 +510,7 @@ std::pair<int, double> add_chebychevs(RooDataHist& data, RooRealVar& obs, RooArg
 
 //Fit Bernstein polynomials and add passing ones
 std::pair<int, double> add_bernsteins(RooDataHist& data, RooRealVar& obs, RooArgList& list, bool useSideBands, int& index, int set, int verbose) {
-  const int max_order = 5;
+  const int max_order = 4;
   const double max_chisq = 2.; //per DOF
   //for finding the best fitting function
   double chi_min = 1.e10;
