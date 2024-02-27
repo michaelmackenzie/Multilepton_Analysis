@@ -20,10 +20,22 @@ bool test_single_function_  = false; //only pass 1 function into the PDF ensembl
 bool perform_f_test(double chisq_1, int ndof_1, double chisq_2, int ndof_2) {
   if(chisq_1 < 0. || ndof_1 <= 0) return true; //pick the higher order function
   if(chisq_2 < 0. || ndof_2 <= 0) return false; //stick with the original function
+  if(ndof_1 == ndof_2) return chisq_1 > chisq_2; //if equal degrees of freedom, pick the better chi^2 model
 
-  const double ftest = (chisq_1 - chisq_2) / (ndof_1 - ndof_2) / (chisq_2 / ndof_2);
+  const double ftest = (chisq_1 / ndof_1) / (chisq_2 / ndof_2); //(chisq_1 - chisq_2) / (ndof_1 - ndof_2) / (chisq_2 / ndof_2);
   const double p_of_f = 1. - ROOT::Math::fdistribution_cdf(ftest, ndof_1, ndof_2);
+  printf("F-test: chisq_1 = %.3f / %i; chisq_2 = %.3f / %i --> p(F) = %.3e\n",
+         chisq_1, ndof_1, chisq_2, ndof_2, p_of_f);
   return (p_of_f < 0.05); //select a higher order if 95% confidence it's better
+}
+
+//----------------------------------------------------------------------------------------------------------------
+//Perform a p(chi^2, ndof) test to determine if the function has an acceptable agreement with data
+bool perform_chisq_test(double chisq, int ndof, double* p_val = nullptr) {
+  if(chisq < 0. || ndof <= 0) return false; //must have well-defined chi^2 and N(dof)
+  const double p_chi_sq = TMath::Prob(chisq, ndof);
+  if(p_val) *p_val = p_chi_sq;
+  return (p_chi_sq > 0.01); //accept if p(chi^2, ndof) is at least 1%
 }
 
 //----------------------------------------------------------------------------------------------------------------
@@ -361,8 +373,9 @@ std::pair<int,double> add_exponentials(RooDataHist& data, RooRealVar& obs, RooAr
     int nentries = data.numEntries();
     const double chi_sq = get_chi_squared(obs, pdf, data, useSideBands, &nentries);
     const int dof = (nentries - 2*order);  //N(params) = 2 * N(exp)
-    const double p_chi_sq = TMath::Prob(chi_sq, dof);
-    if((force_fit_order_ && order == 2) || (!force_fit_order_ && chi_sq / dof < max_chisq && p_chi_sq >= min_p_chisq)) {
+    double p_chi_sq;
+    const bool accept = (perform_chisq_test(chi_sq, dof, &p_chi_sq) && !force_fit_order_) || (force_fit_order_ && order == 2);
+    if(accept) {
       // list.add(*pdf);
       list.add(*basePdf);
       // basePdf->Print("tree");
@@ -401,9 +414,9 @@ std::pair<int,double> add_powerlaws(RooDataHist& data, RooRealVar& obs, RooArgLi
     int nentries = data.numEntries();
     const double chi_sq = get_chi_squared(obs, pdf, data, useSideBands, &nentries);
     const int dof = (nentries - 2*order);  //N(params) = 2*N(power laws)
-    const double p_chi_sq = TMath::Prob(chi_sq, dof);
-    const bool add_pdf = /*chi_sq < min_chi - chi_cutoff &&*/ chi_sq / dof < max_chisq && p_chi_sq >= min_p_chisq;
-    if((force_fit_order_ && order == 2) || (!force_fit_order_ && add_pdf)) {
+    double p_chi_sq;
+    const bool accept = (perform_chisq_test(chi_sq, dof, &p_chi_sq) && !force_fit_order_) || (force_fit_order_ && order == 2);
+    if(accept) {
       // list.add(*pdf);
       list.add(*basePdf);
     } else {
@@ -412,7 +425,7 @@ std::pair<int,double> add_powerlaws(RooDataHist& data, RooRealVar& obs, RooArgLi
     if(chi_sq < min_chi) {min_chi = chi_sq; min_index = list.getSize() - 1;}
     if(verbose > 1) cout << "######################\n"
                          << "### Powerlaw order " << order << " has chisq = " << chi_sq << " / " << dof << " = " << chi_sq/dof
-                         << " (p = " << p_chi_sq << ")" " --> add PDF = " << add_pdf << endl
+                         << " (p = " << p_chi_sq << ")" " --> add PDF = " << accept << endl
                          << "######################\n";
   }
   return std::pair<int, double>(min_index, min_chi);
@@ -450,7 +463,9 @@ std::pair<int, double> add_chebychevs(RooDataHist& data, RooRealVar& obs, RooArg
       dof = (nentries - order - 1);  //DOF = number of variables + normalization
     } while(chi_sq / dof > max_chisq && ntries < max_tries); //check if it should be re-fit
 
-    if(((force_fit_order_ || force_best_fit_) && order == 3) || (!force_fit_order_ && chi_sq / dof < max_chisq)) {
+    double p_chi_sq;
+    const bool accept = (perform_chisq_test(chi_sq, dof, &p_chi_sq) && !force_fit_order_) || (force_fit_order_ && order == 3);
+    if(accept) {
       bool is_best = (chi_min > 1.e8) || perform_f_test(chi_min, dof + (order - best_order), chi_sq, dof);
       printf("--- Best order = %i, current = %i: F(test) = %o\n", best_order, order, is_best);
       list.add(*basePdf);
@@ -518,7 +533,9 @@ std::pair<int, double> add_bernsteins(RooDataHist& data, RooRealVar& obs, RooArg
       chi_sq =  get_chi_squared(obs, pdf, data, useSideBands);
     } while(chi_sq / dof > max_chisq && ntries < max_tries);
 
-    if((force_fit_order_ && order == 3) || (!force_fit_order_ && chi_sq / dof < max_chisq)) {
+    double p_chi_sq;
+    const bool accept = (perform_chisq_test(chi_sq, dof, &p_chi_sq) && !force_fit_order_) || (force_fit_order_ && order == 3);
+    if(accept) {
       // list.add(*pdf);
       list.add(*basePdf);
       ++num_added;
@@ -612,7 +629,6 @@ std::pair<int, double> add_dy_ww(RooDataHist& data, RooRealVar& obs, RooArgList&
   } while(chi_sq / dof > max_chisq && ntries < max_tries);
 
   if(true || chi_sq / dof < max_chisq) {
-    basePdf->Print("tree");
     basePdf->SetTitle("Combined DY/WW");
     // list.add(*pdf);
     list.add(*basePdf);
