@@ -205,6 +205,8 @@ namespace CLFV {
     TH1* hQCDDelRJ[3]; //0: 0 jets; 1: 1 jet; 2: >=2 jets (all without QCD weights)
     TH2* hQCDOnePtVsTwoPtJ[4]; //0: 0 jets; 1: 1 jet; 2: >=2 jets; 3: jet-inclusive (all without QCD closure)
     TH2* hQCDOnePtVsTwoPtIso[2]; //0: no QCD weights; 1: no muon anti-iso --> iso weights
+    TH2* hQCDLepMVsMVAMuTau[3];  //0: nominal; 1: non-closure correction removed; 2: no bias correction
+    TH2* hQCDLepMVsMVAETau [3];  //0: nominal; 1: non-closure correction removed; 2: no bias correction
 
     TH1* hLepPtOverM;
     TH1* hAlpha[4]; //alpha from arXiv:1207.4894

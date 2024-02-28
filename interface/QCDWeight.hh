@@ -22,15 +22,15 @@ namespace CLFV {
     ~QCDWeight();
 
     //Get the transfer factor
-    float GetWeight(float deltar, float deltaphi, float oneeta, float onept, float twopt, const int year, int njets, const bool isantiiso,
-                    float& nonclosure, float& antiiso, float* up, float* down, int& nsys);
+    float GetWeight(float deltar, float deltaphi, float oneeta, float onept, float twopt, float mass, float bdt, const int year, int njets, const bool isantiiso,
+                    float& nonclosure, float& antiiso, float& massbdt, float* up, float* down, int& nsys);
 
     //single statistical uncertainty
-    float GetWeight(float deltar, float deltaphi, float oneeta, float onept, float twopt, const int year, int njets, const bool isantiiso,
-                    float& nonclosure, float& antiiso, float& up, float& down, float& sys);
+    float GetWeight(float deltar, float deltaphi, float oneeta, float onept, float twopt, float mass, float bdt, const int year, int njets, const bool isantiiso,
+                    float& nonclosure, float& antiiso, float& massbdt, float& up, float& down, float& sys);
 
     //no uncertainties/separated corrections
-    float GetWeight(float deltar, float deltaphi, float oneeta, float onept, float twopt, const int year, int njets, const bool isantiiso);
+    float GetWeight(float deltar, float deltaphi, float oneeta, float onept, float twopt, float mass, float bdt, const int year, int njets, const bool isantiiso);
 
   public:
     std::map<int, TH1*> histsData_;
@@ -46,6 +46,7 @@ namespace CLFV {
     std::map<int, std::vector<TF1*>> altJetFitsDown_; //varying fit uncertainties
     std::map<int, TH2*> Pt2DClosure_;
     std::map<int, TH2*> AntiIsoScale_;
+    std::map<int, TH2*> LepMVsBDTScale_;
 
     int verbose_;
     bool useFits_;
@@ -56,6 +57,7 @@ namespace CLFV {
     bool useDeltaRSys_;
     bool useJetBinned_;
     bool useAntiIso_;
+    int  useLepMVsBDT_; //2D (mass, bdt score) bias correction: 1 = mutau_e, 2 = etau_mu
   };
 }
 #endif

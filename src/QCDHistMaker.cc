@@ -9,12 +9,16 @@ using namespace CLFV;
 QCDHistMaker::QCDHistMaker(int seed, TTree * /*tree*/) : HistMaker(seed) {
   fDoSystematics = 0;
   fWriteTrees = 0;
+  fMuTauQCDWeight = nullptr;
+  fETauQCDWeight  = nullptr;
 }
 
 //--------------------------------------------------------------------------------------------------------------
 void QCDHistMaker::Begin(TTree * /*tree*/)
 {
   HistMaker::Begin(nullptr);
+  fMuTauQCDWeight = new QCDWeight("emu", 11100201, -1, 0);
+  fETauQCDWeight  = new QCDWeight("emu", 21100201, -1, 0);
 }
 
 
@@ -28,29 +32,9 @@ void QCDHistMaker::InitHistogramFlags() {
   }
 
   //Event Sets
-  const bool mutau = fSelection == "" || fSelection == "mutau";
-  const bool etau  = fSelection == "" || fSelection == "etau" ;
-  const bool emu   = fSelection == "" || fSelection == "emu"  ;
-  const bool mumu  = fSelection == "" || fSelection == "mumu" ;
-  const bool ee    = fSelection == "" || fSelection == "ee"   ;
-
-  if(mutau) {
-    fEventSets [kMuTau + 8] = 1; // preselection
-  }
-  if(etau) {
-    fEventSets [kETau + 8] = 1; // preselection
-  }
-  if(emu) {
-    fEventSets [kEMu  + 8] = 1; // preselection
-    fEventSets [kEMu  + 70] = 1; // loose electron, tight muon
-    fEventSets [kEMu  + 71] = 1; // loose electron, loose muon
-  }
-  if(mumu) {
-    fEventSets [kMuMu + 8] = 1; // preselection
-  }
-  if(ee) {
-    fEventSets [kEE   + 8] = 1; // preselection
-  }
+  fEventSets [kEMu  +  8] = 1; // preselection
+  fEventSets [kEMu  + 70] = 1; // loose electron, tight muon
+  fEventSets [kEMu  + 71] = 1; // loose electron, loose muon
 }
 
 //--------------------------------------------------------------------------------------------------------------
@@ -154,6 +138,8 @@ void QCDHistMaker::BookEventHistograms() {
       Utilities::BookH1F(fEventHist[i]->hQCDDelRJ[0]         , "qcddelrj0"         , Form("%s: Lepton DeltaR"    ,dirname), ndrbins, drbins, folder);
       Utilities::BookH1F(fEventHist[i]->hQCDDelRJ[1]         , "qcddelrj1"         , Form("%s: Lepton DeltaR"    ,dirname), ndrbins, drbins, folder);
       Utilities::BookH1F(fEventHist[i]->hQCDDelRJ[2]         , "qcddelrj2"         , Form("%s: Lepton DeltaR"    ,dirname), ndrbins, drbins, folder);
+
+      //2D measurements
       const double onebins[] = {10., 20., 30., 40., 150.};
       const double twobins[] = {10., 20., 30., 40., 150.};
       const int    nonebins  = sizeof(onebins) / sizeof(*onebins) - 1;
@@ -165,6 +151,16 @@ void QCDHistMaker::BookEventHistograms() {
       Utilities::BookH2F(fEventHist[i]->hQCDOnePtVsTwoPtIso[0] , "qcdoneptvstwoptiso", Form("%s: QCD one pt vs two pt",dirname), nonebins, onebins, ntwobins, twobins, folder);
       Utilities::BookH2F(fEventHist[i]->hQCDOnePtVsTwoPtIso[1] , "qcdoneptvstwoptiso1", Form("%s: QCD one pt vs two pt",dirname), nonebins, onebins, ntwobins, twobins, folder);
 
+      const double fit_mbins[]    = {40., 50., 100., 170.}; //mass regions the fit is performed in
+      const int    nfit_mbins     = sizeof(fit_mbins) / sizeof(*fit_mbins) - 1;
+      const double mva_bins[] = {0., 0.1, 0.2, 0.3, 0.5, 1.};
+      const int nmva_bins = sizeof(mva_bins) / sizeof(*mva_bins) - 1;
+      Utilities::BookH2F(fEventHist[i]->hQCDLepMVsMVAMuTau[0], "qcdlepmvsmvamutau0", Form("%s: QCDLepMVsMVA-MuTau",dirname),  nfit_mbins, fit_mbins, nmva_bins, mva_bins, folder);
+      Utilities::BookH2F(fEventHist[i]->hQCDLepMVsMVAMuTau[1], "qcdlepmvsmvamutau1", Form("%s: QCDLepMVsMVA-MuTau",dirname),  nfit_mbins, fit_mbins, nmva_bins, mva_bins, folder);
+      Utilities::BookH2F(fEventHist[i]->hQCDLepMVsMVAMuTau[2], "qcdlepmvsmvamutau2", Form("%s: QCDLepMVsMVA-MuTau",dirname),  nfit_mbins, fit_mbins, nmva_bins, mva_bins, folder);
+      Utilities::BookH2F(fEventHist[i]->hQCDLepMVsMVAETau [0], "qcdlepmvsmvaetau0" , Form("%s: QCDLepMVsMVA-ETau" ,dirname),  nfit_mbins, fit_mbins, nmva_bins, mva_bins, folder);
+      Utilities::BookH2F(fEventHist[i]->hQCDLepMVsMVAETau [1], "qcdlepmvsmvaetau1" , Form("%s: QCDLepMVsMVA-ETau" ,dirname),  nfit_mbins, fit_mbins, nmva_bins, mva_bins, folder);
+      Utilities::BookH2F(fEventHist[i]->hQCDLepMVsMVAETau [2], "qcdlepmvsmvaetau2" , Form("%s: QCDLepMVsMVA-ETau" ,dirname),  nfit_mbins, fit_mbins, nmva_bins, mva_bins, folder);
       delete dirname;
     }
   }
@@ -280,9 +276,9 @@ void QCDHistMaker::FillEventHistogram(EventHist_t* Hist) {
   /////////////////////////////////////
   // QCD SS-->OS specific histograms
 
-  const Float_t wt_noqcd     = (qcdWeight > 0.) ? eventWeight*genWeight/qcdWeight : eventWeight*genWeight;
-  const Float_t wt_noqcdcl   = (qcdClosure > 0.) ? eventWeight*genWeight/qcdClosure : eventWeight*genWeight;
-  const Float_t wt_noantiiso = (qcdIsoScale > 0.) ? eventWeight*genWeight/qcdIsoScale : eventWeight*genWeight;
+  const Float_t wt_noqcd     = (qcdWeight   > 0.) ? eventWeight*genWeight/qcdWeight   : eventWeight*genWeight;
+  const Float_t wt_noqcdcl   = (qcdClosure  > 0.) ? eventWeight*genWeight/qcdClosure  : eventWeight*genWeight; //no closure correction
+  const Float_t wt_noantiiso = (qcdIsoScale > 0.) ? eventWeight*genWeight/qcdIsoScale : eventWeight*genWeight; //no bias correction
   Hist->hLepDeltaPhi[1]->Fill(lepDelPhi             ,wt_noqcd);
   Hist->hLepDeltaR[1] ->Fill(lepDelR                ,wt_noqcd);
   Hist->hLepDeltaR[2] ->Fill(lepDelR                ,eventWeight*genWeight); //same binning as scale factor measurement
@@ -305,6 +301,36 @@ void QCDHistMaker::FillEventHistogram(EventHist_t* Hist) {
   Hist->hQCDOnePtVsTwoPtIso[0]->Fill(leptonOne.p4->Pt(), leptonTwo.p4->Pt(), wt_noqcd); //no QCD SS-->OS weights
   Hist->hQCDOnePtVsTwoPtIso[1]->Fill(leptonOne.p4->Pt(), leptonTwo.p4->Pt(), wt_noantiiso); //no muon anti-iso --> iso weight
 
+
+  qcdMassBDTScale = 1.f;
+  //mutau_e BDT
+  {
+    //get the mutau_e (mass, bdt) correction
+    if(!chargeTest) fMuTauQCDWeight->GetWeight(fTreeVars.lepdeltar, fTreeVars.lepdeltaphi, fTreeVars.leponeeta, fTreeVars.leponept, fTreeVars.leptwopt,
+                                               fTreeVars.lepm, fMvaUse[7],
+                                               fYear, nJets20, isLooseMuon, qcdClosure, qcdIsoScale, qcdMassBDTScale, qcdWeightAltUp, qcdWeightAltDown, qcdWeightAltNum);
+    const Float_t wt_mass_bdt = (qcdMassBDTScale   > 0.f) ? eventWeight*genWeight*qcdMassBDTScale : eventWeight*genWeight; // weight with (mass, bdt) correction
+    Hist->hQCDLepMVsMVAMuTau[0]->Fill(fTreeVars.lepm, fMvaUse[7], wt_mass_bdt          ); //full correction applied
+    Hist->hQCDLepMVsMVAMuTau[1]->Fill(fTreeVars.lepm, fMvaUse[7], wt_noantiiso         ); //no anti-iso correction applied
+    Hist->hQCDLepMVsMVAMuTau[2]->Fill(fTreeVars.lepm, fMvaUse[7], eventWeight*genWeight); //no (mass, bdt) correction applied
+  }
+
+  //etau_mu BDT
+  {
+    //get the etau_mu (mass, bdt) correction
+    if(!chargeTest) fETauQCDWeight->GetWeight(fTreeVars.lepdeltar, fTreeVars.lepdeltaphi, fTreeVars.leponeeta, fTreeVars.leponept, fTreeVars.leptwopt,
+                                              fTreeVars.lepm, fMvaUse[9],
+                                              fYear, nJets20, isLooseMuon, qcdClosure, qcdIsoScale, qcdMassBDTScale, qcdWeightAltUp, qcdWeightAltDown, qcdWeightAltNum);
+    const Float_t wt_mass_bdt = (qcdMassBDTScale   > 0.f) ? eventWeight*genWeight*qcdMassBDTScale : eventWeight*genWeight; // weight with (mass, bdt) correction
+    Hist->hQCDLepMVsMVAETau [0]->Fill(fTreeVars.lepm, fMvaUse[9], wt_mass_bdt          ); //full correction applied
+    Hist->hQCDLepMVsMVAETau [1]->Fill(fTreeVars.lepm, fMvaUse[9], wt_noantiiso         ); //no closure correction applied
+    Hist->hQCDLepMVsMVAETau [2]->Fill(fTreeVars.lepm, fMvaUse[9], eventWeight*genWeight); //no (mass, bdt) correction applied
+  }
+  //restore the weights
+  if(!chargeTest)
+    qcdWeight = fQCDWeight->GetWeight(fTreeVars.lepdeltar, fTreeVars.lepdeltaphi, fTreeVars.leponeeta, fTreeVars.leponept, fTreeVars.leptwopt,
+                                      fTreeVars.lepm, -2.f,
+                                      fYear, nJets20, isLooseMuon, qcdClosure, qcdIsoScale, qcdMassBDTScale, qcdWeightAltUp, qcdWeightAltDown, qcdWeightAltNum);
 }
 
 //--------------------------------------------------------------------------------------------------------------
@@ -358,6 +384,11 @@ Bool_t QCDHistMaker::Process(Long64_t entry)
 {
   if(InitializeEvent(entry)) return kTRUE;
 
+  //Remove the (mass, bdt score) weight from the event weights
+  if(qcdMassBDTScale > 0.f) {
+    eventWeight /= qcdMassBDTScale;
+  }
+
   //Remove threshold cuts, rely on cuts applied when filling sets
   one_pt_min_ = -1.f; two_pt_min_ = -1.f;
   ptdiff_min_ = -1.e10; ptdiff_max_ = 1.e10; min_mass_ = -1.f; max_mass_ = -1.f;
@@ -397,15 +428,12 @@ Bool_t QCDHistMaker::Process(Long64_t entry)
   //eta region cuts
   const double electron_eta_max = (fUseEmbedCuts) ? 2.4 : 2.5;
   const double muon_eta_max     = (fUseEmbedCuts) ? 2.4 : 2.4;
-  const double tau_eta_max      = (fUseEmbedCuts) ? 2.3 : 2.3; //tau eta doesn't change
   const double min_delta_r      = 0.3;
 
   if(leptonOne.isElectron() && std::fabs(leptonOne.p4->Eta()) >= electron_eta_max) return kTRUE;
   if(leptonTwo.isElectron() && std::fabs(leptonTwo.p4->Eta()) >= electron_eta_max) return kTRUE;
   if(leptonOne.isMuon    () && std::fabs(leptonOne.p4->Eta()) >= muon_eta_max    ) return kTRUE;
   if(leptonTwo.isMuon    () && std::fabs(leptonTwo.p4->Eta()) >= muon_eta_max    ) return kTRUE;
-  if(leptonOne.isTau     () && std::fabs(leptonOne.p4->Eta()) >= tau_eta_max     ) return kTRUE;
-  if(leptonTwo.isTau     () && std::fabs(leptonTwo.p4->Eta()) >= tau_eta_max     ) return kTRUE;
 
   //reject electrons in the barrel/endcap gap region
   const float elec_gap_low(1.444), elec_gap_high(1.566);
@@ -487,7 +515,7 @@ Bool_t QCDHistMaker::Process(Long64_t entry)
   //FIXME: Confirm mtlep cut needed
   const float mtlep_cut       = 90.f; //70.f;
 
-  emu   &= met_cut < 0.f || met < met_cut;
+  emu   &= met_cut   < 0.f || met < met_cut;
   emu   &= mtlep_cut < 0.f || fTreeVars.mtlep < mtlep_cut;
 
   if(!emu) return kTRUE;

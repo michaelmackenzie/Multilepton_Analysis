@@ -391,7 +391,8 @@ namespace CLFV {
     Float_t qcdWeightUp                ;
     Float_t qcdWeightDown              ;
     Float_t qcdClosure                 ; //Non-closure correction
-    Float_t qcdIsoScale = 1.           ; //QCD bias correction
+    Float_t qcdIsoScale = 1.f          ; //QCD bias correction
+    Float_t qcdMassBDTScale = 1.f      ; //QCD (mass, bdt score) bias correction
     Float_t qcdWeightAltUp  [kMaxAltFunc]; //alternate shapes
     Float_t qcdWeightAltDown[kMaxAltFunc]; //alternate shapes
     Int_t   qcdWeightAltNum              ; //N(alternate shapes)
@@ -880,7 +881,7 @@ namespace CLFV {
     Bool_t          fApplyJetToTauMCBias = true; //apply (W/Z)+Jets MC bias correction
     Int_t           fWJetsMCBiasMode   = 1; //W+jets j-->tau MC bias parameterization
 
-    QCDWeight       fQCDWeight; //for emu
+    QCDWeight*      fQCDWeight; //for emu
     MuonIDWeight    fMuonIDWeight;
     ElectronIDWeight fElectronIDWeight;
     LeptonDisplacement fLeptonDisplacement; //dxy/dz significance corrections (Z->e+mu only)

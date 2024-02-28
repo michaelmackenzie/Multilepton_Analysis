@@ -1160,6 +1160,11 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
         if(fSystematics.IsUp(sys)) weight *= (qcdIsoScale > 0.) ? 1. / qcdIsoScale : 0.; //remove / apply twice as uncertainty
         else                       weight *= (qcdIsoScale > 0.) ? 1. * qcdIsoScale : 0.;
       } else continue; //no need to fill opposite signed histograms
+    } else if(name == "QCDMassBDTBias") {
+      if(!chargeTest) { //only shift for same-sign events
+        if(fSystematics.IsUp(sys)) weight *= (qcdMassBDTScale > 0.) ? 1. / qcdMassBDTScale : 0.; //remove / apply twice as uncertainty
+        else                       weight *= (qcdMassBDTScale > 0.) ? 1. * qcdMassBDTScale : 0.;
+      } else continue; //no need to fill opposite signed histograms
     } else if(name == "JetToTauNC") {
       if(isLooseTau) { //only shift the weight for loose tau ID region events
         if(fSystematics.IsUp(sys)) weight *= jetToTauWeightCorrUp     / jetToTauWeightCorr   ;

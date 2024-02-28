@@ -276,9 +276,19 @@ void JTTHistMaker::BookEventHistograms() {
         Utilities::BookH2F(fEventHist[i]->hJetTauLepMVsMTOne [0], "jettaulepmvsmtone0" , Form("%s: JetTauLepMVsMTOne" ,dirname),  nfit_mbins, fit_mbins, jt_nmt_bins, jt_mt_bins, folder);
         Utilities::BookH2F(fEventHist[i]->hJetTauLepMVsMTOne [1], "jettaulepmvsmtone1" , Form("%s: JetTauLepMVsMTOne" ,dirname),  nfit_mbins, fit_mbins, jt_nmt_bins, jt_mt_bins, folder);
         Utilities::BookH2F(fEventHist[i]->hJetTauLepMVsMTOne [2], "jettaulepmvsmtone2" , Form("%s: JetTauLepMVsMTOne" ,dirname),  nfit_mbins, fit_mbins, jt_nmt_bins, jt_mt_bins, folder);
-        Utilities::BookH2F(fEventHist[i]->hJetTauLepMVsMVA   [0], "jettaulepmvsmva0"   , Form("%s: JetTauLepMVsMVA"   ,dirname),  nfit_mbins, fit_mbins, 10, 0., 1., folder);
-        Utilities::BookH2F(fEventHist[i]->hJetTauLepMVsMVA   [1], "jettaulepmvsmva1"   , Form("%s: JetTauLepMVsMVA"   ,dirname),  nfit_mbins, fit_mbins, 10, 0., 1., folder);
-        Utilities::BookH2F(fEventHist[i]->hJetTauLepMVsMVA   [2], "jettaulepmvsmva2"   , Form("%s: JetTauLepMVsMVA"   ,dirname),  nfit_mbins, fit_mbins, 10, 0., 1., folder);
+        if(fSelection == "mutau") {
+          const double mva_bins[] = {0., 0.1, 0.2, 0.3, 0.4, 0.6, 1.};
+          const int nmva_bins = sizeof(mva_bins) / sizeof(*mva_bins) - 1;
+          Utilities::BookH2F(fEventHist[i]->hJetTauLepMVsMVA   [0], "jettaulepmvsmva0"   , Form("%s: JetTauLepMVsMVA"   ,dirname),  nfit_mbins, fit_mbins, nmva_bins, mva_bins, folder);
+          Utilities::BookH2F(fEventHist[i]->hJetTauLepMVsMVA   [1], "jettaulepmvsmva1"   , Form("%s: JetTauLepMVsMVA"   ,dirname),  nfit_mbins, fit_mbins, nmva_bins, mva_bins, folder);
+          Utilities::BookH2F(fEventHist[i]->hJetTauLepMVsMVA   [2], "jettaulepmvsmva2"   , Form("%s: JetTauLepMVsMVA"   ,dirname),  nfit_mbins, fit_mbins, nmva_bins, mva_bins, folder);
+        } else { //wider bins in etau due to lower statistics
+          const double mva_bins[] = {0., 0.15, 0.3, 0.5, 1.};
+          const int nmva_bins = sizeof(mva_bins) / sizeof(*mva_bins) - 1;
+          Utilities::BookH2F(fEventHist[i]->hJetTauLepMVsMVA   [0], "jettaulepmvsmva0"   , Form("%s: JetTauLepMVsMVA"   ,dirname),  nfit_mbins, fit_mbins, nmva_bins, mva_bins, folder);
+          Utilities::BookH2F(fEventHist[i]->hJetTauLepMVsMVA   [1], "jettaulepmvsmva1"   , Form("%s: JetTauLepMVsMVA"   ,dirname),  nfit_mbins, fit_mbins, nmva_bins, mva_bins, folder);
+          Utilities::BookH2F(fEventHist[i]->hJetTauLepMVsMVA   [2], "jettaulepmvsmva2"   , Form("%s: JetTauLepMVsMVA"   ,dirname),  nfit_mbins, fit_mbins, nmva_bins, mva_bins, folder);
+        }
       }
 
       delete dirname;

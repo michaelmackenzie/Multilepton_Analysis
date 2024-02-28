@@ -9,7 +9,6 @@ using namespace CLFV;
 HistMaker::HistMaker(int seed, TTree * /*tree*/) : fSystematicSeed(seed),
                                                    fMuonJetToTauComp("mutau", 2035, 3, 0), fMuonJetToTauSSComp("mutau", 3035, 3, 0),
                                                    fElectronJetToTauComp("etau", 2035, 3, 0), fElectronJetToTauSSComp("etau", 3035, 3, 0),
-                                                   fQCDWeight("emu", 1100201/*anti-iso, jet binned, 2D pt closure, use fits*/, -1, 0),
                                                    fMuonIDWeight(1 /*use medium muon ID*/),
                                                    fElectronIDWeight(110 /*use WP90 electron ID and embed TnP trigger*/),
                                                    fZPDFSys(true),
@@ -39,6 +38,7 @@ HistMaker::HistMaker(int seed, TTree * /*tree*/) : fSystematicSeed(seed),
   fEmbeddingWeight = nullptr;
   fRnd = nullptr;
   fMVAConfig = nullptr;
+  fQCDWeight = nullptr;
 
   leptonOne.p4 = new TLorentzVector();
   leptonTwo.p4 = new TLorentzVector();
@@ -100,6 +100,7 @@ HistMaker::~HistMaker() {
   if(fTauIDWeight      ) {delete fTauIDWeight     ; fTauIDWeight      = nullptr;}
   if(fRnd              ) {delete fRnd             ; fRnd              = nullptr;}
   if(fMVAConfig        ) {delete fMVAConfig       ; fMVAConfig        = nullptr;}
+  if(fQCDWeight        ) {delete fQCDWeight       ; fQCDWeight        = nullptr;}
   if(fTrkQualInit      ) {delete fTrkQualInit     ; fTrkQualInit      = nullptr;}
   if(leptonOne.p4      ) {delete leptonOne.p4     ; leptonOne.p4      = nullptr;}
   if(leptonTwo.p4      ) {delete leptonTwo.p4     ; leptonTwo.p4      = nullptr;}
@@ -132,6 +133,8 @@ void HistMaker::Begin(TTree * /*tree*/)
   fPrefireWeight = new PrefireWeight();
   fZPtWeight = new ZPtWeight("MuMu", 1);
   fCutFlow = new TH1D("hcutflow", "Cut-flow", 100, 0, 100);
+  const int qcd_weight_mode = (fSelection == "mutau_e") ? 11100201 : (fSelection == "etau_mu") ? 21100201 : 1100201; //(mass, bdt score) bias, anti-iso, jet binned, 2D pt closure, use fits
+  fQCDWeight = new QCDWeight("emu", qcd_weight_mode, -1, 0);
 
   //FIXME: Added back W+Jets MC bias (Mode = 10100300, 60100300 for only MC lepm bias shape)
   //FIXME: Decide on 2D (lepm, bdt score) bias (bias mode 7 (shape+rate) and 8 (shape-only))
@@ -266,19 +269,23 @@ void HistMaker::InitializeMVAs() {
       //only initialize necessary MVAs
       bool init = false;
       const TString mva_selection = fMVAConfig->GetSelectionByIndex(mva_i);
-      //Check if testing this specific MVA
+      //Check if testing this MVA
       init |= fTestMVA != "" && fTestMVA == mva_selection;
-      init |= fDoHiggs && mva_selection == ("h" + fSelection);
-      init |= mva_selection == ("z" + fSelection);
       if(fSelection == "ee" || fSelection == "mumu") { //use the emu selection for same flavor
         init |= fDoHiggs && mva_selection == "hemu";
         init |= mva_selection == "zemu";
+      }
+      if(fTestMVA == "qcd_histmaker") { //initialize BDTs for QCDHistMaker closure checks
+        init |= mva_selection == "zetau_mu" || mva_selection == "zmutau_e";
+      } else { //add BDTs that match the given selection
+        init |= fDoHiggs && mva_selection == ("h" + fSelection);
+        init |= mva_selection == ("z" + fSelection);
       }
 
       //skip this MVA if not selected
       if(!init) continue;
 
-      if((fUseXGBoostBDT && mva_selection == "zemu") || fUseXGBoostBDT > 9) { //1-9: assume TMVA in tau channels; 10: XGBoost
+      if((fUseXGBoostBDT && mva_selection == "zemu") || fUseXGBoostBDT > 9) { //1-9: assume TMVA in tau channels; >= 10: XGBoost in all channels
         if(!fTrkQualInit) fTrkQualInit = new TrkQualInit(fTrkQualVersion, -1, fUseXGBoostBDT);
         mva        [mva_i] = nullptr;
         wrappedBDTs[mva_i] = new BDTWrapper(Form("weights/%s.2016_2017_2018.json", fMVAConfig->names_[mva_i].Data()), 1, fVerbose);
@@ -2177,8 +2184,9 @@ void HistMaker::InitializeEventWeights() {
 
   //get scale factor for same sign --> opposite sign, apply to MC and Data same-sign events
   if(emu && !chargeTest && fUseQCDWeights) {
-    qcdWeight = fQCDWeight.GetWeight(fTreeVars.lepdeltar, fTreeVars.lepdeltaphi, fTreeVars.leponeeta, fTreeVars.leponept, fTreeVars.leptwopt,
-                                     fYear, nJets20, isLooseMuon, qcdClosure, qcdIsoScale, qcdWeightAltUp, qcdWeightAltDown, qcdWeightAltNum);
+    qcdWeight = fQCDWeight->GetWeight(fTreeVars.lepdeltar, fTreeVars.lepdeltaphi, fTreeVars.leponeeta, fTreeVars.leponept, fTreeVars.leptwopt,
+                                      fTreeVars.lepm, (mutau_e) ? fMvaUse[7] : (etau_mu) ? fMvaUse[9] : -2.f,
+                                      fYear, nJets20, isLooseMuon, qcdClosure, qcdIsoScale, qcdMassBDTScale, qcdWeightAltUp, qcdWeightAltDown, qcdWeightAltNum);
     float up_diff(0.f), down_diff(0.f);
     for(int ialt = 0; ialt < std::min(qcdWeightAltNum, (int) kMaxAltFunc); ++ialt) {
       up_diff   += std::pow(qcdWeight - qcdWeightAltUp  [ialt], 2);
@@ -2797,8 +2805,8 @@ void HistMaker::CountObjects() {
   emu     = nElectron == 1 && nMuon == 1              && (fSelection == "" || fSelection == "emu"  || fSelection.Contains("tau_"));
   mumu    = nElectron <  2 && nMuon == 2              && (fSelection == "" || fSelection == "mumu" );
   ee      = nElectron == 2 && nMuon <  2              && (fSelection == "" || fSelection == "ee"   );
-  etau_mu = emu;
-  mutau_e = emu;
+  etau_mu = emu && fSelection == "etau_mu";
+  mutau_e = emu && fSelection == "mutau_e";
 
   //enforce exclusive channels
   if((mutau and etau) or emu) {

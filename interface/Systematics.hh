@@ -89,6 +89,8 @@ namespace CLFV {
       case  20: return Data(isys, "EmbEleRecoID"  , false);
       case  21: return Data(isys, "JetToTauComp"  , true );
       case  22: return Data(isys, "JetToTauComp"  , false);
+      case  23: return Data(isys, "QCDMassBDTBias", true );
+      case  24: return Data(isys, "QCDMassBDTBias", false);
       // case  23: return Data(isys, "JetToTauBias"  , true );
       // case  24: return Data(isys, "JetToTauBias"  , false);
       // case  25: return Data(isys, "TauJetID"      , true );

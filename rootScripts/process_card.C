@@ -90,6 +90,17 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
   }
 
   int doSystematics = doSystematics_;
+
+  // configure qcd histmaker processing
+  const bool is_qcd_histmaker = TString(HISTOGRAMMER::Class()->GetName()) == "CLFV::QCDHistMaker";
+  if(is_qcd_histmaker) {
+    max_sim_events_ = card.fname_.Contains("ttbarlnu") ? 2e6 : -1; //use all sim events, except for ttbar MC
+    doEmuDefaults_  = 0;
+    useXGBoost_     = 0;
+    useBDTScale_    = 0;
+    test_mva_       = "qcd_histmaker"; //turn on BDTs needed for closure checks
+  }
+
   // configure fields for emu defaults, assuming tau ones are set
   if(doEmuDefaults_ && (selection == "emu" || ((selection == "ee" || selection == "mumu") && doSameFlavorEMu_))) {
     doSystematics = (isSignal) ? doSystematics_ : (doSystematics_) ? -2 : 0; //-2 only fills the base histogram for non-signal systematics
@@ -106,7 +117,6 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
     // removeTrigWeights_ = 1;
     // usePrefireWeights_ = 0;
     // useLepDxyzWeights_ = 0; //use dxy/dz displacement weights
-    useZPtWeights_     = 0; //MC --> Data Z pT matching
     // useSignalZMixWeights_ = 0; //FIXME: Remove after done with comparisons
     // updateMET_ = 0; //FIXME: Remove after done with comparisons
     useCDFBDTs_ = 0;
@@ -214,7 +224,6 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
         doSystematics_  =  0; //ignore systematics
         train_mode_     =  0; //ignore MVA training weights
         // ReprocessMVAs_  =  0; //ignore MVA scores
-        max_sim_events_ = -1; //use all sim events
       }
 
       //for sparse histogramming

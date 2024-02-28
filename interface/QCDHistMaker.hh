@@ -34,6 +34,8 @@ namespace CLFV {
     }
 
 
+    QCDWeight* fMuTauQCDWeight; //weights with the mutau_e or etau_mu (mass, bdt score) bias weights included
+    QCDWeight* fETauQCDWeight ;
 
     ClassDef(QCDHistMaker,0);
 
