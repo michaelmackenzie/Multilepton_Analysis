@@ -26,19 +26,20 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
   const int bias_mode    = ( Mode % 100000000) / 10000000;
   /*
     Bias modes:
-    1: lepm (W+Jets)
-    2: mtlep (W+Jets)
-    3: isolation (mutau QCD)
+    1: lepm (QCD high iso factors)
+    2: mtlep
+    3: isolation
     4: isolation + lepm (QCD iso + SS biases)
     5: mtlep + lepm (legacy etau QCD mtlep + SS biases)
     6: lepm, shape only (W+Jets)
-    7: 2D (lepm, mva) correction (W+Jets)
+    7: 2D (lepm, mva) correction (W+Jets, QCD)
     8: 2D (lepm, mva) shape correction (W+Jets)
+    9: isolation + 2D (lepm, mva) correction (QCD)
   */
   useLepMBias_           = bias_mode == 1 || bias_mode == 4 || bias_mode == 5 || bias_mode == 6; //bias correction in terms of di-lepton mass
   useMTLepBias_          = bias_mode == 2 || bias_mode == 5; //bias correction in terms of MT(ll, MET)
-  useOneIsoBias_         = bias_mode == 3 || bias_mode == 4; //bias correction in terms of one iso / pT
-  useLepMVsMVABias_      = bias_mode == 7 || bias_mode == 8; //bias shape correction in terms of 2D (lepm, mva score)
+  useOneIsoBias_         = bias_mode == 3 || bias_mode == 4 || bias_mode == 9; //bias correction in terms of one iso / pT
+  useLepMVsMVABias_      = bias_mode == 7 || bias_mode == 8 || bias_mode == 9; //bias shape correction in terms of 2D (lepm, mva score)
 
 
   if(verbose_ > 0) {
@@ -263,8 +264,6 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
       const int remainder = set % 100; //base set before SS/loose ID offsets
       if(remainder > 35 && remainder < 40) { //using MC scales in a DR
         bias_set += 45; //offset to AR/SR MC region
-      } else if(remainder == 30 || remainder == 93 || remainder == 95) { //QCD bias correction
-        bias_set = bias_set - remainder + 93; //uses set base 93 for isolation bias
       } else if(remainder > 30 && remainder <= 34) { //use data scales in a DR
         bias_set += 50; //offset to AR/SR MC region
       } else if(remainder == 35) { //MC scales in AR/SR
@@ -278,6 +277,60 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
       if(bias_proc == "") {
         if(bias_set == 81) bias_proc = "WJets_";
       }
+
+      //////////////////////////////////////////////
+      // Retrieve the QCD bias corrections
+
+      if(process == "QCD") {
+
+        //isolation cut bias in wider isolation window
+        bias_set = bias_set - remainder + 93; //uses set base 93 for isolation bias
+        f = TFile::Open(Form("%s/jet_to_tau_correction_%s_%s%i_%i.root", path.Data(), selection.Data(), bias_proc.Data(), bias_set, year), "READ");
+        if(useOneIsoBias_) {
+          oneIsoBias_[year] = (TH1*) f->Get("OneIsoBias");
+          if(!oneIsoBias_[year]) {
+            std::cout << "JetToTauWeight::JetToTauWeight: " << name_.Data() << " Warning! No One Iso/pT bias hist found for year = "
+                      << year << " selection = " << selection.Data() << std::endl;
+          } else {
+            oneIsoBias_[year] = (TH1*) oneIsoBias_[year]->Clone(Form("%s-OneIsoBias_%i", name_.Data(), year));
+            oneIsoBias_[year]->SetDirectory(0);
+          }
+        }
+
+        //SS --> OS bias corrections
+        const int qcd_ss_bias_set = 95; //fixed set for this correction
+        f = TFile::Open(Form("%s/jet_to_tau_correction_%s_%s%i_%i.root", path.Data(), selection.Data(), bias_proc.Data(), qcd_ss_bias_set, year), "READ");
+        if(f) {
+          if(useLepMBias_) { //
+            lepMBias_[year] = (TH1*) f->Get("LepMBias");
+            if(!lepMBias_[year]) {
+              std::cout << "JetToTauWeight::JetToTauWeight: " << name_.Data() << " Warning! No lepton mass bias hist found for year = "
+                        << year << " selection = " << selection.Data() << std::endl;
+            } else {
+              lepMBias_[year] = (TH1*) lepMBias_[year]->Clone(Form("%s-LepMBias_%i", name_.Data(), year));
+              lepMBias_[year]->SetDirectory(0);
+            }
+          }
+          if(useLepMVsMVABias_) { //BDT score correction in mass fit regions
+            lepMVsMVABias_[year] = (TH2*) f->Get("LepMVsMVABias");
+            if(!lepMVsMVABias_[year]) {
+              std::cout << "JetToTauWeight::JetToTauWeight: " << name_.Data() << " Warning! No (lepton mass, MVA) bias hist found for year = "
+                        << year << " selection = " << selection.Data() << std::endl;
+            } else {
+              lepMVsMVABias_[year] = (TH2*) lepMVsMVABias_[year]->Clone(Form("%s-LepMVsMVABias_%i", name_.Data(), year));
+              lepMVsMVABias_[year]->SetDirectory(0);
+            }
+          }
+          f->Close();
+          delete f;
+        }
+
+        //end QCD processing
+        return;
+      }
+
+      //////////////////////////////////////////////
+      // Retrieve the other bias corrections
 
       f = TFile::Open(Form("%s/jet_to_tau_correction_%s_%s%i_%i.root", path.Data(), selection.Data(), bias_proc.Data(), bias_set, year), "READ");
       if(!f) {
