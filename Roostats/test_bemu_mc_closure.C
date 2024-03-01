@@ -7,7 +7,7 @@ int    smooth_hists_   =   2;   //number of times to smooth non-fit background h
 double zmumu_scale_    = -1.;   //if >= 0 scale the Z->ee/mumu contribution
 int    use_multi_pdf_  =   0;   //use multi-pdf instead of a single pdf FIXME: Not currently working
 bool   save_templates_ = false; //save MC templates in an output file
-TString tag_           = "";    //tag for output figure directory
+TString tag_           = "_embed_fix_ww";    //tag for output figure directory
 
 //---------------------------------------------------------------------------------------------------------------------------------------
 // Main function: test the background fit closure of the MC
@@ -31,6 +31,79 @@ int test_bemu_mc_closure(int set = 13, vector<int> years = {2016,2017,2018}, con
   RooWorkspace* ws = (RooWorkspace*) f->Get(Form("lepm_%i", set));
   if(!ws) return 1;
 
+  //Get the observable
+  RooRealVar* obs = (RooRealVar*) ws->var(Form("lepm_%i", set));
+  if(!obs) return 4;
+
+  //Open the MC histogram file
+  TFile* fMC = TFile::Open(Form("histograms/zemu_lepm_%i_%s.hist", set, years_s.Data()), "READ");
+  if(!fMC) return -1;
+
+  //Get the signal histogram for normalization
+  TH1* sig_hist = (TH1*) fMC->Get("zemu");
+  if(!sig_hist) return -2;
+  const double sig_yield_norm = sig_hist->Integral() / 5.; //Signal yield corresponding to BR(Z->e+mu) = 1e-7
+
+  //Get the MC background stack
+  THStack* stack_in = (THStack*) fMC->Get("hstack");
+  if(!stack_in) return -2;
+
+  //Replace background distributions where needed
+  const int rebin = 2; //rebin the distributions to help statistical uncertainty
+  THStack* stack = new THStack("bkg_stack", "Background stack");
+  for(int ihist = 0; ihist < stack_in->GetNhists(); ++ihist) {
+    TH1* h = (TH1*) stack_in->GetHists()->At(ihist);
+    // h->Rebin(rebin);
+    h = make_safe(h, obs->getMin(), obs->getMax());
+    cout << h->GetName() << ": " << h->GetTitle() << endl;
+    bool isflat(false);
+    isflat |= TString(h->GetName()).Contains("QCD"  );
+    isflat |= TString(h->GetName()).Contains("Top"  );
+    isflat |= TString(h->GetName()).Contains("Other");
+    isflat |= TString(h->GetName()).Contains("Z->ee");
+    bool isdy = TString(h->GetName()).Contains("#tau#tau");
+    bool isembed = TString(h->GetName()).Contains("Embedding");
+    if(isflat) { //flat-ish distributions
+      if(fit_flat_bkgs_) {
+        fit_and_replace(h, obs->getMin(), obs->getMax(), Form("plots/latest_production/%s/zemu_mc_closure_%i%s", years_s.Data(), set, tag_.Data()), set, rebin);
+      } else if(smooth_hists_ > 0) h->Smooth(smooth_hists_);
+    }
+    if(isdy) { //Z->tautau
+      if(fit_dy_bkg_) {
+        fit_and_replace(h, obs->getMin(), obs->getMax(), Form("plots/latest_production/%s/zemu_mc_closure_%i%s", years_s.Data(), set, tag_.Data()), set, rebin);
+      } else if(smooth_hists_ > 0) h->Smooth(smooth_hists_);
+    }
+    if(!isflat && !isdy && smooth_hists_ > 0) h->Smooth(smooth_hists_); //any leftover histogram
+    if(zmumu_scale_ >= 0. && TString(h->GetName()).Contains("Z->ee")) h->Scale(zmumu_scale_);
+    //scale Embedding to match the Drell-Yan MC normalization
+    if(isembed) {
+      if     (set == 13 || set == 74 || set == 84) h->Scale(6.52/5.70);
+      else if(set == 12 || set == 73 || set == 83) h->Scale(1.78/1.66);
+      else if(set == 11 || set == 72 || set == 82) h->Scale(8.94/8.43);
+    }
+    stack->Add(h);
+  }
+
+  //plot the overall background stack
+  {
+    TCanvas* c = new TCanvas();
+    // stack_in->Draw("hist noclear");
+    stack->Draw("hist noclear");
+    stack->SetMinimum(0);
+    c->SaveAs(Form("%s/stack.png", Form("plots/latest_production/%s/zemu_mc_closure_%i%s", years_s.Data(), set, tag_.Data())));
+    delete c;
+  }
+
+  //Get the MC histogram for generating data
+  TH1* hMC = (TH1*) stack->GetStack()->Last()->Clone("hbkg");
+  hMC = make_safe(hMC, obs->getMin(), obs->getMax());
+
+  obs->setBins(hMC->GetNbinsX()); //ensure the binning matches
+  const int n_init_mc = hMC->Integral() + 0.5;
+  RooDataHist mc("mc", "MC data", RooArgList(*obs), hMC);
+  RooHistPdf mcPDF("mcPDF", "MC PDF", *obs, mc);
+
+
   //Retrieve the signal PDF
   RooAbsPdf* sigPDF = ws->pdf(Form("zemu"));
   if(!sigPDF) {
@@ -39,19 +112,16 @@ int test_bemu_mc_closure(int set = 13, vector<int> years = {2016,2017,2018}, con
     return 2;
   }
 
-  //Retrieve the signal PDF
-  RooAbsPdf* bkgPDF(nullptr);
-  if(use_multi_pdf_) bkgPDF = ws->pdf(Form("bkg"));
-  else               bkgPDF = ws->pdf(Form("bst_%i_order_3", set));
-  if(!bkgPDF) {
-    cout << "!!! Failed to retrieve the background distribution!\n";
+  //Retrieve the background PDF
+  RooMultiPdf* multiPdf = (RooMultiPdf*) ws->pdf("bkg");
+  if(!multiPdf) {
+    cout << "!!! Failed to retrieve the background RooMultiPdf!\n";
     ws->Print();
     return 3;
   }
-
-  //Get the observable
-  RooRealVar* obs = (RooRealVar*) ws->var(Form("lepm_%i", set));
-  if(!obs) return 4;
+  RooAbsPdf* bkgPDF(nullptr);
+  if(use_multi_pdf_) bkgPDF = multiPdf;
+  else               bkgPDF = multiPdf->getCurrentPdf(); //get the nominal background PDF
 
   //Get the envelope index variable
   RooCategory* cat = (RooCategory*) ws->obj(Form("cat_%i", set));
@@ -73,74 +143,6 @@ int test_bemu_mc_closure(int set = 13, vector<int> years = {2016,2017,2018}, con
   if(elec_es_shift) elec_es_shift->setConstant(true);
   auto muon_es_shift = ws->var("muon_ES_shift");
   if(muon_es_shift) muon_es_shift->setConstant(true);
-
-  //Open the MC histogram file
-  TFile* fMC = TFile::Open(Form("histograms/zemu_lepm_%i_%s.hist", set, years_s.Data()), "READ");
-  if(!fMC) return -1;
-
-  //Get the signal histogram for normalization
-  TH1* sig_hist = (TH1*) fMC->Get("zemu");
-  if(!sig_hist) return -2;
-  const double sig_yield_norm = sig_hist->Integral() / 5.; //Signal yield corresponding to BR(Z->e+mu) = 1e-7
-
-  //Get the MC background stack
-  THStack* stack_in = (THStack*) fMC->Get("hstack");
-  if(!stack_in) return -2;
-
-  //Replace background distributions where needed
-  const int rebin = 2; //rebin the distributions to help statistical uncertainty
-  THStack* stack = new THStack("bkg_stack", "Background stack");
-  for(int ihist = 0; ihist < stack_in->GetNhists(); ++ihist) {
-    TH1* h = (TH1*) stack_in->GetHists()->At(ihist);
-    h->Rebin(rebin);
-    h = make_safe(h, obs->getMin(), obs->getMax());
-    cout << h->GetName() << ": " << h->GetTitle() << endl;
-    bool isflat(false);
-    isflat |= TString(h->GetName()).Contains("QCD"  );
-    isflat |= TString(h->GetName()).Contains("Top"  );
-    isflat |= TString(h->GetName()).Contains("Other");
-    isflat |= TString(h->GetName()).Contains("Z->ee");
-    bool isdy = TString(h->GetName()).Contains("#tau#tau");
-    bool isembed = TString(h->GetName()).Contains("Embedding");
-    if(isflat) { //flat-ish distributions
-      if(fit_flat_bkgs_) {
-        fit_and_replace(h, obs->getMin(), obs->getMax(), Form("plots/latest_production/%s/zemu_mc_closure_%i%s", years_s.Data(), set, tag_.Data()));
-      } else if(smooth_hists_ > 0) h->Smooth(smooth_hists_);
-    }
-    if(isdy) { //Z->tautau
-      if(fit_dy_bkg_) {
-        fit_and_replace(h, obs->getMin(), obs->getMax(), Form("plots/latest_production/%s/zemu_mc_closure_%i%s", years_s.Data(), set, tag_.Data()));
-      } else if(smooth_hists_ > 0) h->Smooth(smooth_hists_);
-    }
-    if(!isflat && !isdy && smooth_hists_ > 0) h->Smooth(smooth_hists_); //any leftover histogram
-    if(zmumu_scale_ >= 0. && TString(h->GetName()).Contains("Z->ee")) h->Scale(zmumu_scale_);
-    //scale Embedding to match the Drell-Yan MC normalization
-    if(isembed) {
-      if     (set == 13 || set == 74 || set == 84) h->Scale(6.52/5.70);
-      else if(set == 12 || set == 73 || set == 83) h->Scale(1.78/1.66);
-      else if(set == 11 || set == 72 || set == 82) h->Scale(8.94/8.43);
-    }
-    stack->Add(h);
-  }
-
-  //plot the overall background stack
-  {
-    TCanvas* c = new TCanvas();
-    // stack_in->Draw("hist noclear");
-    stack->Draw("hist noclear");
-    c->SaveAs(Form("%s/stack.png", Form("plots/latest_production/%s/zemu_mc_closure_%i%s", years_s.Data(), set, tag_.Data())));
-    delete c;
-  }
-
-  //Get the MC histogram for generating data
-  TH1* hMC = (TH1*) stack->GetStack()->Last()->Clone("hbkg");
-  hMC = make_safe(hMC, obs->getMin(), obs->getMax());
-
-
-  obs->setBins(hMC->GetNbinsX()); //ensure the binning matches
-  const int n_init_mc = hMC->Integral() + 0.5;
-  RooDataHist mc("mc", "MC data", RooArgList(*obs), hMC);
-  RooHistPdf mcPDF("mcPDF", "MC PDF", *obs, mc);
 
   //Add the signal and background PDFs to make a total PDF
   RooRealVar* n_sig  = new RooRealVar("n_sig", "N(signal)", 0., -n_init_mc, n_init_mc);

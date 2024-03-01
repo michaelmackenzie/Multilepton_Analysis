@@ -6,7 +6,7 @@
 
 using namespace RooFit;
 
-void example_sideband_fit()
+void sideband_fit()
 {
   // Make a fit model
   RooRealVar x("x", "The observable", 1, 30);

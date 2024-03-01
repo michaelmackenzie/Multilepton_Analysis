@@ -31,6 +31,7 @@ tmva_training/scripts/CWoLa_*
 Roostats/datacards/*/*.root
 Roostats/datacards/*/*.json
 Roostats/datacards/*/*.txt
+Roostats/examples/*.root
 bin
 scripts/*.root
 *.log
@@ -50,6 +51,9 @@ studies/*/*.root
 *.tar
 *.zip
 *.bz
+
+*.pyc
+grid/batch
 
 #ignore Roostats specific
 Roostats/workspaces

@@ -5,6 +5,7 @@
 //Construct multi-dimensional PDF with discrete index
 bool useFrameChiSq_         = false; //use a roo plot frame to evaluate chi^2
 bool useManualChisq_        = true ; //calcuate chi^2 values by hand with histograms
+bool useDataBinErrors_      = false; //use data bin errors when calculating chi^2
 bool use_generic_bernstein_ = false;
 bool use_fast_bernstein_    = true ;
 bool use_exp_family_        = true ;
@@ -26,7 +27,7 @@ bool perform_f_test(double chisq_1, int ndof_1, double chisq_2, int ndof_2) {
     return false;
   }
 
-  const int Mode = 0; //how to perform the F-test
+  const int Mode = 1; //how to perform the F-test: 0: use F-distribution; 1: use delta chi^2 distribution
   double p_of_f = 1.;
   if(Mode == 0) { //use CDF for the F-distribution
     const double ftest = (chisq_1 / ndof_1) / (chisq_2 / ndof_2); //(chisq_1 - chisq_2) / (ndof_1 - ndof_2) / (chisq_2 / ndof_2);
@@ -51,6 +52,40 @@ bool perform_chisq_test(double chisq, int ndof, double* p_val = nullptr) {
   const double p_chi_sq = TMath::Prob(chisq, ndof);
   if(p_val) *p_val = p_chi_sq;
   return (p_chi_sq > 0.01); //accept if p(chi^2, ndof) is at least 1%
+}
+
+//----------------------------------------------------------------------------------------------------------------
+//Get the chi-squared between a model and data from the model
+double get_hist_chisquare(TH1* model, TH1* data, int* nbins = nullptr) {
+  if(model->GetNbinsX() != model->GetNbinsX()) {
+    cout << __func__ << ": Model and data don't have the same number of bins ("
+         << model->GetNbinsX() << " vs " << model->GetNbinsX() << ")!\n";
+    return -1.;
+  }
+
+  double chisq = 0.;
+  for(int ibin = 1; ibin <= model->GetNbinsX(); ++ibin) {
+    const double x_data = data ->GetBinCenter(ibin);
+    const double x_pdf  = model->GetBinCenter(ibin);
+    if(x_data != x_pdf) {
+      cout << __func__ << ": Warning! Data center = " << x_data << " but PDF center = " << x_pdf << endl;
+    }
+    const double npdf  = model->GetBinContent(ibin);
+    const double ndata = data->GetBinContent(ibin);
+    const double error = data->GetBinError  (ibin);
+    const double val  = ndata - npdf;
+    const double sigma = (error > 0.) ? std::pow(val / error, 2) : 0.;
+    chisq += sigma;
+    if(verbose_ > 2) {
+      cout << "Bin " << ibin << " (" << data->GetBinLowEdge(ibin) << " - "
+           << data->GetBinLowEdge(ibin) + data->GetBinWidth(ibin) << "): Data = " << ndata << " PDF = " << npdf
+           << " --> sigma = " << sigma << endl;
+    }
+  }
+
+  if(verbose_ > 1) cout << __func__ << ": Total chi^2 = " << chisq << " / " << model->GetNbinsX() << " bins\n";
+  if(nbins) *nbins = model->GetNbinsX();
+  return chisq;
 }
 
 //----------------------------------------------------------------------------------------------------------------
@@ -113,10 +148,11 @@ double get_manual_subrange_chisquare(RooRealVar& obs, RooAbsPdf* pdf, RooDataHis
     if(x_data != x_pdf) {
       cout << __func__ << ": Warning! Data center = " << x_data << " but PDF center = " << x_pdf << endl;
     }
-    const double npdf = htmp_pdf->GetBinContent(ibin)*htmp_pdf->GetBinWidth(ibin);
+    const double npdf  = htmp_pdf->GetBinContent(ibin)*htmp_pdf->GetBinWidth(ibin);
     const double ndata = htmp_data->GetBinContent(ibin);
-    const double val  = ndata - npdf;
-    const double sigma = val*val / (npdf <= 0. ? 1.e-5 : npdf);
+    const double error = htmp_data->GetBinError  (ibin);
+    const double val   = ndata - npdf;
+    const double sigma = val*val / ((useDataBinErrors_) ? error*error : (npdf <= 0. ? 1.e-5 : npdf));
     chisq += sigma;
     if(verbose_ > 2) {
       cout << "Bin " << ibin << " (" << htmp_data->GetBinLowEdge(ibin) << " - "

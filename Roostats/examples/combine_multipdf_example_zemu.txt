@@ -1,0 +1,28 @@
+# Datacard example for Z->e+mu like bias study 
+imax 1
+jmax 1
+kmax *
+---------------
+shapes data_obs   * workspace_zemu.root workspace:data
+shapes signal     * workspace_zemu.root workspace:signal
+shapes background * workspace_zemu.root workspace:roomultipdf
+---------------
+# take event count from dataset (use -1)
+bin           emu
+observation  -1
+---------------
+# 10 expected events from H->gg in the signal (just a simple gaussian)
+# background normalisation freely floating, taken from _norm, so leave rate as 1
+
+bin      emu emu 
+process  signal   background
+process  0        1
+rate     10       10000
+
+---------------
+# usual systematics .... note, we advertise the pdf changing parameter as a discrete nuisance
+lumi lnN 1.026   - 
+
+pdf_index discrete
+
+# nbkg rateParam emu background 1.

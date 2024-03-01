@@ -1,0 +1,27 @@
+# -*- mode: tcl -*-
+# Example Higgs Combine datacard using a RooMultiPdf background
+
+imax  1 number of channels
+jmax  1 number of backgrounds
+kmax  * number of nuisance parameters
+
+-----------------------------------------------------------------------------------------------------------
+shapes * * combine_test_multipdf.root $CHANNEL:$PROCESS
+-----------------------------------------------------------------------------------------------------------
+
+bin                 obs
+observation          -1
+
+bin                 obs        obs
+process             sig        bkg
+process               0          1
+
+rate             30.256     7307.0
+
+-----------------------------------------------------------------------------------------------------------
+sigNorm  lnN       1.05          -
+-----------------------------------------------------------------------------------------------------------
+
+cat            discrete
+
+nbkg rateParam obs bkg 1.

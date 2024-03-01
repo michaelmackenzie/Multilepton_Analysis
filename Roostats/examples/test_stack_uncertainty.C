@@ -1,8 +1,8 @@
 //Script to validate the uncertainty in a stack
 
-void test_stack_uncertainty(TString file = "histograms/zmutau_mva1_8_2016_2017_2018.hist",
+void test_stack_uncertainty(TString file = "../histograms/zmutau_mva1_25_2018.hist",
                             TString path = "hstack",
-                            double xmin = -0.6, double xmax = 0.5) {
+                            double xmin = 0., double xmax = 1.) {
   TFile* f = TFile::Open(file.Data(), "READ");
   if(!f) return;
   THStack* hstack = (THStack*) f->Get(path.Data());

@@ -21,8 +21,8 @@ bool useMCBkg_      = false; //FIXME: turn off -- use the background MC to creat
 float zmumu_scale_  =   -1.; //FIXME: set to -1 -- scale to Z->ee/mumu distribution if using MC templates
 bool printPlots_    = true ;
 bool fitSideBands_  = true ; //fit only the data sidebands
-bool replaceData_   = true ; //replace the data with toy MC
-bool replaceRefit_  = false; //replace data with toy MC, then fit the unblinded toy data
+int  replaceData_   =     2; //1: replace the data with toy MC; 2: replace the data with the MC bkg
+bool replaceRefit_  = true ; //replace data with toy MC, then fit the unblinded toy data
 bool export_        = false; //if locally run, export the workspace to LPC
 bool save_          = true ; //save output combine workspace/cards
 
@@ -164,7 +164,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
   data->SetName(Form("data_obs_%i", set));
 
   //replace the background stack with smoothed/fit histograms
-  THStack* stack = new THStack("bkg_stack", "Background stack");
+  THStack* stack = (useMCBkg_) ? new THStack("bkg_stack", "Background stack") : stack_in;
   if(useMCBkg_) {
     for(int ihist = 0; ihist < stack_in->GetNhists(); ++ihist) {
       TH1* h = (TH1*) stack_in->GetHists()->At(ihist);
@@ -396,6 +396,11 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
   // auto multiPDF = construct_simultaneous_pdf((fitSideBands_) ? *blindDataHist : *dataData , *lepm, *categories, fitSideBands_, index, set, 2);
   RooMultiPdf* multiPDF(nullptr);
   RooAbsPdf* bkgPDF(nullptr);
+  //create a background template from the background stack
+  TH1* hMCBkg = (TH1*) stack->GetStack()->Last()->Clone(Form("bkg_stack_hist_%i", set));
+  hMCBkg->SetLineColor  (kBlack);
+  hMCBkg->SetMarkerColor(kBlack);
+  RooDataHist* bkgMCData = new RooDataHist(Form("bkgMCData_%i",set), "MC template data", *lepm, hMCBkg);
   //if using the MC templates, skip fitting the data
   if(!useMCBkg_) {
     multiPDF = construct_multipdf((fitSideBands_) ? *blindDataHist : *dataData , *lepm, *categories, fitSideBands_, index, set, 2);
@@ -414,15 +419,14 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
       bkgPDF->SetName("bkg");
     }
   } else {
-    //create a background template from the background stack
-    TH1* h = (TH1*) stack->GetStack()->Last()->Clone(Form("bkg_stack_hist_%i", set));
-    RooDataHist* bkgData = new RooDataHist(Form("bkgData_%i",set), "MC template data", *lepm, h);
-    bkgPDF = new RooHistPdf("bkg", "MC template PDF", *lepm, *bkgData);
+    bkgPDF = new RooHistPdf("bkg", "MC template PDF", *lepm, *bkgMCData);
   }
 
 
-  //Generate toy data to stand in for the observed data
-  RooDataHist* dataset = (replaceData_) ? bkgPDF->generateBinned(RooArgSet(*lepm), data->Integral(low_bin, high_bin)) : dataData;
+  //Generate toy data to stand in for the observed data if requested
+  RooDataHist* dataset = dataData;
+  if(replaceData_ == 1) dataset = bkgPDF->generateBinned(RooArgSet(*lepm), data->Integral(low_bin, high_bin));
+  if(replaceData_ == 2) {dataset = bkgMCData; dataData = bkgMCData; blindDataHist = bkgMCData; blindData = hMCBkg; data = hMCBkg; fitSideBands_ = 0; blind_data_ = 0; useDataBinErrors_ = true;}
   dataset->SetName("data_obs");
 
   //Re-fit the PDFs to the toy MC data
@@ -431,9 +435,19 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
          << "!!! Re-fitting to the toy MC data generated!\n"
          << "####################################################################" << endl;
     for(int ipdf = 0; ipdf < categories->numTypes(); ++ipdf) {
-      auto pdf = multiPDF->getPdf(ipdf);
+      auto basePdf = multiPDF->getPdf(ipdf);
+      //Wrap the PDF in a RooAddPdf
+      RooRealVar* pdfNorm = new RooRealVar(Form("%s_norm", basePdf->GetName()), Form("%s_norm", basePdf->GetName()),
+                                           hMCBkg->Integral(), 0., 2.*hMCBkg->Integral());
+      RooAddPdf* pdf = new RooAddPdf(Form("%s_wrapper", basePdf->GetName()), basePdf->GetTitle(), RooArgList(*basePdf), RooArgList(*pdfNorm));
       pdf->fitTo(*dataset, RooFit::PrintLevel((verbose_ > 2) ? 1 : -1),
                  RooFit::Warnings(0), RooFit::PrintEvalErrors(-1));
+      const double chi_sq = get_chi_squared(*lepm, pdf, *dataset, false);
+      cout << "######################\n"
+           << "### " << basePdf->GetTitle() << " has chisq = " << chi_sq << endl
+           << "######################\n";
+      delete pdfNorm;
+      delete pdf;
     }
   }
 
@@ -598,9 +612,9 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
     dataDiff->Scale(norm/dataDiff->Integral()); //set the norms equal
     sigDiff->Scale(sigVis->Integral(low_bin, high_bin) / sigDiff->Integral());
     for(int ipdf = 0; ipdf < categories->numTypes(); ++ipdf) {
-      if(ipdf == index) {
-        continue;
-      }
+      // if(ipdf == index) {
+      //   continue;
+      // }
       auto pdf = multiPDF->getPdf(ipdf); //multiPDF->getPdf(Form("index_%i", ipdf));
       TH1* hPDFDiff = pdfDiffs[ipdf - (ipdf > index)];
       hPDFDiff->Scale(norm/hPDFDiff->Integral());
@@ -662,7 +676,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
     c->SaveAs(Form("plots/latest_production/%s/convert_bemu_%s_%i_%sbkg_pdfs.png", year_string.Data(), selection.Data(), set, (useMCBkg_) ? "mc_" : "" ));
     delete xframe;
     delete c;
-    delete blindData;
+    if(replaceData_ != 2) delete blindData;
   }
 
   //////////////////////////////////////////////////////////////////
@@ -697,7 +711,6 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
     rate   += Form("%15.1f", data->Integral(low_bin, high_bin));
   if(!useMCBkg_ && useMultiDim_) {
     ws->import(*multiPDF, RooFit::RecycleConflictNodes());
-    ws->import(*categories, RooFit::RecycleConflictNodes());
   } else {
     ws->import(*bkgPDF, RooFit::RecycleConflictNodes());
   }

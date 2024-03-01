@@ -53,13 +53,14 @@ fi
 echo "Running with selection = ${SELECTION} (with ${LEPSIGNAL}), years = ${YEAR}, tau sets = ${TAUSETS}, lep sets = ${LEPSETS}"
 if [[ "${SKIPRETRIEVAL}" == "" ]]
 then
+    [ ! -d log ] && mkdir log
     #get the BDT distributions
     if [[ "${TAUSTRING}" != "" ]]; then
         echo "Retrieving hadronic tau histograms"
         for TAUSET in ${TAULIST}; do
             if [[ "${PARALLEL}" != "" ]]; then
-                echo "Starting processing to mva_had_${TAUSET}_${YEARSTRING}.log"
-                ${HEAD} root.exe -q -b "get_MVA_histogram.C({${TAUSET}}, \"${SELECTION}\", ${YEAR}, \"${HISTPATH}\", 1)" >| mva_had_${TAUSET}_${YEARSTRING}.log 2>&1 &
+                echo "Starting processing to log/${SELECTION}_mva_had_${TAUSET}_${YEARSTRING}.log"
+                ${HEAD} root.exe -q -b "get_MVA_histogram.C({${TAUSET}}, \"${SELECTION}\", ${YEAR}, \"${HISTPATH}\", 1)" >| log/${SELECTION}_mva_had_${TAUSET}_${YEARSTRING}.log 2>&1 &
             else
                 ${HEAD} root.exe -q -b "get_MVA_histogram.C({${TAUSET}}, \"${SELECTION}\", ${YEAR}, \"${HISTPATH}\", 1)"
             fi
@@ -72,8 +73,8 @@ then
         echo "Retrieving leptonic tau histograms"
         for LEPSET in ${LEPLIST}; do
             if [[ "${PARALLEL}" != "" ]]; then
-                echo "Starting processing to mva_lep_${LEPSET}_${YEARSTRING}.log"
-                ${HEAD} root.exe -q -b "get_MVA_histogram.C({${LEPSET}}, \"${SELECTION}\", ${YEAR}, \"${HISTPATH}\", -1)" >| mva_lep_${LEPSET}_${YEARSTRING}.log 2>&1 &
+                echo "Starting processing to log/${SELECTION}_mva_lep_${LEPSET}_${YEARSTRING}.log"
+                ${HEAD} root.exe -q -b "get_MVA_histogram.C({${LEPSET}}, \"${SELECTION}\", ${YEAR}, \"${HISTPATH}\", -1)" >| log/${SELECTION}_mva_lep_${LEPSET}_${YEARSTRING}.log 2>&1 &
             else
                 ${HEAD} root.exe -q -b "get_MVA_histogram.C({${LEPSET}}, \"${SELECTION}\", ${YEAR}, \"${HISTPATH}\", -1)"
             fi

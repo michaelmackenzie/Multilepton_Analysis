@@ -1,5 +1,4 @@
-//Script to perform toy MC fits using alternate background parameterizations
-//for the generating PDF
+//Script to perform toy MC fits using alternate background parameterizations for the generating PDF
 bool use_bernstein_ = true;
 
 int toyMC_bemu_mc_bkg(vector<int> sets = {8}, TString selection = "zemu",

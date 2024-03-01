@@ -75,11 +75,15 @@ int create_combine_cards_set(int set = 8, TString selection = "zmutau",
     if(selection.Contains("mutau")) lep += "_e" ;
     else                            lep += "_mu";
     for(int year : years) {
-      command_1 += Form("cp datacards/%i/combine_mva_total_%s_%i_%i.txt datacards/%s/; ", year, selection.Data(), set, year, year_string.Data());
-      command_1 += Form("cp datacards/%i/combine_mva_%s_%i_%i.txt  datacards/%s/; ", year, had.Data(), set, year, year_string.Data());
-      command_1 += Form("cp datacards/%i/combine_mva_%s_%i_%i.txt  datacards/%s/; ", year, lep.Data(), set, year, year_string.Data());
-      command_1 += Form("cp datacards/%i/combine_mva_%s_%i_%i.root datacards/%s/; ", year, had.Data(), set, year, year_string.Data());
-      command_1 += Form("cp datacards/%i/combine_mva_%s_%i_%i.root datacards/%s/; ", year, lep.Data(), set, year, year_string.Data());
+      // command_1 += Form("cp datacards/%i/combine_mva_total_%s_%i_%i.txt datacards/%s/; ", year, selection.Data(), set, year, year_string.Data());
+      if(had_only >= 0) {
+        command_1 += Form("cp datacards/%i/combine_mva_%s_%i_%i.txt  datacards/%s/; ", year, had.Data(), set, year, year_string.Data());
+        command_1 += Form("cp datacards/%i/combine_mva_%s_%i_%i.root datacards/%s/; ", year, had.Data(), set, year, year_string.Data());
+      }
+      if(had_only <= 0) {
+        command_1 += Form("cp datacards/%i/combine_mva_%s_%i_%i.txt  datacards/%s/; ", year, lep.Data(), set, year, year_string.Data());
+        command_1 += Form("cp datacards/%i/combine_mva_%s_%i_%i.root datacards/%s/; ", year, lep.Data(), set, year, year_string.Data());
+      }
       if(use_control_regions_) {
         command_1 += Form("cp datacards/%i/combine_mva_%s_cr_mumu_%i_%i.txt  datacards/%s/; ", year, selection.Data(), control_region_set_, year, year_string.Data());
         command_1 += Form("cp datacards/%i/combine_mva_%s_cr_ee_%i_%i.txt    datacards/%s/; ", year, selection.Data(), control_region_set_, year, year_string.Data());
@@ -96,15 +100,13 @@ int create_combine_cards_set(int set = 8, TString selection = "zmutau",
     command_3 += Form(" >| combine_mva_%s_%i_%s.txt"      , had.Data()      , set, year_string.Data());
     command_4 += Form(" >| combine_mva_%s_%i_%s.txt"      , lep.Data()      , set, year_string.Data());
     // cout << command_1.Data() << endl;
+    cout << "Copying individual year cards...\n";
+    gSystem->Exec(command_1.Data());
+    gSystem->cd(Form("datacards/%s/", year_string.Data()));
     if(had_only == 0) {
-      cout << "Copying individual year lep+had cards...\n";
-      gSystem->Exec(command_1.Data());
-      gSystem->cd(Form("datacards/%s/", year_string.Data()));
       // cout << command_2.Data() << endl;
       cout << "Merging the total fit cards...\n";
       gSystem->Exec(command_2.Data());
-    } else {
-      gSystem->cd(Form("datacards/%s/", year_string.Data()));
     }
     cout << "Merging the individual channel fit cards...\n";
     if(had_only >= 0)

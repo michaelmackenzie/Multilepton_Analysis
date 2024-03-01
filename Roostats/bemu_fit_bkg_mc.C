@@ -174,6 +174,7 @@ void fit_and_replace(TH1* h, double xmin, double xmax, const char* fig_dir = nul
   //Replace the bin values with the fit yield
   for(int bin = 1; bin <= h->GetNbinsX(); ++bin) {
     h->SetBinContent(bin, max(0., ((rebin > 1) ? 1./rebin : 1.) * func->Eval(h->GetBinCenter(bin))));
+    h->SetBinError  (bin, sqrt(h->GetBinContent(bin))); //default to statistical error bars for now
   }
   delete func;
 }

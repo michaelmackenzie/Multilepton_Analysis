@@ -64,6 +64,9 @@ std::pair<TString,TString> systematic_name(int sys, TString selection, int year,
     }
   }
 
+  //non-prompt emu estimate check
+  // if(name == "QCDMassBDTBias") name = "";
+
   if(selection.EndsWith("etau")) {
     if(name.Contains("TauMuID") && name != "TauMuID") name = ""; //don't use finely binned nuisance parameters
     else if(name == "TauEleID") name = ""; //ignore coarse binned version
