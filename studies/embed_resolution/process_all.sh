@@ -43,6 +43,9 @@ do
         if [[ "${SAMPLES}" == *"MC"* ]]; then
             root.exe -q -b "resolution.C(2, true, ${YEAR})"
         fi
+        if [[ "${SAMPLES}" == *"UL"* ]]; then
+            root.exe -q -b "resolution.C(3, true, ${YEAR})"
+        fi
         if [[ "${SAMPLES}" == *"Data"* ]]; then
             root.exe -q -b "resolution.C(0, true, ${YEAR})"
         fi
@@ -55,6 +58,9 @@ do
         fi
         if [[ "${SAMPLES}" == *"MC"* ]]; then
             root.exe -q -b "resolution.C(2, false, ${YEAR})"
+        fi
+        if [[ "${SAMPLES}" == *"UL"* ]]; then
+            root.exe -q -b "resolution.C(3, false, ${YEAR})"
         fi
         if [[ "${SAMPLES}" == *"Data"* ]]; then
             root.exe -q -b "resolution.C(0, false, ${YEAR})"
