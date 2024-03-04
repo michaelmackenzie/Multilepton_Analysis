@@ -69,6 +69,7 @@
 #include "interface/LeptonDisplacement.hh"
 #include "interface/BDTScale.hh"
 #include "interface/EmbBDTUncertainty.hh"
+#include "interface/EmbeddingResolution.hh"
 
 #include "interface/ZPDFUncertainty.hh"
 #include "interface/Systematics.hh"
@@ -203,6 +204,9 @@ namespace CLFV {
     Float_t Electron_energyScale          [kMaxLeptons]; //energy scale replacing given one
     Float_t Electron_energyScaleUp        [kMaxLeptons];
     Float_t Electron_energyScaleDown      [kMaxLeptons];
+    Float_t Electron_resolutionScale      [kMaxLeptons]; //energy scale to correct the resolution
+    Float_t Electron_resolutionScaleUp    [kMaxLeptons];
+    Float_t Electron_resolutionScaleDown  [kMaxLeptons];
 
     //taus
     UInt_t  nTau                                       ;
@@ -397,6 +401,9 @@ namespace CLFV {
     Float_t qcdWeightAltDown[kMaxAltFunc]; //alternate shapes
     Int_t   qcdWeightAltNum              ; //N(alternate shapes)
 
+    //random field for event splitting
+    Float_t randomField                ;
+
     //Tau information
     TLorentzVector* tauP4 = 0          ;
     Int_t   tauDecayMode               ;
@@ -486,7 +493,6 @@ namespace CLFV {
     void    InitializeEventWeights();
     void    EnergyScale(const float scale, Lepton_t& lep, float* MET = nullptr, float* METPhi = nullptr);
     void    EnergyScale(const float scale, TLorentzVector& lv, float* MET = nullptr, float* METPhi = nullptr);
-    float   ElectronResolutionUnc(Lepton_t& lep);
     float   MuonResolutionUnc(Lepton_t& lep);
     void    ApplyElectronCorrections();
     void    ApplyMuonCorrections();
@@ -811,12 +817,14 @@ namespace CLFV {
     Int_t           fEmbedUseMETUnc = 1; //whether to include MET JER/JES uncertainties in the embedding MET uncertainty
     Int_t           fUseRoccoCorr = 1; //use Rochester corrections, 0 = none, 1 = local, 2 = ntuple-level
     Int_t           fUseRoccoSize = 1; //use the size of the Rochester corrections as the uncertainty
+    Int_t           fApplyElectronResolution = 1; //apply resolution corrections to the electrons
     bool            fSkipDoubleTrigger = false; //skip events with both triggers (to avoid double counting), only count this lepton status events
     Int_t           fMETWeights = 0; //re-weight events based on the MET
     Int_t           fUseMCEstimatedFakeLep = 0;
     Int_t           fDoTriggerMatching = 1; //match trigger objects to selected leptons
     Int_t           fUseEMuTrigger = 0; //consider the e-mu trigger in e-mu data: 1 = use it; 2 = only use it
     Int_t           fDoEleIDStudy = 0; //histogram additional electron info
+    Int_t           fUseRandomField = 1; //0: split events with TRandom3; 1: use RandomField; 2: Use event variables
 
     Bool_t          fSparseHists = false; //only fill/init more basic histograms
 
@@ -891,6 +899,7 @@ namespace CLFV {
     Int_t           fSameFlavorEMuSelec = 0; //apply the Z->e+mu selection to the ee/mumu events
     EmbBDTUncertainty fEmbBDTUncertainty; //BDT score uncertainty from embedding
     Int_t             fUseEmbBDTUncertainty = 1; //BDT score uncertainty in embedding: 1: use as systematic; 2: apply as correction
+    EmbeddingResolution* fEmbeddingResolution; //Embedding lepton resolution scale and width corrections
 
     ZPtWeight*      fZPtWeight; //re-weight Drell-Yan pT vs Mass
     Int_t           fUseZPtWeight = 1;

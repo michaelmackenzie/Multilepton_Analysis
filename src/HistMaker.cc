@@ -36,6 +36,7 @@ HistMaker::HistMaker(int seed, TTree * /*tree*/) : fSystematicSeed(seed),
   fPrefireWeight = nullptr;
   fTauIDWeight = nullptr;
   fEmbeddingWeight = nullptr;
+  fEmbeddingResolution = nullptr;
   fRnd = nullptr;
   fMVAConfig = nullptr;
   fQCDWeight = nullptr;
@@ -139,27 +140,32 @@ void HistMaker::Begin(TTree * /*tree*/)
   //FIXME: Added back W+Jets MC bias (Mode = 10100300, 60100300 for only MC lepm bias shape)
   //FIXME: Decide on 2D (lepm, bdt score) bias (bias mode 7 (shape+rate) and 8 (shape-only))
   const int wJetsMode = fWJetsMCBiasMode*10000000 + 300300;
-  fMuonJetToTauWeights      [JetToTauComposition::kWJets] = new JetToTauWeight("MuonWJets"      , "mutau", "WJets",   31,wJetsMode, fYear, 0);
-  fMuonJetToTauWeights      [JetToTauComposition::kZJets] = new JetToTauWeight("MuonZJets"      , "mutau", "WJets",   31,wJetsMode, fYear, 0);
-  fMuonJetToTauWeights      [JetToTauComposition::kTop  ] = new JetToTauWeight("MuonTop"        , "mutau", "Top"  ,   82,  1100301, fYear, 0);
-  fMuonJetToTauWeights      [JetToTauComposition::kQCD  ] = new JetToTauWeight("MuonQCD"        , "mutau", "QCD"  , 1030, 40300300, fYear, 0);
 
-  fMuonJetToTauMCWeights    [JetToTauComposition::kWJets] = new JetToTauWeight("MuonMCWJets"    , "mutau", "WJets",   88,wJetsMode+1, fYear, 0); //MC weights with MC non-closure + bias
-  fMuonJetToTauMCWeights    [JetToTauComposition::kZJets] = new JetToTauWeight("MuonMCZJets"    , "mutau", "WJets",   88,wJetsMode+1, fYear, 0);
-  fMuonJetToTauMCWeights    [JetToTauComposition::kTop  ] = new JetToTauWeight("MuonMCTop"      , "mutau", "Top"  ,   82,  1100301, fYear, 0); //Normal weights
-  fMuonJetToTauMCWeights    [JetToTauComposition::kQCD  ] = new JetToTauWeight("MuonMCQCD"      , "mutau", "QCD"  , 1095, 10300300, fYear, 0); //high iso weights for SS --> OS bias
+  if(fSelection == "" || fSelection == "mutau" || fSelection == "mumu") {
+    fMuonJetToTauWeights      [JetToTauComposition::kWJets] = new JetToTauWeight("MuonWJets"      , "mutau", "WJets",   31,wJetsMode, fYear, fVerbose);
+    fMuonJetToTauWeights      [JetToTauComposition::kZJets] = new JetToTauWeight("MuonZJets"      , "mutau", "WJets",   31,wJetsMode, fYear, fVerbose);
+    fMuonJetToTauWeights      [JetToTauComposition::kTop  ] = new JetToTauWeight("MuonTop"        , "mutau", "Top"  ,   82, 71100301, fYear, fVerbose);
+    fMuonJetToTauWeights      [JetToTauComposition::kQCD  ] = new JetToTauWeight("MuonQCD"        , "mutau", "QCD"  , 1030, 90300300, fYear, fVerbose);
+
+    fMuonJetToTauMCWeights    [JetToTauComposition::kWJets] = new JetToTauWeight("MuonMCWJets"    , "mutau", "WJets",   88,wJetsMode+1, fYear, fVerbose); //MC weights with MC non-closure + bias
+    fMuonJetToTauMCWeights    [JetToTauComposition::kZJets] = new JetToTauWeight("MuonMCZJets"    , "mutau", "WJets",   88,wJetsMode+1, fYear, fVerbose);
+    fMuonJetToTauMCWeights    [JetToTauComposition::kTop  ] = new JetToTauWeight("MuonMCTop"      , "mutau", "Top"  ,   82, 71100301, fYear, fVerbose); //Normal weights
+    fMuonJetToTauMCWeights    [JetToTauComposition::kQCD  ] = new JetToTauWeight("MuonMCQCD"      , "mutau", "QCD"  , 1095, 70300300, fYear, fVerbose); //high iso weights for SS --> OS bias
+  }
 
   //FIXME: Added back W+Jets MC bias (Mode = 10300300, 60300300 for only MC bias shape)
   //FIXME: Removed onemetdphi non-closure from W+Jets and QCD, decide if this is needed (1xxxxx --> 3xxxxx)
-  fElectronJetToTauWeights  [JetToTauComposition::kWJets] = new JetToTauWeight("ElectronWJets"  , "etau" , "WJets",   31,wJetsMode, fYear, 0);
-  fElectronJetToTauWeights  [JetToTauComposition::kZJets] = new JetToTauWeight("ElectronZJets"  , "etau" , "WJets",   31,wJetsMode, fYear, 0);
-  fElectronJetToTauWeights  [JetToTauComposition::kTop  ] = new JetToTauWeight("ElectronTop"    , "etau" , "Top"  ,   82,  1100301, fYear, 0);
-  fElectronJetToTauWeights  [JetToTauComposition::kQCD  ] = new JetToTauWeight("ElectronQCD"    , "etau" , "QCD"  , 1030, 90300300, fYear, 0);
+  if(fSelection == "" || fSelection == "etau" || fSelection == "ee") {
+    fElectronJetToTauWeights  [JetToTauComposition::kWJets] = new JetToTauWeight("ElectronWJets"  , "etau" , "WJets",   31,wJetsMode, fYear, fVerbose);
+    fElectronJetToTauWeights  [JetToTauComposition::kZJets] = new JetToTauWeight("ElectronZJets"  , "etau" , "WJets",   31,wJetsMode, fYear, fVerbose);
+    fElectronJetToTauWeights  [JetToTauComposition::kTop  ] = new JetToTauWeight("ElectronTop"    , "etau" , "Top"  ,   82, 71100301, fYear, fVerbose);
+    fElectronJetToTauWeights  [JetToTauComposition::kQCD  ] = new JetToTauWeight("ElectronQCD"    , "etau" , "QCD"  , 1030, 90300300, fYear, fVerbose);
 
-  fElectronJetToTauMCWeights[JetToTauComposition::kWJets] = new JetToTauWeight("ElectronMCWJets", "etau" , "WJets",   88,wJetsMode+1, fYear, 0); //MC weights with MC non-closure + bias
-  fElectronJetToTauMCWeights[JetToTauComposition::kZJets] = new JetToTauWeight("ElectronMCZJets", "etau" , "WJets",   88,wJetsMode+1, fYear, 0);
-  fElectronJetToTauMCWeights[JetToTauComposition::kTop  ] = new JetToTauWeight("ElectronMCTop"  , "etau" , "Top"  ,   82,  1100301, fYear, 0); //Normal weights
-  fElectronJetToTauMCWeights[JetToTauComposition::kQCD  ] = new JetToTauWeight("ElectronMCQCD"  , "etau" , "QCD"  , 1095, 70300300, fYear, 0); //high iso weights for SS --> OS bias
+    fElectronJetToTauMCWeights[JetToTauComposition::kWJets] = new JetToTauWeight("ElectronMCWJets", "etau" , "WJets",   88,wJetsMode+1, fYear, fVerbose); //MC weights with MC non-closure + bias
+    fElectronJetToTauMCWeights[JetToTauComposition::kZJets] = new JetToTauWeight("ElectronMCZJets", "etau" , "WJets",   88,wJetsMode+1, fYear, fVerbose);
+    fElectronJetToTauMCWeights[JetToTauComposition::kTop  ] = new JetToTauWeight("ElectronMCTop"  , "etau" , "Top"  ,   82, 71100301, fYear, fVerbose); //Normal weights
+    fElectronJetToTauMCWeights[JetToTauComposition::kQCD  ] = new JetToTauWeight("ElectronMCQCD"  , "etau" , "QCD"  , 1095, 70300300, fYear, fVerbose); //high iso weights for SS --> OS bias
+  }
 
   fTauIDWeight = new TauIDWeight((fETauAntiEleCut <= 63) ? 0 : (fETauAntiEleCut <= 127) ? 1 : 2, //which etau anti-ele ID WP is being used, Tight, VTight, or VVTight
                                  fIsEmbed, (fSelection == "etau" || fSelection == "mutau") ? fSelection : "etau", fVerbose); //default to etau IDs
@@ -167,6 +173,9 @@ void HistMaker::Begin(TTree * /*tree*/)
   //0: normal unfolding; 1: use z eta unfolding; 2: use z (eta, pt) unfolding; 3: mode 2 with tight cuts; 4: 2016 unfolding; 10: IC measured unfolding
   //FIXME: Settle on an embedding unfolding configuration
   fEmbeddingWeight = new EmbeddingWeight((fIsEmbed /*&& fSelection == "emu"*/) ? 10 : 0);
+
+  if(fIsEmbed)
+    fEmbeddingResolution = new EmbeddingResolution(fYear, fVerbose);
 
   for(int itrig = 0; itrig < 3; ++itrig) triggerWeights[itrig] = 1.f;
 
@@ -219,6 +228,10 @@ void HistMaker::Begin(TTree * /*tree*/)
   if(!fIsData && !fIsEmbed && fApplyJERCorrections && (!fChain->GetBranch("Jet_pt_nom") || !fChain->GetBranch("Jet_mass_nom"))) {
     printf("HistMaker::%s: Warning! JER corrections not available in tree, will ignore\n", __func__);
     fApplyJERCorrections = 0;
+  }
+  if(fUseRandomField == 1 && !fChain->GetBranch("RandomField")) {
+    printf("HistMaker::%s: Warning! Random Field not in the tree, will evaluate random numbers locally\n", __func__);
+    fUseRandomField = 0;
   }
 
 
@@ -1236,6 +1249,9 @@ void HistMaker::InitializeInputTree(TTree* tree) {
     Utilities::SetBranchAddress(tree, "ZpTWeight_sys"                 , &zPtWeightUp                   );
   }
 
+  //Random field for event splitting
+  Utilities::SetBranchAddress(tree, "RandomField"                     , &randomField                   );
+
   //Event information
   if(!fIsData) {
     Utilities::SetBranchAddress(tree, "genWeight"                     , &genWeight                     );
@@ -1282,20 +1298,6 @@ void HistMaker::InitializeInputTree(TTree* tree) {
 }
 
 //-----------------------------------------------------------------------------------------------------------------
-// Get electron energy scale for resolution uncertainty up variation
-float HistMaker::ElectronResolutionUnc(Lepton_t& lep) {
-  if(!lep.isElectron()) return 1.f;
-  if(!fIsEmbed) return 1.f; //only defined for Embedding
-  const float min_scale(0.55f), max_scale(0.85f);
-  const float min_pt(10.f), max_pt(100.f);
-  const float pt_err = lep.pt - lep.genPt;
-  float pt_err_scale = std::max(min_scale, std::min(max_scale, min_scale + (max_scale - min_scale)*(lep.pt - min_pt)/(max_pt - min_pt)));
-  // pt_err_scale += 0.00f*std::pow(std::fabs(pt_err/lep.pt)/0.01f,2) - 0.01f*pt_err/lep.pt/0.01f;
-  const float scale = std::max(0.01f, 1.f + pt_err_scale * pt_err / lep.pt);
-  return scale;
-}
-
-//-----------------------------------------------------------------------------------------------------------------
 // Get muon energy scale for resolution uncertainty up variation
 float HistMaker::MuonResolutionUnc(Lepton_t& lep) {
   if(!lep.isMuon()) return 1.f;
@@ -1314,25 +1316,75 @@ float HistMaker::MuonResolutionUnc(Lepton_t& lep) {
 void HistMaker::ApplyElectronCorrections() {
   float delta_x(metCorr*std::cos(metCorrPhi)), delta_y(metCorr*std::sin(metCorrPhi));
   for(UInt_t index = 0; index < nElectron; ++index) {
-    float sf = (fIsEmbed) ? fElectronIDWeight.EmbedEnergyScale(Electron_pt[index], Electron_eta[index],
-                                                               fYear, Electron_energyScaleUp[index], Electron_energyScaleDown[index]) : 1.f;
-    Electron_energyScale[index] = sf;
-    if(!fIsEmbed) { //FIXME: Get electron energy scale uncertainty in MC
-      // TLorentzVector lv; lv.SetPtEtaPhiM(Electron_pt[index], Electron_eta[index], Electron_phi[index], 0.f/*Electron_mass[index]*/);
+
+    //Store the starting pT to update the MET after corrections
+    const float pt_orig = Electron_pt[index];
+
+    //-------------------------------------------------------------
+    //Remove energy corrections where needed
+
+    float sf = 1.f;
+    if(fIsEmbed) sf /= Electron_eCorr[index]; //remove the NANOAOD defined correction applied to embedding electrons
+    Electron_pt[index] *= sf;
+    // Electron_mass[index] *= sf;
+
+    //-------------------------------------------------------------
+    //Correct the energy scale and set an uncertainty on it
+
+    Electron_energyScale    [index] = 1.f;
+    Electron_energyScaleUp  [index] = 1.f;
+    Electron_energyScaleDown[index] = 1.f;
+    sf = 1.f;
+    if(fIsEmbed) {
+      const float gen_pt = (Electron_genPartIdx[index] >= 0) ? GenPart_pt[Electron_genPartIdx[index]] : Electron_pt[index];
+      sf = fEmbeddingResolution->ElectronScale(Electron_eta[index], gen_pt, fYear,
+                                               Electron_energyScaleUp[index], Electron_energyScaleDown[index]);
+      // sf = fElectronIDWeight.EmbedEnergyScale(Electron_pt[index], Electron_eta[index],
+      //                                         fYear, Electron_energyScaleUp[index], Electron_energyScaleDown[index]);
+    } else if(!fIsData) { //FIXME: Get electron energy scale uncertainty in MC
       const float ele_scale_sys = 0.003f; //FIXME: Estimating the scale uncertainty from fits of MC resolution function (see emb_resolution study)
       Electron_energyScaleUp  [index] = 1.f + ele_scale_sys;
       Electron_energyScaleDown[index] = 1.f - ele_scale_sys;
     }
-    if(fIsEmbed) sf /= Electron_eCorr[index]; //remove the NANOAOD defined correction applied to embedding electrons
-    float pt_diff = Electron_pt[index];
+    Electron_energyScale[index] = sf;
     Electron_pt[index] *= sf;
     // Electron_mass[index] *= sf;
-    pt_diff = Electron_pt[index] - pt_diff; //New - Old
+
+    //-------------------------------------------------------------
+    //Correct the energy resolution and set an uncertainty on it
+
+    Electron_resolutionScale    [index] = 1.f;
+    Electron_resolutionScaleUp  [index] = 1.f;
+    Electron_resolutionScaleDown[index] = 1.f;
+    sf = 1.f;
+    if(fIsEmbed && fApplyElectronResolution) {
+      const float gen_pt = (Electron_genPartIdx[index] >= 0) ? GenPart_pt[Electron_genPartIdx[index]] : Electron_pt[index];
+      sf = fEmbeddingResolution->ElectronResolution(Electron_pt[index], Electron_eta[index], gen_pt, fYear,
+                                                    Electron_resolutionScaleUp[index], Electron_resolutionScaleDown[index]);
+      Electron_resolutionScale[index] = sf;
+      Electron_pt[index] *= sf;
+      // Electron_mass[index] *= sf;
+    } else if(!fIsData) {
+      const float gen_pt = (Electron_genPartIdx[index] >= 0) ? GenPart_pt[Electron_genPartIdx[index]] : Electron_pt[index];
+      const float ele_scale_sys = 0.05f;
+      Electron_resolutionScaleUp  [index] = 1.f + ele_scale_sys*(Electron_pt[index] - gen_pt) / gen_pt;
+      Electron_resolutionScaleDown[index] = 1.f - ele_scale_sys*(Electron_pt[index] - gen_pt) / gen_pt;
+    }
+
+    //-------------------------------------------------------------
+    //Store the event pT change after corrections for MET updates
+
+    //Evaluate the change in the pT = finish - start pT
+    const float pt_diff = pt_orig - Electron_pt[index];
+
     //subtract the change from the MET
     delta_x -= pt_diff*std::cos(Electron_phi[index]);
     delta_y -= pt_diff*std::sin(Electron_phi[index]);
   }
+
+  //-------------------------------------------------------------
   //Update the MET with these corrections applied
+
   if(fUpdateMET) {
     metCorr = std::sqrt(delta_x*delta_x + delta_y*delta_y);
     metCorrPhi = (metCorr > 0.f) ? std::acos(std::max(-1.f, std::min(1.f, delta_x/metCorr)))*(delta_y < 0.f ? -1 : 1) : 0.f;
@@ -1508,6 +1560,16 @@ void HistMaker::SwapSameFlavor() {
     std::swap(Muon_genPartFlav              [0], Muon_genPartFlav              [1]);
     std::swap(Muon_genPartIdx               [0], Muon_genPartIdx               [1]);
     std::swap(Muon_RoccoSF                  [0], Muon_RoccoSF                  [1]);
+    std::swap(Muon_corrected_pt             [0], Muon_corrected_pt             [1]);
+    std::swap(Muon_correctedUp_pt           [0], Muon_correctedUp_pt           [1]);
+    std::swap(Muon_correctedDown_pt         [0], Muon_correctedDown_pt         [1]);
+    std::swap(Muon_ESErr                    [0], Muon_ESErr                    [1]);
+    std::swap(Muon_ID_wt                    [0], Muon_ID_wt                    [1]);
+    std::swap(Muon_ID_up                    [0], Muon_ID_up                    [1]);
+    std::swap(Muon_ID_down                  [0], Muon_ID_down                  [1]);
+    std::swap(Muon_IsoID_wt                 [0], Muon_IsoID_wt                 [1]);
+    std::swap(Muon_IsoID_up                 [0], Muon_IsoID_up                 [1]);
+    std::swap(Muon_IsoID_down               [0], Muon_IsoID_down               [1]);
   }
   if(nElectron == 2 && Electron_pt[0] < Electron_pt[1]) {
     std::swap(Electron_pt                   [0], Electron_pt                   [1]);
@@ -1544,6 +1606,18 @@ void HistMaker::SwapSameFlavor() {
     std::swap(Electron_energyScale          [0], Electron_energyScale          [1]);
     std::swap(Electron_energyScaleUp        [0], Electron_energyScaleUp        [1]);
     std::swap(Electron_energyScaleDown      [0], Electron_energyScaleDown      [1]);
+    std::swap(Electron_resolutionScale      [0], Electron_resolutionScale      [1]);
+    std::swap(Electron_resolutionScaleUp    [0], Electron_resolutionScaleUp    [1]);
+    std::swap(Electron_resolutionScaleDown  [0], Electron_resolutionScaleDown  [1]);
+    std::swap(Electron_ID_wt                [0], Electron_ID_wt                [1]);
+    std::swap(Electron_ID_up                [0], Electron_ID_up                [1]);
+    std::swap(Electron_ID_down              [0], Electron_ID_down              [1]);
+    std::swap(Electron_IsoID_wt             [0], Electron_IsoID_wt             [1]);
+    std::swap(Electron_IsoID_up             [0], Electron_IsoID_up             [1]);
+    std::swap(Electron_IsoID_down           [0], Electron_IsoID_down           [1]);
+    std::swap(Electron_RecoID_wt            [0], Electron_RecoID_wt            [1]);
+    std::swap(Electron_RecoID_up            [0], Electron_RecoID_up            [1]);
+    std::swap(Electron_RecoID_down          [0], Electron_RecoID_down          [1]);
   }
 }
 
@@ -2094,10 +2168,10 @@ void HistMaker::InitializeEventWeights() {
                                                                                   fTreeVars.onemetdeltaphi, fTreeVars.lepm, fTreeVars.mtlep, leptonOne.iso/leptonOne.p4->Pt(), fMvaUse[3],
                                                                                   fJetToTauMCCorrs[proc], fJetToTauMCBiases[proc]));
         }
-        if(proc == JetToTauComposition::kTop && fJetToTauBiases[proc] != 1.f) {
-          printf("%s: Bias found in j-->tau top estimation! Bias = %.4f\n", __func__, fJetToTauBiases[proc]);
-          throw 20;
-        }
+        // if(proc == JetToTauComposition::kTop && fJetToTauBiases[proc] != 1.f) {
+        //   printf("%s: Bias found in j-->tau top estimation! Bias = %.4f\n", __func__, fJetToTauBiases[proc]);
+        //   throw 20;
+        // }
         //approximate the statistical uncertainty components into a total up/down uncertainty
         fJetToTauWtsUp  [proc] = 0.f;
         fJetToTauWtsDown[proc] = 0.f;
@@ -3215,6 +3289,39 @@ void HistMaker::CountObjects() {
     leptonTwo.genMass = leptonTwo.mass;
   }
 
+  //Initialize resolution uncertainties with gen-info set
+  if(leptonOne.isElectron()) {
+    leptonOne.Res[0] = Electron_resolutionScale    [leptonOne.index];
+    leptonOne.Res[1] = Electron_resolutionScaleUp  [leptonOne.index];
+    leptonOne.Res[2] = Electron_resolutionScaleDown[leptonOne.index];
+  }
+  if(leptonTwo.isElectron()) {
+    leptonTwo.Res[0] = Electron_resolutionScale    [leptonTwo.index];
+    leptonTwo.Res[1] = Electron_resolutionScaleUp  [leptonTwo.index];
+    leptonTwo.Res[2] = Electron_resolutionScaleDown[leptonTwo.index];
+  }
+  if(leptonOne.isMuon()) {
+    leptonOne.Res[0]    = 1.f;
+    leptonOne.Res[1]    = (fIsEmbed) ? fEmbeddingResolution->MuonResolutionUnc(leptonOne.pt, leptonOne.eta, leptonOne.genPt, fYear) : 1.f;
+    leptonOne.Res[2]    = 1.f;
+  }
+  if(leptonTwo.isMuon()) {
+    leptonTwo.Res[0]    = 1.f;
+    leptonOne.Res[1]    = (fIsEmbed) ? fEmbeddingResolution->MuonResolutionUnc(leptonTwo.pt, leptonTwo.eta, leptonTwo.genPt, fYear) : 1.f;
+    leptonTwo.Res[2]    = 1.f;
+  }
+  if(leptonOne.isTau()) {
+    leptonOne.Res[0]    = 1.f;
+    leptonOne.Res[1]    = 1.f;
+    leptonOne.Res[2]    = 1.f;
+  }
+  if(leptonTwo.isTau()) {
+    leptonTwo.Res[0]    = 1.f;
+    leptonTwo.Res[1]    = 1.f;
+    leptonTwo.Res[2]    = 1.f;
+  }
+
+
   if(!std::isfinite(puppMETJERUp) || !std::isfinite(puppMETphiJERUp)) {
     if(fVerbose) printf("HistMaker::%s: Entry %lld: MET JER Up not defined\n", __func__, fentry);
     puppMETJERUp    = puppMET;
@@ -3482,7 +3589,13 @@ void HistMaker::InitializeTreeVariables() {
   //dataset/event information
   fTreeVars.eventcategory = fEventCategory;
   if(!fIsData || looseQCDSelection) {
-    if(fFractionMVA > 0.f) fTreeVars.train = (fRnd->Uniform() < fFractionMVA) ? 1.f : -1.f; //whether or not it is in the training sample
+    float split_val = (fUseRandomField) ? randomField : fRnd->Uniform();
+    if(fUseRandomField == 2) { //evaluate with event variables
+      double event_val = std::fabs(leptonOne.phi * leptonTwo.eta);
+      //use decimals to get random value
+      split_val = ((event_val * 10.) - ((int) event_val * 10.)) / 10.; //take decimals 2 on as the random variable (e.g. X.abcde --> 0.bcde)
+    }
+    if(fFractionMVA > 0.f) fTreeVars.train = (split_val < fFractionMVA) ? 1.f : -1.f; //whether or not it is in the training sample
     else                   fTreeVars.train = -1.f;
     fTreeVars.trainfraction = fFractionMVA;
   } else {

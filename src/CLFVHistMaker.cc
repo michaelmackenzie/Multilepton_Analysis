@@ -1090,36 +1090,30 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
     } else if(name == "EmbEleRes") {
       if(!fIsEmbed || !isEData) continue; //only process for embedding with reco electrons
       reeval = true;
-      const float one_scale = ElectronResolutionUnc(leptonOne);
-      const float two_scale = ElectronResolutionUnc(leptonTwo);
       if(fSystematics.IsUp(sys)) {
         if(leptonOne.isElectron() && leptonOne.genPt > 0.f)
-          EnergyScale(one_scale, leptonOne, &met, &metPhi);
+          EnergyScale(leptonOne.Res[1] / leptonOne.Res[0], leptonOne, &met, &metPhi);
         if(leptonTwo.isElectron() && leptonTwo.genPt > 0.f)
-          EnergyScale(two_scale, leptonTwo, &met, &metPhi);
-      } else { //FIXME: Should this be a one-sided uncertainty?
-        continue; //skip the down, setting it to be a one-sided uncertainty
-        // if(leptonOne.isElectron() && leptonOne.genPt > 0.f)
-        //   EnergyScale(1.f/one_scale, leptonOne, &met, &metPhi);
-        // if(leptonTwo.isElectron() && leptonTwo.genPt > 0.f)
-        //   EnergyScale(1.f/two_scale, leptonTwo, &met, &metPhi);
+          EnergyScale(leptonTwo.Res[1] / leptonTwo.Res[0], leptonTwo, &met, &metPhi);
+      } else {
+        if(leptonOne.isElectron() && leptonOne.genPt > 0.f)
+          EnergyScale(leptonOne.Res[2] / leptonOne.Res[0], leptonOne, &met, &metPhi);
+        if(leptonTwo.isElectron() && leptonTwo.genPt > 0.f)
+          EnergyScale(leptonTwo.Res[2] / leptonTwo.Res[0], leptonTwo, &met, &metPhi);
       }
     } else if(name == "EmbMuonRes") {
       if(!fIsEmbed || !isMData) continue; //only process for embedding with reco muons
       reeval = true;
-      const float one_scale = MuonResolutionUnc(leptonOne);
-      const float two_scale = MuonResolutionUnc(leptonTwo);
       if(fSystematics.IsUp(sys)) {
         if(leptonOne.isMuon() && leptonOne.genPt > 0.f)
-          EnergyScale(one_scale, leptonOne, &met, &metPhi);
+          EnergyScale(leptonOne.Res[1] / leptonOne.Res[0], leptonOne, &met, &metPhi);
+        if(leptonTwo.isElectron() && leptonTwo.genPt > 0.f)
+          EnergyScale(leptonTwo.Res[1] / leptonTwo.Res[0], leptonTwo, &met, &metPhi);
+      } else {
+        if(leptonOne.isMuon() && leptonOne.genPt > 0.f)
+          EnergyScale(leptonOne.Res[2] / leptonOne.Res[0], leptonOne, &met, &metPhi);
         if(leptonTwo.isMuon() && leptonTwo.genPt > 0.f)
-          EnergyScale(two_scale, leptonTwo, &met, &metPhi);
-      } else { //FIXME: Should this be a one-sided uncertainty?
-        continue; //skip the down, setting it to be a one-sided uncertainty
-        // if(leptonOne.isMuon() && leptonOne.genPt > 0.f)
-        //   EnergyScale(1.f/one_scale, leptonOne, &met, &metPhi);
-        // if(leptonTwo.isMuon() && leptonTwo.genPt > 0.f)
-        //   EnergyScale(1.f/two_scale, leptonTwo, &met, &metPhi);
+          EnergyScale(leptonTwo.Res[2] / leptonTwo.Res[0], leptonTwo, &met, &metPhi);
       }
     } else if(name == "QCDStat") {
       if(!chargeTest) { //only shift for same-sign events
@@ -1317,17 +1311,17 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
 
           }
         }
-        if(proc == JetToTauComposition::kTop && wt_jtt != jetToTauWeightBias) {
-          printf("%s: Bias found in j-->tau top estimation! wt(nom) = %.4f, wt(sys) = %.4f, Bias = %.4f\n",
-                 __func__, jetToTauWeightBias, wt_jtt, fJetToTauBiases[proc]);
-          printf(" event info: lepm = %.1f, mtone = %.1f, one pt = %.1f, two pt = %.1f\n",
-                 fTreeVars.lepm, fTreeVars.mtone, fTreeVars.leponept, fTreeVars.leptwopt);
-          for(int jproc = 0; jproc < JetToTauComposition::kLast; ++jproc) {
-            printf(" proc %i: comp = %.4f, wt = %.4f, correction = %.4f, bias = %.4f\n",
-                   jproc, fJetToTauComps[jproc], fJetToTauWts[jproc], fJetToTauCorrs[jproc], fJetToTauBiases[jproc]);
-          }
-          throw 20;
-        }
+        // if(proc == JetToTauComposition::kTop && wt_jtt != jetToTauWeightBias) {
+        //   printf("%s: Bias found in j-->tau top estimation! wt(nom) = %.4f, wt(sys) = %.4f, Bias = %.4f\n",
+        //          __func__, jetToTauWeightBias, wt_jtt, fJetToTauBiases[proc]);
+        //   printf(" event info: lepm = %.1f, mtone = %.1f, one pt = %.1f, two pt = %.1f\n",
+        //          fTreeVars.lepm, fTreeVars.mtone, fTreeVars.leponept, fTreeVars.leptwopt);
+        //   for(int jproc = 0; jproc < JetToTauComposition::kLast; ++jproc) {
+        //     printf(" proc %i: comp = %.4f, wt = %.4f, correction = %.4f, bias = %.4f\n",
+        //            jproc, fJetToTauComps[jproc], fJetToTauWts[jproc], fJetToTauCorrs[jproc], fJetToTauBiases[jproc]);
+        //   }
+        //   throw 20;
+        // }
         weight *= wt_jtt / jetToTauWeightBias;
       } else continue; //no need to fill tight ID histograms
     } else if(name == "EmbedUnfold") {

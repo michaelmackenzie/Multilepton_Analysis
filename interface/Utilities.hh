@@ -8,6 +8,7 @@
 //ROOT includes
 #include "TH1.h"
 #include "TH2.h"
+#include "TGraph.h"
 #include "TAxis.h"
 #include "TDirectory.h"
 #include "TFolder.h"
@@ -296,6 +297,42 @@ namespace CLFV {
 
       if(verbose > 0) printf("Utilities::%s: Bin x = %i, Bin y = %i, Bin content = %.5e, Bin center = %.5e, Bin 2 = %i, Bin 2 content = %.5e, Bin 2 center = %.5e, val = %.5e\n",
                              __func__, bin_x, bin_y, bin_con, bin_cen, bin_2, bin_con_2, bin_cen_2, val);
+
+      return val;
+    }
+
+    //------------------------------------------------------------------------------------------------------
+    // Linear interpolation between points in a TGraph
+    static double Interpolate(const TGraph* g, const double x) {
+      //if no graph, return 0
+      if(!g) return 0.;
+
+      //if no points, return 0
+      if(g->GetN() <= 0) return 0.;
+
+      if(!std::isfinite(x)) return 0.;
+      //check if beyond the range of interpolation
+      const int n = g->GetN();
+      if(n == 1)              return g->GetY()[  0]; //only point --> no interpolation possible
+      if(x <= g->GetX()[  0]) return g->GetY()[  0];
+      if(x >= g->GetX()[n-1]) return g->GetY()[n-1];
+
+      //find the two points x is between
+      int bin_low(0), bin_high(1); //initialize to between points 0 and 1
+      for(int ipoint = 1; ipoint < n - 1; ++ipoint) {
+        if(x < g->GetX()[ipoint]) break; //if below this point, it's between this point and the previous
+        bin_low  = ipoint; //x is still above this value --> continue looking
+        bin_high = ipoint+1;
+      }
+
+      //Use point-slope interpolation form
+      const double x1 = g->GetX()[bin_low ];
+      const double x2 = g->GetX()[bin_high];
+      const double y1 = g->GetY()[bin_low ];
+      const double y2 = g->GetY()[bin_high];
+
+      //y = y0 + (delta y / delta x)*(x - x0)
+      const double val = y1 + (y2 - y1)/(x2 - x1)*(x - x1);
 
       return val;
     }

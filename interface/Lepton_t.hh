@@ -75,6 +75,7 @@ namespace CLFV {
     //energy and momentum scales and up/down systematic scales
     float ptSF[3] = {1.f, 1.f, 1.f};
     float ES[3] = {1.f, 1.f, 1.f};
+    float Res[3] = {1.f, 1.f, 1.f}; //correction applied to correct the resolution
 
     bool  jetOverlap;
 

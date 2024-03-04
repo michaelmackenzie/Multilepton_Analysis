@@ -26,6 +26,7 @@
   <class name="LeptonDisplacement"/>
   <class name="BDTScale"/>
   <class name="EmbBDTUncertainty"/>
+  <class name="EmbeddingResolution"/>
   <class name="TauIDWeight"/>
   <class name="ZPtWeight"/>
   <class name="SignalZWeight"/>

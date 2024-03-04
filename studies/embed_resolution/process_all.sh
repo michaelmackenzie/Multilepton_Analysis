@@ -5,11 +5,16 @@ Help() {
     echo " 1: Year list (default = \"2016 2017 2018\")"
     echo " 2: Optional lepton flavor (\"muon\" or \"electron\")"
     echo " 3: Optional samples (default = \"Embed MC Data\")"
+    echo " 4: Use resolution corrections (default = 0)"
+    echo " 5: Use scale corrections (default = 0)"
 }
 
 YEARS=$1
 FLAVOR=$2
 SAMPLES=$3
+RESOLUTION=$4
+SCALE=$5
+PERIOD="-1"
 
 if [[ "${YEARS}" == "-h" ]] || [[ "${YEARS}" == "--help" ]]; then
     Help
@@ -22,6 +27,14 @@ fi
 
 if [[ "${SAMPLES}" == "" ]]; then
     SAMPLES="Embed MC Data";
+fi
+
+if [[ "${RESOLUTION}" == "" ]]; then
+    RESOLUTION="0"
+fi
+
+if [[ "${SCALE}" == "" ]]; then
+    SCALE="0"
 fi
 
 if [[ "${FLAVOR}" != "" ]]; then
@@ -38,33 +51,33 @@ do
     if [[ "${FLAVOR}" != "electron" ]]; then
         echo "Processing year ${YEAR} muon resolution"
         if [[ "${SAMPLES}" == *"Embed"* ]]; then
-            root.exe -q -b "resolution.C(1, true, ${YEAR})"
+            root.exe -q -b "resolution.C(1, true, ${YEAR}, ${PERIOD}, ${RESOLUTION}, ${SCALE})"
         fi
         if [[ "${SAMPLES}" == *"MC"* ]]; then
-            root.exe -q -b "resolution.C(2, true, ${YEAR})"
+            root.exe -q -b "resolution.C(2, true, ${YEAR}, ${PERIOD}, ${RESOLUTION}, ${SCALE})"
         fi
         if [[ "${SAMPLES}" == *"UL"* ]]; then
-            root.exe -q -b "resolution.C(3, true, ${YEAR})"
+            root.exe -q -b "resolution.C(3, true, ${YEAR}, ${PERIOD}, ${RESOLUTION}, ${SCALE})"
         fi
         if [[ "${SAMPLES}" == *"Data"* ]]; then
-            root.exe -q -b "resolution.C(0, true, ${YEAR})"
+            root.exe -q -b "resolution.C(0, true, ${YEAR}, ${PERIOD}, ${RESOLUTION}, ${SCALE})"
         fi
-        root.exe -q -b "compare.C(true, ${YEAR})"
+        root.exe -q -b "compare.C(true, ${YEAR}, ${PERIOD}, ${RESOLUTION}, ${SCALE})"
     fi
     if [[ "${FLAVOR}" != "muon" ]]; then
         echo "Processing year ${YEAR} electron resolution"
         if [[ "${SAMPLES}" == *"Embed"* ]]; then
-            root.exe -q -b "resolution.C(1, false, ${YEAR})"
+            root.exe -q -b "resolution.C(1, false, ${YEAR}, ${PERIOD}, ${RESOLUTION}, ${SCALE})"
         fi
         if [[ "${SAMPLES}" == *"MC"* ]]; then
-            root.exe -q -b "resolution.C(2, false, ${YEAR})"
+            root.exe -q -b "resolution.C(2, false, ${YEAR}, ${PERIOD}, ${RESOLUTION}, ${SCALE})"
         fi
         if [[ "${SAMPLES}" == *"UL"* ]]; then
-            root.exe -q -b "resolution.C(3, false, ${YEAR})"
+            root.exe -q -b "resolution.C(3, false, ${YEAR}, ${PERIOD}, ${RESOLUTION}, ${SCALE})"
         fi
         if [[ "${SAMPLES}" == *"Data"* ]]; then
-            root.exe -q -b "resolution.C(0, false, ${YEAR})"
+            root.exe -q -b "resolution.C(0, false, ${YEAR}, ${PERIOD}, ${RESOLUTION}, ${SCALE})"
         fi
-        root.exe -q -b "compare.C(false, ${YEAR})"
+        root.exe -q -b "compare.C(false, ${YEAR}, ${PERIOD}, ${RESOLUTION}, ${SCALE})"
     fi
 done

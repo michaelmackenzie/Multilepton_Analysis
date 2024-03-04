@@ -3,6 +3,7 @@
 int  debug_       = 2; //1: print info then exit; 2: process nentries_ and perform fits; 3: 2 + print fit information
 int  nentries_    = 1e6; // maximum events to use when debugging
 bool applyScales_ = true; //apply ID+IsoID+trigger scale factors
+int  correctES_   =    0; //0: no corrections; 1: Provided scales; 2: Measured scales
 bool correctRes_  = true; //correct the lepton resolution in embedding
 bool interpolatePoints_ = false; //interpolate or use bin values for resolution correction
 
@@ -15,6 +16,12 @@ int nfit_ = 0; //to help with memory leaks in the fits (?)
 enum {kIDTest = 1};
 enum {kVVLooseIso = 1, kVLooseIso, kLooseIso, kMediumIso, kTightIso, kVTightIso, kVVTightIso};
 enum {kWPL = 1, kWP90, kWP80};
+
+//-------------------------------------------------------------------------------------------------------------------------------------
+//get the standard figure path
+const char* figure_path() {
+  return Form("figures/%s_mc-%i_r%i_e%i_%i", (isMuon_) ? "mumu" : "ee", isMC_, correctRes_, correctES_, year_);
+}
 
 //-------------------------------------------------------------------------------------------------------------------------------------
 //print a standard figure
@@ -124,7 +131,7 @@ void fit_2d_resolution(TH2* h2D) {
   double widths[n_x_bins], width_errs[n_x_bins];
   double means[n_x_bins], mean_errs[n_x_bins];
   double max_width(0.), min_width(999.);
-  TString dir = Form("figures/%s_mc-%i%s_%i", (isMuon_) ? "mumu" : "ee", isMC_, (isMC_ == 1 && correctRes_) ? "_corr" : "", year_);
+  TString dir = figure_path();
   for(int ibin = 1; ibin <= n_x_bins; ++ibin) {
     //initialize the parameters
     widths[ibin-1] = 0.; width_errs[ibin-1] = 0.; means[ibin-1] = 0.; mean_errs[ibin-1] = 0.;
@@ -136,11 +143,11 @@ void fit_2d_resolution(TH2* h2D) {
                    &(means [ibin-1]), &(mean_errs [ibin-1]));
     max_width = max(widths[ibin-1], max_width);
     min_width = min(widths[ibin-1], min_width);
-    dir = Form("figures/%s_mc-%i%s_%i", (isMuon_) ? "mumu" : "ee", isMC_, (isMC_ == 1 && correctRes_) ? "_corr" : "", year_);
+    dir = figure_path();
   }
   //plot the means
   {
-    dir = Form("figures/%s_mc-%i%s_%i", (isMuon_) ? "mumu" : "ee", isMC_, (isMC_ == 1 && correctRes_) ? "_corr" : "", year_);
+    dir = figure_path();
     TGraph* g = new TGraphErrors(n_x_bins, x_centers, means, x_errs, mean_errs);
     TCanvas* c = new TCanvas();
     g->SetMarkerSize(0.8);
@@ -157,7 +164,7 @@ void fit_2d_resolution(TH2* h2D) {
   }
   //plot the fit of the widths
   {
-    dir = Form("figures/%s_mc-%i%s_%i", (isMuon_) ? "mumu" : "ee", isMC_, (isMC_ == 1 && correctRes_) ? "_corr" : "", year_);
+    dir = figure_path();
     TGraph* gwidths = new TGraphErrors(n_x_bins, x_centers, widths, x_errs, width_errs);
     TCanvas* c = new TCanvas();
     gwidths->SetMarkerSize(0.8);
@@ -196,12 +203,73 @@ float embed_energy_scale(float eta, int year) {
 }
 
 //-------------------------------------------------------------------------------------------------------------------------------------
+//electron energy scale correction for embedding
+float electron_energy_scale(double pt, double eta, std::vector<TGraphAsymmErrors*>& graphs) {
+  //determine the graph |eta| region by the number of graphs found
+
+  const unsigned ngraphs = graphs.size();
+
+  if(ngraphs == 0) return 1.f;
+
+  auto g = graphs[0]; //default to the first graph
+
+  if(ngraphs == 2) { //barrel vs. endcap split
+    const bool barrel = std::fabs(eta) < 1.479;
+    g = (barrel) ? graphs[0] : graphs[1];
+  } else if(ngraphs == 3) { //split barrel into a low and high |eta| region
+    const double abs_eta = std::fabs(eta);
+    const int index = (abs_eta >= 0.5) + (abs_eta >= 1.5);
+    g = graphs[index];
+  } else if(ngraphs == 4) { //split barrel and endcap into a low and high |eta| region
+    const double abs_eta = std::fabs(eta);
+    const int index = (abs_eta >= 0.5) + (abs_eta >= 1.5) + (abs_eta >= 2.1);
+    g = graphs[index];
+  }
+
+  double val(1.);
+  if(interpolatePoints_)
+    val = CLFV::Utilities::Interpolate(g, pt);
+  else {
+    //find the bin that contains pT
+    int bin(0);
+    for(int ibin = 0; ibin < g->GetN(); ++ibin) {
+      bin = ibin;
+      if(pt < g->GetX()[ibin] + g->GetEXhigh()[ibin]) break; //check if below the upper edge of the bin
+    }
+    val = g->GetY()[bin];
+  }
+  //value returned is difference in the resolution mean --> scale factor = 1 + difference
+  val += 1.;
+  if(debug_ % 2 == 1) {
+    printf("%s: pT = %5.1f, eta = %5.2f --> scale offset = %.3f\n", __func__, pt, eta, val);
+  }
+  return val;
+}
+
+//-------------------------------------------------------------------------------------------------------------------------------------
 //electron energy resolution correction for embedding
 float electron_resolution_scale(double pt, double eta, std::vector<TGraphAsymmErrors*>& graphs) {
-  if(graphs.size() != 2) return 1.f;
-  const bool barrel = std::fabs(eta) < 1.479;
+  //determine the graph |eta| region by the number of graphs found
 
-  auto g = (barrel) ? graphs[0] : graphs[1];
+  const unsigned ngraphs = graphs.size();
+
+  if(ngraphs == 0) return 1.f;
+
+  auto g = graphs[0]; //default to the first graph
+
+  if(ngraphs == 2) { //barrel vs. endcap split
+    const bool barrel = std::fabs(eta) < 1.479;
+    g = (barrel) ? graphs[0] : graphs[1];
+  } else if(ngraphs == 3) { //split barrel into a low and high |eta| region
+    const double abs_eta = std::fabs(eta);
+    const int index = (abs_eta >= 0.5) + (abs_eta >= 1.5);
+    g = graphs[index];
+  } else if(ngraphs == 4) { //split barrel and endcap into a low and high |eta| region
+    const double abs_eta = std::fabs(eta);
+    const int index = (abs_eta >= 0.5) + (abs_eta >= 1.5) + (abs_eta >= 2.1);
+    g = graphs[index];
+  }
+
   double val(1.);
   if(interpolatePoints_)
     val = CLFV::Utilities::Interpolate(g, pt);
@@ -222,7 +290,7 @@ float electron_resolution_scale(double pt, double eta, std::vector<TGraphAsymmEr
 
 //-------------------------------------------------------------------------------------------------------------------------------------
 //muon energy resolution correction for embedding
-float muon_resolution_scale(double pt, std::vector<TGraphAsymmErrors*>& graphs) {
+double muon_resolution_scale(double pt, std::vector<TGraphAsymmErrors*>& graphs) {
   if(graphs.size() != 1) return 1.f;
   auto g = graphs[0];
   double val(1.);
@@ -243,28 +311,19 @@ float muon_resolution_scale(double pt, std::vector<TGraphAsymmErrors*>& graphs) 
   return val;
 }
 
-// //-------------------------------------------------------------------------------------------------------------------------------------
-// //muon energy resolution correction for embedding
-// float muon_resolution_scale(double pt, int year) {
-//   double p0(1.5), p1(0.); //linear interpolation parameters
+//-------------------------------------------------------------------------------------------------------------------------------------
+//muon energy resolution correction for embedding
+double muon_resolution_scale(double gen_pt, double reco_pt) {
+  const double min_scale(0.05), max_scale(0.20);
+  const double min_pt(10.), max_pt(100.);
+  const double pt_err = reco_pt - gen_pt;
 
-//   if(year == 2016) {
-//     p0 = 0.986; p1 = 0.001186;
-//   } else if(year == 2017) {
-//     p0 = 0.9887; p1 = 0.001054;
-//   } else if(year == 2018) {
-//     p0 = 0.9813; p1 = 0.001183;
-//   }
+  //parameterize in terms of gen-pT to avoid bin migration as reco pT is changed
+  double pt_err_scale = std::max(min_scale, std::min(max_scale, min_scale + (max_scale - min_scale)*(gen_pt - min_pt)/(max_pt - min_pt)));
+  pt_err_scale += 0.04*std::pow(std::fabs(pt_err/gen_pt)/0.01,2) - 0.08*pt_err/gen_pt/0.01;
+  return pt_err_scale;
+}
 
-//   //range the scale is defined
-//   const double min_pt(10.), max_pt(100.);
-//   pt = std::max(min_pt, std::min(max_pt, pt));
-
-//   //evaluate the linear width ratio fit to get the correction to the resolution width
-//   const double sigma_corr = std::max(0.3, std::min(3., p0 + p1*pt));
-
-//   return sigma_corr;
-// }
 
 //-------------------------------------------------------------------------------------------------------------------------------------
 /**
@@ -274,12 +333,20 @@ float muon_resolution_scale(double pt, std::vector<TGraphAsymmErrors*>& graphs) 
    2 = MC
    3 = UL MC
  **/
-void resolution(int isMC = 1, bool isMuon = true, int year = 2016, int period = -1) {
-
+void resolution(int isMC = 1, bool isMuon = true, int year = 2016, int period = -1, int correctRes = 0, int correctES = 0) {
   TString path = "root://cmseos.fnal.gov//store/user/mmackenz/embed_tnp/";
   isMC_ = isMC;
   isMuon_ = isMuon;
   year_ = year;
+  if(isMC_ == 1) {
+    correctRes_ = correctRes;
+    correctES_  = correctES ;
+  } else { // no corrections applied to data or MC
+    correctRes  = 0;
+    correctES   = 0;
+    correctRes_ = 0;
+    correctES_  = 0;
+  }
   vector<TString> runs;
   if     (year == 2016) {
     if     (period == -1)   runs = {"B", "C", "D", "E", "F", "G", "H"};
@@ -300,50 +367,52 @@ void resolution(int isMC = 1, bool isMuon = true, int year = 2016, int period = 
   // Initialize histograms
   ///////////////////////////////////////
 
-  TH1* hMass      = new TH1D("mass"     , "Di-lepton mass; Mass (GeV/c^{2})"    , 60, 60., 120.);
-  TH1* hMassUp    = new TH1D("massup"   , "Di-lepton mass; Mass (GeV/c^{2})"  , 60, 60., 120.);
-  TH1* hMassDown  = new TH1D("massdown" , "Di-lepton mass; Mass (GeV/c^{2})", 60, 60., 120.);
-  TH1* hMassESUp  = new TH1D("massesup"  , "Di-lepton mass; Mass (GeV/c^{2})"  , 60, 60., 120.);
-  TH1* hMassESDown= new TH1D("massesdown", "Di-lepton mass; Mass (GeV/c^{2})", 60, 60., 120.);
-  TH1* hGenMass   = new TH1D("genmass"  , "Z gen-level mass; Mass (GeV/c^{2})", 60, 60., 120.);
-  TH1* hPt        = new TH1D("pt"       , "Di-lepton p_{T}; p_{T} (GeV/c)", 50, 0., 100.);
-  TH1* hGenPt     = new TH1D("genpt"    , "Z gen-level p_{T}; p_{T} (GeV/c)", 50, 0., 100.);
-  TH1* hEta       = new TH1D("eta"      , "Di-lepton #eta; #eta", 50, -5., 5.);
-  TH1* hGenEta    = new TH1D("geneta"   , "Z gen-level #eta; #eta", 50, -5., 5.);
-  TH1* hOneEta    = new TH1D("oneeta"   , "Lead #eta; #eta", 50, -2.5, 2.5);
-  TH1* hTwoEta    = new TH1D("twoeta"   , "Trail #eta; #eta", 50, -2.5, 2.5);
-  TH1* hOnePt     = new TH1D("onept"    , "Lead p_{T}; p_{T} (GeV/c)", 50, 0., 100.);
-  TH1* hTwoPt     = new TH1D("twopt"    , "Trail p_{T}; p_{T} (GeV/c)", 50, 0., 100.);
-  TH1* hOnePtUp   = new TH1D("oneptup"  , "Lead p_{T}; p_{T} (GeV/c)", 50, 0., 100.);
-  TH1* hTwoPtUp   = new TH1D("twoptup"  , "Trail p_{T}; p_{T} (GeV/c)", 50, 0., 100.);
-  TH1* hOnePtDown = new TH1D("oneptdown", "Lead p_{T}; p_{T} (GeV/c)", 50, 0., 100.);
-  TH1* hTwoPtDown = new TH1D("twoptdown", "Trail p_{T}; p_{T} (GeV/c)", 50, 0., 100.);
-  TH1* hOneGenPt  = new TH1D("onegenpt" , "Lead gen-level p_{T}; p_{T} (GeV/c)", 50, 0., 100.);
-  TH1* hTwoGenPt  = new TH1D("twogenpt" , "Trail gen-level p_{T}; p_{T} (GeV/c)", 50, 0., 100.);
-  TH1* hOnePtErr  = new TH1D("onepterr" , "Lead p_{T} error; #Deltap_{T} (GeV/c)", 50, -5., 5.);
-  TH1* hTwoPtErr  = new TH1D("twopterr" , "Lead p_{T} error; #Deltap_{T} (GeV/c)", 50, -5., 5.);
-  TH1* hOneRelErr = new TH1D("onerelerr", "Lead relative p_{T} error; #Deltap_{T} / p_{T}", 50, -0.2, 0.2);
-  TH1* hTwoRelErr = new TH1D("tworelerr", "Lead relative p_{T} error; #Deltap_{T} / p_{T}", 50, -0.2, 0.2);
-  TH1* hOneRelErrUp = new TH1D("onerelerrup", "Lead relative p_{T} error; #Deltap_{T} / p_{T}", 50, -0.2, 0.2);
-  TH1* hTwoRelErrUp = new TH1D("tworelerrup", "Lead relative p_{T} error; #Deltap_{T} / p_{T}", 50, -0.2, 0.2);
-  TH1* hOneRelErrDown = new TH1D("onerelerrdown", "Lead relative p_{T} error; #Deltap_{T} / p_{T}", 50, -0.2, 0.2);
-  TH1* hTwoRelErrDown = new TH1D("tworelerrdown", "Lead relative p_{T} error; #Deltap_{T} / p_{T}", 50, -0.2, 0.2);
-  TH1* hWeight    = new TH1D("weight"  , "Event weight; weight", 60, 0., 3.);
-  TH1* hResScale  = new TH1D("resscale", "Resolution scale factor; scale", 60, 0., 3.);
+  TH1* hMass          = new TH1D("mass"         , "Di-lepton mass; Mass (GeV/c^{2})"    , 60, 60., 120.);
+  TH1* hMassUp        = new TH1D("massup"       , "Di-lepton mass; Mass (GeV/c^{2})"  , 60, 60., 120.);
+  TH1* hMassDown      = new TH1D("massdown"     , "Di-lepton mass; Mass (GeV/c^{2})", 60, 60., 120.);
+  TH1* hMassESUp      = new TH1D("massesup"     , "Di-lepton mass; Mass (GeV/c^{2})"  , 60, 60., 120.);
+  TH1* hMassESDown    = new TH1D("massesdown"   , "Di-lepton mass; Mass (GeV/c^{2})", 60, 60., 120.);
+  TH1* hGenMass       = new TH1D("genmass"      , "Z gen-level mass; Mass (GeV/c^{2})", 60, 60., 120.);
+  TH1* hPt            = new TH1D("pt"           , "Di-lepton p_{T}; p_{T} (GeV/c)", 50, 0., 100.);
+  TH1* hGenPt         = new TH1D("genpt"        , "Z gen-level p_{T}; p_{T} (GeV/c)", 50, 0., 100.);
+  TH1* hEta           = new TH1D("eta"          , "Di-lepton #eta; #eta", 50, -5., 5.);
+  TH1* hGenEta        = new TH1D("geneta"       , "Z gen-level #eta; #eta", 50, -5., 5.);
+  TH1* hOneEta        = new TH1D("oneeta"       , "Lead #eta; #eta", 50, -2.5, 2.5);
+  TH1* hTwoEta        = new TH1D("twoeta"       , "Trail #eta; #eta", 50, -2.5, 2.5);
+  TH1* hOnePt         = new TH1D("onept"        , "Lead p_{T}; p_{T} (GeV/c)", 50, 0., 100.);
+  TH1* hTwoPt         = new TH1D("twopt"        , "Trail p_{T}; p_{T} (GeV/c)", 50, 0., 100.);
+  TH1* hOnePtUp       = new TH1D("oneptup"      , "Lead p_{T}; p_{T} (GeV/c)", 50, 0., 100.);
+  TH1* hTwoPtUp       = new TH1D("twoptup"      , "Trail p_{T}; p_{T} (GeV/c)", 50, 0., 100.);
+  TH1* hOnePtDown     = new TH1D("oneptdown"    , "Lead p_{T}; p_{T} (GeV/c)", 50, 0., 100.);
+  TH1* hTwoPtDown     = new TH1D("twoptdown"    , "Trail p_{T}; p_{T} (GeV/c)", 50, 0., 100.);
+  TH1* hOneGenPt      = new TH1D("onegenpt"     , "Lead gen-level p_{T}; p_{T} (GeV/c)", 50, 0., 100.);
+  TH1* hTwoGenPt      = new TH1D("twogenpt"     , "Trail gen-level p_{T}; p_{T} (GeV/c)", 50, 0., 100.);
+  TH1* hOnePtErr      = new TH1D("onepterr"     , "Lead p_{T} error; #Deltap_{T} (GeV/c)", 50, -5., 5.);
+  TH1* hTwoPtErr      = new TH1D("twopterr"     , "Lead p_{T} error; #Deltap_{T} (GeV/c)", 50, -5., 5.);
+  TH1* hOneRelErr     = new TH1D("onerelerr"    , "Lead relative p_{T} error; #Deltap_{T} / p_{T}", 200, -0.2, 0.2);
+  TH1* hTwoRelErr     = new TH1D("tworelerr"    , "Lead relative p_{T} error; #Deltap_{T} / p_{T}", 200, -0.2, 0.2);
+  TH1* hOneRelErrUp   = new TH1D("onerelerrup"  , "Lead relative p_{T} error; #Deltap_{T} / p_{T}", 200, -0.2, 0.2);
+  TH1* hTwoRelErrUp   = new TH1D("tworelerrup"  , "Lead relative p_{T} error; #Deltap_{T} / p_{T}", 200, -0.2, 0.2);
+  TH1* hOneRelErrDown = new TH1D("onerelerrdown", "Lead relative p_{T} error; #Deltap_{T} / p_{T}", 200, -0.2, 0.2);
+  TH1* hTwoRelErrDown = new TH1D("tworelerrdown", "Lead relative p_{T} error; #Deltap_{T} / p_{T}", 200, -0.2, 0.2);
+  TH1* hWeight        = new TH1D("weight"       , "Event weight; weight", 60, 0., 3.);
+  TH1* hResScale      = new TH1D("resscale"     , "Resolution scale factor; scale", 60, 0., 3.);
 
   //lepton resolution in bins of pT
   const double pt_bins[] = {10., 20., 25., 30., 35., 40., 45., 50., 60., 70., 150.};
   const int n_pt_bins = sizeof(pt_bins) / sizeof(*pt_bins) - 1;
-  TH2* hLepPtVsRes = new TH2D("lepptvsres", "p_{T} resolution in p_{T} bins; #Deltap_{T} / p_{T}", n_pt_bins, pt_bins, 50, -0.2, 0.2);
-  TH2* hLepPtVsResUp = new TH2D("lepptvsresup", "p_{T} resolution in p_{T} bins; #Deltap_{T} / p_{T}", n_pt_bins, pt_bins, 50, -0.2, 0.2);
+  TH2* hLepPtVsRes = new TH2D("lepptvsres", "p_{T} resolution in p_{T} bins; #Deltap_{T} / p_{T}", n_pt_bins, pt_bins, 200, -0.2, 0.2);
+  TH2* hLepPtVsResUp = new TH2D("lepptvsresup", "p_{T} resolution in p_{T} bins; #Deltap_{T} / p_{T}", n_pt_bins, pt_bins, 200, -0.2, 0.2);
   //lepton resolution in bins of eta and pT
   // double eta_bins[] = {0., (isMuon) ? 1.2 : 1.5, (isMuon) ? 2.1 : 2.5, (isMuon) ? 2.4 : 1.e6};
   double eta_bins[] = {0., (isMuon) ? 1.2 : 0.5, (isMuon) ? 2.1 : 1.5, (isMuon) ? 2.4 : 2.5};
+  // double eta_bins[] = {0., (isMuon) ? 1.2 : 0.5, (isMuon) ? 2.1 : 1.5, (isMuon) ? 2.4 : 2.1, (isMuon) ? 3. : 2.5};
   // double eta_bins[] = {0., 1.2,  2.1, 2.5};
   const int n_eta_bins = sizeof(eta_bins) / sizeof(*eta_bins) - 1;
   vector<TH2*> lepEtaVsPtVsRes;
+  cout << "Making " << n_eta_bins << " |eta| bins for the resolution measurement\n";
   for(int ibin = 0; ibin < n_eta_bins; ++ibin) {
-    lepEtaVsPtVsRes.push_back(new TH2D(Form("lepptvsres_eta_%i", ibin), "p_{T} resolution in (|#eta|, p_{T}) bins; #Deltap_{T} / p_{T}", n_pt_bins, pt_bins, 50, -0.2, 0.2));
+    lepEtaVsPtVsRes.push_back(new TH2D(Form("lepptvsres_eta_%i", ibin), "p_{T} resolution in (|#eta|, p_{T}) bins; #Deltap_{T} / p_{T}", n_pt_bins, pt_bins, 200, -0.2, 0.2));
   }
 
   ///////////////////////////////////////
@@ -401,19 +470,40 @@ void resolution(int isMC = 1, bool isMuon = true, int year = 2016, int period = 
 
     // }
 
+    //Energy scale correction graphs
+    std::vector<TGraphAsymmErrors*> scale_graphs;
+    TFile* f_Scale(nullptr);
+    if(isMC == 1 && correctES_ == 2) {
+      f_Scale = TFile::Open(Form("rootfiles/embed_scale_correction_electron_%i.root", year), "READ");
+      if(f_Scale) {
+        if(isMuon) scale_graphs.push_back((TGraphAsymmErrors*) f_Scale->Get("lepptvsres_mean_diff")); //inclusive |eta| bin
+        else {
+          for(int igraph = 0; ; ++igraph) { //retrieve the graph for each |eta| region
+            auto g = (TGraphAsymmErrors*) f_Scale->Get(Form("lepptvsres_eta_%i_mean_diff", igraph));
+            if(!g) break;
+            scale_graphs.push_back(g);
+          }
+          cout << "Found " << scale_graphs.size() << " resolution mean correction graphs\n";
+        }
+      }
+    }
+    if(correctES_ == 2 && scale_graphs.size() == 0) correctES_ = 0; //no corrections are available
+
     //Resolution correction graphs
     std::vector<TGraphAsymmErrors*> resolution_graphs;
     TFile* f_Res(nullptr);
-    if(isMC == 1) {
-      f_Res = TFile::Open(Form("rootfiles/embed_resolution_correction_electron_%i.root", year), "READ");
+    if(isMC == 1 && correctRes_) {
+      // f_Res = TFile::Open(Form("rootfiles/embed_resolution_correction_electron_%i.root", year), "READ");
+      f_Res = TFile::Open(Form("rootfiles/embed_scale_correction_electron_%i.root", year), "READ");
       if(f_Res) {
         if(isMuon) resolution_graphs.push_back((TGraphAsymmErrors*) f_Res->Get("lepptvsres_width_ratio")); //inclusive |eta| bin
         else {
           for(int igraph = 0; ; ++igraph) { //retrieve the graph for each |eta| region
-            auto g = (TGraphAsymmErrors*) f_Res->Get("lepptvsres_eta_0_width_ratio");
+            auto g = (TGraphAsymmErrors*) f_Res->Get(Form("lepptvsres_eta_%i_width_ratio", igraph));
             if(!g) break;
             resolution_graphs.push_back(g);
           }
+          cout << "Found " << resolution_graphs.size() << " resolution width correction graphs\n";
         }
       }
     }
@@ -423,8 +513,8 @@ void resolution(int isMC = 1, bool isMuon = true, int year = 2016, int period = 
     // Initialize tree branch addresses
     ///////////////////////////////////////
 
-    float one_pt, one_eta, one_sc_eta, one_phi, one_q;
-    float two_pt, two_eta, two_sc_eta, two_phi, two_q;
+    float one_pt, one_eta, one_sc_eta, one_phi, one_q, one_ecorr(0.);
+    float two_pt, two_eta, two_sc_eta, two_phi, two_q, two_ecorr(0.);
     int   one_id1, one_id2;
     int   two_id1, two_id2;
     float pair_pt, pair_eta, pair_mass;
@@ -441,6 +531,7 @@ void resolution(int isMC = 1, bool isMuon = true, int year = 2016, int period = 
     CLFV::Utilities::SetBranchAddress(t, "one_sc_eta"     , &one_sc_eta     );
     CLFV::Utilities::SetBranchAddress(t, "one_phi"        , &one_phi        );
     CLFV::Utilities::SetBranchAddress(t, "one_q"          , &one_q          );
+    CLFV::Utilities::SetBranchAddress(t, "one_ecorr"      , &one_ecorr      );
     CLFV::Utilities::SetBranchAddress(t, "one_id1"        , &one_id1        );
     CLFV::Utilities::SetBranchAddress(t, "one_id2"        , &one_id2        );
     CLFV::Utilities::SetBranchAddress(t, "one_triggered"  , &one_triggered  );
@@ -449,6 +540,7 @@ void resolution(int isMC = 1, bool isMuon = true, int year = 2016, int period = 
     CLFV::Utilities::SetBranchAddress(t, "two_sc_eta"     , &two_sc_eta     );
     CLFV::Utilities::SetBranchAddress(t, "two_phi"        , &two_phi        );
     CLFV::Utilities::SetBranchAddress(t, "two_q"          , &two_q          );
+    CLFV::Utilities::SetBranchAddress(t, "two_ecorr"      , &two_ecorr      );
     CLFV::Utilities::SetBranchAddress(t, "two_id1"        , &two_id1        );
     CLFV::Utilities::SetBranchAddress(t, "two_id2"        , &two_id2        );
     CLFV::Utilities::SetBranchAddress(t, "two_triggered"  , &two_triggered  );
@@ -510,10 +602,6 @@ void resolution(int isMC = 1, bool isMuon = true, int year = 2016, int period = 
       }
       if(pair_ismuon != isMuon) continue;
 
-      TLorentzVector lv1; lv1.SetPtEtaPhiM(one_pt, one_eta, one_phi, (isMuon) ? 0.10566 : 5.11e-3);
-      TLorentzVector lv2; lv2.SetPtEtaPhiM(two_pt, two_eta, two_phi, (isMuon) ? 0.10566 : 5.11e-3);
-      TLorentzVector lv_sys = lv1 + lv2;
-
       //opposite flavor
       if(one_q*two_q > 0) continue;
 
@@ -529,6 +617,15 @@ void resolution(int isMC = 1, bool isMuon = true, int year = 2016, int period = 
       if(one_id1 < id1_min || one_id2 < id2_min ||
          two_id1 < id1_min || two_id2 < id2_min) continue;
 
+      //remove electron energy corrections from Embedding electrons
+      if(isMC == 1 && !isMuon) {
+        if(one_ecorr > 0.f) one_pt /= one_ecorr;
+        if(two_ecorr > 0.f) two_pt /= two_ecorr;
+      }
+
+      TLorentzVector lv1; lv1.SetPtEtaPhiM(one_pt, one_eta, one_phi, (isMuon) ? 0.10566 : 5.11e-3);
+      TLorentzVector lv2; lv2.SetPtEtaPhiM(two_pt, two_eta, two_phi, (isMuon) ? 0.10566 : 5.11e-3);
+      TLorentzVector lv_sys = lv1 + lv2;
 
       //make sure they're separated
       if(std::fabs(lv1.DeltaR(lv2)) < 0.5) continue;
@@ -576,9 +673,9 @@ void resolution(int isMC = 1, bool isMuon = true, int year = 2016, int period = 
       ////////////////////////////////////////////
       // Apply enery scale corrections
 
-      if(isMC == 1 && !isMuon) {
-        const float scale_one = embed_energy_scale(one_sc_eta, year);
-        const float scale_two = embed_energy_scale(one_sc_eta, year);
+      if(isMC == 1 && !isMuon && correctES_) {
+        const float scale_one = (correctES_ == 1) ? embed_energy_scale(one_sc_eta, year) : electron_energy_scale(gen_one_pt, one_sc_eta, scale_graphs);
+        const float scale_two = (correctES_ == 1) ? embed_energy_scale(two_sc_eta, year) : electron_energy_scale(gen_two_pt, two_sc_eta, scale_graphs);
         one_pt *= scale_one;
         two_pt *= scale_two;
         lv1.SetPtEtaPhiM(one_pt, one_eta, one_phi, (isMuon) ? 0.10566 : 5.11e-3);
@@ -593,8 +690,8 @@ void resolution(int isMC = 1, bool isMuon = true, int year = 2016, int period = 
       // Apply enery resolution corrections
 
       if(correctRes_ && isMC == 1) {
-        float scale_one  = (isMuon) ? muon_resolution_scale(one_pt, resolution_graphs) : electron_resolution_scale(one_pt, one_sc_eta, resolution_graphs);
-        float scale_two  = (isMuon) ? muon_resolution_scale(two_pt, resolution_graphs) : electron_resolution_scale(two_pt, two_sc_eta, resolution_graphs);
+        float scale_one  = (isMuon) ? muon_resolution_scale(gen_one_pt, resolution_graphs) : electron_resolution_scale(gen_one_pt, one_sc_eta, resolution_graphs);
+        float scale_two  = (isMuon) ? muon_resolution_scale(gen_two_pt, resolution_graphs) : electron_resolution_scale(gen_two_pt, two_sc_eta, resolution_graphs);
         if(scale_one <= 0.) {
           cout << "Entry " << entry << ": res scale <= 0 = " << scale_one << ": pt = " << one_pt << "; eta = " << one_sc_eta << endl;
           scale_one = 1.;
@@ -683,15 +780,20 @@ void resolution(int isMC = 1, bool isMuon = true, int year = 2016, int period = 
       if(isMC) {
         TLorentzVector lv1_tmp, lv2_tmp;
         // const float pt_err_scale = (isMuon || isMC > 1) ? 0.05 : 0.50;
-        float pt_one_err_scale = (isMuon) ? 0.05 : 0.10; //uncertainty on the resolution width
-        float pt_two_err_scale = (isMuon) ? 0.05 : 0.10;
+        float pt_one_err_scale = (isMuon) ? muon_resolution_scale(gen_one_pt, one_pt) : 0.15; //uncertainty on the resolution width
+        float pt_two_err_scale = (isMuon) ? muon_resolution_scale(gen_two_pt, two_pt) : 0.15;
         one_pt_up = one_pt + pt_one_err_scale*one_pt_err;
         two_pt_up = two_pt + pt_two_err_scale*two_pt_err;
         lv1_tmp.SetPtEtaPhiM(one_pt_up, one_eta, one_phi, lv1.M());
         lv2_tmp.SetPtEtaPhiM(two_pt_up, two_eta, two_phi, lv2.M());
         pair_mass_up = (lv1_tmp + lv2_tmp).M();
-        one_pt_down = one_pt - pt_one_err_scale*one_pt_err;
-        two_pt_down = two_pt - pt_two_err_scale*two_pt_err;
+        if(isMuon) {
+          one_pt_down = one_pt;
+          two_pt_down = two_pt;
+        } else {
+          one_pt_down = one_pt - pt_one_err_scale*one_pt_err;
+          two_pt_down = two_pt - pt_two_err_scale*two_pt_err;
+        }
         lv1_tmp.SetPtEtaPhiM(one_pt_down, one_eta, one_phi, lv1.M());
         lv2_tmp.SetPtEtaPhiM(two_pt_down, two_eta, two_phi, lv2.M());
         pair_mass_down = (lv1_tmp + lv2_tmp).M();
@@ -743,8 +845,8 @@ void resolution(int isMC = 1, bool isMuon = true, int year = 2016, int period = 
       hTwoRelErrDown->Fill((two_pt_down - gen_two_pt) / two_pt, wt);
       hLepPtVsRes->Fill(one_pt, (one_pt - gen_one_pt) / one_pt, wt);
       hLepPtVsRes->Fill(two_pt, (two_pt - gen_two_pt) / two_pt, wt);
-      hLepPtVsResUp->Fill(one_pt, (one_pt_up - gen_one_pt) / one_pt_up, wt);
-      hLepPtVsResUp->Fill(two_pt, (two_pt_up - gen_two_pt) / two_pt_up, wt);
+      hLepPtVsResUp->Fill(gen_one_pt, (one_pt_up - gen_one_pt) / one_pt_up, wt);
+      hLepPtVsResUp->Fill(gen_two_pt, (two_pt_up - gen_two_pt) / two_pt_up, wt);
       hWeight->Fill(wt);
       //fill the (|eta|, pT, res) histogram
       int eta_bin_one(0), eta_bin_two(0);
@@ -753,8 +855,8 @@ void resolution(int isMC = 1, bool isMuon = true, int year = 2016, int period = 
         if(std::fabs(two_eta) >= eta_bins[ibin]) eta_bin_two = ibin;
       }
       //ensure not in overflow
-      if(eta_bin_one < n_eta_bins) lepEtaVsPtVsRes[eta_bin_one]->Fill(one_pt, (one_pt - gen_one_pt) / one_pt, wt);
-      if(eta_bin_two < n_eta_bins) lepEtaVsPtVsRes[eta_bin_two]->Fill(two_pt, (two_pt - gen_two_pt) / two_pt, wt);
+      if(eta_bin_one < n_eta_bins) lepEtaVsPtVsRes[eta_bin_one]->Fill(gen_one_pt, (one_pt - gen_one_pt) / one_pt, wt);
+      if(eta_bin_two < n_eta_bins) lepEtaVsPtVsRes[eta_bin_two]->Fill(gen_two_pt, (two_pt - gen_two_pt) / two_pt, wt);
     } //end tree processing loop
 
     delete t;
@@ -772,12 +874,12 @@ void resolution(int isMC = 1, bool isMuon = true, int year = 2016, int period = 
 
   gStyle->SetOptStat(0);
   //Base output name
-  const char* outdir = Form("figures/%s_mc-%i%s_%i", (isMuon) ? "mumu" : "ee", isMC, (isMC == 1 && correctRes_) ? "_corr" : "", year);
+  const char* outdir = figure_path();
   gSystem->Exec(Form("[ ! -d %s ] && mkdir -p %s", outdir, outdir));
   gSystem->Exec("[ ! -d histograms ] && mkdir histograms");
 
   //write the histograms to an output file
-  TFile* fout = new TFile(Form("histograms/%s_mc-%i%s_%i.hist", (isMuon) ? "mumu" : "ee", isMC, (isMC == 1 && correctRes_) ? "_corr" : "", year), "RECREATE");
+  TFile* fout = new TFile(Form("histograms/%s_mc-%i_r%i_e%i_%i.hist", (isMuon) ? "mumu" : "ee", isMC, correctRes_, correctES_, year), "RECREATE");
   hMass->Write();
   hMassUp->Write();
   hMassDown->Write();
@@ -840,25 +942,23 @@ void resolution(int isMC = 1, bool isMuon = true, int year = 2016, int period = 
   //print resolution fits
   if(isMC) {
     TString dir;
-    dir = Form("figures/%s_mc-%i%s_%i", (isMuon) ? "mumu" : "ee", isMC, (isMC == 1 && correctRes_) ? "_corr" : "", year);
-
-    dir = Form("figures/%s_mc-%i%s_%i", (isMuon) ? "mumu" : "ee", isMC, (isMC == 1 && correctRes_) ? "_corr" : "", year);
+    dir = figure_path();
     fit_resolution(hOnePtErr , Form("%s/one_pterr_fit.png" , dir.Data()), "One pT error", false);
-    dir = Form("figures/%s_mc-%i%s_%i", (isMuon) ? "mumu" : "ee", isMC, (isMC == 1 && correctRes_) ? "_corr" : "", year);
+    dir = figure_path();
     fit_resolution(hTwoPtErr , Form("%s/two_pterr_fit.png" , dir.Data()), "Two pT error", false);
-    dir = Form("figures/%s_mc-%i%s_%i", (isMuon) ? "mumu" : "ee", isMC, (isMC == 1 && correctRes_) ? "_corr" : "", year);
+    dir = figure_path();
     fit_resolution(hOneRelErr, Form("%s/one_relerr_fit.png", dir.Data()), "One rel. pT error", true);
-    dir = Form("figures/%s_mc-%i%s_%i", (isMuon) ? "mumu" : "ee", isMC, (isMC == 1 && correctRes_) ? "_corr" : "", year);
+    dir = figure_path();
     fit_resolution(hTwoRelErr, Form("%s/two_relerr_fit.png", dir.Data()), "Two rel. pT error", true);
-    dir = Form("figures/%s_mc-%i%s_%i", (isMuon) ? "mumu" : "ee", isMC, (isMC == 1 && correctRes_) ? "_corr" : "", year);
+    dir = figure_path();
     fit_resolution(hOneRelErrUp, Form("%s/one_relerr_up_fit.png", dir.Data()), "One rel. pT error", true);
-    dir = Form("figures/%s_mc-%i%s_%i", (isMuon) ? "mumu" : "ee", isMC, (isMC == 1 && correctRes_) ? "_corr" : "", year);
+    dir = figure_path();
     fit_resolution(hTwoRelErrUp, Form("%s/two_relerr_up_fit.png", dir.Data()), "Two rel. pT error", true);
-    dir = Form("figures/%s_mc-%i%s_%i", (isMuon) ? "mumu" : "ee", isMC, (isMC == 1 && correctRes_) ? "_corr" : "", year);
+    dir = figure_path();
     fit_resolution(hOneRelErrDown, Form("%s/one_relerr_down_fit.png", dir.Data()), "One rel. pT error", true);
-    dir = Form("figures/%s_mc-%i%s_%i", (isMuon) ? "mumu" : "ee", isMC, (isMC == 1 && correctRes_) ? "_corr" : "", year);
+    dir = figure_path();
     fit_resolution(hTwoRelErrDown, Form("%s/two_relerr_down_fit.png", dir.Data()), "Two rel. pT error", true);
-    dir = Form("figures/%s_mc-%i%s_%i", (isMuon) ? "mumu" : "ee", isMC, (isMC == 1 && correctRes_) ? "_corr" : "", year);
+    dir = figure_path();
 
     //perform a fit for each of the pT binned resolution histograms
     fit_2d_resolution(hLepPtVsRes);

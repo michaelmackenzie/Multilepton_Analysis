@@ -34,6 +34,7 @@
 #include "interface/ElectronIDWeight.hh"
 #include "interface/BDTScale.hh"
 #include "interface/EmbBDTUncertainty.hh"
+#include "interface/EmbeddingResolution.hh"
 #include "interface/RoccoR.h"
 #include "interface/MVAConfig.hh"
 #include "interface/TrkQualInit.hh"
@@ -79,6 +80,7 @@ namespace CLFV {
     LeptonDisplacement dummy6c3;
     BDTScale dummy6c4;
     EmbBDTUncertainty dummy6c5;
+    EmbeddingResolution dummy6c6;
     TauIDWeight dummy6d;
     ZPtWeight dummy6e;
     SignalZWeight dummy6e2;

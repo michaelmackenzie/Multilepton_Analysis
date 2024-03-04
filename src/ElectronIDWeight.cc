@@ -282,6 +282,47 @@ double ElectronIDWeight::EmbedEnergyScale(double pt, double eta, int year, float
 }
 
 //-------------------------------------------------------------------------------------------------------------------------
+double ElectronIDWeight::EmbedResolutionScale(double pt, double gen_pt, double eta, int year, float& up, float& down) {
+  up = 1.f; down = 1.f;
+
+  const double pt_err = pt - gen_pt;
+
+  const bool barrel = std::fabs(eta) < 1.479;
+  double p0(1.5), p1(0.); //linear interpolation parameters
+  if(year < 2000) year += 2016; //ensure year is absolute, not relative to 2016
+
+  if(year == 2016) {
+    //fit in 2016 works better inclusive over barrel/endcap
+    p0 = 1.522; p1 = 0.002816;
+  } else if(year == 2017) {
+    if(barrel) {p0 = 1.164; p1 = 0.011830;}
+    else       {p0 = 1.215; p1 = 0.003172;}
+  } else if(year == 2018) {
+    if(barrel) {p0 = 1.108; p1 = 0.013040;}
+    else       {p0 = 1.123; p1 = 0.003659;}
+  } else {
+    printf("%s: Unknown year %i\n", __func__, year);
+    throw 20;
+  }
+
+  //range the scale is defined
+  const double min_pt(10.), max_pt(100.);
+  pt = std::max(min_pt, std::min(max_pt, pt));
+
+  //evaluate the linear width ratio fit to get the correction to the resolution width
+  const double sigma_corr = std::max(0.3, std::min(3., p0 + p1*pt));
+
+  //correct the resolution
+  const double scale = std::max(0.1, 1. + sigma_corr * pt_err / pt);
+
+  const double sigma_err = 0.05; //uncertainty on the resolution width
+  up   = std::max(0.1, scale + sigma_err * pt_err / pt);
+  down = std::max(0.1, scale - sigma_err * pt_err / pt);
+
+  return scale;
+}
+
+//-------------------------------------------------------------------------------------------------------------------------
 double ElectronIDWeight::TriggerEff(double pt, double eta, int year, int WP, float& data_eff, float& mc_eff,
                                     float& data_up, float& mc_up, float& data_down, float& mc_down) {
   data_eff = 0.5f; //safer default than 0 or 1, as eff and 1-eff are well defined in ratios
