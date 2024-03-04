@@ -1298,20 +1298,6 @@ void HistMaker::InitializeInputTree(TTree* tree) {
 }
 
 //-----------------------------------------------------------------------------------------------------------------
-// Get muon energy scale for resolution uncertainty up variation
-float HistMaker::MuonResolutionUnc(Lepton_t& lep) {
-  if(!lep.isMuon()) return 1.f;
-  if(!fIsEmbed) return 1.f; //only defined for Embedding
-  const float min_scale(0.05f), max_scale(0.20f);
-  const float min_pt(10.f), max_pt(100.f);
-  const float pt_err = lep.pt - lep.genPt;
-  float pt_err_scale = std::max(min_scale, std::min(max_scale, min_scale + (max_scale - min_scale)*(lep.pt - min_pt)/(max_pt - min_pt)));
-  pt_err_scale += 0.04f*std::pow(std::fabs(pt_err/lep.pt)/0.01f,2) - 0.08f*pt_err/lep.pt/0.01f;
-  const float scale = std::max(0.01f, 1.f + pt_err_scale * pt_err / lep.pt);
-  return scale;
-}
-
-//-----------------------------------------------------------------------------------------------------------------
 //apply/replace electron energy scale corrections
 void HistMaker::ApplyElectronCorrections() {
   float delta_x(metCorr*std::cos(metCorrPhi)), delta_y(metCorr*std::sin(metCorrPhi));

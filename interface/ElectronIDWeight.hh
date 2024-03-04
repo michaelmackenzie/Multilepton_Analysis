@@ -30,7 +30,6 @@ namespace CLFV {
       return IDWeight(lepton, year);
     }
     double EmbedEnergyScale(double pt, double eta, int year, float& up, float& down);
-    double EmbedResolutionScale(double pt, double gen_pt, double eta, int year, float& up, float& down);
     double TriggerEff(double pt, double eta, int year, int WP, float& data_eff, float& mc_eff,
                       float& data_up, float& mc_up, float& data_down, float& mc_down);
 

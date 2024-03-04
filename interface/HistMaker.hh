@@ -493,7 +493,6 @@ namespace CLFV {
     void    InitializeEventWeights();
     void    EnergyScale(const float scale, Lepton_t& lep, float* MET = nullptr, float* METPhi = nullptr);
     void    EnergyScale(const float scale, TLorentzVector& lv, float* MET = nullptr, float* METPhi = nullptr);
-    float   MuonResolutionUnc(Lepton_t& lep);
     void    ApplyElectronCorrections();
     void    ApplyMuonCorrections();
     void    ApplyTauCorrections();
