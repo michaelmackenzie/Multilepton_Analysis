@@ -23,6 +23,7 @@ EmbeddingResolution::EmbeddingResolution(const int in_year, const int verbose) :
         auto g = (TGraphAsymmErrors*) f->Get(Form("lepptvsres_eta_%i_mean_diff", ieta));
         if(!g) break;
         g = (TGraphAsymmErrors*) g->Clone(Form("electron_scale_correction_%i_%i", ieta, year));
+        if(verbose_ > 1) printf(" --> Adding graph %s for year %i |eta| region %i\n", g->GetName(), year, ieta);
         elec_scale_[year][ieta] = g;
       }
       if(verbose_) printf("EmbeddingResolution: Found %lu electron scale correction graphs for %i\n", elec_scale_[year].size(), year);
@@ -40,6 +41,7 @@ EmbeddingResolution::EmbeddingResolution(const int in_year, const int verbose) :
         auto g = (TGraphAsymmErrors*) f->Get(Form("lepptvsres_eta_%i_width_ratio", ieta));
         if(!g) break;
         g = (TGraphAsymmErrors*) g->Clone(Form("electron_resolution_correction_%i_%i", ieta, year));
+        if(verbose_ > 1) printf(" --> Adding graph %s for year %i |eta| region %i\n", g->GetName(), year, ieta);
         elec_resolution_[year][ieta] = g;
       }
       if(verbose_) printf("EmbeddingResolution: Found %lu electron resolution correction graphs for %i\n", elec_resolution_[year].size(), year);
@@ -59,6 +61,7 @@ EmbeddingResolution::EmbeddingResolution(const int in_year, const int verbose) :
         auto g = (TGraphAsymmErrors*) f->Get(Form("lepptvsres_eta_%i_mean_diff", ieta));
         if(!g) break;
         g = (TGraphAsymmErrors*) g->Clone(Form("muon_scale_correction_%i_%i", ieta, year));
+        if(verbose_ > 1) printf(" --> Adding graph %s for year %i |eta| region %i\n", g->GetName(), year, ieta);
         muon_scale_[year][ieta] = g;
       }
       if(verbose_) printf("EmbeddingResolution: Found %lu muon scale correction graphs for %i\n", muon_scale_[year].size(), year);
@@ -69,13 +72,14 @@ EmbeddingResolution::EmbeddingResolution(const int in_year, const int verbose) :
     //energy resolution corrections
     //FIXME: Decide if these should be before/after scale corrections (scale vs. resolution correction file)
     f = TFile::Open(Form("%s/embed_scale_correction_muon_%i.root", path.Data(), year), "READ");
-    elec_resolution_[year] = {};
+    muon_resolution_[year] = {};
     if(f) {
       //Get the correction graph for each |eta| region
       for(int ieta = 0; ; ++ieta) {
         auto g = (TGraphAsymmErrors*) f->Get(Form("lepptvsres_eta_%i_width_ratio", ieta));
         if(!g) break;
         g = (TGraphAsymmErrors*) g->Clone(Form("muon_resolution_correction_%i_%i", ieta, year));
+        if(verbose_ > 1) printf(" --> Adding graph %s for year %i |eta| region %i\n", g->GetName(), year, ieta);
         muon_resolution_[year][ieta] = g;
       }
       if(verbose_) printf("EmbeddingResolution: Found %lu muon resolution correction graphs for %i\n", muon_resolution_[year].size(), year);
