@@ -3,10 +3,10 @@
 
 bool   fit_flat_bkgs_  = true;  //fit flat-ish background contributions (WW, ttbar, QCD, and (not flat) Z->mumu)
 bool   fit_dy_bkg_     = false; //fit the Z->tautau background
-int    smooth_hists_   =   2;   //number of times to smooth non-fit background histograms
+int    smooth_hists_   =   0;   //number of times to smooth non-fit background histograms
 double zmumu_scale_    = -1.;   //if >= 0 scale the Z->ee/mumu contribution
 int    use_multi_pdf_  =   0;   //use multi-pdf instead of a single pdf FIXME: Not currently working
-bool   save_templates_ = false; //save MC templates in an output file
+bool   save_templates_ = true; //save MC templates in an output file
 TString tag_           = "_embed_fix_ww";    //tag for output figure directory
 
 //---------------------------------------------------------------------------------------------------------------------------------------
@@ -49,7 +49,7 @@ int test_bemu_mc_closure(int set = 13, vector<int> years = {2016,2017,2018}, con
   if(!stack_in) return -2;
 
   //Replace background distributions where needed
-  const int rebin = 2; //rebin the distributions to help statistical uncertainty
+  const int rebin = 1; //rebin the distributions to help statistical uncertainty
   THStack* stack = new THStack("bkg_stack", "Background stack");
   for(int ihist = 0; ihist < stack_in->GetNhists(); ++ihist) {
     TH1* h = (TH1*) stack_in->GetHists()->At(ihist);

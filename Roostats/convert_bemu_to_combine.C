@@ -21,8 +21,8 @@ bool useMCBkg_      = false; //FIXME: turn off -- use the background MC to creat
 float zmumu_scale_  =   -1.; //FIXME: set to -1 -- scale to Z->ee/mumu distribution if using MC templates
 bool printPlots_    = true ;
 bool fitSideBands_  = true ; //fit only the data sidebands
-int  replaceData_   =     2; //1: replace the data with toy MC; 2: replace the data with the MC bkg
-bool replaceRefit_  = true ; //replace data with toy MC, then fit the unblinded toy data
+int  replaceData_   =     1; //1: replace the data with toy MC; 2: replace the data with the MC bkg
+bool replaceRefit_  = false; //replace data with toy MC, then fit the unblinded toy data
 bool export_        = false; //if locally run, export the workspace to LPC
 bool save_          = true ; //save output combine workspace/cards
 
@@ -166,6 +166,8 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
   //replace the background stack with smoothed/fit histograms
   THStack* stack = (useMCBkg_) ? new THStack("bkg_stack", "Background stack") : stack_in;
   if(useMCBkg_) {
+    TString mc_fig_dir = Form("plots/latest_production/%s/convert_bemu_%s_%i_mc_fits", year_string.Data(), selection.Data(), set);
+    gSystem->Exec(Form("[ ! -d %s ] && mkdir -p %s", mc_fig_dir.Data(), mc_fig_dir.Data()));
     for(int ihist = 0; ihist < stack_in->GetNhists(); ++ihist) {
       TH1* h = (TH1*) stack_in->GetHists()->At(ihist);
       h = make_safe(h, xmin, xmax);
@@ -178,7 +180,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
       const bool isembed = TString(h->GetName()).Contains("Embed");
       const bool iszmumu = TString(h->GetName()).Contains("Z->ee");
       if(isflat) { //flat-ish distributions
-        fit_and_replace(h, xmin, xmax, nullptr, set, 2);
+        fit_and_replace(h, xmin, xmax, mc_fig_dir.Data(), set, 2);
       }
       const bool fit_dy_bkg = false; //whether or not to fit the Z->tautau background
       const bool smooth_hists(false); //smooth histograms that aren't fit
@@ -206,6 +208,10 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
       name.ReplaceAll("_","");
       stack->Add(h);
     }
+    TCanvas* c = new TCanvas();
+    stack->Draw("hist noclear");
+    c->SaveAs((mc_fig_dir + "/stack.png").Data());
+    delete c;
   }
 
   //Get systematics if requested

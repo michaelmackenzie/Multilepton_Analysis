@@ -35,7 +35,7 @@ bool perform_f_test(double chisq_1, int ndof_1, double chisq_2, int ndof_2) {
   } else if(Mode == 1) { //use the difference of chi^2 p-value given N(dof) = Delta N(dof)
     const double ftest = chisq_2 - chisq_1;
     if(ftest < 0.) p_of_f = 1.; //lower order is a better fit
-    else           p_of_f = 1. - ROOT::Math::chisquared_cdf(ftest, ndof_1 - ndof_2);
+    else           p_of_f = ROOT::Math::chisquared_cdf_c(ftest, ndof_1 - ndof_2);
   } else {
     cout << __func__ << ": Unkown F-test mode " << Mode << endl;
     return false;
