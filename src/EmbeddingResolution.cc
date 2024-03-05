@@ -244,9 +244,9 @@ float EmbeddingResolution::ElectronResolution(float pt, float eta, float gen_pt,
   float scale = 1.f + (width_ratio - 1.f)*(pt_err)/(gen_pt);
 
   //uncertainty on the lepton energy resolution width
-  const float unc(0.15f); //flat 15% uncertainty
-  up   = 1.f + (width_ratio - 1.f + unc)*(pt_err)/(gen_pt);
-  down = 1.f + (width_ratio - 1.f - unc)*(pt_err)/(gen_pt);
+  const float unc(0.15f); //flat 15% uncertainty on the width
+  up   = scale + unc*pt_err/gen_pt;
+  down = scale - unc*pt_err/gen_pt;
 
   //ensure reasonable correction factor sizes
   const float min_scale(0.5f), max_scale(2.f); //can't change by > a factor of 2
@@ -392,7 +392,7 @@ float EmbeddingResolution::MuonResolution(float pt, float eta, float gen_pt, int
   float pt_err_scale = std::max(min_ratio, std::min(max_ratio, min_ratio + (max_ratio - min_ratio)*(gen_pt - min_pt)/(max_pt - min_pt)));
   pt_err_scale += 0.04f*std::pow(std::fabs(pt_err/gen_pt)/0.01f,2) - 0.08f*pt_err/gen_pt/0.01f;
 
-  up   = 1.f + pt_err_scale*(pt_err)/gen_pt;
+  up   = 1.f + pt_err_scale*pt_err/gen_pt;
   down = 1.f; //no correction applied in down
 
   //ensure reasonable correction factor sizes

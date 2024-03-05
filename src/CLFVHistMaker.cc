@@ -1107,7 +1107,7 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
       if(fSystematics.IsUp(sys)) {
         if(leptonOne.isMuon() && leptonOne.genPt > 0.f)
           EnergyScale(leptonOne.Res[1] / leptonOne.Res[0], leptonOne, &met, &metPhi);
-        if(leptonTwo.isElectron() && leptonTwo.genPt > 0.f)
+        if(leptonTwo.isMuon() && leptonTwo.genPt > 0.f)
           EnergyScale(leptonTwo.Res[1] / leptonTwo.Res[0], leptonTwo, &met, &metPhi);
       } else {
         if(leptonOne.isMuon() && leptonOne.genPt > 0.f)

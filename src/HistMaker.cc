@@ -135,7 +135,7 @@ void HistMaker::Begin(TTree * /*tree*/)
   fZPtWeight = new ZPtWeight("MuMu", 1);
   fCutFlow = new TH1D("hcutflow", "Cut-flow", 100, 0, 100);
   const int qcd_weight_mode = (fSelection == "mutau_e") ? 11100201 : (fSelection == "etau_mu") ? 21100201 : 1100201; //(mass, bdt score) bias, anti-iso, jet binned, 2D pt closure, use fits
-  fQCDWeight = new QCDWeight("emu", qcd_weight_mode, -1, 0);
+  fQCDWeight = new QCDWeight("emu", qcd_weight_mode, fYear, fVerbose);
 
   //FIXME: Added back W+Jets MC bias (Mode = 10100300, 60100300 for only MC lepm bias shape)
   //FIXME: Decide on 2D (lepm, bdt score) bias (bias mode 7 (shape+rate) and 8 (shape-only))
@@ -1397,8 +1397,7 @@ void HistMaker::ApplyMuonCorrections() {
       const float abs_eta = std::fabs(Muon_eta[index]);
       Muon_ESErr[index] = (fIsEmbed) ? (abs_eta < 1.2) ? 0.004 : (abs_eta < 2.1) ? 0.009 : 0.027 : 0.002;
       continue;
-    }
-    if(fUseRoccoCorr == 1) { //apply locally-evaluated corrections
+    } else if(fUseRoccoCorr == 1) { //apply locally-evaluated corrections
       const double u = fRnd->Uniform();
       double sf(1.), err(0.);
       if(fIsData) {
@@ -1430,7 +1429,7 @@ void HistMaker::ApplyMuonCorrections() {
       if(use_size) Muon_ESErr[index] = std::fabs(1.f - sf); //size of the correction
       else         Muon_ESErr[index] = err; //evaluated uncertainty
     } else if(fUseRoccoCorr == 2) { //apply ntuple-level corrections
-      Muon_RoccoSF[index] = Muon_corrected_pt[index] / Muon_pt[index];
+      Muon_RoccoSF[index]  = Muon_corrected_pt[index] / Muon_pt[index];
       const double pt_diff = Muon_corrected_pt[index] - Muon_pt[index];
       Muon_pt[index] = Muon_corrected_pt[index];
       delta_x -= pt_diff*std::cos(Muon_phi[index]);
@@ -3287,24 +3286,24 @@ void HistMaker::CountObjects() {
     leptonTwo.Res[2] = Electron_resolutionScaleDown[leptonTwo.index];
   }
   if(leptonOne.isMuon()) {
-    leptonOne.Res[0]    = 1.f;
-    leptonOne.Res[1]    = (fIsEmbed) ? fEmbeddingResolution->MuonResolutionUnc(leptonOne.pt, leptonOne.eta, leptonOne.genPt, fYear) : 1.f;
-    leptonOne.Res[2]    = 1.f;
+    leptonOne.Res[0] = 1.f;
+    leptonOne.Res[1] = (fIsEmbed) ? fEmbeddingResolution->MuonResolutionUnc(leptonOne.pt, leptonOne.eta, leptonOne.genPt, fYear) : 1.f;
+    leptonOne.Res[2] = 1.f;
   }
   if(leptonTwo.isMuon()) {
-    leptonTwo.Res[0]    = 1.f;
-    leptonOne.Res[1]    = (fIsEmbed) ? fEmbeddingResolution->MuonResolutionUnc(leptonTwo.pt, leptonTwo.eta, leptonTwo.genPt, fYear) : 1.f;
-    leptonTwo.Res[2]    = 1.f;
+    leptonTwo.Res[0] = 1.f;
+    leptonOne.Res[1] = (fIsEmbed) ? fEmbeddingResolution->MuonResolutionUnc(leptonTwo.pt, leptonTwo.eta, leptonTwo.genPt, fYear) : 1.f;
+    leptonTwo.Res[2] = 1.f;
   }
   if(leptonOne.isTau()) {
-    leptonOne.Res[0]    = 1.f;
-    leptonOne.Res[1]    = 1.f;
-    leptonOne.Res[2]    = 1.f;
+    leptonOne.Res[0] = 1.f;
+    leptonOne.Res[1] = 1.f;
+    leptonOne.Res[2] = 1.f;
   }
   if(leptonTwo.isTau()) {
-    leptonTwo.Res[0]    = 1.f;
-    leptonTwo.Res[1]    = 1.f;
-    leptonTwo.Res[2]    = 1.f;
+    leptonTwo.Res[0] = 1.f;
+    leptonTwo.Res[1] = 1.f;
+    leptonTwo.Res[2] = 1.f;
   }
 
 
