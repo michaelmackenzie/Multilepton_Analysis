@@ -1,26 +1,171 @@
-diff --git a/interface/RooBernsteinFast.h b/interface/RooBernsteinFast.h
-index c0c40e0..3f9f36a 100644
---- a/interface/RooBernsteinFast.h
-+++ b/interface/RooBernsteinFast.h
-@@ -72,6 +72,8 @@ public:
+--- /uscms/home/mmackenz/nobackup/ZEMu/BareCombine/CMSSW_10_6_29/src/HiggsAnalysis/CombinedLimit/interface/RooBernsteinFast.h	2024-03-07 10:44:54.914839034 -0600
++++ ../../HiggsAnalysis/CombinedLimit/interface/RooBernsteinFast.h	2024-02-09 10:38:52.092213537 -0600
+@@ -2,10 +2,10 @@
+  * RooBernsteinFast
+  * Josh Bendavid (CERN)
+  * Fast templated version of RooBernstein class using SMatrices
+- * 
+- * 
+- *   
+- *       
++ *
++ *
++ *
++ *
+  *****************************************************************************/
+ #ifndef ROO_BERNSTEINFAST
+ #define ROO_BERNSTEINFAST
+@@ -24,18 +24,19 @@
+ public:
+ 
+ 
+-  
++
+   RooBernsteinFast() {}
+-  
++
+   RooBernsteinFast(const char *name, const char *title,
+                 RooAbsReal& x, const RooArgList& coefList) :
+     RooAbsPdf(name, title),
+     _x("x", "Dependent", this, x),
+-    _coefList("coefList","List of coefficients",this)
++    _coefList("coefList","List of coefficients",this),
++    _protectSubRange(true)
+     {
+       _coefList.add(coefList);
+-      
+-      
++
++
+       //precompute coefficients for integral
+       for (int ipow=0; ipow<=N; ++ipow) {
+         _rvector(ipow) = 1.0/((double)ipow+1.0);
+@@ -50,59 +51,63 @@
+           _cmatrix(ipow, ibern) = pow(-1.,ipow-ibern)*TMath::Binomial(N,ipow)*TMath::Binomial(ipow,ibern);
+         }
+       }
+-      
+-    }                
+-                
++
++    }
++
+ 
+   RooBernsteinFast(const RooBernsteinFast& other, const char* name = 0) :
+-      RooAbsPdf(other, name), 
+-    _x("x", this, other._x), 
++      RooAbsPdf(other, name),
++    _x("x", this, other._x),
+     _coefList("coefList",this,other._coefList),
+     _cmatrix(other._cmatrix),
+     _rvector(other._rvector),
+     _bernvector(other._bernvector),
+     _powvector(other._powvector),
+     _xvector(other._xvector) {}
+-  
+-  
++
++
+   virtual TObject* clone(const char* newname) const { return new RooBernsteinFast(*this, newname); }
+   virtual ~RooBernsteinFast() { }
+-  
+-  
++
++
    Int_t getAnalyticalIntegral(RooArgSet& allVars, RooArgSet& analVars, const char* rangeName=0) const
      {
-       
+-      
++
 +      // Hack for fitting subranges - never calculate analytic integrals
-+      return 0;
++      if(_protectSubRange) return 0;
        // No analytical calculation available (yet) of integrals over subranges (as for standard RooBernstein)
        if (rangeName && strlen(rangeName)) {
          return 0 ;
-@@ -127,9 +129,9 @@ protected:
+-      }      
+-      
++      }
++
+       if (matchArgs(allVars, analVars, _x)) return 1;
+       return 0;
+     }
+-    
+-    
++
++
+   Double_t analyticalIntegral(Int_t code, const char* rangeName=0) const
+     {
+ 
+       _bernvector[0] = 1.0;
+       for (int ipow=1; ipow<=N; ++ipow) {
+         _bernvector[ipow] = static_cast<RooAbsReal*>(_coefList.at(ipow-1))->getVal();
+-      }     
+-      
++      }
++
+       _powvector = _cmatrix*_bernvector;
+-        
++
+       double xmin = _x.min();
+-      double xmax = _x.max();    
++      double xmax = _x.max();
+       return (xmax-xmin)*ROOT::Math::Dot(_powvector,_rvector);
+ 
+     }
+ 
++  void protectSubRange(bool protectSubRange) { _protectSubRange = protectSubRange; }
++
+ protected:
+ 
+   typedef ROOT::Math::SMatrix<double,N+1,N+1,ROOT::Math::MatRepStd<double,N+1,N+1> > MType;
+   typedef ROOT::Math::SVector<double,N+1> VType;
+-  
++
+   RooRealProxy _x;
+   RooListProxy _coefList ;
+   MType _cmatrix;            //conversion matrix between bernstein and power bases
+@@ -110,34 +115,35 @@
+   mutable VType _bernvector; //coefficients in bernstein basis
+   mutable VType _powvector;  //coefficients in power basis
+   mutable VType _xvector;    //vector of powers of x variable
+-  
++  bool _protectSubRange;     //hack to force subrange and full range fits to be consistent, always use numerical integration
++
+   Double_t evaluate() const
+     {
+ 
+       _bernvector[0] = 1.0;
+       bool changed = false;
+       for (int ipow=1; ipow<=N; ++ipow) {
+-        double rval = static_cast<RooAbsReal*>(_coefList.at(ipow-1))->getVal();
++        const double rval = static_cast<RooAbsReal*>(_coefList.at(ipow-1))->getVal();
+         if (_bernvector[ipow] != rval) {
+           _bernvector[ipow] = rval;
+           changed = true;
+         }
+       }
+-      
++
        if (changed) {
-         _powvector = _cmatrix*_bernvector;   
+-        _powvector = _cmatrix*_bernvector;   
++        _powvector = _cmatrix*_bernvector;
        }
 -      
 -      double xmin = _x.min();
 -      double xmax = _x.max();
+-      double x = (_x - xmin) / (xmax - xmin); // rescale to [0,1]
 +      // Hack for fitting subranges - use full mass range
-+      double xmin = _x.min("full");
-+      double xmax = _x.max("full");
-       double x = (_x - xmin) / (xmax - xmin); // rescale to [0,1]
++      const double xmin = (_protectSubRange) ? _x.min("full") : _x.min();
++      const double xmax = (_protectSubRange) ? _x.max("full") : _x.max();
++      const double x = (_x - xmin) / (xmax - xmin); // rescale to [0,1]
        _xvector[0] = 1.;
        for (int ipow=1; ipow<=N; ++ipow) {
+         _xvector[ipow] = x*_xvector[ipow-1];
+       }
+-      
++
+       return ROOT::Math::Dot(_powvector,_xvector);
+-      
++
+     }
+ 
+   ClassDef(RooBernsteinFast,1) // Polynomial PDF
