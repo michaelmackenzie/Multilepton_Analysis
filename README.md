@@ -43,6 +43,7 @@ cd ~/nobackup
 mkdir CLFV
 cd CLFV
 cmsrel CMSSW_10_6_29
+# optionally: CMSSW_11_3_4
 cd CMSSW_10_6_29/src
 cmsenv
 ```
@@ -64,9 +65,16 @@ Higgs Combine tools:
 git clone https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit.git HiggsAnalysis/CombinedLimit
 cd HiggsAnalysis/CombinedLimit
 git checkout v8.1.0
+# for use with CMSSW_11_3_4:
+# git checkout v9.1.0
 cd -
 #Get CombineTool
 bash <(curl -s https://raw.githubusercontent.com/cms-analysis/CombineHarvester/master/CombineTools/scripts/sparse-checkout-ssh.sh)
+# for use with CMSSW_11_3_4:
+# git clone https://github.com/cms-analysis/CombineHarvester.git CombineHarvester
+# cd CombineHarvester
+# git checkout v2.0.0
+# cd -
 scram b -j4
 ```
 
