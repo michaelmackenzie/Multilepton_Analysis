@@ -1,6 +1,6 @@
 //Create a CDF transform histogram for a signal BDT score distribution
 
-int study(TString selection = "zmutau", const int set = 8, TString path = "nanoaods_mva_dev") {
+int study(TString selection = "zmutau", const int set = 8, TString path = "nanoaods_cdf") {
   TString signal = selection;
   signal.ReplaceAll("_e", ""); signal.ReplaceAll("_mu", "");
   signal.ReplaceAll("z", "Z"); signal.ReplaceAll("e", "E"); signal.ReplaceAll("mu", "Mu"); signal.ReplaceAll("tau", "Tau");

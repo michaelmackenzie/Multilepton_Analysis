@@ -1105,6 +1105,7 @@ Int_t scale_factors(TString selection = "mutau", TString process = "WJets", int 
   process_ = process;
   usingMCTaus_ = ((set1 % 100) > 34 && (set1 % 100) < 40) || ((set1 % 100) >= 80 && (set1 % 100) < 85) || (set1 % 100) == 88 || (set1%100) == 92 || (set1%100) == 94;
   selection_ = selection;
+  gStyle->SetPaintTextFormat(".2f");
 
   cout << "Process " << process.Data() << " with selection " << selection.Data() << ", MC fake taus = " << usingMCTaus_ << endl;
 
@@ -1601,6 +1602,12 @@ Int_t scale_factors(TString selection = "mutau", TString process = "WJets", int 
     TH2* hRatio_2D = (TH2*) hData_2D->Clone("LepMVsMVABias");
     hRatio_2D->Divide(hMC_2D);
     hRatio_2D->Write();
+    { //plot the 2D bias
+      TCanvas* c = new TCanvas();
+      hRatio_2D->Draw("colz text E");
+      c->SaveAs(Form("%smass_vs_mva_bias.png", name.Data()));
+      delete c;
+    }
     //add a version without a rate component
     hRatio_2D = (TH2*) hData_2D->Clone("LepMVsMVABiasShape");
     double err_d(0.), err_m(0.);
@@ -1612,6 +1619,12 @@ Int_t scale_factors(TString selection = "mutau", TString process = "WJets", int 
     hRatio_2D->Scale(scale);
     hRatio_2D->Divide(hMC_2D);
     hRatio_2D->Write();
+    { //plot the 2D bias
+      TCanvas* c = new TCanvas();
+      hRatio_2D->Draw("colz text E");
+      c->SaveAs(Form("%smass_vs_mva_shape_bias.png", name.Data()));
+      delete c;
+    }
   } else {
     cout << "ERROR: LepMVsMVABias histogram not returned!\n";
   }

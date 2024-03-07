@@ -69,6 +69,9 @@ Int_t process_single_file(TString file) {
       cout << "ERROR: Didn't find generation numbers for combining with sample name " << name.Data() << endl;
   } //end combine extension samples
 
+  //check for W+jets, where multiple versions are processed at once
+  if(card.fname_.Contains("Wlnu_") || card.fname_.Contains("Wlnu-ext_")) maxProcesses_ = 1; //only process 1 selection at once
+
   //Process the card
   if(newProcess_) {
     config_t config(get_config());

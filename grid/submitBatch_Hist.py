@@ -21,10 +21,10 @@ stage_dir  = 'batch'
 if 'lxplus' in host: #use SMP space
     output_dir = '/store/group/phys_smp/ZLFV/histograms'
     location   = 'lxplus'
-elif user == 'mmackenz':
+elif user == 'mmackenz': #use personal eos space
     output_dir = '/store/user/mimacken/histograms'
     location   = 'lpc'
-else:
+else:  #use personal eos space
     output_dir = '/store/user/%s/histograms' % (user)
     location   = 'lpc'
 
@@ -47,13 +47,31 @@ samplesToSubmit = sampleDict.keys()
 samplesToSubmit.sort()
 # doYears = ["2016"]
 doYears = ["2016", "2017", "2018"]
-sampleTag = ""
-sampleVeto = ""
+tags = [] #tag of list types (data, mc)
+vetoes = []
+sampleTags = [] #tag of individual datasets
 configs = []
 
 for s in samplesToSubmit:
-    if s[:4] in doYears and (sampleTag == "" or sampleTag in s) and (sampleVeto == "" or sampleVeto not in s):
-        configs += sampleDict[s]
+    if s[:4] in doYears:
+        tagged = False if len(tags) > 0 else True
+        for tag in tags:
+            if tag == "" or tag in s: tagged = True
+        if not tagged: continue
+        vetoed = False
+        for veto in vetoes:
+            if veto != "" and veto in s: vetoed = True
+        if vetoed: continue
+        sample_configs = sampleDict[s]
+        samples_add = []
+        for sample in sample_configs:
+            tagged = False if len(sampleTags) > 0 else True
+            for tag in sampleTags:
+                if tag == "" or tag in sample: tagged = True
+            if not tagged: continue
+            if dryRun: print "Adding file", sample
+            samples_add.append(sample)
+        configs += samples_add
 
 if configs == []:
     print "No datasets to submit!"

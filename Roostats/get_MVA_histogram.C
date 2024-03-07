@@ -638,25 +638,33 @@ int get_individual_MVA_histogram(int set = 8, TString selection = "zmutau",
   // Make an initial plot of the results
 
   TCanvas* c = new TCanvas();
+  TLegend* leg = new TLegend(0.1, 0.7, 0.9, 0.9);
+  leg->SetNColumns(2);
 
   double ymax = max(hdata->GetMaximum(), hstack->GetMaximum());
   hdata->Draw("E");
+  leg->AddEntry(hdata, "Data", "PL");
   hstack->Draw("same hist noclear");
   for(auto h : signals) {
     h->Draw("hist same");
+    leg->AddEntry(h, h->GetTitle(), "F");
     ymax = max(ymax, h->GetMaximum());
   }
   hdata->Draw("same E");
+  for(auto o : *(hstack->GetHists())) {
+    leg->AddEntry((TH1*) o, o->GetTitle(), "F");
+  }
+  leg->Draw();
 
   cout << "Plotting parameters: xmin = " << xmin_ << " xmax = " << xmax_ << " logy = " << logy_ << endl;
 
   hdata->GetXaxis()->SetRangeUser(xmin_,xmax_);
   logy_ |= use_dev_mva_ == 2;
   if(logy_) {
-    hdata->GetYaxis()->SetRangeUser(0.5,2*ymax);
+    hdata->GetYaxis()->SetRangeUser(0.5,max(1., (pow(10, 0.4*std::log10(ymax))*ymax)));
     c->SetLogy();
   } else {
-    hdata->GetYaxis()->SetRangeUser(0.9,1.1*ymax);
+    hdata->GetYaxis()->SetRangeUser(0.9,1.2*ymax);
   }
 
   ///////////////////////////////////////////////

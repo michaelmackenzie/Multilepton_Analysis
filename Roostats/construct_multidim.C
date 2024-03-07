@@ -10,6 +10,7 @@ bool use_generic_bernstein_ = false;
 bool use_fast_bernstein_    = true ;
 bool use_exp_family_        = true ;
 bool use_power_family_      = true ;
+bool use_laurent_family_    = false;
 bool use_dy_ww_shape_       = false;
 bool force_fit_order_       = false; //force only the inclusion of fixed orders of each family
 bool force_best_fit_        = false; //force the nominal PDF to be a specific function
@@ -293,6 +294,32 @@ RooAbsPdf* create_generic_powerlaw(RooRealVar& obs, int order, int set, TString 
   return pdf;
 }
 
+//Create a Laurent series PDF sum
+RooAbsPdf* create_laurent(RooRealVar& obs, int order, int set, TString tag = "") {
+  if(order <= 0 || order > 6) {
+    cout << __func__ << ": Can't create order " << order << " PDF!\n";
+    return nullptr;
+  }
+  vector<RooRealVar*> vars;
+  RooArgList var_list;
+  var_list.add(obs);
+  TString formula = "";
+  //take the default Laurent series with x0 = 0 from H->Zgamma analysis
+  if(order == 1) formula = "TMath::Power(@0, -3)"; //Add a default 1st order
+  if(order == 2) formula = "TMath::Power(@0, -3) + @1*TMath::Power(@0, -4)";
+  if(order == 3) formula = "TMath::Power(@0, -3) + @1*TMath::Power(@0, -4) + @2*TMath::Power(@0, -5)";
+  if(order == 4) formula = "TMath::Power(@0, -3) + @1*TMath::Power(@0, -4) + @2*TMath::Power(@0, -5) + @3*TMath::Power(@0, -6)";
+  if(order == 5) formula = "TMath::Power(@0, -2) + @1*TMath::Power(@0, -3) + @2*TMath::Power(@0, -4) + @3*TMath::Power(@0, -5) + @4*TMath::Power(@0, -6)";
+  if(order == 6) formula = "TMath::Power(@0, -2) + @1*TMath::Power(@0, -3) + @2*TMath::Power(@0, -4) + @3*TMath::Power(@0, -5) + @4*TMath::Power(@0, -6) + @5*TMath::Power(@0, -7)";
+  for(int i = 1; i < order; ++i) {
+    vars.push_back(new RooRealVar(Form("lrt_%i_order_%i_n_%i%s", set, order, i, tag.Data()), Form("lrt_%i_order_%i_%i%s norm" , set, order, i, tag.Data()), 1., 0., 1.e8));
+    var_list.add(*vars.back());
+  }
+  RooGenericPdf* pdf = new RooGenericPdf(Form("lrt_%i_pdf_order_%i%s", set, order, tag.Data()), formula.Data(), var_list);
+  pdf->SetTitle(Form("Laurent series PDF, order %i", order));
+  return pdf;
+}
+
 //Create a Chebychev polynomial PDF
 RooChebychev* create_chebychev(RooRealVar& obs, int order, int set, TString tag = "") {
   if(order <= 0) {
@@ -442,7 +469,6 @@ std::pair<int,double> add_exponentials(RooDataHist& data, RooRealVar& obs, RooAr
   return std::pair<int, double>(min_index, min_chi);
 }
 
-
 //Fit powerlaw orders and add passing ones
 std::pair<int,double> add_powerlaws(RooDataHist& data, RooRealVar& obs, RooArgList& list, bool useSideBands, int set, int verbose) {
   const int max_order = 3;
@@ -477,6 +503,42 @@ std::pair<int,double> add_powerlaws(RooDataHist& data, RooRealVar& obs, RooArgLi
     if(verbose > 1) cout << "######################\n"
                          << "### Powerlaw order " << order << " has chisq = " << chi_sq << " / " << dof << " = " << chi_sq/dof
                          << " (p = " << p_chi_sq << ")" " --> add PDF = " << accept << endl
+                         << "######################\n";
+  }
+  return std::pair<int, double>(min_index, min_chi);
+}
+
+//Fit Laurent series orders and add passing ones
+std::pair<int,double> add_laurents(RooDataHist& data, RooRealVar& obs, RooArgList& list, bool useSideBands, int set, int verbose) {
+  const int max_order = 6;
+  const double min_p_chisq = 0.01;
+  double min_chi = 1.e10;
+  int min_index = -1;
+  for(int order = 1; order <= max_order; ++order) {
+    RooAbsPdf* basePdf = create_laurent(obs, order, set);
+    //Wrap the exponential in a RooAddPdf
+    RooRealVar* pdfNorm = new RooRealVar(Form("%s_norm", basePdf->GetName()), Form("%s_norm", basePdf->GetName()),
+                                         data.sumEntries(), 0.5*data.sumEntries(), 1.5*data.sumEntries());
+    RooAddPdf* pdf = new RooAddPdf(Form("%s_wrapper", basePdf->GetName()), basePdf->GetTitle(), RooArgList(*basePdf), RooArgList(*pdfNorm));
+    if(useSideBands)
+      pdf->fitTo(data, RooFit::PrintLevel(-1), RooFit::Warnings(0), RooFit::PrintEvalErrors(-1), RooFit::Range("LowSideband,HighSideband"));
+    else
+      pdf->fitTo(data, RooFit::PrintLevel(-1), RooFit::Warnings(0), RooFit::PrintEvalErrors(-1));
+    int nentries = data.numEntries();
+    const double chi_sq = get_chi_squared(obs, pdf, data, useSideBands, &nentries);
+    const int dof = (nentries - 2*order);  //N(params) = 2 * N(exp)
+    double p_chi_sq;
+    const bool accept = (perform_chisq_test(chi_sq, dof, &p_chi_sq) && !force_fit_order_) || (force_fit_order_ && order == 3);
+    if(accept) {
+      // list.add(*pdf);
+      list.add(*basePdf);
+    } else {
+      delete pdf;
+    }
+    if(chi_sq < min_chi) {min_chi = chi_sq; min_index = list.getSize() - 1;}
+    if(verbose > 1) cout << "######################\n"
+                         << "### Laurent order " << order << " has chisq = " << chi_sq << " / " << dof << " = " << chi_sq/dof
+                         << " (p = " << p_chi_sq << ")" << endl
                          << "######################\n";
   }
   return std::pair<int, double>(min_index, min_chi);
@@ -632,9 +694,9 @@ std::pair<int, double> add_dy_ww(RooDataHist& data, RooRealVar& obs, RooArgList&
   auto polyVar = RooArgList(*(polyPdf->getVariables()));
   polyVar.Print();
   if(use_chebychev) {
-    // ((RooRealVar*) polyVar.at(0))->setVal(1.66889);
-    // ((RooRealVar*) polyVar.at(1))->setVal(1.57434);
-    // ((RooRealVar*) polyVar.at(2))->setVal(-2.44089);
+    ((RooRealVar*) polyVar.at(0))->setVal(-0.743);
+    ((RooRealVar*) polyVar.at(1))->setVal( 0.295);
+    ((RooRealVar*) polyVar.at(2))->setVal(-0.082);
   } else {
     ((RooRealVar*) polyVar.at(0))->setVal(1.66889);
     ((RooRealVar*) polyVar.at(1))->setVal(1.57434);
@@ -643,7 +705,7 @@ std::pair<int, double> add_dy_ww(RooDataHist& data, RooRealVar& obs, RooArgList&
 
 
   //fixed exponential order for the DY contribution
-  const int exp_order = 0;
+  const int exp_order = 1;
   //set the Exponential initial parameters to an MC fit
   RooAbsPdf* expPdf = create_exponential(obs, exp_order, set, "_comb");
   auto expVar = RooArgList(*(expPdf->getVariables()));
@@ -723,6 +785,10 @@ RooMultiPdf* construct_multipdf(RooDataHist& data, RooRealVar& obs, RooCategory&
   }
   if(use_power_family_) {
     result = add_powerlaws(data, obs, pdfList, useSideBands, set, verbose);
+    // if(result.second < chi_min) {chi_min = result.second; index = result.first;}
+  }
+  if(use_laurent_family_) {
+    result = add_laurents(data, obs, pdfList, useSideBands, set, verbose);
     // if(result.second < chi_min) {chi_min = result.second; index = result.first;}
   }
   if(use_dy_ww_shape_) {

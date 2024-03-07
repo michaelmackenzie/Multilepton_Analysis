@@ -4,15 +4,13 @@ echo "Job submitted on host `hostname` on `date`"
 echo ">>> arguments: $@"
 
 ### Required parameters #####
-DATASET=$1
+COMMAND=$1
 OUTDIR=$2
 
 ### Transfer files, prepare directory ###
 TOPDIR=$PWD
 
 # lxplus/lpc
-echo "HOSTNAME = ${HOSTNAME}"
-echo "USER = ${USER}"
 if [[ "${HOSTNAME}" == *"cern.ch"* ]]
 then
     echo "Exporting the x509 token location (${USER})"
@@ -40,43 +38,37 @@ echo "Starting working dir: "
 pwd
 ls
 ls lib
-cd rootScripts/
+cd Roostats/
 echo "Working dir: "
 pwd
 echo ""
 
 ls ${CMSSW_BASE}/src/CLFVAnalysis/lib/libCLFVAnalysis.so
 
-### Run the analyzer
-
-echo "root.exe -q -b process_single_file.C(\"${DATASET}\")"
-root.exe -q -b "process_single_file.C(\"${DATASET}\")"
-ROOTEXIT=$?
-if [[ ${ROOTEXIT} -ne 0 ]]; then
-    echo "ROOT processing code ${ROOTEXIT}, exit code 1, failure in processing"
+### Run combine
+echo "Running command ${COMMAND}"
+${COMMAND}
+COMBINEEXIT=$?
+if [[ ${COMBINEEXIT} -ne 0 ]]; then
+    echo "Combine processing code ${ROOTEXIT}, exit code 1, failure in processing"
     exit 1
 fi
 
-# Print the log files for each histogramming process
-for LOG_OUT in `ls -d log/*.log`; do
-    echo "Printing log file ${LOG_OUT}:"
-    cat ${LOG_OUT}
-done
-
-# Retrieve the histogram files
-FILES=`ls *.hist`
+# Retrieve the files
+FILES=`ls *.root`
 if [[ "${FILES}" == "" ]]; then
-    echo "No histogram file found, exit code 1, failure in processing"
+    echo "No root files found, exit code 1, failure in processing"
     exit 1
 fi
 
 #copy back the files
 for FILE in ${FILES}; do
+    OUTNAME=`echo ${FILE} | sed 's/.root/${NAME}.root/'`
     #Give 5 attempts, to account for xrootd errors
     for ATTEMPT in {1..5}; do
         echo "Attempt ${ATTEMPT}: Copying back merged file ${FILE} to ${OUTDIR}"
         date
-        xrdcp -f ${FILE} ${OUTDIR}/${FILE} 2>&1
+        xrdcp -f ${FILE} ${OUTDIR}/${OUTNAME} 2>&1
         XRDEXIT=$?
         date
         if [[ $XRDEXIT -ne 0 ]]; then

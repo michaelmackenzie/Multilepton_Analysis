@@ -42,7 +42,7 @@ Int_t print_sys_plot(PlottingCard_t nominal, PlottingCard_t up, PlottingCard_t d
   THStack* hnom_s  = dataplotter_->get_stack(nominal.hist_, nominal.type_, nominal.set_);
   THStack* hup_s   = dataplotter_->get_stack(     up.hist_,      up.type_,      up.set_);
   THStack* hdown_s = dataplotter_->get_stack(   down.hist_,    down.type_,    down.set_);
-  if(!hdata || !hnom_s || !hup_s || !hdown_s) return 1;
+  if(!hdata || !hnom_s || !hup_s || !hdown_s || hup_s->GetNhists() == 0 || hdown_s->GetNhists() == 0) return 1;
   TH1* hnom  = (TH1*) hnom_s ->GetStack()->Last()->Clone(Form("%s_hist", hnom_s ->GetName()));
   TH1* hup   = (TH1*) hup_s  ->GetStack()->Last()->Clone(Form("%s_hist", hup_s  ->GetName()));
   TH1* hdown = (TH1*) hdown_s->GetStack()->Last()->Clone(Form("%s_hist", hdown_s->GetName()));
@@ -2040,6 +2040,27 @@ Int_t print_theory_uncertainty(vector<int> sets = {25}) {
     if(c) DataPlotter::Empty_Canvas(c); else ++status;
   }
 
+  return status;
+}
+
+//print bdt variables
+Int_t print_bdt_variable_plots(vector<int> sets, bool add_sys = false) {
+  Int_t status(0);
+  for(int set : sets) {
+    status += print_mass (set, add_sys);
+    status += print_leppt(set, add_sys);
+    status += print_collinear_mass(set, add_sys);
+    status += print_met  (set, add_sys);
+    status += print_jetpt(set, add_sys);
+    status += print_ptratio(set, add_sys);
+    status += print_deltaphi(set, add_sys);
+    status += print_lep_metdeltaphi(set, add_sys);
+    status += print_lep_beta(set, add_sys);
+    status += print_pt(set, add_sys);
+    status += print_mt(set, add_sys);
+    status += print_mva(set, add_sys);
+    // status += print_eta(set, add_sys);
+  }
   return status;
 }
 

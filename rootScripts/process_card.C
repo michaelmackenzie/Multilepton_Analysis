@@ -253,7 +253,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
         hist_selec->fPrintFilling       = 1; //print detailed histogram set filling
         hist_selec->fDoTriggerMatching  = doTriggerMatching_;
         hist_selec->fUseEMuTrigger      = useEMuTrigger_;
-        if(selection.Contains("e")) //only relevant for channels with leptons
+        if(selection.Contains("e")) //only relevant for channels with electrons
           hist_selec->fDoEleIDStudy     = doEleIDStudy_;
         hist_selec->fReprocessMVAs      = ReprocessMVAs_; //reevaluate MVA scores on the fly
         hist_selec->fTestMVA            = test_mva_;
@@ -303,7 +303,6 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
         selec->fUseEmbedCuts         = useEmbedCuts_;
       selec->fEmbeddedTesting      = embeddedTesting_;
 
-      selec->fUseMCEstimatedFakeLep  = useMCFakeLep_;
       selec->fUseJetToTauComposition = useJetToTauComp_;
       selec->fApplyJetToTauMCBias    = applyJetToTauMCBias_;
       if(wJetsBiasMode_ >= 0)
@@ -316,6 +315,8 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
       selec->fIsData = card.isData_;
       selec->fIsEmbed = card.fname_.Contains("Embed-");
       selec->fIsLLEmbed = card.fname_.Contains("Embed-MuMu-") || card.fname_.Contains("Embed-EE-");
+      //force Embedding ee/mumu to include fake leptons in non-ee/mumu channels
+      selec->fUseMCEstimatedFakeLep  = (selec->fIsLLEmbed && !(selection == "mumu" || selection == "ee")) ? 1 : useMCFakeLep_;
       selec->fYear = card.year_;
       selec->fDataset = card.dataset_;
       selec->fIsSignal = isSignal;
@@ -528,11 +529,11 @@ Int_t process_single_card(datacard_t& card, config_t& config, vector<TString> fi
     if(isMuonEGData && useEMuTrigger_ == 0) {
       cout << "MuonEG data but not using e-mu trigger, continuing!\n"; continue;
     }
-    if(name.Contains("Embed-MuMu-") && selection != "mumu") {
+    if(name.Contains("Embed-MuMu-") && selection != "mumu" && !doEmbedLLAll_) {
       cout << "MuMu embedding is only relevant to the mumu channel, skipping " << selection.Data() << endl;
       continue;
     }
-    if(name.Contains("Embed-EE-") && selection != "ee") {
+    if(name.Contains("Embed-EE-") && selection != "ee" && !doEmbedLLAll_) {
       cout << "EE embedding is only relevant to the ee channel, skipping!\n";
       continue;
     }

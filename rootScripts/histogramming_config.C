@@ -3,8 +3,8 @@
 
 //Define which histogrammer to use
 // typedef HistMaker HISTOGRAMMER;
-// typedef CLFVHistMaker HISTOGRAMMER;
-typedef JTTHistMaker HISTOGRAMMER;
+typedef CLFVHistMaker HISTOGRAMMER;
+// typedef JTTHistMaker HISTOGRAMMER;
 // typedef QCDHistMaker HISTOGRAMMER;
 // typedef ZPtHistMaker HISTOGRAMMER;
 // typedef METHistMaker HISTOGRAMMER;
@@ -20,88 +20,90 @@ bool preFetch_     = false; //check for the sample on /tmp, and copy it there if
 bool useTChain_    = true; //use a TChain of input files rather than a tree from a single ntuple file
 Long64_t notify_   = 50000; //frequency at which to printout processing info
 
-vector<TString> tag_     = {"2016"}; //dataset tag requirement
-vector<TString> veto_    = {"Embed", "MuonEGRun", "Embed-EE", "Embed-MuMu"}; //dataset tags to veto
-bool debug_              = false;
-Long64_t startEvent_     =  0;
-Long64_t nEvents_        =  1; //at 20, verbosity returns to normal
-int verbose_             = -1; //override verbosity in debug mode to higher levels if > 1
-int follow_hist_set_     = -1; //print info whenever this hist set is filled
-HISTOGRAMMER* selector_  = nullptr;
+vector<TString> tag_      = {}; //dataset tag requirement
+vector<TString> veto_     = {"MuonEGRun", "Embed-EE", "Embed-MuMu"}; //dataset tags to veto
+bool debug_               = false;
+Long64_t startEvent_      =  0;
+Long64_t nEvents_         =  1; //at 20, verbosity returns to normal
+int verbose_              = -1; //override verbosity in debug mode to higher levels if > 1
+int follow_hist_set_      = -1; //print info whenever this hist set is filled
+HISTOGRAMMER* selector_   = nullptr;
 
 Long64_t max_sim_events_  = -1; //5e5; //maximum number of events to skim in simulation, -1 to ignore
 Double_t max_data_events_ = -1; //maximum fraction of events to skim in data, -1 to ignore
 
-bool DYFakeTau_          = false; //speed up dy fake tau scale factor
-bool WJFakeTau_          = false; //speed up w+jets fake tau scale factor
-bool TTFakeTau_          = false; //speed up ttbar fake tau scale factor
-bool QCDFakeTau_         = false; //speed up qcd fake tau scale factor
-bool JetTauTesting_      = false; //perform MC closure test
-bool FakeLeptonTesting_  = false; //test MC fake leptons
-bool CutFlowTesting_     = false; //test just basic cutflow sets
-bool TriggerTesting_     = false; //make a few extra selections for ee/mumu/emu trigger testing
-int  doEleIDStudy_       = 0; //add additional electron cuts in Z->emu to reduce Z->mumu*
+bool DYFakeTau_           = false; //speed up dy fake tau scale factor
+bool WJFakeTau_           = false; //speed up w+jets fake tau scale factor
+bool TTFakeTau_           = false; //speed up ttbar fake tau scale factor
+bool QCDFakeTau_          = false; //speed up qcd fake tau scale factor
+bool JetTauTesting_       = false; //perform MC closure test
+bool FakeLeptonTesting_   = false; //test MC fake leptons
+bool CutFlowTesting_      = false; //test just basic cutflow sets
+bool TriggerTesting_      = false; //make a few extra selections for ee/mumu/emu trigger testing
+int  doEleIDStudy_        = 0; //add additional electron cuts in Z->emu to reduce Z->mumu*
+int  doSSSF_              = 1; //do same-sign, same flavor processingg
 
 int removeTrigWeights_    =  4; //0: do nothing 1: remove weights 2: replace 3: replace P(event) 4: replace P(at least 1 triggered)
-int updateMCEra_          =  1; //0: do nothing 1: throw random number for MC era (data/embedding not random)
 int useBTagWeights_       =  1; //1: calculate locally; 2: use ntuple values for each jet
 int useJetPUIDWeights_    =  2; //1: calculate locally; 2: use ntuple definition
 int usePrefireWeights_    =  1; //0: remove weights; 1: use pre-defined weights; 2: re-define the weights
 int removePUWeights_      =  2; //Signal only: 0: use ntuple definition; 1: don't apply PU weights; 2: replace PU weights
 int useLeptonIDWeights_   =  1; //use e/mu ID weights: 0 = none, 1 = local, 2 = ntuple-level
+int useQCDWeights_        =  1; //use QCD SS --> OS transfer weights
+int useZPtWeights_        =  1; //MC --> Data Z pT matching: 1: calculate locally; 2: use ntuple-level weights
+int useSignalZWeights_    =  1; //match the signal Z to the Drell-Yan Z MC
+int useSignalZMixWeights_ =  1; //account for the Z/gamma* mixing in the signal generation
+int useLepDxyzWeights_    =  1; //use dxy/dz displacement weights (emu/mumu/ee only)
+int removeEventWeights_   =  0; //remove most (1) or all (2) event weights
+
+int updateMCEra_          =  1; //0: do nothing 1: throw random number for MC era (data/embedding not random)
 int updateMET_            =  1; //Update MET with lepton energy scale changes
+int useEventFlags_        =  1; //apply event flags/filtering
 int useMCFakeLep_         =  0; //use MC estimated fake light leptons in ee, mumu, and emu categories
 int useJetToTauComp_      =  1; //use the composition of the anti-iso region to combine j->tau weights
 int applyJetToTauMCBias_  =  1; //apply the W+jets/Z+jets MC bias estimate or only use as a uncertainty
 int wJetsBiasMode_        =  8; //W+jets/Z+jets MC bias mode (1: lepm shape+rate; 6: lepm shape; 7: (lepm, bdt) shape+rate; 8: (lepm, bdt) shape)
-int useQCDWeights_        =  1; //use QCD SS --> OS transfer weights
 int doTriggerMatching_    =  1; //do trigger object matching
 int useEMuTrigger_        =  0; //use the e-mu trigger in e-mu data: 1 = consider it; 2 = only consider it
-int doSSSF_               =  1; //do same-sign, same flavor processingg
-int useZPtWeights_        =  1; //MC --> Data Z pT matching: 1: calculate locally; 2: use ntuple-level weights
-int useSignalZWeights_    =  1; //match the signal Z to the Drell-Yan Z MC
-int useSignalZMixWeights_ =  1; //account for the Z/gamma* mixing in the signal generation
-int useEventFlags_        =  1; //apply event flags/filtering
-int useLepDxyzWeights_    =  1; //use dxy/dz displacement weights (emu/mumu/ee only)
 int useRoccoCorr_         =  1; //Muon Rochester corrections 0: don't apply; 1: apply local corrections; 2: use ntuple-level corrections
 int useRoccoSize_         =  1; //Use size of the Rochester corrections as the uncertainty
 int etauAntiEleCut_       = -1; //cut on tau anti-ele ID for etau, -1 to use default
 int useLooseTauBuffer_    =  0; //add a buffer between loose and tight tau events
-int removeEventWeights_   =  0; //remove most (1) or all (2) event weights
 
-int useEmbedCuts_        = 2; //use kinematic cuts based on embedded generation: 1 = tau tau only; 2 = tau tau, mumu, ee, and emu; 3: do gen rejection in ee/mumu/emu as well
-int embeddedTesting_     = 0; //test embedding options: 3 = use KIT measured scales
-int useEmbedRocco_       = 1; //use Rochester correction vs LFV Higgs AN muon sys in Embedded samples
-int embedUseMETUnc_      = 2; //use MET uncertainties in embedding: 1: use JER/JES; 2: use approximate errors on (MET - nu pT)
-int useEmbedBDTUnc_      = 0; //use gen-level BDT score uncertainty in embedding
+int useEmbedCuts_         = 2; //use kinematic cuts based on embedded generation: 1 = tau tau only; 2 = tau tau, mumu, ee, and emu; 3: do gen rejection in ee/mumu/emu as well
+int embeddedTesting_      = 0; //test embedding options: 3 = use KIT measured scales
+int useEmbedRocco_        = 1; //use Rochester correction vs LFV Higgs AN muon sys in Embedded samples
+int embedUseMETUnc_       = 2; //use MET uncertainties in embedding: 1: use JER/JES; 2: use approximate errors on (MET - nu pT)
+int useEmbedBDTUnc_       = 0; //use gen-level BDT score uncertainty in embedding
 
-int doEmuDefaults_       = 1; //set to default emu running
-int doSameFlavorEMu_     = 0; //treat ee/mumu as emu
-int doEmbedSameFlavor_   = 2; //setup ee/mumu for embedding testing: 1: skip MC Z->ll; 2: allow MC Z->ll
+int doEmuDefaults_        = 1; //set to default emu running
+int doSameFlavorEMu_      = 0; //treat ee/mumu as emu
+int doEmbedSameFlavor_    = 2; //setup ee/mumu for embedding testing: 1: skip MC Z->ll; 2: allow MC Z->ll
+int doEmbedLLAll_         = 0; //process Embedding ee/mumu samples in non-ee/mumu selections
 
-int systematicSeed_      = 90; //seed for systematic random shifts
-int doSystematics_       = 0; //process systematic uncertainty histograms: 0: don't process; 1: process; -2: process for signal, nominal only for the rest
-int allowMigration_      = 1; //event migration systematic effects
-int  DoMVASets_          = 1; //Fill sets with MVA cuts: 1 = emu; 2 = emu/ee/mumu; 3 = all sets
-int  ReprocessMVAs_      = 1; //Re-evaluate MVA scores on the fly
-int useCDFBDTs_          = 2; //Use CDF transformed BDTs instead of the raw BDT scores in the fits
-int useXGBoost_          = 1; //>0: use XGBoost BDT in Z->e+mu; >9: use XGBoost BDT in all categories
-int useBDTScale_         = 1; //use BDT score corrections in Z->e+mu
-bool writeTrees_         = false;
-int  train_mode_         = 2; //MVA training mode, how to define training fractions
-TString test_mva_        = ""; //MVA to test, independent of selection
+int systematicSeed_       = 90; //seed for systematic random shifts
+int doSystematics_        = 0; //process systematic uncertainty histograms: 0: don't process; 1: process; -2: process for signal, nominal only for the rest
+int allowMigration_       = 1; //event migration systematic effects
+int  DoMVASets_           = 1; //Fill sets with MVA cuts: 1 = emu; 2 = emu/ee/mumu; 3 = all sets
+int  ReprocessMVAs_       = 1; //Re-evaluate MVA scores on the fly
+int useCDFBDTs_           = 2; //Use CDF transformed BDTs instead of the raw BDT scores in the fits
+int useXGBoost_           = 1; //>0: use XGBoost BDT in Z->e+mu; >9: use XGBoost BDT in all categories
+int useBDTScale_          = 1; //use BDT score corrections in Z->e+mu
+bool writeTrees_          = false;
+int  train_mode_          = 2; //MVA training mode, how to define training fractions
+TString test_mva_         = ""; //MVA to test, independent of selection
 
-int  doHiggs_            = 0; //do higgs-related analysis
-bool sparseHists_        = true; //only plot more basic histograms
+int  doHiggs_             = 0; //do higgs-related analysis
+bool sparseHists_         = true; //only plot more basic histograms
 
-int  splitWJets_         = true; //split w+jets sample based on N(LHE jets)
-bool splitDY_            = true; //split z+jets sample based on gen-level lepton pair flavor
+int  splitWJets_          = true; //split w+jets sample based on N(LHE jets)
+bool splitDY_             = true; //split z+jets sample based on gen-level lepton pair flavor
 
-bool useUL_              = false; //Use UL files/cross sections
+bool useUL_               = false; //Use UL files/cross sections
 
-float min_lepm_          = -1.f;
-float max_lepm_          = 200.f;
-float migration_buffer_  = 2.f; //mass, met, and pT window to use for systematic migration
+float min_lepm_           = -1.f;
+float max_lepm_           = 200.f;
+float migration_buffer_   = 2.f; //mass, met, and pT window to use for systematic migration
 
 //information about the data file/data
 struct datacard_t {
@@ -142,7 +144,7 @@ config_t get_config() {
   config_t config;
 
   config.writeTrees_ = writeTrees_;
-  config.selections_ = {"etau"}; //{"mutau", "etau", "emu", "mutau_e", "etau_mu", "ee", "mumu"};
+  config.selections_ = {"mutau"}; //{"mutau", "etau", "emu", "mutau_e", "etau_mu", "ee", "mumu"};
   config.signalTrainFraction_ = 0.5;
   config.backgroundTrainFraction_ = 0.3;
 

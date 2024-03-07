@@ -94,6 +94,15 @@ int plot_combine_fits(const char* file_name, double r_true = 0., TString out_nam
       line->SetLineWidth(3);
       line->SetLineStyle(kDashed);
       line->Draw();
+      if(std::fabs(quantiles[iquant] - 0.5) < 0.001) { //add central quantile value
+        TLatex label;
+        label.SetNDC();
+        label.SetTextFont(72);
+        label.SetTextAlign(13);
+        label.SetTextAngle(0);
+        label.SetTextSize(0.04);
+        label.DrawLatex(0.45, 0.87, Form("#mu = %.2f", res[iquant]));
+      }
     }
   }
   if(do_fit) {

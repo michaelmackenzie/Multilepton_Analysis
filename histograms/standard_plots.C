@@ -89,7 +89,7 @@ void get_mva_systematics(std::vector<fpair>& sys, std::vector<scale_pair>& scale
     // for(int isys = 0; isys < 36; ++isys) sys_vals.push_back(sys_info.GetNum(Form("JetToTauAltP%iD%iA%i", isys/(12)/*3 procs*/, (isys/3)%4/*4 decay modes*/, isys%3/*3 params*/)));
     for(int isys = 0; isys < 3; ++isys) sys_vals.push_back(sys_info.GetNum(Form("JetToTauNC%i"  ,isys)));
     for(int isys = 0; isys < 3; ++isys) sys_vals.push_back(sys_info.GetNum(Form("JetToTauBias%i",isys)));
-    sys_vals.push_back(sys_info.GetNum("JetToTauBiasRate0"));
+    sys_vals.push_back(sys_info.GetNum("JetToTauBiasRate0")); //FIXME: only include if using W+jets shape-only bias correction
     sys_vals.push_back(sys_info.GetNum("JetToTauComp"));
   }
 
@@ -98,6 +98,7 @@ void get_mva_systematics(std::vector<fpair>& sys, std::vector<scale_pair>& scale
     for(int isys = 0; isys < 6; ++isys) sys_vals.push_back(sys_info.GetNum(Form("QCDAltJ%iA%i", isys/(2)/*3 jet bins*/, (isys/2)%2/*2 params*/)));
     sys_vals.push_back(sys_info.GetNum("QCDNC"));
     sys_vals.push_back(sys_info.GetNum("QCDBias"));
+    sys_vals.push_back(sys_info.GetNum("QCDMassBDTBias"));
   }
 
   for(int isys : sys_vals) {
@@ -134,6 +135,7 @@ Int_t get_offset() {
 //------------------------------------------------------------------------------------------------------------------------------
 // di-lepton mass distribution
 Int_t print_mass(int set, bool add_sys = false, double mass_min = 1., double mass_max = -1.) {
+  if(!dataplotter_) return 1;
   const Int_t offset = ((set % 1000) > 100) ? 0 : get_offset();
   if(mass_min >= mass_max) {
     mass_min = (selection_.Contains("tau")) ?  40. :  70.;
@@ -186,6 +188,7 @@ Int_t print_mass(int set, bool add_sys = false, double mass_min = 1., double mas
 //------------------------------------------------------------------------------------------------------------------------------
 // MET distribution
 Int_t print_met(int set, bool add_sys = false) {
+  if(!dataplotter_) return 1;
   const Int_t offset = ((set % 1000) > 100) ? 0 : get_offset();
   PlottingCard_t card("met", "event", set+offset, 2,  0., 100.);
   Int_t status(0);
@@ -228,8 +231,26 @@ Int_t print_met(int set, bool add_sys = false) {
 }
 
 //------------------------------------------------------------------------------------------------------------------------------
+// leading jet pT
+Int_t print_jetpt(int set, bool add_sys = false) {
+  if(!dataplotter_) return 1;
+  const Int_t offset = get_offset();
+  PlottingCard_t card("jetpt", "event", set+offset, 2, 20., 100.);
+  Int_t status(0);
+  for(int logY = 0; logY < 2; ++logY) {
+    dataplotter_->logY_ = logY;
+    auto c = dataplotter_->print_stack(card);
+    if(c) DataPlotter::Empty_Canvas(c);
+    else ++status;
+  }
+  dataplotter_->logY_ = 0;
+  return status;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------
 // delta lepton pT
 Int_t print_ptdiff(int set, bool add_sys = false) {
+  if(!dataplotter_) return 1;
   const Int_t offset = get_offset();
   const bool same_flavor = selection_ == "ee" || selection_ == "mumu";
   PlottingCard_t card("ptdiff", "lep", set+offset, 2, (same_flavor) ? 0. : -100., 100.);
@@ -245,8 +266,129 @@ Int_t print_ptdiff(int set, bool add_sys = false) {
 }
 
 //------------------------------------------------------------------------------------------------------------------------------
+// lepton pT ratio
+Int_t print_ptratio(int set, bool add_sys = false) {
+  if(!dataplotter_) return 1;
+  const Int_t offset = get_offset();
+  const bool same_flavor = selection_ == "ee" || selection_ == "mumu";
+  PlottingCard_t card("ptratio", "lep", set+offset, (same_flavor) ? 1 : 2, 0., 2.5);
+  Int_t status(0);
+  for(int logY = 0; logY < 2; ++logY) {
+    dataplotter_->logY_ = logY;
+    auto c = dataplotter_->print_stack(card);
+    if(c) DataPlotter::Empty_Canvas(c);
+    else ++status;
+  }
+  dataplotter_->logY_ = 0;
+  return status;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------
+// pT resolution info
+Int_t print_pt_res(int set) {
+  if(!dataplotter_) return 1;
+  const Int_t offset = get_offset();
+  std::vector<TString> leps = {"one", "two"};
+  Int_t status(0);
+  for(TString lep : leps) {
+    PlottingCard_t card((lep + "ptrelerr").Data(), "lep", set+offset, 1, 1., -1.);
+    for(int logY = 0; logY < 2; ++logY) {
+      dataplotter_->logY_ = logY;
+      auto c = dataplotter_->print_stack(card);
+      if(c) DataPlotter::Empty_Canvas(c);
+      else ++status;
+    }
+    dataplotter_->logY_ = 0;
+  }
+  return status;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------
+// di-lepton pt
+Int_t print_leppt(int set, bool add_sys = false) {
+  if(!dataplotter_) return 1;
+  const Int_t offset = get_offset();
+  const bool same_flavor = selection_ == "ee" || selection_ == "mumu";
+  PlottingCard_t card("leppt", "event", set+offset, (same_flavor) ? 1 : 2, 0., 100);
+  Int_t status(0);
+  for(int logY = 0; logY < 2; ++logY) {
+    dataplotter_->logY_ = logY;
+    auto c = dataplotter_->print_stack(card);
+    if(c) DataPlotter::Empty_Canvas(c);
+    else ++status;
+  }
+  dataplotter_->logY_ = 0;
+  return status;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------
+// di-lepton delta phi
+Int_t print_deltaphi(int set, bool add_sys = false) {
+  if(!dataplotter_) return 1;
+  const Int_t offset = get_offset();
+  const bool same_flavor = selection_ == "ee" || selection_ == "mumu";
+  PlottingCard_t card("lepdeltaphi", "event", set+offset, (same_flavor) ? 1 : 2, 0., 5);
+  Int_t status(0);
+  for(int logY = 0; logY < 2; ++logY) {
+    dataplotter_->logY_ = logY;
+    auto c = dataplotter_->print_stack(card);
+    if(c) DataPlotter::Empty_Canvas(c);
+    else ++status;
+  }
+  dataplotter_->logY_ = 0;
+  return status;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------
+// lepton delta phi from the MET
+Int_t print_lep_metdeltaphi(int set, bool add_sys = false) {
+  if(!dataplotter_) return 1;
+  const Int_t offset = get_offset();
+  const bool same_flavor = selection_ == "ee" || selection_ == "mumu";
+  vector<TString> hists = {"onemetdeltaphi", "twometdeltaphi"};
+  Int_t status(0);
+  for(TString hist : hists) {
+    PlottingCard_t card(hist, "lep", set+offset, (same_flavor) ? 1 : 2, 0., 3.2);
+    for(int logY = 0; logY < 2; ++logY) {
+      dataplotter_->logY_ = logY;
+      auto c = dataplotter_->print_stack(card);
+      if(c) DataPlotter::Empty_Canvas(c);
+      else ++status;
+    }
+    dataplotter_->logY_ = 0;
+  }
+  return status;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------
+// lepton beta/alpha variables
+Int_t print_lep_beta(int set, bool add_sys = false) {
+  if(!dataplotter_) return 1;
+  const Int_t offset = get_offset();
+  const bool same_flavor = selection_ == "ee" || selection_ == "mumu";
+  vector<TString> hists = {"beta0", "beta1"};
+  const double blind_min = 0.8;
+  const double blind_max = 1.2;
+  Int_t status(0);
+  for(TString hist : hists) {
+    bool blind = hist == "beta0" && selection_.EndsWith("_e");
+    blind |= hist == "beta1" && !same_flavor && !selection_.EndsWith("_e");
+    PlottingCard_t card(hist, "event", set+offset, (same_flavor) ? 1 : 2, 0., 3., (blind) ? blind_min : 1., (blind) ? blind_max : -1.);
+    for(int logY = 0; logY < 2; ++logY) {
+      dataplotter_->logY_ = logY;
+      auto c = dataplotter_->print_stack(card);
+      if(c) DataPlotter::Empty_Canvas(c);
+      else ++status;
+    }
+    dataplotter_->logY_ = 0;
+  }
+  return status;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------
 // individual lepton pT
 Int_t print_pt(int set, bool add_sys = false) {
+  if(!dataplotter_) return 1;
   const Int_t offset = get_offset();
   const bool same_flavor = selection_ == "ee" || selection_ == "mumu";
   Int_t status(0);
@@ -294,8 +436,9 @@ Int_t print_pt(int set, bool add_sys = false) {
 }
 
 //------------------------------------------------------------------------------------------------------------------------------
-// individual lepton et
+// individual lepton eta
 Int_t print_eta(int set, bool add_sys = false) {
+  if(!dataplotter_) return 1;
   const Int_t offset = get_offset();
   const bool same_flavor = selection_ == "ee" || selection_ == "mumu";
   Int_t status(0);
@@ -344,6 +487,7 @@ Int_t print_eta(int set, bool add_sys = false) {
 //------------------------------------------------------------------------------------------------------------------------------
 // individual lepton dxy/dz
 Int_t print_dxyz(int set, bool add_sys = false) {
+  if(!dataplotter_) return 1;
   const Int_t offset = get_offset();
   const bool same_flavor = selection_ == "ee" || selection_ == "mumu";
   Int_t status(0);
@@ -367,6 +511,7 @@ Int_t print_dxyz(int set, bool add_sys = false) {
 //------------------------------------------------------------------------------------------------------------------------------
 // individual lepton m_T with the MET
 Int_t print_mt(int set, bool add_sys = false) {
+  if(!dataplotter_) return 1;
   const Int_t offset = get_offset();
   const bool same_flavor = selection_ == "ee" || selection_ == "mumu";
   Int_t status(0);
@@ -413,8 +558,30 @@ Int_t print_mt(int set, bool add_sys = false) {
 }
 
 //------------------------------------------------------------------------------------------------------------------------------
+// collinear mass estimates
+Int_t print_collinear_mass(int set, bool add_sys = false) {
+  if(!dataplotter_) return 1;
+  const Int_t offset = get_offset();
+  const bool same_flavor = selection_ == "ee" || selection_ == "mumu";
+  Int_t status(0);
+  std::vector<TString> masses = {"lepmestimate", "lepmestimatetwo"};
+  for(TString mass : masses) {
+    PlottingCard_t card(mass, "event", set+offset, 2, 40., 170., 80., 100.);
+    for(int logY = 0; logY < 2; ++logY) {
+      dataplotter_->logY_ = logY;
+      auto c = dataplotter_->print_stack(card);
+      if(c) DataPlotter::Empty_Canvas(c);
+      else ++status;
+    }
+  }
+  dataplotter_->logY_ = 0;
+  return status;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------
 // MVA distributions
 Int_t print_mva(int set, bool add_sys = false, bool all_versions = false) {
+  if(!dataplotter_) return 1;
   const Int_t offset = get_offset();
   const bool same_flavor = selection_ == "ee" || selection_ == "mumu";
   Int_t status(0);
@@ -455,10 +622,40 @@ Int_t print_mva(int set, bool add_sys = false, bool all_versions = false) {
   return status;
 }
 
+
+//------------------------------------------------------------------------------------------------------------------------------
+// Electron ID study information
+Int_t print_ele_id_study(int set) {
+  if(!dataplotter_) return 1;
+  const Int_t offset = get_offset();
+  std::vector<PlottingCard_t> cards = {PlottingCard_t("eleconvveto"     , "lep"  , set+offset),
+                                       PlottingCard_t("elepfcand"       , "lep"  , set+offset),
+                                       PlottingCard_t("elelosthits"     , "lep"  , set+offset),
+                                       PlottingCard_t("eleetaeta"       , "lep"  , set+offset),
+                                       PlottingCard_t("eler9"           , "lep"  , set+offset),
+                                       PlottingCard_t("elecutid"        , "lep"  , set+offset),
+                                       PlottingCard_t("ele3dpverr"      , "lep"  , set+offset),
+                                       PlottingCard_t("elescetoverpt"   , "lep"  , set+offset),
+                                       PlottingCard_t("elehoe"          , "lep"  , set+offset, 1, 0., 0.15),
+                                       PlottingCard_t("eleeinvminuspinv", "lep"  , set+offset, 1, -0.1, 0.05)
+  };
+  Int_t status(0);
+  for(PlottingCard_t& card : cards) {
+    for(int logY = 0; logY < 2; ++logY) {
+      dataplotter_->logY_ = logY;
+      auto c = dataplotter_->print_stack(card);
+      if(c) DataPlotter::Empty_Canvas(c);
+      else ++status;
+    }
+    dataplotter_->logY_ = 0;
+  }
+  return status;
+}
+
 //------------------------------------------------------------------------------------------------------------------------------
 // collinear mass estimate effect for the signal
 Int_t print_signal_colm(int set) {
-  if(!dataplotter_) return -1;
+  if(!dataplotter_) return 1;
   const Int_t offset = ((set % 1000) > 100) ? 0 : get_offset();
   TString hist = (selection_ == "mutau_e") ? "lepmestimatetwo" : "lepmestimate";
   auto hists_mass = dataplotter_->get_signal("lepm", "event", set+offset);

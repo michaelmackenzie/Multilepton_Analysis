@@ -13,6 +13,16 @@ int  drawFit_ = 1; //whether to draw the linear fits
 bool doPCA_   = true; //whether or not to generate shifted function templates
 int  rebin_   = 1;
 
+//-------------------------------------------------------------------------------------------------------------------------------
+// Smooth a 1D histogram
+TH1* smooth_hist(TH1* h) {
+  if(!h) return nullptr;
+  TH1* hsmooth = (TH1*) h->Clone(Form("%s_smooth", h->GetName()));
+  const static int nsmooth = 1; //number of times to run the smoothing algorithm
+  hsmooth->Smooth(nsmooth);
+  return hsmooth;
+}
+
 //Get 1D histograms
 TH1* get_histogram(TString name, int setAbs, int isdata, TString type = "event") {
   TH1* h = nullptr;
@@ -24,7 +34,7 @@ TH1* get_histogram(TString name, int setAbs, int isdata, TString type = "event")
       cout << __func__ << ": Background stack " << name.Data() << " not found!\n";
       return nullptr;
     }
-    h = (TH1*) stack->GetStack()->Last();
+    h = (TH1*) stack->GetStack()->Last()->Clone(Form("h_%s_%s_%i", name.Data(), type.Data(), setAbs));
   }
 
   if(!h) return nullptr;
@@ -56,10 +66,12 @@ TH2* get_2D_histogram(TString name, int setAbs, int isdata, TString type = "even
       if(verbose_ > 0) cout << "Histogram " << name.Data() << " for " << input.name_.Data() << " not found!\n";
       continue;
     }
+    hTmp = (TH2*) hTmp->Clone("hTmp");
     // ignore luminosity/normalization scaling --> 1 entry ~ weight of 1
     if(!isdata) hTmp->Scale(input.scale_);
-    if(!h) h = hTmp;
+    if(!h) h = (TH2*) hTmp->Clone(Form("h_%s_%s_%i", name.Data(), type.Data(), setAbs));
     else h->Add(hTmp);
+    delete hTmp;
   }
 
   if(!h) return NULL;
@@ -77,13 +89,14 @@ TH2* get_2D_histogram(TString name, int setAbs, int isdata, TString type = "even
 
 //Get the QCD histogram for a given histogram name and set
 TH1* get_qcd_histogram(TString name, int setAbs, TString type = "event") {
-  TH1* hQCD = get_histogram(name, setAbs, 1, type);
+  TH1* hQCD = get_histogram(name, setAbs, 1/*is data*/, type);
   if(!hQCD) {
     cout << "QCD histogram building for " << name << " failed!\n";
     return 0;
   }
-  hQCD->Add(get_histogram(name, setAbs, 0, type), -1.);
-  hQCD->SetName(Form("QCD_%s_%i", name.Data(), setAbs));
+  hQCD = (TH2*) hQCD->Clone(Form("QCD_%s_%i", name.Data(), setAbs));
+  dataplotter_->include_qcd_ = 0;
+  hQCD->Add(get_histogram(name, setAbs, 0/*is MC*/, type), -1.);
 
   //Force the QCD distribution to be positive while preserving the integral
   const double norm = hQCD->Integral();
@@ -99,13 +112,14 @@ TH1* get_qcd_histogram(TString name, int setAbs, TString type = "event") {
 
 //Get the 2D QCD histogram for a given histogram name and set
 TH2* get_2D_qcd_histogram(TString name, int setAbs, TString type = "event") {
-  TH2* hQCD = get_2D_histogram(name, setAbs, 1, type);
+  TH2* hQCD = get_2D_histogram(name, setAbs, 1/*is data*/, type);
   if(!hQCD) {
     cout << "QCD histogram building for " << name << " failed!\n";
     return 0;
   }
-  hQCD->Add(get_2D_histogram(name, setAbs, 0), -1.);
-  hQCD->SetName(Form("QCD_%s_%i", name.Data(), setAbs));
+  hQCD = (TH2*) hQCD->Clone(Form("QCD_%s_%i", name.Data(), setAbs));
+  dataplotter_->include_qcd_ = 0;
+  hQCD->Add(get_2D_histogram(name, setAbs, 0/*is MC*/), -1.);
 
   //Force the QCD distribution to be positive while preserving the integral
   const double norm = hQCD->Integral();
@@ -271,7 +285,7 @@ TCanvas* make_2D_ratio_canvas(TH2* hnum, TH2* hdnm,
 TCanvas* make_closure_plot(TString hist, TString type, const int setAbs, double xmin = 1., double xmax = -1., int rebin = 0) {
   dataplotter_->include_qcd_ = 1;
   dataplotter_->rebinH_ = rebin;
-  TH1*     hData = dataplotter_->get_data(hist, type, setAbs);
+  TH1*     hData = dataplotter_->get_data (hist, type, setAbs);
   THStack* hMC   = dataplotter_->get_stack(hist, type, setAbs);
   dataplotter_->include_qcd_ = 0;
   dataplotter_->rebinH_ = 0;
@@ -335,6 +349,163 @@ TCanvas* make_canvas(TH1* hData, TH1* hMC, TH1* hQCD, TString name, bool logy = 
   leg->AddEntry(hQCD , "QCD");
   leg->Draw();
   return c;
+}
+
+//-----------------------------------------------------------------------------------------------------------------------------------------
+// Plot 1D slices of a 2D distribution
+void make_2d_closure_slices(PlottingCard_t card, TH2* &hTight, TH2* &hLoose, TString name, const bool normalize = false,
+                            const bool add_signal = false, const bool smooth = false) {
+  hTight = nullptr; hLoose = nullptr;
+  TString hist = card.hist_;
+  TString type = card.type_;
+  const int set = card.set_;
+  const bool debug = false;
+
+  if(verbose_ > 0) {
+    cout << __func__ << ": Making 2d closure slices for " << hist.Data() << "/" << type.Data() << " using set "
+         << set << endl;
+  }
+
+  hTight = get_2D_qcd_histogram(hist, set);
+  hLoose = get_2D_qcd_histogram(hist, set+CLFVHistMaker::fQcdOffset);
+
+  if(hLoose->Integral() <= 0. || hTight->Integral() <= 0.) {
+    cout << "Warning! " << type.Data() << "/" << hist.Data() << "/" << set
+         << " has at least 1 non-positive integral! Tight = " << hTight->Integral()
+         << " Loose = " << hLoose->Integral() << endl;
+    return;
+  }
+  hTight = (TH2*) hTight->Clone(Form("%s_2d_slices", hTight->GetName()));
+  hLoose = (TH2*) hLoose->Clone(Form("%s_2d_slices", hLoose->GetName()));
+
+  if(normalize) hLoose->Scale(hTight->Integral() / hLoose->Integral());
+
+  //Get the signal distribution if requested
+  TH2* hsignal = (add_signal) ? (TH2*) dataplotter_->get_signal(hist, type, set)[0] : nullptr;
+
+
+  //loop through the x-axis bins
+  const int nxbins = hLoose->GetNbinsX();
+  for(int ixbin = 1; ixbin <= nxbins; ++ixbin) {
+    if(debug) cout << " Performing slice " << ixbin << endl;
+
+    //create 1D projections for the loose and tight
+    TH1* h_loose = hLoose->ProjectionY(Form("%s_%i_loose", hist.Data(), ixbin), ixbin, ixbin);
+    TH1* h_tight = hTight->ProjectionY(Form("%s_%i_tight", hist.Data(), ixbin), ixbin, ixbin);
+    if(h_loose->Integral() <= 0. || h_tight->Integral() <= 0.) {
+      cout << "Bin " << ixbin << " of 2D histogram " << hist.Data() << " has 0 integral loose or tight: Loose = " << h_loose->Integral()
+           << " and Tight = " << h_tight->Integral() << endl;
+      delete h_loose;
+      delete h_tight;
+      continue;
+    }
+    h_loose->SetTitle(hLoose->GetTitle());
+    h_loose->SetFillColor(dataplotter_->qcd_color_);
+    h_loose->SetFillStyle(dataplotter_->qcd_color_);
+    h_loose->SetLineColor(dataplotter_->qcd_color_);
+    h_tight->SetLineColor(kBlack);
+    h_tight->SetMarkerColor(kBlack);
+    h_tight->SetMarkerStyle(20);
+    h_tight->SetMarkerSize(0.8);
+    h_tight->SetFillStyle(0);
+    h_tight->SetFillColor(0);
+
+    TCanvas* c = new TCanvas("c1","c1",1200,800);
+    TPad* pad1 = new TPad("pad1", "pad1", 0., 0.35, 1., 1.0 );
+    TPad* pad2 = new TPad("pad2", "pad2", 0., 0.0 , 1., 0.35);
+    pad1->SetBottomMargin(0.03);
+    pad1->SetTopMargin(0.03);
+    pad2->SetTopMargin(0.03);
+    pad2->SetBottomMargin(0.3);
+    pad1->Draw(); pad2->Draw();
+    pad1->cd();
+    h_tight->Draw("E1");
+    h_loose->Draw("hist same");
+    if(hsignal) hsignal->Draw("hist same");
+    h_tight->GetXaxis()->SetRangeUser(card.xmin_, card.xmax_);
+    h_tight->GetYaxis()->SetRangeUser(0.1, 1.1*max(h_loose->GetMaximum(), h_tight->GetMaximum()));
+    h_tight->Draw("E1 sames");
+    h_tight->GetXaxis()->SetLabelSize(0.);
+    h_tight->GetYaxis()->SetLabelSize(0.06);
+    h_tight->GetXaxis()->SetTitleSize(0.157);
+    h_tight->GetYaxis()->SetTitleSize(0.157);
+    h_tight->SetTitle("");
+
+    TLegend* leg = new TLegend(0.53, 0.65, 0.9, 0.97);
+    leg->AddEntry(h_tight, "Tight non-prompt e#mu");
+    leg->AddEntry(h_loose, "Non-prompt e#mu Estimate");
+    leg->SetTextSize(0.06);
+    leg->Draw();
+
+    pad1->SetGrid();
+
+    //Add labels with the event number and predicted number
+    TLatex datalabel;
+    datalabel.SetNDC();
+    datalabel.SetTextFont(72);
+    datalabel.SetTextSize(0.07);
+    datalabel.SetTextAlign(13);
+    datalabel.DrawLatex(0.65, 0.62,  Form("Tight      : %9.1f", h_tight->Integral() + h_tight->GetBinContent(0) + h_tight->GetBinContent(h_tight->GetNbinsX()+1)));
+    datalabel.DrawLatex(0.65, 0.54 , Form("Estimate: %9.1f"   , h_loose->Integral() + h_loose->GetBinContent(0) + h_loose->GetBinContent(h_loose->GetNbinsX()+1)));
+    if(hsignal)
+      datalabel.DrawLatex(0.65, 0.46,Form("Signal    : %9.1f"   , hsignal->Integral() + hsignal->GetBinContent(0) + hsignal->GetBinContent(hsignal->GetNbinsX()+1)));
+
+    //Draw the ratio plot
+    pad2->cd();
+    TH1* hratio = (TH1*) h_tight->Clone(Form("hRatio_%s", h_tight->GetName()));
+    hratio->Divide(h_loose);
+    hratio->Draw("E1");
+    if(smooth) {
+      TH1* hsmooth = smooth_hist(hratio);
+      hsmooth->SetLineColor(kAtlantic);
+      hsmooth->SetFillColor(0);
+      hsmooth->Draw("hist same");
+    }
+    pad2->Update();
+
+    TString xtitle(""), ytitle(""), title("");
+    Titles::get_titles(hist, type, selection_, &xtitle, &ytitle, &title);
+    hratio->GetYaxis()->SetRangeUser(0.5, 1.5);
+    hratio->GetXaxis()->SetRangeUser(card.xmin_, card.xmax_);
+    hratio->SetXTitle(xtitle.Data());
+    hratio->SetYTitle("Tight / Estimate");
+    hratio->SetTitle("");
+    hratio->GetXaxis()->SetTitleOffset(0.75);
+    hratio->GetYaxis()->SetTitleOffset(0.4);
+    hratio->GetXaxis()->SetLabelSize(0.1);
+    hratio->GetYaxis()->SetLabelSize(0.09);
+    hratio->GetXaxis()->SetTitleSize(0.157);
+    hratio->GetYaxis()->SetTitleSize(0.11);
+
+    if(hsignal) {
+      TH1* sig_ratio = (TH1*) hsignal->Clone(Form("%s_ratio", hsignal->GetName()));
+      sig_ratio->Add(h_loose);
+      sig_ratio->Divide(h_loose);
+      sig_ratio->SetFillColor(0);
+      sig_ratio->Draw("hist same");
+    }
+
+    double xmin = (card.xmin_ < card.xmax_) ? card.xmin_ : hratio->GetBinLowEdge(1);
+    double xmax = (card.xmin_ < card.xmax_) ? card.xmax_ : hratio->GetBinLowEdge(hratio->GetNbinsX()) + hratio->GetBinWidth(hratio->GetNbinsX());
+    TLine* line = new TLine(xmin, 1., xmax, 1.);
+    line->SetLineColor(kRed);
+    line->SetLineWidth(2);
+    line->Draw("same");
+    pad2->SetGrid();
+
+    c->SaveAs(Form("%s%s_bin_%i.png", name.Data(), hist.Data(), ixbin));
+    delete h_loose;
+    delete h_tight;
+    delete pad1;
+    delete pad2;
+    delete c;
+  }
+}
+
+//-----------------------------------------------------------------------------------------------------------------------------------------
+void make_2d_closure_slices(PlottingCard_t card, TString name, const bool add_signal = false, const bool smooth = false) {
+  TH2 *hloose, *htight;
+  make_2d_closure_slices(card, hloose, htight, name, add_signal, smooth);
 }
 
 //initialize the files and scales using a DataPlotter
@@ -688,6 +859,35 @@ Int_t scale_factors(TString selection = "emu", int set = 8, int year = 2016,
     h2DRatio->Write();
   }
 
+  //mutau_e: loose electron, tight muon region 2D (mass, bdt) scales
+  make_2d_closure_slices(PlottingCard_t("qcdlepmvsmvamutau2", "event", 2270), name, true);
+  h2DOS = get_2D_qcd_histogram("qcdlepmvsmvamutau2", setLsETtMu);
+  h2DSS = get_2D_qcd_histogram("qcdlepmvsmvamutau2", setLsETtMu+CLFVHistMaker::fQcdOffset);
+  //remove normalization effects
+  h2DSS->Scale(h2DOS->Integral() / h2DSS->Integral());
+  c = make_2D_ratio_canvas(h2DOS, h2DSS, 40., 170, 0., 1., true, "Mass (GeV/c^{2})", "BDT score");
+  if(c) {c->Print((name + "mass_vs_mva_mutau_ratio.png").Data()); delete c;}
+  if(h2DOS && h2DSS) {
+    h2DRatio = (TH2*) h2DOS->Clone("hRatio_mass_vs_mva_mutau");
+    h2DRatio->Divide(h2DSS);
+    h2DRatio->Write();
+  }
+
+  //etau_mu: loose electron, tight muon region 2D (mass, bdt) scales
+  make_2d_closure_slices(PlottingCard_t("qcdlepmvsmvaetau2" , "event", 2270), name, true);
+  h2DOS = get_2D_qcd_histogram("qcdlepmvsmvaetau2", setLsETtMu);
+  h2DSS = get_2D_qcd_histogram("qcdlepmvsmvaetau2", setLsETtMu+CLFVHistMaker::fQcdOffset);
+  //remove normalization effects
+  h2DSS->Scale(h2DOS->Integral() / h2DSS->Integral());
+  c = make_2D_ratio_canvas(h2DOS, h2DSS, 40., 170, 0., 1., true, "Mass (GeV/c^{2})", "BDT score");
+  if(c) {c->Print((name + "mass_vs_mva_etau_ratio.png").Data()); delete c;}
+  if(h2DOS && h2DSS) {
+    h2DRatio = (TH2*) h2DOS->Clone("hRatio_mass_vs_mva_etau");
+    h2DRatio->Divide(h2DSS);
+    h2DRatio->Write();
+  }
+
+  //delta phi vs electron eta
   h2DOS = get_2D_qcd_histogram("lepdelphivsoneeta", setAbs);
   h2DSS = get_2D_qcd_histogram("lepdelphivsoneeta", setAbs+CLFVHistMaker::fQcdOffset);
   c = make_2D_ratio_canvas(h2DOS, h2DSS, 0., 2.5, 0., 3.2);
@@ -710,6 +910,11 @@ Int_t scale_factors(TString selection = "emu", int set = 8, int year = 2016,
   c = make_closure_plot("mttwo", "event",   1208,  0., 100., 2); if(c) {c->SaveAs((name + "closure_mttwo_1208.png").Data()); delete c;}
   c = make_closure_plot("onept", "lep"  ,   1208, 10., 100., 2); if(c) {c->SaveAs((name + "closure_onept_1208.png").Data()); delete c;}
   c = make_closure_plot("twopt", "lep"  ,   1208, 10., 100., 2); if(c) {c->SaveAs((name + "closure_twopt_1208.png").Data()); delete c;}
+
+  make_2d_closure_slices(PlottingCard_t("qcdlepmvsmvamutau0", "event", 2270), name);
+  make_2d_closure_slices(PlottingCard_t("qcdlepmvsmvamutau1", "event", 2270), name);
+  make_2d_closure_slices(PlottingCard_t("qcdlepmvsmvaetau0" , "event", 2270), name);
+  make_2d_closure_slices(PlottingCard_t("qcdlepmvsmvaetau1" , "event", 2270), name);
 
   return 0;
 }

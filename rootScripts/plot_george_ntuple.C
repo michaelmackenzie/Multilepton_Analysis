@@ -185,14 +185,14 @@ int plot_george_ntuple(const char* file_name = "~/nobackup/ZEMu/Meas_fullAndSF_Z
   double yields[] = {0., 0., 0., 0., 0.};
   int    counts[] = {0 , 0 , 0 , 0 , 0 };
   const Long64_t nentries = tree->GetEntries();
-  const Long64_t event_debug = -1; //print an event's info
+  const Long64_t event_debug = 83697; //print an event's info
   const Long64_t entry_debug = -1; //print an entry's info
   const int print_category = -1; //print BDT category event numbers
   for(Long64_t entry = 0; entry < nentries; ++entry) {
     tree->GetEntry(entry);
     vars.entry = entry;
     vars.weight = get_weight(vars);
-    if(entry == entry_debug || vars.event = event_debug) print_event(vars);
+    if(entry == entry_debug || vars.event == event_debug) print_event(vars);
     fill_hists(hist, vars);
     yields[0] += vars.weight; ++counts[0];
     int index = 0;
@@ -201,10 +201,8 @@ int plot_george_ntuple(const char* file_name = "~/nobackup/ZEMu/Meas_fullAndSF_Z
     else if(vars.mva < 0.9) {index = 3;}
     else                    {index = 4;}
     yields[index] += vars.weight; ++counts[index];
-    yields[index] += vars.weight; ++counts[index];
-    yields[index] += vars.weight; ++counts[index];
-    yields[index] += vars.weight; ++counts[index];
-    if(print_category == 0 || print_category == index) printf("%6lld: %8.0f\n", entry, vars.event);
+    if(print_category == 0 || print_category == index)
+      printf("%6lld: %8.0f\n", entry, vars.event);
   }
 
   print_figures(hist, file_out);

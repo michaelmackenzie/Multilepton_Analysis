@@ -1,6 +1,6 @@
 //Plot cut-flow for a LFVAnalyzer file
 
-TCanvas* check_cut_flow(const char* file, const char* hist_name, TString print_tag = "") {
+TCanvas* check_cut_flow(const char* file, TString print_tag = "", const char* hist_name = "Data/hcutflow") {
   gStyle->SetOptStat(0);
   TFile* f = TFile::Open(file, "READ");
   if(!f) return NULL;
