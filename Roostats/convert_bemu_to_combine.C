@@ -197,6 +197,20 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
         else if(set == 12) h->Scale(1.78/1.66);
         else if(set == 11) h->Scale(8.94/8.43);
       }
+      //Additional scaling from fitting MC to data sidebands
+      const bool apply_mc_fit_scale = true;
+      if(apply_mc_fit_scale) {
+        if(isembed) {
+          if     (set == 13) h->Scale(0.9266);
+          else if(set == 12) h->Scale(1.0039);
+          else if(set == 11) h->Scale(0.9821);
+        }
+        if(isflat && !iszmumu) {
+          if     (set == 13) h->Scale(1.6046);
+          else if(set == 12) h->Scale(1.2778);
+          else if(set == 11) h->Scale(1.1402);
+        }
+      }
       h->SetDirectory(0);
       TString name = h->GetName();
       name.ReplaceAll("#","");

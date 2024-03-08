@@ -6,8 +6,8 @@ bool   fit_dy_bkg_     = false; //fit the Z->tautau background
 int    smooth_hists_   =   0;   //number of times to smooth non-fit background histograms
 double zmumu_scale_    = -1.;   //if >= 0 scale the Z->ee/mumu contribution
 int    use_multi_pdf_  =   0;   //use multi-pdf instead of a single pdf FIXME: Not currently working
-bool   save_templates_ = true; //save MC templates in an output file
-TString tag_           = "_embed_fix_ww";    //tag for output figure directory
+bool   save_templates_ = true;  //save MC templates in an output file
+TString tag_           = "";    //tag for output figure directory
 
 //---------------------------------------------------------------------------------------------------------------------------------------
 // Main function: test the background fit closure of the MC
@@ -63,6 +63,7 @@ int test_bemu_mc_closure(int set = 13, vector<int> years = {2016,2017,2018}, con
     isflat |= TString(h->GetName()).Contains("Z->ee");
     bool isdy = TString(h->GetName()).Contains("#tau#tau");
     bool isembed = TString(h->GetName()).Contains("Embedding");
+    bool iszmumu = TString(h->GetName()).Contains("Z->ee");
     if(isflat) { //flat-ish distributions
       if(fit_flat_bkgs_) {
         fit_and_replace(h, obs->getMin(), obs->getMax(), Form("plots/latest_production/%s/zemu_mc_closure_%i%s", years_s.Data(), set, tag_.Data()), set, rebin);
@@ -74,12 +75,26 @@ int test_bemu_mc_closure(int set = 13, vector<int> years = {2016,2017,2018}, con
       } else if(smooth_hists_ > 0) h->Smooth(smooth_hists_);
     }
     if(!isflat && !isdy && smooth_hists_ > 0) h->Smooth(smooth_hists_); //any leftover histogram
-    if(zmumu_scale_ >= 0. && TString(h->GetName()).Contains("Z->ee")) h->Scale(zmumu_scale_);
+    if(zmumu_scale_ >= 0. && iszmumu) h->Scale(zmumu_scale_);
     //scale Embedding to match the Drell-Yan MC normalization
     if(isembed) {
       if     (set == 13 || set == 74 || set == 84) h->Scale(6.52/5.70);
       else if(set == 12 || set == 73 || set == 83) h->Scale(1.78/1.66);
       else if(set == 11 || set == 72 || set == 82) h->Scale(8.94/8.43);
+    }
+    //Additional scaling from fitting MC to data sidebands
+    const bool apply_mc_fit_scale = true;
+    if(apply_mc_fit_scale) {
+      if(isembed) {
+        if     (set == 13) h->Scale(0.9266);
+        else if(set == 12) h->Scale(1.0039);
+        else if(set == 11) h->Scale(0.9821);
+      }
+      if(isflat && !iszmumu) {
+        if     (set == 13) h->Scale(1.6046);
+        else if(set == 12) h->Scale(1.2778);
+        else if(set == 11) h->Scale(1.1402);
+      }
     }
     stack->Add(h);
   }
@@ -137,6 +152,9 @@ int test_bemu_mc_closure(int set = 13, vector<int> years = {2016,2017,2018}, con
     pdf_list.add(*bst);
     bkgPDF = new RooMultiPdf("bkgPDF", "Background PDF envelope", *cat, pdf_list);
   }
+
+  cout << "Background PDF:\n";
+  bkgPDF->Print();
 
   //turn off the energy scale uncertainties that are not currently constrained
   auto elec_es_shift = ws->var("elec_ES_shift");
