@@ -509,6 +509,13 @@ namespace CLFV {
     void    EvalJetToTauWeights(float& wt, float& wtcorr, float& wtbias);
     float   EvalEmbBDTUncertainty(TString selection);
 
+    //j-->tau uncertainties
+    float   EvalJetToTauStatSys(int process, int dm_bin, int param_bin, bool up);
+    float   EvalJetToTauNCSys  (int process, bool up);
+    float   EvalJetToTauBiasSys(int process, bool up);
+
+    std::pair<float, float> OverallSystematicWeights();
+
     //Apply trigger selection
     bool    PassesTrigger(float buffer = 0.f /* for wider window trigger selection*/) {
       bool triggered(false);
@@ -887,6 +894,9 @@ namespace CLFV {
     Float_t*        fJetToTauMCBiases  = new Float_t[JetToTauComposition::kLast];
     Bool_t          fApplyJetToTauMCBias = true; //apply (W/Z)+Jets MC bias correction
     Int_t           fWJetsMCBiasMode   = 1; //W+jets j-->tau MC bias parameterization
+    Int_t           fJetToTauYearMode  = 0; //0: Use scales for each year; 1: use Run-2 measured scales
+    Int_t           fUseMCFakeTau      = 0; //0: reject MC j-->tau; 1: allow MC j-->tau, QCD j-->tau weights
+    Int_t           fUseWJetsJetToTau  = 0; //override j-->tau transfer factor composition with W+jets transfer factors
 
     QCDWeight*      fQCDWeight; //for emu
     MuonIDWeight    fMuonIDWeight;

@@ -143,6 +143,8 @@ namespace CLFV {
     TH1* hLepPt[3]; //0: normal 1: remove Z pT weight if DY file 2: apply weights using reco scales if DY
     TH1* hLepP;
     TH1* hLepM[5]; //0: normal 1: remove Z pT weight if DY file 2: apply weights using reco scales if DY 3: Zoomed on Z Mass 4: Zoomed on H Mass
+    TH1* hLepMUp; //rough overall uncertainty
+    TH1* hLepMDown;
     TH1* hLepMt;
     TH1* hLepEta;
     TH1* hLepPhi;
@@ -186,6 +188,7 @@ namespace CLFV {
     TH1* hJetTauMTTwo[3];  //0: nominal; 1: non-closure correction removed; 2: no bias correction
     TH2* hJetTauLepMVsMTOne[3];  //0: nominal; 1: non-closure correction removed; 2: no bias correction
     TH2* hJetTauLepMVsMVA[3];  //0: nominal; 1: non-closure correction removed; 2: no bias correction
+    TH1* hJetTauNJets[3];  //0: nominal; 1: non-closure correction removed; 2: no bias correction
 
 
     //Jet --> electron/muon histograms

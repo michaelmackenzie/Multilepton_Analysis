@@ -42,6 +42,7 @@ bool CutFlowTesting_      = false; //test just basic cutflow sets
 bool TriggerTesting_      = false; //make a few extra selections for ee/mumu/emu trigger testing
 int  doEleIDStudy_        = 0; //add additional electron cuts in Z->emu to reduce Z->mumu*
 int  doSSSF_              = 1; //do same-sign, same flavor processingg
+TString jTTProcess_       = ""; //JTTHistMaker process to measure ("" for all processes)
 
 int removeTrigWeights_    =  4; //0: do nothing 1: remove weights 2: replace 3: replace P(event) 4: replace P(at least 1 triggered)
 int useBTagWeights_       =  1; //1: calculate locally; 2: use ntuple values for each jet
@@ -59,16 +60,20 @@ int removeEventWeights_   =  0; //remove most (1) or all (2) event weights
 int updateMCEra_          =  1; //0: do nothing 1: throw random number for MC era (data/embedding not random)
 int updateMET_            =  1; //Update MET with lepton energy scale changes
 int useEventFlags_        =  1; //apply event flags/filtering
-int useMCFakeLep_         =  0; //use MC estimated fake light leptons in ee, mumu, and emu categories
+int useMCFakeLep_         =  0; //use MC estimated fake light leptons
+int useMCFakeTau_         =  0; //0: no MC j-->tau; 1: MC j-->tau, QCD j-->tau weights; 2: MC j-->tau, no j-->tau weights
 int useJetToTauComp_      =  1; //use the composition of the anti-iso region to combine j->tau weights
 int applyJetToTauMCBias_  =  1; //apply the W+jets/Z+jets MC bias estimate or only use as a uncertainty
 int wJetsBiasMode_        =  8; //W+jets/Z+jets MC bias mode (1: lepm shape+rate; 6: lepm shape; 7: (lepm, bdt) shape+rate; 8: (lepm, bdt) shape)
+int jetToTauYearMode_     =  2; //0: use by-year scales; 1: use Run-2 scales; 2: use by-year scales + Run 2 corrections
+int useWJetsJetToTau_     =  0; //Use W+jets j-->tau factors instead of composition
 int doTriggerMatching_    =  1; //do trigger object matching
 int useEMuTrigger_        =  0; //use the e-mu trigger in e-mu data: 1 = consider it; 2 = only consider it
 int useRoccoCorr_         =  1; //Muon Rochester corrections 0: don't apply; 1: apply local corrections; 2: use ntuple-level corrections
 int useRoccoSize_         =  1; //Use size of the Rochester corrections as the uncertainty
 int etauAntiEleCut_       = -1; //cut on tau anti-ele ID for etau, -1 to use default
 int useLooseTauBuffer_    =  0; //add a buffer between loose and tight tau events
+int removeLooseSS_        =  0; //remove loose ID same-sign events
 
 int useEmbedCuts_         = 2; //use kinematic cuts based on embedded generation: 1 = tau tau only; 2 = tau tau, mumu, ee, and emu; 3: do gen rejection in ee/mumu/emu as well
 int embeddedTesting_      = 0; //test embedding options: 3 = use KIT measured scales
@@ -144,7 +149,7 @@ config_t get_config() {
   config_t config;
 
   config.writeTrees_ = writeTrees_;
-  config.selections_ = {"mutau"}; //{"mutau", "etau", "emu", "mutau_e", "etau_mu", "ee", "mumu"};
+  config.selections_ = {"etau"}; //{"mutau", "etau", "emu", "mutau_e", "etau_mu", "ee", "mumu"};
   config.signalTrainFraction_ = 0.5;
   config.backgroundTrainFraction_ = 0.3;
 
@@ -181,9 +186,9 @@ vector<datacard_t> get_data_cards(TString& nanoaod_path) {
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("Wlnu-2J"           , 2016), "LFVAnalysis_Wlnu-2J_2016.root"                 , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("Wlnu-3J"           , 2016), "LFVAnalysis_Wlnu-3J_2016.root"                 , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("Wlnu-4J"           , 2016), "LFVAnalysis_Wlnu-4J_2016.root"                 , 0));
-  nanocards.push_back(datacard_t(false, xs.GetCrossSection("EWKWminus"               ), "LFVAnalysis_EWKWminus_2016.root"               , 0));
-  nanocards.push_back(datacard_t(false, xs.GetCrossSection("EWKWplus"                ), "LFVAnalysis_EWKWplus_2016.root"                , 0));
-  nanocards.push_back(datacard_t(false, xs.GetCrossSection("EWKZ-M50"                ), "LFVAnalysis_EWKZ-M50_2016.root"                , 0));
+  nanocards.push_back(datacard_t(true , xs.GetCrossSection("EWKWminus"               ), "LFVAnalysis_EWKWminus_2016.root"               , 0));
+  nanocards.push_back(datacard_t(true , xs.GetCrossSection("EWKWplus"                ), "LFVAnalysis_EWKWplus_2016.root"                , 0));
+  nanocards.push_back(datacard_t(true , xs.GetCrossSection("EWKZ-M50"                ), "LFVAnalysis_EWKZ-M50_2016.root"                , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("WW"                      ), "LFVAnalysis_WW_2016.root"                      , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("WWLNuQQ"                 ), "LFVAnalysis_WWLNuQQ_2016.root"                 , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("WZ"                      ), "LFVAnalysis_WZ_2016.root"                      , 0));
@@ -287,10 +292,11 @@ vector<datacard_t> get_data_cards(TString& nanoaod_path) {
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("Wlnu-3J"           , 2017), "LFVAnalysis_Wlnu-3J_2017.root"                 , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("Wlnu-4J"           , 2017), "LFVAnalysis_Wlnu-4J_2017.root"                 , 0));
   nanocards.push_back(datacard_t(false, xs.GetCrossSection("WGamma"                  ), "LFVAnalysis_WGamma_2017.root"                  , 0));
-  nanocards.push_back(datacard_t(false, xs.GetCrossSection("EWKWminus"               ), "LFVAnalysis_EWKWminus_2017.root"               , 0));
-  nanocards.push_back(datacard_t(false, xs.GetCrossSection("EWKWplus"                ), "LFVAnalysis_EWKWplus_2017.root"                , 0));
-  nanocards.push_back(datacard_t(false, xs.GetCrossSection("EWKZ-M50"                ), "LFVAnalysis_EWKZ-M50_2017.root"                , 0));
+  nanocards.push_back(datacard_t(true , xs.GetCrossSection("EWKWminus"               ), "LFVAnalysis_EWKWminus_2017.root"               , 0));
+  nanocards.push_back(datacard_t(true , xs.GetCrossSection("EWKWplus"                ), "LFVAnalysis_EWKWplus_2017.root"                , 0));
+  nanocards.push_back(datacard_t(true , xs.GetCrossSection("EWKZ-M50"                ), "LFVAnalysis_EWKZ-M50_2017.root"                , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("WW"                      ), "LFVAnalysis_WW_2017.root"                      , 0));
+  nanocards.push_back(datacard_t(true , xs.GetCrossSection("WWLNuQQ"                 ), "LFVAnalysis_WWLNuQQ_2017.root"                 , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("WZ"                      ), "LFVAnalysis_WZ_2017.root"                      , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZZ"                      ), "LFVAnalysis_ZZ_2017.root"                      , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("WWW"                     ), "LFVAnalysis_WWW_2017.root"                     , 0));
@@ -364,9 +370,9 @@ vector<datacard_t> get_data_cards(TString& nanoaod_path) {
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("Wlnu-3J"           , 2018), "LFVAnalysis_Wlnu-3J_2018.root"                 , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("Wlnu-4J"           , 2018), "LFVAnalysis_Wlnu-4J_2018.root"                 , 0));
   nanocards.push_back(datacard_t(false, xs.GetCrossSection("WGamma"                  ), "LFVAnalysis_WGamma_2018.root"                  , 0));
-  nanocards.push_back(datacard_t(false, xs.GetCrossSection("EWKWminus"               ), "LFVAnalysis_EWKWminus_2018.root"               , 0));
-  nanocards.push_back(datacard_t(false, xs.GetCrossSection("EWKWplus"                ), "LFVAnalysis_EWKWplus_2018.root"                , 0));
-  nanocards.push_back(datacard_t(false, xs.GetCrossSection("EWKZ-M50"                ), "LFVAnalysis_EWKZ-M50_2018.root"                , 0));
+  nanocards.push_back(datacard_t(true , xs.GetCrossSection("EWKWminus"               ), "LFVAnalysis_EWKWminus_2018.root"               , 0));
+  nanocards.push_back(datacard_t(true , xs.GetCrossSection("EWKWplus"                ), "LFVAnalysis_EWKWplus_2018.root"                , 0));
+  nanocards.push_back(datacard_t(true , xs.GetCrossSection("EWKZ-M50"                ), "LFVAnalysis_EWKZ-M50_2018.root"                , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("WW"                      ), "LFVAnalysis_WW_2018.root"                      , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("WWLNuQQ"                 ), "LFVAnalysis_WWLNuQQ_2018.root"                 , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("WZ"                      ), "LFVAnalysis_WZ_2018.root"                      , 0));

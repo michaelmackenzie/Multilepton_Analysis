@@ -451,6 +451,29 @@ namespace CLFV {
     }
 
     //------------------------------------------------------------------------------------------------------
+    // Get total up/down weights from a list of alternate up/down weights
+    static std::pair<float, float> CombinedUncertainty(const float weight, std::vector<float> ups, std::vector<float> downs) {
+      //consistency checks, default to no change
+      if(!std::isfinite(weight))     return std::pair<float,float>(weight,weight);
+
+      //add the deviations in quadrature (separately, allowing for more ups or downs)
+      float up_err(0.f);
+      for(unsigned index = 0; index < ups.size(); ++index) {
+        up_err   += std::pow(weight - ups  [index], 2);
+      }
+      float down_err(0.f);
+      for(unsigned index = 0; index < downs.size(); ++index) {
+        down_err += std::pow(weight - downs[index], 2);
+      }
+      up_err   = (up_err   > 0.f) ? std::sqrt(up_err  ) : 0.f;
+      down_err = (down_err > 0.f) ? std::sqrt(down_err) : 0.f;
+      const float up   = weight + up_err  *((weight < 0.) ? -1. : 1.);
+      const float down = weight - down_err*((weight < 0.) ? -1. : 1.);
+      return std::pair<float,float>(up,down);
+    }
+
+
+    //------------------------------------------------------------------------------------------------------
     enum {kXAxis, kYAxis};
   };
 }

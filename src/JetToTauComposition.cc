@@ -15,6 +15,7 @@ JetToTauComposition::JetToTauComposition(const TString selection, const int set,
   useMTTwo_      = (Mode %   10) /   1 == 5; //composition in MT(tau, MET)
   use2DMvsMTOne_ = (Mode %   10) /   1 == 6; //composition in 2D: (lepm, mtone)
   useDM_         = (Mode % 1000) / 100 == 1; //decay mode dependent compositions
+  useRun2_       = (Mode % 10000) / 1000 == 1; //Run 2 composition estimate instead of by year
 
   if(use2DMvsMTOne_ && useDM_) {
     printf("JetToTauComposition::%s: DM composition is not implemented for 2D M vs MTOne composition factors\n", __func__);
@@ -38,10 +39,13 @@ JetToTauComposition::JetToTauComposition(const TString selection, const int set,
               << " useTwoDPhi = " << useTwoDPhi_
               << " useMTTwo = " << useMTTwo_
               << " use2DMvsMTOne = " << use2DMvsMTOne_
+              << " useRun2 = " << useRun2_
               << std::endl
               << " scale factor selection = " << selection.Data()
               << " set = " << set << std::endl;
   }
+
+  if(useRun2_) years = {2016};
 
   //Processes
   std::map<int, std::string> names;
@@ -53,7 +57,7 @@ JetToTauComposition::JetToTauComposition(const TString selection, const int set,
   const TString cmssw = gSystem->Getenv("CMSSW_BASE");
   const TString path = (cmssw == "") ? "../scale_factors" : cmssw + "/src/CLFVAnalysis/scale_factors";
   for(int year : years) {
-    const char* fname = Form("%s/jet_to_tau_comp_%s_%i_%i_%i.root", path.Data(), selection.Data(), set+7, set, year);
+    const char* fname = Form("%s/jet_to_tau_comp_%s_%i_%i_%s.root", path.Data(), selection.Data(), set+7, set, (useRun2_) ? "2016_2017_2018" : Form("%i", year));
     if(verbose_ > 1) printf("%s: Initializing %i scale factors with file %s\n", __func__, year, fname);
     //get the jet --> tau compositions
     f = TFile::Open(fname, "READ");
@@ -106,7 +110,11 @@ JetToTauComposition::~JetToTauComposition() {
 //Get fraction of the each background process contributing to the j->tau background
 void JetToTauComposition::GetComposition(float pt, float dphi, float mt, const int DM,
                                          float pt_lead, float lead_dphi, float lead_mt, float mass,
-                                         const int year, float*& compositions, float*& comp_up, float*& comp_down) {
+                                         int year, float*& compositions, float*& comp_up, float*& comp_down) {
+
+  //Run 2 inclusive fractions use 2016 slot
+  if(useRun2_) year = 2016;
+
   //enforce allowed ranges
   if(pt < 20.f ) pt = 20.f;
   if(pt > 199.f) pt = 199.f;

@@ -3,27 +3,28 @@
 using namespace CLFV;
 
 //-------------------------------------------------------------------------------------------------------------------------
-// Mode = 10,000,000 * (bias mode (0: none; 1,4,5,6[6 = shape only]): lepm; 2,5: mtlep; 3,4: oneiso)) + 1,000,000 * (don't use pT corrections)
+// Mode = 10,000,000 * (bias mode (see below for options)) + 1,000,000 * (don't use pT corrections)
 //        + 100,000 * (1*(use tau eta corrections) + 2*(use one met dphi))
 //        + 10,000 * (use 2D pT vs delta R corrections)
 //        + 1,000 * (use DM binned pT corrections) + 100 * (1*(use scale factor fits) + 2*(use fitter errors))
 //        + 10 * (interpolate bins) + 1 * (use MC Fits)
-JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TString process, const int set, const int Mode, const int only_year, const int verbose)
+JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TString process, const int set, const int Mode, int only_year, const int verbose)
   : name_(name), Mode_(Mode), verbose_(verbose) {
 
   TFile* f = 0;
   std::vector<int> years = {2016, 2017, 2018};
-  useMCFits_             = ( Mode %        10) == 1;
-  doInterpolation_       = ( Mode %       100) /       10 == 1;
-  useFits_               = ((Mode %      1000) /      100) % 2 == 1;
-  useFitterErrors_       = ((Mode %      1000) /      100) > 1;
-  doDMCorrections_       = ((Mode %     10000) /     1000) % 2 == 1;
-  doMetDMCorrections_    = ((Mode %     10000) /     1000) > 1;
-  use2DCorrections_      = ( Mode %    100000) /    10000;
-  useEtaCorrections_     = ((Mode %   1000000) /   100000) % 2 == 1;
-  useMetDPhiCorrections_ = ( Mode %   1000000) /   100000 > 1;
-  doPtCorrections_       = ( Mode %  10000000) /  1000000 - 1; //0: don't do -1: nominal selection 1: xtau selection
-  const int bias_mode    = ( Mode % 100000000) / 10000000;
+  //                                      setup the weight by Mode slots e.g. 71100301
+  useMCFits_             = ( Mode %        10) == 1;                  // bit: xxxxxxxB
+  doInterpolation_       = ( Mode %       100) /       10 == 1;       // bit: xxxxxxBx
+  useFits_               = ((Mode %      1000) /      100) % 2 == 1;  // bit: xxxxxBxx
+  useFitterErrors_       = ((Mode %      1000) /      100) > 1;       // bit: xxxxxBxx
+  doDMCorrections_       = ((Mode %     10000) /     1000) % 2 == 1;  // bit: xxxxBxxx
+  doMetDMCorrections_    = ((Mode %     10000) /     1000) > 1;       // bit: xxxxBxxx
+  use2DCorrections_      = ( Mode %    100000) /    10000;            // bit: xxxBxxxx
+  useEtaCorrections_     = ((Mode %   1000000) /   100000) % 2 == 1;  // bit: xxBxxxxx
+  useMetDPhiCorrections_ = ( Mode %   1000000) /   100000 > 1;        // bit: xxBxxxxx
+  doPtCorrections_       = ( Mode %  10000000) /  1000000;            // bit: xBxxxxxx
+  const int bias_mode    = ( Mode % 100000000) / 10000000;            // bit: Bxxxxxxx
   /*
     Bias modes:
     1: lepm (QCD high iso factors)
@@ -41,16 +42,25 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
   useOneIsoBias_         = bias_mode == 3 || bias_mode == 4 || bias_mode == 9; //bias correction in terms of one iso / pT
   useLepMVsMVABias_      = bias_mode == 7 || bias_mode == 8 || bias_mode == 9; //bias shape correction in terms of 2D (lepm, mva score)
 
+  const int use_run2_scales = (only_year >= 3000) + (only_year >= 4000);
+  if(use_run2_scales == 1) {
+    only_year = 2016; //take the first year as the chance to initialize scales
+  } else if(use_run2_scales == 2) {
+    const int r = only_year % 1000;
+    if(r >= 16 && r <= 18) only_year = 2000 + r;
+    else only_year = -1;
+  }
+  useRun2Scales_ = use_run2_scales; //force scale factors to use the 2016 slot, independent of given year, if using inclusive scales
 
   if(verbose_ > 0) {
     std::cout << __func__ << ": " << name.Data() << ", process: " << process.Data()
-              << "\n Mode = " << Mode
-              << " --> doInterpolation = " << doInterpolation_
+              << "\n Mode = " << Mode << " -->"
+              << "  doInterpolation = " << doInterpolation_
               << " useFits = " << useFits_
               << " useMCFits = " << useMCFits_
               << " doDMCorrections = " << doDMCorrections_
               << " doMetDMCorrections = " << doMetDMCorrections_
-              << " use2DCorrections = " << use2DCorrections_
+              << " use2DCorrections = " << use2DCorrections_ << "\n "
               << " useEtaCorrections = " << useEtaCorrections_
               << " useMetDPhiCorrections = " << useMetDPhiCorrections_
               << " doPtCorrections = " << doPtCorrections_
@@ -59,10 +69,18 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
               << " useOneIsoBias = " << useOneIsoBias_
               << " useLepMVsMVABias = " << useLepMVsMVABias_
               << std::endl
+              << " Use total Run 2 scales = " << use_run2_scales
               << " scale factor selection = " << selection.Data()
               << " set = " << set << std::endl;
-    if(only_year > 0) {
+    if(!use_run2_scales && only_year > 0) {
       std::cout << " --> only retrieving for year " << only_year << std::endl;
+    }
+  } else {
+    if(use_run2_scales == 1) {
+      std::cout << __func__ << ": " << name.Data() << ", process: " << process.Data() << ": Using Run 2 inclusive scale factors\n";
+    }
+    if(use_run2_scales == 2) {
+      std::cout << __func__ << ": " << name.Data() << ", process: " << process.Data() << ": Using by-year j-->tau factors with Run 2 inclusive corrections\n";
     }
   }
 
@@ -72,12 +90,16 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
 
   for(int year : years) {
     if(only_year > 0 && year != only_year) continue;
-    if(verbose_ > 1) printf("%s: Initializing %i scale factors\n", __func__, year);
-    //get the jet --> tau scale factors measured
-    f = TFile::Open(Form("%s/jet_to_tau_%s_%s%i_%i.root", path.Data(), selection.Data(), process.Data(), set, year), "READ");
+    {
+      const char* year_base = (use_run2_scales == 1) ? "2016_2017_2018" : Form("%i", year); //base j-->tau factors
+      if(verbose_ > 1) printf("%s: Initializing %s base scale factors\n", __func__, year_base);
+      //get the jet --> tau scale factors measured
+      f = TFile::Open(Form("%s/jet_to_tau_%s_%s%i_%s.root", path.Data(), selection.Data(), process.Data(), set, year_base), "READ");
+    }
     if(f) {
       if(verbose_ > 3) std::cout << __func__ << ": " << name.Data() << ": Opened " << f->GetName() << std::endl;
       for(int dm = 0; dm < 4; ++dm) {
+        const char* year_base = (use_run2_scales == 1) ? "2016_2017_2018" : Form("%i", year); //base j-->tau factors
         //////////////////////////////////////
         //Get Data histogram
 
@@ -85,10 +107,10 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
         int netabins(0);
         if(!histsData_[year][dm]) {
           std::cout << "JetToTauWeight::JetToTauWeight: " << name.Data() << " Warning! No Data histogram found for dm = "
-                    << dm << " year = " << year
+                    << dm << " year = " << year_base
                     << " Mode = " << Mode << " selection = " << selection.Data() << std::endl;
         } else {
-          histsData_[year][dm]->SetName(Form("%s-%s_%s_%i", name_.Data(), histsData_[year][dm]->GetName(), selection.Data(), year));
+          histsData_[year][dm]->SetName(Form("%s-%s_%s_%s", name_.Data(), histsData_[year][dm]->GetName(), selection.Data(), year_base));
           histsData_[year][dm]->SetDirectory(0);
           netabins = histsData_[year][dm]->GetNbinsY();
         }
@@ -97,7 +119,7 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
         //Get Data fits and errors
 
         for(int ieta = 0; ieta < netabins; ++ieta) {
-          const char* fname   = (useMCFits_) ? Form("fit_mc_func_%idm_%ieta", dm, ieta) : Form("fit_func_%idm_%ieta", dm, ieta);
+          const char* fname   = (useMCFits_) ? Form("fit_mc_func_%idm_%ieta"    , dm, ieta) : Form("fit_func_%idm_%ieta"    , dm, ieta);
           const char* errname = (useMCFits_) ? Form("fit_1s_error_mc_%idm_%ieta", dm, ieta) : Form("fit_1s_error_%idm_%ieta", dm, ieta);
 
           //check for the fit function
@@ -105,11 +127,11 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
           if(!funcsData_[year][dm][ieta]) {
             if(useFits_)
               std::cout << "JetToTauWeight::JetToTauWeight: " << name.Data() << " Warning! No Data fit found for dm = "
-                        << dm << " eta region = " << ieta << " year = " << year
+                        << dm << " eta region = " << ieta << " year = " << year_base
                         << " Mode = " << Mode << " selection = " << selection.Data() << std::endl;
           } else {
-            funcsData_[year][dm][ieta]->SetName(Form("%s-%s_%s_%i", name_.Data(), funcsData_[year][dm][ieta]->GetName(),
-                                                     selection.Data(), year));
+            funcsData_[year][dm][ieta]->SetName(Form("%s-%s_%s_%s", name_.Data(), funcsData_[year][dm][ieta]->GetName(),
+                                                     selection.Data(), year_base));
             funcsData_[year][dm][ieta]->AddToGlobalList();
           }
 
@@ -118,11 +140,11 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
           if(!errorsData_[year][dm][ieta]) {
             if(useFitterErrors_)
               std::cout << "JetToTauWeight::JetToTauWeight: " << name.Data() << " Warning! No fit errors found for dm = "
-                        << dm << " eta region = " << ieta << " year = " << year
+                        << dm << " eta region = " << ieta << " year = " << year_base
                         << " Mode = " << Mode << " selection = " << selection.Data() << std::endl;
           } else {
-            errorsData_[year][dm][ieta]->SetName(Form("%s-%s_%s_%i", name_.Data(), errorsData_[year][dm][ieta]->GetName(),
-                                                      selection.Data(), year));
+            errorsData_[year][dm][ieta]->SetName(Form("%s-%s_%s_%s", name_.Data(), errorsData_[year][dm][ieta]->GetName(),
+                                                      selection.Data(), year_base));
             errorsData_[year][dm][ieta]->SetDirectory(0);
           }
 
@@ -130,21 +152,21 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
           int isys = 0;
           while(true) { //keep checking for shapes until none are found
             const char* altname = (useMCFits_) ? Form("fit_error_mc_%idm_%ieta_%i", dm, ieta, isys) : Form("fit_error_%idm_%ieta_%i", dm, ieta, isys);
-            TF1* up = (TF1*) f->Get(Form("%s_up", altname));
+            TF1* up   = (TF1*) f->Get(Form("%s_up"  , altname));
             TF1* down = (TF1*) f->Get(Form("%s_down", altname));
             if(!up || !down) {
-              if(verbose_) printf("%s: Didn't find alternate function shapes with name %s in %i\n", __func__, altname, year);
+              if(verbose_) printf("%s: Didn't find alternate function shapes with name %s in %s\n", __func__, altname, year_base);
               break;
             } else if(verbose_) {
-              printf("%s: Adding alternate function shapes with name %s in %i\n", __func__, altname, year);
+              printf("%s: Adding alternate function shapes with name %s in %s\n", __func__, altname, year_base);
             }
-            up->SetName(Form("%s-%s_%s_%i", name_.Data(), up->GetName(),
-                             selection.Data(), year));
+            up->SetName(Form("%s-%s_%s_%s", name_.Data(), up->GetName(),
+                             selection.Data(), year_base));
             up->AddToGlobalList();
-            down->SetName(Form("%s-%s_%s_%i", name_.Data(), down->GetName(),
-                             selection.Data(), year));
+            down->SetName(Form("%s-%s_%s_%s", name_.Data(), down->GetName(),
+                             selection.Data(), year_base));
             down->AddToGlobalList();
-            altFuncsUp_[year][dm][ieta].push_back(up);
+            altFuncsUp_  [year][dm][ieta].push_back(up);
             altFuncsDown_[year][dm][ieta].push_back(down);
             ++isys;
           }
@@ -159,13 +181,16 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
     //get the non-closure corrections based on the leading lepton pT
     ///////////////////////////////////////////////////////////////////
 
-    TString pt_corr_selec = selection;
-    if(doPtCorrections_ > 0) { //use hadronic tau selection to correct the pT
-      if     (selection == "mumu") pt_corr_selec = "mutau";
-      else if(selection == "ee"  ) pt_corr_selec = "etau";
+    if(use_run2_scales == 2 && only_year < 2000 && year != 2016) {
+      if(verbose_ > 1) printf("JetToTauWeight::%s: Skipping Non-closure/bias retrieval for year %i as Run 2 inclusive are being used\n", __func__, year);
+      continue;
     }
+    if(use_run2_scales == 2) year = 2016; //use 2016 slot for Run 2 inclusive measurements
 
-    f = TFile::Open(Form("%s/jet_to_tau_correction_%s_%s%i_%i.root", path.Data(), pt_corr_selec.Data(), process.Data(), set, year), "READ");
+    const char* year_nc   = (use_run2_scales >  0) ? "2016_2017_2018" : Form("%i", year); //non-closure/bias factors
+    TString pt_corr_selec = selection;
+
+    f = TFile::Open(Form("%s/jet_to_tau_correction_%s_%s%i_%s.root", path.Data(), pt_corr_selec.Data(), process.Data(), set, year_nc), "READ");
     if(f) {
       if(verbose_ > 3) std::cout << __func__ << ": " << name.Data() << ": Opened " << f->GetName() << std::endl;
       int dmmodes = (doDMCorrections_) ? 4 : 1;
@@ -179,23 +204,25 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
         corrections_[dm][year] = (TH1*) f->Get(hist.Data());
         if(!corrections_[dm][year]) {
           std::cout << "JetToTauWeight::JetToTauWeight: " << name_.Data() << " Warning! No lead pt correction histogram " << hist.Data() << " found for year = "
-                    << year << " selection = " << pt_corr_selec.Data();
+                    << year_nc << " selection = " << pt_corr_selec.Data();
           if(dmmodes > 1) std::cout << " DM = " << dm + (dm > 1)*8;
           std::cout << std::endl;
         } else {
-          corrections_[dm][year] = (TH1*) corrections_[dm][year]->Clone(Form("%s-correction_%s_%i_%i", name_.Data(), pt_corr_selec.Data(), dm, year));
+          if(verbose_ > 3) std::cout << __func__ << ": " << name.Data() << ": Retrieved " << corrections_[dm][year]->GetName() << " histogram\n";
+          corrections_[dm][year] = (TH1*) corrections_[dm][year]->Clone(Form("%s-correction_%s_%i_%s", name_.Data(), pt_corr_selec.Data(), dm, year_nc));
           corrections_[dm][year]->SetDirectory(0);
         }
         corrections2D_[dm][year] = (TH2*) f->Get(hist2D.Data());
         if(!corrections2D_[dm][year]) {
           if(use2DCorrections_) {
             std::cout << "JetToTauWeight::JetToTauWeight: " << name_.Data() << " Warning! No 2D lead pt correction histogram found for year = "
-                      << year << " selection = " << pt_corr_selec.Data();
+                      << year_nc << " selection = " << pt_corr_selec.Data();
             if(dmmodes > 1) std::cout << " DM = " << dm + (dm > 1)*8;
             std::cout << std::endl;
           }
         } else {
-          corrections2D_[dm][year] = (TH2*) corrections2D_[dm][year]->Clone(Form("%s-correction2d_%s_%i_%i", name_.Data(), pt_corr_selec.Data(), dm, year));
+          if(verbose_ > 3) std::cout << __func__ << ": " << name.Data() << ": Retrieved " << corrections2D_[dm][year]->GetName() << " histogram\n";
+          corrections2D_[dm][year] = (TH2*) corrections2D_[dm][year]->Clone(Form("%s-correction2d_%s_%i_%s", name_.Data(), pt_corr_selec.Data(), dm, year_nc));
           corrections2D_[dm][year]->SetDirectory(0);
         }
       }
@@ -212,10 +239,10 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
     if(selection == "ee"  ) eta_corr_selec = "etau";
     const int eta_set = set;
 
-    f = TFile::Open(Form("%s/jet_to_tau_correction_%s_%s%i_%i.root", path.Data(), eta_corr_selec.Data(), process.Data(), eta_set, year), "READ");
+    f = TFile::Open(Form("%s/jet_to_tau_correction_%s_%s%i_%s.root", path.Data(), eta_corr_selec.Data(), process.Data(), eta_set, year_nc), "READ");
     if(!f && (useEtaCorrections_ || useMetDPhiCorrections_)) {
       std::cout << "JetToTauWeight::JetToTauWeight: " << name_.Data() << " Warning! No eta/metDPhi correction file found for year = "
-                << year << " selection = " << eta_corr_selec.Data() << " set = " << eta_set << std::endl;
+                << year_nc << " selection = " << eta_corr_selec.Data() << " set = " << eta_set << std::endl;
     } else if(f) {
       if(verbose_ > 3) std::cout << __func__ << ": " << name.Data() << ": Opened " << f->GetName() << std::endl;
       if(useEtaCorrections_) {
@@ -224,9 +251,10 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
         etaCorrections_[year] = (TH1*) f->Get(hist.Data());
         if(!etaCorrections_[year]) {
           std::cout << "JetToTauWeight::JetToTauWeight: " << name_.Data() << " Warning! No eta correction hist found for year = "
-                    << year << " selection = " << eta_corr_selec.Data() << std::endl;
+                    << year_nc << " selection = " << eta_corr_selec.Data() << std::endl;
         } else {
-          etaCorrections_[year] = (TH1*) etaCorrections_[year]->Clone(Form("%s-EtaScale_%i", name_.Data(), year));
+          if(verbose_ > 3) std::cout << __func__ << ": " << name.Data() << ": Retrieved " << etaCorrections_[year]->GetName() << " histogram\n";
+          etaCorrections_[year] = (TH1*) etaCorrections_[year]->Clone(Form("%s-EtaScale_%s", name_.Data(), year_nc));
           etaCorrections_[year]->SetDirectory(0);
         }
       }
@@ -236,9 +264,10 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
         metDPhiCorrections_[year][0] = (TH1*) f->Get(hist.Data());
         if(!metDPhiCorrections_[year][0]) {
           std::cout << "JetToTauWeight::JetToTauWeight: " << name_.Data() << " Warning! No OneMetDeltaPhi correction hist found for year = "
-                    << year << " selection = " << eta_corr_selec.Data() << std::endl;
+                    << year_nc << " selection = " << eta_corr_selec.Data() << std::endl;
         } else {
-          metDPhiCorrections_[year][0] = (TH1*) metDPhiCorrections_[year][0]->Clone(Form("%s-OneMetDeltaPhi_%i", name_.Data(), year));
+          if(verbose_ > 3) std::cout << __func__ << ": " << name.Data() << ": Retrieved " << metDPhiCorrections_[year][0]->GetName() << " histogram\n";
+          metDPhiCorrections_[year][0] = (TH1*) metDPhiCorrections_[year][0]->Clone(Form("%s-OneMetDeltaPhi_%s", name_.Data(), year_nc));
           metDPhiCorrections_[year][0]->SetDirectory(0);
         }
         if(doMetDMCorrections_) {
@@ -246,9 +275,10 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
             metDPhiCorrections_[year][idm+1] = (TH1*) f->Get(Form("OneMetDeltaPhi%i", idm));
             if(!metDPhiCorrections_[year][idm+1]) {
               std::cout << "JetToTauWeight::JetToTauWeight: " << name_.Data() << " Warning! No OneMetDeltaPhi" << idm << " correction hist found for year = "
-                        << year << " selection = " << eta_corr_selec.Data() << std::endl;
+                        << year_nc << " selection = " << eta_corr_selec.Data() << std::endl;
             } else {
-              metDPhiCorrections_[year][idm+1] = (TH1*) metDPhiCorrections_[year][idm+1]->Clone(Form("%s-OneMetDeltaPhi%i_%i", name_.Data(), idm, year));
+              if(verbose_ > 3) std::cout << __func__ << ": " << name.Data() << ": Retrieved " << metDPhiCorrections_[year][idm+1]->GetName() << " histogram\n";
+              metDPhiCorrections_[year][idm+1] = (TH1*) metDPhiCorrections_[year][idm+1]->Clone(Form("%s-OneMetDeltaPhi%i_%s", name_.Data(), idm, year_nc));
               metDPhiCorrections_[year][idm+1]->SetDirectory(0);
             }
           }
@@ -288,16 +318,17 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
 
         //isolation cut bias in wider isolation window
         const int qcd_iso_bias_set = 1093; //uses set base 93 for isolation bias
-        f = TFile::Open(Form("%s/jet_to_tau_correction_%s_%s%i_%i.root", path.Data(), selection.Data(), bias_proc.Data(), qcd_iso_bias_set, year), "READ");
+        f = TFile::Open(Form("%s/jet_to_tau_correction_%s_%s%i_%s.root", path.Data(), selection.Data(), bias_proc.Data(), qcd_iso_bias_set, year_nc), "READ");
         if(f) {
           if(verbose_ > 3) std::cout << __func__ << ": " << name.Data() << ": Opened " << f->GetName() << std::endl;
           if(useOneIsoBias_) {
             oneIsoBias_[year] = (TH1*) f->Get("OneIsoBias");
             if(!oneIsoBias_[year]) {
               std::cout << "JetToTauWeight::JetToTauWeight: " << name_.Data() << " Warning! No One Iso/pT bias hist found for year = "
-                        << year << " selection = " << selection.Data() << std::endl;
+                        << year_nc << " selection = " << selection.Data() << std::endl;
             } else {
-              oneIsoBias_[year] = (TH1*) oneIsoBias_[year]->Clone(Form("%s-OneIsoBias_%i", name_.Data(), year));
+              if(verbose_ > 3) std::cout << __func__ << ": " << name.Data() << ": Retrieved " << oneIsoBias_[year]->GetName() << " histogram\n";
+              oneIsoBias_[year] = (TH1*) oneIsoBias_[year]->Clone(Form("%s-OneIsoBias_%s", name_.Data(), year_nc));
               oneIsoBias_[year]->SetDirectory(0);
             }
           }
@@ -307,16 +338,17 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
 
         //SS --> OS bias corrections
         const int qcd_ss_bias_set = 95; //fixed set for this correction
-        f = TFile::Open(Form("%s/jet_to_tau_correction_%s_%s%i_%i.root", path.Data(), selection.Data(), bias_proc.Data(), qcd_ss_bias_set, year), "READ");
+        f = TFile::Open(Form("%s/jet_to_tau_correction_%s_%s%i_%s.root", path.Data(), selection.Data(), bias_proc.Data(), qcd_ss_bias_set, year_nc), "READ");
         if(f) {
           if(verbose_ > 3) std::cout << __func__ << ": " << name.Data() << ": Opened " << f->GetName() << std::endl;
           if(useLepMBias_) { //
             lepMBias_[year] = (TH1*) f->Get("LepMBias");
             if(!lepMBias_[year]) {
               std::cout << "JetToTauWeight::JetToTauWeight: " << name_.Data() << " Warning! No lepton mass bias hist found for year = "
-                        << year << " selection = " << selection.Data() << std::endl;
+                        << year_nc << " selection = " << selection.Data() << std::endl;
             } else {
-              lepMBias_[year] = (TH1*) lepMBias_[year]->Clone(Form("%s-LepMBias_%i", name_.Data(), year));
+              if(verbose_ > 3) std::cout << __func__ << ": " << name.Data() << ": Retrieved " << lepMBias_[year]->GetName() << " histogram\n";
+              lepMBias_[year] = (TH1*) lepMBias_[year]->Clone(Form("%s-LepMBias_%s", name_.Data(), year_nc));
               lepMBias_[year]->SetDirectory(0);
             }
           }
@@ -324,9 +356,10 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
             lepMVsMVABias_[year] = (TH2*) f->Get("LepMVsMVABias");
             if(!lepMVsMVABias_[year]) {
               std::cout << "JetToTauWeight::JetToTauWeight: " << name_.Data() << " Warning! No (lepton mass, MVA) bias hist found for year = "
-                        << year << " selection = " << selection.Data() << std::endl;
+                        << year_nc << " selection = " << selection.Data() << std::endl;
             } else {
-              lepMVsMVABias_[year] = (TH2*) lepMVsMVABias_[year]->Clone(Form("%s-LepMVsMVABias_%i", name_.Data(), year));
+              if(verbose_ > 3) std::cout << __func__ << ": " << name.Data() << ": Retrieved " << lepMVsMVABias_[year]->GetName() << " histogram\n";
+              lepMVsMVABias_[year] = (TH2*) lepMVsMVABias_[year]->Clone(Form("%s-LepMVsMVABias_%s", name_.Data(), year_nc));
               lepMVsMVABias_[year]->SetDirectory(0);
             }
           }
@@ -341,19 +374,20 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
       //////////////////////////////////////////////
       // Retrieve the other bias corrections
 
-      f = TFile::Open(Form("%s/jet_to_tau_correction_%s_%s%i_%i.root", path.Data(), selection.Data(), bias_proc.Data(), bias_set, year), "READ");
+      f = TFile::Open(Form("%s/jet_to_tau_correction_%s_%s%i_%s.root", path.Data(), selection.Data(), bias_proc.Data(), bias_set, year_nc), "READ");
       if(!f) {
         std::cout << "JetToTauWeight::JetToTauWeight: " << name_.Data() << " Warning! No bias correction file found for year = "
-                  << year << " selection = " << selection.Data() << " set = " << bias_set << " process = " << bias_proc.Data() << std::endl;
+                  << year_nc << " selection = " << selection.Data() << " set = " << bias_set << " process = " << bias_proc.Data() << std::endl;
       } else {
         if(verbose_ > 3) std::cout << __func__ << ": " << name.Data() << ": Opened " << f->GetName() << std::endl;
         if(useLepMBias_ && bias_mode != 4 && bias_mode != 5 && !name_.EndsWith("QCD")) { //mode 4/5 is QCD lepm bias for SS --> OS
           lepMBias_[year] = (TH1*) f->Get((bias_mode) == 6 ? "LepMBiasShape" : "LepMBias");
           if(!lepMBias_[year]) {
             std::cout << "JetToTauWeight::JetToTauWeight: " << name_.Data() << " Warning! No lepton mass bias hist found for year = "
-                      << year << " selection = " << selection.Data() << std::endl;
+                      << year_nc << " selection = " << selection.Data() << std::endl;
           } else {
-            lepMBias_[year] = (TH1*) lepMBias_[year]->Clone(Form("%s-LepMBias_%i", name_.Data(), year));
+            if(verbose_ > 3) std::cout << __func__ << ": " << name.Data() << ": Retrieved " << lepMBias_[year]->GetName() << " histogram\n";
+            lepMBias_[year] = (TH1*) lepMBias_[year]->Clone(Form("%s-LepMBias_%s", name_.Data(), year_nc));
             lepMBias_[year]->SetDirectory(0);
           }
         }
@@ -361,9 +395,10 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
           mtLepBias_[year] = (TH1*) f->Get("MTLepBias");
           if(!mtLepBias_[year]) {
             std::cout << "JetToTauWeight::JetToTauWeight: " << name_.Data() << " Warning! No MT(ll, MET) bias hist found for year = "
-                      << year << " selection = " << selection.Data() << std::endl;
+                      << year_nc << " selection = " << selection.Data() << std::endl;
           } else {
-            mtLepBias_[year] = (TH1*) mtLepBias_[year]->Clone(Form("%s-MTLepBias_%i", name_.Data(), year));
+            if(verbose_ > 3) std::cout << __func__ << ": " << name.Data() << ": Retrieved " << mtLepBias_[year]->GetName() << " histogram\n";
+            mtLepBias_[year] = (TH1*) mtLepBias_[year]->Clone(Form("%s-MTLepBias_%s", name_.Data(), year_nc));
             mtLepBias_[year]->SetDirectory(0);
           }
         }
@@ -371,9 +406,10 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
           oneIsoBias_[year] = (TH1*) f->Get("OneIsoBias");
           if(!oneIsoBias_[year]) {
             std::cout << "JetToTauWeight::JetToTauWeight: " << name_.Data() << " Warning! No One Iso/pT bias hist found for year = "
-                      << year << " selection = " << selection.Data() << std::endl;
+                      << year_nc << " selection = " << selection.Data() << std::endl;
           } else {
-            oneIsoBias_[year] = (TH1*) oneIsoBias_[year]->Clone(Form("%s-OneIsoBias_%i", name_.Data(), year));
+            if(verbose_ > 3) std::cout << __func__ << ": " << name.Data() << ": Retrieved " << oneIsoBias_[year]->GetName() << " histogram\n";
+            oneIsoBias_[year] = (TH1*) oneIsoBias_[year]->Clone(Form("%s-OneIsoBias_%s", name_.Data(), year_nc));
             oneIsoBias_[year]->SetDirectory(0);
           }
         }
@@ -381,9 +417,10 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
           lepMVsMVABias_[year] = (TH2*) f->Get((bias_mode == 7) ? "LepMVsMVABias" : "LepMVsMVABiasShape");
           if(!lepMVsMVABias_[year]) {
             std::cout << "JetToTauWeight::JetToTauWeight: " << name_.Data() << " Warning! No (lepton mass, MVA) bias hist found for year = "
-                      << year << " selection = " << selection.Data() << std::endl;
+                      << year_nc << " selection = " << selection.Data() << std::endl;
           } else {
-            lepMVsMVABias_[year] = (TH2*) lepMVsMVABias_[year]->Clone(Form("%s-LepMVsMVABias_%i", name_.Data(), year));
+            if(verbose_ > 3) std::cout << __func__ << ": " << name.Data() << ": Retrieved " << lepMVsMVABias_[year]->GetName() << " histogram\n";
+            lepMVsMVABias_[year] = (TH2*) lepMVsMVABias_[year]->Clone(Form("%s-LepMVsMVABias_%s", name_.Data(), year_nc));
             lepMVsMVABias_[year]->SetDirectory(0);
           }
         }
@@ -455,6 +492,15 @@ float JetToTauWeight::GetDataFactor(int DM, int year, float pt, float eta,
                                     float& pt_wt, float& pt_up, float& pt_down, float& bias) {
   pt_wt = 1.f; pt_up = 1.f; pt_down = 1.f; bias = 1.f;
   up[0] = 1.f; down[0] = 1.f; nsys = 1;
+  int year_base = year;
+  int year_nc   = year;
+  if(useRun2Scales_) {  //Run 2 scales are stored in the 2016 slot
+    year_nc = 2016;
+    if(useRun2Scales_ == 1) { //base j-->tau inclusive only in Mode 1
+      year_base = 2016;
+    }
+  }
+
   TH2* h = 0;
   //get correct decay mode histogram
   int idm = 0;
@@ -477,8 +523,8 @@ float JetToTauWeight::GetDataFactor(int DM, int year, float pt, float eta,
   // int  ptMode = Mode_ % 10;
 
   // Get the correct histogram
-  h = histsData_[year][idm];
-  TH1* hCorrection = corrections_[(doDMCorrections_ ? idm : 0)][year];
+  h = histsData_[year_base][idm];
+  TH1* hCorrection = corrections_[(doDMCorrections_ ? idm : 0)][year_nc];
 
   //check if histogram is found
   if(!h) {
@@ -494,7 +540,7 @@ float JetToTauWeight::GetDataFactor(int DM, int year, float pt, float eta,
   //get the fit function
   eta = std::fabs(eta);
   if(eta > 2.29) eta = 2.29;
-  TF1* func = funcsData_[year][idm][h->GetYaxis()->FindBin(eta)-1];
+  TF1* func = funcsData_[year_base][idm][h->GetYaxis()->FindBin(eta)-1];
   //check if function is found
   if(!func && useFits_) {
     std::cout << "JetToTauWeight::" << __func__ << ": " << name_.Data() << " Undefined function for DM = "
@@ -502,16 +548,16 @@ float JetToTauWeight::GetDataFactor(int DM, int year, float pt, float eta,
     return 1.f;
   }
 
-  TH1* hFitterErrors = errorsData_[year][idm][h->GetYaxis()->FindBin(eta)-1];
+  TH1* hFitterErrors = errorsData_[year_base][idm][h->GetYaxis()->FindBin(eta)-1];
   //check if errors are found
   if(!hFitterErrors && useFitterErrors_) {
     std::cout << "JetToTauWeight::" << __func__ << ": " << name_.Data() << " Undefined fitter errors for DM = "
-              << DM << " eta = " << eta << " year = " << year << std::endl;
+              << DM << " eta = " << eta << " year = " << year_base << std::endl;
     return 1.f;
   }
 
-  std::vector<TF1*> func_up   = altFuncsUp_[year][idm][h->GetYaxis()->FindBin(eta)-1];
-  std::vector<TF1*> func_down = altFuncsDown_[year][idm][h->GetYaxis()->FindBin(eta)-1];
+  std::vector<TF1*> func_up   = altFuncsUp_  [year_base][idm][h->GetYaxis()->FindBin(eta)-1];
+  std::vector<TF1*> func_down = altFuncsDown_[year_base][idm][h->GetYaxis()->FindBin(eta)-1];
   if(func_up.size() == 0 || func_down.size() == 0) {
     if(useFits_) {
       std::cout << "JetToTauWeight::" << __func__ << ": " << name_.Data() << " Undefined alternate fits for DM = "
@@ -579,6 +625,7 @@ float JetToTauWeight::GetFactor(TH2* h, TF1* func, TH1* hCorrection, TH1* hFitte
                                 int year,
                                 float* up, float* down,
                                 float& pt_wt, float& pt_up, float& pt_down, float& bias) {
+  if(useRun2Scales_) year = 2016; //Run 2 scales are stored in the 2016 slot (only NC/biases are retrieved from here, so can set to this for all modes)
   const int nsys = std::max(1, (int) alt_up.size());
   //ensure within kinematic regions
   eta = std::fabs(eta);
@@ -789,8 +836,8 @@ float JetToTauWeight::GetFactor(TH2* h, TF1* func, TH1* hCorrection, TH1* hFitte
     } else {
       const int xbin = std::max(1, std::min(hbias->GetNbinsX(), hbias->GetXaxis()->FindBin(lepm)));
       const int ybin = std::max(1, std::min(hbias->GetNbinsY(), hbias->GetYaxis()->FindBin(mva )));
-      const float mass_bdt_bias = std::max(0.3, std::min(3., hbias->GetBinContent(xbin,ybin))); //constrain to a factor of 3 correction
-      bias *= mass_bdt_bias;
+      const float mass_bdt_bias = hbias->GetBinContent(xbin,ybin);
+      if(mass_bdt_bias > 0.) bias *= std::max(0.3f, std::min(3.f, mass_bdt_bias)); //only apply where bias is non-zero, and constrain to a factor of 3
       if(verbose_ > 3) {
         std::cout << "JetToTauWeight::" << __func__ << ": " << name_.Data() << " (mass, bdt) = (" << lepm << ", " << mva << ") bias = " << mass_bdt_bias
                   << " (total = " << bias << ")"

@@ -212,6 +212,8 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
         train_mode_     =  0; //ignore MVA training weights
         // ReprocessMVAs_  =  0; //ignore MVA scores
         max_sim_events_ = -1; //use all sim events
+        auto jtt_selec = (JTTHistMaker*) selec;
+        if(jTTProcess_ != "") jtt_selec->fOnlyProcess = jTTProcess_;
       }
 
       //use a subset of data events as well if producing embedding BDT scale factors
@@ -246,6 +248,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
         clfv_selec->fMinLepM           = min_lepm_; //(selection == "emu") ?  65.f : 35.f;
         clfv_selec->fMaxLepM           = max_lepm_; //(selection == "emu") ? 115.f : (selection.EndsWith("tau")) ? 175.f : 175.f;
         clfv_selec->fSameFlavorEMuSelec = doSameFlavorEMu_;
+        clfv_selec->fRemoveLooseSS      = removeLooseSS_;
       }
       if(dynamic_cast<HistMaker*> (selec)) {
         auto hist_selec = (HistMaker*) selec;
@@ -303,10 +306,14 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
         selec->fUseEmbedCuts         = useEmbedCuts_;
       selec->fEmbeddedTesting      = embeddedTesting_;
 
+      //j-->tau setup info
       selec->fUseJetToTauComposition = useJetToTauComp_;
       selec->fApplyJetToTauMCBias    = applyJetToTauMCBias_;
-      if(wJetsBiasMode_ >= 0)
-        selec->fWJetsMCBiasMode      = wJetsBiasMode_;
+      if(wJetsBiasMode_ >= 0)    selec->fWJetsMCBiasMode  = wJetsBiasMode_;
+      if(jetToTauYearMode_ >= 0) selec->fJetToTauYearMode = jetToTauYearMode_;
+      if(useWJetsJetToTau_ >= 0) selec->fUseWJetsJetToTau = useWJetsJetToTau_;
+      selec->fUseMCEstimatedFakeLep  = useMCFakeLep_;
+      selec->fUseMCFakeTau           = useMCFakeTau_;
 
       selec->fDYType = 0;
       if(isDY && splitDY_)     selec->fDYType = dyloop; //if Drell-Yan, tell the selector which loop we're on
@@ -315,8 +322,6 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
       selec->fIsData = card.isData_;
       selec->fIsEmbed = card.fname_.Contains("Embed-");
       selec->fIsLLEmbed = card.fname_.Contains("Embed-MuMu-") || card.fname_.Contains("Embed-EE-");
-      //force Embedding ee/mumu to include fake leptons in non-ee/mumu channels
-      selec->fUseMCEstimatedFakeLep  = (selec->fIsLLEmbed && !(selection == "mumu" || selection == "ee")) ? 1 : useMCFakeLep_;
       selec->fYear = card.year_;
       selec->fDataset = card.dataset_;
       selec->fIsSignal = isSignal;

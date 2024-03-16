@@ -38,6 +38,7 @@ namespace CLFV {
     bool useMTTwo_;
     bool use2DMvsMTOne_;
     bool useDM_;
+    bool useRun2_;
   };
 }
 #endif

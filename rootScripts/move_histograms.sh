@@ -73,6 +73,16 @@ do
     elif [[ "${var}" == "--timeout" ]]
     then
         APPLYTIMEOUT="d"
+    elif [[ "${var}" == "--"* ]]
+    then
+        echo "Unknown option ${var}"
+        Help
+        exit
+    elif [[ "${OUTDIR}" != "" ]]
+    then
+        echo "Too many unflagged options!"
+        Help
+        exit
     else
         OUTDIR=${var}
     fi

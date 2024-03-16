@@ -50,6 +50,7 @@ namespace CLFV {
     Bool_t          fJetTauTesting = false; //for including MC j->tau sets in testing mode
     Bool_t          fTriggerTesting = false; //add emu histograms for electron/muon triggered events
     Bool_t          fDoMVASets = false; //for filling MVA cut sets even in DYTesting mode
+    Bool_t          fRemoveLooseSS = true; //remove loose ID + same-sign events, not used for background estimates
 
     Bool_t          fDebugBit = false;
 

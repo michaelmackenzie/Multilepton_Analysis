@@ -1498,14 +1498,20 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set, const
   TGraphErrors* hDataMCErr = nullptr;
   int nb = (hDataMC) ? hDataMC->GetNbinsX() : -1;
   std::vector<TH1*> hSignalsOverMC;
-  if(hDataMC && data_over_mc_ > 0) {
+  if(hDataMC && data_over_mc_ == 2) { //do data - MC instead of data / MC
+    hDataMC->Add(huncertainty, -1.);
+    hDataMC->SetName("hDataMC");
+    hDataMC->SetTitle("");
+    //set bin errors to only use data error
+    for(int ibin = 1; ibin <= hDataMC->GetNbinsX(); ++ibin) hDataMC->SetBinError(ibin, d->GetBinError(ibin));
+    hDataMCErr = PlotUtil::MCErrors(hDataMC, huncertainty);
+    hDataMCErr->SetFillStyle(3001);
+    hDataMCErr->SetFillColor(kGray+1);
+  } else if(hDataMC && data_over_mc_ > 0) { //do data / MC
     hDataMC->Clear();
     hDataMC->SetName("hDataMC");
     hDataMC->SetTitle("");
-    double x[nb];
-    double y[nb];
-    double xerr[nb];
-    double yerr[nb];
+    double x[nb], y[nb], xerr[nb], yerr[nb];
     for(int i = 1; i <= nb; ++i) {
       double dataVal = 0;
       double dataErr = 0;
@@ -1613,12 +1619,12 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set, const
     pad2->SetGrid();
     c->SetGrid();
     hDataMC->Draw("E");
-    TLine* line = new TLine((xMax_ < xMin_) ? hDataMC->GetBinCenter(1)-hDataMC->GetBinWidth(1)/2. : xMin_, 1.,
-                            (xMax_ < xMin_) ? hDataMC->GetBinCenter(hDataMC->GetNbinsX())+hDataMC->GetBinWidth(1)/2. : xMax_, 1.);
+    TLine* line = new TLine((xMax_ < xMin_) ? hDataMC->GetBinCenter(1)-hDataMC->GetBinWidth(1)/2. : xMin_, (data_over_mc_ == 2) ? 0. : 1.,
+                            (xMax_ < xMin_) ? hDataMC->GetBinCenter(hDataMC->GetNbinsX())+hDataMC->GetBinWidth(1)/2. : xMax_, (data_over_mc_ == 2) ? 0. : 1.);
     line->SetLineColor(kRed);
     line->Draw("same");
 
-    hDataMC->GetYaxis()->SetTitle("Data/MC");
+    hDataMC->GetYaxis()->SetTitle((data_over_mc_ == 2) ? "Data - MC" : "Data/MC");
     hDataMC->GetXaxis()->SetTitleSize(axis_font_size_);
     hDataMC->GetXaxis()->SetTitleOffset(x_title_offset_);
     hDataMC->GetXaxis()->SetLabelSize(x_label_size_);
@@ -1631,7 +1637,11 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set, const
     max_val = 1.2*max_val;
     max_val = std::min(max_val, 2.0);
     // hDataMC->GetYaxis()->SetRangeUser(mn,m);
-    hDataMC->GetYaxis()->SetRangeUser(ratio_plot_min_, ratio_plot_max_);
+    if(data_over_mc_ == 2) {
+      hDataMC->GetYaxis()->SetRangeUser(std::min(0., 0.9*hDataMC->GetMinimum()), 1.1*hDataMC->GetMaximum());
+    } else {
+      hDataMC->GetYaxis()->SetRangeUser(ratio_plot_min_, ratio_plot_max_);
+    }
     //  hDataMC->GetXaxis()->SetLabelOffset(0.5);
 
     hDataMC->SetMarkerStyle(20);

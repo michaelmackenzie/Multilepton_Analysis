@@ -151,8 +151,8 @@ Int_t print_mass(int set, bool add_sys = false, double mass_min = 1., double mas
   std::vector<std::pair<ScaleUncertainty_t,ScaleUncertainty_t>> scale_sys;
   if(add_sys) {
     CLFV::Systematics sys_info;
-    //add MET uncertainty approximation
-    systematics.push_back(std::pair<TString,TString>("massup", "massdown"));
+    //add uncertainty approximation from histogramming
+    systematics.push_back(std::pair<TString,TString>("lepmup", "lepmdown"));
     //add relevant scale uncertainties
     vector<TString> names = {"XS_LumiUC0", "XS_LumiUC1", "XS_LumiUC2", "XS_Z", "XS_WW", "XS_ttbar"};
     for(TString name : names) {
@@ -232,16 +232,27 @@ Int_t print_met(int set, bool add_sys = false) {
 
 //------------------------------------------------------------------------------------------------------------------------------
 // leading jet pT
-Int_t print_jetpt(int set, bool add_sys = false) {
+Int_t print_jet(int set, bool add_sys = false) {
   if(!dataplotter_) return 1;
   const Int_t offset = get_offset();
-  PlottingCard_t card("jetpt", "event", set+offset, 2, 20., 100.);
   Int_t status(0);
-  for(int logY = 0; logY < 2; ++logY) {
-    dataplotter_->logY_ = logY;
-    auto c = dataplotter_->print_stack(card);
-    if(c) DataPlotter::Empty_Canvas(c);
-    else ++status;
+  {
+    PlottingCard_t card("jetpt", "event", set+offset, 2, 20., 100.);
+    for(int logY = 0; logY < 2; ++logY) {
+      dataplotter_->logY_ = logY;
+      auto c = dataplotter_->print_stack(card);
+      if(c) DataPlotter::Empty_Canvas(c);
+      else ++status;
+    }
+  }
+  {
+    PlottingCard_t card("njets20", "event", set+offset, 0, 0, 5);
+    for(int logY = 0; logY < 2; ++logY) {
+      dataplotter_->logY_ = logY;
+      auto c = dataplotter_->print_stack(card);
+      if(c) DataPlotter::Empty_Canvas(c);
+      else ++status;
+    }
   }
   dataplotter_->logY_ = 0;
   return status;
@@ -492,7 +503,7 @@ Int_t print_dxyz(int set, bool add_sys = false) {
   const bool same_flavor = selection_ == "ee" || selection_ == "mumu";
   Int_t status(0);
   std::vector<TString> leps = {"one","two"};
-  std::vector<TString> hists = {"dxysig", "dzsig"};
+  std::vector<TString> hists = {"dxy", "dz", "dxysig", "dzsig"};
   for(TString lep : leps) {
     for(TString hist : hists) {
       PlottingCard_t card(lep+hist, "lep", set+offset, 1, 0., 5.);
@@ -503,6 +514,64 @@ Int_t print_dxyz(int set, bool add_sys = false) {
         else ++status;
       }
     }
+  }
+  dataplotter_->logY_ = 0;
+  return status;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------
+// individual lepton IDs
+Int_t print_ids(int set, bool add_sys = false) {
+  if(!dataplotter_) return 1;
+  const Int_t offset = get_offset();
+  Int_t status(0);
+  std::vector<TString> hists = {};
+  if(selection_.EndsWith("tau")) hists.push_back("twoid2");
+  for(TString hist : hists) {
+    PlottingCard_t card(hist, "lep", set+offset, 1, 0., 5.);
+    for(int logY = 1; logY < 2; ++logY) { //only make a log plot
+      dataplotter_->logY_ = logY;
+      auto c = dataplotter_->print_stack(card);
+      if(c) DataPlotter::Empty_Canvas(c);
+      else ++status;
+    }
+  }
+  dataplotter_->logY_ = 0;
+  return status;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------
+// data run info
+Int_t print_run(int set) {
+  if(!dataplotter_) return 1;
+  const Int_t offset = get_offset();
+  std::vector<TString> hists = {"runera", "mcera", "datarun"};
+  Int_t status(0);
+  for(TString hist : hists) {
+    PlottingCard_t card(hist, "event", set+offset, 0, 1., -1.);
+    for(int logY = 0; logY < 2; ++logY) {
+      dataplotter_->logY_ = logY;
+      auto c = dataplotter_->print_stack(card);
+      if(c) DataPlotter::Empty_Canvas(c);
+      else ++status;
+    }
+    dataplotter_->logY_ = 0;
+  }
+  return status;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------
+// individual tau decay mode
+Int_t print_dm(int set, bool add_sys = false) {
+  if(!dataplotter_) return 1;
+  const Int_t offset = get_offset();
+  Int_t status(0);
+  PlottingCard_t card("taudecaymode", "event", set+offset, 1, 1, -1);
+  for(int logY = 0; logY < 2; ++logY) { //only make a log plot
+    dataplotter_->logY_ = logY;
+    auto c = dataplotter_->print_stack(card);
+    if(c) DataPlotter::Empty_Canvas(c);
+    else ++status;
   }
   dataplotter_->logY_ = 0;
   return status;

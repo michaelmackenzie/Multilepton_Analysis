@@ -33,7 +33,8 @@ namespace CLFV {
                   );
     }
 
-
+    TString fOnlyProcess    = "";    //Only process to consider (WJets, QCD, Top, or ZJets)
+    bool    fUseOldAntiMuID = false; //Use the cut-based anti-muon ID in tau selections
 
     ClassDef(JTTHistMaker,0);
 

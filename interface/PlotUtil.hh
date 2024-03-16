@@ -86,6 +86,31 @@ namespace CLFV {
     }
 
     //------------------------------------------------------------------------------------------------------------------------------------------------------
+    // MC statistical errors centered on the data points
+    static TGraphErrors* MCErrors(TH1* data, TH1* MC, const bool ratio = false) {
+      if(!data || !MC) return nullptr;
+      const int nbins = data->GetNbinsX();
+      if(MC->GetNbinsX() != nbins) return nullptr;
+      double x[nbins], y[nbins], xe[nbins], ye[nbins];
+      for(int ibin = 1; ibin < nbins; ++ibin) {
+        const int index = ibin - 1;
+        x [index] = data->GetBinCenter (ibin);
+        y [index] = data->GetBinContent(ibin);
+        xe[index] = data->GetBinWidth  (ibin)/2.;
+        const double mc_err = MC->GetBinError(ibin);
+        if(ratio) {
+          ye[index] = (mc_err > 0.) ? 1./mc_err : 0.;
+        } else {
+          ye[index] = mc_err;
+        }
+      }
+      TGraphErrors* g = new TGraphErrors(nbins, x, y, xe, ye);
+      g->SetFillStyle(3001);
+      g->SetFillColor(kGray+1);
+      return g;
+    }
+
+    //------------------------------------------------------------------------------------------------------------------------------------------------------
     static TCanvas* PlotShifts(SysCard_t card) {
 
       //Retrieve relevant inputs from the card

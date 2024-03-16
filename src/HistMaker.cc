@@ -7,8 +7,8 @@ using namespace CLFV;
 
 //--------------------------------------------------------------------------------------------------------------
 HistMaker::HistMaker(int seed, TTree * /*tree*/) : fSystematicSeed(seed),
-                                                   fMuonJetToTauComp("mutau", 2035, 3, 0), fMuonJetToTauSSComp("mutau", 3035, 3, 0),
-                                                   fElectronJetToTauComp("etau", 2035, 3, 0), fElectronJetToTauSSComp("etau", 3035, 3, 0),
+                                                   fMuonJetToTauComp("mutau", 2035, 6, 0), fMuonJetToTauSSComp("mutau", 3035, 6, 0),
+                                                   fElectronJetToTauComp("etau", 2035, 6, 0), fElectronJetToTauSSComp("etau", 3035, 6, 0),
                                                    fMuonIDWeight(1 /*use medium muon ID*/),
                                                    fElectronIDWeight(110 /*use WP90 electron ID and embed TnP trigger*/),
                                                    fZPDFSys(true),
@@ -139,32 +139,34 @@ void HistMaker::Begin(TTree * /*tree*/)
 
   //FIXME: Added back W+Jets MC bias (Mode = 10100300, 60100300 for only MC lepm bias shape)
   //FIXME: Decide on 2D (lepm, bdt score) bias (bias mode 7 (shape+rate) and 8 (shape-only))
-  const int wJetsMode = fWJetsMCBiasMode*10000000 + 300300;
-
+  const int wJetsMode = fWJetsMCBiasMode*10000000 + 1300300; //1300300 = j-->tau fits + errors; NC: onept, dphi(one, met), and tau |eta|
+  const int jetToTauYear = fJetToTauYearMode*1000 + fYear; //Year Mode: 0: By-year factors; 1: Run 2 scale factors; 2: By-year base, Run 2 NC/bias
   if(fSelection == "" || fSelection == "mutau" || fSelection == "mumu") {
-    fMuonJetToTauWeights      [JetToTauComposition::kWJets] = new JetToTauWeight("MuonWJets"      , "mutau", "WJets",   31,wJetsMode, fYear, fVerbose);
-    fMuonJetToTauWeights      [JetToTauComposition::kZJets] = new JetToTauWeight("MuonZJets"      , "mutau", "WJets",   31,wJetsMode, fYear, fVerbose);
-    fMuonJetToTauWeights      [JetToTauComposition::kTop  ] = new JetToTauWeight("MuonTop"        , "mutau", "Top"  ,   82, 71100301, fYear, fVerbose);
-    fMuonJetToTauWeights      [JetToTauComposition::kQCD  ] = new JetToTauWeight("MuonQCD"        , "mutau", "QCD"  , 1030, 90300300, fYear, fVerbose);
+    fMuonJetToTauWeights      [JetToTauComposition::kWJets] = new JetToTauWeight("MuonWJets"      , "mutau", "WJets",   31,wJetsMode, jetToTauYear, fVerbose);
+    fMuonJetToTauWeights      [JetToTauComposition::kZJets] = new JetToTauWeight("MuonZJets"      , "mutau", "WJets",   31,wJetsMode, jetToTauYear, fVerbose);
+    // fMuonJetToTauWeights      [JetToTauComposition::kTop  ] = new JetToTauWeight("MuonTop"        , "mutau", "Top"  ,   82,      301, jetToTauYear, fVerbose);
+    // fMuonJetToTauWeights      [JetToTauComposition::kQCD  ] = new JetToTauWeight("MuonQCD"        , "mutau", "QCD"  , 1030,      300, jetToTauYear, fVerbose);
+    fMuonJetToTauWeights      [JetToTauComposition::kTop  ] = new JetToTauWeight("MuonTop"        , "mutau", "Top"  ,   82, 70100301, jetToTauYear, fVerbose);
+    fMuonJetToTauWeights      [JetToTauComposition::kQCD  ] = new JetToTauWeight("MuonQCD"        , "mutau", "QCD"  , 1030, 91300300, jetToTauYear, fVerbose);
 
-    fMuonJetToTauMCWeights    [JetToTauComposition::kWJets] = new JetToTauWeight("MuonMCWJets"    , "mutau", "WJets",   88,wJetsMode+1, fYear, fVerbose); //MC weights with MC non-closure + bias
-    fMuonJetToTauMCWeights    [JetToTauComposition::kZJets] = new JetToTauWeight("MuonMCZJets"    , "mutau", "WJets",   88,wJetsMode+1, fYear, fVerbose);
-    fMuonJetToTauMCWeights    [JetToTauComposition::kTop  ] = new JetToTauWeight("MuonMCTop"      , "mutau", "Top"  ,   82, 71100301, fYear, fVerbose); //Normal weights
-    fMuonJetToTauMCWeights    [JetToTauComposition::kQCD  ] = new JetToTauWeight("MuonMCQCD"      , "mutau", "QCD"  , 1095, 70300300, fYear, fVerbose); //high iso weights for SS --> OS bias
+    fMuonJetToTauMCWeights    [JetToTauComposition::kWJets] = new JetToTauWeight("MuonMCWJets"    , "mutau", "WJets",   88,wJetsMode+1, jetToTauYear, fVerbose); //MC weights, non-closure, bias
+    fMuonJetToTauMCWeights    [JetToTauComposition::kZJets] = new JetToTauWeight("MuonMCZJets"    , "mutau", "WJets",   88,wJetsMode+1, jetToTauYear, fVerbose);
+    fMuonJetToTauMCWeights    [JetToTauComposition::kTop  ] = new JetToTauWeight("MuonMCTop"      , "mutau", "Top"  ,   82, 70100301  , jetToTauYear, fVerbose); //Normal weights
+    fMuonJetToTauMCWeights    [JetToTauComposition::kQCD  ] = new JetToTauWeight("MuonMCQCD"      , "mutau", "QCD"  , 1095, 71300300  , jetToTauYear, fVerbose); //high iso weights for SS bias
   }
 
   //FIXME: Added back W+Jets MC bias (Mode = 10300300, 60300300 for only MC bias shape)
   //FIXME: Removed onemetdphi non-closure from W+Jets and QCD, decide if this is needed (1xxxxx --> 3xxxxx)
   if(fSelection == "" || fSelection == "etau" || fSelection == "ee") {
-    fElectronJetToTauWeights  [JetToTauComposition::kWJets] = new JetToTauWeight("ElectronWJets"  , "etau" , "WJets",   31,wJetsMode, fYear, fVerbose);
-    fElectronJetToTauWeights  [JetToTauComposition::kZJets] = new JetToTauWeight("ElectronZJets"  , "etau" , "WJets",   31,wJetsMode, fYear, fVerbose);
-    fElectronJetToTauWeights  [JetToTauComposition::kTop  ] = new JetToTauWeight("ElectronTop"    , "etau" , "Top"  ,   82, 71100301, fYear, fVerbose);
-    fElectronJetToTauWeights  [JetToTauComposition::kQCD  ] = new JetToTauWeight("ElectronQCD"    , "etau" , "QCD"  , 1030, 90300300, fYear, fVerbose);
+    fElectronJetToTauWeights  [JetToTauComposition::kWJets] = new JetToTauWeight("ElectronWJets"  , "etau" , "WJets",   31,wJetsMode, jetToTauYear, fVerbose);
+    fElectronJetToTauWeights  [JetToTauComposition::kZJets] = new JetToTauWeight("ElectronZJets"  , "etau" , "WJets",   31,wJetsMode, jetToTauYear, fVerbose);
+    fElectronJetToTauWeights  [JetToTauComposition::kTop  ] = new JetToTauWeight("ElectronTop"    , "etau" , "Top"  ,   82, 70100301, jetToTauYear, fVerbose);
+    fElectronJetToTauWeights  [JetToTauComposition::kQCD  ] = new JetToTauWeight("ElectronQCD"    , "etau" , "QCD"  , 1030, 91300300, jetToTauYear, fVerbose);
 
-    fElectronJetToTauMCWeights[JetToTauComposition::kWJets] = new JetToTauWeight("ElectronMCWJets", "etau" , "WJets",   88,wJetsMode+1, fYear, fVerbose); //MC weights with MC non-closure + bias
-    fElectronJetToTauMCWeights[JetToTauComposition::kZJets] = new JetToTauWeight("ElectronMCZJets", "etau" , "WJets",   88,wJetsMode+1, fYear, fVerbose);
-    fElectronJetToTauMCWeights[JetToTauComposition::kTop  ] = new JetToTauWeight("ElectronMCTop"  , "etau" , "Top"  ,   82, 71100301, fYear, fVerbose); //Normal weights
-    fElectronJetToTauMCWeights[JetToTauComposition::kQCD  ] = new JetToTauWeight("ElectronMCQCD"  , "etau" , "QCD"  , 1095, 70300300, fYear, fVerbose); //high iso weights for SS --> OS bias
+    fElectronJetToTauMCWeights[JetToTauComposition::kWJets] = new JetToTauWeight("ElectronMCWJets", "etau" , "WJets",   88,wJetsMode+1, jetToTauYear, fVerbose); //MC weights, non-closure, bias
+    fElectronJetToTauMCWeights[JetToTauComposition::kZJets] = new JetToTauWeight("ElectronMCZJets", "etau" , "WJets",   88,wJetsMode+1, jetToTauYear, fVerbose);
+    fElectronJetToTauMCWeights[JetToTauComposition::kTop  ] = new JetToTauWeight("ElectronMCTop"  , "etau" , "Top"  ,   82, 70100301  , jetToTauYear, fVerbose); //Normal weights
+    fElectronJetToTauMCWeights[JetToTauComposition::kQCD  ] = new JetToTauWeight("ElectronMCQCD"  , "etau" , "QCD"  , 1095, 71300300  , jetToTauYear, fVerbose); //high iso weights for SS bias
   }
 
   fTauIDWeight = new TauIDWeight((fETauAntiEleCut <= 63) ? 0 : (fETauAntiEleCut <= 127) ? 1 : 2, //which etau anti-ele ID WP is being used, Tight, VTight, or VVTight
@@ -554,6 +556,8 @@ void HistMaker::BookBaseEventHistograms(Int_t i, const char* dirname) {
 
       Utilities::BookH1F(fEventHist[i]->hLepPt[0], "leppt"         , Form("%s: Lepton Pt"      ,dirname)  , 100,   0, 200, folder);
       Utilities::BookH1F(fEventHist[i]->hLepM[0] , "lepm"          , Form("%s: Lepton M"       ,dirname)  , 280,  40, 180, folder);
+      Utilities::BookH1F(fEventHist[i]->hLepMUp  , "lepmup"        , Form("%s: Lepton M"       ,dirname)  , 280,  40, 180, folder);
+      Utilities::BookH1F(fEventHist[i]->hLepMDown, "lepmdown"      , Form("%s: Lepton M"       ,dirname)  , 280,  40, 180, folder);
       Utilities::BookH1F(fEventHist[i]->hLepMt   , "lepmt"         , Form("%s: Lepton Mt"      ,dirname)  , 100,   0, 200, folder);
       Utilities::BookH1F(fEventHist[i]->hLepEta  , "lepeta"        , Form("%s: Lepton Eta"     ,dirname)  ,  50,  -5,   5, folder);
       Utilities::BookH1F(fEventHist[i]->hLepMEstimate   , "lepmestimate"   , Form("%s: Estimate di-lepton mass"  ,dirname)  ,100,0.,  200, folder);
@@ -2200,7 +2204,7 @@ void HistMaker::InitializeEventWeights() {
       jetToTauWeightCorrUp   = jetToTauWeight; //set correction up to be ignoring the correction
       jetToTauWeightCorrDown = std::max(0.f, 2.f*jetToTauWeightCorr - jetToTauWeight); //size of the weight in the other direction from 1
       jetToTauWeightBiasUp   = jetToTauWeightCorr; //set correction up to be ignoring the correction
-      jetToTauWeightBiasDown = std::max(0.f, 2.f*jetToTauWeightBias - jetToTauWeightCorr); //size of the weight in the other direction from 1
+      jetToTauWeightBiasDown = jetToTauWeightBias*jetToTauWeightBias/jetToTauWeightCorr; //set to applying it twice
       if(jetToTauWeightUp < jetToTauWeight) {
         if(fVerbose > -1) printf("HistMaker::%s: j-->tau weight up below nominal, setting to nominal! tau: pt = %.2f, eta = %.2f, DM = %i; lead: pt = %.2f, eta = %.2f\n",
                                  __func__, leptonTwo.p4->Pt(), leptonTwo.p4->Eta(), tauDecayMode, leptonOne.p4->Pt(), leptonOne.p4->Eta());
@@ -2219,6 +2223,60 @@ void HistMaker::InitializeEventWeights() {
     const Float_t bias_size = jetToTauWeightBias / jetToTauWeightCorr;
     jetToTauWeightBiasUp = jetToTauWeightCorr;
     jetToTauWeightBiasDown = (2.f*bias_size - 1.f)*jetToTauWeightCorr;
+  }
+
+  //If using MC fake taus, only use QCD j-->tau weights (mode 1) or remove j-->tau weights (mode 2)
+  if(fUseMCFakeTau) {
+    //QCD j-->tau weights
+    if(fUseMCFakeTau == 1) {
+      const int proc = JetToTauComposition::kQCD;
+      jetToTauWeight           = fJetToTauWts[proc];
+      jetToTauWeightUp         = jetToTauWeight; //ignore uncertainties
+      jetToTauWeightDown       = jetToTauWeight;
+      jetToTauWeightCorr       = fJetToTauWts[proc] * fJetToTauCorrs[proc];
+      jetToTauWeightCorrUp     = jetToTauWeightCorr; //ignore uncertainties
+      jetToTauWeightCorrDown   = jetToTauWeightCorr;
+      jetToTauWeightBias       = fJetToTauWts[proc] * fJetToTauCorrs[proc] * fJetToTauBiases[proc];
+      jetToTauWeightBiasUp     = jetToTauWeightBias; //ignore uncertainties
+      jetToTauWeightBiasDown   = jetToTauWeightBias;
+      jetToTauWeight_compUp    = jetToTauWeightBias; //ignore uncertainties
+      jetToTauWeight_compDown  = jetToTauWeightBias;
+    }
+    //no j-->tau weights
+    if(fUseMCFakeTau == 2) {
+      jetToTauWeight           = 1.f;
+      jetToTauWeightUp         = 1.f;
+      jetToTauWeightDown       = 1.f;
+      jetToTauWeightCorr       = 1.f;
+      jetToTauWeightCorrUp     = 1.f;
+      jetToTauWeightCorrDown   = 1.f;
+      jetToTauWeightBias       = 1.f;
+      jetToTauWeightBiasUp     = 1.f;
+      jetToTauWeightBiasDown   = 1.f;
+      jetToTauWeight_compUp    = 1.f;
+      jetToTauWeight_compDown  = 1.f;
+    }
+  }
+
+  //only use W+jets j-->tau weights
+  if(fUseWJetsJetToTau == 1) {
+    const int proc = JetToTauComposition::kWJets;
+    jetToTauWeight           = fJetToTauWts[proc];
+    jetToTauWeightUp         = jetToTauWeight; //ignore uncertainties
+    jetToTauWeightDown       = jetToTauWeight;
+    jetToTauWeightCorr       = fJetToTauWts[proc] * fJetToTauCorrs[proc];
+    jetToTauWeightCorrUp     = jetToTauWeightCorr; //ignore uncertainties
+    jetToTauWeightCorrDown   = jetToTauWeightCorr;
+    jetToTauWeightBias       = fJetToTauWts[proc] * fJetToTauCorrs[proc] * fJetToTauBiases[proc];
+    jetToTauWeightBiasUp     = jetToTauWeightBias; //ignore uncertainties
+    jetToTauWeightBiasDown   = jetToTauWeightBias;
+    jetToTauWeight_compUp    = jetToTauWeightBias; //ignore uncertainties
+    jetToTauWeight_compDown  = jetToTauWeightBias;
+    for(int iproc = 0; iproc < JetToTauComposition::kLast; ++iproc) { //set composition fraction to 0 for non-W+Jets
+      fJetToTauComps    [iproc] = (iproc == proc) ? 1.f : 0.f;
+      fJetToTauCompsUp  [iproc] = (iproc == proc) ? 1.f : 0.f;
+      fJetToTauCompsDown[iproc] = (iproc == proc) ? 1.f : 0.f;
+    }
   }
 
   if(fRemoveEventWeights > 1) {
@@ -3671,6 +3729,13 @@ void HistMaker::FillBaseEventHistogram(EventHist_t* Hist) {
     printf("HistMaker::%s: Attempting to fill histograms for an uninitialized book\n", __func__);
     throw 2;
   }
+
+  //get rough uncertainty weights
+  auto sys_weights         = OverallSystematicWeights();
+  const float tot_sys_up   = sys_weights.first;
+  const float tot_sys_down = sys_weights.second;
+
+
   Hist->hEventWeight              ->Fill(eventWeight);
   Hist->hLogEventWeight           ->Fill((eventWeight > 1.e-10) ? std::log10(eventWeight) : -999.);
   Hist->hFullEventWeightLum       ->Fill(std::fabs(fTreeVars.fulleventweightlum));
@@ -3807,8 +3872,10 @@ void HistMaker::FillBaseEventHistogram(EventHist_t* Hist) {
     Hist->hLepTwoDeltaPhi->Fill(fTreeVars.leptwodeltaphi  ,eventWeight*genWeight);
   }
 
-  Hist->hLepPt[0]     ->Fill(lepSys.Pt()            ,eventWeight*genWeight);
-  Hist->hLepM[0]      ->Fill(lepSys.M()             ,eventWeight*genWeight);
+  Hist->hLepPt[0]     ->Fill(fTreeVars.leppt        ,eventWeight*genWeight);
+  Hist->hLepM[0]      ->Fill(fTreeVars.lepm         ,eventWeight*genWeight);
+  Hist->hLepMUp       ->Fill(fTreeVars.lepm         ,tot_sys_up  );
+  Hist->hLepMDown     ->Fill(fTreeVars.lepm         ,tot_sys_down);
   Hist->hLepMt        ->Fill(lepSys.Mt()            ,eventWeight*genWeight);
   Hist->hLepEta       ->Fill(lepSys.Eta()           ,eventWeight*genWeight);
   // Hist->hLepPhi       ->Fill(lepSys.Phi()           ,eventWeight*genWeight);
@@ -4833,6 +4900,125 @@ float HistMaker::EvalEmbBDTUncertainty(TString selection) {
   }
 
   return weight;
+}
+
+//--------------------------------------------------------------------------------------------------------------
+// Get the non-closure systematic variation on a j-->tau weight
+float HistMaker::EvalJetToTauStatSys(int process, int dm_bin, int param_bin, bool up) {
+  const float wt(eventWeight*genWeight); //nominal event weight
+  float wt_alt = 0.f;
+
+  //get the alternate j-->tau weight
+  for(int iproc = 0; iproc < JetToTauComposition::kLast; ++iproc) {
+    //Z+jets uses the W+jets scales
+    const bool proc_test = iproc == process || (process == JetToTauComposition::kWJets && iproc == JetToTauComposition::kZJets);
+    const bool dm_test   = (tauDecayMode % 10 <= 1 || tauDecayMode % 10 == 1) && (tauDecayMode%10 + 2*(tauDecayMode/10)) == dm_bin;
+    const bool alt_test  = param_bin < fJetToTauAltNum[process];
+    const bool test = proc_test && dm_test && alt_test;;
+    float corr(1.f);
+    if(fApplyJetToTauMCBias || (iproc != JetToTauComposition::kWJets && iproc != JetToTauComposition::kZJets)) { //apply composition and the non-closure and bias corrections
+      corr = fJetToTauComps[iproc] * fJetToTauCorrs[iproc] * fJetToTauBiases[iproc];
+    } else { //only apply the non-closure and composition
+      corr = fJetToTauComps[iproc] * fJetToTauCorrs[iproc];
+    }
+    //use the alternate base j-->tau weight if it passes the checks
+    if(test) {
+      wt_alt += corr * ((up) ? fJetToTauAltUp[iproc*kMaxAltFunc + param_bin] : fJetToTauAltDown[iproc*kMaxAltFunc + param_bin]);
+    } else { //nominal weight
+      wt_alt += corr * fJetToTauWts[iproc];
+    }
+  }
+  if(wt_alt <= 0.f || (fVerbose && std::abs(wt_alt-jetToTauWeightBias)/wt_alt > 2.f)) {
+        printf("HistMaker::%s: Entry %lld: Unexpected j-->tau weight variation! wt = %.3f, nominal = %.3f, proc = %i, dm_bin = %i, dm = %i\n",
+               __func__, fentry, wt_alt, jetToTauWeightBias, process, dm_bin, tauDecayMode);
+  }
+
+  //return the systematically shifted event weight
+  const float sys_wt = wt * (wt_alt / jetToTauWeightBias);
+  return sys_wt;
+}
+
+//--------------------------------------------------------------------------------------------------------------
+// Get the non-closure systematic variation on a j-->tau weight
+float HistMaker::EvalJetToTauNCSys(int process, bool up) {
+  const float wt(eventWeight*genWeight); //nominal event weight
+
+  //get the alternate j-->tau weight
+  float wt_alt = 0.f;
+  for(int iproc = 0; iproc < JetToTauComposition::kLast; ++iproc) {
+    //Z+jets uses the W+jets scales
+    bool test = iproc == process || (process == JetToTauComposition::kWJets && iproc == JetToTauComposition::kZJets);
+    float base = fJetToTauComps[iproc] * fJetToTauWts[iproc];
+    if(fApplyJetToTauMCBias || (iproc != JetToTauComposition::kWJets && iproc != JetToTauComposition::kZJets)) { //bias is applied to nominal weight
+      base *= fJetToTauBiases[iproc];
+    }
+    //take up as applying the correction twice, down as no correction
+    wt_alt += base * ((test) ? (up) ? fJetToTauCorrs[iproc]*fJetToTauCorrs[iproc] : 1.f : fJetToTauCorrs[iproc]);
+  }
+  const float sys_wt = wt * (wt_alt / jetToTauWeightBias);
+  return sys_wt;
+}
+
+//--------------------------------------------------------------------------------------------------------------
+// Get the bias systematic variation on a j-->tau weight
+float HistMaker::EvalJetToTauBiasSys(int process, bool up) {
+  const float wt(eventWeight*genWeight); //nominal event weight
+
+  //get the alternate j-->tau weight
+  float wt_alt = 0.f;
+  for(int iproc = 0; iproc < JetToTauComposition::kLast; ++iproc) {
+    //Z+jets uses the W+jets scales
+    bool test = iproc == process || (process == JetToTauComposition::kWJets && iproc == JetToTauComposition::kZJets);
+    const float base = fJetToTauComps[iproc] * fJetToTauWts[iproc] * fJetToTauCorrs[iproc];
+    if(fApplyJetToTauMCBias || (iproc != JetToTauComposition::kWJets && iproc != JetToTauComposition::kZJets)) { //bias is applied to nominal weight
+      //take up as applying the bias correction twice, down as no correction
+      wt_alt += base * ((test) ? (up) ? fJetToTauBiases[iproc]*fJetToTauBiases[iproc] : 1.f : fJetToTauBiases[iproc]);
+    } else { //bias is not applied to the nominal weight
+      //take up as applying the bias correction, down dividing by the correction
+      wt_alt += base * ((test) ? (up) ? fJetToTauBiases[iproc] : ((fJetToTauBiases[iproc] > 0.f) ? 1.f/fJetToTauBiases[iproc] : 0.f) : 1.f);
+    }
+  }
+  const float sys_wt = wt * (wt_alt / jetToTauWeightBias);
+  return sys_wt;
+}
+
+//--------------------------------------------------------------------------------------------------------------
+// Get the sum in quadrature of the event weight uncertainties
+std::pair<float,float> HistMaker::OverallSystematicWeights() {
+  const float wt(eventWeight*genWeight); //nominal event weight
+  std::vector<float> up_wts, down_wts; //list of systematic weights
+  if(!std::isfinite(wt)) return std::pair<float,float>(wt,wt);
+
+  if(fSelection.EndsWith("tau")) {
+    if(isLooseTau) { //add j-->tau weight uncertainties
+      //j-->tau bias uncertainties
+      for(int iproc = 0; iproc < JetToTauComposition::kLast; ++iproc) {
+        if(iproc == JetToTauComposition::kZJets) continue; //combined with WJets
+        up_wts  .push_back(EvalJetToTauNCSys  (iproc, true ));
+        down_wts.push_back(EvalJetToTauNCSys  (iproc, false));
+        up_wts  .push_back(EvalJetToTauBiasSys(iproc, true ));
+        down_wts.push_back(EvalJetToTauBiasSys(iproc, false));
+        //add each j-->tau fit stat uncertainty (3 per DM, 4 DMs considered
+        for(int idm = 0; idm < 3; ++idm) {
+          for(int ialt = 0; ialt < 2; ++ialt) {
+            up_wts  .push_back(EvalJetToTauStatSys(iproc, idm, ialt, true ));
+            down_wts.push_back(EvalJetToTauStatSys(iproc, idm, ialt, false));
+          }
+        }
+      }
+    }
+  }
+
+  if(fVerbose > 9) {
+    printf("HistMaker::%s: Systematic variation lists:\n up   = {", __func__);
+    for(float up_wt : up_wts) printf(" %.4f,", up_wt);
+    printf("}\n down = {");
+    for(float down_wt : down_wts) printf(" %.4f,", down_wt);
+    printf("}\n");
+  }
+  auto sys_wts = Utilities::CombinedUncertainty(genWeight*eventWeight, up_wts, down_wts);
+  if(fVerbose > 9) printf(" --> totals: nominal = %.4f, up = %.4f, down = %.4f\n", wt, sys_wts.first, sys_wts.second);
+  return sys_wts;
 }
 
 //--------------------------------------------------------------------------------------------------------------

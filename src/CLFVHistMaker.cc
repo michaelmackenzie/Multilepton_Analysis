@@ -876,50 +876,26 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
         weight *= wt_jtt / jetToTauWeightBias;
       }
     } else if(name.Contains("JetToTauAlt")) { //process (3) x DM (4) x fit param (3) binned stat. uncertainty
-      if(isLooseTau) { //only shift the weight for loose tau ID region events
-        //recreate the weight with shifted process bias
-        TString id_s = name; id_s.ReplaceAll("JetToTauAlt", "");
-        int proc = 0;
-        if     (id_s.BeginsWith("P0")) proc = JetToTauComposition::kWJets;
-        else if(id_s.BeginsWith("P1")) proc = JetToTauComposition::kTop;
-        else if(id_s.BeginsWith("P2")) proc = JetToTauComposition::kQCD;
-        else continue;
-        int dm_bin = 0;
-        if     (id_s.Contains("D0")) dm_bin = 0;
-        else if(id_s.Contains("D1")) dm_bin = 1;
-        else if(id_s.Contains("D2")) dm_bin = 2;
-        else if(id_s.Contains("D3")) dm_bin = 3;
-        else continue;
-        int alt_bin = 0;
-        if     (id_s.EndsWith("A0")) alt_bin = 0;
-        else if(id_s.EndsWith("A1")) alt_bin = 1;
-        else if(id_s.EndsWith("A2")) alt_bin = 2;
-        else continue;
-        float wt_jtt = 0.f;
-        for(int iproc = 0; iproc < JetToTauComposition::kLast; ++iproc) {
-          //Z+jets uses the W+jets scales
-          bool test = ((iproc == proc || (proc == JetToTauComposition::kWJets && iproc == JetToTauComposition::kZJets)) &&
-                       (tauDecayMode % 10 == 0 || tauDecayMode % 10 == 1)
-                       && ((tauDecayMode%10 + 2*(tauDecayMode/10)) == dm_bin)
-                       && (alt_bin < fJetToTauAltNum[proc]));
-          float corr;
-          if(fApplyJetToTauMCBias || (iproc != JetToTauComposition::kWJets && iproc != JetToTauComposition::kZJets)) {
-            corr = fJetToTauComps[iproc] * fJetToTauCorrs[iproc] * fJetToTauBiases[iproc];
-          } else {
-            corr = fJetToTauComps[iproc] * fJetToTauCorrs[iproc];
-          }
-          if(test) {
-            wt_jtt += corr * ((fSystematics.IsUp(sys)) ? fJetToTauAltUp[iproc*kMaxAltFunc + alt_bin] : fJetToTauAltDown[iproc*kMaxAltFunc + alt_bin]);
-          } else {
-            wt_jtt += corr * fJetToTauWts[iproc];
-          }
-        }
-        if(wt_jtt <= 0.f || (fVerbose && std::abs(wt_jtt-jetToTauWeightBias)/wt_jtt > 2.f)) {
-          printf("CLFVHistMaker::%s: Entry %lld: Unexpected j-->tau weight variation! wt = %.3f, nominal = %.3f, proc = %i, dm_bin = %i, dm = %i\n",
-                 __func__, fentry, wt_jtt, jetToTauWeightBias, proc, dm_bin, tauDecayMode);
-        }
-        weight *= wt_jtt / jetToTauWeightBias;
-      } else continue; //skip tight ID events, take default histogram
+      if(!isLooseTau) continue; //only shift the weight for loose tau ID region events
+      //recreate the weight with shifted process bias
+      TString id_s = name; id_s.ReplaceAll("JetToTauAlt", "");
+      int proc = 0;
+      if     (id_s.BeginsWith("P0")) proc = JetToTauComposition::kWJets;
+      else if(id_s.BeginsWith("P1")) proc = JetToTauComposition::kTop;
+      else if(id_s.BeginsWith("P2")) proc = JetToTauComposition::kQCD;
+      else continue;
+      int dm_bin = 0;
+      if     (id_s.Contains("D0")) dm_bin = 0;
+      else if(id_s.Contains("D1")) dm_bin = 1;
+      else if(id_s.Contains("D2")) dm_bin = 2;
+      else if(id_s.Contains("D3")) dm_bin = 3;
+      else continue;
+      int alt_bin = 0;
+      if     (id_s.EndsWith("A0")) alt_bin = 0;
+      else if(id_s.EndsWith("A1")) alt_bin = 1;
+      else if(id_s.EndsWith("A2")) alt_bin = 2;
+      else continue;
+      weight *= EvalJetToTauStatSys(proc, dm_bin, alt_bin, fSystematics.IsUp(sys));
     } else if(name == "ZPt") {
       if(!(fIsSignal || fIsDY)) continue;
       if(fSystematics.IsUp(sys)) weight *= zPtWeightUp          / zPtWeight      ;
@@ -1165,40 +1141,21 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
         else                       weight *= jetToTauWeightCorrDown   / jetToTauWeightCorr   ;
       } else continue; //no need to fill tight ID histograms
     } else if(name.Contains("JetToTauNC")) { //process binned bias uncertainty
-      if(isLooseTau) { //only shift the weight for loose tau ID region events
-        //recreate the weight with shifted process bias
-        float wt_jtt = 0.f;
-        int proc;
-        if     (name == "JetToTauNC0") proc = JetToTauComposition::kWJets;
-        else if(name == "JetToTauNC1") proc = JetToTauComposition::kTop;
-        else if(name == "JetToTauNC2") proc = JetToTauComposition::kQCD;
-        else {
-          printf("CLFVHistMaker::%s: Unknown jet-->tau non-closure systematic bin %s\n", __func__, name.Data());
-          continue;
-        }
-        for(int iproc = 0; iproc < JetToTauComposition::kLast; ++iproc) {
-          //Z+jets uses the W+jets scales
-          bool test = iproc == proc || (iproc == JetToTauComposition::kWJets && iproc == JetToTauComposition::kZJets);
-          float corr;
-          if(fApplyJetToTauMCBias || (proc != JetToTauComposition::kWJets && proc != JetToTauComposition::kZJets)) {
-            corr = fJetToTauComps[iproc] * fJetToTauWts[iproc] * fJetToTauBiases[iproc];
-          } else {
-            corr = fJetToTauComps[iproc] * fJetToTauWts[iproc];
-          }
-          //take up as apply correction twice, down as no correction
-          if(test) {
-            wt_jtt += corr * ((fSystematics.IsUp(sys)) ? fJetToTauCorrs[iproc]*fJetToTauCorrs[iproc] : 1.f);
-          } else {
-            wt_jtt += corr * fJetToTauCorrs[iproc];
-          }
-        }
-        weight *= wt_jtt / jetToTauWeightBias;
-      } else continue; //no need to fill tight ID histograms
+      if(!isLooseTau) continue; //only shift the weight for loose tau ID region events
+      //recreate the weight with shifted process bias
+      int proc;
+      if     (name == "JetToTauNC0") proc = JetToTauComposition::kWJets;
+      else if(name == "JetToTauNC1") proc = JetToTauComposition::kTop;
+      else if(name == "JetToTauNC2") proc = JetToTauComposition::kQCD;
+      else {
+        printf("CLFVHistMaker::%s: Unknown jet-->tau non-closure systematic bin %s\n", __func__, name.Data());
+        continue;
+      }
+      weight = EvalJetToTauNCSys(proc, fSystematics.IsUp(sys));
     } else if(name == "JetToTauComp") {
-      if(isLooseTau) { //only shift the weight for loose tau ID region events
-        if(fSystematics.IsUp(sys)) weight *= jetToTauWeight_compUp    / jetToTauWeightBias   ;
-        else                       weight *= jetToTauWeight_compDown  / jetToTauWeightBias   ;
-      } else continue; //no need to fill tight ID histograms
+      if(!isLooseTau) continue; //only shift the weight for loose tau ID region events
+      if(fSystematics.IsUp(sys)) weight *= jetToTauWeight_compUp    / jetToTauWeightBias   ;
+      else                       weight *= jetToTauWeight_compDown  / jetToTauWeightBias   ;
     } else if(name == "TauJetID") {
       if(fIsData) continue;
       if(leptonTwo.isTau() && std::abs(tauGenFlavor) == 15) { //only evaluate for true hadronic taus
@@ -1253,77 +1210,45 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
       if(fSystematics.IsUp(sys)) weight *= (btagWeight > 0.f) ? btagWeightUpL   / btagWeight : 1.f;
       else                       weight *= (btagWeight > 0.f) ? btagWeightDownL / btagWeight : 1.f;
     } else if(name == "JetToTauBias") {
-      if(isLooseTau) { //only shift the weight for loose tau ID region events
-        if(fSystematics.IsUp(sys)) weight *= jetToTauWeightBiasUp     / jetToTauWeightBias   ;
-        else                       weight *= jetToTauWeightBiasDown   / jetToTauWeightBias   ;
-      } else continue; //no need to fill tight ID histograms
+      if(!isLooseTau) continue; //only shift the weight for loose tau ID region events
+      if(fSystematics.IsUp(sys)) weight *= jetToTauWeightBiasUp     / jetToTauWeightBias   ;
+      else                       weight *= jetToTauWeightBiasDown   / jetToTauWeightBias   ;
     } else if(name.Contains("JetToTauBiasRate")) { //process binned bias uncertainty
-      if(isLooseTau) { //only shift the weight for loose tau ID region events
-        //recreate the weight with shifted process bias
-        float wt_jtt = 0.f;
-        int proc;
-        if     (name == "JetToTauBiasRate0") proc = JetToTauComposition::kWJets; //only defined for W+jets
-        else {
-          printf("CLFVHistMaker::%s: Unknown jet-->tau bias systematic bin %s\n", __func__, name.Data());
-          continue;
+      if(!isLooseTau) continue; //only shift the weight for loose tau ID region events
+      //recreate the weight with shifted process bias
+      float wt_jtt = 0.f;
+      int proc;
+      if     (name == "JetToTauBiasRate0") proc = JetToTauComposition::kWJets; //only defined for W+jets
+      else {
+        printf("CLFVHistMaker::%s: Unknown jet-->tau bias systematic bin %s\n", __func__, name.Data());
+        continue;
+      }
+      for(int iproc = 0; iproc < JetToTauComposition::kLast; ++iproc) {
+        //Z+jets uses the W+jets scales
+        bool test = iproc == proc || (proc == JetToTauComposition::kWJets && iproc == JetToTauComposition::kZJets);
+        bool apply_bias = fApplyJetToTauMCBias || (iproc != JetToTauComposition::kWJets && iproc != JetToTauComposition::kZJets);
+        const float base = fJetToTauComps[iproc] * fJetToTauWts[iproc] * fJetToTauCorrs[iproc] * ((apply_bias) ? fJetToTauBiases[iproc] : 1.f);
+        float rate_unc = 1.f;
+        if(test) {
+          if(mutau) rate_unc = (fYear == 2016) ? 0.03f : (fYear == 2017) ? 0.029f : 0.059f;
+          if(etau ) rate_unc = (fYear == 2016) ? 0.04f : (fYear == 2017) ? 0.081f : 0.150f;
         }
-        for(int iproc = 0; iproc < JetToTauComposition::kLast; ++iproc) {
-          //Z+jets uses the W+jets scales
-          bool test = iproc == proc || (proc == JetToTauComposition::kWJets && iproc == JetToTauComposition::kZJets);
-          bool apply_bias = fApplyJetToTauMCBias || (iproc != JetToTauComposition::kWJets && iproc != JetToTauComposition::kZJets);
-          const float base = fJetToTauComps[iproc] * fJetToTauWts[iproc] * fJetToTauCorrs[iproc] * ((apply_bias) ? fJetToTauBiases[iproc] : 1.f);
-          float rate_unc = 1.f;
-          if(test) {
-            if(mutau) rate_unc = (fYear == 2016) ? 0.03f : (fYear == 2017) ? 0.029f : 0.059f;
-            if(etau ) rate_unc = (fYear == 2016) ? 0.04f : (fYear == 2017) ? 0.081f : 0.150f;
-          }
-          //apply the rate uncertainty to the process of interest
-          wt_jtt += base * ((test) ? ((fSystematics.IsUp(sys)) ? 1.f + rate_unc : 1.f - rate_unc) : 1.f);
-        }
-        weight *= wt_jtt / jetToTauWeightBias;
-      } else continue; //no need to fill tight ID histograms
+        //apply the rate uncertainty to the process of interest
+        wt_jtt += base * ((test) ? ((fSystematics.IsUp(sys)) ? 1.f + rate_unc : 1.f - rate_unc) : 1.f);
+      }
+      weight *= wt_jtt / jetToTauWeightBias;
     } else if(name.Contains("JetToTauBias")) { //process binned bias uncertainty
-      if(isLooseTau) { //only shift the weight for loose tau ID region events
-        //recreate the weight with shifted process bias
-        float wt_jtt = 0.f;
-        int proc;
-        if     (name == "JetToTauBias0") proc = JetToTauComposition::kWJets;
-        else if(name == "JetToTauBias1") proc = JetToTauComposition::kTop;
-        else if(name == "JetToTauBias2") proc = JetToTauComposition::kQCD;
-        else {
-          printf("CLFVHistMaker::%s: Unknown jet-->tau bias systematic bin %s\n", __func__, name.Data());
-          continue;
-        }
-        for(int iproc = 0; iproc < JetToTauComposition::kLast; ++iproc) {
-          //Z+jets uses the W+jets scales
-          bool test = iproc == proc || (proc == JetToTauComposition::kWJets && iproc == JetToTauComposition::kZJets);
-          const float base = fJetToTauComps[iproc] * fJetToTauWts[iproc] * fJetToTauCorrs[iproc];
-          if(fApplyJetToTauMCBias || (iproc != JetToTauComposition::kWJets && iproc != JetToTauComposition::kZJets)) {
-            //take up as applying the bias correction twice, down as no correction
-            wt_jtt += base * ((test) ?
-                              (fSystematics.IsUp(sys)) ? fJetToTauBiases[iproc]*fJetToTauBiases[iproc] : 1.f
-                              : fJetToTauBiases[iproc]);
-          } else {
-            //take up as applying the bias correction, down dividing by the correction
-            wt_jtt += base * ((test) ?
-                              (fSystematics.IsUp(sys)) ? fJetToTauBiases[iproc] : 1.f/fJetToTauBiases[iproc]
-                              : 1.f);
-
-          }
-        }
-        // if(proc == JetToTauComposition::kTop && wt_jtt != jetToTauWeightBias) {
-        //   printf("%s: Bias found in j-->tau top estimation! wt(nom) = %.4f, wt(sys) = %.4f, Bias = %.4f\n",
-        //          __func__, jetToTauWeightBias, wt_jtt, fJetToTauBiases[proc]);
-        //   printf(" event info: lepm = %.1f, mtone = %.1f, one pt = %.1f, two pt = %.1f\n",
-        //          fTreeVars.lepm, fTreeVars.mtone, fTreeVars.leponept, fTreeVars.leptwopt);
-        //   for(int jproc = 0; jproc < JetToTauComposition::kLast; ++jproc) {
-        //     printf(" proc %i: comp = %.4f, wt = %.4f, correction = %.4f, bias = %.4f\n",
-        //            jproc, fJetToTauComps[jproc], fJetToTauWts[jproc], fJetToTauCorrs[jproc], fJetToTauBiases[jproc]);
-        //   }
-        //   throw 20;
-        // }
-        weight *= wt_jtt / jetToTauWeightBias;
-      } else continue; //no need to fill tight ID histograms
+      if(!isLooseTau) continue; //only shift the weight for loose tau ID region events
+      //get the bias shift only for the relevant process
+      int proc;
+      if     (name == "JetToTauBias0") proc = JetToTauComposition::kWJets;
+      else if(name == "JetToTauBias1") proc = JetToTauComposition::kTop;
+      else if(name == "JetToTauBias2") proc = JetToTauComposition::kQCD;
+      else {
+        printf("CLFVHistMaker::%s: Unknown jet-->tau bias systematic bin %s\n", __func__, name.Data());
+        continue;
+      }
+      weight = EvalJetToTauBiasSys(proc, fSystematics.IsUp(sys));
     } else if(name == "EmbedUnfold") {
       if(!fIsEmbed) continue;
       if(fSystematics.IsUp(sys)) weight *= 1.04f;
@@ -1852,7 +1777,7 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   mutau &= isLooseTau || tauDeepAntiJet >= 50; //63 = tight
   mutau &= tauDeepAntiMu  >= 10; //15 = tight
   mutau &= tauDeepAntiEle >= 10; //7 = VLoose, 15 = Loose, 31 = Medium
-  // mutau &= leptonTwo.id2  >=  2; //1 = loose, 3 = tight tau MVA anti-muon ID
+  mutau &= leptonTwo.id2  >=  2; //1 = loose, 3 = tight tau MVA anti-muon ID
 
   etau  &= isLooseTau || tauDeepAntiJet >= 50; //
   etau  &= tauDeepAntiMu  >= 10; //15 = tight
@@ -1910,11 +1835,6 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
 
   const double met_cut         = -1.; //60.;
   const double mtlep_cut       = (lep_tau || emu || ee || mumu) ? -1. : 70.;
-  const double qcd_mtlep_cut   = mtlep_cut; //(etau) ? 45. : mtlep_cut;
-  const bool looseQCDRegion    = (mutau || etau) && nBJetsUse == 0 && fTreeVars.mtlep < mtlep_cut && (met_cut < 0 || met < met_cut); // no isolation cut (0 - 0.5 allowed)
-  const bool qcdSelection      = looseQCDRegion && fTreeVars.mtlep < qcd_mtlep_cut && (fTreeVars.leponereliso > 0.05) && !(isLooseMuon || isLooseElectron);
-  const bool wjetsSelection    = (mutau || etau) && fTreeVars.mtlep > mtlep_cut && nBJetsUse == 0 && !(isLooseMuon || isLooseElectron);
-  const bool topSelection      = (emu || etau || mutau) && nBJetsUse >= 1 && !(isLooseMuon || isLooseElectron);
   const bool nominalSelection  = nBJetsUse == 0 && (met_cut < 0 ||met < met_cut) && fTreeVars.mtlep < mtlep_cut + sys_buffer && !(isLooseMuon || isLooseElectron);
   mtlep_max_ = mtlep_cut;
   met_max_   = met_cut;
@@ -1969,79 +1889,6 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
     }
   }
 
-  ////////////////////////////////////////////////////////////////////////////
-  // Set 36 + selection offset: QCD selection with MC estimate taus and leptons
-  ////////////////////////////////////////////////////////////////////////////
-  if(fQCDFakeTauTesting && qcdSelection) {
-    const Float_t prev_evt_wt = eventWeight;
-    const Float_t prev_jtt_wt = jetToTauWeight;
-    const Float_t prev_jtt_cr = jetToTauWeightCorr;
-    const Float_t prev_jtt_bs = jetToTauWeightBias;
-    const Float_t evt_wt_bare = (prev_jtt_bs > 0.) ? prev_evt_wt / prev_jtt_bs : 0.; //no j->tau weight
-    if(fUseJetToTauComposition && isLooseTau) {
-      jetToTauWeight     = fJetToTauWts                      [JetToTauComposition::kQCD];
-      jetToTauWeightCorr = jetToTauWeight*fJetToTauCorrs     [JetToTauComposition::kQCD];
-      jetToTauWeightBias = jetToTauWeightCorr; //no bias in DR
-      eventWeight        = jetToTauWeightBias*evt_wt_bare;
-    }
-    FillAllHistograms(set_offset + 36);
-    eventWeight        = prev_evt_wt;
-    jetToTauWeight     = prev_jtt_wt;
-    jetToTauWeightCorr = prev_jtt_cr;
-    jetToTauWeightBias = prev_jtt_bs;
-  }
-
-  ////////////////////////////////////////////////////////////////////////////
-  // Set 37 + selection offset: W+Jets selection with MC estimate taus and leptons
-  ////////////////////////////////////////////////////////////////////////////
-  if(fWJFakeTauTesting && wjetsSelection) {
-    const Float_t prev_evt_wt = eventWeight;
-    const Float_t prev_jtt_wt = jetToTauWeight;
-    const Float_t prev_jtt_cr = jetToTauWeightCorr;
-    const Float_t prev_jtt_bs = jetToTauWeightBias;
-    const Float_t evt_wt_bare = (prev_jtt_bs > 0.) ? prev_evt_wt / prev_jtt_bs : 0.; //no j->tau weight
-    const bool    add_wt      = fUseJetToTauComposition && isLooseTau;
-
-    //Data measured weights
-    if(add_wt) {
-      jetToTauWeight     = fJetToTauWts                      [JetToTauComposition::kWJets];
-      jetToTauWeightCorr = jetToTauWeight*fJetToTauCorrs     [JetToTauComposition::kWJets];
-      jetToTauWeightBias = jetToTauWeightCorr; //no bias in DR
-      eventWeight        = jetToTauWeightBias*evt_wt_bare;
-    }
-    FillAllHistograms(set_offset + 37);
-
-    eventWeight        = prev_evt_wt;
-    jetToTauWeight     = prev_jtt_wt;
-    jetToTauWeightCorr = prev_jtt_cr;
-    jetToTauWeightBias = prev_jtt_bs;
-  }
-
-  ////////////////////////////////////////////////////////////////////////////
-  // Set 38 + selection offset: ttbar selection with MC estimate taus and leptons
-  ////////////////////////////////////////////////////////////////////////////
-  if(fTTFakeTauTesting && (mutau || etau) && topSelection) {
-    const Float_t prev_evt_wt = eventWeight;
-    const Float_t prev_jtt_wt = jetToTauWeight;
-    const Float_t prev_jtt_cr = jetToTauWeightCorr;
-    const Float_t prev_jtt_bs = jetToTauWeightBias;
-    const Float_t evt_wt_bare = (prev_jtt_bs > 0.) ? prev_evt_wt / prev_jtt_bs : 0.; //no j->tau weight
-    const bool    add_wt      = fUseJetToTauComposition && isLooseTau;
-
-    if(add_wt) {
-      jetToTauWeight     = fJetToTauWts                      [JetToTauComposition::kTop];
-      jetToTauWeightCorr = jetToTauWeight*fJetToTauCorrs     [JetToTauComposition::kTop];
-      jetToTauWeightBias = jetToTauWeightCorr; //no bias in DR
-      eventWeight        = jetToTauWeightBias*evt_wt_bare;
-    }
-    FillAllHistograms(set_offset + 38);
-    eventWeight        = prev_evt_wt;
-    jetToTauWeight     = prev_jtt_wt;
-    jetToTauWeightCorr = prev_jtt_cr;
-    jetToTauWeightBias = prev_jtt_bs;
-  }
-
-
   ///////////////////////////////////////////////////////////////////
   //remove MC jet -> light lepton contribution
 
@@ -2057,79 +1904,15 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   ///////////////////////////////////////////////////////////////////
   //remove MC estimated jet --> tau component
 
-  mutau &= fIsData > 0 || std::abs(tauGenFlavor) != 26 || fIsSignal; //keep signal as even events with fakes are signal from the MC
-  etau  &= fIsData > 0 || std::abs(tauGenFlavor) != 26 || fIsSignal;
+  if(!fUseMCFakeTau) {
+    mutau &= fIsData > 0 || std::abs(tauGenFlavor) != 26 || fIsSignal; //keep signal as even events with fakes are signal from the MC
+    etau  &= fIsData > 0 || std::abs(tauGenFlavor) != 26 || fIsSignal;
+  }
 
   if(!(mutau || etau || emu || mumu || ee)) return kTRUE;
 
   if(!looseQCDSelection && chargeTest) {fCutFlow->Fill(icutflow);} //15
   ++icutflow;
-
-  ////////////////////////////////////////////////////////////////////////////
-  // Set 30 + selection offset: QCD selection
-  ////////////////////////////////////////////////////////////////////////////
-  if(fQCDFakeTauTesting && qcdSelection) {
-    const Float_t prev_evt_wt = eventWeight;
-    const Float_t prev_jtt_wt = jetToTauWeight;
-    const Float_t prev_jtt_cr = jetToTauWeightCorr;
-    const Float_t prev_jtt_bs = jetToTauWeightBias;
-    const Float_t evt_wt_bare = (prev_jtt_bs > 0.) ? prev_evt_wt / prev_jtt_bs : 0.; //no j->tau weight
-    if(fUseJetToTauComposition && isLooseTau) {
-      jetToTauWeight     = fJetToTauWts                      [JetToTauComposition::kQCD];
-      jetToTauWeightCorr = jetToTauWeight*fJetToTauCorrs     [JetToTauComposition::kQCD];
-      jetToTauWeightBias = jetToTauWeightCorr; //no bias in DR
-      eventWeight        = jetToTauWeightBias*evt_wt_bare;
-    }
-    FillAllHistograms(set_offset + 30);
-    eventWeight        = prev_evt_wt;
-    jetToTauWeight     = prev_jtt_wt;
-    jetToTauWeightCorr = prev_jtt_cr;
-    jetToTauWeightBias = prev_jtt_bs;
-  }
-
-  ////////////////////////////////////////////////////////////////////////////
-  // Set 31 + selection offset: W+Jets selection
-  ////////////////////////////////////////////////////////////////////////////
-  if(fWJFakeTauTesting && wjetsSelection) {
-    const Float_t prev_evt_wt = eventWeight;
-    const Float_t prev_jtt_wt = jetToTauWeight;
-    const Float_t prev_jtt_cr = jetToTauWeightCorr;
-    const Float_t prev_jtt_bs = jetToTauWeightBias;
-    const Float_t evt_wt_bare = (prev_jtt_bs > 0.) ? prev_evt_wt / prev_jtt_bs : 0.; //no j->tau weight
-    if(fUseJetToTauComposition && isLooseTau) {
-      jetToTauWeight     = fJetToTauWts                      [JetToTauComposition::kWJets];
-      jetToTauWeightCorr = jetToTauWeight*fJetToTauCorrs     [JetToTauComposition::kWJets];
-      jetToTauWeightBias = jetToTauWeightCorr; //no bias in DR
-      eventWeight        = jetToTauWeightBias*evt_wt_bare;
-    }
-    FillAllHistograms(set_offset + 31);
-    eventWeight        = prev_evt_wt;
-    jetToTauWeight     = prev_jtt_wt;
-    jetToTauWeightCorr = prev_jtt_cr;
-    jetToTauWeightBias = prev_jtt_bs;
-  }
-
-  ////////////////////////////////////////////////////////////////////////////
-  // Set 32 + selection offset: Top selection
-  ////////////////////////////////////////////////////////////////////////////
-  if(fTTFakeTauTesting && topSelection && !lep_tau) {
-    const Float_t prev_evt_wt = eventWeight;
-    const Float_t prev_jtt_wt = jetToTauWeight;
-    const Float_t prev_jtt_cr = jetToTauWeightCorr;
-    const Float_t prev_jtt_bs = jetToTauWeightBias;
-    const Float_t evt_wt_bare = (prev_jtt_bs > 0.) ? prev_evt_wt / prev_jtt_bs : 0.; //no j->tau weight
-    if(fUseJetToTauComposition && isLooseTau) {
-      jetToTauWeight     = fJetToTauWts                      [JetToTauComposition::kTop];
-      jetToTauWeightCorr = jetToTauWeight*fJetToTauCorrs     [JetToTauComposition::kTop];
-      jetToTauWeightBias = jetToTauWeightCorr; //no bias in DR
-      eventWeight        = jetToTauWeightBias*evt_wt_bare;
-    }
-    FillAllHistograms(set_offset + 32);
-    eventWeight        = prev_evt_wt;
-    jetToTauWeight     = prev_jtt_wt;
-    jetToTauWeightCorr = prev_jtt_cr;
-    jetToTauWeightBias = prev_jtt_bs;
-  }
 
   //////////////////////////
   //    Add MET cuts      //
@@ -2258,13 +2041,15 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   ++icutflow;
 
   //Remove loose ID + same-sign events
-  mutau   &= !looseQCDSelection || chargeTest;
-  etau    &= !looseQCDSelection || chargeTest;
-  emu     &= !looseQCDSelection || chargeTest;
-  mutau_e &= !looseQCDSelection || chargeTest;
-  etau_mu &= !looseQCDSelection || chargeTest;
-  mumu    &= !looseQCDSelection || chargeTest;
-  ee      &= !looseQCDSelection || chargeTest;
+  if(fRemoveLooseSS) {
+    mutau   &= !looseQCDSelection || chargeTest;
+    etau    &= !looseQCDSelection || chargeTest;
+    emu     &= !looseQCDSelection || chargeTest;
+    mutau_e &= !looseQCDSelection || chargeTest;
+    etau_mu &= !looseQCDSelection || chargeTest;
+    mumu    &= !looseQCDSelection || chargeTest;
+    ee      &= !looseQCDSelection || chargeTest;
+  }
 
   if(!(mutau || etau || emu || mumu || ee || mutau_e || etau_mu)) return kTRUE;
 

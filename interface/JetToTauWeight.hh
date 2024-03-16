@@ -41,7 +41,7 @@ namespace CLFV {
     //        + 1000 * (use DM binned pT corrections) + 100 * (1*(use scale factor fits) + 2*(use fitter errors))
     //        + 10 * (interpolate bins) + (2* use MC Fits + pT region mode)
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    JetToTauWeight(const TString name, const TString selection, TString process, const int set = 8, const int Mode = 0, const int year = 0, const int verbose = 0);
+    JetToTauWeight(const TString name, const TString selection, TString process, const int set = 8, const int Mode = 0, int year = 0, const int verbose = 0);
     JetToTauWeight(const TString name, const TString selection, const int set = 8, const int Mode = 0, const int verbose = 0) :
       JetToTauWeight(name, selection, "", set, Mode, verbose) {}
 
@@ -107,7 +107,7 @@ namespace CLFV {
     bool useMTLepBias_;
     bool useOneIsoBias_;
     bool useLepMVsMVABias_;
-
+    int  useRun2Scales_; //0: by-year scales; 1: Run 2 scales; 2: by-year base scale, Run 2 non-closure/biases
   };
 }
 #endif

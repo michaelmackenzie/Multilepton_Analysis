@@ -24,6 +24,7 @@
 #include "TGaxis.h"
 #include "interface/Significances.hh"
 #include "interface/Utilities.hh"
+#include "interface/PlotUtil.hh"
 #include "Math/ProbFuncMathCore.h"
 
 #include "interface/DataCard_t.hh"
