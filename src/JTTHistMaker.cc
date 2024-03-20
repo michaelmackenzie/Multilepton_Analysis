@@ -283,7 +283,7 @@ void JTTHistMaker::BookEventHistograms() {
           // const double mva_mbins[] = {40., 60., 80., 90., 100., 170.}; //mass regions for (mass, bdt) closure
           // const double mva_mbins[] = {40., 85., 170.}; //mass regions for (mass, bdt) closure
           const int    nmva_mbins  = sizeof(mva_mbins) / sizeof(*mva_mbins) - 1;
-          const double mva_bins[]  = {0., 0.1, 0.2, 0.3, 0.4, 0.6, 1.};
+          const double mva_bins[]  = {0., 0.1, 0.2, 0.3, 0.4, 1.};
           const int    nmva_bins   = sizeof(mva_bins) / sizeof(*mva_bins) - 1;
           Utilities::BookH2F(fEventHist[i]->hJetTauLepMVsMVA   [0], "jettaulepmvsmva0"   , Form("%s: JetTauLepMVsMVA"   ,dirname),  nmva_mbins, mva_mbins, nmva_bins, mva_bins, folder);
           Utilities::BookH2F(fEventHist[i]->hJetTauLepMVsMVA   [1], "jettaulepmvsmva1"   , Form("%s: JetTauLepMVsMVA"   ,dirname),  nmva_mbins, mva_mbins, nmva_bins, mva_bins, folder);
@@ -292,7 +292,7 @@ void JTTHistMaker::BookEventHistograms() {
           const double mva_mbins[] = {40., 60., 90., 170.}; //mass regions for (mass, bdt) closure
           // const double mva_mbins[] = {40., 60., 85., 100., 170.}; //mass regions for (mass, bdt) closure
           const int    nmva_mbins  = sizeof(mva_mbins) / sizeof(*mva_mbins) - 1;
-          const double mva_bins[] = {0., 0.15, 0.3, 0.5, 1.};
+          const double mva_bins[] = {0., 0.15, 0.3, 0.45, 1.};
           const int nmva_bins = sizeof(mva_bins) / sizeof(*mva_bins) - 1;
           Utilities::BookH2F(fEventHist[i]->hJetTauLepMVsMVA   [0], "jettaulepmvsmva0"   , Form("%s: JetTauLepMVsMVA"   ,dirname),  nmva_mbins, mva_mbins, nmva_bins, mva_bins, folder);
           Utilities::BookH2F(fEventHist[i]->hJetTauLepMVsMVA   [1], "jettaulepmvsmva1"   , Form("%s: JetTauLepMVsMVA"   ,dirname),  nmva_mbins, mva_mbins, nmva_bins, mva_bins, folder);
