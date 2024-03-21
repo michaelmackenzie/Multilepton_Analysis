@@ -393,82 +393,33 @@ std::vector<Double_t> MVAConfig::CDFBins(Int_t index, Int_t HistSet) {
   HistSet = HistSet % 100; //get the base set number
   TString selection = GetSelectionByIndex(index);
 
-  //FIXME: Temporary hack to test F(p) fits rather than p-value fits
+  //Use F(p) fits rather than p-value fits
   if(useCDF_ == 2) { //default to evenly spaced 0-1 binning for tests of F(p)
-    float default_width = 0.04;
+    float default_width = 0.04; //FIXME: Settle default width, nominally 0.04
     float xmin(0.f), xmax(1.f);
-    /* // Binning for F(p) = p^2 + 1/2*log(p)
-    if(selection == "zetau_mu") {
-      if(HistSet == 25) {xmin = 0.08f; xmax = 1.00f;} //central mass
-      if(HistSet == 26) {xmin = 0.08f; xmax = 0.56f;} //high mass
-      if(HistSet == 27) {xmin = 0.08f; xmax = 0.92f;} //low mass
-    }
-    if(selection == "zmutau_e") {
-      if(HistSet == 25) {xmin = 0.00f; xmax = 1.00f;} //central mass
-      if(HistSet == 26) {xmin = 0.00f; xmax = 0.56f;} //high mass
-      if(HistSet == 27) {xmin = 0.00f; xmax = 0.80f;} //low mass
-    }
-    if(selection == "zetau") {
-      if(HistSet == 25) {xmin = 0.12f; xmax = 1.00f;} //central mass
-      if(HistSet == 26) {xmin = 0.00f; xmax = 0.56f;} //high mass
-      if(HistSet == 27) {xmin = 0.00f; xmax = 0.84f;} //low mass
-      if(HistSet == 28) {xmin = 0.16f; xmax = 1.00f;} //zll mass
-    }
-    if(selection == "zmutau") {
-      if(HistSet == 25) {xmin = 0.00f; xmax = 1.00f;} //central mass
-      if(HistSet == 26) {xmin = 0.00f; xmax = 0.64f;} //high mass
-      if(HistSet == 27) {xmin = 0.00f; xmax = 0.92f;} //low mass
-      if(HistSet == 28) {xmin = 0.00f; xmax = 1.00f;} //zll mass
-    }
-    */
-    /*
-    // Binning for F(p) = p^2 + 1/4*log(p)
-    if(selection == "zetau_mu") {
-    if(HistSet == 25) {xmin = 0.08f; xmax = 1.00f;} //central mass
-    if(HistSet == 26) {xmin = 0.08f; xmax = 0.44f;} //high mass
-    if(HistSet == 27) {xmin = 0.08f; xmax = 1.00f;} //low mass
-    }
-    if(selection == "zmutau_e") {
-    if(HistSet == 25) {xmin = 0.00f; xmax = 1.00f;} //central mass
-    if(HistSet == 26) {xmin = 0.00f; xmax = 0.56f;} //high mass
-    if(HistSet == 27) {xmin = 0.00f; xmax = 0.80f;} //low mass
-    }
-    if(selection == "zetau") {
-    if(HistSet == 25) {xmin = 0.12f; xmax = 1.00f;} //central mass
-    if(HistSet == 26) {xmin = 0.00f; xmax = 0.52f;} //high mass
-    if(HistSet == 27) {xmin = 0.00f; xmax = 0.84f;} //low mass
-    if(HistSet == 28) {xmin = 0.12f; xmax = 1.00f;} //zll mass
-    }
-    if(selection == "zmutau") {
-    if(HistSet == 25) {xmin = 0.00f; xmax = 1.00f;} //central mass
-    if(HistSet == 26) {xmin = 0.00f; xmax = 0.60f;} //high mass
-    if(HistSet == 27) {xmin = 0.00f; xmax = 0.92f;} //low mass
-    if(HistSet == 28) {xmin = 0.00f; xmax = 1.00f;} //zll mass
-    }
-    */
 
     // Binning for F(p) = p^2 + 1/6*log(p)
     if(selection == "zetau_mu") {
     if(HistSet == 25) {xmin = 0.08f; xmax = 1.00f;} //central mass
-    if(HistSet == 26) {xmin = 0.08f; xmax = 0.28f;} //high mass
-    if(HistSet == 27) {xmin = 0.08f; xmax = 0.92f;} //low mass
+    if(HistSet == 26) {xmin = 0.00f; xmax = 0.30f; default_width = 0.10;} //high mass
+    if(HistSet == 27) {xmin = 0.08f; xmax = 0.90f; default_width = 0.05;} //low mass
     }
     if(selection == "zmutau_e") {
     if(HistSet == 25) {xmin = 0.00f; xmax = 1.00f;} //central mass
-    if(HistSet == 26) {xmin = 0.00f; xmax = 0.36f;} //high mass
-    if(HistSet == 27) {xmin = 0.00f; xmax = 0.56f;} //low mass
+    if(HistSet == 26) {xmin = 0.00f; xmax = 0.30f; default_width = 0.10;} //high mass
+    if(HistSet == 27) {xmin = 0.08f; xmax = 0.45f; default_width = 0.05;} //low mass
     }
     if(selection == "zetau") {
-    if(HistSet == 25) {xmin = 0.12f; xmax = 1.00f;} //central mass
-    if(HistSet == 26) {xmin = 0.00f; xmax = 0.36f;} //high mass
-    if(HistSet == 27) {xmin = 0.00f; xmax = 0.60f;} //low mass
-    if(HistSet == 28) {xmin = 0.12f; xmax = 1.00f;} //zll mass
+    if(HistSet == 25) {xmin = 0.16f; xmax = 1.00f;} //central mass
+    if(HistSet == 26) {xmin = 0.00f; xmax = 0.30f; default_width = 0.05;} //high mass
+    if(HistSet == 27) {xmin = 0.10f; xmax = 0.50f; default_width = 0.05;} //low mass
+    if(HistSet == 28) {xmin = 0.15f; xmax = 0.85f; default_width = 0.05;} //zll mass
     }
     if(selection == "zmutau") {
-    if(HistSet == 25) {xmin = 0.00f; xmax = 1.00f;} //central mass
-    if(HistSet == 26) {xmin = 0.00f; xmax = 0.44f;} //high mass
-    if(HistSet == 27) {xmin = 0.00f; xmax = 0.72f;} //low mass
-    if(HistSet == 28) {xmin = 0.00f; xmax = 1.00f;} //zll mass
+    if(HistSet == 25) {xmin = 0.08f; xmax = 1.00f;} //central mass
+    if(HistSet == 26) {xmin = 0.00f; xmax = 0.30f; default_width = 0.05;} //high mass
+    if(HistSet == 27) {xmin = 0.00f; xmax = 0.68f;} //low mass
+    if(HistSet == 28) {xmin = 0.12f; xmax = 0.90f; default_width = 0.05;} //zll mass
     }
 
     const int ndefault = std::ceil(1.f/default_width) + 1;
