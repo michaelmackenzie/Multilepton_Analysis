@@ -32,6 +32,7 @@
 
 // c++ includes
 #include <iostream>
+#include <stdexcept>
 
 // local includes
 #include "interface/GlobalConstants.h"
@@ -516,6 +517,20 @@ namespace CLFV {
 
     std::pair<float, float> OverallSystematicWeights();
 
+    //Quick function to propogate an event pT change to the MET
+    float METUpdate(float ptdiff, float phi, float* new_met_phi = nullptr) {
+      float new_met(met);
+      const float met_x(met*std::cos(metPhi)), met_y(met*std::sin(metPhi));
+      const float diff_x(ptdiff*std::cos(phi)), diff_y(ptdiff*std::sin(phi));
+      const float new_x(met_x - diff_x), new_y(met_y - diff_y); //subtract the change in the object pT from the MET to balance it out
+      new_met = std::sqrt(std::pow(new_x, 2) + std::pow(new_y,2));
+      if(new_met_phi) *new_met_phi = std::acos(std::max(-1.f, std::min(1.f, new_x/new_met)))*(new_y < 0.f ? -1 : 1);
+      return new_met;
+    }
+
+    //Approximate the MET up/down variations
+    std::pair<float,float> ApproxMETSys();
+
     //Apply trigger selection
     bool    PassesTrigger(float buffer = 0.f /* for wider window trigger selection*/) {
       bool triggered(false);
@@ -692,8 +707,11 @@ namespace CLFV {
 
     //Check if this event is being split to a different output/run
     Bool_t SplitSampleEvent() {
-      if(fIsData) return kFALSE;
-      //DY Splitting
+      if(fIsData) return kFALSE; //keep all data events
+
+      //////////////////////
+      // DY Splitting
+
       if(fDYType > 0) {
         // 1 = tau, 2 = muon or electron channel
         if(nGenHardTaus == 0) { //Z->ee/mumu
@@ -717,10 +735,16 @@ namespace CLFV {
         }
       }
 
+      //////////////////////
+      // W+jets Splitting
+
       //split W+Jets into N(LHE jets) generated for binned sample combination
       if(fWNJets > -1 && LHE_Njets != fWNJets) {
         return kTRUE;
       }
+
+      //////////////////////
+      // MC tau-tau (or ll)
 
       //If running embedding, reject di-tau production from non-embedding MC (except tau-tau DY MC, which is already separated by histogram files)
       //If testing ee/mumu with embedding, reject ee/mumu events instead

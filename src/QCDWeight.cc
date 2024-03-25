@@ -3,17 +3,18 @@
 using namespace CLFV;
 
 //-------------------------------------------------------------------------------------------------------------------------
-QCDWeight::QCDWeight(const TString selection, const int Mode, const int only_year, const int verbose) : verbose_(verbose) {
+QCDWeight::QCDWeight(const TString selection, const int Mode, int only_year, const int verbose) : verbose_(verbose) {
 
-  useFits_        = (Mode %        10) /        1 == 1;
-  useDeltaPhi_    = (Mode %       100) /       10 == 1;
-  useEtaClosure_  = (Mode %      1000) /      100 == 1;
-  use2DPtClosure_ = (Mode %      1000) /      100 == 2;
-  use2DScale_     = (Mode %     10000) /     1000 == 1;
-  useDeltaRSys_   = (Mode %    100000) /    10000 == 1;
-  useJetBinned_   = (Mode %   1000000) /   100000 == 1;
-  useAntiIso_     = (Mode %  10000000) /  1000000 == 1;
-  useLepMVsBDT_   = (Mode % 100000000) / 10000000; //0: none; 1: mutau_e BDT; 2: etau_mu BDT
+  useFits_        = (Mode %         10) /         1 == 1;
+  useDeltaPhi_    = (Mode %        100) /        10 == 1;
+  useEtaClosure_  = (Mode %       1000) /       100 == 1;
+  use2DPtClosure_ = (Mode %       1000) /       100 == 2;
+  use2DScale_     = (Mode %      10000) /      1000 == 1;
+  useDeltaRSys_   = (Mode %     100000) /     10000 == 1;
+  useJetBinned_   = (Mode %    1000000) /    100000 == 1;
+  useAntiIso_     = (Mode %   10000000) /   1000000 == 1;
+  useLepMVsBDT_   = (Mode %  100000000) /  10000000; //0: none; 1: mutau_e BDT; 2: etau_mu BDT
+  useRun2_        = (Mode % 1000000000) / 100000000;
 
   const char* tag = (useLepMVsBDT_ == 1) ? "mutau_e" : (useLepMVsBDT_ == 2) ? "etau_mu" : "emu";
 
@@ -27,12 +28,18 @@ QCDWeight::QCDWeight(const TString selection, const int Mode, const int only_yea
               << " useJetBinned = " << useJetBinned_
               << " useAntiIso_ = " << useAntiIso_
               << " useLepMVsBDT_ = " << useLepMVsBDT_
+              << " useRun2_ = " << useRun2_
               << " tag = " << tag
               << std::endl;
   }
 
-  TFile* f = 0;
   std::vector<int> years = {2016, 2017, 2018};
+  if(useRun2_ == 1) { //store Run 2 scales in 2016 slot
+    only_year = 2016;
+    years = {2016};
+  }
+
+  TFile* f = 0;
   const TString hist = (useDeltaPhi_) ? "hRatio_lepdeltaphi1" : "hRatio";
   const TString hist_2D = (useDeltaPhi_) ? "hRatio_lepdelphivsoneeta" : "hRatio_lepdelrvsoneeta";
   TString hist_closure = "hClosure_oneeta";
@@ -56,10 +63,14 @@ QCDWeight::QCDWeight(const TString selection, const int Mode, const int only_yea
   for(int year : years) {
     if(only_year > 2000 && year != only_year) continue;
     //get the SS --> OS scale factors measured
-    f = TFile::Open(Form("%s/qcd_scale_%s_%i.root", path.Data(), selection.Data(), year), "READ");
+    if(useRun2_ == 1) {
+      f = TFile::Open(Form("%s/qcd_scale_%s_2016_2017_2018.root", path.Data(), selection.Data()), "READ");
+    } else {
+      f = TFile::Open(Form("%s/qcd_scale_%s_%i.root", path.Data(), selection.Data(), year), "READ");
+    }
     if(f) {
       ///////////////////////////////////////////
-      //Get Data histogram
+      //Get the SS --> OS histogram
       ///////////////////////////////////////////
       histsData_[year] = (TH1*) f->Get(hist.Data());
       if(!histsData_[year]) {
@@ -70,7 +81,7 @@ QCDWeight::QCDWeight(const TString selection, const int Mode, const int only_yea
         histsData_[year]->SetDirectory(0);
       }
       ///////////////////////////////////////////
-      //Get 2D Data histogram
+      //Get 2D SS --> OS histogram
       ///////////////////////////////////////////
       hists2DData_[year] = (TH2D*) f->Get(hist_2D.Data());
       if(!hists2DData_[year]) {
@@ -82,7 +93,7 @@ QCDWeight::QCDWeight(const TString selection, const int Mode, const int only_yea
       }
 
       ///////////////////////////////////////////
-      //Get Data Fit
+      //Get SS --> OS Fit
       ///////////////////////////////////////////
       fitsData_[year] = (TF1*) f->Get("fRatio");
       if(!fitsData_[year]) {
@@ -94,7 +105,7 @@ QCDWeight::QCDWeight(const TString selection, const int Mode, const int only_yea
       }
 
       ///////////////////////////////////////////
-      //Get Data Fit Error
+      //Get SS --> OS Fit Error
       ///////////////////////////////////////////
       fitErrData_[year] = (TH1*) f->Get("fit_1s_err");
       if(!fitErrData_[year]) {
@@ -106,7 +117,7 @@ QCDWeight::QCDWeight(const TString selection, const int Mode, const int only_yea
       }
 
       ///////////////////////////////////////////
-      //Get jet-binned results
+      //Get jet-binned SS --> OS versions
       ///////////////////////////////////////////
 
       //binned in: 0 jets, 1 jet, >= 2 jets
@@ -169,6 +180,16 @@ QCDWeight::QCDWeight(const TString selection, const int Mode, const int only_yea
           down->SetName(Form("%s_%s_%i", down->GetName(), tag, year));
           down->AddToGlobalList();
         }
+      }
+
+      if(useRun2_ == 2) {
+        f->Close(); //close the current file
+        delete f;
+        if(only_year < 2016 && year > 2016) continue; //if processing all years, only retrieve corrections for 2016 slot
+        year = 2016; //for the 2016 slot
+        //open the Run 2 file
+        f = TFile::Open(Form("%s/qcd_scale_%s_2016_2017_2018.root", path.Data(), selection.Data()), "READ");
+        if(!f) continue;
       }
 
       ///////////////////////////////////////////
@@ -256,18 +277,19 @@ QCDWeight::~QCDWeight() {
 
 //-------------------------------------------------------------------------------------------------------------------------
 //Get scale factor for Data
-float QCDWeight::GetWeight(float deltar, float deltaphi, float oneeta, float onept, float twopt, float mass, float bdt, const int year, int njets, const bool isantiiso,
+float QCDWeight::GetWeight(float deltar, float deltaphi, float oneeta, float onept, float twopt, float mass, float bdt, int year, int njets, const bool isantiiso,
                            float& nonclosure, float& antiiso, float& massbdt, float* up, float* down, int& nsys) {
   njets = std::max(0, std::min(njets, 2)); //jet-bins: 0, 1, >=2
+  if(useRun2_ == 1) year = 2016; //Run 2 scales use the 2016 slot
   TH1* h          = (useJetBinned_) ? jetBinnedHists_  [10*year + njets] : histsData_ [year];
   TF1* f          = (useJetBinned_) ? jetBinnedFits_   [10*year + njets] : fitsData_  [year];
   TH1* fErr       = (useJetBinned_) ? jetBinnedFitErrs_[10*year + njets] : fitErrData_[year];
-  TH1* hClosure   = histsClosure_[year];
-  TH2* h2DClosure = Pt2DClosure_[year];
-  TH1* hSys       = histsSys_[year];
-  TH2* h2D        = hists2DData_[year];
-  TH2* hAntiIso   = AntiIsoScale_[year]; //muon anti-iso --> iso scale
-  TH2* hLepMVsBDT = LepMVsBDTScale_[year]; //(mass, bdt score) bias correction
+  TH1* hClosure   = histsClosure_  [(useRun2_ == 2) ? 2016 : year];
+  TH2* h2DClosure = Pt2DClosure_   [(useRun2_ == 2) ? 2016 : year];
+  TH1* hSys       = histsSys_      [(useRun2_ == 2) ? 2016 : year];
+  TH2* h2D        = hists2DData_   [(useRun2_ == 2) ? 2016 : year];
+  TH2* hAntiIso   = AntiIsoScale_  [(useRun2_ == 2) ? 2016 : year]; //muon anti-iso --> iso scale
+  TH2* hLepMVsBDT = LepMVsBDTScale_[(useRun2_ == 2) ? 2016 : year]; //(mass, bdt score) bias correction
 
   std::vector<TF1*> altFitsUp   = (useJetBinned_) ? altJetFitsUp_  [10*year + njets] : std::vector<TF1*>();
   std::vector<TF1*> altFitsDown = (useJetBinned_) ? altJetFitsDown_[10*year + njets] : std::vector<TF1*>();
@@ -482,6 +504,7 @@ float QCDWeight::GetWeight(float deltar, float deltaphi, float oneeta, float one
                              << " for year = " << year << std::endl;
       massbdt = 1.f;
     }
+    massbdt = std::max(0.3f, std::max(3.f, massbdt)); //constrain to a factor of 3 correction
   } else {
     massbdt = 1.f;
   }

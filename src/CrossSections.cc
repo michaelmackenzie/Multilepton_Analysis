@@ -51,7 +51,12 @@ CrossSections::CrossSections(int /*useUL*/, int /*ZMode*/) {
   values_["ttbarlnu"                ][2016] =  88.29  ; //87.31  ;
   values_["ttbarToHadronic"         ][2016] =  377.96 ;
   values_["ggFH-TauTau"             ][2016] =  3.05   ; //ggF H->tautau, taken from LFV H AN 2020/087
+  values_["VBFH-TauTau"             ][2016] =  0.237  ; //VBF H->tautau, taken from LFV H AN 2020/087
+  values_["ZH-TauTau"               ][2016] =  0.0594 ; //ZH  H->tautau, taken from LFV H AN 2020/087
+  values_["WminusH-TauTau"          ][2016] =  0.0358 ; //W-  H->tautau, taken from LFV H AN 2020/087
+  values_["WplusH-TauTau"           ][2016] =  0.0527 ; //W+  H->tautau, taken from LFV H AN 2020/087
   values_["ggFH-WW"                 ][2016] =  1.001  ; //ggF H->WW->2l 2nu, taken from LFV H AN 2020/087
+  values_["VBFH-WW"                 ][2016] =  0.0858 ; //VBF H->WW->2l 2nu, taken from LFV H AN 2020/087
   values_["SingleEle"               ][2016] =  1.     ;
   values_["SingleMu"                ][2016] =  1.     ;
   values_["QCDEMEnrich15to20"       ][2016] = 1327000.;
@@ -306,6 +311,89 @@ CrossSections::CrossSections(int /*useUL*/, int /*ZMode*/) {
   numbers_[2017]["DY50"    ] =  25757729;
   numbers_[2017]["DY50-ext"] = 186217773;
   numbers_[2018]["DY50"    ] = 100194597;
+
+  /////////////////////////////////////////////////
+  //Dataset counts
+
+  //2016
+  numbers_[2016]["SingleMuonRun2016B"    ] = 158145722;
+  numbers_[2016]["SingleMuonRun2016C"    ] =  67441308;
+  numbers_[2016]["SingleMuonRun2016D"    ] =  98017996;
+  numbers_[2016]["SingleMuonRun2016E"    ] =  90984718;
+  numbers_[2016]["SingleMuonRun2016F"    ] =  65489554;
+  numbers_[2016]["SingleMuonRun2016G"    ] = 149912248;
+  numbers_[2016]["SingleMuonRun2016H"    ] = 174035164;
+
+  numbers_[2016]["SingleElectronRun2016B"] = 246440440;
+  numbers_[2016]["SingleElectronRun2016C"] =  97259854;
+  numbers_[2016]["SingleElectronRun2016D"] = 148167727;
+  numbers_[2016]["SingleElectronRun2016E"] = 117321545;
+  numbers_[2016]["SingleElectronRun2016F"] =  70593532;
+  numbers_[2016]["SingleElectronRun2016G"] = 153363109;
+  numbers_[2016]["SingleElectronRun2016H"] = 129021893;
+
+  //2017
+  numbers_[2017]["SingleMuonRun2017B"    ] = 136300266;
+  numbers_[2017]["SingleMuonRun2017C"    ] = 165652756;
+  numbers_[2017]["SingleMuonRun2017D"    ] =  70361660;
+  numbers_[2017]["SingleMuonRun2017E"    ] = 154630534;
+  numbers_[2017]["SingleMuonRun2017F"    ] = 242135500;
+
+  numbers_[2017]["SingleElectronRun2017B"] =  60537490;
+  numbers_[2017]["SingleElectronRun2017C"] = 136637888;
+  numbers_[2017]["SingleElectronRun2017D"] =  51526710;
+  numbers_[2017]["SingleElectronRun2017E"] = 102121689;
+  numbers_[2017]["SingleElectronRun2017F"] = 128467223;
+
+  //2018
+  numbers_[2018]["SingleMuonRun2018A"    ] = 241608232;
+  numbers_[2018]["SingleMuonRun2018B"    ] = 119918017;
+  numbers_[2018]["SingleMuonRun2018C"    ] = 110032072;
+  numbers_[2018]["SingleMuonRun2018D"    ] = 514116477;
+
+  numbers_[2018]["SingleElectronRun2018A"] = 327843843;
+  numbers_[2018]["SingleElectronRun2018B"] = 153822427;
+  numbers_[2018]["SingleElectronRun2018C"] = 147827904;
+  numbers_[2018]["SingleElectronRun2018D"] = 754798781;
+
+  //for alternate naming
+  numbers_[2016]["SingleMuon-B"    ] = numbers_[2016]["SingleMuonRun2016B"    ];
+  numbers_[2016]["SingleMuon-C"    ] = numbers_[2016]["SingleMuonRun2016C"    ];
+  numbers_[2016]["SingleMuon-D"    ] = numbers_[2016]["SingleMuonRun2016D"    ];
+  numbers_[2016]["SingleMuon-E"    ] = numbers_[2016]["SingleMuonRun2016E"    ];
+  numbers_[2016]["SingleMuon-F"    ] = numbers_[2016]["SingleMuonRun2016F"    ];
+  numbers_[2016]["SingleMuon-G"    ] = numbers_[2016]["SingleMuonRun2016G"    ];
+  numbers_[2016]["SingleMuon-H"    ] = numbers_[2016]["SingleMuonRun2016H"    ];
+
+  numbers_[2016]["SingleElectron-B"] = numbers_[2016]["SingleElectronRun2016B"];
+  numbers_[2016]["SingleElectron-C"] = numbers_[2016]["SingleElectronRun2016C"];
+  numbers_[2016]["SingleElectron-D"] = numbers_[2016]["SingleElectronRun2016D"];
+  numbers_[2016]["SingleElectron-E"] = numbers_[2016]["SingleElectronRun2016E"];
+  numbers_[2016]["SingleElectron-F"] = numbers_[2016]["SingleElectronRun2016F"];
+  numbers_[2016]["SingleElectron-G"] = numbers_[2016]["SingleElectronRun2016G"];
+  numbers_[2016]["SingleElectron-H"] = numbers_[2016]["SingleElectronRun2016H"];
+
+  numbers_[2017]["SingleMuon-B"    ] = numbers_[2017]["SingleMuonRun2017B"    ];
+  numbers_[2017]["SingleMuon-C"    ] = numbers_[2017]["SingleMuonRun2017C"    ];
+  numbers_[2017]["SingleMuon-D"    ] = numbers_[2017]["SingleMuonRun2017D"    ];
+  numbers_[2017]["SingleMuon-E"    ] = numbers_[2017]["SingleMuonRun2017E"    ];
+  numbers_[2017]["SingleMuon-F"    ] = numbers_[2017]["SingleMuonRun2017F"    ];
+
+  numbers_[2017]["SingleElectron-B"] = numbers_[2017]["SingleElectronRun2017B"];
+  numbers_[2017]["SingleElectron-C"] = numbers_[2017]["SingleElectronRun2017C"];
+  numbers_[2017]["SingleElectron-D"] = numbers_[2017]["SingleElectronRun2017D"];
+  numbers_[2017]["SingleElectron-E"] = numbers_[2017]["SingleElectronRun2017E"];
+  numbers_[2017]["SingleElectron-F"] = numbers_[2017]["SingleElectronRun2017F"];
+
+  numbers_[2018]["SingleMuon-A"    ] = numbers_[2018]["SingleMuonRun2018A"    ];
+  numbers_[2018]["SingleMuon-B"    ] = numbers_[2018]["SingleMuonRun2018B"    ];
+  numbers_[2018]["SingleMuon-C"    ] = numbers_[2018]["SingleMuonRun2018C"    ];
+  numbers_[2018]["SingleMuon-D"    ] = numbers_[2018]["SingleMuonRun2018D"    ];
+
+  numbers_[2018]["SingleElectron-A"] = numbers_[2018]["SingleElectronRun2018A"];
+  numbers_[2018]["SingleElectron-B"] = numbers_[2018]["SingleElectronRun2018B"];
+  numbers_[2018]["SingleElectron-C"] = numbers_[2018]["SingleElectronRun2018C"];
+  numbers_[2018]["SingleElectron-D"] = numbers_[2018]["SingleElectronRun2018D"];
 
   /////////////////////////////////////////////////
   //Embedding generation numbers (NANO, not MINI)

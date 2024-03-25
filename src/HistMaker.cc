@@ -134,7 +134,7 @@ void HistMaker::Begin(TTree * /*tree*/)
   fPrefireWeight = new PrefireWeight();
   fZPtWeight = new ZPtWeight("MuMu", 1);
   fCutFlow = new TH1D("hcutflow", "Cut-flow", 100, 0, 100);
-  const int qcd_weight_mode = (fSelection == "mutau_e") ? 11100201 : (fSelection == "etau_mu") ? 21100201 : 1100201; //(mass, bdt score) bias, anti-iso, jet binned, 2D pt closure, use fits
+  const int qcd_weight_mode = (fSelection == "mutau_e") ? 211100201 : (fSelection == "etau_mu") ? 221100201 : 21100201; //use Run 2 closure/bias, (mass, bdt score) bias, anti-iso, jet binned, 2D pt closure, use fits
   fQCDWeight = new QCDWeight("emu", qcd_weight_mode, fYear, fVerbose);
 
   //FIXME: Added back W+Jets MC bias (Mode = 10100300, 60100300 for only MC lepm bias shape)
@@ -610,8 +610,8 @@ void HistMaker::BookBaseEventHistograms(Int_t i, const char* dirname) {
       Utilities::BookH1F(fEventHist[i]->hDeltaAlpha[3]     , "deltaalpha3"      , Form("%s: Delta Alpha (H) 1"   ,dirname),  80,  -5,  10, folder);
       Utilities::BookH1F(fEventHist[i]->hDeltaAlphaM[0]    , "deltaalpham0"     , Form("%s: Delta Alpha M 0"     ,dirname),  80,  40, 180, folder);
       Utilities::BookH1F(fEventHist[i]->hDeltaAlphaM[1]    , "deltaalpham1"     , Form("%s: Delta Alpha M 1"     ,dirname),  80,  40, 180, folder);
-      Utilities::BookH1F(fEventHist[i]->hBeta[0]           , "beta0"            , Form("%s: Beta (Z) 0"          ,dirname),  60,   0,  3., folder);
-      Utilities::BookH1F(fEventHist[i]->hBeta[1]           , "beta1"            , Form("%s: Beta (Z) 1"          ,dirname),  60,   0,  3., folder);
+      Utilities::BookH1F(fEventHist[i]->hBeta[0]           , "beta0"            , Form("%s: Beta (Z) 0"          ,dirname), 100,   0,  5., folder);
+      Utilities::BookH1F(fEventHist[i]->hBeta[1]           , "beta1"            , Form("%s: Beta (Z) 1"          ,dirname), 100,   0,  5., folder);
 
       Utilities::BookH1F(fEventHist[i]->hPTauVisFrac    , "ptauvisfrac"    , Form("%s: visible tau pT fraction " ,dirname)  , 50,0.,  1.5, folder);
 
@@ -2295,6 +2295,16 @@ void HistMaker::InitializeEventWeights() {
 
   eventWeight *= jetToTauWeightBias;
 
+  //Test that the j-->tau weights are sensible
+  if((mutau || etau) && isLooseTau) {
+    const float test_jtt_wt = EvalJetToTauStatSys(JetToTauComposition::kLast, 1, 0, true);
+    if(std::fabs(jetToTauWeightBias - test_jtt_wt) > 1.e-5f) {
+      printf("HistMaker::%s: Entry %lld: j-->tau stat sys implementation is wrong: wt = %.4f, eval = %.4f\n",
+             __func__, fentry, jetToTauWeightBias, test_jtt_wt);
+      throw std::runtime_error("Bad j-->tau Stat Sys test");
+    }
+  }
+
   ///////////////////////
   // SS --> OS weights //
   ///////////////////////
@@ -3816,34 +3826,20 @@ void HistMaker::FillBaseEventHistogram(EventHist_t* Hist) {
   Hist->hNuPt              ->Fill((fIsData) ? met : eventNuPt, genWeight*eventWeight)      ;
   Hist->hDetectorMet       ->Fill(eventDetectorMet   , genWeight*eventWeight)      ;
   //approximate met uncertainty
-  float met_err_up(0.f), met_err_down(0.f);
-  if(fIsEmbed && fEmbedUseMETUnc > 0) {
-    if(fEmbedUseMETUnc == 1) { //use provided MET errors for JER/JES to approximate the error
-      met_err_up   =     std::sqrt(std::pow(puppMETJERUp   - puppMET, 2) + std::pow(puppMETJESUp   - puppMET, 2))/puppMET;
-      met_err_down = -1.*std::sqrt(std::pow(puppMETJERDown - puppMET, 2) + std::pow(puppMETJESDown - puppMET, 2))/puppMET;
-    } else if(fEmbedUseMETUnc == 2) { //use the MET - neutrino momentum added to approximate the error
-      const float embed_met_err = (puppMETJESUp-met)/met; //JES uncertainty is re-used for this uncertainty
-      met_err_up   = embed_met_err;
-      met_err_down = 0.f; //embed_met_err;
-    }
-  } else if(!fIsData && !fIsEmbed) { //MC
-    met_err_up   =     std::sqrt(std::pow(puppMETJERUp   - puppMET, 2) + std::pow(puppMETJESUp   - puppMET, 2))/puppMET;
-    met_err_down = -1.*std::sqrt(std::pow(puppMETJERDown - puppMET, 2) + std::pow(puppMETJESDown - puppMET, 2))/puppMET;
-  }
-  //Make up correspond to higher met and down to lower
-  if(met_err_up < met_err_down) std::swap(met_err_up, met_err_down);
-  Hist->hMetUp  ->Fill(std::max(0.f, met*(1.f+met_err_up  )), genWeight*eventWeight);
-  Hist->hMetDown->Fill(std::max(0.f, met*(1.f+met_err_down)), genWeight*eventWeight);
+  auto met_sys = ApproxMETSys();
+  Hist->hMetUp  ->Fill(met_sys.first , genWeight*eventWeight);
+  Hist->hMetDown->Fill(met_sys.second, genWeight*eventWeight);
+
   //met if no corrections were applied
   const float met_x_orig(met*std::cos(metPhi) - metCorr*std::cos(metCorrPhi)), met_y_orig(met*std::sin(metPhi) - metCorr*std::sin(metCorrPhi));
   const float met_no_corr(std::sqrt(met_x_orig*met_x_orig + met_y_orig*met_y_orig));
   Hist->hMetNoCorr         ->Fill(met_no_corr        , eventWeight*genWeight);
 
   //mt(x, y) ~ sqrt(x*y) --> mt(x+-sigma_x,y) ~ sqrt(x+-sigma_x)/sqrt(x)*mt, sigma(mt) ~ mt*sqrt((x+-sigma_x)/x + (y+-sigma_y)/y)
-  float mtone_up   = fTreeVars.mtone*std::sqrt((leptonOne.pt_up  ()/leptonOne.pt) + met*(1.f+met_err_up  ));
-  float mtone_down = fTreeVars.mtone*std::sqrt((leptonOne.pt_down()/leptonOne.pt) + met*(1.f+met_err_down));
-  float mttwo_up   = fTreeVars.mttwo*std::sqrt((leptonTwo.pt_up  ()/leptonTwo.pt) + met*(1.f+met_err_up  ));
-  float mttwo_down = fTreeVars.mttwo*std::sqrt((leptonTwo.pt_down()/leptonTwo.pt) + met*(1.f+met_err_down));
+  float mtone_up   = fTreeVars.mtone*std::sqrt((leptonOne.pt_up  ()/leptonOne.pt) + (met_sys.first )/met);
+  float mtone_down = fTreeVars.mtone*std::sqrt((leptonOne.pt_down()/leptonOne.pt) + (met_sys.second)/met);
+  float mttwo_up   = fTreeVars.mttwo*std::sqrt((leptonTwo.pt_up  ()/leptonTwo.pt) + (met_sys.first )/met);
+  float mttwo_down = fTreeVars.mttwo*std::sqrt((leptonTwo.pt_down()/leptonTwo.pt) + (met_sys.second)/met);
   Hist->hMTOne             ->Fill(fTreeVars.mtone    , eventWeight*genWeight);
   Hist->hMTOneUp           ->Fill(mtone_up           , eventWeight*genWeight);
   Hist->hMTOneDown         ->Fill(mtone_down         , eventWeight*genWeight);
@@ -4903,6 +4899,65 @@ float HistMaker::EvalEmbBDTUncertainty(TString selection) {
 }
 
 //--------------------------------------------------------------------------------------------------------------
+// Get the approximate overall MET variations
+std::pair<float,float> HistMaker::ApproxMETSys() {
+  if(fIsData) return std::pair<float,float>(met,met); //no uncertainty on the data MET
+
+  //Add fractional sources of uncertainty in quadrature as METErr/MET
+  float met_err_up(0.f), met_err_down(0.f);
+
+  //Add the JER/JES uncertainties
+  if(!fIsData && (!fIsEmbed || fEmbedUseMETUnc == 1)) {
+    met_err_up   = std::sqrt(std::pow(puppMETJERUp   - puppMET, 2) + std::pow(puppMETJESUp   - puppMET, 2))/puppMET;
+    met_err_down = std::sqrt(std::pow(puppMETJERDown - puppMET, 2) + std::pow(puppMETJESDown - puppMET, 2))/puppMET;
+  }
+
+  //Add detector MET uncertainty in Embedding if requested
+  if(fIsEmbed && fEmbedUseMETUnc == 2) {
+    const float embed_met_err = (puppMETJESUp-met)/met; //JES uncertainty is re-used for this uncertainty
+    met_err_up   = embed_met_err;
+    met_err_down = 0.f; //embed_met_err;
+  }
+
+  //Add the lepton energy scale variations to the MET
+  if(std::abs(leptonOne.flavor) == std::abs(leptonTwo.flavor)) { //correlate the two legs
+    float met_diff_up   = METUpdate(leptonOne.pt_up()   - leptonOne.pt, leptonOne.phi) - met;
+    float met_diff_down = METUpdate(leptonOne.pt_down() - leptonOne.pt, leptonOne.phi) - met;
+    met_diff_up        += METUpdate(leptonTwo.pt_up()   - leptonTwo.pt, leptonTwo.phi) - met;
+    met_diff_down      += METUpdate(leptonTwo.pt_down() - leptonTwo.pt, leptonTwo.phi) - met;
+    met_err_up   = std::sqrt(std::pow(met_err_up  , 2) + std::pow(met_diff_up  /met, 2));
+    met_err_down = std::sqrt(std::pow(met_err_down, 2) + std::pow(met_diff_down/met, 2));
+  } else { //add lepton ES in quadrature
+    met_err_up   = std::sqrt(std::pow(met_err_up  , 2) + std::pow(METUpdate(leptonOne.pt_up()   - leptonOne.pt, leptonOne.phi)/met - 1.f, 2));
+    met_err_down = std::sqrt(std::pow(met_err_down, 2) + std::pow(METUpdate(leptonOne.pt_down() - leptonOne.pt, leptonOne.phi)/met - 1.f, 2));
+    met_err_up   = std::sqrt(std::pow(met_err_up  , 2) + std::pow(METUpdate(leptonTwo.pt_up()   - leptonTwo.pt, leptonTwo.phi)/met - 1.f, 2));
+    met_err_down = std::sqrt(std::pow(met_err_down, 2) + std::pow(METUpdate(leptonTwo.pt_down() - leptonTwo.pt, leptonTwo.phi)/met - 1.f, 2));
+  }
+
+  //Add the lepton energy resolution variations to the MET (Embedding only)
+  if(fIsEmbed) {
+    if(std::abs(leptonOne.flavor) == std::abs(leptonTwo.flavor)) { //correlate the two legs
+      float met_diff_up   = METUpdate(leptonOne.pt_res_up()   - leptonOne.pt, leptonOne.phi) - met;
+      float met_diff_down = METUpdate(leptonOne.pt_res_down() - leptonOne.pt, leptonOne.phi) - met;
+      met_diff_up        += METUpdate(leptonTwo.pt_res_up()   - leptonTwo.pt, leptonTwo.phi) - met;
+      met_diff_down      += METUpdate(leptonTwo.pt_res_down() - leptonTwo.pt, leptonTwo.phi) - met;
+      met_err_up   = std::sqrt(std::pow(met_err_up  , 2) + std::pow(met_diff_up  /met, 2));
+      met_err_down = std::sqrt(std::pow(met_err_down, 2) + std::pow(met_diff_down/met, 2));
+    } else { //add lepton ES in quadrature
+      met_err_up   = std::sqrt(std::pow(met_err_up  , 2) + std::pow(METUpdate(leptonOne.pt_res_up()   - leptonOne.pt, leptonOne.phi)/met - 1.f, 2));
+      met_err_down = std::sqrt(std::pow(met_err_down, 2) + std::pow(METUpdate(leptonOne.pt_res_down() - leptonOne.pt, leptonOne.phi)/met - 1.f, 2));
+      met_err_up   = std::sqrt(std::pow(met_err_up  , 2) + std::pow(METUpdate(leptonTwo.pt_res_up()   - leptonTwo.pt, leptonTwo.phi)/met - 1.f, 2));
+      met_err_down = std::sqrt(std::pow(met_err_down, 2) + std::pow(METUpdate(leptonTwo.pt_res_down() - leptonTwo.pt, leptonTwo.phi)/met - 1.f, 2));
+    }
+  }
+
+  float met_up   = std::max(0.f, met*(1.f + met_err_up  ));
+  float met_down = std::max(0.f, met*(1.f + met_err_down));
+  if(met_up < met_down) std::swap(met_up, met_down);
+  return std::pair<float,float>(met_up, met_down);
+}
+
+//--------------------------------------------------------------------------------------------------------------
 // Get the non-closure systematic variation on a j-->tau weight
 float HistMaker::EvalJetToTauStatSys(int process, int dm_bin, int param_bin, bool up) {
   const float wt(eventWeight*genWeight); //nominal event weight
@@ -4953,7 +5008,8 @@ float HistMaker::EvalJetToTauNCSys(int process, bool up) {
       base *= fJetToTauBiases[iproc];
     }
     //take up as applying the correction twice, down as no correction
-    wt_alt += base * ((test) ? (up) ? fJetToTauCorrs[iproc]*fJetToTauCorrs[iproc] : 1.f : fJetToTauCorrs[iproc]);
+    if(test) wt_alt += base * ((up) ? fJetToTauCorrs[iproc]*fJetToTauCorrs[iproc] : 1.f);
+    else     wt_alt += base * fJetToTauCorrs[iproc]; //apply the correction as normal for non-selected processes
   }
   const float sys_wt = wt * (wt_alt / jetToTauWeightBias);
   return sys_wt;

@@ -2871,7 +2871,7 @@ Int_t DataPlotter::add_dataset(TString filepath, TString name, TString label, bo
   input.label_ = label;
   input.isData_ = isData;
   input.isEmbed_ = isEmbed;
-  input.xsec_ = (isData) ? 1. : xsec;
+  input.xsec_ = xsec; //(isData) ? 1. : xsec;
   input.isSignal_ = isSignal;
   input.color_ = color;
   int dataYear = 0;

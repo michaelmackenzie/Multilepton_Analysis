@@ -77,7 +77,7 @@ namespace CLFV {
       case   8: return Data(isys, "EleRecoID"     , false);
       case   9: return Data(isys, "MuonIsoID"     , true );
       case  10: return Data(isys, "MuonIsoID"     , false);
-      case  11: return Data(isys, "TauES"         , true );
+      case  11: return Data(isys, "TauES"         , true ); //FIXME: Remove and switch to DM-binned ES
       case  12: return Data(isys, "TauES"         , false);
       case  13: return Data(isys, "EmbMuonID"     , true );
       case  14: return Data(isys, "EmbMuonID"     , false);
@@ -107,8 +107,6 @@ namespace CLFV {
       case  36: return Data(isys, "EmbEleRes"     , false);
       // case  33: return Data(isys, "Lumi"          , true );
       // case  34: return Data(isys, "Lumi"          , false);
-      // case  35: return Data(isys, "EmbedUnfold"   , true );
-      // case  36: return Data(isys, "EmbedUnfold"   , false);
       case  37: return Data(isys, "EleTrig"       , true );
       case  38: return Data(isys, "EleTrig"       , false);
       case  39: return Data(isys, "MuonTrig"      , true );
@@ -158,7 +156,7 @@ namespace CLFV {
       case  83: return Data(isys, "EmbEleES"      , false);
       case  84: return Data(isys, "EmbMuonES"     , true );
       case  85: return Data(isys, "EmbMuonES"     , false);
-      case  86: return Data(isys, "EmbTauES"      , true );
+      case  86: return Data(isys, "EmbTauES"      , true ); //FIXME: Remove and switch to DM-binned SE
       case  87: return Data(isys, "EmbTauES"      , false);
       case  88: return Data(isys, "EmbEleES1"     , true ); //high |eta| bin
       case  89: return Data(isys, "EmbEleES1"     , false);
@@ -194,7 +192,7 @@ namespace CLFV {
       if(isys >= base && isys < base+2*nbin) return Data(isys, Form("JetToTauBias%i", (isys-base)/2), (isys-base)%2 == 0);
       //jet binned QCD fit uncertainty
       base += 2*nbin; nbin = 3; //156 - 161
-      if(isys >= base && isys < base+2*nbin) return Data(isys, Form("QCDStat%i", (isys-base)/2), (isys-base)%2 == 0);
+      // if(isys >= base && isys < base+2*nbin) return Data(isys, Form("QCDStat%i", (isys-base)/2), (isys-base)%2 == 0);
       //j-->tau process binned non-closure uncertainty
       base += 2*nbin; nbin = 3; //162 - 167
       if(isys >= base && isys < base+2*nbin) return Data(isys, Form("JetToTauNC%i", (isys-base)/2), (isys-base)%2 == 0);
@@ -230,12 +228,20 @@ namespace CLFV {
       //PDF uncertainty eigenvector variations (2017/2018)
       //30 eigenvectors + alpha_down, alpha_up --> 31 nuisances with up/down
       base += 2*nbin; nbin = 31; //284 - 345
-      if(isys >= base && isys < base+2*nbin) return Data(isys, Form("TheoryPDF%i", (isys-base)/2), (isys-base)%2 == 0);
+      // if(isys >= base && isys < base+2*nbin) return Data(isys, Form("TheoryPDF%i", (isys-base)/2), (isys-base)%2 == 0);
 
       //j-->tau bias region rate uncertainties, if separated from bias corrections
       //only implemented for W+jets currently
       base += 2*nbin; nbin = 1; //346 - 347
       if(isys >= base && isys < base+2*nbin) return Data(isys, Form("JetToTauBiasRate%i", (isys-base)/2), (isys-base)%2 == 0);
+
+      //decay mode-binned tau ES uncertainties (MC)
+      base += 2*nbin; nbin = 4; //348 - 355
+      if(isys >= base && isys < base+2*nbin) return Data(isys, Form("TauES%i", (isys-base)/2), (isys-base)%2 == 0);
+
+      //decay mode-binned tau ES uncertainties (Embed)
+      base += 2*nbin; nbin = 4; //356 - 363
+      if(isys >= base && isys < base+2*nbin) return Data(isys, Form("EmbTauES%i", (isys-base)/2), (isys-base)%2 == 0);
 
       //return the default result if no systematic is defined
       return Data();
@@ -290,8 +296,18 @@ namespace CLFV {
       case  64: data.scale_ = ScaleUncertainty_t("XS_LumiCB2"    , 1.+0.002, ""       , ""               ,      "", 2018, false,  true, false); up = true ; break;
       case  65: data.scale_ = ScaleUncertainty_t("XS_LumiCB2"    , 1.-0.002, ""       , ""               ,      "", 2018, false,  true, false); up = false; break;
 
-      // case  70: data.scale_ = ScaleUncertainty_t("XS_TheoryPDF"   , 1.+0.05, ""       , ""               ,      "",   -1, false,  true, false); up = true ; break;
-      // case  71: data.scale_ = ScaleUncertainty_t("XS_TheoryPDF"   , 1.-0.05, ""       , ""               ,      "",   -1, false,  true, false); up = false; break;
+        //ggF H uncertainty = 3.9% (QCD scale) + 3.2% (PDF+alpha_s) = 5.045 from LFV H AN
+      case  70: data.scale_ = ScaleUncertainty_t("XS_ggFH"       , 1.+0.050, ""       , "ggFH"           ,      {},   -1, false,  true, false); up = true ; break;
+      case  71: data.scale_ = ScaleUncertainty_t("XS_ggFH"       , 1.-0.050, ""       , "ggFH"           ,      {},   -1, false,  true, false); up = false; break;
+        //VBF H uncertainty = 0.5% (QCD scale) + 2.1% (PDF+alpha_s) = 2.159 from LFV H AN
+      case  72: data.scale_ = ScaleUncertainty_t("XS_VBFH"       , 1.+0.022, ""       , "VBFH"           ,      {},   -1, false,  true, false); up = true ; break;
+      case  73: data.scale_ = ScaleUncertainty_t("XS_VBFH"       , 1.-0.022, ""       , "VBFH"           ,      {},   -1, false,  true, false); up = false; break;
+        //BR(H->tautau) uncertainty = 1.7% (higher orders) + 0.99% (quark masses) and 0.62% (alpha_s) = 2.063 from LFV H AN
+      case  74: data.scale_ = ScaleUncertainty_t("XS_HTauTau"    , 1.+0.021, ""       , "H-TauTau"       ,      {},   -1, false,  true, false); up = true ; break;
+      case  75: data.scale_ = ScaleUncertainty_t("XS_HTauTau"    , 1.-0.021, ""       , "H-TauTau"       ,      {},   -1, false,  true, false); up = false; break;
+        //BR(H->tautau) uncertainty = 0.99% (higher orders) + 0.99% (quark masses) and 0.66% (alpha_s) = 1.548 from LFV H AN
+      case  76: data.scale_ = ScaleUncertainty_t("XS_HWW"        , 1.+0.015, ""       , "H-WW"           ,      {},   -1, false,  true, false); up = true ; break;
+      case  77: data.scale_ = ScaleUncertainty_t("XS_HWW"        , 1.-0.015, ""       , "H-WW"           ,      {},   -1, false,  true, false); up = false; break;
       }
       data.name_ = data.scale_.name_;
       data.up_ = up;

@@ -201,6 +201,39 @@ namespace CLFV {
     }
 
     //------------------------------------------------------------------------------------------------------
+    // minimum in a histogram above a certain value
+    static double H1MinAbove(TH1* h, const double ymin) {
+      if(!h) {
+        printf("Utilities::%s: Undefined histogram!\n", __func__);
+        return -1.;
+      }
+      double min_val = h->GetMaximum();
+      for(int ibin = 1; ibin <= h->GetNbinsX(); ++ibin) {
+        const double val = h->GetBinContent(ibin);
+        if(val >= ymin)
+          min_val = std::min(min_val, val);
+      }
+      return std::max(ymin, min_val);
+    }
+
+    //------------------------------------------------------------------------------------------------------
+    // minimum in a histogram above a certain value
+    static double H2MinAbove(TH2* h, const double zmin) {
+      if(!h) {
+        printf("Utilities::%s: Undefined histogram!\n", __func__);
+        return -1.;
+      }
+      double min_val = h->GetMaximum();
+      for(int xbin = 1; xbin <= h->GetNbinsX(); ++xbin) {
+        for(int ybin = 1; ybin <= h->GetNbinsY(); ++ybin) {
+          const double val = h->GetBinContent(xbin, ybin);
+          if(val >= zmin) min_val = std::min(min_val, val);
+        }
+      }
+      return std::max(zmin, min_val);
+    }
+
+    //------------------------------------------------------------------------------------------------------
     static int SetBranchAddress(TTree*& tree,  const char* branch, void* val, TBranch** br = nullptr) {
       if(!tree->GetBranch(branch)) {
         std::cout << "Utilities::" << __func__ << ": Unknown branch " << branch << std::endl;

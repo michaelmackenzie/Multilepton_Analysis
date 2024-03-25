@@ -18,11 +18,11 @@ namespace CLFV {
 
   class QCDWeight {
   public:
-    QCDWeight(const TString selection, const int Mode = 0, const int year = 0, const int verbose = 0);
+    QCDWeight(const TString selection, const int Mode = 0, int year = 0, const int verbose = 0);
     ~QCDWeight();
 
     //Get the transfer factor
-    float GetWeight(float deltar, float deltaphi, float oneeta, float onept, float twopt, float mass, float bdt, const int year, int njets, const bool isantiiso,
+    float GetWeight(float deltar, float deltaphi, float oneeta, float onept, float twopt, float mass, float bdt, int year, int njets, const bool isantiiso,
                     float& nonclosure, float& antiiso, float& massbdt, float* up, float* down, int& nsys);
 
     //single statistical uncertainty
@@ -58,6 +58,8 @@ namespace CLFV {
     bool useJetBinned_;
     bool useAntiIso_;
     int  useLepMVsBDT_; //2D (mass, bdt score) bias correction: 1 = mutau_e, 2 = etau_mu
+
+    int  useRun2_; //0; use by-year scales; 1: use Run 2 scales; 2: use by-year scales and Run 2 non-closure/bias
   };
 }
 #endif

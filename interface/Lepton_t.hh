@@ -81,13 +81,15 @@ namespace CLFV {
 
     int index;
 
-    bool  isElectron() {return std::abs(flavor) == 11;}
-    bool  isMuon    () {return std::abs(flavor) == 13;}
-    bool  isTau     () {return std::abs(flavor) == 15;}
-    int   charge    () {return (flavor != 0) ? flavor/std::abs(flavor) : 0;}
-    float absEta    () {return std::fabs(eta);}
-    float pt_up     () {return (ES[0] > 0.f && ES[1] > 0.f) ? pt*ES[1]/ES[0] : pt;}
-    float pt_down   () {return (ES[0] > 0.f && ES[2] > 0.f) ? pt*ES[2]/ES[0] : pt;}
+    bool  isElectron () {return std::abs(flavor) == 11;}
+    bool  isMuon     () {return std::abs(flavor) == 13;}
+    bool  isTau      () {return std::abs(flavor) == 15;}
+    int   charge     () {return (flavor != 0) ? flavor/std::abs(flavor) : 0;}
+    float absEta     () {return std::fabs(eta);}
+    float pt_up      () {return (ES[0] > 0.f && ES[1] > 0.f) ? pt*ES[1]/ES[0] : pt;}
+    float pt_down    () {return (ES[0] > 0.f && ES[2] > 0.f) ? pt*ES[2]/ES[0] : pt;}
+    float pt_res_up  () {return (Res[0] > 0.f && Res[1] > 0.f) ? pt*Res[1]/Res[0] : pt;}
+    float pt_res_down() {return (Res[0] > 0.f && Res[2] > 0.f) ? pt*Res[2]/Res[0] : pt;}
 
     void setPtEtaPhiM(const float vpt, const float veta, const float vphi, const float vmass) {
       if(p4) p4->SetPtEtaPhiM(vpt, veta, vphi, vmass);
