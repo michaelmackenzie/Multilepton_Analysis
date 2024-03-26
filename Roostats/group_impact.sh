@@ -57,5 +57,5 @@ then
     exit 2
 fi
 
-root.exe -q -b "${CMSSW_BASE}/src/CLFVAnalysis/Roostats/extract_impact.C(\"${FNOMINAL}\", \"${FGROUP}\")"
+root.exe -q -b "${CMSSW_BASE}/src/CLFVAnalysis/Roostats/tools/extract_impact.C(\"${FNOMINAL}\", \"${FGROUP}\")"
 rm ${FGROUP}

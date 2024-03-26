@@ -15,6 +15,7 @@ bool separate_years_  = true; //retrieve and store histograms by year
 bool use_lep_tau_set_ = true; //use kETauMu/kMuTauE offsets instead of kEMu
 bool print_sys_plots_ = true; //print systematic figures
 bool save_            = true; //save output histogram files
+bool use_sys_name_    = true; //save the systematic figure using the expected systematic name
 
 //copy histogram files locally, process them, then delete them
 bool copy_local_ = false;
@@ -25,6 +26,28 @@ double xmax_ =  1.;
 bool   logy_ = false;
 
 CLFV::DataPlotter* dataplotter_ = nullptr;
+
+//---------------------------------------------------------------------------------------------------------------------
+//perform some sanity checks on input histograms
+Bool_t check_histogram(TH1* h) {
+  for(int ibin = 1; ibin <= h->GetNbinsX(); ++ibin) {
+    const double binc = h->GetBinContent(ibin);
+    const double bine = h->GetBinError  (ibin);
+    if(binc < 0.) {
+      cout << __func__ << ": " << h->GetName() << " --> Bin " << ibin << " < 0 content " << binc << endl;
+      return false;
+    }
+    if(binc > 0. && bine <= 0.) {
+      cout << __func__ << ": " << h->GetName() << " --> Bin " << ibin << " content but no error (" << binc
+           << ", " << bine << ")" << endl;
+      return false;
+    }
+    if(binc == 0. && bine > 0.) { //add a small factor to make this non-zero
+      h->SetBinContent(ibin, 1.e-10);
+    }
+  }
+  return true;
+}
 
 //---------------------------------------------------------------------------------------------------------------------
 //cleanup the temporary histogram holding area
@@ -125,6 +148,11 @@ Int_t initialize_plotter(TString selection, TString base) {
       return status;
     }
   }
+
+  //include Higgs backgrounds
+  higgsBkg_  = higgs_bkg_;
+  combineHB_ = 1; //combine H->tautau and H->WW
+
   std::vector<dcard> cards;
   get_datacards(cards, selection, 2); //get datacards with signal, but without scaling for visibility at x-sec level
 
@@ -162,38 +190,55 @@ int plot_stat_sys(THStack* stack, vector<TH1*> sigs, TH1* hdata, TString name) {
   pad2->SetTopMargin(0.03);
   pad1->cd();
 
-  TLegend* leg = (logy_) ? new TLegend(0.5, 0.7, 0.9, 0.9) : new TLegend(0.1, 0.7, 0.5, 0.9);
+  TH1* hbkg = (TH1*) stack->GetStack()->Last()->Clone("hbkg_stat");
+  hbkg->SetLineColor(kRed);
+  hbkg->SetLineStyle(kDashed);
+  hbkg->SetLineWidth(2);
+  hbkg->SetMarkerSize(0);
+
+  TLegend* leg = new TLegend(0.1, 0.7, 0.9, 0.9);
   leg->SetNColumns(2);
   auto data = (TH1*) hdata->Clone("data_stat");
   data->SetTitle("Statistical uncertainties");
   data->Draw("E1");
   leg->AddEntry(data, "Data");
   for(auto sig : sigs) {sig->Draw("E1 same"); leg->AddEntry(sig);}
-  for(auto obj : *(stack->GetHists())) {obj->Draw("E1 same"); leg->AddEntry(obj);}
-  data->GetYaxis()->SetRangeUser(0.5, (logy_) ? 2.*data->GetMaximum() : 1.1*data->GetMaximum());
+  hbkg->Draw("E1 same"); leg->AddEntry(hbkg, "Total Bkg", "L");
+  for(auto obj : *(stack->GetHists())) {
+    auto h = (TH1*) obj;
+    const int o_color(h->GetLineColor());
+    if(o_color == kYellow - 7) { //make the Top histogram more visible
+      h->SetLineColor(kOrange);
+      h->SetFillColor(kOrange);
+      h->SetMarkerColor(kOrange);
+    }
+    obj->Draw("E1 same");
+    leg->AddEntry(obj);
+  }
+  data->GetYaxis()->SetRangeUser(0.5, (logy_) ? 4.*data->GetMaximum() : 1.3*data->GetMaximum());
   if(logy_) pad1->SetLogy();
   leg->Draw();
 
   pad2->cd();
   std::vector<TH1*> to_clean;
-  TH1* hbkg = (TH1*) stack->GetStack()->Last()->Clone("hbkg_stat");
-  TH1* hbkg_r = (TH1*) hbkg->Clone("hbkg_r");
-  hbkg_r->Divide(hbkg);
+  TH1* hdata_r = (TH1*) hbkg->Clone("hdata_stat_r"); //predicted stat. uncertainty of data from Asimov template
+  hdata_r->Divide(hbkg);
   double max_diff = 0.;
   for(int ibin = 1; ibin <= hbkg->GetNbinsX(); ++ibin) {
+    //assign sqrt(N predicted) as predicted data uncertainty
     const double error = (hbkg->GetBinContent(ibin) > 0.) ? 1./sqrt(hbkg->GetBinContent(ibin)) : 0.;
     max_diff = max(error, max_diff);
-    if(hbkg->GetBinContent(ibin) > 0.) hbkg_r->SetBinError(ibin, error);
+    if(hbkg->GetBinContent(ibin) > 0.) hdata_r->SetBinError(ibin, error);
     else {
       hbkg->SetBinContent(ibin, 0.);
       hbkg->SetBinError  (ibin, 0.);
     }
   }
-  hbkg_r->SetLineColor(data->GetLineColor());
-  hbkg_r->SetMarkerColor(data->GetMarkerColor());
-  hbkg_r->Draw("E1");
+  hdata_r->SetLineColor(data->GetLineColor());
+  hdata_r->SetMarkerColor(data->GetMarkerColor());
+  hdata_r->Draw("E1");
   to_clean.push_back(hbkg);
-  to_clean.push_back(hbkg_r);
+  to_clean.push_back(hdata_r);
   for(auto sig : sigs) {
     TH1* sig_u = (TH1*) sig->Clone(Form("%s_u", sig->GetName()));
     TH1* sig_d = (TH1*) sig->Clone(Form("%s_d", sig->GetName()));
@@ -210,7 +255,12 @@ int plot_stat_sys(THStack* stack, vector<TH1*> sigs, TH1* hdata, TString name) {
     to_clean.push_back(sig_u);
     to_clean.push_back(sig_d);
   }
-  for(auto obj : *(stack->GetHists())) {
+
+  //stat uncertainty for each background component
+  TList hist_list;
+  for(auto obj : *(stack->GetHists())) hist_list.Add(obj);
+  hist_list.Add(hbkg); //add the total background template to the list
+  for(auto obj : hist_list) {
     TH1* h = (TH1*) obj;
     TH1* h_u = (TH1*) h->Clone(Form("%s_u", h->GetName()));
     TH1* h_d = (TH1*) h->Clone(Form("%s_d", h->GetName()));
@@ -228,14 +278,14 @@ int plot_stat_sys(THStack* stack, vector<TH1*> sigs, TH1* hdata, TString name) {
     to_clean.push_back(h_d);
   }
 
-  hbkg_r->GetXaxis()->SetRangeUser(xmin_, xmax_);
-  hbkg_r->GetYaxis()->SetRangeUser(1. - 1.05*max_diff, 1. + 1.05*max_diff);
-  hbkg_r->GetXaxis()->SetLabelSize(0.09);
-  hbkg_r->GetYaxis()->SetLabelSize(0.09);
-  hbkg_r->GetYaxis()->SetTitleSize(0.1);
-  hbkg_r->GetYaxis()->SetTitleOffset(0.35);
-  hbkg_r->SetTitle("");
-  hbkg_r->SetYTitle("Stat. uncertainty");
+  hdata_r->GetXaxis()->SetRangeUser(xmin_, xmax_);
+  hdata_r->GetYaxis()->SetRangeUser(1. - 1.05*max_diff, 1. + 1.05*max_diff);
+  hdata_r->GetXaxis()->SetLabelSize(0.09);
+  hdata_r->GetYaxis()->SetLabelSize(0.09);
+  hdata_r->GetYaxis()->SetTitleSize(0.1);
+  hdata_r->GetYaxis()->SetTitleOffset(0.35);
+  hdata_r->SetTitle("");
+  hdata_r->SetYTitle("Stat. uncertainty");
   c->SaveAs(name.Data());
   for(auto h : to_clean) delete h;
   delete data;
@@ -250,6 +300,7 @@ int get_same_flavor_systematics(int set, TString hist, TH1* hdata, TFile* f) {
   int status(0);
   f->cd();
   dataplotter_->rebinH_ = 1;
+
   CLFV::Systematics systematics;
 
   //Loop through each systematic, creating PDFs and example figures
@@ -421,6 +472,16 @@ int get_systematics(int set, TString hist, TH1* hdata, TFile* f, TString canvas_
     hbkg->SetName(Form("hbkg_sys_%i", isys));
     if(signals.size() == 0) {++status; continue;}
 
+    //Check the histograms
+    bool pass_check = true;
+    for(auto obj : *(hstack->GetHists())) {
+      if(!check_histogram((TH1*) obj)) {++status; pass_check = false;}
+    }
+    for(auto obj : signals) {
+      if(!check_histogram((TH1*) obj)) {++status; pass_check = false;}
+    }
+    if(!pass_check) continue;
+
 
     /////////////////////////////////////////////////
     // Plot the shifted distributions
@@ -512,7 +573,13 @@ int get_systematics(int set, TString hist, TH1* hdata, TFile* f, TString canvas_
       g_r_bkg->GetYaxis()->SetRangeUser(max(0.5, min(0.95, 1. + 1.15*(r_min - 1.))), min(1.5, max(1.05, 1. + 1.15*(r_max - 1.))));
       g_r_bkg->SetTitle("");
 
-      c->Print(Form("%s_sys/sys_%i.png", canvas_name.Data(), isys));
+      if(use_sys_name_ && isys >= 0) {
+        TString name = systematics.GetName(isys);
+        if(name == "") c->Print(Form("%s_sys/sys_%i.png", canvas_name.Data(), isys));
+        else           c->Print(Form("%s_sys/sys_%s.png", canvas_name.Data(), Form("%s_%s", name.Data(), (systematics.IsUp(isys)) ? "up" : "down")));
+      } else {
+        c->Print(Form("%s_sys/sys_%i.png", canvas_name.Data(), isys));
+      }
       delete c;
     } //end if(print_sys_plots_)
 

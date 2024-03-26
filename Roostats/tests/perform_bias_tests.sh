@@ -71,4 +71,4 @@ if [[ ! -f "fitDiagnostics.${OUTNAME}.root" ]]; then
 fi
 
 echo "Creating bias plots..."
-root.exe -q -b "${CMSSW_BASE}/src/CLFVAnalysis/Roostats/plot_combine_fits.C(\"fitDiagnostics.${OUTNAME}.root\", ${RVALUE}, \"bias_${OUTNAME}\")"
+root.exe -q -b "${CMSSW_BASE}/src/CLFVAnalysis/Roostats/tools/plot_combine_fits.C(\"fitDiagnostics.${OUTNAME}.root\", ${RVALUE}, \"bias_${OUTNAME}\")"

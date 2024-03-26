@@ -21,7 +21,7 @@ bool useMCBkg_      = false; //FIXME: turn off -- use the background MC to creat
 float zmumu_scale_  =   -1.; //FIXME: set to -1 -- scale to Z->ee/mumu distribution if using MC templates
 bool printPlots_    = true ;
 bool fitSideBands_  = true ; //fit only the data sidebands
-int  replaceData_   =     1; //1: replace the data with toy MC; 2: replace the data with the MC bkg
+int  replaceData_   =     1; //1: replace the data with toy MC; 2: replace the data with the MC bkg; 3: replace the data with smoothed/fit MC bkg
 bool replaceRefit_  = false; //replace data with toy MC, then fit the unblinded toy data
 bool export_        = false; //if locally run, export the workspace to LPC
 bool save_          = true ; //save output combine workspace/cards
@@ -164,8 +164,8 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
   data->SetName(Form("data_obs_%i", set));
 
   //replace the background stack with smoothed/fit histograms
-  THStack* stack = (useMCBkg_) ? new THStack("bkg_stack", "Background stack") : stack_in;
-  if(useMCBkg_) {
+  THStack* stack = (useMCBkg_ || replaceData_ == 3) ? new THStack("bkg_stack", "Background stack") : stack_in;
+  if(useMCBkg_ || replaceData_ == 3) {
     TString mc_fig_dir = Form("plots/latest_production/%s/convert_bemu_%s_%i_mc_fits", year_string.Data(), selection.Data(), set);
     gSystem->Exec(Form("[ ! -d %s ] && mkdir -p %s", mc_fig_dir.Data(), mc_fig_dir.Data()));
     for(int ihist = 0; ihist < stack_in->GetNhists(); ++ihist) {
@@ -446,7 +446,9 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
   //Generate toy data to stand in for the observed data if requested
   RooDataHist* dataset = dataData;
   if(replaceData_ == 1) dataset = bkgPDF->generateBinned(RooArgSet(*lepm), data->Integral(low_bin, high_bin));
-  if(replaceData_ == 2) {dataset = bkgMCData; dataData = bkgMCData; blindDataHist = bkgMCData; blindData = hMCBkg; data = hMCBkg; fitSideBands_ = 0; blind_data_ = 0; useDataBinErrors_ = true;}
+  if(replaceData_ >= 2) {
+    dataset = bkgMCData; dataData = bkgMCData; blindDataHist = bkgMCData; blindData = hMCBkg; data = hMCBkg; fitSideBands_ = 0; blind_data_ = 0; useDataBinErrors_ = true;
+  }
   dataset->SetName("data_obs");
 
   //Re-fit the PDFs to the toy MC data
@@ -582,7 +584,10 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
     pad2->cd();
 
     //Create data - background fit histograms
-    double norm = data->Integral(low_bin,high_bin); //N(data) in fit region
+    //update bin indices in case a clipped template is used
+    low_bin = data->FindBin(xmin+1.e-3);
+    high_bin = data->FindBin(xmax-1.e-3);
+    double norm = data->Integral(); //N(data) in fit region
     cout << "Data: xlow = " << data->GetBinLowEdge(low_bin)
          << " xhigh = " << data->GetBinLowEdge(high_bin) + data->GetBinWidth(high_bin)
          << " nbins = " << high_bin - low_bin + 1 << " integral = " << norm << endl;
@@ -693,10 +698,10 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
     line->SetLineWidth(2);
     line->Draw("same");
     //print the results
-    c->SaveAs(Form("plots/latest_production/%s/convert_bemu_%s_%i_%sbkg_pdfs.png", year_string.Data(), selection.Data(), set, (useMCBkg_) ? "mc_" : "" ));
+    c->SaveAs(Form("plots/latest_production/%s/convert_bemu_%s_%i_%sbkg_pdfs.png", year_string.Data(), selection.Data(), set, (useMCBkg_) ? "mc_" : (replaceData_ >= 2) ? "mcdata_" : "" ));
     delete xframe;
     delete c;
-    if(replaceData_ != 2) delete blindData;
+    if(replaceData_ < 2) delete blindData;
   }
 
   //////////////////////////////////////////////////////////////////
@@ -717,6 +722,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
   else
     rate   += Form("%10.3f", sig_rate);
   sigPDF->SetName(selection.Data());
+
   ws->import(*sigPDF, RooFit::RecycleConflictNodes());
   signorm += Form("nsig_%-3i rateParam   lepm_%-3i %8s %10.1f\n", set, set, selection.Data(), sig->Integral(low_bin, high_bin));
 

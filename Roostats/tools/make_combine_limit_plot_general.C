@@ -218,6 +218,7 @@ int make_combine_limit_plot_general(vector<config_t> configs, //info for each en
   // label.DrawLatex(0.1, 0.38, Form("%.1e", expected[1]));
   // label.DrawLatex(0.1, 0.18, Form("%.1e", expected[2]));
 
-  c->Print(Form("limits_%s_%s.png", selection.Data(), tag.Data()));
+  gSystem->Exec("[ ! -d limits ] && mkdir limits");
+  c->Print(Form("limits/limits_%s_%s.png", selection.Data(), tag.Data()));
   return 0;
 }

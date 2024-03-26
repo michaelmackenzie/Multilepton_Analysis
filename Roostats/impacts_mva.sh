@@ -2,25 +2,115 @@
 
 Help() {
     echo "Process combine impacts"
+    echo "Usage: impacts_mva.sh <card> [options]"
     echo "Options:"
-    echo " 1: Card name"
-    echo " 2: Don't clean flag"
-    echo " 3: Do observed flag"
-    echo " 4: r POI range"
-    echo " 5: Approximate impacts"
-    echo " 6: Argument for combineTool.py"
-    echo " 7: Argument for plot tool"
-    echo " 8: Mu2e"
+    echo " --rrange    (-r ): POI range (default = 20)"
+    echo " --obs       (-o ): Do observed"
+    echo " --dontclean (-dc): Don't cleanup output combine files"
+    echo " --fitarg         : Additional combineTool.py arguments (see combineTools.py -M Impacts -h)"
+    echo " --plotarg        : Additional plotImpacts.py arguments (e.g. --blind, see plotImpacts.py -h)"
+    echo " --fitarg         : Additional combineTool.py arguments (see combineTools.py -M Impacts -h)"
+    echo " --include   (-i ): Nuisance parameters to include (default is all)"
+    echo " --exclude   (-e ): Exclude nuisance parameters (default is none)"
+    echo " --fitonly        : Only process fitting steps, not impact PDF"
+    echo " --skipinitial    : Skip initial fit"
+    echo " --mu2e           : Mu2e processing"
+    echo " --dryrun         : Only print commands without processing"
+    echo " --help      (-h ): Print this information"
 }
 
-CARD=$1
-DONTCLEAN=$2
-DOOBS=$3
-RRANGE=$4
-APPROX=$5
-COMMAND=$6
-PLOTARG=$7
-MU2E=$8
+CARD=""
+DONTCLEAN=""
+DOOBS=""
+RRANGE="20"
+APPROX=""
+COMMAND=""
+PLOTARG=""
+EXCLUDE=""
+INCLUDE=""
+FITONLY=""
+SKIPINITIAL=""
+MU2E=""
+VERBOSE=0
+DRYRUN=""
+
+iarg=1
+while [ ${iarg} -le $# ]
+do
+    eval "var=\${${iarg}}"
+    if [[ "${var}" == "--help" ]] || [[ "${var}" == "-h" ]]
+    then
+        Help
+        exit
+    elif [[ "${var}" == "--rrange" ]] || [[ "${var}" == "-r" ]]
+    then
+        iarg=$((iarg + 1))
+        eval "var=\${${iarg}}"
+        RRANGE=${var}
+    elif [[ "${var}" == "--exclude" ]] || [[ "${var}" == "-e" ]]
+    then
+        iarg=$((iarg + 1))
+        eval "var=\${${iarg}}"
+        EXCLUDE=${var}
+    elif [[ "${var}" == "--include" ]] || [[ "${var}" == "-i" ]]
+    then
+        iarg=$((iarg + 1))
+        eval "var=\${${iarg}}"
+        INCLUDE=${var}
+    elif [[ "${var}" == "--fitarg" ]]
+    then
+        iarg=$((iarg + 1))
+        eval "var=\${${iarg}}"
+        COMMAND=${var}
+    elif [[ "${var}" == "--plotarg" ]]
+    then
+        iarg=$((iarg + 1))
+        eval "var=\${${iarg}}"
+        PLOTARG=${var}
+    elif [[ "${var}" == "--approx" ]] || [[ "${var}" == "-a" ]]
+    then
+        APPROX="d"
+    elif [[ "${var}" == "--obs" ]] || [[ "${var}" == "-o" ]]
+    then
+        DOOBS="d"
+    elif [[ "${var}" == "--fitonly" ]]
+    then
+        FITONLY="d"
+    elif [[ "${var}" == "--skipinitial" ]]
+    then
+        SKIPINITIAL="d"
+    elif [[ "${var}" == "--dontclean" ]] || [[ "${var}" == "-dc" ]]
+    then
+        DONTCLEAN="d"
+    elif [[ "${var}" == "--mu2e" ]]
+    then
+        MU2E="d"
+    elif [[ "${var}" == "--verbose" ]] || [[ "${var}" == "-v" ]]
+    then
+        #Test if a verbosity level is given
+        iarg=$((iarg + 1))
+        eval "var=\${${iarg}}"
+        if [[ $var =~ ^-?[0-9]+$ ]]
+        then
+            VERBOSE=${var}
+        else
+            iarg=$((iarg - 1))
+            eval "var=\${${iarg}}"
+            VERBOSE=1
+        fi
+    elif [[ "${var}" == "--dryrun" ]]
+    then
+        DRYRUN="d"
+    elif [[ "${CARD}" != "" ]]
+    then
+        echo "Arguments aren't configured correctly!"
+        Help
+        exit
+    else
+        CARD=${var}
+    fi
+    iarg=$((iarg + 1))
+done
 
 if [[ "$1" == "-h" ]] || [[ "$1" == "--help" ]]
 then
@@ -61,7 +151,7 @@ if [[ "${MU2E}" != "" ]]; then
 fi
 
 WORKSPACE=`echo ${CARD} | sed 's/.txt/_workspace.root/'`
-JSON=`echo ${CARD} | sed 's/.txt/.json/' | sed 's/combine_/impacts_/'`
+JSON=`echo ${CARD} | sed 's/.txt/.json/' | sed 's/.root/.json/' | sed 's/combine_/impacts_/'`
 
 ARGS=""
 if [[ "${APPROX}" != "" ]]; then
@@ -73,22 +163,66 @@ if [[ "${COMMAND}" != "" ]]; then
     ARGS="${ARGS} ${COMMAND}"
 fi
 
-text2workspace.py ${CARD} -o ${WORKSPACE}
-if [[ "${APPROX}" == "" ]]; then
-    echo "Running: combineTool.py -M Impacts -d ${WORKSPACE} -m 0 --rMin -${RRANGE} --rMax ${RRANGE} --robustFit 1 --doInitialFit ${DOOBS}"
-    combineTool.py -M Impacts -d ${WORKSPACE} -m 0 --rMin -${RRANGE} --rMax ${RRANGE} --robustFit 1 --doInitialFit ${DOOBS}
+if [[ "${CARD}" == *".txt" ]]; then
+    COMMAND="text2workspace.py ${CARD} -o ${WORKSPACE}"
+    echo ${COMMAND}
+    if [[ "${DRYRUN}" == "" ]]; then
+        ${COMMAND}
+    fi
 fi
-combineTool.py -M Impacts -d ${WORKSPACE} -m 0 --rMin -${RRANGE} --rMax ${RRANGE} --robustFit 1 --doFits ${DOOBS} ${ARGS}
-combineTool.py -M Impacts -d ${WORKSPACE} -m 0 --rMin -${RRANGE} --rMax ${RRANGE} --robustFit 1 --output ${JSON} ${DOOBS} ${ARGS}
+
+FITADDITIONAL=""
+if [[ "${EXCLUDE}" != "" ]]; then
+    FITADDITIONAL="${FITADDITONAL} --exclude ${EXCLUDE}"
+fi
+if [[ "${INCLUDE}" != "" ]]; then
+    FITADDITIONAL="${FITADDITONAL} --named ${INCLUDE}"
+fi
+
+if [[ "${APPROX}" == "" ]] && [[ "${SKIPINITIAL}" == "" ]]; then
+    COMMAND="combineTool.py -M Impacts -d ${WORKSPACE} -m 0 --rMin -${RRANGE} --rMax ${RRANGE} --robustFit 1 --doInitialFit ${DOOBS} ${FITADDITIONAL}"
+    echo ${COMMAND}
+    if [[ "${DRYRUN}" == "" ]]; then
+        ${COMMAND}
+    fi
+fi
+
+COMMAND="combineTool.py -M Impacts -d ${WORKSPACE} -m 0 --rMin -${RRANGE} --rMax ${RRANGE} --robustFit 1 --doFits ${DOOBS} ${ARGS} ${FITADDITIONAL}"
+echo ">>> ${COMMAND}"
+if [[ "${DRYRUN}" == "" ]]; then
+    ${COMMAND}
+fi
+COMMAND="combineTool.py -M Impacts -d ${WORKSPACE} -m 0 --rMin -${RRANGE} --rMax ${RRANGE} --robustFit 1 --output ${JSON} ${DOOBS} ${ARGS} ${FITADDITIONAL}"
+echo ">>> ${COMMAND}"
+if [[ "${DRYRUN}" == "" ]]; then
+    ${COMMAND}
+fi
+# combineTool.py -M Impacts -d ${WORKSPACE} -m 0 --rMin -${RRANGE} --rMax ${RRANGE} --robustFit 1 --output ${JSON} ${DOOBS} ${ARGS}
+# combineTool.py -M Impacts -d combine_mva_zmutau_25_2016_workspace.root -m 0 --rMin -20 --rMax 20 --robustFit 1 --output impacts_mva_zmutau_25_2016.json -t -1 --approx robust --named "EmbMuonES"
+
+if [[ "${FITONLY}" ]]; then
+    exit
+fi
+
 if [[ "${MU2E}" != "" ]]; then
     PDF=`echo ${JSON} | sed 's/.json//'`
-    plotImpacts.py -i ${JSON} -o ${PDF} ${PLOTARG} --experiment Mu2e --cms-label " Internal"
-    pdftoppm ${PDF}.pdf ${PDF} -png
+    if [[ "${DRYRUN}" == "" ]]; then
+        plotImpacts.py -i ${JSON} -o ${PDF} ${PLOTARG} --experiment Mu2e --cms-label " Internal"
+        pdftoppm ${PDF}.pdf ${PDF} -png
+    fi
 else
-    plotImpacts.py -i ${JSON} -o `echo ${JSON} | sed 's/.json//'` ${PLOTARG}
+    COMMAND="plotImpacts.py -i ${JSON} -o `echo ${JSON} | sed 's/.json//'` ${PLOTARG}"
+    echo ">>> ${COMMAND}"
+    if [[ "${DRYRUN}" == "" ]]; then
+        ${COMMAND}
+    fi
 fi
 
 if [[ "${DONTCLEAN}" == "" ]]
 then
-    rm higgsCombine_*_Test*.MultiDimFit.mH0.root
+    COMMAND="rm higgsCombine_*_Test*.MultiDimFit.mH0.root"
+    echo ">>> ${COMMAND}"
+    if [[ "${DRYRUN}" == "" ]]; then
+        ${COMMAND}
+    fi
 fi

@@ -14,7 +14,7 @@ ARGS=$2
 DOASIMOV=$3
 RRANGE=$4
 
-if [[ "${CARD}" == "" ]] || [[ "${CARD}" == "--help" ]] || [[ "{CARD}" == "-h" ]]; then
+if [[ "${CARD}" == "" ]] || [[ "${CARD}" == "--help" ]] || [[ "${CARD}" == "-h" ]]; then
     Help
     exit
 fi

@@ -288,6 +288,7 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
     hname.ReplaceAll("/", "");
     hname.ReplaceAll("->", "To");
     hname.ReplaceAll("tautauEmbedding", "Embedding"); //shorten  the embedding name
+    hname.ReplaceAll("HTotautauWW", "HiggsBkg"); //shorten  the Higgs background name
     bins_p += Form("%15s", hist.Data());
     proc_l += Form("%15s", hname.Data());
     proc_c += Form("          %2i   ", process_value(hname));
@@ -442,6 +443,7 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
       hname.ReplaceAll("/", "");
       hname.ReplaceAll("->", "To");
       hname.ReplaceAll("tautauEmbedding", "Embedding"); //shorten  the embedding name
+      hname.ReplaceAll("HTotautauWW", "HiggsBkg"); //shorten  the Higgs background name
       TString hname_up   = Form("%s_%sUp"  , hname.Data(), hstack_up->GetTitle());
       TString hname_down = Form("%s_%sDown", hname.Data(), hstack_up->GetTitle());
       hbkg_i_up->SetName(hname_up.Data());

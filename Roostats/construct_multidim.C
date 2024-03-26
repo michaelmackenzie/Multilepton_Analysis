@@ -14,6 +14,7 @@ bool use_laurent_family_    = false;
 bool use_dy_ww_shape_       = false;
 bool force_fit_order_       = false; //force only the inclusion of fixed orders of each family
 bool force_best_fit_        = false; //force the nominal PDF to be a specific function
+bool enforce_ftest_         =  true; //once a function fails the F-test, stop adding functions
 
 bool test_single_function_  = false; //only pass 1 function into the PDF ensemble
 
@@ -34,7 +35,7 @@ bool perform_f_test(double chisq_1, int ndof_1, double chisq_2, int ndof_2) {
     const double ftest = (chisq_1 / ndof_1) / (chisq_2 / ndof_2); //(chisq_1 - chisq_2) / (ndof_1 - ndof_2) / (chisq_2 / ndof_2);
     p_of_f = 1. - ROOT::Math::fdistribution_cdf(ftest, ndof_1, ndof_2);
   } else if(Mode == 1) { //use the difference of chi^2 p-value given N(dof) = Delta N(dof)
-    const double ftest = chisq_2 - chisq_1;
+    const double ftest = chisq_1 - chisq_2;
     if(ftest < 0.) p_of_f = 1.; //lower order is a better fit
     else           p_of_f = ROOT::Math::chisquared_cdf_c(ftest, ndof_1 - ndof_2);
   } else {
@@ -230,7 +231,7 @@ RooAbsPdf* create_exponential(RooRealVar& obs, int order, int set, TString tag =
   RooArgList pdfs;
   RooArgList coefficients;
   for(int i = 1; i <= order; ++i) {
-    vars.push_back(new RooRealVar(Form("exp_%i_order_%i_c_%i%s", set, order, i, tag.Data()), Form("exp_%i_order_%i_%i power%s", set, order, i, tag.Data()), 1., -10., 10.));
+    vars.push_back(new RooRealVar(Form("exp_%i_order_%i_c_%i%s", set, order, i, tag.Data()), Form("exp_%i_order_%i_%i power%s", set, order, i, tag.Data()), -0.1, -10., 10.));
     exps.push_back(new RooExponential(Form("exp_%i_pdf_order_%i_%i%s", set, order, i, tag.Data()), Form("exp_%i_pdf_order_%i_%i%s", set, order, i, tag.Data()), obs, *vars.back()));
     pdfs.add(*exps.back());
     coeffs.push_back(new RooRealVar(Form("exp_%i_order_%i_n_%i%s", set, order, i, tag.Data()), Form("exp_%i_order_%i_%i%s norm" , set, order, i, tag.Data()), 1.e3, 0., 1.e8));
@@ -241,6 +242,41 @@ RooAbsPdf* create_exponential(RooRealVar& obs, int order, int set, TString tag =
     return ((RooAbsPdf*) pdfs.at(0));
   }
   return new RooAddPdf(Form("exp_%i_pdf_order_%i%s", set, order, tag.Data()), Form("Exponential PDF, order %i", order), pdfs, coefficients, false);
+}
+
+//Create an exponential PDF sum from RooGenericPdf
+RooAbsPdf* create_generic_exponential(RooRealVar& obs, int order, int set, TString tag = "") {
+  if(order <= 0) return nullptr;
+  vector<RooRealVar*> vars;
+  RooArgList var_list;
+  var_list.add(obs);
+  TString formula = "";
+  if(order == 1) {
+    formula = "TMath::Exp(@1*@0)";
+    vars.push_back(new RooRealVar(Form("exp_%i_order_%i_c_%i%s", set, order, 1, tag.Data()), Form("exp_%i_order_%i_%i power%s", set, order, 1, tag.Data()), -0.1, -10., 10.));
+    var_list.add(*vars.back());
+  } else {
+    for(int i = 1; i <= order; ++i) {
+      if(i < order) { //keep adding exponential terms
+        formula += Form("%s@%i*TMath::Exp(@%i*@0)", (i > 1) ? " + " : "", var_list.getSize(), var_list.getSize()+1);
+        vars.push_back(new RooRealVar(Form("exp_%i_order_%i_n_%i%s", set, order, i, tag.Data()), Form("exp_%i_order_%i_%i%s norm" , set, order, i, tag.Data()), 0.1, 0., 1));
+        var_list.add(*vars.back());
+        vars.push_back(new RooRealVar(Form("exp_%i_order_%i_c_%i%s", set, order, i, tag.Data()), Form("exp_%i_order_%i_%i power%s", set, order, i, tag.Data()), -0.01, -100., 0.));
+        var_list.add(*vars.back());
+      } else { //add the last term with a coefficient such that the sum is 1
+        formula += " + (1";
+        for(int j = 1; j < order; ++j) formula += Form(" - @%i", 2*j-1);
+        formula += Form(")*TMath::Exp(@%i*@0)", 2*order-1);
+        // "@%i*TMath::Exp(@%i*@0)", var_list.getSize(), var_list.getSize()+1);
+        vars.push_back(new RooRealVar(Form("exp_%i_order_%i_c_%i%s", set, order, i, tag.Data()), Form("exp_%i_order_%i_%i power%s", set, order, i, tag.Data()), -1., -100., 0.));
+        var_list.add(*vars.back());
+      }
+    }
+  }
+  cout << __func__ << ": Order " << order << " formula = " << formula.Data() << endl;
+  RooGenericPdf* pdf = new RooGenericPdf(Form("exp_%i_pdf_order_%i%s", set, order, tag.Data()), formula.Data(), var_list);
+  pdf->SetTitle(Form("Exponential PDF, order %i", order));
+  return pdf;
 }
 
 //Create an power law PDF sum
@@ -440,10 +476,14 @@ std::pair<int,double> add_exponentials(RooDataHist& data, RooRealVar& obs, RooAr
   int min_index = -1;
   for(int order = 1; order <= max_order; ++order) {
     RooAbsPdf* basePdf = create_exponential(obs, order, set);
-    //Wrap the exponential in a RooAddPdf
-    RooRealVar* pdfNorm = new RooRealVar(Form("%s_norm", basePdf->GetName()), Form("%s_norm", basePdf->GetName()),
+    // RooAbsPdf* basePdf = create_generic_exponential(obs, order, set);
+    const bool use_base_pdf = true;
+    RooAbsPdf* pdf = basePdf;
+    if(!use_base_pdf) { //Wrap the exponential in a RooAddPdf
+      RooRealVar* pdfNorm = new RooRealVar(Form("%s_norm", basePdf->GetName()), Form("%s_norm", basePdf->GetName()),
                                          data.sumEntries(), 0.5*data.sumEntries(), 1.5*data.sumEntries());
-    RooAddPdf* pdf = new RooAddPdf(Form("%s_wrapper", basePdf->GetName()), basePdf->GetTitle(), RooArgList(*basePdf), RooArgList(*pdfNorm));
+      pdf = new RooAddPdf(Form("%s_wrapper", basePdf->GetName()), basePdf->GetTitle(), RooArgList(*basePdf), RooArgList(*pdfNorm));
+    }
     if(useSideBands)
       pdf->fitTo(data, RooFit::PrintLevel(-1), RooFit::Warnings(0), RooFit::PrintEvalErrors(-1), RooFit::Range("LowSideband,HighSideband"));
     else
@@ -454,9 +494,8 @@ std::pair<int,double> add_exponentials(RooDataHist& data, RooRealVar& obs, RooAr
     double p_chi_sq;
     const bool accept = (perform_chisq_test(chi_sq, dof, &p_chi_sq) && !force_fit_order_) || (force_fit_order_ && order == 2);
     if(accept) {
-      // list.add(*pdf);
+      // bool passes_f_test = (chi_min > 1.e8) || perform_f_test(chi_min, dof + (order - best_order), chi_sq, dof);
       list.add(*basePdf);
-      // basePdf->Print("tree");
     } else {
       delete pdf;
     }

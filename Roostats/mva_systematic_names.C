@@ -53,16 +53,35 @@ std::pair<TString,TString> systematic_name(int sys, TString selection, int year,
     else             name = "HEM";
   }
 
+  //Embedding detector MET uncertainty
+  if(name == "EmbMET") name = "";
+
   //j-->tau bias systematic configuration check
   const int jtt_bias_mode = 1; //mode XY: X = 1: uncorrelated j-->tau bias in mass regions; Y = 1: use separate rate bias from shape bias
-  if(jtt_bias_mode % 10 == 0) //ignore j-->tau bias rate uncertainty, only use if separating from the shape effect
+  if(jtt_bias_mode % 10 == 0) { //ignore j-->tau bias rate uncertainty, only use if separating from the shape effect
     if(name.BeginsWith("JetToTauBiasRate")) name = "";
+  }
   if((jtt_bias_mode / 10) % 10 == 1 && set > 0) {//make separate mass regions uncorrelated
     if(name.BeginsWith("JetToTauBias0") && !name.BeginsWith("JetToTauBiasRate")) {
       const char* region = (set == 25) ? "MidM" : (set == 26) ? "HighM" : (set == 27) ? "LowM" : (set == 28) ? "ZllM" : "";
       name = Form("%sRgn%s", name.Data(), region);
     }
   }
+
+  // if(name.BeginsWith("JetToTauBias") && !name.Contains("Rate")) name = ""; //turn off j-->tau bias uncertainties
+
+  //Re-name j-->tau systematics to have process names
+  if(name.BeginsWith("JetToTauNC") || name.BeginsWith("JetToTauBias")) {
+    if(name.EndsWith("0")) name.ReplaceAll("0", "WJets");
+    if(name.EndsWith("1")) name.ReplaceAll("1", "Top");
+    if(name.EndsWith("2")) name.ReplaceAll("2", "QCD");
+  }
+  if(name.BeginsWith("JetToTauAlt")) {
+    if(name.Contains("P0")) name.ReplaceAll("P0", "WJets");
+    if(name.Contains("P1")) name.ReplaceAll("P1", "Top"  );
+    if(name.Contains("P2")) name.ReplaceAll("P2", "QCD"  );
+  }
+
 
   //non-prompt emu estimate check
   // if(name == "QCDMassBDTBias") name = "";
@@ -98,6 +117,16 @@ std::pair<TString,TString> systematic_name(int sys, TString selection, int year,
   } else {
     if(name == "SignalBDT" ) name = ""; //signal BDT corrections only in the Z->e+mu search
   }
+
+  //FIXME: Remove DM inclusive Tau ES nuisances
+  //remove DM inclusive tau ES
+  if(name.EndsWith("TauES")) name = "";
+
+  //re-name DM-binned tau ES nuisances
+  if     (name.EndsWith("TauES0")) name.ReplaceAll("0", "DM0" );
+  else if(name.EndsWith("TauES1")) name.ReplaceAll("1", "DM1" );
+  else if(name.EndsWith("TauES2")) name.ReplaceAll("2", "DM10");
+  else if(name.EndsWith("TauES3")) name.ReplaceAll("3", "DM11");
 
   //ignore EWK W/Z and WWW samples
   if(name == "XS_WWW" ) name = "";

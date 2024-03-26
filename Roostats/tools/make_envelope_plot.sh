@@ -27,4 +27,4 @@ for (( PDF=0; PDF<${MAXPDFS}; PDF++ )); do
     combine -M MultiDimFit -d ${CARD} ${ARGUMENTS}  --setParameters "cat_${CAT}=${PDF}" --freezeParameters "cat_${CAT}=${PDF}" -n "_env_${CAT}_cat_${PDF}"
 done
 
-root.exe -q -b "../../plot_envelope.C(${CAT})"
+root.exe -q -b "${CMSSW_BASE}/src/CLFVAnalysis/Roostats/tools/plot_envelope.C(${CAT})"

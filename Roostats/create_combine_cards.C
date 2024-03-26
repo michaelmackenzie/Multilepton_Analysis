@@ -1,7 +1,6 @@
 //Create a Higgs Combine environment for two search channels
 #include "convert_mva_to_combine.C"
 #include "control_region_datacard.C"
-// #include "combine_channels.C"
 
 bool use_control_regions_ = false; //use mumu/ee control regions
 int control_region_set_   = 8; //use -1 to set to input set

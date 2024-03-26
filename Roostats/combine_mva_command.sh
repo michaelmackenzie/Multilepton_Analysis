@@ -25,8 +25,9 @@ if [[ "${RRANGE}" == "" ]]; then
     RRANGE="100"
 fi
 
-ARGS="${ARGS} --cminDefaultMinimizerStrategy=0 --X-rtd REMOVE_CONSTANT_ZERO_POINT=1"
-ARGS="${ARGS} --X-rtd MINIMIZER_freezeDisassociatedParams --X-rtd MINIMIZER_multiMin_hideConstants --X-rtd MINIMIZER_multiMin_maskConstraints"
+ARGS="${ARGS} --cminDefaultMinimizerStrategy=0 --cminApproxPreFitTolerance 0.1 --cminPreScan --cminPreFit 1"
+# ARGS="${ARGS} --cminDefaultMinimizerStrategy=2 --cminApproxPreFitTolerance 0.1 --cminPreScan --cminPreFit 1"
+# ARGS="${ARGS} --X-rtd MINIMIZER_freezeDisassociatedParams --X-rtd MINIMIZER_multiMin_hideConstants --X-rtd MINIMIZER_multiMin_maskConstraints"
 if [[ "${DOASIMOV}" != "" ]]; then
     if [[ "${ARGS}" != *"-M "* ]]; then
         ARGS="${ARGS} -t -1 --run blind --noFitAsimov"

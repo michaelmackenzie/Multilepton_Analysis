@@ -2,15 +2,21 @@
 //create a fit diagnostics root file via:
 //$> combine -M FitDiagnostics -d <input card/workspace> --saveShapes --saveWithUncertainties [additional options]
 
+//------------------------------------------------------------------------------------------
+// Print an individual histogram
 int print_hist(TDirectoryFile* dir, TString tag, TString outdir) {
+
+  //Get the fit results and the data
   TH1* hbackground = (TH1*) dir->Get("total_background");
   TH1* hsignal     = (TH1*) dir->Get("total_signal");
+  TH1* htotal      = (TH1*) dir->Get("total");
   TGraphAsymmErrors* gdata = (TGraphAsymmErrors*) dir->Get("data");
-  if(!hsignal || !hbackground || !gdata) {
+  if(!hsignal || !hbackground || !htotal || !gdata) {
     cout << "Data not found for tag " << tag.Data() << endl;
     return 1;
   }
 
+  //N(data) points, ensure it matches the background model
   const int nbins = gdata->GetN();
   if(nbins != hbackground->GetNbinsX()) {
     cout << "Data and background have different bin numbers!\n";
@@ -27,19 +33,27 @@ int print_hist(TDirectoryFile* dir, TString tag, TString outdir) {
   gdata->SetMarkerStyle(20);
   gdata->SetMarkerSize(0.8);
   gdata->SetLineWidth(2);
+  htotal->SetLineColor(kRed);
+  htotal->SetMarkerColor(kRed);
+  htotal->SetFillColor(kRed);
+  htotal->SetFillStyle(3003);
+  htotal->SetLineWidth(2);
+  htotal->SetLineColor(kRed);
   hbackground->SetLineColor(kRed);
   hbackground->SetMarkerColor(kRed);
   hbackground->SetLineWidth(2);
-  hbackground->SetTitle("");
-  hbackground->SetXTitle("");
+  hbackground->SetLineStyle(kDashed);
   hsignal->SetLineColor(kBlue);
   hsignal->SetMarkerColor(kBlue);
   hsignal->SetLineWidth(2);
 
-  hbackground->Draw("hist E1");
+  htotal->SetTitle("");
+  htotal->SetXTitle("");
+
+  htotal->Draw("P E2");
+  hbackground->Draw("hist same");
   hsignal->Draw("hist same");
   gdata->Draw("P");
-  hbackground->GetYaxis()->SetRangeUser(0.1, 1.2*max(hbackground->GetMaximum(), hsignal->GetMaximum()));
   pad2->cd();
 
   TGraphAsymmErrors* gRatio = (TGraphAsymmErrors*) gdata->Clone("gRatio"); //data / s
@@ -50,8 +64,8 @@ int print_hist(TDirectoryFile* dir, TString tag, TString outdir) {
     gdata->GetPoint(bin, x, y);
     double err_high = gdata->GetErrorYhigh(bin);
     double err_low  = gdata->GetErrorYlow (bin);
-    double bkg_v = hbackground->GetBinContent(bin+1);
-    double bkg_e = hbackground->GetBinError  (bin+1);
+    double bkg_v    = htotal->GetBinContent(bin+1);
+    double bkg_e    = htotal->GetBinError  (bin+1);
 
     double val = (bkg_v > 0.) ? y / bkg_v : 0.;
     double val_high = (bkg_v > 0.) ? sqrt(err_high*err_high + bkg_e*bkg_e) / bkg_v: 0.;
@@ -62,17 +76,19 @@ int print_hist(TDirectoryFile* dir, TString tag, TString outdir) {
     gRatio->SetPointEYlow (bin, val_low );
   }
   gRatio->Draw("AP");
-  TH1* hRatio_s = (TH1*) hsignal->Clone("hRatio_s");
-  hRatio_s->Add(hbackground);
+  gRatio->GetXaxis()->SetRangeUser(0., nbins-1.e-3);
+  TH1* hRatio_s = (TH1*) htotal->Clone("hRatio_s");
   hRatio_s->Divide(hbackground);
   for(int ibin = 1; ibin <= hsignal->GetNbinsX(); ++ibin) {if(hbackground->GetBinContent(ibin) <= 0.1) hRatio_s->SetBinContent(ibin, 0.);}
+  hRatio_s->SetFillColor(0);
+  hRatio_s->SetLineColor(kBlue);
+  hRatio_s->SetLineStyle(kDashed);
   hRatio_s->Draw("hist same");
   TLine* line = new TLine(0., 1., nbins, 1.);
   line->SetLineColor(kRed);
   line->SetLineWidth(2);
   line->Draw("same");
 
-  gRatio->GetXaxis()->SetRangeUser(0., nbins);
   gRatio->GetYaxis()->SetRangeUser(0.8, 1.2);
   gRatio->SetTitle(";Bins;Data/Bkg");
   gRatio->GetXaxis()->SetLabelSize(0.08);
@@ -80,9 +96,11 @@ int print_hist(TDirectoryFile* dir, TString tag, TString outdir) {
   gRatio->GetXaxis()->SetTitleSize(0.1);
   gRatio->GetYaxis()->SetTitleSize(0.1);
 
+  double min_val = std::max(0.1, 0.8*htotal->GetMinimum());
+  htotal->GetYaxis()->SetRangeUser(0., 1.2*htotal->GetMaximum());
   c->SaveAs(Form("%s%s.png", outdir.Data(), tag.Data()));
+  htotal->GetYaxis()->SetRangeUser(0.8*min_val, 2.*htotal->GetMaximum());
   pad1->SetLogy();
-  hbackground->GetYaxis()->SetRangeUser(0.1, 2.*max(hbackground->GetMaximum(), hsignal->GetMaximum()));
   c->SaveAs(Form("%s%s_logy.png", outdir.Data(), tag.Data()));
   delete c;
   delete gRatio;
@@ -90,30 +108,40 @@ int print_hist(TDirectoryFile* dir, TString tag, TString outdir) {
   return 0;
 }
 
+//------------------------------------------------------------------------------------------
+// Print the fit results for each category in a fit configuration directory
 int print_dir(TDirectoryFile* dir, TString tag, TString outdir) {
   int status(0);
   if(!dir) return 1;
+
+  //List of categories
   TList* list = dir->GetListOfKeys();
   if(!list) return 10;
   bool subdir(false); //whether there are sub-directories or not
   for(TObject* o : *list) {
     TObject* obj = dir->Get(o->GetName());
     if(!obj) continue;
+
+    //Check if this object is a directory with categories, if so recursively process it
     bool isdir = obj->InheritsFrom(TDirectoryFile::Class());
     if(isdir) {
       status += print_dir((TDirectoryFile*) obj, (tag + "_") + obj->GetName(), outdir);
       subdir = true;
     }
   }
+
+  //If this directory doesn't contain a sub-directory, print the histograms within the category
   if(!subdir) status += print_hist(dir, tag, outdir); //histogram directory
   return status;
 }
 
+//------------------------------------------------------------------------------------------
+// Print all fit figures
 int plot_fit(TString fname, TString outdir = "figures") {
+
+  //Get the fit file
   TFile* file = TFile::Open(fname.Data(), "READ");
   if(!file) return 1;
-
-  if(!outdir.EndsWith("/")) outdir += "/";
 
   TDirectoryFile *prefit = (TDirectoryFile*) file->Get("shapes_prefit");
   TDirectoryFile *fit_b  = (TDirectoryFile*) file->Get("shapes_fit_b");
@@ -124,8 +152,11 @@ int plot_fit(TString fname, TString outdir = "figures") {
     return 2;
   }
 
+  //Create the figure directory
+  if(!outdir.EndsWith("/")) outdir += "/";
   gSystem->Exec(Form("[ ! -d %s ] && mkdir -p %s", outdir.Data(), outdir.Data()));
 
+  //Print the fit configurations: Pre-fit, background-only fit, and background+signal fit
   int status(0);
   status += print_dir(prefit, "prefit", outdir);
   status += print_dir(fit_b , "fit_b" , outdir);

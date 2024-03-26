@@ -20,6 +20,7 @@ int process_value(TString process) {
     values_["OtherVB"  ] = 5;
     values_["QCD"      ] = 6;
     values_["ZTotautau"] = 7;
+    values_["HiggsBkg" ] = 8;
   }
   if(values_.find(process) != values_.end()) return values_[process];
 
