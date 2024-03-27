@@ -54,16 +54,29 @@ root.exe -q -b -l "${CMSSW_BASE}/src/CLFVAnalysis/Roostats/tools/plot_fit.C(\"${
 # Fit the data using MultiDimFit
 ######################################
 
-ARGUMENTS="--algo singles --setParameterRanges r=${RMIN},${RMAX} --cminDefaultMinimizerStrategy=0 -m 125 --X-rtd REMOVE_CONSTANT_ZERO_POINT=1"
+# ARGUMENTS="--algo singles --setParameterRanges r=${RMIN},${RMAX} --cminDefaultMinimizerStrategy=0 -m 125 --X-rtd REMOVE_CONSTANT_ZERO_POINT=1"
+# ARGUMENTS="${ARGUMENTS} --X-rtd MINIMIZER_freezeDisassociatedParams --X-rtd MINIMIZER_multiMin_hideConstant --X-rtd MINIMIZER_multiMin_maskConstraints"
+# ARGUMENTS="${ARGUMENTS} --saveNLL --cminApproxPreFitTolerance 0.1 --cminPreScan --cminPreFit 1 --saveWorkspace --saveFitResult"
+# combine -M MultiDimFit -d ${CARD} -n "_toy_test${TAG}" --toysFile=${TOYDATA} -t 1 ${ARGUMENTS}
+
+# FITFILE=higgsCombine_toy_test${TAG}.MultiDimFit.mH125.123456.root
+# if [ ! -f ${FITFILE} ]; then
+#     echo "Failed to generate fit file ${FITFILE}"
+#     exit
+# fi
+# ls -l ${FITFILE}
+
+ARGUMENTS="--algo grid --setParameterRanges r=-10,10 --points 100 --cminDefaultMinimizerStrategy=0 -m 125 --X-rtd REMOVE_CONSTANT_ZERO_POINT=1"
 ARGUMENTS="${ARGUMENTS} --X-rtd MINIMIZER_freezeDisassociatedParams --X-rtd MINIMIZER_multiMin_hideConstant --X-rtd MINIMIZER_multiMin_maskConstraints"
 ARGUMENTS="${ARGUMENTS} --saveNLL --cminApproxPreFitTolerance 0.1 --cminPreScan --cminPreFit 1 --saveWorkspace --saveFitResult"
-combine -M MultiDimFit -d ${CARD} -n "_toy_test${TAG}" --toysFile=${TOYDATA} -t 1 ${ARGUMENTS}
+combine -M MultiDimFit -d ${CARD} -n "_toy_test_grid${TAG}" --toysFile=${TOYDATA} -t 1 ${ARGUMENTS}
 
-FITFILE=higgsCombine_toy_test${TAG}.MultiDimFit.mH125.123456.root
+FITFILE=higgsCombine_toy_test_grid${TAG}.MultiDimFit.mH125.123456.root
 if [ ! -f ${FITFILE} ]; then
     echo "Failed to generate fit file ${FITFILE}"
     exit
 fi
 ls -l ${FITFILE}
 
-# root.exe -q -b -l "${CMSSW_BASE}/src/CLFVAnalysis/Roostats/tools/plot_fit.C(\"${FITFILE}\", \"figures/test_toy${TAG}\")"
+#plot the envelope
+root.exe -q -b -l "${CMSSW_BASE}/src/CLFVAnalysis/Roostats/tools/plot_envelope.C(0, \"${FITFILE}\", \"_toy_test${TAG}\", 0)"
