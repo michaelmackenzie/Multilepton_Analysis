@@ -1,4 +1,5 @@
 //plot envelope for Z->e+mu fit
+bool remove_zero_point_ = true;
 
 int plot_envelope(const int set = 13) {
 
@@ -6,7 +7,7 @@ int plot_envelope(const int set = 13) {
   vector<TString> files;
   int icat = 0;
   while(icat < 10) {
-    const char* file = Form("higgsCombine_env_%i_cat_%i.MultiDimFit.mH120.root", set, icat);
+    const char* file = Form("higgsCombine_env_%i_cat_%i.MultiDimFit.mH125.123456.root", set, icat);
     if(!gSystem->AccessPathName(file)) {
       cout << "Adding " << file << endl;
       files.push_back(file);
@@ -14,7 +15,7 @@ int plot_envelope(const int set = 13) {
     ++icat;
   }
   //add the profiled index version
-  files.push_back(Form("higgsCombine_env_%i_tot.MultiDimFit.mH120.root", set));
+  files.push_back(Form("higgsCombine_env_%i_tot.MultiDimFit.mH125.123456.root", set));
 
   //read each scan and create a graph of the NLL
   vector<TTree*> trees;
@@ -45,6 +46,18 @@ int plot_envelope(const int set = 13) {
     TGraph* g = new TGraph(nentries-1, rvals, nlls);
     g->SetName(Form("gNLL_%i", index));
     graphs.push_back(g);
+  }
+
+  //remove the minimum NLL from all functions
+  if(remove_zero_point_) {
+    for(unsigned igraph = 0; igraph < graphs.size(); ++igraph) {
+      auto g = graphs[igraph];
+      for(int ipoint = 0; ipoint < g->GetN(); ++ipoint) {
+        g->SetPoint(ipoint, g->GetX()[ipoint], g->GetY()[ipoint] - min_val);
+      }
+    }
+    max_val = max_val - min_val;
+    min_val = 0.;
   }
 
   //decide whether a maximum NLL value is too large

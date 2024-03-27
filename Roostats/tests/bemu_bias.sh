@@ -9,8 +9,8 @@ Help() {
     echo "--fitarg      : Additional fit arguments"
     echo "--genarg      : Additional generator arguments"
     echo "--tag         : Name tag for output"
-    echo "--rrange (-r): r range (default = 100)"
-    echo "--seed   (-s): Base random seed (default = 90)"
+    echo "--rrange  (-r): r range (default = 100)"
+    echo "--seed    (-s): Base random seed (default = 90)"
 }
 
 CARD=""
@@ -22,6 +22,7 @@ TAG=""
 RRANGE="100"
 SEED="90"
 
+iarg=1
 while [ ${iarg} -le $# ]
 do
     eval "var=\${${iarg}}"
@@ -121,6 +122,7 @@ do
 done
 
 #Merge the output fitDiagnostics files
+echo ${CMSSW_BASE}/src/CLFVAnalysis/Roostats/haddfitdiag.py "fitDiagnostics.${OUTNAME}${TAG}.root" ${OUTPUTLIST}
 ${CMSSW_BASE}/src/CLFVAnalysis/Roostats/haddfitdiag.py "fitDiagnostics.${OUTNAME}${TAG}.root" ${OUTPUTLIST}
 
 #Clean up the output
@@ -128,4 +130,4 @@ rm ${OUTPUTLIST}
 
 #Merge output files
 echo "Creating bias plots..."
-root.exe -q -b "${CMSSW_BASE}/src/CLFVAnalysis/Roostats/plot_combine_fits.C(\"fitDiagnostics.${OUTNAME}${TAG}.root\", 0, \"bias_${OUTNAME}${TAG}\", 0, 0)"
+root.exe -q -b "${CMSSW_BASE}/src/CLFVAnalysis/Roostats/tools/plot_combine_fits.C(\"fitDiagnostics.${OUTNAME}${TAG}.root\", 0, \"bias_${OUTNAME}${TAG}\", 0, 0)"

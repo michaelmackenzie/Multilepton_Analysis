@@ -76,7 +76,7 @@ int print_hist(TDirectoryFile* dir, TString tag, TString outdir) {
     gRatio->SetPointEYlow (bin, val_low );
   }
   gRatio->Draw("AP");
-  gRatio->GetXaxis()->SetRangeUser(0., nbins-1.e-3);
+  gRatio->GetXaxis()->SetRangeUser(htotal->GetXaxis()->GetBinLowEdge(1), htotal->GetXaxis()->GetBinUpEdge(nbins)-1.e-3);
   TH1* hRatio_s = (TH1*) htotal->Clone("hRatio_s");
   hRatio_s->Divide(hbackground);
   for(int ibin = 1; ibin <= hsignal->GetNbinsX(); ++ibin) {if(hbackground->GetBinContent(ibin) <= 0.1) hRatio_s->SetBinContent(ibin, 0.);}
@@ -84,7 +84,7 @@ int print_hist(TDirectoryFile* dir, TString tag, TString outdir) {
   hRatio_s->SetLineColor(kBlue);
   hRatio_s->SetLineStyle(kDashed);
   hRatio_s->Draw("hist same");
-  TLine* line = new TLine(0., 1., nbins, 1.);
+  TLine* line = new TLine(htotal->GetXaxis()->GetBinLowEdge(1), 1., htotal->GetXaxis()->GetBinUpEdge(nbins), 1.);
   line->SetLineColor(kRed);
   line->SetLineWidth(2);
   line->Draw("same");
@@ -96,10 +96,10 @@ int print_hist(TDirectoryFile* dir, TString tag, TString outdir) {
   gRatio->GetXaxis()->SetTitleSize(0.1);
   gRatio->GetYaxis()->SetTitleSize(0.1);
 
-  double min_val = std::max(0.1, 0.8*htotal->GetMinimum());
-  htotal->GetYaxis()->SetRangeUser(0., 1.2*htotal->GetMaximum());
+  double min_val = std::max(0.1, 0.8*std::min(gdata->GetMinimum(), htotal->GetMinimum()));
+  htotal->GetYaxis()->SetRangeUser(0., 1.2*std::max(gdata->GetMaximum(), htotal->GetMaximum()));
   c->SaveAs(Form("%s%s.png", outdir.Data(), tag.Data()));
-  htotal->GetYaxis()->SetRangeUser(0.8*min_val, 2.*htotal->GetMaximum());
+  htotal->GetYaxis()->SetRangeUser(0.8*min_val, 2.*std::max(gdata->GetMaximum(), htotal->GetMaximum()));
   pad1->SetLogy();
   c->SaveAs(Form("%s%s_logy.png", outdir.Data(), tag.Data()));
   delete c;
