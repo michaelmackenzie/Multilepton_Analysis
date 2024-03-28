@@ -440,7 +440,11 @@ namespace CLFV {
 
     //------------------------------------------------------------------------------------------------------
     // Principal component shifted parameters, <up,down>
-    static std::pair<TMatrixD, TMatrixD> PCAShifts(TMatrixDSym& cov, TVectorD& params) {
+    static std::pair<TMatrixD, TMatrixD> PCAShifts(TMatrixDSym& cov, TVectorD& params, double nsigma = 1.) {
+      if(nsigma < 0.) {
+        printf("Utilities::%s: Given n(sigma) = %.3f, defaulting to 1 sigma\n", __func__, nsigma);
+        nsigma = 1.;
+      }
 
       const int nparams = params.GetNoElements();
       std::pair<TMatrixD, TMatrixD> shifts = {TMatrixD(nparams, nparams), TMatrixD(nparams, nparams)};
@@ -473,7 +477,7 @@ namespace CLFV {
         const double unc = sqrt((nparams-1)*sig[irow]); //uncertainty on s' parameter
         //create a vector of just the one parameter shifted
         TVectorD shift(nparams);
-        for(int jrow = 0; jrow < nparams; ++jrow) shift[jrow] = (irow == jrow) ? unc : 0.;
+        for(int jrow = 0; jrow < nparams; ++jrow) shift[jrow] = (irow == jrow) ? unc*nsigma : 0.; //shift it by N(sigma) * 1 sigma uncertainty
         //shift the rotated parameter and find the shifted nominal parameters
         TVectorD params_up   = eig*(params_rot + shift);
         TVectorD params_down = eig*(params_rot - shift);

@@ -1131,8 +1131,8 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
       }
     } else if(name == "QCDStat") {
       if(!chargeTest) { //only shift for same-sign events
-        if(fSystematics.IsUp(sys)) weight *= (qcdWeight > 0.) ? qcdWeightUp   / qcdWeight : 0.;
-        else                       weight *= (qcdWeight > 0.) ? qcdWeightDown / qcdWeight : 0.;
+        if(fSystematics.IsUp(sys)) weight *= (qcdWeight > 0.) ? qcdWeightUp   / qcdWeight : 1.;
+        else                       weight *= (qcdWeight > 0.) ? qcdWeightDown / qcdWeight : 1.;
       } else continue; //no need to fill opposite signed histograms
     } else if(name.Contains("QCDStat")) { //jet binned QCD fit uncertainty
       if(!chargeTest) { //only shift for same-sign events
@@ -1141,8 +1141,8 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
         else if(name == "QCDStat1") jet_bin = 1;
         else if(name == "QCDStat2") jet_bin = 2;
         if(std::min(2, (int) nJets20) == jet_bin) {
-          if(fSystematics.IsUp(sys)) weight *= (qcdWeight > 0.) ? qcdWeightUp   / qcdWeight : 0.;
-          else                       weight *= (qcdWeight > 0.) ? qcdWeightDown / qcdWeight : 0.;
+          if(fSystematics.IsUp(sys)) weight *= (qcdWeight > 0.) ? qcdWeightUp   / qcdWeight : 1.;
+          else                       weight *= (qcdWeight > 0.) ? qcdWeightDown / qcdWeight : 1.;
         }
       } else continue; //no need to fill opposite signed histograms
     } else if(name.Contains("QCDAlt")) { //jet binned QCD fit uncertainty using alternate shapes
@@ -1153,25 +1153,28 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
         else if(name.BeginsWith("QCDAltJ2")) jet_bin = 2;
         if     (name.EndsWith("A0")) alt_bin = 0;
         else if(name.EndsWith("A1")) alt_bin = 1;
+        else if(name.EndsWith("A2")) alt_bin = 2;
+        else if(name.EndsWith("A3")) alt_bin = 3;
+        else if(name.EndsWith("A4")) alt_bin = 4;
         if(std::min(2, (int) nJets20) == jet_bin) {
-          if(fSystematics.IsUp(sys)) weight *= (qcdWeight > 0.) ? qcdWeightAltUp  [alt_bin] / qcdWeight : 0.;
-          else                       weight *= (qcdWeight > 0.) ? qcdWeightAltDown[alt_bin] / qcdWeight : 0.;
+          if(fSystematics.IsUp(sys)) weight *= (qcdWeight > 0.) ? qcdWeightAltUp  [alt_bin] / qcdWeight : 1.;
+          else                       weight *= (qcdWeight > 0.) ? qcdWeightAltDown[alt_bin] / qcdWeight : 1.;
         }
       } else continue; //no need to fill opposite signed histograms
     } else if(name == "QCDNC") {
       if(!chargeTest) { //only shift for same-sign events
-        if(fSystematics.IsUp(sys)) weight *= (qcdClosure > 0.) ? 1. / qcdClosure : 0.; //remove / apply twice as uncertainty
-        else                       weight *= (qcdClosure > 0.) ? 1. * qcdClosure : 0.;
+        if(fSystematics.IsUp(sys)) weight *= (qcdClosure > 0.) ? 1. / qcdClosure : 1.; //remove / apply twice as uncertainty
+        else                       weight *= (qcdClosure > 0.) ? 1. * qcdClosure : 1.;
       } else continue; //no need to fill opposite signed histograms
     } else if(name == "QCDBias") {
       if(!chargeTest) { //only shift for same-sign events
-        if(fSystematics.IsUp(sys)) weight *= (qcdIsoScale > 0.) ? 1. / qcdIsoScale : 0.; //remove / apply twice as uncertainty
-        else                       weight *= (qcdIsoScale > 0.) ? 1. * qcdIsoScale : 0.;
+        if(fSystematics.IsUp(sys)) weight *= (qcdIsoScale > 0.) ? 1. / qcdIsoScale : 1.; //remove / apply twice as uncertainty
+        else                       weight *= (qcdIsoScale > 0.) ? 1. * qcdIsoScale : 1.;
       } else continue; //no need to fill opposite signed histograms
     } else if(name == "QCDMassBDTBias") {
       if(!chargeTest) { //only shift for same-sign events
-        if(fSystematics.IsUp(sys)) weight *= (qcdMassBDTScale > 0.) ? 1. / qcdMassBDTScale : 0.; //remove / apply twice as uncertainty
-        else                       weight *= (qcdMassBDTScale > 0.) ? 1. * qcdMassBDTScale : 0.;
+        if(fSystematics.IsUp(sys)) weight *= (qcdMassBDTScale > 0.) ? 1. / qcdMassBDTScale : 1.; //remove / apply twice as uncertainty
+        else                       weight *= (qcdMassBDTScale > 0.) ? 1. * qcdMassBDTScale : 1.;
       } else continue; //no need to fill opposite signed histograms
     } else if(name == "JetToTauNC") {
       if(!isLooseTau) continue; //only shift the weight for loose tau ID region events

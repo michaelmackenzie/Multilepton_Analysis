@@ -1353,10 +1353,14 @@ void HistMaker::ApplyElectronCorrections() {
                                                     Electron_resolutionScaleUp[index], Electron_resolutionScaleDown[index]);
       Electron_resolutionScale[index] = sf;
       Electron_pt[index] *= sf;
+      if(fVerbose > 9) {
+        printf("  HistMaker::%s: Index %2i: Res scales: %.4f (%.4f/%.4f)\n", __func__, index, sf, Electron_resolutionScaleUp[index], Electron_resolutionScaleDown[index]);
+      }
       // Electron_mass[index] *= sf;
-    } else if(!fIsData) {
+    } else if(!fIsData && !fIsEmbed) {
       const float gen_pt = (Electron_genPartIdx[index] >= 0) ? GenPart_pt[Electron_genPartIdx[index]] : Electron_pt[index];
       const float ele_scale_sys = 0.05f;
+      Electron_resolutionScale    [index] = 1.f; //no correction by default
       Electron_resolutionScaleUp  [index] = 1.f + ele_scale_sys*(Electron_pt[index] - gen_pt) / gen_pt;
       Electron_resolutionScaleDown[index] = 1.f - ele_scale_sys*(Electron_pt[index] - gen_pt) / gen_pt;
     }
@@ -1677,7 +1681,11 @@ void HistMaker::InitializeEventWeights() {
     }
   }
 
-  qcdWeight = 1.f; qcdWeightUp = 1.f; qcdWeightDown = 1.f; qcdClosure = 1.f; qcdIsoScale = 1.f;
+  qcdWeight = 1.f; qcdWeightUp = 1.f; qcdWeightDown = 1.f; qcdClosure = 1.f; qcdIsoScale = 1.f; qcdMassBDTScale = 1.f;
+  for(int ialt = 0; ialt < kMaxAltFunc; ++ialt) {
+    qcdWeightAltUp  [ialt] = 1.f;
+    qcdWeightAltDown[ialt] = 1.f;
+  }
 
   ////////////////////////////////////////////////////////////////////
   //   Generator/Embedding Weight
@@ -2297,11 +2305,29 @@ void HistMaker::InitializeEventWeights() {
 
   //Test that the j-->tau weights are sensible
   if((mutau || etau) && isLooseTau) {
-    const float test_jtt_wt = EvalJetToTauStatSys(JetToTauComposition::kLast, 1, 0, true);
-    if(std::fabs(jetToTauWeightBias - test_jtt_wt) > 1.e-5f) {
-      printf("HistMaker::%s: Entry %lld: j-->tau stat sys implementation is wrong: wt = %.4f, eval = %.4f\n",
-             __func__, fentry, jetToTauWeightBias, test_jtt_wt);
-      throw std::runtime_error("Bad j-->tau Stat Sys test");
+    {
+      const float test_jtt_wt = EvalJetToTauStatSys(JetToTauComposition::kLast, 1, 0, true);
+      if(std::fabs(eventWeight*genWeight - test_jtt_wt) > 1.e-5f) {
+        printf("HistMaker::%s: Entry %lld: j-->tau stat sys implementation is wrong: wt = %.4f, eval = %.4f\n",
+               __func__, fentry, eventWeight*genWeight, test_jtt_wt);
+        throw std::runtime_error("Bad j-->tau Stat Sys test");
+      }
+    }
+    {
+      const float test_jtt_wt = EvalJetToTauNCSys(JetToTauComposition::kLast, true);
+      if(std::fabs(eventWeight*genWeight - test_jtt_wt) > 1.e-5f) {
+        printf("HistMaker::%s: Entry %lld: j-->tau NC sys implementation is wrong: wt = %.4f, eval = %.4f\n",
+               __func__, fentry, eventWeight*genWeight, test_jtt_wt);
+        throw std::runtime_error("Bad j-->tau Stat Sys test");
+      }
+    }
+    {
+      const float test_jtt_wt = EvalJetToTauBiasSys(JetToTauComposition::kLast, true);
+      if(std::fabs(eventWeight*genWeight - test_jtt_wt) > 1.e-5f) {
+        printf("HistMaker::%s: Entry %lld: j-->tau Bias sys implementation is wrong: wt = %.4f, eval = %.4f\n",
+               __func__, fentry, eventWeight*genWeight, test_jtt_wt);
+        throw std::runtime_error("Bad j-->tau Stat Sys test");
+      }
     }
   }
 
@@ -3360,7 +3386,7 @@ void HistMaker::CountObjects() {
   }
   if(leptonTwo.isMuon()) {
     leptonTwo.Res[0] = 1.f;
-    leptonOne.Res[1] = (fIsEmbed) ? fEmbeddingResolution->MuonResolutionUnc(leptonTwo.pt, leptonTwo.eta, leptonTwo.genPt, fYear) : 1.f;
+    leptonTwo.Res[1] = (fIsEmbed) ? fEmbeddingResolution->MuonResolutionUnc(leptonTwo.pt, leptonTwo.eta, leptonTwo.genPt, fYear) : 1.f;
     leptonTwo.Res[2] = 1.f;
   }
   if(leptonOne.isTau()) {
@@ -3374,6 +3400,11 @@ void HistMaker::CountObjects() {
     leptonTwo.Res[2] = 1.f;
   }
 
+  if(fVerbose > 6) {
+    printf(" HistMaker::%s: Resolution scales:\n", __func__);
+    printf("  LeptonOne: %.5f (%.5f/%.5f)\n", leptonOne.Res[0], leptonOne.Res[1], leptonOne.Res[2]);
+    printf("  LeptonTwo: %.5f (%.5f/%.5f)\n", leptonTwo.Res[0], leptonTwo.Res[1], leptonTwo.Res[2]);
+  }
 
   if(!std::isfinite(puppMETJERUp) || !std::isfinite(puppMETphiJERUp)) {
     if(fVerbose) printf("HistMaker::%s: Entry %lld: MET JER Up not defined\n", __func__, fentry);

@@ -1,4 +1,5 @@
 <lcgdict>
+  <class name="std::map<double, std::vector<double>>"/>
   <class name="std::map<TString, double>"/>
   <class name="std::map<int, TH1*>"/>
   <class name="std::map<int, TH2*>"/>
@@ -9,6 +10,7 @@
   <class name="SystematicHist_t"/>
   <class name="CrossSections"/>
   <class name="Significances"/>
+  <class name="AwkwardTH2"/>
   <class name="Utilities"/>
   <class name="PlotUtil"/>
   <class name="Systematics"/>

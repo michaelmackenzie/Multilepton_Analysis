@@ -186,6 +186,11 @@ float EmbeddingResolution::ElectronScale(float eta, float gen_pt, int year, floa
   up    = std::max(min_scale, std::min(max_scale, up   ));
   down  = std::max(min_scale, std::min(max_scale, down ));
 
+  if(verbose_ > 1) {
+    printf("EmbeddingResolution::%s: For eta = %.2f, gen-pT = %.2f, scale = %.3f (%.3f/%.3f)\n",
+           __func__, eta, gen_pt, scale, up, down);
+  }
+
   return scale;
 }
 
@@ -253,6 +258,12 @@ float EmbeddingResolution::ElectronResolution(float pt, float eta, float gen_pt,
   scale = std::max(min_scale, std::min(max_scale, scale));
   up    = std::max(min_scale, std::min(max_scale, up   ));
   down  = std::max(min_scale, std::min(max_scale, down ));
+
+  if(verbose_ > 1) {
+    printf("EmbeddingResolution::%s: For pT = %.2f, gen-pT = %.2f (diff = %.2e), width ratio = %.2f, scale = %.3f (%.3f/%.3f)\n",
+           __func__, pt, gen_pt, pt_err, width_ratio, scale, up, down);
+  }
+
   return scale;
 }
 
@@ -320,6 +331,10 @@ float EmbeddingResolution::MuonScale(float eta, float gen_pt, int year, float& u
   up    = std::max(min_scale, std::min(max_scale, up   ));
   down  = std::max(min_scale, std::min(max_scale, down ));
 
+  if(verbose_ > 1) {
+    printf("EmbeddingResolution::%s: For eta = %.2f, gen-pT = %.2f, scale = %.3f (%.3f/%.3f)\n",
+           __func__, eta, gen_pt, scale, up, down);
+  }
   return scale;
 }
 
@@ -400,6 +415,11 @@ float EmbeddingResolution::MuonResolution(float pt, float eta, float gen_pt, int
   scale = std::max(min_scale, std::min(max_scale, scale));
   up    = std::max(min_scale, std::min(max_scale, up   ));
   down  = std::max(min_scale, std::min(max_scale, down ));
+
+  if(verbose_ > 1) {
+    printf("EmbeddingResolution::%s: For pT = %.2f, gen-pT = %.2f (diff = %.2e), scale = %.3f (%.3f/%.3f)\n",
+           __func__, pt, gen_pt, pt_err, scale, up, down);
+  }
 
   return scale;
 }

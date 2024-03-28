@@ -10,6 +10,7 @@
 #include "interface/SystematicHist_t.hh"
 #include "interface/CrossSections.hh"
 #include "interface/Significances.hh"
+#include "interface/AwkwardTH2.hh"
 #include "interface/Utilities.hh"
 #include "interface/PlotUtil.hh"
 #include "interface/Systematics.hh"
@@ -63,6 +64,7 @@ namespace CLFV {
     SystematicHist_t dummy1d;
     CrossSections dummy2;
     Significances dummy3;
+    AwkwardTH2 dummy3aa;
     Utilities dummy3a;
     Systematics dummy3a2;
     EventFlags dummy3a3;

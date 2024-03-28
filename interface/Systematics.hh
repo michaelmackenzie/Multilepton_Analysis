@@ -218,8 +218,8 @@ namespace CLFV {
                                                                     (((isys-base)/(2*nalt))%ndm),//200-205 = 1 DM mode
                                                                     ((isys-base)/2)%nalt), (isys-base)%2 == 0);
       //QCD SS-->OS statistical function shape variations (2 per fit)
-      //3 jet bins, 2 alt function shapes
-      base += 2*nbin; nbin = 3*2; //272-283
+      //3 jet bins, 2 alt function shapes: FIXME: Either reset to 2 shapes or update counts everywhere
+      base += 2*nbin; nbin = 3*4; //272-283
       if(isys >= base && isys < base+2*nbin) return Data(isys, Form("QCDAltJ%iA%i",
                                                                     (isys-base)/(2*2), //e.g. 272-277 = 0 jets
                                                                     ((isys-base)/2)%2), //272-273 = up/down of 1 shape param

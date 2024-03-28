@@ -71,19 +71,19 @@ void QCDHistMaker::BookEventHistograms() {
       Utilities::BookH1F(fEventHist[i]->hNPV[0]                  , "npv"                     , Form("%s: NPV"                         ,dirname),  50,    0, 100, folder);
       Utilities::BookH1D(fEventHist[i]->hMcEra                   , "mcera"                   , Form("%s: MCEra + 2*(year-2016)"       ,dirname),   8,    0,   8, folder);
       Utilities::BookH1D(fEventHist[i]->hNJets20[0]              , "njets20"                 , Form("%s: NJets20"                     ,dirname),  10,    0,  10, folder);
-      Utilities::BookH1F(fEventHist[i]->hJetPt[0]           , "jetpt"               , Form("%s: JetPt"               ,dirname), 100,    0, 200, folder);
+      Utilities::BookH1F(fEventHist[i]->hJetPt[0]                , "jetpt"                   , Form("%s: JetPt"               ,dirname), 100,    0, 200, folder);
       Utilities::BookH1D(fEventHist[i]->hNBJets20[0]             , "nbjets20"                , Form("%s: NBJets20"                    ,dirname),  10,    0,  10, folder);
       Utilities::BookH1D(fEventHist[i]->hNBJets20L[0]            , "nbjets20l"               , Form("%s: NBJets20L"                   ,dirname),  10,    0,  10, folder);
-      Utilities::BookH1F(fEventHist[i]->hHt                 , "ht"                  , Form("%s: Ht"                  ,dirname), 100,    0, 200, folder);
+      Utilities::BookH1F(fEventHist[i]->hHt                      , "ht"                      , Form("%s: Ht"                  ,dirname), 100,    0, 200, folder);
 
       Utilities::BookH1D(fEventHist[i]->hNGenTaus                , "ngentaus"                , Form("%s: NGenTaus"                    ,dirname),  10,    0,  10, folder);
       Utilities::BookH1D(fEventHist[i]->hNGenElectrons           , "ngenelectrons"           , Form("%s: NGenElectrons"               ,dirname),  10,    0,  10, folder);
       Utilities::BookH1D(fEventHist[i]->hNGenMuons               , "ngenmuons"               , Form("%s: NGenMuons"                   ,dirname),  10,    0,  10, folder);
 
-      Utilities::BookH1F(fEventHist[i]->hMet                 , "met"                 , Form("%s: Met"                     ,dirname)  , 100,  0, 200, folder);
-      Utilities::BookH1F(fEventHist[i]->hMTOne               , "mtone"               , Form("%s: MTOne"                   ,dirname)  , 100, 0.,   150., folder);
-      Utilities::BookH1F(fEventHist[i]->hMTTwo               , "mttwo"               , Form("%s: MTTwo"                   ,dirname)  , 100, 0.,   150., folder);
-      Utilities::BookH1F(fEventHist[i]->hMTLep               , "mtlep"               , Form("%s: MTLep"                   ,dirname)  , 100, 0.,   150., folder);
+      Utilities::BookH1F(fEventHist[i]->hMet                     , "met"                     , Form("%s: Met"                     ,dirname)  , 100,  0, 200, folder);
+      Utilities::BookH1F(fEventHist[i]->hMTOne                   , "mtone"                   , Form("%s: MTOne"                   ,dirname)  , 100, 0.,   150., folder);
+      Utilities::BookH1F(fEventHist[i]->hMTTwo                   , "mttwo"                   , Form("%s: MTTwo"                   ,dirname)  , 100, 0.,   150., folder);
+      Utilities::BookH1F(fEventHist[i]->hMTLep                   , "mtlep"                   , Form("%s: MTLep"                   ,dirname)  , 100, 0.,   150., folder);
 
       Utilities::BookH1F(fEventHist[i]->hLepPt[0], "leppt"         , Form("%s: Lepton Pt"      ,dirname)  , 100,   0, 200, folder);
       Utilities::BookH1F(fEventHist[i]->hLepM[0] , "lepm"          , Form("%s: Lepton M"       ,dirname)  , 280,  40, 180, folder);
@@ -151,16 +151,24 @@ void QCDHistMaker::BookEventHistograms() {
       Utilities::BookH2F(fEventHist[i]->hQCDOnePtVsTwoPtIso[0] , "qcdoneptvstwoptiso", Form("%s: QCD one pt vs two pt",dirname), nonebins, onebins, ntwobins, twobins, folder);
       Utilities::BookH2F(fEventHist[i]->hQCDOnePtVsTwoPtIso[1] , "qcdoneptvstwoptiso1", Form("%s: QCD one pt vs two pt",dirname), nonebins, onebins, ntwobins, twobins, folder);
 
-      const double fit_mbins[]    = {40., 50., 100., 170.}; //mass regions the fit is performed in
-      const int    nfit_mbins     = sizeof(fit_mbins) / sizeof(*fit_mbins) - 1;
-      const double mva_bins[] = {0., 0.1, 0.2, 0.3, 0.5, 1.};
-      const int nmva_bins = sizeof(mva_bins) / sizeof(*mva_bins) - 1;
-      Utilities::BookH2F(fEventHist[i]->hQCDLepMVsMVAMuTau[0], "qcdlepmvsmvamutau0", Form("%s: QCDLepMVsMVA-MuTau",dirname),  nfit_mbins, fit_mbins, nmva_bins, mva_bins, folder);
-      Utilities::BookH2F(fEventHist[i]->hQCDLepMVsMVAMuTau[1], "qcdlepmvsmvamutau1", Form("%s: QCDLepMVsMVA-MuTau",dirname),  nfit_mbins, fit_mbins, nmva_bins, mva_bins, folder);
-      Utilities::BookH2F(fEventHist[i]->hQCDLepMVsMVAMuTau[2], "qcdlepmvsmvamutau2", Form("%s: QCDLepMVsMVA-MuTau",dirname),  nfit_mbins, fit_mbins, nmva_bins, mva_bins, folder);
-      Utilities::BookH2F(fEventHist[i]->hQCDLepMVsMVAETau [0], "qcdlepmvsmvaetau0" , Form("%s: QCDLepMVsMVA-ETau" ,dirname),  nfit_mbins, fit_mbins, nmva_bins, mva_bins, folder);
-      Utilities::BookH2F(fEventHist[i]->hQCDLepMVsMVAETau [1], "qcdlepmvsmvaetau1" , Form("%s: QCDLepMVsMVA-ETau" ,dirname),  nfit_mbins, fit_mbins, nmva_bins, mva_bins, folder);
-      Utilities::BookH2F(fEventHist[i]->hQCDLepMVsMVAETau [2], "qcdlepmvsmvaetau2" , Form("%s: QCDLepMVsMVA-ETau" ,dirname),  nfit_mbins, fit_mbins, nmva_bins, mva_bins, folder);
+      { //mutau_e BDT
+        const double fit_mbins[]    = {40., 50., 100., 170.}; //mass regions the fit is performed in
+        const int    nfit_mbins     = sizeof(fit_mbins) / sizeof(*fit_mbins) - 1;
+        const double mva_bins[] = {0., 0.1, 0.2, 0.35, 1.};
+        const int nmva_bins = sizeof(mva_bins) / sizeof(*mva_bins) - 1;
+        Utilities::BookH2F(fEventHist[i]->hQCDLepMVsMVAMuTau[0], "qcdlepmvsmvamutau0", Form("%s: QCDLepMVsMVA-MuTau",dirname),  nfit_mbins, fit_mbins, nmva_bins, mva_bins, folder);
+        Utilities::BookH2F(fEventHist[i]->hQCDLepMVsMVAMuTau[1], "qcdlepmvsmvamutau1", Form("%s: QCDLepMVsMVA-MuTau",dirname),  nfit_mbins, fit_mbins, nmva_bins, mva_bins, folder);
+        Utilities::BookH2F(fEventHist[i]->hQCDLepMVsMVAMuTau[2], "qcdlepmvsmvamutau2", Form("%s: QCDLepMVsMVA-MuTau",dirname),  nfit_mbins, fit_mbins, nmva_bins, mva_bins, folder);
+      }
+      { //etau_mu BDT
+        const double fit_mbins[]    = {40., 50., 100., 170.}; //mass regions the fit is performed in
+        const int    nfit_mbins     = sizeof(fit_mbins) / sizeof(*fit_mbins) - 1;
+        const double mva_bins[] = {0., 0.15, 0.3, 1.};
+        const int nmva_bins = sizeof(mva_bins) / sizeof(*mva_bins) - 1;
+        Utilities::BookH2F(fEventHist[i]->hQCDLepMVsMVAETau [0], "qcdlepmvsmvaetau0" , Form("%s: QCDLepMVsMVA-ETau" ,dirname),  nfit_mbins, fit_mbins, nmva_bins, mva_bins, folder);
+        Utilities::BookH2F(fEventHist[i]->hQCDLepMVsMVAETau [1], "qcdlepmvsmvaetau1" , Form("%s: QCDLepMVsMVA-ETau" ,dirname),  nfit_mbins, fit_mbins, nmva_bins, mva_bins, folder);
+        Utilities::BookH2F(fEventHist[i]->hQCDLepMVsMVAETau [2], "qcdlepmvsmvaetau2" , Form("%s: QCDLepMVsMVA-ETau" ,dirname),  nfit_mbins, fit_mbins, nmva_bins, mva_bins, folder);
+      }
       delete dirname;
     }
   }

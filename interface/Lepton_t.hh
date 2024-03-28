@@ -79,7 +79,7 @@ namespace CLFV {
 
     bool  jetOverlap;
 
-    int index;
+    int index; //index in the lepton collection
 
     bool  isElectron () {return std::abs(flavor) == 11;}
     bool  isMuon     () {return std::abs(flavor) == 13;}

@@ -173,6 +173,9 @@ QCDWeight::QCDWeight(const TString selection, const int Mode, int only_year, con
             }
             break;
           }
+          if(verbose_ > 3) {
+            printf("%s: Adding alt fit function number %i for jet bin %i and year %i\n", __func__, ialt+1, ijet, year);
+          }
           altJetFitsUp_  [index].push_back(up  );
           altJetFitsDown_[index].push_back(down);
           up->SetName(Form("%s_%s_%i", up->GetName(), tag, year));
@@ -498,13 +501,16 @@ float QCDWeight::GetWeight(float deltar, float deltaphi, float oneeta, float one
     const int xbin = std::max(1, std::min(hLepMVsBDT->GetXaxis()->FindBin(mass), hLepMVsBDT->GetNbinsX()));
     const int ybin = std::max(1, std::min(hLepMVsBDT->GetYaxis()->FindBin(bdt ), hLepMVsBDT->GetNbinsY()));
     massbdt = hLepMVsBDT->GetBinContent(xbin, ybin);
+    if(verbose_ > 9) {
+      std::cout << " for (mass, bdt) = (" << mass << ", " << bdt << ") bin content = " << massbdt << std::endl;
+    }
     if(!std::isfinite(massbdt) || massbdt <= 0.f) {
       if(verbose_) std::cout << "QCDWeight::" << __func__ << " (mass, bdt score) closure weight < 0  = " << massbdt
                              << "; mass = " << mass << " bdt = " << bdt
                              << " for year = " << year << std::endl;
       massbdt = 1.f;
     }
-    massbdt = std::max(0.3f, std::max(3.f, massbdt)); //constrain to a factor of 3 correction
+    massbdt = std::max(0.5f, std::min(2.f, massbdt)); //constrain to a factor of 2 correction
   } else {
     massbdt = 1.f;
   }

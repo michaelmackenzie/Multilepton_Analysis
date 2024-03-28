@@ -8,10 +8,33 @@ TString selection_;
 
 //use the dataplotter to manage normalizations and initializations
 DataPlotter* dataplotter_ = 0;
-int  verbose_ = 0;
-int  drawFit_ = 1; //whether to draw the linear fits
-bool doPCA_   = true; //whether or not to generate shifted function templates
-int  rebin_   = 1;
+int  verbose_  = 0;
+int  drawFit_  = 1; //whether to draw the linear fits
+bool doPCA_    = true; //whether or not to generate shifted function templates
+bool scalePCA_ = true; //scale the PCA transform by max(1, sqrt(chi^2/dof)) to increase the uncertainties
+bool useFTest_ = false; //use an F-test to decide the fit order
+int  rebin_    = 1;
+
+//-------------------------------------------------------------------------------------------------------------------------------
+// Perform an F-test
+bool perform_f_test(double chisq_1, int ndof_1, double chisq_2, int ndof_2) {
+  if(chisq_1 < 0. || ndof_1 <= 0) return true; //pick the higher order function
+  if(chisq_2 < 0. || ndof_2 <= 0) return false; //stick with the original function
+  if(ndof_1 == ndof_2) return chisq_1 > chisq_2; //if equal degrees of freedom, pick the better chi^2 model
+  if(ndof_1 < ndof_2) {
+    cout << __func__ << ": Error, higher order has higher N(dof)!\n";
+    return false;
+  }
+
+  double p_of_f = 1.;
+  //use the difference of chi^2 p-value given N(dof) = Delta N(dof)
+  const double ftest = chisq_1 - chisq_2;
+  if(ftest < 0.) p_of_f = 1.; //lower order is a better fit
+  else           p_of_f = ROOT::Math::chisquared_cdf_c(ftest, ndof_1 - ndof_2);
+  printf("F-test: chisq_1 = %.3f / %i; chisq_2 = %.3f / %i --> p(F) = %.3e\n",
+         chisq_1, ndof_1, chisq_2, ndof_2, p_of_f);
+  return (p_of_f < 0.05); //select a higher order if 95% confidence it's better
+}
 
 //-------------------------------------------------------------------------------------------------------------------------------
 // Smooth a 1D histogram
@@ -158,19 +181,50 @@ TCanvas* make_ratio_canvas(TH1* hnum, TH1* hdnm, TF1 *&f1, TString print_name = 
   }
   TF1* f = 0;
   TFitResultPtr fitres;
+  double fit_min(1.75), fit_max(4.75);
+  int nfit_bins = hnum->FindBin(fit_max) - hnum->FindBin(fit_min) + 1.;
+  if(nfit_bins <= 1) { //check if the bounds make sense
+    fit_min = 1.; fit_max = -1.; nfit_bins = hnum->GetNbinsX();
+  }
   if(doFit) {
-    TString fit_func = "pol1(0)"; //(years_[0] == 2016) ? "pol1(0) + gaus(2)" : "pol1(0)";
-    f = new TF1("fit_func", fit_func.Data(), 0., 10.);
-    f->SetParameters(1.7, -0.1, 0.25, 3.2, 0.4);
-    int count = 0;
-    bool refit = false;
-    do {
-      if(refit) cout << __func__ << ": Refitting for " << hnum->GetName() << ", " << hdnm->GetName() << endl;
-      fitres = hRatio->Fit(f, fit_option.Data());
-      refit = !fitres || fitres->Status() != 0;
-      refit &=  count < 5;
-      ++count;
-    } while(refit);
+    //perform an F-test to decide the order of the fit
+    double chisq_prev(1.e20);
+    int ndof_prev(1);
+    const int min_order((useFTest_) ? 1 : 3), max_order((useFTest_) ? 4 : 3);
+    int best_order = min_order; //store the highest order passing the F-test (if applied)
+    for(int order = min_order; order <= max_order+1; ++order) {
+      if(!useFTest_ && order > max_order) break; //if not using the F-test, only do the single fit
+      //use an extra order to re-fit the best order
+      const int current_order = (order > max_order) ? best_order : order;
+      TString fit_func = Form("pol%i(0)", current_order);
+      f = new TF1("fit_func", fit_func.Data(), 0., 10.);
+      f->SetParameter(0, 1.5);
+      // f->SetParameters(1.7, -0.1, 0.25, 3.2, 0.4);
+      int count = 0;
+      bool refit = false;
+      do {
+        if(refit) cout << __func__ << ": Refitting order " << current_order << " for " << hnum->GetName() << ", " << hdnm->GetName() << endl;
+        if(fit_min < fit_max)
+          fitres = hRatio->Fit(f, fit_option.Data(), "", fit_min, fit_max);
+        else
+          fitres = hRatio->Fit(f, fit_option.Data());
+        refit = !fitres || fitres->Status() != 0;
+        refit &=  count < 5;
+        ++count;
+      } while(refit);
+
+      //determine if the best order has been found
+      if(order <= max_order) {
+        const double chisq = f->GetChisquare();
+        const double ndof  = (std::max(1, nfit_bins - f->GetNpar()));
+        if(!useFTest_ || chisq_prev > 1.e10 || perform_f_test(chisq_prev, ndof_prev, chisq, ndof)) { //select the higher order
+          chisq_prev = chisq;
+          ndof_prev = ndof;
+          best_order = order;
+        }
+      }
+    } //end F-test loop
+    cout << "For histogram " << hnum->GetName() << " selected fit order " << best_order << endl;
   }
   hRatio->SetLineWidth(2);
   hRatio->SetLineColor(kBlue);
@@ -207,7 +261,8 @@ TCanvas* make_ratio_canvas(TH1* hnum, TH1* hdnm, TF1 *&f1, TString print_name = 
       const int nparams = cov.GetNrows();
       TVectorD params(nparams);
       for(int iparam = 0; iparam < nparams; ++iparam) params[iparam] = f1->GetParameter(iparam);
-      auto shifts = Utilities::PCAShifts(cov, params);
+      const double nsigma = (scalePCA_) ? std::max(1., std::sqrt(f->GetChisquare()/(std::max(1, nfit_bins - f->GetNpar())))) : 1.;
+      auto shifts = Utilities::PCAShifts(cov, params, nsigma);
       auto up = shifts.first;
       auto down = shifts.second;
       const int colors[] = {kViolet, kCyan+3, kOrange, kAtlantic, kYellow-3, kGreen, kBlue};
@@ -236,7 +291,7 @@ TCanvas* make_ratio_canvas(TH1* hnum, TH1* hdnm, TF1 *&f1, TString print_name = 
     label.SetTextSize(0.04);
     label.SetTextAlign(13);
     label.SetTextAngle(0);
-    label.DrawLatex(0.15, 0.89, Form("#chi^{2}/NDF  %.3f / %i (p = %.3f)", f->GetChisquare(), hRatio->GetNbinsX() - f->GetNpar(),
+    label.DrawLatex(0.15, 0.89, Form("#chi^{2}/NDF  %.3f / %i (p = %.3f)", f->GetChisquare(), nfit_bins - f->GetNpar(),
                                      TMath::Prob(f->GetChisquare(), hRatio->GetNbinsX() - f->GetNpar())));
     for(int ipar = 0; ipar < f->GetNpar(); ++ipar) {
       label.DrawLatex(0.15, 0.89-0.05*(ipar+1), Form("%-10s %.4g +- %.5g\n", f->GetParName(ipar), f->GetParameter(ipar), f->GetParError(ipar)));
@@ -271,11 +326,12 @@ TCanvas* make_2D_ratio_canvas(TH2* hnum, TH2* hdnm,
   hRatio->GetYaxis()->SetRangeUser(ymin, ymax);
   hRatio->SetTitle("OS/SS");
   if(binc)
-    hRatio->Draw("colz text");
+    hRatio->Draw("colz text error");
   else
     hRatio->Draw("colz");
-  if(hRatio->GetMaximum() > 3.)
-    hRatio->GetZaxis()->SetRangeUser(0.01, 3.);
+
+  hRatio->GetZaxis()->SetRangeUser(0.95*CLFV::Utilities::H2MinAbove(hRatio, 0.01),
+                                   std::min(3., 1.05*hRatio->GetMaximum()));
   if(xl != "") hRatio->SetXTitle(xl.Data());
   if(yl != "") hRatio->SetYTitle(yl.Data());
   return c;
@@ -539,8 +595,10 @@ Int_t initialize_plotter(TString base) {
 
 
 //Generate the plots and scale factors
-Int_t scale_factors(TString selection = "emu", int set = 8, int year = 2016,
+Int_t scale_factors(TString selection = "emu", int set = 8, vector<int> years = {2016},
                     TString hist_dir = "nanoaods_qcd") {
+
+  if(years.size() == 0) return -1;
 
   //////////////////////
   // Initialize files //
@@ -550,7 +608,7 @@ Int_t scale_factors(TString selection = "emu", int set = 8, int year = 2016,
   selection_  = selection;
   useEmbed_   = 0; //FIXME: Add back embedding once scale factors are measured
   embedScale_ = 1.;
-  years_      = {year};
+  years_      = years;
   useUL_      = (hist_dir_.Contains("_UL")) ? 1 : 0;
   hist_tag_   = "qcd"; //tag for the QCDHistMaker
 
@@ -567,7 +625,9 @@ Int_t scale_factors(TString selection = "emu", int set = 8, int year = 2016,
   const int setLsELsMu = (setAbs - set + 71); //loose electron, loose muon
 
   //construct the general name of each file, not including the sample name
-  TString baseName = Form("clfv_%s_%i_", selection.Data(), year);
+  TString year_s = Form("%i", years[0]);
+  for(unsigned i = 1; i < years.size(); ++i) year_s += Form("_%i", years[i]);
+  TString baseName = Form("clfv_%s_%s_", selection.Data(), year_s.Data());
 
   //initialize the data files
   if(verbose_ > 0) std::cout << "Initializing the dataplotter" << std::endl;
@@ -616,12 +676,12 @@ Int_t scale_factors(TString selection = "emu", int set = 8, int year = 2016,
   gStyle->SetOptStat(0);
 
   //construct general figure name
-  TString name = Form("figures/%s_%i/", selection.Data(), year);
+  TString name = Form("figures/%s_%s/", selection.Data(), year_s.Data());
   //ensure directories exist
   gSystem->Exec(Form("[ ! -d %s ] && mkdir -p %s", name.Data(), name.Data()));
   gSystem->Exec("[ ! -d rootfiles ] && mkdir rootfiles");
 
-  const char* fname = Form("rootfiles/qcd_scale_%s_%i.root", selection.Data(), year);
+  const char* fname = Form("rootfiles/qcd_scale_%s_%s.root", selection.Data(), year_s.Data());
   TFile* fOut = new TFile(fname, "RECREATE");
 
   TF1* f;
@@ -788,7 +848,8 @@ Int_t scale_factors(TString selection = "emu", int set = 8, int year = 2016,
   h2DOS = get_2D_qcd_histogram("qcdoneptvstwoptj0", setAbs);
   h2DSS = get_2D_qcd_histogram("qcdoneptvstwoptj0", setAbs+CLFVHistMaker::fQcdOffset);
   c = make_2D_ratio_canvas(h2DOS, h2DSS, 10., 150, 10., 150, true, "p_{T}^{e} (GeV/c)", "p_{T}^{#mu} (GeV/c)");
-  if(c) {c->Print((name + "oneptvstwoptj0_ratio.png").Data()); delete c;}  if(h2DOS && h2DSS) {
+  if(c) {c->Print((name + "oneptvstwoptj0_ratio.png").Data()); delete c;}
+  if(h2DOS && h2DSS) {
     h2DRatio = (TH2*) h2DOS->Clone("hRatio_oneptvstwoptj0");
     h2DRatio->Divide(h2DSS);
     h2DRatio->Write();
