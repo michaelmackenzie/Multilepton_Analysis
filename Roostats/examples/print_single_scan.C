@@ -1,6 +1,6 @@
 //Print the results of a single MultiDimFit grid scan
 
-void print_single_scan(const char* file, const char* index_name = nullptr, const char* figure_name = "envelope") {
+void print_single_scan(const char* file, const char* index_name = nullptr, const char* figure_name = "envelope", int verbose = 0) {
 
   //check that the file exists
   if(gSystem->AccessPathName(file)) {
@@ -34,15 +34,18 @@ void print_single_scan(const char* file, const char* index_name = nullptr, const
   //Scan the results
   double r_fit(0.), nll_fit(0.); //fit results
   double r_min(0.), nll_min(1.e20); //scan point with the minimum r
+  int index_min(0), index_fit(0);
   double r_vals[nentries-1], nll_vals[nentries-1];
   for(int entry = 0; entry < nentries; ++entry) {
     tree->GetEntry(entry);
-    printf("Entry %3i: r = %7.3f, deltaNLL = %7.2f, nll = %.2f, nll0 = %.2f, index = %i\n",
-           entry, r, dnll, nll, nll0, index);
+    if(verbose > 0)
+      printf("Entry %3i: r = %7.3f, deltaNLL = %7.2f, nll = %.2f, nll0 = %.2f, index = %i\n",
+             entry, r, dnll, nll, nll0, index);
     const double nll_val = nll0 + nll + dnll;
     if(entry == 0) { //results for the best fit
       r_fit = r;
       nll_fit = nll_val;
+      index_fit = index;
       continue;
     }
     r_vals  [entry-1] = r; //save the envelope scan
@@ -51,6 +54,7 @@ void print_single_scan(const char* file, const char* index_name = nullptr, const
     if(nll_val < nll_min) {
       r_min = r;
       nll_min = nll_val;;
+      index_min = index;
     }
   }
 
@@ -74,9 +78,11 @@ void print_single_scan(const char* file, const char* index_name = nullptr, const
   best->SetMarkerColor(kRed);
   best->Draw("P");
 
+  env->GetYaxis()->SetRangeUser(nll_min-0.2, nll_min + 5.);
+
   c.SaveAs(Form("%s.png", figure_name));
 
   //print the summary
-  printf("Fit result : r = %.2f, NLL = %.2f\n", r_fit, nll_fit);
-  printf("Scan result: r = %.2f, NLL = %.2f\n", r_min, nll_min);
+  printf("Fit result : r = %.2f, NLL = %.2f, index = %i\n", r_fit, nll_fit, index_fit);
+  printf("Scan result: r = %.2f, NLL = %.2f, index = %i\n", r_min, nll_min, index_min);
 }

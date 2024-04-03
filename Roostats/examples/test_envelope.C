@@ -2,13 +2,11 @@
 
 void test_envelope() {
 
+  // Load the combine Library
+  gSystem->Load("libHiggsAnalysisCombinedLimit.so");
+
   //Create an observable (di-lepton mass)
   RooRealVar obs("obs", "obs", 90., 70., 110.);
-  obs.setRange("full"        , 70., 110.);
-  obs.setRange("LowSideband" , 70.,  86.);
-  obs.setRange("HighSideband", 96., 110.);
-  obs.setRange("BlindRegion" , 86.,  96.);
-  obs.setBins(80);
 
   //Create a signal PDF
   RooRealVar mean  ("mean"  , "mean"  , 9.06608e+01); mean  .setConstant(true);
@@ -24,14 +22,15 @@ void test_envelope() {
   RooExponential exponential("exponential","exponential pdf",obs,expo_1);
 
   //Create a polynomial PDF
-  RooRealVar poly_c1("cheb_1", "cheb_1", -0.70, -25, 25.);
-  RooRealVar poly_c2("cheb_2", "cheb_2",  0.30, -25, 25.);
-  RooRealVar poly_c3("cheb_3", "cheb_3", -0.07, -25, 25.);
+  RooRealVar poly_c1("cheb_1", "cheb_1", -0.70, -3., 3.);
+  RooRealVar poly_c2("cheb_2", "cheb_2",  0.25, -3., 3.);
+  RooRealVar poly_c3("cheb_3", "cheb_3", -0.02, -3., 3.);
   RooChebychev polynomial("cheb_pdf", "Chebychev PDF", obs, RooArgList(poly_c1, poly_c2, poly_c3));
 
   //Generate toy data
   int ndata = 3000;
-  RooDataSet *data = exponential.generate(obs,RooFit::NumEvents(ndata));
+  // RooDataSet *data = exponential.generate(obs,RooFit::NumEvents(ndata));
+  RooDataSet *data = polynomial.generate(obs,RooFit::NumEvents(ndata));
   data->SetName("data_obs");
   exponential.fitTo(*data);
   polynomial.fitTo(*data);
