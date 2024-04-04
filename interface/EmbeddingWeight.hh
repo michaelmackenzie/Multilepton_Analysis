@@ -11,7 +11,6 @@
 #include "TH2.h"
 #include "TF1.h"
 #include "TSystem.h"
-#include "TRandom3.h"
 #include "RooRealVar.h"
 #include "RooFormulaVar.h"
 #include "RooWorkspace.h"
@@ -19,7 +18,7 @@
 namespace CLFV {
   class EmbeddingWeight {
   public:
-    EmbeddingWeight(int Mode = 0, int seed = 90, int verbose = 0);
+    EmbeddingWeight(int Mode = 0, int verbose = 0);
     ~EmbeddingWeight();
 
     double UnfoldingWeight(double pt_1, double eta_1, double pt_2, double eta_2, double zeta, double zpt, int year);
@@ -50,7 +49,6 @@ namespace CLFV {
     TH2* zetavptFF[k2018+1]; //Z eta vs pT fudge-factor for unfolding
     int verbose_;
     int useFF_; //apply an unfolding fudge-factor
-    TRandom3* rnd_; //for generating systematic shifted parameters
   };
 }
 #endif

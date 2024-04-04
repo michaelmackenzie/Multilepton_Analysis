@@ -125,6 +125,13 @@ void HistMaker::Begin(TTree * /*tree*/)
   TString dir = gSystem->Getenv("CMSSW_BASE");
   if(dir == "") dir = "../"; //if not in a CMSSW environment, assume in a sub-directory of the package
   else dir += "/src/CLFVAnalysis/";
+
+  //0: normal unfolding; 1: use z eta unfolding; 2: use z (eta, pt) unfolding; 3: mode 2 with tight cuts; 4: 2016 unfolding; 10: IC measured unfolding
+  fEmbeddingWeight = new EmbeddingWeight(10, fVerbose);
+
+  if(fIsEmbed)
+    fEmbeddingResolution = new EmbeddingResolution(fYear, fVerbose);
+
   fRoccoR = new RoccoR(Form("%sscale_factors/RoccoR%i.txt", dir.Data(), fYear));
   fElectronIDWeight.verbose_ = fVerbose;
   fMuonIDWeight.SetVerbose(fVerbose);
@@ -174,12 +181,6 @@ void HistMaker::Begin(TTree * /*tree*/)
   fTauIDWeight = new TauIDWeight((fETauAntiEleCut <= 63) ? 0 : (fETauAntiEleCut <= 127) ? 1 : 2, //which etau anti-ele ID WP is being used, Tight, VTight, or VVTight
                                  fIsEmbed, (fSelection == "etau" || fSelection == "mutau") ? fSelection : "etau", fVerbose); //default to etau IDs
 
-  //0: normal unfolding; 1: use z eta unfolding; 2: use z (eta, pt) unfolding; 3: mode 2 with tight cuts; 4: 2016 unfolding; 10: IC measured unfolding
-  //FIXME: Settle on an embedding unfolding configuration
-  fEmbeddingWeight = new EmbeddingWeight((fIsEmbed /*&& fSelection == "emu"*/) ? 10 : 0);
-
-  if(fIsEmbed)
-    fEmbeddingResolution = new EmbeddingResolution(fYear, fVerbose);
 
   for(int itrig = 0; itrig < 3; ++itrig) triggerWeights[itrig] = 1.f;
 
@@ -305,8 +306,9 @@ void HistMaker::InitializeMVAs() {
       if((fUseXGBoostBDT && mva_selection == "zemu") || fUseXGBoostBDT > 9) { //1-9: assume TMVA in tau channels; >= 10: XGBoost in all channels
         if(!fTrkQualInit) fTrkQualInit = new TrkQualInit(fTrkQualVersion, -1, fUseXGBoostBDT);
         mva        [mva_i] = nullptr;
-        wrappedBDTs[mva_i] = new BDTWrapper(Form("weights/%s.2016_2017_2018.json", fMVAConfig->names_[mva_i].Data()), 1, fVerbose);
-        if(wrappedBDTs[mva_i]->GetStatus()) throw 20;
+        const char* model = Form("weights/%s.2016_2017_2018.json", fMVAConfig->names_[mva_i].Data());
+        wrappedBDTs[mva_i] = new BDTWrapper(model, 1, fVerbose);
+        if(wrappedBDTs[mva_i]->GetStatus()) throw std::runtime_error(Form("HistMaker::%s: Failed to initialize XGBoost model %s\n", __func__, model));
         wrappedBDTs[mva_i]->InitializeVariables(fTrkQualInit->GetXGBoostVariables(mva_selection, fTreeVars));
       } else {
         //initialize the reader
