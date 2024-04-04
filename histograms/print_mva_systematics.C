@@ -3,12 +3,12 @@
 
 int print_mva_systematics(TString out_dir = "nanoaods_mva", TString hist_dir = "nanoaods_mva_dev",
                           TString selection = "mutau", vector<int> years = {2016,2017,2018},
-                          bool skip_systematics = false, bool add_stats = false) {
+                          bool skip_systematics = false, bool add_stats = false, bool mc_dy = false) {
   //setup the datacards
   years_         = years;
   hist_dir_      = hist_dir;
   hist_tag_      = "clfv";
-  useEmbed_      = (selection.Contains("tau")) ? 1 : 0;
+  useEmbed_      = (mc_dy) ? 0 : (selection.Contains("tau")) ? 1 : 0;
   drawStats_     = add_stats; //data and MC total integrals
   doStatsLegend_ = add_stats; //process yields in the legend
 

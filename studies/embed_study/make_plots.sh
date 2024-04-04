@@ -46,7 +46,9 @@ do
         fi
         if [[ "${SINGLESTEP}" == "reco" ]] || [[ "${SINGLESTEP}" == "" ]]
         then
-            root.exe -q -b "reco_plots.C(\"${SELEC}\", ${YEAR}, \"${HISTDIR}\")"
+            if [[ "${HISTDIR}" != "NONE" ]]; then
+                root.exe -q -b "reco_plots.C(\"${SELEC}\", ${YEAR}, \"${HISTDIR}\")"
+            fi
         fi
     done
 done

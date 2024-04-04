@@ -5,7 +5,6 @@ TString selec_;
 
 double nembed_;
 double ndy_;
-int nembed_mini_;
 double dy_xsec_;
 double dy_neg_frac_;
 double lum_;
@@ -276,7 +275,7 @@ int make_eff_figure(TFile* fGen, TFile* fRec, TString gen_name, TString rec_name
 //-------------------------------------------------------------------------------------------------------------
 int reco_plots(const TString selec = "emu", const int year = 2018, TString path = "nanoaods_02") {
   TString final_state;
-  if(selec == "emu") final_state = "EMu";
+  if(selec == "emu" || selec == "etau_mu" || selec == "mutau_e") final_state = "EMu";
   else if(selec == "etau") final_state = "ETau";
   else if(selec == "mutau") final_state = "MuTau";
   else {
@@ -288,6 +287,12 @@ int reco_plots(const TString selec = "emu", const int year = 2018, TString path 
   selec_ = selec;
   gSystem->Exec(Form("[ ! -d figures/%s_reco_%i ] && mkdir -p figures/%s_reco_%i", selec.Data(), year, selec.Data(), year));
 
+  //Cross section information (including missing embedding events)
+  CLFV::CrossSections xsecs;
+
+  const float lum = xsecs.GetLuminosity(year); //for DY normalization
+
+  //Data runs
   vector<TString> runs = {};
   if     (year == 2016) runs = {"B", "C", "D", "E", "F", "G", "H"};
   else if(year == 2017) runs = {"B", "C", "D", "E", "F"};
@@ -338,21 +343,10 @@ int reco_plots(const TString selec = "emu", const int year = 2018, TString path 
   if(!hDYNorm) return 2;
   ndy_ = hDYNorm->GetBinContent(1);
 
-  dy_xsec_ = 6077.22;
-  if(year == 2016) {
-    nembed_mini_ = 26367000;
-    dy_neg_frac_ = 0.1367;
-    lum_ = 36.33e3;
-  } else if(year == 2017) {
-    nembed_mini_ = 34683979;
-    dy_neg_frac_ = 0.1611;
-    lum_ = 41.48e3;
-  } else if(year == 2018) {
-    nembed_mini_ = 48428591;
-    dy_neg_frac_ = 0.163;
-    lum_ = 59.83e3;
-  }
-  dy_scale_ = dy_xsec_ * lum_ / (ndy_ * (1. - 2.*dy_neg_frac_)); //x-sec * lumi / (N(processed) * (1. - 2*neg_frac))
+  dy_xsec_     = xsecs.GetCrossSection("DY50", year);
+  dy_neg_frac_ = xsecs.GetNegativeFraction(Form("DY50-%s", (year == 2017) ? "ext" : "amc"), year);
+  lum_         = lum;
+  dy_scale_    = dy_xsec_ * lum_ / (ndy_ * (1. - 2.*dy_neg_frac_)); //x-sec * lumi / (N(processed) * (1. - 2*neg_frac))
 
 
   /////////////////////////////////////
@@ -364,9 +358,13 @@ int reco_plots(const TString selec = "emu", const int year = 2018, TString path 
   int offset = 0;
   if(selec == "etau") offset = 100;
   else if(selec == "emu") offset = 200;
+  else if(selec == "mutau_e") offset = 300;
+  else if(selec == "etau_mu") offset = 400;
 
   make_figure("onept"        ,   "lep",  offset + 8, fDY, fEmbeds, embed_scales, 2,  0., 100.);
   make_figure("twopt"        ,   "lep",  offset + 8, fDY, fEmbeds, embed_scales, 2,  0., 100.);
+  make_figure("oneeta"       ,   "lep",  offset + 8, fDY, fEmbeds, embed_scales, 2);
+  make_figure("twoeta"       ,   "lep",  offset + 8, fDY, fEmbeds, embed_scales, 2);
   make_figure("leppt"        , "event",  offset + 8, fDY, fEmbeds, embed_scales, 2,  0., 100.);
   make_figure("lepeta"       , "event",  offset + 8, fDY, fEmbeds, embed_scales);
   make_figure("lepm"         , "event",  offset + 8, fDY, fEmbeds, embed_scales, 4);

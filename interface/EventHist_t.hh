@@ -1,9 +1,12 @@
 #ifndef __EVENTHIST__HH
 #define __EVENTHIST__HH
+
 #include "TH1.h"
 #include "TH2.h"
-#include "interface/JetToTauComposition.hh"
 
+#include "interface/LepESHist_t.hh"
+
+#include "interface/JetToTauComposition.hh"
 namespace CLFV {
   enum{kMaxCounts = 40, kMaxMVAs = 80};
   struct EventHist_t {
@@ -312,6 +315,9 @@ namespace CLFV {
     TH1* hMVA[kMaxMVAs][6]; //0: distribution for search; 1: high binning score for CDF; 2: CDF transformed distribution; 3: log(CDF p-value); 4: p+log(p); 5: no BDT score correction
     TH1* hMVATrain[kMaxMVAs];
     TH1* hMVATest[kMaxMVAs];
+
+    //energy scale study histograms
+    LepESHist_t LepESHists[2]; //0: lepton one up/down; 1: lepton two up/down
 
     //llg study histograms
     TH1* hObjMasses[14]; //jets, jets+gamma, jet1/2 + gamma, jets + l1/2, jet1/2 + l1/2, jets+l1+l2, jets + gamma + l1/2, jets + gamma + l1 + l2

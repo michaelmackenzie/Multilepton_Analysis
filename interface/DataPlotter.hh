@@ -87,6 +87,7 @@ namespace CLFV {
     Float_t ratio_plot_max_ = 1.4;
     Int_t stack_uncertainty_ = 1; //whether or not to add gray shading for uncertainty
     Int_t combine_uncertainties_ = 1; //whether or not to combine sys and stat uncertainties
+    Int_t stat_unc_color_ = kGray + 1; //stat uncertainty graph fill color
     Int_t add_bkg_hists_manually_ = 0; //whether to use Stacks given uncertainty or add them by hand
     Int_t density_plot_ = 0; //divide by bin width
     Int_t debug_ = 0; //for debugging
@@ -153,8 +154,8 @@ namespace CLFV {
     Double_t log_buffer_ = 1.5; //scale to y-axis maximum for y-axis range (log-mode)
     //Legend parameters
     Double_t legend_txt_ = 0.05;
-    Double_t legend_x1_stats_ = 0.1; //if stats in legend
-    Double_t legend_x1_ = 0.2; //if no stats in legend
+    Double_t legend_x1_stats_ = 0.11; //if stats in legend
+    Double_t legend_x1_ = 0.11; //if no stats in legend
     Double_t legend_x2_ = 0.89;
     Double_t legend_y1_ = 0.93;
     Double_t legend_y2_ = 0.75;
@@ -227,7 +228,7 @@ namespace CLFV {
       label.SetTextAngle(0);
       label.DrawLatex((single) ? lum_txt_x_single_ : lum_txt_x_,
                       (single) ? lum_txt_y_single_ : lum_txt_y_,
-                      Form("L=%.1ffb^{-1} #sqrt{#it{s}} = %.0f TeV",lum_/1.e3,rootS_));
+                      Form("L=%.1f fb^{-1} #sqrt{#it{s}} = %.0f TeV",lum_/1.e3,rootS_));
     }
 
     void draw_data(int ndata, double nmc, std::map<TString, double> nsig) {

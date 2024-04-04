@@ -103,6 +103,7 @@ HistMaker::~HistMaker() {
   if(fMVAConfig        ) {delete fMVAConfig       ; fMVAConfig        = nullptr;}
   if(fQCDWeight        ) {delete fQCDWeight       ; fQCDWeight        = nullptr;}
   if(fTrkQualInit      ) {delete fTrkQualInit     ; fTrkQualInit      = nullptr;}
+  if(fRoccoR           ) {delete fRoccoR          ; fRoccoR           = nullptr;}
   if(leptonOne.p4      ) {delete leptonOne.p4     ; leptonOne.p4      = nullptr;}
   if(leptonTwo.p4      ) {delete leptonTwo.p4     ; leptonTwo.p4      = nullptr;}
   if(jetOne.p4         ) {delete jetOne.p4        ; jetOne.p4         = nullptr;}
@@ -135,6 +136,7 @@ void HistMaker::Begin(TTree * /*tree*/)
   fZPtWeight = new ZPtWeight("MuMu", 1);
   fCutFlow = new TH1D("hcutflow", "Cut-flow", 100, 0, 100);
   const int qcd_weight_mode = (fSelection == "mutau_e") ? 211100201 : (fSelection == "etau_mu") ? 221100201 : 21100201; //use Run 2 closure/bias, (mass, bdt score) bias, anti-iso, jet binned, 2D pt closure, use fits
+  //Ensure the qcd_weight_mode matches the setup in QCDHistMaker
   fQCDWeight = new QCDWeight("emu", qcd_weight_mode, fYear, fVerbose);
 
   //FIXME: Added back W+Jets MC bias (Mode = 10100300, 60100300 for only MC lepm bias shape)
@@ -450,190 +452,189 @@ void HistMaker::BookHistograms() {
 
 //--------------------------------------------------------------------------------------------------------------
 void HistMaker::BookBaseEventHistograms(Int_t i, const char* dirname) {
-      auto folder = fDirectories[0*fn + i];
-      Utilities::BookH1F(fEventHist[i]->hEventWeight             , "eventweight"             , Form("%s: EventWeight"                 ,dirname), 100,   -1,   3, folder);
-      Utilities::BookH1F(fEventHist[i]->hLogEventWeight          , "logeventweight"          , Form("%s: LogEventWeight"              ,dirname),  50,  -10,   1, folder);
-      Utilities::BookH1F(fEventHist[i]->hFullEventWeightLum      , "fulleventweightlum"      , Form("%s: abs(FullEventWeightLum)"     ,dirname), 100,    0,  15, folder);
-      Utilities::BookH1F(fEventHist[i]->hLogFullEventWeightLum   , "logfulleventweightlum"   , Form("%s: log(abs(FullEventWeightLum))",dirname),  50,  -10,   2, folder);
-      if(!fSparseHists) {
-        Utilities::BookH1F(fEventHist[i]->hEventWeightMVA          , "eventweightmva"          , Form("%s: EventWeightMVA"              ,dirname), 100,   -1,   5, folder);
-        Utilities::BookH1D(fEventHist[i]->hGenWeight               , "genweight"               , Form("%s: GenWeight"                   ,dirname),   5, -2.5, 2.5, folder);
-        Utilities::BookH1F(fEventHist[i]->hEmbeddingWeight         , "embeddingweight"         , Form("%s: EmbeddingWeight"             ,dirname), 100,    0, 0.5, folder);
-        Utilities::BookH1F(fEventHist[i]->hLogEmbeddingWeight      , "logembeddingweight"      , Form("%s: Log10(EmbeddingWeight)"      ,dirname),  40,   -9,   1, folder);
-        Utilities::BookH1F(fEventHist[i]->hEmbeddingUnfoldingWeight, "embeddingunfoldingweight", Form("%s: EmbeddingUnfoldingWeight"    ,dirname),  50,    0,   2, folder);
-        Utilities::BookH1F(fEventHist[i]->hQCDWeight               , "qcdweight"               , Form("%s: QCDWeight"                   ,dirname),  50,    0,   5, folder);
-        Utilities::BookH1F(fEventHist[i]->hJetToTauWeight          , "jettotauweight"          , Form("%s: JetToTauWeight"              ,dirname),  40,    0,   2, folder);
-        Utilities::BookH1F(fEventHist[i]->hJetToTauWeightCorr      , "jettotauweightcorr"      , Form("%s: JetToTauWeightCorr"          ,dirname),  50,    0,   5, folder);
-        Utilities::BookH1F(fEventHist[i]->hJetToTauWeightBias      , "jettotauweightbias"      , Form("%s: JetToTauWeightBias"          ,dirname),  50,    0,   5, folder);
+  auto folder = fDirectories[0*fn + i];
+  Utilities::BookH1F(fEventHist[i]->hEventWeight             , "eventweight"             , Form("%s: EventWeight"                 ,dirname), 100,   -1,   3, folder);
+  Utilities::BookH1F(fEventHist[i]->hLogEventWeight          , "logeventweight"          , Form("%s: LogEventWeight"              ,dirname),  50,  -10,   1, folder);
+  Utilities::BookH1F(fEventHist[i]->hFullEventWeightLum      , "fulleventweightlum"      , Form("%s: abs(FullEventWeightLum)"     ,dirname), 100,    0,  15, folder);
+  Utilities::BookH1F(fEventHist[i]->hLogFullEventWeightLum   , "logfulleventweightlum"   , Form("%s: log(abs(FullEventWeightLum))",dirname),  50,  -10,   2, folder);
+  if(!fSparseHists) {
+    Utilities::BookH1F(fEventHist[i]->hEventWeightMVA          , "eventweightmva"          , Form("%s: EventWeightMVA"              ,dirname), 100,   -1,   5, folder);
+    Utilities::BookH1D(fEventHist[i]->hGenWeight               , "genweight"               , Form("%s: GenWeight"                   ,dirname),   5, -2.5, 2.5, folder);
+    Utilities::BookH1F(fEventHist[i]->hEmbeddingWeight         , "embeddingweight"         , Form("%s: EmbeddingWeight"             ,dirname), 100,    0, 0.5, folder);
+    Utilities::BookH1F(fEventHist[i]->hLogEmbeddingWeight      , "logembeddingweight"      , Form("%s: Log10(EmbeddingWeight)"      ,dirname),  40,   -9,   1, folder);
+    Utilities::BookH1F(fEventHist[i]->hEmbeddingUnfoldingWeight, "embeddingunfoldingweight", Form("%s: EmbeddingUnfoldingWeight"    ,dirname),  50,    0,   2, folder);
+    Utilities::BookH1F(fEventHist[i]->hQCDWeight               , "qcdweight"               , Form("%s: QCDWeight"                   ,dirname),  50,    0,   5, folder);
+    Utilities::BookH1F(fEventHist[i]->hJetToTauWeight          , "jettotauweight"          , Form("%s: JetToTauWeight"              ,dirname),  40,    0,   2, folder);
+    Utilities::BookH1F(fEventHist[i]->hJetToTauWeightCorr      , "jettotauweightcorr"      , Form("%s: JetToTauWeightCorr"          ,dirname),  50,    0,   5, folder);
+    Utilities::BookH1F(fEventHist[i]->hJetToTauWeightBias      , "jettotauweightbias"      , Form("%s: JetToTauWeightBias"          ,dirname),  50,    0,   5, folder);
 
-        Utilities::BookH1D(fEventHist[i]->hIsSignal                , "issignal"                , Form("%s: IsSignal"                    ,dirname),   5,   -2,   3, folder);
-        Utilities::BookH1D(fEventHist[i]->hNMuons                  , "nmuons"                  , Form("%s: NMuons"                      ,dirname),  10,    0,  10, folder);
-        Utilities::BookH1D(fEventHist[i]->hNElectrons              , "nelectrons"              , Form("%s: NElectrons"                  ,dirname),  10,    0,  10, folder);
-        Utilities::BookH1D(fEventHist[i]->hNTaus                   , "ntaus"                   , Form("%s: NTaus"                       ,dirname),  10,    0,  10, folder);
-        Utilities::BookH1F(fEventHist[i]->hNPV[0]                  , "npv"                     , Form("%s: NPV"                         ,dirname),  50,    0, 100, folder);
-        Utilities::BookH1F(fEventHist[i]->hNPU[0]                  , "npu"                     , Form("%s: NPU"                         ,dirname),  50,    0, 100, folder);
-        Utilities::BookH1D(fEventHist[i]->hLHENJets                , "lhenjets"                , Form("%s: LHE N(jets)"                 ,dirname),  10,    0,  10, folder);
-      }
-      if(fUseEmbBDTUncertainty) {
-        Utilities::BookH1F(fEventHist[i]->hEmbBDTWeight            , "embbdtweight"            , Form("%s: EmbBDTWeight"                ,dirname),  20, 0.75,1.25, folder);
-      }
-      Utilities::BookH1D(fEventHist[i]->hMcEra                   , "mcera"                   , Form("%s: MCEra + 2*(year-2016)"       ,dirname),   8,    0,   8, folder);
-      Utilities::BookH1D(fEventHist[i]->hRunEra                  , "runera"                  , Form("%s: Run era"                     ,dirname),  20,    0,  20, folder);
-      Utilities::BookH1F(fEventHist[i]->hDataRun                 , "datarun"                 , Form("%s: DataRun"                     ,dirname), 100, 2.6e5, 3.3e5, folder);
-      // Utilities::BookH1D(fEventHist[i]->hNPhotons                , "nphotons"                , Form("%s: NPhotons"                    ,dirname),  10,    0,  10, folder);
-      Utilities::BookH1D(fEventHist[i]->hNGenTaus                , "ngentaus"                , Form("%s: NGenTaus"                    ,dirname),  10,    0,  10, folder);
-      Utilities::BookH1D(fEventHist[i]->hNGenElectrons           , "ngenelectrons"           , Form("%s: NGenElectrons"               ,dirname),  10,    0,  10, folder);
-      Utilities::BookH1D(fEventHist[i]->hNGenMuons               , "ngenmuons"               , Form("%s: NGenMuons"                   ,dirname),  10,    0,  10, folder);
-      Utilities::BookH1D(fEventHist[i]->hNJets                   , "njets"                   , Form("%s: NJets"                       ,dirname),  10,    0,  10, folder);
-      Utilities::BookH1D(fEventHist[i]->hNJets20[0]              , "njets20"                 , Form("%s: NJets20"                     ,dirname),  10,    0,  10, folder);
-      Utilities::BookH1D(fEventHist[i]->hNFwdJets                , "nfwdjets"                , Form("%s: NFwdJets"                    ,dirname),  10,    0,  10, folder);
-      Utilities::BookH1D(fEventHist[i]->hNBJets20[0]             , "nbjets20"                , Form("%s: NBJets20"                    ,dirname),  10,    0,  10, folder);
-      Utilities::BookH1D(fEventHist[i]->hNBJets20L[0]            , "nbjets20l"               , Form("%s: NBJets20L"                   ,dirname),  10,    0,  10, folder);
+    Utilities::BookH1D(fEventHist[i]->hIsSignal                , "issignal"                , Form("%s: IsSignal"                    ,dirname),   5,   -2,   3, folder);
+    Utilities::BookH1D(fEventHist[i]->hNMuons                  , "nmuons"                  , Form("%s: NMuons"                      ,dirname),  10,    0,  10, folder);
+    Utilities::BookH1D(fEventHist[i]->hNElectrons              , "nelectrons"              , Form("%s: NElectrons"                  ,dirname),  10,    0,  10, folder);
+    Utilities::BookH1D(fEventHist[i]->hNTaus                   , "ntaus"                   , Form("%s: NTaus"                       ,dirname),  10,    0,  10, folder);
+    Utilities::BookH1F(fEventHist[i]->hNPV[0]                  , "npv"                     , Form("%s: NPV"                         ,dirname),  50,    0, 100, folder);
+    Utilities::BookH1F(fEventHist[i]->hNPU[0]                  , "npu"                     , Form("%s: NPU"                         ,dirname),  50,    0, 100, folder);
+    Utilities::BookH1D(fEventHist[i]->hLHENJets                , "lhenjets"                , Form("%s: LHE N(jets)"                 ,dirname),  10,    0,  10, folder);
+  }
+  if(fUseEmbBDTUncertainty) {
+    Utilities::BookH1F(fEventHist[i]->hEmbBDTWeight            , "embbdtweight"            , Form("%s: EmbBDTWeight"                ,dirname),  20, 0.75,1.25, folder);
+  }
+  Utilities::BookH1D(fEventHist[i]->hMcEra                   , "mcera"                   , Form("%s: MCEra + 2*(year-2016)"       ,dirname),   8,    0,   8, folder);
+  Utilities::BookH1D(fEventHist[i]->hRunEra                  , "runera"                  , Form("%s: Run era"                     ,dirname),  20,    0,  20, folder);
+  Utilities::BookH1F(fEventHist[i]->hDataRun                 , "datarun"                 , Form("%s: DataRun"                     ,dirname), 100, 2.6e5, 3.3e5, folder);
+  // Utilities::BookH1D(fEventHist[i]->hNPhotons                , "nphotons"                , Form("%s: NPhotons"                    ,dirname),  10,    0,  10, folder);
+  Utilities::BookH1D(fEventHist[i]->hNGenTaus                , "ngentaus"                , Form("%s: NGenTaus"                    ,dirname),  10,    0,  10, folder);
+  Utilities::BookH1D(fEventHist[i]->hNGenElectrons           , "ngenelectrons"           , Form("%s: NGenElectrons"               ,dirname),  10,    0,  10, folder);
+  Utilities::BookH1D(fEventHist[i]->hNGenMuons               , "ngenmuons"               , Form("%s: NGenMuons"                   ,dirname),  10,    0,  10, folder);
+  Utilities::BookH1D(fEventHist[i]->hNJets                   , "njets"                   , Form("%s: NJets"                       ,dirname),  10,    0,  10, folder);
+  Utilities::BookH1D(fEventHist[i]->hNJets20[0]              , "njets20"                 , Form("%s: NJets20"                     ,dirname),  10,    0,  10, folder);
+  Utilities::BookH1D(fEventHist[i]->hNFwdJets                , "nfwdjets"                , Form("%s: NFwdJets"                    ,dirname),  10,    0,  10, folder);
+  Utilities::BookH1D(fEventHist[i]->hNBJets20[0]             , "nbjets20"                , Form("%s: NBJets20"                    ,dirname),  10,    0,  10, folder);
+  Utilities::BookH1D(fEventHist[i]->hNBJets20L[0]            , "nbjets20l"               , Form("%s: NBJets20L"                   ,dirname),  10,    0,  10, folder);
 
-      if(!fSparseHists) {
-        Utilities::BookH1D(fEventHist[i]->hNTriggered         , "ntriggered"          , Form("%s: NTriggered"          ,dirname),   5,    0,   5, folder);
-        Utilities::BookH1F(fEventHist[i]->hPuWeight           , "puweight"            , Form("%s: PUWeight"            ,dirname),  50,    0,   2, folder);
-        Utilities::BookH1F(fEventHist[i]->hJetPUIDWeight      , "jetpuidweight"       , Form("%s: JetPUIDWeight"       ,dirname),  50,    0,   2, folder);
-        Utilities::BookH1D(fEventHist[i]->hPrefireWeight      , "prefireweight"       , Form("%s: PrefireWeight"       ,dirname),  50,    0,   2, folder);
-        Utilities::BookH1F(fEventHist[i]->hBTagWeight         , "btagweight"          , Form("%s: BTagWeight"          ,dirname), 100,    0,   5, folder);
-        Utilities::BookH1F(fEventHist[i]->hZPtWeight          , "zptweight"           , Form("%s: ZPtWeight"           ,dirname),  50,    0,   2, folder);
-        Utilities::BookH1F(fEventHist[i]->hSignalZWeight      , "signalzweight"       , Form("%s: SignalZWeight"       ,dirname),  50,    0,   2, folder);
-        Utilities::BookH1F(fEventHist[i]->hSignalZMixWeight   , "signalzmixweight"    , Form("%s: SignalZMixWeight"    ,dirname),  50,    0,   2, folder);
-        Utilities::BookH1F(fEventHist[i]->hLepDisplacementWeight, "lepdisplacementweight", Form("%s: LepDisplacementWeight",dirname),  50,    0,   2, folder);
-        Utilities::BookH1F(fEventHist[i]->hPSSys              , "pssys"               , Form("%s: PSSys"               ,dirname),  50,    0,   4, folder);
-        Utilities::BookH1F(fEventHist[i]->hPDFSys             , "pdfsys"              , Form("%s: PDFSys"              ,dirname),  50,    0,   4, folder);
-        Utilities::BookH1F(fEventHist[i]->hScaleRSys          , "scalersys"           , Form("%s: ScaleRSys"           ,dirname),  50,    0,   4, folder);
-        Utilities::BookH1F(fEventHist[i]->hScaleFSys          , "scalefsys"           , Form("%s: ScaleFSys"           ,dirname),  50,    0,   4, folder);
+  if(!fSparseHists) {
+    Utilities::BookH1D(fEventHist[i]->hNTriggered         , "ntriggered"          , Form("%s: NTriggered"          ,dirname),   5,    0,   5, folder);
+    Utilities::BookH1F(fEventHist[i]->hPuWeight           , "puweight"            , Form("%s: PUWeight"            ,dirname),  50,    0,   2, folder);
+    Utilities::BookH1F(fEventHist[i]->hJetPUIDWeight      , "jetpuidweight"       , Form("%s: JetPUIDWeight"       ,dirname),  50,    0,   2, folder);
+    Utilities::BookH1D(fEventHist[i]->hPrefireWeight      , "prefireweight"       , Form("%s: PrefireWeight"       ,dirname),  50,    0,   2, folder);
+    Utilities::BookH1F(fEventHist[i]->hBTagWeight         , "btagweight"          , Form("%s: BTagWeight"          ,dirname), 100,    0,   5, folder);
+    Utilities::BookH1F(fEventHist[i]->hZPtWeight          , "zptweight"           , Form("%s: ZPtWeight"           ,dirname),  50,    0,   2, folder);
+    Utilities::BookH1F(fEventHist[i]->hSignalZWeight      , "signalzweight"       , Form("%s: SignalZWeight"       ,dirname),  50,    0,   2, folder);
+    Utilities::BookH1F(fEventHist[i]->hSignalZMixWeight   , "signalzmixweight"    , Form("%s: SignalZMixWeight"    ,dirname),  50,    0,   2, folder);
+    Utilities::BookH1F(fEventHist[i]->hLepDisplacementWeight, "lepdisplacementweight", Form("%s: LepDisplacementWeight",dirname),  50,    0,   2, folder);
+    Utilities::BookH1F(fEventHist[i]->hPSSys              , "pssys"               , Form("%s: PSSys"               ,dirname),  50,    0,   4, folder);
+    Utilities::BookH1F(fEventHist[i]->hPDFSys             , "pdfsys"              , Form("%s: PDFSys"              ,dirname),  50,    0,   4, folder);
+    Utilities::BookH1F(fEventHist[i]->hScaleRSys          , "scalersys"           , Form("%s: ScaleRSys"           ,dirname),  50,    0,   4, folder);
+    Utilities::BookH1F(fEventHist[i]->hScaleFSys          , "scalefsys"           , Form("%s: ScaleFSys"           ,dirname),  50,    0,   4, folder);
 
-        Utilities::BookH1F(fEventHist[i]->hTauPt              , "taupt"               , Form("%s: TauPt"               ,dirname),  50,    0, 200, folder);
-        Utilities::BookH1F(fEventHist[i]->hTauEta             , "taueta"              , Form("%s: TauEta"              ,dirname),  30, -2.5, 2.5, folder);
-      }
+    Utilities::BookH1F(fEventHist[i]->hTauPt              , "taupt"               , Form("%s: TauPt"               ,dirname),  50,    0, 200, folder);
+    Utilities::BookH1F(fEventHist[i]->hTauEta             , "taueta"              , Form("%s: TauEta"              ,dirname),  30, -2.5, 2.5, folder);
+  }
 
-      Utilities::BookH1D(fEventHist[i]->hTauDecayMode[0]    , "taudecaymode"        , Form("%s: TauDecayMode"        ,dirname),  15,    0,  15, folder);
-      Utilities::BookH1D(fEventHist[i]->hTauGenFlavor       , "taugenflavor"        , Form("%s: TauGenFlavor"        ,dirname),  30,    0,  30, folder);
-      Utilities::BookH1D(fEventHist[i]->hTauDeepAntiEle     , "taudeepantiele"      , Form("%s: TauDeepAntiEle"      ,dirname),  30,    0,  30, folder);
-      Utilities::BookH1D(fEventHist[i]->hTauDeepAntiMu      , "taudeepantimu"       , Form("%s: TauDeepAntiMu"       ,dirname),  30,    0,  30, folder);
-      Utilities::BookH1D(fEventHist[i]->hTauDeepAntiJet     , "taudeepantijet"      , Form("%s: TauDeepAntiJet"      ,dirname),  30,    0,  30, folder);
-      Utilities::BookH1F(fEventHist[i]->hJetPt[0]           , "jetpt"               , Form("%s: JetPt"               ,dirname), 100,    0, 200, folder);
-      Utilities::BookH1F(fEventHist[i]->hJetEta             , "jeteta"              , Form("%s: JetEta"              ,dirname), 100,   -5,   5, folder);
-      Utilities::BookH1F(fEventHist[i]->hHtSum              , "htsum"               , Form("%s: HtSum"               ,dirname), 100,    0, 400, folder);
-      Utilities::BookH1F(fEventHist[i]->hHt                 , "ht"                  , Form("%s: Ht"                  ,dirname), 100,    0, 200, folder);
+  Utilities::BookH1D(fEventHist[i]->hTauDecayMode[0]    , "taudecaymode"        , Form("%s: TauDecayMode"        ,dirname),  15,    0,  15, folder);
+  Utilities::BookH1D(fEventHist[i]->hTauGenFlavor       , "taugenflavor"        , Form("%s: TauGenFlavor"        ,dirname),  30,    0,  30, folder);
+  Utilities::BookH1D(fEventHist[i]->hTauDeepAntiEle     , "taudeepantiele"      , Form("%s: TauDeepAntiEle"      ,dirname),  30,    0,  30, folder);
+  Utilities::BookH1D(fEventHist[i]->hTauDeepAntiMu      , "taudeepantimu"       , Form("%s: TauDeepAntiMu"       ,dirname),  30,    0,  30, folder);
+  Utilities::BookH1D(fEventHist[i]->hTauDeepAntiJet     , "taudeepantijet"      , Form("%s: TauDeepAntiJet"      ,dirname),  30,    0,  30, folder);
+  Utilities::BookH1F(fEventHist[i]->hJetPt[0]           , "jetpt"               , Form("%s: JetPt"               ,dirname), 100,    0, 200, folder);
+  Utilities::BookH1F(fEventHist[i]->hJetEta             , "jeteta"              , Form("%s: JetEta"              ,dirname), 100,   -5,   5, folder);
+  Utilities::BookH1F(fEventHist[i]->hHtSum              , "htsum"               , Form("%s: HtSum"               ,dirname), 100,    0, 400, folder);
+  Utilities::BookH1F(fEventHist[i]->hHt                 , "ht"                  , Form("%s: Ht"                  ,dirname), 100,    0, 200, folder);
 
-      Utilities::BookH1F(fEventHist[i]->hMet                 , "met"                 , Form("%s: Met"                     ,dirname)  , 100,  0, 200, folder);
-      Utilities::BookH1F(fEventHist[i]->hMetSignificance     , "metsignificance"     , Form("%s: Met Significance"        ,dirname)  ,  40,  0,  10, folder);
-      Utilities::BookH1F(fEventHist[i]->hPuppiMetSig         , "puppimetsig"         , Form("%s: Met Significance"        ,dirname)  ,  50,  0,  15, folder);
-      Utilities::BookH1F(fEventHist[i]->hMetPhi              , "metphi"              , Form("%s: MetPhi"                  ,dirname)  ,  40, -4,   4, folder);
-      Utilities::BookH1F(fEventHist[i]->hMetCorr             , "metcorr"             , Form("%s: Met Correction"          ,dirname)  ,  40,  0,   5, folder);
-      Utilities::BookH1F(fEventHist[i]->hMetUp               , "metup"               , Form("%s: Met up"                  ,dirname)  , 100,  0, 200, folder);
-      Utilities::BookH1F(fEventHist[i]->hMetDown             , "metdown"             , Form("%s: Met down"                ,dirname)  , 100,  0, 200, folder);
-      Utilities::BookH1F(fEventHist[i]->hMetNoCorr           , "metnocorr"           , Form("%s: Met No Correction"       ,dirname)  , 100,  0, 200, folder);
-      Utilities::BookH1F(fEventHist[i]->hNuPt                , "nupt"                , Form("%s: Nu pT"                   ,dirname)  ,  50,  0, 100, folder);
-      Utilities::BookH1F(fEventHist[i]->hDetectorMet         , "detectormet"         , Form("%s: Detector Met"            ,dirname)  , 100,  0, 200, folder);
+  Utilities::BookH1F(fEventHist[i]->hMet                 , "met"                 , Form("%s: Met"                     ,dirname)  , 100,  0, 200, folder);
+  Utilities::BookH1F(fEventHist[i]->hMetSignificance     , "metsignificance"     , Form("%s: Met Significance"        ,dirname)  ,  40,  0,  10, folder);
+  Utilities::BookH1F(fEventHist[i]->hPuppiMetSig         , "puppimetsig"         , Form("%s: Met Significance"        ,dirname)  ,  50,  0,  15, folder);
+  Utilities::BookH1F(fEventHist[i]->hMetPhi              , "metphi"              , Form("%s: MetPhi"                  ,dirname)  ,  40, -4,   4, folder);
+  Utilities::BookH1F(fEventHist[i]->hMetCorr             , "metcorr"             , Form("%s: Met Correction"          ,dirname)  ,  40,  0,   5, folder);
+  Utilities::BookH1F(fEventHist[i]->hMetUp               , "metup"               , Form("%s: Met up"                  ,dirname)  , 100,  0, 200, folder);
+  Utilities::BookH1F(fEventHist[i]->hMetDown             , "metdown"             , Form("%s: Met down"                ,dirname)  , 100,  0, 200, folder);
+  Utilities::BookH1F(fEventHist[i]->hMetNoCorr           , "metnocorr"           , Form("%s: Met No Correction"       ,dirname)  , 100,  0, 200, folder);
+  Utilities::BookH1F(fEventHist[i]->hNuPt                , "nupt"                , Form("%s: Nu pT"                   ,dirname)  ,  50,  0, 100, folder);
+  Utilities::BookH1F(fEventHist[i]->hDetectorMet         , "detectormet"         , Form("%s: Detector Met"            ,dirname)  , 100,  0, 200, folder);
 
-      Utilities::BookH1F(fEventHist[i]->hMTOne               , "mtone"               , Form("%s: MTOne"                   ,dirname)  , 100, 0.,   150., folder);
-      Utilities::BookH1F(fEventHist[i]->hMTOneUp             , "mtoneup"             , Form("%s: MTOne up"                ,dirname)  , 100, 0.,   150., folder);
-      Utilities::BookH1F(fEventHist[i]->hMTOneDown           , "mtonedown"           , Form("%s: MTOne down"              ,dirname)  , 100, 0.,   150., folder);
-      Utilities::BookH1F(fEventHist[i]->hMTTwo               , "mttwo"               , Form("%s: MTTwo"                   ,dirname)  , 100, 0.,   150., folder);
-      Utilities::BookH1F(fEventHist[i]->hMTTwoUp             , "mttwoup"             , Form("%s: MTTwo up"                ,dirname)  , 100, 0.,   150., folder);
-      Utilities::BookH1F(fEventHist[i]->hMTTwoDown           , "mttwodown"           , Form("%s: MTTwo down"              ,dirname)  , 100, 0.,   150., folder);
-      Utilities::BookH1F(fEventHist[i]->hMTLep               , "mtlep"               , Form("%s: MTLep"                   ,dirname)  , 100, 0.,   150., folder);
-      Utilities::BookH1F(fEventHist[i]->hMTDiff              , "mtdiff"              , Form("%s: MTDiff"                  ,dirname)  , 100, -100.,  100., folder);
-      Utilities::BookH1F(fEventHist[i]->hMTLead              , "mtlead"              , Form("%s: MTLead"                  ,dirname)  ,  20, 0.,   150., folder);
-      Utilities::BookH1F(fEventHist[i]->hMTTrail             , "mttrail"             , Form("%s: MTTrail"                 ,dirname)  ,  20, 0.,   150., folder);
-      Utilities::BookH1F(fEventHist[i]->hMTOneOverM          , "mtoneoverm"          , Form("%s: MTOneOverM"              ,dirname)  , 100, 0.,   10. , folder);
-      Utilities::BookH1F(fEventHist[i]->hMTTwoOverM          , "mttwooverm"          , Form("%s: MTTwoOverM"              ,dirname)  , 100, 0.,   10. , folder);
-      Utilities::BookH1F(fEventHist[i]->hMTLepOverM          , "mtlepoverm"          , Form("%s: MTLepOverM"              ,dirname)  , 100, 0.,   10. , folder);
-      Utilities::BookH1F(fEventHist[i]->hMETDotOne           , "metdotone"           , Form("%s: METDotOne"               ,dirname)  ,  50, 0.,   70. , folder);
-      Utilities::BookH1F(fEventHist[i]->hMETDotTwo           , "metdottwo"           , Form("%s: METDotTwo"               ,dirname)  ,  50, 0.,   70. , folder);
+  Utilities::BookH1F(fEventHist[i]->hMTOne               , "mtone"               , Form("%s: MTOne"                   ,dirname)  , 100, 0.,   150., folder);
+  Utilities::BookH1F(fEventHist[i]->hMTOneUp             , "mtoneup"             , Form("%s: MTOne up"                ,dirname)  , 100, 0.,   150., folder);
+  Utilities::BookH1F(fEventHist[i]->hMTOneDown           , "mtonedown"           , Form("%s: MTOne down"              ,dirname)  , 100, 0.,   150., folder);
+  Utilities::BookH1F(fEventHist[i]->hMTTwo               , "mttwo"               , Form("%s: MTTwo"                   ,dirname)  , 100, 0.,   150., folder);
+  Utilities::BookH1F(fEventHist[i]->hMTTwoUp             , "mttwoup"             , Form("%s: MTTwo up"                ,dirname)  , 100, 0.,   150., folder);
+  Utilities::BookH1F(fEventHist[i]->hMTTwoDown           , "mttwodown"           , Form("%s: MTTwo down"              ,dirname)  , 100, 0.,   150., folder);
+  Utilities::BookH1F(fEventHist[i]->hMTLep               , "mtlep"               , Form("%s: MTLep"                   ,dirname)  , 100, 0.,   150., folder);
+  Utilities::BookH1F(fEventHist[i]->hMTDiff              , "mtdiff"              , Form("%s: MTDiff"                  ,dirname)  , 100, -100.,  100., folder);
+  Utilities::BookH1F(fEventHist[i]->hMTLead              , "mtlead"              , Form("%s: MTLead"                  ,dirname)  ,  20, 0.,   150., folder);
+  Utilities::BookH1F(fEventHist[i]->hMTTrail             , "mttrail"             , Form("%s: MTTrail"                 ,dirname)  ,  20, 0.,   150., folder);
+  Utilities::BookH1F(fEventHist[i]->hMTOneOverM          , "mtoneoverm"          , Form("%s: MTOneOverM"              ,dirname)  , 100, 0.,   10. , folder);
+  Utilities::BookH1F(fEventHist[i]->hMTTwoOverM          , "mttwooverm"          , Form("%s: MTTwoOverM"              ,dirname)  , 100, 0.,   10. , folder);
+  Utilities::BookH1F(fEventHist[i]->hMTLepOverM          , "mtlepoverm"          , Form("%s: MTLepOverM"              ,dirname)  , 100, 0.,   10. , folder);
+  Utilities::BookH1F(fEventHist[i]->hMETDotOne           , "metdotone"           , Form("%s: METDotOne"               ,dirname)  ,  50, 0.,   70. , folder);
+  Utilities::BookH1F(fEventHist[i]->hMETDotTwo           , "metdottwo"           , Form("%s: METDotTwo"               ,dirname)  ,  50, 0.,   70. , folder);
 
-      Utilities::BookH1F(fEventHist[i]->hMetDeltaPhi         , "metdeltaphi"         , Form("%s: Met Lep Delta Phi"       ,dirname)  ,  50,  0,   5, folder);
+  Utilities::BookH1F(fEventHist[i]->hMetDeltaPhi         , "metdeltaphi"         , Form("%s: Met Lep Delta Phi"       ,dirname)  ,  50,  0,   5, folder);
 
-      if(!fSparseHists) {
-        Utilities::BookH1F(fEventHist[i]->hLepOneDeltaPhi      , "leponedeltaphi"      , Form("%s: Lep One vs Sys Delta Phi",dirname)  ,  50,  0,   5, folder);
-        Utilities::BookH1F(fEventHist[i]->hLepTwoDeltaPhi      , "leptwodeltaphi"      , Form("%s: Lep Two vs Sys Delta Phi",dirname)  ,  50,  0,   5, folder);
-      }
+  if(!fSparseHists) {
+    Utilities::BookH1F(fEventHist[i]->hLepOneDeltaPhi      , "leponedeltaphi"      , Form("%s: Lep One vs Sys Delta Phi",dirname)  ,  50,  0,   5, folder);
+    Utilities::BookH1F(fEventHist[i]->hLepTwoDeltaPhi      , "leptwodeltaphi"      , Form("%s: Lep Two vs Sys Delta Phi",dirname)  ,  50,  0,   5, folder);
+  }
 
 
-      Utilities::BookH1F(fEventHist[i]->hLepPt[0], "leppt"         , Form("%s: Lepton Pt"      ,dirname)  , 100,   0, 200, folder);
-      Utilities::BookH1F(fEventHist[i]->hLepM[0] , "lepm"          , Form("%s: Lepton M"       ,dirname)  , 280,  40, 180, folder);
-      Utilities::BookH1F(fEventHist[i]->hLepMUp  , "lepmup"        , Form("%s: Lepton M"       ,dirname)  , 280,  40, 180, folder);
-      Utilities::BookH1F(fEventHist[i]->hLepMDown, "lepmdown"      , Form("%s: Lepton M"       ,dirname)  , 280,  40, 180, folder);
-      Utilities::BookH1F(fEventHist[i]->hLepMt   , "lepmt"         , Form("%s: Lepton Mt"      ,dirname)  , 100,   0, 200, folder);
-      Utilities::BookH1F(fEventHist[i]->hLepEta  , "lepeta"        , Form("%s: Lepton Eta"     ,dirname)  ,  50,  -5,   5, folder);
-      Utilities::BookH1F(fEventHist[i]->hLepMEstimate   , "lepmestimate"   , Form("%s: Estimate di-lepton mass"  ,dirname)  ,100,0.,  200, folder);
-      Utilities::BookH1F(fEventHist[i]->hLepMEstimateTwo, "lepmestimatetwo", Form("%s: Estimate di-lepton mass"  ,dirname)  ,100,0.,  200, folder);
-      Utilities::BookH1F(fEventHist[i]->hLepMEstimateThree, "lepmestimatethree", Form("%s: Estimate di-lepton mass"  ,dirname)  ,100,0.,  200, folder);
-      Utilities::BookH1F(fEventHist[i]->hLepMEstimateFour, "lepmestimatefour", Form("%s: Estimate di-lepton mass"  ,dirname)  ,100,0.,  200, folder);
-      Utilities::BookH1F(fEventHist[i]->hLepMEstimateCut[0], "lepmestimatecut0"   , Form("%s: Estimate di-lepton mass"  ,dirname)  ,100,0.,  200, folder);
-      Utilities::BookH1F(fEventHist[i]->hLepMEstimateCut[1], "lepmestimatecut1"   , Form("%s: Estimate di-lepton mass"  ,dirname)  ,100,0.,  200, folder);
-      Utilities::BookH1F(fEventHist[i]->hLepMEstimateAvg[0], "lepmestimateavg0"   , Form("%s: Estimate di-lepton mass"  ,dirname)  ,100,0.,  200, folder);
-      Utilities::BookH1F(fEventHist[i]->hLepMEstimateAvg[1], "lepmestimateavg1"   , Form("%s: Estimate di-lepton mass"  ,dirname)  ,100,0.,  200, folder);
-      Utilities::BookH1F(fEventHist[i]->hLepMBalance    , "lepmbalance"    , Form("%s: Estimate di-lepton mass"  ,dirname)  ,100,0.,  200, folder);
-      Utilities::BookH1F(fEventHist[i]->hLepMBalanceTwo , "lepmbalancetwo" , Form("%s: Estimate di-lepton mass"  ,dirname)  ,100,0.,  200, folder);
-      Utilities::BookH1F(fEventHist[i]->hLepPtOverM     , "lepptoverm"     , Form("%s: Lepton Pt / M"       ,dirname),  40,   0,   4, folder);
-      Utilities::BookH1F(fEventHist[i]->hLepTrkM        , "leptrkm"        , Form("%s: lep+trk mass"  ,dirname)  ,100,0.,  200, folder);
-      Utilities::BookH1F(fEventHist[i]->hLepTrkDeltaM   , "leptrkdeltam"   , Form("%s: lepm - lep+trk mass"  ,dirname)  ,50,0., 100, folder);
+  Utilities::BookH1F(fEventHist[i]->hLepPt[0], "leppt"         , Form("%s: Lepton Pt"      ,dirname)  , 100,   0, 200, folder);
+  Utilities::BookH1F(fEventHist[i]->hLepM[0] , "lepm"          , Form("%s: Lepton M"       ,dirname)  , 280,  40, 180, folder);
+  Utilities::BookH1F(fEventHist[i]->hLepMUp  , "lepmup"        , Form("%s: Lepton M"       ,dirname)  , 280,  40, 180, folder);
+  Utilities::BookH1F(fEventHist[i]->hLepMDown, "lepmdown"      , Form("%s: Lepton M"       ,dirname)  , 280,  40, 180, folder);
+  Utilities::BookH1F(fEventHist[i]->hLepMt   , "lepmt"         , Form("%s: Lepton Mt"      ,dirname)  , 100,   0, 200, folder);
+  Utilities::BookH1F(fEventHist[i]->hLepEta  , "lepeta"        , Form("%s: Lepton Eta"     ,dirname)  ,  50,  -5,   5, folder);
+  Utilities::BookH1F(fEventHist[i]->hLepMEstimate   , "lepmestimate"   , Form("%s: Estimate di-lepton mass"  ,dirname)  ,100,0.,  200, folder);
+  Utilities::BookH1F(fEventHist[i]->hLepMEstimateTwo, "lepmestimatetwo", Form("%s: Estimate di-lepton mass"  ,dirname)  ,100,0.,  200, folder);
+  Utilities::BookH1F(fEventHist[i]->hLepMEstimateThree, "lepmestimatethree", Form("%s: Estimate di-lepton mass"  ,dirname)  ,100,0.,  200, folder);
+  Utilities::BookH1F(fEventHist[i]->hLepMEstimateFour, "lepmestimatefour", Form("%s: Estimate di-lepton mass"  ,dirname)  ,100,0.,  200, folder);
+  Utilities::BookH1F(fEventHist[i]->hLepMEstimateCut[0], "lepmestimatecut0"   , Form("%s: Estimate di-lepton mass"  ,dirname)  ,100,0.,  200, folder);
+  Utilities::BookH1F(fEventHist[i]->hLepMEstimateCut[1], "lepmestimatecut1"   , Form("%s: Estimate di-lepton mass"  ,dirname)  ,100,0.,  200, folder);
+  Utilities::BookH1F(fEventHist[i]->hLepMEstimateAvg[0], "lepmestimateavg0"   , Form("%s: Estimate di-lepton mass"  ,dirname)  ,100,0.,  200, folder);
+  Utilities::BookH1F(fEventHist[i]->hLepMEstimateAvg[1], "lepmestimateavg1"   , Form("%s: Estimate di-lepton mass"  ,dirname)  ,100,0.,  200, folder);
+  Utilities::BookH1F(fEventHist[i]->hLepMBalance    , "lepmbalance"    , Form("%s: Estimate di-lepton mass"  ,dirname)  ,100,0.,  200, folder);
+  Utilities::BookH1F(fEventHist[i]->hLepMBalanceTwo , "lepmbalancetwo" , Form("%s: Estimate di-lepton mass"  ,dirname)  ,100,0.,  200, folder);
+  Utilities::BookH1F(fEventHist[i]->hLepPtOverM     , "lepptoverm"     , Form("%s: Lepton Pt / M"       ,dirname),  40,   0,   4, folder);
+  Utilities::BookH1F(fEventHist[i]->hLepTrkM        , "leptrkm"        , Form("%s: lep+trk mass"  ,dirname)  ,100,0.,  200, folder);
+  Utilities::BookH1F(fEventHist[i]->hLepTrkDeltaM   , "leptrkdeltam"   , Form("%s: lepm - lep+trk mass"  ,dirname)  ,50,0., 100, folder);
 
-      Utilities::BookH1F(fEventHist[i]->hPZetaVis       , "pzetavis"      , Form("%s: Dilepton pT dot #zeta",dirname), 50, 0., 200, folder);
-      Utilities::BookH1F(fEventHist[i]->hPZetaInv       , "pzetainv"      , Form("%s: MET dot #zeta"        ,dirname), 50, -200., 200, folder);
-      Utilities::BookH1F(fEventHist[i]->hPZetaAll       , "pzetaall"      , Form("%s: (l1 + l2 + MET) dot #zeta",dirname), 50, -200., 200, folder);
-      Utilities::BookH1F(fEventHist[i]->hPZetaDiff      , "pzetadiff"     , Form("%s: (MET - Dilepton pT) dot #zeta",dirname), 50, -150., 100, folder);
-      Utilities::BookH1F(fEventHist[i]->hDZeta          , "dzeta"         , Form("%s: (MET - 0.85*Dilepton pT) dot #zeta",dirname), 50, -150., 100, folder);
+  Utilities::BookH1F(fEventHist[i]->hPZetaVis       , "pzetavis"      , Form("%s: Dilepton pT dot #zeta",dirname), 50, 0., 200, folder);
+  Utilities::BookH1F(fEventHist[i]->hPZetaInv       , "pzetainv"      , Form("%s: MET dot #zeta"        ,dirname), 50, -200., 200, folder);
+  Utilities::BookH1F(fEventHist[i]->hPZetaAll       , "pzetaall"      , Form("%s: (l1 + l2 + MET) dot #zeta",dirname), 50, -200., 200, folder);
+  Utilities::BookH1F(fEventHist[i]->hPZetaDiff      , "pzetadiff"     , Form("%s: (MET - Dilepton pT) dot #zeta",dirname), 50, -150., 100, folder);
+  Utilities::BookH1F(fEventHist[i]->hDZeta          , "dzeta"         , Form("%s: (MET - 0.85*Dilepton pT) dot #zeta",dirname), 50, -150., 100, folder);
 
-      Utilities::BookH1F(fEventHist[i]->hMETU1[0]       , "metu1"         , Form("%s: MET along di-lepton pT",dirname), 50, -100., 100, folder);
-      Utilities::BookH1F(fEventHist[i]->hMETU2[0]       , "metu2"         , Form("%s: MET perpendiculat to di-lepton pT",dirname), 50, -100., 100, folder);
+  Utilities::BookH1F(fEventHist[i]->hMETU1[0]       , "metu1"         , Form("%s: MET along di-lepton pT",dirname), 50, -100., 100, folder);
+  Utilities::BookH1F(fEventHist[i]->hMETU2[0]       , "metu2"         , Form("%s: MET perpendiculat to di-lepton pT",dirname), 50, -100., 100, folder);
 
-      Utilities::BookH1F(fEventHist[i]->hLepDeltaEta   , "lepdeltaeta"   , Form("%s: Lepton DeltaEta",dirname), 50,   0,   5, folder);
-      Utilities::BookH1F(fEventHist[i]->hLepDeltaR[0]  , "lepdeltar"     , Form("%s: Lepton DeltaR"  ,dirname), 50,   0,   5, folder);
-      Utilities::BookH1F(fEventHist[i]->hLepDeltaPhi[0], "lepdeltaphi"   , Form("%s: Lepton DeltaPhi",dirname), 50,   0,   5, folder);
+  Utilities::BookH1F(fEventHist[i]->hLepDeltaEta   , "lepdeltaeta"   , Form("%s: Lepton DeltaEta",dirname), 50,   0,   5, folder);
+  Utilities::BookH1F(fEventHist[i]->hLepDeltaR[0]  , "lepdeltar"     , Form("%s: Lepton DeltaR"  ,dirname), 50,   0,   5, folder);
+  Utilities::BookH1F(fEventHist[i]->hLepDeltaPhi[0], "lepdeltaphi"   , Form("%s: Lepton DeltaPhi",dirname), 50,   0,   5, folder);
 
-      Utilities::BookH1F(fEventHist[i]->hZEta[0]    , "zeta"          , Form("%s: ZEta"           ,dirname)  ,  50,  -10,  10, folder);
-      Utilities::BookH1F(fEventHist[i]->hZLepOnePt  , "zleponept"     , Form("%s: ZLepOnePt"      ,dirname)  ,  60,    0, 120, folder);
-      Utilities::BookH1F(fEventHist[i]->hZLepTwoPt  , "zleptwopt"     , Form("%s: ZLepTwoPt"      ,dirname)  ,  60,    0, 120, folder);
-      Utilities::BookH1F(fEventHist[i]->hZLepOneEta , "zleponeeta"    , Form("%s: ZLepOneEta"     ,dirname)  ,  50, -2.5, 2.5, folder);
-      Utilities::BookH1F(fEventHist[i]->hZLepTwoEta , "zleptwoeta"    , Form("%s: ZLepTwoEta"     ,dirname)  ,  50, -2.5, 2.5, folder);
-      Utilities::BookH1D(fEventHist[i]->hZDecayMode , "zdecaymode"    , Form("%s: ZDecayMode"     ,dirname)  ,  20,    0,  20, folder);
+  Utilities::BookH1F(fEventHist[i]->hZEta[0]    , "zeta"          , Form("%s: ZEta"           ,dirname)  ,  50,  -10,  10, folder);
+  Utilities::BookH1F(fEventHist[i]->hZLepOnePt  , "zleponept"     , Form("%s: ZLepOnePt"      ,dirname)  ,  60,    0, 120, folder);
+  Utilities::BookH1F(fEventHist[i]->hZLepTwoPt  , "zleptwopt"     , Form("%s: ZLepTwoPt"      ,dirname)  ,  60,    0, 120, folder);
+  Utilities::BookH1F(fEventHist[i]->hZLepOneEta , "zleponeeta"    , Form("%s: ZLepOneEta"     ,dirname)  ,  50, -2.5, 2.5, folder);
+  Utilities::BookH1F(fEventHist[i]->hZLepTwoEta , "zleptwoeta"    , Form("%s: ZLepTwoEta"     ,dirname)  ,  50, -2.5, 2.5, folder);
+  Utilities::BookH1D(fEventHist[i]->hZDecayMode , "zdecaymode"    , Form("%s: ZDecayMode"     ,dirname)  ,  20,    0,  20, folder);
 
-      if(!fSparseHists || fSelection == "emu") {
-        if(fUseCDFBDTs || fUseXGBoostBDT) {
-          Utilities::BookH2F(fEventHist[i]->hLepMVsMVA[0], "lepmvsmva0"    , Form("%s: Lepton M vs MVA",dirname)  ,  40, 0., 1., 20, 70, 110, folder);
-          Utilities::BookH2F(fEventHist[i]->hLepMVsMVA[1], "lepmvsmva1"    , Form("%s: Lepton M vs MVA",dirname)  ,  40, 0., 1., 20, 70, 110, folder);
-        } else {
-          Utilities::BookH2F(fEventHist[i]->hLepMVsMVA[0], "lepmvsmva0"    , Form("%s: Lepton M vs MVA",dirname)  ,  50, -1., 1., 50,   50, 150, folder);
-          Utilities::BookH2F(fEventHist[i]->hLepMVsMVA[1], "lepmvsmva1"    , Form("%s: Lepton M vs MVA",dirname)  ,  50, -1., 1., 50,   50, 150, folder);
-        }
-      }
+  if(!fSparseHists || fSelection == "emu") {
+    if(fUseCDFBDTs || fUseXGBoostBDT) {
+      Utilities::BookH2F(fEventHist[i]->hLepMVsMVA[0], "lepmvsmva0"    , Form("%s: Lepton M vs MVA",dirname)  ,  40, 0., 1., 20, 70, 110, folder);
+      Utilities::BookH2F(fEventHist[i]->hLepMVsMVA[1], "lepmvsmva1"    , Form("%s: Lepton M vs MVA",dirname)  ,  40, 0., 1., 20, 70, 110, folder);
+    } else {
+      Utilities::BookH2F(fEventHist[i]->hLepMVsMVA[0], "lepmvsmva0"    , Form("%s: Lepton M vs MVA",dirname)  ,  50, -1., 1., 50,   50, 150, folder);
+      Utilities::BookH2F(fEventHist[i]->hLepMVsMVA[1], "lepmvsmva1"    , Form("%s: Lepton M vs MVA",dirname)  ,  50, -1., 1., 50,   50, 150, folder);
+    }
+  }
 
-      Utilities::BookH1F(fEventHist[i]->hDeltaAlpha[0]     , "deltaalpha0"      , Form("%s: Delta Alpha (Z) 0"   ,dirname),  80,  -5,  10, folder);
-      Utilities::BookH1F(fEventHist[i]->hDeltaAlpha[1]     , "deltaalpha1"      , Form("%s: Delta Alpha (Z) 1"   ,dirname),  80,  -5,  10, folder);
-      Utilities::BookH1F(fEventHist[i]->hDeltaAlpha[2]     , "deltaalpha2"      , Form("%s: Delta Alpha (H) 0"   ,dirname),  80,  -5,  10, folder);
-      Utilities::BookH1F(fEventHist[i]->hDeltaAlpha[3]     , "deltaalpha3"      , Form("%s: Delta Alpha (H) 1"   ,dirname),  80,  -5,  10, folder);
-      Utilities::BookH1F(fEventHist[i]->hDeltaAlphaM[0]    , "deltaalpham0"     , Form("%s: Delta Alpha M 0"     ,dirname),  80,  40, 180, folder);
-      Utilities::BookH1F(fEventHist[i]->hDeltaAlphaM[1]    , "deltaalpham1"     , Form("%s: Delta Alpha M 1"     ,dirname),  80,  40, 180, folder);
-      Utilities::BookH1F(fEventHist[i]->hBeta[0]           , "beta0"            , Form("%s: Beta (Z) 0"          ,dirname), 100,   0,  5., folder);
-      Utilities::BookH1F(fEventHist[i]->hBeta[1]           , "beta1"            , Form("%s: Beta (Z) 1"          ,dirname), 100,   0,  5., folder);
+  Utilities::BookH1F(fEventHist[i]->hDeltaAlpha[0]     , "deltaalpha0"      , Form("%s: Delta Alpha (Z) 0"   ,dirname),  80,  -5,  10, folder);
+  Utilities::BookH1F(fEventHist[i]->hDeltaAlpha[1]     , "deltaalpha1"      , Form("%s: Delta Alpha (Z) 1"   ,dirname),  80,  -5,  10, folder);
+  Utilities::BookH1F(fEventHist[i]->hDeltaAlpha[2]     , "deltaalpha2"      , Form("%s: Delta Alpha (H) 0"   ,dirname),  80,  -5,  10, folder);
+  Utilities::BookH1F(fEventHist[i]->hDeltaAlpha[3]     , "deltaalpha3"      , Form("%s: Delta Alpha (H) 1"   ,dirname),  80,  -5,  10, folder);
+  Utilities::BookH1F(fEventHist[i]->hDeltaAlphaM[0]    , "deltaalpham0"     , Form("%s: Delta Alpha M 0"     ,dirname),  80,  40, 180, folder);
+  Utilities::BookH1F(fEventHist[i]->hDeltaAlphaM[1]    , "deltaalpham1"     , Form("%s: Delta Alpha M 1"     ,dirname),  80,  40, 180, folder);
+  Utilities::BookH1F(fEventHist[i]->hBeta[0]           , "beta0"            , Form("%s: Beta (Z) 0"          ,dirname), 100,   0,  5., folder);
+  Utilities::BookH1F(fEventHist[i]->hBeta[1]           , "beta1"            , Form("%s: Beta (Z) 1"          ,dirname), 100,   0,  5., folder);
 
-      Utilities::BookH1F(fEventHist[i]->hPTauVisFrac    , "ptauvisfrac"    , Form("%s: visible tau pT fraction " ,dirname)  , 50,0.,  1.5, folder);
+  Utilities::BookH1F(fEventHist[i]->hPTauVisFrac    , "ptauvisfrac"    , Form("%s: visible tau pT fraction " ,dirname)  , 50,0.,  1.5, folder);
 
-      for(unsigned j = 0; j < fMVAConfig->names_.size(); ++j)  {
-        Utilities::BookH1D(fEventHist[i]->hMVA[j][0], Form("mva%i",j)   , Form("%s: %s MVA" ,dirname, fMVAConfig->names_[j].Data()) ,
-                           fMVAConfig->NBins(j, i), fMVAConfig->Bins(j, i).data(), folder);
-        //high mva score binning to improve cdf making
-        Utilities::BookH1F(fEventHist[i]->hMVA[j][1]  , Form("mva%i_1",j)   , Form("%s: %s MVA"         ,dirname, fMVAConfig->names_[j].Data()), 2000, -1.,  1., folder);
-        //CDF transformed score
-        Utilities::BookH1D(fEventHist[i]->hMVA[j][2]  , Form("mva%i_2",j)   , Form("%s: %s MVA"         ,dirname, fMVAConfig->names_[j].Data()), fNCDFBins+1,  0.-1./fNCDFBins,  1., folder);
-        //log10(CDF p-value)
-        Utilities::BookH1D(fEventHist[i]->hMVA[j][3]  , Form("mva%i_3",j)   , Form("%s: %s log10(MVA)"  ,dirname, fMVAConfig->names_[j].Data()), 20, -3., 0., folder);
-        //F(p-value) transformation
-        Utilities::BookH1D(fEventHist[i]->hMVA[j][4]  , Form("mva%i_4",j)   , Form("%s: %s f(p)"  ,dirname, fMVAConfig->names_[j].Data()), 20, 0., 1., folder);
-        //no BDT score correction
-        Utilities::BookH1D(fEventHist[i]->hMVA[j][5], Form("mva%i_5",j)   , Form("%s: %s MVA" ,dirname, fMVAConfig->names_[j].Data()) ,
-                           fMVAConfig->NBins(j, i), fMVAConfig->Bins(j, i).data(), folder);
-        //histograms of the test/train components
-        Utilities::BookH1F(fEventHist[i]->hMVATrain[j], Form("mvatrain%i",j), Form("%s: %s MVA (train)" ,dirname, fMVAConfig->names_[j].Data()),  50, -1.,  1., folder);
-        Utilities::BookH1F(fEventHist[i]->hMVATest[j] , Form("mvatest%i",j) , Form("%s: %s MVA (test)"  ,dirname, fMVAConfig->names_[j].Data()),  50, -1.,  1., folder);
-      }
-
+  for(unsigned j = 0; j < fMVAConfig->names_.size(); ++j)  {
+    Utilities::BookH1D(fEventHist[i]->hMVA[j][0], Form("mva%i",j)   , Form("%s: %s MVA" ,dirname, fMVAConfig->names_[j].Data()) ,
+                       fMVAConfig->NBins(j, i), fMVAConfig->Bins(j, i).data(), folder);
+    //high mva score binning to improve cdf making
+    Utilities::BookH1F(fEventHist[i]->hMVA[j][1]  , Form("mva%i_1",j)   , Form("%s: %s MVA"         ,dirname, fMVAConfig->names_[j].Data()), 2000, -1.,  1., folder);
+    //CDF transformed score
+    Utilities::BookH1D(fEventHist[i]->hMVA[j][2]  , Form("mva%i_2",j)   , Form("%s: %s MVA"         ,dirname, fMVAConfig->names_[j].Data()), fNCDFBins+1,  0.-1./fNCDFBins,  1., folder);
+    //log10(CDF p-value)
+    Utilities::BookH1D(fEventHist[i]->hMVA[j][3]  , Form("mva%i_3",j)   , Form("%s: %s log10(MVA)"  ,dirname, fMVAConfig->names_[j].Data()), 20, -3., 0., folder);
+    //F(p-value) transformation
+    Utilities::BookH1D(fEventHist[i]->hMVA[j][4]  , Form("mva%i_4",j)   , Form("%s: %s f(p)"  ,dirname, fMVAConfig->names_[j].Data()), 20, 0., 1., folder);
+    //no BDT score correction
+    Utilities::BookH1D(fEventHist[i]->hMVA[j][5], Form("mva%i_5",j)   , Form("%s: %s MVA" ,dirname, fMVAConfig->names_[j].Data()) ,
+                       fMVAConfig->NBins(j, i), fMVAConfig->Bins(j, i).data(), folder);
+    //histograms of the test/train components
+    Utilities::BookH1F(fEventHist[i]->hMVATrain[j], Form("mvatrain%i",j), Form("%s: %s MVA (train)" ,dirname, fMVAConfig->names_[j].Data()),  50, -1.,  1., folder);
+    Utilities::BookH1F(fEventHist[i]->hMVATest[j] , Form("mvatest%i",j) , Form("%s: %s MVA (test)"  ,dirname, fMVAConfig->names_[j].Data()),  50, -1.,  1., folder);
+  }
 }
 
 //--------------------------------------------------------------------------------------------------------------
@@ -1400,6 +1401,23 @@ void HistMaker::ApplyMuonCorrections() {
   const static int s(0), m(0); //error set and member for corrections
   const static int sys_s(2), sys_m(0); //FIXME: Decide on a systematic correction set, currently using Zpt
   for(UInt_t index = 0; index < nMuon; ++index) {
+    //First apply corrections to match Embedding --> MC
+    if(fIsEmbed && fUseEmbedMuonES) {
+      const float gen_pt = (Muon_genPartIdx[index] >= 0) ? GenPart_pt[Muon_genPartIdx[index]] : Muon_pt[index];
+      float up, down;
+      const float sf = fEmbeddingResolution->MuonScale(Muon_eta[index], gen_pt, fYear, up, down);
+
+      //Record the pT change to propagate to the MET
+      const float pt_diff = Muon_pt[index]*(sf - 1.f);
+      Muon_pt[index] *= sf;
+      delta_x -= pt_diff*std::cos(Muon_phi[index]);
+      delta_y -= pt_diff*std::sin(Muon_phi[index]);
+      if(fVerbose > 1) {
+        printf(" HistMaker::%s: Applying pT scale of %.4f to embedding muon %u with pT %.2f and gen_pt %.2f\n", __func__, sf, index, Muon_pt[index], gen_pt);
+      }
+    }
+
+    //Apply the Rochester corrections to data and simulated muons
     if((fIsEmbed && !fUseEmbedRocco) || fUseRoccoCorr == 0) {  //don't correct embedding (or any, if selected) to muons
       Muon_RoccoSF[index] = 1.f;
       const float abs_eta = std::fabs(Muon_eta[index]);
@@ -1418,13 +1436,13 @@ void HistMaker::ApplyMuonCorrections() {
           err  = fRoccoR->kSpreadMC(Muon_charge[index], Muon_pt[index], Muon_eta[index], Muon_phi[index], GenPart_pt[Muon_genPartIdx[index]], sys_s, sys_m);
           err *= fRoccoR->kScaleDT (Muon_charge[index], Muon_pt[index], Muon_eta[index], Muon_phi[index], s, m);
           err /= fRoccoR->kScaleDT (Muon_charge[index], Muon_pt[index], Muon_eta[index], Muon_phi[index], sys_s, sys_m);
-          err = std::fabs(sf - err);
+          err = std::fabs(sf - err); //set error as the deviation from the nominal scale factor
         } else { //not matched
           sf   = fRoccoR->kSmearMC(Muon_charge[index], Muon_pt[index], Muon_eta[index], Muon_phi[index], Muon_nTrackerLayers[index], u, s, m);
           err  = fRoccoR->kSmearMC(Muon_charge[index], Muon_pt[index], Muon_eta[index], Muon_phi[index], Muon_nTrackerLayers[index], u, sys_s, sys_m);
           err *= fRoccoR->kScaleDT(Muon_charge[index], Muon_pt[index], Muon_eta[index], Muon_phi[index], s, m);
           err /= fRoccoR->kScaleDT(Muon_charge[index], Muon_pt[index], Muon_eta[index], Muon_phi[index], sys_s, sys_m);
-          err = std::fabs(sf - err);
+          err = std::fabs(sf - err); //set error as the deviation from the nominal scale factor
         }
       }
       double pt_diff = Muon_pt[index];
@@ -1436,6 +1454,9 @@ void HistMaker::ApplyMuonCorrections() {
       delta_y -= pt_diff*std::sin(Muon_phi[index]);
       if(use_size) Muon_ESErr[index] = std::fabs(1.f - sf); //size of the correction
       else         Muon_ESErr[index] = err; //evaluated uncertainty
+      if(fVerbose > 1) {
+        printf(" HistMaker::%s: Applying Rochester pT scale of %.4f to muon %u\n", __func__, sf, index);
+      }
     } else if(fUseRoccoCorr == 2) { //apply ntuple-level corrections
       Muon_RoccoSF[index]  = Muon_corrected_pt[index] / Muon_pt[index];
       const double pt_diff = Muon_corrected_pt[index] - Muon_pt[index];
@@ -1709,7 +1730,34 @@ void HistMaker::InitializeEventWeights() {
       embeddingWeight = genWeight; //move the embedding weight from genWeight to embeddingWeight
       genWeight = 1.f;
     }
+    //Retrieve the gen-level di-muon pair unfolding weight
     embeddingUnfoldingWeight = fEmbeddingWeight->UnfoldingWeight(zLepOnePt, zLepOneEta, zLepTwoPt, zLepTwoEta, zEta, zPt, fYear);
+
+    //Apply an additional normalization matching to the gen-level Z->tau_x tau_y sample
+    if(fUseEmbedZMatching && std::fabs(zLepOneID) > 14 && std::fabs(zLepTwoID) > 14) { //embedded tau tau pair
+      const int decay_1 = (zLepOneDecayIdx >= 0 ) ? std::abs(GenPart_pdgId[zLepOneDecayIdx]) : 15; //identify the decay mode of the gen-level tau
+      const int decay_2 = (zLepTwoDecayIdx >= 0 ) ? std::abs(GenPart_pdgId[zLepTwoDecayIdx]) : 15;
+      float matching = 1.f;
+      if(fUseEmbedZMatching == 1) { //use gen-level matching
+        if       ((decay_1 == 11 && decay_2 == 13) || (decay_1 == 13 || decay_2 == 11)) { //tau_e tau_mu
+          matching = (fYear == 2016) ? 1.0179f : (fYear == 2017) ? 1.0711f : 1.0859f;
+        } else if((decay_1 == 11 && decay_2 == 15) || (decay_1 == 15 || decay_2 == 11)) { //tau_e tau_h
+          matching = (fYear == 2016) ? 1.f : (fYear == 2017) ? 1.f : 1.f;
+        } else if((decay_1 == 13 && decay_2 == 15) || (decay_1 == 15 || decay_2 == 13)) { //tau_mu tau_h
+          matching = (fYear == 2016) ? 1.f : (fYear == 2017) ? 1.f : 1.f;
+        }
+      } else if(fUseEmbedZMatching) { //use reco-level matching (Only if going to float Embedding in the end)
+        if       ((decay_1 == 11 && decay_2 == 13) || (decay_1 == 13 || decay_2 == 11)) { //tau_e tau_mu
+          matching = (fYear == 2016) ? 1.05f : (fYear == 2017) ? 1.075f : 1.159f;
+        } else if((decay_1 == 11 && decay_2 == 15) || (decay_1 == 15 || decay_2 == 11)) { //tau_e tau_h
+          matching = (fYear == 2016) ? 1.f : (fYear == 2017) ? 1.f : 1.f;
+        } else if((decay_1 == 13 && decay_2 == 15) || (decay_1 == 15 || decay_2 == 13)) { //tau_mu tau_h
+          matching = (fYear == 2016) ? 1.f : (fYear == 2017) ? 1.f : 1.f;
+        }
+      }
+      if(fVerbose > 9) printf(" Applying an additional unfolding weight of %.3f\n", matching);
+      embeddingUnfoldingWeight *= matching;
+    }
     eventWeight *= embeddingUnfoldingWeight*embeddingWeight;
   } else if(!fIsData) { //standard MC --> store only the sign of the generator weight
     genWeight = (genWeight < 0.) ? -1.f : 1.f;
@@ -2927,13 +2975,13 @@ void HistMaker::CountObjects() {
     printf(" Electron collection:\n");
     for(int i = 0; i < (int) nElectron; ++i) {
       printf("  %2i: pt = %.1f, eta = %.2f, eta_sc = %.2f", i, Electron_pt[i], Electron_eta[i], Electron_eta[i]+Electron_deltaEtaSC[i]);
-      if(!fIsData) printf(", gen_flav_ID = %2i", Electron_genPartFlav[i]);
+      if(!fIsData) printf(", gen_flav_ID = %2i, gen index = %2i", Electron_genPartFlav[i], Electron_genPartIdx[i]);
       printf("\n");
     }
     printf(" Muon collection:\n");
     for(int i = 0; i < (int) nMuon; ++i) {
       printf("  %2i: pt = %.1f, eta = %.2f", i, Muon_pt[i], Muon_eta[i]);
-      if(!fIsData) printf(", gen_flav_ID = %2i", Muon_genPartFlav[i]);
+      if(!fIsData) printf(", gen_flav_ID = %2i, gen index = %2i", Muon_genPartFlav[i], Muon_genPartIdx[i]);
       printf("\n");
     }
     printf(" Tau collection:\n");
@@ -3903,6 +3951,10 @@ void HistMaker::FillBaseEventHistogram(EventHist_t* Hist) {
   Hist->hLepM[0]      ->Fill(fTreeVars.lepm         ,eventWeight*genWeight);
   Hist->hLepMUp       ->Fill(fTreeVars.lepm         ,tot_sys_up  );
   Hist->hLepMDown     ->Fill(fTreeVars.lepm         ,tot_sys_down);
+  // if(!fSparseHists) {
+  //   Hist->hLepMLepESUp   ->Fill(fTreeVars.lepm         ,tot_sys_up  );
+  //   Hist->hLepMLepESDown ->Fill(fTreeVars.lepm         ,tot_sys_down);
+  // }
   Hist->hLepMt        ->Fill(lepSys.Mt()            ,eventWeight*genWeight);
   Hist->hLepEta       ->Fill(lepSys.Eta()           ,eventWeight*genWeight);
   // Hist->hLepPhi       ->Fill(lepSys.Phi()           ,eventWeight*genWeight);
@@ -4259,8 +4311,9 @@ Bool_t HistMaker::InitializeEvent(Long64_t entry)
   //reset the event cuts
   one_pt_min_ = 0.f; two_pt_min_ = 0.f;
   ptdiff_min_ = -1.e10f; ptdiff_max_ = +1.e10f;
-  min_mass_ = 0.f; max_mass_ = -1.f;
+  min_mass_ = -1.f; max_mass_ = -1.f;
   met_max_ = -1.f; mtone_max_ = -1.f; mttwo_max_ = -1.f; mtlep_max_ = -1.f;
+  mtlep_over_m_max_ = -1.f; mtone_over_m_max_ = -1.f; mttwo_over_m_max_ = -1.f;
 
   //Initialize base object information
   CountObjects(); // > 100 kHz

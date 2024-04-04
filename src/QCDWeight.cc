@@ -183,7 +183,7 @@ QCDWeight::QCDWeight(const TString selection, const int Mode, int only_year, con
           down->SetName(Form("%s_%s_%i", down->GetName(), tag, year));
           down->AddToGlobalList();
         }
-      }
+      } //end N(jets) loop
 
       if(useRun2_ == 2) {
         f->Close(); //close the current file
@@ -317,7 +317,7 @@ float QCDWeight::GetWeight(float deltar, float deltaphi, float oneeta, float one
 
   //initialize values
   nsys = 1;
-  nonclosure = 1.f; up[0] = 1.f; down[0] = 1.f; antiiso = 1.f;
+  nonclosure = 1.f; up[0] = 1.f; down[0] = 1.f; antiiso = 1.f; massbdt = 1.f;
   const float var = (useDeltaPhi_) ? deltaphi : deltar;
   const float closure = oneeta;
 
@@ -410,17 +410,17 @@ float QCDWeight::GetWeight(float deltar, float deltaphi, float oneeta, float one
   }
 
   //ensure reasonable values on the SS --> OS scale
-  const float max_eff = 5.f;
-  const float min_eff = 1.e-5f;
-  if(std::isnan(eff) || eff < 0.f) {
-    std::cout << "QCDWeight::" << __func__ << " Weight < 0  = " << eff
+  const float max_eff = 3.5f; //linear fits are well within these bounds
+  const float min_eff = 0.5f;
+  if(!std::isfinite(eff)) {
+    std::cout << "QCDWeight::" << __func__ << " Weight  is not finite  = " << eff
               << " delta R = " << deltar << " delta phi = " << deltaphi
               << " for year = " << year << std::endl;
-    nonclosure = 1.f; up[0] = 1.f; down[0] = 1.f; nsys = 1; antiiso = 1.f;
+    nonclosure = 1.f; up[0] = 1.f; down[0] = 1.f; nsys = 1; antiiso = 1.f; massbdt = 1.f;
     return 1.;
   }
 
-  eff     = std::max(min_eff, std::min(max_eff, eff      ));
+  eff = std::max(min_eff, std::min(max_eff, eff));
   if(use_alt_fits) {
     for(int ialt = 0; ialt < nsys; ++ialt) {
       up  [ialt] = std::max(min_eff, std::min(max_eff, up  [ialt]));
@@ -440,7 +440,7 @@ float QCDWeight::GetWeight(float deltar, float deltaphi, float oneeta, float one
       std::cout << "QCDWeight::" << __func__ << " Closure Weight < 0  = " << nonclosure
                 << " delta R = " << deltar << " delta phi = " << deltaphi
                 << " for year = " << year << std::endl;
-      nonclosure = 1.f; up[0] = 1.f; down[0] = 1.f; nsys = 1; antiiso = 1.f;
+      nonclosure = 1.f; up[0] = 1.f; down[0] = 1.f; nsys = 1; antiiso = 1.f; massbdt = 1.f;
       return 1.;
     }
   } else if(use2DPtClosure_) {
@@ -534,7 +534,7 @@ float QCDWeight::GetWeight(float deltar, float deltaphi, float oneeta, float one
       std::cout << "QCDWeight::" << __func__ << " Systematic < 0  = " << closure
                 << " delta R = " << deltar << " delta phi = " << deltaphi
                 << " for year = " << year << std::endl;
-      nonclosure = 1.f; up[0] = 1.f; down[0] = 1.f; nsys = 1; antiiso = 1.f;
+      nonclosure = 1.f; up[0] = 1.f; down[0] = 1.f; nsys = 1; antiiso = 1.f; massbdt = 1.f;
       return 1.;
     }
     const float eff_sys = eff*correction;
@@ -553,6 +553,7 @@ float QCDWeight::GetWeight(float deltar, float deltaphi, float oneeta, float one
     err = 0.99f*eff; //99% uncertainty
     nonclosure = 1.f;
     antiiso = 1.f;
+    massbdt = 1.f;
     up  [0] = eff + err;
     down[0] = eff - err;
     nsys = 1;

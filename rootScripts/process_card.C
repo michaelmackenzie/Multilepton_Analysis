@@ -138,9 +138,8 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
     useEmbedCuts_       = 3;
     useEventFlags_      = 1; //filter using event flags
     useLepDxyzWeights_  = 0;
-    useRoccoCorr_       = 1;
     useRoccoSize_       = 1;
-    embedUseMETUnc_     = 2; //add uncertainty on embedding MET
+    embedUseMETUnc_     = 0; //don't add uncertainty on embedding MET
     useEmbedBDTUnc_     = 0;
 
     useBTagWeights_     = 2; //2: ntuple-level
@@ -209,6 +208,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
       //configure fields for j-->tau measurement histogramming
       if(dynamic_cast<JTTHistMaker*> (selec)) {
         doSystematics_  =  0; //ignore systematics
+        doSystematics   =  0;
         train_mode_     =  0; //ignore MVA training weights
         // ReprocessMVAs_  =  0; //ignore MVA scores
         max_sim_events_ = -1; //use all sim events
@@ -224,6 +224,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
       //configure fields for OS-->SS measurement histogramming
       if(dynamic_cast<QCDHistMaker*> (selec)) {
         doSystematics_  =  0; //ignore systematics
+        doSystematics   =  0;
         train_mode_     =  0; //ignore MVA training weights
         // ReprocessMVAs_  =  0; //ignore MVA scores
       }
@@ -249,7 +250,9 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
         clfv_selec->fMaxLepM           = max_lepm_; //(selection == "emu") ? 115.f : (selection.EndsWith("tau")) ? 175.f : 175.f;
         clfv_selec->fSameFlavorEMuSelec = doSameFlavorEMu_;
         clfv_selec->fRemoveLooseSS      = removeLooseSS_;
+        clfv_selec->fDoLepESHists       = doLepESHists_;
       }
+
       if(dynamic_cast<HistMaker*> (selec)) {
         auto hist_selec = (HistMaker*) selec;
         hist_selec->fPrintTime          = 2; //Print detailed summary of processing times
@@ -271,6 +274,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
         hist_selec->fUseLepDisplacementWeights = useLepDxyzWeights_;
         hist_selec->fRemoveEventWeights = removeEventWeights_;
         hist_selec->fUseEmbedRocco      = useEmbedRocco_;
+        hist_selec->fUseEmbedMuonES     = useEmbMuonES_;
         hist_selec->fEmbedUseMETUnc     = embedUseMETUnc_;
         hist_selec->fUseEmbBDTUncertainty = useEmbedBDTUnc_;
         hist_selec->fUseRoccoCorr       = useRoccoCorr_;
@@ -282,7 +286,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
         hist_selec->fLoadBaskets        = false;
         hist_selec->fDoSSSystematics    = selection == "emu" || selection.Contains("_");
         hist_selec->fDoLooseSystematics = selection.EndsWith("tau");
-        hist_selec->fAllowMigration     = allowMigration_ && doSystematics;
+        hist_selec->fAllowMigration     = (allowMigration_ && doSystematics) || allowMigration_ == 2;
         hist_selec->fMigrationBuffer    = migration_buffer_;
         hist_selec->fMaxEntries         = max_events;
         hist_selec->fUseLooseTauBuffer  = useLooseTauBuffer_;
@@ -348,7 +352,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
         else if(card.isData_) { //data from data-driven backgrounds
           selec->fFractionMVA = (selection.EndsWith("tau")) ? 0.05f : 0.3f; //don't need much j-->tau data
         } else if(isSignal) selec->fFractionMVA = 0.5f; //use half the signal data for training
-        else if(selec->fIsEmbed) selec->fFractionMVA = (selection.EndsWith("tau")) ? 0.1f : 0.1f; //don't need much embedding data
+        else if(selec->fIsEmbed) selec->fFractionMVA = 0.f; //FIXME: Not using embedding in training as of now //0.1f; //don't need much embedding data
         else if(card.fname_.Contains("ttbarlnu")) selec->fFractionMVA = 0.1f; //reduce ttbar->ll contributions
         else selec->fFractionMVA = 0.3f; //default MC training fraction
       } else { //no training

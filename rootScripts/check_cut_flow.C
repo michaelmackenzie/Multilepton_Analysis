@@ -36,6 +36,7 @@ TCanvas* check_cut_flow(const char* file, TString print_tag = "", const char* hi
   h_eff->SetTitle("Step efficiency");
   h_eff->Draw("hist");
   h_eff->GetXaxis()->SetRange(0, min(h->GetNbinsX(), max_relevant+1));
+  h_eff->GetYaxis()->SetRangeUser(0, 1.1);
 
   if(print_tag != "") c->Print(("cut_flow_" + print_tag + ".png").Data());
   return c;

@@ -279,7 +279,7 @@ void make_composition(PlottingCard_t card, const bool printHists = false, const 
 
 //-----------------------------------------------------------------------------------------------------------------------------------------
 //initialize the files and scales using a DataPlotter
-Int_t initialize_plotter(int year) {
+Int_t initialize_plotter(vector<int> years) {
   if(dataplotter_) delete dataplotter_;
   dataplotter_ = new DataPlotter();
   dataplotter_->include_qcd_   = 0;
@@ -289,15 +289,21 @@ Int_t initialize_plotter(int year) {
   dataplotter_->embed_scale_   = embedScale_;
   dataplotter_->doStatsLegend_ = false;
   dataplotter_->clip_negative_ = true;
-  years_ = {year};
+  years_ = years;
   useEmbed_ = 0;
 
   std::vector<dcard> cards;
   get_datacards(cards, selection_, true);
 
   CrossSections xs(useUL_, ZMode_); //cross section handler
-  dataplotter_->set_luminosity(xs.GetLuminosity(year));
-  if(verbose_ > 0) cout << "--- Dataplotter luminosity for " << year << " = " << dataplotter_->lum_ << endl;
+  double lum(0.);
+  for(int year : years) {
+    lum += xs.GetLuminosity(year);
+    dataplotter_->lums_[year] = xs.GetLuminosity(year); //store the luminosity for the year
+  }
+
+  dataplotter_->set_luminosity(lum);
+  if(verbose_ > 0) cout << "--- Dataplotter luminosity = " << dataplotter_->lum_ << endl;
 
   int status(0);
   for(auto card : cards)
@@ -309,13 +315,13 @@ Int_t initialize_plotter(int year) {
 
 //-----------------------------------------------------------------------------------------------------------------------------------------
 //setup everything
-Int_t init(TString selection = "mutau", int year = 2016, TString path = "nanoaods_dev") {
+Int_t init(TString selection = "mutau", vector<int> years = {2016}, TString path = "nanoaods_dev") {
   selection_ = selection;
   hist_dir_ = path;
   hist_tag_ = "jtt";
   //initialize the data files
   if(verbose_ > 0) std::cout << "Initializing the dataplotter" << std::endl;
-  if(initialize_plotter(year)) {
+  if(initialize_plotter(years)) {
     cout << "Dataplotter initialization failed!\n";
     return 1;
   }
@@ -324,11 +330,11 @@ Int_t init(TString selection = "mutau", int year = 2016, TString path = "nanoaod
 
 //-----------------------------------------------------------------------------------------------------------------------------------------
 //Generate the plots and scale factors
-Int_t composition(TString selection = "mutau", int setmc = 2042, int setqcd = 3035, int year = 2016, TString path = "nanoaods_dev") {
+Int_t composition(TString selection = "mutau", int setmc = 2042, int setqcd = 3035, vector<int> years = {2016}, TString path = "nanoaods_jtt") {
   //////////////////////
   // Initialize files //
   //////////////////////
-  if(init(selection, year, path)) return 1;
+  if(init(selection, years, path)) return 1;
 
   //get the absolute value of the set, offsetting by the selection
   int set_offset = 0;
@@ -348,9 +354,11 @@ Int_t composition(TString selection = "mutau", int setmc = 2042, int setqcd = 30
   //////////////////////
 
   //construct general figure name
+  TString year_s = Form("%i", years[0]);
+  for(int i = 1; i < years.size(); ++i) year_s += Form("_%i", years[i]);
   name_ = "figures/fake_tau_comp_";
   name_ += selection + "_";
-  name_ += year;
+  name_ += year_s;
   name_ += "_";
   name_ += setmc;
   name_ += "_";
@@ -361,7 +369,7 @@ Int_t composition(TString selection = "mutau", int setmc = 2042, int setqcd = 30
   gSystem->Exec("[ ! -d rootfiles ] && mkdir rootfiles");
 
   //print canvases
-  TFile* fOut = new TFile(Form("rootfiles/jet_to_tau_comp_%s_%i_%i_%i.root", selection.Data(), setmc, setqcd, year), "RECREATE");
+  TFile* fOut = new TFile(Form("rootfiles/jet_to_tau_comp_%s_%i_%i_%s.root", selection.Data(), setmc, setqcd, year_s.Data()), "RECREATE");
   make_composition(PlottingCard_t("twopt", "lep", setmcAbs, 2, 20., 150.), false);
   make_composition(PlottingCard_t("jettautwopt", "lep", setmcAbs), false);
   make_composition(PlottingCard_t("jettauonept", "lep", setmcAbs), false);
@@ -381,6 +389,7 @@ Int_t composition(TString selection = "mutau", int setmc = 2042, int setqcd = 30
   make_composition(PlottingCard_t("mtlep", "event", setmcAbs, 5, 0., 150.), false);
   make_composition(PlottingCard_t("lepm" , "event", setmcAbs, 5,40., 170.), false);
   make_composition(PlottingCard_t("taudecaymode", "event", setmcAbs, 0, 1., -1.), false);
+  make_composition(PlottingCard_t("njets20" , "event", setmcAbs, 0,0, 5), false);
 
   //Make 2D compositions
   make_composition(PlottingCard_t("jettaulepmvsmtonecomp", "lep", setmcAbs, 1, 1.,-1.), true, false, true);

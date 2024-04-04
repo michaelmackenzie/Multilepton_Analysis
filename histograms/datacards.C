@@ -26,12 +26,17 @@ int    useQCDMC_     =  0 ; //use MC QCD background estimates
 int    combineVB_    =  1 ; //combine W+Jets with other vector boson processes
 int    includeHiggs_ =  0 ; //include the higgs signals in the plots
 int    higgsBkg_     =  0 ; //include SM higgs samples in the background estimate
+int    combineHB_    =  1 ; //combine H->tautau and H->WW backgrounds
 int    correctEmbed_ =  1 ; //check the event histogram vs gen numbers to correct for missing events
+int    correctData_  =  1 ; //check the event histogram vs gen numbers to correct for missing events
 bool   useLepTauSet_ =  1 ; //use leptonic tau files for leptonic tau selections
 bool   signalInStudy_ = 0 ; //include signal distributions in processing for studies
 
 //for adjusting cross sections
 float zll_scale_ = 1.f; //Z->ee/mumu yield scale
+
+//Blind the analysis
+bool blind_ = true;
 
 //get the data cards needed
 void get_datacards(std::vector<dcard>& cards, TString selection, int forStudies = 0 /*0: plotting; 1: studies; 2: fits*/) {
@@ -67,20 +72,29 @@ void get_datacards(std::vector<dcard>& cards, TString selection, int forStudies 
   TString embed = (forStudies == 1) ? "ZJets" : "#tau#tau Embedding";
   TString wj    = (forStudies == 1) ? "WJets" : (combineVB_) ? "Other VB" : "W+Jets";
   TString vb    = (forStudies == 1) ? "WJets" : "Other VB";
+  TString hb_tt = (forStudies == 1) ? "HBkg"  : (combineHB_) ? "H->#tau#tau/WW" : "H->#tau#tau";
+  TString hb_ww = (forStudies == 1) ? "HBkg"  : (combineHB_) ? "H->#tau#tau/WW" : "H->WW";
 
   const int top_c = kYellow - 7;
   const int dy_ll_c = (forStudies == 1) ? kRed - 7 : kRed - 2;
   const int dy_tt_c = (forStudies == 1) ? kRed - 7 : kRed - 7;
   const int wj_c = kViolet - 9;
   const int vb_c = (vb == wj) ? wj_c : kMagenta - 9;
+  const int hb_tt_c = kAtlantic;
+  const int hb_ww_c = (combineHB_) ? hb_tt_c : kCyan;
 
   for(int year : years_) {
     bool combineZ = !oneDY && !useUL_ && year != 2018 && (!useAMC_ || year == 2017);
     TString DYName = (useAMC_ && year != 2017) ? "DY50-amc" : "DY50";
     //card constructor:    filepath,              name,                  label,      isData,                   xsec               ,  isSignal,year,  color,   combine extension samples
     if(higgsBkg_) {
-      cards.push_back(dcard("ggFH-TauTau"        , "ggFH-TauTau"          , "H->#tau#tau", false, xs.GetCrossSection("ggFH-TauTau"         ), false, year, kAtlantic));
-      cards.push_back(dcard("ggFH-WW"            , "ggFH-WW"              , "H->WW"      , false, xs.GetCrossSection("ggFH-WW"             ), false, year, kCyan    ));
+      cards.push_back(dcard("ggFH-TauTau"        , "ggFH-TauTau"          , hb_tt.Data(), false, xs.GetCrossSection("ggFH-TauTau"         ), false, year, hb_tt_c));
+      cards.push_back(dcard("VBFH-TauTau"        , "VBFH-TauTau"          , hb_tt.Data(), false, xs.GetCrossSection("VBFH-TauTau"         ), false, year, hb_tt_c));
+      cards.push_back(dcard("WminusH-TauTau"     , "WminusH-TauTau"       , hb_tt.Data(), false, xs.GetCrossSection("WminusH-TauTau"      ), false, year, hb_tt_c));
+      cards.push_back(dcard("WplusH-TauTau"      , "WplusH-TauTau"        , hb_tt.Data(), false, xs.GetCrossSection("WplusH-TauTau"       ), false, year, hb_tt_c));
+      cards.push_back(dcard("ZH-TauTau"          , "ZH-TauTau"            , hb_tt.Data(), false, xs.GetCrossSection("VBFH-TauTau"         ), false, year, hb_tt_c));
+      cards.push_back(dcard("ggFH-WW"            , "ggFH-WW"              , hb_ww.Data(), false, xs.GetCrossSection("ggFH-WW"             ), false, year, hb_ww_c));
+      cards.push_back(dcard("VBFH-WW"            , "VBFH-WW"              , hb_ww.Data(), false, xs.GetCrossSection("VBFH-WW"             ), false, year, hb_ww_c));
     }
     cards.push_back(dcard("SingleAntiToptW"      , "SingleAntiToptW"      , top.Data()  , false, xs.GetCrossSection("SingleAntiToptW"      ), false, year, top_c));
     cards.push_back(dcard("SingleToptW"          , "SingleToptW"          , top.Data()  , false, xs.GetCrossSection("SingleToptW"          ), false, year, top_c));
@@ -270,8 +284,10 @@ void get_datacards(std::vector<dcard>& cards, TString selection, int forStudies 
     //update file path
     cards[index].filename_ = Form("%s/%s_%s_%i_%s.hist", (hist_path_+hist_dir_).Data(), hist_tag_.Data(), selection_dir.Data(),
                                   cards[index].year_, (cards[index].filename_).Data());
+
     //check if it's an embedding file and correcting for lost events
-    if(correctEmbed_ && cards[index].name_.Contains("Embed")) {
+    if((correctEmbed_ && cards[index].name_.Contains("Embed")) ||
+       (correctData_ && (cards[index].name_.Contains("SingleMuon") || cards[index].name_.Contains("SingleElectron")))) {
       //Open the file to access the event count histogram
       TFile* f = TFile::Open(cards[index].filename_.Data(), "READ");
       if(!f) continue;

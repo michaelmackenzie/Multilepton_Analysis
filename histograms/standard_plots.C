@@ -372,11 +372,30 @@ Int_t print_lep_metdeltaphi(int set, bool add_sys = false) {
 }
 
 //------------------------------------------------------------------------------------------------------------------------------
+// lepton trk pt / pt
+Int_t print_trkpt(int set) {
+  if(!dataplotter_) return 1;
+  if(selection_ != "mutau" && selection_ != "etau") return 0;
+  const Int_t offset = get_offset();
+  Int_t status(0);
+  PlottingCard_t card("twotrkptoverpt", "lep", set+offset, 1, 0., 1.);
+  for(int logY = 0; logY < 2; ++logY) {
+    dataplotter_->logY_ = logY;
+    auto c = dataplotter_->print_stack(card);
+    if(c) DataPlotter::Empty_Canvas(c);
+    else ++status;
+  }
+  dataplotter_->logY_ = 0;
+  return status;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------
 // lepton beta/alpha variables
 Int_t print_lep_beta(int set, bool add_sys = false) {
   if(!dataplotter_) return 1;
   const Int_t offset = get_offset();
   const bool same_flavor = selection_ == "ee" || selection_ == "mumu";
+  const bool lep_tau = selection_.Contains("_");
   vector<TString> hists = {"beta0", "beta1"};
   const double blind_min = 0.8;
   const double blind_max = 1.2;
@@ -384,7 +403,7 @@ Int_t print_lep_beta(int set, bool add_sys = false) {
   for(TString hist : hists) {
     bool blind = hist == "beta0" && selection_.EndsWith("_e");
     blind |= hist == "beta1" && !same_flavor && !selection_.EndsWith("_e");
-    PlottingCard_t card(hist, "event", set+offset, (same_flavor) ? 1 : 2, 0., 3., (blind) ? blind_min : 1., (blind) ? blind_max : -1.);
+    PlottingCard_t card(hist, "event", set+offset, (same_flavor) ? 1 : 2, 0., (lep_tau) ? 5. : 3., (blind) ? blind_min : 1., (blind) ? blind_max : -1.);
     for(int logY = 0; logY < 2; ++logY) {
       dataplotter_->logY_ = logY;
       auto c = dataplotter_->print_stack(card);
@@ -541,6 +560,26 @@ Int_t print_ids(int set, bool add_sys = false) {
 }
 
 //------------------------------------------------------------------------------------------------------------------------------
+// lepton gen flavor
+Int_t print_gen_flavor(int set) {
+  if(!dataplotter_) return 1;
+  const Int_t offset = get_offset();
+  Int_t status(0);
+  std::vector<TString> hists = {"onegenflavor", "twogenflavor"};
+  for(TString hist : hists) {
+    PlottingCard_t card(hist, "lep", set+offset, 0, 1, -1);
+    for(int logY = 0; logY < 2; ++logY) {
+      dataplotter_->logY_ = logY;
+      auto c = dataplotter_->print_stack(card);
+      if(c) DataPlotter::Empty_Canvas(c);
+      else ++status;
+    }
+  }
+  dataplotter_->logY_ = 0;
+  return status;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------
 // data run info
 Int_t print_run(int set) {
   if(!dataplotter_) return 1;
@@ -627,6 +666,27 @@ Int_t print_mt(int set, bool add_sys = false) {
 }
 
 //------------------------------------------------------------------------------------------------------------------------------
+// MT((one,two,lep),met) / mass
+Int_t print_mt_over_m(int set, bool add_sys = false) {
+  if(!dataplotter_) return 1;
+  const Int_t offset = get_offset();
+  const bool same_flavor = selection_ == "ee" || selection_ == "mumu";
+  Int_t status(0);
+  std::vector<TString> hists = {"mtoneoverm", "mttwooverm", "mtlepoverm"};
+  for(TString hist : hists) {
+    PlottingCard_t card(hist, "event", set+offset, 1, 0., 1.5);
+    for(int logY = 0; logY < 2; ++logY) {
+      dataplotter_->logY_ = logY;
+      auto c = dataplotter_->print_stack(card);
+      if(c) DataPlotter::Empty_Canvas(c);
+      else ++status;
+    }
+  }
+  dataplotter_->logY_ = 0;
+  return status;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------
 // collinear mass estimates
 Int_t print_collinear_mass(int set, bool add_sys = false) {
   if(!dataplotter_) return 1;
@@ -635,7 +695,7 @@ Int_t print_collinear_mass(int set, bool add_sys = false) {
   Int_t status(0);
   std::vector<TString> masses = {"lepmestimate", "lepmestimatetwo"};
   for(TString mass : masses) {
-    PlottingCard_t card(mass, "event", set+offset, 2, 40., 170., 80., 100.);
+    PlottingCard_t card(mass, "event", set+offset, 2, 40., 170., (blind_) ? 80. : 1.e3, 100.);
     for(int logY = 0; logY < 2; ++logY) {
       dataplotter_->logY_ = logY;
       auto c = dataplotter_->print_stack(card);
@@ -669,7 +729,8 @@ Int_t print_mva(int set, bool add_sys = false, bool all_versions = false) {
   if(add_sys) {
     get_mva_systematics(sys, scale_sys);
   }
-  PlottingCard_t card(hist.Data(), "event", set+offset, 0, 0., 1., (selection_.Contains("tau")) ? 0.5 : 2., 1.);
+  const bool blind = blind_ && (set < 1000);
+  PlottingCard_t card(hist.Data(), "event", set+offset, 0, 0., 1., (selection_.Contains("tau")) ? 0.5 : 2., (blind) ? 1. : -1.);
   for(int logY = 0; logY < 2; ++logY) {
     dataplotter_->logY_ = logY;
     auto c = dataplotter_->print_stack(card);
@@ -718,6 +779,66 @@ Int_t print_ele_id_study(int set) {
     }
     dataplotter_->logY_ = 0;
   }
+  return status;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------
+// Lepton energy scale effects
+Int_t print_lep_es_study(int set) {
+  if(!dataplotter_) return 1;
+  const Int_t offset = get_offset();
+  Int_t status(0);
+  const float prev_rmin(dataplotter_->ratio_plot_min_), prev_rmax(dataplotter_->ratio_plot_max_);
+  dataplotter_->ratio_plot_min_ = 0.9;
+  dataplotter_->ratio_plot_max_ = 1.1;
+  const int prev_comb(dataplotter_->combine_uncertainties_);
+  dataplotter_->combine_uncertainties_ = 0; //show the sys uncertainties separately
+  const int prev_color(dataplotter_->stat_unc_color_);
+  dataplotter_->stat_unc_color_ = 0; //make stat uncertainty color invisible
+  const int prev_stack_unc(dataplotter_->stack_uncertainty_);
+  dataplotter_->stack_uncertainty_ = 0; //don't add the stat uncertainty to the top plot or legend
+
+  const bool tau_one = selection_ == "mutau_e";
+  const bool emu_data = selection_ == "emu" || selection_.Contains("_");
+  for(int lep = 0; lep < 2; ++lep) {
+    const char* lep_t = (lep == 0) ? "one" : "two";
+    std::vector<PlottingCard_t> cards = {PlottingCard_t("lepm"           , "event"  , set+offset, 1, 40., 170., (emu_data) ? 86. : 1., (emu_data) ? 96. : -1.),
+                                         PlottingCard_t("lepmestimate"   , "event"  , set+offset, 1, 40., 170., 85., 95.),
+                                         PlottingCard_t("lepmestimatetwo", "event"  , set+offset, 1, 40., 170., 85., 95.),
+                                         PlottingCard_t("leppt"          , "event"  , set+offset),
+                                         PlottingCard_t("onept"          , "event"  , set+offset),
+                                         PlottingCard_t("twopt"          , "event"  , set+offset),
+                                         PlottingCard_t("lepptratio"     , "event"  , set+offset),
+                                         PlottingCard_t("met"            , "event"  , set+offset),
+                                         PlottingCard_t("mtone"          , "event"  , set+offset),
+                                         PlottingCard_t("mttwo"          , "event"  , set+offset),
+                                         PlottingCard_t("mtlep"          , "event"  , set+offset),
+                                         PlottingCard_t("onemetdeltaphi" , "event"  , set+offset),
+                                         PlottingCard_t("twometdeltaphi" , "event"  , set+offset),
+                                         PlottingCard_t("beta0"          , "event"  , set+offset, 1, 0., 3., ( tau_one) ? 0.9 : 1., ( tau_one) ? 1.1 : -1.),
+                                         PlottingCard_t("beta1"          , "event"  , set+offset, 1, 0., 3., (!tau_one) ? 0.9 : 1., (!tau_one) ? 1.1 : -1.),
+                                         PlottingCard_t("mva"            , "event"  , set+offset, 1, 0., 1., 0.5, 1.)
+    };
+    for(PlottingCard_t& card : cards) {
+      card.hist_ = Form("lepes_%s%s", lep_t, card.hist_.Data());
+      card.sys_list_ = {std::pair<TString,TString>(Form("%s_up", card.hist_.Data()), Form("%s_down", card.hist_.Data()))};
+      for(int logY = 0; logY < 2; ++logY) {
+        dataplotter_->logY_ = logY;
+        auto c = dataplotter_->print_stack(card);
+        if(c) DataPlotter::Empty_Canvas(c);
+        else ++status;
+      }
+      dataplotter_->logY_ = 0;
+    }
+  }
+
+  //restore the plotting configuration
+  dataplotter_->ratio_plot_min_        = prev_rmin;
+  dataplotter_->ratio_plot_max_        = prev_rmax;
+  dataplotter_->combine_uncertainties_ = prev_comb;
+  dataplotter_->stat_unc_color_        = prev_color;
+  dataplotter_->stack_uncertainty_     = prev_stack_unc;
+
   return status;
 }
 

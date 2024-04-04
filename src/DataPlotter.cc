@@ -692,8 +692,8 @@ TH1* DataPlotter::get_stack_uncertainty(THStack* hstack, TString hname) {
   if(add_bkg_hists_manually_) {huncertainty->Clear(); huncertainty->Reset();}
   huncertainty->SetTitle("#sigma(stat.)");
   huncertainty->SetName(hname.Data());
-  huncertainty->SetFillColor(kGray+1);
-  huncertainty->SetLineColor(kGray+1);
+  huncertainty->SetFillColor(stat_unc_color_);
+  huncertainty->SetLineColor(stat_unc_color_);
   huncertainty->SetFillStyle(3001);
   huncertainty->SetMarkerSize(0.); //so no marker
   if(add_bkg_hists_manually_) {
@@ -1506,7 +1506,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set, const
     for(int ibin = 1; ibin <= hDataMC->GetNbinsX(); ++ibin) hDataMC->SetBinError(ibin, d->GetBinError(ibin));
     hDataMCErr = PlotUtil::MCErrors(hDataMC, huncertainty);
     hDataMCErr->SetFillStyle(3001);
-    hDataMCErr->SetFillColor(kGray+1);
+    hDataMCErr->SetFillColor(stat_unc_color_);
   } else if(hDataMC && data_over_mc_ > 0) { //do data / MC
     hDataMC->Clear();
     hDataMC->SetName("hDataMC");
@@ -1534,7 +1534,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set, const
     }
     hDataMCErr = new TGraphErrors(nb, x, y, xerr, yerr);
     hDataMCErr->SetFillStyle(3001);
-    hDataMCErr->SetFillColor(kGray+1);
+    hDataMCErr->SetFillColor(stat_unc_color_);
   } else if(hDataMC && data_over_mc_ < 0) {
     hDataMC->SetName("hRatio");
     for(TH1* h : hsignal) {

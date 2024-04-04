@@ -826,7 +826,7 @@ float JetToTauWeight::GetFactor(TH2* h, TF1* func, TH1* hCorrection, TH1* hFitte
     }
   }
 
-  if(useLepMVsMVABias_) {
+  if(useLepMVsMVABias_ && mva >= -1.f) { //MVA score must be initialized to use
     const TH2* hbias = lepMVsMVABias_[year];
     if(!hbias) {
       std::cout << "JetToTauWeight::" << __func__ << ": " << name_.Data() << " Warning! LepMVsMVA bias histogram not found!"

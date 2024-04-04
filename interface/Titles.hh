@@ -22,6 +22,8 @@ namespace CLFV {
       else if(selection.Contains("_")) {lep1 = "e"   ; lep2 = "#mu" ;}
       else if(selection == "ee"      ) {lep1 = "e1"  ; lep2 = "e2"  ;}
       else if(selection == "mumu"    ) {lep1 = "#mu1"; lep2 = "#mu2";}
+      hist.ReplaceAll("lepes_one", ""); //lepton energy scale variation histograms
+      hist.ReplaceAll("lepes_two", "");
       if(hist == "lepdelrvsphi") {
         *xtitle = Form("#DeltaR");
         *ytitle = Form("#Delta#phi");
@@ -153,7 +155,7 @@ namespace CLFV {
         *ytitle = "";
         *title  = Form("Lepton pT difference");
       }
-      else if(hist == "ptratio") {
+      else if(hist == "ptratio" || hist == "lepptratio") {
         *xtitle = Form("p_{T}^{%s} / p_{T}^{%s}", lep1.Data(), lep2.Data());
         *ytitle = "";
         *title  = Form("Lepton pT ratio");

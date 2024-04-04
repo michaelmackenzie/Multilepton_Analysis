@@ -16,18 +16,26 @@ namespace CLFV {
   class AwkwardTH2 {
   public:
     AwkwardTH2(const char* name, const char* title, std::map<double, std::vector<double>> binning, const char type = 'D');
-    ~AwkwardTH2() {if(h_) delete h_; h_ = nullptr;}
+    ~AwkwardTH2() {
+      if(h_) delete h_;
+      if(hAxis_) delete hAxis_;
+      h_ = nullptr;
+      hAxis_ = nullptr;
+    }
 
     int    FindBin(double x, double y);
     int    Fill(double x, double y, double wt = 1.);
     double Integral();
     double Integral(int low_bin, int high_bin);
     double Integral(double xmin, double xmax, double ymin, double ymax);
+    void   Draw(const char* option = "");
 
     int    NBins     () { return h_->GetNbinsX() - 2*(bin_edges_.size() - 1); } //no under/overflow count
     int    NTotalBins() { return h_->GetNbinsX() + 2; } //with under/overflow count
 
     TH1* h_; //internal histogram
+    TH2* hAxis_; //2D axis information for drawing
+    const char type_;
     std::map<double, std::vector<double>> binning_;
     std::vector<double> bin_edges_;
   };

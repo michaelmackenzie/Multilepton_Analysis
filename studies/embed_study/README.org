@@ -1,0 +1,27 @@
+* Compare Embedding and MC
+
+* Workflow
+
+Workflow is implemented in `make_plots.sh`
+
+Create histograms of MC and Embedding for a given final state and year:
+```
+SELECTION="emu" #"mutau" "etau" "emu"
+YEAR=2018
+#Embedding
+root.exe -q -b "make_hists.C(\"${SELECTION}\", true , ${YEAR}, true)"
+#Drell-Yan
+root.exe -q -b "make_hists.C(\"${SELECTION}\", false, ${YEAR}, true)"
+```
+
+Create plots comparing each:
+```
+root.exe -q -b "combine_plots.C(\"${SELECTION}\", ${YEAR}, true)"
+```
+
+Create plots comparing reconstructed quantities:
+```
+HIST_PATH=<eos histogram area>
+root.exe -q -b "reco_plots.C(\"${SELECTION}\", ${YEAR}, ${HIST_PATH})"
+```
+

@@ -461,16 +461,19 @@ namespace CLFV {
     Float_t emu_trig_ele_pt_ ;
     Float_t mue_trig_mu_pt_  ;
     Float_t mue_trig_ele_pt_ ;
-    Float_t one_pt_min_ =  0.f; //threshold cuts
-    Float_t two_pt_min_ =  0.f;
-    Float_t ptdiff_min_ = -1.e10f; //one pt - two pt
-    Float_t ptdiff_max_ = +1.e10f; //one pt - two pt
-    Float_t met_max_    = -1.f;
-    Float_t mtone_max_  = -1.f;
-    Float_t mttwo_max_  = -1.f;
-    Float_t mtlep_max_  = -1.f;
-    Float_t min_mass_   =  0.f;
-    Float_t max_mass_   = -1.f;
+    Float_t one_pt_min_        =  0.f; //threshold cuts
+    Float_t two_pt_min_        =  0.f;
+    Float_t ptdiff_min_        = -1.e10f; //one pt - two pt
+    Float_t ptdiff_max_        = +1.e10f; //one pt - two pt
+    Float_t met_max_           = -1.f;
+    Float_t mtone_max_         = -1.f;
+    Float_t mttwo_max_         = -1.f;
+    Float_t mtlep_max_         = -1.f;
+    Float_t mtone_over_m_max_  = -1.f;
+    Float_t mttwo_over_m_max_  = -1.f;
+    Float_t mtlep_over_m_max_  = -1.f;
+    Float_t min_mass_          =  0.f;
+    Float_t max_mass_          = -1.f;
 
     HistMaker(int seed = 90, TTree * /*tree*/ = 0);
     virtual ~HistMaker();
@@ -557,12 +560,15 @@ namespace CLFV {
       pass &= leptonTwo.pt > two_pt_min_;
       pass &= fTreeVars.ptdiff > ptdiff_min_;
       pass &= fTreeVars.ptdiff < ptdiff_max_;
-      pass &= min_mass_  < 0.f || fTreeVars.lepm > min_mass_;
-      pass &= max_mass_  < 0.f || fTreeVars.lepm < max_mass_;
-      pass &= met_max_   < 0.f || met < met_max_;
-      pass &= mtone_max_ < 0.f || fTreeVars.mtone < mtone_max_;
-      pass &= mttwo_max_ < 0.f || fTreeVars.mttwo < mttwo_max_;
-      pass &= mtlep_max_ < 0.f || fTreeVars.mtlep < mtlep_max_;
+      pass &= min_mass_         < 0.f || fTreeVars.lepm > min_mass_;
+      pass &= max_mass_         < 0.f || fTreeVars.lepm < max_mass_;
+      pass &= met_max_          < 0.f || met < met_max_;
+      pass &= mtone_max_        < 0.f || fTreeVars.mtone < mtone_max_;
+      pass &= mttwo_max_        < 0.f || fTreeVars.mttwo < mttwo_max_;
+      pass &= mtlep_max_        < 0.f || fTreeVars.mtlep < mtlep_max_;
+      pass &= mtone_over_m_max_ < 0.f || fTreeVars.mtoneoverm < mtone_over_m_max_;
+      pass &= mttwo_over_m_max_ < 0.f || fTreeVars.mttwooverm < mttwo_over_m_max_;
+      pass &= mtlep_over_m_max_ < 0.f || fTreeVars.mtlepoverm < mtlep_over_m_max_;
       if(!pass) {
         if(fVerbose > 0) printf(" HistMaker::%s: Fails kinematic cuts\n", __func__);
         return false;
@@ -844,7 +850,9 @@ namespace CLFV {
     Int_t           fUseEmbedCuts = 0; //whether or not to use the kinematic restrictions for embedded sample generation
     Int_t           fUseEmbedTnPWeights = 1; //whether or not to use the locally calculated lepton ID/trigger weights
     Int_t           fUseEmbedRocco = 1; //whether or not to use Rochester corrections + uncertainties with Embedded muons
+    Int_t           fUseEmbedMuonES = 0; //use Embed - MC resolution fit means to correction Embedding muon energy scales
     Int_t           fEmbedUseMETUnc = 1; //whether to include MET JER/JES uncertainties in the embedding MET uncertainty
+    Int_t           fUseEmbedZMatching = 0; //match Embedding normalization to gen-level Z->tau_x tau_y rates in a Z mass window
     Int_t           fUseRoccoCorr = 1; //use Rochester corrections, 0 = none, 1 = local, 2 = ntuple-level
     Int_t           fUseRoccoSize = 1; //use the size of the Rochester corrections as the uncertainty
     Int_t           fApplyElectronResolution = 1; //apply resolution corrections to the electrons

@@ -132,16 +132,16 @@ void RoccoR::init(std::string filename){
     std::string tag;
     int type, sys, mem, var, bin;
     std::string s;
-    while(std::getline(in, s)){
+    while(std::getline(in, s)){ //read each line of the file
         std::stringstream ss(s);
         std::string first4=s.substr(0,4);
-        if(first4=="NSET"){
+        if(first4=="NSET"){ //first line, sets N(measurement sets)
             ss >> tag >> nset;
             nmem.resize(nset);
             tvar.resize(nset);
             RC.resize(nset);
         }
-        else if(first4=="NMEM") {
+        else if(first4=="NMEM") { //sets N(systematic members) in a given set
             ss >> tag;
             for(int i=0; i<nset; ++i) {
                 ss >> nmem[i];
@@ -169,8 +169,8 @@ void RoccoR::init(std::string filename){
             etabin.resize(NETA+1);
             for(auto& h: etabin) ss >> h;
         }
-        else{
-            ss >> sys >> mem >> tag;
+        else{ //read the correction lines
+            ss >> sys >> mem >> tag; //line is formatted as: <sys set> <member set> <T/R/C> [values]
             auto &rc = RC[sys][mem];
             rc.RR.NETA=RETA;
             rc.RR.NTRK=RTRK;
@@ -228,10 +228,10 @@ void RoccoR::init(std::string filename){
         }
     }
 
-    for(auto &rcs: RC)
-        for(auto &rcm: rcs)
-            for(auto &r: rcm.RR.resol)
-                for(auto &i: r.cb) i.init();
+    for(auto &rcs: RC) //list of list of RocOne, one for each set
+      for(auto &rcm: rcs) //list of RocOne, one for each member within the set
+        for(auto &r: rcm.RR.resol) //list of ResParams in RocOne
+          for(auto &i: r.cb) i.init(); //list of CrystalBalls in ResParam
 
     in.close();
 }
@@ -263,7 +263,7 @@ double RoccoR::kScaleMC(int Q, double pt, double eta, double phi, int s, int m) 
 }
 
 double RoccoR::kSpreadMC(int Q, double pt, double eta, double phi, double gt, int s, int m) const{
-    const auto& rc=RC[s][m];
+    const auto& rc=RC[s][m]; //RocOne for this set+member
     int H = etaBin(eta);
     int F = phiBin(phi);
     double k=1.0/(rc.CP[MC][H][F].M + Q*rc.CP[MC][H][F].A*pt);

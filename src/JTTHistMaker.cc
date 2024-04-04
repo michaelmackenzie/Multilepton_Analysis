@@ -278,25 +278,64 @@ void JTTHistMaker::BookEventHistograms() {
         Utilities::BookH2F(fEventHist[i]->hJetTauLepMVsMTOne [0], "jettaulepmvsmtone0" , Form("%s: JetTauLepMVsMTOne" ,dirname),  nfit_mbins, fit_mbins, jt_nmt_bins, jt_mt_bins, folder);
         Utilities::BookH2F(fEventHist[i]->hJetTauLepMVsMTOne [1], "jettaulepmvsmtone1" , Form("%s: JetTauLepMVsMTOne" ,dirname),  nfit_mbins, fit_mbins, jt_nmt_bins, jt_mt_bins, folder);
         Utilities::BookH2F(fEventHist[i]->hJetTauLepMVsMTOne [2], "jettaulepmvsmtone2" , Form("%s: JetTauLepMVsMTOne" ,dirname),  nfit_mbins, fit_mbins, jt_nmt_bins, jt_mt_bins, folder);
+
+        //Determine which control region this is for
+        const int base_set = i % 100;
+        const bool wjets = base_set == 31 || base_set == 37 || base_set == 88 || base_set == 89 || base_set == 81 || base_set == 86 || base_set == 34;
+        const bool qcd   = base_set == 30 || base_set == 36 || base_set == 92 || base_set == 93 || base_set == 94 || base_set == 95;
+        const bool ttbar = base_set == 32 || base_set == 38 || base_set == 82 || base_set == 87;
         if(fSelection == "mutau") {
-          const double mva_mbins[] = {40., 60., 80., 90., 100., 170.}; //mass regions for (mass, bdt) closure
-          // const double mva_mbins[] = {40., 60., 80., 90., 100., 170.}; //mass regions for (mass, bdt) closure
-          // const double mva_mbins[] = {40., 85., 170.}; //mass regions for (mass, bdt) closure
-          const int    nmva_mbins  = sizeof(mva_mbins) / sizeof(*mva_mbins) - 1;
-          const double mva_bins[]  = {0., 0.1, 0.2, 0.3, 0.4, 1.};
-          const int    nmva_bins   = sizeof(mva_bins) / sizeof(*mva_bins) - 1;
-          Utilities::BookH2F(fEventHist[i]->hJetTauLepMVsMVA   [0], "jettaulepmvsmva0"   , Form("%s: JetTauLepMVsMVA"   ,dirname),  nmva_mbins, mva_mbins, nmva_bins, mva_bins, folder);
-          Utilities::BookH2F(fEventHist[i]->hJetTauLepMVsMVA   [1], "jettaulepmvsmva1"   , Form("%s: JetTauLepMVsMVA"   ,dirname),  nmva_mbins, mva_mbins, nmva_bins, mva_bins, folder);
-          Utilities::BookH2F(fEventHist[i]->hJetTauLepMVsMVA   [2], "jettaulepmvsmva2"   , Form("%s: JetTauLepMVsMVA"   ,dirname),  nmva_mbins, mva_mbins, nmva_bins, mva_bins, folder);
+          if(wjets || !(qcd || ttbar)) { //default to W+jets binning
+            const double mva_mbins[] = {40., 60., 80., 90., 100., 170.}; //mass regions for (mass, bdt) closure
+            const int    nmva_mbins  = sizeof(mva_mbins) / sizeof(*mva_mbins) - 1;
+            const double mva_bins[]  = {0., 0.1, 0.2, 0.3, 0.4, 1.};
+            const int    nmva_bins   = sizeof(mva_bins) / sizeof(*mva_bins) - 1;
+            Utilities::BookH2F(fEventHist[i]->hJetTauLepMVsMVA   [0], "jettaulepmvsmva0"   , Form("%s: JetTauLepMVsMVA"   ,dirname),  nmva_mbins, mva_mbins, nmva_bins, mva_bins, folder);
+            Utilities::BookH2F(fEventHist[i]->hJetTauLepMVsMVA   [1], "jettaulepmvsmva1"   , Form("%s: JetTauLepMVsMVA"   ,dirname),  nmva_mbins, mva_mbins, nmva_bins, mva_bins, folder);
+            Utilities::BookH2F(fEventHist[i]->hJetTauLepMVsMVA   [2], "jettaulepmvsmva2"   , Form("%s: JetTauLepMVsMVA"   ,dirname),  nmva_mbins, mva_mbins, nmva_bins, mva_bins, folder);
+          } else if(qcd) {
+            const double mva_mbins[] = {40., 60., 90., 170.}; //mass regions for (mass, bdt) closure
+            const int    nmva_mbins  = sizeof(mva_mbins) / sizeof(*mva_mbins) - 1;
+            const double mva_bins[]  = {0., 0.2, 0.4, 1.};
+            const int    nmva_bins   = sizeof(mva_bins) / sizeof(*mva_bins) - 1;
+            Utilities::BookH2F(fEventHist[i]->hJetTauLepMVsMVA   [0], "jettaulepmvsmva0"   , Form("%s: JetTauLepMVsMVA"   ,dirname),  nmva_mbins, mva_mbins, nmva_bins, mva_bins, folder);
+            Utilities::BookH2F(fEventHist[i]->hJetTauLepMVsMVA   [1], "jettaulepmvsmva1"   , Form("%s: JetTauLepMVsMVA"   ,dirname),  nmva_mbins, mva_mbins, nmva_bins, mva_bins, folder);
+            Utilities::BookH2F(fEventHist[i]->hJetTauLepMVsMVA   [2], "jettaulepmvsmva2"   , Form("%s: JetTauLepMVsMVA"   ,dirname),  nmva_mbins, mva_mbins, nmva_bins, mva_bins, folder);
+          } else { //ttbar
+            const double mva_mbins[] = {40., 60., 90., 170.}; //mass regions for (mass, bdt) closure
+            const int    nmva_mbins  = sizeof(mva_mbins) / sizeof(*mva_mbins) - 1;
+            const double mva_bins[]  = {0., 0.2, 0.4, 1.};
+            const int    nmva_bins   = sizeof(mva_bins) / sizeof(*mva_bins) - 1;
+            Utilities::BookH2F(fEventHist[i]->hJetTauLepMVsMVA   [0], "jettaulepmvsmva0"   , Form("%s: JetTauLepMVsMVA"   ,dirname),  nmva_mbins, mva_mbins, nmva_bins, mva_bins, folder);
+            Utilities::BookH2F(fEventHist[i]->hJetTauLepMVsMVA   [1], "jettaulepmvsmva1"   , Form("%s: JetTauLepMVsMVA"   ,dirname),  nmva_mbins, mva_mbins, nmva_bins, mva_bins, folder);
+            Utilities::BookH2F(fEventHist[i]->hJetTauLepMVsMVA   [2], "jettaulepmvsmva2"   , Form("%s: JetTauLepMVsMVA"   ,dirname),  nmva_mbins, mva_mbins, nmva_bins, mva_bins, folder);
+          }
         } else { //wider bins in etau due to lower statistics
-          const double mva_mbins[] = {40., 60., 90., 170.}; //mass regions for (mass, bdt) closure
-          // const double mva_mbins[] = {40., 60., 85., 100., 170.}; //mass regions for (mass, bdt) closure
-          const int    nmva_mbins  = sizeof(mva_mbins) / sizeof(*mva_mbins) - 1;
-          const double mva_bins[] = {0., 0.15, 0.3, 0.45, 1.};
-          const int nmva_bins = sizeof(mva_bins) / sizeof(*mva_bins) - 1;
-          Utilities::BookH2F(fEventHist[i]->hJetTauLepMVsMVA   [0], "jettaulepmvsmva0"   , Form("%s: JetTauLepMVsMVA"   ,dirname),  nmva_mbins, mva_mbins, nmva_bins, mva_bins, folder);
-          Utilities::BookH2F(fEventHist[i]->hJetTauLepMVsMVA   [1], "jettaulepmvsmva1"   , Form("%s: JetTauLepMVsMVA"   ,dirname),  nmva_mbins, mva_mbins, nmva_bins, mva_bins, folder);
-          Utilities::BookH2F(fEventHist[i]->hJetTauLepMVsMVA   [2], "jettaulepmvsmva2"   , Form("%s: JetTauLepMVsMVA"   ,dirname),  nmva_mbins, mva_mbins, nmva_bins, mva_bins, folder);
+          if(wjets || !(qcd || ttbar)) { //default to W+jets binning
+            const double mva_mbins[] = {40., 60., 90., 170.}; //mass regions for (mass, bdt) closure
+            const int    nmva_mbins  = sizeof(mva_mbins) / sizeof(*mva_mbins) - 1;
+            const double mva_bins[] = {0., 0.15, 0.3, 0.45, 1.};
+            const int nmva_bins = sizeof(mva_bins) / sizeof(*mva_bins) - 1;
+            Utilities::BookH2F(fEventHist[i]->hJetTauLepMVsMVA   [0], "jettaulepmvsmva0"   , Form("%s: JetTauLepMVsMVA"   ,dirname),  nmva_mbins, mva_mbins, nmva_bins, mva_bins, folder);
+            Utilities::BookH2F(fEventHist[i]->hJetTauLepMVsMVA   [1], "jettaulepmvsmva1"   , Form("%s: JetTauLepMVsMVA"   ,dirname),  nmva_mbins, mva_mbins, nmva_bins, mva_bins, folder);
+            Utilities::BookH2F(fEventHist[i]->hJetTauLepMVsMVA   [2], "jettaulepmvsmva2"   , Form("%s: JetTauLepMVsMVA"   ,dirname),  nmva_mbins, mva_mbins, nmva_bins, mva_bins, folder);
+          } else if(qcd) {
+            const double mva_mbins[] = {40., 60., 90., 170.}; //mass regions for (mass, bdt) closure
+            const int    nmva_mbins  = sizeof(mva_mbins) / sizeof(*mva_mbins) - 1;
+            const double mva_bins[]  = {0., 0.2, 0.4, 1.};
+            const int    nmva_bins   = sizeof(mva_bins) / sizeof(*mva_bins) - 1;
+            Utilities::BookH2F(fEventHist[i]->hJetTauLepMVsMVA   [0], "jettaulepmvsmva0"   , Form("%s: JetTauLepMVsMVA"   ,dirname),  nmva_mbins, mva_mbins, nmva_bins, mva_bins, folder);
+            Utilities::BookH2F(fEventHist[i]->hJetTauLepMVsMVA   [1], "jettaulepmvsmva1"   , Form("%s: JetTauLepMVsMVA"   ,dirname),  nmva_mbins, mva_mbins, nmva_bins, mva_bins, folder);
+            Utilities::BookH2F(fEventHist[i]->hJetTauLepMVsMVA   [2], "jettaulepmvsmva2"   , Form("%s: JetTauLepMVsMVA"   ,dirname),  nmva_mbins, mva_mbins, nmva_bins, mva_bins, folder);
+          } else { //ttbar
+            const double mva_mbins[] = {40., 60., 90., 170.}; //mass regions for (mass, bdt) closure
+            const int    nmva_mbins  = sizeof(mva_mbins) / sizeof(*mva_mbins) - 1;
+            const double mva_bins[]  = {0., 0.2, 0.4, 1.};
+            const int    nmva_bins   = sizeof(mva_bins) / sizeof(*mva_bins) - 1;
+            Utilities::BookH2F(fEventHist[i]->hJetTauLepMVsMVA   [0], "jettaulepmvsmva0"   , Form("%s: JetTauLepMVsMVA"   ,dirname),  nmva_mbins, mva_mbins, nmva_bins, mva_bins, folder);
+            Utilities::BookH2F(fEventHist[i]->hJetTauLepMVsMVA   [1], "jettaulepmvsmva1"   , Form("%s: JetTauLepMVsMVA"   ,dirname),  nmva_mbins, mva_mbins, nmva_bins, mva_bins, folder);
+            Utilities::BookH2F(fEventHist[i]->hJetTauLepMVsMVA   [2], "jettaulepmvsmva2"   , Form("%s: JetTauLepMVsMVA"   ,dirname),  nmva_mbins, mva_mbins, nmva_bins, mva_bins, folder);
+          }
         }
       }
 

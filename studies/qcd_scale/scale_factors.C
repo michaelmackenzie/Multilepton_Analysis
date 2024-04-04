@@ -12,7 +12,7 @@ int  verbose_  = 0;
 int  drawFit_  = 1; //whether to draw the linear fits
 bool doPCA_    = true; //whether or not to generate shifted function templates
 bool scalePCA_ = true; //scale the PCA transform by max(1, sqrt(chi^2/dof)) to increase the uncertainties
-bool useFTest_ = false; //use an F-test to decide the fit order
+bool useFTest_ = true; //use an F-test to decide the fit order
 int  rebin_    = 1;
 
 //-------------------------------------------------------------------------------------------------------------------------------
@@ -181,7 +181,7 @@ TCanvas* make_ratio_canvas(TH1* hnum, TH1* hdnm, TF1 *&f1, TString print_name = 
   }
   TF1* f = 0;
   TFitResultPtr fitres;
-  double fit_min(1.75), fit_max(4.75);
+  double fit_min(1.75), fit_max(4.75); //perform the fit in 1.5 < R < 5, to avoid fluctuations
   int nfit_bins = hnum->FindBin(fit_max) - hnum->FindBin(fit_min) + 1.;
   if(nfit_bins <= 1) { //check if the bounds make sense
     fit_min = 1.; fit_max = -1.; nfit_bins = hnum->GetNbinsX();

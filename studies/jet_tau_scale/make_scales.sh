@@ -7,7 +7,7 @@ Help() {
     echo " 1: Selection to process, default = \"mutau\""
     echo " 2: Histogram directory, default = \"nanoaods_jtt\""
     echo " 3: List of years to process, default = \"2016 2017 2018\""
-    echo " 4: Processes to process, default = \"QCD QCD2 QCD3 QCD4 WJets WJets3 WJets4 Top3 ZJets\""
+    echo " 4: Processes to process, default = \"QCD QCD2 QCD3 QCD4 WJets WJets3 WJets4 Top3 ZJets\", key commands: \"FirstPass\", \"SecondPass\", \"Biases\""
     echo " 5: Skip composition, default = \"\", pass anything to skip"
 }
 
@@ -41,6 +41,24 @@ fi
 if [[ "${PROCESSES}" == "" ]]
 then
     PROCESSES="QCD QCD2 QCD3 QCD4 WJets WJets3 WJets4 Top3 ZJets"
+fi
+
+#Commands for certain passes of measurements
+if [[ "${PROCESSES}" == "FirstPass" ]]
+then
+    #Base j-->tau measurements for each DR (including bias DR regions)
+    PROCESSES="QCD QCD3 WJets WJets4 Top3"
+fi
+if [[ "${PROCESSES}" == "SecondPass" ]]
+then
+    #Non-closure j-->tau measurements (including bias DR regions)
+    PROCESSES="QCD QCD3 WJets WJets4 Top3"
+fi
+
+if [[ "${PROCESSES}" == "Biases" ]]
+then
+    #Bias j-->tau measurements
+    PROCESSES="QCD2 QCD4 WJets3 Top3 ZJets"
 fi
 
 
@@ -117,7 +135,7 @@ do
     for YEAR in $YEARS
     do
         echo "Making scales for process \"${PROCESS}\" year ${YEAR}, sets are ${SET1} and ${SET2}"
-        root.exe -q -b "scale_factors.C(\"${SELECTION}\", \"${PROCESS}\", ${SET1}, ${SET2}, ${YEAR}, \"${HISTS}\")"
+        root.exe -q -b "scale_factors.C(\"${SELECTION}\", \"${PROCESS}\", ${SET1}, ${SET2}, {${YEAR}}, \"${HISTS}\")"
     done
 done
 
@@ -129,9 +147,9 @@ then
 
     for YEAR in $YEARS
     do
-        root.exe -q -b "composition.C(\"${SELECTION}\", 2042, 2035, ${YEAR}, \"${HISTS}\")"
-        root.exe -q -b "composition.C(\"${SELECTION}\", 3042, 3035, ${YEAR}, \"${HISTS}\")"
-        root.exe -q -b "composition.C(\"${SELECTION}\",   42,   35, ${YEAR}, \"${HISTS}\")"
+        root.exe -q -b "composition.C(\"${SELECTION}\", 2042, 2035, {${YEAR}}, \"${HISTS}\")"
+        root.exe -q -b "composition.C(\"${SELECTION}\", 3042, 3035, {${YEAR}}, \"${HISTS}\")"
+        root.exe -q -b "composition.C(\"${SELECTION}\",   42,   35, {${YEAR}}, \"${HISTS}\")"
     done
 
     echo "Finished all composition measurements"

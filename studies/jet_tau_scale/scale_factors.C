@@ -49,6 +49,26 @@ void make_safe(TH2* h) {
   // if(preserve_clip_int_ && integral > 0.) h->Scale(integral/h->Integral(0,h->GetNbinsX()+1, 0, h->GetNbinsY()+1));
 }
 
+//-----------------------------------------------------------------------------------------------------------------------------------------
+//Get a closure chi^2 / dof
+double get_chisquare(TH1* h) {
+  double chisq = 0.;
+  for(int ibin = 1; ibin <= h->GetNbinsX(); ++ibin) chisq += (h->GetBinContent(ibin) > 0.) ? std::pow((1.-h->GetBinContent(ibin))/h->GetBinError(ibin), 2) : 0.;
+  return chisq / h->GetNbinsX();
+}
+
+//-----------------------------------------------------------------------------------------------------------------------------------------
+//Get a closure chi^2 / dof
+double get_chisquare(TH2* h) {
+  double chisq = 0.;
+  for(int ibin = 1; ibin <= h->GetNbinsX(); ++ibin) {
+    for(int jbin = 1; jbin <= h->GetNbinsY(); ++jbin) {
+      chisq += (h->GetBinContent(ibin, jbin) > 0.) ? std::pow((1.-h->GetBinContent(ibin,jbin))/h->GetBinError(ibin,jbin), 2) : 0.;
+    }
+  }
+  return chisq / h->GetNbinsX() / h->GetNbinsY();
+}
+
 //-------------------------------------------------------------------------------------------------------------------------------
 // Standard axis labels
 TString get_title(TString hist, TString type) {
@@ -470,6 +490,26 @@ void make_2d_closure_slices(int set1, int set2, PlottingCard_t card, TH2* &hTigh
     return;
   }
 
+
+  //Make a 2D plot of the closure
+  {
+    TCanvas* c = new TCanvas();
+    TH2* hRatio = (TH2*) hTight->Clone(Form("%s_ratio", hTight->GetName()));
+    hRatio->Divide(hLoose);
+    hRatio->Draw("colz text E");
+    hRatio->GetZaxis()->SetRangeUser(0.5, 1.5);
+    // const double chisq = get_chisquare(hRatio);
+    // TLatex datalabel;
+    // datalabel.SetNDC();
+    // datalabel.SetTextFont(72);
+    // datalabel.SetTextSize(0.03);
+    // datalabel.SetTextAlign(13);
+    // datalabel.DrawLatex(0.78, 0.85, Form("#chi^2 = %.2f", chisq));
+    c->SaveAs(Form("%s%s.png", name_.Data(), hist.Data()));
+    delete c;
+    delete hRatio;
+  }
+
   //Get the signal distribution if requested
   TH2* hsignal = (add_signal) ? (TH2*) get_signal_hist(hist, type, set1) : nullptr;
 
@@ -773,7 +813,7 @@ TCanvas* make_2d_closure_canvas(int set1, int set2, PlottingCard_t card, TH2* &h
   TH2* hRatio = (TH2*) hData->Clone("hRatio");
   hRatio->SetTitle("Data / Estimate");
   hRatio->Divide(hMisID);
-  hRatio->Draw("colz");
+  hRatio->Draw("colz text E");
   if(hRatio->GetMaximum() > 1.5) hRatio->GetZaxis()->SetRangeUser(0.5, 1.5);
   return c;
 }
@@ -858,7 +898,7 @@ TCanvas* make_eta_region_canvas(TH2* hnum, TH2* hdnm, TString name, bool iseff,
       hetas[ibin]->Draw("E1");
     }
     TF1* func;
-    const int mode = 5; //0: pol1; 1: atan; 2: pol1 + landau; 3: pol1 + gaussian; 4: opt 3 with min val; 5: pol2
+    const int mode = 5; //0: pol1; 1: atan; 2: pol1 + landau; 3: pol1 + gaussian; 4: opt 3 with min val; 5: pol2; 6: pol3
     if(mode == 0) {
       func = new TF1("func", "[slope]*x + [intercept]", 0.,  999.);
       func->SetParameters(0.1, 0.1);
@@ -901,6 +941,9 @@ TCanvas* make_eta_region_canvas(TH2* hnum, TH2* hdnm, TString name, bool iseff,
       // func->SetParLimits(0, 0., 1.);
       // func->SetParLimits(1, -10., 10.);
       // func->SetParLimits(2, -10., 10.);
+    } else if(mode == 6) {
+      func = new TF1("func", "[c0] + [c1]*x + [c2]*x*x + [c3]*x*x*x", 0., 999.);
+      func->SetParameters(0.2, 1.5e-3, -1.6e-5, 0.);
     }
     bool refit = false;
     int ifit = 0;
@@ -918,30 +961,17 @@ TCanvas* make_eta_region_canvas(TH2* hnum, TH2* hdnm, TString name, bool iseff,
         ++ifit;
         if(ifit < max_fits - 1 && mode == 4) func->SetParameters(2*(0.5 - rnd_.Uniform()), 50.*(0.5 - rnd_.Uniform()), 20.*(0.5 - rnd_.Uniform()));
       }
-      // if(!fit_res || fit_res == -1) {
-      //   cout << "Fit result not returned!\n";
-      // } else if(fit_res == 4) {
-      //   cout << "Fit failed! Repeating with shifted values...\n";
-      //   if(mode == 4) func->SetParameters(0.1, 1., 2.);
-      //   fit_res = hetas[ibin]->Fit(func, fit_option.Data());
-      // } else if(verbose_ > 0) {
-      //   try {
-      //     cout << "Fit address: " << fit_res << endl;
-      //     fit_res->Print();
-      //   } catch(exception e) {
-      //     cout << "Printing the fit result failed: " << e.what() << endl;
-      //   }
-      // }
-      if(refit && ifit == max_fits - 1) {
-        cout << "--> Final fit after " << ifit << " attempts, using a simple polynomial instead\n";
-        delete func;
-        auto tmp = hetas[ibin]->GetListOfFunctions()->FindObject("func");
-        if(tmp) delete tmp;
-        func = new TF1("func_poly", "[offset] + [slope]*x", 0., 999.);
-        func->SetParameters(0.1, 0.1);
-        func->SetParLimits(func->GetParNumber("offset"), -1000., 1000.);//0
-        func->SetParLimits(func->GetParNumber("slope" ),   -10.,   10.);//1
-      } else if(refit && ifit == max_fits) {
+      // if(refit && ifit == max_fits - 1) {
+      //   cout << "--> Final fit after " << ifit << " attempts, using a simple polynomial instead\n";
+      //   delete func;
+      //   auto tmp = hetas[ibin]->GetListOfFunctions()->FindObject("func");
+      //   if(tmp) delete tmp;
+      //   func = new TF1("func_poly", "[offset] + [slope]*x", 0., 999.);
+      //   func->SetParameters(0.1, 0.1);
+      //   func->SetParLimits(func->GetParNumber("offset"), -1000., 1000.);//0
+      //   func->SetParLimits(func->GetParNumber("slope" ),   -10.,   10.);//1
+      // } else
+      if(refit && ifit == max_fits) {
         cout << "--> Final fit after " << ifit << " attempts, failed to find a good fit!\n";
       }
     } while(refit && ifit < max_fits);
@@ -1061,7 +1091,7 @@ TCanvas* make_canvas(TH2* h[4], TString name, bool iseff = false) {
 
 //-------------------------------------------------------------------------------------------------------------------------------
 //initialize the files and scales using a DataPlotter
-Int_t initialize_plotter(TString base, int year) {
+Int_t initialize_plotter(TString base, vector<int> years) {
   if(dataplotter_) delete dataplotter_;
   dataplotter_ = new DataPlotter();
   dataplotter_->include_qcd_ = 0;
@@ -1069,7 +1099,7 @@ Int_t initialize_plotter(TString base, int year) {
   dataplotter_->verbose_ = max(0, verbose_ - 1);
   dataplotter_->qcd_scale_ = 1.;
   dataplotter_->embed_scale_ = embedScale_;
-  years_ = {year};
+  years_ = years;
   hist_tag_ = "jtt";
   useEmbed_ = 0; //FIXME: Investigate using embedding for j-->tau measurements
   // splitWJ_ = 0;
@@ -1079,8 +1109,14 @@ Int_t initialize_plotter(TString base, int year) {
   get_datacards(cards, selection_, true);
 
   CrossSections xs(useUL_, ZMode_); //cross section handler
-  dataplotter_->set_luminosity(xs.GetLuminosity(year));
-  if(verbose_ > 0) cout << "--- Dataplotter luminosity for " << year << " = " << dataplotter_->lum_ << endl;
+  double lum(0.);
+  for(int year : years) {
+    lum += xs.GetLuminosity(year);
+    dataplotter_->lums_[year] = xs.GetLuminosity(year); //store the luminosity for the year
+  }
+
+  dataplotter_->set_luminosity(lum);
+  if(verbose_ > 0) cout << "--- Dataplotter luminosity = " << dataplotter_->lum_ << endl;
 
   int status(0);
   for(auto card : cards)
@@ -1092,8 +1128,8 @@ Int_t initialize_plotter(TString base, int year) {
 
 //-------------------------------------------------------------------------------------------------------------------------------
 //Generate the plots and scale factors
-Int_t scale_factors(TString selection = "mutau", TString process = "WJets", int set1 = 31, int set2 = 2031, int year = 2016,
-                    TString path = "nanoaods_jtt") {
+Int_t scale_factors(TString selection = "mutau", TString process = "WJets", int set1 = 31, int set2 = 2031,
+                    vector<int> years = {2016}, TString path = "nanoaods_jtt") {
 
   ///////////////////////
   // Initialize params //
@@ -1129,12 +1165,15 @@ Int_t scale_factors(TString selection = "mutau", TString process = "WJets", int 
 
   //construct the general name of each file, not including the sample name
   TString baseName = "clfv_" + selection + "_clfv_";
-  baseName += (override_year_ > 0) ? override_year_ : year;
+  if(override_year_ > 0) years = {override_year_};
+  TString year_s = Form("%i", years[0]);
+  for(int i = 1; i < years.size(); ++i) year_s += Form("_%i", years[i]);
+  baseName += year_s;
   baseName += "_";
 
   //initialize the data files
   if(verbose_ > 0) std::cout << "Initializing the dataplotter" << std::endl;
-  if(initialize_plotter(baseName, (override_year_ > 0) ? override_year_ : year)) {
+  if(initialize_plotter(baseName, years)) {
     cout << "Dataplotter initialization failed!\n";
     return 1;
   }
@@ -1277,7 +1316,7 @@ Int_t scale_factors(TString selection = "mutau", TString process = "WJets", int 
   TString name = "figures/fake_tau_";
   name += selection + "_";
   if(process_ != "") name += process_ + "_";
-  name += year;
+  name += year_s;
   name += "_";
   name += set1;
   name += "/";
@@ -1299,7 +1338,7 @@ Int_t scale_factors(TString selection = "mutau", TString process = "WJets", int 
   c13 ->Print((name+"data_eff.png").Data());
   c14 ->Print((name+"mc_fake_eff.png").Data());
 
-  const char* fname = Form("rootfiles/jet_to_tau_%s_%s%i_%i.root", selection.Data(), (process_ == "") ? "" : (process_+"_").Data(), set1, year);
+  const char* fname = Form("rootfiles/jet_to_tau_%s_%s%i_%s.root", selection.Data(), (process_ == "") ? "" : (process_+"_").Data(), set1, year_s.Data());
   TFile* fOut = new TFile(fname, "RECREATE");
 
   const int neta_bins = hDataFakeTauRates_j[0][0]->GetNbinsY();
@@ -1356,7 +1395,7 @@ Int_t scale_factors(TString selection = "mutau", TString process = "WJets", int 
   /////////////////////////////////////////////
   // Check closure of various variables
   TH1 *hData, *hMC, *hRatio;
-  fOut = new TFile(Form("rootfiles/jet_to_tau_correction_%s_%s%i_%i.root", selection.Data(), (process_ == "") ? "" : (process_+"_").Data(), set1, year), "RECREATE");
+  fOut = new TFile(Form("rootfiles/jet_to_tau_correction_%s_%s%i_%s.root", selection.Data(), (process_ == "") ? "" : (process_+"_").Data(), set1, year_s.Data()), "RECREATE");
   TCanvas* c;
 
   //total tau pT range

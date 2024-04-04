@@ -22,6 +22,9 @@ namespace CLFV {
     void    BookLepHistograms();
     void    BookSystematicHistograms();
     void    BookTrees();
+
+    void    BookLepESHistograms(Int_t index, const char* dirname); //studying the variation of variables with lepton energy scale variations
+
     void    DeleteHistograms();
 
     void    FillAllHistograms(Int_t index);
@@ -29,6 +32,8 @@ namespace CLFV {
     void    FillPhotonHistogram(PhotonHist_t* Hist);
     void    FillLepHistogram(LepHist_t* Hist);
     void    FillSystematicHistogram(SystematicHist_t* Hist);
+
+    void    FillLepESHistogram(EventHist_t* Hist);
 
     Bool_t  Process(Long64_t entry);
 
@@ -51,6 +56,8 @@ namespace CLFV {
     Bool_t          fTriggerTesting = false; //add emu histograms for electron/muon triggered events
     Bool_t          fDoMVASets = false; //for filling MVA cut sets even in DYTesting mode
     Bool_t          fRemoveLooseSS = true; //remove loose ID + same-sign events, not used for background estimates
+
+    Bool_t          fDoLepESHists = false; //histogram variables with lepton energy scale variations
 
     Bool_t          fDebugBit = false;
 

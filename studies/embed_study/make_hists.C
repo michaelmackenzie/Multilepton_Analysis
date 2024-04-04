@@ -145,6 +145,8 @@ int make_hists(const TString selec = "emu", const bool isEmbed = true, const int
 
   //Gen-level cuts
   const float min_lep_pt        = (selec == "emu") ? 9. : 18.;
+  const float min_zmass         =  80.; //Gen-Z mass, to reduce potential contamination from ttbar/Z->tautau
+  const float max_zmass         = 100.;
 
   //Reco-level cuts
   const float min_electron_pt   = 15.;
@@ -186,12 +188,14 @@ int make_hists(const TString selec = "emu", const bool isEmbed = true, const int
     }
     const Long64_t ngen = (isEmbed) ? xsecs.GetGenNumber(Form("Embed-%s-%s", final_state.Data(), run.Data()), year) : 0;
     if(isEmbed && ngen != nsample) {
-      cout << "WARNING! N(sample events) != N(gen events)! N(sample) = " << nsample << " and N(gen) = " << ngen << endl;
+      cout << "WARNING! N(sample events) != N(gen events)! N(sample) = " << nsample << " and N(gen) = " << ngen
+           << " --> Scaling by " << (ngen * 1. / nsample)
+           << endl;
     }
     const float neg_frac = (isEmbed) ? 0.f : xsecs.GetNegativeFraction(Form("DY50-%s", (year == 2017) ? "ext" : "amc"), year);
     const float xs = ((isEmbed) ? xsecs.GetCrossSection(Form("Embed-%s-%s", final_state.Data(), run.Data()), year)*(ngen*1./nsample) :
-                      xsecs.GetCrossSection("DY50", year)*lum
-                      /(nnorm*(1. - 2.*neg_frac)));
+                                    xsecs.GetCrossSection("DY50", year)*lum
+                                    /(nnorm*(1. - 2.*neg_frac)));
 
     //Skip to the next event if finished with debug processes
     if(ndebug_ > 0 && nseen > ndebug_) continue;
@@ -278,6 +282,9 @@ int make_hists(const TString selec = "emu", const bool isEmbed = true, const int
 
       const int pdg_l1 = std::abs(GenPart_pdgId[lep_one_idx]);
       const int pdg_l2 = std::abs(GenPart_pdgId[lep_two_idx]);
+
+      //gen-level Z mass
+      if(z_mass < min_zmass || z_mass > max_zmass) continue;
 
       //pt cuts
       if(lv1.Pt() < min_lep_pt) continue;

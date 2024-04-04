@@ -1,0 +1,28 @@
+//Print the MVA variable plots
+#include "dataplotter_clfv.C"
+
+int print_mva_variables(TString out_dir = "bdts", TString hist_dir = "nanoaods_mva_dev",
+                        TString selection = "mutau", vector<int> years = {2016,2017,2018},
+                        bool skip_systematics = true, bool add_stats = false, bool mc_dy = false) {
+  //setup the datacards
+  years_         = years;
+  hist_dir_      = hist_dir;
+  hist_tag_      = "clfv";
+  useEmbed_      = (mc_dy) ? 0 : (selection.Contains("tau")) ? 1 : 0;
+  drawStats_     = add_stats; //data and MC total integrals
+  doStatsLegend_ = add_stats; //process yields in the legend
+
+  //initialize the plotter
+  int status = nanoaod_init(selection.Data(), hist_dir_, out_dir);
+  if(status) return status;
+
+  //setup the histogram sets of interest
+  vector<int> sets;
+  if(selection_ == "emu" || selection_ == "mumu" || selection_ == "ee") sets = {8,11,12,13};
+  else if(selection_.Contains("_")) sets = {8,25,26,27};
+  else sets = {8,25,26,27,28};
+
+  //print the MVA variable histograms
+  status = print_bdt_variable_plots(sets, !skip_systematics);
+  return status;
+}
