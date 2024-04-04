@@ -11,7 +11,7 @@
 bool   use_fake_bkg_norm_ = false; //add a large uncertainty on j->tau/qcd norm to be fit by data
 bool   separate_years_    =  true; //separate each year of data
 int    blind_data_        =    2 ; //0: no blinding; 1: kill high BDT score regions; 2: use ~Asimov instead of data
-double blind_cut_         =   0.35;
+double blind_cut_         =  0.35;
 
 //add a nuisance parameter index to a group, adding the group if not yet defined
 void add_group(map<TString,vector<TString>>& groups, TString sys, TString group) {
@@ -478,6 +478,7 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
       if(name.BeginsWith("QCDAlt")                      ) add_group(groups, name, "QCD_Stat"          );
       if(name.BeginsWith("QCDNC")                       ) add_group(groups, name, "QCD_NC"            );
       if(name.BeginsWith("QCDBias")                     ) add_group(groups, name, "QCD_Bias"          );
+      if(name.BeginsWith("QCDMassBDTBias")              ) add_group(groups, name, "QCD_Bias"          );
       if(name.BeginsWith("JER")                         ) add_group(groups, name, "JER_JES"           );
       if(name.BeginsWith("JES")                         ) add_group(groups, name, "JER_JES"           );
       if(name.BeginsWith("BTag")                        ) add_group(groups, name, "BTag_Total"        );

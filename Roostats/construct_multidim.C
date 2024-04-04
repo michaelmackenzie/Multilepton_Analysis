@@ -9,12 +9,12 @@ bool useDataBinErrors_      = false; //use data bin errors when calculating chi^
 bool use_generic_bernstein_ = false;
 bool use_fast_bernstein_    = true ;
 bool use_exp_family_        = true ;
-bool use_power_family_      = true ;
+bool use_power_family_      = false;
 bool use_laurent_family_    = false;
 bool use_dy_ww_shape_       = false;
-bool force_fit_order_       = false; //force only the inclusion of fixed orders of each family
+bool force_fit_order_       = true ; //force only the inclusion of fixed orders of each family
 bool force_best_fit_        = false; //force the nominal PDF to be a specific function
-bool enforce_ftest_         =  true; //once a function fails the F-test, stop adding functions
+bool enforce_ftest_         = false; //once a function fails the F-test, stop adding functions
 
 bool test_single_function_  = false; //only pass 1 function into the PDF ensemble
 
@@ -53,7 +53,7 @@ bool perform_chisq_test(double chisq, int ndof, double* p_val = nullptr) {
   if(chisq < 0. || ndof <= 0) return false; //must have well-defined chi^2 and N(dof)
   const double p_chi_sq = TMath::Prob(chisq, ndof);
   if(p_val) *p_val = p_chi_sq;
-  return (p_chi_sq > 0.01); //accept if p(chi^2, ndof) is at least 1%
+  return (p_chi_sq > 0.001); //accept if p(chi^2, ndof) is at least 1%
 }
 
 //----------------------------------------------------------------------------------------------------------------
@@ -242,6 +242,33 @@ RooAbsPdf* create_exponential(RooRealVar& obs, int order, int set, TString tag =
     return ((RooAbsPdf*) pdfs.at(0));
   }
   return new RooAddPdf(Form("exp_%i_pdf_order_%i%s", set, order, tag.Data()), Form("Exponential PDF, order %i", order), pdfs, coefficients, false);
+}
+
+//Create an exponential PDF sum
+RooAbsPdf* create_recursive_exponential(RooRealVar& obs, int order, int set, TString tag = "") {
+  if(order <= 0) {
+    cout << __func__ << ": Can't create order " << order << " PDF!\n";
+    return nullptr;
+  }
+  vector<RooRealVar*> vars;
+  vector<RooRealVar*> coeffs;
+  vector<RooExponential*> exps;
+  RooArgList pdfs;
+  RooArgList coefficients;
+  for(int i = 1; i <= order; ++i) {
+    vars.push_back(new RooRealVar(Form("exp_%i_order_%i_c_%i%s", set, order, i, tag.Data()), Form("exp_%i_order_%i_%i power%s", set, order, i, tag.Data()), -0.1, -10., 10.));
+    exps.push_back(new RooExponential(Form("exp_%i_pdf_order_%i_%i%s", set, order, i, tag.Data()), Form("exp_%i_pdf_order_%i_%i%s", set, order, i, tag.Data()), obs, *vars.back()));
+    pdfs.add(*exps.back());
+    if(i < order) {
+      coeffs.push_back(new RooRealVar(Form("exp_%i_order_%i_n_%i%s", set, order, i, tag.Data()), Form("exp_%i_order_%i_%i%s norm" , set, order, i, tag.Data()), 0.5, 0., 1.));
+      coefficients.add(*coeffs.back());
+    }
+  }
+  if(order == 1) {
+    pdfs.at(0)->SetTitle(Form("Exponential PDF, order %i", order));
+    return ((RooAbsPdf*) pdfs.at(0));
+  }
+  return new RooAddPdf(Form("exp_%i_pdf_order_%i%s", set, order, tag.Data()), Form("Exponential PDF, order %i", order), pdfs, coefficients, true);
 }
 
 //Create an exponential PDF sum from RooGenericPdf
@@ -471,13 +498,13 @@ RooAbsPdf* create_bernstein(RooAbsReal& obs, const int order, int set, TString t
 std::pair<int,double> add_exponentials(RooDataHist& data, RooRealVar& obs, RooArgList& list, bool useSideBands, int set, int verbose) {
   const int max_order = 3;
   const double max_chisq = 2.; //per DOF
-  const double min_p_chisq = 0.01;
   double min_chi = 1.e10;
   int min_index = -1;
   for(int order = 1; order <= max_order; ++order) {
-    RooAbsPdf* basePdf = create_exponential(obs, order, set);
+    // RooAbsPdf* basePdf = create_exponential(obs, order, set);
+    RooAbsPdf* basePdf = create_recursive_exponential(obs, order, set);
     // RooAbsPdf* basePdf = create_generic_exponential(obs, order, set);
-    const bool use_base_pdf = true;
+    const bool use_base_pdf = false;
     RooAbsPdf* pdf = basePdf;
     if(!use_base_pdf) { //Wrap the exponential in a RooAddPdf
       RooRealVar* pdfNorm = new RooRealVar(Form("%s_norm", basePdf->GetName()), Form("%s_norm", basePdf->GetName()),
@@ -512,7 +539,6 @@ std::pair<int,double> add_exponentials(RooDataHist& data, RooRealVar& obs, RooAr
 std::pair<int,double> add_powerlaws(RooDataHist& data, RooRealVar& obs, RooArgList& list, bool useSideBands, int set, int verbose) {
   const int max_order = 3;
   const double max_chisq = 2.; //per DOF
-  const double min_p_chisq = 0.01;
   const double chi_cutoff = 3.85;
   double min_chi = 1.e10;
   int min_index = -1;
@@ -550,7 +576,6 @@ std::pair<int,double> add_powerlaws(RooDataHist& data, RooRealVar& obs, RooArgLi
 //Fit Laurent series orders and add passing ones
 std::pair<int,double> add_laurents(RooDataHist& data, RooRealVar& obs, RooArgList& list, bool useSideBands, int set, int verbose) {
   const int max_order = 6;
-  const double min_p_chisq = 0.01;
   double min_chi = 1.e10;
   int min_index = -1;
   for(int order = 1; order <= max_order; ++order) {

@@ -2,7 +2,7 @@
 #include "mva_systematic_names.C"
 #include "bemu_defaults.C"
 #include "../interface/GlobalConstants.h"
-#include "perform_f_test.C"
+// #include "perform_f_test.C"
 #include "construct_multidim.C"
 #include "bemu_fit_bkg_mc.C"
 
@@ -14,18 +14,17 @@ using namespace CLFV;
 bool useRateParams_ = false;
 bool fixSignalPDF_  = true ;
 bool useMultiDim_   = true ;
-bool includeSys_    = true ; //flag to ignore most systematics
+bool includeSys_    = false; //FIXME: restore to true (needs re-histogramming) -- flag to ignore most systematics
 bool twoSidedSys_   = true ; //write both up and down for each rate systematic
 bool addESShifts_   = true ; //include constrained parameters for the energy scale uncertainties
-bool useMCBkg_      = false; //FIXME: turn off -- use the background MC to create background template PDFs
-float zmumu_scale_  =   -1.; //FIXME: set to -1 -- scale to Z->ee/mumu distribution if using MC templates
+bool useMCBkg_      = false; //use the background MC to create background template PDFs
+float zmumu_scale_  =   -1.; //scale to Z->ee/mumu distribution if using MC templates
 bool printPlots_    = true ;
 bool fitSideBands_  = true ; //fit only the data sidebands
 int  replaceData_   =     1; //1: replace the data with toy MC; 2: replace the data with the MC bkg; 3: replace the data with smoothed/fit MC bkg
 bool replaceRefit_  = false; //replace data with toy MC, then fit the unblinded toy data
 bool export_        = false; //if locally run, export the workspace to LPC
 bool save_          = true ; //save output combine workspace/cards
-
 
 //Retrieve yields for each relevant systematic
 void get_systematics(TFile* f, TString label, int set, vector<pair<double,double>>& yields, vector<TString>& names, double xmin = 1., double xmax = -1.) {

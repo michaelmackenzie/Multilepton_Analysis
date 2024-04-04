@@ -7,6 +7,7 @@ Help() {
     echo " --rrange    (-r ): POI range (default = 20)"
     echo " --obs       (-o ): Do observed"
     echo " --dontclean (-dc): Don't cleanup output combine files"
+    echo " --approx    (-a ): Do approximate limits"
     echo " --fitarg         : Additional combineTool.py arguments (see combineTools.py -M Impacts -h)"
     echo " --plotarg        : Additional plotImpacts.py arguments (e.g. --blind, see plotImpacts.py -h)"
     echo " --fitarg         : Additional combineTool.py arguments (see combineTools.py -M Impacts -h)"

@@ -150,6 +150,10 @@ std::pair<TString,TString> systematic_name(int sys, TString selection, int year,
   else if(name == "XS_ttbar"          ) type = "lnN";
   else if(name == "XS_toptw"          ) type = "lnN";
   else if(name == "XS_toptCh"         ) type = "lnN";
+  else if(name == "XS_ggFH"           ) type = "lnN";
+  else if(name == "XS_VBFH"           ) type = "lnN";
+  else if(name == "XS_HWW"            ) type = "lnN";
+  else if(name == "XS_HTauTau"        ) type = "lnN";
   else if(name == "Prefire"           ) type = "lnN";
   else if(name == "EleID"             ) type = "lnN";
   else if(name == "EmbEleID"          ) type = "lnN"; //don't use contains to avoid TauEleID

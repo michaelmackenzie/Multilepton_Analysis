@@ -1,6 +1,7 @@
 //Plot data from  Higgs Combine FitDiagnostics toys
 
-int plot_combine_fits(const char* file_name, double r_true = 0., TString out_name = "", const int skip_bad_fits = 2, const int err_mode = 0) {
+int plot_combine_fits(const char* file_name, double r_true = 0., TString out_name = "",
+                      const int skip_bad_fits = 2, const int err_mode = 0) {
   // if(gSystem->Load(Form("%s/src/CLFVAnalysis/lib/libCLFVAnalysis.so",gSystem->Getenv("CMSSW_BASE"))) < 0) return -1;
 
   /////////////////////////////////////////////////////////////////

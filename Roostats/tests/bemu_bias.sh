@@ -11,6 +11,9 @@ Help() {
     echo "--tag         : Name tag for output"
     echo "--rrange  (-r): r range (default = 100)"
     echo "--seed    (-s): Base random seed (default = 90)"
+    echo "--skipfits    : Skip fit loops, only create plots"
+    echo "--multidim    : Use the MultiDimFit method"
+    echo "--dontclean   : Don't clean up temporary files"
 }
 
 CARD=""
@@ -21,6 +24,9 @@ GENARG=""
 TAG=""
 RRANGE="100"
 SEED="90"
+SKIPFITS=""
+MULTIDIM=""
+DONTCLEAN=""
 
 iarg=1
 while [ ${iarg} -le $# ]
@@ -65,6 +71,15 @@ do
         iarg=$((iarg + 1))
         eval "var=\${${iarg}}"
         SEED=${var}
+    elif [[ "${var}" == "--skipfits" ]]
+    then
+        SKIPFITS="d"
+    elif [[ "${var}" == "--multidim" ]]
+    then
+        MULTIDIM="d"
+    elif [[ "${var}" == "--dontclean" ]]
+    then
+        DONTCLEAN="d"
     elif [[ "${var}" == "--dryrun" ]]
     then
         DRYRUN="d"
@@ -91,43 +106,73 @@ echo ${GENCARD}
 
 OUTNAME="${NAME}_closure_test"
 
-ARGS="${ARGS} --cminDefaultMinimizerStrategy=0 --X-rtd REMOVE_CONSTANT_ZERO_POINT=1"
-ARGS="${ARGS} --X-rtd MINIMIZER_freezeDisassociatedParams --X-rtd MINIMIZER_multiMin_hideConstants --X-rtd MINIMIZER_multiMin_maskConstraints"
+ARGS="${ARGS} --cminDefaultMinimizerStrategy=0 --cminRunAllDiscreteCombinations --X-rtd REMOVE_CONSTANT_ZERO_POINT=1"
+ARGS="${ARGS} --X-rtd MINIMIZER_freezeDisassociatedParams"
+ARGS="${ARGS} --X-rtd MINIMIZER_multiMin_hideConstants --X-rtd MINIMIZER_multiMin_maskConstraints"
 
 FITARG="${ARGS} ${FITARG}"
 GENARG="${ARGS} ${GENARG}"
 
-#Do the fits in increments of N(toys) to avoid fit failures
-OUTPUTLIST=""
-GENERATED=0
-for ((IGEN=0; IGEN<${NTOYS}; IGEN+=${NGENPERTOY}))
-do
-    SEED=$((SEED+NGENPERTOY))
-    NGEN=${NGENPERTOY}
-    # Generate toy MC data
-    combine -d ${GENCARD} -M GenerateOnly --saveToys -t ${NGEN} -n .${OUTNAME} --genBinnedChannels lepm_13,lepm_12,lepm_11,lepm_10 -s ${SEED} ${GENARG}
+if [[ "${SKIPFITS}" == "" ]]; then
+    #Do the fits in increments of N(toys) to avoid fit failures
+    OUTPUTLIST=""
+    GENERATED=0
+    for ((IGEN=0; IGEN<${NTOYS}; IGEN+=${NGENPERTOY}))
+    do
+        SEED=$((SEED+NGENPERTOY))
+        NGEN=${NGENPERTOY}
+        # Generate toy MC data
+        combine -d ${GENCARD} -M GenerateOnly --saveToys -t ${NGEN} -n .${OUTNAME} --genBinnedChannels lepm_13,lepm_12,lepm_11,lepm_10 -s ${SEED} ${GENARG}
 
-    # Create binned data to fit
-    time root.exe -q -b -l "${CMSSW_BASE}/src/CLFVAnalysis/Roostats/convert_unbinned_to_binned.C(\"higgsCombine.${OUTNAME}.GenerateOnly.mH120.${SEED}.root\", \"higgsCombine.${OUTNAME}_binned.GenerateOnly.mH120.${SEED}.root\")"
+        # Create binned data to fit
+        time root.exe -q -b -l "${CMSSW_BASE}/src/CLFVAnalysis/Roostats/convert_unbinned_to_binned.C(\"higgsCombine.${OUTNAME}.GenerateOnly.mH120.${SEED}.root\", \"higgsCombine.${OUTNAME}_binned.GenerateOnly.mH120.${SEED}.root\")"
 
-    # Fit the toy data
-    combine -d ${CARD} ${FITARG} --rMin -${RRANGE} --rMax ${RRANGE} -M FitDiagnostics -t ${NGEN} --toysFile=higgsCombine.${OUTNAME}_binned.GenerateOnly.mH120.${SEED}.root -n .${OUTNAME}_${SEED} -s ${SEED}
-    OUTPUTLIST="${OUTPUTLIST} fitDiagnostics.${OUTNAME}_${SEED}.root"
-    GENERATED=$((GENERATED+NGEN))
+        # Fit the toy data
+        if [[ "${MULTIDIM}" == "" ]]; then
+            combine -d ${CARD} ${FITARG} --rMin -${RRANGE} --rMax ${RRANGE} -M FitDiagnostics -t ${NGEN} --toysFile=higgsCombine.${OUTNAME}_binned.GenerateOnly.mH120.${SEED}.root -n .${OUTNAME}_${SEED} -s ${SEED}
+            OUTPUTLIST="${OUTPUTLIST} fitDiagnostics.${OUTNAME}_${SEED}.root"
+        else
+            combine -d ${CARD} ${FITARG} --rMin -${RRANGE} --rMax ${RRANGE} -M MultiDimFit --algo singles --saveFitResult --saveNLL -t ${NGEN} --toysFile=higgsCombine.${OUTNAME}_binned.GenerateOnly.mH120.${SEED}.root -n .${OUTNAME}_${SEED} -s ${SEED}
+            OUTPUTLIST="${OUTPUTLIST} higgsCombine.${OUTNAME}_${SEED}.MultiDimFit.mH120.${SEED}.root"
+        fi
+        GENERATED=$((GENERATED+NGEN))
+
+        #Clean up the output
+        if [[ "${DONTCLEAN}" == "" ]]; then
+            rm higgsCombine.${OUTNAME}.GenerateOnly.mH120.${SEED}.root
+            rm higgsCombine.${OUTNAME}_binned.GenerateOnly.mH120.${SEED}.root
+            rm higgsCombine.${OUTNAME}_${SEED}.FitDiagnostics.mH120.${SEED}.root
+        fi
+    done
+
+    #Merge the output fitDiagnostics files
+    if [[ "${MULTIDIM}" == "" ]]; then
+        echo ${CMSSW_BASE}/src/CLFVAnalysis/Roostats/haddfitdiag.py "fitDiagnostics.${OUTNAME}${TAG}.root" ${OUTPUTLIST}
+        ${CMSSW_BASE}/src/CLFVAnalysis/Roostats/haddfitdiag.py "fitDiagnostics.${OUTNAME}${TAG}.root" ${OUTPUTLIST}
+    else
+        echo ${CMSSW_BASE}/src/CLFVAnalysis/Roostats/haddfitdiag.py "higgsCombine.${OUTNAME}${TAG}.MultiDimFit.root" ${OUTPUTLIST}
+        ${CMSSW_BASE}/src/CLFVAnalysis/Roostats/haddfitdiag.py "higgsCombine.${OUTNAME}${TAG}.MultiDimFit.root" ${OUTPUTLIST}
+    fi
 
     #Clean up the output
-    rm higgsCombine.${OUTNAME}.GenerateOnly.mH120.${SEED}.root
-    rm higgsCombine.${OUTNAME}_binned.GenerateOnly.mH120.${SEED}.root
-    rm higgsCombine.${OUTNAME}_${SEED}.FitDiagnostics.mH120.${SEED}.root
-done
+    if [[ "${DONTCLEAN}" == "" ]]; then
+        rm ${OUTPUTLIST}
+    fi
+fi
 
-#Merge the output fitDiagnostics files
-echo ${CMSSW_BASE}/src/CLFVAnalysis/Roostats/haddfitdiag.py "fitDiagnostics.${OUTNAME}${TAG}.root" ${OUTPUTLIST}
-${CMSSW_BASE}/src/CLFVAnalysis/Roostats/haddfitdiag.py "fitDiagnostics.${OUTNAME}${TAG}.root" ${OUTPUTLIST}
+#Create the bias plots
+OUTFILE="fitDiagnostics.${OUTNAME}${TAG}.root"
+if [[ "${MULTIDIM}" == "d" ]]; then
+    OUTFILE="higgsCombine.${OUTNAME}${TAG}.MultiDimFit.root"
+fi
+ls -l ${OUTFILE}
 
-#Clean up the output
-rm ${OUTPUTLIST}
-
-#Merge output files
 echo "Creating bias plots..."
-root.exe -q -b "${CMSSW_BASE}/src/CLFVAnalysis/Roostats/tools/plot_combine_fits.C(\"fitDiagnostics.${OUTNAME}${TAG}.root\", 0, \"bias_${OUTNAME}${TAG}\", 0, 0)"
+if [[ "${MULTIDIM}" == "" ]]; then
+    root.exe -q -b "${CMSSW_BASE}/src/CLFVAnalysis/Roostats/tools/plot_combine_fits.C(\"${OUTFILE}\", 0, \"bias_${OUTNAME}${TAG}\", 0, 0)"
+else
+    root.exe -q -b "${CMSSW_BASE}/src/CLFVAnalysis/Roostats/tools/plot_combine_toys.C(\"${OUTFILE}\", \"bias_${OUTNAME}${TAG}\")"
+fi
+
+echo "Creating plots of all fit params..."
+root.exe -q -b "${CMSSW_BASE}/src/CLFVAnalysis/Roostats/tools/plot_combine_fit_params.C(\"${OUTFILE}\", \"figures/bias_${OUTNAME}${TAG}\")"

@@ -23,15 +23,17 @@ int plot_combine_toys(const char* file_name, TString out_name = "") {
   //   limits.push_back(limit);
   // }
 
+  const char* obs = (TString(file_name).Contains("MultiDimFit")) ? "r" : "limit";
+  cout << "Using observable " << obs << endl;
   TCanvas* c = new TCanvas();
-  tree->Draw("limit >> htmp", "quantileExpected < 0");
+  tree->Draw(Form("%s >> htmp", obs), "quantileExpected < 0");
   TH1* h = (TH1*) gDirectory->Get("htmp");
 
   const double mean  = h->GetMean();
   const double sigma = h->GetStdDev();
   delete h;
   h = new TH1D("hlimit", "Toy limits", 25, mean - 2.5*sigma, mean + 2.5*sigma);
-  tree->Draw("limit >> hlimit", "quantileExpected < 0");
+  tree->Draw(Form("%s >> hlimit", obs), "quantileExpected < 0");
 
   h->SetLineWidth(2);
   // h->Fit("gaus");
@@ -52,6 +54,7 @@ int plot_combine_toys(const char* file_name, TString out_name = "") {
   h->SetYTitle("N(toys)");
 
   if(out_name == "") {out_name = file_name; out_name.ReplaceAll(".root", ".png");}
+  if(!out_name.EndsWith(".png")) out_name += ".png";
   c->SaveAs(out_name.Data());
   return 0;
 }

@@ -23,7 +23,7 @@ if [[ "${RRANGE}" == "" ]]; then
     RRANGE="20"
 fi
 
-ARGS="${ARGS} --cminDefaultMinimizerStrategy=0 --X-rtd REMOVE_CONSTANT_ZERO_POINT=1"
+ARGS="${ARGS} --cminDefaultMinimizerStrategy=0 --cminRunAllDiscreteCombinations --X-rtd REMOVE_CONSTANT_ZERO_POINT=1"
 ARGS="${ARGS} --X-rtd MINIMIZER_freezeDisassociatedParams --X-rtd MINIMIZER_multiMin_hideConstants --X-rtd MINIMIZER_multiMin_maskConstraints"
 if [[ "${DOASIMOV}" != "" ]]; then
     if [[ "${ARGS}" != *"-M "* ]]; then

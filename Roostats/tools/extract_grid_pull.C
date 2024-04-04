@@ -1,6 +1,6 @@
 //extract a pull value from a grid of scanned NLL values
 
-double extract_grid_pull(const char* file, const double r_true, double* r_best_fit = nullptr) {
+double extract_grid_pull(const char* file, const double r_true, double* r_best_fit = nullptr, int verbose = 0) {
 
   //create a list of scan files for the set
   if(gSystem->AccessPathName(file)) {
@@ -34,6 +34,10 @@ double extract_grid_pull(const char* file, const double r_true, double* r_best_f
   double r_closest(1.e20), nll_closest(0.); //closest scan point to r_true
   for(int entry = 0; entry < nentries; ++entry) {
     tree->GetEntry(entry);
+    if(verbose > 1) {
+      printf("%s: Entry %3i: r = %.3f, nll = %.2f, deltaNLL = %.2f, nll0 = %.2f\n",
+             __func__, entry, r, nll, dnll, nll0);
+    }
     const double nll_val = nll0 + nll + dnll;
     if(entry == 0) { //results for the best fit
       r_fit = r;
@@ -48,7 +52,7 @@ double extract_grid_pull(const char* file, const double r_true, double* r_best_f
   }
 
   //check that the fit NLL value is not greater than the truth, to ensure minimization succeeded
-  if(nll_fit > nll_closest + 0.01) {
+  if(nll_fit > nll_closest + 0.1) {
     printf("%s: Fit NLL (%.2f) is greater than the NLL at the truth r-value (%.2f) --> Bad minimization\n",
            __func__, nll_fit, nll_closest);
     return -999;
@@ -56,7 +60,7 @@ double extract_grid_pull(const char* file, const double r_true, double* r_best_f
 
   //approximate the fit pull using the difference in the negative log-likelihood
   const double nll_difference = std::fabs(nll_closest - nll_fit);
-  const double sigma = std::sqrt(nll_difference)*((r_fit < r_true) ? -1. : 1.);
+  const double sigma = std::sqrt(2.*nll_difference)*((r_fit < r_true) ? -1. : 1.);
   if(r_best_fit) *r_best_fit = r_fit;
   return sigma;
 }

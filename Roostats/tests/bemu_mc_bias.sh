@@ -47,8 +47,9 @@ echo ${GENCARD}
 
 OUTNAME="${NAME}_mc_closure_test"
 
-ARGS="${ARGS} --cminDefaultMinimizerStrategy=0 --X-rtd REMOVE_CONSTANT_ZERO_POINT=1"
-ARGS="${ARGS} --X-rtd MINIMIZER_freezeDisassociatedParams --X-rtd MINIMIZER_multiMin_hideConstants --X-rtd MINIMIZER_multiMin_maskConstraints"
+ARGS="${ARGS} --cminDefaultMinimizerStrategy=0 --cminRunAllDiscreteCombinations --X-rtd REMOVE_CONSTANT_ZERO_POINT=1"
+ARGS="${ARGS} --X-rtd MINIMIZER_freezeDisassociatedParams"
+ARGS="${ARGS} --X-rtd MINIMIZER_multiMin_hideConstants --X-rtd MINIMIZER_multiMin_maskConstraints"
 
 #Do the fits in increments of N(toys) to avoid fit failures
 OUTPUTLIST=""

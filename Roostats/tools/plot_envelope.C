@@ -1,5 +1,5 @@
 //plot envelope for Z->e+mu fit
-bool remove_zero_point_ = true;
+bool remove_zero_point_ = false;
 
 int plot_envelope(const int set = 13, const char* file = "", const char* tag = "", const int verbose = 0) {
 
@@ -24,6 +24,7 @@ int plot_envelope(const int set = 13, const char* file = "", const char* tag = "
   //read each scan and create a graph of the NLL
   vector<TTree*> trees;
   vector<TGraph*> graphs;
+  vector<TGraph*> graphs_best;
   int index = 0;
   double min_val(1.e20), max_val(-1.e20);
   double r_fit, nll_fit(1.e20);
@@ -49,13 +50,17 @@ int plot_envelope(const int set = 13, const char* file = "", const char* tag = "
       max_val = max(max_val, nll_val);
 
       if(verbose > 3) {
-        printf(" Point %3i: r = %7.2f; nll = %12.2f\n", entry, r, nll_val);
+        printf(" Point %3i: r = %7.2f; nll = %12.2f (dNll = %.2f, nll0 = %.2f, nll = %.2f)\n", entry, r, nll_val, dnll, nll0, nll);
       }
 
       //entry 0 is the best fit result for this scan
       if(entry == 0 && nll_val < nll_fit) {
         r_fit   = r;
         nll_fit = nll_val;
+        TGraph* g = new TGraph(1, &r_fit, &nll_fit);
+        g->SetName(Form("gNLL_best_%i", index));
+        graphs_best.push_back(g);
+
         continue;
       }
 
@@ -97,6 +102,13 @@ int plot_envelope(const int set = 13, const char* file = "", const char* tag = "
   const double buffer = 0.05*(max_val-min_val);
   tot->GetYaxis()->SetRangeUser(min_val-buffer, max_val+buffer);
 
+  TGraph* tot_best = graphs_best.back();
+  tot_best->SetMarkerColor(kBlue+1);
+  tot_best->SetMarkerSize(2.);
+  tot_best->SetMarkerStyle(kFullStar);
+  tot_best->Draw("P");
+  tot_best->Print("v");
+
   const int colors[] = {kRed, kGreen, kOrange, kViolet, kYellow-3};
   const int ncolors = sizeof(colors)/sizeof(*colors);
   for(int igraph = 0; igraph < graphs.size() - 1; ++igraph) {
@@ -108,6 +120,13 @@ int plot_envelope(const int set = 13, const char* file = "", const char* tag = "
     g->SetMarkerSize(0.8);
     g->SetMarkerStyle(20);
     g->Draw("PL");
+
+    TGraph* g_best = graphs_best[igraph];
+    g_best->SetMarkerColor(color+1);
+    g_best->SetMarkerSize(2.);
+    g_best->SetMarkerStyle(kFullStar);
+    g_best->Draw("P");
+    g_best->Print("v");
   }
 
   tot->Draw("L");
