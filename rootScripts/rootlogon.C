@@ -50,8 +50,12 @@
       TAuthenticate::SetGlobalUser(gSystem->Getenv("USER"));
       gInterpreter->ProcessLine(".! ps | grep root");
       printf("Loading xgboost.so!\n");
-      gSystem->Load(Form("/cvmfs/cms.cern.ch/%s/external/py2-xgboost/0.80-ikaegh/lib/python2.7/site-packages/xgboost/lib/libxgboost.so",
+      gSystem->Load(Form("/cvmfs/cms.cern.ch/%s/external/xgboost/1.3.3-cms/lib64/libxgboost.so",
                          gSystem->Getenv("SCRAM_ARCH")));
+      // gSystem->Load(Form("/cvmfs/cms.cern.ch/%s/external/py2-xgboost/0.82-llifpc/lib/python2.7/site-packages/xgboost/lib/libxgboost.so",
+      //                    gSystem->Getenv("SCRAM_ARCH")));
+      // gSystem->Load(Form("/cvmfs/cms.cern.ch/%s/external/py2-xgboost/0.80-ikaegh/lib/python2.7/site-packages/xgboost/lib/libxgboost.so",
+      //                    gSystem->Getenv("SCRAM_ARCH")));
 
 
       printf("Loading lib/libCLFVAnalysis.so!\n");

@@ -73,7 +73,7 @@ namespace CLFV {
       bst_ulong out_len=0;
       const float* score;
 
-      auto ret = XGBoosterPredict(bdt_, dvalues, 0, 0, &out_len, &score);
+      auto ret = XGBoosterPredict(bdt_, dvalues, 0, 0, 0, &out_len, &score);
       if(verbose_ > 3) std::cout << " --> Evaluated prediction\n";
 
       XGDMatrixFree(dvalues);
