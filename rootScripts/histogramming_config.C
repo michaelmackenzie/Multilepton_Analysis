@@ -20,8 +20,8 @@ bool preFetch_     = false; //check for the sample on /tmp, and copy it there if
 bool useTChain_    = true; //use a TChain of input files rather than a tree from a single ntuple file
 Long64_t notify_   = 50000; //frequency at which to printout processing info
 
-vector<TString> tag_      = {"Embed"}; //dataset tag requirement
-vector<TString> veto_     = {"2016", "2017", "MuonEGRun", "Embed-EE", "Embed-MuMu"}; //dataset tags to veto
+vector<TString> tag_      = {}; //dataset tag requirement
+vector<TString> veto_     = {"MuonEGRun", "Embed-EE", "Embed-MuMu"}; //dataset tags to veto
 bool debug_               = false;
 Long64_t startEvent_      =  0;
 Long64_t nEvents_         =  1; //at 20, verbosity returns to normal
@@ -29,8 +29,8 @@ int verbose_              = -1; //override verbosity in debug mode to higher lev
 int follow_hist_set_      = -1; //print info whenever this hist set is filled
 HISTOGRAMMER* selector_   = nullptr;
 
-Long64_t max_sim_events_  = 5e5; //5e5; //maximum number of events to skim in simulation, -1 to ignore
-Double_t max_data_events_ = 0.5; //0.2 //maximum fraction of events to skim in data, -1 to ignore
+Long64_t max_sim_events_  = -1; //5e5; //maximum number of events to skim in simulation, -1 to ignore
+Double_t max_data_events_ = -1; //0.2 //maximum fraction of events to skim in data, -1 to ignore
 
 bool DYFakeTau_           = false; //speed up dy fake tau scale factor
 bool WJFakeTau_           = false; //speed up w+jets fake tau scale factor
@@ -90,7 +90,7 @@ int doEmbedSameFlavor_    = 2; //setup ee/mumu for embedding testing: 1: skip MC
 int doEmbedLLAll_         = 0; //process Embedding ee/mumu samples in non-ee/mumu selections
 
 int systematicSeed_       = 90; //seed for systematic random shifts
-int doSystematics_        = 0; //process systematic uncertainty histograms: 0: don't process; 1: process; -2: process for signal, nominal only for the rest
+int doSystematics_        = 1; //process systematic uncertainty histograms: 0: don't process; 1: process; -2: process for signal, nominal only for the rest
 int allowMigration_       = 2; //event migration systematic effects
 int  DoMVASets_           = 1; //Fill sets with MVA cuts: 1 = emu; 2 = emu/ee/mumu; 3 = all sets
 int  ReprocessMVAs_       = 1; //Re-evaluate MVA scores on the fly
