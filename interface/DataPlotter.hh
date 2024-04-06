@@ -285,7 +285,7 @@ namespace CLFV {
       }
     }
 
-    std::vector<TH1*> get_histograms(TString hist, TString setType, Int_t set, Int_t Mode, TString process = "", ScaleUncertainty_t* sys_scale = nullptr, TString tag = "");
+    std::vector<TH1*> get_histograms(TString hist, TString setType, Int_t set, Int_t Mode = kAny, TString process = "", ScaleUncertainty_t* sys_scale = nullptr, TString tag = "");
     enum{kBackground, kSignal, kData, kAny};
 
     std::vector<TH1*> get_signal(TString hist, TString setType, Int_t set, ScaleUncertainty_t* sys_scale = nullptr, TString tag = "");

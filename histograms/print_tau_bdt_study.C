@@ -21,17 +21,19 @@ int print_tau_bdt_study(TString out_dir = "tau_bdt_study", TString hist_dir = "n
 
   //setup the histogram sets of interest
   vector<int> sets = {8, 25, 29};
+  if(selection.Contains("_")) sets = {8};
 
   //print the relevant plots for each set
   for(int set : sets) {
     if(set == 29) blind_ = false;
     else          blind_ = true ;
     status += print_mass           (set);
-    status += print_collinear_mass (set);
+    status += print_collinear_mass (set, false, 200.);
     status += print_leppt          (set);
     status += print_pt             (set);
     status += print_ptratio        (set);
     status += print_lep_beta       (set);
+    status += print_lepeta         (set);
     status += print_eta            (set);
     status += print_deltaphi       (set);
     status += print_met            (set);
@@ -44,9 +46,10 @@ int print_tau_bdt_study(TString out_dir = "tau_bdt_study", TString hist_dir = "n
   blind_ = true;
 
   //print the bdts for all regions
+  status += print_mva(25);
   status += print_mva(26);
   status += print_mva(27);
-  status += print_mva(28);
+  if(!selection.Contains("_")) status += print_mva(28);
 
   return status;
 }

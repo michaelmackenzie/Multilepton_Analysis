@@ -273,7 +273,11 @@ int make_eff_figure(TFile* fGen, TFile* fRec, TString gen_name, TString rec_name
 }
 
 //-------------------------------------------------------------------------------------------------------------
-int reco_plots(const TString selec = "emu", const int year = 2018, TString path = "nanoaods_02") {
+int reco_plots(const TString selec = "emu", int year = 2018, TString path = "nanoaods_02") {
+  //ignore run periods
+  year = year % 10000;
+
+  //get the final state Embedding name
   TString final_state;
   if(selec == "emu" || selec == "etau_mu" || selec == "mutau_e") final_state = "EMu";
   else if(selec == "etau") final_state = "ETau";

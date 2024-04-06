@@ -61,7 +61,7 @@ void CLFVHistMaker::InitHistogramFlags() {
       fEventSets [kMuTau + 4] = 1;
     }
 
-    // fEventSets [kMuTau + 7] = 1;
+    fEventSets [kMuTau + 7] = fTopTesting; //inverted b-tag set
 
     fEventSets [kMuTau + 8] = 1;
     fTreeSets  [kMuTau + 8] = 1;
@@ -107,7 +107,7 @@ void CLFVHistMaker::InitHistogramFlags() {
       fEventSets [kETau + 4] = 1;
     }
 
-    // fEventSets [kETau + 7] = 1;
+    fEventSets [kETau + 7] = fTopTesting; //inverted b-tag set
 
     fEventSets [kETau + 8] = 1;
     fTreeSets  [kETau + 8] = 1;
@@ -154,7 +154,7 @@ void CLFVHistMaker::InitHistogramFlags() {
     }
 
     if(!lep_tau) {
-      // fEventSets [kEMu  + 7] = 1;
+      fEventSets [kEMu  + 7] = fTopTesting; //inverted b-tag set
       fEventSets [kEMu  + 8] = 1;
       fTreeSets  [kEMu  + 8] = 1;
       fTreeSets  [kEMu  + 8+fQcdOffset] = fIsData != 0; //save SS data for QCD training
@@ -262,6 +262,7 @@ void CLFVHistMaker::InitHistogramFlags() {
   if(lep_tau != 0) {
     //mu+tau_e
     if(lep_tau == 1) {
+      fEventSets[kMuTauE + 7] = fTopTesting; //inverted b-tag set
       fEventSets[kMuTauE + 8] = 1;
       fSysSets  [kMuTauE + 8] = 1;
       fTreeSets [kMuTauE + 8] = 1;
@@ -281,6 +282,7 @@ void CLFVHistMaker::InitHistogramFlags() {
     }
     //e+tau_mu
     if(lep_tau == 2) {
+      fEventSets[kETauMu + 7] = fTopTesting; //inverted b-tag set
       fEventSets[kETauMu + 8] = 1;
       fSysSets  [kETauMu + 8] = 1;
       fTreeSets [kETauMu + 8] = 1;
@@ -1716,6 +1718,23 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   ee   &= !isLooseElectron;
   mumu &= !isLooseMuon;
 
+
+  //If cut-flow testing, remove fake leptons early to allow data-driven background estimates
+  if(fCutFlowTesting) {
+    if(!fUseMCEstimatedFakeLep && !fIsData && !fIsSignal) { //keep signal as even events with fakes are signal from the MC
+      emu   &= !isFakeMuon;
+      emu   &= !isFakeElectron;
+      mumu  &= !isFakeMuon;
+      ee    &= !isFakeElectron;
+      mutau &= !isFakeMuon;
+      etau  &= !isFakeElectron;
+    }
+    if(!fUseMCFakeTau) {
+      mutau &= fIsData > 0 || std::abs(tauGenFlavor) != 26 || fIsSignal; //keep signal as even events with fakes are signal from the MC
+      etau  &= fIsData > 0 || std::abs(tauGenFlavor) != 26 || fIsSignal;
+    }
+  }
+
   ///////////////////////////////////////////
   // Re-define N(b-jets) if needed
 
@@ -1969,7 +1988,7 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   const float mttwo_cut        = -1.f;
   const float mtlep_over_m_cut = -1.f;
   const float mtone_over_m_cut = -1.f; //(mutau_e)                  ? 0.8f : -1.f;
-  const float mttwo_over_m_cut = (mutau || etau /* || etau_mu*/) ? -1.f : -1.f;
+  const float mttwo_over_m_cut = (mutau || etau /* || etau_mu*/) ? -1.f : -1.f; // FIXME: Decide on this cut
   const bool nominalSelection  = (nBJetsUse == 0 &&
                                   (met_cut < 0.f || met < met_cut + sys_buffer) &&
                                   (mtlep_cut < 0.f || fTreeVars.mtlep < mtlep_cut + sys_buffer) &&
@@ -2241,10 +2260,8 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   ////////////////////////////////////////////////////////////////////////////
   // Set 7 + selection offset: No MC estimated fake taus, inverted b-jet cut
   ////////////////////////////////////////////////////////////////////////////
-  if(nBJetsUse > 0 && !lep_tau && (mumu || ee) && fDoSystematics >= 0)
+  if(nBJetsUse > 0 && (ee || mumu || fTopTesting) && fDoSystematics >= 0)
     FillAllHistograms(set_offset + 7);
-
-  if(fCutFlowTesting) return kTRUE;
 
   if(!looseQCDSelection && chargeTest) {fCutFlow->Fill(icutflow);} //27
   ++icutflow;
@@ -2253,7 +2270,7 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   //    Reject b-jets     //
   //////////////////////////
 
-  const bool invert_bjet_veto = false;
+  const bool invert_bjet_veto = fTopTesting > 1; //perform studies (e.g. Z->e+mu fits) in inverted b-tag regions
 
   if(invert_bjet_veto) {
     mutau   &= nBJetsUse >  0;
@@ -2302,6 +2319,9 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
       IncrementTimer("SingleFill", true);
     }
   }
+
+  //End the cutflow testing
+  if(fCutFlowTesting) return kTRUE;
 
   //Test Z->mumu rejection
   if(fDoEleIDStudy) {  //reduce gamma --> e to reduce Z->mu mu* --> mu mu gamma

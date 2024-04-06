@@ -852,6 +852,7 @@ namespace CLFV {
     Int_t           fUseEmbedRocco = 1; //whether or not to use Rochester corrections + uncertainties with Embedded muons
     Int_t           fUseEmbedMuonES = 0; //use Embed - MC resolution fit means to correction Embedding muon energy scales
     Int_t           fEmbedUseMETUnc = 1; //whether to include MET JER/JES uncertainties in the embedding MET uncertainty
+    Int_t           fEmbedUseMCTauID = 0; //use MC measured tau ID corrections instead of Embedding corrections
     Int_t           fUseEmbedZMatching = 0; //match Embedding normalization to gen-level Z->tau_x tau_y rates in a Z mass window
     Int_t           fUseRoccoCorr = 1; //use Rochester corrections, 0 = none, 1 = local, 2 = ntuple-level
     Int_t           fUseRoccoSize = 1; //use the size of the Rochester corrections as the uncertainty

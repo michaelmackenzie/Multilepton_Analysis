@@ -172,7 +172,8 @@ void HistMaker::Begin(TTree * /*tree*/)
   }
 
   fTauIDWeight = new TauIDWeight((fETauAntiEleCut <= 63) ? 0 : (fETauAntiEleCut <= 127) ? 1 : 2, //which etau anti-ele ID WP is being used, Tight, VTight, or VVTight
-                                 fIsEmbed, (fSelection == "etau" || fSelection == "mutau") ? fSelection : "etau", fVerbose); //default to etau IDs
+                                 (fIsEmbed) ? fEmbedUseMCTauID+1 : 0, //whether or not to use the Embedding corrections
+                                 (fSelection == "etau" || fSelection == "mutau") ? fSelection : "etau", fVerbose); //default to etau IDs
 
   //0: normal unfolding; 1: use z eta unfolding; 2: use z (eta, pt) unfolding; 3: mode 2 with tight cuts; 4: 2016 unfolding; 10: IC measured unfolding
   //FIXME: Settle on an embedding unfolding configuration
@@ -562,8 +563,8 @@ void HistMaker::BookBaseEventHistograms(Int_t i, const char* dirname) {
   Utilities::BookH1F(fEventHist[i]->hLepMDown, "lepmdown"      , Form("%s: Lepton M"       ,dirname)  , 280,  40, 180, folder);
   Utilities::BookH1F(fEventHist[i]->hLepMt   , "lepmt"         , Form("%s: Lepton Mt"      ,dirname)  , 100,   0, 200, folder);
   Utilities::BookH1F(fEventHist[i]->hLepEta  , "lepeta"        , Form("%s: Lepton Eta"     ,dirname)  ,  50,  -5,   5, folder);
-  Utilities::BookH1F(fEventHist[i]->hLepMEstimate   , "lepmestimate"   , Form("%s: Estimate di-lepton mass"  ,dirname)  ,100,0.,  200, folder);
-  Utilities::BookH1F(fEventHist[i]->hLepMEstimateTwo, "lepmestimatetwo", Form("%s: Estimate di-lepton mass"  ,dirname)  ,100,0.,  200, folder);
+  Utilities::BookH1F(fEventHist[i]->hLepMEstimate   , "lepmestimate"   , Form("%s: Estimate di-lepton mass"  ,dirname)  ,150,0.,  300, folder);
+  Utilities::BookH1F(fEventHist[i]->hLepMEstimateTwo, "lepmestimatetwo", Form("%s: Estimate di-lepton mass"  ,dirname)  ,150,0.,  300, folder);
   Utilities::BookH1F(fEventHist[i]->hLepMEstimateThree, "lepmestimatethree", Form("%s: Estimate di-lepton mass"  ,dirname)  ,100,0.,  200, folder);
   Utilities::BookH1F(fEventHist[i]->hLepMEstimateFour, "lepmestimatefour", Form("%s: Estimate di-lepton mass"  ,dirname)  ,100,0.,  200, folder);
   Utilities::BookH1F(fEventHist[i]->hLepMEstimateCut[0], "lepmestimatecut0"   , Form("%s: Estimate di-lepton mass"  ,dirname)  ,100,0.,  200, folder);
@@ -1741,10 +1742,22 @@ void HistMaker::InitializeEventWeights() {
       if(fUseEmbedZMatching == 1) { //use gen-level matching
         if       ((decay_1 == 11 && decay_2 == 13) || (decay_1 == 13 || decay_2 == 11)) { //tau_e tau_mu
           matching = (fYear == 2016) ? 1.0179f : (fYear == 2017) ? 1.0711f : 1.0859f;
-        } else if((decay_1 == 11 && decay_2 == 15) || (decay_1 == 15 || decay_2 == 11)) { //tau_e tau_h
-          matching = (fYear == 2016) ? 1.f : (fYear == 2017) ? 1.f : 1.f;
-        } else if((decay_1 == 13 && decay_2 == 15) || (decay_1 == 15 || decay_2 == 13)) { //tau_mu tau_h
-          matching = (fYear == 2016) ? 1.f : (fYear == 2017) ? 1.f : 1.f;
+        } else if((decay_1 == 11 && decay_2 == 15) || (decay_1 == 15 || decay_2 == 11)) { //tau_e tau_h (only if using MC tau ID scales)
+          if(!fEmbedUseMCTauID) matching = 1.f; //tau ID scales compensate for unfolding issues
+          else {
+            if     (fYear == 2016) matching = 1.0133f;
+            // if     (fYear == 2016) matching = (mcEra == 0) ? 1.0848f : 0.9361f; //significant run dependence to the unfolding, average is: 1.0133
+            else if(fYear == 2017) matching = 1.0621f;
+            else if(fYear == 2018) matching = 1.0732f;
+          }
+        } else if((decay_1 == 13 && decay_2 == 15) || (decay_1 == 15 || decay_2 == 13)) { //tau_mu tau_h (only if using MC tau ID scales)
+          if(!fEmbedUseMCTauID) matching = 1.f; //tau ID scales compensate for unfolding issues
+          else {
+            if     (fYear == 2016) matching = 1.0089f;
+            // if     (fYear == 2016) matching = (mcEra == 0) ? 1.0837f : 0.9286f; //significant run dependence to the unfolding, average is: 1.0089
+            else if(fYear == 2017) matching = 1.0686f;
+            else if(fYear == 2018) matching = 1.0735f;
+          }
         }
       } else if(fUseEmbedZMatching) { //use reco-level matching (Only if going to float Embedding in the end)
         if       ((decay_1 == 11 && decay_2 == 13) || (decay_1 == 13 || decay_2 == 11)) { //tau_e tau_mu
@@ -2138,6 +2151,21 @@ void HistMaker::InitializeEventWeights() {
     if(leptonTwo.isTau     ()) leptonTwo.wt1[0] = fTauIDWeight->IDWeight(leptonTwo.p4->Pt(), leptonTwo.p4->Eta(), tauGenID, tauDeepAntiJet,
                                                                          fYear, leptonTwo.wt1[1], leptonTwo.wt1[2], leptonTwo.wt1_bin);
 
+    //if using MC Tau ID weights for embedding taus, apply MC / DY reco efficiency correction
+    if(fIsEmbed && fEmbedUseMCTauID) {
+      const float mc_over_embed_eff = (fYear == 2016) ? 0.975f : (fYear == 2017) ? 0.975f : 0.95f;
+      if(leptonOne.isTau()) {
+        leptonOne.wt1[0] *= mc_over_embed_eff;
+        leptonOne.wt1[1] *= mc_over_embed_eff;
+        leptonOne.wt1[2] *= mc_over_embed_eff;
+      }
+      if(leptonTwo.isTau()) {
+        leptonTwo.wt1[0] *= mc_over_embed_eff;
+        leptonTwo.wt1[1] *= mc_over_embed_eff;
+        leptonTwo.wt1[2] *= mc_over_embed_eff;
+      }
+    }
+
   } // end fApplyLeptonIDWt
 
   if(fRemoveEventWeights) {
@@ -2297,6 +2325,11 @@ void HistMaker::InitializeEventWeights() {
       jetToTauWeightBiasDown   = jetToTauWeightBias;
       jetToTauWeight_compUp    = jetToTauWeightBias; //ignore uncertainties
       jetToTauWeight_compDown  = jetToTauWeightBias;
+      for(int iproc = 0; iproc < JetToTauComposition::kLast; ++iproc) { //set composition fraction to 0 for non-QCD
+        fJetToTauComps    [iproc] = (iproc == proc) ? 1.f : 0.f;
+        fJetToTauCompsUp  [iproc] = (iproc == proc) ? 1.f : 0.f;
+        fJetToTauCompsDown[iproc] = (iproc == proc) ? 1.f : 0.f;
+      }
     }
     //no j-->tau weights
     if(fUseMCFakeTau == 2) {
@@ -3030,10 +3063,36 @@ void HistMaker::CountObjects() {
       const double rand = fRnd->Uniform();
       const double frac_first = 19.72 / 35.86;
       mcEra = rand > frac_first; //0 if first, 1 if second
+      const double lums[] = {5.892,2.646,4.353,4.117,3.174,7.540,8.606};
+      const int nlums = sizeof(lums)/sizeof(*lums);
+      runEra = 1; //starts at B
+      double tot = 0.f; //total luminosity
+      for(int index = 0; index < nlums; ++index) {
+        tot += lums[index];
+      }
+      double running = 0.f; //running luminosity
+      for(int index = 0; index < nlums; ++index) {
+        running += lums[index];
+        if(rand > running/tot) ++runEra;
+        else break;
+      }
     } else if(fYear == 2018) {
       const double rand = fRnd->Uniform();
       const double frac_first = 1. -  31.93/59.59;
       mcEra = rand > frac_first; //0 if first, 1 if second
+      const double lums[] = {14.027,7.061,6.916,31.258};
+      const int nlums = sizeof(lums)/sizeof(*lums);
+      runEra = 14; //starts at A, add 2016+2017
+      double tot = 0.f; //total luminosity
+      for(int index = 0; index < nlums; ++index) {
+        tot += lums[index];
+      }
+      double running = 0.f; //running luminosity
+      for(int index = 0; index < nlums; ++index) {
+        running += lums[index];
+        if(rand > running/tot) ++runEra;
+        else break;
+      }
     } else if(fYear == 2017) { //approximate run eras in 2017
       const double rand = fRnd->Uniform();
       const double lums[] = {4.7294,9.6312,4.2477,9.3136,13.5387};
@@ -3533,7 +3592,7 @@ void HistMaker::CountObjects() {
   //Trigger thresholds (mu, ele): 2016 = (24, 27); 2017 = (27, 32); 2018 = (24, 32)
   //Use 1 GeV/c above muon threshold and 2 GeV/c above electron threshold
   muon_trig_pt_ = 25.f; electron_trig_pt_ = 34.f;
-  if(fYear == 2017) muon_trig_pt_ = 28.f;
+  if(fYear == 2017) {muon_trig_pt_ = 28.f; electron_trig_pt_ = 35.f;} //2017 electron trigger efficiencies are ~0 below 35 GeV for Embedding at high |eta|
   if(fYear == 2016) electron_trig_pt_ = 29.f;
   emu_trig_ele_pt_ = 24.f; //following the LFV H AN selections
   emu_trig_mu_pt_  = 10.f;

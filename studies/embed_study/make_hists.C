@@ -49,7 +49,7 @@ TLorentzVector get_had_tau_vector(int index, const int npart, const int* mothers
 }
 
 //-------------------------------------------------------------------------------------------------------------------
-int make_hists(const TString selec = "emu", const bool isEmbed = true, const int year = 2018, const bool tight = false) {
+int make_hists(const TString selec = "emu", const bool isEmbed = true, int year = 2018, const bool tight = false) {
   TString final_state;
   if(selec == "emu") final_state = "EMu";
   else if(selec == "etau") final_state = "ETau";
@@ -59,12 +59,23 @@ int make_hists(const TString selec = "emu", const bool isEmbed = true, const int
     return -1;
   }
 
+  //check for a run period being requested
+  const int run_period = (isEmbed && year%10000 == 2016) ? year / 10000 : 0;
+  year %= 10000;
+
   //List of runs to process if embedding
   vector<TString> runs = {""};
   if(isEmbed) {
-    if(year == 2016) runs = {"B", "C", "D", "E", "F", "G", "H"};
+    if(year == 2016) {
+      if     (run_period == 0) runs = {"B", "C", "D", "E", "F", "G", "H"};
+      else if(run_period == 1) runs = {"B", "C", "D", "E", "F"};
+      else                     runs = {"G", "H"};
+    }
     if(year == 2017) runs = {"B", "C", "D", "E", "F"};
     if(year == 2018) runs = {"A", "B", "C", "D"};
+    cout << "Processing runs";
+    for(auto run : runs) cout << " " << run.Data();
+    cout << endl;
   }
 
   //unfolding weight
@@ -320,6 +331,7 @@ int make_hists(const TString selec = "emu", const bool isEmbed = true, const int
 
       ///////////////////////////////////////
       // Find reco tau, if available
+
       recotau.SetPtEtaPhiM(0., 0., 0., 0.);
       reco_tau_jet_id = -1;
       for(UInt_t iTau = 0; iTau < nTau; ++iTau) {
@@ -466,7 +478,7 @@ int make_hists(const TString selec = "emu", const bool isEmbed = true, const int
   hGenTauEtaVsPtEff->Divide(hTauEtaVsPt);
   hGenTauEtaVsPtEff->SetTitle("Reco tau efficiency by Gen (|#eta|, p_{T})");
 
-  const TString basename = Form("figures/%s_%s%s_%i", selec.Data(), (isEmbed) ? "embed" : "dy50", (tight) ? "_tight" : "", year);
+  const TString basename = Form("figures/%s_%s%s_%i%s", selec.Data(), (isEmbed) ? "embed" : "dy50", (tight) ? "_tight" : "", year, (run_period > 0) ? Form("_period_%i", run_period) : "");
   gSystem->Exec(Form("[ ! -d %s ] && mkdir -p %s", basename.Data(), basename.Data()));
   gSystem->Exec("[ ! -d histograms ] && mkdir histograms");
 

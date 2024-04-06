@@ -1,4 +1,4 @@
-//Script to generate Tag and Probe (TnP) electron trigger scale factors
+//Script to generate Tag and Probe (TnP) lepton ID/trigger efficiencies
 
 int debug_ = 0; //1: print info then exit; 2: process nentries_ and perform fits; 3: 2 + print fit information
 int  nentries_ = 2e6;
