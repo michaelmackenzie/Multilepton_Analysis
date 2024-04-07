@@ -70,19 +70,6 @@ std::pair<TString,TString> systematic_name(int sys, TString selection, int year,
 
   // if(name.BeginsWith("JetToTauBias") && !name.Contains("Rate")) name = ""; //turn off j-->tau bias uncertainties
 
-  //Re-name j-->tau systematics to have process names
-  if(name.BeginsWith("JetToTauNC") || name.BeginsWith("JetToTauBias")) {
-    if(name.EndsWith("0")) name.ReplaceAll("0", "WJets");
-    if(name.EndsWith("1")) name.ReplaceAll("1", "Top");
-    if(name.EndsWith("2")) name.ReplaceAll("2", "QCD");
-  }
-  if(name.BeginsWith("JetToTauAlt")) {
-    if(name.Contains("P0")) name.ReplaceAll("P0", "WJets");
-    if(name.Contains("P1")) name.ReplaceAll("P1", "Top"  );
-    if(name.Contains("P2")) name.ReplaceAll("P2", "QCD"  );
-  }
-
-
   //non-prompt emu estimate check
   // if(name == "QCDMassBDTBias") name = "";
 
@@ -135,7 +122,29 @@ std::pair<TString,TString> systematic_name(int sys, TString selection, int year,
   if(name == "XS_toptCh") name = ""; //contributes nothing at 1e-4 norm level
   if(name == "XS_ZZ") name = ""; //contributes nothing at 1e-4 norm level
 
-  //define which are implemented just as rate uncertainties
+  ///////////////////////////////////////////////////////////////////////////
+  // Re-name systematics for clarity
+
+  //Re-name j-->tau systematics to have process names
+  if(name.BeginsWith("JetToTauNC") || name.BeginsWith("JetToTauBias")) {
+    if(name.EndsWith("0")) name.ReplaceAll("0", "WJets");
+    if(name.EndsWith("1")) name.ReplaceAll("1", "Top");
+    if(name.EndsWith("2")) name.ReplaceAll("2", "QCD");
+  }
+  if(name.BeginsWith("JetToTauAlt")) {
+    if(name.Contains("P0")) name.ReplaceAll("P0", "WJets");
+    if(name.Contains("P1")) name.ReplaceAll("P1", "Top"  );
+    if(name.Contains("P2")) name.ReplaceAll("P2", "QCD"  );
+  }
+
+  //Re-name electron Embedding energy scale
+  if(name == "EmbEleES") name = "EmbEleESBarrel";
+  if(name == "EmbEleES1") name = "EmbEleESEndCap";
+
+
+  ///////////////////////////////////////////////////////////////////////////
+  // Define which are implemented just as rate uncertainties
+
   if     (name == "SignalMixing"      ) type = "lnN";
   // else if(name == "SignalScale"       ) type = "lnN";
   // else if(name == "SignalPDF"         ) type = "lnN";
@@ -170,7 +179,9 @@ std::pair<TString,TString> systematic_name(int sys, TString selection, int year,
   else if(name.BeginsWith("TauJetID") ) type = "lnN"; //MC tau ID (Embed tau ID left as shape)
   // else if(name.BeginsWith("TheoryPDF")) type = "lnN"; //FIXME: Implement as a shape if needed
 
-  //define which are uncorrelated between years
+  ///////////////////////////////////////////////////////////////////////////
+  // Define which are uncorrelated between years
+
   year -= 2016; //reduce needed characters
   if     (name.Contains("JetToTauStat")) name = Form("%sY%i", name.Data(), year);
   else if(name.Contains("JetToTauAlt" )) name = Form("%sY%i", name.Data(), year);

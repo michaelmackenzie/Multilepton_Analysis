@@ -1683,7 +1683,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set, const
       }
       if(index == 0) hSignalsOverMC[index]->Draw("hist E1");
       else           hSignalsOverMC[index]->Draw("hist E1 same");
-      max_val = std::max(max_val, hSignalsOverMC[index]->GetMaximum());
+      max_val = std::max(max_val, Utilities::H1Max(hSignalsOverMC[index], xMin_, xMax_));
     }
     if(hSignalsOverMC.size() > 0) {
       hSignalsOverMC[0]->GetXaxis()->SetTitle(xtitle.Data());
@@ -1695,10 +1695,14 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set, const
       hSignalsOverMC[0]->GetYaxis()->SetTitleSize(axis_font_size_);
       hSignalsOverMC[0]->GetYaxis()->SetTitleOffset(y_title_offset_);
       hSignalsOverMC[0]->GetYaxis()->SetLabelSize(y_label_size_);
-      hSignalsOverMC[0]->SetAxisRange(max_val/1.e4,max_val*5., "Y");
       hSignalsOverMC[0]->SetTitle("");
       if(xMin_ < xMax_) hSignalsOverMC[0]->GetXaxis()->SetRangeUser(xMin_,xMax_);
-      pad2->SetLogy();
+      if(signal_ratio_log_) {
+        hSignalsOverMC[0]->SetAxisRange(max_val/1.e4,max_val*5., "Y");
+        pad2->SetLogy();
+      } else {
+        hSignalsOverMC[0]->SetAxisRange(max_val/10.,max_val*1.1, "Y");
+      }
     }
   }
 

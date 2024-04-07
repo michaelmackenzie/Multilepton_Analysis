@@ -11,7 +11,7 @@ Int_t verbose_        = 0;
 
 int  ignore_sys_            = 0; //ignore systematics
 int  embed_mode_            = 1; //Nominal: 1; Definitions: 0: use DY MC; 1: use Embedding; 2: use Embedding except DY MC in emu
-int  embed_float_mode_      = 2; //Float Embedding: 0 = no floating; 1 = float by year; 2 = float by year and final state
+int  embed_float_mode_      = 0; //Float Embedding: 0 = no floating; 1 = float by year; 2 = float by year and final state
 int  embed_muon_scale_mode_ = 1; //0: use Higgs LFV uncertainty binning; 1: use 1 bin
 bool use_scale_sys_         = true; //use normalization uncertainties
 int  embed_bin_stats_mode_  = 1; //increase embedded histogram uncertainties to account for binomial error: 1 = emu, 2 = all

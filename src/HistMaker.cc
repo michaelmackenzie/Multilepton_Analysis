@@ -5228,7 +5228,7 @@ int HistMaker::Category(TString selection) {
   int mva_i = fMVAConfig->GetIndexBySelection(selection);
   if(mva_i < 0) return category;
   std::vector<double> mvaCuts = fMVAConfig->categories_[selection];
-  const float score = (fUseCDFBDTs == 1) ? fMvaCDFs[mva_i] : (fUseCDFBDTs == 2) ? fMvaFofP[mva_i] : fMvaOutputs[mva_i];
+  const float score = fMvaUse[mva_i];
   for(unsigned index = 0; index < mvaCuts.size(); ++index) {
     if(score >= mvaCuts[index]) ++category; //passes category
     else break; //fails

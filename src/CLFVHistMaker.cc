@@ -68,6 +68,11 @@ void CLFVHistMaker::InitHistogramFlags() {
     fTreeSets  [kMuTau + 8+fMisIDOffset] = fIsData != 0; //save Loose ID data for MVA training
     // fSysSets   [kMuTau + 8] = 1;
 
+    // MVA categories
+    if(fDoMVASets) {
+      for(int i = 9; i < ((fDoHiggs) ? 19 : 15); ++i) fEventSets[kMuTau + i] = 1;
+    }
+
     // fEventSets [kMuTau + 20] = 1; //test set
     // fSysSets   [kMuTau + 20] = 1;
     // fEventSets [kMuTau + 21] = 1; //1-prong taus
@@ -113,6 +118,11 @@ void CLFVHistMaker::InitHistogramFlags() {
     fTreeSets  [kETau + 8] = 1;
     fTreeSets  [kETau + 8+fMisIDOffset] = fIsData != 0; //save Loose ID data for MVA training
     // fSysSets   [kETau + 8] = 1;
+
+    // MVA categories
+    if(fDoMVASets) {
+      for(int i = 9; i < ((fDoHiggs) ? 19 : 15); ++i) fEventSets[kETau + i] = 1;
+    }
 
     // fEventSets [kETau + 20] = 1; //test set
     // fSysSets   [kETau + 20] = 1;
@@ -164,7 +174,9 @@ void CLFVHistMaker::InitHistogramFlags() {
       // fSysSets   [kEMu  + 20] = 1;
 
       // MVA categories
-      for(int i = 9; i < ((fDoHiggs) ? 19 : 15); ++i) fEventSets[kEMu  + i] = 1;
+      if(fDoMVASets) {
+        for(int i = 9; i < ((fDoHiggs) ? 19 : 15); ++i) fEventSets[kEMu  + i] = 1;
+      }
       fSysSets[kEMu  + 9  + fMVAConfig->categories_["zemu"].size()] = 1; //most significant category
       fSysSets[kEMu  + 8  + fMVAConfig->categories_["zemu"].size()] = 1; //second most significant category
       fSysSets[kEMu  + 7  + fMVAConfig->categories_["zemu"].size()] = 1; //third most significant category
@@ -268,6 +280,11 @@ void CLFVHistMaker::InitHistogramFlags() {
       fTreeSets [kMuTauE + 8] = 1;
       fTreeSets [kMuTauE + 8+fQcdOffset] = fIsData != 0; //save SS data for QCD training
 
+      // MVA categories
+      if(fDoMVASets) {
+        for(int i = 9; i < ((fDoHiggs) ? 19 : 15); ++i) fEventSets[kMuTauE + i] = 1;
+      }
+
       fEventSets[kMuTauE + 25] = 1; //nominal mass
       fSysSets  [kMuTauE + 25] = 1;
       fEventSets[kMuTauE + 26] = 1; //high mass
@@ -287,6 +304,11 @@ void CLFVHistMaker::InitHistogramFlags() {
       fSysSets  [kETauMu + 8] = 1;
       fTreeSets [kETauMu + 8] = 1;
       fTreeSets [kETauMu + 8+fQcdOffset] = fIsData != 0; //save SS data for QCD training
+
+      // MVA categories
+      if(fDoMVASets) {
+        for(int i = 9; i < ((fDoHiggs) ? 19 : 15); ++i) fEventSets[kETauMu + i] = 1;
+      }
 
       fEventSets[kETauMu + 25] = 1; //nominal mass
       fSysSets  [kETauMu + 25] = 1;
@@ -2456,69 +2478,39 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
 
   if(!fDoMVASets) return kTRUE;
 
-  if(!lep_tau) {
-    ////////////////////////////////////////////////////////////////////////////
-    // Set 9-18 : BDT Cut categories
-    ////////////////////////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////////////////////////
+  // Set 9-18 : BDT Cut categories
+  ////////////////////////////////////////////////////////////////////////////
+
+  if(fDoMVASets) {
     //Set event weight to ignore training sample
     Float_t prev_wt = eventWeight;
     //only use weight if MC or is same sign data
     eventWeight = (fIsData == 0 || !chargeTest) ? std::fabs(fTreeVars.eventweightMVA) : std::fabs(prev_wt); //use abs to remove gen weight sign
-    bool doMVASets = fDoMVASets;
-    int category = -1; //histogram set to use, based on MVA score
-    if(doMVASets) {
-      //Total background Z0 MVAs: 9 - 13
-      if(mutau) {
-        category = Category("zmutau");
-      } else if(etau) {
-        category = Category("zetau");
-      } else if(emu) {
-        category = Category("zemu");
-        FillAllHistograms(set_offset + 9 + category);
-        if(fDoEleIDStudy) {
+
+    //Loop through each boson MVA
+    for(TString boson : {"z", "h"}) {
+      if(boson == "h" && !fDoHiggs) continue;
+      int category = -1; //histogram set to use, based on MVA score
+      //Z MVAs: 9 - 13; H MVAs 14 - 18
+      if     (mutau  ) category = Category(boson + "mutau");
+      else if(etau   ) category = Category(boson + "etau");
+      else if(mutau_e) category = Category(boson + "etau_mu");
+      else if(etau_mu) category = Category(boson + "etau_mu");
+      else if(emu)     category = Category(boson + "emu");
+      else if(mumu)    category = Category(boson + "emu");
+      else if(ee)      category = Category(boson + "emu");
+      if(category > -1) {
+        const int mva_set_offset = set_offset + ((mutau_e) ? (kMuTauE-kEMu) : (etau_mu) ? (kETauMu - kEMu) : 0) + ((boson == "z") ? 9 : 14);
+        FillAllHistograms(mva_set_offset + category);
+        if(emu && fDoEleIDStudy && boson == "z") {
           if(barrel)
             FillAllHistograms(set_offset + 70 + category);
           else
             FillAllHistograms(set_offset + 80 + category);
         }
-        // category = Category("zmutau_e");
-        // FillAllHistograms(set_offset + kMuTauE - kEMu + 9 + category);
-        // category = Category("zetau_mu");
-        // FillAllHistograms(set_offset + kETauMu - kEMu + 9 + category);
-      } else if(mumu) {
-        category = Category("zemu");
-      } else if(ee) {
-        category = Category("zemu");
-      }
-
-      if(category >= 0 && !emu) //do emu separately, rest do here
-        FillAllHistograms(set_offset + 9 + category);
-
-      //Total background higgs MVAs 14 - 18
-      category = -1;
-      if(fDoHiggs && doMVASets) {
-        if(mutau) {
-          category = Category("hmutau");
-        } else if(etau) {
-          category = Category("hetau");
-        } else if(emu) {
-          category = Category("hemu");
-          FillAllHistograms(set_offset + 14 + category);
-          // category = Category("hmutau_e");
-          // FillAllHistograms(set_offset + kMuTauE - kEMu + 14 + category);
-          // category = Category("hetau_mu");
-          // FillAllHistograms(set_offset + kETauMu - kEMu + 14 + category);
-        } else if(mumu) {
-          category = Category("hemu");
-        } else if(ee) {
-          category = Category("hemu");
-        }
       }
     }
-
-    if(fDoHiggs && category >= 0 && !emu) //do emu separately, rest do here
-      FillAllHistograms(set_offset + 14 + category);
-
     //restore event weight
     eventWeight = prev_wt;
   }

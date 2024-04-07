@@ -12,25 +12,26 @@ TString hist_path_    = "root://cmseos.fnal.gov//store/user/mmackenz/histograms/
 TString hist_dir_     = "nanoaods_dev"; //which histogram directory to use
 TString hist_tag_     = "clfv"; //leading tag from HistMaker, e.g. "clfv", "hist", or "sparse"
 
-int    useUL_        =  0 ; //use UL dataset definitions
-int    ZMode_        =  0 ; //which Z cross-section information to use
-int    useAMC_       =  1 ; //use amc@NLO samples in place of previous LO samples
-int    useWG_        =  0 ; //use the W+gamma dataset
-int    useEWK_       =  0 ; //include the EWK W/Z samples
-int    useWWW_       =  1 ; //include the WWW samples
-int    splitDY_      =  1 ; //split Z->tautau and Z->ee/mumu
-int    splitWJ_      =  1 ; //use N(LHE jets) split W+Jets samples
-int    useEmbed_     =  1 ; //use Z->tautau embedding
-double embedScale_   =  1.; //scale factor to add onto the embedding normalization, < 0 means use defaults
-int    useQCDMC_     =  0 ; //use MC QCD background estimates
-int    combineVB_    =  1 ; //combine W+Jets with other vector boson processes
-int    includeHiggs_ =  0 ; //include the higgs signals in the plots
-int    higgsBkg_     =  0 ; //include SM higgs samples in the background estimate
-int    combineHB_    =  1 ; //combine H->tautau and H->WW backgrounds
-int    correctEmbed_ =  1 ; //check the event histogram vs gen numbers to correct for missing events
-int    correctData_  =  1 ; //check the event histogram vs gen numbers to correct for missing events
-bool   useLepTauSet_ =  1 ; //use leptonic tau files for leptonic tau selections
-bool   signalInStudy_ = 0 ; //include signal distributions in processing for studies
+int    useUL_         =  0 ; //use UL dataset definitions
+int    ZMode_         =  0 ; //which Z cross-section information to use
+int    useAMC_        =  1 ; //use amc@NLO samples in place of previous LO samples
+int    useWG_         =  0 ; //use the W+gamma dataset
+int    useEWK_        =  0 ; //include the EWK W/Z samples
+int    useWWW_        =  1 ; //include the WWW samples
+int    splitDY_       =  1 ; //split Z->tautau and Z->ee/mumu
+int    splitWJ_       =  1 ; //use N(LHE jets) split W+Jets samples
+int    useEmbed_      =  1 ; //use Z->tautau embedding
+double embedScale_    =  1.; //scale factor to add onto the embedding normalization, < 0 means use defaults
+int    useQCDMC_      =  0 ; //use MC QCD background estimates
+int    combineVB_     =  1 ; //combine W+Jets with other vector boson processes
+int    includeHiggs_  =  0 ; //include the higgs signals in the plots
+int    higgsBkg_      =  0 ; //include SM higgs samples in the background estimate
+int    combineHB_     =  1 ; //combine H->tautau and H->WW backgrounds
+int    correctEmbed_  =  1 ; //check the event histogram vs gen numbers to correct for missing events
+int    correctData_   =  1 ; //check the event histogram vs gen numbers to correct for missing events
+bool   useLepTauSet_  =  1 ; //use leptonic tau files for leptonic tau selections
+bool   signalInStudy_ =  0 ; //include signal distributions in processing for studies
+bool   skipData_      =  0 ; //don't initialize data cards
 
 //for adjusting cross sections
 float zll_scale_ = 1.f; //Z->ee/mumu yield scale
@@ -235,18 +236,20 @@ void get_datacards(std::vector<dcard>& cards, TString selection, int forStudies 
       }
     }
     //add data
-    if(useRunPeriodData_ == 0) { //use merged data samples
-      if(selection != "etau"  && selection !="ee"  ) cards.push_back(dcard("SingleMu" , "SingleMu" , "Data", true , 1., false, year));
-      if(selection != "mutau" && selection !="mumu") cards.push_back(dcard("SingleEle", "SingleEle", "Data", true , 1., false, year));
-      if(useMuonEGData_ && (selection == "emu" || selection.Contains("_"))) cards.push_back(dcard("MuonEG", "MuonEG", "Data", true , 1., false, year));
-    } else { //use run-period-specific data samples
-      for(int period = 0; period < periods[year].size(); ++period) {
-        TString muon_name = "SingleMuon-" + periods[year][period];
-        TString electron_name = "SingleElectron-" + periods[year][period];
-        TString muoneg_name = "MuonEG-" + periods[year][period];
-        if(selection != "etau"  && selection!="ee"  ) cards.push_back(dcard(muon_name    , muon_name    , "Data", true , 1., false, year));
-        if(selection != "mutau" && selection!="mumu") cards.push_back(dcard(electron_name, electron_name, "Data", true , 1., false, year));
-        if(useMuonEGData_ && (selection == "emu" || selection.Contains("_"))) cards.push_back(dcard(muoneg_name, muoneg_name, "Data", true , 1., false, year));
+    if(!skipData_) {
+      if(useRunPeriodData_ == 0) { //use merged data samples
+        if(selection != "etau"  && selection !="ee"  ) cards.push_back(dcard("SingleMu" , "SingleMu" , "Data", true , 1., false, year));
+        if(selection != "mutau" && selection !="mumu") cards.push_back(dcard("SingleEle", "SingleEle", "Data", true , 1., false, year));
+        if(useMuonEGData_ && (selection == "emu" || selection.Contains("_"))) cards.push_back(dcard("MuonEG", "MuonEG", "Data", true , 1., false, year));
+      } else { //use run-period-specific data samples
+        for(int period = 0; period < periods[year].size(); ++period) {
+          TString muon_name = "SingleMuon-" + periods[year][period];
+          TString electron_name = "SingleElectron-" + periods[year][period];
+          TString muoneg_name = "MuonEG-" + periods[year][period];
+          if(selection != "etau"  && selection!="ee"  ) cards.push_back(dcard(muon_name    , muon_name    , "Data", true , 1., false, year));
+          if(selection != "mutau" && selection!="mumu") cards.push_back(dcard(electron_name, electron_name, "Data", true , 1., false, year));
+          if(useMuonEGData_ && (selection == "emu" || selection.Contains("_"))) cards.push_back(dcard(muoneg_name, muoneg_name, "Data", true , 1., false, year));
+        }
       }
     }
   } //end years loop

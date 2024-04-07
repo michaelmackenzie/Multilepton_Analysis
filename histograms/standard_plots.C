@@ -727,6 +727,33 @@ Int_t print_collinear_mass(int set, bool add_sys = false, double xmax = 170.) {
 }
 
 //------------------------------------------------------------------------------------------------------------------------------
+// boosted system
+Int_t print_prime_sys(int set) {
+  if(!dataplotter_) return 1;
+  const Int_t offset = get_offset();
+  const bool same_flavor = selection_ == "ee" || selection_ == "mumu";
+  Int_t status(0);
+  TString mode = (selection_ == "emu") ? "2" : (selection_ == "mutau_e") ? "1" : "0";
+  std::vector<TString> hists = {"px", "py", "pz", "e"};
+  std::vector<TString> objs  = {"lepone", "leptwo", "met"};
+  for(TString obj : objs) {
+    for(TString hist : hists) {
+      if((mode == "0" || mode == "1") && obj == "met" && (hist == "py" || hist == "pz")) continue; //MET along x-axis in these modes
+      TString name = obj+"prime"+hist+mode;
+      PlottingCard_t card(name, "event", set+offset, 1, 1., -1.);
+      for(int logY = 0; logY < 1; ++logY) {
+        dataplotter_->logY_ = logY;
+        auto c = dataplotter_->print_stack(card);
+        if(c) DataPlotter::Empty_Canvas(c);
+        else ++status;
+      }
+    }
+  }
+  dataplotter_->logY_ = 0;
+  return status;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------
 // MVA distributions
 Int_t print_mva(int set, bool add_sys = false, bool all_versions = false) {
   if(!dataplotter_) return 1;

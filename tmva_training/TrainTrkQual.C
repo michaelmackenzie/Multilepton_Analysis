@@ -273,16 +273,16 @@ int print_spectator(TString var, TTree* TestTree, TTree* TrainTree, TString dir)
   hsig_test->Draw("hist same");
   hsig_train->Draw("PL same");
 
-  leg = new TLegend(0.65, 0.6, 0.9, 0.9);
-  leg->SetNColumns(2);
+  leg = new TLegend(0.15, 0.7, 0.9, 0.9);
+  leg->SetNColumns(3);
   leg->AddEntry(hsig_test, "Signal (test)");
   leg->AddEntry(hsig_train, "Signal (train)", "PL");
-  leg->AddEntry(hdy_tt, "Z->#tau#tau");
-  leg->AddEntry(hdy_ll, "Z->ll");
-  leg->AddEntry(httbar, "Top");
-  leg->AddEntry(hww, "WW/Other");
-  leg->AddEntry(hwlnu, "W+Jets");
-  leg->AddEntry(hqcd, (isemu) ? "QCD" : "j-->#tau");
+  leg->AddEntry(hdy_tt, "Z->#tau#tau", "F");
+  leg->AddEntry(hdy_ll, "Z->ll", "F");
+  leg->AddEntry(httbar, "Top", "F");
+  leg->AddEntry(hww, "WW/Other", "F");
+  leg->AddEntry(hwlnu, "W+Jets", "F");
+  leg->AddEntry(hqcd, (isemu) ? "QCD" : "j#rightarrow#tau", "F");
   leg->Draw();
 
   c->SaveAs(Form("%s/plots/spectator_%s_stack.png", dir.Data(), var.Data()));

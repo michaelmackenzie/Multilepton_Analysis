@@ -80,6 +80,7 @@ namespace CLFV {
     TString figure_format_ = "png"; //format plots are written out in
     Int_t logZ_ = 1; //log plot settings
     Int_t logY_ = 0;
+    Int_t signal_ratio_log_ = 1;
     Int_t plot_data_ = 1; //only MC or include data
     Int_t rebinH_ = 1; //rebinning of histograms
     Int_t data_over_mc_ = 1; //do data/MC or data-MC: 0 = none, 1 = data/MC, -1 = signal/bkg, -2 = signal/sqrt(bkg)
