@@ -505,6 +505,7 @@ namespace CLFV {
     void    SetKinematics();
     void    EstimateNeutrinos();
     void    SetGenHadronicTau(Lepton_t& lep);
+    int     FindTauGenType(Lepton_t& lep);
     void    EvalMVAs(TString TimerName = "");
     int     GetTriggerMatch(Lepton_t& lep, bool isMuon);
     // int     GetTriggerMatch(TLorentzVector* lv, bool isMuon, Int_t& trigIndex);

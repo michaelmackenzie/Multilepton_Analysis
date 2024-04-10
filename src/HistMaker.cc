@@ -876,7 +876,6 @@ void HistMaker::BookBaseTree(Int_t index) {
   fTrees[index]->Branch("leponeptoverm"      , &fTreeVars.leponeptoverm     );
   fTrees[index]->Branch("leptwopt"           , &fTreeVars.leptwopt          );
   fTrees[index]->Branch("leptwoptoverm"      , &fTreeVars.leptwoptoverm     );
-  // fTrees[index]->Branch("leptwod0"           , &fTreeVars.leptwod0          ); //FIXME: Remove
   fTrees[index]->Branch("leppt"              , &fTreeVars.leppt             );
   fTrees[index]->Branch("lepm"               , &fTreeVars.lepm              );
   fTrees[index]->Branch("lepptoverm"         , &fTreeVars.lepptoverm        );
@@ -2495,10 +2494,9 @@ void HistMaker::InitializeEventWeights() {
   fTreeVars.leponeid1bin       = leptonOne.wt1_bin;
   fTreeVars.leptwoid1bin       = leptonTwo.wt1_bin;
 
-  //if splitting testing/training samples
-  //FIXME: Turn back on the removing of MVA training split weights
-  if(!fIsData || looseQCDSelection)
-    fTreeVars.eventweightMVA *= (fTreeVars.train > 0.f) ? 0.f : 1.f/(1.f-fFractionMVA); //if training, ignore, else rescale to account for training sample removed
+  //if splitting testing/training samples, remove training and re-scale the event weight to account for lost events to training
+  //fTreeVars.trainfraction is 0 for events not eligible for training (e.g. signal region data)
+  fTreeVars.eventweightMVA *= (fTreeVars.train > 0.f) ? 0.f : 1.f/(1.f-fTreeVars.trainfraction);
 }
 
 //--------------------------------------------------------------------------------------------------------------
@@ -2784,7 +2782,36 @@ void HistMaker::EstimateNeutrinos() {
 }
 
 //--------------------------------------------------------------------------------------------------------------
-// Evaluate each MVA that is relevant to the current selection
+// Determine the type of gen-level event matched to a hadronic tau
+int HistMaker::FindTauGenType(Lepton_t& lep) {
+
+  //check if the reco object is matched to a gen-level hadronic tau
+  if(!lep.isTau()) return 0;
+  if(fIsData) return 15; //for data, assume a real tau
+
+  const int abs_flav = std::abs(lep.genFlavor);
+  if(abs_flav == 15 || abs_flav == 13 || abs_flav == 11) return abs_flav; //genuine taus or light lep --> tau
+
+  //already matched
+  if(lep.genIndex >= 0) return std::abs(GenPart_pdgId[lep.genIndex]);
+
+  //trace through the particle list until an object near the tau is found
+  int type = -1;
+  for(unsigned index = 0; index < nGenPart; ++index) {
+    const int flavor(std::abs(GenPart_pdgId[index]));
+    if(flavor == 12 || flavor == 14 || flavor == 16) continue; //skip neutrinos
+    const double eta(GenPart_eta[index]), phi(GenPart_phi[index]), pt(GenPart_pt[index]);
+    const double delta_r(std::sqrt(std::pow(lep.eta - eta, 2) + std::pow(Utilities::DeltaPhi(lep.phi, phi), 2)));
+    if(delta_r < 0.5 && pt/lep.pt > 0.75f) {
+      type = flavor;
+      break;
+    }
+  }
+  return std::max(type, 0);
+}
+
+//--------------------------------------------------------------------------------------------------------------
+// Determine the gen-level hadronic tau info
 void HistMaker::SetGenHadronicTau(Lepton_t& lep) {
   //check if the reco object is matched to a gen-level hadronic tau
   if(!lep.isTau()) return;
@@ -3019,7 +3046,9 @@ void HistMaker::CountObjects() {
     }
     printf(" Tau collection:\n");
     for(int i = 0; i < (int) nTau; ++i) {
-      printf("  %2i: pt = %.1f, eta = %.2f\n", i, Tau_pt[i], Tau_eta[i]);
+      printf("  %2i: pt = %.1f, eta = %.2f", i, Tau_pt[i], Tau_eta[i]);
+      if(!fIsData) printf(", gen_flav_ID = %2i, gen index = %2i", Tau_genPartFlav[i], Tau_genPartIdx[i]);
+      printf("\n");
     }
   }
 
@@ -3441,8 +3470,6 @@ void HistMaker::CountObjects() {
         leptonOne.genPhi  = GenPart_phi [leptonOne.genIndex];
         leptonOne.genMass = GenPart_mass[leptonOne.genIndex];
       }
-      if(fVerbose > 1) printf(" Lepton one gen info: pt = %.1f, eta = %.2f, phi = %.2f, mass = %.1e\n",
-                              leptonOne.genPt, leptonOne.genEta, leptonOne.genPhi, leptonOne.genMass);
     } else {
       leptonOne.genPt   = -1.f;
       leptonOne.genEta  =  0.f;
@@ -3457,12 +3484,18 @@ void HistMaker::CountObjects() {
         leptonTwo.genPhi  = GenPart_phi [leptonTwo.genIndex];
         leptonTwo.genMass = GenPart_mass[leptonTwo.genIndex];
       }
-      if(fVerbose > 1) printf(" Lepton two gen info: pt = %.1f, eta = %.2f, phi = %.2f, mass = %.1e\n",
-                              leptonTwo.genPt, leptonTwo.genEta, leptonTwo.genPhi, leptonTwo.genMass);
     } else {
       leptonTwo.genPt  = -1.f;
       leptonTwo.genEta =  0.f;
       leptonTwo.genPhi =  0.f;
+    }
+    if(fVerbose > 1) {
+      printf(" Lepton one gen info: pt = %.1f, eta = %.2f, phi = %.2f, mass = %.1e\n",
+             leptonOne.genPt, leptonOne.genEta, leptonOne.genPhi, leptonOne.genMass);
+      printf(" Lepton two gen info: pt = %.1f, eta = %.2f, phi = %.2f, mass = %.1e",
+             leptonTwo.genPt, leptonTwo.genEta, leptonTwo.genPhi, leptonTwo.genMass);
+      if(!fIsData && leptonTwo.isTau()) printf(", gen-type = %i", FindTauGenType(leptonTwo));
+      printf("\n");
     }
   } else { //data --> set to reco values
     leptonOne.genPt   = leptonOne.pt  ;
@@ -3779,7 +3812,8 @@ void HistMaker::InitializeTreeVariables() {
 
   //dataset/event information
   fTreeVars.eventcategory = fEventCategory;
-  if(!fIsData || looseQCDSelection) {
+  const bool train_eligible = (!fIsData && !looseQCDSelection) || (fIsData && looseQCDSelection); //use tight MC events or loose data events
+  if(train_eligible) {
     float split_val = (fUseRandomField) ? randomField : fRnd->Uniform();
     if(fUseRandomField == 2) { //evaluate with event variables
       double event_val = std::fabs(leptonOne.phi * leptonTwo.eta);
@@ -3788,7 +3822,7 @@ void HistMaker::InitializeTreeVariables() {
     }
     if(fFractionMVA > 0.f) fTreeVars.train = (split_val < fFractionMVA) ? 1.f : -1.f; //whether or not it is in the training sample
     else                   fTreeVars.train = -1.f;
-    fTreeVars.trainfraction = fFractionMVA;
+    fTreeVars.trainfraction = std::min(1.f, std::max(0.f, fFractionMVA));
   } else {
     fTreeVars.train = -1.f;
     fTreeVars.trainfraction = 0.f;
@@ -4078,7 +4112,7 @@ void HistMaker::FillBaseEventHistogram(EventHist_t* Hist) {
     Hist->hMVA[i][3]->Fill(fMvaLogP   [i], fTreeVars.eventweightMVA); //remove training samples
     Hist->hMVA[i][4]->Fill(fMvaFofP   [i], fTreeVars.eventweightMVA); //remove training samples
     Hist->hMVA[i][5]->Fill(score, fTreeVars.eventweightMVA*((bdtWeight > 0.f) ? 1./bdtWeight : 1.f)); //remove training samples and BDT score correction
-    if (fTreeVars.train > 0) Hist->hMVATrain[i]->Fill(fMvaOutputs[i], fTreeVars.eventweight*((fFractionMVA > 0.f) ? 1.f/fFractionMVA : 1.f));
+    if (fTreeVars.train > 0) Hist->hMVATrain[i]->Fill(fMvaOutputs[i], fTreeVars.eventweight*((fTreeVars.trainfraction > 0.f) ? 1.f/fTreeVars.trainfraction : 1.f));
     if (fTreeVars.train < 0) Hist->hMVATest[i] ->Fill(fMvaOutputs[i], fTreeVars.eventweightMVA);
   }
 }
@@ -4194,16 +4228,26 @@ void HistMaker::FillBaseLepHistogram(LepHist_t* Hist) {
   Hist->hTwoTrkPtOverPt->Fill(leptonTwo.trkpt / leptonTwo.p4->Pt() ,eventWeight*genWeight);
   Hist->hTwoTrkDeltaEta->Fill(std::fabs(leptonTwo.trketa - leptonTwo.p4->Eta()) ,eventWeight*genWeight);
   Hist->hTwoTrkDeltaPhi->Fill(std::fabs(Utilities::DeltaPhi(leptonTwo.trkphi, leptonTwo.p4->Phi())) ,eventWeight*genWeight);
+  Hist->hTwoMetDeltaPhi->Fill(fTreeVars.twometdeltaphi  ,eventWeight*genWeight);
   Hist->hTwoRelIso    ->Fill(fTreeVars.leptworeliso       ,eventWeight*genWeight);
   Hist->hTwoFlavor    ->Fill(std::abs(leptonTwo.flavor)        ,eventWeight*genWeight);
-  Hist->hTwoGenFlavor ->Fill(leptonTwo.genFlavor           ,eventWeight*genWeight);
   Hist->hTwoQ         ->Fill(leptonTwo.flavor < 0 ? -1 : 1 ,eventWeight*genWeight);
   Hist->hTwoJetOverlap->Fill(leptonTwo.jetOverlap          ,eventWeight*genWeight);
   Hist->hTwoTrigger   ->Fill(leptonTwo.trigger               ,eventWeight*genWeight);
   Hist->hTwoWeight    ->Fill(leptonTwo.wt1[0]*leptonTwo.wt2[0]);
   Hist->hTwoTrigWeight->Fill(leptonTwo.trig_wt);
 
-  Hist->hTwoMetDeltaPhi   ->Fill(fTreeVars.twometdeltaphi  ,eventWeight*genWeight);
+  if(leptonTwo.isTau()) { //try to extract more info for gen-matching to taus
+    int gen_flavor = leptonTwo.genFlavor;
+    if(!fIsData && gen_flavor == 26) {
+      gen_flavor = FindTauGenType(leptonTwo);
+    }
+    Hist->hTwoGenFlavor ->Fill(gen_flavor ,eventWeight*genWeight);
+  } else {
+    Hist->hTwoGenFlavor ->Fill(leptonTwo.genFlavor           ,eventWeight*genWeight);
+  }
+
+
 
   ////////////////////////////////////////////////
   // Lepton comparisons/2D distributions

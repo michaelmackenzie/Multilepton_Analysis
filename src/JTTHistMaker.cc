@@ -362,6 +362,7 @@ void JTTHistMaker::BookLepHistograms() {
       Utilities::BookH1F(fLepHist[i]->hOneRelIso      , "onereliso"        , Form("%s: Iso / Pt"     ,dirname),  50,    0,  0.5, folder);
       Utilities::BookH1D(fLepHist[i]->hOneTrigger     , "onetrigger"       , Form("%s: Trigger"      ,dirname),  10,    0,   10, folder);
       Utilities::BookH1F(fLepHist[i]->hOneMetDeltaPhi , "onemetdeltaphi"   , Form("%s: Met Delta Phi",dirname),  50,    0,    5, folder);
+      Utilities::BookH1D(fLepHist[i]->hOneGenFlavor   , "onegenflavor      ", Form("%s: Gen Flavor"  ,dirname),  40,    0,   40, folder);
 
       Utilities::BookH1F(fLepHist[i]->hTwoPt[0]       , "twopt"            , Form("%s: Pt"          ,dirname)  , 150,   0, 150, folder);
       Utilities::BookH1F(fLepHist[i]->hTwoEta         , "twoeta"           , Form("%s: Eta"         ,dirname),  50,-2.5,  2.5, folder);
@@ -370,6 +371,7 @@ void JTTHistMaker::BookLepHistograms() {
       Utilities::BookH1F(fLepHist[i]->hTwoRelIso      , "tworeliso"        , Form("%s: Iso / Pt"    ,dirname),  50,   0,  0.5, folder);
       Utilities::BookH1D(fLepHist[i]->hTwoTrigger     , "twotrigger"       , Form("%s: Trigger"     ,dirname),  10,   0,   10, folder);
       Utilities::BookH1F(fLepHist[i]->hTwoMetDeltaPhi , "twometdeltaphi"   , Form("%s: Met Delta Phi",dirname), 50,   0,    5, folder);
+      Utilities::BookH1D(fLepHist[i]->hTwoGenFlavor   , "twogenflavor"     , Form("%s: Gen Flavor"  ,dirname),  40,   0,   40, folder);
 
       Utilities::BookH1F(fLepHist[i]->hPtDiff         , "ptdiff"           , Form("%s: 1 pT - 2 pT"  ,dirname), 100,  -80,   80, folder);
       Utilities::BookH1F(fLepHist[i]->hPtRatio        , "ptratio"          , Form("%s: 1 pT / 2 pT"  ,dirname),  50,    0,    3, folder);
@@ -680,6 +682,7 @@ void JTTHistMaker::FillLepHistogram(LepHist_t* Hist) {
   double oneMetDelPhi  = std::fabs(leptonOne.p4->Phi() - metPhi);
   if(oneMetDelPhi > M_PI) oneMetDelPhi = std::fabs(2.*M_PI - oneMetDelPhi);
   Hist->hOneMetDeltaPhi   ->Fill(oneMetDelPhi   ,eventWeight*genWeight);
+  Hist->hOneGenFlavor ->Fill(leptonOne.genFlavor           ,eventWeight*genWeight);
 
   /////////////
   //  Lep 2  //
@@ -694,6 +697,15 @@ void JTTHistMaker::FillLepHistogram(LepHist_t* Hist) {
   double twoMetDelPhi  = std::fabs(leptonTwo.p4->Phi() - metPhi);
   if(twoMetDelPhi > M_PI) twoMetDelPhi = std::fabs(2.*M_PI - twoMetDelPhi);
   Hist->hTwoMetDeltaPhi   ->Fill(twoMetDelPhi   ,eventWeight*genWeight);
+  if(leptonTwo.isTau()) { //try to extract more info for gen-matching to taus
+    int gen_flavor = leptonTwo.genFlavor;
+    if(!fIsData && gen_flavor == 26) {
+      gen_flavor = FindTauGenType(leptonTwo);
+    }
+    Hist->hTwoGenFlavor ->Fill(gen_flavor ,eventWeight*genWeight);
+  } else {
+    Hist->hTwoGenFlavor ->Fill(leptonTwo.genFlavor           ,eventWeight*genWeight);
+  }
 
   ////////////////////////////////////////////////
   // Lepton comparisons/2D distributions
