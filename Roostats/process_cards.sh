@@ -57,31 +57,35 @@ then
     #get the BDT distributions
     if [[ "${TAUSTRING}" != "" ]]; then
         echo "Retrieving hadronic tau histograms"
-        for TAUSET in ${TAULIST}; do
+        for IYEAR in ${YEARLIST}; do
+            for TAUSET in ${TAULIST}; do
+                if [[ "${PARALLEL}" != "" ]]; then
+                    echo "Starting processing to log/${SELECTION}_mva_had_${TAUSET}_${IYEAR}.log"
+                    ${HEAD} root.exe -q -b "get_MVA_histogram.C({${TAUSET}}, \"${SELECTION}\", {${IYEAR}}, \"${HISTPATH}\", 1)" >| log/${SELECTION}_mva_had_${TAUSET}_${IYEAR}.log 2>&1 &
+                else
+                    ${HEAD} root.exe -q -b "get_MVA_histogram.C({${TAUSET}}, \"${SELECTION}\", {${IYEAR}}, \"${HISTPATH}\", 1)"
+                fi
+            done
             if [[ "${PARALLEL}" != "" ]]; then
-                echo "Starting processing to log/${SELECTION}_mva_had_${TAUSET}_${YEARSTRING}.log"
-                ${HEAD} root.exe -q -b "get_MVA_histogram.C({${TAUSET}}, \"${SELECTION}\", ${YEAR}, \"${HISTPATH}\", 1)" >| log/${SELECTION}_mva_had_${TAUSET}_${YEARSTRING}.log 2>&1 &
-            else
-                ${HEAD} root.exe -q -b "get_MVA_histogram.C({${TAUSET}}, \"${SELECTION}\", ${YEAR}, \"${HISTPATH}\", 1)"
+                wait
             fi
         done
-        if [[ "${PARALLEL}" != "" ]]; then
-            wait
-        fi
     fi
     if [[ "${LEPSTRING}" != "" ]]; then
         echo "Retrieving leptonic tau histograms"
-        for LEPSET in ${LEPLIST}; do
+        for IYEAR in ${YEARLIST}; do
+            for LEPSET in ${LEPLIST}; do
+                if [[ "${PARALLEL}" != "" ]]; then
+                    echo "Starting processing to log/${SELECTION}_mva_lep_${LEPSET}_${IYEAR}.log"
+                    ${HEAD} root.exe -q -b "get_MVA_histogram.C({${LEPSET}}, \"${SELECTION}\", {${IYEAR}}, \"${HISTPATH}\", -1)" >| log/${SELECTION}_mva_lep_${LEPSET}_${IYEAR}.log 2>&1 &
+                else
+                    ${HEAD} root.exe -q -b "get_MVA_histogram.C({${LEPSET}}, \"${SELECTION}\", {${IYEAR}}, \"${HISTPATH}\", -1)"
+                fi
+            done
             if [[ "${PARALLEL}" != "" ]]; then
-                echo "Starting processing to log/${SELECTION}_mva_lep_${LEPSET}_${YEARSTRING}.log"
-                ${HEAD} root.exe -q -b "get_MVA_histogram.C({${LEPSET}}, \"${SELECTION}\", ${YEAR}, \"${HISTPATH}\", -1)" >| log/${SELECTION}_mva_lep_${LEPSET}_${YEARSTRING}.log 2>&1 &
-            else
-                ${HEAD} root.exe -q -b "get_MVA_histogram.C({${LEPSET}}, \"${SELECTION}\", ${YEAR}, \"${HISTPATH}\", -1)"
+                wait
             fi
         done
-        if [[ "${PARALLEL}" != "" ]]; then
-            wait
-        fi
     fi
 fi
 
