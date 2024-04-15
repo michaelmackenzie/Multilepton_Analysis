@@ -2,14 +2,23 @@
 
 TString base_;
 double lum_;
+double dy_scale_; //for adjusting the luminosity
 bool doPerLum_ = true;
 
 //-------------------------------------------------------------------------------------------------------------
 int make_2d_figure(TH2* hEmbed, TH2* hDY, bool logy = false) {
   TString name = hDY->GetName();
+
+  //adjust the Drell-Yan scale for sub-year figures
+  if(dy_scale_ != 1.) {
+    hDY = (TH2*) hDY->Clone(Form("%s_tmp", hDY->GetName()));
+    hDY->Scale(dy_scale_);
+  }
+
   if(hEmbed->Integral() <= 0. || hDY->Integral() <= 0.) {
     cout << "Histogram " << name.Data() << " has <= 0 integrals! Embed = "
          << hEmbed->Integral() << ", DY = " << hDY->Integral() << endl;
+    if(dy_scale_ != 1.) delete hDY;
     return 2;
   }
   TCanvas* c = new TCanvas("c", "c", 1000, 800);
@@ -31,6 +40,7 @@ int make_2d_figure(TH2* hEmbed, TH2* hDY, bool logy = false) {
 
   delete c;
   delete hRatio;
+  if(dy_scale_ != 1.) delete hDY;
 
   return 0;
 }
@@ -39,9 +49,16 @@ int make_2d_figure(TH2* hEmbed, TH2* hDY, bool logy = false) {
 int make_figure(TH1* hEmbed, TH1* hDY, bool logy = false) {
   TString name = hDY->GetName();
 
+  //adjust the Drell-Yan scale for sub-year figures
+  if(dy_scale_ != 1.) {
+    hDY = (TH1*) hDY->Clone(Form("%s_tmp", hDY->GetName()));
+    hDY->Scale(dy_scale_);
+  }
+
   if(hEmbed->Integral() <= 0. || hDY->Integral() <= 0.) {
     cout << "Histogram " << name.Data() << " has <= 0 integrals! Embed = "
          << hEmbed->Integral() << ", DY = " << hDY->Integral() << endl;
+    if(dy_scale_ != 1.) delete hDY;
     return 2;
   }
   TCanvas* c = new TCanvas("c", "c", 1000, 1100);
@@ -99,7 +116,7 @@ int make_figure(TH1* hEmbed, TH1* hDY, bool logy = false) {
   hRatio->GetYaxis()->SetTitleOffset(0.30);
   hRatio->GetYaxis()->SetLabelSize(0.08);
   hRatio->GetXaxis()->SetLabelSize(0.08);
-  hRatio->GetYaxis()->SetRangeUser(0.5, 1.5);
+  hRatio->GetYaxis()->SetRangeUser(0.8, 1.2);
 
   TLine* line = new TLine(hRatio->GetXaxis()->GetXmin(), 1., hRatio->GetXaxis()->GetXmax(), 1.);
   line->SetLineWidth(2);
@@ -111,6 +128,7 @@ int make_figure(TH1* hEmbed, TH1* hDY, bool logy = false) {
   delete c;
   delete hRatio;
   delete line;
+  if(dy_scale_ != 1.) delete hDY;
 
   return 0;
 }
@@ -138,12 +156,16 @@ int make_figure(TString name, TFile* fEmbed, TFile* fDY, bool logy = false) {
 }
 
 //-------------------------------------------------------------------------------------------------------------
-int combine_plots(const TString selec = "emu", const int year = 2018, const bool tight = false) {
+int combine_plots(const TString selec = "emu", int year = 2018, const bool tight = false) {
 
-  base_ = Form("%s_combined%s_%i", selec.Data(), (tight) ? "_tight" : "", year);
+  //check for a run period being requested
+  const int run_period = (year%10000 == 2016) ? year / 10000 : 0;
+  year %= 10000;
+
+  base_ = Form("%s_combined%s_%i%s", selec.Data(), (tight) ? "_tight" : "", year, (run_period > 0) ? Form("_period_%i", run_period) : "");
   gSystem->Exec(Form("[ ! -d figures/%s ] && mkdir -p figures/%s", base_.Data(), base_.Data()));
 
-  TFile* fEmbed = TFile::Open(Form("histograms/%s_embed%s_%i.hist", selec.Data(), (tight) ? "_tight" : "", year), "READ");
+  TFile* fEmbed = TFile::Open(Form("histograms/%s_embed%s_%i%s.hist", selec.Data(), (tight) ? "_tight" : "", year, (run_period > 0) ? Form("_period_%i", run_period) : ""), "READ");
   TFile* fDY    = TFile::Open(Form("histograms/%s_dy50%s_%i.hist" , selec.Data(), (tight) ? "_tight" : "", year), "READ");
   if(!fEmbed || !fDY) return 1;
 
@@ -158,7 +180,20 @@ int combine_plots(const TString selec = "emu", const int year = 2018, const bool
 
   //get the luminosity for rate / fb^{-1} comparisons
   CLFV::CrossSections xs;
-  lum_ = xs.GetLuminosity(year);
+  if(run_period == 0) {
+    lum_ = xs.GetLuminosity(year);
+  } else {
+    vector<TString> runs;
+    if(year == 2016) {
+      if     (run_period == 0) runs = {"B", "C", "D", "E", "F", "G", "H"};
+      else if(run_period == 1) runs = {"B", "C", "D", "E", "F"};
+      else                     runs = {"G", "H"};
+    }
+    lum_ = 0.;
+    for(auto run : runs) lum_ += xs.GetLuminosity(year, run);
+  }
+  cout << "Using a luminosity of " << lum_ << endl;
+  dy_scale_ = (run_period > 0) ? lum_ / xs.GetLuminosity(year) : 1.;
 
   make_figure("honept"      , fEmbed, fDY);
   make_figure("htwopt"      , fEmbed, fDY);
@@ -202,7 +237,7 @@ int combine_plots(const TString selec = "emu", const int year = 2018, const bool
   }
 
   gSystem->Exec("[ ! -d rootfiles ] && mkdir rootfiles");
-  TFile* fout = new TFile(Form("rootfiles/embedding_unfolding_%s_%s%i.root", selec.Data(), (tight) ? "tight_" : "", year), "RECREATE");
+  TFile* fout = new TFile(Form("rootfiles/embedding_unfolding_%s_%s%i%s.root", selec.Data(), (tight) ? "tight_" : "", year, (run_period > 0) ? Form("_period_%i", run_period) : ""), "RECREATE");
   make_figure(hembed, hscale);
   //match them in the low eta region to not decrease the embedding rate there
   const double match_scale = std::min(1., hscale->Integral(hscale->FindBin(-1.9), hscale->FindBin(1.9)) / hembed->Integral(hembed->FindBin(-1.9), hembed->FindBin(1.9)));

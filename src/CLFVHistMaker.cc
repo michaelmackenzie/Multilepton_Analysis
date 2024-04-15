@@ -61,12 +61,17 @@ void CLFVHistMaker::InitHistogramFlags() {
       fEventSets [kMuTau + 4] = 1;
     }
 
-    // fEventSets [kMuTau + 7] = 1;
+    fEventSets [kMuTau + 7] = fTopTesting; //inverted b-tag set
 
     fEventSets [kMuTau + 8] = 1;
     fTreeSets  [kMuTau + 8] = 1;
     fTreeSets  [kMuTau + 8+fMisIDOffset] = fIsData != 0; //save Loose ID data for MVA training
     // fSysSets   [kMuTau + 8] = 1;
+
+    // MVA categories
+    if(fDoMVASets) {
+      for(int i = 9; i < ((fDoHiggs) ? 19 : 15); ++i) fEventSets[kMuTau + i] = 1;
+    }
 
     // fEventSets [kMuTau + 20] = 1; //test set
     // fSysSets   [kMuTau + 20] = 1;
@@ -107,12 +112,17 @@ void CLFVHistMaker::InitHistogramFlags() {
       fEventSets [kETau + 4] = 1;
     }
 
-    // fEventSets [kETau + 7] = 1;
+    fEventSets [kETau + 7] = fTopTesting; //inverted b-tag set
 
     fEventSets [kETau + 8] = 1;
     fTreeSets  [kETau + 8] = 1;
     fTreeSets  [kETau + 8+fMisIDOffset] = fIsData != 0; //save Loose ID data for MVA training
     // fSysSets   [kETau + 8] = 1;
+
+    // MVA categories
+    if(fDoMVASets) {
+      for(int i = 9; i < ((fDoHiggs) ? 19 : 15); ++i) fEventSets[kETau + i] = 1;
+    }
 
     // fEventSets [kETau + 20] = 1; //test set
     // fSysSets   [kETau + 20] = 1;
@@ -154,7 +164,7 @@ void CLFVHistMaker::InitHistogramFlags() {
     }
 
     if(!lep_tau) {
-      // fEventSets [kEMu  + 7] = 1;
+      fEventSets [kEMu  + 7] = fTopTesting; //inverted b-tag set
       fEventSets [kEMu  + 8] = 1;
       fTreeSets  [kEMu  + 8] = 1;
       fTreeSets  [kEMu  + 8+fQcdOffset] = fIsData != 0; //save SS data for QCD training
@@ -164,7 +174,9 @@ void CLFVHistMaker::InitHistogramFlags() {
       // fSysSets   [kEMu  + 20] = 1;
 
       // MVA categories
-      for(int i = 9; i < ((fDoHiggs) ? 19 : 15); ++i) fEventSets[kEMu  + i] = 1;
+      if(fDoMVASets) {
+        for(int i = 9; i < ((fDoHiggs) ? 19 : 15); ++i) fEventSets[kEMu  + i] = 1;
+      }
       fSysSets[kEMu  + 9  + fMVAConfig->categories_["zemu"].size()] = 1; //most significant category
       fSysSets[kEMu  + 8  + fMVAConfig->categories_["zemu"].size()] = 1; //second most significant category
       fSysSets[kEMu  + 7  + fMVAConfig->categories_["zemu"].size()] = 1; //third most significant category
@@ -262,10 +274,16 @@ void CLFVHistMaker::InitHistogramFlags() {
   if(lep_tau != 0) {
     //mu+tau_e
     if(lep_tau == 1) {
+      fEventSets[kMuTauE + 7] = fTopTesting; //inverted b-tag set
       fEventSets[kMuTauE + 8] = 1;
       fSysSets  [kMuTauE + 8] = 1;
       fTreeSets [kMuTauE + 8] = 1;
       fTreeSets [kMuTauE + 8+fQcdOffset] = fIsData != 0; //save SS data for QCD training
+
+      // MVA categories
+      if(fDoMVASets) {
+        for(int i = 9; i < ((fDoHiggs) ? 19 : 15); ++i) fEventSets[kMuTauE + i] = 1;
+      }
 
       fEventSets[kMuTauE + 25] = 1; //nominal mass
       fSysSets  [kMuTauE + 25] = 1;
@@ -281,10 +299,16 @@ void CLFVHistMaker::InitHistogramFlags() {
     }
     //e+tau_mu
     if(lep_tau == 2) {
+      fEventSets[kETauMu + 7] = fTopTesting; //inverted b-tag set
       fEventSets[kETauMu + 8] = 1;
       fSysSets  [kETauMu + 8] = 1;
       fTreeSets [kETauMu + 8] = 1;
       fTreeSets [kETauMu + 8+fQcdOffset] = fIsData != 0; //save SS data for QCD training
+
+      // MVA categories
+      if(fDoMVASets) {
+        for(int i = 9; i < ((fDoHiggs) ? 19 : 15); ++i) fEventSets[kETauMu + i] = 1;
+      }
 
       fEventSets[kETauMu + 25] = 1; //nominal mass
       fSysSets  [kETauMu + 25] = 1;
@@ -1716,6 +1740,23 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   ee   &= !isLooseElectron;
   mumu &= !isLooseMuon;
 
+
+  //If cut-flow testing, remove fake leptons early to allow data-driven background estimates
+  if(fCutFlowTesting) {
+    if(!fUseMCEstimatedFakeLep && !fIsData && !fIsSignal) { //keep signal as even events with fakes are signal from the MC
+      emu   &= !isFakeMuon;
+      emu   &= !isFakeElectron;
+      mumu  &= !isFakeMuon;
+      ee    &= !isFakeElectron;
+      mutau &= !isFakeMuon;
+      etau  &= !isFakeElectron;
+    }
+    if(!fUseMCFakeTau) {
+      mutau &= fIsData > 0 || std::abs(tauGenFlavor) != 26 || fIsSignal; //keep signal as even events with fakes are signal from the MC
+      etau  &= fIsData > 0 || std::abs(tauGenFlavor) != 26 || fIsSignal;
+    }
+  }
+
   ///////////////////////////////////////////
   // Re-define N(b-jets) if needed
 
@@ -1969,7 +2010,7 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   const float mttwo_cut        = -1.f;
   const float mtlep_over_m_cut = -1.f;
   const float mtone_over_m_cut = -1.f; //(mutau_e)                  ? 0.8f : -1.f;
-  const float mttwo_over_m_cut = (mutau || etau /* || etau_mu*/) ? -1.f : -1.f;
+  const float mttwo_over_m_cut = (mutau || etau /* || etau_mu*/) ? -1.f : -1.f; // FIXME: Decide on this cut
   const bool nominalSelection  = (nBJetsUse == 0 &&
                                   (met_cut < 0.f || met < met_cut + sys_buffer) &&
                                   (mtlep_cut < 0.f || fTreeVars.mtlep < mtlep_cut + sys_buffer) &&
@@ -2241,10 +2282,8 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   ////////////////////////////////////////////////////////////////////////////
   // Set 7 + selection offset: No MC estimated fake taus, inverted b-jet cut
   ////////////////////////////////////////////////////////////////////////////
-  if(nBJetsUse > 0 && !lep_tau && (mumu || ee) && fDoSystematics >= 0)
+  if(nBJetsUse > 0 && (ee || mumu || fTopTesting) && fDoSystematics >= 0)
     FillAllHistograms(set_offset + 7);
-
-  if(fCutFlowTesting) return kTRUE;
 
   if(!looseQCDSelection && chargeTest) {fCutFlow->Fill(icutflow);} //27
   ++icutflow;
@@ -2253,7 +2292,7 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   //    Reject b-jets     //
   //////////////////////////
 
-  const bool invert_bjet_veto = false;
+  const bool invert_bjet_veto = fTopTesting > 1; //perform studies (e.g. Z->e+mu fits) in inverted b-tag regions
 
   if(invert_bjet_veto) {
     mutau   &= nBJetsUse >  0;
@@ -2302,6 +2341,9 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
       IncrementTimer("SingleFill", true);
     }
   }
+
+  //End the cutflow testing
+  if(fCutFlowTesting) return kTRUE;
 
   //Test Z->mumu rejection
   if(fDoEleIDStudy) {  //reduce gamma --> e to reduce Z->mu mu* --> mu mu gamma
@@ -2436,69 +2478,39 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
 
   if(!fDoMVASets) return kTRUE;
 
-  if(!lep_tau) {
-    ////////////////////////////////////////////////////////////////////////////
-    // Set 9-18 : BDT Cut categories
-    ////////////////////////////////////////////////////////////////////////////
+  ////////////////////////////////////////////////////////////////////////////
+  // Set 9-18 : BDT Cut categories
+  ////////////////////////////////////////////////////////////////////////////
+
+  if(fDoMVASets) {
     //Set event weight to ignore training sample
     Float_t prev_wt = eventWeight;
     //only use weight if MC or is same sign data
     eventWeight = (fIsData == 0 || !chargeTest) ? std::fabs(fTreeVars.eventweightMVA) : std::fabs(prev_wt); //use abs to remove gen weight sign
-    bool doMVASets = fDoMVASets;
-    int category = -1; //histogram set to use, based on MVA score
-    if(doMVASets) {
-      //Total background Z0 MVAs: 9 - 13
-      if(mutau) {
-        category = Category("zmutau");
-      } else if(etau) {
-        category = Category("zetau");
-      } else if(emu) {
-        category = Category("zemu");
-        FillAllHistograms(set_offset + 9 + category);
-        if(fDoEleIDStudy) {
+
+    //Loop through each boson MVA
+    for(TString boson : {"z", "h"}) {
+      if(boson == "h" && !fDoHiggs) continue;
+      int category = -1; //histogram set to use, based on MVA score
+      //Z MVAs: 9 - 13; H MVAs 14 - 18
+      if     (mutau  ) category = Category(boson + "mutau");
+      else if(etau   ) category = Category(boson + "etau");
+      else if(mutau_e) category = Category(boson + "etau_mu");
+      else if(etau_mu) category = Category(boson + "etau_mu");
+      else if(emu)     category = Category(boson + "emu");
+      else if(mumu)    category = Category(boson + "emu");
+      else if(ee)      category = Category(boson + "emu");
+      if(category > -1) {
+        const int mva_set_offset = set_offset + ((mutau_e) ? (kMuTauE-kEMu) : (etau_mu) ? (kETauMu - kEMu) : 0) + ((boson == "z") ? 9 : 14);
+        FillAllHistograms(mva_set_offset + category);
+        if(emu && fDoEleIDStudy && boson == "z") {
           if(barrel)
             FillAllHistograms(set_offset + 70 + category);
           else
             FillAllHistograms(set_offset + 80 + category);
         }
-        // category = Category("zmutau_e");
-        // FillAllHistograms(set_offset + kMuTauE - kEMu + 9 + category);
-        // category = Category("zetau_mu");
-        // FillAllHistograms(set_offset + kETauMu - kEMu + 9 + category);
-      } else if(mumu) {
-        category = Category("zemu");
-      } else if(ee) {
-        category = Category("zemu");
-      }
-
-      if(category >= 0 && !emu) //do emu separately, rest do here
-        FillAllHistograms(set_offset + 9 + category);
-
-      //Total background higgs MVAs 14 - 18
-      category = -1;
-      if(fDoHiggs && doMVASets) {
-        if(mutau) {
-          category = Category("hmutau");
-        } else if(etau) {
-          category = Category("hetau");
-        } else if(emu) {
-          category = Category("hemu");
-          FillAllHistograms(set_offset + 14 + category);
-          // category = Category("hmutau_e");
-          // FillAllHistograms(set_offset + kMuTauE - kEMu + 14 + category);
-          // category = Category("hetau_mu");
-          // FillAllHistograms(set_offset + kETauMu - kEMu + 14 + category);
-        } else if(mumu) {
-          category = Category("hemu");
-        } else if(ee) {
-          category = Category("hemu");
-        }
       }
     }
-
-    if(fDoHiggs && category >= 0 && !emu) //do emu separately, rest do here
-      FillAllHistograms(set_offset + 14 + category);
-
     //restore event weight
     eventWeight = prev_wt;
   }

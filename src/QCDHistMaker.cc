@@ -403,7 +403,7 @@ Bool_t QCDHistMaker::Process(Long64_t entry)
   mtone_max_ = -1.f; mttwo_max_ = -1.f; mtlep_max_ = -1.f; met_max_   = -1.f;
 
   //object pT thresholds
-  const float muon_pt(10.), electron_pt(10.), tau_pt(20.);
+  const float muon_pt(10.), electron_pt(15.), tau_pt(20.);
 
   if(!(mutau || etau || emu || mumu || ee)) return kTRUE;
 

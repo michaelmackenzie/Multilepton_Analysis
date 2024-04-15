@@ -173,11 +173,11 @@ TCanvas* plot_1D_slices(TH2* hID, TString cname, bool xaxis = true) {
 //////////////////////////////////////////////////
 // Plot the scale factors/errors from functions
 //////////////////////////////////////////////////
-TCanvas* plot_scale(TF1* fID, TString cname, TF1* fID_up = 0, TF1* fID_down = 0) {
+TCanvas* plot_scale(TF1* fID, TString cname, TF1* fID_up = 0, TF1* fID_down = 0, double xmin = 1., double xmax = -1.) {
   TCanvas* c = new TCanvas(cname.Data(), cname.Data(), 1000, 700);
   fID->SetLineColor(kRed);
   fID->SetLineWidth(2);
-  fID->Draw();
+  fID->Draw("P");
   if(fID_up) {
     fID_up->SetLineColor(kGreen);
     fID_up->SetLineStyle(kDashed);
@@ -195,7 +195,7 @@ TCanvas* plot_scale(TF1* fID, TString cname, TF1* fID_up = 0, TF1* fID_down = 0)
   if(fID_up  ) leg->AddEntry(fID_up  , "+#sigma", "L");
   if(fID_down) leg->AddEntry(fID_down, "-#sigma", "L");
   leg->Draw();
-  fID->GetYaxis()->SetRangeUser(0., 1.1*fID_up->GetMaximum());
+  if(fID_up && fID_down) fID->GetYaxis()->SetRangeUser(0.9*((xmin < xmax) ? fID_down->GetMinimum(xmin, xmax) : fID_down->GetMinimum()), 1.1*fID_up->GetMaximum());
 
   fID->GetXaxis()->SetTitleSize(0.05);
   fID->GetYaxis()->SetTitleSize(0.05);
@@ -203,6 +203,7 @@ TCanvas* plot_scale(TF1* fID, TString cname, TF1* fID_up = 0, TF1* fID_down = 0)
   c->SetBottomMargin(0.13);
   c->SetLeftMargin(0.13);
   c->SetRightMargin(0.13);
+  if(xmin < xmax) fID->GetXaxis()->SetRangeUser(xmin, xmax);
   return c;
 }
 
@@ -666,6 +667,26 @@ TCanvas* plot_embedding_unfold_scale(int year, int Mode) {
 //////////////////////////////////////////////////
 // Plot the tau anti-jet ID scale factors/errors
 //////////////////////////////////////////////////
+TCanvas* plot_tau_energy_scale(int year) {
+  TString path = gSystem->Getenv("CMSSW_BASE");
+  path += "/src/TauPOG/TauIDSFs/data/TauES_dm_pt_DeepTau2017v2p1VSjet_";
+  path += year;
+  if(year == 2016) path += "Legacy";
+  else             path += "ReReco";
+  path += ".root";
+  TFile* f = TFile::Open(path.Data(), "READ");
+  if(!f) return nullptr;
+  TH1* h = (TH1*) f->Get("tes");
+  if(!h) {
+    cout << __func__ << ": Energy scale not found!\n";
+    return nullptr;
+  }
+  return plot_scale(h, Form("c_tau_energy_scale_%i", year));
+}
+
+//////////////////////////////////////////////////
+// Plot the tau anti-jet ID scale factors/errors
+//////////////////////////////////////////////////
 TCanvas* plot_tau_jet_ID_scale(int year, bool isembed = false) {
   TString path = gSystem->Getenv("CMSSW_BASE");
   path += "/src/TauPOG/TauIDSFs/data/TauID_SF_pt_DeepTau2017v2p1VSjet_";
@@ -676,14 +697,15 @@ TCanvas* plot_tau_jet_ID_scale(int year, bool isembed = false) {
   path += ".root";
   TFile* f = TFile::Open(path.Data(), "READ");
   if(!f) return NULL;
-  TF1* fID      = (TF1*) f->Get("Medium_cent");
-  TF1* fID_up   = (TF1*) f->Get("Medium_up");
-  TF1* fID_down = (TF1*) f->Get("Medium_down");
+  TF1* fID      = (TF1*) f->Get("Tight_cent");
+  TF1* fID_up   = (TF1*) f->Get("Tight_up");
+  TF1* fID_down = (TF1*) f->Get("Tight_down");
   if(!fID || !fID_up || !fID_down) {
     cout << __func__ << ": ID scale functions not found!\n";
     return NULL;
   }
-  return plot_scale(fID, Form("c_tau_jet_id_%i", year), fID_up, fID_down);
+  fID->Print();
+  return plot_scale(fID, Form("c_tau_jet_id_%i", year), fID_up, fID_down, 20.1, 80.);
 }
 
 //////////////////////////////////////////////////
@@ -759,6 +781,9 @@ void plot_scales(int only_year = -1) {
       c->Print(Form("figures/tau_ele_id_%i.png", year));
       delete c;
     }
+    c = plot_tau_energy_scale(year);
+    if(c) { c->Print(Form("figures/tau_energy_scale_%i.png", year)); delete c; }
+
     c = plot_electron_scale(year, false);
     if(c) {
       c->Print(Form("figures/electron_scale_%i.png", year));

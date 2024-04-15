@@ -70,6 +70,7 @@ condor_q -nobatch | awk -v user=${USER} -v summary=${SUMMARY} -v verbose=${VERBO
             status[name]["H"] = 0;
             status[name]["X"] = 0;
             status[name]["<q"] = 0;
+            status[name]["<"] = 0;
 	    scripts[name] = $9;
 	    for(i = 10; i < NF; ++i) {
 		if($i ~ /_/) {
@@ -90,7 +91,7 @@ condor_q -nobatch | awk -v user=${USER} -v summary=${SUMMARY} -v verbose=${VERBO
 	    if(tag == "" || (datasets[name] ~ tag)) {
 		if(running == "" || statuses[name]["R"] > 0) {
 		    printf "%-10s %-10s %14i %9i %9i %9i %9i %9i   %-50s %-20s  %s\n", users[name], name, names[name],
-			statuses[name]["I"], statuses[name]["R"], statuses[name]["H"], statuses[name]["X"],  statuses[name]["<q"], datasets[name], scripts[name], schedds[name];
+			statuses[name]["I"], statuses[name]["R"], statuses[name]["H"], statuses[name]["X"],  statuses[name]["<q"] + statuses[name]["<"], datasets[name], scripts[name], schedds[name];
 		}
 	    }
 	}
@@ -98,7 +99,7 @@ condor_q -nobatch | awk -v user=${USER} -v summary=${SUMMARY} -v verbose=${VERBO
     print "Job script               :     Total      Idle   Running      Held         X         q"
     for(script in counts) {
 	printf "%-25s: %9i %9i %9i %9i %9i %9i\n", script, counts[script], script_statuses[script]["I"], script_statuses[script]["R"],
-	    script_statuses[script]["H"], script_statuses[script]["X"], script_statuses[script]["<q"];
+	    script_statuses[script]["H"], script_statuses[script]["X"], script_statuses[script]["<q"] + script_statuses[script]["<"];
     }
  }'
 

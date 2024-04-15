@@ -54,6 +54,7 @@ namespace CLFV {
     Bool_t          fCutFlowTesting = false; //for only testing basic cutflow sets
     Bool_t          fJetTauTesting = false; //for including MC j->tau sets in testing mode
     Bool_t          fTriggerTesting = false; //add emu histograms for electron/muon triggered events
+    Int_t           fTopTesting = 0; //>0: histogram an inverted b-tag set; 2: invert the b-tag requirement for MVA sets
     Bool_t          fDoMVASets = false; //for filling MVA cut sets even in DYTesting mode
     Bool_t          fRemoveLooseSS = true; //remove loose ID + same-sign events, not used for background estimates
 

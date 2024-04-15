@@ -62,6 +62,7 @@ std::vector<TH1*> DataPlotter::get_histograms(TString hist, TString setType, Int
     tmp->SetLineColor(input.color_);
     tmp->SetFillColor(input.color_);
     tmp->SetMarkerColor(input.color_);
+    // tmp->GetXaxis()->SetCanExtend(true);
 
     //determine the scale to apply, depending on if there's a scale uncertainty
     double scale = input.scale_;
@@ -210,6 +211,7 @@ TH1* DataPlotter::get_data_mc_diff(TString hist, TString setType, Int_t set, Sca
   for(unsigned index = 0; index < backgrounds.size(); ++index) {
     if(!hBackground) {
       hBackground = (TH1*) backgrounds[index]->Clone("Diff_bkg_tmp");
+      // hBackground->GetXaxis()->SetCanExtend(true);
     } else {
       hBackground->Add(backgrounds[index]);
     }
@@ -254,6 +256,7 @@ TH1* DataPlotter::get_data(TString hist, TString setType, Int_t set, ScaleUncert
   for(unsigned index = 0; index < histograms.size(); ++index) {
     if(!hdata) {
       hdata = (TH1*) histograms[index]->Clone(hname.Data());
+      // hdata->GetXaxis()->SetCanExtend(true);
     } else {
       hdata->Add(histograms[index]);
     }
@@ -688,6 +691,7 @@ TH1* DataPlotter::get_stack_uncertainty(THStack* hstack, TString hname) {
   if(!hlast) return nullptr;
   //clone last histogram to match the setup
   TH1* huncertainty = (TH1*) hlast->Clone(hname.Data());
+  // huncertainty->GetXaxis()->SetCanExtend(true);
   huncertainty->SetDirectory(0);
   if(add_bkg_hists_manually_) {huncertainty->Clear(); huncertainty->Reset();}
   huncertainty->SetTitle("#sigma(stat.)");
@@ -715,6 +719,7 @@ TGraphAsymmErrors* DataPlotter::get_stack_systematic(THStack* hstack,
     return nullptr;
 
   TH1* hbkg = (TH1*) hstack->GetStack()->Last()->Clone("TMP_systematic_bkg");
+  // hbkg->GetXaxis()->SetCanExtend(true);
   const int npoints = hbkg->GetNbinsX() + 2; //N(bins) + underflow + overflow
 
   //Create a list of up/down systematic histograms
@@ -730,14 +735,17 @@ TGraphAsymmErrors* DataPlotter::get_stack_systematic(THStack* hstack,
       if(verbose_ > 2) std::cout << __func__ << ": Using systematic up to define down\n";
     }
     TH1* h_up = (TH1*) s_up->GetStack()->Last()->Clone(Form("TMP_systematic_%s", name.first.Data()));
+    // h_up->GetXaxis()->SetCanExtend(true);
     up.push_back(h_up);
     delete s_up;
     if(s_down) {
       TH1* h_down = (TH1*) s_down->GetStack()->Last()->Clone(Form("TMP_systematic_%s", name.second.Data()));
+      // h_down->GetXaxis()->SetCanExtend(true);
       down.push_back(h_down);
       delete s_down;
     } else {
       TH1* h_down = (TH1*) hbkg->Clone(Form("TMP_systematic_%s_down", name.first.Data()));
+      // h_down->GetXaxis()->SetCanExtend(true);
       h_down->Scale(2.);
       h_down->Add(h_up, -1.);
       down.push_back(h_down);
@@ -757,14 +765,17 @@ TGraphAsymmErrors* DataPlotter::get_stack_systematic(THStack* hstack,
       if(verbose_ > 2) std::cout << __func__ << ": Using systematic up to define down\n";
     }
     TH1* h_up = (TH1*) s_up->GetStack()->Last()->Clone(Form("TMP_systematic_%s_up", scale.first.name_.Data()));
+    // h_up->GetXaxis()->SetCanExtend(true);
     up.push_back(h_up);
     delete s_up;
     if(s_down) {
       TH1* h_down = (TH1*) s_down->GetStack()->Last()->Clone(Form("TMP_systematic_%s_down", scale.second.name_.Data()));
+      // h_down->GetXaxis()->SetCanExtend(true);
       down.push_back(h_down);
       delete s_down;
     } else {
       TH1* h_down = (TH1*) hbkg->Clone(Form("TMP_systematic_%s_down", scale.first.name_.Data()));
+      // h_down->GetXaxis()->SetCanExtend(true);
       h_down->Scale(2.);
       h_down->Add(h_up, -1.);
       down.push_back(h_down);
@@ -1379,6 +1390,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set, const
   TH1* hstack_hist = nullptr;
   if(stack_as_hist_) {
     hstack_hist = (TH1*) hstack->GetStack()->Last()->Clone("hBackground");
+    // hstack_hist->GetXaxis()->SetCanExtend(true);
     hstack_hist->SetDirectory(0);
     hstack_hist->SetFillStyle(3002);
     hstack_hist->SetFillColor(total_background_color_);
@@ -1490,11 +1502,13 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set, const
     printf("Warning! Data histogram is Null! Skipping Data/MC plot\n");
   }
   TH1* hDataMC = nullptr;
-  if(plot_data_ && d && data_over_mc_ > 0)
+  if(plot_data_ && d && data_over_mc_ > 0) {
     hDataMC = (TH1*) d->Clone("hDataMC");
-  else if(data_over_mc_ < 0) //make signal/background histograms instead
+  } else if(data_over_mc_ < 0) { //make signal/background histograms instead
     hDataMC = (TH1*) hstack->GetStack()->Last()->Clone("hRatio");
+  }
   if(hDataMC) hDataMC->SetDirectory(0);
+  // if(hDataMC) hDataMC->GetXaxis()->SetCanExtend(true);
   TGraphErrors* hDataMCErr = nullptr;
   int nb = (hDataMC) ? hDataMC->GetNbinsX() : -1;
   std::vector<TH1*> hSignalsOverMC;
@@ -1539,6 +1553,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set, const
     hDataMC->SetName("hRatio");
     for(TH1* h : hsignal) {
       hSignalsOverMC.push_back((TH1*) h->Clone(Form("%s_over_mc", h->GetName())));
+      // hSignalsOverMC.back()->GetXaxis()->SetCanExtend(true);
       hSignalsOverMC.back()->SetDirectory(0);
     }
     for(TH1* h : hSignalsOverMC) {
@@ -1668,7 +1683,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set, const
       }
       if(index == 0) hSignalsOverMC[index]->Draw("hist E1");
       else           hSignalsOverMC[index]->Draw("hist E1 same");
-      max_val = std::max(max_val, hSignalsOverMC[index]->GetMaximum());
+      max_val = std::max(max_val, Utilities::H1Max(hSignalsOverMC[index], xMin_, xMax_));
     }
     if(hSignalsOverMC.size() > 0) {
       hSignalsOverMC[0]->GetXaxis()->SetTitle(xtitle.Data());
@@ -1680,10 +1695,14 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set, const
       hSignalsOverMC[0]->GetYaxis()->SetTitleSize(axis_font_size_);
       hSignalsOverMC[0]->GetYaxis()->SetTitleOffset(y_title_offset_);
       hSignalsOverMC[0]->GetYaxis()->SetLabelSize(y_label_size_);
-      hSignalsOverMC[0]->SetAxisRange(max_val/1.e4,max_val*5., "Y");
       hSignalsOverMC[0]->SetTitle("");
       if(xMin_ < xMax_) hSignalsOverMC[0]->GetXaxis()->SetRangeUser(xMin_,xMax_);
-      pad2->SetLogy();
+      if(signal_ratio_log_) {
+        hSignalsOverMC[0]->SetAxisRange(max_val/1.e4,max_val*5., "Y");
+        pad2->SetLogy();
+      } else {
+        hSignalsOverMC[0]->SetAxisRange(max_val/10.,max_val*1.1, "Y");
+      }
     }
   }
 
@@ -1970,6 +1989,7 @@ TCanvas* DataPlotter::plot_systematic(TString hist, Int_t set, Int_t systematic,
   }
   //calculate data / MC
   TH1* hdata_ratio = (TH1*) d->Clone(Form("%s_ratio", d->GetName()));
+  // hdata_ratio->GetXaxis()->SetCanExtend(true);
   hdata_ratio->SetDirectory(0);
   hdata_ratio->Divide(h_b);
   r_max = std::min(2., std::max(r_max, hdata_ratio->GetMaximum()));

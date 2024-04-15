@@ -333,6 +333,24 @@ Int_t print_leppt(int set, bool add_sys = false) {
 }
 
 //------------------------------------------------------------------------------------------------------------------------------
+// di-lepton eta
+Int_t print_lepeta(int set, bool add_sys = false) {
+  if(!dataplotter_) return 1;
+  const Int_t offset = get_offset();
+  const bool same_flavor = selection_ == "ee" || selection_ == "mumu";
+  PlottingCard_t card("lepeta", "event", set+offset, (same_flavor) ? 1 : 2, -5., 5);
+  Int_t status(0);
+  for(int logY = 0; logY < 2; ++logY) {
+    dataplotter_->logY_ = logY;
+    auto c = dataplotter_->print_stack(card);
+    if(c) DataPlotter::Empty_Canvas(c);
+    else ++status;
+  }
+  dataplotter_->logY_ = 0;
+  return status;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------
 // di-lepton delta phi
 Int_t print_deltaphi(int set, bool add_sys = false) {
   if(!dataplotter_) return 1;
@@ -401,9 +419,10 @@ Int_t print_lep_beta(int set, bool add_sys = false) {
   const double blind_max = 1.2;
   Int_t status(0);
   for(TString hist : hists) {
-    bool blind = hist == "beta0" && selection_.EndsWith("_e");
-    blind |= hist == "beta1" && !same_flavor && !selection_.EndsWith("_e");
-    PlottingCard_t card(hist, "event", set+offset, (same_flavor) ? 1 : 2, 0., (lep_tau) ? 5. : 3., (blind) ? blind_min : 1., (blind) ? blind_max : -1.);
+    bool blind = blind_ && hist == "beta0" && selection_.EndsWith("_e");
+    blind |= blind_ && hist == "beta1" && !same_flavor && !selection_.EndsWith("_e");
+    const double xmax = ((selection_ == "etau_mu" && hist == "beta0") || (selection_ == "mutau_e" && hist == "beta1")) ? 5. : 3.;
+    PlottingCard_t card(hist, "event", set+offset, (same_flavor) ? 1 : 2, 0., xmax, (blind) ? blind_min : 1., (blind) ? blind_max : -1.);
     for(int logY = 0; logY < 2; ++logY) {
       dataplotter_->logY_ = logY;
       auto c = dataplotter_->print_stack(card);
@@ -688,19 +707,46 @@ Int_t print_mt_over_m(int set, bool add_sys = false) {
 
 //------------------------------------------------------------------------------------------------------------------------------
 // collinear mass estimates
-Int_t print_collinear_mass(int set, bool add_sys = false) {
+Int_t print_collinear_mass(int set, bool add_sys = false, double xmax = 170.) {
   if(!dataplotter_) return 1;
   const Int_t offset = get_offset();
   const bool same_flavor = selection_ == "ee" || selection_ == "mumu";
   Int_t status(0);
   std::vector<TString> masses = {"lepmestimate", "lepmestimatetwo"};
   for(TString mass : masses) {
-    PlottingCard_t card(mass, "event", set+offset, 2, 40., 170., (blind_) ? 80. : 1.e3, 100.);
+    PlottingCard_t card(mass, "event", set+offset, 2, 40., xmax, (blind_) ? 80. : 1.e3, 100.);
     for(int logY = 0; logY < 2; ++logY) {
       dataplotter_->logY_ = logY;
       auto c = dataplotter_->print_stack(card);
       if(c) DataPlotter::Empty_Canvas(c);
       else ++status;
+    }
+  }
+  dataplotter_->logY_ = 0;
+  return status;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------
+// boosted system
+Int_t print_prime_sys(int set) {
+  if(!dataplotter_) return 1;
+  const Int_t offset = get_offset();
+  const bool same_flavor = selection_ == "ee" || selection_ == "mumu";
+  Int_t status(0);
+  TString mode = (selection_ == "emu") ? "2" : (selection_ == "mutau_e") ? "1" : "0";
+  std::vector<TString> hists = {"px", "py", "pz", "e"};
+  std::vector<TString> objs  = {"lepone", "leptwo", "met"};
+  for(TString obj : objs) {
+    for(TString hist : hists) {
+      if((mode == "0" || mode == "1") && obj == "met" && (hist == "py" || hist == "pz")) continue; //MET along x-axis in these modes
+      TString name = obj+"prime"+hist+mode;
+      PlottingCard_t card(name, "event", set+offset, 1, 1., -1.);
+      for(int logY = 0; logY < 1; ++logY) {
+        dataplotter_->logY_ = logY;
+        auto c = dataplotter_->print_stack(card);
+        if(c) DataPlotter::Empty_Canvas(c);
+        else ++status;
+      }
     }
   }
   dataplotter_->logY_ = 0;

@@ -475,7 +475,7 @@ float QCDWeight::GetWeight(float deltar, float deltaphi, float oneeta, float one
     const int ybin = std::max(1, std::min(hAntiIso->GetYaxis()->FindBin(twopt), hAntiIso->GetNbinsY()));
     antiiso = hAntiIso->GetBinContent(xbin, ybin);
     if(!std::isfinite(antiiso) || antiiso <= 0.f) {
-      if(verbose_) std::cout << "QCDWeight::" << __func__ << " anti-isolated to isolated weight < 0  = " << antiiso
+      if(verbose_) std::cout << "QCDWeight::" << __func__ << " anti-isolated to isolated weight <= 0  = " << antiiso
                              << " delta R = " << deltar << " delta phi = " << deltaphi
                              << " one pt = " << onept << " two pt = " << twopt
                              << " for year = " << year << std::endl;
@@ -486,7 +486,7 @@ float QCDWeight::GetWeight(float deltar, float deltaphi, float oneeta, float one
   }
 
   //apply anti-iso correction
-  eff     *= antiiso;
+  eff *= antiiso;
   for(int ialt = 0; ialt < nsys; ++ialt) {
     up  [ialt] *= antiiso;
     down[ialt] *= antiiso;
@@ -516,7 +516,7 @@ float QCDWeight::GetWeight(float deltar, float deltaphi, float oneeta, float one
   }
 
   //apply (mass, bdt) correction
-  eff     *= massbdt;
+  eff *= massbdt;
   for(int ialt = 0; ialt < nsys; ++ialt) {
     up  [ialt] *= massbdt;
     down[ialt] *= massbdt;

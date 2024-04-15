@@ -40,6 +40,7 @@ bool JetTauTesting_       = false; //perform MC closure test
 bool FakeLeptonTesting_   = false; //test MC fake leptons
 bool CutFlowTesting_      = false; //test just basic cutflow sets
 bool TriggerTesting_      = false; //make a few extra selections for ee/mumu/emu trigger testing
+int  TopTesting_          = 0;     //>0: fill an inverted b-tag set; 2: invert the b-tag for final selections
 int  doSSSF_              = 1; //do same-sign, same flavor processingg
 TString jTTProcess_       = ""; //JTTHistMaker process to measure ("" for all processes)
 
@@ -82,6 +83,8 @@ int embeddedTesting_      = 0; //test embedding options: 3 = use KIT measured sc
 int useEmbedRocco_        = 1; //use Rochester correction vs LFV Higgs AN muon sys in Embedded samples
 int useEmbMuonES_         = 0; //apply Embed --> MC muon energy scales
 int embedUseMETUnc_       = 0; //use MET uncertainties in embedding: 1: use JER/JES; 2: use approximate errors on (MET - nu pT)
+int embedUseMCTauID_      = 1; //1: use MC Tau ID scales (but not energy scales) in Embedding; 2: use MC Tau ID and energy scales in Embedding
+int useEmbedZMatching_    = 1; //1: match gen-Z rate MC to embed rate; 2: match using reco (only if floating the embedding)
 int useEmbedBDTUnc_       = 0; //use gen-level BDT score uncertainty in embedding
 
 int doEmuDefaults_        = 1; //set to default emu running

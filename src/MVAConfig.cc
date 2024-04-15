@@ -410,16 +410,16 @@ std::vector<Double_t> MVAConfig::CDFBins(Int_t index, Int_t HistSet) {
     if(HistSet == 27) {xmin = 0.08f; xmax = 0.45f; default_width = 0.05;} //low mass
     }
     if(selection == "zetau") {
-    if(HistSet == 25) {xmin = 0.16f; xmax = 1.00f;} //central mass
+    if(HistSet == 25) {xmin = 0.24f; xmax = 1.00f;} //central mass
     if(HistSet == 26) {xmin = 0.00f; xmax = 0.30f; default_width = 0.05;} //high mass
     if(HistSet == 27) {xmin = 0.10f; xmax = 0.50f; default_width = 0.05;} //low mass
     if(HistSet == 28) {xmin = 0.15f; xmax = 0.85f; default_width = 0.05;} //zll mass
     }
     if(selection == "zmutau") {
-    if(HistSet == 25) {xmin = 0.08f; xmax = 1.00f;} //central mass
-    if(HistSet == 26) {xmin = 0.00f; xmax = 0.30f; default_width = 0.05;} //high mass
+    if(HistSet == 25) {xmin = 0.12f; xmax = 1.00f;} //central mass
+    if(HistSet == 26) {xmin = 0.05f; xmax = 0.30f; default_width = 0.05;} //high mass
     if(HistSet == 27) {xmin = 0.00f; xmax = 0.68f;} //low mass
-    if(HistSet == 28) {xmin = 0.12f; xmax = 0.90f; default_width = 0.05;} //zll mass
+    if(HistSet == 28) {xmin = 0.20f; xmax = 0.90f; default_width = 0.05;} //zll mass
     }
 
     const int ndefault = std::ceil(1.f/default_width) + 1;

@@ -50,6 +50,7 @@ doYears = ["2016", "2017", "2018"]
 tags = [] #tag of list types (data, mc)
 vetoes = []
 sampleTags = [] #tag of individual datasets
+sampleVetoes = ["Embed-MuMu", "Embed-EE", "MuonEGRun"]
 configs = []
 
 for s in samplesToSubmit:
@@ -69,6 +70,10 @@ for s in samplesToSubmit:
             for tag in sampleTags:
                 if tag == "" or tag in sample: tagged = True
             if not tagged: continue
+            vetoed = False
+            for veto in sampleVetoes:
+                if veto != "" and veto in sample: vetoed = True
+            if vetoed: continue
             if dryRun: print "Adding file", sample
             samples_add.append(sample)
         configs += samples_add

@@ -190,12 +190,12 @@ do
     JOB=`echo ${f} | awk -F "/" '{print $2}'`
     if  grep -q "${TAG}" <<< "${FILE}"
     then
-        if [ ${VERBOSE} -gt 0 ]
+        if [ ${VERBOSE} -gt 1 ]
         then
             echo "Checking file ${FILE} in job ${JOB}"
         fi
     else
-        if [ ${VERBOSE} -gt 1 ]
+        if [ ${VERBOSE} -gt 2 ]
         then
             echo "Skipping file ${FILE} as tag ${TAG} not found"
         fi
@@ -203,7 +203,7 @@ do
     fi
     if  [[ "${VETO}" != "" ]] && grep -q "${VETO}" <<< "${FILE}"
     then
-        if [ ${VERBOSE} -gt 1 ]
+        if [ ${VERBOSE} -gt 2 ]
         then
             echo "Skipping file ${FILE} in job ${JOB} due to veto tag"
         fi
@@ -215,6 +215,9 @@ do
         NRUNNING=$((1 + $NRUNNING))
         if [[ "${IGNORERUNNING}" != "" ]]
         then
+            if [ ${VERBOSE} -gt 0 ]; then
+                echo "Job ${FILE} is likely still running, skipping..."
+            fi
             continue
         fi
         if [ ${VERBOSE} -gt -1 ]
@@ -229,7 +232,7 @@ do
             then
                 echo "Failure in file ${STDLOG}, error message: ${XRDEXIT}"
             fi
-            FAILEDJOBS="${FAILEDJOBS} ${FILE}"
+            FAILEDJOBS="${FAILEDJOBS} ${FILE}_${YEAR}"
             NFAILED=$((1 + $NFAILED))
         fi
     fi
@@ -318,7 +321,8 @@ then
     fi
     for FILE in ${FAILEDJOBS}
     do
-        DATASET=`echo ${FILE} | awk -F "_" '{name=""; for( i = 1; i < NF; i++){ name=name $i; if(i < NF - 1) {name=name "_";}}}END{print name}'`
+        echo "Failed job: ${FILE}"
+        DATASET=${FILE} #`echo ${FILE} | awk -F "_" '{name=""; for( i = 1; i < NF; i++){ name=name $i; if(i < NF - 1) {name=name "_";}}}END{print name}'`
         RECOVERY=${JOBNAME}recover_${DATASET}.jdl
         JOBINFO=${JOBNAME}batchJob_${DATASET}.jdl
         COUNT=`echo ${FILE} | awk -F "_" '{print $NF}'`
@@ -346,23 +350,10 @@ then
             echo "Adding job ${FILE} to recovery file for dataset ${DATASET}"
         fi
         #print the job submission info for the given job
-        if [ ${SPLIT} -eq 0 ]
-        then
-            cat ${JOBINFO} | awk -v d=0 -v count=${COUNT} '{
-              if($1 == "Arguments") {
-                if($3 == count) {d=1;} else {d=0;}
-              }
-              if(d==1) {print $0;}
-            }' >> ${RECOVERY}
-        else
-            INPUTFILE=${JOBNAME}/input_${DATASET}_${COUNT}.txt
-            cat ${JOBINFO} | awk -v d=0 -v count=${COUNT} -v loop=${LOOP} '{
-              if($1 == "Arguments") {
-                if($3 == count) {d=1;} else {d=0;}
-              }
-              if(d==1) {print $0;}
-            }' >> ${RECOVERY}
-        fi
+        cat ${JOBINFO} | awk -v d=0 '{
+            if($1 == "Arguments") {d=1;}
+            if(d==1) {print $0;}
+          }' >> ${RECOVERY}
         if [[ "${RESUBMIT}" != "" ]]
         then
             if [ ${VERBOSE} -gt -1 ]
@@ -370,7 +361,11 @@ then
                 echo "Storing previous records for this failed job in recovery directory"
             fi
             mkdir -p batch/recovery/${JOBNAME}
-            mv ${JOBNAME}reports/${FILE}* batch/recovery/${JOBNAME}/
+            if [[ "${RESUBMIT}" != "dryrun" ]]; then
+                mv ${JOBNAME}reports/${FILE}* batch/recovery/${JOBNAME}/
+            else
+                cp ${JOBNAME}reports/${FILE}* batch/recovery/${JOBNAME}/
+            fi
         fi
     done
 

@@ -245,6 +245,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
         clfv_selec->fFakeLeptonTesting = FakeLeptonTesting_;
         clfv_selec->fCutFlowTesting    = CutFlowTesting_;
         clfv_selec->fTriggerTesting    = TriggerTesting_;
+        clfv_selec->fTopTesting        = TopTesting_;
         clfv_selec->fDoMVASets = DoMVASets_ > 0 && (DoMVASets_ > 2 || (DoMVASets_ == 2 && !(selection.Contains("tau"))) || (selection == "emu"));
         clfv_selec->fMinLepM           = min_lepm_; //(selection == "emu") ?  65.f : 35.f;
         clfv_selec->fMaxLepM           = max_lepm_; //(selection == "emu") ? 115.f : (selection.EndsWith("tau")) ? 175.f : 175.f;
@@ -276,6 +277,8 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
         hist_selec->fUseEmbedRocco      = useEmbedRocco_;
         hist_selec->fUseEmbedMuonES     = useEmbMuonES_;
         hist_selec->fEmbedUseMETUnc     = embedUseMETUnc_;
+        hist_selec->fEmbedUseMCTauID    = embedUseMCTauID_;
+        hist_selec->fUseEmbedZMatching  = useEmbedZMatching_;
         hist_selec->fUseEmbBDTUncertainty = useEmbedBDTUnc_;
         hist_selec->fUseRoccoCorr       = useRoccoCorr_;
         hist_selec->fUseRoccoSize       = useRoccoSize_;

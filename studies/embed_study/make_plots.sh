@@ -1,5 +1,13 @@
 #! /bin/bash
 
+Help() {
+    echo "Usage:"
+    echo " 1: Year list"
+    echo " 2: Selection list"
+    echo " 3: Flag for reco-like cuts"
+    echo " 4: Reco histogram directory (NONE to skip)"
+    echo " 5: Single step flag (histogram, combine, or reco)"
+}
 YEARS=$1
 SELECS=$2
 TIGHT=$3

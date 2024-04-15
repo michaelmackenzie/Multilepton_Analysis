@@ -3,7 +3,17 @@
 using namespace CLFV;
 
 //-------------------------------------------------------------------------------------------------------------
-TauIDWeight::TauIDWeight(int Mode, bool isEmbed, TString selection, int verbose) : isEmbed_(isEmbed), selection_(selection), verbose_(verbose) {
+TauIDWeight::TauIDWeight(int Mode, int isEmbed, TString selection, int verbose) : selection_(selection), verbose_(verbose) {
+
+  isEmbed_ = isEmbed > 0;
+  if(isEmbed == 2) {
+    isEmbed = 0; //use MC efficiency scales instead of Embedding ones
+    isEmbed_ = true; //use Embedding energy scales
+  } else if(isEmbed == 3) { //use MC efficiency and energy scales in Embedding
+    isEmbed = 0;
+    isEmbed_ = false;
+  }
+
   std::vector<TString> file_regions;
 
   typedef std::pair<TString,TString> fpair;

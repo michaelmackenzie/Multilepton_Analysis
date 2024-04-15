@@ -75,6 +75,16 @@ namespace CLFV {
         *ytitle = "";
         *title  = Form("Missing Transverse Energy");
       }
+      else if(hist == "detectormet") {
+        *xtitle = "Detector MET";
+        *ytitle = "";
+        *title  = Form("Detector MET");
+      }
+      else if(hist == "nupt") {
+        *xtitle = "p_{T}(#nu)";
+        *ytitle = "";
+        *title  = Form("p_{T}(#nu)");
+      }
       else if(hist == "lepptoverm") {
         *xtitle = "p_{T}^{ll} / M_{ll}";
         *ytitle = "";
@@ -425,13 +435,13 @@ namespace CLFV {
         *ytitle = "";
         *title  = Form("MT(MET,#tau)");
       }
-      else if(hist == "mtone") {
-        *xtitle = Form("MT(%s,MET)", lep1.Data());
+      else if(hist.BeginsWith("mtone")) {
+        *xtitle = Form("M_{T}(%s,MET)", lep1.Data());
         *ytitle = "";
         *title  = "";
       }
-      else if(hist == "mttwo") {
-        *xtitle = Form("MT(%s,MET)", lep2.Data());
+      else if(hist.BeginsWith("mttwo")) {
+        *xtitle = Form("M_{T}(%s,MET)", lep2.Data());
         *ytitle = "";
         *title  = "";
       }
@@ -446,7 +456,7 @@ namespace CLFV {
         *title  = "";
       }
       else if(hist == "mtlep") {
-        *xtitle = "MT(ll,MET)";
+        *xtitle = "M_{T}(ll,MET)";
         *ytitle = "";
         *title  = "";
       }
@@ -670,6 +680,8 @@ namespace CLFV {
         *ytitle = "";
         *title  = "log_{2}(#tau anti-Jet ID + 1)";
       }
+
+      if(hist.EndsWith("overm")) { *xtitle = *xtitle + " / M_{ll}"; }
     }
 
     //-----------------------------------------------------------------------------
