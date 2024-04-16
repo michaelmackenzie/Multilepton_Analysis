@@ -20,7 +20,7 @@ bool preFetch_     = false; //check for the sample on /tmp, and copy it there if
 bool useTChain_    = true; //use a TChain of input files rather than a tree from a single ntuple file
 Long64_t notify_   = 50000; //frequency at which to printout processing info
 
-vector<TString> tag_      = {}; //dataset tag requirement
+vector<TString> tag_      = {"ggFH-TauTau_2016"}; //dataset tag requirement
 vector<TString> veto_     = {"MuonEGRun", "Embed-EE", "Embed-MuMu"}; //dataset tags to veto
 bool debug_               = false;
 Long64_t startEvent_      =  0;
@@ -31,6 +31,7 @@ HISTOGRAMMER* selector_   = nullptr;
 
 Long64_t max_sim_events_  = -1; //5e5; //maximum number of events to skim in simulation, -1 to ignore
 Double_t max_data_events_ = -1; //0.2 //maximum fraction of events to skim in data, -1 to ignore
+Int_t    only_dy_loop_    = -1; //only Drell-Yan processing loop to process (-1 to process all)
 
 bool DYFakeTau_           = false; //speed up dy fake tau scale factor
 bool WJFakeTau_           = false; //speed up w+jets fake tau scale factor

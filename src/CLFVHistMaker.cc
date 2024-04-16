@@ -851,6 +851,7 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
   //wt = 1 + delta --> 1 + rho*delta = 1 + rho*(wt - 1) = rho*wt + (1-rho)
 
   const bool o_pass = PassesCuts();
+  const float nominal_weight = eventWeight*genWeight;
 
   //count number of systematics filled
   int nfilled = 0;
@@ -858,7 +859,7 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
     if(fDoSystematics == -2 && !fIsSignal) { //only do nominal systematics for non-signal
       if(sys > 0) break;
     }
-    float weight = eventWeight*genWeight;
+    float weight = nominal_weight;
     bool reeval = false;
     const TString name = fSystematics.GetName(sys);
     if(name == "") continue; //only process defined systematics
@@ -1031,16 +1032,16 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
       else                       weight *=    bdtWeight; //apply twice for down
     } else if(name == "TheoryScaleR") {
       if(fIsData || fIsEmbed) continue;
-      if(fSystematics.IsUp(sys)) weight *= LHEScaleRWeightMax;
-      else                       weight *= 1.f/LHEScaleRWeightMax;
+      if(fSystematics.IsUp(sys)) weight *= LHEScaleRWeightUp;
+      else                       weight *= LHEScaleRWeightDown;
     } else if(name == "TheoryScaleF") {
       if(fIsData || fIsEmbed) continue;
-      if(fSystematics.IsUp(sys)) weight *= LHEScaleFWeightMax;
-      else                       weight *= 1.f/LHEScaleFWeightMax;
+      if(fSystematics.IsUp(sys)) weight *= LHEScaleFWeightUp;
+      else                       weight *= LHEScaleFWeightDown;
     } else if(name == "TheoryPDF") {
       if(fIsData || fIsEmbed) continue;
       if(fSystematics.IsUp(sys)) weight *= LHEPdfWeightMax;
-      else                       weight *= 1.f/LHEPdfWeightMax;
+      else                       weight *= std::max(0.f, 2.f - LHEPdfWeightMax);
     } else if(name.BeginsWith("TheoryPDF")) {
       if(fIsData || fIsEmbed) continue;
       TString bin_s = name;
@@ -1160,28 +1161,53 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
           EnergyScale(leptonTwo.ES[2] / leptonTwo.ES[0], leptonTwo, &met, &metPhi); reeval = true;
         }
       }
-    } else if(name == "TauES") { //Decay mode inclusive energy scale
+    } else if(name.BeginsWith("TauEleES")) { //Decay mode binned energy scale (electrons faking taus)
+      if(fIsData || !leptonTwo.isTau()) continue;
+      if(std::abs(leptonTwo.genFlavor) == 11) { //check that it's an electron faking a hadronic tau
+        int dm_bin(0);
+        if     (name == "TauEleES0") dm_bin = 0;
+        else if(name == "TauEleES1") dm_bin = 1;
+        else if(name == "TauEleES2") dm_bin = 2;
+        else if(name == "TauEleES3") dm_bin = 3;
+        if((tauDecayMode % 10 + 2*(tauDecayMode / 10)) == dm_bin) {
+          if(fVerbose > 5) printf("CLFVHistMaker::%s: Applying %s energy scale (up = %i)\n",
+                                  __func__, name.Data(), fSystematics.IsUp(sys));
+          reeval = true;
+          if(fSystematics.IsUp(sys)) {  //FIXME: check if this should be propagated to the MET
+            if(leptonTwo.isTau() && leptonTwo.ES[0] > 0. && leptonTwo.ES[1] > 0.)
+              EnergyScale((1.f-rho) + rho*leptonTwo.ES[1] / leptonTwo.ES[0], leptonTwo, &met, &metPhi);
+          } else {
+            if(leptonTwo.isTau() && leptonTwo.ES[0] > 0. && leptonTwo.ES[2] > 0.)
+              EnergyScale((1.f-rho) + rho*leptonTwo.ES[2] / leptonTwo.ES[0], leptonTwo, &met, &metPhi);
+          }
+        }
+      }
+    } else if(name.BeginsWith("TauMuES")) { //Decay mode binned energy scale (muons faking taus)
+      if(fIsData || !leptonTwo.isTau()) continue;
+      if(std::abs(leptonTwo.genFlavor) == 13) { //check that it's a muon faking a hadronic tau
+        int dm_bin(0);
+        if     (name == "TauMuES0") dm_bin = 0;
+        else if(name == "TauMuES1") dm_bin = 1;
+        else if(name == "TauMuES2") dm_bin = 2;
+        else if(name == "TauMuES3") dm_bin = 3;
+        if((tauDecayMode % 10 + 2*(tauDecayMode / 10)) == dm_bin) {
+          if(fVerbose > 5) printf("CLFVHistMaker::%s: Applying %s energy scale (up = %i)\n",
+                                  __func__, name.Data(), fSystematics.IsUp(sys));
+          reeval = true;
+          if(fSystematics.IsUp(sys)) {  //FIXME: check if this should be propagated to the MET
+            if(leptonTwo.isTau() && leptonTwo.ES[0] > 0. && leptonTwo.ES[1] > 0.)
+              EnergyScale((1.f-rho) + rho*leptonTwo.ES[1] / leptonTwo.ES[0], leptonTwo, &met, &metPhi);
+          } else {
+            if(leptonTwo.isTau() && leptonTwo.ES[0] > 0. && leptonTwo.ES[2] > 0.)
+              EnergyScale((1.f-rho) + rho*leptonTwo.ES[2] / leptonTwo.ES[0], leptonTwo, &met, &metPhi);
+          }
+        }
+      }
+    } else if(name == "TauES") { //Decay mode inclusive energy scale (genuine hadronic taus)
       if(fIsData || !leptonTwo.isTau()) continue;
       if(fVerbose > 5) printf("CLFVHistMaker::%s: Applying %s energy scale (up = %i)\n",
                               __func__, name.Data(), fSystematics.IsUp(sys));
-      reeval = true;
-      if(fSystematics.IsUp(sys)) {  //FIXME: check if this should be propagated to the MET
-        if(leptonTwo.isTau() && leptonTwo.ES[0] > 0. && leptonTwo.ES[1] > 0.)
-          EnergyScale((1.f-rho) + rho*leptonTwo.ES[1] / leptonTwo.ES[0], leptonTwo, &met, &metPhi);
-      } else {
-        if(leptonTwo.isTau() && leptonTwo.ES[0] > 0. && leptonTwo.ES[2] > 0.)
-          EnergyScale((1.f-rho) + rho*leptonTwo.ES[2] / leptonTwo.ES[0], leptonTwo, &met, &metPhi);
-      }
-    } else if(name.BeginsWith("TauES")) { //Decay mode binned energy scale
-      if(fIsData || !leptonTwo.isTau()) continue;
-      int dm_bin(0);
-      if     (name == "TauES0") dm_bin = 0;
-      else if(name == "TauES1") dm_bin = 1;
-      else if(name == "TauES2") dm_bin = 2;
-      else if(name == "TauES3") dm_bin = 3;
-      if((tauDecayMode % 10 + 2*(tauDecayMode / 10)) == dm_bin) {
-        if(fVerbose > 5) printf("CLFVHistMaker::%s: Applying %s energy scale (up = %i)\n",
-                                __func__, name.Data(), fSystematics.IsUp(sys));
+      if(std::abs(leptonTwo.genFlavor) == 15) { //check that it's a genuine hadronic tau
         reeval = true;
         if(fSystematics.IsUp(sys)) {  //FIXME: check if this should be propagated to the MET
           if(leptonTwo.isTau() && leptonTwo.ES[0] > 0. && leptonTwo.ES[1] > 0.)
@@ -1189,6 +1215,27 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
         } else {
           if(leptonTwo.isTau() && leptonTwo.ES[0] > 0. && leptonTwo.ES[2] > 0.)
             EnergyScale((1.f-rho) + rho*leptonTwo.ES[2] / leptonTwo.ES[0], leptonTwo, &met, &metPhi);
+        }
+      }
+    } else if(name.BeginsWith("TauES")) { //Decay mode binned energy scale (genuine hadronic taus)
+      if(fIsData || !leptonTwo.isTau()) continue;
+      if(std::abs(leptonTwo.genFlavor) == 15) { //check that it's a genuine hadronic tau
+        int dm_bin(0);
+        if     (name == "TauES0") dm_bin = 0;
+        else if(name == "TauES1") dm_bin = 1;
+        else if(name == "TauES2") dm_bin = 2;
+        else if(name == "TauES3") dm_bin = 3;
+        if((tauDecayMode % 10 + 2*(tauDecayMode / 10)) == dm_bin) {
+          if(fVerbose > 5) printf("CLFVHistMaker::%s: Applying %s energy scale (up = %i)\n",
+                                  __func__, name.Data(), fSystematics.IsUp(sys));
+          reeval = true;
+          if(fSystematics.IsUp(sys)) {  //FIXME: check if this should be propagated to the MET
+            if(leptonTwo.isTau() && leptonTwo.ES[0] > 0. && leptonTwo.ES[1] > 0.)
+              EnergyScale((1.f-rho) + rho*leptonTwo.ES[1] / leptonTwo.ES[0], leptonTwo, &met, &metPhi);
+          } else {
+            if(leptonTwo.isTau() && leptonTwo.ES[0] > 0. && leptonTwo.ES[2] > 0.)
+              EnergyScale((1.f-rho) + rho*leptonTwo.ES[2] / leptonTwo.ES[0], leptonTwo, &met, &metPhi);
+          }
         }
       }
     } else if(name == "EmbTauES") { //Decay mode inclusive energy scale
@@ -1277,11 +1324,14 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
         else if(name.EndsWith("A2")) alt_bin = 2;
         else if(name.EndsWith("A3")) alt_bin = 3;
         else if(name.EndsWith("A4")) alt_bin = 4;
+        else if(name.EndsWith("A5")) alt_bin = 5;
         if(alt_bin < qcdWeightAltNum) { //check that there are at least this many parameters in the fit function
           if(std::min(2, (int) nJets20) == jet_bin) {
             if(fSystematics.IsUp(sys)) weight *= (qcdWeight > 0.) ? qcdWeightAltUp  [alt_bin] / qcdWeight : 1.f;
             else                       weight *= (qcdWeight > 0.) ? qcdWeightAltDown[alt_bin] / qcdWeight : 1.f;
           }
+        } else { //if above number of function parameters, no need to fill as in a given year this doesn't change
+          continue;
         }
       } else continue; //no need to fill opposite signed histograms
     } else if(name == "QCDNC") {
@@ -1645,6 +1695,9 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
 
     //apply event window cuts with (possibly) shifted kinematics
     const bool pass = (fAllowMigration && reeval) ? PassesCuts() : o_pass;
+    if(!reeval && !pass && o_pass) {
+      printf("CLFVHistMaker::%s: Entry %lld: Event no longer passes cuts but no MVA updates (systematic %s/%i)\n", __func__, fentry, name.Data(), sys);
+    }
 
     if(pass) {
       ++nfilled;
@@ -1702,6 +1755,11 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
   }
   //Per event histograms
   Hist->hNFills->Fill(nfilled, eventWeight*genWeight);
+
+  if(std::fabs(nominal_weight - eventWeight*genWeight) > 1.e-7) {
+    printf("CLFVHistMaker::%s: Event weight changed! Previous = %f, Current = %f\n",
+           __func__, nominal_weight, eventWeight*genWeight);
+  }
 }
 
 

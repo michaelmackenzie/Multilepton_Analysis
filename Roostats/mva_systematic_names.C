@@ -6,6 +6,30 @@
 
 CLFV::Systematics systematics_; //names of the systematics
 
+bool is_relevant(TString sys, TString process) {
+  const bool is_embed = process.Contains("Embed");
+  const bool is_data  = process.Contains("QCD") || process.Contains("MisID");
+  const bool is_zll   = process == "ZToeemumu";
+  const bool is_zmc   = is_zll || process == "zmutau" || process == "zetau" || process == "zemu" || process.BeginsWith("ZTo");
+  if(sys.BeginsWith("Emb")     ) return is_embed || is_data;
+  if(sys == "XS_Embed"         ) return is_embed || is_data;
+  if(sys.BeginsWith("BTag")    ) return !is_embed;
+  if(sys.BeginsWith("ZPt")     ) return is_zmc || is_data;
+  if(sys.BeginsWith("JER")     ) return !is_embed;
+  if(sys.BeginsWith("JES")     ) return !is_embed;
+  if(sys.BeginsWith("Pileup")  ) return !is_embed;
+  if(sys.BeginsWith("EleES")   ) return !is_embed;
+  if(sys.BeginsWith("MuonES")  ) return !is_embed;
+  if(sys.BeginsWith("TauES")   ) return !is_embed;
+  if(sys.BeginsWith("Theory")  ) return !is_embed;
+  if(sys.BeginsWith("JetToTau")) return is_data;
+  if(sys.BeginsWith("QCD")     ) return is_data;
+  if(sys.BeginsWith("TauESDM") ) return !is_zll; //fake taus don't use these energy scales
+  if(sys.BeginsWith("TauEleID")) return !is_embed; //only for fake taus
+  if(sys.BeginsWith("TauMuID") ) return !is_embed; //only for fake taus
+  return true; //default to it being relevant
+}
+
 std::pair<TString,TString> systematic_name(int sys, TString selection, int year, int set = -1) {
   TString name(systematics_.GetName(sys)), type("shape");
   set = set % 100; //ensure it's the base set number
@@ -53,8 +77,9 @@ std::pair<TString,TString> systematic_name(int sys, TString selection, int year,
     else             name = "HEM";
   }
 
-  //Embedding detector MET uncertainty
-  if(name == "EmbMET") name = "";
+
+  if(name == "EmbMET") name = ""; //Embedding detector MET uncertainty
+  if(name == "EmbBDT") name = ""; //Embedding gen-level mumu BDT response uncertainty
 
   //j-->tau bias systematic configuration check
   const int jtt_bias_mode = 1; //mode XY: X = 1: uncorrelated j-->tau bias in mass regions; Y = 1: use separate rate bias from shape bias
@@ -115,12 +140,13 @@ std::pair<TString,TString> systematic_name(int sys, TString selection, int year,
   else if(name.EndsWith("TauES2")) name.ReplaceAll("2", "DM10");
   else if(name.EndsWith("TauES3")) name.ReplaceAll("3", "DM11");
 
-  //ignore EWK W/Z and WWW samples
+  //ignore EWK W/Z and WWW sample uncertainties, or others that are negligible
   if(name == "XS_WWW" ) name = "";
   if(name == "XS_EWKZ") name = "";
   if(name == "XS_EWKW") name = "";
   if(name == "XS_toptCh") name = ""; //contributes nothing at 1e-4 norm level
   if(name == "XS_ZZ") name = ""; //contributes nothing at 1e-4 norm level
+  if(name == "XS_HWW" ) name = "";
 
   ///////////////////////////////////////////////////////////////////////////
   // Re-name systematics for clarity
@@ -177,6 +203,7 @@ std::pair<TString,TString> systematic_name(int sys, TString selection, int year,
   else if(name.Contains("EmbTauMuID" )) type = "lnN"; //Embedded mu-->tau negligible as could only be tau tau --> tau_mu tau_(e/mu) --> (tau_mu --> tau_h) tau_(e/mu)
   else if(name == "BTag"              ) type = "lnN"; //c/b b-tagging efficiencies (light b-tag eff left as shape)
   else if(name.BeginsWith("TauJetID") ) type = "lnN"; //MC tau ID (Embed tau ID left as shape)
+  else if(name.BeginsWith("JetToTauAltTop")) type = "lnN"; //Top j-->tau has very little shape effect
   // else if(name.BeginsWith("TheoryPDF")) type = "lnN"; //FIXME: Implement as a shape if needed
 
   ///////////////////////////////////////////////////////////////////////////

@@ -162,6 +162,9 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
   data->SetDirectory(0);
   data->SetName(Form("data_obs_%i", set));
 
+  //ensure the plot directory is created
+  gSystem->Exec(Form("[ ! -d plots/latest_production/%s ] && mkdir -p plots/latest_production/%s", year_string.Data(), year_string.Data()));
+
   //replace the background stack with smoothed/fit histograms
   THStack* stack = (useMCBkg_ || replaceData_ == 3) ? new THStack("bkg_stack", "Background stack") : stack_in;
   if(useMCBkg_ || replaceData_ == 3) {

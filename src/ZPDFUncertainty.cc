@@ -219,13 +219,13 @@ float ZPDFUncertainty::GetFactorScaleWeight(int year, float z_pt, float z_mass) 
     return weight;
   }
 
-  //allow the overflow bins to be included in the correction
-  const int binx = h->GetXaxis()->FindBin(z_mass);
-  const int biny = h->GetYaxis()->FindBin(z_pt);
+  const int binx = std::max(1, std::min(h->GetNbinsX(), h->GetXaxis()->FindBin(z_mass)));
+  const int biny = std::max(1, std::min(h->GetNbinsY(), h->GetYaxis()->FindBin(z_pt  )));
   weight = h->GetBinContent(binx, biny);
+  if(weight <= 0.f) weight = 1.f; //ignore empty bins
 
-  const float min_weight = 1.e-3; //minimum weight allowed
-  const float max_weight = 1.e1 ; //maximum weight allowed
+  const float min_weight = 0.5; //constrain to a factor of 2 variation
+  const float max_weight = 2.0;
   weight = std::min(max_weight, std::max(min_weight, weight));
 
   if(!std::isfinite(weight) || weight <= 0.) {

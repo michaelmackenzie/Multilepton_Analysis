@@ -12,6 +12,7 @@ bool   use_fake_bkg_norm_ = false; //add a large uncertainty on j->tau/qcd norm 
 bool   separate_years_    =  true; //separate each year of data
 int    blind_data_        =    2 ; //0: no blinding; 1: kill high BDT score regions; 2: use ~Asimov instead of data
 double blind_cut_         =  0.35;
+bool   add_groups_        = false; //add systematic groups
 
 //add a nuisance parameter index to a group, adding the group if not yet defined
 void add_group(map<TString,vector<TString>>& groups, TString sys, TString group) {
@@ -88,6 +89,8 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
   int set_offset = 0;
   if     (selection.Contains("_")) set_offset = HistMaker::kEMu;
   else if(selection.Contains("etau")) set_offset = HistMaker::kETau;
+
+  gSystem->Exec(Form("[ ! -d plots/latest_production/%s ] && mkdir -p plots/latest_production/%s", year_string.Data(), year_string.Data()));
 
   TRandom3* rnd = new TRandom3(seed); //for generating mock data
   bool isHiggs = selection.Contains("h");
@@ -387,24 +390,28 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
     TString sys = Form("%-13s %5s ", name.Data(), type.Data());
     hsig_up->SetName(Form("%s_%sUp", selec_name.Data(), name.Data()));
     make_safe(hsig_up);
-    hsig_up->Write();
     hsig_down->SetName(Form("%s_%sDown", selec_name.Data(), name.Data()));
     make_safe(hsig_down);
-    hsig_down->Write();
     bool do_fake_bkg_line = (qcd_bkg_line == "");
     if(do_fake_bkg_line) {
       qcd_bkg_line = Form("%-13s %5s      1", "QCDNorm", "lnN");
       jtt_bkg_line = Form("%-13s %5s      1", "JetToTauNorm", "lnN");
     }
-    if(type == "shape") {
-      double nsigma = 1.;
-      if(name == "TheoryPDF") nsigma = 2.; //increase the TheoryPDF size
-      sys += Form("%6.1f", nsigma);
-    } else {
-      double sys_up   = (hsig->Integral() > 0.) ? hsig->Integral()/hsig_up->Integral() : 0.;
-      double sys_down = (hsig->Integral() > 0.) ? hsig->Integral()/hsig_down->Integral() : 0.;
-      double val = sys_up; //use up to preserve correlation directions //(std::fabs(1.-sys_up) > std::fabs(1.-sys_down)) ? sys_up : sys_down;
-      sys += Form("%6.4f", val);
+    if(is_relevant(name, selec_name)) { //check if the systematic is relevant for the signal
+      hsig_up->Write();
+      hsig_down->Write();
+      if(type == "shape") {
+        double nsigma = 1.;
+        if(name == "TheoryPDF") nsigma = 2.; //increase the TheoryPDF size
+        sys += Form("%6.1f", nsigma);
+      } else {
+        double sys_up   = (hsig->Integral() > 0.) ? hsig->Integral()/hsig_up->Integral() : 0.;
+        double sys_down = (hsig->Integral() > 0.) ? hsig->Integral()/hsig_down->Integral() : 0.;
+        double val = sys_up; //use up to preserve correlation directions //(std::fabs(1.-sys_up) > std::fabs(1.-sys_down)) ? sys_up : sys_down;
+        sys += Form("%6.4f", val);
+      }
+    } else { //not relevant
+      sys += Form("%6s", "-");
     }
     for(int ihist = 0; ihist < nbkg_proc; ++ihist) {
       TH1* hbkg_i = (TH1*) hstack->GetHists()->At(ihist);
@@ -448,74 +455,82 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
       TString hname_down = Form("%s_%sDown", hname.Data(), hstack_up->GetTitle());
       hbkg_i_up->SetName(hname_up.Data());
       make_safe(hbkg_i_up);
-      hbkg_i_up->Write(); //add to the output file
       hbkg_i_down->SetName(hname_down.Data());
       make_safe(hbkg_i_down);
-      hbkg_i_down->Write(); //add to the output file
       if(do_fake_bkg_line && hname == "QCD")   qcd_bkg_line += Form("%15.3f", 1.30); //additional 30% uncertainty
       else if(do_fake_bkg_line)                qcd_bkg_line += Form("%15i", 1);
       if(do_fake_bkg_line && hname == "MisID") jtt_bkg_line += Form("%15.3f", 1.30); //additional 30% uncertainty
       else if(do_fake_bkg_line)                jtt_bkg_line += Form("%15i", 1);
 
-      if(type == "shape") {
-        double nsigma = 1.;
-        if(name == "TheoryPDF") nsigma = 2.; //increase the TheoryPDF size
-        sys += Form("%15.1f", nsigma);
-      } else {
-        double sys_up   = (hbkg_i->Integral() > 0.) ? hbkg_i->Integral()/hbkg_i_up->Integral() : 0.;
-        double sys_down = (hbkg_i->Integral() > 0.) ? hbkg_i->Integral()/hbkg_i_down->Integral() : 0.;
-        double val = sys_up; //max((sys_up < 1.) ? 1./sys_up : sys_up, (sys_down < 1.) ? 1./sys_down : sys_down);
-        sys += Form("%15.3f", val);
+      if(is_relevant(name, hname)) { //check if the systematic is relevant to this process
+        hbkg_i_up->Write(); //add to the output file
+        hbkg_i_down->Write(); //add to the output file
+        if(type == "shape") {
+          double nsigma = 1.;
+          if(name == "TheoryPDF") nsigma = 2.; //increase the TheoryPDF size
+          sys += Form("%15.1f", nsigma);
+        } else {
+          double sys_up   = (hbkg_i->Integral() > 0.) ? hbkg_i->Integral()/hbkg_i_up->Integral() : 0.;
+          double sys_down = (hbkg_i->Integral() > 0.) ? hbkg_i->Integral()/hbkg_i_down->Integral() : 0.;
+          double val = sys_up; //max((sys_up < 1.) ? 1./sys_up : sys_up, (sys_down < 1.) ? 1./sys_down : sys_down);
+          sys += Form("%15.3f", val);
+        }
+      } else { //not relevant
+        sys += Form("%15s", "-");
       }
 
       //Add to a group list if a standard nuisance group
-      if(name.BeginsWith("JetToTau")                    ) add_group(groups, name, "JetToTau_Total"    );
-      if(name.BeginsWith("JetToTauAlt")                 ) add_group(groups, name, "JetToTau_Stat"     );
-      if(name.BeginsWith("JetToTauNC")                  ) add_group(groups, name, "JetToTau_NC"       );
-      if(name.BeginsWith("JetToTauBias")                ) add_group(groups, name, "JetToTau_Bias"     );
-      if(name.BeginsWith("JetToTauComp")                ) add_group(groups, name, "JetToTau_Comp"     );
-      if(name.BeginsWith("QCD")                         ) add_group(groups, name, "QCD_Total"         );
-      if(name.BeginsWith("QCDAlt")                      ) add_group(groups, name, "QCD_Stat"          );
-      if(name.BeginsWith("QCDNC")                       ) add_group(groups, name, "QCD_NC"            );
-      if(name.BeginsWith("QCDBias")                     ) add_group(groups, name, "QCD_Bias"          );
-      if(name.BeginsWith("QCDMassBDTBias")              ) add_group(groups, name, "QCD_Bias"          );
-      if(name.BeginsWith("JER")                         ) add_group(groups, name, "JER_JES"           );
-      if(name.BeginsWith("JES")                         ) add_group(groups, name, "JER_JES"           );
-      if(name.BeginsWith("BTag")                        ) add_group(groups, name, "BTag_Total"        );
-      if(name.Contains("TauJetID")                      ) add_group(groups, name, "TauJetID_Total"    );
-      if(name.BeginsWith("TauEleID")                    ) add_group(groups, name, "TauEleID_Total"    );
-      if(name.BeginsWith("TauMuID")                     ) add_group(groups, name, "TauMuID_Total"     );
-      if(name.Contains("MuonID")                        ) add_group(groups, name, "MuonID_Total"      );
-      if(name.Contains("MuonIsoID")                     ) add_group(groups, name, "MuonID_Total"      );
-      if(name.Contains("EleID") && !name.Contains("Tau")) add_group(groups, name, "EleID_Total"       );
-      if(name.Contains("EleIsoID")                      ) add_group(groups, name, "EleID_Total"       );
-      if(name.Contains("EleRecoID")                     ) add_group(groups, name, "EleID_Total"       );
-      if(name.Contains("MuonES")                        ) add_group(groups, name, "MuonES_Total"      );
-      if(name.Contains("EleES")                         ) add_group(groups, name, "EleES_Total"       );
-      if(name.Contains("TauES")                         ) add_group(groups, name, "TauES_Total"       );
-      if(selection.Contains("etau"))
-        if(name.Contains("EleTrig")                       ) add_group(groups, name, "EleTrig_Total"     );
-      if(selection.Contains("mutau"))
-        if(name.Contains("MuonTrig")                      ) add_group(groups, name, "MuonTrig_Total"    );
-      if(name.Contains("ZPt")                           ) add_group(groups, name, "ZPt_Total"         );
-      if(name.Contains("Pileup")                        ) add_group(groups, name, "Pileup_Total"      );
-      if(name.Contains("Prefire")                       ) add_group(groups, name, "Prefire_Total"     );
-      if(name.Contains("TheoryPDF")                     ) add_group(groups, name, "TheoryPDF_Total"   );
-      if(name.Contains("Theory")                        ) add_group(groups, name, "Theory_Total"      );
-      if(name.Contains("XS_Embed")                      ) add_group(groups, name, "EmbedUnfold_Total" );
-      else if(name.Contains("Lumi")                     ) add_group(groups, name, "Lumi_Total"        );
-      else if(name.BeginsWith("XS_")                    ) add_group(groups, name, "XSec_Total"        );
+      if(add_groups_) {
+        if(name.BeginsWith("JetToTau")                    ) add_group(groups, name, "JetToTau_Total"    );
+        if(name.BeginsWith("JetToTauAlt")                 ) add_group(groups, name, "JetToTau_Stat"     );
+        if(name.BeginsWith("JetToTauNC")                  ) add_group(groups, name, "JetToTau_NC"       );
+        if(name.BeginsWith("JetToTauBias")                ) add_group(groups, name, "JetToTau_Bias"     );
+        if(name.BeginsWith("JetToTauComp")                ) add_group(groups, name, "JetToTau_Comp"     );
+        if(name.BeginsWith("QCD")                         ) add_group(groups, name, "QCD_Total"         );
+        if(name.BeginsWith("QCDAlt")                      ) add_group(groups, name, "QCD_Stat"          );
+        if(name.BeginsWith("QCDNC")                       ) add_group(groups, name, "QCD_NC"            );
+        if(name.BeginsWith("QCDBias")                     ) add_group(groups, name, "QCD_Bias"          );
+        if(name.BeginsWith("QCDMassBDTBias")              ) add_group(groups, name, "QCD_Bias"          );
+        if(name.BeginsWith("JER")                         ) add_group(groups, name, "JER_JES"           );
+        if(name.BeginsWith("JES")                         ) add_group(groups, name, "JER_JES"           );
+        if(name.BeginsWith("BTag")                        ) add_group(groups, name, "BTag_Total"        );
+        if(name.Contains("TauJetID")                      ) add_group(groups, name, "TauJetID_Total"    );
+        if(name.BeginsWith("TauEleID")                    ) add_group(groups, name, "TauEleID_Total"    );
+        if(name.BeginsWith("TauMuID")                     ) add_group(groups, name, "TauMuID_Total"     );
+        if(name.Contains("MuonID")                        ) add_group(groups, name, "MuonID_Total"      );
+        if(name.Contains("MuonIsoID")                     ) add_group(groups, name, "MuonID_Total"      );
+        if(name.Contains("EleID") && !name.Contains("Tau")) add_group(groups, name, "EleID_Total"       );
+        if(name.Contains("EleIsoID")                      ) add_group(groups, name, "EleID_Total"       );
+        if(name.Contains("EleRecoID")                     ) add_group(groups, name, "EleID_Total"       );
+        if(name.Contains("MuonES")                        ) add_group(groups, name, "MuonES_Total"      );
+        if(name.Contains("EleES")                         ) add_group(groups, name, "EleES_Total"       );
+        if(name.Contains("TauES")                         ) add_group(groups, name, "TauES_Total"       );
+        if(selection.Contains("etau"))
+          if(name.Contains("EleTrig")                       ) add_group(groups, name, "EleTrig_Total"     );
+        if(selection.Contains("mutau"))
+          if(name.Contains("MuonTrig")                      ) add_group(groups, name, "MuonTrig_Total"    );
+        if(name.Contains("ZPt")                           ) add_group(groups, name, "ZPt_Total"         );
+        if(name.Contains("Pileup")                        ) add_group(groups, name, "Pileup_Total"      );
+        if(name.Contains("Prefire")                       ) add_group(groups, name, "Prefire_Total"     );
+        if(name.Contains("TheoryPDF")                     ) add_group(groups, name, "TheoryPDF_Total"   );
+        if(name.Contains("Theory")                        ) add_group(groups, name, "Theory_Total"      );
+        if(name.Contains("XS_Embed")                      ) add_group(groups, name, "EmbedUnfold_Total" );
+        else if(name.Contains("Lumi")                     ) add_group(groups, name, "Lumi_Total"        );
+        else if(name.BeginsWith("XS_")                    ) add_group(groups, name, "XSec_Total"        );
+      }
     }
     outfile << Form("%s \n", sys.Data());
     if(verbose_ > 3) cout << sys.Data() << endl;
   }
   //print the groups
-  outfile << "\n";
-  for(auto group : groups) {
-    if(verbose_ > 0) cout << "Adding group " << group.first.Data() << endl;
-    outfile << Form("%-13s group =", group.first.Data());
-    for(TString isys : group.second) outfile << " " << isys.Data();
+  if(add_groups_) {
     outfile << "\n";
+    for(auto group : groups) {
+      if(verbose_ > 0) cout << "Adding group " << group.first.Data() << endl;
+      outfile << Form("%-13s group =", group.first.Data());
+      for(TString isys : group.second) outfile << " " << isys.Data();
+      outfile << "\n";
+    }
   }
 
   //allow the embedding tau tau contribution to float if requested

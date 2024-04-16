@@ -11,24 +11,7 @@
   gInterpreter->AddIncludePath("./include");
   gInterpreter->AddIncludePath(Form("%s/include",gSystem->Getenv("ROOTSYS")));
   TString hostname = gSystem->Getenv("HOSTNAME");
-  
-//-----------------------------------------------------------------------------
-//  check batch mode
-//-----------------------------------------------------------------------------
-  // const char* opt ;
-  // int batch_mode = 0;
 
-  // int nargs = gApplication->Argc();
-
-  // for (int i=1; i<nargs; i++) {
-  //   opt  = gApplication->Argv(i);
-  //   if (strcmp(opt,"-b") == 0) {
-  //     batch_mode = 1;
-  //     break;
-  //   }
-  // }
-
-  // printf("   batch_mode = %i\n",batch_mode);
   const char* exec_name = gApplication->Argv(0);
 
   if (exec_name) {
@@ -50,12 +33,8 @@
       TAuthenticate::SetGlobalUser(gSystem->Getenv("USER"));
       gInterpreter->ProcessLine(".! ps | grep root");
       printf("Loading xgboost.so!\n");
-      // gSystem->Load(Form("/cvmfs/cms.cern.ch/%s/external/xgboost/1.3.3-cms/lib64/libxgboost.so",
-      //                    gSystem->Getenv("SCRAM_ARCH")));
       gSystem->Load(Form("/cvmfs/cms.cern.ch/%s/external/py2-xgboost/0.82-llifpc/lib/python2.7/site-packages/xgboost/lib/libxgboost.so",
                          gSystem->Getenv("SCRAM_ARCH")));
-      // gSystem->Load(Form("/cvmfs/cms.cern.ch/%s/external/py2-xgboost/0.80-ikaegh/lib/python2.7/site-packages/xgboost/lib/libxgboost.so",
-      //                    gSystem->Getenv("SCRAM_ARCH")));
 
 
       printf("Loading lib/libCLFVAnalysis.so!\n");
@@ -80,12 +59,6 @@
       if(status < 0)
         status = gSystem->Load("libCLFVAnalysis.so");
 
-
-     // gSystem->Load((cmssw + path + "CutsetTraining/CutsetTrainer_cc.so").Data());
-
-      // cout << "Loading SVFit libraries" << endl;
-     // gSystem->Load("libTauAnalysisClassicSVfit.so");
-     // gSystem->Load("libTauAnalysisSVfitTF.so");
     }
   }
 }

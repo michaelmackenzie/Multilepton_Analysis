@@ -2,7 +2,6 @@
 
 int plot_combine_fits(const char* file_name, double r_true = 0., TString out_name = "",
                       const int skip_bad_fits = 2, const int err_mode = 0) {
-  // if(gSystem->Load(Form("%s/src/CLFVAnalysis/lib/libCLFVAnalysis.so",gSystem->Getenv("CMSSW_BASE"))) < 0) return -1;
 
   /////////////////////////////////////////////////////////////////
   // Retrieve the fit data
@@ -37,13 +36,12 @@ int plot_combine_fits(const char* file_name, double r_true = 0., TString out_nam
   // Loop through the fit results
 
   const Long64_t nentries = tree->GetEntries();
-  tree->SetBranchStatus("*", 0);
   double r, rHiErr, rLoErr;
   int fit_status;
-  CLFV::Utilities::SetBranchAddress(tree, "r"         , &r         );
-  CLFV::Utilities::SetBranchAddress(tree, "rHiErr"    , &rHiErr    );
-  CLFV::Utilities::SetBranchAddress(tree, "rLoErr"    , &rLoErr    );
-  CLFV::Utilities::SetBranchAddress(tree, "fit_status", &fit_status);
+  tree->SetBranchAddress("r"         , &r         );
+  tree->SetBranchAddress("rHiErr"    , &rHiErr    );
+  tree->SetBranchAddress("rLoErr"    , &rLoErr    );
+  tree->SetBranchAddress("fit_status", &fit_status);
   for(Long64_t entry = 0; entry < nentries; ++entry) {
     tree->GetEntry(entry);
     if(nentries <= 10) cout << " Entry " << entry << ": (r, r_up, r_down) = (" << r << ", " << rHiErr << ", " << rLoErr << "), status = " << fit_status << endl;

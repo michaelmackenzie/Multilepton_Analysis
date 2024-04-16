@@ -19,8 +19,8 @@ then
     export X509_USER_PROXY=/afs/cern.ch/user/m/mimacken/voms_proxy/x509up_u117705
 fi
 
-export SCRAM_ARCH=slc7_amd64_gcc820
-export CMSSW_VERSION=CMSSW_10_6_29
+export SCRAM_ARCH=slc7_amd64_gcc900
+export CMSSW_VERSION=CMSSW_11_3_4
 source /cvmfs/cms.cern.ch/cmsset_default.sh
 
 # temporary fix

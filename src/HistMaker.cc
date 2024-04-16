@@ -1790,7 +1790,9 @@ void HistMaker::InitializeEventWeights() {
   //   MC Theory weights
   ////////////////////////////////////////////////////////////////////
 
-  PSWeightMax = 1.f; LHEPdfWeightMax = 1.f; LHEScaleRWeightMax = 1.f; LHEScaleFWeightMax = 1.f;
+  PSWeightMax = 1.f; LHEPdfWeightMax = 1.f;
+  LHEScaleRWeightMax = 1.f; LHEScaleRWeightUp = 1.f; LHEScaleRWeightDown = 1.f;
+  LHEScaleFWeightMax = 1.f; LHEScaleFWeightUp = 1.f; LHEScaleFWeightDown = 1.f;
   if(!fIsData && !fIsEmbed && MCGenWeight != 0.) {
     //Get the maximum event-by-event deviations
 
@@ -1805,51 +1807,62 @@ void HistMaker::InitializeEventWeights() {
     }
     PSWeightMax = 1.f + deviation;
 
-    //PDF weight
-    deviation = 0.f;
-    for(UInt_t index = 0; index < nLHEPdfWeight; ++index) {
-      //If zero weights, set them to 1
-      // if(LHEPdfWeight[0] != 0.f) LHEPdfWeight[0] = 1.f;
-      if(LHEPdfWeight[index] == 0.f) LHEPdfWeight[index] = 1.f;
-       //index 0 should be the nominal weight, so divide by it
-      LHEPdfWeight[index] /= LHEPdfWeight[0];
+    if(fIsDY) { //use the weights derived in Z (pT, mass) that don't change normalization
+      //Store Z PDF/Scale uncertainties
+      LHEPdfWeightMax    = fZPDFSys.GetPDFWeight        (fYear, zPt, zEta, zMass);
+      LHEScaleRWeightMax = fZPDFSys.GetRenormScaleWeight(fYear, zPt,       zMass);
+      LHEScaleFWeightMax = fZPDFSys.GetFactorScaleWeight(fYear, zPt,       zMass);
+      fZPDFSys.GetPDFWeight(fYear, zPt, zEta, zMass, LHEPdfWeight, nLHEPdfWeight);
+      LHEScaleRWeightUp    = LHEScaleRWeightMax;
+      LHEScaleRWeightDown  = std::max(0.f, 2.f - LHEScaleRWeightMax);
+      LHEScaleFWeightUp    = LHEScaleFWeightMax;
+      LHEScaleFWeightDown  = std::max(0.f, 2.f - LHEScaleFWeightMax);
+    } else { //evaluate the effect here
+      //PDF weight
+      deviation = 0.f;
+      for(UInt_t index = 0; index < nLHEPdfWeight; ++index) {
+        //If zero weights, set them to 1
+        // if(LHEPdfWeight[0] != 0.f) LHEPdfWeight[0] = 1.f;
+        if(LHEPdfWeight[index] == 0.f) LHEPdfWeight[index] = 1.f;
+        //index 0 should be the nominal weight, so divide by it
+        LHEPdfWeight[index] /= LHEPdfWeight[0];
 
-      //apply a scale factor to preserve the cross section
-      if(nLHEPdfWeight == 33 && index > 0) //assume the PDF set used in 2018
-        LHEPdfWeight[index] *= fZPDFSys.GetPDFScale(2018, index);
-      else if(nLHEPdfWeight == 101 && index > 0) //assume the PDF set used in 2016
-        LHEPdfWeight[index] *= fZPDFSys.GetPDFScale(2016, index);
-      else //ignore the systematic as it's not a know PDF set FIXME: Decide how to handle these cases
-        LHEPdfWeight[index] = 1.f;
+        //apply a scale factor to preserve the cross section
+        if(nLHEPdfWeight == 33 && index > 0) //assume the PDF set used in 2018
+          LHEPdfWeight[index] *= fZPDFSys.GetPDFScale(2018, index);
+        else if(nLHEPdfWeight == 101 && index > 0) //assume the PDF set used in 2016
+          LHEPdfWeight[index] *= fZPDFSys.GetPDFScale(2016, index);
+        else //ignore the systematic as it's not a know PDF set FIXME: Decide how to handle these cases
+          LHEPdfWeight[index] = 1.f;
 
-      //Ensure a reasonable weight ratio
-      LHEPdfWeight[index] = std::max(0.3f, std::min(3.f, LHEPdfWeight[index]));
-      const float dev = LHEPdfWeight[index] - 1.f;
-      if(std::fabs(deviation) < std::fabs(dev)) {
-        deviation = dev;
+        //Ensure a reasonable weight ratio
+        LHEPdfWeight[index] = std::max(0.3f, std::min(3.f, LHEPdfWeight[index]));
+        const float dev = LHEPdfWeight[index] - 1.f;
+        if(std::fabs(deviation) < std::fabs(dev)) {
+          deviation = dev;
+        }
       }
-    }
-    LHEPdfWeightMax = 1.f + deviation;
+      LHEPdfWeightMax = 1.f + deviation;
 
-    //Renormalization scale weight
-    deviation = 0.f;
-    if(nLHEScaleWeight >= 9) {
-      const int idx_1(1), idx_2(7);
-      const float dev_1 = std::max(0.3f, std::min(3.f, LHEScaleWeight[idx_1])) - 1.f;
-      const float dev_2 = std::max(0.3f, std::min(3.f, LHEScaleWeight[idx_2])) - 1.f;
-      deviation = (std::fabs(dev_1) > std::fabs(dev_2)) ? dev_1 : dev_2;
-    }
-    LHEScaleRWeightMax = 1.f + deviation;
+      //Renormalization scale weight
+      deviation = 0.f;
+      if(nLHEScaleWeight >= 9) {
+        //indices 1, 4, and 7 correspond to (muR, muF) = (0.5, 1), (1, 1), and (2, 1), respectively
+        const float ref_wt = LHEScaleWeight[4];
+        LHEScaleRWeightUp   = LHEScaleWeight[7]/ref_wt;
+        LHEScaleRWeightDown = LHEScaleWeight[1]/ref_wt;
+      }
+      LHEScaleRWeightMax = (std::fabs(LHEScaleRWeightUp-1.f) > std::fabs(LHEScaleRWeightDown-1.f)) ? LHEScaleRWeightUp : LHEScaleRWeightDown;
 
-    //Factorization scale weight
-    deviation = 0.f;
-    if(nLHEScaleWeight >= 9) {
-      const int idx_1(3), idx_2(5);
-      const float dev_1 = std::max(0.3f, std::min(3.f, LHEScaleWeight[idx_1])) - 1.f;
-      const float dev_2 = std::max(0.3f, std::min(3.f, LHEScaleWeight[idx_2])) - 1.f;
-      deviation = (std::fabs(dev_1) > std::fabs(dev_2)) ? dev_1 : dev_2;
+      //Factorization scale weight
+      if(nLHEScaleWeight >= 9) {
+        //indices 3, 4, and 5 correspond to (muR, muF) = (1, 0.5), (1, 1), and (1, 2), respectively
+        const float ref_wt = LHEScaleWeight[4];
+        LHEScaleFWeightUp   = LHEScaleWeight[5]/ref_wt;
+        LHEScaleFWeightDown = LHEScaleWeight[3]/ref_wt;
+      }
+      LHEScaleFWeightMax = (std::fabs(LHEScaleFWeightUp-1.f) > std::fabs(LHEScaleFWeightDown-1.f)) ? LHEScaleFWeightUp : LHEScaleFWeightDown;
     }
-    LHEScaleFWeightMax = 1.f + deviation;
   }
 
   ////////////////////////////////////////////////////////////////////
@@ -1882,6 +1895,10 @@ void HistMaker::InitializeEventWeights() {
     LHEScaleRWeightMax = fZPDFSys.GetRenormScaleWeight(fYear, zPt,       zMass);
     LHEScaleFWeightMax = fZPDFSys.GetFactorScaleWeight(fYear, zPt,       zMass);
     fZPDFSys.GetPDFWeight(fYear, zPt, zEta, zMass, LHEPdfWeight, nLHEPdfWeight);
+    LHEScaleRWeightUp    = LHEScaleRWeightMax;
+    LHEScaleRWeightDown  = std::max(0.f, 2.f - LHEScaleRWeightMax);
+    LHEScaleFWeightUp    = LHEScaleFWeightMax;
+    LHEScaleFWeightDown  = std::max(0.f, 2.f - LHEScaleFWeightMax);
   }
 
   ////////////////////////////////////////////////////////////////////
