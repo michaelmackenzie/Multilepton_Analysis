@@ -25,6 +25,7 @@ def add_samples(sampleDict):
   sampleDict["2016_mc"   ].append("LFVAnalysis_Wlnu-2J_2016.root"                   );
   sampleDict["2016_mc"   ].append("LFVAnalysis_Wlnu-3J_2016.root"                   );
   sampleDict["2016_mc"   ].append("LFVAnalysis_Wlnu-4J_2016.root"                   );
+  sampleDict["2016_mc"   ].append("LFVAnalysis_WGamma_2016.root"                    );
   sampleDict["2016_mc"   ].append("LFVAnalysis_EWKWminus_2016.root"                 );
   sampleDict["2016_mc"   ].append("LFVAnalysis_EWKWplus_2016.root"                  );
   sampleDict["2016_mc"   ].append("LFVAnalysis_EWKZ-M50_2016.root"                  );
