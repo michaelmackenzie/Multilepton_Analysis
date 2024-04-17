@@ -3,9 +3,8 @@
 using namespace CLFV;
 
 //-------------------------------------------------------------------------------------------------------------------------
-EmbeddingWeight::EmbeddingWeight(int Mode, int seed, int verbose) : verbose_(verbose) {
+EmbeddingWeight::EmbeddingWeight(int Mode, int verbose) : verbose_(verbose) {
   TFile* f = 0;
-  rnd_ = new TRandom3(seed);
 
 
   //useFF modes:
@@ -28,38 +27,51 @@ EmbeddingWeight::EmbeddingWeight(int Mode, int seed, int verbose) : verbose_(ver
       f = TFile::Open(Form("%s/htt_scalefactors_legacy_%i.root", path.Data(), year + 2016), "READ");
     if(!f) {
       std::cout << "Embedding corrections file for " << year + 2016 << " not found!\n";
-    } else {
-      RooWorkspace* w = (RooWorkspace*) f->Get("w");
-      if(!w) {
-        std::cout << "Embedding workspace for " << year + 2016 << " not found!\n";
-      } else {
-        ws             [year]    = w;
-        trigUnfold     [year]    = (RooFormulaVar*) w->obj(Form("m_sel_trg_%s%sratio", (use_ic) ? "ic_" : "", (year == k2016 && !use_ic) ? "kit_" : ""));
-        idUnfold       [year]    = (RooFormulaVar*) w->obj((use_ic) ? "m_sel_id_ic_ratio" : "m_sel_idEmb_ratio");
-        genTauPt       [year][0] = (RooRealVar*) w->var("gt1_pt");
-        genTauPt       [year][1] = (RooRealVar*) w->var("gt2_pt");
-        genTauPt       [year][2] = (RooRealVar*) w->var("gt_pt");
-        genTauEta      [year][0] = (RooRealVar*) w->var("gt1_eta");
-        genTauEta      [year][1] = (RooRealVar*) w->var("gt2_eta");
-        genTauEta      [year][2] = (RooRealVar*) w->var("gt_eta");
-        muonTrig       [year][0] = (RooFormulaVar*) w->obj((year == k2017) ? "m_trg27_kit_data"  : "m_trg_data");
-        muonTrig       [year][1] = (RooFormulaVar*) w->obj((year == k2017) ? "m_trg27_kit_embed" : "m_trg_mc");
-        muonIso        [year]    = (RooFormulaVar*) w->obj((year == k2017) ? "m_iso_binned_embed_kit_ratio" : "m_iso_ratio");
-        muonID         [year]    = (RooFormulaVar*) w->obj((year == k2017) ? "m_id_embed_kit_ratio" : "m_id_ratio");
-        muonPt         [year]    = (RooRealVar*) w->var("m_pt");
-        muonEta        [year]    = (RooRealVar*) w->var("m_eta");
-        electronTrig   [year][0] = (RooFormulaVar*) w->obj((year == k2017) ? "e_trg32_kit_data"  : "e_trg_data");
-        electronTrig   [year][1] = (RooFormulaVar*) w->obj((year == k2017) ? "e_trg32_kit_embed" : "e_trg_mc");
-        electronID     [year]    = (RooFormulaVar*) w->obj((year == k2017) ? "e_id80_kit_ratio" : "e_id_ratio");
-        electronIso    [year]    = (RooFormulaVar*) w->obj((year == k2017) ? "e_iso_binned_embed_kit_ratio" : "e_iso_ratio"); //the ID is without iso, so apply this as well
-        electronPt     [year]    = (RooRealVar*) w->var("e_pt");
-        electronEta    [year]    = (RooRealVar*) w->var("e_eta");
-      }
-      files_.push_back(f);
+      continue;
     }
+
+    if(verbose > 5) printf("EmbeddingWeight::%s: Opened file %s\n", __func__, f->GetName());
+    if(verbose > 7) {
+      f->ls();
+      auto obj = f->Get("w");
+      if(obj) printf("  EmbeddingWeight::%s: Object \"w\" found in file %s\n", __func__, f->GetName());
+      else    printf("  EmbeddingWeight::%s: Object \"w\" not found in file %s\n", __func__, f->GetName());
+    }
+    RooWorkspace* w = (RooWorkspace*) f->Get("w");
+    if(verbose > 7) printf("  EmbeddingWeight::%s: Attempted to retrieved the workspace\n", __func__);
+    if(!w) {
+      std::cout << "Embedding workspace for " << year + 2016 << " not found!\n";
+    } else {
+      if(verbose > 7) printf("  EmbeddingWeight::%s: Retrieved the workspace\n", __func__);
+      ws             [year]    = w;
+      trigUnfold     [year]    = (RooFormulaVar*) w->obj(Form("m_sel_trg_%s%sratio", (use_ic) ? "ic_" : "", (year == k2016 && !use_ic) ? "kit_" : ""));
+      idUnfold       [year]    = (RooFormulaVar*) w->obj((use_ic) ? "m_sel_id_ic_ratio" : "m_sel_idEmb_ratio");
+      genTauPt       [year][0] = (RooRealVar*) w->var("gt1_pt");
+      genTauPt       [year][1] = (RooRealVar*) w->var("gt2_pt");
+      genTauPt       [year][2] = (RooRealVar*) w->var("gt_pt");
+      genTauEta      [year][0] = (RooRealVar*) w->var("gt1_eta");
+      genTauEta      [year][1] = (RooRealVar*) w->var("gt2_eta");
+      genTauEta      [year][2] = (RooRealVar*) w->var("gt_eta");
+      muonTrig       [year][0] = (RooFormulaVar*) w->obj((year == k2017) ? "m_trg27_kit_data"  : "m_trg_data");
+      muonTrig       [year][1] = (RooFormulaVar*) w->obj((year == k2017) ? "m_trg27_kit_embed" : "m_trg_mc");
+      muonIso        [year]    = (RooFormulaVar*) w->obj((year == k2017) ? "m_iso_binned_embed_kit_ratio" : "m_iso_ratio");
+      muonID         [year]    = (RooFormulaVar*) w->obj((year == k2017) ? "m_id_embed_kit_ratio" : "m_id_ratio");
+      muonPt         [year]    = (RooRealVar*) w->var("m_pt");
+      muonEta        [year]    = (RooRealVar*) w->var("m_eta");
+      electronTrig   [year][0] = (RooFormulaVar*) w->obj((year == k2017) ? "e_trg32_kit_data"  : "e_trg_data");
+      electronTrig   [year][1] = (RooFormulaVar*) w->obj((year == k2017) ? "e_trg32_kit_embed" : "e_trg_mc");
+      electronID     [year]    = (RooFormulaVar*) w->obj((year == k2017) ? "e_id80_kit_ratio" : "e_id_ratio");
+      electronIso    [year]    = (RooFormulaVar*) w->obj((year == k2017) ? "e_iso_binned_embed_kit_ratio" : "e_iso_ratio"); //the ID is without iso, so apply this as well
+      electronPt     [year]    = (RooRealVar*) w->var("e_pt");
+      electronEta    [year]    = (RooRealVar*) w->var("e_eta");
+      if(verbose > 7) printf("  EmbeddingWeight::%s: Retrieved the workspace elements\n", __func__);
+    }
+    files_.push_back(f);
+
     //Get FF
     f = TFile::Open(Form("%s/embedding_unfolding_emu_%s%i.root", path.Data(), (useFF_ == 3) ? "tight_" : "", year + 2016), "READ");
     if(f) {
+      if(verbose > 5) printf("EmbeddingWeight::%s: Opened file %s\n", __func__, f->GetName());
       zetaFF[year] = (TH1*) f->Get("ZEtaUnfolding");
       zetavptFF[year] = (TH2*) f->Get("ZEtaVsPtUnfolding");
       files_.push_back(f);

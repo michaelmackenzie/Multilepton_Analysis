@@ -374,10 +374,16 @@ namespace CLFV {
     UInt_t  nLHEPdfWeight = 0          ;
     Float_t LHEPdfWeight[kMaxTheory]   ;
     Float_t LHEPdfWeightMax = 1.f      ;
+    Float_t LHEPdfWeightUp = 1.f       ;
+    Float_t LHEPdfWeightDown = 1.f     ;
     UInt_t  nLHEScaleWeight = 0        ;
     Float_t LHEScaleWeight[kMaxTheory] ;
     Float_t LHEScaleRWeightMax = 1.f   ; //renormalization scale
+    Float_t LHEScaleRWeightUp = 1.f    ;
+    Float_t LHEScaleRWeightDown = 1.f  ;
     Float_t LHEScaleFWeightMax = 1.f   ; //factorization scale
+    Float_t LHEScaleFWeightUp = 1.f    ;
+    Float_t LHEScaleFWeightDown = 1.f  ;
     Float_t MCGenWeight = 1.f          ;
 
     Float_t jetToTauWeight             ;

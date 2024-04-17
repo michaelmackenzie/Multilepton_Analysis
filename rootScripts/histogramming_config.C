@@ -31,6 +31,7 @@ HISTOGRAMMER* selector_   = nullptr;
 
 Long64_t max_sim_events_  = -1; //5e5; //maximum number of events to skim in simulation, -1 to ignore
 Double_t max_data_events_ = -1; //0.2 //maximum fraction of events to skim in data, -1 to ignore
+Int_t    only_dy_loop_    = -1; //only Drell-Yan processing loop to process (-1 to process all)
 
 bool DYFakeTau_           = false; //speed up dy fake tau scale factor
 bool WJFakeTau_           = false; //speed up w+jets fake tau scale factor

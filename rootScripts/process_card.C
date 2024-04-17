@@ -194,6 +194,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
 
   for(int wjloop = -1; wjloop < nwloops; ++wjloop) { //start from -1 to also do unsplit histogram
     for(int dyloop = 1; dyloop <= ndyloops; ++dyloop) {
+      if(isDY && only_dy_loop_ > 0 && dyloop != only_dy_loop_) continue; //check if only processing a specific DY decay mode
       if(isDY && dyloop == 2 && doEmbedSameFlavor_ == 1 && (selection == "ee" || selection == "mumu")) continue; //skip Z->ll if using embedding ll
       auto selec = new HISTOGRAMMER(systematicSeed_); //selector
       selec->fSelection = selection;

@@ -77,8 +77,8 @@ namespace CLFV {
       case   8: return Data(isys, "EleRecoID"     , false);
       case   9: return Data(isys, "MuonIsoID"     , true );
       case  10: return Data(isys, "MuonIsoID"     , false);
-      case  11: return Data(isys, "TauES"         , true ); //FIXME: Remove and switch to DM-binned ES
-      case  12: return Data(isys, "TauES"         , false);
+      // case  11: return Data(isys, "TauES"         , true ); //FIXME: Remove and switch to DM-binned ES
+      // case  12: return Data(isys, "TauES"         , false);
       case  13: return Data(isys, "EmbMuonID"     , true );
       case  14: return Data(isys, "EmbMuonID"     , false);
       case  15: return Data(isys, "QCDNC"         , true );
@@ -156,11 +156,10 @@ namespace CLFV {
       case  83: return Data(isys, "EmbEleES"      , false);
       case  84: return Data(isys, "EmbMuonES"     , true );
       case  85: return Data(isys, "EmbMuonES"     , false);
-      case  86: return Data(isys, "EmbTauES"      , true ); //FIXME: Remove and switch to DM-binned SE
-      case  87: return Data(isys, "EmbTauES"      , false);
+      // case  86: return Data(isys, "EmbTauES"      , true ); //FIXME: Remove and switch to DM-binned SE
+      // case  87: return Data(isys, "EmbTauES"      , false);
       case  88: return Data(isys, "EmbEleES1"     , true ); //high |eta| bin
       case  89: return Data(isys, "EmbEleES1"     , false);
-
       case  90: return Data(isys, "TheoryPDF"     , true );
       case  91: return Data(isys, "TheoryPDF"     , false);
       case  92: return Data(isys, "TheoryScaleF"  , true );
@@ -219,7 +218,7 @@ namespace CLFV {
                                                                     ((isys-base)/2)%nalt), (isys-base)%2 == 0);
       //QCD SS-->OS statistical function shape variations (2 per fit)
       //3 jet bins, 2 alt function shapes: FIXME: Either reset to 2 shapes or update counts everywhere
-      int njets(3); nalt = 4;
+      int njets(3); nalt = 5;
       base += 2*nbin; nbin = njets*nalt; //272-283
       if(isys >= base && isys < base+2*nbin) return Data(isys, Form("QCDAltJ%iA%i",
                                                                     (isys-base)/(2*nalt), //e.g. 272-277 = 0 jets
@@ -243,6 +242,14 @@ namespace CLFV {
       //decay mode-binned tau ES uncertainties (Embed)
       base += 2*nbin; nbin = 4; //356 - 363
       if(isys >= base && isys < base+2*nbin) return Data(isys, Form("EmbTauES%i", (isys-base)/2), (isys-base)%2 == 0);
+
+      //decay mode-binned tau ES uncertainties (MC e-->tau)
+      base += 2*nbin; nbin = 4; //364 - 371
+      if(isys >= base && isys < base+2*nbin) return Data(isys, Form("TauEleES%i", (isys-base)/2), (isys-base)%2 == 0);
+
+      //decay mode-binned tau ES uncertainties (MC mu-->tau)
+      base += 2*nbin; nbin = 4; //372 - 379
+      if(isys >= base && isys < base+2*nbin) return Data(isys, Form("TauMuES%i", (isys-base)/2), (isys-base)%2 == 0);
 
       //return the default result if no systematic is defined
       return Data();

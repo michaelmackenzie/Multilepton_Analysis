@@ -13,6 +13,7 @@ Help() {
     echo "--seed    (-s): Base random seed (default = 90)"
     echo "--skipfits    : Skip fit loops, only create plots"
     echo "--multidim    : Use the MultiDimFit method"
+    echo "--grid        : Use a grid scan with MultiDimFit"
     echo "--dontclean   : Don't clean up temporary files"
 }
 
@@ -26,6 +27,7 @@ RRANGE="100"
 SEED="90"
 SKIPFITS=""
 MULTIDIM=""
+GRID=""
 DONTCLEAN=""
 
 iarg=1
@@ -50,7 +52,7 @@ do
     then
         iarg=$((iarg + 1))
         eval "var=\${${iarg}}"
-        NGENPERTOYS=${var}
+        NGENPERTOY=${var}
     elif [[ "${var}" == "--tag" ]]
     then
         iarg=$((iarg + 1))
@@ -77,6 +79,9 @@ do
     elif [[ "${var}" == "--multidim" ]]
     then
         MULTIDIM="d"
+    elif [[ "${var}" == "--grid" ]]
+    then
+        GRID="d"
     elif [[ "${var}" == "--dontclean" ]]
     then
         DONTCLEAN="d"
@@ -108,15 +113,23 @@ OUTNAME="${NAME}_closure_test"
 
 ARGS="${ARGS} --cminDefaultMinimizerStrategy=0 --cminRunAllDiscreteCombinations --X-rtd REMOVE_CONSTANT_ZERO_POINT=1"
 ARGS="${ARGS} --X-rtd MINIMIZER_freezeDisassociatedParams"
-ARGS="${ARGS} --X-rtd MINIMIZER_multiMin_hideConstants --X-rtd MINIMIZER_multiMin_maskConstraints"
+ARGS="${ARGS} --X-rtd MINIMIZER_multiMin_hideConstants"
 
 FITARG="${ARGS} ${FITARG}"
 GENARG="${ARGS} ${GENARG}"
+ALGO="singles --cl=0.68"
+if [[ "${GRID}" == "d" ]]; then
+    ALGO="grid --points 3 --alignEdges 1"
+fi
 
 if [[ "${SKIPFITS}" == "" ]]; then
     #Do the fits in increments of N(toys) to avoid fit failures
     OUTPUTLIST=""
     GENERATED=0
+    if [ ${NTOYS} -lt ${NGENPERTOY} ]; then
+        echo "Setting N(gen per toy) to ${NTOYS}"
+        NGENPERTOY=${NTOYS}
+    fi
     for ((IGEN=0; IGEN<${NTOYS}; IGEN+=${NGENPERTOY}))
     do
         SEED=$((SEED+NGENPERTOY))
@@ -132,8 +145,12 @@ if [[ "${SKIPFITS}" == "" ]]; then
             combine -d ${CARD} ${FITARG} --rMin -${RRANGE} --rMax ${RRANGE} -M FitDiagnostics -t ${NGEN} --toysFile=higgsCombine.${OUTNAME}_binned.GenerateOnly.mH120.${SEED}.root -n .${OUTNAME}_${SEED} -s ${SEED}
             OUTPUTLIST="${OUTPUTLIST} fitDiagnostics.${OUTNAME}_${SEED}.root"
         else
-            combine -d ${CARD} ${FITARG} --rMin -${RRANGE} --rMax ${RRANGE} -M MultiDimFit --algo singles --saveFitResult --saveNLL -t ${NGEN} --toysFile=higgsCombine.${OUTNAME}_binned.GenerateOnly.mH120.${SEED}.root -n .${OUTNAME}_${SEED} -s ${SEED}
+            combine -d ${CARD} ${FITARG} --rMin -${RRANGE} --rMax ${RRANGE} -M MultiDimFit --algo ${ALGO} --saveFitResult --saveNLL -t ${NGEN} --toysFile=higgsCombine.${OUTNAME}_binned.GenerateOnly.mH120.${SEED}.root -n .${OUTNAME}_${SEED} -s ${SEED}
             OUTPUTLIST="${OUTPUTLIST} higgsCombine.${OUTNAME}_${SEED}.MultiDimFit.mH120.${SEED}.root"
+            #cleanup fit file not used
+            if [[ "${DONTCLEAN}" == "" ]]; then
+                rm multidimfit.${OUTNAME}_${SEED}.root
+            fi
         fi
         GENERATED=$((GENERATED+NGEN))
 
@@ -169,9 +186,9 @@ ls -l ${OUTFILE}
 
 echo "Creating bias plots..."
 if [[ "${MULTIDIM}" == "" ]]; then
-    root.exe -q -b "${CMSSW_BASE}/src/CLFVAnalysis/Roostats/tools/plot_combine_fits.C(\"${OUTFILE}\", 0, \"bias_${OUTNAME}${TAG}\", 0, 0)"
+    root.exe -q -b "${CMSSW_BASE}/src/CLFVAnalysis/Roostats/tools/plot_combine_fits.C(\"${OUTFILE}\", 0, \"bias_${OUTNAME}${TAG}\", 2, 0)"
 else
-    root.exe -q -b "${CMSSW_BASE}/src/CLFVAnalysis/Roostats/tools/plot_combine_toys.C(\"${OUTFILE}\", \"bias_${OUTNAME}${TAG}\")"
+    root.exe -q -b "${CMSSW_BASE}/src/CLFVAnalysis/Roostats/tools/plot_combine_multidim_fits.C(\"${OUTFILE}\", 0., \"bias_${OUTNAME}${TAG}\")"
 fi
 
 echo "Creating plots of all fit params..."

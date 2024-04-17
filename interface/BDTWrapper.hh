@@ -73,7 +73,8 @@ namespace CLFV {
       bst_ulong out_len=0;
       const float* score;
 
-      auto ret = XGBoosterPredict(bdt_, dvalues, 0, 0, &out_len, &score);
+      auto ret = XGBoosterPredict(bdt_, dvalues, 0, 0, &out_len, &score); //0.82 form
+      // auto ret = XGBoosterPredict(bdt_, dvalues, 0, 0, 0, &out_len, &score); //v1.3.3 form
       if(verbose_ > 3) std::cout << " --> Evaluated prediction\n";
 
       XGDMatrixFree(dvalues);
@@ -83,6 +84,11 @@ namespace CLFV {
         for(unsigned int ic=0; ic<out_len; ++ic)
           results.push_back(score[ic]);
       }
+      if(results.size() == 0) {
+        printf("BDTWrapper::%s: Failed to evaluate the BDT\n", __func__);
+        return -999.;
+      }
+
       if(verbose_ > 3) std::cout << " --> BDT score = " << results[0] << std::endl;
       return results[0];
     }

@@ -9,7 +9,7 @@ bool useDataBinErrors_      = false; //use data bin errors when calculating chi^
 bool use_generic_bernstein_ = false;
 bool use_fast_bernstein_    = true ;
 bool use_exp_family_        = true ;
-bool use_power_family_      = false;
+bool use_power_family_      = true ;
 bool use_laurent_family_    = false;
 bool use_dy_ww_shape_       = false;
 bool force_fit_order_       = true ; //force only the inclusion of fixed orders of each family
@@ -318,7 +318,7 @@ RooAbsPdf* create_powerlaw(RooRealVar& obs, int order, int set, TString tag = ""
   RooArgList pdfs;
   RooArgList coefficients;
   for(int i = 1; i <= order; ++i) {
-    vars.push_back(new RooRealVar(Form("pwr_%i_order_%i_c_%i%s", set, order, i, tag.Data()), Form("pwr_%i_order_%i_%i power%s", set, order, i, tag.Data()), 1., -100., 0.));
+    vars.push_back(new RooRealVar(Form("pwr_%i_order_%i_c_%i%s", set, order, i, tag.Data()), Form("pwr_%i_order_%i_%i power%s", set, order, i, tag.Data()), 1., -100., 1.));
     pwrs.push_back(new RooPowerLaw(Form("pwr_%i_pdf_order_%i_%i%s", set, order, i, tag.Data()), Form("pwr_%i_pdf_order_%i_%i%s", set, order, i, tag.Data()), obs, *vars.back()));
     pdfs.add(*pwrs.back());
     coeffs.push_back(new RooRealVar(Form("pwr_%i_order_%i_n_%i%s", set, order, i, tag.Data()), Form("pwr_%i_order_%i_%i%s norm" , set, order, i, tag.Data()), 1.e3, 0., 1.e6));
@@ -437,7 +437,7 @@ RooAbsPdf* create_generic_bernstein(RooRealVar& obs, int order, int set, TString
 }
 
 //Create a Combine fast Bernstein polynomial PDF
-RooAbsPdf* create_fast_bernstein(RooAbsReal& obs, const int order, int set, TString tag = "") {
+RooAbsPdf* create_fast_bernstein(RooRealVar& obs, const int order, int set, TString tag = "") {
   if(order <= 0) {
     cout << __func__ << ": Can't create order " << order << " PDF!\n";
     return nullptr;
@@ -479,7 +479,7 @@ RooAbsPdf* create_fast_bernstein(RooAbsReal& obs, const int order, int set, TStr
 }
 
 //Create a Bernstein polynomial PDF
-RooAbsPdf* create_bernstein(RooAbsReal& obs, const int order, int set, TString tag = "") {
+RooAbsPdf* create_bernstein(RooRealVar& obs, const int order, int set, TString tag = "") {
   if(order <= 0) {
     cout << __func__ << ": Can't create order " << order << " PDF!\n";
     return nullptr;

@@ -294,10 +294,11 @@ double TauIDWeight::EnergyScale(double pt, double eta, int dm, int genID, UChar_
               << " dm = " << dm
               << " pt = " << pt
               << " eta = " << eta
-              << " antiJet = " << antiJet
+              << " antiJetBit = " << antiJetBit
               << " tight jet = " << (antiJetIndex == kTight)
               << " scale_factor = " << scale_factor
-              << std::endl;
+              << std::endl
+              << " --> scale = " << scale_factor << " (" << up << " / " << down << ")\n";
   }
   return scale_factor;
 }
