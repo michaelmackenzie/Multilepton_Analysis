@@ -2043,7 +2043,7 @@ Int_t print_theory_uncertainty(vector<int> sets = {25}) {
   return status;
 }
 
-//print bdt variables
+//print bdt variables (and some highly related variables)
 Int_t print_bdt_variable_plots(vector<int> sets, bool add_sys = false) {
   Int_t status(0);
   for(int set : sets) {
@@ -2051,15 +2051,16 @@ Int_t print_bdt_variable_plots(vector<int> sets, bool add_sys = false) {
     status += print_leppt          (set, add_sys);
     status += print_collinear_mass (set, add_sys);
     status += print_met            (set, add_sys);
+    status += print_mt             (set, add_sys);
     status += print_jet            (set, add_sys);
     status += print_ptratio        (set, add_sys);
     status += print_deltaphi       (set, add_sys);
     status += print_lep_metdeltaphi(set, add_sys);
     status += print_lep_beta       (set, add_sys);
     status += print_pt             (set, add_sys);
-    status += print_mt             (set, add_sys);
+    status += print_eta            (set, add_sys);
     status += print_mva            (set, add_sys);
-    // status += print_eta(set, add_sys);
+    // status += print_mt_over_m      (set, add_sys);
   }
   return status;
 }

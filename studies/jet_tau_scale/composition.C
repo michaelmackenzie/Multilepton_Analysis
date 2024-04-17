@@ -131,9 +131,36 @@ void slice_2d(std::vector<TH2*> histograms, PlottingCard_t card, const bool prin
       // make_safe(h); //ensure no negative bins
       comp->Add(h);
     }
+
+    TString xtitle = card.hist_;
+    xtitle.ReplaceAll("jettau", "");
+    xtitle.ReplaceAll("lepmvs", "");
+    xtitle.ReplaceAll("_", "");
+    xtitle.ReplaceAll("1", ""); xtitle.ReplaceAll("0", ""); xtitle.ReplaceAll("2", ""); xtitle.ReplaceAll("3", ""); xtitle.ReplaceAll("4", "");
+    bool addone = xtitle.Contains("one");
+    bool addtwo = xtitle.Contains("two");
+    xtitle.ReplaceAll("one","");
+    xtitle.ReplaceAll("two","");
+    xtitle.ReplaceAll("delta", "#Delta");
+    xtitle.ReplaceAll("comp", "");
+    xtitle.ReplaceAll("eta", "#eta"); xtitle.ReplaceAll("phi", "#phi"); xtitle.ReplaceAll("pt", "p_{T}");
+    if(xtitle == "mt") {
+      xtitle = "M_{T}(MET,";
+      if     (addone) xtitle = xtitle + "l_{1})";
+      else if(addtwo) xtitle = xtitle + "l_{2})";
+      else            xtitle = xtitle +    "ll)";
+    } else {
+      if(addone) xtitle = xtitle + "^{1}";
+      if(addtwo) xtitle = xtitle + "^{2}";
+    }
+    xtitle.ReplaceAll("taus", "#tau ");
+    xtitle.ReplaceAll("met", "MET ");
+    xtitle.ReplaceAll("dm", "Decay Mode");
+
     TCanvas* c = new TCanvas(Form("c_%s_%i", hist.Data(), ixbin), Form("c_%s_%i", hist.Data(), ixbin), 1000, 600);
     c->Divide(2,1);
     auto pad = c->cd(1);
+    stack->SetTitle(xtitle.Data());
     stack->Draw("hist noclear");
     stack->SetMaximum(stack->GetMaximum()*3.);
     pad->SetLogy();
@@ -141,6 +168,7 @@ void slice_2d(std::vector<TH2*> histograms, PlottingCard_t card, const bool prin
     for(auto o : *stack->GetHists()) leg->AddEntry(o, o->GetTitle(), "F");
     leg->Draw();
     c->cd(2);
+    comp->SetTitle(xtitle.Data());
     comp->Draw("hist noclear");
     comp->SetMaximum(1.05);
     comp->SetMinimum(0.);
@@ -221,8 +249,9 @@ void make_composition(PlottingCard_t card, const bool printHists = false, const 
 
   TString xtitle = card.hist_;
   xtitle.ReplaceAll("jettau", "");
+  xtitle.ReplaceAll("lepmvs", "");
   xtitle.ReplaceAll("_", "");
-  xtitle.ReplaceAll("1", ""); xtitle.ReplaceAll("0", ""); xtitle.ReplaceAll("2", ""); xtitle.ReplaceAll("3", "");
+  xtitle.ReplaceAll("1", ""); xtitle.ReplaceAll("0", ""); xtitle.ReplaceAll("2", ""); xtitle.ReplaceAll("3", ""); xtitle.ReplaceAll("4", "");
   bool addone = xtitle.Contains("one");
   bool addtwo = xtitle.Contains("two");
   xtitle.ReplaceAll("one","");

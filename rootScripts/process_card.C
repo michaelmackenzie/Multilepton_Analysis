@@ -73,7 +73,8 @@ TH1* events_from_chain(vector<TFile*> files) {
 Int_t process_channel(datacard_t& card, config_t& config, TString selection, TChain* chain) {
   //for splitting DY lepton decays and Z pT vs mass weights
   const bool isDY = card.fname_.Contains("DY");
-  const bool isWJ = card.fname_.Contains("Wlnu_") || card.fname_.Contains("Wlnu-ext_");
+  const bool isWJ = card.fname_.Contains("Wlnu_") || card.fname_.Contains("Wlnu-ext_"); //doesn't include jet-binned samples
+  const bool isWJets = card.fname_.Contains("Wlnu"); //includes jet-binned samples
 
   const bool isSignal = (card.fname_.Contains("MuTau") || card.fname_.Contains("ETau")
                          || card.fname_.Contains("EMu")) && !card.fname_.Contains("Embed");
@@ -324,7 +325,8 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
 
       selec->fDYType = 0;
       if(isDY && splitDY_)     selec->fDYType = dyloop; //if Drell-Yan, tell the selector which loop we're on
-      if(isWJ && splitWJets_)  selec->fWNJets = wjloop; //if W+Jets, tell the selector which loop we're on
+      if(isWJ && splitWJets_)  selec->fWNJets = wjloop; //if inclusive W+Jets, tell the selector which loop we're on
+      if(isWJets && splitWGamma_) selec->fSplitWGamma = 1; //if (any) W+Jets, remove W+gamma events
       selec->fIsDY = isDY;
       selec->fIsData = card.isData_;
       selec->fIsEmbed = card.fname_.Contains("Embed-");

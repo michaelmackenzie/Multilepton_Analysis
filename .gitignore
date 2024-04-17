@@ -62,6 +62,7 @@ Roostats/*.tree
 Roostats/*.hist
 Roostats/*.pdf
 Roostats/plots
+Roostats/histograms
 Pythia
 CLFV_ZDecays_Pythia
 ExRootAnalysis

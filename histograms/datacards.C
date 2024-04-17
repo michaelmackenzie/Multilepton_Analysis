@@ -15,7 +15,7 @@ TString hist_tag_     = "clfv"; //leading tag from HistMaker, e.g. "clfv", "hist
 int    useUL_         =  0 ; //use UL dataset definitions
 int    ZMode_         =  0 ; //which Z cross-section information to use
 int    useAMC_        =  1 ; //use amc@NLO samples in place of previous LO samples
-int    useWG_         =  0 ; //use the W+gamma dataset
+int    useWG_         =  1 ; //use the W+gamma dataset
 int    useEWK_        =  0 ; //include the EWK W/Z samples
 int    useWWW_        =  1 ; //include the WWW samples
 int    splitDY_       =  1 ; //split Z->tautau and Z->ee/mumu
@@ -117,12 +117,17 @@ void get_datacards(std::vector<dcard>& cards, TString selection, int forStudies 
     }
     if(useWG_)
     cards.push_back(dcard("WGamma"               , "WGamma"               , wj.Data()   , false, xs.GetCrossSection("WGamma"               ), false, year, wj_c));
+    // cards.push_back(dcard("WGamma"               , "WGamma"               , "W#gamma"   , false, xs.GetCrossSection("WGamma"               ), false, year, kMagenta+3));
     //if splitting W+Jets into jet-binned samples, use W+Jets inclusive 0-j for 0-j, then jet-binned samples for the rest
     if(splitWJ_) {
       cards.push_back(dcard("Wlnu-0"             , "Wlnu-0"               , wj.Data()   , false, xs.GetCrossSection("Wlnu"                 ), false, year, wj_c, !useUL_&&year!=2018));
       if(year != 2018 && !useUL_){
         cards.push_back(dcard("Wlnu-ext-0"       , "Wlnu-ext-0"           , wj.Data()   , false, xs.GetCrossSection("Wlnu"                 ), false, year, wj_c, true));
       }
+      // cards.push_back(dcard("Wlnu-0"             , "Wlnu-0"               , "W+0j"   , false, xs.GetCrossSection("Wlnu"                 ), false, year, kMagenta, !useUL_&&year!=2018));
+      // if(year != 2018 && !useUL_){
+      //   cards.push_back(dcard("Wlnu-ext-0"       , "Wlnu-ext-0"           , "W+0j"   , false, xs.GetCrossSection("Wlnu"                 ), false, year, kMagenta, true));
+      // }
       cards.push_back(dcard("Wlnu-1J"            , "Wlnu-1J"              , wj.Data()   , false, xs.GetCrossSection("Wlnu-1J"        , year), false, year, wj_c, false));
       cards.push_back(dcard("Wlnu-2J"            , "Wlnu-2J"              , wj.Data()   , false, xs.GetCrossSection("Wlnu-2J"        , year), false, year, wj_c, false));
       cards.push_back(dcard("Wlnu-3J"            , "Wlnu-3J"              , wj.Data()   , false, xs.GetCrossSection("Wlnu-3J"        , year), false, year, wj_c, false));

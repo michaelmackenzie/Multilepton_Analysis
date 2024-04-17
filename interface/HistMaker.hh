@@ -454,6 +454,8 @@ namespace CLFV {
     UInt_t nGenHardTaus                ; //for DY splitting by hard process
     UInt_t nGenHardElectrons           ; //for DY splitting by hard process
     UInt_t nGenHardMuons               ; //for DY splitting by hard process
+    UInt_t nGenHardPhotons             ; //for W+jets vs. W+gamma splitting
+    UInt_t nGenPhotons                 ; //N(photons) in the event
 
     Float_t muon_trig_pt_    ; //lepton trigger thresholds
     Float_t electron_trig_pt_;
@@ -750,6 +752,11 @@ namespace CLFV {
         return kTRUE;
       }
 
+      //remove W+gamma events from the W+jets samples
+      if(!fIsData && fSplitWGamma && nGenHardPhotons == 1) {
+        return kTRUE;
+      }
+
       //////////////////////
       // MC tau-tau (or ll)
 
@@ -828,8 +835,9 @@ namespace CLFV {
 
     Bool_t          fIsSignal = false;
     Int_t           fDYType = -1; //for splitting Z->ll into 1: tau tau and 2: ee/mumu
-    Bool_t          fIsDY = false; //for checking if DY --> Z pT weights
-    Int_t           fWNJets = -1;  //for splitting w+jets samples
+    Bool_t          fIsDY = false; //flag for Drell-Yan MC
+    Int_t           fWNJets = -1;  //for splitting W+jets samples into jet bins
+    Int_t           fSplitWGamma = 0; //for remove W+gamma events from W+jets samples
 
     Int_t           fDoSystematics = 0; //0: ignore systematic histograms 1: fill them -1: only fill them
     Int_t           fDoSSSystematics = 1; //whether or not to histogram systematics for same-sign events

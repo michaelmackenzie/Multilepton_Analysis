@@ -2179,6 +2179,7 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   if(mutau_e) { //lep 2 = prompt, lep 1 = tau_l
     two_pt_min_ = 20.f; ptdiff_min_ = -1.e10; ptdiff_max_ = +1.e10;
     mtlep_max_ =  90.f; mtone_max_ = 60.f; mtone_over_m_max_ = -1.f; mttwo_over_m_max_ = -1.f;
+; mttwo_over_m_max_ = -1.f;
   }
   if(etau_mu) { //lep 1 = prompt, lep 2 = tau_l
     one_pt_min_ = 20.f; ptdiff_min_ =    0.f; ptdiff_max_ = +1.e10;
@@ -2279,6 +2280,12 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
     emu &= Electron_mvaFall17V2noIso_WP80[0];
   }
 
+  // //FIXME: Keep or remove these electron ID cuts
+  // mutau_e &= Electron_convVeto[0]; //reject gamma -> e (e.g. mu* -> mu+gamma) events
+  // etau_mu &= Electron_convVeto[0];
+  // mutau_e &= Electron_lostHits[0] < 2;
+  // etau_mu &= Electron_lostHits[0] < 2;
+
   ////////////////////////////////////////////////////////////////////////////
   // Set 7 + selection offset: No MC estimated fake taus, inverted b-jet cut
   ////////////////////////////////////////////////////////////////////////////
@@ -2334,6 +2341,7 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
       fTimes[GetTimerNumber("SingleFill")] = std::chrono::steady_clock::now(); //timer for filling all histograms
       FillAllHistograms(set_offset + (kMuTauE - kEMu) + 8);
       IncrementTimer("SingleFill", true);
+      // if(fWNJets == 0) printf("CLFVHistMaker::%s: Entry %lld has 0 LHE_Njets\n", __func__, fentry);
     }
     if(lep_tau == 2 && etau_mu && mll > min_mass_ - sys_buffer && mll < max_mass_ + sys_buffer) {
       fTimes[GetTimerNumber("SingleFill")] = std::chrono::steady_clock::now(); //timer for filling all histograms

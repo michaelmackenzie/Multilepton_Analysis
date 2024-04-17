@@ -29,6 +29,10 @@ void get_mva_systematics(std::vector<fpair>& sys, std::vector<scale_pair>& scale
   sys_vals.push_back(sys_info.GetNum("JER"));
   sys_vals.push_back(sys_info.GetNum("JES"));
   sys_vals.push_back(sys_info.GetNum("SignalMixing"));
+  sys_vals.push_back(sys_info.GetNum("TheoryPDF"));
+  sys_vals.push_back(sys_info.GetNum("TheoryScaleF"));
+  sys_vals.push_back(sys_info.GetNum("TheoryScaleR"));
+  sys_vals.push_back(sys_info.GetNum("Pileup"));
   sys_vals.push_back(sys_info.GetNum("XS_Z"));
   sys_vals.push_back(sys_info.GetNum("XS_ttbar"));
   // sys_vals.push_back(sys_info.GetNum("XS_toptw"));
@@ -47,7 +51,8 @@ void get_mva_systematics(std::vector<fpair>& sys, std::vector<scale_pair>& scale
   // sys_vals.push_back(sys_info.GetNum("XS_LumiCB1"));
   // sys_vals.push_back(sys_info.GetNum("XS_LumiCB2"));
   if(!emu_search) {
-    sys_vals.push_back(sys_info.GetNum("EmbMET"));
+    sys_vals.push_back(sys_info.GetNum("EmbTauTau"));
+    // sys_vals.push_back(sys_info.GetNum("EmbMET"));
   }
 
   //common to channels with muons
@@ -60,6 +65,7 @@ void get_mva_systematics(std::vector<fpair>& sys, std::vector<scale_pair>& scale
       sys_vals.push_back(sys_info.GetNum("EmbMuonID"));
       sys_vals.push_back(sys_info.GetNum("EmbMuonIsoID"));
       sys_vals.push_back(sys_info.GetNum("EmbMuonES"));
+      sys_vals.push_back(sys_info.GetNum("EmbMuonRes"));
       // sys_vals.push_back(sys_info.GetNum("EmbMuonES0"));
       // sys_vals.push_back(sys_info.GetNum("EmbMuonES1"));
       // sys_vals.push_back(sys_info.GetNum("EmbMuonES2"));
@@ -74,6 +80,7 @@ void get_mva_systematics(std::vector<fpair>& sys, std::vector<scale_pair>& scale
     if(!emu_search) {
       sys_vals.push_back(sys_info.GetNum("EmbEleES"));
       sys_vals.push_back(sys_info.GetNum("EmbEleES1"));
+      sys_vals.push_back(sys_info.GetNum("EmbEleRes"));
       // sys_vals.push_back(sys_info.GetNum("EmbEleTrig"));
     }
   }
@@ -81,7 +88,10 @@ void get_mva_systematics(std::vector<fpair>& sys, std::vector<scale_pair>& scale
   //common to channels with taus
   if(selection_ == "mutau" || selection_ == "etau") {
     sys_vals.push_back(sys_info.GetNum("TauES"));
-    sys_vals.push_back(sys_info.GetNum("EmbTauES"));
+    sys_vals.push_back(sys_info.GetNum("EmbTauES0"));
+    sys_vals.push_back(sys_info.GetNum("EmbTauES1"));
+    sys_vals.push_back(sys_info.GetNum("EmbTauES2"));
+    sys_vals.push_back(sys_info.GetNum("EmbTauES3"));
     sys_vals.push_back(sys_info.GetNum("TauMuID"));
     sys_vals.push_back(sys_info.GetNum("TauEleID"));
     // for(int isys = 0; isys < 5; ++isys) sys_vals.push_back(sys_info.GetNum(Form("TauJetID%i", isys)));
@@ -89,16 +99,21 @@ void get_mva_systematics(std::vector<fpair>& sys, std::vector<scale_pair>& scale
     // for(int isys = 0; isys < 36; ++isys) sys_vals.push_back(sys_info.GetNum(Form("JetToTauAltP%iD%iA%i", isys/(12)/*3 procs*/, (isys/3)%4/*4 decay modes*/, isys%3/*3 params*/)));
     for(int isys = 0; isys < 3; ++isys) sys_vals.push_back(sys_info.GetNum(Form("JetToTauNC%i"  ,isys)));
     for(int isys = 0; isys < 3; ++isys) sys_vals.push_back(sys_info.GetNum(Form("JetToTauBias%i",isys)));
-    sys_vals.push_back(sys_info.GetNum("JetToTauBiasRate0")); //FIXME: only include if using W+jets shape-only bias correction
+    sys_vals.push_back(sys_info.GetNum("JetToTauBiasRate0"));
     sys_vals.push_back(sys_info.GetNum("JetToTauComp"));
   }
 
   //common to channels with leptonic taus
   if(selection_.Contains("_")) {
-    for(int isys = 0; isys < 6; ++isys) sys_vals.push_back(sys_info.GetNum(Form("QCDAltJ%iA%i", isys/(2)/*3 jet bins*/, (isys/2)%2/*2 params*/)));
+    for(int isys = 0; isys < (3*4); ++isys) sys_vals.push_back(sys_info.GetNum(Form("QCDAltJ%iA%i", isys/(4)/*3 jet bins*/, (isys)%4/*up to 4 params*/)));
     sys_vals.push_back(sys_info.GetNum("QCDNC"));
     sys_vals.push_back(sys_info.GetNum("QCDBias"));
     sys_vals.push_back(sys_info.GetNum("QCDMassBDTBias"));
+  }
+
+  //only for Z->e+mu
+  if(emu_search) {
+    sys_vals.push_back(sys_info.GetNum("SignalBDT"));
   }
 
   for(int isys : sys_vals) {
@@ -414,7 +429,7 @@ Int_t print_lep_beta(int set, bool add_sys = false) {
   const Int_t offset = get_offset();
   const bool same_flavor = selection_ == "ee" || selection_ == "mumu";
   const bool lep_tau = selection_.Contains("_");
-  vector<TString> hists = {"beta0", "beta1"};
+  vector<TString> hists = {"beta0", "beta1", (selection_ == "mutau_e") ? "deltaalpha0" : "deltaalpha1"};
   const double blind_min = 0.8;
   const double blind_max = 1.2;
   Int_t status(0);
@@ -712,7 +727,7 @@ Int_t print_collinear_mass(int set, bool add_sys = false, double xmax = 170.) {
   const Int_t offset = get_offset();
   const bool same_flavor = selection_ == "ee" || selection_ == "mumu";
   Int_t status(0);
-  std::vector<TString> masses = {"lepmestimate", "lepmestimatetwo"};
+  std::vector<TString> masses = {"lepmestimate", "lepmestimatetwo", "lepmestimatecut0", "lepmestimatecut1"};
   for(TString mass : masses) {
     PlottingCard_t card(mass, "event", set+offset, 2, 40., xmax, (blind_) ? 80. : 1.e3, 100.);
     for(int logY = 0; logY < 2; ++logY) {
@@ -785,14 +800,34 @@ Int_t print_mva(int set, bool add_sys = false, bool all_versions = false) {
   }
   if(add_sys) {
     PlottingCard_t card_sys((hist+"_0").Data(), "systematic", set+offset, 0, 0., 1., (selection_.Contains("tau")) ? 0.5 : 2., 1.);
-    for(int logY = 0; logY < 2; ++logY) {
-      dataplotter_->logY_ = logY;
-      card_sys.sys_list_ = sys;
-      card_sys.scale_sys_list_ = scale_sys;
+    dataplotter_->logY_ = 0;
+    card_sys.sys_list_ = sys;
+    card_sys.scale_sys_list_ = scale_sys;
+    auto c = dataplotter_->print_stack(card_sys);
+    const bool quick = true;
+    if(c && quick) { // quickly make a log version rather than re-make from scratch
+      auto pad = (TPad*) c->GetPrimitive("pad1");
+      if(pad) {
+        pad->cd();
+        dataplotter_->logY_ = 1;
+        auto stack = (THStack*) pad->GetPrimitive(Form("stack_%s_0_systematic_%i%s", card.hist_.Data(), card.set_, (dataplotter_->density_plot_) ? "_density" : ""));
+        if(stack) {
+          stack->SetMinimum(max(0.8, stack->GetYaxis()->GetXmin()*0.5));
+          stack->SetMaximum(stack->GetMaximum()*20.);
+        } else {
+          cout << "Stack not found\n";
+          for(auto obj : *(pad->GetListOfPrimitives())) {
+            cout << "Found obj " << obj->GetName() << " : " << obj->GetTitle() << endl;
+          }
+        }
+        pad->SetLogy();
+        c->SaveAs(dataplotter_->GetFigureName("systematic", card.hist_+"_0", card.set_, "stack"));
+      }
+      DataPlotter::Empty_Canvas(c);
+    } else if(c) { //print more slowly
+      dataplotter_->logY_ = 1;
       auto c = dataplotter_->print_stack(card_sys);
-      if(c) DataPlotter::Empty_Canvas(c);
-      else ++status;
-    }
+    } else ++status;
   }
   dataplotter_->logY_ = 0;
   return status;

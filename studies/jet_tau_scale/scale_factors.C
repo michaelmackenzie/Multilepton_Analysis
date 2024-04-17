@@ -1728,6 +1728,7 @@ Int_t scale_factors(TString selection = "mutau", TString process = "WJets", int 
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("onemetdeltaphi"        , "lep"  , 0, 1*rb,  0.,   4. )); if(c) c->Print(Form("%sonemetdeltaphi.png"          , name.Data()));
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("twometdeltaphi"        , "lep"  , 0, 1*rb,  0.,   4. )); if(c) c->Print(Form("%stwometdeltaphi.png"          , name.Data()));
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("ptratio"               , "lep"  , 0, 1*rb,  0.,   3. )); if(c) c->Print(Form("%sptratio.png"                 , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("npv"                   , "event", 0, 0*rb,  0.,  80. )); if(c) c->Print(Form("%snpv.png"                     , name.Data()));
 
   // make_2d_closure_slices (set1Abs, set2Abs, PlottingCard_t("jettaulepmvsmtonecomp" , "lep"  , 0                  ));
   make_2d_closure_slices (set1Abs, set2Abs, PlottingCard_t("jettaulepmvsmva0"      , "event", 0                  )); //corrected

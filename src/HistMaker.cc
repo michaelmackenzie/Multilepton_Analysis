@@ -487,6 +487,8 @@ void HistMaker::BookBaseEventHistograms(Int_t i, const char* dirname) {
   Utilities::BookH1D(fEventHist[i]->hNGenTaus                , "ngentaus"                , Form("%s: NGenTaus"                    ,dirname),  10,    0,  10, folder);
   Utilities::BookH1D(fEventHist[i]->hNGenElectrons           , "ngenelectrons"           , Form("%s: NGenElectrons"               ,dirname),  10,    0,  10, folder);
   Utilities::BookH1D(fEventHist[i]->hNGenMuons               , "ngenmuons"               , Form("%s: NGenMuons"                   ,dirname),  10,    0,  10, folder);
+  Utilities::BookH1D(fEventHist[i]->hNGenPhotons             , "ngenphotons"             , Form("%s: NGenPhotons"                 ,dirname),  10,    0,  10, folder);
+  Utilities::BookH1D(fEventHist[i]->hNGenHardPhotons         , "ngenhardphotons"         , Form("%s: NGenHardPhotons"             ,dirname),  10,    0,  10, folder);
   Utilities::BookH1D(fEventHist[i]->hNJets                   , "njets"                   , Form("%s: NJets"                       ,dirname),  10,    0,  10, folder);
   Utilities::BookH1D(fEventHist[i]->hNJets20[0]              , "njets20"                 , Form("%s: NJets20"                     ,dirname),  10,    0,  10, folder);
   Utilities::BookH1D(fEventHist[i]->hNFwdJets                , "nfwdjets"                , Form("%s: NFwdJets"                    ,dirname),  10,    0,  10, folder);
@@ -732,11 +734,13 @@ void HistMaker::BookBaseLepHistograms(Int_t i, const char* dirname) {
       Utilities::BookH1F(fLepHist[i]->hOneGenEta      , "onegeneta"        , Form("%s: Gen Eta"      ,dirname),  50, -2.5,  2.5, folder);
       Utilities::BookH1F(fLepHist[i]->hOneMetDeltaPhi , "onemetdeltaphi"   , Form("%s: Met Delta Phi",dirname),  50,    0,    5, folder);
 
+      //Interesting electron IDs
+      Utilities::BookH1F(fLepHist[i]->hEleConvVeto      , "eleconvveto     "   , Form("%s: hEleConvVeto     ",dirname),   2,    0,    2, folder);
+      Utilities::BookH1F(fLepHist[i]->hEleLostHits      , "elelosthits     "   , Form("%s: hEleLostHits     ",dirname),  10,    0,   10, folder);
+      Utilities::BookH1F(fLepHist[i]->hElePFCand        , "elepfcand       "   , Form("%s: hElePFCand       ",dirname),   2,    0,    2, folder);
+
       //Electron study info
       if(fDoEleIDStudy) {
-        Utilities::BookH1F(fLepHist[i]->hEleConvVeto      , "eleconvveto     "   , Form("%s: hEleConvVeto     ",dirname),   2,    0,    2, folder);
-        Utilities::BookH1F(fLepHist[i]->hElePFCand        , "elepfcand       "   , Form("%s: hElePFCand       ",dirname),   2,    0,    2, folder);
-        Utilities::BookH1F(fLepHist[i]->hEleLostHits      , "elelosthits     "   , Form("%s: hEleLostHits     ",dirname),  10,    0,   10, folder);
         Utilities::BookH1F(fLepHist[i]->hEleEtaEta        , "eleetaeta       "   , Form("%s: hEleEtaEta       ",dirname),  50,    0, 0.035, folder);
         Utilities::BookH1F(fLepHist[i]->hEleR9            , "eler9           "   , Form("%s: hEleR9           ",dirname),  50,    0,  1.2, folder);
         // Utilities::BookH1F(fLepHist[i]->hElePhotonIdx     , "elephotonidx    "   , Form("%s: hElePhotonIdx    ",dirname),  50,    0,    5, folder);
@@ -3055,7 +3059,7 @@ void HistMaker::CountObjects() {
   if(fVerbose > 3 && !fIsData) {
     printf(" Gen-particle collection:\n");
     for(int i = 0; i < (int) nGenPart; ++i) {
-      printf("  %2i: pdg = %5i, pt = %5.1f, eta = %5.2f, phi = %5.2f, mass = %.2e, mother = %2i\n", i,
+      printf("  %2i: pdg = %5i, pt = %5.1f, eta = %9.2f, phi = %5.2f, mass = %.2e, mother = %2i\n", i,
              GenPart_pdgId[i], GenPart_pt[i], GenPart_eta[i], GenPart_phi[i],
              GenPart_mass[i], GenPart_genPartIdxMother[i]);
     }
@@ -3595,6 +3599,30 @@ void HistMaker::CountObjects() {
     }
   }
 
+  //Store the N(primary photons) generated
+  nGenPhotons = 0; nGenHardPhotons = 0;
+  if(!fIsData) {
+    for(UInt_t igen = 0; igen < nGenPart; ++igen) {
+      if(std::abs(GenPart_pdgId[igen]) == 22) { //photon
+        const int mother = GenPart_genPartIdxMother[igen];
+        if(mother >= 0) {
+          const int mother_id = std::abs(GenPart_pdgId[mother]);
+          if(mother == 0 || mother == 1) { //photon from the primary interaction
+            ++nGenHardPhotons;
+          } else if(mother_id == 24) { //include W -> gamma events in the primary interaction count
+            ++nGenHardPhotons;
+          }
+          if(mother_id != 22) ++nGenPhotons; //non-pileup photons or gamma -> X + gamma
+        }
+      }
+    }
+  }
+
+  if(!fIsData && fVerbose > 3) {
+    printf("Gen-particle (hard process) counts: %i (%i) electrons, %i (%i) muons, %i (%i) taus, and %i (%i) photons\n",
+           nGenElectrons, nGenHardElectrons, nGenMuons, nGenHardMuons, nGenTaus, nGenHardTaus, nGenPhotons, nGenHardPhotons);
+  }
+
   /////////////////////////////////////////////
   // Check info about selected leptons
 
@@ -3870,9 +3898,9 @@ void HistMaker::InitializeTreeVariables() {
                __func__, fentry, pdg_1, pdg_2, decay_1, decay_2, zLepOneDecayIdx, zLepTwoDecayIdx, nGenPart);
         if(fVerbose > 0) {
           printf("Gen-collection:\nIdx pdgId mother mother-ID\n");
-          for(UInt_t npart = 0; npart < nGenPart; ++npart) {
-            const int mother = GenPart_genPartIdxMother[npart];
-            printf(" %3i: %6i %3i %6i\n", npart, GenPart_pdgId[npart], mother,
+          for(UInt_t ipart = 0; ipart < nGenPart; ++ipart) {
+            const int mother = GenPart_genPartIdxMother[ipart];
+            printf(" %3i: %6i %3i %6i\n", ipart, GenPart_pdgId[ipart], mother,
                    (mother >= 0) ? GenPart_pdgId[mother] : 0);
           }
         }
@@ -3951,6 +3979,8 @@ void HistMaker::FillBaseEventHistogram(EventHist_t* Hist) {
   Hist->hNGenTaus            ->Fill(nGenTaus           , genWeight*eventWeight)      ;
   Hist->hNGenElectrons       ->Fill(nGenElectrons      , genWeight*eventWeight)      ;
   Hist->hNGenMuons           ->Fill(nGenMuons          , genWeight*eventWeight)      ;
+  Hist->hNGenPhotons         ->Fill(nGenPhotons        , genWeight*eventWeight)      ;
+  Hist->hNGenHardPhotons     ->Fill(nGenHardPhotons    , genWeight*eventWeight)      ;
   Hist->hNJets               ->Fill(nJets              , genWeight*eventWeight)      ;
   Hist->hNJets20[0]          ->Fill(nJets20            , genWeight*eventWeight)      ;
   Hist->hNFwdJets            ->Fill(nFwdJets           , genWeight*eventWeight)      ;
@@ -4182,12 +4212,16 @@ void HistMaker::FillBaseLepHistogram(LepHist_t* Hist) {
 
   Hist->hOneMetDeltaPhi   ->Fill(fTreeVars.onemetdeltaphi   ,eventWeight*genWeight);
 
+  //Interesting electron IDs
+  if(nElectron == 1) {
+    Hist->hEleConvVeto   ->Fill(Electron_convVeto     [0], eventWeight*genWeight);
+    Hist->hEleLostHits   ->Fill(Electron_lostHits     [0], eventWeight*genWeight);
+    Hist->hElePFCand     ->Fill(Electron_isPFcand     [0], eventWeight*genWeight);
+  }
+
   //Electron ID study
   if(fDoEleIDStudy && nElectron > 0) { //take the leading electron, if found
-    Hist->hEleConvVeto     ->Fill(Electron_convVeto     [0], eventWeight*genWeight);
     Hist->hEleCutID        ->Fill(Electron_cutBased     [0], eventWeight*genWeight);
-    Hist->hElePFCand       ->Fill(Electron_isPFcand     [0], eventWeight*genWeight);
-    Hist->hEleLostHits     ->Fill(Electron_lostHits     [0], eventWeight*genWeight);
     Hist->hEleEtaEta       ->Fill(Electron_sieie        [0], eventWeight*genWeight);
     Hist->hEleR9           ->Fill(Electron_r9           [0], eventWeight*genWeight);
     Hist->hEle3DPVErr      ->Fill(Electron_sip3d        [0], eventWeight*genWeight);
@@ -4197,6 +4231,7 @@ void HistMaker::FillBaseLepHistogram(LepHist_t* Hist) {
     Hist->hEleEnergyErr    ->Fill(Electron_energyErr[0]/Electron_pt[0], eventWeight*genWeight);
     // Hist->hElePhotonIdx    ->Fill(Electron_photonIdx[0], eventWeight*genWeight);
   }
+
   /////////////
   //  Lep 2  //
   /////////////

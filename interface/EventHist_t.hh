@@ -51,9 +51,11 @@ namespace CLFV {
     TH1* hNGenTaus;
     TH1* hNGenElectrons;
     TH1* hNGenMuons;
+    TH1* hNGenPhotons;
     TH1* hNGenHardTaus;
     TH1* hNGenHardElectrons;
     TH1* hNGenHardMuons;
+    TH1* hNGenHardPhotons;
     TH1* hNJets;
     TH1* hNJets20[2];
     TH1* hNJets20Rej[2];
