@@ -41,7 +41,7 @@
 
       printf("Loading xgboost.so!\n");
       if(cmssw.Contains("CMSSW_10_")) {
-        gSystem->Load(Form("/cvmfs/cms.cern.ch/%s/external/py2-xgboost/0.80-ikaegh/lib/python2.7/site-packages/xgboost/lib/libxgboost.so",
+        gSystem->Load(Form("/cvmfs/cms.cern.ch/%s/external/py2-xgboost/0.82-ghbfee2/lib/python2.7/site-packages/xgboost/lib/libxgboost.so",
                            gSystem->Getenv("SCRAM_ARCH")));
       } else if(cmssw.Contains("CMSSW_11_")) {
         gSystem->Load(Form("/cvmfs/cms.cern.ch/%s/external/py2-xgboost/0.82-llifpc/lib/python2.7/site-packages/xgboost/lib/libxgboost.so",
