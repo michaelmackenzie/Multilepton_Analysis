@@ -1,8 +1,8 @@
 CC       := c++
 CXX      := g++
 LD       := g++
-# XGBOOST  := /cvmfs/cms.cern.ch/$(SCRAM_ARCH)/external/xgboost/1.3.3
-XGBOOST  := /cvmfs/cms.cern.ch/$(SCRAM_ARCH)/external/py2-xgboost/0.82-llifpc/lib/python2.7/site-packages/xgboost
+# XGBOOST  := /cvmfs/cms.cern.ch/$(SCRAM_ARCH)/external/py2-xgboost/0.80-ikaegh/lib/python2.7/site-packages/xgboost
+XGBOOST  := $(shell ls -td /cvmfs/cms.cern.ch/$(SCRAM_ARCH)/external/py2-xgboost/*/lib/python2.7/site-packages/xgboost | head -n 1)
 CXXFLAGS := -Wall -Wextra -Werror -O2 -std=c++1y -g -I./ $(shell root-config --cflags) -lTMVA -I$(XGBOOST)/include/ -I$(XGBOOST)/rabit/include/
 LDFLAGS  := -shared -Wall -Wextra $(shell root-config --libs) -lTMVA
 SRC 	 := $(wildcard src/*.cc)

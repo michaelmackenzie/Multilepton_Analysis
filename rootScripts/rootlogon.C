@@ -32,13 +32,25 @@
       printf("process ID: %i\n",gSystem->GetPid());
       TAuthenticate::SetGlobalUser(gSystem->Getenv("USER"));
       gInterpreter->ProcessLine(".! ps | grep root");
-      printf("Loading xgboost.so!\n");
-      gSystem->Load(Form("/cvmfs/cms.cern.ch/%s/external/py2-xgboost/0.82-llifpc/lib/python2.7/site-packages/xgboost/lib/libxgboost.so",
-                         gSystem->Getenv("SCRAM_ARCH")));
 
+      //-----------------------------------------------------------------------------
+      // Load XGBoost and CLFVAnalysis libraries
+      //-----------------------------------------------------------------------------
+
+      TString cmssw = gSystem->Getenv("CMSSW_BASE");
+
+      printf("Loading xgboost.so!\n");
+      if(cmssw.Contains("CMSSW_10_")) {
+        gSystem->Load(Form("/cvmfs/cms.cern.ch/%s/external/py2-xgboost/0.80-ikaegh/lib/python2.7/site-packages/xgboost/lib/libxgboost.so",
+                           gSystem->Getenv("SCRAM_ARCH")));
+      } else if(cmssw.Contains("CMSSW_11_")) {
+        gSystem->Load(Form("/cvmfs/cms.cern.ch/%s/external/py2-xgboost/0.82-llifpc/lib/python2.7/site-packages/xgboost/lib/libxgboost.so",
+                           gSystem->Getenv("SCRAM_ARCH")));
+      } else {
+        cout << "Can't identify an XGBoost library path for CMSSW release in path " << cmssw.Data() << endl;
+      }
 
       printf("Loading lib/libCLFVAnalysis.so!\n");
-      TString cmssw = gSystem->Getenv("CMSSW_BASE");
       TString path = (hostname.Contains("cms")) ? "src/CLFVAnalysis/lib/" : gSystem->Getenv("PWD");
       if(TString(gSystem->Getenv("PWD")).Contains("CLFVAnalysis_dev")) {
         path = "src/CLFVAnalysis_dev/lib/";
