@@ -27,6 +27,8 @@ bool is_relevant(TString sys, TString process) {
   if(sys.BeginsWith("TauESDM") ) return !is_zll; //fake taus don't use these energy scales
   if(sys.BeginsWith("TauEleID")) return !is_embed; //only for fake taus
   if(sys.BeginsWith("TauMuID") ) return !is_embed; //only for fake taus
+  if(sys.BeginsWith("TauEleES")) return !is_embed; //only for fake taus
+  if(sys.BeginsWith("TauMuES") ) return !is_embed; //only for fake taus
   return true; //default to it being relevant
 }
 
@@ -221,6 +223,8 @@ std::pair<TString,TString> systematic_name(int sys, TString selection, int year,
   else if(name.Contains("TauMuID" )    ) name = Form("%sY%i", name.Data(), year);
   else if(name.Contains("TauEleID")    ) name = Form("%sY%i", name.Data(), year);
   else if(name.Contains("TauES")       ) name = Form("%sY%i", name.Data(), year);
+  else if(name.Contains("TauEleES")    ) name = Form("%sY%i", name.Data(), year);
+  else if(name.Contains("TauMuES")     ) name = Form("%sY%i", name.Data(), year);
   else if(name.Contains("Trig")        ) name = Form("%sY%i", name.Data(), year); //uncorrelated trigger uncertainties
   else if(name.Contains("JER")         ) name = Form("%sY%i", name.Data(), year); //uncorrelated JER uncertainties
   else if(name.Contains("JES")         ) name = Form("%sY%i", name.Data(), year); //uncorrelated JES uncertainties

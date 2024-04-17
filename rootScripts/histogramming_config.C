@@ -20,7 +20,7 @@ bool preFetch_     = false; //check for the sample on /tmp, and copy it there if
 bool useTChain_    = true; //use a TChain of input files rather than a tree from a single ntuple file
 Long64_t notify_   = 50000; //frequency at which to printout processing info
 
-vector<TString> tag_      = {"ggFH-TauTau_2016"}; //dataset tag requirement
+vector<TString> tag_      = {}; //dataset tag requirement
 vector<TString> veto_     = {"MuonEGRun", "Embed-EE", "Embed-MuMu"}; //dataset tags to veto
 bool debug_               = false;
 Long64_t startEvent_      =  0;
@@ -194,6 +194,7 @@ vector<datacard_t> get_data_cards(TString& nanoaod_path) {
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("Wlnu-2J"           , 2016), "LFVAnalysis_Wlnu-2J_2016.root"                 , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("Wlnu-3J"           , 2016), "LFVAnalysis_Wlnu-3J_2016.root"                 , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("Wlnu-4J"           , 2016), "LFVAnalysis_Wlnu-4J_2016.root"                 , 0));
+  nanocards.push_back(datacard_t(true , xs.GetCrossSection("WGamma"                  ), "LFVAnalysis_WGamma_2016.root"                  , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("EWKWminus"               ), "LFVAnalysis_EWKWminus_2016.root"               , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("EWKWplus"                ), "LFVAnalysis_EWKWplus_2016.root"                , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("EWKZ-M50"                ), "LFVAnalysis_EWKZ-M50_2016.root"                , 0));
@@ -281,7 +282,6 @@ vector<datacard_t> get_data_cards(TString& nanoaod_path) {
   // nanocards.push_back(datacard_t(false, xs.GetCrossSection("QCDDoubleEMEnrich30to40" ), "LFVAnalysis_QCDDoubleEMEnrich30to40_2016.root" , 0));
   // nanocards.push_back(datacard_t(false, xs.GetCrossSection("QCDDoubleEMEnrich30toInf"), "LFVAnalysis_QCDDoubleEMEnrich30toInf_2016.root", 0));
   // nanocards.push_back(datacard_t(false, xs.GetCrossSection("QCDDoubleEMEnrich40toInf"), "LFVAnalysis_QCDDoubleEMEnrich40toInf_2016.root", 0));
-  // nanocards.push_back(datacard_t(false, xs.GetCrossSection("WGamma"                  ), "LFVAnalysis_WGamma_2016.root"                  , 0));
   // nanocards.push_back(datacard_t(false, xs.GetCrossSection("DY50"                    ), "LFVAnalysis_DY50_2016.root"                    , 0)); //LO Drell-Yan
   // nanocards.push_back(datacard_t(false, xs.GetCrossSection("DY50"                    ), "LFVAnalysis_DY50-ext_2016.root"                , 0));
 
@@ -304,7 +304,7 @@ vector<datacard_t> get_data_cards(TString& nanoaod_path) {
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("Wlnu-2J"           , 2017), "LFVAnalysis_Wlnu-2J_2017.root"                 , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("Wlnu-3J"           , 2017), "LFVAnalysis_Wlnu-3J_2017.root"                 , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("Wlnu-4J"           , 2017), "LFVAnalysis_Wlnu-4J_2017.root"                 , 0));
-  nanocards.push_back(datacard_t(false, xs.GetCrossSection("WGamma"                  ), "LFVAnalysis_WGamma_2017.root"                  , 0));
+  nanocards.push_back(datacard_t(true , xs.GetCrossSection("WGamma"                  ), "LFVAnalysis_WGamma_2017.root"                  , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("EWKWminus"               ), "LFVAnalysis_EWKWminus_2017.root"               , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("EWKWplus"                ), "LFVAnalysis_EWKWplus_2017.root"                , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("EWKZ-M50"                ), "LFVAnalysis_EWKZ-M50_2017.root"                , 0));
@@ -387,7 +387,7 @@ vector<datacard_t> get_data_cards(TString& nanoaod_path) {
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("Wlnu-2J"           , 2018), "LFVAnalysis_Wlnu-2J_2018.root"                 , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("Wlnu-3J"           , 2018), "LFVAnalysis_Wlnu-3J_2018.root"                 , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("Wlnu-4J"           , 2018), "LFVAnalysis_Wlnu-4J_2018.root"                 , 0));
-  nanocards.push_back(datacard_t(false, xs.GetCrossSection("WGamma"                  ), "LFVAnalysis_WGamma_2018.root"                  , 0));
+  nanocards.push_back(datacard_t(true , xs.GetCrossSection("WGamma"                  ), "LFVAnalysis_WGamma_2018.root"                  , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("EWKWminus"               ), "LFVAnalysis_EWKWminus_2018.root"               , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("EWKWplus"                ), "LFVAnalysis_EWKWplus_2018.root"                , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("EWKZ-M50"                ), "LFVAnalysis_EWKZ-M50_2018.root"                , 0));

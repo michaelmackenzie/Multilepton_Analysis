@@ -30,6 +30,12 @@ cmsenv
 cd ..
 export CMSSW_BASE=$PWD
 cd src/CLFVAnalysis
+
+#override the XGBoost paths
+export ROOT_INCLUDE_PATH=/cvmfs/cms.cern.ch/slc7_amd64_gcc900/external/py2-xgboost/0.82-llifpc/lib/python2.7/site-packages/xgboost/include:$ROOT_INCLUDE_PATH
+export SRT_ROOT_INCLUDE_PATH_SCRAMRTDEL=/cvmfs/cms.cern.ch/slc7_amd64_gcc900/external/py2-xgboost/0.82-llifpc/lib/python2.7/site-packages/xgboost/include:$SRT_ROOT_INCLUDE_PATH_SCRAMRTDEL
+
+#Compile the code
 make clean; make -j8;
 
 echo "Inputs: "
