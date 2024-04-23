@@ -12,7 +12,7 @@ bool   use_fake_bkg_norm_ = false; //add a large uncertainty on j->tau/qcd norm 
 bool   separate_years_    =  true; //separate each year of data
 int    blind_data_        =    2 ; //0: no blinding; 1: kill high BDT score regions; 2: use ~Asimov instead of data
 double blind_cut_         =  0.35;
-bool   add_groups_        = false; //add systematic groups
+bool   add_groups_        =  true; //add systematic groups
 
 //add a nuisance parameter index to a group, adding the group if not yet defined
 void add_group(map<TString,vector<TString>>& groups, TString sys, TString group) {
@@ -505,10 +505,14 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
         if(name.Contains("MuonES")                        ) add_group(groups, name, "MuonES_Total"      );
         if(name.Contains("EleES")                         ) add_group(groups, name, "EleES_Total"       );
         if(name.Contains("TauES")                         ) add_group(groups, name, "TauES_Total"       );
-        if(selection.Contains("etau"))
-          if(name.Contains("EleTrig")                       ) add_group(groups, name, "EleTrig_Total"     );
-        if(selection.Contains("mutau"))
-          if(name.Contains("MuonTrig")                      ) add_group(groups, name, "MuonTrig_Total"    );
+        if(selection.Contains("etau")) {
+          if(name.Contains("EleTrig")                     ) add_group(groups, name, "EleTrig_Total"     );
+          if(name.Contains("TauEleES")                    ) add_group(groups, name, "TauEleES_Total"    );
+        }
+        if(selection.Contains("mutau")) {
+          if(name.Contains("MuonTrig")                    ) add_group(groups, name, "MuonTrig_Total"    );
+          if(name.Contains("TauMuES")                     ) add_group(groups, name, "TauMuES_Total"     );
+        }
         if(name.Contains("ZPt")                           ) add_group(groups, name, "ZPt_Total"         );
         if(name.Contains("Pileup")                        ) add_group(groups, name, "Pileup_Total"      );
         if(name.Contains("Prefire")                       ) add_group(groups, name, "Prefire_Total"     );
