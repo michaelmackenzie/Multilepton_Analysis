@@ -20,6 +20,8 @@ int plot_groups(const char* file, const char* tag = "", const bool doObs = false
                             "MuonES_Total"     ,
                             "EleES_Total"      ,
                             "TauES_Total"      ,
+                            "TauMuES_Total"    ,
+                            "TauEleES_Total"   ,
                             "JER_JES"          ,
                             "Theory_Total"     ,
                             "QCD_Stat"         ,
@@ -36,6 +38,7 @@ int plot_groups(const char* file, const char* tag = "", const bool doObs = false
 
   if(run) {
     TString args = "-M FitDiagnostics --rMin -10 --rMax 10 --stepSize 0.05 --setRobustFitTolerance 0.001 --setCrossingTolerance 5e-6";
+    args += " --cminDefaultMinimizerStrategy=0 --cminApproxPreFitTolerance 0.1 --cminPreScan --cminPreFit 1";
     gSystem->Exec(Form("combine %s -n _groupFit_Test%s_Nominal  -d %s %s", args.Data(), tag, file, (doObs) ? "" : "-t -1"));
     for(TString group : groups) {
       if(group == "All_Systematics") {

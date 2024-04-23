@@ -30,13 +30,15 @@ then
     SELECTION="emu"
 fi
 
-#Fixed base histogram set
-SET=8
-
 #Create scale factors for each input year
 for YEAR in ${YEARS}
 do
-    root.exe -q -b "scale_factors.C(\"${SELECTION}\", ${SET}, {${YEAR}}, \"${HISTPATH}\")"
+    #Nominal measurement region (tight electron, loose muon)
+    root.exe -q -b "scale_factors.C(\"${SELECTION}\",  8, {${YEAR}}, \"${HISTPATH}\")"
+    #loose electron, loose muon region
+    root.exe -q -b "scale_factors.C(\"${SELECTION}\", 71, {${YEAR}}, \"${HISTPATH}\")"
+    #loose electron, tight muon region
+    root.exe -q -b "scale_factors.C(\"${SELECTION}\", 70, {${YEAR}}, \"${HISTPATH}\")"
 done
 
 echo "Finished processing all years"

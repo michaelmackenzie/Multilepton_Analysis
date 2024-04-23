@@ -18,7 +18,7 @@ namespace CLFV {
 
   class QCDWeight {
   public:
-    QCDWeight(const TString selection, const int Mode = 0, int year = 0, const int verbose = 0);
+    QCDWeight(TString selection, const int Mode = 0, int year = 0, const int verbose = 0);
     ~QCDWeight();
 
     //Get the transfer factor

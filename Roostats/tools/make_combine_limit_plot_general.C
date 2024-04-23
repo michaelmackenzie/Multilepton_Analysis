@@ -113,8 +113,9 @@ int make_combine_limit_plot_general(vector<config_t> configs, //info for each en
       cout << configs[itree].name_.Data() << ": r < " << obs[itree] << " (" << expected[itree]
            << " [" << expected[itree]-down_1[itree] << ", " << expected[itree]+up_1[itree] << "])" << endl;
     } else {
-      cout << configs[itree].name_.Data() << ": r < " << expected[itree]
-           << " [" << expected[itree]-down_1[itree] << ", " << expected[itree]+up_1[itree] << "]" << endl;
+      printf("%s: r < %.5e (+%.5e, -%.5e) [%.5e - %.5e]\n", configs[itree].name_.Data(),
+             expected[itree], up_1[itree], down_1[itree],
+             expected[itree] - down_1[itree], expected[itree]  + up_1[itree]);
     }
   }
 

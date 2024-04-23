@@ -1117,7 +1117,7 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
           EnergyScale(leptonTwo.ES[2] / leptonTwo.ES[0], leptonTwo, &met, &metPhi);
       }
     } else if(name == "EmbMuonES") {
-      if(!fIsEmbed || !isMData || !fUseEmbedRocco) continue; //only process for embedding, and only if using Rocco systematics
+      if(!fIsEmbed || !isMData || fUseEmbedRocco != 1) continue; //only process for embedding, and only if using Rocco systematics
       reeval = true;
       if(fVerbose > 5) printf("CLFVHistMaker::%s: Applying %s energy scale (up = %i)\n",
                               __func__, name.Data(), fSystematics.IsUp(sys));
@@ -1138,7 +1138,7 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
           EnergyScale(leptonTwo.ES[2] / leptonTwo.ES[0], leptonTwo, &met, &metPhi);
       }
     } else if(name.Contains("EmbMuonES")) { //bins of energy scale uncertainty
-      if(!fIsEmbed || !isMData || fUseEmbedRocco) continue; //don't do binned ES if using Rocco systematics
+      if(!fIsEmbed || !isMData || fUseEmbedRocco == 1) continue; //don't do binned ES if using Rocco systematics
       if(fVerbose > 5) printf("CLFVHistMaker::%s: Applying %s energy scale (up = %i)\n",
                               __func__, name.Data(), fSystematics.IsUp(sys));
       TString bin_s = name; bin_s.ReplaceAll("EmbMuonES", "");
@@ -1324,14 +1324,12 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
         else if(name.EndsWith("A2")) alt_bin = 2;
         else if(name.EndsWith("A3")) alt_bin = 3;
         else if(name.EndsWith("A4")) alt_bin = 4;
-        else if(name.EndsWith("A5")) alt_bin = 5;
+        else if(name.EndsWith("A5")) alt_bin = 5; //up to a 4th order polynomial is considered
         if(alt_bin < qcdWeightAltNum) { //check that there are at least this many parameters in the fit function
           if(std::min(2, (int) nJets20) == jet_bin) {
             if(fSystematics.IsUp(sys)) weight *= (qcdWeight > 0.) ? qcdWeightAltUp  [alt_bin] / qcdWeight : 1.f;
             else                       weight *= (qcdWeight > 0.) ? qcdWeightAltDown[alt_bin] / qcdWeight : 1.f;
           }
-        } else { //if above number of function parameters, no need to fill as in a given year this doesn't change
-          continue;
         }
       } else continue; //no need to fill opposite signed histograms
     } else if(name == "QCDNC") {
@@ -1696,9 +1694,8 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
     //apply event window cuts with (possibly) shifted kinematics
     const bool pass = (fAllowMigration && reeval) ? PassesCuts() : o_pass;
     if(!reeval && !pass && o_pass) {
-      printf("CLFVHistMaker::%s: Entry %lld: Event no longer passes cuts but no MVA updates (systematic %s/%i)\n", __func__, fentry, name.Data(), sys);
+      printf("CLFVHistMaker::%s: Entry %lld: Event no longer passes cuts but no kinematic updates (systematic %s/%i)\n", __func__, fentry, name.Data(), sys);
     }
-
     if(pass) {
       ++nfilled;
       if(!fSparseHists || (isEMu || isSameFlavor)) {

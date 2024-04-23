@@ -40,6 +40,8 @@ HistMaker::HistMaker(int seed, TTree * /*tree*/) : fSystematicSeed(seed),
   fRnd = nullptr;
   fMVAConfig = nullptr;
   fQCDWeight = nullptr;
+  fBiasQCDWeight[0] = nullptr;
+  fBiasQCDWeight[1] = nullptr;
 
   leptonOne.p4 = new TLorentzVector();
   leptonTwo.p4 = new TLorentzVector();
@@ -61,7 +63,7 @@ HistMaker::HistMaker(int seed, TTree * /*tree*/) : fSystematicSeed(seed),
   fIsSignal      = false;
   fVerbose       =  0;
   fSelection     = "";
-  fDataset       = "";
+  fDataset       = "dataset"; //default name
   fYear          = 2016;
   fReprocessMVAs = 0;
 }
@@ -102,6 +104,8 @@ HistMaker::~HistMaker() {
   if(fRnd              ) {delete fRnd             ; fRnd              = nullptr;}
   if(fMVAConfig        ) {delete fMVAConfig       ; fMVAConfig        = nullptr;}
   if(fQCDWeight        ) {delete fQCDWeight       ; fQCDWeight        = nullptr;}
+  if(fBiasQCDWeight[0] ) {delete fBiasQCDWeight[0]; fBiasQCDWeight[0] = nullptr;}
+  if(fBiasQCDWeight[1] ) {delete fBiasQCDWeight[1]; fBiasQCDWeight[1] = nullptr;}
   if(fTrkQualInit      ) {delete fTrkQualInit     ; fTrkQualInit      = nullptr;}
   if(fRoccoR           ) {delete fRoccoR          ; fRoccoR           = nullptr;}
   if(leptonOne.p4      ) {delete leptonOne.p4     ; leptonOne.p4      = nullptr;}
@@ -146,6 +150,11 @@ void HistMaker::Begin(TTree * /*tree*/)
   //Ensure the qcd_weight_mode matches the setup in QCDHistMaker
   fQCDWeight = new QCDWeight("emu", qcd_weight_mode, fYear, fVerbose);
 
+  //initialize bias region scales
+  fBiasQCDWeight[0] = new QCDWeight("emu_Bias_1", qcd_weight_mode, fYear, fVerbose); //loose electron, loose muon region
+  // fBiasQCDWeight[1] = new QCDWeight("emu_Bias_2", qcd_weight_mode, fYear, fVerbose); //loose electron, tight muon region, not currently used
+
+
   //FIXME: Added back W+Jets MC bias (Mode = 10100300, 60100300 for only MC lepm bias shape)
   //FIXME: Decide on 2D (lepm, bdt score) bias (bias mode 7 (shape+rate) and 8 (shape-only))
   const int wJetsMode = fWJetsMCBiasMode*10000000 + 1300300; //1300300 = j-->tau fits + errors; NC: onept, dphi(one, met), and tau |eta|
@@ -165,16 +174,15 @@ void HistMaker::Begin(TTree * /*tree*/)
   }
 
   //FIXME: Added back W+Jets MC bias (Mode = 10300300, 60300300 for only MC bias shape)
-  //FIXME: Removed onemetdphi non-closure from W+Jets and QCD, decide if this is needed (1xxxxx --> 3xxxxx)
   if(fSelection == "" || fSelection == "etau" || fSelection == "ee") {
     fElectronJetToTauWeights  [JetToTauComposition::kWJets] = new JetToTauWeight("ElectronWJets"  , "etau" , "WJets",   31,wJetsMode, jetToTauYear, fVerbose);
     fElectronJetToTauWeights  [JetToTauComposition::kZJets] = new JetToTauWeight("ElectronZJets"  , "etau" , "WJets",   31,wJetsMode, jetToTauYear, fVerbose);
-    fElectronJetToTauWeights  [JetToTauComposition::kTop  ] = new JetToTauWeight("ElectronTop"    , "etau" , "Top"  ,   82, 70100301, jetToTauYear, fVerbose);
+    fElectronJetToTauWeights  [JetToTauComposition::kTop  ] = new JetToTauWeight("ElectronTop"    , "etau" , "Top"  ,   82, 70300301, jetToTauYear, fVerbose);
     fElectronJetToTauWeights  [JetToTauComposition::kQCD  ] = new JetToTauWeight("ElectronQCD"    , "etau" , "QCD"  , 1030, 91300300, jetToTauYear, fVerbose);
 
     fElectronJetToTauMCWeights[JetToTauComposition::kWJets] = new JetToTauWeight("ElectronMCWJets", "etau" , "WJets",   88,wJetsMode+1, jetToTauYear, fVerbose); //MC weights, non-closure, bias
     fElectronJetToTauMCWeights[JetToTauComposition::kZJets] = new JetToTauWeight("ElectronMCZJets", "etau" , "WJets",   88,wJetsMode+1, jetToTauYear, fVerbose);
-    fElectronJetToTauMCWeights[JetToTauComposition::kTop  ] = new JetToTauWeight("ElectronMCTop"  , "etau" , "Top"  ,   82, 70100301  , jetToTauYear, fVerbose); //Normal weights
+    fElectronJetToTauMCWeights[JetToTauComposition::kTop  ] = new JetToTauWeight("ElectronMCTop"  , "etau" , "Top"  ,   82, 70300301  , jetToTauYear, fVerbose); //Normal weights
     fElectronJetToTauMCWeights[JetToTauComposition::kQCD  ] = new JetToTauWeight("ElectronMCQCD"  , "etau" , "QCD"  , 1095, 71300300  , jetToTauYear, fVerbose); //high iso weights for SS bias
   }
 
@@ -199,7 +207,8 @@ void HistMaker::Begin(TTree * /*tree*/)
   fOut = new TFile(GetOutputName(), "RECREATE","HistMaker output histogram file");
   fTopDir = fOut->mkdir("Data");
   fTopDir->cd();
-  std::cout << "Using output filename " << GetOutputName() << std::endl;
+  const TString outname = GetOutputName();
+  std::cout << "Using output filename " << outname.Data() << std::endl;
 
   for(int ihist = 0; ihist < fn; ++ihist) {
     fEventHist     [ihist] = nullptr;
@@ -210,34 +219,50 @@ void HistMaker::Begin(TTree * /*tree*/)
 
   lep_tau = fSelection.EndsWith("tau_e") + 2*fSelection.EndsWith("tau_mu");
 
+  //Add dataset type flags
+  fIsHiggsBkg = 0;
+  if     (outname.Contains("ggFH-"   )) fIsHiggsBkg = 1;
+  else if(outname.Contains("VBFH-"   )) fIsHiggsBkg = 2;
+  else if(outname.Contains("WplusH-" )) fIsHiggsBkg = 3;
+  else if(outname.Contains("WminusH-")) fIsHiggsBkg = 4;
+  else if(outname.Contains("ZH-"     )) fIsHiggsBkg = 5;
+  fIsWJets = outname.Contains("_Wlnu") || outname.Contains("_WGamma"); //combine W+j and W+gamma
+  fIsWWW   = outname.Contains("_WW");
+  fIsWW    = outname.Contains("_WW") && !fIsWWW;
+  fIsTTbar = outname.Contains("_ttbar");
+
   //Check that flags agree with the available branches in the tree
-  if(fUseBTagWeights == 2 && !fChain->GetBranch("Jet_btagSF_deepcsv_L_wt")) {
-    printf("HistMaker::%s: Warning! B-tag SF weights not available in tree, will re-calculate on the fly\n", __func__);
-    fUseBTagWeights = 1;
-  }
-  if(fUseRoccoCorr == 2 && !fChain->GetBranch("Muon_corrected_pt")) {
-    printf("HistMaker::%s: Warning! Rochester corrections not available in tree, will re-calculate on the fly\n", __func__);
-    fUseRoccoCorr = 1;
-  }
-  if(fUseJetPUIDWeights == 2 && !fChain->GetBranch("JetPUIDWeight")) {
-    printf("HistMaker::%s: Warning! Jet PU ID weight not available in tree, will re-calculate on the fly\n", __func__);
-    fUseJetPUIDWeights = 1;
-  }
-  if(fUseSignalZWeights == 2 && !fChain->GetBranch("SignalpTWeight")) {
-    printf("HistMaker::%s: Warning! Signal Z pT weight not available in tree, will re-calculate on the fly\n", __func__);
-    fUseSignalZWeights = 1;
-  }
-  if(fUseZPtWeight == 2 && !fChain->GetBranch("ZpTWeight")) {
-    printf("HistMaker::%s: Warning! Z pT weight not available in tree, will re-calculate on the fly\n", __func__);
-    fUseZPtWeight = 1;
-  }
-  if(!fIsData && !fIsEmbed && fApplyJERCorrections && (!fChain->GetBranch("Jet_pt_nom") || !fChain->GetBranch("Jet_mass_nom"))) {
-    printf("HistMaker::%s: Warning! JER corrections not available in tree, will ignore\n", __func__);
-    fApplyJERCorrections = 0;
-  }
-  if(fUseRandomField == 1 && !fChain->GetBranch("RandomField")) {
-    printf("HistMaker::%s: Warning! Random Field not in the tree, will evaluate random numbers locally\n", __func__);
-    fUseRandomField = 0;
+  if(fChain) {
+    if(fUseBTagWeights == 2 && !fChain->GetBranch("Jet_btagSF_deepcsv_L_wt")) {
+      printf("HistMaker::%s: Warning! B-tag SF weights not available in tree, will re-calculate on the fly\n", __func__);
+      fUseBTagWeights = 1;
+    }
+    if(fUseRoccoCorr == 2 && !fChain->GetBranch("Muon_corrected_pt")) {
+      printf("HistMaker::%s: Warning! Rochester corrections not available in tree, will re-calculate on the fly\n", __func__);
+      fUseRoccoCorr = 1;
+    }
+    if(fUseJetPUIDWeights == 2 && !fChain->GetBranch("JetPUIDWeight")) {
+      printf("HistMaker::%s: Warning! Jet PU ID weight not available in tree, will re-calculate on the fly\n", __func__);
+      fUseJetPUIDWeights = 1;
+    }
+    if(fUseSignalZWeights == 2 && !fChain->GetBranch("SignalpTWeight")) {
+      printf("HistMaker::%s: Warning! Signal Z pT weight not available in tree, will re-calculate on the fly\n", __func__);
+      fUseSignalZWeights = 1;
+    }
+    if(fUseZPtWeight == 2 && !fChain->GetBranch("ZpTWeight")) {
+      printf("HistMaker::%s: Warning! Z pT weight not available in tree, will re-calculate on the fly\n", __func__);
+      fUseZPtWeight = 1;
+    }
+    if(!fIsData && !fIsEmbed && fApplyJERCorrections && (!fChain->GetBranch("Jet_pt_nom") || !fChain->GetBranch("Jet_mass_nom"))) {
+      printf("HistMaker::%s: Warning! JER corrections not available in tree, will ignore\n", __func__);
+      fApplyJERCorrections = 0;
+    }
+    if(fUseRandomField == 1 && !fChain->GetBranch("RandomField")) {
+      printf("HistMaker::%s: Warning! Random Field not in the tree, will evaluate random numbers locally\n", __func__);
+      fUseRandomField = 0;
+    }
+  } else {
+    std::cout << "HistMaker::" << __func__ << ": TChain isn't defined!\n";
   }
 
 
@@ -1427,7 +1452,7 @@ void HistMaker::ApplyMuonCorrections() {
     if((fIsEmbed && !fUseEmbedRocco) || fUseRoccoCorr == 0) {  //don't correct embedding (or any, if selected) to muons
       Muon_RoccoSF[index] = 1.f;
       const float abs_eta = std::fabs(Muon_eta[index]);
-      Muon_ESErr[index] = (fIsEmbed) ? (abs_eta < 1.2) ? 0.004 : (abs_eta < 2.1) ? 0.009 : 0.027 : 0.002;
+      Muon_ESErr[index] = (fIsEmbed) ? (abs_eta < 1.2) ? 0.004 : (abs_eta < 2.1) ? 0.009 : 0.027 : 0.002; //values from the LFV Higgs AN
       continue;
     } else if(fUseRoccoCorr == 1) { //apply locally-evaluated corrections
       const double u = fRnd->Uniform();
@@ -1472,6 +1497,10 @@ void HistMaker::ApplyMuonCorrections() {
       if(use_size) Muon_ESErr[index] = std::fabs(1.f - Muon_RoccoSF[index]); //size of the correction
       else         Muon_ESErr[index] = std::max(std::fabs(1.f - Muon_correctedUp_pt[index]/Muon_pt[index]),
                                                 std::fabs(1.f - Muon_correctedDown_pt[index]/Muon_pt[index])); //take the larger fractional uncertainty of the two
+    }
+    if(fIsEmbed && fUseEmbedRocco == 2) { //apply Rochester corrections, but take uncertainty from Embed vs. MC scale comparisons
+      const float abs_eta = std::fabs(Muon_eta[index]);
+      Muon_ESErr[index] = (abs_eta < 1.2) ? 0.001 : (abs_eta < 2.1) ? 0.0015 : 0.003; //disagreement between MC and Embedding from resolution study
     }
   }
   //Update the MET with these corrections applied
@@ -1840,7 +1869,7 @@ void HistMaker::InitializeEventWeights() {
           LHEPdfWeight[index] = 1.f;
 
         //Ensure a reasonable weight ratio
-        LHEPdfWeight[index] = std::max(0.3f, std::min(3.f, LHEPdfWeight[index]));
+        LHEPdfWeight[index] = std::max(0.5f, std::min(2.f, LHEPdfWeight[index]));
         const float dev = LHEPdfWeight[index] - 1.f;
         if(std::fabs(deviation) < std::fabs(dev)) {
           deviation = dev;
@@ -1856,6 +1885,17 @@ void HistMaker::InitializeEventWeights() {
         LHEScaleRWeightUp   = LHEScaleWeight[7]/ref_wt;
         LHEScaleRWeightDown = LHEScaleWeight[1]/ref_wt;
       }
+      //Remove normalization effects for relevant MC
+      if     (fIsHiggsBkg == 1) { LHEScaleRWeightUp /= 0.842; LHEScaleRWeightDown /= 1.209; } //ggF-H
+      else if(fIsHiggsBkg == 2) { LHEScaleRWeightUp /= 1.002; LHEScaleRWeightDown /= 0.997; } //VBF-H
+      else if(fIsHiggsBkg == 3) { LHEScaleRWeightUp /= 0.935; LHEScaleRWeightDown /= 1.145; } //W+-H
+      else if(fIsHiggsBkg == 4) { LHEScaleRWeightUp /= 0.935; LHEScaleRWeightDown /= 1.145; } //W--H
+      else if(fIsHiggsBkg == 5) { LHEScaleRWeightUp /= 0.935; LHEScaleRWeightDown /= 1.145; } //Z-H
+      else if(fIsWJets)         { LHEScaleRWeightUp /= 0.996; LHEScaleRWeightDown /= 1.005; } //W+jets/W+gamma
+      else if(fIsWW)            { LHEScaleRWeightUp /= 0.979; LHEScaleRWeightDown /= 1.025; } //WW
+      else if(fIsWWW)           { LHEScaleRWeightUp /= 0.959; LHEScaleRWeightDown /= 1.050; } //WWW
+      else if(fIsTTbar)         { LHEScaleRWeightUp /= 0.896; LHEScaleRWeightDown /= 1.114; } //ttbar
+      else if(fIsDY)            { LHEScaleRWeightUp /= 0.920; LHEScaleRWeightDown /= 1.113; } //Z+jets
       LHEScaleRWeightMax = (std::fabs(LHEScaleRWeightUp-1.f) > std::fabs(LHEScaleRWeightDown-1.f)) ? LHEScaleRWeightUp : LHEScaleRWeightDown;
 
       //Factorization scale weight
@@ -1865,6 +1905,17 @@ void HistMaker::InitializeEventWeights() {
         LHEScaleFWeightUp   = LHEScaleWeight[5]/ref_wt;
         LHEScaleFWeightDown = LHEScaleWeight[3]/ref_wt;
       }
+      //Remove normalization effects for relevant MC
+      if     (fIsHiggsBkg == 1) { LHEScaleFWeightUp /= 1.022; LHEScaleFWeightDown /= 0.972; } //ggF-H
+      else if(fIsHiggsBkg == 2) { LHEScaleFWeightUp /= 1.006; LHEScaleFWeightDown /= 0.999; } //VBF-H
+      else if(fIsHiggsBkg == 3) { LHEScaleFWeightUp /= 1.030; LHEScaleFWeightDown /= 0.929; } //W+-H
+      else if(fIsHiggsBkg == 4) { LHEScaleFWeightUp /= 1.030; LHEScaleFWeightDown /= 0.929; } //W--H
+      else if(fIsHiggsBkg == 5) { LHEScaleFWeightUp /= 1.030; LHEScaleFWeightDown /= 0.929; } //Z-H
+      else if(fIsWJets)         { LHEScaleFWeightUp /= 1.111; LHEScaleFWeightDown /= 0.876; } //W+jets
+      else if(fIsWW)            { LHEScaleFWeightUp /= 1.012; LHEScaleFWeightDown /= 0.986; } //WW
+      else if(fIsWWW)           { LHEScaleFWeightUp /= 0.989; LHEScaleFWeightDown /= 1.013; } //WWW
+      else if(fIsTTbar)         { LHEScaleFWeightUp /= 0.980; LHEScaleFWeightDown /= 1.027; } //ttbar
+      else if(fIsDY)            { LHEScaleFWeightUp /= 1.062; LHEScaleFWeightDown /= 0.928; } //Z+jets
       LHEScaleFWeightMax = (std::fabs(LHEScaleFWeightUp-1.f) > std::fabs(LHEScaleFWeightDown-1.f)) ? LHEScaleFWeightUp : LHEScaleFWeightDown;
     }
   }
@@ -5243,14 +5294,25 @@ float HistMaker::EvalJetToTauNCSys(int process, bool up) {
   float wt_alt = 0.f;
   for(int iproc = 0; iproc < JetToTauComposition::kLast; ++iproc) {
     //Z+jets uses the W+jets scales
-    bool test = iproc == process || (process == JetToTauComposition::kWJets && iproc == JetToTauComposition::kZJets);
+    const bool test = iproc == process || (process == JetToTauComposition::kWJets && iproc == JetToTauComposition::kZJets);
     float base = fJetToTauComps[iproc] * fJetToTauWts[iproc];
     if(fApplyJetToTauMCBias || (iproc != JetToTauComposition::kWJets && iproc != JetToTauComposition::kZJets)) { //bias is applied to nominal weight
       base *= fJetToTauBiases[iproc];
     }
-    //take up as applying the correction twice, down as no correction
-    if(test) wt_alt += base * ((up) ? fJetToTauCorrs[iproc]*fJetToTauCorrs[iproc] : 1.f);
-    else     wt_alt += base * fJetToTauCorrs[iproc]; //apply the correction as normal for non-selected processes
+    //For W+jets (or all for non-top mode = 2), can compare the measure non-closure in data to the predicted non-closure in MC
+    if(test && ((process == JetToTauComposition::kWJets && fWJetsNCSysMode) || (fWJetsNCSysMode == 2 && process == JetToTauComposition::kQCD))) {
+      const float data_corr = fJetToTauCorrs  [process];
+      const float mc_corr   = fJetToTauMCCorrs[process];
+      const float ratio = (mc_corr > 0.) ? data_corr / mc_corr : data_corr; //default to correction size if MC isn't defined
+      if(fVerbose > 5) {
+        printf("  HistMaker::%s: Entry %lld has W+jets NC sys: NC(data) = %.3f, NC(MC) = %.3f, ratio = %.3f\n",
+               __func__, fentry, data_corr, mc_corr, ratio);
+      }
+      wt_alt += base * data_corr * ((up) ? ratio : 1./ratio);
+    } else { //take up as applying the correction twice, down as no correction
+      if(test) wt_alt += base * ((up) ? fJetToTauCorrs[iproc]*fJetToTauCorrs[iproc] : 1.f);
+      else     wt_alt += base * fJetToTauCorrs[iproc]; //apply the correction as normal for non-selected processes
+    }
   }
   const float sys_wt = wt * (wt_alt / jetToTauWeightBias);
   return sys_wt;

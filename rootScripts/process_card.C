@@ -319,6 +319,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
       selec->fUseJetToTauComposition = useJetToTauComp_;
       selec->fApplyJetToTauMCBias    = applyJetToTauMCBias_;
       if(wJetsBiasMode_ >= 0)    selec->fWJetsMCBiasMode  = wJetsBiasMode_;
+      if(wJetsNCSysMode_ >= 0)   selec->fWJetsNCSysMode   = wJetsNCSysMode_;
       if(jetToTauYearMode_ >= 0) selec->fJetToTauYearMode = jetToTauYearMode_;
       if(useWJetsJetToTau_ >= 0) selec->fUseWJetsJetToTau = useWJetsJetToTau_;
       selec->fUseMCEstimatedFakeLep  = useMCFakeLep_;

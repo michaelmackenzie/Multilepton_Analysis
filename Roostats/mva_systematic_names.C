@@ -20,8 +20,9 @@ bool is_relevant(TString sys, TString process) {
   if(sys.BeginsWith("Pileup")  ) return !is_embed;
   if(sys.BeginsWith("EleES")   ) return !is_embed;
   if(sys.BeginsWith("MuonES")  ) return !is_embed;
-  if(sys.BeginsWith("TauES")   ) return !is_embed;
+  if(sys.BeginsWith("TauES")   ) return !is_embed && !is_zll; //only for genuine MC taus
   if(sys.BeginsWith("Theory")  ) return !is_embed;
+  if(sys == "HEM"              ) return !is_embed;
   if(sys.BeginsWith("JetToTau")) return is_data;
   if(sys.BeginsWith("QCD")     ) return is_data;
   if(sys.BeginsWith("TauESDM") ) return !is_zll; //fake taus don't use these energy scales
@@ -100,6 +101,9 @@ std::pair<TString,TString> systematic_name(int sys, TString selection, int year,
   //non-prompt emu estimate check
   // if(name == "QCDMassBDTBias") name = "";
 
+  //whether or not to model the QCD non-closure correction as an additional uncertainty
+  if(qcd_nc_mode_ == 0 && name == "QCDNC") name = "";
+
   if(selection.EndsWith("etau")) {
     if(name.Contains("TauMuID") && name != "TauMuID") name = ""; //don't use finely binned nuisance parameters
     else if(name == "TauEleID") name = ""; //ignore coarse binned version
@@ -136,6 +140,7 @@ std::pair<TString,TString> systematic_name(int sys, TString selection, int year,
   //remove DM inclusive tau ES
   if(name.EndsWith("TauES")) name = "";
 
+
   //re-name DM-binned tau ES nuisances
   if     (name.EndsWith("TauES0")) name.ReplaceAll("0", "DM0" );
   else if(name.EndsWith("TauES1")) name.ReplaceAll("1", "DM1" );
@@ -164,6 +169,9 @@ std::pair<TString,TString> systematic_name(int sys, TString selection, int year,
     if(name.Contains("P1")) name.ReplaceAll("P1", "Top"  );
     if(name.Contains("P2")) name.ReplaceAll("P2", "QCD"  );
   }
+
+  //j-->tau Top stat uncertainty has no effect --> gets dropped
+  if(name.BeginsWith("JetToTauAltTop")) name = "";
 
   //Re-name electron Embedding energy scale
   if(name == "EmbEleES") name = "EmbEleESBarrel";

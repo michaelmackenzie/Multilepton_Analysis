@@ -112,7 +112,7 @@ ElectronIDWeight::ElectronIDWeight(const int Mode, const int verbose) : verbose_
     //////////////////////////////////////////
 
     if(use_embed_tnp_) {
-      for(int region = 0; region < 2; ++region) {
+      for(int region = 0; region < 1; ++region) { //FIXME: turned off loose ID regions for now
         //FIXME: Add B-F and G-H electron trigger scale factors
         TString fname = Form("embedding_eff_ee_mode-%i_%i%s.root", region*4, period+2016, (period == 0) ? "_period_0" : "");
         f = TFile::Open((path + "/" + fname).Data(), "READ");

@@ -19,5 +19,6 @@ int  split_pdf_sys_         = 0; //split PDF uncertainties into 31 nuisance para
 int  signal_in_fakes_cr_    = 0; //include signal in the data - MC subtraction for the fake lepton background estimates
 int  apply_signal_bias_     = 1; //correct for signal included in the data-driven background estimate control region
 int  higgs_bkg_             = 1; //include higgs backgrounds
+int  qcd_nc_mode_           = 0; //QCD non-closure uncertainty: 0: ignore; 1: include
 
 #endif

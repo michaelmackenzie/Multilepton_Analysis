@@ -169,12 +169,24 @@ void JetToTauComposition::GetComposition(float pt, float dphi, float mt, const i
         comp = h->GetBinContent(bin);
       }
     }
-    //pQCD = (Data - MC) / Data = 1 - pMC, pMC = MC / Data
-    //pMC+ = (1+sys)*pMC = x*pMC
-    //pQCD+ = 1 - pMC+ = 1 - x*pMC = 1 - x*(1 - pQCD) = x*pQCD + (1-x) = (1+sys)*pQCD - sys
-    up   = std::max(0.f, (proc == kQCD) ?( 1.f + mc_yield_sys)*comp - mc_yield_sys : (1.f + mc_yield_sys)*comp); //std::max(0., std::min(1., comp + h->GetBinError(bin)));
-    down = std::max(0.f, (proc == kQCD) ? (1.f - mc_yield_sys)*comp + mc_yield_sys : (1.f - mc_yield_sys)*comp); //std::max(0., std::min(1., comp - h->GetBinError(bin)));
-    tot_up += up;
+    //Vary the MC yields up by X%, keep the amount of QCD fixed (estimated using SS data)
+    // N = N(events); M = N(MC events); Q = N(QCD events); m = M/N; q = Q/N; x = 1 + mc_yield_sys;
+    // M' = x*M = x*N*m; N' = x*M + Q = N + (x-1)*M = N*(1 + (x-1)*m); m' = M'/N';
+    // m' = x*N*m/{N*(1+(x-1)*m)} = x*m / (xm - m + 1)
+    // q' = q*N/N'; N' = x*(N-Q) + Q = N*(x - xq + q)
+    // q' = q/(q - xq + x)
+    if(proc == kQCD) {
+      float x = 1.f + mc_yield_sys; //vary the MC fraction up
+      up   = std::max(0.f, std::min(1.f, comp / (comp - comp*x + x)));
+      x = 1.f - mc_yield_sys; //vary the MC fraction down
+      down = std::max(0.f, std::min(1.f, comp / (comp - comp*x + x)));
+    } else { //MC processes
+      float x = 1.f + mc_yield_sys; //vary the MC fraction up
+      up   = std::max(0.f, std::min(1.f, x*comp / (x*comp - comp + 1)));
+      x = 1.f - mc_yield_sys; //vary the MC fraction down
+      down = std::max(0.f, std::min(1.f, x*comp / (x*comp - comp + 1)));
+    }
+    tot_up   += up;
     tot_down += down;
     if(verbose_ > 1) std::cout << __func__ << ": Composition fraction for process " << proc << " = " << comp << std::endl;
     if(comp < 0.f) tot_neg += std::fabs(comp);

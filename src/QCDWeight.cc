@@ -3,7 +3,7 @@
 using namespace CLFV;
 
 //-------------------------------------------------------------------------------------------------------------------------
-QCDWeight::QCDWeight(const TString selection, const int Mode, int only_year, const int verbose) : verbose_(verbose) {
+QCDWeight::QCDWeight(TString selection, const int Mode, int only_year, const int verbose) : verbose_(verbose) {
 
   useFits_        = (Mode %         10) /         1 == 1;
   useDeltaPhi_    = (Mode %        100) /        10 == 1;
@@ -16,7 +16,12 @@ QCDWeight::QCDWeight(const TString selection, const int Mode, int only_year, con
   useLepMVsBDT_   = (Mode %  100000000) /  10000000; //0: none; 1: mutau_e BDT; 2: etau_mu BDT
   useRun2_        = (Mode % 1000000000) / 100000000;
 
-  const char* tag = (useLepMVsBDT_ == 1) ? "mutau_e" : (useLepMVsBDT_ == 2) ? "etau_mu" : "emu";
+  //Check if the weights are for the nominal region (R0), loose electron loose muon (R1), or loose electron tight muon (R2) regions
+  const int base_set = (selection.Contains("_Bias_1")) ? 71 : (selection.Contains("_Bias_2")) ? 70 : 8;
+  selection.ReplaceAll("_Bias_1", "");
+  selection.ReplaceAll("_Bias_2", "");
+
+  const char* tag = Form("%s_%i", (useLepMVsBDT_ == 1) ? "mutau_e" : (useLepMVsBDT_ == 2) ? "etau_mu" : "emu", base_set);
 
   if(verbose > 0) {
     std::cout << __func__ << ": useFits = " << useFits_
@@ -29,6 +34,7 @@ QCDWeight::QCDWeight(const TString selection, const int Mode, int only_year, con
               << " useAntiIso_ = " << useAntiIso_
               << " useLepMVsBDT_ = " << useLepMVsBDT_
               << " useRun2_ = " << useRun2_
+              << " base set = " << base_set
               << " tag = " << tag
               << std::endl;
   }
@@ -64,9 +70,9 @@ QCDWeight::QCDWeight(const TString selection, const int Mode, int only_year, con
     if(only_year > 2000 && year != only_year) continue;
     //get the SS --> OS scale factors measured
     if(useRun2_ == 1) {
-      f = TFile::Open(Form("%s/qcd_scale_%s_2016_2017_2018.root", path.Data(), selection.Data()), "READ");
+      f = TFile::Open(Form("%s/qcd_scale_%s_%i_2016_2017_2018.root", path.Data(), selection.Data(), base_set), "READ");
     } else {
-      f = TFile::Open(Form("%s/qcd_scale_%s_%i.root", path.Data(), selection.Data(), year), "READ");
+      f = TFile::Open(Form("%s/qcd_scale_%s_%i_%i.root", path.Data(), selection.Data(), base_set, year), "READ");
     }
     if(f) {
       ///////////////////////////////////////////

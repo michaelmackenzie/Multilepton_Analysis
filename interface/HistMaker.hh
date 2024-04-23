@@ -837,13 +837,18 @@ namespace CLFV {
 
     TString         fSelection = ""; //data selection to consider
     Int_t           fYear = 2016;
-    TString         fDataset = ""; //data set being analyzed
+    TString         fDataset = "dataset"; //data set being analyzed
 
     Bool_t          fIsSignal = false;
     Int_t           fDYType = -1; //for splitting Z->ll into 1: tau tau and 2: ee/mumu
     Bool_t          fIsDY = false; //flag for Drell-Yan MC
     Int_t           fWNJets = -1;  //for splitting W+jets samples into jet bins
     Int_t           fSplitWGamma = 0; //for remove W+gamma events from W+jets samples
+    Int_t           fIsHiggsBkg = 0; //is a Higgs background sample: 1 = ggF; 2 = VBF; 3 = W+H; 4 = W-H; 5 = ZH
+    Bool_t          fIsWJets = false;
+    Bool_t          fIsWW = false;
+    Bool_t          fIsWWW = false;
+    Bool_t          fIsTTbar = false;
 
     Int_t           fDoSystematics = 0; //0: ignore systematic histograms 1: fill them -1: only fill them
     Int_t           fDoSSSystematics = 1; //whether or not to histogram systematics for same-sign events
@@ -864,7 +869,7 @@ namespace CLFV {
     Int_t           fIsLLEmbed = 0; //whether or not this is an ll -> ll embedding (mumu/ee)
     Int_t           fUseEmbedCuts = 0; //whether or not to use the kinematic restrictions for embedded sample generation
     Int_t           fUseEmbedTnPWeights = 1; //whether or not to use the locally calculated lepton ID/trigger weights
-    Int_t           fUseEmbedRocco = 1; //whether or not to use Rochester corrections + uncertainties with Embedded muons
+    Int_t           fUseEmbedRocco = 1; //whether or not to use Rochester corrections + uncertainties with Embedded muons (0: ignore; 1: apply + sys; 2: apply but separate sys)
     Int_t           fUseEmbedMuonES = 0; //use Embed - MC resolution fit means to correction Embedding muon energy scales
     Int_t           fEmbedUseMETUnc = 1; //whether to include MET JER/JES uncertainties in the embedding MET uncertainty
     Int_t           fEmbedUseMCTauID = 0; //use MC measured tau ID corrections instead of Embedding corrections
@@ -931,9 +936,9 @@ namespace CLFV {
     Float_t*        fJetToTauAltUp     = new Float_t[JetToTauComposition::kLast*kMaxAltFunc]; //alternate shapes
     Float_t*        fJetToTauAltDown   = new Float_t[JetToTauComposition::kLast*kMaxAltFunc]; //alternate shapes
     Int_t*          fJetToTauAltNum    = new Int_t  [JetToTauComposition::kLast]; //N(alternate shapes)
-    Float_t*        fJetToTauCorrs     = new Float_t[JetToTauComposition::kLast];
-    Float_t*        fJetToTauBiases    = new Float_t[JetToTauComposition::kLast];
-    Float_t*        fJetToTauComps     = new Float_t[JetToTauComposition::kLast];
+    Float_t*        fJetToTauCorrs     = new Float_t[JetToTauComposition::kLast]; //Non-closure corrections
+    Float_t*        fJetToTauBiases    = new Float_t[JetToTauComposition::kLast]; //Bias corrections
+    Float_t*        fJetToTauComps     = new Float_t[JetToTauComposition::kLast]; //Composition fractions
     Float_t*        fJetToTauCompsUp   = new Float_t[JetToTauComposition::kLast];
     Float_t*        fJetToTauCompsDown = new Float_t[JetToTauComposition::kLast];
     Bool_t          fUseJetToTauComposition = true;
@@ -945,8 +950,10 @@ namespace CLFV {
     Int_t           fJetToTauYearMode  = 0; //0: Use scales for each year; 1: use Run-2 measured scales
     Int_t           fUseMCFakeTau      = 0; //0: reject MC j-->tau; 1: allow MC j-->tau, QCD j-->tau weights
     Int_t           fUseWJetsJetToTau  = 0; //override j-->tau transfer factor composition with W+jets transfer factors
+    Int_t           fWJetsNCSysMode    = 0; //W+jets non-closure uncertainty mode: 0: size of correction; 1: ratio of MC / Data non-closure
 
     QCDWeight*      fQCDWeight; //for emu
+    QCDWeight*      fBiasQCDWeight[2]; //bias region QCD SS --> OS measurements: 0 = loose mu, loose e; 1 = tight mu, loose e
     MuonIDWeight    fMuonIDWeight;
     ElectronIDWeight fElectronIDWeight;
     LeptonDisplacement fLeptonDisplacement; //dxy/dz significance corrections (Z->e+mu only)

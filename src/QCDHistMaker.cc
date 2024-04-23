@@ -535,7 +535,8 @@ Bool_t QCDHistMaker::Process(Long64_t entry)
   //    Reject b-jets     //
   //////////////////////////
 
-  emu   &= nBJetsUse == 0;
+  emu &= nBJetsUse == 0;
+  if(!emu) return kTRUE;
 
   if(isLooseElectron)               {fCutFlow->Fill(icutflow);} //17
   ++icutflow;
@@ -551,11 +552,47 @@ Bool_t QCDHistMaker::Process(Long64_t entry)
     ////////////////////////////////////////////////////////////////////////////
     // Set 70 + selection offset: loose electron + tight muon region
     ////////////////////////////////////////////////////////////////////////////
-    if(!isLooseMuon) FillAllHistograms(set_offset + 70);
+    if(!isLooseMuon) {
+      //store the current weights
+      const float prev_qcd_weight  = qcdWeight;
+      const float prev_qcd_closure = qcdClosure;
+      const float prev_qcd_iso     = qcdIsoScale;
+      const float prev_qcd_bias    = qcdMassBDTScale;
+      //apply the weights for the loose muon bias region to test in the tight muon region to get method uncertainty
+      if(!chargeTest) {
+        qcdWeight = fBiasQCDWeight[0]->GetWeight(fTreeVars.lepdeltar, fTreeVars.lepdeltaphi, fTreeVars.leponeeta, fTreeVars.leponept, fTreeVars.leptwopt,
+                                                 fTreeVars.lepm, (mutau_e) ? fMvaUse[7] : (etau_mu) ? fMvaUse[9] : -2.f,
+                                                 fYear, nJets20, isLooseMuon, qcdClosure, qcdIsoScale, qcdMassBDTScale, qcdWeightAltUp, qcdWeightAltDown, qcdWeightAltNum);
+      }
+      FillAllHistograms(set_offset + 70);
+      //restore the weights
+      qcdWeight       = prev_qcd_weight;
+      qcdClosure      = prev_qcd_closure;
+      qcdIsoScale     = prev_qcd_iso;
+      qcdMassBDTScale = prev_qcd_bias;
+    }
     ////////////////////////////////////////////////////////////////////////////
     // Set 71 + selection offset: loose electron + loose muon region
     ////////////////////////////////////////////////////////////////////////////
-    else             FillAllHistograms(set_offset + 71);
+    else {
+      //store the current weights
+      const float prev_qcd_weight  = qcdWeight;
+      const float prev_qcd_closure = qcdClosure;
+      const float prev_qcd_iso     = qcdIsoScale;
+      const float prev_qcd_bias    = qcdMassBDTScale;
+      //apply the weights for the bias region
+      if(!chargeTest) {
+        qcdWeight = fBiasQCDWeight[0]->GetWeight(fTreeVars.lepdeltar, fTreeVars.lepdeltaphi, fTreeVars.leponeeta, fTreeVars.leponept, fTreeVars.leptwopt,
+                                                 fTreeVars.lepm, (mutau_e) ? fMvaUse[7] : (etau_mu) ? fMvaUse[9] : -2.f,
+                                                 fYear, nJets20, isLooseMuon, qcdClosure, qcdIsoScale, qcdMassBDTScale, qcdWeightAltUp, qcdWeightAltDown, qcdWeightAltNum);
+      }
+      FillAllHistograms(set_offset + 71);
+      //restore the weights
+      qcdWeight       = prev_qcd_weight;
+      qcdClosure      = prev_qcd_closure;
+      qcdIsoScale     = prev_qcd_iso;
+      qcdMassBDTScale = prev_qcd_bias;
+    }
   }
 
   //Enforce QCD selection only using loose muon ID

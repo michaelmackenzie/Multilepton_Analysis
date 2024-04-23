@@ -41,12 +41,12 @@ bool JetTauTesting_       = false; //perform MC closure test
 bool FakeLeptonTesting_   = false; //test MC fake leptons
 bool CutFlowTesting_      = false; //test just basic cutflow sets
 bool TriggerTesting_      = false; //make a few extra selections for ee/mumu/emu trigger testing
-int  TopTesting_          = 0;     //>0: fill an inverted b-tag set; 2: invert the b-tag for final selections
-int  doSSSF_              = 1; //do same-sign, same flavor processingg
-TString jTTProcess_       = ""; //JTTHistMaker process to measure ("" for all processes)
+int  TopTesting_          =  0;    //>0: fill an inverted b-tag set; 2: invert the b-tag for final selections
+int  doSSSF_              =  1;    //do same-sign, same flavor processingg
+TString jTTProcess_       = "";    //JTTHistMaker process to measure ("" for all processes)
 
-int  doEleIDStudy_        = 0; //add additional electron cuts in Z->emu to reduce Z->mumu*
-int  doLepESHists_        = 0; //add histograms of BDT variables with lepton ES shifted up/down
+int  doEleIDStudy_        =  0; //add additional electron cuts in Z->emu to reduce Z->mumu*
+int  doLepESHists_        =  0; //add histograms of BDT variables with lepton ES shifted up/down
 
 int removeTrigWeights_    =  4; //0: do nothing 1: remove weights 2: replace 3: replace P(event) 4: replace P(at least 1 triggered)
 int useBTagWeights_       =  1; //1: calculate locally; 2: use ntuple values for each jet
@@ -69,6 +69,7 @@ int useMCFakeTau_         =  0; //0: no MC j-->tau; 1: MC j-->tau, QCD j-->tau w
 int useJetToTauComp_      =  1; //use the composition of the anti-iso region to combine j->tau weights
 int applyJetToTauMCBias_  =  1; //apply the W+jets/Z+jets MC bias estimate or only use as a uncertainty
 int wJetsBiasMode_        =  8; //W+jets/Z+jets MC bias mode (1: lepm shape+rate; 6: lepm shape; 7: (lepm, bdt) shape+rate; 8: (lepm, bdt) shape)
+int wJetsNCSysMode_       =  2; //W+jets/Z+jets non-closure uncertainty mode: 0: size of correction; 1: ratio of MC/Data correction (W+jets); 2: ratio (W+jets, QCD)
 int jetToTauYearMode_     =  2; //0: use by-year scales; 1: use Run-2 scales; 2: use by-year scales + Run 2 corrections
 int useWJetsJetToTau_     =  0; //Use W+jets j-->tau factors instead of composition
 int doTriggerMatching_    =  1; //do trigger object matching
@@ -79,37 +80,37 @@ int etauAntiEleCut_       = -1; //cut on tau anti-ele ID for etau, -1 to use def
 int useLooseTauBuffer_    =  0; //add a buffer between loose and tight tau events
 int removeLooseSS_        =  0; //remove loose ID same-sign events
 
-int useEmbedCuts_         = 2; //use kinematic cuts based on embedded generation: 1 = tau tau only; 2 = tau tau, mumu, ee, and emu; 3: do gen rejection in ee/mumu/emu as well
-int embeddedTesting_      = 0; //test embedding options: 3 = use KIT measured scales
-int useEmbedRocco_        = 1; //use Rochester correction vs LFV Higgs AN muon sys in Embedded samples
-int useEmbMuonES_         = 0; //apply Embed --> MC muon energy scales
-int embedUseMETUnc_       = 0; //use MET uncertainties in embedding: 1: use JER/JES; 2: use approximate errors on (MET - nu pT)
-int embedUseMCTauID_      = 1; //1: use MC Tau ID scales (but not energy scales) in Embedding; 2: use MC Tau ID and energy scales in Embedding
-int useEmbedZMatching_    = 1; //1: match gen-Z rate MC to embed rate; 2: match using reco (only if floating the embedding)
-int useEmbedBDTUnc_       = 0; //use gen-level BDT score uncertainty in embedding
+int useEmbedCuts_         =  2; //use kinematic cuts based on embedded generation: 1 = tau tau only; 2 = tau tau, mumu, ee, and emu; 3: do gen rejection in ee/mumu/emu as well
+int embeddedTesting_      =  0; //test embedding options: 3 = use KIT measured scales
+int useEmbedRocco_        =  1; //0: no correction and LFV Higgs AN muon sys; 1: use Rochester correction and sys; 2: use correction but separate uncertainty
+int useEmbMuonES_         =  0; //apply Embed --> MC muon energy scales
+int embedUseMETUnc_       =  0; //use MET uncertainties in embedding: 1: use JER/JES; 2: use approximate errors on (MET - nu pT)
+int embedUseMCTauID_      =  1; //1: use MC Tau ID scales (but not energy scales) in Embedding; 2: use MC Tau ID and energy scales in Embedding
+int useEmbedZMatching_    =  1; //1: match gen-Z rate MC to embed rate; 2: match using reco (only if floating the embedding)
+int useEmbedBDTUnc_       =  0; //use gen-level BDT score uncertainty in embedding
 
-int doEmuDefaults_        = 1; //set to default emu running
-int doSameFlavorEMu_      = 0; //treat ee/mumu as emu
-int doEmbedSameFlavor_    = 2; //setup ee/mumu for embedding testing: 1: skip MC Z->ll; 2: allow MC Z->ll
-int doEmbedLLAll_         = 0; //process Embedding ee/mumu samples in non-ee/mumu selections
+int doEmuDefaults_        =  1; //set to default emu running
+int doSameFlavorEMu_      =  0; //treat ee/mumu as emu
+int doEmbedSameFlavor_    =  2; //setup ee/mumu for embedding testing: 1: skip MC Z->ll; 2: allow MC Z->ll
+int doEmbedLLAll_         =  0; //process Embedding ee/mumu samples in non-ee/mumu selections
 
 int systematicSeed_       = 90; //seed for systematic random shifts
-int doSystematics_        = 1; //process systematic uncertainty histograms: 0: don't process; 1: process; -2: process for signal, nominal only for the rest
-int allowMigration_       = 2; //event migration systematic effects
-int  DoMVASets_           = 1; //Fill sets with MVA cuts: 1 = emu; 2 = emu/ee/mumu; 3 = all sets
-int  ReprocessMVAs_       = 1; //Re-evaluate MVA scores on the fly
-int useCDFBDTs_           = 2; //Use CDF transformed BDTs instead of the raw BDT scores in the fits
-int useXGBoost_           = 1; //>0: use XGBoost BDT in Z->e+mu; >9: use XGBoost BDT in all categories
-int useBDTScale_          = 1; //use BDT score corrections in Z->e+mu
+int doSystematics_        =  1; //process systematic uncertainty histograms: 0: don't process; 1: process; -2: process for signal, nominal only for the rest
+int allowMigration_       =  2; //event migration systematic effects
+int  DoMVASets_           =  1; //Fill sets with MVA cuts: 1 = emu; 2 = emu/ee/mumu; 3 = all sets
+int  ReprocessMVAs_       =  1; //Re-evaluate MVA scores on the fly
+int useCDFBDTs_           =  2; //Use CDF transformed BDTs instead of the raw BDT scores in the fits
+int useXGBoost_           =  1; //>0: use XGBoost BDT in Z->e+mu; >9: use XGBoost BDT in all categories
+int useBDTScale_          =  1; //use BDT score corrections in Z->e+mu
 bool writeTrees_          = false;
-int  train_mode_          = 2; //MVA training mode, how to define training fractions
+int  train_mode_          =  2; //MVA training mode, how to define training fractions
 TString test_mva_         = ""; //MVA to test, independent of selection
 
-int  doHiggs_             = 0; //do higgs-related analysis
+int  doHiggs_             =  0; //do higgs-related analysis
 bool sparseHists_         = true; //only plot more basic histograms
 
-int  splitWJets_          = 1; //split W+jets sample based on N(LHE jets)
-int  splitWGamma_         = 1; //remove W+gamma events from W+jets samples
+int  splitWJets_          =  1; //split W+jets sample based on N(LHE jets)
+int  splitWGamma_         =  1; //remove W+gamma events from W+jets samples
 bool splitDY_             = true; //split z+jets sample based on gen-level lepton pair flavor
 
 bool useUL_               = false; //Use UL files/cross sections
@@ -157,7 +158,7 @@ config_t get_config() {
   config_t config;
 
   config.writeTrees_ = writeTrees_;
-  config.selections_ = {"mutau", "etau", "mutau_e", "etau_mu"}; //{"mutau", "etau", "emu", "mutau_e", "etau_mu", "ee", "mumu"};
+  config.selections_ = {"mutau"}; //{"mutau", "etau", "emu", "mutau_e", "etau_mu", "ee", "mumu"};
   config.signalTrainFraction_ = 0.5;
   config.backgroundTrainFraction_ = 0.3;
 

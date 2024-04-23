@@ -8,12 +8,13 @@ TString selection_;
 
 //use the dataplotter to manage normalizations and initializations
 DataPlotter* dataplotter_ = 0;
-int  verbose_  = 0;
-int  drawFit_  = 1; //whether to draw the linear fits
-bool doPCA_    = true; //whether or not to generate shifted function templates
-bool scalePCA_ = true; //scale the PCA transform by max(1, sqrt(chi^2/dof)) to increase the uncertainties
-bool useFTest_ = true; //use an F-test to decide the fit order
-int  rebin_    = 1;
+int  verbose_      = 0;
+int  drawFit_      = 1; //whether to draw the linear fits
+bool doPCA_        = true; //whether or not to generate shifted function templates
+bool scalePCA_     = true; //scale the PCA transform by max(1, sqrt(chi^2/dof)) to increase the uncertainties
+bool useFTest_     = true; //use an F-test to decide the fit order
+int  defaultOrder_ = 3; //if not using an F-test, use this fit order
+int  rebin_        = 1;
 
 //-------------------------------------------------------------------------------------------------------------------------------
 // Perform an F-test
@@ -190,7 +191,7 @@ TCanvas* make_ratio_canvas(TH1* hnum, TH1* hdnm, TF1 *&f1, TString print_name = 
     //perform an F-test to decide the order of the fit
     double chisq_prev(1.e20);
     int ndof_prev(1);
-    const int min_order((useFTest_) ? 1 : 3), max_order((useFTest_) ? 4 : 3);
+    const int min_order((useFTest_) ? 1 : defaultOrder_), max_order((useFTest_) ? 4 : defaultOrder_);
     int best_order = min_order; //store the highest order passing the F-test (if applied)
     for(int order = min_order; order <= max_order+1; ++order) {
       if(!useFTest_ && order > max_order) break; //if not using the F-test, only do the single fit
@@ -606,13 +607,13 @@ Int_t scale_factors(TString selection = "emu", int set = 8, vector<int> years = 
   // hist_path_  = "root://cmseos.fnal.gov//store/user/mmackenz/histograms/";
   hist_dir_   = hist_dir;
   selection_  = selection;
-  useEmbed_   = 0; //FIXME: Add back embedding once scale factors are measured
+  useEmbed_   = 0;
   embedScale_ = 1.;
   years_      = years;
-  useUL_      = (hist_dir_.Contains("_UL")) ? 1 : 0;
   hist_tag_   = "qcd"; //tag for the QCDHistMaker
 
-  if(!useEmbed_) cout << "WARNING! Not using embedding samples!\n";
+  //If doing a bias region, force linear background fits
+  if(set == 70 || set == 71) {useFTest_ = false; defaultOrder_ = 1;}
 
   //get the absolute value of the set, offsetting by the selection and using a loose selection
   int setAbs = set + CLFVHistMaker::fMisIDOffset;
@@ -676,12 +677,12 @@ Int_t scale_factors(TString selection = "emu", int set = 8, vector<int> years = 
   gStyle->SetOptStat(0);
 
   //construct general figure name
-  TString name = Form("figures/%s_%s/", selection.Data(), year_s.Data());
+  TString name = Form("figures/%s_%i_%s/", selection.Data(), set, year_s.Data());
   //ensure directories exist
   gSystem->Exec(Form("[ ! -d %s ] && mkdir -p %s", name.Data(), name.Data()));
   gSystem->Exec("[ ! -d rootfiles ] && mkdir rootfiles");
 
-  const char* fname = Form("rootfiles/qcd_scale_%s_%s.root", selection.Data(), year_s.Data());
+  const char* fname = Form("rootfiles/qcd_scale_%s_%i_%s.root", selection.Data(), set, year_s.Data());
   TFile* fOut = new TFile(fname, "RECREATE");
 
   TF1* f;
