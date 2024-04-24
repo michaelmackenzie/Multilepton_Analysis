@@ -49,6 +49,8 @@ namespace CLFV {
     TH1* hOneTrkDeltaPhi;
     TH1* hOneFlavor;
     TH1* hOneGenFlavor;
+    TH1* hOnePileup;
+    TH1* hOneJetOrigin;
     TH1* hOneQ;
     TH1* hOneTrigger;
     TH1* hOneWeight;
@@ -123,6 +125,8 @@ namespace CLFV {
     TH1* hTwoTrkDeltaPhi;
     TH1* hTwoFlavor;
     TH1* hTwoGenFlavor;
+    TH1* hTwoPileup;
+    TH1* hTwoJetOrigin;
     TH1* hTwoQ;
     TH1* hTwoTrigger;
     TH1* hTwoWeight;

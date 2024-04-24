@@ -71,6 +71,8 @@ namespace CLFV {
     float genPhi;
     float genMass;
     int   genIndex;
+    bool  isPileup;
+    bool  jetOrigin;
 
     //energy and momentum scales and up/down systematic scales
     float ptSF[3] = {1.f, 1.f, 1.f};

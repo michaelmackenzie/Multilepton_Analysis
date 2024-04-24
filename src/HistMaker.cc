@@ -750,6 +750,8 @@ void HistMaker::BookBaseLepHistograms(Int_t i, const char* dirname) {
       Utilities::BookH1F(fLepHist[i]->hOneTrkDeltaPhi , "onetrkdeltaphi"   , Form("%s: Trk Phi - Phi",dirname),  20,    0,  0.2, folder);
       Utilities::BookH1D(fLepHist[i]->hOneFlavor      , "oneflavor"        , Form("%s: Flavor"       ,dirname),  20,    0,   20, folder);
       Utilities::BookH1D(fLepHist[i]->hOneGenFlavor   , "onegenflavor      ", Form("%s: Gen Flavor"  ,dirname),  40,    0,   40, folder);
+      Utilities::BookH1D(fLepHist[i]->hOnePileup      , "onepileup"         , Form("%s: Pileup"      ,dirname),   2,    0,    2, folder);
+      Utilities::BookH1D(fLepHist[i]->hOneJetOrigin   , "onejetorigin"      , Form("%s: JetOrigin"   ,dirname),   2,    0,    2, folder);
       Utilities::BookH1D(fLepHist[i]->hOneQ           , "oneq"             , Form("%s: Q"            ,dirname),   5,   -2,    2, folder);
       Utilities::BookH1D(fLepHist[i]->hOneJetOverlap  , "onejetoverlap"    , Form("%s: OneJetOverlap",dirname),   3,    0,    3, folder);
       Utilities::BookH1D(fLepHist[i]->hOneTrigger     , "onetrigger"       , Form("%s: Trigger"      ,dirname),  10,    0,   10, folder);
@@ -811,6 +813,8 @@ void HistMaker::BookBaseLepHistograms(Int_t i, const char* dirname) {
       Utilities::BookH1F(fLepHist[i]->hTwoTrkDeltaPhi , "twotrkdeltaphi"   , Form("%s: Trk Phi - Phi",dirname),  20,    0,  0.2, folder);
       Utilities::BookH1D(fLepHist[i]->hTwoFlavor      , "twoflavor"        , Form("%s: Flavor"      ,dirname),  20,   0,   20, folder);
       Utilities::BookH1D(fLepHist[i]->hTwoGenFlavor   , "twogenflavor"     , Form("%s: Gen Flavor"  ,dirname),  40,   0,   40, folder);
+      Utilities::BookH1D(fLepHist[i]->hTwoPileup      , "twopileup"        , Form("%s: Pileup"      ,dirname),   2,   0,    2, folder);
+      Utilities::BookH1D(fLepHist[i]->hTwoJetOrigin   , "twojetorigin"     , Form("%s: JetOrigin"   ,dirname),   2,   0,    2, folder);
       Utilities::BookH1D(fLepHist[i]->hTwoQ           , "twoq"             , Form("%s: Q"           ,dirname),   5,  -2,    2, folder);
       Utilities::BookH1D(fLepHist[i]->hTwoJetOverlap  , "twojetoverlap"    , Form("%s: TwoJetOverlap",dirname),  3,   0,    3, folder);
       Utilities::BookH1D(fLepHist[i]->hTwoTrigger     , "twotrigger"       , Form("%s: Trigger"     ,dirname),  10,   0,   10, folder);
@@ -2856,6 +2860,38 @@ void HistMaker::EstimateNeutrinos() {
 }
 
 //--------------------------------------------------------------------------------------------------------------
+// Determine if a gen-particle is likely pileup or of jet origin
+void HistMaker::CheckIfPileup(Lepton_t& lep) {
+  lep.isPileup = false; lep.jetOrigin = false;
+
+  //check if it's matched to a gen particle
+  const int gen_index = lep.genIndex;
+  if(gen_index < 0 || gen_index >= (int) nGenPart) {
+    lep.isPileup = true;
+    return;
+  }
+
+  //trace through the particle list until the final parent is found
+  int parent = gen_index;
+  int previous_parent = gen_index;
+  while(parent >= 0 && parent < (int) nGenPart && GenPart_genPartIdxMother[parent] >= 0) {
+    previous_parent = parent;
+    parent = GenPart_genPartIdxMother[parent];
+  }
+
+  //check if final parent is consistent with pileup or not
+  bool is_primary = false;
+  is_primary |= parent == 0 || parent == 1; //from the parton-parton collision or embedded event
+  lep.isPileup = !is_primary;
+
+  //next check if it likely comes from a jet
+  //if it comes from a q/g ISR, likely jet-origin
+  const int pdg_prev = GenPart_pdgId[previous_parent];
+  lep.jetOrigin = pdg_prev <= 6 || pdg_prev == 21;
+  lep.jetOrigin |= lep.genFlavor == 26; //already matched to a jet
+}
+
+//--------------------------------------------------------------------------------------------------------------
 // Determine the type of gen-level event matched to a hadronic tau
 int HistMaker::FindTauGenType(Lepton_t& lep) {
 
@@ -3108,19 +3144,19 @@ void HistMaker::CountObjects() {
   if(fVerbose > 2) {
     printf(" Electron collection:\n");
     for(int i = 0; i < (int) nElectron; ++i) {
-      printf("  %2i: pt = %.1f, eta = %.2f, eta_sc = %.2f", i, Electron_pt[i], Electron_eta[i], Electron_eta[i]+Electron_deltaEtaSC[i]);
+      printf("  %2i: pt = %6.1f, eta = %5.2f, eta_sc = %5.2f, phi = %5.2f", i, Electron_pt[i], Electron_eta[i], Electron_eta[i]+Electron_deltaEtaSC[i], Electron_phi[i]);
       if(!fIsData) printf(", gen_flav_ID = %2i, gen index = %2i", Electron_genPartFlav[i], Electron_genPartIdx[i]);
       printf("\n");
     }
     printf(" Muon collection:\n");
     for(int i = 0; i < (int) nMuon; ++i) {
-      printf("  %2i: pt = %.1f, eta = %.2f", i, Muon_pt[i], Muon_eta[i]);
+      printf("  %2i: pt = %6.1f, eta = %5.2f, phi = %5.2f", i, Muon_pt[i], Muon_eta[i], Muon_phi[i]);
       if(!fIsData) printf(", gen_flav_ID = %2i, gen index = %2i", Muon_genPartFlav[i], Muon_genPartIdx[i]);
       printf("\n");
     }
     printf(" Tau collection:\n");
     for(int i = 0; i < (int) nTau; ++i) {
-      printf("  %2i: pt = %.1f, eta = %.2f", i, Tau_pt[i], Tau_eta[i]);
+      printf("  %2i: pt = %6.1f, eta = %5.2f, phi = %5.2f", i, Tau_pt[i], Tau_eta[i], Tau_phi[i]);
       if(!fIsData) printf(", gen_flav_ID = %2i, gen index = %2i", Tau_genPartFlav[i], Tau_genPartIdx[i]);
       printf("\n");
     }
@@ -3312,6 +3348,10 @@ void HistMaker::CountObjects() {
   //associated track variables not relevant for all leptons, so reset if not used
   leptonOne.trkpt = 0.f; leptonOne.trketa = 0.f; leptonOne.trkphi = 0.f;
   leptonTwo.trkpt = 0.f; leptonTwo.trketa = 0.f; leptonTwo.trkphi = 0.f;
+
+  //gen info not relevant for all leptons
+  leptonOne.isPileup = false; leptonTwo.isPileup = false;
+  leptonOne.jetOrigin = false; leptonTwo.jetOrigin = false;
 
   if(emu) {
     leptonOne.index  = 0;
@@ -3539,35 +3579,38 @@ void HistMaker::CountObjects() {
     if(leptonOne.genIndex >= 0 && leptonOne.genIndex < (int) nGenPart) {
       if(leptonOne.isTau()) SetGenHadronicTau(leptonOne);
       else {
-        leptonOne.genPt   = GenPart_pt  [leptonOne.genIndex];
-        leptonOne.genEta  = GenPart_eta [leptonOne.genIndex];
-        leptonOne.genPhi  = GenPart_phi [leptonOne.genIndex];
-        leptonOne.genMass = GenPart_mass[leptonOne.genIndex];
+        leptonOne.genPt    = GenPart_pt  [leptonOne.genIndex];
+        leptonOne.genEta   = GenPart_eta [leptonOne.genIndex];
+        leptonOne.genPhi   = GenPart_phi [leptonOne.genIndex];
+        leptonOne.genMass  = GenPart_mass[leptonOne.genIndex];
       }
     } else {
-      leptonOne.genPt   = -1.f;
-      leptonOne.genEta  =  0.f;
-      leptonOne.genPhi  =  0.f;
-      leptonOne.genMass =  0.f;
+      leptonOne.genPt    = -1.f;
+      leptonOne.genEta   =  0.f;
+      leptonOne.genPhi   =  0.f;
+      leptonOne.genMass  =  0.f;
     }
     if(leptonTwo.genIndex >= 0 && leptonTwo.genIndex < (int) nGenPart) {
       if(leptonTwo.isTau()) SetGenHadronicTau(leptonTwo);
       else {
-        leptonTwo.genPt   = GenPart_pt  [leptonTwo.genIndex];
-        leptonTwo.genEta  = GenPart_eta [leptonTwo.genIndex];
-        leptonTwo.genPhi  = GenPart_phi [leptonTwo.genIndex];
-        leptonTwo.genMass = GenPart_mass[leptonTwo.genIndex];
+        leptonTwo.genPt    = GenPart_pt  [leptonTwo.genIndex];
+        leptonTwo.genEta   = GenPart_eta [leptonTwo.genIndex];
+        leptonTwo.genPhi   = GenPart_phi [leptonTwo.genIndex];
+        leptonTwo.genMass  = GenPart_mass[leptonTwo.genIndex];
       }
     } else {
-      leptonTwo.genPt  = -1.f;
-      leptonTwo.genEta =  0.f;
-      leptonTwo.genPhi =  0.f;
+      leptonTwo.genPt    = -1.f;
+      leptonTwo.genEta   =  0.f;
+      leptonTwo.genPhi   =  0.f;
+      leptonTwo.genMass  =  0.f;
     }
+    CheckIfPileup(leptonOne); //check if origin is pileup/jet
+    CheckIfPileup(leptonTwo);
     if(fVerbose > 1) {
-      printf(" Lepton one gen info: pt = %.1f, eta = %.2f, phi = %.2f, mass = %.1e\n",
-             leptonOne.genPt, leptonOne.genEta, leptonOne.genPhi, leptonOne.genMass);
-      printf(" Lepton two gen info: pt = %.1f, eta = %.2f, phi = %.2f, mass = %.1e",
-             leptonTwo.genPt, leptonTwo.genEta, leptonTwo.genPhi, leptonTwo.genMass);
+      printf(" Lepton one gen info: pt = %.1f, eta = %.2f, phi = %.2f, mass = %.1e, ispileup = %o, jetorigin = %o\n",
+             leptonOne.genPt, leptonOne.genEta, leptonOne.genPhi, leptonOne.genMass, leptonOne.isPileup, leptonOne.jetOrigin);
+      printf(" Lepton two gen info: pt = %.1f, eta = %.2f, phi = %.2f, mass = %.1e, ispileup = %o, jetOrigin = %o",
+             leptonTwo.genPt, leptonTwo.genEta, leptonTwo.genPhi, leptonTwo.genMass, leptonTwo.isPileup, leptonTwo.jetOrigin);
       if(!fIsData && leptonTwo.isTau()) printf(", gen-type = %i", FindTauGenType(leptonTwo));
       printf("\n");
     }
@@ -3700,6 +3743,10 @@ void HistMaker::CountObjects() {
                                  (leptonTwo.isElectron() && leptonTwo.genFlavor == 26));
   isFakeMuon      = !fIsData && ((leptonOne.isMuon    () && leptonOne.genFlavor == 26) ||
                                  (leptonTwo.isMuon    () && leptonTwo.genFlavor == 26));
+
+  //identify photons faking electrons as well
+  isFakeElectron |= !fIsData && ((leptonOne.isElectron() && leptonOne.genFlavor == 22) ||
+                                 (leptonTwo.isElectron() && leptonTwo.genFlavor == 22));
 
   if     (leptonOne.isElectron()) leptonOne.isLoose = leptonOne.relIso >= 0.15;
   else if(leptonOne.isMuon    ()) leptonOne.isLoose = leptonOne.relIso >= 0.15;
@@ -4274,6 +4321,8 @@ void HistMaker::FillBaseLepHistogram(LepHist_t* Hist) {
   Hist->hOneTrkDeltaPhi->Fill(std::fabs(Utilities::DeltaPhi(leptonOne.trkphi, leptonOne.p4->Phi())) ,eventWeight*genWeight);
   Hist->hOneFlavor    ->Fill(std::abs(leptonOne.flavor)    ,eventWeight*genWeight);
   Hist->hOneGenFlavor ->Fill(leptonOne.genFlavor           ,eventWeight*genWeight);
+  Hist->hOnePileup    ->Fill(leptonOne.isPileup            ,eventWeight*genWeight);
+  Hist->hOneJetOrigin ->Fill(leptonOne.jetOrigin           ,eventWeight*genWeight);
   Hist->hOneQ         ->Fill(leptonOne.flavor < 0 ? -1 : 1 ,eventWeight*genWeight);
   Hist->hOneJetOverlap->Fill(leptonOne.jetOverlap          ,eventWeight*genWeight);
   Hist->hOneTrigger   ->Fill(leptonOne.trigger             ,eventWeight*genWeight);
@@ -4351,6 +4400,8 @@ void HistMaker::FillBaseLepHistogram(LepHist_t* Hist) {
   } else {
     Hist->hTwoGenFlavor ->Fill(leptonTwo.genFlavor           ,eventWeight*genWeight);
   }
+  Hist->hTwoPileup    ->Fill(leptonTwo.isPileup            ,eventWeight*genWeight);
+  Hist->hTwoJetOrigin ->Fill(leptonTwo.jetOrigin           ,eventWeight*genWeight);
 
 
 
@@ -5303,12 +5354,17 @@ float HistMaker::EvalJetToTauNCSys(int process, bool up) {
     if(test && ((process == JetToTauComposition::kWJets && fWJetsNCSysMode) || (fWJetsNCSysMode == 2 && process == JetToTauComposition::kQCD))) {
       const float data_corr = fJetToTauCorrs  [process];
       const float mc_corr   = fJetToTauMCCorrs[process];
-      const float ratio = (mc_corr > 0.) ? data_corr / mc_corr : data_corr; //default to correction size if MC isn't defined
+      float ratio = (mc_corr > 0.) ? data_corr / mc_corr : data_corr; //default to correction size if MC isn't defined
       if(fVerbose > 5) {
-        printf("  HistMaker::%s: Entry %lld has W+jets NC sys: NC(data) = %.3f, NC(MC) = %.3f, ratio = %.3f\n",
+        printf("  HistMaker::%s: Entry %lld has NC sys: NC(data) = %.3f, NC(MC) = %.3f, ratio = %.3f\n",
                __func__, fentry, data_corr, mc_corr, ratio);
       }
-      wt_alt += base * data_corr * ((up) ? ratio : 1./ratio);
+      if(!std::isfinite(ratio) || ratio <= 0.) {
+        printf("  HistMaker::%s: Entry %lld has bad NC sys: NC(data) = %.3f, NC(MC) = %.3f, ratio = %.3f\n",
+               __func__, fentry, data_corr, mc_corr, ratio);
+        ratio = data_corr;
+      }
+      wt_alt += base * data_corr * ((up) ? ratio : (ratio > 0.) ? 1./ratio : 0.);
     } else { //take up as applying the correction twice, down as no correction
       if(test) wt_alt += base * ((up) ? fJetToTauCorrs[iproc]*fJetToTauCorrs[iproc] : 1.f);
       else     wt_alt += base * fJetToTauCorrs[iproc]; //apply the correction as normal for non-selected processes

@@ -733,6 +733,9 @@ float JetToTauWeight::GetFactor(TH2* h, TF1* func, TH1* hCorrection, TH1* hFitte
     pt_wt = 1.f;
     corr_error = 0.f;
   }
+  if(pt_wt == 0.f) pt_wt = 1.f; //ignore empty bins
+  pt_wt = std::max(0.5f, std::min(2.f, pt_wt)); //constrain the correction to a factor of 2
+
   //Apply tau eta corrections if asked for
   if(useEtaCorrections_) {
     TH1* heta = etaCorrections_[year];
@@ -749,6 +752,8 @@ float JetToTauWeight::GetFactor(TH2* h, TF1* func, TH1* hCorrection, TH1* hFitte
                                << " year = " << year << std::endl;
         eta_wt = 1.f;
       }
+      if(eta_wt == 0.f) eta_wt = 1.f; //ignore empty bins
+      eta_wt = std::max(0.5f, std::min(2.f, eta_wt)); //constrain the correction to a factor of 2
       pt_wt *= eta_wt;
     }
   }
@@ -768,6 +773,8 @@ float JetToTauWeight::GetFactor(TH2* h, TF1* func, TH1* hCorrection, TH1* hFitte
                                << " year = " << year << std::endl;
         met_wt = 1.f;
       }
+      if(met_wt == 0.f) met_wt = 1.f; //ignore empty bins
+      met_wt = std::max(0.5f, std::min(2.f, met_wt)); //constrain the correction to a factor of 2
       pt_wt *= met_wt;
     }
   }

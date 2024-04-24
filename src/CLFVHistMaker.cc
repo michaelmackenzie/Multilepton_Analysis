@@ -2137,13 +2137,25 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   //remove MC jet -> light lepton contribution
 
   if(!fUseMCEstimatedFakeLep && !fIsData && !fIsSignal) { //keep signal as even events with fakes are signal from the MC
-    emu   &= !isFakeMuon;
     emu   &= !isFakeElectron;
+    emu   &= !isFakeMuon;
     mumu  &= !isFakeMuon;
     ee    &= !isFakeElectron;
     mutau &= !isFakeMuon;
     etau  &= !isFakeElectron;
-  }
+
+    //remove pileup/deeper jet origin electron/muon events if requested
+    const bool remove_pileup    = false; //keep pileup events since taken from data --> fairly accurate
+    const bool remove_jetorigin = true ;
+    const bool remove_lep_one = !leptonOne.isTau() && (leptonOne.isPileup && remove_pileup) && (leptonOne.jetOrigin && remove_jetorigin);
+    const bool remove_lep_two = !leptonTwo.isTau() && (leptonTwo.isPileup && remove_pileup) && (leptonTwo.jetOrigin && remove_jetorigin);
+
+    mutau &= !remove_lep_one && !remove_lep_two;
+    etau  &= !remove_lep_one && !remove_lep_two;
+    emu   &= !remove_lep_one && !remove_lep_two;
+    mumu  &= !remove_lep_one && !remove_lep_two;
+    ee    &= !remove_lep_one && !remove_lep_two;
+   }
 
   ///////////////////////////////////////////////////////////////////
   //remove MC estimated jet --> tau component
@@ -2382,6 +2394,10 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   ////////////////////////////////////////////////////////////////////////////
   // Set 8 + selection offset: nBJets = 0
   ////////////////////////////////////////////////////////////////////////////
+
+  // if(!fIsData && !fIsSignal && !fUseMCEstimatedFakeLep && (leptonOne.isPileup || leptonTwo.isPileup)) {
+  //   printf("CLFVHistMaker::%s: Entry %lld has pileup leptons\n", __func__, fentry);
+  // }
 
   if(!lep_tau) {
     if(mll > min_mass_ - sys_buffer) {
