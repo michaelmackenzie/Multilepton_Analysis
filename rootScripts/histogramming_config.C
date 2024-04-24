@@ -82,7 +82,7 @@ int removeLooseSS_        =  0; //remove loose ID same-sign events
 
 int useEmbedCuts_         =  2; //use kinematic cuts based on embedded generation: 1 = tau tau only; 2 = tau tau, mumu, ee, and emu; 3: do gen rejection in ee/mumu/emu as well
 int embeddedTesting_      =  0; //test embedding options: 3 = use KIT measured scales
-int useEmbedRocco_        =  1; //0: no correction and LFV Higgs AN muon sys; 1: use Rochester correction and sys; 2: use correction but separate uncertainty
+int useEmbedRocco_        =  2; //0: no correction and LFV Higgs AN muon sys; 1: use Rochester correction and sys; 2: use correction but separate uncertainty
 int useEmbMuonES_         =  0; //apply Embed --> MC muon energy scales
 int embedUseMETUnc_       =  0; //use MET uncertainties in embedding: 1: use JER/JES; 2: use approximate errors on (MET - nu pT)
 int embedUseMCTauID_      =  1; //1: use MC Tau ID scales (but not energy scales) in Embedding; 2: use MC Tau ID and energy scales in Embedding
