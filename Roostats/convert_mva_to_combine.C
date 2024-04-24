@@ -513,6 +513,8 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
           if(name.Contains("MuonTrig")                    ) add_group(groups, name, "MuonTrig_Total"    );
           if(name.Contains("TauMuES")                     ) add_group(groups, name, "TauMuES_Total"     );
         }
+        if(name.Contains("EmbMuonRes")                    ) add_group(groups, name, "EmbedRes_Total"    );
+        if(name.Contains("EmbEleRes")                     ) add_group(groups, name, "EmbedRes_Total"    );
         if(name.Contains("ZPt")                           ) add_group(groups, name, "ZPt_Total"         );
         if(name.Contains("Pileup")                        ) add_group(groups, name, "Pileup_Total"      );
         if(name.Contains("Prefire")                       ) add_group(groups, name, "Prefire_Total"     );

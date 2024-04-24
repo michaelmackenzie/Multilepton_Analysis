@@ -5,6 +5,7 @@ int plot_groups(const char* file, const char* tag = "", const bool doObs = false
 
   vector<TString> groups = {
                             "EmbedUnfold_Total",
+                            "EmbedRes_Total"   ,
                             "MuonID_Total"     ,
                             "EleID_Total"      ,
                             "EleTrig_Total"    ,
@@ -25,7 +26,7 @@ int plot_groups(const char* file, const char* tag = "", const bool doObs = false
                             "JER_JES"          ,
                             "Theory_Total"     ,
                             "QCD_Stat"         ,
-                            "QCD_NC"           ,
+                            // "QCD_NC"           ,
                             "QCD_Bias"         ,
                             "JetToTau_Stat"    ,
                             "JetToTau_NC"      ,
@@ -41,6 +42,9 @@ int plot_groups(const char* file, const char* tag = "", const bool doObs = false
     args += " --cminDefaultMinimizerStrategy=0 --cminApproxPreFitTolerance 0.1 --cminPreScan --cminPreFit 1";
     gSystem->Exec(Form("combine %s -n _groupFit_Test%s_Nominal  -d %s %s", args.Data(), tag, file, (doObs) ? "" : "-t -1"));
     for(TString group : groups) {
+      const char* output_name = Form("fitDiagnostics_groupFit_Test%s_%s.root", tag, group.Data());
+      //remove previous fit results if there
+      gSystem->Exec("[ -f %s ] && rm %s", output_name, output_name);
       if(group == "All_Systematics") {
         cout << "Fitting without any systematics\n";
         gSystem->Exec(Form("combine %s -n _groupFit_Test%s_%s  -d %s %s --freezeParameters allConstrainedNuisances",
