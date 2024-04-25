@@ -704,10 +704,12 @@ int get_individual_MVA_histogram(int set = 8, TString selection = "zmutau",
   ///////////////////////////////////////////////
   // Make an initial plot of the results
 
-  TCanvas* c = new TCanvas("c", "c", 900, 1200);
+  TCanvas* c = new TCanvas("c", "c", 1000, 1200);
   TPad* pad1 = new TPad("pad1", "pad1", 0., 0.3, 1., 1. );
   TPad* pad2 = new TPad("pad2", "pad2", 0., 0. , 1., 0.3);
   pad1->Draw(); pad2->Draw();
+  pad1->SetBottomMargin(0.06);
+  pad2->SetTopMargin(0.03);
   pad1->cd();
 
   TLegend* leg = new TLegend(0.1, 0.7, 0.9, 0.9);
@@ -734,7 +736,7 @@ int get_individual_MVA_histogram(int set = 8, TString selection = "zmutau",
   logy_ |= use_dev_mva_ == 2;
   if(logy_) {
     hdata->GetYaxis()->SetRangeUser(0.5,max(1., (pow(10, 0.4*std::log10(ymax))*ymax)));
-    c->SetLogy();
+    pad1->SetLogy();
   } else {
     hdata->GetYaxis()->SetRangeUser(0.9,1.2*ymax);
   }
@@ -744,13 +746,20 @@ int get_individual_MVA_histogram(int set = 8, TString selection = "zmutau",
   TH1* hratio = (TH1*) hdata->Clone("data_ratio");
   hratio->Divide(hlast);
   hratio->Draw("E1");
-  hratio->SetTitle("Data/Bkg");
+  hratio->SetTitle("");
+  hratio->SetYTitle("Data/Bkg");
   hratio->GetYaxis()->SetRangeUser(0.5, 1.5);
   hratio->GetXaxis()->SetRangeUser(xmin_, xmax_);
   hratio->GetYaxis()->SetTitleSize(0.12);
   hratio->GetYaxis()->SetTitleOffset(0.40);
   hratio->GetYaxis()->SetLabelSize(0.08);
   hratio->GetXaxis()->SetLabelSize(0.08);
+  TLine line(xmin_, 1., xmax_, 1.);
+  line.SetLineColor(kBlack);
+  line.SetLineStyle(kDashed);
+  line.SetLineWidth(2);
+  line.Draw("same");
+  pad2->SetGrid();
 
 
   ///////////////////////////////////////////////
