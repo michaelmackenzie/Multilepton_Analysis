@@ -90,6 +90,8 @@ namespace CLFV {
     float mestimate_cut_2;
     float mestimate_avg_1;
     float mestimate_avg_2;
+    float mestimateoverm;
+    float mestimatetwooverm;
 
     //neutrino variables
     float p_nu_col_1;

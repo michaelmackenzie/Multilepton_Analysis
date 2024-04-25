@@ -10,6 +10,9 @@ bool is_relevant(TString sys, TString process) {
   const bool is_embed = process.Contains("Embed");
   const bool is_data  = process.Contains("QCD") || process.Contains("MisID");
   const bool is_zll   = process == "ZToeemumu";
+  const bool is_top   = process == "Top";
+  const bool is_vb    = process == "OtherVB";
+  const bool is_higgs = process == "HiggsBkg";
   const bool is_zmc   = is_zll || process == "zmutau" || process == "zetau" || process == "zemu" || process.BeginsWith("ZTo");
   if(sys.BeginsWith("Emb")     ) return is_embed || is_data;
   if(sys == "XS_Embed"         ) return is_embed || is_data;
@@ -21,7 +24,7 @@ bool is_relevant(TString sys, TString process) {
   if(sys.BeginsWith("EleES")   ) return !is_embed;
   if(sys.BeginsWith("MuonES")  ) return !is_embed;
   if(sys.BeginsWith("TauES")   ) return !is_embed && !is_zll; //only for genuine MC taus
-  if(sys.BeginsWith("Theory")  ) return !is_embed;
+  if(sys.BeginsWith("Theory")  ) return !is_embed && !is_data && !is_top && !is_vb && !is_higgs; //non-Drell Yan have low effect, except normalization that should be removed
   if(sys == "HEM"              ) return !is_embed;
   if(sys.BeginsWith("JetToTau")) return is_data;
   if(sys.BeginsWith("QCD")     ) return is_data;

@@ -942,6 +942,8 @@ void HistMaker::BookBaseTree(Int_t index) {
   fTrees[index]->Branch("lepmestimateavg2"   , &fTreeVars.mestimate_avg_2   );
   fTrees[index]->Branch("lepmbalance"        , &fTreeVars.mbalance          );
   fTrees[index]->Branch("lepmbalancetwo"     , &fTreeVars.mbalancetwo       );
+  fTrees[index]->Branch("lepmestimateoverm"   , &fTreeVars.mestimateoverm    );
+  fTrees[index]->Branch("lepmestimatetwooverm", &fTreeVars.mestimatetwooverm );
   fTrees[index]->Branch("ptauvisfrac"        , &fTreeVars.ptauvisfrac       );
   fTrees[index]->Branch("met"                , &fTreeVars.met               );
   fTrees[index]->Branch("mtone"              , &fTreeVars.mtone             );
@@ -2798,6 +2800,8 @@ void HistMaker::EstimateNeutrinos() {
   nu_coll_2.SetPtEtaPhiM(std::fabs(nu_coll_pt_2), leptonOne.eta*((nu_coll_pt_2 < 0.f) ? -1.f : 1.f), leptonOne.phi + ((nu_coll_pt_2 < 0.f) ? M_PI : 0.f), 0.);
   fTreeVars.mestimate    = (lep + nu_coll_1).M();
   fTreeVars.mestimatetwo = (lep + nu_coll_2).M();
+  fTreeVars.mestimateoverm    = fTreeVars.mestimate    / fTreeVars.lepm;
+  fTreeVars.mestimatetwooverm = fTreeVars.mestimatetwo / fTreeVars.lepm;
 
   //get the neutrino momentum by assuming the light lepton and tau had the same pT to begin with, and it's collinear
   //if pT neutrino is negative, make it anti-parallel instead
