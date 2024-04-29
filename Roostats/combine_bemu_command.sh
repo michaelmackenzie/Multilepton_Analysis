@@ -35,4 +35,5 @@ if [[ "${DOASIMOV}" != "" ]]; then
     fi
 fi
 
+echo combine -d ${CARD} ${ARGS} --rMin -${RRANGE} --rMax ${RRANGE}
 combine -d ${CARD} ${ARGS} --rMin -${RRANGE} --rMax ${RRANGE}
