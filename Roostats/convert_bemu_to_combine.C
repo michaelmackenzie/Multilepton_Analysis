@@ -5,6 +5,7 @@
 // #include "perform_f_test.C"
 #include "construct_multidim.C"
 #include "bemu_fit_bkg_mc.C"
+#include "util.hh"
 
 #include <iostream>
 #include <fstream>
@@ -422,7 +423,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
       sigPDF->plotOn(xframe, RooFit::Components(Form("sigpdf2_%i", set)), RooFit::LineColor(kRed), RooFit::LineStyle(kDashed));
     }
     xframe->Draw();
-    c->SaveAs(Form("plots/latest_production/%s/convert_bemu_%s_%i_sig_pdf.png", year_string.Data(), selection.Data(), set));
+    c->SaveAs(Form("plots/latest_production/%s/convert_bemu_%s_%i%s_sig_pdf.png", year_string.Data(), selection.Data(), set, tag_.Data()));
     delete xframe;
     delete c;
   }
@@ -477,6 +478,30 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
     bkgPDF = new RooHistPdf("bkg", "MC template PDF", *lepm, *bkgMCData);
   }
 
+  const float ndata = data->Integral(low_bin, high_bin); //N(observed data)
+  if(zmumu_model_) { //re-fit the PDFs to the data with the Z->mumu PDF included
+    RooRealVar N_zmumu("n_zmumu", "N(Z->#mu#mu)", zmumu_yield); N_zmumu.setConstant(true); //assume a fixed number of Z->mumu events
+    RooRealVar N_bkg("n_bkg", "N(bkg)", ndata, 0.1*ndata, 10.*ndata);
+    RooAddPdf tot_bkg_pdf("tot_bkg_pdf", "Falling + Z->#mu#mu background", RooArgList(*bkgPDF, *zmumu), RooArgList(N_bkg, N_zmumu));
+    if(fitSideBands_)
+      tot_bkg_pdf.fitTo((fitSideBands_) ? *blindDataHist : *dataData, RooFit::PrintLevel(0), RooFit::Warnings(0), RooFit::PrintEvalErrors(-1), RooFit::Range("LowSideband,HighSideband"));
+    else
+      tot_bkg_pdf.fitTo((fitSideBands_) ? *blindDataHist : *dataData, RooFit::PrintLevel(0), RooFit::Warnings(0), RooFit::PrintEvalErrors(-1));
+    printf("Re-fit the nominal PDF with Z->mumu included:\n");
+    cout << "----------------------------------------------------------------------------" << endl;
+    N_zmumu.Print();
+    N_bkg.Print();
+    auto vars = bkgPDF->getVariables();
+    auto itr = vars->createIterator();
+    auto var = itr->Next();
+    while(var) {
+      if(TString(var->GetName()) != lepm->GetName()) {
+        var->Print();
+      }
+      var = itr->Next();
+    }
+    cout << "----------------------------------------------------------------------------" << endl;
+  }
 
   //Generate toy data to stand in for the observed data if requested
   RooDataHist* dataset = dataData;
@@ -533,7 +558,9 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
 
     int nentries = dataData->numEntries();
     double chi_sq = get_chi_squared(*lepm, bkgPDF, *dataData, fitSideBands_, &nentries);
-    bkgPDF->plotOn(xframe, RooFit::Name(bkgPDF->GetName()), RooFit::LineColor(kBlue), RooFit::NormRange("full"), RooFit::Range("full"));
+    bkgPDF->plotOn(xframe, RooFit::Name(bkgPDF->GetName()), RooFit::LineColor(kBlue),
+                   (zmumu_model_) ? RooFit::Normalization(ndata - zmumu_yield, RooAbsReal::NumEvent) : RooFit::NormRange("full"),
+                   RooFit::Range("full"));
     if(zmumu_model_)
       zmumu->plotOn(xframe, RooFit::Name(zmumu->GetName()), RooFit::LineColor(kGreen), RooFit::Normalization(zmumu_yield, RooAbsReal::NumEvent), RooFit::Range("full"));
 
@@ -571,7 +598,8 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
         title = pdf->GetTitle();
         chi_sq = get_chi_squared(*lepm, pdf, (fitSideBands_) ? *blindDataHist : *dataData, fitSideBands_);
         pdf->plotOn(xframe, RooFit::Name(pdf->GetName()), RooFit::LineColor(colors[ipdf % colors.size()]), RooFit::LineStyle(kDashed),
-                    RooFit::NormRange("full"), RooFit::Range("full"));
+                    RooFit::NormRange("full"),
+                    RooFit::Range("full"));
         // pdf->Print("tree");
         order = ((title(title.Sizeof() - 2)) - '0');
         if     (title.Contains("Exponential")) order = 2*order - 1;
@@ -605,6 +633,8 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
     const float nref_signal = sigVis->Integral(low_bin, high_bin);
     leg->AddEntry("sigPDF", Form("Signal, BR = %.1e, N(sig) = %.1f", br_sig*br_scale, nref_signal), "L");
     leg->AddEntry(bkgPDF->GetName(), Form("%s - #chi^{2}/DOF = %.2f, p = %.3f", bkgPDF->GetTitle(), chi_sqs[0], p_chi_sqs[0]), "L");
+    if(zmumu_model_)
+      leg->AddEntry(zmumu->GetName(), Form("%s", zmumu->GetTitle()), "L");
     if(!useMCBkg_ && useMultiDim_) {
       int offset = 1;
       for(int ipdf = 0; ipdf < categories->numTypes(); ++ipdf) {
@@ -626,88 +656,32 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
     //update bin indices in case a clipped template is used
     low_bin = data->FindBin(xmin+1.e-3);
     high_bin = data->FindBin(xmax-1.e-3);
-    double norm = data->Integral(); //N(data) in fit region
+    const double norm = data->Integral(); //N(data) in fit region
     cout << "Data: xlow = " << data->GetBinLowEdge(low_bin)
          << " xhigh = " << data->GetBinLowEdge(high_bin) + data->GetBinWidth(high_bin)
          << " nbins = " << high_bin - low_bin + 1 << " integral = " << norm << endl;
 
-    TH1* dataDiff = bkgPDF->createHistogram("dataDiff", *lepm);
-    // TH1* dataDiff = (blind_data_) ? (TH1*) blindData->Clone("dataDiff") : (TH1*) data->Clone("dataDiff");
+    TH1* dataDiff = data_pdf_diff(blindDataHist, bkgPDF, *lepm, norm,
+                                  (blind_data_) ? blind_min : blind_max + 1., blind_max);
+    dataDiff->SetName("dataDiff");
     dataDiff->SetTitle("");
     // dataDiff->SetXTitle("M_{e#mu}");
     dataDiff->SetLineColor(data->GetLineColor());
     dataDiff->SetLineWidth(data->GetLineWidth());
     dataDiff->SetMarkerStyle(data->GetMarkerStyle());
     dataDiff->SetMarkerSize(data->GetMarkerSize());
-    cout << "Bkg histogram: xlow = " << dataDiff->GetBinLowEdge(1)
-         << " xhigh = " << dataDiff->GetBinLowEdge(dataDiff->GetNbinsX()) + dataDiff->GetBinWidth(dataDiff->GetNbinsX())
-         << " nbins = " << dataDiff->GetNbinsX() << " integral = " << dataDiff->Integral() << endl;
     TH1* sigDiff = sigPDF->createHistogram("sigDiff", *lepm);
     vector<TH1*> pdfDiffs;
     for(int ipdf = 0; ipdf < categories->numTypes(); ++ipdf) {
       if(ipdf == index) {
         continue;
       }
-      // pdfDiffs.push_back((TH1*) dataDiff->Clone(Form("hPdfDiff_%i", ipdf)));
-      auto pdf = multiPDF->getPdf(ipdf); //multiPDF->getPdf(Form("index_%i", ipdf));
-      auto h = pdf->createHistogram(Form("hPdfDiff_%i", ipdf), *lepm);
-      h->SetLineWidth(2);
+      auto pdf = multiPDF->getPdf(ipdf);
+      auto h = pdf_pdf_diff(pdf, bkgPDF, *lepm, norm);
       pdfDiffs.push_back(h);
-      cout << "PDF: " << pdf->GetTitle() << " xlow = " << h->GetBinLowEdge(1)
-           << " xhigh = " << h->GetBinLowEdge(h->GetNbinsX()) + h->GetBinWidth(h->GetNbinsX())
-           << " nbins = " << h->GetNbinsX() << " integral = " << h->Integral() << endl;
-      // pdfDiffs.push_back((TH1*) dataDiff->Clone(Form("hPdfDiff_%i", ipdf)));
     }
-    // //First make a histogram of the PDF, due to normalization issues
-    // for(int ibin = 1; ibin <= dataDiff->GetNbinsX(); ++ibin) {
-    //   const double x = dataDiff->GetBinCenter(ibin);
-    //   lepm->setVal(x);
-    //   dataDiff->SetBinContent(ibin, bkgPDF->getVal());
-    //   sigDiff ->SetBinContent(ibin, sigPDF->getVal());
-    //   // for(int ipdf = 0; ipdf < categories->numTypes(); ++ipdf) {
-    //   //   if(ipdf == index) {
-    //   //     continue;
-    //   //   }
-    //   //   TH1* hPDFDiff = pdfDiffs[ipdf - (ipdf > index)];
-    //   //   auto pdf = multiPDF->getPdf(ipdf); //multiPDF->getPdf(Form("index_%i", ipdf));
-    //   //   hPDFDiff->SetBinContent(ibin, pdf->getVal());
-    //   // }
-    // }
-    dataDiff->Scale(norm/dataDiff->Integral()); //set the norms equal
     sigDiff->Scale(nref_signal / sigDiff->Integral());
-    for(int ipdf = 0; ipdf < categories->numTypes(); ++ipdf) {
-      // if(ipdf == index) {
-      //   continue;
-      // }
-      auto pdf = multiPDF->getPdf(ipdf); //multiPDF->getPdf(Form("index_%i", ipdf));
-      TH1* hPDFDiff = pdfDiffs[ipdf - (ipdf > index)];
-      hPDFDiff->Scale(norm/hPDFDiff->Integral());
-    }
 
-    //Set histograms to Value - Bkg PDF Value
-    for(int ibin = 0; ibin <= dataDiff->GetNbinsX(); ++ibin) {
-      const double x = dataDiff->GetBinCenter(ibin);
-      lepm->setVal(x);
-      const double val = dataDiff->GetBinContent(ibin); //Bkg PDF estimate
-      const int data_bin = data->FindBin(x);
-      const double data_val = data->GetBinContent(data_bin);
-      if((blind_data_ && x > blind_min && x < blind_max) || (data_val < 1)) {
-        dataDiff->SetBinContent(ibin, 0.);
-        dataDiff->SetBinError  (ibin, 0.);
-      } else {
-        dataDiff->SetBinContent(ibin, data_val - val);
-        dataDiff->SetBinError(ibin, data->GetBinError(data_bin));
-      }
-      for(int ipdf = 0; ipdf < categories->numTypes(); ++ipdf) {
-        if(ipdf == index) {
-          continue;
-        }
-        TH1* hPDFDiff = pdfDiffs[ipdf - (ipdf > index)];
-        // auto pdf = multiPDF->getPdf(ipdf); //multiPDF->getPdf(Form("index_%i", ipdf));
-        hPDFDiff->SetBinContent(ibin, hPDFDiff->GetBinContent(ibin) - val);
-        hPDFDiff->SetBinError(ibin,0.);
-      }
-    }
     lepm->setVal((xmin+xmax)/2.); //set to a normal value
 
     //Draw difference histogram
@@ -720,10 +694,22 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
     dataDiff->GetYaxis()->SetTitleSize(0.08);
     dataDiff->GetYaxis()->SetTitleOffset(0.5);
     dataDiff->GetYaxis()->SetTitle("Data - Fit");
-    // dataDiff->GetYaxis()->SetRangeUser(-900, 900);
+
+    //add the signal
     sigDiff->SetLineColor(kRed);
     sigDiff->SetLineWidth(2);
     sigDiff->Draw("hist same");
+
+    //add Z->mumu if being used
+    if(zmumu_model_) {
+      TH1* zmumu_hist = zmumu->createHistogram("zmumu_hist", *lepm);
+      zmumu_hist->Scale(zmumu_yield / zmumu_hist->Integral());
+      zmumu_hist->SetLineWidth(2);
+      zmumu_hist->SetLineColor(kGreen);
+      zmumu_hist->Draw("hist same");
+    }
+
+    //Add alternate PDFs
     for(int ipdf = 0; ipdf < categories->numTypes(); ++ipdf) {
       if(ipdf == index) {
         continue;
@@ -738,7 +724,8 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
     line->SetLineWidth(2);
     line->Draw("same");
     //print the results
-    c->SaveAs(Form("plots/latest_production/%s/convert_bemu_%s_%i_%sbkg_pdfs.png", year_string.Data(), selection.Data(), set, (useMCBkg_) ? "mc_" : (replaceData_ >= 2) ? "mcdata_" : "" ));
+    c->SaveAs(Form("plots/latest_production/%s/convert_bemu_%s_%i%s_%sbkg_pdfs.png", year_string.Data(), selection.Data(), set, tag_.Data(),
+                   (useMCBkg_) ? "mc_" : (replaceData_ >= 2) ? "mcdata_" : "" ));
     delete xframe;
     delete c;
     if(replaceData_ < 2) delete blindData;
@@ -772,8 +759,10 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
   proc_c += Form("%15i", ncat);
   if(useRateParams_)
     rate   += Form("%15i", 1);
-  else
-    rate   += Form("%15.1f", data->Integral(low_bin, high_bin));
+  else {
+    const float ndata = data->Integral(low_bin, high_bin);
+    rate   += Form("%15.1f", (zmumu_model_) ? ndata - zmumu_yield : ndata);
+  }
   ++ncat; //increment the number of processes
 
   if(zmumu_model_) {
