@@ -26,6 +26,8 @@ bool replaceRefit_  = false; //replace data with toy MC, then fit the unblinded 
 bool export_        = false; //if locally run, export the workspace to LPC
 bool save_          = true ; //save output combine workspace/cards
 
+TString tag_; //for output cards
+
 //Retrieve yields for each relevant systematic
 void get_systematics(TFile* f, TString label, int set, vector<pair<double,double>>& yields, vector<TString>& names, double xmin = 1., double xmax = -1.) {
   //offset the set number to the absolute set value
@@ -170,7 +172,8 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
   if(useMCBkg_ || replaceData_ == 3 || zmumu_model_) {
     TString mc_fig_dir = Form("plots/latest_production/%s/convert_bemu_%s_%i_mc_fits", year_string.Data(), selection.Data(), set);
     gSystem->Exec(Form("[ ! -d %s ] && mkdir -p %s", mc_fig_dir.Data(), mc_fig_dir.Data()));
-    for(int ihist = 0; ihist < stack_in->GetNhists(); ++ihist) {
+    const int nhists(stack_in->GetNhists());
+    for(int ihist = 0; ihist < nhists; ++ihist) {
       TH1* h = (TH1*) stack_in->GetHists()->At(ihist);
       h = make_safe(h, xmin, xmax);
       bool isflat(false);
@@ -256,7 +259,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
   // Configure the output file
   //////////////////////////////////////////////////////////////////
 
-  TString outName = Form("combine_bemu_%s%s_%s.root", selection.Data(), (useMCBkg_) ? "_mc" : "", set_string.Data());
+  TString outName = Form("combine_bemu_%s%s_%s%s.root", selection.Data(), (useMCBkg_) ? "_mc" : "", set_string.Data(), tag_.Data());
   TFile* fOut = nullptr;
   if(save_) fOut = new TFile(("datacards/"+year_string+"/"+outName).Data(), "RECREATE");
 
@@ -266,7 +269,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
 
   //Create directory for the data cards if needed
   gSystem->Exec(Form("[ ! -d datacards/%s ] && mkdir -p datacards/%s", year_string.Data(), year_string.Data()));
-  TString filepath = Form("datacards/%s/combine_bemu_%s%s_%s.txt", year_string.Data(), selection.Data(), (useMCBkg_) ? "_mc" : "", set_string.Data());
+  TString filepath = Form("datacards/%s/combine_bemu_%s%s_%s%s.txt", year_string.Data(), selection.Data(), (useMCBkg_) ? "_mc" : "", set_string.Data(), tag_.Data());
   std::ofstream outfile;
   if(save_)
     outfile.open(filepath.Data());
@@ -1050,9 +1053,10 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
 }
 
 Int_t convert_bemu_to_combine(vector<int> sets = {8}, TString selection = "zemu",
-                              vector<int> years = {2016, 2017, 2018},
+                              vector<int> years = {2016, 2017, 2018}, TString tag = "",
                               int seed = 90) {
   Int_t status(0);
+  tag_ = tag;
   for(int set : sets) status += convert_individual_bemu_to_combine(set, selection, years, seed);
   return status;
 }
