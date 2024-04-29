@@ -67,16 +67,13 @@ void fit_and_replace(TH1* h, double xmin, double xmax, const char* fig_dir = nul
   //setup the function to fit with
   TF1* func;
   if(TString(h->GetName()).Contains("#tau#tau")){ //Z->tautau or tautau Embedding
-    const int mode = 5; //Z->tautau background parameterization option
+    const int mode = 9; //Z->tautau background parameterization option
     if(mode == 0) { //exp fit
       func = new TF1("func", "exp([0] + [1]*(x-70))", xmin, xmax);
       func->SetParameters(std::log(hfit->Integral()/(xmax - xmin)*hfit->GetBinWidth(1)), -1.);
     } else if(mode == 1) { //2 exp fit
       func = new TF1("func", "exp([0] + [1]*(x-70)) + exp([2] + [3]*(x-70))", xmin, xmax);
       func->SetParameters(std::log(hfit->Integral()/(xmax - xmin)*hfit->GetBinWidth(1)), -1., 1., -1.);
-    } else if(mode == 5) { //exp fit + poly
-      func = new TF1("func", "exp([0] + [1]*(x-70)) + [2] + [3]*x + [4]*x^2", xmin, xmax);
-      func->SetParameters(std::log(hfit->Integral()/(xmax - xmin)*hfit->GetBinWidth(1)), -1., -1e3, 200., -1.);
     } else if(mode == 2) { //power law fit
       func = new TF1("func", "[0]*(x)^[1]", xmin, xmax);
       func->SetParameters(hfit->Integral()/(xmax - xmin)*hfit->GetBinWidth(1), -1.);
@@ -95,6 +92,28 @@ void fit_and_replace(TH1* h, double xmin, double xmax, const char* fig_dir = nul
       func->SetParLimits(func->GetParNumber("n_{2}"), 0.2, 30.);
       func->FixParameter(func->GetParNumber("#alpha_{1}"), 1.);
       func->FixParameter(func->GetParNumber("#alpha_{2}"), 1.);
+    } else if(mode == 5) { //exp fit + poly
+      func = new TF1("func", "exp([0] + [1]*(x-70)) + [2] + [3]*x + [4]*x^2", xmin, xmax);
+      func->SetParameters(std::log(hfit->Integral()/(xmax - xmin)*hfit->GetBinWidth(1)), -1., -1e3, 200., -1.);
+    } else if(mode == 6) { //exp fit * poly + poly
+      func = new TF1("func", "[6]*(exp([0]*(x-70)) * ([1] + [2]*x + [3]*x*x) + ([4] + [5]*x))", xmin, xmax);
+      func->SetParameters(-1., -1, 1., -1., 0., 0., hfit->Integral());
+      func->FixParameter(6, hfit->Integral());
+      // func = new TF1("func", "[7]*(exp([0] + [1]*(x-70)) * ([2] + [3]*x + [4]*x*x) + ([5] + [6]*x))", xmin, xmax);
+      // func->SetParameters(0., -1., -1e3, 200., -1., 0., 0., hfit->Integral());
+      // func->FixParameter(7, hfit->Integral());
+    } else if(mode == 7) { //3rd order poly
+      func = new TF1("func", "[0] + [1]*x + [2]*x*x + [3]*x*x*x", xmin, xmax);
+      func->SetParameters(1., 1., 1., 1.);
+    } else if(mode == 8) { //gaus + exp
+      func = new TF1("func", "[0]*TMath::Gaus(x, [1], [2], true) + exp([3] + [4]*(x-70))", xmin, xmax);
+      func->SetParameters(hfit->Integral(), 60., 10., std::log(hfit->Integral()), -1.);
+    } else if(mode == 9) { //gaus + poly
+      func = new TF1("func", "[0]*TMath::Gaus(x, [1], [2], true) + [3] + [4]*x + [5]*x*x", xmin, xmax);
+      func->SetParameters(hfit->Integral(), 60., 10., hfit->Integral()/10., -1.);
+      func->SetParLimits(0, 0., 1.e9);
+      func->SetParLimits(1, 40., 70.);
+      func->SetParLimits(2, 1., 30.);
     } else {
       cout << __func__ << ": Unknown fitting mode " << mode << endl;
       return;
@@ -147,6 +166,12 @@ void fit_and_replace(TH1* h, double xmin, double xmax, const char* fig_dir = nul
   if(fig_dir) {
     //Save a figure with the input histogram and the resulting fit
     TCanvas* c = new TCanvas();
+    TPad pad1("pad1", "pad1", 0., 0.3, 1., 1.0); pad1.Draw();
+    TPad pad2("pad2", "pad2", 0., 0.0, 1., 0.3); pad2.Draw();
+    pad1.SetBottomMargin(0.06);
+    pad2.SetTopMargin(0.03);
+    pad1.cd();
+
     hfit->Draw("E1");
     func->Draw("same");
     hfit->GetXaxis()->SetRangeUser(xmin, xmax);
@@ -160,21 +185,55 @@ void fit_and_replace(TH1* h, double xmin, double xmax, const char* fig_dir = nul
       h->SetFillColor(kOrange);
       h->SetMarkerColor(kOrange);
     }
+    pad2.cd();
+    TH1* hratio = (TH1*) hfit->Clone("hratio");
+    float max_diff = 0.;
+    for(int ibin = max(1, hfit->FindBin(xmin)); ibin <= min(hfit->GetNbinsX(), hfit->FindBin(xmax-1.e-3)); ++ibin) {
+      const double x = hfit->GetBinCenter(ibin);
+      const float diff = hfit->GetBinContent(ibin) - func->Eval(x);
+      max_diff = max(max_diff, fabs(diff));
+      hratio->SetBinContent(ibin, diff);
+      hratio->SetBinError(ibin, hfit->GetBinError(ibin));
+    }
+    hratio->Draw("P");
+    TLine line(xmin, 0., xmax, 0.);
+    line.SetLineWidth(2);
+    line.SetLineColor(kBlack);
+    line.SetLineStyle(kDashed);
+    line.Draw("same");
+    hratio->GetYaxis()->SetRangeUser(-1.1*max_diff, 1.1*max_diff);
+    hratio->SetMarkerStyle(20);
+    hratio->SetMarkerSize(0.8);
+    hratio->SetStats(0);
+    hratio->SetTitle("");
+    hratio->SetYTitle("Data - Fit");
+    hratio->GetXaxis()->SetLabelSize(0.08);
+    hratio->GetYaxis()->SetLabelSize(0.08);
+    hratio->GetYaxis()->SetTitleSize(0.08);
+    hratio->GetYaxis()->SetTitleOffset(0.35);
+
     TString fig_name = Form("%s_fit", h->GetName());
     fig_name.ReplaceAll("#", "");
     fig_name.ReplaceAll("->", "");
     fig_name.ReplaceAll("/", "");
     c->SaveAs(Form("%s/%s.png", fig_dir, fig_name.Data()));
+    pad1.SetLogy();
+    if((TString(h->GetName()).Contains("#tau#tau")))
+      hfit->GetYaxis()->SetRangeUser(max(0.5, 0.5*hfit->GetBinContent(hfit->FindBin(xmax-0.01))), 2.*hfit->GetMaximum());
+    else
+      hfit->GetYaxis()->SetRangeUser(max(0.5, 0.5*hfit->GetMinimum()), 2.*hfit->GetMaximum());
+    c->SaveAs(Form("%s/%s_log.png", fig_dir, fig_name.Data()));
 
     //clean up the memory
-    delete c;
+    // delete c;
+    // delete hratio;
   }
   if(rebin > 1) delete hfit;
 
   //Replace the bin values with the fit yield
   for(int bin = 1; bin <= h->GetNbinsX(); ++bin) {
     h->SetBinContent(bin, max(0., ((rebin > 1) ? 1./rebin : 1.) * func->Eval(h->GetBinCenter(bin))));
-    h->SetBinError  (bin, sqrt(h->GetBinContent(bin))); //default to statistical error bars for now
+    h->SetBinError  (bin, 0.50*sqrt(h->GetBinContent(bin))); //default to 10% of statistical error bars for now
   }
   delete func;
 }

@@ -2,7 +2,7 @@
 #include "bemu_fit_bkg_mc.C"
 
 bool   fit_flat_bkgs_  = true ; //fit flat-ish background contributions (WW, ttbar, QCD, and (not flat) Z->mumu)
-bool   fit_dy_bkg_     = false; //fit the Z->tautau background
+bool   fit_dy_bkg_     = true ; //fit the Z->tautau background
 int    smooth_hists_   =     0; //number of times to smooth non-fit background histograms
 double zmumu_scale_    =   -1.; //if >= 0 scale the Z->ee/mumu contribution
 bool   save_templates_ = false; //save MC templates in an output file

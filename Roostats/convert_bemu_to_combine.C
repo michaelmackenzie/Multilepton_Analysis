@@ -167,7 +167,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
 
   //replace the background stack with smoothed/fit histograms
   THStack* stack = (useMCBkg_ || replaceData_ == 3) ? new THStack("bkg_stack", "Background stack") : stack_in;
-  if(useMCBkg_ || replaceData_ == 3) {
+  if(useMCBkg_ || replaceData_ == 3 || zmumu_model_) {
     TString mc_fig_dir = Form("plots/latest_production/%s/convert_bemu_%s_%i_mc_fits", year_string.Data(), selection.Data(), set);
     gSystem->Exec(Form("[ ! -d %s ] && mkdir -p %s", mc_fig_dir.Data(), mc_fig_dir.Data()));
     for(int ihist = 0; ihist < stack_in->GetNhists(); ++ihist) {
@@ -184,12 +184,12 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
       if(isflat) { //flat-ish distributions
         fit_and_replace(h, xmin, xmax, mc_fig_dir.Data(), set, 2);
       }
-      const bool fit_dy_bkg = false; //whether or not to fit the Z->tautau background
-      const bool smooth_hists(false); //smooth histograms that aren't fit
+      const bool fit_dy_bkg = true; //whether or not to fit the Z->tautau background
+      const bool smooth_hists(true); //smooth histograms that aren't fit (Embedding
       if(isdy) { //Z->tautau
         if(fit_dy_bkg) {
-          fit_and_replace(h, xmin, xmax, nullptr, set, 2);
-        } else if(smooth_hists) h->Smooth(2);
+          fit_and_replace(h, xmin, xmax, mc_fig_dir.Data(), set, 1);
+        } else if(smooth_hists) h->Smooth(1);
       }
       if(!isflat && !isdy && smooth_hists) h->Smooth(2); //any leftover histogram
       if(zmumu_scale_ >= 0. && iszmumu) h->Scale(zmumu_scale_); //scale to Z->ee/mumu distribution for systematic studies
@@ -203,14 +203,14 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
       const bool apply_mc_fit_scale = true;
       if(apply_mc_fit_scale) {
         if(isembed) {
-          if     (set == 13) h->Scale(0.9266);
-          else if(set == 12) h->Scale(1.0039);
-          else if(set == 11) h->Scale(0.9821);
+          if     (set == 13) h->Scale(0.9276);
+          else if(set == 12) h->Scale(1.0043);
+          else if(set == 11) h->Scale(0.9819);
         }
         if(isflat && !iszmumu) {
-          if     (set == 13) h->Scale(1.6046);
-          else if(set == 12) h->Scale(1.2778);
-          else if(set == 11) h->Scale(1.1402);
+          if     (set == 13) h->Scale(1.6084);
+          else if(set == 12) h->Scale(1.2802);
+          else if(set == 11) h->Scale(1.1411);
         }
       }
       h->SetDirectory(0);
@@ -229,6 +229,21 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
     c->SaveAs((mc_fig_dir + "/stack.png").Data());
     delete c;
   }
+
+  //Get the Z->mumu distribution
+  TH1* h_zmumu = nullptr;
+  for(auto o : *(stack->GetHists())) {
+    if(TString(o->GetName()).Contains("Z->ee")) {
+      h_zmumu = (TH1*) o->Clone("h_zmumu");
+      h_zmumu->SetDirectory(0); //don't associate it with the open file
+      break;
+    }
+  }
+  if(zmumu_model_ && !h_zmumu) {
+    printf("%s: Unable to retrieve Z->mumu histogram for set %i\n", __func__, set);
+    return 10;
+  }
+  const float zmumu_yield = (h_zmumu) ? h_zmumu->Integral(h_zmumu->FindBin(xmin+1.e-3), h_zmumu->FindBin(xmax-1.e-3)) : 0.;
 
   //Get systematics if requested
   if(includeSys_)
@@ -326,7 +341,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
   RooDataHist* blindDataHist = new RooDataHist("blind_data_hist",  "Blind Data Hist", RooArgList(*lepm), blindData);
 
   //create RooDataHist for drawing a more visible signal
-  const double br_scale = 10.;
+  const double br_scale = 1.0;
   TH1* sigVis = (TH1*) sig->Clone("sigVis");
   sigVis->Scale(br_scale);
   RooDataHist* sigDataVis  = new RooDataHist("sig_data_vis" ,  "Signal Data"    , RooArgList(*lepm), sigVis);
@@ -368,7 +383,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
     RooRealVar* sigma    = new RooRealVar(Form("sigma_%i"    , set), "sigma", 2., 0.1, 5.);
     RooRealVar* alpha1   = new RooRealVar(Form("alpha1_%i"   , set), "alpha1", 1., 0.1, 10.);
     RooRealVar* alpha2   = new RooRealVar(Form("alpha2_%i"   , set), "alpha2", 1., 0.1, 10.);
-    RooRealVar* enne1    = new RooRealVar(Form("enne1_%i"    , set), "enne2", 5., 0.1, 30.);
+    RooRealVar* enne1    = new RooRealVar(Form("enne1_%i"    , set), "enne1", 5., 0.1, 30.);
     RooRealVar* enne2    = new RooRealVar(Form("enne2_%i"    , set), "enne2", 5., 0.1, 30.);
     RooFormulaVar* mean_func = new RooFormulaVar(Form("mean_func_%i", set), "mean with offset",
                                                  "@0*(1 + @1*@2 + @3*@4)", RooArgList(*mean, *elec_ES_shift, *elec_ES_size, *muon_ES_shift, *muon_ES_size));
@@ -408,6 +423,21 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
     delete xframe;
     delete c;
   }
+
+  //////////////////////////////////////////////////////////////////
+  // Model Z->mumu distribution
+  //////////////////////////////////////////////////////////////////
+
+  RooRealVar* zmumu_mean   = new RooRealVar(Form("zmumu_mean_%i"  , set), "mean"  , (set == 13) ? 84.4 : (set == 12) ? 82.7 : 79.6); zmumu_mean  ->setConstant(true);
+  RooRealVar* zmumu_sigma  = new RooRealVar(Form("zmumu_sigma_%i" , set), "sigma" , (set == 13) ? 4.48 : (set == 12) ? 5.14 : 6.98); zmumu_sigma ->setConstant(true);
+  RooRealVar* zmumu_alpha1 = new RooRealVar(Form("zmumu_alpha1_%i", set), "alpha1", (set == 13) ? 1.22 : (set == 12) ? 0.80 : 4.13); zmumu_alpha1->setConstant(true);
+  RooRealVar* zmumu_alpha2 = new RooRealVar(Form("zmumu_alpha2_%i", set), "alpha2", (set == 13) ? 1.78 : (set == 12) ? 1.85 : 1.99); zmumu_alpha2->setConstant(true);
+  RooRealVar* zmumu_enne1  = new RooRealVar(Form("zmumu_enne1_%i" , set), "enne1" , (set == 13) ? 0.36 : (set == 12) ? 0.38 : 4.33); zmumu_enne1 ->setConstant(true);
+  RooRealVar* zmumu_enne2  = new RooRealVar(Form("zmumu_enne2_%i" , set), "enne2" , (set == 13) ? 9.14 : (set == 12) ? 10.0 : 0.20); zmumu_enne2 ->setConstant(true);
+  RooAbsPdf* zmumu  = new RooDoubleCrystalBall(Form("zmumu_%i"   , set), "Z->#mu#mu PDF", *lepm,
+                                               *zmumu_mean, *zmumu_sigma, *zmumu_alpha1, *zmumu_enne1, *zmumu_alpha2, *zmumu_enne2);
+
+
 
   //////////////////////////////////////////////////////////////////
   // Fit the background distribution
@@ -501,6 +531,8 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
     int nentries = dataData->numEntries();
     double chi_sq = get_chi_squared(*lepm, bkgPDF, *dataData, fitSideBands_, &nentries);
     bkgPDF->plotOn(xframe, RooFit::Name(bkgPDF->GetName()), RooFit::LineColor(kBlue), RooFit::NormRange("full"), RooFit::Range("full"));
+    if(zmumu_model_)
+      zmumu->plotOn(xframe, RooFit::Name(zmumu->GetName()), RooFit::LineColor(kGreen), RooFit::Normalization(zmumu_yield, RooAbsReal::NumEvent), RooFit::Range("full"));
 
 
     TString name = bkgPDF->GetName();
@@ -542,6 +574,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
         if     (title.Contains("Exponential")) order = 2*order - 1;
         else if(title.Contains("Power law"  )) order = 2*order - 1;
         else if(title.BeginsWith("Combined" )) order = 4; //2nd order poly + 0th order exp
+        else                                   order = pdf->getVariables()->getSize()-1; //use N(params)
         chi_sqs.push_back(chi_sq / (nentries - order - 1));
         p_chi_sqs.push_back(TMath::Prob(chi_sq, nentries - order - 1));
         cout << "----------------------------------------------------------------------------" << endl
@@ -566,7 +599,8 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
     } else {
       leg->AddEntry(data, Form("Data, N(entries) = %.0f", data->Integral(low_bin, high_bin)), "PL");
     }
-    leg->AddEntry("sigPDF", Form("Signal, BR = %.1e, N(sig) = %.1f", br_sig*br_scale, sigVis->Integral(low_bin, high_bin)), "L");
+    const float nref_signal = sigVis->Integral(low_bin, high_bin);
+    leg->AddEntry("sigPDF", Form("Signal, BR = %.1e, N(sig) = %.1f", br_sig*br_scale, nref_signal), "L");
     leg->AddEntry(bkgPDF->GetName(), Form("%s - #chi^{2}/DOF = %.2f, p = %.3f", bkgPDF->GetTitle(), chi_sqs[0], p_chi_sqs[0]), "L");
     if(!useMCBkg_ && useMultiDim_) {
       int offset = 1;
@@ -637,7 +671,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
     //   // }
     // }
     dataDiff->Scale(norm/dataDiff->Integral()); //set the norms equal
-    sigDiff->Scale(sigVis->Integral(low_bin, high_bin) / sigDiff->Integral());
+    sigDiff->Scale(nref_signal / sigDiff->Integral());
     for(int ipdf = 0; ipdf < categories->numTypes(); ++ipdf) {
       // if(ipdf == index) {
       //   continue;
@@ -674,7 +708,8 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
     lepm->setVal((xmin+xmax)/2.); //set to a normal value
 
     //Draw difference histogram
-    dataDiff->Draw("E1");
+    if(replaceData_ >= 2) {dataDiff->SetMarkerStyle(20); dataDiff->SetMarkerSize(0.8); dataDiff->SetLineWidth(0); dataDiff->Draw("P");}
+    else                  dataDiff->Draw("E1");
     dataDiff->GetXaxis()->SetRangeUser(xmin+1.e-3, xmax-1.e-3);
     dataDiff->GetXaxis()->SetLabelSize(0.08);
     dataDiff->GetXaxis()->SetTitle("");
@@ -718,7 +753,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
   proc_l += Form("%10s", selection.Data());
   proc_c += Form("%10i", 0);
   double sig_err(0.);
-  const double sig_rate = sig->IntegralAndError(low_bin, high_bin, sig_err);
+  const double sig_rate = sig->IntegralAndError(sig->FindBin(xmin+1.e-3), sig->FindBin(xmax-1.e-3), sig_err);
   if(useRateParams_)
     rate   += Form("%10i", 1);
   else
@@ -732,18 +767,28 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
   bins_p += Form("%15s", hist.Data());
   proc_l += Form("%15s", "bkg");
   proc_c += Form("%15i", ncat);
-  ++ncat;
   if(useRateParams_)
     rate   += Form("%15i", 1);
   else
     rate   += Form("%15.1f", data->Integral(low_bin, high_bin));
+  ++ncat; //increment the number of processes
+
+  if(zmumu_model_) {
+    bins_p += Form("%15s", hist.Data());
+    proc_l += Form("%15s", "zmumu");
+    proc_c += Form("%15i", ncat);
+    rate   += Form("%15.1f", zmumu_yield);
+    bkg_norm += Form("zmumu_yield_%i lnN          -              -         1.10\n", set); //10% uncertainty on Z->mumu
+    zmumu->SetName("zmumu");
+    ws->import(*zmumu, RooFit::RecycleConflictNodes());
+    ++ncat; //increment the number of processes
+  }
+
   if(!useMCBkg_ && useMultiDim_) {
     ws->import(*multiPDF, RooFit::RecycleConflictNodes());
   } else {
     ws->import(*bkgPDF, RooFit::RecycleConflictNodes());
   }
-  // if(useRateParams_)
-  //   ws->import(*N_bkg, RooFit::RecycleConflictNodes());
 
   ws->import(*dataset);
   if(save_) ws->Write();
@@ -766,6 +811,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
       const double yield = sig_sys[index].first*sig_scale;
       line += Form("%9.4f            -     ", yield/sig_rate);
     }
+    if(zmumu_model_) line += "          -   ";
     systematics[sys] = line;
   }
   //add signal MC statistics uncertainty
@@ -779,6 +825,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
       const double yield = (sig_rate + sig_err);
       stat_line += Form("%9.4f            -     ", yield/sig_rate);
     }
+    if(zmumu_model_) stat_line += "          -   ";
     systematics[Form("signal_stats_%i", set)] = stat_line;
     sys_names.push_back(Form("signal_stats_%i", set));
   }
