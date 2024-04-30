@@ -9,12 +9,12 @@ bool useManualChisq_        = true ; //calcuate chi^2 values by hand with histog
 bool useDataBinErrors_      = false; //use data bin errors when calculating chi^2
 bool use_generic_bernstein_ = false; //poly(x)
 bool use_fast_bernstein_    = true ; //poly(x)
-bool use_exp_family_        = false; //exp(x)
-bool use_power_family_      = false; //x^p
+bool use_exp_family_        = true ; //exp(x)
+bool use_power_family_      = true ; //x^p
 bool use_laurent_family_    = false; //Laurent
 bool use_inv_poly_family_   = false; //1/(polynomial)
-bool use_dy_ww_shape_       = true ; //
-bool force_fit_order_       = true ; //force only the inclusion of fixed orders of each family
+bool use_dy_ww_shape_       = true ; //model fit to the Drell-Yan MC
+bool force_fit_order_       = false; //force only the inclusion of fixed orders of each family
 bool force_best_fit_        = false; //force the nominal PDF to be a specific function
 bool enforce_ftest_         = false; //once a function fails the F-test, stop adding functions
 
@@ -687,6 +687,7 @@ RooMultiPdf* construct_multipdf(RooDataHist& data, RooRealVar& obs, RooCategory&
   }
   if(use_dy_ww_shape_) {
     result = add_dy_pdf(data, obs, pdfList, useSideBands, set, verbose);
+    chi_min = result.second; index = result.first; //force the use of the Gaussian+poly
     // result = add_dy_ww(data, obs, pdfList, useSideBands, set, verbose);
     // if(result.second < chi_min) {chi_min = result.second; index = result.first;}
   }

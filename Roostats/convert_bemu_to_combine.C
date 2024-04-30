@@ -170,6 +170,8 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
 
   //replace the background stack with smoothed/fit histograms
   THStack* stack = (useMCBkg_ || replaceData_ == 3) ? new THStack("bkg_stack", "Background stack") : stack_in;
+  //Store the Z->mumu distribution
+  TH1* h_zmumu = nullptr;
   if(useMCBkg_ || replaceData_ == 3 || zmumu_model_) {
     TString mc_fig_dir = Form("plots/latest_production/%s/convert_bemu_%s_%i_mc_fits", year_string.Data(), selection.Data(), set);
     gSystem->Exec(Form("[ ! -d %s ] && mkdir -p %s", mc_fig_dir.Data(), mc_fig_dir.Data()));
@@ -188,14 +190,20 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
       if(isflat) { //flat-ish distributions
         fit_and_replace(h, xmin, xmax, mc_fig_dir.Data(), set, 2);
       }
-      const bool fit_dy_bkg = true; //whether or not to fit the Z->tautau background
-      const bool smooth_hists(true); //smooth histograms that aren't fit (Embedding
+      const bool fit_dy_bkg   = true; //whether or not to fit the Z->tautau background
+      const bool smooth_hists = true; //smooth histograms that aren't fit (Embedding)
       if(isdy) { //Z->tautau
         if(fit_dy_bkg) {
           fit_and_replace(h, xmin, xmax, mc_fig_dir.Data(), set, 1);
         } else if(smooth_hists) h->Smooth(1);
       }
       if(!isflat && !isdy && smooth_hists) h->Smooth(2); //any leftover histogram
+      //store the Z->mumu
+      if(iszmumu) {
+        h_zmumu = (TH1*) h->Clone("h_zmumu");
+        h_zmumu->SetDirectory(0); //don't associate it with the open file
+      }
+
       if(zmumu_scale_ >= 0. && iszmumu) h->Scale(zmumu_scale_); //scale to Z->ee/mumu distribution for systematic studies
       //scale Embedding to match the Drell-Yan MC normalization
       if(isembed) {
@@ -234,20 +242,23 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
     delete c;
   }
 
-  //Get the Z->mumu distribution
-  TH1* h_zmumu = nullptr;
-  for(auto o : *(stack->GetHists())) {
-    if(TString(o->GetName()).Contains("Z->ee")) {
-      h_zmumu = (TH1*) o->Clone("h_zmumu");
-      h_zmumu->SetDirectory(0); //don't associate it with the open file
-      break;
+  //if not already retrieved, get the Z->mumu distribution
+  if(!h_zmumu) {
+    for(auto o : *(stack->GetHists())) {
+      if(TString(o->GetName()).Contains("Z->ee")) {
+        h_zmumu = (TH1*) o->Clone("h_zmumu");
+        h_zmumu->SetDirectory(0); //don't associate it with the open file
+        break;
+      }
     }
   }
+
   if(zmumu_model_ && !h_zmumu) {
     printf("%s: Unable to retrieve Z->mumu histogram for set %i\n", __func__, set);
     return 10;
   }
-  const float zmumu_yield = (h_zmumu) ? h_zmumu->Integral(h_zmumu->FindBin(xmin+1.e-3), h_zmumu->FindBin(xmax-1.e-3)) : 0.;
+  const float zmumu_yield = (h_zmumu) ? CLFV::Utilities::H1Integral(h_zmumu, xmin, xmax) : 0.;
+  cout << "!!!!!! Z->mumu bin width = " << h_zmumu->GetBinWidth(1) << " and integral = " << h_zmumu->Integral() << endl;
 
   //Get systematics if requested
   if(includeSys_)
@@ -402,7 +413,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
   RooRealVar* N_sig    = new RooRealVar(Form("N_sig_%i"    , set), "N_sig", 2e5, 0, 3e6);
   RooAddPdf* totsigpdf = new RooAddPdf(Form("totSigPDF_%i" , set), "Signal PDF", RooArgList(*sigPDF), RooArgList(*N_sig));
 
-  totsigpdf->fitTo(*sigData, RooFit::SumW2Error(1), RooFit::Extended(1));
+  totsigpdf->fitTo(*sigData, RooFit::PrintLevel(0), RooFit::Warnings(0), RooFit::PrintEvalErrors(-1), RooFit::SumW2Error(1), RooFit::Extended(1));
   if(fixSignalPDF_) {
     for(auto var : sig_pdf_vars) var->setConstant(1);
   }
@@ -478,8 +489,9 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
     bkgPDF = new RooHistPdf("bkg", "MC template PDF", *lepm, *bkgMCData);
   }
 
-  const float ndata = data->Integral(low_bin, high_bin); //N(observed data)
-  if(zmumu_model_) { //re-fit the PDFs to the data with the Z->mumu PDF included
+  float ndata = CLFV::Utilities::H1Integral(data, xmin, xmax); //N(observed data)
+
+  if(zmumu_model_ && !(replaceData_ == 3)) { //re-fit the PDFs to the data with the Z->mumu PDF included
     RooRealVar N_zmumu("n_zmumu", "N(Z->#mu#mu)", zmumu_yield); N_zmumu.setConstant(true); //assume a fixed number of Z->mumu events
     RooRealVar N_bkg("n_bkg", "N(bkg)", ndata, 0.1*ndata, 10.*ndata);
     RooAddPdf tot_bkg_pdf("tot_bkg_pdf", "Falling + Z->#mu#mu background", RooArgList(*bkgPDF, *zmumu), RooArgList(N_bkg, N_zmumu));
@@ -505,11 +517,15 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
 
   //Generate toy data to stand in for the observed data if requested
   RooDataHist* dataset = dataData;
-  if(replaceData_ == 1) dataset = bkgPDF->generateBinned(RooArgSet(*lepm), data->Integral(low_bin, high_bin));
+  if(replaceData_ == 1) dataset = bkgPDF->generateBinned(RooArgSet(*lepm), ndata);
   if(replaceData_ >= 2) {
     dataset = bkgMCData; dataData = bkgMCData; blindDataHist = bkgMCData; blindData = hMCBkg; data = hMCBkg; fitSideBands_ = 0; blind_data_ = 0; useDataBinErrors_ = true;
   }
   dataset->SetName("data_obs");
+
+  //update bin indices in case a clipped template is used
+  low_bin  = std::max(1, std::min(data->GetNbinsX(), data->FindBin(xmin+1.e-3)));
+  high_bin = std::max(1, std::min(data->GetNbinsX(), data->FindBin(xmax-1.e-3)));
 
   //Re-fit the PDFs to the toy MC data
   if(!useMCBkg_ && replaceRefit_) {
@@ -559,7 +575,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
     int nentries = dataData->numEntries();
     double chi_sq = get_chi_squared(*lepm, bkgPDF, *dataData, fitSideBands_, &nentries);
     bkgPDF->plotOn(xframe, RooFit::Name(bkgPDF->GetName()), RooFit::LineColor(kBlue),
-                   (zmumu_model_) ? RooFit::Normalization(ndata - zmumu_yield, RooAbsReal::NumEvent) : RooFit::NormRange("full"),
+                   (zmumu_model_ && !(replaceData_ == 3)) ? RooFit::Normalization(ndata - zmumu_yield, RooAbsReal::NumEvent) : RooFit::NormRange("full"),
                    RooFit::Range("full"));
     if(zmumu_model_)
       zmumu->plotOn(xframe, RooFit::Name(zmumu->GetName()), RooFit::LineColor(kGreen), RooFit::Normalization(zmumu_yield, RooAbsReal::NumEvent), RooFit::Range("full"));
@@ -568,14 +584,17 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
     TString name = bkgPDF->GetName();
     TString title = bkgPDF->GetTitle();
     int order = (useMCBkg_) ? 0 : ((title(title.Sizeof() - 2)) - '0');
+    if(!useMCBkg_ && !title.Contains("order")) { //get the N(dof) from the N(params)
+      order = bkgPDF->getVariables()->getSize()-1;
+    }
     vector<int> colors = {kRed, kViolet-7, kGreen-7, kOrange+2, kAtlantic, kRed+2, kMagenta, kOrange, kYellow-7};
     vector<double> chi_sqs;
     vector<double> p_chi_sqs;
-    chi_sqs.push_back(chi_sq / (nentries - order - 2));
-    p_chi_sqs.push_back(TMath::Prob(chi_sq, nentries - order - 2));
+    chi_sqs.push_back(chi_sq / (nentries - order - 1));
+    p_chi_sqs.push_back(TMath::Prob(chi_sq, nentries - order - 1));
     cout << "----------------------------------------------------------------------------" << endl
          <<title.Data() << ": chi^2 / dof = " << chi_sq << " / " << (nentries - order - 1) << " = " << chi_sqs.back()
-         << " (p = " << p_chi_sqs.back() << ")" << endl;
+         << " (p = " << p_chi_sqs.back() << ", nentries = "  << nentries << ")" << endl;
     if(!useMCBkg_) {
       auto vars = bkgPDF->getVariables();
       auto itr = vars->createIterator();
@@ -610,7 +629,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
         p_chi_sqs.push_back(TMath::Prob(chi_sq, nentries - order - 1));
         cout << "----------------------------------------------------------------------------" << endl
              <<title.Data() << ": chi^2 / dof = " << chi_sq << " / " << (nentries - order - 1) << " = " << chi_sqs.back()
-             << " (p = " << p_chi_sqs.back() << ")" << endl;
+             << " (p = " << p_chi_sqs.back() << ", nentries = "  << nentries << ")" << endl;
         auto vars = pdf->getVariables();
         auto itr = vars->createIterator();
         auto var = itr->Next();
@@ -626,15 +645,15 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
     xframe->Draw();
     if(blind_data_) {
       blindData->Draw("same E1");
-      leg->AddEntry(blindData, Form("Data, N(entries) = %.0f", data->Integral(low_bin, high_bin)), "PL");
+      leg->AddEntry(blindData, Form("Data, N(entries) = %.0f", ndata), "PL");
     } else {
-      leg->AddEntry(data, Form("Data, N(entries) = %.0f", data->Integral(low_bin, high_bin)), "PL");
+      leg->AddEntry(data, Form("Data, N(entries) = %.0f", ndata), "PL");
     }
-    const float nref_signal = sigVis->Integral(low_bin, high_bin);
+    const float nref_signal = CLFV::Utilities::H1Integral(sigVis, xmin, xmax);
     leg->AddEntry("sigPDF", Form("Signal, BR = %.1e, N(sig) = %.1f", br_sig*br_scale, nref_signal), "L");
     leg->AddEntry(bkgPDF->GetName(), Form("%s - #chi^{2}/DOF = %.2f, p = %.3f", bkgPDF->GetTitle(), chi_sqs[0], p_chi_sqs[0]), "L");
     if(zmumu_model_)
-      leg->AddEntry(zmumu->GetName(), Form("%s", zmumu->GetTitle()), "L");
+      leg->AddEntry(zmumu->GetName(), Form("%s: N(evt) = %.1f", zmumu->GetTitle(), zmumu_yield), "L");
     if(!useMCBkg_ && useMultiDim_) {
       int offset = 1;
       for(int ipdf = 0; ipdf < categories->numTypes(); ++ipdf) {
@@ -653,10 +672,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
     pad2->cd();
 
     //Create data - background fit histograms
-    //update bin indices in case a clipped template is used
-    low_bin = data->FindBin(xmin+1.e-3);
-    high_bin = data->FindBin(xmax-1.e-3);
-    const double norm = data->Integral(); //N(data) in fit region
+    const double norm = CLFV::Utilities::H1Integral(data, xmin, xmax); //ndata; //N(data) in fit region
     cout << "Data: xlow = " << data->GetBinLowEdge(low_bin)
          << " xhigh = " << data->GetBinLowEdge(high_bin) + data->GetBinWidth(high_bin)
          << " nbins = " << high_bin - low_bin + 1 << " integral = " << norm << endl;
@@ -760,8 +776,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
   if(useRateParams_)
     rate   += Form("%15i", 1);
   else {
-    const float ndata = data->Integral(low_bin, high_bin);
-    rate   += Form("%15.1f", (zmumu_model_) ? ndata - zmumu_yield : ndata);
+    rate   += Form("%15.1f", (zmumu_model_ || (replaceData_ == 3 && zmumu_scale_ >= 0.)) ? ndata + (zmumu_scale_*(zmumu_model_ == 0) - 1.)*zmumu_yield : ndata);
   }
   ++ncat; //increment the number of processes
 

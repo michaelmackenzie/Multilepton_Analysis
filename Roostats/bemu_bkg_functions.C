@@ -14,20 +14,22 @@ RooAbsPdf* create_exponential(RooRealVar& obs, int order, int set, TString tag =
   RooArgList pdfs;
   RooArgList coefficients;
   for(int i = 1; i <= order; ++i) {
-    vars.push_back(new RooRealVar(Form("exp_%i_order_%i_c_%i%s", set, order, i, tag.Data()), Form("exp_%i_order_%i_%i power%s", set, order, i, tag.Data()), -0.1, -10., 10.));
+    vars.push_back(new RooRealVar(Form("exp_%i_order_%i_c_%i%s", set, order, i, tag.Data()), Form("exp_%i_order_%i_%i power%s", set, order, i, tag.Data()), -0.1, -3., 3.));
     exps.push_back(new RooExponential(Form("exp_%i_pdf_order_%i_%i%s", set, order, i, tag.Data()), Form("exp_%i_pdf_order_%i_%i%s", set, order, i, tag.Data()), obs, *vars.back()));
     pdfs.add(*exps.back());
-    coeffs.push_back(new RooRealVar(Form("exp_%i_order_%i_n_%i%s", set, order, i, tag.Data()), Form("exp_%i_order_%i_%i%s norm" , set, order, i, tag.Data()), 1.e3, 0., 1.e8));
-    coefficients.add(*coeffs.back());
+    if(i < order) {
+      coeffs.push_back(new RooRealVar(Form("exp_%i_order_%i_n_%i%s", set, order, i, tag.Data()), Form("exp_%i_order_%i_%i%s norm" , set, order, i, tag.Data()), 1.e3, 0., 1.e8));
+      coefficients.add(*coeffs.back());
+    }
   }
   if(order == 1) {
     pdfs.at(0)->SetTitle(Form("Exponential PDF, order %i", order));
     return ((RooAbsPdf*) pdfs.at(0));
   }
-  return new RooAddPdf(Form("exp_%i_pdf_order_%i%s", set, order, tag.Data()), Form("Exponential PDF, order %i", order), pdfs, coefficients, false);
+  return new RooAddPdf(Form("exp_%i_pdf_order_%i%s", set, order, tag.Data()), Form("Exponential PDF, order %i", order), pdfs, coefficients);
 }
 
-//Create an exponential PDF sum
+//Create an exponential PDF sum (recursive RooAddPdf form)
 RooAbsPdf* create_recursive_exponential(RooRealVar& obs, int order, int set, TString tag = "") {
   if(order <= 0) {
     cout << __func__ << ": Can't create order " << order << " PDF!\n";
@@ -39,7 +41,7 @@ RooAbsPdf* create_recursive_exponential(RooRealVar& obs, int order, int set, TSt
   RooArgList pdfs;
   RooArgList coefficients;
   for(int i = 1; i <= order; ++i) {
-    vars.push_back(new RooRealVar(Form("exp_%i_order_%i_c_%i%s", set, order, i, tag.Data()), Form("exp_%i_order_%i_%i power%s", set, order, i, tag.Data()), -0.1, -10., 10.));
+    vars.push_back(new RooRealVar(Form("exp_%i_order_%i_c_%i%s", set, order, i, tag.Data()), Form("exp_%i_order_%i_%i power%s", set, order, i, tag.Data()), -0.1, -3., 3.));
     exps.push_back(new RooExponential(Form("exp_%i_pdf_order_%i_%i%s", set, order, i, tag.Data()), Form("exp_%i_pdf_order_%i_%i%s", set, order, i, tag.Data()), obs, *vars.back()));
     pdfs.add(*exps.back());
     if(i < order) {
@@ -104,14 +106,16 @@ RooAbsPdf* create_powerlaw(RooRealVar& obs, int order, int set, TString tag = ""
     vars.push_back(new RooRealVar(Form("pwr_%i_order_%i_c_%i%s", set, order, i, tag.Data()), Form("pwr_%i_order_%i_%i power%s", set, order, i, tag.Data()), 1., -100., 1.));
     pwrs.push_back(new RooPowerLaw(Form("pwr_%i_pdf_order_%i_%i%s", set, order, i, tag.Data()), Form("pwr_%i_pdf_order_%i_%i%s", set, order, i, tag.Data()), obs, *vars.back()));
     pdfs.add(*pwrs.back());
-    coeffs.push_back(new RooRealVar(Form("pwr_%i_order_%i_n_%i%s", set, order, i, tag.Data()), Form("pwr_%i_order_%i_%i%s norm" , set, order, i, tag.Data()), 1.e3, 0., 1.e6));
-    coefficients.add(*coeffs.back());
+    if(i < order) {
+      coeffs.push_back(new RooRealVar(Form("pwr_%i_order_%i_n_%i%s", set, order, i, tag.Data()), Form("pwr_%i_order_%i_%i%s norm" , set, order, i, tag.Data()), 0.1, 0., 1.));
+      coefficients.add(*coeffs.back());
+    }
   }
   if(order == 1) {
     pdfs.at(0)->SetTitle(Form("Power law PDF, order %i", order));
     return ((RooAbsPdf*) pdfs.at(0));
   }
-  return new RooAddPdf(Form("pwr_%i_pdf_order_%i%s", set, order, tag.Data()), Form("Power law PDF, order %i", order), pdfs, coefficients, false);
+  return new RooAddPdf(Form("pwr_%i_pdf_order_%i%s", set, order, tag.Data()), Form("Power law PDF, order %i", order), pdfs, coefficients, true);
 }
 
 //Create an power law PDF sum from RooGenericPdf
@@ -210,16 +214,16 @@ RooGenericPdf* create_gaus_poly_pdf(RooRealVar& obs, int order, int set, TString
   //add the Gaussian parameters
   vars.push_back(new RooRealVar(Form("gaus_poly_%i_order_%i_g_0%s", set, order, tag.Data()),
                                 Form("gaus_poly_%i_order_%i_g_0%s", set, order, tag.Data()),
-                                60., 40., 70.)); //mean
+                                60., 50., 70.)); //mean
   vars.push_back(new RooRealVar(Form("gaus_poly_%i_order_%i_g_1%s", set, order, tag.Data()),
                                 Form("gaus_poly_%i_order_%i_g_1%s", set, order, tag.Data()),
-                                11., 0., 60.)); //sigma
+                                11., 5., 20.)); //sigma
 
   //add the polynomial parameters
   for(int i = 0; i < order+1; ++i) { //N(params) = order + 1 = a +bx + ...
     vars.push_back(new RooRealVar(Form("gaus_poly_%i_order_%i_p_%i%s", set, order, i, tag.Data()),
                                   Form("gaus_poly_%i_order_%i_p_%i%s", set, order, i, tag.Data()),
-                                  (i == 0) ? 0.5 : 0., (order == 0) ? 0. : (i == 0) ? -10. : -1., (i == 0) ? 10. : 1.));
+                                  (i == 0) ? 0.5 : 0., (order == 0) ? 0. : (i == 0) ? -3. : -0.1, (i == 0) ? 3. : 0.1));
   }
   for(auto var : vars) var_list.add(*var);
   RooGenericPdf* pdf = new RooGenericPdf(Form("gaus_poly_%i_pdf_order_%i%s", set, order, tag.Data()), formula.Data(), var_list);
