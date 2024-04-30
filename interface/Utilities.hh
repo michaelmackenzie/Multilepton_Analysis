@@ -187,17 +187,15 @@ namespace CLFV {
     }
 
     //------------------------------------------------------------------------------------------------------
-    // maximum in histogram for a given range
-    static double H1Max(TH1* h, const double xmin = 1., const double xmax = -1.) {
+    // histogram integral in a given range, including the under/overflow if requested
+    static double H1Integral(TH1* h, const double xmin = 1., const double xmax = -1., const bool under_over = false) {
       if(!h) {
         printf("Utilities::%s: Undefined histogram!\n", __func__);
         return -1.;
       }
-      const int bin_lo = (xmin < xmax) ? std::max(1, h->FindBin(xmin)) : 1;
-      const int bin_hi = (xmin < xmax) ? std::min(h->GetNbinsX(), h->FindBin(xmax)) : h->GetNbinsX();
-      double max_val = h->GetBinContent(bin_lo);
-      for(int ibin = bin_lo+1; ibin <= bin_hi; ++ibin) max_val = std::max(max_val, h->GetBinContent(ibin));
-      return max_val;
+      const int bin_lo = (xmin < xmax) ? std::max((under_over) ? 0 : 1, h->FindBin(xmin)) : (under_over) ? 0 : 1;
+      const int bin_hi = (xmin < xmax) ? std::min(h->GetNbinsX() + ((under_over) ? 1 : 0), h->FindBin(xmax)) : h->GetNbinsX() + ((under_over) ? 1 : 0);
+      return h->Integral(bin_lo, bin_hi);
     }
 
     //------------------------------------------------------------------------------------------------------
@@ -231,6 +229,20 @@ namespace CLFV {
         }
       }
       return std::max(zmin, min_val);
+    }
+
+    //------------------------------------------------------------------------------------------------------
+    // maximum in histogram for a given range
+    static double H1Max(TH1* h, const double xmin = 1., const double xmax = -1.) {
+      if(!h) {
+        printf("Utilities::%s: Undefined histogram!\n", __func__);
+        return -1.;
+      }
+      const int bin_lo = (xmin < xmax) ? std::max(1, h->FindBin(xmin)) : 1;
+      const int bin_hi = (xmin < xmax) ? std::min(h->GetNbinsX(), h->FindBin(xmax)) : h->GetNbinsX();
+      double max_val = h->GetBinContent(bin_lo);
+      for(int ibin = bin_lo+1; ibin <= bin_hi; ++ibin) max_val = std::max(max_val, h->GetBinContent(ibin));
+      return max_val;
     }
 
     //------------------------------------------------------------------------------------------------------
