@@ -344,14 +344,40 @@ RooAbsPdf* create_bernstein(RooRealVar& obs, const int order, int set, TString t
 
 //Create a Z->mumu PDF
 RooAbsPdf* create_zmumu(RooRealVar& obs, int set, bool fix = true, TString tag = "") {
-  RooRealVar* zmumu_mean   = new RooRealVar(Form("zmumu_mean_%i%s"  , set, tag.Data()), "mean"  , (set == 13) ? 84.4 : (set == 12) ? 82.7 : 79.6, 70., 90.);
-  RooRealVar* zmumu_sigma  = new RooRealVar(Form("zmumu_sigma_%i%s" , set, tag.Data()), "sigma" , (set == 13) ? 4.48 : (set == 12) ? 5.14 : 6.98,  3., 10.);
-  RooRealVar* zmumu_alpha1 = new RooRealVar(Form("zmumu_alpha1_%i%s", set, tag.Data()), "alpha1", (set == 13) ? 1.22 : (set == 12) ? 0.80 : 4.13, 0.8,  5.);
-  RooRealVar* zmumu_alpha2 = new RooRealVar(Form("zmumu_alpha2_%i%s", set, tag.Data()), "alpha2", (set == 13) ? 1.78 : (set == 12) ? 1.85 : 1.99, 0.5,  5.);
-  RooRealVar* zmumu_enne1  = new RooRealVar(Form("zmumu_enne1_%i%s" , set, tag.Data()), "enne1" , (set == 13) ? 0.36 : (set == 12) ? 0.38 : 4.33, 0.5, 10.);
-  RooRealVar* zmumu_enne2  = new RooRealVar(Form("zmumu_enne2_%i%s" , set, tag.Data()), "enne2" , (set == 13) ? 9.14 : (set == 12) ? 10.0 : 0.20, 1.0, 10.);
+  RooRealVar* zmumu_mean   = new RooRealVar(Form("zmumu_mean_%i%s"  , set, tag.Data()), "mean"  , 84.4, 70., 90.);
+  RooRealVar* zmumu_sigma  = new RooRealVar(Form("zmumu_sigma_%i%s" , set, tag.Data()), "sigma" , 4.48,  3., 10.);
+  RooRealVar* zmumu_alpha1 = new RooRealVar(Form("zmumu_alpha1_%i%s", set, tag.Data()), "alpha1", 1.22, 0.8,  5.);
+  RooRealVar* zmumu_alpha2 = new RooRealVar(Form("zmumu_alpha2_%i%s", set, tag.Data()), "alpha2", 1.78, 0.5,  5.);
+  RooRealVar* zmumu_enne1  = new RooRealVar(Form("zmumu_enne1_%i%s" , set, tag.Data()), "enne1" , 0.36, 0.5, 10.);
+  RooRealVar* zmumu_enne2  = new RooRealVar(Form("zmumu_enne2_%i%s" , set, tag.Data()), "enne2" , 9.14, 1.0, 10.);
   RooAbsPdf* zmumu  = new RooDoubleCrystalBall(Form("zmumu_%i%s"    , set, tag.Data()), "Z->#mu#mu PDF", obs,
                                                *zmumu_mean, *zmumu_sigma, *zmumu_alpha1, *zmumu_enne1, *zmumu_alpha2, *zmumu_enne2);
+
+  const bool use_data_fit(true); //shape fits from same sign data vs. opposite sign MC
+  if(set == 13) { //high score region
+    zmumu_mean  ->setVal((use_data_fit) ? 84.5 : 84.7);
+    zmumu_sigma ->setVal((use_data_fit) ? 4.86 : 4.45);
+    zmumu_alpha1->setVal((use_data_fit) ? 0.80 : 1.36);
+    zmumu_alpha2->setVal((use_data_fit) ? 1.70 : 1.34);
+    zmumu_enne1 ->setVal((use_data_fit) ? 10.0 : 0.50);
+    zmumu_enne2 ->setVal((use_data_fit) ? 1.00 : 1.00);
+  } else if(set == 12) { //medium score region
+    zmumu_mean  ->setVal((use_data_fit) ? 81.6 : 82.9);
+    zmumu_sigma ->setVal((use_data_fit) ? 5.71 : 4.79);
+    zmumu_alpha1->setVal((use_data_fit) ? 0.80 : 0.80);
+    zmumu_alpha2->setVal((use_data_fit) ? 1.72 : 2.99);
+    zmumu_enne1 ->setVal((use_data_fit) ? 10.0 : 0.57);
+    zmumu_enne2 ->setVal((use_data_fit) ? 1.00 : 9.12);
+  } else { //low score region (or undefined region)
+    zmumu_mean  ->setVal(80.2); //data fits are unstable, so use MC fits
+    zmumu_sigma ->setVal(6.37);
+    zmumu_alpha1->setVal(1.96);
+    zmumu_alpha2->setVal(1.65);
+    zmumu_enne1 ->setVal(9.38);
+    zmumu_enne2 ->setVal(1.65);
+  }
+
+  //freeze the parameters if not being fit
   if(fix) {
     zmumu_mean  ->setConstant(true);
     zmumu_sigma ->setConstant(true);

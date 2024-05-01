@@ -123,10 +123,10 @@ void fit_and_replace(TH1* h, double xmin, double xmax, const char* fig_dir = nul
     func->SetParameters(hfit->Integral(), 83., 5., 1.056, 7.490, 1.000, 7.597);
     // func->SetParameters(hfit->Integral(), 82.8, 5.1, 1., 0.33, 1.9, 1.1);
     func->SetParNames("Norm", "#mu", "#sigma", "#alpha_{1}", "n_{1}", "#alpha_{2}", "n_{2}");
-    func->SetParLimits(func->GetParNumber("#mu"), 75., 90.);
-    func->SetParLimits(func->GetParNumber("#sigma"), 3., 30.);
-    func->SetParLimits(func->GetParNumber("n_{1}"), 0.2, 10.);
-    func->SetParLimits(func->GetParNumber("n_{2}"), 0.2, 10.);
+    func->SetParLimits(func->GetParNumber("#mu"), 70., 90.);
+    func->SetParLimits(func->GetParNumber("#sigma"), 3., 10.);
+    func->SetParLimits(func->GetParNumber("n_{1}"), 0.5, 10.);
+    func->SetParLimits(func->GetParNumber("n_{2}"), 1.0, 10.);
     func->SetParLimits(func->GetParNumber("#alpha_{1}"), 0.8, 5.);
     func->SetParLimits(func->GetParNumber("#alpha_{2}"), 0.5, 5.);
     func->Print();
