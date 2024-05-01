@@ -56,7 +56,7 @@ double dscb_func(double* X, double* P) {
 
 //---------------------------------------------------------------------------------------------------------------------------------------
 // Fit a function to the histogram and replace the bin contents with the fit values
-void fit_and_replace(TH1* h, double xmin, double xmax, const char* fig_dir = nullptr, int set = -1, int rebin = 0) {
+void fit_and_replace(TH1* h, double xmin, double xmax, const char* fig_dir = nullptr, int set = -1, int rebin = 0, int fit_mode = 9) {
   //histogram to fit, including rebinning if requested
   TH1* hfit = h;
   if(rebin > 1) { //rebin only for fitting
@@ -67,7 +67,7 @@ void fit_and_replace(TH1* h, double xmin, double xmax, const char* fig_dir = nul
   //setup the function to fit with
   TF1* func;
   if(TString(h->GetName()).Contains("#tau#tau")){ //Z->tautau or tautau Embedding
-    const int mode = 9; //Z->tautau background parameterization option
+    const int mode = fit_mode; //Z->tautau background parameterization option
     if(mode == 0) { //exp fit
       func = new TF1("func", "exp([0] + [1]*(x-70))", xmin, xmax);
       func->SetParameters(std::log(hfit->Integral()/(xmax - xmin)*hfit->GetBinWidth(1)), -1.);

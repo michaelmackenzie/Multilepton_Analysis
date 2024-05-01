@@ -443,14 +443,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
   // Model Z->mumu distribution
   //////////////////////////////////////////////////////////////////
 
-  RooRealVar* zmumu_mean   = new RooRealVar(Form("zmumu_mean_%i"  , set), "mean"  , (set == 13) ? 84.4 : (set == 12) ? 82.7 : 79.6); zmumu_mean  ->setConstant(true);
-  RooRealVar* zmumu_sigma  = new RooRealVar(Form("zmumu_sigma_%i" , set), "sigma" , (set == 13) ? 4.48 : (set == 12) ? 5.14 : 6.98); zmumu_sigma ->setConstant(true);
-  RooRealVar* zmumu_alpha1 = new RooRealVar(Form("zmumu_alpha1_%i", set), "alpha1", (set == 13) ? 1.22 : (set == 12) ? 0.80 : 4.13); zmumu_alpha1->setConstant(true);
-  RooRealVar* zmumu_alpha2 = new RooRealVar(Form("zmumu_alpha2_%i", set), "alpha2", (set == 13) ? 1.78 : (set == 12) ? 1.85 : 1.99); zmumu_alpha2->setConstant(true);
-  RooRealVar* zmumu_enne1  = new RooRealVar(Form("zmumu_enne1_%i" , set), "enne1" , (set == 13) ? 0.36 : (set == 12) ? 0.38 : 4.33); zmumu_enne1 ->setConstant(true);
-  RooRealVar* zmumu_enne2  = new RooRealVar(Form("zmumu_enne2_%i" , set), "enne2" , (set == 13) ? 9.14 : (set == 12) ? 10.0 : 0.20); zmumu_enne2 ->setConstant(true);
-  RooAbsPdf* zmumu  = new RooDoubleCrystalBall(Form("zmumu_%i"   , set), "Z->#mu#mu PDF", *lepm,
-                                               *zmumu_mean, *zmumu_sigma, *zmumu_alpha1, *zmumu_enne1, *zmumu_alpha2, *zmumu_enne2);
+  RooAbsPdf* zmumu  = create_zmumu(*lepm, set);
 
 
 

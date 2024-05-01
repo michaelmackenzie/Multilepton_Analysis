@@ -22,6 +22,7 @@ Int_t initialize_plotter(TString selection, TString base) {
   if(dataplotter_) delete dataplotter_;
   dataplotter_ = new DataPlotter();
 
+  useWG_ = 0; //FIXME: Remove this
   dataplotter_->include_misid_ = selection == "mutau" || selection == "etau";
   dataplotter_->include_qcd_   = !dataplotter_->include_misid_ && selection != "mumu" && selection != "ee";
   dataplotter_->verbose_       = max(0, verbose_ - 1);

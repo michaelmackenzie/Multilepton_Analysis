@@ -342,4 +342,25 @@ RooAbsPdf* create_bernstein(RooRealVar& obs, const int order, int set, TString t
   return pdf;
 }
 
+//Create a Z->mumu PDF
+RooAbsPdf* create_zmumu(RooRealVar& obs, int set, bool fix = true, TString tag = "") {
+  RooRealVar* zmumu_mean   = new RooRealVar(Form("zmumu_mean_%i%s"  , set, tag.Data()), "mean"  , (set == 13) ? 84.4 : (set == 12) ? 82.7 : 79.6, 70., 90.);
+  RooRealVar* zmumu_sigma  = new RooRealVar(Form("zmumu_sigma_%i%s" , set, tag.Data()), "sigma" , (set == 13) ? 4.48 : (set == 12) ? 5.14 : 6.98,  3., 10.);
+  RooRealVar* zmumu_alpha1 = new RooRealVar(Form("zmumu_alpha1_%i%s", set, tag.Data()), "alpha1", (set == 13) ? 1.22 : (set == 12) ? 0.80 : 4.13, 0.8,  5.);
+  RooRealVar* zmumu_alpha2 = new RooRealVar(Form("zmumu_alpha2_%i%s", set, tag.Data()), "alpha2", (set == 13) ? 1.78 : (set == 12) ? 1.85 : 1.99, 0.5,  5.);
+  RooRealVar* zmumu_enne1  = new RooRealVar(Form("zmumu_enne1_%i%s" , set, tag.Data()), "enne1" , (set == 13) ? 0.36 : (set == 12) ? 0.38 : 4.33, 0.5, 10.);
+  RooRealVar* zmumu_enne2  = new RooRealVar(Form("zmumu_enne2_%i%s" , set, tag.Data()), "enne2" , (set == 13) ? 9.14 : (set == 12) ? 10.0 : 0.20, 1.0, 10.);
+  RooAbsPdf* zmumu  = new RooDoubleCrystalBall(Form("zmumu_%i%s"    , set, tag.Data()), "Z->#mu#mu PDF", obs,
+                                               *zmumu_mean, *zmumu_sigma, *zmumu_alpha1, *zmumu_enne1, *zmumu_alpha2, *zmumu_enne2);
+  if(fix) {
+    zmumu_mean  ->setConstant(true);
+    zmumu_sigma ->setConstant(true);
+    zmumu_alpha1->setConstant(true);
+    zmumu_alpha2->setConstant(true);
+    zmumu_enne1 ->setConstant(true);
+    zmumu_enne2 ->setConstant(true);
+  }
+  return zmumu;
+}
+
 #endif
