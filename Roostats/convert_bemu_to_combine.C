@@ -778,7 +778,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
     proc_l += Form("%15s", "zmumu");
     proc_c += Form("%15i", ncat);
     rate   += Form("%15.1f", zmumu_yield);
-    bkg_norm += Form("zmumu_yield_%i lnN          -              -         1.10\n", set); //10% uncertainty on Z->mumu
+    bkg_norm += Form("zmumu_yield_%i lnN          -              -         1.20\n", set); //20% uncertainty on Z->mumu (from same-sign background fits)
     zmumu->SetName("zmumu");
     ws->import(*zmumu, RooFit::RecycleConflictNodes());
     ++ncat; //increment the number of processes
