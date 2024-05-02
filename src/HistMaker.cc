@@ -3748,10 +3748,6 @@ void HistMaker::CountObjects() {
   isFakeMuon      = !fIsData && ((leptonOne.isMuon    () && leptonOne.genFlavor == 26) ||
                                  (leptonTwo.isMuon    () && leptonTwo.genFlavor == 26));
 
-  //identify photons faking electrons as well
-  isFakeElectron |= !fIsData && ((leptonOne.isElectron() && leptonOne.genFlavor == 22) ||
-                                 (leptonTwo.isElectron() && leptonTwo.genFlavor == 22));
-
   if     (leptonOne.isElectron()) leptonOne.isLoose = leptonOne.relIso >= 0.15;
   else if(leptonOne.isMuon    ()) leptonOne.isLoose = leptonOne.relIso >= 0.15;
   else if(leptonOne.isTau     ()) leptonOne.isLoose = tauDeepAntiJet < 50; //FIXME: Add tau ID per tau

@@ -2145,16 +2145,18 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
     etau  &= !isFakeElectron;
 
     //remove pileup/deeper jet origin electron/muon events if requested
-    const bool remove_pileup    = false; //keep pileup events since taken from data --> fairly accurate
-    const bool remove_jetorigin = true ;
-    const bool remove_lep_one = !leptonOne.isTau() && (leptonOne.isPileup && remove_pileup) && (leptonOne.jetOrigin && remove_jetorigin);
-    const bool remove_lep_two = !leptonTwo.isTau() && (leptonTwo.isPileup && remove_pileup) && (leptonTwo.jetOrigin && remove_jetorigin);
+    const bool remove_pileup     = false; //keep pileup events since taken from data --> fairly accurate
+    const bool remove_jetorigin  = true ;
+    const bool remove_photon_ele = false; //keep photons faking electrons FIXME: Should these be from data?
+    const bool remove_lep_one = !leptonOne.isTau() && ((leptonOne.isPileup && remove_pileup) || (leptonOne.jetOrigin && remove_jetorigin));
+    const bool remove_lep_two = !leptonTwo.isTau() && ((leptonTwo.isPileup && remove_pileup) || (leptonTwo.jetOrigin && remove_jetorigin));
+
 
     mutau &= !remove_lep_one && !remove_lep_two;
-    etau  &= !remove_lep_one && !remove_lep_two;
-    emu   &= !remove_lep_one && !remove_lep_two;
+    etau  &= !remove_lep_one && !remove_lep_two && (!remove_photon_ele || leptonOne.genFlavor != 22);
+    emu   &= !remove_lep_one && !remove_lep_two && (!remove_photon_ele || leptonOne.genFlavor != 22);
     mumu  &= !remove_lep_one && !remove_lep_two;
-    ee    &= !remove_lep_one && !remove_lep_two;
+    ee    &= !remove_lep_one && !remove_lep_two && (!remove_photon_ele || leptonOne.genFlavor != 22) && (!remove_photon_ele || leptonTwo.genFlavor != 22);
    }
 
   ///////////////////////////////////////////////////////////////////
