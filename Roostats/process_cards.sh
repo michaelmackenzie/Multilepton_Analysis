@@ -15,7 +15,7 @@ Help() {
 }
 
 SELECTION=""
-YEAR="{2016,2017,2018}"
+YEARS="{2016,2017,2018}"
 HISTPATH=""
 HADSETS="{25,26,27,28}"
 LEPSETS="{25,26,27}"
@@ -105,8 +105,8 @@ else
 fi
 
 
-YEARSTRING=`echo ${YEAR} | sed 's/{//' | sed 's/}//' | sed 's/,/_/g'`
-YEARLIST=`echo ${YEAR} | sed 's/{//' | sed 's/}//' | sed 's/,/ /g'`
+YEARSTRING=`echo ${YEARS} | sed 's/{//' | sed 's/}//' | sed 's/,/_/g'`
+YEARLIST=`echo ${YEARS} | sed 's/{//' | sed 's/}//' | sed 's/,/ /g'`
 HADSTRING=`echo ${HADSETS} | sed 's/{//' | sed 's/}//' | sed 's/,/_/g'`
 LEPSTRING=`echo ${LEPSETS} | sed 's/{//' | sed 's/}//' | sed 's/,/_/g'`
 HADLIST=`echo ${HADSETS} | sed 's/{//' | sed 's/}//' | sed 's/,/ /g'`
@@ -120,7 +120,7 @@ fi
 
 [ ! -d datacards/${YEARSTRING} ] && mkdir -p datacards/${YEARSTRING}
 
-echo "Running with selection = ${SELECTION} (with ${LEPSIGNAL}), years = ${YEAR}, hadronic sets = ${HADSETS}, leptonic sets = ${LEPSETS}"
+echo "Running with selection = ${SELECTION} (with ${LEPSIGNAL}), years = ${YEARS}, hadronic sets = ${HADSETS}, leptonic sets = ${LEPSETS}"
 if [[ "${SKIPRETRIEVAL}" == "" ]]
 then
     [ ! -d log ] && mkdir log
@@ -163,10 +163,10 @@ echo "Creating data cards"
 #make the data cards
 if [[ "${SKIPCREATION}" == "" ]]; then
     if [[ "${HADSTRING}" != "" ]]; then
-        ${HEAD} root.exe -q -b "create_combine_cards.C(${HADSETS}, \"${SELECTION}\", ${YEAR}, 1)"
+        ${HEAD} root.exe -q -b "create_combine_cards.C(${HADSETS}, \"${SELECTION}\", ${YEARS}, 1)"
     fi
     if [[ "${LEPSTRING}" != "" ]]; then
-        ${HEAD} root.exe -q -b "create_combine_cards.C(${LEPSETS}, \"${SELECTION}\", ${YEAR}, -1)"
+        ${HEAD} root.exe -q -b "create_combine_cards.C(${LEPSETS}, \"${SELECTION}\", ${YEARS}, -1)"
     fi
 fi
 
