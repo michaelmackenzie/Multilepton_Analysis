@@ -71,50 +71,6 @@ Int_t initialize_plotter(TString selection, TString base) {
   return status;
 }
 
-int get_same_flavor_systematics(int set, TString hist, TFile* f) {
-  int status(0);
-  f->cd();
-  dataplotter_->rebinH_ = overall_rebin_;
-
-  //Loop through each systematic, writing MC histograms
-  for(int isys = (test_sys_ >= 0 ? test_sys_ : 0); isys < (test_sys_ >= 0 ? test_sys_ + 1 : kMaxSystematics); ++isys) {
-    cout << "Retrieving same-flavor systematic " << isys << "...\n";
-    //Get background for the systematic
-    THStack* hstack = dataplotter_->get_stack(Form("%s_%i", hist.Data(), isys), "systematic", set);
-    TH1 *hbkg(0), *hDY(0);
-    if(!hstack || !hstack->GetStack()) {
-      ++status;
-      if(!allow_sys_errors_)
-        continue;
-      else
-        cout << "Missing same-flavor histogram for set " << set << " and sys " << isys << endl;
-      hbkg = (TH1*) hDefault_->Clone(Form("hbkg_sys_%i", isys));
-      hDY  = (TH1*) hDY_     ->Clone(Form("hDY_sys_%i" , isys));
-    } else {
-      //add up components of the Z->ll/Bkg
-      for(auto o : *(hstack->GetHists())) {
-        TH1* h = (TH1*) o;
-        if(TString(h->GetName()).Contains("Z->ee/#mu#mu")) {
-          if(hDY) hDY->Add(h);
-          else   {hDY = h; hDY->SetName(Form("hDY_sys_%i", isys));}
-        } else {
-          if(hbkg) hbkg->Add(h);
-          else    {hbkg = h; hbkg->SetName(Form("hbkg_sys_%i", isys));}
-        }
-      }
-    }
-    if(test_sys_ >= 0) {
-      cout << "Nominal background: " << hbkg_->Integral()
-           << " shifted background: " << hbkg->Integral() << endl;
-    }
-
-    hbkg->Write();
-    hDY->Write();
-    // f->Flush();
-  }
-  return status;
-}
-
 int get_systematics(int set, TString hist, TFile* f, TString canvas_name) {
   int status(0);
   f->cd();
@@ -243,73 +199,6 @@ int get_systematics(int set, TString hist, TFile* f, TString canvas_name) {
   return status;
 }
 
-int get_same_flavor_histogram(int set, TString selection, vector<int> years, TString base) {
-
-  int status(0);
-  TString hist = "lepm";
-
-  //initialize the dataplotter
-  years_ = years;
-  status = initialize_plotter(selection, base);
-  if(status) {
-    cout << "DataPlotter initialization returned " << status << ", exiting!\n";
-    return status;
-  }
-
-  int set_offset = (selection == "mumu") ? HistMaker::kMuMu : CLFVHistMaker::kEE;
-
-  dataplotter_->rebinH_ = overall_rebin_;
-
-  //get background distribution
-  THStack* hstack = dataplotter_->get_stack(hist, "event", set+set_offset);
-  if(!hstack) return 1;
-
-  //get data
-  TH1* hdata = dataplotter_->get_data(hist, "event", set+set_offset);
-  if(!hdata) return 2;
-
-  /////////////////////////////////////////////////
-  // Plot the results
-  /////////////////////////////////////////////////
-
-  TCanvas* c = new TCanvas();
-  hdata->Draw("E");
-  hstack->Draw("same hist noclear");
-  hdata->Draw("same E");
-  hdata->Draw("same E");
-  hdata->GetXaxis()->SetRangeUser(xmin_,xmax_);
-  hdata->GetYaxis()->SetRangeUser(0.9,1.1*hstack->GetMaximum());
-
-  TString year_string;
-  for(unsigned i = 0; i < years.size(); ++i) {
-    if(i > 0) year_string += "_";
-    year_string += years[i];
-  }
-
-  gSystem->Exec(Form("[ ! -d plots/latest_production/%s ] && mkdir -p plots/latest_production/%s", year_string.Data(), year_string.Data()));
-  TString canvas_name = Form("plots/latest_production/%s/hist_%s_%s_%i", year_string.Data(), hist.Data(), selection.Data(), set);
-  c->Print(canvas_name + ".png");
-
-  gSystem->Exec("[ ! -d histograms ] && mkdir histograms");
-  TFile* fout = new TFile(Form("histograms/%s_%s_%i_%s.hist", selection.Data(), hist.Data(), set, year_string.Data()), "RECREATE");
-  hstack->SetName("hstack");
-  hstack->Write();
-  TH1* hlast = (TH1*) hstack->GetStack()->Last();
-  hlast->SetName("hbackground");
-  hlast->Write();
-  hdata->SetName("hdata");
-  hdata->Write();
-
-  hDefault_ = (TH1*) hlast->Clone("hDefault");
-  hDY_ = (TH1*) hlast->Clone("hDYDefault");
-  if(do_systematics_)
-    status += get_same_flavor_systematics(set+set_offset, hist, fout);
-  delete hDefault_;
-  fout->Close();
-  return status;
-
-}
-
 //Get the signal, background, and data histograms in the signal selection
 int get_bemu_single_histogram(int set = 8, TString selection = "zemu",
                               vector<int> years = {2016, 2017, 2018},
@@ -431,21 +320,12 @@ int get_bemu_single_histogram(int set = 8, TString selection = "zemu",
 
 int get_bemu_histogram(vector<int> sets, TString selection = "zemu",
                        vector<int> years = {2016, 2017, 2018},
-                       TString base = "nanoaods_dev",
-                       bool do_same_flavor = true) {
+                       TString base = "nanoaods_dev") {
   useEmbed_ = bemu_embed_mode_;
   int status(0);
   for(int set : sets) {
     cout << "Getting signal region histograms for set " << set << "...\n";
     status += get_bemu_single_histogram(set, selection, years, base);
-  }
-  if(do_same_flavor && use_same_flavor_) {
-    useEmbed_ = 0;
-    const int set = 8; //normalization set
-    cout << "Getting mumu region histograms for set " << set << "...\n";
-    status += get_same_flavor_histogram(set, "mumu", years, base);
-    cout << "Getting ee region histograms for set " << set << "...\n";
-    status += get_same_flavor_histogram(set, "ee", years, base);
   }
   return status;
 }

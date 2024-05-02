@@ -48,4 +48,31 @@ TH1* pdf_pdf_diff(RooAbsPdf* pdf_1, RooAbsPdf* pdf_2, RooRealVar& obs, const dou
   return h_diff;
 }
 
+//-----------------------------------------------------------------------------------------------------------------------------------
+// Count free PDF params
+int count_pdf_params(RooAbsPdf* pdf) {
+  int nfree = 0;
+  auto vars = pdf->getVariables();
+  auto itr = vars->createIterator();
+  auto var = itr->Next();
+  while(var) {
+    if(!((RooAbsReal*) var)->isConstant()) ++nfree;
+    var = itr->Next();
+  }
+  return max(nfree-1,0); //remove the observable from counting
+}
+
+void print_pdf_params(RooAbsPdf* pdf, const char* obs = nullptr) {
+  auto vars = pdf->getVariables();
+  auto itr = vars->createIterator();
+  auto var = itr->Next();
+  while(var) {
+    if(!obs || TString(var->GetName()) != TString(obs)) {
+      var->Print();
+    }
+    var = itr->Next();
+  }
+}
+
+
 #endif
