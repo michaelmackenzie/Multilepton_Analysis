@@ -1,30 +1,99 @@
 #! /bin/bash
 Help() {
     echo "Retrieve histograms, create PDFs, and create Combine cards/workspaces"
-    echo "Usage:"
-    echo "1: Selection (e.g. \"zmutau\")"
-    echo "2: Year list (e.g. \"{2016,2017,2018}\")"
-    echo "3: Histogram path (e.g. \"nanoaods_mva_dev\")"
-    echo "4: Hadronic channel histogram sets (e.g. \"{8}\")"
-    echo "5: Leptonic channel histogram sets (e.g. \"{8}\")"
-    echo "6: Optional, skip histogram retrieval step flag"
-    echo "7: Optional, skip card creation step flag, only merge cards"
-    echo "8: Optional parallel-processing flag for histogram sets"
-    echo "9: Optional, dry-run flag"
+    echo "Usage: process_cards.sh -S <selection> -H <hist path> [options]"
+    echo " --selection     (-S  ): Selection (e.g. \"zmutau\")"
+    echo " --hists         (-H  ): Histogram path (e.g. \"nanoaods_mva_dev\")"
+    echo " --years         (-y  ): Year list (default \"{2016,2017,2018}\")"
+    echo " --hadsets       (-had): Histogram sets for hadronic taus (default \"{8}\")"
+    echo " --lepsets       (-lep): Histogram sets for leptonic taus (default \"{8}\")"
+    echo " --skipretrieval (-R  ): Skip histogram retrieval step flag"
+    echo " --skipcards     (-C  ): Skip card creation step flag, only merge cards"
+    echo " --parallel      (-p  ): Retrieve histograms in parallel"
+    echo " --tag                 : Tag for produced combine cards (Not implemented)"
+    echo " --dryrun              : Dry-run flag"
 }
 
-SELECTION=$1
-YEAR=$2
-HISTPATH=$3
-TAUSETS=$4
-LEPSETS=$5
-SKIPRETRIEVAL=$6
-SKIPCREATION=$7
-PARALLEL=$8
-DRYRUN=$9
+SELECTION=""
+YEAR="{2016,2017,2018}"
+HISTPATH=""
+HADSETS="{25,26,27,28}"
+LEPSETS="{25,26,27}"
+SKIPRETRIEVAL=""
+SKIPCREATION=""
+PARALLEL=""
+DRYRUN=""
+
+iarg=1
+while [ ${iarg} -le $# ]
+do
+    eval "var=\${${iarg}}"
+    if [[ "${var}" == "--help" ]] || [[ "${var}" == "-h" ]]
+    then
+        Help
+        exit
+    elif [[ "${var}" == "--selection" ]] || [[ "${var}" == "-S" ]]
+    then
+        iarg=$((iarg + 1))
+        eval "var=\${${iarg}}"
+        SELECTION=${var}
+    elif [[ "${var}" == "--years" ]] || [[ "${var}" == "-y" ]]
+    then
+        iarg=$((iarg + 1))
+        eval "var=\${${iarg}}"
+        YEARS=${var}
+    elif [[ "${var}" == "--hist" ]] || [[ "${var}" == "-H" ]]
+    then
+        iarg=$((iarg + 1))
+        eval "var=\${${iarg}}"
+        HISTPATH=${var}
+    elif [[ "${var}" == "--hadsets" ]] || [[ "${var}" == "-had" ]]
+    then
+        iarg=$((iarg + 1))
+        eval "var=\${${iarg}}"
+        HADSETS=${var}
+    elif [[ "${var}" == "--lepsets" ]] || [[ "${var}" == "-lep" ]]
+    then
+        iarg=$((iarg + 1))
+        eval "var=\${${iarg}}"
+        LEPSETS=${var}
+    elif [[ "${var}" == "--parallel" ]] || [[ "${var}" == "-p" ]]
+    then
+        PARALLEL="d"
+    elif [[ "${var}" == "--skipretrieval" ]] || [[ "${var}" == "-R" ]]
+    then
+        SKIPRETRIEVAL="d"
+    elif [[ "${var}" == "--skipcards" ]] || [[ "${var}" == "-C" ]]
+    then
+        SKIPCREATION="d"
+    elif [[ "${var}" == "--mctemplates" ]] || [[ "${var}" == "-M" ]]
+    then
+        MCTEMPLATES="d"
+    elif [[ "${var}" == "--tag" ]]
+    then
+        iarg=$((iarg + 1))
+        eval "var=\${${iarg}}"
+        TAG="_${var}"
+    elif [[ "${var}" == "--dryrun" ]]
+    then
+        DRYRUN="d"
+    else
+        echo "Unknown option ${var}"
+        Help
+        exit
+    fi
+    iarg=$((iarg + 1))
+done
 
 
-if [[ "${SELECTION}" == "" ]] || [[ "${SELECTION}" == "-h" ]] || [[ "${SELECTION}" == "--help" ]]; then
+if [[ "${SELECTION}" == "" ]]; then
+    echo "No selection provided!"
+    Help
+    exit
+fi
+
+if [[ "${HISTPATH}" == "" ]]; then
+    echo "No histogram path provided!"
     Help
     exit
 fi
@@ -35,11 +104,12 @@ else
     HEAD=""
 fi
 
+
 YEARSTRING=`echo ${YEAR} | sed 's/{//' | sed 's/}//' | sed 's/,/_/g'`
 YEARLIST=`echo ${YEAR} | sed 's/{//' | sed 's/}//' | sed 's/,/ /g'`
-TAUSTRING=`echo ${TAUSETS} | sed 's/{//' | sed 's/}//' | sed 's/,/_/g'`
+HADSTRING=`echo ${HADSETS} | sed 's/{//' | sed 's/}//' | sed 's/,/_/g'`
 LEPSTRING=`echo ${LEPSETS} | sed 's/{//' | sed 's/}//' | sed 's/,/_/g'`
-TAULIST=`echo ${TAUSETS} | sed 's/{//' | sed 's/}//' | sed 's/,/ /g'`
+HADLIST=`echo ${HADSETS} | sed 's/{//' | sed 's/}//' | sed 's/,/ /g'`
 LEPLIST=`echo ${LEPSETS} | sed 's/{//' | sed 's/}//' | sed 's/,/ /g'`
 LEPSIGNAL="${SELECTION}"
 if [[ "${SELECTION}" == *"mutau"* ]]; then
@@ -50,20 +120,20 @@ fi
 
 [ ! -d datacards/${YEARSTRING} ] && mkdir -p datacards/${YEARSTRING}
 
-echo "Running with selection = ${SELECTION} (with ${LEPSIGNAL}), years = ${YEAR}, tau sets = ${TAUSETS}, lep sets = ${LEPSETS}"
+echo "Running with selection = ${SELECTION} (with ${LEPSIGNAL}), years = ${YEAR}, hadronic sets = ${HADSETS}, leptonic sets = ${LEPSETS}"
 if [[ "${SKIPRETRIEVAL}" == "" ]]
 then
     [ ! -d log ] && mkdir log
     #get the BDT distributions
-    if [[ "${TAUSTRING}" != "" ]]; then
+    if [[ "${HADSTRING}" != "" ]]; then
         echo "Retrieving hadronic tau histograms"
         for IYEAR in ${YEARLIST}; do
-            for TAUSET in ${TAULIST}; do
+            for HADSET in ${HADLIST}; do
                 if [[ "${PARALLEL}" != "" ]]; then
-                    echo "Starting processing to log/${SELECTION}_mva_had_${TAUSET}_${IYEAR}.log"
-                    ${HEAD} root.exe -q -b "get_MVA_histogram.C({${TAUSET}}, \"${SELECTION}\", {${IYEAR}}, \"${HISTPATH}\", 1)" >| log/${SELECTION}_mva_had_${TAUSET}_${IYEAR}.log 2>&1 &
+                    echo "Starting processing to log/${SELECTION}_mva_had_${HADSET}_${IYEAR}.log"
+                    ${HEAD} root.exe -q -b "get_MVA_histogram.C({${HADSET}}, \"${SELECTION}\", {${IYEAR}}, \"${HISTPATH}\", 1)" >| log/${SELECTION}_mva_had_${HADSET}_${IYEAR}.log 2>&1 &
                 else
-                    ${HEAD} root.exe -q -b "get_MVA_histogram.C({${TAUSET}}, \"${SELECTION}\", {${IYEAR}}, \"${HISTPATH}\", 1)"
+                    ${HEAD} root.exe -q -b "get_MVA_histogram.C({${HADSET}}, \"${SELECTION}\", {${IYEAR}}, \"${HISTPATH}\", 1)"
                 fi
             done
             if [[ "${PARALLEL}" != "" ]]; then
@@ -92,8 +162,8 @@ fi
 echo "Creating data cards"
 #make the data cards
 if [[ "${SKIPCREATION}" == "" ]]; then
-    if [[ "${TAUSTRING}" != "" ]]; then
-        ${HEAD} root.exe -q -b "create_combine_cards.C(${TAUSETS}, \"${SELECTION}\", ${YEAR}, 1)"
+    if [[ "${HADSTRING}" != "" ]]; then
+        ${HEAD} root.exe -q -b "create_combine_cards.C(${HADSETS}, \"${SELECTION}\", ${YEAR}, 1)"
     fi
     if [[ "${LEPSTRING}" != "" ]]; then
         ${HEAD} root.exe -q -b "create_combine_cards.C(${LEPSETS}, \"${SELECTION}\", ${YEAR}, -1)"
@@ -102,7 +172,7 @@ fi
 
 echo "Processing year list ${YEARLIST}"
 #Iterate through list of years, combining cards
-YEARTAUMERGE="combineCards.py"
+YEARHADMERGE="combineCards.py"
 YEARLEPMERGE="combineCards.py"
 for YEAR_I in ${YEARLIST}
 do
@@ -110,22 +180,22 @@ do
     cd datacards/${YEAR_I}/
     #iterate through each histogram set to build the hadronic tau combined card
     COMMAND="combineCards.py"
-    FINALTAUCARD="combine_mva_${SELECTION}_${TAUSTRING}_${YEAR_I}.txt"
+    FINALHADCARD="combine_mva_${SELECTION}_${HADSTRING}_${YEAR_I}.txt"
     FINALLEPCARD="combine_mva_${LEPSIGNAL}_${LEPSTRING}_${YEAR_I}.txt"
-    FINALCARD="combine_mva_total_${SELECTION}_had_${TAUSTRING}_lep_${LEPSTRING}_${YEAR_I}.txt"
-    if [[ "${TAUSTRING}" != "" ]]; then
-        for SET_I in $TAULIST
+    FINALCARD="combine_mva_total_${SELECTION}_had_${HADSTRING}_lep_${LEPSTRING}_${YEAR_I}.txt"
+    if [[ "${HADSTRING}" != "" ]]; then
+        for SET_I in $HADLIST
         do
             COMMAND="${COMMAND} mva_${SET_I}=combine_mva_${SELECTION}_${SET_I}_${YEAR_I}.txt"
             if [[ "${YEARSTRING}" != "${YEARLIST}" ]]; then ${HEAD} cp "combine_mva_${SELECTION}_${SET_I}_${YEAR_I}.root" ../${YEARSTRING}/; fi
         done
         if [[ "${DRYRUN}" != "" ]]; then
-            ${HEAD} ${COMMAND} ${FINALTAUCARD}
-        elif [[ "${TAUSTRING}" != "${TAULIST}" ]]; then
-            echo ${COMMAND} ${FINALTAUCARD}
-            ${COMMAND} >| ${FINALTAUCARD}
+            ${HEAD} ${COMMAND} ${FINALHADCARD}
+        elif [[ "${HADSTRING}" != "${HADLIST}" ]]; then
+            echo ${COMMAND} ${FINALHADCARD}
+            ${COMMAND} >| ${FINALHADCARD}
         fi
-        if [[ "${YEARSTRING}" != "${YEARLIST}" ]]; then ${HEAD} cp ${FINALTAUCARD} ../${YEARSTRING}/; fi
+        if [[ "${YEARSTRING}" != "${YEARLIST}" ]]; then ${HEAD} cp ${FINALHADCARD} ../${YEARSTRING}/; fi
     fi
 
     #iterate through each histogram set to build the leptonic tau combined card
@@ -145,18 +215,18 @@ do
         if [[ "${YEARSTRING}" != "${YEARLIST}" ]]; then ${HEAD} cp ${FINALLEPCARD} ../${YEARSTRING}/; fi
     fi
 
-    if [[ "${TAUSTRING}" != "" ]] && [[ "${LEPSTRING}" != "" ]]; then
+    if [[ "${HADSTRING}" != "" ]] && [[ "${LEPSTRING}" != "" ]]; then
         #combine the hadronic and leptonic channels
         if [[ "${DRYRUN}" != "" ]]; then
-            ${HEAD} combineCards.py had=${FINALTAUCARD} lep=${FINALLEPCARD} ${FINALCARD}
+            ${HEAD} combineCards.py had=${FINALHADCARD} lep=${FINALLEPCARD} ${FINALCARD}
         else
-            echo combineCards.py had=${FINALTAUCARD} lep=${FINALLEPCARD} ${FINALCARD}
-            combineCards.py had=${FINALTAUCARD} lep=${FINALLEPCARD} >| ${FINALCARD}
+            echo combineCards.py had=${FINALHADCARD} lep=${FINALLEPCARD} ${FINALCARD}
+            combineCards.py had=${FINALHADCARD} lep=${FINALLEPCARD} >| ${FINALCARD}
         fi
         ${HEAD} cp ${FINALCARD} ../${YEARSTRING}/
     fi
 
-    YEARTAUMERGE="${YEARTAUMERGE} y${YEAR_I}=${FINALTAUCARD}"
+    YEARHADMERGE="${YEARHADMERGE} y${YEAR_I}=${FINALHADCARD}"
     YEARLEPMERGE="${YEARLEPMERGE} y${YEAR_I}=${FINALLEPCARD}"
     cd ../..
 done
@@ -169,8 +239,8 @@ fi
 echo "Merging total year cards per set"
 cd "datacards/${YEARSTRING}/"
 #Merge each set for the full year list version
-if [[ "${TAUSTRING}" != "" ]]; then
-    for SET_I in $TAULIST
+if [[ "${HADSTRING}" != "" ]]; then
+    for SET_I in $HADLIST
     do
         COMMAND="combineCards.py "
         for YEAR_I in $YEARLIST
@@ -207,28 +277,28 @@ fi
 #Combine the runs from each year
 echo "Merging total year cards for all sets"
 #Use the last processed cards to create the total card names
-FINALTAUCARD="combine_mva_${SELECTION}_${TAUSTRING}_${YEARSTRING}.txt"
+FINALHADCARD="combine_mva_${SELECTION}_${HADSTRING}_${YEARSTRING}.txt"
 FINALLEPCARD="combine_mva_${LEPSIGNAL}_${LEPSTRING}_${YEARSTRING}.txt"
-FINALCARD="combine_mva_total_${SELECTION}_had_${TAUSTRING}_lep_${LEPSTRING}_${YEARSTRING}.txt"
+FINALCARD="combine_mva_total_${SELECTION}_had_${HADSTRING}_lep_${LEPSTRING}_${YEARSTRING}.txt"
 
 if [[ "${DRYRUN}" != "" ]]; then
-    if [[ "${TAUSTRING}" != "" ]]; then
-        ${HEAD} ${YEARTAUMERGE} ${FINALTAUCARD}
+    if [[ "${HADSTRING}" != "" ]]; then
+        ${HEAD} ${YEARHADMERGE} ${FINALHADCARD}
     fi
     if [[ "${LEPSTRING}" != "" ]]; then
         ${HEAD} ${YEARLEPMERGE} ${FINALLEPCARD}
     fi
-    if [[ "${TAUSTRING}" != "" ]] && [[ "${LEPSTRING}" != "" ]]; then
-        ${HEAD} combineCards.py had=${FINALTAUCARD} lep=${FINALLEPCARD} ${FINALCARD}
+    if [[ "${HADSTRING}" != "" ]] && [[ "${LEPSTRING}" != "" ]]; then
+        ${HEAD} combineCards.py had=${FINALHADCARD} lep=${FINALLEPCARD} ${FINALCARD}
     fi
 else
-    if [[ "${TAUSTRING}" != "" ]]; then
-        ${YEARTAUMERGE} >| ${FINALTAUCARD}
+    if [[ "${HADSTRING}" != "" ]]; then
+        ${YEARHADMERGE} >| ${FINALHADCARD}
     fi
     if [[ "${LEPSTRING}" != "" ]]; then
         ${YEARLEPMERGE} >| ${FINALLEPCARD}
     fi
-    if [[ "${TAUSTRING}" != "" ]] && [[ "${LEPSTRING}" != "" ]]; then
-        combineCards.py had=${FINALTAUCARD} lep=${FINALLEPCARD} >| ${FINALCARD}
+    if [[ "${HADSTRING}" != "" ]] && [[ "${LEPSTRING}" != "" ]]; then
+        combineCards.py had=${FINALHADCARD} lep=${FINALLEPCARD} >| ${FINALCARD}
     fi
 fi

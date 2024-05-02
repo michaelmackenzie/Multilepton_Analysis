@@ -6,6 +6,7 @@ Help() {
     echo "Options:"
     echo " --rrange    (-r ): POI range (default = 20)"
     echo " --obs       (-o ): Do observed"
+    echo " --unblind   (-o ): Unblind the results"
     echo " --dontclean (-dc): Don't cleanup output combine files"
     echo " --approx    (-a ): Do approximate limits"
     echo " --fitarg         : Additional combineTool.py arguments (see combineTools.py -M Impacts -h)"
@@ -25,6 +26,7 @@ DONTCLEAN=""
 DOOBS=""
 RRANGE="20"
 APPROX=""
+UNBLIND=""
 COMMAND=""
 PLOTARG=""
 EXCLUDE=""
@@ -74,6 +76,9 @@ do
     elif [[ "${var}" == "--obs" ]] || [[ "${var}" == "-o" ]]
     then
         DOOBS="d"
+    elif [[ "${var}" == "--unblind" ]]
+    then
+        UNBLIND="d"
     elif [[ "${var}" == "--fitonly" ]]
     then
         FITONLY="d"
@@ -203,6 +208,11 @@ fi
 
 if [[ "${FITONLY}" ]]; then
     exit
+fi
+
+#Blind the result if using the observed impacts but not yet unblinding the measurement
+if [[ "${DOOBS}" != "" ]] && [[ "${UNBLIND}" == "" ]]; then
+    PLOTARG="${PLOTARG} --blind"
 fi
 
 if [[ "${MU2E}" != "" ]]; then
