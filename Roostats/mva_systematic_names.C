@@ -158,6 +158,20 @@ std::pair<TString,TString> systematic_name(int sys, TString selection, int year,
   if(name == "XS_ZZ") name = ""; //contributes nothing at 1e-4 norm level
   if(name == "XS_HWW" ) name = "";
 
+  //qcd alt functions vary by year and N(jets) due to F-test, turn off irrelevant ones
+  if(name.BeginsWith("QCDAlt")) {
+    if(year == 2016) { //all F-tests resulted in linear fits
+      if(name.EndsWith("A2") || name.EndsWith("A3") || name.EndsWith("A4")) name = "";
+    } else if(year == 2017) { //linear for 0-jets, quadratic for 1-jet, linear for +1-jets
+      if(name.EndsWith("A3") || name.EndsWith("A4")) name = "";
+      else if(name.EndsWith("A2") && !name.EndsWith("J1A2")) name = "";
+    } else if(year == 2017) { //4th order for 0-jets, linear for 1-jet, linear for +1-jets
+      if(!name.Contains("J0A")) { //only remove systematics from >= 1-jet
+        if(name.EndsWith("A2") || name.EndsWith("A3") || name.EndsWith("A4")) name = "";
+      }
+    }
+  }
+
   ///////////////////////////////////////////////////////////////////////////
   // Re-name systematics for clarity
 
