@@ -6,7 +6,7 @@ Help() {
     echo "Options:"
     echo " --rrange    (-r ): POI range (default = 20)"
     echo " --obs       (-o ): Do observed"
-    echo " --unblind   (-o ): Unblind the results"
+    echo " --unblind        : Unblind the results"
     echo " --dontclean (-dc): Don't cleanup output combine files"
     echo " --approx    (-a ): Do approximate limits"
     echo " --fitarg         : Additional combineTool.py arguments (see combineTools.py -M Impacts -h)"
@@ -16,6 +16,7 @@ Help() {
     echo " --exclude   (-e ): Exclude nuisance parameters (default is none)"
     echo " --fitonly        : Only process fitting steps, not impact PDF"
     echo " --skipinitial    : Skip initial fit"
+    echo " --tag            : Tag for output results"
     echo " --mu2e           : Mu2e processing"
     echo " --dryrun         : Only print commands without processing"
     echo " --help      (-h ): Print this information"
@@ -33,6 +34,7 @@ EXCLUDE=""
 INCLUDE=""
 FITONLY=""
 SKIPINITIAL=""
+TAG=""
 MU2E=""
 VERBOSE=0
 DRYRUN=""
@@ -85,6 +87,11 @@ do
     elif [[ "${var}" == "--skipinitial" ]]
     then
         SKIPINITIAL="d"
+    elif [[ "${var}" == "--tag" ]]
+    then
+        iarg=$((iarg + 1))
+        eval "var=\${${iarg}}"
+        TAG=${var}
     elif [[ "${var}" == "--dontclean" ]] || [[ "${var}" == "-dc" ]]
     then
         DONTCLEAN="d"
@@ -158,6 +165,9 @@ fi
 
 WORKSPACE=`echo ${CARD} | sed 's/.txt/_workspace.root/'`
 JSON=`echo ${CARD} | sed 's/.txt/.json/' | sed 's/.root/.json/' | sed 's/combine_/impacts_/'`
+if [[ "${TAG}" != "" ]]; then
+    JSON=`echo ${JSON} | sed "s/.json/_${TAG}.json/"`
+fi
 
 ARGS=""
 if [[ "${APPROX}" != "" ]]; then
