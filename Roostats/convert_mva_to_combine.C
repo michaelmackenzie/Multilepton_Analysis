@@ -68,14 +68,14 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
 
   int status(0);
   TString hist;
-  if     (selection == "hmutau"  ) {hist = "mva0"; blind_cut_ = 0.36;}
-  else if(selection == "zmutau"  ) {hist = "mva1"; blind_cut_ = 0.36;}
-  else if(selection == "hetau"   ) {hist = "mva2"; blind_cut_ = 0.36;}
-  else if(selection == "zetau"   ) {hist = "mva3"; blind_cut_ = 0.36;}
-  else if(selection == "hmutau_e") {hist = "mva6"; blind_cut_ = 0.36;}
-  else if(selection == "zmutau_e") {hist = "mva7"; blind_cut_ = 0.36;}
-  else if(selection == "hetau_mu") {hist = "mva8"; blind_cut_ = 0.36;}
-  else if(selection == "zetau_mu") {hist = "mva9"; blind_cut_ = 0.36;}
+  if     (selection == "hmutau"  ) {hist = "mva0"; blind_cut_ = (blind_data_ == 2) ? 0.36 : 0.5;}
+  else if(selection == "zmutau"  ) {hist = "mva1"; blind_cut_ = (blind_data_ == 2) ? 0.36 : 0.5;}
+  else if(selection == "hetau"   ) {hist = "mva2"; blind_cut_ = (blind_data_ == 2) ? 0.36 : 0.5;}
+  else if(selection == "zetau"   ) {hist = "mva3"; blind_cut_ = (blind_data_ == 2) ? 0.36 : 0.5;}
+  else if(selection == "hmutau_e") {hist = "mva6"; blind_cut_ = (blind_data_ == 2) ? 0.36 : 0.5;}
+  else if(selection == "zmutau_e") {hist = "mva7"; blind_cut_ = (blind_data_ == 2) ? 0.36 : 0.5;}
+  else if(selection == "hetau_mu") {hist = "mva8"; blind_cut_ = (blind_data_ == 2) ? 0.36 : 0.5;}
+  else if(selection == "zetau_mu") {hist = "mva9"; blind_cut_ = (blind_data_ == 2) ? 0.36 : 0.5;}
   else {
     cout << "Unidentified selection " << selection.Data() << endl;
     return -1;
@@ -289,7 +289,7 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
     TH1* hbkg_i = (TH1*) hstack->GetHists()->At(ihist);
     if(!hbkg_i) {cout << "Background hist " << ihist << " not retrieved!\n"; continue;}
     //kill sensitive region in data and MC if requested
-    if(blind_data_ == 1) {
+    if(blind_data_ == 2) {
       for(int ibin = hbkg_i->FindBin(blind_cut_); ibin <= hbkg_i->GetNbinsX(); ++ibin) {
         //kill background
         hbkg_i->SetBinContent(ibin, 0.);
@@ -385,7 +385,7 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
       // continue;
     }
     //kill sensitive region if requested
-    if(blind_data_ == 1) {
+    if(blind_data_ == 2) {
       for(int ibin = hsig_up->FindBin(blind_cut_); ibin <= hsig_up->GetNbinsX(); ++ibin) {
         //kill region
         hsig_up  ->SetBinContent(ibin, 0.);
@@ -438,7 +438,7 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
       }
 
       //kill sensitive region if requested
-      if(blind_data_ == 1) {
+      if(blind_data_ == 2) {
         for(int ibin = hbkg_i_up->FindBin(blind_cut_); ibin <= hbkg_i_up->GetNbinsX(); ++ibin) {
           //kill region
           hbkg_i_up  ->SetBinContent(ibin, 0.);
