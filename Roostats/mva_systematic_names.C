@@ -165,7 +165,7 @@ std::pair<TString,TString> systematic_name(int sys, TString selection, int year,
     } else if(year == 2017) { //linear for 0-jets, quadratic for 1-jet, linear for +1-jets
       if(name.EndsWith("A3") || name.EndsWith("A4")) name = "";
       else if(name.EndsWith("A2") && !name.EndsWith("J1A2")) name = "";
-    } else if(year == 2017) { //4th order for 0-jets, linear for 1-jet, linear for +1-jets
+    } else if(year == 2018) { //4th order for 0-jets, linear for 1-jet, linear for +1-jets
       if(!name.Contains("J0A")) { //only remove systematics from >= 1-jet
         if(name.EndsWith("A2") || name.EndsWith("A3") || name.EndsWith("A4")) name = "";
       }

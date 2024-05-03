@@ -12,6 +12,7 @@ Help() {
     echo " --fitarg         : Additional combineTool.py arguments (see combineTools.py -M Impacts -h)"
     echo " --plotarg        : Additional plotImpacts.py arguments (e.g. --blind, see plotImpacts.py -h)"
     echo " --fitarg         : Additional combineTool.py arguments (see combineTools.py -M Impacts -h)"
+    echo " --summary        : Add summary info in the final plot"
     echo " --include   (-i ): Nuisance parameters to include (default is all)"
     echo " --exclude   (-e ): Exclude nuisance parameters (default is none)"
     echo " --fitonly        : Only process fitting steps, not impact PDF"
@@ -30,6 +31,7 @@ APPROX=""
 UNBLIND=""
 COMMAND=""
 PLOTARG=""
+SUMMARY=""
 EXCLUDE=""
 INCLUDE=""
 FITONLY=""
@@ -84,6 +86,9 @@ do
     elif [[ "${var}" == "--fitonly" ]]
     then
         FITONLY="d"
+    elif [[ "${var}" == "--summary" ]]
+    then
+        SUMMARY="d"
     elif [[ "${var}" == "--skipinitial" ]]
     then
         SKIPINITIAL="d"
@@ -221,8 +226,12 @@ if [[ "${FITONLY}" ]]; then
 fi
 
 #Blind the result if using the observed impacts but not yet unblinding the measurement
-if [[ "${DOOBS}" != "" ]] && [[ "${UNBLIND}" == "" ]]; then
+# DOOBS = -t -1 == Asimov
+if [[ "${DOOBS}" == "" ]] && [[ "${UNBLIND}" == "" ]]; then
     PLOTARG="${PLOTARG} --blind"
+fi
+if [[ "${SUMMARY}" != "" ]]; then
+    PLOTARG="${PLOTARG} --summary"
 fi
 
 if [[ "${MU2E}" != "" ]]; then
@@ -232,7 +241,7 @@ if [[ "${MU2E}" != "" ]]; then
         pdftoppm ${PDF}.pdf ${PDF} -png
     fi
 else
-    COMMAND="plotImpacts.py -i ${JSON} -o `echo ${JSON} | sed 's/.json//'` ${PLOTARG}"
+    COMMAND="plotImpacts.py -i ${JSON} ${PLOTARG} -o `echo ${JSON} | sed 's/.json//'`"
     echo ">>> ${COMMAND}"
     if [[ "${DRYRUN}" == "" ]]; then
         ${COMMAND}
