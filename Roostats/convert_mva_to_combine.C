@@ -10,7 +10,8 @@
 
 bool   use_fake_bkg_norm_ = false; //add a large uncertainty on j->tau/qcd norm to be fit by data
 bool   separate_years_    =  true; //separate each year of data
-int    blind_data_        =    2 ; //0: no blinding; 1: kill high BDT score regions; 2: use ~Asimov instead of data
+int    blind_data_        =    1 ; //0: no blinding; 1: blind high score region in plots; 2: kill high BDT score region in data and MC
+int    replace_data_      =    0 ; //0: use data in datacards; 1: use ~Asimov instead of data
 double blind_cut_         =  0.35;
 bool   add_groups_        =  true; //add systematic groups
 
@@ -192,8 +193,9 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
   // Generate toy data, if requested
   //////////////////////////////////////////////////////////////////
 
-  TH1* hdata_obs;
-  if(blind_data_ == 2) {
+  TH1* hdata_obs  = nullptr;
+  TH1* hdata_plot = nullptr;
+  if(replace_data_) { //replace the data with MC
     hdata_obs = (TH1*) hbkg->Clone("data_obs");
     hdata_obs->SetTitle("Asimov Data");
     make_safe(hdata_obs);
@@ -202,10 +204,21 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
       hdata_obs->SetBinContent(ibin, nentries);
       hdata_obs->SetBinError(ibin, sqrt(nentries));
     }
-  } else {
+    hdata_plot = hdata_obs;
+  } else { //handle the data for potential blinding
     hdata_obs = (TH1*) hdata->Clone("data_obs");
     hdata_obs->SetTitle("Observed data");
-    if(blind_data_ == 1) {
+    hdata_plot = hdata_obs;
+    if(blind_data_ == 1) { //blind the data to plot, but not the data in the card
+      hdata_plot = (TH1*) hdata->Clone("data_plot");
+      hdata_plot->SetTitle("Blinded observed data");
+      for(int ibin = hdata_plot->FindBin(blind_cut_); ibin <= hdata_plot->GetNbinsX(); ++ibin) {
+        //kill data
+        hdata_plot->SetBinContent(ibin, 0.);
+        hdata_plot->SetBinError  (ibin, 0.);
+      }
+    }
+    if(blind_data_ == 2) { //also kill the high score regions in the templates and observed data
       for(int ibin = hdata_obs->FindBin(blind_cut_); ibin <= hdata_obs->GetNbinsX(); ++ibin) {
         //kill data
         hdata_obs->SetBinContent(ibin, 0.);
@@ -223,7 +236,7 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
       }
     }
   }
-  hdata_obs->Write();
+  hdata_obs->Write(); //write the data
 
   //////////////////////////////////////////////////////////////////
   // Configure the data card
@@ -333,20 +346,15 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
 
   // Plot the nominal PDFs
   gStyle->SetOptStat(0);
-  hdata_obs->SetMarkerStyle(20);
-  hdata_obs->SetMarkerSize(0.8);
-  hdata_obs->SetMarkerColor(kBlack);
-  hdata_obs->SetLineColor(kBlue);
-  hdata_obs->SetLineWidth(2);
-  TCanvas* c = CLFV::PlotUtil::PlotRatio(hdata_obs, hstack, hsig, true, true);
-  // TCanvas* c = new TCanvas();
-  // hdata_obs->Draw("E1");
-  // hstack->Draw("hist noclear same");
-  // hsig->Draw("hist same");
-  // hdata_obs->Draw("E1 same");
+  hdata_plot->SetMarkerStyle(20);
+  hdata_plot->SetMarkerSize(0.8);
+  hdata_plot->SetMarkerColor(kBlack);
+  hdata_plot->SetLineColor(kBlue);
+  hdata_plot->SetLineWidth(2);
+  TCanvas* c = CLFV::PlotUtil::PlotRatio(hdata_plot, hstack, hsig, true, true);
   TString figure_name = Form("plots/latest_production/%i/pdfs_%s", years[0], outName.Data());
   figure_name.ReplaceAll(".root", ".png");
-  hdata_obs->GetYaxis()->SetRangeUser(5.e-2, 2.*hdata_obs->GetMaximum());
+  hdata_plot->GetYaxis()->SetRangeUser(5.e-2, 2.*hdata_plot->GetMaximum());
   c->cd(1);
   c->SetLogy();
   c->SetGrid();

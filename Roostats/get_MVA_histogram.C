@@ -7,7 +7,7 @@ int overall_rebin_ = 0;
 TH1* hbkg_;
 vector<TH1*> hsigs_;
 int  test_sys_        = -1; //set to systematic number if debugging/inspecting it
-bool blind_data_      = true; //set data bins > MVA score level to 0
+int  blind_data_      = 1; //1: don't plot high score data; 2: set data bins > MVA score level to 0
 bool skip_shape_sys_  = false; //skip shape systematic retrieval
 int  use_dev_mva_     = 0; //1: use the extra MVA hist for development, mvaX_1; 2: use the CDF transformed hist, mvaX_2
 bool do_same_flavor_  = false; //retrieve Z->ll control region data
@@ -671,6 +671,7 @@ int get_individual_MVA_histogram(int set = 8, TString selection = "zmutau",
   TH1* hdata = dataplotter_->get_data(hist, "event", set+set_offset);
   if(!hdata) return 3;
   hdata->SetName("hdata");
+  TH1* hdata_plot = nullptr; //for plotting (potentially blind) data
 
   //determine an appropriate plotting range and if log or linear plot
   TH1* hlast = (TH1*) hstack->GetStack()->Last()->Clone("hbackground");
@@ -692,12 +693,21 @@ int get_individual_MVA_histogram(int set = 8, TString selection = "zmutau",
   logy_ |= hlast->GetBinLowEdge(1) > -0.5; //FIXME: CDF flag based on x-axis range to use log y
 
   //blind high MVA score region if desired
+  hdata_plot = hdata; //default to plotting the same data
   if(blind_data_) {
     double mva_cut = (xmin_ > -0.1) ? 0.5 : 0.;
     int bin_start = hdata->FindBin(mva_cut);
-    for(int bin = bin_start; bin <= hdata->GetNbinsX() + 1; ++bin) {
-      hdata->SetBinContent(bin, 0.);
-      hdata->SetBinError(bin, 0.5);
+    if(blind_data_ == 1) { //only blind the plots
+      hdata_plot = (TH1*) hdata->Clone("hdata_blinded");
+      for(int bin = bin_start; bin <= hdata_plot->GetNbinsX() + 1; ++bin) {
+        hdata_plot->SetBinContent(bin, 0.);
+        hdata_plot->SetBinError(bin, 0.5);
+      }
+    } else if(blind_data_ == 2) { //blind the data itself
+      for(int bin = bin_start; bin <= hdata->GetNbinsX() + 1; ++bin) {
+        hdata->SetBinContent(bin, 0.);
+        hdata->SetBinError(bin, 0.5);
+      }
     }
   }
 
@@ -715,16 +725,16 @@ int get_individual_MVA_histogram(int set = 8, TString selection = "zmutau",
   TLegend* leg = new TLegend(0.1, 0.7, 0.9, 0.9);
   leg->SetNColumns(2);
 
-  double ymax = max(hdata->GetMaximum(), hstack->GetMaximum());
-  hdata->Draw("E");
-  leg->AddEntry(hdata, "Data", "PL");
+  double ymax = max(hdata_plot->GetMaximum(), hstack->GetMaximum());
+  hdata_plot->Draw("E");
+  leg->AddEntry(hdata_plot, "Data", "PL");
   hstack->Draw("same hist noclear");
   for(auto h : signals) {
     h->Draw("hist same");
     leg->AddEntry(h, h->GetTitle(), "F");
     ymax = max(ymax, h->GetMaximum());
   }
-  hdata->Draw("same E");
+  hdata_plot->Draw("same E");
   for(auto o : *(hstack->GetHists())) {
     leg->AddEntry((TH1*) o, o->GetTitle(), "F");
   }
@@ -732,18 +742,18 @@ int get_individual_MVA_histogram(int set = 8, TString selection = "zmutau",
 
   cout << "Plotting parameters: xmin = " << xmin_ << " xmax = " << xmax_ << " logy = " << logy_ << endl;
 
-  hdata->GetXaxis()->SetRangeUser(xmin_,xmax_);
+  hdata_plot->GetXaxis()->SetRangeUser(xmin_,xmax_);
   logy_ |= use_dev_mva_ == 2;
   if(logy_) {
-    hdata->GetYaxis()->SetRangeUser(0.5,max(1., (pow(10, 0.4*std::log10(ymax))*ymax)));
+    hdata_plot->GetYaxis()->SetRangeUser(0.5,max(1., (pow(10, 0.4*std::log10(ymax))*ymax)));
     pad1->SetLogy();
   } else {
-    hdata->GetYaxis()->SetRangeUser(0.9,1.2*ymax);
+    hdata_plot->GetYaxis()->SetRangeUser(0.9,1.2*ymax);
   }
 
   //make a ratio plot
   pad2->cd();
-  TH1* hratio = (TH1*) hdata->Clone("data_ratio");
+  TH1* hratio = (TH1*) hdata_plot->Clone("data_ratio");
   hratio->Divide(hlast);
   hratio->Draw("E1");
   hratio->SetTitle("");
@@ -780,7 +790,7 @@ int get_individual_MVA_histogram(int set = 8, TString selection = "zmutau",
   delete hratio;
 
   //print statistical uncertainty plot
-  plot_stat_sys(hstack, signals, hdata, canvas_name + "_stat.png");
+  plot_stat_sys(hstack, signals, hdata_plot, canvas_name + "_stat.png");
 
   //open file to save histograms to
   gSystem->Exec("[ ! -d histograms ] && mkdir histograms");
@@ -815,7 +825,7 @@ int get_individual_MVA_histogram(int set = 8, TString selection = "zmutau",
 
   //get the systematics if needed
   if(!ignore_sys_)
-    status += get_systematics(set+set_offset, hist, hdata, fout, canvas_name);
+    status += get_systematics(set+set_offset, hist, hdata_plot, fout, canvas_name);
 
   //save the results
   fout->Write();
