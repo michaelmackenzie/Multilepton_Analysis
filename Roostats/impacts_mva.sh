@@ -17,6 +17,7 @@ Help() {
     echo " --exclude   (-e ): Exclude nuisance parameters (default is none)"
     echo " --fitonly        : Only process fitting steps, not impact PDF"
     echo " --skipinitial    : Skip initial fit"
+    echo " --parallel N     : Fit with N parallel processes"
     echo " --tag            : Tag for output results"
     echo " --mu2e           : Mu2e processing"
     echo " --dryrun         : Only print commands without processing"
@@ -36,6 +37,7 @@ EXCLUDE=""
 INCLUDE=""
 FITONLY=""
 SKIPINITIAL=""
+PARALLEL=""
 TAG=""
 MU2E=""
 VERBOSE=0
@@ -92,6 +94,11 @@ do
     elif [[ "${var}" == "--skipinitial" ]]
     then
         SKIPINITIAL="d"
+    elif [[ "${var}" == "--parallel" ]]
+    then
+        iarg=$((iarg + 1))
+        eval "var=\${${iarg}}"
+        PARALLEL=${var}
     elif [[ "${var}" == "--tag" ]]
     then
         iarg=$((iarg + 1))
@@ -209,6 +216,9 @@ if [[ "${APPROX}" == "" ]] && [[ "${SKIPINITIAL}" == "" ]]; then
 fi
 
 COMMAND="combineTool.py -M Impacts -d ${WORKSPACE} -m 0 --rMin -${RRANGE} --rMax ${RRANGE} --robustFit 1 --doFits ${DOOBS} ${ARGS} ${FITADDITIONAL}"
+if [[ "${PARALLEL}" != "" ]]; then
+    COMMAND="${COMMAND} --parallel ${PARALLEL}"
+fi
 echo ">>> ${COMMAND}"
 if [[ "${DRYRUN}" == "" ]]; then
     ${COMMAND}
