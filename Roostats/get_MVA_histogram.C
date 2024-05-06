@@ -6,16 +6,16 @@
 int overall_rebin_ = 0;
 TH1* hbkg_;
 vector<TH1*> hsigs_;
-int  test_sys_        = -1; //set to systematic number if debugging/inspecting it
-int  blind_data_      = 1; //1: don't plot high score data; 2: set data bins > MVA score level to 0
+int  test_sys_        =    -1; //set to systematic number if debugging/inspecting it
+int  blind_data_      =     1; //1: don't plot high score data; 2: set data bins > MVA score level to 0
 bool skip_shape_sys_  = false; //skip shape systematic retrieval
-int  use_dev_mva_     = 0; //1: use the extra MVA hist for development, mvaX_1; 2: use the CDF transformed hist, mvaX_2
+int  use_dev_mva_     =     0; //1: use the extra MVA hist for development, mvaX_1; 2: use the CDF transformed hist, mvaX_2
 bool do_same_flavor_  = false; //retrieve Z->ll control region data
-bool separate_years_  = true; //retrieve and store histograms by year
-bool use_lep_tau_set_ = true; //use kETauMu/kMuTauE offsets instead of kEMu
-bool print_sys_plots_ = true; //print systematic figures
-bool save_            = true; //save output histogram files
-bool use_sys_name_    = true; //save the systematic figure using the expected systematic name
+bool separate_years_  = true ; //retrieve and store histograms by year
+bool use_lep_tau_set_ = true ; //use kETauMu/kMuTauE offsets instead of kEMu
+bool print_sys_plots_ = true ; //print systematic figures
+bool save_            = true ; //save output histogram files
+bool use_sys_name_    = true ; //save the systematic figure using the expected systematic name
 
 //copy histogram files locally, process them, then delete them
 bool copy_local_ = false;
@@ -714,7 +714,7 @@ int get_individual_MVA_histogram(int set = 8, TString selection = "zmutau",
   ///////////////////////////////////////////////
   // Make an initial plot of the results
 
-  TCanvas* c = new TCanvas("c", "c", 1000, 1200);
+  TCanvas* c = new TCanvas("c", "c", 1300, 1200);
   TPad* pad1 = new TPad("pad1", "pad1", 0., 0.3, 1., 1. );
   TPad* pad2 = new TPad("pad2", "pad2", 0., 0. , 1., 0.3);
   pad1->Draw(); pad2->Draw();

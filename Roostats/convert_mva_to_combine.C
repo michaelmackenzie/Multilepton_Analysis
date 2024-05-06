@@ -15,6 +15,8 @@ int    replace_data_      =    0 ; //0: use data in datacards; 1: use ~Asimov in
 double blind_cut_         =  0.35;
 bool   add_groups_        =  true; //add systematic groups
 
+TString tag_; //output card tag
+
 //add a nuisance parameter index to a group, adding the group if not yet defined
 void add_group(map<TString,vector<TString>>& groups, TString sys, TString group) {
   if(groups.find(group) != groups.end()) {
@@ -51,13 +53,15 @@ void make_safe(TH1* h) {
 
 Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
                              vector<int> years = {2016, 2017, 2018},
-                             int seed = 90) {
+                             int seed = 90, TString tag = "") {
+
+  tag_ = tag;
 
   //check if separating by year, and if so call this function for each year
   if(separate_years_ && years.size() > 1) {
     int status = 0;
     for(int year : years) {
-      status += convert_mva_to_combine(set, selection, {year}, seed);
+      status += convert_mva_to_combine(set, selection, {year}, seed, tag);
     }
     return status;
   }
@@ -183,7 +187,7 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
   //////////////////////////////////////////////////////////////////
 
   gSystem->Exec(Form("[ ! -d datacards/%s ] && mkdir -p datacards/%s", year_string.Data(), year_string.Data()));
-  TString outName = Form("combine_mva_%s_%i_%s.root", selection.Data(), set, year_string.Data());
+  TString outName = Form("combine_mva_%s_%i%s_%s.root", selection.Data(), set, tag_.Data(), year_string.Data());
   TFile* fOut = new TFile(("datacards/"+year_string+"/"+outName).Data(), "RECREATE");
   auto dir = fOut->mkdir(hist.Data());
   dir->cd();
@@ -244,7 +248,7 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
 
   //Create directory for the data cards if needed
   gSystem->Exec(Form("[ ! -d datacards/%s ] && mkdir -p datacards/%s", year_string.Data(), year_string.Data()));
-  TString filepath = Form("datacards/%s/combine_mva_%s_%i_%s.txt", year_string.Data(), selection.Data(), set, year_string.Data());
+  TString filepath = Form("datacards/%s/combine_mva_%s_%i%s_%s.txt", year_string.Data(), selection.Data(), set, tag_.Data(), year_string.Data());
   std::ofstream outfile;
   outfile.open(filepath.Data());
   if(!outfile.is_open()) return 10;

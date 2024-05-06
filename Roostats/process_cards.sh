@@ -22,6 +22,7 @@ LEPSETS="{25,26,27}"
 SKIPRETRIEVAL=""
 SKIPCREATION=""
 PARALLEL=""
+TAG=""
 DRYRUN=""
 
 iarg=1
@@ -138,6 +139,14 @@ then
             done
             if [[ "${PARALLEL}" != "" ]]; then
                 wait
+                for HADSET in ${HADLIST}; do
+                    LOGFILE=log/${SELECTION}_mva_had_${HADSET}_${IYEAR}.log
+                    ENDLINE=`cat ${LOGFILE} | tail -n 1`
+                    if [[ "${ENDLINE}" != *"(int) 0"* ]]; then
+                        echo "Hadronic set ${HADSET} had failure, see log file ${LOGFILE}"
+                        exit
+                    fi
+                done
             fi
         done
     fi
@@ -154,6 +163,14 @@ then
             done
             if [[ "${PARALLEL}" != "" ]]; then
                 wait
+                for LEPSET in ${LEPLIST}; do
+                    LOGFILE=log/${SELECTION}_mva_lep_${LEPSET}_${IYEAR}.log
+                    ENDLINE=`cat ${LOGFILE} | tail -n 1`
+                    if [[ "${ENDLINE}" != *"(int) 0"* ]]; then
+                        echo "Leptonic set ${LEPSET} had failure, see log file ${LOGFILE}"
+                        exit
+                    fi
+                done
             fi
         done
     fi
@@ -163,10 +180,10 @@ echo "Creating data cards"
 #make the data cards
 if [[ "${SKIPCREATION}" == "" ]]; then
     if [[ "${HADSTRING}" != "" ]]; then
-        ${HEAD} root.exe -q -b "create_combine_cards.C(${HADSETS}, \"${SELECTION}\", ${YEARS}, 1)"
+        ${HEAD} root.exe -q -b "create_combine_cards.C(${HADSETS}, \"${SELECTION}\", ${YEARS}, 1, \"${TAG}\")"
     fi
     if [[ "${LEPSTRING}" != "" ]]; then
-        ${HEAD} root.exe -q -b "create_combine_cards.C(${LEPSETS}, \"${SELECTION}\", ${YEARS}, -1)"
+        ${HEAD} root.exe -q -b "create_combine_cards.C(${LEPSETS}, \"${SELECTION}\", ${YEARS}, -1, \"${TAG}\")"
     fi
 fi
 
@@ -180,14 +197,14 @@ do
     cd datacards/${YEAR_I}/
     #iterate through each histogram set to build the hadronic tau combined card
     COMMAND="combineCards.py"
-    FINALHADCARD="combine_mva_${SELECTION}_${HADSTRING}_${YEAR_I}.txt"
-    FINALLEPCARD="combine_mva_${LEPSIGNAL}_${LEPSTRING}_${YEAR_I}.txt"
-    FINALCARD="combine_mva_total_${SELECTION}_had_${HADSTRING}_lep_${LEPSTRING}_${YEAR_I}.txt"
+    FINALHADCARD="combine_mva_${SELECTION}_${HADSTRING}${TAG}_${YEAR_I}.txt"
+    FINALLEPCARD="combine_mva_${LEPSIGNAL}_${LEPSTRING}${TAG}_${YEAR_I}.txt"
+    FINALCARD="combine_mva_total_${SELECTION}_had_${HADSTRING}_lep_${LEPSTRING}${TAG}_${YEAR_I}.txt"
     if [[ "${HADSTRING}" != "" ]]; then
         for SET_I in $HADLIST
         do
-            COMMAND="${COMMAND} mva_${SET_I}=combine_mva_${SELECTION}_${SET_I}_${YEAR_I}.txt"
-            if [[ "${YEARSTRING}" != "${YEARLIST}" ]]; then ${HEAD} cp "combine_mva_${SELECTION}_${SET_I}_${YEAR_I}.root" ../${YEARSTRING}/; fi
+            COMMAND="${COMMAND} mva_${SET_I}=combine_mva_${SELECTION}_${SET_I}${TAG}_${YEAR_I}.txt"
+            if [[ "${YEARSTRING}" != "${YEARLIST}" ]]; then ${HEAD} cp "combine_mva_${SELECTION}_${SET_I}${TAG}_${YEAR_I}.root" ../${YEARSTRING}/; fi
         done
         if [[ "${DRYRUN}" != "" ]]; then
             ${HEAD} ${COMMAND} ${FINALHADCARD}
@@ -203,8 +220,8 @@ do
     if [[ "${LEPSTRING}" != "" ]]; then
         for SET_I in $LEPLIST
         do
-            COMMAND="${COMMAND} mva_${SET_I}=combine_mva_${LEPSIGNAL}_${SET_I}_${YEAR_I}.txt"
-            if [[ "${YEARSTRING}" != "${YEARLIST}" ]]; then ${HEAD} cp "combine_mva_${LEPSIGNAL}_${SET_I}_${YEAR_I}.root" ../${YEARSTRING}/; fi
+            COMMAND="${COMMAND} mva_${SET_I}=combine_mva_${LEPSIGNAL}_${SET_I}${TAG}_${YEAR_I}.txt"
+            if [[ "${YEARSTRING}" != "${YEARLIST}" ]]; then ${HEAD} cp "combine_mva_${LEPSIGNAL}_${SET_I}${TAG}_${YEAR_I}.root" ../${YEARSTRING}/; fi
         done
         if [[ "${DRYRUN}" != "" ]]; then
             ${HEAD} ${COMMAND} ${FINALLEPCARD}
@@ -245,14 +262,14 @@ if [[ "${HADSTRING}" != "" ]]; then
         COMMAND="combineCards.py "
         for YEAR_I in $YEARLIST
         do
-            COMMAND="${COMMAND} year_${YEAR_I}=combine_mva_${SELECTION}_${SET_I}_${YEAR_I}.txt"
-            ${HEAD} cp ../${YEAR_I}/combine_mva_${SELECTION}_${SET_I}_${YEAR_I}.txt ./
+            COMMAND="${COMMAND} year_${YEAR_I}=combine_mva_${SELECTION}_${SET_I}${TAG}_${YEAR_I}.txt"
+            ${HEAD} cp ../${YEAR_I}/combine_mva_${SELECTION}_${SET_I}${TAG}_${YEAR_I}.txt ./
         done
         if [[ "${DRYRUN}" != "" ]]; then
-            ${HEAD} ${COMMAND} "combine_mva_${SELECTION}_${SET_I}_${YEARSTRING}.txt"
+            ${HEAD} ${COMMAND} "combine_mva_${SELECTION}_${SET_I}${TAG}_${YEARSTRING}.txt"
         else
-            echo ${COMMAND}  "combine_mva_${SELECTION}_${SET_I}_${YEARSTRING}.txt"
-            ${COMMAND} >| "combine_mva_${SELECTION}_${SET_I}_${YEARSTRING}.txt"
+            echo ${COMMAND}  "combine_mva_${SELECTION}_${SET_I}${TAG}_${YEARSTRING}.txt"
+            ${COMMAND} >| "combine_mva_${SELECTION}_${SET_I}${TAG}_${YEARSTRING}.txt"
         fi
     done
 fi
@@ -262,14 +279,14 @@ if [[ "${LEPSTRING}" != "" ]]; then
         COMMAND="combineCards.py "
         for YEAR_I in $YEARLIST
         do
-            COMMAND="${COMMAND} year_${YEAR_I}=combine_mva_${LEPSIGNAL}_${SET_I}_${YEAR_I}.txt"
-            ${HEAD} cp ../${YEAR_I}/combine_mva_${LEPSIGNAL}_${SET_I}_${YEAR_I}.txt ./
+            COMMAND="${COMMAND} year_${YEAR_I}=combine_mva_${LEPSIGNAL}_${SET_I}${TAG}_${YEAR_I}.txt"
+            ${HEAD} cp ../${YEAR_I}/combine_mva_${LEPSIGNAL}_${SET_I}${TAG}_${YEAR_I}.txt ./
         done
         if [[ "${DRYRUN}" != "" ]]; then
-            ${HEAD} ${COMMAND} "combine_mva_${LEPSIGNAL}_${SET_I}_${YEARSTRING}.txt"
+            ${HEAD} ${COMMAND} "combine_mva_${LEPSIGNAL}_${SET_I}${TAG}_${YEARSTRING}.txt"
         else
-            echo ${COMMAND} "combine_mva_${LEPSIGNAL}_${SET_I}_${YEARSTRING}.txt"
-            ${COMMAND} >| "combine_mva_${LEPSIGNAL}_${SET_I}_${YEARSTRING}.txt"
+            echo ${COMMAND} "combine_mva_${LEPSIGNAL}_${SET_I}${TAG}_${YEARSTRING}.txt"
+            ${COMMAND} >| "combine_mva_${LEPSIGNAL}_${SET_I}${TAG}_${YEARSTRING}.txt"
         fi
     done
 fi
@@ -277,9 +294,9 @@ fi
 #Combine the runs from each year
 echo "Merging total year cards for all sets"
 #Use the last processed cards to create the total card names
-FINALHADCARD="combine_mva_${SELECTION}_${HADSTRING}_${YEARSTRING}.txt"
-FINALLEPCARD="combine_mva_${LEPSIGNAL}_${LEPSTRING}_${YEARSTRING}.txt"
-FINALCARD="combine_mva_total_${SELECTION}_had_${HADSTRING}_lep_${LEPSTRING}_${YEARSTRING}.txt"
+FINALHADCARD="combine_mva_${SELECTION}_${HADSTRING}${TAG}_${YEARSTRING}.txt"
+FINALLEPCARD="combine_mva_${LEPSIGNAL}_${LEPSTRING}${TAG}_${YEARSTRING}.txt"
+FINALCARD="combine_mva_total_${SELECTION}_had_${HADSTRING}_lep_${LEPSTRING}${TAG}_${YEARSTRING}.txt"
 
 if [[ "${DRYRUN}" != "" ]]; then
     if [[ "${HADSTRING}" != "" ]]; then
