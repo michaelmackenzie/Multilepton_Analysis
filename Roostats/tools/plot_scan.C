@@ -1,0 +1,109 @@
+//plot a likelihood scan for a single parameter
+bool remove_zero_point_ = true;
+
+int plot_scan(const char* file, const char* var = "r", const char* tag = "", const int verbose = 0) {
+
+  //Retrieve the input data
+  TFile* f = TFile::Open(file, "READ");
+  if(!f) return 1;
+  TTree* tree = (TTree*) f->Get("limit");
+  if(!tree) return 2;
+
+  if(verbose > 1) tree->Print();
+
+  //read the scan and create a graph of the NLL
+  double min_val(1.e20), max_val(-1.e20);
+  double r_fit, nll_fit(1.e20); //best fit value
+  const int nentries = tree->GetEntries();
+  double rvals[nentries-1], nlls[nentries-1];
+  double nll0, nll;
+  float r, dnll;
+  tree->SetBranchAddress(var, &r);
+  tree->SetBranchAddress("deltaNLL", &dnll);
+  tree->SetBranchAddress("nll0", &nll0);
+  tree->SetBranchAddress("nll" , &nll);
+  for(int entry = 0; entry < nentries; ++entry) {
+    tree->GetEntry(entry);
+    const double nll_val = nll0 + nll + dnll;
+    min_val = min(min_val, nll_val);
+    max_val = max(max_val, nll_val);
+
+    if(verbose > 3) {
+      printf(" Point %3i: r = %7.2f; nll = %12.2f (dNll = %.2f, nll0 = %.2f, nll = %.2f)\n", entry, r, nll_val, dnll, nll0, nll);
+    }
+
+    //entry 0 is the best fit result for this scan
+    if(entry == 0 && nll_val < nll_fit) {
+      r_fit   = r;
+      nll_fit = nll_val;
+      continue;
+    }
+
+    //scan results
+    const int index = entry-1;
+    rvals[index] = r;
+    nlls [index] = (remove_zero_point_) ? nll_val - nll_fit : nll_val;
+  }
+
+  if(remove_zero_point_) {
+    min_val -= nll_fit;
+    max_val -= nll_fit;
+    nll_fit = 0.;
+  }
+
+  TGraph* g = new TGraph(nentries-1, rvals, nlls);
+  g->SetName("gNLL");
+
+  TGraph* g_best = new TGraph(1, &r_fit, &nll_fit);
+  g_best->SetName("gNLL_best");
+
+  //decide whether a maximum NLL value is too large
+  const double max_allowed = 20;
+  max_val = min(max_allowed + min_val, max_val);
+
+  //Create NLL plot with envelope
+  TCanvas* c = new TCanvas();
+  g->SetLineColor(kBlue);
+  g->SetMarkerColor(kBlue);
+  g->SetLineWidth(3);
+  g->SetMarkerSize(0.8);
+  g->SetMarkerStyle(20);
+  g->Draw("AL");
+  const double buffer = 0.05*(max_val-min_val);
+  g->GetYaxis()->SetRangeUser(min_val-buffer, max_val+buffer);
+
+  g_best->SetMarkerColor(kBlue+1);
+  g_best->SetMarkerSize(2.);
+  g_best->SetMarkerStyle(kFullStar);
+  g_best->Draw("P");
+  g_best->Print("v");
+
+
+  printf("Best fit r = %.3f\n", r_fit);
+  //Add 1 and 2 sigma lines
+  const double s1_val(0.5), s2_val(2.); //delta NLL values
+  for(int ipoint = 1; ipoint < g->GetN(); ++ipoint) {
+    const double y(g->GetY()[ipoint]-min_val), y_prev(g->GetY()[ipoint-1]-min_val);
+    const double x(g->GetX()[ipoint]);
+    if((y < s2_val && y_prev > s2_val) || (y > s2_val && y_prev < s2_val)) {
+      TLine* line = new TLine(x, min_val-buffer, x, y+min_val);
+      line->SetLineWidth(2);
+      line->SetLineStyle(kDashed);
+      line->SetLineColor(kBlack);
+      line->Draw("same");
+      cout << "Found 2 sigma edge at r = " << x << " ( " << y_prev << " - " << y << ")\n";
+    }
+    if((y < s1_val && y_prev > s1_val) || (y > s1_val && y_prev < s1_val)) {
+      TLine* line = new TLine(x, min_val-buffer, x, y+min_val);
+      line->SetLineWidth(2);
+      line->SetLineStyle(kDashed);
+      line->SetLineColor(kBlack);
+      line->Draw("same");
+      cout << "Found 1 sigma edge at r = " << x << " ( " << y_prev << " - " << y << ")\n";
+    }
+  }
+
+  g->SetTitle(Form("Likelihood scan;%s;NLL", var));
+  c->SaveAs(Form("scan_%s%s.png", var, tag));
+  return 0;
+}
