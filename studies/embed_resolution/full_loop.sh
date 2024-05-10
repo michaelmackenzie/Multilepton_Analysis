@@ -7,10 +7,12 @@ if [[ "${SELECTION}" == "" ]]; then
     SELECTION="electron"
 fi
 
+[ ! -d log ] && mkdir log
+
 for YEAR in ${YEARS}
 do
     echo ${YEAR}
-    time ./process_all.sh ${YEAR} "${SELECTION}" "Embed MC" "0" "0" >| ${SELECTION}_${YEAR}_0_0.log 2>&1 &
+    time ./process_all.sh ${YEAR} "${SELECTION}" "Embed MC" "0" "0" >| log/${SELECTION}_${YEAR}_0_0.log 2>&1 &
 done
 wait
 
@@ -20,6 +22,8 @@ if [[ "${SELECTION}" == "electron" ]]; then
     for YEAR in ${YEARS}
     do
         echo ${YEAR}
-        time ./process_all.sh ${YEAR} "${SELECTION}" "Embed" "1" "2"  >| ${SELECTION}_${YEAR}_1_2.log 2>&1 &
+        time ./process_all.sh ${YEAR} "${SELECTION}" "Embed" "1" "2"  >| log/${SELECTION}_${YEAR}_1_2.log 2>&1 &
     done
+    wait
 fi
+echo "Finished processing the full loop with selection ${SELECTION}"

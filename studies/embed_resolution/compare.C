@@ -2,7 +2,7 @@
 bool compare_UL_  = false; //compare UL MC to Legacy MC
 int correct_res_  = 0;
 int correct_es_   = 0;
-bool make_scales_ = false; //create files with resolution correction factors
+bool make_scales_ = true; //create files with resolution correction factors
 bool is_muon_;
 
 //-------------------------------------------------------------------------------------------------------------------------

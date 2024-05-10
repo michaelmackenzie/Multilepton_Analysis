@@ -1,7 +1,7 @@
 //Compare the resolution of embedding and data events
 
 int  debug_       = 2; //1: print info then exit; 2: process nentries_ and perform fits; 3: 2 + print fit information
-int  nentries_    = 1e6; // maximum events to use when debugging
+int  nentries_    = 2.5e7; // maximum events to use when debugging
 bool applyScales_ = true; //apply ID+IsoID+trigger scale factors
 int  correctES_   =    0; //0: no corrections; 1: Provided scales; 2: Measured scales
 bool correctRes_  = true; //correct the lepton resolution in embedding
@@ -389,20 +389,20 @@ void resolution(int isMC = 1, bool isMuon = true, int year = 2016, int period = 
   TH1* hTwoGenPt      = new TH1D("twogenpt"     , "Trail gen-level p_{T}; p_{T} (GeV/c)", 50, 0., 100.);
   TH1* hOnePtErr      = new TH1D("onepterr"     , "Lead p_{T} error; #Deltap_{T} (GeV/c)", 50, -5., 5.);
   TH1* hTwoPtErr      = new TH1D("twopterr"     , "Lead p_{T} error; #Deltap_{T} (GeV/c)", 50, -5., 5.);
-  TH1* hOneRelErr     = new TH1D("onerelerr"    , "Lead relative p_{T} error; #Deltap_{T} / p_{T}", 200, -0.2, 0.2);
-  TH1* hTwoRelErr     = new TH1D("tworelerr"    , "Lead relative p_{T} error; #Deltap_{T} / p_{T}", 200, -0.2, 0.2);
-  TH1* hOneRelErrUp   = new TH1D("onerelerrup"  , "Lead relative p_{T} error; #Deltap_{T} / p_{T}", 200, -0.2, 0.2);
-  TH1* hTwoRelErrUp   = new TH1D("tworelerrup"  , "Lead relative p_{T} error; #Deltap_{T} / p_{T}", 200, -0.2, 0.2);
-  TH1* hOneRelErrDown = new TH1D("onerelerrdown", "Lead relative p_{T} error; #Deltap_{T} / p_{T}", 200, -0.2, 0.2);
-  TH1* hTwoRelErrDown = new TH1D("tworelerrdown", "Lead relative p_{T} error; #Deltap_{T} / p_{T}", 200, -0.2, 0.2);
+  TH1* hOneRelErr     = new TH1D("onerelerr"    , "Lead relative p_{T} error; #Deltap_{T} / p_{T}", 200, -0.1, 0.1);
+  TH1* hTwoRelErr     = new TH1D("tworelerr"    , "Lead relative p_{T} error; #Deltap_{T} / p_{T}", 200, -0.1, 0.1);
+  TH1* hOneRelErrUp   = new TH1D("onerelerrup"  , "Lead relative p_{T} error; #Deltap_{T} / p_{T}", 200, -0.1, 0.1);
+  TH1* hTwoRelErrUp   = new TH1D("tworelerrup"  , "Lead relative p_{T} error; #Deltap_{T} / p_{T}", 200, -0.1, 0.1);
+  TH1* hOneRelErrDown = new TH1D("onerelerrdown", "Lead relative p_{T} error; #Deltap_{T} / p_{T}", 200, -0.1, 0.1);
+  TH1* hTwoRelErrDown = new TH1D("tworelerrdown", "Lead relative p_{T} error; #Deltap_{T} / p_{T}", 200, -0.1, 0.1);
   TH1* hWeight        = new TH1D("weight"       , "Event weight; weight", 60, 0., 3.);
   TH1* hResScale      = new TH1D("resscale"     , "Resolution scale factor; scale", 60, 0., 3.);
 
   //lepton resolution in bins of pT
   const double pt_bins[] = {10., 20., 25., 30., 35., 40., 45., 50., 60., 70., 150.};
   const int n_pt_bins = sizeof(pt_bins) / sizeof(*pt_bins) - 1;
-  TH2* hLepPtVsRes = new TH2D("lepptvsres", "p_{T} resolution in p_{T} bins; #Deltap_{T} / p_{T}", n_pt_bins, pt_bins, 200, -0.2, 0.2);
-  TH2* hLepPtVsResUp = new TH2D("lepptvsresup", "p_{T} resolution in p_{T} bins; #Deltap_{T} / p_{T}", n_pt_bins, pt_bins, 200, -0.2, 0.2);
+  TH2* hLepPtVsRes = new TH2D("lepptvsres", "p_{T} resolution in p_{T} bins; #Deltap_{T} / p_{T}", n_pt_bins, pt_bins, 200, -0.1, 0.1);
+  TH2* hLepPtVsResUp = new TH2D("lepptvsresup", "p_{T} resolution in p_{T} bins; #Deltap_{T} / p_{T}", n_pt_bins, pt_bins, 200, -0.1, 0.1);
   //lepton resolution in bins of eta and pT
   // double eta_bins[] = {0., (isMuon) ? 1.2 : 1.5, (isMuon) ? 2.1 : 2.5, (isMuon) ? 2.4 : 1.e6};
   double eta_bins[] = {0., (isMuon) ? 1.2 : 0.5, (isMuon) ? 2.1 : 1.5, (isMuon) ? 2.4 : 2.5};
@@ -412,7 +412,7 @@ void resolution(int isMC = 1, bool isMuon = true, int year = 2016, int period = 
   vector<TH2*> lepEtaVsPtVsRes;
   cout << "Making " << n_eta_bins << " |eta| bins for the resolution measurement\n";
   for(int ibin = 0; ibin < n_eta_bins; ++ibin) {
-    lepEtaVsPtVsRes.push_back(new TH2D(Form("lepptvsres_eta_%i", ibin), "p_{T} resolution in (|#eta|, p_{T}) bins; #Deltap_{T} / p_{T}", n_pt_bins, pt_bins, 200, -0.2, 0.2));
+    lepEtaVsPtVsRes.push_back(new TH2D(Form("lepptvsres_eta_%i", ibin), "p_{T} resolution in (|#eta|, p_{T}) bins; #Deltap_{T} / p_{T}", n_pt_bins, pt_bins, 200, -0.1, 0.1));
   }
 
   ///////////////////////////////////////
@@ -476,6 +476,7 @@ void resolution(int isMC = 1, bool isMuon = true, int year = 2016, int period = 
     if(isMC == 1 && correctES_ == 2) {
       f_Scale = TFile::Open(Form("rootfiles/embed_scale_correction_electron_%i.root", year), "READ");
       if(f_Scale) {
+        cout << "Retrieving scale corrections from file " << f_Scale->GetName() << endl;
         if(isMuon) scale_graphs.push_back((TGraphAsymmErrors*) f_Scale->Get("lepptvsres_mean_diff")); //inclusive |eta| bin
         else {
           for(int igraph = 0; ; ++igraph) { //retrieve the graph for each |eta| region
@@ -496,6 +497,7 @@ void resolution(int isMC = 1, bool isMuon = true, int year = 2016, int period = 
       // f_Res = TFile::Open(Form("rootfiles/embed_resolution_correction_electron_%i.root", year), "READ");
       f_Res = TFile::Open(Form("rootfiles/embed_scale_correction_electron_%i.root", year), "READ");
       if(f_Res) {
+        cout << "Retrieving resolution corrections from file " << f_Res->GetName() << endl;
         if(isMuon) resolution_graphs.push_back((TGraphAsymmErrors*) f_Res->Get("lepptvsres_width_ratio")); //inclusive |eta| bin
         else {
           for(int igraph = 0; ; ++igraph) { //retrieve the graph for each |eta| region
@@ -513,15 +515,18 @@ void resolution(int isMC = 1, bool isMuon = true, int year = 2016, int period = 
     // Initialize tree branch addresses
     ///////////////////////////////////////
 
-    float one_pt, one_eta, one_sc_eta, one_phi, one_q, one_ecorr(0.);
+    float one_pt, one_eta, one_sc_eta, one_phi, one_q, one_ecorr(0.); //reco info
     float two_pt, two_eta, two_sc_eta, two_phi, two_q, two_ecorr(0.);
     int   one_id1, one_id2;
     int   two_id1, two_id2;
-    float pair_pt, pair_eta, pair_mass;
+    float one_gen_pt, one_gen_eta, one_gen_phi; //gen info for particle matched to reco
+    float two_gen_pt, two_gen_eta, two_gen_phi;
+    int   one_gen_flavor, two_gen_flavor;
+    float pair_pt, pair_eta, pair_mass; //reco pair info
     bool  pair_ismuon;
     bool  one_triggered, two_triggered;
     float pu_weight(1.), gen_weight(1.);
-    float gen_one_pt, gen_one_eta, gen_one_phi;
+    float gen_one_pt, gen_one_eta, gen_one_phi; //gen-level Z->ll info
     float gen_two_pt, gen_two_eta, gen_two_phi;
     float gen_pt, gen_mass, gen_eta; //Gen-level Z info
     const bool has_muon_flag = t->GetBranch("pair_ismuon");
@@ -548,7 +553,17 @@ void resolution(int isMC = 1, bool isMuon = true, int year = 2016, int period = 
     CLFV::Utilities::SetBranchAddress(t, "pair_mass"      , &pair_mass      );
     CLFV::Utilities::SetBranchAddress(t, "pair_eta"       , &pair_eta       );
     if(isMC) {
-      //gen info
+      //reco-gen matched info
+      CLFV::Utilities::SetBranchAddress(t, "one_gen_pt"       , &one_gen_pt    );
+      CLFV::Utilities::SetBranchAddress(t, "one_gen_eta"      , &one_gen_eta   );
+      CLFV::Utilities::SetBranchAddress(t, "one_gen_phi"      , &one_gen_phi   );
+      CLFV::Utilities::SetBranchAddress(t, "one_gen_flavor"   , &one_gen_flavor);
+      CLFV::Utilities::SetBranchAddress(t, "two_gen_pt"       , &two_gen_pt    );
+      CLFV::Utilities::SetBranchAddress(t, "two_gen_eta"      , &two_gen_eta   );
+      CLFV::Utilities::SetBranchAddress(t, "two_gen_phi"      , &two_gen_phi   );
+      CLFV::Utilities::SetBranchAddress(t, "two_gen_flavor"   , &two_gen_flavor);
+
+      //gen Z info
       CLFV::Utilities::SetBranchAddress(t, "GenZll_LepOne_pt" , &gen_one_pt );
       CLFV::Utilities::SetBranchAddress(t, "GenZll_LepOne_eta", &gen_one_eta);
       CLFV::Utilities::SetBranchAddress(t, "GenZll_LepOne_phi", &gen_one_phi);
@@ -631,34 +646,16 @@ void resolution(int isMC = 1, bool isMuon = true, int year = 2016, int period = 
       if(std::fabs(lv1.DeltaR(lv2)) < 0.5) continue;
 
       ////////////////////////////////////////////////////////////
-      //Attempt to match the reco-leptons to the gen-leptons
+      // Get the gen info
 
-      if(isMC) {
-        TLorentzVector gen_lv1, gen_lv2;
-        gen_lv1.SetPtEtaPhiM(gen_one_pt, gen_one_eta, gen_one_phi, (isMuon) ? 0.10566 : 5.11e-3);
-        gen_lv2.SetPtEtaPhiM(gen_two_pt, gen_two_eta, gen_two_phi, (isMuon) ? 0.10566 : 5.11e-3);
-        //test to see if the vectors are close to the opposite vectors
-        const double gen_one_to_one_dr = gen_lv1.DeltaR(lv1);
-        const double gen_one_to_two_dr = gen_lv1.DeltaR(lv2);
-        const double gen_two_to_one_dr = gen_lv2.DeltaR(lv1);
-        const double gen_two_to_two_dr = gen_lv2.DeltaR(lv2);
-        //if both are closer to the other gen, swap
-        bool swap = gen_one_to_one_dr > gen_one_to_two_dr && gen_two_to_two_dr > gen_two_to_one_dr;
-        //if one is closer to both gen leptons, skip due to lack of information
-        if(!swap && (gen_one_to_one_dr > gen_one_to_two_dr || gen_two_to_two_dr > gen_two_to_one_dr)) {
-          continue;
-        }
+      if(isMC == 0) {//data
+        one_gen_pt  = one_pt   ;
+        one_gen_eta = one_eta  ;
+        one_gen_phi = one_phi  ;
+        two_gen_pt  = two_pt   ;
+        two_gen_eta = two_eta  ;
+        two_gen_phi = two_phi  ;
 
-        //Swap the gen lepton info if the opposite are matched
-        if(swap) {
-          gen_one_pt  = gen_lv2.Pt();
-          gen_one_eta = gen_lv2.Eta();
-          gen_one_phi = gen_lv2.Phi();
-          gen_two_pt  = gen_lv1.Pt();
-          gen_two_eta = gen_lv1.Eta();
-          gen_two_phi = gen_lv1.Phi();
-        }
-      } else { //data
         gen_one_pt  = one_pt   ;
         gen_one_eta = one_eta  ;
         gen_one_phi = one_phi  ;
@@ -668,14 +665,17 @@ void resolution(int isMC = 1, bool isMuon = true, int year = 2016, int period = 
         gen_mass    = pair_mass;
         gen_pt      = pair_pt  ;
         gen_eta     = pair_eta ;
+      } else {
+        if(one_gen_flavor == 0 || two_gen_flavor == 0) continue; //skip events without gen-matches to the leptons
+        if(one_gen_pt == one_pt || two_gen_pt == two_pt) continue; //looks like the gen is replaced with reco
       }
 
       ////////////////////////////////////////////
       // Apply enery scale corrections
 
       if(isMC == 1 && !isMuon && correctES_) {
-        const float scale_one = (correctES_ == 1) ? embed_energy_scale(one_sc_eta, year) : electron_energy_scale(gen_one_pt, one_sc_eta, scale_graphs);
-        const float scale_two = (correctES_ == 1) ? embed_energy_scale(two_sc_eta, year) : electron_energy_scale(gen_two_pt, two_sc_eta, scale_graphs);
+        const float scale_one = (correctES_ == 1) ? embed_energy_scale(one_sc_eta, year) : electron_energy_scale(one_gen_pt, one_sc_eta, scale_graphs);
+        const float scale_two = (correctES_ == 1) ? embed_energy_scale(two_sc_eta, year) : electron_energy_scale(two_gen_pt, two_sc_eta, scale_graphs);
         one_pt *= scale_one;
         two_pt *= scale_two;
         lv1.SetPtEtaPhiM(one_pt, one_eta, one_phi, (isMuon) ? 0.10566 : 5.11e-3);
@@ -690,8 +690,8 @@ void resolution(int isMC = 1, bool isMuon = true, int year = 2016, int period = 
       // Apply enery resolution corrections
 
       if(correctRes_ && isMC == 1) {
-        float scale_one  = (isMuon) ? muon_resolution_scale(gen_one_pt, resolution_graphs) : electron_resolution_scale(gen_one_pt, one_sc_eta, resolution_graphs);
-        float scale_two  = (isMuon) ? muon_resolution_scale(gen_two_pt, resolution_graphs) : electron_resolution_scale(gen_two_pt, two_sc_eta, resolution_graphs);
+        float scale_one  = (isMuon) ? muon_resolution_scale(one_gen_pt, resolution_graphs) : electron_resolution_scale(one_gen_pt, one_sc_eta, resolution_graphs);
+        float scale_two  = (isMuon) ? muon_resolution_scale(two_gen_pt, resolution_graphs) : electron_resolution_scale(two_gen_pt, two_sc_eta, resolution_graphs);
         if(scale_one <= 0.) {
           cout << "Entry " << entry << ": res scale <= 0 = " << scale_one << ": pt = " << one_pt << "; eta = " << one_sc_eta << endl;
           scale_one = 1.;
@@ -702,11 +702,16 @@ void resolution(int isMC = 1, bool isMuon = true, int year = 2016, int period = 
         }
         hResScale->Fill(scale_one);
         hResScale->Fill(scale_two);
-        const float one_pt_err = one_pt - gen_one_pt;
-        const float two_pt_err = two_pt - gen_two_pt;
+        const float one_pt_err = one_pt - one_gen_pt;
+        const float two_pt_err = two_pt - two_gen_pt;
         //scale the pT error to correct the resolution
         one_pt += one_pt_err*(scale_one-1.); //if scale = 1 do nothing
         two_pt += two_pt_err*(scale_two-1.);
+        // const float max_scale(1.01f), min_scale(0.99f);
+        // const float pt_scale_one = max(min_scale, min(max_scale, (one_pt + one_pt_err*(scale_one - 1.f))/one_pt));
+        // const float pt_scale_two = max(min_scale, min(max_scale, (two_pt + two_pt_err*(scale_two - 1.f))/two_pt));
+        // one_pt *= pt_scale_one;
+        // two_pt *= pt_scale_two;
         lv1.SetPtEtaPhiM(one_pt, one_eta, one_phi, (isMuon) ? 0.10566 : 5.11e-3);
         lv2.SetPtEtaPhiM(two_pt, two_eta, two_phi, (isMuon) ? 0.10566 : 5.11e-3);
         lv_sys = lv1 + lv2;
@@ -765,8 +770,8 @@ void resolution(int isMC = 1, bool isMuon = true, int year = 2016, int period = 
       ////////////////////////////////////////////////////////////
       // Fill the histograms
 
-      const float one_pt_err = one_pt - gen_one_pt;
-      const float two_pt_err = two_pt - gen_two_pt;
+      const float one_pt_err = one_pt - one_gen_pt;
+      const float two_pt_err = two_pt - two_gen_pt;
 
       float one_pt_up(one_pt), one_pt_down(one_pt);
       float two_pt_up(two_pt), two_pt_down(two_pt);
@@ -780,8 +785,8 @@ void resolution(int isMC = 1, bool isMuon = true, int year = 2016, int period = 
       if(isMC) {
         TLorentzVector lv1_tmp, lv2_tmp;
         // const float pt_err_scale = (isMuon || isMC > 1) ? 0.05 : 0.50;
-        float pt_one_err_scale = (isMuon) ? muon_resolution_scale(gen_one_pt, one_pt) : 0.15; //uncertainty on the resolution width
-        float pt_two_err_scale = (isMuon) ? muon_resolution_scale(gen_two_pt, two_pt) : 0.15;
+        float pt_one_err_scale = (isMuon) ? muon_resolution_scale(one_gen_pt, one_pt) : 0.15; //uncertainty on the resolution width
+        float pt_two_err_scale = (isMuon) ? muon_resolution_scale(two_gen_pt, two_pt) : 0.15;
         one_pt_up = one_pt + pt_one_err_scale*one_pt_err;
         two_pt_up = two_pt + pt_two_err_scale*two_pt_err;
         lv1_tmp.SetPtEtaPhiM(one_pt_up, one_eta, one_phi, lv1.M());
@@ -835,18 +840,18 @@ void resolution(int isMC = 1, bool isMuon = true, int year = 2016, int period = 
       hTwoPtDown->Fill(two_pt_down, wt);
       hOneGenPt ->Fill(gen_one_pt   , wt);
       hTwoGenPt ->Fill(gen_two_pt   , wt);
-      hOnePtErr ->Fill(one_pt - gen_one_pt, wt);
-      hTwoPtErr ->Fill(two_pt - gen_two_pt, wt);
-      hOneRelErr->Fill((one_pt - gen_one_pt) / one_pt, wt);
-      hTwoRelErr->Fill((two_pt - gen_two_pt) / two_pt, wt);
-      hOneRelErrUp->Fill((one_pt_up - gen_one_pt) / one_pt, wt);
-      hTwoRelErrUp->Fill((two_pt_up - gen_two_pt) / two_pt, wt);
-      hOneRelErrDown->Fill((one_pt_down - gen_one_pt) / one_pt, wt);
-      hTwoRelErrDown->Fill((two_pt_down - gen_two_pt) / two_pt, wt);
-      hLepPtVsRes->Fill(one_pt, (one_pt - gen_one_pt) / one_pt, wt);
-      hLepPtVsRes->Fill(two_pt, (two_pt - gen_two_pt) / two_pt, wt);
-      hLepPtVsResUp->Fill(gen_one_pt, (one_pt_up - gen_one_pt) / one_pt_up, wt);
-      hLepPtVsResUp->Fill(gen_two_pt, (two_pt_up - gen_two_pt) / two_pt_up, wt);
+      hOnePtErr ->Fill(one_pt - one_gen_pt, wt);
+      hTwoPtErr ->Fill(two_pt - two_gen_pt, wt);
+      hOneRelErr->Fill((one_pt - one_gen_pt) / one_pt, wt);
+      hTwoRelErr->Fill((two_pt - two_gen_pt) / two_pt, wt);
+      hOneRelErrUp->Fill((one_pt_up - one_gen_pt) / one_pt, wt);
+      hTwoRelErrUp->Fill((two_pt_up - two_gen_pt) / two_pt, wt);
+      hOneRelErrDown->Fill((one_pt_down - one_gen_pt) / one_pt, wt);
+      hTwoRelErrDown->Fill((two_pt_down - two_gen_pt) / two_pt, wt);
+      hLepPtVsRes->Fill(one_pt, (one_pt - one_gen_pt) / one_pt, wt);
+      hLepPtVsRes->Fill(two_pt, (two_pt - two_gen_pt) / two_pt, wt);
+      hLepPtVsResUp->Fill(one_gen_pt, (one_pt_up - one_gen_pt) / one_pt_up, wt);
+      hLepPtVsResUp->Fill(two_gen_pt, (two_pt_up - two_gen_pt) / two_pt_up, wt);
       hWeight->Fill(wt);
       //fill the (|eta|, pT, res) histogram
       int eta_bin_one(0), eta_bin_two(0);
@@ -855,8 +860,8 @@ void resolution(int isMC = 1, bool isMuon = true, int year = 2016, int period = 
         if(std::fabs(two_eta) >= eta_bins[ibin]) eta_bin_two = ibin;
       }
       //ensure not in overflow
-      if(eta_bin_one < n_eta_bins) lepEtaVsPtVsRes[eta_bin_one]->Fill(gen_one_pt, (one_pt - gen_one_pt) / one_pt, wt);
-      if(eta_bin_two < n_eta_bins) lepEtaVsPtVsRes[eta_bin_two]->Fill(gen_two_pt, (two_pt - gen_two_pt) / two_pt, wt);
+      if(eta_bin_one < n_eta_bins) lepEtaVsPtVsRes[eta_bin_one]->Fill(one_gen_pt, (one_pt - one_gen_pt) / one_pt, wt);
+      if(eta_bin_two < n_eta_bins) lepEtaVsPtVsRes[eta_bin_two]->Fill(two_gen_pt, (two_pt - two_gen_pt) / two_pt, wt);
     } //end tree processing loop
 
     delete t;
