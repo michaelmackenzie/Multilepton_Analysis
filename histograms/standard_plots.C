@@ -205,7 +205,7 @@ Int_t print_mass(int set, bool add_sys = false, double mass_min = 1., double mas
 Int_t print_met(int set, bool add_sys = false) {
   if(!dataplotter_) return 1;
   const Int_t offset = ((set % 1000) > 100) ? 0 : get_offset();
-  PlottingCard_t card("met", "event", set+offset, 2,  0., 100.);
+  PlottingCard_t card("met", "event", set+offset, 2,  0., 80.);
   Int_t status(0);
   std::vector<std::pair<TString,TString>> systematics;
   std::vector<std::pair<ScaleUncertainty_t,ScaleUncertainty_t>> scale_sys;
@@ -240,6 +240,43 @@ Int_t print_met(int set, bool add_sys = false) {
     auto c = dataplotter_->print_stack(card);
     if(c) DataPlotter::Empty_Canvas(c);
     else ++status;
+  }
+  dataplotter_->logY_ = 0;
+  return status;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------
+// MET/leppt distribution
+Int_t print_met_over_pt(int set, bool add_sys = false) {
+  if(!dataplotter_) return 1;
+  const Int_t offset = ((set % 1000) > 100) ? 0 : get_offset();
+  PlottingCard_t card("metoverleppt", "event", set+offset, 2,  0., 10.);
+  Int_t status(0);
+  for(int logY = 0; logY < 2; ++logY) {
+    dataplotter_->logY_ = logY;
+    auto c = dataplotter_->print_stack(card);
+    if(c) DataPlotter::Empty_Canvas(c);
+    else ++status;
+  }
+  dataplotter_->logY_ = 0;
+  return status;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------
+// gen-level MET information
+Int_t print_gen_met(int set, bool add_sys = false) {
+  if(!dataplotter_) return 1;
+  const Int_t offset = ((set % 1000) > 100) ? 0 : get_offset();
+  Int_t status(0);
+  vector<TString> hists = {"detectormet", "nupt"};
+  for(auto hist : hists) {
+    PlottingCard_t card(hist, "event", set+offset, 1,  0., 60.);
+    for(int logY = 0; logY < 2; ++logY) {
+      dataplotter_->logY_ = logY;
+      auto c = dataplotter_->print_stack(card);
+      if(c) DataPlotter::Empty_Canvas(c);
+      else ++status;
+    }
   }
   dataplotter_->logY_ = 0;
   return status;
@@ -389,10 +426,10 @@ Int_t print_lep_metdeltaphi(int set, bool add_sys = false) {
   if(!dataplotter_) return 1;
   const Int_t offset = get_offset();
   const bool same_flavor = selection_ == "ee" || selection_ == "mumu";
-  vector<TString> hists = {"onemetdeltaphi", "twometdeltaphi"};
+  vector<TString> hists = {"onemetdeltaphi", "twometdeltaphi", "metdeltaphi"};
   Int_t status(0);
   for(TString hist : hists) {
-    PlottingCard_t card(hist, "lep", set+offset, (same_flavor) ? 1 : 2, 0., 3.2);
+    PlottingCard_t card(hist, (hist == "metdeltaphi") ? "event" : "lep", set+offset, (same_flavor) ? 1 : 2, 0., 3.2);
     for(int logY = 0; logY < 2; ++logY) {
       dataplotter_->logY_ = logY;
       auto c = dataplotter_->print_stack(card);

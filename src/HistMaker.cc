@@ -559,6 +559,8 @@ void HistMaker::BookBaseEventHistograms(Int_t i, const char* dirname) {
   Utilities::BookH1F(fEventHist[i]->hMetUp               , "metup"               , Form("%s: Met up"                  ,dirname)  , 100,  0, 200, folder);
   Utilities::BookH1F(fEventHist[i]->hMetDown             , "metdown"             , Form("%s: Met down"                ,dirname)  , 100,  0, 200, folder);
   Utilities::BookH1F(fEventHist[i]->hMetNoCorr           , "metnocorr"           , Form("%s: Met No Correction"       ,dirname)  , 100,  0, 200, folder);
+  Utilities::BookH1F(fEventHist[i]->hMetOverLepPt        , "metoverleppt"        , Form("%s: Met Over LepPt"          ,dirname)  ,  40,  0,  20, folder);
+
   Utilities::BookH1F(fEventHist[i]->hNuPt                , "nupt"                , Form("%s: Nu pT"                   ,dirname)  ,  50,  0, 100, folder);
   Utilities::BookH1F(fEventHist[i]->hDetectorMet         , "detectormet"         , Form("%s: Detector Met"            ,dirname)  , 100,  0, 200, folder);
 
@@ -624,6 +626,8 @@ void HistMaker::BookBaseEventHistograms(Int_t i, const char* dirname) {
   Utilities::BookH1F(fEventHist[i]->hZLepTwoPt  , "zleptwopt"     , Form("%s: ZLepTwoPt"      ,dirname)  ,  60,    0, 120, folder);
   Utilities::BookH1F(fEventHist[i]->hZLepOneEta , "zleponeeta"    , Form("%s: ZLepOneEta"     ,dirname)  ,  50, -2.5, 2.5, folder);
   Utilities::BookH1F(fEventHist[i]->hZLepTwoEta , "zleptwoeta"    , Form("%s: ZLepTwoEta"     ,dirname)  ,  50, -2.5, 2.5, folder);
+  Utilities::BookH1F(fEventHist[i]->hZLepOneELoss, "zleponeeloss" , Form("%s: ZLepOneELoss"   ,dirname)  ,  20,    0, 0.1, folder);
+  Utilities::BookH1F(fEventHist[i]->hZLepTwoELoss, "zleptwoeloss" , Form("%s: ZLepTwoELoss"   ,dirname)  ,  20,    0, 0.1, folder);
   Utilities::BookH1D(fEventHist[i]->hZDecayMode , "zdecaymode"    , Form("%s: ZDecayMode"     ,dirname)  ,  20,    0,  20, folder);
 
   if(!fSparseHists || fSelection == "emu") {
@@ -1318,6 +1322,8 @@ void HistMaker::InitializeInputTree(TTree* tree) {
   Utilities::SetBranchAddress(tree, "PV_npvsGood"                   , &nPV                           ) ;
   // Utilities::SetBranchAddress(tree, "Pileup_nPU"                    , &nPUAdded                      );
   Utilities::SetBranchAddress(tree, "HT"                            , &ht                            );
+  Utilities::SetBranchAddress(tree, "MET_pt"                        , &PFMET                         );
+  Utilities::SetBranchAddress(tree, "MET_phi"                       , &PFMETphi                      );
   Utilities::SetBranchAddress(tree, "PuppiMET_pt"                   , &puppMET                       );
   Utilities::SetBranchAddress(tree, "PuppiMET_phi"                  , &puppMETphi                    );
   Utilities::SetBranchAddress(tree, "PuppiMET_sumEt"                , &puppMETSumEt                  );
@@ -1528,9 +1534,13 @@ void HistMaker::ApplyTauCorrections() {
   tauES = 1.f; tauES_up = 1.f; tauES_down = 1.f;
   float delta_x(metCorr*std::cos(metCorrPhi)), delta_y(metCorr*std::sin(metCorrPhi));
   for(UInt_t index = 0; index < nTau; ++index) {
-    const float sf = (fIsData) ? 1. : fTauIDWeight->EnergyScale(Tau_pt[index], Tau_eta[index], Tau_decayMode[index],
-                                                                Tau_genPartFlav[index], Tau_idDeepTau2017v2p1VSjet[index],
-                                                                fYear, Tau_energyScaleUp[index], Tau_energyScaleDown[index]);
+    float sf = (fIsData) ? 1. : fTauIDWeight->EnergyScale(Tau_pt[index], Tau_eta[index], Tau_decayMode[index],
+                                                          Tau_genPartFlav[index], Tau_idDeepTau2017v2p1VSjet[index],
+                                                          fYear, Tau_energyScaleUp[index], Tau_energyScaleDown[index]);
+    //FIXME: remove this correction or formalize it
+    if(fIsEmbed) {
+      sf *= 0.994; //Embedding tau over estimates the MC resolution mean after applying energy scale corrections
+    }
     double pt_diff = Tau_pt[index];
     Tau_pt  [index] *= sf;
     Tau_mass[index] *= sf;
@@ -3269,11 +3279,143 @@ void HistMaker::CountObjects() {
   // Apply object scale corrections
   ///////////////////////////////////////////////////////
 
+  //Evaluate the neutrino momentum in the event
+  if(!fIsData && nGenPart > 0) { //check if there are gen particles
+    float px(0.f), py(0.f);
+    for(UInt_t ipart = 0; ipart < nGenPart; ++ipart) {
+      const int pdg = std::abs(GenPart_pdgId[ipart]);
+      if(pdg == 12 || pdg == 14 || pdg == 16) {
+        const int mother = GenPart_genPartIdxMother[ipart]; //ensure this isn't some nu --> nu entry in the generator
+        if(mother >= 0 && GenPart_pdgId[ipart] == GenPart_pdgId[mother]) continue;
+        px += GenPart_pt[ipart]*std::cos(GenPart_phi[ipart]);
+        py += GenPart_pt[ipart]*std::sin(GenPart_phi[ipart]);
+      }
+    }
+    eventNuPt = std::sqrt(px*px+py*py);
+    eventNuPhi = Utilities::PhiFromXY(px,py);
+  } else {
+    eventNuPt           = 0.f;
+    eventNuPhi          = 0.f;
+  }
+
   //Add MET information
-  met        = puppMET; //use PUPPI MET
-  metPhi     = puppMETphi;
+  const bool use_puppi_met = true; //use the PF MET or Puppi MET
+  if(use_puppi_met) {
+    met        = puppMET; //use PUPPI MET
+    metPhi     = puppMETphi;
+  } else {
+    met        = PFMET; //use PF MET
+    metPhi     = PFMETphi;
+  }
   metCorr    = 0.f; //record the changes to the MET due to changes in object energy/momentum scales
   metCorrPhi = 0.f;
+
+  //Correct the detector MET in Embedding events
+  if(fIsEmbed && fApplyEmbedMETDPhiCorr) {
+    if(zLepOnePt >= 0.f || zLepTwoPt >= 0.f) {
+      //Get the gen-level lepton and MET info
+      TLorentzVector zlepone, zleptwo;
+      if(zLepOnePt >= zLepTwoPt) { //sort by leading lepton
+        zlepone.SetPtEtaPhiM(zLepOnePt, zLepOneEta, zLepOnePhi, zLepOneMass);
+        zleptwo.SetPtEtaPhiM(zLepTwoPt, zLepTwoEta, zLepTwoPhi, zLepTwoMass);
+      } else {
+        zlepone.SetPtEtaPhiM(zLepTwoPt, zLepTwoEta, zLepTwoPhi, zLepTwoMass);
+        zleptwo.SetPtEtaPhiM(zLepOnePt, zLepOneEta, zLepOnePhi, zLepOneMass);
+      }
+      TLorentzVector z_lv = zlepone + zleptwo;
+      //remove nu pT from the MET
+      float px = met*std::cos(metPhi) - eventNuPt*std::cos(eventNuPhi);
+      float py = met*std::sin(metPhi) - eventNuPt*std::sin(eventNuPhi);
+      eventDetectorMet = std::sqrt(px*px + py*py);
+      eventDetectorMetPhi = Utilities::PhiFromXY(px,py);
+
+      //apply a correction to the MET
+      const int mode = 5; //how to implement the correction
+
+      if(mode == 0) { //rotate the detector met closer to the leading embedded tau
+        //delta phi is defined as phi_1 - phi_2 --> if dphi > 0 then phi_2 < phi_1
+        const double phi = Utilities::DeltaPhi(((zLepOnePt > zLepTwoPt) ? zlepone : zleptwo).Phi(), eventDetectorMetPhi);
+        const double phi_rot = (std::fabs(phi) < 0.1) ? 0. : (phi > 0.) ? 0.04 : -0.04;
+        eventDetectorMetPhi = Utilities::DeltaPhi(eventDetectorMetPhi, -1.*phi_rot);
+
+      } else if(mode == 1) { //add MET along the Z pT
+        const float scale = 0.025;
+        px += scale*z_lv.Px();
+        py += scale*z_lv.Py();
+        eventDetectorMet = std::sqrt(px*px + py*py);
+        eventDetectorMetPhi = Utilities::PhiFromXY(px,py);
+
+      } else if(mode == 2) { //add MET along the leading lepton
+        const float scale = 0.007;
+        px += scale*zlepone.Px();
+        py += scale*zlepone.Py();
+        eventDetectorMet = std::sqrt(px*px + py*py);
+        eventDetectorMetPhi = Utilities::PhiFromXY(px,py);
+
+      } else if(mode == 3) { //add MET along each reco muon
+        const float scale = 0.005;
+        for(UInt_t index = 0; index < nMuon; ++index) {
+          px += scale*Muon_pt[index]*std::cos(Muon_phi[index]);
+          py += scale*Muon_pt[index]*std::sin(Muon_phi[index]);
+        }
+        eventDetectorMet = std::sqrt(px*px + py*py);
+        eventDetectorMetPhi = Utilities::PhiFromXY(px,py);
+
+      } else if(mode == 4) { //add MET along the reco leptons
+        const float scale = 0.025;
+        if(nElectron != 2) { //non-ee selections
+          for(UInt_t index = 0; index < nMuon; ++index) {
+            px += scale*Muon_pt[index]*std::cos(Muon_phi[index]);
+            py += scale*Muon_pt[index]*std::sin(Muon_phi[index]);
+          }
+        }
+        if(nMuon != 2) { //non-mumu selections
+          for(UInt_t index = 0; index < nElectron; ++index) {
+            px += scale*Electron_pt[index]*std::cos(Electron_phi[index]);
+            py += scale*Electron_pt[index]*std::sin(Electron_phi[index]);
+          }
+        }
+        if(nMuon+nElectron == 1) { //etau/mutau selections
+          for(UInt_t index = 0; index < nTau; ++index) {
+            px += scale*Tau_pt[index]*std::cos(Tau_phi[index]);
+            py += scale*Tau_pt[index]*std::sin(Tau_phi[index]);
+          }
+        }
+        eventDetectorMet = std::sqrt(px*px + py*py);
+        eventDetectorMetPhi = Utilities::PhiFromXY(px,py);
+
+      } else if(mode == 5) { //add MET along the reco leptons with different scales
+        if(nElectron != 2) { //non-ee selections
+          const float scale = 0.025;
+          for(UInt_t index = 0; index < nMuon; ++index) {
+            px += scale*Muon_pt[index]*std::cos(Muon_phi[index]);
+            py += scale*Muon_pt[index]*std::sin(Muon_phi[index]);
+          }
+        }
+        if(nMuon != 2) { //non-mumu selections
+          const float scale = 0.025;
+          for(UInt_t index = 0; index < nElectron; ++index) {
+            px += scale*Electron_pt[index]*std::cos(Electron_phi[index]);
+            py += scale*Electron_pt[index]*std::sin(Electron_phi[index]);
+          }
+        }
+        if(nMuon+nElectron == 1) { //etau/mutau selections
+          const float scale = 0.05;
+          for(UInt_t index = 0; index < nTau; ++index) {
+            px += scale*Tau_pt[index]*std::cos(Tau_phi[index]);
+            py += scale*Tau_pt[index]*std::sin(Tau_phi[index]);
+          }
+        }
+        eventDetectorMet = std::sqrt(px*px + py*py);
+        eventDetectorMetPhi = Utilities::PhiFromXY(px,py);
+      }
+      //reset the MET to be the new detector met + nu pT
+      px = eventDetectorMet*std::cos(eventDetectorMetPhi) + eventNuPt*std::cos(eventNuPhi);
+      py = eventDetectorMet*std::sin(eventDetectorMetPhi) + eventNuPt*std::sin(eventNuPhi);
+      met    = std::sqrt(px*px+py*py);
+      metPhi = Utilities::PhiFromXY(px,py);
+    }
+  }
 
   ApplyElectronCorrections();
   ApplyMuonCorrections();
@@ -3289,6 +3431,29 @@ void HistMaker::CountObjects() {
   if(!std::isfinite(met) || !std::isfinite(metPhi)) {
     printf("!!! HistMaker::%s: Entry: %12lld: MET elements are undefined! met = %.2f, phi = %.3f, metCorr = %.2f, phiCorr = %.3f, met_x = %.2f, met_y = %.2f, pupp = %.2f, puppPhi = %.3f\n",
            __func__, fentry, met, metPhi, metCorr, metCorrPhi, met_x, met_y, puppMET, puppMETphi);
+    throw std::runtime_error("Undefined MET");
+  }
+
+  //Check if the MET uncertainties are defined, and replace them with the nominal if they are
+  if(!std::isfinite(puppMETJERUp) || !std::isfinite(puppMETphiJERUp)) {puppMETJERUp = puppMET; puppMETphiJERUp = puppMETphi;}
+  if(!std::isfinite(puppMETJESUp) || !std::isfinite(puppMETphiJESUp)) {puppMETJESUp = puppMET; puppMETphiJESUp = puppMETphi;}
+
+  //Update the MET uncertainty inputs with the MET changes as well
+  {
+    const float met_x(puppMETJERUp*std::cos(puppMETphiJERUp) + metCorr*std::cos(metCorrPhi)), met_y(puppMETJERUp*std::sin(puppMETphiJERUp) + metCorr*std::sin(metCorrPhi));
+    puppMETJERUp = std::sqrt(met_x*met_x + met_y*met_y);
+    puppMETphiJERUp = (puppMETJERUp > 0.f) ? std::acos(std::max(-1.f, std::min(1.f, met_x/puppMETJERUp)))*(met_y < 0.f ? -1 : 1) : 0.f;
+    if(!std::isfinite(puppMETJERUp) || !std::isfinite(puppMETphiJERUp))
+      throw std::runtime_error(Form("HistMaker::%s: Entry: %12lld: PUPPI JER up error: met = %.2f, phi = %.3f, metCorr = %.2f, phiCorr = %.3f, met_x = %.2f, met_y = %.2f\n",
+                                    __func__, fentry, puppMETJERUp, puppMETphiJERUp, metCorr, metCorrPhi, met_x, met_y));
+  }
+  {
+    const float met_x(puppMETJESUp*std::cos(puppMETphiJESUp) + metCorr*std::cos(metCorrPhi)), met_y(puppMETJESUp*std::sin(puppMETphiJESUp) + metCorr*std::sin(metCorrPhi));
+    puppMETJESUp = std::sqrt(met_x*met_x + met_y*met_y);
+    puppMETphiJESUp = (puppMETJESUp > 0.f) ? std::acos(std::max(-1.f, std::min(1.f, met_x/puppMETJESUp)))*(met_y < 0.f ? -1 : 1) : 0.f;
+    if(!std::isfinite(puppMETJESUp) || !std::isfinite(puppMETphiJESUp))
+      throw std::runtime_error(Form("HistMaker::%s: Entry: %12lld: PUPPI JES up error: met = %.2f, phi = %.3f, metCorr = %.2f, phiCorr = %.3f, met_x = %.2f, met_y = %.2f\n",
+                                    __func__, fentry, puppMETJESUp, puppMETphiJESUp, metCorr, metCorrPhi, met_x, met_y));
   }
 
   //store MET uncertainty effects (approx down as met - (up - met) = 2*met - up)
@@ -3300,28 +3465,14 @@ void HistMaker::CountObjects() {
   puppMETphiJESDown = (puppMETJESDown <= 0.f) ? 0.f : std::acos(std::max(-1.f, std::min(1.f, met_jes_x/puppMETJESDown))) * (met_jes_y < 0.f ? -1.f : 1.f);
 
 
-  //Evaluate the neutrino momentum in the event
+  //Evaluate the missing energy from the detector/acceptance
   if(!fIsData && nGenPart > 0) { //check if there are gen particles
-    float px(0.f), py(0.f);
-    for(UInt_t ipart = 0; ipart < nGenPart; ++ipart) {
-      const int pdg = std::abs(GenPart_pdgId[ipart]);
-      if(pdg == 12 || pdg == 14 || pdg == 16) {
-        const int mother = GenPart_genPartIdxMother[ipart]; //ensure this isn't some nu --> nu entry in the generator
-        if(mother >= 0 && GenPart_pdgId[ipart] == GenPart_pdgId[mother]) continue;
-        px += GenPart_pt[ipart]*std::cos(GenPart_phi[ipart]);
-        py += GenPart_pt[ipart]*std::sin(GenPart_phi[ipart]);
-      }
-    }
-    eventNuPt = std::sqrt(px*px+py*py);
-    eventNuPhi = Utilities::PhiFromXY(px,py);
     //remove nu pT from the MET
-    px = met*std::cos(metPhi) - px;
-    py = met*std::sin(metPhi) - py;
+    float px = met*std::cos(metPhi) - eventNuPt*std::cos(eventNuPhi);
+    float py = met*std::sin(metPhi) - eventNuPt*std::sin(eventNuPhi);
     eventDetectorMet = std::sqrt(px*px + py*py);
     eventDetectorMetPhi = Utilities::PhiFromXY(px,py);
   } else {
-    eventNuPt           = 0.f;
-    eventNuPhi          = 0.f;
     eventDetectorMet    = met;
     eventDetectorMetPhi = metPhi;
   }
@@ -4154,6 +4305,8 @@ void HistMaker::FillBaseEventHistogram(EventHist_t* Hist) {
   const float met_no_corr(std::sqrt(met_x_orig*met_x_orig + met_y_orig*met_y_orig));
   Hist->hMetNoCorr         ->Fill(met_no_corr        , eventWeight*genWeight);
 
+  Hist->hMetOverLepPt->Fill(met/fTreeVars.leppt, eventWeight*genWeight);
+
   //mt(x, y) ~ sqrt(x*y) --> mt(x+-sigma_x,y) ~ sqrt(x+-sigma_x)/sqrt(x)*mt, sigma(mt) ~ mt*sqrt((x+-sigma_x)/x + (y+-sigma_y)/y)
   float mtone_up   = fTreeVars.mtone*std::sqrt((leptonOne.pt_up  ()/leptonOne.pt) + (met_sys.first )/met);
   float mtone_down = fTreeVars.mtone*std::sqrt((leptonOne.pt_down()/leptonOne.pt) + (met_sys.second)/met);
@@ -4230,6 +4383,19 @@ void HistMaker::FillBaseEventHistogram(EventHist_t* Hist) {
   Hist->hZLepOneEta   ->Fill(zLepOneEta, eventWeight*genWeight);
   Hist->hZLepTwoEta   ->Fill(zLepTwoEta, eventWeight*genWeight);
   Hist->hZDecayMode   ->Fill(fTreeVars.zdecaymode, eventWeight*genWeight);
+  if(leptonOne.genPt > 0.f && leptonTwo.genPt > 0.f) {
+    //associate the leptons by charge
+    if(zLepOneID*leptonOne.flavor > 0) {
+      Hist->hZLepOneELoss->Fill((zLepOnePt - leptonOne.genPt)/zLepOnePt, eventWeight*genWeight);
+      Hist->hZLepTwoELoss->Fill((zLepTwoPt - leptonTwo.genPt)/zLepTwoPt, eventWeight*genWeight);
+    } else {
+      Hist->hZLepOneELoss->Fill((zLepTwoPt - leptonOne.genPt)/zLepTwoPt, eventWeight*genWeight);
+      Hist->hZLepTwoELoss->Fill((zLepOnePt - leptonTwo.genPt)/zLepOnePt, eventWeight*genWeight);
+    }
+  } else {
+      Hist->hZLepOneELoss->Fill(0.f, eventWeight*genWeight);
+      Hist->hZLepTwoELoss->Fill(0.f, eventWeight*genWeight);
+  }
 
   Hist->hPTauVisFrac  ->Fill(fTreeVars.ptauvisfrac , eventWeight*genWeight);
   Hist->hDeltaAlpha[0]->Fill(fTreeVars.deltaalphaz1, eventWeight*genWeight);
@@ -5251,8 +5417,8 @@ std::pair<float,float> HistMaker::ApproxMETSys() {
 
   //Add the JER/JES uncertainties
   if(!fIsData && (!fIsEmbed || fEmbedUseMETUnc == 1)) {
-    met_err_up   = std::sqrt(std::pow(puppMETJERUp   - puppMET, 2) + std::pow(puppMETJESUp   - puppMET, 2))/puppMET;
-    met_err_down = std::sqrt(std::pow(puppMETJERDown - puppMET, 2) + std::pow(puppMETJESDown - puppMET, 2))/puppMET;
+    met_err_up   = std::sqrt(std::pow(puppMETJERUp   - met, 2) + std::pow(puppMETJESUp   - met, 2))/met;
+    met_err_down = std::sqrt(std::pow(puppMETJERDown - met, 2) + std::pow(puppMETJESDown - met, 2))/met;
   }
 
   //Add detector MET uncertainty in Embedding if requested
@@ -5295,7 +5461,7 @@ std::pair<float,float> HistMaker::ApproxMETSys() {
   }
 
   float met_up   = std::max(0.f, met*(1.f + met_err_up  ));
-  float met_down = std::max(0.f, met*(1.f + met_err_down));
+  float met_down = std::max(0.f, met*(1.f - met_err_down));
   if(met_up < met_down) std::swap(met_up, met_down);
   return std::pair<float,float>(met_up, met_down);
 }

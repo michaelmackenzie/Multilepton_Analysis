@@ -1518,10 +1518,8 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
           jetOne.setPtEtaPhiM(jetOne.jer_pt_up, jetOne.eta, jetOne.phi, jetOne.mass);
         }
       } else {
-        const float dx(met*std::cos(metPhi) - puppMETJERUp*std::cos(puppMETphiJERUp)), dy(met*std::sin(metPhi) - puppMETJERUp*std::sin(puppMETphiJERUp));
-        const float new_x(met*std::cos(metPhi)+dx), new_y(met*std::sin(metPhi)+dy);
-        met    = std::sqrt(std::pow(new_x, 2) + std::pow(new_y, 2));
-        metPhi = Utilities::PhiFromXY(new_x, new_y);
+        met    = puppMETJERDown;
+        metPhi = puppMETphiJERDown;
         if(!fIsEmbed && jetOne.pt > 5.f && jetOne.jer_pt_down > 5.f) { //if there's a jet and defined uncertainties (ignore for Embedding)
           jetOne.setPtEtaPhiM(jetOne.jer_pt_down, jetOne.eta, jetOne.phi, jetOne.mass);
         }
@@ -1536,10 +1534,8 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
           jetOne.setPtEtaPhiM(jetOne.jes_pt_up, jetOne.eta, jetOne.phi, jetOne.mass);
         }
       } else {
-        float dx(met*std::cos(metPhi) - puppMETJESUp*std::cos(puppMETphiJESUp)), dy(met*std::sin(metPhi) - puppMETJESUp*std::sin(puppMETphiJESUp));
-        float new_x(met*std::cos(metPhi)+dx), new_y(met*std::sin(metPhi)+dy);
-        met    = std::sqrt(std::pow(new_x, 2) + std::pow(new_y, 2));
-        metPhi = Utilities::PhiFromXY(new_x, new_y);
+        met    = puppMETJESDown;
+        metPhi = puppMETphiJESDown;
         if(!fIsEmbed && jetOne.pt > 5.f && jetOne.jes_pt_down > 5.f) { //if there's a jet and defined uncertainties (ignore for Embedding)
           jetOne.setPtEtaPhiM(jetOne.jes_pt_down, jetOne.eta, jetOne.phi, jetOne.mass);
         }
@@ -1579,6 +1575,30 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
         continue; //skip since no variation is needed for down
         // reeval = false; //no need to re-evaluate
       }
+    } else if(name == "EmbDetectorMET") { //effect on non-neutrino MET in embedding
+      if(!fIsEmbed) continue;
+      reeval = true;
+      //remove nu pT from the MET
+      float det_met_px = met*std::cos(metPhi) - eventNuPt*std::cos(eventNuPhi);
+      float det_met_py = met*std::sin(metPhi) - eventNuPt*std::sin(eventNuPhi);
+      //get the uncertainty from the reco leptons pT
+      float unc_px = (leptonOne.isTau()) ? 0.05*leptonOne.p4->Px() : 0.025*leptonOne.p4->Px();
+      float unc_py = (leptonOne.isTau()) ? 0.05*leptonOne.p4->Py() : 0.025*leptonOne.p4->Py();
+      unc_px      += (leptonTwo.isTau()) ? 0.05*leptonTwo.p4->Px() : 0.025*leptonTwo.p4->Px();
+      unc_py      += (leptonTwo.isTau()) ? 0.05*leptonTwo.p4->Py() : 0.025*leptonTwo.p4->Py();
+      //add or substract the uncertainty based on up/down flag
+      if(fSystematics.IsUp(sys)) {
+        det_met_px += unc_px;
+        det_met_py += unc_py;
+      } else {
+        det_met_px -= unc_px;
+        det_met_py -= unc_py;
+      }
+      //Set the MET to be the new detector met + nu pT
+      const float met_px = det_met_px + eventNuPt*std::cos(eventNuPhi);
+      const float met_py = det_met_py + eventNuPt*std::sin(eventNuPhi);
+      met    = std::sqrt(met_px*met_px+met_py*met_py);
+      metPhi = Utilities::PhiFromXY(met_px,met_py);
     } else if(name == "EmbTauTau") { //tau_mu tau_mu contamination in embedding
       if(!fIsEmbed) continue;
       float scale = 0.f;

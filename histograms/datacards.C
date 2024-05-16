@@ -14,7 +14,7 @@ TString hist_tag_     = "clfv"; //leading tag from HistMaker, e.g. "clfv", "hist
 
 int    useUL_         =  0 ; //use UL dataset definitions
 int    ZMode_         =  0 ; //which Z cross-section information to use
-int    useAMC_        =  1 ; //use amc@NLO samples in place of previous LO samples
+int    useAMC_        =  1 ; //use amc@NLO samples in place of LO samples
 int    useWG_         =  1 ; //use the W+gamma dataset
 int    useEWK_        =  0 ; //include the EWK W/Z samples
 int    useWWW_        =  1 ; //include the WWW samples
@@ -25,7 +25,7 @@ double embedScale_    =  1.; //scale factor to add onto the embedding normalizat
 int    useQCDMC_      =  0 ; //use MC QCD background estimates
 int    combineVB_     =  1 ; //combine W+Jets with other vector boson processes
 int    includeHiggs_  =  0 ; //include the higgs signals in the plots
-int    higgsBkg_      =  0 ; //include SM higgs samples in the background estimate
+int    higgsBkg_      =  1 ; //include SM higgs samples in the background estimate
 int    combineHB_     =  1 ; //combine H->tautau and H->WW backgrounds
 int    correctEmbed_  =  1 ; //check the event histogram vs gen numbers to correct for missing events
 int    correctData_   =  1 ; //check the event histogram vs gen numbers to correct for missing events
@@ -142,10 +142,8 @@ void get_datacards(std::vector<dcard>& cards, TString selection, int forStudies 
       //useEmbed_: 0 = use DY MC; 1 = use embedding in emu/etau/mutau; 2 = use embedding in all categories (including ee/mumu)
       //in ee/mumu, switch order of Z->ll/tautau
       if(selection == "ee" || selection == "mumu") {
-        if(useEmbed_ < 2) {//if using DY MC, include Z->tau tau
-          cards.push_back(dcard((DYName+"-1").Data(), (DYName+"-1").Data(), dy_tt.Data(), false, xs.GetCrossSection("DY50"    , year), false, year, dy_tt_c, combineZ));
-          cards.push_back(dcard("DY10to50-1"        , "DY10to50-1"        , dy_tt.Data(), false, xs.GetCrossSection("DY10to50", year), false, year, dy_tt_c));
-        }
+        cards.push_back(dcard((DYName+"-1").Data(), (DYName+"-1").Data(), dy_tt.Data(), false, xs.GetCrossSection("DY50"    , year), false, year, dy_tt_c, combineZ));
+        cards.push_back(dcard("DY10to50-1"        , "DY10to50-1"        , dy_tt.Data(), false, xs.GetCrossSection("DY10to50", year), false, year, dy_tt_c));
         if(useEmbed_ < 2) { //use DY MC ee/mumu if using DY MC in general
           cards.push_back(dcard((DYName+"-2").Data(), (DYName+"-2").Data(), dy_ll.Data(), false, zll_scale_*xs.GetCrossSection("DY50"    , year), false, year, dy_ll_c, combineZ));
           cards.push_back(dcard("DY10to50-2"        , "DY10to50-2"        , dy_ll.Data(), false, zll_scale_*xs.GetCrossSection("DY10to50", year), false, year, dy_ll_c));

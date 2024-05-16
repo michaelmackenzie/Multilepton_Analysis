@@ -75,6 +75,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
   const bool isDY = card.fname_.Contains("DY");
   const bool isWJ = card.fname_.Contains("Wlnu_") || card.fname_.Contains("Wlnu-ext_"); //doesn't include jet-binned samples
   const bool isWJets = card.fname_.Contains("Wlnu"); //includes jet-binned samples
+  const bool isEmbed = card.fname_.Contains("Embed");
 
   const bool isSignal = (card.fname_.Contains("MuTau") || card.fname_.Contains("ETau")
                          || card.fname_.Contains("EMu")) && !card.fname_.Contains("Embed");
@@ -278,10 +279,12 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
         hist_selec->fRemoveEventWeights = removeEventWeights_;
         hist_selec->fUseEmbedRocco      = useEmbedRocco_;
         hist_selec->fUseEmbedMuonES     = useEmbMuonES_;
+        hist_selec->fApplyElectronResolution = useEmbEleRes_;
         hist_selec->fEmbedUseMETUnc     = embedUseMETUnc_;
         hist_selec->fEmbedUseMCTauID    = embedUseMCTauID_;
         hist_selec->fUseEmbedZMatching  = useEmbedZMatching_;
         hist_selec->fUseEmbBDTUncertainty = useEmbedBDTUnc_;
+        hist_selec->fApplyEmbedMETDPhiCorr = applyEmbedMetDPhi_;
         hist_selec->fUseRoccoCorr       = useRoccoCorr_;
         hist_selec->fUseRoccoSize       = useRoccoSize_;
         hist_selec->fUseCDFBDTs         = useCDFBDTs_;
@@ -301,7 +304,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
 
       selec->fRemoveTriggerWeights = removeTrigWeights_;
       selec->fUpdateMCEra          = updateMCEra_;
-      selec->fUpdateMET            = updateMET_;
+      selec->fUpdateMET            = (updateMET_ == 1 || (updateMET_ == 2 && !isEmbed)) ? 1 : 0;
       selec->fUseBTagWeights       = useBTagWeights_;
       selec->fRemovePUWeights      = (isSignal) ? removePUWeights_ : 0 ; //remove for signal, due to module issues (likely weights measured per file too low stats)
       selec->fUseJetPUIDWeights    = useJetPUIDWeights_;
@@ -331,7 +334,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
       if(isWJets && splitWGamma_) selec->fSplitWGamma = 1; //if (any) W+Jets, remove W+gamma events
       selec->fIsDY = isDY;
       selec->fIsData = card.isData_;
-      selec->fIsEmbed = card.fname_.Contains("Embed-");
+      selec->fIsEmbed = isEmbed;
       selec->fIsLLEmbed = card.fname_.Contains("Embed-MuMu-") || card.fname_.Contains("Embed-EE-");
       selec->fYear = card.year_;
       selec->fDataset = card.dataset_;

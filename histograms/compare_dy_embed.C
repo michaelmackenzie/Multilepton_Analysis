@@ -7,13 +7,21 @@ int compare_hist(PlottingCard_t card) {
   ////////////////////////////////////////
   // Retrieve the histograms
 
-  auto embed_hists = embed_plotter_->get_histograms(card.hist_, card.type_, card.set_, DataPlotter::kAny, "#tau#tau Embedding");
-  if(embed_hists.size() == 0) return 1;
+  TString embed_name = (selection_ == "mumu") ? "#mu#mu Embedding" : (selection_ == "ee") ? "ee Embedding" : "#tau#tau Embedding";
+  auto embed_hists = embed_plotter_->get_histograms(card.hist_, card.type_, card.set_, DataPlotter::kAny, embed_name);
+  if(embed_hists.size() == 0) {
+    cout << "No Embedding histogram found for " << card.hist_.Data() << "/" << card.type_.Data() << "/" << card.set_ << endl;
+    return 1;
+  }
   TH1* h_embed = (TH1*) embed_hists[0]->Clone(Form("h_%s_%s_%i_embed", card.hist_.Data(), card.type_.Data(), card.set_));
   delete embed_hists[0];
   for(unsigned index = 1; index < embed_hists.size(); ++index) {h_embed->Add(embed_hists[index]); delete embed_hists[index];}
-  auto mc_dy_hists = mc_dy_plotter_->get_histograms(card.hist_, card.type_, card.set_, DataPlotter::kAny, "Z->#tau#tau");
-  if(mc_dy_hists.size() == 0) return 1;
+  TString mc_dy_name = (selection_ == "mumu") ? "Z->ee/#mu#mu" : (selection_ == "ee") ? "Z->ee/#mu#mu" : "Z->#tau#tau";
+  auto mc_dy_hists = mc_dy_plotter_->get_histograms(card.hist_, card.type_, card.set_, DataPlotter::kAny, mc_dy_name);
+  if(mc_dy_hists.size() == 0) {
+    cout << "No MC DY histogram found for " << card.hist_.Data() << "/" << card.type_.Data() << "/" << card.set_ << endl;
+    return 1;
+  }
   TH1* h_mc_dy = (TH1*) mc_dy_hists[0]->Clone(Form("h_%s_%s_%i_mc_dy", card.hist_.Data(), card.type_.Data(), card.set_));
   delete mc_dy_hists[0];
   for(unsigned index = 1; index < mc_dy_hists.size(); ++index) {h_mc_dy->Add(mc_dy_hists[index]); delete mc_dy_hists[index];}
@@ -52,11 +60,18 @@ int compare_hist(PlottingCard_t card) {
 
   h_mc_dy->GetXaxis()->SetRangeUser(xmin, xmax);
   if(card.ymin_ < card.ymax_) h_mc_dy->GetYaxis()->SetRangeUser(card.ymin_, card.ymax_);
-  else h_mc_dy->GetYaxis()->SetRangeUser(0.1, 1.2*max(h_mc_dy->GetMaximum(), h_embed->GetMaximum()));
+  else {
+    if(card.hist_.EndsWith("eloss")) {
+      h_mc_dy->GetYaxis()->SetRangeUser(0.5, 3.*max(h_mc_dy->GetMaximum(), h_embed->GetMaximum()));
+      pad1.SetLogy();
+    } else {
+      h_mc_dy->GetYaxis()->SetRangeUser(0.1, 1.25*max(h_mc_dy->GetMaximum(), h_embed->GetMaximum()));
+    }
+  }
 
-  TLegend leg(0.6, 0.75, 0.9, 0.9);
-  leg.AddEntry(h_embed, "Embedding");
-  leg.AddEntry(h_mc_dy, "MC Drell-Yan");
+  TLegend leg(0.4, 0.75, 0.9, 0.9);
+  leg.AddEntry(h_embed, Form("Embedding: %.0f"   , h_embed->Integral(0, h_embed->GetNbinsX()+1)));
+  leg.AddEntry(h_mc_dy, Form("MC Drell-Yan: %.0f", h_mc_dy->Integral(0, h_mc_dy->GetNbinsX()+1)));
   leg.Draw();
 
   ////////////////////////////////////////
@@ -65,7 +80,11 @@ int compare_hist(PlottingCard_t card) {
   pad2.cd();
   TH1* hratio = (TH1*) h_mc_dy->Clone(Form("%s_ratio", h_mc_dy->GetName()));
   hratio->Divide(h_embed);
-  hratio->Draw("hist");
+  hratio->SetLineWidth(2);
+  hratio->SetMarkerSize(0.8);
+  hratio->SetMarkerStyle(20);
+  hratio->SetMarkerColor(kBlack);
+  hratio->Draw("E1");
   hratio->SetTitle("");
   hratio->SetYTitle("MC DY / Embed");
   hratio->GetYaxis()->SetRangeUser(0.8, 1.2);
@@ -108,7 +127,7 @@ int compare_dy_embed(TString out_dir = "tau_bdt_study", TString hist_dir = "nano
 
   //Initialize the Embedding dataplotter
   cout << "Initializing Embedding dataplotter\n";
-  useEmbed_ = 1;
+  useEmbed_ = 2;
   if(nanoaod_init(selection, hist_dir, out_dir)) return 1;
   embed_plotter_ = dataplotter_;
   dataplotter_ = nullptr;
@@ -120,7 +139,11 @@ int compare_dy_embed(TString out_dir = "tau_bdt_study", TString hist_dir = "nano
   mc_dy_plotter_ = dataplotter_;
   dataplotter_ = nullptr;
 
+  const bool is_sf = selection == "mumu" || selection == "ee";
+
   int status(0);
+
+  cout << "Printing figures\n";
 
   //cutflow
   status += compare_hist(PlottingCard_t("onept", "lep", 1+get_offset(), 2, 20., 70.));
@@ -130,8 +153,10 @@ int compare_dy_embed(TString out_dir = "tau_bdt_study", TString hist_dir = "nano
 
   //nominal selection
   status += compare_hist(PlottingCard_t("onept"         , "lep"  , 8+get_offset(), 2, 20.,  70.));
-  status += compare_hist(PlottingCard_t("twopt"         , "lep"  , 8+get_offset(), 2, 20.,  70.));
+  status += compare_hist(PlottingCard_t("twopt"         , "lep"  , 8+get_offset(), 2, (is_sf) ? 10. : 20.,  70.));
   status += compare_hist(PlottingCard_t("ptratio"       , "lep"  , 8+get_offset(), 2,  0.,   2.));
+  status += compare_hist(PlottingCard_t("oneptrelerr"   , "lep"  , 8+get_offset(), 1,  1.,  -1.));
+  status += compare_hist(PlottingCard_t("twoptrelerr"   , "lep"  , 8+get_offset(), 1,  1.,  -1.));
   status += compare_hist(PlottingCard_t("oneeta"        , "lep"  , 8+get_offset(), 2,  1.,  -1.));
   status += compare_hist(PlottingCard_t("twoeta"        , "lep"  , 8+get_offset(), 2,  1.,  -1));
   status += compare_hist(PlottingCard_t("lepm"          , "event", 8+get_offset(), 5, 40., 100.));
@@ -147,6 +172,8 @@ int compare_dy_embed(TString out_dir = "tau_bdt_study", TString hist_dir = "nano
   status += compare_hist(PlottingCard_t("mttwooverm"    , "event", 8+get_offset(), 1,  0.,  1.5));
   status += compare_hist(PlottingCard_t("onemetdeltaphi", "lep"  , 8+get_offset(), 1,  0.,  3.2));
   status += compare_hist(PlottingCard_t("twometdeltaphi", "lep"  , 8+get_offset(), 1,  0.,  3.2));
+  status += compare_hist(PlottingCard_t("metdeltaphi"   , "event", 8+get_offset(), 1,  0.,  3.2));
+  status += compare_hist(PlottingCard_t("metoverleppt"  , "event", 8+get_offset(), 1,  1.,  -1.));
   status += compare_hist(PlottingCard_t("beta0"         , "event", 8+get_offset(), 1,  0.,   3.));
   status += compare_hist(PlottingCard_t("beta1"         , "event", 8+get_offset(), 1,  0.,   3.));
   status += compare_hist(PlottingCard_t("detectormet"   , "event", 8+get_offset(), 1,  0.,  60.));
@@ -154,48 +181,54 @@ int compare_dy_embed(TString out_dir = "tau_bdt_study", TString hist_dir = "nano
   status += compare_hist(PlottingCard_t("runera"        , "event", 8+get_offset(), 1,  1.,  -1.));
 
   //60 < M < 85 selection
-  status += compare_hist(PlottingCard_t("onept"         , "lep"  , 25+get_offset(), 2, 20.,  70.));
-  status += compare_hist(PlottingCard_t("twopt"         , "lep"  , 25+get_offset(), 2, 20.,  70.));
-  status += compare_hist(PlottingCard_t("ptratio"       , "lep"  , 25+get_offset(), 2,  0.,   2.));
-  status += compare_hist(PlottingCard_t("oneeta"        , "lep"  , 25+get_offset(), 2,  1.,  -1.));
-  status += compare_hist(PlottingCard_t("twoeta"        , "lep"  , 25+get_offset(), 2,  1.,  -1));
-  status += compare_hist(PlottingCard_t("lepm"          , "event", 25+get_offset(), 5, 40., 100.));
-  status += compare_hist(PlottingCard_t("lepmestimate"  , "event", 25+get_offset(), 5, 40., 200.));
-  status += compare_hist(PlottingCard_t("leppt"         , "event", 25+get_offset(), 2,  0.,  70.));
-  status += compare_hist(PlottingCard_t("lepeta"        , "event", 25+get_offset(), 1,  1.,  -1.));
-  status += compare_hist(PlottingCard_t("lepdeltaphi"   , "event", 25+get_offset(), 1,  1.,  -1.));
-  status += compare_hist(PlottingCard_t("met"           , "event", 25+get_offset(), 2,  0.,  70.));
-  status += compare_hist(PlottingCard_t("mtlep"         , "event", 25+get_offset(), 2,  0.,  70.));
-  status += compare_hist(PlottingCard_t("mtone"         , "event", 25+get_offset(), 2,  0.,  70.));
-  status += compare_hist(PlottingCard_t("mttwo"         , "event", 25+get_offset(), 2,  0.,  70.));
-  status += compare_hist(PlottingCard_t("mtoneoverm"    , "event", 25+get_offset(), 1,  0.,  1.5));
-  status += compare_hist(PlottingCard_t("mttwooverm"    , "event", 25+get_offset(), 1,  0.,  1.5));
-  status += compare_hist(PlottingCard_t("onemetdeltaphi", "lep"  , 25+get_offset(), 1,  0.,  3.2));
-  status += compare_hist(PlottingCard_t("twometdeltaphi", "lep"  , 25+get_offset(), 1,  0.,  3.2));
-  status += compare_hist(PlottingCard_t("beta0"         , "event", 25+get_offset(), 1,  0.,   3.));
-  status += compare_hist(PlottingCard_t("beta1"         , "event", 25+get_offset(), 1,  0.,   3.));
-  status += compare_hist(PlottingCard_t("detectormet"   , "event", 25+get_offset(), 1,  0.,  60.));
-  status += compare_hist(PlottingCard_t("nupt"          , "event", 25+get_offset(), 1,  0.,  40.));
-  status += compare_hist(PlottingCard_t("runera"        , "event", 25+get_offset(), 1,  1.,  -1.));
+  if(!is_sf) {
+    status += compare_hist(PlottingCard_t("onept"         , "lep"  , 25+get_offset(), 2, 20.,  70.));
+    status += compare_hist(PlottingCard_t("twopt"         , "lep"  , 25+get_offset(), 2, (is_sf) ? 10. : 20.,  70.));
+    status += compare_hist(PlottingCard_t("ptratio"       , "lep"  , 25+get_offset(), 2,  0.,   2.));
+    status += compare_hist(PlottingCard_t("oneeta"        , "lep"  , 25+get_offset(), 2,  1.,  -1.));
+    status += compare_hist(PlottingCard_t("twoeta"        , "lep"  , 25+get_offset(), 2,  1.,  -1));
+    status += compare_hist(PlottingCard_t("lepm"          , "event", 25+get_offset(), 5, (is_sf) ? 60. : 40., (is_sf) ? 120. : 100.));
+    status += compare_hist(PlottingCard_t("lepmestimate"  , "event", 25+get_offset(), 5, (is_sf) ? 60. : 40., 150.));
+    status += compare_hist(PlottingCard_t("leppt"         , "event", 25+get_offset(), 2,  0.,  70.));
+    status += compare_hist(PlottingCard_t("lepeta"        , "event", 25+get_offset(), 1,  1.,  -1.));
+    status += compare_hist(PlottingCard_t("lepdeltaphi"   , "event", 25+get_offset(), 1,  1.,  -1.));
+    status += compare_hist(PlottingCard_t("met"           , "event", 25+get_offset(), 2,  0.,  70.));
+    status += compare_hist(PlottingCard_t("mtlep"         , "event", 25+get_offset(), 2,  0.,  70.));
+    status += compare_hist(PlottingCard_t("mtone"         , "event", 25+get_offset(), 2,  0.,  70.));
+    status += compare_hist(PlottingCard_t("mttwo"         , "event", 25+get_offset(), 2,  0.,  70.));
+    status += compare_hist(PlottingCard_t("mtoneoverm"    , "event", 25+get_offset(), 1,  0.,  1.5));
+    status += compare_hist(PlottingCard_t("mttwooverm"    , "event", 25+get_offset(), 1,  0.,  1.5));
+    status += compare_hist(PlottingCard_t("onemetdeltaphi", "lep"  , 25+get_offset(), 1,  0.,  3.2));
+    status += compare_hist(PlottingCard_t("twometdeltaphi", "lep"  , 25+get_offset(), 1,  0.,  3.2));
+    status += compare_hist(PlottingCard_t("metdeltaphi"   , "event", 25+get_offset(), 1,  0.,  3.2));
+    status += compare_hist(PlottingCard_t("metoverleppt"  , "event", 25+get_offset(), 1,  1.,  -1.));
+    status += compare_hist(PlottingCard_t("beta0"         , "event", 25+get_offset(), 1,  0.,   3.));
+    status += compare_hist(PlottingCard_t("beta1"         , "event", 25+get_offset(), 1,  0.,   3.));
+    status += compare_hist(PlottingCard_t("detectormet"   , "event", 25+get_offset(), 1,  0.,  60.));
+    status += compare_hist(PlottingCard_t("nupt"          , "event", 25+get_offset(), 1,  0.,  40.));
+    status += compare_hist(PlottingCard_t("runera"        , "event", 25+get_offset(), 1,  1.,  -1.));
 
-  //print BDT distributions
-  TString mva = "mva";
-  if(selection == "mutau"  ) mva = "mva1";
-  if(selection == "etau"   ) mva = "mva3";
-  if(selection == "emu"    ) mva = "mva5";
-  if(selection == "mutau_e") mva = "mva7";
-  if(selection == "etau_mu") mva = "mva9";
-  status += compare_hist(PlottingCard_t(mva, "event", 8 +get_offset(), 1,  1.,  -1.));
-  status += compare_hist(PlottingCard_t(mva, "event", 25+get_offset(), 1,  1.,  -1.));
-  status += compare_hist(PlottingCard_t(mva, "event", 27+get_offset(), 1,  1.,  -1.));
+    //print BDT distributions
+    TString mva = "mva";
+    if(selection == "mutau"  ) mva = "mva1";
+    if(selection == "etau"   ) mva = "mva3";
+    if(selection == "emu"    ) mva = "mva5";
+    if(selection == "mutau_e") mva = "mva7";
+    if(selection == "etau_mu") mva = "mva9";
+    status += compare_hist(PlottingCard_t(mva, "event", 8 +get_offset(), 1,  1.,  -1.));
+    status += compare_hist(PlottingCard_t(mva, "event", 25+get_offset(), 1,  1.,  -1.));
+    status += compare_hist(PlottingCard_t(mva, "event", 27+get_offset(), 1,  1.,  -1.));
+  }
 
   //gen-level Z info
-  status += compare_hist(PlottingCard_t("zeta"      , "event", 8+get_offset(), 1,  1.,  -1.));
-  status += compare_hist(PlottingCard_t("zmass5"    , "event", 8+get_offset(), 1, 70., 110.));
-  status += compare_hist(PlottingCard_t("zleponept" , "event", 8+get_offset(), 1,  1.,  -1.));
-  status += compare_hist(PlottingCard_t("zleptwopt" , "event", 8+get_offset(), 1,  1.,  -1.));
-  status += compare_hist(PlottingCard_t("zleponeeta", "event", 8+get_offset(), 1,  1.,  -1.));
-  status += compare_hist(PlottingCard_t("zleptwoeta", "event", 8+get_offset(), 1,  1.,  -1.));
+  status += compare_hist(PlottingCard_t("zeta"        , "event", 8+get_offset(), 1,  1.,  -1.));
+  status += compare_hist(PlottingCard_t("zmass5"      , "event", 8+get_offset(), 1, 70., 110.));
+  status += compare_hist(PlottingCard_t("zleponept"   , "event", 8+get_offset(), 1,  1.,  -1.));
+  status += compare_hist(PlottingCard_t("zleptwopt"   , "event", 8+get_offset(), 1,  1.,  -1.));
+  status += compare_hist(PlottingCard_t("zleponeeta"  , "event", 8+get_offset(), 1,  1.,  -1.));
+  status += compare_hist(PlottingCard_t("zleptwoeta"  , "event", 8+get_offset(), 1,  1.,  -1.));
+  status += compare_hist(PlottingCard_t("zleponeeloss", "event", 8+get_offset(), 1,  0.,  0.1));
+  status += compare_hist(PlottingCard_t("zleptwoeloss", "event", 8+get_offset(), 1,  0.,  0.1));
 
-  return 0;
+  return status;
 }

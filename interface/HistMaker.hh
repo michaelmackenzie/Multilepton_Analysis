@@ -305,7 +305,7 @@ namespace CLFV {
     Float_t ht                         ;
     Float_t htPhi                      ;
 
-    //Different met definitions
+    //Puppi MET information/uncertainties
     Float_t puppMET                    ;
     Float_t puppMETphi                 ;
     Float_t puppMETJERUp               ;
@@ -318,6 +318,10 @@ namespace CLFV {
     Float_t puppMETphiJESDown          ; //locally evaluated
     Float_t puppMETSumEt               ;
     Float_t puppMETSig                 ; //locally evaluated
+
+    //PF MET
+    Float_t PFMET                      ;
+    Float_t PFMETphi                   ;
 
     //MET field to use
     Float_t met                        ;
@@ -875,6 +879,7 @@ namespace CLFV {
     Int_t           fEmbedUseMETUnc = 1; //whether to include MET JER/JES uncertainties in the embedding MET uncertainty
     Int_t           fEmbedUseMCTauID = 0; //use MC measured tau ID corrections instead of Embedding corrections
     Int_t           fUseEmbedZMatching = 0; //match Embedding normalization to gen-level Z->tau_x tau_y rates in a Z mass window
+    Int_t           fApplyEmbedMETDPhiCorr = 0; //update the detector MET phi based on mumu data comparisons
     Int_t           fUseRoccoCorr = 1; //use Rochester corrections, 0 = none, 1 = local, 2 = ntuple-level
     Int_t           fUseRoccoSize = 1; //use the size of the Rochester corrections as the uncertainty
     Int_t           fApplyElectronResolution = 1; //apply resolution corrections to the electrons

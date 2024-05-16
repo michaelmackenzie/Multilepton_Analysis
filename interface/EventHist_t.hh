@@ -133,6 +133,7 @@ namespace CLFV {
     TH1* hCovMet00;
     TH1* hCovMet01;
     TH1* hCovMet11;
+    TH1* hMetOverLepPt;
     TH2* hMetVsPt;
     TH2* hMetVsM;
     TH2* hMetVsHtSum; //MET ~ sqrt(htsum)
@@ -165,6 +166,8 @@ namespace CLFV {
     TH1* hZLepTwoPt;
     TH1* hZLepOneEta;
     TH1* hZLepTwoEta;
+    TH1* hZLepOneELoss;
+    TH1* hZLepTwoELoss;
     TH1* hZDecayMode; //0: unknown; 1: ee; 2: mumu; 3: tau_e tau_e; 4: tau_mu tau_mu; 5: tau_e tau_mu; 6: tau_e tau_h; 7: tau_mu tau_h; 8: tau_h tau_h
 
     TH1* hLooseLep;

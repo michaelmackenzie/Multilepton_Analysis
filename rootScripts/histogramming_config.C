@@ -31,7 +31,7 @@ HISTOGRAMMER* selector_   = nullptr;
 
 Long64_t max_sim_events_  = -1; //5e5; //maximum number of events to skim in simulation, -1 to ignore
 Double_t max_data_events_ = -1; //0.2 //maximum fraction of events to skim in data, -1 to ignore
-Int_t    only_dy_loop_    = -1; //only Drell-Yan processing loop to process (-1 to process all)
+Int_t    only_dy_loop_    = -1; //only Drell-Yan processing loop to process (-1 to process all, 1 = tau, 2 = ee/mumu)
 
 bool DYFakeTau_           = false; //speed up dy fake tau scale factor
 bool WJFakeTau_           = false; //speed up w+jets fake tau scale factor
@@ -62,7 +62,7 @@ int useLepDxyzWeights_    =  1; //use dxy/dz displacement weights (emu/mumu/ee o
 int removeEventWeights_   =  0; //remove most (1) or all (2) event weights
 
 int updateMCEra_          =  1; //0: do nothing 1: throw random number for MC era (data/embedding not random)
-int updateMET_            =  1; //Update MET with lepton energy scale changes
+int updateMET_            =  1; //Update MET with lepton energy scale changes: 1: update MET; 2: update non-Embedding MET
 int useEventFlags_        =  1; //apply event flags/filtering
 int useMCFakeLep_         =  0; //use MC estimated fake light leptons
 int useMCFakeTau_         =  0; //0: no MC j-->tau; 1: MC j-->tau, QCD j-->tau weights; 2: MC j-->tau, no j-->tau weights
@@ -84,9 +84,11 @@ int useEmbedCuts_         =  2; //use kinematic cuts based on embedded generatio
 int embeddedTesting_      =  0; //test embedding options: 3 = use KIT measured scales
 int useEmbedRocco_        =  2; //0: no correction and LFV Higgs AN muon sys; 1: use Rochester correction and sys; 2: use correction but separate uncertainty
 int useEmbMuonES_         =  0; //apply Embed --> MC muon energy scales
+int useEmbEleRes_         =  1; //apply Embed --> MC electron resolution corrections
 int embedUseMETUnc_       =  0; //use MET uncertainties in embedding: 1: use JER/JES; 2: use approximate errors on (MET - nu pT)
 int embedUseMCTauID_      =  1; //1: use MC Tau ID scales (but not energy scales) in Embedding; 2: use MC Tau ID and energy scales in Embedding
 int useEmbedZMatching_    =  1; //1: match gen-Z rate MC to embed rate; 2: match using reco (only if floating the embedding)
+int applyEmbedMetDPhi_    =  0; //apply a correction to the detector MET angle wrt the Z legs
 int useEmbedBDTUnc_       =  0; //use gen-level BDT score uncertainty in embedding
 
 int doEmuDefaults_        =  1; //set to default emu running
