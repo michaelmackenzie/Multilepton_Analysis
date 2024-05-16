@@ -84,8 +84,9 @@ std::pair<TString,TString> systematic_name(int sys, TString selection, int year,
   }
 
 
-  if(name == "EmbMET") name = ""; //Embedding detector MET uncertainty
-  if(name == "EmbBDT") name = ""; //Embedding gen-level mumu BDT response uncertainty
+  if(name == "EmbMET"        ) name = ""; //Embedding detector MET uncertainty
+  if(name == "EmbDetectorMET") name = ""; //Embedding detector MET uncertainty
+  if(name == "EmbBDT"        ) name = ""; //Embedding gen-level mumu BDT response uncertainty
 
   //j-->tau bias systematic configuration check
   const int jtt_bias_mode = 1; //mode XY: X = 1: uncorrelated j-->tau bias in mass regions; Y = 1: use separate rate bias from shape bias
@@ -256,6 +257,7 @@ std::pair<TString,TString> systematic_name(int sys, TString selection, int year,
   else if(name == "EmbMET"             ) name = Form("%sY%i", name.Data(), year);
   else if(name.Contains("BTag")        ) name = Form("%s-%s", name.Data(), (selection.EndsWith("tau")) ? "had" : "lep"); //FIXME: Decide correlation between years, and tight/loose ID
   else if(name == "SignalMixing"       ) name = Form("%sY%i", name.Data(), year);
+  else if(name == "EmbDetectorMET"     ) name = Form("%sY%i", name.Data(), year);
 
   return std::pair<TString,TString>(name,type);
 }

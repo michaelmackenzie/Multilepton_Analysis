@@ -5,10 +5,11 @@ Help() {
     echo " --selection     (-S  ): Selection (e.g. \"zmutau\")"
     echo " --hists         (-H  ): Histogram path (e.g. \"nanoaods_mva_dev\")"
     echo " --years         (-y  ): Year list (default \"{2016,2017,2018}\")"
-    echo " --hadsets       (-had): Histogram sets for hadronic taus (default \"{8}\")"
-    echo " --lepsets       (-lep): Histogram sets for leptonic taus (default \"{8}\")"
+    echo " --hadsets       (-had): Histogram sets for hadronic taus (default \"{25,26,27,28}\")"
+    echo " --lepsets       (-lep): Histogram sets for leptonic taus (default \"{25,26,27}\")"
     echo " --skipretrieval (-R  ): Skip histogram retrieval step flag"
     echo " --skipcards     (-C  ): Skip card creation step flag, only merge cards"
+    echo " --retrieveonly  (-RO ): Only do histogram retrieval step flag"
     echo " --parallel      (-p  ): Retrieve histograms in parallel"
     echo " --tag                 : Tag for produced combine cards (Not implemented)"
     echo " --dryrun              : Dry-run flag"
@@ -21,6 +22,7 @@ HADSETS="{25,26,27,28}"
 LEPSETS="{25,26,27}"
 SKIPRETRIEVAL=""
 SKIPCREATION=""
+RETRIEVEONLY=""
 PARALLEL=""
 TAG=""
 DRYRUN=""
@@ -67,9 +69,9 @@ do
     elif [[ "${var}" == "--skipcards" ]] || [[ "${var}" == "-C" ]]
     then
         SKIPCREATION="d"
-    elif [[ "${var}" == "--mctemplates" ]] || [[ "${var}" == "-M" ]]
+    elif [[ "${var}" == "--retrieveonly" ]] || [[ "${var}" == "-RO" ]]
     then
-        MCTEMPLATES="d"
+        RETRIEVEONLY="d"
     elif [[ "${var}" == "--tag" ]]
     then
         iarg=$((iarg + 1))
@@ -174,6 +176,12 @@ then
             fi
         done
     fi
+fi
+
+if [[ "${RETRIEVEONLY}" != "" ]]
+then
+    echo "Finished processing"
+    exit
 fi
 
 echo "Creating data cards"

@@ -4,6 +4,7 @@ bool speed_limit_     = true; //use Combine arguments to speed up limit calculat
 bool preliminary_     = true;
 bool add_values_      = true; //add text values of the limits to the plot
 bool blinding_offset_ = true;
+bool add_asimov_      = true; //add Asimov error bar sizes
 
 struct config_t {
   TString name_;
@@ -32,6 +33,7 @@ int measurement_consistency(vector<config_t> configs, //info for each entry
   //Fit results for each input
   vector<TFile*> file_list;
   vector<TTree*> tree_list;
+  vector<TTree*> asimov_list;
 
   //Loop through each input configuration
   for(config_t config : configs) {
@@ -71,9 +73,15 @@ int measurement_consistency(vector<config_t> configs, //info for each entry
                              card.Data());
       printf(">>> %s\n", command.Data());
       gSystem->Exec(command.Data());
+      if(add_asimov_) { //evaluate the expected uncertainties using the Asimov template
+        command.ReplaceAll(Form("--name _%s", card.Data()), Form("--name _%s_Asimov", card.Data()));
+        command.ReplaceAll(" -d", " -t -1 -d");
+        command.ReplaceAll(">| fit_", ">| fit_asimov_");
+        printf(">>> %s\n", command.Data());
+        gSystem->Exec(command.Data());
+      }
     }
 
-    // TFile* f = TFile::Open(Form("higgsCombine_%s.FitDiagnostics.mH120.root", card.Data()), "READ");
     TFile* f = TFile::Open(Form("fitDiagnostics_%s.root", card.Data()), "READ");
     if(!f) return 4;
     file_list.push_back(f);
@@ -84,13 +92,25 @@ int measurement_consistency(vector<config_t> configs, //info for each entry
     }
     t->SetName(Form("tree_fit_sb_%s", card.Data()));
     tree_list.push_back(t);
+    if(add_asimov_) { //add the asimov expected uncertainties
+      TFile* f = TFile::Open(Form("fitDiagnostics_%s_Asimov.root", card.Data()), "READ");
+      if(!f) return 4;
+      file_list.push_back(f);
+      TTree* t = (TTree*) f->Get("tree_fit_sb");
+      if(!t) {
+        cout << "Tree for card name " << card.Data() << " not found\n";
+        return 5;
+      }
+      t->SetName(Form("tree_fit_sb_%s_asimov", card.Data()));
+      asimov_list.push_back(t);
+    }
     gSystem->cd("../..");
   }
 
   TRandom3 rnd((selection == "zmutau") ? 90 : (selection == "zetau") ? 91 : 92); //different seed for each selection, to not compare between plots
   const double offset = (blinding_offset_) ? 300.*(rnd.Uniform() - 0.5) : 0.; //offset the measurements by a fixed value if blinding
   const int nfiles = configs.size();
-  double obs[nfiles], up[nfiles], down[nfiles], y[nfiles], yerr[nfiles];
+  double obs[nfiles], up[nfiles], down[nfiles], y[nfiles], yerr[nfiles], asimov_up[nfiles], asimov_down[nfiles];
   double max_val = -1.e9;
   double min_val =  1.e9;
   for(int itree = 0; itree < nfiles; ++itree) {
@@ -109,9 +129,23 @@ int measurement_consistency(vector<config_t> configs, //info for each entry
     yerr[itree] = 0.2;
     max_val = max(max_val, obs[itree] + up  [itree]);
     min_val = min(min_val, obs[itree] - down[itree]);
-    printf("%s: r = %.5e (+%.5e, -%.5e) [%.5e - %.5e]\n", configs[itree].name_.Data(),
+
+    if(add_asimov_) {
+      TTree* t_a = asimov_list[itree];
+      t_a->SetBranchAddress("rLoErr", &rloerr);
+      t_a->SetBranchAddress("rHiErr", &rhierr);
+      t_a->GetEntry(0);
+      asimov_up  [itree] = scale*rhierr;
+      asimov_down[itree] = scale*rloerr;
+    }
+
+    printf("%s: r = %.5e (+%.5e, -%.5e) [%.5e - %.5e]", configs[itree].name_.Data(),
            obs[itree], up[itree], down[itree],
            obs[itree] - down[itree], obs[itree]  + up[itree]);
+    if(add_asimov_) {
+      printf(" asimov: (+%.5e, -%.5e)", asimov_up[itree], asimov_down[itree]);
+    }
+    printf("\n");
   }
 
   TGraphAsymmErrors* gobs = new TGraphAsymmErrors(nfiles, obs, y, down, up, yerr, yerr);
@@ -144,6 +178,16 @@ int measurement_consistency(vector<config_t> configs, //info for each entry
   haxis->Draw();
 
   //Add the graphs to the plot
+
+  if(add_asimov_) {
+    TGraphAsymmErrors* gasimov = new TGraphAsymmErrors(nfiles, obs, y, asimov_down, asimov_up, yerr, yerr);
+    gasimov->SetName("asimov");
+    gasimov->SetFillColor(kGreen+1);
+    gasimov->SetMarkerColor(0);
+    gasimov->SetLineColor(0);
+    gasimov->Draw("E2");
+  }
+
   gobs->Draw("PE");
   haxis->GetYaxis()->SetRangeUser(ymin, ymax);
   haxis->GetXaxis()->SetRangeUser(xmin, xmax);
@@ -200,5 +244,8 @@ int measurement_consistency(vector<config_t> configs, //info for each entry
 
   gSystem->Exec("[ ! -d measurements ] && mkdir measurements");
   c->Print(Form("measurements/measurement_%s_%s.png", selection.Data(), tag.Data()));
+
+  for(auto file : file_list) file->Close();
+
   return 0;
 }

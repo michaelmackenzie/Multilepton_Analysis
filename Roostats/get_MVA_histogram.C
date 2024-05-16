@@ -5,6 +5,7 @@
 
 int overall_rebin_ = 0;
 TH1* hbkg_;
+THStack* hstack_;
 vector<TH1*> hsigs_;
 int  test_sys_        =    -1; //set to systematic number if debugging/inspecting it
 int  blind_data_      =     1; //1: don't plot high score data; 2: set data bins > MVA score level to 0
@@ -294,127 +295,167 @@ int plot_stat_sys(THStack* stack, vector<TH1*> sigs, TH1* hdata, TString name) {
   return 0;
 }
 
+// //---------------------------------------------------------------------------------------------------------------------
+// // Print a two-sided uncertainty plot
+// int print_systematic_canvas(TH1* nominal, TH1* data,
+//                             THStack* stack_up, THStack* stack_down,
+//                             TH1* nom_sig, TH1* sig_up, TH1* sig_down,
+//                             const char* name, const char* fig_name) {
+//   //Check the inputs
+//   if(!data || !stack_up || !stack_down || !nom_sig || !sig_up || !sig_down) return 1;
+//   if(!nominal) nominal = hbkg_;
+
+//   //Make the canvas
+//   TCanvas* c = new TCanvas(name, name, 1200, 900);
+//   TPad* pad1 = new TPad("pad1", "pad1", 0., 0.3, 1., 1. );
+//   TPad* pad2 = new TPad("pad2", "pad2", 0., 0. , 1., 0.3);
+//   pad1->SetBottomMargin(0.06);
+//   pad2->SetTopMargin(0.03);
+//   pad1->Draw(); pad2->Draw();
+//   pad1->cd();
+
+//   //Draw the total stack / data on top using the up templates just to see major contributions
+//   data->Draw("E1");
+//   stack_up->Draw("hist noclear same");
+//   sig_up->Draw("hist same");
+//   data->Draw("E1 same");
+//   data->GetXaxis()->SetRangeUser(xmin_,xmax_);
+//   data->GetYaxis()->SetRangeUser((logy_) ? 0.5 : 0.9,((logy_) ? 2 : 1.1)*max(data->GetMaximum(), ((TH1*) stack_up->GetStack()->Last())->GetMaximum()));
+//   data->SetTitle("");
+//   if(logy_) pad1->SetLogy();
+
+//   //Draw ratio plots on the bottom
+//   pad2->cd();
+//   TH1* data_ratio = (TH1*) data->Clone("data_ratio"); data_ratio->Divide(nominal);
+//   TH1* bkg_ratio_up   = (TH1*) stack_up  ->GetStack()->Last()->Clone("bkg_ratio_up"  ); bkg_ratio_up  ->Divide(nominal);
+//   TH1* bkg_ratio_down = (TH1*) stack_down->GetStack()->Last()->Clone("bkg_ratio_down"); bkg_ratio_down->Divide(nominal);
+//   TH1* sig_ratio_up   = (TH1*) sig_up  ->Clone("sig_ratio_up"  ); sig_ratio_up  ->Divide(nom_sig);
+//   TH1* sig_ratio_down = (TH1*) sig_down->Clone("sig_ratio_down"); sig_ratio_down->Divide(nom_sig);
+
+//   double min_r = min(    Utilities::H1Min(bkg_ratio_up, xmin_, xmax_), Utilities::H1Min(bkg_ratio_down, xmin_, xmax_));
+//   min_r = min(min_r, min(Utilities::H1Min(sig_ratio_up, xmin_, xmax_), Utilities::H1Min(sig_ratio_down, xmin_, xmax_)));
+//   double max_r = max(    Utilities::H1Max(bkg_ratio_up, xmin_, xmax_), Utilities::H1Max(bkg_ratio_down, xmin_, xmax_));
+//   max_r = max(max_r, max(Utilities::H1Max(sig_ratio_up, xmin_, xmax_), Utilities::H1Max(sig_ratio_down, xmin_, xmax_)));
+
+//   min_r = min(0.95, min_r - 0.05*(1. - min_r));
+//   max_r = max(1.05, max_r + 0.05*(max_r - 1.));
+
+//   bkg_ratio_up->SetLineColor(kRed-3);
+//   bkg_ratio_up->SetLineWidth(2);
+//   bkg_ratio_up->SetFillColor(0);
+//   sig_ratio_up->SetLineWidth(2);
+//   sig_ratio_up->SetFillColor(0);
+
+//   data_ratio->Draw("E1");
+//   sig_ratio_up->Draw("hist same");
+//   bkg_ratio_up->Draw("hist same");
+//   data_ratio->GetYaxis()->SetRangeUser(min_r, max_r);
+//   data_ratio->GetXaxis()->SetRangeUser(xmin_, xmax_);
+//   data_ratio->GetXaxis()->SetLabelSize(0.08);
+//   data_ratio->GetYaxis()->SetLabelSize(0.08);
+
+//   //Print the figure
+//   c->SaveAs(fig_name);
+
+//   delete c;
+//   delete bkg_ratio_up;
+//   delete bkg_ratio_down;
+//   delete sig_ratio_up;
+//   delete sig_ratio_down;
+//   delete data_ratio;
+
+//   return 0;
+// }
 
 //---------------------------------------------------------------------------------------------------------------------
-int get_same_flavor_systematics(int set, TString hist, TH1* hdata, TFile* f) {
-  int status(0);
-  f->cd();
-  dataplotter_->rebinH_ = 1;
+// Print a one-sided uncertainty plot
+int print_systematic_canvas(TH1* nominal, TH1* data, THStack* stack, TH1* nom_sig, TH1* sig,
+                            const char* name, const char* fig_name) {
+  //Check the inputs
+  if(!data || !stack || !nom_sig || !sig) return 1;
+  if(!nominal) nominal = hbkg_;
 
-  CLFV::Systematics systematics;
+  //Make the canvas
+  TCanvas* c = new TCanvas(name, name, 1200, 900);
+  TPad* pad1 = new TPad("pad1", "pad1", 0., 0.3, 1., 1. );
+  TPad* pad2 = new TPad("pad2", "pad2", 0., 0. , 1., 0.3);
+  pad1->SetBottomMargin(0.06);
+  pad2->SetTopMargin(0.03);
+  pad1->Draw(); pad2->Draw();
+  pad1->cd();
 
-  //Loop through each systematic, creating PDFs and example figures
-  for(int isys = (test_sys_ >= 0 ? test_sys_ : 0); isys < (test_sys_ >= 0 ? test_sys_ + 1 : kMaxSystematics); ++isys) {
-    TString name = systematics.GetName(isys);
-    if(name == "") continue; //only retrieve defined systematics
+  //Draw the total stack / data on top
+  data->Draw("E1");
+  stack->Draw("hist noclear same");
+  sig->Draw("hist same");
+  data->Draw("E1 same");
+  data->GetXaxis()->SetRangeUser(xmin_,xmax_);
+  const double max_val = max(Utilities::H1Max(data, xmin_, xmax_), Utilities::H1Max((TH1*) stack->GetStack()->Last(), xmin_, xmax_));
+  data->GetYaxis()->SetRangeUser((logy_) ? 0.5 : 0.9, ((logy_) ? 2 : 1.1)*max_val);
+  data->SetTitle("");
+  if(logy_) pad1->SetLogy();
 
-    cout << "Getting same flavor systematic " << isys << " for set " << set << endl;
-    //Get background for the systematic
-    THStack* hstack = dataplotter_->get_stack(Form("%s_%i", hist.Data(), isys), "systematic", set);
-    if(!hstack) {++status; continue;}
-    if(!hstack->GetStack()) {++status; continue;}
-    vector<TH1*> signals = dataplotter_->get_signal(Form("%s_%i", hist.Data(), isys), "systematic", set);
-    if(signals.size() == 0) {++status; continue;}
+  //Draw ratio plots on the bottom
+  pad2->cd();
+  vector<TH1*> h_to_delete;
+  TH1* bkg_ratio = (TH1*) stack->GetStack()->Last()->Clone("bkg_ratio");
+  bkg_ratio->Divide(nominal);
+  TH1* sig_ratio = (TH1*) sig->Clone("sig_ratio");
+  sig_ratio->Divide(nom_sig);
+  TH1* data_ratio = (TH1*) data->Clone("data_ratio");
+  data_ratio->Divide(nominal);
+  h_to_delete.push_back(bkg_ratio);
+  h_to_delete.push_back(sig_ratio);
+  h_to_delete.push_back(data_ratio);
 
-    hstack->SetName(Form("hstack_sys_%i", isys));
-    TH1* hbkg = (TH1*) hstack->GetStack()->Last();
-    hbkg->SetName(Form("hbkg_sys_%i", isys));
-    hbkg->Write();
-    hstack->Write();
+  const double max_bkg_val(Utilities::H1Max(bkg_ratio, xmin_, xmax_)), min_bkg_val(Utilities::H1Min(bkg_ratio, xmin_, xmax_));
+  const double max_sig_val(Utilities::H1Max(sig_ratio, xmin_, xmax_)), min_sig_val(Utilities::H1Min(sig_ratio, xmin_, xmax_));
+  double min_r = min((min_bkg_val <= 0.) ? 0.95 : min_bkg_val, (min_sig_val <= 0.) ? 0.95 : min_sig_val); //try to catch cases with val = 0
+  double max_r = max(max_bkg_val, max_sig_val);
+  min_r = max(0.85, min(0.95, min_r - 0.05*(1. - min_r))); //set the ratio bounds to be between 5-15% with a small buffer
+  max_r = min(1.15, max(1.05, max_r + 0.05*(max_r - 1.)));
 
-    for(auto h : signals) {
-      TString hname = h->GetName();
-      if(dataplotter_->signal_scales_.find(hname) != dataplotter_->signal_scales_.end())
-        h->Scale(1./dataplotter_->signal_scales_[hname]);
-      else
-        h->Scale(1./dataplotter_->signal_scale_);
-      hname.ReplaceAll("#", "");
-      hname.ReplaceAll("->", "");
-      hname.ReplaceAll(Form("_%s_%i_%i", hist.Data(), isys, set), "");
-      hname.ToLower();
-      hname += "_sys_"; hname += isys;
-      h->SetName(hname.Data());
-      h->Write();
-    }
-    // f->Flush();
-  }
-  return status;
-}
+  bkg_ratio->SetLineColor(kRed-3);
+  bkg_ratio->SetLineWidth(2);
+  bkg_ratio->SetFillColor(0);
+  sig_ratio->SetLineWidth(2);
+  sig_ratio->SetFillColor(0);
 
+  data_ratio->Draw("E1");
+  sig_ratio->Draw("hist same");
+  bkg_ratio->Draw("hist same");
+  data_ratio->GetYaxis()->SetRangeUser(min_r, max_r);
+  data_ratio->GetXaxis()->SetRangeUser(xmin_, xmax_);
+  data_ratio->GetXaxis()->SetLabelSize(0.08);
+  data_ratio->GetYaxis()->SetLabelSize(0.08);
 
-//---------------------------------------------------------------------------------------------------------------------
-int get_same_flavor_histogram(int set = 8, TString selection = "mumu",
-                              vector<int> years = {2016, 2017, 2018},
-                              TString base = "nanoaods_dev") {
-
-  int status(0);
-  TString hist = "lepm";
-
-  if(selection != "mumu" && selection != "ee") {
-    cout << "Undefined same flavor selection " << selection.Data() << endl;
-    return 1;
-  }
-
-  //initialize the dataplotter
-  years_ = years;
-  status = initialize_plotter(selection, base);
-  if(status) {
-    cout << "DataPlotter initialization returned " << status << ", exiting!\n";
-    return status;
-  }
-
-  int set_offset = HistMaker::kMuMu;
-  if     (selection == "ee") set_offset = HistMaker::kEE;
-
-  dataplotter_->rebinH_ = 1;
-  //get background distribution
-  THStack* hstack = dataplotter_->get_stack(hist, "event", set+set_offset);
-  if(!hstack) return 1;
-
-  std::vector<TH1*> signals = dataplotter_->get_signal(hist, "event", set+set_offset);
-  if(signals.size() == 0) return 2;
-  for(auto h : signals) {
-    if(!h) return 2;
-  }
-
-  TH1* hdata = dataplotter_->get_data(hist, "event", set+set_offset);
-  if(!hdata) return 3;
-  hdata->SetName("hdata");
-
-  TString year_string;
-  for(unsigned i = 0; i < years.size(); ++i) {
-    if(i > 0) year_string += "_";
-    year_string += years[i];
+  //Draw each stack component ratio
+  const int nhists = stack->GetNhists();
+  for(int ihist = 0; ihist < nhists; ++ihist) {
+    TH1* h     = (TH1*) stack  ->GetHists()->At(ihist)->Clone(Form("h_stack_ratio_%i", ihist));
+    TH1* h_nom = (TH1*) hstack_->GetHists()->At(ihist);
+    h->Add(h_nom, -1); //subtract off the nominal to get the shift
+    //Add the nominal and then divide by it to get the relative effect on the total
+    h->Add(nominal);
+    h->Divide(nominal);
+    int color = h_nom->GetLineColor();
+    if(color == kYellow - 7) color = kOrange; //make some colors more visible
+    if(color == kGreen  - 7) color = kGreen - 3;
+    h->SetLineColor(color);
+    h->SetLineWidth(3);
+    h->SetFillColor(0);
+    h->SetLineStyle(kDashed);
+    h->Draw("hist same");
+    h_to_delete.push_back(h);
   }
 
-  gSystem->Exec("[ ! -d histograms ] && mkdir histograms");
-  TFile* fout = new TFile((save_) ? Form("histograms/%s_CR_lepm_%i_%s.hist", selection.Data(), set, year_string.Data()) : "TMP_cr.root", "RECREATE");
-  hdata->Write();
-  hstack->SetName("hstack");
-  hstack->Write();
-  TH1* hlast = (TH1*) hstack->GetStack()->Last();
-  hlast->SetName("hbackground");
-  hlast->Write();
+  //Print the figure
+  c->SaveAs(fig_name);
 
-  for(auto h : signals) {
-    TString hname = h->GetName();
-    hname.ReplaceAll("#", "");
-    hname.ReplaceAll("->", "");
-    hname.ReplaceAll(Form("_%s_%i", hist.Data(), set+set_offset), "");
-    hname.ToLower();
-    h->SetName(hname.Data());
-    if(dataplotter_->signal_scales_.find(hname) != dataplotter_->signal_scales_.end())
-      h->Scale(1./dataplotter_->signal_scales_[hname]);
-    else
-      h->Scale(1./dataplotter_->signal_scale_);
-    h->Write();
-  }
+  delete c;
+  for(auto h : h_to_delete) delete h;
 
-  if(!ignore_sys_)
-    status += get_same_flavor_systematics(set+set_offset, hist, hdata, fout);
-  fout->Write();
-  fout->Close();
-  return status;
+  return 0;
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -422,9 +463,9 @@ int get_systematics(int set, TString hist, TH1* hdata, TFile* f, TString canvas_
   int status(0);
   f->cd();
   dataplotter_->rebinH_ = overall_rebin_;
-  hbkg_->SetLineColor(kRed-3);
+  hbkg_->SetLineColor(kRed-3); //nominal background
   hbkg_->SetFillColor(0);
-  TH1* hdata_ratio = (TH1*) hdata->Clone("hdata_ratio");
+  TH1* hdata_ratio = (TH1*) hdata->Clone("hdata_ratio"); //data ratio doesn't change
   hdata_ratio->Divide(hbkg_);
 
   CLFV::Systematics systematics;
@@ -432,7 +473,7 @@ int get_systematics(int set, TString hist, TH1* hdata, TFile* f, TString canvas_
   if(print_sys_plots_) gSystem->Exec(Form("mkdir -p %s_sys", canvas_name.Data()));
 
   //Loop through each systematic, creating PDFs and example figures
-  const int sys_start = (test_sys_ >= 0) ? test_sys_     : (skip_shape_sys_) ? kMaxSystematics : -2;
+  const int sys_start = (test_sys_ >= 0) ? test_sys_     : (skip_shape_sys_) ? kMaxSystematics : 0;
   const int sys_max   = (test_sys_ >= 0) ? test_sys_ + 1 : (use_scale_sys_ ) ? kMaxSystematics + kMaxScaleSystematics : kMaxSystematics;
   for(int isys = sys_start; isys < sys_max; ++isys) {
     if(isys > 0 && systematics.GetName(isys) == "") continue; //only retrieve defined systematics
@@ -487,100 +528,95 @@ int get_systematics(int set, TString hist, TH1* hdata, TFile* f, TString canvas_
     // Plot the shifted distributions
 
     if(print_sys_plots_) {
-      TCanvas* c = new TCanvas(Form("c_sys_%i", isys), Form("c_sys_%i", isys), 1200, 900);
-      TPad* pad1 = new TPad("pad1", "pad1", 0., 0.3, 1., 1. );
-      TPad* pad2 = new TPad("pad2", "pad2", 0., 0. , 1., 0.3);
-      pad1->Draw(); pad2->Draw();
-      pad1->cd();
-
-      //if isys < 0, plot the statistical uncertainty
-      if(isys < 0) {
-        for(int ibin = 1; ibin <= hbkg->GetNbinsX(); ++ibin) {
-          double bin_val = hbkg->GetBinContent(ibin);
-          double bin_err = hbkg->GetBinError(ibin);
-          hbkg->SetBinContent(ibin, (isys == -2) ? bin_val + bin_err : bin_val - bin_err);
-          for(TH1* signal : signals) {
-            bin_val = signal->GetBinContent(ibin);
-            bin_err = signal->GetBinError(ibin);
-            signal->SetBinContent(ibin, (isys == -2) ? bin_val + bin_err : bin_val - bin_err);
-          }
-        }
-      }
-
-      //Get the systematic shift as a TGraph
-      TGraph* g_bkg = dataplotter_->get_errors(hbkg_, hbkg, 0);
-      g_bkg->SetFillColor(kRed-3);
-      g_bkg->SetLineWidth(2);
-      g_bkg->SetLineColor(kRed-3);
-      g_bkg->SetFillStyle(3001);
-      g_bkg->Draw("AP2");
-      hbkg_->Draw("hist same");
-      g_bkg->Draw("P2");
-
-      double ymax = max(hdata->GetMaximum(), hbkg_->GetMaximum());
-      //Get the signal systematic shifts
-      for(unsigned index = 0; index < signals.size(); ++index) {
-        auto h = signals[index];
-        auto hnom = hsigs_[index];
-        TGraph* g_sig = dataplotter_->get_errors(hnom, h, 0);
-        hnom->SetFillColor(0);
-        hnom->SetLineWidth(2);
-        hnom->Draw("hist same");
-        g_sig->SetLineColor(hnom->GetLineColor());
-        g_sig->SetFillStyle(3001);
-        g_sig->SetFillColor(g_sig->GetLineColor());
-        g_sig->Draw("P2");
-        ymax = max(ymax, g_sig->GetMaximum());
-      }
-      hdata->Draw("same E");
-      g_bkg->GetXaxis()->SetRangeUser(xmin_,xmax_);
-      g_bkg->GetYaxis()->SetRangeUser((logy_) ? 0.5 : 0.9,(logy_) ? 2*ymax : 1.1*ymax);
-      g_bkg->SetTitle("");
-      if(logy_) pad1->SetLogy();
-
-      //Draw the ratio plot
-      pad2->cd();
-      double r_min, r_max;
-      TGraph* g_r_bkg = dataplotter_->get_errors(hbkg_, hbkg, 0, true, r_min, r_max);
-      g_r_bkg->SetFillColor(kRed-3);
-      g_r_bkg->SetLineWidth(2);
-      g_r_bkg->SetLineColor(kRed-3);
-      g_r_bkg->SetFillStyle(3001);
-      g_r_bkg->Draw("ALE2");
-      g_r_bkg->SetName(Form("g_r_bkg_sys_%i", isys));
-
-      for(unsigned index = 0; index < signals.size(); ++index) {
-        auto h = signals[index];
-        auto hnom = hsigs_[index];
-        double r_min_s, r_max_s;
-        TGraph* g_sig = dataplotter_->get_errors(hnom, h, 0, true, r_min_s, r_max_s);
-        r_min = min(r_min, r_min_s);
-        r_max = max(r_max, r_max_s);
-        g_sig->SetLineColor(hnom->GetLineColor());
-        if(index == 0) {
-          g_sig->SetFillColor(g_sig->GetLineColor());
-          g_sig->SetFillStyle(3004);
-          g_sig->Draw("PL");
-          g_sig->Draw("PLE2");
-        } else {
-          g_sig->Draw("PL");
-        }
-      }
-      hdata_ratio->Draw("same E");
-      g_r_bkg->GetXaxis()->SetRangeUser(xmin_,xmax_);
-      g_r_bkg->GetXaxis()->SetLabelSize(0.08);
-      g_r_bkg->GetYaxis()->SetLabelSize(0.08);
-      g_r_bkg->GetYaxis()->SetRangeUser(max(0.5, min(0.95, 1. + 1.15*(r_min - 1.))), min(1.5, max(1.05, 1. + 1.15*(r_max - 1.))));
-      g_r_bkg->SetTitle("");
-
+      TString fig_name ;
       if(use_sys_name_ && isys >= 0) {
         TString name = systematics.GetName(isys);
-        if(name == "") c->SaveAs(Form("%s_sys/sys_%i.png", canvas_name.Data(), isys));
-        else           c->SaveAs(Form("%s_sys/sys_%s.png", canvas_name.Data(), Form("%s_%s", name.Data(), (systematics.IsUp(isys)) ? "up" : "down")));
+        if(name == "") fig_name = Form("%s_sys/sys_%i.png", canvas_name.Data(), isys);
+        else           fig_name = Form("%s_sys/sys_%s.png", canvas_name.Data(), Form("%s_%s", name.Data(), (systematics.IsUp(isys)) ? "up" : "down"));
       } else {
-        c->SaveAs(Form("%s_sys/sys_%i.png", canvas_name.Data(), isys));
+        fig_name = Form("%s_sys/sys_%i.png", canvas_name.Data(), isys);
       }
-      delete c;
+      print_systematic_canvas(hbkg_, hdata, hstack, hsigs_[0], signals[0], Form("c_sys_%i", isys), fig_name.Data());
+      // TCanvas* c = new TCanvas(Form("c_sys_%i", isys), Form("c_sys_%i", isys), 1200, 900);
+      // TPad* pad1 = new TPad("pad1", "pad1", 0., 0.3, 1., 1. );
+      // TPad* pad2 = new TPad("pad2", "pad2", 0., 0. , 1., 0.3);
+      // pad1->Draw(); pad2->Draw();
+      // pad1->cd();
+
+      // //Get the systematic shift as a TGraph
+      // TGraph* g_bkg = dataplotter_->get_errors(hbkg_, hbkg, 0);
+      // g_bkg->SetFillColor(kRed-3);
+      // g_bkg->SetLineWidth(2);
+      // g_bkg->SetLineColor(kRed-3);
+      // g_bkg->SetFillStyle(3001);
+      // g_bkg->Draw("AP2");
+      // hbkg_->Draw("hist same");
+      // g_bkg->Draw("P2");
+
+      // double ymax = max(hdata->GetMaximum(), hbkg_->GetMaximum());
+      // //Get the signal systematic shifts
+      // for(unsigned index = 0; index < signals.size(); ++index) {
+      //   auto h = signals[index];
+      //   auto hnom = hsigs_[index];
+      //   TGraph* g_sig = dataplotter_->get_errors(hnom, h, 0);
+      //   hnom->SetFillColor(0);
+      //   hnom->SetLineWidth(2);
+      //   hnom->Draw("hist same");
+      //   g_sig->SetLineColor(hnom->GetLineColor());
+      //   g_sig->SetFillStyle(3001);
+      //   g_sig->SetFillColor(g_sig->GetLineColor());
+      //   g_sig->Draw("P2");
+      //   ymax = max(ymax, g_sig->GetMaximum());
+      // }
+      // hdata->Draw("same E");
+      // g_bkg->GetXaxis()->SetRangeUser(xmin_,xmax_);
+      // g_bkg->GetYaxis()->SetRangeUser((logy_) ? 0.5 : 0.9,(logy_) ? 2*ymax : 1.1*ymax);
+      // g_bkg->SetTitle("");
+      // if(logy_) pad1->SetLogy();
+
+      // //Draw the ratio plot
+      // pad2->cd();
+      // double r_min, r_max;
+      // TGraph* g_r_bkg = dataplotter_->get_errors(hbkg_, hbkg, 0, true, r_min, r_max);
+      // g_r_bkg->SetFillColor(kRed-3);
+      // g_r_bkg->SetLineWidth(2);
+      // g_r_bkg->SetLineColor(kRed-3);
+      // g_r_bkg->SetFillStyle(3001);
+      // g_r_bkg->Draw("ALE2");
+      // g_r_bkg->SetName(Form("g_r_bkg_sys_%i", isys));
+
+      // for(unsigned index = 0; index < signals.size(); ++index) {
+      //   auto h = signals[index];
+      //   auto hnom = hsigs_[index];
+      //   double r_min_s, r_max_s;
+      //   TGraph* g_sig = dataplotter_->get_errors(hnom, h, 0, true, r_min_s, r_max_s);
+      //   r_min = min(r_min, r_min_s);
+      //   r_max = max(r_max, r_max_s);
+      //   g_sig->SetLineColor(hnom->GetLineColor());
+      //   if(index == 0) {
+      //     g_sig->SetFillColor(g_sig->GetLineColor());
+      //     g_sig->SetFillStyle(3004);
+      //     g_sig->Draw("PL");
+      //     g_sig->Draw("PLE2");
+      //   } else {
+      //     g_sig->Draw("PL");
+      //   }
+      // }
+      // hdata_ratio->Draw("same E");
+      // g_r_bkg->GetXaxis()->SetRangeUser(xmin_,xmax_);
+      // g_r_bkg->GetXaxis()->SetLabelSize(0.08);
+      // g_r_bkg->GetYaxis()->SetLabelSize(0.08);
+      // g_r_bkg->GetYaxis()->SetRangeUser(max(0.5, min(0.95, 1. + 1.15*(r_min - 1.))), min(1.5, max(1.05, 1. + 1.15*(r_max - 1.))));
+      // g_r_bkg->SetTitle("");
+
+      // if(use_sys_name_ && isys >= 0) {
+      //   TString name = systematics.GetName(isys);
+      //   if(name == "") c->SaveAs(Form("%s_sys/sys_%i.png", canvas_name.Data(), isys));
+      //   else           c->SaveAs(Form("%s_sys/sys_%s.png", canvas_name.Data(), Form("%s_%s", name.Data(), (systematics.IsUp(isys)) ? "up" : "down")));
+      // } else {
+      //   c->SaveAs(Form("%s_sys/sys_%i.png", canvas_name.Data(), isys));
+      // }
+      // delete c;
     } //end if(print_sys_plots_)
 
     /////////////////////////////////////////////////
@@ -800,6 +836,7 @@ int get_individual_MVA_histogram(int set = 8, TString selection = "zmutau",
   hstack->Write();
   hlast->Write();
   hbkg_ = (TH1*) hlast->Clone("hbkg_");
+  hstack_ = (THStack*) hstack->Clone("hstack_");
 
   //write each signal in the standard way (e.g. H->e#mu --> hemu, Z->#mu#tau --> zmutau)
   for(auto h : signals) {
@@ -868,13 +905,6 @@ int get_MVA_histogram(vector<int> sets = {8}, TString selection = "zmutau",
           status += get_individual_MVA_histogram(set, selection+"_e", years_use, base);
         else if(selection.Contains("etau"))
           status += get_individual_MVA_histogram(set, selection+"_mu", years_use, base);
-      }
-      //get the same-flavor control regions
-      if(do_same_flavor_ && (had_only == 0 || had_only == -2)) {
-        cout << "Getting mumu histograms for set " << set << endl;
-        status += get_same_flavor_histogram(set, "mumu", years_use, base);
-        cout << "Getting ee histograms for set " << set << endl;
-        status += get_same_flavor_histogram(set, "ee"  , years_use, base);
       }
     }
   }
