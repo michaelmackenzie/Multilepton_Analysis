@@ -140,8 +140,8 @@ namespace CLFV {
 
       // case  69: return Data(isys, "EmbMET"        , true );
       // case  70: return Data(isys, "EmbMET"        , false);
-      case  69: return Data(isys, "EmbDetectorMET", true );
-      case  70: return Data(isys, "EmbDetectorMET", false);
+      // case  69: return Data(isys, "EmbDetectorMET", true );
+      // case  70: return Data(isys, "EmbDetectorMET", false);
       // case  70: return Data(isys, "EmbTauJetID"   , true );
       // case  71: return Data(isys, "EmbTauJetID"   , false);
       case  72: return Data(isys, "EmbTauMuID"    , true );
@@ -252,6 +252,10 @@ namespace CLFV {
       //decay mode-binned tau ES uncertainties (MC mu-->tau)
       base += 2*nbin; nbin = 4; //372 - 379
       if(isys >= base && isys < base+2*nbin) return Data(isys, Form("TauMuES%i", (isys-base)/2), (isys-base)%2 == 0);
+
+      //embedding detector MET uncertainties
+      base += 2*nbin; nbin = 3; //380 - 385
+      if(isys >= base && isys < base+2*nbin) return Data(isys, Form("EmbDetectorMET%i", (isys-base)/2), (isys-base)%2 == 0);
 
       //return the default result if no systematic is defined
       return Data();

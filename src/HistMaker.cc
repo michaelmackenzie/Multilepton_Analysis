@@ -3408,6 +3408,10 @@ void HistMaker::CountObjects() {
         }
         eventDetectorMet = std::sqrt(px*px + py*py);
         eventDetectorMetPhi = Utilities::PhiFromXY(px,py);
+      } else if(mode == 6) { //add MET along high |phi| for phi modulation
+        px -= 0.025*std::fabs(px); //increase MET along -x axis (phi = pi/-pi)
+        eventDetectorMet = std::sqrt(px*px + py*py);
+        eventDetectorMetPhi = Utilities::PhiFromXY(px,py);
       }
       //reset the MET to be the new detector met + nu pT
       px = eventDetectorMet*std::cos(eventDetectorMetPhi) + eventNuPt*std::cos(eventNuPhi);

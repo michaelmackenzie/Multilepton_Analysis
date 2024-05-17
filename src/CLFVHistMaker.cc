@@ -1141,6 +1141,7 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
       if(!fIsEmbed || !isMData || fUseEmbedRocco == 1) continue; //don't do binned ES if using Rocco systematics
       if(fVerbose > 5) printf("CLFVHistMaker::%s: Applying %s energy scale (up = %i)\n",
                               __func__, name.Data(), fSystematics.IsUp(sys));
+      const float nsigma = 1.f; //N(sigma) variation for the template
       TString bin_s = name; bin_s.ReplaceAll("EmbMuonES", "");
       const int bin = std::abs(std::stoi(bin_s.Data()));
       if(bin < 0 || bin > 2) {printf("CLFVHistMaker::%s: Unknown sys bin %s\n", __func__, name.Data()); continue;}
@@ -1148,10 +1149,10 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
       const float eta_max = (bin == 0) ? 1.2f : (bin == 1) ? 2.1f : 2.4f;
       if(fSystematics.IsUp(sys)) {
         if(leptonOne.isMuon() && leptonOne.ES[0] > 0. && leptonOne.ES[1] > 0. && leptonOne.eta >= eta_min && leptonOne.eta < eta_max) {
-          EnergyScale(leptonOne.ES[1] / leptonOne.ES[0], leptonOne, &met, &metPhi); reeval = true;
+          EnergyScale(1.f + nsigma*(1.f - leptonOne.ES[1] / leptonOne.ES[0]), leptonOne, &met, &metPhi); reeval = true;
         }
         if(leptonTwo.isMuon() && leptonTwo.ES[0] > 0. && leptonTwo.ES[1] > 0. && leptonTwo.eta >= eta_min && leptonTwo.eta < eta_max) {
-          EnergyScale(leptonTwo.ES[1] / leptonTwo.ES[0], leptonTwo, &met, &metPhi); reeval = true;
+          EnergyScale(1.f + nsigma*(1.f - leptonTwo.ES[1] / leptonTwo.ES[0]), leptonTwo, &met, &metPhi); reeval = true;
         }
       } else {
         if(leptonOne.isMuon() && leptonOne.ES[0] > 0. && leptonOne.ES[2] > 0. && leptonOne.eta >= eta_min && leptonOne.eta < eta_max) {
@@ -1586,6 +1587,41 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
       float unc_py = (leptonOne.isTau()) ? 0.05*leptonOne.p4->Py() : 0.025*leptonOne.p4->Py();
       unc_px      += (leptonTwo.isTau()) ? 0.05*leptonTwo.p4->Px() : 0.025*leptonTwo.p4->Px();
       unc_py      += (leptonTwo.isTau()) ? 0.05*leptonTwo.p4->Py() : 0.025*leptonTwo.p4->Py();
+      //add or substract the uncertainty based on up/down flag
+      if(fSystematics.IsUp(sys)) {
+        det_met_px += unc_px;
+        det_met_py += unc_py;
+      } else {
+        det_met_px -= unc_px;
+        det_met_py -= unc_py;
+      }
+      //Set the MET to be the new detector met + nu pT
+      const float met_px = det_met_px + eventNuPt*std::cos(eventNuPhi);
+      const float met_py = det_met_py + eventNuPt*std::sin(eventNuPhi);
+      met    = std::sqrt(met_px*met_px+met_py*met_py);
+      metPhi = Utilities::PhiFromXY(met_px,met_py);
+    } else if(name.BeginsWith("EmbDetectorMET")) { //effect on non-neutrino MET in embedding
+      if(!fIsEmbed) continue;
+      const bool is_ele  = name.EndsWith("0");
+      const bool is_muon = name.EndsWith("1");
+      const bool is_tau  = name.EndsWith("2");
+      if(is_ele && !isEData) continue;
+      if(is_muon && !isMData) continue;
+      if(!(isMuTau || isETau) && is_tau) continue;
+      reeval = true;
+      //remove nu pT from the MET
+      float det_met_px = met*std::cos(metPhi) - eventNuPt*std::cos(eventNuPhi);
+      float det_met_py = met*std::sin(metPhi) - eventNuPt*std::sin(eventNuPhi);
+      //get the uncertainty from the reco leptons pT
+      float unc_px(0.f), unc_py(0.f);
+      if((leptonOne.isTau() && is_tau) || (leptonOne.isMuon() && is_muon) || (leptonOne.isElectron() && is_ele)) {
+        unc_px += 0.025*leptonOne.p4->Px();
+        unc_py += 0.025*leptonOne.p4->Py();
+      }
+      if((leptonTwo.isTau() && is_tau) || (leptonTwo.isMuon() && is_muon) || (leptonTwo.isElectron() && is_ele)) {
+        unc_px += 0.025*leptonTwo.p4->Px();
+        unc_py += 0.025*leptonTwo.p4->Py();
+      }
       //add or substract the uncertainty based on up/down flag
       if(fSystematics.IsUp(sys)) {
         det_met_px += unc_px;
