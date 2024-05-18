@@ -1149,17 +1149,17 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
       const float eta_max = (bin == 0) ? 1.2f : (bin == 1) ? 2.1f : 2.4f;
       if(fSystematics.IsUp(sys)) {
         if(leptonOne.isMuon() && leptonOne.ES[0] > 0. && leptonOne.ES[1] > 0. && leptonOne.eta >= eta_min && leptonOne.eta < eta_max) {
-          EnergyScale(1.f + nsigma*(1.f - leptonOne.ES[1] / leptonOne.ES[0]), leptonOne, &met, &metPhi); reeval = true;
+          EnergyScale(1.f + nsigma*(leptonOne.ES[1] / leptonOne.ES[0] - 1.f), leptonOne, &met, &metPhi); reeval = true;
         }
         if(leptonTwo.isMuon() && leptonTwo.ES[0] > 0. && leptonTwo.ES[1] > 0. && leptonTwo.eta >= eta_min && leptonTwo.eta < eta_max) {
-          EnergyScale(1.f + nsigma*(1.f - leptonTwo.ES[1] / leptonTwo.ES[0]), leptonTwo, &met, &metPhi); reeval = true;
+          EnergyScale(1.f + nsigma*(leptonTwo.ES[1] / leptonTwo.ES[0] - 1.f), leptonTwo, &met, &metPhi); reeval = true;
         }
       } else {
         if(leptonOne.isMuon() && leptonOne.ES[0] > 0. && leptonOne.ES[2] > 0. && leptonOne.eta >= eta_min && leptonOne.eta < eta_max) {
-          EnergyScale(leptonOne.ES[2] / leptonOne.ES[0], leptonOne, &met, &metPhi); reeval = true;
+          EnergyScale(1.f + nsigma*(leptonOne.ES[2] / leptonOne.ES[0] - 1.f), leptonOne, &met, &metPhi); reeval = true;
         }
         if(leptonTwo.isMuon() && leptonTwo.ES[0] > 0. && leptonTwo.ES[2] > 0. && leptonTwo.eta >= eta_min && leptonTwo.eta < eta_max) {
-          EnergyScale(leptonTwo.ES[2] / leptonTwo.ES[0], leptonTwo, &met, &metPhi); reeval = true;
+          EnergyScale(1.f + nsigma*(leptonTwo.ES[2] / leptonTwo.ES[0] - 1.f), leptonTwo, &met, &metPhi); reeval = true;
         }
       }
     } else if(name.BeginsWith("TauEleES")) { //Decay mode binned energy scale (electrons faking taus)
