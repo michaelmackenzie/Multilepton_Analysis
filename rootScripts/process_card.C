@@ -346,6 +346,8 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
       //store a label for this dataset
       selec->fEventCategory = card.category_;
       selec->fWriteTrees = selection != "mumu" && selection != "ee" && config.writeTrees_; //don't write trees for same flavor events
+      selec->fSmearTreeValues = config.writeTrees_ && smear_training_;
+      selec->fUseRandomField = useRandomField_;
       if(card.isData_ == 0) {
         selec->fXsec = card.xsec_;
         selec->fXsec /= (selec->fIsEmbed) ? 1. : (card.events_->GetBinContent(1) - 2.*card.events_->GetBinContent(10));; //for writing trees with correct normalization

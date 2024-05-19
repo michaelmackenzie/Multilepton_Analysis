@@ -526,6 +526,7 @@ namespace CLFV {
     void    ApplyTriggerWeights();
     void    EvalJetToTauWeights(float& wt, float& wtcorr, float& wtbias);
     float   EvalEmbBDTUncertainty(TString selection);
+    void    SmearTreeValues();
 
     //j-->tau uncertainties
     float   EvalJetToTauStatSys(int process, int dm_bin, int param_bin, bool up);
@@ -890,6 +891,7 @@ namespace CLFV {
     Int_t           fUseEMuTrigger = 0; //consider the e-mu trigger in e-mu data: 1 = use it; 2 = only use it
     Int_t           fDoEleIDStudy = 0; //histogram additional electron info
     Int_t           fUseRandomField = 1; //0: split events with TRandom3; 1: use RandomField; 2: Use event variables
+    Int_t           fSmearTreeValues = 0; //smear values in output TTree by their uncertainties
 
     Bool_t          fSparseHists = false; //only fill/init more basic histograms
 

@@ -426,7 +426,9 @@ void HistMaker::FillAllHistograms(Int_t index) {
       printf("HistMaker::%s: Filling tree %i\n", __func__, index);
     }
     fDirectories[3*fn + index]->cd();
+    if(fSmearTreeValues) SmearTreeValues(); //set the kinematics to smeared values
     fTrees[index]->Fill();
+    if(fSmearTreeValues) SetKinematics(); //restore the kinematics after smearing
   }
 }
 
@@ -1601,6 +1603,51 @@ void HistMaker::EnergyScale(const float scale, TLorentzVector& lv, float* MET, f
     if(fVerbose > 5) printf(" MET outnput (pT, phi) = (%.2f, %.2f) ", *MET, *METPhi);
   }
   if(fVerbose > 5) printf("\n");
+}
+
+//-----------------------------------------------------------------------------------------------------------------
+//Randomly smear values in the output tree to approximate uncertainty smearing
+void HistMaker::SmearTreeValues() {
+  //Store the original event variables
+  const float o_one_pt(leptonOne.pt), o_one_eta(leptonOne.eta), o_one_phi(leptonOne.phi), o_one_mass(leptonOne.mass);
+  const float o_two_pt(leptonTwo.pt), o_two_eta(leptonTwo.eta), o_two_phi(leptonTwo.phi), o_two_mass(leptonTwo.mass);
+  const float o_met(met), o_metphi(metPhi);
+  const float o_ewt(eventWeight);
+
+  //Ensure the random number generator is initialized
+  if(!fRnd) fRnd = new TRandom3(fRndSeed);
+
+  //Approximate lepton energy scale uncertainties
+  if(!fIsData || looseQCDSelection) { //shift for data-driven backgrounds to keep consistent in training
+    leptonOne.setPtEtaPhiM(fRnd->Gaus(1., 0.005)*o_one_pt, o_one_eta, o_one_phi, o_one_mass); //0.5% scale uncertainty
+    leptonTwo.setPtEtaPhiM(fRnd->Gaus(1., 0.005)*o_two_pt, o_two_eta, o_two_phi, o_two_mass); //0.5% scale uncertainty
+  }
+
+  //Approximate met and metPhi uncertainties
+  if(!fIsData || looseQCDSelection) { //shift for data-driven backgrounds to keep consistent in training
+    met = fRnd->Gaus(1., 0.02)*met; //2% uncertainty
+    metPhi = Utilities::DeltaPhi(metPhi, fRnd->Gaus(0., 0.03)); //0.03 radian uncertainty
+  }
+
+  //Approximate j-->tau uncertainties
+  if(fIsData && looseQCDSelection && (mutau || etau)) {
+    eventWeight *= 1.f + std::max(-0.5, std::min(0.5, fRnd->Gaus(0., std::fabs(1.f - jetToTauWeightBias/jetToTauWeightCorr))));
+  }
+
+  //Approximate QCD SS --> OS uncertainties
+  if(fIsData && looseQCDSelection && (emu || mutau_e || etau_mu)) {
+    eventWeight *= 1.f + std::max(-0.5, std::min(0.5, fRnd->Gaus(0., std::fabs(1.f - qcdIsoScale*qcdMassBDTScale))));
+  }
+
+  //Propagate the shifts to the tree variables
+  SetKinematics();
+
+  //Restore kinematic fields for future restoration
+  leptonOne.setPtEtaPhiM(o_one_pt, o_one_eta, o_one_phi, o_one_mass);
+  leptonTwo.setPtEtaPhiM(o_two_pt, o_two_eta, o_two_phi, o_two_mass);
+  met = o_met;
+  metPhi = o_metphi;
+  eventWeight = o_ewt;
 }
 
 //--------------------------------------------------------------------------------------------------------------
@@ -3345,7 +3392,7 @@ void HistMaker::CountObjects() {
         eventDetectorMet = std::sqrt(px*px + py*py);
         eventDetectorMetPhi = Utilities::PhiFromXY(px,py);
 
-      } else if(mode == 2) { //add MET along the leading lepton
+      } else if(mode == 2) { //add MET along the leading gen-level lepton
         const float scale = 0.007;
         px += scale*zlepone.Px();
         py += scale*zlepone.Py();
@@ -4119,6 +4166,8 @@ void HistMaker::InitializeTreeVariables() {
       double event_val = std::fabs(leptonOne.phi * leptonTwo.eta);
       //use decimals to get random value
       split_val = ((event_val * 10.) - ((int) event_val * 10.)) / 10.; //take decimals 2 on as the random variable (e.g. X.abcde --> 0.bcde)
+    } else if(fUseRandomField == 3) { //evaluate with event number
+      split_val = (eventNumber % 1000) / 1000.f;
     }
     if(fFractionMVA > 0.f) fTreeVars.train = (split_val < fFractionMVA) ? 1.f : -1.f; //whether or not it is in the training sample
     else                   fTreeVars.train = -1.f;

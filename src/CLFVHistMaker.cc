@@ -236,6 +236,17 @@ void CLFVHistMaker::InitHistogramFlags() {
       for(int i = 9; i < ((fDoHiggs) ? 19 : 15); ++i) fEventSets[kMuMu + i] = 1;
     }
 
+    //Testing MET uncertainties
+    fEventSets [kMuMu + 30] = 1; //tight Z->ll pT cuts
+    fEventSets [kMuMu + 31] = 1; //barrel |eta| events
+    fEventSets [kMuMu + 32] = 1; //endcap |eta| events
+    fEventSets [kMuMu + 33] = 1; //|phi(met)| < pi/2
+    fEventSets [kMuMu + 34] = 1; //|phi(met)| > pi/2
+    fEventSets [kMuMu + 35] = 1; //MET < 40
+    fEventSets [kMuMu + 36] = 1; //MET > 40
+    fEventSets [kMuMu + 37] = 1; //no FSR in DY MC Z->ll
+    fEventSets [kMuMu + 38] = 1; //adjusted Embedding energy scale
+
     if(fTriggerTesting) { //testing triggering
       // fEventSets [kMuMu + 60] = 1; //one fired
       // fEventSets [kMuMu + 61] = 1; //two fired
@@ -2476,6 +2487,61 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
       fTimes[GetTimerNumber("SingleFill")] = std::chrono::steady_clock::now(); //timer for filling all histograms
       FillAllHistograms(set_offset + (kETauMu - kEMu) + 8);
       IncrementTimer("SingleFill", true);
+    }
+  }
+
+  //Testing MET uncertainties in Z->mumu
+  if(mumu) {
+    //tight Z->ll pT cuts
+    if(std::fabs(leptonOne.pt - 45.f) < 5.f && std::fabs(leptonTwo.pt - 45.f) < 5.f) FillAllHistograms(set_offset + 30);
+    //barrel events
+    if(std::fabs(leptonOne.eta) < 0.9f && std::fabs(leptonTwo.eta) < 0.9f) FillAllHistograms(set_offset + 31);
+    //endcap events
+    if(std::fabs(leptonOne.eta) > 1.5f && std::fabs(leptonTwo.eta) > 1.5f) FillAllHistograms(set_offset + 32);
+    //low |phi(met)| events
+    if(std::fabs(metPhi) < M_PI/2.) FillAllHistograms(set_offset + 33);
+    //high |phi(met)| events
+    if(std::fabs(metPhi) > M_PI/2.) FillAllHistograms(set_offset + 34);
+    //lower MET events
+    if(met < 40.f) FillAllHistograms(set_offset + 35);
+    //high MET events
+    if(met > 40.f) FillAllHistograms(set_offset + 36);
+    //no gen-level FSR events, re-weighted to account for event loss
+    {
+      bool test = true;
+      const float o_ewt = eventWeight;
+      if(fIsDY && fDYType == 2) {
+        float eloss_1, eloss_2;
+        //associate the leptons by charge
+        if(zLepOneID*leptonOne.flavor > 0) {
+          eloss_1 = (zLepOnePt - leptonOne.genPt)/zLepOnePt;
+          eloss_2 = (zLepTwoPt - leptonTwo.genPt)/zLepTwoPt;
+        } else {
+          eloss_1 = (zLepTwoPt - leptonOne.genPt)/zLepTwoPt;
+          eloss_2 = (zLepOnePt - leptonTwo.genPt)/zLepOnePt;
+        }
+        test = eloss_1 < 0.005 && eloss_2 < 0.005;
+        eventWeight *= 1.308;
+      }
+      if(test) FillAllHistograms(set_offset + 37);
+      eventWeight = o_ewt;
+    }
+    //Test adjusting the Embedding lepton scale a bit
+    {
+      const float scale = 0.99;
+      if(fIsEmbed) {
+        EnergyScale(scale, leptonOne, &met, &metPhi); //propagate the shift to the MET
+        EnergyScale(scale, leptonTwo, &met, &metPhi);
+        SetKinematics();
+        EvalMVAs();
+      }
+      if(PassesCuts()) FillAllHistograms(set_offset + 38);
+      if(fIsEmbed) { //restore the event variables
+        EnergyScale(1.f/scale, leptonOne, &met, &metPhi); //propagate the shift to the MET
+        EnergyScale(1.f/scale, leptonTwo, &met, &metPhi);
+        SetKinematics();
+        EvalMVAs();
+      }
     }
   }
 
