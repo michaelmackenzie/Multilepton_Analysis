@@ -420,6 +420,16 @@ namespace CLFV {
         *ytitle = "";
         *title  = Form("Number of Photons");
       }
+      else if(hist.BeginsWith("npv")) {
+        *xtitle = "N(PV)";
+        *ytitle = "";
+        *title  = Form("N(PV)");
+      }
+      else if(hist.BeginsWith("npu")) {
+        *xtitle = "N(PU)";
+        *ytitle = "";
+        *title  = Form("N(PU)");
+      }
       else if(hist == "mtmu") {
         *xtitle = "MT(MET,#mu)";
         *ytitle = "";

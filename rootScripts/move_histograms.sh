@@ -8,6 +8,7 @@ Help() {
     echo " --year     : Year tag"
     echo " --selection: Selection tag"
     echo " --maker    : HistMaker label"
+    echo " --tag      : Sample tag"
     echo " --veto     : Veto tag"
     echo " --remove   : Remove after copying"
     echo " --timeout  : Apply timeout to retry"
@@ -28,6 +29,7 @@ YEAR=""
 SELECTION=""
 MAKER=""
 VETO=""
+TAG=""
 RMAFTER=""
 APPLYTIMEOUT=""
 
@@ -64,6 +66,11 @@ do
         iarg=$((iarg + 1))
         eval "var=\${${iarg}}"
         VETO=${var}
+    elif [[ "${var}" == "--tag" ]]
+    then
+        iarg=$((iarg + 1))
+        eval "var=\${${iarg}}"
+        TAG=${var}
     elif [[ "${var}" == "--dontforce" ]]
     then
         DONTFORCE="d"
@@ -138,6 +145,9 @@ for f in `${lscommand} ${INDIR}`;
 do
     if [[ "${VETO}" != "" ]] && [[ "${f}" == *"${VETO}"* ]]; then
         continue
+    fi
+    if [[ "${TAG}" != "" ]] && [[ "${f}" != *"${TAG}"* ]]; then
+	continue;
     fi
     echo "Copying hist file "${filehead}${f};
     if [[ "$APPLYTIMEOUT" != "" ]]

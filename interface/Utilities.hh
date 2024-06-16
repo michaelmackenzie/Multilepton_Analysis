@@ -289,6 +289,23 @@ namespace CLFV {
     }
 
     //------------------------------------------------------------------------------------------------------
+    // Double-sided Crystal Ball function, as implemented in RooDoubleCrystalBall with a symmetric code
+    static double DSCB(const double x, const double mu, const double sigma, const double alpha_1, const double n_1, const double alpha_2, const double n_2) {
+      if(sigma <= 0.) return 0.;
+      const double u = (x-mu)/sigma;
+      const double A1  = std::pow(n_1/std::fabs(alpha_1), n_1)*std::exp(-alpha_1*alpha_1/2.);
+      const double A2  = std::pow(n_2/std::fabs(alpha_2), n_2)*std::exp(-alpha_2*alpha_2/2.);
+      const double B1  = n_1/std::fabs(alpha_1) - std::fabs(alpha_1);
+      const double B2  = n_2/std::fabs(alpha_2) - std::fabs(alpha_2);
+
+      double val(1.);
+      if     (u<-alpha_1) val = A1*std::pow(B1-u,-n_1); //left power-law tail
+      else if(u< alpha_2) val = std::exp(-u*u/2.);      //central Gaussian
+      else                val = A2*std::pow(B2+u,-n_2); //right power-law tail
+      return val;
+    }
+
+    //------------------------------------------------------------------------------------------------------
     // Convert a histogram to an efficiency distribution
     static void HistToEff(TH1* h, const bool cut_low = true, const bool rejection = false) {
       const int nbins = h->GetNbinsX();

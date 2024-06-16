@@ -18,7 +18,8 @@ int print_mva_variables(TString out_dir = "bdts", TString hist_dir = "nanoaods_m
 
   //setup the histogram sets of interest
   vector<int> sets;
-  if(selection_ == "emu" || selection_ == "mumu" || selection_ == "ee") sets = {8,11,12,13};
+  if(selection_ == "emu") sets = {8,11,12,13};
+  else if(selection_ == "mumu" || selection_ == "ee") sets = {8};
   else if(selection_.Contains("_")) sets = {8,25,26,27};
   else sets = {8,25,26,27,28};
 

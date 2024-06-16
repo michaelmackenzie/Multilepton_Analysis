@@ -309,13 +309,14 @@ void HistMaker::InitializeMVAs() {
   for(int i = 0; i < kMaxMVAs; ++i) wrappedBDTs[i] = nullptr; //initially 0s
 
   if(fReprocessMVAs) {
+    if(fVerbose) printf("HistMaker::%s: Initializing MVAs, test tag = %s\n", __func__, fTestMVA.Data());
     for(unsigned mva_i = 0; mva_i < fMVAConfig->names_.size(); ++mva_i) {
       //only initialize necessary MVAs
       bool init = false;
       const TString mva_selection = fMVAConfig->GetSelectionByIndex(mva_i);
       //Check if testing this MVA
       init |= fTestMVA != "" && fTestMVA == mva_selection;
-      if(fSelection == "ee" || fSelection == "mumu") { //use the emu selection for same flavor
+      if(fTestMVA == "" && (fSelection == "ee" || fSelection == "mumu")) { //use the emu selection for same flavor if not testing an MVA
         init |= fDoHiggs && mva_selection == "hemu";
         init |= mva_selection == "zemu";
       }
@@ -402,7 +403,7 @@ void HistMaker::FillAllHistograms(Int_t index) {
       }
       ++fSetFills[index];
       FillEventHistogram( fEventHist [index]);
-      FillLepHistogram(   fLepHist   [index]);
+      FillLepHistogram  ( fLepHist   [index]);
     }
     //allow events outside the window to the systematics filling, to account for shifted events migrating in/out
     if(fDoSystematics && fSysSets[index]) {
@@ -502,10 +503,10 @@ void HistMaker::BookBaseEventHistograms(Int_t i, const char* dirname) {
     Utilities::BookH1D(fEventHist[i]->hNMuons                  , "nmuons"                  , Form("%s: NMuons"                      ,dirname),  10,    0,  10, folder);
     Utilities::BookH1D(fEventHist[i]->hNElectrons              , "nelectrons"              , Form("%s: NElectrons"                  ,dirname),  10,    0,  10, folder);
     Utilities::BookH1D(fEventHist[i]->hNTaus                   , "ntaus"                   , Form("%s: NTaus"                       ,dirname),  10,    0,  10, folder);
-    Utilities::BookH1F(fEventHist[i]->hNPV[0]                  , "npv"                     , Form("%s: NPV"                         ,dirname),  50,    0, 100, folder);
     Utilities::BookH1F(fEventHist[i]->hNPU[0]                  , "npu"                     , Form("%s: NPU"                         ,dirname),  50,    0, 100, folder);
     Utilities::BookH1D(fEventHist[i]->hLHENJets                , "lhenjets"                , Form("%s: LHE N(jets)"                 ,dirname),  10,    0,  10, folder);
   }
+  Utilities::BookH1F(fEventHist[i]->hNPV[0]                  , "npv"                     , Form("%s: NPV"                         ,dirname),  50,    0, 100, folder);
   if(fUseEmbBDTUncertainty) {
     Utilities::BookH1F(fEventHist[i]->hEmbBDTWeight            , "embbdtweight"            , Form("%s: EmbBDTWeight"                ,dirname),  20, 0.75,1.25, folder);
   }
@@ -562,6 +563,7 @@ void HistMaker::BookBaseEventHistograms(Int_t i, const char* dirname) {
   Utilities::BookH1F(fEventHist[i]->hMetDown             , "metdown"             , Form("%s: Met down"                ,dirname)  , 100,  0, 200, folder);
   Utilities::BookH1F(fEventHist[i]->hMetNoCorr           , "metnocorr"           , Form("%s: Met No Correction"       ,dirname)  , 100,  0, 200, folder);
   Utilities::BookH1F(fEventHist[i]->hMetOverLepPt        , "metoverleppt"        , Form("%s: Met Over LepPt"          ,dirname)  ,  40,  0,  20, folder);
+  Utilities::BookH1F(fEventHist[i]->hMetOverM            , "metoverm"            , Form("%s: Met Over M"              ,dirname)  ,  30,  0,   2, folder);
 
   Utilities::BookH1F(fEventHist[i]->hNuPt                , "nupt"                , Form("%s: Nu pT"                   ,dirname)  ,  50,  0, 100, folder);
   Utilities::BookH1F(fEventHist[i]->hDetectorMet         , "detectormet"         , Form("%s: Detector Met"            ,dirname)  , 100,  0, 200, folder);
@@ -573,14 +575,17 @@ void HistMaker::BookBaseEventHistograms(Int_t i, const char* dirname) {
   Utilities::BookH1F(fEventHist[i]->hMTTwoUp             , "mttwoup"             , Form("%s: MTTwo up"                ,dirname)  , 100, 0.,   150., folder);
   Utilities::BookH1F(fEventHist[i]->hMTTwoDown           , "mttwodown"           , Form("%s: MTTwo down"              ,dirname)  , 100, 0.,   150., folder);
   Utilities::BookH1F(fEventHist[i]->hMTLep               , "mtlep"               , Form("%s: MTLep"                   ,dirname)  , 100, 0.,   150., folder);
-  Utilities::BookH1F(fEventHist[i]->hMTDiff              , "mtdiff"              , Form("%s: MTDiff"                  ,dirname)  , 100, -100.,  100., folder);
+  Utilities::BookH1F(fEventHist[i]->hMTDiff              , "mtdiff"              , Form("%s: MTDiff"                  ,dirname)  ,  40, -80.,  80., folder);
+  Utilities::BookH1F(fEventHist[i]->hMTRatio             , "mtratio"             , Form("%s: MTRatio"                 ,dirname)  ,  40, 0.,     5., folder);
   Utilities::BookH1F(fEventHist[i]->hMTLead              , "mtlead"              , Form("%s: MTLead"                  ,dirname)  ,  20, 0.,   150., folder);
   Utilities::BookH1F(fEventHist[i]->hMTTrail             , "mttrail"             , Form("%s: MTTrail"                 ,dirname)  ,  20, 0.,   150., folder);
   Utilities::BookH1F(fEventHist[i]->hMTOneOverM          , "mtoneoverm"          , Form("%s: MTOneOverM"              ,dirname)  , 100, 0.,   10. , folder);
   Utilities::BookH1F(fEventHist[i]->hMTTwoOverM          , "mttwooverm"          , Form("%s: MTTwoOverM"              ,dirname)  , 100, 0.,   10. , folder);
   Utilities::BookH1F(fEventHist[i]->hMTLepOverM          , "mtlepoverm"          , Form("%s: MTLepOverM"              ,dirname)  , 100, 0.,   10. , folder);
-  Utilities::BookH1F(fEventHist[i]->hMETDotOne           , "metdotone"           , Form("%s: METDotOne"               ,dirname)  ,  50, 0.,   70. , folder);
-  Utilities::BookH1F(fEventHist[i]->hMETDotTwo           , "metdottwo"           , Form("%s: METDotTwo"               ,dirname)  ,  50, 0.,   70. , folder);
+  Utilities::BookH1F(fEventHist[i]->hMETDotOne           , "metdotone"           , Form("%s: METDotOne"               ,dirname)  ,  50,-70.,   70. , folder);
+  Utilities::BookH1F(fEventHist[i]->hMETDotTwo           , "metdottwo"           , Form("%s: METDotTwo"               ,dirname)  ,  50,-70.,   70. , folder);
+  Utilities::BookH1F(fEventHist[i]->hMETDotZOne          , "metdotzone"          , Form("%s: METDotZOne"              ,dirname)  ,  50,-70.,   70. , folder);
+  Utilities::BookH1F(fEventHist[i]->hMETDotZTwo          , "metdotztwo"          , Form("%s: METDotZTwo"              ,dirname)  ,  50,-70.,   70. , folder);
 
   Utilities::BookH1F(fEventHist[i]->hMetDeltaPhi         , "metdeltaphi"         , Form("%s: Met Lep Delta Phi"       ,dirname)  ,  50,  0,   5, folder);
 
@@ -596,6 +601,7 @@ void HistMaker::BookBaseEventHistograms(Int_t i, const char* dirname) {
   Utilities::BookH1F(fEventHist[i]->hLepMDown, "lepmdown"      , Form("%s: Lepton M"       ,dirname)  , 280,  40, 180, folder);
   Utilities::BookH1F(fEventHist[i]->hLepMt   , "lepmt"         , Form("%s: Lepton Mt"      ,dirname)  , 100,   0, 200, folder);
   Utilities::BookH1F(fEventHist[i]->hLepEta  , "lepeta"        , Form("%s: Lepton Eta"     ,dirname)  ,  50,  -5,   5, folder);
+  Utilities::BookH1F(fEventHist[i]->hLepPhi  , "lepphi"        , Form("%s: Lepton Phi"     ,dirname)  ,  40, -3.2, 3.2, folder);
   Utilities::BookH1F(fEventHist[i]->hLepMEstimate   , "lepmestimate"   , Form("%s: Estimate di-lepton mass"  ,dirname)  ,150,0.,  300, folder);
   Utilities::BookH1F(fEventHist[i]->hLepMEstimateTwo, "lepmestimatetwo", Form("%s: Estimate di-lepton mass"  ,dirname)  ,150,0.,  300, folder);
   Utilities::BookH1F(fEventHist[i]->hLepMEstimateThree, "lepmestimatethree", Form("%s: Estimate di-lepton mass"  ,dirname)  ,100,0.,  200, folder);
@@ -628,8 +634,8 @@ void HistMaker::BookBaseEventHistograms(Int_t i, const char* dirname) {
   Utilities::BookH1F(fEventHist[i]->hZLepTwoPt  , "zleptwopt"     , Form("%s: ZLepTwoPt"      ,dirname)  ,  60,    0, 120, folder);
   Utilities::BookH1F(fEventHist[i]->hZLepOneEta , "zleponeeta"    , Form("%s: ZLepOneEta"     ,dirname)  ,  50, -2.5, 2.5, folder);
   Utilities::BookH1F(fEventHist[i]->hZLepTwoEta , "zleptwoeta"    , Form("%s: ZLepTwoEta"     ,dirname)  ,  50, -2.5, 2.5, folder);
-  Utilities::BookH1F(fEventHist[i]->hZLepOneELoss, "zleponeeloss" , Form("%s: ZLepOneELoss"   ,dirname)  ,  20,    0, 0.1, folder);
-  Utilities::BookH1F(fEventHist[i]->hZLepTwoELoss, "zleptwoeloss" , Form("%s: ZLepTwoELoss"   ,dirname)  ,  20,    0, 0.1, folder);
+  Utilities::BookH1F(fEventHist[i]->hZLepOneELoss, "zleponeeloss" , Form("%s: ZLepOneELoss"   ,dirname)  , 100,    0, 1.0, folder);
+  Utilities::BookH1F(fEventHist[i]->hZLepTwoELoss, "zleptwoeloss" , Form("%s: ZLepTwoELoss"   ,dirname)  , 100,    0, 1.0, folder);
   Utilities::BookH1D(fEventHist[i]->hZDecayMode , "zdecaymode"    , Form("%s: ZDecayMode"     ,dirname)  ,  20,    0,  20, folder);
 
   if(!fSparseHists || fSelection == "emu") {
@@ -1462,6 +1468,20 @@ void HistMaker::ApplyMuonCorrections() {
       }
     }
 
+    // //Embedding resolution correction FIXME: Remove this
+    // if(fIsEmbed) {
+    //   const float gen_pt = (Muon_genPartIdx[index] >= 0) ? GenPart_pt[Muon_genPartIdx[index]] : Muon_pt[index];
+    //   const float sf = fEmbeddingResolution->MuonResolutionUnc(Muon_pt[index], Muon_eta[index], gen_pt, fYear);
+    //   //Record the pT change to propagate to the MET
+    //   const float pt_diff = Muon_pt[index]*(sf - 1.f);
+    //   Muon_pt[index] *= sf;
+    //   delta_x -= pt_diff*std::cos(Muon_phi[index]);
+    //   delta_y -= pt_diff*std::sin(Muon_phi[index]);
+    //   if(fVerbose > 1) {
+    //     printf(" HistMaker::%s: Applying resolution pT scale of %.4f to embedding muon %u with pT %.2f and gen_pt %.2f\n", __func__, sf, index, Muon_pt[index], gen_pt);
+    //   }
+    // }
+
     //Apply the Rochester corrections to data and simulated muons
     if((fIsEmbed && !fUseEmbedRocco) || fUseRoccoCorr == 0) {  //don't correct embedding (or any, if selected) to muons
       Muon_RoccoSF[index] = 1.f;
@@ -1867,6 +1887,18 @@ void HistMaker::InitializeEventWeights() {
       }
       if(fVerbose > 9) printf(" Applying an additional unfolding weight of %.3f\n", matching);
       embeddingUnfoldingWeight *= matching;
+    }
+    //FIXME: Remove this or formalize it
+    if(false) { //re-weight the embedding to have a more narrow Z peak
+      const float dmass = zMass - ZMASS;
+      float mass_pdf_weight = 1.f;
+      if(std::fabs(dmass) < 10.f) {
+	const double p_embed = Utilities::DSCB(zMass, 91.102, 1.568, 1.024, 2.390, 1.155, 2.738);
+	const double p_dy    = Utilities::DSCB(zMass, 91.339, 1.071, 1.095, 2.399, 0.972, 2.598);
+	mass_pdf_weight = 1.35 * p_dy / p_embed; //Leading factor accounts for the PDF normalizations
+      }
+      embeddingUnfoldingWeight *= mass_pdf_weight;
+      if(fVerbose > 9) printf(" Applying an additional mass unfolding weight of %.3f\n", mass_pdf_weight);
     }
     eventWeight *= embeddingUnfoldingWeight*embeddingWeight;
   } else if(!fIsData) { //standard MC --> store only the sign of the generator weight
@@ -2377,6 +2409,11 @@ void HistMaker::InitializeEventWeights() {
                                                                                   fTreeVars.onemetdeltaphi, fTreeVars.lepm, fTreeVars.mtlep, leptonOne.iso/leptonOne.p4->Pt(), fMvaUse[3],
                                                                                   fJetToTauMCCorrs[proc], fJetToTauMCBiases[proc]));
         }
+        //Turn off SS --> OS bias if in the SS region
+        if(!chargeTest && proc == JetToTauComposition::kQCD) {
+          fJetToTauBiases[proc] = 1.f;
+        }
+
         // if(proc == JetToTauComposition::kTop && fJetToTauBiases[proc] != 1.f) {
         //   printf("%s: Bias found in j-->tau top estimation! Bias = %.4f\n", __func__, fJetToTauBiases[proc]);
         //   throw 20;
@@ -2574,6 +2611,15 @@ void HistMaker::InitializeEventWeights() {
 
   eventWeight *= qcdWeight;
 
+  ///////////////////////////////
+  // MVA training re-weighting //
+  ///////////////////////////////
+
+  //account for events split off for MVA training
+  if(fRemoveTraining && fTreeVars.train < 0.5f) {
+    eventWeight *= (fTreeVars.trainfraction > 0.f && fTreeVars.trainfraction < 1.f) ? 1.f/(1.f - fTreeVars.trainfraction) : 1.f;
+  }
+
   //initialize weights for the tree variables
   fTreeVars.eventweight = genWeight*eventWeight;
   fTreeVars.eventweightMVA = genWeight*eventWeight;
@@ -2633,12 +2679,17 @@ void HistMaker::InitializeEventWeights() {
 
   //if splitting testing/training samples, remove training and re-scale the event weight to account for lost events to training
   //fTreeVars.trainfraction is 0 for events not eligible for training (e.g. signal region data)
-  fTreeVars.eventweightMVA *= (fTreeVars.train > 0.f) ? 0.f : 1.f/(1.f-fTreeVars.trainfraction);
+  if(!fRemoveTraining)
+    fTreeVars.eventweightMVA *= (fTreeVars.train > 0.f) ? 0.f : 1.f/(1.f-fTreeVars.trainfraction);
 }
 
 //--------------------------------------------------------------------------------------------------------------
 // Set kinematics relevant to MVAs, to re-evaluate scores after shifted values etc.
 void HistMaker::SetKinematics() {
+  // //FIXME: Remove this line turning off the MET
+  // met = 0.f;
+  // metPhi = 0.f;
+
   leptonOne.d0 = std::sqrt(leptonOne.dxy*leptonOne.dxy + leptonOne.dz*leptonOne.dz);
   leptonTwo.d0 = std::sqrt(leptonTwo.dxy*leptonTwo.dxy + leptonTwo.dz*leptonTwo.dz);
   fTreeVars.leponept     = leptonOne.p4->Pt();
@@ -2730,6 +2781,31 @@ void HistMaker::SetKinematics() {
   TVector3 bisector = (lp1.Mag()*lp2 + lp2.Mag()*lp1); //divides leptons
   if(bisector.Mag() > 0.) bisector.SetMag(1.);
 
+  // Reflect across the Z-beam plane
+  // Beam = +-z-axis
+  // Z = 3-momentum vector of Z candidate
+  // phi(Z) = phi0
+  // dphi(mu) = phi(mu) - phi0
+  // transform phi(mu) -> phi(mu) - 2*dphi(mu)
+  {
+    TLorentzVector zlepone, zleptwo;
+    zlepone.SetPtEtaPhiM(leptonOne.pt, leptonOne.eta, leptonOne.phi, leptonOne.mass);
+    zleptwo.SetPtEtaPhiM(leptonTwo.pt, leptonTwo.eta, leptonTwo.phi, leptonTwo.mass);
+    TLorentzVector system = *leptonOne.p4 + *leptonTwo.p4;
+    const double z_phi(system.Phi());
+    const double lep1_dphi_z = Utilities::DeltaPhi(leptonOne.phi, z_phi);
+    const double lep2_dphi_z = Utilities::DeltaPhi(leptonTwo.phi, z_phi);
+    zlepone.SetPhi(Utilities::DeltaPhi(zlepone.Phi(), 2*lep1_dphi_z));
+    zleptwo.SetPhi(Utilities::DeltaPhi(zleptwo.Phi(), 2*lep2_dphi_z));
+    TVector3 zlp1 = zlepone.Vect();
+    TVector3 zlp2 = zleptwo.Vect();
+    zlp1.SetZ(0.);
+    zlp2.SetZ(0.);
+
+    fTreeVars.metdotzl1 = missing*zlp1/zlp1.Mag(); //MET along rotated lep 1
+    fTreeVars.metdotzl2 = missing*zlp2/zlp2.Mag(); //MET along rotated lep 2
+  }
+  
   //////////////////////////////////////////////
   // MET projections and neutrino estimates
 
@@ -3099,7 +3175,7 @@ void HistMaker::EvalMVAs(TString TimerName) {
     fMvaOutputs[i] = -2.f;
     fMvaCDFs[i] =  0.f;
     fMvaLogP[i] = -3.f;
-    fMvaFofP[i] = -1.f;
+    fMvaFofP[i] = -2.f;
     fMvaUse [i] = -2.f;
     if(mva[i]) {
       fMvaOutputs[i] = mva[i]->EvaluateMVA(fMVAConfig->names_[i].Data());
@@ -3356,6 +3432,14 @@ void HistMaker::CountObjects() {
   }
   metCorr    = 0.f; //record the changes to the MET due to changes in object energy/momentum scales
   metCorrPhi = 0.f;
+
+  // //FIXME: Remove this
+  // if(!fIsEmbed && !fIsData) {
+  //   if(std::isfinite(puppMETJERUp) && std::isfinite(puppMETphiJERUp)) {
+  //     met    = puppMETJERUp;
+  //     metPhi = puppMETphiJERUp;
+  //   }
+  // }
 
   //Correct the detector MET in Embedding events
   if(fIsEmbed && fApplyEmbedMETDPhiCorr) {
@@ -4286,10 +4370,10 @@ void HistMaker::FillBaseEventHistogram(EventHist_t* Hist) {
     Hist->hNMuons              ->Fill(nMuons             , genWeight*eventWeight)      ;
     Hist->hNElectrons          ->Fill(nElectrons         , genWeight*eventWeight)      ;
     Hist->hNTaus               ->Fill(nTaus              , genWeight*eventWeight)      ;
-    Hist->hNPV[0]              ->Fill(nPV                , genWeight*eventWeight)      ;
     Hist->hNPU[0]              ->Fill(nPU                , genWeight*eventWeight)      ;
     Hist->hLHENJets            ->Fill(LHE_Njets          , genWeight*eventWeight)      ;
   }
+  Hist->hNPV[0]              ->Fill(nPV                , genWeight*eventWeight)      ;
   if(fUseEmbBDTUncertainty) {
     Hist->hEmbBDTWeight->Fill(embBDTWeight, genWeight*eventWeight);
   }
@@ -4359,6 +4443,7 @@ void HistMaker::FillBaseEventHistogram(EventHist_t* Hist) {
   Hist->hMetNoCorr         ->Fill(met_no_corr        , eventWeight*genWeight);
 
   Hist->hMetOverLepPt->Fill(met/fTreeVars.leppt, eventWeight*genWeight);
+  Hist->hMetOverM    ->Fill(met/fTreeVars.lepm , eventWeight*genWeight);
 
   //mt(x, y) ~ sqrt(x*y) --> mt(x+-sigma_x,y) ~ sqrt(x+-sigma_x)/sqrt(x)*mt, sigma(mt) ~ mt*sqrt((x+-sigma_x)/x + (y+-sigma_y)/y)
   float mtone_up   = fTreeVars.mtone*std::sqrt((leptonOne.pt_up  ()/leptonOne.pt) + (met_sys.first )/met);
@@ -4375,11 +4460,14 @@ void HistMaker::FillBaseEventHistogram(EventHist_t* Hist) {
   Hist->hMTTrail           ->Fill(fTreeVars.mttrail  , eventWeight*genWeight);
   Hist->hMTLep             ->Fill(fTreeVars.mtlep    , eventWeight*genWeight);
   Hist->hMTDiff            ->Fill(fTreeVars.mtdiff   , eventWeight*genWeight);
+  Hist->hMTRatio           ->Fill(fTreeVars.mtone / fTreeVars.mttwo, eventWeight*genWeight);
   Hist->hMTOneOverM        ->Fill(fTreeVars.mtoneoverm  ,eventWeight*genWeight);
   Hist->hMTTwoOverM        ->Fill(fTreeVars.mttwooverm  ,eventWeight*genWeight);
   Hist->hMTLepOverM        ->Fill(fTreeVars.mtlepoverm  ,eventWeight*genWeight);
   Hist->hMETDotOne         ->Fill(fTreeVars.metdotl1    , eventWeight*genWeight);
   Hist->hMETDotTwo         ->Fill(fTreeVars.metdotl2    , eventWeight*genWeight);
+  Hist->hMETDotZOne        ->Fill(fTreeVars.metdotzl1    , eventWeight*genWeight);
+  Hist->hMETDotZTwo        ->Fill(fTreeVars.metdotzl2    , eventWeight*genWeight);
 
   TLorentzVector lepSys = (*leptonOne.p4) + (*leptonTwo.p4);
   const double lepDelR   = std::fabs(leptonOne.p4->DeltaR(*leptonTwo.p4));
@@ -4403,6 +4491,7 @@ void HistMaker::FillBaseEventHistogram(EventHist_t* Hist) {
   // }
   Hist->hLepMt        ->Fill(lepSys.Mt()            ,eventWeight*genWeight);
   Hist->hLepEta       ->Fill(lepSys.Eta()           ,eventWeight*genWeight);
+  Hist->hLepPhi       ->Fill(lepSys.Phi()           ,eventWeight*genWeight);
   // Hist->hLepPhi       ->Fill(lepSys.Phi()           ,eventWeight*genWeight);
   Hist->hLepMEstimate   ->Fill(fTreeVars.mestimate   , eventWeight*genWeight);
   Hist->hLepMEstimateTwo->Fill(fTreeVars.mestimatetwo, eventWeight*genWeight);
@@ -4464,7 +4553,15 @@ void HistMaker::FillBaseEventHistogram(EventHist_t* Hist) {
 
   //MVA outputs
   for(unsigned i = 0; i < fMVAConfig->names_.size(); ++i) {
-    const float score = (fUseCDFBDTs == 1) ? fMvaCDFs[i] : (fUseCDFBDTs == 2) ? fMvaFofP[i] : fMvaOutputs[i];
+    // const float score = (fUseCDFBDTs == 1) ? fMvaCDFs[i] : (fUseCDFBDTs == 2) ? fMvaFofP[i] : fMvaOutputs[i];
+    const float score = fMvaUse[i];
+    if(score > -1.f && min_bdt_ > -1.f && score <= min_bdt_) {
+      printf(" HistMaker::%s: Entry %lld: Filling BDT score %.3f but cut applied at %.3f\n", __func__, fentry, score, min_bdt_);
+    }
+    const float score_check = (fUseCDFBDTs == 1) ? fMvaCDFs[i] : (fUseCDFBDTs == 2) ? fMvaFofP[i] : fMvaOutputs[i];
+    if(score > -1.f && score != score_check) {
+      printf(" HistMaker::%s: Entry %lld: BDT score %.3f disagrees with check of %.3f\n", __func__, fentry, score, score_check);
+    }
     Hist->hMVA[i][0]->Fill(score, fTreeVars.eventweightMVA); //remove training samples
     //MVA score vs mass for MVAs not correlated with mass
     if(!fSparseHists || fSelection == "emu") {
@@ -4792,6 +4889,7 @@ Bool_t HistMaker::InitializeEvent(Long64_t entry)
   min_mass_ = -1.f; max_mass_ = -1.f;
   met_max_ = -1.f; mtone_max_ = -1.f; mttwo_max_ = -1.f; mtlep_max_ = -1.f;
   mtlep_over_m_max_ = -1.f; mtone_over_m_max_ = -1.f; mttwo_over_m_max_ = -1.f;
+  min_bdt_ = -10.f;
 
   //Initialize base object information
   CountObjects(); // > 100 kHz
@@ -4884,6 +4982,14 @@ Bool_t HistMaker::InitializeEvent(Long64_t entry)
   fTimes[GetTimerNumber("InitVars")] = std::chrono::steady_clock::now(); //timer for initializing object info
   InitializeTreeVariables();
   IncrementTimer("InitVars", true);
+
+  //Remove MVA training events if requested
+  if(fRemoveTraining && fTreeVars.train > 0.5f) {
+    IncrementTimer("EventInit", true);
+    if(fVerbose > 0) printf(" MVA training event removed\n");
+    return kTRUE;
+  }
+
 
   /////////////////////////
   // Apply event weights //

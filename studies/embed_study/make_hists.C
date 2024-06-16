@@ -1,6 +1,6 @@
 //make plots of the base gen-level selection, to compare DY MC and Embedding
 
-int ndebug_ = -1;
+int ndebug_ = 1e5; //N(events) to process, -1 to process all
 bool overRide_ = true; //override 2018 unfolding with 2016 or IC weights
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -46,6 +46,75 @@ TLorentzVector get_had_tau_vector(int index, const int npart, const int* mothers
     visible += loop;
   }
   return visible;
+}
+
+//-------------------------------------------------------------------------------------------------------------------------------------
+//Fit the mass distribution with a double sided Crystal Ball function
+int fit_mass(TH1* h, TString figname = "", TString figtitle = "") {
+  if(h->Integral() <= 0.) return 0.;
+
+  const double min_mass(80.), max_mass(100.);
+
+  //Create the observable
+  RooRealVar mass("mass", "M_{Z}", 90., min_mass, max_mass, "GeV/c^{2}");
+  mass.setBins((max_mass-min_mass)/h->GetBinWidth(1));
+
+  //DoubleCB resolution
+  RooRealVar     mean  ("mean"  , "mean"  , 91., 85., 95.); //central RooCBShape
+  RooRealVar     sigma ("sigma" , "sigma" , 1.5,  0., 30.);
+  RooRealVar     alpha1("alpha1", "alpha1", 1. , 0.1, 10.);
+  RooRealVar     alpha2("alpha2", "alpha2", 1. , 0.1, 10.);
+  RooRealVar     enne1 ("enne1" , "enne1" , 7. , 1.0, 30.);
+  RooRealVar     enne2 ("enne2" , "enne2" , 7. , 1.0, 30.);
+  RooDoubleCrystalBall pdf("pdf", "pdf", mass, mean, sigma, alpha1, enne1, alpha2, enne2);
+
+  //Create a data object to fit
+  RooDataHist data("data",  "data", RooArgList(mass), h);
+
+  //Perform the fit
+  bool refit = false;
+  int count = 0;
+  do {
+    cout << "###### Fit: " << figtitle.Data() << ": " << figname.Data() << endl;
+    auto fitres = pdf.fitTo(data, RooFit::SumW2Error(1), RooFit::Warnings(0), RooFit::PrintEvalErrors(-1), RooFit::Save());
+    cout << "#######################################################" << endl << endl
+	 << "Fit: " << figtitle.Data() << ": " << figname.Data() << endl
+	 << "Fit result: status = " << fitres->status() << " covQual = " << fitres->covQual() << endl << endl
+	 << "#######################################################" << endl;
+    refit = fitres->status() != 0 && count < 2;
+    ++count;
+    if(refit) cout << endl << "Refitting the dataset!\n";
+  } while(refit);
+
+  pdf.Print("tree");
+
+  //Draw the fit and write the figure to disk
+  auto xframe = mass.frame(RooFit::Title(" "));
+  data.plotOn(xframe);
+  pdf.plotOn(xframe, RooFit::LineColor(kRed));
+  TCanvas* c = new TCanvas();
+  xframe->Draw();
+
+  //add the fit info
+  TLatex label;
+  label.SetNDC();
+  label.SetTextFont(72);
+  label.SetTextSize(0.03);
+  label.SetTextAlign(13);
+  label.SetTextAngle(0);
+  label.DrawLatex(0.14, 0.88, Form("#sigma = %.3f +- %.3f", sigma.getVal(), sigma.getError()));
+  label.DrawLatex(0.14, 0.84, Form("#mu = %.3f +- %.3f", mean.getVal(), mean.getError()));
+  label.DrawLatex(0.14, 0.80, Form("#alpha_{1} = %.3f +- %.3f", alpha1.getVal(), alpha1.getError()));
+  label.DrawLatex(0.14, 0.76, Form("#alpha_{2} = %.3f +- %.3f", alpha2.getVal(), alpha2.getError()));
+  label.DrawLatex(0.14, 0.72, Form("n_{1} = %.3f +- %.3f", enne1.getVal(), enne1.getError()));
+  label.DrawLatex(0.14, 0.68, Form("n_{2} = %.3f +- %.3f", enne2.getVal(), enne2.getError()));
+
+  if(figname != "")
+    c->SaveAs(figname.Data());
+
+  delete c;
+  delete xframe;
+  return 0;
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -119,7 +188,7 @@ int make_hists(const TString selec = "emu", const bool isEmbed = true, int year 
   TH1* hTrailPt   = new TH1D("htrailpt"  , "Trail p_{T}"    ,  50,  0, 100);
   TH1* hLeadEta   = new TH1D("hleadeta"  , "Lead #eta"      ,  60, -3., 3.);
   TH1* hTrailEta  = new TH1D("htraileta" , "Trail #eta"     ,  60, -3., 3.);
-  TH1* hZMass     = new TH1D("hzmass"    , "Z Mass"         , 100, 40, 200);
+  TH1* hZMass     = new TH1D("hzmass"    , "Z Mass"         , 320, 40, 200);
   TH1* hZPt       = new TH1D("hzpt"      , "Z p_{T}"        ,  50,  0, 150);
   TH1* hZEta      = new TH1D("hzeta"     , "Z #eta"         ,  50,-10,  10);
   TH1* hDiLepMass = new TH1D("hdilepmass", "Di-lepton Mass" , 100,  0, 200);
@@ -591,5 +660,9 @@ int make_hists(const TString selec = "emu", const bool isEmbed = true, int year 
   c->Print(Form("%s/gentauetavspteff.png", basename.Data()));
 
   delete c;
+
+  //Print a fit of the mass distribution
+  fit_mass(hZMass, basename + "/zmass_fit.png", "Z mass fit");
+
   return 0;
 }

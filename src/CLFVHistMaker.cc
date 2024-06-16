@@ -91,6 +91,15 @@ void CLFVHistMaker::InitHistogramFlags() {
     fEventSets [kMuTau + 29] = 1; //debug category
     fSysSets   [kMuTau + 29] = 0;
 
+    const bool embed_testing = false;
+    if(embed_testing) { //use normal debug sets for embedding testing
+      fQCDFakeTauTesting = 0;
+      fWJFakeTauTesting  = 0;
+      fTTFakeTauTesting  = 0;
+      fJetTauTesting     = 0;
+      fFakeLeptonTesting = 0;
+    }
+
     // jet --> tau DRs
     fEventSets [kMuTau + 30] = fQCDFakeTauTesting; //QCD
     fEventSets [kMuTau + 31] = fWJFakeTauTesting; //W+Jets
@@ -102,6 +111,29 @@ void CLFVHistMaker::InitHistogramFlags() {
     fEventSets [kMuTau + 36] = fQCDFakeTauTesting; //QCD
     fEventSets [kMuTau + 37] = fWJFakeTauTesting; //W+Jets
     fEventSets [kMuTau + 38] = fTTFakeTauTesting; //Top
+
+    //Testing embedding
+    if(embed_testing) {
+      fEventSets [kMuTau + 30] = 1; //tight Z->ll pT cuts
+      fEventSets [kMuTau + 31] = 1; //barrel |eta| events
+      fEventSets [kMuTau + 32] = 1; //endcap |eta| events
+      fEventSets [kMuTau + 33] = 1; //|phi(met)| < pi/2
+      fEventSets [kMuTau + 34] = 1; //|phi(met)| > pi/2
+      fEventSets [kMuTau + 35] = 1; //MET < 40
+      fEventSets [kMuTau + 36] = 1; //MET > 40
+      // fEventSets [kMuTau + 37] = 1; //no FSR in DY MC Z->ll
+      // fEventSets [kMuTau + 38] = 1; //adjusted Embedding energy scale
+      fEventSets [kMuTau + 39] = 1; //lower lep delta phi
+      fEventSets [kMuTau + 40] = 1; //high lep delta phi
+      fEventSets [kMuTau + 41] = 1; //lower lep pt
+      fEventSets [kMuTau + 42] = 1; //higher lep pt
+      fEventSets [kMuTau + 43] = 1; //Tighter cuts
+      fEventSets [kMuTau + 44] = 1; //High BDT score
+      fEventSets [kMuTau + 45] = 1; //Low BDT score
+      fEventSets [kMuTau + 46] = 1; //Not low BDT score
+      fEventSets [kMuTau + 47] = 1; //High nPV
+      fEventSets [kMuTau + 48] = 1; //Low nPV
+    }
 
   }
   if(etau) {
@@ -142,6 +174,15 @@ void CLFVHistMaker::InitHistogramFlags() {
     fEventSets [kETau + 29] = 1; //debug category
     fSysSets   [kETau + 29] = 0;
 
+    const bool embed_testing = false;
+    if(embed_testing) { //use normal debug sets for embedding testing
+      fQCDFakeTauTesting = 0;
+      fWJFakeTauTesting  = 0;
+      fTTFakeTauTesting  = 0;
+      fJetTauTesting     = 0;
+      fFakeLeptonTesting = 0;
+    }
+
     // jet --> tau DRs
     fEventSets [kETau + 30] = fQCDFakeTauTesting; //QCD
     fEventSets [kETau + 31] = fWJFakeTauTesting; //W+Jets
@@ -149,10 +190,33 @@ void CLFVHistMaker::InitHistogramFlags() {
 
     // jet --> tau DRs with MC taus
     fEventSets [kETau + 33] = fJetTauTesting; //Nominal selection without j-->tau weights, loose ID only
-    fEventSets [kETau + 35] = fFakeLeptonTesting; //Nominal selection
+    fEventSets [kETau + 35] = fFakeLeptonTesting; //Nominal selection, MC fake leptons
     fEventSets [kETau + 36] = fQCDFakeTauTesting; //QCD
     fEventSets [kETau + 37] = fWJFakeTauTesting; //W+Jets
     fEventSets [kETau + 38] = fTTFakeTauTesting; //Top
+
+    //Testing embedding
+    if(embed_testing) {
+      fEventSets [kETau + 30] = 1; //tight Z->ll pT cuts
+      fEventSets [kETau + 31] = 1; //barrel |eta| events
+      fEventSets [kETau + 32] = 1; //endcap |eta| events
+      fEventSets [kETau + 33] = 1; //|phi(met)| < pi/2
+      fEventSets [kETau + 34] = 1; //|phi(met)| > pi/2
+      fEventSets [kETau + 35] = 1; //MET < 40
+      fEventSets [kETau + 36] = 1; //MET > 40
+      // fEventSets [kETau + 37] = 1; //no FSR in DY MC Z->ll
+      // fEventSets [kETau + 38] = 1; //adjusted Embedding energy scale
+      fEventSets [kETau + 39] = 1; //lower lep delta phi
+      fEventSets [kETau + 40] = 1; //high lep delta phi
+      fEventSets [kETau + 41] = 1; //lower lep pt
+      fEventSets [kETau + 42] = 1; //higher lep pt
+      fEventSets [kETau + 43] = 1; //Tighter cuts
+      fEventSets [kETau + 44] = 1; //High BDT score
+      fEventSets [kETau + 45] = 1; //Low BDT score
+      fEventSets [kETau + 46] = 1; //Not low BDT score
+      fEventSets [kETau + 47] = 1; //High nPV
+      fEventSets [kETau + 48] = 1; //Low nPV
+    }
 
   }
   if(emu) {
@@ -245,7 +309,11 @@ void CLFVHistMaker::InitHistogramFlags() {
     fEventSets [kMuMu + 35] = 1; //MET < 40
     fEventSets [kMuMu + 36] = 1; //MET > 40
     fEventSets [kMuMu + 37] = 1; //no FSR in DY MC Z->ll
-    fEventSets [kMuMu + 38] = 1; //adjusted Embedding energy scale
+    // fEventSets [kMuMu + 38] = 1; //adjusted Embedding energy scale
+    fEventSets [kMuMu + 39] = 1; //lower lep delta phi
+    fEventSets [kMuMu + 40] = 1; //high lep delta phi
+    fEventSets [kMuMu + 41] = 1; //lower lep pt
+    fEventSets [kMuMu + 42] = 1; //higher lep pt
 
     if(fTriggerTesting) { //testing triggering
       // fEventSets [kMuMu + 60] = 1; //one fired
@@ -850,11 +918,12 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
   //Event information that may be altered, to restore the event information after a systematic shift
   const TLorentzVector o_lv1(*leptonOne.p4), o_lv2(*leptonTwo.p4), o_jet(*jetOne.p4);
   const float o_met(met), o_metPhi(metPhi);
-  float o_mvas[fMVAConfig->names_.size()], o_cdfs[fMVAConfig->names_.size()], o_fofp[fMVAConfig->names_.size()];
+  float o_mvas[fMVAConfig->names_.size()], o_cdfs[fMVAConfig->names_.size()], o_fofp[fMVAConfig->names_.size()], o_use[fMVAConfig->names_.size()];
   for(unsigned i = 0; i < fMVAConfig->names_.size(); ++i) {
     o_mvas[i] = fMvaOutputs[i];
     o_cdfs[i] = fMvaCDFs[i];
     o_fofp[i] = fMvaFofP[i];
+    o_use [i] = fMvaUse [i];
   }
 
   const float rho = (fIsEmbed) ? 0.5f : 1.f; //for embedding correlation
@@ -1788,7 +1857,8 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
         for(unsigned i = 0; i < fMVAConfig->names_.size(); ++i) {
           //assume only relevant MVAs are initialized
           if(!mva[i]) continue;
-          float mvascore = (fUseCDFBDTs == 1) ? fMvaCDFs[i] : (fUseCDFBDTs == 2) ? fMvaFofP[i] : fMvaOutputs[i];
+          // float mvascore = (fUseCDFBDTs == 1) ? fMvaCDFs[i] : (fUseCDFBDTs == 2) ? fMvaFofP[i] : fMvaOutputs[i];
+          float mvascore = fMvaUse[i];
           if(!std::isfinite(mvascore) && fVerbose > 0) {
             std::cout << "CLFVHistMaker::" << __func__ << ": Entry " << fentry << ", sys " << sys <<", MVA " << i << ": score is not finite = " << mvascore << "! Setting to -2...\n";
             mvascore = -2.;
@@ -1797,7 +1867,7 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
             std::cout << "CLFVHistMaker::" << __func__ << ": Entry " << fentry << ", sys " << sys <<", MVA " << i << ": score is not defined = " << mvascore << "!\n";
           }
           Hist->hMVA[i][sys]->Fill(mvascore, mvaweight);
-          if(reeval) Hist->hMVADiff[i][sys]->Fill(mvascore-((fUseCDFBDTs == 1) ? o_cdfs[i] : (fUseCDFBDTs == 2) ? o_fofp[i] : o_mvas[i]), mvaweight);
+          if(reeval) Hist->hMVADiff[i][sys]->Fill(mvascore-o_use[i], mvaweight);
         }
       } //end !same flavor and !(sparse+emu)
     } //end kinematic event selection check
@@ -1814,6 +1884,7 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
         fMvaOutputs[i] = o_mvas[i];
         fMvaCDFs[i]    = o_cdfs[i];
         fMvaFofP[i]    = o_fofp[i];
+        fMvaUse [i]    = o_use [i];
       }
     }
   }
@@ -2126,6 +2197,8 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   // jet --> tau cuts and region definitions
   ////////////////////////////////////////////////////////////
 
+  const bool no_met_cut_test   = false; //FIXME: Remove this
+
   const float met_cut          = -1.f; //60.f;
   const float mtlep_cut        = (lep_tau || emu || ee || mumu) ? -1.f : 70.f;
   const float mtone_cut        = -1.f;
@@ -2142,13 +2215,13 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
                                   (mtone_over_m_cut < 0.f || fTreeVars.mtoneoverm < mtone_over_m_cut + 2.f*sys_buffer/fTreeVars.lepm) &&
                                   (mttwo_over_m_cut < 0.f || fTreeVars.mttwooverm < mttwo_over_m_cut + 2.f*sys_buffer/fTreeVars.lepm) &&
                                   !(isLooseMuon || isLooseElectron));
-  met_max_          = met_cut;
-  mtlep_max_        = mtlep_cut;
-  mtone_max_        = mtone_cut;
-  mttwo_max_        = mttwo_cut;
-  mtlep_over_m_max_ = mtlep_over_m_cut;
-  mtone_over_m_max_ = mtone_over_m_cut;
-  mttwo_over_m_max_ = mttwo_over_m_cut;
+  met_max_          = (no_met_cut_test) ? -1.f : met_cut;
+  mtlep_max_        = (no_met_cut_test) ? -1.f : mtlep_cut;
+  mtone_max_        = (no_met_cut_test) ? -1.f : mtone_cut;
+  mttwo_max_        = (no_met_cut_test) ? -1.f : mttwo_cut;
+  mtlep_over_m_max_ = (no_met_cut_test) ? -1.f : mtlep_over_m_cut;
+  mtone_over_m_max_ = (no_met_cut_test) ? -1.f : mtone_over_m_cut;
+  mttwo_over_m_max_ = (no_met_cut_test) ? -1.f : mttwo_over_m_cut;
 
   ///////////////////////////////////////////////////////////////////
   // Handle anti-isolated light leptons
@@ -2243,47 +2316,47 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   //    Add MET cuts      //
   //////////////////////////
 
-  mutau &= met_cut < 0.f || met < met_cut + sys_buffer;
-  etau  &= met_cut < 0.f || met < met_cut + sys_buffer;
-  emu   &= met_cut < 0.f || met < met_cut + sys_buffer;
-  mumu  &= met_cut < 0.f || met < met_cut + sys_buffer;
-  ee    &= met_cut < 0.f || met < met_cut + sys_buffer;
+  mutau &= no_met_cut_test || met_cut < 0.f || met < met_cut + sys_buffer;
+  etau  &= no_met_cut_test || met_cut < 0.f || met < met_cut + sys_buffer;
+  emu   &= no_met_cut_test || met_cut < 0.f || met < met_cut + sys_buffer;
+  mumu  &= no_met_cut_test || met_cut < 0.f || met < met_cut + sys_buffer;
+  ee    &= no_met_cut_test || met_cut < 0.f || met < met_cut + sys_buffer;
 
-  mutau &= mtlep_cut < 0.f || fTreeVars.mtlep < mtlep_cut + sys_buffer;
-  etau  &= mtlep_cut < 0.f || fTreeVars.mtlep < mtlep_cut + sys_buffer;
-  emu   &= mtlep_cut < 0.f || fTreeVars.mtlep < mtlep_cut + sys_buffer;
-  mumu  &= mtlep_cut < 0.f || fTreeVars.mtlep < mtlep_cut + sys_buffer;
-  ee    &= mtlep_cut < 0.f || fTreeVars.mtlep < mtlep_cut + sys_buffer;
+  mutau &= no_met_cut_test || mtlep_cut < 0.f || fTreeVars.mtlep < mtlep_cut + sys_buffer;
+  etau  &= no_met_cut_test || mtlep_cut < 0.f || fTreeVars.mtlep < mtlep_cut + sys_buffer;
+  emu   &= no_met_cut_test || mtlep_cut < 0.f || fTreeVars.mtlep < mtlep_cut + sys_buffer;
+  mumu  &= no_met_cut_test || mtlep_cut < 0.f || fTreeVars.mtlep < mtlep_cut + sys_buffer;
+  ee    &= no_met_cut_test || mtlep_cut < 0.f || fTreeVars.mtlep < mtlep_cut + sys_buffer;
 
-  mutau &= mtone_cut < 0.f || fTreeVars.mtone < mtone_cut + sys_buffer;
-  etau  &= mtone_cut < 0.f || fTreeVars.mtone < mtone_cut + sys_buffer;
-  emu   &= mtone_cut < 0.f || fTreeVars.mtone < mtone_cut + sys_buffer;
-  mumu  &= mtone_cut < 0.f || fTreeVars.mtone < mtone_cut + sys_buffer;
-  ee    &= mtone_cut < 0.f || fTreeVars.mtone < mtone_cut + sys_buffer;
+  mutau &= no_met_cut_test || mtone_cut < 0.f || fTreeVars.mtone < mtone_cut + sys_buffer;
+  etau  &= no_met_cut_test || mtone_cut < 0.f || fTreeVars.mtone < mtone_cut + sys_buffer;
+  emu   &= no_met_cut_test || mtone_cut < 0.f || fTreeVars.mtone < mtone_cut + sys_buffer;
+  mumu  &= no_met_cut_test || mtone_cut < 0.f || fTreeVars.mtone < mtone_cut + sys_buffer;
+  ee    &= no_met_cut_test || mtone_cut < 0.f || fTreeVars.mtone < mtone_cut + sys_buffer;
 
-  mutau &= mttwo_cut < 0.f || fTreeVars.mttwo < mttwo_cut + sys_buffer;
-  etau  &= mttwo_cut < 0.f || fTreeVars.mttwo < mttwo_cut + sys_buffer;
-  emu   &= mttwo_cut < 0.f || fTreeVars.mttwo < mttwo_cut + sys_buffer;
-  mumu  &= mttwo_cut < 0.f || fTreeVars.mttwo < mttwo_cut + sys_buffer;
-  ee    &= mttwo_cut < 0.f || fTreeVars.mttwo < mttwo_cut + sys_buffer;
+  mutau &= no_met_cut_test || mttwo_cut < 0.f || fTreeVars.mttwo < mttwo_cut + sys_buffer;
+  etau  &= no_met_cut_test || mttwo_cut < 0.f || fTreeVars.mttwo < mttwo_cut + sys_buffer;
+  emu   &= no_met_cut_test || mttwo_cut < 0.f || fTreeVars.mttwo < mttwo_cut + sys_buffer;
+  mumu  &= no_met_cut_test || mttwo_cut < 0.f || fTreeVars.mttwo < mttwo_cut + sys_buffer;
+  ee    &= no_met_cut_test || mttwo_cut < 0.f || fTreeVars.mttwo < mttwo_cut + sys_buffer;
 
-  mutau &= mtlep_over_m_cut < 0.f || fTreeVars.mtlepoverm < mtlep_over_m_cut + 2.f*sys_buffer/fTreeVars.lepm;
-  etau  &= mtlep_over_m_cut < 0.f || fTreeVars.mtlepoverm < mtlep_over_m_cut + 2.f*sys_buffer/fTreeVars.lepm;
-  emu   &= mtlep_over_m_cut < 0.f || fTreeVars.mtlepoverm < mtlep_over_m_cut + 2.f*sys_buffer/fTreeVars.lepm;
-  mumu  &= mtlep_over_m_cut < 0.f || fTreeVars.mtlepoverm < mtlep_over_m_cut + 2.f*sys_buffer/fTreeVars.lepm;
-  ee    &= mtlep_over_m_cut < 0.f || fTreeVars.mtlepoverm < mtlep_over_m_cut + 2.f*sys_buffer/fTreeVars.lepm;
+  mutau &= no_met_cut_test || mtlep_over_m_cut < 0.f || fTreeVars.mtlepoverm < mtlep_over_m_cut + 2.f*sys_buffer/fTreeVars.lepm;
+  etau  &= no_met_cut_test || mtlep_over_m_cut < 0.f || fTreeVars.mtlepoverm < mtlep_over_m_cut + 2.f*sys_buffer/fTreeVars.lepm;
+  emu   &= no_met_cut_test || mtlep_over_m_cut < 0.f || fTreeVars.mtlepoverm < mtlep_over_m_cut + 2.f*sys_buffer/fTreeVars.lepm;
+  mumu  &= no_met_cut_test || mtlep_over_m_cut < 0.f || fTreeVars.mtlepoverm < mtlep_over_m_cut + 2.f*sys_buffer/fTreeVars.lepm;
+  ee    &= no_met_cut_test || mtlep_over_m_cut < 0.f || fTreeVars.mtlepoverm < mtlep_over_m_cut + 2.f*sys_buffer/fTreeVars.lepm;
 
-  mutau &= mtone_over_m_cut < 0.f || fTreeVars.mtoneoverm < mtone_over_m_cut + 2.f*sys_buffer/fTreeVars.lepm;
-  etau  &= mtone_over_m_cut < 0.f || fTreeVars.mtoneoverm < mtone_over_m_cut + 2.f*sys_buffer/fTreeVars.lepm;
-  emu   &= mtone_over_m_cut < 0.f || fTreeVars.mtoneoverm < mtone_over_m_cut + 2.f*sys_buffer/fTreeVars.lepm;
-  mumu  &= mtone_over_m_cut < 0.f || fTreeVars.mtoneoverm < mtone_over_m_cut + 2.f*sys_buffer/fTreeVars.lepm;
-  ee    &= mtone_over_m_cut < 0.f || fTreeVars.mtoneoverm < mtone_over_m_cut + 2.f*sys_buffer/fTreeVars.lepm;
+  mutau &= no_met_cut_test || mtone_over_m_cut < 0.f || fTreeVars.mtoneoverm < mtone_over_m_cut + 2.f*sys_buffer/fTreeVars.lepm;
+  etau  &= no_met_cut_test || mtone_over_m_cut < 0.f || fTreeVars.mtoneoverm < mtone_over_m_cut + 2.f*sys_buffer/fTreeVars.lepm;
+  emu   &= no_met_cut_test || mtone_over_m_cut < 0.f || fTreeVars.mtoneoverm < mtone_over_m_cut + 2.f*sys_buffer/fTreeVars.lepm;
+  mumu  &= no_met_cut_test || mtone_over_m_cut < 0.f || fTreeVars.mtoneoverm < mtone_over_m_cut + 2.f*sys_buffer/fTreeVars.lepm;
+  ee    &= no_met_cut_test || mtone_over_m_cut < 0.f || fTreeVars.mtoneoverm < mtone_over_m_cut + 2.f*sys_buffer/fTreeVars.lepm;
 
-  mutau &= mttwo_over_m_cut < 0.f || fTreeVars.mttwooverm < mttwo_over_m_cut + 2.f*sys_buffer/fTreeVars.lepm;
-  etau  &= mttwo_over_m_cut < 0.f || fTreeVars.mttwooverm < mttwo_over_m_cut + 2.f*sys_buffer/fTreeVars.lepm;
-  emu   &= mttwo_over_m_cut < 0.f || fTreeVars.mttwooverm < mttwo_over_m_cut + 2.f*sys_buffer/fTreeVars.lepm;
-  mumu  &= mttwo_over_m_cut < 0.f || fTreeVars.mttwooverm < mttwo_over_m_cut + 2.f*sys_buffer/fTreeVars.lepm;
-  ee    &= mttwo_over_m_cut < 0.f || fTreeVars.mttwooverm < mttwo_over_m_cut + 2.f*sys_buffer/fTreeVars.lepm;
+  mutau &= no_met_cut_test || mttwo_over_m_cut < 0.f || fTreeVars.mttwooverm < mttwo_over_m_cut + 2.f*sys_buffer/fTreeVars.lepm;
+  etau  &= no_met_cut_test || mttwo_over_m_cut < 0.f || fTreeVars.mttwooverm < mttwo_over_m_cut + 2.f*sys_buffer/fTreeVars.lepm;
+  emu   &= no_met_cut_test || mttwo_over_m_cut < 0.f || fTreeVars.mttwooverm < mttwo_over_m_cut + 2.f*sys_buffer/fTreeVars.lepm;
+  mumu  &= no_met_cut_test || mttwo_over_m_cut < 0.f || fTreeVars.mttwooverm < mttwo_over_m_cut + 2.f*sys_buffer/fTreeVars.lepm;
+  ee    &= no_met_cut_test || mttwo_over_m_cut < 0.f || fTreeVars.mttwooverm < mttwo_over_m_cut + 2.f*sys_buffer/fTreeVars.lepm;
 
   if(!(mutau || etau || emu || mumu || ee)) return kTRUE;
 
@@ -2311,26 +2384,51 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   etau_mu = lep_tau == 2 && emu;
   emu    &= lep_tau == 0;
 
-  //define leptonic tau kinematic cuts
-  if(mutau_e) { //lep 2 = prompt, lep 1 = tau_l
-    two_pt_min_ = 20.f; ptdiff_min_ = -1.e10; ptdiff_max_ = +1.e10;
-    mtlep_max_ =  90.f; mtone_max_ = 60.f; mtone_over_m_max_ = -1.f; mttwo_over_m_max_ = -1.f;
-; mttwo_over_m_max_ = -1.f;
-  }
-  if(etau_mu) { //lep 1 = prompt, lep 2 = tau_l
-    one_pt_min_ = 20.f; ptdiff_min_ =    0.f; ptdiff_max_ = +1.e10;
-    mtlep_max_ =  90.f; mttwo_max_ = 60.f; mtone_over_m_max_ = -1.f; mttwo_over_m_max_ = -1.f;
+  //Stricter Drell-Yan veto set FIXME: Formalize this or remove it
+  const bool do_dy_cuts = true;
+  if(do_dy_cuts && (mutau || etau || lep_tau)) {
+    if(mutau || etau) one_pt_min_ = std::max(one_pt_min_, 28.f);
+    if(lep_tau == 1 && mutau_e) {mtone_over_m_max_ = 0.8f; mttwo_over_m_max_ = -1.f;}
+    else                        {mttwo_over_m_max_ = 0.8f; mtone_over_m_max_ = -1.f;}
+    etau  &= no_met_cut_test || mttwo_over_m_max_ < 0.f || fTreeVars.mttwooverm < mttwo_over_m_max_ + 2.f*sys_buffer/fTreeVars.lepm;
+    mutau &= no_met_cut_test || mttwo_over_m_max_ < 0.f || fTreeVars.mttwooverm < mttwo_over_m_max_ + 2.f*sys_buffer/fTreeVars.lepm;
+    etau  &= leptonOne.pt > one_pt_min_ - sys_buffer;
+    mutau &= leptonOne.pt > one_pt_min_ - sys_buffer;
   }
 
-  mutau_e &= leptonTwo.pt > two_pt_min_ - sys_buffer; //lepton pT,
+  //define leptonic tau kinematic cuts
+  if(mutau_e) { //lep 2 = prompt, lep 1 = tau_l
+    two_pt_min_ = 20.f;
+    ptdiff_min_ = -1.e10; ptdiff_max_ = +1.e10;
+    mtlep_max_ =  90.f; mtone_max_ = (do_dy_cuts) ? -1.f : 60.f;
+    if(!do_dy_cuts) {mtone_over_m_max_ = -1.f; mttwo_over_m_max_ = -1.f;}
+  }
+  if(etau_mu) { //lep 1 = prompt, lep 2 = tau_l
+    one_pt_min_ = 20.f;
+    ptdiff_min_ =    0.f; ptdiff_max_ = +1.e10;
+    mtlep_max_ =  90.f; mttwo_max_ = (do_dy_cuts) ? -1.f : 60.f;
+    if(!do_dy_cuts) {mtone_over_m_max_ = -1.f; mttwo_over_m_max_ = -1.f;}
+  }
+
+  if(no_met_cut_test) {
+    met_max_          = -1.f;
+    mtlep_max_        = -1.f;
+    mtone_max_        = -1.f;
+    mttwo_max_        = -1.f;
+    mtlep_over_m_max_ = -1.f;
+    mtone_over_m_max_ = -1.f;
+    mttwo_over_m_max_ = -1.f;
+  }
+
+  mutau_e &= leptonTwo.pt > two_pt_min_ - sys_buffer; //lepton pT
   etau_mu &= leptonOne.pt > one_pt_min_ - sys_buffer;
   mutau_e &= fTreeVars.ptdiff > ptdiff_min_ - sys_buffer && fTreeVars.ptdiff < ptdiff_max_ + sys_buffer; //lepton pT - leptonic tau pT
   etau_mu &= fTreeVars.ptdiff > ptdiff_min_ - sys_buffer && fTreeVars.ptdiff < ptdiff_max_ + sys_buffer;
   mutau_e &= mtlep_max_ < 0.f || fTreeVars.mtlep < mtlep_max_ + sys_buffer; //di-lepton MT
   etau_mu &= mtlep_max_ < 0.f || fTreeVars.mtlep < mtlep_max_ + sys_buffer;
-  mutau_e &= mtone_max_ < 0.f || fTreeVars.mtone < mtone_max_ + sys_buffer; //leptonic tau MT (should be very collimated, so small MT)
+  mutau_e &= mtone_max_ < 0.f || fTreeVars.mtone < mtone_max_ + sys_buffer; //leptonic tau MT
   etau_mu &= mttwo_max_ < 0.f || fTreeVars.mttwo < mttwo_max_ + sys_buffer;
-  mutau_e &= mtone_over_m_max_ < 0.f || fTreeVars.mtoneoverm < mtone_over_m_max_ + 2.f*sys_buffer/fTreeVars.lepm; //leptonic tau MT/M (should be very collimated, so small MT/M)
+  mutau_e &= mtone_over_m_max_ < 0.f || fTreeVars.mtoneoverm < mtone_over_m_max_ + 2.f*sys_buffer/fTreeVars.lepm; //leptonic tau MT/M
   etau_mu &= mttwo_over_m_max_ < 0.f || fTreeVars.mttwooverm < mttwo_over_m_max_ + 2.f*sys_buffer/fTreeVars.lepm;
 
   //Omly apply significance cuts in the Z->emu search, since it's not well described in the Embedding
@@ -2455,6 +2553,13 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
     etau_mu &= nBJetsUse == 0;
   }
 
+  //Add BDT score cut FIXME: Formalize this
+  min_bdt_ = 0.2f;
+  if(sys_buffer == 0.f) { //if not systematic buffers, apply the cut, otherwise allow for complete migration
+    const int imva = (mutau) ? 1 : (etau) ? 3 : (emu && lep_tau == 0) ? 5 : (lep_tau == 1) ? 7 : 9;
+    if(fMvaUse[imva] <= min_bdt_) return kTRUE;
+  }
+
   if(!(mutau || etau || emu || mumu || ee || etau_mu || mutau_e)) return kTRUE;
 
   if(!looseQCDSelection && chargeTest) {fCutFlow->Fill(icutflow);} //28
@@ -2467,6 +2572,7 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   // if(!fIsData && !fIsSignal && !fUseMCEstimatedFakeLep && (leptonOne.isPileup || leptonTwo.isPileup)) {
   //   printf("CLFVHistMaker::%s: Entry %lld has pileup leptons\n", __func__, fentry);
   // }
+
 
   if(!lep_tau) {
     if(mll > min_mass_ - sys_buffer) {
@@ -2490,7 +2596,7 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
     }
   }
 
-  //Testing MET uncertainties in Z->mumu
+  //Testing Embedding vs. Drell-Yan
   if(mumu) {
     //tight Z->ll pT cuts
     if(std::fabs(leptonOne.pt - 45.f) < 5.f && std::fabs(leptonTwo.pt - 45.f) < 5.f) FillAllHistograms(set_offset + 30);
@@ -2522,27 +2628,68 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
         }
         test = eloss_1 < 0.005 && eloss_2 < 0.005;
         eventWeight *= 1.308;
+        fTreeVars.eventweightMVA *= 1.308;
       }
       if(test) FillAllHistograms(set_offset + 37);
       eventWeight = o_ewt;
     }
-    //Test adjusting the Embedding lepton scale a bit
-    {
-      const float scale = 0.99;
-      if(fIsEmbed) {
-        EnergyScale(scale, leptonOne, &met, &metPhi); //propagate the shift to the MET
-        EnergyScale(scale, leptonTwo, &met, &metPhi);
-        SetKinematics();
-        EvalMVAs();
-      }
-      if(PassesCuts()) FillAllHistograms(set_offset + 38);
-      if(fIsEmbed) { //restore the event variables
-        EnergyScale(1.f/scale, leptonOne, &met, &metPhi); //propagate the shift to the MET
-        EnergyScale(1.f/scale, leptonTwo, &met, &metPhi);
-        SetKinematics();
-        EvalMVAs();
-      }
-    }
+    // //Test adjusting the Embedding lepton scale a bit
+    // {
+    //   const float scale = 0.99;
+    //   if(fIsEmbed) {
+    //     EnergyScale(scale, leptonOne, &met, &metPhi); //propagate the shift to the MET
+    //     EnergyScale(scale, leptonTwo, &met, &metPhi);
+    //     SetKinematics();
+    //     EvalMVAs();
+    //   }
+    //   if(PassesCuts()) FillAllHistograms(set_offset + 38);
+    //   if(fIsEmbed) { //restore the event variables
+    //     EnergyScale(1.f/scale, leptonOne, &met, &metPhi); //propagate the shift to the MET
+    //     EnergyScale(1.f/scale, leptonTwo, &met, &metPhi);
+    //     SetKinematics();
+    //     EvalMVAs();
+    //   }
+    // }
+    //Lower vs. high di-lepton delta phi
+    if(std::fabs(fTreeVars.lepdeltaphi - M_PI/2.) < 0.5) FillAllHistograms(set_offset + 39);
+    else if(fTreeVars.lepdeltaphi > M_PI*0.95)           FillAllHistograms(set_offset + 40);
+    //Lower vs. higher di-lepton pT
+    if(fTreeVars.leppt < 10.f) FillAllHistograms(set_offset + 41);
+    else                       FillAllHistograms(set_offset + 42);
+  }
+
+  const bool embed_testing = false;
+  if(embed_testing && (mutau || etau)) {
+    //tighter pT cuts
+    if(leptonOne.pt > 30.f && leptonTwo.pt > 30.f) FillAllHistograms(set_offset + 30);
+    //barrel events
+    if(std::fabs(leptonOne.eta) < 0.9f && std::fabs(leptonTwo.eta) < 0.9f) FillAllHistograms(set_offset + 31);
+    //endcap events
+    if(std::fabs(leptonOne.eta) > 1.5f && std::fabs(leptonTwo.eta) > 1.5f) FillAllHistograms(set_offset + 32);
+    //low |phi(met)| events
+    if(std::fabs(metPhi) < M_PI/2.) FillAllHistograms(set_offset + 33);
+    //high |phi(met)| events
+    if(std::fabs(metPhi) > M_PI/2.) FillAllHistograms(set_offset + 34);
+    //lower MET events
+    if(met < 40.f) FillAllHistograms(set_offset + 35);
+    //high MET events
+    if(met > 40.f) FillAllHistograms(set_offset + 36);
+    //Lower vs. high di-lepton delta phi
+    if(std::fabs(fTreeVars.lepdeltaphi - M_PI/2.) < 0.5) FillAllHistograms(set_offset + 39);
+    else if(fTreeVars.lepdeltaphi > M_PI*0.95)           FillAllHistograms(set_offset + 40);
+    //Lower vs. higher di-lepton pT
+    if(fTreeVars.leppt < 10.f) FillAllHistograms(set_offset + 41);
+    else                       FillAllHistograms(set_offset + 42);
+    //Stricted Drell-Yan veto set
+    bool test = fTreeVars.mttwo < 60.f && met < 40.f && leptonOne.pt > 30.f;
+    if(test) FillAllHistograms(set_offset + 43);
+    //BDT score regions
+    const int imva = (mutau) ? 1 : (etau) ? 3 : (emu && lep_tau == 0) ? 5 : (lep_tau == 1) ? 7 : 9;
+    if(fMvaUse[imva] > 0.4) FillAllHistograms(set_offset + 44);
+    if(fMvaUse[imva] < 0.2) FillAllHistograms(set_offset + 45);
+    if(fMvaUse[imva] > 0.2) FillAllHistograms(set_offset + 46);
+    if(nPV > 25) FillAllHistograms(set_offset + 47);
+    else         FillAllHistograms(set_offset + 48);
   }
 
   //End the cutflow testing
@@ -2591,7 +2738,7 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
       const bool mass_check = mll > z_region - sys_buffer && mll < central_high + sys_buffer;
       const int imva = (mutau) ? 1 : (etau) ? 3 : (mutau_e) ? 7 : /*etau_mu*/ 9;
       const float mvascore = fMvaUse[imva];
-      const bool score_check = mvascore > -0.5 && (mvascore < ((mutau) ? 0.10 : (etau) ? 0.25 : (mutau_e) ? 0.15 : /*etau_mu*/ 0.15)); //region of interest
+      const bool score_check = mvascore > -0.5 && (mvascore < ((mutau) ? 0.20 : (etau) ? 0.25 : (mutau_e) ? 0.15 : /*etau_mu*/ 0.15)); //region of interest
       if(mass_check && score_check) {min_mass_ = z_region  ; max_mass_ = central_high; FillAllHistograms(loc_set_offset + 29);}
     }
 

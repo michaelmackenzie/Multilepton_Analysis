@@ -105,8 +105,11 @@ int useCDFBDTs_           =  2; //Use CDF transformed BDTs instead of the raw BD
 int useXGBoost_           =  1; //>0: use XGBoost BDT in Z->e+mu; >9: use XGBoost BDT in all categories
 int useBDTScale_          =  1; //use BDT score corrections in Z->e+mu
 bool writeTrees_          = false;
+int  remove_training_     =  1; //Remove training events (only CLFVHistMaker), only keep when re-making trees
 int  train_mode_          =  2; //MVA training mode, how to define training fractions
-TString test_mva_         = ""; //MVA to test, independent of selection
+TString test_mva_         = ""; //MVA to test, independent of selection being processed
+int smear_training_       =  0; //Smear event variables in output trees
+int useRandomField_       =  1; //Event splitting: 0: TRandom3; 1: random field branch; 2: event kinematics; 3: event number
 
 int  doHiggs_             =  0; //do higgs-related analysis
 bool sparseHists_         = true; //only plot more basic histograms
@@ -270,8 +273,10 @@ vector<datacard_t> get_data_cards(TString& nanoaod_path) {
   nanocards.push_back(datacard_t(false, 1.                                            , "LFVAnalysis_MuonEGRun2016F_2016.root"          , 3));
   nanocards.push_back(datacard_t(false, 1.                                            , "LFVAnalysis_MuonEGRun2016G_2016.root"          , 3));
   nanocards.push_back(datacard_t(false, 1.                                            , "LFVAnalysis_MuonEGRun2016H_2016.root"          , 3));
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZETau"                   ), "LFVAnalysis_ZETau-v*_2016.root"                , 0));
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZMuTau"                  ), "LFVAnalysis_ZMuTau-v*_2016.root"               , 0));
+  nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZETau"                   ), "LFVAnalysis_ZETau-merged_2016.root"                , 0));
+  nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZMuTau"                  ), "LFVAnalysis_ZMuTau-merged_2016.root"               , 0));
+  // nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZETau"                   ), "LFVAnalysis_ZETau-v*_2016.root"                , 0));
+  // nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZMuTau"                  ), "LFVAnalysis_ZMuTau-v*_2016.root"               , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZEMu"                    ), "LFVAnalysis_ZEMu-v*_2016.root"                 , 0));
   // nanocards.push_back(datacard_t(true , xs.GetCrossSection("HETau"                   ), "LFVAnalysis_HETau_2016.root"                   , 0));
   // nanocards.push_back(datacard_t(true , xs.GetCrossSection("HMuTau"                  ), "LFVAnalysis_HMuTau_2016.root"                  , 0));
@@ -364,8 +369,10 @@ vector<datacard_t> get_data_cards(TString& nanoaod_path) {
   nanocards.push_back(datacard_t(false, 1.                                            , "LFVAnalysis_MuonEGRun2017D_2017.root"          , 3));
   nanocards.push_back(datacard_t(false, 1.                                            , "LFVAnalysis_MuonEGRun2017E_2017.root"          , 3));
   nanocards.push_back(datacard_t(false, 1.                                            , "LFVAnalysis_MuonEGRun2017F_2017.root"          , 3));
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZETau"                   ), "LFVAnalysis_ZETau-v3*_2017.root"                , 0));
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZMuTau"                  ), "LFVAnalysis_ZMuTau-v3*_2017.root"               , 0));
+  nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZETau"                   ), "LFVAnalysis_ZETau-merged_2017.root"                , 0));
+  nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZMuTau"                  ), "LFVAnalysis_ZMuTau-merged_2017.root"               , 0));
+  // nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZETau"                   ), "LFVAnalysis_ZETau-v3*_2017.root"                , 0));
+  // nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZMuTau"                  ), "LFVAnalysis_ZMuTau-v3*_2017.root"               , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZEMu"                    ), "LFVAnalysis_ZEMu-v3*_2017.root"                 , 0));
   // nanocards.push_back(datacard_t(true , xs.GetCrossSection("HETau"                   ), "LFVAnalysis_HETau_2017.root"                   , 0));
   // nanocards.push_back(datacard_t(true , xs.GetCrossSection("HMuTau"                  ), "LFVAnalysis_HMuTau_2017.root"                  , 0));
@@ -439,8 +446,10 @@ vector<datacard_t> get_data_cards(TString& nanoaod_path) {
   nanocards.push_back(datacard_t(false, 1.                                            , "LFVAnalysis_MuonEGRun2018A_2018.root"          , 3));
   nanocards.push_back(datacard_t(false, 1.                                            , "LFVAnalysis_MuonEGRun2018B_2018.root"          , 3));
   nanocards.push_back(datacard_t(false, 1.                                            , "LFVAnalysis_MuonEGRun2018C_2018.root"          , 3));
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZETau"                   ), "LFVAnalysis_ZETau-v*_2018.root"                , 0));
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZMuTau"                  ), "LFVAnalysis_ZMuTau-v*_2018.root"               , 0));
+  // nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZETau"                   ), "LFVAnalysis_ZETau-v*_2018.root"                , 0));
+  nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZETau"                   ), "LFVAnalysis_ZETau-merged_2018.root"            , 0));
+  // nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZMuTau"                  ), "LFVAnalysis_ZMuTau-v*_2018.root"               , 0));
+  nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZMuTau"                  ), "LFVAnalysis_ZMuTau-merged_2018.root"           , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZEMu"                    ), "LFVAnalysis_ZEMu-v*_2018.root"                 , 0));
   // nanocards.push_back(datacard_t(true , xs.GetCrossSection("HETau"                   ), "LFVAnalysis_HETau_2018.root"                   , 0));
   // nanocards.push_back(datacard_t(true , xs.GetCrossSection("HMuTau"                  ), "LFVAnalysis_HMuTau_2018.root"                  , 0));

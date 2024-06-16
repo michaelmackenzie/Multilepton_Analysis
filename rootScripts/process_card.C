@@ -151,14 +151,14 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
     useRoccoCorr_       = 2; //2: ntuple-level
     useZPtWeights_      = 2; //2: ntuple-level
 
-    //use a subset of embedded events for faster processing
-    max_sim_events_     = 1e6;
+    // //use a subset of embedded events for faster processing
+    // max_sim_events_     = 1e6;
 
     //ignore BDTs
     DoMVASets_     = 0;
-    ReprocessMVAs_ = 0;
-    test_mva_      = ""; //(selection == "mumu") ? "zmutau" : "zetau";
-    useCDFBDTs_    = 0;
+    ReprocessMVAs_ = (test_mva_ == "") ? 0 : 1;
+    // test_mva_      = ""; //(selection == "mumu") ? "zmutau" : "zetau";
+    useCDFBDTs_    = (test_mva_ == "") ? 0 : 2;
     useXGBoost_    = 0;
     train_mode_    = 0;
     writeTrees_    = 0;
@@ -255,6 +255,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
         clfv_selec->fSameFlavorEMuSelec = doSameFlavorEMu_;
         clfv_selec->fRemoveLooseSS      = removeLooseSS_;
         clfv_selec->fDoLepESHists       = doLepESHists_;
+	clfv_selec->fRemoveTraining     = remove_training_;
       }
 
       if(dynamic_cast<HistMaker*> (selec)) {
@@ -364,7 +365,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
         else if(card.isData_) { //data from data-driven backgrounds
           selec->fFractionMVA = (selection.EndsWith("tau")) ? 0.05f : 0.3f; //don't need much j-->tau data
         } else if(isSignal) selec->fFractionMVA = 0.5f; //use half the signal data for training
-        else if(selec->fIsEmbed) selec->fFractionMVA = 0.f; //FIXME: Not using embedding in training as of now //0.1f; //don't need much embedding data
+        else if(selec->fIsEmbed) selec->fFractionMVA = 0.f; //Not using embedding in training as of now
         else if(card.fname_.Contains("ttbarlnu")) selec->fFractionMVA = 0.1f; //reduce ttbar->ll contributions
         else selec->fFractionMVA = 0.3f; //default MC training fraction
       } else { //no training
@@ -531,6 +532,7 @@ Int_t process_single_card(datacard_t& card, config_t& config, vector<TString> fi
   name.ReplaceAll("-v4", "");
   name.ReplaceAll("-v*", "");
   name.ReplaceAll("-v" , "");
+  name.ReplaceAll("-merged" , ""); //merged version of ntuples, remove in output
   // name.ReplaceAll("-old", ""); //old/new ntuple name cleaning
   card.dataset_ = name;
 

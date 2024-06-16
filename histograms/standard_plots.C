@@ -148,6 +148,26 @@ Int_t get_offset() {
 }
 
 //------------------------------------------------------------------------------------------------------------------------------
+// General printing
+Int_t print_figure(TString hist, TString type, int set,
+                   int rebin = 1, double xmin = 1., double xmax = -1., int do_log = 0) {
+  if(!dataplotter_) return 1;
+  const Int_t offset = get_offset();
+  Int_t status(0);
+  PlottingCard_t card(hist, type, set+offset, rebin, xmin, xmax);
+  for(int logY = 0; logY < 2; ++logY) {
+    if(logY == 0 && do_log == -1) continue;
+    if(logY == 1 && do_log ==  0) continue;
+    dataplotter_->logY_ = logY;
+    auto c = dataplotter_->print_stack(card);
+    if(c) DataPlotter::Empty_Canvas(c);
+    else ++status;
+  }
+  dataplotter_->logY_ = 0;
+  return status;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------
 // di-lepton mass distribution
 Int_t print_mass(int set, bool add_sys = false, double mass_min = 1., double mass_max = -1.) {
   if(!dataplotter_) return 1;
@@ -236,6 +256,23 @@ Int_t print_met(int set, bool add_sys = false) {
     card.scale_sys_list_ = scale_sys;
   }
   for(int logY = 0; logY < 2; ++logY) {
+    dataplotter_->logY_ = logY;
+    auto c = dataplotter_->print_stack(card);
+    if(c) DataPlotter::Empty_Canvas(c);
+    else ++status;
+  }
+  dataplotter_->logY_ = 0;
+  return status;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------
+// MET phi distribution
+Int_t print_met_phi(int set, bool add_sys = false) {
+  if(!dataplotter_) return 1;
+  const Int_t offset = ((set % 1000) > 100) ? 0 : get_offset();
+  PlottingCard_t card("metphi", "event", set+offset, 1,  1., -1.);
+  Int_t status(0);
+  for(int logY = 0; logY < 1; ++logY) {
     dataplotter_->logY_ = logY;
     auto c = dataplotter_->print_stack(card);
     if(c) DataPlotter::Empty_Canvas(c);
@@ -367,6 +404,29 @@ Int_t print_pt_res(int set) {
 }
 
 //------------------------------------------------------------------------------------------------------------------------------
+// gen-level info about Z->ll decay
+Int_t print_lep_gen_info(int set) {
+  if(!dataplotter_) return 1;
+  const Int_t offset = get_offset();
+  const bool same_flavor = selection_ == "mumu" || selection_ == "ee";
+  Int_t status(0);
+  std::vector<TString> hists = {"zleponept", "zleptwopt", "zleponeeloss", "zleptwoeloss"};
+  for(TString hist : hists) {
+    const bool is_eloss = hist.EndsWith("eloss");
+    const double xmin = (is_eloss && same_flavor) ? 0. :  1.;
+    const double xmax = (is_eloss && same_flavor) ? 1. : -1.;
+    PlottingCard_t card(hist, "event", set+offset, 1, xmin, xmax);
+    dataplotter_->logY_ = is_eloss;
+    auto c = dataplotter_->print_stack(card);
+    if(c) DataPlotter::Empty_Canvas(c);
+    else ++status;
+  }
+  dataplotter_->logY_ = 0;
+  return status;
+}
+
+
+//------------------------------------------------------------------------------------------------------------------------------
 // di-lepton pt
 Int_t print_leppt(int set, bool add_sys = false) {
   if(!dataplotter_) return 1;
@@ -393,6 +453,24 @@ Int_t print_lepeta(int set, bool add_sys = false) {
   PlottingCard_t card("lepeta", "event", set+offset, (same_flavor) ? 1 : 2, -5., 5);
   Int_t status(0);
   for(int logY = 0; logY < 2; ++logY) {
+    dataplotter_->logY_ = logY;
+    auto c = dataplotter_->print_stack(card);
+    if(c) DataPlotter::Empty_Canvas(c);
+    else ++status;
+  }
+  dataplotter_->logY_ = 0;
+  return status;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------
+// di-lepton phi
+Int_t print_lepphi(int set, bool add_sys = false) {
+  if(!dataplotter_) return 1;
+  const Int_t offset = get_offset();
+  const bool same_flavor = selection_ == "ee" || selection_ == "mumu";
+  PlottingCard_t card("lepphi", "event", set+offset, (same_flavor) ? 1 : 2, -3.2, 3.2);
+  Int_t status(0);
+  for(int logY = 0; logY < 1; ++logY) {
     dataplotter_->logY_ = logY;
     auto c = dataplotter_->print_stack(card);
     if(c) DataPlotter::Empty_Canvas(c);
@@ -474,7 +552,8 @@ Int_t print_lep_beta(int set, bool add_sys = false) {
     bool blind = blind_ && hist == "beta0" && selection_.EndsWith("_e");
     blind |= blind_ && hist == "beta1" && !same_flavor && !selection_.EndsWith("_e");
     const double xmax = ((selection_ == "etau_mu" && hist == "beta0") || (selection_ == "mutau_e" && hist == "beta1")) ? 5. : 3.;
-    PlottingCard_t card(hist, "event", set+offset, (same_flavor) ? 1 : 2, 0., xmax, (blind) ? blind_min : 1., (blind) ? blind_max : -1.);
+    const double xmin = (hist.BeginsWith("deltaalpha")) ? -xmax : 0.;
+    PlottingCard_t card(hist, "event", set+offset, (same_flavor) ? 1 : 2, xmin, xmax, (blind) ? blind_min : 1., (blind) ? blind_max : -1.);
     for(int logY = 0; logY < 2; ++logY) {
       dataplotter_->logY_ = logY;
       auto c = dataplotter_->print_stack(card);
@@ -737,16 +816,37 @@ Int_t print_mt(int set, bool add_sys = false) {
 }
 
 //------------------------------------------------------------------------------------------------------------------------------
-// MT((one,two,lep),met) / mass
+// MT((one,two,lep),met) / mass and mtone/mttwo
 Int_t print_mt_over_m(int set, bool add_sys = false) {
   if(!dataplotter_) return 1;
   const Int_t offset = get_offset();
   const bool same_flavor = selection_ == "ee" || selection_ == "mumu";
   Int_t status(0);
-  std::vector<TString> hists = {"mtoneoverm", "mttwooverm", "mtlepoverm"};
+  std::vector<TString> hists = {"mtoneoverm", "mttwooverm", "mtlepoverm", "mtratio"};
   for(TString hist : hists) {
-    PlottingCard_t card(hist, "event", set+offset, 1, 0., 1.5);
+    PlottingCard_t card(hist, "event", set+offset, 1, 0., (hist == "mtratio") ? 5. : 1.5);
     for(int logY = 0; logY < 2; ++logY) {
+      dataplotter_->logY_ = logY;
+      auto c = dataplotter_->print_stack(card);
+      if(c) DataPlotter::Empty_Canvas(c);
+      else ++status;
+    }
+  }
+  dataplotter_->logY_ = 0;
+  return status;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------
+// MET along lep one/two
+Int_t print_met_dot_lep(int set) {
+  if(!dataplotter_) return 1;
+  const Int_t offset = get_offset();
+  const bool same_flavor = selection_ == "ee" || selection_ == "mumu";
+  Int_t status(0);
+  std::vector<TString> hists = {"metdotone", "metdottwo", "metdotzone", "metdotztwo"};
+  for(TString hist : hists) {
+    PlottingCard_t card(hist, "event", set+offset, 1, -50., 50.);
+    for(int logY = 0; logY < 1; ++logY) {
       dataplotter_->logY_ = logY;
       auto c = dataplotter_->print_stack(card);
       if(c) DataPlotter::Empty_Canvas(c);
@@ -807,19 +907,23 @@ Int_t print_prime_sys(int set) {
 
 //------------------------------------------------------------------------------------------------------------------------------
 // MVA distributions
-Int_t print_mva(int set, bool add_sys = false, bool all_versions = false) {
+Int_t print_mva(int set, bool add_sys = false, bool all_versions = false, int version = -1) {
   if(!dataplotter_) return 1;
   const Int_t offset = get_offset();
   const bool same_flavor = selection_ == "ee" || selection_ == "mumu";
   Int_t status(0);
   TString hist = "mva";
-  if    (selection_ == "mutau"   ) hist += "1";
-  else if(selection_ == "etau"   ) hist += "3";
-  else if(selection_ == "emu"    ) hist += "5";
-  else if(selection_ == "mutau_e") hist += "7";
-  else if(selection_ == "etau_mu") hist += "9";
-  else if(selection_ == "mumu"   ) hist += "5";
-  else if(selection_ == "ee"     ) hist += "5";
+  if(version < 0) {
+    if    (selection_ == "mutau"   ) hist += "1";
+    else if(selection_ == "etau"   ) hist += "3";
+    else if(selection_ == "emu"    ) hist += "5";
+    else if(selection_ == "mutau_e") hist += "7";
+    else if(selection_ == "etau_mu") hist += "9";
+    else if(selection_ == "mumu"   ) hist += "5";
+    else if(selection_ == "ee"     ) hist += "5";
+  } else { //force a specific MVA version
+    hist += Form("%i", version);
+  }
 
   //create a list of systematics to consider in the MVA histogram
   std::vector<fpair> sys;

@@ -57,7 +57,7 @@ JetToTauComposition::JetToTauComposition(const TString selection, const int set,
   const TString cmssw = gSystem->Getenv("CMSSW_BASE");
   const TString path = (cmssw == "") ? "../scale_factors" : cmssw + "/src/CLFVAnalysis/scale_factors";
   for(int year : years) {
-    const char* fname = Form("%s/jet_to_tau_comp_%s_%i_%i_%s.root", path.Data(), selection.Data(), set+7, set, (useRun2_) ? "2016_2017_2018" : Form("%i", year));
+    const char* fname = Form("%s/jet_to_tau_comp_%s_%i_%i_%s.root", path.Data(), selection.Data(), set+7, (set > 3000) ? set : set + 1000, (useRun2_) ? "2016_2017_2018" : Form("%i", year));
     if(verbose_ > 1) printf("%s: Initializing %i scale factors with file %s\n", __func__, year, fname);
     //get the jet --> tau compositions
     f = TFile::Open(fname, "READ");

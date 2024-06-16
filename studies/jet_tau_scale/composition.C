@@ -348,6 +348,8 @@ Int_t init(TString selection = "mutau", vector<int> years = {2016}, TString path
   selection_ = selection;
   hist_dir_ = path;
   hist_tag_ = "jtt";
+  higgsBkg_ = 0; //ignore higgs backgrounds
+  useWG_ = 0;
   //initialize the data files
   if(verbose_ > 0) std::cout << "Initializing the dataplotter" << std::endl;
   if(initialize_plotter(years)) {

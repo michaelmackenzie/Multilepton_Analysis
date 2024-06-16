@@ -25,6 +25,7 @@
 #include "TRandom3.h"
 #include "TDirectory.h"
 #include "TFolder.h"
+#include "Math/PdfFuncMathCore.h"
 
 // TMVA includes
 #include "TMVA/Tools.h"
@@ -486,6 +487,7 @@ namespace CLFV {
     Float_t mtlep_over_m_max_  = -1.f;
     Float_t min_mass_          =  0.f;
     Float_t max_mass_          = -1.f;
+    Float_t min_bdt_           = -2.f;
 
     HistMaker(int seed = 90, TTree * /*tree*/ = 0);
     virtual ~HistMaker();
@@ -589,6 +591,19 @@ namespace CLFV {
         return false;
       }
 
+      //Check BDT score
+      if(min_bdt_ > -1.f) { //FIXME: Add logic for optional Higgs processing
+        int index = (mutau) ? 1 : (etau) ? 3 : (emu && lep_tau == 0) ? 5 : (mutau_e && lep_tau == 1) ? 7 : (etau_mu && lep_tau == 2) ? 9 : -1;
+        if(index >= 0) {
+          if(fMvaUse[index] <= min_bdt_) {
+            if(fVerbose > 0) printf(" HistMaker::%s: Fails BDT score cut\n", __func__);
+            return false;
+          }
+        } else {
+          if(fVerbose > 0) printf(" HistMaker::%s: Entry %lld: Failed to identify BDT\n", __func__, fentry);
+          return false;
+        }
+      }
       //apply trigger cuts
       const bool triggered = PassesTrigger(0.f); //give no buffer at this level of check
       if(triggered && fVerbose > 0) printf(" HistMaker::%s: Passes cuts\n", __func__);
@@ -987,6 +1002,7 @@ namespace CLFV {
     Int_t           fPSWeightMode = -1; //>= 0: Use this index for sys, <0: Use largest deviation per event
 
     float           fFractionMVA = 0.; //fraction of events used to train. Ignore these events in histogram filling, reweight the rest to compensate
+    int             fRemoveTraining = 0; //remove events used in MVA training
     TRandom3*       fRnd = 0; //for splitting MVA testing/training
     Int_t           fRndSeed = 90; //random number generator seed (not the same as systematics, as want fixed even for systematic studies)
     bool            fReprocessMVAs = false; //whether or not to use the tree given MVA values

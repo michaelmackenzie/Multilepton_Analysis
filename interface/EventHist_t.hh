@@ -267,12 +267,16 @@ namespace CLFV {
     TH1* hMTLead;
     TH1* hMTTrail;
     TH1* hMTDiff;
+    TH1* hMTRatio;
     TH1* hMTLep;
     TH1* hMTOneOverM;
     TH1* hMTTwoOverM;
     TH1* hMTLepOverM;
+    TH1* hMetOverM;
     TH1* hMETDotOne;
     TH1* hMETDotTwo;
+    TH1* hMETDotZOne;
+    TH1* hMETDotZTwo;
 
     //Momentum projections onto the lepton bisector
     TH1* hPZetaVis;

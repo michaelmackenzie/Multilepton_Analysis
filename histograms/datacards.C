@@ -40,7 +40,8 @@ float zll_scale_ = 1.f; //Z->ee/mumu yield scale
 bool blind_ = true;
 
 //get the data cards needed
-void get_datacards(std::vector<dcard>& cards, TString selection, int forStudies = 0 /*0: plotting; 1: studies; 2: fits*/) {
+void get_datacards(std::vector<dcard>& cards, TString selection, int forStudies = 0 /*0: plotting; 1: studies; 2: fits*/,
+		   TString tag = "") {
   //cross section handler
   CrossSections xs(useUL_, ZMode_);
   bool leptonic_tau = (selection.Contains("tau_")); //mutau_l, etau_l
@@ -257,6 +258,14 @@ void get_datacards(std::vector<dcard>& cards, TString selection, int forStudies 
     }
   } //end years loop
 
+  //If applying a tag, remove cards that fail
+  if(tag != "") {
+    const int ncards = cards.size();
+    for(int icard = ncards - 1; icard >= 0; --icard) {
+      auto card = cards[icard];
+      if(!card.name_.Contains(tag) && !card.label_.Contains(tag)) cards.erase(cards.begin()+icard);
+    }
+  }
 
   TString selection_dir = (leptonic_tau && !useLepTauSet_) ? "emu" : selection;
   //add full name to file name

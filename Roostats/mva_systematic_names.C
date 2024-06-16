@@ -6,6 +6,27 @@
 
 CLFV::Systematics systematics_; //names of the systematics
 
+//----------------------------------------------------------------------------------------------------------------------------
+bool smooth_sys_hist(TString sys, TString process) {
+  //energy scales
+  if(sys.BeginsWith("JES"))             return true;
+  if(sys.BeginsWith("JER"))             return true;
+  if(sys.BeginsWith("TauES"))           return true;
+  if(sys.BeginsWith("TauMuES"))         return true;
+  if(sys.BeginsWith("TauEleES"))        return true;
+  if(sys.BeginsWith("MuonES"))          return true;
+  if(sys.BeginsWith("EleES"))           return true;
+  if(sys.BeginsWith("EmbTauES"))        return true;
+  if(sys.BeginsWith("EmbMuonES"))       return true;
+  if(sys.BeginsWith("EmbEleES"))        return true;
+  if(sys.BeginsWith("EmbDetectorMET"))  return true;
+  //resolution shifts
+  if(sys.BeginsWith("EmbMuonRes"))      return true;
+  if(sys.BeginsWith("EmbEleRes"))       return true;
+
+  return false;
+}
+//----------------------------------------------------------------------------------------------------------------------------
 bool is_relevant(TString sys, TString process) {
   const bool is_embed = process.Contains("Embed");
   const bool is_data  = process.Contains("QCD") || process.Contains("MisID");
@@ -36,6 +57,7 @@ bool is_relevant(TString sys, TString process) {
   return true; //default to it being relevant
 }
 
+//----------------------------------------------------------------------------------------------------------------------------
 std::pair<TString,TString> systematic_name(int sys, TString selection, int year, int set = -1) {
   TString name(systematics_.GetName(sys)), type("shape");
   set = set % 100; //ensure it's the base set number
@@ -85,8 +107,9 @@ std::pair<TString,TString> systematic_name(int sys, TString selection, int year,
 
 
   if(name == "EmbMET"        ) name = ""; //Embedding detector MET uncertainty
-  if(name == "EmbDetectorMET") name = ""; //Embedding detector MET uncertainty
   if(name == "EmbBDT"        ) name = ""; //Embedding gen-level mumu BDT response uncertainty
+  if(name == "EmbDetectorMET") name = ""; //Embedding detector MET uncertainty
+  if(name.BeginsWith("EmbDetectorMET")) name = ""; //Embedding detector MET uncertainty per reco lepton flavor
 
   //j-->tau bias systematic configuration check
   const int jtt_bias_mode = 1; //mode XY: X = 1: uncorrelated j-->tau bias in mass regions; Y = 1: use separate rate bias from shape bias
@@ -257,7 +280,7 @@ std::pair<TString,TString> systematic_name(int sys, TString selection, int year,
   else if(name == "EmbMET"             ) name = Form("%sY%i", name.Data(), year);
   else if(name.Contains("BTag")        ) name = Form("%s-%s", name.Data(), (selection.EndsWith("tau")) ? "had" : "lep"); //FIXME: Decide correlation between years, and tight/loose ID
   else if(name == "SignalMixing"       ) name = Form("%sY%i", name.Data(), year);
-  else if(name == "EmbDetectorMET"     ) name = Form("%sY%i", name.Data(), year);
+  else if(name.BeginsWith("EmbDetectorMET")) name = Form("%sY%i", name.Data(), year);
 
   return std::pair<TString,TString>(name,type);
 }

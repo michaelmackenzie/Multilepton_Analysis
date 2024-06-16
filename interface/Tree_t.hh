@@ -106,6 +106,10 @@ namespace CLFV {
     float met_u1;
     float met_u2;
 
+    //MET along gen-level Z info
+    float metdotzl1;
+    float metdotzl2;
+
     //transformed frame variables
     //index 0: include met, lep 2 = tau; index 1: include met, lep 1 = tau; index 2: no met, lep 2 = defines x axis and z direction
     float leponeprimepx[3];

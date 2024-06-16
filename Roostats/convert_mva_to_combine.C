@@ -4,6 +4,7 @@
 
 #include "mva_systematic_names.C"
 #include "mva_process_values.C"
+#include "util.hh"
 
 #include <iostream>
 #include <fstream>
@@ -17,6 +18,7 @@ bool   add_groups_        =  true; //add systematic groups
 
 TString tag_; //output card tag
 
+//----------------------------------------------------------------------------------------------------------------------------
 //add a nuisance parameter index to a group, adding the group if not yet defined
 void add_group(map<TString,vector<TString>>& groups, TString sys, TString group) {
   if(groups.find(group) != groups.end()) {
@@ -26,6 +28,7 @@ void add_group(map<TString,vector<TString>>& groups, TString sys, TString group)
   else groups[group] = {sys};
 }
 
+//----------------------------------------------------------------------------------------------------------------------------
 //determine the bias correction factor for the signal
 double get_bias_factor(int year, bool isHadronic, bool isMuTau) {
   if(!isHadronic) { //same sign bias
@@ -36,8 +39,9 @@ double get_bias_factor(int year, bool isHadronic, bool isMuTau) {
   return -0.0860; //constant fit to CR / SR in 0.5 - 1.0 BDT score
 }
 
+//----------------------------------------------------------------------------------------------------------------------------
 //ensure reasonable bin values
-void make_safe(TH1* h) {
+void make_safe(TH1* h, double xmin = 1., double xmax = -1.) {
   for(int ibin = 0; ibin <= h->GetNbinsX()+1; ++ibin) {
     const double binc(h->GetBinContent(ibin));
     const double bine(h->GetBinError  (ibin));
@@ -48,9 +52,69 @@ void make_safe(TH1* h) {
     if(binc < bine) {
       h->SetBinError(ibin, binc);
     }
+    //check if trimming the range of the histogram
+    if(ibin > 0 && ibin <= h->GetNbinsX() && xmin < xmax) {
+      const double bin_low  = h->GetBinLowEdge(ibin);
+      const double bin_high = h->GetBinWidth(ibin) + bin_low;
+      if((bin_high < xmin) || (bin_low >= xmax)) {
+        h->SetBinContent(ibin, 0.);
+        h->SetBinError  (ibin, 0.);
+      }
+    }
   }
 }
 
+//----------------------------------------------------------------------------------------------------------------------------
+//Replace a systematic variation with a smoothed version
+void smooth_systematic(TH1* nominal, TH1* sys, bool debug = false) {
+  if(!nominal || !sys || nominal->Integral() <= 0. || sys->Integral() <= 0.) return;
+  const int mode = 1;
+  TH1* hdiff = (TH1*) sys->Clone("hdiff");
+  TF1* fit_func = new TF1("fit_func", "pol3(0)", 0., 1.);
+  fit_func->SetParameters(1., 0., 0., 0.);
+  if(mode == 0) { //Fit the shift - nominal distribution
+    hdiff->Add(nominal, -1.);
+    auto fit_res = hdiff->Fit(fit_func, "R S 0 w Q");
+    for(int ibin = 0; ibin <= hdiff->GetNbinsX()+1; ++ibin) {
+      const double binc(nominal->GetBinContent(ibin));
+      const double bine(nominal->GetBinError  (ibin));
+      const double diff(fit_func->Eval(nominal->GetBinCenter(ibin)));
+      if(!std::isfinite(binc) || !std::isfinite(bine) || binc < 0.) {
+        sys->SetBinContent(ibin, 0.);
+        sys->SetBinError  (ibin, 0.);
+      } else {
+        sys->SetBinContent(ibin, max(0., binc + diff));
+        sys->SetBinError  (ibin, bine); //original template error
+      }
+    }
+  } else { //Fit the shift / nominal distribution
+    hdiff->Divide(nominal);
+    auto fit_res = hdiff->Fit(fit_func, "R S 0 w Q");
+    for(int ibin = 0; ibin <= hdiff->GetNbinsX()+1; ++ibin) {
+      const double binc(nominal->GetBinContent(ibin));
+      const double bine(nominal->GetBinError  (ibin));
+      const double ratio(fit_func->Eval(nominal->GetBinCenter(ibin)));
+      if(!std::isfinite(binc) || !std::isfinite(bine) || binc < 0.) {
+        sys->SetBinContent(ibin, 0.);
+        sys->SetBinError  (ibin, 0.);
+      } else {
+        sys->SetBinContent(ibin, max(0., binc*ratio));
+        sys->SetBinError  (ibin, bine); //original template error
+      }
+    }
+  }
+  if(debug) {
+    TCanvas c;
+    hdiff->Draw("hist");
+    fit_func->Draw("same");
+    c.SaveAs(Form("%s.png", sys->GetName()));
+  }
+
+  delete fit_func;
+  delete hdiff;
+}
+
+//----------------------------------------------------------------------------------------------------------------------------
 Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
                              vector<int> years = {2016, 2017, 2018},
                              int seed = 90, TString tag = "") {
@@ -85,6 +149,8 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
     return -1;
   }
 
+  // Ranges for the fit (assumes CDF transform so BDT is between 0 and 1)
+  const double xmin(0.), xmax(1.);
 
   TString year_string = "";
   for(unsigned i = 0; i < years.size(); ++i) {
@@ -134,8 +200,9 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
   TH1* hdata = (TH1*) fInput->Get("hdata");
   if(!hdata) {cout << "Data histogram not found!\n"; return 5;}
 
-  make_safe(hsig);
-  make_safe(hbkg);
+  make_safe(hsig , xmin, xmax);
+  make_safe(hbkg , xmin, xmax);
+  make_safe(hdata, xmin, xmax);
 
   //////////////////////////////////////////////////////////////////
   // Read in the systematic histograms
@@ -202,7 +269,7 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
   if(replace_data_) { //replace the data with MC
     hdata_obs = (TH1*) hbkg->Clone("data_obs");
     hdata_obs->SetTitle("Asimov Data");
-    make_safe(hdata_obs);
+    make_safe(hdata_obs, xmin, xmax);
     for(int ibin = 1; ibin <= hdata_obs->GetNbinsX(); ++ibin) {
       const double nentries = std::max(0., hdata_obs->GetBinContent(ibin));
       hdata_obs->SetBinContent(ibin, nentries);
@@ -287,7 +354,7 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
   proc_c +=      "            0   ";
   rate   += Form("%15.3f", hsig->Integral());
   hsig->SetName(selec_name.Data());
-  make_safe(hsig);
+  make_safe(hsig, xmin, xmax);
   hsig->Write(); //add to the output file
   for(int ihist = 0; ihist < hstack->GetNhists(); ++ihist) {
     TH1* hbkg_i = (TH1*) hstack->GetHists()->At(ihist);
@@ -300,6 +367,7 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
         hbkg_i->SetBinError  (ibin, 0.);
       }
     }
+    make_safe(hbkg_i, xmin, xmax);
 
     TString hname = hbkg_i->GetName();
     hname = hname(0, hname.First('_'));
@@ -335,7 +403,7 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
         }
       }
     }
-    make_safe(hbkg_i);
+    make_safe(hbkg_i, xmin, xmax);
     hbkg_i->Write(); //add to the output file
   }
 
@@ -401,9 +469,18 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
 
     TString sys = Form("%-13s %5s ", name.Data(), type.Data());
     hsig_up->SetName(Form("%s_%sUp", selec_name.Data(), name.Data()));
-    make_safe(hsig_up);
+    make_safe(hsig_up, xmin, xmax);
     hsig_down->SetName(Form("%s_%sDown", selec_name.Data(), name.Data()));
-    make_safe(hsig_down);
+    make_safe(hsig_down, xmin, xmax);
+
+    bool some_smoothed = false; //track if any systematic was smoothed
+    //Smooth systematic variation of requested
+    if(is_relevant(name, selec_name) && smooth_sys_hist(name, selec_name)) {
+      some_smoothed = true;
+      smooth_systematic(hsig, hsig_up  );
+      smooth_systematic(hsig, hsig_down);
+    }
+
     bool do_fake_bkg_line = (qcd_bkg_line == "");
     if(do_fake_bkg_line) {
       qcd_bkg_line = Form("%-13s %5s      1", "QCDNorm", "lnN");
@@ -451,6 +528,7 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
           hbkg_i_down->SetBinError  (ibin, 0.);
         }
       }
+
       //Hack to allow 0 rate histograms
       if(hbkg_i_up  ->Integral() == 0.) hbkg_i_up  ->SetBinContent(1, 1.e-5);
       if(hbkg_i_down->Integral() == 0.) hbkg_i_down->SetBinContent(1, 1.e-5);
@@ -463,12 +541,21 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
       hname.ReplaceAll("->", "To");
       hname.ReplaceAll("tautauEmbedding", "Embedding"); //shorten  the embedding name
       hname.ReplaceAll("HTotautauWW", "HiggsBkg"); //shorten  the Higgs background name
+
       TString hname_up   = Form("%s_%sUp"  , hname.Data(), hstack_up->GetTitle());
       TString hname_down = Form("%s_%sDown", hname.Data(), hstack_up->GetTitle());
       hbkg_i_up->SetName(hname_up.Data());
-      make_safe(hbkg_i_up);
+      make_safe(hbkg_i_up, xmin, xmax);
       hbkg_i_down->SetName(hname_down.Data());
-      make_safe(hbkg_i_down);
+      make_safe(hbkg_i_down, xmin, xmax);
+
+      //Smooth systematic variation of requested
+      if(is_relevant(name, hname) && smooth_sys_hist(name, hname)) {
+        some_smoothed = true;
+        smooth_systematic(hbkg_i, hbkg_i_up  );
+        smooth_systematic(hbkg_i, hbkg_i_down);
+      }
+
       if(do_fake_bkg_line && hname == "QCD")   qcd_bkg_line += Form("%15.3f", 1.30); //additional 30% uncertainty
       else if(do_fake_bkg_line)                qcd_bkg_line += Form("%15i", 1);
       if(do_fake_bkg_line && hname == "MisID") jtt_bkg_line += Form("%15.3f", 1.30); //additional 30% uncertainty
@@ -536,10 +623,21 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
         else if(name.Contains("Lumi")                     ) add_group(groups, name, "Lumi_Total"        );
         else if(name.BeginsWith("XS_")                    ) add_group(groups, name, "XSec_Total"        );
       }
-    }
+    } //end stack loop
     outfile << Form("%s \n", sys.Data());
+
+    //if smoothing was performed, make a figure showing the result
+    if(some_smoothed) {
+      print_mva_systematic_canvas(hbkg, hdata_plot, hstack, hstack_up  , hsig, hsig_up  , "c", Form("plots/latest_production/%i/hist_%s_%s_%i_sys/sys_%s_smooth_up.png",
+                                                                                        years[0], hist.Data(), selection.Data(), set, name.Data()));
+      print_mva_systematic_canvas(hbkg, hdata_plot, hstack, hstack_down, hsig, hsig_down, "c", Form("plots/latest_production/%i/hist_%s_%s_%i_sys/sys_%s_smooth_down.png",
+                                                                                        years[0], hist.Data(), selection.Data(), set, name.Data()));
+    }
+
     if(verbose_ > 3) cout << sys.Data() << endl;
-  }
+
+  } //end systematics loop
+
   //print the groups
   if(add_groups_) {
     outfile << "\n";

@@ -150,8 +150,8 @@ then
 
     for YEAR in $YEARS
     do
-        root.exe -q -b "composition.C(\"${SELECTION}\", 2042, 2035, {${YEAR}}, \"${HISTS}\")"
-        # root.exe -q -b "composition.C(\"${SELECTION}\", 3042, 3035, {${YEAR}}, \"${HISTS}\")"
+        root.exe -q -b "composition.C(\"${SELECTION}\", 2042, 3035, {${YEAR}}, \"${HISTS}\")"
+        root.exe -q -b "composition.C(\"${SELECTION}\", 3042, 3035, {${YEAR}}, \"${HISTS}\")"
         # root.exe -q -b "composition.C(\"${SELECTION}\",   42,   35, {${YEAR}}, \"${HISTS}\")"
     done
 
