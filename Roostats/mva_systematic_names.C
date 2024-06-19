@@ -38,6 +38,10 @@ bool is_relevant(TString sys, TString process) {
   const bool is_signal = process.EndsWith("mutau") || process.EndsWith("etau") || process.EndsWith("emu");
   if(sys.BeginsWith("Emb")     ) return is_embed || is_data;
   if(sys == "XS_Embed"         ) return is_embed || is_data;
+  if(sys == "XS_ggFH"          ) return is_higgs;
+  if(sys == "XS_VBFH"          ) return is_higgs;
+  if(sys == "XS_HWW"           ) return is_higgs;
+  if(sys == "XS_HTauTau"       ) return is_higgs;
   if(sys.BeginsWith("BTag")    ) return !is_embed;
   if(sys.BeginsWith("ZPt")     ) return is_zmc || is_data;
   if(sys.BeginsWith("JER")     ) return !is_embed;
