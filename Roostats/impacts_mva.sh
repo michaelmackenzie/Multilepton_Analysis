@@ -17,6 +17,7 @@ Help() {
     echo " --exclude   (-e ): Exclude nuisance parameters (default is none)"
     echo " --fitonly        : Only process fitting steps, not impact PDF"
     echo " --skipinitial    : Skip initial fit"
+    echo " --plotonly       : Skip fits, only make plots"
     echo " --parallel N     : Fit with N parallel processes"
     echo " --tag            : Tag for output results"
     echo " --mu2e           : Mu2e processing"
@@ -37,6 +38,7 @@ EXCLUDE=""
 INCLUDE=""
 FITONLY=""
 SKIPINITIAL=""
+PLOTONLY=""
 PARALLEL=""
 TAG=""
 MU2E=""
@@ -94,6 +96,9 @@ do
     elif [[ "${var}" == "--skipinitial" ]]
     then
         SKIPINITIAL="d"
+    elif [[ "${var}" == "--plotonly" ]]
+    then
+        PLOTONLY="d"
     elif [[ "${var}" == "--parallel" ]]
     then
         iarg=$((iarg + 1))
@@ -181,55 +186,57 @@ if [[ "${TAG}" != "" ]]; then
     JSON=`echo ${JSON} | sed "s/.json/_${TAG}.json/"`
 fi
 
-ARGS=""
-if [[ "${APPROX}" != "" ]]; then
-    echo "-- Performing approximate impacts"
-    ARGS="--approx robust"
-fi
-if [[ "${COMMAND}" != "" ]]; then
-    echo "Adding argument ${COMMAND} to the evaluation"
-    ARGS="${ARGS} ${COMMAND}"
-fi
+if [[ "${PLOTONLY}" == "" ]]; then
+    ARGS=""
+    if [[ "${APPROX}" != "" ]]; then
+        echo "-- Performing approximate impacts"
+        ARGS="--approx robust"
+    fi
+    if [[ "${COMMAND}" != "" ]]; then
+        echo "Adding argument ${COMMAND} to the evaluation"
+        ARGS="${ARGS} ${COMMAND}"
+    fi
 
-if [[ "${CARD}" == *".txt" ]]; then
-    COMMAND="text2workspace.py ${CARD} -o ${WORKSPACE}"
-    echo ${COMMAND}
+    if [[ "${CARD}" == *".txt" ]]; then
+        COMMAND="text2workspace.py ${CARD} -o ${WORKSPACE}"
+        echo ${COMMAND}
+        if [[ "${DRYRUN}" == "" ]]; then
+            ${COMMAND}
+        fi
+    fi
+
+    FITADDITIONAL=""
+    if [[ "${EXCLUDE}" != "" ]]; then
+        FITADDITIONAL="${FITADDITONAL} --exclude ${EXCLUDE}"
+    fi
+    if [[ "${INCLUDE}" != "" ]]; then
+        FITADDITIONAL="${FITADDITONAL} --named ${INCLUDE}"
+    fi
+
+    if [[ "${APPROX}" == "" ]] && [[ "${SKIPINITIAL}" == "" ]]; then
+        COMMAND="combineTool.py -M Impacts -d ${WORKSPACE} -m 0 --rMin -${RRANGE} --rMax ${RRANGE} --robustFit 1 --doInitialFit ${DOOBS} ${FITADDITIONAL}"
+        echo ${COMMAND}
+        if [[ "${DRYRUN}" == "" ]]; then
+            ${COMMAND}
+        fi
+    fi
+
+    COMMAND="combineTool.py -M Impacts -d ${WORKSPACE} -m 0 --rMin -${RRANGE} --rMax ${RRANGE} --robustFit 1 --doFits ${DOOBS} ${ARGS} ${FITADDITIONAL}"
+    if [[ "${PARALLEL}" != "" ]]; then
+        COMMAND="${COMMAND} --parallel ${PARALLEL}"
+    fi
+    echo ">>> ${COMMAND}"
     if [[ "${DRYRUN}" == "" ]]; then
         ${COMMAND}
     fi
-fi
-
-FITADDITIONAL=""
-if [[ "${EXCLUDE}" != "" ]]; then
-    FITADDITIONAL="${FITADDITONAL} --exclude ${EXCLUDE}"
-fi
-if [[ "${INCLUDE}" != "" ]]; then
-    FITADDITIONAL="${FITADDITONAL} --named ${INCLUDE}"
-fi
-
-if [[ "${APPROX}" == "" ]] && [[ "${SKIPINITIAL}" == "" ]]; then
-    COMMAND="combineTool.py -M Impacts -d ${WORKSPACE} -m 0 --rMin -${RRANGE} --rMax ${RRANGE} --robustFit 1 --doInitialFit ${DOOBS} ${FITADDITIONAL}"
-    echo ${COMMAND}
+    COMMAND="combineTool.py -M Impacts -d ${WORKSPACE} -m 0 --rMin -${RRANGE} --rMax ${RRANGE} --robustFit 1 --output ${JSON} ${DOOBS} ${ARGS} ${FITADDITIONAL}"
+    echo ">>> ${COMMAND}"
     if [[ "${DRYRUN}" == "" ]]; then
         ${COMMAND}
     fi
+    # combineTool.py -M Impacts -d ${WORKSPACE} -m 0 --rMin -${RRANGE} --rMax ${RRANGE} --robustFit 1 --output ${JSON} ${DOOBS} ${ARGS}
+    # combineTool.py -M Impacts -d combine_mva_zmutau_25_2016_workspace.root -m 0 --rMin -20 --rMax 20 --robustFit 1 --output impacts_mva_zmutau_25_2016.json -t -1 --approx robust --named "EmbMuonES"
 fi
-
-COMMAND="combineTool.py -M Impacts -d ${WORKSPACE} -m 0 --rMin -${RRANGE} --rMax ${RRANGE} --robustFit 1 --doFits ${DOOBS} ${ARGS} ${FITADDITIONAL}"
-if [[ "${PARALLEL}" != "" ]]; then
-    COMMAND="${COMMAND} --parallel ${PARALLEL}"
-fi
-echo ">>> ${COMMAND}"
-if [[ "${DRYRUN}" == "" ]]; then
-    ${COMMAND}
-fi
-COMMAND="combineTool.py -M Impacts -d ${WORKSPACE} -m 0 --rMin -${RRANGE} --rMax ${RRANGE} --robustFit 1 --output ${JSON} ${DOOBS} ${ARGS} ${FITADDITIONAL}"
-echo ">>> ${COMMAND}"
-if [[ "${DRYRUN}" == "" ]]; then
-    ${COMMAND}
-fi
-# combineTool.py -M Impacts -d ${WORKSPACE} -m 0 --rMin -${RRANGE} --rMax ${RRANGE} --robustFit 1 --output ${JSON} ${DOOBS} ${ARGS}
-# combineTool.py -M Impacts -d combine_mva_zmutau_25_2016_workspace.root -m 0 --rMin -20 --rMax 20 --robustFit 1 --output impacts_mva_zmutau_25_2016.json -t -1 --approx robust --named "EmbMuonES"
 
 if [[ "${FITONLY}" ]]; then
     exit

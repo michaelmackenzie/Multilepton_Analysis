@@ -3,7 +3,7 @@
 
 int measure_years_cats(vector<int> had_sets = {8}, vector<int> lep_sets = {8},
                        TString selection = "zmutau",
-                       bool processCards = true, TString card_tag = "") {
+                       bool processCards = true, TString card_tag = "", TString fig_tag = "") {
 
   const double scale = (selection.Contains("h")) ? 1.e-4 : 1.e-6;
   TString year_s = "2016_2017_2018";
@@ -13,6 +13,7 @@ int measure_years_cats(vector<int> had_sets = {8}, vector<int> lep_sets = {8},
   for(int i = 1; i < lep_sets.size(); ++i) lep_set_s += Form("_%i", lep_sets[i]);
   TString lep = (selection.EndsWith("mutau")) ? "_e" : "_mu";
   if(card_tag != "") card_tag = "_" + card_tag;
+  if(fig_tag  != "") fig_tag  = "_" + fig_tag ;
   vector<config_t> configs;
   //add datacards by year
   for(int year = 2016; year <= 2018; ++year) {
@@ -34,5 +35,6 @@ int measure_years_cats(vector<int> had_sets = {8}, vector<int> lep_sets = {8},
   TString tag = "years_cats";
   tag += Form("_had_%s_lep_%s", had_set_s.Data(), lep_set_s.Data());
   tag += card_tag;
+  tag += fig_tag;
   return measurement_consistency(configs, tag, selection, processCards);
 }

@@ -628,10 +628,10 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
 
     //if smoothing was performed, make a figure showing the result
     if(some_smoothed) {
-      print_mva_systematic_canvas(hbkg, hdata_plot, hstack, hstack_up  , hsig, hsig_up  , "c", Form("plots/latest_production/%i/hist_%s_%s_%i_sys/sys_%s_smooth_up.png",
-                                                                                        years[0], hist.Data(), selection.Data(), set, name.Data()));
-      print_mva_systematic_canvas(hbkg, hdata_plot, hstack, hstack_down, hsig, hsig_down, "c", Form("plots/latest_production/%i/hist_%s_%s_%i_sys/sys_%s_smooth_down.png",
-                                                                                        years[0], hist.Data(), selection.Data(), set, name.Data()));
+      const char* dir = Form("plots/latest_production/%i/hist_%s_%s_%i_sys", years[0], hist.Data(), selection.Data(), set);
+      gSystem->Exec(Form("[ ! -d %s ] && mkdir -p %s", dir, dir));
+      print_mva_systematic_canvas(hbkg, hdata_plot, hstack, hstack_up  , hsig, hsig_up  , "c", Form("%s/sys_%s_smooth_up.png"  , dir, name.Data()));
+      print_mva_systematic_canvas(hbkg, hdata_plot, hstack, hstack_down, hsig, hsig_down, "c", Form("%s/sys_%s_smooth_down.png", dir, name.Data()));
     }
 
     if(verbose_ > 3) cout << sys.Data() << endl;
