@@ -20,6 +20,8 @@ Help() {
     echo " --skipinitial    : Skip initial fit"
     echo " --plotonly       : Skip fits, only make plots"
     echo " --parallel N     : Fit with N parallel processes"
+    echo " --grid-sub       : Prepare for grid processing of impacts"
+    echo " --grid-fin       : Finish grid processing of impacts"
     echo " --tag            : Tag for output results"
     echo " --mu2e           : Mu2e processing"
     echo " --dryrun         : Only print commands without processing"
@@ -42,6 +44,8 @@ FITONLY=""
 SKIPINITIAL=""
 PLOTONLY=""
 PARALLEL=""
+GRIDSUB=""
+GRIDFIN=""
 TAG=""
 MU2E=""
 VERBOSE=0
@@ -109,6 +113,12 @@ do
         iarg=$((iarg + 1))
         eval "var=\${${iarg}}"
         PARALLEL=${var}
+    elif [[ "${var}" == "--grid-sub" ]]
+    then
+        GRIDSUB="d"
+    elif [[ "${var}" == "--grid-fin" ]]
+    then
+        GRIDFIN="d"
     elif [[ "${var}" == "--tag" ]]
     then
         iarg=$((iarg + 1))
@@ -179,6 +189,10 @@ then
     RRANGE=20
 fi
 
+if [[ "${GRIDFIN}" != "" ]]; then
+    DONTCLEAN="d"
+fi
+
 echo "Performing impacts on combine card ${CARD}"
 echo "Parameters: DONTCLEAN=${DONTCLEAN}; DOOBS=${DOOBS}; RRANGE=${RRANGE}"
 if [[ "${MU2E}" != "" ]]; then
@@ -187,9 +201,16 @@ fi
 
 WORKSPACE=`echo ${CARD} | sed 's/.txt/_workspace.root/'`
 JSON=`echo ${CARD} | sed 's/.txt/.json/' | sed 's/.root/.json/' | sed 's/combine_/impacts_/'`
+if [[ "${APPROX}" != "" ]]; then
+    JSON=`echo ${JSON} | sed "s/.json/_approx.json/"`
+fi
 if [[ "${TAG}" != "" ]]; then
     JSON=`echo ${JSON} | sed "s/.json/_${TAG}.json/"`
 fi
+
+
+FITNAME=`echo ${CARD} | sed 's/.txt//' | sed 's/_workspace.root//' | sed 's/.root//' | sed 's/combine_mva_//'`
+echo "FITNAME=${FITNAME}"
 
 if [[ "${PLOTONLY}" == "" ]]; then
     ARGS=""
@@ -202,10 +223,11 @@ if [[ "${PLOTONLY}" == "" ]]; then
         ARGS="${ARGS} ${COMMAND}"
     fi
 
-    if [[ "${CARD}" == *".txt" ]]; then
+    if [[ "${CARD}" == *".txt" ]] && [[ "${GRIDFIN}" == "" ]]; then
         COMMAND="text2workspace.py ${CARD} -o ${WORKSPACE}"
         echo ${COMMAND}
         if [[ "${DRYRUN}" == "" ]]; then
+            ulimit -s unlimited
             ${COMMAND}
         fi
     fi
@@ -222,23 +244,46 @@ if [[ "${PLOTONLY}" == "" ]]; then
         FITADDITIONAL="${FITADDITIONAL} --cminDefaultMinimizerStrategy 0 --X-rtd MINIMIZER_freezeDisassociatedParams --X-rtd REMOVE_CONSTANT_ZERO_POINT=1 --X-rtd MINIMIZER_multiMin_hideConstants"
     fi
 
-    if [[ "${APPROX}" == "" ]] && [[ "${SKIPINITIAL}" == "" ]]; then
-        COMMAND="combineTool.py -M Impacts -d ${WORKSPACE} -m 0 --rMin -${RRANGE} --rMax ${RRANGE} --robustFit 1 --doInitialFit ${DOOBS} ${FITADDITIONAL}"
+    if [[ "${APPROX}" == "" ]] && [[ "${SKIPINITIAL}" == "" ]] && [[ "${GRIDFIN}" == "" ]]; then
+        COMMAND="combineTool.py -M Impacts -d ${WORKSPACE} -m 0 --rMin -${RRANGE} --rMax ${RRANGE} --robustFit 1 --doInitialFit ${DOOBS} ${FITADDITIONAL} -n ${FITNAME}"
         echo ${COMMAND}
         if [[ "${DRYRUN}" == "" ]]; then
             ${COMMAND}
         fi
     fi
 
-    COMMAND="combineTool.py -M Impacts -d ${WORKSPACE} -m 0 --rMin -${RRANGE} --rMax ${RRANGE} --robustFit 1 --doFits ${DOOBS} ${ARGS} ${FITADDITIONAL}"
+    COMMAND="combineTool.py -M Impacts -d ${WORKSPACE} -m 0 --rMin -${RRANGE} --rMax ${RRANGE} --robustFit 1 --doFits ${DOOBS} ${ARGS} ${FITADDITIONAL} -n ${FITNAME}"
     if [[ "${PARALLEL}" != "" ]]; then
         COMMAND="${COMMAND} --parallel ${PARALLEL}"
     fi
-    echo ">>> ${COMMAND}"
-    if [[ "${DRYRUN}" == "" ]]; then
-        ${COMMAND}
+    if [[ "${GRIDSUB}" != "" ]]; then
+        TASK=`echo ${CARD} | sed 's/.txt//' | sed 's/_workspace.root//' | sed 's/.root//'`
+        echo "Using grid task name ${TASK}"
+        echo ">>> ${COMMAND} --job-mode condor --task-name ${TASK} --sub-opts +DesiredOS = \"SL7\""
+        if [[ "${DRYRUN}" == "" ]]; then
+            ${COMMAND} --job-mode condor --task-name ${TASK} --sub-opts '+DesiredOS = "SL7"'
+        fi
+        TASKDIR=~/private/grid/combine/${TASK}
+        [ ! -f ${TASKDIR} ] && mkdir -p ${TASKDIR}
+        COMMAND="mv condor_${TASK}.s* ${TASKDIR}/"
+        echo ">>> ${COMMAND}"
+        if [[ "${DRYRUN}" == "" ]]; then
+            ${COMMAND}
+        fi
+        echo "Exiting with grid setup complete, use grid directory ${TASKDIR}"
+        exit
     fi
-    COMMAND="combineTool.py -M Impacts -d ${WORKSPACE} -m 0 --rMin -${RRANGE} --rMax ${RRANGE} --robustFit 1 --output ${JSON} ${DOOBS} ${ARGS} ${FITADDITIONAL}"
+
+    # Local processing
+
+    if [[ "${GRIDFIN}" == "" ]]; then
+        echo ">>> ${COMMAND}"
+        if [[ "${DRYRUN}" == "" ]]; then
+            ${COMMAND}
+        fi
+    fi
+
+    COMMAND="combineTool.py -M Impacts -d ${WORKSPACE} -m 0 --rMin -${RRANGE} --rMax ${RRANGE} --robustFit 1 --output ${JSON} ${DOOBS} ${ARGS} ${FITADDITIONAL} -n ${FITNAME}"
     echo ">>> ${COMMAND}"
     if [[ "${DRYRUN}" == "" ]]; then
         ${COMMAND}
@@ -276,7 +321,7 @@ fi
 
 if [[ "${DONTCLEAN}" == "" ]]
 then
-    COMMAND="rm higgsCombine_*_Test*.MultiDimFit.mH0.root"
+    COMMAND="rm higgsCombine_*_${FITNAME}*.MultiDimFit.mH0.root"
     echo ">>> ${COMMAND}"
     if [[ "${DRYRUN}" == "" ]]; then
         ${COMMAND}

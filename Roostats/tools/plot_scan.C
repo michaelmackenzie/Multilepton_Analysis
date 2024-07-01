@@ -29,7 +29,7 @@ int plot_scan(const char* file, const char* var = "r", const char* tag = "", con
     max_val = max(max_val, nll_val);
 
     if(verbose > 3) {
-      printf(" Point %3i: r = %7.2f; nll = %12.2f (dNll = %.2f, nll0 = %.2f, nll = %.2f)\n", entry, r, nll_val, dnll, nll0, nll);
+      printf(" Point %3i: %s = %7.2f; nll = %12.2f (dNll = %.2f, nll0 = %.2f, nll = %.2f)\n", entry, var, r, nll_val, dnll, nll0, nll);
     }
 
     //entry 0 is the best fit result for this scan
@@ -79,7 +79,9 @@ int plot_scan(const char* file, const char* var = "r", const char* tag = "", con
   g_best->Print("v");
 
 
-  printf("Best fit r = %.3f\n", r_fit);
+  printf("Best fit %s = %.3f\n", var, r_fit);
+  double s1_lo(rvals[0]), s1_hi(rvals[nentries-2]); //for fitting the NLL distribution
+
   //Add 1 and 2 sigma lines
   const double s1_val(0.5), s2_val(2.); //delta NLL values
   for(int ipoint = 1; ipoint < g->GetN(); ++ipoint) {
@@ -91,7 +93,7 @@ int plot_scan(const char* file, const char* var = "r", const char* tag = "", con
       line->SetLineStyle(kDashed);
       line->SetLineColor(kBlack);
       line->Draw("same");
-      cout << "Found 2 sigma edge at r = " << x << " ( " << y_prev << " - " << y << ")\n";
+      cout << "Found 2 sigma edge at " << var << " = " << x << " ( " << y_prev << " - " << y << ")\n";
     }
     if((y < s1_val && y_prev > s1_val) || (y > s1_val && y_prev < s1_val)) {
       TLine* line = new TLine(x, min_val-buffer, x, y+min_val);
@@ -99,11 +101,19 @@ int plot_scan(const char* file, const char* var = "r", const char* tag = "", con
       line->SetLineStyle(kDashed);
       line->SetLineColor(kBlack);
       line->Draw("same");
-      cout << "Found 1 sigma edge at r = " << x << " ( " << y_prev << " - " << y << ")\n";
+      cout << "Found 1 sigma edge at " << var << " = " << x << " ( " << y_prev << " - " << y << ")\n";
+      if(x < r_fit) s1_lo = x;
+      else          s1_hi = x;
     }
   }
 
+  TF1* fit_func = new TF1("fit_func", "0.5*((x - [minimum])/[width])^2 + [offset]", (s1_lo - (s1_hi - s1_lo)*0.05), (s1_hi + (s1_hi - s1_lo)*0.05));
+  fit_func->SetParameters(r_fit, 0., (r_fit - s1_lo));
+  g->Fit(fit_func, "R");
+  if(verbose > 3)
+    fit_func->Print();
   g->SetTitle(Form("Likelihood scan;%s;NLL", var));
   c->SaveAs(Form("scan_%s%s.png", var, tag));
+  printf("Fit to the scan result: %s = %.4f +- %.4f\n", var, fit_func->GetParameter(0), fit_func->GetParameter(2));
   return 0;
 }
