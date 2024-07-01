@@ -1,6 +1,7 @@
 // Compare jet pT correction for data, Embedding, and MC jets
 
 int year_;
+char era_;
 
 struct plot_card_t {
   TString var_;
@@ -100,7 +101,7 @@ int print_figure(plot_card_t card, TTree* t_data, TTree* t_embed, TTree* t_mc) {
   // Print the figure
   const char* dir = "figures/jet_pt_vs_raw";
   gSystem->Exec(Form("[ ! -d %s ] && mkdir -p %s", dir, dir));
-  c.SaveAs(Form("%s/%s_%i.png", dir, card.name_.Data(), year_));
+  c.SaveAs(Form("%s/%s_%i%c.png", dir, card.name_.Data(), year_, era_));
 
   // Clean up
   delete h_data;
@@ -115,12 +116,13 @@ int print_figure(plot_card_t card, TTree* t_data, TTree* t_embed, TTree* t_mc) {
 int plot_jet_pt_vs_raw(const int year = 2018) {
 
   year_= year;
+  era_ = 'B';
 
   //Retrieve the data files
 
   const char* path = "root://cmseos.fnal.gov//store/user/mmackenz/lfvanalysis_rootfiles";
-  auto f_data  = TFile::Open(Form("%s/LFVAnalysis_SingleMuonRun%iB_%i.root", path, year, year                          ), "READ");
-  auto f_embed = TFile::Open(Form("%s/LFVAnalysis_Embed-MuMu-B_%i.root"    , path, year                                ), "READ");
+  auto f_data  = TFile::Open(Form("%s/LFVAnalysis_SingleMuonRun%iA_%i.root", path, year, year                          ), "READ");
+  auto f_embed = TFile::Open(Form("%s/LFVAnalysis_Embed-MuMu-A_%i.root"    , path, year                                ), "READ");
   auto f_mc    = TFile::Open(Form("%s/LFVAnalysis_DY50-%s_%i.root"         , path, (year == 2017) ? "ext" : "amc", year), "READ");
 
   if(!f_data || !f_embed || !f_mc) return 1;
@@ -139,7 +141,8 @@ int plot_jet_pt_vs_raw(const int year = 2018) {
   status += print_figure(plot_card_t("Jet_eta[0]", -5., 5., 40, "jet_eta", "Jet #eta"), t_data, t_embed, t_mc);
   status += print_figure(plot_card_t("nBJet", 0., 5., 5, "nbjet", "N(b-tagged jets)", true), t_data, t_embed, t_mc);
   status += print_figure(plot_card_t("nJet", 0., 7., 7, "njet", "N(jets)", true), t_data, t_embed, t_mc);
-  status += print_figure(plot_card_t("Jet_puId[0]", 0., 7., 7, "puid", "Jet PU ID"), t_data, t_embed, t_mc);
+  status += print_figure(plot_card_t("Jet_puId[0]", 0., 10., 10, "puid", "Jet PU ID"), t_data, t_embed, t_mc);
+  // status += print_figure(plot_card_t("Jet_jetId[0]", 0., 10., 10, "id", "Jet ID"), t_data, t_embed, t_mc);
   status += print_figure(plot_card_t("Jet_btagDeepB[0]", 0., 1., 40, "btag", "B-tag score", true), t_data, t_embed, t_mc);
 
   status += print_figure(plot_card_t("Jet_rawFactor[0]", -0.5, 0.5, 50, "raw_factor_b", "Jet (pT - raw pT)/pT, |#eta| < 1.5", false, "abs(Jet_eta[0]) < 1.5"),
@@ -147,6 +150,9 @@ int plot_jet_pt_vs_raw(const int year = 2018) {
   status += print_figure(plot_card_t("Jet_rawFactor[0]", -0.5, 0.5, 50, "raw_factor_e", "Jet (pT - raw pT)/pT, 1.5 < |#eta| < 2.4", false, "abs(Jet_eta[0]) > 1.5 && abs(Jet_eta[0]) 2.4"),
                          t_data, t_embed, t_mc);
   status += print_figure(plot_card_t("Jet_rawFactor[0]", -0.5, 0.5, 50, "raw_factor_f", "Jet (pT - raw pT)/pT, |#eta| > 2.4", false, "abs(Jet_eta[0]) > 2.4"),
+                         t_data, t_embed, t_mc);
+
+  status += print_figure(plot_card_t("Jet_rawFactor[0]", -0.5, 0.5, 50, "raw_factor_r1", "Jet (pT - raw pT)/pT, |#eta| < 0.1, |pT-30|<2", false, "abs(Jet_eta[0]) < 0.1 && abs(Jet_pt[0] - 30) < 2"),
                          t_data, t_embed, t_mc);
   return status;
 }

@@ -188,14 +188,14 @@ namespace CLFV {
 
     //------------------------------------------------------------------------------------------------------
     // histogram integral in a given range, including the under/overflow if requested
-    static double H1Integral(TH1* h, const double xmin = 1., const double xmax = -1., const bool under_over = false) {
+    static double H1Integral(TH1* h, const double xmin = 1., const double xmax = -1., const bool under_over = false, const char* option = "") {
       if(!h) {
         printf("Utilities::%s: Undefined histogram!\n", __func__);
         return -1.;
       }
       const int bin_lo = (xmin < xmax) ? std::max((under_over) ? 0 : 1, h->FindBin(xmin)) : (under_over) ? 0 : 1;
       const int bin_hi = (xmin < xmax) ? std::min(h->GetNbinsX() + ((under_over) ? 1 : 0), h->FindBin(xmax)) : h->GetNbinsX() + ((under_over) ? 1 : 0);
-      return h->Integral(bin_lo, bin_hi);
+      return h->Integral(bin_lo, bin_hi, option);
     }
 
     //------------------------------------------------------------------------------------------------------

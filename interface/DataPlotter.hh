@@ -612,6 +612,7 @@ namespace CLFV {
         if(!noDataDefined && data_over_mc_ < 0)  name += "_sigOverBkg";
         else if(!noDataDefined && data_over_mc_) name += "_dataOverMC";
         if(density_plot_)                        name += "_density";
+        if(normalize_1ds_)                       name += "_norm"; //FIXME: Check if histogram is 1D vs. 2D
         if(!include_qcd_)                        name += "_noqcd";
         if(!include_misid_)                      name += "_nomisid";
         if(tag != "")                            name += "_" + tag;

@@ -216,20 +216,24 @@ double TauIDWeight::EnergyScale(double pt, double eta, int dm, int genID, UChar_
 
   //if embedding sample, use fixed corrections
   if(isEmbed_) {
-    if(year == k2016) {
-      if     (dm == 0) {scale_factor += -0.0020; up = scale_factor + 0.0046; down = scale_factor - 0.0046;}
-      else if(dm == 1) {scale_factor += -0.0022; up = scale_factor + 0.0022; down = scale_factor - 0.0025;}
-      else             {scale_factor += -0.0126; up = scale_factor + 0.0033; down = scale_factor - 0.0051;}
-    }
-    else if(year == k2017) {
-      if     (dm == 0) {scale_factor += -0.0004; up = scale_factor + 0.0041; down = scale_factor - 0.0042;}
-      else if(dm == 1) {scale_factor += -0.0120; up = scale_factor + 0.0052; down = scale_factor - 0.0021;}
-      else             {scale_factor += -0.0075; up = scale_factor + 0.0044; down = scale_factor - 0.0046;}
-    }
-    else if(year == k2018) {
-      if     (dm == 0) {scale_factor += -0.0033; up = scale_factor + 0.0039; down = scale_factor - 0.0039;}
-      else if(dm == 1) {scale_factor += -0.0057; up = scale_factor + 0.0037; down = scale_factor - 0.0031;}
-      else             {scale_factor += -0.0074; up = scale_factor + 0.0032; down = scale_factor - 0.0032;}
+    if(genID == 5) { //genuine taus
+      if(year == k2016) {
+        if     (dm == 0) {scale_factor += -0.0020; up = scale_factor + 0.0046; down = scale_factor - 0.0046;}
+        else if(dm == 1) {scale_factor += -0.0022; up = scale_factor + 0.0022; down = scale_factor - 0.0025;}
+        else             {scale_factor += -0.0126; up = scale_factor + 0.0033; down = scale_factor - 0.0051;}
+      }
+      else if(year == k2017) {
+        if     (dm == 0) {scale_factor += -0.0004; up = scale_factor + 0.0041; down = scale_factor - 0.0042;}
+        else if(dm == 1) {scale_factor += -0.0120; up = scale_factor + 0.0052; down = scale_factor - 0.0021;}
+        else             {scale_factor += -0.0075; up = scale_factor + 0.0044; down = scale_factor - 0.0046;}
+      }
+      else if(year == k2018) {
+        if     (dm == 0) {scale_factor += -0.0033; up = scale_factor + 0.0039; down = scale_factor - 0.0039;}
+        else if(dm == 1) {scale_factor += -0.0057; up = scale_factor + 0.0037; down = scale_factor - 0.0031;}
+        else             {scale_factor += -0.0074; up = scale_factor + 0.0032; down = scale_factor - 0.0032;}
+      }
+    } else { //fake taus or data taus
+      scale_factor = 1.f; up = 1.f; down = 1.f; //don't apply scale factors to fake or data Embedding taus
     }
     return scale_factor;
   }
@@ -284,6 +288,13 @@ double TauIDWeight::EnergyScale(double pt, double eta, int dm, int genID, UChar_
     scale_factor = 1.;
     up = 1.01;
     down = 0.99;
+    /////////////////////
+    // Unknown
+    /////////////////////
+  } else {
+    scale_factor = 1.f;
+    up = 1.f;
+    down = 1.f;
   }
 
   if(scale_factor <= 0. || verbose_ > 0) {

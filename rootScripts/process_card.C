@@ -138,18 +138,18 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
     doSystematics       = 0;
     allowMigration_     = 0;
     useEmbedCuts_       = 3;
-    useEventFlags_      = 1; //filter using event flags
+    // useEventFlags_      = 1; //filter using event flags
     useLepDxyzWeights_  = 0;
-    useRoccoSize_       = 1;
-    embedUseMETUnc_     = 0; //don't add uncertainty on embedding MET
-    useEmbedBDTUnc_     = 0;
+    // useRoccoSize_       = 1;
+    // embedUseMETUnc_     = 0; //don't add uncertainty on embedding MET
+    // useEmbedBDTUnc_     = 0;
 
-    useBTagWeights_     = 2; //2: ntuple-level
-    removePUWeights_    = 0; //0: ntuple-level
-    useSignalZWeights_  = 2; //2: ntuple-level
-    useLeptonIDWeights_ = 1; //2: ntuple-level
-    useRoccoCorr_       = 2; //2: ntuple-level
-    useZPtWeights_      = 2; //2: ntuple-level
+    // useBTagWeights_     = 2; //2: ntuple-level
+    // removePUWeights_    = 0; //0: ntuple-level
+    // useSignalZWeights_  = 2; //2: ntuple-level
+    // useLeptonIDWeights_ = 1; //2: ntuple-level
+    // useRoccoCorr_       = 1; //2: ntuple-level
+    // useZPtWeights_      = 2; //2: ntuple-level
 
     // //use a subset of embedded events for faster processing
     // max_sim_events_     = 1e6;
@@ -207,6 +207,12 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
         max_sim_events_ = -1;
         events_scale = 1.f;
       }
+      // //don't reduce ttbar in ee/mumu due to low branching fraction
+      // if(max_sim_events_ > 0 && (selection == "ee" || selection == "mumu") && card.fname_.Contains("ttbar")) {
+      //   max_sim_events_ = -1;
+      //   max_events = nentries;
+      //   events_scale = 1.f;
+      // }
 
       //configure fields for j-->tau measurement histogramming
       if(dynamic_cast<JTTHistMaker*> (selec)) {
@@ -255,7 +261,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
         clfv_selec->fSameFlavorEMuSelec = doSameFlavorEMu_;
         clfv_selec->fRemoveLooseSS      = removeLooseSS_;
         clfv_selec->fDoLepESHists       = doLepESHists_;
-	clfv_selec->fRemoveTraining     = remove_training_;
+        clfv_selec->fRemoveTraining     = remove_training_;
       }
 
       if(dynamic_cast<HistMaker*> (selec)) {
@@ -280,6 +286,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
         hist_selec->fRemoveEventWeights = removeEventWeights_;
         hist_selec->fUseEmbedRocco      = useEmbedRocco_;
         hist_selec->fUseEmbedMuonES     = useEmbMuonES_;
+        hist_selec->fUseEmbedMuonRes    = useEmbMuonRes_;
         hist_selec->fApplyElectronResolution = useEmbEleRes_;
         hist_selec->fEmbedUseMETUnc     = embedUseMETUnc_;
         hist_selec->fEmbedUseMCTauID    = embedUseMCTauID_;
@@ -306,6 +313,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
       selec->fRemoveTriggerWeights = removeTrigWeights_;
       selec->fUpdateMCEra          = updateMCEra_;
       selec->fUpdateMET            = (updateMET_ == 1 || (updateMET_ == 2 && !isEmbed)) ? 1 : 0;
+      selec->fReplaceMETWithRaw    = replaceMETWithRaw_;
       selec->fUseBTagWeights       = useBTagWeights_;
       selec->fRemovePUWeights      = (isSignal) ? removePUWeights_ : 0 ; //remove for signal, due to module issues (likely weights measured per file too low stats)
       selec->fUseJetPUIDWeights    = useJetPUIDWeights_;
@@ -368,7 +376,10 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
         else if(selec->fIsEmbed) selec->fFractionMVA = 0.f; //Not using embedding in training as of now
         else if(card.fname_.Contains("ttbarlnu")) selec->fFractionMVA = 0.1f; //reduce ttbar->ll contributions
         else selec->fFractionMVA = 0.3f; //default MC training fraction
-      } else { //no training
+      } else if(train_mode_ == 0) { //no training
+        selec->fFractionMVA = 0.f;
+      } else {
+        cout << __func__ << ": !!! Unknown training mode " << train_mode_ << " --> defaulting to no training\n";
         selec->fFractionMVA = 0.f;
       }
       if(selection == "mumu" || selection == "ee") selec->fFractionMVA = 0.; //don't split off same flavor data

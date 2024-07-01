@@ -1344,13 +1344,15 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set, const
   gStyle->SetPadTickY(1);
 
   //Normalize to the stack integral if normalizing, for simplicity
-  if(d && normalize_1ds_ && d->Integral() > 0.) {
-    d->Scale(((TH1*)hstack->GetStack()->Last())->Integral((density_plot_ > 0) ? "width" : "") / d->Integral((density_plot_ > 0) ? "width" : ""));
-  }
   if(normalize_1ds_) {
+    const double nbkg = Utilities::H1Integral(((TH1*) hstack->GetStack()->Last()), 1., -1., true, (density_plot_ > 0) ? "width" : "");
+    if(d) {
+      const double ndata = Utilities::H1Integral(d, 1., -1., true, (density_plot_ > 0) ? "width" : "");
+      if(ndata > 0.) d->Scale(nbkg / ndata);
+    }
     for(TH1* hsig : hsignal) {
-      if(hsig->Integral() > 0.)
-        hsig->Scale(((TH1*)hstack->GetStack()->Last())->Integral((density_plot_ > 0) ? "width" : "") / hsig->Integral((density_plot_ > 0) ? "width" : ""));
+      const double nsignal = Utilities::H1Integral(hsig, 1., -1., true, (density_plot_ > 0) ? "width" : "");
+      if(nsignal > 0.) hsig->Scale(nbkg / nsignal);
     }
   }
   const bool plot_single = plot_data_ == 0 && data_over_mc_ >= 0; //single plot canvas
@@ -1440,7 +1442,8 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set, const
       nsig[hsignal[i]->GetTitle()] = (hsignal[i]->Integral((density_plot_ > 0) ? "width" : "") + hsignal[i]->GetBinContent(0)+hsignal[i]->GetBinContent(hsignal[i]->GetNbinsX()+1))/signal_scale;
     }
   }
-  nmc = huncertainty->Integral((density_plot_ > 0) ? "width" : "") + huncertainty->GetBinContent(0)+huncertainty->GetBinContent(huncertainty->GetNbinsX()+1);
+  // nmc = huncertainty->Integral((density_plot_ > 0) ? "width" : "") + huncertainty->GetBinContent(0)+huncertainty->GetBinContent(huncertainty->GetNbinsX()+1);
+  nmc = Utilities::H1Integral((TH1*) hstack->GetStack()->Last(), 1., -1., true, (density_plot_ > 0) ? "width" : "");
 
   //blind if needed
   if(blindxmin_.size() > 0 && d && plot_data_) {

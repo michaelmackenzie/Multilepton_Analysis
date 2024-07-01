@@ -11,10 +11,13 @@ int print_mva_variables(TString out_dir = "bdts", TString hist_dir = "nanoaods_m
   useEmbed_      = (mc_dy || selection == "emu") ? 0 : 2;
   drawStats_     = add_stats; //data and MC total integrals
   doStatsLegend_ = add_stats; //process yields in the legend
+  // if(selection == "emu") {useWG_ = 0; higgsBkg_ = 0;} //FIXME: Remove this after re-making histograms
 
   //initialize the plotter
   int status = nanoaod_init(selection.Data(), hist_dir_, out_dir);
   if(status) return status;
+
+  // dataplotter_->verbose_ = 1;
 
   //setup the histogram sets of interest
   vector<int> sets;

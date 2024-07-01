@@ -151,6 +151,9 @@ void JTTHistMaker::BookEventHistograms() {
       Utilities::BookH1F(fEventHist[i]->hMTOne               , "mtone"               , Form("%s: MTOne"                   ,dirname)  , 100, 0.,   150., folder);
       Utilities::BookH1F(fEventHist[i]->hMTTwo               , "mttwo"               , Form("%s: MTTwo"                   ,dirname)  , 100, 0.,   150., folder);
       Utilities::BookH1F(fEventHist[i]->hMTLep               , "mtlep"               , Form("%s: MTLep"                   ,dirname)  , 100, 0.,   150., folder);
+      Utilities::BookH1F(fEventHist[i]->hMTOneOverM          , "mtoneoverm"          , Form("%s: MTOneOverM"              ,dirname)  ,  15, 0.,    1.5, folder);
+      Utilities::BookH1F(fEventHist[i]->hMTTwoOverM          , "mttwooverm"          , Form("%s: MTTwoOverM"              ,dirname)  ,  15, 0.,    1.5, folder);
+      Utilities::BookH1F(fEventHist[i]->hMTLepOverM          , "mtlepoverm"          , Form("%s: MTLepOverM"              ,dirname)  ,  15, 0.,    1.5, folder);
 
       Utilities::BookH1F(fEventHist[i]->hLepPt[0], "leppt"         , Form("%s: Lepton Pt"      ,dirname)  , 100,   0, 200, folder);
       Utilities::BookH1F(fEventHist[i]->hLepM[0] , "lepm"          , Form("%s: Lepton M"       ,dirname)  , 280,  40, 180, folder);
@@ -261,6 +264,9 @@ void JTTHistMaker::BookEventHistograms() {
         Utilities::BookH1F(fEventHist[i]->hJetTauLepM  [0], "jettaulepm0"  , Form("%s: JetTauLepM"  ,dirname),  jt_nlepm_bins, jt_lepm_bins, folder);
         Utilities::BookH1F(fEventHist[i]->hJetTauLepM  [1], "jettaulepm1"  , Form("%s: JetTauLepM"  ,dirname),  jt_nlepm_bins, jt_lepm_bins, folder);
         Utilities::BookH1F(fEventHist[i]->hJetTauLepM  [2], "jettaulepm2"  , Form("%s: JetTauLepM"  ,dirname),  jt_nlepm_bins, jt_lepm_bins, folder);
+        Utilities::BookH1F(fEventHist[i]->hJetTauLepPt [0], "jettauleppt0" , Form("%s: JetTauLepPt" ,dirname),  15, 0.,100., folder);
+        Utilities::BookH1F(fEventHist[i]->hJetTauLepPt [1], "jettauleppt1" , Form("%s: JetTauLepPt" ,dirname),  15, 0.,100., folder);
+        Utilities::BookH1F(fEventHist[i]->hJetTauLepPt [2], "jettauleppt2" , Form("%s: JetTauLepPt" ,dirname),  15, 0.,100., folder);
         Utilities::BookH1F(fEventHist[i]->hJetTauMTLep [0], "jettaumtlep0" , Form("%s: JetTauMTLep" ,dirname),  10, 0.,150., folder);
         Utilities::BookH1F(fEventHist[i]->hJetTauMTLep [1], "jettaumtlep1" , Form("%s: JetTauMTLep" ,dirname),  10, 0.,150., folder);
         Utilities::BookH1F(fEventHist[i]->hJetTauMTLep [2], "jettaumtlep2" , Form("%s: JetTauMTLep" ,dirname),  10, 0.,150., folder);
@@ -273,6 +279,12 @@ void JTTHistMaker::BookEventHistograms() {
         Utilities::BookH1D(fEventHist[i]->hJetTauNJets [0], "jettaunjets0" , Form("%s: JetTauNJets" ,dirname),  5, 0, 5, folder);
         Utilities::BookH1D(fEventHist[i]->hJetTauNJets [1], "jettaunjets1" , Form("%s: JetTauNJets" ,dirname),  5, 0, 5, folder);
         Utilities::BookH1D(fEventHist[i]->hJetTauNJets [2], "jettaunjets2" , Form("%s: JetTauNJets" ,dirname),  5, 0, 5, folder);
+        Utilities::BookH1F(fEventHist[i]->hJetTauMTOneOverM[0], "jettaumtoneoverm0" , Form("%s: JetTauMTOneOverM" ,dirname), 15, 0., 1.5, folder);
+        Utilities::BookH1F(fEventHist[i]->hJetTauMTOneOverM[1], "jettaumtoneoverm1" , Form("%s: JetTauMTOneOverM" ,dirname), 15, 0., 1.5, folder);
+        Utilities::BookH1F(fEventHist[i]->hJetTauMTOneOverM[2], "jettaumtoneoverm2" , Form("%s: JetTauMTOneOverM" ,dirname), 15, 0., 1.5, folder);
+        Utilities::BookH1F(fEventHist[i]->hJetTauMTTwoOverM[0], "jettaumttwooverm0" , Form("%s: JetTauMTTwoOverM" ,dirname), 15, 0., 1.5, folder);
+        Utilities::BookH1F(fEventHist[i]->hJetTauMTTwoOverM[1], "jettaumttwooverm1" , Form("%s: JetTauMTTwoOverM" ,dirname), 15, 0., 1.5, folder);
+        Utilities::BookH1F(fEventHist[i]->hJetTauMTTwoOverM[2], "jettaumttwooverm2" , Form("%s: JetTauMTTwoOverM" ,dirname), 15, 0., 1.5, folder);
 
         //2D closure checks
         Utilities::BookH2F(fEventHist[i]->hJetTauLepMVsMTOne [0], "jettaulepmvsmtone0" , Form("%s: JetTauLepMVsMTOne" ,dirname),  nfit_mbins, fit_mbins, jt_nmt_bins, jt_mt_bins, folder);
@@ -435,6 +447,8 @@ void JTTHistMaker::BookLepHistograms() {
       Utilities::BookH1F(fLepHist[i]->hJetTauTwoPtComp     , "jettautwoptcomp"     , Form("%s: TwoPt"           ,dirname), nbins_pt_qcd, pts_qcd, folder);
       Utilities::BookH1F(fLepHist[i]->hJetTauMTOneComp     , "jettaumtonecomp"     , Form("%s: MTOne"           ,dirname), nmtbins     , mtbins , folder);
       Utilities::BookH1F(fLepHist[i]->hJetTauMTTwoComp     , "jettaumttwocomp"     , Form("%s: MTTwo"           ,dirname), nmtbins     , mtbins , folder);
+      Utilities::BookH1F(fLepHist[i]->hJetTauMTOneOverMComp, "jettaumtoneovermcomp", Form("%s: MTOneOverM"      ,dirname), 15, 0., 1.5 , folder);
+      Utilities::BookH1F(fLepHist[i]->hJetTauMTTwoOverMComp, "jettaumttwoovermcomp", Form("%s: MTTwoOverM"      ,dirname), 15, 0., 1.5 , folder);
       const double mbins[] = {40., 60., 85., 100., 170.};
       const int    nmbins  = sizeof(mbins) / sizeof(*mbins) - 1;
       Utilities::BookH1F(fLepHist[i]->hJetTauLepMComp      , "jettaulepmcomp"      , Form("%s: LepM"            ,dirname), nmbins      , mbins  , folder);
@@ -522,6 +536,9 @@ void JTTHistMaker::FillEventHistogram(EventHist_t* Hist) {
   Hist->hMTOne             ->Fill(fTreeVars.mtone    , eventWeight*genWeight);
   Hist->hMTTwo             ->Fill(fTreeVars.mttwo    , eventWeight*genWeight);
   Hist->hMTLep             ->Fill(fTreeVars.mtlep    , eventWeight*genWeight);
+  Hist->hMTOneOverM        ->Fill(fTreeVars.mtoneoverm, eventWeight*genWeight);
+  Hist->hMTTwoOverM        ->Fill(fTreeVars.mttwooverm, eventWeight*genWeight);
+  Hist->hMTLepOverM        ->Fill(fTreeVars.mtlepoverm, eventWeight*genWeight);
 
   TLorentzVector lepSys = (*leptonOne.p4) + (*leptonTwo.p4);
   TLorentzVector sys    = (photonP4) ? (*photonP4) + lepSys : lepSys;
@@ -638,6 +655,9 @@ void JTTHistMaker::FillEventHistogram(EventHist_t* Hist) {
     Hist->hJetTauLepM  [0]->Fill(fTreeVars.lepm     , eventWeight*genWeight);
     Hist->hJetTauLepM  [1]->Fill(fTreeVars.lepm     , wt_no_nonclosure     );
     Hist->hJetTauLepM  [2]->Fill(fTreeVars.lepm     , wt_no_biascorr       );
+    Hist->hJetTauLepPt [0]->Fill(fTreeVars.leppt    , eventWeight*genWeight);
+    Hist->hJetTauLepPt [1]->Fill(fTreeVars.leppt    , wt_no_nonclosure     );
+    Hist->hJetTauLepPt [2]->Fill(fTreeVars.leppt    , wt_no_biascorr       );
     Hist->hJetTauMTLep [0]->Fill(fTreeVars.mtlep    , eventWeight*genWeight);
     Hist->hJetTauMTLep [1]->Fill(fTreeVars.mtlep    , wt_no_nonclosure     );
     Hist->hJetTauMTLep [2]->Fill(fTreeVars.mtlep    , wt_no_biascorr       );
@@ -650,6 +670,12 @@ void JTTHistMaker::FillEventHistogram(EventHist_t* Hist) {
     Hist->hJetTauNJets [0]->Fill(nJets20            , eventWeight*genWeight);
     Hist->hJetTauNJets [1]->Fill(nJets20            , wt_no_nonclosure     );
     Hist->hJetTauNJets [2]->Fill(nJets20            , wt_no_biascorr       );
+    Hist->hJetTauMTOneOverM[0]->Fill(fTreeVars.mtoneoverm, eventWeight*genWeight);
+    Hist->hJetTauMTOneOverM[1]->Fill(fTreeVars.mtoneoverm, wt_no_nonclosure     );
+    Hist->hJetTauMTOneOverM[2]->Fill(fTreeVars.mtoneoverm, wt_no_biascorr       );
+    Hist->hJetTauMTTwoOverM[0]->Fill(fTreeVars.mttwooverm, eventWeight*genWeight);
+    Hist->hJetTauMTTwoOverM[1]->Fill(fTreeVars.mttwooverm, wt_no_nonclosure     );
+    Hist->hJetTauMTTwoOverM[2]->Fill(fTreeVars.mttwooverm, wt_no_biascorr       );
 
     Hist->hJetTauLepMVsMTOne[0]->Fill(fTreeVars.lepm, fTreeVars.mtone, eventWeight*genWeight);
     Hist->hJetTauLepMVsMTOne[1]->Fill(fTreeVars.lepm, fTreeVars.mtone, wt_no_nonclosure     );
@@ -762,6 +788,8 @@ void JTTHistMaker::FillLepHistogram(LepHist_t* Hist) {
     Hist->hJetTauTwoPtComp          ->Fill(fTreeVars.leptwopt      , wt_nojt);
     Hist->hJetTauMTOneComp          ->Fill(fTreeVars.mtone         , wt_nojt);
     Hist->hJetTauMTTwoComp          ->Fill(fTreeVars.mttwo         , wt_nojt);
+    Hist->hJetTauMTOneOverMComp     ->Fill(fTreeVars.mtoneoverm    , wt_nojt);
+    Hist->hJetTauMTTwoOverMComp     ->Fill(fTreeVars.mttwooverm    , wt_nojt);
     Hist->hJetTauLepMComp           ->Fill(fTreeVars.lepm          , wt_nojt);
     Hist->hJetTauLepMvsMTOneComp    ->Fill(fTreeVars.lepm, fTreeVars.mtone, wt_nojt);
 
@@ -795,6 +823,8 @@ Bool_t JTTHistMaker::Process(Long64_t entry)
   one_pt_min_ = -1.f; two_pt_min_ = -1.f;
   ptdiff_min_ = -1.e10; ptdiff_max_ = 1.e10; min_mass_ = -1.f; max_mass_ = -1.f;
   mtone_max_ = -1.f; mttwo_max_ = -1.f; mtlep_max_ = -1.f; met_max_   = -1.f;
+  mtone_over_m_max_ = -1.f; mttwo_over_m_max_ = -1.f; mtlep_over_m_max_ = -1.f;
+  min_bdt_ = -2.f;
 
   //object pT thresholds
   const float muon_pt(10.), electron_pt(15.), tau_pt(20.);
@@ -936,14 +966,22 @@ Bool_t JTTHistMaker::Process(Long64_t entry)
   // jet --> tau cuts and region definitions
   ////////////////////////////////////////////////////////////
 
+  const bool use_dy_cuts       = true; //Use cuts to remove additional tau-tau backgrounds
   const double met_cut         = -1.;
   const double mtlep_cut       = 70.;
+  const double mttwooverm_cut  = (use_dy_cuts) ? 0.8 : -1.;
+  const double onept_cut       = (use_dy_cuts) ? 28. : -1.;
   const double qcd_mtlep_cut   = mtlep_cut; //(etau) ? 45. : mtlep_cut;
   const bool looseQCDRegion    = nBJetsUse == 0 && fTreeVars.mtlep < mtlep_cut && (met_cut < 0. || met < met_cut); // no isolation cut (0 - 0.5 allowed)
   const bool qcdSelection      = looseQCDRegion && fTreeVars.mtlep < qcd_mtlep_cut && (fTreeVars.leponereliso > 0.05) && !(isLooseMuon || isLooseElectron);
   const bool wjetsSelection    = fTreeVars.mtlep > mtlep_cut && nBJetsUse == 0 && !(isLooseMuon || isLooseElectron) && chargeTest;
   const bool topSelection      = nBJetsUse >= 1 && (mtlep_cut < 0. || fTreeVars.mtlep < mtlep_cut) && (met_cut < 0. || met < met_cut) && !(isLooseMuon || isLooseElectron) && chargeTest;
-  const bool nominalSelection  = nBJetsUse == 0 && (met_cut < 0. || met < met_cut) && fTreeVars.mtlep < mtlep_cut && !(isLooseMuon || isLooseElectron);
+  const bool nominalSelection  = (nBJetsUse == 0 &&
+                                  (met_cut < 0. || met < met_cut) &&
+                                  (mtlep_cut < 0. || fTreeVars.mtlep < mtlep_cut) &&
+                                  (mttwooverm_cut < 0. || fTreeVars.mttwooverm < mttwooverm_cut) &&
+                                  (onept_cut < 0. || leptonOne.pt > onept_cut) &&
+                                  !(isLooseMuon || isLooseElectron));
 
   /**
      SR = Signal Region, AR = Application Region, DR = Determination Region, BR = Bias Region

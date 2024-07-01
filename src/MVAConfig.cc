@@ -395,43 +395,56 @@ std::vector<Double_t> MVAConfig::CDFBins(Int_t index, Int_t HistSet) {
 
   //Use F(p) fits rather than p-value fits
   if(useCDF_ == 2) { //default to evenly spaced 0-1 binning for tests of F(p)
-    float default_width = 0.04; //FIXME: Settle default width, nominally 0.04
+    float default_width = 0.04f; //FIXME: Settle default width, nominally 0.04
     float xmin(0.f), xmax(1.f);
 
     // Binning for F(p) = p^2 + 1/6*log(p)
     if(selection == "zetau_mu") {
-    if(HistSet == 25) {xmin = 0.08f; xmax = 1.00f;} //central mass
-    if(HistSet == 26) {xmin = 0.00f; xmax = 0.21f; default_width = 0.07;} //high mass
-    if(HistSet == 27) {xmin = 0.12f; xmax = 0.90f; default_width = 0.06;} //low mass
+    if(HistSet == 25) {xmin = 0.20f; xmax = 1.00f;} //central mass
+    if(HistSet == 26) {xmin = 0.20f; xmax = 0.24f; default_width = 0.08f;} //high mass
+    if(HistSet == 27) {xmin = 0.20f; xmax = 0.86f; default_width = 0.06f;} //low mass
     }
     if(selection == "zmutau_e") {
-    if(HistSet == 25) {xmin = 0.00f; xmax = 1.00f; default_width = 0.05;} //central mass
-    if(HistSet == 26) {xmin = 0.00f; xmax = 0.24f; default_width = 0.08;} //high mass
-    if(HistSet == 27) {xmin = 0.08f; xmax = 0.40f; default_width = 0.05;} //low mass
+    if(HistSet == 25) {xmin = 0.20f; xmax = 1.00f; default_width = 0.05f;} //central mass
+    if(HistSet == 26) {xmin = 0.20f; xmax = 0.24f; default_width = 0.08f;} //high mass
+    if(HistSet == 27) {xmin = 0.20f; xmax = 0.40f; default_width = 0.05f;} //low mass
     }
     if(selection == "zetau") {
-    if(HistSet == 25) {xmin = 0.24f; xmax = 1.00f;} //central mass
-    if(HistSet == 26) {xmin = 0.00f; xmax = 0.30f; default_width = 0.05;} //high mass
-    if(HistSet == 27) {xmin = 0.10f; xmax = 0.50f; default_width = 0.05;} //low mass
-    if(HistSet == 28) {xmin = 0.18f; xmax = 0.84f; default_width = 0.06;} //zll mass
+    if(HistSet == 25) {xmin = 0.20f; xmax = 1.00f;} //central mass
+    if(HistSet == 26) {xmin = 0.20f; xmax = 0.30f; default_width = 0.05f;} //high mass
+    if(HistSet == 27) {xmin = 0.20f; xmax = 0.50f; default_width = 0.05f;} //low mass
+    if(HistSet == 28) {xmin = 0.20f; xmax = 0.86f; default_width = 0.06f;} //zll mass
     }
     if(selection == "zmutau") {
-    if(HistSet == 25) {xmin = 0.12f; xmax = 1.00f;} //central mass
-    if(HistSet == 26) {xmin = 0.05f; xmax = 0.30f; default_width = 0.05;} //high mass
-    if(HistSet == 27) {xmin = 0.00f; xmax = 0.68f;} //low mass
-    if(HistSet == 28) {xmin = 0.18f; xmax = 0.84f; default_width = 0.06;} //zll mass
+    if(HistSet == 25) {xmin = 0.20f; xmax = 1.00f;} //central mass
+    if(HistSet == 26) {xmin = 0.20f; xmax = 0.30f; default_width = 0.05f;} //high mass
+    if(HistSet == 27) {xmin = 0.20f; xmax = 0.70f; default_width = 0.05f;} //low mass
+    if(HistSet == 28) {xmin = 0.20f; xmax = 0.86f; default_width = 0.06f;} //zll mass
     }
 
-    const int ndefault = std::ceil(1.f/default_width) + 1;
-    const int bin_min(std::ceil(xmin/default_width)), bin_max(xmax/default_width);
-    if(bin_min < 0 || bin_max >= ndefault) {
-      printf("MVAConfig::%s: Bin dimensions not sensible:  [%.3f (bin %i) --> %.3f (bin %i)]\n",
-             __func__, xmin, bin_min, xmax, bin_max);
-      throw 30;
+    if(xmax < xmin || xmax < 0.f) {
+      throw std::runtime_error(Form("MVAConfig::%s: Bin dimensions not sensible:  [%.3f --> %.3f]\n", __func__, xmin, xmax));
     }
-    if(bin_min != 0) bins.push_back(0.f); //ensure 0 to xmin is a bin
-    for(int ibin = bin_min; ibin <= bin_max; ++ibin) bins.push_back(ibin*default_width);
-    if(bin_max*default_width < 1.f) bins.push_back(1.f); //ensure xmax to 1 is a bin
+
+    //Construct the bins as [0, xmin, ..., xmax, 1]
+    bins.push_back(0.f);
+    if(xmin > 0.f) bins.push_back(xmin);
+    float edge = xmin + default_width;
+    const float res = 0.001f; //numerical resolution to consider
+    while(xmax - edge > res) {bins.push_back(edge); edge += default_width;}
+    bins.push_back(xmax);
+    if((1.f - xmax) > res) bins.push_back(1.f);
+
+    // const int ndefault = std::ceil(1.f/default_width) + 1;
+    // const int bin_min(std::ceil(xmin/default_width)), bin_max(xmax/default_width);
+    // if(bin_min < 0 || bin_max >= ndefault) {
+    //   printf("MVAConfig::%s: Bin dimensions not sensible:  [%.3f (bin %i) --> %.3f (bin %i)]\n",
+    //          __func__, xmin, bin_min, xmax, bin_max);
+    //   throw 30;
+    // }
+    // if(bin_min != 0) bins.push_back(0.f); //ensure 0 to xmin is a bin
+    // for(int ibin = bin_min; ibin <= bin_max; ++ibin) bins.push_back(ibin*default_width);
+    // if(bin_max*default_width < 1.f) bins.push_back(1.f); //ensure xmax to 1 is a bin
     return bins;
   }
 

@@ -158,17 +158,16 @@ void HistMaker::Begin(TTree * /*tree*/)
   //FIXME: Added back W+Jets MC bias (Mode = 10100300, 60100300 for only MC lepm bias shape)
   //FIXME: Decide on 2D (lepm, bdt score) bias (bias mode 7 (shape+rate) and 8 (shape-only))
   const int wJetsMode = fWJetsMCBiasMode*10000000 + 1300300; //1300300 = j-->tau fits + errors; NC: onept, dphi(one, met), and tau |eta|
+  const int wJetsMCMode = ((fWJetsMCBiasMode == 8) ? 7 : fWJetsMCBiasMode)*10000000 + 1300300; //include the rate correction in the MC sets to see the final corrected histograms
   const int jetToTauYear = fJetToTauYearMode*1000 + fYear; //Year Mode: 0: By-year factors; 1: Run 2 scale factors; 2: By-year base, Run 2 NC/bias
   if(fSelection == "" || fSelection == "mutau" || fSelection == "mumu") {
     fMuonJetToTauWeights      [JetToTauComposition::kWJets] = new JetToTauWeight("MuonWJets"      , "mutau", "WJets",   31,wJetsMode, jetToTauYear, fVerbose);
     fMuonJetToTauWeights      [JetToTauComposition::kZJets] = new JetToTauWeight("MuonZJets"      , "mutau", "WJets",   31,wJetsMode, jetToTauYear, fVerbose);
-    // fMuonJetToTauWeights      [JetToTauComposition::kTop  ] = new JetToTauWeight("MuonTop"        , "mutau", "Top"  ,   82,      301, jetToTauYear, fVerbose);
-    // fMuonJetToTauWeights      [JetToTauComposition::kQCD  ] = new JetToTauWeight("MuonQCD"        , "mutau", "QCD"  , 1030,      300, jetToTauYear, fVerbose);
     fMuonJetToTauWeights      [JetToTauComposition::kTop  ] = new JetToTauWeight("MuonTop"        , "mutau", "Top"  ,   82, 70100301, jetToTauYear, fVerbose);
     fMuonJetToTauWeights      [JetToTauComposition::kQCD  ] = new JetToTauWeight("MuonQCD"        , "mutau", "QCD"  , 1030, 91300300, jetToTauYear, fVerbose);
 
-    fMuonJetToTauMCWeights    [JetToTauComposition::kWJets] = new JetToTauWeight("MuonMCWJets"    , "mutau", "WJets",   88,wJetsMode+1, jetToTauYear, fVerbose); //MC weights, non-closure, bias
-    fMuonJetToTauMCWeights    [JetToTauComposition::kZJets] = new JetToTauWeight("MuonMCZJets"    , "mutau", "WJets",   88,wJetsMode+1, jetToTauYear, fVerbose);
+    fMuonJetToTauMCWeights    [JetToTauComposition::kWJets] = new JetToTauWeight("MuonMCWJets"    , "mutau", "WJets",   88,wJetsMCMode+1, jetToTauYear, fVerbose); //MC weights, non-closure, bias
+    fMuonJetToTauMCWeights    [JetToTauComposition::kZJets] = new JetToTauWeight("MuonMCZJets"    , "mutau", "WJets",   88,wJetsMCMode+1, jetToTauYear, fVerbose);
     fMuonJetToTauMCWeights    [JetToTauComposition::kTop  ] = new JetToTauWeight("MuonMCTop"      , "mutau", "Top"  ,   82, 70100301  , jetToTauYear, fVerbose); //Normal weights
     fMuonJetToTauMCWeights    [JetToTauComposition::kQCD  ] = new JetToTauWeight("MuonMCQCD"      , "mutau", "QCD"  , 1095, 71300300  , jetToTauYear, fVerbose); //high iso weights for SS bias
   }
@@ -180,8 +179,8 @@ void HistMaker::Begin(TTree * /*tree*/)
     fElectronJetToTauWeights  [JetToTauComposition::kTop  ] = new JetToTauWeight("ElectronTop"    , "etau" , "Top"  ,   82, 70300301, jetToTauYear, fVerbose);
     fElectronJetToTauWeights  [JetToTauComposition::kQCD  ] = new JetToTauWeight("ElectronQCD"    , "etau" , "QCD"  , 1030, 91300300, jetToTauYear, fVerbose);
 
-    fElectronJetToTauMCWeights[JetToTauComposition::kWJets] = new JetToTauWeight("ElectronMCWJets", "etau" , "WJets",   88,wJetsMode+1, jetToTauYear, fVerbose); //MC weights, non-closure, bias
-    fElectronJetToTauMCWeights[JetToTauComposition::kZJets] = new JetToTauWeight("ElectronMCZJets", "etau" , "WJets",   88,wJetsMode+1, jetToTauYear, fVerbose);
+    fElectronJetToTauMCWeights[JetToTauComposition::kWJets] = new JetToTauWeight("ElectronMCWJets", "etau" , "WJets",   88,wJetsMCMode+1, jetToTauYear, fVerbose); //MC weights, non-closure, bias
+    fElectronJetToTauMCWeights[JetToTauComposition::kZJets] = new JetToTauWeight("ElectronMCZJets", "etau" , "WJets",   88,wJetsMCMode+1, jetToTauYear, fVerbose);
     fElectronJetToTauMCWeights[JetToTauComposition::kTop  ] = new JetToTauWeight("ElectronMCTop"  , "etau" , "Top"  ,   82, 70300301  , jetToTauYear, fVerbose); //Normal weights
     fElectronJetToTauMCWeights[JetToTauComposition::kQCD  ] = new JetToTauWeight("ElectronMCQCD"  , "etau" , "QCD"  , 1095, 71300300  , jetToTauYear, fVerbose); //high iso weights for SS bias
   }
@@ -564,6 +563,9 @@ void HistMaker::BookBaseEventHistograms(Int_t i, const char* dirname) {
   Utilities::BookH1F(fEventHist[i]->hMetNoCorr           , "metnocorr"           , Form("%s: Met No Correction"       ,dirname)  , 100,  0, 200, folder);
   Utilities::BookH1F(fEventHist[i]->hMetOverLepPt        , "metoverleppt"        , Form("%s: Met Over LepPt"          ,dirname)  ,  40,  0,  20, folder);
   Utilities::BookH1F(fEventHist[i]->hMetOverM            , "metoverm"            , Form("%s: Met Over M"              ,dirname)  ,  30,  0,   2, folder);
+  Utilities::BookH1F(fEventHist[i]->hRawMet              , "rawmet"              , Form("%s: Raw Met"                 ,dirname)  ,  20,  0,  80, folder);
+  Utilities::BookH1F(fEventHist[i]->hRawMetPhi           , "rawmetphi"           , Form("%s: Raw Met phi"             ,dirname)  ,  20,-3.2,3.2, folder);
+  Utilities::BookH1F(fEventHist[i]->hRawMetDiff          , "rawmetdiff"          , Form("%s: Raw Met - Met"           ,dirname)  ,  20,-10., 10, folder);
 
   Utilities::BookH1F(fEventHist[i]->hNuPt                , "nupt"                , Form("%s: Nu pT"                   ,dirname)  ,  50,  0, 100, folder);
   Utilities::BookH1F(fEventHist[i]->hDetectorMet         , "detectormet"         , Form("%s: Detector Met"            ,dirname)  , 100,  0, 200, folder);
@@ -1332,6 +1334,8 @@ void HistMaker::InitializeInputTree(TTree* tree) {
   Utilities::SetBranchAddress(tree, "HT"                            , &ht                            );
   Utilities::SetBranchAddress(tree, "MET_pt"                        , &PFMET                         );
   Utilities::SetBranchAddress(tree, "MET_phi"                       , &PFMETphi                      );
+  Utilities::SetBranchAddress(tree, "RawMET_pt"                     , &rawPFMET                      );
+  Utilities::SetBranchAddress(tree, "RawMET_phi"                    , &rawPFMETphi                   );
   Utilities::SetBranchAddress(tree, "PuppiMET_pt"                   , &puppMET                       );
   Utilities::SetBranchAddress(tree, "PuppiMET_phi"                  , &puppMETphi                    );
   Utilities::SetBranchAddress(tree, "PuppiMET_sumEt"                , &puppMETSumEt                  );
@@ -1339,6 +1343,9 @@ void HistMaker::InitializeInputTree(TTree* tree) {
   Utilities::SetBranchAddress(tree, "PuppiMET_ptJESUp"              , &puppMETJESUp                  );
   Utilities::SetBranchAddress(tree, "PuppiMET_phiJERUp"             , &puppMETphiJERUp               );
   Utilities::SetBranchAddress(tree, "PuppiMET_phiJESUp"             , &puppMETphiJESUp               );
+  Utilities::SetBranchAddress(tree, "RawPuppiMET_pt"                , &rawPuppMET                    );
+  Utilities::SetBranchAddress(tree, "RawPuppiMET_phi"               , &rawPuppMETphi                 );
+
   //FIXME: Decide on the right MET significance
   Utilities::SetBranchAddress(tree, "MET_significance"              , &metSignificance               );
 
@@ -1468,19 +1475,19 @@ void HistMaker::ApplyMuonCorrections() {
       }
     }
 
-    // //Embedding resolution correction FIXME: Remove this
-    // if(fIsEmbed) {
-    //   const float gen_pt = (Muon_genPartIdx[index] >= 0) ? GenPart_pt[Muon_genPartIdx[index]] : Muon_pt[index];
-    //   const float sf = fEmbeddingResolution->MuonResolutionUnc(Muon_pt[index], Muon_eta[index], gen_pt, fYear);
-    //   //Record the pT change to propagate to the MET
-    //   const float pt_diff = Muon_pt[index]*(sf - 1.f);
-    //   Muon_pt[index] *= sf;
-    //   delta_x -= pt_diff*std::cos(Muon_phi[index]);
-    //   delta_y -= pt_diff*std::sin(Muon_phi[index]);
-    //   if(fVerbose > 1) {
-    //     printf(" HistMaker::%s: Applying resolution pT scale of %.4f to embedding muon %u with pT %.2f and gen_pt %.2f\n", __func__, sf, index, Muon_pt[index], gen_pt);
-    //   }
-    // }
+    //Embedding resolution correction FIXME: Remove this
+    if(fIsEmbed && fUseEmbedMuonRes) {
+      const float gen_pt = (Muon_genPartIdx[index] >= 0) ? GenPart_pt[Muon_genPartIdx[index]] : Muon_pt[index];
+      const float sf = fEmbeddingResolution->MuonResolutionUnc(Muon_pt[index], Muon_eta[index], gen_pt, fYear);
+      //Record the pT change to propagate to the MET
+      const float pt_diff = Muon_pt[index]*(sf - 1.f);
+      Muon_pt[index] *= sf;
+      delta_x -= pt_diff*std::cos(Muon_phi[index]);
+      delta_y -= pt_diff*std::sin(Muon_phi[index]);
+      if(fVerbose > 1) {
+        printf(" HistMaker::%s: Applying resolution pT scale of %.4f to embedding muon %u with pT %.2f and gen_pt %.2f\n", __func__, sf, index, Muon_pt[index], gen_pt);
+      }
+    }
 
     //Apply the Rochester corrections to data and simulated muons
     if((fIsEmbed && !fUseEmbedRocco) || fUseRoccoCorr == 0) {  //don't correct embedding (or any, if selected) to muons
@@ -1560,7 +1567,7 @@ void HistMaker::ApplyTauCorrections() {
                                                           Tau_genPartFlav[index], Tau_idDeepTau2017v2p1VSjet[index],
                                                           fYear, Tau_energyScaleUp[index], Tau_energyScaleDown[index]);
     //FIXME: remove this correction or formalize it
-    if(fIsEmbed) {
+    if(fIsEmbed && Tau_genPartFlav[index] == 5) {
       sf *= 0.994; //Embedding tau over estimates the MC resolution mean after applying energy scale corrections
     }
     double pt_diff = Tau_pt[index];
@@ -2041,10 +2048,10 @@ void HistMaker::InitializeEventWeights() {
                                << ") --> event weight = " << eventWeight << std::endl;
 
     //Store signal Z PDF/Scale uncertainties
-    LHEPdfWeightMax    = fZPDFSys.GetPDFWeight        (fYear, zPt, zEta, zMass);
+    LHEPdfWeightMax    = fZPDFSys.GetPDFWeight        ( 2018, zPt, zEta, zMass); //use 2018 PDF uncertainties for all years
     LHEScaleRWeightMax = fZPDFSys.GetRenormScaleWeight(fYear, zPt,       zMass);
     LHEScaleFWeightMax = fZPDFSys.GetFactorScaleWeight(fYear, zPt,       zMass);
-    fZPDFSys.GetPDFWeight(fYear, zPt, zEta, zMass, LHEPdfWeight, nLHEPdfWeight);
+    fZPDFSys.GetPDFWeight(2018, zPt, zEta, zMass, LHEPdfWeight, nLHEPdfWeight);  //use 2018 PDF uncertainties for all years
     LHEScaleRWeightUp    = LHEScaleRWeightMax;
     LHEScaleRWeightDown  = std::max(0.f, 2.f - LHEScaleRWeightMax);
     LHEScaleFWeightUp    = LHEScaleFWeightMax;
@@ -2389,24 +2396,24 @@ void HistMaker::InitializeEventWeights() {
         if(mutau) {
           fJetToTauWts[proc]   = (fMuonJetToTauWeights[proc]->GetDataFactor(tauDecayMode, fYear, leptonTwo.p4->Pt(), leptonTwo.p4->Eta(), leptonOne.p4->Pt(),
                                                                             leptonOne.p4->DeltaR(*leptonTwo.p4),
-                                                                            fTreeVars.onemetdeltaphi, fTreeVars.lepm, fTreeVars.mtlep, leptonOne.iso/leptonOne.p4->Pt(), fMvaUse[1],
+                                                                            fTreeVars.onemetdeltaphi, fTreeVars.lepm, fTreeVars.leppt, fTreeVars.mtlep, leptonOne.iso/leptonOne.p4->Pt(), fMvaUse[1],
                                                                             &fJetToTauAltUp[proc*kMaxAltFunc], &fJetToTauAltDown[proc*kMaxAltFunc], fJetToTauAltNum[proc],
                                                                             fJetToTauCorrs[proc], jetToTauWeightCorrUp, jetToTauWeightCorrDown,
                                                                             fJetToTauBiases[proc]));
           fJetToTauMCWts[proc] = (fMuonJetToTauMCWeights[proc]->GetDataFactor(tauDecayMode, fYear, leptonTwo.p4->Pt(), leptonTwo.p4->Eta(), leptonOne.p4->Pt(),
                                                                               leptonOne.p4->DeltaR(*leptonTwo.p4),
-                                                                              fTreeVars.onemetdeltaphi, fTreeVars.lepm, fTreeVars.mtlep, leptonOne.iso/leptonOne.p4->Pt(), fMvaUse[1],
+                                                                              fTreeVars.onemetdeltaphi, fTreeVars.lepm, fTreeVars.leppt, fTreeVars.mtlep, leptonOne.iso/leptonOne.p4->Pt(), fMvaUse[1],
                                                                               fJetToTauMCCorrs[proc], fJetToTauMCBiases[proc]));
         } else {
           fJetToTauWts[proc]   = (fElectronJetToTauWeights[proc]->GetDataFactor(tauDecayMode, fYear, leptonTwo.p4->Pt(), leptonTwo.p4->Eta(), leptonOne.p4->Pt(),
                                                                                 leptonOne.p4->DeltaR(*leptonTwo.p4),
-                                                                                fTreeVars.onemetdeltaphi, fTreeVars.lepm, fTreeVars.mtlep, leptonOne.iso/leptonOne.p4->Pt(), fMvaUse[3],
+                                                                                fTreeVars.onemetdeltaphi, fTreeVars.lepm, fTreeVars.leppt, fTreeVars.mtlep, leptonOne.iso/leptonOne.p4->Pt(), fMvaUse[3],
                                                                                 &fJetToTauAltUp[proc*kMaxAltFunc], &fJetToTauAltDown[proc*kMaxAltFunc], fJetToTauAltNum[proc],
                                                                                 fJetToTauCorrs[proc], jetToTauWeightCorrUp, jetToTauWeightCorrDown,
                                                                                 fJetToTauBiases[proc]));
           fJetToTauMCWts[proc] = (fElectronJetToTauMCWeights[proc]->GetDataFactor(tauDecayMode, fYear, leptonTwo.p4->Pt(), leptonTwo.p4->Eta(), leptonOne.p4->Pt(),
                                                                                   leptonOne.p4->DeltaR(*leptonTwo.p4),
-                                                                                  fTreeVars.onemetdeltaphi, fTreeVars.lepm, fTreeVars.mtlep, leptonOne.iso/leptonOne.p4->Pt(), fMvaUse[3],
+                                                                                  fTreeVars.onemetdeltaphi, fTreeVars.lepm, fTreeVars.leppt, fTreeVars.mtlep, leptonOne.iso/leptonOne.p4->Pt(), fMvaUse[3],
                                                                                   fJetToTauMCCorrs[proc], fJetToTauMCBiases[proc]));
         }
         //Turn off SS --> OS bias if in the SS region
@@ -3426,20 +3433,36 @@ void HistMaker::CountObjects() {
   if(use_puppi_met) {
     met        = puppMET; //use PUPPI MET
     metPhi     = puppMETphi;
+    rawMet     = rawPuppMET;
+    rawMetPhi  = rawPuppMETphi;
   } else {
     met        = PFMET; //use PF MET
     metPhi     = PFMETphi;
+    rawMet     = rawPFMET;
+    rawMetPhi  = rawPFMETphi;
   }
   metCorr    = 0.f; //record the changes to the MET due to changes in object energy/momentum scales
   metCorrPhi = 0.f;
 
-  // //FIXME: Remove this
-  // if(!fIsEmbed && !fIsData) {
-  //   if(std::isfinite(puppMETJERUp) && std::isfinite(puppMETphiJERUp)) {
-  //     met    = puppMETJERUp;
-  //     metPhi = puppMETphiJERUp;
-  //   }
-  // }
+  //Check if the MET uncertainties are defined, and replace them with the nominal if they are
+  if(!std::isfinite(puppMETJERUp) || !std::isfinite(puppMETphiJERUp)) {puppMETJERUp = puppMET; puppMETphiJERUp = puppMETphi;}
+  if(!std::isfinite(puppMETJESUp) || !std::isfinite(puppMETphiJESUp)) {puppMETJESUp = puppMET; puppMETphiJESUp = puppMETphi;}
+
+
+  //if raw met is not defined, replace is with the corrected met before lepton scale corrections
+  if(rawMet < 0.f || std::fabs(rawMetPhi) > 4.f) {rawMet = met; rawMetPhi = metPhi;}
+
+  //Replace MET with Raw MET if requested
+  if(fReplaceMETWithRaw) {
+    // const float met_diff     = met    - rawMet   ;
+    // const float met_phi_diff = metPhi - rawMetPhi;
+    //set the uncertainty to be the change size
+    puppMETJERUp    = met;
+    puppMETphiJERUp = metPhi;
+    //replace the MET
+    met    = rawMet;
+    metPhi = rawMetPhi;
+  }
 
   //Correct the detector MET in Embedding events
   if(fIsEmbed && fApplyEmbedMETDPhiCorr) {
@@ -3554,7 +3577,7 @@ void HistMaker::CountObjects() {
 
   ApplyElectronCorrections();
   ApplyMuonCorrections();
-  ApplyTauCorrections();
+  if(nElectron + nMuon < 2) ApplyTauCorrections(); //only consider the taus if doing a tau selection
 
   //Re-sort muon/electron collections in the case where the corrections change the pT order
   SwapSameFlavor();
@@ -3568,10 +3591,6 @@ void HistMaker::CountObjects() {
            __func__, fentry, met, metPhi, metCorr, metCorrPhi, met_x, met_y, puppMET, puppMETphi);
     throw std::runtime_error("Undefined MET");
   }
-
-  //Check if the MET uncertainties are defined, and replace them with the nominal if they are
-  if(!std::isfinite(puppMETJERUp) || !std::isfinite(puppMETphiJERUp)) {puppMETJERUp = puppMET; puppMETphiJERUp = puppMETphi;}
-  if(!std::isfinite(puppMETJESUp) || !std::isfinite(puppMETphiJESUp)) {puppMETJESUp = puppMET; puppMETphiJESUp = puppMETphi;}
 
   //Update the MET uncertainty inputs with the MET changes as well
   {
@@ -4432,6 +4451,9 @@ void HistMaker::FillBaseEventHistogram(EventHist_t* Hist) {
   Hist->hMetCorr           ->Fill(metCorr            , genWeight*eventWeight)      ;
   Hist->hNuPt              ->Fill((fIsData) ? met : eventNuPt, genWeight*eventWeight)      ;
   Hist->hDetectorMet       ->Fill(eventDetectorMet   , genWeight*eventWeight)      ;
+  Hist->hRawMet            ->Fill(rawMet             , genWeight*eventWeight)      ;
+  Hist->hRawMetPhi         ->Fill(rawMetPhi          , genWeight*eventWeight)      ;
+  Hist->hRawMetDiff        ->Fill(rawMet-met         , genWeight*eventWeight)      ;
   //approximate met uncertainty
   auto met_sys = ApproxMETSys();
   Hist->hMetUp  ->Fill(met_sys.first , genWeight*eventWeight);

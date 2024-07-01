@@ -20,6 +20,8 @@ namespace CLFV {
     TH1* hJetTauTwoPtComp;
     TH1* hJetTauMTOneComp;
     TH1* hJetTauMTTwoComp;
+    TH1* hJetTauMTOneOverMComp;
+    TH1* hJetTauMTTwoOverMComp;
     TH1* hJetTauLepMComp;
     TH2* hJetTauLepMvsMTOneComp; //2D composition to account for mass regions
 

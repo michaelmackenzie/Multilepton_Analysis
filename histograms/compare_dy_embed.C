@@ -146,15 +146,15 @@ int compare_dy_embed(TString out_dir = "tau_bdt_study", TString hist_dir = "nano
 
   cout << "Printing figures\n";
 
-  //cutflow
-  status += compare_hist(PlottingCard_t("onept", "lep", 1+get_offset(), 2, 20., 70.));
-  status += compare_hist(PlottingCard_t("onept", "lep", 2+get_offset(), 2, 20., 70.));
-  status += compare_hist(PlottingCard_t("onept", "lep", 3+get_offset(), 2, 20., 70.));
-  status += compare_hist(PlottingCard_t("onept", "lep", 4+get_offset(), 2, 20., 70.));
+  // //cutflow
+  // status += compare_hist(PlottingCard_t("onept", "lep", 1+get_offset(), 2, 20., 70.));
+  // status += compare_hist(PlottingCard_t("onept", "lep", 2+get_offset(), 2, 20., 70.));
+  // status += compare_hist(PlottingCard_t("onept", "lep", 3+get_offset(), 2, 20., 70.));
+  // status += compare_hist(PlottingCard_t("onept", "lep", 4+get_offset(), 2, 20., 70.));
 
   vector<int> sets;
   if(is_sf) sets = {8};
-  else      sets = {8, 44, 45, 46, 47, 48};
+  else      sets = {8, 25, 27};
 
   for(int set : sets) {
     status += compare_hist(PlottingCard_t("onept"         , "lep"  , set+get_offset(), 2, 20.,  70.));

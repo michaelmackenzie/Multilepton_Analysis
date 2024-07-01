@@ -314,6 +314,7 @@ void CLFVHistMaker::InitHistogramFlags() {
     fEventSets [kMuMu + 40] = 1; //high lep delta phi
     fEventSets [kMuMu + 41] = 1; //lower lep pt
     fEventSets [kMuMu + 42] = 1; //higher lep pt
+    fEventSets [kMuMu + 43] = 1; //remove an eta region
 
     if(fTriggerTesting) { //testing triggering
       // fEventSets [kMuMu + 60] = 1; //one fired
@@ -1904,6 +1905,11 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
 {
   if(InitializeEvent(entry)) return kTRUE;
 
+  if(!fUpdateMET && metCorr != 0.f) {
+    throw std::runtime_error(Form("CLFVHistMaker::%s: Entry %lld: No MET updating but a MET update found, metCorr = %f, metCorrPhi = %f\n",
+                                  __func__, fentry, metCorr, metCorrPhi));
+  }
+
   //object pT thresholds
   const float muon_pt(10.f), electron_pt(15.f), tau_pt(20.f);
   const float sys_buffer(fMigrationBuffer); //window widening for event migration checks, in GeV
@@ -2554,10 +2560,12 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   }
 
   //Add BDT score cut FIXME: Formalize this
-  min_bdt_ = 0.2f;
-  if(sys_buffer == 0.f) { //if not systematic buffers, apply the cut, otherwise allow for complete migration
-    const int imva = (mutau) ? 1 : (etau) ? 3 : (emu && lep_tau == 0) ? 5 : (lep_tau == 1) ? 7 : 9;
-    if(fMvaUse[imva] <= min_bdt_) return kTRUE;
+  if(!ee && !mumu && (!emu || lep_tau != 0)) { //only for tau channel regions
+    min_bdt_ = 0.2f;
+    if(sys_buffer == 0.f) { //if not systematic buffers, apply the cut, otherwise allow for complete migration
+      const int imva = (mutau) ? 1 : (etau) ? 3 : (emu && lep_tau == 0) ? 5 : (lep_tau == 1) ? 7 : 9;
+      if(fMvaUse[imva] <= min_bdt_) return kTRUE;
+    }
   }
 
   if(!(mutau || etau || emu || mumu || ee || etau_mu || mutau_e)) return kTRUE;
@@ -2599,7 +2607,7 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   //Testing Embedding vs. Drell-Yan
   if(mumu) {
     //tight Z->ll pT cuts
-    if(std::fabs(leptonOne.pt - 45.f) < 5.f && std::fabs(leptonTwo.pt - 45.f) < 5.f) FillAllHistograms(set_offset + 30);
+    if(std::fabs(leptonOne.pt - 45.f) < 5.f && leptonTwo.pt > 25.f) FillAllHistograms(set_offset + 30);
     //barrel events
     if(std::fabs(leptonOne.eta) < 0.9f && std::fabs(leptonTwo.eta) < 0.9f) FillAllHistograms(set_offset + 31);
     //endcap events
@@ -2656,6 +2664,13 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
     //Lower vs. higher di-lepton pT
     if(fTreeVars.leppt < 10.f) FillAllHistograms(set_offset + 41);
     else                       FillAllHistograms(set_offset + 42);
+    //remove odd eta region
+    if((fabs(leptonOne.eta) < 0.55f || fabs(leptonOne.eta) > 0.8f) &&
+       (fabs(leptonTwo.eta) < 0.55f || fabs(leptonTwo.eta) > 0.8f) &&
+       (fabs(leptonOne.eta) < 1.75f || fabs(leptonOne.eta) > 2.0f) &&
+       (fabs(leptonTwo.eta) < 1.75f || fabs(leptonTwo.eta) > 2.0f)) {
+      FillAllHistograms(set_offset + 43);
+    }
   }
 
   const bool embed_testing = false;

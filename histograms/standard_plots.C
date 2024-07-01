@@ -283,6 +283,27 @@ Int_t print_met_phi(int set, bool add_sys = false) {
 }
 
 //------------------------------------------------------------------------------------------------------------------------------
+// Raw MET distributions
+Int_t print_raw_met(int set, bool add_sys = false) {
+  if(!dataplotter_) return 1;
+  const Int_t offset = ((set % 1000) > 100) ? 0 : get_offset();
+  vector<TString> hists = {"rawmet", "rawmetphi", "rawmetdiff"};
+  Int_t status(0);
+  for(TString hist : hists) {
+    PlottingCard_t card(hist, "event", set+offset, 1,  1., -1.);
+    const int max_log = (hist == "rawmetdiff") ? 2 : 1; //only do log plot for the difference plot
+    for(int logY = 0; logY < max_log; ++logY) {
+      dataplotter_->logY_ = logY;
+      auto c = dataplotter_->print_stack(card);
+      if(c) DataPlotter::Empty_Canvas(c);
+      else ++status;
+    }
+    dataplotter_->logY_ = 0;
+  }
+  return status;
+}
+
+//------------------------------------------------------------------------------------------------------------------------------
 // MET/leppt distribution
 Int_t print_met_over_pt(int set, bool add_sys = false) {
   if(!dataplotter_) return 1;
@@ -371,13 +392,16 @@ Int_t print_ptratio(int set, bool add_sys = false) {
   if(!dataplotter_) return 1;
   const Int_t offset = get_offset();
   const bool same_flavor = selection_ == "ee" || selection_ == "mumu";
-  PlottingCard_t card("ptratio", "lep", set+offset, (same_flavor) ? 1 : 2, 0., 2.5);
+  vector<TString> hists = {"ptratio", "pttrailoverlead"};
   Int_t status(0);
-  for(int logY = 0; logY < 2; ++logY) {
-    dataplotter_->logY_ = logY;
-    auto c = dataplotter_->print_stack(card);
-    if(c) DataPlotter::Empty_Canvas(c);
-    else ++status;
+  for(auto hist : hists) {
+    PlottingCard_t card(hist, "lep", set+offset, (same_flavor) ? 1 : 2, (hist == "ptratio" && same_flavor) ? 1. : 0., (hist == "ptratio") ? 2.5 : 1.);
+    for(int logY = 0; logY < 2; ++logY) {
+      dataplotter_->logY_ = logY;
+      auto c = dataplotter_->print_stack(card);
+      if(c) DataPlotter::Empty_Canvas(c);
+      else ++status;
+    }
   }
   dataplotter_->logY_ = 0;
   return status;

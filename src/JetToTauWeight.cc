@@ -41,6 +41,7 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
   useMTLepBias_          = bias_mode == 2 || bias_mode == 5; //bias correction in terms of MT(ll, MET)
   useOneIsoBias_         = bias_mode == 3 || bias_mode == 4 || bias_mode == 9; //bias correction in terms of one iso / pT
   useLepMVsMVABias_      = bias_mode == 7 || bias_mode == 8 || bias_mode == 9; //bias shape correction in terms of 2D (lepm, mva score)
+  useLepPtBias_          = false; //not used currently, intended for W+jets MC bias
 
   const int use_run2_scales = (only_year >= 3000) + (only_year >= 4000);
   if(use_run2_scales == 1) {
@@ -65,6 +66,7 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
               << " useMetDPhiCorrections = " << useMetDPhiCorrections_
               << " doPtCorrections = " << doPtCorrections_
               << " useLepMBias = " << useLepMBias_
+              << " useLepPtBias = " << useLepPtBias_
               << " useMtLepBias = " << useMTLepBias_
               << " useOneIsoBias = " << useOneIsoBias_
               << " useLepMVsMVABias = " << useLepMVsMVABias_
@@ -363,6 +365,17 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
               lepMVsMVABias_[year]->SetDirectory(0);
             }
           }
+          if(useLepPtBias_) { //Leppt bias
+            lepPtBias_[year] = (TH1*) f->Get("LepPtBias");
+            if(!lepPtBias_[year]) {
+              std::cout << "JetToTauWeight::JetToTauWeight: " << name_.Data() << " Warning! No di-lepton pT bias hist found for year = "
+                        << year_nc << " selection = " << selection.Data() << std::endl;
+            } else {
+              if(verbose_ > 3) std::cout << __func__ << ": " << name.Data() << ": Retrieved " << lepPtBias_[year]->GetName() << " histogram\n";
+              lepPtBias_[year] = (TH1*) lepPtBias_[year]->Clone(Form("%s-LepPtBias_%s", name_.Data(), year_nc));
+              lepPtBias_[year]->SetDirectory(0);
+            }
+          }
           f->Close();
           delete f;
         }
@@ -424,6 +437,17 @@ JetToTauWeight::JetToTauWeight(const TString name, const TString selection, TStr
             lepMVsMVABias_[year]->SetDirectory(0);
           }
         }
+        if(useLepPtBias_) { //Leppt bias
+          lepPtBias_[year] = (TH1*) f->Get("LepPtBias");
+          if(!lepPtBias_[year]) {
+            std::cout << "JetToTauWeight::JetToTauWeight: " << name_.Data() << " Warning! No di-lepton pT bias hist found for year = "
+                      << year_nc << " selection = " << selection.Data() << std::endl;
+          } else {
+            if(verbose_ > 3) std::cout << __func__ << ": " << name.Data() << ": Retrieved " << lepPtBias_[year]->GetName() << " histogram\n";
+            lepPtBias_[year] = (TH1*) lepPtBias_[year]->Clone(Form("%s-LepPtBias_%s", name_.Data(), year_nc));
+            lepPtBias_[year]->SetDirectory(0);
+          }
+        }
         f->Close();
         delete f;
       }
@@ -447,6 +471,7 @@ JetToTauWeight::~JetToTauWeight() {
     for(std::pair<int, TH1*> val_2 : val_1.second) {if(val_2.second) delete val_2.second;}
   }
   for(std::pair<int, TH1*> val : lepMBias_     ) {if(val.second) delete val.second;}
+  for(std::pair<int, TH1*> val : lepPtBias_    ) {if(val.second) delete val.second;}
   for(std::pair<int, TH1*> val : mtLepBias_    ) {if(val.second) delete val.second;}
   for(std::pair<int, TH1*> val : oneIsoBias_   ) {if(val.second) delete val.second;}
   for(std::pair<int, TH2*> val : lepMVsMVABias_) {if(val.second) delete val.second;}
@@ -487,7 +512,7 @@ float JetToTauWeight::GetDataFactor(int , int , Tree_t&, Weight& weight) {
 //-------------------------------------------------------------------------------------------------------------------------------
 // Get factor to apply to data
 float JetToTauWeight::GetDataFactor(int DM, int year, float pt, float eta,
-                                    float pt_lead, float deltar, float metdphi, float lepm, float mtlep, float oneiso, float mva,
+                                    float pt_lead, float deltar, float metdphi, float lepm, float leppt, float mtlep, float oneiso, float mva,
                                     float* up, float* down, int& nsys,
                                     float& pt_wt, float& pt_up, float& pt_down, float& bias) {
   pt_wt = 1.f; pt_up = 1.f; pt_down = 1.f; bias = 1.f;
@@ -570,15 +595,16 @@ float JetToTauWeight::GetDataFactor(int DM, int year, float pt, float eta,
   }
   nsys = func_up.size();
 
-  return GetFactor(h, func, hCorrection, hFitterErrors, func_up, func_down, pt, eta, DM, pt_lead, deltar, metdphi, lepm, mtlep, oneiso, mva,
+  return GetFactor(h, func, hCorrection, hFitterErrors, func_up, func_down, pt, eta, DM, pt_lead, deltar, metdphi, lepm, leppt, mtlep, oneiso, mva,
                    year, up, down, pt_wt, pt_up, pt_down, bias);
 }
 
 //-------------------------------------------------------------------------------------------------------------------------------
 //Get weight without any systematics or corrections carried
-float JetToTauWeight::GetDataFactor(int DM, int year, float pt, float eta, float pt_lead, float deltar, float metdphi, float lepm, float mtlep, float oneiso, float mva) {
+float JetToTauWeight::GetDataFactor(int DM, int year, float pt, float eta, float pt_lead, float deltar, float metdphi, float lepm, float leppt,
+                                    float mtlep, float oneiso, float mva) {
   float up, down, pt_wt, pt_up, pt_down, bias;
-  float weight = GetDataFactor(DM, year, pt, eta, pt_lead, deltar, metdphi, lepm, mtlep, oneiso, mva,
+  float weight = GetDataFactor(DM, year, pt, eta, pt_lead, deltar, metdphi, lepm, leppt, mtlep, oneiso, mva,
                                up, down, pt_wt, pt_up, pt_down, bias);
   weight *= pt_wt*bias;
   return weight;
@@ -586,11 +612,12 @@ float JetToTauWeight::GetDataFactor(int DM, int year, float pt, float eta, float
 
 //-------------------------------------------------------------------------------------------------------------------------------
 //Get weight with flattened systematics and corrections carried
-float JetToTauWeight::GetDataFactor(int DM, int year, float pt, float eta, float pt_lead, float deltar, float metdphi, float lepm, float mtlep, float oneiso, float mva,
+float JetToTauWeight::GetDataFactor(int DM, int year, float pt, float eta, float pt_lead, float deltar, float metdphi, float lepm, float leppt,
+                                    float mtlep, float oneiso, float mva,
                                     float& up, float& down, float& pt_wt, float& pt_up, float& pt_down, float& bias) {
   int nsys;
   float up_arr[10], down_arr[10];
-  float weight = GetDataFactor(DM, year, pt, eta, pt_lead, deltar, metdphi, lepm, mtlep, oneiso, mva,
+  float weight = GetDataFactor(DM, year, pt, eta, pt_lead, deltar, metdphi, lepm, leppt, mtlep, oneiso, mva,
                                up_arr, down_arr, nsys, pt_wt, pt_up, pt_down, bias);
   up = 0.f;
   down = 0.f;
@@ -609,10 +636,11 @@ float JetToTauWeight::GetDataFactor(int DM, int year, float pt, float eta, float
 
 //-------------------------------------------------------------------------------------------------------------------------------
 //Get weight without any systematics carried but pT correction also stored
-float JetToTauWeight::GetDataFactor(int DM, int year, float pt, float eta, float pt_lead, float deltar, float metdphi, float lepm, float mtlep, float oneiso, float mva,
+float JetToTauWeight::GetDataFactor(int DM, int year, float pt, float eta, float pt_lead, float deltar, float metdphi, float lepm, float leppt,
+                                    float mtlep, float oneiso, float mva,
                                     float& pt_wt, float& bias) {
   float up, down, pt_up, pt_down;
-  const float weight = GetDataFactor(DM, year, pt, eta, pt_lead, deltar, metdphi, lepm, mtlep, oneiso, mva,
+  const float weight = GetDataFactor(DM, year, pt, eta, pt_lead, deltar, metdphi, lepm, leppt, mtlep, oneiso, mva,
                                      up, down, pt_wt, pt_up, pt_down, bias);
   return weight;
 }
@@ -621,7 +649,7 @@ float JetToTauWeight::GetDataFactor(int DM, int year, float pt, float eta, float
 // interal function to calculate the transfer factor
 float JetToTauWeight::GetFactor(TH2* h, TF1* func, TH1* hCorrection, TH1* hFitterErrors, std::vector<TF1*> alt_up, std::vector<TF1*> alt_down,
                                 float pt, float eta, int DM,
-                                float pt_lead, float deltar, float metdphi, float lepm, float mtlep, float oneiso, float mva,
+                                float pt_lead, float deltar, float metdphi, float lepm, float leppt, float mtlep, float oneiso, float mva,
                                 int year,
                                 float* up, float* down,
                                 float& pt_wt, float& pt_up, float& pt_down, float& bias) {
@@ -847,6 +875,25 @@ float JetToTauWeight::GetFactor(TH2* h, TF1* func, TH1* hCorrection, TH1* hFitte
       if(mass_bdt_bias > 0.) bias *= std::max(0.3f, std::min(3.f, mass_bdt_bias)); //only apply where bias is non-zero, and constrain to a factor of 3
       if(verbose_ > 3) {
         std::cout << "JetToTauWeight::" << __func__ << ": " << name_.Data() << " (mass, bdt) = (" << lepm << ", " << mva << ") bias = " << mass_bdt_bias
+                  << " (total = " << bias << ")"
+                  << std::endl;
+      }
+    }
+  }
+
+  if(useLepPtBias_) {
+    const TH1* hbias = lepPtBias_[year];
+    if(!hbias) {
+      std::cout << "JetToTauWeight::" << __func__ << ": " << name_.Data() << " Warning! Di-lepton pT bias histogram not found!"
+                << " pt = " << pt << " eta = " << eta << " pt_lead = " << pt_lead
+                << " dm = " << DM << " year = " << year
+                << std::endl;
+    } else {
+      const int bin = std::max(1, std::min(hbias->GetNbinsX(), hbias->GetXaxis()->FindBin(leppt)));
+      const float leppt_bias = hbias->GetBinContent(bin);
+      if(leppt_bias > 0.) bias *= std::max(0.3f, std::min(3.f, leppt_bias)); //only apply where bias is non-zero, and constrain to a factor of 3
+      if(verbose_ > 3) {
+        std::cout << "JetToTauWeight::" << __func__ << ": " << name_.Data() << " leppt = " << leppt << " bias = " << leppt_bias
                   << " (total = " << bias << ")"
                   << std::endl;
       }

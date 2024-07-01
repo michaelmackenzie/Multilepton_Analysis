@@ -13,6 +13,7 @@ int print_embed_met_debug(TString out_dir = "embed_met", TString hist_dir = "nan
   doStatsLegend_ = 1; //process yields in the legend
   higgsBkg_      = 1; //add Higgs backgrounds
 
+  // runs_ = {"A", "B", "C"};
 
   TString tag = "";
   if(runs_.size() > 0) {
@@ -31,13 +32,22 @@ int print_embed_met_debug(TString out_dir = "embed_met", TString hist_dir = "nan
   //setup the histogram sets of interest
   vector<int> sets = {8};
   if     (selection == "mumu")  sets = {8}; //30,31,32,33,34,35,36,37,38,39,40,41,42};
-  else if(selection.EndsWith("tau")) sets = {8, 25, 29, 45, 46, 47, 48, 1008, 2008}; //,30,31,32,33,34,35,36,38,39,40,41,42,43};
-  else if(selection.Contains("tau")) sets = {8,25,29};
+  else if(selection.EndsWith("tau")) sets = {8, 25, 26, 27}; //,30,31,32,33,34,35,36,38,39,40,41,42,43};
+  else if(selection.Contains("tau")) sets = {8,25};
 
   if(selection != "mumu" && selection != "ee") { //print the BDT score in each mass category
     const int max_set = (selection.Contains("_")) ? 27 : 28;
     for(int set = 25; set <= max_set; ++set) status += print_mva(set);
   }
+
+  //print normalized BDT score and MET histograms for shape comparisons
+  dataplotter_->normalize_1ds_ = 1;
+  for(int set : sets) {
+    status += print_mva      (set);
+    status += print_met      (set);
+    status += print_mt_over_m(set);
+  }
+  dataplotter_->normalize_1ds_ = 0;
 
   //print debug histograms for each set
   for(int set : sets) {
@@ -50,7 +60,8 @@ int print_embed_met_debug(TString out_dir = "embed_met", TString hist_dir = "nan
     status += print_lep_metdeltaphi(set);
     status += print_mass           (set);
     status += print_pt             (set);
-    if(set == 8 || set == 25 || set == 29) { //more histograms for the nominal selection
+    if(set == 8 || set == 25 || set == 29 || set == 26 || set == 30) { //more histograms for the nominal selection
+      status += print_raw_met        (set);
       status += print_eta            (set);
       status += print_leppt          (set);
       status += print_met_dot_lep    (set);

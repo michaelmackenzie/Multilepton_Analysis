@@ -319,10 +319,14 @@ namespace CLFV {
     Float_t puppMETphiJESDown          ; //locally evaluated
     Float_t puppMETSumEt               ;
     Float_t puppMETSig                 ; //locally evaluated
+    Float_t rawPuppMET      = -10.f    ;
+    Float_t rawPuppMETphi   = -10.f    ;
 
     //PF MET
     Float_t PFMET                      ;
     Float_t PFMETphi                   ;
+    Float_t rawPFMET        = -10.f    ;
+    Float_t rawPFMETphi     = -10.f    ;
 
     //MET field to use
     Float_t met                        ;
@@ -330,6 +334,8 @@ namespace CLFV {
     Float_t metCorr                    ;
     Float_t metCorrPhi                 ;
     Float_t metSignificance            ;
+    Float_t rawMet                     ;
+    Float_t rawMetPhi                  ;
 
     //Neutrino momentum in the event
     Float_t eventNuPt                  ;
@@ -892,6 +898,7 @@ namespace CLFV {
     Int_t           fUseEmbedTnPWeights = 1; //whether or not to use the locally calculated lepton ID/trigger weights
     Int_t           fUseEmbedRocco = 1; //whether or not to use Rochester corrections + uncertainties with Embedded muons (0: ignore; 1: apply + sys; 2: apply but separate sys)
     Int_t           fUseEmbedMuonES = 0; //use Embed - MC resolution fit means to correction Embedding muon energy scales
+    Int_t           fUseEmbedMuonRes = 0; //use Embed / MC resolution width fits to correction Embedding muon energy resolution
     Int_t           fEmbedUseMETUnc = 1; //whether to include MET JER/JES uncertainties in the embedding MET uncertainty
     Int_t           fEmbedUseMCTauID = 0; //use MC measured tau ID corrections instead of Embedding corrections
     Int_t           fUseEmbedZMatching = 0; //match Embedding normalization to gen-level Z->tau_x tau_y rates in a Z mass window
@@ -930,6 +937,7 @@ namespace CLFV {
     Int_t           fApplyLeptonIDWt = 1; //Apply lepton ID correction weights: 0: none, 1: locally evaluated, 2: ntuple-level scales
     Int_t           fUpdateMCEra = 0; //update the MC era flag
     Int_t           fUpdateMET = 1; //update MET when lepton energy scales are corrected
+    Int_t           fReplaceMETWithRaw = 0; //replace the corrected MET with the raw MET
     Int_t           fRemovePhotonIDWeights = 1;
     Int_t           fApplyJERCorrections = 1; //apply Jet resolution corrections if available
     Int_t           fUseBTagWeights = 1; //0: do nothing; 1: apply local weights; 2: use ntuple-level weights
