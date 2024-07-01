@@ -343,15 +343,41 @@ RooAbsPdf* create_bernstein(RooRealVar& obs, const int order, int set, TString t
 }
 
 //Create a Z->mumu PDF
-RooAbsPdf* create_zmumu(RooRealVar& obs, int set, bool fix = true, TString tag = "") {
-  RooRealVar* zmumu_mean   = new RooRealVar(Form("zmumu_mean_%i%s"  , set, tag.Data()), "mean"  , 84.4, 70., 90.);
-  RooRealVar* zmumu_sigma  = new RooRealVar(Form("zmumu_sigma_%i%s" , set, tag.Data()), "sigma" , 4.48,  3., 10.);
+RooAbsPdf* create_zmumu(RooRealVar& obs, int set, bool fix = true, bool add_sys = false, TString tag = "") {
+  //tail parameters
   RooRealVar* zmumu_alpha1 = new RooRealVar(Form("zmumu_alpha1_%i%s", set, tag.Data()), "alpha1", 1.22, 0.8,  5.);
   RooRealVar* zmumu_alpha2 = new RooRealVar(Form("zmumu_alpha2_%i%s", set, tag.Data()), "alpha2", 1.78, 0.5,  5.);
   RooRealVar* zmumu_enne1  = new RooRealVar(Form("zmumu_enne1_%i%s" , set, tag.Data()), "enne1" , 0.36, 0.5, 10.);
   RooRealVar* zmumu_enne2  = new RooRealVar(Form("zmumu_enne2_%i%s" , set, tag.Data()), "enne2" , 9.14, 1.0, 10.);
-  RooAbsPdf* zmumu  = new RooDoubleCrystalBall(Form("zmumu_%i%s"    , set, tag.Data()), "Z->#mu#mu PDF", obs,
-                                               *zmumu_mean, *zmumu_sigma, *zmumu_alpha1, *zmumu_enne1, *zmumu_alpha2, *zmumu_enne2);
+
+  //Gaussian core
+  RooRealVar* zmumu_mean  = new RooRealVar(Form("zmumu_mean_%i%s"  , set, tag.Data()), "mean"  , 84.4, 70., 90.);
+  RooRealVar* zmumu_sigma = new RooRealVar(Form("zmumu_sigma_%i%s" , set, tag.Data()), "sigma" , 4.48,  3., 10.);
+
+  RooAbsPdf* zmumu;
+
+  //if using systematics, construct the mean/width with nuisance parameters
+  if(add_sys) {
+    //mean offset
+    RooRealVar* zmumu_mean_shift = new RooRealVar(Form("zmumu_mean_shift_%i%s", set, tag.Data()), "mean sigma shift", 0., -5., 5.);
+    RooRealVar* zmumu_mean_size  = new RooRealVar(Form("zmumu_mean_size_%i%s", set, tag.Data()), "mean uncertainty", 0.5); zmumu_mean_size->setConstant(true);
+    RooFormulaVar* zmumu_mean_func = new RooFormulaVar(Form("zmumu_mean_func_%i%s", set, tag.Data()), "mean with offset",
+                                                       "@0 + @1*@2", RooArgList(*zmumu_mean, *zmumu_mean_shift, *zmumu_mean_size));
+    //width offset
+    RooRealVar* zmumu_width_shift = new RooRealVar(Form("zmumu_width_shift_%i%s", set, tag.Data()), "width sigma shift", 0., -5., 5.);
+    RooRealVar* zmumu_width_size  = new RooRealVar(Form("zmumu_width_size_%i%s", set, tag.Data()), "width uncertainty", 0.7); zmumu_width_size->setConstant(true);
+    RooFormulaVar* zmumu_width_func = new RooFormulaVar(Form("zmumu_width_func_%i%s", set, tag.Data()), "width with offset",
+                                                       "@0 + @1*@2", RooArgList(*zmumu_sigma, *zmumu_width_shift, *zmumu_width_size));
+
+    zmumu  = new RooDoubleCrystalBall(Form("zmumu_%i%s"    , set, tag.Data()), "Z->#mu#mu PDF", obs,
+                                      *zmumu_mean_func, *zmumu_width_func, *zmumu_alpha1, *zmumu_enne1, *zmumu_alpha2, *zmumu_enne2);
+  } else {
+    zmumu_mean  = new RooRealVar(Form("zmumu_mean_%i%s"  , set, tag.Data()), "mean"  , 84.4, 70., 90.);
+    zmumu_sigma = new RooRealVar(Form("zmumu_sigma_%i%s" , set, tag.Data()), "sigma" , 4.48,  3., 10.);
+    zmumu  = new RooDoubleCrystalBall(Form("zmumu_%i%s"    , set, tag.Data()), "Z->#mu#mu PDF", obs,
+                                                 *zmumu_mean, *zmumu_sigma, *zmumu_alpha1, *zmumu_enne1, *zmumu_alpha2, *zmumu_enne2);
+  }
+
 
   const bool use_data_fit(true); //shape fits from same sign data vs. opposite sign MC
   if(set == 13) { //high score region

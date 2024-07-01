@@ -22,7 +22,7 @@ bool useMCBkg_      = false; //use the background MC to create background templa
 float zmumu_scale_  =   -1.; //scale to Z->ee/mumu distribution if using MC templates
 bool printPlots_    = true ;
 bool fitSideBands_  = true ; //fit only the data sidebands
-int  replaceData_   =     1; //1: replace the data with toy MC; 2: replace the data with the MC bkg; 3: replace the data with smoothed/fit MC bkg
+int  replaceData_   =     0; //1: replace the data with toy MC; 2: replace the data with the MC bkg; 3: replace the data with smoothed/fit MC bkg
 bool replaceRefit_  = false; //replace data with toy MC, then fit the unblinded toy data
 bool save_          = true ; //save output combine workspace/cards
 
@@ -414,7 +414,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
   // Model the Z->mumu background
   //////////////////////////////////////////////////////////////////
 
-  RooAbsPdf* zmumu  = create_zmumu(*lepm, set);
+  RooAbsPdf* zmumu  = create_zmumu(*lepm, set, true, zmumu_model_ > 0 && zmumu_pdf_sys_ == 1);
   if(zmumu_model_) {
     additional_bkg_      = zmumu;
     additional_bkg_norm_ = zmumu_yield;
@@ -598,7 +598,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
     //Create data - background fit histograms
     const double norm = CLFV::Utilities::H1Integral(data, xmin, xmax); //ndata; //N(data) in fit region
 
-    TH1* dataDiff = data_pdf_diff(blindDataHist, base_to_wrapped[bkgPDF], *lepm, norm,
+    TH1* dataDiff = data_pdf_diff((blind_data_) ? blindDataHist : dataData, base_to_wrapped[bkgPDF], *lepm, norm,
                                   (blind_data_) ? blind_min : blind_max + 1., blind_max);
     dataDiff->SetName("dataDiff");
     dataDiff->SetTitle("");
@@ -791,6 +791,14 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
     outfile << Form("%10s param 0 1\n", muon_ES_shift->GetName());
     outfile << Form("%10s param 0 1\n", elec_ES_shift->GetName());
     outfile << "\n";
+  }
+
+  //include constraints for Z->mumu PDF
+  if(zmumu_model_ > 0 && zmumu_pdf_sys_ > 0) {
+    outfile << Form("%10s param 0 1\n", Form("zmumu_mean_shift_%i" , set));
+    outfile << Form("%10s param 0 1\n", Form("zmumu_width_shift_%i", set));
+    outfile << "\n";
+
   }
   outfile.close();
 

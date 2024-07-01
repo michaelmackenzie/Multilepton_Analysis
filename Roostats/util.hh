@@ -21,6 +21,7 @@ int print_mva_systematic_canvas(TH1* nominal, TH1* data, THStack* nom_stack, THS
   pad1->cd();
 
   //Draw the total stack / data on top
+  data->SetLineColor(kBlack);
   data->Draw("E1");
   stack->Draw("hist noclear same");
   sig->Draw("hist same");

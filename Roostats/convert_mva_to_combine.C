@@ -67,11 +67,22 @@ void make_safe(TH1* h, double xmin = 1., double xmax = -1.) {
 //----------------------------------------------------------------------------------------------------------------------------
 //Replace a systematic variation with a smoothed version
 void smooth_systematic(TH1* nominal, TH1* sys, bool debug = false) {
+  //Ensure reasonable input
   if(!nominal || !sys || nominal->Integral() <= 0. || sys->Integral() <= 0.) return;
-  const int mode = 1;
-  TH1* hdiff = (TH1*) sys->Clone("hdiff");
-  TF1* fit_func = new TF1("fit_func", "pol3(0)", 0., 1.);
-  fit_func->SetParameters(1., 0., 0., 0.);
+
+  //how to fit the systematic shift
+  const int mode = 3;
+
+  //Initialize the fit function, only fitting the non-zero region of the histogram
+  const double xmin(sys->GetBinLowEdge(sys->FindFirstBinAbove(0.)));
+  const double xmax(sys->GetXaxis()->GetBinUpEdge(sys->FindLastBinAbove(0.)));
+  if(xmin >= xmax) return;
+  // TF1* fit_func = new TF1("fit_func", "[0] + [1]*x + [2]*x*x + [3]*x*x*x + [4]*pow(x,4) + [5]*pow(x,5)", xmin, xmax);
+  // fit_func->SetParameters((mode == 1) ? 1. : 0., 0., 0., 0., 0., 0.);
+  TF1* fit_func = new TF1("fit_func", "[0] + [1]*x + [2]*x*x + [3]*x*x*x", xmin, xmax);
+  fit_func->SetParameters((mode == 1) ? 1. : 0., 0., 0., 0.);
+
+  TH1* hdiff = (TH1*) sys->Clone("hdiff"); //clone of the systematic histogram to use for fitting
   if(mode == 0) { //Fit the shift - nominal distribution
     hdiff->Add(nominal, -1.);
     auto fit_res = hdiff->Fit(fit_func, "R S 0 w Q");
@@ -87,7 +98,7 @@ void smooth_systematic(TH1* nominal, TH1* sys, bool debug = false) {
         sys->SetBinError  (ibin, bine); //original template error
       }
     }
-  } else { //Fit the shift / nominal distribution
+  } else if(mode == 1){ //Fit the shift / nominal distribution
     hdiff->Divide(nominal);
     auto fit_res = hdiff->Fit(fit_func, "R S 0 w Q");
     for(int ibin = 0; ibin <= hdiff->GetNbinsX()+1; ++ibin) {
@@ -102,12 +113,104 @@ void smooth_systematic(TH1* nominal, TH1* sys, bool debug = false) {
         sys->SetBinError  (ibin, bine); //original template error
       }
     }
+  } else if(mode == 2) { //Fit the (shift - nominal)/nominal distribution
+    hdiff->Add(nominal, -1.);
+    hdiff->Divide(nominal);
+    auto fit_res = hdiff->Fit(fit_func, "R S 0 Q");
+    for(int ibin = 0; ibin <= hdiff->GetNbinsX()+1; ++ibin) {
+      const double binc(nominal->GetBinContent(ibin));
+      const double bine(nominal->GetBinError  (ibin));
+      const double diff_ratio(fit_func->Eval(nominal->GetBinCenter(ibin)));
+      if(!std::isfinite(binc) || !std::isfinite(bine) || binc < 0.) {
+        sys->SetBinContent(ibin, 0.);
+        sys->SetBinError  (ibin, 0.);
+      } else {
+        const double val = binc*(1. + diff_ratio);
+        sys->SetBinContent(ibin, max(0., val));
+        sys->SetBinError  (ibin, bine); //original template error
+      }
+    }
+  } else if(mode == 3) { //Fit the (shift - nominal)/nominal distribution with F-test
+    hdiff->Add(nominal, -1.);
+    hdiff->Divide(nominal);
+    //adjust the error bars to be more reasonable
+    for(int ibin = 1; ibin <= hdiff->GetNbinsX(); ++ibin) {
+      const double binc_nom(nominal->GetBinContent(ibin));
+      const double bine_nom(nominal->GetBinError  (ibin));
+      const double binc_sys(sys    ->GetBinContent(ibin));
+      if(binc_nom <= 0.) continue;
+      const double eff_weight = pow(bine_nom,2) / binc_nom; //<weight> ~ err^2/integral
+      const double diff = fabs(binc_sys - binc_nom); //sign doesn't matter for the error
+      if(eff_weight < 0.) continue;
+      const double eff_err = diff/sqrt(max(1., diff/eff_weight)); //error ~ value * 1./sqrt(<N>), where <N> = difference / avg. weight
+      const double min_err = eff_weight*5.; //apply a minimum error that's fairly large
+      const double err = max(eff_err, min_err) / binc_nom;
+      if(isfinite(err))
+        hdiff->SetBinError(ibin, err);
+      else {
+        printf("!!! %s: Bin error issue: bin = %i, binc = %.3f, diff = %.3f, weight = %.3f, err = %.3f\n",
+               __func__, ibin, binc_nom, diff, eff_weight, err);
+      }
+    }
+    const int max_order(3), min_order(1);
+    bool exit_after = false;
+    double prev_chi_sq = 1.e10;
+    const double chi_diff_min = 3.85; //95% CL information gain
+    for(int order = min_order; order <= max_order; ++order) {
+        if(debug) cout << "\n### Fit order " << order << endl;
+        for(int jloop = 0    ; jloop <= max_order; ++jloop) {fit_func->ReleaseParameter(jloop); fit_func->SetParameter(jloop, (jloop == 0) ? 1. : 0.);}
+        for(int jloop = order; jloop <  max_order; ++jloop) {fit_func->FixParameter(jloop+1, 0.); fit_func->SetParameter(jloop+1, 0.);}
+        auto fit_res = hdiff->Fit(fit_func, "R S 0 Q");
+        if(debug) {fit_func->Print(); fit_res->Print();}
+        if(exit_after) break;
+        double chi_sq = fit_func->GetChisquare();
+        if(order > min_order && prev_chi_sq - chi_sq < chi_diff_min) {exit_after = true; order -= 2;} //if not enough gain, reduce back to previous order and exit
+        prev_chi_sq = chi_sq;
+    }
+    for(int ibin = 0; ibin <= hdiff->GetNbinsX()+1; ++ibin) {
+      const double binc(nominal->GetBinContent(ibin));
+      const double bine(nominal->GetBinError  (ibin));
+      const double diff_ratio(fit_func->Eval(nominal->GetBinCenter(ibin)));
+      if(!std::isfinite(binc) || !std::isfinite(bine) || binc < 0.) {
+        sys->SetBinContent(ibin, 0.);
+        sys->SetBinError  (ibin, 0.);
+      } else {
+        const double val = binc*(1. + diff_ratio);
+        sys->SetBinContent(ibin, max(0., val));
+        sys->SetBinError  (ibin, bine); //original template error
+      }
+    }
+  } else {
+    cout << __func__ << ": Error! Unknown smoothing mode: " << mode << endl;
   }
+
   if(debug) {
+    cout << "Printing debug figure\n";
     TCanvas c;
-    hdiff->Draw("hist");
+    const int fill_style = nominal->GetFillStyle();
+    nominal->SetFillStyle(0);
+    nominal->Draw("hist");
+    sys->Draw("E1 same");
+    c.SaveAs(Form("%s_nominal.png", sys->GetName()));
+    nominal->SetFillStyle(fill_style);
+    auto val = gStyle->GetOptFit();
+    gStyle->SetOptFit(0);
+    hdiff->Draw("E1");
     fit_func->Draw("same");
+    const double ymax = hdiff->GetMaximum();
+    const double ymin = Utilities::H1MinAbove(hdiff, (mode == 1) ? 0.1 : -1.e10);
+    if(mode == 1) {
+      hdiff->GetYaxis()->SetRangeUser(max(0., min(0.95*ymin, 1.-ymax)), max(1.05, 1.05*ymax));
+    } else if(mode == 2) {
+      hdiff->GetYaxis()->SetRangeUser(1.1*min(-0.05, ymin), 1.1*max(0.05, ymax));
+    }
+    hdiff->SetTitle(sys->GetName());
+    hdiff->SetFillStyle(0);
+    const double y_nom = (mode == 1) ? 1. : 0.;
+    TLine line(0., y_nom, 1., y_nom); line.SetLineStyle(kDashed); line.SetLineColor(kBlack);
+    line.SetLineWidth(2); line.Draw("same");
     c.SaveAs(Form("%s.png", sys->GetName()));
+    gStyle->SetOptFit(val);
   }
 
   delete fit_func;
@@ -477,8 +580,10 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
     //Smooth systematic variation of requested
     if(is_relevant(name, selec_name) && smooth_sys_hist(name, selec_name)) {
       some_smoothed = true;
-      smooth_systematic(hsig, hsig_up  );
-      smooth_systematic(hsig, hsig_down);
+      bool debug = false; //name.BeginsWith("JES");
+      smooth_systematic(hsig, hsig_up  , debug);
+      smooth_systematic(hsig, hsig_down, debug);
+      // if(debug) return -1;
     }
 
     bool do_fake_bkg_line = (qcd_bkg_line == "");
@@ -552,8 +657,9 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
       //Smooth systematic variation of requested
       if(is_relevant(name, hname) && smooth_sys_hist(name, hname)) {
         some_smoothed = true;
-        smooth_systematic(hbkg_i, hbkg_i_up  );
-        smooth_systematic(hbkg_i, hbkg_i_down);
+        bool debug = false; //name.BeginsWith("TauESDM1Y0");
+        smooth_systematic(hbkg_i, hbkg_i_up  , debug);
+        smooth_systematic(hbkg_i, hbkg_i_down, debug);
       }
 
       if(do_fake_bkg_line && hname == "QCD")   qcd_bkg_line += Form("%15.3f", 1.30); //additional 30% uncertainty
@@ -576,6 +682,13 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
         }
       } else { //not relevant
         sys += Form("%15s", "-");
+        //set the up and down to have the nominal values for plotting
+        for(int ibin = 1; ibin <= hbkg_i->GetNbinsX(); ++ibin) {
+          hbkg_i_up  ->SetBinContent(ibin, hbkg_i->GetBinContent(ibin));
+          hbkg_i_up  ->SetBinError  (ibin, hbkg_i->GetBinError  (ibin));
+          hbkg_i_down->SetBinContent(ibin, hbkg_i->GetBinContent(ibin));
+          hbkg_i_down->SetBinError  (ibin, hbkg_i->GetBinError  (ibin));
+        }
       }
 
       //Add to a group list if a standard nuisance group

@@ -12,6 +12,7 @@ Help() {
     echo " --fitarg         : Additional combineTool.py arguments (see combineTools.py -M Impacts -h)"
     echo " --plotarg        : Additional plotImpacts.py arguments (e.g. --blind, see plotImpacts.py -h)"
     echo " --fitarg         : Additional combineTool.py arguments (see combineTools.py -M Impacts -h)"
+    echo " --zemu_arg       : Add additional fit arguments for envelope fits"
     echo " --summary        : Add summary info in the final plot"
     echo " --include   (-i ): Nuisance parameters to include (default is all)"
     echo " --exclude   (-e ): Exclude nuisance parameters (default is none)"
@@ -32,6 +33,7 @@ RRANGE="20"
 APPROX=""
 UNBLIND=""
 COMMAND=""
+ZEMUARG=""
 PLOTARG=""
 SUMMARY=""
 EXCLUDE=""
@@ -73,6 +75,9 @@ do
         iarg=$((iarg + 1))
         eval "var=\${${iarg}}"
         COMMAND=${var}
+    elif [[ "${var}" == "--zemu_arg" ]]
+    then
+        ZEMUARG="d"
     elif [[ "${var}" == "--plotarg" ]]
     then
         iarg=$((iarg + 1))
@@ -211,6 +216,10 @@ if [[ "${PLOTONLY}" == "" ]]; then
     fi
     if [[ "${INCLUDE}" != "" ]]; then
         FITADDITIONAL="${FITADDITONAL} --named ${INCLUDE}"
+    fi
+    if [[ "${ZEMUARG}" != "" ]]; then
+        echo "Adding fit arguments for Z->emu fits"
+        FITADDITIONAL="${FITADDITIONAL} --cminDefaultMinimizerStrategy 0 --X-rtd MINIMIZER_freezeDisassociatedParams --X-rtd REMOVE_CONSTANT_ZERO_POINT=1 --X-rtd MINIMIZER_multiMin_hideConstants"
     fi
 
     if [[ "${APPROX}" == "" ]] && [[ "${SKIPINITIAL}" == "" ]]; then

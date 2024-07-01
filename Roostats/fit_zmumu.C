@@ -158,6 +158,13 @@ int fit_zmumu(int set = 13, vector<int> years = {2016,2017,2018}) {
     // double chi_sq = get_chi_square_from_diff(h_diff);
     label.DrawLatex(0.60, 0.87, Form("#chi^{2}/DOF = %.2f; p = %.3f", chi_sq/ndof, TMath::Prob(chi_sq, ndof)));
     cout << "Data: chi_sq = " << chi_sq << ", ndof = " << ndof << endl;
+    cout << "Var 1: " << ((RooRealVar*) RooArgList(*(zmm_pdf->getVariables())).at(5))->GetName() << endl
+         << "Var 2: " << ((RooRealVar*) RooArgList(*(zmm_pdf->getVariables())).at(6))->GetName() << endl;
+    label.DrawLatex(0.53, 0.82, Form("#mu = %.2f#pm%.2f; #sigma = %.2f#pm%.2f",
+                                     ((RooRealVar*) RooArgList(*(zmm_pdf->getVariables())).at(5))->getVal(),
+                                     ((RooRealVar*) RooArgList(*(zmm_pdf->getVariables())).at(5))->getError(),
+                                     ((RooRealVar*) RooArgList(*(zmm_pdf->getVariables())).at(6))->getVal(),
+                                     ((RooRealVar*) RooArgList(*(zmm_pdf->getVariables())).at(6))->getError()));
 
     pad2->cd();
     h_diff->SetTitle(""); h_diff->SetXTitle(""); h_diff->SetYTitle("");

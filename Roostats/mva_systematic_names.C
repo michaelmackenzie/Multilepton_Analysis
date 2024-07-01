@@ -8,21 +8,30 @@ CLFV::Systematics systematics_; //names of the systematics
 
 //----------------------------------------------------------------------------------------------------------------------------
 bool smooth_sys_hist(TString sys, TString process) {
+  const bool is_embed = process.Contains("Embed");
+  const bool is_data  = process.Contains("QCD") || process.Contains("MisID");
+  const bool is_zll   = process == "ZToeemumu";
+  const bool is_top   = process == "Top";
+  const bool is_vb    = process == "OtherVB";
+  const bool is_higgs = process == "HiggsBkg";
+  const bool is_zmc   = is_zll || process == "zmutau" || process == "zetau" || process == "zemu" || process.BeginsWith("ZTo");
+  const bool is_signal = process.EndsWith("mutau") || process.EndsWith("etau") || process.EndsWith("emu");
+
   //energy scales
-  if(sys.BeginsWith("JES"))             return true;
-  if(sys.BeginsWith("JER"))             return true;
+  if(sys.BeginsWith("JES"))             return !is_embed && !is_data;
+  if(sys.BeginsWith("JER"))             return !is_embed && !is_data;
   if(sys.BeginsWith("TauES"))           return true;
-  if(sys.BeginsWith("TauMuES"))         return true;
-  if(sys.BeginsWith("TauEleES"))        return true;
+  if(sys.BeginsWith("TauMuES"))         return is_zll || is_data; //mu/e --> tau_h only important really from Z->ll MC
+  if(sys.BeginsWith("TauEleES"))        return is_zll || is_data;
   if(sys.BeginsWith("MuonES"))          return true;
   if(sys.BeginsWith("EleES"))           return true;
-  if(sys.BeginsWith("EmbTauES"))        return true;
-  if(sys.BeginsWith("EmbMuonES"))       return true;
-  if(sys.BeginsWith("EmbEleES"))        return true;
-  if(sys.BeginsWith("EmbDetectorMET"))  return true;
+  if(sys.BeginsWith("EmbTauES"))        return is_embed || is_data;
+  if(sys.BeginsWith("EmbMuonES"))       return is_embed || is_data;
+  if(sys.BeginsWith("EmbEleES"))        return is_embed || is_data;
+  if(sys.BeginsWith("EmbDetectorMET"))  return is_embed || is_data;
   //resolution shifts
-  if(sys.BeginsWith("EmbMuonRes"))      return true;
-  if(sys.BeginsWith("EmbEleRes"))       return true;
+  if(sys.BeginsWith("EmbMuonRes"))      return is_embed || is_data;
+  if(sys.BeginsWith("EmbEleRes"))       return is_embed || is_data;
 
   return false;
 }
@@ -49,7 +58,7 @@ bool is_relevant(TString sys, TString process) {
   if(sys.BeginsWith("Pileup")  ) return !is_embed;
   if(sys.BeginsWith("EleES")   ) return !is_embed;
   if(sys.BeginsWith("MuonES")  ) return !is_embed;
-  if(sys.BeginsWith("TauES")   ) return !is_embed && !is_zll; //only for genuine MC taus
+  if(sys.BeginsWith("TauES")   ) return !is_zll; //only for genuine taus
   if(sys.BeginsWith("Theory")  ) return !is_embed && !is_data && !is_top && !is_vb && !is_higgs; //non-Drell Yan have low effect, except normalization that should be removed
   // if(sys.BeginsWith("Theory")  ) return is_signal;
   if(sys == "HEM"              ) return !is_embed;
@@ -269,6 +278,8 @@ std::pair<TString,TString> systematic_name(int sys, TString selection, int year,
   year -= 2016; //reduce needed characters
   if     (name.Contains("JetToTauStat")) name = Form("%sY%i", name.Data(), year);
   else if(name.Contains("JetToTauAlt" )) name = Form("%sY%i", name.Data(), year);
+  else if(name.Contains("JetToTauComp")) name = Form("%sY%i", name.Data(), year); //j-->tau fake composition
+  else if(name.Contains("JetToTauBias")) name = Form("%sY%i", name.Data(), year); //j-->tau bias corrections
   else if(name.Contains("QCDStat")     ) name = Form("%sY%i", name.Data(), year);
   else if(name.Contains("QCDAlt")      ) name = Form("%sY%i", name.Data(), year);
   else if(name == "Lumi"               ) name = Form("%sY%i", name.Data(), year);

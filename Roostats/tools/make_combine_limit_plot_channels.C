@@ -1,8 +1,8 @@
 //Script to process the individual and combined category limits and plot them
 #include "make_combine_limit_plot_general.C"
 
-int make_combine_limit_plot_channels(vector<int> sets_had = {8}, vector<int> sets_lep = {8},
-                                     TString selection = "zmutau",
+int make_combine_limit_plot_channels(TString selection = "zmutau",
+                                     vector<int> sets_had = {25,26,27,28}, vector<int> sets_lep = {25,26,27},
                                      vector<int> years = {2016, 2017, 2018},
                                      bool processCards = true,
                                      bool doNoSys = false,
