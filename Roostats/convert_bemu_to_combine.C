@@ -415,9 +415,18 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
   //////////////////////////////////////////////////////////////////
 
   RooAbsPdf* zmumu  = create_zmumu(*lepm, set, true, zmumu_model_ > 0 && zmumu_pdf_sys_ == 1);
+  RooRealVar *zmumu_mean_shift(nullptr), *zmumu_width_shift(nullptr);
   if(zmumu_model_) {
     additional_bkg_      = zmumu;
     additional_bkg_norm_ = zmumu_yield;
+    if(zmumu_pdf_sys_ == 1) {
+      RooArgList zmumu_vars(*(zmumu->getVariables()));
+      const int var_size = zmumu_vars.getSize();
+      zmumu_mean_shift  = (RooRealVar*) zmumu_vars.at(var_size-5); //FIXME: Loop through and find these
+      zmumu_width_shift = (RooRealVar*) zmumu_vars.at(var_size-2);
+      zmumu_mean_shift ->setConstant(true); //freeze for initial fits
+      zmumu_width_shift->setConstant(true);
+    }
   }
 
   //////////////////////////////////////////////////////////////////
@@ -534,7 +543,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
     TString title = bkgPDF->GetTitle();
     int nparams = (useMCBkg_) ? 0 : count_pdf_params(bkgPDF); //account for observable being included
     int ndof = nentries - nparams - 1;
-    vector<int> colors = {kRed, kViolet-7, kGreen-7, kOrange+2, kAtlantic, kRed+2, kMagenta, kOrange, kYellow-7};
+    vector<int> colors = {kRed, kOrange+2, kAtlantic, kViolet-7, kRed+2, kMagenta, kOrange, kYellow-7};
     vector<double> chi_sqs;
     vector<double> p_chi_sqs;
     chi_sqs.push_back(chi_sq / ndof);
@@ -636,16 +645,16 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
     sigDiff->SetLineWidth(2);
     sigDiff->Draw("hist same");
 
-    //add Z->mumu if being used
-    if(zmumu_model_) {
-      TH1* zmumu_hist = zmumu->createHistogram("zmumu_hist", *lepm);
-      zmumu_hist->Scale(zmumu_yield / zmumu_hist->Integral());
-      zmumu_hist->SetLineWidth(2);
-      zmumu_hist->SetLineColor(kGreen);
-      zmumu_hist->Draw("hist same");
-    }
+    // //add Z->mumu if being used
+    // if(zmumu_model_) {
+    //   TH1* zmumu_hist = zmumu->createHistogram("zmumu_hist", *lepm);
+    //   zmumu_hist->Scale(zmumu_yield / zmumu_hist->Integral());
+    //   zmumu_hist->SetLineWidth(2);
+    //   zmumu_hist->SetLineColor(kGreen);
+    //   zmumu_hist->Draw("hist same");
+    // }
 
-    //Add alternate PDFs
+    //add alternate PDFs
     for(int ipdf = 0; ipdf < categories->numTypes(); ++ipdf) {
       if(ipdf == index) {
         continue;
@@ -707,6 +716,10 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
     rate   += Form("%15.1f", zmumu_yield);
     bkg_norm += Form("zmumu_yield_%i lnN          -              -         1.20\n", set); //20% uncertainty on Z->mumu (from same-sign background fits)
     zmumu->SetName("zmumu");
+    if(zmumu_pdf_sys_ > 0) {
+      zmumu_mean_shift ->setConstant(false); //release the frozen nuisance parameters
+      zmumu_width_shift->setConstant(false);
+    }
     ws->import(*zmumu, RooFit::RecycleConflictNodes());
     ++ncat; //increment the number of processes
   }
@@ -798,7 +811,6 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
     outfile << Form("%10s param 0 1\n", Form("zmumu_mean_shift_%i" , set));
     outfile << Form("%10s param 0 1\n", Form("zmumu_width_shift_%i", set));
     outfile << "\n";
-
   }
   outfile.close();
 

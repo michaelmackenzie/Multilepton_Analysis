@@ -22,78 +22,74 @@ struct config_t {
 int measurement_consistency(vector<config_t> configs, //info for each entry
                             TString tag, //tag for the output figure file name
                             TString selection = "zemu",
-                            bool processCards = true) {
+                            int processCards = 1) {
 
   if(configs.size() == 0) {
     cout << "No configuration cards given!\n";
     return 1;
   }
 
+  //blinding information
+  TRandom3 rnd((selection == "zmutau") ? 90 : (selection == "zetau") ? 91 : 92); //different seed for each selection, to not compare between plots
+  const double offset = (blinding_offset_) ? 300.*(rnd.Uniform() - 0.5) : 0.; //offset the measurements by a fixed value if blinding
+  const int nfiles = configs.size();
+  double obs[nfiles], up[nfiles], down[nfiles], y[nfiles], yerr[nfiles], asimov_up[nfiles], asimov_down[nfiles];
+  double max_val(-1.e10), min_val(1.e10);
 
-  //Fit results for each input
-  vector<TFile*> file_list;
-  vector<TTree*> tree_list;
-  vector<TTree*> asimov_list;
+  if(processCards >= 0) { //processCards < 0 --> Use fixed values
+    //Fit results for each input
+    vector<TFile*> file_list;
+    vector<TTree*> tree_list;
+    vector<TTree*> asimov_list;
 
-  //Loop through each input configuration
-  for(config_t config : configs) {
-    vector<int> years = config.years_;
-    TString card      = config.name_;
-    const double rmin = config.rmin_;
-    const double rmax = config.rmax_;
+    //Loop through each input configuration
+    for(config_t config : configs) {
+      vector<int> years = config.years_;
+      TString card      = config.name_;
+      const double rmin = config.rmin_;
+      const double rmax = config.rmax_;
 
-    //Move to the proper directory
-    if(years.size() == 0) { cout << "No years given!\n"; return 2; }
-    TString year_string = Form("%i", years[0]);
-    for(int i = 1; i < years.size(); ++i) year_string += Form("_%i", years[i]);
-    TString dir = Form("datacards/%s", year_string.Data());
-    cout << ">>> Using directory " << dir.Data() << endl;
-    gSystem->cd(dir.Data());
+      //Move to the proper directory
+      if(years.size() == 0) { cout << "No years given!\n"; return 2; }
+      TString year_string = Form("%i", years[0]);
+      for(int i = 1; i < years.size(); ++i) year_string += Form("_%i", years[i]);
+      TString dir = Form("datacards/%s", year_string.Data());
+      cout << ">>> Using directory " << dir.Data() << endl;
+      gSystem->cd(dir.Data());
 
-    int status(0);
-    if(processCards) {
-      TString additional_command = "";
-      if(speed_limit_) additional_command += " --cminDefaultMinimizerStrategy 0";
-      if(selection == "zemu") {
-        additional_command += " --X-rtd MINIMIZER_freezeDisassociatedParams";
-        additional_command += " --X-rtd REMOVE_CONSTANT_ZERO_POINT=1";
-        additional_command += " --X-rtd MINIMIZER_multiMin_hideConstants";
-        additional_command += " --X-rtd MINIMIZER_multiMin_maskConstraints";
-      } else { //tau channels
-        additional_command += " --cminPreScan --cminPreFit 1 --cminApproxPreFitTolerance 0.1";
-      }
+      int status(0);
+      if(processCards) {
+        TString additional_command = "";
+        if(speed_limit_) additional_command += " --cminDefaultMinimizerStrategy 0";
+        if(selection == "zemu") {
+          additional_command += " --X-rtd MINIMIZER_freezeDisassociatedParams";
+          additional_command += " --X-rtd REMOVE_CONSTANT_ZERO_POINT=1";
+          additional_command += " --X-rtd MINIMIZER_multiMin_hideConstants";
+          additional_command += " --X-rtd MINIMIZER_multiMin_maskConstraints";
+        } else { //tau channels
+          additional_command += " --cminPreScan --cminPreFit 1 --cminApproxPreFitTolerance 0.1";
+        }
 
-      //Run combine on each datacard
-      printf("Processing combine card %s/combine_%s.txt\n", dir.Data(), card.Data());
-      TString command = Form("combine -M FitDiagnostics -d combine_%s.txt --name _%s --rMin %.1f --rMax %.1f %s >| fit_%s.log",
-                             card.Data(),
-                             card.Data(),
-                             rmin, rmax,
-                             additional_command.Data(),
-                             card.Data());
-      printf(">>> %s\n", command.Data());
-      gSystem->Exec(command.Data());
-      if(add_asimov_) { //evaluate the expected uncertainties using the Asimov template
-        command.ReplaceAll(Form("--name _%s", card.Data()), Form("--name _%s_Asimov", card.Data()));
-        command.ReplaceAll(" -d", " -t -1 -d");
-        command.ReplaceAll(">| fit_", ">| fit_asimov_");
+        //Run combine on each datacard
+        printf("Processing combine card %s/combine_%s.txt\n", dir.Data(), card.Data());
+        TString command = Form("combine -M FitDiagnostics -d combine_%s.txt --name _%s --rMin %.1f --rMax %.1f %s >| fit_%s.log",
+                               card.Data(),
+                               card.Data(),
+                               rmin, rmax,
+                               additional_command.Data(),
+                               card.Data());
         printf(">>> %s\n", command.Data());
         gSystem->Exec(command.Data());
+        if(add_asimov_) { //evaluate the expected uncertainties using the Asimov template
+          command.ReplaceAll(Form("--name _%s", card.Data()), Form("--name _%s_Asimov", card.Data()));
+          command.ReplaceAll(" -d", " -t -1 -d");
+          command.ReplaceAll(">| fit_", ">| fit_asimov_");
+          printf(">>> %s\n", command.Data());
+          gSystem->Exec(command.Data());
+        }
       }
-    }
 
-    TFile* f = TFile::Open(Form("fitDiagnostics_%s.root", card.Data()), "READ");
-    if(!f) return 4;
-    file_list.push_back(f);
-    TTree* t = (TTree*) f->Get("tree_fit_sb");
-    if(!t) {
-      cout << "Tree for card name " << card.Data() << " not found\n";
-      return 5;
-    }
-    t->SetName(Form("tree_fit_sb_%s", card.Data()));
-    tree_list.push_back(t);
-    if(add_asimov_) { //add the asimov expected uncertainties
-      TFile* f = TFile::Open(Form("fitDiagnostics_%s_Asimov.root", card.Data()), "READ");
+      TFile* f = TFile::Open(Form("fitDiagnostics_%s.root", card.Data()), "READ");
       if(!f) return 4;
       file_list.push_back(f);
       TTree* t = (TTree*) f->Get("tree_fit_sb");
@@ -101,51 +97,76 @@ int measurement_consistency(vector<config_t> configs, //info for each entry
         cout << "Tree for card name " << card.Data() << " not found\n";
         return 5;
       }
-      t->SetName(Form("tree_fit_sb_%s_asimov", card.Data()));
-      asimov_list.push_back(t);
-    }
-    gSystem->cd("../..");
-  }
-
-  TRandom3 rnd((selection == "zmutau") ? 90 : (selection == "zetau") ? 91 : 92); //different seed for each selection, to not compare between plots
-  const double offset = (blinding_offset_) ? 300.*(rnd.Uniform() - 0.5) : 0.; //offset the measurements by a fixed value if blinding
-  const int nfiles = configs.size();
-  double obs[nfiles], up[nfiles], down[nfiles], y[nfiles], yerr[nfiles], asimov_up[nfiles], asimov_down[nfiles];
-  double max_val = -1.e9;
-  double min_val =  1.e9;
-  for(int itree = 0; itree < nfiles; ++itree) {
-    TTree* t = tree_list[itree];
-    double r, rloerr, rhierr;
-    const double scale = configs[itree].scale_;
-    t->SetBranchAddress("r", &r);
-    t->SetBranchAddress("rLoErr", &rloerr);
-    t->SetBranchAddress("rHiErr", &rhierr);
-    t->GetEntry(0);
-    obs [itree] = scale*(r + offset);
-    up  [itree] = scale*rhierr;
-    down[itree] = scale*rloerr;
-
-    y[itree] = nfiles - itree;
-    yerr[itree] = 0.2;
-    max_val = max(max_val, obs[itree] + up  [itree]);
-    min_val = min(min_val, obs[itree] - down[itree]);
-
-    if(add_asimov_) {
-      TTree* t_a = asimov_list[itree];
-      t_a->SetBranchAddress("rLoErr", &rloerr);
-      t_a->SetBranchAddress("rHiErr", &rhierr);
-      t_a->GetEntry(0);
-      asimov_up  [itree] = scale*rhierr;
-      asimov_down[itree] = scale*rloerr;
+      t->SetName(Form("tree_fit_sb_%s", card.Data()));
+      tree_list.push_back(t);
+      if(add_asimov_) { //add the asimov expected uncertainties
+        TFile* f = TFile::Open(Form("fitDiagnostics_%s_Asimov.root", card.Data()), "READ");
+        if(!f) return 4;
+        file_list.push_back(f);
+        TTree* t = (TTree*) f->Get("tree_fit_sb");
+        if(!t) {
+          cout << "Tree for card name " << card.Data() << " not found\n";
+          return 5;
+        }
+        t->SetName(Form("tree_fit_sb_%s_asimov", card.Data()));
+        asimov_list.push_back(t);
+      }
+      gSystem->cd("../..");
     }
 
-    printf("%s: r = %.5e (+%.5e, -%.5e) [%.5e - %.5e]", configs[itree].name_.Data(),
-           obs[itree], up[itree], down[itree],
-           obs[itree] - down[itree], obs[itree]  + up[itree]);
-    if(add_asimov_) {
-      printf(" asimov: (+%.5e, -%.5e)", asimov_up[itree], asimov_down[itree]);
+    for(int itree = 0; itree < nfiles; ++itree) {
+      TTree* t = tree_list[itree];
+      double r, rloerr, rhierr;
+      const double scale = configs[itree].scale_;
+      t->SetBranchAddress("r", &r);
+      t->SetBranchAddress("rLoErr", &rloerr);
+      t->SetBranchAddress("rHiErr", &rhierr);
+      t->GetEntry(0);
+      obs [itree] = scale*(r + offset);
+      up  [itree] = scale*rhierr;
+      down[itree] = scale*rloerr;
+
+      y[itree] = nfiles - itree;
+      yerr[itree] = 0.2;
+      max_val = max(max_val, obs[itree] + up  [itree]);
+      min_val = min(min_val, obs[itree] - down[itree]);
+
+      if(add_asimov_) {
+        TTree* t_a = asimov_list[itree];
+        t_a->SetBranchAddress("rLoErr", &rloerr);
+        t_a->SetBranchAddress("rHiErr", &rhierr);
+        t_a->GetEntry(0);
+        asimov_up  [itree] = scale*rhierr;
+        asimov_down[itree] = scale*rloerr;
+      }
+
+      printf("%s: r = %.5e (+%.5e, -%.5e) [%.5e - %.5e]", configs[itree].name_.Data(),
+             obs[itree], up[itree], down[itree],
+             obs[itree] - down[itree], obs[itree]  + up[itree]);
+      if(add_asimov_) {
+        printf(" asimov: (+%.5e, -%.5e)", asimov_up[itree], asimov_down[itree]);
+      }
+      printf("\n");
     }
-    printf("\n");
+    for(auto file : file_list) file->Close();
+  } else { //use fixed values
+    if(selection == "zemu" && nfiles == 4) {
+      const double scale = 2.62e-7;
+      obs[0] = -0.469*scale; up[0] = 1.359*scale; down[0] = 2.092*scale;
+      obs[1] =  0.169*scale; up[1] = 0.576*scale; down[1] = 0.545*scale;
+      obs[2] =  0.005*scale; up[2] = 0.577*scale; down[2] = 0.766*scale;
+      obs[3] =  0.055*scale; up[3] = 0.386*scale; down[3] = 0.427*scale;
+      y[0] = 4; yerr[0] = 0.2;
+      y[1] = 3; yerr[1] = 0.2;
+      y[2] = 2; yerr[2] = 0.2;
+      y[3] = 1; yerr[3] = 0.2;
+      for(int ibin = 0; ibin < nfiles; ++ibin) {
+        max_val = max(max_val, obs[ibin] + up  [ibin]);
+        min_val = min(min_val, obs[ibin] - down[ibin]);
+        printf("%s: BR(zemu) = %.3e +%.3e -%.3e, %.3f sigma\n", configs[ibin].label_.Data(), obs[ibin], up[ibin], down[ibin],
+               (obs[ibin] > 0.) ? obs[ibin]/down[ibin] : obs[ibin]/up[ibin]);
+      }
+    }
   }
 
   TGraphAsymmErrors* gobs = new TGraphAsymmErrors(nfiles, obs, y, down, up, yerr, yerr);
@@ -245,7 +266,6 @@ int measurement_consistency(vector<config_t> configs, //info for each entry
   gSystem->Exec("[ ! -d measurements ] && mkdir measurements");
   c->Print(Form("measurements/measurement_%s_%s.png", selection.Data(), tag.Data()));
 
-  for(auto file : file_list) file->Close();
 
   return 0;
 }

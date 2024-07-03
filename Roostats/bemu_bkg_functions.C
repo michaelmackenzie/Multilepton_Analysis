@@ -231,6 +231,82 @@ RooGenericPdf* create_gaus_poly_pdf(RooRealVar& obs, int order, int set, TString
   return pdf;
 }
 
+//Create a Gaussian + exponential(order = order) PDF
+RooGenericPdf* create_gaus_expo_pdf(RooRealVar& obs, int order, int set, TString tag = "") {
+  if(order < 0) {
+    cout << __func__ << ": Can't create order " << order << " PDF!\n";
+    return nullptr;
+  }
+  vector<RooRealVar*> vars;
+  RooArgList var_list;
+  var_list.add(obs);
+  TString formula = "";
+  //define the formula for fixed orders
+  if     (order ==  0) formula = "TMath::Gaus(@0, @1, @2)";
+  else if(order ==  1) formula = "TMath::Gaus(@0, @1, @2) + @3*TMath::Exp(@4*@0)";
+  else if(order ==  2) formula = "TMath::Gaus(@0, @1, @2) + @3*TMath::Exp(@4*@0) + @5*TMath::Exp(@6*@0)";
+  else return nullptr;
+  //add the Gaussian parameters
+  vars.push_back(new RooRealVar(Form("gaus_expo_%i_order_%i_g_0%s", set, order, tag.Data()),
+                                Form("gaus_expo_%i_order_%i_g_0%s", set, order, tag.Data()),
+                                60., 50., 70.)); //mean
+  vars.push_back(new RooRealVar(Form("gaus_expo_%i_order_%i_g_1%s", set, order, tag.Data()),
+                                Form("gaus_expo_%i_order_%i_g_1%s", set, order, tag.Data()),
+                                11., 5., 20.)); //sigma
+
+  //add the exponential parameters
+  for(int i = 0; i < order; ++i) {
+    vars.push_back(new RooRealVar(Form("gaus_expo_%i_order_%i_n_%i%s", set, order, i, tag.Data()),
+                                  Form("gaus_expo_%i_order_%i_n_%i%s", set, order, i, tag.Data()),
+                                  100., 0., 1.e8));
+    vars.push_back(new RooRealVar(Form("gaus_expo_%i_order_%i_p_%i%s", set, order, i, tag.Data()),
+                                  Form("gaus_expo_%i_order_%i_p_%i%s", set, order, i, tag.Data()),
+                                  -0.05, -3., 3.));
+  }
+  for(auto var : vars) var_list.add(*var);
+  RooGenericPdf* pdf = new RooGenericPdf(Form("gaus_expo_%i_pdf_order_%i%s", set, order, tag.Data()), formula.Data(), var_list);
+  pdf->SetTitle(Form("Gaussian exponential series PDF, order %i", order));
+  return pdf;
+}
+
+//Create a Gaussian + power(order = order) PDF
+RooGenericPdf* create_gaus_power_pdf(RooRealVar& obs, int order, int set, TString tag = "") {
+  if(order < 0) {
+    cout << __func__ << ": Can't create order " << order << " PDF!\n";
+    return nullptr;
+  }
+  vector<RooRealVar*> vars;
+  RooArgList var_list;
+  var_list.add(obs);
+  TString formula = "";
+  //define the formula for fixed orders
+  if     (order ==  0) formula = "TMath::Gaus(@0, @1, @2)";
+  else if(order ==  1) formula = "TMath::Gaus(@0, @1, @2) + @3*TMath::Power(@0, @4)";
+  else if(order ==  2) formula = "TMath::Gaus(@0, @1, @2) + @3*TMath::Power(@0, @4) + @5*TMath::Power(@0, @6)";
+  else return nullptr;
+  //add the Gaussian parameters
+  vars.push_back(new RooRealVar(Form("gaus_power_%i_order_%i_g_0%s", set, order, tag.Data()),
+                                Form("gaus_power_%i_order_%i_g_0%s", set, order, tag.Data()),
+                                60., 50., 70.)); //mean
+  vars.push_back(new RooRealVar(Form("gaus_power_%i_order_%i_g_1%s", set, order, tag.Data()),
+                                Form("gaus_power_%i_order_%i_g_1%s", set, order, tag.Data()),
+                                11., 5., 20.)); //sigma
+
+  //add the power law parameters
+  for(int i = 0; i < order; ++i) {
+    vars.push_back(new RooRealVar(Form("gaus_power_%i_order_%i_n_%i%s", set, order, i, tag.Data()),
+                                  Form("gaus_power_%i_order_%i_n_%i%s", set, order, i, tag.Data()),
+                                  70., 0., 1.e8));
+    vars.push_back(new RooRealVar(Form("gaus_power_%i_order_%i_p_%i%s", set, order, i, tag.Data()),
+                                  Form("gaus_power_%i_order_%i_p_%i%s", set, order, i, tag.Data()),
+                                  -1., -3., 3.));
+  }
+  for(auto var : vars) var_list.add(*var);
+  RooGenericPdf* pdf = new RooGenericPdf(Form("gaus_power_%i_pdf_order_%i%s", set, order, tag.Data()), formula.Data(), var_list);
+  pdf->SetTitle(Form("Gaussian power series PDF, order %i", order));
+  return pdf;
+}
+
 //Create a Chebychev polynomial PDF
 RooChebychev* create_chebychev(RooRealVar& obs, int order, int set, TString tag = "") {
   if(order <= 0) {
@@ -361,11 +437,12 @@ RooAbsPdf* create_zmumu(RooRealVar& obs, int set, bool fix = true, bool add_sys 
     //mean offset
     RooRealVar* zmumu_mean_shift = new RooRealVar(Form("zmumu_mean_shift_%i%s", set, tag.Data()), "mean sigma shift", 0., -5., 5.);
     RooRealVar* zmumu_mean_size  = new RooRealVar(Form("zmumu_mean_size_%i%s", set, tag.Data()), "mean uncertainty", 0.5); zmumu_mean_size->setConstant(true);
+    // RooRealVar* zmumu_mean_size  = new RooRealVar(Form("zmumu_mean_size_%i%s", set, tag.Data()), "mean uncertainty", 0.5); zmumu_mean_size->setConstant(true);
     RooFormulaVar* zmumu_mean_func = new RooFormulaVar(Form("zmumu_mean_func_%i%s", set, tag.Data()), "mean with offset",
                                                        "@0 + @1*@2", RooArgList(*zmumu_mean, *zmumu_mean_shift, *zmumu_mean_size));
     //width offset
     RooRealVar* zmumu_width_shift = new RooRealVar(Form("zmumu_width_shift_%i%s", set, tag.Data()), "width sigma shift", 0., -5., 5.);
-    RooRealVar* zmumu_width_size  = new RooRealVar(Form("zmumu_width_size_%i%s", set, tag.Data()), "width uncertainty", 0.7); zmumu_width_size->setConstant(true);
+    RooRealVar* zmumu_width_size  = new RooRealVar(Form("zmumu_width_size_%i%s", set, tag.Data()), "width uncertainty", 0.5); zmumu_width_size->setConstant(true);
     RooFormulaVar* zmumu_width_func = new RooFormulaVar(Form("zmumu_width_func_%i%s", set, tag.Data()), "width with offset",
                                                        "@0 + @1*@2", RooArgList(*zmumu_sigma, *zmumu_width_shift, *zmumu_width_size));
 

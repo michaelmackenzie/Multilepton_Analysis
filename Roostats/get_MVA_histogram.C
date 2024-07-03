@@ -244,15 +244,15 @@ int plot_stat_sys(THStack* stack, vector<TH1*> sigs, TH1* hdata, TString name) {
     TH1* sig_u = (TH1*) sig->Clone(Form("%s_u", sig->GetName()));
     TH1* sig_d = (TH1*) sig->Clone(Form("%s_d", sig->GetName()));
     for(int ibin = 1; ibin <= sig->GetNbinsX(); ++ibin) {
-      const double error = (hbkg->GetBinContent(ibin) > 0.) ? sig->GetBinError(ibin)/hbkg->GetBinContent(ibin) : 0.;
-      // max_diff = max(error, max_diff);
-      if(hbkg->GetBinContent(ibin) > 0.) sig_u->SetBinContent(ibin, 1. + error);
-      if(hbkg->GetBinContent(ibin) > 0.) sig_d->SetBinContent(ibin, 1. - error);
+      const double error = (sig->GetBinContent(ibin) > 0.) ? sig->GetBinError(ibin)/sig->GetBinContent(ibin) : 0.;
+      max_diff = max(error, max_diff);
+      if(sig->GetBinContent(ibin) > 0.) sig_u->SetBinContent(ibin, 1. + error);
+      if(sig->GetBinContent(ibin) > 0.) sig_d->SetBinContent(ibin, 1. - error);
     }
     sig_u->SetFillColor(0);
     sig_d->SetFillColor(0);
-    // sig_u->Draw("hist same");
-    // sig_d->Draw("hist same");
+    sig_u->Draw("hist same");
+    sig_d->Draw("hist same");
     to_clean.push_back(sig_u);
     to_clean.push_back(sig_d);
   }
@@ -877,7 +877,7 @@ int get_individual_MVA_histogram(int set = 8, TString selection = "zmutau",
   return status;
 }
 
-int get_MVA_histogram(vector<int> sets = {8}, TString selection = "zmutau",
+int get_MVA_histogram(vector<int> sets = {25,26,27,28}, TString selection = "zmutau",
                       vector<int> years = {2016, 2017, 2018},
                       TString base = "nanoaods_dev",
                       int had_only = 0 /*0: all; 1: hadronic; -1: leptonic; -2: same-flavor*/) {

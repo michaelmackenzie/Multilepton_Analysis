@@ -455,10 +455,9 @@ std::pair<int, double> add_dy_ww(RooDataHist& data, RooRealVar& obs, RooArgList&
 
 //Embedding-fit motivated PDF
 std::pair<int, double> add_dy_pdf(RooDataHist& data, RooRealVar& obs, RooArgList& list, bool useSideBands, int set, int verbose) {
-  const float max_chisq = 1.e10;
-  const int max_tries = 2;
-  auto basePdf = create_gaus_poly_pdf(obs, 2, set);
 
+  //fit a polynomial + Gaussian
+  auto basePdf = create_gaus_poly_pdf(obs, 2, set);
   RooAbsPdf* pdf = wrap_pdf(basePdf, data.sumEntries());
   auto res = fit_pdf_to_data(pdf, data, obs, useSideBands, verbose);
   //force the PDF inclusion
@@ -467,8 +466,39 @@ std::pair<int, double> add_dy_pdf(RooDataHist& data, RooRealVar& obs, RooArgList
                        << "### DY Gaus+poly PDF has chisq = " << res.chi_sq_ << " / " << res.ndof_ << " = " << res.chi_sq_per_dof_
                        << " (p = " << res.p_ << ")" << endl
                        << "######################\n";
-  return std::pair<int, double>(list.getSize()-1, res.chi_sq_);
+
+  std::pair<int, double> poly_fit_res(list.getSize()-1, res.chi_sq_);
+
+  if(use_exp_family_) {
+    //fit an exponential + Gaussian
+    basePdf = create_gaus_expo_pdf(obs, 2, set);
+    pdf = wrap_pdf(basePdf, data.sumEntries());
+    res = fit_pdf_to_data(pdf, data, obs, useSideBands, verbose);
+    //force the PDF inclusion
+    list.add(*basePdf);
+    if(verbose > 1) cout << "######################\n"
+                         << "### DY Gaus+expo PDF has chisq = " << res.chi_sq_ << " / " << res.ndof_ << " = " << res.chi_sq_per_dof_
+                         << " (p = " << res.p_ << ")" << endl
+                         << "######################\n";
+  }
+
+  if(use_power_family_) {
+    //fit a power law + Gaussian
+    basePdf = create_gaus_power_pdf(obs, 2, set);
+    pdf = wrap_pdf(basePdf, data.sumEntries());
+    res = fit_pdf_to_data(pdf, data, obs, useSideBands, verbose);
+    //force the PDF inclusion
+    list.add(*basePdf);
+    if(verbose > 1) cout << "######################\n"
+                         << "### DY Gaus+power PDF has chisq = " << res.chi_sq_ << " / " << res.ndof_ << " = " << res.chi_sq_per_dof_
+                         << " (p = " << res.p_ << ")" << endl
+                         << "######################\n";
+  }
+
+  //default to the polynomial + Gaussian
+  return poly_fit_res;
 }
+
 
 // Construct the envelope
 RooMultiPdf* construct_multipdf(RooDataHist& data, RooRealVar& obs, RooCategory& categories, bool useSideBands, int& index, int set, int verbose = 0) {
@@ -479,27 +509,27 @@ RooMultiPdf* construct_multipdf(RooDataHist& data, RooRealVar& obs, RooCategory&
   // if(result.second < chi_min) {chi_min = result.second; index = result.first;}
   result = add_chebychevs(data, obs, pdfList, useSideBands, set, verbose);
   if(result.second < chi_min) {chi_min = result.second; index = result.first;}
-  if(use_exp_family_) {
-    result = add_exponentials(data, obs, pdfList, useSideBands, set, verbose);
-    // if(result.second < chi_min) {chi_min = result.second; index = result.first;}
-  }
-  if(use_power_family_) {
-    result = add_powerlaws(data, obs, pdfList, useSideBands, set, verbose);
-    // if(result.second < chi_min) {chi_min = result.second; index = result.first;}
-  }
-  if(use_laurent_family_) {
-    result = add_laurents(data, obs, pdfList, useSideBands, set, verbose);
-    // if(result.second < chi_min) {chi_min = result.second; index = result.first;}
-  }
-  if(use_inv_poly_family_) {
-    result = add_inv_poly(data, obs, pdfList, useSideBands, set, verbose);
-    // if(result.second < chi_min) {chi_min = result.second; index = result.first;}
+  if(!use_dy_ww_shape_) {
+    if(use_exp_family_) {
+      result = add_exponentials(data, obs, pdfList, useSideBands, set, verbose);
+      // if(result.second < chi_min) {chi_min = result.second; index = result.first;}
+    }
+    if(use_power_family_) {
+      result = add_powerlaws(data, obs, pdfList, useSideBands, set, verbose);
+      // if(result.second < chi_min) {chi_min = result.second; index = result.first;}
+    }
+    if(use_laurent_family_) {
+      result = add_laurents(data, obs, pdfList, useSideBands, set, verbose);
+      // if(result.second < chi_min) {chi_min = result.second; index = result.first;}
+    }
+    if(use_inv_poly_family_) {
+      result = add_inv_poly(data, obs, pdfList, useSideBands, set, verbose);
+      // if(result.second < chi_min) {chi_min = result.second; index = result.first;}
+    }
   }
   if(use_dy_ww_shape_) {
     result = add_dy_pdf(data, obs, pdfList, useSideBands, set, verbose);
     chi_min = result.second; index = result.first; //force the use of the Gaussian+poly
-    // result = add_dy_ww(data, obs, pdfList, useSideBands, set, verbose);
-    // if(result.second < chi_min) {chi_min = result.second; index = result.first;}
   }
   RooMultiPdf* pdfs = nullptr;
   if(test_single_function_) {

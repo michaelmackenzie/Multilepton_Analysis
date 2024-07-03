@@ -785,7 +785,9 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
     outfile << Form("%s \n", qcd_bkg_line.Data());
     outfile << Form("%s \n", jtt_bkg_line.Data());
   }
-  outfile << "\n* autoMCStats 0 1 1\n\n";
+  //MC statistics nuisances, see: https://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/part2/bin-wise-stats/
+  const int lite_threshold = 10; //effective N(unweighted events) to switch to 1 nuisance per bin vs. 1 nuisance per process
+  outfile << "\n* autoMCStats " << lite_threshold << " 0 1\n\n"; //arguments are: [channel] autoMCStats [threshold = 0] [include signal = 0] [morphing mode = 1]
   outfile.close();
 
   fOut->Close();

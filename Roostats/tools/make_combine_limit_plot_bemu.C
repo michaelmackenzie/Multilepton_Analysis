@@ -2,11 +2,11 @@
 #include "make_combine_limit_plot_general.C"
 bool do_barrel_endcap_ = false; //split fit into barrel/endcap electron categories
 
-int make_combine_limit_plot_bemu(vector<int> sets = {8}, TString selection = "zemu",
+int make_combine_limit_plot_bemu(vector<int> sets = {11,12,13}, TString selection = "zemu",
                                  vector<int> years = {2016, 2017, 2018},
                                  bool processCards = true,
                                  bool doNoSys = false,
-                                 bool doObs = false) {
+                                 bool doObs = true) {
   scale_ = (selection.Contains("h")) ? 1.e-4 : 1.e-7;
   int status = 0;
 
