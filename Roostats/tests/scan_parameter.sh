@@ -37,6 +37,7 @@ fi
 if [[ "${PLOTONLY}" == "" ]]; then
     echo "Scanning parameter ${PARA} using card ${CARD}"
 
+    echo ">>> combine -d ${CARD} -M MultiDimFit --saveNLL --algo grid -P ${PARA} --redefineSignalPOIs r --floatOtherPOIs 1 --points ${POINTS} ${ARGS}"
     combine -d ${CARD} -M MultiDimFit --saveNLL --algo grid -P ${PARA} --redefineSignalPOIs r --floatOtherPOIs 1 --points ${POINTS} ${ARGS}
 fi
 
