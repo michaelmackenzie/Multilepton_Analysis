@@ -191,6 +191,7 @@ fi
 
 if [[ "${GRIDFIN}" != "" ]]; then
     DONTCLEAN="d"
+    SKIPINITIAL="d"
 fi
 
 echo "Performing impacts on combine card ${CARD}"

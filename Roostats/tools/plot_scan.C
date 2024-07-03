@@ -51,6 +51,7 @@ int plot_scan(const char* file, const char* var = "r", const char* tag = "", con
     nll_fit = 0.;
   }
 
+  //Create a graph of the scan and the optimal point
   TGraph* g = new TGraph(nentries-1, rvals, nlls);
   g->SetName("gNLL");
 
@@ -82,21 +83,27 @@ int plot_scan(const char* file, const char* var = "r", const char* tag = "", con
   printf("Best fit %s = %.3f\n", var, r_fit);
   double s1_lo(rvals[0]), s1_hi(rvals[nentries-2]); //for fitting the NLL distribution
 
-  //Add 1 and 2 sigma lines
+  //Check for the 1/2 sigma crossings
   const double s1_val(0.5), s2_val(2.); //delta NLL values
+  int i_s1_left(-1), i_s1_right(-1), i_s2_left(-1), i_s2_right(-1); //indices of the crossing points
   for(int ipoint = 1; ipoint < g->GetN(); ++ipoint) {
     const double y(g->GetY()[ipoint]-min_val), y_prev(g->GetY()[ipoint-1]-min_val);
-    const double x(g->GetX()[ipoint]);
+    const double x((g->GetX()[ipoint] + g->GetX()[ipoint-1])/2.);
+    // const double x(g->GetX()[ipoint]);
+    //2-sigma crossing point
     if((y < s2_val && y_prev > s2_val) || (y > s2_val && y_prev < s2_val)) {
-      TLine* line = new TLine(x, min_val-buffer, x, y+min_val);
+      TLine* line = new TLine(x, min_val-buffer, x, 2.+min_val);
       line->SetLineWidth(2);
       line->SetLineStyle(kDashed);
       line->SetLineColor(kBlack);
       line->Draw("same");
       cout << "Found 2 sigma edge at " << var << " = " << x << " ( " << y_prev << " - " << y << ")\n";
+      if(y_prev < y) i_s2_right = ipoint;
+      else           i_s2_left  = ipoint;
     }
+    //1-sigma crossing point
     if((y < s1_val && y_prev > s1_val) || (y > s1_val && y_prev < s1_val)) {
-      TLine* line = new TLine(x, min_val-buffer, x, y+min_val);
+      TLine* line = new TLine(x, min_val-buffer, x, 0.5+min_val);
       line->SetLineWidth(2);
       line->SetLineStyle(kDashed);
       line->SetLineColor(kBlack);
@@ -104,16 +111,37 @@ int plot_scan(const char* file, const char* var = "r", const char* tag = "", con
       cout << "Found 1 sigma edge at " << var << " = " << x << " ( " << y_prev << " - " << y << ")\n";
       if(x < r_fit) s1_lo = x;
       else          s1_hi = x;
+      if(y_prev < y) i_s1_right = ipoint;
+      else           i_s1_left  = ipoint;
     }
   }
 
-  TF1* fit_func = new TF1("fit_func", "0.5*((x - [minimum])/[width])^2 + [offset]", (s1_lo - (s1_hi - s1_lo)*0.05), (s1_hi + (s1_hi - s1_lo)*0.05));
+  TF1* fit_func = new TF1("fit_func", "0.5*((x - [minimum])/[width])^2 + [offset]", (s1_lo + (r_fit - s1_lo)*0.5), (s1_hi - (s1_hi - r_fit)*0.5));
   fit_func->SetParameters(r_fit, 0., (r_fit - s1_lo));
   g->Fit(fit_func, "R");
   if(verbose > 3)
     fit_func->Print();
   g->SetTitle(Form("Likelihood scan;%s;NLL", var));
   c->SaveAs(Form("scan_%s%s.png", var, tag));
-  printf("Fit to the scan result: %s = %.4f +- %.4f\n", var, fit_func->GetParameter(0), fit_func->GetParameter(2));
+  printf("1-sigma scan results  : %s = %7.4f + %7.4f - %7.4f\n", var, r_fit, (r_fit - s1_lo), (s1_hi - r_fit));
+  printf("Fit to the scan result: %s = %7.4f +- %7.4f\n", var, fit_func->GetParameter(0), fit_func->GetParameter(2));
+
+  //Fit the crossings
+  if(i_s2_left >= 0) {
+    fit_func->SetRange(g->GetX()[max(0, i_s2_left-3)], g->GetX()[min(g->GetN()-1, i_s2_left+3)]);
+    printf("Fit left : 2-sigma crossing = %6.3f (-%.3f)\n", fit_func->GetX(2.), r_fit - fit_func->GetX(2.));
+  }
+  if(i_s2_right >= 0) {
+    fit_func->SetRange(g->GetX()[max(0, i_s2_right-3)], g->GetX()[min(g->GetN()-1, i_s2_right+3)]);
+    printf("Fit right: 2-sigma crossing = %6.3f (+%.3f)\n", fit_func->GetX(2.), fit_func->GetX(2.) - r_fit);
+  }
+  if(i_s1_left >= 0) {
+    fit_func->SetRange(g->GetX()[max(0, i_s1_left-3)], g->GetX()[min(g->GetN()-1, i_s1_left+3)]);
+    printf("Fit left : 1-sigma crossing = %6.3f (-%.3f)\n", fit_func->GetX(0.5), r_fit - fit_func->GetX(0.5));
+  }
+  if(i_s1_right >= 0) {
+    fit_func->SetRange(g->GetX()[max(0, i_s1_right-3)], g->GetX()[min(g->GetN()-1, i_s1_right+3)]);
+    printf("Fit right: 1-sigma crossing = %6.3f (+%.3f)\n", fit_func->GetX(0.5), fit_func->GetX(0.5) - r_fit);
+  }
   return 0;
 }
