@@ -766,6 +766,10 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
   if(embed_float_mode_) {
     outfile << Form("Embedding%s_%i rateParam %s Embedding 1. [0.5,1.5]\n\n", (embed_float_mode_ == 2) ? (selection.EndsWith("tau")) ? "_had" : "_lep" : "", years[0], hist.Data());
   }
+  //allow the j-->tau contribution to float if requested
+  if(misid_float_mode_ && selection.EndsWith("tau")) {
+    outfile << Form("MisID%s_float rateParam %s MisID 1. [0.5,1.5]\n\n", (misid_float_mode_ == 2) ? Form("_%i", years[0]) : "", hist.Data());
+  }
   //apply a bias correction due to the data-driven control region signal contamination if requested
   if(apply_signal_bias_) {
     const double bias = get_bias_factor(years[0], selection.EndsWith("tau"), selection.BeginsWith("mu"));
