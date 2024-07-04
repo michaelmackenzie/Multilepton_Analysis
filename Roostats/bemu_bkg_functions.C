@@ -207,9 +207,9 @@ RooGenericPdf* create_gaus_poly_pdf(RooRealVar& obs, int order, int set, TString
   //define the formula for fixed orders
   if     (order == -1) formula = "TMath::Gaus(@0, @1, @2)";
   else if(order ==  0) formula = "TMath::Gaus(@0, @1, @2) + @3";
-  else if(order ==  1) formula = "TMath::Gaus(@0, @1, @2) + @3 + @4*@0";
-  else if(order ==  2) formula = "TMath::Gaus(@0, @1, @2) + @3 + @4*@0 + @5*@0*@0";
-  else if(order ==  3) formula = "TMath::Gaus(@0, @1, @2) + @3 + @4*@0 + @5*@0*@0 + @6*@0*@0*@0";
+  else if(order ==  1) formula = "TMath::Gaus(@0, @1, @2) + @3 + @4*@0/90";
+  else if(order ==  2) formula = "TMath::Gaus(@0, @1, @2) + @3 + @4*@0/90 + @5*@0*@0/90/90";
+  else if(order ==  3) formula = "TMath::Gaus(@0, @1, @2) + @3 + @4*@0/90 + @5*@0*@0/90/90 + @6*@0*@0*@0/90/90/90";
   else return nullptr;
   //add the Gaussian parameters
   vars.push_back(new RooRealVar(Form("gaus_poly_%i_order_%i_g_0%s", set, order, tag.Data()),
@@ -217,13 +217,13 @@ RooGenericPdf* create_gaus_poly_pdf(RooRealVar& obs, int order, int set, TString
                                 60., 50., 70.)); //mean
   vars.push_back(new RooRealVar(Form("gaus_poly_%i_order_%i_g_1%s", set, order, tag.Data()),
                                 Form("gaus_poly_%i_order_%i_g_1%s", set, order, tag.Data()),
-                                11., 5., 20.)); //sigma
+                                11., 7., 15.)); //sigma
 
   //add the polynomial parameters
   for(int i = 0; i < order+1; ++i) { //N(params) = order + 1 = a +bx + ...
     vars.push_back(new RooRealVar(Form("gaus_poly_%i_order_%i_p_%i%s", set, order, i, tag.Data()),
                                   Form("gaus_poly_%i_order_%i_p_%i%s", set, order, i, tag.Data()),
-                                  (i == 0) ? 0.5 : 0., (order == 0) ? 0. : (i == 0) ? -3. : -0.1, (i == 0) ? 3. : 0.1));
+                                  (i == 0) ? 0.5 : 0., (order == 0) ? 0. : (i == 0) ? -3. : -1., (i == 0) ? 3. : 1.));
   }
   for(auto var : vars) var_list.add(*var);
   RooGenericPdf* pdf = new RooGenericPdf(Form("gaus_poly_%i_pdf_order_%i%s", set, order, tag.Data()), formula.Data(), var_list);
@@ -326,7 +326,7 @@ RooChebychev* create_chebychev(RooRealVar& obs, int order, int set, TString tag 
   for(int i = 1; i <= order; ++i) {
     const bool has_params = initial_params.count(order) && ((int) initial_params[order].size()) > i;
     vars.push_back(new RooRealVar(Form("chb_%i_order_%i_%i%s", set, order, i, tag.Data()), Form("chb_%i_order_%i_%i%s", set, order, i, tag.Data()),
-                                  (has_params) ? initial_params[order][i] : 1./pow(10.,i), -25., 25.));
+                                  (has_params) ? initial_params[order][i] : 1./pow(10.,i), (i == 0) ? -25. : -1., (i == 0) ? 25. : 1.));
     list.add(*vars.back());
   }
   return new RooChebychev(Form("chb_%i_order_%i%s", set, order, tag.Data()), Form("Chebychev PDF, order %i", order), obs, list);
