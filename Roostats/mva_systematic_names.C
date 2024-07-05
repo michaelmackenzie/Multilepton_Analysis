@@ -18,8 +18,8 @@ bool smooth_sys_hist(TString sys, TString process) {
   const bool is_signal = process.EndsWith("mutau") || process.EndsWith("etau") || process.EndsWith("emu");
 
   //energy scales
-  if(sys.BeginsWith("JES"))             return !is_embed && !is_data;
-  if(sys.BeginsWith("JER"))             return !is_embed && !is_data;
+  if(sys.BeginsWith("JES"))             return !is_embed; // && !is_data; --> can shift data in Data - MC
+  if(sys.BeginsWith("JER"))             return !is_embed; // && !is_data;
   if(sys.BeginsWith("TauES"))           return true;
   if(sys.BeginsWith("TauMuES"))         return is_zll || is_data; //mu/e --> tau_h only important really from Z->ll MC
   if(sys.BeginsWith("TauEleES"))        return is_zll || is_data;

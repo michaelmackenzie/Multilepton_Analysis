@@ -4,7 +4,7 @@ bool speed_limit_     = true; //use Combine arguments to speed up limit calculat
 bool preliminary_     = true;
 bool add_values_      = true; //add text values of the limits to the plot
 bool blinding_offset_ = true;
-bool add_asimov_      = true; //add Asimov error bar sizes
+bool add_asimov_      = false; //add Asimov error bar sizes
 
 struct config_t {
   TString name_;

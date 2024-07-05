@@ -82,6 +82,43 @@ void smooth_systematic(TH1* nominal, TH1* sys, bool debug = false) {
   TF1* fit_func = new TF1("fit_func", "[0] + [1]*x + [2]*x*x + [3]*x*x*x", xmin, xmax);
   fit_func->SetParameters((mode == 1) ? 1. : 0., 0., 0., 0.);
 
+
+  if(debug) { //draw the nominal distribution
+    cout << "Printing debug figure\n";
+    gSystem->Exec("[ ! -d debug ] && mkdir debug");
+    TCanvas c("c","c", 700, 800);
+    TPad pad1("pad1", "pad1", 0., 0.3, 1., 1. );
+    TPad pad2("pad2", "pad2", 0., 0. , 1., 0.3);
+    pad1.SetBottomMargin(0.06);
+    pad2.SetTopMargin(0.03);
+    pad1.Draw(); pad2.Draw();
+    pad1.cd();
+
+    const int fill_style = nominal->GetFillStyle();
+    nominal->SetFillStyle(0);
+    nominal->Draw("hist");
+    sys->Draw("E1 same");
+
+    pad2.cd();
+    TH1* hr = (TH1*) sys->Clone("hr");
+    hr->Divide(nominal);
+    hr->Draw("E1");
+    hr->GetYaxis()->SetRangeUser(0.8, 1.2);
+    hr->GetXaxis()->SetLabelSize(0.08);
+    hr->GetYaxis()->SetLabelSize(0.08);
+    hr->GetYaxis()->SetTitleSize(0.08);
+    hr->GetYaxis()->SetTitleOffset(0.65);
+    hr->SetTitle("");
+    hr->SetYTitle("Sys / Nominal");
+    TLine line(0., 1., 1., 1.); line.SetLineStyle(kDashed); line.SetLineColor(kBlack);
+    line.SetLineWidth(2); line.Draw("same");
+    c.SaveAs(Form("debug/%s_nominal.png", sys->GetName()));
+    nominal->SetFillStyle(fill_style);
+    delete hr;
+  }
+
+
+
   TH1* hdiff = (TH1*) sys->Clone("hdiff"); //clone of the systematic histogram to use for fitting
   if(mode == 0) { //Fit the shift - nominal distribution
     hdiff->Add(nominal, -1.);
@@ -140,9 +177,9 @@ void smooth_systematic(TH1* nominal, TH1* sys, bool debug = false) {
       const double binc_sys(sys    ->GetBinContent(ibin));
       if(binc_nom <= 0.) continue;
       const double eff_weight = pow(bine_nom,2) / binc_nom; //<weight> ~ err^2/integral
-      const double diff = fabs(binc_sys - binc_nom); //sign doesn't matter for the error
       if(eff_weight < 0.) continue;
-      const double eff_err = diff/sqrt(max(1., diff/eff_weight)); //error ~ value * 1./sqrt(<N>), where <N> = difference / avg. weight
+      const double diff = fabs(binc_sys - binc_nom); //sign doesn't matter for the error
+      const double eff_err = diff/sqrt(max(0.1, diff)/eff_weight); //error ~ value * 1./sqrt(<N>), where <N> = difference / avg. weight
       const double min_err = eff_weight*5.; //apply a minimum error that's fairly large
       const double err = max(eff_err, min_err) / binc_nom;
       if(isfinite(err))
@@ -184,15 +221,8 @@ void smooth_systematic(TH1* nominal, TH1* sys, bool debug = false) {
     cout << __func__ << ": Error! Unknown smoothing mode: " << mode << endl;
   }
 
-  if(debug) {
-    cout << "Printing debug figure\n";
+  if(debug) { //draw the shift fit
     TCanvas c;
-    const int fill_style = nominal->GetFillStyle();
-    nominal->SetFillStyle(0);
-    nominal->Draw("hist");
-    sys->Draw("E1 same");
-    c.SaveAs(Form("%s_nominal.png", sys->GetName()));
-    nominal->SetFillStyle(fill_style);
     auto val = gStyle->GetOptFit();
     gStyle->SetOptFit(0);
     hdiff->Draw("E1");
@@ -209,7 +239,7 @@ void smooth_systematic(TH1* nominal, TH1* sys, bool debug = false) {
     const double y_nom = (mode == 1) ? 1. : 0.;
     TLine line(0., y_nom, 1., y_nom); line.SetLineStyle(kDashed); line.SetLineColor(kBlack);
     line.SetLineWidth(2); line.Draw("same");
-    c.SaveAs(Form("%s.png", sys->GetName()));
+    c.SaveAs(Form("debug/%s.png", sys->GetName()));
     gStyle->SetOptFit(val);
   }
 
@@ -580,7 +610,7 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
     //Smooth systematic variation of requested
     if(is_relevant(name, selec_name) && smooth_sys_hist(name, selec_name)) {
       some_smoothed = true;
-      bool debug = false; //name.BeginsWith("JES");
+      bool debug = false; //name.BeginsWith("JER");
       smooth_systematic(hsig, hsig_up  , debug);
       smooth_systematic(hsig, hsig_down, debug);
       // if(debug) return -1;
@@ -657,7 +687,7 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
       //Smooth systematic variation of requested
       if(is_relevant(name, hname) && smooth_sys_hist(name, hname)) {
         some_smoothed = true;
-        bool debug = false; //name.BeginsWith("TauESDM1Y0");
+        bool debug = hname.Contains("Embed") && name.BeginsWith("JER");
         smooth_systematic(hbkg_i, hbkg_i_up  , debug);
         smooth_systematic(hbkg_i, hbkg_i_down, debug);
       }

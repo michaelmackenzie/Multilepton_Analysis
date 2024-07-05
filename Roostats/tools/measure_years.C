@@ -1,9 +1,13 @@
 //make the combine limit plot by year
 #include "measurement_consistency.C"
 
-int measure_years(vector<int> had_sets = {8}, vector<int> lep_sets = {8},
-                       TString selection = "zmutau",
-                       bool processCards = true) {
+int measure_years(TString selection = "zmutau",
+                  vector<int> had_sets = {25,26,27,28}, vector<int> lep_sets = {25,26,27},
+                  bool processCards = true) {
+
+  blinding_offset_ = true;
+  add_asimov_      = true;
+  add_values_      = true;
 
   const double scale = (selection.Contains("h")) ? 1.e-4 : 1.e-6;
   TString year_s = "2016_2017_2018";
