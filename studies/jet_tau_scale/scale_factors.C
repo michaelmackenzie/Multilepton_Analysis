@@ -594,6 +594,7 @@ void make_2d_closure_slices(int set1, int set2, PlottingCard_t card, TH2* &hTigh
     pad2->Update();
 
     TString xtitle = get_title(card.hist_, card.type_);
+    if(card.hist_.Contains("overm")) xtitle += "/M_{ll}";
     hratio->GetYaxis()->SetRangeUser(0.5, 1.5);
     hratio->GetXaxis()->SetRangeUser(card.xmin_, card.xmax_);
     hratio->SetXTitle(xtitle.Data());
@@ -1026,7 +1027,8 @@ TCanvas* make_eta_region_canvas(TH2* hnum, TH2* hdnm, TString name, bool iseff,
         const int nparams = cov.GetNrows();
         TVectorD params(nparams);
         for(int iparam = 0; iparam < nparams; ++iparam) params[iparam] = f->GetParameter(iparam);
-        auto shifts = Utilities::PCAShifts(cov, params);
+        const double chi_sq_dof = f->GetChisquare() /(hetas[ibin]->GetNbinsX() - f->GetNpar()); //increase errors if chi^2/dof > 1
+        auto shifts = Utilities::PCAShifts(cov, params, std::isfinite(chi_sq_dof) ? max(1., sqrt(chi_sq_dof)) : 1.);
         auto up = shifts.first;
         auto down = shifts.second;
         const int colors[] = {kViolet, kOrange, kAtlantic, kYellow-3, kGreen, kBlue};
@@ -1624,6 +1626,26 @@ Int_t scale_factors(TString selection = "mutau", TString process = "WJets", int 
     cout << "ERROR: MTTwoBias histogram not returned!\n";
   }
 
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettaumttwooverm2", "event", 0), hData, hMC);
+  if(c && hData && hMC) {
+    hRatio = (TH1*) hData->Clone("MTTwoOverMBias");
+    hRatio->Divide(hMC); //No integral matching since bias test should include shape + rate
+    hRatio->Write();
+    c->Print(Form("%sjettau_mttwooverm_bias.png", name.Data()));
+  } else {
+    cout << "ERROR: MTTwoOverMBias histogram not returned!\n";
+  }
+
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettaumtoneoverm2", "event", 0), hData, hMC);
+  if(c && hData && hMC) {
+    hRatio = (TH1*) hData->Clone("MTOneOverMBias");
+    hRatio->Divide(hMC); //No integral matching since bias test should include shape + rate
+    hRatio->Write();
+    c->Print(Form("%sjettau_mtoneoverm_bias.png", name.Data()));
+  } else {
+    cout << "ERROR: MTOneOverMBias histogram not returned!\n";
+  }
+
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettauonereliso_1", "lep", 0), hData, hMC);
   if(c && hData && hMC) {
     hRatio = (TH1*) hData->Clone("OneIsoBias");
@@ -1632,6 +1654,17 @@ Int_t scale_factors(TString selection = "mutau", TString process = "WJets", int 
     c->Print(Form("%sjettau_onereliso_bias.png", name.Data()));
   } else {
     cout << "ERROR: OneIsoBias histogram not returned!\n";
+  }
+
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettauleppt2", "event", 0), hData, hMC); //FIXME: Use jettau histogram without bias correction
+  if(c && hData && hMC) {
+    hMC->Scale(hData->Integral() / hMC->Integral()); //only adjust the shape
+    hRatio = (TH1*) hData->Clone("LepPtBias");
+    hRatio->Divide(hMC); //No integral matching since bias test should include shape + rate
+    hRatio->Write();
+    c->Print(Form("%sjettau_leppt_bias.png", name.Data()));
+  } else {
+    cout << "ERROR: LepPtBias histogram not returned!\n";
   }
 
   //2D corrections
@@ -1694,7 +1727,7 @@ Int_t scale_factors(TString selection = "mutau", TString process = "WJets", int 
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("oneeta"                , "lep"  , 0, 2*rb,  -3.,   3.)); if(c) c->Print(Form("%soneeta.png"                  , name.Data()));
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("twopt"                 , "lep"  , 0, 2*rb,  20., 100.)); if(c) c->Print(Form("%stwopt.png"                   , name.Data()));
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("twopt11"               , "lep"  , 0, 2*rb,  20., 100.)); if(c) c->Print(Form("%stwopt11.png"                 , name.Data()));
-  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("twoeta"                , "lep"  , 0, 2*rb,  -3.,   3.)); if(c) c->Print(Form("%stwoeta.png"                  , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("twoeta"                , "lep"  , 0, 2*rb,  1.,  -1.)); if(c) c->Print(Form("%stwoeta.png"                  , name.Data()));
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("tausdm"                , "event", 0, 1*rb,   0.,  12.)); if(c) c->Print(Form("%stausdm.png"                  , name.Data()));
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("tauspt"                , "event", 0, 1*rb,  20., 100.)); if(c) c->Print(Form("%stauspt.png"                  , name.Data()));
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("mtone"                 , "event", 0, 5*rb,   0., 150.)); if(c) c->Print(Form("%smtone.png"                   , name.Data()));
@@ -1703,6 +1736,12 @@ Int_t scale_factors(TString selection = "mutau", TString process = "WJets", int 
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("mttwo"                 , "event", 0, 5*rb,   0., 150.)); if(c) c->Print(Form("%smttwo.png"                   , name.Data()));
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettaumttwo0"          , "event", 0               )); if(c) c->Print(Form("%sjettau_mttwo0.png"           , name.Data()));
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettaumttwo1"          , "event", 0               )); if(c) c->Print(Form("%sjettau_mttwo1.png"           , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("mtoneoverm"            , "event", 0, 1*rb, 0., 1.5)); if(c) c->Print(Form("%smtoneoverm.png"              , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettaumtoneoverm0"     , "event", 0               )); if(c) c->Print(Form("%sjettau_mtoneoverm0.png"      , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettaumtoneoverm1"     , "event", 0               )); if(c) c->Print(Form("%sjettau_mtoneoverm1.png"      , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("mttwooverm"            , "event", 0, 1*rb, 0., 1.5)); if(c) c->Print(Form("%smttwooverm.png"              , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettaumttwooverm0"     , "event", 0               )); if(c) c->Print(Form("%sjettau_mttwooverm0.png"      , name.Data()));
+  c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettaumttwooverm1"     , "event", 0               )); if(c) c->Print(Form("%sjettau_mttwooverm1.png"      , name.Data()));
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("mtlep"                 , "event", 0, 2*rb,   0., 150.)); if(c) c->Print(Form("%smtlep.png"                   , name.Data()));
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettaumtlep0"          , "event", 0               )); if(c) c->Print(Form("%sjettau_mtlep0.png"           , name.Data()));
   c = make_closure_canvas(set1Abs, set2Abs, PlottingCard_t("jettaumtlep1"          , "event", 0               )); if(c) c->Print(Form("%sjettau_mtlep1.png"           , name.Data()));

@@ -63,8 +63,9 @@ then
     PROCESSES="QCD2 QCD4 WJets3 Top3 ZJets"
 fi
 
+
 if [[ "${ONLYCOMP}" == "" ]]; then
-    echo "Creating transfer factors for selection ${SELECTION}, histogram path ${HISTS}, and years ${YEARS}"
+    echo "Creating transfer factors for selection ${SELECTION}, histogram path ${HISTS}, years ${YEARS}, and sets ${PROCESSES}"
 
     for PROCESS in $PROCESSES
     do

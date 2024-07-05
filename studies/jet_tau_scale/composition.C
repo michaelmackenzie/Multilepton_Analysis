@@ -412,15 +412,25 @@ Int_t composition(TString selection = "mutau", int setmc = 2042, int setqcd = 30
   make_composition(PlottingCard_t("jettautwometdphicomp", "lep", setmcAbs, 1, 1.,-1.), true);
   make_composition(PlottingCard_t("jettaumtonecomp"     , "lep", setmcAbs, 1, 1.,-1.), true);
   make_composition(PlottingCard_t("jettaumttwocomp"     , "lep", setmcAbs, 1, 1.,-1.), true);
+  make_composition(PlottingCard_t("jettaumtoneovermcomp", "lep", setmcAbs, 1, 1.,-1.), true);
+  make_composition(PlottingCard_t("jettaumttwoovermcomp", "lep", setmcAbs, 1, 1.,-1.), true);
   make_composition(PlottingCard_t("jettauoneptcomp"     , "lep", setmcAbs, 1, 1.,-1.), true);
   make_composition(PlottingCard_t("jettautwoptcomp"     , "lep", setmcAbs, 1, 1.,-1.), true);
   make_composition(PlottingCard_t("jettaulepmcomp"      , "lep", setmcAbs, 1, 1.,-1.), true);
   make_composition(PlottingCard_t("mtone", "event", setmcAbs, 5, 0., 150.), false);
   make_composition(PlottingCard_t("mttwo", "event", setmcAbs, 5, 0., 150.), false);
   make_composition(PlottingCard_t("mtlep", "event", setmcAbs, 5, 0., 150.), false);
+  make_composition(PlottingCard_t("mtoneoverm", "event", setmcAbs, 1, 0., 1.5), false);
+  make_composition(PlottingCard_t("mttwooverm", "event", setmcAbs, 1, 0., 1.5), false);
+  make_composition(PlottingCard_t("mtlepoverm", "event", setmcAbs, 1, 0., 1.5), false);
   make_composition(PlottingCard_t("lepm" , "event", setmcAbs, 5,40., 170.), false);
+  make_composition(PlottingCard_t("leppt", "event", setmcAbs, 5, 0., 100.), false);
   make_composition(PlottingCard_t("taudecaymode", "event", setmcAbs, 0, 1., -1.), false);
   make_composition(PlottingCard_t("njets20" , "event", setmcAbs, 0,0, 5), false);
+  if(selection == "mutau")
+    make_composition(PlottingCard_t("mva1" , "event", setmcAbs, 0, 1., -1.), false);
+  else if(selection == "etau")
+    make_composition(PlottingCard_t("mva3" , "event", setmcAbs, 0, 1., -1.), false);
 
   //Make 2D compositions
   make_composition(PlottingCard_t("jettaulepmvsmtonecomp", "lep", setmcAbs, 1, 1.,-1.), true, false, true);
