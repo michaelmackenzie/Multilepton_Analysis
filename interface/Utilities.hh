@@ -289,6 +289,144 @@ namespace CLFV {
     }
 
     //------------------------------------------------------------------------------------------------------
+    // Error function inverse
+    static double Erf_Inv(const double x) {
+      if(x <= -1. || x >= 1.) {
+        throw std::runtime_error(Form("Utilities::%s: Argument out of bounds (%f)\n", __func__, x));
+      }
+      double val = 0.;
+      const int sign = (x < 0.) ? -1 : 1;
+      const double ax = std::fabs(x);
+      const double cx = 1. - ax; //complement to |x|
+
+      //Use different approximations in different regions of |x|, taken following boost::math::erf_inv
+      if(ax <= 0.5) { //for |x| < 0.5, approximate using val = ax*(ax+10)*(b + f(ax)/g(ax))
+        const float b = 0.0891314744949340820313f;
+        const double N[] = {
+          -0.000508781949658280665617,
+          -0.00836874819741736770379,
+          0.0334806625409744615033,
+          -0.0126926147662974029034,
+          -0.0365637971411762664006,
+          0.0219878681111168899165,
+          0.00822687874676915743155,
+          -0.00538772965071242932965
+        };
+        const double D[] = {
+          1.0,
+          -0.970005043303290640362,
+          -1.56574558234175846809,
+          1.56221558398423026363,
+          0.662328840472002992063,
+          -0.71228902341542847553,
+          -0.0527396382340099713954,
+          0.0795283687341571680018,
+          -0.00233393759374190016776,
+          0.000886216390456424707504
+        };
+        double val_n(0.), val_d(0.);
+        for(int i = 0; i <  8; ++i) val_n += std::pow(ax, i)*N[i];
+        for(int i = 0; i < 10; ++i) val_d += std::pow(ax, i)*D[i];
+        val = ax*(10.+ax)*(b + val_n / val_d);
+        // printf("%s: Using first approx: x = %f, inv(x) = %f\n", __func__, x, val);
+      } else if(cx >= 0.25) { //for 0.5 < |x| <= 0.75, use sqrt(-2*log(cx)) / (b + f(cx - 0.25)/g(cx - 0.25))
+        const float b = 2.249481201171875f;
+        const double N[] = {
+          -0.202433508355938759655,
+          0.105264680699391713268,
+          8.37050328343119927838,
+          17.6447298408374015486,
+          -18.8510648058714251895,
+          -44.6382324441786960818,
+          17.445385985570866523,
+          21.1294655448340526258,
+          -3.67192254707729348546
+        };
+        const double D[] = {
+          1.0,
+          6.24264124854247537712,
+          3.9713437953343869095,
+          -28.6608180499800029974,
+          -20.1432634680485188801,
+          48.5609213108739935468,
+          10.8268667355460159008,
+          -22.6436933413139721736,
+          1.72114765761200282724
+        };
+        double val_n(0.), val_d(0.);
+        for(int i = 0; i <  9; ++i) val_n += std::pow(cx-0.25, i)*N[i];
+        for(int i = 0; i <  9; ++i) val_d += std::pow(cx-0.25, i)*D[i];
+        val = std::sqrt(-2.*std::log(cx))/(b + val_n / val_d);
+        // printf("%s: Using second approx: x = %f, inv(x) = %f\n", __func__, x, val);
+      } else { //|x| > 0.75, use approximations as sqrt(-log(1-|x|)) gets large
+        const double log_val = std::sqrt(-std::log(cx));
+        if(log_val < 3.) {
+          const float b = 0.807220458984375f;
+          const double N[] = {
+            -0.131102781679951906451,
+            -0.163794047193317060787,
+            0.117030156341995252019,
+            0.387079738972604337464,
+            0.337785538912035898924,
+            0.142869534408157156766,
+            0.0290157910005329060432,
+            0.00214558995388805277169,
+            -0.679465575181126350155e-6,
+            0.285225331782217055858e-7,
+            -0.681149956853776992068e-9
+          };
+          const double D[] = {
+            1.0,
+            3.46625407242567245975,
+            5.38168345707006855425,
+            4.77846592945843778382,
+            2.59301921623620271374,
+            0.848854343457902036425,
+            0.152264338295331783612,
+            0.01105924229346489121
+          };
+          double val_n(0.), val_d(0.);
+          for(int i = 0; i < 11; ++i) val_n += std::pow(log_val - 1.125f, i)*N[i];
+          for(int i = 0; i <  8; ++i) val_d += std::pow(log_val - 1.125f, i)*D[i];
+          val = log_val*(b + val_n/val_d);
+          // printf("%s: Using third approx: x = %f, sqrt(-log(1-|x|)) = %f, inv(x) = %f\n", __func__, x, log_val, val);
+        } else { //only for log_val < 6, but this should be fine up to 1 - |x| > 1e-15
+
+          const float b = 0.93995571136474609375f;
+          const double N[] = {
+             -0.0350353787183177984712,
+             -0.00222426529213447927281,
+             0.0185573306514231072324,
+             0.00950804701325919603619,
+             0.00187123492819559223345,
+             0.000157544617424960554631,
+             0.460469890584317994083e-5,
+             -0.230404776911882601748e-9,
+             0.266339227425782031962e-11
+          };
+          const double D[] = {
+            1.0,
+            1.3653349817554063097,
+            0.762059164553623404043,
+            0.220091105764131249824,
+            0.0341589143670947727934,
+            0.00263861676657015992959,
+            0.764675292302794483503e-4
+          };
+          double val_n(0.), val_d(0.);
+          for(int i = 0; i <  9; ++i) val_n += std::pow(log_val - 3.f, i)*N[i];
+          for(int i = 0; i <  7; ++i) val_d += std::pow(log_val - 3.f, i)*D[i];
+          val = log_val*(b + val_n/val_d);
+          // printf("%s: Using fourth approx: x = %f, sqrt(-log(1-|x|)) = %f, inv(x) = %f\n", __func__, x, log_val, val);
+        }
+      }
+      if(!std::isfinite(val)) {
+        throw std::runtime_error(Form("Utilities::%s: Undefined error function inverse (%f) for |x| = %f, 1 - |x| = %f\n", __func__, val, ax, cx));
+      }
+      return sign*val;
+    }
+
+    //------------------------------------------------------------------------------------------------------
     // Double-sided Crystal Ball function, as implemented in RooDoubleCrystalBall with a symmetric code
     static double DSCB(const double x, const double mu, const double sigma, const double alpha_1, const double n_1, const double alpha_2, const double n_2) {
       if(sigma <= 0.) return 0.;
