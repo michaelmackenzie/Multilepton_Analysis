@@ -71,55 +71,24 @@ void smooth_systematic(TH1* nominal, TH1* sys, bool debug = false) {
   if(!nominal || !sys || nominal->Integral() <= 0. || sys->Integral() <= 0.) return;
 
   //how to fit the systematic shift
-  const int mode = 3;
+  const int mode = 4;
 
   //Initialize the fit function, only fitting the non-zero region of the histogram
   const double xmin(sys->GetBinLowEdge(sys->FindFirstBinAbove(0.)));
   const double xmax(sys->GetXaxis()->GetBinUpEdge(sys->FindLastBinAbove(0.)));
   if(xmin >= xmax) return;
+  if(sys->FindBin(xmax-1.e-4) - sys->FindBin(xmin) < 4) { //not enough bins to smooth
+    return;
+  }
   // TF1* fit_func = new TF1("fit_func", "[0] + [1]*x + [2]*x*x + [3]*x*x*x + [4]*pow(x,4) + [5]*pow(x,5)", xmin, xmax);
   // fit_func->SetParameters((mode == 1) ? 1. : 0., 0., 0., 0., 0., 0.);
   TF1* fit_func = new TF1("fit_func", "[0] + [1]*x + [2]*x*x + [3]*x*x*x", xmin, xmax);
   fit_func->SetParameters((mode == 1) ? 1. : 0., 0., 0., 0.);
 
 
-  if(debug) { //draw the nominal distribution
-    cout << "Printing debug figure\n";
-    gSystem->Exec("[ ! -d debug ] && mkdir debug");
-    TCanvas c("c","c", 700, 800);
-    TPad pad1("pad1", "pad1", 0., 0.3, 1., 1. );
-    TPad pad2("pad2", "pad2", 0., 0. , 1., 0.3);
-    pad1.SetBottomMargin(0.06);
-    pad2.SetTopMargin(0.03);
-    pad1.Draw(); pad2.Draw();
-    pad1.cd();
-
-    const int fill_style = nominal->GetFillStyle();
-    nominal->SetFillStyle(0);
-    nominal->Draw("hist");
-    sys->Draw("E1 same");
-
-    pad2.cd();
-    TH1* hr = (TH1*) sys->Clone("hr");
-    hr->Divide(nominal);
-    hr->Draw("E1");
-    hr->GetYaxis()->SetRangeUser(0.8, 1.2);
-    hr->GetXaxis()->SetLabelSize(0.08);
-    hr->GetYaxis()->SetLabelSize(0.08);
-    hr->GetYaxis()->SetTitleSize(0.08);
-    hr->GetYaxis()->SetTitleOffset(0.65);
-    hr->SetTitle("");
-    hr->SetYTitle("Sys / Nominal");
-    TLine line(0., 1., 1., 1.); line.SetLineStyle(kDashed); line.SetLineColor(kBlack);
-    line.SetLineWidth(2); line.Draw("same");
-    c.SaveAs(Form("debug/%s_nominal.png", sys->GetName()));
-    nominal->SetFillStyle(fill_style);
-    delete hr;
-  }
-
-
-
+  TH1* nom_sys = (debug) ? (TH1*) sys->Clone("nominal_sys_TMP") : nullptr;
   TH1* hdiff = (TH1*) sys->Clone("hdiff"); //clone of the systematic histogram to use for fitting
+  TH1* nom_diff = nullptr; //for debug drawing of pre-smoothed difference
   if(mode == 0) { //Fit the shift - nominal distribution
     hdiff->Add(nominal, -1.);
     auto fit_res = hdiff->Fit(fit_func, "R S 0 w Q");
@@ -217,32 +186,126 @@ void smooth_systematic(TH1* nominal, TH1* sys, bool debug = false) {
         sys->SetBinError  (ibin, bine); //original template error
       }
     }
+  } else if(mode == 4) { //Smooth the (shift - nominal)/nominal distribution
+    hdiff->Add(nominal, -1.);
+    hdiff->Divide(nominal);
+    //adjust the error bars to be more reasonable
+    for(int ibin = 1; ibin <= hdiff->GetNbinsX(); ++ibin) {
+      const double binc_nom(nominal->GetBinContent(ibin));
+      const double bine_nom(nominal->GetBinError  (ibin));
+      const double binc_sys(sys    ->GetBinContent(ibin));
+      if(binc_nom <= 0.) continue;
+      const double eff_weight = pow(bine_nom,2) / binc_nom; //<weight> ~ err^2/integral
+      if(eff_weight < 0.) continue;
+      const double diff = fabs(binc_sys - binc_nom); //sign doesn't matter for the error
+      const double eff_err = diff/sqrt(max(0.1, diff)/eff_weight); //error ~ value * 1./sqrt(<N>), where <N> = difference / avg. weight
+      const double min_err = eff_weight*5.; //apply a minimum error that's fairly large
+      const double err = max(eff_err, min_err) / binc_nom;
+      if(isfinite(err))
+        hdiff->SetBinError(ibin, err);
+      else {
+        printf("!!! %s: Bin error issue: bin = %i, binc = %.3f, diff = %.3f, weight = %.3f, err = %.3f\n",
+               __func__, ibin, binc_nom, diff, eff_weight, err);
+      }
+    }
+    nom_diff = (TH1*) hdiff->Clone("nom_diff_TMP");
+    hdiff->GetXaxis()->SetRangeUser(xmin, xmax);
+    hdiff->Smooth(2, "R"); //restrict to the set x-axis range
+    for(int ibin = 0; ibin <= hdiff->GetNbinsX()+1; ++ibin) {
+      const double binc(nominal->GetBinContent(ibin));
+      const double bine(nominal->GetBinError  (ibin));
+      const double diff_ratio(hdiff->GetBinContent(ibin)); //use the smoothed ratios
+      if(!std::isfinite(binc) || !std::isfinite(bine) || binc < 0.) {
+        sys->SetBinContent(ibin, 0.);
+        sys->SetBinError  (ibin, 0.);
+      } else {
+        const double val = binc*(1. + diff_ratio);
+        sys->SetBinContent(ibin, max(0., val));
+        sys->SetBinError  (ibin, bine); //original template error
+      }
+    }
   } else {
     cout << __func__ << ": Error! Unknown smoothing mode: " << mode << endl;
+  }
+
+  if(debug) { //draw the nominal distribution, the nominal shift, and the final shift
+    cout << "Printing debug figures for " << sys->GetName() << endl;
+    gSystem->Exec("[ ! -d debug ] && mkdir debug");
+    TCanvas c("c","c", 700, 800);
+    TPad pad1("pad1", "pad1", 0., 0.3, 1., 1. );
+    TPad pad2("pad2", "pad2", 0., 0. , 1., 0.3);
+    pad1.SetBottomMargin(0.06);
+    pad2.SetTopMargin(0.03);
+    pad1.Draw(); pad2.Draw();
+    pad1.cd();
+
+    const int fill_style = nominal->GetFillStyle();
+    nominal->SetFillStyle(0);
+    nominal->Draw("hist");
+    nom_sys->Draw("E1 same");
+    sys->SetLineStyle(kDashed);
+    sys->SetFillColor(0);
+    sys->Draw("hist same");
+
+    pad2.cd();
+    TH1* hr = (TH1*) nom_sys->Clone("hr");
+    hr->Divide(nominal);
+    TH1* hr_2 = (TH1*) sys->Clone("hr_2");
+    hr_2->Divide(nominal);
+    hr->Draw("E1");
+    hr_2->Draw("hist same");
+    hr->GetYaxis()->SetRangeUser(0.7, 1.3);
+    hr->GetXaxis()->SetLabelSize(0.08);
+    hr->GetYaxis()->SetLabelSize(0.08);
+    hr->GetYaxis()->SetTitleSize(0.08);
+    hr->GetYaxis()->SetTitleOffset(0.65);
+    hr->SetTitle("");
+    hr_2->SetTitle("");
+    hr->SetYTitle("Sys / Nominal");
+    TLine line(0., 1., 1., 1.); line.SetLineStyle(kDashed); line.SetLineColor(kBlack);
+    line.SetLineWidth(2); line.Draw("same");
+    c.SaveAs(Form("debug/%s_nominal.png", sys->GetName()));
+    nominal->SetFillStyle(fill_style);
+    delete hr;
+    delete hr_2;
+    delete nom_sys;
+    sys->SetFillColor(sys->GetLineColor());
+    sys->SetLineStyle(kSolid);
   }
 
   if(debug) { //draw the shift fit
     TCanvas c;
     auto val = gStyle->GetOptFit();
     gStyle->SetOptFit(0);
-    hdiff->Draw("E1");
-    fit_func->Draw("same");
-    const double ymax = hdiff->GetMaximum();
-    const double ymin = Utilities::H1MinAbove(hdiff, (mode == 1) ? 0.1 : -1.e10);
-    if(mode == 1) {
-      hdiff->GetYaxis()->SetRangeUser(max(0., min(0.95*ymin, 1.-ymax)), max(1.05, 1.05*ymax));
-    } else if(mode == 2) {
-      hdiff->GetYaxis()->SetRangeUser(1.1*min(-0.05, ymin), 1.1*max(0.05, ymax));
+    TH1* haxis = hdiff;
+    if(mode != 4) {
+      hdiff->Draw("E1");
+      fit_func->Draw("same");
+    } else {
+      hdiff->SetLineStyle(kDashed);
+      hdiff->SetFillStyle(3003);
+      nom_diff->Draw("E1");
+      hdiff->Draw("hist same");
+      haxis = nom_diff;
     }
-    hdiff->SetTitle(sys->GetName());
-    hdiff->SetFillStyle(0);
+    const double ymax = haxis->GetMaximum();
+    const double ymin = Utilities::H1MinAbove(haxis, (mode == 1) ? 0.1 : -1.e10);
+    if(mode == 1) {
+      haxis->GetYaxis()->SetRangeUser(max(0., min(0.95*ymin, 1.-ymax)), max(1.05, 1.05*ymax));
+    } else if(mode == 2) {
+      haxis->GetYaxis()->SetRangeUser(1.1*min(-0.05, ymin), 1.1*max(0.05, ymax));
+    } else if(mode == 4) {
+      haxis->GetYaxis()->SetRangeUser(1.1*max(-1., min(-0.05, ymin)), 1.1*min(1., max(0.05, ymax)));
+    }
+    haxis->SetTitle(sys->GetName());
+    haxis->SetFillStyle(0);
     const double y_nom = (mode == 1) ? 1. : 0.;
     TLine line(0., y_nom, 1., y_nom); line.SetLineStyle(kDashed); line.SetLineColor(kBlack);
     line.SetLineWidth(2); line.Draw("same");
     c.SaveAs(Form("debug/%s.png", sys->GetName()));
     gStyle->SetOptFit(val);
+    if(nom_diff) delete nom_diff;
   }
-
   delete fit_func;
   delete hdiff;
 }
@@ -687,7 +750,7 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
       //Smooth systematic variation of requested
       if(is_relevant(name, hname) && smooth_sys_hist(name, hname)) {
         some_smoothed = true;
-        bool debug = hname.Contains("Embed") && name.BeginsWith("JER");
+        bool debug = false; //name.BeginsWith("JER");
         smooth_systematic(hbkg_i, hbkg_i_up  , debug);
         smooth_systematic(hbkg_i, hbkg_i_down, debug);
       }
