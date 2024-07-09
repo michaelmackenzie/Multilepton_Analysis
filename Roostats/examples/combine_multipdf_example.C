@@ -1,5 +1,7 @@
 //Example using RooMultiPdf taken from:
 // https://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/part3/nonstandard/#roomultipdf-conventional-bias-studies
+// Combined with: combine_multipdf_example.txt
+
 
 void combine_multipdf_example(){
 

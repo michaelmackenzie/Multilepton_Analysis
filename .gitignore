@@ -32,6 +32,9 @@ Roostats/datacards/*/*.root
 Roostats/datacards/*/*.json
 Roostats/datacards/*/*.txt
 Roostats/examples/*.root
+Roostats/Mu2e
+Roostats/*/*.png
+Roostats/datacards/stable
 bin
 scripts/*.root
 *.log

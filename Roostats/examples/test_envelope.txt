@@ -1,13 +1,12 @@
 # -*- mode: tcl -*-
 # Example Higgs Combine datacard using a RooMultiPdf background
-# https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit/blob/main/data/tutorials/bias_studies/hgg_toy_datacard.txt
 
 imax  1 number of channels
 jmax  1 number of backgrounds
 kmax  * number of nuisance parameters
 
 -----------------------------------------------------------------------------------------------------------
-shapes * * combine_test_multipdf.root $CHANNEL:$PROCESS
+shapes * * test_envelope.root $CHANNEL:$PROCESS
 -----------------------------------------------------------------------------------------------------------
 
 bin                 obs
@@ -17,7 +16,7 @@ bin                 obs        obs
 process             sig        bkg
 process               0          1
 
-rate             30.256     7307.0
+rate             30.256     3000.0
 
 -----------------------------------------------------------------------------------------------------------
 sigNorm  lnN       1.05          -
