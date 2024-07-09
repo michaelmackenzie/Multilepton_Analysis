@@ -436,13 +436,13 @@ RooAbsPdf* create_zmumu(RooRealVar& obs, int set, bool fix = true, bool add_sys 
   if(add_sys) {
     //mean offset
     RooRealVar* zmumu_mean_shift = new RooRealVar(Form("zmumu_mean_shift_%i%s", set, tag.Data()), "mean sigma shift", 0., -5., 5.);
-    RooRealVar* zmumu_mean_size  = new RooRealVar(Form("zmumu_mean_size_%i%s", set, tag.Data()), "mean uncertainty", 0.5); zmumu_mean_size->setConstant(true);
+    RooRealVar* zmumu_mean_size  = new RooRealVar(Form("zmumu_mean_size_%i%s", set, tag.Data()), "mean uncertainty", 0.2); zmumu_mean_size->setConstant(true);
     // RooRealVar* zmumu_mean_size  = new RooRealVar(Form("zmumu_mean_size_%i%s", set, tag.Data()), "mean uncertainty", 0.5); zmumu_mean_size->setConstant(true);
     RooFormulaVar* zmumu_mean_func = new RooFormulaVar(Form("zmumu_mean_func_%i%s", set, tag.Data()), "mean with offset",
                                                        "@0 + @1*@2", RooArgList(*zmumu_mean, *zmumu_mean_shift, *zmumu_mean_size));
     //width offset
     RooRealVar* zmumu_width_shift = new RooRealVar(Form("zmumu_width_shift_%i%s", set, tag.Data()), "width sigma shift", 0., -5., 5.);
-    RooRealVar* zmumu_width_size  = new RooRealVar(Form("zmumu_width_size_%i%s", set, tag.Data()), "width uncertainty", 0.5); zmumu_width_size->setConstant(true);
+    RooRealVar* zmumu_width_size  = new RooRealVar(Form("zmumu_width_size_%i%s", set, tag.Data()), "width uncertainty", 0.2); zmumu_width_size->setConstant(true);
     RooFormulaVar* zmumu_width_func = new RooFormulaVar(Form("zmumu_width_func_%i%s", set, tag.Data()), "width with offset",
                                                        "@0 + @1*@2", RooArgList(*zmumu_sigma, *zmumu_width_shift, *zmumu_width_size));
 
