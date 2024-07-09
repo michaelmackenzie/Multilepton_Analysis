@@ -856,7 +856,7 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
   }
 
   //allow the embedding tau tau contribution to float if requested
-  if(embed_float_mode_) {
+  if(embed_mode_ > 0 && embed_float_mode_) {
     outfile << Form("Embedding%s_%i rateParam %s Embedding 1. [0.5,1.5]\n\n", (embed_float_mode_ == 2) ? (selection.EndsWith("tau")) ? "_had" : "_lep" : "", years[0], hist.Data());
   }
   //allow the j-->tau contribution to float if requested

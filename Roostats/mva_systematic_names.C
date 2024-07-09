@@ -11,27 +11,28 @@ bool smooth_sys_hist(TString sys, TString process) {
   const bool is_embed = process.Contains("Embed");
   const bool is_data  = process.Contains("QCD") || process.Contains("MisID");
   const bool is_zll   = process == "ZToeemumu";
+  const bool is_ztt   = process == "ZTotautau";
   const bool is_top   = process == "Top";
   const bool is_vb    = process == "OtherVB";
   const bool is_higgs = process == "HiggsBkg";
-  const bool is_zmc   = is_zll || process == "zmutau" || process == "zetau" || process == "zemu" || process.BeginsWith("ZTo");
+  const bool is_zmc   = is_zll || is_ztt || process == "zmutau" || process == "zetau" || process == "zemu" || process.BeginsWith("ZTo");
   const bool is_signal = process.EndsWith("mutau") || process.EndsWith("etau") || process.EndsWith("emu");
 
   //energy scales
   if(sys.BeginsWith("JES"))             return !is_embed; // && !is_data; --> can shift data in Data - MC
   if(sys.BeginsWith("JER"))             return !is_embed; // && !is_data;
-  if(sys.BeginsWith("TauES"))           return true;
+  if(sys.BeginsWith("TauES"))           return true; //embedding is 50% in MC TauES
   if(sys.BeginsWith("TauMuES"))         return is_zll || is_data; //mu/e --> tau_h only important really from Z->ll MC
   if(sys.BeginsWith("TauEleES"))        return is_zll || is_data;
   if(sys.BeginsWith("MuonES"))          return true;
   if(sys.BeginsWith("EleES"))           return true;
-  if(sys.BeginsWith("EmbTauES"))        return is_embed || is_data;
-  if(sys.BeginsWith("EmbMuonES"))       return is_embed || is_data;
-  if(sys.BeginsWith("EmbEleES"))        return is_embed || is_data;
-  if(sys.BeginsWith("EmbDetectorMET"))  return is_embed || is_data;
+  if(sys.BeginsWith("EmbTauES"))        return (embed_mode_ > 0) && (is_embed || is_data);
+  if(sys.BeginsWith("EmbMuonES"))       return (embed_mode_ > 0) && (is_embed || is_data);
+  if(sys.BeginsWith("EmbEleES"))        return (embed_mode_ > 0) && (is_embed || is_data);
+  if(sys.BeginsWith("EmbDetectorMET"))  return (embed_mode_ > 0) && (is_embed || is_data);
   //resolution shifts
-  if(sys.BeginsWith("EmbMuonRes"))      return is_embed || is_data;
-  if(sys.BeginsWith("EmbEleRes"))       return is_embed || is_data;
+  if(sys.BeginsWith("EmbMuonRes"))      return (embed_mode_ > 0) && (is_embed || is_data);
+  if(sys.BeginsWith("EmbEleRes"))       return (embed_mode_ > 0) && (is_embed || is_data);
 
   return false;
 }
@@ -40,13 +41,14 @@ bool is_relevant(TString sys, TString process) {
   const bool is_embed = process.Contains("Embed");
   const bool is_data  = process.Contains("QCD") || process.Contains("MisID");
   const bool is_zll   = process == "ZToeemumu";
+  const bool is_ztt   = process == "ZToeemumu";
   const bool is_top   = process == "Top";
   const bool is_vb    = process == "OtherVB";
   const bool is_higgs = process == "HiggsBkg";
-  const bool is_zmc   = is_zll || process == "zmutau" || process == "zetau" || process == "zemu" || process.BeginsWith("ZTo");
+  const bool is_zmc   = is_zll || is_ztt || process == "zmutau" || process == "zetau" || process == "zemu" || process.BeginsWith("ZTo");
   const bool is_signal = process.EndsWith("mutau") || process.EndsWith("etau") || process.EndsWith("emu");
-  if(sys.BeginsWith("Emb")     ) return is_embed || is_data;
-  if(sys == "XS_Embed"         ) return is_embed || is_data;
+  if(sys.BeginsWith("Emb")     ) return (embed_mode_ > 0) && (is_embed || is_data);
+  if(sys == "XS_Embed"         ) return (embed_mode_ > 0) && (is_embed || is_data);
   if(sys == "XS_ggFH"          ) return is_higgs;
   if(sys == "XS_VBFH"          ) return is_higgs;
   if(sys == "XS_HWW"           ) return is_higgs;
@@ -65,10 +67,10 @@ bool is_relevant(TString sys, TString process) {
   if(sys.BeginsWith("JetToTau")) return is_data;
   if(sys.BeginsWith("QCD")     ) return is_data;
   if(sys.BeginsWith("TauESDM") ) return !is_zll; //fake taus don't use these energy scales
-  if(sys.BeginsWith("TauEleID")) return !is_embed; //only for fake taus
-  if(sys.BeginsWith("TauMuID") ) return !is_embed; //only for fake taus
-  if(sys.BeginsWith("TauEleES")) return !is_embed; //only for fake taus
-  if(sys.BeginsWith("TauMuES") ) return !is_embed; //only for fake taus
+  if(sys.BeginsWith("TauEleID")) return !is_embed && !is_ztt; //only for fake taus
+  if(sys.BeginsWith("TauMuID") ) return !is_embed && !is_ztt; //only for fake taus
+  if(sys.BeginsWith("TauEleES")) return !is_embed && !is_ztt; //only for fake taus
+  if(sys.BeginsWith("TauMuES") ) return !is_embed && !is_ztt; //only for fake taus
   return true; //default to it being relevant
 }
 
