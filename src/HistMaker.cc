@@ -566,6 +566,8 @@ void HistMaker::BookBaseEventHistograms(Int_t i, const char* dirname) {
   Utilities::BookH1F(fEventHist[i]->hRawMet              , "rawmet"              , Form("%s: Raw Met"                 ,dirname)  ,  20,  0,  80, folder);
   Utilities::BookH1F(fEventHist[i]->hRawMetPhi           , "rawmetphi"           , Form("%s: Raw Met phi"             ,dirname)  ,  20,-3.2,3.2, folder);
   Utilities::BookH1F(fEventHist[i]->hRawMetDiff          , "rawmetdiff"          , Form("%s: Raw Met - Met"           ,dirname)  ,  20,-10., 10, folder);
+  Utilities::BookH1F(fEventHist[i]->hMetJERErr           , "metjererr"           , Form("%s: Met JER error"           ,dirname)  ,  20, -5,   5, folder);
+  Utilities::BookH1F(fEventHist[i]->hMetJESErr           , "metjeserr"           , Form("%s: Met JES error"           ,dirname)  ,  20, -5,   5, folder);
 
   Utilities::BookH1F(fEventHist[i]->hNuPt                , "nupt"                , Form("%s: Nu pT"                   ,dirname)  ,  50,  0, 100, folder);
   Utilities::BookH1F(fEventHist[i]->hDetectorMet         , "detectormet"         , Form("%s: Detector Met"            ,dirname)  , 100,  0, 200, folder);
@@ -4454,6 +4456,8 @@ void HistMaker::FillBaseEventHistogram(EventHist_t* Hist) {
   Hist->hRawMet            ->Fill(rawMet             , genWeight*eventWeight)      ;
   Hist->hRawMetPhi         ->Fill(rawMetPhi          , genWeight*eventWeight)      ;
   Hist->hRawMetDiff        ->Fill(rawMet-met         , genWeight*eventWeight)      ;
+  Hist->hMetJERErr         ->Fill(puppMETJERUp - met , genWeight*eventWeight)      ;
+  Hist->hMetJESErr         ->Fill(puppMETJESUp - met , genWeight*eventWeight)      ;
   //approximate met uncertainty
   auto met_sys = ApproxMETSys();
   Hist->hMetUp  ->Fill(met_sys.first , genWeight*eventWeight);

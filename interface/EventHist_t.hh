@@ -130,6 +130,8 @@ namespace CLFV {
     TH1* hMetUp;
     TH1* hMetDown;
     TH1* hMetNoCorr;
+    TH1* hMetJERErr;
+    TH1* hMetJESErr;
     TH1* hCovMet00;
     TH1* hCovMet01;
     TH1* hCovMet11;
