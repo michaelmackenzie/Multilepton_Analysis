@@ -428,10 +428,10 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
     if(is_relevant(name, selec_name) && smooth_sys_hist(name, selec_name)) {
       some_smoothed = true;
       bool debug = false; //name.BeginsWith("JER");
-      // smooth_systematic(hsig, hsig_up  , debug);
-      // smooth_systematic(hsig, hsig_down, debug);
-      smooth_systematic_rebinned(hsig, hsig_up  , debug);
-      smooth_systematic_rebinned(hsig, hsig_down, debug);
+      smooth_systematic(hsig, hsig_up  , debug);
+      smooth_systematic(hsig, hsig_down, debug);
+      // smooth_systematic_rebinned(hsig, hsig_up  , debug);
+      // smooth_systematic_rebinned(hsig, hsig_down, debug);
       // if(debug) return -1;
     }
 
@@ -507,10 +507,10 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
       if(is_relevant(name, hname) && smooth_sys_hist(name, hname)) {
         some_smoothed = true;
         bool debug = false; //name.BeginsWith("JER");
-        // smooth_systematic(hbkg_i, hbkg_i_up  , debug);
-        // smooth_systematic(hbkg_i, hbkg_i_down, debug);
-        smooth_systematic_rebinned(hbkg_i, hbkg_i_up  , debug);
-        smooth_systematic_rebinned(hbkg_i, hbkg_i_down, debug);
+        smooth_systematic(hbkg_i, hbkg_i_up  , debug);
+        smooth_systematic(hbkg_i, hbkg_i_down, debug);
+        // smooth_systematic_rebinned(hbkg_i, hbkg_i_up  , debug);
+        // smooth_systematic_rebinned(hbkg_i, hbkg_i_down, debug);
       }
 
       if(do_fake_bkg_line && hname == "QCD")   qcd_bkg_line += Form("%15.3f", 1.30); //additional 30% uncertainty
