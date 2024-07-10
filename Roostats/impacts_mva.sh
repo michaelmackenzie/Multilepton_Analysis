@@ -18,6 +18,7 @@ Help() {
     echo " --exclude   (-e ): Exclude nuisance parameters (default is none)"
     echo " --fitonly        : Only process fitting steps, not impact PDF"
     echo " --skipinitial    : Skip initial fit"
+    echo " --initialonly    : Only do initial fit"
     echo " --plotonly       : Skip fits, only make plots"
     echo " --parallel N     : Fit with N parallel processes"
     echo " --grid-sub       : Prepare for grid processing of impacts"
@@ -42,6 +43,7 @@ EXCLUDE=""
 INCLUDE=""
 FITONLY=""
 SKIPINITIAL=""
+INITIALONLY=""
 PLOTONLY=""
 PARALLEL=""
 GRIDSUB=""
@@ -105,6 +107,9 @@ do
     elif [[ "${var}" == "--skipinitial" ]]
     then
         SKIPINITIAL="d"
+    elif [[ "${var}" == "--initialonly" ]]
+    then
+        INITIALONLY="d"
     elif [[ "${var}" == "--plotonly" ]]
     then
         PLOTONLY="d"
@@ -119,6 +124,11 @@ do
     elif [[ "${var}" == "--grid-fin" ]]
     then
         GRIDFIN="d"
+    elif [[ "${var}" == "--grid" ]]
+    then
+        echo "--grid isn't defined, use --grid-sub for grid submission and --grid-fin for finishing a grid run"
+        Help
+        exit
     elif [[ "${var}" == "--tag" ]]
     then
         iarg=$((iarg + 1))
@@ -202,16 +212,20 @@ fi
 
 WORKSPACE=`echo ${CARD} | sed 's/.txt/_workspace.root/'`
 JSON=`echo ${CARD} | sed 's/.txt/.json/' | sed 's/.root/.json/' | sed 's/combine_/impacts_/'`
+FITNAME=`echo ${CARD} | sed 's/.txt//' | sed 's/_workspace.root//' | sed 's/.root//' | sed 's/combine_mva_//'`
+# Task name for grid processing
+TASK=`echo ${CARD} | sed 's/.txt//' | sed 's/_workspace.root//' | sed 's/.root//'`
 if [[ "${APPROX}" != "" ]]; then
     JSON=`echo ${JSON} | sed "s/.json/_approx.json/"`
 fi
 if [[ "${TAG}" != "" ]]; then
     JSON=`echo ${JSON} | sed "s/.json/_${TAG}.json/"`
+    FITNAME="${FITNAME}_${TAG}"
+    TASK="${TASK}_${TAG}"
 fi
 
-
-FITNAME=`echo ${CARD} | sed 's/.txt//' | sed 's/_workspace.root//' | sed 's/.root//' | sed 's/combine_mva_//'`
 echo "FITNAME=${FITNAME}"
+
 
 if [[ "${PLOTONLY}" == "" ]]; then
     ARGS=""
@@ -245,6 +259,7 @@ if [[ "${PLOTONLY}" == "" ]]; then
         FITADDITIONAL="${FITADDITIONAL} --cminDefaultMinimizerStrategy 0 --X-rtd MINIMIZER_freezeDisassociatedParams --X-rtd REMOVE_CONSTANT_ZERO_POINT=1 --X-rtd MINIMIZER_multiMin_hideConstants"
     fi
 
+    # Perform initial fits
     if [[ "${APPROX}" == "" ]] && [[ "${SKIPINITIAL}" == "" ]] && [[ "${GRIDFIN}" == "" ]]; then
         COMMAND="combineTool.py -M Impacts -d ${WORKSPACE} -m 0 --rMin -${RRANGE} --rMax ${RRANGE} --robustFit 1 --doInitialFit ${DOOBS} ${FITADDITIONAL} -n ${FITNAME}"
         echo ${COMMAND}
@@ -253,19 +268,30 @@ if [[ "${PLOTONLY}" == "" ]]; then
         fi
     fi
 
+    if [[ "${INITIALONLY}" != "" ]]; then
+        echo "Finished initial processing"
+        exit
+    fi
+
+    # Perform impact fits
     COMMAND="combineTool.py -M Impacts -d ${WORKSPACE} -m 0 --rMin -${RRANGE} --rMax ${RRANGE} --robustFit 1 --doFits ${DOOBS} ${ARGS} ${FITADDITIONAL} -n ${FITNAME}"
     if [[ "${PARALLEL}" != "" ]]; then
         COMMAND="${COMMAND} --parallel ${PARALLEL}"
     fi
     if [[ "${GRIDSUB}" != "" ]]; then
-        TASK=`echo ${CARD} | sed 's/.txt//' | sed 's/_workspace.root//' | sed 's/.root//'`
         echo "Using grid task name ${TASK}"
+        RESULTDIR=grid/${TASK}
+        [ ! -f ${RESULTDIR} ] && mkdir -p ${RESULTDIR}
+        cd ${RESULTDIR}
+        ln -s ../../${WORKSPACE} ${WORKSPACE}
+        mv ../../higgsCombine_initialFit_${FITNAME}.MultiDimFit.mH0.root ./
         echo ">>> ${COMMAND} --job-mode condor --task-name ${TASK} --sub-opts +DesiredOS = \"SL7\""
         if [[ "${DRYRUN}" == "" ]]; then
             ${COMMAND} --job-mode condor --task-name ${TASK} --sub-opts '+DesiredOS = "SL7"'
         fi
         TASKDIR=~/private/grid/combine/${TASK}
-        [ ! -f ${TASKDIR} ] && mkdir -p ${TASKDIR}
+        [ -d ${TASKDIR} ] && rm ${TASKDIR}/*
+        [ ! -d ${TASKDIR} ] && mkdir -p ${TASKDIR}
         COMMAND="mv condor_${TASK}.s* ${TASKDIR}/"
         echo ">>> ${COMMAND}"
         if [[ "${DRYRUN}" == "" ]]; then
@@ -282,7 +308,12 @@ if [[ "${PLOTONLY}" == "" ]]; then
         if [[ "${DRYRUN}" == "" ]]; then
             ${COMMAND}
         fi
+    else
+        RESULTDIR=grid/${TASK}
+        cd ${RESULTDIR}
     fi
+
+    # Compile impact fits
 
     COMMAND="combineTool.py -M Impacts -d ${WORKSPACE} -m 0 --rMin -${RRANGE} --rMax ${RRANGE} --robustFit 1 --output ${JSON} ${DOOBS} ${ARGS} ${FITADDITIONAL} -n ${FITNAME}"
     echo ">>> ${COMMAND}"
@@ -296,6 +327,12 @@ fi
 if [[ "${FITONLY}" ]]; then
     exit
 fi
+
+if [[ "${PLOTONLY}" != "" ]] && [[ "${GRIDFIN}" != "" ]]; then
+    RESULTDIR=grid/${TASK}
+    cd ${RESULTDIR}
+fi
+
 
 #Blind the result if using the observed impacts but not yet unblinding the measurement
 # DOOBS = -t -1 == Asimov
