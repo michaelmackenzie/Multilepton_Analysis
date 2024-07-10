@@ -11,7 +11,7 @@ Help() {
     echo " --skipcards     (-C  ): Skip card creation step flag, only merge cards"
     echo " --retrieveonly  (-RO ): Only do histogram retrieval step flag"
     echo " --parallel      (-p  ): Retrieve histograms in parallel"
-    echo " --tag                 : Tag for produced combine cards (Not implemented)"
+    echo " --tag                 : Tag for produced combine cards"
     echo " --dryrun              : Dry-run flag"
 }
 
