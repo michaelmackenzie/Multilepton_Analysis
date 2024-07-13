@@ -1,13 +1,14 @@
 //Test Z->e+mu background fit closure when fitting the MC
 #include "bemu_fit_bkg_mc.C"
 
-bool   fit_flat_bkgs_  = true;  //fit flat-ish background contributions (WW, ttbar, QCD, and (not flat) Z->mumu)
-bool   fit_dy_bkg_     = false; //fit the Z->tautau background
-int    smooth_hists_   =   0;   //number of times to smooth non-fit background histograms
-double zmumu_scale_    = -1.;   //if >= 0 scale the Z->ee/mumu contribution
-int    use_multi_pdf_  =   0;   //use multi-pdf instead of a single pdf FIXME: Not currently working
-bool   save_templates_ = true;  //save MC templates in an output file
-TString tag_           = "";    //tag for output figure directory
+bool   fit_flat_bkgs_     = true;  //fit flat-ish background contributions (WW, ttbar, QCD, and (not flat) Z->mumu)
+bool   fit_dy_bkg_        = true; //fit the Z->tautau background
+int    smooth_hists_      =   0;   //number of times to smooth non-fit background histograms
+double zmumu_scale_       = -1.;   //if >= 0 scale the Z->ee/mumu contribution
+int    use_multi_pdf_     =   0;   //use multi-pdf instead of a single pdf FIXME: Not currently working
+bool   save_templates_    = true;  //save MC templates in an output file
+bool   exit_after_smooth_ = true; //exit after making smooth templates
+TString tag_              = "_zmumu_total_fit";    //tag for output figure directory and templates
 
 //---------------------------------------------------------------------------------------------------------------------------------------
 // Main function: test the background fit closure of the MC
@@ -48,8 +49,10 @@ int test_bemu_mc_closure(int set = 13, vector<int> years = {2016,2017,2018}, con
   THStack* stack_in = (THStack*) fMC->Get("hstack");
   if(!stack_in) return -2;
 
+  const double xmin(70.), xmax(110.);
+
   //Replace background distributions where needed
-  const int rebin = 1; //rebin the distributions to help statistical uncertainty
+  const int rebin = 0; //rebin the distributions to help statistical uncertainty
   THStack* stack = new THStack("bkg_stack", "Background stack");
   for(int ihist = 0; ihist < stack_in->GetNhists(); ++ihist) {
     TH1* h = (TH1*) stack_in->GetHists()->At(ihist);
@@ -64,17 +67,22 @@ int test_bemu_mc_closure(int set = 13, vector<int> years = {2016,2017,2018}, con
     bool isdy = TString(h->GetName()).Contains("#tau#tau");
     bool isembed = TString(h->GetName()).Contains("Embedding");
     bool iszmumu = TString(h->GetName()).Contains("Z->ee");
+    if(iszmumu) cout << "########### Initial Z->mumu yield = " << CLFV::Utilities::H1Integral(h, xmin, xmax) << endl;
+
     if(isflat) { //flat-ish distributions
       if(fit_flat_bkgs_) {
-        fit_and_replace(h, obs->getMin(), obs->getMax(), Form("plots/latest_production/%s/zemu_mc_closure_%i%s", years_s.Data(), set, tag_.Data()), set, rebin);
-      } else if(smooth_hists_ > 0) h->Smooth(smooth_hists_);
+        if(iszmumu) cout << "########### Before fitting Z->mumu yield = " << CLFV::Utilities::H1Integral(h, xmin, xmax) << " bin width = " << h->GetBinWidth(1) << endl;
+        fit_and_replace(h, xmin, xmax, Form("plots/latest_production/%s/zemu_mc_closure_%i%s", years_s.Data(), set, tag_.Data()), set, rebin);
+        if(iszmumu) cout << "########### After fitting Z->mumu yield = " << CLFV::Utilities::H1Integral(h, xmin, xmax) << " bin width = " << h->GetBinWidth(1) << endl;
+      } else if(!iszmumu && smooth_hists_ > 0) h->Smooth(smooth_hists_);
     }
     if(isdy) { //Z->tautau
       if(fit_dy_bkg_) {
-        fit_and_replace(h, obs->getMin(), obs->getMax(), Form("plots/latest_production/%s/zemu_mc_closure_%i%s", years_s.Data(), set, tag_.Data()), set, rebin);
+        fit_and_replace(h, xmin, xmax, Form("plots/latest_production/%s/zemu_mc_closure_%i%s", years_s.Data(), set, tag_.Data()), set, rebin);
       } else if(smooth_hists_ > 0) h->Smooth(smooth_hists_);
     }
-    if(!isflat && !isdy && smooth_hists_ > 0) h->Smooth(smooth_hists_); //any leftover histogram
+    if(!isflat && !isdy && !iszmumu && smooth_hists_ > 0) h->Smooth(smooth_hists_); //any leftover histogram
+    if(iszmumu) cout << "########### Second Z->mumu yield = " << CLFV::Utilities::H1Integral(h, xmin, xmax) << endl;
     if(zmumu_scale_ >= 0. && iszmumu) h->Scale(zmumu_scale_);
     //scale Embedding to match the Drell-Yan MC normalization
     if(isembed) {
@@ -111,7 +119,7 @@ int test_bemu_mc_closure(int set = 13, vector<int> years = {2016,2017,2018}, con
 
   //Get the MC histogram for generating data
   TH1* hMC = (TH1*) stack->GetStack()->Last()->Clone("hbkg");
-  hMC = make_safe(hMC, obs->getMin(), obs->getMax());
+  hMC = make_safe(hMC, xmin, xmax);
 
   obs->setBins(hMC->GetNbinsX()); //ensure the binning matches
   const int n_init_mc = hMC->Integral() + 0.5;
@@ -184,8 +192,8 @@ int test_bemu_mc_closure(int set = 13, vector<int> years = {2016,2017,2018}, con
     ws_out.Write();
     fout->Write();
     fout->Close();
-    // return 0;
   }
+  if(exit_after_smooth_) return 0;
 
   //Datasets to generate
   const int ngen = (use_multi_pdf_) ? 1000 : 1000;

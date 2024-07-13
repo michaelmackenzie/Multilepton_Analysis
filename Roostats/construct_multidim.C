@@ -116,6 +116,7 @@ double get_hist_chisquare(TH1* model, TH1* data, int* nbins = nullptr) {
 //Get the chi-squared using a by-hand calculation
 double get_manual_subrange_chisquare(RooRealVar& obs, RooAbsPdf* pdf, RooDataHist& data, const char* range = nullptr,
                                      const char* norm_range = nullptr, bool norm_skip = true, int* nbins = nullptr) {
+  if(!pdf) return 0.;
   TH1* htmp_pdf  = pdf->createHistogram("htmp_chisq_pdf" , obs);
   TH1* htmp_data = data.createHistogram("htmp_chisq_data", obs);
   if(htmp_pdf->GetNbinsX() != htmp_data->GetNbinsX()) {
@@ -456,7 +457,7 @@ std::pair<int, double> add_dy_ww(RooDataHist& data, RooRealVar& obs, RooArgList&
 //Embedding-fit motivated PDF
 std::pair<int, double> add_dy_pdf(RooDataHist& data, RooRealVar& obs, RooArgList& list, bool useSideBands, int set, int verbose) {
 
-  //fit a polynomial + Gaussian
+  //fit a linear + Gaussian
   auto basePdf = create_gaus_poly_pdf(obs, 2, set);
   RooAbsPdf* pdf = wrap_pdf(basePdf, data.sumEntries());
   auto res = fit_pdf_to_data(pdf, data, obs, useSideBands, verbose);
@@ -467,11 +468,23 @@ std::pair<int, double> add_dy_pdf(RooDataHist& data, RooRealVar& obs, RooArgList
                        << " (p = " << res.p_ << ")" << endl
                        << "######################\n";
 
+  //force order 1 as the best
   std::pair<int, double> poly_fit_res(list.getSize()-1, res.chi_sq_);
+
+  // //fit a quadratic + Gaussian
+  // basePdf = create_gaus_poly_pdf(obs, 2, set);
+  // pdf = wrap_pdf(basePdf, data.sumEntries());
+  // res = fit_pdf_to_data(pdf, data, obs, useSideBands, verbose);
+  // //force the PDF inclusion
+  // list.add(*basePdf);
+  // if(verbose > 1) cout << "######################\n"
+  //                      << "### DY Gaus+poly PDF has chisq = " << res.chi_sq_ << " / " << res.ndof_ << " = " << res.chi_sq_per_dof_
+  //                      << " (p = " << res.p_ << ")" << endl
+  //                      << "######################\n";
 
   if(use_exp_family_) {
     //fit an exponential + Gaussian
-    basePdf = create_gaus_expo_pdf(obs, 2, set);
+    basePdf = create_gaus_expo_pdf(obs, 1, set);
     pdf = wrap_pdf(basePdf, data.sumEntries());
     res = fit_pdf_to_data(pdf, data, obs, useSideBands, verbose);
     //force the PDF inclusion
@@ -484,7 +497,7 @@ std::pair<int, double> add_dy_pdf(RooDataHist& data, RooRealVar& obs, RooArgList
 
   if(use_power_family_) {
     //fit a power law + Gaussian
-    basePdf = create_gaus_power_pdf(obs, 2, set);
+    basePdf = create_gaus_power_pdf(obs, 1, set);
     pdf = wrap_pdf(basePdf, data.sumEntries());
     res = fit_pdf_to_data(pdf, data, obs, useSideBands, verbose);
     //force the PDF inclusion
@@ -505,11 +518,11 @@ RooMultiPdf* construct_multipdf(RooDataHist& data, RooRealVar& obs, RooCategory&
   RooArgList pdfList;
   std::pair<int, double> result;
   double chi_min = 1e10;
-  // result = add_bernsteins(data, obs, pdfList, useSideBands, set, verbose);
-  // if(result.second < chi_min) {chi_min = result.second; index = result.first;}
-  result = add_chebychevs(data, obs, pdfList, useSideBands, set, verbose);
-  if(result.second < chi_min) {chi_min = result.second; index = result.first;}
   if(!use_dy_ww_shape_) {
+    // result = add_bernsteins(data, obs, pdfList, useSideBands, set, verbose);
+    // if(result.second < chi_min) {chi_min = result.second; index = result.first;}
+    result = add_chebychevs(data, obs, pdfList, useSideBands, set, verbose);
+    if(result.second < chi_min) {chi_min = result.second; index = result.first;}
     if(use_exp_family_) {
       result = add_exponentials(data, obs, pdfList, useSideBands, set, verbose);
       // if(result.second < chi_min) {chi_min = result.second; index = result.first;}

@@ -89,6 +89,13 @@ int fit_zmumu_mc_and_data(int set = 13, vector<int> years = {2016,2017,2018}) {
   //Total Z->mumu MC
   TH1* h_zmumu = (TH1*) h_zmumu_os->Clone("zmumu_mc");
   h_zmumu->Add(h_zmumu_ss);
+  //ensure no negative bins
+  for(int ibin = 0; ibin <= h_zmumu->GetNbinsX() + 1; ++ibin) {
+    if(h_zmumu->GetBinContent(ibin) <= 0.) {
+      h_zmumu->SetBinContent(ibin, 0.);
+      h_zmumu->SetBinError  (ibin, 0.);
+    }
+  }
 
   //Create the RooFit objects
   RooRealVar obs("obs", "M_{e#mu}", 90., xmin, xmax);
@@ -138,13 +145,14 @@ int fit_zmumu_mc_and_data(int set = 13, vector<int> years = {2016,2017,2018}) {
   totalPDF.addPdf(*zmm_pdf,"mc"  );
 
   // Fit the data
-  auto fit_res = totalPDF.fitTo(totalData, RooFit::PrintLevel(-1), RooFit::Warnings(0), RooFit::PrintEvalErrors(-1), RooFit::Range("full"), RooFit::Save());
-  if(fit_res->status() != 0) { //fit failed
-    cout << "##################################################" << endl
-         << "## Fit failed!\n"
-         << "##################################################" << endl;
-    return -1;
-  }
+  auto fit_res = totalPDF.fitTo(totalData, RooFit::Save());
+  // auto fit_res = totalPDF.chi2FitTo(totalData, RooFit::Save());
+  // if(fit_res->status() != 0) { //fit failed
+  //   cout << "##################################################" << endl
+  //        << "## Fit failed!\n"
+  //        << "##################################################" << endl;
+  //   return -1;
+  // }
 
   //Plot the results
   {
@@ -279,6 +287,16 @@ int fit_zmumu_mc_and_data(int set = 13, vector<int> years = {2016,2017,2018}) {
     delete frame;
 
     delete c;
+  }
+
+  //Plot the correlation matrix
+  {
+    TCanvas c;
+    TH2* hcorr = fit_res->correlationHist();
+    gStyle->SetPaintTextFormat(".2f");
+    hcorr->SetAxisRange(-1., 1., "Z");
+    hcorr->Draw("colz text");
+    c.SaveAs(Form("%s/fit_correlation.png", get_fig_dir()));
   }
 
   //get the data rates

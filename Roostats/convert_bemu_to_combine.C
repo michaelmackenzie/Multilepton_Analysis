@@ -22,7 +22,7 @@ bool useMCBkg_      = false; //use the background MC to create background templa
 float zmumu_scale_  =   -1.; //scale to Z->ee/mumu distribution if using MC templates
 bool printPlots_    = true ;
 bool fitSideBands_  = true ; //fit only the data sidebands
-int  replaceData_   =     0; //1: replace the data with toy MC; 2: replace the data with the MC bkg; 3: replace the data with smoothed/fit MC bkg
+int  replaceData_   =     1; //1: replace the data with toy MC; 2: replace the data with the MC bkg; 3: replace the data with smoothed/fit MC bkg
 bool replaceRefit_  = false; //replace data with toy MC, then fit the unblinded toy data
 bool save_          = true ; //save output combine workspace/cards
 
@@ -183,12 +183,13 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
       const bool isdy = TString(h->GetName()).Contains("#tau#tau");
       const bool isembed = TString(h->GetName()).Contains("Embed");
       const bool iszmumu = TString(h->GetName()).Contains("Z->ee");
+
       if(isflat) { //flat-ish distributions
-        fit_and_replace(h, xmin, xmax, mc_fig_dir.Data(), set, 2);
+        fit_and_replace(h, xmin, xmax, mc_fig_dir.Data(), set, 1);
       }
       const bool fit_dy_bkg   = true; //whether or not to fit the Z->tautau background
-      const bool smooth_hists = true; //smooth histograms that aren't fit (Embedding)
-      if(isdy) { //Z->tautau
+      const bool smooth_hists = false; //smooth histograms that aren't fit
+      if(isdy || isembed) { //Z->tautau
         if(fit_dy_bkg) {
           fit_and_replace(h, xmin, xmax, mc_fig_dir.Data(), set, 1);
         } else if(smooth_hists) h->Smooth(1);
@@ -253,7 +254,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
     printf("%s: Unable to retrieve Z->mumu histogram for set %i\n", __func__, set);
     return 10;
   }
-  const float zmumu_yield_corr = (set == 11) ? 0.947 : (set == 12) ? 1.198 : 0.895; //data/MC values from same-sign fits
+  const float zmumu_yield_corr = 1.f; //(set == 11) ? 0.947 : (set == 12) ? 1.198 : 0.895; //data/MC values from same-sign fits
   const float zmumu_yield = (h_zmumu) ? zmumu_yield_corr * CLFV::Utilities::H1Integral(h_zmumu, xmin, xmax) : 0.;
 
   //Get systematics if requested
@@ -385,11 +386,13 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
   RooRealVar* N_sig    = new RooRealVar(Form("N_sig_%i"    , set), "N_sig", 2e5, 0, 3e6);
   RooAddPdf* totsigpdf = new RooAddPdf(Form("totSigPDF_%i" , set), "Signal PDF", RooArgList(*sigPDF), RooArgList(*N_sig));
 
-  totsigpdf->fitTo(*sigData, RooFit::PrintLevel(0), RooFit::Warnings(0), RooFit::PrintEvalErrors(-1), RooFit::SumW2Error(1), RooFit::Extended(1));
+  totsigpdf->fitTo(*sigData, RooFit::PrintLevel(-1), RooFit::Warnings(0), RooFit::PrintEvalErrors(-1), RooFit::SumW2Error(1), RooFit::Extended(1));
 
   if(fixSignalPDF_) { //freeze the signal PDF parameters after fitting
     for(auto var : sig_pdf_vars) var->setConstant(true);
   }
+
+  if(useMCBkg_) addESShifts_ = 0; //ignore systematic shifts if using the MC background (to not vary in generated toys)
 
   if(addESShifts_) { //if including ES effects, unfreeze the nuisance parameters
      elec_ES_shift->setConstant(false);
@@ -414,18 +417,28 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
   // Model the Z->mumu background
   //////////////////////////////////////////////////////////////////
 
-  RooAbsPdf* zmumu  = create_zmumu(*lepm, set, true, zmumu_model_ > 0 && zmumu_pdf_sys_ == 1);
-  RooRealVar *zmumu_mean_shift(nullptr), *zmumu_width_shift(nullptr);
+  if(useMCBkg_) zmumu_model_ = 0;
+  RooAbsPdf* zmumu  = create_zmumu(*lepm, set, true, (zmumu_model_ == 0) ? 0 : zmumu_pdf_sys_);
+  RooRealVar *zmumu_mean_shift(nullptr), *zmumu_width_shift(nullptr), *zmumu_mean_width_shift(nullptr), *zmumu_alpha_shift(nullptr), *zmumu_enne_shift(nullptr); //PDF nuisances
   if(zmumu_model_) {
     additional_bkg_      = zmumu;
     additional_bkg_norm_ = zmumu_yield;
-    if(zmumu_pdf_sys_ == 1) {
+    if(zmumu_pdf_sys_ > 0) {
       RooArgList zmumu_vars(*(zmumu->getVariables()));
       const int var_size = zmumu_vars.getSize();
-      zmumu_mean_shift  = (RooRealVar*) zmumu_vars.at(var_size-5); //FIXME: Loop through and find these
-      zmumu_width_shift = (RooRealVar*) zmumu_vars.at(var_size-2);
-      zmumu_mean_shift ->setConstant(true); //freeze for initial fits
-      zmumu_width_shift->setConstant(true);
+      for(int index = 0; index < var_size; ++index) {
+        auto arg = zmumu_vars.at(index);
+        if(TString(arg->GetName()).Contains("zmumu_mean_shift"))       zmumu_mean_shift       = (RooRealVar*) arg;
+        if(TString(arg->GetName()).Contains("zmumu_width_shift"))      zmumu_width_shift      = (RooRealVar*) arg;
+        if(TString(arg->GetName()).Contains("zmumu_mean_width_shift")) zmumu_mean_width_shift = (RooRealVar*) arg;
+        if(TString(arg->GetName()).Contains("zmumu_alpha_shift"))      zmumu_alpha_shift      = (RooRealVar*) arg;
+        if(TString(arg->GetName()).Contains("zmumu_enne_shift"))       zmumu_enne_shift       = (RooRealVar*) arg;
+      }
+      if(zmumu_mean_shift)       zmumu_mean_shift      ->setConstant(true); //freeze for initial fits
+      if(zmumu_width_shift)      zmumu_width_shift     ->setConstant(true);
+      if(zmumu_mean_width_shift) zmumu_mean_width_shift->setConstant(true);
+      if(zmumu_alpha_shift)      zmumu_alpha_shift     ->setConstant(true);
+      if(zmumu_enne_shift)       zmumu_enne_shift      ->setConstant(true);
     }
   }
 
@@ -460,6 +473,8 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
     } else {
       bkgPDF->SetName("bkg");
     }
+    //set the penalty term for N(params) in a function
+    multiPDF->setCorrectionFactor(0.);
   } else {
     bkgPDF = new RooHistPdf("bkg", "MC template PDF", *lepm, *bkgMCData);
   }
@@ -533,6 +548,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
 
     int nentries = dataData->numEntries();
     RooAbsPdf* pdf_to_plot = base_to_wrapped[bkgPDF];
+    if(!pdf_to_plot) pdf_to_plot = bkgPDF;
     double chi_sq = get_chi_squared(*lepm, pdf_to_plot, *dataData, fitSideBands_, &nentries);
     pdf_to_plot->plotOn(xframe, RooFit::Name(bkgPDF->GetName()), RooFit::LineColor(kBlue), RooFit::LineStyle(kSolid),
                         RooFit::NormRange("full"), RooFit::Range("full"));
@@ -607,7 +623,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
     //Create data - background fit histograms
     const double norm = CLFV::Utilities::H1Integral(data, xmin, xmax); //ndata; //N(data) in fit region
 
-    TH1* dataDiff = data_pdf_diff((blind_data_) ? blindDataHist : dataData, base_to_wrapped[bkgPDF], *lepm, norm,
+    TH1* dataDiff = data_pdf_diff((blind_data_) ? blindDataHist : dataData, (base_to_wrapped[bkgPDF]) ? base_to_wrapped[bkgPDF] : bkgPDF, *lepm, norm,
                                   (blind_data_) ? blind_min : blind_max + 1., blind_max);
     dataDiff->SetName("dataDiff");
     dataDiff->SetTitle("");
@@ -717,8 +733,11 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
     bkg_norm += Form("zmumu_yield_%i lnN          -              -         1.20\n", set); //20% uncertainty on Z->mumu (from same-sign background fits)
     zmumu->SetName("zmumu");
     if(zmumu_pdf_sys_ > 0) {
-      zmumu_mean_shift ->setConstant(false); //release the frozen nuisance parameters
-      zmumu_width_shift->setConstant(false);
+      if(zmumu_mean_shift)       zmumu_mean_shift      ->setConstant(false); //release the frozen nuisance parameters
+      if(zmumu_width_shift)      zmumu_width_shift     ->setConstant(false);
+      if(zmumu_mean_width_shift) zmumu_mean_width_shift->setConstant(false);
+      if(zmumu_alpha_shift)      zmumu_alpha_shift     ->setConstant(false);
+      if(zmumu_enne_shift)       zmumu_enne_shift      ->setConstant(false);
     }
     ws->import(*zmumu, RooFit::RecycleConflictNodes());
     ++ncat; //increment the number of processes
@@ -801,15 +820,18 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
 
   //include constraints for the energy scale uncertainties
   if(addESShifts_) {
-    outfile << Form("%10s param 0 1\n", muon_ES_shift->GetName());
-    outfile << Form("%10s param 0 1\n", elec_ES_shift->GetName());
+    outfile << Form("%10s param 0 1 [-7, 7]\n", muon_ES_shift->GetName());
+    outfile << Form("%10s param 0 1 [-7, 7]\n", elec_ES_shift->GetName());
     outfile << "\n";
   }
 
   //include constraints for Z->mumu PDF
   if(zmumu_model_ > 0 && zmumu_pdf_sys_ > 0) {
-    outfile << Form("%10s param 0 1\n", Form("zmumu_mean_shift_%i" , set));
-    outfile << Form("%10s param 0 1\n", Form("zmumu_width_shift_%i", set));
+    if(zmumu_mean_shift)       outfile << Form("%10s param 0 1 [-7, 7]\n", Form("zmumu_mean_shift_%i"      , set));
+    if(zmumu_width_shift)      outfile << Form("%10s param 0 1 [-7, 7]\n", Form("zmumu_width_shift_%i"     , set));
+    if(zmumu_mean_width_shift) outfile << Form("%10s param 0 1 [-7, 7]\n", Form("zmumu_mean_width_shift_%i", set));
+    if(zmumu_alpha_shift)      outfile << Form("%10s param 0 1 [-7, 7]\n", Form("zmumu_alpha_shift_%i"     , set));
+    if(zmumu_enne_shift)       outfile << Form("%10s param 0 1 [-7, 7]\n", Form("zmumu_enne_shift_%i"      , set));
     outfile << "\n";
   }
   outfile.close();

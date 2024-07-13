@@ -2,6 +2,7 @@
 #define __BEMU_BKG_FUNCTIONS__
 // Define PDFs/functions to describe the B->e+mu background fits
 
+//------------------------------------------------------------------------------------------------------------------
 //Create an exponential PDF sum
 RooAbsPdf* create_exponential(RooRealVar& obs, int order, int set, TString tag = "") {
   if(order <= 0) {
@@ -29,6 +30,7 @@ RooAbsPdf* create_exponential(RooRealVar& obs, int order, int set, TString tag =
   return new RooAddPdf(Form("exp_%i_pdf_order_%i%s", set, order, tag.Data()), Form("Exponential PDF, order %i", order), pdfs, coefficients);
 }
 
+//------------------------------------------------------------------------------------------------------------------
 //Create an exponential PDF sum (recursive RooAddPdf form)
 RooAbsPdf* create_recursive_exponential(RooRealVar& obs, int order, int set, TString tag = "") {
   if(order <= 0) {
@@ -56,6 +58,7 @@ RooAbsPdf* create_recursive_exponential(RooRealVar& obs, int order, int set, TSt
   return new RooAddPdf(Form("exp_%i_pdf_order_%i%s", set, order, tag.Data()), Form("Exponential PDF, order %i", order), pdfs, coefficients, true);
 }
 
+//------------------------------------------------------------------------------------------------------------------
 //Create an exponential PDF sum from RooGenericPdf
 RooAbsPdf* create_generic_exponential(RooRealVar& obs, int order, int set, TString tag = "") {
   if(order <= 0) return nullptr;
@@ -91,6 +94,7 @@ RooAbsPdf* create_generic_exponential(RooRealVar& obs, int order, int set, TStri
   return pdf;
 }
 
+//------------------------------------------------------------------------------------------------------------------
 //Create an power law PDF sum
 RooAbsPdf* create_powerlaw(RooRealVar& obs, int order, int set, TString tag = "") {
   if(order <= 0) {
@@ -118,6 +122,7 @@ RooAbsPdf* create_powerlaw(RooRealVar& obs, int order, int set, TString tag = ""
   return new RooAddPdf(Form("pwr_%i_pdf_order_%i%s", set, order, tag.Data()), Form("Power law PDF, order %i", order), pdfs, coefficients, true);
 }
 
+//------------------------------------------------------------------------------------------------------------------
 //Create an power law PDF sum from RooGenericPdf
 RooAbsPdf* create_generic_powerlaw(RooRealVar& obs, int order, int set, TString tag = "") {
   vector<RooRealVar*> vars;
@@ -144,6 +149,7 @@ RooAbsPdf* create_generic_powerlaw(RooRealVar& obs, int order, int set, TString 
   return pdf;
 }
 
+//------------------------------------------------------------------------------------------------------------------
 //Create a Laurent series PDF sum
 RooAbsPdf* create_laurent(RooRealVar& obs, int order, int set, TString tag = "") {
   if(order <= 0 || order > 6) {
@@ -217,13 +223,15 @@ RooGenericPdf* create_gaus_poly_pdf(RooRealVar& obs, int order, int set, TString
                                 60., 50., 70.)); //mean
   vars.push_back(new RooRealVar(Form("gaus_poly_%i_order_%i_g_1%s", set, order, tag.Data()),
                                 Form("gaus_poly_%i_order_%i_g_1%s", set, order, tag.Data()),
-                                11., 7., 15.)); //sigma
+                                11., 5., 20.)); //sigma
 
   //add the polynomial parameters
   for(int i = 0; i < order+1; ++i) { //N(params) = order + 1 = a +bx + ...
     vars.push_back(new RooRealVar(Form("gaus_poly_%i_order_%i_p_%i%s", set, order, i, tag.Data()),
                                   Form("gaus_poly_%i_order_%i_p_%i%s", set, order, i, tag.Data()),
-                                  (i == 0) ? 0.5 : 0., (order == 0) ? 0. : (i == 0) ? -3. : -1., (i == 0) ? 3. : 1.));
+                                  (i == 0) ? 0.5 :  0. ,
+                                  (i == 0) ? -3. : -1,
+                                  (i == 0) ?  3. :  1));
   }
   for(auto var : vars) var_list.add(*var);
   RooGenericPdf* pdf = new RooGenericPdf(Form("gaus_poly_%i_pdf_order_%i%s", set, order, tag.Data()), formula.Data(), var_list);
@@ -243,8 +251,8 @@ RooGenericPdf* create_gaus_expo_pdf(RooRealVar& obs, int order, int set, TString
   TString formula = "";
   //define the formula for fixed orders
   if     (order ==  0) formula = "TMath::Gaus(@0, @1, @2)";
-  else if(order ==  1) formula = "TMath::Gaus(@0, @1, @2) + @3*TMath::Exp(@4*@0)";
-  else if(order ==  2) formula = "TMath::Gaus(@0, @1, @2) + @3*TMath::Exp(@4*@0) + @5*TMath::Exp(@6*@0)";
+  else if(order ==  1) formula = "TMath::Gaus(@0, @1, @2) + TMath::Exp(@3 + @4*@0/90)";
+  else if(order ==  2) formula = "TMath::Gaus(@0, @1, @2) + TMath::Exp(@3 + @4*@0/90) + TMath::Exp(@5 + @6*@0/90)";
   else return nullptr;
   //add the Gaussian parameters
   vars.push_back(new RooRealVar(Form("gaus_expo_%i_order_%i_g_0%s", set, order, tag.Data()),
@@ -258,10 +266,10 @@ RooGenericPdf* create_gaus_expo_pdf(RooRealVar& obs, int order, int set, TString
   for(int i = 0; i < order; ++i) {
     vars.push_back(new RooRealVar(Form("gaus_expo_%i_order_%i_n_%i%s", set, order, i, tag.Data()),
                                   Form("gaus_expo_%i_order_%i_n_%i%s", set, order, i, tag.Data()),
-                                  100., 0., 1.e8));
+                                  1., -10., 10.));
     vars.push_back(new RooRealVar(Form("gaus_expo_%i_order_%i_p_%i%s", set, order, i, tag.Data()),
                                   Form("gaus_expo_%i_order_%i_p_%i%s", set, order, i, tag.Data()),
-                                  -0.05, -3., 3.));
+                                  -3., -10., 5.));
   }
   for(auto var : vars) var_list.add(*var);
   RooGenericPdf* pdf = new RooGenericPdf(Form("gaus_expo_%i_pdf_order_%i%s", set, order, tag.Data()), formula.Data(), var_list);
@@ -281,8 +289,8 @@ RooGenericPdf* create_gaus_power_pdf(RooRealVar& obs, int order, int set, TStrin
   TString formula = "";
   //define the formula for fixed orders
   if     (order ==  0) formula = "TMath::Gaus(@0, @1, @2)";
-  else if(order ==  1) formula = "TMath::Gaus(@0, @1, @2) + @3*TMath::Power(@0, @4)";
-  else if(order ==  2) formula = "TMath::Gaus(@0, @1, @2) + @3*TMath::Power(@0, @4) + @5*TMath::Power(@0, @6)";
+  else if(order ==  1) formula = "TMath::Gaus(@0, @1, @2) + @3*TMath::Power(@0/90, @4)";
+  else if(order ==  2) formula = "TMath::Gaus(@0, @1, @2) + @3*TMath::Power(@0/90, @4) + @5*TMath::Power(@0/90, @6)";
   else return nullptr;
   //add the Gaussian parameters
   vars.push_back(new RooRealVar(Form("gaus_power_%i_order_%i_g_0%s", set, order, tag.Data()),
@@ -296,10 +304,10 @@ RooGenericPdf* create_gaus_power_pdf(RooRealVar& obs, int order, int set, TStrin
   for(int i = 0; i < order; ++i) {
     vars.push_back(new RooRealVar(Form("gaus_power_%i_order_%i_n_%i%s", set, order, i, tag.Data()),
                                   Form("gaus_power_%i_order_%i_n_%i%s", set, order, i, tag.Data()),
-                                  70., 0., 1.e8));
+                                  1., 0., 3.));
     vars.push_back(new RooRealVar(Form("gaus_power_%i_order_%i_p_%i%s", set, order, i, tag.Data()),
                                   Form("gaus_power_%i_order_%i_p_%i%s", set, order, i, tag.Data()),
-                                  -1., -3., 3.));
+                                  -1., -10., 3.));
   }
   for(auto var : vars) var_list.add(*var);
   RooGenericPdf* pdf = new RooGenericPdf(Form("gaus_power_%i_pdf_order_%i%s", set, order, tag.Data()), formula.Data(), var_list);
@@ -332,6 +340,7 @@ RooChebychev* create_chebychev(RooRealVar& obs, int order, int set, TString tag 
   return new RooChebychev(Form("chb_%i_order_%i%s", set, order, tag.Data()), Form("Chebychev PDF, order %i", order), obs, list);
 }
 
+//------------------------------------------------------------------------------------------------------------------
 RooAbsPdf* create_generic_bernstein(RooRealVar& obs, int order, int set, TString tag = "") {
   if(order <= 0) {
     cout << __func__ << ": Can't create order " << order << " PDF!\n";
@@ -360,6 +369,7 @@ RooAbsPdf* create_generic_bernstein(RooRealVar& obs, int order, int set, TString
   return pdf;
 }
 
+//------------------------------------------------------------------------------------------------------------------
 //Create a Combine fast Bernstein polynomial PDF
 RooAbsPdf* create_fast_bernstein(RooRealVar& obs, const int order, int set, TString tag = "") {
   if(order <= 0) {
@@ -402,6 +412,7 @@ RooAbsPdf* create_fast_bernstein(RooRealVar& obs, const int order, int set, TStr
   return pdf;
 }
 
+//------------------------------------------------------------------------------------------------------------------
 //Create a Bernstein polynomial PDF
 RooAbsPdf* create_bernstein(RooRealVar& obs, const int order, int set, TString tag = "") {
   if(order <= 0) {
@@ -418,13 +429,19 @@ RooAbsPdf* create_bernstein(RooRealVar& obs, const int order, int set, TString t
   return pdf;
 }
 
+//------------------------------------------------------------------------------------------------------------------
 //Create a Z->mumu PDF
-RooAbsPdf* create_zmumu(RooRealVar& obs, int set, bool fix = true, bool add_sys = false, TString tag = "") {
+// add_sys modes:
+//  0: no shape uncertainties
+//  1: uncorrelated uncertainty on mean and width
+//  2: correlated uncertainty on mean and width
+//  3: correlated and uncorrelated uncertainty on mean and width NOT IMPLEMENTED
+RooAbsPdf* create_zmumu(RooRealVar& obs, int set, bool fix = true, int add_sys = 0, TString tag = "") {
   //tail parameters
-  RooRealVar* zmumu_alpha1 = new RooRealVar(Form("zmumu_alpha1_%i%s", set, tag.Data()), "alpha1", 1.22, 0.8,  5.);
-  RooRealVar* zmumu_alpha2 = new RooRealVar(Form("zmumu_alpha2_%i%s", set, tag.Data()), "alpha2", 1.78, 0.5,  5.);
-  RooRealVar* zmumu_enne1  = new RooRealVar(Form("zmumu_enne1_%i%s" , set, tag.Data()), "enne1" , 0.36, 0.5, 10.);
-  RooRealVar* zmumu_enne2  = new RooRealVar(Form("zmumu_enne2_%i%s" , set, tag.Data()), "enne2" , 9.14, 1.0, 10.);
+  RooRealVar* zmumu_alpha1 = new RooRealVar(Form("zmumu_alpha1_%i%s", set, tag.Data()), "alpha1", 1.22, 0.,  5.);
+  RooRealVar* zmumu_alpha2 = new RooRealVar(Form("zmumu_alpha2_%i%s", set, tag.Data()), "alpha2", 1.78, 0.,  5.);
+  RooRealVar* zmumu_enne1  = new RooRealVar(Form("zmumu_enne1_%i%s" , set, tag.Data()), "enne1" , 0.36, 0., 10.);
+  RooRealVar* zmumu_enne2  = new RooRealVar(Form("zmumu_enne2_%i%s" , set, tag.Data()), "enne2" , 9.14, 0., 10.);
 
   //Gaussian core
   RooRealVar* zmumu_mean  = new RooRealVar(Form("zmumu_mean_%i%s"  , set, tag.Data()), "mean"  , 84.4, 70., 90.);
@@ -432,23 +449,53 @@ RooAbsPdf* create_zmumu(RooRealVar& obs, int set, bool fix = true, bool add_sys 
 
   RooAbsPdf* zmumu;
 
-  //if using systematics, construct the mean/width with nuisance parameters
-  if(add_sys) {
+  //if using systematics, construct the uncertain parameters with nuisances
+  if(add_sys > 0 && add_sys < 4) { //uncertainties on the mean and/or width
     //mean offset
+    const double mean_sys = 0.2; //uncertainty on the mean
     RooRealVar* zmumu_mean_shift = new RooRealVar(Form("zmumu_mean_shift_%i%s", set, tag.Data()), "mean sigma shift", 0., -5., 5.);
-    RooRealVar* zmumu_mean_size  = new RooRealVar(Form("zmumu_mean_size_%i%s", set, tag.Data()), "mean uncertainty", 0.2); zmumu_mean_size->setConstant(true);
-    // RooRealVar* zmumu_mean_size  = new RooRealVar(Form("zmumu_mean_size_%i%s", set, tag.Data()), "mean uncertainty", 0.5); zmumu_mean_size->setConstant(true);
-    RooFormulaVar* zmumu_mean_func = new RooFormulaVar(Form("zmumu_mean_func_%i%s", set, tag.Data()), "mean with offset",
-                                                       "@0 + @1*@2", RooArgList(*zmumu_mean, *zmumu_mean_shift, *zmumu_mean_size));
+    RooRealVar* zmumu_mean_size  = new RooRealVar(Form("zmumu_mean_size_%i%s", set, tag.Data()), "mean uncertainty", mean_sys); zmumu_mean_size->setConstant(true);
     //width offset
+    const double width_sys = 0.2; //uncertainty on the width
     RooRealVar* zmumu_width_shift = new RooRealVar(Form("zmumu_width_shift_%i%s", set, tag.Data()), "width sigma shift", 0., -5., 5.);
-    RooRealVar* zmumu_width_size  = new RooRealVar(Form("zmumu_width_size_%i%s", set, tag.Data()), "width uncertainty", 0.2); zmumu_width_size->setConstant(true);
-    RooFormulaVar* zmumu_width_func = new RooFormulaVar(Form("zmumu_width_func_%i%s", set, tag.Data()), "width with offset",
-                                                       "@0 + @1*@2", RooArgList(*zmumu_sigma, *zmumu_width_shift, *zmumu_width_size));
+    RooRealVar* zmumu_width_size  = new RooRealVar(Form("zmumu_width_size_%i%s", set, tag.Data()), "width uncertainty", width_sys); zmumu_width_size->setConstant(true);
 
-    zmumu  = new RooDoubleCrystalBall(Form("zmumu_%i%s"    , set, tag.Data()), "Z->#mu#mu PDF", obs,
+    //effective mean and width
+    RooFormulaVar *zmumu_mean_func, *zmumu_width_func;
+    if(add_sys == 3) { cout << __func__ << ": add_sys mode 3 is not implemented! Defaulting to mode 1\n"; add_sys = 1; }
+    if(add_sys == 1) { //separate uncertainty for each
+      zmumu_mean_func = new RooFormulaVar(Form("zmumu_mean_func_%i%s", set, tag.Data()), "mean with offset",
+                                          "@0 + @1*@2", RooArgList(*zmumu_mean, *zmumu_mean_shift, *zmumu_mean_size));
+      zmumu_width_func = new RooFormulaVar(Form("zmumu_width_func_%i%s", set, tag.Data()), "width with offset",
+                                           "@0 + @1*@2", RooArgList(*zmumu_sigma, *zmumu_width_shift, *zmumu_width_size));
+    } else if(add_sys == 2) { //negatively correlated uncertainty
+      zmumu_mean_func = new RooFormulaVar(Form("zmumu_mean_func_%i%s", set, tag.Data()), "mean with offset",
+                                          "@0 + @1*@2", RooArgList(*zmumu_mean, *zmumu_mean_shift, *zmumu_mean_size));
+      zmumu_width_func = new RooFormulaVar(Form("zmumu_width_func_%i%s", set, tag.Data()), "width with offset", //use the mean shift variable with a minus sign
+                                           "@0 - @1*@2", RooArgList(*zmumu_sigma, *zmumu_mean_shift, *zmumu_width_size));
+    } else if(add_sys == 3) { //an uncorrelated and correlated component
+      cout << __func__ << ": add_sys == 3 not implemented\n";
+    }
+
+    zmumu  = new RooDoubleCrystalBall(Form("zmumu_%i%s", set, tag.Data()), "Z->#mu#mu PDF", obs,
                                       *zmumu_mean_func, *zmumu_width_func, *zmumu_alpha1, *zmumu_enne1, *zmumu_alpha2, *zmumu_enne2);
-  } else {
+  } else if(add_sys == 4) { //uncertainty on the right tail stitching point
+    const double alpha_sys = 0.15; //uncertainty alpha_2
+    RooRealVar* zmumu_alpha_shift = new RooRealVar(Form("zmumu_alpha_shift_%i%s", set, tag.Data()), "alpha sigma shift", 0., -5., 5.);
+    RooRealVar* zmumu_alpha_size  = new RooRealVar(Form("zmumu_alpha_size_%i%s", set, tag.Data()), "alpha uncertainty", alpha_sys); zmumu_alpha_size->setConstant(true);
+    RooFormulaVar* zmumu_alpha_func = new RooFormulaVar(Form("zmumu_alpha_func_%i%s", set, tag.Data()), "alpha with offset",
+                                                         "@0 + @1*@2", RooArgList(*zmumu_alpha2, *zmumu_alpha_shift, *zmumu_alpha_size));
+    zmumu  = new RooDoubleCrystalBall(Form("zmumu_%i%s", set, tag.Data()), "Z->#mu#mu PDF", obs,
+                                      *zmumu_mean, *zmumu_sigma, *zmumu_alpha1, *zmumu_enne1, *zmumu_alpha_func, *zmumu_enne2);
+  } else if(add_sys == 5) { //uncertainty on the right tail power law
+    const double enne_sys = 0.40; //uncertainty enne_2
+    RooRealVar* zmumu_enne_shift = new RooRealVar(Form("zmumu_enne_shift_%i%s", set, tag.Data()), "enne sigma shift", 0., -5., 5.);
+    RooRealVar* zmumu_enne_size  = new RooRealVar(Form("zmumu_enne_size_%i%s", set, tag.Data()), "enne uncertainty", enne_sys); zmumu_enne_size->setConstant(true);
+    RooFormulaVar* zmumu_enne_func = new RooFormulaVar(Form("zmumu_enne_func_%i%s", set, tag.Data()), "enne with offset",
+                                                         "@0 + @1*@2", RooArgList(*zmumu_enne2, *zmumu_enne_shift, *zmumu_enne_size));
+    zmumu  = new RooDoubleCrystalBall(Form("zmumu_%i%s", set, tag.Data()), "Z->#mu#mu PDF", obs,
+                                      *zmumu_mean, *zmumu_sigma, *zmumu_alpha1, *zmumu_enne1, *zmumu_alpha2, *zmumu_enne_func);
+  } else { //no systematics on the PDF
     zmumu_mean  = new RooRealVar(Form("zmumu_mean_%i%s"  , set, tag.Data()), "mean"  , 84.4, 70., 90.);
     zmumu_sigma = new RooRealVar(Form("zmumu_sigma_%i%s" , set, tag.Data()), "sigma" , 4.48,  3., 10.);
     zmumu  = new RooDoubleCrystalBall(Form("zmumu_%i%s"    , set, tag.Data()), "Z->#mu#mu PDF", obs,
@@ -456,31 +503,32 @@ RooAbsPdf* create_zmumu(RooRealVar& obs, int set, bool fix = true, bool add_sys 
   }
 
 
-  const bool use_data_fit(true); //shape fits from same sign data vs. opposite sign MC
+  const bool use_data_fit(false); //shape fits from same sign data vs. opposite sign MC
+  const bool use_total_fit(true); //shape fits from same sign data + same and opposite sign MC
   if(set == 13) { //high score region
-    zmumu_mean  ->setVal((use_data_fit) ? 84.5 : 84.7);
-    zmumu_sigma ->setVal((use_data_fit) ? 4.86 : 4.45);
-    zmumu_alpha1->setVal((use_data_fit) ? 0.80 : 1.36);
-    zmumu_alpha2->setVal((use_data_fit) ? 1.70 : 1.34);
-    zmumu_enne1 ->setVal((use_data_fit) ? 10.0 : 0.50);
-    zmumu_enne2 ->setVal((use_data_fit) ? 1.00 : 1.00);
+    zmumu_mean  ->setVal((use_total_fit) ? 84.04 : (use_data_fit) ? 84.5 : 84.05);
+    zmumu_sigma ->setVal((use_total_fit) ?  5.04 : (use_data_fit) ? 4.86 : 4.95);
+    zmumu_alpha1->setVal((use_total_fit) ? 1.012 : (use_data_fit) ? 0.80 : 1.02);
+    zmumu_alpha2->setVal((use_total_fit) ? 3.096 : (use_data_fit) ? 1.70 : 1.34);
+    zmumu_enne1 ->setVal((use_total_fit) ? 0.675 : (use_data_fit) ? 10.0 : 0.63);
+    zmumu_enne2 ->setVal((use_total_fit) ? 5.e-5 : (use_data_fit) ? 1.00 : 0.50);
   } else if(set == 12) { //medium score region
-    zmumu_mean  ->setVal((use_data_fit) ? 81.6 : 82.9);
-    zmumu_sigma ->setVal((use_data_fit) ? 5.71 : 4.79);
-    zmumu_alpha1->setVal((use_data_fit) ? 0.80 : 0.80);
-    zmumu_alpha2->setVal((use_data_fit) ? 1.72 : 2.99);
-    zmumu_enne1 ->setVal((use_data_fit) ? 10.0 : 0.57);
-    zmumu_enne2 ->setVal((use_data_fit) ? 1.00 : 9.12);
+    zmumu_mean  ->setVal((use_total_fit) ? 82.68 : (use_data_fit) ? 81.6 : 82.9);
+    zmumu_sigma ->setVal((use_total_fit) ? 4.887 : (use_data_fit) ? 5.71 : 4.79);
+    zmumu_alpha1->setVal((use_total_fit) ? 0.339 : (use_data_fit) ? 0.80 : 0.80);
+    zmumu_alpha2->setVal((use_total_fit) ? 2.020 : (use_data_fit) ? 1.72 : 2.99);
+    zmumu_enne1 ->setVal((use_total_fit) ? 10.00 : (use_data_fit) ? 10.0 : 0.57);
+    zmumu_enne2 ->setVal((use_total_fit) ? 0.870 : (use_data_fit) ? 1.00 : 9.12);
   } else { //low score region (or undefined region)
-    zmumu_mean  ->setVal(80.2); //data fits are unstable, so use MC fits
-    zmumu_sigma ->setVal(6.37);
-    zmumu_alpha1->setVal(1.96);
-    zmumu_alpha2->setVal(1.65);
-    zmumu_enne1 ->setVal(9.38);
-    zmumu_enne2 ->setVal(1.65);
+    zmumu_mean  ->setVal((use_total_fit) ? 80.16 : 80.2); //data fits are unstable, so use MC fits
+    zmumu_sigma ->setVal((use_total_fit) ? 6.997 : 6.37);
+    zmumu_alpha1->setVal((use_total_fit) ? 2.664 : 1.96);
+    zmumu_alpha2->setVal((use_total_fit) ? 1.882 : 1.65);
+    zmumu_enne1 ->setVal((use_total_fit) ? 7.688 : 9.38);
+    zmumu_enne2 ->setVal((use_total_fit) ? 1.322 : 1.65);
   }
 
-  //freeze the parameters if not being fit
+  //freeze the parameters if not being fit to data or MC
   if(fix) {
     zmumu_mean  ->setConstant(true);
     zmumu_sigma ->setConstant(true);

@@ -121,14 +121,31 @@ void fit_and_replace(TH1* h, double xmin, double xmax, const char* fig_dir = nul
   } else if(TString(h->GetName()).Contains("Z->ee")){ //Z->ee/mumu
     func = new TF1("func", dscb_func, xmin, 100., 7, 1);
     func->SetParameters(hfit->Integral(), 83., 5., 1.056, 7.490, 1.000, 7.597);
-    // func->SetParameters(hfit->Integral(), 82.8, 5.1, 1., 0.33, 1.9, 1.1);
     func->SetParNames("Norm", "#mu", "#sigma", "#alpha_{1}", "n_{1}", "#alpha_{2}", "n_{2}");
-    func->SetParLimits(func->GetParNumber("#mu"), 70., 90.);
-    func->SetParLimits(func->GetParNumber("#sigma"), 3., 10.);
-    func->SetParLimits(func->GetParNumber("n_{1}"), 0.5, 10.);
-    func->SetParLimits(func->GetParNumber("n_{2}"), 1.0, 10.);
-    func->SetParLimits(func->GetParNumber("#alpha_{1}"), 0.8, 5.);
-    func->SetParLimits(func->GetParNumber("#alpha_{2}"), 0.5, 5.);
+    const bool fit_to_mc = false; //whether to use fit results or repeat fit
+    if(!fit_to_mc) {
+      if(set == 11) {
+        func->SetParameters(hfit->Integral(), 80.16, 6.997, 2.664, 7.688, 1.882, 1.322);
+      } else if(set == 12) {
+        func->SetParameters(hfit->Integral(), 82.68, 4.887, 0.339, 10.00, 2.020, 0.870);
+      } else { //default to set 13 results
+        func->SetParameters(hfit->Integral(), 84.04, 5.04, 1.012, 0.675, 3.096, 5e-5);
+      }
+      //freeze to the MC+data total fit values
+      func->FixParameter(func->GetParNumber("#mu")       , func->GetParameter("#mu")       );
+      func->FixParameter(func->GetParNumber("#sigma")    , func->GetParameter("#sigma")    );
+      func->FixParameter(func->GetParNumber("n_{1}")     , func->GetParameter("n_{1}")     );
+      func->FixParameter(func->GetParNumber("n_{2}")     , func->GetParameter("n_{2}")     );
+      func->FixParameter(func->GetParNumber("#alpha_{1}"), func->GetParameter("#alpha_{1}"));
+      func->FixParameter(func->GetParNumber("#alpha_{2}"), func->GetParameter("#alpha_{2}"));
+    } else {
+      func->SetParLimits(func->GetParNumber("#mu")       , 70., 90.);
+      func->SetParLimits(func->GetParNumber("#sigma")    ,  3., 10.);
+      func->SetParLimits(func->GetParNumber("n_{1}")     , 0.5, 10.);
+      func->SetParLimits(func->GetParNumber("n_{2}")     , 1.0, 10.);
+      func->SetParLimits(func->GetParNumber("#alpha_{1}"), 0.8,  5.);
+      func->SetParLimits(func->GetParNumber("#alpha_{2}"), 0.5,  5.);
+    }
     func->Print();
   } else { //flat-ish contributions, such as WW, ttbar, and QCD
     func = new TF1("func", "[0] + [1]*x + [2]*x^2", xmin, xmax);
@@ -190,7 +207,9 @@ void fit_and_replace(TH1* h, double xmin, double xmax, const char* fig_dir = nul
     float max_diff = 0.;
     for(int ibin = max(1, hfit->FindBin(xmin)); ibin <= min(hfit->GetNbinsX(), hfit->FindBin(xmax-1.e-3)); ++ibin) {
       const double x = hfit->GetBinCenter(ibin);
-      const float diff = hfit->GetBinContent(ibin) - func->Eval(x);
+      const double width = hfit->GetBinWidth(ibin);
+      const double prediction = func->Integral(x-width/2., x+width/2.)/width;
+      const float diff = hfit->GetBinContent(ibin) - prediction;
       max_diff = max(max_diff, fabs(diff));
       hratio->SetBinContent(ibin, diff);
       hratio->SetBinError(ibin, hfit->GetBinError(ibin));
@@ -232,9 +251,13 @@ void fit_and_replace(TH1* h, double xmin, double xmax, const char* fig_dir = nul
 
   //Replace the bin values with the fit yield
   for(int bin = 1; bin <= h->GetNbinsX(); ++bin) {
-    h->SetBinContent(bin, max(0., ((rebin > 1) ? 1./rebin : 1.) * func->Eval(h->GetBinCenter(bin))));
-    h->SetBinError  (bin, 0.50*sqrt(h->GetBinContent(bin))); //default to 10% of statistical error bars for now
+    const double x = hfit->GetBinCenter(bin);
+    const double width = hfit->GetBinWidth(bin);
+    const double prediction = func->Integral(x-width/2., x+width/2.)/width;
+    h->SetBinContent(bin, max(0., prediction));
+    h->SetBinError  (bin, 0.50*sqrt(h->GetBinContent(bin))); //default to 50% of statistical error bars for now
   }
+  func->Print();
   delete func;
 }
 
