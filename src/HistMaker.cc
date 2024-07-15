@@ -1568,10 +1568,10 @@ void HistMaker::ApplyTauCorrections() {
     float sf = (fIsData) ? 1. : fTauIDWeight->EnergyScale(Tau_pt[index], Tau_eta[index], Tau_decayMode[index],
                                                           Tau_genPartFlav[index], Tau_idDeepTau2017v2p1VSjet[index],
                                                           fYear, Tau_energyScaleUp[index], Tau_energyScaleDown[index]);
-    //FIXME: remove this correction or formalize it
-    if(fIsEmbed && Tau_genPartFlav[index] == 5) {
-      sf *= 0.994; //Embedding tau over estimates the MC resolution mean after applying energy scale corrections
-    }
+    // //FIXME: remove this correction or formalize it
+    // if(fIsEmbed && Tau_genPartFlav[index] == 5) {
+    //   sf *= 0.994; //Embedding tau over estimates the MC resolution mean after applying energy scale corrections
+    // }
     double pt_diff = Tau_pt[index];
     Tau_pt  [index] *= sf;
     Tau_mass[index] *= sf;

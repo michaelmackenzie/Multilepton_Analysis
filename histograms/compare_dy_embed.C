@@ -3,7 +3,7 @@
 DataPlotter* embed_plotter_;
 DataPlotter* mc_dy_plotter_;
 
-int compare_hist(PlottingCard_t card) {
+int compare_hist(PlottingCard_t card, const bool fit_ratio = false) {
   ////////////////////////////////////////
   // Retrieve the histograms
 
@@ -87,7 +87,7 @@ int compare_hist(PlottingCard_t card) {
   hratio->Draw("E1");
   hratio->SetTitle("");
   hratio->SetYTitle("MC DY / Embed");
-  hratio->GetYaxis()->SetRangeUser(0.8, 1.2);
+  hratio->GetYaxis()->SetRangeUser(0.7, 1.3);
   hratio->GetXaxis()->SetLabelSize(0.07);
   hratio->GetYaxis()->SetLabelSize(0.07);
   hratio->GetYaxis()->SetTitleSize(0.10);
@@ -104,6 +104,36 @@ int compare_hist(PlottingCard_t card) {
   line.SetLineStyle(kDashed);
   line.Draw("same");
 
+  const int fit_min = max(xmin, hratio->GetBinLowEdge(hratio->FindFirstBinAbove(0.)));
+  TF1* fit_func = (fit_ratio) ? new TF1("fit_func", "[0] + [1]*x", fit_min, xmax) : nullptr;
+  TH1* h_1s = nullptr;
+  if(fit_ratio) {
+    gStyle->SetOptFit(0);
+    fit_func->SetParameters(1., 0.);
+    hratio->Fit(fit_func, "R");
+
+    //Get the 1 sigma band
+    h_1s = (TH1*) hratio->Clone("h_1s");
+    h_1s->Reset();
+    (TVirtualFitter::GetFitter())->GetConfidenceIntervals(h_1s, 0.68);
+    h_1s->SetFillColor(kGreen);
+    h_1s->SetMarkerSize(0);
+    h_1s->Draw("E3 same");
+    fit_func->Draw("same");
+    hratio->Draw("E1 same");
+
+    //draw the fit results
+    TLatex label;
+    label.SetNDC();
+    label.SetTextFont(72);
+    label.SetTextAlign(13);
+    label.SetTextAngle(0);
+    label.SetTextSize(0.06);
+    label.DrawLatex(0.55, 0.30, Form("b = %.2f#pm %.2f; m = %.3f#pm %.3f",
+                                     fit_func->GetParameter(0), fit_func->GetParError(0),
+                                     fit_func->GetParameter(1), fit_func->GetParError(1)));
+  }
+
   TString fig_name = embed_plotter_->GetFigureName(card.type_, card.hist_, card.set_, "signal", true);
   c.SaveAs(fig_name.Data());
 
@@ -111,12 +141,14 @@ int compare_hist(PlottingCard_t card) {
   delete hratio;
   delete h_mc_dy;
   delete h_embed;
+  if(fit_ratio) delete fit_func;
+  if(h_1s) delete h_1s;
 
   return 0;
 }
 
-int compare_dy_embed(TString out_dir = "tau_bdt_study", TString hist_dir = "nanoaods_mttwooverm_no_cut",
-                     TString selection = "mutau", vector<int> years = {2016,2017,2018}) {
+int compare_dy_embed(TString out_dir = "compare_dy_embed", TString hist_dir = "nanoaods_embed_met",
+                     TString selection = "mutau", vector<int> years = {2018}) {
 
   //setup the datacards
   years_         = years;
@@ -209,14 +241,14 @@ int compare_dy_embed(TString out_dir = "tau_bdt_study", TString hist_dir = "nano
   if(selection == "emu"    ) mva = "mva5";
   if(selection == "mutau_e") mva = "mva7";
   if(selection == "etau_mu") mva = "mva9";
-  status += compare_hist(PlottingCard_t(mva, "event", 8 +get_offset(), 1,  1.,  -1.));
+  status += compare_hist(PlottingCard_t(mva, "event", 8 +get_offset(), 1,  0.25,  -1.), true);
   if(!is_sf) {
-    status += compare_hist(PlottingCard_t(mva, "event", 25+get_offset(), 1,  1.,  -1.));
+    status += compare_hist(PlottingCard_t(mva, "event", 25+get_offset(), 1,  1.,  -1.), true);
     status += compare_hist(PlottingCard_t(mva, "event", 26+get_offset(), 1,  1.,  -1.));
-    status += compare_hist(PlottingCard_t(mva, "event", 27+get_offset(), 1,  1.,  -1.));
+    status += compare_hist(PlottingCard_t(mva, "event", 27+get_offset(), 1,  1.,  -1.), true);
     status += compare_hist(PlottingCard_t(mva, "event", 29+get_offset(), 1,  1.,  -1.));
     if(!selection.Contains("_"))
-      status += compare_hist(PlottingCard_t(mva, "event", 28+get_offset(), 1,  1.,  -1.));
+      status += compare_hist(PlottingCard_t(mva, "event", 28+get_offset(), 1,  1.,  -1.), true);
   }
   if(selection == "mutau") { //debug regions
     for(int set = 30; set <= 48; ++set) status += compare_hist(PlottingCard_t(mva, "event", set+get_offset(), 1,  1.,  -1.));

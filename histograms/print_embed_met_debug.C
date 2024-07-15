@@ -32,8 +32,8 @@ int print_embed_met_debug(TString out_dir = "embed_met", TString hist_dir = "nan
   //setup the histogram sets of interest
   vector<int> sets = {8};
   if     (selection == "mumu")  sets = {8}; //30,31,32,33,34,35,36,37,38,39,40,41,42};
-  else if(selection.EndsWith("tau")) sets = {8, 25, 26, 27}; //,30,31,32,33,34,35,36,38,39,40,41,42,43};
-  else if(selection.Contains("tau")) sets = {8,25};
+  else if(selection.EndsWith("tau")) sets = {8, 25, 26, 27, 28}; //,30,31,32,33,34,35,36,38,39,40,41,42,43};
+  else if(selection.Contains("tau")) sets = {8, 25, 26, 27};
 
   if(selection != "mumu" && selection != "ee") { //print the BDT score in each mass category
     const int max_set = (selection.Contains("_")) ? 27 : 28;

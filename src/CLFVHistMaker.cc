@@ -2561,7 +2561,9 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
 
   //Add BDT score cut FIXME: Formalize this
   if(!ee && !mumu && (!emu || lep_tau != 0)) { //only for tau channel regions
-    min_bdt_ = 0.2f;
+    // min_bdt_ = 0.2f;
+    min_bdt_ = 0.25f;
+    // min_bdt_ = 0.30f;
     if(sys_buffer == 0.f) { //if not systematic buffers, apply the cut, otherwise allow for complete migration
       const int imva = (mutau) ? 1 : (etau) ? 3 : (emu && lep_tau == 0) ? 5 : (lep_tau == 1) ? 7 : 9;
       if(fMvaUse[imva] <= min_bdt_) return kTRUE;

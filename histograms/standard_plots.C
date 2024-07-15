@@ -64,11 +64,10 @@ void get_mva_systematics(std::vector<fpair>& sys, std::vector<scale_pair>& scale
     if(!emu_search) {
       sys_vals.push_back(sys_info.GetNum("EmbMuonID"));
       sys_vals.push_back(sys_info.GetNum("EmbMuonIsoID"));
-      sys_vals.push_back(sys_info.GetNum("EmbMuonES"));
+      sys_vals.push_back(sys_info.GetNum("EmbMuonES0"));
+      sys_vals.push_back(sys_info.GetNum("EmbMuonES1"));
+      sys_vals.push_back(sys_info.GetNum("EmbMuonES2"));
       sys_vals.push_back(sys_info.GetNum("EmbMuonRes"));
-      // sys_vals.push_back(sys_info.GetNum("EmbMuonES0"));
-      // sys_vals.push_back(sys_info.GetNum("EmbMuonES1"));
-      // sys_vals.push_back(sys_info.GetNum("EmbMuonES2"));
       // sys_vals.push_back(sys_info.GetNum("EmbMuonTrig"));
     }
   }
@@ -87,7 +86,10 @@ void get_mva_systematics(std::vector<fpair>& sys, std::vector<scale_pair>& scale
 
   //common to channels with taus
   if(selection_ == "mutau" || selection_ == "etau") {
-    sys_vals.push_back(sys_info.GetNum("TauES"));
+    sys_vals.push_back(sys_info.GetNum("TauES0"));
+    sys_vals.push_back(sys_info.GetNum("TauES1"));
+    sys_vals.push_back(sys_info.GetNum("TauES2"));
+    sys_vals.push_back(sys_info.GetNum("TauES3"));
     sys_vals.push_back(sys_info.GetNum("EmbTauES0"));
     sys_vals.push_back(sys_info.GetNum("EmbTauES1"));
     sys_vals.push_back(sys_info.GetNum("EmbTauES2"));
