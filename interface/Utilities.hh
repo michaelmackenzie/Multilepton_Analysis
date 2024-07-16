@@ -208,7 +208,7 @@ namespace CLFV {
       double min_val = h->GetMaximum();
       for(int ibin = 1; ibin <= h->GetNbinsX(); ++ibin) {
         const double val = h->GetBinContent(ibin);
-        if(val >= ymin)
+        if(val > ymin)
           min_val = std::min(min_val, val);
       }
       return std::max(ymin, min_val);

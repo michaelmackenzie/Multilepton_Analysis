@@ -3450,6 +3450,23 @@ void HistMaker::CountObjects() {
   if(!std::isfinite(puppMETJERUp) || !std::isfinite(puppMETphiJERUp)) {puppMETJERUp = puppMET; puppMETphiJERUp = puppMETphi;}
   if(!std::isfinite(puppMETJESUp) || !std::isfinite(puppMETphiJESUp)) {puppMETJESUp = puppMET; puppMETphiJESUp = puppMETphi;}
 
+  //Test increasing the JER/JES shift to n sigmas for a smoother shifted histogram
+  const float jes_jer_sigma = 3.f; //FIXME: Settle on this value and propagate to fitting code
+  {
+    const float n_x(puppMETJERUp*std::cos(puppMETphiJERUp)), n_y(puppMETJERUp*std::sin(puppMETphiJERUp));
+    const float x = n_x + (jes_jer_sigma - 1.) * (n_x - met*std::cos(metPhi));
+    const float y = n_y + (jes_jer_sigma - 1.) * (n_y - met*std::sin(metPhi));
+    puppMETJERUp = std::sqrt(x*x + y*y);
+    puppMETphiJERUp = (puppMETJERUp > 0.) ? std::acos(std::max(-1.f, std::min(1.f, x/puppMETJERUp)))*(y < 0.f ? -1 : 1) : 0.f;
+  }
+  {
+    const float n_x(puppMETJESUp*std::cos(puppMETphiJESUp)), n_y(puppMETJESUp*std::sin(puppMETphiJESUp));
+    const float x = n_x + (jes_jer_sigma - 1.) * (n_x - met*std::cos(metPhi));
+    const float y = n_y + (jes_jer_sigma - 1.) * (n_y - met*std::sin(metPhi));
+    puppMETJESUp = std::sqrt(x*x + y*y);
+    puppMETphiJESUp = (puppMETJESUp > 0.) ? std::acos(std::max(-1.f, std::min(1.f, x/puppMETJESUp)))*(y < 0.f ? -1 : 1) : 0.f;
+  }
+
 
   //if raw met is not defined, replace is with the corrected met before lepton scale corrections
   if(rawMet < 0.f || std::fabs(rawMetPhi) > 4.f) {rawMet = met; rawMetPhi = metPhi;}

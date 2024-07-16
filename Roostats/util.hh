@@ -460,12 +460,12 @@ int print_mva_systematic_canvas(TH1* nominal, TH1* data, THStack* nom_stack, THS
   h_to_delete.push_back(sig_ratio);
   h_to_delete.push_back(data_ratio);
 
-  const double max_bkg_val(Utilities::H1Max(bkg_ratio, xmin, xmax)), min_bkg_val(Utilities::H1Min(bkg_ratio, xmin, xmax));
-  const double max_sig_val(Utilities::H1Max(sig_ratio, xmin, xmax)), min_sig_val(Utilities::H1Min(sig_ratio, xmin, xmax));
+  const double max_bkg_val(Utilities::H1Max(bkg_ratio, xmin, xmax)), min_bkg_val(Utilities::H1Min(bkg_ratio, 0.1));
+  const double max_sig_val(Utilities::H1Max(sig_ratio, xmin, xmax)), min_sig_val(Utilities::H1MinAbove(sig_ratio, 0.1));
   double min_r = min((min_bkg_val <= 0.) ? 0.95 : min_bkg_val, (min_sig_val <= 0.) ? 0.95 : min_sig_val); //try to catch cases with val = 0
   double max_r = max(max_bkg_val, max_sig_val);
-  min_r = max(0.85, min(0.95, min_r - 0.05*(1. - min_r))); //set the ratio bounds to be between 5-15% with a small buffer
-  max_r = min(1.15, max(1.05, max_r + 0.05*(max_r - 1.)));
+  min_r = max(0., min(0.95, min_r - 0.05*(1. - min_r))); //set the ratio bounds to be between 5-15% with a small buffer
+  max_r = min(2., max(1.05, max_r + 0.05*(max_r - 1.)));
 
   bkg_ratio->SetLineColor(kRed-3);
   bkg_ratio->SetLineWidth(2);

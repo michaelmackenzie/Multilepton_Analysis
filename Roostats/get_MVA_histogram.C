@@ -408,12 +408,15 @@ int print_systematic_canvas(TH1* nominal, TH1* data, THStack* stack, TH1* nom_si
   h_to_delete.push_back(sig_ratio);
   h_to_delete.push_back(data_ratio);
 
-  const double max_bkg_val(Utilities::H1Max(bkg_ratio, xmin_, xmax_)), min_bkg_val(Utilities::H1Min(bkg_ratio, xmin_, xmax_));
-  const double max_sig_val(Utilities::H1Max(sig_ratio, xmin_, xmax_)), min_sig_val(Utilities::H1Min(sig_ratio, xmin_, xmax_));
+  const double max_bkg_val(Utilities::H1Max(bkg_ratio, xmin_, xmax_)), min_bkg_val(max(Utilities::H1MinAbove(bkg_ratio, 0.1), Utilities::H1Min(bkg_ratio, xmin_, xmax_)));
+  const double max_sig_val(Utilities::H1Max(sig_ratio, xmin_, xmax_)), min_sig_val(Utilities::H1MinAbove(sig_ratio, 0.1)); //Utilities::H1Min(sig_ratio, xmin_, xmax_)));
   double min_r = min((min_bkg_val <= 0.) ? 0.95 : min_bkg_val, (min_sig_val <= 0.) ? 0.95 : min_sig_val); //try to catch cases with val = 0
   double max_r = max(max_bkg_val, max_sig_val);
-  min_r = max(0.85, min(0.95, min_r - 0.05*(1. - min_r))); //set the ratio bounds to be between 5-15% with a small buffer
-  max_r = min(1.15, max(1.05, max_r + 0.05*(max_r - 1.)));
+  if(TString(fig_name).Contains("JER")) {
+    cout << fig_name << ": min_sig = " << min_sig_val << ", max_sig = " << max_sig_val << ", min_r = " << min_r << ", max_r " << max_r << endl;
+  }
+  min_r = max(0., min(0.95, min_r - 0.05*(1. - min_r))); //set the ratio bounds to be at least 5% with a small buffer
+  max_r = min(2., max(1.05, max_r + 0.05*(max_r - 1.)));
 
   bkg_ratio->SetLineColor(kRed-3);
   bkg_ratio->SetLineWidth(2);

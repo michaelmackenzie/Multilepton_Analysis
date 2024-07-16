@@ -8,7 +8,6 @@ CLFV::Systematics systematics_; //names of the systematics
 
 //----------------------------------------------------------------------------------------------------------------------------
 bool smooth_sys_hist(TString sys, TString process) {
-  return false;
   const bool is_embed = process.Contains("Embed");
   const bool is_data  = process.Contains("QCD") || process.Contains("MisID");
   const bool is_zll   = process == "ZToeemumu";
@@ -19,21 +18,20 @@ bool smooth_sys_hist(TString sys, TString process) {
   const bool is_zmc   = is_zll || is_ztt || process == "zmutau" || process == "zetau" || process == "zemu" || process.BeginsWith("ZTo");
   const bool is_signal = process.EndsWith("mutau") || process.EndsWith("etau") || process.EndsWith("emu");
 
-  //energy scales
+  //smooth systematics that shift kinematics and lead to statistical fluctuations
   if(sys.BeginsWith("JES"))             return !is_embed; // && !is_data; --> can shift data in Data - MC
   if(sys.BeginsWith("JER"))             return !is_embed; // && !is_data;
+  if(sys.BeginsWith("EmbMuonES"))       return (embed_mode_ > 0) && (is_embed || is_data);
+  if(sys.BeginsWith("EmbEleES"))        return (embed_mode_ > 0) && (is_embed || is_data);
+  if(sys.BeginsWith("EmbMuonRes"))      return (embed_mode_ > 0) && (is_embed || is_data);
+  if(sys.BeginsWith("EmbEleRes"))       return (embed_mode_ > 0) && (is_embed || is_data);
   if(sys.BeginsWith("TauES"))           return true; //embedding is 50% in MC TauES
   if(sys.BeginsWith("TauMuES"))         return is_zll || is_data; //mu/e --> tau_h only important really from Z->ll MC
   if(sys.BeginsWith("TauEleES"))        return is_zll || is_data;
   if(sys.BeginsWith("MuonES"))          return true;
   if(sys.BeginsWith("EleES"))           return true;
   if(sys.BeginsWith("EmbTauES"))        return (embed_mode_ > 0) && (is_embed || is_data);
-  if(sys.BeginsWith("EmbMuonES"))       return (embed_mode_ > 0) && (is_embed || is_data);
-  if(sys.BeginsWith("EmbEleES"))        return (embed_mode_ > 0) && (is_embed || is_data);
-  if(sys.BeginsWith("EmbDetectorMET"))  return (embed_mode_ > 0) && (is_embed || is_data);
-  //resolution shifts
-  if(sys.BeginsWith("EmbMuonRes"))      return (embed_mode_ > 0) && (is_embed || is_data);
-  if(sys.BeginsWith("EmbEleRes"))       return (embed_mode_ > 0) && (is_embed || is_data);
+  // if(sys.BeginsWith("EmbDetectorMET"))  return (embed_mode_ > 0) && (is_embed || is_data);
 
   return false;
 }

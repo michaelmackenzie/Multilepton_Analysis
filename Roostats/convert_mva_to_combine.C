@@ -445,8 +445,10 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
       hsig_down->Write();
       if(type == "shape") {
         double nsigma = 1.;
-        if(name == "TheoryPDF") nsigma = 2.; //increase the TheoryPDF size
-        sys += Form("%6.1f", nsigma);
+        if(name == "TheoryPDF" ) nsigma = 2.; //increase the TheoryPDF size
+        if(name.Contains("JER")) nsigma = 1./3.; //estimated with 3 sigma variation
+        if(name.Contains("JES")) nsigma = 1./3.; //estimated with 3 sigma variation
+        sys += Form("%6.3f", nsigma);
       } else {
         double sys_up   = (hsig->Integral() > 0.) ? hsig->Integral()/hsig_up->Integral() : 0.;
         double sys_down = (hsig->Integral() > 0.) ? hsig->Integral()/hsig_down->Integral() : 0.;
