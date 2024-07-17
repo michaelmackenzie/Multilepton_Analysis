@@ -427,7 +427,7 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
     //Smooth systematic variation of requested
     if(is_relevant(name, selec_name) && smooth_sys_hist(name, selec_name)) {
       some_smoothed = true;
-      bool debug = false; //name.BeginsWith("JER");
+      bool debug = false; //name.BeginsWith("JES");
       smooth_systematic(hsig, hsig_up  , debug);
       smooth_systematic(hsig, hsig_down, debug);
       // smooth_systematic_rebinned(hsig, hsig_up  , debug);
@@ -508,7 +508,7 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
       //Smooth systematic variation of requested
       if(is_relevant(name, hname) && smooth_sys_hist(name, hname)) {
         some_smoothed = true;
-        bool debug = false; //name.BeginsWith("JER");
+        bool debug = false; //name.BeginsWith("JES");
         smooth_systematic(hbkg_i, hbkg_i_up  , debug);
         smooth_systematic(hbkg_i, hbkg_i_down, debug);
         // smooth_systematic_rebinned(hbkg_i, hbkg_i_up  , debug);
@@ -523,14 +523,16 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
       if(is_relevant(name, hname)) { //check if the systematic is relevant to this process
         hbkg_i_up->Write(); //add to the output file
         hbkg_i_down->Write(); //add to the output file
+        double nsigma = 1.;
+        if(name == "TheoryPDF") nsigma = 2.; //increase the TheoryPDF size
+        if(name.Contains("JER")) nsigma = 1./3.; //estimated with 3 sigma variation
+        if(name.Contains("JES")) nsigma = 1./3.; //estimated with 3 sigma variation
         if(type == "shape") {
-          double nsigma = 1.;
-          if(name == "TheoryPDF") nsigma = 2.; //increase the TheoryPDF size
-          sys += Form("%15.1f", nsigma);
+          sys += Form("%15.3f", nsigma);
         } else {
           double sys_up   = (hbkg_i->Integral() > 0.) ? hbkg_i->Integral()/hbkg_i_up->Integral() : 0.;
           double sys_down = (hbkg_i->Integral() > 0.) ? hbkg_i->Integral()/hbkg_i_down->Integral() : 0.;
-          double val = sys_up; //max((sys_up < 1.) ? 1./sys_up : sys_up, (sys_down < 1.) ? 1./sys_down : sys_down);
+          double val = sys_up*nsigma; //max((sys_up < 1.) ? 1./sys_up : sys_up, (sys_down < 1.) ? 1./sys_down : sys_down);
           sys += Form("%15.3f", val);
         }
       } else { //not relevant

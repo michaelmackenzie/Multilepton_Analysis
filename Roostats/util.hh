@@ -72,56 +72,6 @@ void smooth_systematic(TH1* nominal, TH1* sys, bool debug = false) {
         sys->SetBinError  (ibin, bine); //original template error
       }
     }
-  } else if(mode == 3) { //Fit the (shift - nominal)/nominal distribution with F-test
-    hdiff->Add(nominal, -1.);
-    hdiff->Divide(nominal);
-    //adjust the error bars to be more reasonable
-    for(int ibin = 1; ibin <= hdiff->GetNbinsX(); ++ibin) {
-      const double binc_nom(nominal->GetBinContent(ibin));
-      const double bine_nom(nominal->GetBinError  (ibin));
-      const double binc_sys(sys    ->GetBinContent(ibin));
-      if(binc_nom <= 0.) continue;
-      const double eff_weight = pow(bine_nom,2) / binc_nom; //<weight> ~ err^2/integral
-      if(eff_weight < 0.) continue;
-      const double diff = fabs(binc_sys - binc_nom); //sign doesn't matter for the error
-      const double eff_err = diff/sqrt(max(0.1, diff)/eff_weight); //error ~ value * 1./sqrt(<N>), where <N> = difference / avg. weight
-      const double min_err = eff_weight*5.; //apply a minimum error that's fairly large
-      const double err = max(eff_err, min_err) / binc_nom;
-      if(isfinite(err))
-        hdiff->SetBinError(ibin, err);
-      else {
-        printf("!!! %s: Bin error issue: bin = %i, binc = %.3f, diff = %.3f, weight = %.3f, err = %.3f\n",
-               __func__, ibin, binc_nom, diff, eff_weight, err);
-      }
-    }
-    const int max_order(3), min_order(1);
-    bool exit_after = false;
-    double prev_chi_sq = 1.e10;
-    const double chi_diff_min = 3.85; //95% CL information gain
-    for(int order = min_order; order <= max_order; ++order) {
-        if(debug) cout << "\n### Fit order " << order << endl;
-        for(int jloop = 0    ; jloop <= max_order; ++jloop) {fit_func->ReleaseParameter(jloop); fit_func->SetParameter(jloop, (jloop == 0) ? 1. : 0.);}
-        for(int jloop = order; jloop <  max_order; ++jloop) {fit_func->FixParameter(jloop+1, 0.); fit_func->SetParameter(jloop+1, 0.);}
-        auto fit_res = hdiff->Fit(fit_func, "R S 0 Q");
-        if(debug) {fit_func->Print(); fit_res->Print();}
-        if(exit_after) break;
-        double chi_sq = fit_func->GetChisquare();
-        if(order > min_order && prev_chi_sq - chi_sq < chi_diff_min) {exit_after = true; order -= 2;} //if not enough gain, reduce back to previous order and exit
-        prev_chi_sq = chi_sq;
-    }
-    for(int ibin = 0; ibin <= hdiff->GetNbinsX()+1; ++ibin) {
-      const double binc(nominal->GetBinContent(ibin));
-      const double bine(nominal->GetBinError  (ibin));
-      const double diff_ratio(fit_func->Eval(nominal->GetBinCenter(ibin)));
-      if(!std::isfinite(binc) || !std::isfinite(bine) || binc < 0.) {
-        sys->SetBinContent(ibin, 0.);
-        sys->SetBinError  (ibin, 0.);
-      } else {
-        const double val = binc*(1. + diff_ratio);
-        sys->SetBinContent(ibin, max(0., val));
-        sys->SetBinError  (ibin, bine); //original template error
-      }
-    }
   } else if(mode == 4) { //Smooth the (shift - nominal)/nominal distribution
     hdiff->Add(nominal, -1.);
     hdiff->Divide(nominal);
@@ -190,7 +140,7 @@ void smooth_systematic(TH1* nominal, TH1* sys, bool debug = false) {
     hr_2->Divide(nominal);
     hr->Draw("E1");
     hr_2->Draw("hist same");
-    hr->GetYaxis()->SetRangeUser(0.7, 1.3);
+    hr->GetYaxis()->SetRangeUser(0.6, 1.4);
     hr->GetXaxis()->SetLabelSize(0.08);
     hr->GetYaxis()->SetLabelSize(0.08);
     hr->GetYaxis()->SetTitleSize(0.08);
