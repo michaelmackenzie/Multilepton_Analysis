@@ -9,6 +9,8 @@ void smooth_systematic(TH1* nominal, TH1* sys, bool debug = false) {
 
   //how to fit the systematic shift
   const int mode = 4;
+  const double nom_norm = nominal->Integral(); //preserve integrals in some smoothing
+  const double sys_norm = sys->Integral();
 
   //Initialize the fit function, only fitting the non-zero region of the histogram
   const double xmin(sys->GetBinLowEdge(sys->FindFirstBinAbove(0.)));
@@ -73,6 +75,8 @@ void smooth_systematic(TH1* nominal, TH1* sys, bool debug = false) {
       }
     }
   } else if(mode == 4) { //Smooth the (shift - nominal)/nominal distribution
+    //scale the shifts so only shape is being smoothed, not normalization
+    hdiff->Scale(nom_norm / sys_norm);
     hdiff->Add(nominal, -1.);
     hdiff->Divide(nominal);
     //adjust the error bars to be more reasonable
@@ -110,6 +114,8 @@ void smooth_systematic(TH1* nominal, TH1* sys, bool debug = false) {
         sys->SetBinError  (ibin, bine); //original template error
       }
     }
+    //preserve the integral prediction of the template
+    sys->Scale(sys_norm / sys->Integral());
   } else {
     cout << __func__ << ": Error! Unknown smoothing mode: " << mode << endl;
   }
@@ -132,6 +138,13 @@ void smooth_systematic(TH1* nominal, TH1* sys, bool debug = false) {
     sys->SetLineStyle(kDashed);
     sys->SetFillColor(0);
     sys->Draw("hist same");
+    nominal->SetAxisRange(0., 1.25*max(nominal->GetMaximum(), nom_sys->GetMaximum()), "Y");
+
+    TLegend leg(0.5, 0.75, 0.9, 0.9);
+    leg.AddEntry(nominal, Form("Nominal: %.1f", nominal->Integral()), "L");
+    leg.AddEntry(nom_sys, Form("Input     : %.1f", nom_sys->Integral()), "P");
+    leg.AddEntry(sys    , Form("Output  : %.1f", sys    ->Integral()), "L");
+    leg.Draw();
 
     pad2.cd();
     TH1* hr = (TH1*) nom_sys->Clone("hr");
@@ -150,6 +163,7 @@ void smooth_systematic(TH1* nominal, TH1* sys, bool debug = false) {
     hr->SetYTitle("Sys / Nominal");
     TLine line(0., 1., 1., 1.); line.SetLineStyle(kDashed); line.SetLineColor(kBlack);
     line.SetLineWidth(2); line.Draw("same");
+
     c.SaveAs(Form("debug/%s_nominal.png", sys->GetName()));
     nominal->SetFillStyle(fill_style);
     delete hr;
