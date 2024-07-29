@@ -964,6 +964,30 @@ Int_t print_mva(int set, bool add_sys = false, bool all_versions = false, int ve
     auto c = dataplotter_->print_stack(card);
     if(c) DataPlotter::Empty_Canvas(c);
     else ++status;
+
+    if(all_versions) { //print additional BDT distributions
+      {
+        PlottingCard_t card_1((hist+"_1").Data(), "event", set+offset, 40, -0.8, 0.5, (selection_.Contains("tau")) ? 0. : 2., (blind) ? 1. : -1.);
+        dataplotter_->logY_ = logY;
+        c = dataplotter_->print_stack(card_1);
+        if(c) DataPlotter::Empty_Canvas(c);
+        else ++status;
+      }
+      {
+        PlottingCard_t card_1((hist+"_2").Data(), "event", set+offset, 0, 0., 1., (selection_.Contains("tau")) ? 0.5 : 2., (blind) ? 1. : -1.);
+        dataplotter_->logY_ = logY;
+        c = dataplotter_->print_stack(card_1);
+        if(c) DataPlotter::Empty_Canvas(c);
+        else ++status;
+      }
+      {
+        PlottingCard_t card_1((hist+"_4").Data(), "event", set+offset, 0, 0., 1., (selection_.Contains("tau")) ? 0.5 : 2., (blind) ? 1. : -1.);
+        dataplotter_->logY_ = logY;
+        c = dataplotter_->print_stack(card_1);
+        if(c) DataPlotter::Empty_Canvas(c);
+        else ++status;
+      }
+    }
   }
   if(add_sys) {
     PlottingCard_t card_sys((hist+"_0").Data(), "systematic", set+offset, 0, 0., 1., (selection_.Contains("tau")) ? 0.5 : 2., 1.);

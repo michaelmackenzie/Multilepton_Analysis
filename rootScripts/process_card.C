@@ -260,6 +260,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
         clfv_selec->fMaxLepM           = max_lepm_; //(selection == "emu") ? 115.f : (selection.EndsWith("tau")) ? 175.f : 175.f;
         clfv_selec->fSameFlavorEMuSelec = doSameFlavorEMu_;
         clfv_selec->fRemoveLooseSS      = removeLooseSS_;
+        clfv_selec->fUseBDTCut          = useBDTCut_;
         clfv_selec->fDoLepESHists       = doLepESHists_;
         clfv_selec->fRemoveTraining     = remove_training_;
       }

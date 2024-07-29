@@ -57,6 +57,7 @@ namespace CLFV {
     Int_t           fTopTesting = 0; //>0: histogram an inverted b-tag set; 2: invert the b-tag requirement for MVA sets
     Bool_t          fDoMVASets = false; //for filling MVA cut sets even in DYTesting mode
     Bool_t          fRemoveLooseSS = true; //remove loose ID + same-sign events, not used for background estimates
+    Bool_t          fUseBDTCut = false; //apply a cut on the BDT score
 
     Bool_t          fDoLepESHists = false; //histogram variables with lepton energy scale variations
 

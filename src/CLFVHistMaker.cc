@@ -2559,8 +2559,8 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
     etau_mu &= nBJetsUse == 0;
   }
 
-  //Add BDT score cut FIXME: Formalize this
-  if(!ee && !mumu && (!emu || lep_tau != 0)) { //only for tau channel regions
+  //Add BDT score cut
+  if(fUseBDTCut && (!ee && !mumu && (!emu || lep_tau != 0))) { //only for tau channel regions
     // min_bdt_ = 0.2f;
     min_bdt_ = 0.25f;
     // min_bdt_ = 0.30f;

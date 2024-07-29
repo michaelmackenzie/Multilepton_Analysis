@@ -40,7 +40,7 @@ namespace CLFV {
         TF1* f = cdf_fit_[selection];
         if(!f) return p;
         const float p_fit = f->Eval(score);
-        return std::max(0.f, std::min(max_p, p_fit)); //return the fit value, ensuring a physical value
+        return std::max(0.f, std::min(2.f*p_fit_switch, p_fit)); //return the fit value, ensuring a physical value that's reasonable for the tail
       }
       return p;
     }

@@ -106,12 +106,13 @@ int  ReprocessMVAs_       =  1; //Re-evaluate MVA scores on the fly
 int useCDFBDTs_           =  2; //Use CDF transformed BDTs instead of the raw BDT scores in the fits
 int useXGBoost_           =  1; //>0: use XGBoost BDT in Z->e+mu; >9: use XGBoost BDT in all categories
 int useBDTScale_          =  1; //use BDT score corrections in Z->e+mu
+bool useBDTCut_           = true; //apply a cut on the BDT score
 bool writeTrees_          = false;
 int  remove_training_     =  1; //Remove training events (only CLFVHistMaker), only keep when re-making trees
 int  train_mode_          =  2; //MVA training mode, how to define training fractions
 TString test_mva_         = ""; //MVA to test, independent of selection being processed
 int smear_training_       =  0; //Smear event variables in output trees
-int useRandomField_       =  1; //Event splitting: 0: TRandom3; 1: random field branch; 2: event kinematics; 3: event number
+int useRandomField_       =  3; //Event splitting: 0: TRandom3; 1: random field branch; 2: event kinematics; 3: event number
 
 int  doHiggs_             =  0; //do higgs-related analysis
 bool sparseHists_         = true; //only plot more basic histograms

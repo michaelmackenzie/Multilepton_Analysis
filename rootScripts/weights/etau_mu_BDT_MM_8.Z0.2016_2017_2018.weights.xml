@@ -4,11 +4,11 @@
     <Info name="TMVA Release" value="4.2.1 [262657]"/>
     <Info name="ROOT Release" value="6.14/09 [396809]"/>
     <Info name="Creator" value="mmackenz"/>
-    <Info name="Date" value="Sat Mar 16 17:04:04 2024"/>
+    <Info name="Date" value="Sun Jul 28 09:46:20 2024"/>
     <Info name="Host" value="Linux cmsbuild12.cern.ch 3.10.0-1062.4.1.el7.x86_64 #1 SMP Fri Oct 18 17:15:30 UTC 2019 x86_64 x86_64 x86_64 GNU/Linux"/>
-    <Info name="Dir" value="/uscms_data/d3/mmackenz/ZEMu/CMSSW_10_6_29/src/CLFVAnalysis/tmva_training/training_background_clfv_Z0_nano_etau_mu_2016_2017_2018_8"/>
+    <Info name="Dir" value="/uscms_data/d3/mmackenz/ZEMu/CMSSW_10_6_29/src/CLFVAnalysis/tmva_training/training_background_clfv_Z0_nano_etau_mu_2016_2017_2018_8_v02"/>
     <Info name="Training events" value="100963"/>
-    <Info name="TrainingTime" value="7.38788700e+01"/>
+    <Info name="TrainingTime" value="2.19180479e+01"/>
     <Info name="AnalysisType" value="Classification"/>
   </GeneralInfo>
   <Options>
