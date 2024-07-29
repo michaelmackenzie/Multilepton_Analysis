@@ -8,7 +8,7 @@ void smooth_systematic(TH1* nominal, TH1* sys, bool debug = false) {
   if(!nominal || !sys || nominal->Integral() <= 0. || sys->Integral() <= 0.) return;
 
   //how to fit the systematic shift
-  const int mode = 4;
+  const int mode = 2;
   const double nom_norm = nominal->Integral(); //preserve integrals in some smoothing
   const double sys_norm = sys->Integral();
 
@@ -75,8 +75,8 @@ void smooth_systematic(TH1* nominal, TH1* sys, bool debug = false) {
       }
     }
   } else if(mode == 4) { //Smooth the (shift - nominal)/nominal distribution
-    //scale the shifts so only shape is being smoothed, not normalization
-    hdiff->Scale(nom_norm / sys_norm);
+    const bool scale_shift = false; //scale the shifts so only shape is being smoothed, not normalization
+    if(scale_shift) hdiff->Scale(nom_norm / sys_norm);
     hdiff->Add(nominal, -1.);
     hdiff->Divide(nominal);
     //adjust the error bars to be more reasonable
@@ -115,7 +115,7 @@ void smooth_systematic(TH1* nominal, TH1* sys, bool debug = false) {
       }
     }
     //preserve the integral prediction of the template
-    sys->Scale(sys_norm / sys->Integral());
+    if(scale_shift) sys->Scale(sys_norm / sys->Integral());
   } else {
     cout << __func__ << ": Error! Unknown smoothing mode: " << mode << endl;
   }
