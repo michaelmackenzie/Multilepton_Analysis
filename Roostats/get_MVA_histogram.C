@@ -154,6 +154,10 @@ Int_t initialize_plotter(TString selection, TString base) {
   higgsBkg_  = higgs_bkg_;
   combineHB_ = 1; //combine H->tautau and H->WW
 
+  //decide if W+jets 0-jet samples should be included
+  excludeWJ0J_ = (qcd_wj_bkg_mode_ == 0) ? 0 : 1;
+
+  //Retrieve the datacards
   std::vector<dcard> cards;
   get_datacards(cards, selection, 2); //get datacards with signal, but without scaling for visibility at x-sec level
 

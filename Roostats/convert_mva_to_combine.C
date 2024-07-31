@@ -289,6 +289,7 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
   TString obs    = Form("observation  %15.0f",        //data observations, 1 per channel
                         hdata_obs->Integral());
 
+  vector<TString> processes;
   map<TString,vector<TString>> groups;
 
   //////////////////////////////////////////////////////////////////
@@ -305,6 +306,7 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
   rate   += Form("%15.3f", hsig->Integral());
   hsig->SetName(selec_name.Data());
   make_safe(hsig, xmin, xmax);
+  processes.push_back(selec_name);
   hsig->Write(); //add to the output file
   for(int ihist = 0; ihist < hstack->GetNhists(); ++ihist) {
     TH1* hbkg_i = (TH1*) hstack->GetHists()->At(ihist);
@@ -331,6 +333,7 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
     proc_l += Form("%15s", hname.Data());
     proc_c += Form("          %2i   ", process_value(hname));
     rate   += Form("%15.3f", hbkg_i->Integral());
+    processes.push_back(hname);
     hbkg_i->SetName(hname.Data());
 
     //if embedding, increase bin-by-bin uncertainties to account for binomial gen-weight uncertainty
@@ -388,8 +391,6 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
   //////////////////////////////////////////////////////////////////
 
   int nsys = hsys_stacks.size()/2;
-  TString qcd_bkg_line = "";
-  TString jtt_bkg_line = "";
   const int nbkg_proc = hstack->GetNhists();
 
   for(int isys = 0; isys < nsys; ++isys) {
@@ -435,11 +436,7 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
       // if(debug) return -1;
     }
 
-    bool do_fake_bkg_line = (qcd_bkg_line == "");
-    if(do_fake_bkg_line) {
-      qcd_bkg_line = Form("%-13s %5s      1", "QCDNorm", "lnN");
-      jtt_bkg_line = Form("%-13s %5s      1", "JetToTauNorm", "lnN");
-    }
+
     if(is_relevant(name, selec_name)) { //check if the systematic is relevant for the signal
       hsig_up->Write();
       hsig_down->Write();
@@ -514,11 +511,6 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
         // smooth_systematic_rebinned(hbkg_i, hbkg_i_up  , debug);
         // smooth_systematic_rebinned(hbkg_i, hbkg_i_down, debug);
       }
-
-      if(do_fake_bkg_line && hname == "QCD")   qcd_bkg_line += Form("%15.3f", 1.30); //additional 30% uncertainty
-      else if(do_fake_bkg_line)                qcd_bkg_line += Form("%15i", 1);
-      if(do_fake_bkg_line && hname == "MisID") jtt_bkg_line += Form("%15.3f", 1.30); //additional 30% uncertainty
-      else if(do_fake_bkg_line)                jtt_bkg_line += Form("%15i", 1);
 
       if(is_relevant(name, hname)) { //check if the systematic is relevant to this process
         hbkg_i_up->Write(); //add to the output file
@@ -606,6 +598,35 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
 
   } //end systematics loop
 
+  //Additional background normalization uncertainties
+  if(qcd_wj_bkg_mode_ && selection.Contains("_")) {
+    TString bkg_line = Form("%-13s %5s", "QCDNorm", "lnN");
+    for(unsigned iproc = 0; iproc < processes.size(); ++iproc) {
+      TString hname = processes[iproc];
+      if(iproc == 0) bkg_line += Form("%7s", "-"); //signal is always first, smaller buffer
+      else {
+        if(hname == "QCD")   bkg_line += Form("%15.3f", 1.20); //additional 20% uncertainty
+        else                 bkg_line += Form("%15s", "-");
+      }
+    }
+    outfile << Form("%s \n", bkg_line.Data());
+    add_group(groups, "QCDNorm", "QCD_Total");
+  } else if(use_fake_bkg_norm_) {
+    TString type = (selection.Contains("_")) ? "QCD" : "JetToTau";
+    TString name = (selection.Contains("_")) ? "QCD" : "MisID";
+    TString bkg_line = Form("%-13s %5s", (type+"Norm").Data(), "lnN");
+    for(unsigned iproc = 0; iproc < processes.size(); ++iproc) {
+      TString hname = processes[iproc];
+      if(iproc == 0) bkg_line += Form("%8s", "-"); //signal is always first, smaller buffer
+      else {
+        if(hname == name)   bkg_line += Form("%15.3f", 1.30); //additional 30% uncertainty
+        else                bkg_line += Form("%15s", "-");
+      }
+    }
+    outfile << Form("%s \n", bkg_line.Data());
+    add_group(groups, type+"Norm", type+"_Total");
+  }
+
   //print the groups
   if(add_groups_) {
     outfile << "\n";
@@ -640,10 +661,6 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
     }
   }
 
-  if(use_fake_bkg_norm_) {
-    outfile << Form("%s \n", qcd_bkg_line.Data());
-    outfile << Form("%s \n", jtt_bkg_line.Data());
-  }
   //MC statistics nuisances, see: https://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/part2/bin-wise-stats/
   const int lite_threshold = 10; //effective N(unweighted events) to switch to 1 nuisance per bin vs. 1 nuisance per process
   outfile << "\n* autoMCStats " << lite_threshold << " 0 1\n\n"; //arguments are: [channel] autoMCStats [threshold = 0] [include signal = 0] [morphing mode = 1]

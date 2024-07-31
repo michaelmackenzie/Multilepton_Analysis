@@ -24,6 +24,8 @@ int    useEmbed_      =  1 ; //use Z->tautau embedding
 double embedScale_    =  1.; //scale factor to add onto the embedding normalization, < 0 means use defaults
 int    useQCDMC_      =  0 ; //use MC QCD background estimates
 int    combineVB_     =  1 ; //combine W+Jets with other vector boson processes
+int    combineWJ_     =  1 ; //combine jet-binned W+jets samples or separate 0-jet bin
+int    excludeWJ0J_   =  1 ; //exclude the 0-jet bin of the W+jets sample from the background model due to low statistics
 int    includeHiggs_  =  0 ; //include the higgs signals in the plots
 int    higgsBkg_      =  1 ; //include SM higgs samples in the background estimate
 int    combineHB_     =  1 ; //combine H->tautau and H->WW backgrounds
@@ -118,17 +120,21 @@ void get_datacards(std::vector<dcard>& cards, TString selection, int forStudies 
     }
     if(useWG_)
     cards.push_back(dcard("WGamma"               , "WGamma"               , wj.Data()   , false, xs.GetCrossSection("WGamma"               ), false, year, wj_c));
-    // cards.push_back(dcard("WGamma"               , "WGamma"               , "W#gamma"   , false, xs.GetCrossSection("WGamma"               ), false, year, kMagenta+3));
     //if splitting W+Jets into jet-binned samples, use W+Jets inclusive 0-j for 0-j, then jet-binned samples for the rest
     if(splitWJ_) {
-      cards.push_back(dcard("Wlnu-0"             , "Wlnu-0"               , wj.Data()   , false, xs.GetCrossSection("Wlnu"                 ), false, year, wj_c, !useUL_&&year!=2018));
-      if(year != 2018 && !useUL_){
-        cards.push_back(dcard("Wlnu-ext-0"       , "Wlnu-ext-0"           , wj.Data()   , false, xs.GetCrossSection("Wlnu"                 ), false, year, wj_c, true));
+      if(!excludeWJ0J_) { //due to low statistics, option to exclude (assuming N-jets samples are compensated for this)
+        if(combineWJ_) {
+          cards.push_back(dcard("Wlnu-0"             , "Wlnu-0"               , wj.Data()   , false, xs.GetCrossSection("Wlnu"), false, year, wj_c, !useUL_&&year!=2018));
+          if(year != 2018 && !useUL_){
+            cards.push_back(dcard("Wlnu-ext-0"       , "Wlnu-ext-0"           , wj.Data()   , false, xs.GetCrossSection("Wlnu"), false, year, wj_c, true));
+          }
+        } else {
+          cards.push_back(dcard("Wlnu-0"             , "Wlnu-0"               , "W+Jets-0J" , false, xs.GetCrossSection("Wlnu"), false, year, kMagenta, !useUL_&&year!=2018));
+          if(year != 2018 && !useUL_){
+            cards.push_back(dcard("Wlnu-ext-0"       , "Wlnu-ext-0"           , "W+Jets-0J" , false, xs.GetCrossSection("Wlnu"), false, year, kMagenta, true));
+          }
+        }
       }
-      // cards.push_back(dcard("Wlnu-0"             , "Wlnu-0"               , "W+0j"   , false, xs.GetCrossSection("Wlnu"                 ), false, year, kMagenta, !useUL_&&year!=2018));
-      // if(year != 2018 && !useUL_){
-      //   cards.push_back(dcard("Wlnu-ext-0"       , "Wlnu-ext-0"           , "W+0j"   , false, xs.GetCrossSection("Wlnu"                 ), false, year, kMagenta, true));
-      // }
       cards.push_back(dcard("Wlnu-1J"            , "Wlnu-1J"              , wj.Data()   , false, xs.GetCrossSection("Wlnu-1J"        , year), false, year, wj_c, false));
       cards.push_back(dcard("Wlnu-2J"            , "Wlnu-2J"              , wj.Data()   , false, xs.GetCrossSection("Wlnu-2J"        , year), false, year, wj_c, false));
       cards.push_back(dcard("Wlnu-3J"            , "Wlnu-3J"              , wj.Data()   , false, xs.GetCrossSection("Wlnu-3J"        , year), false, year, wj_c, false));
