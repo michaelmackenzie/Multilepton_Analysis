@@ -14,13 +14,13 @@ bool   separate_years_    =  true; //separate each year of data
 int    blind_data_        =    1 ; //0: no blinding; 1: blind high score region in plots; 2: kill high BDT score region in data and MC
 int    replace_data_      =    0 ; //0: use data in datacards; 1: use ~Asimov instead of data
 double blind_cut_         =  0.35;
-bool   add_groups_        =  true; //add systematic groups
 
 TString tag_; //output card tag
 
 //----------------------------------------------------------------------------------------------------------------------------
 //add a nuisance parameter index to a group, adding the group if not yet defined
 void add_group(map<TString,vector<TString>>& groups, TString sys, TString group) {
+  if(!add_groups_) return;
   if(groups.find(group) != groups.end()) {
     for(TString isys : groups[group]) {if(isys == sys) return;} //check the systematic isn't already added
     groups[group].push_back(sys);
@@ -605,12 +605,12 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
       TString hname = processes[iproc];
       if(iproc == 0) bkg_line += Form("%7s", "-"); //signal is always first, smaller buffer
       else {
-        if(hname == "QCD")   bkg_line += Form("%15.3f", 1.20); //additional 20% uncertainty
+        if(hname == "QCD")   bkg_line += Form("%15.3f", (selection == "zmutau_e") ? 1.20 : 1.03); //additional uncertainty corresponding to w+jet 0-jet yield in SS
         else                 bkg_line += Form("%15s", "-");
       }
     }
     outfile << Form("%s \n", bkg_line.Data());
-    add_group(groups, "QCDNorm", "QCD_Total");
+    if(add_groups_) add_group(groups, "QCDNorm", "QCD_Total");
   } else if(use_fake_bkg_norm_) {
     TString type = (selection.Contains("_")) ? "QCD" : "JetToTau";
     TString name = (selection.Contains("_")) ? "QCD" : "MisID";
@@ -624,7 +624,7 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
       }
     }
     outfile << Form("%s \n", bkg_line.Data());
-    add_group(groups, type+"Norm", type+"_Total");
+    if(add_groups_) add_group(groups, type+"Norm", type+"_Total");
   }
 
   //print the groups
@@ -653,6 +653,7 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
     const double scale = 1. + bias; //add the bias to the rate to compensate for it
     //add the rate parameter to correct the signal yield
     outfile << Form("%s rateParam %s %s %.3f [%.3f,%.3f]\n", name, hist.Data(), selec_name.Data(), scale, scale, scale);
+    outfile << Form("nuisance edit freeze %s\n", name);
     //add a signal yield uncertainty
     if(!ignore_sys_) {
       outfile << Form("%s_unc lnN %6.4f", name, 1. + ((selection.EndsWith("tau")) ? 0.1 : 0.5)*bias);

@@ -1,53 +1,117 @@
 #! /bin/bash
+# Do goodness of fit studies
 
-# Do goodness of fit studies on a given signal
+Help() {
+    echo "Do goodness of fit studies"
+    echo "Usage: do_goodness_of_fit.sh <card> [options]"
+    echo "Options:"
+    echo " --rrange    (-r ): POI range (default = 30)"
+    echo " --toys      (-t ): Number of toys (default = 100)"
+    echo " --fitarg         : Additional fit arguments"
+    echo " --skipworkspace  : Don't recreate workspace for input data card"
+    echo " --plotonly       : Only make plots"
+    echo " --algo           : Only process the given algorithm"
+    echo " --tag            : Tag for output results"
+    echo " --help      (-h ): Print this information"
+}
 
-SIGNAL=$1
-SKIPWORKSPACE=$2
-YEAR=$3
-HAD_SET=$4
+CARD=""
+RRANGE="30"
+NTOYS="100"
+FITARG=""
+SKIPWORKSPACE=""
+PLOTONLY=""
+TAG=""
+ONLYALGO=""
 
-if [[ "${SIGNAL}" == "" ]]; then
-    echo "No signal given! Allowed are zmutau or zetau"
+iarg=1
+while [ ${iarg} -le $# ]
+do
+    eval "var=\${${iarg}}"
+    if [[ "${var}" == "--help" ]] || [[ "${var}" == "-h" ]]; then
+        Help
+        exit
+    elif [[ "${var}" == "--rrange" ]] || [[ "${var}" == "-r" ]]; then
+        iarg=$((iarg + 1))
+        eval "var=\${${iarg}}"
+        RRANGE=${var}
+    elif [[ "${var}" == "--toys" ]] || [[ "${var}" == "-t" ]]; then
+        iarg=$((iarg + 1))
+        eval "var=\${${iarg}}"
+        NTOYS=${var}
+    elif [[ "${var}" == "--fitarg" ]]; then
+        iarg=$((iarg + 1))
+        eval "var=\${${iarg}}"
+        FITARG=${var}
+    elif [[ "${var}" == "--tag" ]]; then
+        iarg=$((iarg + 1))
+        eval "var=\${${iarg}}"
+        TAG=${var}
+    elif [[ "${var}" == "--algo" ]]; then
+        iarg=$((iarg + 1))
+        eval "var=\${${iarg}}"
+        ONLYALGO=${var}
+    elif [[ "${var}" == "--skipworkspace" ]]; then
+        SKIPWORKSPACE="d"
+    elif [[ "${var}" == "--plotonly" ]]; then
+        PLOTONLY="d"
+    elif [[ "${CARD}" != "" ]]; then
+        echo "Arguments aren't configured correctly! (at ${var}, CARD=${CARD})"
+        Help
+        exit
+    else
+        CARD=${var}
+    fi
+    iarg=$((iarg + 1))
+done
+
+if [[ "${CARD}" == "" ]]; then
+    echo "No card given!"
     exit
 fi
 
-if [[ "${SIGNAL}" != "zmutau" ]] && [[ "${SIGNAL}" != "zetau" ]]; then
-    echo "Unknown signal ${SIGNAL} given! Allowed are zmutau or zetau"
-    exit
+echo "Using card ${CARD} for the studies with TAG=${TAG}"
+if [[ "${TAG}" != "" ]]; then
+    TAG="_${TAG}"
 fi
 
-if [[ "${YEAR}" == "" ]]; then
-    YEAR="2016_2017_2018"
+# Create a workspace if needed
+
+WORKSPACE=`echo ${CARD} | sed 's/.txt/_workspace.root/'`
+if [[ "${SKIPWORKSPACE}" == "" ]] && [[ "${CARD}" == *".txt" ]]; then
+    text2workspace.py ${CARD} --channel-masks -o ${WORKSPACE}
+    echo "Created workspace ${WORKSPACE}"
 fi
 
-if [[ "${HAD_SET}" == "" ]]; then
-    HAD_SET="25_26_27_28"
-fi
+FITARG="${FITARG} --cminDefaultMinimizerStrategy 0 --cminApproxPreFitTolerance 0.1 --cminPreScan --cminPreFit 1 --rMin -${RRANGE} --rMax ${RRANGE}"
 
-echo "Using signal ${SIGNAL} with year ${YEAR}, hadronic set ${HAD_SET} for the studies"
+for ALGO in "saturated" "KS" "AD"; do
+    if [[ "${ONLYALGO}" != "" ]] && [[ "${ALGO}" != "${ONLYALGO}" ]]; then
+        echo "Skipping ${ALGO} algorithm (only processing ${ONLYALGO} algorithm)"
+        continue
+    fi
+    if [[ "${ALGO}" == "saturated" ]]; then
+        ADDITIONAL="--toysFreq"
+    else
+        ADDITIONAL=""
+    fi
+    if [[ "${PLOTONLY}" == "" ]]; then
+        echo "Performing ${ALGO} goodness of fit calculation"
+        echo ">>> combine -M GoodnessOfFit --algo=${ALGO} -d ${WORKSPACE} ${FITARG} -n .${ALGO}_observed${TAG}"
+        combine -M GoodnessOfFit --algo=${ALGO} -d ${WORKSPACE} ${FITARG} -n .${ALGO}_observed${TAG}
+        echo ">>> combine -M GoodnessOfFit --algo=${ALGO} -d ${WORKSPACE} ${FITARG} -n .${ALGO}${TAG} -t ${NTOYS} ${ADDITIONAL}"
+        combine -M GoodnessOfFit --algo=${ALGO} -d ${WORKSPACE} ${FITARG} -n .${ALGO}${TAG} -t ${NTOYS} ${ADDITIONAL}
+    fi
 
-# Create a workspace for the hadronic channel
+    OBSFILE="higgsCombine.${ALGO}_observed${TAG}.GoodnessOfFit.mH120.root"
+    TOYFILE="higgsCombine.${ALGO}${TAG}.GoodnessOfFit.mH120.123456.root"
+    if [ ! -f ${OBSFILE} ]; then
+        echo "${OBSFILE} not found!"
+    elif [ ! -f ${TOYFILE} ]; then
+        echo "${TOYFILE} not found!"
+    else
+        root.exe -q -b "${CMSSW_BASE}/src/CLFVAnalysis/Roostats/tools/plot_goodness_of_fit.C(\"${OBSFILE}\", \"${TOYFILE}\", \"_${ALGO}${TAG}\")"
+    fi
+done
 
-CARD_HAD="combine_mva_${SIGNAL}_${HAD_SET}_${YEAR}.txt"
-WORK_HAD="combine_mva_${SIGNAL}_${HAD_SET}_${YEAR}_workspace.root"
-if [[ "${SKIPWORKSPACE}" == "" ]]; then
-    text2workspace.py ${CARD_HAD} --channel-masks -o ${WORK_HAD}
-fi
-
-echo "Created workspace ${WORK_HAD}"
-
-echo "Performing asymptotic limits"
-combine -d ${WORK_HAD} --cminDefaultMinimizerStrategy 0 --rMin -500 --rMax 500
-
-echo "Performing saturated goodness of fit calculation"
-combine -M GoodnessOfFit --algo=saturated -d ${WORK_HAD} --cminDefaultMinimizerStrategy 0 --rMin -500 --rMax 500
-
-echo "Performing KS goodness of fit calculation"
-combine -M GoodnessOfFit --algo=KS -d ${WORK_HAD} --cminDefaultMinimizerStrategy 0 --rMin -500 --rMax 500
-
-echo "Performing AD goodness of fit calculation"
-combine -M GoodnessOfFit --algo=AD -d ${WORK_HAD} --cminDefaultMinimizerStrategy 0 --rMin -500 --rMax 500
-
-echo "Creating approximate impacts"
-../../impacts_mva.sh "${WORK_HAD}" "" "d" "500" "d"
+echo "Finished running goodness-of-fit tests"

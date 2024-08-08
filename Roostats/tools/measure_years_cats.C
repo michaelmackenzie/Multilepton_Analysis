@@ -3,10 +3,10 @@
 
 int measure_years_cats(TString selection = "zmutau",
                        vector<int> had_sets = {25,26,27,28}, vector<int> lep_sets = {25,26,27},
-                       bool processCards = true, TString card_tag = "", TString fig_tag = "v02") {
+                       bool processCards = true, TString card_tag = "", TString fig_tag = "v09c") {
 
   blinding_offset_ = true;
-  add_asimov_      = true;
+  add_asimov_      = false;
   add_values_      = true;
 
   const double scale = (selection.Contains("h")) ? 1.e-4 : 1.e-6;

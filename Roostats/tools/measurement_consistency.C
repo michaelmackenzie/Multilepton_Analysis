@@ -3,6 +3,7 @@ double scale_ = 1.;
 bool speed_limit_     = true; //use Combine arguments to speed up limit calculation
 bool preliminary_     = true;
 bool add_values_      = true; //add text values of the limits to the plot
+bool add_sigmas_      = true; //sigma for each category from expected (measured if blinded)
 bool blinding_offset_ = true;
 bool add_asimov_      = false; //add Asimov error bar sizes
 
@@ -33,8 +34,9 @@ int measurement_consistency(vector<config_t> configs, //info for each entry
   TRandom3 rnd((selection == "zmutau") ? 90 : (selection == "zetau") ? 91 : 92); //different seed for each selection, to not compare between plots
   const double offset = (blinding_offset_) ? 300.*(rnd.Uniform() - 0.5) : 0.; //offset the measurements by a fixed value if blinding
   const int nfiles = configs.size();
-  double obs[nfiles], up[nfiles], down[nfiles], y[nfiles], yerr[nfiles], asimov_up[nfiles], asimov_down[nfiles];
+  double obs[nfiles], up[nfiles], down[nfiles], y[nfiles], yerr[nfiles], asimov_up[nfiles], asimov_down[nfiles], sigmas[nfiles];
   double max_val(-1.e10), min_val(1.e10);
+  const double y_size = (nfiles < 5) ? 0.3 : 0.22; //half size of measurement bar in y-dimension
 
   if(processCards >= 0) { //processCards < 0 --> Use fixed values
     //Fit results for each input
@@ -48,6 +50,7 @@ int measurement_consistency(vector<config_t> configs, //info for each entry
       TString card      = config.name_;
       const double rmin = config.rmin_;
       const double rmax = config.rmax_;
+
 
       //Move to the proper directory
       if(years.size() == 0) { cout << "No years given!\n"; return 2; }
@@ -127,7 +130,7 @@ int measurement_consistency(vector<config_t> configs, //info for each entry
       down[itree] = scale*rloerr;
 
       y[itree] = nfiles - itree;
-      yerr[itree] = 0.2;
+      yerr[itree] = y_size;
       max_val = max(max_val, obs[itree] + up  [itree]);
       min_val = min(min_val, obs[itree] - down[itree]);
 
@@ -156,10 +159,10 @@ int measurement_consistency(vector<config_t> configs, //info for each entry
       obs[1] =  0.169*scale; up[1] = 0.576*scale; down[1] = 0.545*scale;
       obs[2] =  0.005*scale; up[2] = 0.577*scale; down[2] = 0.766*scale;
       obs[3] =  0.055*scale; up[3] = 0.386*scale; down[3] = 0.427*scale;
-      y[0] = 4; yerr[0] = 0.2;
-      y[1] = 3; yerr[1] = 0.2;
-      y[2] = 2; yerr[2] = 0.2;
-      y[3] = 1; yerr[3] = 0.2;
+      y[0] = 4; yerr[0] = y_size;
+      y[1] = 3; yerr[1] = y_size;
+      y[2] = 2; yerr[2] = y_size;
+      y[3] = 1; yerr[3] = y_size;
       for(int ibin = 0; ibin < nfiles; ++ibin) {
         max_val = max(max_val, obs[ibin] + up  [ibin]);
         min_val = min(min_val, obs[ibin] - down[ibin]);
@@ -168,6 +171,16 @@ int measurement_consistency(vector<config_t> configs, //info for each entry
       }
     }
   }
+
+  //measure the sigmas, assuming the last observation is the best in the blinded case
+  const double reference = (blinding_offset_) ? obs[nfiles-1] : 0.;
+  double chi_sq = 0.;
+  for(int i = 0; i < nfiles; ++i) {
+    sigmas[i] = (obs[i] - reference)/((obs[i] > reference) ? down[i] : up[i]);
+    chi_sq += sigmas[i]*sigmas[i];
+  }
+  printf("Overall chi^2 = %.1f / %i = %.2f, p(chi^2) = %.3f\n",
+         chi_sq, nfiles, chi_sq/nfiles, TMath::Prob(chi_sq, nfiles));
 
   TGraphAsymmErrors* gobs = new TGraphAsymmErrors(nfiles, obs, y, down, up, yerr, yerr);
   gobs->SetName("obs");
@@ -184,8 +197,8 @@ int measurement_consistency(vector<config_t> configs, //info for each entry
   const double ymin = 0.5;
 
   //calculate x-axis range
-  const float xmax = max_val + 0.1*fabs(max_val);
-  const float xmin = min_val - 0.1*fabs(min_val);
+  const float xmax = max_val + ((add_sigmas_) ? 0.2 : 0.1)*fabs(max_val);
+  const float xmin = min_val - ((add_values_) ? 0.2 : 0.1)*fabs(min_val);
   printf("Max val = %.2e, Min val = %.2e --> xrange = [%.2e , %.2e]\n", max_val, min_val, xmin, xmax);
 
   gStyle->SetOptStat(0);
@@ -209,7 +222,7 @@ int measurement_consistency(vector<config_t> configs, //info for each entry
     gasimov->Draw("E2");
   }
 
-  gobs->Draw("PE");
+  gobs->Draw((add_asimov_) ? "PE" : "PE2");
   haxis->GetYaxis()->SetRangeUser(ymin, ymax);
   haxis->GetXaxis()->SetRangeUser(xmin, xmax);
   haxis->GetYaxis()->SetLabelOffset(1e10);
@@ -261,6 +274,9 @@ int measurement_consistency(vector<config_t> configs, //info for each entry
       label.DrawLatex(0.01, yloc, Form("%s: %.2e", configs[index].label_.Data(), obs[index]));
     else
       label.DrawLatex(0.01, yloc, Form("%s", configs[index].label_.Data()));
+    if(add_sigmas_) {
+      label.DrawLatex(0.82, yloc, Form("%.1f#sigma", sigmas[index]));
+    }
   }
 
   gSystem->Exec("[ ! -d measurements ] && mkdir measurements");

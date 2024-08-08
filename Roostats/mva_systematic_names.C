@@ -70,6 +70,7 @@ bool is_relevant(TString sys, TString process) {
   if(sys.BeginsWith("TauMuID") ) return !is_embed && !is_ztt; //only for fake taus
   if(sys.BeginsWith("TauEleES")) return !is_embed && !is_ztt; //only for fake taus
   if(sys.BeginsWith("TauMuES") ) return !is_embed && !is_ztt; //only for fake taus
+
   return true; //default to it being relevant
 }
 
@@ -268,10 +269,10 @@ std::pair<TString,TString> systematic_name(int sys, TString selection, int year,
   else if(name.Contains("MuonTrig")   ) type = "lnN";
   else if(name.Contains("EmbTauEleID")) type = "lnN"; //Embedded e-->tau negligible as could only be tau tau --> tau_e tau_(e/mu) --> (tau_e --> tau_h) tau_(e/mu)
   else if(name.Contains("EmbTauMuID" )) type = "lnN"; //Embedded mu-->tau negligible as could only be tau tau --> tau_mu tau_(e/mu) --> (tau_mu --> tau_h) tau_(e/mu)
-  else if(name == "BTag"              ) type = "lnN"; //c/b b-tagging efficiencies (light b-tag eff left as shape)
+  else if(name == "BTag"              ) type = "lnN"; //c/b b-tagging efficiencies
+  else if(name == "BTagLight"         ) type = "lnN"; //light b-tagging efficiencies
   else if(name.BeginsWith("TauJetID") ) type = "lnN"; //MC tau ID (Embed tau ID left as shape)
   else if(name.BeginsWith("JetToTauAltTop")) type = "lnN"; //Top j-->tau has very little shape effect
-  // else if(name.BeginsWith("TheoryPDF")) type = "lnN"; //FIXME: Implement as a shape if needed
 
   ///////////////////////////////////////////////////////////////////////////
   // Define which are uncorrelated between years
@@ -299,6 +300,9 @@ std::pair<TString,TString> systematic_name(int sys, TString selection, int year,
   else if(name.Contains("BTag")        ) name = Form("%s-%s", name.Data(), (selection.EndsWith("tau")) ? "had" : "lep"); //FIXME: Decide correlation between years, and tight/loose ID
   else if(name == "SignalMixing"       ) name = Form("%sY%i", name.Data(), year);
   else if(name.BeginsWith("EmbDetectorMET")) name = Form("%sY%i", name.Data(), year);
+
+  //Final shape decisions using full names
+  // if(name == "JetToTauAltQCDD2A2Y1") type = "lnN"; //force this j-->tau stat. to be rate only
 
   return std::pair<TString,TString>(name,type);
 }

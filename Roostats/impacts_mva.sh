@@ -9,7 +9,6 @@ Help() {
     echo " --unblind        : Unblind the results"
     echo " --dontclean (-dc): Don't cleanup output combine files"
     echo " --approx    (-a ): Do approximate limits"
-    echo " --fitarg         : Additional combineTool.py arguments (see combineTools.py -M Impacts -h)"
     echo " --plotarg        : Additional plotImpacts.py arguments (e.g. --blind, see plotImpacts.py -h)"
     echo " --fitarg         : Additional combineTool.py arguments (see combineTools.py -M Impacts -h)"
     echo " --zemu_arg       : Add additional fit arguments for envelope fits"
@@ -257,6 +256,8 @@ if [[ "${PLOTONLY}" == "" ]]; then
     if [[ "${ZEMUARG}" != "" ]]; then
         echo "Adding fit arguments for Z->emu fits"
         FITADDITIONAL="${FITADDITIONAL} --cminDefaultMinimizerStrategy 0 --X-rtd MINIMIZER_freezeDisassociatedParams --X-rtd REMOVE_CONSTANT_ZERO_POINT=1 --X-rtd MINIMIZER_multiMin_hideConstants"
+    else
+        FITADDITIONAL="--cminApproxPreFitTolerance 0.1 --cminPreScan --cminPreFit 1 --cminDefaultMinimizerStrategy 0"
     fi
 
     # Perform initial fits
