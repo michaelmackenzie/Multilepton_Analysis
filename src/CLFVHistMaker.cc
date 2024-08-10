@@ -1910,6 +1910,21 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
                                   __func__, fentry, metCorr, metCorrPhi));
   }
 
+  //Update event weights if needed
+  if(fCompensateWJets && (fWNJets > 0 || fIsWGamma)) { //a > 0-J W+jets or W+photon event, scale up to compensate for W+jets 0-J yield
+    float wj_scale = 1.f;
+    if(lep_tau == 1 && emu) { //mutau_e processing
+      wj_scale = (chargeTest) ? (983.6f + 3226.2f) / (3226.2f) : (5715.9f + 3922.3f) / (5715.9f);
+    } else if(lep_tau == 2 && emu) { //etau_mu processing
+      wj_scale = (chargeTest) ? (635.9f + 1754.8f) / (1754.8f) : (3255.5f + 1297.8f) / (3255.5f);
+    }
+    eventWeight                  *= wj_scale;
+    fTreeVars.eventweight        *= wj_scale;
+    fTreeVars.eventweightMVA     *= wj_scale;
+    fTreeVars.fulleventweight    *= wj_scale;
+    fTreeVars.fulleventweightlum *= wj_scale;
+  }
+
   //object pT thresholds
   const float muon_pt(10.f), electron_pt(15.f), tau_pt(20.f);
   const float sys_buffer(fMigrationBuffer); //window widening for event migration checks, in GeV

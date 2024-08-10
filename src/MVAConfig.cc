@@ -400,12 +400,12 @@ std::vector<Double_t> MVAConfig::CDFBins(Int_t index, Int_t HistSet) {
 
     // Binning for F(p) = p^2 + 1/6*log(p)
     if(selection == "zetau_mu") {
-    if(HistSet == 25) {xmin = 0.25f; xmax = 1.00f;} //central mass
+    if(HistSet == 25) {xmin = 0.25f; xmax = 1.00f; default_width = 0.05f;} //central mass
     if(HistSet == 26) {xmin = 0.25f; xmax = 0.25f; default_width = 0.08f;} //high mass
     if(HistSet == 27) {xmin = 0.25f; xmax = 0.81f; default_width = 0.08f;} //low mass
     }
     if(selection == "zmutau_e") {
-    if(HistSet == 25) {xmin = 0.25f; xmax = 1.00f; default_width = 0.05f;} //central mass
+    if(HistSet == 25) {xmin = 0.25f; xmax = 0.91f; default_width = 0.06f;} //central mass
     if(HistSet == 26) {xmin = 0.25f; xmax = 0.25f; default_width = 0.08f;} //high mass
     if(HistSet == 27) {xmin = 0.25f; xmax = 0.37f; default_width = 0.06f;} //low mass
     }

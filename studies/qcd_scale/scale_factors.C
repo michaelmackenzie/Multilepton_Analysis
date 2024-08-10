@@ -934,6 +934,10 @@ Int_t scale_factors(TString selection = "emu", int set = 8, vector<int> years = 
     h2DRatio->Divide(h2DSS);
     h2DRatio->Write();
   }
+  h2DOS = get_2D_qcd_histogram("qcdlepmvsmvamutau2", setAbs); //also print in this selection
+  h2DSS = get_2D_qcd_histogram("qcdlepmvsmvamutau2", setAbs+CLFVHistMaker::fQcdOffset);
+  c = make_2D_ratio_canvas(h2DOS, h2DSS, 40., 170., 0., 1., true, "Mass (GeV/c^{2})", "BDT score");
+  if(c) {c->Print((name + "mass_vs_mva_mutau_set_ratio.png").Data()); delete c;}
 
   //etau_mu: loose electron, tight muon region 2D (mass, bdt) scales
   make_2d_closure_slices(PlottingCard_t("qcdlepmvsmvaetau2" , "event", 2270), name, true);
@@ -948,6 +952,10 @@ Int_t scale_factors(TString selection = "emu", int set = 8, vector<int> years = 
     h2DRatio->Divide(h2DSS);
     h2DRatio->Write();
   }
+  h2DOS = get_2D_qcd_histogram("qcdlepmvsmvaetau2", setAbs); //also print in this selection
+  h2DSS = get_2D_qcd_histogram("qcdlepmvsmvaetau2", setAbs+CLFVHistMaker::fQcdOffset);
+  c = make_2D_ratio_canvas(h2DOS, h2DSS, 40., 170., 0., 1., true, "Mass (GeV/c^{2})", "BDT score");
+  if(c) {c->Print((name + "mass_vs_mva_etau_set_ratio.png").Data()); delete c;}
 
   //delta phi vs electron eta
   h2DOS = get_2D_qcd_histogram("lepdelphivsoneeta", setAbs);

@@ -39,6 +39,12 @@ do
     root.exe -q -b "scale_factors.C(\"${SELECTION}\", 71, {${YEAR}}, \"${HISTPATH}\")"
     #loose electron, tight muon region
     root.exe -q -b "scale_factors.C(\"${SELECTION}\", 70, {${YEAR}}, \"${HISTPATH}\")"
+    #mutau_e region (tight electron)
+    root.exe -q -b "scale_factors.C(\"${SELECTION}\", 72, {${YEAR}}, \"${HISTPATH}\")"
+    #etau_mu region (tight electron)
+    root.exe -q -b "scale_factors.C(\"${SELECTION}\", 73, {${YEAR}}, \"${HISTPATH}\")"
+    #mutau_e region (tight muon)
+    root.exe -q -b "scale_factors.C(\"${SELECTION}\", 74, {${YEAR}}, \"${HISTPATH}\")"
 done
 
 echo "Finished processing all years"

@@ -873,6 +873,7 @@ namespace CLFV {
     Int_t           fSplitWGamma = 0; //for remove W+gamma events from W+jets samples
     Int_t           fIsHiggsBkg = 0; //is a Higgs background sample: 1 = ggF; 2 = VBF; 3 = W+H; 4 = W-H; 5 = ZH
     Bool_t          fIsWJets = false;
+    Bool_t          fIsWGamma = false;
     Bool_t          fIsWW = false;
     Bool_t          fIsWWW = false;
     Bool_t          fIsTTbar = false;

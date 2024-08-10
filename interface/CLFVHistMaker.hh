@@ -58,6 +58,7 @@ namespace CLFV {
     Bool_t          fDoMVASets = false; //for filling MVA cut sets even in DYTesting mode
     Bool_t          fRemoveLooseSS = true; //remove loose ID + same-sign events, not used for background estimates
     Bool_t          fUseBDTCut = false; //apply a cut on the BDT score
+    Bool_t          fCompensateWJets = false; //scale up emu W+jets N-J events to compensate for removing 0-J events
 
     Bool_t          fDoLepESHists = false; //histogram variables with lepton energy scale variations
 

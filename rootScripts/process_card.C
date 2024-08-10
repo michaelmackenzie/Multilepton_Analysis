@@ -261,6 +261,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
         clfv_selec->fSameFlavorEMuSelec = doSameFlavorEMu_;
         clfv_selec->fRemoveLooseSS      = removeLooseSS_;
         clfv_selec->fUseBDTCut          = useBDTCut_;
+        clfv_selec->fCompensateWJets    = compensateWJets_;
         clfv_selec->fDoLepESHists       = doLepESHists_;
         clfv_selec->fRemoveTraining     = remove_training_;
       }
@@ -342,6 +343,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
       if(isDY && splitDY_)     selec->fDYType = dyloop; //if Drell-Yan, tell the selector which loop we're on
       if(isWJ && splitWJets_)  selec->fWNJets = wjloop; //if inclusive W+Jets, tell the selector which loop we're on
       if(isWJets && splitWGamma_) selec->fSplitWGamma = 1; //if (any) W+Jets, remove W+gamma events
+      selec->fIsWGamma = card.fname_.Contains("WGamma"); //W+photon event
       selec->fIsDY = isDY;
       selec->fIsData = card.isData_;
       selec->fIsEmbed = isEmbed;

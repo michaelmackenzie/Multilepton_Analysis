@@ -14,6 +14,26 @@
 
   const char* exec_name = gApplication->Argv(0);
 
+  //Define useful TColors
+  const int kCMSColor_1  = TColor::GetColor("#3f90da");
+  const int kCMSColor_2  = TColor::GetColor("#ffa90e");
+  const int kCMSColor_3  = TColor::GetColor("#bd1f01");
+  const int kCMSColor_4  = TColor::GetColor("#94a4a2");
+  const int kCMSColor_5  = TColor::GetColor("#832db6");
+  const int kCMSColor_6  = TColor::GetColor("#a96b59");
+  const int kCMSColor_7  = TColor::GetColor("#e76300");
+  const int kCMSColor_8  = TColor::GetColor("#b9ac70");
+  const int kCMSColor_9  = TColor::GetColor("#717581");
+  const int kCMSColor_10 = TColor::GetColor("#92dadd");
+
+  //Colors for low number of processes
+  const int kCMSColor_S_1 = TColor::GetColor("#5790fc");
+  const int kCMSColor_S_2 = TColor::GetColor("#f89c20");
+  const int kCMSColor_S_3 = TColor::GetColor("#e42536");
+  const int kCMSColor_S_4 = TColor::GetColor("#964a8b");
+  const int kCMSColor_S_5 = TColor::GetColor("#9c9ca1");
+  const int kCMSColor_S_6 = TColor::GetColor("#7a21dd");
+
   if (exec_name) {
     if (strcmp(exec_name,"root.exe") == 0) {
       gInterpreter->AddIncludePath("../rootScripts");
