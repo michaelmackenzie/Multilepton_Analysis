@@ -35,6 +35,10 @@ void QCDHistMaker::InitHistogramFlags() {
   fEventSets [kEMu  +  8] = 1; // preselection
   fEventSets [kEMu  + 70] = 1; // loose electron, tight muon
   fEventSets [kEMu  + 71] = 1; // loose electron, loose muon
+  fEventSets [kEMu  + 72] = 1; // mutau_e selection (tight electron)
+  fEventSets [kEMu  + 73] = 1; // etau_mu selection (tight electron)
+  fEventSets [kEMu  + 74] = 1; // mutau_e selection (tight muon)
+
 }
 
 //--------------------------------------------------------------------------------------------------------------
@@ -594,6 +598,18 @@ Bool_t QCDHistMaker::Process(Long64_t entry)
       qcdMassBDTScale = prev_qcd_bias;
     }
   }
+
+  //Apply mutau_e selection
+  mutau_e = !isLooseElectron && fTreeVars.leptwopt > 20.f && fTreeVars.mtoneoverm < 0.8f && fTreeVars.mtlep < 90.f;
+  if(mutau_e) FillAllHistograms(set_offset + 72);
+
+  //Apply etau_mu selection
+  etau_mu = !isLooseElectron && fTreeVars.leponept > 20.f && fTreeVars.mttwooverm < 0.8f && fTreeVars.mtlep < 90.f && fTreeVars.ptdiff > 0.f;
+  if(etau_mu) FillAllHistograms(set_offset + 73);
+
+  //mutau_e with tight muon
+  mutau_e = !isLooseMuon && fTreeVars.leptwopt > 20.f && fTreeVars.mtoneoverm < 0.8f && fTreeVars.mtlep < 90.f;
+  if(mutau_e) FillAllHistograms(set_offset + 74);
 
   //Enforce QCD selection only using loose muon ID
   emu &= !isLooseElectron;

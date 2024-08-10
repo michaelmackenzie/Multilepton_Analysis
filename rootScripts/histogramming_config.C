@@ -119,6 +119,7 @@ bool sparseHists_         = true; //only plot more basic histograms
 
 int  splitWJets_          =  1; //split W+jets sample based on N(LHE jets)
 int  splitWGamma_         =  1; //remove W+gamma events from W+jets samples
+bool compensateWJets_     = false; //compensate N-J W+jets for the exclusion of 0-J
 bool splitDY_             = true; //split z+jets sample based on gen-level lepton pair flavor
 
 bool useUL_               = false; //Use UL files/cross sections
@@ -166,7 +167,7 @@ config_t get_config() {
   config_t config;
 
   config.writeTrees_ = writeTrees_;
-  config.selections_ = {"mutau"}; //{"mutau", "etau", "emu", "mutau_e", "etau_mu", "mumu", "ee"};
+  config.selections_ = {"mutau", "etau", "mutau_e", "etau_mu"}; //{"mutau", "etau", "emu", "mutau_e", "etau_mu", "mumu", "ee"};
   config.signalTrainFraction_ = 0.5;
   config.backgroundTrainFraction_ = 0.3;
 
