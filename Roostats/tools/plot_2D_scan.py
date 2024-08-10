@@ -1,12 +1,12 @@
 import ROOT
 from scipy.interpolate import griddata
 import numpy as np
-from config import plot_dir
 import sys
 
 ROOT.gROOT.SetBatch(True)
 ROOT.gStyle.SetOptStat(0)
 
+plot_dir = "."
 
 file_name = sys.argv[1]
 param_1   = sys.argv[2]

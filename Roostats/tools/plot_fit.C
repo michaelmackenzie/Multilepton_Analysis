@@ -4,7 +4,8 @@
 
 bool unblind_ = false;
 bool print_stacks_ = true;
-bool debug_ = false;
+bool debug_ = false; //print debug info
+bool do_single_ = false; //test printing a single histogram
 
 
 //------------------------------------------------------------------------------------------
@@ -13,6 +14,26 @@ double hmax(TH1* h) {
   double max_val = h->GetBinContent(1);
   for(int ibin = 2; ibin <= h->GetNbinsX(); ++ibin) max_val = max(max_val, h->GetBinContent(ibin));
   return max_val;
+}
+
+double hmin(TH1* h, double cutoff = 0.01) {
+  double min_val = h->GetMaximum();
+  for(int ibin = 1; ibin <= h->GetNbinsX(); ++ibin) {
+    if(h->GetBinContent(ibin) < cutoff) continue;
+    min_val = min(min_val, h->GetBinContent(ibin));
+  }
+  return max(cutoff, min_val);
+}
+
+double gmin(TGraph* g, double cutoff = 0.01) {
+  const int nbins = g->GetN();
+  double min_val = -1;
+  for(int ibin = 0; ibin < nbins; ++ibin) {
+    const double val = g->GetY()[ibin];
+    if(val < cutoff) continue;
+    min_val = (min_val < 0.) ? val : min(min_val, val);
+  }
+  return max(cutoff, min_val);
 }
 
 //------------------------------------------------------------------------------------------
@@ -272,12 +293,13 @@ int print_stack(TDirectoryFile* dir, TString tag, TString outdir) {
   line_2->Draw("same");
 
   //Print a linear and a log version of the distribution
-  double min_val = std::max(0.1, 0.8*std::min(gdata->GetMinimum(), htotal->GetMinimum()));
+  double min_val = std::max(0.1, std::min(gmin(gdata), hmin(htotal)));
   double max_val = std::max(gdata->GetMaximum(), hmax(htotal));
   htotal->GetYaxis()->SetRangeUser(0., 1.5*max_val);
   c->SaveAs(Form("%s%s_stack.png", outdir.Data(), tag.Data()));
-  double log_max = min_val*pow(10, 1.5*log10(max_val/min_val));
-  htotal->GetYaxis()->SetRangeUser(0.8*min_val, log_max);
+  double plot_min = 0.01*min_val;
+  double plot_max = plot_min*pow(10, 1.5*log10(max_val/plot_min));
+  htotal->GetYaxis()->SetRangeUser(plot_min, plot_max);
   pad1->SetLogy();
   c->SaveAs(Form("%s%s_stack_logy.png", outdir.Data(), tag.Data()));
 
@@ -531,12 +553,13 @@ int print_hist(TDirectoryFile* dir, TString tag, TString outdir) {
   line_2->Draw("same");
 
   //Print a linear and a log version of the distribution
-  double min_val = std::max(0.1, 0.8*std::min(gdata->GetMinimum(), htotal->GetMinimum()));
+  double min_val = std::max(0.1, std::min(gmin(gdata), hmin(htotal)));
   double max_val = std::max(gdata->GetMaximum(), hmax(htotal));
   htotal->GetYaxis()->SetRangeUser(0., 1.2*max_val);
   c->SaveAs(Form("%s%s.png", outdir.Data(), tag.Data()));
-  double log_max = min_val*pow(10, 1.5*log10(max_val/min_val));
-  htotal->GetYaxis()->SetRangeUser(0.8*min_val, log_max);
+  double plot_min = 0.2*min_val;
+  double plot_max = plot_min*pow(10, 1.7*log10(max_val/plot_min));
+  htotal->GetYaxis()->SetRangeUser(plot_min, plot_max);
   pad1->SetLogy();
   c->SaveAs(Form("%s%s_logy.png", outdir.Data(), tag.Data()));
 
@@ -573,6 +596,7 @@ int print_dir(TDirectoryFile* dir, TString tag, TString outdir) {
     if(isdir) {
       status += print_dir((TDirectoryFile*) obj, (tag + "_") + obj->GetName(), outdir);
       subdir = true;
+      if(do_single_) return status;
     }
   }
 
@@ -609,8 +633,10 @@ int plot_fit(TString fname, TString outdir = "figures", bool unblind = false) {
   //Print the fit configurations: Pre-fit, background-only fit, and background+signal fit
   int status(0);
   status += print_dir(prefit, "prefit", outdir);
-  if(fit_b) status += print_dir(fit_b , "fit_b" , outdir);
-  if(fit_s) status += print_dir(fit_s , "fit_s" , outdir);
+  if(!do_single_) {
+    if(fit_b) status += print_dir(fit_b , "fit_b" , outdir);
+    if(fit_s) status += print_dir(fit_s , "fit_s" , outdir);
+  }
 
   cout << "Plotting status = " << status << endl;
   return status;
