@@ -24,6 +24,16 @@ namespace CLFV {
       else if(selection == "mumu"    ) {lep1 = "#mu1"; lep2 = "#mu2";}
       hist.ReplaceAll("lepes_one", ""); //lepton energy scale variation histograms
       hist.ReplaceAll("lepes_two", "");
+
+      //BDT variable slice study
+      std::vector<TString> vars = {"mass", "mcol", "alpha1", "alpha2", "ptratio", "mtlep", "dphitau", "dphi", "leppt", "jetpt"};
+      bool is_var_study = hist.Contains("mtlep") && hist.Contains("vs"); //check due to overload of histogram naming
+      for(auto var : vars) {
+        hist.ReplaceAll(Form("_vs_%s_0", var.Data()), "");
+        hist.ReplaceAll(Form("_vs_%s_1", var.Data()), "");
+        hist.ReplaceAll(Form("_vs_%s_2", var.Data()), "");
+      }
+
       if(hist == "lepdelrvsphi") {
         *xtitle = Form("#DeltaR");
         *ytitle = Form("#Delta#phi");
@@ -90,12 +100,12 @@ namespace CLFV {
         *ytitle = "";
         *title  = Form("pT Over Mass of the Lepton System");
       }
-      else if(hist == "lepm") {
+      else if(hist == "lepm" || hist == "mass") {
         *xtitle = "M_{ll} (GeV/c^{2})";
         *ytitle = "";
         *title  = Form("Mass of the Lepton System");
       }
-      else if(hist == "lepmestimate") {
+      else if(hist == "lepmestimate" || hist == "mcol") {
         *xtitle = "M_{ll}^{Col} (GeV/c^{2})";
         *ytitle = "";
         *title  = Form("Mass Estimate of the Lepton System");
@@ -245,7 +255,7 @@ namespace CLFV {
         *ytitle = "";
         *title  = Form("#Delta#eta of the Lepton System");
       }
-      else if(hist == "lepdeltaphi") {
+      else if(hist == "lepdeltaphi" || hist == "dphi") {
         *xtitle = "#Delta#phi_{ll}";
         *ytitle = "";
         *title  = Form("#Delta#phi of the Lepton System");
@@ -445,7 +455,7 @@ namespace CLFV {
         *ytitle = "";
         *title  = Form("MT(MET,#tau)");
       }
-      else if(hist.BeginsWith("mtone")) {
+      else if(hist.BeginsWith("mtone") || (hist == "mtlep" && is_var_study)) {
         *xtitle = Form("M_{T}(%s,MET)", lep1.Data());
         *ytitle = "";
         *title  = "";
@@ -570,7 +580,7 @@ namespace CLFV {
         *ytitle = "";
         *title  = "#Delta#phi between MET and lepton 1";
       }
-      else if(hist == "twometdeltaphi") {
+      else if(hist == "twometdeltaphi" || hist == "dphitau") {
         *xtitle = Form("#Delta#phi(%s,MET)", lep2.Data());
         *ytitle = "";
         *title  = "#Delta#phi between MET and lepton 2";
@@ -665,12 +675,12 @@ namespace CLFV {
         *ytitle = "";
         *title  = "#Delta#alpha";
       }
-      else if(hist == "beta0") {
+      else if(hist == "beta0" || hist == "alpha2") {
         *xtitle = Form("#alpha(%s)", lep2.Data()); //indices are inverted
         *ytitle = "";
         *title  = "#alpha";
       }
-      else if(hist == "beta1") {
+      else if(hist == "beta1" || hist == "alpha1") {
         *xtitle = Form("#alpha(%s)", lep1.Data()); //indices are inverted
         *ytitle = "";
         *title  = "#alpha";

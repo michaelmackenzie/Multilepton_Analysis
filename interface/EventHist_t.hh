@@ -5,6 +5,7 @@
 #include "TH2.h"
 
 #include "interface/LepESHist_t.hh"
+#include "interface/BDTVarHist_t.hh"
 
 #include "interface/JetToTauComposition.hh"
 namespace CLFV {
@@ -335,6 +336,9 @@ namespace CLFV {
 
     //energy scale study histograms
     LepESHist_t LepESHists[2]; //0: lepton one up/down; 1: lepton two up/down
+
+    //BDT variable study histograms
+    BDTVarHist_t BDTVarHists;
 
     //llg study histograms
     TH1* hObjMasses[14]; //jets, jets+gamma, jet1/2 + gamma, jets + l1/2, jet1/2 + l1/2, jets+l1+l2, jets + gamma + l1/2, jets + gamma + l1 + l2

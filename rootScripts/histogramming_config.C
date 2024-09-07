@@ -47,6 +47,7 @@ TString jTTProcess_       = "";    //JTTHistMaker process to measure ("" for all
 
 int  doEleIDStudy_        =  0; //add additional electron cuts in Z->emu to reduce Z->mumu*
 int  doLepESHists_        =  0; //add histograms of BDT variables with lepton ES shifted up/down
+int  doBDTVarHists_       =  0; //add histograms of BDT variables in slices of other variables
 
 int removeTrigWeights_    =  4; //0: do nothing 1: remove weights 2: replace 3: replace P(event) 4: replace P(at least 1 triggered)
 int useBTagWeights_       =  1; //1: calculate locally; 2: use ntuple values for each jet
@@ -97,10 +98,12 @@ int doEmuDefaults_        =  1; //set to default emu running
 int doSameFlavorEMu_      =  0; //treat ee/mumu as emu
 int doEmbedSameFlavor_    =  2; //setup ee/mumu for embedding testing: 1: skip MC Z->ll; 2: allow MC Z->ll
 int doEmbedLLAll_         =  0; //process Embedding ee/mumu samples in non-ee/mumu selections
+int doZPrime_             =  0; //assume Z prime processing for emu channel
 
 int systematicSeed_       = 90; //seed for systematic random shifts
 int doSystematics_        =  1; //process systematic uncertainty histograms: 0: don't process; 1: process; -2: process for signal, nominal only for the rest
 int allowMigration_       =  2; //event migration systematic effects
+int usePostFit_           =  0; //apply some post-fit nuisance parameter results
 int  DoMVASets_           =  1; //Fill sets with MVA cuts: 1 = emu; 2 = emu/ee/mumu; 3 = all sets
 int  ReprocessMVAs_       =  1; //Re-evaluate MVA scores on the fly
 int useCDFBDTs_           =  2; //Use CDF transformed BDTs instead of the raw BDT scores in the fits

@@ -34,16 +34,17 @@ int    correctData_   =  1 ; //check the event histogram vs gen numbers to corre
 bool   useLepTauSet_  =  1 ; //use leptonic tau files for leptonic tau selections
 bool   signalInStudy_ =  0 ; //include signal distributions in processing for studies
 bool   skipData_      =  0 ; //don't initialize data cards
+int    zprime_        =  0 ; //Z prime processing in emu
 
 //for adjusting cross sections
 float zll_scale_ = 1.f; //Z->ee/mumu yield scale
 
 //Blind the analysis
-bool blind_ = true;
+bool blind_ = false;
 
 //get the data cards needed
 void get_datacards(std::vector<dcard>& cards, TString selection, int forStudies = 0 /*0: plotting; 1: studies; 2: fits*/,
-		   TString tag = "") {
+                   TString tag = "") {
   //cross section handler
   CrossSections xs(useUL_, ZMode_);
   bool leptonic_tau = (selection.Contains("tau_")); //mutau_l, etau_l

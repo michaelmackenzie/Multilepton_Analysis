@@ -175,11 +175,11 @@ Int_t print_mass(int set, bool add_sys = false, double mass_min = 1., double mas
   if(!dataplotter_) return 1;
   const Int_t offset = ((set % 1000) > 100) ? 0 : get_offset();
   if(mass_min >= mass_max) {
-    mass_min = (selection_.Contains("tau")) ?  40. :  70.;
-    mass_max = (selection_.Contains("tau")) ? 170. : 110.;
+    mass_min = (selection_.Contains("tau")) ?  40. : (!zprime_) ?  70. :  95.;
+    mass_max = (selection_.Contains("tau")) ? 170. : (!zprime_) ? 110. : 170.;
   }
   PlottingCard_t card("lepm", "event", set+offset, 5, mass_min, mass_max);
-  if((selection_ == "emu" || selection_.Contains("_")) && set < 1000) {
+  if(blind_ && (selection_ == "emu" || selection_.Contains("_")) && set < 1000) {
     card.blindmin_ = {84.};
     card.blindmax_ = {98.};
   }
@@ -575,11 +575,25 @@ Int_t print_lep_beta(int set, bool add_sys = false) {
   const double blind_max = 1.2;
   Int_t status(0);
   for(TString hist : hists) {
-    bool blind = blind_ && hist == "beta0" && selection_.EndsWith("_e");
-    blind |= blind_ && hist == "beta1" && !same_flavor && !selection_.EndsWith("_e");
-    const double xmax = ((selection_ == "etau_mu" && hist == "beta0") || (selection_ == "mutau_e" && hist == "beta1")) ? 5. : 3.;
-    const double xmin = (hist.BeginsWith("deltaalpha")) ? -xmax : 0.;
-    PlottingCard_t card(hist, "event", set+offset, (same_flavor) ? 1 : 2, xmin, xmax, (blind) ? blind_min : 1., (blind) ? blind_max : -1.);
+    bool blind = hist == "beta0" && selection_.EndsWith("_e");
+    blind |= hist == "beta1" && !same_flavor && !selection_.EndsWith("_e");
+    blind &= blind_;
+    double xmax(3.), xmin(0.);
+    int rebin = (same_flavor) ? 1 : 2;
+    if((hist == "beta0" && selection_ != "mutau_e") || (hist == "beta1" && selection_ == "mutau_e")) { //beta(tau)
+      if     (selection_ == "mutau_e") {xmax = 3.2; xmin = 0.4;}
+      else if(selection_ == "etau_mu") {xmax = 4.5; xmin = 0.5;}
+      else                             {xmax = 2.5; xmin = 0.4;}
+    }
+    if((hist == "beta1" && selection_ != "mutau_e") || (hist == "beta0" && selection_ == "mutau_e")) { //beta(lep)
+      xmax = 2.; xmin = 0.3;
+    }
+    if(hist.BeginsWith("deltaalpha")) { //delta alpha
+      xmin = -xmax;
+    }
+    // const double xmax = ((selection_ == "etau_mu" && hist == "beta0") || (selection_ == "mutau_e" && hist == "beta1")) ? 5. : 3.;
+    // const double xmin = (hist.BeginsWith("deltaalpha")) ? -xmax : 0.;
+    PlottingCard_t card(hist, "event", set+offset, rebin, xmin, xmax, (blind) ? blind_min : 1., (blind) ? blind_max : -1.);
     for(int logY = 0; logY < 2; ++logY) {
       dataplotter_->logY_ = logY;
       auto c = dataplotter_->print_stack(card);

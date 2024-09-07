@@ -125,9 +125,14 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
     useXGBoost_ = 1;
     train_mode_ = 0;
 
-    min_lepm_         =  65.f;
-    max_lepm_         = 115.f;
-    migration_buffer_ =   5.f;
+    if(doZPrime_) {
+      min_lepm_         =  90.f;
+      max_lepm_         = 175.f;
+    } else {
+      min_lepm_         =  65.f;
+      max_lepm_         = 115.f;
+      migration_buffer_ =   5.f;
+    }
     // min_lepm_         =  85.f;
     // max_lepm_         =  95.f;
     // migration_buffer_ =   0.f;
@@ -261,8 +266,10 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
         clfv_selec->fSameFlavorEMuSelec = doSameFlavorEMu_;
         clfv_selec->fRemoveLooseSS      = removeLooseSS_;
         clfv_selec->fUseBDTCut          = useBDTCut_;
+        clfv_selec->fZPrime             = doZPrime_;
         clfv_selec->fCompensateWJets    = compensateWJets_;
         clfv_selec->fDoLepESHists       = doLepESHists_;
+        clfv_selec->fDoBDTVarHists      = doBDTVarHists_ && selection == "mutau"; //only defined for mu+tau_h selections
         clfv_selec->fRemoveTraining     = remove_training_;
       }
 

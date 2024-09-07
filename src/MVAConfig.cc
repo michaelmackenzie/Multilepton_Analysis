@@ -416,7 +416,8 @@ std::vector<Double_t> MVAConfig::CDFBins(Int_t index, Int_t HistSet) {
     if(HistSet == 28) {xmin = 0.25f; xmax = 0.85f; default_width = 0.06f;} //zll mass
     }
     if(selection == "zmutau") {
-    if(HistSet == 25) {xmin = 0.25f; xmax = 1.00f;} //central mass
+    // if(HistSet == 25) {xmin = 0.25f; xmax = 1.00f; default_width = 0.05f;} //central mass: VERSION FOR HISTS 'hist_v10' AND COMBINE TAG 'v10'
+    if(HistSet == 25) {xmin = 0.25f; xmax = 1.00f;} //central mass: VERSION AT UNBLINDING
     if(HistSet == 26) {xmin = 0.25f; xmax = 0.30f; default_width = 0.05f;} //high mass
     if(HistSet == 27) {xmin = 0.25f; xmax = 0.60f; default_width = 0.07f;} //low mass
     if(HistSet == 28) {xmin = 0.25f; xmax = 0.85f; default_width = 0.06f;} //zll mass
