@@ -23,8 +23,10 @@ int    splitWJ_       =  1 ; //use N(LHE jets) split W+Jets samples
 int    useEmbed_      =  1 ; //use Z->tautau embedding
 double embedScale_    =  1.; //scale factor to add onto the embedding normalization, < 0 means use defaults
 int    useQCDMC_      =  0 ; //use MC QCD background estimates
+int    addDYLO_       =  0 ; //add the LO and NLO DY MC samples together: 0 ignore, 1 combine, -1 use LO in place of NLO
 int    combineVB_     =  1 ; //combine W+Jets with other vector boson processes
 int    combineWJ_     =  1 ; //combine jet-binned W+jets samples or separate 0-jet bin
+int    combineWG_     =  1 ; //combine W+gamma with W+jets samples
 int    excludeWJ0J_   =  1 ; //exclude the 0-jet bin of the W+jets sample from the background model due to low statistics
 int    includeHiggs_  =  0 ; //include the higgs signals in the plots
 int    higgsBkg_      =  1 ; //include SM higgs samples in the background estimate
@@ -76,6 +78,7 @@ void get_datacards(std::vector<dcard>& cards, TString selection, int forStudies 
   TString dy    = (forStudies == 1) ? "ZJets" : "Drell-Yan";
   TString embed = (forStudies == 1) ? "ZJets" : "#tau#tau Embedding";
   TString wj    = (forStudies == 1) ? "WJets" : (combineVB_) ? "Other VB" : "W+Jets";
+  TString wg    = (forStudies == 1) ? "WJets" : (combineWG_) ? wj : "W+#gamma";
   TString vb    = (forStudies == 1) ? "WJets" : "Other VB";
   TString hb_tt = (forStudies == 1) ? "HBkg"  : (combineHB_) ? "H->#tau#tau/WW" : "H->#tau#tau";
   TString hb_ww = (forStudies == 1) ? "HBkg"  : (combineHB_) ? "H->#tau#tau/WW" : "H->WW";
@@ -84,6 +87,7 @@ void get_datacards(std::vector<dcard>& cards, TString selection, int forStudies 
   const int dy_ll_c = (forStudies == 1) ? kRed - 7 : kRed - 2;
   const int dy_tt_c = (forStudies == 1) ? kRed - 7 : kRed - 7;
   const int wj_c = kViolet - 9;
+  const int wg_c = (combineWG_) ? kViolet - 9 : kMagenta;
   const int vb_c = (vb == wj) ? wj_c : kMagenta - 9;
   const int hb_tt_c = kAtlantic;
   const int hb_ww_c = (combineHB_) ? hb_tt_c : kCyan;
@@ -120,7 +124,7 @@ void get_datacards(std::vector<dcard>& cards, TString selection, int forStudies 
     cards.push_back(dcard("EWKZ-M50"             , "EWKZ-M50"             , vb.Data()   , false, xs.GetCrossSection("EWKZ-M50"             ), false, year, vb_c));
     }
     if(useWG_)
-    cards.push_back(dcard("WGamma"               , "WGamma"               , wj.Data()   , false, xs.GetCrossSection("WGamma"               ), false, year, wj_c));
+    cards.push_back(dcard("WGamma"               , "WGamma"               , wg.Data()   , false, xs.GetCrossSection("WGamma"               ), false, year, wg_c));
     //if splitting W+Jets into jet-binned samples, use W+Jets inclusive 0-j for 0-j, then jet-binned samples for the rest
     if(splitWJ_) {
       if(!excludeWJ0J_) { //due to low statistics, option to exclude (assuming N-jets samples are compensated for this)
@@ -146,24 +150,34 @@ void get_datacards(std::vector<dcard>& cards, TString selection, int forStudies 
         cards.push_back(dcard("Wlnu-ext"        , "Wlnu-ext"              , wj.Data()   , false, xs.GetCrossSection("Wlnu"                 ), false, year, wj_c, true));
       }
     }
+
+    //Add Drell-Yan MC and Embedding (many options)
+
+    //For combining NLO and LO Drell-Yan MC
+    const int addDYLO = (year == 2017) ? 0 : addDYLO_; //no LO Drell-Yan in 2017
+    double z_xs_scale = (addDYLO) ? (addDYLO == -1) ? 0. : (year == 2016) ? 120777245./(142756299.+120777245.) : (year == 2017) ? 1. : 193119590./(100194597.+193119590.) : 1.;
+    if(z_xs_scale != 1.) cout << "Applying a scale factor of " << z_xs_scale << " to the NLO DY-50 samples\n";
+
     if(splitDY_ > 0 || (useEmbed_ == 2 || (useEmbed_ && selection != "ee" && selection != "mumu"))) {
       //useEmbed_: 0 = use DY MC; 1 = use embedding in emu/etau/mutau; 2 = use embedding in all categories (including ee/mumu)
       //in ee/mumu, switch order of Z->ll/tautau
-      if(selection == "ee" || selection == "mumu") {
-        cards.push_back(dcard((DYName+"-1").Data(), (DYName+"-1").Data(), dy_tt.Data(), false, xs.GetCrossSection("DY50"    , year), false, year, dy_tt_c, combineZ));
-        cards.push_back(dcard("DY10to50-1"        , "DY10to50-1"        , dy_tt.Data(), false, xs.GetCrossSection("DY10to50", year), false, year, dy_tt_c));
-        if(useEmbed_ < 2) { //use DY MC ee/mumu if using DY MC in general
-          cards.push_back(dcard((DYName+"-2").Data(), (DYName+"-2").Data(), dy_ll.Data(), false, zll_scale_*xs.GetCrossSection("DY50"    , year), false, year, dy_ll_c, combineZ));
-          cards.push_back(dcard("DY10to50-2"        , "DY10to50-2"        , dy_ll.Data(), false, zll_scale_*xs.GetCrossSection("DY10to50", year), false, year, dy_ll_c));
-        }
-      } else {
-        if(true) { //use DY MC ee/mumu for non-ee/mumu categories
-          cards.push_back(dcard((DYName+"-2").Data(), (DYName+"-2").Data(), dy_ll.Data(), false, zll_scale_*xs.GetCrossSection("DY50"    , year), false, year, dy_ll_c, combineZ));
-          cards.push_back(dcard("DY10to50-2"        , "DY10to50-2"        , dy_ll.Data(), false, zll_scale_*xs.GetCrossSection("DY10to50", year), false, year, dy_ll_c));
-        }
-        if(useEmbed_ == 0) {//either ee/mumu or using DY MC, in both cases need MC Z->tau tau
-          cards.push_back(dcard((DYName+"-1").Data(), (DYName+"-1").Data(), dy_tt.Data(), false, xs.GetCrossSection("DY50"    , year), false, year, dy_tt_c, combineZ));
+      if(addDYLO != -1) {
+        if(selection == "ee" || selection == "mumu") {
+          cards.push_back(dcard((DYName+"-1").Data(), (DYName+"-1").Data(), dy_tt.Data(), false, z_xs_scale*xs.GetCrossSection("DY50"    , year), false, year, dy_tt_c, combineZ));
           cards.push_back(dcard("DY10to50-1"        , "DY10to50-1"        , dy_tt.Data(), false, xs.GetCrossSection("DY10to50", year), false, year, dy_tt_c));
+          if(useEmbed_ < 2) { //use DY MC ee/mumu if using DY MC in general
+            cards.push_back(dcard((DYName+"-2").Data(), (DYName+"-2").Data(), dy_ll.Data(), false, zll_scale_*z_xs_scale*xs.GetCrossSection("DY50"    , year), false, year, dy_ll_c, combineZ));
+            cards.push_back(dcard("DY10to50-2"        , "DY10to50-2"        , dy_ll.Data(), false, zll_scale_*xs.GetCrossSection("DY10to50", year), false, year, dy_ll_c));
+          }
+        } else {
+          if(true) { //use DY MC ee/mumu for non-ee/mumu categories
+            cards.push_back(dcard((DYName+"-2").Data(), (DYName+"-2").Data(), dy_ll.Data(), false, zll_scale_*z_xs_scale*xs.GetCrossSection("DY50"    , year), false, year, dy_ll_c, combineZ));
+            cards.push_back(dcard("DY10to50-2"        , "DY10to50-2"        , dy_ll.Data(), false, zll_scale_*xs.GetCrossSection("DY10to50", year), false, year, dy_ll_c));
+          }
+          if(useEmbed_ == 0) {//either ee/mumu or using DY MC, in both cases need MC Z->tau tau
+            cards.push_back(dcard((DYName+"-1").Data(), (DYName+"-1").Data(), dy_tt.Data(), false, z_xs_scale*xs.GetCrossSection("DY50"    , year), false, year, dy_tt_c, combineZ));
+            cards.push_back(dcard("DY10to50-1"        , "DY10to50-1"        , dy_tt.Data(), false, xs.GetCrossSection("DY10to50", year), false, year, dy_tt_c));
+          }
         }
       }
       //useEmbed_: 0 = use DY MC; 1 = use embedding in emu/etau/mutau; 2 = use embedding in all categories (including ee/mumu)
@@ -183,30 +197,54 @@ void get_datacards(std::vector<dcard>& cards, TString selection, int forStudies 
           }
         }
       }
-    } else if(splitDY_ == 0) {
-      cards.push_back(dcard((DYName+"-1").Data(), (DYName+"-1").Data(), dy.Data(), false, xs.GetCrossSection("DY50"    , year), false, year, dy_tt_c, combineZ));
-      cards.push_back(dcard((DYName+"-2").Data(), (DYName+"-2").Data(), dy.Data(), false, zll_scale_*xs.GetCrossSection("DY50"    , year), false, year, dy_tt_c, combineZ));
+    } else if(splitDY_ == 0 && addDYLO != -1) {
+      cards.push_back(dcard((DYName+"-1").Data(), (DYName+"-1").Data(), dy.Data(), false, z_xs_scale*xs.GetCrossSection("DY50"    , year), false, year, dy_tt_c, combineZ));
+      cards.push_back(dcard((DYName+"-2").Data(), (DYName+"-2").Data(), dy.Data(), false, zll_scale_*z_xs_scale*xs.GetCrossSection("DY50"    , year), false, year, dy_tt_c, combineZ));
       cards.push_back(dcard("DY10to50-1"        , "DY10to50-1"        , dy.Data(), false, xs.GetCrossSection("DY10to50", year), false, year, dy_tt_c));
       cards.push_back(dcard("DY10to50-2"        , "DY10to50-2"        , dy.Data(), false, zll_scale_*xs.GetCrossSection("DY10to50", year), false, year, dy_tt_c));
-    } else { //splitDY_ < 0, assume old dataset that was never separated into tautau and ee/mumu output files
-      cards.push_back(dcard(DYName.Data(), DYName.Data(), dy.Data(), false, xs.GetCrossSection("DY50"    , year), false, year, dy_tt_c, combineZ));
+    } else if(addDYLO != -1) { //splitDY_ < 0, assume old dataset that was never separated into tautau and ee/mumu output files
+      cards.push_back(dcard(DYName.Data(), DYName.Data(), dy.Data(), false, z_xs_scale*xs.GetCrossSection("DY50"    , year), false, year, dy_tt_c, combineZ));
       cards.push_back(dcard("DY10to50"   , "DY10to50"   , dy.Data(), false, xs.GetCrossSection("DY10to50", year), false, year, dy_tt_c));
     }
-    if(combineZ) {
+    if(combineZ && addDYLO != -1) {
       if(splitDY_ > 0 || useEmbed_) {
         if(!(selection == "ee" || selection == "mumu") || useEmbed_ < 2) {
-          cards.push_back(dcard((DYName+"-ext-2").Data(), (DYName+"-ext-2").Data(), dy_ll.Data(), false, zll_scale_*xs.GetCrossSection("DY50", year), false, year, dy_ll_c   , true));
+          cards.push_back(dcard((DYName+"-ext-2").Data(), (DYName+"-ext-2").Data(), dy_ll.Data(), false, zll_scale_*z_xs_scale*xs.GetCrossSection("DY50", year), false, year, dy_ll_c   , true));
         }
         if(!useEmbed_ || selection == "ee" || selection == "mumu") {
-          cards.push_back(dcard((DYName+"-ext-1").Data(), (DYName+"-ext-1").Data(), dy_tt.Data(), false, xs.GetCrossSection("DY50", year), false, year, dy_tt_c   , true));
+          cards.push_back(dcard((DYName+"-ext-1").Data(), (DYName+"-ext-1").Data(), dy_tt.Data(), false, z_xs_scale*xs.GetCrossSection("DY50", year), false, year, dy_tt_c   , true));
         }
       } else if(splitDY_ == 0) {
-        cards.push_back(dcard((DYName+"-ext-1").Data(), (DYName+"-ext-1").Data(), dy.Data(), false, xs.GetCrossSection("DY50", year), false, year, dy_tt_c   , true));
-        cards.push_back(dcard((DYName+"-ext-2").Data(), (DYName+"-ext-2").Data(), dy.Data(), false, zll_scale_*xs.GetCrossSection("DY50", year), false, year, dy_tt_c   , true));
+        cards.push_back(dcard((DYName+"-ext-1").Data(), (DYName+"-ext-1").Data(), dy.Data(), false, z_xs_scale*xs.GetCrossSection("DY50", year), false, year, dy_tt_c   , true));
+        cards.push_back(dcard((DYName+"-ext-2").Data(), (DYName+"-ext-2").Data(), dy.Data(), false, zll_scale_*z_xs_scale*xs.GetCrossSection("DY50", year), false, year, dy_tt_c   , true));
       } else {
-        cards.push_back(dcard((DYName+"-ext").Data(), (DYName+"-ext").Data(), dy.Data(), false, xs.GetCrossSection("DY50", year), false, year, dy_tt_c   , true));
+        cards.push_back(dcard((DYName+"-ext").Data(), (DYName+"-ext").Data(), dy.Data(), false, z_xs_scale*xs.GetCrossSection("DY50", year), false, year, dy_tt_c   , true));
       }
     }
+
+    //if adding the LO Drell-Yan MC samples
+    if(addDYLO) {
+      if(splitDY_ > 0) {
+        if(selection == "ee" || selection == "mumu") {
+          cards.push_back(dcard("DY50-LO-1", "DY50-LO-1", dy_tt.Data(), false, (1.-z_xs_scale)*xs.GetCrossSection("DY50", year), false, year, dy_tt_c));
+          if(useEmbed_ < 2) { //use DY MC ee/mumu if using DY MC in general
+            cards.push_back(dcard("DY50-LO-2", "DY50-LO-2", dy_ll.Data(), false, (1.-z_xs_scale)*xs.GetCrossSection("DY50", year), false, year, dy_ll_c));
+          }
+        } else { //non-ee/mumu selections
+          cards.push_back(dcard("DY50-LO-2", "DY50-LO-2", dy_ll.Data(), false, (1.-z_xs_scale)*xs.GetCrossSection("DY50", year), false, year, dy_ll_c));
+          if(useEmbed_ == 0) {//either ee/mumu or using DY MC, in both cases need MC Z->tau tau
+            cards.push_back(dcard("DY50-LO-1", "DY50-LO-1", dy_tt.Data(), false, (1.-z_xs_scale)*xs.GetCrossSection("DY50", year), false, year, dy_tt_c));
+          }
+        }
+      } else if(splitDY_ == 0) {
+        cards.push_back(dcard("DY50-LO-1", "DY50-LO-1", dy.Data(), false, (1.-z_xs_scale)*xs.GetCrossSection("DY50", year), false, year, dy_tt_c));
+        cards.push_back(dcard("DY50-LO-2", "DY50-LO-2", dy.Data(), false, (1.-z_xs_scale)*xs.GetCrossSection("DY50", year), false, year, dy_tt_c));
+      } else {
+        cards.push_back(dcard("DY50-LO", "DY50-LO", dy.Data(), false, (1.-z_xs_scale)*xs.GetCrossSection("DY50", year), false, year, dy_tt_c));
+      }
+    }
+
+
     if(useQCDMC_) {
       if(year != 2017) { //FIXME: Add in 2017 QCD datasets
         if(year == 2018) {

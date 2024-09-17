@@ -235,6 +235,36 @@ namespace CLFV {
         *ytitle = "";
         *title  = Form("Isolation of the Trailing Lepton");
       }
+      else if(hist == "onegenflavor") {
+        *xtitle = Form("%s gen-matched flavor", lep1.Data());
+        *ytitle = "";
+        *title  = "";
+      }
+      else if(hist == "twogenflavor") {
+        *xtitle = Form("%s gen-matched flavor", lep2.Data());
+        *ytitle = "";
+        *title  = "";
+      }
+      else if(hist == "onejetorigin") {
+        *xtitle = Form("%s flag for deep jet-matched", lep1.Data());
+        *ytitle = "";
+        *title  = "";
+      }
+      else if(hist == "twojetorigin") {
+        *xtitle = Form("%s flag for deep jet-matched", lep2.Data());
+        *ytitle = "";
+        *title  = "";
+      }
+      else if(hist == "onepileup") {
+        *xtitle = Form("%s flag for deep pileup-matched", lep1.Data());
+        *ytitle = "";
+        *title  = "";
+      }
+      else if(hist == "twopileup") {
+        *xtitle = Form("%s flag for deep pileup-matched", lep2.Data());
+        *ytitle = "";
+        *title  = "";
+      }
       else if(hist == "twoid1" && (selection == "mutau" || selection == "etau")) {
         *xtitle = "tau MVA anti-ele ID";
         *ytitle = "";

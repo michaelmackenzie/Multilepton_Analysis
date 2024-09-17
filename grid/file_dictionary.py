@@ -12,6 +12,7 @@ def add_samples(sampleDict):
   sampleDict["2018_data" ] = []
   sampleDict["2016_mc"   ].append("LFVAnalysis_DY10to50_2016.root"                  );
   sampleDict["2016_mc"   ].append("LFVAnalysis_DY50-amc_2016.root"                  );
+  sampleDict["2016_mc"   ].append("LFVAnalysis_DY50-LO*_2016.root"                  );
   sampleDict["2016_mc"   ].append("LFVAnalysis_ttbarToSemiLeptonic_2016.root"       );
   sampleDict["2016_mc"   ].append("LFVAnalysis_ttbarlnu_2016.root"                  );
   sampleDict["2016_mc"   ].append("LFVAnalysis_ttbarToHadronic_2016.root"           );
@@ -177,6 +178,7 @@ def add_samples(sampleDict):
   sampleDict["2017_mc"   ].append("LFVAnalysis_ZEMu-v3*_2017.root"                  );
   sampleDict["2018_mc"   ].append("LFVAnalysis_DY10to50_2018.root"                  );
   sampleDict["2018_mc"   ].append("LFVAnalysis_DY50-amc_2018.root"                  );
+  sampleDict["2018_mc"   ].append("LFVAnalysis_DY50-LO_2018.root"                   );
   sampleDict["2018_mc"   ].append("LFVAnalysis_ttbarToSemiLeptonic_2018.root"       );
   sampleDict["2018_mc"   ].append("LFVAnalysis_ttbarToHadronic_2018.root"           );
   sampleDict["2018_mc"   ].append("LFVAnalysis_ttbarlnu_2018.root"                  );

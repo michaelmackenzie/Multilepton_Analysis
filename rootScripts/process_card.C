@@ -73,6 +73,7 @@ TH1* events_from_chain(vector<TFile*> files) {
 Int_t process_channel(datacard_t& card, config_t& config, TString selection, TChain* chain) {
   //for splitting DY lepton decays and Z pT vs mass weights
   const bool isDY = card.fname_.Contains("DY");
+  const bool isDYLO = isDY && card.fname_.Contains("-LO");
   const bool isWJ = card.fname_.Contains("Wlnu_") || card.fname_.Contains("Wlnu-ext_"); //doesn't include jet-binned samples
   const bool isWJets = card.fname_.Contains("Wlnu"); //includes jet-binned samples
   const bool isEmbed = card.fname_.Contains("Embed");
@@ -352,6 +353,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
       if(isWJets && splitWGamma_) selec->fSplitWGamma = 1; //if (any) W+Jets, remove W+gamma events
       selec->fIsWGamma = card.fname_.Contains("WGamma"); //W+photon event
       selec->fIsDY = isDY;
+      selec->fIsDYLO = isDYLO; //Leading order Drell-Yan sample
       selec->fIsData = card.isData_;
       selec->fIsEmbed = isEmbed;
       selec->fIsLLEmbed = card.fname_.Contains("Embed-MuMu-") || card.fname_.Contains("Embed-EE-");

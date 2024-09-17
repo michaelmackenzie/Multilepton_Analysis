@@ -751,11 +751,17 @@ Int_t print_ids(int set, bool add_sys = false) {
 
 //------------------------------------------------------------------------------------------------------------------------------
 // lepton gen flavor
-Int_t print_gen_flavor(int set) {
+Int_t print_gen_flavor(int set, bool add_details = false) {
   if(!dataplotter_) return 1;
   const Int_t offset = get_offset();
   Int_t status(0);
   std::vector<TString> hists = {"onegenflavor", "twogenflavor"};
+  if(add_details) {
+    hists.push_back("onejetorigin");
+    hists.push_back("twojetorigin");
+    hists.push_back("onepileup");
+    hists.push_back("twopileup");
+  }
   for(TString hist : hists) {
     PlottingCard_t card(hist, "lep", set+offset, 0, 1, -1);
     for(int logY = 0; logY < 2; ++logY) {

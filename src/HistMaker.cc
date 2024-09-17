@@ -384,10 +384,10 @@ void HistMaker::FillAllHistograms(Int_t index) {
       if(fFollowHistSet == index) {
         printf(" Entry %10lld (event %10lld): Filling histogram set %i\n", fentry, eventNumber, index);
         if(true) { //FIXME: Set this to be a flag
-          printf("  lep_1  : pt = %5.1f, eta = %5.2f, mt = %5.1f, flavor = %3i, trig_eff: data = %.3f, mc = %.3f\n",
-                 leptonOne.pt, leptonOne.eta, fTreeVars.mtone, leptonOne.flavor, leptonOne.trig_data_eff, leptonOne.trig_mc_eff);
-          printf("  lep_2  : pt = %5.1f, eta = %5.2f, mt = %5.1f, flavor = %3i, trig_eff: data = %.3f, mc = %.3f\n",
-                 leptonTwo.pt, leptonTwo.eta, fTreeVars.mttwo, leptonTwo.flavor, leptonTwo.trig_data_eff, leptonTwo.trig_mc_eff);
+          printf("  lep_1  : pt = %5.1f, eta = %5.2f, mt = %5.1f, flavor = %3i, gen-flavor = %3i, trig_eff: data = %.3f, mc = %.3f\n",
+                 leptonOne.pt, leptonOne.eta, fTreeVars.mtone, leptonOne.flavor, leptonOne.genFlavor, leptonOne.trig_data_eff, leptonOne.trig_mc_eff);
+          printf("  lep_2  : pt = %5.1f, eta = %5.2f, mt = %5.1f, flavor = %3i, gen-flavor = %3i, trig_eff: data = %.3f, mc = %.3f\n",
+                 leptonTwo.pt, leptonTwo.eta, fTreeVars.mttwo, leptonTwo.flavor, leptonTwo.genFlavor, leptonTwo.trig_data_eff, leptonTwo.trig_mc_eff);
           printf("  dilep  : pt = %5.1f, eta = %5.2f, mt = %5.1f\n", fTreeVars.leppt, fTreeVars.lepeta, fTreeVars.mtlep);
           printf("  event  : met = %5.1f, met_sig = %5.2f, njet = %2i, nbjet = %2i\n", met, metSignificance, nJets20, nBJetsUse);
           if(fIsDY || fIsEmbed) { //print gen-level Z info
@@ -2071,7 +2071,15 @@ void HistMaker::InitializeEventWeights() {
       zPtWeight = (fUseZPtWeight) ? fZPtWeight->GetWeight(fYear, zPt, zMass, false /*Use Gen level weights*/, zPtWeightUp, zPtWeightDown, zPtWeightSys) : 1.f;
     eventWeight *= zPtWeight;
     if(fVerbose > 0) std::cout << " For Z pT = " << zPt << " and Mass = " << zMass << " using Data/MC weight " << zPtWeight
-                               << "--> event weight = " << eventWeight << std::endl;
+                               << " --> event weight = " << eventWeight << std::endl;
+  }
+
+  //LO --> NLO Z pT/mass re-weighting
+  if(fIsDY && fIsDYLO) {
+    leadingOrderZWeight = (fUseZPtWeight) ? fLeadingOrderZWeight.GetWeight(fYear, zPt, zMass) : 1.f;
+    eventWeight *= leadingOrderZWeight;
+    if(fVerbose > 0) std::cout << " For Z pT = " << zPt << " and Mass = " << zMass << " using NLO/LO weight " << leadingOrderZWeight
+                               << " --> event weight = " << eventWeight << std::endl;
   }
 
   ////////////////////////////////////////////////////////////////////
@@ -3017,11 +3025,9 @@ void HistMaker::CheckIfPileup(Lepton_t& lep) {
     return;
   }
 
-  //trace through the particle list until the final parent is found
+  //trace through the particle list until the initial parent is found, also find the relevant parent particle
   int parent = gen_index;
-  int previous_parent = gen_index;
   while(parent >= 0 && parent < (int) nGenPart && GenPart_genPartIdxMother[parent] >= 0) {
-    previous_parent = parent;
     parent = GenPart_genPartIdxMother[parent];
   }
 
@@ -3030,10 +3036,25 @@ void HistMaker::CheckIfPileup(Lepton_t& lep) {
   is_primary |= parent == 0 || parent == 1; //from the parton-parton collision or embedded event
   lep.isPileup = !is_primary;
 
+  // //check for muon FSR events
+  // bool is_muon_fsr = GenPart_pdgId[gen_index] == 22 && GenPart_genPartIdxMother[gen_index] >= 0 && std::abs(GenPart_pdgId[GenPart_genPartIdxMother[gen_index]]) == 13;
+  // if(fIsWGamma && is_muon_fsr) {
+  //   std::cout << __func__ << ": Found muon FSR event: " << fentry << std::endl;
+  // }
+
   //next check if it likely comes from a jet
   //if it comes from a q/g ISR, likely jet-origin
-  const int pdg_prev = GenPart_pdgId[previous_parent];
-  lep.jetOrigin = pdg_prev <= 6 || pdg_prev == 21;
+  // const int pdg_prev = GenPart_pdgId[previous_parent];
+
+  //loop through the gen-collection and find the first non- l --> l+gamma decay
+  parent = gen_index;
+  while(GenPart_genPartIdxMother[parent] > 0) {
+    parent = GenPart_genPartIdxMother[parent];
+    const int pdg = std::abs(GenPart_pdgId[parent]);
+    if(std::abs(pdg) != std::abs(GenPart_pdgId[gen_index])) break;
+  }
+  const int pdg_prev = std::abs(GenPart_pdgId[parent]);
+  lep.jetOrigin = pdg_prev <= 5 || pdg_prev == 21; //exclude leptons from top decays, consider these as "prompt"
   lep.jetOrigin |= lep.genFlavor == 26; //already matched to a jet
 }
 

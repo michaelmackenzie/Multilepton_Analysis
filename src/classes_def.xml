@@ -33,6 +33,7 @@
   <class name="ZPtWeight"/>
   <class name="SignalZWeight"/>
   <class name="SignalZMixingWeight"/>
+  <class name="LeadingOrderZWeight"/>
   <class name="ZPDFUncertainty"/>
   <class name="EmbeddingWeight"/>
   <class name="EmbeddingTnPWeight"/>

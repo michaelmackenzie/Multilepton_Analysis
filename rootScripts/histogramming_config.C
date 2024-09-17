@@ -170,7 +170,7 @@ config_t get_config() {
   config_t config;
 
   config.writeTrees_ = writeTrees_;
-  config.selections_ = {"mutau", "etau", "mutau_e", "etau_mu"}; //{"mutau", "etau", "emu", "mutau_e", "etau_mu", "mumu", "ee"};
+  config.selections_ = {"mutau_e"}; //{"mutau", "etau", "emu", "mutau_e", "etau_mu", "mumu", "ee"};
   config.signalTrainFraction_ = 0.5;
   config.backgroundTrainFraction_ = 0.3;
 
@@ -195,6 +195,7 @@ vector<datacard_t> get_data_cards(TString& nanoaod_path) {
 
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("DY10to50"                ), "LFVAnalysis_DY10to50_2016.root"                , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("DY50"                    ), "LFVAnalysis_DY50-amc_2016.root"                , 0));
+  nanocards.push_back(datacard_t(true , xs.GetCrossSection("DY50"                    ), "LFVAnalysis_DY50-LO*_2016.root"                , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("ttbarToSemiLeptonic"     ), "LFVAnalysis_ttbarToSemiLeptonic_2016.root"     , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("ttbarlnu"                ), "LFVAnalysis_ttbarlnu_2016.root"                , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("ttbarToHadronic"         ), "LFVAnalysis_ttbarToHadronic_2016.root"         , 0));
@@ -393,6 +394,7 @@ vector<datacard_t> get_data_cards(TString& nanoaod_path) {
   //////////////////
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("DY10to50"                ), "LFVAnalysis_DY10to50_2018.root"                , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("DY50"                    ), "LFVAnalysis_DY50-amc_2018.root"                , 0));
+  nanocards.push_back(datacard_t(true , xs.GetCrossSection("DY50"                    ), "LFVAnalysis_DY50-LO_2018.root"                 , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("ttbarToSemiLeptonic"     ), "LFVAnalysis_ttbarToSemiLeptonic_2018.root"     , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("ttbarToHadronic"         ), "LFVAnalysis_ttbarToHadronic_2018.root"         , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("ttbarlnu"                ), "LFVAnalysis_ttbarlnu_2018.root"                , 0));

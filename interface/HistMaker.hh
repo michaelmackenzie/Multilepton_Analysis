@@ -60,6 +60,7 @@
 #include "interface/ZPtWeight.hh"
 #include "interface/SignalZWeight.hh"
 #include "interface/SignalZMixingWeight.hh"
+#include "interface/LeadingOrderZWeight.hh"
 #include "interface/EmbeddingWeight.hh"
 #include "interface/EmbeddingTnPWeight.hh"
 #include "interface/TauIDWeight.hh"
@@ -377,6 +378,7 @@ namespace CLFV {
     Float_t zPtWeightUp = 1.           ;
     Float_t zPtWeightDown = 1.         ;
     Float_t zPtWeightSys = 1.          ;
+    Float_t leadingOrderZWeight = 1.   ;
     Float_t embeddingWeight = 1.       ;
     Float_t embeddingUnfoldingWeight = 1.;
     UInt_t  nPSWeight = 0              ;
@@ -869,6 +871,7 @@ namespace CLFV {
     Bool_t          fIsSignal = false;
     Int_t           fDYType = -1; //for splitting Z->ll into 1: tau tau and 2: ee/mumu
     Bool_t          fIsDY = false; //flag for Drell-Yan MC
+    Bool_t          fIsDYLO = false; //flag for leading order Drell-Yan MC (nominal is NLO)
     Int_t           fWNJets = -1;  //for splitting W+jets samples into jet bins
     Int_t           fSplitWGamma = 0; //for remove W+gamma events from W+jets samples
     Int_t           fIsHiggsBkg = 0; //is a Higgs background sample: 1 = ggF; 2 = VBF; 3 = W+H; 4 = W-H; 5 = ZH
@@ -913,7 +916,6 @@ namespace CLFV {
     Int_t           fDoTriggerMatching = 1; //match trigger objects to selected leptons
     Int_t           fUseEMuTrigger = 0; //consider the e-mu trigger in e-mu data: 1 = use it; 2 = only use it
     Int_t           fDoEleIDStudy = 0; //histogram additional electron info
-    Int_t           fDoBDTVarStudy = 0; //histogram BDT variables in slices of other variables
     Int_t           fUseRandomField = 1; //0: split events with TRandom3; 1: use RandomField; 2: Use event variables
     Int_t           fSmearTreeValues = 0; //smear values in output TTree by their uncertainties
 
@@ -1004,6 +1006,7 @@ namespace CLFV {
     Int_t           fUseSignalZWeights = 1; //whether or not to match the signal to the Drell-Yan MC, 1: use local, 2: use ntuple-level
     SignalZMixingWeight fSignalZMixWeight; //re-weight signal to remove z/gamma* mixing effect
     Int_t               fUseSignalZMixWeights = 1; //whether or not to remove the z/gamma* mixing effect
+    LeadingOrderZWeight fLeadingOrderZWeight; //re-weight the LO MC to match the NLO MC
     ZPDFUncertainty   fZPDFSys; //re-weight signal to different PDF/Scale sets
     EmbeddingWeight* fEmbeddingWeight; //correct di-muon embedding selection unfolding
     EmbeddingTnPWeight fEmbeddingTnPWeight; //correct lepton ID/trigger efficiencies in embedding simulation

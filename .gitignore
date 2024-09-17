@@ -13,9 +13,10 @@ roostats-*.root
 *.xml
 *Weights*
 lib/
-histograms/figures/*
+histograms/figures/
 studies/*/rootfiles/
 studies/*/*.root
+studies/*/figures/
 studies/BDT/*.pkl
 studies/BDT/*.json
 tmva_training/plots/*

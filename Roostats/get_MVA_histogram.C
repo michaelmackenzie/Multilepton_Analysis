@@ -8,7 +8,7 @@ TH1* hbkg_;
 THStack* hstack_;
 vector<TH1*> hsigs_;
 int  test_sys_        =    -1; //set to systematic number if debugging/inspecting it
-int  blind_data_      =     1; //1: don't plot high score data; 2: set data bins > MVA score level to 0
+int  blind_data_      =     0; //1: don't plot high score data; 2: set data bins > MVA score level to 0
 bool skip_shape_sys_  = false; //skip shape systematic retrieval
 int  use_dev_mva_     =     0; //1: use the extra MVA hist for development, mvaX_1; 2: use the CDF transformed hist, mvaX_2
 bool do_same_flavor_  = false; //retrieve Z->ll control region data

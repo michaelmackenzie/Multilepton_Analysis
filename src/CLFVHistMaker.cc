@@ -2471,9 +2471,9 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
     etau  &= !isFakeElectron;
 
     //remove pileup/deeper jet origin electron/muon events if requested
-    const bool remove_pileup     = false && !fIsEmbed; //keep pileup events since taken from data --> fairly accurate
-    const bool remove_jetorigin  = false && !fIsEmbed;
-    const bool remove_photon_ele = false && !fIsEmbed; //keep photons faking electrons FIXME: Should these be from data?
+    const bool remove_pileup     = false && !fIsEmbed; //FIXME: Restore to false
+    const bool remove_jetorigin  = false && !fIsEmbed; //FIXME: Restore to false
+    const bool remove_photon_ele = false && !fIsEmbed; //keep photons faking electrons
     const bool remove_lep_one = !leptonOne.isTau() && ((leptonOne.isPileup && remove_pileup) || (leptonOne.jetOrigin && remove_jetorigin));
     const bool remove_lep_two = !leptonTwo.isTau() && ((leptonTwo.isPileup && remove_pileup) || (leptonTwo.jetOrigin && remove_jetorigin));
 

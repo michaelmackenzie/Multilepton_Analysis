@@ -28,6 +28,7 @@
 #include "interface/ZPtWeight.hh"
 #include "interface/SignalZWeight.hh"
 #include "interface/SignalZMixingWeight.hh"
+#include "interface/LeadingOrderZWeight.hh"
 #include "interface/ZPDFUncertainty.hh"
 #include "interface/EmbeddingWeight.hh"
 #include "interface/EmbeddingTnPWeight.hh"
@@ -87,6 +88,7 @@ namespace CLFV {
     ZPtWeight dummy6e;
     SignalZWeight dummy6e2;
     SignalZMixingWeight dummy6e3;
+    LeadingOrderZWeight dummy6e3b;
     ZPDFUncertainty dummy6e4;
     EmbeddingWeight dummy6f;
     EmbeddingTnPWeight dummy6f2;

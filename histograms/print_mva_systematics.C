@@ -1,8 +1,9 @@
 //Print the systematic MVA plots
 #include "dataplotter_clfv.C"
 
-int print_mva_systematics(TString out_dir = "nanoaods_mva", TString hist_dir = "nanoaods_mva_dev",
-                          TString selection = "mutau", vector<int> years = {2016,2017,2018},
+int print_mva_systematics(TString selection = "mutau",
+                          vector<int> years = {2016,2017,2018},
+                          TString out_dir = "bdts_unblinded_v01", TString hist_dir = "CLFVHistMaker_20240810_090628",
                           bool skip_systematics = false, bool add_stats = false, bool mc_dy = false,
                           bool all_mva_versions = false) {
   //setup the datacards
