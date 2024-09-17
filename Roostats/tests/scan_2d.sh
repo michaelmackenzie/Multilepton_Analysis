@@ -30,7 +30,7 @@ if [[ "${PARA1}" == "" ]] || [[ "${PARA2}" == "" ]]; then
 fi
 
 if [[ "${POINTS}" == "" ]]; then
-    POINTS="20"
+    POINTS="50"
 fi
 
 if [ ! -f ${CARD} ]; then

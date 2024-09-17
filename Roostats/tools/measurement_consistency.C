@@ -1,11 +1,15 @@
 //Script to process measurements for channels/years/etc. and plot the results
 double scale_ = 1.;
 bool speed_limit_     = true; //use Combine arguments to speed up limit calculation
+bool more_precise_    = true; //more precise steps in the minimizations
 bool preliminary_     = true;
 bool add_values_      = true; //add text values of the limits to the plot
 bool add_sigmas_      = true; //sigma for each category from expected (measured if blinded)
 bool blinding_offset_ = true;
 bool add_asimov_      = false; //add Asimov error bar sizes
+bool force_best_fit_  = false; //override the assumed best fit
+double best_fit_      = 0.;
+TString add_command_  = ""; //additional argument to the fit
 
 struct config_t {
   TString name_;
@@ -16,14 +20,14 @@ struct config_t {
   double rmin_;
   double rmax_;
 
-  config_t(TString name, TString label, vector<int> sets, vector<int> years, double scale = 1.):
-    name_(name), label_(label), sets_(sets), years_(years), scale_(scale), rmin_(-50.), rmax_(50.) {}
+  config_t(TString name, TString label, vector<int> sets, vector<int> years, double scale = 1., double rmin = -50., double rmax = 50.):
+    name_(name), label_(label), sets_(sets), years_(years), scale_(scale), rmin_(rmin), rmax_(rmax) {}
 };
 
 int measurement_consistency(vector<config_t> configs, //info for each entry
                             TString tag, //tag for the output figure file name
                             TString selection = "zemu",
-                            int processCards = 1) {
+                            int processCards = 1, float reference = -1.e10) {
 
   if(configs.size() == 0) {
     cout << "No configuration cards given!\n";
@@ -36,7 +40,7 @@ int measurement_consistency(vector<config_t> configs, //info for each entry
   const int nfiles = configs.size();
   double obs[nfiles], up[nfiles], down[nfiles], y[nfiles], yerr[nfiles], asimov_up[nfiles], asimov_down[nfiles], sigmas[nfiles];
   double max_val(-1.e10), min_val(1.e10);
-  const double y_size = (nfiles < 5) ? 0.3 : 0.22; //half size of measurement bar in y-dimension
+  const double y_size = (nfiles < 5) ? 0.10 : 0.22; //half size of measurement bar in y-dimension
 
   if(processCards >= 0) { //processCards < 0 --> Use fixed values
     //Fit results for each input
@@ -50,14 +54,14 @@ int measurement_consistency(vector<config_t> configs, //info for each entry
       TString card      = config.name_;
       const double rmin = config.rmin_;
       const double rmax = config.rmax_;
-
+      cout << ">>> Processing card " << card.Data() << " (r range = " << rmin << " - " << rmax << ")\n";
 
       //Move to the proper directory
       if(years.size() == 0) { cout << "No years given!\n"; return 2; }
       TString year_string = Form("%i", years[0]);
       for(int i = 1; i < years.size(); ++i) year_string += Form("_%i", years[i]);
       TString dir = Form("datacards/%s", year_string.Data());
-      cout << ">>> Using directory " << dir.Data() << endl;
+      cout << "    Using directory " << dir.Data() << endl;
       gSystem->cd(dir.Data());
 
       int status(0);
@@ -72,10 +76,11 @@ int measurement_consistency(vector<config_t> configs, //info for each entry
         } else { //tau channels
           additional_command += " --cminPreScan --cminPreFit 1 --cminApproxPreFitTolerance 0.1";
         }
+        if(more_precise_) additional_command += " --cminDefaultMinimizerTolerance 0.001 --cminDiscreteMinTol 0.0001";
+        additional_command += " " + add_command_;
 
         //Run combine on each datacard
-        printf("Processing combine card %s/combine_%s.txt\n", dir.Data(), card.Data());
-        TString command = Form("combine -M FitDiagnostics -d combine_%s.txt --name _%s --rMin %.1f --rMax %.1f %s >| fit_%s.log",
+        TString command = Form("combine -M FitDiagnostics -d combine_%s.txt --name _%s --rMin %.1f --rMax %.1f %s >| fit_%s.log 2>&1",
                                card.Data(),
                                card.Data(),
                                rmin, rmax,
@@ -173,7 +178,8 @@ int measurement_consistency(vector<config_t> configs, //info for each entry
   }
 
   //measure the sigmas, assuming the last observation is the best in the blinded case
-  const double reference = (blinding_offset_) ? obs[nfiles-1] : 0.;
+  if(reference < -1.e8)
+    reference = (blinding_offset_) ? obs[nfiles-1] : 0.;
   double chi_sq = 0.;
   for(int i = 0; i < nfiles; ++i) {
     sigmas[i] = (obs[i] - reference)/((obs[i] > reference) ? down[i] : up[i]);
@@ -184,12 +190,12 @@ int measurement_consistency(vector<config_t> configs, //info for each entry
 
   TGraphAsymmErrors* gobs = new TGraphAsymmErrors(nfiles, obs, y, down, up, yerr, yerr);
   gobs->SetName("obs");
-  gobs->SetFillColor(kGreen+1);
-  gobs->SetMarkerStyle(20);
-  gobs->SetMarkerSize(1.5);
+  gobs->SetFillColor(kGreen+1); //kBlue-9); //kGreen+1
+  gobs->SetLineColor(kBlack); //kBlue
+  gobs->SetMarkerColor(kBlack); //kBlue
+  gobs->SetMarkerStyle(20); //20
+  gobs->SetMarkerSize(1.5); //1.5
   gobs->SetLineWidth(2);
-  gobs->SetLineColor(kBlue);
-  gobs->SetMarkerColor(kBlue);
   gobs->SetTitle(Form(";Observed BF(Z^{0} #rightarrow %s^{#pm}%s^{#mp});",
                       selection.BeginsWith("zmu") ? "#mu" : "e", selection.EndsWith("mu") ? "#mu" : "#tau"));
 
@@ -197,15 +203,18 @@ int measurement_consistency(vector<config_t> configs, //info for each entry
   const double ymin = 0.5;
 
   //calculate x-axis range
-  const float xmax = max_val + ((add_sigmas_) ? 0.2 : 0.1)*fabs(max_val);
-  const float xmin = min_val - ((add_values_) ? 0.2 : 0.1)*fabs(min_val);
-  printf("Max val = %.2e, Min val = %.2e --> xrange = [%.2e , %.2e]\n", max_val, min_val, xmin, xmax);
+  const float range = std::fabs(max_val - min_val);
+  const float xmax = max_val + ((add_sigmas_) ? 0.20 : 0.10)*range;
+  const float xmin = min((blinding_offset_) ? 1.e10 : 0., min_val) - ((add_values_) ? 0.25 : 0.10)*range;
+  // printf("Max val = %.2e, Min val = %.2e --> xrange = [%.2e , %.2e]\n", max_val, min_val, xmin, xmax);
+  // printf("yrange = [%.2f , %.2f]\n", ymin, ymax);
 
   gStyle->SetOptStat(0);
   gStyle->SetPadTickX(1);
   gStyle->SetPadTickY(1);
 
   TCanvas* c = new TCanvas("c", "c", 800, 800);
+  c->SetLeftMargin(0.21);
   //Create a histogram to use as the axis
   TH1* haxis = new TH1F("haxis", "", 1, xmin, xmax);
   haxis->SetTitle(gobs->GetTitle());
@@ -234,12 +243,20 @@ int measurement_consistency(vector<config_t> configs, //info for each entry
   c->SetGridx();
 
   //Add a line, assuming the last entry is the overall result
-  const double final_val = obs[nfiles-1];
+  const double final_val = (force_best_fit_) ? best_fit_ : obs[nfiles-1];
   TLine line(final_val, ymin, final_val, ymax);
   line.SetLineWidth(2);
   line.SetLineStyle(kDashed);
-  line.SetLineColor(kBlack);
+  line.SetLineColor(kRed);
   line.Draw("same");
+
+  TLine line_sm(0., ymin, 0., ymax);
+  line_sm.SetLineWidth(2);
+  line_sm.SetLineStyle(kSolid);
+  line_sm.SetLineColor(kBlack);
+  if(!blinding_offset_) {
+    line_sm.Draw("same");
+  }
 
   //Add labels to the plot
   TLatex label;
@@ -251,31 +268,33 @@ int measurement_consistency(vector<config_t> configs, //info for each entry
   label.SetTextSize(0.05);
   label.SetTextAlign(13);
   label.SetTextAngle(0);
-  label.DrawLatex(0.13, 0.89, "CMS");
+  label.DrawLatex(0.25, 0.89, "CMS");
   if(preliminary_) {
     label.SetTextFont(72);
     label.SetTextSize(0.04);
     label.SetTextAlign(22);
     label.SetTextAngle(0);
-    label.DrawLatex(0.23, 0.82, "Preliminary");
+    label.DrawLatex(0.35, 0.82, "Preliminary");
   }
 
   //Draw the category labels
-  label.SetTextFont(72);
+  label.SetTextFont(62);
+  // label.SetTextFont(72);
   label.SetTextSize(0.05);
-  label.SetTextAlign(13);
+  label.SetTextAlign(32);
   label.SetTextAngle(0);
   label.SetTextSize(0.03);
   for(int icard = 0; icard < nfiles; ++icard) {
-    const double yoffset = 0.1; //axis starts here
-    const double yloc = yoffset + 0.8*(icard + 0.8) / (ymax - ymin);
     const int index = nfiles-icard-1; //looping in reverse
+    const double yoffset = 0.1; //axis starts here
+    const double yloc = yoffset + 0.8*(y[index] - ymin) / (ymax - ymin);
+    // cout << "Using yloc = " << yloc << " for y = " << y[index] << endl;
     if(add_values_)
-      label.DrawLatex(0.01, yloc, Form("%s: %.2e", configs[index].label_.Data(), obs[index]));
+      label.DrawLatex(0.30, yloc, Form("%15s: %.2e", configs[index].label_.Data(), obs[index]));
     else
-      label.DrawLatex(0.01, yloc, Form("%s", configs[index].label_.Data()));
+      label.DrawLatex(0.20, yloc, Form("%15s", configs[index].label_.Data()));
     if(add_sigmas_) {
-      label.DrawLatex(0.82, yloc, Form("%.1f#sigma", sigmas[index]));
+      label.DrawLatex(0.88, yloc, Form("%.1f#sigma", sigmas[index]));
     }
   }
 

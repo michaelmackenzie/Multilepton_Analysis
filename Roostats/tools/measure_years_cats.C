@@ -3,9 +3,10 @@
 
 int measure_years_cats(TString selection = "zmutau",
                        vector<int> had_sets = {25,26,27,28}, vector<int> lep_sets = {25,26,27},
-                       bool processCards = true, TString card_tag = "", TString fig_tag = "v09c") {
+                       bool processCards = true, TString card_tag = "",
+                       TString fig_tag = "v09j_unblinded") {
 
-  blinding_offset_ = true;
+  blinding_offset_ = false;
   add_asimov_      = false;
   add_values_      = true;
 
@@ -22,17 +23,17 @@ int measure_years_cats(TString selection = "zmutau",
   //add datacards by year
   for(int year = 2016; year <= 2018; ++year) {
     TString card = Form("mva_%s_%s%s_%i", selection.Data(), had_set_s.Data(), card_tag.Data(), year);
-    configs.push_back(config_t(card.Data(), Form("%i Had", year), had_sets, {year}, scale));
+    configs.push_back(config_t(card.Data(), Form("%i Had", year), had_sets, {year}, scale, -200., 200.));
     card = Form("mva_%s%s_%s%s_%i", selection.Data(), lep.Data(), lep_set_s.Data(), card_tag.Data(), year);
-    configs.push_back(config_t(card.Data(), Form("%i Lep", year), lep_sets, {year}, scale));
+    configs.push_back(config_t(card.Data(), Form("%i Lep", year), lep_sets, {year}, scale, -200., 200.));
     card = Form("mva_total_%s_had_%s_lep_%s%s_%i", selection.Data(),  had_set_s.Data(), lep_set_s.Data(), card_tag.Data(), year);
-    configs.push_back(config_t(card.Data(), Form("%i Tot", year), had_sets, {year} , scale));
+    configs.push_back(config_t(card.Data(), Form("%i Tot", year), had_sets, {year} , scale, -200., 200.));
   }
   //add Run-II datacards
   TString card = Form("mva_%s_%s%s_2016_2017_2018", selection.Data(), had_set_s.Data(), card_tag.Data());
-  configs.push_back(config_t(card.Data(), "Run-II Had", had_sets, {2016,2017,2018}, scale));
+  configs.push_back(config_t(card.Data(), "Run-II Had", had_sets, {2016,2017,2018}, scale, -200., 200.));
   card = Form("mva_%s%s_%s%s_2016_2017_2018", selection.Data(), lep.Data(), lep_set_s.Data(), card_tag.Data());
-  configs.push_back(config_t(card.Data(), "Run-II Lep", lep_sets, {2016,2017,2018}, scale));
+  configs.push_back(config_t(card.Data(), "Run-II Lep", lep_sets, {2016,2017,2018}, scale, -200., 200.));
   card = Form("mva_total_%s_had_%s_lep_%s%s_2016_2017_2018", selection.Data(),  had_set_s.Data(), lep_set_s.Data(), card_tag.Data());
   configs.push_back(config_t(card.Data(), "Run-II Tot", had_sets, {2016,2017,2018} , scale));
 

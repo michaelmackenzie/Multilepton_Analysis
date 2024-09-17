@@ -6,11 +6,14 @@ int make_combine_limit_plot_bemu(vector<int> sets = {11,12,13}, TString selectio
                                  vector<int> years = {2016, 2017, 2018},
                                  bool processCards = true,
                                  bool doNoSys = false,
-                                 bool doObs = false) {
+                                 bool doObs = true,
+                                 TString card_tag = "",
+                                 TString fig_tag = "v02") {
   scale_ = (selection.Contains("h")) ? 1.e-4 : 1.e-7;
   int status = 0;
 
   add_values_ = false; //don't add expected limit values to the plot
+  log_plot_   = false; //plot the x-axis in linear scale
 
   vector<config_t> cards;
   int index = 1;
@@ -58,10 +61,11 @@ int make_combine_limit_plot_bemu(vector<int> sets = {11,12,13}, TString selectio
 
   TString tag = "cat";
   if(doNoSys) tag += "_nosys";
-  if(doObs) tag += "_obs";
+  // if(doObs) tag += "_obs";
   if(do_barrel_endcap_) tag += "_barrel_endcap";
   if(add_values_) tag += "_vals";
   for(int year : years) tag += Form("_%i", year);
+  if(fig_tag != "") tag += "_" + fig_tag;
   status += make_combine_limit_plot_general(cards, tag, selection, processCards, doNoSys, doObs);
   return status;
 }

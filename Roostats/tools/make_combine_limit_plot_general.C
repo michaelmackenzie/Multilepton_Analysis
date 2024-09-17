@@ -1,8 +1,10 @@
 //Script to process limits for channels/years/etc. and plot the limits
 double scale_ = 1.;
-bool speed_limit_ = true; //use Combine arguments to speed up limit calculation
-bool preliminary_ = true;
-bool add_values_  = true; //add text values of the limits to the plot
+bool speed_limit_  = true; //use Combine arguments to speed up limit calculation
+bool more_precise_ = false; //more precise steps in the minimizations
+bool preliminary_  = true;
+bool add_values_   = true; //add text values of the limits to the plot
+bool log_plot_     = true; //plot the x-axis in log-scale
 
 struct config_t {
   TString name_;
@@ -13,8 +15,8 @@ struct config_t {
   double rmin_;
   double rmax_;
 
-  config_t(TString name, TString label, vector<int> sets, vector<int> years, double scale = 1.):
-    name_(name), label_(label), sets_(sets), years_(years), scale_(scale), rmin_(-20.), rmax_(20.) {}
+  config_t(TString name, TString label, vector<int> sets, vector<int> years, double scale = 1., double rmin = -20., double rmax = 20.):
+    name_(name), label_(label), sets_(sets), years_(years), scale_(scale), rmin_(rmin), rmax_(rmax) {}
 };
 
 int make_combine_limit_plot_general(vector<config_t> configs, //info for each entry
@@ -62,7 +64,10 @@ int make_combine_limit_plot_general(vector<config_t> configs, //info for each en
         additional_command += " --X-rtd REMOVE_CONSTANT_ZERO_POINT=1";
         additional_command += " --X-rtd MINIMIZER_multiMin_hideConstants";
         additional_command += " --X-rtd MINIMIZER_multiMin_maskConstraints";
+      } else {
+        additional_command += " --cminApproxPreFitTolerance 0.1 --cminPreScan --cminPreFit 1";
       }
+      if(more_precise_) additional_command += " --rAbsAcc 0.0005 --rRelAcc 0.0005 --cminDefaultMinimizerTolerance 0.001 --cminDiscreteMinTol 0.0001";
 
       //Run combine on each datacard
       printf("Processing combine card %s/combine_%s.txt\n", dir.Data(), card.Data());
@@ -110,8 +115,10 @@ int make_combine_limit_plot_general(vector<config_t> configs, //info for each en
     max_val = max(max_val, max(expected[itree] + up_2  [itree], obs[itree]));
     min_val = min(min_val, min(expected[itree] - down_2[itree], obs[itree]));
     if(doObs) {
-      cout << configs[itree].name_.Data() << ": r < " << obs[itree] << " (" << expected[itree]
-           << " [" << expected[itree]-down_1[itree] << ", " << expected[itree]+up_1[itree] << "])" << endl;
+      printf("%s: r < %.5e (%.5e (+%.5e, -%.5e) [%.5e - %.5e])\n", configs[itree].name_.Data(),
+             obs[itree],
+             expected[itree], up_1[itree], down_1[itree],
+             expected[itree] - down_1[itree], expected[itree]  + up_1[itree]);
     } else {
       printf("%s: r < %.5e (+%.5e, -%.5e) [%.5e - %.5e]\n", configs[itree].name_.Data(),
              expected[itree], up_1[itree], down_1[itree],
@@ -138,8 +145,8 @@ int make_combine_limit_plot_general(vector<config_t> configs, //info for each en
 
   //calculate x-axis range
   const float scale_size = (log10(max_val) - log10(min_val)); //orders of magnitude spanning the plot
-  const float xmax = max_val*pow(2,max(0.f, scale_size));
-  const float xmin = min_val/pow(1.5,max(0.f, scale_size));
+  const float xmax = (log_plot_) ? max_val*pow(2.0,max(0.f, scale_size)) : 1.1*max_val;
+  const float xmin = (log_plot_) ? min_val/pow(1.5,max(0.f, scale_size)) : 0.;
   printf("Max val = %.2e, Min val = %.2e --> xrange = [%.2e , %.2e]\n", max_val, min_val, xmin, xmax);
 
   gStyle->SetOptStat(0);
@@ -155,7 +162,7 @@ int make_combine_limit_plot_general(vector<config_t> configs, //info for each en
   //Add the graphs to the plot
   expected_2->Draw("E2");
   expected_1->Draw("PE2 SAME");
-  c->SetLogx();
+  if(log_plot_) c->SetLogx();
   haxis->GetYaxis()->SetRangeUser(ymin, ymax);
   haxis->GetXaxis()->SetRangeUser(xmin, xmax);
   haxis->GetXaxis()->SetMoreLogLabels(true);
@@ -166,8 +173,8 @@ int make_combine_limit_plot_general(vector<config_t> configs, //info for each en
   TGaxis::SetMaxDigits(3);
   TGraph* g_obs = new TGraph(nfiles, obs, y);
   g_obs->SetName("observed");
-  g_obs->SetMarkerStyle(5);
-  g_obs->SetMarkerSize(2);
+  g_obs->SetMarkerStyle(70);
+  g_obs->SetMarkerSize(3);
   if(doObs) g_obs->Draw("P SAME");
 
   c->SetGridx();

@@ -2,10 +2,11 @@
 //create a fit diagnostics root file via:
 //$> combine -M FitDiagnostics -d <input card/workspace> --saveShapes --saveWithUncertainties [additional options]
 
-bool unblind_ = false;
-bool print_stacks_ = true;
-bool debug_ = false; //print debug info
-bool do_single_ = false; //test printing a single histogram
+bool unblind_      = false;
+bool print_stacks_ = true ; //print stacked plots
+bool debug_        = false; //print debug info
+bool do_single_    = false; //test printing a single histogram
+bool do_run2_      = true ; //print Run 2 inclusive histograms
 
 
 //------------------------------------------------------------------------------------------
@@ -37,14 +38,58 @@ double gmin(TGraph* g, double cutoff = 0.01) {
 }
 
 //------------------------------------------------------------------------------------------
+// Get a distribution from the directory list
+TH1* get_hist(vector<TDirectoryFile*> dirs, const char* name) {
+  TH1* h = nullptr;
+  for(auto dir : dirs) {
+    TH1* h_tmp = (TH1*) dir->Get(name);
+    if(!h_tmp) {
+      // cout << __func__ << ": Histogram " << name << " not found in directory " << dir->GetName() << endl;
+      return nullptr;
+    }
+    if(!h) {
+      h = (TH1*) h_tmp->Clone(Form("%s_Run2", name));
+    } else {
+      h->Add(h_tmp);
+    }
+  }
+  return h;
+}
+
+//------------------------------------------------------------------------------------------
+// Get the data distribution from the directory list
+TGraphAsymmErrors* get_data(vector<TDirectoryFile*> dirs) {
+  TGraphAsymmErrors* g = nullptr;
+  for(auto dir : dirs) {
+    TGraphAsymmErrors* g_tmp = (TGraphAsymmErrors*) dir->Get("data");
+    if(!g_tmp) {
+      cout << __func__ << ": Data not found in directory " << dir->GetName() << endl;
+      return nullptr;
+    }
+    if(!g) {
+      g = (TGraphAsymmErrors*) g_tmp->Clone("data_Run2");
+    } else {
+      //Add the data and errors
+      for(int ipoint = 0; ipoint < g->GetN(); ++ipoint) {
+        g->SetPointY(ipoint, g->GetPointY(ipoint)+g_tmp->GetPointY(ipoint));
+        //use sqrt(N) for the errors
+        g->SetPointEYhigh(ipoint, sqrt(g->GetPointY(ipoint)));
+        g->SetPointEYlow (ipoint, sqrt(g->GetPointY(ipoint)));
+      }
+    }
+  }
+  return g;
+}
+
+//------------------------------------------------------------------------------------------
 // Print an individual stack plot
-int print_stack(TDirectoryFile* dir, TString tag, TString outdir) {
+int print_stack(vector<TDirectoryFile*> dirs, TString tag, TString outdir) {
 
   //Get the fit results and the data
-  TH1* hbackground = (TH1*) dir->Get("total_background");
-  TH1* hsignal     = (TH1*) dir->Get("total_signal");
-  TH1* htotal      = (TH1*) dir->Get("total");
-  TGraphAsymmErrors* gdata = (TGraphAsymmErrors*) dir->Get("data");
+  TH1* hbackground         = get_hist(dirs, "total_background");
+  TH1* hsignal             = get_hist(dirs, "total_signal");
+  TH1* htotal              = get_hist(dirs, "total");
+  TGraphAsymmErrors* gdata = get_data(dirs);
   if(!hsignal || !hbackground || !htotal || !gdata) {
     cout << "Data not found for tag " << tag.Data() << endl;
     return 1;
@@ -57,9 +102,8 @@ int print_stack(TDirectoryFile* dir, TString tag, TString outdir) {
   vector<int> colors = {kAtlantic, kYellow-7, kViolet-9, kRed-2, kRed-7, kGreen-7, kOrange+6};
   for(unsigned i = 0; i < names.size(); ++i) {
     TString name = names[i];
-    auto o = dir->Get(name.Data());
-    if(o) {
-      auto h = (TH1*) o;
+    auto h = get_hist(dirs, name.Data());
+    if(h) {
       const int color = colors[i];
       h->SetLineColor(color);
       h->SetFillColor(color);
@@ -83,10 +127,10 @@ int print_stack(TDirectoryFile* dir, TString tag, TString outdir) {
   gStyle->SetOptStat(0);
   gStyle->SetPadTickX(1);
   gStyle->SetPadTickY(1);
-  TCanvas* c = new TCanvas("c", "c", 1000, 900);
-  TPad* pad1 = new TPad("pad1", "pad1", 0., 0.40, 1., 1.00);
-  TPad* pad2 = new TPad("pad2", "pad2", 0., 0.20, 1., 0.40);
-  TPad* pad3 = new TPad("pad3", "pad3", 0., 0.00, 1., 0.20);
+  TCanvas* c = new TCanvas("c_stack", "c_stack", 1000, 900);
+  TPad* pad1 = new TPad("pad1_stack", "pad1_stack", 0., 0.40, 1., 1.00);
+  TPad* pad2 = new TPad("pad2_stack", "pad2_stack", 0., 0.20, 1., 0.40);
+  TPad* pad3 = new TPad("pad3_stack", "pad3_stack", 0., 0.00, 1., 0.20);
   pad1->SetRightMargin(0.03); pad2->SetRightMargin(0.03); pad3->SetRightMargin(0.03);
   pad1->SetBottomMargin(0.02); pad2->SetBottomMargin(0.05); pad3->SetBottomMargin(0.25);
   pad2->SetTopMargin(0.03); pad3->SetTopMargin(0.02);
@@ -112,8 +156,8 @@ int print_stack(TDirectoryFile* dir, TString tag, TString outdir) {
   htotal->SetTitle("");
   htotal->SetXTitle("");
   htotal->SetYTitle("Events / Bin");
-  htotal->GetYaxis()->SetTitleSize(0.04);
-  htotal->GetYaxis()->SetTitleOffset(1.3);
+  htotal->GetYaxis()->SetTitleSize(0.05);
+  htotal->GetYaxis()->SetTitleOffset(0.92);
   htotal->GetXaxis()->SetLabelSize(0.);
 
   //Configure the background component style
@@ -141,13 +185,13 @@ int print_stack(TDirectoryFile* dir, TString tag, TString outdir) {
 
 
   //Add a legend
-  TLegend leg(0.16, 0.65, 0.93, 0.88);
+  TLegend leg(0.13, 0.65, 0.93, 0.88);
   leg.SetNColumns(3);
   leg.AddEntry(gdata, "Data", "PLE");
-  leg.AddEntry(htotal, "Background+signal fit", "LF");
+  leg.AddEntry(htotal, "Total", "LF");
   if(unblind_) {
-    leg.AddEntry(hbackground, "Background component", "L");
-    leg.AddEntry(hsignal, "Signal component", "L");
+    leg.AddEntry(hbackground, "Background", "L");
+    leg.AddEntry(hsignal, "Signal", "L");
   }
   for(auto h : *(stack->GetHists())) leg.AddEntry(h);
   leg.SetTextSize(0.05);
@@ -161,10 +205,10 @@ int print_stack(TDirectoryFile* dir, TString tag, TString outdir) {
   pad2->cd();
 
   //Make the data / total fit and data / background component distributions
-  TGraphAsymmErrors* gRatio_s = (TGraphAsymmErrors*) gdata->Clone("gRatio_s"); //data / S+B
-  TGraphAsymmErrors* gRatio_b = (TGraphAsymmErrors*) gdata->Clone("gRatio_b"); //data / B-only
-  TH1* hPull_s = (TH1*) htotal->Clone("hPull_s"); hPull_s->Reset(); //(data - model)/unc (S+B-only)
-  TH1* hPull_b = (TH1*) htotal->Clone("hPull_b"); hPull_b->Reset(); //(data - model)/unc (B-only)
+  TGraphAsymmErrors* gRatio_s = (TGraphAsymmErrors*) gdata->Clone("gRatio_s_stack"); //data / S+B
+  TGraphAsymmErrors* gRatio_b = (TGraphAsymmErrors*) gdata->Clone("gRatio_b_stack"); //data / B-only
+  TH1* hPull_s = (TH1*) htotal->Clone("hPull_s_stack"); hPull_s->Reset(); //(data - model)/unc (S+B-only)
+  TH1* hPull_b = (TH1*) htotal->Clone("hPull_b_stack"); hPull_b->Reset(); //(data - model)/unc (B-only)
   //Debug printout if needed
   if(debug_) {
     printf("Bin:     data        B +-  sigma_B       S+B +- sigma_S+B  pull_B  pull_S+B\n");
@@ -215,15 +259,15 @@ int print_stack(TDirectoryFile* dir, TString tag, TString outdir) {
   auto gRatio = (unblind_) ? gRatio_b : gRatio_s; //Ratio plot to use, data/total if blinded, data/bkg-only otherwise
 
   //Make a background uncertainty plot
-  TH1* hBkg_unc = (TH1*) hbackground->Clone("hBkg_unc");
+  TH1* hBkg_unc = (TH1*) hbackground->Clone("hBkg_unc_stack");
   for(int ibin = 1; ibin <= hbackground->GetNbinsX(); ++ibin) {
     if(hbackground->GetBinContent(ibin) <= 0.01) hBkg_unc->SetBinContent(ibin, 0.);
     else {
       hBkg_unc->SetBinContent(ibin, 1.);
       if(hbackground->GetBinError(ibin) > 0.) {
         hBkg_unc->SetBinError(ibin, hbackground->GetBinError(ibin) / hbackground->GetBinContent(ibin));
-      } else {
-        hBkg_unc->SetBinError(ibin, 0.1 / hbackground->GetBinContent(ibin));
+      } else { //if the error isn't defined, set it to 1%
+        hBkg_unc->SetBinError(ibin, 0.01 * hbackground->GetBinContent(ibin));
       }
     }
   }
@@ -232,7 +276,7 @@ int print_stack(TDirectoryFile* dir, TString tag, TString outdir) {
   hBkg_unc->SetFillStyle(3003);
 
   //Make a total / background component distribution
-  TH1* hRatio_s = (TH1*) htotal->Clone("hRatio_s");
+  TH1* hRatio_s = (TH1*) htotal->Clone("hRatio_s_stack");
   hRatio_s->Divide(hbackground);
   for(int ibin = 1; ibin <= hsignal->GetNbinsX(); ++ibin) {
     if(hbackground->GetBinContent(ibin) <= 0.1) hRatio_s->SetBinContent(ibin, 0.);
@@ -240,12 +284,17 @@ int print_stack(TDirectoryFile* dir, TString tag, TString outdir) {
   hRatio_s->SetFillColor(0);
   hRatio_s->SetLineColor(kBlue);
   hRatio_s->SetLineStyle(kDashed);
+  hRatio_s->SetLineWidth(3);
 
   //Draw the results
-  hBkg_unc->Draw("E2 same");
-  if(unblind_) hRatio_s->Draw("hist same");
+  hBkg_unc->Draw("E2");
+  if(unblind_) {
+    hRatio_s->Draw("hist same");
+    hRatio_s->GetYaxis()->SetRangeUser(0.8, 1.2); //necessary due to y-axis importing from clone
+  }
   gRatio->Draw("P");
   hBkg_unc->GetXaxis()->SetRangeUser(xmin, xmax);
+
 
   //Add a reference line for perfect agreement
   TLine* line = new TLine(xmin, 1., xmax, 1.);
@@ -257,11 +306,11 @@ int print_stack(TDirectoryFile* dir, TString tag, TString outdir) {
   //Configure the titles and axes
   hBkg_unc->GetYaxis()->SetRangeUser(0.8, 1.2);
   hBkg_unc->SetTitle("");
-  hBkg_unc->SetXTitle("Bins");
+  hBkg_unc->SetXTitle("");
   hBkg_unc->GetXaxis()->SetLabelSize(0.);
   hBkg_unc->GetYaxis()->SetLabelSize(0.10);
-  hBkg_unc->GetYaxis()->SetTitleSize(0.12);
-  hBkg_unc->GetYaxis()->SetTitleOffset(0.40);
+  hBkg_unc->GetYaxis()->SetTitleSize(0.15);
+  hBkg_unc->GetYaxis()->SetTitleOffset(0.30);
   if(unblind_) hBkg_unc->SetYTitle("Data/Bkg");
   else         hBkg_unc->SetYTitle("Data/Fit");
 
@@ -276,14 +325,14 @@ int print_stack(TDirectoryFile* dir, TString tag, TString outdir) {
   hPull->Draw("hist");
   hPull->GetYaxis()->SetRangeUser(-2,2);
   hPull->SetTitle("");
-  hPull->SetXTitle("Bins");
+  hPull->SetXTitle("BDT score bin");
   hPull->SetYTitle("#frac{(Data-Fit)}{Uncertainty}");
   hPull->GetXaxis()->SetLabelSize(0.10);
   hPull->GetYaxis()->SetLabelSize(0.10);
-  hPull->GetXaxis()->SetTitleSize(0.12);
-  hPull->GetYaxis()->SetTitleSize(0.12);
-  hPull->GetXaxis()->SetTitleOffset(0.70);
-  hPull->GetYaxis()->SetTitleOffset(0.35);
+  hPull->GetXaxis()->SetTitleSize(0.15);
+  hPull->GetYaxis()->SetTitleSize(0.15);
+  hPull->GetXaxis()->SetTitleOffset(0.75);
+  hPull->GetYaxis()->SetTitleOffset(0.29);
 
   //Add a reference line for perfect agreement
   TLine* line_2 = new TLine(xmin, 0., xmax, 0.);
@@ -320,13 +369,13 @@ int print_stack(TDirectoryFile* dir, TString tag, TString outdir) {
 
 //------------------------------------------------------------------------------------------
 // Print an individual histogram
-int print_hist(TDirectoryFile* dir, TString tag, TString outdir) {
+int print_hist(vector<TDirectoryFile*> dirs, TString tag, TString outdir) {
 
   //Get the fit results and the data
-  TH1* hbackground = (TH1*) dir->Get("total_background");
-  TH1* hsignal     = (TH1*) dir->Get("total_signal");
-  TH1* htotal      = (TH1*) dir->Get("total");
-  TGraphAsymmErrors* gdata = (TGraphAsymmErrors*) dir->Get("data");
+  TH1* hbackground         = get_hist(dirs, "total_background");
+  TH1* hsignal             = get_hist(dirs, "total_signal");
+  TH1* htotal              = get_hist(dirs, "total");
+  TGraphAsymmErrors* gdata = get_data(dirs);
   if(!hsignal || !hbackground || !htotal || !gdata) {
     cout << "Data not found for tag " << tag.Data() << endl;
     return 1;
@@ -376,8 +425,8 @@ int print_hist(TDirectoryFile* dir, TString tag, TString outdir) {
   htotal->SetTitle("");
   htotal->SetXTitle("");
   htotal->SetYTitle("Events / Bin");
-  htotal->GetYaxis()->SetTitleSize(0.04);
-  htotal->GetYaxis()->SetTitleOffset(1.3);
+  htotal->GetYaxis()->SetTitleSize(0.05);
+  htotal->GetYaxis()->SetTitleOffset(0.92);
   htotal->GetXaxis()->SetLabelSize(0.);
 
   //Configure the background component style
@@ -502,8 +551,11 @@ int print_hist(TDirectoryFile* dir, TString tag, TString outdir) {
   hRatio_s->SetLineStyle(kDashed);
 
   //Draw the results
-  hBkg_unc->Draw("E2 same");
-  if(unblind_) hRatio_s->Draw("hist same");
+  hBkg_unc->Draw("E2");
+  if(unblind_) {
+    hRatio_s->Draw("hist same");
+    hRatio_s->GetYaxis()->SetRangeUser(0.8, 1.2); //necessary due to y-axis importing from clone
+  }
   gRatio->Draw("P");
   hBkg_unc->GetXaxis()->SetRangeUser(xmin, xmax);
 
@@ -517,11 +569,11 @@ int print_hist(TDirectoryFile* dir, TString tag, TString outdir) {
   //Configure the titles and axes
   hBkg_unc->GetYaxis()->SetRangeUser(0.8, 1.2);
   hBkg_unc->SetTitle("");
-  hBkg_unc->SetXTitle("Bins");
+  hBkg_unc->SetXTitle("");
   hBkg_unc->GetXaxis()->SetLabelSize(0.);
   hBkg_unc->GetYaxis()->SetLabelSize(0.10);
-  hBkg_unc->GetYaxis()->SetTitleSize(0.12);
-  hBkg_unc->GetYaxis()->SetTitleOffset(0.40);
+  hBkg_unc->GetYaxis()->SetTitleSize(0.15);
+  hBkg_unc->GetYaxis()->SetTitleOffset(0.30);
   if(unblind_) hBkg_unc->SetYTitle("Data/Bkg");
   else         hBkg_unc->SetYTitle("Data/Fit");
 
@@ -536,14 +588,14 @@ int print_hist(TDirectoryFile* dir, TString tag, TString outdir) {
   hPull->Draw("hist");
   hPull->GetYaxis()->SetRangeUser(-2,2);
   hPull->SetTitle("");
-  hPull->SetXTitle("Bins");
+  hPull->SetXTitle("BDT score bin");
   hPull->SetYTitle("#frac{(Data-Fit)}{Uncertainty}");
   hPull->GetXaxis()->SetLabelSize(0.10);
   hPull->GetYaxis()->SetLabelSize(0.10);
-  hPull->GetXaxis()->SetTitleSize(0.12);
-  hPull->GetYaxis()->SetTitleSize(0.12);
-  hPull->GetXaxis()->SetTitleOffset(0.70);
-  hPull->GetYaxis()->SetTitleOffset(0.35);
+  hPull->GetXaxis()->SetTitleSize(0.15);
+  hPull->GetYaxis()->SetTitleSize(0.15);
+  hPull->GetXaxis()->SetTitleOffset(0.75);
+  hPull->GetYaxis()->SetTitleOffset(0.29);
 
   //Add a reference line for perfect agreement
   TLine* line_2 = new TLine(xmin, 0., xmax, 0.);
@@ -557,7 +609,7 @@ int print_hist(TDirectoryFile* dir, TString tag, TString outdir) {
   double max_val = std::max(gdata->GetMaximum(), hmax(htotal));
   htotal->GetYaxis()->SetRangeUser(0., 1.2*max_val);
   c->SaveAs(Form("%s%s.png", outdir.Data(), tag.Data()));
-  double plot_min = 0.2*min_val;
+  double plot_min = std::min(std::max(0.2, 0.2*hmax(hsignal)), 0.2*min_val);
   double plot_max = plot_min*pow(10, 1.7*log10(max_val/plot_min));
   htotal->GetYaxis()->SetRangeUser(plot_min, plot_max);
   pad1->SetLogy();
@@ -594,16 +646,32 @@ int print_dir(TDirectoryFile* dir, TString tag, TString outdir) {
     //Check if this object is a directory with categories, if so recursively process it
     bool isdir = obj->InheritsFrom(TDirectoryFile::Class());
     if(isdir) {
-      status += print_dir((TDirectoryFile*) obj, (tag + "_") + obj->GetName(), outdir);
+      auto next_dir = (TDirectoryFile*) obj;
+      status += print_dir(next_dir, (tag + "_") + obj->GetName(), outdir);
       subdir = true;
       if(do_single_) return status;
+      if(do_run2_) {
+        TString dir_name = next_dir->GetName();
+        if(dir_name.Contains("2018")) { //a sub-directory to print, also print the inclusive
+          vector<TDirectoryFile*> dirs = {next_dir};
+          dir_name.ReplaceAll("2018", "2017");
+          next_dir = (TDirectoryFile*) dir->Get(dir_name.Data());
+          if(next_dir) dirs.push_back(next_dir);
+          dir_name.ReplaceAll("2017", "2016");
+          next_dir = (TDirectoryFile*) dir->Get(dir_name.Data());
+          if(next_dir) dirs.push_back(next_dir);
+          dir_name.ReplaceAll("y2016", "Run2");
+          status += print_hist(dirs, tag + "_" + dir_name, outdir);
+          if(print_stacks_) status += print_stack(dirs, tag + "_" + dir_name, outdir); //stacked histogram
+        }
+      }
     }
   }
 
   //If this directory doesn't contain a sub-directory, print the histograms within the category
   if(!subdir) { //histogram directory
-    status += print_hist(dir, tag, outdir);
-    if(print_stacks_) status += print_stack(dir, tag, outdir); //stacked histogram
+    status += print_hist({dir}, tag, outdir);
+    if(print_stacks_) status += print_stack({dir}, tag, outdir); //stacked histogram
   }
   return status;
 }
@@ -633,7 +701,7 @@ int plot_fit(TString fname, TString outdir = "figures", bool unblind = false) {
   //Print the fit configurations: Pre-fit, background-only fit, and background+signal fit
   int status(0);
   status += print_dir(prefit, "prefit", outdir);
-  if(!do_single_) {
+  if(true || !do_single_) {
     if(fit_b) status += print_dir(fit_b , "fit_b" , outdir);
     if(fit_s) status += print_dir(fit_s , "fit_s" , outdir);
   }

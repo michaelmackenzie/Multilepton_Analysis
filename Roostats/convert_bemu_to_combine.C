@@ -22,7 +22,7 @@ bool useMCBkg_      = false; //use the background MC to create background templa
 float zmumu_scale_  =   -1.; //scale to Z->ee/mumu distribution if using MC templates
 bool printPlots_    = true ;
 bool fitSideBands_  = true ; //fit only the data sidebands
-int  replaceData_   =     1; //1: replace the data with toy MC; 2: replace the data with the MC bkg; 3: replace the data with smoothed/fit MC bkg
+int  replaceData_   =     0; //1: replace the data with toy MC; 2: replace the data with the MC bkg; 3: replace the data with smoothed/fit MC bkg
 bool replaceRefit_  = false; //replace data with toy MC, then fit the unblinded toy data
 bool save_          = true ; //save output combine workspace/cards
 

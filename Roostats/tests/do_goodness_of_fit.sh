@@ -5,19 +5,21 @@ Help() {
     echo "Do goodness of fit studies"
     echo "Usage: do_goodness_of_fit.sh <card> [options]"
     echo "Options:"
-    echo " --rrange    (-r ): POI range (default = 30)"
-    echo " --toys      (-t ): Number of toys (default = 100)"
-    echo " --fitarg         : Additional fit arguments"
-    echo " --skipworkspace  : Don't recreate workspace for input data card"
-    echo " --plotonly       : Only make plots"
-    echo " --algo           : Only process the given algorithm"
-    echo " --tag            : Tag for output results"
-    echo " --help      (-h ): Print this information"
+    echo " --rrange       (-r ): POI range (default = 30)"
+    echo " --toys         (-t ): Number of toys (default = 100)"
+    echo " --toysperloop   (-g): Number of toys per loop (default = 50)"
+    echo " --fitarg            : Additional fit arguments"
+    echo " --skipworkspace     : Don't recreate workspace for input data card"
+    echo " --plotonly          : Only make plots"
+    echo " --algo              : Only process the given algorithm"
+    echo " --tag               : Tag for output results"
+    echo " --help         (-h ): Print this information"
 }
 
 CARD=""
 RRANGE="30"
-NTOYS="100"
+NTOYS=100
+TOYSPERLOOP=50
 FITARG=""
 SKIPWORKSPACE=""
 PLOTONLY=""
@@ -39,6 +41,10 @@ do
         iarg=$((iarg + 1))
         eval "var=\${${iarg}}"
         NTOYS=${var}
+    elif [[ "${var}" == "--toysperloop" ]] || [[ "${var}" == "-g" ]]; then
+        iarg=$((iarg + 1))
+        eval "var=\${${iarg}}"
+        TOYSPERLOOP=${var}
     elif [[ "${var}" == "--fitarg" ]]; then
         iarg=$((iarg + 1))
         eval "var=\${${iarg}}"
@@ -84,6 +90,10 @@ if [[ "${SKIPWORKSPACE}" == "" ]] && [[ "${CARD}" == *".txt" ]]; then
 fi
 
 FITARG="${FITARG} --cminDefaultMinimizerStrategy 0 --cminApproxPreFitTolerance 0.1 --cminPreScan --cminPreFit 1 --rMin -${RRANGE} --rMax ${RRANGE}"
+if [ ${NTOYS} -lt ${TOYSPERLOOP} ]; then
+    echo "Setting N(gen) per loop to ${NTOYS}"
+    TOYSPERLOOP=${NTOYS}
+fi
 
 for ALGO in "saturated" "KS" "AD"; do
     if [[ "${ONLYALGO}" != "" ]] && [[ "${ALGO}" != "${ONLYALGO}" ]]; then
@@ -99,12 +109,29 @@ for ALGO in "saturated" "KS" "AD"; do
         echo "Performing ${ALGO} goodness of fit calculation"
         echo ">>> combine -M GoodnessOfFit --algo=${ALGO} -d ${WORKSPACE} ${FITARG} -n .${ALGO}_observed${TAG}"
         combine -M GoodnessOfFit --algo=${ALGO} -d ${WORKSPACE} ${FITARG} -n .${ALGO}_observed${TAG}
-        echo ">>> combine -M GoodnessOfFit --algo=${ALGO} -d ${WORKSPACE} ${FITARG} -n .${ALGO}${TAG} -t ${NTOYS} ${ADDITIONAL}"
-        combine -M GoodnessOfFit --algo=${ALGO} -d ${WORKSPACE} ${FITARG} -n .${ALGO}${TAG} -t ${NTOYS} ${ADDITIONAL}
+
+        #Generate toys in sections
+        SEED=90
+        OUTPUTLIST=""
+        for ((IGEN=0; IGEN<${NTOYS}; IGEN+=${TOYSPERLOOP}))
+        do
+            SEED=$((SEED+1))
+            echo ">>> combine -M GoodnessOfFit --algo=${ALGO} -d ${WORKSPACE} ${FITARG} -n .${ALGO}${TAG} -t ${TOYSPERLOOP} ${ADDITIONAL}"
+            combine -M GoodnessOfFit --algo=${ALGO} -d ${WORKSPACE} ${FITARG} -n .${ALGO}${TAG} -t ${TOYSPERLOOP} ${ADDITIONAL} -s ${SEED}
+            TOYFILE="higgsCombine.${ALGO}${TAG}.GoodnessOfFit.mH120.${SEED}.root"
+            if [ ! -f ${TOYFILE} ]; then
+                echo "${TOYFILE} not found!"
+                exit
+            fi
+            OUTPUTLIST="${OUTPUTLIST} ${TOYFILE}"
+        done
+        echo "Merging output files..."
+        TOYFILE="higgsCombine.${ALGO}${TAG}.GoodnessOfFit.mH120.root"
+        ${CMSSW_BASE}/src/CLFVAnalysis/Roostats/haddfitdiag.py ${TOYFILE} ${OUTPUTLIST}
+        rm ${OUTPUTLIST}
     fi
 
     OBSFILE="higgsCombine.${ALGO}_observed${TAG}.GoodnessOfFit.mH120.root"
-    TOYFILE="higgsCombine.${ALGO}${TAG}.GoodnessOfFit.mH120.123456.root"
     if [ ! -f ${OBSFILE} ]; then
         echo "${OBSFILE} not found!"
     elif [ ! -f ${TOYFILE} ]; then

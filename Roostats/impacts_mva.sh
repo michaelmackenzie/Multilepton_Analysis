@@ -210,7 +210,7 @@ if [[ "${MU2E}" != "" ]]; then
 fi
 
 WORKSPACE=`echo ${CARD} | sed 's/.txt/_workspace.root/'`
-JSON=`echo ${CARD} | sed 's/.txt/.json/' | sed 's/.root/.json/' | sed 's/combine_/impacts_/'`
+JSON=`echo ${CARD} | sed 's/.txt/.json/' | sed 's/_workspace.root/.json/' | sed 's/.root/.json/' | sed 's/combine_/impacts_/'`
 FITNAME=`echo ${CARD} | sed 's/.txt//' | sed 's/_workspace.root//' | sed 's/.root//' | sed 's/combine_mva_//'`
 # Task name for grid processing
 TASK=`echo ${CARD} | sed 's/.txt//' | sed 's/_workspace.root//' | sed 's/.root//'`

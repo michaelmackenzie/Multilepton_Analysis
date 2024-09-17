@@ -25,11 +25,11 @@ p.add_argument('-d', '--card', help='Input combine workspace/data card', require
 p.add_argument('-j', '--json', help='Input combine impact json file', required=True)
 p.add_argument('-t', '--tag', help='Tag', default="", required=False)
 p.add_argument('-p', '--points', help='N(points)', default="50", required=False)
-p.add_argument('-po', '--plot_only', help='Only make the plot', default="", required=False)
+p.add_argument('-po', '--plot_only', help='Only make the plot', action='store_true', default=False, required=False)
 p.add_argument('-n', '--nscan', help='N(parameters) to scan', default=10, type=int, required=False)
 p.add_argument('--dryrun', help='Setup processing without running', action='store_true', required=False)
-p.add_argument('--skip_impacts', help='Skip processing top impacts', action='store_true', required=False)
-p.add_argument('--skip_pulls', help='Skip processing largest pulls', action='store_true', required=False)
+p.add_argument('--skip_impacts', help='Skip processing top impacts', action='store_true', default = False, required=False)
+p.add_argument('--skip_pulls', help='Skip processing largest pulls', action='store_true', default = False, required=False)
 
 args = p.parse_args()
 
@@ -70,12 +70,15 @@ for param in top_impacts:
 
 fit_args = '--cminDefaultMinimizerStrategy 0'
 script = '${CMSSW_BASE}/src/CLFVAnalysis/Roostats/tests/scan_parameter.sh'
+script_flags = '--points %s' % (points)
+if tag != "": script_flags = '%s --tag %s' % (script_flags, tag)
+if plot_only: script_flags = '%s --plotonly' % (script_flags)
 if not skip_impacts:
     for param in top_impacts:
-        command = '%s %s %s \"--setParameterRanges %s=%.3f,%.3f %s\" \"%s\" \"%s\" \"%s\"' % (script, card, param[0], param[0],
-                                                                                              param[2][1] - 2.5*(param[2][1]-param[2][0]),
-                                                                                              param[2][1] + 2.5*(param[2][2]-param[2][1]),
-                                                                                              fit_args, points, tag, plot_only)
+        command = '%s -d %s -p %s --fitarg \"--setParameterRanges %s=%.3f,%.3f %s\" %s' % (script, card, param[0], param[0],
+                                                                                            param[2][1] - 2.5*(param[2][1]-param[2][0]),
+                                                                                            param[2][1] + 2.5*(param[2][2]-param[2][1]),
+                                                                                            fit_args, script_flags)
         if not dryrun:
             os.system(command)
         else:
@@ -90,11 +93,12 @@ for param in top_pulls:
                                                                                param[2][2]-param[2][1], param[2][1]-param[2][0],
                                                                                param[3])
 if not skip_pulls:
+    print "Processing pulls"
     for param in top_pulls:
-        command = '%s %s %s \"--setParameterRanges %s=%.3f,%.3f %s\" \"%s\" \"%s\" \"%s\"' % (script, card, param[0], param[0],
-                                                                                              param[2][1] - 2.5*(param[2][1]-param[2][0]),
-                                                                                              param[2][1] + 2.5*(param[2][2]-param[2][1]),
-                                                                                              fit_args, points, tag, plot_only)
+        command = '%s -d %s -p %s --fitarg \"--setParameterRanges %s=%.3f,%.3f %s\" %s' % (script, card, param[0], param[0],
+                                                                                            param[2][1] - 2.5*(param[2][1]-param[2][0]),
+                                                                                            param[2][1] + 2.5*(param[2][2]-param[2][1]),
+                                                                                            fit_args, script_flags)
         if not dryrun:
             os.system(command)
         else:

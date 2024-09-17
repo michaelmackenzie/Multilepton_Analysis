@@ -47,7 +47,7 @@ bool is_relevant(TString sys, TString process) {
   const bool is_zmc   = is_zll || is_ztt || process == "zmutau" || process == "zetau" || process == "zemu" || process.BeginsWith("ZTo");
   const bool is_signal = process.EndsWith("mutau") || process.EndsWith("etau") || process.EndsWith("emu");
   if(sys.BeginsWith("Emb")     ) return (embed_mode_ > 0) && (is_embed || is_data);
-  if(sys == "XS_Embed"         ) return (embed_mode_ > 0) && (is_embed || is_data);
+  if(sys.BeginsWith("XS_Embed")) return (embed_mode_ > 0) && (is_embed || is_data);
   if(sys == "XS_ggFH"          ) return is_higgs;
   if(sys == "XS_VBFH"          ) return is_higgs;
   if(sys == "XS_HWW"           ) return is_higgs;
@@ -235,6 +235,12 @@ std::pair<TString,TString> systematic_name(int sys, TString selection, int year,
   if(name == "EmbEleES") name = "EmbEleESBarrel";
   if(name == "EmbEleES1") name = "EmbEleESEndCap";
 
+  //if floating by final state, add to embedding unflolding name
+  if(embed_float_mode_ == 3) {
+    if(name == "XS_Embed")    name += (selection.EndsWith("tau")) ? "-had" : "-lep";
+    if(name == "EmbedUnfold") name += (selection.EndsWith("tau")) ? "-had" : "-lep";
+  }
+
 
   ///////////////////////////////////////////////////////////////////////////
   // Define which are implemented just as rate uncertainties
@@ -286,7 +292,8 @@ std::pair<TString,TString> systematic_name(int sys, TString selection, int year,
   else if(name.Contains("QCDAlt")      ) name = Form("%sY%i", name.Data(), year);
   else if(name == "Lumi"               ) name = Form("%sY%i", name.Data(), year);
   else if(name.BeginsWith("XS_LumiUC") ) name = Form("%sY%i", name.Data(), year); //uncorrelated luminosity between years
-  else if(name == "EmbedUnfold"        ) name = Form("%sY%i", name.Data(), year);
+  else if(name.BeginsWith("EmbedUnfold")) name = Form("%sY%i", name.Data(), year);
+  else if(name.BeginsWith("XS_Embed")  ) name = Form("%sY%i", name.Data(), year);
   else if(name.Contains("TauJetID")    ) name = Form("%sY%i", name.Data(), year);
   else if(name.Contains("TauMuID" )    ) name = Form("%sY%i", name.Data(), year);
   else if(name.Contains("TauEleID")    ) name = Form("%sY%i", name.Data(), year);

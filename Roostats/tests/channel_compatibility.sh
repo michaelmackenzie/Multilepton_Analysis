@@ -1,16 +1,16 @@
 #! /bin/bash
-# Do significance tests
+# Run the Combine channel compatibility testing
 
 Help() {
-    echo "Do significance tests"
-    echo "Usage: significance.sh <card> [options]"
+    echo "Do goodness of fit studies"
+    echo "Usage: channel_compatibility.sh <card> [options]"
     echo "Options:"
-    echo " --rrange    (-r ): POI range (default = 30)"
-    echo " --fitarg         : Additional fit arguments"
-    echo " --skipworkspace  : Don't recreate workspace for input data card"
-    echo " --plotonly       : Only make plots"
-    echo " --tag            : Tag for output results"
-    echo " --help      (-h ): Print this information"
+    echo " --rrange       (-r ): POI range (default = 30)"
+    echo " --fitarg            : Additional fit arguments"
+    echo " --skipworkspace     : Don't recreate workspace for input data card"
+    echo " --plotonly          : Only make plots"
+    echo " --tag               : Tag for output results (default = test)"
+    echo " --help         (-h ): Print this information"
 }
 
 CARD=""
@@ -18,7 +18,7 @@ RRANGE="30"
 FITARG=""
 SKIPWORKSPACE=""
 PLOTONLY=""
-TAG="Test"
+TAG="test"
 
 iarg=1
 while [ ${iarg} -le $# ]
@@ -59,7 +59,6 @@ if [[ "${CARD}" == "" ]]; then
 fi
 
 echo "Using card ${CARD} for the studies with TAG=${TAG}"
-TAG="_${TAG}"
 
 # Create a workspace if needed
 
@@ -69,19 +68,19 @@ if [[ "${SKIPWORKSPACE}" == "" ]] && [[ "${CARD}" == *".txt" ]]; then
     echo "Created workspace ${WORKSPACE}"
 fi
 
-FITARG="${FITARG} --cminDefaultMinimizerStrategy 0 --cminApproxPreFitTolerance 0.1 --cminPreScan --cminPreFit 1 --rMin -${RRANGE} --rMax ${RRANGE}"
-# FITARG="${FITARG} --cminDefaultMinimizerStrategy 0 --cminApproxPreFitTolerance 0.1 --cminPreScan --cminPreFit 1 --rMin 0 --rMax ${RRANGE}"
+FITARG="${FITARG} --saveFitResult --cminDefaultMinimizerStrategy 0 --cminApproxPreFitTolerance 0.1 --cminPreScan --cminPreFit 1 --rMin -${RRANGE} --rMax ${RRANGE}"
 
 if [[ "${PLOTONLY}" == "" ]]; then
-    echo "Performing significance calculation"
-    echo ">>> combine -M Significance -d ${WORKSPACE} --uncapped 1 ${FITARG} -n ${TAG}"
-    combine -M Significance -d ${WORKSPACE} ${FITARG} -n ${TAG}
+    echo "Performing compatibility"
+    echo ">>> combine -M ChannelCompatibilityCheck -d ${WORKSPACE} ${FITARG} -n .${TAG}"
+    combine -M ChannelCompatibilityCheck -d ${WORKSPACE} ${FITARG} -n .${TAG}
 fi
 
-FILE="higgsCombine${TAG}.Significance.mH120.root"
-if [ ! -f ${FILE} ]; then
-    echo "File ${FILE} not found!"
-    exit
+OBSFILE="higgsCombine.${TAG}.ChannelCompatibilityCheck.mH120.root"
+if [ ! -f ${OBSFILE} ]; then
+    echo "${OBSFILE} not found!"
+else
+    root.exe -q -b "${CMSSW_BASE}/src/CLFVAnalysis/Roostats/tools/plot_channel_compatibility.C(\"${OBSFILE}\", \"${TAG}\")"
 fi
 
-echo "Finished running significance tests"
+echo "Finished running compatibility tests"

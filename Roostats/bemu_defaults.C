@@ -12,5 +12,5 @@ Int_t verbose_        = 0;
 bool blind_data_      = true; //blind the data histogram in the signal region
 int bemu_embed_mode_  = 1; //0: nominal running (MC is DY); 1: use Embedded tautau (ignores overlap from ttbar --> tautau --> emu)
 int zmumu_model_      = 1; //model Z->mumu explicitly in the search
-int zmumu_pdf_sys_    = 1; //include Z->mumu PDF parameter uncertainties
+int zmumu_pdf_sys_    = 0; //include Z->mumu PDF parameter uncertainties
 #endif

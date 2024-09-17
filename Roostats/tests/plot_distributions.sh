@@ -11,6 +11,7 @@ Help() {
     echo " --ignoresys      : Don't save shape uncertainties in output (for debugging)"
     echo " --skipworkspace  : Don't recreate workspace for input data card"
     echo " --plotonly       : Only make plots"
+    echo " --zemu           : Assume Z->e+mu processing"
     echo " --tag            : Tag for output results"
     echo " --help      (-h ): Print this information"
 }
@@ -22,6 +23,7 @@ FITARG=""
 IGNORESYS=""
 SKIPWORKSPACE=""
 PLOTONLY=""
+ZEMU=""
 TAG=""
 
 iarg=1
@@ -51,6 +53,8 @@ do
         SKIPWORKSPACE="d"
     elif [[ "${var}" == "--plotonly" ]]; then
         PLOTONLY="d"
+    elif [[ "${var}" == "--zemu" ]]; then
+        ZEMU="d"
     elif [[ "${CARD}" != "" ]]; then
         echo "Arguments aren't configured correctly! (at ${var}, CARD=${CARD})"
         Help
@@ -76,13 +80,16 @@ echo "Using card ${CARD} with output figure path ${FIGUREPATH}"
 # Create a workspace if needed
 
 WORKSPACE=`echo ${CARD} | sed 's/.txt/_workspace.root/'`
-if [[ "${SKIPWORKSPACE}" == "" ]] && [[ "${CARD}" == *".txt" ]]; then
+if [[ "${SKIPWORKSPACE}" == "" ]] && [[ "${PLOTONLY}" == "" ]] && [[ "${CARD}" == *".txt" ]]; then
     echo "Creating workspace ${WORKSPACE}"
     text2workspace.py ${CARD} --channel-masks -o ${WORKSPACE}
     echo "Created workspace ${WORKSPACE}"
 fi
 
 FITARG="${FITARG} --saveShapes --cminDefaultMinimizerStrategy 0 --cminApproxPreFitTolerance 0.1 --cminPreScan --cminPreFit 1 --rMin -${RRANGE} --rMax ${RRANGE}"
+if [[ "${ZEMU}" != "" ]]; then
+    FITARG="${FITARG} --cminRunAllDiscreteCombinations --X-rtd MINIMIZER_freezeDisassociatedParams --X-rtd REMOVE_CONSTANT_ZERO_POINT=1 --X-rtd MINIMIZER_multiMin_hideConstants"
+fi
 if [[ "${IGNORESYS}" == "" ]]; then
     FITARG="${FITARG} --saveWithUncertainties"
 fi
@@ -99,6 +106,10 @@ if [ ! -f ${FILE} ]; then
     exit
 fi
 
-root.exe -q -b "${CMSSW_BASE}/src/CLFVAnalysis/Roostats/tools/plot_fit.C(\"${FILE}\", \"${FIGUREPATH}\", ${UNBLIND})"
+if [[ "${ZEMU}" == "" ]]; then
+    root.exe -q -b "${CMSSW_BASE}/src/CLFVAnalysis/Roostats/tools/plot_fit.C(\"${FILE}\", \"${FIGUREPATH}\", ${UNBLIND})"
+else
+    root.exe -q -b "${CMSSW_BASE}/src/CLFVAnalysis/Roostats/tools/plot_bemu.C(\"${FILE}\", \"${FIGUREPATH}\", ${UNBLIND})"
+fi
 
 echo "Finished running distribution plotting"

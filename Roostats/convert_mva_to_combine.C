@@ -11,7 +11,7 @@
 
 bool   use_fake_bkg_norm_ = false; //add a large uncertainty on j->tau/qcd norm to be fit by data
 bool   separate_years_    =  true; //separate each year of data
-int    blind_data_        =    1 ; //0: no blinding; 1: blind high score region in plots; 2: kill high BDT score region in data and MC
+int    blind_data_        =    0 ; //0: no blinding; 1: blind high score region in plots; 2: kill high BDT score region in data and MC
 int    replace_data_      =    0 ; //0: use data in datacards; 1: use ~Asimov instead of data
 double blind_cut_         =  0.35;
 
@@ -445,6 +445,7 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
         if(name == "TheoryPDF" ) nsigma = 2.; //increase the TheoryPDF size
         if(name.Contains("JER")) nsigma = 1./3.; //estimated with 3 sigma variation
         if(name.Contains("JES")) nsigma = 1./3.; //estimated with 3 sigma variation
+        if(name.Contains("XS_Embed") && embed_float_mode_ == 3) nsigma = 4.; // set to a 1/3 sigma constraint, 16% uncertainty
         sys += Form("%6.3f", nsigma);
       } else {
         double sys_up   = (hsig->Integral() > 0.) ? hsig->Integral()/hsig_up->Integral() : 0.;
@@ -519,6 +520,7 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
         if(name == "TheoryPDF") nsigma = 2.; //increase the TheoryPDF size
         if(name.Contains("JER")) nsigma = 1./3.; //estimated with 3 sigma variation
         if(name.Contains("JES")) nsigma = 1./3.; //estimated with 3 sigma variation
+        if(name.Contains("XS_Embed") && embed_float_mode_ == 3) nsigma = 4.; // set to a 1./4 sigma constraint, 16% uncertainty
         if(type == "shape") {
           sys += Form("%15.3f", nsigma);
         } else {
@@ -639,7 +641,7 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
   }
 
   //allow the embedding tau tau contribution to float if requested
-  if(embed_mode_ > 0 && embed_float_mode_) {
+  if(embed_mode_ > 0 && embed_float_mode_ > 0 && embed_float_mode_ != 3) {
     outfile << Form("Embedding%s_%i rateParam %s Embedding 1. [0.5,1.5]\n\n", (embed_float_mode_ == 2) ? (selection.EndsWith("tau")) ? "_had" : "_lep" : "", years[0], hist.Data());
   }
   //allow the j-->tau contribution to float if requested
@@ -663,7 +665,7 @@ Int_t convert_mva_to_combine(int set = 8, TString selection = "zmutau",
   }
 
   //MC statistics nuisances, see: https://cms-analysis.github.io/HiggsAnalysis-CombinedLimit/part2/bin-wise-stats/
-  const int lite_threshold = 10; //effective N(unweighted events) to switch to 1 nuisance per bin vs. 1 nuisance per process
+  const int lite_threshold = 50; //effective N(unweighted events) to switch to 1 nuisance per bin vs. 1 nuisance per process: v09g = 10, v09h = 10,000, v09i = 100 with Combine update, v09j = 50 with update
   outfile << "\n* autoMCStats " << lite_threshold << " 0 1\n\n"; //arguments are: [channel] autoMCStats [threshold = 0] [include signal = 0] [morphing mode = 1]
   outfile.close();
 
