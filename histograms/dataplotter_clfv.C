@@ -2064,7 +2064,7 @@ Int_t print_bdt_variable_plots(vector<int> sets, bool add_sys = false) {
     // status += print_mt_over_m      (set, add_sys);
     if(selection_.EndsWith("emu")) {
       status += print_ptratio      (set, add_sys);
-      status += print_ptratio      (set, add_sys);
+      status += print_lepeta       (set, add_sys);
     }
   }
   return status;

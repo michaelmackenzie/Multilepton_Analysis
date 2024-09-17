@@ -35,6 +35,7 @@ void CLFVHistMaker::FillAllHistograms(Int_t index) {
   HistMaker::FillAllHistograms(index);
   //perform the lepton energy scale study outside of PassesCuts() call to allow event migration
   if(fEventSets[index] && fDoLepESHists) FillLepESHistogram(fEventHist[index]);
+  if(fEventSets[index] && fDoBDTVarHists && PassesCuts()) FillBDTVarHistogram(fEventHist[index]);
 }
 
 //--------------------------------------------------------------------------------------------------------------
@@ -135,6 +136,12 @@ void CLFVHistMaker::InitHistogramFlags() {
       fEventSets [kMuTau + 48] = 1; //Low nPV
     }
 
+    // //BDT regions for post-fit studies, only using the central mass region
+    // fEventSets [kMuTau + 50] = 1; //0-25%
+    // fEventSets [kMuTau + 51] = 1; //25-50%
+    // fEventSets [kMuTau + 52] = 1; //50-75%
+    // fEventSets [kMuTau + 53] = 1; //75-100%
+
   }
   if(etau) {
     if(fCutFlowTesting) {
@@ -218,6 +225,11 @@ void CLFVHistMaker::InitHistogramFlags() {
       fEventSets [kETau + 48] = 1; //Low nPV
     }
 
+    //BDT regions for post-fit studies, only using the central mass region
+    fEventSets [kETau + 50] = 1; //0-25%
+    fEventSets [kETau + 51] = 1; //25-50%
+    fEventSets [kETau + 52] = 1; //50-75%
+    fEventSets [kETau + 53] = 1; //75-100%
   }
   if(emu) {
     if(fCutFlowTesting) {
@@ -376,6 +388,12 @@ void CLFVHistMaker::InitHistogramFlags() {
 
       // // MVA categories
       // for(int i = 9; i < ((fDoHiggs) ? 19 : 15); ++i) fEventSets[kMuTauE + i] = 1;
+
+      //BDT regions for post-fit studies, only using the central mass region
+      fEventSets[kMuTauE + 50] = 1; //0-25%
+      fEventSets[kMuTauE + 51] = 1; //25-50%
+      fEventSets[kMuTauE + 52] = 1; //50-75%
+      fEventSets[kMuTauE + 53] = 1; //75-100%
     }
     //e+tau_mu
     if(lep_tau == 2) {
@@ -400,6 +418,12 @@ void CLFVHistMaker::InitHistogramFlags() {
       fSysSets  [kETauMu + 29] = 0;
       // // MVA categories
       // for(int i = 9; i < ((fDoHiggs) ? 19 : 15); ++i) fEventSets[kETauMu + i] = 1;
+
+      //BDT regions for post-fit studies, only using the central mass region
+      fEventSets [kETauMu + 50] = 1; //0-25%
+      fEventSets [kETauMu + 51] = 1; //25-50%
+      fEventSets [kETauMu + 52] = 1; //50-75%
+      fEventSets [kETauMu + 53] = 1; //75-100%
     }
   }
 }
@@ -462,6 +486,7 @@ void CLFVHistMaker::BookEventHistograms() {
 
       //Check for study histograms
       if(fDoLepESHists) BookLepESHistograms(i, dirname);
+      if(fDoBDTVarHists) BookBDTVarHistograms(i, dirname);
 
       if(!fSparseHists) {
         //Additional j-->tau info
@@ -586,6 +611,32 @@ void CLFVHistMaker::BookLepHistograms() {
       }
 
       delete dirname;
+    }
+  }
+}
+
+//--------------------------------------------------------------------------------------------------------------
+void CLFVHistMaker::BookBDTVarHistograms(Int_t i, const char* dirname) {
+  if(!fEventSets[i]) return;
+  auto folder = fDirectories[0*fn + i];
+  auto EventHist = fEventHist[i]; //base event histogram object
+  BDTVarHist_t& Hist = EventHist->BDTVarHists;
+
+  std::vector<TString> vars = {"mass", "mcol", "alpha1", "alpha2", "ptratio", "mtlep", "dphitau", "dphi", "leppt", "jetpt"};
+  for(int region = 0; region < 3; ++region) { //3 slices of each variable
+    for(unsigned i_var = 0; i_var < vars.size(); ++i_var) { //one set of histograms per variable slice
+      const int base = i_var*11 + region*110;
+      Utilities::BookH1F(Hist.h[ 0 + base], Form("%s_vs_%s_%i" , vars[ 0].Data(), vars[i_var].Data(), region), Form("%s: BDT Var slice", dirname), 35, 40, 180, folder); //mass
+      Utilities::BookH1F(Hist.h[ 1 + base], Form("%s_vs_%s_%i" , vars[ 1].Data(), vars[i_var].Data(), region), Form("%s: BDT Var slice", dirname), 35, 40, 180, folder); //mcol
+      Utilities::BookH1F(Hist.h[ 2 + base], Form("%s_vs_%s_%i" , vars[ 2].Data(), vars[i_var].Data(), region), Form("%s: BDT Var slice", dirname), 30,  0,   3, folder); //alpha1
+      Utilities::BookH1F(Hist.h[ 3 + base], Form("%s_vs_%s_%i" , vars[ 3].Data(), vars[i_var].Data(), region), Form("%s: BDT Var slice", dirname), 30,  0,   3, folder); //alpha2
+      Utilities::BookH1F(Hist.h[ 4 + base], Form("%s_vs_%s_%i" , vars[ 4].Data(), vars[i_var].Data(), region), Form("%s: BDT Var slice", dirname), 25,  0, 2.5, folder); //ptratio
+      Utilities::BookH1F(Hist.h[ 5 + base], Form("%s_vs_%s_%i" , vars[ 5].Data(), vars[i_var].Data(), region), Form("%s: BDT Var slice", dirname), 30,  0, 100, folder); //mtlep
+      Utilities::BookH1F(Hist.h[ 6 + base], Form("%s_vs_%s_%i" , vars[ 6].Data(), vars[i_var].Data(), region), Form("%s: BDT Var slice", dirname), 32,  0, 3.2, folder); //dphitau
+      Utilities::BookH1F(Hist.h[ 7 + base], Form("%s_vs_%s_%i" , vars[ 7].Data(), vars[i_var].Data(), region), Form("%s: BDT Var slice", dirname), 32,  0, 3.2, folder); //dphi
+      Utilities::BookH1F(Hist.h[ 8 + base], Form("%s_vs_%s_%i" , vars[ 8].Data(), vars[i_var].Data(), region), Form("%s: BDT Var slice", dirname), 30,  0,  70, folder); //leppt
+      Utilities::BookH1F(Hist.h[ 9 + base], Form("%s_vs_%s_%i" , vars[ 9].Data(), vars[i_var].Data(), region), Form("%s: BDT Var slice", dirname), 25,  0, 100, folder); //jetpt
+      Utilities::BookH1F(Hist.h[10 + base], Form("bdt_vs_%s_%i",                  vars[i_var].Data(), region), Form("%s: BDT Var slice", dirname), 20,  0,   1, folder); //bdt
     }
   }
 }
@@ -716,6 +767,81 @@ void CLFVHistMaker::FillLepESHistogram(EventHist_t* Hist) {
           fMvaFofP[i]    = o_fofp[i];
         }
       }
+    }
+  }
+}
+
+//--------------------------------------------------------------------------------------------------------------
+void CLFVHistMaker::FillBDTVarHistogram(EventHist_t* Hist) {
+
+  BDTVarHist_t& hists = Hist->BDTVarHists;
+  std::vector<TString> vars = {"mass", "mcol", "alpha1", "alpha2", "ptratio", "mtlep", "dphitau", "dphi", "leppt", "jetpt"};
+  const float wt(eventWeight*genWeight);
+  const int imva = (mutau) ? 1 : (etau) ? 3 : (emu && lep_tau == 0) ? 5 : (lep_tau == 1) ? 7 : 9;
+  for(int region = 0; region < 3; ++region) {
+    for(unsigned i_var = 0; i_var < vars.size(); ++i_var) {
+      const int base = i_var*11 + region*110;
+      if(vars[i_var] == "mass") {
+        if(region == 0 && (fTreeVars.lepm < 60. || fTreeVars.lepm > 68.)) continue;
+        if(region == 1 && (fTreeVars.lepm < 68. || fTreeVars.lepm > 76.)) continue;
+        if(region == 2 && (fTreeVars.lepm < 76. || fTreeVars.lepm > 85.)) continue;
+      }
+      if(vars[i_var] == "mcol") {
+        if(region == 0 && (fTreeVars.mestimate <  60. || fTreeVars.mestimate >  80.)) continue;
+        if(region == 1 && (fTreeVars.mestimate <  80. || fTreeVars.mestimate > 100.)) continue;
+        if(region == 2 && (fTreeVars.mestimate < 100. || fTreeVars.mestimate > 170.)) continue;
+      }
+      if(vars[i_var] == "alpha1") {
+        if(region == 0 && (fTreeVars.beta2 < 0.0 || fTreeVars.beta2 > 1.0)) continue;
+        if(region == 1 && (fTreeVars.beta2 < 1.0 || fTreeVars.beta2 > 1.3)) continue;
+        if(region == 2 && (fTreeVars.beta2 < 1.3 || fTreeVars.beta2 > 2.0)) continue;
+      }
+      if(vars[i_var] == "alpha2") {
+        if(region == 0 && (fTreeVars.beta1 < 0.0 || fTreeVars.beta1 > 1.2)) continue;
+        if(region == 1 && (fTreeVars.beta1 < 1.2 || fTreeVars.beta1 > 2.0)) continue;
+        if(region == 2 && (fTreeVars.beta1 < 2.0 || fTreeVars.beta1 > 3.0)) continue;
+      }
+      if(vars[i_var] == "ptratio") {
+        if(region == 0 && (fTreeVars.ptratio < 0.0 || fTreeVars.ptratio > 1.0)) continue;
+        if(region == 1 && (fTreeVars.ptratio < 1.0 || fTreeVars.ptratio > 1.5)) continue;
+        if(region == 2 && (fTreeVars.ptratio < 1.5 || fTreeVars.ptratio > 30.)) continue;
+      }
+      if(vars[i_var] == "mtlep") {
+        if(region == 0 && (fTreeVars.mtone < 0.0 || fTreeVars.mtone > 20.)) continue;
+        if(region == 1 && (fTreeVars.mtone < 20. || fTreeVars.mtone > 50.)) continue;
+        if(region == 2 && (fTreeVars.mtone < 50. || fTreeVars.mtone > 500)) continue;
+      }
+      if(vars[i_var] == "dphitau") {
+        if(region == 0 && (fTreeVars.twometdeltaphi < 0.0 || fTreeVars.twometdeltaphi > 0.5)) continue;
+        if(region == 1 && (fTreeVars.twometdeltaphi < 0.5 || fTreeVars.twometdeltaphi > 1.5)) continue;
+        if(region == 2 && (fTreeVars.twometdeltaphi < 1.5 || fTreeVars.twometdeltaphi > 3.2)) continue;
+      }
+      if(vars[i_var] == "dphi") {
+        if(region == 0 && (fTreeVars.lepdeltaphi < 0.0 || fTreeVars.lepdeltaphi > 2.5)) continue;
+        if(region == 1 && (fTreeVars.lepdeltaphi < 2.5 || fTreeVars.lepdeltaphi > 3.0)) continue;
+        if(region == 2 && (fTreeVars.lepdeltaphi < 3.0 || fTreeVars.lepdeltaphi > 3.2)) continue;
+      }
+      if(vars[i_var] == "leppt") {
+        if(region == 0 && (fTreeVars.leppt < 0.0 || fTreeVars.leppt > 15.)) continue;
+        if(region == 1 && (fTreeVars.leppt < 15. || fTreeVars.leppt > 30.)) continue;
+        if(region == 2 && (fTreeVars.leppt < 30. || fTreeVars.leppt > 500)) continue;
+      }
+      if(vars[i_var] == "jetpt") {
+        if(region == 0 && (fTreeVars.jetpt < 0.0 || fTreeVars.jetpt > 15.)) continue;
+        if(region == 1 && (fTreeVars.jetpt < 15. || fTreeVars.jetpt > 30.)) continue;
+        if(region == 2 && (fTreeVars.jetpt < 30. || fTreeVars.jetpt > 500)) continue;
+      }
+      hists.h[ 0 + base]->Fill(fTreeVars.lepm           , wt);
+      hists.h[ 1 + base]->Fill(fTreeVars.mestimate      , wt);
+      hists.h[ 2 + base]->Fill(fTreeVars.beta1          , wt);
+      hists.h[ 3 + base]->Fill(fTreeVars.beta2          , wt);
+      hists.h[ 4 + base]->Fill(fTreeVars.ptratio        , wt);
+      hists.h[ 5 + base]->Fill(fTreeVars.mtone          , wt);
+      hists.h[ 6 + base]->Fill(fTreeVars.twometdeltaphi , wt);
+      hists.h[ 7 + base]->Fill(fTreeVars.lepdeltaphi    , wt);
+      hists.h[ 8 + base]->Fill(fTreeVars.leppt          , wt);
+      hists.h[ 9 + base]->Fill(fTreeVars.jetpt          , wt);
+      hists.h[10 + base]->Fill(fMvaUse[imva]            , wt);
     }
   }
 }
@@ -1898,6 +2024,43 @@ void CLFVHistMaker::FillSystematicHistogram(SystematicHist_t* Hist) {
   }
 }
 
+//--------------------------------------------------------------------------------------------------------------
+// Apply some post-fit corrections
+void CLFVHistMaker::ApplyPostFit() {
+  float correction = 1.f;
+  if(mutau) {
+    if(fIsEmbed) { //Embedding post-fit nuisances
+      correction *= (fYear == 2016) ? 1.+0.16*0.274 : (fYear == 2017) ? 1.+0.16*-0.344 : 1.+0.16*-0.432;
+    }
+    if(isLooseTau) { //j-->tau post-fit nuisances
+      correction *= (fYear == 2016) ? 1.00855 : (fYear == 2017) ? 1.10681 : 1.12512;
+    }
+  }
+  if(etau) {
+    if(fIsEmbed) { //Embedding post-fit nuisances
+      correction *= (fYear == 2016) ? 1.+0.16*0.360 : (fYear == 2017) ? 1.+0.16*-0.315 : 1.+0.16*-0.421;
+    }
+    if(isLooseTau) { //j-->tau post-fit nuisances
+      correction *= (fYear == 2016) ? 0.938154 : (fYear == 2017) ? 1.08391 : 1.02186;
+    }
+  }
+  if(mutau_e) {
+    if(fIsEmbed) { //Embedding post-fit nuisances
+      correction *= (fYear == 2016) ? 1.+0.16*0.150 : (fYear == 2017) ? 1.+0.16*-0.283 : 1.+0.16*-0.180;
+    }
+  }
+  if(etau_mu) {
+    if(fIsEmbed) { //Embedding post-fit nuisances
+      correction *= (fYear == 2016) ? 1.+0.16*-0.107 : (fYear == 2017) ? 1.+0.16*-0.364 : 1.+0.16*-0.377;
+    }
+  }
+  //Update the event weights
+  eventWeight                  *= correction;
+  fTreeVars.eventweight        *= correction;
+  fTreeVars.eventweightMVA     *= correction;
+  fTreeVars.fulleventweight    *= correction;
+  fTreeVars.fulleventweightlum *= correction;
+}
 
 //--------------------------------------------------------------------------------------------------------------
 // Main function, process each event in the chain
@@ -1924,6 +2087,8 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
     fTreeVars.fulleventweight    *= wj_scale;
     fTreeVars.fulleventweightlum *= wj_scale;
   }
+
+  if(fUsePostFit) ApplyPostFit();
 
   //object pT thresholds
   const float muon_pt(10.f), electron_pt(15.f), tau_pt(20.f);
@@ -2461,7 +2626,12 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   emu     &= std::fabs(leptonOne.dzSig ) < emu_dz_sig ;
 
   //Z/H->e+mu only
-  if(emu || (fSameFlavorEMuSelec && (ee || mumu))) {one_pt_min_ = 20.f; two_pt_min_ = 20.f; min_mass_ = 70.f; max_mass_ = 110.f;}
+  if(emu || (fSameFlavorEMuSelec && (ee || mumu))) {
+    one_pt_min_ = 20.f;
+    two_pt_min_ = 20.f;
+    min_mass_ = (fZPrime) ?  95.f :  70.f;
+    max_mass_ = (fZPrime) ? 170.f : 110.f;
+  }
   emu     &= leptonOne.pt > one_pt_min_ - sys_buffer;
   emu     &= leptonTwo.pt > two_pt_min_ - sys_buffer;
   emu     &= mll > min_mass_ - sys_buffer && mll < max_mass_ + sys_buffer;
@@ -2621,6 +2791,7 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
     }
   }
 
+
   //Testing Embedding vs. Drell-Yan
   if(mumu) {
     //tight Z->ll pT cuts
@@ -2778,6 +2949,30 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
     min_mass_ = prev_min; max_mass_ = prev_max;
   }
 
+  // //BDT efficiency regions for post-fit studies
+  // if(mutau || mutau_e || etau || etau_mu) {
+  //   const float prev_min(min_mass_), prev_max(max_mass_); //full mass range
+  //   const float z_region = (mutau_e || etau_mu) ? 50.f : 60.f; //low mass region for Z->tau tau
+  //   const float zll_low(85.f), zll_high(100.f); //Z->ll region (for l->tau_h)
+  //   const float fake_region = (mutau_e || etau_mu) ? 100.f : zll_high; //high mass region with fakes/WW/ttbar
+  //   const float central_high = (mutau_e || etau_mu) ? fake_region : zll_low; //upper bound on mid mass range
+  //   const int loc_set_offset = (mutau_e) ? set_offset + (kMuTauE-kEMu) : (etau_mu) ? set_offset + (kETauMu - kEMu) : set_offset;
+
+  //   //Only consider the central region
+  //   if(mll > z_region && mll < central_high) {
+  //     min_mass_ = z_region; max_mass_ = central_high;
+  //     const int index = fMVAConfig->GetIndexBySelection((mutau) ? "zmutau" : (mutau_e) ? "zmutau_e" : (etau) ? "zetau" : "zetau_mu");
+  //     const float score_cdf = fMvaCDFs[index];
+  //     if     (score_cdf < 0.25) FillAllHistograms(loc_set_offset + 50);
+  //     else if(score_cdf < 0.50) FillAllHistograms(loc_set_offset + 51);
+  //     else if(score_cdf < 0.75) FillAllHistograms(loc_set_offset + 52);
+  //     else                      FillAllHistograms(loc_set_offset + 53);
+  //   }
+
+  //   //restore the mass cuts to the full mass region
+  //   min_mass_ = prev_min; max_mass_ = prev_max;
+  // }
+
   // ////////////////////////////////////////////////////////////////////////////
   // // Set 21 + selection offset: 1-prong taus
   // ////////////////////////////////////////////////////////////////////////////
@@ -2882,6 +3077,9 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
       else if(emu)     category = Category(boson + "emu");
       else if(mumu)    category = Category(boson + "emu");
       else if(ee)      category = Category(boson + "emu");
+      if(emu && lep_tau == 0 && fZPrime) { //merge the top two categories
+        if(category == 4) category = 3;
+      }
       if(category > -1) {
         const int mva_set_offset = set_offset + ((mutau_e) ? (kMuTauE-kEMu) : (etau_mu) ? (kETauMu - kEMu) : 0) + ((boson == "z") ? 9 : 14);
         FillAllHistograms(mva_set_offset + category);

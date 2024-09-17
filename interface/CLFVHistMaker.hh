@@ -24,6 +24,7 @@ namespace CLFV {
     void    BookTrees();
 
     void    BookLepESHistograms(Int_t index, const char* dirname); //studying the variation of variables with lepton energy scale variations
+    void    BookBDTVarHistograms(Int_t index, const char* dirname); //studying the BDT variables in slices of other variables
 
     void    DeleteHistograms();
 
@@ -34,6 +35,9 @@ namespace CLFV {
     void    FillSystematicHistogram(SystematicHist_t* Hist);
 
     void    FillLepESHistogram(EventHist_t* Hist);
+    void    FillBDTVarHistogram(EventHist_t* Hist);
+
+    void    ApplyPostFit();
 
     Bool_t  Process(Long64_t entry);
 
@@ -59,8 +63,12 @@ namespace CLFV {
     Bool_t          fRemoveLooseSS = true; //remove loose ID + same-sign events, not used for background estimates
     Bool_t          fUseBDTCut = false; //apply a cut on the BDT score
     Bool_t          fCompensateWJets = false; //scale up emu W+jets N-J events to compensate for removing 0-J events
+    Int_t           fZPrime = 0; //Assume Z prime processing in the emu channel
+
+    Int_t           fUsePostFit = 0; //apply corrections based on post-fit nuisance parameters
 
     Bool_t          fDoLepESHists = false; //histogram variables with lepton energy scale variations
+    Bool_t          fDoBDTVarHists = false; //histogram BDT variables in slices of other variables
 
     Bool_t          fDebugBit = false;
 

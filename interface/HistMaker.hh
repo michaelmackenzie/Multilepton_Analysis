@@ -913,6 +913,7 @@ namespace CLFV {
     Int_t           fDoTriggerMatching = 1; //match trigger objects to selected leptons
     Int_t           fUseEMuTrigger = 0; //consider the e-mu trigger in e-mu data: 1 = use it; 2 = only use it
     Int_t           fDoEleIDStudy = 0; //histogram additional electron info
+    Int_t           fDoBDTVarStudy = 0; //histogram BDT variables in slices of other variables
     Int_t           fUseRandomField = 1; //0: split events with TRandom3; 1: use RandomField; 2: Use event variables
     Int_t           fSmearTreeValues = 0; //smear values in output TTree by their uncertainties
 
