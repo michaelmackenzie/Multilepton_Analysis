@@ -127,8 +127,8 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
     train_mode_ = 0;
 
     if(doZPrime_) {
-      min_lepm_         =  90.f;
-      max_lepm_         = 175.f;
+      min_lepm_         =   70.f;
+      max_lepm_         = 1000.f;
     } else {
       min_lepm_         =  65.f;
       max_lepm_         = 115.f;
@@ -267,7 +267,6 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
         clfv_selec->fSameFlavorEMuSelec = doSameFlavorEMu_;
         clfv_selec->fRemoveLooseSS      = removeLooseSS_;
         clfv_selec->fUseBDTCut          = useBDTCut_;
-        clfv_selec->fZPrime             = doZPrime_;
         clfv_selec->fCompensateWJets    = compensateWJets_;
         clfv_selec->fDoLepESHists       = doLepESHists_;
         clfv_selec->fDoBDTVarHists      = doBDTVarHists_ && selection == "mutau"; //only defined for mu+tau_h selections
@@ -278,6 +277,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
         auto hist_selec = (HistMaker*) selec;
         hist_selec->fPrintTime          = 2; //Print detailed summary of processing times
         hist_selec->fPrintFilling       = 1; //print detailed histogram set filling
+        hist_selec->fFindEventNumber    = find_event_;
         hist_selec->fDoTriggerMatching  = doTriggerMatching_;
         hist_selec->fUseEMuTrigger      = useEMuTrigger_;
         if(selection.Contains("e")) //only relevant for channels with electrons
@@ -316,6 +316,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
         hist_selec->fMigrationBuffer    = migration_buffer_;
         hist_selec->fMaxEntries         = max_events;
         hist_selec->fUseLooseTauBuffer  = useLooseTauBuffer_;
+        hist_selec->fZPrime             = doZPrime_;
 
         if(etauAntiEleCut_ > 0) hist_selec->fETauAntiEleCut = etauAntiEleCut_;
       }

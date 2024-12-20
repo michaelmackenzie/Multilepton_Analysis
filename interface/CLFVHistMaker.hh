@@ -63,7 +63,6 @@ namespace CLFV {
     Bool_t          fRemoveLooseSS = true; //remove loose ID + same-sign events, not used for background estimates
     Bool_t          fUseBDTCut = false; //apply a cut on the BDT score
     Bool_t          fCompensateWJets = false; //scale up emu W+jets N-J events to compensate for removing 0-J events
-    Int_t           fZPrime = 0; //Assume Z prime processing in the emu channel
 
     Int_t           fUsePostFit = 0; //apply corrections based on post-fit nuisance parameters
 

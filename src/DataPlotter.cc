@@ -1367,6 +1367,10 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set, const
       pad2->SetTopMargin(lower_pad_topmargin_);
     pad1->SetBottomMargin(upper_pad_botmargin_);
     pad2->SetBottomMargin(lower_pad_botmargin_);
+    pad1->SetLeftMargin(pad_leftmargin_);
+    pad2->SetLeftMargin(pad_leftmargin_);
+    pad1->SetRightMargin(pad_rightmargin_);
+    pad2->SetRightMargin(pad_rightmargin_);
     pad1->Draw();
     pad2->Draw();
   } else { //only plot the stack, no ratio plot
@@ -1383,7 +1387,8 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set, const
   TString xtitle;
   TString ytitle;
   TString title;
-  Titles::get_titles(hist,setType,selection_,&xtitle,&ytitle,&title);
+  TString unit;
+  Titles::get_titles(hist,setType,selection_,&xtitle,&ytitle,&title,&unit);
   if(stack_signal_) {
     for(unsigned int i = 0; i < hsignal.size(); ++i) {
       if(hsignal[i]) hstack->Add(hsignal[i]);
@@ -1467,13 +1472,14 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set, const
   min_val = std::min(min_val, Utilities::H1Min((TH1*) hstack->GetStack()->Last(), xMin_, xMax_));
 
   // pad1->BuildLegend();//0.6, 0.9, 0.9, 0.45, "", "L");
-  pad1->SetGrid();
+  if(draw_grid_) pad1->SetGrid();
   //draw text
   if(draw_statistics_) draw_data(ndata,nmc,nsig);
   draw_luminosity(plot_single);
   draw_cms_label(plot_single);
 
-  TLegend* leg = new TLegend((doStatsLegend_ || plot_single) ? legend_x1_stats_ : legend_x1_, legend_y1_, legend_x2_, legend_y2_);
+  TLegend* leg = new TLegend(((doStatsLegend_ || plot_single) ? legend_x1_stats_ : legend_x1_) + pad_leftmargin_,
+                             legend_y1_, 1. - pad_rightmargin_ - legend_x2_, legend_y2_);
   leg->SetTextSize((doStatsLegend_ || plot_single) ? 0.75*legend_txt_ : legend_txt_);
   leg->SetNColumns(legend_ncol_);
   if(d) leg->AddEntry(d, d->GetTitle(), "PL");
@@ -1588,19 +1594,20 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set, const
     std::cout << "Stack x-axis not defined to make axis title!\n";
     return c;
   }
-  if(top_yaxis) top_yaxis->SetTitle(ytitle.Data());
-  else {
-    std::cout << "Stack y-axis not defined to make axis title!\n";
-    return c;
-  }
 
   if(!top_xaxis || !top_yaxis) {
     std::cout << "Upper pad axes are not defined!\n";
     return c;
   }
 
-  top_xaxis->SetTitleSize(axis_font_size_);
-  top_yaxis->SetTitleSize(axis_font_size_);
+  if(add_y_unit_)        top_yaxis->SetTitle(Form("Events / %s", (unit == "Bin") ? "Bin" : Form("%.1f %s", top_xaxis->GetBinWidth(1), unit.Data())));
+  else if(plot_y_title_) top_yaxis->SetTitle(ytitle.Data());
+  else                   top_yaxis->SetTitle("");
+  top_xaxis->SetTitleSize(axis_font_size_*lower_pad_y2_/(1. - lower_pad_y2_));
+  top_yaxis->SetTitleSize(axis_font_size_*lower_pad_y2_/(1. - lower_pad_y2_));
+  top_xaxis->SetLabelSize(x_label_size_*lower_pad_y2_/(1. - lower_pad_y2_));
+  top_yaxis->SetLabelSize(y_label_size_*lower_pad_y2_/(1. - lower_pad_y2_));
+  top_yaxis->SetTitleOffset(1.1); //FIXME: this should be configurable
   double ymin = yMin_;
   double ymax = yMax_;
   if(ymin > ymax) {
@@ -1631,23 +1638,25 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set, const
   if(logY_) {
     pad1->SetLogy();
   }
-  c->SetGrid();
+  if(draw_grid_) c->SetGrid();
   if(plot_data_ && hDataMC && data_over_mc_ > 0) {
     pad2->cd();
-    pad2->SetGrid();
-    c->SetGrid();
+    if(draw_grid_) pad2->SetGrid();
+    if(draw_grid_) c->SetGrid();
     hDataMC->Draw("E");
     TLine* line = new TLine((xMax_ < xMin_) ? hDataMC->GetBinCenter(1)-hDataMC->GetBinWidth(1)/2. : xMin_, (data_over_mc_ == 2) ? 0. : 1.,
                             (xMax_ < xMin_) ? hDataMC->GetBinCenter(hDataMC->GetNbinsX())+hDataMC->GetBinWidth(1)/2. : xMax_, (data_over_mc_ == 2) ? 0. : 1.);
     line->SetLineColor(kRed);
     line->Draw("same");
 
-    hDataMC->GetYaxis()->SetTitle((data_over_mc_ == 2) ? "Data - MC" : "Data/MC");
+    hDataMC->GetYaxis()->SetTitle((data_over_mc_ == 2) ? "Data - Sim." : "Data / Sim.");
     hDataMC->GetXaxis()->SetTitleSize(axis_font_size_);
     hDataMC->GetXaxis()->SetTitleOffset(x_title_offset_);
     hDataMC->GetXaxis()->SetLabelSize(x_label_size_);
+    hDataMC->GetXaxis()->SetLabelOffset(x_label_offset_);
     hDataMC->GetYaxis()->SetTitleSize(axis_font_size_);
     hDataMC->GetYaxis()->SetTitleOffset(y_title_offset_);
+    hDataMC->GetYaxis()->SetLabelOffset(y_label_offset_);
     hDataMC->GetYaxis()->SetLabelSize(y_label_size_);
     max_val = hDataMC->GetMaximum();
     double mn = hDataMC->GetMinimum();
@@ -1672,8 +1681,8 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set, const
     }
   } else if(hDataMC && data_over_mc_ < 0) {
     pad2->cd();
-    pad2->SetGrid();
-    c->SetGrid();
+    if(draw_grid_) pad2->SetGrid();
+    if(draw_grid_) c->SetGrid();
     max_val = 0.;
     for(unsigned index = 0; index < hSignalsOverMC.size(); ++index) {
       Double_t signal_scale = signal_scale_;
@@ -1695,8 +1704,10 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set, const
       hSignalsOverMC[0]->GetXaxis()->SetTitleSize(axis_font_size_);
       hSignalsOverMC[0]->GetXaxis()->SetTitleOffset(x_title_offset_);
       hSignalsOverMC[0]->GetXaxis()->SetLabelSize(x_label_size_);
+      hSignalsOverMC[0]->GetXaxis()->SetLabelOffset(x_label_offset_);
       hSignalsOverMC[0]->GetYaxis()->SetTitleSize(axis_font_size_);
       hSignalsOverMC[0]->GetYaxis()->SetTitleOffset(y_title_offset_);
+      hSignalsOverMC[0]->GetYaxis()->SetLabelOffset(y_label_offset_);
       hSignalsOverMC[0]->GetYaxis()->SetLabelSize(y_label_size_);
       hSignalsOverMC[0]->SetTitle("");
       if(xMin_ < xMax_) hSignalsOverMC[0]->GetXaxis()->SetRangeUser(xMin_,xMax_);
@@ -1959,7 +1970,7 @@ TCanvas* DataPlotter::plot_systematic(TString hist, Int_t set, Int_t systematic,
   g_stack->SetTitle("");
   draw_cms_label(false);
   draw_luminosity(false);
-  pad1->SetGrid();
+  if(draw_grid_) pad1->SetGrid();
   if(logY_) pad1->SetLogy();
 
   ///////////////////////////////////////////////////////////////////////////////////////
@@ -2009,13 +2020,15 @@ TCanvas* DataPlotter::plot_systematic(TString hist, Int_t set, Int_t systematic,
   g_r_stack->GetXaxis()->SetTitleSize(axis_font_size_);
   g_r_stack->GetXaxis()->SetLabelSize(x_label_size_);
   g_r_stack->GetYaxis()->SetLabelSize(y_label_size_);
+  g_r_stack->GetXaxis()->SetLabelOffset(x_label_offset_);
+  g_r_stack->GetYaxis()->SetLabelOffset(y_label_offset_);
   g_r_stack->GetXaxis()->SetTitleOffset(x_title_offset_);
   g_r_stack->GetYaxis()->SetTitleOffset(y_title_offset_);
   g_r_stack->SetTitle(Form(";%s;", xtitle.Data()));
 
   //draw data / MC
   hdata_ratio->Draw("same");
-  pad2->SetGrid();
+  if(draw_grid_) pad2->SetGrid();
 
   return c;
 }
@@ -2231,7 +2244,7 @@ TCanvas* DataPlotter::plot_cdf(TString hist, TString setType, Int_t set, TString
   leg->SetLineStyle(0);
   leg->Draw();
 
-  pad1->SetGrid();
+  if(draw_grid_) pad1->SetGrid();
   pad1->Update();
 
   //get axis titles
@@ -2276,24 +2289,26 @@ TCanvas* DataPlotter::plot_cdf(TString hist, TString setType, Int_t set, TString
     if(plot_data_)pad1->SetLogy();
     else          c->SetLogy();
   }
-  c->SetGrid();
+  if(draw_grid_) c->SetGrid();
   if(plot_data_ && hDataMC) {
     pad2->cd();
-    pad2->SetGrid();
-    c->SetGrid();
+    if(draw_grid_) pad2->SetGrid();
+    if(draw_grid_) c->SetGrid();
     hDataMC->Draw("E");
     TLine* line = new TLine((xMax_ < xMin_) ? hDataMC->GetBinCenter(1)-hDataMC->GetBinWidth(1)/2. : xMin_, 1.,
                             (xMax_ < xMin_) ? hDataMC->GetBinCenter(hDataMC->GetNbinsX())+hDataMC->GetBinWidth(1)/2. : xMax_, 1.);
     line->SetLineColor(kRed);
     line->Draw("same");
 
-    hDataMC->GetYaxis()->SetTitle("Data/MC");
+    hDataMC->GetYaxis()->SetTitle("Data / Sim.");
     hDataMC->GetXaxis()->SetTitleSize(axis_font_size_);
     hDataMC->GetXaxis()->SetTitleOffset(x_title_offset_);
     hDataMC->GetXaxis()->SetLabelSize(x_label_size_);
+    hDataMC->GetXaxis()->SetLabelOffset(x_label_offset_);
     hDataMC->GetYaxis()->SetTitleSize(axis_font_size_);
     hDataMC->GetYaxis()->SetTitleOffset(y_title_offset_);
     hDataMC->GetYaxis()->SetLabelSize(y_label_size_);
+    hDataMC->GetYaxis()->SetLabelOffset(y_label_offset_);
     double m = hDataMC->GetMaximum();
     double mn = hDataMC->GetMinimum();
     mn = std::max(0.2*mn,5e-1);
@@ -2381,7 +2396,7 @@ TCanvas* DataPlotter::plot_roc(TString hist, TString setType, Int_t set, bool cu
   gAxis->SetTitle(";signal eff.;background rej.");
   if(xMin_ < xMax_) gAxis->GetXaxis()->SetRangeUser(xMin_, xMax_);
   if(yMin_ < yMax_) gAxis->GetYaxis()->SetRangeUser(yMin_, yMax_);
-  pad1->SetGrid();
+  if(draw_grid_) pad1->SetGrid();
   pad1->Update();
 
 
@@ -2621,7 +2636,7 @@ TCanvas* DataPlotter::plot_significance(TString hist, TString setType, Int_t set
   leg->Draw();
   rebinH_ = rebinH;
   if(logY_) c->SetLogy();
-  c->SetGrid();
+  if(draw_grid_) c->SetGrid();
   return c;
 }
 
@@ -2630,7 +2645,12 @@ TCanvas* DataPlotter::print_stack(TString hist, TString setType, Int_t set, TStr
                                   const std::vector<std::pair<ScaleUncertainty_t,ScaleUncertainty_t>>& scale_sys) {
   TCanvas* c = plot_stack(hist,setType,set, sys, scale_sys);
   if(!c) return c;
-  c->Print(GetFigureName(setType, hist, set, "stack", tag));
+  TString fig_name = GetFigureName(setType, hist, set, "stack", tag);
+  c->SaveAs(fig_name);
+  if(print_root_canvas_ && figure_format_ != "root") { //print the canvas to a root file if requested
+    fig_name.ReplaceAll(("."+figure_format_).Data(), ".root");
+    c->SaveAs(fig_name);
+  }
   return c;
 }
 
@@ -2648,7 +2668,12 @@ TCanvas* DataPlotter::print_systematic(TString hist, Int_t set, Int_t systematic
     label.ReplaceAll("->", "");
     label.ToLower();
   }
-  c->Print(GetFigureName(label, hist, set, "sys", tag));
+  TString fig_name = GetFigureName(label, hist, set, "sys", tag);
+  c->SaveAs(fig_name);
+  if(print_root_canvas_ && figure_format_ != "root") { //print the canvas to a root file if requested
+    fig_name.ReplaceAll(("."+figure_format_).Data(), ".root");
+    c->SaveAs(fig_name);
+  }
   return c;
 }
 

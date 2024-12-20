@@ -2264,6 +2264,8 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   min_mass_ = (etau || mutau || ee || mumu) ?  40.f :  40.f;
   max_mass_ = (etau || mutau)               ? 170.f : 170.f;
 
+  if(fZPrime) { min_mass_ = 80.f; max_mass_ = 1000.f; }
+
   mutau &= mll > min_mass_ - sys_buffer && mll < max_mass_ + sys_buffer;
   etau  &= mll > min_mass_ - sys_buffer && mll < max_mass_ + sys_buffer;
   emu   &= mll > min_mass_ - sys_buffer && mll < max_mass_ + sys_buffer;
@@ -2617,7 +2619,7 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   mutau_e &= mtone_over_m_max_ < 0.f || fTreeVars.mtoneoverm < mtone_over_m_max_ + 2.f*sys_buffer/fTreeVars.lepm; //leptonic tau MT/M
   etau_mu &= mttwo_over_m_max_ < 0.f || fTreeVars.mttwooverm < mttwo_over_m_max_ + 2.f*sys_buffer/fTreeVars.lepm;
 
-  //Omly apply significance cuts in the Z->emu search, since it's not well described in the Embedding
+  //Only apply significance cuts in the Z->emu search, since it's not well described in the Embedding
   const float emu_dxy_sig = 3.0;
   const float emu_dz_sig  = 4.7;
   emu     &= std::fabs(leptonTwo.dxySig) < emu_dxy_sig;
@@ -2629,8 +2631,8 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   if(emu || (fSameFlavorEMuSelec && (ee || mumu))) {
     one_pt_min_ = 20.f;
     two_pt_min_ = 20.f;
-    min_mass_ = (fZPrime) ?  95.f :  70.f;
-    max_mass_ = (fZPrime) ? 170.f : 110.f;
+    min_mass_ = (fZPrime) ?   80.f :  70.f;
+    max_mass_ = (fZPrime) ? 1000.f : 110.f;
   }
   emu     &= leptonOne.pt > one_pt_min_ - sys_buffer;
   emu     &= leptonTwo.pt > two_pt_min_ - sys_buffer;

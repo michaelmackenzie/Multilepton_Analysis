@@ -571,6 +571,8 @@ void HistMaker::BookBaseEventHistograms(Int_t i, const char* dirname) {
 
   Utilities::BookH1F(fEventHist[i]->hNuPt                , "nupt"                , Form("%s: Nu pT"                   ,dirname)  ,  50,  0, 100, folder);
   Utilities::BookH1F(fEventHist[i]->hDetectorMet         , "detectormet"         , Form("%s: Detector Met"            ,dirname)  , 100,  0, 200, folder);
+  Utilities::BookH1F(fEventHist[i]->hGenMet              , "genmet"              , Form("%s: Gen Met"                 ,dirname)  ,  50,  0, 100, folder);
+  Utilities::BookH1F(fEventHist[i]->hGenMetNoNu          , "genmetnonu"          , Form("%s: Gen Met No Nu"           ,dirname)  ,  50,  0, 100, folder);
 
   Utilities::BookH1F(fEventHist[i]->hMTOne               , "mtone"               , Form("%s: MTOne"                   ,dirname)  , 100, 0.,   150., folder);
   Utilities::BookH1F(fEventHist[i]->hMTOneUp             , "mtoneup"             , Form("%s: MTOne up"                ,dirname)  , 100, 0.,   150., folder);
@@ -599,10 +601,12 @@ void HistMaker::BookBaseEventHistograms(Int_t i, const char* dirname) {
   }
 
 
+  const float min_mass = (fZPrime) ?   80. :  40.;
+  const float max_mass = (fZPrime) ? 1000. : 180.;
   Utilities::BookH1F(fEventHist[i]->hLepPt[0], "leppt"         , Form("%s: Lepton Pt"      ,dirname)  , 100,   0, 200, folder);
-  Utilities::BookH1F(fEventHist[i]->hLepM[0] , "lepm"          , Form("%s: Lepton M"       ,dirname)  , 280,  40, 180, folder);
-  Utilities::BookH1F(fEventHist[i]->hLepMUp  , "lepmup"        , Form("%s: Lepton M"       ,dirname)  , 280,  40, 180, folder);
-  Utilities::BookH1F(fEventHist[i]->hLepMDown, "lepmdown"      , Form("%s: Lepton M"       ,dirname)  , 280,  40, 180, folder);
+  Utilities::BookH1F(fEventHist[i]->hLepM[0] , "lepm"          , Form("%s: Lepton M"       ,dirname)  , 280,  min_mass, max_mass, folder);
+  Utilities::BookH1F(fEventHist[i]->hLepMUp  , "lepmup"        , Form("%s: Lepton M"       ,dirname)  , 280,  min_mass, max_mass, folder);
+  Utilities::BookH1F(fEventHist[i]->hLepMDown, "lepmdown"      , Form("%s: Lepton M"       ,dirname)  , 280,  min_mass, max_mass, folder);
   Utilities::BookH1F(fEventHist[i]->hLepMt   , "lepmt"         , Form("%s: Lepton Mt"      ,dirname)  , 100,   0, 200, folder);
   Utilities::BookH1F(fEventHist[i]->hLepEta  , "lepeta"        , Form("%s: Lepton Eta"     ,dirname)  ,  50,  -5,   5, folder);
   Utilities::BookH1F(fEventHist[i]->hLepPhi  , "lepphi"        , Form("%s: Lepton Phi"     ,dirname)  ,  40, -3.2, 3.2, folder);
@@ -658,8 +662,8 @@ void HistMaker::BookBaseEventHistograms(Int_t i, const char* dirname) {
   Utilities::BookH1F(fEventHist[i]->hDeltaAlpha[3]     , "deltaalpha3"      , Form("%s: Delta Alpha (H) 1"   ,dirname),  80,  -5,  10, folder);
   Utilities::BookH1F(fEventHist[i]->hDeltaAlphaM[0]    , "deltaalpham0"     , Form("%s: Delta Alpha M 0"     ,dirname),  80,  40, 180, folder);
   Utilities::BookH1F(fEventHist[i]->hDeltaAlphaM[1]    , "deltaalpham1"     , Form("%s: Delta Alpha M 1"     ,dirname),  80,  40, 180, folder);
-  Utilities::BookH1F(fEventHist[i]->hBeta[0]           , "beta0"            , Form("%s: Beta (Z) 0"          ,dirname), 100,   0,  5., folder);
-  Utilities::BookH1F(fEventHist[i]->hBeta[1]           , "beta1"            , Form("%s: Beta (Z) 1"          ,dirname), 100,   0,  5., folder);
+  Utilities::BookH1F(fEventHist[i]->hBeta[0]           , "beta0"            , Form("%s: Beta (Z) 0"          ,dirname), 100,-0.025, 4.975, folder); //make 1 in the center of a bin
+  Utilities::BookH1F(fEventHist[i]->hBeta[1]           , "beta1"            , Form("%s: Beta (Z) 1"          ,dirname), 100,-0.025, 4.975, folder);
 
   Utilities::BookH1F(fEventHist[i]->hPTauVisFrac    , "ptauvisfrac"    , Form("%s: visible tau pT fraction " ,dirname)  , 50,0.,  1.5, folder);
 
@@ -1347,9 +1351,11 @@ void HistMaker::InitializeInputTree(TTree* tree) {
   Utilities::SetBranchAddress(tree, "PuppiMET_phiJESUp"             , &puppMETphiJESUp               );
   Utilities::SetBranchAddress(tree, "RawPuppiMET_pt"                , &rawPuppMET                    );
   Utilities::SetBranchAddress(tree, "RawPuppiMET_phi"               , &rawPuppMETphi                 );
-
-  //FIXME: Decide on the right MET significance
   Utilities::SetBranchAddress(tree, "MET_significance"              , &metSignificance               );
+  if(!fIsData) {
+    Utilities::SetBranchAddress(tree, "GenMET_pt"                   , &GenMET                        );
+    Utilities::SetBranchAddress(tree, "GenMET_phi"                  , &GenMETphi                     );
+  }
 
   //MVA information
   if(!fReprocessMVAs) {
@@ -3658,6 +3664,10 @@ void HistMaker::CountObjects() {
   puppMETJESDown    = std::sqrt(std::pow(met_jes_x, 2) + std::pow(met_jes_y, 2));
   puppMETphiJESDown = (puppMETJESDown <= 0.f) ? 0.f : std::acos(std::max(-1.f, std::min(1.f, met_jes_x/puppMETJESDown))) * (met_jes_y < 0.f ? -1.f : 1.f);
 
+  if(fIsData || fIsEmbed) {
+    GenMET = met;
+    GenMETphi = metPhi;
+  }
 
   //Evaluate the missing energy from the detector/acceptance
   if(!fIsData && nGenPart > 0) { //check if there are gen particles
@@ -3666,9 +3676,16 @@ void HistMaker::CountObjects() {
     float py = met*std::sin(metPhi) - eventNuPt*std::sin(eventNuPhi);
     eventDetectorMet = std::sqrt(px*px + py*py);
     eventDetectorMetPhi = Utilities::PhiFromXY(px,py);
+    //remove nu pT from the Gen MET
+    px = GenMET*std::cos(GenMETphi) - eventNuPt*std::cos(eventNuPhi);
+    py = GenMET*std::sin(GenMETphi) - eventNuPt*std::sin(eventNuPhi);
+    GenMETNoNu = std::sqrt(px*px + py*py);
+    GenMETNoNuphi = Utilities::PhiFromXY(px,py);
   } else {
     eventDetectorMet    = met;
     eventDetectorMetPhi = metPhi;
+    GenMETNoNu          = met;
+    GenMETNoNuphi       = metPhi;
   }
 
   //For Embedding, use the puppMET uncertainty fields to set a MET uncertainty
@@ -4491,6 +4508,8 @@ void HistMaker::FillBaseEventHistogram(EventHist_t* Hist) {
   Hist->hMetCorr           ->Fill(metCorr            , genWeight*eventWeight)      ;
   Hist->hNuPt              ->Fill((fIsData) ? met : eventNuPt, genWeight*eventWeight)      ;
   Hist->hDetectorMet       ->Fill(eventDetectorMet   , genWeight*eventWeight)      ;
+  Hist->hGenMet            ->Fill(GenMET             , genWeight*eventWeight)      ;
+  Hist->hGenMetNoNu        ->Fill(GenMETNoNu         , genWeight*eventWeight)      ;
   Hist->hRawMet            ->Fill(rawMet             , genWeight*eventWeight)      ;
   Hist->hRawMetPhi         ->Fill(rawMetPhi          , genWeight*eventWeight)      ;
   Hist->hRawMetDiff        ->Fill(rawMet-met         , genWeight*eventWeight)      ;
@@ -4916,6 +4935,10 @@ Bool_t HistMaker::InitializeEvent(Long64_t entry)
            (rate > 0.) ? (remain > 180.) ? remain/60. : remain : 0.,
            (rate > 0.) ? (remain > 180.) ?    "min"   :  "sec" : "min"
            );
+  }
+
+  if(fFindEventNumber > 0 && eventNumber == fFindEventNumber) {
+    printf("HistMaker::%s: Entry %lld is event number %lld\n", __func__, fentry, eventNumber);
   }
 
   icutflow = 0;

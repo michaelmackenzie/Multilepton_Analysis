@@ -329,6 +329,12 @@ namespace CLFV {
     Float_t rawPFMET        = -10.f    ;
     Float_t rawPFMETphi     = -10.f    ;
 
+    // Generator-level MET
+    Float_t GenMET                     ;
+    Float_t GenMETphi                  ;
+    Float_t GenMETNoNu                 ; //locally evaluated
+    Float_t GenMETNoNuphi              ;
+
     //MET field to use
     Float_t met                        ;
     Float_t metPhi                     ;
@@ -918,6 +924,7 @@ namespace CLFV {
     Int_t           fDoEleIDStudy = 0; //histogram additional electron info
     Int_t           fUseRandomField = 1; //0: split events with TRandom3; 1: use RandomField; 2: Use event variables
     Int_t           fSmearTreeValues = 0; //smear values in output TTree by their uncertainties
+    Int_t           fZPrime = 0; //Assume Z prime processing in the emu channel
 
     Bool_t          fSparseHists = false; //only fill/init more basic histograms
 
@@ -936,6 +943,7 @@ namespace CLFV {
     EventFlags      fFlags; //event flags/filters
     Int_t           fUseFlags = 1; //use event flag filtering
 
+    ULong64_t       fFindEventNumber = 0; //print when this event number is found
     Int_t           fRemoveEventWeights = 0; //0: do nothing; 1: remove most event weight corrections; 2: remove all weights, including gen-weight and transfer factors
     Int_t           fRemoveTriggerWeights = 0; // 0: do nothing 1: remove weights 2: replace weights
     Int_t           fApplyLeptonIDWt = 1; //Apply lepton ID correction weights: 0: none, 1: locally evaluated, 2: ntuple-level scales

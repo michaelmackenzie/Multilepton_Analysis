@@ -1,7 +1,7 @@
 //Print mass distribution plots for the Z->e+mu search
 #include "dataplotter_clfv.C"
 
-int print_zemu_mass(TString out_dir = "emu_mass", TString hist_dir = "nanoaods_mva_emu_dev",
+int print_zemu_mass(TString out_dir = "emu_mass", TString hist_dir = "nanoaods_emu",
                     vector<int> years = {2016,2017,2018}) {
   //setup the datacards
   years_     = years;

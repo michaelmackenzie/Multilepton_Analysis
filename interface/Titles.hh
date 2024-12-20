@@ -14,7 +14,8 @@ namespace CLFV {
     ~Titles() {}
 
     //-----------------------------------------------------------------------------
-    static void get_titles(TString hist, TString setType, TString selection, TString* xtitle, TString* ytitle, TString* title) {
+    static void get_titles(TString hist, TString setType, TString selection, TString* xtitle, TString* ytitle, TString* title, TString* unit) {
+      if(unit) *unit = "";
       TString lep1("l1"), lep2("l2");
       if     (selection == "mutau"   ) {lep1 = "#mu" ; lep2 = "#tau";}
       else if(selection == "etau"    ) {lep1 = "e"   ; lep2 = "#tau";}
@@ -56,9 +57,10 @@ namespace CLFV {
         *xtitle = *xtitle + "}";
       }
       else if(hist == "sysm" && setType == "event") {
-        *xtitle = "M_{ll#gamma} (GeV/c^{2})";
+        *xtitle = "m_{ll#gamma} [GeV]";
         *ytitle = "";
         *title  = Form("Mass of the Photon + Lepton System");
+        *unit   = "GeV";
       }
       else if(hist == "ntriggered") {
         *xtitle = "N(triggering leptons)";
@@ -66,9 +68,10 @@ namespace CLFV {
         *title  = Form("N(leptons) that fired a trigger");
       }
       else if(hist == "met") {
-        *xtitle = "Missing Transverse Energy (GeV)";
+        *xtitle = "Missing Transverse Energy [GeV]";
         *ytitle = "";
         *title  = Form("Missing Transverse Energy");
+        *unit   = "GeV";
       }
       else if(hist == "metsignificance" || hist == "puppimetsig") {
         *xtitle = "MET significance";
@@ -76,104 +79,122 @@ namespace CLFV {
         *title  = Form("MET significance");
       }
       else if(hist == "pfmet") {
-        *xtitle = "PF Missing Transverse Energy (GeV)";
+        *xtitle = "PF Missing Transverse Energy [GeV]";
         *ytitle = "";
         *title  = Form("Missing Transverse Energy");
+        *unit   = "GeV";
       }
       else if(hist == "puppmet") {
-        *xtitle = "PUPPI Missing Transverse Energy (GeV)";
+        *xtitle = "PUPPI Missing Transverse Energy [GeV]";
         *ytitle = "";
         *title  = Form("Missing Transverse Energy");
+        *unit   = "GeV";
       }
       else if(hist == "detectormet") {
         *xtitle = "Detector MET";
         *ytitle = "";
         *title  = Form("Detector MET");
+        *unit   = "GeV";
       }
       else if(hist == "nupt") {
         *xtitle = "p_{T}(#nu)";
         *ytitle = "";
         *title  = Form("p_{T}(#nu)");
+        *unit   = "GeV";
       }
       else if(hist == "lepptoverm") {
-        *xtitle = "p_{T}^{ll} / M_{ll}";
+        *xtitle = "p_{T}^{ll} / m_{ll}";
         *ytitle = "";
         *title  = Form("pT Over Mass of the Lepton System");
       }
       else if(hist == "lepm" || hist == "mass") {
-        *xtitle = "M_{ll} (GeV/c^{2})";
+        *xtitle = Form("m_{%s%s} [GeV]", lep1.Data(), lep2.Data());
         *ytitle = "";
         *title  = Form("Mass of the Lepton System");
+        *unit   = "GeV";
       }
       else if(hist == "lepmestimate" || hist == "mcol") {
-        *xtitle = "M_{ll}^{Col} (GeV/c^{2})";
+        *xtitle = "m^{Col} [GeV]";
         *ytitle = "";
         *title  = Form("Mass Estimate of the Lepton System");
+        *unit   = "GeV";
       }
       else if(hist == "lepmestimatetwo") {
-        *xtitle = "M_{ll}^{Col} (GeV/c^{2})";
+        *xtitle = "m^{Col} [GeV]";
         *ytitle = "";
         *title  = Form("Mass Estimate of the Lepton System");
+        *unit   = "GeV";
       }
       else if(hist == "lepe") {
-        *xtitle = "E_{ll} (GeV)";
+        *xtitle = "E_{ll} [GeV]";
         *ytitle = "";
         *title  = Form("Energy of the Lepton System");
+        *unit   = "GeV";
       }
       else if(hist == "lepp") {
-        *xtitle = "P_{ll} (GeV)";
+        *xtitle = "P_{ll} [GeV]";
         *ytitle = "";
         *title  = Form("Momentum of the Lepton System");
+        *unit   = "GeV";
       }
       else if(hist == "leppt" || hist == "leppt1" || hist == "leppt2") {
-        *xtitle = "p_{T}^{ll} (GeV/c)";
+        *xtitle = "p_{T}^{ll} [GeV]";
         *ytitle = "";
         *title  = Form("pT of the Lepton System");
+        *unit   = "GeV";
       }
       else if(hist == "lepsvptoverm") {
-        *xtitle = "SVfit pT / M_{ll}";
+        *xtitle = "SVfit pT / m_{ll}";
         *ytitle = "";
         *title  = Form("SVfit pT Over Mass of the Lepton System");
       }
       else if(hist == "lepsvm") {
-        *xtitle = "SVfit M_{ll} (GeV/c^{2})";
+        *xtitle = "SVfit m_{ll} [GeV]";
         *ytitle = "";
         *title  = Form("SVfit Mass of the Lepton System");
+        *unit   = "GeV";
       }
       else if(hist == "lepsve") {
-        *xtitle = "SVfit E_{ll} (GeV)";
+        *xtitle = "SVfit E_{ll} [GeV]";
         *ytitle = "";
         *title  = Form("SVfit Energy of the Lepton System");
+        *unit   = "GeV";
       }
       else if(hist == "lepsvp") {
-        *xtitle = "SVfit P_{ll} (GeV)";
+        *xtitle = "SVfit P_{ll} [GeV]";
         *ytitle = "";
         *title  = Form("SVfit Momentum of the Lepton System");
+        *unit   = "GeV";
       }
       else if(hist == "lepsvpt") {
-        *xtitle = "SVfit pT (GeV/c)";
+        *xtitle = "SVfit pT [GeV]";
         *ytitle = "";
         *title  = Form("SVfit pT of the Lepton System");
+        *unit   = "GeV";
       }
       else if(hist == "pt" && setType == "photon") {
-        *xtitle = "p_{T}^{#gamma} (GeV/c)";
+        *xtitle = "p_{T}^{#gamma} [GeV]";
         *ytitle = "";
         *title  = Form("pT of the Photon");
+        *unit   = "GeV";
       }
       else if(hist == "onept") {
-        *xtitle = Form("p_{T}^{%s} (GeV/c)", lep1.Data());
+        *xtitle = Form("p_{T}^{%s} [GeV]", lep1.Data());
         *ytitle = "";
         *title  = Form("pT of the First Lepton");
+        *unit   = "GeV";
       }
       else if(hist == "twopt") {
-        *xtitle = Form("p_{T}^{%s} (GeV/c)", lep2.Data());
+        *xtitle = Form("p_{T}^{%s} [GeV]", lep2.Data());
         *ytitle = "";
         *title  = Form("pT of the Second Lepton");
+        *unit   = "GeV";
       }
       else if(hist == "ptdiff") {
-        *xtitle = Form("p_{T}^{%s} - p_{T}^{%s} (GeV/c)", lep1.Data(), lep2.Data());
+        *xtitle = Form("p_{T}^{%s} - p_{T}^{%s} [GeV]", lep1.Data(), lep2.Data());
         *ytitle = "";
         *title  = Form("Lepton pT difference");
+        *unit   = "GeV";
       }
       else if(hist == "ptratio" || hist == "lepptratio") {
         *xtitle = Form("p_{T}^{%s} / p_{T}^{%s}", lep1.Data(), lep2.Data());
@@ -186,44 +207,52 @@ namespace CLFV {
         *title  = "Lepton pT ratio";
       }
       else if(hist == "onesvpt") {
-        *xtitle = "SVFit p_{T}^{1} (GeV/c)";
+        *xtitle = "SVFit p_{T}^{1} [GeV]";
         *ytitle = "";
         *title  = Form("SVFit pT of the Leading Lepton");
+        *unit   = "GeV";
       }
       else if(hist == "onesvdeltapt") {
-        *xtitle = Form("SVFit p_{T}^{%s} - pT_{%s} (GeV/c)", lep1.Data(), lep1.Data());
+        *xtitle = Form("SVFit p_{T}^{%s} - pT_{%s} [GeV]", lep1.Data(), lep1.Data());
         *ytitle = "";
         *title  = Form("SVFit pT Change of the Leading Lepton");
+        *unit   = "GeV";
       }
       else if(hist == "twosvpt") {
-        *xtitle = "SVFit p_{T}^{l2} (GeV/c)";
+        *xtitle = "SVFit p_{T}^{l2} [GeV]";
         *ytitle = "";
         *title  = Form("SVFit pT of the Trailing Lepton");
+        *unit   = "GeV";
       }
       else if(hist == "twosvdeltapt") {
-        *xtitle = "SVFit p_{T}^{l2} - pT_{l2} (GeV/c)";
+        *xtitle = "SVFit p_{T}^{l2} - pT_{l2} [GeV]";
         *ytitle = "";
         *title  = Form("SVFit pT Change of the Trailing Lepton");
+        *unit   = "GeV";
       }
       else if(hist == "onem") {
-        *xtitle = Form("M_{%s} (GeV/c^{2})", lep1.Data());
+        *xtitle = Form("m_{%s} [GeV]", lep1.Data());
         *ytitle = "";
         *title  = Form("Mass of the Leading Lepton");
+        *unit   = "GeV";
       }
       else if(hist == "twom") {
-        *xtitle = Form("M_{%s} (GeV/c^{2})", lep2.Data());
+        *xtitle = Form("m_{%s} [GeV]", lep2.Data());
         *ytitle = "";
         *title  = Form("Mass of the Trailing Lepton");
+        *unit   = "GeV";
       }
       else if(hist == "onesvm") {
-        *xtitle = "SVFit M_{l} (GeV/c^{2})";
+        *xtitle = "SVFit M_{l} [GeV]";
         *ytitle = "";
         *title  = Form("SVFit Mass of the Leading Lepton");
+        *unit   = "GeV";
       }
       else if(hist == "twosvm") {
-        *xtitle = "SVFit M_{#tau} (GeV/c^{2})";
+        *xtitle = "SVFit m_{#tau} [GeV]";
         *ytitle = "";
         *title  = Form("SVFit Mass of the Trailing Lepton");
+        *unit   = "GeV";
       }
       else if(hist == "oneiso") {
         *xtitle = Form("%s Isolation", lep1.Data());
@@ -401,14 +430,16 @@ namespace CLFV {
         *title  = Form("Invisible P_{T} vs visible P_{T} projected onto the di-lepton, #gamma bisector");
       }
       else if(hist == "masssvfit") {
-        *xtitle = "M_{#tau#tau} (GeV/c^{2})";
+        *xtitle = "m_{#tau#tau} [GeV]";
         *ytitle = "";
         *title  = Form("SVFit di-tau mass");
+        *unit   = "GeV";
       }
       else if(hist == "masserrsvfit") {
-        *xtitle = "M_{#tau#tau} Predicted Error (GeV/c^{2})";
+        *xtitle = "m_{#tau#tau} Predicted Error [GeV]";
         *ytitle = "";
         *title  = Form("SVFit di-tau mass error");
+        *unit   = "GeV";
       }
       else if(hist == "njets") {
         *xtitle = "Number of Jets";
@@ -471,44 +502,52 @@ namespace CLFV {
         *title  = Form("N(PU)");
       }
       else if(hist == "mtmu") {
-        *xtitle = "MT(MET,#mu)";
+        *xtitle = "m_{T}(MET,#mu) [GeV]";
         *ytitle = "";
         *title  = Form("MT(MET,#mu)");
+        *unit   = "GeV";
       }
       else if(hist == "mte") {
-        *xtitle = "MT(MET,e)";
+        *xtitle = "m_{T}(MET,e) [GeV]";
         *ytitle = "";
-        *title  = Form("MT(MET,e)");
+        *title  = Form("m_{T}(MET,e)");
+        *unit   = "GeV";
       }
       else if(hist == "mttau") {
-        *xtitle = "MT(MET,#tau)";
+        *xtitle = "m_{T}(MET,#tau) [GeV]";
         *ytitle = "";
-        *title  = Form("MT(MET,#tau)");
+        *title  = Form("m_{T}(MET,#tau)");
+        *unit   = "GeV";
       }
       else if(hist.BeginsWith("mtone") || (hist == "mtlep" && is_var_study)) {
-        *xtitle = Form("M_{T}(%s,MET)", lep1.Data());
+        *xtitle = Form("m_{T}(%s,MET) [GeV]", lep1.Data());
         *ytitle = "";
         *title  = "";
+        *unit   = "GeV";
       }
       else if(hist.BeginsWith("mttwo")) {
-        *xtitle = Form("M_{T}(%s,MET)", lep2.Data());
+        *xtitle = Form("m_{T}(%s,MET) [GeV]", lep2.Data());
         *ytitle = "";
         *title  = "";
+        *unit   = "GeV";
       }
-      else if(hist == "mtlead") {
-        *xtitle = "MT(lead,MET)";
+      else if(hist.BeginsWith("mtlead")) {
+        *xtitle = "m_{T}(lead,MET) [GeV]";
         *ytitle = "";
         *title  = "";
+        *unit   = "GeV";
       }
-      else if(hist == "mttrail") {
-        *xtitle = "MT(trail,MET)";
+      else if(hist.BeginsWith("mttrail")) {
+        *xtitle = "m_{T}(trail,MET) [GeV]";
         *ytitle = "";
         *title  = "";
+        *unit   = "GeV";
       }
-      else if(hist == "mtlep") {
-        *xtitle = "M_{T}(ll,MET)";
+      else if(hist.BeginsWith("mtlep")) {
+        *xtitle = "m_{T}(ll,MET) [GeV]";
         *ytitle = "";
         *title  = "";
+        *unit   = "GeV";
       }
       else if(hist == "oneeta") {
         *xtitle = Form("#eta^{%s}", lep1.Data());
@@ -574,6 +613,7 @@ namespace CLFV {
         *xtitle = "BDT score";
         *ytitle = "";
         *title  = "BDT Score";
+        *unit = (selection == "emu") ? "" : "Bin";
       }
       else if(hist.Contains("prob")) {
         *xtitle = "BDT score probability";
@@ -696,9 +736,9 @@ namespace CLFV {
         *title  = "Lepton 2 pT vs Lepton 1 pT";
       }
       else if(hist.Contains("deltaalpham")) { //Mass estimated using alpha formulas
-        *xtitle = "M_{#alpha}";
+        *xtitle = "m_{#alpha}";
         *ytitle = "";
-        *title  = "M_{#alpha}";
+        *title  = "m_{#alpha}";
       }
       else if(hist.Contains("deltaalpha")) {
         *xtitle = "#Delta#alpha";
@@ -731,13 +771,29 @@ namespace CLFV {
         *title  = "log_{2}(#tau anti-Jet ID + 1)";
       }
 
-      if(hist.EndsWith("overm")) { *xtitle = *xtitle + " / M_{ll}"; }
+      if(hist.EndsWith("overm")) {
+        *xtitle = *xtitle + " / m_{ll}";
+        xtitle->ReplaceAll(" [GeV]", ""); //remove the units
+        *unit   = "";
+      }
     }
 
     //-----------------------------------------------------------------------------
     static void get_titles(TString hist, TString setType, TString selection, TString& xtitle, TString& ytitle, TString& title) {
       get_titles(hist, setType, selection, &xtitle, &ytitle, &title);
     }
+
+    //-----------------------------------------------------------------------------
+    static void get_titles(TString hist, TString setType, TString selection, TString& xtitle, TString& ytitle, TString& title, TString& unit) {
+      get_titles(hist, setType, selection, &xtitle, &ytitle, &title, &unit);
+    }
+
+    //-----------------------------------------------------------------------------
+    static void get_titles(TString hist, TString setType, TString selection, TString* xtitle, TString* ytitle, TString* title) {
+      TString unit;
+      get_titles(hist, setType, selection, xtitle, ytitle, title, &unit);
+    }
+
 
   };
 }

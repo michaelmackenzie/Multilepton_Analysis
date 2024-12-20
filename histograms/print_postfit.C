@@ -17,13 +17,16 @@ int print_postfit(TString selection = "mutau",
   int status = nanoaod_init(selection.Data(), hist_dir_, out_dir);
   if(status) return status;
 
+  //add root files with the canvases for easier paper updates
+  dataplotter_->print_root_canvas_ = true;
+
   // dataplotter_->verbose_ = 1;
 
   //setup the histogram sets of interest
   vector<int> sets;
   if(selection_ == "emu") sets = {8,11,12,13};
   else if(selection_ == "mumu" || selection_ == "ee") sets = {8};
-  else sets = {8,25,50,51,52,53};
+  else sets = {8}; //sets = {8,25,50,51,52,53};
 
   //print the MVA variable histograms
   status = print_bdt_variable_plots(sets, do_systematics);

@@ -27,6 +27,7 @@ int    addDYLO_       =  0 ; //add the LO and NLO DY MC samples together: 0 igno
 int    combineVB_     =  1 ; //combine W+Jets with other vector boson processes
 int    combineWJ_     =  1 ; //combine jet-binned W+jets samples or separate 0-jet bin
 int    combineWG_     =  1 ; //combine W+gamma with W+jets samples
+int    combineWW_     =  1 ; //combine WW with W+jets/other vector boson samples
 int    excludeWJ0J_   =  1 ; //exclude the 0-jet bin of the W+jets sample from the background model due to low statistics
 int    includeHiggs_  =  0 ; //include the higgs signals in the plots
 int    higgsBkg_      =  1 ; //include SM higgs samples in the background estimate
@@ -79,17 +80,19 @@ void get_datacards(std::vector<dcard>& cards, TString selection, int forStudies 
   TString embed = (forStudies == 1) ? "ZJets" : "#tau#tau Embedding";
   TString wj    = (forStudies == 1) ? "WJets" : (combineVB_) ? "Other VB" : "W+Jets";
   TString wg    = (forStudies == 1) ? "WJets" : (combineWG_) ? wj : "W+#gamma";
+  TString ww    = (forStudies == 1) ? "WJets" : (combineWW_) ? wj : "WW";
   TString vb    = (forStudies == 1) ? "WJets" : "Other VB";
   TString hb_tt = (forStudies == 1) ? "HBkg"  : (combineHB_) ? "H->#tau#tau/WW" : "H->#tau#tau";
   TString hb_ww = (forStudies == 1) ? "HBkg"  : (combineHB_) ? "H->#tau#tau/WW" : "H->WW";
 
-  const int top_c = kYellow - 7;
-  const int dy_ll_c = (forStudies == 1) ? kRed - 7 : kRed - 2;
-  const int dy_tt_c = (forStudies == 1) ? kRed - 7 : kRed - 7;
-  const int wj_c = kViolet - 9;
-  const int wg_c = (combineWG_) ? kViolet - 9 : kMagenta;
+  const int top_c = kCMSColor_10; //kYellow - 7;
+  const int dy_ll_c = (forStudies == 1) ? kRed - 7 : kCMSColor_6; //kRed - 2;
+  const int dy_tt_c = (forStudies == 1) ? kRed - 7 : kCMSColor_7; //kRed - 7;
+  const int wj_c = kCMSColor_8; //kViolet - 9;
+  const int wg_c = (combineWG_) ? wj_c : kMagenta;
+  const int ww_c = (combineWW_) ? wj_c : kMagenta;
   const int vb_c = (vb == wj) ? wj_c : kMagenta - 9;
-  const int hb_tt_c = kAtlantic;
+  const int hb_tt_c = kCMSColor_9; //kAtlantic;
   const int hb_ww_c = (combineHB_) ? hb_tt_c : kCyan;
 
   for(int year : years_) {
@@ -116,7 +119,7 @@ void get_datacards(std::vector<dcard>& cards, TString selection, int forStudies 
     cards.push_back(dcard("WWW"                  , "WWW"                  , vb.Data()   , false, xs.GetCrossSection("WWW"                  ), false, year, vb_c));
     cards.push_back(dcard("WZ"                   , "WZ"                   , vb.Data()   , false, xs.GetCrossSection("WZ"                   ), false, year, vb_c));
     cards.push_back(dcard("ZZ"                   , "ZZ"                   , vb.Data()   , false, xs.GetCrossSection("ZZ"                   ), false, year, vb_c));
-    cards.push_back(dcard("WW"                   , "WW"                   , vb.Data()   , false, xs.GetCrossSection("WW"                   ), false, year, vb_c));
+    cards.push_back(dcard("WW"                   , "WW"                   , ww.Data()   , false, xs.GetCrossSection("WW"                   ), false, year, ww_c));
     cards.push_back(dcard("WWLNuQQ"              , "WWLNuQQ"              , vb.Data()   , false, xs.GetCrossSection("WWLNuQQ"              ), false, year, vb_c)); //FIXME: Add back in
     if(useEWK_) {
     cards.push_back(dcard("EWKWplus"             , "EWKWplus"             , vb.Data()   , false, xs.GetCrossSection("EWKWplus"             ), false, year, vb_c));
@@ -164,19 +167,23 @@ void get_datacards(std::vector<dcard>& cards, TString selection, int forStudies 
       if(addDYLO != -1) {
         if(selection == "ee" || selection == "mumu") {
           cards.push_back(dcard((DYName+"-1").Data(), (DYName+"-1").Data(), dy_tt.Data(), false, z_xs_scale*xs.GetCrossSection("DY50"    , year), false, year, dy_tt_c, combineZ));
-          cards.push_back(dcard("DY10to50-1"        , "DY10to50-1"        , dy_tt.Data(), false, xs.GetCrossSection("DY10to50", year), false, year, dy_tt_c));
+          if(!zprime_)
+            cards.push_back(dcard("DY10to50-1"        , "DY10to50-1"        , dy_tt.Data(), false, xs.GetCrossSection("DY10to50", year), false, year, dy_tt_c));
           if(useEmbed_ < 2) { //use DY MC ee/mumu if using DY MC in general
             cards.push_back(dcard((DYName+"-2").Data(), (DYName+"-2").Data(), dy_ll.Data(), false, zll_scale_*z_xs_scale*xs.GetCrossSection("DY50"    , year), false, year, dy_ll_c, combineZ));
+          if(!zprime_)
             cards.push_back(dcard("DY10to50-2"        , "DY10to50-2"        , dy_ll.Data(), false, zll_scale_*xs.GetCrossSection("DY10to50", year), false, year, dy_ll_c));
           }
         } else {
           if(true) { //use DY MC ee/mumu for non-ee/mumu categories
             cards.push_back(dcard((DYName+"-2").Data(), (DYName+"-2").Data(), dy_ll.Data(), false, zll_scale_*z_xs_scale*xs.GetCrossSection("DY50"    , year), false, year, dy_ll_c, combineZ));
-            cards.push_back(dcard("DY10to50-2"        , "DY10to50-2"        , dy_ll.Data(), false, zll_scale_*xs.GetCrossSection("DY10to50", year), false, year, dy_ll_c));
+            if(!zprime_)
+              cards.push_back(dcard("DY10to50-2"        , "DY10to50-2"        , dy_ll.Data(), false, zll_scale_*xs.GetCrossSection("DY10to50", year), false, year, dy_ll_c));
           }
           if(useEmbed_ == 0) {//either ee/mumu or using DY MC, in both cases need MC Z->tau tau
             cards.push_back(dcard((DYName+"-1").Data(), (DYName+"-1").Data(), dy_tt.Data(), false, z_xs_scale*xs.GetCrossSection("DY50"    , year), false, year, dy_tt_c, combineZ));
-            cards.push_back(dcard("DY10to50-1"        , "DY10to50-1"        , dy_tt.Data(), false, xs.GetCrossSection("DY10to50", year), false, year, dy_tt_c));
+            if(!zprime_)
+              cards.push_back(dcard("DY10to50-1"        , "DY10to50-1"        , dy_tt.Data(), false, xs.GetCrossSection("DY10to50", year), false, year, dy_tt_c));
           }
         }
       }
@@ -200,11 +207,14 @@ void get_datacards(std::vector<dcard>& cards, TString selection, int forStudies 
     } else if(splitDY_ == 0 && addDYLO != -1) {
       cards.push_back(dcard((DYName+"-1").Data(), (DYName+"-1").Data(), dy.Data(), false, z_xs_scale*xs.GetCrossSection("DY50"    , year), false, year, dy_tt_c, combineZ));
       cards.push_back(dcard((DYName+"-2").Data(), (DYName+"-2").Data(), dy.Data(), false, zll_scale_*z_xs_scale*xs.GetCrossSection("DY50"    , year), false, year, dy_tt_c, combineZ));
-      cards.push_back(dcard("DY10to50-1"        , "DY10to50-1"        , dy.Data(), false, xs.GetCrossSection("DY10to50", year), false, year, dy_tt_c));
-      cards.push_back(dcard("DY10to50-2"        , "DY10to50-2"        , dy.Data(), false, zll_scale_*xs.GetCrossSection("DY10to50", year), false, year, dy_tt_c));
+      if(!zprime_) {
+        cards.push_back(dcard("DY10to50-1"        , "DY10to50-1"        , dy.Data(), false, xs.GetCrossSection("DY10to50", year), false, year, dy_tt_c));
+        cards.push_back(dcard("DY10to50-2"        , "DY10to50-2"        , dy.Data(), false, zll_scale_*xs.GetCrossSection("DY10to50", year), false, year, dy_tt_c));
+      }
     } else if(addDYLO != -1) { //splitDY_ < 0, assume old dataset that was never separated into tautau and ee/mumu output files
       cards.push_back(dcard(DYName.Data(), DYName.Data(), dy.Data(), false, z_xs_scale*xs.GetCrossSection("DY50"    , year), false, year, dy_tt_c, combineZ));
-      cards.push_back(dcard("DY10to50"   , "DY10to50"   , dy.Data(), false, xs.GetCrossSection("DY10to50", year), false, year, dy_tt_c));
+      if(!zprime_)
+        cards.push_back(dcard("DY10to50"   , "DY10to50"   , dy.Data(), false, xs.GetCrossSection("DY10to50", year), false, year, dy_tt_c));
     }
     if(combineZ && addDYLO != -1) {
       if(splitDY_ > 0 || useEmbed_) {
@@ -263,8 +273,12 @@ void get_datacards(std::vector<dcard>& cards, TString selection, int forStudies 
       const double zxs = xs.GetCrossSection("Z");
       const double hxs = xs.GetCrossSection("H");
       if(selection == "emu") {
-        cards.push_back(                  dcard("ZEMu"             , "ZEMu"             , "Z->e#mu (10^{-5})"   , false, 1.e-5*zxs, true, year, kBlue   ));
-        if(includeHiggs_) cards.push_back(dcard("HEMu"             , "HEMu"             , "H->e#mu (10^{-2})"   , false, 1.e-2*hxs, true, year, kGreen-1));
+        if(zprime_) {
+          cards.push_back(                  dcard("ZEMu"             , "ZEMu"             , "Z->e#mu (10^{-6})"   , false, 1.e-6*zxs, true, year, kBlue   ));
+        } else {
+          cards.push_back(                  dcard("ZEMu"             , "ZEMu"             , "Z->e#mu (10^{-5})"   , false, 1.e-5*zxs, true, year, kBlue   ));
+          if(includeHiggs_) cards.push_back(dcard("HEMu"             , "HEMu"             , "H->e#mu (10^{-2})"   , false, 1.e-2*hxs, true, year, kGreen-1));
+        }
       } else if(selection.Contains("etau") || selection == "ee") {
         cards.push_back(                  dcard("ZETau"            , "ZETau"            , "Z->e#tau (10^{-3})"  , false, 1.e-3*zxs, true, year, kBlue   ));
         if(includeHiggs_) cards.push_back(dcard("HETau"            , "HETau"            , "H->e#tau (10^{-1})"  , false, 1.e-1*hxs, true, year, kGreen-1));

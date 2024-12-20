@@ -51,6 +51,7 @@ void SparseHistMaker::InitHistogramFlags() {
       fEventSets [kMuTau + 26] = 1; //
       fEventSets [kMuTau + 27] = 1; //
       fEventSets [kMuTau + 28] = 1; //
+      fEventSets [kMuTau + 30] = 1; // BDT score cut
     }
   }
   if(etau) {
@@ -68,6 +69,7 @@ void SparseHistMaker::InitHistogramFlags() {
       fEventSets [kETau + 26] = 1; //
       fEventSets [kETau + 27] = 1; //
       fEventSets [kETau + 28] = 1; //
+      fEventSets [kETau + 30] = 1; // BDT score cut
     }
   }
   if(emu || mutau_e || etau_mu) {
@@ -85,6 +87,7 @@ void SparseHistMaker::InitHistogramFlags() {
       fEventSets [kEMu  + 26] = 1; //
       fEventSets [kEMu  + 27] = 1; //
       fEventSets [kEMu  + 28] = 1; //
+      fEventSets [kEMu  + 30] = 1; // BDT score cut
     }
   }
 
@@ -104,6 +107,7 @@ void SparseHistMaker::InitHistogramFlags() {
       fEventSets [kMuTauE + 26] = 1; //
       fEventSets [kMuTauE + 27] = 1; //
       fEventSets [kMuTauE + 28] = 1; //
+      fEventSets [kMuTauE + 30] = 1; // BDT score cut
     }
   }
 
@@ -122,6 +126,7 @@ void SparseHistMaker::InitHistogramFlags() {
       fEventSets [kETauMu + 26] = 1; //
       fEventSets [kETauMu + 27] = 1; //
       fEventSets [kETauMu + 28] = 1; //
+      fEventSets [kETauMu + 30] = 1; // BDT score cut
     }
   }
 
@@ -140,6 +145,7 @@ void SparseHistMaker::InitHistogramFlags() {
       fEventSets [kMuMu + 26] = 1; //
       fEventSets [kMuMu + 27] = 1; //
       fEventSets [kMuMu + 28] = 1; //
+      fEventSets [kMuMu + 30] = 1; // BDT score cut
     }
   }
   if(ee) {
@@ -157,6 +163,7 @@ void SparseHistMaker::InitHistogramFlags() {
       fEventSets [kEE   + 26] = 1; //
       fEventSets [kEE   + 27] = 1; //
       fEventSets [kEE   + 28] = 1; //
+      fEventSets [kEE   + 30] = 1; // BDT score cut
     }
   }
 }
@@ -210,6 +217,12 @@ void SparseHistMaker::BookEventHistograms() {
       Utilities::BookH1F(fEventHist[i]->hMTOne                   , "mtone"                   , Form("%s: MTOne"                       ,dirname), 100,    0, 150, folder);
       Utilities::BookH1F(fEventHist[i]->hMTTwo                   , "mttwo"                   , Form("%s: MTTwo"                       ,dirname), 100,    0, 150, folder);
       Utilities::BookH1F(fEventHist[i]->hMTLep                   , "mtlep"                   , Form("%s: MTLep"                       ,dirname), 100,    0, 150, folder);
+      Utilities::BookH1F(fEventHist[i]->hMTRatio                 , "mtratio"                 , Form("%s: MTRatio"                     ,dirname),  40,   0.,   5, folder);
+      Utilities::BookH1F(fEventHist[i]->hMTLead                  , "mtlead"                  , Form("%s: MTLead"                      ,dirname),  20,   0., 150, folder);
+      Utilities::BookH1F(fEventHist[i]->hMTTrail                 , "mttrail"                 , Form("%s: MTTrail"                     ,dirname),  20,   0., 150, folder);
+      Utilities::BookH1F(fEventHist[i]->hMTOneOverM              , "mtoneoverm"              , Form("%s: MTOneOverM"                  ,dirname), 100,   0.,  10, folder);
+      Utilities::BookH1F(fEventHist[i]->hMTTwoOverM              , "mttwooverm"              , Form("%s: MTTwoOverM"                  ,dirname), 100,   0.,  10, folder);
+      Utilities::BookH1F(fEventHist[i]->hMTLepOverM              , "mtlepoverm"              , Form("%s: MTLepOverM"                  ,dirname), 100,   0.,  10, folder);
       Utilities::BookH1F(fEventHist[i]->hLepPt[0]                , "leppt"                   , Form("%s: Lepton Pt"                   ,dirname), 100,    0, 200, folder);
       Utilities::BookH1F(fEventHist[i]->hLepM[0]                 , "lepm"                    , Form("%s: Lepton M"                    ,dirname), 280,   40, 180, folder);
       Utilities::BookH1F(fEventHist[i]->hLepMt                   , "lepmt"                   , Form("%s: Lepton Mt"                   ,dirname), 100,    0, 200, folder);
@@ -305,6 +318,12 @@ void SparseHistMaker::FillEventHistogram(EventHist_t* Hist) {
   Hist->hMTOne             ->Fill(fTreeVars.mtone           , eventWeight*genWeight);
   Hist->hMTTwo             ->Fill(fTreeVars.mttwo           , eventWeight*genWeight);
   Hist->hMTLep             ->Fill(fTreeVars.mtlep           , eventWeight*genWeight);
+  Hist->hMTLead            ->Fill(fTreeVars.mtlead          , eventWeight*genWeight);
+  Hist->hMTTrail           ->Fill(fTreeVars.mttrail         , eventWeight*genWeight);
+  Hist->hMTRatio           ->Fill(fTreeVars.mtone / fTreeVars.mttwo, eventWeight*genWeight);
+  Hist->hMTOneOverM        ->Fill(fTreeVars.mtoneoverm      , eventWeight*genWeight);
+  Hist->hMTTwoOverM        ->Fill(fTreeVars.mttwooverm      , eventWeight*genWeight);
+  Hist->hMTLepOverM        ->Fill(fTreeVars.mtlepoverm      , eventWeight*genWeight);
 
   TLorentzVector lepSys = (*leptonOne.p4) + (*leptonTwo.p4);
 
@@ -541,7 +560,7 @@ Bool_t SparseHistMaker::Process(Long64_t entry)
   ////////////////////////////////////////////////////////////
 
   if(fDoCutFlowSets) {
-    if(btagWeight > 0.3 && !fIsData && !fIsEmbed) eventWeight = eventWeight / btagWeight;
+    if(btagWeight > 0.3 && !fIsData && !fIsEmbed) eventWeight = eventWeight / btagWeight; //no b-tag cut yet, so remove the b-tag correction
     FillAllHistograms(set_offset + cut_flow_set);
     if(btagWeight > 0.3 && !fIsData && !fIsEmbed) eventWeight = eventWeight * btagWeight;
   }
@@ -572,6 +591,7 @@ Bool_t SparseHistMaker::Process(Long64_t entry)
   if(emu) {one_pt_min_ = 20.f; two_pt_min_ = 20.f;}
   else if(mutau_e) {two_pt_min_ = 20.f;}
   else if(etau_mu) {one_pt_min_ = 20.f;}
+  else if(mutau || etau) {one_pt_min_ = std::max(one_pt_min_, 28.f);}
 
   if(leptonOne.pt <= one_pt_min_ || leptonTwo.pt <= two_pt_min_) return kTRUE;
 
@@ -636,10 +656,20 @@ Bool_t SparseHistMaker::Process(Long64_t entry)
   ++cut_flow_set;
 
   //Apply the MT(l,MET) cuts
-  mtone_max_ = (mutau_e) ? 60.f : -1.;
-  mttwo_max_ = (etau_mu) ? 60.f : -1.;
+  mtone_max_        = -1.f;
+  mttwo_max_        = -1.f;
+  if(mutau || etau || etau_mu) {
+    mttwo_over_m_max_ = 0.8f;
+    mtone_over_m_max_ = -1.f;
+  } else if(mutau_e) {
+    mtone_over_m_max_ = 0.8f;
+    mttwo_over_m_max_ = -1.f;
+  }
+
   if(mtone_max_ > 0. && fTreeVars.mtone >= mtone_max_) return kTRUE;
   if(mttwo_max_ > 0. && fTreeVars.mttwo >= mttwo_max_) return kTRUE;
+  if(mtone_over_m_max_ > 0. && fTreeVars.mtoneoverm >= mtone_over_m_max_) return kTRUE;
+  if(mttwo_over_m_max_ > 0. && fTreeVars.mttwooverm >= mttwo_over_m_max_) return kTRUE;
 
   fCutFlow->Fill(icutflow); ++icutflow; //12
 
@@ -682,6 +712,19 @@ Bool_t SparseHistMaker::Process(Long64_t entry)
   FillAllHistograms(set_offset + 8);
 
   fCutFlow->Fill(icutflow); ++icutflow; //13
+
+  //Apply the BDT score cuts
+  const int imva = (mutau) ? 1 : (etau) ? 3 : (emu) ? 5 : (mutau_e) ? 7 : 9;
+  min_bdt_ = (emu) ? -1.f : 0.25f;
+  if(fMvaUse[imva] <= min_bdt_) return kTRUE;
+
+  ////////////////////////////////////////////////////////////
+  // Set 30 + selection offset: After BDT cut
+  ////////////////////////////////////////////////////////////
+
+  FillAllHistograms(set_offset + 30);
+
+  fCutFlow->Fill(icutflow); ++icutflow; //14
 
   return kTRUE;
 }

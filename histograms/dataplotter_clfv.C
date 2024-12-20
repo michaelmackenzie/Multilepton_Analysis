@@ -2051,7 +2051,6 @@ Int_t print_bdt_variable_plots(vector<int> sets, bool add_sys = false) {
     status += print_leppt          (set, add_sys);
     status += print_collinear_mass (set, add_sys);
     status += print_met            (set, add_sys);
-    status += print_met_phi        (set, add_sys); //FIXME: Remove this
     status += print_mt             (set, add_sys);
     status += print_jet            (set, add_sys);
     status += print_ptratio        (set, add_sys);
@@ -2061,7 +2060,6 @@ Int_t print_bdt_variable_plots(vector<int> sets, bool add_sys = false) {
     status += print_pt             (set, add_sys);
     status += print_eta            (set, add_sys);
     status += print_mva            (set, add_sys);
-    // status += print_mt_over_m      (set, add_sys);
     if(selection_.EndsWith("emu")) {
       status += print_ptratio      (set, add_sys);
       status += print_lepeta       (set, add_sys);

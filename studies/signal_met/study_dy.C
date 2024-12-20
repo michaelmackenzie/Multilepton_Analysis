@@ -38,7 +38,7 @@ void study_dy(const bool hadronic = true, const int max_entries = -1) {
   TH1* hrecalpha      = new TH1D("hrecalpha" , "Rec #alpha", 25, 0., 2.);
   TH1* hrecbeta       = new TH1D("hrecbeta"  , "Rec #beta" , 25, 0., 2.);
   TH1* hrecbetar      = new TH1D("hrecbetar" , "Rec #alpha/#beta", 25, 0., 3.);
-  TH2* hrecalphavbeta = new TH2D("hrecalphavbeta", "Rec #alpha_{1} vs #alpha_{2}", 20, 0, 1.2, 20, 0, 1.2);
+  TH2* hrecalphavbeta = new TH2D("hrecalphavbeta", "Rec #alpha_{1} vs #alpha_{2}", 20, 0.5, 2.5, 20, 0.5, 2.5);
   TH1* hlepdot        = new TH1D("hlepdot" , "#sqrt{l_{1}#cdotl_{2}", 50, 30., 90.);
 
   TH1* hmass       = new TH1D("hmass"   , "Gen M(l,#tau)", 100., 50., 120.);
@@ -201,11 +201,11 @@ void study_dy(const bool hadronic = true, const int max_entries = -1) {
     const float mcoll = (pvis+plep+pcol).M();
     if(!std::isfinite(mcoll) || mcoll < 0.) printf("Entry %lld: Undefined mcoll = %f\n", entry, mcoll);
 
-    const float gen_alpha = pvis.Pt() / ptau_vis.Pt();
-    const float gen_beta  = plep.Pt() / ptau_lep.Pt();
+    const float gen_alpha = ptau_vis.Pt() / pvis.Pt();
+    const float gen_beta  = ptau_lep.Pt() / plep.Pt();
     const float lep_dot   = sqrt(2.*pvis*plep);
-    const float rec_alpha = 1./((91.2/lep_dot)/sqrt(pvis.Pt()/plep.Pt()));
-    const float rec_beta  = 1./((91.2/lep_dot)/sqrt(plep.Pt()/pvis.Pt()));
+    const float rec_alpha = ((91.2/lep_dot)/sqrt(pvis.Pt()/plep.Pt()));
+    const float rec_beta  = ((91.2/lep_dot)/sqrt(plep.Pt()/pvis.Pt()));
     hgenalpha->Fill(gen_alpha);
     hgenbeta->Fill(gen_beta);
     hgenbetar->Fill(gen_alpha/gen_beta);

@@ -1,10 +1,9 @@
 //Print study plots
 #include "dataplotter_clfv.C"
 
-int print_study(TString selection = "mutau_e",
+int print_study(TString selection = "mutau",
                 vector<int> years = {2016,2017,2018},
-                TString out_dir = "wjets_study",
-                // TString hist_dir = "CLFVHistMaker_20240913_173032") {
+                TString out_dir = "gen_met_study",
                 TString hist_dir = "nanoaods_postfit") {
 
   //setup the datacards
@@ -14,26 +13,21 @@ int print_study(TString selection = "mutau_e",
   useEmbed_      = (selection == "emu") ? 0 : 1;
   drawStats_     = 0; //data and MC total integrals
   doStatsLegend_ = 0; //process yields in the legend
-  combineVB_     = 0; //combine W+jets and other VB
+  combineVB_     = 1; //combine W+jets and other VB
   combineWJ_     = 1; //combine W+jets N(jets) bins
-  combineWG_     = 0; //combine W+gamma with W+jets
+  combineWG_     = 1; //combine W+gamma with W+jets
 
   //initialize the plotter
   int status = nanoaod_init(selection.Data(), hist_dir_, out_dir);
   if(status) return status;
-
-  dataplotter_->data_over_mc_ = 2;
 
   //setup the histogram sets of interest
   vector<int> sets = {8};
 
   //print histograms of interest for each set
   for(int set : sets) {
-    for(int ioffset = 0; ioffset < 2; ++ioffset) {
-      print_mass      (set + ioffset*1000);
-      print_mva       (set + ioffset*1000);
-      print_gen_flavor(set + ioffset*1000, true);
-    }
+    print_gen_met(set);
+    print_met    (set);
   }
 
   return status;

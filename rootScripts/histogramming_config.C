@@ -21,12 +21,13 @@ bool useTChain_    = true; //use a TChain of input files rather than a tree from
 Long64_t notify_   = 50000; //frequency at which to printout processing info
 
 vector<TString> tag_      = {}; //dataset tag requirement
-vector<TString> veto_     = {"MuonEGRun", "Embed-EE", "Embed-MuMu"}; //dataset tags to veto
+vector<TString> veto_     = {"Embed", "MuonEGRun", "Embed-EE", "Embed-MuMu"}; //dataset tags to veto
 bool debug_               = false;
 Long64_t startEvent_      =  0;
 Long64_t nEvents_         =  1; //at 20, verbosity returns to normal
 int verbose_              = -1; //override verbosity in debug mode to higher levels if > 1
 int follow_hist_set_      = -1; //print info whenever this hist set is filled
+ULong64_t find_event_     =  0; //print when this event is found
 HISTOGRAMMER* selector_   = nullptr;
 
 Long64_t max_sim_events_  = -1; //5e5; //maximum number of events to skim in simulation, -1 to ignore
@@ -101,15 +102,15 @@ int doEmbedLLAll_         =  0; //process Embedding ee/mumu samples in non-ee/mu
 int doZPrime_             =  0; //assume Z prime processing for emu channel
 
 int systematicSeed_       = 90; //seed for systematic random shifts
-int doSystematics_        =  1; //process systematic uncertainty histograms: 0: don't process; 1: process; -2: process for signal, nominal only for the rest
+int doSystematics_        =  0; //process systematic uncertainty histograms: 0: don't process; 1: process; -2: process for signal, nominal only for the rest
 int allowMigration_       =  2; //event migration systematic effects
 int usePostFit_           =  0; //apply some post-fit nuisance parameter results
 int  DoMVASets_           =  1; //Fill sets with MVA cuts: 1 = emu; 2 = emu/ee/mumu; 3 = all sets
 int  ReprocessMVAs_       =  1; //Re-evaluate MVA scores on the fly
 int useCDFBDTs_           =  2; //Use CDF transformed BDTs instead of the raw BDT scores in the fits
-int useXGBoost_           =  1; //>0: use XGBoost BDT in Z->e+mu; >9: use XGBoost BDT in all categories
+int useXGBoost_           =  1; //>0: use XGBoost BDT in Z->e+mu (1: default; 2/3: ATLAS-like) >9: use XGBoost BDT in all categories
 int useBDTScale_          =  1; //use BDT score corrections in Z->e+mu
-bool useBDTCut_           = true; //apply a cut on the BDT score
+bool useBDTCut_           = false; //apply a cut on the BDT score
 bool writeTrees_          = false;
 int  remove_training_     =  1; //Remove training events (only CLFVHistMaker), only keep when re-making trees
 int  train_mode_          =  2; //MVA training mode, how to define training fractions
@@ -170,7 +171,7 @@ config_t get_config() {
   config_t config;
 
   config.writeTrees_ = writeTrees_;
-  config.selections_ = {"mutau_e"}; //{"mutau", "etau", "emu", "mutau_e", "etau_mu", "mumu", "ee"};
+  config.selections_ = {"emu"}; //{"mutau", "etau", "emu", "mutau_e", "etau_mu", "mumu", "ee"};
   config.signalTrainFraction_ = 0.5;
   config.backgroundTrainFraction_ = 0.3;
 
@@ -178,8 +179,8 @@ config_t get_config() {
 }
 
 vector<datacard_t> get_data_cards(TString& nanoaod_path) {
-  nanoaod_path = "root://cmseos.fnal.gov//store/user/mmackenz/lfvanalysis_rootfiles/";
-  // nanoaod_path = "root://cmseos.fnal.gov//store/user/mmackenz/lfvanalysis_rootfiles_dev/";
+  if(doZPrime_) nanoaod_path = "root://cmseos.fnal.gov//store/user/mmackenz/zprime_rootfiles/";
+  else          nanoaod_path = "root://cmseos.fnal.gov//store/user/mmackenz/lfvanalysis_rootfiles/";
   // nanoaod_path = "root://eoscms.cern.ch//store/group/phys_smp/ZLFV/lfvanalysis_rootfiles/";
   // nanoaod_path = "/eos/uscms/store/user/mmackenz/lfvanalysis_rootfiles/";
 
@@ -195,7 +196,7 @@ vector<datacard_t> get_data_cards(TString& nanoaod_path) {
 
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("DY10to50"                ), "LFVAnalysis_DY10to50_2016.root"                , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("DY50"                    ), "LFVAnalysis_DY50-amc_2016.root"                , 0));
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("DY50"                    ), "LFVAnalysis_DY50-LO*_2016.root"                , 0));
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("DY50"                    ), "LFVAnalysis_DY50-LO*_2016.root"                , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("ttbarToSemiLeptonic"     ), "LFVAnalysis_ttbarToSemiLeptonic_2016.root"     , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("ttbarlnu"                ), "LFVAnalysis_ttbarlnu_2016.root"                , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("ttbarToHadronic"         ), "LFVAnalysis_ttbarToHadronic_2016.root"         , 0));
@@ -281,8 +282,6 @@ vector<datacard_t> get_data_cards(TString& nanoaod_path) {
   nanocards.push_back(datacard_t(false, 1.                                            , "LFVAnalysis_MuonEGRun2016F_2016.root"          , 3));
   nanocards.push_back(datacard_t(false, 1.                                            , "LFVAnalysis_MuonEGRun2016G_2016.root"          , 3));
   nanocards.push_back(datacard_t(false, 1.                                            , "LFVAnalysis_MuonEGRun2016H_2016.root"          , 3));
-  // nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZETau"                   ), "LFVAnalysis_ZETau-merged_2016.root"                , 0));
-  // nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZMuTau"                  ), "LFVAnalysis_ZMuTau-merged_2016.root"               , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZETau"                   ), "LFVAnalysis_ZETau-v*_2016.root"                , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZMuTau"                  ), "LFVAnalysis_ZMuTau-v*_2016.root"               , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZEMu"                    ), "LFVAnalysis_ZEMu-v*_2016.root"                 , 0));
@@ -377,8 +376,6 @@ vector<datacard_t> get_data_cards(TString& nanoaod_path) {
   nanocards.push_back(datacard_t(false, 1.                                            , "LFVAnalysis_MuonEGRun2017D_2017.root"          , 3));
   nanocards.push_back(datacard_t(false, 1.                                            , "LFVAnalysis_MuonEGRun2017E_2017.root"          , 3));
   nanocards.push_back(datacard_t(false, 1.                                            , "LFVAnalysis_MuonEGRun2017F_2017.root"          , 3));
-  // nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZETau"                   ), "LFVAnalysis_ZETau-merged_2017.root"                , 0));
-  // nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZMuTau"                  ), "LFVAnalysis_ZMuTau-merged_2017.root"               , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZETau"                   ), "LFVAnalysis_ZETau-v3*_2017.root"                , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZMuTau"                  ), "LFVAnalysis_ZMuTau-v3*_2017.root"               , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZEMu"                    ), "LFVAnalysis_ZEMu-v3*_2017.root"                 , 0));
@@ -394,7 +391,7 @@ vector<datacard_t> get_data_cards(TString& nanoaod_path) {
   //////////////////
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("DY10to50"                ), "LFVAnalysis_DY10to50_2018.root"                , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("DY50"                    ), "LFVAnalysis_DY50-amc_2018.root"                , 0));
-  nanocards.push_back(datacard_t(true , xs.GetCrossSection("DY50"                    ), "LFVAnalysis_DY50-LO_2018.root"                 , 0));
+  nanocards.push_back(datacard_t(false, xs.GetCrossSection("DY50"                    ), "LFVAnalysis_DY50-LO_2018.root"                 , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("ttbarToSemiLeptonic"     ), "LFVAnalysis_ttbarToSemiLeptonic_2018.root"     , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("ttbarToHadronic"         ), "LFVAnalysis_ttbarToHadronic_2018.root"         , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("ttbarlnu"                ), "LFVAnalysis_ttbarlnu_2018.root"                , 0));
@@ -457,8 +454,6 @@ vector<datacard_t> get_data_cards(TString& nanoaod_path) {
   nanocards.push_back(datacard_t(false, 1.                                            , "LFVAnalysis_MuonEGRun2018C_2018.root"          , 3));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZETau"                   ), "LFVAnalysis_ZETau-v*_2018.root"                , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZMuTau"                  ), "LFVAnalysis_ZMuTau-v*_2018.root"               , 0));
-  // nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZETau"                   ), "LFVAnalysis_ZETau-merged_2018.root"            , 0));
-  // nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZMuTau"                  ), "LFVAnalysis_ZMuTau-merged_2018.root"           , 0));
   nanocards.push_back(datacard_t(true , xs.GetCrossSection("ZEMu"                    ), "LFVAnalysis_ZEMu-v*_2018.root"                 , 0));
   // nanocards.push_back(datacard_t(true , xs.GetCrossSection("HETau"                   ), "LFVAnalysis_HETau_2018.root"                   , 0));
   // nanocards.push_back(datacard_t(true , xs.GetCrossSection("HMuTau"                  ), "LFVAnalysis_HMuTau_2018.root"                  , 0));

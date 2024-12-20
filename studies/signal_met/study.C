@@ -11,7 +11,7 @@ void study(TString signal = "zmutau", const int max_entries = -1) {
   else if(signal.Contains("emu"  )) file_name += "EMu"  ;
   else if(signal == "DY")           file_name += "DY50-amc_2016.root";
   else return;
-  if(signal.BeginsWith("z")) file_name += "-v2_201*.root"; //use high statistics samples
+  if(signal.BeginsWith("z")) file_name += "-v*.root"; //use high statistics samples
 
   TString selection = (signal.EndsWith("emu") || signal.Contains("_")) ? "emu" : (signal.EndsWith("mutau")) ? "mutau" : "etau";
   TChain chain(selection.Data());
@@ -57,7 +57,7 @@ void study(TString signal = "zmutau", const int max_entries = -1) {
   TH1* hrecalpha      = new TH1D("hrecalpha" , "Rec #alpha", 25, 0., 2.);
   TH1* hrecbeta       = new TH1D("hrecbeta"  , "Rec #beta" , 25, 0., 2.);
   TH1* hrecbetar      = new TH1D("hrecbetar" , "Rec #alpha/#beta", 25, 0., 3.);
-  TH2* hrecalphavbeta = new TH2D("hrecalphavbeta", "Rec #alpha_{1} vs #alpha_{2}", 20, 0, 1.2, 20, 0, 1.2);
+  TH2* hrecalphavbeta = new TH2D("hrecalphavbeta", "Rec #alpha_{1} vs #alpha_{2}", 20, 0.5, 2.5, 20, 0.5, 2.5);
   TH1* hlepdot        = new TH1D("hlepdot" , "#sqrt{l_{1}#cdotl_{2}", 50, 50., 120.);
 
   TH1* hmass       = new TH1D("hmass"   , "Gen M(l,#tau)", 100., 50., 120.);
@@ -224,11 +224,11 @@ void study(TString signal = "zmutau", const int max_entries = -1) {
     const float mcoll = (pvis+plep+pcol).M();
     if(!std::isfinite(mcoll) || mcoll < 0.) printf("Entry %lld: Undefined mcoll = %f\n", entry, mcoll);
 
-    const float gen_alpha = pvis.Pt() / ptau.Pt();
+    const float gen_alpha = ptau.Pt() / pvis.Pt();
     const float gen_beta  = plep.Pt() / plep.Pt();
     const float lep_dot   = sqrt(2.*pvis*plep);
-    const float rec_alpha = ((lep_dot/91.2)*sqrt(pvis.Pt()/plep.Pt()));
-    const float rec_beta  = ((lep_dot/91.2)*sqrt(plep.Pt()/pvis.Pt()));
+    const float rec_alpha = 1./((lep_dot/91.2)*sqrt(pvis.Pt()/plep.Pt()));
+    const float rec_beta  = 1./((lep_dot/91.2)*sqrt(plep.Pt()/pvis.Pt()));
     hgenalpha->Fill(gen_alpha);
     hgenbeta->Fill(gen_beta);
     hgenbetar->Fill(gen_alpha/gen_beta);

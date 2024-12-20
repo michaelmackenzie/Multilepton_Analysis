@@ -268,7 +268,7 @@ int scale_factors(int year, const int sig_mode = 4) {
 
   TH1* hprojx = hratio->ProjectionX("_px", 1, hratio->GetNbinsY());
   hprojx->Scale(1./hratio->GetNbinsY());
-  hprojx->SetTitle("Signal M^{Z} corrections");
+  hprojx->SetTitle("Signal M_{Z} corrections");
   hprojx->SetXTitle("M^{Z}");
   hprojx->SetYTitle("No Mixing / Mixing");
   hprojx->SetLineWidth(2);
@@ -279,7 +279,7 @@ int scale_factors(int year, const int sig_mode = 4) {
   c->SetLogz(false);
   hprojx->GetXaxis()->SetMoreLogLabels(true);
   hprojx->GetYaxis()->SetMoreLogLabels(true);
-  hprojx->GetXaxis()->SetRangeUser(0.5, hprojx->GetBinCenter(hprojx->GetNbinsX()));
+  hprojx->GetXaxis()->SetRangeUser(50., hprojx->GetBinCenter(hprojx->GetNbinsX()));
   c->SaveAs(Form("figures/mass_ratio_s%i_%i.png", sig_mode, year));
 
   TH1* hprojy = hratio->ProjectionY("_py", 1, hratio->GetNbinsX());

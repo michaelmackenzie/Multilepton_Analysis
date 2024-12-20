@@ -78,6 +78,7 @@ namespace CLFV {
     std::vector<Double_t> blindymin_; //for blinding along y axis
     std::vector<Double_t> blindymax_;
     TString figure_format_ = "png"; //format plots are written out in
+    bool print_root_canvas_ = false; //print a root file with the canvas in addition to the figure
     Int_t logZ_ = 1; //log plot settings
     Int_t logY_ = 0;
     Int_t signal_ratio_log_ = 1;
@@ -120,6 +121,7 @@ namespace CLFV {
     Int_t stack_as_hist_ = 0; //plot the stack as a total background histogram
     TString only_signal_ = ""; //Only plot the given signal label
     Int_t plot_y_title_ = 0; //plot y title on 1D histograms
+    Int_t add_y_unit_ = 0; //make the Y-axis title "Entries / [width] [unit]"
     Double_t qcd_scale_ = 1.; //scale factor for SS --> OS selection
     TString folder_ = "clfv"; //figures folder for printing
     Int_t useOpenGL_ = 1; //Use open GL with plotting
@@ -134,30 +136,35 @@ namespace CLFV {
     Int_t canvas_x_ = 900; //canvas dimensions
     Int_t canvas_y_ = 800;
     Double_t axis_font_size_ = 0.157; //axis title values
-    Double_t y_title_offset_ = 0.20;
-    Double_t x_title_offset_ = 0.71;
+    Double_t y_title_offset_ = 0.25;
+    Double_t x_title_offset_ = 0.80;
     Double_t x_label_size_ = 0.1;
     Double_t y_label_size_ = 0.1;
+    Double_t x_label_offset_ = 0.1;
+    Double_t y_label_offset_ = 0.1;
     Double_t upper_pad_x1_ = 0.0; //upper pad fractional dimensions
     Double_t upper_pad_y1_ = 0.3;
     Double_t upper_pad_x2_ = 1.0;
     Double_t upper_pad_y2_ = 1.0;
     Double_t lower_pad_x1_ = 0.0; //lower pad fractional dimensions
-    Double_t lower_pad_y1_ = 0.02;
+    Double_t lower_pad_y1_ = 0.0;
     Double_t lower_pad_x2_ = 1.0;
     Double_t lower_pad_y2_ = 0.3;
     Double_t upper_pad_topmargin_ = 0.06; //pad margins
     Double_t upper_pad_botmargin_ = 0.06;
     Double_t lower_pad_sigbkg_topmargin_ = 0.12;
     Double_t lower_pad_topmargin_ = 0.03;
-    Double_t lower_pad_botmargin_ = 0.27;
+    Double_t lower_pad_botmargin_ = 0.33;
+    Double_t pad_leftmargin_ = 0.16;
+    Double_t pad_rightmargin_ = 0.03;
     Double_t linear_buffer_ = 1.4; //scale to y-axis maximum for y-axis range (linear-mode)
     Double_t log_buffer_ = 1.5; //scale to y-axis maximum for y-axis range (log-mode)
+    Bool_t   draw_grid_ = false; //add x-y grid lines
     //Legend parameters
     Double_t legend_txt_ = 0.05;
-    Double_t legend_x1_stats_ = 0.11; //if stats in legend
-    Double_t legend_x1_ = 0.11; //if no stats in legend
-    Double_t legend_x2_ = 0.89;
+    Double_t legend_x1_stats_ = 0.01; //if stats in legend (from TPad buffer)
+    Double_t legend_x1_ = 0.01; //if no stats in legend
+    Double_t legend_x2_ = 0.01;
     Double_t legend_y1_ = 0.93;
     Double_t legend_y2_ = 0.75;
     Double_t legend_sys_x1_ = 0.6;
@@ -167,15 +174,11 @@ namespace CLFV {
     // Double_t legend_y2_split_ = 0.45;
     Double_t legend_sep_ = 2.;
     //luminosity drawing
-    Double_t lum_txt_x_ = 0.65;
-    Double_t lum_txt_y_ = 0.98;
-    Double_t lum_txt_x_single_ = 0.63;
-    Double_t lum_txt_y_single_ = 0.975;
+    Double_t lum_txt_x_ = 0.0;
+    Double_t lum_txt_y_ = 0.94;
     //CMS prelim drawing
-    Double_t cms_txt_x_ = 0.28;
-    Double_t cms_txt_y_ = 0.97;
-    Double_t cms_txt_x_single_ = 0.28; //text location without data/mc split pad
-    Double_t cms_txt_y_single_ = 0.97;
+    Double_t cms_txt_x_ = 0.0; //from the TPad buffer
+    Double_t cms_txt_y_ = 0.94;
     Double_t cms_txt_size_ = 0.06;
     Double_t cms_txt_size_single_ = 0.045; //text size without data/mc split pad
     Bool_t   cms_is_prelim_ = true; //add preliminary label
@@ -197,6 +200,11 @@ namespace CLFV {
     Bool_t single_systematic_   = false;
     Bool_t replace_missing_sys_ = true; //if a systematic histogram has 0 entries or is null, replace with the nominal histogram
 
+    DataPlotter() {
+      //initialize the style defaults
+      init_tdr_style();
+    }
+
     ~DataPlotter() {
       for(Data_t& input : inputs_) {
         if(input.file_ && input.file_->TestBit(TObject::kNotDeleted)) {
@@ -207,29 +215,144 @@ namespace CLFV {
       }
     }
 
+    void init_tdr_style() {
+      // For the canvas:
+      gStyle->SetCanvasBorderMode(0);
+      gStyle->SetCanvasColor(kWhite);
+      gStyle->SetCanvasDefH(600); //Height of canvas
+      gStyle->SetCanvasDefW(600); //Width of canvas
+      gStyle->SetCanvasDefX(0);   //POsition on screen
+      gStyle->SetCanvasDefY(0);
+
+      // For the Pad:
+      gStyle->SetPadBorderMode(0);
+      gStyle->SetPadColor(kWhite);
+      gStyle->SetPadGridX(false);
+      gStyle->SetPadGridY(false);
+      gStyle->SetGridColor(0);
+      gStyle->SetGridStyle(3);
+      gStyle->SetGridWidth(1);
+
+      // For the frame:
+      gStyle->SetFrameBorderMode(0);
+      gStyle->SetFrameBorderSize(1);
+      gStyle->SetFrameFillColor(0);
+      gStyle->SetFrameFillStyle(0);
+      gStyle->SetFrameLineColor(1);
+      gStyle->SetFrameLineStyle(1);
+      gStyle->SetFrameLineWidth(1);
+
+      // For the histo:
+      gStyle->SetHistLineColor(1);
+      gStyle->SetHistLineStyle(0);
+      gStyle->SetHistLineWidth(1);
+
+      gStyle->SetEndErrorSize(2);
+
+      gStyle->SetMarkerStyle(20);
+
+      //For the fit/function:
+      gStyle->SetOptFit(1);
+      gStyle->SetFitFormat("5.4g");
+      gStyle->SetFuncColor(2);
+      gStyle->SetFuncStyle(1);
+      gStyle->SetFuncWidth(1);
+
+      //For the date:
+      gStyle->SetOptDate(0);
+
+      //For the statistics box:
+      gStyle->SetOptFile(0);
+      gStyle->SetOptStat(0); // To display the mean and RMS:   SetOptStat("mr");
+      gStyle->SetStatColor(kWhite);
+      gStyle->SetStatFont(42);
+      gStyle->SetStatFontSize(0.025);
+      gStyle->SetStatTextColor(1);
+      gStyle->SetStatFormat("6.4g");
+      gStyle->SetStatBorderSize(1);
+      gStyle->SetStatH(0.1);
+      gStyle->SetStatW(0.15);
+
+      // // Margins:
+      // gStyle->SetPadTopMargin(0.05);
+      // gStyle->SetPadBottomMargin(0.13);
+      // gStyle->SetPadLeftMargin(0.16);
+      // gStyle->SetPadRightMargin(0.02);
+
+      // For the Global title:
+
+      gStyle->SetOptTitle(0);
+      gStyle->SetTitleFont(42);
+      gStyle->SetTitleColor(1);
+      gStyle->SetTitleTextColor(1);
+      gStyle->SetTitleFillColor(10);
+      gStyle->SetTitleFontSize(0.05);
+
+      // For the axis titles:
+
+      gStyle->SetTitleColor(1, "XYZ");
+      gStyle->SetTitleFont(42, "XYZ");
+      gStyle->SetTitleSize(0.06, "XYZ");
+      gStyle->SetTitleXOffset(0.9);
+      gStyle->SetTitleYOffset(1.25);
+
+      // // For the axis labels:
+
+      // gStyle->SetLabelColor(1, "XYZ");
+      // gStyle->SetLabelFont(42, "XYZ");
+      // gStyle->SetLabelOffset(0.007, "XYZ");
+      // gStyle->SetLabelSize(0.05, "XYZ");
+
+      // For the axis:
+
+      gStyle->SetAxisColor(1, "XYZ");
+      gStyle->SetStripDecimals(kTRUE);
+      gStyle->SetTickLength(0.03, "XYZ");
+      gStyle->SetNdivisions(510, "XYZ");
+      gStyle->SetPadTickX(1);  // To get tick marks on the opposite side of the frame
+      gStyle->SetPadTickY(1);
+
+      // Change for log plots:
+      gStyle->SetOptLogx(0);
+      gStyle->SetOptLogy(0);
+      gStyle->SetOptLogz(0);
+
+      // Postscript options:
+      gStyle->SetPaperSize(20.,20.);
+
+      gStyle->SetHatchesLineWidth(5);
+      gStyle->SetHatchesSpacing(0.05);
+    }
+
     void draw_cms_label(bool single = false) {
       TText cmslabel;
       cmslabel.SetNDC();
-      cmslabel.SetTextFont(72);
       cmslabel.SetTextColor(1);
       cmslabel.SetTextSize((single) ? cms_txt_size_single_ : cms_txt_size_);
-      cmslabel.SetTextAlign(22);
+      cmslabel.SetTextAlign(11);
       cmslabel.SetTextAngle(0);
-      cmslabel.DrawText((single) ? cms_txt_x_single_ : cms_txt_x_,
-                        (single) ? cms_txt_y_single_ : cms_txt_y_, (cms_is_prelim_) ? "CMS Preliminary" : "CMS");
+      cmslabel.SetTextFont(61);
+      cmslabel.DrawText(cms_txt_x_ + pad_leftmargin_, cms_txt_y_, "CMS");
+      const float size = cmslabel.GetTextSize();
+      if(cms_is_prelim_) {
+        cmslabel.SetTextFont(52);
+        cmslabel.SetTextSize(0.76*size); //reduce size relative to the CMS label
+        cmslabel.DrawText(cms_txt_x_ + 1.3*size + pad_leftmargin_, cms_txt_y_, "Preliminary");
+      }
     }
 
     void draw_luminosity(bool single = false) {
       TLatex label;
       label.SetNDC();
-      label.SetTextFont(72);
+      label.SetTextFont(42);
       // label.SetTextColor(1);
       label.SetTextSize((single) ? 0.03 : .04);
-      label.SetTextAlign(13);
+      label.SetTextAlign(31);
       label.SetTextAngle(0);
-      label.DrawLatex((single) ? lum_txt_x_single_ : lum_txt_x_,
-                      (single) ? lum_txt_y_single_ : lum_txt_y_,
-                      Form("L=%.1f fb^{-1} #sqrt{#it{s}} = %.0f TeV",lum_/1.e3,rootS_));
+      TString period = Form("%i", years_[0]);
+      if(years_.size() == 3) period = "Run 2";
+      label.DrawLatex(1. - lum_txt_x_ - pad_rightmargin_, lum_txt_y_,
+                      Form("%s, %.0f fb^{-1} (%.0f TeV)",period.Data(),lum_/1.e3,rootS_));
     }
 
     void draw_data(int ndata, double nmc, std::map<TString, double> nsig) {

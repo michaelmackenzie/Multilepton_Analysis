@@ -47,7 +47,7 @@ samplesToSubmit = sampleDict.keys()
 samplesToSubmit.sort()
 # doYears = ["2016"]
 doYears = ["2016", "2017", "2018"]
-tags = [] #tag of list types (data, mc)
+tags = ["mc"] #tag of list types (data, mc)
 vetoes = []
 sampleTags = [] #tag of individual datasets
 sampleVetoes = ["Embed-MuMu", "Embed-EE", "MuonEGRun"]
@@ -97,11 +97,12 @@ if not os.path.exists("batch") :
         if not os.path.exists("~/private/batch") :
             os.makedirs("~/private/batch")
         os.symlink("~/private/batch", "batch")
+        print "Created symbolic link to ~/private/batch"
     else: #LPC
         if not os.path.exists("~/nobackup/batch") :
             os.makedirs("~/nobackup/batch")
         os.symlink("~/nobackup/batch", "batch")
-    print "Created symbolic link to ~/nobackup/batch"
+        print "Created symbolic link to ~/nobackup/batch"
 
 if not os.path.isfile('%s/batch_hist_exclude.txt' % (os.getenv('CMSSW_BASE'))):
     os.system('cp batch_hist_exclude.txt ${CMSSW_BASE}/')

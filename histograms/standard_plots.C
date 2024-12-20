@@ -176,12 +176,16 @@ Int_t print_mass(int set, bool add_sys = false, double mass_min = 1., double mas
   const Int_t offset = ((set % 1000) > 100) ? 0 : get_offset();
   if(mass_min >= mass_max) {
     mass_min = (selection_.Contains("tau")) ?  40. : (!zprime_) ?  70. :  95.;
-    mass_max = (selection_.Contains("tau")) ? 170. : (!zprime_) ? 110. : 170.;
+    mass_max = (selection_.Contains("tau")) ? 170. : (!zprime_) ? 110. : 700.;
   }
   PlottingCard_t card("lepm", "event", set+offset, 5, mass_min, mass_max);
   if(blind_ && (selection_ == "emu" || selection_.Contains("_")) && set < 1000) {
     card.blindmin_ = {84.};
     card.blindmax_ = {98.};
+  }
+  if(zprime_ && (set % 100 == 8 || set % 100 == 11 || set % 100 == 12) && set < 1000) {
+    card.blindmin_ = {110.};
+    card.blindmax_ = {500.};
   }
   Int_t status(0);
   std::vector<std::pair<TString,TString>> systematics;
@@ -328,7 +332,7 @@ Int_t print_gen_met(int set, bool add_sys = false) {
   if(!dataplotter_) return 1;
   const Int_t offset = ((set % 1000) > 100) ? 0 : get_offset();
   Int_t status(0);
-  vector<TString> hists = {"detectormet", "nupt"};
+  vector<TString> hists = {"detectormet", "nupt", "genmet", "genmetnonu"};
   for(auto hist : hists) {
     PlottingCard_t card(hist, "event", set+offset, 1,  0., 60.);
     for(int logY = 0; logY < 2; ++logY) {
@@ -819,15 +823,15 @@ Int_t print_mt(int set, bool add_sys = false) {
   const Int_t offset = get_offset();
   const bool same_flavor = selection_ == "ee" || selection_ == "mumu";
   Int_t status(0);
-  std::vector<TString> leps = {"one","two","lep"};
-  for(TString lep : leps) {
-    PlottingCard_t card("mt"+lep, "event", set+offset, 2, 0., 100.);
+  std::vector<TString> names = {"one","two","lep", "lead", "trail"};
+  for(TString name : names) {
+    PlottingCard_t card("mt"+name, "event", set+offset, (name == "trail" || name == "lead") ? 1 : 2, 0., (name == "lead") ? 150. : 100.);
     std::vector<std::pair<TString,TString>> systematics;
     std::vector<std::pair<ScaleUncertainty_t,ScaleUncertainty_t>> scale_sys;
     if(add_sys) {
       CLFV::Systematics sys_info;
       //add MET uncertainty approximation
-      systematics.push_back(std::pair<TString,TString>("mt"+lep+"up", "mt"+lep+"down"));
+      systematics.push_back(std::pair<TString,TString>("mt"+name+"up", "mt"+name+"down"));
       //add relevant scale uncertainties
       vector<TString> names = {"XS_LumiUC0", "XS_LumiUC1", "XS_LumiUC2", "XS_Z", "XS_WW", "XS_ttbar"};
       for(TString name : names) {
@@ -957,6 +961,7 @@ Int_t print_mva(int set, bool add_sys = false, bool all_versions = false, int ve
   if(!dataplotter_) return 1;
   const Int_t offset = get_offset();
   const bool same_flavor = selection_ == "ee" || selection_ == "mumu";
+  const bool is_emu = selection_ == "emu";
   Int_t status(0);
   TString hist = "mva";
   if(version < 0) {
@@ -987,7 +992,7 @@ Int_t print_mva(int set, bool add_sys = false, bool all_versions = false, int ve
 
     if(all_versions) { //print additional BDT distributions
       {
-        PlottingCard_t card_1((hist+"_1").Data(), "event", set+offset, 40, -0.8, 0.5, (selection_.Contains("tau")) ? 0. : 2., (blind) ? 1. : -1.);
+        PlottingCard_t card_1((hist+"_1").Data(), "event", set+offset, 40, (is_emu) ? 0. : -0.8, (is_emu) ? 1. : 0.5, (selection_.Contains("tau")) ? 0. : 2., (blind) ? 1. : -1.);
         dataplotter_->logY_ = logY;
         c = dataplotter_->print_stack(card_1);
         if(c) DataPlotter::Empty_Canvas(c);
@@ -1010,7 +1015,7 @@ Int_t print_mva(int set, bool add_sys = false, bool all_versions = false, int ve
     }
   }
   if(add_sys) {
-    PlottingCard_t card_sys((hist+"_0").Data(), "systematic", set+offset, 0, 0., 1., (selection_.Contains("tau")) ? 0.5 : 2., 1.);
+    PlottingCard_t card_sys((hist+"_0").Data(), "systematic", set+offset, 0, 0., 1., (selection_.Contains("tau")) ? 0.5 : 2., (blind) ? 1. : -1.);
     dataplotter_->logY_ = 0;
     card_sys.sys_list_ = sys;
     card_sys.scale_sys_list_ = scale_sys;

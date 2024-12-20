@@ -18,7 +18,7 @@ bool useMultiDim_   = true ;
 bool includeSys_    = false; //FIXME: restore to true (needs re-histogramming) -- flag to ignore most systematics
 bool twoSidedSys_   = true ; //write both up and down for each rate systematic
 bool addESShifts_   = true ; //include constrained parameters for the energy scale uncertainties
-bool useMCBkg_      = false; //use the background MC to create background template PDFs
+bool useMCBkg_      = true ; //use the background MC to create background template PDFs
 float zmumu_scale_  =   -1.; //scale to Z->ee/mumu distribution if using MC templates
 bool printPlots_    = true ;
 bool fitSideBands_  = true ; //fit only the data sidebands
@@ -332,7 +332,7 @@ Int_t convert_individual_bemu_to_combine(int set = 8, TString selection = "zemu"
   }
 
   // Create an observable for this category
-  RooRealVar* lepm = new RooRealVar(Form("lepm_%i", set), "M_{e#mu}", (xmin+xmax)/2., xmin, xmax);
+  RooRealVar* lepm = new RooRealVar(Form("lepm_%i", set), "M_{e#mu}", (xmin+xmax)/2., xmin, xmax, "GeV/c^{2}");
   int low_bin  = std::max(1, std::min(data->GetNbinsX(), data->FindBin(xmin+1.e-3)));
   int high_bin = std::max(1, std::min(data->GetNbinsX(), data->FindBin(xmax-1.e-3)));
   lepm->setBins(high_bin - low_bin + 1);
