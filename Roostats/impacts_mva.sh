@@ -255,7 +255,7 @@ if [[ "${PLOTONLY}" == "" ]]; then
     fi
     if [[ "${ZEMUARG}" != "" ]]; then
         echo "Adding fit arguments for Z->emu fits"
-        FITADDITIONAL="${FITADDITIONAL} --cminDefaultMinimizerStrategy 0 --X-rtd MINIMIZER_freezeDisassociatedParams --X-rtd REMOVE_CONSTANT_ZERO_POINT=1 --X-rtd MINIMIZER_multiMin_hideConstants"
+        FITADDITIONAL="${FITADDITIONAL} --cminDefaultMinimizerStrategy 0 --X-rtd MINIMIZER_freezeDisassociatedParams --X-rtd REMOVE_CONSTANT_ZERO_POINT=1 --X-rtd MINIMIZER_multiMin_hideConstants --X-rtd MINIMIZER_multiMin_maskConstraints --X-rtd MINIMIZER_multiMin_maskChannels=2"
     else
         FITADDITIONAL="--cminApproxPreFitTolerance 0.1 --cminPreScan --cminPreFit 1 --cminDefaultMinimizerStrategy 0"
     fi

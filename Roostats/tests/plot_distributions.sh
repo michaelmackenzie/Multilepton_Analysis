@@ -11,6 +11,7 @@ Help() {
     echo " --ignoresys      : Don't save shape uncertainties in output (for debugging)"
     echo " --skipworkspace  : Don't recreate workspace for input data card"
     echo " --plotonly       : Only make plots"
+    echo " --plotparams     : Make plots of all fit parameters"
     echo " --zemu           : Assume Z->e+mu processing"
     echo " --tag            : Tag for output results"
     echo " --help      (-h ): Print this information"
@@ -23,6 +24,7 @@ FITARG=""
 IGNORESYS=""
 SKIPWORKSPACE=""
 PLOTONLY=""
+PLOTPARAMS=""
 ZEMU=""
 TAG=""
 
@@ -53,6 +55,8 @@ do
         SKIPWORKSPACE="d"
     elif [[ "${var}" == "--plotonly" ]]; then
         PLOTONLY="d"
+    elif [[ "${var}" == "--plotparams" ]]; then
+        PLOTPARAMS="d"
     elif [[ "${var}" == "--zemu" ]]; then
         ZEMU="d"
     elif [[ "${CARD}" != "" ]]; then
@@ -88,7 +92,7 @@ fi
 
 FITARG="${FITARG} --saveShapes --cminDefaultMinimizerStrategy 0 --cminApproxPreFitTolerance 0.1 --cminPreScan --cminPreFit 1 --rMin -${RRANGE} --rMax ${RRANGE}"
 if [[ "${ZEMU}" != "" ]]; then
-    FITARG="${FITARG} --cminRunAllDiscreteCombinations --X-rtd MINIMIZER_freezeDisassociatedParams --X-rtd REMOVE_CONSTANT_ZERO_POINT=1 --X-rtd MINIMIZER_multiMin_hideConstants"
+    FITARG="${FITARG} --X-rtd MINIMIZER_freezeDisassociatedParams --X-rtd REMOVE_CONSTANT_ZERO_POINT=1 --X-rtd MINIMIZER_multiMin_hideConstants"
 fi
 if [[ "${IGNORESYS}" == "" ]]; then
     FITARG="${FITARG} --saveWithUncertainties"
@@ -112,4 +116,7 @@ else
     root.exe -q -b "${CMSSW_BASE}/src/CLFVAnalysis/Roostats/tools/plot_bemu.C(\"${FILE}\", \"${FIGUREPATH}\", ${UNBLIND})"
 fi
 
+if [[ "${PLOTPARAMS}" ]]; then
+    root.exe -q -b "${CMSSW_BASE}/src/CLFVAnalysis/Roostats/tools/plot_combine_fit_params.C(\"${FILE}\", \"${FIGUREPATH}_params\")"
+fi
 echo "Finished running distribution plotting"

@@ -7,6 +7,8 @@ bool print_stacks_ = true ; //print stacked plots
 bool debug_        = false; //print debug info
 bool do_single_    = false; //test printing a single histogram
 bool do_run2_      = true ; //print Run 2 inclusive histograms
+bool is_prelim_    = true ;
+TString file_type_ = "pdf";
 
 
 //------------------------------------------------------------------------------------------
@@ -35,6 +37,36 @@ double gmin(TGraph* g, double cutoff = 0.01) {
     min_val = (min_val < 0.) ? val : min(min_val, val);
   }
   return max(cutoff, min_val);
+}
+
+void draw_cms_label() {
+    //CMS prelim drawing
+    TText cmslabel;
+    cmslabel.SetNDC();
+    cmslabel.SetTextColor(1);
+    cmslabel.SetTextSize(0.07);
+    cmslabel.SetTextAlign(11);
+    cmslabel.SetTextAngle(0);
+    cmslabel.SetTextFont(61);
+    cmslabel.DrawText(0.10, 0.907, "CMS");
+    if(is_prelim_) {
+      cmslabel.SetTextFont(52);
+      cmslabel.SetTextSize(0.76*cmslabel.GetTextSize());
+      cmslabel.DrawText(0.19, 0.907, "Preliminary");
+    }
+}
+
+void draw_luminosity(int year = -1) {
+  TLatex label;
+  label.SetNDC();
+  label.SetTextFont(42);
+  // label.SetTextColor(1);
+  label.SetTextSize(0.05);
+  label.SetTextAlign(31);
+  label.SetTextAngle(0);
+  TString period = (year > 2000) ? Form("%i", year) : "Run 2";
+  const double lum = (year == 2016) ? 36.33 : (year == 2017) ? 41.48 : (year == 2018) ? 59.83 : 137.64;
+  label.DrawLatex(0.97, 0.907, Form("%s, %.0f fb^{-1} (13 TeV)",period.Data(),lum));
 }
 
 //------------------------------------------------------------------------------------------
@@ -94,12 +126,13 @@ int print_stack(vector<TDirectoryFile*> dirs, TString tag, TString outdir) {
     cout << "Data not found for tag " << tag.Data() << endl;
     return 1;
   }
+  const int year = (tag.Contains("2016")) ? 2016 : (tag.Contains("2017")) ? 2017 : (tag.Contains("2018")) ? 2018 : -1;
 
   //Build the stack
   THStack* stack = new THStack("hstack", ("stack_" + tag).Data());
   vector<TString> names = {"HiggsBkg", "Top", "OtherVB", "ZToeemumu", "Embedding", "MisID", "QCD"};
   vector<TString> titles = {"H->#tau#tau/WW", "Top", "Other VB", "Z->ee#mu#mu", "#tau#tau Embedding", "Jet->#tau", "QCD"};
-  vector<int> colors = {kAtlantic, kYellow-7, kViolet-9, kRed-2, kRed-7, kGreen-7, kOrange+6};
+  vector<int> colors = {kCMSColor_9, kCMSColor_10, kCMSColor_8, kCMSColor_6, kCMSColor_7, kCMSColor_2, kCMSColor_1}; //kAtlantic, kYellow-7, kViolet-9, kRed-2, kRed-7, kGreen-7, kOrange+6};
   for(unsigned i = 0; i < names.size(); ++i) {
     TString name = names[i];
     auto h = get_hist(dirs, name.Data());
@@ -341,16 +374,23 @@ int print_stack(vector<TDirectoryFile*> dirs, TString tag, TString outdir) {
   line_2->SetLineStyle(kDashed);
   line_2->Draw("same");
 
+  //Add the CMS label
+  pad1->cd();
+  draw_cms_label();
+  draw_luminosity(year);
+
   //Print a linear and a log version of the distribution
   double min_val = std::max(0.1, std::min(gmin(gdata), hmin(htotal)));
   double max_val = std::max(gdata->GetMaximum(), hmax(htotal));
   htotal->GetYaxis()->SetRangeUser(0., 1.5*max_val);
-  c->SaveAs(Form("%s%s_stack.png", outdir.Data(), tag.Data()));
+  c->SaveAs(Form("%s%s_stack.%s", outdir.Data(), tag.Data(), file_type_.Data()));
+  c->SaveAs(Form("%s%s_stack.root", outdir.Data(), tag.Data()));
   double plot_min = 0.01*min_val;
   double plot_max = plot_min*pow(10, 1.5*log10(max_val/plot_min));
   htotal->GetYaxis()->SetRangeUser(plot_min, plot_max);
   pad1->SetLogy();
-  c->SaveAs(Form("%s%s_stack_logy.png", outdir.Data(), tag.Data()));
+  c->SaveAs(Form("%s%s_stack_logy.%s", outdir.Data(), tag.Data(), file_type_.Data()));
+  c->SaveAs(Form("%s%s_stack_logy.root", outdir.Data(), tag.Data()));
 
   //Clean up after printing
   delete c;
@@ -380,6 +420,7 @@ int print_hist(vector<TDirectoryFile*> dirs, TString tag, TString outdir) {
     cout << "Data not found for tag " << tag.Data() << endl;
     return 1;
   }
+  const int year = (tag.Contains("2016")) ? 2016 : (tag.Contains("2017")) ? 2017 : (tag.Contains("2018")) ? 2018 : -1;
 
   //N(data) points, ensure it matches the background model
   const int nbins = gdata->GetN();
@@ -604,16 +645,23 @@ int print_hist(vector<TDirectoryFile*> dirs, TString tag, TString outdir) {
   line_2->SetLineStyle(kDashed);
   line_2->Draw("same");
 
+  //Add the CMS label
+  pad1->cd();
+  draw_cms_label();
+  draw_luminosity(year);
+
   //Print a linear and a log version of the distribution
   double min_val = std::max(0.1, std::min(gmin(gdata), hmin(htotal)));
   double max_val = std::max(gdata->GetMaximum(), hmax(htotal));
   htotal->GetYaxis()->SetRangeUser(0., 1.2*max_val);
-  c->SaveAs(Form("%s%s.png", outdir.Data(), tag.Data()));
+  c->SaveAs(Form("%s%s.%s", outdir.Data(), tag.Data(), file_type_.Data()));
+  c->SaveAs(Form("%s%s.root", outdir.Data(), tag.Data()));
   double plot_min = std::min(std::max(0.2, 0.2*hmax(hsignal)), 0.2*min_val);
   double plot_max = plot_min*pow(10, 1.7*log10(max_val/plot_min));
   htotal->GetYaxis()->SetRangeUser(plot_min, plot_max);
   pad1->SetLogy();
-  c->SaveAs(Form("%s%s_logy.png", outdir.Data(), tag.Data()));
+  c->SaveAs(Form("%s%s_logy.%s", outdir.Data(), tag.Data(), file_type_.Data()));
+  c->SaveAs(Form("%s%s_logy.root", outdir.Data(), tag.Data()));
 
   //Clean up after printing
   delete c;

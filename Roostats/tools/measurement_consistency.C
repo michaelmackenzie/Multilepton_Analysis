@@ -159,11 +159,19 @@ int measurement_consistency(vector<config_t> configs, //info for each entry
     for(auto file : file_list) file->Close();
   } else { //use fixed values
     if(selection == "zemu" && nfiles == 4) {
-      const double scale = 2.62e-7;
-      obs[0] = -0.469*scale; up[0] = 1.359*scale; down[0] = 2.092*scale;
-      obs[1] =  0.169*scale; up[1] = 0.576*scale; down[1] = 0.545*scale;
-      obs[2] =  0.005*scale; up[2] = 0.577*scale; down[2] = 0.766*scale;
-      obs[3] =  0.055*scale; up[3] = 0.386*scale; down[3] = 0.427*scale;
+      // --------------- v01 values -----------------------
+      // const double scale = 2.62e-7;
+      // obs[0] = -0.469*scale; up[0] = 1.359*scale; down[0] = 2.092*scale;
+      // obs[1] =  0.169*scale; up[1] = 0.576*scale; down[1] = 0.545*scale;
+      // obs[2] =  0.005*scale; up[2] = 0.577*scale; down[2] = 0.766*scale;
+      // obs[3] =  0.055*scale; up[3] = 0.386*scale; down[3] = 0.427*scale;
+
+      // --------------- v02 values -----------------------
+      const double scale = 1.e-7;
+      obs[0] = -3.43907 *scale; up[0] = 2.81593 *scale; down[0] = 2.61002 *scale;
+      obs[1] = 0.438412 *scale; up[1] = 1.41642 *scale; down[1] = 1.41004 *scale;
+      obs[2] = 0.0225178*scale; up[2] = 1.48628 *scale; down[2] = 1.45772 *scale;
+      obs[3] = -0.13153 *scale; up[3] = 0.990831*scale; down[3] = 0.964946*scale;
       y[0] = 4; yerr[0] = y_size;
       y[1] = 3; yerr[1] = y_size;
       y[2] = 2; yerr[2] = y_size;

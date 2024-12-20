@@ -1,5 +1,6 @@
 //Script to process limits for channels/years/etc. and plot the limits
 double scale_ = 1.;
+TString dir_ = "";
 bool speed_limit_  = true; //use Combine arguments to speed up limit calculation
 bool more_precise_ = false; //more precise steps in the minimizations
 bool preliminary_  = true;
@@ -39,7 +40,7 @@ int make_combine_limit_plot_general(vector<config_t> configs, //info for each en
   //Loop through each input configuration
   for(config_t config : configs) {
     vector<int> years = config.years_;
-    TString card      = config.name_;
+    TString name      = config.name_;
     const double rmin = config.rmin_;
     const double rmax = config.rmax_;
 
@@ -47,7 +48,7 @@ int make_combine_limit_plot_general(vector<config_t> configs, //info for each en
     if(years.size() == 0) { cout << "No years given!\n"; return 2; }
     TString year_string = Form("%i", years[0]);
     for(int i = 1; i < years.size(); ++i) year_string += Form("_%i", years[i]);
-    TString dir = Form("datacards/%s", year_string.Data());
+    TString dir = (dir_ == "") ? Form("datacards/%s", year_string.Data()) : dir_;
     cout << ">>> Using directory " << dir.Data() << endl;
     gSystem->cd(dir.Data());
 
@@ -70,26 +71,27 @@ int make_combine_limit_plot_general(vector<config_t> configs, //info for each en
       if(more_precise_) additional_command += " --rAbsAcc 0.0005 --rRelAcc 0.0005 --cminDefaultMinimizerTolerance 0.001 --cminDiscreteMinTol 0.0001";
 
       //Run combine on each datacard
-      printf("Processing combine card %s/combine_%s.txt\n", dir.Data(), card.Data());
-      TString command = Form("combine -d combine_%s.txt %s --name _%s --rMin %.1f --rMax %.1f %s",
+      TString card = (name.BeginsWith("datacard")) ? name + ".txt" : "combine_" + name + ".txt";
+      printf("Processing combine card %s/%s\n", dir.Data(), card.Data());
+      TString command = Form("combine -d %s %s --name _%s --rMin %.1f --rMax %.1f %s",
                              card.Data(),
                              (doObs) ? "" : "-t -1 --run blind",
-                             card.Data(),
+                             name.Data(),
                              rmin, rmax,
                              additional_command.Data());
       printf(">>> %s\n", command.Data());
       gSystem->Exec(command.Data());
     }
 
-    TFile* f = TFile::Open(Form("higgsCombine_%s.AsymptoticLimits.mH120.root", card.Data()), "READ");
+    TFile* f = TFile::Open(Form("higgsCombine_%s.AsymptoticLimits.mH120.root", name.Data()), "READ");
     if(!f) return 4;
     file_list.push_back(f);
     TTree* t = (TTree*) f->Get("limit");
     if(!t) {
-      cout << "Tree for card name " << card.Data() << " not found\n";
+      cout << "Tree for card name " << name.Data() << " not found\n";
       return 5;
     }
-    t->SetName(Form("limits_%s", card.Data()));
+    t->SetName(Form("limits_%s", name.Data()));
     tree_list.push_back(t);
     gSystem->cd("../..");
   }

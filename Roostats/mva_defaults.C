@@ -22,6 +22,6 @@ int  apply_signal_bias_     = 1; //correct for signal included in the data-drive
 int  qcd_wj_bkg_mode_       = 1; //How to handle low stats W+jets in emu backgrounds: 0: do nothing; 1: remove 0-jet sample, add QCD norm uncertainty
 int  higgs_bkg_             = 1; //include higgs backgrounds
 int  qcd_nc_mode_           = 0; //QCD non-closure uncertainty: 0: ignore, following H->tautau AN; 1: include as an additional uncertainty
-bool add_groups_            = false; //create nuisance groups for systematics testing
+bool add_groups_            = true; //create nuisance groups for systematics testing
 
 #endif

@@ -1,14 +1,16 @@
 //plot envelope for Z->e+mu fit
-bool remove_zero_point_ = false;
+bool remove_zero_point_ = true;
 
-int plot_envelope(const int set = 13, const char* file = "", const char* tag = "", const int verbose = 0) {
+int plot_envelope(const int set = 13, const char* file = "", const char* tag = "",
+                  const bool george = false, const bool obs = false,
+                  const int verbose = 0) {
 
   //create a list of scan files for the set
   vector<TString> files;
   if(!file || TString(file) == "") {
     int icat = 0;
     while(icat < 10) {
-      const char* file = Form("higgsCombine_env_%i_cat_%i.MultiDimFit.mH125.123456.root", set, icat);
+      const char* file = Form("higgsCombine_env_%i_cat_%i.MultiDimFit.mH125%s.root", set, icat, (obs) ? "" : ".123456");
       if(!gSystem->AccessPathName(file)) {
         cout << "Adding " << file << endl;
         files.push_back(file);
@@ -16,7 +18,7 @@ int plot_envelope(const int set = 13, const char* file = "", const char* tag = "
       ++icat;
     }
     //add the profiled index version
-    files.push_back(Form("higgsCombine_env_%i_tot.MultiDimFit.mH125.123456.root", set));
+    files.push_back(Form("higgsCombine_env_%i_tot.MultiDimFit.mH125%s.root", set, (obs) ? "" : ".123456"));
   } else { //use the given file
     files.push_back(file);
   }
@@ -25,6 +27,7 @@ int plot_envelope(const int set = 13, const char* file = "", const char* tag = "
   vector<TTree*> trees;
   vector<TGraph*> graphs;
   vector<TGraph*> graphs_best;
+  vector<TString> names;
   int index = 0;
   double min_val(1.e20), max_val(-1.e20);
   double r_fit, nll_fit(1.e20);
@@ -54,7 +57,7 @@ int plot_envelope(const int set = 13, const char* file = "", const char* tag = "
       }
 
       //entry 0 is the best fit result for this scan
-      if(entry == 0 && nll_val < nll_fit) {
+      if(entry == 0 /*&& nll_val < nll_fit*/) {
         r_fit   = r;
         nll_fit = nll_val;
         TGraph* g = new TGraph(1, &r_fit, &nll_fit);
@@ -72,6 +75,40 @@ int plot_envelope(const int set = 13, const char* file = "", const char* tag = "
     TGraph* g = new TGraph(nentries-1, rvals, nlls);
     g->SetName(Form("gNLL_%i", index));
     graphs.push_back(g);
+
+    //Get the name of the PDF if possible
+    TString name = Form("PDF_%i", index);
+    if(george) {
+      TFile* ws_file = TFile::Open(Form("workspace_mk2bkg_v1_bin%i.root", set), "READ");
+      if(ws_file) {
+        auto ws = (RooWorkspace*) ws_file->Get("workspace_background");
+        auto multipdf = (RooMultiPdf*) ws->pdf(Form("multipdf_bin%i", set));
+        auto pdf = multipdf->getPdf(index);
+        if(pdf) {
+          TString pdf_name = pdf->GetName();
+          ws_file->Close();
+          name = "";
+          if(pdf_name.Contains("_gs")) name += "Gaussian + ";
+          if(pdf_name.Contains("pol1")) name += "Poly (1)";
+          if(pdf_name.Contains("pol2")) name += "Poly (2)";
+          if(pdf_name.Contains("pol3")) name += "Poly (3)";
+          if(pdf_name.Contains("pol4")) name += "Poly (4)";
+          if(pdf_name.Contains("cheb1")) name += "Chebychev (1)";
+          if(pdf_name.Contains("cheb2")) name += "Chebychev (2)";
+          if(pdf_name.Contains("cheb3")) name += "Chebychev (3)";
+          if(pdf_name.Contains("cheb4")) name += "Chebychev (4)";
+          if(pdf_name.Contains("cheb5")) name += "Chebychev (5)";
+          if(pdf_name.Contains("plaw1")) name += "Power (1)";
+          if(pdf_name.Contains("plaw2")) name += "Power (2)";
+          if(pdf_name.Contains("plaw3")) name += "Power (3)";
+          if(pdf_name.Contains("exp1")) name += "Expo (1)";
+          if(pdf_name.Contains("exp2")) name += "Expo (2)";
+          if(pdf_name.Contains("exp3")) name += "Expo (3)";
+        }
+      }
+    }
+    names.push_back(name);
+    ++index;
   }
 
   //remove the minimum NLL from all functions
@@ -90,17 +127,23 @@ int plot_envelope(const int set = 13, const char* file = "", const char* tag = "
   const double max_allowed = 20;
   max_val = min(max_allowed + min_val, max_val);
 
+  //Create a legend
+  TLegend* leg = new TLegend(0.11, 0.65, 0.89, 0.89);
+  leg->SetNColumns(3);
+  leg->SetLineWidth(0);
+  leg->SetFillColor(0);
+  leg->SetFillStyle(0);
+
   //Create NLL plot with envelope
   TCanvas* c = new TCanvas();
   TGraph* tot = graphs.back();
-  tot->SetLineColor(kBlue);
-  tot->SetMarkerColor(kBlue);
-  tot->SetLineWidth(3);
-  tot->SetMarkerSize(0.8);
-  tot->SetMarkerStyle(20);
+  tot->SetLineColor(kBlack);
+  tot->SetMarkerColor(kBlack);
+  tot->SetLineWidth(2);
+  tot->SetLineStyle(kDashed);
   tot->Draw("AL");
   const double buffer = 0.05*(max_val-min_val);
-  tot->GetYaxis()->SetRangeUser(min_val-buffer, max_val+buffer);
+  tot->GetYaxis()->SetRangeUser(min_val-buffer, max_val+buffer*1.1);
 
   TGraph* tot_best = graphs_best.back();
   tot_best->SetMarkerColor(kBlue+1);
@@ -109,19 +152,22 @@ int plot_envelope(const int set = 13, const char* file = "", const char* tag = "
   tot_best->Draw("P");
   tot_best->Print("v");
 
-  const int colors[] = {kRed, kGreen, kOrange, kViolet, kYellow-3};
+  const int colors[] = {kRed-6, kGreen-6, kOrange-4, kViolet-4, kYellow-3, kAtlantic, kSpring+5, kOrange+1};
   const int ncolors = sizeof(colors)/sizeof(*colors);
   for(int igraph = 0; igraph < graphs.size() - 1; ++igraph) {
     TGraph* g = graphs[igraph];
+    leg->AddEntry(g, names[igraph].Data(), "PL");
     const int color = colors[igraph % ncolors];
     g->SetLineColor(color);
     g->SetMarkerColor(color);
     g->SetLineWidth(2);
+    g->SetLineStyle((igraph >= ncolors) ? kDashed : kSolid);
     g->SetMarkerSize(0.8);
     g->SetMarkerStyle(20);
     g->Draw("PL");
 
     TGraph* g_best = graphs_best[igraph];
+    if(!g_best) continue;
     g_best->SetMarkerColor(color+1);
     g_best->SetMarkerSize(2.);
     g_best->SetMarkerStyle(kFullStar);
@@ -130,6 +176,8 @@ int plot_envelope(const int set = 13, const char* file = "", const char* tag = "
   }
 
   tot->Draw("L");
+  leg->AddEntry(tot, "Envelope", "L");
+  leg->Draw("same");
 
   printf("Best fit r = %.3f\n", r_fit);
   //Add 1 and 2 sigma lines
@@ -141,7 +189,7 @@ int plot_envelope(const int set = 13, const char* file = "", const char* tag = "
       TLine* line = new TLine(x, min_val-buffer, x, y+min_val);
       line->SetLineWidth(2);
       line->SetLineStyle(kDashed);
-      line->SetLineColor(kBlack);
+      line->SetLineColor(kBlue);
       line->Draw("same");
       cout << "Found 2 sigma edge at r = " << x << " ( " << y_prev << " - " << y << ")\n";
     }

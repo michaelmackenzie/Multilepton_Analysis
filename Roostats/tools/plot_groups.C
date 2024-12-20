@@ -1,7 +1,7 @@
 //Plot uncertainty impacts from standard groups
 #include "extract_impact.C"
 
-int plot_groups(const char* file, const char* tag = "", const bool doObs = false, const bool run = true) {
+int plot_groups(const char* file, const char* tag = "_zmutau_v09j", const bool doObs = false, const bool run = true) {
 
   vector<TString> groups = {
                             "EmbedUnfold_Total",
@@ -25,39 +25,42 @@ int plot_groups(const char* file, const char* tag = "", const bool doObs = false
                             "TauEleES_Total"   ,
                             "JER_JES"          ,
                             "Theory_Total"     ,
-                            "QCD_Stat"         ,
-                            // "QCD_NC"           ,
-                            "QCD_Bias"         ,
-                            "JetToTau_Stat"    ,
-                            "JetToTau_NC"      ,
-                            "JetToTau_Bias"    ,
-                            "JetToTau_Comp"    ,
+                            // "QCD_Stat"         ,
+                            // // "QCD_NC"           ,
+                            // "QCD_Bias"         ,
+                            "QCD_Total"        ,
+                            // "JetToTau_Stat"    ,
+                            // "JetToTau_NC"      ,
+                            // "JetToTau_Bias"    ,
+                            // "JetToTau_Comp"    ,
+                            "JetToTau_Total"   ,
                             "autoMCStats"      ,
                             "All_Systematics"
 
   };
 
   if(run) {
-    TString args = "-M FitDiagnostics --rMin -10 --rMax 10 --stepSize 0.05 --setRobustFitTolerance 0.001 --setCrossingTolerance 5e-6";
+    TString args = "-M FitDiagnostics --rMin -10 --rMax 20 --stepSize 0.02 --setRobustFitTolerance 0.001 --setCrossingTolerance 5e-6 --cminDefaultMinimizerTolerance 0.001";
     args += " --cminDefaultMinimizerStrategy=0 --cminApproxPreFitTolerance 0.1 --cminPreScan --cminPreFit 1";
+    cout << "\n>>> Performing the nominal fit\n";
     gSystem->Exec(Form("combine %s -n _groupFit_Test%s_Nominal  -d %s %s", args.Data(), tag, file, (doObs) ? "" : "-t -1"));
     for(TString group : groups) {
       const char* output_name = Form("fitDiagnostics_groupFit_Test%s_%s.root", tag, group.Data());
       //remove previous fit results if there
-      gSystem->Exec("[ -f %s ] && rm %s", output_name, output_name);
+      gSystem->Exec(Form("[ -f %s ] && rm %s", output_name, output_name));
       if(group == "All_Systematics") {
-        cout << "Fitting without any systematics\n";
+        cout << "\n>>> Fitting without any systematics\n";
         gSystem->Exec(Form("combine %s -n _groupFit_Test%s_%s  -d %s %s --freezeParameters allConstrainedNuisances",
                            args.Data(), tag, group.Data(), file, (doObs) ? "" : "-t -1"));
       } else {
-        cout << "Fitting without group " << group.Data() << endl;
+        cout << "\n>>> Fitting without group " << group.Data() << endl;
         gSystem->Exec(Form("combine %s -n _groupFit_Test%s_%s  -d %s %s --freezeNuisanceGroups %s",
                            args.Data(), tag, group.Data(), file, (doObs) ? "" : "-t -1", group.Data()));
       }
     }
   }
 
-  //Add a pure statistics uncertainty group
+  //Add a pure statistical uncertainty group, approximated using the nominal and no systematics evaluations
   groups.push_back("Statistical");
 
 
@@ -80,10 +83,14 @@ int plot_groups(const char* file, const char* tag = "", const bool doObs = false
       //Get information for nominal and all systematics impact
       const int nom_index = n;
       const int sys_index = n - 2; //FIXME: All_Systematics assumed second to last for now
-      const double nom_up   = ups  [nom_index] - rs[nom_index];
-      const double nom_down = downs[nom_index] - rs[nom_index];
-      const double sys_up   = ups  [sys_index] - rs[sys_index];
-      const double sys_down = downs[sys_index] - rs[sys_index];
+      const double nom_up   = ups  [nom_index];
+      const double nom_down = downs[nom_index];
+      const double sys_up   = ups  [sys_index];
+      const double sys_down = downs[sys_index];
+      // const double nom_up   = ups  [nom_index] - rs[nom_index];
+      // const double nom_down = downs[nom_index] - rs[nom_index];
+      // const double sys_up   = ups  [sys_index] - rs[sys_index];
+      // const double sys_down = downs[sys_index] - rs[sys_index];
       rs   [index] = rs[nom_index];
       ups  [index] = std::sqrt(max(0., std::pow(nom_up  ,2) - std::pow(sys_up  , 2)));
       downs[index] = std::sqrt(max(0., std::pow(nom_down,2) - std::pow(sys_down, 2)));
@@ -108,6 +115,15 @@ int plot_groups(const char* file, const char* tag = "", const bool doObs = false
     min_val = min(min_val, rs[index]-downs[index]);
     min_val = min(min_val, rs[n]-downs[n]);
   }
+
+  // Print summary info
+  printf("Summary info        :   r     up    down  (up/tot down/tot)\n");
+
+  for(int index = 0; index <= n; ++index) {
+    TString group = (index < n) ? groups[index] : "Total";
+    printf("%-20s: %.3f +%.3f -%.3f (%.3f -%.3f)\n", group.Data(), rs[index], ups[index], downs[index], ups[index]/ups[n], downs[index]/downs[n]);
+  }
+
 
   TGraph* g = new TGraphAsymmErrors(n+1, rs, ys, ups, downs, yup, ydown);
   TCanvas c("c", "c", 700, 1000);
