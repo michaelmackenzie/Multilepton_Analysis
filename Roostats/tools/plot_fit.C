@@ -2,13 +2,16 @@
 //create a fit diagnostics root file via:
 //$> combine -M FitDiagnostics -d <input card/workspace> --saveShapes --saveWithUncertainties [additional options]
 
-bool unblind_      = false;
-bool print_stacks_ = true ; //print stacked plots
-bool debug_        = false; //print debug info
-bool do_single_    = false; //test printing a single histogram
-bool do_run2_      = true ; //print Run 2 inclusive histograms
-bool is_prelim_    = true ;
-TString file_type_ = "pdf";
+bool unblind_      = false  ;
+int  err_mode_     =  1     ; //errors in the pulls: 0: sqrt(data^2 + fit^2); 1: sqrt(data^2 - fit^2)
+int  print_stacks_ = -1     ; //print stacked plots: 0 don't, 1 do, -1 only stacks
+bool debug_        = false  ; //print debug info
+bool do_single_    = false  ; //test printing a single histogram
+bool do_run2_      = true   ; //print Run 2 inclusive histograms
+bool only_run2_    = true   ; //skip individual year plots
+TString only_mode_ = "fit_s"; //fit version to print ("" to ignore)
+bool is_prelim_    = true   ;
+TString file_type_ = "pdf"  ;
 
 
 //------------------------------------------------------------------------------------------
@@ -64,9 +67,9 @@ void draw_luminosity(int year = -1) {
   label.SetTextSize(0.05);
   label.SetTextAlign(31);
   label.SetTextAngle(0);
-  TString period = (year > 2000) ? Form("%i", year) : "Run 2";
+  TString period = (year > 2000) ? Form("%i, ", year) : "";
   const double lum = (year == 2016) ? 36.33 : (year == 2017) ? 41.48 : (year == 2018) ? 59.83 : 137.64;
-  label.DrawLatex(0.97, 0.907, Form("%s, %.0f fb^{-1} (13 TeV)",period.Data(),lum));
+  label.DrawLatex(0.97, 0.907, Form("%s%.0f fb^{-1} (13 TeV)",period.Data(),lum));
 }
 
 //------------------------------------------------------------------------------------------
@@ -131,8 +134,8 @@ int print_stack(vector<TDirectoryFile*> dirs, TString tag, TString outdir) {
   //Build the stack
   THStack* stack = new THStack("hstack", ("stack_" + tag).Data());
   vector<TString> names = {"HiggsBkg", "Top", "OtherVB", "ZToeemumu", "Embedding", "MisID", "QCD"};
-  vector<TString> titles = {"H->#tau#tau/WW", "Top", "Other VB", "Z->ee#mu#mu", "#tau#tau Embedding", "Jet->#tau", "QCD"};
-  vector<int> colors = {kCMSColor_9, kCMSColor_10, kCMSColor_8, kCMSColor_6, kCMSColor_7, kCMSColor_2, kCMSColor_1}; //kAtlantic, kYellow-7, kViolet-9, kRed-2, kRed-7, kGreen-7, kOrange+6};
+  vector<TString> titles = {"Higgs", "Top quark", "Other VB", "Z#rightarrowll", "#tau#tau", "j#rightarrow#tau_{h}", "QCD"};
+  vector<int> colors = {kCMSColor_9, kCMSColor_10, kCMSColor_8, kCMSColor_6, kCMSColor_7, kCMSColor_1, kCMSColor_2}; //kAtlantic, kYellow-7, kViolet-9, kRed-2, kRed-7, kGreen-7, kOrange+6};
   for(unsigned i = 0; i < names.size(); ++i) {
     TString name = names[i];
     auto h = get_hist(dirs, name.Data());
@@ -165,8 +168,8 @@ int print_stack(vector<TDirectoryFile*> dirs, TString tag, TString outdir) {
   TPad* pad2 = new TPad("pad2_stack", "pad2_stack", 0., 0.20, 1., 0.40);
   TPad* pad3 = new TPad("pad3_stack", "pad3_stack", 0., 0.00, 1., 0.20);
   pad1->SetRightMargin(0.03); pad2->SetRightMargin(0.03); pad3->SetRightMargin(0.03);
-  pad1->SetBottomMargin(0.02); pad2->SetBottomMargin(0.05); pad3->SetBottomMargin(0.25);
-  pad2->SetTopMargin(0.03); pad3->SetTopMargin(0.02);
+  pad1->SetBottomMargin(0.02); pad2->SetBottomMargin(0.07); pad3->SetBottomMargin(0.28);
+  pad2->SetTopMargin(0.05); pad3->SetTopMargin(0.05);
   pad1->Draw(); pad2->Draw(); pad3->Draw();
 
   // Draw the data and fit components
@@ -189,9 +192,10 @@ int print_stack(vector<TDirectoryFile*> dirs, TString tag, TString outdir) {
   htotal->SetTitle("");
   htotal->SetXTitle("");
   htotal->SetYTitle("Events / Bin");
-  htotal->GetYaxis()->SetTitleSize(0.05);
-  htotal->GetYaxis()->SetTitleOffset(0.92);
+  htotal->GetYaxis()->SetTitleSize(0.06);
+  htotal->GetYaxis()->SetTitleOffset(0.70);
   htotal->GetXaxis()->SetLabelSize(0.);
+  htotal->GetYaxis()->SetLabelSize(0.049);
 
   //Configure the background component style
   hbackground->SetLineColor(kRed);
@@ -217,22 +221,30 @@ int print_stack(vector<TDirectoryFile*> dirs, TString tag, TString outdir) {
   htotal->GetXaxis()->SetRangeUser(xmin, xmax);
 
 
-  //Add a legend
-  TLegend leg(0.13, 0.65, 0.93, 0.88);
-  leg.SetNColumns(3);
-  leg.AddEntry(gdata, "Data", "PLE");
-  leg.AddEntry(htotal, "Total", "LF");
+  //Add a legend for the summary components and one for the background stack
+  TLegend leg_sum(0.13, 0.63, 0.39, 0.88);
+  leg_sum.AddEntry(gdata, "Data", "PLE");
+  leg_sum.AddEntry(htotal, "Total", "LF");
   if(unblind_) {
-    leg.AddEntry(hbackground, "Background", "L");
-    leg.AddEntry(hsignal, "Signal", "L");
+    leg_sum.AddEntry(hbackground, "Background", "L");
+    leg_sum.AddEntry(hsignal, "Signal", "L");
   }
-  for(auto h : *(stack->GetHists())) leg.AddEntry(h);
-  leg.SetTextSize(0.05);
-  leg.SetFillStyle(0);
-  leg.SetFillColor(0);
-  leg.SetLineColor(0);
-  leg.SetLineStyle(0);
-  leg.Draw();
+  TLegend leg_bkg(0.40, 0.63, 0.93, 0.88);
+  leg_bkg.SetNColumns(2);
+  for(auto h : *(stack->GetHists())) leg_bkg.AddEntry(h);
+
+  leg_sum.SetTextSize(0.06);
+  leg_sum.SetFillStyle(0);
+  leg_sum.SetFillColor(0);
+  leg_sum.SetLineColor(0);
+  leg_sum.SetLineStyle(0);
+  leg_sum.Draw();
+  leg_bkg.SetTextSize(0.06);
+  leg_bkg.SetFillStyle(0);
+  leg_bkg.SetFillColor(0);
+  leg_bkg.SetLineColor(0);
+  leg_bkg.SetLineStyle(0);
+  leg_bkg.Draw();
 
   //Make the ratio plots
   pad2->cd();
@@ -269,8 +281,12 @@ int print_stack(vector<TDirectoryFile*> dirs, TString tag, TString outdir) {
     //Calculate the pulls, combining the data and model errors
     const double data_err_s = (y > tot_v) ? err_low : err_high;
     const double data_err_b = (y > bkg_v) ? err_low : err_high;
-    const double pull_s     = (tot_e > 0.) ? (y - tot_v) / sqrt(tot_e*tot_e + data_err_s*data_err_s) : 0.;
-    const double pull_b     = (bkg_e > 0.) ? (y - bkg_v) / sqrt(bkg_e*bkg_e + data_err_b*data_err_b) : 0.;
+    const double err_s      = (tot_e <= 0.) ? 0. : (err_mode_ == 0) ? sqrt(tot_e*tot_e + data_err_s*data_err_s) : sqrt(data_err_s*data_err_s - tot_e*tot_e);
+    const double err_b      = (bkg_e <= 0.) ? 0. : (err_mode_ == 0) ? sqrt(bkg_e*bkg_e + data_err_b*data_err_b) : sqrt(data_err_b*data_err_b - bkg_e*bkg_e);
+    if(!std::isfinite(err_s) || !std::isfinite(err_b)) printf(" %s: %s bin %i has non-finite error(s): err_s = %f; err_b = %f\n",
+                                                              __func__, tag.Data(), bin, err_s, err_b);
+    const double pull_s     = (tot_e > 0.) ? (y - tot_v) / err_s : 0.;
+    const double pull_b     = (bkg_e > 0.) ? (y - bkg_v) / err_b : 0.;
 
     //Set the points
     gRatio_s->SetPoint      (bin, x, val_s);
@@ -341,9 +357,10 @@ int print_stack(vector<TDirectoryFile*> dirs, TString tag, TString outdir) {
   hBkg_unc->SetTitle("");
   hBkg_unc->SetXTitle("");
   hBkg_unc->GetXaxis()->SetLabelSize(0.);
-  hBkg_unc->GetYaxis()->SetLabelSize(0.10);
-  hBkg_unc->GetYaxis()->SetTitleSize(0.15);
-  hBkg_unc->GetYaxis()->SetTitleOffset(0.30);
+  hBkg_unc->GetYaxis()->SetNdivisions(505);
+  hBkg_unc->GetYaxis()->SetLabelSize(0.13);
+  hBkg_unc->GetYaxis()->SetTitleSize(0.18);
+  hBkg_unc->GetYaxis()->SetTitleOffset(0.23);
   if(unblind_) hBkg_unc->SetYTitle("Data/Bkg");
   else         hBkg_unc->SetYTitle("Data/Fit");
 
@@ -356,16 +373,25 @@ int print_stack(vector<TDirectoryFile*> dirs, TString tag, TString outdir) {
   hPull->SetFillColor(kAtlantic);
   hPull->SetFillStyle(1000);
   hPull->Draw("hist");
-  hPull->GetYaxis()->SetRangeUser(-2,2);
+  hPull->GetYaxis()->SetRangeUser(-3,3);
   hPull->SetTitle("");
   hPull->SetXTitle("BDT score bin");
-  hPull->SetYTitle("#frac{(Data-Fit)}{Uncertainty}");
-  hPull->GetXaxis()->SetLabelSize(0.10);
-  hPull->GetYaxis()->SetLabelSize(0.10);
-  hPull->GetXaxis()->SetTitleSize(0.15);
-  hPull->GetYaxis()->SetTitleSize(0.15);
-  hPull->GetXaxis()->SetTitleOffset(0.75);
-  hPull->GetYaxis()->SetTitleOffset(0.29);
+  hPull->SetYTitle("#frac{(Data-Fit)}{#sigma}");
+  // if(err_mode_ == 1) hPull->SetYTitle("#frac{(Data-Fit)}{#sqrt{#sigma_{Data}^{2} - #sigma_{Fit}^{2}}}");
+
+  hPull->GetXaxis()->SetLabelSize(0.13);
+  hPull->GetYaxis()->SetNdivisions(505);
+  hPull->GetYaxis()->SetLabelSize(0.13);
+  hPull->GetXaxis()->SetTitleSize(0.18);
+  hPull->GetYaxis()->SetTitleSize(0.18);
+  hPull->GetXaxis()->SetTitleOffset(0.70);
+  hPull->GetYaxis()->SetTitleOffset(0.22);
+  // hPull->GetXaxis()->SetLabelSize(0.10);
+  // hPull->GetYaxis()->SetLabelSize(0.10);
+  // hPull->GetXaxis()->SetTitleSize(0.15);
+  // hPull->GetYaxis()->SetTitleSize(0.15);
+  // hPull->GetXaxis()->SetTitleOffset(0.75);
+  // hPull->GetYaxis()->SetTitleOffset(0.29);
 
   //Add a reference line for perfect agreement
   TLine* line_2 = new TLine(xmin, 0., xmax, 0.);
@@ -443,7 +469,7 @@ int print_hist(vector<TDirectoryFile*> dirs, TString tag, TString outdir) {
   TPad* pad3 = new TPad("pad3", "pad3", 0., 0.00, 1., 0.20);
   pad1->SetRightMargin(0.03); pad2->SetRightMargin(0.03); pad3->SetRightMargin(0.03);
   pad1->SetBottomMargin(0.02); pad2->SetBottomMargin(0.05); pad3->SetBottomMargin(0.25);
-  pad2->SetTopMargin(0.03); pad3->SetTopMargin(0.02);
+  pad2->SetTopMargin(0.03); pad3->SetTopMargin(0.05);
   pad1->Draw(); pad2->Draw(); pad3->Draw();
 
   // Draw the data and fit components
@@ -542,8 +568,12 @@ int print_hist(vector<TDirectoryFile*> dirs, TString tag, TString outdir) {
     //Calculate the pulls, combining the data and model errors
     const double data_err_s = (y > tot_v) ? err_low : err_high;
     const double data_err_b = (y > bkg_v) ? err_low : err_high;
-    const double pull_s     = (tot_e > 0.) ? (y - tot_v) / sqrt(tot_e*tot_e + data_err_s*data_err_s) : 0.;
-    const double pull_b     = (bkg_e > 0.) ? (y - bkg_v) / sqrt(bkg_e*bkg_e + data_err_b*data_err_b) : 0.;
+    const double err_s      = (tot_e <= 0.) ? 0. : (err_mode_ == 0) ? sqrt(tot_e*tot_e + data_err_s*data_err_s) : sqrt(data_err_s*data_err_s - tot_e*tot_e);
+    const double err_b      = (bkg_e <= 0.) ? 0. : (err_mode_ == 0) ? sqrt(bkg_e*bkg_e + data_err_b*data_err_b) : sqrt(data_err_b*data_err_b - bkg_e*bkg_e);
+    if(!std::isfinite(err_s) || !std::isfinite(err_b)) printf(" %s: %s bin %i has non-finite error(s): err_s = %f; err_b = %f\n",
+                                                              __func__, tag.Data(), bin, err_s, err_b);
+    const double pull_s     = (tot_e > 0.) ? (y - tot_v) / err_s : 0.;
+    const double pull_b     = (bkg_e > 0.) ? (y - bkg_v) / err_b : 0.;
 
     //Set the points
     gRatio_s->SetPoint      (bin, x, val_s);
@@ -627,7 +657,7 @@ int print_hist(vector<TDirectoryFile*> dirs, TString tag, TString outdir) {
   hPull->SetFillColor(kAtlantic);
   hPull->SetFillStyle(1000);
   hPull->Draw("hist");
-  hPull->GetYaxis()->SetRangeUser(-2,2);
+  hPull->GetYaxis()->SetRangeUser(-3,3);
   hPull->SetTitle("");
   hPull->SetXTitle("BDT score bin");
   hPull->SetYTitle("#frac{(Data-Fit)}{Uncertainty}");
@@ -695,10 +725,12 @@ int print_dir(TDirectoryFile* dir, TString tag, TString outdir) {
     bool isdir = obj->InheritsFrom(TDirectoryFile::Class());
     if(isdir) {
       auto next_dir = (TDirectoryFile*) obj;
-      status += print_dir(next_dir, (tag + "_") + obj->GetName(), outdir);
+      if(!only_run2_) {
+        status += print_dir(next_dir, (tag + "_") + obj->GetName(), outdir);
+        if(do_single_) return status;
+      }
       subdir = true;
-      if(do_single_) return status;
-      if(do_run2_) {
+      if(do_run2_ && tag.Contains(only_mode_)) {
         TString dir_name = next_dir->GetName();
         if(dir_name.Contains("2018")) { //a sub-directory to print, also print the inclusive
           vector<TDirectoryFile*> dirs = {next_dir};
@@ -709,17 +741,18 @@ int print_dir(TDirectoryFile* dir, TString tag, TString outdir) {
           next_dir = (TDirectoryFile*) dir->Get(dir_name.Data());
           if(next_dir) dirs.push_back(next_dir);
           dir_name.ReplaceAll("y2016", "Run2");
-          status += print_hist(dirs, tag + "_" + dir_name, outdir);
-          if(print_stacks_) status += print_stack(dirs, tag + "_" + dir_name, outdir); //stacked histogram
+          if(print_stacks_ >= 0) status += print_hist(dirs, tag + "_" + dir_name, outdir);
+          if(print_stacks_ != 0) status += print_stack(dirs, tag + "_" + dir_name, outdir); //stacked histogram
+          if(do_single_) return status;
         }
       }
     }
   }
 
   //If this directory doesn't contain a sub-directory, print the histograms within the category
-  if(!subdir) { //histogram directory
-    status += print_hist({dir}, tag, outdir);
-    if(print_stacks_) status += print_stack({dir}, tag, outdir); //stacked histogram
+  if(!subdir && tag.Contains(only_mode_)) { //histogram directory
+    if(print_stacks_ >= 0) status += print_hist({dir}, tag, outdir);
+    if(print_stacks_ != 0) status += print_stack({dir}, tag, outdir); //stacked histogram
   }
   return status;
 }
