@@ -256,7 +256,7 @@ int print_stack(vector<TDirectoryFile*> dirs, TString tag, TString outdir) {
   TH1* hPull_b = (TH1*) htotal->Clone("hPull_b_stack"); hPull_b->Reset(); //(data - model)/unc (B-only)
   //Debug printout if needed
   if(debug_) {
-    printf("Bin:     data        B +-  sigma_B       S+B +- sigma_S+B  pull_B  pull_S+B\n");
+    printf("                           Bin  :     data   sqrt(n)         B +-  sigma_B       S+B +- sigma_S+B  pull_B  pull_S+B\n");
 
   }
   for(int bin = 0; bin < nbins; ++bin) {
@@ -281,12 +281,12 @@ int print_stack(vector<TDirectoryFile*> dirs, TString tag, TString outdir) {
     //Calculate the pulls, combining the data and model errors
     const double data_err_s = (y > tot_v) ? err_low : err_high;
     const double data_err_b = (y > bkg_v) ? err_low : err_high;
-    const double err_s      = (tot_e <= 0.) ? 0. : (err_mode_ == 0) ? sqrt(tot_e*tot_e + data_err_s*data_err_s) : sqrt(data_err_s*data_err_s - tot_e*tot_e);
-    const double err_b      = (bkg_e <= 0.) ? 0. : (err_mode_ == 0) ? sqrt(bkg_e*bkg_e + data_err_b*data_err_b) : sqrt(data_err_b*data_err_b - bkg_e*bkg_e);
+    const double err_s      = (err_mode_ == 0) ? sqrt(tot_e*tot_e + data_err_s*data_err_s) : (tot_e > data_err_s) ? 0. : sqrt(data_err_s*data_err_s - tot_e*tot_e);
+    const double err_b      = (err_mode_ == 0) ? sqrt(bkg_e*bkg_e + data_err_b*data_err_b) : (bkg_e > data_err_b) ? 0. : sqrt(data_err_b*data_err_b - bkg_e*bkg_e);
     if(!std::isfinite(err_s) || !std::isfinite(err_b)) printf(" %s: %s bin %i has non-finite error(s): err_s = %f; err_b = %f\n",
                                                               __func__, tag.Data(), bin, err_s, err_b);
-    const double pull_s     = (tot_e > 0.) ? (y - tot_v) / err_s : 0.;
-    const double pull_b     = (bkg_e > 0.) ? (y - bkg_v) / err_b : 0.;
+    const double pull_s     = (err_s > 0.) ? (y - tot_v) / err_s : 0.;
+    const double pull_b     = (err_b > 0.) ? (y - bkg_v) / err_b : 0.;
 
     //Set the points
     gRatio_s->SetPoint      (bin, x, val_s);
@@ -300,8 +300,16 @@ int print_stack(vector<TDirectoryFile*> dirs, TString tag, TString outdir) {
 
     //Debug printout if needed
     if(debug_) {
-      printf(" %2i: %8.0f %8.1f +- %8.2f  %8.1f +- %8.2f   %5.2f    %5.2f\n",
-             bin+1, y, bkg_v, bkg_e, tot_v, tot_e, pull_b, pull_s);
+      printf("%25s bin %2i: %8.0f (%8.2f) %8.1f +- %8.2f  %8.1f +- %8.2f   %5.2f    %5.2f\n",
+             tag.Data(), bin+1, y, sqrt(y), bkg_v, bkg_e, tot_v, tot_e, pull_b, pull_s);
+    }
+    if(std::fabs(pull_s) > 3.f) {
+      printf(">>> High pull!\n");
+      printf("                           Bin  :     data   sqrt(n)       S+B +- sigma_S+B  Delta +- err     pull_S+B\n");
+      //          fit_s_had_Run2_mva_28 bin  2:    13225 (  115.00)  13312.7 +-   112.54   -87.7 +-  23.64   -3.71
+
+      printf("%25s bin %2i: %8.0f (%8.2f) %8.1f +- %8.2f  %6.1f +- %6.2f   %5.2f\n",
+             tag.Data(), bin+1, y, sqrt(y), tot_v, tot_e, y-tot_v, err_s, pull_s);
     }
   }
 

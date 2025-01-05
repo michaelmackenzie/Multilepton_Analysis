@@ -97,7 +97,7 @@ int make_combine_limit_plot_general(vector<config_t> configs, //info for each en
   }
 
   const int nfiles = configs.size();
-  double expected[nfiles], up_1[nfiles], down_1[nfiles], up_2[nfiles], down_2[nfiles], obs[nfiles], y[nfiles], yerr[nfiles];
+  double expected[nfiles], up_1[nfiles], down_1[nfiles], up_2[nfiles], down_2[nfiles], obs[nfiles], y[nfiles], yerr[nfiles], zeros[nfiles];
   double max_val = -1.e9;
   double min_val =  1.e9;
   for(int itree = 0; itree < nfiles; ++itree) {
@@ -116,6 +116,7 @@ int make_combine_limit_plot_general(vector<config_t> configs, //info for each en
     yerr[itree] = 0.2;
     max_val = max(max_val, max(expected[itree] + up_2  [itree], obs[itree]));
     min_val = min(min_val, min(expected[itree] - down_2[itree], obs[itree]));
+    zeros[itree] = 0.;
     if(doObs) {
       printf("%s: r < %.5e (%.5e (+%.5e, -%.5e) [%.5e - %.5e])\n", configs[itree].name_.Data(),
              obs[itree],
@@ -131,8 +132,14 @@ int make_combine_limit_plot_general(vector<config_t> configs, //info for each en
   TGraphAsymmErrors* expected_1 = new TGraphAsymmErrors(nfiles, expected, y, down_1, up_1, yerr, yerr);
   expected_1->SetName("1_sigma_exp");
   expected_1->SetFillColor(kGreen+1);
-  expected_1->SetMarkerStyle(20);
-  expected_1->SetMarkerSize(1.5);
+
+  TGraphAsymmErrors* expected_line = new TGraphAsymmErrors(nfiles, expected, y, zeros, zeros, yerr, yerr);
+  expected_line->SetName("line_exp");
+  expected_line->SetLineStyle(kDashed);
+  expected_line->SetLineWidth(2);
+  expected_line->SetLineColor(kBlack);
+  expected_line->SetMarkerStyle(20);
+  expected_line->SetMarkerSize(1.5);
 
   const double ymax = 1.3*nfiles;
   const double ymin = 0.5;
@@ -156,6 +163,7 @@ int make_combine_limit_plot_general(vector<config_t> configs, //info for each en
   gStyle->SetPadTickY(1);
 
   TCanvas* c = new TCanvas("c", "c", 800, 800);
+  c->SetLeftMargin(0.21);
   //Create a histogram to use as the axis
   TH1* haxis = new TH1F("haxis", "", 1, xmin, xmax);
   haxis->SetTitle(expected_2->GetTitle());
@@ -163,7 +171,8 @@ int make_combine_limit_plot_general(vector<config_t> configs, //info for each en
 
   //Add the graphs to the plot
   expected_2->Draw("E2");
-  expected_1->Draw("PE2 SAME");
+  expected_1->Draw("E2 SAME");
+  expected_line->Draw("PE SAME");
   if(log_plot_) c->SetLogx();
   haxis->GetYaxis()->SetRangeUser(ymin, ymax);
   haxis->GetXaxis()->SetRangeUser(xmin, xmax);
@@ -179,11 +188,11 @@ int make_combine_limit_plot_general(vector<config_t> configs, //info for each en
   g_obs->SetMarkerSize(3);
   if(doObs) g_obs->Draw("P SAME");
 
-  c->SetGridx();
+  // c->SetGridx();
 
   TLegend* leg = new TLegend(0.6, 0.75, 0.89, 0.89);
   if(doObs) leg->AddEntry(g_obs, "Observed", "P");
-  leg->AddEntry(expected_1, "Expected", "P");
+  leg->AddEntry(expected_line, "Expected", "PL");
   leg->AddEntry(expected_1, "#pm1#sigma", "F");
   leg->AddEntry(expected_2, "#pm2#sigma", "F");
   leg->SetFillStyle(0);
@@ -196,39 +205,43 @@ int make_combine_limit_plot_general(vector<config_t> configs, //info for each en
   label.SetNDC();
 
   //add CMS label
-  label.SetTextFont(62);
+  label.SetTextFont(61);
   label.SetTextColor(1);
-  label.SetTextSize(0.05);
-  label.SetTextAlign(13);
+  label.SetTextSize(0.06);
+  label.SetTextAlign(11);
   label.SetTextAngle(0);
-  label.DrawLatex(0.13, 0.89, "CMS");
+  label.DrawLatex(0.24, 0.83, "CMS");
   if(preliminary_) {
-    label.SetTextFont(72);
-    label.SetTextSize(0.04);
-    label.SetTextAlign(22);
+    label.SetTextFont(52);
+    label.SetTextSize(0.76*label.GetTextSize());
     label.SetTextAngle(0);
-    label.DrawLatex(0.23, 0.82, "Preliminary");
+    label.DrawLatex(0.24, 0.78, "Preliminary");
   }
 
+  //add the luminosity label
+  label.SetTextFont(42);
+  label.SetTextSize(0.035);
+  label.SetTextAlign(31);
+  label.SetTextAngle(0);
+  const double lum = 137.64;
+  label.DrawLatex(0.90, 0.91, Form("%.0f fb^{-1} (13 TeV)",lum));
+
   //Draw the category labels
-  label.SetTextFont(72);
-  label.SetTextSize(0.05);
-  label.SetTextAlign(13);
-  label.SetTextAngle(25);
-  label.SetTextSize(0.03);
+  label.SetTextFont(62);
+  label.SetTextAlign(32);
+  label.SetTextSize(0.035);
   for(int icard = 0; icard < nfiles; ++icard) {
-    double ystart  = ((nfiles/ymax) - 0.1);
-    double yfinish = (ymin/ymax) + 0.1;
-    const double yloc = (nfiles == 1) ? 0.5 : ystart - (icard)*(ystart - yfinish)/(nfiles-1);
+    const double yrange = ymax - ymin;
+    const double yloc = 0.1 + 0.8*(y[icard]-ymin)/yrange;
     if(add_values_)
-      label.DrawLatex(0.01, yloc, Form("%s: %.2e", configs[icard].label_.Data(), expected[icard]));
+      label.DrawLatex(0.30, yloc, Form("%s: %.2e", configs[icard].label_.Data(), expected[icard]));
     else
-      label.DrawLatex(0.01, yloc, Form("%s", configs[icard].label_.Data()));
+      label.DrawLatex(0.20, yloc, Form("%s", configs[icard].label_.Data()));
   }
   // label.DrawLatex(0.1, 0.38, Form("%.1e", expected[1]));
   // label.DrawLatex(0.1, 0.18, Form("%.1e", expected[2]));
 
   gSystem->Exec("[ ! -d limits ] && mkdir limits");
-  c->Print(Form("limits/limits_%s_%s.png", selection.Data(), tag.Data()));
+  c->Print(Form("limits/limits_%s_%s.pdf", selection.Data(), tag.Data()));
   return 0;
 }
