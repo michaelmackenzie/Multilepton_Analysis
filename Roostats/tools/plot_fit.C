@@ -51,11 +51,11 @@ void draw_cms_label() {
     cmslabel.SetTextAlign(11);
     cmslabel.SetTextAngle(0);
     cmslabel.SetTextFont(61);
-    cmslabel.DrawText(0.10, 0.907, "CMS");
+    cmslabel.DrawText(0.10, 0.915, "CMS");
     if(is_prelim_) {
       cmslabel.SetTextFont(52);
       cmslabel.SetTextSize(0.76*cmslabel.GetTextSize());
-      cmslabel.DrawText(0.19, 0.907, "Preliminary");
+      cmslabel.DrawText(0.19, 0.915, "Preliminary");
     }
 }
 
@@ -69,7 +69,7 @@ void draw_luminosity(int year = -1) {
   label.SetTextAngle(0);
   TString period = (year > 2000) ? Form("%i, ", year) : "";
   const double lum = (year == 2016) ? 36.33 : (year == 2017) ? 41.48 : (year == 2018) ? 59.83 : 137.64;
-  label.DrawLatex(0.97, 0.907, Form("%s%.0f fb^{-1} (13 TeV)",period.Data(),lum));
+  label.DrawLatex(0.97, 0.915, Form("%s%.0f fb^{-1} (13 TeV)",period.Data(),lum));
 }
 
 //------------------------------------------------------------------------------------------
@@ -113,6 +113,13 @@ TGraphAsymmErrors* get_data(vector<TDirectoryFile*> dirs) {
       }
     }
   }
+  if(g) {
+    //no x errors
+    for(int ipoint = 0; ipoint < g->GetN(); ++ipoint) {
+      g->SetPointEXhigh(ipoint, 0.);
+      g->SetPointEXlow (ipoint, 0.);
+    }
+  }
   return g;
 }
 
@@ -139,6 +146,10 @@ int print_stack(vector<TDirectoryFile*> dirs, TString tag, TString outdir) {
   for(unsigned i = 0; i < names.size(); ++i) {
     TString name = names[i];
     auto h = get_hist(dirs, name.Data());
+    if(!h && names[i] != "QCD" && names[i] != "MisID") { //add zero rate processes
+      h = (TH1*) hbackground->Clone((names[i]+"_"+tag).Data());
+      h->Reset();
+    }
     if(h) {
       const int color = colors[i];
       h->SetLineColor(color);
@@ -177,7 +188,9 @@ int print_stack(vector<TDirectoryFile*> dirs, TString tag, TString outdir) {
 
   //Configure the data style
   gdata->SetMarkerStyle(20);
-  gdata->SetMarkerSize(0.8);
+  gdata->SetMarkerSize(1.);
+  gdata->SetMarkerColor(kBlack);
+  gdata->SetLineColor(kBlack);
   gdata->SetLineWidth(3);
 
   //Configure the total fit (S+B) style
@@ -217,13 +230,13 @@ int print_stack(vector<TDirectoryFile*> dirs, TString tag, TString outdir) {
     hbackground->Draw("hist same");
     hsignal->Draw("hist same");
   }
-  gdata->Draw("P");
+  gdata->Draw("PZ");
   htotal->GetXaxis()->SetRangeUser(xmin, xmax);
 
 
   //Add a legend for the summary components and one for the background stack
   TLegend leg_sum(0.13, 0.63, 0.39, 0.88);
-  leg_sum.AddEntry(gdata, "Data", "PLE");
+  leg_sum.AddEntry(gdata, "Data", "PE");
   leg_sum.AddEntry(htotal, "Total", "LF");
   if(unblind_) {
     leg_sum.AddEntry(hbackground, "Background", "L");
@@ -349,7 +362,12 @@ int print_stack(vector<TDirectoryFile*> dirs, TString tag, TString outdir) {
     hRatio_s->Draw("hist same");
     hRatio_s->GetYaxis()->SetRangeUser(0.8, 1.2); //necessary due to y-axis importing from clone
   }
-  gRatio->Draw("P");
+  gRatio->SetLineColor(kBlack);
+  gRatio->SetLineWidth(3);
+  gRatio->SetMarkerColor(kBlack);
+  gRatio->SetMarkerStyle(20);
+  gRatio->SetMarkerSize(1.);
+  gRatio->Draw("PEZ");
   hBkg_unc->GetXaxis()->SetRangeUser(xmin, xmax);
 
 
@@ -376,15 +394,17 @@ int print_stack(vector<TDirectoryFile*> dirs, TString tag, TString outdir) {
   //Make a pull plot
   pad3->cd();
 
-  auto hPull = hPull_s; //FIXME: Decide whether pulls should use background or total model
+  auto hPull = hPull_s;
+  const double max_pull = hPull->GetMaximum();
+  const double min_pull = hPull->GetMinimum();
   hPull->SetLineColor(kAtlantic);
   hPull->SetFillColor(kAtlantic);
   hPull->SetFillStyle(1000);
   hPull->Draw("hist");
-  hPull->GetYaxis()->SetRangeUser(-3,3);
+  hPull->GetYaxis()->SetRangeUser(min(-3., 1.1*min_pull),max(3., 1.1*max_pull));
   hPull->SetTitle("");
   hPull->SetXTitle("BDT score bin");
-  hPull->SetYTitle("#frac{(Data-Fit)}{#sigma}");
+  hPull->SetYTitle("#frac{Data-Fit}{#sigma}");
   // if(err_mode_ == 1) hPull->SetYTitle("#frac{(Data-Fit)}{#sqrt{#sigma_{Data}^{2} - #sigma_{Fit}^{2}}}");
 
   hPull->GetXaxis()->SetLabelSize(0.13);
@@ -660,15 +680,17 @@ int print_hist(vector<TDirectoryFile*> dirs, TString tag, TString outdir) {
   //Make a pull plot
   pad3->cd();
 
-  auto hPull = hPull_s; //FIXME: Decide whether pulls should use background or total model
+  auto hPull = hPull_s;
+  const double max_pull = hPull->GetMaximum();
+  const double min_pull = hPull->GetMinimum();
   hPull->SetLineColor(kAtlantic);
   hPull->SetFillColor(kAtlantic);
   hPull->SetFillStyle(1000);
   hPull->Draw("hist");
-  hPull->GetYaxis()->SetRangeUser(-3,3);
+  hPull->GetYaxis()->SetRangeUser(min(-3., 1.1*min_pull),max(3., 1.1*max_pull));
   hPull->SetTitle("");
   hPull->SetXTitle("BDT score bin");
-  hPull->SetYTitle("#frac{(Data-Fit)}{Uncertainty}");
+  hPull->SetYTitle("#frac{Data-Fit}{Uncertainty}");
   hPull->GetXaxis()->SetLabelSize(0.10);
   hPull->GetYaxis()->SetLabelSize(0.10);
   hPull->GetXaxis()->SetTitleSize(0.15);
@@ -786,6 +808,10 @@ int plot_fit(TString fname, TString outdir = "figures", bool unblind = false) {
   //Create the figure directory
   if(!outdir.EndsWith("/")) outdir += "/";
   gSystem->Exec(Form("[ ! -d %s ] && mkdir -p %s", outdir.Data(), outdir.Data()));
+
+  // Reduce number of entries listed in linear, move exponent
+  TGaxis::SetMaxDigits(3);
+  TGaxis::SetExponentOffset(-0.05, 0.01, "Y");
 
   //Print the fit configurations: Pre-fit, background-only fit, and background+signal fit
   int status(0);
