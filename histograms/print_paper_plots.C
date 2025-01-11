@@ -17,24 +17,28 @@ int print_paper_plots(TString selection = "mutau", TString hist_dir = "nanoaods_
   int status = nanoaod_init(selection.Data(), hist_dir_, out_dir);
   if(status) return status;
 
+  dataplotter_->misid_label_ = "j#rightarrow#tau_{h}";
   dataplotter_->figure_format_ = "png"; //save PDF files
   dataplotter_->print_root_canvas_ = true; //add root files with the canvases for easier paper updates
   dataplotter_->plot_y_title_ = 1; //add y-axis label
   dataplotter_->add_y_unit_ = 1;
   dataplotter_->cms_is_prelim_ = true; //not preliminary
   dataplotter_->lum_txt_x_ = 0.00;
-  dataplotter_->lum_txt_y_ = 0.945;
+  dataplotter_->lum_txt_y_ = 0.952;
   dataplotter_->cms_txt_x_ = 0.00;
-  dataplotter_->cms_txt_y_ = 0.945;
+  dataplotter_->cms_txt_y_ = 0.952;
   dataplotter_->x_title_offset_ = 0.85;
-  dataplotter_->y_title_offset_ = 0.45;
+  dataplotter_->y_title_offset_ = 0.35;
   dataplotter_->x_label_size_ = 0.1;
   dataplotter_->y_label_size_ = 0.1;
   dataplotter_->x_label_offset_ = 0.015;
   dataplotter_->y_label_offset_ = 0.02;
   dataplotter_->lower_pad_y1_ = 0.;
   dataplotter_->lower_pad_botmargin_ = 0.33;
-  TGaxis::SetMaxDigits(6);
+  dataplotter_->ratio_plot_min_ = 0.8;
+  dataplotter_->ratio_plot_max_ = 1.2;
+  TGaxis::SetMaxDigits(3);
+  TGaxis::SetExponentOffset(-0.05, 0.01, "Y");
 
   dataplotter_->misid_color_ = kCMSColor_1;
   dataplotter_->qcd_color_   = kCMSColor_2;
@@ -44,8 +48,12 @@ int print_paper_plots(TString selection = "mutau", TString hist_dir = "nanoaods_
     print_mass(8, add_sys);
     print_mva(8, add_sys);
   } else { //Z->X+tau
-    print_collinear_mass(8, add_sys);
-    print_lep_beta(8, add_sys);
+    if(selection.Contains("mutau")) {
+      print_collinear_mass(8, add_sys);
+    }
+    if(selection == "mutau") {
+      print_lep_beta(8, add_sys);
+    }
     dataplotter_->plot_y_title_ = 0; //add y-axis label
     dataplotter_->add_y_unit_ = 0;
     print_mva(8, add_sys);

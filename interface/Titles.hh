@@ -114,7 +114,7 @@ namespace CLFV {
         *unit   = "GeV";
       }
       else if(hist == "lepmestimate" || hist == "mcol") {
-        *xtitle = "m^{Col} [GeV]";
+        *xtitle = "m^{col} [GeV]";
         *ytitle = "";
         *title  = Form("Mass Estimate of the Lepton System");
         *unit   = "GeV";
@@ -746,12 +746,12 @@ namespace CLFV {
         *title  = "#Delta#alpha";
       }
       else if(hist == "beta0" || hist == "alpha2") {
-        *xtitle = Form("#alpha(%s)", lep2.Data()); //indices are inverted
+        *xtitle = Form("#alpha_{%s}", lep2.Data()); //indices are inverted
         *ytitle = "";
         *title  = "#alpha";
       }
       else if(hist == "beta1" || hist == "alpha1") {
-        *xtitle = Form("#alpha(%s)", lep1.Data()); //indices are inverted
+        *xtitle = Form("#alpha_{%s}", lep1.Data()); //indices are inverted
         *ytitle = "";
         *title  = "#alpha";
       }

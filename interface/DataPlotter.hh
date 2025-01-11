@@ -349,10 +349,10 @@ namespace CLFV {
       label.SetTextSize((single) ? 0.03 : .04);
       label.SetTextAlign(31);
       label.SetTextAngle(0);
-      TString period = Form("%i", years_[0]);
-      if(years_.size() == 3) period = "Run 2";
+      TString period = Form("%i, ", years_[0]);
+      if(years_.size() == 3) period = ""; //"Run 2, ";
       label.DrawLatex(1. - lum_txt_x_ - pad_rightmargin_, lum_txt_y_,
-                      Form("%s, %.0f fb^{-1} (%.0f TeV)",period.Data(),lum_/1.e3,rootS_));
+                      Form("%s%.0f fb^{-1} (%.0f TeV)",period.Data(),lum_/1.e3,rootS_));
     }
 
     void draw_data(int ndata, double nmc, std::map<TString, double> nsig) {

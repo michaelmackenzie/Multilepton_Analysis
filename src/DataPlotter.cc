@@ -1462,7 +1462,12 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set, const
   }
 
   //draw the data with error bars
-  if(plot_data_ && d) d->Draw("E same");
+  bool different_binning = false;
+  if(plot_data_ && d) {
+    const double bin_width = d->GetBinWidth(1);
+    for(int ibin = 2; ibin <= d->GetNbinsX(); ++ibin) different_binning |= std::fabs(bin_width - d->GetBinWidth(ibin)) / bin_width > 0.001;
+    d->Draw((different_binning) ? "E SAME" : "EX0 same");
+  }
 
   if(d && plot_data_ > 0) {
     max_val = std::max(max_val, Utilities::H1Max(d, xMin_, xMax_));
@@ -1607,7 +1612,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set, const
   top_yaxis->SetTitleSize(axis_font_size_*lower_pad_y2_/(1. - lower_pad_y2_));
   top_xaxis->SetLabelSize(x_label_size_*lower_pad_y2_/(1. - lower_pad_y2_));
   top_yaxis->SetLabelSize(y_label_size_*lower_pad_y2_/(1. - lower_pad_y2_));
-  top_yaxis->SetTitleOffset(1.1); //FIXME: this should be configurable
+  top_yaxis->SetTitleOffset(0.9); //FIXME: this should be configurable
   double ymin = yMin_;
   double ymax = yMax_;
   if(ymin > ymax) {
@@ -1643,7 +1648,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set, const
     pad2->cd();
     if(draw_grid_) pad2->SetGrid();
     if(draw_grid_) c->SetGrid();
-    hDataMC->Draw("E");
+    hDataMC->Draw((different_binning) ? "E" : "EX0");
     TLine* line = new TLine((xMax_ < xMin_) ? hDataMC->GetBinCenter(1)-hDataMC->GetBinWidth(1)/2. : xMin_, (data_over_mc_ == 2) ? 0. : 1.,
                             (xMax_ < xMin_) ? hDataMC->GetBinCenter(hDataMC->GetNbinsX())+hDataMC->GetBinWidth(1)/2. : xMax_, (data_over_mc_ == 2) ? 0. : 1.);
     line->SetLineColor(kRed);
@@ -1658,6 +1663,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set, const
     hDataMC->GetYaxis()->SetTitleOffset(y_title_offset_);
     hDataMC->GetYaxis()->SetLabelOffset(y_label_offset_);
     hDataMC->GetYaxis()->SetLabelSize(y_label_size_);
+    hDataMC->GetYaxis()->SetNdivisions(205); //FIXME: This should be configurable
     max_val = hDataMC->GetMaximum();
     double mn = hDataMC->GetMinimum();
     mn = std::max(0.2*mn,5e-1);
