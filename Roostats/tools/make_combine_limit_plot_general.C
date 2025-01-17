@@ -164,14 +164,14 @@ int make_combine_limit_plot_general(vector<config_t> configs, //info for each en
   printf("Max val = %.2e, Min val = %.2e --> log xrange = [%.2e , %.2e]\n", max_val, min_val, ymin_log, ymax_log);
 
   gStyle->SetOptStat(0);
-  gStyle->SetPadTickX(1);
+  gStyle->SetPadTickX(0);
   gStyle->SetPadTickY(1);
 
   TCanvas* c = new TCanvas("c", "c", 800, 800);
   c->SetRightMargin(0.02);
   c->SetTopMargin(0.08);
   c->SetLeftMargin(0.13);
-  c->SetBottomMargin(0.22);
+  c->SetBottomMargin(0.10);
   //Create a histogram to use as the axis
   TH1* haxis = new TH1F("haxis", "", 1, xmin, xmax);
   haxis->SetTitle(expected_2->GetTitle());
@@ -186,7 +186,7 @@ int make_combine_limit_plot_general(vector<config_t> configs, //info for each en
   haxis->GetXaxis()->SetNdivisions(nfiles);
   for(int icard = 0; icard < nfiles; ++icard) {
     const int bin = haxis->GetXaxis()->FindBin(icard + 1);
-    haxis->GetXaxis()->ChangeLabel(icard + 1, 90.,-1,-1,-1,-1,
+    haxis->GetXaxis()->ChangeLabel(icard + 1, -1.,-1,-1,-1,-1,
                                    (add_values_) ? Form("%s: %.2e", configs[icard].label_.Data(), expected[icard]) : configs[icard].label_.Data());
   }
 
@@ -195,7 +195,8 @@ int make_combine_limit_plot_general(vector<config_t> configs, //info for each en
   haxis->GetYaxis()->SetTitleOffset(1.0);
   haxis->GetYaxis()->SetTitleSize(0.05);
   haxis->GetXaxis()->SetLabelSize(0.05);
-  haxis->GetXaxis()->SetLabelOffset((nfiles > 3) ? 0.04 : 0.08);
+  //haxis->GetXaxis()->SetLabelOffset((nfiles > 3) ? 0.04 : 0.08);
+  haxis->SetTickLength(0., "X");
 
   TGaxis::SetMaxDigits(3);
   TGraph* g_obs = new TGraph(nfiles, x, obs);
@@ -247,7 +248,7 @@ int make_combine_limit_plot_general(vector<config_t> configs, //info for each en
   label.SetTextSize(0.035);
   label.SetTextAlign(11);
   label.SetTextAngle(0);
-  label.DrawLatex(0.6, 0.85, "95% CL_{S} upper limit");
+  label.DrawLatex(0.6, 0.85, "95% CL upper limit");
 
   gSystem->Exec("[ ! -d limits ] && mkdir limits");
 

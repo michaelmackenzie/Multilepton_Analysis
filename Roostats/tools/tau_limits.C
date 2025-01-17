@@ -16,12 +16,12 @@ int tau_limits(bool processCards = false,
   vector<int> years = {2016,2017,2018};
   const float r_range = 40.f;
   vector<config_t> cards;
-  cards.push_back(config_t("mva_zetau_25_26_27_28_2016_2017_2018", "Z#rightarrowe#tau_{h}"  , sets_had, years, scale_, -r_range, r_range));
-  cards.push_back(config_t("mva_zetau_mu_25_26_27_2016_2017_2018", "Z#rightarrowe#tau_{#mu}", sets_lep, years, scale_, -r_range, r_range));
-  cards.push_back(config_t("mva_total_zetau_had_25_26_27_28_lep_25_26_27_2016_2017_2018", "Z#rightarrowe#tau", sets_had, years, scale_, -r_range, r_range));
-  cards.push_back(config_t("mva_zmutau_25_26_27_28_2016_2017_2018", "Z#rightarrow#mu#tau_{h}"  , sets_had, years, scale_, -r_range, r_range));
-  cards.push_back(config_t("mva_zmutau_e_25_26_27_2016_2017_2018", "Z#rightarrow#mu#tau_{e}", sets_lep, years, scale_, -r_range, r_range));
-  cards.push_back(config_t("mva_total_zmutau_had_25_26_27_28_lep_25_26_27_2016_2017_2018", "Z#rightarrow#mu#tau", sets_had, years, scale_, -r_range, r_range));
+  cards.push_back(config_t("mva_zetau_25_26_27_28_2016_2017_2018", "e#tau_{h}"  , sets_had, years, scale_, -r_range, r_range));
+  cards.push_back(config_t("mva_zetau_mu_25_26_27_2016_2017_2018", "e#tau_{#mu}", sets_lep, years, scale_, -r_range, r_range));
+  cards.push_back(config_t("mva_total_zetau_had_25_26_27_28_lep_25_26_27_2016_2017_2018", "e#tau", sets_had, years, scale_, -r_range, r_range));
+  cards.push_back(config_t("mva_zmutau_25_26_27_28_2016_2017_2018", "#mu#tau_{h}"  , sets_had, years, scale_, -r_range, r_range));
+  cards.push_back(config_t("mva_zmutau_e_25_26_27_2016_2017_2018", "#mu#tau_{e}", sets_lep, years, scale_, -r_range, r_range));
+  cards.push_back(config_t("mva_total_zmutau_had_25_26_27_28_lep_25_26_27_2016_2017_2018", "#mu#tau", sets_had, years, scale_, -r_range, r_range));
 
   TString tag = "total";
   if(doNoSys) tag += "_nosys";
