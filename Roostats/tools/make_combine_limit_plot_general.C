@@ -1,5 +1,5 @@
 //Script to process limits for channels/years/etc. and plot the limits
-double scale_ = 1.;
+float scale_ = 1.;
 TString dir_ = "";
 bool speed_limit_  = true; //use Combine arguments to speed up limit calculation
 bool more_precise_ = false; //more precise steps in the minimizations
@@ -97,7 +97,7 @@ int make_combine_limit_plot_general(vector<config_t> configs, //info for each en
   }
 
   const int nfiles = configs.size();
-  double expected[nfiles], up_1[nfiles], down_1[nfiles], up_2[nfiles], down_2[nfiles], obs[nfiles], y[nfiles], yerr[nfiles], zeros[nfiles];
+  double expected[nfiles], up_1[nfiles], down_1[nfiles], up_2[nfiles], down_2[nfiles], obs[nfiles], x[nfiles], xerr[nfiles], zeros[nfiles];
   double max_val = -1.e9;
   double min_val =  1.e9;
   for(int itree = 0; itree < nfiles; ++itree) {
@@ -112,8 +112,8 @@ int make_combine_limit_plot_general(vector<config_t> configs, //info for each en
     t->GetEntry(4); up_2    [itree] = scale*val       - expected[itree];
     t->GetEntry(5); obs     [itree] = scale*val;
 
-    y[itree] = nfiles - itree;
-    yerr[itree] = 0.2;
+    x[itree] = itree+1.;
+    xerr[itree] = (nfiles > 3) ? 0.4 : 0.38;
     max_val = max(max_val, max(expected[itree] + up_2  [itree], obs[itree]));
     min_val = min(min_val, min(expected[itree] - down_2[itree], obs[itree]));
     zeros[itree] = 0.;
@@ -129,41 +129,49 @@ int make_combine_limit_plot_general(vector<config_t> configs, //info for each en
     }
   }
 
-  TGraphAsymmErrors* expected_1 = new TGraphAsymmErrors(nfiles, expected, y, down_1, up_1, yerr, yerr);
+  TGraphAsymmErrors* expected_1 = new TGraphAsymmErrors(nfiles, x, expected, xerr, xerr, down_1, up_1);
   expected_1->SetName("1_sigma_exp");
-  expected_1->SetFillColor(kGreen+1);
+  expected_1->SetFillColor(kCMSColor_LimitGreen);
 
-  TGraphAsymmErrors* expected_line = new TGraphAsymmErrors(nfiles, expected, y, zeros, zeros, yerr, yerr);
+  TGraphAsymmErrors* expected_line = new TGraphAsymmErrors(nfiles, x, expected, xerr, xerr, zeros, zeros);
   expected_line->SetName("line_exp");
   expected_line->SetLineStyle(kDashed);
   expected_line->SetLineWidth(2);
   expected_line->SetLineColor(kBlack);
   expected_line->SetMarkerStyle(20);
-  expected_line->SetMarkerSize(1.5);
+  expected_line->SetMarkerSize(0.);
 
-  const double ymax = 1.3*nfiles;
-  const double ymin = 0.5;
-  TGraphAsymmErrors* expected_2 = new TGraphAsymmErrors(nfiles, expected, y, down_2, up_2, yerr, yerr);
+  const double xmax = nfiles+0.5;
+  const double xmin = 0.5;
+  TGraphAsymmErrors* expected_2 = new TGraphAsymmErrors(nfiles, x, expected, xerr, xerr, down_2, up_2);
   expected_2->SetName("2_sigma_exp");
-  expected_2->SetFillColor(kOrange);
+  expected_2->SetFillColor(kCMSColor_LimitYellow);
   expected_2->SetMarkerStyle(20);
   expected_2->SetMarkerSize(0.8);
-  // expected_2->SetTitle("");
-  expected_2->SetTitle(Form(";95%% upper limit on BF(Z^{0} #rightarrow %s^{#pm}%s^{#mp});",
-                                        selection.BeginsWith("zmu") ? "#mu" : "e", selection.EndsWith("mu") ? "#mu" : "#tau"));
+  if(selection == "tau")
+    expected_2->SetTitle(";;#it{B}(Z^{0} #rightarrow l^{#pm}#tau^{#mp})");
+  else
+    expected_2->SetTitle(Form(";;#it{B}(Z^{0} #rightarrow %s^{#pm}%s^{#mp})",
+                              selection.BeginsWith("zmu") ? "#mu" : "e", selection.EndsWith("mu") ? "#mu" : "#tau"));
 
-  //calculate x-axis range
+
+  //calculate y-axis range for a linear and log plot
+  const float ymin_lin = 0.;
+  const float ymax_lin = 1.5*max_val;
   const float scale_size = (log10(max_val) - log10(min_val)); //orders of magnitude spanning the plot
-  const float xmax = (log_plot_) ? max_val*pow(2.0,max(0.f, scale_size)) : 1.1*max_val;
-  const float xmin = (log_plot_) ? min_val/pow(1.5,max(0.f, scale_size)) : 0.;
-  printf("Max val = %.2e, Min val = %.2e --> xrange = [%.2e , %.2e]\n", max_val, min_val, xmin, xmax);
+  const float ymax_log = max_val*pow(4.0,max(0.f, scale_size));
+  const float ymin_log = min_val/pow(1.5,max(0.f, scale_size));
+  printf("Max val = %.2e, Min val = %.2e --> log xrange = [%.2e , %.2e]\n", max_val, min_val, ymin_log, ymax_log);
 
   gStyle->SetOptStat(0);
   gStyle->SetPadTickX(1);
   gStyle->SetPadTickY(1);
 
   TCanvas* c = new TCanvas("c", "c", 800, 800);
-  c->SetLeftMargin(0.21);
+  c->SetRightMargin(0.02);
+  c->SetTopMargin(0.08);
+  c->SetLeftMargin(0.13);
+  c->SetBottomMargin(0.22);
   //Create a histogram to use as the axis
   TH1* haxis = new TH1F("haxis", "", 1, xmin, xmax);
   haxis->SetTitle(expected_2->GetTitle());
@@ -172,17 +180,25 @@ int make_combine_limit_plot_general(vector<config_t> configs, //info for each en
   //Add the graphs to the plot
   expected_2->Draw("E2");
   expected_1->Draw("E2 SAME");
-  expected_line->Draw("PE SAME");
-  if(log_plot_) c->SetLogx();
-  haxis->GetYaxis()->SetRangeUser(ymin, ymax);
-  haxis->GetXaxis()->SetRangeUser(xmin, xmax);
-  haxis->GetXaxis()->SetMoreLogLabels(true);
-  haxis->GetYaxis()->SetLabelOffset(1e10);
-  haxis->GetYaxis()->SetLabelSize(0);
-  haxis->GetXaxis()->SetTitleOffset(1.2);
+  expected_line->Draw("E SAME");
+
+  //Add the category labels
+  haxis->GetXaxis()->SetNdivisions(nfiles);
+  for(int icard = 0; icard < nfiles; ++icard) {
+    const int bin = haxis->GetXaxis()->FindBin(icard + 1);
+    haxis->GetXaxis()->ChangeLabel(icard + 1, 90.,-1,-1,-1,-1,
+                                   (add_values_) ? Form("%s: %.2e", configs[icard].label_.Data(), expected[icard]) : configs[icard].label_.Data());
+  }
+
+  // haxis->GetYaxis()->SetMoreLogLabels(true);
+  haxis->GetYaxis()->SetLabelSize(0.04);
+  haxis->GetYaxis()->SetTitleOffset(1.0);
+  haxis->GetYaxis()->SetTitleSize(0.05);
+  haxis->GetXaxis()->SetLabelSize(0.05);
+  haxis->GetXaxis()->SetLabelOffset((nfiles > 3) ? 0.04 : 0.08);
 
   TGaxis::SetMaxDigits(3);
-  TGraph* g_obs = new TGraph(nfiles, obs, y);
+  TGraph* g_obs = new TGraph(nfiles, x, obs);
   g_obs->SetName("observed");
   g_obs->SetMarkerStyle(70);
   g_obs->SetMarkerSize(3);
@@ -190,11 +206,11 @@ int make_combine_limit_plot_general(vector<config_t> configs, //info for each en
 
   // c->SetGridx();
 
-  TLegend* leg = new TLegend(0.6, 0.75, 0.89, 0.89);
+  TLegend* leg = new TLegend(0.6, 0.70, 0.89, 0.84);
   if(doObs) leg->AddEntry(g_obs, "Observed", "P");
   leg->AddEntry(expected_line, "Expected", "PL");
-  leg->AddEntry(expected_1, "#pm1#sigma", "F");
-  leg->AddEntry(expected_2, "#pm2#sigma", "F");
+  leg->AddEntry(expected_1, "#pm1 std. deviation", "F");
+  leg->AddEntry(expected_2, "#pm2 std. deviation", "F");
   leg->SetFillStyle(0);
   leg->SetFillColor(0);
   leg->SetLineColor(0);
@@ -210,12 +226,12 @@ int make_combine_limit_plot_general(vector<config_t> configs, //info for each en
   label.SetTextSize(0.06);
   label.SetTextAlign(11);
   label.SetTextAngle(0);
-  label.DrawLatex(0.24, 0.83, "CMS");
+  label.DrawLatex(c->GetLeftMargin() + 0.05, 0.83, "CMS");
   if(preliminary_) {
     label.SetTextFont(52);
     label.SetTextSize(0.76*label.GetTextSize());
     label.SetTextAngle(0);
-    label.DrawLatex(0.24, 0.78, "Preliminary");
+    label.DrawLatex(c->GetLeftMargin() + 0.05, 0.78, "Preliminary");
   }
 
   //add the luminosity label
@@ -224,24 +240,28 @@ int make_combine_limit_plot_general(vector<config_t> configs, //info for each en
   label.SetTextAlign(31);
   label.SetTextAngle(0);
   const double lum = 137.64;
-  label.DrawLatex(0.90, 0.91, Form("%.0f fb^{-1} (13 TeV)",lum));
+  label.DrawLatex(1.-c->GetRightMargin(), (1. - c->GetTopMargin())+0.01, Form("%.0f fb^{-1} (13 TeV)",lum));
 
-  //Draw the category labels
-  label.SetTextFont(62);
-  label.SetTextAlign(32);
+  //add the CLs label
+  label.SetTextFont(42);
   label.SetTextSize(0.035);
-  for(int icard = 0; icard < nfiles; ++icard) {
-    const double yrange = ymax - ymin;
-    const double yloc = 0.1 + 0.8*(y[icard]-ymin)/yrange;
-    if(add_values_)
-      label.DrawLatex(0.30, yloc, Form("%s: %.2e", configs[icard].label_.Data(), expected[icard]));
-    else
-      label.DrawLatex(0.20, yloc, Form("%s", configs[icard].label_.Data()));
-  }
-  // label.DrawLatex(0.1, 0.38, Form("%.1e", expected[1]));
-  // label.DrawLatex(0.1, 0.18, Form("%.1e", expected[2]));
+  label.SetTextAlign(11);
+  label.SetTextAngle(0);
+  label.DrawLatex(0.6, 0.85, "95% CL_{S} upper limit");
 
   gSystem->Exec("[ ! -d limits ] && mkdir limits");
+
+  //make a linear y-axis plot
+  haxis->GetXaxis()->SetRangeUser(xmin, xmax);
+  haxis->GetYaxis()->SetRangeUser(ymin_lin, ymax_lin);
   c->Print(Form("limits/limits_%s_%s.pdf", selection.Data(), tag.Data()));
+  c->SaveAs(Form("limits/limits_%s_%s.root", selection.Data(), tag.Data()));
+
+  //make a log y-axis plot
+  haxis->GetYaxis()->SetRangeUser(ymin_log, ymax_log);
+  c->SetLogy();
+  c->Print(Form("limits/limits_%s_log_%s.pdf", selection.Data(), tag.Data()));
+  c->SaveAs(Form("limits/limits_%s_log_%s.root", selection.Data(), tag.Data()));
+
   return 0;
 }

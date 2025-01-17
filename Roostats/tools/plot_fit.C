@@ -259,6 +259,9 @@ int print_stack(vector<TDirectoryFile*> dirs, TString tag, TString outdir) {
   leg_bkg.SetLineStyle(0);
   leg_bkg.Draw();
 
+  pad1->Draw(); //redraw the pad
+  gPad->RedrawAxis();
+
   //Make the ratio plots
   pad2->cd();
 
