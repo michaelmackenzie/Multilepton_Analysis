@@ -6,6 +6,31 @@
 #include "datacards.C"
 #include "dataplotter_clfv.C"
 
+bool simplified_sys_ = false;
+
+//------------------------------------------------------------------------------------------------------------------------------
+// Get simplified systematic uncertainties
+void get_simplified_systematics(std::vector<scale_pair>& scale_sys) {
+  //constructor:                                                                            name      scale    process   tag    veto year  data    mc   embed
+  scale_sys.push_back(std::pair<ScaleUncertainty_t,ScaleUncertainty_t>(ScaleUncertainty_t("XS_QCD"  , 1.+0.30 ,   "QCD",      "", {}, -1, false, false, false),
+                                                                       ScaleUncertainty_t("XS_QCD"  , 1.-0.30 ,   "QCD",      "", {}, -1, false, false, false)));
+  scale_sys.push_back(std::pair<ScaleUncertainty_t,ScaleUncertainty_t>(ScaleUncertainty_t("XS_MisID", 1.+0.05 , "MisID",      "", {}, -1, false, false, false),
+                                                                       ScaleUncertainty_t("XS_MisID", 1.-0.05 , "MisID",      "", {}, -1, false, false, false)));
+  scale_sys.push_back(std::pair<ScaleUncertainty_t,ScaleUncertainty_t>(ScaleUncertainty_t("XS_Lumi" , 1.+0.025,      "",      "", {}, -1, false,  true, false),
+                                                                       ScaleUncertainty_t("XS_Lumi" , 1.-0.025,      "",      "", {}, -1, false,  true, false)));
+  scale_sys.push_back(std::pair<ScaleUncertainty_t,ScaleUncertainty_t>(ScaleUncertainty_t("XS_Z"    , 1.+0.02 ,      "",    "DY", {}, -1, false,  true, false),
+                                                                       ScaleUncertainty_t("XS_Z"    , 1.-0.02 ,      "",    "DY", {}, -1, false,  true, false)));
+  scale_sys.push_back(std::pair<ScaleUncertainty_t,ScaleUncertainty_t>(ScaleUncertainty_t("XS_ttbar", 1.+0.06 ,      "", "ttbar", {}, -1, false,  true, false),
+                                                                       ScaleUncertainty_t("XS_ttbar", 1.-0.06 ,      "", "ttbar", {}, -1, false,  true, false)));
+  scale_sys.push_back(std::pair<ScaleUncertainty_t,ScaleUncertainty_t>(ScaleUncertainty_t("XS_WW"   , 1.+0.05 ,      "",    "WW", {}, -1, false,  true, false),
+                                                                       ScaleUncertainty_t("XS_WW"   , 1.-0.05 ,      "",    "WW", {}, -1, false,  true, false)));
+  scale_sys.push_back(std::pair<ScaleUncertainty_t,ScaleUncertainty_t>(ScaleUncertainty_t("XS_Embed", 1.+0.05 ,      "",      "", {}, -1, false, false,  true),
+                                                                       ScaleUncertainty_t("XS_Embed", 1.-0.05 ,      "",      "", {}, -1, false, false,  true)));
+  scale_sys.push_back(std::pair<ScaleUncertainty_t,ScaleUncertainty_t>(ScaleUncertainty_t("XS_Zll"  , 1.+0.05 , "Z#rightarrowll","", {}, -1, false, false,  false),
+                                                                       ScaleUncertainty_t("XS_Zll"  , 1.-0.05 , "Z#rightarrowll","", {}, -1, false, false,  false)));
+
+}
+
 //------------------------------------------------------------------------------------------------------------------------------
 // Get standard systematic uncertainties for MVA plots
 void get_mva_systematics(std::vector<fpair>& sys, std::vector<scale_pair>& scale_sys) {
@@ -118,18 +143,19 @@ void get_mva_systematics(std::vector<fpair>& sys, std::vector<scale_pair>& scale
     sys_vals.push_back(sys_info.GetNum("SignalBDT"));
   }
 
-  for(int isys : sys_vals) {
-    if(isys < CLFV::kMaxSystematics) {
-      sys.push_back(fpair(hist + Form("_%i", isys), hist + Form("_%i", isys+1)));
-    } else {
-      std::pair<ScaleUncertainty_t,ScaleUncertainty_t> sys_pair(sys_info.GetScale(isys), sys_info.GetScale(isys+1));
-      if(sys_pair.first.name_ != "" && sys_pair.second.name_ != "") {
-        scale_sys.push_back(sys_pair);
-        // cout << "Adding scale systematic " << sys_pair.first.name_.Data() << endl;
+  if(!simplified_sys_) {
+    for(int isys : sys_vals) {
+      if(isys < CLFV::kMaxSystematics) {
+        sys.push_back(fpair(hist + Form("_%i", isys), hist + Form("_%i", isys+1)));
+      } else {
+        std::pair<ScaleUncertainty_t,ScaleUncertainty_t> sys_pair(sys_info.GetScale(isys), sys_info.GetScale(isys+1));
+        if(sys_pair.first.name_ != "" && sys_pair.second.name_ != "") {
+          scale_sys.push_back(sys_pair);
+          // cout << "Adding scale systematic " << sys_pair.first.name_.Data() << endl;
+        }
       }
     }
-  }
-
+  } else get_simplified_systematics(scale_sys);
 }
 
 //------------------------------------------------------------------------------------------------------------------------------
@@ -183,7 +209,7 @@ Int_t print_mass(int set, bool add_sys = false, double mass_min = 1., double mas
     card.blindmin_ = {84.};
     card.blindmax_ = {98.};
   }
-  if(zprime_ && (set % 100 == 8 || set % 100 == 11 || set % 100 == 12) && set < 1000) {
+  if(blind_ && zprime_ && (set % 100 == 8 || set % 100 == 11 || set % 100 == 12) && set < 1000) {
     card.blindmin_ = {110.};
     card.blindmax_ = {500.};
   }
@@ -191,24 +217,27 @@ Int_t print_mass(int set, bool add_sys = false, double mass_min = 1., double mas
   std::vector<std::pair<TString,TString>> systematics;
   std::vector<std::pair<ScaleUncertainty_t,ScaleUncertainty_t>> scale_sys;
   if(add_sys) {
-    CLFV::Systematics sys_info;
-    //add uncertainty approximation from histogramming
-    systematics.push_back(std::pair<TString,TString>("lepmup", "lepmdown"));
-    //add relevant scale uncertainties
-    vector<TString> names = {"XS_LumiUC0", "XS_LumiUC1", "XS_LumiUC2", "XS_Z", "XS_WW", "XS_ttbar"};
-    for(TString name : names) {
-      int isys = sys_info.GetNum(name);
-      scale_sys.push_back(std::pair<ScaleUncertainty_t,ScaleUncertainty_t>(sys_info.GetScale(isys), sys_info.GetScale(isys+1)));
-    }
-
-    //add normalization uncertainties that are uncorrelated between years
-    if(useEmbed_) {
-      for(int year : years_) {
-        int isys = sys_info.GetNum("XS_Embed");
+    if(simplified_sys_) get_simplified_systematics(scale_sys);
+    else {
+      CLFV::Systematics sys_info;
+      //add uncertainty approximation from histogramming
+      systematics.push_back(std::pair<TString,TString>("lepmup", "lepmdown"));
+      //add relevant scale uncertainties
+      vector<TString> names = {"XS_LumiUC0", "XS_LumiUC1", "XS_LumiUC2", "XS_Z", "XS_WW", "XS_ttbar"};
+      for(TString name : names) {
+        int isys = sys_info.GetNum(name);
         scale_sys.push_back(std::pair<ScaleUncertainty_t,ScaleUncertainty_t>(sys_info.GetScale(isys), sys_info.GetScale(isys+1)));
-        auto scale = scale_sys.back();
-        scale.first.years_ = {year};
-        scale.second.years_ = {year};
+      }
+
+      //add normalization uncertainties that are uncorrelated between years
+      if(useEmbed_) {
+        for(int year : years_) {
+          int isys = sys_info.GetNum("XS_Embed");
+          scale_sys.push_back(std::pair<ScaleUncertainty_t,ScaleUncertainty_t>(sys_info.GetScale(isys), sys_info.GetScale(isys+1)));
+          auto scale = scale_sys.back();
+          scale.first.years_ = {year};
+          scale.second.years_ = {year};
+        }
       }
     }
 
@@ -236,24 +265,27 @@ Int_t print_met(int set, bool add_sys = false) {
   std::vector<std::pair<TString,TString>> systematics;
   std::vector<std::pair<ScaleUncertainty_t,ScaleUncertainty_t>> scale_sys;
   if(add_sys) {
-    CLFV::Systematics sys_info;
-    //add MET uncertainty approximation
-    systematics.push_back(std::pair<TString,TString>("metup", "metdown"));
-    //add relevant scale uncertainties
-    vector<TString> names = {"XS_LumiUC0", "XS_LumiUC1", "XS_LumiUC2", "XS_Z", "XS_WW", "XS_ttbar"};
-    for(TString name : names) {
-      int isys = sys_info.GetNum(name);
-      scale_sys.push_back(std::pair<ScaleUncertainty_t,ScaleUncertainty_t>(sys_info.GetScale(isys), sys_info.GetScale(isys+1)));
-    }
-
-    //add normalization uncertainties that are uncorrelated between years
-    if(useEmbed_) {
-      for(int year : years_) {
-        int isys = sys_info.GetNum("XS_Embed");
+    if(simplified_sys_) get_simplified_systematics(scale_sys);
+    else {
+      CLFV::Systematics sys_info;
+      //add MET uncertainty approximation
+      systematics.push_back(std::pair<TString,TString>("metup", "metdown"));
+      //add relevant scale uncertainties
+      vector<TString> names = {"XS_LumiUC0", "XS_LumiUC1", "XS_LumiUC2", "XS_Z", "XS_WW", "XS_ttbar"};
+      for(TString name : names) {
+        int isys = sys_info.GetNum(name);
         scale_sys.push_back(std::pair<ScaleUncertainty_t,ScaleUncertainty_t>(sys_info.GetScale(isys), sys_info.GetScale(isys+1)));
-        auto scale = scale_sys.back();
-        scale.first.years_ = {year};
-        scale.second.years_ = {year};
+      }
+
+      //add normalization uncertainties that are uncorrelated between years
+      if(useEmbed_) {
+        for(int year : years_) {
+          int isys = sys_info.GetNum("XS_Embed");
+          scale_sys.push_back(std::pair<ScaleUncertainty_t,ScaleUncertainty_t>(sys_info.GetScale(isys), sys_info.GetScale(isys+1)));
+          auto scale = scale_sys.back();
+          scale.first.years_ = {year};
+          scale.second.years_ = {year};
+        }
       }
     }
 
@@ -277,6 +309,14 @@ Int_t print_met_phi(int set, bool add_sys = false) {
   if(!dataplotter_) return 1;
   const Int_t offset = ((set % 1000) > 100) ? 0 : get_offset();
   PlottingCard_t card("metphi", "event", set+offset, 1,  1., -1.);
+  std::vector<std::pair<TString,TString>> systematics;
+  std::vector<std::pair<ScaleUncertainty_t,ScaleUncertainty_t>> scale_sys;
+  if(add_sys) {
+    if(simplified_sys_) get_simplified_systematics(scale_sys);
+    //Add to the card
+    card.sys_list_ = systematics;
+    card.scale_sys_list_ = scale_sys;
+  }
   Int_t status(0);
   for(int logY = 0; logY < 1; ++logY) {
     dataplotter_->logY_ = logY;
@@ -297,6 +337,14 @@ Int_t print_raw_met(int set, bool add_sys = false) {
   Int_t status(0);
   for(TString hist : hists) {
     PlottingCard_t card(hist, "event", set+offset, 1,  1., -1.);
+    std::vector<std::pair<TString,TString>> systematics;
+    std::vector<std::pair<ScaleUncertainty_t,ScaleUncertainty_t>> scale_sys;
+    if(add_sys) {
+      if(simplified_sys_) get_simplified_systematics(scale_sys);
+      //Add to the card
+      card.sys_list_ = systematics;
+      card.scale_sys_list_ = scale_sys;
+    }
     const int max_log = (hist == "rawmetdiff") ? 2 : 1; //only do log plot for the difference plot
     for(int logY = 0; logY < max_log; ++logY) {
       dataplotter_->logY_ = logY;
@@ -315,6 +363,14 @@ Int_t print_met_over_pt(int set, bool add_sys = false) {
   if(!dataplotter_) return 1;
   const Int_t offset = ((set % 1000) > 100) ? 0 : get_offset();
   PlottingCard_t card("metoverleppt", "event", set+offset, 2,  0., 10.);
+  std::vector<std::pair<TString,TString>> systematics;
+  std::vector<std::pair<ScaleUncertainty_t,ScaleUncertainty_t>> scale_sys;
+  if(add_sys) {
+    if(simplified_sys_) get_simplified_systematics(scale_sys);
+    //Add to the card
+    card.sys_list_ = systematics;
+    card.scale_sys_list_ = scale_sys;
+  }
   Int_t status(0);
   for(int logY = 0; logY < 2; ++logY) {
     dataplotter_->logY_ = logY;
@@ -335,6 +391,14 @@ Int_t print_gen_met(int set, bool add_sys = false) {
   vector<TString> hists = {"detectormet", "nupt", "genmet", "genmetnonu"};
   for(auto hist : hists) {
     PlottingCard_t card(hist, "event", set+offset, 1,  0., 60.);
+    std::vector<std::pair<TString,TString>> systematics;
+    std::vector<std::pair<ScaleUncertainty_t,ScaleUncertainty_t>> scale_sys;
+    if(add_sys) {
+      if(simplified_sys_) get_simplified_systematics(scale_sys);
+      //Add to the card
+      card.sys_list_ = systematics;
+      card.scale_sys_list_ = scale_sys;
+    }
     for(int logY = 0; logY < 2; ++logY) {
       dataplotter_->logY_ = logY;
       auto c = dataplotter_->print_stack(card);
@@ -354,6 +418,14 @@ Int_t print_jet(int set, bool add_sys = false) {
   Int_t status(0);
   {
     PlottingCard_t card("jetpt", "event", set+offset, 2, 20., 100.);
+    std::vector<std::pair<TString,TString>> systematics;
+    std::vector<std::pair<ScaleUncertainty_t,ScaleUncertainty_t>> scale_sys;
+    if(add_sys) {
+      if(simplified_sys_) get_simplified_systematics(scale_sys);
+      //Add to the card
+      card.sys_list_ = systematics;
+      card.scale_sys_list_ = scale_sys;
+    }
     for(int logY = 0; logY < 2; ++logY) {
       dataplotter_->logY_ = logY;
       auto c = dataplotter_->print_stack(card);
@@ -363,6 +435,14 @@ Int_t print_jet(int set, bool add_sys = false) {
   }
   {
     PlottingCard_t card("njets20", "event", set+offset, 0, 0, 5);
+    std::vector<std::pair<TString,TString>> systematics;
+    std::vector<std::pair<ScaleUncertainty_t,ScaleUncertainty_t>> scale_sys;
+    if(add_sys) {
+      if(simplified_sys_) get_simplified_systematics(scale_sys);
+      //Add to the card
+      card.sys_list_ = systematics;
+      card.scale_sys_list_ = scale_sys;
+    }
     for(int logY = 0; logY < 2; ++logY) {
       dataplotter_->logY_ = logY;
       auto c = dataplotter_->print_stack(card);
@@ -381,6 +461,14 @@ Int_t print_ptdiff(int set, bool add_sys = false) {
   const Int_t offset = get_offset();
   const bool same_flavor = selection_ == "ee" || selection_ == "mumu";
   PlottingCard_t card("ptdiff", "lep", set+offset, 2, (same_flavor) ? 0. : -100., 100.);
+  std::vector<std::pair<TString,TString>> systematics;
+  std::vector<std::pair<ScaleUncertainty_t,ScaleUncertainty_t>> scale_sys;
+  if(add_sys) {
+    if(simplified_sys_) get_simplified_systematics(scale_sys);
+    //Add to the card
+    card.sys_list_ = systematics;
+    card.scale_sys_list_ = scale_sys;
+  }
   Int_t status(0);
   for(int logY = 0; logY < 2; ++logY) {
     dataplotter_->logY_ = logY;
@@ -402,6 +490,14 @@ Int_t print_ptratio(int set, bool add_sys = false) {
   Int_t status(0);
   for(auto hist : hists) {
     PlottingCard_t card(hist, "lep", set+offset, (same_flavor) ? 1 : 2, (hist == "ptratio" && same_flavor) ? 1. : 0., (hist == "ptratio") ? 2.5 : 1.);
+    std::vector<std::pair<TString,TString>> systematics;
+    std::vector<std::pair<ScaleUncertainty_t,ScaleUncertainty_t>> scale_sys;
+    if(add_sys) {
+      if(simplified_sys_) get_simplified_systematics(scale_sys);
+      //Add to the card
+      card.sys_list_ = systematics;
+      card.scale_sys_list_ = scale_sys;
+    }
     for(int logY = 0; logY < 2; ++logY) {
       dataplotter_->logY_ = logY;
       auto c = dataplotter_->print_stack(card);
@@ -463,6 +559,14 @@ Int_t print_leppt(int set, bool add_sys = false) {
   const Int_t offset = get_offset();
   const bool same_flavor = selection_ == "ee" || selection_ == "mumu";
   PlottingCard_t card("leppt", "event", set+offset, (same_flavor) ? 1 : 2, 0., 100);
+  std::vector<std::pair<TString,TString>> systematics;
+  std::vector<std::pair<ScaleUncertainty_t,ScaleUncertainty_t>> scale_sys;
+  if(add_sys) {
+    if(simplified_sys_) get_simplified_systematics(scale_sys);
+    //Add to the card
+    card.sys_list_ = systematics;
+    card.scale_sys_list_ = scale_sys;
+  }
   Int_t status(0);
   for(int logY = 0; logY < 2; ++logY) {
     dataplotter_->logY_ = logY;
@@ -481,6 +585,14 @@ Int_t print_lepeta(int set, bool add_sys = false) {
   const Int_t offset = get_offset();
   const bool same_flavor = selection_ == "ee" || selection_ == "mumu";
   PlottingCard_t card("lepeta", "event", set+offset, (same_flavor) ? 1 : 2, -5., 5);
+  std::vector<std::pair<TString,TString>> systematics;
+  std::vector<std::pair<ScaleUncertainty_t,ScaleUncertainty_t>> scale_sys;
+  if(add_sys) {
+    if(simplified_sys_) get_simplified_systematics(scale_sys);
+    //Add to the card
+    card.sys_list_ = systematics;
+    card.scale_sys_list_ = scale_sys;
+  }
   Int_t status(0);
   for(int logY = 0; logY < 2; ++logY) {
     dataplotter_->logY_ = logY;
@@ -499,6 +611,14 @@ Int_t print_lepphi(int set, bool add_sys = false) {
   const Int_t offset = get_offset();
   const bool same_flavor = selection_ == "ee" || selection_ == "mumu";
   PlottingCard_t card("lepphi", "event", set+offset, (same_flavor) ? 1 : 2, -3.2, 3.2);
+  std::vector<std::pair<TString,TString>> systematics;
+  std::vector<std::pair<ScaleUncertainty_t,ScaleUncertainty_t>> scale_sys;
+  if(add_sys) {
+    if(simplified_sys_) get_simplified_systematics(scale_sys);
+    //Add to the card
+    card.sys_list_ = systematics;
+    card.scale_sys_list_ = scale_sys;
+  }
   Int_t status(0);
   for(int logY = 0; logY < 1; ++logY) {
     dataplotter_->logY_ = logY;
@@ -517,6 +637,14 @@ Int_t print_deltaphi(int set, bool add_sys = false) {
   const Int_t offset = get_offset();
   const bool same_flavor = selection_ == "ee" || selection_ == "mumu";
   PlottingCard_t card("lepdeltaphi", "event", set+offset, (same_flavor) ? 1 : 2, 0., 5);
+  std::vector<std::pair<TString,TString>> systematics;
+  std::vector<std::pair<ScaleUncertainty_t,ScaleUncertainty_t>> scale_sys;
+  if(add_sys) {
+    if(simplified_sys_) get_simplified_systematics(scale_sys);
+    //Add to the card
+    card.sys_list_ = systematics;
+    card.scale_sys_list_ = scale_sys;
+  }
   Int_t status(0);
   for(int logY = 0; logY < 2; ++logY) {
     dataplotter_->logY_ = logY;
@@ -538,6 +666,14 @@ Int_t print_lep_metdeltaphi(int set, bool add_sys = false) {
   Int_t status(0);
   for(TString hist : hists) {
     PlottingCard_t card(hist, (hist == "metdeltaphi") ? "event" : "lep", set+offset, (same_flavor) ? 1 : 2, 0., 3.2);
+    std::vector<std::pair<TString,TString>> systematics;
+    std::vector<std::pair<ScaleUncertainty_t,ScaleUncertainty_t>> scale_sys;
+    if(add_sys) {
+      if(simplified_sys_) get_simplified_systematics(scale_sys);
+      //Add to the card
+      card.sys_list_ = systematics;
+      card.scale_sys_list_ = scale_sys;
+    }
     for(int logY = 0; logY < 2; ++logY) {
       dataplotter_->logY_ = logY;
       auto c = dataplotter_->print_stack(card);
@@ -595,9 +731,15 @@ Int_t print_lep_beta(int set, bool add_sys = false) {
     if(hist.BeginsWith("deltaalpha")) { //delta alpha
       xmin = -xmax;
     }
-    // const double xmax = ((selection_ == "etau_mu" && hist == "beta0") || (selection_ == "mutau_e" && hist == "beta1")) ? 5. : 3.;
-    // const double xmin = (hist.BeginsWith("deltaalpha")) ? -xmax : 0.;
     PlottingCard_t card(hist, "event", set+offset, rebin, xmin, xmax, (blind) ? blind_min : 1., (blind) ? blind_max : -1.);
+    std::vector<std::pair<TString,TString>> systematics;
+    std::vector<std::pair<ScaleUncertainty_t,ScaleUncertainty_t>> scale_sys;
+    if(add_sys) {
+      if(simplified_sys_) get_simplified_systematics(scale_sys);
+      //Add to the card
+      card.sys_list_ = systematics;
+      card.scale_sys_list_ = scale_sys;
+    }
     for(int logY = 0; logY < 2; ++logY) {
       dataplotter_->logY_ = logY;
       auto c = dataplotter_->print_stack(card);
@@ -623,24 +765,27 @@ Int_t print_pt(int set, bool add_sys = false) {
     std::vector<std::pair<TString,TString>> systematics;
     std::vector<std::pair<ScaleUncertainty_t,ScaleUncertainty_t>> scale_sys;
     if(add_sys) {
-      CLFV::Systematics sys_info;
-      //add MET uncertainty approximation
-      systematics.push_back(std::pair<TString,TString>(lep+"ptup", lep+"ptdown"));
-      //add relevant scale uncertainties
-      vector<TString> names = {"XS_LumiUC0", "XS_LumiUC1", "XS_LumiUC2", "XS_Z", "XS_WW", "XS_ttbar"};
-      for(TString name : names) {
-        int isys = sys_info.GetNum(name);
-        scale_sys.push_back(std::pair<ScaleUncertainty_t,ScaleUncertainty_t>(sys_info.GetScale(isys), sys_info.GetScale(isys+1)));
-      }
-
-      //add normalization uncertainties that are uncorrelated between years
-      if(useEmbed_) {
-        for(int year : years_) {
-          int isys = sys_info.GetNum("XS_Embed");
+      if(simplified_sys_) get_simplified_systematics(scale_sys);
+      else {
+        CLFV::Systematics sys_info;
+        //add MET uncertainty approximation
+        systematics.push_back(std::pair<TString,TString>(lep+"ptup", lep+"ptdown"));
+        //add relevant scale uncertainties
+        vector<TString> names = {"XS_LumiUC0", "XS_LumiUC1", "XS_LumiUC2", "XS_Z", "XS_WW", "XS_ttbar"};
+        for(TString name : names) {
+          int isys = sys_info.GetNum(name);
           scale_sys.push_back(std::pair<ScaleUncertainty_t,ScaleUncertainty_t>(sys_info.GetScale(isys), sys_info.GetScale(isys+1)));
-          auto scale = scale_sys.back();
-          scale.first.years_ = {year};
-          scale.second.years_ = {year};
+        }
+
+        //add normalization uncertainties that are uncorrelated between years
+        if(useEmbed_) {
+          for(int year : years_) {
+            int isys = sys_info.GetNum("XS_Embed");
+            scale_sys.push_back(std::pair<ScaleUncertainty_t,ScaleUncertainty_t>(sys_info.GetScale(isys), sys_info.GetScale(isys+1)));
+            auto scale = scale_sys.back();
+            scale.first.years_ = {year};
+            scale.second.years_ = {year};
+          }
         }
       }
 
@@ -672,24 +817,27 @@ Int_t print_eta(int set, bool add_sys = false) {
     std::vector<std::pair<TString,TString>> systematics;
     std::vector<std::pair<ScaleUncertainty_t,ScaleUncertainty_t>> scale_sys;
     if(add_sys) {
-      CLFV::Systematics sys_info;
-      //add MET uncertainty approximation
-      systematics.push_back(std::pair<TString,TString>(lep+"etaup", lep+"etadown"));
-      //add relevant scale uncertainties
-      vector<TString> names = {"XS_LumiUC0", "XS_LumiUC1", "XS_LumiUC2", "XS_Z", "XS_WW", "XS_ttbar"};
-      for(TString name : names) {
-        int isys = sys_info.GetNum(name);
-        scale_sys.push_back(std::pair<ScaleUncertainty_t,ScaleUncertainty_t>(sys_info.GetScale(isys), sys_info.GetScale(isys+1)));
-      }
-
-      //add normalization uncertainties that are uncorrelated between years
-      if(useEmbed_) {
-        for(int year : years_) {
-          int isys = sys_info.GetNum("XS_Embed");
+      if(simplified_sys_) get_simplified_systematics(scale_sys);
+      else {
+        CLFV::Systematics sys_info;
+        //add MET uncertainty approximation
+        systematics.push_back(std::pair<TString,TString>(lep+"etaup", lep+"etadown"));
+        //add relevant scale uncertainties
+        vector<TString> names = {"XS_LumiUC0", "XS_LumiUC1", "XS_LumiUC2", "XS_Z", "XS_WW", "XS_ttbar"};
+        for(TString name : names) {
+          int isys = sys_info.GetNum(name);
           scale_sys.push_back(std::pair<ScaleUncertainty_t,ScaleUncertainty_t>(sys_info.GetScale(isys), sys_info.GetScale(isys+1)));
-          auto scale = scale_sys.back();
-          scale.first.years_ = {year};
-          scale.second.years_ = {year};
+        }
+
+        //add normalization uncertainties that are uncorrelated between years
+        if(useEmbed_) {
+          for(int year : years_) {
+            int isys = sys_info.GetNum("XS_Embed");
+            scale_sys.push_back(std::pair<ScaleUncertainty_t,ScaleUncertainty_t>(sys_info.GetScale(isys), sys_info.GetScale(isys+1)));
+            auto scale = scale_sys.back();
+            scale.first.years_ = {year};
+            scale.second.years_ = {year};
+          }
         }
       }
 
@@ -720,6 +868,14 @@ Int_t print_dxyz(int set, bool add_sys = false) {
   for(TString lep : leps) {
     for(TString hist : hists) {
       PlottingCard_t card(lep+hist, "lep", set+offset, 1, 0., 5.);
+      std::vector<std::pair<TString,TString>> systematics;
+      std::vector<std::pair<ScaleUncertainty_t,ScaleUncertainty_t>> scale_sys;
+      if(add_sys) {
+        if(simplified_sys_) get_simplified_systematics(scale_sys);
+        //Add to the card
+        card.sys_list_ = systematics;
+        card.scale_sys_list_ = scale_sys;
+      }
       for(int logY = 1; logY < 2; ++logY) { //only make a log plot
         dataplotter_->logY_ = logY;
         auto c = dataplotter_->print_stack(card);
@@ -742,6 +898,14 @@ Int_t print_ids(int set, bool add_sys = false) {
   if(selection_.EndsWith("tau")) hists.push_back("twoid2");
   for(TString hist : hists) {
     PlottingCard_t card(hist, "lep", set+offset, 1, 0., 5.);
+    std::vector<std::pair<TString,TString>> systematics;
+    std::vector<std::pair<ScaleUncertainty_t,ScaleUncertainty_t>> scale_sys;
+    if(add_sys) {
+      if(simplified_sys_) get_simplified_systematics(scale_sys);
+      //Add to the card
+      card.sys_list_ = systematics;
+      card.scale_sys_list_ = scale_sys;
+    }
     for(int logY = 1; logY < 2; ++logY) { //only make a log plot
       dataplotter_->logY_ = logY;
       auto c = dataplotter_->print_stack(card);
@@ -806,6 +970,14 @@ Int_t print_dm(int set, bool add_sys = false) {
   const Int_t offset = get_offset();
   Int_t status(0);
   PlottingCard_t card("taudecaymode", "event", set+offset, 1, 1, -1);
+  std::vector<std::pair<TString,TString>> systematics;
+  std::vector<std::pair<ScaleUncertainty_t,ScaleUncertainty_t>> scale_sys;
+  if(add_sys) {
+    if(simplified_sys_) get_simplified_systematics(scale_sys);
+    //Add to the card
+    card.sys_list_ = systematics;
+    card.scale_sys_list_ = scale_sys;
+  }
   for(int logY = 0; logY < 2; ++logY) { //only make a log plot
     dataplotter_->logY_ = logY;
     auto c = dataplotter_->print_stack(card);
@@ -829,24 +1001,27 @@ Int_t print_mt(int set, bool add_sys = false) {
     std::vector<std::pair<TString,TString>> systematics;
     std::vector<std::pair<ScaleUncertainty_t,ScaleUncertainty_t>> scale_sys;
     if(add_sys) {
-      CLFV::Systematics sys_info;
-      //add MET uncertainty approximation
-      systematics.push_back(std::pair<TString,TString>("mt"+name+"up", "mt"+name+"down"));
-      //add relevant scale uncertainties
-      vector<TString> names = {"XS_LumiUC0", "XS_LumiUC1", "XS_LumiUC2", "XS_Z", "XS_WW", "XS_ttbar"};
-      for(TString name : names) {
-        int isys = sys_info.GetNum(name);
-        scale_sys.push_back(std::pair<ScaleUncertainty_t,ScaleUncertainty_t>(sys_info.GetScale(isys), sys_info.GetScale(isys+1)));
-      }
-
-      //add normalization uncertainties that are uncorrelated between years
-      if(useEmbed_) {
-        for(int year : years_) {
-          int isys = sys_info.GetNum("XS_Embed");
+      if(simplified_sys_) get_simplified_systematics(scale_sys);
+      else {
+        CLFV::Systematics sys_info;
+        //add MET uncertainty approximation
+        systematics.push_back(std::pair<TString,TString>("mt"+name+"up", "mt"+name+"down"));
+        //add relevant scale uncertainties
+        vector<TString> names = {"XS_LumiUC0", "XS_LumiUC1", "XS_LumiUC2", "XS_Z", "XS_WW", "XS_ttbar"};
+        for(TString name : names) {
+          int isys = sys_info.GetNum(name);
           scale_sys.push_back(std::pair<ScaleUncertainty_t,ScaleUncertainty_t>(sys_info.GetScale(isys), sys_info.GetScale(isys+1)));
-          auto scale = scale_sys.back();
-          scale.first.years_ = {year};
-          scale.second.years_ = {year};
+        }
+
+        //add normalization uncertainties that are uncorrelated between years
+        if(useEmbed_) {
+          for(int year : years_) {
+            int isys = sys_info.GetNum("XS_Embed");
+            scale_sys.push_back(std::pair<ScaleUncertainty_t,ScaleUncertainty_t>(sys_info.GetScale(isys), sys_info.GetScale(isys+1)));
+            auto scale = scale_sys.back();
+            scale.first.years_ = {year};
+            scale.second.years_ = {year};
+          }
         }
       }
 
@@ -875,6 +1050,14 @@ Int_t print_mt_over_m(int set, bool add_sys = false) {
   std::vector<TString> hists = {"mtoneoverm", "mttwooverm", "mtlepoverm", "mtratio"};
   for(TString hist : hists) {
     PlottingCard_t card(hist, "event", set+offset, 1, 0., (hist == "mtratio") ? 5. : 1.5);
+    std::vector<std::pair<TString,TString>> systematics;
+    std::vector<std::pair<ScaleUncertainty_t,ScaleUncertainty_t>> scale_sys;
+    if(add_sys) {
+      if(simplified_sys_) get_simplified_systematics(scale_sys);
+      //Add to the card
+      card.sys_list_ = systematics;
+      card.scale_sys_list_ = scale_sys;
+    }
     for(int logY = 0; logY < 2; ++logY) {
       dataplotter_->logY_ = logY;
       auto c = dataplotter_->print_stack(card);
@@ -917,6 +1100,14 @@ Int_t print_collinear_mass(int set, bool add_sys = false, double xmax = 170.) {
   std::vector<TString> masses = {"lepmestimate", "lepmestimatetwo", "lepmestimatecut0", "lepmestimatecut1"};
   for(TString mass : masses) {
     PlottingCard_t card(mass, "event", set+offset, 2, 40., xmax, (blind_) ? 80. : 1.e3, 100.);
+    std::vector<std::pair<TString,TString>> systematics;
+    std::vector<std::pair<ScaleUncertainty_t,ScaleUncertainty_t>> scale_sys;
+    if(add_sys) {
+      if(simplified_sys_) get_simplified_systematics(scale_sys);
+      //Add to the card
+      card.sys_list_ = systematics;
+      card.scale_sys_list_ = scale_sys;
+    }
     for(int logY = 0; logY < 2; ++logY) {
       dataplotter_->logY_ = logY;
       auto c = dataplotter_->print_stack(card);
@@ -979,11 +1170,13 @@ Int_t print_mva(int set, bool add_sys = false, bool all_versions = false, int ve
   //create a list of systematics to consider in the MVA histogram
   std::vector<fpair> sys;
   std::vector<scale_pair> scale_sys;
-  if(add_sys) {
-    get_mva_systematics(sys, scale_sys);
-  }
+  if(add_sys) get_mva_systematics(sys, scale_sys);
   const bool blind = blind_ && (set < 1000);
   PlottingCard_t card(hist.Data(), "event", set+offset, 0, 0., 1., (selection_.Contains("tau")) ? 0.5 : 2., (blind) ? 1. : -1.);
+  if(simplified_sys_ && add_sys) {
+    card.sys_list_ = sys;
+    card.scale_sys_list_ = scale_sys;
+  }
   for(int logY = 0; logY < 2; ++logY) {
     dataplotter_->logY_ = logY;
     auto c = dataplotter_->print_stack(card);
@@ -1014,7 +1207,7 @@ Int_t print_mva(int set, bool add_sys = false, bool all_versions = false, int ve
       }
     }
   }
-  if(add_sys) {
+  if(!simplified_sys_ && add_sys) {
     PlottingCard_t card_sys((hist+"_0").Data(), "systematic", set+offset, 0, 0., 1., (selection_.Contains("tau")) ? 0.5 : 2., (blind) ? 1. : -1.);
     dataplotter_->logY_ = 0;
     card_sys.sys_list_ = sys;

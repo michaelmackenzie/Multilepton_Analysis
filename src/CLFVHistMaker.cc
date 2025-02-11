@@ -2264,7 +2264,7 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   min_mass_ = (etau || mutau || ee || mumu) ?  40.f :  40.f;
   max_mass_ = (etau || mutau)               ? 170.f : 170.f;
 
-  if(fZPrime) { min_mass_ = 80.f; max_mass_ = 1000.f; }
+  if(fZPrime) { min_mass_ = 70.f; max_mass_ = 1000.f; }
 
   mutau &= mll > min_mass_ - sys_buffer && mll < max_mass_ + sys_buffer;
   etau  &= mll > min_mass_ - sys_buffer && mll < max_mass_ + sys_buffer;
@@ -2631,7 +2631,7 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
   if(emu || (fSameFlavorEMuSelec && (ee || mumu))) {
     one_pt_min_ = 20.f;
     two_pt_min_ = 20.f;
-    min_mass_ = (fZPrime) ?   80.f :  70.f;
+    min_mass_ = (fZPrime) ?   70.f :  70.f;
     max_mass_ = (fZPrime) ? 1000.f : 110.f;
   }
   emu     &= leptonOne.pt > one_pt_min_ - sys_buffer;

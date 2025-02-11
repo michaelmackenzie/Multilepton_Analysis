@@ -83,6 +83,7 @@ namespace CLFV {
     Int_t logY_ = 0;
     Int_t signal_ratio_log_ = 1;
     Int_t plot_data_ = 1; //only MC or include data
+    Int_t plot_signal_ = 1; //ignore the signal or not
     Int_t rebinH_ = 1; //rebinning of histograms
     Int_t data_over_mc_ = 1; //do data/MC or data-MC: 0 = none, 1 = data/MC, -1 = signal/bkg, -2 = signal/sqrt(bkg)
     Float_t ratio_plot_min_ = 0.6; //Data/MC Y-axis range

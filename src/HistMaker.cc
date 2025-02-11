@@ -601,7 +601,7 @@ void HistMaker::BookBaseEventHistograms(Int_t i, const char* dirname) {
   }
 
 
-  const float min_mass = (fZPrime) ?   80. :  40.;
+  const float min_mass = (fZPrime) ?   70. :  40.;
   const float max_mass = (fZPrime) ? 1000. : 180.;
   Utilities::BookH1F(fEventHist[i]->hLepPt[0], "leppt"         , Form("%s: Lepton Pt"      ,dirname)  , 100,   0, 200, folder);
   Utilities::BookH1F(fEventHist[i]->hLepM[0] , "lepm"          , Form("%s: Lepton M"       ,dirname)  , 280,  min_mass, max_mass, folder);

@@ -127,7 +127,7 @@ Int_t process_channel(datacard_t& card, config_t& config, TString selection, TCh
     train_mode_ = 0;
 
     if(doZPrime_) {
-      min_lepm_         =   70.f;
+      min_lepm_         =   65.f;
       max_lepm_         = 1000.f;
     } else {
       min_lepm_         =  65.f;

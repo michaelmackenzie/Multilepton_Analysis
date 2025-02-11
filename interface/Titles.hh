@@ -120,7 +120,7 @@ namespace CLFV {
         *unit   = "GeV";
       }
       else if(hist == "lepmestimatetwo") {
-        *xtitle = "m^{Col} [GeV]";
+        *xtitle = "m^{col} [GeV]";
         *ytitle = "";
         *title  = Form("Mass Estimate of the Lepton System");
         *unit   = "GeV";

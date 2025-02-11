@@ -345,6 +345,12 @@ TH1* DataPlotter::get_qcd(TString hist, TString setType, Int_t set, ScaleUncerta
   if(nbefore < 0.) hData->Scale(0.);
   else if(nafter > 0.) hData->Scale(qcd_scale_*(nbefore/nafter));
 
+  // Check if applying a systematic scaling for the QCD estimate
+  if(sys_scale && sys_scale->process_ == "QCD") {
+    hData->Scale(sys_scale->scale_);
+    if(verbose_ > 1) printf("%s: Applying %f scale to QCD estimate\n", __func__, sys_scale->scale_);
+  }
+
   const double nqcd = hData->Integral(0, hData->GetNbinsX()+1, (density_plot_ > 0) ? "width" : "");
 
   const char* stats = (doStatsLegend_) ? Form(": #scale[0.8]{%.2e}", nqcd) : "";
@@ -468,6 +474,12 @@ TH1* DataPlotter::get_misid(TString hist, TString setType, Int_t set, ScaleUncer
   const double scale = (nbefore < 0.) ? 0. : nbefore/nafter;
   if(nbefore < 0.) hData->Scale(0.);
   else if(nafter > 0.) hData->Scale(scale);
+
+  // Check if applying a systematic scaling for the MisID estimate
+  if(sys_scale && sys_scale->process_ == "MisID") {
+    hData->Scale(sys_scale->scale_);
+    if(verbose_ > 1) printf("%s: Applying %f scale to MisID estimate\n", __func__, sys_scale->scale_);
+  }
 
   const double nmisid = hData->Integral(0, hData->GetNbinsX()+1, (density_plot_ > 0) ? "width" : "");
   if(verbose_ > 1) printf(" MisID negative clipping scale = %.4f, %.4f before --> %.4f after\n",
@@ -1320,7 +1332,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set, const
   if(verbose_ > 0 && !d) std::cout << "Failed to retrieve the data histogram\n";
   else if(verbose_ > 0)  std::cout << "Retrieved the data histogram\n";
 
-  std::vector<TH1*> hsignal = get_signal(hist,setType,set);
+  std::vector<TH1*> hsignal = (plot_signal_) ? get_signal(hist,setType,set) : std::vector<TH1*>{};
   if(verbose_ > 0) {
     std::cout << "Retrieved the signals with " << hsignal.size() << " histograms\n";
   }
