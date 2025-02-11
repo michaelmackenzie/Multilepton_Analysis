@@ -6,6 +6,8 @@ bool more_precise_ = false; //more precise steps in the minimizations
 bool preliminary_  = true;
 bool add_values_   = true; //add text values of the limits to the plot
 bool log_plot_     = true; //plot the x-axis in log-scale
+double ymin_       =  1.; //for forcing a y-axis range
+double ymax_       = -1.;
 
 struct config_t {
   TString name_;
@@ -156,8 +158,8 @@ int make_combine_limit_plot_general(vector<config_t> configs, //info for each en
 
 
   //calculate y-axis range for a linear and log plot
-  const float ymin_lin = 0.;
-  const float ymax_lin = 1.5*max_val;
+  const float ymin_lin = (ymin_ < ymax_) ? ymin_ : 0.;
+  const float ymax_lin = (ymin_ < ymax_) ? ymax_ : 1.5*max_val;
   const float scale_size = (log10(max_val) - log10(min_val)); //orders of magnitude spanning the plot
   const float ymax_log = max_val*pow(4.0,max(0.f, scale_size));
   const float ymin_log = min_val/pow(1.5,max(0.f, scale_size));

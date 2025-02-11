@@ -188,7 +188,7 @@ int print_stack(vector<TDirectoryFile*> dirs, TString tag, TString outdir) {
 
   //Configure the data style
   gdata->SetMarkerStyle(20);
-  gdata->SetMarkerSize(1.);
+  gdata->SetMarkerSize(1.7);
   gdata->SetMarkerColor(kBlack);
   gdata->SetLineColor(kBlack);
   gdata->SetLineWidth(3);
@@ -365,11 +365,11 @@ int print_stack(vector<TDirectoryFile*> dirs, TString tag, TString outdir) {
     hRatio_s->Draw("hist same");
     hRatio_s->GetYaxis()->SetRangeUser(0.8, 1.2); //necessary due to y-axis importing from clone
   }
-  gRatio->SetLineColor(kBlack);
-  gRatio->SetLineWidth(3);
-  gRatio->SetMarkerColor(kBlack);
-  gRatio->SetMarkerStyle(20);
-  gRatio->SetMarkerSize(1.);
+  gRatio->SetLineColor(gdata->GetLineColor());
+  gRatio->SetLineWidth(gdata->GetLineWidth());
+  gRatio->SetMarkerColor(gdata->GetMarkerColor());
+  gRatio->SetMarkerStyle(gdata->GetMarkerStyle());
+  gRatio->SetMarkerSize(gdata->GetMarkerSize());
   gRatio->Draw("PEZ");
   hBkg_unc->GetXaxis()->SetRangeUser(xmin, xmax);
 

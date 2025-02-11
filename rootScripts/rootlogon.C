@@ -34,6 +34,11 @@
   const int kCMSColor_S_5 = TColor::GetColor("#9c9ca1");
   const int kCMSColor_S_6 = TColor::GetColor("#7a21dd");
 
+  //Colors for limits
+  const int kCMSColor_LimitGreen  = TColor::GetColor("#607641");
+  const int kCMSColor_LimitYellow = TColor::GetColor("#F5BB54");
+
+
   if (exec_name) {
     if (strcmp(exec_name,"root.exe") == 0) {
       gInterpreter->AddIncludePath("../rootScripts");

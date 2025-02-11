@@ -12,6 +12,10 @@ int make_combine_limit_plot_channels(TString selection = "zmutau",
   const double scale = (selection.Contains("h")) ? 1.e-4 : 1.e-6;
   add_values_ = false; //Whether to add expected limit values to the figure
 
+  // force a specific y-axis range
+  ymin_ = 0.;
+  ymax_ = 45.e-6;
+
   if(card_tag != "") card_tag += "_";
   TString year_s = Form("%s%i", card_tag.Data(), years[0]);
   for(int i = 1; i < years.size(); ++i) year_s += Form("_%i", years[i]);

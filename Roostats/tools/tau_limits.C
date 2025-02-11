@@ -9,6 +9,8 @@ int tau_limits(bool processCards = false,
   scale_ = 1.e-6;
   add_values_ = false; //don't add expected limit values to the plot
   log_plot_   = false; //plot the x-axis in linear scale
+  ymin_       = 0.;
+  ymax_       = 45.e-6;
 
   int status = 0;
   vector<int> sets_had = {25,26,27,28};
