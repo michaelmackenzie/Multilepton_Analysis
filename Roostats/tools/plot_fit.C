@@ -42,7 +42,7 @@ double gmin(TGraph* g, double cutoff = 0.01) {
   return max(cutoff, min_val);
 }
 
-void draw_cms_label() {
+void draw_cms_label(double left_margin = 0.10) {
     //CMS prelim drawing
     TText cmslabel;
     cmslabel.SetNDC();
@@ -51,11 +51,11 @@ void draw_cms_label() {
     cmslabel.SetTextAlign(11);
     cmslabel.SetTextAngle(0);
     cmslabel.SetTextFont(61);
-    cmslabel.DrawText(0.10, 0.915, "CMS");
+    cmslabel.DrawText(left_margin, 0.915, "CMS");
     if(is_prelim_) {
       cmslabel.SetTextFont(52);
       cmslabel.SetTextSize(0.76*cmslabel.GetTextSize());
-      cmslabel.DrawText(0.19, 0.915, "Preliminary");
+      cmslabel.DrawText(left_margin + 0.09, 0.915, "Preliminary");
     }
 }
 
@@ -141,7 +141,7 @@ int print_stack(vector<TDirectoryFile*> dirs, TString tag, TString outdir) {
   //Build the stack
   THStack* stack = new THStack("hstack", ("stack_" + tag).Data());
   vector<TString> names = {"HiggsBkg", "Top", "OtherVB", "ZToeemumu", "Embedding", "MisID", "QCD"};
-  vector<TString> titles = {"Higgs", "Top quark", "Other VB", "Z#rightarrowll", "#tau#tau", "j#rightarrow#tau_{h}", "QCD"};
+  vector<TString> titles = {"H#rightarrow#tau#tau,WW", "Top quark", "Other VB", "Z#rightarrowll", "#tau#tau", "j#rightarrow#tau_{h}", "QCD"};
   vector<int> colors = {kCMSColor_9, kCMSColor_10, kCMSColor_8, kCMSColor_6, kCMSColor_7, kCMSColor_1, kCMSColor_2}; //kAtlantic, kYellow-7, kViolet-9, kRed-2, kRed-7, kGreen-7, kOrange+6};
   for(unsigned i = 0; i < names.size(); ++i) {
     TString name = names[i];
@@ -175,12 +175,14 @@ int print_stack(vector<TDirectoryFile*> dirs, TString tag, TString outdir) {
   gStyle->SetPadTickX(1);
   gStyle->SetPadTickY(1);
   TCanvas* c = new TCanvas("c_stack", "c_stack", 1000, 900);
-  TPad* pad1 = new TPad("pad1_stack", "pad1_stack", 0., 0.40, 1., 1.00);
-  TPad* pad2 = new TPad("pad2_stack", "pad2_stack", 0., 0.20, 1., 0.40);
-  TPad* pad3 = new TPad("pad3_stack", "pad3_stack", 0., 0.00, 1., 0.20);
-  pad1->SetRightMargin(0.03); pad2->SetRightMargin(0.03); pad3->SetRightMargin(0.03);
-  pad1->SetBottomMargin(0.02); pad2->SetBottomMargin(0.07); pad3->SetBottomMargin(0.28);
-  pad2->SetTopMargin(0.05); pad3->SetTopMargin(0.05);
+  const float x1(0.23), x2(0.43);
+  TPad* pad1 = new TPad("pad1_stack", "pad1_stack", 0., x2, 1., 1.);
+  TPad* pad2 = new TPad("pad2_stack", "pad2_stack", 0., x1, 1., x2);
+  TPad* pad3 = new TPad("pad3_stack", "pad3_stack", 0., 0., 1., x1);
+  pad1->SetRightMargin (0.03); pad2->SetRightMargin (pad1->GetRightMargin()); pad3->SetRightMargin(pad1->GetRightMargin());
+  pad1->SetLeftMargin  (0.13); pad2->SetLeftMargin  (pad1->GetLeftMargin ()); pad3->SetLeftMargin (pad1->GetLeftMargin ());
+  pad1->SetBottomMargin(0.02); pad2->SetBottomMargin(0.09); pad3->SetBottomMargin(0.33);
+  pad1->SetTopMargin   (0.10); pad2->SetTopMargin   (0.07); pad3->SetTopMargin   (0.05);
   pad1->Draw(); pad2->Draw(); pad3->Draw();
 
   // Draw the data and fit components
@@ -205,10 +207,10 @@ int print_stack(vector<TDirectoryFile*> dirs, TString tag, TString outdir) {
   htotal->SetTitle("");
   htotal->SetXTitle("");
   htotal->SetYTitle("Events / Bin");
-  htotal->GetYaxis()->SetTitleSize(0.06);
+  htotal->GetYaxis()->SetTitleSize(0.08);
   htotal->GetYaxis()->SetTitleOffset(0.70);
   htotal->GetXaxis()->SetLabelSize(0.);
-  htotal->GetYaxis()->SetLabelSize(0.049);
+  htotal->GetYaxis()->SetLabelSize(0.065);
 
   //Configure the background component style
   hbackground->SetLineColor(kRed);
@@ -235,14 +237,14 @@ int print_stack(vector<TDirectoryFile*> dirs, TString tag, TString outdir) {
 
 
   //Add a legend for the summary components and one for the background stack
-  TLegend leg_sum(0.13, 0.63, 0.39, 0.88);
+  TLegend leg_sum(pad1->GetLeftMargin() + 0.03, 0.63, pad1->GetLeftMargin() + 0.29, 0.88);
   leg_sum.AddEntry(gdata, "Data", "PE");
   leg_sum.AddEntry(htotal, "Total", "LF");
   if(unblind_) {
     leg_sum.AddEntry(hbackground, "Background", "L");
     leg_sum.AddEntry(hsignal, "Signal", "L");
   }
-  TLegend leg_bkg(0.40, 0.63, 0.93, 0.88);
+  TLegend leg_bkg(pad1->GetLeftMargin() + 0.30, 0.63, 1. - 0.04 - pad1->GetRightMargin(), 0.88);
   leg_bkg.SetNColumns(2);
   for(auto h : *(stack->GetHists())) leg_bkg.AddEntry(h);
 
@@ -382,13 +384,14 @@ int print_stack(vector<TDirectoryFile*> dirs, TString tag, TString outdir) {
   line->Draw("same");
 
   //Configure the titles and axes
+  float txt_scale = (1.-x2)/(x2-x1);
   hBkg_unc->GetYaxis()->SetRangeUser(0.8, 1.2);
   hBkg_unc->SetTitle("");
   hBkg_unc->SetXTitle("");
   hBkg_unc->GetXaxis()->SetLabelSize(0.);
-  hBkg_unc->GetYaxis()->SetNdivisions(505);
-  hBkg_unc->GetYaxis()->SetLabelSize(0.13);
-  hBkg_unc->GetYaxis()->SetTitleSize(0.18);
+  hBkg_unc->GetYaxis()->SetNdivisions(205);
+  hBkg_unc->GetYaxis()->SetLabelSize(txt_scale*htotal->GetYaxis()->GetLabelSize());
+  hBkg_unc->GetYaxis()->SetTitleSize(txt_scale*htotal->GetYaxis()->GetTitleSize());
   hBkg_unc->GetYaxis()->SetTitleOffset(0.23);
   if(unblind_) hBkg_unc->SetYTitle("Data/Bkg");
   else         hBkg_unc->SetYTitle("Data/Fit");
@@ -410,19 +413,14 @@ int print_stack(vector<TDirectoryFile*> dirs, TString tag, TString outdir) {
   hPull->SetYTitle("#frac{Data-Fit}{#sigma}");
   // if(err_mode_ == 1) hPull->SetYTitle("#frac{(Data-Fit)}{#sqrt{#sigma_{Data}^{2} - #sigma_{Fit}^{2}}}");
 
-  hPull->GetXaxis()->SetLabelSize(0.13);
+  txt_scale = (1.-x2)/(x1);
+  hPull->GetXaxis()->SetLabelSize(txt_scale*htotal->GetYaxis()->GetLabelSize());
   hPull->GetYaxis()->SetNdivisions(505);
-  hPull->GetYaxis()->SetLabelSize(0.13);
-  hPull->GetXaxis()->SetTitleSize(0.18);
-  hPull->GetYaxis()->SetTitleSize(0.18);
+  hPull->GetYaxis()->SetLabelSize(hPull->GetXaxis()->GetLabelSize());
+  hPull->GetXaxis()->SetTitleSize(txt_scale*htotal->GetYaxis()->GetTitleSize());
+  hPull->GetYaxis()->SetTitleSize(hPull->GetXaxis()->GetTitleSize());
   hPull->GetXaxis()->SetTitleOffset(0.70);
   hPull->GetYaxis()->SetTitleOffset(0.22);
-  // hPull->GetXaxis()->SetLabelSize(0.10);
-  // hPull->GetYaxis()->SetLabelSize(0.10);
-  // hPull->GetXaxis()->SetTitleSize(0.15);
-  // hPull->GetYaxis()->SetTitleSize(0.15);
-  // hPull->GetXaxis()->SetTitleOffset(0.75);
-  // hPull->GetYaxis()->SetTitleOffset(0.29);
 
   //Add a reference line for perfect agreement
   TLine* line_2 = new TLine(xmin, 0., xmax, 0.);
@@ -433,7 +431,7 @@ int print_stack(vector<TDirectoryFile*> dirs, TString tag, TString outdir) {
 
   //Add the CMS label
   pad1->cd();
-  draw_cms_label();
+  draw_cms_label(pad1->GetLeftMargin());
   draw_luminosity(year);
 
   //Print a linear and a log version of the distribution
