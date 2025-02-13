@@ -82,8 +82,8 @@ void get_datacards(std::vector<dcard>& cards, TString selection, int forStudies 
   TString wg    = (forStudies == 1) ? "WJets" : (combineWG_) ? wj : "W+#gamma";
   TString ww    = (forStudies == 1) ? "WJets" : (combineWW_) ? wj : "WW";
   TString vb    = (forStudies == 1) ? "WJets" : "Other VB";
-  TString hb_tt = (forStudies == 1) ? "HBkg"  : (combineHB_) ? "Higgs" : "H#rightarrow#tau#tau";
-  TString hb_ww = (forStudies == 1) ? "HBkg"  : (combineHB_) ? "Higgs" : "H#rightarrowWW";
+  TString hb_tt = (forStudies == 1) ? "HBkg"  : (combineHB_) ? "H#rightarrow#tau#tau,WW" : "H#rightarrow#tau#tau";
+  TString hb_ww = (forStudies == 1) ? "HBkg"  : (combineHB_) ? "H#rightarrow#tau#tau,WW" : "H#rightarrowWW";
 
   const int top_c = kCMSColor_10; //kYellow - 7;
   const int dy_ll_c = (forStudies == 1) ? kRed - 7 : kCMSColor_6; //kRed - 2;

@@ -204,7 +204,7 @@ Int_t print_mass(int set, bool add_sys = false, double mass_min = 1., double mas
     mass_min = (selection_.Contains("tau")) ?  40. : (!zprime_) ?  70. :  95.;
     mass_max = (selection_.Contains("tau")) ? 170. : (!zprime_) ? 110. : 700.;
   }
-  PlottingCard_t card("lepm", "event", set+offset, 5, mass_min, mass_max);
+  PlottingCard_t card("lepm", "event", set+offset, (zprime_) ? 4 : 5, mass_min, mass_max);
   if(blind_ && (selection_ == "emu" || selection_.Contains("_")) && set < 1000) {
     card.blindmin_ = {84.};
     card.blindmax_ = {98.};
@@ -1097,7 +1097,8 @@ Int_t print_collinear_mass(int set, bool add_sys = false, double xmax = 170.) {
   const Int_t offset = get_offset();
   const bool same_flavor = selection_ == "ee" || selection_ == "mumu";
   Int_t status(0);
-  std::vector<TString> masses = {"lepmestimate", "lepmestimatetwo", "lepmestimatecut0", "lepmestimatecut1"};
+  std::vector<TString> masses = {(selection_ == "mutau_e") ? "lepmestimatetwo" : "lepmestimate"};
+  // std::vector<TString> masses = {"lepmestimate", "lepmestimatetwo", "lepmestimatecut0", "lepmestimatecut1"};
   for(TString mass : masses) {
     PlottingCard_t card(mass, "event", set+offset, 2, 40., xmax, (blind_) ? 80. : 1.e3, 100.);
     std::vector<std::pair<TString,TString>> systematics;
