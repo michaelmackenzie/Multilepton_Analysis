@@ -3,7 +3,7 @@ float scale_ = 1.;
 TString dir_ = "";
 bool speed_limit_  = true; //use Combine arguments to speed up limit calculation
 bool more_precise_ = false; //more precise steps in the minimizations
-bool preliminary_  = true;
+bool preliminary_  = false;
 bool add_values_   = true; //add text values of the limits to the plot
 bool log_plot_     = true; //plot the x-axis in log-scale
 double ymin_       =  1.; //for forcing a y-axis range
@@ -151,9 +151,9 @@ int make_combine_limit_plot_general(vector<config_t> configs, //info for each en
   expected_2->SetMarkerStyle(20);
   expected_2->SetMarkerSize(0.8);
   if(selection == "tau")
-    expected_2->SetTitle(";;#it{B}(Z^{0} #rightarrow l^{#pm}#tau^{#mp})");
+    expected_2->SetTitle(";;#it{B}(Z #rightarrow l#tau)");
   else
-    expected_2->SetTitle(Form(";;#it{B}(Z^{0} #rightarrow %s^{#pm}%s^{#mp})",
+    expected_2->SetTitle(Form(";;#it{B}(Z #rightarrow %s%s)",
                               selection.BeginsWith("zmu") ? "#mu" : "e", selection.EndsWith("mu") ? "#mu" : "#tau"));
 
 

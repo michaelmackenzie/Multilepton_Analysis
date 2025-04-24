@@ -10,7 +10,7 @@ bool do_single_    = false  ; //test printing a single histogram
 bool do_run2_      = true   ; //print Run 2 inclusive histograms
 bool only_run2_    = true   ; //skip individual year plots
 TString only_mode_ = "fit_s"; //fit version to print ("" to ignore)
-bool is_prelim_    = true   ;
+bool is_prelim_    = false  ;
 TString file_type_ = "pdf"  ;
 
 
@@ -70,6 +70,30 @@ void draw_luminosity(int year = -1) {
   TString period = (year > 2000) ? Form("%i, ", year) : "";
   const double lum = (year == 2016) ? 36.33 : (year == 2017) ? 41.48 : (year == 2018) ? 59.83 : 137.64;
   label.DrawLatex(0.97, 0.915, Form("%s%.0f fb^{-1} (13 TeV)",period.Data(),lum));
+}
+
+void draw_category(TString tag, float left_margin = 0.10) {
+  const bool zetau = tag.Contains("zetau");
+  const bool hadronic = tag.Contains("_had_");
+  TString cat = (zetau) ? "e#tau" : "#mu#tau";
+  cat += (hadronic) ? "_{h}" : (zetau) ? "_{#mu}" : "_{e}";
+  if(hadronic) {
+    if     (tag.Contains("mva_25")) cat += ": 60 < m_{" + cat + "} < 85 GeV";
+    else if(tag.Contains("mva_26")) cat += ": 100 < m_{" + cat + "} < 170 GeV";
+    else if(tag.Contains("mva_28")) cat += ": 85 < m_{" + cat + "} < 100 GeV";
+    else                            cat += ": 40 < m_{" + cat + "} < 60 GeV";
+  } else {
+    if     (tag.Contains("mva_25")) cat += ": 50 < m_{" + cat + "} < 100 GeV";
+    else if(tag.Contains("mva_26")) cat += ": 100 < m_{" + cat + "} < 170 GeV";
+    else                            cat += ": 40 < m_{" + cat + "} < 50 GeV";
+  }
+  TLatex label;
+  label.SetNDC();
+  label.SetTextFont(42);
+  label.SetTextSize(0.060);
+  label.SetTextAlign(11);
+  label.SetTextAngle(0);
+  label.DrawLatex(left_margin + 0.04, 0.58, cat.Data());
 }
 
 //------------------------------------------------------------------------------------------
@@ -140,9 +164,9 @@ int print_stack(vector<TDirectoryFile*> dirs, TString tag, TString outdir) {
 
   //Build the stack
   THStack* stack = new THStack("hstack", ("stack_" + tag).Data());
-  vector<TString> names = {"HiggsBkg", "Top", "OtherVB", "ZToeemumu", "Embedding", "MisID", "QCD"};
-  vector<TString> titles = {"H#rightarrow#tau#tau,WW", "Top quark", "Other VB", "Z#rightarrowll", "#tau#tau", "j#rightarrow#tau_{h}", "QCD"};
-  vector<int> colors = {kCMSColor_9, kCMSColor_10, kCMSColor_8, kCMSColor_6, kCMSColor_7, kCMSColor_1, kCMSColor_2}; //kAtlantic, kYellow-7, kViolet-9, kRed-2, kRed-7, kGreen-7, kOrange+6};
+  vector<TString> names  = {"HiggsBkg"               , "Top"       , "OtherVB"   , "ZToeemumu"     , "Embedding", "MisID"               , "QCD"           };
+  vector<TString> titles = {"H#rightarrow#tau#tau,WW", "Top quark" , "W, multi-V", "Z#rightarrowll", "#tau#tau" , "j#rightarrow#tau_{h}", "nonprompt e#mu"};
+  vector<int>     colors = {kCMSColor_9              , kCMSColor_10, kCMSColor_8 , kCMSColor_6     , kCMSColor_7, kCMSColor_1           , kCMSColor_2     };
   for(unsigned i = 0; i < names.size(); ++i) {
     TString name = names[i];
     auto h = get_hist(dirs, name.Data());
@@ -410,7 +434,10 @@ int print_stack(vector<TDirectoryFile*> dirs, TString tag, TString outdir) {
   hPull->GetYaxis()->SetRangeUser(min(-3., 1.1*min_pull),max(3., 1.1*max_pull));
   hPull->SetTitle("");
   hPull->SetXTitle("BDT score bin");
-  hPull->SetYTitle("#frac{Data-Fit}{#sigma}");
+  // hPull->SetYTitle("#frac{Data-Fit}{#sigma}");
+  // hPull->GetYaxis()->SetTitleOffset(0.22);
+  hPull->SetYTitle("Pull");
+  hPull->GetYaxis()->SetTitleOffset(0.27);
   // if(err_mode_ == 1) hPull->SetYTitle("#frac{(Data-Fit)}{#sqrt{#sigma_{Data}^{2} - #sigma_{Fit}^{2}}}");
 
   txt_scale = (1.-x2)/(x1);
@@ -420,7 +447,6 @@ int print_stack(vector<TDirectoryFile*> dirs, TString tag, TString outdir) {
   hPull->GetXaxis()->SetTitleSize(txt_scale*htotal->GetYaxis()->GetTitleSize());
   hPull->GetYaxis()->SetTitleSize(hPull->GetXaxis()->GetTitleSize());
   hPull->GetXaxis()->SetTitleOffset(0.70);
-  hPull->GetYaxis()->SetTitleOffset(0.22);
 
   //Add a reference line for perfect agreement
   TLine* line_2 = new TLine(xmin, 0., xmax, 0.);
@@ -433,15 +459,16 @@ int print_stack(vector<TDirectoryFile*> dirs, TString tag, TString outdir) {
   pad1->cd();
   draw_cms_label(pad1->GetLeftMargin());
   draw_luminosity(year);
+  draw_category(outdir + tag, pad1->GetLeftMargin());
 
   //Print a linear and a log version of the distribution
   double min_val = std::max(0.1, std::min(gmin(gdata), hmin(htotal)));
   double max_val = std::max(gdata->GetMaximum(), hmax(htotal));
-  htotal->GetYaxis()->SetRangeUser(0., 1.5*max_val);
+  htotal->GetYaxis()->SetRangeUser(0., 1.75*max_val);
   c->SaveAs(Form("%s%s_stack.%s", outdir.Data(), tag.Data(), file_type_.Data()));
   c->SaveAs(Form("%s%s_stack.root", outdir.Data(), tag.Data()));
   double plot_min = 0.01*min_val;
-  double plot_max = plot_min*pow(10, 1.5*log10(max_val/plot_min));
+  double plot_max = plot_min*pow(10, 1.75*log10(max_val/plot_min));
   htotal->GetYaxis()->SetRangeUser(plot_min, plot_max);
   pad1->SetLogy();
   c->SaveAs(Form("%s%s_stack_logy.%s", outdir.Data(), tag.Data(), file_type_.Data()));
@@ -708,7 +735,7 @@ int print_hist(vector<TDirectoryFile*> dirs, TString tag, TString outdir) {
 
   //Add the CMS label
   pad1->cd();
-  draw_cms_label();
+  draw_cms_label(pad1->GetLeftMargin());
   draw_luminosity(year);
 
   //Print a linear and a log version of the distribution
@@ -772,6 +799,7 @@ int print_dir(TDirectoryFile* dir, TString tag, TString outdir) {
           next_dir = (TDirectoryFile*) dir->Get(dir_name.Data());
           if(next_dir) dirs.push_back(next_dir);
           dir_name.ReplaceAll("y2016", "Run2");
+          if(is_prelim_) dir_name += "_prelim";
           if(print_stacks_ >= 0) status += print_hist(dirs, tag + "_" + dir_name, outdir);
           if(print_stacks_ != 0) status += print_stack(dirs, tag + "_" + dir_name, outdir); //stacked histogram
           if(do_single_) return status;
@@ -782,6 +810,7 @@ int print_dir(TDirectoryFile* dir, TString tag, TString outdir) {
 
   //If this directory doesn't contain a sub-directory, print the histograms within the category
   if(!subdir && tag.Contains(only_mode_)) { //histogram directory
+    if(is_prelim_) tag += "_prelim";
     if(print_stacks_ >= 0) status += print_hist({dir}, tag, outdir);
     if(print_stacks_ != 0) status += print_stack({dir}, tag, outdir); //stacked histogram
   }
