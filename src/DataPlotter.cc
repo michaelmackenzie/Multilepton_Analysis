@@ -264,7 +264,11 @@ TH1* DataPlotter::get_data(TString hist, TString setType, Int_t set, ScaleUncert
   }
   if(!hdata) return nullptr;
   hdata->SetLineWidth(2);
+  hdata->SetLineColor(kBlack);
   hdata->SetMarkerStyle(20);
+  hdata->SetMarkerColor(hdata->GetLineColor());
+  // hdata->SetFillColor(0);
+  // hdata->SetFillStyle(0);
   const Double_t integral = (hdata->Integral((density_plot_ > 0) ? "width" : "")
                              + hdata->GetBinContent(0)
                              + hdata->GetBinContent(hdata->GetNbinsX()+1));
@@ -354,7 +358,7 @@ TH1* DataPlotter::get_qcd(TString hist, TString setType, Int_t set, ScaleUncerta
   const double nqcd = hData->Integral(0, hData->GetNbinsX()+1, (density_plot_ > 0) ? "width" : "");
 
   const char* stats = (doStatsLegend_) ? Form(": #scale[0.8]{%.2e}", nqcd) : "";
-  hData->SetTitle(Form("QCD%s",stats));
+  hData->SetTitle(Form("%s%s", qcd_label_.Data(), stats));
   if(fill_alpha_ < 1.) {
     hData->SetLineColorAlpha(qcd_color_,fill_alpha_);
     hData->SetFillColorAlpha(qcd_color_,fill_alpha_);
@@ -1494,6 +1498,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set, const
   if(draw_statistics_) draw_data(ndata,nmc,nsig);
   draw_luminosity(plot_single);
   draw_cms_label(plot_single);
+  if(region_label_) draw_region();
 
   TLegend* leg = new TLegend(((doStatsLegend_ || plot_single) ? legend_x1_stats_ : legend_x1_) + pad_leftmargin_,
                              legend_y1_, 1. - pad_rightmargin_ - legend_x2_, legend_y2_);
@@ -1737,6 +1742,10 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set, const
       }
     }
   }
+
+  // redraw to bring the points to the front
+  if(hDataMC) hDataMC->Draw((different_binning) ? "E same" : "EX0 same");
+
 
   if(stack_as_hist_) {
     for(auto o : *hstack->GetHists()) { //clear out the un-needed histograms
@@ -1988,6 +1997,7 @@ TCanvas* DataPlotter::plot_systematic(TString hist, Int_t set, Int_t systematic,
   g_stack->SetTitle("");
   draw_cms_label(false);
   draw_luminosity(false);
+  if(region_label_) draw_region();
   if(draw_grid_) pad1->SetGrid();
   if(logY_) pad1->SetLogy();
 
@@ -2274,6 +2284,7 @@ TCanvas* DataPlotter::plot_cdf(TString hist, TString setType, Int_t set, TString
   //draw text
   draw_luminosity();
   draw_cms_label();
+  if(region_label_) draw_region();
 
   if(plot_data_ && hDataMC) hDataMC->GetXaxis()->SetTitle(Form("%s CDF", xtitle.Data()));
   else hcdfstack->GetXaxis()->SetTitle(Form("%s CDF", xtitle.Data()));
@@ -2621,6 +2632,7 @@ TCanvas* DataPlotter::plot_significance(TString hist, TString setType, Int_t set
   //draw text
   draw_luminosity(true);
   draw_cms_label(true);
+  if(region_label_) draw_region();
   c->Update();
 
   if(!doVsEff) {

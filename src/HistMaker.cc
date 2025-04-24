@@ -601,12 +601,14 @@ void HistMaker::BookBaseEventHistograms(Int_t i, const char* dirname) {
   }
 
 
-  const float min_mass = (fZPrime) ?   70. :  40.;
-  const float max_mass = (fZPrime) ? 1000. : 180.;
+  const float min_mass   = (fZPrime) ?   70. :  40.;
+  const float max_mass   = (fZPrime) ?  810. : 180.;
+  const float mass_width = (fZPrime) ?    5. :  0.5;
+  const int   nmass_bins = (max_mass - min_mass) / mass_width;
   Utilities::BookH1F(fEventHist[i]->hLepPt[0], "leppt"         , Form("%s: Lepton Pt"      ,dirname)  , 100,   0, 200, folder);
-  Utilities::BookH1F(fEventHist[i]->hLepM[0] , "lepm"          , Form("%s: Lepton M"       ,dirname)  , 280,  min_mass, max_mass, folder);
-  Utilities::BookH1F(fEventHist[i]->hLepMUp  , "lepmup"        , Form("%s: Lepton M"       ,dirname)  , 280,  min_mass, max_mass, folder);
-  Utilities::BookH1F(fEventHist[i]->hLepMDown, "lepmdown"      , Form("%s: Lepton M"       ,dirname)  , 280,  min_mass, max_mass, folder);
+  Utilities::BookH1F(fEventHist[i]->hLepM[0] , "lepm"          , Form("%s: Lepton M"       ,dirname)  , nmass_bins,  min_mass, max_mass, folder);
+  Utilities::BookH1F(fEventHist[i]->hLepMUp  , "lepmup"        , Form("%s: Lepton M"       ,dirname)  , nmass_bins,  min_mass, max_mass, folder);
+  Utilities::BookH1F(fEventHist[i]->hLepMDown, "lepmdown"      , Form("%s: Lepton M"       ,dirname)  , nmass_bins,  min_mass, max_mass, folder);
   Utilities::BookH1F(fEventHist[i]->hLepMt   , "lepmt"         , Form("%s: Lepton Mt"      ,dirname)  , 100,   0, 200, folder);
   Utilities::BookH1F(fEventHist[i]->hLepEta  , "lepeta"        , Form("%s: Lepton Eta"     ,dirname)  ,  50,  -5,   5, folder);
   Utilities::BookH1F(fEventHist[i]->hLepPhi  , "lepphi"        , Form("%s: Lepton Phi"     ,dirname)  ,  40, -3.2, 3.2, folder);

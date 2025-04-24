@@ -97,6 +97,7 @@ namespace CLFV {
     Int_t include_qcd_ = 1; //use the same sign selection to get the QCD
     Int_t qcd_offset_ = 1000; //set number offset to get same sign selection
     Int_t qcd_color_ = kOrange+6; //QCD histogram color
+    TString qcd_label_ = "QCD";
     Int_t include_misid_ = 0; //use the anti-iso selection to get the misidentified lepton contribution
     Int_t misid_offset_ = 2000; //set number offset to get the anti-iso selection
     Int_t misid_color_ = kGreen-7; //MisID histogram color
@@ -137,12 +138,12 @@ namespace CLFV {
     Int_t canvas_x_ = 900; //canvas dimensions
     Int_t canvas_y_ = 800;
     Double_t axis_font_size_ = 0.157; //axis title values
-    Double_t y_title_offset_ = 0.25;
-    Double_t x_title_offset_ = 0.80;
-    Double_t x_label_size_ = 0.1;
-    Double_t y_label_size_ = 0.1;
-    Double_t x_label_offset_ = 0.1;
-    Double_t y_label_offset_ = 0.1;
+    Double_t y_title_offset_ = 0.35;
+    Double_t x_title_offset_ = 0.85;
+    Double_t x_label_size_ = 0.12;
+    Double_t y_label_size_ = 0.12;
+    Double_t x_label_offset_ = 0.015;
+    Double_t y_label_offset_ = 0.02;
     Double_t upper_pad_x1_ = 0.0; //upper pad fractional dimensions
     Double_t upper_pad_y1_ = 0.3;
     Double_t upper_pad_x2_ = 1.0;
@@ -154,7 +155,7 @@ namespace CLFV {
     Double_t upper_pad_topmargin_ = 0.06; //pad margins
     Double_t upper_pad_botmargin_ = 0.06;
     Double_t lower_pad_sigbkg_topmargin_ = 0.12;
-    Double_t lower_pad_topmargin_ = 0.03;
+    Double_t lower_pad_topmargin_ = 0.04;
     Double_t lower_pad_botmargin_ = 0.33;
     Double_t pad_leftmargin_ = 0.16;
     Double_t pad_rightmargin_ = 0.03;
@@ -164,10 +165,10 @@ namespace CLFV {
     //Legend parameters
     Double_t legend_txt_ = 0.05;
     Double_t legend_x1_stats_ = 0.01; //if stats in legend (from TPad buffer)
-    Double_t legend_x1_ = 0.01; //if no stats in legend
-    Double_t legend_x2_ = 0.01;
-    Double_t legend_y1_ = 0.93;
-    Double_t legend_y2_ = 0.75;
+    Double_t legend_x1_ = 0.03; //if no stats in legend
+    Double_t legend_x2_ = 0.03;
+    Double_t legend_y1_ = 0.90;
+    Double_t legend_y2_ = 0.73;
     Double_t legend_sys_x1_ = 0.6;
     Double_t legend_sys_x2_ = 0.89;
     Double_t legend_sys_y1_ = 0.93;
@@ -176,13 +177,17 @@ namespace CLFV {
     Double_t legend_sep_ = 2.;
     //luminosity drawing
     Double_t lum_txt_x_ = 0.0;
-    Double_t lum_txt_y_ = 0.94;
+    Double_t lum_txt_y_ = 0.952;
     //CMS prelim drawing
     Double_t cms_txt_x_ = 0.0; //from the TPad buffer
-    Double_t cms_txt_y_ = 0.94;
+    Double_t cms_txt_y_ = 0.952;
     Double_t cms_txt_size_ = 0.06;
     Double_t cms_txt_size_single_ = 0.045; //text size without data/mc split pad
     Bool_t   cms_is_prelim_ = true; //add preliminary label
+    //Label for the data region
+    Bool_t   region_label_ = false;
+    Double_t region_x_ = 0.01; // from left of legend
+    Double_t region_y_ = 0.03; // from bottom of legend
 
     //data yield drawing
     bool     draw_statistics_ = true;
@@ -354,6 +359,32 @@ namespace CLFV {
       if(years_.size() == 3) period = ""; //"Run 2, ";
       label.DrawLatex(1. - lum_txt_x_ - pad_rightmargin_, lum_txt_y_,
                       Form("%s%.0f fb^{-1} (%.0f TeV)",period.Data(),lum_/1.e3,rootS_));
+    }
+
+    void draw_region() {
+      TLatex label;
+      label.SetNDC();
+      label.SetTextFont(62);
+      // label.SetTextFont(42);
+      label.SetTextSize(0.05);
+      label.SetTextAlign(11); //31
+      label.SetTextAngle(0);
+      TString region = "";
+      if(selection_.BeginsWith("mu")) region += "#mu";
+      else if(selection_.BeginsWith("e")) region += "e";
+      if(selection_.Contains("tau")) {
+        region += "#tau";
+        if(selection_.EndsWith("_e")) region += "_{e}";
+        else if(selection_.EndsWith("_mu")) region += "_{#mu}";
+        else region += "_{h}";
+      } else if(selection_.EndsWith("mu")) region += "#mu";
+      else region += "e";
+
+      // Draw the label
+      // const float x(1. - region_x_ - pad_rightmargin_), y(region_y_);
+      const float x(region_x_ + legend_x1_ + pad_leftmargin_), y(legend_y2_ - region_y_);
+      if(verbose_ > 2) printf("%s: Drawing region label %s at (%.2f, %.2f)\n", __func__, region.Data(), x, y);
+      label.DrawLatex(x, y, region.Data());
     }
 
     void draw_data(int ndata, double nmc, std::map<TString, double> nsig) {

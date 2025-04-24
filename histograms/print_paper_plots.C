@@ -6,6 +6,8 @@ int print_paper_plots(TString selection = "mutau", TString hist_dir = "nanoaods_
                       TString out_dir = "paper",
                       bool add_sys = true, bool bdt_vars = false) {
 
+  const bool is_prelim(false); //preliminary plots or not
+
   // Check if this is for the Z'
   const bool zprime = selection == "zpemu";
   if(zprime) {
@@ -14,6 +16,7 @@ int print_paper_plots(TString selection = "mutau", TString hist_dir = "nanoaods_
     zprime_ = 1;
   }
   if(bdt_vars) out_dir += "_bdt_vars";
+  if(is_prelim) out_dir += "_prelim";
 
   //setup the datacards
   years_         = years;
@@ -31,15 +34,25 @@ int print_paper_plots(TString selection = "mutau", TString hist_dir = "nanoaods_
   dataplotter_->verbose_ = 0;
   dataplotter_->plot_signal_ = (zprime) ? 0 : 1;
   dataplotter_->misid_label_ = "j#rightarrow#tau_{h}";
-  dataplotter_->figure_format_ = "png"; //save PDF files
+  dataplotter_->qcd_label_ = "Nonprompt e#mu";
+  dataplotter_->region_label_ = true; // add a label for the data region
+  // dataplotter_->figure_format_ = "pdf"; //save PDF files
+  // dataplotter_->figure_format_ = "eps"; //save EPS files
+  dataplotter_->figure_format_ = "png"; //save PNG files
   dataplotter_->print_root_canvas_ = true; //add root files with the canvases for easier paper updates
   dataplotter_->plot_y_title_ = 1; //add y-axis label
   dataplotter_->add_y_unit_ = 1;
-  dataplotter_->cms_is_prelim_ = true; //not preliminary
+  dataplotter_->cms_is_prelim_ = is_prelim; //not preliminary or not
+  const double canvas_scale(1.0);
+  dataplotter_->canvas_x_ *= canvas_scale;
+  dataplotter_->canvas_y_ *= canvas_scale;
+  dataplotter_->signal_fill_style_ = 3004;
   dataplotter_->lum_txt_x_ = 0.00;
   dataplotter_->lum_txt_y_ = 0.952;
   dataplotter_->cms_txt_x_ = 0.00;
   dataplotter_->cms_txt_y_ = 0.952;
+  dataplotter_->region_x_  = 0.01;
+  dataplotter_->region_y_  = 0.03;
   dataplotter_->x_title_offset_ = 0.85;
   dataplotter_->y_title_offset_ = 0.35;
   dataplotter_->x_label_size_ = 0.12;
@@ -49,6 +62,10 @@ int print_paper_plots(TString selection = "mutau", TString hist_dir = "nanoaods_
   dataplotter_->lower_pad_y1_ = 0.;
   dataplotter_->lower_pad_topmargin_ = 0.04;
   dataplotter_->lower_pad_botmargin_ = 0.33;
+  dataplotter_->legend_x1_ = 0.03;
+  dataplotter_->legend_y1_ = 0.90;
+  dataplotter_->legend_x2_ = 0.03;
+  dataplotter_->legend_y2_ = 0.73;
   dataplotter_->ratio_plot_min_ = 0.8;
   dataplotter_->ratio_plot_max_ = 1.2;
   TGaxis::SetMaxDigits(3);

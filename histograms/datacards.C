@@ -78,10 +78,10 @@ void get_datacards(std::vector<dcard>& cards, TString selection, int forStudies 
   TString dy_ll = (forStudies == 1) ? "ZJets" : "Z#rightarrowll";
   TString dy    = (forStudies == 1) ? "ZJets" : "Drell-Yan";
   TString embed = (forStudies == 1) ? "ZJets" : "#tau#tau";
-  TString wj    = (forStudies == 1) ? "WJets" : (combineVB_) ? "Other VB" : "W+Jets";
+  TString vb    = (forStudies == 1) ? "WJets" : "W, multi-V";
+  TString wj    = (forStudies == 1) ? "WJets" : (combineVB_) ? vb : "W+Jets";
   TString wg    = (forStudies == 1) ? "WJets" : (combineWG_) ? wj : "W+#gamma";
-  TString ww    = (forStudies == 1) ? "WJets" : (combineWW_) ? wj : "WW";
-  TString vb    = (forStudies == 1) ? "WJets" : "Other VB";
+  TString ww    = (forStudies == 1) ? "WJets" : (combineWW_) ? vb : "WW";
   TString hb_tt = (forStudies == 1) ? "HBkg"  : (combineHB_) ? "H#rightarrow#tau#tau,WW" : "H#rightarrow#tau#tau";
   TString hb_ww = (forStudies == 1) ? "HBkg"  : (combineHB_) ? "H#rightarrow#tau#tau,WW" : "H#rightarrowWW";
 
