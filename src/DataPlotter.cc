@@ -712,9 +712,9 @@ TH1* DataPlotter::get_stack_uncertainty(THStack* hstack, TString hname) {
   if(add_bkg_hists_manually_) {huncertainty->Clear(); huncertainty->Reset();}
   huncertainty->SetTitle("#sigma(stat.)");
   huncertainty->SetName(hname.Data());
-  huncertainty->SetFillColor(stat_unc_color_);
+  huncertainty->SetFillColorAlpha(stat_unc_color_, stat_unc_alpha_);
   huncertainty->SetLineColor(stat_unc_color_);
-  huncertainty->SetFillStyle(3001);
+  huncertainty->SetFillStyle(stat_unc_style_);
   huncertainty->SetMarkerSize(0.); //so no marker
   if(add_bkg_hists_manually_) {
     for(TObject* o : *(hstack->GetHists())) {
@@ -848,9 +848,9 @@ TGraphAsymmErrors* DataPlotter::get_stack_systematic(THStack* hstack,
   //make a graph of the errors and return it
   TGraphAsymmErrors* gerrors = new TGraphAsymmErrors(npoints, xvals, yvals, xerrs, xerrs, ylow, yhigh);
   gerrors->SetTitle("#sigma(sys)");
-  gerrors->SetFillColor(kGray+3);
-  gerrors->SetLineColor(kGray+3);
-  gerrors->SetFillStyle(3005);
+  gerrors->SetFillColor(sys_unc_color_);
+  gerrors->SetLineColor(sys_unc_color_);
+  gerrors->SetFillStyle(sys_unc_style_);
   gerrors->SetMarkerSize(0.); //so no marker
 
 
@@ -1550,8 +1550,8 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set, const
     //set bin errors to only use data error
     for(int ibin = 1; ibin <= hDataMC->GetNbinsX(); ++ibin) hDataMC->SetBinError(ibin, d->GetBinError(ibin));
     hDataMCErr = PlotUtil::MCErrors(hDataMC, huncertainty);
-    hDataMCErr->SetFillStyle(3001);
-    hDataMCErr->SetFillColor(stat_unc_color_);
+    hDataMCErr->SetFillStyle(stat_unc_style_);
+    hDataMCErr->SetFillColorAlpha(stat_unc_color_, stat_unc_alpha_);
   } else if(hDataMC && data_over_mc_ > 0) { //do data / MC
     hDataMC->Clear();
     hDataMC->SetName("hDataMC");
@@ -1578,8 +1578,8 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set, const
       hDataMC->SetBinError(i,errRatio);
     }
     hDataMCErr = new TGraphErrors(nb, x, y, xerr, yerr);
-    hDataMCErr->SetFillStyle(3001);
-    hDataMCErr->SetFillColor(stat_unc_color_);
+    hDataMCErr->SetFillStyle(stat_unc_style_);
+    hDataMCErr->SetFillColorAlpha(stat_unc_color_, stat_unc_alpha_);
   } else if(hDataMC && data_over_mc_ < 0) {
     hDataMC->SetName("hRatio");
     for(TH1* h : hsignal) {
@@ -1790,7 +1790,7 @@ TGraphAsymmErrors* DataPlotter::get_errors(TH1* h, TH1* h_p, TH1* h_m, bool rati
   g->SetName(Form("g%s_%s", (ratio) ? "_r" : "", h->GetName()));
   g->SetFillColor(h->GetFillColor());
   g->SetLineColor(h->GetLineColor());
-  g->SetFillStyle(3001);
+  g->SetFillStyle(stat_unc_style_);
   g->SetLineWidth(3);
   return g;
 }
@@ -2011,7 +2011,7 @@ TCanvas* DataPlotter::plot_systematic(TString hist, Int_t set, Int_t systematic,
   TGraph* g_r_stack = get_errors(h_b, h_p, h_m, true, r_min, r_max);
   if(verbose_ > 1) printf("%s: Ratio min/max for Bkg = %.4f/%.4f\n", __func__, r_min, r_max);
   g_r_stack->SetFillColor(g_r_stack->GetLineColor());
-  g_r_stack->SetFillStyle(3001);
+  g_r_stack->SetFillStyle(stat_unc_style_);
   g_r_stack->Draw("ALE2");
   for(unsigned index = 0; index < signals_b.size(); ++index) {
     double r_min_s, r_max_s;

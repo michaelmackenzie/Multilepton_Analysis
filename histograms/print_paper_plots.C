@@ -7,6 +7,7 @@ int print_paper_plots(TString selection = "mutau", TString hist_dir = "nanoaods_
                       bool add_sys = true, bool bdt_vars = false) {
 
   const bool is_prelim(false); //preliminary plots or not
+  useOpenGL_ = 1; // use for rendering
 
   // Check if this is for the Z'
   const bool zprime = selection == "zpemu";
@@ -36,9 +37,9 @@ int print_paper_plots(TString selection = "mutau", TString hist_dir = "nanoaods_
   dataplotter_->misid_label_ = "j#rightarrow#tau_{h}";
   dataplotter_->qcd_label_ = "Nonprompt e#mu";
   dataplotter_->region_label_ = true; // add a label for the data region
-  // dataplotter_->figure_format_ = "pdf"; //save PDF files
+  dataplotter_->figure_format_ = "pdf"; //save PDF files
   // dataplotter_->figure_format_ = "eps"; //save EPS files
-  dataplotter_->figure_format_ = "png"; //save PNG files
+  // dataplotter_->figure_format_ = "png"; //save PNG files
   dataplotter_->print_root_canvas_ = true; //add root files with the canvases for easier paper updates
   dataplotter_->plot_y_title_ = 1; //add y-axis label
   dataplotter_->add_y_unit_ = 1;
@@ -47,10 +48,13 @@ int print_paper_plots(TString selection = "mutau", TString hist_dir = "nanoaods_
   dataplotter_->canvas_x_ *= canvas_scale;
   dataplotter_->canvas_y_ *= canvas_scale;
   dataplotter_->signal_fill_style_ = 3004;
+  dataplotter_->stat_unc_color_ = kGray + 1;
+  dataplotter_->stat_unc_alpha_ = 0.5;
+  dataplotter_->stat_unc_style_ = 1001;
   dataplotter_->lum_txt_x_ = 0.00;
-  dataplotter_->lum_txt_y_ = 0.952;
+  dataplotter_->lum_txt_y_ = 0.932;
   dataplotter_->cms_txt_x_ = 0.00;
-  dataplotter_->cms_txt_y_ = 0.952;
+  dataplotter_->cms_txt_y_ = 0.93;
   dataplotter_->region_x_  = 0.01;
   dataplotter_->region_y_  = 0.03;
   dataplotter_->x_title_offset_ = 0.85;
@@ -59,7 +63,9 @@ int print_paper_plots(TString selection = "mutau", TString hist_dir = "nanoaods_
   dataplotter_->y_label_size_ = 0.12;
   dataplotter_->x_label_offset_ = 0.015;
   dataplotter_->y_label_offset_ = 0.02;
+  dataplotter_->cms_txt_size_ = 0.08;
   dataplotter_->lower_pad_y1_ = 0.;
+  dataplotter_->upper_pad_topmargin_ = 0.08;
   dataplotter_->lower_pad_topmargin_ = 0.04;
   dataplotter_->lower_pad_botmargin_ = 0.33;
   dataplotter_->legend_x1_ = 0.03;
