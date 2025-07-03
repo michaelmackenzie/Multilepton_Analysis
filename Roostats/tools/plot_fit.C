@@ -47,7 +47,7 @@ void draw_cms_label(double left_margin = 0.10) {
     TText cmslabel;
     cmslabel.SetNDC();
     cmslabel.SetTextColor(1);
-    cmslabel.SetTextSize(0.07);
+    cmslabel.SetTextSize(0.11);
     cmslabel.SetTextAlign(11);
     cmslabel.SetTextAngle(0);
     cmslabel.SetTextFont(61);
@@ -64,7 +64,7 @@ void draw_luminosity(int year = -1) {
   label.SetNDC();
   label.SetTextFont(42);
   // label.SetTextColor(1);
-  label.SetTextSize(0.05);
+  label.SetTextSize(0.06);
   label.SetTextAlign(31);
   label.SetTextAngle(0);
   TString period = (year > 2000) ? Form("%i, ", year) : "";
@@ -94,6 +94,16 @@ void draw_category(TString tag, float left_margin = 0.10) {
   label.SetTextAlign(11);
   label.SetTextAngle(0);
   label.DrawLatex(left_margin + 0.04, 0.58, cat.Data());
+}
+
+void replace_bin_labels(TH1* h, const int neff_bins) {
+  if(!h) return;
+  // change bin numbers to text labels
+  const int nbins = h->GetNbinsX();
+  for(int bin = 1; bin <= nbins; ++bin) {
+    if(neff_bins < 10 || (bin-1) % 2 == 0) h->GetXaxis()->SetBinLabel(bin, Form("%i", bin-1));
+    else                                   h->GetXaxis()->SetBinLabel(bin, Form(" "));
+  }
 }
 
 //------------------------------------------------------------------------------------------
@@ -193,6 +203,7 @@ int print_stack(vector<TDirectoryFile*> dirs, TString tag, TString outdir) {
   //Determine the x-axis range to use
   const double xmin = htotal->GetBinLowEdge(htotal->FindFirstBinAbove(0.01));
   const double xmax = htotal->GetXaxis()->GetBinUpEdge(htotal->FindLastBinAbove(0.01));
+  
 
   //Create the canvas to plot on
   gStyle->SetOptStat(0);
@@ -205,8 +216,8 @@ int print_stack(vector<TDirectoryFile*> dirs, TString tag, TString outdir) {
   TPad* pad3 = new TPad("pad3_stack", "pad3_stack", 0., 0., 1., x1);
   pad1->SetRightMargin (0.03); pad2->SetRightMargin (pad1->GetRightMargin()); pad3->SetRightMargin(pad1->GetRightMargin());
   pad1->SetLeftMargin  (0.13); pad2->SetLeftMargin  (pad1->GetLeftMargin ()); pad3->SetLeftMargin (pad1->GetLeftMargin ());
-  pad1->SetBottomMargin(0.02); pad2->SetBottomMargin(0.09); pad3->SetBottomMargin(0.33);
-  pad1->SetTopMargin   (0.10); pad2->SetTopMargin   (0.07); pad3->SetTopMargin   (0.05);
+  pad1->SetBottomMargin(0.03); pad2->SetBottomMargin(0.09); pad3->SetBottomMargin(0.33);
+  pad1->SetTopMargin   (0.10); pad2->SetTopMargin   (0.08); pad3->SetTopMargin   (0.05);
   pad1->Draw(); pad2->Draw(); pad3->Draw();
 
   // Draw the data and fit components
@@ -258,6 +269,9 @@ int print_stack(vector<TDirectoryFile*> dirs, TString tag, TString outdir) {
   }
   gdata->Draw("PZ");
   htotal->GetXaxis()->SetRangeUser(xmin, xmax);
+  const int neff_bins = htotal->FindBin(xmax-1.e-3) - htotal->FindBin(xmin+1.e-3) + 1;
+  const int ndivisions = (neff_bins > 10) ? 200 + (neff_bins+1) / 2 : neff_bins;
+  htotal->GetXaxis()->SetNdivisions(ndivisions);
 
 
   //Add a legend for the summary components and one for the background stack
@@ -389,7 +403,7 @@ int print_stack(vector<TDirectoryFile*> dirs, TString tag, TString outdir) {
   hBkg_unc->Draw("E2");
   if(unblind_) {
     hRatio_s->Draw("hist same");
-    hRatio_s->GetYaxis()->SetRangeUser(0.8, 1.2); //necessary due to y-axis importing from clone
+    hRatio_s->GetYaxis()->SetRangeUser(0.9, 1.1); //necessary due to y-axis importing from clone
   }
   gRatio->SetLineColor(gdata->GetLineColor());
   gRatio->SetLineWidth(gdata->GetLineWidth());
@@ -409,11 +423,12 @@ int print_stack(vector<TDirectoryFile*> dirs, TString tag, TString outdir) {
 
   //Configure the titles and axes
   float txt_scale = (1.-x2)/(x2-x1);
-  hBkg_unc->GetYaxis()->SetRangeUser(0.8, 1.2);
+  hBkg_unc->GetYaxis()->SetRangeUser(0.9, 1.1);
   hBkg_unc->SetTitle("");
   hBkg_unc->SetXTitle("");
   hBkg_unc->GetXaxis()->SetLabelSize(0.);
   hBkg_unc->GetYaxis()->SetNdivisions(205);
+  hBkg_unc->GetXaxis()->SetNdivisions(ndivisions);
   hBkg_unc->GetYaxis()->SetLabelSize(txt_scale*htotal->GetYaxis()->GetLabelSize());
   hBkg_unc->GetYaxis()->SetTitleSize(txt_scale*htotal->GetYaxis()->GetTitleSize());
   hBkg_unc->GetYaxis()->SetTitleOffset(0.23);
@@ -425,6 +440,7 @@ int print_stack(vector<TDirectoryFile*> dirs, TString tag, TString outdir) {
   pad3->cd();
 
   auto hPull = hPull_s;
+  replace_bin_labels(hPull, neff_bins);
   const double max_pull = hPull->GetMaximum();
   const double min_pull = hPull->GetMinimum();
   hPull->SetLineColor(kAtlantic);
@@ -437,16 +453,18 @@ int print_stack(vector<TDirectoryFile*> dirs, TString tag, TString outdir) {
   // hPull->SetYTitle("#frac{Data-Fit}{#sigma}");
   // hPull->GetYaxis()->SetTitleOffset(0.22);
   hPull->SetYTitle("Pull");
-  hPull->GetYaxis()->SetTitleOffset(0.27);
   // if(err_mode_ == 1) hPull->SetYTitle("#frac{(Data-Fit)}{#sqrt{#sigma_{Data}^{2} - #sigma_{Fit}^{2}}}");
 
   txt_scale = (1.-x2)/(x1);
-  hPull->GetXaxis()->SetLabelSize(txt_scale*htotal->GetYaxis()->GetLabelSize());
+  hPull->GetXaxis()->SetLabelOffset(0.012);
+  hPull->GetXaxis()->SetLabelSize(1.5*txt_scale*htotal->GetYaxis()->GetLabelSize());
   hPull->GetYaxis()->SetNdivisions(505);
+  hPull->GetXaxis()->SetNdivisions(ndivisions);
   hPull->GetYaxis()->SetLabelSize(hPull->GetXaxis()->GetLabelSize());
   hPull->GetXaxis()->SetTitleSize(txt_scale*htotal->GetYaxis()->GetTitleSize());
   hPull->GetYaxis()->SetTitleSize(hPull->GetXaxis()->GetTitleSize());
   hPull->GetXaxis()->SetTitleOffset(0.70);
+  hPull->GetYaxis()->SetTitleOffset(0.27);
 
   //Add a reference line for perfect agreement
   TLine* line_2 = new TLine(xmin, 0., xmax, 0.);
@@ -681,7 +699,7 @@ int print_hist(vector<TDirectoryFile*> dirs, TString tag, TString outdir) {
   hBkg_unc->Draw("E2");
   if(unblind_) {
     hRatio_s->Draw("hist same");
-    hRatio_s->GetYaxis()->SetRangeUser(0.8, 1.2); //necessary due to y-axis importing from clone
+    hRatio_s->GetYaxis()->SetRangeUser(0.9, 1.1); //necessary due to y-axis importing from clone
   }
   gRatio->Draw("P");
   hBkg_unc->GetXaxis()->SetRangeUser(xmin, xmax);
@@ -694,7 +712,7 @@ int print_hist(vector<TDirectoryFile*> dirs, TString tag, TString outdir) {
   line->Draw("same");
 
   //Configure the titles and axes
-  hBkg_unc->GetYaxis()->SetRangeUser(0.8, 1.2);
+  hBkg_unc->GetYaxis()->SetRangeUser(0.9, 1.1);
   hBkg_unc->SetTitle("");
   hBkg_unc->SetXTitle("");
   hBkg_unc->GetXaxis()->SetLabelSize(0.);
@@ -841,7 +859,7 @@ int plot_fit(TString fname, TString outdir = "figures", bool unblind = false) {
 
   // Reduce number of entries listed in linear, move exponent
   TGaxis::SetMaxDigits(3);
-  TGaxis::SetExponentOffset(-0.05, 0.01, "Y");
+  TGaxis::SetExponentOffset(-0.06, 0.01, "Y");
 
   //Print the fit configurations: Pre-fit, background-only fit, and background+signal fit
   int status(0);
