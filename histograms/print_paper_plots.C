@@ -69,11 +69,13 @@ int print_paper_plots(TString selection = "mutau", TString hist_dir = "nanoaods_
   dataplotter_->lower_pad_topmargin_ = 0.04;
   dataplotter_->lower_pad_botmargin_ = 0.33;
   dataplotter_->legend_x1_ = 0.03;
-  dataplotter_->legend_y1_ = 0.90;
+  dataplotter_->legend_y1_ = 0.895;
   dataplotter_->legend_x2_ = 0.03;
-  dataplotter_->legend_y2_ = 0.73;
+  dataplotter_->legend_y2_ = 0.65;
   dataplotter_->ratio_plot_min_ = 0.8;
   dataplotter_->ratio_plot_max_ = 1.2;
+  dataplotter_->linear_buffer_  = 1.6;
+  dataplotter_->log_buffer_     = 1.5;
   TGaxis::SetMaxDigits(3);
   TGaxis::SetExponentOffset(-0.06, 0.008, "Y");
 

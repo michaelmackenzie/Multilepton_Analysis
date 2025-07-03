@@ -1482,7 +1482,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set, const
   if(plot_data_ && d) {
     const double bin_width = d->GetBinWidth(1);
     for(int ibin = 2; ibin <= d->GetNbinsX(); ++ibin) different_binning |= std::fabs(bin_width - d->GetBinWidth(ibin)) / bin_width > 0.001;
-    d->Draw((different_binning) ? "E SAME" : "EX0 same");
+    d->Draw((different_binning) ? "E SAME" : "EX0P same");
   }
 
   if(d && plot_data_ > 0) {
@@ -1504,7 +1504,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set, const
                              legend_y1_, 1. - pad_rightmargin_ - legend_x2_, legend_y2_);
   leg->SetTextSize((doStatsLegend_ || plot_single) ? 0.75*legend_txt_ : legend_txt_);
   leg->SetNColumns(legend_ncol_);
-  if(d) leg->AddEntry(d, d->GetTitle(), "PL");
+  if(d) leg->AddEntry(d, d->GetTitle(), "EP");
   if(stack_uncertainty_) leg->AddEntry(huncertainty, huncertainty->GetTitle(), "F");
   if(systematic)         leg->AddEntry(systematic  , systematic  ->GetTitle(), "F");
   if(!stack_signal_) {
@@ -1521,6 +1521,7 @@ TCanvas* DataPlotter::plot_stack(TString hist, TString setType, Int_t set, const
   leg->SetFillColor(0);
   leg->SetLineColor(0);
   leg->SetLineStyle(0);
+  leg->SetLineWidth(0);
   leg->Draw();
 
   pad1->Update();
