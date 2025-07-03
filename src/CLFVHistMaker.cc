@@ -3085,6 +3085,13 @@ Bool_t CLFVHistMaker::Process(Long64_t entry)
       if(category > -1) {
         const int mva_set_offset = set_offset + ((mutau_e) ? (kMuTauE-kEMu) : (etau_mu) ? (kETauMu - kEMu) : 0) + ((boson == "z") ? 9 : 14);
         FillAllHistograms(mva_set_offset + category);
+        // Add event printout for event display
+        if(false) {
+          if(emu && mll > 500. && fIsData && fZPrime && category > 2) {
+            printf("CLFVHistMaker::%s: Event %i:%i:%llu: Mass = %.1f, MET = %.1f, BDT = %.2f\n",
+                   __func__, runNumber, lumiSection, eventNumber, mll, met, fMvaUse[5]);
+          }
+        }
         if(emu && fDoEleIDStudy && boson == "z") {
           if(barrel)
             FillAllHistograms(set_offset + 70 + category);

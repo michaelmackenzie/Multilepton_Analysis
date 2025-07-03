@@ -91,6 +91,10 @@ namespace CLFV {
     Int_t stack_uncertainty_ = 1; //whether or not to add gray shading for uncertainty
     Int_t combine_uncertainties_ = 1; //whether or not to combine sys and stat uncertainties
     Int_t stat_unc_color_ = kGray + 1; //stat uncertainty graph fill color
+    Float_t stat_unc_alpha_ = 0.5;
+    Int_t stat_unc_style_ = 3001;
+    Int_t sys_unc_color_ = kGray + 3; //stat uncertainty graph fill color
+    Int_t sys_unc_style_ = 3005;
     Int_t add_bkg_hists_manually_ = 0; //whether to use Stacks given uncertainty or add them by hand
     Int_t density_plot_ = 0; //divide by bin width
     Int_t debug_ = 0; //for debugging
@@ -352,7 +356,7 @@ namespace CLFV {
       label.SetNDC();
       label.SetTextFont(42);
       // label.SetTextColor(1);
-      label.SetTextSize((single) ? 0.03 : .04);
+      label.SetTextSize((single) ? 0.04 : .05);
       label.SetTextAlign(31);
       label.SetTextAngle(0);
       TString period = Form("%i, ", years_[0]);

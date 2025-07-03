@@ -1,7 +1,8 @@
 // Test the CMS colors
 
 void test_colors() {
-  vector<int> colors = {kCMSColor_1,
+  vector<int> colors = {
+    kCMSColor_1,
     kCMSColor_2,
     kCMSColor_3,
     kCMSColor_4,
