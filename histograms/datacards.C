@@ -74,16 +74,16 @@ void get_datacards(std::vector<dcard>& cards, TString selection, int forStudies 
 
   //Names of the different background categories
   TString top   = (forStudies == 1) ? "Top"   : "Top quark";
-  TString dy_tt = (forStudies == 1) ? "ZJets" : "Z#rightarrow#tau#tau";
-  TString dy_ll = (forStudies == 1) ? "ZJets" : "Z#rightarrowll";
+  TString dy_tt = (forStudies == 1) ? "ZJets" : "Z #rightarrow #tau#tau";
+  TString dy_ll = (forStudies == 1) ? "ZJets" : "Z #rightarrow ll";
   TString dy    = (forStudies == 1) ? "ZJets" : "Drell-Yan";
   TString embed = (forStudies == 1) ? "ZJets" : "#tau#tau";
   TString vb    = (forStudies == 1) ? "WJets" : "W, multi-V";
   TString wj    = (forStudies == 1) ? "WJets" : (combineVB_) ? vb : "W+Jets";
   TString wg    = (forStudies == 1) ? "WJets" : (combineWG_) ? wj : "W+#gamma";
   TString ww    = (forStudies == 1) ? "WJets" : (combineWW_) ? vb : "WW";
-  TString hb_tt = (forStudies == 1) ? "HBkg"  : (combineHB_) ? "H#rightarrow#tau#tau,WW" : "H#rightarrow#tau#tau";
-  TString hb_ww = (forStudies == 1) ? "HBkg"  : (combineHB_) ? "H#rightarrow#tau#tau,WW" : "H#rightarrowWW";
+  TString hb_tt = (forStudies == 1) ? "HBkg"  : (combineHB_) ? "H #rightarrow #tau#tau,WW" : "H #rightarrow #tau#tau";
+  TString hb_ww = (forStudies == 1) ? "HBkg"  : (combineHB_) ? "H #rightarrow #tau#tau,WW" : "H #rightarro wWW";
 
   const int top_c = kCMSColor_10; //kYellow - 7;
   const int dy_ll_c = (forStudies == 1) ? kRed - 7 : kCMSColor_6; //kRed - 2;
@@ -274,17 +274,17 @@ void get_datacards(std::vector<dcard>& cards, TString selection, int forStudies 
       const double hxs = xs.GetCrossSection("H");
       if(selection == "emu") {
         if(zprime_) {
-          cards.push_back(                  dcard("ZEMu"             , "ZEMu"             , "Z#rightarrowe#mu (10^{-6})"   , false, 1.e-6*zxs, true, year, kBlue   ));
+          cards.push_back(                  dcard("ZEMu"             , "ZEMu"             , "Z #rightarrow e#mu (10^{-6})"   , false, 1.e-6*zxs, true, year, kBlue   ));
         } else {
-          cards.push_back(                  dcard("ZEMu"             , "ZEMu"             , "Z#rightarrowe#mu (10^{-5})"   , false, 1.e-5*zxs, true, year, kBlue   ));
-          if(includeHiggs_) cards.push_back(dcard("HEMu"             , "HEMu"             , "H#rightarrowe#mu (10^{-2})"   , false, 1.e-2*hxs, true, year, kGreen-1));
+          cards.push_back(                  dcard("ZEMu"             , "ZEMu"             , "Z #rightarrow e#mu (10^{-5})"   , false, 1.e-5*zxs, true, year, kBlue   ));
+          if(includeHiggs_) cards.push_back(dcard("HEMu"             , "HEMu"             , "H #rightarrow e#mu (10^{-2})"   , false, 1.e-2*hxs, true, year, kGreen-1));
         }
       } else if(selection.Contains("etau") || selection == "ee") {
-        cards.push_back(                  dcard("ZETau"            , "ZETau"            , "Z#rightarrowe#tau (10^{-3})"  , false, 1.e-3*zxs, true, year, kBlue   ));
-        if(includeHiggs_) cards.push_back(dcard("HETau"            , "HETau"            , "H#rightarrowe#tau (10^{-1})"  , false, 1.e-1*hxs, true, year, kGreen-1));
+        cards.push_back(                  dcard("ZETau"            , "ZETau"            , "Z #rightarrow e#tau (10^{-3})"  , false, 1.e-3*zxs, true, year, kBlue   ));
+        if(includeHiggs_) cards.push_back(dcard("HETau"            , "HETau"            , "H #rightarrow e#tau (10^{-1})"  , false, 1.e-1*hxs, true, year, kGreen-1));
       } else if(selection.Contains("mutau") || selection == "mumu") {
-        cards.push_back(                  dcard("ZMuTau"           , "ZMuTau"           , "Z#rightarrow#mu#tau (10^{-3})", false, 1.e-3*zxs, true, year, kBlue   ));
-        if(includeHiggs_) cards.push_back(dcard("HMuTau"           , "HMuTau"           , "H#rightarrow#mu#tau (10^{-1})", false, 1.e-1*hxs, true, year, kGreen-1));
+        cards.push_back(                  dcard("ZMuTau"           , "ZMuTau"           , "Z #rightarrow #mu#tau (10^{-3})", false, 1.e-3*zxs, true, year, kBlue   ));
+        if(includeHiggs_) cards.push_back(dcard("HMuTau"           , "HMuTau"           , "H #rightarrow #mu#tau (10^{-1})", false, 1.e-1*hxs, true, year, kGreen-1));
       }
     } else if(forStudies == 2) { //include signal in a study at the nominal cross section
       if(selection == "emu") {
