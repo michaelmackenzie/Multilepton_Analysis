@@ -175,7 +175,7 @@ int print_stack(vector<TDirectoryFile*> dirs, TString tag, TString outdir) {
   //Build the stack
   THStack* stack = new THStack("hstack", ("stack_" + tag).Data());
   vector<TString> names  = {"HiggsBkg"               , "Top"       , "OtherVB"   , "ZToeemumu"     , "Embedding", "MisID"               , "QCD"           };
-  vector<TString> titles = {"H#rightarrow#tau#tau,WW", "Top quark" , "W, multi-V", "Z#rightarrowll", "#tau#tau" , "j#rightarrow#tau_{h}", "nonprompt e#mu"};
+  vector<TString> titles = {"H #rightarrow #tau#tau,WW", "Top quark" , "W, multi-V", "Z #rightarrow ll", "#tau#tau" , "j #rightarrow #tau_{h}", "nonprompt e#mu"};
   vector<int>     colors = {kCMSColor_9              , kCMSColor_10, kCMSColor_8 , kCMSColor_6     , kCMSColor_7, kCMSColor_1           , kCMSColor_2     };
   for(unsigned i = 0; i < names.size(); ++i) {
     TString name = names[i];
@@ -460,7 +460,7 @@ int print_stack(vector<TDirectoryFile*> dirs, TString tag, TString outdir) {
   hPull->GetXaxis()->SetLabelSize(1.5*txt_scale*htotal->GetYaxis()->GetLabelSize());
   hPull->GetYaxis()->SetNdivisions(505);
   hPull->GetXaxis()->SetNdivisions(ndivisions);
-  hPull->GetYaxis()->SetLabelSize(hPull->GetXaxis()->GetLabelSize());
+  hPull->GetYaxis()->SetLabelSize(txt_scale*htotal->GetYaxis()->GetLabelSize());
   hPull->GetXaxis()->SetTitleSize(txt_scale*htotal->GetYaxis()->GetTitleSize());
   hPull->GetYaxis()->SetTitleSize(hPull->GetXaxis()->GetTitleSize());
   hPull->GetXaxis()->SetTitleOffset(0.70);

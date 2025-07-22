@@ -3,41 +3,49 @@
 
 int plot_groups(const char* file, const char* tag = "_zmutau_v09j", const bool doObs = false, const bool run = true) {
 
-  vector<TString> groups = {
-                            "EmbedUnfold_Total",
-                            "EmbedRes_Total"   ,
-                            "MuonID_Total"     ,
-                            "EleID_Total"      ,
-                            "EleTrig_Total"    ,
-                            "MuonTrig_Total"   ,
-                            "Prefire_Total"    ,
-                            "ZPt_Total"        ,
-                            "Lumi_Total"       ,
-                            "BTag_Total"       ,
-                            "Pileup_Total"     ,
-                            "TauJetID_Total"   ,
-                            "TauEleID_Total"   ,
-                            "TauMuID_Total"    ,
-                            "MuonES_Total"     ,
-                            "EleES_Total"      ,
-                            "TauES_Total"      ,
-                            "TauMuES_Total"    ,
-                            "TauEleES_Total"   ,
-                            "JER_JES"          ,
-                            "Theory_Total"     ,
-                            // "QCD_Stat"         ,
-                            // // "QCD_NC"           ,
-                            // "QCD_Bias"         ,
-                            "QCD_Total"        ,
-                            // "JetToTau_Stat"    ,
-                            // "JetToTau_NC"      ,
-                            // "JetToTau_Bias"    ,
-                            // "JetToTau_Comp"    ,
-                            "JetToTau_Total"   ,
-                            "autoMCStats"      ,
-                            "All_Systematics"
-
-  };
+  vector<TString> groups;
+  if(TString(tag).Contains("tau")) {
+    groups = {
+      "EmbedUnfold_Total",
+      "EmbedRes_Total"   ,
+      "MuonID_Total"     ,
+      "EleID_Total"      ,
+      "EleTrig_Total"    ,
+      "MuonTrig_Total"   ,
+      "Prefire_Total"    ,
+      "ZPt_Total"        ,
+      "Lumi_Total"       ,
+      "BTag_Total"       ,
+      "Pileup_Total"     ,
+      "TauJetID_Total"   ,
+      "TauEleID_Total"   ,
+      "TauMuID_Total"    ,
+      "MuonES_Total"     ,
+      "EleES_Total"      ,
+      "TauES_Total"      ,
+      "TauMuES_Total"    ,
+      "TauEleES_Total"   ,
+      "JER_JES"          ,
+      "Theory_Total"     ,
+      // "QCD_Stat"         ,
+      // // "QCD_NC"           ,
+      // "QCD_Bias"         ,
+      "QCD_Total"        ,
+      // "JetToTau_Stat"    ,
+      // "JetToTau_NC"      ,
+      // "JetToTau_Bias"    ,
+      // "JetToTau_Comp"    ,
+      "JetToTau_Total"   ,
+      "autoMCStats"      ,
+      "All_Systematics"
+    };
+  } else if(TString(tag).Contains("zprime")) {
+    groups = {
+      "ElectronID",
+      "MuonID",
+      "All_Systematics"
+    };
+  }
 
   if(run) {
     TString args = "-M FitDiagnostics --rMin -10 --rMax 20 --stepSize 0.02 --setRobustFitTolerance 0.001 --setCrossingTolerance 5e-6 --cminDefaultMinimizerTolerance 0.001";
